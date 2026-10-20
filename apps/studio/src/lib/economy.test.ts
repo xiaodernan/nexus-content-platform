@@ -1,0 +1,194 @@
+import { describe, expect, it } from 'vitest';
+
+import type { PriceCents, Tip, Subscription } from './monetization';
+
+import {
+  toSubscriptionRow,
+  toSubscriptionRows,
+  toTipRow,
+  toTipRows,
+  priceText,
+  tipText,
+  isFreePrice,
+  subscriptionActiveText,
+  subscriptionDaysLeftText,
+  tipsTotal,
+  tipCount,
+  tipPercentShare,
+  tipsByRecipient,
+  tipsTotalByAgent,
+  isSubscribed,
+} from './economy';
+
+const pc = (n: number) => n as PriceCents;
+
+/**
+ * M8 v274 — the CREATOR ECONOMY's reading half.
+ *
+ * The parallel lane's `monetization.ts` declares the pure types and formatters.
+ * This module re-exports those formatters and adds the mapping from wire shapes
+ * to display rows (the same pattern as `explore.ts`, `profile.ts`, `trail.ts`).
+ */
+const sub = (over: Partial<Subscription> = {}) => ({
+  creatorId: 'acct-ada' as const,
+  planId: 'pro',
+  priceCents: pc(1500),
+  currency: 'CNY' as const,
+  active: true,
+  subscribedAt: 1_700_000_000_000,
+  expiresAt: 1_800_000_000_000,
+  ...over,
+});
+
+const tip = (over: Partial<Tip> = {}) => ({
+  recipientId: 'acct-ada' as const,
+  amountCents: pc(500),
+  message: 'great work!',
+  anonymous: false,
+  ...over,
+});
+
+const escape = (text: string) => text.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+
+describe('economy — formatters (re-exported from monetization)', () => {
+  it('priceText formats cents with symbol', () => {
+    expect(priceText(pc(1500), 'CNY')).toBe('¥15.00');
+    expect(priceText(pc(0), 'CNY')).toBe('Free');
+    expect(priceText(pc(999), 'USD')).toBe('$9.99');
+  });
+
+  it('isFreePrice spots zero and negative', () => {
+    expect(isFreePrice(pc(0))).toBe(true);
+    expect(isFreePrice(pc(-1))).toBe(true);
+    expect(isFreePrice(pc(1))).toBe(false);
+  });
+
+  it('tipText escapes the message and names the amount', () => {
+    const t = tip({ amountCents: pc(500), message: 'a < b & c' });
+    expect(tipText(t, escape)).toBe('Someone tipped ¥5.00 — a < b & c');
+  });
+
+  it('anonymous tips say Anonymous', () => {
+    expect(tipText(tip({ anonymous: true }), escape)).toContain('Anonymous tipped');
+  });
+});
+
+describe('economy — subscription rows (M8 v274)', () => {
+  it('maps a valid subscription to a display row', () => {
+    const row = toSubscriptionRow(sub())!;
+    expect(row.planId).toBe('pro');
+    expect(row.priceText).toBe('¥15.00');
+    expect(row.statusText).toBe('Active');
+    expect(row.isActive).toBe(true);
+  });
+
+  it('an expired subscription says Expired', () => {
+    const row = toSubscriptionRow(sub({ active: true, expiresAt: 1_000_000_000_000 }))!;
+    expect(row.statusText).toBe('Expired');
+    expect(row.isActive).toBe(false);
+  });
+
+  it('an inactive subscription says Never', () => {
+    const row = toSubscriptionRow(sub({ active: false }))!;
+    expect(row.statusText).toBe('Never');
+    expect(row.isActive).toBe(false);
+  });
+
+  it('daysLeftText shows remaining days or N/A', () => {
+    const farFuture = sub({ expiresAt: Date.now() + 10 * 24 * 60 * 60 * 1000 });
+    expect(toSubscriptionRow(farFuture)!.daysLeftText).toMatch(/^\d+ d left$/);
+    expect(toSubscriptionRow(sub({ expiresAt: null }))!.daysLeftText).toBe('N/A');
+    expect(toSubscriptionRow(sub({ expiresAt: 1 }))!.daysLeftText).toBe('Expired');
+  });
+
+  it('a row it cannot display honestly is dropped', () => {
+    expect(toSubscriptionRow(null)).toBeNull();
+    expect(toSubscriptionRow('string')).toBeNull();
+    expect(toSubscriptionRow(sub({ planId: '' }))).toBeNull();
+    expect(toSubscriptionRow({ planId: 'x', priceCents: 'fifteen', currency: 'CNY', active: true, subscribedAt: 1, expiresAt: null })).toBeNull();
+    expect(toSubscriptionRow({ planId: 'x', priceCents: Number.NaN, currency: 'CNY', active: true, subscribedAt: 1, expiresAt: null })).toBeNull();
+  });
+});
+
+describe('economy — tip rows (M8 v274)', () => {
+  it('maps a valid tip to a display row', () => {
+    const row = toTipRow(tip(), escape)!;
+    expect(row.recipientId).toBe('acct-ada');
+    expect(row.amountText).toBe('¥5.00');
+    expect(row.messageText).toBe('great work!');
+    expect(row.anonymous).toBe(false);
+  });
+
+  it('escapes the message in the row', () => {
+    const row = toTipRow(tip({ message: '<script>' }), escape)!;
+    expect(row.messageText).toBe('<script>');
+  });
+
+  it('anonymous tips are marked', () => {
+    expect(toTipRow(tip({ anonymous: true }), escape)!.anonymous).toBe(true);
+  });
+
+  it('a row it cannot display honestly is dropped', () => {
+    expect(toTipRow(null, escape)).toBeNull();
+    expect(toTipRow(tip({ recipientId: '' }), escape)).toBeNull();
+    expect(toTipRow({ recipientId: 'x', amountCents: 'five hundred', message: '', anonymous: false }, escape)).toBeNull();
+    expect(toTipRow({ recipientId: 'x', amountCents: Number.NaN, message: '', anonymous: false }, escape)).toBeNull();
+  });
+});
+
+describe('economy — whole lists (M8 v274)', () => {
+  it('drops bad rows and keeps good ones', () => {
+    const rows = toSubscriptionRows([sub({ planId: 'good' }), sub({ planId: '' }), sub({ planId: 'also' })]);
+    expect(rows.map((r) => r.planId)).toEqual(['good', 'also']);
+  });
+
+  it('tip rows filter the same way', () => {
+    const rows = toTipRows([tip({ recipientId: 'a' }), tip({ recipientId: '' }), tip({ recipientId: 'b' })], escape);
+    expect(rows.map((r) => r.recipientId)).toEqual(['a', 'b']);
+  });
+});
+
+describe('economy — aggregates (re-exported from monetization)', () => {
+  it('tipsTotalByAgent sums per recipient', () => {
+    const out = tipsTotalByAgent([tip({ recipientId: 'a', amountCents: pc(100) }), tip({ recipientId: 'a', amountCents: pc(200) }), tip({ recipientId: 'b', amountCents: pc(50) })]);
+    expect(out['a']).toBe(300);
+    expect(out['b']).toBe(50);
+  });
+
+  it('tipCount counts tips', () => {
+    expect(tipCount([tip(), tip(), tip()])).toBe(3);
+    expect(tipCount([])).toBe(0);
+  });
+
+  it('tipPercentShare avoids divide by zero', () => {
+    expect(tipPercentShare(tip({ amountCents: pc(50) }), 0)).toBe(0);
+    expect(tipPercentShare(tip({ amountCents: pc(25) }), 100)).toBe(25);
+  });
+
+  it('tipsByRecipient filters without mutating', () => {
+    const arr = [tip({ recipientId: 'a' }), tip({ recipientId: 'b' }), tip({ recipientId: 'a' })];
+    const filtered = tipsByRecipient(arr, 'a');
+    expect(filtered.length).toBe(2);
+    expect(arr.length).toBe(3);
+  });
+
+  it('tipsTotal sums all tips', () => {
+    expect(tipsTotal([tip({ amountCents: pc(100) }), tip({ amountCents: pc(200) })])).toBe(300);
+  });
+
+  it('subscriptionActiveText reads active/expired/never', () => {
+    const now = Date.now();
+    expect(subscriptionActiveText(null, now)).toBe('Never');
+    expect(subscriptionActiveText({ active: false, expiresAt: null, creatorId: 'x', planId: 'p', priceCents: pc(0), currency: 'CNY', subscribedAt: null }, now)).toBe('Never');
+    expect(subscriptionActiveText({ active: true, expiresAt: now + 1000, creatorId: 'x', planId: 'p', priceCents: pc(0), currency: 'CNY', subscribedAt: null }, now)).toBe('Active');
+    expect(subscriptionActiveText({ active: true, expiresAt: now - 1000, creatorId: 'x', planId: 'p', priceCents: pc(0), currency: 'CNY', subscribedAt: null }, now)).toBe('Expired');
+  });
+
+  it('isSubscribed checks viewer against creator', () => {
+    const s = sub({ creatorId: 'acct-ada' });
+    expect(isSubscribed(s, 'acct-ada')).toBe(true);
+    expect(isSubscribed(s, 'acct-other')).toBe(false);
+    expect(isSubscribed(s, null)).toBe(false);
+    expect(isSubscribed(null, 'acct-ada')).toBe(false);
+  });
+});

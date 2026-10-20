@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { renderPreviewHtml } from '@/lib/preview';
 import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
 import { readTrail, type TrailAnswer } from '@/lib/auditLane';
+import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { remixProject } from '@/lib/remixLane';
 import { useStudio, type Tool } from '@/lib/store';
@@ -109,10 +110,25 @@ export default function Toolbar() {
 
   const refreshTrail = async () => setTrail(await readTrail(20));
 
+  /**
+   * v274 — the CREATOR ECONOMY panel. No server endpoints exist yet (ADR 0018),
+   * so the panel states that honestly rather than showing mock data.
+   */
+  const [showEconomy, setShowEconomy] = useState(false);
+  const [economy, setEconomy] = useState<EconomyAnswer | null>(null);
+
+  const refreshEconomy = async () => setEconomy(await readEconomy());
+
+  const onToggleEconomy = async () => {
+    const next = !showEconomy;
+    setShowEconomy(next);
+    if (next) { await refreshEconomy(); setShowPublished(false); setShowTrail(false); }
+  };
+
   const onToggleTrail = async () => {
     const next = !showTrail;
     setShowTrail(next);
-    if (next) setShowPublished(false);
+    if (next) { setShowPublished(false); setShowEconomy(false); }
     if (next) await refreshTrail();
   };
 
@@ -123,7 +139,7 @@ export default function Toolbar() {
   const onTogglePublished = async () => {
     const next = !showPublished;
     setShowPublished(next);
-    if (next) setShowTrail(false);
+    if (next) { setShowTrail(false); setShowEconomy(false); }
     if (next) await refreshPublished();
   };
 
@@ -296,6 +312,18 @@ export default function Toolbar() {
           title="what the service recorded happening: publishes and take-downs, newest first"
         >
           Trail
+        </button>
+        {/* v274 — the CREATOR ECONOMY surface. No server endpoints exist yet (ADR 0018 blocks
+            accounts/sessions/tokens), so the panel states that honestly rather than showing
+            mock data. When the server is built, this door will forward its answer. */}
+        <button
+          className={`btn ${showEconomy ? 'tool-active' : ''}`}
+          data-toolbar-economy-toggle
+          onClick={() => void onToggleEconomy()}
+          disabled={service?.available === false}
+          title="subscriptions and tips — the economy door is not built yet"
+        >
+          Economy
         </button>
         {/* v241 — the explore page is the PUBLIC door to what is published; the panel above is the author's
             own list. A link, not a fetch: the page is server-rendered and reachable by anyone. */}
@@ -488,6 +516,72 @@ export default function Toolbar() {
               <div style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>
                 {(trail.rows ?? []).length} of {trail.count} entry(ies) shown · the service caps at {trail.limit}
               </div>
+            </>
+          )}
+        </div>
+      )}
+      {/* v274 — the CREATOR ECONOMY panel. No server endpoints exist yet (ADR 0018),
+          so the panel states that honestly rather than showing mock data. */}
+      {showEconomy && (
+        <div
+          data-toolbar-economy
+          style={{
+            position: 'fixed',
+            top: 54,
+            right: 16,
+            zIndex: 42,
+            width: 400,
+            maxHeight: 340,
+            overflow: 'auto',
+            background: 'var(--nexus-panel, #12151b)',
+            border: '1px solid var(--nexus-border, #262b34)',
+            borderRadius: 6,
+            padding: 10,
+            fontSize: 11,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+          }}
+        >
+          <div style={{ fontWeight: 700, letterSpacing: 0.4, marginBottom: 6 }}>CREATOR ECONOMY</div>
+          {economy === null ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
+          ) : !economy.ok ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>could not read: {economy.reason}</div>
+          ) : (economy.subscriptions?.length === 0 && economy.tips?.length === 0) ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>no subscriptions or tips yet — the economy door is not built</div>
+          ) : (
+            <>
+              {economy.subscriptions && economy.subscriptions.length > 0 && (
+                <>
+                  <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 6 }}>Subscriptions</div>
+                  <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                    {economy.subscriptions.map((sub) => (
+                      <li key={sub.planId} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
+                        <span>{sub.planId} — {sub.priceText}</span>
+                        <span style={{ color: sub.isActive ? 'var(--nexus-brand)' : 'var(--nexus-muted)', fontSize: 10 }}>
+                          {sub.statusText} · {sub.daysLeftText}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {economy.tips && economy.tips.length > 0 && (
+                <>
+                  <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 6 }}>Tips</div>
+                  <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                    {economy.tips.map((tip) => (
+                      <li key={tip.recipientId + tip.amountText} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '3px 0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>{tip.anonymous ? 'Anonymous' : tip.recipientId} — {tip.amountText}</span>
+                        </div>
+                        {tip.messageText && (
+                          <div style={{ color: 'var(--nexus-muted)', fontSize: 10, whiteSpace: 'pre-wrap' }}>{tip.messageText}</div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </>
           )}
         </div>
