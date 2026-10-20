@@ -44,7 +44,7 @@ export interface ProfileRow {
  * The claims are the service's only knowledge of the account, so the facts come from them — and a row with
  * no owner says nothing rather than contributing an empty name.
  */
-export function profileFactsOf(accountId: string, rows: readonly ProfileRow[], count: number, limit: number): ProfileFacts {
+export function profileFactsOf(accountId: string, rows: readonly ProfileRow[], count: number, limit: number, offset: number = 0): ProfileFacts {
   let handle: string | null = null;
   let assurance: string | null = null;
   for (const row of rows) {
@@ -64,20 +64,29 @@ export function profileFactsOf(accountId: string, rows: readonly ProfileRow[], c
  * tell an account that has published nothing from one that does not exist, because it holds no account
  * table — and a page that said "no such account" would be claiming a fact the service never had.
  */
-export function renderProfileHtml(facts: ProfileFacts, items: ExploreItem[]): string {
+export function renderProfileHtml(facts: ProfileFacts, items: ExploreItem[], offset: number = 0): string {
   const who = facts.handle ? `@${facts.handle}` : facts.accountId;
   const assurance = facts.assurance ? ` · ${facts.assurance}` : '';
-  const header = `<h1>${escapeHtml(who)}</h1><div class="sub">${escapeHtml(facts.accountId)}${escapeHtml(assurance)} · ${items.length} publication(s) shown · the service caps at ${facts.limit}</div>`;
+  const { count, limit } = facts;
+  const hasPrev = offset > 0;
+  const hasNext = offset + items.length < count;
+  const paging = `
+    <div class="paging" style="margin-top: 16; display: flex; gap: 8; align-items: center;">
+      <a href="/u/${encodeURIComponent(facts.accountId)}?offset=${Math.max(0, offset - limit)}" class="btn ${hasPrev ? '' : 'disabled'}" style="${hasPrev ? '' : 'opacity: 0.4; pointer-events: none;'}">← Prev</a>
+      <span style="font-size: 12; color: var(--nexus-muted);">showing ${offset + 1}–${Math.min(offset + items.length, count)} of ${count}</span>
+      <a href="/u/${encodeURIComponent(facts.accountId)}?offset=${offset + limit}" class="btn ${hasNext ? '' : 'disabled'}" style="${hasNext ? '' : 'opacity: 0.4; pointer-events: none;'}">Next →</a>
+    </div>`;
+  const header = `<h1>${escapeHtml(who)}</h1><div class="sub">${escapeHtml(facts.accountId)}${escapeHtml(assurance)} · ${items.length} publication(s) shown · the service caps at ${limit}</div>${paging}`;
 
   if (items.length === 0) {
     return pageShell(
       `Profile — ${facts.handle ?? facts.accountId}`,
-      `${header}<div class="empty-state">No publications are attributed to this account. The service cannot tell an account that has published nothing from one that does not exist: it holds no account table, only the claims that publications carry.</div>`,
+      `${header}<div class="empty-state">No publications are attributed to this account. The service cannot tell an account that has published nothing from one that does not exist: it holds no account table, only the claims that publications carry.</div>${paging}`,
     );
   }
   return pageShell(
     `Profile — ${facts.handle ?? facts.accountId}`,
-    `${header}${renderExploreCards(items)}`,
+    `${header}${renderExploreCards(items)}${paging}`,
   );
 }
 

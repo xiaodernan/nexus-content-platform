@@ -29,13 +29,16 @@ function html(body: string, status: number): Response {
   return new Response(body, { status, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ accountId: string }> }): Promise<Response> {
+export async function GET(request: Request, { params }: { params: Promise<{ accountId: string }> }): Promise<Response> {
   const accountId = decodeURIComponent((await params).accountId);
+  const url = new URL(request.url);
+  const offset = Math.max(0, Number.parseInt(url.searchParams.get('offset') ?? '0', 10));
+  
   if (!accountId.trim()) {
-    return html(renderProfileHtml(profileFactsOf('', [], 0, PROFILE_LIMIT), []), 200);
+    return html(renderProfileHtml(profileFactsOf('', [], 0, PROFILE_LIMIT, offset), []), 200);
   }
 
-  const listing = await listPublications(PROFILE_LIMIT, undefined, accountId);
+  const listing = await listPublications(PROFILE_LIMIT, undefined, accountId, offset);
   if (!listing.ok) return html(renderExploreUnavailable(listing.reason ?? 'no reason given'), 503);
 
   const rows = listing.publications ?? [];
@@ -44,6 +47,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ acc
     (projectId) => readPublication(projectId),
     (doc, pageId) => svgToDataUri(docToSvg(doc, pageId)),
   );
-  const facts = profileFactsOf(accountId, rows, listing.count ?? rows.length, listing.limit ?? PROFILE_LIMIT);
-  return html(renderProfileHtml(facts, items), 200);
+  const facts = profileFactsOf(accountId, rows, listing.count ?? rows.length, listing.limit ?? PROFILE_LIMIT, offset);
+  return html(renderProfileHtml(facts, items, offset), 200);
 }
