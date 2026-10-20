@@ -182,8 +182,14 @@ async function textSearch(
   }));
 }
 
-/** 互补秩融合（RRF）：score = 1 / (k + rank_vec) + 1 / (k + rank_text) */
-function reciprocalRankFusion(
+/**
+ * 互补秩融合（RRF）：score = 1 / (k + rank_vec) + 1 / (k + rank_text)
+ *
+ * 导出是为了让它**能被单测钉住**（本仓同一条纪律：`resolveWalkCollision` / `buildSelectionDigest`
+ * 都是"能被单测钉住的算术不埋进别处"）。它原先是私有的，于是三件事一次都没有被验证过：
+ * rank 是 1-based、文本侧存的是 **BM25 原始分**而不是名次、两边都命中时分数相加。
+ */
+export function reciprocalRankFusion(
   vectorResults: { chunk: ChunkRecord; distance: number }[],
   textResults: { chunk: ChunkRecord; rank: number }[],
   vectorWeight: number,
@@ -357,8 +363,13 @@ export class VectorStore {
   }
 }
 
-/** 粗略估算 token 数（中文约 1.5 字/token，英文约 4 字/token） */
-function estimateTokens(text: string): number {
+/**
+ * 粗略估算 token 数（中文约 1.5 字/token，英文约 4 字/token）
+ *
+ * 同样是为了能被单测钉住：这个口径算出来的数**要写进语料库**（`knowledge_chunks.tokens`），
+ * 改一点会悄悄改变每一行的计数——而它原先是私有的，压根没人能验证它算的是不是那个口径。
+ */
+export function estimateTokens(text: string): number {
   const chinese = (text.match(/[\u4e00-\u9fff]/g) ?? []).length;
   const other = text.length - chinese;
   return Math.ceil(chinese / 1.5 + other / 4);
