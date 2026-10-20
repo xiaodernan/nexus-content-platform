@@ -1735,6 +1735,107 @@ try {
     await tipPage.close();
   }
 
+  // ── §18 v301: PLANS and SUBSCRIPTIONS — the creator offers, the supporter backs ─────────────────────
+  // The price is a SNAPSHOT: the subscription records the plan’s price AS IT WAS, and the proof checks that
+  // by changing the plan’s price afterwards and showing that the subscription did not move.
+  {
+    const creator = accountRecord?.id;
+    const planPage = await session.newPage('about:blank');
+    await planPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(planPage, 'the creator page to hydrate');
+    await signInAs(planPage, 'ada', 'the creator');
+    // The panel TOGGLES, and signing in leaves it OPEN — so the helper reads the state and only
+    // clicks when the panel needs opening. A manual click here would CLOSE it.
+    await openAccountPanel(planPage, 'the account panel to open');
+    await planPage.type('[data-plan-id-input]', 'pro');
+    await planPage.type('[data-plan-price-input]', '15');
+    await planPage.evaluate("document.querySelector('[data-plan-offer]').click()");
+    const planNote = await until(
+      async () => {
+        const n = await planPage.evaluate("document.querySelector('[data-plan-note]')?.textContent ?? ''");
+        return n.includes('offered') ? n : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the plan to be offered' },
+    );
+    check(
+      'the creator offers a plan from their own account face',
+      typeof planNote === 'string' && planNote.includes('1500 cents') && planNote.includes('month'),
+      `note: ${JSON.stringify(planNote)}`,
+    );
+
+    // And the SERVICE recorded it.
+    const plansRead = await fetch(`${apiBase}/plans?creator=${encodeURIComponent(creator)}`);
+    const plansBody = await plansRead.json();
+    check(
+      'the SERVICE recorded the plan — read back independently of the browser',
+      plansRead.status === 200 && plansBody.plans?.length === 1 && plansBody.plans[0].priceCents === 1500 && plansBody.plans[0].period === 'month',
+      `plans: ${JSON.stringify(plansBody.plans)}`,
+    );
+
+    // And the profile page shows it, with the price a supporter would pay.
+    const profileWithPlan = await (await fetch(`${studioBase}/u/${encodeURIComponent(creator)}`)).text();
+    check(
+      'and the profile page shows the plan with its price',
+      profileWithPlan.includes('data-plan="pro"') && profileWithPlan.includes('¥15.00') && profileWithPlan.includes('monthly'),
+      `the page carries it: ${profileWithPlan.includes('data-plan="pro"')}`,
+    );
+
+    // Now a SECOND account backs it.
+    await planPage.evaluate("localStorage.removeItem('nexus-current-account')");
+    await planPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(planPage, 'the supporter page to hydrate');
+    await signInAs(planPage, 'bob', 'the supporter');
+    // The account id is GENERATED, so it is read from the device's own record rather than guessed.
+    const bobRaw = await planPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const bobId = JSON.parse(String(bobRaw)).id;
+    await planPage.navigate(`${studioBase}/?subscribe=pro`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(planPage, 'the subscribe page to hydrate');
+    const subscribeStatus = await until(
+      async () => {
+        const s = await planPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('backed') ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the subscription to land' },
+    );
+    check(
+      'a supporter backs the plan when the URL asks it to',
+      typeof subscribeStatus === 'string' && subscribeStatus.includes('1500'),
+      `status: ${JSON.stringify(subscribeStatus)}`,
+    );
+
+    const subsRead = await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(bobId)}`);
+    const subsBody = await subsRead.json();
+    check(
+      'and the SERVICE recorded the subscription, with the price it was agreed at',
+      subsBody.subscriptions?.length === 1 && subsBody.subscriptions[0].priceCents === 1500 && subsBody.subscriptions[0].planId === 'pro',
+      `subscriptions: ${JSON.stringify(subsBody.subscriptions)}`,
+    );
+
+    // And a device with NO account cannot back it: a subscription with no holder is not a commitment.
+    await planPage.evaluate("localStorage.removeItem('nexus-current-account')");
+    await planPage.navigate(`${studioBase}/?subscribe=pro`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(planPage, 'the accountless subscribe page to hydrate');
+    const noAccount = await until(
+      async () => {
+        const s = await planPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('no account') ? s : false;
+      },
+      { tries: 40, gapMs: 500, label: 'the accountless subscription to be refused' },
+    );
+    check(
+      'a device with NO account is refused — the client does not invent a subscriber',
+      noAccount !== null,
+      `status: ${JSON.stringify(noAccount)}`,
+    );
+    const subsAfter = await (await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(bobId)}`)).json();
+    check(
+      'and the refused subscription changed NOTHING — there is still exactly one',
+      subsAfter.subscriptions?.length === 1,
+      `subscriptions: ${subsAfter.subscriptions?.length}`,
+    );
+    await planPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

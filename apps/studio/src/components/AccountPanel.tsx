@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { session } from '../lib/accountSession';
+import { offerPlan } from '@/lib/planLane';
+import { claimOf } from '@/lib/socialClaim';
 import type { AccountRecord } from '@/lib/accounts';
 
 /**
@@ -20,6 +22,13 @@ export function AccountPanel({ onClose }: { onClose?: () => void }) {
   const [displayName, setDisplayName] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  // v301 — offering a PLAN: the plan id is an ADDRESS people are given, the price is in yuan (the
+  // composer converts to cents, because a decimal amount is a thing a client and a service can disagree
+  // about), and the period is one of the three the service knows.
+  const [planId, setPlanId] = useState('');
+  const [planPrice, setPlanPrice] = useState('15');
+  const [planPeriod, setPlanPeriod] = useState('month');
+  const [planMessage, setPlanMessage] = useState('');
 
   useEffect(() => {
     setAccount(session.current());
@@ -59,6 +68,26 @@ export function AccountPanel({ onClose }: { onClose?: () => void }) {
     setHandle('');
     setDisplayName('');
     setMessage('signed out — this device publishes anonymously again');
+  };
+
+  const onOfferPlan = async () => {
+    setPlanMessage('');
+    const claim = claimOf(account?.id ?? null, account?.handle ?? null, account?.assurance ?? null);
+    if (!claim) {
+      setPlanMessage('this device has no account, and a plan needs one');
+      return;
+    }
+    const cents = Math.round(Number(planPrice) * 100);
+    if (!Number.isFinite(cents) || cents <= 0) {
+      setPlanMessage('a plan must cost more than nothing');
+      return;
+    }
+    const answer = await offerPlan(planId.trim(), cents, 'CNY', planPeriod, claim);
+    setPlanMessage(
+      answer.ok
+        ? `offered ${planId.trim()} at ${cents} cents (${planPeriod})`
+        : `could not offer the plan: ${answer.reason ?? 'no reason given'}`,
+    );
   };
 
   const fieldStyle = {
@@ -131,6 +160,52 @@ export function AccountPanel({ onClose }: { onClose?: () => void }) {
           >
             Sign out
           </button>
+          {/* v301 — offering a PLAN. It lives in the ACCOUNT panel because a plan is a creator's own
+              claim about their own work, and the account is where a creator's claims are made. The price is
+              typed in YUAN and sent in CENTS, and the period is one of the three the service knows. */}
+          <div
+            data-account-plans
+            style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--nexus-border)', paddingTop: 12 }}
+          >
+            <strong style={{ fontSize: 12 }}>Offer a plan</strong>
+            <input
+              type="text"
+              data-plan-id-input
+              value={planId}
+              onChange={(e) => setPlanId(e.target.value)}
+              placeholder="Plan id (the address people are given)"
+              style={fieldStyle}
+            />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: 'var(--nexus-muted)' }}>¥</span>
+              <input
+                type="text"
+                data-plan-price-input
+                value={planPrice}
+                onChange={(e) => setPlanPrice(e.target.value)}
+                placeholder="15"
+                style={{ ...fieldStyle, width: 90 }}
+              />
+              <select
+                data-plan-period-select
+                value={planPeriod}
+                onChange={(e) => setPlanPeriod(e.target.value)}
+                style={fieldStyle}
+              >
+                <option value="once">one-off</option>
+                <option value="month">monthly</option>
+                <option value="year">yearly</option>
+              </select>
+            </div>
+            <button className="btn" data-plan-offer onClick={() => void onOfferPlan()} style={{ fontSize: 11, padding: '4px 12px' }}>
+              Offer
+            </button>
+            {planMessage && (
+              <div data-plan-note style={{ fontSize: 11, color: 'var(--nexus-muted)' }}>
+                {planMessage}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

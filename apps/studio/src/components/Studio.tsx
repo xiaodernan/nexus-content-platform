@@ -22,6 +22,8 @@ import { likeIdFromSearch, unlikeIdFromSearch, likeClaimOf } from '@/lib/likeInt
 import { commentIdFromSearch } from '@/lib/commentIntent';
 import { reportIdFromSearch } from '@/lib/reportIntent';
 import { tipIdFromSearch } from '@/lib/tipIntent';
+import { subscribeIdFromSearch } from '@/lib/planIntent';
+import { subscribeToPlan } from '@/lib/planLane';
 import { TipComposer } from './TipComposer';
 import { ReportComposer } from './ReportComposer';
 import { followIdFromSearch, unfollowIdFromSearch } from '@/lib/followIntent';
@@ -227,6 +229,32 @@ export default function Studio() {
   useEffect(() => {
     const id = tipIdFromSearch(window.location.search);
     if (id) setTipTarget(id);
+  }, []);
+
+  // M7 v301 — a SUBSCRIBE link: the profile page sends a reader here as `/?subscribe={planId}`, and
+  // the Studio backs the plan on mount. A subscription is a commitment, so the claim goes with it: a
+  // device with no account has no claim, and the service refuses an accountless subscription by name.
+  useEffect(() => {
+    const planId = subscribeIdFromSearch(window.location.search);
+    if (!planId) return;
+    let live = true;
+    const account = session.current();
+    const claim = claimOf(account?.id ?? null, account?.handle ?? null, account?.assurance ?? null);
+    if (!claim) {
+      useStudio.getState().setStatus(`Could not back ${planId}: this device has no account, and a subscription needs one`);
+      return;
+    }
+    void subscribeToPlan(planId, claim).then((answer) => {
+      if (!live) return;
+      if (answer.ok) {
+        useStudio.getState().setStatus(`backed ${planId} — ${answer.subscription?.priceCents ?? 0} cents`);
+      } else {
+        useStudio.getState().setStatus(`Could not back ${planId}: ${answer.reason}`);
+      }
+    });
+    return () => {
+      live = false;
+    };
   }, []);
 
   // M7 v286 — a COMMENT link: the artifact page sends a reader here as `/?comment={id}`, and the

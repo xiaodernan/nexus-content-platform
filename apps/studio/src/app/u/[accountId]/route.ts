@@ -6,6 +6,8 @@ import { profileFactsOf, renderProfileHtml } from '@/lib/profile';
 import { readFollowers } from '@/lib/followServer';
 import { FOLLOW_BAR_STYLES, injectFollowBar, renderFollowBar, toFollowerRows } from '@/lib/followBar';
 import { readTips } from '@/lib/tipServer';
+import { readPlans } from '@/lib/planServer';
+import { injectPlanBar, renderPlanBar, toPlanRows, PLAN_BAR_STYLES } from '@/lib/planBar';
 import { injectTipBar, renderTipBar, toTipRows, TIP_BAR_STYLES } from '@/lib/tipBar';
 
 /**
@@ -67,6 +69,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   // lands on when they want to know about a person. Read independently: a tips door that could not be read
   // leaves the bar out entirely, because "no tips" and "the tips could not be read" are different facts
   // and a creator's page must not say the first when it knows the second.
+  // v301 — the PLANS this creator offers. Read independently: a plans door that could not be read
+  // leaves the bar out ENTIRELY, because "this creator offers nothing" and "the plans could not be read"
+  // are different facts — and a page that showed the first when it knew the second would say that a
+  // creator whose plans are one read away has nothing to offer.
+  const offered = await readPlans(accountId);
+  const planBar = offered.ok ? renderPlanBar({ accountId, plans: toPlanRows(offered.plans) }) + PLAN_BAR_STYLES : '';
   const tips = await readTips(accountId, TIP_LIMIT);
   const tipBar = tips.ok
     ? renderTipBar({
@@ -89,5 +97,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
         followers: toFollowerRows(followers.followers),
       }) + FOLLOW_BAR_STYLES
     : '';
-  return html(injectTipBar(injectFollowBar(renderProfileHtml(facts, items, offset, query), bar), tipBar), 200);
+  return html(
+    injectPlanBar(
+      injectTipBar(injectFollowBar(renderProfileHtml(facts, items, offset, query), bar), tipBar),
+      planBar,
+    ),
+    200,
+  );
 }
