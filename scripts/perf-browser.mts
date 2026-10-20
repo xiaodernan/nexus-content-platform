@@ -263,7 +263,7 @@ async function canvasNodeCounts(): Promise<{ dom: number; layers: number; layerT
 }
 
 async function reloadAndMeasureFirstNode(): Promise<number> {
-  await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'commit' });
+  await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'commit', timeout: 300_000 });
   try {
     await page.waitForFunction(() => (window as any).__perf?.firstNodeAt !== null, undefined, { timeout: 180_000 });
   } catch (error) {
@@ -403,7 +403,7 @@ async function propToCanvasLatency(scope: string): Promise<void> {
     }
   });
   // 先回到默认视口：pan/zoom 测完之后目标节点可能已经被移出屏幕，点击会一直重试
-  await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'domcontentloaded', timeout: 300_000 });
   await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 60_000 });
   await page.click('[data-view="canvas"]');
   const headline = await page.evaluate(() => {
@@ -820,7 +820,7 @@ for (const scale of scales) {
   }
   record(`画布 DOM 节点数（${built} 节点文档）`, '个', [counts.dom, counts.dom, counts.dom]);
 
-  await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'domcontentloaded', timeout: 300_000 });
   await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 120_000 });
   await page.mouse.move(700, 450);
   await frameRate(`pan 平移（${built} 节点）`, async () => {

@@ -3544,15 +3544,16 @@ image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；�
    草稿随结论存下来（`draft?: GameDocument` 存在任务行里，不在响应体里，客户端贴不进来）、
    一个用户点出来的"写进项目"（点「接受进项目」才写；已有游戏设计时拒绝覆盖，不静默覆盖）。
    **别照这一行重新发明**：核对方式是 `git log --grep='ADR-0035'` + `apps/web/src/lib/agent-game-draft.ts`。
-8. **下一格（2026-10-20 起在做）**：**对话两型引擎 = `ARTIFACT_CHAINS` 的第三个键 `story`**
-   （`interactive-story` / `visual-novel` 今天仍只披露不修——`ARTIFACT_CHAINS` 表只有 `topdown` 与 `rpg` 两个键）。
-   草稿见 `docs/adr/0046-artifact-third-chain-story-pipeline.md`（转写 `story.ts` 的语义进 `engine.js`，
-   **不手抄**——两个供给点迟早漂开）；定稿条件：codegen 侧转写落地 + parity 见证 + 真浏览器那一格走过。
-   **并发提示**：这一格要动 `packages/game-model/src/codegen.ts`（`ARTIFACT_CHAINS` 表、`engineSource`、产物 HTML 模板）——
-   动手前先 `git status` 看那块是不是有人在途。
+8. ~~**对话两型引擎 = `ARTIFACT_CHAINS` 的第三个键 `story`**~~ **已落地（2026-10-20，ADR-0046，三片）**：
+   `eb7cddf`（片 1 实现）· `475935e`（两个坑的返工）· `a992277`（片 2 见证 24→31 条 + vm 见证）·
+   `aec8be3`（片 3 真浏览器 1 passed 1.2m）。
+   于是**八型全部带上引擎**——`kindNote`（那句错位披露）今天恒为空，而它仍然是派生的
+   （"机制还在"由一条反向控制钉着：临时把状态表某一型的管线改成 `null`，那句话必须出来）。
+   判决书：`docs/adr/0046-artifact-third-chain-story-pipeline.md`。
+   **下一格若还要动 `packages/game-model/src/codegen.ts`，先 `git status` 看那块是不是有人在途。**
 9. **其余 `[~]` 长线**（RAG 向量、图像/视频/角色一致性像素、§54 游戏设计系统）
    **全部卡在真实 provider key 上**——按 §159 留白，不假造。**拿到 key 之前，
-   自主推进的格子就是上面的 1–6（1–4 已落地，3 是 §147 的复测窗口）与第 8 项；
+   自主推进的格子就是上面的 1–6（1–4 已落地，3 是 §147 的复测窗口）与第 8 项（今天已落地）；
    没有自主格子时就去核对 `[~]` 行是否过期，别照着已经做完的事再做一遍。**
 
 需要用户才能推进的（不要绕过）：真实 provider key。有了它才能落地的是 §49 的向量与 rerank、
