@@ -32,9 +32,10 @@
 
 ### 下一批（按优先级）
 
-1. **v274 — M8 创作者经济的第一个界面**（与并行 lane 协调：他们的 `monetization.ts` 只有纯函数）。
-2. **v275 — gallery 分页**：服务的 listing 只有 `limit` 没有 `offset`，第 25 篇之后看不到。
-3. **v276 — Stage B/C 的服务端接线**（仍被 ADR 0018 阻塞：没有服务端账号、会话与令牌之前不做）。
+1. **v285 — 评论（comments）**：M7 的第三个社交动作。like 已落地，follow 与 comment 还没有。
+2. **v286 — 服务端搜索 finder**：`GET /projects?q=` 真正生效（客户端 v278/v279 已就位，服务端 finder 仍缺）。
+3. **v287 — 审计轨迹收录点赞**：trail 现在只记 publication 动词，like 是社交动词。
+4. **v288 — Stage B/C 服务端接线**（仍被 ADR 0018 阻塞：无服务端账号/会话/令牌不做）。
 
 ### M9 审计轨迹（服务端 → 面板 → 契约）
 

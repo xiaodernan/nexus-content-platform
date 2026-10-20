@@ -22,7 +22,7 @@
  */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createConnection, createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
@@ -33,10 +33,27 @@ import { sweepLeftoverDatabases } from './leakSweep.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../..');
 const SERVICE_DIR = join(REPO_ROOT, 'services/nexus-api');
-const JAR = join(SERVICE_DIR, 'target/nexus-api-0.1.0-SNAPSHOT.jar');
 const STUDIO_DIR = join(REPO_ROOT, 'apps/studio');
 const DB_IMAGE = 'pgvector/pgvector:pg16';
 const STAMP = `${Date.now()}-${process.pid}`;
+/**
+ * v281 — the build happens in an ISOLATED COPY of the service, not in the working tree.
+ *
+ * Why: `mvn package` ends with spring-boot's `repackage`, which RENAMES the jar it just built. On
+ * Windows a jar that a RUNNING service has open cannot be renamed — and a developer (or a parallel lane)
+ * running `java -jar target/nexus-api-0.1.0-SNAPSHOT.jar` holds exactly that file open. The symptom is a
+ * build that fails for a reason that has nothing to do with the code:
+ *
+ *   Unable to rename '…\nexus-api-0.1.0-SNAPSHOT.jar' to '…\nexus-api-0.1.0-SNAPSHOT.jar.original'
+ *
+ * Building a copy sidesteps it entirely, and it is also more honest: the harness runs the jar it just
+ * BUILT rather than whichever one happens to be lying in the working tree. The service has no relative
+ * paths and its only resource (application.yml) travels inside the jar, so a copy of `pom.xml` + `src` is
+ * a complete build.
+ */
+const BUILD_DIR = join(tmpdir(), `nexus-publish-e2e-build-${STAMP}`);
+const JAR = join(BUILD_DIR, 'target/nexus-api-0.1.0-SNAPSHOT.jar');
+
 const DB_CONTAINER = `nexus-publish-e2e-db-${STAMP}`;
 const PORT_FILE = join(tmpdir(), `nexus-publish-e2e-port-${STAMP}.txt`);
 const DB_USER = 'nexus';
@@ -178,7 +195,12 @@ try {
     console.log(`[§1a] leftovers: ${sweep.seen} named container(s), ${sweep.retired.length} retired`);
   }
 
-  const build = await runMaven(['-B', '-q', 'package', '-DskipTests'], { cwd: SERVICE_DIR, timeoutMs: 600_000 });
+  // v281 — build a COPY, so a running service holding the working tree's jar cannot fail this build.
+  rmSync(BUILD_DIR, { recursive: true, force: true });
+  mkdirSync(BUILD_DIR, { recursive: true });
+  cpSync(join(SERVICE_DIR, 'pom.xml'), join(BUILD_DIR, 'pom.xml'));
+  cpSync(join(SERVICE_DIR, 'src'), join(BUILD_DIR, 'src'), { recursive: true });
+  const build = await runMaven(['-B', '-q', 'package', '-DskipTests'], { cwd: BUILD_DIR, timeoutMs: 600_000 });
   assert.equal(build.code, 0, `mvn package failed:\n${build.stdout}\n${build.stderr}`);
 
   const dbPort = await freePort();
@@ -214,7 +236,7 @@ try {
     `--spring.datasource.username=${DB_USER}`,
     `--spring.datasource.password=${DB_PASSWORD}`,
     `--nexus.port-file=${PORT_FILE}`,
-  ], { cwd: SERVICE_DIR, stdio: ['ignore', 'pipe', 'pipe'] });
+  ], { cwd: BUILD_DIR, stdio: ['ignore', 'pipe', 'pipe'] });
   let serviceLog = '';
   serviceProcess.stdout.on('data', (d) => { serviceLog += String(d); });
   serviceProcess.stderr.on('data', (d) => { serviceLog += String(d); });
@@ -717,7 +739,6 @@ try {
   const shot = await page.send('Page.captureScreenshot', { format: 'png' });
   const png = Buffer.from(shot.data, 'base64');
   const shotPath = join(REPO_ROOT, '.scratch', 'v194', 'studio-publish.png');
-  const { mkdirSync, writeFileSync } = await import('node:fs');
   mkdirSync(join(REPO_ROOT, '.scratch', 'v194'), { recursive: true });
   writeFileSync(shotPath, png);
   check('a pixel screenshot of the published Studio was captured (§30)', png.length > 5000, `${png.length} bytes → ${shotPath}`);
@@ -854,6 +875,141 @@ try {
     }
   }
 
+  // ── §9.7 v280: the ARTIFACT PAGE’s own HISTORY — the trail, read at the thing it records ───────────
+  // The panel above shows the WHOLE trail. This section asks the narrower question a reader of a
+  // publication actually has: what happened to THIS one? The page is server-rendered and reads the trail
+  // through the same server-side hop the publication itself came through.
+  {
+    const forkPage = remixProjectId ? await fetch(`${studioBase}/p/${encodeURIComponent(remixProjectId)}`) : null;
+    const forkHtml = forkPage ? await forkPage.text() : '';
+    check(
+      'the artifact page carries a HISTORY section',
+      forkPage !== null && forkPage.status === 200 && forkHtml.includes('data-history="rows"'),
+      `status ${forkPage?.status}; carries rows: ${forkHtml.includes('data-history="rows"')}`,
+    );
+    check(
+      'and the history names the publication it is on',
+      forkHtml.includes('data-history-row=') && forkHtml.includes('published'),
+      'the section lists a publish entry',
+    );
+    check(
+      'and it names the ACCOUNT that published it, with the assurance its claim carried',
+      forkHtml.includes(`${accountRecord?.id} · unsigned-local`),
+      `the actor is on the page: ${forkHtml.includes(`${accountRecord?.id} · unsigned-local`)}`,
+    );
+    // The filter is EXACT. By now the trail holds: the source published TWICE, the source taken down
+    // ONCE, and the fork published ONCE. A history whose filter was loose would put the source’s three
+    // entries on the fork’s page too — four rows where there is one. The row COUNT is the sharp check,
+    // because the source’s id legitimately appears elsewhere on the page (the “remixed from” line).
+    const historyRows = (forkHtml.match(/data-history-row=/g) ?? []).length;
+    check(
+      'and it carries EXACTLY this publication’s entries — the source’s take-down is not on it',
+      historyRows === 1,
+      `rows on the page: ${historyRows} (the fork was published once)`,
+    );
+  }
+
+  // ── §10 v284: LIKES — the artifact page’s bar, and the Studio’s intent behind it ─────────
+  // The artifact page is SERVER-RENDERED and cannot act: it does not know who the device is (ADR 0018).
+  // So the page shows the COUNT and links to the Studio, which is where the account lives — exactly the
+  // way the remix bar links. The proof drives the whole loop against the real service and the real
+  // database: the bar, the intent, the row, and the refusal for a device with no account.
+  {
+    // The FORK is the publication under test: the source was taken down in §9, and a like is a fact
+    // that outlives the row it happened to (the service does not cascade).
+    const likeTarget = remixProjectId ?? projectId;
+    const barPage = await fetch(`${studioBase}/p/${encodeURIComponent(likeTarget)}`);
+    const barHtml = await barPage.text();
+    check(
+      'the artifact page carries a LIKES bar',
+      barPage.status === 200 && barHtml.includes('data-likes='),
+      `status ${barPage.status}; carries the bar: ${barHtml.includes('data-likes=')}`,
+    );
+    check(
+      'and it states a count of ZERO for a publication nobody has liked — a fact, not a failure',
+      barHtml.includes('data-likes="0"'),
+      `the bar says: ${/data-likes="(\d+)"/.exec(barHtml)?.[0] ?? 'no count'}`,
+    );
+    check(
+      'and the bar offers the like, as a link to the Studio',
+      barHtml.includes(`href="/?like=${encodeURIComponent(likeTarget)}"`),
+      'the bar links to /?like=<id>',
+    );
+
+    // Now the Studio does it. A NEW page, so the main page’s state is untouched.
+    const likePage = await session.newPage('about:blank');
+    await likePage.navigate(`${studioBase}/?like=${encodeURIComponent(likeTarget)}`, { waitForSelector: '#nexus-canvas', waitMs: 1500 });
+    const likeStatus = await until(
+      async () => {
+        const s = await likePage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('liked') ? s : false;
+      },
+      { tries: 40, gapMs: 500, label: 'the like to land in the Studio' },
+    );
+    check(
+      'the Studio likes the publication when the URL asks it to',
+      likeStatus !== false,
+      `status: ${JSON.stringify(likeStatus)}`,
+    );
+    check(
+      'and it says so in the Studio’s own words, with the count',
+      typeof likeStatus === 'string' && /liked .+ — \d+ like\(s\)/.test(likeStatus),
+      `status: ${JSON.stringify(likeStatus)}`,
+    );
+    check(
+      'the one-time intent is DROPPED once honoured — a URL that kept its query would like again on every reload',
+      (await likePage.evaluate('window.location.search')) === '',
+      'the URL is clean again',
+    );
+
+    // And the SERVICE recorded it — read independently of the browser, from the real database.
+    const likeRead = await fetch(`${apiBase}/likes?projectId=${encodeURIComponent(likeTarget)}`);
+    const likeBody = await likeRead.json();
+    check(
+      'the SERVICE recorded the like — read back independently of the browser',
+      likeRead.status === 200 && likeBody.count === 1,
+      `count: ${likeBody.count} · likes: ${JSON.stringify(likeBody.likes)}`,
+    );
+    check(
+      "and the like names the ACCOUNT that made it, with the assurance its claim carried",
+      Array.isArray(likeBody.likes) && likeBody.likes.length === 1 && likeBody.likes[0].accountId === accountRecord?.id && likeBody.likes[0].assurance === 'unsigned-local',
+      `the like: ${JSON.stringify(likeBody.likes?.[0])}`,
+    );
+
+    // And the page now says so — the count moved because the SERVICE moved it, not because the page
+    // was told.
+    const barAfter = await (await fetch(`${studioBase}/p/${encodeURIComponent(likeTarget)}`)).text();
+    check(
+      'and the artifact page now says ONE like',
+      barAfter.includes('data-likes="1"'),
+      `the bar says: ${/data-likes="(\d+)"/.exec(barAfter)?.[0] ?? 'no count'}`,
+    );
+
+    // LAST, because it clears the device’s account: a device with NO account has no claim, and the
+    // service refuses an accountless like by name. The client does NOT invent an actor to make it work.
+    await likePage.evaluate("localStorage.removeItem('nexus-current-account')");
+    await likePage.navigate(`${studioBase}/?like=${encodeURIComponent(likeTarget)}`, { waitForSelector: '#nexus-canvas', waitMs: 1500 });
+    const noAccount = await until(
+      async () => {
+        const s = await likePage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('no account') ? s : false;
+      },
+      { tries: 30, gapMs: 500, label: 'the accountless like to be refused' },
+    );
+    check(
+      'a device with NO account is refused — the client does not invent an actor to make the like work',
+      noAccount !== false,
+      `status: ${JSON.stringify(noAccount)}`,
+    );
+    const likeAfterRefusal = await (await fetch(`${apiBase}/likes?projectId=${encodeURIComponent(likeTarget)}`)).json();
+    check(
+      'and the refused like changed NOTHING — the count is still one',
+      likeAfterRefusal.count === 1,
+      `count: ${likeAfterRefusal.count}`,
+    );
+    await likePage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
@@ -866,13 +1022,17 @@ try {
   const rm = await run('docker', ['rm', '-f', DB_CONTAINER]);
   assert.equal(rm.code, 0, `could not remove the throwaway database: ${rm.stderr}`);
   dbStarted = false;
-  console.log('[§10] teardown: Studio, service and the throwaway database are all gone');
+  // v281 — the isolated BUILD dir goes too: it is this run's, and a copy of the service left in the temp
+  // dir is litter that grows with every run.
+  rmSync(BUILD_DIR, { recursive: true, force: true });
+  console.log('[§10] teardown: Studio, service, the throwaway database and the build copy are all gone');
 } finally {
   if (page) await page.close().catch(() => {});
   if (session) await session.close().catch(() => {});
   if (studioProcess) await stop(studioProcess);
   if (serviceProcess) await stop(serviceProcess);
   if (dbStarted) await run('docker', ['rm', '-f', DB_CONTAINER]);
+  rmSync(BUILD_DIR, { recursive: true, force: true });
 }
 
 const failed = results.filter((r) => !r.ok);

@@ -3,6 +3,8 @@ import { renderArtifactHtml, renderArtifactMissing, renderArtifactUnavailable } 
 import { readRemixedFrom } from '@/lib/lineage';
 import { readAuditTrail } from '@/lib/auditServer';
 import { historyRowsOf, injectHistory, renderHistoryHtml } from '@/lib/history';
+import { readLikes } from '@/lib/likeServer';
+import { injectLikeBar, renderLikeBar, LIKE_BAR_STYLES } from '@/lib/likeBar';
 
 /**
  * M7 v196 (ADR 0016 amendment 196): `/p/{projectId}` — a published project at a URL a PERSON can open.
@@ -52,7 +54,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
     const history = trail.ok
       ? renderHistoryHtml(historyRowsOf(trail.entries ?? [], decoded), trail.carried)
       : '';
-    return new Response(injectHistory(page, history), {
+    // v284 — the LIKES bar. Read independently of the history and of the document: a count that could
+    // not be read leaves the bar out ENTIRELY, because "0 likes" and "the likes could not be read" are
+    // different facts and a page that showed the first when it knew the second would be lying in the way
+    // that matters most — a reader would conclude nobody cared.
+    const likes = await readLikes(decoded);
+    const bar = likes.ok ? renderLikeBar({ projectId: decoded, count: likes.count }) : '';
+    return new Response(injectLikeBar(injectHistory(page, history), bar ? bar + LIKE_BAR_STYLES : ''), {
       status: 200,
       headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
     });

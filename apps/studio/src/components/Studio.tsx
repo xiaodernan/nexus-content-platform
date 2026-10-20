@@ -18,6 +18,9 @@ import WorldPanel from './WorldPanel';
 import AssetPanel from './AssetPanel';
 import { useStudio } from '@/lib/store';
 import { remixIdFromSearch, remixProject } from '@/lib/remixLane';
+import { likeIdFromSearch, unlikeIdFromSearch, likeClaimOf } from '@/lib/likeIntent';
+import { likePublication, unlikePublication } from '@/lib/likeLane';
+import { session } from '@/lib/accountSession';
 import { deserializeApp, serializeApp } from '@/lib/persist';
 import { browserStorage, STUDIO_DOC_KEY } from '@/lib/storage';
 import { installBridge } from '@/lib/observability';
@@ -83,6 +86,58 @@ export default function Studio() {
         useStudio.getState().setStatus(`Could not remix ${id}: ${answer.reason}`);
       }
     });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // M7 v284 — a LIKE link: the artifact page sends a reader here as `/?like={id}` (and `/?unlike={id}`).
+  // The page is server-rendered and cannot act — it does not know who the device is — so the Studio is
+  // where the like happens, exactly as the Studio is where the remix happens.
+  //
+  // The claim is built from the device's OWN account: a device with no account has no claim, and the
+  // service refuses an accountless like by name. The client does NOT invent an actor to make the
+  // request succeed — an invented account id would be a like nobody made.
+  useEffect(() => {
+    const search = window.location.search;
+    const likeId = likeIdFromSearch(search);
+    const unlikeId = unlikeIdFromSearch(search);
+    if (!likeId && !unlikeId) return;
+    let live = true;
+    const account = session.current();
+    const claim = likeClaimOf(account?.id ?? null, account?.handle ?? null, account?.assurance ?? null);
+    const finish = (message: string) => {
+      if (!live) return;
+      useStudio.getState().setStatus(message);
+      window.history.replaceState(null, '', '/');
+    };
+    if (likeId) {
+      if (!claim) {
+        finish(`Could not like ${likeId}: this device has no account, and a like needs one`);
+      } else {
+        void likePublication(likeId, claim as never).then((answer) => {
+          if (!live) return;
+          if (answer.ok) {
+            finish(`liked ${likeId} — ${answer.count ?? 0} like(s)`);
+          } else {
+            finish(`Could not like ${likeId}: ${answer.reason}`);
+          }
+        });
+      }
+    } else if (unlikeId) {
+      if (!claim) {
+        finish(`Could not take the like back: this device has no account, and a like needs one`);
+      } else {
+        void unlikePublication(unlikeId, claim.accountId).then((answer) => {
+          if (!live) return;
+          if (answer.ok) {
+            finish(`took the like back on ${unlikeId} — ${answer.count ?? 0} like(s)`);
+          } else {
+            finish(`Could not take the like back: ${answer.reason}`);
+          }
+        });
+      }
+    }
     return () => {
       live = false;
     };
