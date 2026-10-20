@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyBatch, createEmptyDocument, ops, solid, textNode } from '@nexus/design-model';
+import { applyBatch, createEmptyDocument, ops, rectNode, solid, textNode } from '@nexus/design-model';
 import { injectRemixBar, injectMetaBar, renderArtifactHtml, renderArtifactMissing, renderArtifactUnavailable } from './artifact';
 
 /**
@@ -58,6 +58,20 @@ describe('artifact — a publication renders as the DOCUMENT', () => {
     const div = html.match(/<div style="[^"]*">Harbour at dusk<\/div>/)?.[0] ?? '';
     expect(div).toContain('color:rgba(255, 255, 255, 1)');
     expect(div).not.toContain('background:rgba(255, 255, 255, 1)');
+  });
+
+  it('rotates a node the way the canvas rotates it — about its own centre', () => {
+    // The Studio spins a node with the rotate grip or the Rotation field and paints it turned; the artifact
+    // renderer never read `rotation`, so the published page showed the unturned box.
+    let doc = createEmptyDocument('Harbour');
+    const box = rectNode('Frame', { x: 100, y: 100, width: 200, height: 80 });
+    doc = applyBatch(doc, { id: 'b', ops: [ops.addSubtree(doc.activePageId, 0, [box])], provenance: { mode: 'user' }, timestamp: 0, summary: 'test' });
+    const id = Object.values(doc.nodes).find((n) => n.type === 'rectangle')!.id;
+    doc = applyBatch(doc, { id: 'b2', ops: [ops.updateNode(id, { rotation: 30 })], provenance: { mode: 'user' }, timestamp: 0, summary: 'turn' });
+
+    const html = renderArtifactHtml({ document: doc });
+    const div = html.match(/<div style="[^"]*left:100px[^"]*"><\/div>/)?.[0] ?? '';
+    expect(div).toContain('transform:rotate(30deg)');
   });
 
   it('a document that is not an object gets the UNAVAILABLE page, not an empty stage', () => {

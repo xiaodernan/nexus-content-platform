@@ -63,6 +63,25 @@ describe('thumbnail: svgToDataUri', () => {
 });
 
 describe('thumbnail: docToSvg edges', () => {
+  it('turns a rotated node about its own centre, like the canvas does', () => {
+    // The thumb is the Studio's before/after picture of the same model. It ignored `rotation`, so an edit
+    // that only turned a box showed two identical thumbs — the diff card said nothing had happened.
+    const doc0 = createEmptyDocument('Rot');
+    const box = rectNode('Box', { x: 10, y: 10, width: 80, height: 60 });
+    const withBox = applyBatch(doc0, { id: 'b1', ops: [ops.addSubtree(doc0.activePageId, 0, [box])], provenance: { mode: 'user' }, timestamp: 0 });
+    const id = Object.values(withBox.nodes).find((n) => n.type === 'rectangle')!.id;
+    const doc = applyBatch(withBox, { id: 'b2', ops: [ops.updateNode(id, { rotation: 90 })], provenance: { mode: 'user' }, timestamp: 0 });
+
+    const svg = docToSvg(doc, doc.activePageId);
+    // box (10,10,80,60) → centre (50,40)
+    expect(svg).toContain('transform="rotate(90 50 40)"');
+  });
+
+  it('leaves an unrotated node without a transform attribute', () => {
+    const svg = docToSvg(buildDoc(), buildDoc().activePageId);
+    expect(svg).not.toContain('rotate(');
+  });
+
   it('truncates long text content to 80 characters', () => {
     const doc = createEmptyDocument('LongText');
     const page = doc.activePageId;

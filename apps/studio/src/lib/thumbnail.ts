@@ -49,17 +49,21 @@ export function docToSvg(doc: DesignDocument, pageId: string): string {
     const r = layout[id];
     if (!node || !r || !node.visible) return;
     const fill = fillOf(node, doc);
+    // Match the canvas: turn about the node's own centre, and let children turn individually.
+    const turn = node.rotation
+      ? ` transform="rotate(${n(node.rotation)} ${n(r.x + r.width / 2)} ${n(r.y + r.height / 2)})"`
+      : '';
     if (node.type === 'text') {
       const size = Math.max(8, r.height * 0.6);
       parts.push(
-        `<text x="${n(r.x + 2)}" y="${n(r.y + r.height * 0.72)}" font-family="Inter,sans-serif" font-size="${n(size)}" fill="${fill}">${escapeXml(String(node.characters ?? '').slice(0, 80))}</text>`,
+        `<text${turn} x="${n(r.x + 2)}" y="${n(r.y + r.height * 0.72)}" font-family="Inter,sans-serif" font-size="${n(size)}" fill="${fill}">${escapeXml(String(node.characters ?? '').slice(0, 80))}</text>`,
       );
     } else if (node.type !== 'page' && node.type !== 'document') {
       if (node.type === 'ellipse') {
-        parts.push(`<ellipse cx="${n(r.x + r.width / 2)}" cy="${n(r.y + r.height / 2)}" rx="${n(r.width / 2)}" ry="${n(r.height / 2)}" fill="${fill}"/>`);
+        parts.push(`<ellipse${turn} cx="${n(r.x + r.width / 2)}" cy="${n(r.y + r.height / 2)}" rx="${n(r.width / 2)}" ry="${n(r.height / 2)}" fill="${fill}"/>`);
       } else {
         const rx = 'cornerRadius' in node ? node.cornerRadius : 0;
-        parts.push(`<rect x="${n(r.x)}" y="${n(r.y)}" width="${n(r.width)}" height="${n(r.height)}" rx="${n(rx)}" fill="${fill}"/>`);
+        parts.push(`<rect${turn} x="${n(r.x)}" y="${n(r.y)}" width="${n(r.width)}" height="${n(r.height)}" rx="${n(rx)}" fill="${fill}"/>`);
       }
     }
     for (const c of childIdList(node)) walk(c);

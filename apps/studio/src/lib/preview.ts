@@ -24,6 +24,9 @@ function styleFor(node: DesignNode, doc: DesignDocument, rect: { x: number; y: n
     `border-radius:${'cornerRadius' in node ? node.cornerRadius : 0}px`,
   ];
   if (node.type === 'ellipse') parts.push('border-radius:50%');
+  // The canvas turns a node about its own centre and then restores, so children turn individually —
+  // which is exactly what these flat siblings do with the same transform, since CSS' origin is the box centre.
+  if (node.rotation) parts.push(`transform:rotate(${node.rotation}deg)`);
   // A text node's fill is its LETTER colour (nodeToHtml reads it as `color`); painting it as a background too
   // would hide the words behind a solid bar of their own colour.
   if (node.type !== 'text' && node.fills.length) parts.push(`background:${paintToCss(node.fills[0]!, doc)}`);
