@@ -31,7 +31,8 @@ function html(body: string, status: number): Response {
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const offset = Math.max(0, Number.parseInt(url.searchParams.get('offset') ?? '0', 10));
-  const listing = await listPublications(EXPLORE_LIMIT, undefined, undefined, offset);
+  const query = url.searchParams.get('q') ?? '';
+  const listing = await listPublications(EXPLORE_LIMIT, undefined, undefined, offset, query);
   if (!listing.ok) return html(renderExploreUnavailable(listing.reason ?? 'no reason given'), 503);
 
   const rows = listing.publications ?? [];

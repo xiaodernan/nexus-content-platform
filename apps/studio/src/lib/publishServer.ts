@@ -194,6 +194,11 @@ export interface ListingAnswer {
   publications?: ListingEntry[];
   count?: number;
   limit?: number;
+  /**
+   * v274 — the WINDOW this answer is: how many rows the service skipped before it. The service states it
+   * so a caller that pages does not have to trust its own arithmetic about where it was.
+   */
+  offset?: number;
   reason?: string;
 }
 
@@ -214,11 +219,27 @@ export async function listPublications(
   fetchImpl: FetchLike = fetch as FetchLike,
   /** v270 — narrow the listing to ONE OWNER: "what has this account published", which is a profile. */
   owner?: string,
+  /**
+   * v274 — the WINDOW: skip this many rows, then take the next `limit` of them.
+   */
+  offset?: number,
+  /**
+   * v277 — the SEARCH QUERY: filter publications by title/description text.
+   *
+   * The service owns the search logic (ranking, blank-query behavior), so this passes the query through
+   * as asked and reports what the service answered. An empty string means "no search" (same as undefined).
+   */
+  query?: string,
 ): Promise<ListingAnswer> {
   const apiBase = nexusApiBase();
   const ownerParam = owner && owner.trim() ? `&owner=${encodeURIComponent(owner.trim())}` : '';
+  const offsetParam = offset === undefined ? '' : `&offset=${encodeURIComponent(String(offset))}`;
+  const queryParam = query && query.trim() ? `&q=${encodeURIComponent(query.trim())}` : '';
   try {
-    const res = await fetchImpl(`${apiBase}/projects?limit=${encodeURIComponent(String(limit))}${ownerParam}`, { signal: callSignal() });
+    const res = await fetchImpl(
+      `${apiBase}/projects?limit=${encodeURIComponent(String(limit))}${ownerParam}${offsetParam}${queryParam}`,
+      { signal: callSignal() },
+    );
     const parsed: unknown = await res.json().catch(() => null);
     if (parsed && typeof parsed === 'object') {
       const body = parsed as Record<string, unknown>;
@@ -228,6 +249,7 @@ export async function listPublications(
           publications: body.publications as ListingEntry[],
           count: typeof body.count === 'number' ? body.count : body.publications.length,
           limit: typeof body.limit === 'number' ? body.limit : limit,
+          offset: typeof body.offset === 'number' ? body.offset : offset ?? 0,
         };
       }
       const message = typeof body.message === 'string' ? body.message : undefined;

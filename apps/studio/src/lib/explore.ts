@@ -122,21 +122,27 @@ h1{font-size:20px;letter-spacing:.4px;margin-bottom:4px}
  * The gallery. `count` is what the answer CARRIED; `limit` is the cap the service applied — both are shown, so
  * "24" is never mistaken for "there are only 24" (the same rule the Studio's own panel follows).
  */
-export function renderExploreHtml(items: ExploreItem[], opts: { count: number; limit: number; offset: number }): string {
-  const { count, limit, offset } = opts;
+export function renderExploreHtml(items: ExploreItem[], opts: { count: number; limit: number; offset: number; query?: string }): string {
+  const { count, limit, offset, query } = opts;
   const hasPrev = offset > 0;
   const hasNext = offset + items.length < count;
   const paging = `
     <div class="paging" style="margin-top: 16; display: flex; gap: 8; align-items: center;">
-      <a href="/explore?offset=${Math.max(0, offset - limit)}" class="btn ${hasPrev ? '' : 'disabled'}" style="${hasPrev ? '' : 'opacity: 0.4; pointer-events: none;'}">← Prev</a>
+      <a href="/explore?offset=${Math.max(0, offset - limit)}${query ? '&q=' + encodeURIComponent(query) : ''}" class="btn ${hasPrev ? '' : 'disabled'}" style="${hasPrev ? '' : 'opacity: 0.4; pointer-events: none;'}">← Prev</a>
       <span style="font-size: 12; color: var(--nexus-muted);">showing ${offset + 1}–${Math.min(offset + items.length, count)} of ${count}</span>
-      <a href="/explore?offset=${offset + limit}" class="btn ${hasNext ? '' : 'disabled'}" style="${hasNext ? '' : 'opacity: 0.4; pointer-events: none;'}">Next →</a>
+      <a href="/explore?offset=${offset + limit}${query ? '&q=' + encodeURIComponent(query) : ''}" class="btn ${hasNext ? '' : 'disabled'}" style="${hasNext ? '' : 'opacity: 0.4; pointer-events: none;'}">Next →</a>
     </div>`;
-  const header = `<h1>EXPLORE</h1><div class="sub">${items.length} publication(s) shown · newest first · the service caps at ${limit}</div>${paging}`;
+  const searchForm = `
+    <form action="/explore" method="get" style="margin-bottom: 16; display: flex; gap: 8;">
+      <input type="text" name="q" value="${escapeHtml(query ?? '')}" placeholder="search publications..." style="flex: 1; padding: 6px 10px; background: #1b2230; border: 1px solid #262b34; border-radius: 4px; color: #e6e8ec; font-size: 13px;">
+      <button type="submit" class="btn">search</button>
+      ${query ? `<a href="/explore" class="btn" style="margin-left: 4px;">clear</a>` : ''}
+    </form>`;
+  const header = `<h1>EXPLORE</h1><div class="sub">${items.length} publication(s) shown · newest first · the service caps at ${limit}</div>${searchForm}${paging}`;
   if (items.length === 0) {
     return pageShell('Explore — nothing published yet', `${header}<div class="empty-state">Nothing is published yet. Publish a project from the Studio and it will appear here.</div>${paging}`);
   }
-  return pageShell('Explore — published projects', `${header}${renderExploreCards(items)}`);
+  return pageShell('Explore — published projects', `${header}${renderExploreCards(items)}${paging}`);
 }
 
 /**
