@@ -40,6 +40,17 @@ ADR-0045 把"这一份带不带引擎"从一句判断变成一张表（`ARTIFACT
   - `step(plan, state, choiceId)`：选一项就跳到目标 beat，并把走过的段落记进 `visited`；
   - `summary(plan, state)`：已走段落、成环的段落标出来（模型允许成环，播放器负责标，不是禁止）。
 - `artifactPayload("story")` 交 `{...compileStory(doc), notes}`，形状与产物里的其它两段载荷平级。
+  **注意这一条的后果**：story 那条链的产物计划**就是** `StoryPlan` 本身（`startId / beats / playable /
+  blockers / notes` 直接在顶层），**不是** `{ story: StoryPlan }`。
+  所以引擎里读的是 `plan`（`var story = plan;`）而不是 `plan.story`——
+  读错的后果是 `undefined.startId`，页面一打开就崩，**而只看字节的单测照样全绿**。
+- **两个坑（2026-10-20 实现时实测抓出来的，都已钉成单测）**：
+  ① 上面那条载荷形状：引擎读 `plan.story` → undefined → 页面崩；
+  ② **起点也是走过的一段**：起点若不记进 `visited`，绕回起点的那一步认不出是环（要绕两圈才标得出来）——
+     "成环"这件事被推迟了一整圈。
+  抓出它们的是一份**不依赖浏览器**的见证：用 Node 的 `vm` 直接跑产物 `engine.js` 里的 `NexusStory`
+  （它是纯逻辑，不碰 `document` / `window`），于是**机器内存紧、Chrome 起不来**的时候，
+  "转写语义对不对"这件事仍然有凭证——这是这次能连续推进的原因，值得记一笔。
 - **载荷类型改成判别联合**（这一条是实现时最容易被忽略的连锁点）：
   今天 `ArtifactPlan = GamePlan & { growth? }`，而 `compileStory` 的结果**没有** `arena / player / enemies /
   triggers / quests` 这些字段（有的是 `startId / beats / playable / blockers`）——
@@ -56,11 +67,13 @@ ADR-0045 把"这一份带不带引擎"从一句判断变成一张表（`ARTIFACT
   README、面板、链上那一格都要跟着多认一种）。
   具体落法（2026-10-20 读源码定）：`htmlSource()` 在 `chain === "story"` 时输出
   `<div id="story">` 而**不是** `<canvas id="arena">`（对话没有场地，画一块空画布只会让人以为坏了）；
-  `main.js` 的引擎分派从 `plan.growth ? NexusRpg : NexusSim` 变成先认 `plan.story`：
-  `plan.story ? NexusStory : (plan.growth ? NexusRpg : NexusSim)`，
+  `main.js` 的引擎分派从 `plan.growth ? NexusRpg : NexusSim` 变成先认 `plan.chain`：
+  `plan.chain === "story" ? NexusStory : (plan.chain === "rpg" ? NexusRpg : NexusSim)`，
+  而且**分流必须在碰画布之前**（对话那一页里根本没有 `<canvas id="arena">`，
+  `getElementById` 拿到 null，`null.getContext` 会抛 TypeError）；
   渲染器同样分两路（story 路渲染正文与选项按钮，点击调 `NexusStory.step`；其余走今天的 canvas 路）。
 - **判定只在编译期，产物只播放**：`compileStory` 已经把起点（未被任何对话指向的第一条）、
-  悬空引用、指向非对话的引用、空正文、终点、成环提示全都判完并写进 `plan.story`；
+  悬空引用、指向非对话的引用、空正文、终点、成环提示全都判完并写进那份载荷；
   **产物里一个都不许重做**——重做就是第二个供给点（ADR-0045 否掉的那件事）。
   产物只做三件事：显示当前 beat 的正文（`textEmpty` 时说"作者没写正文"）、列出选项、选一个跳到目标；
   外加把走过的段落记进 `visited`，重复走过就标出来（模型允许成环，播放器负责标，不是禁止）。

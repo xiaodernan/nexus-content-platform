@@ -33,6 +33,7 @@ import {
   type GameDocument,
   type GameEntityKind,
   type GameKind,
+  type GameCodeOutput,
   type GeneratedGameFile,
 } from "../src/index";
 
@@ -870,5 +871,49 @@ describe("第三条链：对话两型真的带对话引擎（ADR-0046）", () =>
     expect(branch, "main.js 里没有对话那一路的分流").toBeGreaterThan(-1);
     expect(canvas, "main.js 里没有画布那一路").toBeGreaterThan(-1);
     expect(branch, "分流必须排在碰画布之前：null.getContext 会抛 TypeError").toBeLessThan(canvas);
+  });
+});
+
+describe("对话那条链的转写：两个坑各钉一条", () => {
+  /**
+   * 这两条是**实测抓出来的**（2026-10-20，用 Node 的 `vm` 直接跑产物里的 `NexusStory` 时抓的，
+   * 那份脚本在 `.scratch/story-engine-proof.mts`；浏览器那一层见 `scripts/game-code-parity.mts`）：
+   *
+   * ① **载荷形状**：story 那条链的产物计划**就是** StoryPlan 本身（`artifactPayload` 交的是
+   *    `compileStory` 的结果），不是 `{ story: StoryPlan }`。引擎若读 `plan.story.startId`，
+   *    拿到的是 undefined——页面一打开就崩，而单测（只看字节）照样全绿。
+   * ② **起点也是走过的一段**：起点若不记进 `visited`，绕回起点的那一步不会被认出是环，
+   *    要绕两圈才标得出来——那是"成环"这件事被推迟了一整圈。
+   */
+  const storyOutput = (): GameCodeOutput => {
+    const document = {
+      ...build(
+        "两个人的对话",
+        [
+          { id: "d1", kind: "dialogue", name: "开场", stats: {}, refs: [{ to: "d2", role: "点头" }] },
+          { id: "d2", kind: "dialogue", name: "回应", stats: {}, refs: [{ to: "d1", role: "回头" }] },
+        ],
+      ),
+      kind: "interactive-story",
+    } as GameDocument;
+    return generateGameCode(document);
+  };
+
+  it("引擎读的是载荷本身（不是 plan.story）：那东西不存在，读了就是 undefined", () => {
+    const output = storyOutput();
+    const engine = file(output, "engine.js").contents;
+    expect(engine, "引擎读错了载荷的形状：story 那条链的计划**就是** StoryPlan").toContain("var story = plan;");
+    expect(engine, "读 plan.story 会拿到 undefined，页面一打开就崩").not.toContain("plan.story");
+    // 载荷这一侧也要对得上：startId 与 beats 直接在顶层
+    const plan = JSON.parse(file(output, "plan.json").contents) as ReturnType<typeof artifactPayload>;
+    expect(plan.chain).toBe("story");
+    const story = plan.chain === "story" ? plan : undefined;
+    expect(story?.startId).toBeTruthy();
+    expect((story as unknown as { story?: unknown } | undefined)?.story).toBeUndefined();
+  });
+
+  it("起点也记进 visited：绕回起点那一步就该认出是环，不必再绕一圈", () => {
+    const engine = file(storyOutput(), "engine.js").contents;
+    expect(engine, "起点没被记进 visited：绕回起点那一步认不出是环").toContain("visited[story.startId] = true;");
   });
 });
