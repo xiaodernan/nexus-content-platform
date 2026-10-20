@@ -1474,6 +1474,124 @@ try {
     await undoPage.close();
   }
 
+  // ── §16 v296: REPORTS — the page shows the count, the Studio files the report ──────────────────
+  // The report is the one social act that asks somebody else to do something, so the section grades the
+  // three facts that matter: the page states the count WITHOUT naming the reporter, the report is filed
+  // with a reason and a body, and a device with no account is refused (a report with no reporter cannot
+  // be followed up).
+  {
+    // `likeTarget` is block-scoped in its own section, so it is recomputed here rather than reached for
+    // across a block boundary (the browser says so: `ReferenceError: likeTarget is not defined`).
+    const reportTarget = remixProjectId ?? projectId;
+    const reportPage = await fetch(`${studioBase}/p/${encodeURIComponent(reportTarget)}`);
+    const reportHtml = await reportPage.text();
+    check(
+      'the artifact page carries a REPORTS bar',
+      reportPage.status === 200 && reportHtml.includes('data-reports='),
+      `status ${reportPage.status}; carries the bar: ${reportHtml.includes('data-reports=')}`,
+    );
+    check(
+      'and it states a count of ZERO for a publication nobody reported',
+      reportHtml.includes('data-reports="0"'),
+      `the bar says: ${/data-reports="(\d+)"/.exec(reportHtml)?.[0] ?? 'no count'}`,
+    );
+    check(
+      'and it offers the report, as a link to the Studio',
+      reportHtml.includes(`href="/?report=${encodeURIComponent(reportTarget)}"`),
+      'the bar links to /?report=<id>',
+    );
+
+    // The Studio opens a composer over the intent.
+    const reportComposerPage = await session.newPage('about:blank');
+    await reportComposerPage.navigate(`${studioBase}/?report=${encodeURIComponent(reportTarget)}`, { waitForSelector: '[data-report-composer]', waitMs: 2000 });
+    await waitForHydration(reportComposerPage, 'the report page to hydrate');
+    check(
+      'the Studio opens a REPORT composer over the intent',
+      (await reportComposerPage.evaluate("!!document.querySelector('[data-report-composer]')")) === true,
+      'the composer is on the page',
+    );
+
+    await reportComposerPage.type('[data-report-detail]', 'the harness says this is a problem');
+    await reportComposerPage.evaluate("document.querySelector('[data-report-reason=\"harassment\"]').click()");
+    await reportComposerPage.evaluate("document.querySelector('[data-report-post]').click()");
+    const reportNote = await until(
+      async () => {
+        const n = await reportComposerPage.evaluate("document.querySelector('[data-report-note]')?.textContent ?? ''");
+        return n.includes('reported') ? n : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the report to land' },
+    );
+    check(
+      'and posting a report says so in the Studio’s own words, with the reason',
+      typeof reportNote === 'string' && reportNote.includes('harassment'),
+      `note: ${JSON.stringify(reportNote)}`,
+    );
+
+    // And the SERVICE recorded it — read independently of the browser, from the real database.
+    const reportsRead = await fetch(`${apiBase}/reports?target=${encodeURIComponent(reportTarget)}`);
+    const reportsBody = await reportsRead.json();
+    check(
+      'the SERVICE recorded the report — read back independently of the browser',
+      reportsRead.status === 200 && Array.isArray(reportsBody.reports) && reportsBody.reports.length === 1,
+      `reports: ${JSON.stringify(reportsBody.reports)}`,
+    );
+    // The REPORTER is whoever the device is signed in as at this point — the previous section ended
+    // signed in as the second account, so the report is filed by THAT account and not by the publisher.
+    const reporterRaw = await reportComposerPage.evaluate("localStorage.getItem('nexus-current-account')");
+    let reporter = null;
+    try {
+      reporter = reporterRaw ? JSON.parse(reporterRaw) : null;
+    } catch {
+      reporter = null;
+    }
+    check(
+      'and the report names the REASON and the body, and the account that filed it',
+      reportsBody.reports?.[0]?.reason === 'harassment' && reportsBody.reports?.[0]?.detail === 'the harness says this is a problem' && reportsBody.reports?.[0]?.reporterId === reporter?.id,
+      `the report: ${JSON.stringify(reportsBody.reports?.[0])} · the device: ${JSON.stringify(reporter)}`,
+    );
+
+    // And the page now says one report — and it does NOT name the reporter.
+    const reportAfter = await (await fetch(`${studioBase}/p/${encodeURIComponent(reportTarget)}`)).text();
+    check(
+      'and the artifact page now says ONE report',
+      reportAfter.includes('data-reports="1"'),
+      `the bar says: ${/data-reports="(\d+)"/.exec(reportAfter)?.[0] ?? 'no count'}`,
+    );
+    check(
+      'and it does NOT name the REPORTER — the count is the fact, the identity is the moderator\u2019s business',
+      // The page carries the OWNER\u2019s byline (\u201cby ada\u2026\u201d), so the check is about the REPORTER\u2019s name
+      // and not about the string \u201cada\u201d in general.
+      !reportAfter.includes(reporter?.handle ?? '\u0000'),
+      `the page names the reporter (${reporter?.handle}): ${reportAfter.includes(reporter?.handle ?? '\u0000')}`,
+    );
+
+    // LAST, because it clears the device’s account: a report with no reporter cannot be followed up, and
+    // the client does NOT invent one.
+    await reportComposerPage.evaluate("localStorage.removeItem('nexus-current-account')");
+    await reportComposerPage.navigate(`${studioBase}/?report=${encodeURIComponent(reportTarget)}`, { waitForSelector: '[data-report-composer]', waitMs: 2000 });
+    await waitForHydration(reportComposerPage, 'the accountless report page to hydrate');
+    await reportComposerPage.evaluate("document.querySelector('[data-report-post]').click()");
+    const noAccount = await until(
+      async () => {
+        const n = await reportComposerPage.evaluate("document.querySelector('[data-report-note]')?.textContent ?? ''");
+        return n.includes('no account') ? n : false;
+      },
+      { tries: 40, gapMs: 500, label: 'the accountless report to be refused' },
+    );
+    check(
+      'a device with NO account is refused — the client does not invent a reporter',
+      noAccount !== null,
+      `note: ${JSON.stringify(noAccount)}`,
+    );
+    const reportsAfterRefusal = await (await fetch(`${apiBase}/reports?target=${encodeURIComponent(reportTarget)}`)).json();
+    check(
+      'and the refused report changed NOTHING — there is still exactly one',
+      reportsAfterRefusal.reports?.length === 1,
+      `reports: ${reportsAfterRefusal.reports?.length}`,
+    );
+    await reportComposerPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

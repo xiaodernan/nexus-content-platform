@@ -3,6 +3,8 @@ import { renderArtifactHtml, renderArtifactMissing, renderArtifactUnavailable } 
 import { readRemixedFrom } from '@/lib/lineage';
 import { readAuditTrail } from '@/lib/auditServer';
 import { historyRowsOf, injectHistory, renderHistoryHtml } from '@/lib/history';
+import { readReports } from '@/lib/reportServer';
+import { injectReportBar, renderReportBar, toReportRows, REPORT_BAR_STYLES } from '@/lib/reportBar';
 import { readLikes } from '@/lib/likeServer';
 import { injectLikeBar, renderLikeBar, LIKE_BAR_STYLES } from '@/lib/likeBar';
 import { readComments } from '@/lib/commentServer';
@@ -34,6 +36,12 @@ export const dynamic = 'force-dynamic';
  * cap, because a publication's own history can be anywhere in a trail that only ever grows.
  */
 const HISTORY_LIMIT = 100;
+
+/**
+ * v296 — how many reports the artifact page reads. The service caps at 100; the page asks for the cap,
+ * because a publication can be reported many times and the page states what it carried.
+ */
+const REPORT_LIMIT = 100;
 
 /**
  * v286 — how many comments the artifact page reads. The service caps at 100; the page asks for the cap,
@@ -68,6 +76,19 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
     // itself was read through), and a FAILED read does NOT take the page down: an artifact that cannot show
     // its history is still an artifact, and a page that 500s because the trail was unreachable would make
     // the publication unreachable for a reason that has nothing to do with it.
+    // v296 — the REPORTS. Read independently again: a reports door that could not be read leaves the bar
+    // out ENTIRELY, because "0 reports" and "the reports could not be read" are different facts — and a
+    // reader misled into thinking nobody complained is the one reader a report page must not mislead.
+    const reports = await readReports(decoded, REPORT_LIMIT);
+    const reportBar = reports.ok
+      ? renderReportBar({
+          projectId: decoded,
+          count: reports.count,
+          // The reasons, WITHOUT the reporters: a page that named the reporter would turn a report into
+          // a public accusation with no moderation behind it.
+          reports: toReportRows(reports.reports),
+        }) + REPORT_BAR_STYLES
+      : '';
     const trail = await readAuditTrail(HISTORY_LIMIT);
     const history = trail.ok
       ? renderHistoryHtml(historyRowsOf(trail.entries ?? [], decoded), trail.carried)
@@ -86,7 +107,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
       : '';
     return new Response(
       injectComments(
-        injectLikeBar(injectHistory(page, history), bar ? bar + LIKE_BAR_STYLES : ''),
+        injectReportBar(
+          injectLikeBar(injectHistory(page, history), bar ? bar + LIKE_BAR_STYLES : ''),
+          reportBar,
+        ),
         commentSection,
       ),
       {
