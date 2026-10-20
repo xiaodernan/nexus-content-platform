@@ -1,5 +1,6 @@
 package dev.nexus.api.social;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +19,16 @@ public interface ReportRepository extends JpaRepository<ReportEntry, String> {
 
     /** The reports about one publication, newest first, capped by the caller's `Pageable`. */
     List<ReportEntry> findByTargetProjectIdOrderByCreatedAtDesc(String targetProjectId, Pageable pageable);
+
+    /**
+     * v304 — the reports about ANY of several publications, newest first.
+     *
+     * <p>This is the finder the moderation package's desk needs: an owner may have many publications, and
+     * asking the database once per publication would be a round trip per work. The set is the owner's own
+     * publications, so the `IN` is bounded by the window the caller chose.
+     */
+    List<ReportEntry> findByTargetProjectIdInOrderByCreatedAtDesc(
+            Collection<String> targetProjectIds, Pageable pageable);
 
     /** The reports one account filed, newest first, capped by the caller's `Pageable`. */
     List<ReportEntry> findByReporterAccountIdOrderByCreatedAtDesc(String reporterAccountId, Pageable pageable);

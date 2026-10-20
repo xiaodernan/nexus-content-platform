@@ -133,4 +133,17 @@ public class ReportEntry {
     public void markRejected() {
         this.status = "rejected";
     }
+
+    /**
+     * v304 — the other status move this build supports: the OWNER of the reported publication says they
+     * have seen the report.
+     *
+     * <p>The move is FORWARD and the row STAYS, for the same reason the withdrawal's does: a report that
+     * was acknowledged is a fact that happened. The status is called {@code acknowledged} rather than
+     * {@code reviewed} or {@code resolved} because those two are a moderator's words, and this build has
+     * no moderator to render them.
+     */
+    public void markAcknowledged() {
+        this.status = "acknowledged";
+    }
 }

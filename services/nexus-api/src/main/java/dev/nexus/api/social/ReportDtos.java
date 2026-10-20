@@ -31,6 +31,16 @@ public final class ReportDtos {
     public static final String STATUS_RESOLVED = "resolved";
     public static final String STATUS_REJECTED = "rejected";
 
+    /**
+     * v304 — the OWNER's status: the owner of the reported publication has seen the report.
+     *
+     * <p>It is NOT {@link #STATUS_REVIEWED} and NOT {@link #STATUS_RESOLVED}. Those two are a
+     * MODERATOR's vocabulary, and this build has no moderator: they are declared so that a future one
+     * has a name to use, and they are unreachable on purpose. What the owner can honestly say is that they
+     * have seen it — which is a smaller claim than a review and a much smaller one than a resolution.
+     */
+    public static final String STATUS_ACKNOWLEDGED = "acknowledged";
+
     /** WHO is reporting. The shape is the one the Studio's own claim produces. */
     public record ReportClaim(String accountId, String handle, String assurance, Long claimedAt) {
     }

@@ -1,0 +1,130 @@
+/**
+ * M7 v304 — the OWNER'S DESK, as pure data.
+ *
+ * A report filed against your work is a complaint, and a complaint nobody reads is a counter. This module
+ * turns the service's desk rows into the facts a panel can show, and it is PURE so the rules can be
+ * tested without a browser or a service.
+ *
+ * **What this module refuses to do:**
+ *
+ * - **It does not name the reporter.** The service's desk does not carry the reporter's id or handle (that
+ *   is the service's decision, and the reason is written down there), so there is nothing here that could
+ *   print one. A row that arrived with a reporter's name in it is DROPPED rather than shown: a desk that
+ *   said "so-and-so reported your work" would be the public accusation that v296 refused to build.
+ * - **A failed read is NOT an empty desk.** "No reports" and "the desk could not be read" are different
+ *   facts, and a panel that showed the first when it knew the second would tell an owner that nobody had
+ *   complained — which is the one thing an owner must not be misled about.
+ */
+import { reportReasonText } from './reportBar';
+
+/** One report, in the service's desk shape. */
+export interface DeskEntry {
+  reportId?: unknown;
+  targetProjectId?: unknown;
+  targetTitle?: unknown;
+  reason?: unknown;
+  detail?: unknown;
+  status?: unknown;
+  createdAt?: unknown;
+}
+
+/** A report, reduced to the facts an owner can act on. */
+export interface DeskRow {
+  /** The report's own id — what the acknowledgement names. */
+  reportId: string;
+  /** Which of the owner's publications it is about. */
+  targetProjectId: string;
+  /** That publication's title, so an owner with twenty works need not remember the ids. */
+  targetTitle: string;
+  /** The reason, as the service's own word. */
+  reason: string;
+  /** The reason in a reader's words. */
+  reasonText: string;
+  /** The reporter's own words, verbatim. */
+  detail: string;
+  /** The status, as the service's own word. */
+  status: string;
+  /** The status in a reader's words. */
+  statusText: string;
+  /** Whether the report is still waiting to be acknowledged. */
+  open: boolean;
+}
+
+/**
+ * The status in a reader's words.
+ *
+ * A KNOWN status is spelled the way a person would say it; an unknown one is passed through as it arrived
+ * — a panel that labelled an unknown status as "acknowledged" would be claiming a disposition the service
+ * never made.
+ */
+export function reportStatusText(status: string): string {
+  switch (status) {
+    case 'open':
+      return 'not acknowledged yet';
+    case 'acknowledged':
+      return 'acknowledged';
+    case 'rejected':
+      return 'withdrawn by the reporter';
+    case 'reviewed':
+    case 'resolved':
+      // These are a MODERATOR's statuses. This build has no moderator, so the service never sets them —
+      // and if one ever arrived it would be shown in the service's own word rather than translated into
+      // something this panel could not vouch for.
+      return status;
+    default:
+      return status;
+  }
+}
+
+/**
+ * One report, or `null` when it cannot be shown honestly.
+ *
+ * A desk row needs the report's id (it is what the acknowledgement names), the publication it is about
+ * (a complaint about nothing is not a complaint) and a reason (a report with no reason says nothing about
+ * what it is about). Everything else may be missing: a report with no words is still a report, and the
+ * panel says so rather than dropping it.
+ */
+export function toDeskRow(entry: unknown): DeskRow | null {
+  if (typeof entry !== 'object' || entry === null) return null;
+  const r = entry as DeskEntry;
+  if (typeof r.reportId !== 'string' || r.reportId.length === 0) return null;
+  if (typeof r.targetProjectId !== 'string' || r.targetProjectId.length === 0) return null;
+  if (typeof r.reason !== 'string' || r.reason.length === 0) return null;
+  const status = typeof r.status === 'string' && r.status.length > 0 ? r.status : 'open';
+  return {
+    reportId: r.reportId,
+    targetProjectId: r.targetProjectId,
+    targetTitle: typeof r.targetTitle === 'string' && r.targetTitle.length > 0 ? r.targetTitle : r.targetProjectId,
+    reason: r.reason,
+    reasonText: reportReasonText(r.reason),
+    detail: typeof r.detail === 'string' ? r.detail : '',
+    status,
+    statusText: reportStatusText(status),
+    open: status === 'open',
+  };
+}
+
+/** The desk's rows, in the order the service gave them. */
+export function toDeskRows(entries: readonly unknown[]): DeskRow[] {
+  const rows: DeskRow[] = [];
+  for (const entry of entries) {
+    const row = toDeskRow(entry);
+    if (row) rows.push(row);
+  }
+  return rows;
+}
+
+/**
+ * The desk's tally: how many reports there are, and how many are still waiting.
+ *
+ * <p>The tally is over the rows the answer carried, so it is a count of what the owner can SEE — not a
+ * count of every report that exists. The service's own count is the number of every report; this is the
+ * number in front of the owner, and the panel says which one it is showing.
+ */
+export function deskSummary(rows: readonly DeskRow[]): { total: number; open: number } {
+  let open = 0;
+  for (const row of rows) {
+    if (row.open) open += 1;
+  }
+  return { total: rows.length, open };
+}

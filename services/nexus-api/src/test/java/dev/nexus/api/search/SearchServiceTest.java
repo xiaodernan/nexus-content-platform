@@ -101,7 +101,7 @@ class SearchServiceTest {
     }
 
     @Test
-    void theWindowCarriesTheEXACToffsetAndTheOrder() {
+    void theWindowCarriesTheEXACToffsetAndNOOrderOfItsOwn() {
         when(repository.findByTextContaining(eq("x"), any(Pageable.class))).thenReturn(List.of());
 
         service.search("x", null, 24, 25);
@@ -111,7 +111,12 @@ class SearchServiceTest {
         // The 25th row with a size of 24: a page-aligned window would have skipped 24 or 48, and the row in
         // between would have been unreachable.
         assertThat(window.getValue().getOffset()).isEqualTo(25L);
-        assertThat(window.getValue().getSort().getOrderFor("publishedAt")).isNotNull();
+        // v302 — and the window carries NO sort of its own. The ORDER now lives in the finder's QUERY (the
+        // relevance order: a title match first, then newest-first within each class), and a Pageable's own
+        // sort would be APPENDED to that ORDER BY — the two would fight, and the rows would come back in an
+        // order nobody wrote down.
+        assertThat(window.getValue().getSort().isSorted()).isFalse();
+        assertThat(window.getValue().getSort().getOrderFor("publishedAt")).isNull();
     }
 
     @Test

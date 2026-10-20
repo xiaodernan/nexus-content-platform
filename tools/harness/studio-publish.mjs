@@ -1915,6 +1915,92 @@ try {
     await graphPage.close();
   }
 
+  // ── §20 v304: the OWNER’S DESK — the report finally gets read ─────────────────────────────────
+  // A report filed against a publication is a complaint, and until now the only person who could read
+  // it was the one who filed it. The desk is where the OWNER of the work reads it: with the reason and
+  // the reporter’s WORDS, and WITHOUT the reporter’s name — because a claim is not a key, and a name
+  // cannot be un-said.
+  {
+    const deskPage = await session.newPage('about:blank');
+    await deskPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(deskPage, 'the desk page to hydrate');
+
+    // The complaint is filed by the SECOND account against the FIRST account’s own work. The target is the
+    // FORK and not the source: §9 took the source down, and a report about a work that no longer exists is
+    // a complaint nobody can act on — the desk does not show it, because the work it is about is gone. That
+    // is the SERVICE being honest, and it is a bound this section now records rather than works around.
+    // (The first run of this section filed against the source and found the desk empty; the desk was right
+    // and the section was wrong.)
+    const deskTarget = remixProjectId ?? projectId;
+    await signInAs(deskPage, 'bob', 'the complainant');
+    await deskPage.navigate(`${studioBase}/?report=${encodeURIComponent(deskTarget)}`, { waitForSelector: '[data-report-composer]', waitMs: 2000 });
+    await waitForHydration(deskPage, 'the report page to hydrate');
+    await deskPage.type('[data-report-detail]', 'the harness says this is a problem');
+    await deskPage.evaluate("document.querySelector('[data-report-reason=\"spam\"]').click()");
+    await deskPage.evaluate("document.querySelector('[data-report-post]').click()");
+    const filed = await until(
+      async () => {
+        const n = await deskPage.evaluate("document.querySelector('[data-report-note]')?.textContent ?? ''");
+        return n.includes('reported') ? n : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the report to land' },
+    );
+    check('a report is filed against the owner’s own work, by somebody else', filed !== null, `note: ${JSON.stringify(filed)}`);
+
+    // The OWNER opens the desk.
+    await signInAs(deskPage, 'ada', 'the owner');
+    await deskPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
+    const deskRows = await until(
+      async () => (await deskPage.evaluate("document.querySelectorAll('[data-desk-report]').length")) > 0,
+      { tries: 120, gapMs: 500, label: 'the desk to show the report' },
+    );
+    check('the owner’s desk shows the report against their work', deskRows !== null, 'the desk lists it');
+
+    const deskHtml = await deskPage.evaluate("document.querySelector('[data-toolbar-desk]')?.innerHTML ?? ''");
+    check(
+      'and it shows the REASON and the reporter’s WORDS',
+      deskHtml.includes('spam') && deskHtml.includes('the harness says this is a problem'),
+      `the desk says: ${JSON.stringify(deskHtml.slice(0, 400))}`,
+    );
+    const reporterRaw = await deskPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const ownerId = JSON.parse(String(reporterRaw)).id;
+    check(
+      'and it does NOT name the reporter — a claim is not a key, and a name cannot be un-said',
+      !deskHtml.includes('bob') && !deskHtml.includes(ownerId),
+      `the desk names nobody: ${!deskHtml.includes('bob')}`,
+    );
+
+    // The ONE power the owner has over a report: to say they have seen it.
+    await deskPage.evaluate("document.querySelector('[data-desk-acknowledge]').click()");
+    const acknowledged = await until(
+      async () => {
+        const status = await deskPage.evaluate("document.querySelector('[data-desk-report]')?.getAttribute('data-desk-status') ?? ''");
+        return status === 'acknowledged' ? status : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the acknowledgement to land' },
+    );
+    check('the owner can acknowledge the report, and the desk says so', acknowledged !== null, `status: ${JSON.stringify(acknowledged)}`);
+
+    // And the SERVICE recorded the disposition — read independently of the browser.
+    const deskRead = await fetch(`${apiBase}/moderation/reports?owner=${encodeURIComponent(ownerId)}`);
+    const deskBody = await deskRead.json();
+    check(
+      'the SERVICE recorded the disposition — read back independently of the browser',
+      deskRead.status === 200 && Array.isArray(deskBody.reports) && deskBody.reports.some((r) => r.status === 'acknowledged'),
+      `desk: ${JSON.stringify(deskBody.reports)}`,
+    );
+
+    // And the desk is the OWNER’s: another account’s desk does not carry it.
+    const otherDesk = await fetch(`${apiBase}/moderation/reports?owner=${encodeURIComponent('acct-somebody-else')}`);
+    const otherBody = await otherDesk.json();
+    check(
+      'and the desk is the OWNER’s — another account’s desk does not carry it',
+      otherDesk.status === 200 && (otherBody.reports ?? []).length === 0,
+      `reports: ${JSON.stringify(otherBody.reports)}`,
+    );
+    await deskPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

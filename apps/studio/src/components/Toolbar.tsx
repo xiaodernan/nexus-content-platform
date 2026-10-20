@@ -5,6 +5,7 @@ import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
 import { readTrail, type TrailAnswer } from '@/lib/auditLane';
 import { filterTrailRows, trailSummaryOf, trailSummaryText } from '@/lib/trail';
 import { readMyTips } from '@/lib/tipLane';
+import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
 import { priceText } from '@/lib/economy';
 import type { PriceCents } from '@/lib/monetization';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
@@ -169,6 +170,60 @@ export default function Toolbar() {
     const next = !showEconomy;
     setShowEconomy(next);
     if (next) { await refreshEconomy(); setShowPublished(false); setShowTrail(false); }
+  };
+
+  /**
+   * v304 — the OWNER'S DESK: the reports filed against the work this account owns.
+   *
+   * <p>The desk is where a complaint finally gets read. The artifact page shows the COUNT and the reasons
+   * to everybody; the desk shows the reason and the reporter's WORDS to the one person who can do
+   * something about them — and it does NOT name the reporter, because a claim is not a key and a name
+   * cannot be un-said.
+   */
+  const [showDesk, setShowDesk] = useState(false);
+  const [desk, setDesk] = useState<DeskLaneAnswer | null>(null);
+  const [deskNote, setDeskNote] = useState('');
+
+  const refreshDesk = async () => {
+    const account = session.current();
+    if (!account) {
+      // A failed read is NOT an empty desk: the panel says why it could not read, rather than showing
+      // "nobody has reported your work" and being wrong.
+      setDesk({ ok: false, reports: [], open: 0, reason: 'the desk belongs to an account, and this device has none' });
+      return;
+    }
+    setDesk(await readDesk(account.id));
+  };
+
+  const onToggleDesk = async () => {
+    const next = !showDesk;
+    setShowDesk(next);
+    if (next) { setShowPublished(false); setShowTrail(false); setShowEconomy(false); }
+    if (next) { setDeskNote(''); await refreshDesk(); }
+  };
+
+  /**
+   * The ONE power the owner has over a report: to say they have seen it.
+   *
+   * <p>The panel says whether the status MOVED, because a report that was already disposed of is a fact
+   * and not a failure — and a panel that said "acknowledged" either way would be claiming a disposition
+   * the service did not make.
+   */
+  const onAcknowledge = async (reportId: string) => {
+    const account = session.current();
+    if (!account) {
+      setDeskNote('the desk belongs to an account, and this device has none');
+      return;
+    }
+    const answer = await acknowledgeReport(reportId, account.id);
+    setDeskNote(
+      answer.ok
+        ? answer.moved
+          ? `acknowledged ${reportId}`
+          : `${reportId} was already disposed of`
+        : `not acknowledged: ${answer.reason}`,
+    );
+    await refreshDesk();
   };
 
   const onToggleTrail = async () => {
@@ -358,6 +413,18 @@ export default function Toolbar() {
           title="what the service recorded happening: publishes and take-downs, newest first"
         >
           Trail
+        </button>
+        {/* v304 — the OWNER'S DESK: the reports against the work this account owns. The
+            complaint is filed against a publication, so somebody has to be able to read it — and the
+            only person who can do something about it is the person whose work it is. */}
+        <button
+          className={`btn ${showDesk ? 'tool-active' : ''}`}
+          data-toolbar-desk-toggle
+          onClick={() => void onToggleDesk()}
+          disabled={service?.available === false}
+          title="the reports filed against the work you own"
+        >
+          Desk
         </button>
         {/* v274 — the CREATOR ECONOMY surface. No server endpoints exist yet (ADR 0018 blocks
             accounts/sessions/tokens), so the panel states that honestly rather than showing
@@ -681,6 +748,70 @@ export default function Toolbar() {
               </div>
             </>
           )}
+        </div>
+      )}
+      {showDesk && (
+        <div
+          data-toolbar-desk
+          style={{
+            position: 'fixed',
+            top: 54,
+            right: 16,
+            zIndex: 41,
+            width: 460,
+            maxHeight: 340,
+            overflow: 'auto',
+            background: 'var(--nexus-panel, #12151b)',
+            border: '1px solid var(--nexus-border, #262b34)',
+            borderRadius: 6,
+            padding: 10,
+            fontSize: 11,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+          }}
+        >
+          <div style={{ fontWeight: 700, letterSpacing: 0.4, marginBottom: 6 }}>YOUR DESK</div>
+          {desk === null ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
+          ) : !desk.ok ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>could not read: {desk.reason}</div>
+          ) : desk.reports.length === 0 ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>no reports against your work</div>
+          ) : (
+            <>
+              <div style={{ color: 'var(--nexus-muted)', marginBottom: 6 }}>
+                {desk.reports.length} report(s) · {desk.open} still waiting
+              </div>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {desk.reports.map((report) => (
+                  <li
+                    key={report.reportId}
+                    data-desk-report={report.reportId}
+                    data-desk-status={report.status}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '4px 0', borderTop: '1px solid var(--nexus-border, #262b34)' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <span>{report.targetTitle} — {report.reasonText}</span>
+                      <span style={{ color: 'var(--nexus-muted)' }}>{report.statusText}</span>
+                    </div>
+                    {report.detail && (
+                      <div style={{ color: 'var(--nexus-muted)', fontSize: 10, whiteSpace: 'pre-wrap' }}>{report.detail}</div>
+                    )}
+                    {report.open && (
+                      <button
+                        className="btn"
+                        data-desk-acknowledge={report.reportId}
+                        onClick={() => void onAcknowledge(report.reportId)}
+                        title="say you have seen this report"
+                      >
+                        Acknowledge
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {deskNote && <div style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>{deskNote}</div>}
         </div>
       )}
       {showAccount && (
