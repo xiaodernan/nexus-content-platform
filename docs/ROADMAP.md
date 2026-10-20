@@ -942,9 +942,17 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   "只能躲、不能打"——给一个看不见的 1 点攻击力就是造假数据（§159）。
   任务的完成条件同样只在"引用了敌人或物品"时才算可判定，判不出来的列在任务表里说清为什么，
   不悄悄算作自动完成，也不会因为它永远不满足而谎称"这版没有赢"以外的话。
-  **仍欠**：§52 Game Agent 与 §53 Playtest Agent 的编排、地形与碰撞、`talk`（§47 要 provider）——
-  这些各有自己的条目在跟；§51 的八种类型已于 2026-10-07 全部接上真管线（RPG 是最后一种），
-  Game Studio 那一条因此是 `[x]`。
+  **仍欠（2026-10-20 核对后改口径）**：原句写的是「§52 Game Agent 与 §53 Playtest Agent 的编排、
+   地形与碰撞、`talk`」——前两半**早已落地**（编排九步在 `server/agent/runtime.ts` 的 `RUNNERS`：
+   `game / combat / level / playtest / code`，§52 四格 2026-10-12→10-15、§53 那格 2026-10-11）；
+   `talk` 要 §47 的真 provider，按 §159 留白。
+   **「地形与碰撞」这一半不是欠账，是过期行**——§54 原文那 11 类实体
+   （Player/Enemy/Weapon/Item/Quest/Dialogue/Trigger/NPC/Camera/Animation/Particle）里
+   **没有墙、也没有地形这一类**，`packages/game-model/src/sim.ts` 头部照实写着
+   「地形与碰撞体：只有开阔场地，没有墙」，HUD 上那四条限度也照实说。
+   换句话说：**是需求没要，不是我没做**。要加「墙」就得先改 §54 的实体清单（那是产品决定，不是实现欠账）；
+   至于把 §140 的世界地形（台地/坡地）接进 2D 关卡当障碍或坡道——那同样是一个**新的产品决定**
+   （两个独立文档怎么关联、语义怎么映射，用户没说过），**不是这里可以替他做的**。
   （公开可玩与 §168 的 play time 已在上面的"第二片"接上；`/game/<项目>` 仍是作者自己的试玩页，
   公网那一版走 `/n/<handle>/<slug>/play`。）
 
@@ -3536,9 +3544,15 @@ image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；�
    草稿随结论存下来（`draft?: GameDocument` 存在任务行里，不在响应体里，客户端贴不进来）、
    一个用户点出来的"写进项目"（点「接受进项目」才写；已有游戏设计时拒绝覆盖，不静默覆盖）。
    **别照这一行重新发明**：核对方式是 `git log --grep='ADR-0035'` + `apps/web/src/lib/agent-game-draft.ts`。
-8. **其余 `[~]` 长线**（RAG 向量、图像/视频/角色一致性像素、§54 游戏设计系统）
+8. **下一格（2026-10-20 起在做）**：**对话两型引擎 = `ARTIFACT_CHAINS` 的第三个键 `story`**
+   （`interactive-story` / `visual-novel` 今天仍只披露不修——`ARTIFACT_CHAINS` 表只有 `topdown` 与 `rpg` 两个键）。
+   草稿见 `docs/adr/0046-artifact-third-chain-story-pipeline.md`（转写 `story.ts` 的语义进 `engine.js`，
+   **不手抄**——两个供给点迟早漂开）；定稿条件：codegen 侧转写落地 + parity 见证 + 真浏览器那一格走过。
+   **并发提示**：这一格要动 `packages/game-model/src/codegen.ts`（`ARTIFACT_CHAINS` 表、`engineSource`、产物 HTML 模板）——
+   动手前先 `git status` 看那块是不是有人在途。
+9. **其余 `[~]` 长线**（RAG 向量、图像/视频/角色一致性像素、§54 游戏设计系统）
    **全部卡在真实 provider key 上**——按 §159 留白，不假造。**拿到 key 之前，
-   自主推进的格子就是上面的 1–6（1–4 已落地，3 是 §147 的复测窗口）；
+   自主推进的格子就是上面的 1–6（1–4 已落地，3 是 §147 的复测窗口）与第 8 项；
    没有自主格子时就去核对 `[~]` 行是否过期，别照着已经做完的事再做一遍。**
 
 需要用户才能推进的（不要绕过）：真实 provider key。有了它才能落地的是 §49 的向量与 rerank、
