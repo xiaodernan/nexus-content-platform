@@ -44,7 +44,7 @@ export interface ProfileRow {
  * The claims are the service's only knowledge of the account, so the facts come from them — and a row with
  * no owner says nothing rather than contributing an empty name.
  */
-export function profileFactsOf(accountId: string, rows: readonly ProfileRow[], count: number, limit: number, offset: number = 0): ProfileFacts {
+export function profileFactsOf(accountId: string, rows: readonly ProfileRow[], count: number, limit: number, offset: number = 0, query: string = ''): ProfileFacts {
   let handle: string | null = null;
   let assurance: string | null = null;
   for (const row of rows) {
@@ -64,7 +64,7 @@ export function profileFactsOf(accountId: string, rows: readonly ProfileRow[], c
  * tell an account that has published nothing from one that does not exist, because it holds no account
  * table — and a page that said "no such account" would be claiming a fact the service never had.
  */
-export function renderProfileHtml(facts: ProfileFacts, items: ExploreItem[], offset: number = 0): string {
+export function renderProfileHtml(facts: ProfileFacts, items: ExploreItem[], offset: number = 0, query: string = ''): string {
   const who = facts.handle ? `@${facts.handle}` : facts.accountId;
   const assurance = facts.assurance ? ` · ${facts.assurance}` : '';
   const { count, limit } = facts;
@@ -72,11 +72,17 @@ export function renderProfileHtml(facts: ProfileFacts, items: ExploreItem[], off
   const hasNext = offset + items.length < count;
   const paging = `
     <div class="paging" style="margin-top: 16; display: flex; gap: 8; align-items: center;">
-      <a href="/u/${encodeURIComponent(facts.accountId)}?offset=${Math.max(0, offset - limit)}" class="btn ${hasPrev ? '' : 'disabled'}" style="${hasPrev ? '' : 'opacity: 0.4; pointer-events: none;'}">← Prev</a>
+      <a href="/u/${encodeURIComponent(facts.accountId)}?offset=${Math.max(0, offset - limit)}${query ? '&q=' + encodeURIComponent(query) : ''}" class="btn ${hasPrev ? '' : 'disabled'}" style="${hasPrev ? '' : 'opacity: 0.4; pointer-events: none;'}">← Prev</a>
       <span style="font-size: 12; color: var(--nexus-muted);">showing ${offset + 1}–${Math.min(offset + items.length, count)} of ${count}</span>
-      <a href="/u/${encodeURIComponent(facts.accountId)}?offset=${offset + limit}" class="btn ${hasNext ? '' : 'disabled'}" style="${hasNext ? '' : 'opacity: 0.4; pointer-events: none;'}">Next →</a>
+      <a href="/u/${encodeURIComponent(facts.accountId)}?offset=${offset + limit}${query ? '&q=' + encodeURIComponent(query) : ''}" class="btn ${hasNext ? '' : 'disabled'}" style="${hasNext ? '' : 'opacity: 0.4; pointer-events: none;'}">Next →</a>
     </div>`;
-  const header = `<h1>${escapeHtml(who)}</h1><div class="sub">${escapeHtml(facts.accountId)}${escapeHtml(assurance)} · ${items.length} publication(s) shown · the service caps at ${limit}</div>${paging}`;
+  const searchForm = `
+    <form action="/u/${encodeURIComponent(facts.accountId)}" method="get" style="margin-bottom: 16; display: flex; gap: 8;">
+      <input type="text" name="q" value="${escapeHtml(query ?? '')}" placeholder="search this account's publications..." style="flex: 1; padding: 6px 10px; background: #1b2230; border: 1px solid #262b34; border-radius: 4px; color: #e6e8ec; font-size: 13px;">
+      <button type="submit" class="btn">search</button>
+      ${query ? `<a href="/u/${encodeURIComponent(facts.accountId)}" class="btn" style="margin-left: 4px;">clear</a>` : ''}
+    </form>`;
+  const header = `<h1>${escapeHtml(who)}</h1><div class="sub">${escapeHtml(facts.accountId)}${escapeHtml(assurance)} · ${items.length} publication(s) shown · the service caps at ${limit}</div>${searchForm}${paging}`;
 
   if (items.length === 0) {
     return pageShell(

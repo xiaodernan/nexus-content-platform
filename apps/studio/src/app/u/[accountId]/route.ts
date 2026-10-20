@@ -33,12 +33,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   const accountId = decodeURIComponent((await params).accountId);
   const url = new URL(request.url);
   const offset = Math.max(0, Number.parseInt(url.searchParams.get('offset') ?? '0', 10));
+  const query = url.searchParams.get('q') ?? '';
   
   if (!accountId.trim()) {
-    return html(renderProfileHtml(profileFactsOf('', [], 0, PROFILE_LIMIT, offset), []), 200);
+    return html(renderProfileHtml(profileFactsOf('', [], 0, PROFILE_LIMIT, offset, query), []), 200);
   }
 
-  const listing = await listPublications(PROFILE_LIMIT, undefined, accountId, offset);
+  const listing = await listPublications(PROFILE_LIMIT, undefined, accountId, offset, query);
   if (!listing.ok) return html(renderExploreUnavailable(listing.reason ?? 'no reason given'), 503);
 
   const rows = listing.publications ?? [];
@@ -47,6 +48,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
     (projectId) => readPublication(projectId),
     (doc, pageId) => svgToDataUri(docToSvg(doc, pageId)),
   );
-  const facts = profileFactsOf(accountId, rows, listing.count ?? rows.length, listing.limit ?? PROFILE_LIMIT, offset);
-  return html(renderProfileHtml(facts, items, offset), 200);
+  const facts = profileFactsOf(accountId, rows, listing.count ?? rows.length, listing.limit ?? PROFILE_LIMIT, offset, query);
+  return html(renderProfileHtml(facts, items, offset, query), 200);
 }
