@@ -4,6 +4,7 @@ import type { Assurance } from './assurance';
 
 import type { AuditEntry, Report } from './ops';
 import {
+  ANONYMOUS_ACTOR,
   auditEntriesByActor,
   auditEntriesForTarget,
   auditEntriesSince,
@@ -291,5 +292,86 @@ describe('ops — isAuditEntryOwnedBy', () => {
   it('reports true only for the entry owner', () => {
     expect(isAuditEntryOwnedBy(entry, 'acct-a')).toBe(true);
     expect(isAuditEntryOwnedBy(entry, 'acct-b')).toBe(false);
+  });
+});
+
+/**
+ * v273 — 客户端模型与服务端线格式的**逐字段对齐**。
+ *
+ * v271 的服务端（`AuditController`/`AuditEntry`）如实记录"没有人做"：匿名发布没有 actor，assurance
+ * 也就没有随 actor 一起下发。客户端的类型当时写的是非空的 `actorId`/`assurance`——那是客户端的愿望，
+ * 不是线格式的事实。这些用例把"服务端会下发的形状"钉住，避免类型再次漂回愿望。
+ */
+describe('ops — v273 与服务端线格式对齐', () => {
+  /** 服务端 `AuditController.Entry` 的 JSON 形状：actorId/assurance 可空，action 是自由字符串。 */
+  const wireEntry = (over: Partial<AuditEntry> = {}): AuditEntry => ({
+    id: '1',
+    action: 'publish',
+    actorId: null,
+    targetId: 'pub-1',
+    createdAt: 1_700_000_000_000,
+    assurance: null,
+    ...over,
+  });
+
+  it('接受一条**匿名**条目：actor 与 assurance 都是 null', () => {
+    const anonymous = wireEntry();
+    expect(anonymous.actorId).toBeNull();
+    expect(anonymous.assurance).toBeNull();
+    // 可空类型必须真的能装下 null，而不是靠断言绕过类型系统。
+    const widened: AuditEntry = anonymous;
+    expect(widened.actorId).toBeNull();
+  });
+
+  it('接受一个**具名**条目，并保留 assurance 的原值', () => {
+    const named = wireEntry({
+      actorId: 'acct-1' as AccountId,
+      assurance: 'unsigned-local' as Assurance,
+    });
+    expect(named.actorId).toBe('acct-1');
+    expect(named.assurance).toBe('unsigned-local');
+  });
+
+  it('接受一个服务端**还不认识**的动词，而不是把它丢掉', () => {
+    const future = wireEntry({ action: 'stake' });
+    expect(future.action).toBe('stake');
+    // 未知动词仍然可以按动作筛选：它只是没有中文标签，而不是消失。
+    expect(auditEntriesByAction([future], 'stake').map((e) => e.id)).toEqual(['1']);
+    expect(auditEntryLabel('stake')).toBe('stake');
+  });
+
+  it('匿名条目**不属于任何账号**', () => {
+    const anonymous = wireEntry();
+    expect(isAuditEntryOwnedBy(anonymous, 'acct-1' as AccountId)).toBe(false);
+    expect(isAuditEntryOwnedBy(anonymous, null)).toBe(false);
+  });
+
+  it('具名条目只属于它自己的账号', () => {
+    const named = wireEntry({ actorId: 'acct-1' as AccountId, assurance: 'unsigned-local' as Assurance });
+    expect(isAuditEntryOwnedBy(named, 'acct-1' as AccountId)).toBe(true);
+    expect(isAuditEntryOwnedBy(named, 'acct-2' as AccountId)).toBe(false);
+  });
+
+  it('匿名条目**单独成桶**，不被算进任何具名账号', () => {
+    const entries: AuditEntry[] = [
+      wireEntry({ id: 'e-1', actorId: 'acct-1' as AccountId, assurance: 'unsigned-local' as Assurance }),
+      wireEntry({ id: 'e-2', actorId: null, assurance: null }),
+      wireEntry({ id: 'e-3', actorId: null, assurance: null }),
+    ];
+    const byActor = auditEntriesByActor(entries);
+    expect((byActor['acct-1'] ?? []).map((e) => e.id)).toEqual(['e-1']);
+    expect((byActor[ANONYMOUS_ACTOR] ?? []).map((e) => e.id)).toEqual(['e-2', 'e-3']);
+    // 关键：匿名的两条**没有**被塞进具名账号的桶里。
+    expect(byActor['acct-1'] ?? []).toHaveLength(1);
+  });
+
+  it('匿名桶键是一个**保留键**，不可能撞上真实账号 id', () => {
+    // 真实账号 id 由 `createAccountId` 生成，形如 `acct-<base36>`，永远不以 `__` 开头。
+    expect(ANONYMOUS_ACTOR.startsWith('__')).toBe(true);
+    expect(ANONYMOUS_ACTOR.startsWith('acct-')).toBe(false);
+  });
+
+  it('空列表仍然得到空的分桶', () => {
+    expect(auditEntriesByActor([])).toEqual({});
   });
 });

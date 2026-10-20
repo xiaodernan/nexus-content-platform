@@ -11,21 +11,44 @@
 import type { AccountId } from './community';
 import type { Assurance } from './assurance';
 
+/**
+ * What a verb can be.
+ *
+ * The KNOWN verbs are the union the product designs for; the `string & Record<never, never>` arm says the wire
+ * may carry a verb this build has never heard of, and keeps the editor's completion for the known ones. That is
+ * not speculation: the service is a SEPARATE deployable, so a verb can be added there before this client is
+ * rebuilt, and a client that rejected the answer would show a gap instead of the event (v271's finding
+ * that only `publish` and `unpublish` exist server-side today — the other five are design, not fact).
+ */
+export type AuditAction =
+  | 'publish'
+  | 'unpublish'
+  | 'remix'
+  | 'follow'
+  | 'like'
+  | 'comment'
+  | 'tip'
+  // 一个**这个版本还不认识的**动词。`Record<never, never>` 与 `string` 相交，编辑器仍然为上面七个
+  // 已知动词给出补全，但类型上不排斥别的字符串。
+  | (string & Record<never, never>);
+
 /** 审计条目：由服务端写入并下发，客户端只做只读展示。 */
 export interface AuditEntry {
   id: string;
-  action:
-    | 'publish'
-    | 'unpublish'
-    | 'remix'
-    | 'follow'
-    | 'like'
-    | 'comment'
-    | 'tip';
-  actorId: AccountId;
+  action: AuditAction;
+  /**
+   * 谁做的。**可空**：匿名发布没有人名，服务端如实记录"没有人"而不是编一个（v271）。
+   *
+   * 这个类型以前写的是 `AccountId`（非空），那是客户端的愿望而不是线格式的事实——服务端不会为了
+   * 迎合一个类型而伪造 actor，所以该改的是类型（v273）。
+   */
+  actorId: AccountId | null;
   targetId: string;
   createdAt: number;
-  assurance: Assurance;
+  /**
+   * 这一条值多少。**可空**，理由同 `actorId`：没有 actor 就没有 claim，也就没有 assurance 可说。
+   */
+  assurance: Assurance | null;
 }
 
 /** 举报：reporterId/targetId/createdAt 由客户端填写并发给服务端；status 由服务端更新下发。 */
@@ -130,18 +153,32 @@ export function auditEntryLabel(action: AuditEntry['action']): string {
 /** 判断审计条目是否由给定账号产生，供客户端决定是否显示“撤销/申诉”入口。 */
 export function isAuditEntryOwnedBy(entry: AuditEntry, actorId: AccountId | null): boolean {
   if (!actorId) return false;
+  // v273 — 一条**匿名**条目没有 actor，所以它不属于任何人。把它算成“属于”某个账号会凭空造出一个
+  // 主人，而审计轨迹的价值恰恰在于它不编造（v271）。
+  if (entry.actorId === null) return false;
   return entry.actorId === actorId;
 }
 
+/**
+ * 匿名条目的分桶键：一个**保留键**，不可能与真实账号 id 相同。
+ *
+ * 账号 id 由 `createAccountId` 生成，形如 `acct-<base36>`，永远不以 `__` 开头，所以这个键不可能撞上
+ * 一个真人（v273）。
+ */
+export const ANONYMOUS_ACTOR = '__anonymous__';
+
 /** 把审计条目按发起人分组，供客户端按代理/用户分栏展示。不改原数组。 */
-export function auditEntriesByActor(entries: ReadonlyArray<AuditEntry>): Record<AccountId, AuditEntry[]> {
-  const out: Record<AccountId, AuditEntry[]> = {};
+export function auditEntriesByActor(entries: ReadonlyArray<AuditEntry>): Record<string, AuditEntry[]> {
+  const out: Record<string, AuditEntry[]> = {};
   for (const e of entries) {
-    const bucket = out[e.actorId];
+    // v273 — 匿名条目单独成桶。丢掉它们等于丢掉“有人做了事但没留名”这一事实；把它们塞进某个具名
+    // 账号的桶里则是伪造归属。
+    const key = e.actorId ?? ANONYMOUS_ACTOR;
+    const bucket = out[key];
     if (bucket) {
       bucket.push(e);
     } else {
-      out[e.actorId] = [e];
+      out[key] = [e];
     }
   }
   return out;

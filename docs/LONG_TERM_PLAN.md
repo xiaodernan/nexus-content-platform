@@ -11,7 +11,7 @@
 | M3 Assets / M4 World / M5 3D | 多模态、世界引擎、Three 运行时 | ✅ 完成 | — |
 | M6 Ops | build arc → deploy arc → dock 部署面 | ✅ 完成（v178） | — |
 | **M7 社区** | publish / remix / explore / 账号 / 所有权 / lineage / **profile** | 🟡 进行中 | 见下表 |
-| **M9 Ops** | **审计轨迹**（服务端） | 🟡 **已启动（v271）** | 见下表 |
+| **M9 Ops** | **审计轨迹**（服务端 v271 · 面板 v272 · 契约对齐 v273） | 🟡 **进行中** | 见下表 |
 | M8 / M10 | 创作者经济 / 外部 agent | 🟡 客户端模型已落地（并行 lane），服务端未接线 | 订阅购买、举报提交、agent 令牌 |
 
 ### M7 账号与所有权（本次会话的主线）
@@ -32,14 +32,17 @@
 
 ### 下一批（按优先级）
 
-1. **v272 — 审计轨迹的 Studio 面板**：`GET /audit` 的门已经存在，客户端的 `AuditEntry` 模型也已经和线格式
-   逐字段对齐（除了 `actorId`/`assurance` 的可空性需要与并行 lane 协调放宽）。缺的是**一个能看见它的面板**：
-   谁在什么时候发布/下架了什么，以及每一条的 assurance 是多少。
-2. **v273 — 客户端 `ops.ts` 模型放宽**：服务端对匿名行为发 `null` 的 actor，客户端的类型说它非空——**服务端不会为了
-   迎合一个类型而伪造 actor**，该改的是类型（与并行 lane 协调）。
-3. **v274 — M8 创作者经济的第一个界面**（与并行 lane 协调：他们的 `monetization.ts` 只有纯函数）。
-4. **v275 — gallery 分页**：服务的 listing 只有 `limit` 没有 `offset`，第 25 篇之后看不到。
-5. **v276 — Stage B/C 的服务端接线**（仍被 ADR 0018 阻塞：没有服务端账号、会话与令牌之前不做）。
+1. **v274 — M8 创作者经济的第一个界面**（与并行 lane 协调：他们的 `monetization.ts` 只有纯函数）。
+2. **v275 — gallery 分页**：服务的 listing 只有 `limit` 没有 `offset`，第 25 篇之后看不到。
+3. **v276 — Stage B/C 的服务端接线**（仍被 ADR 0018 阻塞：没有服务端账号、会话与令牌之前不做）。
+
+### M9 审计轨迹（服务端 → 面板 → 契约）
+
+| 步骤 | 内容 | 状态 |
+|------|------|------|
+| v271 | **审计轨迹（服务端）**：`GET /audit`，记发生过的事，不记尝试过的事 | ✅ 52/52 |
+| v272 | **审计轨迹的 Studio 面板**（并行 lane）：`trail.ts` 纯函数 → `auditLane.ts` → `/api/audit` → 工具栏面板 | ✅ 887/887 |
+| **v273** | **客户端 `ops.ts` 与线格式对齐**：`actorId`/`assurance` 变可空；`AuditAction` 对未知动词开放；匿名条目单独成桶（`__anonymous__`）；**新增契约 proof**（读 Java record + 用 tsc 编译探针） | ✅ 900/900 · proof exit 0 · 3 处 mutation 分别被 §3/§5 抓住 |
 
 ## 本次会话已落地的增量
 
@@ -57,6 +60,8 @@
 | v269 | 访问者的 remix 端到端 | publish E2E **45/45** |
 | v270 | profile 页 | 服务端 **47/47**；studio **870/870**；publish E2E **48/48** |
 | v271 | **审计轨迹（服务端）** | 服务端 **52/52**；publish proof 新 §11 exit 0 |
+| v272 | **审计轨迹的 Studio 面板**（并行 lane） | studio **887/887（47 文件）**；real-browser §9.5 |
+| **v273** | **客户端 ops 模型 ↔ 服务端线格式契约** | studio **900/900（47 文件）**；`tsc` exit 0；**新 proof exit 0**（3 处 mutation 分别被 §3/§5 抓住）；服务端 **52/52** BUILD SUCCESS（未改动服务端） |
 | gate | 碰撞普查读**它被递给的那本 ledger** | doc gate exit 0；"numbers GRANTED TWICE: none" |
 | build | nexus-api 钉住编译器插件与 release 25 | 服务端 BUILD SUCCESS |
 
