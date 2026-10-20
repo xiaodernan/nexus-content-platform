@@ -137,6 +137,19 @@ const gateDoc = build('等级门', 'rpg-prototype', [
   { id: 'q1', kind: 'quest', name: '三级才交差', stats: { requiredLevel: 3 }, refs: [{ to: 'e1', role: '要求打倒' }] },
 ]);
 
+/**
+ * 对话那一份：两段对话互指（甲→乙、乙→甲），另放一个敌人。
+ *
+ * 那个敌人正是「别的实体不读」的那条证据：对话管线只读 dialogue 实体，
+ * 那个敌人不会出现在 plan.story 的任何一段里（而 2D 那条链会把它排成场上个体）。
+ * 两段对话互指 → 走一圈就回到走过的地方 → 产物必须把「成环」标出来（模型允许成环，播放器负责标）。
+ */
+const storyDoc = build('对话', 'interactive-story', [
+  { id: 'd1', kind: 'dialogue', name: '开场', refs: [{ to: 'd2', role: '点头' }] },
+  { id: 'd2', kind: 'dialogue', name: '回应', refs: [{ to: 'd1', role: '回头' }] },
+  { id: 'e1', kind: 'enemy', name: '巡逻兵', stats: { health: 3, damage: 1, speed: 120, detectionRange: 400, x: 300, y: 200 } },
+]);
+
 interface Frame {
   input: SimInput;
   dt: number;
@@ -228,6 +241,7 @@ interface Leg {
 const legs: Leg[] = [
   { slug: 'topdown', chain: 'topdown', doc: battleDoc, output: generateGameCode(battleDoc) },
   { slug: 'rpg', chain: 'rpg', doc: growthDoc, output: generateGameCode(growthDoc) },
+  { slug: 'story', chain: 'story', doc: storyDoc, output: generateGameCode(storyDoc) },
 ];
 
 /**
@@ -256,6 +270,7 @@ const referenceJson = JSON.stringify(reference);
 const rpgFramesJson = JSON.stringify(frames);
 
 const gatePlan = planOf('rpg', artifactPayload(gateDoc));
+const storyPlan = planOf('story', artifactPayload(storyDoc));
 const gateFrames = gateScript(gatePlan);
 const gateReference = runRpgReference(gateDoc, gateFrames);
 
@@ -320,18 +335,21 @@ const browser = await chromium.launch({ channel: 'chrome' });
 const context = await browser.newContext();
 const page = await context.newPage();
 const rpgPage = await context.newPage();
+/** 第三条链那一份页面；另有一份是「反向控制」用的（plan.js 会被换掉） */
+const storyPage = await context.newPage();
+const storyMutPage = await context.newPage();
 const requests: string[] = [];
-for (const target of [page, rpgPage]) {
+for (const target of [page, rpgPage, storyPage]) {
   target.on('request', (request) => requests.push(request.url()));
 }
 const consoleErrors: string[] = [];
-for (const target of [page, rpgPage]) {
+for (const target of [page, rpgPage, storyPage]) {
   target.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 }
 const pageErrors: string[] = [];
-for (const target of [page, rpgPage]) {
+for (const target of [page, rpgPage, storyPage]) {
   target.on('pageerror', (error) => pageErrors.push(String(error)));
 }
 
@@ -608,6 +626,92 @@ try {
   );
 
 
+  // ———— 第三条链：对话管线那一份产物 ————
+  await storyPage.goto(`${origin}/story/index.html`, { waitUntil: 'load' });
+  const storyGlobals = await storyPage.evaluate(() => ({
+    hasStory: typeof (window as unknown as { NexusStory?: unknown }).NexusStory === 'object',
+    hasPlan: typeof (window as unknown as { NEXUS_PLAN?: unknown }).NEXUS_PLAN === 'object',
+    chainNote: document.querySelector('#chain-note')?.textContent ?? null,
+    kindNote: document.querySelector('#kind-note')?.textContent ?? null,
+    hasCanvas: document.querySelector('canvas') !== null,
+    body: document.querySelector('#story p')?.textContent ?? null,
+    choices: [...document.querySelectorAll('#story [data-story-choice]')].map((b: Element) => ({
+      id: b.getAttribute('data-story-choice'),
+      label: b.textContent ?? '',
+    })),
+    hud: document.querySelector('#hud')?.textContent ?? null,
+  }));
+  verdict(
+    'STORY_PAGE_LOADS',
+    storyGlobals.hasStory && storyGlobals.hasPlan && pageErrors.length === 0,
+    `NexusStory=${storyGlobals.hasStory} NEXUS_PLAN=${storyGlobals.hasPlan}（这一型该带）pageerror 累计 ${pageErrors.length}`,
+  );
+  verdict(
+    'STORY_CHAIN_NOTE_ON_PAGE',
+    storyGlobals.chainNote === artifactChainSentence('story') && storyGlobals.kindNote === null,
+    `页里 #chain-note=「${String(storyGlobals.chainNote).slice(0, 28)}…」，与生成器那句${storyGlobals.chainNote === artifactChainSentence('story') ? '相同' : '不同'}`,
+  );
+  verdict(
+    'STORY_DRAWS_NO_CANVAS',
+    !storyGlobals.hasCanvas,
+    `对话那一型${storyGlobals.hasCanvas ? '画了' : '没有'}画布（对话没有场地，画一块空画布只会让人以为坏了）`,
+  );
+  const storyPlanEqual = await storyPage.evaluate(
+    (expected) => JSON.stringify((window as unknown as { NEXUS_PLAN: unknown }).NEXUS_PLAN) === expected,
+    JSON.stringify(storyPlan),
+  );
+  verdict(
+    'STORY_PLAN_MATCHES',
+    storyPlanEqual,
+    `页里 NEXUS_PLAN 与 artifactPayload(${storyDoc.name}) 逐字节${storyPlanEqual ? '相同' : '不同'}`,
+  );
+
+  // 选一个选项 → 正文换成目标那一段（这是「对话链真的在跑」的那一格）
+  const startBeat = storyPlan.beats.find((b) => b.id === storyPlan.startId);
+  const firstChoice = storyGlobals.choices[0];
+  const targetBeat = storyPlan.beats.find((b) => b.id === startBeat?.choices[0]?.to);
+  let advancedBody: string | null = null;
+  if (firstChoice?.id) {
+    await storyPage.click(`[data-story-choice="${firstChoice.id}"]`);
+    advancedBody = await storyPage.evaluate(() => document.querySelector('#story p')?.textContent ?? null);
+  }
+  verdict(
+    'STORY_CHOICE_ADVANCES',
+    Boolean(firstChoice?.id) && advancedBody !== null && advancedBody !== storyGlobals.body && advancedBody === targetBeat?.text,
+    `起手正文「${String(storyGlobals.body)}」→ 点「${String(firstChoice?.label)}」→ 正文「${String(advancedBody)}」${
+      advancedBody === targetBeat?.text ? '（与投影里目标那一段的正文逐字相同）' : '（与投影对不上）'
+    }`,
+  );
+
+  // 走一圈回来 → 成环被标出来（模型允许成环，播放器负责标，不是禁止）
+  const backChoice = await storyPage.evaluate(() => {
+    const b = document.querySelector('#story [data-story-choice]');
+    return b ? b.getAttribute('data-story-choice') : null;
+  });
+  if (backChoice) await storyPage.click(`[data-story-choice="${backChoice}"]`);
+  const storyHud = await storyPage.evaluate(() => document.querySelector('#hud')?.textContent ?? '');
+  verdict(
+    'STORY_LOOP_MARKED',
+    storyHud.includes('成环'),
+    `走一圈回来之后 HUD ${storyHud.includes('成环') ? '说了"成环"' : '**没有**说成环（模型里是允许成环的，播放器负责标出来）'}：${storyHud.split('\n')[0] ?? ''}`,
+  );
+
+  // 反向控制：把 plan.js 里那段正文改掉，页面显示必须跟着变——
+  // 不变就说明正文是写死在产物代码里的，上面那几格全是在量一段装饰。
+  const mutatedText = '说明：开场（被见证改过）';
+  await storyMutPage.route('**/story/plan.js', async (route) => {
+    const response = await route.fetch();
+    const body = (await response.text()).replace('说明：开场', mutatedText);
+    await route.fulfill({ response, body });
+  });
+  await storyMutPage.goto(`${origin}/story/index.html`, { waitUntil: 'load' });
+  const mutatedBody = await storyMutPage.evaluate(() => document.querySelector('#story p')?.textContent ?? null);
+  verdict(
+    'STORY_NOT_DECORATIVE',
+    mutatedBody !== null && mutatedBody.includes(mutatedText),
+    `把 plan.js 里那段正文换成「${mutatedText}」，页面显示${mutatedBody?.includes(mutatedText) ? '跟着变了' : '**没有**变（正文是写死的，上面那几格量的是装饰）'}`,
+  );
+
   // 截图是证据不是判决：这一片被它咬过一次——2026-10-20 电池里的基线在 `page.screenshot`
   // 超时上抛穿，于是最后一条 NO_EGRESS 压根没跑到，而那一趟 23 条判决全绿。
   // NO_EGRESS 读的是请求清单，与像素无关，不该被渲染 I/O 拖走；落不成就在日志里点名。
@@ -615,6 +719,7 @@ try {
   for (const [target, file] of [
     [page, 'screenshots/game-code-parity.png'],
     [rpgPage, 'screenshots/game-code-parity-rpg.png'],
+    [storyPage, 'screenshots/game-code-parity-story.png'],
   ] as const) {
     try {
       await target.screenshot({ path: file, timeout: 120_000 });
@@ -624,7 +729,7 @@ try {
     }
   }
   const foreign = requests.filter((url) => !url.startsWith(origin));
-  verdict('NO_EGRESS', foreign.length === 0, `${requests.length} 次请求（两条链各一份页面），离开产物源的 ${foreign.length} 次${foreign.length ? `：${foreign.join('、')}` : ''}`);
+  verdict('NO_EGRESS', foreign.length === 0, `${requests.length} 次请求（三条链各一份页面），离开产物源的 ${foreign.length} 次${foreign.length ? `：${foreign.join('、')}` : ''}`);
   console.log(`截图：${shots.join(' 与 ')}（console error ${consoleErrors.length} 条${consoleErrors.length ? `，第一条：${consoleErrors[0]}` : ''}）`);
 } finally {
   await browser.close();
