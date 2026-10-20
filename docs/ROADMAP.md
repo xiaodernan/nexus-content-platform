@@ -5001,3 +5001,12 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   修后三条路由 404；正对照钉住"真条目照旧读得到、买得成（价格 0，不写扣点流水）、数得上"。
   市场七套件回归 87/87 绿。PATCH / DELETE 仍回 400（域函数早挡、路由 catch 成 400）——那是另一处口径差别，
   被 `marketplace-update.integration.test.ts` 钉着，不在这一片顺手改。
+- **2026-10-21 第三片（#149）：PATCH / DELETE 的答复码收敛**。`updateMarketplaceItem` /
+  `deleteMarketplaceItem` 从"抛一句英文"改成**判别式结果**（`{ok:true,item}` /
+  `{ok:false,reason:'not_found'|'forbidden'|'preview_asset_not_found'}`），路由按语义翻码：
+  不存在 / 已下架 / 私有条目被别人动 → **404**，可见条目但不是你的 → **403**，预览素材不存在 → 400；
+  未知异常走 `failure()` 回 500，不再把库错误 catch 成 400 回显正文。正文只留稳定机器码 + 一句中文
+  `message`（§26）；界面的"保存 / 下架"失败改念 `message`。私有条目对外一律 404 与详情、预览同一口径——
+  403 等于告诉陌生人"这个 id 存在"。见证：`id-shape` 家族 27 → 30 条（update/delete 的形状门 + 两条路由 404），
+  `marketplace-update` 由 12 → 14 条（新增私有别人的 PATCH/DELETE 404），三份套件 59/59、市场六套件（含 update）66/66 绿；
+  tsc / eslint 0。

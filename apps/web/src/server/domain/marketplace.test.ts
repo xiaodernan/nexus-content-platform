@@ -163,18 +163,21 @@ describe('marketplace domain', () => {
     });
 
     it('updates item metadata', async () => {
-      const updated = await updateMarketplaceItem(itemId, testUser.id, {
+      const result = await updateMarketplaceItem(itemId, testUser.id, {
         title: 'New Title',
         description: 'New description',
         priceCredits: 200,
       });
 
-      expect(updated.title).toBe('New Title');
-      expect(updated.description).toBe('New description');
-      expect(updated.priceCredits).toBe(200);
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.item.title).toBe('New Title');
+      expect(result.item.description).toBe('New description');
+      expect(result.item.priceCredits).toBe(200);
     });
 
-    it('rejects non-creator updates', async () => {
+    it('rejects non-creator updates of a private item → not_found（对外不存在，403 会泄露 id 存在）', async () => {
+      // beforeEach 建的那件是 private
       const db = getDb();
       const otherTimestamp = Date.now() + 2;
       const [otherUser] = await db
@@ -187,17 +190,44 @@ describe('marketplace domain', () => {
         })
         .returning();
 
-      await expect(updateMarketplaceItem(itemId, otherUser!.id, { title: 'Hacked' })).rejects.toThrow(
-        'Only creator can update this item',
-      );
+      await expect(updateMarketplaceItem(itemId, otherUser!.id, { title: 'Hacked' })).resolves.toEqual({
+        ok: false,
+        reason: 'not_found',
+      });
+    });
+
+    it('rejects non-creator updates of a visible item → forbidden', async () => {
+      const db = getDb();
+      const otherTimestamp = Date.now() + 4;
+      const [otherUser] = await db
+        .insert(users)
+        .values({
+          displayName: 'Other User',
+          handle: `other-update-public-${otherTimestamp}`,
+          email: `other-update-public-${otherTimestamp}@test.com`,
+          passwordHash: 'dummy',
+        })
+        .returning();
+      const publicItem = await createMarketplaceItem({
+        creatorId: testUser.id,
+        itemType: 'game',
+        title: 'Public Item',
+        visibility: 'public',
+      });
+
+      await expect(updateMarketplaceItem(publicItem.id, otherUser!.id, { title: 'Hacked' })).resolves.toEqual({
+        ok: false,
+        reason: 'forbidden',
+      });
     });
 
     it('rejects updates to deleted items', async () => {
       await deleteMarketplaceItem(itemId, testUser.id);
 
-      await expect(updateMarketplaceItem(itemId, testUser.id, { title: 'Still trying' })).rejects.toThrow(
-        'Item not found or deleted',
-      );
+      await expect(updateMarketplaceItem(itemId, testUser.id, { title: 'Still trying' })).resolves.toEqual({
+        ok: false,
+        reason: 'not_found',
+      });
     });
   });
 
@@ -215,7 +245,8 @@ describe('marketplace domain', () => {
     });
 
     it('soft deletes an item', async () => {
-      await deleteMarketplaceItem(itemId, testUser.id);
+      const result = await deleteMarketplaceItem(itemId, testUser.id);
+      expect(result.ok).toBe(true);
 
       const item = await getMarketplaceItem(itemId);
       expect(item).toBeNull();
@@ -244,9 +275,10 @@ describe('marketplace domain', () => {
         })
         .returning();
 
-      await expect(deleteMarketplaceItem(itemId, otherUser!.id)).rejects.toThrow(
-        'Only creator can delete this item',
-      );
+      await expect(deleteMarketplaceItem(itemId, otherUser!.id)).resolves.toEqual({
+        ok: false,
+        reason: 'forbidden',
+      });
     });
   });
 

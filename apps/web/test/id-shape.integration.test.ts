@@ -5,7 +5,7 @@ import { POST as acceptDraft } from '../src/app/api/projects/[projectId]/agent/d
 import { POST as resolveModeration } from '../src/app/api/admin/moderation/[caseId]/route';
 import { POST as revokeToken } from '../src/app/api/account/api-tokens/[tokenId]/revoke/route';
 import { DELETE as removeAnnotation } from '../src/app/api/annotations/[annotationId]/route';
-import { GET as getMarketItem } from '../src/app/api/marketplace/[id]/route';
+import { GET as getMarketItem, PATCH as patchMarketItem, DELETE as deleteMarketRoute } from '../src/app/api/marketplace/[id]/route';
 import { GET as getMarketPreview } from '../src/app/api/marketplace/[id]/preview/route';
 import { POST as purchaseMarketItem } from '../src/app/api/marketplace/[id]/purchase/route';
 import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
@@ -18,10 +18,12 @@ import { deleteAnnotation } from '../src/server/domain/annotations';
 import { resolveCase } from '../src/server/domain/moderation';
 import {
   createMarketplaceItem,
+  deleteMarketplaceItem,
   getMarketplaceItem,
   hasPurchased,
   incrementDownloadCount,
   purchaseMarketplaceItem,
+  updateMarketplaceItem,
 } from '../src/server/domain/marketplace';
 import { getDb } from '../src/server/db/client';
 import { marketplaceItems, projects, sessions, users } from '../src/server/db/schema';
@@ -317,8 +319,8 @@ describe('域层与路由层：api-tokens 吊销与 annotations 删除（id 形�
  *
  * 这一片把门收进域层：四个域助手按"查不到"回答（null / false / 0 / 与不存在同一句 throw），
  * 交付门那道临时 `isUuid` 随之删掉——同一件事只剩一处实现，路由侧就只剩 404 一种说法。
- * （`update`/`delete` 那两条仍然 throw、路由仍然回 400，是另一处还没收敛的口径差别，
- * 已被 `marketplace-update.integration.test.ts` 钉住，另作一片再动。）
+ * 紧接着的 #149 把 `update`/`delete` 也收进来：形状不对返回 `{ok:false,reason:'not_found'}`，
+ * 路由回 404（此前它们 throw、路由一律回 400，且把内部英文句子原样回给客户端）。
  */
 const marketUrl = (id: string, suffix = ''): string =>
   `http://test.local/api/marketplace/${id}${suffix}`;
@@ -340,6 +342,39 @@ describe('域层与路由层：marketplace 的读与买（门收进域层，交�
     await expect(purchaseMarketplaceItem({ buyerId: buyer.id, itemId: 'not-a-uuid' })).rejects.toThrow(
       'Item not found or deleted',
     );
+  });
+
+  it('updateMarketplaceItem / deleteMarketplaceItem 对非 UUID → {ok:false,reason:not_found}，不抛', async () => {
+    await expect(updateMarketplaceItem('not-a-uuid', creator.id, { title: '改个名' })).resolves.toEqual({
+      ok: false,
+      reason: 'not_found',
+    });
+    await expect(deleteMarketplaceItem('not-a-uuid', creator.id)).resolves.toEqual({
+      ok: false,
+      reason: 'not_found',
+    });
+  });
+
+  it('PATCH /api/marketplace/not-a-uuid → 404 not_found（#149：修复前 400 + 22P02 原文）', async () => {
+    const res = await patchMarketItem(
+      new Request(marketUrl('not-a-uuid'), {
+        method: 'PATCH',
+        headers: asUser(creatorToken, true),
+        body: JSON.stringify({ title: '改个名' }),
+      }),
+      { params: Promise.resolve({ id: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe('not_found');
+  });
+
+  it('DELETE /api/marketplace/not-a-uuid → 404 not_found（#149：修复前 400 + 22P02 原文）', async () => {
+    const res = await deleteMarketRoute(
+      new Request(marketUrl('not-a-uuid'), { method: 'DELETE', headers: asUser(creatorToken, true) }),
+      { params: Promise.resolve({ id: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe('not_found');
   });
 
   it('GET /api/marketplace/not-a-uuid → 404（修复前处理函数直接抛 22P02）', async () => {

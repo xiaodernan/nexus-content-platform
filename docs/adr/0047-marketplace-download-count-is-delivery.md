@@ -116,10 +116,30 @@
   买家因此删得掉——账本只追加）、数得上"，防的是守卫把正常路径一起挡了。
 - 仍不干净的一处：`PATCH` / `DELETE` 在域函数里 throw、路由 catch 成 **400**（"不存在"被报成正文错误，
   且回显的是内部那句话）。`marketplace-update.integration.test.ts` 已按 400 钉住，改口径要连同那两条一起动，
-  另作一片。
+  另作一片——**已由 #149 还上，见下**。
 - **欠账 3 量掉了（#148）**：`GameCodeExport` 那个"同一 tick 回收对象 URL → 0 字节"的**疑似在 Chrome 上没有复现**——
   先原样跑 `@smoke 游戏：生成可玩产物…`（45.6s 过）：那条 e2e 点的是会走立即回收的那个按钮，并把落盘字节读回来
   断言 `<!doctype html>`、CSP 与 zip 的 `PK\x03\x04` + 包内文件名，全过。结论按测量写：Chrome 在 click 的同一个
   tick 里就把下载接走了。但三处下载（导出面板、市场条目、可玩产物）各抄一份、两种回收时机、两句互相矛盾的话，
   仍是事实——统一到 `apps/web/src/lib/download.ts` 的 `saveBlob`（取 60s 延迟回收那一种），三处只留一个实现；
   改后三条下载 e2e 一起跑（§127 市场 21.4s / §144 导出 40.5s / §52 产物 35.2s，3 passed），字节断言照旧。
+
+## 2026-10-21 补记（#149）：PATCH / DELETE 的答复码——400 那个"另作一片"还上了
+
+域函数从"抛一句英文"改成判别式结果，路由按语义翻码：
+
+- `updateMarketplaceItem` → `{ok:true,item}` / `{ok:false,reason:'not_found'|'forbidden'|'preview_asset_not_found'}`；
+  `deleteMarketplaceItem` → `{ok:true,item}` / `{ok:false,reason:'not_found'|'forbidden'}`。
+  这与 `api-tokens` 的 `RevokeResult`、`annotations` 的结果形状同一套，不再让路由去比对错误句子。
+- 状态码：不存在 / 已下架 / **私有条目被别人动** → 404；可见条目但不是你的 → 403；
+  预览素材不存在 → 400（`badRequest`，与 zod 的正文错误同一出口）；未知异常走 `failure()` → 500，
+  不再被 catch 成 400 且回显库错误正文。私有 → 404 是与详情、预览同一口径：403 等于告诉陌生人"这个 id 存在"。
+- 正文只给稳定机器码（`not_found` / `forbidden`）+ 一句中文 `message`（§26）；市场条目界面的"保存 / 下架"
+  失败改念 `message`，不再把机器码直接印给人看。
+- 见证：`id-shape` 家族 27 → **30 条**（update/delete 的形状门一条 + PATCH/DELETE 路由 404 各一条），
+  `marketplace-update` 12 → **14 条**（公开别人的 403、私有别人的 404，PATCH 与 DELETE 各一对）；
+  改前那两条按 400 钉住的用例在基线跑里是绿的（26/26），改后新口径 59/59 绿；市场六套件（含 update）66/66 绿；
+  tsc / eslint 0。
+- 仍未动：详情 GET 与预览图对别人的私有条目本来就答 404（这一片把它们与 PATCH/DELETE 对齐了），
+  **列表**的可见性规则不在这一片；`purchaseMarketplaceItem` 仍以句子 throw（购买路由比对句子翻码）——
+  那是下一条可收的口径。

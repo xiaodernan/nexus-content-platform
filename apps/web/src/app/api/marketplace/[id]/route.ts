@@ -5,7 +5,7 @@ import { getMarketplaceItem, updateMarketplaceItem, deleteMarketplaceItem } from
 import { MARKETPLACE_VISIBILITY } from '@/server/db/schema';
 import { scanTextForRedlines } from '@/server/domain/moderation';
 import { csrfOk } from '@/server/security/csrf';
-import { badRequest, jsonError } from '@/server/http';
+import { badRequest, failure, jsonError } from '@/server/http';
 
 /**
  * §127-128 Marketplace 单个物品的查询、更新与删除。
@@ -78,11 +78,21 @@ export async function PATCH(
   }
 
   try {
-    const updated = await updateMarketplaceItem(id, user.id, parsed.data);
+    const result = await updateMarketplaceItem(id, user.id, parsed.data);
+    if (!result.ok) {
+      if (result.reason === 'not_found') {
+        // 不存在、已下架、形状不对、别人的私有条目：同一个 404。403 会告诉陌生人"这个 id 存在"
+        return jsonError(404, 'not_found', { message: '没有这个物品，或它已经下架' });
+      }
+      if (result.reason === 'forbidden') {
+        return jsonError(403, 'forbidden', { message: '只有创作者本人能修改这个物品' });
+      }
+      return badRequest(['previewAssetId: 这个素材不存在']);
+    }
 
-    return NextResponse.json({ item: updated });
+    return NextResponse.json({ item: result.item });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : '更新失败' }, { status: 400 });
+    return failure(error, 'marketplace patch');
   }
 }
 
@@ -95,9 +105,15 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    const deleted = await deleteMarketplaceItem(id, user.id);
-    return NextResponse.json({ item: deleted });
+    const result = await deleteMarketplaceItem(id, user.id);
+    if (!result.ok) {
+      // 与 PATCH 同一口径：不存在/已下架/私有别人的 → 404；可见但不是你的 → 403
+      return result.reason === 'not_found'
+        ? jsonError(404, 'not_found', { message: '没有这个物品，或它已经下架' })
+        : jsonError(403, 'forbidden', { message: '只有创作者本人能下架这个物品' });
+    }
+    return NextResponse.json({ item: result.item });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : '删除失败' }, { status: 400 });
+    return failure(error, 'marketplace delete');
   }
 }

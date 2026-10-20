@@ -101,7 +101,8 @@ export function MarketplaceItemRow({
       headers: csrfHeaders(),
     });
     if (!res.ok) {
-      setMessage(`下架失败（${res.status}）`);
+      const json = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+      setMessage(json?.message ?? `下架失败（${res.status}）`);
       return;
     }
     router.refresh();
@@ -114,8 +115,9 @@ export function MarketplaceItemRow({
       body: JSON.stringify({ priceCredits: price, visibility }),
     });
     if (!res.ok) {
-      const json = (await res.json().catch(() => null)) as { error?: string } | null;
-      setMessage(json?.error ?? `保存失败（${res.status}）`);
+      // 服务端的 `error` 是稳定的机器码（not_found/forbidden），给人看的是 `message`
+      const json = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+      setMessage(json?.message ?? json?.error ?? `保存失败（${res.status}）`);
       return;
     }
     setEditing(false);

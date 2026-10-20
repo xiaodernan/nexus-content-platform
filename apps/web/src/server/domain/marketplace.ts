@@ -216,24 +216,43 @@ export async function createMarketplaceItem(input: CreateMarketplaceItemInput) {
   return newItem!;
 }
 
-export async function updateMarketplaceItem(itemId: string, userId: string, input: UpdateMarketplaceItemInput) {
+type MarketplaceItemRow = typeof marketplaceItems.$inferSelect;
+
+/**
+ * 更新/删除的拒绝原因：路由按它翻状态码（404/403/400），不再靠解析一句英文正文。
+ * 此前两种拒绝都抛普通 Error、路由一律回 400，客户端拿到的是内部句子（§26）。
+ */
+export type UpdateMarketplaceItemResult =
+  | { ok: true; item: MarketplaceItemRow }
+  | { ok: false; reason: 'not_found' | 'forbidden' | 'preview_asset_not_found' };
+
+export type DeleteMarketplaceItemResult =
+  | { ok: true; item: MarketplaceItemRow }
+  | { ok: false; reason: 'not_found' | 'forbidden' };
+
+export async function updateMarketplaceItem(
+  itemId: string,
+  userId: string,
+  input: UpdateMarketplaceItemInput,
+): Promise<UpdateMarketplaceItemResult> {
   // 形状不对的 id 按"没有这个物品"处理：eq(marketplaceItems.id, …) 会撞 22P02 变 500（domain/ids.ts）
-  if (!isUuid(itemId)) throw new Error('Item not found or deleted');
+  if (!isUuid(itemId)) return { ok: false, reason: 'not_found' };
   const db = getDb();
 
   // 先检查所有权
   const [existing] = await db
-    .select({ creatorId: marketplaceItems.creatorId })
+    .select({ creatorId: marketplaceItems.creatorId, visibility: marketplaceItems.visibility })
     .from(marketplaceItems)
     .where(and(eq(marketplaceItems.id, itemId), isNull(marketplaceItems.deletedAt)))
     .limit(1);
 
   if (!existing) {
-    throw new Error('Item not found or deleted');
+    return { ok: false, reason: 'not_found' };
   }
 
   if (existing.creatorId !== userId) {
-    throw new Error('Only creator can update this item');
+    // 私有条目对外根本不存在：与详情、预览同一口径。回 403 等于告诉陌生人「这个 id 存在」
+    return { ok: false, reason: existing.visibility === 'private' ? 'not_found' : 'forbidden' };
   }
 
   // 验证：如果有新的预览素材，检查它是否存在
@@ -245,7 +264,7 @@ export async function updateMarketplaceItem(itemId: string, userId: string, inpu
       .limit(1);
 
     if (!asset) {
-      throw new Error('Preview asset not found');
+      return { ok: false, reason: 'preview_asset_not_found' };
     }
   }
 
@@ -263,27 +282,31 @@ export async function updateMarketplaceItem(itemId: string, userId: string, inpu
     .where(eq(marketplaceItems.id, itemId))
     .returning();
 
-  return updated!;
+  return { ok: true, item: updated! };
 }
 
-export async function deleteMarketplaceItem(itemId: string, userId: string) {
+export async function deleteMarketplaceItem(
+  itemId: string,
+  userId: string,
+): Promise<DeleteMarketplaceItemResult> {
   // 形状不对的 id 按"没有这个物品"处理：eq(marketplaceItems.id, …) 会撞 22P02 变 500（domain/ids.ts）
-  if (!isUuid(itemId)) throw new Error('Item not found or deleted');
+  if (!isUuid(itemId)) return { ok: false, reason: 'not_found' };
   const db = getDb();
 
   // 先检查所有权
   const [existing] = await db
-    .select({ creatorId: marketplaceItems.creatorId })
+    .select({ creatorId: marketplaceItems.creatorId, visibility: marketplaceItems.visibility })
     .from(marketplaceItems)
     .where(and(eq(marketplaceItems.id, itemId), isNull(marketplaceItems.deletedAt)))
     .limit(1);
 
   if (!existing) {
-    throw new Error('Item not found or already deleted');
+    return { ok: false, reason: 'not_found' };
   }
 
   if (existing.creatorId !== userId) {
-    throw new Error('Only creator can delete this item');
+    // 与 update 同一口径：私有条目对外不存在
+    return { ok: false, reason: existing.visibility === 'private' ? 'not_found' : 'forbidden' };
   }
 
   // 软删除
@@ -293,7 +316,7 @@ export async function deleteMarketplaceItem(itemId: string, userId: string) {
     .where(eq(marketplaceItems.id, itemId))
     .returning();
 
-  return deleted!;
+  return { ok: true, item: deleted! };
 }
 
 /**
