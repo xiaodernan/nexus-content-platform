@@ -191,4 +191,27 @@ describe('economy — aggregates (re-exported from monetization)', () => {
     expect(isSubscribed(s, null)).toBe(false);
     expect(isSubscribed(null, 'acct-ada')).toBe(false);
   });
+
+describe('economy — the subscription’s STANDING (M7 v308)', () => {
+  it('the SERVICE’s word wins over the client’s own clock', () => {
+    // The service says "expired" even though the row still says active and the client’s own clock has not
+    // reached the expiry: the service computes the standing against ITS clock, and that clock is the
+    // system of record’s.
+    const row = toSubscriptionRow({ ...sub({ active: true, expiresAt: Date.now() + 10_000_000 }), status: 'expired' })!;
+    expect(row.statusText).toBe('Expired');
+    expect(row.isActive).toBe(false);
+  });
+
+  it('a service that says nothing leaves the client’s own computation in charge', () => {
+    const row = toSubscriptionRow(sub({ active: true, expiresAt: Date.now() + 10_000_000 }))!;
+    expect(row.statusText).toBe('Active');
+    expect(row.isActive).toBe(true);
+  });
+
+  it('the service’s "cancelled" reads Never — the word this surface has always used', () => {
+    const row = toSubscriptionRow({ ...sub({ active: true, expiresAt: Date.now() + 10_000_000 }), status: 'cancelled' })!;
+    expect(row.statusText).toBe('Never');
+    expect(row.isActive).toBe(false);
+  });
+});
 });

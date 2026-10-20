@@ -146,6 +146,36 @@ public class SubscriptionService {
     }
 
     /**
+     * v308 — WHERE a subscription STANDS, computed rather than remembered.
+     *
+     * <p>The row carries a flag that says the supporter has not cancelled — a fact about the past, and one
+     * that never goes stale. What it cannot say is whether the subscription is still standing, because its
+     * PERIOD runs out on a day when nothing writes to the row. So the standing is computed here, from the
+     * row and the clock:
+     *
+     * <ul>
+     *   <li>`cancelled` — the supporter ended it.
+     *   <li>`expired` — the period ran out.
+     *   <li>`active` — it is still standing.
+     * </ul>
+     *
+     * <p>Nothing renews an expired subscription: there is no billing in this build (ADR 0018), so an expired
+     * subscription stays expired until a NEW one is made — and a new one cannot be made for the same plan,
+     * because one subscription per supporter per plan is the database's rule. The bound is stated rather
+     * than implied.
+     */
+    public String standingOf(SubscriptionEntry row) {
+        if (!row.isActive()) {
+            return SubscriptionDtos.STATUS_CANCELLED;
+        }
+        Instant expiry = row.getExpiresAt();
+        if (expiry != null && !clock.instant().isBefore(expiry)) {
+            return SubscriptionDtos.STATUS_EXPIRED;
+        }
+        return SubscriptionDtos.STATUS_ACTIVE;
+    }
+
+    /**
      * END a subscription — and only the subscriber's own.
      */
     @Transactional

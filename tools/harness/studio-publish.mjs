@@ -1825,6 +1825,19 @@ try {
       subsBody.subscriptions?.length === 1 && subsBody.subscriptions[0].priceCents === 1500 && subsBody.subscriptions[0].planId === 'pro',
       `subscriptions: ${JSON.stringify(subsBody.subscriptions)}`,
     );
+    // v308 — and the row says where the subscription STANDS, computed by the service from the row and its
+    // clock. It is 'active' here because the period has not run out; a row whose period had run out would
+    // still say 'active' in the row, and the service’s word is the one that moves.
+    check(
+      'and the row says where the subscription STANDS',
+      subsBody.subscriptions?.[0]?.status === 'active',
+      `status: ${JSON.stringify(subsBody.subscriptions?.[0]?.status)}`,
+    );
+    check(
+      'and the total counts the STANDING subscriptions',
+      subsBody.totalCents === 1500,
+      `totalCents: ${JSON.stringify(subsBody.totalCents)}`,
+    );
 
     // And a device with NO account cannot back it: a subscription with no holder is not a commitment.
     await planPage.evaluate("localStorage.removeItem('nexus-current-account')");

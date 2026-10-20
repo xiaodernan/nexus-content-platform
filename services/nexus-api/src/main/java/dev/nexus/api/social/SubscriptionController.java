@@ -93,8 +93,14 @@ public class SubscriptionController {
             @RequestParam(name = "limit", required = false) Integer limit) {
         int asked = limit == null ? SubscriptionService.DEFAULT_SUBSCRIPTION_LIMIT : limit;
         List<SubscriptionEntry> rows = service.subscriptionsOf(subscriberAccountId, asked);
-        List<Subscription> subs = rows.stream().map(SubscriptionController::toWire).toList();
-        long total = subs.stream().filter(Subscription::active).mapToLong(Subscription::priceCents).sum();
+        List<Subscription> subs = rows.stream().map(this::toWire).toList();
+        // v308 — the total counts the subscriptions that are STILL STANDING. An expired subscription is not
+        // a commitment any more, and counting it would say the subscriber is backing a plan whose period has
+        // run out.
+        long total = subs.stream()
+                .filter(s -> SubscriptionDtos.STATUS_ACTIVE.equals(s.status()))
+                .mapToLong(Subscription::priceCents)
+                .sum();
         return ResponseEntity.ok(new SubscriptionAnswer(subscriberAccountId, subs, total, subs.size(), asked));
     }
 
@@ -121,7 +127,10 @@ public class SubscriptionController {
                 row.getCreatorAssurance());
     }
 
-    private static Subscription toWire(SubscriptionEntry row) {
+    /**
+     * The service's row, as the wire's shape — with the standing the service COMPUTED (v308).
+     */
+    private Subscription toWire(SubscriptionEntry row) {
         return new Subscription(
                 row.getCreatorAccountId(),
                 row.getPlanId(),
@@ -133,7 +142,9 @@ public class SubscriptionController {
                 row.getSubscriberAccountId(),
                 row.getSubscriptionId(),
                 null,
-                null);
+                null,
+                // v308 — where the subscription STANDS, computed by the service from the row and the clock.
+                service.standingOf(row));
     }
 
     /**

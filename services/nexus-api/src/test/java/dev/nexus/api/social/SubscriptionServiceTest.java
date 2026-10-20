@@ -58,6 +58,21 @@ class SubscriptionServiceTest {
         return new PlanEntry(planId, creator, "ada", "unsigned-local", price, "CNY", period, true, AT);
     }
 
+    private static SubscriptionEntry subscription(
+            String subscriptionId, boolean active, Instant expiresAt) {
+        return new SubscriptionEntry(
+                subscriptionId,
+                "acct-bob",
+                "acct-ada",
+                "pro",
+                1500L,
+                "CNY",
+                "month",
+                AT,
+                expiresAt,
+                active);
+    }
+
     // ── rule 1: a plan needs a CREATOR, a POSITIVE price and a period ─────────────────────────────
 
     @Test
@@ -276,5 +291,42 @@ class SubscriptionServiceTest {
                         "s-1", "acct-ada", "acct-bob", "pro", 1500, "CNY", "month", AT, null, true)));
 
         assertThat(service.subscriptionsOf("acct-ada", 20)).hasSize(1);
+    }
+
+    // ── v308: WHERE a subscription STANDS, computed rather than remembered ──────────────────────────
+
+    @Test
+    void aSubscriptionThatHasNotRunOutIsSTANDING() {
+        SubscriptionEntry row = subscription("sub-1", true, AT.plusSeconds(3600));
+        assertThat(service.standingOf(row)).isEqualTo(SubscriptionDtos.STATUS_ACTIVE);
+    }
+
+    @Test
+    void aSubscriptionWhosePeriodHasRunOutIsEXPIRED_evenThoughTheRowStillSaysActive() {
+        // The load-bearing case: the row was never written to again, so its flag still says "active" — and
+        // the standing is computed from the expiry, not read from the flag.
+        SubscriptionEntry row = subscription("sub-1", true, AT.minusSeconds(1));
+        assertThat(row.isActive()).isTrue();
+        assertThat(service.standingOf(row)).isEqualTo(SubscriptionDtos.STATUS_EXPIRED);
+    }
+
+    @Test
+    void aSubscriptionTheSupporterEndedIsCANCELLED() {
+        SubscriptionEntry row = subscription("sub-1", false, AT.plusSeconds(3600));
+        assertThat(service.standingOf(row)).isEqualTo(SubscriptionDtos.STATUS_CANCELLED);
+    }
+
+    @Test
+    void aSubscriptionWithNoExpiryIsSTANDING() {
+        SubscriptionEntry row = subscription("sub-1", true, null);
+        assertThat(service.standingOf(row)).isEqualTo(SubscriptionDtos.STATUS_ACTIVE);
+    }
+
+    @Test
+    void theExpiryIsTheInstantItself_NotTheMillisecondAfter() {
+        // A subscription whose expiry is exactly now has run out: the period is a span that ENDS at that
+        // instant, and a row that said otherwise would keep standing for a millisecond it did not have.
+        SubscriptionEntry row = subscription("sub-1", true, AT);
+        assertThat(service.standingOf(row)).isEqualTo(SubscriptionDtos.STATUS_EXPIRED);
     }
 }

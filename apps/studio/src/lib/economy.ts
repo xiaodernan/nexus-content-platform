@@ -26,6 +26,15 @@ export interface EconomySubscription {
   active: boolean;
   subscribedAt: number | null;
   expiresAt: number | null;
+  /**
+   * v308 — the service's own word for where the subscription STANDS: `active`, `expired` or
+   * `cancelled`.
+   *
+   * <p>It is the authority when it is there: the service computes it against ITS clock, and a clock is a
+   * fact about a machine. The client's own computation (below) is the fallback for a service that does not
+   * say — and the client says which one it used.
+   */
+  status?: string | null;
 }
 
 /** What the service's tip row would carry. */
@@ -54,6 +63,47 @@ export interface TipRow {
   anonymous: boolean;
 }
 
+/** Where a subscription stands. */
+export type SubscriptionStanding = 'active' | 'expired' | 'cancelled';
+
+/**
+ * Where the subscription STANDS.
+ *
+ * <p>v308 — the SERVICE's word when it gave one. The service computes the standing from the row and its own
+ * clock, because `active` in the row is a fact about the PAST (the supporter has not cancelled) and the
+ * standing is a fact about NOW (the period may have run out since). A client that always computed it itself
+ * would be answering a question about time with a clock that is not the service’s — so the service’s
+ * word wins, and the client’s own computation is the fallback for a service that does not say.
+ */
+export function subscriptionStandingOf(sub: unknown, now: number): SubscriptionStanding {
+  if (typeof sub !== 'object' || sub === null) return 'cancelled';
+  const s = sub as { status?: unknown; active?: unknown; expiresAt?: unknown };
+  if (s.status === 'active' || s.status === 'expired' || s.status === 'cancelled') {
+    return s.status;
+  }
+  // The client's own computation — the same rule the monetization module states.
+  if (s.active !== true) return 'cancelled';
+  if (typeof s.expiresAt === 'number' && s.expiresAt <= now) return 'expired';
+  return 'active';
+}
+
+/**
+ * The standing in the words the economy surface already uses.
+ *
+ * <p>A cancelled subscription reads `Never` — the word this surface has always used for a subscription
+ * that is not standing, and the one its own formatters expect.
+ */
+export function subscriptionStandingText(standing: SubscriptionStanding): string {
+  switch (standing) {
+    case 'active':
+      return 'Active';
+    case 'expired':
+      return 'Expired';
+    default:
+      return 'Never';
+  }
+}
+
 /**
  * One subscription row, or `null` when it cannot be shown honestly.
  * A row needs a planId and a finite price to say what it costs.
@@ -68,9 +118,11 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
     planId: s.planId,
     priceText: priceText(s.priceCents, s.currency),
     currency: s.currency,
-    statusText: subscriptionActiveText(s, Date.now()),
+    // v308 — the service’s standing when it gave one, the client’s own computation otherwise.
+    statusText: subscriptionStandingText(subscriptionStandingOf(s, Date.now())),
     daysLeftText: subscriptionDaysLeftText(s, Date.now()),
-    isActive: s.active && (s.expiresAt === null || s.expiresAt > Date.now()),
+    // v308 — and the same standing, so the row's two answers cannot disagree.
+    isActive: subscriptionStandingOf(s, Date.now()) === 'active',
   };
 }
 

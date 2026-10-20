@@ -24,6 +24,17 @@ public final class SubscriptionDtos {
     public static final String PERIOD_MONTH = "month";
     public static final String PERIOD_YEAR = "year";
 
+    /**
+     * v308 — the standing of a subscription, COMPUTED at read time.
+     *
+     * <p>A subscription that is stored as "active" is not necessarily still standing: its PERIOD ran out
+     * while nothing wrote to the row. The stored flag says the supporter has not CANCELLED — a fact about
+     * the past, which never goes stale — and these three say where the subscription stands NOW.
+     */
+    public static final String STATUS_ACTIVE = "active";
+    public static final String STATUS_EXPIRED = "expired";
+    public static final String STATUS_CANCELLED = "cancelled";
+
     /** WHO is acting. The shape is the one the Studio's own claim produces. */
     public record CreatorClaim(String accountId, String handle, String assurance, Long claimedAt) {
     }
@@ -49,7 +60,15 @@ public final class SubscriptionDtos {
             String assurance) {
     }
 
-    /** One subscription. The client's own `Subscription` shape, plus the fields the service knows. */
+    /**
+     * One subscription. The client's own `Subscription` shape, plus the fields the service knows.
+     *
+     * <p><b>v308 — and the `status`, which is the truth NOW.</b> `active` is what the ROW says (the supporter
+     * has not cancelled — a fact about the past); `status` is what the service COMPUTES from the row and the
+     * clock (whether the subscription is still standing, and if not, whether it expired or was cancelled).
+     * A row that says "active" and an expiry that has passed are both true, and only one of them is the
+     * standing of the subscription.
+     */
     public record Subscription(
             String creatorId,
             String planId,
@@ -61,7 +80,8 @@ public final class SubscriptionDtos {
             String subscriberId,
             String id,
             String handle,
-            String assurance) {
+            String assurance,
+            String status) {
     }
 
     /** The answer to a plan question. */
@@ -71,8 +91,11 @@ public final class SubscriptionDtos {
     /**
      * The answer to a subscription question.
      *
-     * <p>`totalCents` is what the subscriber has committed, summed by the DATABASE over the standing
-     * subscriptions — a fact about the rows and not a running total the service kept in its head.
+     * <p>v308 — `totalCents` is what the subscriber has committed, summed over the subscriptions that are
+     * STILL STANDING. An expired subscription is not a commitment any more — counting it would say the
+     * subscriber is backing a plan whose period has run out. The sum is the SERVICE's (the standing is
+     * computed, so the database cannot sum it), and it is a fact about the rows and not a running total the
+     * service kept in its head.
      */
     public record SubscriptionAnswer(String subscriberId, List<Subscription> subscriptions, long totalCents, int count, int limit) {
     }
