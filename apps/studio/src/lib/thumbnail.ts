@@ -6,6 +6,7 @@ import {
   type DesignDocument,
   type DesignNode,
 } from '@nexus/design-model';
+import { strokeToCss } from './paint';
 
 function fillOf(node: DesignNode, doc: DesignDocument): string {
   const f = node.fills[0];
@@ -53,17 +54,25 @@ export function docToSvg(doc: DesignDocument, pageId: string): string {
     const turn = node.rotation
       ? ` transform="rotate(${n(node.rotation)} ${n(r.x + r.width / 2)} ${n(r.y + r.height / 2)})"`
       : '';
+    // SVG strokes a path centred on it, exactly as `ctx.stroke()` does, so the same weight carries over.
+    // Both the weight and the alpha are emitted RAW, as the canvas and the artifact use them — rounding a
+    // 0.05-step opacity to one decimal would fade the thumb to a value no renderer was ever given.
+    const s = node.strokes[0];
+    const line = s ? ` stroke="${strokeToCss(s)}" stroke-width="${s.weight}"` : '';
+    // The canvas sets globalAlpha per node and restores before recursing, so a parent's fade does not
+    // multiply into its children — which is what these flat siblings do too, hence one attribute per element.
+    const fade = node.opacity === 1 ? '' : ` opacity="${node.opacity}"`;
     if (node.type === 'text') {
       const size = Math.max(8, r.height * 0.6);
       parts.push(
-        `<text${turn} x="${n(r.x + 2)}" y="${n(r.y + r.height * 0.72)}" font-family="Inter,sans-serif" font-size="${n(size)}" fill="${fill}">${escapeXml(String(node.characters ?? '').slice(0, 80))}</text>`,
+        `<text${turn} x="${n(r.x + 2)}" y="${n(r.y + r.height * 0.72)}" font-family="Inter,sans-serif" font-size="${n(size)}" fill="${fill}"${fade}>${escapeXml(String(node.characters ?? '').slice(0, 80))}</text>`,
       );
     } else if (node.type !== 'page' && node.type !== 'document') {
       if (node.type === 'ellipse') {
-        parts.push(`<ellipse${turn} cx="${n(r.x + r.width / 2)}" cy="${n(r.y + r.height / 2)}" rx="${n(r.width / 2)}" ry="${n(r.height / 2)}" fill="${fill}"/>`);
+        parts.push(`<ellipse${turn} cx="${n(r.x + r.width / 2)}" cy="${n(r.y + r.height / 2)}" rx="${n(r.width / 2)}" ry="${n(r.height / 2)}" fill="${fill}"${line}${fade}/>`);
       } else {
         const rx = 'cornerRadius' in node ? node.cornerRadius : 0;
-        parts.push(`<rect${turn} x="${n(r.x)}" y="${n(r.y)}" width="${n(r.width)}" height="${n(r.height)}" rx="${n(rx)}" fill="${fill}"/>`);
+        parts.push(`<rect${turn} x="${n(r.x)}" y="${n(r.y)}" width="${n(r.width)}" height="${n(r.height)}" rx="${n(rx)}" fill="${fill}"${line}${fade}/>`);
       }
     }
     for (const c of childIdList(node)) walk(c);

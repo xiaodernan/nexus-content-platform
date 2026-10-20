@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyBatch, createEmptyDocument, ellipseNode, ops, rectNode, textNode } from '@nexus/design-model';
+import { applyBatch, createEmptyDocument, ellipseNode, ops, rectNode, solid, textNode, type DesignDocument, type RGBA } from '@nexus/design-model';
 import { docToSvg, svgToDataUri } from './thumbnail';
 
 function buildDoc(withNodes = true) {
@@ -10,6 +10,19 @@ function buildDoc(withNodes = true) {
   const e = ellipseNode('Dot', { x: 120, y: 10, width: 40, height: 40 });
   const t = textNode('Title', 'Hi <&> world', { fontFamilyToken: 'font.family.body', sizeToken: 'font.size.xl', weight: 700, lineHeight: 1.2, letterSpacing: 0, align: 'left' }, { x: 10, y: 90, width: 200, height: 40 });
   return applyBatch(doc, { id: 'b1', ops: [ops.addSubtree(page, 0, [r]), ops.addSubtree(page, 1, [e]), ops.addSubtree(page, 2, [t])], provenance: { mode: 'user' }, timestamp: 0 });
+}
+
+function strokeDoc(weight: number, color: RGBA): DesignDocument {
+  const doc0 = createEmptyDocument('Stroked');
+  const box = rectNode('Input', { x: 10, y: 10, width: 320, height: 44, strokes: [{ color, weight, align: 'inside' }] });
+  const d = applyBatch(doc0, { id: 'b1', ops: [ops.addSubtree(doc0.activePageId, 0, [box])], provenance: { mode: 'user' }, timestamp: 0 });
+  return d;
+}
+
+function fadedDoc(opacity: number): DesignDocument {
+  const doc0 = createEmptyDocument('Faded');
+  const box = rectNode('Ghost', { x: 10, y: 10, width: 80, height: 60, fills: [solid({ r: 0.2, g: 0.4, b: 0.9, a: 1 })], opacity });
+  return applyBatch(doc0, { id: 'b1', ops: [ops.addSubtree(doc0.activePageId, 0, [box])], provenance: { mode: 'user' }, timestamp: 0 });
 }
 
 describe('thumbnail: docToSvg', () => {
@@ -78,8 +91,53 @@ describe('thumbnail: docToSvg edges', () => {
   });
 
   it('leaves an unrotated node without a transform attribute', () => {
-    const svg = docToSvg(buildDoc(), buildDoc().activePageId);
+    // One doc, not `buildDoc()` twice: the second call invents a different page id, and a page the doc does
+    // not have makes docToSvg return the empty placeholder — which passes every "does not contain" claim.
+    const doc = buildDoc();
+    const svg = docToSvg(doc, doc.activePageId);
+    expect(svg).toContain('<ellipse');
     expect(svg).not.toContain('rotate(');
+  });
+
+  it('strokes a node the way the canvas strokes it', () => {
+    // The demo composer puts a 1px border on its auth inputs (composer.ts buildAuth). Both the canvas and
+    // the artifact paint it; the thumb dropped it, so a published auth page looked borderless in the gallery.
+    const doc = strokeDoc(3, { r: 1, g: 0, b: 0, a: 1 });
+    const svg = docToSvg(doc, doc.activePageId);
+    expect(svg).toContain('stroke="rgba(255, 0, 0, 1)" stroke-width="3"');
+  });
+
+  it('fades a node by its opacity, like the canvas globalAlpha', () => {
+    // The inspector's Opacity field writes node.opacity; the canvas sets globalAlpha and the artifact emits
+    // `opacity:`. A node faded to 0 on the canvas still showed SOLID in the before/after thumb.
+    const doc = fadedDoc(0.25);
+    const svg = docToSvg(doc, doc.activePageId);
+    expect(svg).toContain('opacity="0.25"');
+  });
+
+  it('fades text as well as shapes', () => {
+    const doc0 = createEmptyDocument('FadeText');
+    const page = doc0.activePageId;
+    const t = textNode('Ghost', 'hello', {
+      fontFamilyToken: 'font.family.body',
+      sizeToken: 'font.size.xl',
+      weight: 700,
+      lineHeight: 1.2,
+      letterSpacing: 0,
+      align: 'left',
+    }, { x: 10, y: 90, width: 200, height: 40, opacity: 0.4 });
+    const doc = applyBatch(doc0, { id: 'b1', ops: [ops.addSubtree(page, 0, [t])], provenance: { mode: 'user' }, timestamp: 0 });
+    const svg = docToSvg(doc, page);
+    expect(svg).toMatch(/<text[^>]*opacity="0.4"/);
+  });
+
+  it('leaves an opaque, unbordered node without stroke or opacity attributes', () => {
+    // The control: defaults must keep emitting the same bytes, so only authored strokes/fades change the picture.
+    const doc = buildDoc();
+    const svg = docToSvg(doc, doc.activePageId);
+    expect(svg).toContain('<ellipse');
+    expect(svg).not.toContain('stroke=');
+    expect(svg).not.toContain('opacity=');
   });
 
   it('truncates long text content to 80 characters', () => {
