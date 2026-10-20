@@ -25,7 +25,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createConnection, createServer } from 'node:net';
-import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -35,9 +35,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // cwd that does not exist makes spawn answer ENOENT, which reads as "the command is missing". Measured.
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 const SERVICE_DIR = path.join(REPO_ROOT, 'services/nexus-api');
-const JAR = path.join(SERVICE_DIR, 'target/nexus-api-0.1.0-SNAPSHOT.jar');
 const DB_IMAGE = 'pgvector/pgvector:pg16';
 const STAMP = `${Date.now()}-${process.pid}`;
+/**
+ * v302 — the jar is built in an ISOLATED COPY of the service, not in the working tree.
+ *
+ * Why: `mvn package` ends with spring-boot's `repackage`, which RENAMES the jar it just built. On
+ * Windows a jar that a RUNNING service has open cannot be renamed — and a developer (or a parallel lane)
+ * running `java -jar target/nexus-api-0.1.0-SNAPSHOT.jar` holds exactly that file open. The symptom is a
+ * build that fails for a reason that has nothing to do with the code:
+ *
+ *   Unable to rename '…\nexus-api-0.1.0-SNAPSHOT.jar' to '…\nexus-api-0.1.0-SNAPSHOT.jar.original'
+ *
+ * Building a copy sidesteps it entirely, and it is also more honest: the proof runs the jar it just BUILT
+ * rather than whichever one happens to be lying in the working tree.
+ */
+const BUILD_DIR = path.join(tmpdir(), `nexus-publish-proof-build-${STAMP}`);
+const JAR = path.join(BUILD_DIR, 'target/nexus-api-0.1.0-SNAPSHOT.jar');
+
 const DB_CONTAINER = `nexus-api-proof-db-${STAMP}`;
 const DB_NAME = 'nexus';
 const DB_USER = 'nexus';
@@ -189,7 +204,12 @@ try {
   console.log(`[m7] tools: ${javaLine.trim()} · docker server ${dockerVersion.stdout.trim()}`);
 
   // ── §1 build the jar, start a throwaway database, start the service against it ───────────────────
-  const build = await runMaven(['-B', '-q', 'package', '-DskipTests'], { cwd: SERVICE_DIR, timeoutMs: 600_000 });
+  // v302 — build a COPY: a running service holding the working tree's jar cannot fail this build.
+  rmSync(BUILD_DIR, { recursive: true, force: true });
+  mkdirSync(BUILD_DIR, { recursive: true });
+  cpSync(path.join(SERVICE_DIR, 'pom.xml'), path.join(BUILD_DIR, 'pom.xml'));
+  cpSync(path.join(SERVICE_DIR, 'src'), path.join(BUILD_DIR, 'src'), { recursive: true });
+  const build = await runMaven(['-B', '-q', 'package', '-DskipTests'], { cwd: BUILD_DIR, timeoutMs: 600_000 });
   assert.equal(build.code, 0, `mvn package failed:\n${build.stdout}\n${build.stderr}`);
   assert.ok(existsSync(JAR), `the build produced no jar at ${JAR}`);
   console.log(`[m7] built ${path.relative(REPO_ROOT, JAR)}`);
@@ -250,7 +270,7 @@ try {
       `--spring.datasource.password=${DB_PASSWORD}`,
       `--nexus.port-file=${PORT_FILE}`,
     ], {
-      cwd: SERVICE_DIR,
+      cwd: BUILD_DIR,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let log = '';
@@ -621,6 +641,64 @@ console.log('[§7] unpublish took the row out of the DATABASE (404 afterwards, 0
     console.log(`[§11] the AUDIT TRAIL over the real service: ${trail.entries.length} entr(y/ies) · the owned publication has one publish and one unpublish entry (the two REFUSED take-downs recorded NOTHING) · the anonymous publication has an entry that names NOBODY · the assurance travels with the actor · the instant is the client's own millisecond value · newest first`);
   }
 
+  // ── §12 v302: the SEARCH's RELEVANCE order ───────────────────────────────────────────────────────
+  // A title match outranks a document-only match, because a title is what a person names their work and
+  // a word in a title is a stronger signal than the same word somewhere in the nodes. Within each class
+  // the order is newest-first, like the listing the search is a filter of.
+  //
+  // The section publishes its OWN publications so the two classes can be told apart: one whose TITLE
+  // mentions the word, and one whose DOCUMENT mentions it and whose title does not.
+  {
+    const term = 'lighthouse' + STAMP;
+    const titleId = 'doc-search-title-' + STAMP;
+    const bodyId = 'doc-search-body-' + STAMP;
+
+    // The TITLE match: the word is in the publication's name.
+    const titled = await fetch(`${base}/projects/${titleId}/publish`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        title: 'A ' + term + ' at Night',
+        document: { pages: [{ id: 'p1', name: 'Cover' }], version: 1, tokens: { color: '#0b0d11' } },
+        owner: adaClaim,
+      }),
+    });
+    assert.equal(titled.status, 201, `the titled publication must be published, got ${titled.status}`);
+
+    // The DOCUMENT-only match: the word is in a NODE'S NAME and not in the title.
+    const inBody = await fetch(`${base}/projects/${bodyId}/publish`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Something else entirely',
+        document: { pages: [{ id: 'p1', name: 'A ' + term + ' in the margins' }], version: 1, tokens: { color: '#0b0d11' } },
+        owner: adaClaim,
+      }),
+    });
+    assert.equal(inBody.status, 201, `the body-only publication must be published, got ${inBody.status}`);
+
+    const found = await (await fetch(`${base}/search?q=${encodeURIComponent(term)}`)).json();
+    const ids = found.publications.map((p) => p.projectId);
+    assert.ok(ids.includes(titleId), `the search must find the titled publication: ${JSON.stringify(ids)}`);
+    assert.ok(ids.includes(bodyId), `the search must find the document-only publication: ${JSON.stringify(ids)}`);
+    assert.equal(
+      ids.indexOf(titleId) < ids.indexOf(bodyId),
+      true,
+      `a TITLE match must come before a document-only match: ${JSON.stringify(ids)}`,
+    );
+
+    // And a term that matches NOTHING answers with an EMPTY list, not the whole table.
+    const none = await (await fetch(`${base}/search?q=zzz-nothing-mentions-${STAMP}`)).json();
+    assert.equal(none.publications.length, 0, `a term that matches nothing must answer with nothing: ${JSON.stringify(none.publications)}`);
+
+    // And the WINDOW still works: the search is a filter of the listing, and it pages.
+    const windowed = await (await fetch(`${base}/search?q=${encodeURIComponent(term)}&limit=1`)).json();
+    assert.equal(windowed.publications.length, 1, `the limit still applies to a search: ${JSON.stringify(windowed.publications)}`);
+    assert.equal(windowed.limit, 1, 'and the answer says which cap it applied');
+
+    console.log(`[§12] the SEARCH over the real service: the term found ${ids.length} publication(s) · the TITLE match came first · a term that matches nothing answered with an empty list`);
+  }
+
   // ── §9 teardown ─────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
   const rm = await run('docker', ['rm', '-f', DB_CONTAINER]);
@@ -631,6 +709,7 @@ console.log('[§7] unpublish took the row out of the DATABASE (404 afterwards, 0
   console.log(`[§9] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
   console.log('\n[summary] M7 v193+v195: services/nexus-api BUILT and RAN against a real PostgreSQL · a publish created version 1 (201) and a re-publish updated it to version 2 (200) with the DATABASE counted at exactly one row · the document round-tripped as JSON rather than as an escaped string · refusals answered 400 naming their rule and an unpublished id answered 404 · the LISTING answered newest-first and capped with no documents in its entries · UNPUBLISH took the row out of the database and a second DELETE answered removed:false · and the publication SURVIVED A SERVICE RESTART');
+  rmSync(BUILD_DIR, { recursive: true, force: true });
   console.log('[m7-publish-proof] ALL ASSERTIONS PASSED (a real backend service, a real database, and a row that outlives the process that wrote it)');
 } finally {
   // Teardown runs even on a failed assertion: a proof that leaves a database container behind is a proof

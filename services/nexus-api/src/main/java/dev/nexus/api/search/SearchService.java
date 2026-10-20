@@ -39,8 +39,16 @@ public class SearchService {
     /** How many results an answer carries when the caller names no limit. */
     public static final int DEFAULT_SEARCH_LIMIT = 20;
 
-    /** The order every search answers in: newest first, like the listing it is a filter of. */
-    private static final Sort NEWEST_FIRST = Sort.by(Sort.Direction.DESC, "publishedAt");
+    /**
+     * v302 — the window carries NO sort of its own.
+     *
+     * <p>Both finders already carry their order: the plain listing's order is in its NAME
+     * (`findAllByOrderByPublishedAtDesc`) and the search's order is in its query (the relevance order:
+     * a title match first, then newest-first within each class). A `Pageable`'s own sort would be
+     * APPENDED to whichever of those is already there, and the two would fight — so the window says
+     * nothing about the order and lets the finder answer it.
+     */
+    private static final Sort NO_SORT = Sort.unsorted();
 
     private final PublishedProjectRepository repository;
 
@@ -59,7 +67,7 @@ public class SearchService {
     public List<PublishedProject> search(String term, String ownerAccountId, int limit, int offset) {
         int asked = limit <= 0 ? DEFAULT_SEARCH_LIMIT : Math.min(limit, MAX_SEARCH_LIMIT);
         int skip = Math.max(offset, 0);
-        Pageable window = new SearchWindow(skip, asked, NEWEST_FIRST);
+        Pageable window = new SearchWindow(skip, asked, NO_SORT);
         String trimmed = term == null ? "" : term.trim();
         String owner = ownerAccountId == null ? null : ownerAccountId.trim();
         if (trimmed.isEmpty()) {

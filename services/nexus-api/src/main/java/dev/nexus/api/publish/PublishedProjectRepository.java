@@ -40,15 +40,22 @@ public interface PublishedProjectRepository extends JpaRepository<PublishedProje
      * v290 — the SEARCH finder: the publications whose TITLE or DOCUMENT mentions a word.
      *
      * <p>The query is written as a JPQL expression rather than a derived method name because the two
-     * fields and the case-insensitive comparison do not fit the derived-name grammar, and because the
-     * ORDER is carried by the window (the search package's own `SearchWindow`) rather than by the name.
+     * fields and the case-insensitive comparison do not fit the derived-name grammar.
+     *
+     * <p><b>v302 — the ORDER is the RELEVANCE order, and it lives in the query.</b> A publication whose TITLE
+     * mentions the term comes before one that only mentions it inside its DOCUMENT — because a title is
+     * what a person names their work, and a word in a title is a stronger signal than the same word
+     * somewhere in the nodes. Within each class the order is newest-first, like the listing the search is
+     * a filter of. The order is in the query rather than in the window on purpose: a `Pageable`'s own sort
+     * would be APPENDED to the query's `ORDER BY`, and the two would fight — so the search's window carries
+     * NO sort of its own.
      *
      * <p><b>The cost, stated rather than hidden:</b> a `LIKE` over a text column cannot use an index, so
      * this is a SEQUENTIAL SCAN. At this table's size that is the price of searching what is actually IN
      * the work; a table big enough for that to matter wants an index (or a full-text one), and the service
      * does not pretend otherwise.
      */
-    @Query("SELECT p FROM PublishedProject p WHERE LOWER(p.title) LIKE LOWER(CONCAT('%', :term, '%')) OR LOWER(p.documentJson) LIKE LOWER(CONCAT('%', :term, '%'))")
+    @Query("SELECT p FROM PublishedProject p WHERE LOWER(p.title) LIKE LOWER(CONCAT('%', :term, '%')) OR LOWER(p.documentJson) LIKE LOWER(CONCAT('%', :term, '%')) ORDER BY CASE WHEN LOWER(p.title) LIKE LOWER(CONCAT('%', :term, '%')) THEN 0 ELSE 1 END, p.publishedAt DESC")
     List<PublishedProject> findByTextContaining(@Param("term") String term, Pageable pageable);
 
     /**
@@ -57,7 +64,7 @@ public interface PublishedProjectRepository extends JpaRepository<PublishedProje
      * <p>It matches the OWNER COLUMN, not the handle, for the same reason the profile's listing does: the
      * handle is a name the account chose and the owner is the identity the claim carries.
      */
-    @Query("SELECT p FROM PublishedProject p WHERE p.ownerAccountId = :owner AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :term, '%')) OR LOWER(p.documentJson) LIKE LOWER(CONCAT('%', :term, '%')))")
+    @Query("SELECT p FROM PublishedProject p WHERE p.ownerAccountId = :owner AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :term, '%')) OR LOWER(p.documentJson) LIKE LOWER(CONCAT('%', :term, '%'))) ORDER BY CASE WHEN LOWER(p.title) LIKE LOWER(CONCAT('%', :term, '%')) THEN 0 ELSE 1 END, p.publishedAt DESC")
     List<PublishedProject> findByOwnerAndTextContaining(
             @Param("owner") String ownerAccountId,
             @Param("term") String term,
