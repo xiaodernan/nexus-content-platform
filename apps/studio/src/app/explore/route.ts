@@ -28,8 +28,10 @@ function html(body: string, status: number): Response {
   return new Response(body, { status, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 }
 
-export async function GET(): Promise<Response> {
-  const listing = await listPublications(EXPLORE_LIMIT);
+export async function GET(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const offset = Math.max(0, Number.parseInt(url.searchParams.get('offset') ?? '0', 10));
+  const listing = await listPublications(EXPLORE_LIMIT, undefined, undefined, offset);
   if (!listing.ok) return html(renderExploreUnavailable(listing.reason ?? 'no reason given'), 503);
 
   const rows = listing.publications ?? [];
@@ -44,5 +46,5 @@ export async function GET(): Promise<Response> {
     (doc, pageId) => svgToDataUri(docToSvg(doc, pageId)),
   );
 
-  return html(renderExploreHtml(items, { count: listing.count ?? rows.length, limit: listing.limit ?? EXPLORE_LIMIT }), 200);
+  return html(renderExploreHtml(items, { count: listing.count ?? rows.length, limit: listing.limit ?? EXPLORE_LIMIT, offset }), 200);
 }
