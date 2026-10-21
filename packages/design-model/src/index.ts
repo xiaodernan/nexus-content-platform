@@ -2,6 +2,7 @@ export * from "./types";
 export * from "./tokens";
 export * from "./nodes";
 export * from "./layout";
+export * from "./partial";
 export * from "./patch";
 export * from "./diff";
 export * from "./commands";
