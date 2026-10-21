@@ -1054,7 +1054,7 @@ export default function Toolbar() {
                   the rows happen to be. */}
               <div data-economy-subscription-total style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
                 {economyAccount.subscriptionCount ?? (economyAccount.subscriptions ?? []).length} subscription(s) ·{' '}
-                {priceText((economyAccount.subscriptionTotalCents ?? 0) as PriceCents, 'CNY')} a month
+                {priceText((economyAccount.subscriptionTotalCents ?? 0) as PriceCents, 'CNY')} a period
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {(economyAccount.subscriptions ?? []).map((row, i) => (
@@ -1111,7 +1111,16 @@ export default function Toolbar() {
           ) : (economyAccount.received ?? []).length === 0 ? (
             <div style={{ color: 'var(--nexus-muted)' }}>nobody backs this account</div>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            <>
+              {/* v363 — the COUNT and the TOTAL beside the rows, the same way the held side says them
+                  (v359): the service counts the WHOLE table, so these are facts about every
+                  subscription this account received and not about the rows the answer happens to
+                  carry. */}
+              <div data-economy-received-total style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
+                {economyAccount.receivedCount ?? (economyAccount.received ?? []).length} subscription(s) received ·{' '}
+                {priceText((economyAccount.receivedTotalCents ?? 0) as PriceCents, 'CNY')} a period
+              </div>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {(economyAccount.received ?? []).map((row, i) => (
                 <li
                   key={i}
@@ -1140,6 +1149,7 @@ export default function Toolbar() {
                 </li>
               ))}
             </ul>
+              </>
           )}
           <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 8 }}>Your plans</div>
           {economyNote && (

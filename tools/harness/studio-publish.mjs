@@ -3647,6 +3647,36 @@ try {
     await subCountPage.close();
   }
 
+  // ── §63 v363: the panel’s RECEIVED side says how many, and what they come to ────────────────────────
+  // The held side says it since v359; the received side only listed rows.
+  {
+    const recvCountPage = await session.newPage('about:blank');
+    await recvCountPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(recvCountPage, 'the received count page to hydrate');
+    await signInAs(recvCountPage, 'ada', 'the creator whose subscriptions were received');
+    await recvCountPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const recvCountShown = await until(
+      async () => (await recvCountPage.evaluate("!!document.querySelector('[data-economy-received-total]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the received total to show' },
+    );
+    check('the panel’s received side says how many there are', recvCountShown !== null, 'the number is there');
+
+    // And the SERVICE agrees, read independently of the browser.
+    const recvCountRaw = await recvCountPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const recvCountId = JSON.parse(String(recvCountRaw)).id;
+    const recvCountService = await (await fetch(`${apiBase}/subscriptions?creator=${encodeURIComponent(recvCountId)}&limit=50`)).json();
+    const serviceReceived = recvCountService.count;
+    const panelReceived = await recvCountPage.evaluate(
+      "document.querySelector('[data-economy-received-total]')?.textContent ?? ''",
+    );
+    check(
+      'the SERVICE agrees — the panel says the count the service counted',
+      typeof serviceReceived === 'number' && panelReceived.includes(`${serviceReceived} subscription(s) received`),
+      `the service: ${JSON.stringify(serviceReceived)} · the panel: ${JSON.stringify(panelReceived)}`,
+    );
+    await recvCountPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
