@@ -10,18 +10,26 @@ import {
   LEVEL_GOAL_ORDER,
   LEVEL_LEVERS,
   artifactChainSentence,
-  compileRpg,
   designLevel,
   generateGameCode,
+  GAME_KIND_LABELS,
+  isGameKind,
   playtestByKind,
-  playtestRpg,
   playtestSeedNote,
   tuneCombat,
   type GameDocument,
+  type GameKind,
+  type GamePlan,
   type PlaytestReport,
+  type RpgPlan,
   type RpgPlaytestReport,
 } from '@nexus/game-model';
-import { GAME_DRAFT_NOT_LANDED_NOTE, gameDraft } from '@/lib/agent-game-draft';
+import {
+  GAME_DRAFT_DEFAULT_KIND,
+  GAME_DRAFT_NOT_LANDED_NOTE,
+  GAME_DRAFT_SUPPORTED_KINDS,
+  gameDraft,
+} from '@/lib/agent-game-draft';
 import {
   GOAL_MAX,
   buildReadinessPlan,
@@ -87,7 +95,13 @@ export const ORCHESTRATOR_AGENT_KEY = 'product';
 /** 计划从哪来：今天只有确定性配方，所以是 demo；接上模型规划后这里才可能变 real */
 export const PLANNER: 'real' | 'demo' = 'demo';
 
-export type OrchestrationRefusalCode = 'no-document' | 'roster-empty' | 'capability' | 'credits' | 'invalid-plan';
+export type OrchestrationRefusalCode =
+  | 'no-document'
+  | 'roster-empty'
+  | 'capability'
+  | 'credits'
+  | 'invalid-plan'
+  | 'unsupported-kind';
 
 export interface OrchestrationRefusal {
   code: OrchestrationRefusalCode;
@@ -120,6 +134,11 @@ interface StepContext {
   projectId: string;
   taskId: string;
   goal: string;
+  /**
+   * 这一份作业要编哪一型（§51）。**从计划里来**（不是各自带一份）⇒
+   * 任务行里那一行计划与这一格跑的东西说的是同一件事（§16）。
+   */
+  gameKind: GameKind;
   document: DesignDocument;
   facts: ProjectFacts;
   /** §113 交接：自己声明依赖的那几步的结论 */
@@ -288,10 +307,15 @@ const reportStep: Runner = async (ctx) => {
  * 所以"四种脚本走法里有几种通关"是 §53 那份报告的读数，不是估的。
  * 报告自带的限度也一起带上来——只报"2 种通关"会被读成"这设计好上手"。
  */
-const gameStep: Runner = async (ctx) => {
-  const document = gameDraft({ goal: ctx.goal, at: new Date().toISOString(), seed: ctx.taskId });
-  const plan = compileRpg(document);
-  const playtest = playtestRpg(plan);
+/**
+ * RPG 那一条的结论。
+ *
+ * **与 2026-10-21 之前逐字相同**——红线是"今天的行为一个字都不许变"（集成用例逐字段对：
+ * 摘要里的实体数 / 敌人数 / 任务数 / 通关数，以及 counts 每一格）。
+ * 单独写成函数、单独标注返回类型不是为了好看：两条路各返回一份 `StepOutcome`，
+ * `counts` 的形状才不会因为"联合类型"被并成同一组键（`xpFromDesign` 只有 RPG 才有）。
+ */
+function gameOutcomeRpg(document: GameDocument, plan: RpgPlan, playtest: RpgPlaytestReport): StepOutcome {
   const enemies = plan.enemyXp.length;
   const authored = plan.enemyXp.filter((enemy) => enemy.from === 'design').length;
   const player = plan.base.player;
@@ -312,12 +336,69 @@ const gameStep: Runner = async (ctx) => {
       `配方表决定数值，目标文本只改了标题（现在是「${document.name}」）——这一轮没有真 provider 参与（§160）。`,
       `玩家伤害 ${player?.damage ?? 0}（来源是引用到玩家的那把武器，provenance=${player?.provenance.damage ?? '无'}）、触及 ${player?.reach ?? 0} 像素；` +
         `经验来源 ${authored}/${enemies} 个敌人写了 xpReward。`,
-      `四种脚本走法（定种子 ${playtest.seed}，跑的是 rpgStep）：${playtest.runs.map((run) => `${run.label} ${run.seconds} 秒→${run.status === 'won' ? '通关' : run.status === 'lost' ? '倒下' : '没结束'}`).join('、')}`,
+      `四种脚本走法（定种子 ${playtest.seed}，跑的是 rpgStep）：${playtest.runs
+        .map((run) => `${run.label} ${run.seconds} 秒→${run.status === 'won' ? '通关' : run.status === 'lost' ? '倒下' : '没结束'}`)
+        .join('、')}`,
       `这份报告的限度：${playtest.limits[0] ?? ''}`,
       '接受进项目之后它是项目里的一份普通游戏文档：能改、能试玩、进 §49 语料；撤销走 §150 那套 Command，不靠这一步。',
     ],
     draft: document,
   };
+}
+
+/**
+ * topdown 那五型（2D / 2.5D / 3D / 探索 / 解谜）的结论：同一张配方表、同一份规则，
+ * **只是画法不同** ⇒ 读数是那条管线的读数，不是 RPG 的。
+ */
+function gameOutcomeTopdown(
+  document: GameDocument,
+  plan: GamePlan,
+  playtest: PlaytestReport,
+  engine: string,
+): StepOutcome {
+  const player = plan.player;
+  return {
+    summary:
+      `编出 ${document.entities.length} 个实体的 ${GAME_KIND_LABELS[document.kind]} 草稿` +
+      `（${plan.enemies.length} 个敌人 / ${plan.quests.length} 条任务）；四种脚本走法里 ${playtest.winnableBy} 种通关`,
+    counts: {
+      entities: document.entities.length,
+      enemies: plan.enemies.length,
+      quests: plan.quests.length,
+      triggers: plan.triggers.length,
+      policies: playtest.runs.length,
+      won: playtest.winnableBy,
+      lost: playtest.diedFrom,
+    },
+    notes: [
+      GAME_DRAFT_NOT_LANDED_NOTE,
+      `配方表决定数值，目标文本只改了标题（现在是「${document.name}」）——这一轮没有真 provider 参与（§160）。`,
+      `这一型走 topdown 管线（推进用 ${engine}）：同一张配方表，但经验与等级门那几格不参与判定，` +
+        '条件凑齐就结算——所以这一份里没有经验也没有等级。',
+      `玩家伤害 ${player?.damage ?? 0}（来源是引用到玩家的那把武器，provenance=${player?.provenance.damage ?? '无'}）、触及 ${player?.reach ?? 0} 像素。`,
+      `四种脚本走法（定种子 ${playtest.seed}）：${playtest.runs
+        .map((run) => `${run.label} ${run.seconds} 秒→${run.status === 'won' ? '通关' : run.status === 'lost' ? '倒下' : '没结束'}`)
+        .join('、')}`,
+      `这份报告的限度：${playtest.limits[0] ?? ''}`,
+      '接受进项目之后它是项目里的一份普通游戏文档：能改、能试玩、进 §49 语料；撤销走 §150 那套 Command，不靠这一步。',
+    ],
+    draft: document,
+  };
+}
+
+const gameStep: Runner = async (ctx) => {
+  const document = gameDraft({
+    goal: ctx.goal,
+    at: new Date().toISOString(),
+    seed: ctx.taskId,
+    kind: ctx.gameKind,
+  });
+  // 派发只在模型层那一个地方（`playtestByKind` → `compileForKind`）⇒ 这里不再自己判断型（§16）
+  const { report, plan, engine, pipeline } = playtestByKind(document);
+  if (pipeline === 'rpg') {
+    return gameOutcomeRpg(document, plan, report);
+  }
+  return gameOutcomeTopdown(document, plan, report, engine);
 };
 
 /**
@@ -537,12 +618,13 @@ const playtestStep: Runner = async (ctx) => {
   }
   // **按草稿标的那一型派管线**（2026-10-21）：这一格原来无条件跑 `playtestRpg(compileRpg(source))`
   // ⇒ 链上一份 2D 的草稿会被拿 **RPG 的判据**去试，报出来的读数不是这份设计那条管线的读数（§159）。
+  // **派发只有一处**（`playtestByKind` → `compileForKind`）：各写一遍判断，迟早变成"一个页面说没接、
+  // 另一个页面硬跑 2D 关卡"（§16）。
   // **RPG 那一条刻意与原来逐字相同**（红线：今天的行为一个字都不许变 ⇒ 集成用例逐字段对）。
-  if (source.kind === 'rpg-prototype') {
-    return rpgPlaytestOutcome(source, playtestRpg(compileRpg(source)));
-  }
-  // 别的类型（topdown 那五种）：按它们自己的管线跑，读数是那一条管线的读数
   const { report, pipeline, engine } = playtestByKind(source);
+  if (pipeline === 'rpg') {
+    return rpgPlaytestOutcome(source, report);
+  }
   return topdownPlaytestOutcome(source, report, pipeline, engine);
 };
 
@@ -677,8 +759,44 @@ export async function runReadinessCheck(input: {
    * §159 的口径：没跑过的不算做完。生产路径不传它。
    */
   runners?: Partial<Record<StepKind, Runner>>;
+  /**
+   * 这一份作业要编哪一型（§51）。**可选**：缺省是链上的缺省型（RPG 原型）。
+   *
+   * **不猜**：型是显式给的（从目标文本里"理解"出类型就是 §159 禁止的假 AI），
+   * 给错了或链上没有配方就**诚实拒收**，不做一份说得过去的草稿糊过去。
+   */
+  gameKind?: string;
 }): Promise<OrchestrationResult> {
   const goal = input.goal.trim().slice(0, GOAL_MAX);
+
+  // 这一型：先校"是不是八种之一"，再校"链上这份配方有没有它"
+  const requested = input.gameKind?.trim();
+  let gameKind: GameKind = GAME_DRAFT_DEFAULT_KIND;
+  if (requested) {
+    if (!isGameKind(requested)) {
+      return {
+        ok: false,
+        refusal: {
+          code: 'unsupported-kind',
+          status: 400,
+          message: `游戏类型「${requested}」不认识：八种是 2D / 2.5D / 3D / 互动故事 / RPG 原型 / 探索 / 解谜 / 视觉小说。`,
+        },
+      };
+    }
+    if (!GAME_DRAFT_SUPPORTED_KINDS.includes(requested)) {
+      return {
+        ok: false,
+        refusal: {
+          code: 'unsupported-kind',
+          status: 400,
+          message:
+            `对话那一型（${GAME_KIND_LABELS[requested]}）链上还没有配方：` +
+            '链上那份配方给的是战场与战斗，而对话要的是对话实体（正文与选择）——不做一份空草稿糊过去。',
+        },
+      };
+    }
+    gameKind = requested;
+  }
 
   const document = await loadDocument(input.projectId);
   if (!document) {
@@ -700,7 +818,7 @@ export async function runReadinessCheck(input: {
     };
   }
 
-  const parsed = AgentPlanSchema.safeParse(buildReadinessPlan(goal));
+  const parsed = AgentPlanSchema.safeParse(buildReadinessPlan(goal, gameKind));
   if (!parsed.success) {
     return {
       ok: false,
@@ -829,6 +947,7 @@ export async function runReadinessCheck(input: {
         projectId: input.projectId,
         taskId,
         goal,
+        gameKind,
         document,
         facts,
         upstream: task.dependsOn

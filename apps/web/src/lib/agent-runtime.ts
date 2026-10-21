@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AgentPlanSchema, GameDocumentSchema, type AgentPlan } from '@nexus/schemas';
+import { GAME_DRAFT_DEFAULT_KIND } from './agent-game-draft';
 
 /**
  * §112 / §25 / §113 编排的**纯规则层**：一个计划能不能跑、下一步该轮到谁、某一步失败之后
@@ -218,8 +219,17 @@ export const ReadinessReportSchema = z.object({
 });
 export type ReadinessReport = z.infer<typeof ReadinessReportSchema>;
 
-/** 启动一次编排的请求。今天只有一个目标字符串，其余由服务端按配方决定 */
-export const AgentRunRequestSchema = z.object({ goal: z.string().trim().max(GOAL_MAX).default('') });
+/** 启动一次编排的请求：目标文本，另加"要编哪一型的游戏"（可选，缺省就是链上的缺省型） */
+export const AgentRunRequestSchema = z.object({
+  goal: z.string().trim().max(GOAL_MAX).default(''),
+  /**
+   * 这一份作业要编哪一型（§51）。**可选**：不填就是缺省型（RPG 原型）。
+   *
+   * 收 `z.string()` 而不是枚举：这一层不引游戏包（`@nexus/schemas` 是最底的一层），
+   * 值由服务端拿 `GAME_KINDS` 校（仓库里其它"类型"字段也是这个手法）。
+   */
+  gameKind: z.string().trim().max(40).optional(),
+});
 export type AgentRunRequest = z.infer<typeof AgentRunRequestSchema>;
 
 /**
@@ -279,11 +289,17 @@ export function stepSpec(kind: string): StepSpec | null {
   return READINESS_STEPS.find((spec) => spec.kind === kind) ?? null;
 }
 
-/** §25：复杂任务先生成计划。今天这份计划的形状由配方定，goal 只改标题那一句 */
-export function buildReadinessPlan(goal: string): AgentPlan {
+/**
+ * §25：复杂任务先生成计划。今天这份计划的形状由配方定，goal 只改标题那一句。
+ *
+ * `gameKind` 是这一份作业要编的那一型（§51）：**记在计划里** ⇒ 任务行里读得出
+ * "当时编的是哪一型"，刷新后复看也不用猜（§16）。缺省是链上的缺省型。
+ */
+export function buildReadinessPlan(goal: string, gameKind: string = GAME_DRAFT_DEFAULT_KIND): AgentPlan {
   const text = goal.trim().slice(0, GOAL_MAX);
   return {
     goal: text || '上架前检查',
+    gameKind,
     constraints: [
       '只读：这一轮不改设计模型、不发布、不花额度以外的东西',
       '每一步的结论都必须来自本机真的算得出来的东西（§159）',

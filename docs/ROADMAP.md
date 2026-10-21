@@ -630,6 +630,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   那条断言现在数的是画布上"非背景色像素 > 1000"，DOM 存在不再等于画出来了。
   **仍欠的三种**（是还没做，不是做不了；面板上照这三种各自的原话写）：RPG 原型（模型里没有
   成长/战斗循环的语义）、探索、解谜。
+  **2026-10-22 核过：这一行过期了**——这三种都接上了（RPG 原型 2026-10-07 第八片、
+  探索 2026-10-06 第六片、解谜 2026-10-07 第七片；`GAME_KIND_STATUS` 八型今天全是
+  `pipeline` 非 null）⇒ 那一行留着只是当时的快照，不再是欠条。
   **2026-09-29 第五片（3D 有了真投影，立体视角一条规则都不改）**：`GAME_KIND_STATUS["3d"]` 从
   `pipeline: null` 改成 `pipeline: "topdown"` + `view: "3d"`——3D 与 2D / 2.5D 是**同一条计划**的第三种画法：
   `compileForKind` 照样派 `compileGame` 的产物，规则仍在地平面上那个 `step` 里判定。
@@ -685,6 +688,8 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   `story-play-puzzle.png`），反向对照改用 rpg-prototype（唯一没接的类型仍然不许退回 2D 关卡），
   用例标题同步改成"标解谜出机关连线"。
   **仍欠的一种**：RPG 原型（模型里没有成长/战斗循环的语义）。
+  **2026-10-22 核过：这一行也过期了**——下面那一片（2026-10-07 第八片）就把 RPG 原型接上了，
+  八种今天全部派得出真管线 ⇒ 这一行留着只是当时的快照。
   **2026-10-07 第八片（RPG 原型接上，八种全部派得出真管线——这一格从此 `[x]`）**：
   `GAME_KIND_STATUS["rpg-prototype"]` 拿到第三条管线 `pipeline: "rpg"`——不是 topdown 的又一种画法，
   加的是规则层。战斗逐字复用 `sim.step`（移动/追击/接触伤害/挥击与 2D 同一套算术），`rpg.ts` 只加成长：
@@ -919,8 +924,27 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
      加一步一条没红；红的是真该红的东西（依赖表、终态判定、交接清单、牵连清单）。
    - 起点是绿的才动手：`npm run lint`（typecheck 九个项目 + 全仓 eslint）**exit 0**，
      game-model 与纯层合跑 **220 条全绿**，DB 侧两套 15 + 9 全绿。
-   **仍欠**：链上这一格只跑 RPG 那条管线——2D 那五种类型与对话管线在链上还没有各自的一格
-   （要接得先让链上的草稿带上 kind，而不是像今天这样默认 RPG）；§53 的 Capture screenshots /
+   **2026-10-22 链上那一型由请求显式给出（ADR-0052）：这条欠条的后一半付掉了**——
+   2026-10-21 那格把**下游**修好（试玩格按草稿的 kind 派管线），这一格把**上游**也修好：
+   - **上游也带 kind 了**：`gameDraft` 接受 `kind`（缺省 RPG 原型 ⇒ **今天那份逐字节不变**：
+     改配方说明与数值之前先拍了快照，改完逐字节对过；纯层用例另外钉住关键句）；
+     `gameStep` 按型编译与试玩，不再硬编 `compileRpg` + `playtestRpg`。
+   - **型记在计划里**：`AgentPlan.gameKind` ⇒ 任务行读得出"这份作业当时编的是哪一型"，
+     刷新后复看不用猜（§16）。
+   - **一张配方表，每型一段变体**（不是两张表）：topdown 那五型把"经验/等级门"那几句**换掉**
+     ——不是补一句"其实不参与判定"，那句会与前一句（"条件凑齐但没到级就不结算"）自相矛盾；
+     数值同理：`xpReward` / `requiredLevel` 只有 RPG 管线读（`compileGame` 只读 `timeLimit`），
+     留在别的型里就是"设计里写着要 2 级"而这一型根本不看等级。
+   - **派发只留一处**：`playtestByKind` → `compileForKind`（上一格自己写了一遍 kind → pipeline，
+     那是 §16 的两份真值，这一格收回来了）。
+   - **对话那两种诚实拒收**：链上那份配方给的是战场与战斗，而对话要的是对话实体
+     ⇒ 400 + 一句"链上还没有配方"，不做空草稿（§159）。
+   - **凭证**：纯层 `agent-game-draft.test.ts` **19 → 23 条**（缺省那份不变 / 2D 那份的说明与数值 /
+     对话那两种拒收 / 2D 那份仍是合法设计）；打真库的 `agent-orchestration.integration.test.ts`
+     **18 → 21 条**（链上要 2D ⇒ 计划带型、草稿带 kind、试玩读 topdown 的数；对话那型拒收且不留任务行；
+     不认识的型拒收并把八种说清楚）。
+   **仍欠**：**界面上的类型选择器**（Agent 面板那一个下拉）还没接 ⇒ 今天只能从 API
+   带 `gameKind` 跑这一条链（另作一片，要 e2e 截图那一套）；§53 的 Capture screenshots /
    Detect bugs / Fix 三格要浏览器与模型，本机不假生成（§159）。
 - [~] 游戏设计系统：Player/Enemy/Weapon/Item/Quest/Dialogue/Trigger/NPC/Camera/Animation/Particle（§54）
   — **2026-09-24 落地模型层**：新开 `packages/game-model`（与 design-model / world-model 同一条纪律：
@@ -5176,3 +5200,14 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   129/129 绿（settle 并发用例拿到 `ok:true | ok:false:already_purchased`；visibility 7 → 9 条：
   自己买自己的公开条目 400 `own_item`、路由层重复购买 400 `already_purchased`；id-shape 30 条按新
   结果形状断言）；tsc / eslint 0。
+- **2026-10-21 第六片（#152）：结算判定也收成判别式结果**。`settlePurchase` 是购买路径上最后一段
+  靠英文句子传递语义的钱逻辑：路由用 `msg !== 'Already settled' && msg !== 'No revenue to split'`
+  决定"正常重复"还是"记一条错误日志"，句子一改日志就失真。域层改为
+  `{ok:true,splitId,amount}` / `{ok:false,reason:'purchase_not_found'|'item_not_found'|'already_settled'|'no_revenue'}`，
+  路由按 reason 判断：`already_settled` / `no_revenue` 静默，其余 reason 记日志；真正的异常仍 throw
+  进 catch。这一片**没有新的行为洞**——#151 修好 `isUniqueViolation` 后，并发结算的输家已经能翻成
+  `already_settled`，这里只是把同一条路从句子换成判别式，并补齐此前没钉的结局：串行二次结算
+  （`already_settled`，钱只分一次）、价格 0（`no_revenue`，不写分成与收入流水）、不存在的购买
+  （`purchase_not_found`，不抛）；并发用例从"只数 fulfilled"改为断言恰好一个 `ok:true` +
+  一个 `ok:false:already_settled`。见证：settle 3 → 6 条，市场九套件 + id-shape **132/132** 绿；
+  tsc / eslint 0。

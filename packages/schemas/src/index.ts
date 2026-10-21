@@ -64,6 +64,16 @@ export type DesignPatchPayload = z.infer<typeof DesignPatchSchema>;
 /** §25 Agent Plan */
 export const AgentPlanSchema = z.object({
   goal: z.string(),
+  /**
+   * 这一份作业要编哪一型的游戏（§51）。**可选**：缺省就是链上的缺省型（RPG 原型）。
+   *
+   * 为什么记在计划里而不是只记在请求里：计划要落进任务行、刷新后复看，
+   * "这份作业当时编的是哪一型"要能从那一行读出来（§16：设计模型是唯一真值）。
+   *
+   * 收 `z.string()` 而不是枚举：跨端报文这一层不引游戏包（`@nexus/schemas` 是最底的一层），
+   * 值由服务端拿 `GAME_KINDS` 校（仓库里其它"类型"字段也是这个手法）。
+   */
+  gameKind: z.string().max(40).optional(),
   constraints: z.array(z.string()).default([]),
   tasks: z
     .array(

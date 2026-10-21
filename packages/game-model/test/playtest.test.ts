@@ -370,6 +370,8 @@ describe('按类型派试玩（§52/§53 那条链上"只跑 RPG 管线"那一�
     expect(result.kind).toBe('rpg-prototype');
     expect(result.pipeline).toBe('rpg');
     expect(result.engine).toBe('sim.step+rpg.step');
+    // 按 pipeline 收窄（"最高等级"那一格只有 RPG 那个成员有）
+    if (result.pipeline !== 'rpg') throw new Error(`这一型派错了管线：${result.pipeline}`);
     const direct = playtestRpg(compileRpg(rpg));
     expect(result.report.winnableBy).toBe(direct.winnableBy);
     expect(result.report.diedFrom).toBe(direct.diedFrom);

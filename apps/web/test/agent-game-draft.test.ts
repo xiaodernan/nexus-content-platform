@@ -9,12 +9,14 @@ import {
   type GameEntityKind,
 } from '@nexus/game-model';
 import {
+  GAME_DRAFT_DEFAULT_KIND,
   GAME_DRAFT_FALLBACK_NAME,
   GAME_DRAFT_NAME_MAX,
   GAME_DRAFT_NOT_LANDED_NOTE,
   GAME_DRAFT_SEED,
   GAME_DRAFT_SPEC,
   GAME_DRAFT_SUMMARY,
+  GAME_DRAFT_SUPPORTED_KINDS,
   draftNameFromGoal,
   fnv1a,
   gameDraft,
@@ -94,6 +96,51 @@ describe('§52 草稿的确定性', () => {
     expect(fnv1a('abc')).toBe(fnv1a('abc'));
     expect(fnv1a('abc')).not.toBe(fnv1a('abd'));
     expect(gameDraft({ goal: '寻宝', at: AT }).id).toBe(`game_${fnv1a(`${GAME_DRAFT_SEED}#document`).toString(16).padStart(8, '0').slice(0, 8)}`);
+  });
+});
+
+describe('§52 草稿带上型（§51）', () => {
+  it('缺省还是 RPG 原型：那份一个字都不许变（等级门与经验都在）', () => {
+    expect(GAME_DRAFT_DEFAULT_KIND, '缺省型不能悄悄漂').toBe('rpg-prototype');
+    const doc = draft('上架前检查');
+    expect(doc.kind).toBe('rpg-prototype');
+    expect(doc.summary).toBe(GAME_DRAFT_SUMMARY);
+    const quest = doc.entities.find((e) => e.kind === 'quest')!;
+    expect(quest.stats.requiredLevel).toBe(2);
+    expect(quest.notes).toContain('requiredLevel 2 是等级门');
+    const patrol = doc.entities.find((e) => e.name === '巡逻兵')!;
+    expect(patrol.stats.xpReward).toBe(12);
+    expect(patrol.notes).toContain('12 点经验');
+  });
+
+  it('换成 2D：型、说明与数值都对上（经验与等级门不参与判定，就不该留在这一份里）', () => {
+    const doc = gameDraft({ goal: '上架前检查', at: AT, kind: '2d' });
+    expect(doc.kind).toBe('2d');
+    expect(doc.summary).toContain('2D 草稿');
+    expect(doc.summary).toContain('topdown 管线');
+    // 说明与数值必须一起换：留着"条件凑齐但没到级就不结算"又补一句"不参与判定"就是自相矛盾
+    const quest = doc.entities.find((e) => e.kind === 'quest')!;
+    expect(quest.stats.requiredLevel).toBeUndefined();
+    expect(quest.stats.xpReward).toBeUndefined();
+    expect(quest.notes).toContain('这一型没有等级门');
+    expect(quest.notes).not.toContain('等级门：条件凑齐但没到级就不结算');
+    const patrol = doc.entities.find((e) => e.name === '巡逻兵')!;
+    expect(patrol.stats.xpReward).toBeUndefined();
+    expect(patrol.notes).not.toContain('经验');
+  });
+
+  it('对话那两种：链上没有配方 ⇒ 明说不做空草稿', () => {
+    for (const kind of ['interactive-story', 'visual-novel'] as const) {
+      expect(() => gameDraft({ goal: '上架前检查', at: AT, kind })).toThrow(/还没有配方/);
+    }
+    expect(GAME_DRAFT_SUPPORTED_KINDS).not.toContain('interactive-story');
+    expect(GAME_DRAFT_SUPPORTED_KINDS).not.toContain('visual-novel');
+    expect(GAME_DRAFT_SUPPORTED_KINDS).toContain('2d');
+    expect(GAME_DRAFT_SUPPORTED_KINDS).toContain('rpg-prototype');
+  });
+
+  it('2D 那份也是一份能写库的合法设计（结构校验一条问题都没有）', () => {
+    expect(validateGame(gameDraft({ goal: '上架前检查', at: AT, kind: '2d' }))).toEqual([]);
   });
 });
 

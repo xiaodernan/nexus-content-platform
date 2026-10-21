@@ -79,7 +79,13 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
     if (!parsed.success) {
       return badRequest(parsed.error.issues.map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`));
     }
-    const result = await runReadinessCheck({ projectId, actorId: user.id, goal: parsed.data.goal });
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: user.id,
+      goal: parsed.data.goal,
+      // 这一份要编哪一型（§51）：**显式给的**，不从目标文本猜（§159）
+      ...(parsed.data.gameKind ? { gameKind: parsed.data.gameKind } : {}),
+    });
     if (!result.ok) return jsonError(result.refusal.status, result.refusal.code, { message: result.refusal.message });
     const task = await latestPlannedTask(projectId, user.id);
     if (!task) return failure(new Error('编排跑完了但读不回那一行任务'), `POST /api/projects/${projectId}/agent`);

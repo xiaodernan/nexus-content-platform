@@ -812,6 +812,80 @@ describe('§112 多步编排的执行方', () => {
     expect(step.notes.join('')).toContain('sim.step');
   });
 
+  it('链上要编 2D：草稿带上 kind，试玩格读的是 topdown 的数（不是 RPG 的）', async () => {
+    /**
+     * 2026-10-21 之前这一条链**从头到尾都是 RPG**：`gameDraft` 把 kind 写死成 `rpg-prototype`，
+     * `gameStep` 也硬编 `compileRpg` + `playtestRpg` ⇒ 链上一份 2D 的设计拿不到（ROADMAP 那条欠条：
+     * "要接得先让链上的草稿带上 kind，而不是像今天这样默认 RPG"）。
+     *
+     * 四条红线：
+     * ① 计划里记着这一型（任务行读得出"当时编的是哪一型"）；
+     * ② 第一格留下的草稿 `kind` 就是它（不是写死的 RPG）；
+     * ③ 试玩格读的是 **topdown** 那条管线的数，`counts` 里没有"最高等级"那一格；
+     * ④ 第一格自己的结论说的是 topdown，不说 RPG。
+     */
+    const projectId = await newProject('编排链上要 2D');
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '这一份要编 2D',
+      gameKind: '2d',
+    });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    // ① 计划里带着型
+    expect(result.plan.gameKind).toBe('2d');
+
+    // ② 第一格留下的草稿
+    const game = result.steps.find((step) => step.id === 'game')!;
+    expect(game.status).toBe('done');
+    expect((game.draft as GameDocument).kind).toBe('2d');
+
+    // ③ 试玩格读的是 topdown 的数
+    const step = result.steps.find((item) => item.id === 'playtest')!;
+    expect(step.status).toBe('done');
+    expect(step.counts.maxLevel).toBeUndefined();
+    expect(step.notes.join('')).toContain('sim.step');
+    expect(step.notes.join('')).not.toContain('rpgStep');
+
+    // ④ 第一格自己的结论说的是自己那条管线
+    expect(game.summary).toContain('2D 草稿');
+    expect(game.notes.join('')).toContain('topdown');
+    expect(game.notes.join('')).not.toContain('经验来源');
+  });
+
+  it('链上要编对话那一型：链上没有配方 ⇒ 诚实拒收，不是一份空草稿', async () => {
+    const projectId = await newProject('编排链上要对话');
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '这一份要编对话',
+      gameKind: 'interactive-story',
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('不该收下');
+    expect(result.refusal.code).toBe('unsupported-kind');
+    expect(result.refusal.status).toBe(400);
+    // 拒收的理由要说清是"没有配方"，不是"参数不对"
+    expect(result.refusal.message).toContain('还没有配方');
+    // 没跑过就不留任务行（§112：一条从没跑起来的作业不该在账本里留一行）
+    expect(await latestPlannedTask(projectId, owner)).toBeNull();
+  });
+
+  it('不认识的那一型：拒收并把八种说清楚（不许"猜一个最像的"）', async () => {
+    const projectId = await newProject('编排链上型不认识');
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '这一份要编一个不存在的型',
+      gameKind: 'sandbox',
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('不该收下');
+    expect(result.refusal.code).toBe('unsupported-kind');
+    expect(result.refusal.message).toContain('八种是');
+  });
+
   it('链上那份标的是对话那一型：它走对话那条链，错位计数是 0，链名那句照旧要说', async () => {
     /**
      * ADR-0046 之后这一条的前提变了：对话那一型**也带引擎了**（`ARTIFACT_CHAINS` 三键），
