@@ -1,7 +1,7 @@
 import { and, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { MAX_FLUSH_MS, clampReportedMs, utcDay, validVisitorKey } from '@/lib/visit-meter';
 import { getDb } from '../db/client';
-import { follows, likes, projects, publicationVisits, publishedProjects, remixes } from '../db/schema';
+import { follows, gameCompletions, likes, projects, publicationVisits, publishedProjects, remixes } from '../db/schema';
 import type { Visibility } from './publish';
 
 /**
@@ -72,6 +72,47 @@ export async function recordVisit(input: VisitInput): Promise<'recorded' | 'reje
   return 'recorded';
 }
 
+export interface GameCompletionInput {
+  publicationId: string;
+  /** 与访客现场**同一把**匿名 key ⇒ "谁通关了"与"谁看过"指的是同一个人 */
+  visitorKey: unknown;
+  /** 登录访客，匿名传 null */
+  userId: string | null;
+  /** 疑似爬虫/自动化（判定在 classifyVisit；缺省当真人） */
+  suspectedBot?: boolean;
+  at?: Date;
+}
+
+/**
+ * §168：记一次"通关了"（玩家玩到了结局）。
+ *
+ * 三条边界：
+ * 1. **一个访客在一个发布版本上只记一次**（唯一索引）⇒ 重复上报返回 `duplicate`，
+ *    不加一 ⇒ 于是计数是"**通关过多少人**"，不是"通关了几次"。
+ * 2. **爬虫照收但另计**：可疑的行照样入库（"被爬过"要有迹可查），
+ *    但聚合时不算进真人那格。
+ * 3. key 不合法**连一行都不写**（与访客现场同一条纪律）。
+ */
+export async function recordGameCompletion(
+  input: GameCompletionInput,
+): Promise<'recorded' | 'duplicate' | 'rejected'> {
+  const visitorKey = validVisitorKey(input.visitorKey);
+  if (!visitorKey) return 'rejected';
+  const db = getDb();
+  const inserted = await db
+    .insert(gameCompletions)
+    .values({
+      publicationId: input.publicationId,
+      visitorKey,
+      userId: input.userId,
+      suspectedBot: input.suspectedBot === true,
+      completedAt: input.at ?? new Date(),
+    })
+    .onConflictDoNothing({ target: [gameCompletions.publicationId, gameCompletions.visitorKey] })
+    .returning({ id: gameCompletions.id });
+  return inserted.length ? 'recorded' : 'duplicate';
+}
+
 /**
  * 六个数的真实口径。每一项都写着它数的是什么——`followers` 是作者级而不是这一版级，
  * `views` 含作者自己的刷新，这些区别不写出来就会被读成别的意思。
@@ -99,6 +140,17 @@ export interface AnalyticsNumbers {
   botOpens: number;
   /** 疑似爬虫/自动化的访客数（按 key 去重） */
   botVisitors: number;
+  /**
+   * §168：**通关过多少人**（真人，按 key 去重）。
+   *
+   * 与上面的 `completion`（滚动比例）是**两个口径**：那个说"这一页滚到哪儿"，
+   * 这个说"玩到了结局"⇒ 混着说就谁也不说了（§159）。
+   * 一个都没有时是 0（"还没有人通关"是确定的事实，不是"没采到"）——
+   * 因为它是一个事件计数：没人通关就是 0，不需要 null。
+   */
+  completedVisitors: number;
+  /** 疑似爬虫/自动化的通关数——另计，不进上面那一格 */
+  botCompletions: number;
 }
 
 export interface PublicationAnalyticsRow {
@@ -124,6 +176,12 @@ interface VisitRollup {
   botOpens: number;
   botVisitors: number;
   humanRows: number;
+}
+
+/** 通关那一格：真人通关过多少人 + 爬虫通关多少次（两个数分开记） */
+interface CompletionRollup {
+  completedVisitors: number;
+  botCompletions: number;
 }
 
 function int(value: unknown): number {
@@ -179,6 +237,32 @@ async function rollupVisits(publicationIds: string[], ownerId: string): Promise<
   );
 }
 
+/** 通关那一格的聚合：真人按 key 去重，爬虫另计（与访客现场同一条纪律） */
+async function rollupCompletions(
+  publicationIds: string[],
+): Promise<Map<string, CompletionRollup>> {
+  if (!publicationIds.length) return new Map();
+  const db = getDb();
+  const rows = await db
+    .select({
+      publicationId: gameCompletions.publicationId,
+      completedVisitors: sql<string>`count(distinct ${gameCompletions.visitorKey}) filter (where not ${gameCompletions.suspectedBot})`,
+      botCompletions: sql<string>`count(distinct ${gameCompletions.visitorKey}) filter (where ${gameCompletions.suspectedBot})`,
+    })
+    .from(gameCompletions)
+    .where(inArray(gameCompletions.publicationId, publicationIds))
+    .groupBy(gameCompletions.publicationId);
+  return new Map(
+    rows.map((row) => [
+      row.publicationId,
+      {
+        completedVisitors: int(row.completedVisitors),
+        botCompletions: int(row.botCompletions),
+      },
+    ]),
+  );
+}
+
 async function countGrouped(
   table: typeof likes | typeof remixes,
   column: typeof likes.projectId | typeof remixes.sourceProjectId,
@@ -207,12 +291,14 @@ function assemble(
     views: number;
   }[],
   visits: Map<string, VisitRollup>,
+  completions: Map<string, CompletionRollup>,
   likeCounts: Map<string, number>,
   remixCounts: Map<string, number>,
   followers: number,
 ): PublicationAnalyticsRow[] {
   return publications.map((publication) => {
     const rollup = visits.get(publication.publicationId);
+    const done = completions.get(publication.publicationId);
     return {
       ...publication,
       analytics: {
@@ -236,6 +322,8 @@ function assemble(
         selfOnly: rollup?.selfOnly ?? false,
         botOpens: rollup?.botOpens ?? 0,
         botVisitors: rollup?.botVisitors ?? 0,
+        completedVisitors: done?.completedVisitors ?? 0,
+        botCompletions: done?.botCompletions ?? 0,
       },
     };
   });
@@ -276,13 +364,14 @@ async function analyticsFor(ownerId: string, onlyPublicationId?: string): Promis
   if (!publications.length) return [];
   const ids = publications.map((row) => row.publicationId);
   const projectIds = publications.map((row) => row.projectId);
-  const [visitRows, likeCounts, remixCounts, [followerRow]] = await Promise.all([
+  const [visitRows, completionRows, likeCounts, remixCounts, [followerRow]] = await Promise.all([
     rollupVisits(ids, ownerId),
+    rollupCompletions(ids),
     countGrouped(likes, likes.projectId, projectIds),
     countGrouped(remixes, remixes.sourceProjectId, projectIds),
     db.select({ n: sql<string>`count(*)` }).from(follows).where(eq(follows.followeeId, ownerId)),
   ]);
-  return assemble(publications, visitRows, likeCounts, remixCounts, int(followerRow?.n));
+  return assemble(publications, visitRows, completionRows, likeCounts, remixCounts, int(followerRow?.n));
 }
 
 /** 创作者侧：我所有发布过的版本，各带六个数 */
@@ -323,6 +412,8 @@ const EXPORT_COLUMNS: readonly { label: string; pick: (row: PublicationAnalytics
   { label: '关注作者', pick: (row) => String(row.analytics.followers) },
   { label: '平均完成度%', pick: (row) => (row.analytics.completion ? String(row.analytics.completion.avgPct) : '') },
   { label: '达标的访客', pick: (row) => (row.analytics.completion ? String(row.analytics.completion.over) : '') },
+  { label: '通关过人数', pick: (row) => String(row.analytics.completedVisitors) },
+  { label: '疑似爬虫通关', pick: (row) => String(row.analytics.botCompletions) },
   { label: '累计可见时长毫秒', pick: (row) => (row.analytics.playTimeMs === null ? '' : String(row.analytics.playTimeMs)) },
   { label: '被截断的心跳', pick: (row) => String(row.analytics.cappedReports) },
   { label: '只有自己看过', pick: (row) => (row.analytics.selfOnly ? '是' : '否') },

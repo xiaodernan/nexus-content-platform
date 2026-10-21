@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { GameDocumentSchema } from '@nexus/schemas';
 import { compileForKind, validateGame, type GameDocument } from '@nexus/game-model';
 import { getPublishedPage } from '@/server/domain/publish';
-import { PlayByKind, describeProjection } from '@/play/PlayByKind';
+import { describeProjection } from '@/play/PlayByKind';
+import { PublicPlay } from '@/play/PublicPlay';
 import { VisitMeter } from '../VisitMeter';
 
 export const dynamic = 'force-dynamic';
@@ -88,7 +89,8 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
           能投影的部分照常可玩，不假装它是干净的。
         </p>
       ) : null}
-      <PlayByKind document={document} projection={projection} />
+      {/* §168：通关的那一声（"玩到了结局"）——只有公开可玩页报，作者自己的工作稿不报 */}
+      <PublicPlay document={document} projection={projection} path={path} />
       {/* §168：玩这一页就是一次真访问，心跳与作品页共用同一份口径 */}
       <VisitMeter path={path} />
     </main>

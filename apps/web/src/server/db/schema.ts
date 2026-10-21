@@ -892,6 +892,37 @@ export const publicationVisits = pgTable(
 );
 
 /**
+ * §168：游戏侧的"通关"事件——玩家玩到了结局。
+ *
+ * 为什么不能拿 `publication_visits.completion_pct` 顶替：那个数是**滚动比例**
+ * （这一页滚到哪儿），而"通关"是**另一回事**（玩到了结局）⇒ 混进同一行，
+ * "完成度 100%"里就会混着"通关"，那一句谁也不说了（§159）。
+ *
+ * 粒度是"一个访客在一个发布版本上通关一次"（唯一索引）⇒ 计的是**通关过多少人**，
+ * 不是通关了几次；界面上那一句必须跟着这个粒度走。
+ */
+export const gameCompletions = pgTable(
+  'game_completions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    publicationId: uuid('publication_id')
+      .notNull()
+      .references(() => publishedProjects.id, { onDelete: 'cascade' }),
+    /** 浏览器里生成的匿名 key：与访客现场那把是同一把（同一个"人"），不代表账号 */
+    visitorKey: text('visitor_key').notNull(),
+    /** 登录访客的账号，匿名留 null */
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    /** §168 第三片那条纪律：疑似爬虫/自动化（判定在 classifyVisit，这里只存结论） */
+    suspectedBot: boolean('suspected_bot').notNull().default(false),
+    completedAt: timestamp('completed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('game_completions_once').on(t.publicationId, t.visitorKey),
+    index('game_completions_pub_idx').on(t.publicationId),
+  ],
+);
+
+/**
  * §131 发布审核：upload → 机检 → 风险分级 → 发布或人工复核。
  *
  * 一行 = 一次发布扫描。`reviewRequired` 才进人工队列，所以 clear 不会把队列淹掉，

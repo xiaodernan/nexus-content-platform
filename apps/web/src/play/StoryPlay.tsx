@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { playtestStory, type StoryPlan, type StoryPlaytestReport } from '@nexus/game-model';
 
 /**
@@ -15,7 +15,7 @@ import { playtestStory, type StoryPlan, type StoryPlaytestReport } from '@nexus/
  * - **环不藏**：走过第二次的段落会标出来。§54 没有防环字段，播放器替作者发明一条
  *   不许回头的规矩，就等于改了这份设计。
  */
-export function StoryPlay({ plan }: { plan: StoryPlan }) {
+export function StoryPlay({ plan, onComplete }: { plan: StoryPlan; onComplete?: () => void }) {
   const byId = useMemo(() => new Map(plan.beats.map((beat) => [beat.id, beat])), [plan]);
   const [currentId, setCurrentId] = useState<string | null>(plan.startId);
   /** 走过的顺序（含重复）：面包屑与"第 N 次走到这里"都从这份算 */
@@ -25,6 +25,16 @@ export function StoryPlay({ plan }: { plan: StoryPlan }) {
 
   const beat = currentId ? byId.get(currentId) ?? null : null;
   const repeats = beat ? path.filter((id) => id === beat.id).length : 0;
+
+  // §168：走到一个结局就算"通关"（对话管线的通关就是玩到了一个结局），
+  // 而且**只报一次**：同一个访客在一个版本上只记一次，重头再走一遍不重复报。
+  const completed = useRef(false);
+  useEffect(() => {
+    if (!onComplete || completed.current) return;
+    if (!beat?.ending) return;
+    completed.current = true;
+    onComplete();
+  }, [beat?.ending, beat?.id, onComplete]);
 
   const go = (to: string) => {
     setCurrentId(to);

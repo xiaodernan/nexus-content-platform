@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { csrfHeaders } from '@/lib/csrf';
+import { visitorKey } from '@/lib/visitor-key';
 import {
   FLUSH_INTERVAL_MS,
   addVisibleMs,
@@ -10,28 +11,7 @@ import {
   type VisitAggregate,
 } from '@/lib/visit-meter';
 
-const KEY_STORAGE = 'nexus.visit.key';
 const TICK_MS = 1_000;
-
-/**
- * 匿名访客 key：同一个浏览器里稳定，用来把多次心跳并成"一个人的一天"。
- * 拿不到 localStorage（隐私模式）就退化成"每次打开一个 key"——
- * 这时访客数会偏高，界面上要按"至少这么多人"来读，所以这一笔由调用方带在注释里，
- * 而不是在这里假装两个分支等价。
- */
-function visitorKey(): string {
-  try {
-    const stored = window.localStorage.getItem(KEY_STORAGE);
-    if (stored && /^[0-9a-f]{32}$/.test(stored)) return stored;
-    const bytes = crypto.getRandomValues(new Uint8Array(16));
-    const fresh = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-    window.localStorage.setItem(KEY_STORAGE, fresh);
-    return fresh;
-  } catch {
-    const bytes = crypto.getRandomValues(new Uint8Array(16));
-    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-  }
-}
 
 /** 页面被看到的最大比例：竖向滚动 + 视口，横着滚不算"没看到"（整页宽度是设计稿的一部分） */
 function seenPct(): number {

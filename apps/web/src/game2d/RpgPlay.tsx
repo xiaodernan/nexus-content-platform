@@ -28,7 +28,7 @@ import { KEY_MAP, drawTopdown } from './GamePlay';
  * - 经验来源逐个标 provenance（design = 作者写的 xpReward / default = 投影兜底）：
  *   让人以为"每击 10 经验是设计的"就是假数据（§159）。
  */
-export function RpgPlay({ plan }: { plan: RpgPlan }) {
+export function RpgPlay({ plan, onComplete }: { plan: RpgPlan; onComplete?: () => void }) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const keys = useRef<Record<string, boolean>>({});
   const stateRef = useRef<RpgState>(initialRpgState(plan));
@@ -43,6 +43,15 @@ export function RpgPlay({ plan }: { plan: RpgPlan }) {
     stateRef.current = initialRpgState(plan);
     setHud(stateRef.current);
   }, [plan]);
+
+  // §168：通关的那一声**只报一次**（与 2D 同一口径：计数是"通关过多少人"）
+  const completed = useRef(false);
+  useEffect(() => {
+    if (!onComplete || completed.current) return;
+    if (hud.base.status !== 'won') return;
+    completed.current = true;
+    onComplete();
+  }, [hud.base.status, onComplete]);
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => {

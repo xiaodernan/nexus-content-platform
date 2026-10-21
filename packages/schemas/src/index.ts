@@ -666,6 +666,28 @@ export const PublishedVisitRequestSchema = z.object({
 export type PublishedVisitRequest = z.infer<typeof PublishedVisitRequestSchema>;
 
 /**
+ * §168：公开可玩页上报"通关了"（玩家玩到了结局）。
+ *
+ * 与访客现场那份是**两个口径**：那边报的是"这一页滚到哪儿"（滚动比例），
+ * 这边报的是"玩通了"（一个事件）⇒ 两者在库里分开存、分开读，
+ * 绝不能拿滚动完成度冒充通关（§159）。
+ *
+ * `visitorKey` 与访客现场**用同一把**（同一个浏览器里稳定）⇒ 于是"谁通关了"
+ * 与"谁看过这一页"指的是同一个人，能对得上。
+ */
+export const PublishedGameCompleteRequestSchema = z.object({
+  path: z.string().min(3).max(200),
+  /** 浏览器生成的匿名 key：32 位十六进制，与访客现场那把同源 */
+  visitorKey: z.string().regex(/^[0-9a-f]{32}$/),
+  /**
+   * 客户端自报的 `navigator.webdriver`（自动化工具里恒为 true）。
+   * 与访客现场同一条纪律：可选，缺省当真人，UA 名单还在兜底。
+   */
+  webdriver: z.boolean().optional(),
+});
+export type PublishedGameCompleteRequest = z.infer<typeof PublishedGameCompleteRequestSchema>;
+
+/**
  * §164 标已读。ids 与 all 二选一（都不给是客户端 bug，两个都给时 all 优先），
  * id 必须是 uuid：收件箱按人查询，这里只是把"能标别人的行"挡在报文层。
  */

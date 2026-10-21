@@ -36,6 +36,11 @@ const DEFINITIONS: { label: string; meaning: string }[] = [
   { label: '点赞 / 改编', meaning: '挂在项目上，不是这一版：重新发布不会把它们清零' },
   { label: '粉丝', meaning: '作者级：关注的是这个人，不是这份作品' },
   { label: '完成度', meaning: '每个访客"最远滚到页面几成"的平均值。内容比视口短时它就是 100%（没有可滚的地方=整页都在眼前）' },
+  {
+    label: '通关过',
+    meaning:
+      '在公开可玩页上玩到了结局的**人数**（一个人在同一版里只记一次，所以这是"多少人通关过"，不是"通关了几次"）。与左边那格「完成度」是两个口径：那个说"这一页滚到哪儿"，这个说"玩通了"',
+  },
   { label: '浏览时长', meaning: '只在标签页可见时累计；单次上报最多带走 60 秒，被截断过几次会另行标出' },
   {
     label: '疑似爬虫',
@@ -330,6 +335,7 @@ export default async function AnalyticsPage(props: {
                 <th className="px-2 py-1 text-right font-normal">改编</th>
                 <th className="px-2 py-1 text-right font-normal">粉丝</th>
                 <th className="px-2 py-1 text-right font-normal">完成度</th>
+                <th className="px-2 py-1 text-right font-normal">通关过</th>
                 <th className="px-2 py-1 text-right font-normal">时长</th>
               </tr>
             </thead>
@@ -367,6 +373,11 @@ export default async function AnalyticsPage(props: {
                         {row.analytics.botOpens} 次打开来自爬虫/自动化（未计入）
                       </span>
                     ) : null}
+                    {row.analytics.botCompletions > 0 ? (
+                      <span className="ml-1 text-11 text-fg-3" data-analytics-bot-completions>
+                        {row.analytics.botCompletions} 次通关来自爬虫/自动化（未计入）
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-2 py-1 text-11 text-fg-3">
                     {row.visibility === 'public' ? '公开' : row.visibility === 'unlisted' ? '仅链接' : '已停'}
@@ -378,6 +389,8 @@ export default async function AnalyticsPage(props: {
                   <Cell value={row.analytics.remixes} col="remixes" />
                   <Cell value={row.analytics.followers} col="followers" />
                   <CompletionCell analytics={row.analytics} />
+                  {/* §168：游戏侧的通关——"多少人玩到了结局"（一个人只记一次） */}
+                  <Cell value={row.analytics.completedVisitors} col="completed" />
                   <td
                     className="px-2 py-1 text-right font-mono text-12 text-fg-1"
                     data-analytics-value="play_time"
@@ -397,8 +410,10 @@ export default async function AnalyticsPage(props: {
 
       <p className="mt-4 text-11 text-fg-3">
         还能往下做的两件事：把窗口粒度做到小时
-        （库里就是一天一行，按小时画等于编一个不存在的分辨率）、以及游戏与互动作品的 completion
-        （要等 §50-§53 的运行时事件，现在这一列对它们是未采集）。
+        （库里就是一天一行，按小时画等于编一个不存在的分辨率）、以及**互动作品**的 completion
+        （它们还没有运行时事件，今天只能靠人点一下来算）。
+        游戏这一类的 completion 已经接上了——公开可玩页上玩到了结局就记一次，
+        于是「通关过」那一格说的是"多少人玩通了"（一个人在同一版里只记一次）。
         爬虫与真人的区分已按"疑似另计"落地（见上面的口径）——UA 名单是保守的，漏掉的爬虫仍会混进真人的数里，
         这一条限度不假装已经解决。
       </p>

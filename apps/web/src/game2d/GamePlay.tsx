@@ -323,7 +323,16 @@ function draw(
  * RPG 只在 HUD 上多出等级与经验——绘制函数不抄第二份（§16） */
 export { drawTopdown };
 
-export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: GameView }) {
+export function GamePlay({
+  plan,
+  view = 'topdown',
+  onComplete,
+}: {
+  plan: GamePlan;
+  view?: GameView;
+  /** §168：通关的那一声（公开可玩页用它上报"玩到了结局"；作者自己的工作稿不传） */
+  onComplete?: () => void;
+}) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const keys = useRef<Record<string, boolean>>({});
   const stateRef = useRef<SimState>(initialState(plan));
@@ -343,6 +352,16 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
     revealed.current.clear();
     setHud(stateRef.current);
   }, [plan]);
+
+  // §168：通关的那一声**只报一次**。重开一局又通关了也不报第二次——
+  // 计数是"通关过多少人"（服务端按 key 去重），客户端重复报只是白跑一趟。
+  const completed = useRef(false);
+  useEffect(() => {
+    if (!onComplete || completed.current) return;
+    if (hud.status !== 'won') return;
+    completed.current = true;
+    onComplete();
+  }, [hud.status, onComplete]);
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => {

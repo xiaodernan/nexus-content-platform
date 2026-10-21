@@ -21,7 +21,16 @@ import { StoryPlay } from './StoryPlay';
  * 视觉小说的"没有立绘/背景/音乐"都是**限度**，只写在注释里等于没写（§159）。
  * 这句与 Studio 面板下拉旁边那句是同一份（`GAME_KIND_STATUS`），不是第二处自己判断。
  */
-export function PlayByKind({ document, projection }: { document: GameDocument; projection: GameProjection }) {
+export function PlayByKind({
+  document,
+  projection,
+  onComplete,
+}: {
+  document: GameDocument;
+  projection: GameProjection;
+  /** §168：通关的那一声（公开可玩页用它上报；作者自己的工作稿不传 ⇒ 不记成访客） */
+  onComplete?: () => void;
+}) {
   const kindNote = isGameKind(document.kind) ? (
     <p className="text-11 text-fg-3" data-game-kind-note={document.kind}>
       {GAME_KIND_STATUS[document.kind].note}
@@ -31,7 +40,7 @@ export function PlayByKind({ document, projection }: { document: GameDocument; p
   if (projection.pipeline === 'topdown') {
     return (
       <>
-        <GamePlay plan={projection.plan} view={projection.view} />
+        <GamePlay plan={projection.plan} view={projection.view} onComplete={onComplete} />
         {kindNote}
       </>
     );
@@ -39,7 +48,7 @@ export function PlayByKind({ document, projection }: { document: GameDocument; p
   if (projection.pipeline === 'story') {
     return (
       <>
-        <StoryPlay plan={projection.plan} />
+        <StoryPlay plan={projection.plan} onComplete={onComplete} />
         {kindNote}
       </>
     );
@@ -47,7 +56,7 @@ export function PlayByKind({ document, projection }: { document: GameDocument; p
   if (projection.pipeline === 'rpg') {
     return (
       <>
-        <RpgPlay plan={projection.plan} />
+        <RpgPlay plan={projection.plan} onComplete={onComplete} />
         {kindNote}
       </>
     );
