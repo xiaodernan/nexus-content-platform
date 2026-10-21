@@ -23,7 +23,7 @@
 // Run:  node docs/evidence/studio/png-baseline-proof.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { PngRefusal, decodePng, diffPixels } from '../../../tools/harness/png.mjs';
+import { PngRefusal, crc32, decodePng, diffPixels } from '../../../tools/harness/png.mjs';
 
 const SHOTS = [
   'docs/evidence/m7/harness/studio-publish.png',
@@ -83,17 +83,32 @@ const corner = (d) => [...d.pixels.subarray(0, 3)];
 // ── §3 refusals, by name ────────────────────────────────────────────────────────────────────────────
 {
   const good = buf(SHOTS[2]);
-  const refuse = (mutate, re, label) => {
+  // Mutate an IHDR FIELD and REPAIR the chunk's CRC, so the field check is what fires — with a stale CRC the
+  // integrity check would fire first and these arms would never reach the reader they are testing.
+  const refuseField = (at, value, re, label) => {
     const bad = Buffer.from(good);
-    mutate(bad);
+    bad[16 + at] = value;
+    bad.writeUInt32BE(crc32(bad.subarray(12, 29)), 29);
     assert.throws(() => decodePng(bad), (e) => e instanceof PngRefusal && re.test(e.message), `${label} must be refused by name`);
   };
   assert.throws(() => decodePng(Buffer.from('not a png at all')), PngRefusal, 'a non-PNG is refused');
-  refuse((b) => { b[25] = 3; }, /colour type 3/, 'a palette PNG');
-  refuse((b) => { b[24] = 16; }, /bit depth 16/, 'a 16-bit PNG');
-  refuse((b) => { b[28] = 1; }, /interlaced/, 'an interlaced PNG');
+  refuseField(9, 3, /colour type 3/, 'a palette PNG');
+  refuseField(8, 16, /bit depth 16/, 'a 16-bit PNG');
+  refuseField(12, 1, /interlaced/, 'an interlaced PNG');
   assert.throws(() => decodePng(good.subarray(0, 40)), PngRefusal, 'a truncated file is refused');
-  console.log('[§3] refused by name: non-PNG · palette · 16-bit · interlaced · truncated');
+  // A corrupted byte the CRC catches: refused, rather than decoded to plausible garbage and DIFFED against a
+  // baseline (a wrong answer that looks like a real one).
+  let idatAt = -1;
+  for (let o = 8; o + 8 <= good.length; ) {
+    const len = good.readUInt32BE(o);
+    if (good.toString('ascii', o + 4, o + 8) === 'IDAT') { idatAt = o + 8; break; }
+    o += 8 + len + 4;
+  }
+  assert.ok(idatAt > 0, 'the fixture has an IDAT chunk to corrupt');
+  const corrupt = Buffer.from(good);
+  corrupt[idatAt] ^= 0xff;
+  assert.throws(() => decodePng(corrupt), (e) => e instanceof PngRefusal && /CRC mismatch in the IDAT/.test(e.message), 'a corrupted IDAT is refused by CRC');
+  console.log('[§3] refused by name: non-PNG · palette · 16-bit · interlaced · truncated · corrupted IDAT (CRC)');
 }
 
 // ── §4 the wiring exists (a guarded arm, not a claim of a green comparison) ─────────────────────────
