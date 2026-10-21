@@ -352,6 +352,8 @@ describe('按类型派试玩（§52/§53 那条链上"只跑 RPG 管线"那一�
     expect(result.kind).toBe('2d');
     expect(result.pipeline).toBe('topdown');
     expect(result.engine).toBe('sim.step');
+    // 按 pipeline 收窄（三份报告形状不同）
+    if (result.pipeline !== 'topdown') throw new Error(`这一型派错了管线：${result.pipeline}`);
     // 逐项与直接调 `playtest(compileGame(...))` 相等：这一格不许自己另算一套
     const direct = playtest(compileGame(flat));
     expect(result.report.winnableBy).toBe(direct.winnableBy);
@@ -378,14 +380,35 @@ describe('按类型派试玩（§52/§53 那条链上"只跑 RPG 管线"那一�
     expect(result.maxLevel).toBe(direct.maxLevel);
     // 反向对照：RPG 的每一条走法都带等级/经验/等级门，topdown 的不带 ⇒ 两条管线不是同一条
     expect('level' in result.report.runs[0]!).toBe(true);
-    expect('level' in playtestByKind(flat).report.runs[0]!).toBe(false);
+    const topdown = playtestByKind(flat);
+    if (topdown.pipeline !== 'topdown') throw new Error(`这一型派错了管线：${topdown.pipeline}`);
+    expect('level' in topdown.report.runs[0]!).toBe(false);
   });
 
-  it('对话那两种明说"还没接"：报告形状不同，不做一个说得过去的假报告', () => {
+  it('对话那两种：走对话那条管线（可达几段 / 能停下几处），不是"几种走法通关"', () => {
+    // 一份只有两段对话的设计：开场 → 推门（第二段没有出边 ⇒ 它是能停下的地方）
+    let doc = createGame('一段对话');
+    for (const entity of [...doc.entities]) doc = removeEntity(doc, entity.id);
+    doc = addEntity(doc, { kind: 'dialogue', name: '开场', notes: '你站在门口。' });
+    doc = addEntity(doc, { kind: 'dialogue', name: '推门', notes: '门开了。' });
+    const from = entitiesOfKind(doc, 'dialogue').find((e) => e.name === '开场')!;
+    const to = entitiesOfKind(doc, 'dialogue').find((e) => e.name === '推门')!;
+    const linked = linkEntities(doc, from.id, to.id, '推门进去');
+    if (linked.reason) throw new Error(`前置引用失败：${linked.reason}`);
+    doc = linked.document;
+
     for (const kind of ['interactive-story', 'visual-novel'] as const) {
-      const doc = { ...flat, kind } as GameDocument;
-      expect(() => playtestByKind(doc)).toThrow(/还没接/);
-      expect(() => playtestByKind(doc)).toThrow(kind);
+      const result = playtestByKind({ ...doc, kind } as GameDocument);
+      expect(result.kind).toBe(kind);
+      expect(result.pipeline).toBe('story');
+      expect(result.engine).toBe('story.refs');
+      if (result.pipeline !== 'story') throw new Error(`这一型派错了管线：${result.pipeline}`);
+      // 对话那一份的报告**形状与别的型不同**：没有走法，只有可达数
+      expect('runs' in result.report).toBe(false);
+      expect(result.report.total).toBe(2);
+      expect(result.report.reachable).toBe(2);
+      expect(result.report.reachableEndings).toBe(1);
+      expect(result.report.reachableEmptyText).toBe(0);
     }
   });
 });

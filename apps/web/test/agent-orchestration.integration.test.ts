@@ -905,7 +905,18 @@ describe('§112 多步编排的执行方', () => {
     expect(level.notes.join('')).toContain('topdown 管线');
   });
 
-  it('链上要编对话那一型：链上没有配方 ⇒ 诚实拒收，不是一份空草稿', async () => {
+  it('链上要编对话那一型：草稿带上 kind，战斗/布局两格原样交回，试玩格读的是对话的数', async () => {
+    /**
+     * 2026-10-22 起对话那两种**也有配方**了（正文在对话实体的说明里、选择是指向其它对话的引用）
+     * ⇒ 链上编得出来 ⇒ 不再是"诚实拒收"那一格。
+     *
+     * 四条红线：
+     * ① 计划里记着那一型；第一格留下的草稿 `kind` 就是它（不是战场那份）；
+     * ② **战斗格与布局格原样交回**（对话管线里没有战斗、没有场地）⇒
+     *    它们的 counts 是**空的**（空读数 ≠ "0 条目标达标"），草稿照旧往下传；
+     * ③ 试玩格读的是**对话那套数**（可达几段 / 能停下几处），不是"几种走法通关"；
+     * ④ 最后一格照旧投影产物（对话链那一族）。
+     */
     const projectId = await newProject('编排链上要对话');
     const result = await runReadinessCheck({
       projectId,
@@ -913,14 +924,41 @@ describe('§112 多步编排的执行方', () => {
       goal: '这一份要编对话',
       gameKind: 'interactive-story',
     });
-    expect(result.ok).toBe(false);
-    if (result.ok) throw new Error('不该收下');
-    expect(result.refusal.code).toBe('unsupported-kind');
-    expect(result.refusal.status).toBe(400);
-    // 拒收的理由要说清是"没有配方"，不是"参数不对"
-    expect(result.refusal.message).toContain('还没有配方');
-    // 没跑过就不留任务行（§112：一条从没跑起来的作业不该在账本里留一行）
-    expect(await latestPlannedTask(projectId, owner)).toBeNull();
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    expect(result.plan.gameKind).toBe('interactive-story');
+
+    // ① 第一格：草稿是**对话**那份
+    const game = result.steps.find((step) => step.id === 'game')!;
+    expect(game.status).toBe('done');
+    const draft = game.draft as GameDocument;
+    expect(draft.kind).toBe('interactive-story');
+    expect(draft.entities.every((entity) => entity.kind === 'dialogue')).toBe(true);
+
+    // ② 战斗格与布局格：原样交回、**不留读数**
+    for (const id of ['combat', 'level'] as const) {
+      const step = result.steps.find((item) => item.id === id)!;
+      expect(step.status).toBe('done');
+      expect(Object.keys(step.counts), `${id} 这一格不该留读数`).toEqual([]);
+      expect(step.draft, `${id} 这一格要把草稿原样传下去`).toBeDefined();
+    }
+
+    // ③ 试玩格：读的是对话那套数
+    const playtest = result.steps.find((item) => item.id === 'playtest')!;
+    expect(playtest.status).toBe('done');
+    expect(playtest.counts.beats).toBe(draft.entities.length);
+    expect(playtest.counts.reachable).toBe(draft.entities.length);
+    expect(playtest.counts.endings).toBe(2);
+    expect(playtest.counts.emptyText).toBe(0);
+    expect(playtest.notes.join('')).toContain('story 管线');
+    // 对话那一份**没有**"四种走法通关"那一格 ⇒ 键集合与别的型不同
+    expect(playtest.counts.won).toBeUndefined();
+    expect(playtest.counts.policies).toBeUndefined();
+
+    // ④ 最后一格照旧投影（对话链那一族）
+    const code = result.steps.find((item) => item.id === 'code')!;
+    expect(code.status).toBe('done');
+    expect(code.counts.files).toBeGreaterThan(0);
   });
 
   it('不认识的那一型：拒收并把八种说清楚（不许"猜一个最像的"）', async () => {

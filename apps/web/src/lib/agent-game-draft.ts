@@ -211,16 +211,15 @@ export function gameDraftSummary(kind: GameKind): string {
 /**
  * 链上这份配方能喂哪几型。
  *
- * 配方的内容是"战场 + 敌人 + 物品 + 触发器 + 任务"⇒ 它喂得进 **RPG 管线**与 **topdown 那五型**
- * （那五型共用同一份关卡计划，只是画法不同 ⇒ 规则一份、画法五份）。
+ * 战场那张表（玩家/敌人/物品/触发器/任务/NPC）喂得进 **RPG 管线**与 **topdown 那五型**
+ * （那五型共用同一份关卡计划，只是画法不同 ⇒ 规则一份、画法五份）；
+ * 对话那两种喂的是**对话实体** ⇒ 走**对话那张表**（正文在说明里，选择在引用上）。
  *
- * **对话那两种喂不进去**：它们要的是对话实体（正文与选择），这张表里没有 ⇒
- * 不做一份空草稿糊过去（§159），那一型今天链上还编不出来。
+ * ⇒ **八型今天都有配方了** ⇒ 链上不再有"编不出来"的那一型（§159：不许拿"还没接"当"不接"）。
  */
-export const GAME_DRAFT_SUPPORTED_KINDS: readonly GameKind[] = GAME_KINDS.filter((kind) => {
-  const pipeline = GAME_KIND_STATUS[kind].pipeline;
-  return pipeline === 'rpg' || pipeline === 'topdown';
-});
+export const GAME_DRAFT_SUPPORTED_KINDS: readonly GameKind[] = GAME_KINDS.filter(
+  (kind) => GAME_KIND_STATUS[kind].pipeline !== null,
+);
 
 /** 这一步在界面上说的那句话：草稿存在任务行里，写不写进项目由用户点「接受」决定 */
 export const GAME_DRAFT_NOT_LANDED_NOTE =
@@ -255,43 +254,140 @@ export function draftNameFromGoal(goal: string): string {
 }
 
 /**
+ * 对话那两型（`interactive-story` / `visual-novel`）的配方。
+ *
+ * **与战场那张表不是同一张**：实体类都不同（对话 vs 玩家/敌人/物品/触发器/任务/NPC）
+ * ⇒ 换表而不是换变体。
+ *
+ * **正文就是 `notes`**（`compileStory` 只读对话实体的说明当正文）⇒ 所以这里的正文**必须干净**：
+ * 它就是播放器里显示的那段话。"配方给的起点，不是成品"那句 caveat **不进正文**
+ * ⇒ 它去文档 summary 与链上那一步的 notes（§159：措辞与真相要对上）。
+ *
+ * **对话实体没有数值**：它的内容就是正文与选择（判定全在引用上）⇒
+ * "每个实体都有数值"那条纪律对对话不适用（战场那张表才适用）。
+ */
+export interface DraftDialogueSpec {
+  /** 槽位名：id 由它派生，引用也用它写目标（所以引用不能指到表外） */
+  slot: string;
+  /** 这一段的标题（播放器里显示段名） */
+  name: string;
+  /** 正文：玩家读到的那段话 */
+  text: string;
+  /** 选择：指向别的对话（`role` 是给作者看的关系说明，也是选项上那句词） */
+  choices?: readonly { slot: string; role: string }[];
+}
+
+export const GAME_DRAFT_SPEC_STORY: readonly DraftDialogueSpec[] = [
+  {
+    slot: 'open',
+    name: '门口',
+    text: '你站在一扇没有牌子的木门前。门缝里透出灯光，屋里有说话声。',
+    choices: [
+      { slot: 'open-door', role: '推门进去' },
+      { slot: 'leave', role: '转身离开' },
+    ],
+  },
+  {
+    slot: 'open-door',
+    name: '推门进去',
+    text: '门轴响了一声。一张桌子、两个人、一盏灯。桌上摊着一张画。',
+    choices: [
+      { slot: 'look', role: '看那张画' },
+      { slot: 'leave', role: '转身离开' },
+    ],
+  },
+  {
+    slot: 'look',
+    name: '看那张画',
+    text: '画上是一条长街，街上只有一个人。那个人背对着你，肩膀上扛着一样东西——看不清是什么。',
+    choices: [
+      { slot: 'ask', role: '问那是什么' },
+      { slot: 'leave', role: '不问，走开' },
+    ],
+  },
+  {
+    slot: 'ask',
+    name: '问画上的人扛着什么',
+    text: '「你自己画的？」他们说，「那是明天要扛的东西。」',
+    choices: [
+      { slot: 'take', role: '收下这张画' },
+      { slot: 'leave', role: '摇头离开' },
+    ],
+  },
+  {
+    slot: 'take',
+    name: '收下这张画',
+    text: '画被卷起来塞进你手里。纸还是温的。',
+  },
+  {
+    slot: 'leave',
+    name: '转身离开',
+    text: '你退回街上，门在身后合上。灯还亮着。',
+  },
+];
+
+/**
  * 生成草稿。纯函数：同一份入参两次调用逐字节相同（有测试钉这条）。
  *
  * 引用表里的 `slot` 找不到对应实体就抛——那说明有人改了表却忘了改引用，
  * 这种草稿写进库就是悬空引用（画不出图、试玩判不出来），宁可让那一步直接红。
  * 结构校验也在这一处跑：配方改坏了要在生成时炸，而不是等到写库才被拒（那时已经跑完一整轮作业）。
+ *
+ * **按管线选表**：战场那张表喂得进 RPG 与 topdown 那五型（共用同一份关卡计划），
+ * 对话那两种喂的是**对话实体** ⇒ 换那张对话表。
  */
 export function gameDraft(input: GameDraftInput): GameDocument {
   const seed = input.seed ?? GAME_DRAFT_SEED;
   const kind = input.kind ?? GAME_DRAFT_DEFAULT_KIND;
   const pipeline = GAME_KIND_STATUS[kind].pipeline;
-  if (pipeline !== 'rpg' && pipeline !== 'topdown') {
-    // 对话那两种要的是对话实体（正文与选择），这张表里没有 ⇒ 不做一份空草稿糊过去（§159）
+  if (pipeline !== 'rpg' && pipeline !== 'topdown' && pipeline !== 'story') {
+    // 这一型今天还没有接上任何管线 ⇒ 不做一份空草稿糊过去（§159）
     throw new Error(
-      `这一型（${GAME_KIND_LABELS[kind]}）链上还没有配方：它要的是对话实体，` +
-        '而这份配方给的是战场与战斗——不做一份空草稿糊过去',
+      `这一型（${GAME_KIND_LABELS[kind]}）今天还没有接上管线：${GAME_KIND_STATUS[kind].note}`,
     );
   }
-  const idOf = new Map(GAME_DRAFT_SPEC.map((spec) => [spec.slot, `ge_${digest(seed, spec.slot)}_${spec.slot}`]));
-  const entities = GAME_DRAFT_SPEC.map((spec) => {
-    const refs = (spec.refs ?? []).map((ref) => {
-      const to = idOf.get(ref.slot);
-      if (!to) throw new Error(`§52 草稿配方里有一条引用指向不存在的槽位：${ref.slot}（来自 ${spec.slot}）`);
-      return { id: `gr_${digest(seed, `${spec.slot}>${ref.slot}`)}`, to, role: ref.role };
-    });
-    // 别的型用自己那一份说明与数值（经验与等级门只有 RPG 管线读 ⇒ 见 `DraftEntitySpec.topdown`）
-    const variant = pipeline === 'topdown' ? spec.topdown : undefined;
-    return {
-      id: idOf.get(spec.slot)!,
-      kind: spec.kind,
-      name: spec.name,
-      notes: variant ? variant.notes : spec.notes,
-      tags: ['agent-draft'],
-      stats: { ...(variant ? variant.stats : spec.stats) },
-      refs,
-      updatedAt: input.at,
-    };
-  });
+  const idOf = (slots: readonly string[]) =>
+    new Map(slots.map((slot) => [slot, `ge_${digest(seed, slot)}_${slot}`]));
+  const idOfAll = idOf(
+    pipeline === 'story'
+      ? GAME_DRAFT_SPEC_STORY.map((spec) => spec.slot)
+      : GAME_DRAFT_SPEC.map((spec) => spec.slot),
+  );
+  const entities =
+    pipeline === 'story'
+      ? GAME_DRAFT_SPEC_STORY.map((spec) => ({
+          id: idOfAll.get(spec.slot)!,
+          kind: 'dialogue' as const,
+          name: spec.name,
+          notes: spec.text,
+          tags: ['agent-draft'],
+          stats: {},
+          refs: (spec.choices ?? []).map((choice) => ({
+            id: `gr_${digest(seed, `${spec.slot}>${choice.slot}`)}`,
+            to: idOfAll.get(choice.slot)!,
+            role: choice.role,
+          })),
+          updatedAt: input.at,
+        }))
+      : GAME_DRAFT_SPEC.map((spec) => {
+          const refs = (spec.refs ?? []).map((ref) => {
+            const to = idOfAll.get(ref.slot);
+            if (!to) throw new Error(`§52 草稿配方里有一条引用指向不存在的槽位：${ref.slot}（来自 ${spec.slot}）`);
+            return { id: `gr_${digest(seed, `${spec.slot}>${ref.slot}`)}`, to, role: ref.role };
+          });
+          // 别的型用自己那一份说明与数值（经验与等级门只有 RPG 管线读 ⇒ 见 `DraftEntitySpec.topdown`）
+          const variant = pipeline === 'topdown' ? spec.topdown : undefined;
+          return {
+            id: idOfAll.get(spec.slot)!,
+            kind: spec.kind,
+            name: spec.name,
+            notes: variant ? variant.notes : spec.notes,
+            tags: ['agent-draft'],
+            stats: { ...(variant ? variant.stats : spec.stats) },
+            refs,
+            updatedAt: input.at,
+          };
+        });
 
   const document: GameDocument = {
     id: `game_${digest(seed, 'document')}`,

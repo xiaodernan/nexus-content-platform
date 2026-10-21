@@ -13,9 +13,11 @@ import {
   designLevel,
   generateGameCode,
   GAME_KIND_LABELS,
+  GAME_KIND_STATUS,
   isGameKind,
   playtestByKind,
   playtestSeedNote,
+  pipelineOfKind,
   tuneCombat,
   type GameDocument,
   type GameKind,
@@ -23,6 +25,7 @@ import {
   type PlaytestReport,
   type RpgPlan,
   type RpgPlaytestReport,
+  type StoryPlaytestReport,
 } from '@nexus/game-model';
 import {
   GAME_DRAFT_DEFAULT_KIND,
@@ -386,6 +389,38 @@ function gameOutcomeTopdown(
   };
 }
 
+/**
+ * 对话那两种（互动故事 / 视觉小说）的编草稿结论：正文与选择都来自配方表。
+ *
+ * **读数不是"几种走法通关"**：对话管线没有走法 ⇒ 它算的是可达几段 / 能停下几处。
+ */
+function gameOutcomeStory(document: GameDocument, report: StoryPlaytestReport): StepOutcome {
+  return {
+    summary:
+      `编出 ${document.entities.length} 条对话的 ${GAME_KIND_LABELS[document.kind]} 草稿；` +
+      `可达 ${report.reachable}/${report.total} 段，能停下 ${report.reachableEndings} 个`,
+    counts: {
+      entities: document.entities.length,
+      beats: report.total,
+      reachable: report.reachable,
+      endings: report.reachableEndings,
+      emptyText: report.reachableEmptyText,
+      findings: report.findings.length,
+      limits: report.limits.length,
+    },
+    notes: [
+      GAME_DRAFT_NOT_LANDED_NOTE,
+      '正文与选择都来自写死的配方表，目标文本只改了标题——这一轮没有真 provider 参与（§160）。',
+      '这一型走 story 管线：正文是对话实体的说明，选择是它指向其它对话的引用；' +
+        '没有"走法"可言——读数是按引用连线走不走得到（可达几段、能停下几处）。',
+      ...report.findings,
+      ...report.limits,
+      '接受进项目之后它是项目里的一份普通游戏文档：能改、能试玩、进 §49 语料；撤销走 §150 那套 Command，不靠这一步。',
+    ],
+    draft: document,
+  };
+}
+
 const gameStep: Runner = async (ctx) => {
   const document = gameDraft({
     goal: ctx.goal,
@@ -398,7 +433,10 @@ const gameStep: Runner = async (ctx) => {
   if (pipeline === 'rpg') {
     return gameOutcomeRpg(document, plan, report);
   }
-  return gameOutcomeTopdown(document, plan, report, engine);
+  if (pipeline === 'topdown') {
+    return gameOutcomeTopdown(document, plan, report, engine);
+  }
+  return gameOutcomeStory(document, report);
 };
 
 /**
@@ -427,6 +465,21 @@ const combatStep: Runner = async (ctx) => {
   const source = ctx.upstream.find((step) => step.id === 'game')?.draft;
   if (!source) {
     throw new Error('combat 这一步没拿到上游草稿（game 那一步没留下 draft）：没有可调的设计，这一格不另编一份');
+  }
+  // **对话那一型没有战斗可调**（2026-10-22）：对话管线里没有战斗 ⇒ 这一格**原样交回**，
+  // 不改任何数值、也不编一份"空读数"（counts 空 ⇒ 界面上不会渲染成"0/5 条目标达标"）。
+  // 草稿照旧往下传 ⇒ 链的形状不变，后面那两格照样跑对话管线。
+  if (pipelineOfKind(source.kind) === 'story') {
+    const outcome: StepOutcome = {
+      summary: '这一型没有战斗可调：对话管线里没有战斗，文档原样交回',
+      counts: {},
+      notes: [
+        '对话那一种（互动故事 / 视觉小说）走的是对话管线：没有战斗数值可调，' +
+          '这一格不改任何数值、不留读数（空读数 ≠ "0 条目标达标"，那是两件事）。',
+      ],
+      draft: source,
+    };
+    return outcome;
   }
   const tuning = tuneCombat(source, { at: new Date().toISOString() });
   const reverted = tuning.rounds.filter((round) => !round.kept);
@@ -481,6 +534,20 @@ const levelStep: Runner = async (ctx) => {
   const source = ctx.upstream.find((step) => step.id === 'combat')?.draft;
   if (!source) {
     throw new Error('level 这一步没拿到上游草稿（combat 那一步没留下 draft）：没有可摆位置的设计，这一格不另编一份');
+  }
+  // **对话那一型没有位置可摆**（2026-10-22）：对话管线里没有场地 ⇒ 这一格**原样交回**，
+  // 不写任何坐标、也不编一份"空读数"（counts 空 ⇒ 界面上不会渲染成"0/4 条目标达标"）。
+  if (pipelineOfKind(source.kind) === 'story') {
+    const outcome: StepOutcome = {
+      summary: '这一型没有位置可摆：对话管线里没有场地，文档原样交回',
+      counts: {},
+      notes: [
+        '对话那一种（互动故事 / 视觉小说）走的是对话管线：没有场地可摆，' +
+          '这一格不写任何坐标、不留读数（空读数 ≠ "0 条目标达标"，那是两件事）。',
+      ],
+      draft: source,
+    };
+    return outcome;
   }
   const design = designLevel(source, { at: new Date().toISOString() });
   const met = design.goals.filter((goal) => goal.achieved).length;
@@ -622,6 +689,36 @@ function topdownPlaytestOutcome(
   };
 }
 
+/**
+ * 对话那两种（互动故事 / 视觉小说）的试玩结论。
+ *
+ * **读数不是"几种走法通关"**：对话管线没有走法 ⇒ 它算的是
+ * **按引用连线走不走得到**（可达几段 / 能停下的地方几个 / 有几段正文是空的）。
+ * ⇒ 硬凑成"通关数"就是拿一条管线的说法去说另一条（§159）⇒ ⇒ 这里给**它自己的那套数**。
+ */
+function storyPlaytestOutcome(source: GameDocument, report: StoryPlaytestReport): StepOutcome {
+  return {
+    summary:
+      `对话可达 ${report.reachable}/${report.total} 段；能停下的地方 ${report.reachableEndings} 个` +
+      `${report.reachableEmptyText ? `；走到会显示「作者没写正文」的 ${report.reachableEmptyText} 段` : ''}`,
+    counts: {
+      beats: report.total,
+      reachable: report.reachable,
+      endings: report.reachableEndings,
+      emptyText: report.reachableEmptyText,
+      findings: report.findings.length,
+      limits: report.limits.length,
+    },
+    notes: [
+      '这一步不改设计、也不产草稿：它跑的是上面那一步交下来的那一份，也就是点「接受」之后真会进项目的那一份。',
+      `这份设计标的是「${source.kind}」，走的是 story 管线：没有"走法"可言——` +
+        '它算的是按引用连线走不走得到（可达几段、能停下几处）。',
+      ...report.findings,
+      ...report.limits,
+    ],
+  };
+}
+
 const playtestStep: Runner = async (ctx) => {
   const source = ctx.upstream.find((step) => step.id === 'level')?.draft;
   if (!source) {
@@ -636,7 +733,10 @@ const playtestStep: Runner = async (ctx) => {
   if (pipeline === 'rpg') {
     return rpgPlaytestOutcome(source, report);
   }
-  return topdownPlaytestOutcome(source, report, pipeline, engine);
+  if (pipeline === 'topdown') {
+    return topdownPlaytestOutcome(source, report, pipeline, engine);
+  }
+  return storyPlaytestOutcome(source, report);
 };
 
 /**
@@ -781,6 +881,7 @@ export async function runReadinessCheck(input: {
   const goal = input.goal.trim().slice(0, GOAL_MAX);
 
   // 这一型：先校"是不是八种之一"，再校"链上这份配方有没有它"
+  // （2026-10-22：对话那两种也有了配方 ⇒ 八型全都编得出来 ⇒ 这里只拦**不认识的那一型**）
   const requested = input.gameKind?.trim();
   let gameKind: GameKind = GAME_DRAFT_DEFAULT_KIND;
   if (requested) {
@@ -800,9 +901,7 @@ export async function runReadinessCheck(input: {
         refusal: {
           code: 'unsupported-kind',
           status: 400,
-          message:
-            `对话那一型（${GAME_KIND_LABELS[requested]}）链上还没有配方：` +
-            '链上那份配方给的是战场与战斗，而对话要的是对话实体（正文与选择）——不做一份空草稿糊过去。',
+          message: `这一型（${GAME_KIND_LABELS[requested]}）链上还没有配方：${GAME_KIND_STATUS[requested].note}`,
         },
       };
     }

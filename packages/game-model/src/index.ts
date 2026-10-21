@@ -160,6 +160,17 @@ export function isGameKind(value: unknown): value is GameKind {
 }
 
 /**
+ * 这一型走哪条管线（**读**状态表那一张）。
+ *
+ * 为什么单开一个函数：链上那两格（战斗 / 布局）要问"这一型有没有战斗可调"，
+ * 而**派发**的唯一分派点是 `compileForKind`（按文档派发）⇒ 这里只是**读同一张表**，
+ * 不是第二份派发表（§16：同一份模型不许有两个出口）。
+ */
+export function pipelineOfKind(kind: GameKind): "rpg" | "topdown" | "story" | null {
+  return GAME_KIND_STATUS[kind].pipeline;
+}
+
+/**
  * 一条类型今天由哪条构建管线跑（`null` = 还没接），以及试玩页该说的那句话。
  *
  * 这张表就是 §51 的进度条：8 种全接了（2D / 2.5D / 3D / 探索 / 解谜共用同一条关卡计划，

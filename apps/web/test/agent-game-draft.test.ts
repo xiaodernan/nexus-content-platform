@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   compileRpg,
+  compileStory,
   fleshedOutCount,
   gameCounts,
   playtestRpg,
+  playtestStory,
   validateGame,
   xpToNext,
   type GameEntityKind,
@@ -15,6 +17,7 @@ import {
   GAME_DRAFT_NOT_LANDED_NOTE,
   GAME_DRAFT_SEED,
   GAME_DRAFT_SPEC,
+  GAME_DRAFT_SPEC_STORY,
   GAME_DRAFT_SUMMARY,
   GAME_DRAFT_SUPPORTED_KINDS,
   draftNameFromGoal,
@@ -129,18 +132,39 @@ describe('§52 草稿带上型（§51）', () => {
     expect(patrol.notes).not.toContain('经验');
   });
 
-  it('对话那两种：链上没有配方 ⇒ 明说不做空草稿', () => {
+  it('对话那两种：链上编得出来（正文在说明里、选择是引用）', () => {
     for (const kind of ['interactive-story', 'visual-novel'] as const) {
-      expect(() => gameDraft({ goal: '上架前检查', at: AT, kind })).toThrow(/还没有配方/);
+      const doc = gameDraft({ goal: '为这一格造一份对话', at: AT, kind });
+      expect(doc.kind).toBe(kind);
+      // 正文不是空：空正文 = 播放器里一片白 ⇒ 那是假内容
+      expect(doc.entities.every((entity) => entity.notes.trim().length > 0)).toBe(true);
+      expect(doc.entities.every((entity) => entity.kind === 'dialogue')).toBe(true);
+      // 对话管线：起点 = 没被任何对话指向的第一条；结局 = 没有出边的那些
+      const plan = compileStory(doc);
+      expect(plan.playable).toBe(true);
+      expect(plan.beats).toHaveLength(GAME_DRAFT_SPEC_STORY.length);
+      expect(plan.startId).toBe(doc.entities[0]!.id);
+      const endings = plan.beats.filter((beat) => beat.ending);
+      expect(endings).toHaveLength(2);
+      expect(endings.map((beat) => beat.name).sort()).toEqual(['收下这张画', '转身离开']);
+      // 读数：可达几段 / 能停下几处（对话管线没有"走法"可言）
+      const report = playtestStory(plan);
+      expect(report.total).toBe(GAME_DRAFT_SPEC_STORY.length);
+      expect(report.reachable).toBe(GAME_DRAFT_SPEC_STORY.length);
+      expect(report.reachableEndings).toBe(2);
+      expect(report.reachableEmptyText).toBe(0);
+      expect(report.unreachableNames).toEqual([]);
     }
-    expect(GAME_DRAFT_SUPPORTED_KINDS).not.toContain('interactive-story');
-    expect(GAME_DRAFT_SUPPORTED_KINDS).not.toContain('visual-novel');
-    expect(GAME_DRAFT_SUPPORTED_KINDS).toContain('2d');
-    expect(GAME_DRAFT_SUPPORTED_KINDS).toContain('rpg-prototype');
+    // 八型今天全都编得出来 ⇒ 不许再有"链上编不出来"的那一型（§159：不许拿"还没接"当"不接"）
+    expect(GAME_DRAFT_SUPPORTED_KINDS).toHaveLength(8);
+    expect(GAME_DRAFT_SUPPORTED_KINDS).toContain('interactive-story');
+    expect(GAME_DRAFT_SUPPORTED_KINDS).toContain('visual-novel');
   });
 
   it('2D 那份也是一份能写库的合法设计（结构校验一条问题都没有）', () => {
     expect(validateGame(gameDraft({ goal: '上架前检查', at: AT, kind: '2d' }))).toEqual([]);
+    // 对话那份同样要过结构校验（它写进项目也是走同一道校验）
+    expect(validateGame(gameDraft({ goal: '为这一格造一份对话', at: AT, kind: 'interactive-story' }))).toEqual([]);
   });
 });
 

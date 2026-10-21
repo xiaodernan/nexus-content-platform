@@ -1,6 +1,13 @@
 import type { GameDocument, GameKind } from "./index";
-import { compileForKind } from "./story";
-import { playtest, playtestRpg, type PlaytestReport, type RpgPlaytestReport } from "./playtest";
+import { compileForKind, type StoryPlan } from "./story";
+import {
+  playtest,
+  playtestRpg,
+  playtestStory,
+  type PlaytestReport,
+  type RpgPlaytestReport,
+  type StoryPlaytestReport,
+} from "./playtest";
 import type { GamePlan } from "./play";
 import type { RpgPlan } from "./rpg";
 
@@ -15,14 +22,15 @@ import type { RpgPlan } from "./rpg";
  * 各写一遍判断，迟早变成"一个页面说没接、另一个页面硬跑 2D 关卡"（§16）。
  * 所以这里**不自己**判断 kind，只问那张表答什么。
  *
- * **两条管线**（对话那两种**不在这里**）：
+ * **三条管线**（2026-10-22 起对话那两种也接上了）：
  * - topdown 那五种（2D / 2.5D / 3D / 探索 / 解谜）：`playtest`，四种空间走法跑 `sim.step`；
- * - RPG 原型：`playtestRpg`，同样四种走法但跑 `rpgStep`（经验、升级与等级门参与判定）。
+ * - RPG 原型：`playtestRpg`，同样四种走法但跑 `rpgStep`（经验、升级与等级门参与判定）；
+ * - 对话那两种（互动故事 / 视觉小说）：`playtestStory`，**没有"走法"可言**——
+ *   算的是按引用连线走不走得到：可达段落数 / 可达结局数 / 空正文数。
  *
- * **对话那两种（`interactive-story` / `visual-novel`）为什么不在这里**：
- * 它们的报告**形状不同**（没有"走法"可言：算的是可达性、停点与空正文数）。
- * 把两套形状硬凑成同一组键，就会有一边在说另一边的谎 ⇒
- * 这一格**明确报"还没接"**，不做一个说得过去的假报告（§159）。
+ * **三份报告的形状不同**（`PlaytestReport` / `RpgPlaytestReport` / `StoryPlaytestReport`）
+ * ⇒ ⇒ 这里返回的是**可判别的联合**：按 `pipeline` 收窄 ⇒ 调用方拿到 `report` 与 `plan`
+ * 时不用强转，也不会把某一型的读数字段当成别的型也有。
  */
 /**
  * **可判别的联合**：按 `pipeline` 收窄 ⇒ 调用方拿到 `report` 与 `plan` 时不用强转，
@@ -46,6 +54,18 @@ export type KindPlaytest =
       engine: string;
       report: PlaytestReport;
       plan: GamePlan;
+    }
+  | {
+      kind: GameKind;
+      pipeline: "story";
+      /**
+       * 对话管线没有"走法"可言：它算的是**按引用连线**走不走得到
+       * （`story.refs`）——所以这里**不写** `story.step`：模型里没有那个函数。
+       */
+      engine: string;
+      /** 对话那一份的形状与别的型**不同**：可达段落数 / 可达结局数 / 空正文数 */
+      report: StoryPlaytestReport;
+      plan: StoryPlan;
     };
 
 export function playtestByKind(document: GameDocument): KindPlaytest {
@@ -67,10 +87,8 @@ export function playtestByKind(document: GameDocument): KindPlaytest {
     return { kind, pipeline: "topdown", engine: "sim.step", report, plan: projection.plan };
   }
   if (projection.pipeline === "story") {
-    throw new Error(
-      `对话那一种（${kind}）的试玩报告形状不同（没有"走法"可言，算的是可达性与停点），` +
-        "这一格还没接进链上——不做一个说得过去的假报告",
-    );
+    const report = playtestStory(projection.plan);
+    return { kind, pipeline: "story", engine: "story.refs", report, plan: projection.plan };
   }
   throw new Error(`这一型（${kind}）今天还没有接上管线：${projection.reason}`);
 }
