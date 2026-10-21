@@ -52,6 +52,10 @@ export interface EconomySubscription {
   subscriberId?: string;
   handle?: string | null;
   assurance?: string | null;
+  /**
+   * v328 — WHEN the subscription was taken back, in epoch millis. Null when it was not taken back.
+   */
+  endedAt?: number | null;
 }
 
 /** What the service's tip row would carry. */
@@ -94,6 +98,15 @@ export interface SubscriptionRow {
    * small hole in it.
    */
   subscriberText: string;
+  /**
+   * v328 — WHEN the subscription was taken back, in a reader's words — or null when it was not.
+   *
+   * <p>The ending is the CANCELLATION's: a subscription that merely ran out of its period ended on its
+   * expiry, which is a different date and a different fact, and a standing subscription has no ending
+   * at all. So this line is only ever there for a cancellation — and the panel says so in the same
+   * words the service does.
+   */
+  endedText: string | null;
 }
 
 /**
@@ -225,6 +238,19 @@ export function subscriptionStandingText(standing: SubscriptionStanding): string
  * A row needs a planId and a finite price to say what it costs.
  */
 /**
+ * WHEN the subscription was taken back, in a reader's words — or null when it was not.
+ *
+ * <p>The instant is the service's own (v328): the creator is told when the supporter took it back, and
+ * the date is a fact about a machine rather than about a browser. A row with no instant is a row that
+ * was never taken back, and it says nothing rather than guessing.
+ */
+function endedTextOf(sub: EconomySubscription): string | null {
+  const ended = typeof sub.endedAt === 'number' && Number.isFinite(sub.endedAt) ? sub.endedAt : null;
+  if (ended === null) return null;
+  return new Date(ended).toISOString().replace('.000Z', 'Z');
+}
+
+/**
  * WHO subscribed, in a reader's words.
  *
  * <p>The handle when the wire carries one, the account id when it does not, and "nobody" when neither is
@@ -267,6 +293,8 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
     isActive: standing === 'active',
     // v327 — and who subscribed.
     subscriberText: subscriberTextOf(s),
+    // v328 — and when it was taken back, when it was.
+    endedText: endedTextOf(s),
     // v313 — and the note, for a subscription that ended: it cannot be made again, and the panel says why
     // rather than leaving the reader hunting for a button that does not exist.
     renewNote:

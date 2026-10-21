@@ -226,7 +226,9 @@ public class SubscriptionService {
         if (!row.isActive()) {
             return false;
         }
-        row.markEnded();
+        // v328 — the instant the supporter took it back is written down. A row that said THAT
+        // it ended and never WHEN left a creator asking "who stopped, and when" with half an answer.
+        row.markCancelled(clock.instant().truncatedTo(ChronoUnit.MILLIS));
         subscriptions.save(row);
         return true;
     }

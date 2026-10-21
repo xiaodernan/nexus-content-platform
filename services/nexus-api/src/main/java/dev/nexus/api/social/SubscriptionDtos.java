@@ -81,7 +81,13 @@ public final class SubscriptionDtos {
             String id,
             String handle,
             String assurance,
-            String status) {
+            String status,
+            /**
+             * v328 — WHEN the subscription was taken back, in epoch millis. Null when it was not taken
+             * back: a standing subscription has no ending, and one that merely ran out of its period ended
+             * on `expiresAt`, which is a different date.
+             */
+            Long endedAt) {
     }
 
     /** The answer to a plan question. */

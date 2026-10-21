@@ -1037,6 +1037,11 @@ export default function Toolbar() {
                         was looking at a plan, a price and a status, and not at the person who had put
                         their money behind it — the wire has carried that name all along. */}
                     <span data-economy-subscriber={row.subscriberText}>{row.subscriberText}</span>
+                    {/* v328 — and WHEN it was taken back, when it was. A creator asking "who stopped,
+                        and when" had half an answer until now. */}
+                    {row.endedText && (
+                      <span data-economy-ended={row.endedText}> · took it back on {row.endedText}</span>
+                    )}
                   </span>
                   <span style={{ color: 'var(--nexus-muted)' }}>{row.statusText}</span>
                 </li>

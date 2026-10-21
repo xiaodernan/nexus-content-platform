@@ -111,6 +111,20 @@ describe('economy — subscription rows (M8 v274)', () => {
     expect(toSubscriptionRow(sub())!.subscriberText).toBe('nobody');
   });
 
+  it('v328 — names WHEN the subscription was taken back', () => {
+    // A row that said THAT it ended and never WHEN left a creator asking "who stopped, and when" with
+    // half an answer. The instant is the service's own.
+    const row = toSubscriptionRow({ ...sub(), endedAt: 1_700_000_000_000 })!;
+    expect(row.endedText).toBe('2023-11-14T22:13:20Z');
+  });
+
+  it('v328 — and a subscription that was NOT taken back has no ending at all', () => {
+    // A standing subscription has no ending, and one that merely ran out of its period ended on its
+    // expiry — a different date and a different fact. The row says nothing rather than guessing.
+    expect(toSubscriptionRow(sub())!.endedText).toBeNull();
+    expect(toSubscriptionRow({ ...sub(), endedAt: null })!.endedText).toBeNull();
+  });
+
   it('a row it cannot display honestly is dropped', () => {
     expect(toSubscriptionRow(null)).toBeNull();
     expect(toSubscriptionRow('string')).toBeNull();

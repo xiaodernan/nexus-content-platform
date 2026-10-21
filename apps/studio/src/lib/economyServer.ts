@@ -28,6 +28,10 @@ export interface SubscriptionEntry {
    */
   handle?: string | null;
   assurance?: string | null;
+  /**
+   * v328 — WHEN the subscription was taken back, in epoch millis. Null when it was not.
+   */
+  endedAt?: number | null;
   status?: string;
 }
 

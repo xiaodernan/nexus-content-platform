@@ -385,6 +385,35 @@ class SubscriptionServiceTest {
         assertThat(service.subscriptionsOf("acct-ada", 20)).hasSize(1);
     }
 
+    // ── v328: the instant a subscription was TAKEN BACK ──────────────────────────────────────────────
+
+    @Test
+    void theInstantTheSubscriptionWasTakenBackIsWrittenDown() {
+        // A row that said THAT it ended and never WHEN left a creator asking "who stopped, and when"
+        // with half an answer.
+        when(subscriptions.findBySubscriptionId("s-1")).thenReturn(Optional.of(
+                new SubscriptionEntry("s-1", "acct-bob", "acct-ada", "pro", 1500, "CNY", "month", AT, null, true)));
+        when(subscriptions.save(any(SubscriptionEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        boolean moved = service.cancel("s-1", claim("acct-bob"));
+
+        assertThat(moved).isTrue();
+        ArgumentCaptor<SubscriptionEntry> row = ArgumentCaptor.forClass(SubscriptionEntry.class);
+        verify(subscriptions).save(row.capture());
+        assertThat(row.getValue().getEndedAt()).isNotNull();
+    }
+
+    @Test
+    void aSubscriptionThatWasNeverTakenBackHasNoEnding() {
+        // The ending is the CANCELLATION's: a subscription that merely ran out of its period ended on
+        // `expiresAt`, which is a different date and a different fact. A standing subscription has no
+        // ending at all.
+        SubscriptionEntry standing =
+                new SubscriptionEntry("s-1", "acct-bob", "acct-ada", "pro", 1500, "CNY", "month", AT, null, true);
+
+        assertThat(standing.getEndedAt()).isNull();
+    }
+
     // ── v327: the subscriber's NAME goes on the row, so a creator sees a person ──────────────────
 
     @Test

@@ -3032,6 +3032,40 @@ try {
     await backerPage.close();
   }
 
+  // ── §42 v328: the creator sees WHEN a subscription was taken back ──────────────────────────────────
+  // A row that said THAT it ended and never WHEN left a creator asking "who stopped, and when" with
+  // half an answer. The instant is the service’s own clock, and it travels on the wire.
+  {
+    const endedPage = await session.newPage('about:blank');
+    await endedPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(endedPage, 'the ended page to hydrate');
+    await signInAs(endedPage, 'ada', 'the creator whose supporter took it back');
+    await endedPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+
+    const endedShown = await until(
+      async () => (await endedPage.evaluate("!!document.querySelector('[data-economy-ended]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the ending to show on the received row' },
+    );
+    check('the creator’s received row says WHEN it was taken back', endedShown !== null, 'the ending is there');
+
+    // And the SERVICE agrees, read independently of the browser: it sends the same instant.
+    const endedRaw = await endedPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const endedOwner = JSON.parse(String(endedRaw)).id;
+    const endedSubs = await fetch(`${apiBase}/subscriptions?creator=${encodeURIComponent(endedOwner)}&limit=50`);
+    const endedSubsBody = await endedSubs.json();
+    const serviceEnded = (endedSubsBody.subscriptions ?? []).map((s) => s.endedAt).filter((e) => typeof e === 'number');
+    const panelEnded = await endedPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-ended]')).map((s) => s.getAttribute('data-economy-ended'))",
+    );
+    check(
+      'the SERVICE agrees — it sends the same instant it wrote down',
+      endedSubs.status === 200 && serviceEnded.length > 0 && panelEnded.length > 0
+        && panelEnded.every((p) => serviceEnded.some((e) => new Date(e).toISOString().replace('.000Z', 'Z') === p)),
+      `the service: ${JSON.stringify(serviceEnded)} · the panel: ${JSON.stringify(panelEnded)}`,
+    );
+    await endedPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

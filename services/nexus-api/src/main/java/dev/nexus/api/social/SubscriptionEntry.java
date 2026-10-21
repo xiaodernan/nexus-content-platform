@@ -90,6 +90,20 @@ public class SubscriptionEntry {
     @Column(name = "subscriber_assurance", length = 64)
     private String subscriberAssurance;
 
+    /**
+     * v328 — WHEN the subscription ended — the instant the supporter took it back.
+     *
+     * <p>Until now a row said THAT it ended (the `active` flag) and never WHEN: an expired subscription
+     * knew its period's end, but a CANCELLED one knew only that it was over. A creator asking "who stopped
+     * backing me, and when" had half an answer.
+     *
+     * <p>It is NULLABLE and stays null for a subscription that is still standing or that merely ran out of
+     * its period: the cancellation is the one ending that has an instant of its own, and an expiry already
+     * has one (`expiresAt`).
+     */
+    @Column(name = "ended_at")
+    private Instant endedAt;
+
     protected SubscriptionEntry() {
         // JPA needs it; the service never builds one without values.
     }
@@ -128,6 +142,27 @@ public class SubscriptionEntry {
             boolean active,
             String subscriberHandle,
             String subscriberAssurance) {
+        this(subscriptionId, subscriberAccountId, creatorAccountId, planId, priceCents, currency, period,
+                subscribedAt, expiresAt, active, subscriberHandle, subscriberAssurance, null);
+    }
+
+    /**
+     * v328 — the same subscription, and the instant it was taken back.
+     */
+    public SubscriptionEntry(
+            String subscriptionId,
+            String subscriberAccountId,
+            String creatorAccountId,
+            String planId,
+            long priceCents,
+            String currency,
+            String period,
+            Instant subscribedAt,
+            Instant expiresAt,
+            boolean active,
+            String subscriberHandle,
+            String subscriberAssurance,
+            Instant endedAt) {
         this.subscriptionId = subscriptionId;
         this.subscriberAccountId = subscriberAccountId;
         this.creatorAccountId = creatorAccountId;
@@ -140,6 +175,7 @@ public class SubscriptionEntry {
         this.active = active;
         this.subscriberHandle = subscriberHandle;
         this.subscriberAssurance = subscriberAssurance;
+        this.endedAt = endedAt;
     }
 
     public String getSubscriptionId() {
@@ -192,8 +228,24 @@ public class SubscriptionEntry {
         return subscriberAssurance;
     }
 
+    /** v328 — the instant the subscription was taken back, or null when it was not. */
+    public Instant getEndedAt() {
+        return endedAt;
+    }
+
     /** The subscription ends: the supporter cancelled, or its period ran out. */
     public void markEnded() {
         this.active = false;
+    }
+
+    /**
+     * v328 — the subscription is TAKEN BACK, and the instant is written down.
+     *
+     * <p>The instant is the service's own clock: "when the supporter took it back" is a fact about the
+     * service, and a fact about a machine is worth more than a fact about a browser.
+     */
+    public void markCancelled(Instant when) {
+        this.active = false;
+        this.endedAt = when;
     }
 }
