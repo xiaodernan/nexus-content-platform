@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { readPlans, readSubscriptions } from '@/lib/economyServer';
+import { readPlans, readReceivedSubscriptions, readSubscriptions } from '@/lib/economyServer';
 
 /**
  * M7 v309 (ADR 0016 amendment 309): `/api/economy` — this Studio's door onto the creator economy.
@@ -34,14 +34,19 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
   const asked = Number(new URL(request.url).searchParams.get('limit') ?? '20');
   const limit = Number.isFinite(asked) && asked > 0 ? Math.trunc(asked) : 20;
-  const [subscriptions, plans] = await Promise.all([
+  const [subscriptions, received, plans] = await Promise.all([
     readSubscriptions(account.trim(), limit),
+    // v310 — the creator's other side: who backs me.
+    readReceivedSubscriptions(account.trim(), limit),
     readPlans(account.trim(), limit),
   ]);
   // The economy is only READABLE when both halves are: a panel that showed the plans and hid the
   // subscriptions would be showing half an account.
   if (!subscriptions.ok) {
     return NextResponse.json({ ok: false, reason: subscriptions.reason }, { status: 502 });
+  }
+  if (!received.ok) {
+    return NextResponse.json({ ok: false, reason: received.reason }, { status: 502 });
   }
   if (!plans.ok) {
     return NextResponse.json({ ok: false, reason: plans.reason }, { status: 502 });
@@ -52,6 +57,10 @@ export async function GET(request: Request): Promise<NextResponse> {
       subscriptions: subscriptions.subscriptions,
       totalCents: subscriptions.totalCents,
       subscriptionCount: subscriptions.count,
+      // v310 — the creator's other side.
+      received: received.subscriptions,
+      receivedTotalCents: received.totalCents,
+      receivedCount: received.count,
       plans: plans.plans,
       planCount: plans.count,
     },

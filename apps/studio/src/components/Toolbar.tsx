@@ -831,6 +831,31 @@ export default function Toolbar() {
               ))}
             </ul>
           )}
+          {/* v310 — the creator's OTHER side: who backs this account. The panel showed what
+              this account backs and what it offers, and not the third half — which is the half a creator
+              most wants to see. */}
+          <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 8 }}>Received</div>
+          {economyAccount === null ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
+          ) : !economyAccount.ok ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>could not read: {economyAccount.reason}</div>
+          ) : (economyAccount.received ?? []).length === 0 ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>nobody backs this account</div>
+          ) : (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {(economyAccount.received ?? []).map((row, i) => (
+                <li
+                  key={i}
+                  data-economy-received={row.planId}
+                  data-economy-received-status={row.statusText}
+                  style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0' }}
+                >
+                  <span>{row.planId} — {row.priceText}</span>
+                  <span style={{ color: 'var(--nexus-muted)' }}>{row.statusText}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 8 }}>Your plans</div>
           {economyAccount === null ? (
             <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>

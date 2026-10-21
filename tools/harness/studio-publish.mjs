@@ -2183,6 +2183,40 @@ try {
     await economyPage.close();
   }
 
+  // ── §24 v310: the creator’s OTHER side — who backs this account ────────────────────────────────
+  // The panel showed what this account backs and what it offers, and not the third half — which is
+  // the half a creator most wants to see. The service had the METHOD since v300 and no door for it.
+  {
+    const creatorPage = await session.newPage('about:blank');
+    await creatorPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(creatorPage, 'the creator page to hydrate');
+
+    await signInAs(creatorPage, 'ada', 'the creator with a supporter');
+    await creatorPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(creatorPage, 'the creator’s economy page to hydrate');
+    await creatorPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const receivedRow = await until(
+      async () => (await creatorPage.evaluate("!!document.querySelector('[data-economy-received]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the received subscription to show in the panel' },
+    );
+    check('the panel shows the subscriptions this account has RECEIVED', receivedRow !== null, 'the row is there');
+
+    const receivedText = await creatorPage.evaluate("document.querySelector('[data-economy-received]')?.textContent ?? ''");
+    check('and what the supporter is committed to', receivedText.includes('15.00'), `the row says: ${JSON.stringify(receivedText)}`);
+
+    // And the SERVICE agrees, read independently of the browser.
+    const creatorRaw = await creatorPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const creatorId = JSON.parse(String(creatorRaw)).id;
+    const receivedRead = await fetch(`${apiBase}/subscriptions?creator=${encodeURIComponent(creatorId)}`);
+    const receivedBody = await receivedRead.json();
+    check(
+      'the SERVICE agrees — read back independently of the browser',
+      receivedRead.status === 200 && Array.isArray(receivedBody.subscriptions) && receivedBody.subscriptions.length === 1 && receivedBody.subscriptions[0].creatorId === creatorId,
+      `received: ${JSON.stringify(receivedBody.subscriptions)}`,
+    );
+    await creatorPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

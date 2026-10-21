@@ -89,6 +89,21 @@ public final class SubscriptionDtos {
     }
 
     /**
+     * v310 — the answer to a CREATOR's question: the subscriptions they have RECEIVED.
+     *
+     * <p>The rows are the SAME subscription shape the subscriber's direction carries, so a client reads one
+     * shape whichever door it came through; and the answer names the CREATOR in its own field, because a
+     * list of somebody's supporters is a list of their own.
+     */
+    public record ReceivedSubscriptionsAnswer(
+            String creatorId,
+            List<Subscription> subscriptions,
+            long totalCents,
+            int count,
+            int limit) {
+    }
+
+    /**
      * The answer to a subscription question.
      *
      * <p>v308 — `totalCents` is what the subscriber has committed, summed over the subscriptions that are

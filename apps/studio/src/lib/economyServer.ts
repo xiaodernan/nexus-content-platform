@@ -105,6 +105,55 @@ export async function readSubscriptions(
   }
 }
 
+/**
+ * READ the subscriptions one creator has RECEIVED — the creator's other side.
+ *
+ * <p>"What do I back" and "who backs me" are different questions, and the service has had the method for the
+ * second one since v300 without a door for it (v310).
+ */
+export async function readReceivedSubscriptions(
+  creatorAccountId: string,
+  limit: number,
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<SubscriptionsAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(
+      `${apiBase}/subscriptions?creator=${encodeURIComponent(creatorAccountId)}&limit=${encodeURIComponent(String(limit))}`,
+      { headers: { accept: 'application/json' } },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return {
+        ok: false,
+        subscriptions: [],
+        totalCents: 0,
+        count: 0,
+        reason: `the service's subscriptions door answered HTTP ${res.status} with something that is not JSON`,
+      };
+    }
+    const body = parsed as { subscriptions?: unknown; totalCents?: unknown; count?: unknown; message?: unknown };
+    if (!Array.isArray(body.subscriptions)) {
+      const why = typeof body.message === 'string' ? body.message : `the service's subscriptions door answered HTTP ${res.status}`;
+      return { ok: false, subscriptions: [], totalCents: 0, count: 0, reason: why };
+    }
+    return {
+      ok: true,
+      subscriptions: body.subscriptions as SubscriptionEntry[],
+      totalCents: typeof body.totalCents === 'number' ? body.totalCents : 0,
+      count: typeof body.count === 'number' ? body.count : body.subscriptions.length,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      subscriptions: [],
+      totalCents: 0,
+      count: 0,
+      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 /** READ the plans one creator offers — the creator’s own side of the economy. */
 export async function readPlans(
   creatorAccountId: string,

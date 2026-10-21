@@ -5,6 +5,7 @@ import dev.nexus.api.social.SubscriptionDtos.Plan;
 import dev.nexus.api.social.SubscriptionDtos.PlanAnswer;
 import dev.nexus.api.social.SubscriptionDtos.PlanRequest;
 import dev.nexus.api.social.SubscriptionDtos.SubscribeRequest;
+import dev.nexus.api.social.SubscriptionDtos.ReceivedSubscriptionsAnswer;
 import dev.nexus.api.social.SubscriptionDtos.Subscription;
 import dev.nexus.api.social.SubscriptionDtos.SubscriptionAnswer;
 import java.util.List;
@@ -86,12 +87,39 @@ public class SubscriptionController {
                 SubscriptionService.DEFAULT_SUBSCRIPTION_LIMIT));
     }
 
-    /** The subscriptions one account holds. */
+    /**
+     * The subscriptions one account holds — and, with `creator=`, the subscriptions one creator has RECEIVED.
+     *
+     * <p>v310 — the other direction of the same relation, and a different question: "what do I back" and
+     * "who backs me" are not the same question, and the service had the method for the second one since v300
+     * without a door for it. The creator's direction sums the STANDING subscriptions the same way (v308) — a
+     * promise whose period has run out is not a supporter.
+     */
     @GetMapping("/subscriptions")
-    public ResponseEntity<SubscriptionAnswer> subscriptions(
-            @RequestParam(name = "subscriber") String subscriberAccountId,
+    public ResponseEntity<?> subscriptions(
+            @RequestParam(name = "subscriber", required = false) String subscriberAccountId,
+            @RequestParam(name = "creator", required = false) String creatorAccountId,
             @RequestParam(name = "limit", required = false) Integer limit) {
         int asked = limit == null ? SubscriptionService.DEFAULT_SUBSCRIPTION_LIMIT : limit;
+        if (creatorAccountId != null && !creatorAccountId.isBlank()) {
+            List<SubscriptionEntry> received = service.subscriptionsReceived(creatorAccountId, asked);
+            List<Subscription> rows = received.stream().map(this::toWire).toList();
+            long receivedTotal = rows.stream()
+                    .filter(s -> SubscriptionDtos.STATUS_ACTIVE.equals(s.status()))
+                    .mapToLong(Subscription::priceCents)
+                    .sum();
+            return ResponseEntity.ok(new ReceivedSubscriptionsAnswer(
+                    creatorAccountId.trim(),
+                    rows,
+                    receivedTotal,
+                    rows.size(),
+                    asked));
+        }
+        if (subscriberAccountId == null || subscriberAccountId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-subscription",
+                    "message", "the subscriber parameter is missing (or the creator parameter, for the other direction)"));
+        }
         List<SubscriptionEntry> rows = service.subscriptionsOf(subscriberAccountId, asked);
         List<Subscription> subs = rows.stream().map(this::toWire).toList();
         // v308 — the total counts the subscriptions that are STILL STANDING. An expired subscription is not

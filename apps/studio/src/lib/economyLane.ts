@@ -12,6 +12,8 @@ export interface EconomyAnswer {
   subscriptions?: SubscriptionRow[];
   /** v309 — the plans this account offers. */
   plans?: PlanRow[];
+  /** v310 — the subscriptions this account has RECEIVED (the creator's other side). */
+  received?: SubscriptionRow[];
   tips?: TipRow[];
   reason?: string;
 }
@@ -51,8 +53,9 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
     if (typeof body !== 'object' || body === null) {
       return { ok: false, reason: 'the economy answered with neither an object nor a reason' };
     }
-    const { subscriptions, plans, tips } = body as {
+    const { subscriptions, received, plans, tips } = body as {
       subscriptions?: readonly unknown[];
+      received?: readonly unknown[];
       plans?: readonly unknown[];
       tips?: readonly unknown[];
     };
@@ -62,6 +65,8 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
     return {
       ok: true,
       subscriptions: toSubscriptionRows(subscriptions ?? []),
+      // v310 — and the creator's other side: who backs this account.
+      received: toSubscriptionRows(received ?? []),
       // v309 — the creator's own side of the economy.
       plans: toPlanRows(plans ?? []),
       tips: toTipRows(tips ?? [], (text) => text.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>') ),
