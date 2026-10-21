@@ -3538,6 +3538,38 @@ try {
     );
   }
 
+  // ── §58 v349: the desk says WHEN each complaint arrived ────────────────────────────────────────────
+  // The wire has carried the instant since the report’s own beginning, and the desk says everything
+  // else about a complaint and not when it arrived.
+  {
+    const deskWhenPage = await session.newPage('about:blank');
+    await deskWhenPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(deskWhenPage, 'the desk page to hydrate');
+    await signInAs(deskWhenPage, 'ada', 'the owner of the complained-about work');
+    await deskWhenPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
+    const deskWhenShown = await until(
+      async () => (await deskWhenPage.evaluate("!!document.querySelector('[data-desk-filed]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the complaint date to show on the desk' },
+    );
+    check('the desk says when each complaint arrived', deskWhenShown !== null, 'the date is there');
+
+    // And the SERVICE agrees, read independently of the browser.
+    const deskWhenService = await (await fetch(`${apiBase}/moderation/reports?owner=${encodeURIComponent(accountRecord?.id ?? '')}&limit=50`)).json();
+    const serviceFiled = (deskWhenService.reports ?? [])
+      .map((r) => r.createdAt)
+      .filter((v) => typeof v === 'number')
+      .map((v) => new Date(v).toISOString());
+    const panelFiled = await deskWhenPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-desk-filed]')).map((s) => s.getAttribute('data-desk-filed'))",
+    );
+    check(
+      'the SERVICE agrees — the same instants the service recorded are the ones on the desk',
+      serviceFiled.length > 0 && serviceFiled.every((w) => panelFiled.includes(w)),
+      `the service: ${JSON.stringify(serviceFiled)} · the panel: ${JSON.stringify(panelFiled)}`,
+    );
+    await deskWhenPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

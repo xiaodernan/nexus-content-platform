@@ -52,6 +52,18 @@ export interface DeskRow {
   statusText: string;
   /** Whether the report is still waiting to be acknowledged. */
   open: boolean;
+  /**
+   * v349 — WHEN the report was made, in a reader's words — or null when the wire did not say.
+   *
+   * <p>The service has carried the instant since the report's own beginning, and the desk says everything
+   * else about a report — the reason, the words, the status, the publication it is about — and not when it
+   * arrived. A queue of complaints with no dates is a queue nobody can triage.
+   *
+   * <p>The desk is a PRIVATE view: the owner's own complaints about their own work, and the reporter's own
+   * complaints — so the instant is shown to the two people it belongs to, and not on the public page (v307
+   * keeps the identity off that page, and a precise instant is a thin identifier too).
+   */
+  filedText: string | null;
 }
 
 /**
@@ -62,6 +74,18 @@ export interface DeskRow {
  * what it is about). Everything else may be missing: a report with no words is still a report, and the
  * panel says so rather than dropping it.
  */
+/**
+ * WHEN a report was made, in a reader's words — or null when the wire did not say.
+ *
+ * <p>The instant is the service's own, in UTC, in the same style as every other date in the product: one
+ * clock, one style, so a reader comparing a report's date with a tip's date is reading two dates written
+ * the same way.
+ */
+function reportFiledTextOf(createdAt: unknown): string | null {
+  if (typeof createdAt !== 'number' || !Number.isFinite(createdAt)) return null;
+  return new Date(createdAt).toISOString().replace('.000Z', 'Z');
+}
+
 export function toDeskRow(entry: unknown): DeskRow | null {
   if (typeof entry !== 'object' || entry === null) return null;
   const r = entry as DeskEntry;
@@ -79,6 +103,9 @@ export function toDeskRow(entry: unknown): DeskRow | null {
     status,
     statusText: reportStatusText(status),
     open: status === 'open',
+    // v349 — and when it was made: the instant is the service's own, in UTC, in the same style as every
+    // other date in the product (v341-v343, v333). A wire with no instant says nothing.
+    filedText: reportFiledTextOf(r.createdAt),
   };
 }
 

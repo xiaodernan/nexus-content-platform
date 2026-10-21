@@ -24,7 +24,25 @@ const A_REPORT = {
 };
 
 describe('moderation — the desk rows', () => {
-  it('a row carries the reason, the reporter\u2019s WORDS and the status', () => {
+  it('v349 — a row says WHEN the complaint arrived, in the service’s own style', () => {
+  // The service has carried the instant since the report's own beginning, and the desk says everything
+  // else about a report and not when it arrived. A queue of complaints with no dates is a queue nobody
+  // can triage.
+  const row = toDeskRow({
+    reportId: 'r-1',
+    targetProjectId: 'pub-1',
+    reason: 'copyright',
+    createdAt: 1_700_000_000_000,
+  });
+  expect(row?.filedText).toBe('2023-11-14T22:13:20Z');
+});
+
+it('v349 — and a wire with NO instant says nothing rather than guessing', () => {
+  const row = toDeskRow({ reportId: 'r-1', targetProjectId: 'pub-1', reason: 'copyright' });
+  expect(row?.filedText).toBeNull();
+});
+
+it('a row carries the reason, the reporter\u2019s WORDS and the status', () => {
     const row = toDeskRow(A_REPORT);
     expect(row).not.toBeNull();
     expect(row?.reason).toBe('harassment');

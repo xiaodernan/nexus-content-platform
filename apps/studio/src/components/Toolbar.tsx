@@ -1290,6 +1290,15 @@ export default function Toolbar() {
                         </a>
                         {' — '}
                         {report.reasonText}
+                        {/* v349 — and WHEN the complaint arrived: the instant, not "3 days ago" — a
+                            relative date goes stale the moment it is written, and a complaint is a fact
+                            about the past that does not move. */}
+                        {report.filedText && (
+                          <span data-desk-filed={report.filedText} style={{ color: 'var(--nexus-muted)' }}>
+                            {' · '}
+                            {report.filedText}
+                          </span>
+                        )}
                       </span>
                       <span style={{ color: 'var(--nexus-muted)' }}>{report.statusText}</span>
                     </div>
