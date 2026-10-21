@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 
 /**
@@ -93,4 +94,57 @@ test('@smoke §168 曲线：窗口是密集的，缺的那天在图上看得出�
   await expect(anonPage.locator('[data-analytics-series]')).toHaveCount(0);
   await anon.close();
   await visitorContext.close();
+});
+
+/**
+ * §168 的**导出**在真浏览器里的那一格（2026-10-22）。
+ *
+ * 集成测证得了服务端算出了那份 CSV，但证不了"页面上点那个链接**真的下一个文件**下来、
+ * 而且那个文件里的数字与页面上显示的**是同一份**" ⇒ ⇒ 这一格钉的是那两件事：
+ * - 下载真的发生（点下去有一个文件落在磁盘上）；
+ * - **BOM 在**（Excel 打开无 BOM 的 UTF-8 中文会乱码 ⇒ 这一格是给人拿去用的）；
+ * - 文件里那一行的数与页面上那一格**逐字相同**（两处读的是同一个 domain 函数，§159）。
+ */
+test('@smoke §168 导出：点那个链接真的下一个 CSV 下来，数字与页面上那一份相同', async ({ page }) => {
+  test.setTimeout(300_000);
+  const name = `导出作品${Date.now().toString(36)}`;
+
+  await page.goto('/');
+  await page.fill('[data-project-name-input]', name);
+  await page.click('[data-create-project]');
+  await page.waitForURL(/\/studio\/[^/]+$/);
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+
+  // 发布一版 ⇒ 才有"发布过的版本"可导
+  await page.click('[data-publish-open]');
+  await expect(page.locator('[data-publish-submit]')).toBeVisible();
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-url]')).toBeVisible({ timeout: 30_000 });
+
+  await page.goto('/analytics');
+  const link = page.locator('[data-analytics-export]');
+  await expect(link).toBeVisible();
+  // 页面上那一格的数（导出必须与它是同一份）
+  const viewsOnPage = ((await page.locator('[data-analytics-value="views"]').first().textContent()) ?? '').trim();
+  const playTimeOnPage = ((await page.locator('[data-analytics-value="play_time"]').first().textContent()) ?? '').trim();
+
+  const [download] = await Promise.all([page.waitForEvent('download'), link.click()]);
+  const file = await download.path();
+  expect(file, '点那个链接没有文件落下来').toBeTruthy();
+  const bytes = await readFile(file);
+  // BOM：Excel 打开中文不乱码
+  expect(bytes[0], '要给 Excel 带 BOM').toBe(0xef);
+  expect(bytes[1]).toBe(0xbb);
+  expect(bytes[2]).toBe(0xbf);
+  const text = new TextDecoder('utf-8').decode(bytes);
+  const lines = text.replace(/^\uFEFF/, '').trim().split('\r\n');
+  const header = lines[0]!.split(',');
+  const row = lines[1]!.split(',');
+  const cell = (label: string) => row[header.indexOf(label)]!;
+  // 数字与页面上那一份逐字相同（两处读的是同一个 domain 函数）
+  expect(cell('打开次数'), '导出里的打开次数与页面上那一份不同').toBe(viewsOnPage);
+  // "未采集"在两处是同一件事：页面上写着"未采集"，导出里是**空格子**（不是 0）
+  expect(playTimeOnPage, '这一格本来就没有访客现场，页面上该写"未采集"').toContain('未采集');
+  expect(cell('累计可见时长毫秒'), '"未采集"在导出里不能变成 0').toBe('');
 });
