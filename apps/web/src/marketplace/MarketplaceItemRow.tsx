@@ -55,8 +55,8 @@ export function MarketplaceItemRow({
         headers: csrfHeaders(),
       });
       if (!res.ok) {
-        const json = (await res.json().catch(() => null)) as { error?: string } | null;
-        setMessage(json?.error ?? `购买失败（${res.status}）`);
+        const json = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+        setMessage(json?.message ?? json?.error ?? `购买失败（${res.status}）`);
         return;
       }
       setPurchased(true);

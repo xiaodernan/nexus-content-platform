@@ -9,6 +9,10 @@ import { jsonError } from '@/server/http';
  *
  * 需要登录 + CSRF 双提交。幂等性由库里的 `UNIQUE(item_id, buyer_id)` 保证。
  * 购买成功后同步触发创作者分成（§128）。
+ *
+ * 拒绝按 `PurchaseResult.reason` 翻码（§151）：不存在/已下架/私有草稿 → 404；
+ * 免费/自己的/已经买过 → 400。以前这里比对四句英文，句子一改状态码就跟着变。
+ * 未知异常仍由 catch 回 500，并记一条服务端日志。
  */
 export async function POST(
   req: Request,
@@ -24,6 +28,19 @@ export async function POST(
       buyerId: user.id,
       itemId: id,
     });
+
+    if (!result.ok) {
+      switch (result.reason) {
+        case 'not_found':
+          return jsonError(404, 'not_found', { message: '物品不存在或已下架' });
+        case 'free_item':
+          return jsonError(400, 'free_item', { message: '免费物品无需购买' });
+        case 'own_item':
+          return jsonError(400, 'own_item', { message: '不能购买自己的物品' });
+        case 'already_purchased':
+          return jsonError(400, 'already_purchased', { message: '已经购买过此物品' });
+      }
+    }
 
     // 记录审计日志
     await auditMarketplaceAction({
@@ -56,19 +73,6 @@ export async function POST(
       pricePaid: result.pricePaid,
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    if (msg === 'Item not found or deleted') {
-      return jsonError(404, 'not_found', { message: '物品不存在或已下架' });
-    }
-    if (msg === 'Free items do not require purchase') {
-      return jsonError(400, 'free_item', { message: '免费物品无需购买' });
-    }
-    if (msg === 'Cannot purchase your own item') {
-      return jsonError(400, 'own_item', { message: '不能购买自己的物品' });
-    }
-    if (msg === 'Already purchased') {
-      return jsonError(400, 'already_purchased', { message: '已经购买过此物品' });
-    }
     console.error('Purchase failed:', error);
     return jsonError(500, 'purchase_failed', { message: '购买失败，请稍后重试' });
   }

@@ -4,7 +4,7 @@ import { GET as getItem } from '../src/app/api/marketplace/[id]/route';
 import { POST as purchaseItem } from '../src/app/api/marketplace/[id]/purchase/route';
 import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
 import { SESSION_COOKIE } from '../src/server/domain/session';
-import { createMarketplaceItem, hasPurchased } from '../src/server/domain/marketplace';
+import { createMarketplaceItem, hasPurchased, purchaseMarketplaceItem } from '../src/server/domain/marketplace';
 import { getDb } from '../src/server/db/client';
 import { sessions, users } from '../src/server/db/schema';
 
@@ -139,6 +139,34 @@ describe('§127 私有草稿的购买门（修复前：凭 UUID 免费成交未�
     );
     expect(free.status).toBe(400);
     expect((await free.json()).error).toBe('free_item');
+  });
+
+  it('创作者买自己的公开物品 → 400 own_item（路由按 reason 翻码，不比对句子）', async () => {
+    const res = await purchaseItem(
+      new Request(purchaseUrl(publicItemId), { method: 'POST', headers: asUser(creatorToken) }),
+      { params: Promise.resolve({ id: publicItemId }) },
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe('own_item');
+  });
+
+  it('同一买家买第二次 → 400 already_purchased（先经域层买一次，再走路由重放）', async () => {
+    const item = await createMarketplaceItem({
+      creatorId: creator.id,
+      itemType: 'component',
+      title: `可见性-重复 ${Date.now()}`,
+      visibility: 'public',
+      priceCredits: 0,
+    });
+    const first = await purchaseMarketplaceItem({ buyerId: buyer.id, itemId: item.id });
+    expect(first.ok).toBe(true);
+
+    const res = await purchaseItem(
+      new Request(purchaseUrl(item.id), { method: 'POST', headers: asUser(buyerToken) }),
+      { params: Promise.resolve({ id: item.id }) },
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe('already_purchased');
   });
 });
 

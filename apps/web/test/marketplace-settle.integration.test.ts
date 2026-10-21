@@ -110,8 +110,13 @@ describe('买一件东西：钱只能扣一次', () => {
     const item = await freshItem();
 
     const first = await purchaseMarketplaceItem({ itemId: item, buyerId: buyer });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
     expect(first.pricePaid).toBe(PRICE);
-    await expect(purchaseMarketplaceItem({ itemId: item, buyerId: buyer })).rejects.toThrow(/Already purchased/);
+    await expect(purchaseMarketplaceItem({ itemId: item, buyerId: buyer })).resolves.toEqual({
+      ok: false,
+      reason: 'already_purchased',
+    });
 
     const { rows, total } = await charged(buyer);
     expect(rows, '串行这一路应该只有一行扣点').toBe(1);
@@ -128,7 +133,17 @@ describe('买一件东西：钱只能扣一次', () => {
     ]);
 
     // 记录行那一层是对的：恰好一次成功
-    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const debug = results.map((r) =>
+      r.status === 'fulfilled'
+        ? r.value.ok
+          ? 'ok:true'
+          : `ok:false:${r.value.reason}`
+        : `rejected:${r.reason instanceof Error ? r.reason.message : String(r.reason)}`,
+    );
+    expect(results.every((r) => r.status === 'fulfilled'), debug.join(' | ')).toBe(true);
+    const outcomes = results.map((r) => (r.status === 'fulfilled' ? r.value : null));
+    expect(outcomes.filter((o) => o?.ok === true)).toHaveLength(1);
+    expect(outcomes.filter((o) => o?.ok === false && o.reason === 'already_purchased')).toHaveLength(1);
     const purchases = await getDb()
       .select({ id: marketplacePurchases.id })
       .from(marketplacePurchases)
@@ -147,6 +162,8 @@ describe('创作者分成：一笔购买只能分一次', () => {
     const buyer = await freshBuyer('s3');
     itemId = await freshItem();
     const purchase = await purchaseMarketplaceItem({ itemId, buyerId: buyer });
+    expect(purchase.ok).toBe(true);
+    if (!purchase.ok) return;
 
     const results = await Promise.allSettled([
       settlePurchase({ purchaseId: purchase.purchaseId }),

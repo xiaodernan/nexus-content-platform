@@ -338,10 +338,11 @@ describe('域层与路由层：marketplace 的读与买（门收进域层，交�
     await expect(incrementDownloadCount('not-a-uuid')).resolves.toBe(0);
   });
 
-  it('purchaseMarketplaceItem 对非 UUID → 与"不存在或已下架"同一句，不是 Postgres 报错', async () => {
-    await expect(purchaseMarketplaceItem({ buyerId: buyer.id, itemId: 'not-a-uuid' })).rejects.toThrow(
-      'Item not found or deleted',
-    );
+  it('purchaseMarketplaceItem 对非 UUID → {ok:false,reason:not_found}，不是 Postgres 报错', async () => {
+    await expect(purchaseMarketplaceItem({ buyerId: buyer.id, itemId: 'not-a-uuid' })).resolves.toEqual({
+      ok: false,
+      reason: 'not_found',
+    });
   });
 
   it('updateMarketplaceItem / deleteMarketplaceItem 对非 UUID → {ok:false,reason:not_found}，不抛', async () => {
@@ -415,6 +416,8 @@ describe('域层与路由层：marketplace 的读与买（门收进域层，交�
 
     expect(await hasPurchased(realItemId, buyer.id)).toBe(false);
     const purchase = await purchaseMarketplaceItem({ buyerId: buyer.id, itemId: realItemId });
+    expect(purchase.ok).toBe(true);
+    if (!purchase.ok) return;
     expect(purchase.pricePaid).toBe(0);
     expect(await hasPurchased(realItemId, buyer.id)).toBe(true);
 
@@ -424,9 +427,10 @@ describe('域层与路由层：marketplace 的读与买（门收进域层，交�
   it('正对照：合法 UUID 但条目不存在 → 与形状不对的同一个答案', async () => {
     const missing = '00000000-0000-4000-8000-000000000009';
     expect(await getMarketplaceItem(missing)).toBeNull();
-    await expect(purchaseMarketplaceItem({ buyerId: buyer.id, itemId: missing })).rejects.toThrow(
-      'Item not found or deleted',
-    );
+    await expect(purchaseMarketplaceItem({ buyerId: buyer.id, itemId: missing })).resolves.toEqual({
+      ok: false,
+      reason: 'not_found',
+    });
     const res = await getMarketItem(
       new Request(marketUrl(missing)),
       { params: Promise.resolve({ id: missing }) },

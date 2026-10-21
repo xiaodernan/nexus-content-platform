@@ -355,121 +355,121 @@ export async function incrementDownloadCount(itemId: string) {
  * - **幂等**：同一用户对同一物品只买一次（库里的 `UNIQUE(item_id, buyer_id)` 挡着）；
  * - **余额是派生的**：扣点走 `credit_ledger` 的 `SUM(delta)`，没有"当前余额"可写；
  * - **没有支付**（§159）：额度只有档位发放与代码调整两个来源，界面上不许出现"充值"按钮。
+ *
+ * 被拒绝的购买走判别式结果（与 update/delete 同一套），**不再抛一句英文让路由比对文本**：
+ * 句子是内部措辞，改一个词就会悄悄改掉 HTTP 状态码。未知异常（库坏了）仍然 throw——
+ * "买家不该买"和"系统出错"不是同一件事，路由分别回 4xx 与 500。
  */
 export interface PurchaseMarketplaceItemInput {
   buyerId: string;
   itemId: string;
 }
 
-export interface PurchaseResult {
-  /** 购买记录 id */
-  purchaseId: string;
-  /** 这次扣了多少点 */
-  pricePaid: number;
-}
+export type PurchaseResult =
+  | {
+      ok: true;
+      /** 购买记录 id */
+      purchaseId: string;
+      /** 这次扣了多少点 */
+      pricePaid: number;
+    }
+  | { ok: false; reason: 'not_found' | 'free_item' | 'own_item' | 'already_purchased' };
 
-export async function purchaseMarketplaceItem(input: PurchaseMarketplaceItemInput): Promise<PurchaseResult> {
-  // 形状不对的 id 与"不存在或已下架"同一句：事务都不用开，路由照旧翻成 404（domain/ids.ts）
-  if (!isUuid(input.itemId)) throw new Error('Item not found or deleted');
+export async function purchaseMarketplaceItem(
+  input: PurchaseMarketplaceItemInput,
+): Promise<PurchaseResult> {
+  // 形状不对的 id 与"不存在或已下架"同一答案：事务都不用开（domain/ids.ts）
+  if (!isUuid(input.itemId)) return { ok: false, reason: 'not_found' };
   const db = getDb();
 
   try {
     return await db.transaction(async (tx) => {
-  // 先查物品：必须存在、未下架、公开或免费
-  const [item] = await tx
-    .select({
-      id: marketplaceItems.id,
-      creatorId: marketplaceItems.creatorId,
-      priceCredits: marketplaceItems.priceCredits,
-      visibility: marketplaceItems.visibility,
-    })
-    .from(marketplaceItems)
-    .where(and(eq(marketplaceItems.id, input.itemId), isNull(marketplaceItems.deletedAt)))
-    .limit(1);
+      // 先查物品：必须存在、未下架、公开或免费
+      const [item] = await tx
+        .select({
+          id: marketplaceItems.id,
+          creatorId: marketplaceItems.creatorId,
+          priceCredits: marketplaceItems.priceCredits,
+          visibility: marketplaceItems.visibility,
+        })
+        .from(marketplaceItems)
+        .where(and(eq(marketplaceItems.id, input.itemId), isNull(marketplaceItems.deletedAt)))
+        .limit(1);
 
-  if (!item) {
-    throw new Error('Item not found or deleted');
-  }
+      if (!item) return { ok: false, reason: 'not_found' };
 
-  // 免费物品不用买
-  if (item.visibility === 'free') {
-    throw new Error('Free items do not require purchase');
-  }
+      // 免费物品不用买
+      if (item.visibility === 'free') return { ok: false, reason: 'free_item' };
 
-  // 私有草稿不在市面上：凭 id 直接买一份没上架的商品，等于把作者还没决定公开的
-  // 东西卖出去（预览路由对 private 只放创作者，购买与它同一口径，见 [id]/preview）。
-  // 默认价格是 0 的草稿尤其致命：pricePaid=0 时不写扣点流水，购买"免费成交"，
-  // 之后 content 路由的 hasPurchased 就为任何人放行未公开草稿的完整导出包。
-  // 复用"不存在或已下架"这一句：对买家来说"没上架"与"不存在"是同一个答案，
-  // 不留下"存在但不给你买"那种可分辨的差别
-  if (item.visibility === 'private') {
-    throw new Error('Item not found or deleted');
-  }
+      // 私有草稿不在市面上：凭 id 直接买一份没上架的商品，等于把作者还没决定公开的
+      // 东西卖出去（预览路由对 private 只放创作者，购买与它同一口径，见 [id]/preview）。
+      // 默认价格是 0 的草稿尤其致命：pricePaid=0 时不写扣点流水，购买"免费成交"，
+      // 之后 content 路由的 hasPurchased 就为任何人放行未公开草稿的完整导出包。
+      // 复用 `not_found`：对买家来说"没上架"与"不存在"是同一个答案，
+      // 不留下"存在但不给你买"那种可分辨的差别
+      if (item.visibility === 'private') return { ok: false, reason: 'not_found' };
 
-  // 不能买自己的东西
-  if (item.creatorId === input.buyerId) {
-    throw new Error('Cannot purchase your own item');
-  }
+      // 不能买自己的东西
+      if (item.creatorId === input.buyerId) return { ok: false, reason: 'own_item' };
 
-  // 检查是否已经买过（幂等）
-  const [existing] = await tx
-    .select({ id: marketplacePurchases.id })
-    .from(marketplacePurchases)
-    .where(
-      and(
-        eq(marketplacePurchases.itemId, input.itemId),
-        eq(marketplacePurchases.buyerId, input.buyerId),
-      ),
-    )
-    .limit(1);
+      // 检查是否已经买过（幂等）
+      const [existing] = await tx
+        .select({ id: marketplacePurchases.id })
+        .from(marketplacePurchases)
+        .where(
+          and(
+            eq(marketplacePurchases.itemId, input.itemId),
+            eq(marketplacePurchases.buyerId, input.buyerId),
+          ),
+        )
+        .limit(1);
 
-  if (existing) {
-    throw new Error('Already purchased');
-  }
+      if (existing) return { ok: false, reason: 'already_purchased' };
 
-  // 价格 > 0 才扣点；价格为 0 的物品直接记一笔购买记录
-  const pricePaid = item.priceCredits;
+      // 价格 > 0 才扣点；价格为 0 的物品直接记一笔购买记录
+      const pricePaid = item.priceCredits;
 
-  // **先**记购买行：`(item_id, buyer_id)` 上有唯一索引，并发的第二个请求在这一行被挡下，
-  // 事务回滚，扣点一行都不会写。原来这里是"先扣点再记购买行"且没有事务，
-  // 并发时买家会被扣两次（与 settlePurchase 是同一个形状，见那个函数头）。
-  const [purchase] = await tx
-    .insert(marketplacePurchases)
-    .values({
-      itemId: input.itemId,
-      buyerId: input.buyerId,
-      pricePaid,
-    })
-    .returning({ id: marketplacePurchases.id });
+      // **先**记购买行：`(item_id, buyer_id)` 上有唯一索引，并发的第二个请求在这一行被挡下，
+      // 事务回滚，扣点一行都不会写。原来这里是"先扣点再记购买行"且没有事务，
+      // 并发时买家会被扣两次（与 settlePurchase 是同一个形状，见那个函数头）。
+      const [purchase] = await tx
+        .insert(marketplacePurchases)
+        .values({
+          itemId: input.itemId,
+          buyerId: input.buyerId,
+          pricePaid,
+        })
+        .returning({ id: marketplacePurchases.id });
 
-  if (!purchase) {
-    throw new Error('Failed to record purchase');
-  }
+      if (!purchase) {
+        throw new Error('Failed to record purchase');
+      }
 
-  if (pricePaid > 0) {
-    // 扣点：往 credit_ledger 写一行负的 delta
-    // 注意：这里不预查余额——负余额在流水里看得见，预扣需要把 provider 调用包进事务（今天没有）
-    const [ledgerRow] = await tx
-      .insert(creditLedger)
-      .values({
-        userId: input.buyerId,
-        kind: 'marketplace',
-        delta: -pricePaid,
-        reason: `购买物品 ${input.itemId}，扣 ${pricePaid} 点`,
-        source: 'marketplace_purchase',
-        period: monthPeriod(new Date()),
-      })
-      .returning({ id: creditLedger.id });
+      if (pricePaid > 0) {
+        // 扣点：往 credit_ledger 写一行负的 delta
+        // 注意：这里不预查余额——负余额在流水里看得见，预扣需要把 provider 调用包进事务（今天没有）
+        const [ledgerRow] = await tx
+          .insert(creditLedger)
+          .values({
+            userId: input.buyerId,
+            kind: 'marketplace',
+            delta: -pricePaid,
+            reason: `购买物品 ${input.itemId}，扣 ${pricePaid} 点`,
+            source: 'marketplace_purchase',
+            period: monthPeriod(new Date()),
+          })
+          .returning({ id: creditLedger.id });
 
-    if (!ledgerRow) {
-      throw new Error('Failed to charge credits');
-    }
-  }
+        if (!ledgerRow) {
+          throw new Error('Failed to charge credits');
+        }
+      }
 
-      return { purchaseId: purchase.id, pricePaid };
+      return { ok: true as const, purchaseId: purchase.id, pricePaid };
     });
   } catch (error) {
-    if (isUniqueViolation(error)) throw new Error('Already purchased', { cause: error });
+    // 并发时唯一索引挡下的第二个请求：事务已回滚，钱一行都没写——这是"已经买过"的正常结局
+    if (isUniqueViolation(error)) return { ok: false, reason: 'already_purchased' };
     throw error;
   }
 }
@@ -564,11 +564,20 @@ export interface SettleResult {
  * Postgres 的唯一约束冲突（`23505`）。
  *
  * 写钱那两条路（买 / 分账）都靠"唯一索引 + 事务"做并发守卫，而唯一索引报出来的是
- * 一个 `23505` 的驱动错误，不是业务语义。把它翻译成调用方认的那句话，
- * 否则 `purchase/route.ts` 会把它当成"真出错"记一条日志（它按消息文本区分正常重复与故障）。
+ * 一个 `23505` 的驱动错误，不是业务语义。把它翻译成调用方认的那个 reason，
+ * 否则并发的第二个请求会以 500 的形状出现。
+ *
+ * drizzle 会在驱动错误外面包一层 `DrizzleQueryError`（message 是 "Failed query: …"），
+ * `code` 在 **cause 链**上而不在顶层——只看顶层等于这个函数从来没生效过（#151 实测：
+ * 并发重复购买的输家一路抛到路由）。所以沿 cause 走几步，别只读第一层。
  */
 function isUniqueViolation(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && (error as { code?: string }).code === '23505';
+  let current: unknown = error;
+  for (let depth = 0; current !== null && depth < 5; depth += 1) {
+    if (typeof current === 'object' && (current as { code?: string }).code === '23505') return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
 }
 
 /**

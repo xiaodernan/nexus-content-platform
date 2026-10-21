@@ -163,3 +163,23 @@
   登录未买过 → 200 空列表、下架条目交付仍 404、匿名 401 且 `no-store`）；真浏览器里种三笔购买后
   同屏显示、状态文案与按钮有无都对、点下载在无源项目时收到交付门那句「该物品没有可导出的源项目」，
   截图 `screenshots/marketplace-purchases-150.png`；tsc / eslint 0。
+
+## 2026-10-21 补记（#151）：购买判定收成判别式结果——并把一个被旧用例盖住的 500 挖出来
+
+购买路由此前靠比对 `purchaseMarketplaceItem` 抛出的四句英文翻码；句子是内部措辞，改一个词就会
+悄悄改掉 HTTP 状态码（#149 已对 update/delete 收过同一口径）。这一片把购买也收进判别式结果：
+
+- 域层 `PurchaseResult`：`{ok:true,purchaseId,pricePaid}` /
+  `{ok:false,reason:'not_found'|'free_item'|'own_item'|'already_purchased'}`。私有草稿仍是
+  `not_found`（"没上架"与"不存在"对买家是同一个答案，不留下可分辨的差别）；未知异常仍 throw →
+  路由 500（"买家不该买"与"系统出错"不是一件事）。
+- 路由按 reason 翻码 404/400；界面的购买失败改念正文里的中文 `message`（此前只显示笼统的失败）。
+- **并发重复购买这条支路此前从未成功过**：撞唯一索引时 `isUniqueViolation` 只看顶层 `.code`，
+  而 drizzle 把驱动错误包在 `DrizzleQueryError` 里、`23505` 在 **cause 链**上——函数一直返回
+  false，输家以 500 的形状出现。旧并发用例只数"恰好 1 个 fulfilled"、不看被拒者的 reason，
+  把它盖住了。现在沿 cause 链走几步再判：输家回 `already_purchased`，事务回滚、一分不扣。
+- 见证：市场九套件 + id-shape **129/129** 绿（settle 并发用例拿到 `ok:true |
+  ok:false:already_purchased`；visibility 7 → 9 条——自己的公开条目 400 `own_item`、路由层重复购买
+  400 `already_purchased`；id-shape 30 条按结果形状断言）；tsc / eslint 0。
+- 仍未动：`settlePurchase` 仍以句子区分 'Already settled' / 'No revenue to split'，购买路由的
+  settle catch 仍比对这两句——同一套口径的下一格。
