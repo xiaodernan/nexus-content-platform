@@ -5,6 +5,7 @@ import type { PriceCents, Tip, Subscription } from './monetization';
 import {
   tipGivenText,
   tipPayerText,
+  toPlanRow,
   toSubscriptionRow,
   toSubscriptionRows,
   toTipRow,
@@ -177,6 +178,34 @@ describe('economy — subscription rows (M8 v274)', () => {
   it('v333 — and a tip with no date says nothing rather than guessing', () => {
     expect(tipGivenText(null)).toBeNull();
     expect(tipGivenText(undefined)).toBeNull();
+  });
+
+  it('v344 — names WHEN the plan was opened', () => {
+    // The service has carried the instant since the plan's own beginning, and the profile page's plan bar
+    // said it since v342; the creator's OWN panel did not.
+    const row = toPlanRow({
+      planId: 'pro',
+      creatorId: 'acct-ada',
+      priceCents: 1500,
+      currency: 'CNY',
+      period: 'month',
+      active: true,
+      createdAt: 1_700_000_000_000,
+    })!;
+    expect(row.openedText).toBe('2023-11-14T22:13:20Z');
+  });
+
+  it('v344 — and a wire with NO instant says nothing rather than guessing', () => {
+    const row = toPlanRow({
+      planId: 'pro',
+      creatorId: 'acct-ada',
+      priceCents: 1500,
+      currency: 'CNY',
+      period: 'month',
+      active: true,
+      createdAt: null as unknown as number,
+    })!;
+    expect(row.openedText).toBeNull();
   });
 
   it('a row it cannot display honestly is dropped', () => {

@@ -163,6 +163,14 @@ export interface PlanRow {
   periodText: string;
   /** Whether the plan is still offered. */
   active: boolean;
+  /**
+   * v344 — WHEN the plan was opened, in a reader's words — or null when the wire did not say.
+   *
+   * <p>The service has carried the instant since the plan's own beginning, and the profile page's plan bar
+   * said it since v342; the creator's OWN panel did not. It is the same wire and the same clock, and a
+   * creator reading the plans they offer could not tell a long-standing plan from a fresh one.
+   */
+  openedText: string | null;
 }
 
 /**
@@ -190,6 +198,18 @@ export function planPeriodText(period: string): string {
  * A plan needs an id and a finite price to say what it is: a plan with no id is nobody's plan, and a plan
  * with no price is not an offer.
  */
+/**
+ * WHEN a plan was opened, in a reader's words — or null when the wire did not say.
+ *
+ * <p>The instant is the service's own, in UTC, in the same style as the profile bar's dates (v342) and the
+ * tip receipt's (v333): one clock, one style, so a reader comparing a plan's date with a tip's date is
+ * reading two dates written the same way.
+ */
+function planOpenedTextOf(createdAt: number | null | undefined): string | null {
+  if (typeof createdAt !== 'number' || !Number.isFinite(createdAt)) return null;
+  return new Date(createdAt).toISOString().replace('.000Z', 'Z');
+}
+
 export function toPlanRow(plan: unknown): PlanRow | null {
   if (typeof plan !== 'object' || plan === null) return null;
   const p = plan as EconomyPlan;
@@ -200,6 +220,9 @@ export function toPlanRow(plan: unknown): PlanRow | null {
     priceText: priceText(p.priceCents, p.currency),
     periodText: planPeriodText(typeof p.period === 'string' ? p.period : ''),
     active: p.active === true,
+    // v344 — and when it was opened. The instant is the service's own, in UTC, in the same style as the
+    // profile bar's dates (v342) and the tip receipt's (v333).
+    openedText: planOpenedTextOf(p.createdAt),
   };
 }
 

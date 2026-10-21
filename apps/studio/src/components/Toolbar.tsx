@@ -1155,6 +1155,13 @@ export default function Toolbar() {
                 >
                   <span>{row.planId}</span>
                   <span style={{ color: 'var(--nexus-muted)' }}>{row.priceText} · {row.periodText}</span>
+                  {/* v344 — and WHEN the plan was opened. The instant, not "3 days ago": a relative date goes
+                      stale the moment it is written, and a plan is a fact about the past that does not move. */}
+                  {row.openedText && (
+                    <span data-economy-plan-opened={row.openedText} style={{ color: 'var(--nexus-muted)' }}>
+                      · opened {row.openedText}
+                    </span>
+                  )}
                   {/* v314 — the offer can be taken away. The subscriptions already made against it keep
                       standing: retiring the OFFER is not cancelling the PROMISES. */}
                   {row.active && (

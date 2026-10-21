@@ -3487,6 +3487,38 @@ try {
     );
   }
 
+  // ── §56 v344: the economy panel says WHEN each plan was opened ────────────────────────────────────
+  // The wire has carried the instant since the plan’s own beginning, and the profile page’s plan bar
+  // said it since v342; the creator’s OWN panel did not.
+  {
+    const planPanelPage = await session.newPage('about:blank');
+    await planPanelPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(planPanelPage, 'the plan panel page to hydrate');
+    await signInAs(planPanelPage, 'ada', 'the creator whose plans are listed');
+    await planPanelPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const planOpenedShown = await until(
+      async () => (await planPanelPage.evaluate("!!document.querySelector('[data-economy-plan-opened]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the opened date of the plan to show' },
+    );
+    check('the economy panel says when each plan was opened', planOpenedShown !== null, 'the date is there');
+
+    // And the SERVICE agrees, read independently of the browser.
+    const planPanelService = await (await fetch(`${apiBase}/plans?creator=${encodeURIComponent(accountRecord?.id ?? '')}&limit=50`)).json();
+    const serviceOpened = (planPanelService.plans ?? [])
+      .map((p) => p.createdAt)
+      .filter((v) => typeof v === 'number')
+      .map((v) => new Date(v).toISOString());
+    const panelOpened = await planPanelPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-plan-opened]')).map((s) => s.getAttribute('data-economy-plan-opened'))",
+    );
+    check(
+      'the SERVICE agrees — the same instants the service recorded are the ones on the panel',
+      serviceOpened.length > 0 && serviceOpened.every((w) => panelOpened.includes(w)),
+      `the service: ${JSON.stringify(serviceOpened)} · the panel: ${JSON.stringify(panelOpened)}`,
+    );
+    await planPanelPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
