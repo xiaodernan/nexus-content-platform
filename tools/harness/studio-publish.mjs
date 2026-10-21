@@ -2464,6 +2464,46 @@ try {
     await cancelPage.close();
   }
 
+  // ── §25 v311: the trail records the REPORT verbs ────────────────────────────────────────────────
+  // A report is something that HAPPENED to a publication, and the trail is where a reader looks for
+  // what happened — so the filing, the withdrawal and the owner’s acknowledgement are all written down.
+  // The section reads the panel AND the service, because the panel could be showing its own copy.
+  {
+    const reportTrailPage = await session.newPage('about:blank');
+    await reportTrailPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(reportTrailPage, 'the trail page to hydrate');
+    await reportTrailPage.evaluate("document.querySelector('[data-toolbar-trail-toggle]').click()");
+
+    const reportEntry = await until(
+      async () => (await reportTrailPage.evaluate("!!document.querySelector('[data-trail-action=\"report\"]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the report to reach the trail' },
+    );
+    check('the trail carries the report that was filed', reportEntry !== null, 'the entry is there');
+
+    const withdrawEntry = await until(
+      async () => (await reportTrailPage.evaluate("!!document.querySelector('[data-trail-action=\"withdraw-report\"]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the withdrawal to reach the trail' },
+    );
+    check('and the withdrawal of it', withdrawEntry !== null, 'the entry is there');
+
+    const acknowledgeEntry = await until(
+      async () => (await reportTrailPage.evaluate("!!document.querySelector('[data-trail-action=\"acknowledge\"]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the acknowledgement to reach the trail' },
+    );
+    check('and the owner\u2019s acknowledgement of it (v304)', acknowledgeEntry !== null, 'the entry is there');
+
+    // And the SERVICE agrees, read independently of the browser.
+    const auditRead = await fetch(`${apiBase}/audit?limit=100`);
+    const auditBody = await auditRead.json();
+    const actions = (auditBody.entries ?? []).map((e) => e.action);
+    check(
+      'the SERVICE agrees — read back independently of the browser',
+      auditRead.status === 200 && actions.includes('report') && actions.includes('withdraw-report') && actions.includes('acknowledge'),
+      `actions: ${JSON.stringify(actions)}`,
+    );
+    await reportTrailPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
