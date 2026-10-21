@@ -7,6 +7,23 @@
  */
 import { toPlanRows, toSubscriptionRows, toTipRows, type PlanRow, type SubscriptionRow, type TipRow } from './economy';
 
+/**
+ * v338 — how long this lane waits for the Studio.
+ *
+ * <p>The Studio's own door is a `next dev` server, and the FIRST call to a route pays that route's
+ * compile — so a lane with no budget could be killed by a slow COMPILE and report it as a failure
+ * of the thing it was asking for. That is the same mistake the tip lane fixed in v294, and the
+ * other lanes have been waiting their turn.
+ *
+ * <p>45 seconds, not 10: the compile is the cost, and a compile is not a hung service.
+ */
+const WRITE_TIMEOUT_MS = 45_000;
+
+/** A signal that stops a call that the Studio does not answer in time. */
+function callSignal(): AbortSignal {
+  return AbortSignal.timeout(WRITE_TIMEOUT_MS);
+}
+
 export interface EconomyAnswer {
   ok: boolean;
   subscriptions?: SubscriptionRow[];
@@ -31,6 +48,7 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
   try {
     const res = await fetchImpl(`/api/economy?account=${encodeURIComponent(accountId)}`, {
       headers: { accept: 'application/json' },
+      signal: callSignal(),
     });
     if (!res.ok) {
       let why = `the economy answered HTTP ${res.status}`;

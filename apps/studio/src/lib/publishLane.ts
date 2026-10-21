@@ -13,6 +13,38 @@ import { ownerClaim, type AccountRecord, type OwnerClaim } from './accounts';
 import { currentAccount } from './currentAccount';
 
 /**
+ * v338 — how long this lane waits for the Studio.
+ *
+ * <p>The Studio's own door is a `next dev` server, and the FIRST call to a route pays that route's
+ * compile — so a lane with no budget could be killed by a slow COMPILE and report it as a failure
+ * of the thing it was asking for. That is the same mistake the tip lane fixed in v294, and the
+ * other lanes have been waiting their turn.
+ *
+ * <p>45 seconds, not 10: the compile is the cost, and a compile is not a hung service.
+ */
+const WRITE_TIMEOUT_MS = 45_000;
+
+/** A signal that stops a call that the Studio does not answer in time. */
+function callSignal(): AbortSignal {
+  return AbortSignal.timeout(WRITE_TIMEOUT_MS);
+}
+
+/**
+ * Why a call to the Studio did not answer.
+ *
+ * <p>A TIMEOUT is not an unreachable Studio: the Studio is very probably there, compiling the route it
+ * was asked for. Saying "unreachable" about a slow answer is the same kind of lie the house's rule
+ * about failed reads is about — a reader who is told the thing is gone when it is only late stops
+ * looking for it.
+ */
+function studioUnreachableReason(error: unknown): string {
+  if (error instanceof Error && error.name === 'TimeoutError') {
+    return `the Studio did not answer within ${WRITE_TIMEOUT_MS / 1000} seconds`;
+  }
+  return `studio server unreachable: ${error instanceof Error ? error.message : String(error)}`;
+}
+
+/**
  * M7 v263 — WHERE THE LANE ASKS "who is this device publishing as?".
  *
  * The account lives in the BROWSER's storage, and the service is one hop behind the Studio's own route, so
@@ -66,11 +98,11 @@ export interface PublishLaneAnswer {
 
 export async function probePublish(): Promise<PublishLaneProbe> {
   try {
-    const res = await fetch('/api/publish', { cache: 'no-store' });
+    const res = await fetch('/api/publish', { cache: 'no-store', signal: callSignal() });
     if (!res.ok) return { available: false, apiBase: '', reason: `publish route answered ${res.status}` };
     return (await res.json()) as PublishLaneProbe;
   } catch (e) {
-    return { available: false, apiBase: '', reason: `studio server unreachable: ${e instanceof Error ? e.message : String(e)}` };
+    return { available: false, apiBase: '', reason: studioUnreachableReason(e) };
   }
 }
 
@@ -96,6 +128,7 @@ export async function publishProject(
   try {
     const res = await fetch('/api/publish', {
       method: 'POST',
+      signal: callSignal(),
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action: 'publish', projectId, title, document, ...(claim ? { owner: claim } : {}) }),
     });
@@ -103,7 +136,7 @@ export async function publishProject(
     if (parsed && typeof parsed === 'object') return parsed as PublishLaneAnswer;
     return { ok: false, reason: `publish route answered ${res.status} with a non-JSON body` };
   } catch (e) {
-    return { ok: false, reason: `studio server unreachable: ${e instanceof Error ? e.message : String(e)}` };
+    return { ok: false, reason: studioUnreachableReason(e) };
   }
 }
 
@@ -112,6 +145,7 @@ export async function readPublished(projectId: string): Promise<PublishLaneAnswe
   try {
     const res = await fetch('/api/publish', {
       method: 'POST',
+      signal: callSignal(),
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action: 'read', projectId }),
     });
@@ -119,7 +153,7 @@ export async function readPublished(projectId: string): Promise<PublishLaneAnswe
     if (parsed && typeof parsed === 'object') return parsed as PublishLaneAnswer & { document?: unknown };
     return { ok: false, reason: `publish route answered ${res.status} with a non-JSON body` };
   } catch (e) {
-    return { ok: false, reason: `studio server unreachable: ${e instanceof Error ? e.message : String(e)}` };
+    return { ok: false, reason: studioUnreachableReason(e) };
   }
 }
 
@@ -171,6 +205,7 @@ export async function listPublished(limit: number, owner?: string): Promise<Publ
   try {
     const res = await fetch('/api/publish', {
       method: 'POST',
+      signal: callSignal(),
       headers: { 'content-type': 'application/json' },
       // v270 — an owner narrows the listing to ONE account's publications (a profile). A blank owner is
       // the ABSENCE of one, so it is not sent: "the publications of nobody" is not the whole table.
@@ -180,7 +215,7 @@ export async function listPublished(limit: number, owner?: string): Promise<Publ
     if (parsed && typeof parsed === 'object') return parsed as PublishLaneListing;
     return { ok: false, reason: `publish route answered ${res.status} with a non-JSON body` };
   } catch (e) {
-    return { ok: false, reason: `studio server unreachable: ${e instanceof Error ? e.message : String(e)}` };
+    return { ok: false, reason: studioUnreachableReason(e) };
   }
 }
 
@@ -201,6 +236,7 @@ export async function unpublish(
   try {
     const res = await fetch('/api/publish', {
       method: 'POST',
+      signal: callSignal(),
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action: 'unpublish', projectId, ...(who ? { claimer: who } : {}) }),
     });
@@ -208,6 +244,6 @@ export async function unpublish(
     if (parsed && typeof parsed === 'object') return parsed as PublishLaneRemoval;
     return { ok: false, reason: `publish route answered ${res.status} with a non-JSON body` };
   } catch (e) {
-    return { ok: false, reason: `studio server unreachable: ${e instanceof Error ? e.message : String(e)}` };
+    return { ok: false, reason: studioUnreachableReason(e) };
   }
 }

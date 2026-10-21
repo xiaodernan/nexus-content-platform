@@ -38,6 +38,22 @@ describe('publishLane — publishProject (client half)', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
+  it('v338 — the call to the Studio carries a signal, so a slow COMPILE cannot hang the lane', async () => {
+    // The Studio's own door is a `next dev` server, and the FIRST call to a route pays that route's
+    // compile. A lane with no budget could be killed by a slow compile and report it as a failure of the
+    // thing it was asking for — the same mistake the tip lane fixed in v294.
+    let seen: AbortSignal | undefined;
+    globalThis.fetch = vi.fn(async (_url: string, init?: { signal?: AbortSignal }) => {
+      seen = init?.signal ?? undefined;
+      return new Response(JSON.stringify({ ok: true, projectId: 'doc-1' }), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const answer = await publishProject('doc-1', 'Harbour', { pages: [] });
+
+    expect(answer.ok).toBe(true);
+    expect(seen).toBeInstanceOf(AbortSignal);
+  });
+
   it('omits owner from the body when not provided (pre-v242-compatible)', async () => {
     const fetchImpl = makeFetch((_url, body) => {
       expect(body.owner).toBeUndefined();
