@@ -125,6 +125,17 @@ describe('economy — subscription rows (M8 v274)', () => {
     expect(toSubscriptionRow({ ...sub(), endedAt: null })!.endedText).toBeNull();
   });
 
+  it('v329 — names WHEN the support began', () => {
+    // The other half of the pair v328 completed: a creator could see when a subscription ENDED and not
+    // when it STARTED, and a relationship is two dates.
+    const row = toSubscriptionRow({ ...sub(), subscribedAt: 1_700_000_000_000 })!;
+    expect(row.startedText).toBe('2023-11-14T22:13:20Z');
+  });
+
+  it('v329 — and a wire with no start says nothing rather than guessing', () => {
+    expect(toSubscriptionRow({ ...sub(), subscribedAt: null })!.startedText).toBeNull();
+  });
+
   it('a row it cannot display honestly is dropped', () => {
     expect(toSubscriptionRow(null)).toBeNull();
     expect(toSubscriptionRow('string')).toBeNull();

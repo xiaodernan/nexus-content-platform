@@ -1042,6 +1042,11 @@ export default function Toolbar() {
                     {row.endedText && (
                       <span data-economy-ended={row.endedText}> · took it back on {row.endedText}</span>
                     )}
+                    {/* v329 — and WHEN the support began: a relationship is two dates, and the wire
+                        has carried the beginning since v300. */}
+                    {row.startedText && (
+                      <span data-economy-started={row.startedText}> · since {row.startedText}</span>
+                    )}
                   </span>
                   <span style={{ color: 'var(--nexus-muted)' }}>{row.statusText}</span>
                 </li>

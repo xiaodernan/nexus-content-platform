@@ -3066,6 +3066,40 @@ try {
     await endedPage.close();
   }
 
+  // ── §43 v329: the creator sees WHEN the support began ─────────────────────────────────────────────
+  // The other half of the pair v328 completed: a relationship is two dates, and the panel said one of
+  // them. The wire has carried the beginning since v300 — the panel just never said it.
+  {
+    const startedPage = await session.newPage('about:blank');
+    await startedPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(startedPage, 'the started page to hydrate');
+    await signInAs(startedPage, 'ada', 'the creator whose plan was backed');
+    await startedPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+
+    const startedShown = await until(
+      async () => (await startedPage.evaluate("!!document.querySelector('[data-economy-started]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the start to show on the received row' },
+    );
+    check('the creator’s received row says WHEN the support began', startedShown !== null, 'the start is there');
+
+    // And the SERVICE agrees, read independently of the browser.
+    const startedRaw = await startedPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const startedOwner = JSON.parse(String(startedRaw)).id;
+    const startedSubs = await fetch(`${apiBase}/subscriptions?creator=${encodeURIComponent(startedOwner)}&limit=50`);
+    const startedSubsBody = await startedSubs.json();
+    const serviceStarted = (startedSubsBody.subscriptions ?? []).map((s) => s.subscribedAt).filter((v) => typeof v === 'number');
+    const panelStarted = await startedPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-started]')).map((s) => s.getAttribute('data-economy-started'))",
+    );
+    check(
+      'the SERVICE agrees — it sends the same start it recorded',
+      startedSubs.status === 200 && serviceStarted.length > 0 && panelStarted.length > 0
+        && panelStarted.every((p) => serviceStarted.some((v) => new Date(v).toISOString().replace('.000Z', 'Z') === p)),
+      `the service: ${JSON.stringify(serviceStarted)} · the panel: ${JSON.stringify(panelStarted)}`,
+    );
+    await startedPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

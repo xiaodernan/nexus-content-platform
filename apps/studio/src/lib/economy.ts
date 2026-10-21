@@ -107,6 +107,14 @@ export interface SubscriptionRow {
    * words the service does.
    */
   endedText: string | null;
+  /**
+   * v329 — WHEN the support began, in a reader's words.
+   *
+   * <p>The other half of the pair v328 completed: a creator looking at a subscription could see when it
+   * ENDED and not when it STARTED, and a relationship is two dates. The wire has carried
+   * `subscribedAt` since v300 — the panel just never said it.
+   */
+  startedText: string | null;
 }
 
 /**
@@ -238,6 +246,18 @@ export function subscriptionStandingText(standing: SubscriptionStanding): string
  * A row needs a planId and a finite price to say what it costs.
  */
 /**
+ * WHEN the support began, in a reader's words — or null when the wire did not say.
+ *
+ * <p>Same shape as the ending: a fact about a machine (the service's own clock), formatted the same way
+ * the ending is, so a reader sees two dates in one style.
+ */
+function startedTextOf(sub: EconomySubscription): string | null {
+  const started = typeof sub.subscribedAt === 'number' && Number.isFinite(sub.subscribedAt) ? sub.subscribedAt : null;
+  if (started === null) return null;
+  return new Date(started).toISOString().replace('.000Z', 'Z');
+}
+
+/**
  * WHEN the subscription was taken back, in a reader's words — or null when it was not.
  *
  * <p>The instant is the service's own (v328): the creator is told when the supporter took it back, and
@@ -295,6 +315,8 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
     subscriberText: subscriberTextOf(s),
     // v328 — and when it was taken back, when it was.
     endedText: endedTextOf(s),
+    // v329 — and when the support began.
+    startedText: startedTextOf(s),
     // v313 — and the note, for a subscription that ended: it cannot be made again, and the panel says why
     // rather than leaving the reader hunting for a button that does not exist.
     renewNote:
