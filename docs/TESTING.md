@@ -1838,3 +1838,14 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
 - **2026-10-21：`components.test.ts` 补一条自洽断言**——`applyInstanceOverrides` 从
   `instance.id` 起收（rootId 指它、nodes 表含它才自洽），加 `r.nodes[instance.id]` 必定义，
   把"clone 从实例本体开始收"这条钉死。
+
+- **2026-10-21：写 `validatePage` 首份直接覆盖时抓到真缺陷**（`patch.ts` 的 `collectSubtree`）——
+  它算可达性用 naive 递归、**无 visited 守卫**，畸形文档（a→b→a 成环）会让它**栈溢出**
+  （`RangeError: Maximum call stack size exceeded`）。而 `validatePage` 是**先调 `collectSubtree`
+  求 reachable、再跑自己的 cycle 检测**（`validate.ts:148`）——于是本意"报 cycle"的校验器，
+  遇到环是**整个崩溃**（保存 / 质量门直接挂），而旁边注释还写着"按 error 挡在写入侧"。
+  - **修法**：`collectSubtree` 加 `seen` 守卫——**无环树输出逐项不变**（全 design-model 308 条回归绿作证），
+    成环时不再无限递归，让上游 cycle 检测有机会报 `cycle`；顺带护住 `remove` / `reparent` 补丁。
+  - **回归探针**：`validate.test.ts` 的"真正成环 → cycle"这一条，**未修时是崩的（RangeError）、修完转绿**——天然红→绿证据。
+  - `validate.test.ts` 补 `validatePage` 首份直接覆盖 9 条：干净页无 issue / 缺根 empty-page（早返回）/
+    未知类型 / 缺 style / 缺 layout / 引用不存在子 / 父子不一致→cycle / DFS 成环→cycle / 不可达→orphan(warning)。

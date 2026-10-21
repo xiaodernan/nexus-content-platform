@@ -516,9 +516,13 @@ function applyDocumentOp(
 
 export function collectSubtree(page: Page, id: string): string[] {
   const out: string[] = [];
+  const seen = new Set<string>();
   const visit = (nodeId: string) => {
     const node = page.nodes[nodeId];
     if (!node) return;
+    // 防环：畸形文档（a→b→a）会让 naive 递归栈溢出；加 seen 后无环树的输出不变
+    if (seen.has(nodeId)) return;
+    seen.add(nodeId);
     out.push(nodeId);
     for (const child of node.children) visit(child);
   };
