@@ -1719,9 +1719,12 @@ try {
       `the panel says: ${JSON.stringify(economyNote)}`,
     );
     check(
-      'and it says what has NOT been built — the subscriptions need a plan catalog',
-      (await tipPage.evaluate("document.querySelector('[data-toolbar-economy]')?.textContent ?? ''")).includes('subscriptions are not built'),
-      'the panel names the gap instead of faking an empty feature',
+      'and it no longer claims the subscriptions are unbuilt — v301 built them and v309 shows them',
+      // The panel used to name this gap honestly ("subscriptions are not built yet"), and it was RIGHT to
+      // then. A panel that says a true thing about a feature that has since arrived is still telling the
+      // reader something false — so the claim goes, and the check follows it.
+      !(await tipPage.evaluate("document.querySelector('[data-toolbar-economy]')?.textContent ?? ''")).includes('subscriptions are not built'),
+      'the panel names what is there instead of a gap that closed',
     );
 
     // LAST, because it clears the device’s account: a tip with no payer is not a fact anyone can act on.
@@ -2133,6 +2136,51 @@ try {
       `the target\u2019s reports: ${JSON.stringify(targetBody.reports)}`,
     );
     await withdrawPage.close();
+  }
+
+  // ── §23 v309: the economy panel shows the SUBSCRIPTIONS and the PLANS, for real ──────────────────
+  // The panel used to say "subscriptions are not built yet" — TRUE when v274 wrote it, and FALSE once
+  // v301 built the service’s plans and subscriptions. A panel that says a true thing about a feature that has
+  // since arrived is still telling the reader something false, and nobody notices a panel going stale.
+  {
+    const economyPage = await session.newPage('about:blank');
+    await economyPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(economyPage, 'the economy page to hydrate');
+
+    // The SUBSCRIBER: the account that backs a plan (§18 made this subscription).
+    await signInAs(economyPage, 'bob', 'the subscriber');
+    // The page is RELOADED after the sign-in: the panel reads when it is OPENED, and a panel left open
+    // across an account change would be showing the previous account's economy.
+    await economyPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(economyPage, 'the subscriber’s economy page to hydrate');
+    await economyPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const subscriptionRow = await until(
+      async () => (await economyPage.evaluate("!!document.querySelector('[data-economy-subscription]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the subscription to show in the panel' },
+    );
+    check('the economy panel shows the subscription the account holds', subscriptionRow !== null, 'the row is there');
+
+    const subscriptionStatus = await economyPage.evaluate("document.querySelector('[data-economy-subscription]')?.getAttribute('data-economy-subscription-status') ?? ''");
+    check('and it says where the subscription STANDS (v308)', subscriptionStatus === 'Active', `status: ${JSON.stringify(subscriptionStatus)}`);
+
+    // And the CREATOR: the account that offers the plan.
+    await signInAs(economyPage, 'ada', 'the creator');
+    await economyPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(economyPage, 'the creator’s economy page to hydrate');
+    await economyPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const planRow = await until(
+      async () => (await economyPage.evaluate("!!document.querySelector('[data-economy-plan]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the plan to show in the panel' },
+    );
+    check('and the creator sees the plan they offer', planRow !== null, 'the plan row is there');
+
+    const planText = await economyPage.evaluate("document.querySelector('[data-economy-plan]')?.textContent ?? ''");
+    check('and it says what it costs and for how long', planText.includes('15.00') && planText.includes('per month'), `the plan says: ${JSON.stringify(planText)}`);
+
+    // And the panel no longer claims the feature is unbuilt.
+    const panelText = await economyPage.evaluate("document.querySelector('[data-toolbar-economy]')?.textContent ?? ''");
+    check('and the panel no longer says the subscriptions are unbuilt', !panelText.includes('not built yet'), `the panel says: ${JSON.stringify(panelText.slice(0, 200))}`);
+    await economyPage.close();
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────

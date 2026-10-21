@@ -5,6 +5,7 @@ import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
 import { readTrail, type TrailAnswer } from '@/lib/auditLane';
 import { filterTrailRows, trailSummaryOf, trailSummaryText } from '@/lib/trail';
 import { readMyTips } from '@/lib/tipLane';
+import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
 import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { priceText } from '@/lib/economy';
@@ -139,6 +140,13 @@ export default function Toolbar() {
    * count would be showing a number the service never said.
    */
   const [showEconomy, setShowEconomy] = useState(false);
+  /**
+   * v309 — the account's own side of the economy: the subscriptions it HOLDS and the plans it OFFERS.
+   *
+   * <p>It is a state of its own because the tips and the subscriptions are two DIFFERENT reads of two
+   * different doors — and one of them failing must not blank the other.
+   */
+  const [economyAccount, setEconomyAccount] = useState<EconomyAnswer | null>(null);
   const [economy, setEconomy] = useState<{
     ok: boolean;
     tips: { amountCents: number; message: string; anonymous: boolean }[];
@@ -165,6 +173,9 @@ export default function Toolbar() {
       return;
     }
     setEconomy(await readMyTips(account.id));
+    // v309 — and the account's own half: the subscriptions it holds and the plans it offers. The service
+    // computes the subscriptions’ standing (v308), so the panel shows the service’s word.
+    setEconomyAccount(await readEconomy(account.id));
   };
 
   const onToggleEconomy = async () => {
@@ -788,14 +799,58 @@ export default function Toolbar() {
                   </li>
                 ))}
               </ul>
-              {/* v299 — the SUBSCRIPTIONS are still not built, and the panel says so: a subscription needs a
-                  PLAN CATALOG (who sets the price and the period), and that is a product decision this
-                  build has not made. The panel does not show a fake ‘no subscriptions’ as though the
-                  feature were there and empty. */}
-              <div style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>
-                subscriptions are not built yet — a subscription needs a plan catalog, and that is a product decision
-              </div>
             </>
+          )}
+          {/* v309 — the SUBSCRIPTIONS and the PLANS, for real. The panel used to say "subscriptions are not
+              built yet", which was TRUE when v274 wrote it and stopped being true when v301 built the
+              service’s plans and subscriptions — a panel goes stale without anybody noticing, and a panel
+              that says a true thing about a feature that has since arrived is still telling the reader
+              something false. */}
+          <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 8 }}>Subscriptions</div>
+          {economyAccount === null ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
+          ) : !economyAccount.ok ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>could not read: {economyAccount.reason}</div>
+          ) : (economyAccount.subscriptions ?? []).length === 0 ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>this account backs no plan</div>
+          ) : (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {(economyAccount.subscriptions ?? []).map((row, i) => (
+                <li
+                  key={i}
+                  data-economy-subscription={row.planId}
+                  data-economy-subscription-status={row.statusText}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '3px 0' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <span>{row.planId} — {row.priceText}</span>
+                    <span style={{ color: 'var(--nexus-muted)' }}>{row.statusText}</span>
+                  </div>
+                  <div style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>{row.daysLeftText}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 8 }}>Your plans</div>
+          {economyAccount === null ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
+          ) : !economyAccount.ok ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>could not read: {economyAccount.reason}</div>
+          ) : (economyAccount.plans ?? []).length === 0 ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>this account offers no plan</div>
+          ) : (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {(economyAccount.plans ?? []).map((row, i) => (
+                <li
+                  key={i}
+                  data-economy-plan={row.planId}
+                  style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0' }}
+                >
+                  <span>{row.planId}</span>
+                  <span style={{ color: 'var(--nexus-muted)' }}>{row.priceText} · {row.periodText}</span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}

@@ -1,19 +1,60 @@
 import { NextResponse } from 'next/server';
 
+import { readPlans, readSubscriptions } from '@/lib/economyServer';
+
 /**
- * M8 v274 (ADR 0016 amendment 274): `/api/economy` — this Studio's door onto the
- * creator-economy service (which does not exist yet; ADR 0018 blocks accounts/
- * sessions/tokens, so there is no server to call).
+ * M7 v309 (ADR 0016 amendment 309): `/api/economy` — this Studio's door onto the creator economy.
  *
- * The route is `force-dynamic` and answers with a REASON, not an error, so the
- * panel can say "the economy door is not built" honestly rather than throwing.
+ * <p>v274 left this door as a PLACEHOLDER that answered "not built" (ADR 0018 blocked server endpoints),
+ * and v301 built the service's plans and subscriptions — so the panel had been saying a true thing about
+ * a feature that had since been built, which is the way a panel goes stale without anybody noticing.
+ *
+ * <p>The route is `force-dynamic`: the answer is a database read, and caching it would be storing a
+ * system of record's contents in a place the next write cannot invalidate.
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<NextResponse> {
+/**
+ * READ the economy of one account: the subscriptions it holds and the plans it offers.
+ *
+ * <p>The account is named in the query. This build has no session (ADR 0018), so the account the device
+ * holds is the claim the service compares — the same claim the take-down and the withdrawal name.
+ *
+ * <p>A failed read is NOT an empty economy: the panel says why it could not read, rather than showing
+ * "no subscriptions" and being wrong.
+ */
+export async function GET(request: Request): Promise<NextResponse> {
+  const account = new URL(request.url).searchParams.get('account');
+  if (!account || account.trim() === '') {
+    return NextResponse.json(
+      { ok: false, reason: 'the economy belongs to an account, and this request names none' },
+      { status: 400 },
+    );
+  }
+  const asked = Number(new URL(request.url).searchParams.get('limit') ?? '20');
+  const limit = Number.isFinite(asked) && asked > 0 ? Math.trunc(asked) : 20;
+  const [subscriptions, plans] = await Promise.all([
+    readSubscriptions(account.trim(), limit),
+    readPlans(account.trim(), limit),
+  ]);
+  // The economy is only READABLE when both halves are: a panel that showed the plans and hid the
+  // subscriptions would be showing half an account.
+  if (!subscriptions.ok) {
+    return NextResponse.json({ ok: false, reason: subscriptions.reason }, { status: 502 });
+  }
+  if (!plans.ok) {
+    return NextResponse.json({ ok: false, reason: plans.reason }, { status: 502 });
+  }
   return NextResponse.json(
-    { ok: false, reason: 'the economy door is not built: server endpoints require ADR 0018 (accounts, sessions, tokens)' },
-    { status: 503 },
+    {
+      ok: true,
+      subscriptions: subscriptions.subscriptions,
+      totalCents: subscriptions.totalCents,
+      subscriptionCount: subscriptions.count,
+      plans: plans.plans,
+      planCount: plans.count,
+    },
+    { status: 200 },
   );
 }

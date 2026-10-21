@@ -55,6 +55,81 @@ export interface SubscriptionRow {
   isActive: boolean;
 }
 
+/**
+ * What the service's PLAN row would carry.
+ *
+ * <p>The plan is the CREATOR's own offer — what they set, at what price, for what period. The client does
+ * not decide any of it: the service holds the price and the period, and the plan is the creator's claim.
+ */
+export interface EconomyPlan {
+  planId: string;
+  creatorId: string;
+  priceCents: PriceCents;
+  currency: Currency;
+  /** One of the service's three: `once`, `month` or `year`. */
+  period: string;
+  active: boolean;
+  createdAt: number;
+}
+
+/** A plan reduced to the facts a creator can act on. */
+export interface PlanRow {
+  planId: string;
+  priceText: string;
+  /** The period in a reader's words. */
+  periodText: string;
+  /** Whether the plan is still offered. */
+  active: boolean;
+}
+
+/**
+ * The period in a reader's words.
+ *
+ * A KNOWN period is spelled the way a person would say it; an unknown one is passed through as it arrived
+ * — a panel that labelled an unknown period as "per month" would be claiming a term the creator never set.
+ */
+export function planPeriodText(period: string): string {
+  switch (period) {
+    case 'once':
+      return 'one time';
+    case 'month':
+      return 'per month';
+    case 'year':
+      return 'per year';
+    default:
+      return period;
+  }
+}
+
+/**
+ * One plan, or `null` when it cannot be shown honestly.
+ *
+ * A plan needs an id and a finite price to say what it is: a plan with no id is nobody's plan, and a plan
+ * with no price is not an offer.
+ */
+export function toPlanRow(plan: unknown): PlanRow | null {
+  if (typeof plan !== 'object' || plan === null) return null;
+  const p = plan as EconomyPlan;
+  if (typeof p.planId !== 'string' || p.planId.length === 0) return null;
+  if (typeof p.priceCents !== 'number' || !Number.isFinite(p.priceCents)) return null;
+  return {
+    planId: p.planId,
+    priceText: priceText(p.priceCents, p.currency),
+    periodText: planPeriodText(typeof p.period === 'string' ? p.period : ''),
+    active: p.active === true,
+  };
+}
+
+/** The plans, in the order the service gave them. */
+export function toPlanRows(plans: readonly unknown[]): PlanRow[] {
+  const rows: PlanRow[] = [];
+  for (const plan of plans) {
+    const row = toPlanRow(plan);
+    if (row) rows.push(row);
+  }
+  return rows;
+}
+
 /** A tip reduced to display text. */
 export interface TipRow {
   recipientId: string;
