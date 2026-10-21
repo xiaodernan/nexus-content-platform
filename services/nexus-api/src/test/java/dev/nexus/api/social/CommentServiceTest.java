@@ -187,12 +187,33 @@ class CommentServiceTest {
     void theListCarriesTheRowsAndTheVisibleCount() {
         when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
                 .thenReturn(List.of(row("c-1", "acct-ada", false), row("c-2", "acct-bob", true), row("c-3", "acct-ada", false)));
+        when(repository.countByTargetProjectIdAndDeletedFalse("pub-1")).thenReturn(2L);
 
         CommentService.CommentResult result = service.commentsOf("pub-1", 20);
 
         assertThat(result.comments()).hasSize(3);
         // A list of three of which one was removed must not be read as "there are three comments".
         assertThat(result.visible()).isEqualTo(2);
+        // v354 — and the WINDOW's own count, beside the whole thread's: the two are different sizes and
+        // the caller needs both to say which is which.
+        assertThat(result.shownVisible()).isEqualTo(2);
+    }
+
+    // ── v354: the visible count is the WHOLE THREAD's, not the window's ────────────────────────────
+
+    @Test
+    void theVisibleCountIsTheWholeThreadsNotTheWindows() {
+        // The window holds three rows, of which one was taken back; the thread itself holds thirty-four
+        // visible comments. A page that quoted the window would say "2 comments" about a thread of
+        // thirty-four, and that is the kind of small lie this house does not tell.
+        when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
+                .thenReturn(List.of(row("c-1", "acct-ada", false), row("c-2", "acct-bob", true), row("c-3", "acct-ada", false)));
+        when(repository.countByTargetProjectIdAndDeletedFalse("pub-1")).thenReturn(34L);
+
+        CommentService.CommentResult result = service.commentsOf("pub-1", 20);
+
+        assertThat(result.visible()).isEqualTo(34L);
+        assertThat(result.shownVisible()).isEqualTo(2);
     }
 
     @Test

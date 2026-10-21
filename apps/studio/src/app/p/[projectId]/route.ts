@@ -128,7 +128,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
     // v286 — the COMMENTS. Read independently again: a comments door that could not be read leaves the
     // section out rather than claiming the publication has no comments.
     const commentSection = comments.ok
-      ? renderCommentsHtml(toCommentRows(comments.comments), comments.visible, decoded) + COMMENT_STYLES
+      ? renderCommentsHtml(toCommentRows(comments.comments), comments.visible, decoded, comments.limit) +
+        COMMENT_STYLES
       : '';
     return new Response(
       injectComments(

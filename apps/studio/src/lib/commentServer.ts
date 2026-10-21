@@ -27,8 +27,18 @@ export interface CommentEntry {
 export interface CommentsAnswer {
   ok: boolean;
   comments: CommentEntry[];
-  /** How many of the returned comments are NOT deleted. */
+  /**
+   * v354 — how many comments are VISIBLE, over the WHOLE thread.
+   *
+   * <p>Before this it was the WINDOW's visible count — so a page said "3 comments" when the thread held
+   * thirty-four, and quoted a window as if it were the thread.
+   */
   visible: number;
+  /**
+   * v354 — the cap the service applied, so the page can say the rows it is showing are a WINDOW of the
+   * thread and how big that window is.
+   */
+  limit?: number;
   reason?: string;
 }
 
@@ -63,7 +73,7 @@ export async function readComments(
     if (!parsed || typeof parsed !== 'object') {
       return { ok: false, comments: [], visible: 0, reason: 'the service answered its comments door with something that is not JSON' };
     }
-    const body = parsed as { comments?: unknown; visible?: unknown };
+    const body = parsed as { comments?: unknown; visible?: unknown; limit?: unknown };
     if (!Array.isArray(body.comments)) {
       return { ok: false, comments: [], visible: 0, reason: 'the service answered its comments door with no comments' };
     }
@@ -71,6 +81,8 @@ export async function readComments(
       ok: true,
       comments: body.comments as CommentEntry[],
       visible: typeof body.visible === 'number' ? body.visible : body.comments.length,
+      // v354 — and the cap the service applied, so the page can say the rows it shows are a WINDOW.
+      limit: typeof body.limit === 'number' ? body.limit : undefined,
     };
   } catch (error) {
     return {

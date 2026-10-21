@@ -83,7 +83,16 @@ public class CommentService {
      * comment was removed is better served than a reader who cannot tell a quiet thread from a deleted
      * one. The visible count is stated beside the rows so the two cannot be confused.
      */
-    public record CommentResult(String projectId, List<CommentEntry> comments, long visible) {
+    public record CommentResult(
+            String projectId,
+            List<CommentEntry> comments,
+            /**
+             * v354 — how many comments are VISIBLE, over the WHOLE table. The window's own count is a
+             * fact about the window; this is a fact about the thread.
+             */
+            long visible,
+            /** How many of the SHOWN rows are visible — the window's own count, beside the whole one. */
+            long shownVisible) {
     }
 
     /**
@@ -150,8 +159,12 @@ public class CommentService {
         String target = requireUsableProjectId(targetProjectId);
         int asked = limit <= 0 ? DEFAULT_COMMENT_LIMIT : Math.min(limit, MAX_COMMENT_LIMIT);
         List<CommentEntry> comments = repository.findByTargetProjectIdOrderByCreatedAtDesc(target, PageRequest.of(0, asked));
-        long visible = comments.stream().filter(c -> !c.isDeleted()).count();
-        return new CommentResult(target, comments, visible);
+        // v354 — the WHOLE thread's visible count (the database's count) beside the window's own.
+        // Quoting the window as if it were the thread would be the same kind of lie the bars were just
+        // fixed for: a page that says "3 comments" when the thread holds thirty-four.
+        long shownVisible = comments.stream().filter(c -> !c.isDeleted()).count();
+        long visible = repository.countByTargetProjectIdAndDeletedFalse(target);
+        return new CommentResult(target, comments, visible, shownVisible);
     }
 
     /**

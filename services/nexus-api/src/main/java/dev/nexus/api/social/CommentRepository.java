@@ -20,6 +20,15 @@ public interface CommentRepository extends JpaRepository<CommentEntry, String> {
     /** The comments of one publication, newest first, capped by the caller's `Pageable`. */
     List<CommentEntry> findByTargetProjectIdOrderByCreatedAtDesc(String targetProjectId, Pageable pageable);
 
+    /**
+     * v354 — how many comments on this publication are VISIBLE, over the WHOLE table.
+     *
+     * <p>The window's own visible count is not enough: a page that said "3 comments" when the thread
+     * holds thirty-four would be quoting a window as if it were the thread. The count is the DATABASE's
+     * count, so it is a fact about every row and not about the rows this reader happened to be shown.
+     */
+    long countByTargetProjectIdAndDeletedFalse(String targetProjectId);
+
     /** ONE comment by its own id — the row a delete or a read names. */
     Optional<CommentEntry> findByCommentId(String commentId);
 

@@ -120,9 +120,12 @@ describe('commentBar — the section on the page (M7 v286)', () => {
   });
 
   it('states the VISIBLE count beside the rows', () => {
+    // v354 — the count is the THREAD's (the service counts the whole thread now) and the note says how
+    // many of the shown rows were taken back, so the two numbers cannot be confused.
     const rows = toCommentRows([entry({ id: 'c-1' }), entry({ id: 'c-2', deleted: true })]);
     const html = renderCommentsHtml(rows, 1, 'pub-1');
-    expect(html).toContain('1 comment(s) visible of 2 shown');
+    expect(html).toContain('1 comment(s) visible');
+    expect(html).toContain('1 of them were taken back by their authors');
   });
 
   it('an empty thread says so, and says why it is not a one-click thing', () => {

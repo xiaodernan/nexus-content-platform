@@ -3588,6 +3588,21 @@ try {
     );
   }
 
+  // ── §60 v354: the page says how many comments are VISIBLE in the whole thread ────────────────────────
+  // The service counts the whole thread now (v354), so the page quotes a number that is about the
+  // THREAD and not about the window it happened to show.
+  {
+    const commentCountHtml = await (await fetch(`${studioBase}/p/${encodeURIComponent(remixProjectId ?? projectId)}`)).text();
+    const commentCountService = await (await fetch(`${apiBase}/comments?projectId=${encodeURIComponent(remixProjectId ?? projectId)}&limit=50`)).json();
+    const serviceVisible = commentCountService.visible;
+    check(
+      'the artifact page says how many comments are visible in the WHOLE thread',
+      typeof serviceVisible === 'number'
+        && commentCountHtml.includes(`${serviceVisible} comment(s) visible`),
+      `the service: ${JSON.stringify(serviceVisible)}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

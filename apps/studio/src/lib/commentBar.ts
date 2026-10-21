@@ -88,7 +88,12 @@ export function toCommentRows(entries: readonly unknown[]): CommentRow[] {
  * `visible` is the service's count of the comments that are NOT deleted, and it is stated beside the
  * rows: a list of three of which one was removed must not read as "there are three comments".
  */
-export function renderCommentsHtml(rows: CommentRow[], visible: number, projectId: string): string {
+export function renderCommentsHtml(
+  rows: CommentRow[],
+  visible: number,
+  projectId: string,
+  limit?: number,
+): string {
   const href = `/?comment=${encodeURIComponent(projectId)}`;
   const action = `<a class="nexus-comments-action" href="${escapeHtml(href)}" title="write a comment from the Studio">Add a comment</a>`;
   if (rows.length === 0) {
@@ -120,10 +125,22 @@ ${undo}
 </li>`;
     })
     .join('\n');
-  const more = visible < rows.length
-    ? `<p class="nexus-comments-note">${visible} comment(s) visible of ${rows.length} shown — the rest were taken back by their authors.</p>`
-    : `<p class="nexus-comments-note">${visible} comment(s).</p>`;
-  return `<section class="nexus-comments" data-comments="${rows.length}">
+  // v354 — three numbers, told apart: how many comments are visible in the WHOLE thread, how
+  // many of them are actually shown here, and how many of the shown ones were taken back. A page that
+  // said "3 comments" when the thread holds thirty-four would be quoting a window as if it were the
+  // thread.
+  const removed = rows.filter((row) => row.deleted).length;
+  const shownVisible = rows.length - removed;
+  const windowed = visible > shownVisible;
+  const parts = [`${visible} comment(s) visible`];
+  if (windowed) {
+    parts.push(`showing the ${rows.length} newest`);
+  }
+  if (removed > 0) {
+    parts.push(`— ${removed} of them were taken back by their authors`);
+  }
+  const more = `<p class="nexus-comments-note">${parts.join(' · ')}</p>`;
+  return `<section class="nexus-comments" data-comments="${visible}">
 <h2>COMMENTS</h2>
 <ul class="nexus-comment-list">
 ${items}
