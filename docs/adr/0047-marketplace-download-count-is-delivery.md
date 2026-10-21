@@ -183,3 +183,21 @@
   400 `already_purchased`；id-shape 30 条按结果形状断言）；tsc / eslint 0。
 - 仍未动：`settlePurchase` 仍以句子区分 'Already settled' / 'No revenue to split'，购买路由的
   settle catch 仍比对这两句——同一套口径的下一格。
+
+## 2026-10-21 补记（#152）：结算判定也收成判别式结果
+
+购买路径上的钱逻辑有两段，`purchaseMarketplaceItem` 在 #151 收口后，剩下 `settlePurchase`
+仍用英文句子传递"正常重复 / 无收入可分"。路由靠
+`msg !== 'Already settled' && msg !== 'No revenue to split'` 决定是否记错误日志——句子一改，
+日志就失真（把正常重复记成故障，或反过来把真故障静默掉）。
+
+- 域层 `SettleResult`：`{ok:true,splitId,amount}` /
+  `{ok:false,reason:'purchase_not_found'|'item_not_found'|'already_settled'|'no_revenue'}`。
+  `already_settled` 同时覆盖快路（查重命中）与唯一索引冲突（并发输家）；`no_revenue` 是价格 0；
+  只有写不进去这类真异常仍 throw。购买路由按 reason 判断：前两者静默，其余记日志。
+- **这一片没有新的行为洞**：#151 把 `isUniqueViolation` 修到 cause 链之后，并发结算的输家已经
+  能被翻成正常重复；这里只是把同一结局从句子换成判别式，并补齐此前没钉的结局。
+- 见证：settle 套件 3 → 6 条——串行二次结算（`already_settled`，分成与流水都只有一行）、
+  价格 0（`no_revenue`，不写分成/收入）、不存在的购买（`purchase_not_found`，不抛）、
+  并发结算（恰好一个 `ok:true` + 一个 `ok:false:already_settled`，不允许 rejected）；
+  市场九套件 + id-shape **132/132** 绿；tsc / eslint 0。

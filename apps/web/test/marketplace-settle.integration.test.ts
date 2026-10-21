@@ -77,8 +77,8 @@ const paidOut = async (): Promise<{ rows: number; total: number }> => {
   return { rows: list.length, total: list.reduce((sum, r) => sum + r.delta, 0) };
 };
 
-/** 一件只属于这一条用例的物品（价格固定），物品行不是只追加的，跑完能清 */
-const freshItem = async (): Promise<string> => {
+/** 一件只属于这一条用例的物品（价格默认固定），物品行不是只追加的，跑完能清 */
+const freshItem = async (price = PRICE): Promise<string> => {
   const rows = await getDb()
     .insert(marketplaceItems)
     .values({
@@ -87,7 +87,7 @@ const freshItem = async (): Promise<string> => {
       title: `并发用例的样本 ${stamp}`,
       description: '',
       visibility: 'public',
-      priceCredits: PRICE,
+      priceCredits: price,
     })
     .returning({ id: marketplaceItems.id });
   return rows[0]!.id;
@@ -169,7 +169,19 @@ describe('创作者分成：一笔购买只能分一次', () => {
       settlePurchase({ purchaseId: purchase.purchaseId }),
       settlePurchase({ purchaseId: purchase.purchaseId }),
     ]);
-    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    // 两条都必须有结局：一个 ok:true，一个 already_settled（快路或唯一索引，都是正常重复）。
+    // 若 isUniqueViolation 又退回只看顶层 code，这里会出现 rejected:Failed query（#151 的教训）
+    const debug = results.map((r) =>
+      r.status === 'fulfilled'
+        ? r.value.ok
+          ? 'ok:true'
+          : `ok:false:${r.value.reason}`
+        : `rejected:${r.reason instanceof Error ? r.reason.message : String(r.reason)}`,
+    );
+    expect(results.every((r) => r.status === 'fulfilled'), debug.join(' | ')).toBe(true);
+    const outcomes = results.map((r) => (r.status === 'fulfilled' ? r.value : null));
+    expect(outcomes.filter((o) => o?.ok === true)).toHaveLength(1);
+    expect(outcomes.filter((o) => o?.ok === false && o.reason === 'already_settled')).toHaveLength(1);
 
     const splits = await getDb()
       .select({ id: marketplaceSplits.id })
@@ -180,5 +192,60 @@ describe('创作者分成：一笔购买只能分一次', () => {
     const { rows, total } = await paidOut();
     expect(rows, `一笔购买却分了 ${rows} 次账：钱在事务外，唯一索引拦不住它`).toBe(1);
     expect(total).toBe(Math.floor(PRICE * SHARE));
+  });
+
+  it('两次串行结算：第二次 already_settled，钱只分一次', async () => {
+    const buyer = await freshBuyer('s4');
+    itemId = await freshItem();
+    const purchase = await purchaseMarketplaceItem({ itemId, buyerId: buyer });
+    expect(purchase.ok).toBe(true);
+    if (!purchase.ok) return;
+
+    const first = await settlePurchase({ purchaseId: purchase.purchaseId });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    expect(first.amount).toBe(Math.floor(PRICE * SHARE));
+
+    await expect(settlePurchase({ purchaseId: purchase.purchaseId })).resolves.toEqual({
+      ok: false,
+      reason: 'already_settled',
+    });
+
+    const splits = await getDb()
+      .select({ id: marketplaceSplits.id })
+      .from(marketplaceSplits)
+      .where(eq(marketplaceSplits.purchaseId, purchase.purchaseId));
+    expect(splits, '分成记录行应该只有一条').toHaveLength(1);
+    const { rows, total } = await paidOut();
+    expect(rows).toBe(1);
+    expect(total).toBe(Math.floor(PRICE * SHARE));
+  });
+
+  it('价格 0 的购买 → no_revenue，不写分成也不写收入流水', async () => {
+    const buyer = await freshBuyer('s5');
+    itemId = await freshItem(0);
+    const purchase = await purchaseMarketplaceItem({ itemId, buyerId: buyer });
+    expect(purchase.ok).toBe(true);
+    if (!purchase.ok) return;
+
+    await expect(settlePurchase({ purchaseId: purchase.purchaseId })).resolves.toEqual({
+      ok: false,
+      reason: 'no_revenue',
+    });
+
+    const splits = await getDb()
+      .select({ id: marketplaceSplits.id })
+      .from(marketplaceSplits)
+      .where(eq(marketplaceSplits.purchaseId, purchase.purchaseId));
+    expect(splits, '价格 0 不该有分成记录').toHaveLength(0);
+    const { rows, total } = await paidOut();
+    expect(rows, '价格 0 不该有收入流水').toBe(0);
+    expect(total).toBe(0);
+  });
+
+  it('不存在的购买 → purchase_not_found，不抛', async () => {
+    await expect(
+      settlePurchase({ purchaseId: '00000000-0000-4000-8000-000000000009' }),
+    ).resolves.toEqual({ ok: false, reason: 'purchase_not_found' });
   });
 });

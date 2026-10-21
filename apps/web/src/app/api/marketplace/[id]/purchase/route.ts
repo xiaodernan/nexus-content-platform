@@ -59,13 +59,13 @@ export async function POST(
 
     // 购买成功后触发创作者分成（静默失败，不影响购买流程）
     try {
-      await settlePurchase({ purchaseId: result.purchaseId });
-    } catch (settleError) {
-      const msg = settleError instanceof Error ? settleError.message : String(settleError);
-      // Already settled / No revenue to split 是正常情况，不报错
-      if (msg !== 'Already settled' && msg !== 'No revenue to split') {
-        console.error('Failed to settle purchase:', settleError);
+      const settled = await settlePurchase({ purchaseId: result.purchaseId });
+      // 已经结过 / 价格 0 没有收入可分 是正常结局；其余 reason 才值得记一条
+      if (!settled.ok && settled.reason !== 'already_settled' && settled.reason !== 'no_revenue') {
+        console.error('Failed to settle purchase:', settled.reason);
       }
+    } catch (settleError) {
+      console.error('Failed to settle purchase:', settleError);
     }
 
     return NextResponse.json({

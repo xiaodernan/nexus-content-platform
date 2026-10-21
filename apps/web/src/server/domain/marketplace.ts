@@ -555,10 +555,18 @@ export interface SettlePurchaseInput {
   creatorShare?: number;
 }
 
-export interface SettleResult {
-  splitId: string;
-  amount: number;
-}
+/**
+ * 结算的结局是判别式结果（与购买 / update / delete 同一套）：被拒绝的结局不抛句子，
+ * 调用方按 reason 决定是"正常重复 / 无收入可分"还是"该记一条错误"。
+ * 只有真正的异常（库坏了、写不进去）才 throw。
+ */
+export type SettleResult =
+  | {
+      ok: true;
+      splitId: string;
+      amount: number;
+    }
+  | { ok: false; reason: 'purchase_not_found' | 'item_not_found' | 'already_settled' | 'no_revenue' };
 
 /**
  * Postgres 的唯一约束冲突（`23505`）。
@@ -596,8 +604,8 @@ function isUniqueViolation(error: unknown): boolean {
  *    事务立刻回滚，**一个字节的钱都还没写**。顺序反了的话，事务虽然也能回滚，
  *    但要先把钱写进去再回滚，白白多一次写与一次锁等待。
  *
- * 唯一索引的冲突在这里翻译回 `Already settled`：调用方（`purchase/route.ts`）
- * 按这句话区分"正常重复"与"真出错"，直接把 Postgres 的 23505 抛出去会让它记一条假错误日志。
+ * 唯一索引的冲突在这里翻译回 `{ok:false,reason:'already_settled'}`：调用方（`purchase/route.ts`）
+ * 按 reason 区分"正常重复"与"真出错"，直接把 Postgres 的 23505 抛出去会让它记一条假错误日志。
  */
 export async function settlePurchase(input: SettlePurchaseInput): Promise<SettleResult> {
   const db = getDb();
@@ -618,7 +626,7 @@ export async function settlePurchase(input: SettlePurchaseInput): Promise<Settle
     .limit(1);
 
   if (!purchase) {
-    throw new Error('Purchase not found');
+    return { ok: false, reason: 'purchase_not_found' };
   }
 
   // 查物品拿创作者
@@ -629,7 +637,7 @@ export async function settlePurchase(input: SettlePurchaseInput): Promise<Settle
     .limit(1);
 
   if (!item) {
-    throw new Error('Item not found');
+    return { ok: false, reason: 'item_not_found' };
   }
 
   // 检查是否已经分过账（快路：把常见情况说清楚；真正的并发守卫是下面那条唯一索引）
@@ -640,7 +648,7 @@ export async function settlePurchase(input: SettlePurchaseInput): Promise<Settle
     .limit(1);
 
   if (existing) {
-    throw new Error('Already settled');
+    return { ok: false, reason: 'already_settled' };
   }
 
   // 算分成金额（向下取整，避免小数）
@@ -648,7 +656,7 @@ export async function settlePurchase(input: SettlePurchaseInput): Promise<Settle
 
   // 价格为 0 的物品不分成
   if (amount === 0) {
-    throw new Error('No revenue to split');
+    return { ok: false, reason: 'no_revenue' };
   }
 
   // **先**记分账记录：`marketplace_splits` 上有 `purchase_id` 的唯一索引，
@@ -685,11 +693,11 @@ export async function settlePurchase(input: SettlePurchaseInput): Promise<Settle
     throw new Error('Failed to record income');
   }
 
-      return { splitId: split.id, amount };
+      return { ok: true as const, splitId: split.id, amount };
     });
   } catch (error) {
-    // 唯一索引的冲突翻译回调用方认的那句话，别把 23505 直接抛出去
-    if (isUniqueViolation(error)) throw new Error('Already settled', { cause: error });
+    // 唯一索引的冲突翻译回调用方认的那个 reason，别把 23505 直接抛出去
+    if (isUniqueViolation(error)) return { ok: false, reason: 'already_settled' };
     throw error;
   }
 }
