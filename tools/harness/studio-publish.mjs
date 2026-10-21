@@ -2464,44 +2464,45 @@ try {
     await cancelPage.close();
   }
 
-  // ── §25 v311: the trail records the REPORT verbs ────────────────────────────────────────────────
-  // A report is something that HAPPENED to a publication, and the trail is where a reader looks for
-  // what happened — so the filing, the withdrawal and the owner’s acknowledgement are all written down.
-  // The section reads the panel AND the service, because the panel could be showing its own copy.
+  // ── §30 v316: YOU FOLLOW — and the one way to take a follow back ───────────────────
+  // The un-follow’s door has been there since v288, and NOTHING in the product pointed at it: a capability
+  // with no door is a capability nobody can reach — and a reader who cannot undo a follow has a page that
+  // only ever grows.
   {
-    const reportTrailPage = await session.newPage('about:blank');
-    await reportTrailPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
-    await waitForHydration(reportTrailPage, 'the trail page to hydrate');
-    await reportTrailPage.evaluate("document.querySelector('[data-toolbar-trail-toggle]').click()");
+    const followPage = await session.newPage('about:blank');
+    await followPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(followPage, 'the follow page to hydrate');
+    await signInAs(followPage, 'ada', 'the account that follows one account');
+    await followPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
 
-    const reportEntry = await until(
-      async () => (await reportTrailPage.evaluate("!!document.querySelector('[data-trail-action=\"report\"]')")) === true,
-      { tries: 120, gapMs: 500, label: 'the report to reach the trail' },
+    const followingRow = await until(
+      async () => (await followPage.evaluate("!!document.querySelector('[data-desk-following]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the following list to show' },
     );
-    check('the trail carries the report that was filed', reportEntry !== null, 'the entry is there');
+    check('the desk shows who THIS device follows', followingRow !== null, 'the row is there');
 
-    const withdrawEntry = await until(
-      async () => (await reportTrailPage.evaluate("!!document.querySelector('[data-trail-action=\"withdraw-report\"]')")) === true,
-      { tries: 120, gapMs: 500, label: 'the withdrawal to reach the trail' },
+    // And the un-follow — the button that takes it back.
+    await followPage.evaluate("document.querySelector('[data-desk-unfollow]').click()");
+    const unfollowed = await until(
+      async () => {
+        const s = await followPage.evaluate("document.querySelector('[data-desk-note]')?.textContent ?? ''");
+        return s.includes('took the follow back') ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the un-follow to land' },
     );
-    check('and the withdrawal of it', withdrawEntry !== null, 'the entry is there');
-
-    const acknowledgeEntry = await until(
-      async () => (await reportTrailPage.evaluate("!!document.querySelector('[data-trail-action=\"acknowledge\"]')")) === true,
-      { tries: 120, gapMs: 500, label: 'the acknowledgement to reach the trail' },
-    );
-    check('and the owner\u2019s acknowledgement of it (v304)', acknowledgeEntry !== null, 'the entry is there');
+    check('and the follow can be taken back from the product', unfollowed !== null, `the panel says: ${JSON.stringify(unfollowed)}`);
 
     // And the SERVICE agrees, read independently of the browser.
-    const auditRead = await fetch(`${apiBase}/audit?limit=100`);
-    const auditBody = await auditRead.json();
-    const actions = (auditBody.entries ?? []).map((e) => e.action);
+    const followerRaw = await followPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const followerId = JSON.parse(String(followerRaw)).id;
+    const followsRead = await fetch(`${apiBase}/follows?follower=${encodeURIComponent(followerId)}`);
+    const followsBody = await followsRead.json();
     check(
-      'the SERVICE agrees — read back independently of the browser',
-      auditRead.status === 200 && actions.includes('report') && actions.includes('withdraw-report') && actions.includes('acknowledge'),
-      `actions: ${JSON.stringify(actions)}`,
+      'the SERVICE agrees — the edge is gone, read back independently of the browser',
+      followsRead.status === 200 && (followsBody.following ?? []).length === 0,
+      `following: ${JSON.stringify(followsBody.following)}`,
     );
-    await reportTrailPage.close();
+    await followPage.close();
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────

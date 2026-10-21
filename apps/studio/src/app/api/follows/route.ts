@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { followOnService, unfollowOnService } from '@/lib/followServer';
+import { followOnService, readFollowing, unfollowOnService } from '@/lib/followServer';
 
 /**
  * M7 v288 (ADR 0016 amendment 288): `/api/follows` — this Studio's door onto the service's follows.
@@ -15,6 +15,24 @@ import { followOnService, unfollowOnService } from '@/lib/followServer';
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+/**
+ * READ the accounts THIS device follows — the follower's own side of the edge.
+ *
+ * <p>The follower is named in the query for the same reason the claimer is: this build has no session
+ * (ADR 0018), so the account the device holds is the claim the service compares.
+ */
+export async function GET(request: Request): Promise<NextResponse> {
+  const follower = new URL(request.url).searchParams.get('follower');
+  if (!follower || follower.trim() === '') {
+    return NextResponse.json(
+      { ok: false, reason: 'the follower must be named: a list of follows with no follower is nobody’s list' },
+      { status: 400 },
+    );
+  }
+  const answer = await readFollowing(follower.trim());
+  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
+}
 
 export async function POST(request: Request): Promise<NextResponse> {
   let body: unknown;

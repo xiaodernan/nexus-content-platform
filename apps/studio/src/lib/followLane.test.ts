@@ -1,0 +1,56 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import { readMyFollowing } from './followLane';
+
+/**
+ * M7 v316 — the browser half of the FOLLOWS lane, and the read that gives the desk its "YOU FOLLOW"
+ * section.
+ *
+ * The rule this file exists for: **a failed read is NOT an empty list.** "You follow nobody" and "the list
+ * could not be read" are different facts, and a panel that showed the first when it knew the second would
+ * tell a reader their follows had gone.
+ */
+function makeFetch(handler: (url: string, init?: RequestInit) => Response) {
+  return vi.fn(async (url: string, init?: RequestInit) => handler(url, init)) as unknown as typeof fetch;
+}
+
+describe('followLane — readMyFollowing (client half)', () => {
+  it('asks the Studio\u2019s own door, naming the follower', async () => {
+    const fetchImpl = makeFetch((url) => {
+      expect(url).toBe('/api/follows?follower=acct-ada');
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          following: [{ followerId: 'acct-ada', followeeId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local' }],
+          count: 1,
+        }),
+        { status: 200 },
+      );
+    });
+    const answer = await readMyFollowing('acct-ada', fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.following).toHaveLength(1);
+    expect(answer.following[0]?.followeeId).toBe('acct-bob');
+  });
+
+  it('a REFUSED read carries the reason and NO rows', async () => {
+    const answer = await readMyFollowing(
+      'acct-ada',
+      makeFetch(() => new Response(JSON.stringify({ ok: false, reason: 'the list could not be read' }), { status: 502 })),
+    );
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('the list could not be read');
+    expect(answer.following).toEqual([]);
+  });
+
+  it('a THROWN fetch answers with a reason, never an exception', async () => {
+    const answer = await readMyFollowing(
+      'acct-ada',
+      makeFetch(() => {
+        throw new Error('network down');
+      }),
+    );
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('network down');
+  });
+});

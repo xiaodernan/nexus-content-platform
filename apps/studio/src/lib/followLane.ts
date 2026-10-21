@@ -50,6 +50,57 @@ export async function followAccount(
 }
 
 /** Take a follow back. */
+/** What one read of the accounts this device follows answered. */
+export interface FollowingLaneAnswer {
+  ok: boolean;
+  /** The accounts the device follows, in the service's order. */
+  following: { followerId: string; followeeId: string; handle: string | null; assurance: string | null }[];
+  reason?: string;
+}
+
+/**
+ * READ the accounts this device follows.
+ *
+ * <p>The follower's own side of the edge — the one the desk's "YOU FOLLOW" section shows. A failed read is
+ * NOT an empty list: "you follow nobody" and "the list could not be read" are different facts.
+ */
+export async function readMyFollowing(
+  followerAccountId: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<FollowingLaneAnswer> {
+  try {
+    const res = await fetchImpl(`/api/follows?follower=${encodeURIComponent(followerAccountId)}`, {
+      headers: { accept: 'application/json' },
+    });
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, following: [], reason: `the follows answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as {
+      ok?: unknown;
+      following?: unknown;
+      followers?: unknown;
+      reason?: unknown;
+      message?: unknown;
+    };
+    if (body.ok === false || !res.ok) {
+      const reason =
+        typeof body.reason === 'string'
+          ? body.reason
+          : typeof body.message === 'string'
+            ? body.message
+            : `the follows answered HTTP ${res.status}`;
+      return { ok: false, following: [], reason };
+    }
+    const rows = Array.isArray(body.following)
+      ? (body.following as { followerId: string; followeeId: string; handle: string | null; assurance: string | null }[])
+      : [];
+    return { ok: true, following: rows };
+  } catch (error) {
+    return { ok: false, following: [], reason: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 export async function unfollowAccount(
   accountId: string,
   claimerAccountId: string,

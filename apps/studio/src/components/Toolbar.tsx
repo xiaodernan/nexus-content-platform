@@ -10,6 +10,7 @@ import { cancelSubscription, retirePlan } from '@/lib/planLane';
 import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
 import { tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
+import { readMyFollowing, unfollowAccount, type FollowingLaneAnswer } from '@/lib/followLane';
 import { priceText } from '@/lib/economy';
 import type { PriceCents } from '@/lib/monetization';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
@@ -256,6 +257,39 @@ export default function Toolbar() {
    */
   const [filed, setFiled] = useState<FiledReportsLaneAnswer | null>(null);
 
+  /**
+   * v316 — the accounts THIS device follows — and the ONE way to take a follow back from the product.
+   *
+   * <p>The un-follow's door has been there since v288 (`/?unfollow={accountId}`, and the service refuses
+   * somebody else’s edge by name), but NOTHING in the product pointed at it: a capability with no door is a
+   * capability nobody can reach.
+   */
+  const [following, setFollowing] = useState<FollowingLaneAnswer | null>(null);
+
+  const refreshFollowing = async () => {
+    const account = session.current();
+    if (!account) {
+      setFollowing({ ok: false, following: [], reason: 'the follows you hold belong to an account, and this device has none' });
+      return;
+    }
+    setFollowing(await readMyFollowing(account.id));
+  };
+
+  const onUnfollow = async (followeeId: string) => {
+    const account = session.current();
+    if (!account) {
+      setDeskNote('the follows you hold belong to an account, and this device has none');
+      return;
+    }
+    const answer = await unfollowAccount(followeeId, account.id);
+    setDeskNote(
+      answer.ok
+        ? `took the follow back on ${followeeId}`
+        : `not unfollowed: ${answer.reason}`,
+    );
+    await refreshFollowing();
+  };
+
   const refreshFiled = async () => {
     const account = session.current();
     if (!account) {
@@ -285,6 +319,8 @@ export default function Toolbar() {
       await refreshDesk();
       // v305 — the panel has TWO halves: what came to you, and what you sent.
       await refreshFiled();
+      // v316 — and the third: who YOU follow (the only edge a reader can take back).
+      await refreshFollowing();
     }
   };
 
@@ -1075,7 +1111,43 @@ export default function Toolbar() {
               ))}
             </ul>
           )}
-          {deskNote && <div style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>{deskNote}</div>}
+          {/* v316 — YOU FOLLOW: the accounts this device follows, and the button that takes a
+              follow back. A reader who cannot undo a follow has a page that only ever grows. */}
+          <div style={{ fontWeight: 700, letterSpacing: 0.4, marginTop: 10, marginBottom: 4 }}>YOU FOLLOW</div>
+          {following === null ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
+          ) : !following.ok ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>could not read: {following.reason}</div>
+          ) : following.following.length === 0 ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>this device follows nobody</div>
+          ) : (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {following.following.map((row, i) => (
+                <li
+                  key={i}
+                  data-desk-following={row.followeeId}
+                  style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0' }}
+                >
+                  <a href={`/u/${encodeURIComponent(row.followeeId)}`} style={{ color: 'inherit' }}>
+                    {row.handle ? `@${row.handle}` : row.followeeId}
+                  </a>
+                  <button
+                    className="btn"
+                    data-desk-unfollow={row.followeeId}
+                    onClick={() => void onUnfollow(row.followeeId)}
+                    title="take this follow back"
+                  >
+                    Unfollow
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {deskNote && (
+            <div data-desk-note style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>
+              {deskNote}
+            </div>
+          )}
         </div>
       )}
       {showAccount && (
