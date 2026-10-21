@@ -60,6 +60,18 @@ describe('reportBar — one report becomes one row (M7 v296)', () => {
     expect(row.withdrawn).toBe(false);
   });
 
+  it('v323 — it keeps the reporter’s OWN WORDS', () => {
+    // The owner's desk has shown them since v304, and the wire has carried them all along: the reporter's
+    // own view dropped them, so a reporter could not see what they had actually said.
+    const row = toReportRow(entry({ detail: 'the harness says this is a problem' }))!;
+    expect(row.detail).toBe('the harness says this is a problem');
+  });
+
+  it('v323 — and a report with no words has none, rather than a made-up one', () => {
+    const row = toReportRow(entry({ detail: undefined }))!;
+    expect(row.detail).toBe('');
+  });
+
   it('a withdrawn report is marked as withdrawn, not hidden', () => {
     const row = toReportRow(entry({ status: 'rejected' }))!;
     expect(row.withdrawn).toBe(true);

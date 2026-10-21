@@ -49,6 +49,15 @@ export interface ReportRow {
   statusText: string;
   /** The publication the report is about — a reporter with several complaints needs to tell them apart. */
   targetId: string;
+  /**
+   * v323 — the reporter's OWN WORDS, as they were written.
+   *
+   * <p>The owner's desk has shown them since v304 — a complaint without its words is a category, not a
+   * complaint — and the reporter's own view did not: a reporter looking at their own complaint could
+   * not see what they had actually said. The wire has carried the words all along; the row simply
+   * dropped them.
+   */
+  detail: string;
 }
 
 /** The reasons a report may carry \u2014 the client's own four, and no others. */
@@ -119,6 +128,7 @@ export function toReportRow(entry: unknown): ReportRow | null {
     status,
     statusText: reportStatusText(status),
     targetId: typeof r.targetId === 'string' ? r.targetId : '',
+    detail: typeof r.detail === 'string' ? r.detail : '',
   };
 }
 

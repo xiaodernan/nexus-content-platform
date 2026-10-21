@@ -2844,6 +2844,32 @@ try {
     await removalPage.close();
   }
 
+  // ── §37 v323: the REPORTER sees the words THEY wrote ───────────────────────────────────────────────
+  // The owner’s desk has shown the reporter’s words since v304 — a complaint without its words is a
+  // category, not a complaint — and the reporter’s own view did not: a reporter looking at their own
+  // complaint could not see what they had actually said. The wire has carried the words all along.
+  {
+    const wordsPage = await session.newPage('about:blank');
+    await wordsPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(wordsPage, 'the words page to hydrate');
+    await signInAs(wordsPage, 'bob', 'the reporter');
+    await wordsPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
+
+    const wordsThere = await until(
+      async () => (await wordsPage.evaluate("!!document.querySelector('[data-filed-detail]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the reporter’s own words to show' },
+    );
+    check('the reporter’s own half shows the words they wrote', wordsThere !== null, 'the words are there');
+
+    const wordsText = await wordsPage.evaluate("document.querySelector('[data-filed-detail]')?.textContent ?? ''");
+    check(
+      'and they are the words the report was filed with',
+      wordsText.includes('the harness says this is a problem'),
+      `the words: ${JSON.stringify(wordsText)}`,
+    );
+    await wordsPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

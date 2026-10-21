@@ -1195,6 +1195,14 @@ export default function Toolbar() {
                     <span style={{ color: 'var(--nexus-muted)' }}>{report.statusText}</span>
                   </div>
                   <div style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>{report.targetId}</div>
+                  {/* v323 — the reporter's OWN WORDS, the way the owner's desk shows them. A reporter
+                      looking at their own complaint should see what they actually said — and a
+                      complaint without its words is a category, not a complaint. */}
+                  {report.detail && (
+                    <div data-filed-detail style={{ color: 'var(--nexus-muted)', fontSize: 10, whiteSpace: 'pre-wrap' }}>
+                      {report.detail}
+                    </div>
+                  )}
                   {/* v306 — a reporter can take a complaint back while it is still open. The row STAYS: a
                       report that was withdrawn is a fact that happened. */}
                   {report.status === 'open' && (
