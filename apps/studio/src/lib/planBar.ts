@@ -45,6 +45,14 @@ export interface PlanRow {
   periodText: string;
   /** Whether the plan is still offered. */
   active: boolean;
+  /**
+   * v342 — WHEN the plan was opened, in a reader's words — or null when the wire did not say.
+   *
+   * <p>The service has carried the instant since the plan's own beginning, and the tip bar on the same
+   * page said its dates since v341; the plan bar said nothing. A plan with no date on it is a price with
+   * no history — a reader cannot tell a plan opened last week from one opened last year.
+   */
+  openedText: string | null;
 }
 
 /**
@@ -72,6 +80,18 @@ export function planPeriodText(period: string): string {
  * A plan needs an id (it is the ADDRESS a supporter subscribes to) and a finite price (it is the number
  * the supporter would be committing).
  */
+/**
+ * WHEN a plan was opened, in a reader's words — or null when the wire did not say.
+ *
+ * <p>The instant is the service's own, in UTC, in the same style as the tip bar's dates (v341): one
+ * clock, one style, so a reader comparing a plan's date with a tip's date is reading two dates written
+ * the same way.
+ */
+function planOpenedTextOf(createdAt: unknown): string | null {
+  if (typeof createdAt !== 'number' || !Number.isFinite(createdAt)) return null;
+  return new Date(createdAt).toISOString().replace('.000Z', 'Z');
+}
+
 export function toPlanRow(entry: unknown): PlanRow | null {
   if (typeof entry !== 'object' || entry === null) return null;
   const p = entry as PlanEntry;
@@ -86,6 +106,9 @@ export function toPlanRow(entry: unknown): PlanRow | null {
     period,
     periodText: planPeriodText(period),
     active: p.active !== false,
+    // v342 — and when it was opened. The instant is the service's own, in UTC, in the same style as the
+    // tip bar's dates (v341) and the economy panel's (v333).
+    openedText: planOpenedTextOf(p.createdAt),
   };
 }
 
@@ -121,9 +144,12 @@ export function renderPlanBar(facts: PlanBarFacts): string {
     .map((plan) => {
       const href = `/?subscribe=${encodeURIComponent(plan.planId)}`;
       const retired = plan.active ? '' : ' \\u00b7 retired';
+      // v342 — and WHEN it was opened: the instant, not "3 days ago" — a relative date goes stale the
+      // moment it is written, and a plan is a fact about the past that does not move.
+      const opened = plan.openedText ? ` <span class="nexus-plan-opened">\u00b7 opened ${escapeHtml(plan.openedText)}</span>` : '';
       return `<li data-plan="${escapeHtml(plan.planId)}" data-plan-price="${plan.priceCents}">
 <span class="nexus-plan-id">${escapeHtml(plan.planId)}</span>
-<span class="nexus-plan-price">${escapeHtml(plan.priceText)} \u00b7 ${escapeHtml(plan.periodText)}${retired}</span>
+<span class="nexus-plan-price">${escapeHtml(plan.priceText)} \u00b7 ${escapeHtml(plan.periodText)}${retired}${opened}</span>
 ${plan.active ? `<a class="nexus-plan-action" href="${escapeHtml(href)}" title="back this plan from the Studio">Back it</a>` : ''}
 </li>`;
     })

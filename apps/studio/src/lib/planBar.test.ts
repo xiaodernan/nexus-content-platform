@@ -23,6 +23,21 @@ const plan = (over: Record<string, unknown> = {}) => ({
 });
 
 describe('planIntent — the URL names the plan (M7 v301)', () => {
+  it('v342 — says WHEN each plan was opened, in the service’s own style', () => {
+    // The service has carried the instant since the plan's own beginning, and the tip bar on the same
+    // page said its dates since v341; the plan bar said nothing. A plan with no date on it is a price
+    // with no history.
+    const row = toPlanRow({ planId: 'pro', priceCents: 1500, period: 'month', createdAt: 1_700_000_000_000 });
+    expect(row?.openedText).toBe('2023-11-14T22:13:20Z');
+  });
+
+  it('v342 — and a wire with NO instant says nothing rather than guessing', () => {
+    const row = toPlanRow({ planId: 'pro', priceCents: 1500, period: 'month' });
+    expect(row?.openedText).toBeNull();
+    const html = renderPlanBar({ accountId: 'acct-ada', plans: [row!] });
+    expect(html).not.toContain('nexus-plan-opened');
+  });
+
   it('reads the subscribe id out of the query', () => {
     expect(subscribeIdFromSearch('?subscribe=pro')).toBe('pro');
     expect(subscribeIdFromSearch('subscribe=pro')).toBe('pro');

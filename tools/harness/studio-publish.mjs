@@ -3448,6 +3448,26 @@ try {
     );
   }
 
+  // ── §54 v342: the profile’s plan bar says WHEN each plan was opened ─────────────────────────────
+  // The wire has carried the instant since the plan’s own beginning, and the tip bar on the same page
+  // said its dates since v341; the plan bar said nothing — and a plan with no date on it is a price with
+  // no history.
+  {
+    const planProfileHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(accountRecord?.id ?? '')}`)).text();
+    const planProfileService = await (await fetch(`${apiBase}/plans?creator=${encodeURIComponent(accountRecord?.id ?? '')}&limit=50`)).json();
+    const serviceOpened = (planProfileService.plans ?? [])
+      .map((p) => p.createdAt)
+      .filter((v) => typeof v === 'number')
+      .map((v) => new Date(v).toISOString());
+    check(
+      'the profile’s plan bar says when each plan was opened',
+      serviceOpened.length > 0
+        && planProfileHtml.includes('nexus-plan-opened')
+        && serviceOpened.every((w) => planProfileHtml.includes(w)),
+      `the service: ${JSON.stringify(serviceOpened)}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
