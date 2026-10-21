@@ -2906,6 +2906,41 @@ try {
     await linkPage.close();
   }
 
+  // ── §39 v325: the REPORTER’S half links to the work as well ──────────────────────────────────────
+  // The same link the owner’s desk got (v324): a reporter looking at their own complaint should be able
+  // to open the work it is about, and not only read its id — the id is a name the reader has to trust.
+  {
+    const filedLinkPage = await session.newPage('about:blank');
+    await filedLinkPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(filedLinkPage, 'the filed link page to hydrate');
+    await signInAs(filedLinkPage, 'bob', 'the reporter');
+    await filedLinkPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
+
+    const filedLink = await until(
+      async () => (await filedLinkPage.evaluate("!!document.querySelector('[data-filed-target]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the reporter’s link to the work to show' },
+    );
+    check('the reporter’s own row carries a link to the work', filedLink !== null, 'the link is there');
+
+    const filedHref = await filedLinkPage.evaluate("document.querySelector('[data-filed-target]')?.getAttribute('href') ?? ''");
+    const filedTarget = await filedLinkPage.evaluate("document.querySelector('[data-filed-target]')?.getAttribute('data-filed-target') ?? ''");
+    check(
+      'and it points at the publication the complaint is about',
+      filedHref === `/p/${filedTarget}` && filedTarget.length > 0,
+      `href: ${JSON.stringify(filedHref)} · id: ${JSON.stringify(filedTarget)}`,
+    );
+
+    // And that page really is the artifact page — read independently of the browser.
+    const filedPageRead = await fetch(`${studioBase}${filedHref}`);
+    const filedHtml = await filedPageRead.text();
+    check(
+      'and that page answers 200 with the Studio’s own document',
+      filedPageRead.status === 200 && filedHtml.includes('class="stage"'),
+      `status ${filedPageRead.status} · carries a stage: ${filedHtml.includes('class="stage"')}`,
+    );
+    await filedLinkPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

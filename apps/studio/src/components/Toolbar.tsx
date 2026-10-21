@@ -1210,7 +1210,20 @@ export default function Toolbar() {
                     <span>{report.reasonText}</span>
                     <span style={{ color: 'var(--nexus-muted)' }}>{report.statusText}</span>
                   </div>
-                  <div style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>{report.targetId}</div>
+                  {/* v325 — the same LINK the owner's desk got (v324): a reporter looking at their
+                      own complaint should be able to open the work it is about, and not only read its
+                      id — the id is a name the reader has to trust. */}
+                  <div style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>
+                    <a
+                      href={`/p/${encodeURIComponent(report.targetId)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      data-filed-target={report.targetId}
+                      style={{ color: 'inherit' }}
+                    >
+                      {report.targetId}
+                    </a>
+                  </div>
                   {/* v323 — the reporter's OWN WORDS, the way the owner's desk shows them. A reporter
                       looking at their own complaint should see what they actually said — and a
                       complaint without its words is a category, not a complaint. */}
