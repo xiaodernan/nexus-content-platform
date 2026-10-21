@@ -3570,6 +3570,24 @@ try {
     await deskWhenPage.close();
   }
 
+  // ── §59 v350: a bar that shows a list says when the list is a WINDOW ───────────────────────────────
+  // The counts are whole numbers and the lists are windows, so a bar that says "5 likes" and lists
+  // two names without saying so would let a reader take the two for all of them.
+  {
+    const windowHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(accountRecord?.id ?? '')}`)).text();
+    const claimsMore = (html, marker) => {
+      const m = /data-(?:likes|tips|followers)="(\d+)"/.exec(html);
+      return m ? Number(m[1]) : null;
+    };
+    const tipCount = claimsMore(windowHtml, 'tips');
+    const tipNames = (windowHtml.match(/data-tip="/g) ?? []).length;
+    check(
+      'the profile’s bars do not claim more than they show',
+      tipCount === null || tipCount <= tipNames || windowHtml.includes('showing the'),
+      `the count: ${tipCount} · the rows: ${tipNames}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

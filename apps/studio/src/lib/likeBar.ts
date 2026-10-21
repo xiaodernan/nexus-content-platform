@@ -71,8 +71,12 @@ export function renderLikeBar(facts: LikeBarFacts): string {
     })
     .join('\n');
   const list = likers ? `<ul class="nexus-likes-list">\n${likers}\n</ul>` : '';
+  // v350 — the count is the WHOLE number and the list is a WINDOW, so the bar says how many it is not
+  // showing: a reader who sees "5 likes" and two names would otherwise read the two as all of them.
+  const shown = (facts.likers ?? []).length;
+  const more = shown > 0 && facts.count > shown ? ` · showing the ${shown} newest of ${facts.count}` : '';
   return `<div class="nexus-likes" data-likes="${facts.count}">
-<span class="nexus-likes-count">\u2764 ${escapeHtml(label)}</span>
+<span class="nexus-likes-count">\u2764 ${escapeHtml(label)}${more}</span>
 <a class="nexus-likes-action" href="${escapeHtml(href)}" title="like this publication from the Studio">Like</a>
 <a class="nexus-likes-undo" href="${escapeHtml(undoHref)}" title="take the like back from the Studio">Take it back</a>
 ${list}

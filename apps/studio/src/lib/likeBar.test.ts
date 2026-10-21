@@ -10,6 +10,32 @@ import { injectLikeBar, renderLikeBar } from './likeBar';
  * that could not be READ is not a count of zero.
  */
 describe('likeIntent — the URL names the publication (M7 v284)', () => {
+  it('v350 — says how many of the likes it is NOT showing, when the list is a window', () => {
+    // The count is the WHOLE number and the list is a WINDOW: a reader who saw "5 likes" and two names
+    // would otherwise read the two as all of them.
+    const html = renderLikeBar({
+      projectId: 'pub-1',
+      count: 5,
+      likers: [
+        { accountId: 'acct-bob', nameText: '@bob' },
+        { accountId: 'acct-ada', nameText: '@ada' },
+      ],
+    });
+    expect(html).toContain('showing the 2 newest of 5');
+  });
+
+  it('v350 — and a bar that shows EVERYONE says no such thing', () => {
+    const html = renderLikeBar({
+      projectId: 'pub-1',
+      count: 2,
+      likers: [
+        { accountId: 'acct-bob', nameText: '@bob' },
+        { accountId: 'acct-ada', nameText: '@ada' },
+      ],
+    });
+    expect(html).not.toContain('showing the');
+  });
+
   it('v348 — the bar says WHEN each like happened, in the service’s own style', () => {
     // The service has carried the instant since the like's own beginning, and the profile bar's dates
     // (v341-v343) and the tip receipt's (v333) are in the same style.

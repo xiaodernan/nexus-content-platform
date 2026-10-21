@@ -162,6 +162,13 @@ export function renderFollowBar(facts: FollowBarFacts): string {
   const list = followers
     ? `<ul class="nexus-followers-list">\n${followers}\n</ul>`
     : '';
+  // v350 — the count is the WHOLE number and the list is a WINDOW, so the bar says how many it is not
+  // showing: a reader who sees "5 followers" and two names would otherwise read the two as all of them.
+  const shownFollowers = (facts.followers ?? []).length;
+  const moreFollowers =
+    shownFollowers > 0 && count > shownFollowers
+      ? ` · showing the ${shownFollowers} newest of ${count}`
+      : '';
   // v303 — the other direction, in the SAME bar: the two lists answer ONE question (the shape of this
   // account's social life) and two panels would make the reader assemble it themselves.
   const following = (facts.following ?? [])
@@ -173,12 +180,19 @@ export function renderFollowBar(facts: FollowBarFacts): string {
     })
     .join('\n');
   const followingCount = facts.followingCount ?? (facts.following ?? []).length;
+  // v350 — and the same note for the OTHER list in this bar: it is a window too, and the count beside
+  // it is the whole number.
+  const shownFollowing = (facts.following ?? []).length;
+  const moreFollowing =
+    shownFollowing > 0 && followingCount > shownFollowing
+      ? ` · showing the ${shownFollowing} newest of ${followingCount}`
+      : '';
   const followingLabel = followingCount === 1 ? '1 following' : `${followingCount} following`;
   const followingList = following
-    ? `<div class="nexus-followers-sub">${escapeHtml(followingLabel)}</div><ul class="nexus-followers-list">\n${following}\n</ul>`
+    ? `<div class="nexus-followers-sub">${escapeHtml(followingLabel)}${moreFollowing}</div><ul class="nexus-followers-list">\n${following}\n</ul>`
     : '';
   return `<div class="nexus-followers" data-followers="${count}" data-following="${followingCount}">
-<span class="nexus-followers-count">${escapeHtml(label)}</span>
+<span class="nexus-followers-count">${escapeHtml(label)}${moreFollowers}</span>
 <a class="nexus-followers-action" href="${escapeHtml(href)}" title="follow this account from the Studio">Follow ${escapeHtml(who)}</a>
 ${list}
 ${followingList}

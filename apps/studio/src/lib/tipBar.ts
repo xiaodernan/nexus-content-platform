@@ -136,8 +136,12 @@ export function renderTipBar(facts: TipBarFacts): string {
     })
     .join('\n');
   const list = rows ? `<ul class="nexus-tips-list">\n${rows}\n</ul>` : '';
+  // v350 — the count is the WHOLE number and the list is a WINDOW, so the bar says how many it is not
+  // showing: a reader who sees "12 tips" and five messages would otherwise read the five as all of them.
+  const shown = (facts.tips ?? []).length;
+  const more = shown > 0 && count > shown ? ` · showing the ${shown} newest of ${count}` : '';
   return `<div class="nexus-tips" data-tips="${count}" data-tip-total="${facts.totalCents}">
-<span class="nexus-tips-count">${escapeHtml(label)} \u00b7 ${escapeHtml(total)}</span>
+<span class="nexus-tips-count">${escapeHtml(label)} \u00b7 ${escapeHtml(total)}${more}</span>
 <a class="nexus-tips-action" href="${escapeHtml(href)}" title="give this account a tip from the Studio">Tip</a>
 ${list}
 </div>`;
