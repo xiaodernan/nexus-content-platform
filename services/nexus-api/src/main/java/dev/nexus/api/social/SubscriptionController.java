@@ -132,6 +132,21 @@ public class SubscriptionController {
         return ResponseEntity.ok(new SubscriptionAnswer(subscriberAccountId, subs, total, subs.size(), asked));
     }
 
+    /**
+     * RETIRE a plan — and only the creator's own.
+     *
+     * <p>200 either way: a plan that is already retired is "already retired", not an error, because the URL
+     * names a plan rather than a resource that must exist.
+     */
+    @DeleteMapping("/plans/{planId}")
+    public ResponseEntity<Map<String, Object>> retire(
+            @PathVariable String planId,
+            @RequestParam(name = "claimer", required = false) String claimerAccountId) {
+        CreatorClaim claim = claimerAccountId == null ? null : new CreatorClaim(claimerAccountId, null, null, null);
+        boolean retired = service.retire(planId, claim);
+        return ResponseEntity.ok(Map.of("ok", true, "planId", planId, "retired", retired));
+    }
+
     /** End a subscription. 200 either way: a subscription that is already gone is "already gone". */
     @DeleteMapping("/subscriptions/{subscriptionId}")
     public ResponseEntity<Map<String, Object>> cancel(
@@ -173,6 +188,15 @@ public class SubscriptionController {
                 null,
                 // v308 — where the subscription STANDS, computed by the service from the row and the clock.
                 service.standingOf(row));
+    }
+
+    /**
+     * Somebody else's plan is 403, not 400: the request was well-formed, so a 400 would tell the caller to
+     * fix a field that is fine.
+     */
+    @ExceptionHandler(NotYourPlan.class)
+    public ResponseEntity<Map<String, String>> notYourPlan(NotYourPlan e) {
+        return ResponseEntity.status(403).body(Map.of("error", "not-your-plan", "message", e.getMessage()));
     }
 
     /**

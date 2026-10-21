@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { offerOnService } from '@/lib/planServer';
+import { offerOnService, retirePlan } from '@/lib/planServer';
 
 /**
  * M7 v301 (ADR 0016 amendment 301): `/api/plans` — this Studio's door onto the service's plans.
@@ -54,4 +54,29 @@ export async function POST(request: Request): Promise<NextResponse> {
     },
   );
   return NextResponse.json(answer, { status: answer.ok ? 201 : 503 });
+
+}
+
+/**
+ * RETIRE a plan — the creator’s own.
+ *
+ * <p>The plan id and the claimer travel in the query, the same way the studio’s other doors take a claim
+ * (there is no session in this build — ADR 0018), and the service’s own words are passed through: a refusal
+ * that loses its reason is a refusal that has to be run again to learn anything.
+ */
+export async function DELETE(request: Request): Promise<NextResponse> {
+  const url = new URL(request.url);
+  const planId = url.searchParams.get('planId');
+  const claimer = url.searchParams.get('claimer');
+  if (!planId || planId.trim() === '') {
+    return NextResponse.json({ ok: false, reason: 'the planId is missing' }, { status: 400 });
+  }
+  if (!claimer || claimer.trim() === '') {
+    return NextResponse.json(
+      { ok: false, reason: 'retiring a plan needs the account that offers it' },
+      { status: 400 },
+    );
+  }
+  const answer = await retirePlan(planId.trim(), { accountId: claimer.trim() });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
 }

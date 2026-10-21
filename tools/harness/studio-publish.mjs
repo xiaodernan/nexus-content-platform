@@ -2346,6 +2346,58 @@ try {
     await endedPage.close();
   }
 
+  // ── §28 v314: a creator can retire their own plan ──────────────────────────────────────────────
+  // A plan is an OFFER. Retiring takes the offer away — nobody new can back it — and it does NOT touch
+  // the subscriptions already made against it: a supporter who backed the plan for a month was promised
+  // that month, and a creator changing their mind about the offer does not take the promise with it.
+  {
+    const retirePage = await session.newPage('about:blank');
+    await retirePage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(retirePage, 'the retire page to hydrate');
+    await signInAs(retirePage, 'ada', 'the creator with a plan to retire');
+    await retirePage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(retirePage, 'the creator\u2019s economy page to hydrate');
+    await retirePage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+
+    const offered = await until(
+      async () => (await retirePage.evaluate("!!document.querySelector('[data-economy-plan-status=\"offered\"]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the plan to show as offered' },
+    );
+    check('the creator sees the plan they offer', offered !== null, 'the plan is there');
+
+    await retirePage.evaluate("document.querySelector('[data-economy-retire]').click()");
+    const retired = await until(
+      async () => (await retirePage.evaluate("document.querySelector('[data-economy-plan-status]')?.getAttribute('data-economy-plan-status') ?? ''")) === 'retired',
+      { tries: 120, gapMs: 500, label: 'the plan to show as retired' },
+    );
+    check('and can take the OFFER away', retired !== null, 'the plan is retired');
+
+    // And the SERVICE agrees, read independently of the browser.
+    const creatorRaw = await retirePage.evaluate("localStorage.getItem('nexus-current-account')");
+    const creatorId = JSON.parse(String(creatorRaw)).id;
+    const plansRead = await fetch(`${apiBase}/plans?creator=${encodeURIComponent(creatorId)}`);
+    const plansBody = await plansRead.json();
+    check(
+      'the SERVICE agrees — the plan is not offered any more',
+      plansRead.status === 200 && (plansBody.plans ?? []).some((p) => p.planId === 'pro' && p.active === false),
+      `plans: ${JSON.stringify(plansBody.plans)}`,
+    );
+
+    // And nobody can back it any more — the service refuses by name.
+    const backRead = await fetch(`${apiBase}/subscriptions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ planId: 'pro', claim: { accountId: 'acct-somebody-else', handle: 'nobody', assurance: 'unsigned-local' } }),
+    });
+    const backBody = await backRead.json();
+    check(
+      'and nobody can back it any more — the service refuses by name',
+      backRead.status === 400 && typeof backBody.message === 'string' && backBody.message.includes('not offered any more'),
+      `the refusal: ${JSON.stringify(backBody)}`,
+    );
+    await retirePage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

@@ -224,6 +224,55 @@ class SubscriptionServiceTest {
                 .hasMessageContaining("cannot be made again");
     }
 
+    // ── v314: a creator can RETIRE their own plan ────────────────────────────────────────────────
+
+    @Test
+    void theCreatorCanRetireTheirOwnPlan() {
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(plan("pro", "acct-ada", 1500, "month")));
+        when(plans.save(any(PlanEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        assertThat(service.retire("pro", claim("acct-ada"))).isTrue();
+        verify(plans).save(any(PlanEntry.class));
+    }
+
+    @Test
+    void retiringSomebodyElsesPlanIsREFUSED() {
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(plan("pro", "acct-ada", 1500, "month")));
+
+        assertThatThrownBy(() -> service.retire("pro", claim("acct-bob")))
+                .isInstanceOf(NotYourPlan.class)
+                .hasMessageContaining("only the account that offers it may retire it");
+        verify(plans, never()).save(any(PlanEntry.class));
+    }
+
+    @Test
+    void aPlanThatDoesNotExistIsALREADYGoneRatherThanAFailure() {
+        when(plans.findByPlanId("nope")).thenReturn(Optional.empty());
+        assertThat(service.retire("nope", claim("acct-ada"))).isFalse();
+    }
+
+    @Test
+    void aPlanThatIsAlreadyRetiredIsALREADYRetired() {
+        PlanEntry retired = plan("pro", "acct-ada", 1500, "month");
+        retired.markRetired();
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(retired));
+
+        assertThat(service.retire("pro", claim("acct-ada"))).isFalse();
+        verify(plans, never()).save(any(PlanEntry.class));
+    }
+
+    @Test
+    void retiringAPlanDoesNOTTouchTheSubscriptionsAlreadyMadeAgainstIt() {
+        // A supporter who backed the plan for a month was promised that month: taking the OFFER away does
+        // not take the promise with it.
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(plan("pro", "acct-ada", 1500, "month")));
+        when(plans.save(any(PlanEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.retire("pro", claim("acct-ada"));
+
+        verify(subscriptions, never()).save(any(SubscriptionEntry.class));
+    }
+
     // ── rule 5: the price is a SNAPSHOT ───────────────────────────────────────────────────────────
 
     @Test

@@ -226,6 +226,40 @@ public class SubscriptionService {
         return true;
     }
 
+    /**
+     * v314 — RETIRE a plan — and only the creator's own.
+     *
+     * <p>Retiring takes the OFFER away: nobody new can back the plan, and the service already refuses a
+     * subscription to a plan that is not offered any more. It does NOT touch the subscriptions already made
+     * against it: a supporter who backed the plan for a month was promised that month, and a creator
+     * changing their mind about the offer does not take the promise with it.
+     *
+     * <p>A plan that is already retired is "already retired", not a failure — the same rule the
+     * subscription's ending follows.
+     */
+    @Transactional
+    public boolean retire(String planId, CreatorClaim claim) {
+        String creator = requireAccount(claim == null ? null : claim.accountId(), "a plan needs an account to offer it");
+        if (planId == null || planId.isBlank()) {
+            throw new InvalidSubscription("planId must not be blank");
+        }
+        Optional<PlanEntry> found = plans.findByPlanId(planId.trim());
+        if (found.isEmpty()) {
+            return false;
+        }
+        PlanEntry row = found.get();
+        if (!row.getCreatorAccountId().equals(creator)) {
+            throw new NotYourPlan(
+                    "this plan was offered by another account, and only the account that offers it may retire it");
+        }
+        if (!row.isActive()) {
+            return false;
+        }
+        row.markRetired();
+        plans.save(row);
+        return true;
+    }
+
     /** The plans one creator offers. */
     @Transactional(readOnly = true)
     public List<PlanEntry> plansOf(String creatorAccountId, int limit) {

@@ -170,6 +170,60 @@ export async function subscribeOnService(
   }
 }
 
+/**
+ * What one retirement answered.
+ */
+export interface RetireAnswer {
+  ok: boolean;
+  /** Whether the plan was retired BY THIS CALL — a plan that was already retired is "already retired". */
+  retired: boolean;
+  reason?: string;
+}
+
+/**
+ * RETIRE a plan, on the service — and only the creator’s own.
+ *
+ * <p>Retiring takes the OFFER away and leaves the promises alone: the subscriptions already made against
+ * the plan keep standing, because a supporter who backed it for a month was promised that month.
+ */
+export async function retirePlan(
+  planId: string,
+  claim: { accountId: string; handle?: string | null; assurance?: string | null; claimedAt?: number | null },
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<RetireAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(
+      `${apiBase}/plans/${encodeURIComponent(planId)}?claimer=${encodeURIComponent(claim.accountId)}`,
+      { method: 'DELETE', headers: { accept: 'application/json' } },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, retired: false, reason: `the service's plans door answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { retired?: unknown; reason?: unknown; message?: unknown };
+    // v313 — the refusal’s own words, whenever the answer is NOT ok. The service’s error body carries no
+    // `ok` field (it is `{error, message}`), so a reader that only looked for the reason when `ok: false`
+    // threw away every message the service ever wrote.
+    if (!res.ok || body.retired === undefined) {
+      const reason =
+        typeof body.reason === 'string'
+          ? body.reason
+          : typeof body.message === 'string'
+            ? body.message
+            : `the service’s plans door answered HTTP ${res.status}`;
+      return { ok: false, retired: false, reason };
+    }
+    return { ok: true, retired: body.retired === true };
+  } catch (error) {
+    return {
+      ok: false,
+      retired: false,
+      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 /** OFFER a plan, on the service. */
 export async function offerOnService(
   planId: string,

@@ -49,6 +49,51 @@ export async function subscribeToPlan(
   }
 }
 
+/** What one retirement answered — the browser half. */
+export interface RetireLaneAnswer {
+  ok: boolean;
+  /** Whether the plan was retired BY THIS CALL. */
+  retired: boolean;
+  reason?: string;
+}
+
+/**
+ * RETIRE a plan — the creator’s own.
+ *
+ * <p>The claimer is the account id, and only that: the service compares it with the plan’s creator and
+ * refuses anybody else’s plan by name.
+ */
+export async function retirePlan(
+  planId: string,
+  claim: { accountId: string; handle?: string | null; assurance?: string | null; claimedAt?: number | null },
+  fetchImpl: FetchLike = fetch,
+): Promise<RetireLaneAnswer> {
+  try {
+    const res = await fetchImpl(`/api/plans?planId=${encodeURIComponent(planId)}&claimer=${encodeURIComponent(claim.accountId)}`, {
+      method: 'DELETE',
+      headers: { accept: 'application/json' },
+      signal: callSignal(),
+    });
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, retired: false, reason: `the plans answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { ok?: unknown; retired?: unknown; reason?: unknown; message?: unknown };
+    if (body.ok === false || !res.ok) {
+      const reason =
+        typeof body.reason === 'string'
+          ? body.reason
+          : typeof body.message === 'string'
+            ? body.message
+            : `the plans answered HTTP ${res.status}`;
+      return { ok: false, retired: false, reason };
+    }
+    return { ok: true, retired: body.retired === true };
+  } catch (error) {
+    return { ok: false, retired: false, reason: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 /** OFFER a plan. */
 export async function offerPlan(
   planId: string,

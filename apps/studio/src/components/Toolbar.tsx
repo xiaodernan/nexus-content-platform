@@ -6,6 +6,7 @@ import { readTrail, type TrailAnswer } from '@/lib/auditLane';
 import { filterTrailRows, trailSummaryOf, trailSummaryText } from '@/lib/trail';
 import { readMyTips } from '@/lib/tipLane';
 import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
+import { retirePlan } from '@/lib/planLane';
 import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
 import { tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
@@ -177,6 +178,31 @@ export default function Toolbar() {
     // v309 — and the account's own half: the subscriptions it holds and the plans it offers. The service
     // computes the subscriptions’ standing (v308), so the panel shows the service’s word.
     setEconomyAccount(await readEconomy(account.id));
+  };
+
+  /**
+   * v314 — retire a plan: take the OFFER away.
+   *
+   * <p>The promises already made against it keep standing — a supporter who backed the plan for a month was
+   * promised that month, and a creator changing their mind about the offer does not take the promise with it.
+   */
+  const [economyNote, setEconomyNote] = useState('');
+
+  const onRetirePlan = async (planId: string) => {
+    const account = session.current();
+    if (!account) {
+      setEconomyNote('the plans you offer belong to an account, and this device has none');
+      return;
+    }
+    const answer = await retirePlan(planId, { accountId: account.id });
+    setEconomyNote(
+      answer.ok
+        ? answer.retired
+          ? `retired ${planId}`
+          : `${planId} was already retired`
+        : `not retired: ${answer.reason}`,
+    );
+    await refreshEconomy();
   };
 
   const onToggleEconomy = async () => {
@@ -866,6 +892,11 @@ export default function Toolbar() {
             </ul>
           )}
           <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 8 }}>Your plans</div>
+          {economyNote && (
+            <div data-economy-note style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
+              {economyNote}
+            </div>
+          )}
           {economyAccount === null ? (
             <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
           ) : !economyAccount.ok ? (
@@ -878,10 +909,23 @@ export default function Toolbar() {
                 <li
                   key={i}
                   data-economy-plan={row.planId}
+                  data-economy-plan-status={row.active ? 'offered' : 'retired'}
                   style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0' }}
                 >
                   <span>{row.planId}</span>
                   <span style={{ color: 'var(--nexus-muted)' }}>{row.priceText} · {row.periodText}</span>
+                  {/* v314 — the offer can be taken away. The subscriptions already made against it keep
+                      standing: retiring the OFFER is not cancelling the PROMISES. */}
+                  {row.active && (
+                    <button
+                      className="btn"
+                      data-economy-retire={row.planId}
+                      onClick={() => void onRetirePlan(row.planId)}
+                      title="stop offering this plan (the subscriptions already made against it keep standing)"
+                    >
+                      Retire
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

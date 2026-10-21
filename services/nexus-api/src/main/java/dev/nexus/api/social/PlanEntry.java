@@ -110,6 +110,17 @@ public class PlanEntry {
         return period;
     }
 
+    /**
+     * v314 — the creator retires their own plan.
+     *
+     * <p>Retiring stops the OFFER, not the promises: the subscriptions already made against the plan stay
+     * where they are, because a supporter who backed a plan for a month was promised that month — and
+     * taking the offer away does not take the promise with it.
+     */
+    public void markRetired() {
+        this.active = false;
+    }
+
     public boolean isActive() {
         return active;
     }
