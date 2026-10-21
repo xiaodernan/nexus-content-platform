@@ -251,6 +251,14 @@ describe('trail — the REPORT verbs in the FILTER (M7 v319)', () => {
     expect(filterTrailRows(rows, 'acknowledge').map((r) => r.id)).toEqual(['4']);
   });
 
+  it('v320 — the undoing of the like is a filter of its own', () => {
+    // The service has recorded `unlike` since v289, and since v320 the product can do it — so a filter
+    // that could not ask for it would leave a recorded fact in the "All" bucket with no way to name it.
+    const withUnlike = toTrailRows([entry({ id: '1', action: 'like' }), entry({ id: '2', action: 'unlike' })]);
+    expect(filterTrailRows(withUnlike, 'unlike').map((r) => r.id)).toEqual(['2']);
+    expect(filterTrailRows(withUnlike, 'like').map((r) => r.id)).toEqual(['1']);
+  });
+
   it('the DISPLAY word is not the action: filtering by “reported” matches nothing', () => {
     // The button wears the display word; the filter asks in the raw action. If the two were the same
     // string, a rename of the display word would silently change what the filter means — and a filter

@@ -1435,13 +1435,15 @@ try {
     const unlikeStatus = await until(
       async () => {
         const s = await undoPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
-        return s.includes('took the like back') ? s : false;
+        return s.includes('is gone') ? s : false;
       },
       { tries: 120, gapMs: 500, label: 'the un-like to land' },
     );
     check(
+      // v320 — the words are "the like on X is gone — N like(s) now", and they are true whether there was
+      // a like to take back or not: the service answers "a like that is already gone is already gone".
       'the Studio takes the LIKE back when the URL asks it to',
-      unlikeStatus !== null,
+      unlikeStatus !== null && /the like on .+ is gone — \d+ like\(s\) now/.test(String(unlikeStatus)),
       `status: ${JSON.stringify(unlikeStatus)}`,
     );
     const likesAfter = await (await fetch(`${apiBase}/likes?projectId=${encodeURIComponent(likeTarget)}`)).json();
@@ -2654,6 +2656,90 @@ try {
     );
     check('and the All button brings every row back', restored !== null, 'the rows are back');
     await verbPage.close();
+  }
+
+  // ── §34 v320: the UN-LIKE gets a door in the product ────────────────────────────────
+  // The chain was already whole — the intent, the lane, the Studio’s door, the service’s door — and
+  // NOTHING in the product pointed at it: a capability with no door is a capability nobody can reach, and
+  // a reader whose like cannot be taken back has a count they can only increase. The section runs a WHOLE
+  // cycle of its own (like → take it back), so the counts and the trail are graded on this section’s facts
+  // and not on the ones the earlier section happened to leave behind.
+  {
+    // The publication under test.
+    const unlikeTarget = remixProjectId ?? projectId;
+    const unlikeBar = await (await fetch(`${studioBase}/p/${encodeURIComponent(unlikeTarget)}`)).text();
+    check(
+      'the artifact page’s bar now offers the TAKING-BACK, as a link to the Studio',
+      unlikeBar.includes(`href="/?unlike=${encodeURIComponent(unlikeTarget)}"`),
+      'the bar links to /?unlike=<id>',
+    );
+
+    const unlikePage = await session.newPage('about:blank');
+    await unlikePage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(unlikePage, 'the unlike page to hydrate');
+    await signInAs(unlikePage, 'ada', 'the account that likes and un-likes');
+
+    // First the like, so there is something to take back.
+    await unlikePage.navigate(`${studioBase}/?like=${encodeURIComponent(unlikeTarget)}`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(unlikePage, 'the like intent page to hydrate');
+    const likeAgain = await until(
+      async () => {
+        const s = await unlikePage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('liked') ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the like to land' },
+    );
+    check('the device can like it again', likeAgain !== null, `the status: ${JSON.stringify(likeAgain)}`);
+
+    const likedRead = await fetch(`${apiBase}/likes?projectId=${encodeURIComponent(unlikeTarget)}`);
+    const likedBody = await likedRead.json();
+    check('and the SERVICE counts it again', likedRead.status === 200 && likedBody.count === 1, `likes: ${JSON.stringify(likedBody)}`);
+
+    // And now the TAKING-BACK, through the door the product offers.
+    await unlikePage.navigate(`${studioBase}/?unlike=${encodeURIComponent(unlikeTarget)}`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(unlikePage, 'the unlike intent page to hydrate');
+    const unlikeStatus = await until(
+      async () => {
+        const s = await unlikePage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('is gone') ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the taking-back to land' },
+    );
+    check(
+      'and the Studio takes the like back, in words that are true either way',
+      unlikeStatus !== null && /the like on .+ is gone — \d+ like\(s\) now/.test(String(unlikeStatus)),
+      `the status: ${JSON.stringify(unlikeStatus)}`,
+    );
+
+    // And the SERVICE agrees, read independently of the browser.
+    const unlikeRead = await fetch(`${apiBase}/likes?projectId=${encodeURIComponent(unlikeTarget)}`);
+    const unlikeBody = await unlikeRead.json();
+    check(
+      'the SERVICE agrees — the like is gone',
+      unlikeRead.status === 200 && unlikeBody.count === 0 && unlikeBody.liked === false,
+      `likes: ${JSON.stringify(unlikeBody)}`,
+    );
+
+    // And the TRAIL can now be asked for the taking-back by name.
+    await unlikePage.evaluate("document.querySelector('[data-toolbar-trail-toggle]').click()");
+    const unlikeFilterThere = await until(
+      async () => (await unlikePage.evaluate("!!document.querySelector('[data-trail-filter=\"unlike\"]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the trail filter for the taking-back to show' },
+    );
+    check('the trail offers a filter for the taking-back', unlikeFilterThere !== null, 'the button is there');
+
+    await unlikePage.evaluate("document.querySelector('[data-trail-filter=\"unlike\"]').click()");
+    const unlikeRows = await until(
+      async () => {
+        const actions = await unlikePage.evaluate(
+          "Array.from(document.querySelectorAll('[data-trail-row]')).map((r) => r.getAttribute('data-trail-action'))",
+        );
+        return actions.length > 0 && actions.every((a) => a === 'unlike') ? actions.length : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the trail to narrow to the taking-backs' },
+    );
+    check('and filtering by it shows ONLY the taking-backs', unlikeRows !== null, `rows: ${JSON.stringify(unlikeRows)}`);
+    await unlikePage.close();
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────

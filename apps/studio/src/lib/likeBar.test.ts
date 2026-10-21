@@ -90,6 +90,22 @@ describe('likeBar — the bar on the artifact page (M7 v284)', () => {
     expect(html).not.toContain('liked');
   });
 
+  it('v320 — it also offers the TAKING-BACK, as a link to the Studio', () => {
+    // The chain was already whole — the intent, the lane, the Studio’s door, the service’s door — and
+    // nothing in the product pointed at it. A capability with no door is a capability nobody can reach.
+    const html = renderLikeBar({ projectId: 'pub-1', count: 3 });
+    expect(html).toContain('href="/?unlike=pub-1"');
+    expect(html).toContain('Take it back');
+  });
+
+  it('v320 — and the taking-back is an OFFER, not a claim: the page still cannot say you liked it', () => {
+    // The word "liked" is the claim; the offer must not make it. "Take it back" is an action, and the
+    // service’s answer is what says whether there was a like to take back.
+    const html = renderLikeBar({ projectId: 'pub-1', count: 3 });
+    expect(html).not.toContain('Liked');
+    expect(html).not.toContain('liked');
+  });
+
   it('encodes the project id in the link', () => {
     expect(renderLikeBar({ projectId: 'a/b c', count: 1 })).toContain('href="/?like=a%2Fb%20c"');
   });

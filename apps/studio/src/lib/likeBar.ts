@@ -15,8 +15,16 @@
  * - **A failed read is NOT zero likes.** "0 likes" and "the likes could not be read" are different facts,
  *   and a page that showed the first when it knew the second would be lying in the way that matters
  *   most: a reader would conclude nobody cared.
- * - **The page does not claim YOU liked it.** It cannot know, and a button that says "Liked" when the
- *   liker is unknown would be a claim the page cannot support.
+ * - **The page does not claim YOU liked it.** It cannot know, and a button that says "Liked"
+ *   when the liker is unknown would be a claim the page cannot support.
+ *
+ * - **v320 — the bar also offers the TAKING-BACK.** The chain was already whole — the intent, the lane,
+ *   the Studio’s door, the service’s door — and NOTHING in the product pointed at it: a capability with
+ *   no door is a capability nobody can reach, and a reader whose like cannot be taken back has a count
+ *   they can only increase. The page still cannot say whether YOU liked it, so the link is an OFFER and
+ *   not a claim: the service’s answer is what says whether there was a like to take back, and the Studio
+ *   words it that way ("the like on X is gone — N like(s) now"), which is true whether there was one or
+ *   not.
  */
 import { escapeHtml } from './pageShell';
 
@@ -42,9 +50,12 @@ export function renderLikeBar(facts: LikeBarFacts): string {
   }
   const label = facts.count === 1 ? '1 like' : `${facts.count} likes`;
   const href = `/?like=${encodeURIComponent(facts.projectId)}`;
+  // v320 — the taking-back, as a link to the Studio (the same arrangement as the like itself).
+  const undoHref = `/?unlike=${encodeURIComponent(facts.projectId)}`;
   return `<div class="nexus-likes" data-likes="${facts.count}">
 <span class="nexus-likes-count">\u2764 ${escapeHtml(label)}</span>
 <a class="nexus-likes-action" href="${escapeHtml(href)}" title="like this publication from the Studio">Like</a>
+<a class="nexus-likes-undo" href="${escapeHtml(undoHref)}" title="take the like back from the Studio">Take it back</a>
 </div>`;
 }
 
@@ -67,4 +78,6 @@ export const LIKE_BAR_STYLES = `<style>
 .nexus-likes-count{color:#e6e8ec;font-weight:600}
 .nexus-likes-action{color:#3b82f6;font-weight:600;text-decoration:none}
 .nexus-likes-action:hover{text-decoration:underline}
+.nexus-likes-undo{color:#9aa3b2;font-weight:600;text-decoration:none;border-left:1px solid #262b34;padding-left:10px}
+.nexus-likes-undo:hover{text-decoration:underline;color:#e6e8ec}
 </style>`;

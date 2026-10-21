@@ -148,7 +148,10 @@ export default function Studio() {
         void unlikePublication(unlikeId, claim.accountId).then((answer) => {
           if (!live) return;
           if (answer.ok) {
-            finish(`took the like back on ${unlikeId} — ${answer.count ?? 0} like(s)`);
+            // v320 — the service answers the same way whether there was a like to take back or not
+            // ("a like that is already gone is already gone"), so the words must be true in BOTH cases:
+            // "the like is gone" is, and "took the like back" would not be.
+        finish(`the like on ${unlikeId} is gone — ${answer.count ?? 0} like(s) now`);
           } else {
             finish(`Could not take the like back: ${answer.reason}`);
           }

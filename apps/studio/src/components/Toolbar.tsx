@@ -797,6 +797,17 @@ export default function Toolbar() {
                 >
                   Commented
                 </button>
+                {/* v320 — the undoing of the like. The service has recorded it since v289, and since
+                    this increment the PRODUCT can do it — so a filter that cannot ask for it would leave
+                    a recorded fact in the "All" bucket with no way to name it. */}
+                <button
+                  className={`btn ${trailFilter === 'unlike' ? 'tool-active' : ''}`}
+                  data-trail-filter="unlike"
+                  onClick={() => setTrailFilter('unlike')}
+                  title="only the likes that were taken back"
+                >
+                  Like taken back
+                </button>
                 {/* v319 — the REPORT verbs get their own filters too. Until now they were visible only
                     under "All", so a reader asking "was my work complained about?" had to read the whole
                     trail to find out. The filter asks in the service's own action, like every other
