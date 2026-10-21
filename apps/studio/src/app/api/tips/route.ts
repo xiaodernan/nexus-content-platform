@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { readTips, tipOnService } from '@/lib/tipServer';
+import { readTips, readTipsGiven, tipOnService } from '@/lib/tipServer';
 
 /**
  * M7 v298 (ADR 0016 amendment 298): `/api/tips` — this Studio's door onto the service's tips.
@@ -23,11 +23,19 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
   const recipient = url.searchParams.get('recipient');
-  if (!recipient) {
-    return NextResponse.json({ ok: false, reason: 'the recipient parameter is missing' }, { status: 400 });
+  // v332 — the PAYER's side of the same door: a reader who gave money and could not see what they gave
+  // had a receipt with no place to read it.
+  const payer = url.searchParams.get('payer');
+  if (!recipient && !payer) {
+    return NextResponse.json(
+      { ok: false, reason: 'the question names who received the tips or who gave them' },
+      { status: 400 },
+    );
   }
   const limit = Number.parseInt(url.searchParams.get('limit') ?? '20', 10);
-  const answer = await readTips(recipient, Number.isFinite(limit) ? limit : 20);
+  const answer = recipient
+    ? await readTips(recipient, Number.isFinite(limit) ? limit : 20)
+    : await readTipsGiven(payer as string, Number.isFinite(limit) ? limit : 20);
   if (!answer.ok) {
     return NextResponse.json({ ok: false, reason: answer.reason }, { status: 503 });
   }

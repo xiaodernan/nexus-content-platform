@@ -101,6 +101,30 @@ public class TipService {
         return repository.findByRecipientAccountIdOrderByCreatedAtDesc(recipient, PageRequest.of(0, asked));
     }
 
+    /**
+     * v332 — the tips one account GAVE.
+     *
+     * <p>The other side of the same relation, and the same question the subscription had (v310): "what do I
+     * back" and "who backs me" are not the same question, and the repository has had the finder for the
+     * payer's side since v298 without a service method or a door for it. A reader who gave money and
+     * could not see what they gave had a receipt with no place to read it.
+     */
+    @Transactional(readOnly = true)
+    public List<TipEntry> tipsGiven(String payerAccountId, int limit) {
+        String payer = requireAccount(payerAccountId, "a tip needs an account to give it");
+        int asked = limit <= 0 ? DEFAULT_TIP_LIMIT : Math.min(limit, MAX_TIP_LIMIT);
+        return repository.findByPayerAccountIdOrderByCreatedAtDesc(payer, PageRequest.of(0, asked));
+    }
+
+    /**
+     * v332 — how much one account GAVE, in cents — summed by the DATABASE.
+     */
+    @Transactional(readOnly = true)
+    public long totalGiven(String payerAccountId) {
+        String payer = requireAccount(payerAccountId, "a tip needs an account to give it");
+        return repository.sumAmountCentsByPayerAccountId(payer);
+    }
+
     /** How much one account was given, in cents, and how many tips. */
     @Transactional(readOnly = true)
     public long totalReceived(String recipientAccountId) {

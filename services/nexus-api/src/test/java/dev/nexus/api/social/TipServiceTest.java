@@ -156,6 +156,30 @@ class TipServiceTest {
         assertThat(service.countReceived("acct-bob")).isEqualTo(3L);
     }
 
+    // ── v332: the tips one account GAVE ───────────────────────────
+
+    @Test
+    void theTipsOneAccountGaveAreReadNewestFirst() {
+        // The other side of the same relation, and the same question the subscription had (v310): "what do
+        // I back" and "who backs me" are not the same question. The repository has had the finder since
+        // v298 without a service method or a door for it.
+        TipEntry given = new TipEntry(
+                "t-1", "acct-ada", "acct-bob", "bob", "unsigned-local", 500L, "CNY", "nice", false, AT);
+        when(repository.findByPayerAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of(given));
+
+        assertThat(service.tipsGiven("acct-bob", 20)).containsExactly(given);
+    }
+
+    @Test
+    void theTotalGivenIsSummedByTheDATABASE() {
+        // A total the service added up in memory would be the sum of a WINDOW, and a window's sum is not a
+        // total.
+        when(repository.sumAmountCentsByPayerAccountId("acct-bob")).thenReturn(1500L);
+
+        assertThat(service.totalGiven("acct-bob")).isEqualTo(1500L);
+    }
+
     @Test
     void theLimitIsClampedRatherThanRefused() {
         when(repository.findByRecipientAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))

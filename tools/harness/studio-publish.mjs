@@ -3173,6 +3173,39 @@ try {
     await payerPage.close();
   }
 
+  // ── §46 v332: the tipper sees what THEY gave ─────────────────────────────────────────────────────────
+  // The other side of the same relation: a reader who gave money and could not see what they gave had a
+  // receipt with no place to read it.
+  {
+    const gavePage = await session.newPage('about:blank');
+    await gavePage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(gavePage, 'the gave page to hydrate');
+    await signInAs(gavePage, 'bob', 'the tipper');
+    await gavePage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+
+    const gaveThere = await until(
+      async () => (await gavePage.evaluate("!!document.querySelector('[data-economy-given]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the given tips to show' },
+    );
+    check('the tipper’s own side shows what they gave', gaveThere !== null, 'the rows are there');
+
+    // And the SERVICE agrees, read independently of the browser.
+    const gaveRaw = await gavePage.evaluate("localStorage.getItem('nexus-current-account')");
+    const gaveId = JSON.parse(String(gaveRaw)).id;
+    const gaveTips = await fetch(`${apiBase}/tips?payer=${encodeURIComponent(gaveId)}&limit=50`);
+    const gaveTipsBody = await gaveTips.json();
+    const serviceGave = (gaveTipsBody.tips ?? []).map((t) => t.amountCents);
+    const panelGave = await gavePage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-given]')).map((s) => Number(s.getAttribute('data-economy-given')))",
+    );
+    check(
+      'the SERVICE agrees — the payer’s own door answers with the tips they gave',
+      gaveTips.status === 200 && serviceGave.length > 0 && serviceGave.every((a) => panelGave.includes(a)),
+      `the service: ${JSON.stringify(serviceGave)} · the panel: ${JSON.stringify(panelGave)}`,
+    );
+    await gavePage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

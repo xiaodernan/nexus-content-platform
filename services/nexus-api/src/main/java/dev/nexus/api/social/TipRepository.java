@@ -3,6 +3,7 @@ package dev.nexus.api.social;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 /**
  * M7 v297 — the repository for TIPS.
@@ -22,6 +23,15 @@ public interface TipRepository extends JpaRepository<TipEntry, String> {
     @org.springframework.data.jpa.repository.Query(
             "SELECT COALESCE(SUM(t.amountCents), 0) FROM TipEntry t WHERE t.recipientAccountId = :recipient")
     long sumAmountCentsByRecipientAccountId(@org.springframework.data.repository.query.Param("recipient") String recipientAccountId);
+
+    /**
+     * v332 — how much one account GAVE, summed by the DATABASE like the recipient's.
+     *
+     * <p>The same sum, the other direction: a total the service added up in memory would be the sum of a
+     * WINDOW, and a window's sum is not a total.
+     */
+    @Query("SELECT COALESCE(SUM(t.amountCents), 0) FROM TipEntry t WHERE t.payerAccountId = :payer")
+    long sumAmountCentsByPayerAccountId(@org.springframework.data.repository.query.Param("payer") String payerAccountId);
 
     /** How many tips one account received. */
     long countByRecipientAccountId(String recipientAccountId);

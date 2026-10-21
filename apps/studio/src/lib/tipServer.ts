@@ -48,6 +48,45 @@ export type FetchLike = (
 ) => Promise<Response>;
 
 /** Read the tips one account received. */
+/**
+ * v332 — READ the tips one account GAVE — the other side of the same relation.
+ *
+ * <p>Same door, same shape: the query names the PAYER, and the answer carries the tips and the total the
+ * DATABASE summed. A reader who gave money and could not see what they gave had a receipt with no place
+ * to read it.
+ */
+export async function readTipsGiven(
+  payerAccountId: string,
+  limit: number,
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<TipsAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(
+      `${apiBase}/tips?payer=${encodeURIComponent(payerAccountId)}&limit=${encodeURIComponent(String(limit))}`,
+      { headers: { accept: 'application/json' } },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, tips: [], totalCents: 0, count: 0, reason: `the service's tips door answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { ok?: unknown; tips?: unknown; totalCents?: unknown; count?: unknown; message?: unknown };
+    if (body.ok === false || !res.ok) {
+      const reason =
+        typeof body.message === 'string' ? body.message : `the service's tips door answered HTTP ${res.status}`;
+      return { ok: false, tips: [], totalCents: 0, count: 0, reason };
+    }
+    return {
+      ok: true,
+      tips: Array.isArray(body.tips) ? (body.tips as TipEntry[]) : [],
+      totalCents: typeof body.totalCents === 'number' ? body.totalCents : 0,
+      count: typeof body.count === 'number' ? body.count : 0,
+    };
+  } catch (error) {
+    return { ok: false, tips: [], totalCents: 0, count: 0, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+  }
+}
+
 export async function readTips(
   recipientAccountId: string,
   limit: number,

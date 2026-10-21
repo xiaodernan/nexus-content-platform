@@ -4,7 +4,7 @@ import { renderPreviewHtml } from '@/lib/preview';
 import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
 import { readTrail, type TrailAnswer } from '@/lib/auditLane';
 import { filterTrailRows, trailSummaryOf, trailSummaryText } from '@/lib/trail';
-import { readMyTips } from '@/lib/tipLane';
+import { readMyTips, readMyTipsGiven } from '@/lib/tipLane';
 import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
 import { cancelSubscription, retirePlan } from '@/lib/planLane';
 import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
@@ -150,6 +150,20 @@ export default function Toolbar() {
    * different doors — and one of them failing must not blank the other.
    */
   const [economyAccount, setEconomyAccount] = useState<EconomyAnswer | null>(null);
+  /**
+   * v332 — the tips THIS account gave.
+   *
+   * <p>The other side of the same relation: a reader who gave money and could not see what they gave had a
+   * receipt with no place to read it.
+   */
+  const [given, setGiven] = useState<{
+    ok: boolean;
+    tips: { amountCents: number; message: string; anonymous: boolean; handle?: string | null; payerId?: string | null }[];
+    totalCents: number;
+    count: number;
+    reason?: string;
+  } | null>(null);
+
   const [economy, setEconomy] = useState<{
     ok: boolean;
     tips: { amountCents: number; message: string; anonymous: boolean }[];
@@ -176,6 +190,8 @@ export default function Toolbar() {
       return;
     }
     setEconomy(await readMyTips(account.id));
+    // v332 — and the tips this account gave.
+    setGiven(await readMyTipsGiven(account.id));
     // v309 — and the account's own half: the subscriptions it holds and the plans it offers. The service
     // computes the subscriptions’ standing (v308), so the panel shows the service’s word.
     setEconomyAccount(await readEconomy(account.id));
@@ -958,6 +974,36 @@ export default function Toolbar() {
                           about their own money. */}
                       <span data-economy-payer={tipPayerText(tip)}>
                         {tipPayerText(tip)} — {priceText(tip.amountCents as PriceCents, 'CNY')}
+                      </span>
+                    </div>
+                    {tip.message && (
+                      <div style={{ color: 'var(--nexus-muted)', fontSize: 10, whiteSpace: 'pre-wrap' }}>{tip.message}</div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {/* v332 — the tips THIS account gave: the receipt a reader had nowhere to read. */}
+          <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 8 }}>Tips you gave</div>
+          {given === null ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
+          ) : !given.ok ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>could not read: {given.reason}</div>
+          ) : given.count === 0 ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>this account has given no tips</div>
+          ) : (
+            <>
+              <div style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
+                {given.count} tip(s) · {priceText(given.totalCents as PriceCents, 'CNY')} given
+              </div>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {given.tips.map((tip, i) => (
+                  <li key={i} data-economy-given={tip.amountCents} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '3px 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>{priceText(tip.amountCents as PriceCents, 'CNY')}</span>
+                      <span style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>
+                        {tip.anonymous ? 'given anonymously' : 'given in the open'}
                       </span>
                     </div>
                     {tip.message && (
