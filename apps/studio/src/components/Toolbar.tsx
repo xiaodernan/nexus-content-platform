@@ -8,7 +8,7 @@ import { readMyTips } from '@/lib/tipLane';
 import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
 import { cancelSubscription, retirePlan } from '@/lib/planLane';
 import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
-import { tallyText } from '@/lib/moderation';
+import { filterDeskRows, tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { readMyFollowing, unfollowAccount, type FollowingLaneAnswer } from '@/lib/followLane';
 import { priceText } from '@/lib/economy';
@@ -265,6 +265,18 @@ export default function Toolbar() {
    * capability nobody can reach.
    */
   const [following, setFollowing] = useState<FollowingLaneAnswer | null>(null);
+
+  /**
+   * v318 — the desk’s REASON filter.
+   *
+   * <p>The reasons are a closed set of four (v295) and the tally counts them (v312), so a reader can ask
+   * "just the spam ones" — and the filter narrows the LIST while the tally keeps counting the whole, so
+   * nothing is hidden without a number saying it is there (v281’s rule, the one the trail keeps).
+   */
+  const [deskReason, setDeskReason] = useState<string | null>(null);
+
+  /** The reasons that OCCUR on this desk — the ones the filter offers. */
+  const deskReasons = Array.from(new Set((desk?.reports ?? []).map((row) => row.reason)));
 
   const refreshFollowing = async () => {
     const account = session.current();
@@ -1042,8 +1054,43 @@ export default function Toolbar() {
               <div style={{ color: 'var(--nexus-muted)', marginBottom: 6 }}>
                 {desk.reports.length} report(s) · {desk.open} still waiting
               </div>
+              {/* v318 — the reason filter. Only the reasons that OCCUR get a button: a button for a reason
+                  with no reports is noise, and a reader learns to skip the whole row. The TALLY keeps
+                  counting the whole answer, so the filter never hides anything without a number saying it
+                  is there (v281’s rule, the one the trail’s tally keeps). */}
+              {deskReasons.length > 1 && (
+                <div data-desk-filters style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+                  <button
+                    className={`btn ${deskReason === null ? 'tool-active' : ''}`}
+                    data-desk-filter="all"
+                    onClick={() => setDeskReason(null)}
+                    title="every reason"
+                  >
+                    All
+                  </button>
+                  {deskReasons.map((reason) => (
+                    <button
+                      key={reason}
+                      className={`btn ${deskReason === reason ? 'tool-active' : ''}`}
+                      data-desk-filter={reason}
+                      onClick={() => setDeskReason(reason)}
+                      title={`only the ${reason} ones`}
+                    >
+                      {reason}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* v318 — a filter that matches nothing says so. An empty list under a full tally would
+                  read as "the rows are still loading" — and a reader who asked for one reason and
+                  saw nothing needs to be told that the desk HAS reports, just not of that one. */}
+              {filterDeskRows(desk.reports, deskReason).length === 0 && (
+                <div data-desk-empty style={{ color: 'var(--nexus-muted)' }}>
+                  no reports with this reason
+                </div>
+              )}
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                {desk.reports.map((report) => (
+                {filterDeskRows(desk.reports, deskReason).map((report) => (
                   <li
                     key={report.reportId}
                     data-desk-report={report.reportId}

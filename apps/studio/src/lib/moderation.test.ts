@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { deskSummary, reportStatusText, tallyText, toDeskRow, toDeskRows } from './moderation';
+import { deskSummary, filterDeskRows, reportStatusText, tallyText, toDeskRow, toDeskRows } from './moderation';
 import { acknowledgeReport, readDesk } from './moderationLane';
 
 /**
@@ -179,4 +179,39 @@ describe('moderation — the TALLY (M7 v312)', () => {
     expect(withoutTally.tally).toBeNull();
   });
 });
+});
+describe('moderation — the desk FILTER (M7 v318)', () => {
+  const ROWS = toDeskRows([
+    { ...A_REPORT, reportId: 'rep-1', reason: 'harassment' },
+    { ...A_REPORT, reportId: 'rep-2', reason: 'spam' },
+    { ...A_REPORT, reportId: 'rep-3', reason: 'spam' },
+  ]);
+
+  it('the filter narrows the LIST to the reason asked for', () => {
+    const filtered = filterDeskRows(ROWS, 'spam');
+    expect(filtered).toHaveLength(2);
+    expect(filtered.every((row) => row.reason === 'spam')).toBe(true);
+  });
+
+  it('no filter keeps every row — and hands back a COPY, not the same array', () => {
+    const all = filterDeskRows(ROWS, null);
+    expect(all).toHaveLength(3);
+    expect(all).not.toBe(ROWS);
+    all.pop();
+    expect(ROWS).toHaveLength(3);
+  });
+
+  it('a reason that does NOT occur answers with an empty list, not with the whole desk', () => {
+    // The honest answer to "just the illegal ones" when nothing was reported as illegal.
+    expect(filterDeskRows(ROWS, 'illegal')).toEqual([]);
+  });
+
+  it('the filter asks in the SERVICE’s own word, not the display word', () => {
+    // The reason is a closed set of the service's own words; the display word ("harassment" -> "harassment
+    // or abuse") is a translation, and a filter that matched on the translation would break the moment the
+    // translation changed. So the filter takes the RAW reason — and a raw reason that is not a known one
+    // simply matches nothing.
+    expect(filterDeskRows(ROWS, 'harassment')).toHaveLength(1);
+    expect(filterDeskRows(ROWS, 'Harassment')).toEqual([]);
+  });
 });

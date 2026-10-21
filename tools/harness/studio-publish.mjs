@@ -2540,6 +2540,63 @@ try {
     await pricePage.close();
   }
 
+  // ── §32 v318: the desk filters by REASON ─────────────────────────────────────────────────────────
+  // The reasons are a closed set of four (v295) and the tally counts them (v312) — so a creator can ask
+  // "just the spam ones". The filter narrows the LIST and the TALLY keeps counting the whole, and both
+  // are on screen at once: a filter that hid something without a number saying it was there would be a
+  // small lie (v281’s rule, the one the trail keeps).
+  {
+    const filterPage = await session.newPage('about:blank');
+    await filterPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(filterPage, 'the filter page to hydrate');
+    await signInAs(filterPage, 'ada', 'the owner with reports against their work');
+    await filterPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(filterPage, 'the owner’s desk page to hydrate');
+    await filterPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
+
+    const filtersThere = await until(
+      async () => (await filterPage.evaluate("!!document.querySelector('[data-desk-filters]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the reason filters to show' },
+    );
+    check('the desk offers a filter for each reason that OCCURS', filtersThere !== null, 'the buttons are there');
+
+    const reasonsOffered = await filterPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-desk-filter]')).map((b) => b.getAttribute('data-desk-filter'))",
+    );
+    check('and the reasons on the desk are the ones it offers', reasonsOffered.includes('spam') && reasonsOffered.includes('harassment'), `the filters: ${JSON.stringify(reasonsOffered)}`);
+
+    const rowsBefore = await filterPage.evaluate("document.querySelectorAll('[data-desk-report]').length");
+    check('and every report is on the desk to begin with', rowsBefore >= 2, `rows: ${rowsBefore}`);
+
+    // Filter to ONE reason.
+    await filterPage.evaluate("document.querySelector('[data-desk-filter=\"spam\"]').click()");
+    const narrowed = await until(
+      async () => {
+        const n = await filterPage.evaluate("document.querySelectorAll('[data-desk-report]').length");
+        return n < rowsBefore ? n : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the rows to narrow' },
+    );
+    check('filtering by a reason narrows the LIST', narrowed !== null, `rows left: ${JSON.stringify(narrowed)}`);
+
+    // And the TALLY still counts the whole answer: the filter never hides anything without a number.
+    const tallyAfter = await filterPage.evaluate("document.querySelector('[data-desk-tally]')?.textContent ?? ''");
+    check(
+      'and the TALLY still counts the whole answer',
+      tallyAfter.includes('harassment') && tallyAfter.includes('spam'),
+      `the tally says: ${JSON.stringify(tallyAfter)}`,
+    );
+
+    // And "All" puts them back.
+    await filterPage.evaluate("document.querySelector('[data-desk-filter=\"all\"]').click()");
+    const restored = await until(
+      async () => (await filterPage.evaluate("document.querySelectorAll('[data-desk-report]').length")) === rowsBefore,
+      { tries: 120, gapMs: 500, label: 'the rows to come back' },
+    );
+    check('and the All button brings every row back', restored !== null, 'the rows are back');
+    await filterPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
