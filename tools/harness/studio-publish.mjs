@@ -90,7 +90,10 @@ function canConnect(port, timeoutMs = 1000) {
 async function waitForHydration(page, label) {
   const ready = await until(
     async () => (await page.evaluate('!!window.__nexus')) === true,
-    { tries: 120, gapMs: 500, label: label ?? 'the page to hydrate' },
+    // v336 — the budget is two minutes, not one: the Studio's own door is a `next dev` server
+    // and a page that is compiled while the machine is busy can take a while to come up. A proof that
+    // gives up before the page is real is a proof that measured the machine, not the product.
+    { tries: 240, gapMs: 500, label: label ?? 'the page to hydrate' },
   );
   assert.ok(ready, `the page never hydrated (${label ?? 'the page'}) — its handlers were never attached`);
 }
@@ -349,7 +352,7 @@ try {
     } catch {
       return false;
     }
-  }, { tries: 160, gapMs: 1000, label: 'the Studio to serve' });
+  }, { tries: 600, gapMs: 1000, label: 'the Studio to serve' });
   assert.ok(studioUp, `the Studio never served. Its output was:\n${studioLog.slice(-3000)}`);
   console.log(`[e2e] Studio on :${studioPort} (NEXUS_API_URL=${apiBase})`);
 
@@ -436,10 +439,19 @@ try {
   // frozen read-only snapshot and deliberately exposes no document id, and the URL is the authoritative
   // statement of what was published anyway.
   await page.evaluate("document.querySelector('[data-toolbar-publish]').click()");
-  const published = await page.waitForFunction(
-    "(() => { const n = document.querySelector('[data-toolbar-publish-note]')?.textContent ?? ''; return n.startsWith('published') ? n : null; })()",
-    { timeout: 60000 },
-  );
+  // The note is read on failure too: a timeout that says nothing about what the page held is a timeout
+  // that leaves the reader guessing, and the note is where the refusal lives.
+  let published = null;
+  try {
+    published = await page.waitForFunction(
+      "(() => { const n = document.querySelector('[data-toolbar-publish-note]')?.textContent ?? ''; return n.startsWith('published') ? n : null; })()",
+      { timeout: 180000 },
+    );
+  } catch (error) {
+    const note = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? ''");
+    console.log(`[e2e] the publish note never said "published"; the page held: ${JSON.stringify(note)}`);
+    throw error;
+  }
   check('pressing Publish reports a publication', published !== null, `note: ${JSON.stringify(published)}`);
 
   const urlMatch = /→\s*(\S+\/projects\/[^\s]+)$/.exec(published ?? '');
@@ -828,7 +840,7 @@ try {
         );
         return rows.length > 0 ? rows : false;
       },
-      { tries: 40, gapMs: 500, label: 'the audit trail to render its rows' },
+      { tries: 160, gapMs: 500, label: 'the audit trail to render its rows' },
     );
     check('opening it asks the service and renders what it recorded', trailRows !== null, `${trailRows === null ? 0 : trailRows.length} entr(y/ies)`);
     // A failed read leaves the marker FALSE above; every later check then sees an EMPTY trail rather than a thrown
@@ -1148,7 +1160,7 @@ try {
         const n = await commentPage.evaluate("document.querySelector('[data-comment-note]')?.textContent ?? ''");
         return n.includes('commented') ? n : false;
       },
-      { tries: 120, gapMs: 500, label: 'the comment to land' },
+      { tries: 360, gapMs: 500, label: 'the comment to land' },
     );
     if (commentNote === null) {
       const why = await commentPage.evaluate(
@@ -3331,6 +3343,50 @@ try {
       `the comment: ${JSON.stringify(takenBack)}`,
     );
     await minePage.close();
+  }
+
+  // ── §50 v336: the artifact page names WHO liked it ────────────────────────────────────────────────
+  // The follow bar has named its followers since v288, and the like bar said only a count — so a reader
+  // could see WHO follows a creator and not WHO liked their work. The earlier section took its like back
+  // (that is what the taking-back is for), so this section likes it again and then reads the page.
+  {
+    const likerPage = await session.newPage('about:blank');
+    await likerPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(likerPage, 'the liker page to hydrate');
+    await signInAs(likerPage, 'bob', 'the liker');
+    const likeTarget50 = remixProjectId ?? projectId;
+    await likerPage.navigate(`${studioBase}/?like=${encodeURIComponent(likeTarget50)}`, {
+      waitForSelector: '#nexus-canvas', waitMs: 2000,
+    });
+    await waitForHydration(likerPage, 'the like page to hydrate');
+    const liked50 = await until(
+      async () => {
+        const s = await likerPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('liked') ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the like to land for the liker' },
+    );
+    check('the like is on the service again, under a name', liked50 !== null, `status: ${JSON.stringify(liked50)}`);
+
+    // The artifact page now names the liker.
+    const likersHtml = await (await fetch(`${studioBase}/p/${encodeURIComponent(likeTarget50)}`)).text();
+    check(
+      'the artifact page’s like bar names the people who liked it',
+      likersHtml.includes('data-liker=') && likersHtml.includes('nexus-likes-list'),
+      likersHtml.includes('data-liker=') ? 'the bar has likers' : 'the bar has no likers',
+    );
+
+    // And the SERVICE agrees, read independently of the browser.
+    const likersRead = await fetch(`${apiBase}/likes?projectId=${encodeURIComponent(likeTarget50)}`);
+    const likersBody = await likersRead.json();
+    const serviceLikers = (likersBody.likes ?? []).map((l) => l.handle).filter(Boolean);
+    check(
+      'the SERVICE agrees — it sends the likers’ names on the wire, and the bar shows them',
+      likersRead.status === 200 && serviceLikers.length > 0
+        && serviceLikers.every((h) => likersHtml.includes(`@${h}`)),
+      `the service: ${JSON.stringify(serviceLikers)}`,
+    );
+    await likerPage.close();
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────

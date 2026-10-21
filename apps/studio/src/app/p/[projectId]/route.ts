@@ -98,7 +98,19 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
     // different facts and a page that showed the first when it knew the second would be lying in the way
     // that matters most — a reader would conclude nobody cared.
     const likes = await readLikes(decoded);
-    const bar = likes.ok ? renderLikeBar({ projectId: decoded, count: likes.count }) : '';
+    // v336 — and WHO liked it, not only how many: the wire has carried the likers' names all along,
+    // and the follow bar has named its followers since v288.
+    const bar = likes.ok
+      ? renderLikeBar({
+          projectId: decoded,
+          count: likes.count,
+          likers: (likes.likes ?? []).map((l) => ({
+            accountId: l.accountId,
+            nameText: l.handle ? `@${l.handle}` : l.accountId,
+            assurance: l.assurance ?? null,
+          })),
+        })
+      : '';
     // v286 — the COMMENTS. Read independently again: a comments door that could not be read leaves the
     // section out rather than claiming the publication has no comments.
     const comments = await readComments(decoded, COMMENT_LIMIT);

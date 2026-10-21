@@ -84,6 +84,28 @@ describe('likeBar — the bar on the artifact page (M7 v284)', () => {
     expect(renderLikeBar({ projectId: 'pub-1', count: null, reason: 'the service is down' })).toBe('');
   });
 
+  it('v336 — names WHO liked it, the way the follow bar names its followers', () => {
+    // The follow bar has named its followers since v288, and the like bar said only a count — so a reader
+    // could see WHO follows a creator and not WHO liked their work.
+    const html = renderLikeBar({
+      projectId: 'pub-1',
+      count: 2,
+      likers: [
+        { accountId: 'acct-bob', nameText: '@bob', assurance: 'unsigned-local' },
+        { accountId: 'acct-ada', nameText: '@ada', assurance: null },
+      ],
+    });
+    expect(html).toContain('data-liker="acct-bob"');
+    expect(html).toContain('@bob');
+    expect(html).toContain('data-liker="acct-ada"');
+  });
+
+  it('v336 — and a bar with no likers says only the count', () => {
+    const html = renderLikeBar({ projectId: 'pub-1', count: 0 });
+    expect(html).toContain('data-likes="0"');
+    expect(html).not.toContain('data-liker=');
+  });
+
   it('it does NOT claim YOU liked it \u2014 the page cannot know who is asking', () => {
     const html = renderLikeBar({ projectId: 'pub-1', count: 3 });
     expect(html).not.toContain('Liked');

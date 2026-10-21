@@ -19,8 +19,20 @@ import type { OwnerClaim } from './accounts';
 /** Where the service lives. One variable, so a deployment can point the Studio at another host. */
 const DEFAULT_API_BASE = 'http://127.0.0.1:8080';
 
-/** How long a call to the service may take. A publish is a small write; a hung one should not hang the UI. */
-const CALL_TIMEOUT_MS = 5000;
+/**
+ * How long a call to the service may take.
+ *
+ * <p>It was 5 seconds, and that was too tight for the shape this call has: the Studio's own door is a
+ * `next dev` server in this repository, and the FIRST call to a route pays that route's COMPILE. A
+ * publish that timed out while the compiler was busy was answered as "the service is unreachable" — a
+ * FALSE sentence about a service that was there, answering a moment later. The tip lane's door made
+ * exactly this fix in v294 (45 seconds, not 10) for exactly this reason, and this door had never caught
+ * up with it.
+ *
+ * <p>A publish is a small write and a hung one should not hang the UI — but "hung" has to mean hung,
+ * not "the compiler was busy".
+ */
+export const PUBLISH_CALL_TIMEOUT_MS = 45_000;
 
 export function nexusApiBase(): string {
   const configured = process.env.NEXUS_API_URL;
@@ -81,7 +93,7 @@ const probeId = '__nexus_studio_probe__';
 
 /** A timeout that does not keep the process alive. */
 function callSignal(): AbortSignal {
-  return AbortSignal.timeout(CALL_TIMEOUT_MS);
+  return AbortSignal.timeout(PUBLISH_CALL_TIMEOUT_MS);
 }
 
 /**

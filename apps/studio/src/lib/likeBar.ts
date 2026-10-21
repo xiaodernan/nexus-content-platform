@@ -36,6 +36,14 @@ export interface LikeBarFacts {
   count: number | null;
   /** Why the count could not be read, when it could not. */
   reason?: string;
+  /**
+   * v336 — WHO liked it, in the order the service gave them.
+   *
+   * <p>The follow bar has named its followers since v288, and the like bar said only a count — so a reader
+   * could see WHO follows a creator and not WHO liked their work, which is the smaller of the two facts
+   * and the one a creator would want to see most. The wire has carried the likers' names all along.
+   */
+  likers?: { accountId: string; nameText: string; assurance?: string | null }[];
 }
 
 /**
@@ -52,10 +60,19 @@ export function renderLikeBar(facts: LikeBarFacts): string {
   const href = `/?like=${encodeURIComponent(facts.projectId)}`;
   // v320 — the taking-back, as a link to the Studio (the same arrangement as the like itself).
   const undoHref = `/?unlike=${encodeURIComponent(facts.projectId)}`;
+  // v336 — the people, not only the number: the same shape the follow bar has used since v288.
+  const likers = (facts.likers ?? [])
+    .map((l) => {
+      const text = l.assurance ? `${l.nameText} · ${l.assurance}` : l.nameText;
+      return `<li data-liker="${escapeHtml(l.accountId)}"><a href="/u/${encodeURIComponent(l.accountId)}">${escapeHtml(text)}</a></li>`;
+    })
+    .join('\n');
+  const list = likers ? `<ul class="nexus-likes-list">\n${likers}\n</ul>` : '';
   return `<div class="nexus-likes" data-likes="${facts.count}">
 <span class="nexus-likes-count">\u2764 ${escapeHtml(label)}</span>
 <a class="nexus-likes-action" href="${escapeHtml(href)}" title="like this publication from the Studio">Like</a>
 <a class="nexus-likes-undo" href="${escapeHtml(undoHref)}" title="take the like back from the Studio">Take it back</a>
+${list}
 </div>`;
 }
 
@@ -78,6 +95,9 @@ export const LIKE_BAR_STYLES = `<style>
 .nexus-likes-count{color:#e6e8ec;font-weight:600}
 .nexus-likes-action{color:#3b82f6;font-weight:600;text-decoration:none}
 .nexus-likes-action:hover{text-decoration:underline}
+.nexus-likes-list{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.nexus-likes-list a{color:#9aa3b2;text-decoration:none}
+.nexus-likes-list a:hover{text-decoration:underline;color:#e6e8ec}
 .nexus-likes-undo{color:#9aa3b2;font-weight:600;text-decoration:none;border-left:1px solid #262b34;padding-left:10px}
 .nexus-likes-undo:hover{text-decoration:underline;color:#e6e8ec}
 </style>`;

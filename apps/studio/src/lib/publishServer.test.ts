@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { listPublications, publishDocument, publishState, readPublication, unpublishProject, nexusApiBase, type FetchLike } from './publishServer';
+import {
+  listPublications,
+  publishDocument,
+  publishState,
+  readPublication,
+  unpublishProject,
+  nexusApiBase,
+  PUBLISH_CALL_TIMEOUT_MS,
+  type FetchLike,
+} from './publishServer';
 
 /**
  * M7 v194 — the Studio's half of the publish lane.
@@ -35,7 +44,15 @@ afterEach(() => {
 });
 
 describe('publishServer — the base URL', () => {
-  it('defaults to the local service and takes NEXUS_API_URL when it is set', () => {
+  it('v336 — the call to the service waits long enough for a COLD route', () => {
+  // The Studio's own door is a `next dev` server, and the FIRST call to a route pays that route's
+  // compile. A publish that timed out while the compiler was busy was answered as "the service is
+  // unreachable" — a false sentence about a service that was there, answering a moment later. The tip
+  // lane's door made this fix in v294; this door had never caught up.
+  expect(PUBLISH_CALL_TIMEOUT_MS).toBeGreaterThanOrEqual(30_000);
+});
+
+it('defaults to the local service and takes NEXUS_API_URL when it is set', () => {
     vi.stubEnv('NEXUS_API_URL', '');
     expect(nexusApiBase()).toBe('http://127.0.0.1:8080');
 
