@@ -1151,7 +1151,23 @@ export default function Toolbar() {
                     style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '4px 0', borderTop: '1px solid var(--nexus-border, #262b34)' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                      <span>{report.targetTitle} — {report.reasonText}</span>
+                      {/* v324 — the title is a LINK to the work the complaint is about. The same reason the
+                          trail's target is a link: an owner reading a complaint has to be able to SEE the
+                          thing that was complained about, and a title is not the thing — it is a name a
+                          reader has to trust. */}
+                      <span>
+                        <a
+                          href={`/p/${encodeURIComponent(report.targetProjectId)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          data-desk-target={report.targetProjectId}
+                          style={{ color: 'inherit' }}
+                        >
+                          {report.targetTitle}
+                        </a>
+                        {' — '}
+                        {report.reasonText}
+                      </span>
                       <span style={{ color: 'var(--nexus-muted)' }}>{report.statusText}</span>
                     </div>
                     {report.detail && (

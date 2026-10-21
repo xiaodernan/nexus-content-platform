@@ -2870,6 +2870,42 @@ try {
     await wordsPage.close();
   }
 
+  // ── §38 v324: the desk’s rows LINK to the work the complaint is about ───────────────────────────
+  // An owner reading a complaint has to be able to SEE the thing that was complained about. A title is
+  // a name a reader has to trust; the work is the thing itself — the same reason the trail’s target is
+  // a link.
+  {
+    const linkPage = await session.newPage('about:blank');
+    await linkPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(linkPage, 'the link page to hydrate');
+    await signInAs(linkPage, 'ada', 'the owner with complaints against their work');
+    await linkPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
+
+    const targetLink = await until(
+      async () => (await linkPage.evaluate("!!document.querySelector('[data-desk-target]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the link to the work to show' },
+    );
+    check('the desk row carries a link to the work', targetLink !== null, 'the link is there');
+
+    const targetHref = await linkPage.evaluate("document.querySelector('[data-desk-target]')?.getAttribute('href') ?? ''");
+    const targetId = await linkPage.evaluate("document.querySelector('[data-desk-target]')?.getAttribute('data-desk-target') ?? ''");
+    check(
+      'and it points at the publication the complaint is about',
+      targetHref === `/p/${targetId}` && targetId.length > 0,
+      `href: ${JSON.stringify(targetHref)} · id: ${JSON.stringify(targetId)}`,
+    );
+
+    // And the page it points at really is the artifact page — read independently of the browser.
+    const targetPage = await fetch(`${studioBase}${targetHref}`);
+    const targetHtml = await targetPage.text();
+    check(
+      'and that page answers 200 with the Studio’s own document',
+      targetPage.status === 200 && targetHtml.includes('class="stage"'),
+      `status ${targetPage.status} · carries a stage: ${targetHtml.includes('class="stage"')}`,
+    );
+    await linkPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
