@@ -385,6 +385,23 @@ class SubscriptionServiceTest {
         assertThat(service.subscriptionsOf("acct-ada", 20)).hasSize(1);
     }
 
+    // ── v330: the plan's creator's NAME is copied on, like the price ───────
+
+    @Test
+    void thePlansCreatorsNameIsCopiedOntoTheSubscription() {
+        // A plan id is an ADDRESS, and a supporter reading their own list should not have to know which
+        // address belongs to the person whose work they are backing. The plan knows the creator's name
+        // (the creator's own claim, since v301); the subscription copies it, the way it copies the price.
+        PlanEntry offered = plan("pro", "acct-ada", 1500, "month");
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(offered));
+        when(subscriptions.findBySubscriberAccountIdAndPlanId("acct-bob", "pro")).thenReturn(Optional.empty());
+        when(subscriptions.save(any(SubscriptionEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        SubscriptionEntry row = service.subscribe("pro", claim("acct-bob"));
+
+        assertThat(row.getCreatorHandle()).isEqualTo(offered.getCreatorHandle());
+    }
+
     // ── v328: the instant a subscription was TAKEN BACK ──────────────────────────────────────────────
 
     @Test

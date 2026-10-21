@@ -984,7 +984,13 @@ export default function Toolbar() {
                   style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '3px 0' }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                    <span>{row.planId} — {row.priceText}</span>
+                    <span>
+                      {row.planId} — {row.priceText}
+                      {/* v330 — and WHOSE plan it is. A plan id is an address, and a supporter reading
+                          their own list should not have to know which address belongs to the person
+                          whose work they are backing. */}
+                      {row.creatorText && <span data-economy-creator={row.creatorText}> · {row.creatorText}</span>}
+                    </span>
                     <span style={{ color: 'var(--nexus-muted)' }}>{row.statusText}</span>
                   </div>
                   <div style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>{row.daysLeftText}</div>

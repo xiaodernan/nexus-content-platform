@@ -172,7 +172,12 @@ public class SubscriptionService {
                 SubscriptionDtos.expiryOf(when, offered.getPeriod()),
                 true,
                 claim == null ? null : claim.handle(),
-                claim == null ? null : claim.assurance());
+                claim == null ? null : claim.assurance(),
+                // v330 — the plan's creator's NAME, copied like the price: what a supporter agreed to is a
+                // fact about the past, and a plan id is an address rather than a name.
+                offered.getCreatorHandle(),
+                // v328 — a new subscription has no ending: it has not been taken back yet.
+                null);
         return subscriptions.save(row);
     }
 

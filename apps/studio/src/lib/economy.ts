@@ -56,6 +56,10 @@ export interface EconomySubscription {
    * v328 — WHEN the subscription was taken back, in epoch millis. Null when it was not taken back.
    */
   endedAt?: number | null;
+  /**
+   * v330 — the plan's creator's NAME, as it was when the subscription was made.
+   */
+  creatorHandle?: string | null;
 }
 
 /** What the service's tip row would carry. */
@@ -115,6 +119,15 @@ export interface SubscriptionRow {
    * `subscribedAt` since v300 — the panel just never said it.
    */
   startedText: string | null;
+  /**
+   * v330 — WHOSE plan it is, in a reader's words — or null when the wire did not say.
+   *
+   * <p>A plan id is an ADDRESS (the plan is "pro"), and a supporter reading their own list should not
+   * have to know which of three addresses belongs to the person whose work they are backing. The name
+   * is the creator's own claim, copied onto the subscription at the moment it was made — the same
+   * snapshot rule the price follows.
+   */
+  creatorText: string | null;
 }
 
 /**
@@ -246,6 +259,19 @@ export function subscriptionStandingText(standing: SubscriptionStanding): string
  * A row needs a planId and a finite price to say what it costs.
  */
 /**
+ * WHOSE plan it is, in a reader's words — or null when the wire did not say.
+ *
+ * <p>The creator's name when the wire carries one, the account id when it does not: a creator is a
+ * PUBLIC identity (their name is in the byline of everything they publish), and an address is better
+ * than a blank.
+ */
+function creatorTextOf(sub: EconomySubscription): string | null {
+  const handle = typeof sub.creatorHandle === 'string' && sub.creatorHandle.length > 0 ? sub.creatorHandle : null;
+  if (handle) return `@${handle}`;
+  return typeof sub.creatorId === 'string' && sub.creatorId.length > 0 ? sub.creatorId : null;
+}
+
+/**
  * WHEN the support began, in a reader's words — or null when the wire did not say.
  *
  * <p>Same shape as the ending: a fact about a machine (the service's own clock), formatted the same way
@@ -317,6 +343,8 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
     endedText: endedTextOf(s),
     // v329 — and when the support began.
     startedText: startedTextOf(s),
+    // v330 — and whose plan it is.
+    creatorText: creatorTextOf(s),
     // v313 — and the note, for a subscription that ended: it cannot be made again, and the panel says why
     // rather than leaving the reader hunting for a button that does not exist.
     renewNote:

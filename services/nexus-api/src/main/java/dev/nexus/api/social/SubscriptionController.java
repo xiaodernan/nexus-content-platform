@@ -214,7 +214,9 @@ public class SubscriptionController {
                 // v308 — where the subscription STANDS, computed by the service from the row and the clock.
                 service.standingOf(row),
                 // v328 — and WHEN it was taken back, when it was.
-                row.getEndedAt() == null ? null : row.getEndedAt().toEpochMilli());
+                row.getEndedAt() == null ? null : row.getEndedAt().toEpochMilli(),
+                // v330 — and whose plan it was, as it was when the subscription was made.
+                row.getCreatorHandle());
     }
 
     /**

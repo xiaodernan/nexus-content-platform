@@ -32,6 +32,10 @@ export interface SubscriptionEntry {
    * v328 — WHEN the subscription was taken back, in epoch millis. Null when it was not.
    */
   endedAt?: number | null;
+  /**
+   * v330 — the plan's creator's NAME, as it was when the subscription was made.
+   */
+  creatorHandle?: string | null;
   status?: string;
 }
 

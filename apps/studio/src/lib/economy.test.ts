@@ -136,6 +136,19 @@ describe('economy — subscription rows (M8 v274)', () => {
     expect(toSubscriptionRow({ ...sub(), subscribedAt: null })!.startedText).toBeNull();
   });
 
+  it('v330 — names WHOSE plan it backs', () => {
+    // A plan id is an ADDRESS, and a supporter reading their own list should not have to know which
+    // address belongs to the person whose work they are backing.
+    const row = toSubscriptionRow({ ...sub(), creatorHandle: 'ada' })!;
+    expect(row.creatorText).toBe('@ada');
+  });
+
+  it('v330 — and a wire with no name shows the account id rather than a blank', () => {
+    // A creator is a PUBLIC identity (their name is in the byline of everything they publish), and an
+    // address is better than a blank.
+    expect(toSubscriptionRow(sub())!.creatorText).toBe('acct-ada');
+  });
+
   it('a row it cannot display honestly is dropped', () => {
     expect(toSubscriptionRow(null)).toBeNull();
     expect(toSubscriptionRow('string')).toBeNull();

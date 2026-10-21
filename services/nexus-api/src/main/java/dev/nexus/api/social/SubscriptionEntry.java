@@ -91,6 +91,17 @@ public class SubscriptionEntry {
     private String subscriberAssurance;
 
     /**
+     * v330 — the NAME of the plan's creator, AS IT WAS when the subscription was made.
+     *
+     * <p>A snapshot, for the same reason the price is one: what a supporter agreed to is a fact about the
+     * past. The plan keeps the creator's handle (the creator's own claim, since v301) and the subscription
+     * copies it — so a supporter reading "pro · ¥15.00 · Active" can see WHOSE plan they are
+     * backing, and a plan id is an address rather than a name.
+     */
+    @Column(name = "creator_handle", length = 64)
+    private String creatorHandle;
+
+    /**
      * v328 — WHEN the subscription ended — the instant the supporter took it back.
      *
      * <p>Until now a row said THAT it ended (the `active` flag) and never WHEN: an expired subscription
@@ -120,7 +131,7 @@ public class SubscriptionEntry {
             Instant expiresAt,
             boolean active) {
         this(subscriptionId, subscriberAccountId, creatorAccountId, planId, priceCents, currency, period,
-                subscribedAt, expiresAt, active, null, null);
+                subscribedAt, expiresAt, active, null, null, null, null);
     }
 
     /**
@@ -143,7 +154,7 @@ public class SubscriptionEntry {
             String subscriberHandle,
             String subscriberAssurance) {
         this(subscriptionId, subscriberAccountId, creatorAccountId, planId, priceCents, currency, period,
-                subscribedAt, expiresAt, active, subscriberHandle, subscriberAssurance, null);
+                subscribedAt, expiresAt, active, subscriberHandle, subscriberAssurance, null, null);
     }
 
     /**
@@ -162,6 +173,7 @@ public class SubscriptionEntry {
             boolean active,
             String subscriberHandle,
             String subscriberAssurance,
+            String creatorHandle,
             Instant endedAt) {
         this.subscriptionId = subscriptionId;
         this.subscriberAccountId = subscriberAccountId;
@@ -176,6 +188,7 @@ public class SubscriptionEntry {
         this.subscriberHandle = subscriberHandle;
         this.subscriberAssurance = subscriberAssurance;
         this.endedAt = endedAt;
+        this.creatorHandle = creatorHandle;
     }
 
     public String getSubscriptionId() {
@@ -231,6 +244,11 @@ public class SubscriptionEntry {
     /** v328 — the instant the subscription was taken back, or null when it was not. */
     public Instant getEndedAt() {
         return endedAt;
+    }
+
+    /** v330 — the name of the plan's creator, as it was when the subscription was made. */
+    public String getCreatorHandle() {
+        return creatorHandle;
     }
 
     /** The subscription ends: the supporter cancelled, or its period ran out. */

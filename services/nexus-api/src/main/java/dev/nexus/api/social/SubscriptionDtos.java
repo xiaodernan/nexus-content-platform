@@ -87,7 +87,12 @@ public final class SubscriptionDtos {
              * back: a standing subscription has no ending, and one that merely ran out of its period ended
              * on `expiresAt`, which is a different date.
              */
-            Long endedAt) {
+            Long endedAt,
+            /**
+             * v330 — the plan's creator's NAME, as it was when the subscription was made. Null when the
+             * plan carried no name: the panel then shows the creator's account id rather than inventing one.
+             */
+            String creatorHandle) {
     }
 
     /** The answer to a plan question. */

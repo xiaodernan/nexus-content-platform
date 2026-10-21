@@ -3100,6 +3100,41 @@ try {
     await startedPage.close();
   }
 
+  // ── §44 v330: the supporter sees WHOSE plan they back ─────────────────────────────────────────────
+  // A plan id is an ADDRESS, and a supporter reading their own list should not have to know which
+  // address belongs to the person whose work they are backing. The name is the creator’s own claim,
+  // copied onto the subscription when it was made — the same snapshot rule the price follows.
+  {
+    const whosePage = await session.newPage('about:blank');
+    await whosePage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(whosePage, 'the whose page to hydrate');
+    await signInAs(whosePage, 'bob', 'the supporter');
+    await whosePage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+
+    const whoseThere = await until(
+      async () => (await whosePage.evaluate("!!document.querySelector('[data-economy-creator]')")) === true,
+      { tries: 120, gapMs: 500, label: 'whose plan it is to show' },
+    );
+    check('the supporter’s own row says whose plan they back', whoseThere !== null, 'the name is there');
+
+    // And the SERVICE agrees, read independently of the browser.
+    const whoseRaw = await whosePage.evaluate("localStorage.getItem('nexus-current-account')");
+    const whoseId = JSON.parse(String(whoseRaw)).id;
+    const whoseSubs = await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(whoseId)}&limit=50`);
+    const whoseSubsBody = await whoseSubs.json();
+    const serviceCreators = (whoseSubsBody.subscriptions ?? []).map((s) => s.creatorHandle).filter(Boolean);
+    const panelCreators = await whosePage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-creator]')).map((s) => s.getAttribute('data-economy-creator'))",
+    );
+    check(
+      'the SERVICE agrees — it sends the creator’s name on the wire, and the panel shows it',
+      whoseSubs.status === 200 && serviceCreators.length > 0 && panelCreators.length > 0
+        && panelCreators.every((p) => serviceCreators.some((h) => `@${h}` === p)),
+      `the service: ${JSON.stringify(serviceCreators)} · the panel: ${JSON.stringify(panelCreators)}`,
+    );
+    await whosePage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
