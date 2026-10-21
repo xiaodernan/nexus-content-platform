@@ -10,6 +10,7 @@
  * whose DOCUMENT is perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
+import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
 
 /** One like, in the service's own wire shape. */
 export interface LikeEntry {
@@ -48,7 +49,7 @@ export async function readLikes(projectId: string, fetchImpl: FetchLike = fetch 
   try {
     const res = await fetchImpl(
       `${apiBase}/likes?projectId=${encodeURIComponent(projectId)}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
       return { ok: false, count: 0, likes: [], reason: `the service's likes door answered HTTP ${res.status}` };
@@ -67,7 +68,7 @@ export async function readLikes(projectId: string, fetchImpl: FetchLike = fetch 
       ok: false,
       count: 0,
       likes: [],
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -91,7 +92,7 @@ export async function readLikesOnService(
     const viewer = viewerAccountId ? `&viewer=${encodeURIComponent(viewerAccountId)}` : '';
     const res = await fetchImpl(
       `${apiBase}/likes?projectId=${encodeURIComponent(projectId)}${viewer}&limit=${encodeURIComponent(String(limit))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
       return { ok: false, count: 0, likes: [], reason: `the service's likes door answered HTTP ${res.status}` };
@@ -110,7 +111,7 @@ export async function readLikesOnService(
       ok: false,
       count: 0,
       likes: [],
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -139,6 +140,7 @@ export async function likeOnService(
   try {
     const res = await fetchImpl(`${apiBase}/likes`, {
       method: 'POST',
+      signal: serviceCallSignal(),
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify({
         projectId,
@@ -152,7 +154,7 @@ export async function likeOnService(
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -166,11 +168,11 @@ export async function unlikeOnService(
   try {
     const res = await fetchImpl(
       `${apiBase}/likes/${encodeURIComponent(projectId)}?claimer=${encodeURIComponent(claimerAccountId)}`,
-      { method: 'DELETE', headers: { accept: 'application/json' } },
+      { method: 'DELETE', headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 

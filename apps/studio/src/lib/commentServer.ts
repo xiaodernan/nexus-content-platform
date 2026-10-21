@@ -9,6 +9,7 @@
  * page whose DOCUMENT is perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
+import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
 
 /** One comment, in the service's own wire shape. */
 export interface CommentEntry {
@@ -53,7 +54,7 @@ export async function readComments(
   try {
     const res = await fetchImpl(
       `${apiBase}/comments?projectId=${encodeURIComponent(projectId)}&limit=${encodeURIComponent(String(limit))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
       return { ok: false, comments: [], visible: 0, reason: `the service's comments door answered HTTP ${res.status}` };
@@ -76,7 +77,7 @@ export async function readComments(
       ok: false,
       comments: [],
       visible: 0,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -103,7 +104,7 @@ export async function readCommentsWritten(
   try {
     const res = await fetchImpl(
       `${apiBase}/comments?author=${encodeURIComponent(authorAccountId)}&limit=${encodeURIComponent(String(limit))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -120,7 +121,7 @@ export async function readCommentsWritten(
       visible: typeof body.visible === 'number' ? body.visible : 0,
     };
   } catch (error) {
-    return { ok: false, comments: [], visible: 0, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, comments: [], visible: 0, reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -134,6 +135,7 @@ export async function writeComment(
   try {
     const res = await fetchImpl(`${apiBase}/comments`, {
       method: 'POST',
+      signal: serviceCallSignal(),
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify({
         projectId,
@@ -163,7 +165,7 @@ export async function writeComment(
     const comments = Array.isArray(answer.comments) ? (answer.comments as CommentEntry[]) : [];
     return { ok: true, comment: comments[0] };
   } catch (error) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 /** What one take-back answered. */
@@ -191,7 +193,7 @@ export async function removeCommentOnService(
   try {
     const res = await fetchImpl(
       `${apiBase}/comments/${encodeURIComponent(commentId)}?claimer=${encodeURIComponent(claimerAccountId)}`,
-      { method: 'DELETE', headers: { accept: 'application/json' } },
+      { method: 'DELETE', headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -209,6 +211,6 @@ export async function removeCommentOnService(
     }
     return { ok: true, removed: body.removed === true };
   } catch (error) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
   }
 }

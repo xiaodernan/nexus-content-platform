@@ -16,6 +16,22 @@ function makeFetch(handler: (url: string, init?: RequestInit) => Response) {
 
 const CLAIM = { accountId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
 
+describe('planServer — the door to the service is BOUNDED (v337)', () => {
+  it('the call carries a signal — a service that never answers cannot hold the Studio forever', async () => {
+    // The doors in this folder used to fetch the service with no budget at all, so a service that never
+    // answered left the Studio waiting forever. The signal is what turns a hang into a sentence.
+    let seen: AbortSignal | undefined;
+    const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
+      seen = init?.signal ?? undefined;
+      return new Response(JSON.stringify({ error: 'invalid-subscription', message: 'nope' }), { status: 400 });
+    }) as unknown as typeof fetch;
+
+    await subscribeOnService('pro', CLAIM, fetchImpl);
+
+    expect(seen).toBeInstanceOf(AbortSignal);
+  });
+});
+
 describe('planServer — subscribeOnService (server half)', () => {
   it('a refusal keeps the service\u2019s OWN WORDS, even though the body carries no `ok` field', async () => {
     const fetchImpl = makeFetch(() =>

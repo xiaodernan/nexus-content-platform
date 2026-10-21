@@ -9,6 +9,7 @@
  * whose PUBLICATIONS are perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
+import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
 
 /** One follower, in the service's own wire shape. */
 export interface FollowerEntry {
@@ -68,7 +69,7 @@ export async function readFollowers(
     const viewer = viewerAccountId ? `&viewer=${encodeURIComponent(viewerAccountId)}` : '';
     const res = await fetchImpl(
       `${apiBase}/follows?accountId=${encodeURIComponent(accountId)}${viewer}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
       return { ok: false, followerCount: 0, followers: [], reason: `the service's follows door answered HTTP ${res.status}` };
@@ -92,7 +93,7 @@ export async function readFollowers(
       ok: false,
       followerCount: 0,
       followers: [],
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -133,7 +134,7 @@ export async function readFollowing(
       ok: false,
       following: [],
       count: 0,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -148,6 +149,7 @@ export async function followOnService(
   try {
     const res = await fetchImpl(`${apiBase}/follows`, {
       method: 'POST',
+      signal: serviceCallSignal(),
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify({
         accountId,
@@ -161,7 +163,7 @@ export async function followOnService(
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -175,11 +177,11 @@ export async function unfollowOnService(
   try {
     const res = await fetchImpl(
       `${apiBase}/follows/${encodeURIComponent(accountId)}?claimer=${encodeURIComponent(claimerAccountId)}`,
-      { method: 'DELETE', headers: { accept: 'application/json' } },
+      { method: 'DELETE', headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 

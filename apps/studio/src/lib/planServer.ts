@@ -9,6 +9,7 @@
  * PUBLICATIONS are perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
+import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
 
 /** One plan, in the service's own wire shape. */
 export interface PlanEntry {
@@ -100,7 +101,7 @@ export async function readPlans(
       ok: false,
       plans: [],
       count: 0,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -138,7 +139,7 @@ export async function readSubscriptions(
       subscriptions: [],
       totalCents: 0,
       count: 0,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -153,6 +154,7 @@ export async function subscribeOnService(
   try {
     const res = await fetchImpl(`${apiBase}/subscriptions`, {
       method: 'POST',
+      signal: serviceCallSignal(),
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify({
         planId,
@@ -166,7 +168,7 @@ export async function subscribeOnService(
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -193,7 +195,7 @@ export async function cancelSubscription(
   try {
     const res = await fetchImpl(
       `${apiBase}/subscriptions/${encodeURIComponent(subscriptionId)}?claimer=${encodeURIComponent(claim.accountId)}`,
-      { method: 'DELETE', headers: { accept: 'application/json' } },
+      { method: 'DELETE', headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -215,7 +217,7 @@ export async function cancelSubscription(
     return {
       ok: false,
       ended: false,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -245,7 +247,7 @@ export async function retirePlan(
   try {
     const res = await fetchImpl(
       `${apiBase}/plans/${encodeURIComponent(planId)}?claimer=${encodeURIComponent(claim.accountId)}`,
-      { method: 'DELETE', headers: { accept: 'application/json' } },
+      { method: 'DELETE', headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -269,7 +271,7 @@ export async function retirePlan(
     return {
       ok: false,
       retired: false,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -302,7 +304,7 @@ export async function repricePlan(
     const res = await fetchImpl(
       `${apiBase}/plans/${encodeURIComponent(planId)}?claimer=${encodeURIComponent(claim.accountId)}`
         + `&price=${encodeURIComponent(String(priceCents))}&period=${encodeURIComponent(period)}`,
-      { method: 'PUT', headers: { accept: 'application/json' } },
+      { method: 'PUT', headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -327,7 +329,7 @@ export async function repricePlan(
   } catch (error) {
     return {
       ok: false,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -345,6 +347,7 @@ export async function offerOnService(
   try {
     const res = await fetchImpl(`${apiBase}/plans`, {
       method: 'POST',
+      signal: serviceCallSignal(),
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify({
         planId,
@@ -361,7 +364,7 @@ export async function offerOnService(
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 

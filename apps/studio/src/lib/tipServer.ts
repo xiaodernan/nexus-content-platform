@@ -9,6 +9,7 @@
  * PUBLICATIONS are perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
+import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
 
 /** One tip, in the service's own wire shape. */
 export interface TipEntry {
@@ -64,7 +65,7 @@ export async function readTipsGiven(
   try {
     const res = await fetchImpl(
       `${apiBase}/tips?payer=${encodeURIComponent(payerAccountId)}&limit=${encodeURIComponent(String(limit))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -83,7 +84,7 @@ export async function readTipsGiven(
       count: typeof body.count === 'number' ? body.count : 0,
     };
   } catch (error) {
-    return { ok: false, tips: [], totalCents: 0, count: 0, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, tips: [], totalCents: 0, count: 0, reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -96,7 +97,7 @@ export async function readTips(
   try {
     const res = await fetchImpl(
       `${apiBase}/tips?recipient=${encodeURIComponent(recipientAccountId)}&limit=${encodeURIComponent(String(limit))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
       return { ok: false, tips: [], totalCents: 0, count: 0, reason: `the service's tips door answered HTTP ${res.status}` };
@@ -121,7 +122,7 @@ export async function readTips(
       tips: [],
       totalCents: 0,
       count: 0,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -139,6 +140,7 @@ export async function tipOnService(
   try {
     const res = await fetchImpl(`${apiBase}/tips`, {
       method: 'POST',
+      signal: serviceCallSignal(),
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify({
         recipientAccountId,
@@ -155,7 +157,7 @@ export async function tipOnService(
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 

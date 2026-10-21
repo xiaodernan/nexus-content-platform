@@ -7,6 +7,7 @@
  * DOCUMENT is perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
+import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
 
 /** One subscription, in the service's own wire shape. */
 export interface SubscriptionEntry {
@@ -88,7 +89,7 @@ export async function readSubscriptions(
   try {
     const res = await fetchImpl(
       `${apiBase}/subscriptions?subscriber=${encodeURIComponent(subscriberAccountId)}&limit=${encodeURIComponent(String(limit))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -117,7 +118,7 @@ export async function readSubscriptions(
       subscriptions: [],
       totalCents: 0,
       count: 0,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -137,7 +138,7 @@ export async function readReceivedSubscriptions(
   try {
     const res = await fetchImpl(
       `${apiBase}/subscriptions?creator=${encodeURIComponent(creatorAccountId)}&limit=${encodeURIComponent(String(limit))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -166,7 +167,7 @@ export async function readReceivedSubscriptions(
       subscriptions: [],
       totalCents: 0,
       count: 0,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -181,7 +182,7 @@ export async function readPlans(
   try {
     const res = await fetchImpl(
       `${apiBase}/plans?creator=${encodeURIComponent(creatorAccountId)}&limit=${encodeURIComponent(String(limit))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -207,7 +208,7 @@ export async function readPlans(
       ok: false,
       plans: [],
       count: 0,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }

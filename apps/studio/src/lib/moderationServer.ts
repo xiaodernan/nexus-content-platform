@@ -7,6 +7,7 @@
  * DOCUMENT is perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
+import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
 
 /** One report, in the service's desk shape. */
 export interface DeskEntry {
@@ -65,7 +66,7 @@ export async function readDesk(
     const narrowed = reason && reason.trim() !== '' ? `&reason=${encodeURIComponent(reason.trim())}` : '';
     const res = await fetchImpl(
       `${apiBase}/moderation/reports?owner=${encodeURIComponent(ownerAccountId)}&limit=${encodeURIComponent(String(limit))}${narrowed}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -86,7 +87,7 @@ export async function readDesk(
       ok: false,
       reports: [],
       limit,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -117,7 +118,7 @@ export async function readTally(
   try {
     const res = await fetchImpl(
       `${apiBase}/moderation/tally?owner=${encodeURIComponent(ownerAccountId)}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -155,7 +156,7 @@ export async function readTally(
       open: 0,
       byReason: {},
       byStatus: {},
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -174,7 +175,7 @@ export async function acknowledgeOnService(
   try {
     const res = await fetchImpl(
       `${apiBase}/moderation/reports/${encodeURIComponent(reportId)}/acknowledge?owner=${encodeURIComponent(ownerAccountId)}`,
-      { method: 'POST', headers: { accept: 'application/json' } },
+      { method: 'POST', headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -194,7 +195,7 @@ export async function acknowledgeOnService(
   } catch (error) {
     return {
       ok: false,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
