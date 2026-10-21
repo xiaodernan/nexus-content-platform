@@ -35,6 +35,14 @@ export interface FollowerRow {
   nameText: string;
   /** What the follower's claim was worth, or null. */
   assurance: string | null;
+  /**
+   * v343 — WHEN the follow happened, in a reader's words — or null when the wire did not say.
+   *
+   * <p>The service has carried the instant since the follow's own beginning, and the tip and plan bars on
+   * the SAME page said their dates since v341 and v342; the follow bar said nothing. A follower with no
+   * date on them is a name with no history.
+   */
+  followedText: string | null;
 }
 
 /**
@@ -43,6 +51,18 @@ export interface FollowerRow {
  * A follower needs an account id \u2014 that is the address the link points at \u2014 and a name. A follower with
  * no id is a follower nobody could reach, so it is dropped rather than rendered as a nameless line.
  */
+/**
+ * WHEN a follow happened, in a reader's words — or null when the wire did not say.
+ *
+ * <p>The instant is the service's own, in UTC, in the same style as the tip bar's dates (v341): one
+ * clock, one style, so a reader comparing a follow's date with a tip's date is reading two dates written
+ * the same way.
+ */
+function followHappenedTextOf(createdAt: unknown): string | null {
+  if (typeof createdAt !== 'number' || !Number.isFinite(createdAt)) return null;
+  return new Date(createdAt).toISOString().replace('.000Z', 'Z');
+}
+
 export function toFollowerRow(entry: unknown): FollowerRow | null {
   if (typeof entry !== 'object' || entry === null) return null;
   const f = entry as FollowerEntry;
@@ -53,6 +73,9 @@ export function toFollowerRow(entry: unknown): FollowerRow | null {
     accountId: f.followerId,
     nameText: handle ? `@${handle}` : f.followerId,
     assurance,
+    // v343 — and when it happened. The instant is the service's own, in UTC, in the same style as the
+    // tip bar's dates (v341) and the plan bar's (v342).
+    followedText: followHappenedTextOf(f.createdAt),
   };
 }
 
@@ -66,7 +89,7 @@ export function toFollowerRow(entry: unknown): FollowerRow | null {
  */
 export function toFollowingRow(entry: unknown): FollowerRow | null {
   if (typeof entry !== 'object' || entry === null) return null;
-  const f = entry as { followerId?: unknown; followeeId?: unknown; handle?: unknown; assurance?: unknown };
+  const f = entry as { followerId?: unknown; followeeId?: unknown; createdAt?: unknown; handle?: unknown; assurance?: unknown };
   if (typeof f.followeeId !== 'string' || f.followeeId.length === 0) return null;
   const handle = typeof f.handle === 'string' && f.handle.length > 0 ? f.handle : null;
   const assurance = typeof f.assurance === 'string' && f.assurance.length > 0 ? f.assurance : null;
@@ -74,6 +97,9 @@ export function toFollowingRow(entry: unknown): FollowerRow | null {
     accountId: f.followeeId,
     nameText: handle ? `@${handle}` : f.followeeId,
     assurance,
+    // v343 — and when it happened, in this direction too: the follow row carries both ends of the edge
+    // and the same instant.
+    followedText: followHappenedTextOf(f.createdAt),
   };
 }
 
@@ -127,7 +153,10 @@ export function renderFollowBar(facts: FollowBarFacts): string {
   const followers = (facts.followers ?? [])
     .map((f) => {
       const text = f.assurance ? `${f.nameText} · ${f.assurance}` : f.nameText;
-      return `<li data-follower="${escapeHtml(f.accountId)}"><a href="/u/${encodeURIComponent(f.accountId)}">${escapeHtml(text)}</a></li>`;
+      // v343 — and WHEN it happened: the instant, not "3 days ago" — a relative date goes stale the
+      // moment it is written, and a follow is a fact about the past that does not move.
+      const when = f.followedText ? ` <span class="nexus-follower-when">· on ${escapeHtml(f.followedText)}</span>` : '';
+      return `<li data-follower="${escapeHtml(f.accountId)}"><a href="/u/${encodeURIComponent(f.accountId)}">${escapeHtml(text)}</a>${when}</li>`;
     })
     .join('\n');
   const list = followers
@@ -138,7 +167,9 @@ export function renderFollowBar(facts: FollowBarFacts): string {
   const following = (facts.following ?? [])
     .map((f) => {
       const text = f.assurance ? `${f.nameText} · ${f.assurance}` : f.nameText;
-      return `<li data-following="${escapeHtml(f.accountId)}"><a href="/u/${encodeURIComponent(f.accountId)}">${escapeHtml(text)}</a></li>`;
+      // v343 — and WHEN it happened, in this direction too.
+      const when = f.followedText ? ` <span class="nexus-follower-when">· on ${escapeHtml(f.followedText)}</span>` : '';
+      return `<li data-following="${escapeHtml(f.accountId)}"><a href="/u/${encodeURIComponent(f.accountId)}">${escapeHtml(text)}</a>${when}</li>`;
     })
     .join('\n');
   const followingCount = facts.followingCount ?? (facts.following ?? []).length;

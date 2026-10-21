@@ -3468,6 +3468,25 @@ try {
     );
   }
 
+  // ── §55 v343: the profile’s follow bar says WHEN each follow happened ─────────────────────────────
+  // The wire has carried the instant since the follow’s own beginning, and the tip and plan bars on
+  // the same page said their dates since v341 and v342; the follow bar said nothing.
+  {
+    const followProfileHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(accountRecord?.id ?? '')}`)).text();
+    const followProfileService = await (await fetch(`${apiBase}/follows?accountId=${encodeURIComponent(accountRecord?.id ?? '')}&limit=50`)).json();
+    const serviceFollowed = (followProfileService.followers ?? [])
+      .map((f) => f.createdAt)
+      .filter((v) => typeof v === 'number')
+      .map((v) => new Date(v).toISOString());
+    check(
+      'the profile’s follow bar says when each follow happened',
+      serviceFollowed.length > 0
+        && followProfileHtml.includes('nexus-follower-when')
+        && serviceFollowed.every((w) => followProfileHtml.includes(w)),
+      `the service: ${JSON.stringify(serviceFollowed)}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

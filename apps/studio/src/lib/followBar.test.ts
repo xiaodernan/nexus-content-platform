@@ -11,6 +11,33 @@ import { claimOf } from './socialClaim';
  * builder is ONE builder for all three social verbs.
  */
 describe('followIntent — the URL names the account (M7 v288)', () => {
+  it('v343 — says WHEN a follow happened, in the service’s own style', () => {
+    // The service has carried the instant since the follow's own beginning, and the tip and plan bars on
+    // the same page said their dates since v341 and v342; the follow bar said nothing. A follower with
+    // no date on them is a name with no history.
+    const row = toFollowerRow({ followerId: 'acct-bob', handle: 'bob', createdAt: 1_700_000_000_000 });
+    expect(row?.followedText).toBe('2023-11-14T22:13:20Z');
+    const html = renderFollowBar({
+      accountId: 'acct-ada',
+      followerCount: 1,
+      handle: 'ada',
+      followers: [row!],
+    });
+    expect(html).toContain('nexus-follower-when');
+  });
+
+  it('v343 — and a wire with NO instant says nothing rather than guessing', () => {
+    const row = toFollowerRow({ followerId: 'acct-bob', handle: 'bob' });
+    expect(row?.followedText).toBeNull();
+    const html = renderFollowBar({
+      accountId: 'acct-ada',
+      followerCount: 1,
+      handle: 'ada',
+      followers: [row!],
+    });
+    expect(html).not.toContain('nexus-follower-when');
+  });
+
   it('reads the follow id out of the query', () => {
     expect(followIdFromSearch('?follow=acct-ada')).toBe('acct-ada');
     expect(followIdFromSearch('follow=acct-ada')).toBe('acct-ada');
