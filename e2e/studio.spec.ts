@@ -3191,6 +3191,37 @@ test('@smoke §127 创作者市场：上架、出现在店面、下载计数、�
   await expect(page.locator('[data-marketplace-mine] [data-marketplace-item]').filter({ hasText: title })).toHaveCount(0, {
     timeout: 30_000,
   });
+
+  // 私密草稿：创建时选 private ⇒ 店面不列它，「我的物品」里能看到并管理它（#154）。
+  // 修复前「我的物品」是从店面结果里过滤的，私密草稿创建完就"消失"——这一步会以
+  // 找不到卡片失败（红的形状就是洞本身）。
+  const draftTitle = `私密草稿 ${Date.now().toString(36)}`;
+  await page.fill('[data-marketplace-create-title]', draftTitle);
+  await page.fill('[data-marketplace-create-description]', '还没准备好上架的草稿。');
+  await page.selectOption('[data-marketplace-create-visibility]', 'private');
+  // 必须等这一次 POST 自己的响应：页面上那条「已上架」可能还是上一次创建留下的，
+  // 只读它会让后面的断言抢在写之前跑（第一次跑就是这样假绿然后超时的）
+  const draftCreated = page.waitForResponse(
+    (res) => res.url().endsWith('/api/marketplace') && res.request().method() === 'POST',
+    { timeout: 60_000 },
+  );
+  await page.click('[data-marketplace-create-submit]');
+  expect((await draftCreated).status(), '私密草稿创建应 201').toBe(201);
+  // 重新载入，读服务端渲染的「我的物品」（路由缓存里可能还是上一版）
+  await page.reload();
+  const draft = page.locator('[data-marketplace-mine] [data-marketplace-item]').filter({ hasText: draftTitle });
+  await expect(draft, '「我的物品」必须包含私密草稿（所有者视角）').toHaveCount(1, {
+    timeout: 60_000,
+  });
+  await expect(
+    page.locator('[data-marketplace-list] [data-marketplace-item]').filter({ hasText: draftTitle }),
+    '私密草稿不该出现在店面列表里',
+  ).toHaveCount(0);
+  await expect(draft.locator('[data-marketplace-item-visibility="private"]')).toHaveCount(1);
+  // 收尾：草稿也是真行，测试结束前下架掉（confirm 已被上面的 handler 接管）
+  await draft.locator('[data-marketplace-remove]').click();
+  await expect(draft).toHaveCount(0, { timeout: 30_000 });
+
   await page.screenshot({ path: 'screenshots/marketplace.png' });
 });
 

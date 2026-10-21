@@ -9,9 +9,11 @@ import { isUuid } from './ids';
  * §127-128 Marketplace 系统：组件 / 模板 / 设计系统 / 资产 / 世界 / 游戏 / AI 角色的交易与分享。
  *
  * 三条塑造了这里写法的事实：
- * - **创作者经济**（§128）：用户可以出售自己的作品，价格以 Credits 计；下架后收藏者仍能看到但点不开。
+ * - **创作者经济**（§128）：用户可以出售自己的作品，价格以 Credits 计；下架后买过的人仍在
+ *   「我的购买」看到状态与下架时间，但详情、预览、交付都点不开（详情 GET 的文档曾写反，#153 改掉了）。
  * - **内容安全**（§129）：标题、描述、标签过发布机检同一份红线词表，命中就不让上架。
- * - **软删除纪律**：下架不等于物理删除——`deletedAt` 标记后列表过滤，但已收藏/购买的记录仍能追溯原因。
+ * - **软删除纪律**：下架不等于物理删除——`deletedAt` 标记后店面、详情、预览、交付一律当作不存在；
+ *   购买记录仍在（「我的购买」带着下架时间），但没有"下架原因"这一列，谁也看不到原因。
  */
 
 export interface CreateMarketplaceItemInput {
@@ -107,6 +109,50 @@ export async function listMarketplaceItems(filter: MarketplaceItemFilter) {
     .offset(offset);
 
   return items;
+}
+
+/**
+ * 「我的物品」：创作者自己的条目——**包含 private 草稿**，不包含已下架。
+ *
+ * 店面列表（上面那个函数）只出 public/free，而店面页此前是拿店面结果按 creatorId 过滤出
+ * 「我的物品」的 ⇒ 私密草稿在那一块里根本不存在，可页面自己写着"私密在那里可见、可删"——
+ * 一句没有实现在支撑的承诺（#154）。这是**所有者视角**的读路：过滤条件只有归属与软删，
+ * 没有可见性。下架的仍然不出现（下架就是不在；店面测试按"下架后消失"断言）。
+ */
+export async function listOwnedMarketplaceItems(
+  creatorId: string,
+  options: { itemType?: MarketplaceItemType; limit?: number } = {},
+) {
+  // 形状不对的 id 按"一件都没有"处理：eq(uuid 列, 非 uuid) 会撞 22P02 变 500（domain/ids.ts）
+  if (!isUuid(creatorId)) return [];
+  const db = getDb();
+  const conditions = [eq(marketplaceItems.creatorId, creatorId), isNull(marketplaceItems.deletedAt)];
+  if (options.itemType) {
+    conditions.push(eq(marketplaceItems.itemType, options.itemType));
+  }
+
+  return db
+    .select({
+      id: marketplaceItems.id,
+      creatorId: marketplaceItems.creatorId,
+      itemType: marketplaceItems.itemType,
+      title: marketplaceItems.title,
+      description: marketplaceItems.description,
+      tags: marketplaceItems.tags,
+      previewAssetId: marketplaceItems.previewAssetId,
+      priceCredits: marketplaceItems.priceCredits,
+      visibility: marketplaceItems.visibility,
+      downloadCount: marketplaceItems.downloadCount,
+      createdAt: marketplaceItems.createdAt,
+      creatorName: users.displayName,
+      creatorHandle: users.handle,
+      creatorAvatarUrl: users.avatarUrl,
+    })
+    .from(marketplaceItems)
+    .leftJoin(users, eq(marketplaceItems.creatorId, users.id))
+    .where(and(...conditions))
+    .orderBy(desc(marketplaceItems.createdAt))
+    .limit(options.limit ?? 100);
 }
 
 export async function getMarketplaceItem(itemId: string) {

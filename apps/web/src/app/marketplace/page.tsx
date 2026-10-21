@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { MARKETPLACE_ITEM_TYPES, type MarketplaceItemType } from '@/server/db/schema';
-import { MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR, listMarketplaceItems } from '@/server/domain/marketplace';
+import {
+  MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR,
+  listMarketplaceItems,
+  listOwnedMarketplaceItems,
+} from '@/server/domain/marketplace';
 import { currentUserOrNull } from '@/server/domain/session';
 import { listProjects } from '@/server/domain/projects';
 import { MarketplaceCreateForm } from '@/marketplace/MarketplaceCreateForm';
@@ -10,7 +14,10 @@ import { MarketplaceItemRow } from '@/marketplace/MarketplaceItemRow';
  * §127/§128 创作者市场（M7）的店面。
  *
  * 列表只出 public / free 两类（domain 层同一个谓词），private 的只属于创作者自己
- * （在「我的物品」里可见、可删）。工程文件本体的交付**已经接上了**（#120）：
+ * （在「我的物品」里可见、可改可见性、可下架）——那一块走**所有者视角**的读路
+ * （`listOwnedMarketplaceItems`），不受店面可见性过滤；此前它从店面结果里过滤，
+ * 私密草稿于是谁的界面里都不出现（#154）。已下架的仍不在其中（下架就是不在）。
+ * 工程文件本体的交付**已经接上了**（#120）：
  * 「下载」走 `GET /api/marketplace/<id>/content`，拿到的就是条目源项目的那一份导出包，
  * 页面上那句限度念的是这一格今天真实的边界（交付哪两档、数字怎么来的、匿名不留审计）。
  */
@@ -48,7 +55,8 @@ export default async function MarketplacePage({
     listMarketplaceItems({ itemType, limit: 60 }),
   ]);
   const projects = user ? await listProjects(user.id) : [];
-  const mine = user ? items.filter((item) => item.creatorId === user.id) : [];
+  // 我的物品是所有者视角：包含私密草稿，但仍是同一个类型过滤（导航上的筛选项跟着走）
+  const mine = user ? await listOwnedMarketplaceItems(user.id, { itemType }) : [];
 
   return (
     <main className="mx-auto flex min-h-screen max-w-[980px] flex-col gap-[var(--nexus-space-5)] p-[var(--nexus-space-6)] font-mono">

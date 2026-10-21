@@ -214,3 +214,16 @@
   `jsonError(404,'not_found',{message:'物品不存在或已下架'})`，与市场其余 `[id]` 门同一机器码。
 - 见证：visibility 9 → 10 条（下架后匿名与创作者本人都是 404 `not_found`）；
   市场九套件 + id-shape **133/133** 绿；tsc / eslint 0。
+
+## 2026-10-21 补记（#154）：「我的物品」走所有者视角
+
+- 事实：`listMarketplaceItems` 的谓词是 `visibility IN ('public','free') AND deletedAt IS NULL`；
+  店面页的「我的物品」由它按 `creatorId` 过滤而来。缺省可见性是 private（表单默认选 public，
+  但 API/域层缺省 private），私密草稿于是谁的界面里都没有：创建成功也找不到，改可见性/下架
+  两个按钮碰不到，页面文档却写着"私密在那里可见、可删"。
+- 修法：新增 `listOwnedMarketplaceItems(creatorId, { itemType })`——过滤条件只有归属与
+  `deletedAt IS NULL`，不看可见性；店面页的「我的物品」改吃它。已下架的仍不出现（下架就是不在，
+  现有 e2e 按"下架后消失"断言，不在这里改产品语义）。
+- 见证：`marketplace-mine.integration.test.ts` 5 条——私密草稿在列表里；列表不含已下架、
+  不含别人的私密草稿；归属/创作者名/价格/下载计数字段齐；类型过滤同一语义；非 uuid 的
+  creatorId 回空表而不是 22P02。5/5 绿。
