@@ -87,7 +87,9 @@ function readAnswer(res: Response, body: unknown): FollowLaneAnswer {
     return { ok: false, reason: `the follows answered HTTP ${res.status} with something that is not JSON` };
   }
   const answer = body as { ok?: unknown; followerCount?: unknown; following?: unknown; reason?: unknown; message?: unknown };
-  if (answer.ok === false) {
+  // v313 — the reason is read whenever the answer is NOT ok, and not only when the body
+  // says `ok: false` — a door that answers without it must not swallow the reason either.
+  if (answer.ok === false || !res.ok) {
     const reason =
       typeof answer.reason === 'string'
         ? answer.reason
@@ -95,9 +97,6 @@ function readAnswer(res: Response, body: unknown): FollowLaneAnswer {
           ? answer.message
           : `the follows answered HTTP ${res.status}`;
     return { ok: false, reason };
-  }
-  if (!res.ok) {
-    return { ok: false, reason: `the follows answered HTTP ${res.status}` };
   }
   return {
     ok: true,

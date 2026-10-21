@@ -243,7 +243,10 @@ function readWriteAnswer(res: Response, body: unknown): ReportWriteAnswer {
     return { ok: false, reason: `the reports answered HTTP ${res.status} with something that is not JSON` };
   }
   const answer = body as { ok?: unknown; reports?: unknown; reason?: unknown; message?: unknown };
-  if (answer.ok === false) {
+  // v313 — the reason is read whenever the answer is NOT ok, and not only when the body
+  // says `ok: false`: the service’s error body carries no `ok` field at all (it is `{error, message}`),
+  // so the old shape threw away every message the service ever wrote.
+  if (answer.ok === false || !res.ok) {
     const reason =
       typeof answer.reason === 'string'
         ? answer.reason
@@ -251,9 +254,6 @@ function readWriteAnswer(res: Response, body: unknown): ReportWriteAnswer {
           ? answer.message
           : `the reports answered HTTP ${res.status}`;
     return { ok: false, reason };
-  }
-  if (!res.ok) {
-    return { ok: false, reason: `the reports answered HTTP ${res.status}` };
   }
   const reports = Array.isArray(answer.reports) ? (answer.reports as ReportEntry[]) : [];
   return { ok: true, report: reports[0] };

@@ -214,4 +214,23 @@ describe('economy — the subscription’s STANDING (M7 v308)', () => {
     expect(row.isActive).toBe(false);
   });
 });
+
+describe('economy — the renewal NOTE (M7 v313)', () => {
+  it('a subscription that ENDED says why there is no button to press', () => {
+    // A panel that said only "Expired" would leave the reader hunting for a button that does not exist.
+    const row = toSubscriptionRow(sub({ active: true, expiresAt: 1_000_000_000_000 }))!;
+    expect(row.renewNote).toContain('cannot renew it');
+    expect(row.renewNote).toContain('no billing');
+  });
+
+  it('a STANDING subscription carries no note', () => {
+    const row = toSubscriptionRow(sub())!;
+    expect(row.renewNote).toBeNull();
+  });
+
+  it('a CANCELLED subscription carries it too — the rule is the same', () => {
+    const row = toSubscriptionRow(sub({ active: false }))!;
+    expect(row.renewNote).toContain('cannot renew it');
+  });
+});
 });

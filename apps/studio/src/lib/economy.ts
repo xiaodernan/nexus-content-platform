@@ -53,6 +53,15 @@ export interface SubscriptionRow {
   statusText: string;   // 'Active' | 'Expired' | 'Never'
   daysLeftText: string; // 'N d left' | 'Expired' | 'N/A'
   isActive: boolean;
+  /**
+   * v313 — the note to show when this subscription cannot be made again.
+   *
+   * <p>A subscription that has ENDED cannot be renewed in this build, and a panel that says only "Expired"
+   * leaves the reader hunting for a button that does not exist. The note names the rule instead — one
+   * subscription per supporter per plan is the DATABASE’s rule, and there is no billing to renew it with — so
+   * the way out is a creator offering a NEW plan.
+   */
+  renewNote: string | null;
 }
 
 /**
@@ -188,16 +197,25 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
   const s = sub as EconomySubscription;
   if (typeof s.planId !== 'string' || s.planId.length === 0) return null;
   if (typeof s.priceCents !== 'number' || !Number.isFinite(s.priceCents)) return null;
+  // The standing is computed ONCE (v313): the row's status, its `isActive` and its note must not be able to
+  // disagree, and three computations of the same thing across a clock tick could.
+  const standing = subscriptionStandingOf(s, Date.now());
 
   return {
     planId: s.planId,
     priceText: priceText(s.priceCents, s.currency),
     currency: s.currency,
     // v308 — the service’s standing when it gave one, the client’s own computation otherwise.
-    statusText: subscriptionStandingText(subscriptionStandingOf(s, Date.now())),
+    statusText: subscriptionStandingText(standing),
     daysLeftText: subscriptionDaysLeftText(s, Date.now()),
     // v308 — and the same standing, so the row's two answers cannot disagree.
-    isActive: subscriptionStandingOf(s, Date.now()) === 'active',
+    isActive: standing === 'active',
+    // v313 — and the note, for a subscription that ended: it cannot be made again, and the panel says why
+    // rather than leaving the reader hunting for a button that does not exist.
+    renewNote:
+      standing === 'expired' || standing === 'cancelled'
+        ? 'this build cannot renew it: one subscription per supporter per plan is the database’s rule, and there is no billing'
+        : null,
   };
 }
 

@@ -126,7 +126,33 @@ public class SubscriptionService {
         }
         Optional<SubscriptionEntry> existing = subscriptions.findBySubscriberAccountIdAndPlanId(subscriber, plan);
         if (existing.isPresent()) {
-            throw new InvalidSubscription("this account already backs this plan");
+            // v313 — the two cases are DIFFERENT facts, and one refusal for both of them is a lie.
+            //
+            // A subscription that is still standing → this account already backs this plan (true).
+            //
+            // A subscription that has ENDED → this account does NOT back this plan any more, and the
+            // refusal says so, with the rule that makes it permanent and the way out of it. The uniqueness
+            // rule is the DATABASE's (one subscription per supporter per plan), so it cannot be renewed
+            // without a schema change — and this build has no migration tool (the service's own README says
+            // so). Saying "this account already backs this plan" about a subscription that ended months ago
+            // would be the kind of small untrue thing that sends a reader looking for a subscription that is
+            // not there.
+            SubscriptionEntry previous = existing.get();
+            String standing = standingOf(previous);
+            if (SubscriptionDtos.STATUS_ACTIVE.equals(standing)) {
+                throw new InvalidSubscription("this account already backs this plan");
+            }
+            if (SubscriptionDtos.STATUS_CANCELLED.equals(standing)) {
+                throw new InvalidSubscription(
+                        "this account cancelled this subscription, and it cannot be made again: "
+                                + "one subscription per supporter per plan is the DATABASE's rule");
+            }
+            throw new InvalidSubscription(
+                    "this account's subscription to this plan ended on "
+                            + previous.getExpiresAt()
+                            + ", and this build cannot renew it: one subscription per supporter per plan is the "
+                            + "DATABASE's rule, and there is no billing to renew it with. A creator can offer a "
+                            + "NEW plan, and the subscription would be made against that.");
         }
         Instant when = clock.instant().truncatedTo(ChronoUnit.MILLIS);
         // The SNAPSHOT: the plan's price, currency and period AS THEY ARE NOW. A later change to the plan

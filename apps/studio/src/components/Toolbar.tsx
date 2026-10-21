@@ -828,6 +828,14 @@ export default function Toolbar() {
                     <span style={{ color: 'var(--nexus-muted)' }}>{row.statusText}</span>
                   </div>
                   <div style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>{row.daysLeftText}</div>
+                  {/* v313 — the note: a subscription that ended cannot be renewed in this build, and a
+                      panel that said only "Expired" would leave the reader hunting for a button that does
+                      not exist. */}
+                  {row.renewNote && (
+                    <div data-economy-renew-note style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>
+                      {row.renewNote}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

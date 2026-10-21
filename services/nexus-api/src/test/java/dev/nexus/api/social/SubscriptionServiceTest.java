@@ -191,6 +191,39 @@ class SubscriptionServiceTest {
                 .hasMessageContaining("already backs this plan");
     }
 
+    // ── v313: a subscription that ENDED is a DIFFERENT fact, and the refusal says so ──────────────
+
+    @Test
+    void aSubscriptionWhosePeriodRanOutIsREFUSEDWithTheTruth_NotWithAlreadyBacks() {
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(plan("pro", "acct-bob", 1500, "month")));
+        // The row is still flagged active (the flag means "not cancelled"), and its expiry has PASSED.
+        when(subscriptions.findBySubscriberAccountIdAndPlanId("acct-ada", "pro"))
+                .thenReturn(Optional.of(new SubscriptionEntry(
+                        "s-1", "acct-ada", "acct-bob", "pro", 1500, "CNY", "month", AT, AT.minusSeconds(1), true)));
+
+        // "this account already backs this plan" would be a lie: the period ran out and the account does
+        // not back the plan any more. The refusal names the date and the rule that makes it permanent.
+        assertThatThrownBy(() -> service.subscribe("pro", claim("acct-ada")))
+                .isInstanceOf(InvalidSubscription.class)
+                .hasMessageContaining("ended on")
+                .hasMessageContaining("cannot renew it")
+                .hasMessageContaining("one subscription per supporter per plan")
+                .hasMessageContaining("no billing");
+    }
+
+    @Test
+    void aCancelledSubscriptionIsREFUSEDWithItsOwnTruth() {
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(plan("pro", "acct-bob", 1500, "month")));
+        when(subscriptions.findBySubscriberAccountIdAndPlanId("acct-ada", "pro"))
+                .thenReturn(Optional.of(new SubscriptionEntry(
+                        "s-1", "acct-ada", "acct-bob", "pro", 1500, "CNY", "month", AT, null, false)));
+
+        assertThatThrownBy(() -> service.subscribe("pro", claim("acct-ada")))
+                .isInstanceOf(InvalidSubscription.class)
+                .hasMessageContaining("cancelled this subscription")
+                .hasMessageContaining("cannot be made again");
+    }
+
     // ── rule 5: the price is a SNAPSHOT ───────────────────────────────────────────────────────────
 
     @Test

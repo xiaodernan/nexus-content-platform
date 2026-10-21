@@ -2295,6 +2295,57 @@ try {
     await tallyPage.close();
   }
 
+  // ── §27 v313: a subscription that ENDED is a DIFFERENT fact, and the refusal says so ───────────────
+  // "this account already backs this plan" about a subscription that ended months ago would be a small
+  // untrue thing — and a reader who believed it would look for a subscription that is not there. The
+  // service says what happened and what the rule is, and the panel says why there is no button to press.
+  {
+    const endedPage = await session.newPage('about:blank');
+    await endedPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(endedPage, 'the ended page to hydrate');
+    await signInAs(endedPage, 'bob', 'the supporter whose subscription ends');
+
+    const endedRaw = await endedPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const endedId = JSON.parse(String(endedRaw)).id;
+
+    // The subscription from §18 — and it is ended, by the supporter’s own hand.
+    const beforeEnd = await (await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(endedId)}`)).json();
+    const subscriptionId = beforeEnd.subscriptions?.[0]?.id;
+    check('the subscription from §18 is there', Boolean(subscriptionId), `subscriptions: ${JSON.stringify(beforeEnd.subscriptions)}`);
+
+    const endedCall = await fetch(`${apiBase}/subscriptions/${encodeURIComponent(subscriptionId)}?claimer=${encodeURIComponent(endedId)}`, { method: 'DELETE' });
+    const endedBody = await endedCall.json();
+    check('and the supporter ends it', endedCall.status === 200 && endedBody.ended === true, `the answer: ${JSON.stringify(endedBody)}`);
+
+    // And now the supporter tries again — and the refusal tells the TRUTH.
+    await endedPage.navigate(`${studioBase}/?subscribe=pro`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(endedPage, 'the subscribe page to hydrate');
+    // The status is captured SEPARATELY, so a failure says what the panel actually said — a
+    // check that only says "null" is a check that has to be run again to learn anything.
+    let seenStatus = '';
+    const refused = await until(
+      async () => {
+        seenStatus = await endedPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return seenStatus.includes('cancelled this subscription') ? seenStatus : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the honest refusal' },
+    );
+    check(
+      'the refusal says what happened, not "already backs this plan"',
+      refused !== null,
+      `the status was: ${JSON.stringify(seenStatus)}`,
+    );
+
+    // And the panel says why there is no button to press.
+    await endedPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const note = await until(
+      async () => (await endedPage.evaluate("!!document.querySelector('[data-economy-renew-note]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the renewal note to show' },
+    );
+    check('and the panel says why there is no button to press', note !== null, 'the note is there');
+    await endedPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
