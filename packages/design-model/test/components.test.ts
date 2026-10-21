@@ -91,9 +91,11 @@ describe("applyInstanceOverrides", () => {
     const { page, instance, label } = instancePage();
     const r = applyInstanceOverrides(page, instance);
     expect(r.rootId).toBe(instance.id);
+    // 从实例本体开始收，nodes 含它 + 子树，rootId 才自洽
     expect(Object.keys(r.nodes).sort()).toEqual(
       [instance.id, instance.children[0]!, label.id].sort(),
     );
+    expect(r.nodes[instance.id]).toBeDefined();
     expect(r.nodes[label.id]!.text).toBe("x");
   });
 

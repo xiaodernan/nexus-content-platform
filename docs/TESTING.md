@@ -1824,3 +1824,17 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   ② `NEXUS_REALTIME_MAX_LIFETIME_MS` 那个全局变量会让**另一支**实时用例红（见上）。
   **腾空机器后同一批 4 支全绿**（agent 编排 20.2s / 发布终态 13.5s / 检索面板 7.2s / 实时通道 12.3s）。
   **那条 413 用例也在这轮里绿了**（见上）。
+
+- **2026-10-21：design-model 色彩工具第一份单测**（`tokens-color.test.ts` 15 条）——
+  `toHex/toRgba/luminance/contrastRatio/mixColor/withAlpha/isTokenRef/makeTokenRef` 此前**零覆盖**
+  （`tokens.test.ts` 只碰 TokenStore / parseHex / tokenRefKey / contrastRatio）。
+  **会骗过三种坏实现的断言**：① `toHex` 去掉 clamp 时，`{r:300,g:-10,b:128}` 仍要给出 `#ff0080`
+  （不 clamp 会把 300 出成 `#12c…`，hex 越界）；② alpha 段只在 <1 时追加
+  （`a=1` 的 RED 必须是 `#ff0000`，不是 `#ff0000ff`）；③ `withAlpha("#nope", …)` 必须退回黑，
+  不能吐 `NaN`。
+  - **变异探针**：把 `toHex` 的 clamp 换成裸 `Math.round` → clamp 用例恰好红在预测那一行，
+    恢复后 15/15 绿。写这条时**测试先红、是我自己算错**（把 `#008080` 当成 300 的 clamp 结果，
+    正确是 `#ff0080`）——代码没错，是断言错，修正后过。
+- **2026-10-21：`components.test.ts` 补一条自洽断言**——`applyInstanceOverrides` 从
+  `instance.id` 起收（rootId 指它、nodes 表含它才自洽），加 `r.nodes[instance.id]` 必定义，
+  把"clone 从实例本体开始收"这条钉死。
