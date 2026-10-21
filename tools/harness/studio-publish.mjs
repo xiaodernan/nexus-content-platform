@@ -3135,6 +3135,44 @@ try {
     await whosePage.close();
   }
 
+  // ── §45 v331: the recipient of a tip sees WHO sent it ────────────────────────────────────────────────
+  // "a supporter" is a category; the name is the person, and the service has been sending the payer’s
+  // name since the tip’s own beginning. An ANONYMOUS tip still says "Anonymous" — that is the payer’s choice
+  // about their own money.
+  {
+    const payerPage = await session.newPage('about:blank');
+    await payerPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(payerPage, 'the payer page to hydrate');
+    await signInAs(payerPage, 'ada', 'the recipient of the tip');
+    await payerPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+
+    const payerThere = await until(
+      async () => (await payerPage.evaluate("!!document.querySelector('[data-economy-payer]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the payer to show on the tip row' },
+    );
+    check('the recipient’s tip row names WHO sent it', payerThere !== null, 'the name is there');
+
+    const panelPayer = await payerPage.evaluate("document.querySelector('[data-economy-payer]')?.getAttribute('data-economy-payer') ?? ''");
+    check(
+      'and it is the tipper’s name, not a category',
+      typeof panelPayer === 'string' && panelPayer.startsWith('@') && panelPayer !== '@Anonymous',
+      `the payer: ${JSON.stringify(panelPayer)}`,
+    );
+
+    // And the SERVICE agrees, read independently of the browser.
+    const payerRaw = await payerPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const payerId = JSON.parse(String(payerRaw)).id;
+    const payerTips = await fetch(`${apiBase}/tips?recipient=${encodeURIComponent(payerId)}&limit=50`);
+    const payerTipsBody = await payerTips.json();
+    const servicePayers = (payerTipsBody.tips ?? []).map((t) => t.handle).filter(Boolean);
+    check(
+      'the SERVICE agrees — it sends the payer’s name on the wire, and the panel shows it',
+      payerTips.status === 200 && servicePayers.length > 0 && servicePayers.every((h) => panelPayer === `@${h}`),
+      `the service: ${JSON.stringify(servicePayers)} · the panel: ${JSON.stringify(panelPayer)}`,
+    );
+    await payerPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

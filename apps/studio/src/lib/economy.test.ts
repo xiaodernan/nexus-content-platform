@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { PriceCents, Tip, Subscription } from './monetization';
 
 import {
+  tipPayerText,
   toSubscriptionRow,
   toSubscriptionRows,
   toTipRow,
@@ -147,6 +148,23 @@ describe('economy — subscription rows (M8 v274)', () => {
     // A creator is a PUBLIC identity (their name is in the byline of everything they publish), and an
     // address is better than a blank.
     expect(toSubscriptionRow(sub())!.creatorText).toBe('acct-ada');
+  });
+
+  it('v331 — a tip names WHO sent it', () => {
+    // "a supporter" is a category; the name is the person, and the service has been sending the payer's
+    // name since the tip's own beginning.
+    expect(tipPayerText({ anonymous: false, handle: 'bob', payerId: 'acct-bob' })).toBe('@bob');
+  });
+
+  it('v331 — an ANONYMOUS tip says "Anonymous" and shows no name at all', () => {
+    // That is the payer's own choice about their own money: the recipient is told the tip is anonymous
+    // rather than being shown a name the payer withheld.
+    expect(tipPayerText({ anonymous: true, handle: 'bob', payerId: 'acct-bob' })).toBe('Anonymous');
+  });
+
+  it('v331 — a tip with no name shows the account id rather than a blank', () => {
+    expect(tipPayerText({ anonymous: false, payerId: 'acct-bob' })).toBe('acct-bob');
+    expect(tipPayerText({ anonymous: false })).toBe('nobody');
   });
 
   it('a row it cannot display honestly is dropped', () => {

@@ -39,7 +39,20 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 export async function readMyTips(
   recipientAccountId: string,
   fetchImpl: FetchLike = fetch,
-): Promise<{ ok: boolean; tips: { amountCents: number; message: string; anonymous: boolean }[]; totalCents: number; count: number; reason?: string }> {
+): Promise<{
+  ok: boolean;
+  /**
+   * v331 — each tip carries WHO sent it.
+   *
+   * <p>The service has sent the payer's name since the tip's own beginning (the row keeps
+   * `payer_handle`, and the wire has the slot) — and this lane was narrowing every tip to an amount, a
+   * message and a flag, throwing the name away on the way in.
+   */
+  tips: { amountCents: number; message: string; anonymous: boolean; handle?: string | null; payerId?: string | null }[];
+  totalCents: number;
+  count: number;
+  reason?: string;
+}> {
   try {
     const res = await fetchImpl(`/api/tips?recipient=${encodeURIComponent(recipientAccountId)}`, {
       headers: { accept: 'application/json' },
@@ -61,7 +74,7 @@ export async function readMyTips(
     return {
       ok: true,
       tips: Array.isArray(answer.tips)
-        ? (answer.tips as { amountCents: number; message: string; anonymous: boolean }[])
+        ? (answer.tips as { amountCents: number; message: string; anonymous: boolean; handle?: string | null; payerId?: string | null }[])
         : [],
       totalCents: typeof answer.totalCents === 'number' ? answer.totalCents : 0,
       count: typeof answer.count === 'number' ? answer.count : 0,

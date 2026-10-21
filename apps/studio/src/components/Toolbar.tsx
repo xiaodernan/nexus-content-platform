@@ -11,7 +11,7 @@ import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderati
 import { tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { readMyFollowing, unfollowAccount, type FollowingLaneAnswer } from '@/lib/followLane';
-import { priceText } from '@/lib/economy';
+import { priceText, tipPayerText } from '@/lib/economy';
 import type { PriceCents } from '@/lib/monetization';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { remixProject } from '@/lib/remixLane';
@@ -952,7 +952,13 @@ export default function Toolbar() {
                 {economy.tips.map((tip, i) => (
                   <li key={i} data-economy-tip={tip.amountCents} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '3px 0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{tip.anonymous ? 'Anonymous' : 'a supporter'} — {priceText(tip.amountCents as PriceCents, 'CNY')}</span>
+                      {/* v331 — and WHO sent it, when the tip was not anonymous. "a supporter"
+                          is a category; the name is the person, and the service has been sending it all
+                          along. An anonymous tip still says "Anonymous" — that is the payer's choice
+                          about their own money. */}
+                      <span data-economy-payer={tipPayerText(tip)}>
+                        {tipPayerText(tip)} — {priceText(tip.amountCents as PriceCents, 'CNY')}
+                      </span>
                     </div>
                     {tip.message && (
                       <div style={{ color: 'var(--nexus-muted)', fontSize: 10, whiteSpace: 'pre-wrap' }}>{tip.message}</div>

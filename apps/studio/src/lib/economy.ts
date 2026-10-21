@@ -68,6 +68,14 @@ export interface EconomyTip {
   amountCents: PriceCents;
   message: string;
   anonymous: boolean;
+  /**
+   * v331 — the PAYER's name, as their claim carried it.
+   *
+   * <p>The service has sent it since the tip's own beginning (the row keeps `payer_handle`, and the
+   * wire has the slot) — and the panel was calling every payer "a supporter" and throwing the name away.
+   */
+  handle?: string | null;
+  payerId?: string | null;
 }
 
 /** A subscription reduced to the facts a person can act on. */
@@ -211,6 +219,14 @@ export interface TipRow {
   amountText: string;
   messageText: string;  // pre-escaped by caller, empty string if none
   anonymous: boolean;
+  /**
+   * v331 — WHO sent it, in a reader's words.
+   *
+   * <p>"Anonymous" when the tip was ANONYMOUS — that is the payer's own choice about their own money,
+   * and the recipient is told the tip is anonymous rather than being shown a name the payer withheld.
+   * Otherwise the name, or the account id when the claim carried no handle.
+   */
+  payerText: string;
 }
 
 /** Where a subscription stands. */
@@ -359,6 +375,31 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
  * A tip needs a recipient, a finite amount, and the caller must have already
  * escaped the message (the pure half does not escape — it formats).
  */
+/**
+ * WHO sent the tip, in a reader's words.
+ *
+ * <p>An ANONYMOUS tip says "Anonymous" — the payer’s choice about their own money, and the recipient is told
+ * the tip is anonymous rather than being shown a name the payer withheld. Otherwise the name, or the
+ * account id when the claim carried no handle: an address is better than a hole, and the panel never
+ * invents a name.
+ */
+export function tipPayerText(tip: {
+  anonymous?: boolean;
+  handle?: string | null;
+  payerId?: string | null;
+}): string {
+  if (tip.anonymous === true) return 'Anonymous';
+  const handle = typeof tip.handle === 'string' && tip.handle.length > 0 ? tip.handle : null;
+  if (handle) return `@${handle}`;
+  const id = typeof tip.payerId === 'string' && tip.payerId.length > 0 ? tip.payerId : null;
+  return id ?? 'nobody';
+}
+
+/** The same answer, for the economy module's own tip wire. */
+function payerTextOf(tip: EconomyTip): string {
+  return tipPayerText(tip);
+}
+
 export function toTipRow(tip: unknown, escape: (text: string) => string): TipRow | null {
   if (typeof tip !== 'object' || tip === null) return null;
   const t = tip as EconomyTip;
@@ -370,6 +411,8 @@ export function toTipRow(tip: unknown, escape: (text: string) => string): TipRow
     amountText: priceText(t.amountCents, 'CNY'),
     messageText: typeof t.message === 'string' && t.message.length > 0 ? escape(t.message) : '',
     anonymous: t.anonymous === true,
+    // v331 — and who sent it.
+    payerText: payerTextOf(t),
   };
 }
 
