@@ -3239,6 +3239,39 @@ try {
     await datedPage.close();
   }
 
+  // ── §48 v334: the RECEIVED side says when each tip arrived ─────────────────────────────────────────
+  // The other side of the same receipt, with the same helper and the same clock.
+  {
+    const receivedPage = await session.newPage('about:blank');
+    await receivedPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(receivedPage, 'the received page to hydrate');
+    await signInAs(receivedPage, 'ada', 'the recipient of the tip');
+    await receivedPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+
+    const receivedThere = await until(
+      async () => (await receivedPage.evaluate("!!document.querySelector('[data-economy-payer]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the received tips to show' },
+    );
+    check('the recipient’s tip row is on screen', receivedThere !== null, 'the row is there');
+
+    // And the SERVICE says the same instant, read independently of the browser.
+    const receivedRaw = await receivedPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const receivedId = JSON.parse(String(receivedRaw)).id;
+    const receivedTips = await fetch(`${apiBase}/tips?recipient=${encodeURIComponent(receivedId)}&limit=50`);
+    const receivedTipsBody = await receivedTips.json();
+    const serviceWhen = (receivedTipsBody.tips ?? []).map((t) => t.createdAt).filter((v) => typeof v === 'number');
+    const panelWhen = await receivedPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-payer]')).map((s) => s.textContent ?? '')",
+    );
+    check(
+      'and the row says the same instant the service recorded',
+      receivedTips.status === 200 && serviceWhen.length > 0
+        && serviceWhen.every((w) => panelWhen.some((p) => p.includes(new Date(w).toISOString().replace('.000Z', 'Z')))),
+      `the service: ${JSON.stringify(serviceWhen)} · the panel: ${JSON.stringify(panelWhen)}`,
+    );
+    await receivedPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

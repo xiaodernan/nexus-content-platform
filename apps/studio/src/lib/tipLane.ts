@@ -110,7 +110,15 @@ export async function readMyTipsGiven(
   fetchImpl: FetchLike = fetch,
 ): Promise<{
   ok: boolean;
-  tips: { amountCents: number; message: string; anonymous: boolean; handle?: string | null; payerId?: string | null }[];
+  tips: {
+    amountCents: number;
+    message: string;
+    anonymous: boolean;
+    handle?: string | null;
+    payerId?: string | null;
+    /** v333 — WHEN the tip was given, in epoch millis. */
+    createdAt?: number | null;
+  }[];
   totalCents: number;
   count: number;
   reason?: string;
@@ -136,7 +144,14 @@ export async function readMyTipsGiven(
     return {
       ok: true,
       tips: Array.isArray(answer.tips)
-        ? (answer.tips as { amountCents: number; message: string; anonymous: boolean; handle?: string | null; payerId?: string | null }[])
+        ? (answer.tips as {
+            amountCents: number;
+            message: string;
+            anonymous: boolean;
+            handle?: string | null;
+            payerId?: string | null;
+            createdAt?: number | null;
+          }[])
         : [],
       totalCents: typeof answer.totalCents === 'number' ? answer.totalCents : 0,
       count: typeof answer.count === 'number' ? answer.count : 0,

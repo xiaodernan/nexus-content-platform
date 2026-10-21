@@ -174,7 +174,15 @@ export default function Toolbar() {
 
   const [economy, setEconomy] = useState<{
     ok: boolean;
-    tips: { amountCents: number; message: string; anonymous: boolean }[];
+    tips: {
+      amountCents: number;
+      message: string;
+      anonymous: boolean;
+      handle?: string | null;
+      payerId?: string | null;
+      /** v334 — WHEN the tip arrived. */
+      createdAt?: number | null;
+    }[];
     totalCents: number;
     count: number;
     reason?: string;
@@ -982,6 +990,9 @@ export default function Toolbar() {
                           about their own money. */}
                       <span data-economy-payer={tipPayerText(tip)}>
                         {tipPayerText(tip)} — {priceText(tip.amountCents as PriceCents, 'CNY')}
+                        {/* v334 — and WHEN it arrived. The other side of the same receipt, with the
+                            same helper and the same clock. */}
+                        {tip.createdAt ? ` · on ${tipGivenText(tip.createdAt)}` : ''}
                       </span>
                     </div>
                     {tip.message && (
