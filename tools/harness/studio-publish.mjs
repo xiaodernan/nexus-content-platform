@@ -3409,6 +3409,26 @@ try {
     );
   }
 
+  // ── §52 v340: the profile page carries ALL FOUR of its sources ──────────────────────────────────────
+  // The same repair as §51, applied to the profile page: the four reads go out together, and a
+  // concurrent read is exactly the kind of change that can quietly drop one of the four.
+  {
+    const profileHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(accountRecord?.id ?? '')}`)).text();
+    const profileSources = [
+      ['the plans bar', 'data-plans='],
+      ['the tips bar', 'data-tips='],
+      ['the follow bar', 'data-followers='],
+    ];
+    const profileMissing = profileSources
+      .filter(([, marker]) => !profileHtml.includes(marker))
+      .map(([name]) => name);
+    check(
+      'the profile page carries all four of its sources',
+      profileMissing.length === 0,
+      profileMissing.length === 0 ? 'all four' : `missing: ${profileMissing.join(' | ')}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

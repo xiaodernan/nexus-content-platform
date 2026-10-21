@@ -73,9 +73,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   // leaves the bar out ENTIRELY, because "this creator offers nothing" and "the plans could not be read"
   // are different facts — and a page that showed the first when it knew the second would say that a
   // creator whose plans are one read away has nothing to offer.
-  const offered = await readPlans(accountId);
+  // v340 — the four side sources are read TOGETHER, the same repair v339 made to the artifact
+  // page: they are four independent facts about the same account, and reading them one after another made
+  // the page wait for their SUM instead of for the slowest of the four.
+  const [offered, tips, followers, following] = await Promise.all([
+    readPlans(accountId),
+    readTips(accountId, TIP_LIMIT),
+    readFollowers(accountId, null),
+    readFollowing(accountId),
+  ]);
   const planBar = offered.ok ? renderPlanBar({ accountId, plans: toPlanRows(offered.plans) }) + PLAN_BAR_STYLES : '';
-  const tips = await readTips(accountId, TIP_LIMIT);
   const tipBar = tips.ok
     ? renderTipBar({
         accountId,
@@ -86,11 +93,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
         tips: toTipRows(tips.tips),
       }) + TIP_BAR_STYLES
     : '';
-  const followers = await readFollowers(accountId, null);
   // v303 — the OTHER direction of the edge: the accounts THIS account follows. It is read independently,
   // and a list that could not be read leaves its half of the bar out — the same rule the followers list
   // keeps.
-  const following = await readFollowing(accountId);
   const bar = followers.ok
     ? renderFollowBar({
         accountId,
