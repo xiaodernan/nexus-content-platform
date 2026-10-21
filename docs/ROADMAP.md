@@ -3820,7 +3820,10 @@ image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；�
   截图 `screenshots/api-access-ledger.png` 已看过：`CI 被拒的那次` 那一行只有 `GET …/projects · 整个清单 ×1`，
   `CI 读三遍` 那一行是 `GET …/design · 访问账样本 mulqvir8 ×1` 加 `GET …/projects · 整个清单 ×3`。
 - **还没做（下一格取这里）**：MCP 与外部 Agent 接入那一格；项目的创建 / 删除 / 发布不对外，所以外部 Agent 能改文档
-  却不能建项目；4000 节点档的 GET 响应体积与 PATCH 耗时仍未量（§146/§147 那一档）。全局视图与 CSV 导出
+  却不能建项目；4000 节点档的 GET 响应体积与 PATCH 耗时**已量（2026-10-21 晚，`scripts/v1-4000-cost.mts`）**：
+  GET 响应 3.22MB → **gzip 0.11MB**、布局求解 46.2ms、**PATCH（改一个节点）2.4ms**
+  （10000 档对照：0.27MB / 95.6ms / 5.1ms）⇒ **传输与写路径都不是障碍**
+  ⇒ **M8 那一格缺的是"能力"（项目创建 / 删除 / 发布不对外），不是性能** ✓全局视图与 CSV 导出
   已经落地（2026-10-15，见文末 `§188 全局访问账` 一节）。M8 整格因此还是 `[~]`。
 
 ---
