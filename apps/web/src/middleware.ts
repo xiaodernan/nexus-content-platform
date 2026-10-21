@@ -48,5 +48,14 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  /**
+   * **`/api/projects/import` 不进中间件**（2026-10-21 实测出来的）：
+   * Next 16 的中间件会**先把请求正文读进来才运行**（默认上限 10MB，
+   * `middlewareClientMaxBodySize`）→ 于是
+   * ① 路由处理器拿到的正文**被截断到 10MB** → **合法的 >10MB 导入今天就是坏的**；
+   * ② 路由里那道"按 Content-Length 先拒"也来不及跑（要等中间件把正文读完）。
+   * 让它绕开中间件之后：路由自己管鉴权（它本来就在管），
+   * 头一到手就能判"这个包太大了" → **正文一个字都不用读**。
+   */
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/projects/import).*)'],
 };

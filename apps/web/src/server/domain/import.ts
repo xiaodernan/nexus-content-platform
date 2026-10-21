@@ -30,6 +30,13 @@ import { createProject, loadDocument, PROJECT_KINDS, saveDocument } from './proj
  * 读端另有三档（条目数 / 单条 / 累计解压体积），这一档管的是"别先把 5GB 塞进内存再说不"：
  * 数字取累计解压上限的一半——一份 store 包不压缩，正常导出用不满它；
  * 真要贴到这一格，那是"有人拿别人的包来试"，不是用户导出后又导回来。
+ *
+ * **这一档必须在读正文之前判**（2026-10-21 查出来的）：
+ * Next 16 的中间件会**先把请求正文读进来才运行**（默认 10MB 上限）→
+ * 路由拿到的正文被截断（合法的 >10MB 导入就是坏的），
+ * 而路由里那道"按 Content-Length 先拒"也来不及跑。
+ * 所以导入路由**不进中间件**（见 `apps/web/src/middleware.ts` 的 matcher）→
+ * 头一到手就能拒 → **正文一个字都不用读**。
  */
 export const IMPORT_MAX_ZIP_BYTES = 128 * 1024 * 1024;
 

@@ -211,6 +211,21 @@ test('@smoke §144 413：声明超过上限的包在服务端读正文之前就�
   const result = await new Promise<{ status: number; body: { error?: string; reason?: string }; sent: number }>(
     (resolve, reject) => {
       let settled = false;
+      // 已经收到的响应（状态与正文）：服务端拒收后会把连接收了（连接上还有未读正文 → 可能 RST），
+      // 那时 **413 往往已经躺在缓冲区里** —— 收到了就别再把连接错误当失败。
+      let seenStatus = 0;
+      let seenRaw = '';
+      const finish = (): void => {
+        if (settled) return;
+        settled = true;
+        let body: { error?: string; reason?: string } = {};
+        try {
+          body = JSON.parse(seenRaw) as { error?: string; reason?: string };
+        } catch {
+          /* 不是 JSON 就留着空对象，断言会在 status/reason 上红 */
+        }
+        resolve({ status: seenStatus, body, sent });
+      };
       const req = httpRequest(
         {
           hostname: url.hostname,
@@ -225,56 +240,50 @@ test('@smoke §144 413：声明超过上限的包在服务端读正文之前就�
           },
         },
         (res) => {
-          let raw = '';
+          seenStatus = res.statusCode ?? 0;
           res.setEncoding('utf8');
           res.on('data', (chunk: string) => {
-            raw += chunk;
+            seenRaw += chunk;
           });
-          res.on('end', () => {
-            if (settled) return;
-            settled = true;
-            let body: { error?: string; reason?: string } = {};
-            try {
-              body = JSON.parse(raw) as { error?: string; reason?: string };
-            } catch {
-              /* 不是 JSON 就留着空对象，断言会在 status/reason 上红 */
-            }
-            resolve({ status: res.statusCode ?? 0, body, sent });
-          });
+          res.on('end', finish);
+          // 正文被掐断也算收完：状态与正文都已经拿到了
+          res.on('aborted', finish);
         },
       );
       let sent = 0;
-      // 1MB 一块地推，收到响应就停——不把 2GB 攒在内存里。
-      // **必须让出事件循环**：第一版是个同步 `while`，它在 Node 单线程里一路写到底，
-      // 响应回调根本轮不到执行，于是"收到响应就停"从来没生效过（那一版实测把 2GB 全写完了，
-      // 红在我自己那句 `sent < declared` 上）。这里每写一块 `await setImmediate` 一次。
+      // **只推 1MB 就停**（2026-10-21 改）：这一格要证的是"**声明的那个数**就足以触发拒收"，
+      // 而"把 128MB 真的推出去"会把响应挤掉——客户端还在猛写的时候，
+      // 服务端回完 413 就把连接收了（连接上还有未读正文 → 直接 RST），
+      // 客户端那边就是 `ECONNRESET`：**不是"拒收"，是"断线"**。
+      // 少推一点就把竞态去掉了：服务端在正文到齐之前就回了 413（这正是这一格要证的），
+      // 而客户端这边不再有"写了一半被重置"的那一段。
       const chunk = Buffer.alloc(1024 * 1024);
-      const pump = async (): Promise<void> => {
-        while (!settled && sent < declared) {
-          sent += chunk.length;
-          if (req.write(chunk)) {
-            await new Promise<void>((r) => setImmediate(r));
-          } else {
-            await new Promise<void>((r) => req.once('drain', () => r()));
-          }
-        }
-        if (!settled && sent >= declared) req.end();
-      };
+      sent += chunk.length;
       req.on('error', (error) => {
-        // 服务端提前关连接是**预期**的（它已经拒了），只在还没拿到响应时才算失败
+        // 服务端提前关连接是**预期**的（它已经拒了）：
+        // 已经收到响应就算数（状态与正文都在手上），没收到才是失败
+        if (seenStatus > 0) {
+          finish();
+          return;
+        }
         if (!settled) {
           settled = true;
           reject(error);
         }
       });
-      void pump().catch(() => {
-        // 写不进去 = 服务端已经把连接收了；响应那一路会给出结论
-      });
+      req.write(chunk);
+      // 不 `req.end()`：正文**故意不发完**（声明了 128MB 却不发），
+      // 服务端要是在等正文，这条就会一直挂着——它没等，直接回了 413。
     },
   );
 
   expect(result.status, `期望 413，拿到 ${result.status}：${JSON.stringify(result.body)}`).toBe(413);
   expect(result.body.error).toBe('too_large');
+  // **这一格真正的判据**：正文**没被读完**就拒了。
+  // （服务端那一挡必须在读正文之前：路由处理器是等正文到齐才运行的，
+  //  2026-10-21 实测出来的那一版会把 2GB 整个读进内存才回 413 →
+  //  所以那一挡搬到了中间件，见 apps/web/src/middleware.ts。）
+  expect(result.sent, '正文被读完了才拒 → 那一大截内存已经用掉了').toBeLessThan(declared);
   // 上限由服务端自己报出来——测试不重抄那个数，所以上限改了这条不会说谎
   expect(result.body.reason).toMatch(/超过导入上限 \d+MB/);
   // **不是 415**：我们发的是 1MB 的零字节，根本不是 ZIP。拿到 413 而不是 415，
