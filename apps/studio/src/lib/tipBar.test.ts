@@ -25,6 +25,20 @@ const entry = (over: Record<string, unknown> = {}) => ({
 });
 
 describe('tipIntent — the URL names the account (M7 v298)', () => {
+  it('v341 — says WHEN each tip arrived, in the service\u2019s own style', () => {
+    // The service has carried the instant since the tip's own beginning, and the economy panel has said
+    // it since v333; the profile page did not. A gift with no date on it is a gift without a history.
+    const row = toTipRow({ id: 't-1', amountCents: 500, createdAt: 1_700_000_000_000 });
+    expect(row?.givenText).toBe('2023-11-14T22:13:20Z');
+  });
+
+  it('v341 — and a wire with NO instant says nothing rather than guessing', () => {
+    const row = toTipRow({ id: 't-1', amountCents: 500 });
+    expect(row?.givenText).toBeNull();
+    const html = renderTipBar({ accountId: 'acct-ada', count: 1, totalCents: 500, tips: [row!] });
+    expect(html).not.toContain('nexus-tip-when');
+  });
+
   it('reads the tip id out of the query', () => {
     expect(tipIdFromSearch('?tip=acct-bob')).toBe('acct-bob');
     expect(tipIdFromSearch('tip=acct-bob')).toBe('acct-bob');

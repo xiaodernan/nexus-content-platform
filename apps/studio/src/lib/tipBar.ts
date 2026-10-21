@@ -46,6 +46,15 @@ export interface TipRow {
   messageText: string;
   /** Whether the tip was anonymous. */
   anonymous: boolean;
+  /**
+   * v341 — WHEN the tip was given, in a reader's words — or null when the wire did not say.
+   *
+   * <p>The service has carried the instant since the tip's own beginning, and the ECONOMY panel has said
+   * it since v333; the PROFILE page — the page a reader lands on when they want to know about a person —
+   * did not. It is the same wire and the same clock, and a gift with no date on it is a gift without a
+   * history.
+   */
+  givenText: string | null;
 }
 
 /**
@@ -54,6 +63,18 @@ export interface TipRow {
  * A tip needs an id and a finite amount: the id is what the row is keyed by, and an amount with no number
  * is not an amount.
  */
+/**
+ * WHEN a tip was given, in a reader's words — or null when the wire did not say.
+ *
+ * <p>The instant is the service's own, in UTC, formatted the same way the economy panel formats the
+ * subscription's two dates (v328, v329) and the tip receipt (v333): one clock, one style, so a reader
+ * comparing a tip's date with a subscription's date is reading two dates written the same way.
+ */
+function tipGivenTextOf(createdAt: unknown): string | null {
+  if (typeof createdAt !== 'number' || !Number.isFinite(createdAt)) return null;
+  return new Date(createdAt).toISOString().replace('.000Z', 'Z');
+}
+
 export function toTipRow(entry: unknown): TipRow | null {
   if (typeof entry !== 'object' || entry === null) return null;
   const t = entry as TipEntry;
@@ -66,6 +87,9 @@ export function toTipRow(entry: unknown): TipRow | null {
     amountText: priceText(t.amountCents as PriceCents, currency),
     messageText: typeof t.message === 'string' ? escapeHtml(t.message) : '',
     anonymous: t.anonymous === true,
+    // v341 — and when it was given. The instant is the service's own (v333's rule: the same clock, one
+    // style), and a wire with no instant says nothing rather than guessing.
+    givenText: tipGivenTextOf(t.createdAt),
   };
 }
 
@@ -105,7 +129,10 @@ export function renderTipBar(facts: TipBarFacts): string {
   const rows = (facts.tips ?? [])
     .map((t) => {
       const message = t.messageText ? ` \u2014 ${t.messageText}` : '';
-      return `<li data-tip="${escapeHtml(t.id)}"><span class="nexus-tip-amount">${escapeHtml(t.amountText)}</span><span class="nexus-tip-note">${message}</span></li>`;
+      // v341 — and WHEN it was given. The instant, not "3 days ago": a relative date goes stale the
+      // moment it is written, and a gift is a fact about the past that does not move.
+      const when = t.givenText ? ` <span class="nexus-tip-when">· on ${escapeHtml(t.givenText)}</span>` : '';
+      return `<li data-tip="${escapeHtml(t.id)}"><span class="nexus-tip-amount">${escapeHtml(t.amountText)}</span><span class="nexus-tip-note">${message}</span>${when}</li>`;
     })
     .join('\n');
   const list = rows ? `<ul class="nexus-tips-list">\n${rows}\n</ul>` : '';

@@ -3429,6 +3429,25 @@ try {
     );
   }
 
+  // ── §53 v341: the profile’s tip bar says WHEN each tip arrived ─────────────────────────────────────
+  // The wire has carried the instant since the tip\u2019s own beginning, and the economy panel has said
+  // it since v333; the PROFILE page did not — and a gift with no date on it is a gift without a history.
+  {
+    const tipProfileHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(accountRecord?.id ?? '')}`)).text();
+    const tipProfileService = await (await fetch(`${apiBase}/tips?recipient=${encodeURIComponent(accountRecord?.id ?? '')}&limit=50`)).json();
+    const serviceWhens = (tipProfileService.tips ?? [])
+      .map((t) => t.createdAt)
+      .filter((v) => typeof v === 'number')
+      .map((v) => new Date(v).toISOString());
+    check(
+      'the profile’s tip bar says when each tip arrived',
+      serviceWhens.length > 0
+        && tipProfileHtml.includes('nexus-tip-when')
+        && serviceWhens.every((w) => tipProfileHtml.includes(w)),
+      `the service: ${JSON.stringify(serviceWhens)}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
