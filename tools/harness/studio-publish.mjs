@@ -2807,6 +2807,43 @@ try {
     await undoPage.close();
   }
 
+  // ── §36 v322: the trail can name the COMMENT’S removal ───────────────────────────────────────────
+  // The service has recorded `uncomment` since v289 and the product can do it since v321 — so a filter
+  // that could not ask for it would leave a recorded fact in the "All" bucket with no way to name it.
+  {
+    const removalPage = await session.newPage('about:blank');
+    await removalPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(removalPage, 'the removal page to hydrate');
+    await removalPage.evaluate("document.querySelector('[data-toolbar-trail-toggle]').click()");
+
+    const removalButton = await until(
+      async () => (await removalPage.evaluate("!!document.querySelector('[data-trail-filter=\"uncomment\"]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the filter for the comment removal to show' },
+    );
+    check('the trail offers a filter for the comment removal', removalButton !== null, 'the button is there');
+
+    await removalPage.evaluate("document.querySelector('[data-trail-filter=\"uncomment\"]').click()");
+    const removalRows = await until(
+      async () => {
+        const actions = await removalPage.evaluate(
+          "Array.from(document.querySelectorAll('[data-trail-row]')).map((r) => r.getAttribute('data-trail-action'))",
+        );
+        return actions.length > 0 && actions.every((a) => a === 'uncomment') ? actions.length : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the trail to narrow to the comment removals' },
+    );
+    check('and filtering by it shows ONLY the comment removals', removalRows !== null, `rows: ${JSON.stringify(removalRows)}`);
+
+    // And the SUMMARY still counts the whole trail.
+    const removalSummary = await removalPage.evaluate("document.querySelector('[data-trail-summary]')?.textContent ?? ''");
+    check(
+      'and the SUMMARY still counts the whole trail',
+      removalSummary.includes('reported') && removalSummary.includes('commented'),
+      `the summary says: ${JSON.stringify(removalSummary)}`,
+    );
+    await removalPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

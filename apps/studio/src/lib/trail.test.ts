@@ -259,6 +259,17 @@ describe('trail — the REPORT verbs in the FILTER (M7 v319)', () => {
     expect(filterTrailRows(withUnlike, 'like').map((r) => r.id)).toEqual(['1']);
   });
 
+  it('v322 — the undoing of the comment is a filter of its own', () => {
+    // The service has recorded `uncomment` since v289, and since v321 the product can do it — so a filter
+    // that could not ask for it would leave a recorded fact in the "All" bucket with no way to name it.
+    const withRemoved = toTrailRows([
+      entry({ id: '1', action: 'comment' }),
+      entry({ id: '2', action: 'uncomment' }),
+    ]);
+    expect(filterTrailRows(withRemoved, 'uncomment').map((r) => r.id)).toEqual(['2']);
+    expect(filterTrailRows(withRemoved, 'comment').map((r) => r.id)).toEqual(['1']);
+  });
+
   it('the DISPLAY word is not the action: filtering by “reported” matches nothing', () => {
     // The button wears the display word; the filter asks in the raw action. If the two were the same
     // string, a rename of the display word would silently change what the filter means — and a filter
