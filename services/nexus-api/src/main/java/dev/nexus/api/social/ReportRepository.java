@@ -4,7 +4,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.query.Param;
 
 /**
  * M7 v295 — the repository for REPORTS.
@@ -32,6 +34,21 @@ public interface ReportRepository extends JpaRepository<ReportEntry, String> {
 
     /** The reports one account filed, newest first, capped by the caller's `Pageable`. */
     List<ReportEntry> findByReporterAccountIdOrderByCreatedAtDesc(String reporterAccountId, Pageable pageable);
+
+    /**
+     * v312 — the reports about ANY of several publications, COUNTED by reason and by status.
+     *
+     * <p>This is a GROUPED query rather than a count per publication, because the tally a creator reads
+     * has to count EVERY report against their work — and the desk's rows are a WINDOW (the most recent
+     * hundred). A tally computed from the window would say "3 reports" when there are thirty, and the
+     * number that is wrong is the one a creator acts on.
+     *
+     * <p>The rows are {@code (reason, status, count)}: one row per pair that occurs, so the caller can
+     * add them up the way it wants and a reason with no reports simply does not appear.
+     */
+    @Query("SELECT r.reason, r.status, COUNT(r) FROM ReportEntry r WHERE r.targetProjectId IN :targets GROUP BY r.reason, r.status")
+    List<Object[]> countByTargetsGroupedByReasonAndStatus(
+            @Param("targets") Collection<String> targetProjectIds);
 
     /** How many reports a publication has. */
     long countByTargetProjectId(String targetProjectId);

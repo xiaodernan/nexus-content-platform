@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { deskSummary, reportStatusText, toDeskRow, toDeskRows } from './moderation';
+import { deskSummary, reportStatusText, tallyText, toDeskRow, toDeskRows } from './moderation';
 import { acknowledgeReport, readDesk } from './moderationLane';
 
 /**
@@ -140,4 +140,43 @@ describe('moderationLane \u2014 the browser half', () => {
     expect(answer.reason).toContain('does not own');
     expect(answer.moved).toBeUndefined();
   });
+
+describe('moderation — the TALLY (M7 v312)', () => {
+  it('the tally says the total and the reasons that OCCUR', () => {
+    const text = tallyText({ total: 3, open: 1, byReason: { spam: 2, harassment: 1 }, byStatus: { open: 1 } });
+    expect(text).toContain('3 report(s)');
+    expect(text).toContain('1 still waiting');
+    expect(text).toContain('2 spam');
+    expect(text).toContain('1 harassment');
+  });
+
+  it('a reason with no reports is NOT said — a tally padded with zeroes is noise', () => {
+    const text = tallyText({ total: 2, open: 0, byReason: { spam: 2 }, byStatus: { acknowledged: 2 } });
+    expect(text).toContain('2 report(s)');
+    expect(text).not.toContain('harassment');
+    expect(text).not.toContain('still waiting');
+  });
+
+  it('the lane carries the tally, and a MISSING tally stays null', async () => {
+    // A tally of zero would say "nobody complained" — and that is the one thing a creator must not be
+    // misled about. A tally that could not be read stays null.
+    const withTally = await readDesk(
+      'acct-ada',
+      makeFetch(() =>
+        new Response(
+          JSON.stringify({ ok: true, reports: [A_REPORT], tally: { total: 3, open: 1, byReason: { spam: 2 } } }),
+          { status: 200 },
+        ),
+      ),
+    );
+    expect(withTally.tally?.total).toBe(3);
+    expect(withTally.tally?.byReason?.spam).toBe(2);
+
+    const withoutTally = await readDesk(
+      'acct-ada',
+      makeFetch(() => new Response(JSON.stringify({ ok: true, reports: [A_REPORT] }), { status: 200 })),
+    );
+    expect(withoutTally.tally).toBeNull();
+  });
+});
 });

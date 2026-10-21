@@ -3,6 +3,7 @@ package dev.nexus.api.moderation;
 import dev.nexus.api.moderation.ModerationDtos.DeskAnswer;
 import dev.nexus.api.moderation.ModerationDtos.DeskEntry;
 import dev.nexus.api.moderation.ModerationDtos.DispositionAnswer;
+import dev.nexus.api.moderation.ModerationDtos.TallyAnswer;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +46,18 @@ public class ModerationController {
                 ownerAccountId == null ? null : ownerAccountId.trim(),
                 rows,
                 asked));
+    }
+
+    /**
+     * The TALLY: how many reports against this account's work, by reason and by status.
+     *
+     * <p>It is a door of its own rather than a field on the desk, because the desk is a WINDOW (the most
+     * recent hundred) and the tally counts every report — a number computed from a window would be wrong
+     * in exactly the direction a creator acts on.
+     */
+    @GetMapping("/tally")
+    public ResponseEntity<TallyAnswer> tally(@RequestParam(name = "owner") String ownerAccountId) {
+        return ResponseEntity.ok(service.tallyOf(ownerAccountId));
     }
 
     /**

@@ -2260,6 +2260,41 @@ try {
     await trailPage.close();
   }
 
+  // ── §26 v312: the reports TALLYED by reason ────────────────────────────────────────────────────
+  // The reasons are a CLOSED SET of four (v295), so a creator can count by them: "two spam and one
+  // harassment" says something a bare "three reports" does not. And the tally counts EVERY report
+  // against the work, where the desk’s rows are a window.
+  {
+    const tallyPage = await session.newPage('about:blank');
+    await tallyPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(tallyPage, 'the tally page to hydrate');
+
+    await signInAs(tallyPage, 'ada', 'the owner with reports against their work');
+    await tallyPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(tallyPage, 'the owner’s economy page to hydrate');
+    await tallyPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
+    const tallyLine = await until(
+      async () => (await tallyPage.evaluate("!!document.querySelector('[data-desk-tally]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the tally to show in the desk' },
+    );
+    check('the desk shows the TALLY of the reports against the work', tallyLine !== null, 'the line is there');
+
+    const tallyText = await tallyPage.evaluate("document.querySelector('[data-desk-tally]')?.textContent ?? ''");
+    check('and it counts them BY REASON', tallyText.includes('harassment') && tallyText.includes('spam'), `the tally says: ${JSON.stringify(tallyText)}`);
+
+    // And the SERVICE agrees, read independently of the browser.
+    const tallyRaw = await tallyPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const tallyOwner = JSON.parse(String(tallyRaw)).id;
+    const tallyRead = await fetch(`${apiBase}/moderation/tally?owner=${encodeURIComponent(tallyOwner)}`);
+    const tallyBody = await tallyRead.json();
+    check(
+      'the SERVICE agrees — read back independently of the browser',
+      tallyRead.status === 200 && typeof tallyBody.total === 'number' && tallyBody.total === 2 && tallyBody.byReason?.spam === 1 && tallyBody.byReason?.harassment === 1,
+      `the tally: ${JSON.stringify(tallyBody)}`,
+    );
+    await tallyPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

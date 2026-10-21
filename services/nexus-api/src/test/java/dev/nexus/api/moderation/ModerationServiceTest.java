@@ -68,6 +68,18 @@ class ModerationServiceTest {
         return publication;
     }
 
+    /**
+     * A publication, stubbed with what the TALLY reads: the id alone.
+     *
+     * <p>The title is not stubbed here, because the tally never asks for it — and a stub nothing reads is a
+     * stub Mockito rightly complains about.
+     */
+    private static PublishedProject ownedId(String projectId) {
+        PublishedProject publication = org.mockito.Mockito.mock(PublishedProject.class);
+        when(publication.getProjectId()).thenReturn(projectId);
+        return publication;
+    }
+
     private static ReportEntry report(String reportId, String target, String status) {
         return new ReportEntry(
                 reportId,
@@ -86,7 +98,8 @@ class ModerationServiceTest {
     @Test
     void theDeskListsTheReportsAgainstTheOwnersOwnPublications() {
         // The publication is stubbed FIRST: a stub built inside another stub's argument is unfinished
-        // stubbing, and Mockito is right to refuse it.
+        // stubbing, and Mockito is right to refuse it. The desk reads the TITLE (it names the publication
+        // beside the report), so this case uses the fuller helper.
         PublishedProject publication = owned("pub-1", "My First World");
         when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
                 .thenReturn(List.of(publication));
@@ -136,7 +149,7 @@ class ModerationServiceTest {
 
     @Test
     void theDeskIsCappedAndTheCapIsCLAMPED() {
-        PublishedProject publication = owned("pub-1", "My First World");
+        PublishedProject publication = ownedId("pub-1");
         when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
                 .thenReturn(List.of(publication));
         when(reports.findByTargetProjectIdInOrderByCreatedAtDesc(any(), any(Pageable.class))).thenReturn(List.of());
@@ -229,5 +242,66 @@ class ModerationServiceTest {
         assertThat(ReportDtos.STATUS_ACKNOWLEDGED)
                 .isNotEqualTo(ReportDtos.STATUS_REVIEWED)
                 .isNotEqualTo(ReportDtos.STATUS_RESOLVED);
+    }
+
+    // ── v312: the TALLY — how many reports, by reason and by status ──────────────────────────────────
+
+    @Test
+    void theTallyCountsByReasonAndByStatus() {
+        PublishedProject publication = ownedId("pub-1");
+        when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of(publication));
+        // The GROUPED query's rows are (reason, status, count).
+        List<Object[]> grouped = List.of(
+                new Object[] {"spam", ReportDtos.STATUS_OPEN, 2L},
+                new Object[] {"harassment", ReportDtos.STATUS_OPEN, 1L},
+                new Object[] {"spam", ReportDtos.STATUS_ACKNOWLEDGED, 1L});
+        when(reports.countByTargetsGroupedByReasonAndStatus(eq(List.of("pub-1")))).thenReturn(grouped);
+
+        ModerationDtos.TallyAnswer tally = service.tallyOf("acct-ada");
+
+        assertThat(tally.total()).isEqualTo(4L);
+        assertThat(tally.open()).isEqualTo(3L);
+        // The maps are MARGINAL totals: every spam report counts as spam, whatever became of it, and the
+        // status map counts the same four reports the other way. The CROSS (how many of the spam ones are
+        // still open) is not in the answer — and the open count beside it is what a creator acts on.
+        assertThat(tally.byReason()).containsEntry("spam", 3L).containsEntry("harassment", 1L);
+        assertThat(tally.byStatus()).containsEntry(ReportDtos.STATUS_OPEN, 3L).containsEntry(ReportDtos.STATUS_ACKNOWLEDGED, 1L);
+    }
+
+    @Test
+    void theTallyCountsEVERYReportAndNotTheDeskWindow() {
+        // The desk shows the most recent hundred; the tally counts every report against the work. A tally
+        // computed from the window would say "3 reports" when there are thirty — and the number that is
+        // wrong is the one a creator acts on.
+        PublishedProject publication = ownedId("pub-1");
+        when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of(publication));
+        List<Object[]> grouped = List.<Object[]>of(new Object[] {"spam", ReportDtos.STATUS_OPEN, 30L});
+        when(reports.countByTargetsGroupedByReasonAndStatus(eq(List.of("pub-1")))).thenReturn(grouped);
+
+        ModerationDtos.TallyAnswer tally = service.tallyOf("acct-ada");
+
+        assertThat(tally.total()).isEqualTo(30L);
+        assertThat(tally.open()).isEqualTo(30L);
+    }
+
+    @Test
+    void anAccountWithNoPublicationsHasAnEmptyTally() {
+        when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        ModerationDtos.TallyAnswer tally = service.tallyOf("acct-ada");
+
+        assertThat(tally.total()).isZero();
+        assertThat(tally.open()).isZero();
+        assertThat(tally.byReason()).isEmpty();
+    }
+
+    @Test
+    void theTallyRefusesACallerThatNamesNoAccount() {
+        assertThatThrownBy(() -> service.tallyOf("  "))
+                .isInstanceOf(InvalidModeration.class)
+                .hasMessageContaining("belongs to an account");
     }
 }

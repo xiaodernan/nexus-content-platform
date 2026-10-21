@@ -88,6 +88,75 @@ export async function readDesk(
 }
 
 /**
+ * What one read of the TALLY answered — the counts of every report against the account's work.
+ */
+export interface TallyAnswer {
+  ok: boolean;
+  total: number;
+  open: number;
+  byReason: Record<string, number>;
+  byStatus: Record<string, number>;
+  reason?: string;
+}
+
+/**
+ * READ the tally of the reports against an account's work.
+ *
+ * <p>It counts EVERY report, and not the desk's window — the desk shows the most recent hundred and the
+ * tally says how many there are.
+ */
+export async function readTally(
+  ownerAccountId: string,
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<TallyAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(
+      `${apiBase}/moderation/tally?owner=${encodeURIComponent(ownerAccountId)}`,
+      { headers: { accept: 'application/json' } },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return {
+        ok: false,
+        total: 0,
+        open: 0,
+        byReason: {},
+        byStatus: {},
+        reason: `the service's tally door answered HTTP ${res.status} with something that is not JSON`,
+      };
+    }
+    const body = parsed as {
+      total?: unknown;
+      open?: unknown;
+      byReason?: unknown;
+      byStatus?: unknown;
+      message?: unknown;
+    };
+    if (typeof body.total !== 'number' || typeof body.open !== 'number') {
+      const why = typeof body.message === 'string' ? body.message : `the service's tally door answered HTTP ${res.status}`;
+      return { ok: false, total: 0, open: 0, byReason: {}, byStatus: {}, reason: why };
+    }
+    return {
+      ok: true,
+      total: body.total,
+      open: body.open,
+      byReason: (body.byReason ?? {}) as Record<string, number>,
+      byStatus: (body.byStatus ?? {}) as Record<string, number>,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      total: 0,
+      open: 0,
+      byReason: {},
+      byStatus: {},
+      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
  * ACKNOWLEDGE a report on the desk: the owner of the publication says they have seen it.
  *
  * <p>The answer says whether the status MOVED, so a panel is never told a report moved when it did not.

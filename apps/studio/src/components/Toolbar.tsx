@@ -7,6 +7,7 @@ import { filterTrailRows, trailSummaryOf, trailSummaryText } from '@/lib/trail';
 import { readMyTips } from '@/lib/tipLane';
 import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
 import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
+import { tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { priceText } from '@/lib/economy';
 import type { PriceCents } from '@/lib/monetization';
@@ -899,6 +900,14 @@ export default function Toolbar() {
           }}
         >
           <div style={{ fontWeight: 700, letterSpacing: 0.4, marginBottom: 6 }}>YOUR DESK</div>
+          {/* v312 — the TALLY: how many reports there are against this account's work, and how many by
+              reason. It counts EVERY report, where the rows below are a window — so a creator can tell
+              "two complaints" from "the two most recent of five". */}
+          {desk?.tally && (
+            <div data-desk-tally style={{ color: 'var(--nexus-muted)', marginBottom: 6 }}>
+              {tallyText(desk.tally)}
+            </div>
+          )}
           {desk === null ? (
             <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
           ) : !desk.ok ? (

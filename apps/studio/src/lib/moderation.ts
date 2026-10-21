@@ -99,6 +99,40 @@ export function toDeskRows(entries: readonly unknown[]): DeskRow[] {
  * count of every report that exists. The service's own count is the number of every report; this is the
  * number in front of the owner, and the panel says which one it is showing.
  */
+/**
+ * The TALLY of the reports against an account's work — the service's own counts.
+ *
+ * <p>It is a separate read from the desk (v312) because the desk is a WINDOW (the most recent hundred) and
+ * the tally counts every report: a number computed from a window would be wrong in exactly the direction a
+ * creator acts on.
+ */
+export interface TallyFacts {
+  /** How many reports there are against the account's work, in all. */
+  total: number;
+  /** How many of them are still waiting to be acknowledged. */
+  open: number;
+  /** How many by reason — only the reasons that OCCUR. */
+  byReason: Record<string, number>;
+  /** How many by status. */
+  byStatus: Record<string, number>;
+}
+
+/**
+ * The tally, as the panel says it.
+ *
+ * <p>The reasons are in the order they came — the service's order — and only the reasons that OCCUR: a
+ * tally padded with zeroes is noise, and a reader learns to skip it.
+ */
+export function tallyText(tally: TallyFacts): string {
+  const parts: string[] = [];
+  parts.push(`${tally.total} report(s)`);
+  if (tally.open > 0) parts.push(`${tally.open} still waiting`);
+  for (const [reason, count] of Object.entries(tally.byReason)) {
+    parts.push(`${count} ${reportReasonText(reason)}`);
+  }
+  return parts.join(' · ');
+}
+
 export function deskSummary(rows: readonly DeskRow[]): { total: number; open: number } {
   let open = 0;
   for (const row of rows) {

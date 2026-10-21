@@ -8,6 +8,7 @@ import dev.nexus.api.social.ReportEntry;
 import dev.nexus.api.social.ReportRepository;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -109,6 +110,41 @@ public class ModerationService {
                         row.getStatus(),
                         row.getCreatedAt().toEpochMilli()))
                 .toList();
+    }
+
+    /**
+     * v312 — the TALLY: how many reports against this account's work, by reason and by status.
+     *
+     * <p>The reasons are a CLOSED SET of four (v295), and the tally counts them: a creator who has two
+     * spam reports and one harassment report should see that, and not only that there are three. The
+     * counts come from a GROUPED query over every report against the account's work — not from the desk's
+     * window, which is a window.
+     */
+    @Transactional(readOnly = true)
+    public ModerationDtos.TallyAnswer tallyOf(String ownerAccountId) {
+        String owner = requireOwner(ownerAccountId);
+        List<PublishedProject> owned =
+                publications.findByOwnerAccountIdOrderByPublishedAtDesc(owner, PageRequest.of(0, OWNED_PUBLICATIONS_WINDOW));
+        if (owned.isEmpty()) {
+            return new ModerationDtos.TallyAnswer(owner, 0L, 0L, Map.of(), Map.of());
+        }
+        List<String> ids = new ArrayList<>();
+        for (PublishedProject publication : owned) {
+            ids.add(publication.getProjectId());
+        }
+        Map<String, Long> byReason = new LinkedHashMap<>();
+        Map<String, Long> byStatus = new LinkedHashMap<>();
+        long total = 0L;
+        for (Object[] row : reports.countByTargetsGroupedByReasonAndStatus(ids)) {
+            String reason = String.valueOf(row[0]);
+            String status = String.valueOf(row[1]);
+            long count = ((Number) row[2]).longValue();
+            byReason.merge(reason, count, Long::sum);
+            byStatus.merge(status, count, Long::sum);
+            total += count;
+        }
+        long open = byStatus.getOrDefault(ReportDtos.STATUS_OPEN, 0L);
+        return new ModerationDtos.TallyAnswer(owner, total, open, byReason, byStatus);
     }
 
     /**

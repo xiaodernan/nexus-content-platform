@@ -1,6 +1,7 @@
 package dev.nexus.api.moderation;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * M7 v304 — the wire shapes for the OWNER'S DESK.
@@ -42,6 +43,24 @@ public final class ModerationDtos {
             String ownerAccountId,
             List<DeskEntry> reports,
             int limit) {
+    }
+
+    /**
+     * v312 — the TALLY: how many reports against this account's work, by reason and by status.
+     *
+     * <p>`total` counts EVERY report against the account's work, not the desk's window: a tally computed
+     * from the window would say "3 reports" when there are thirty, and the number that is wrong is the one
+     * a creator acts on.
+     *
+     * <p>`byReason` carries only the reasons that OCCUR — a reason with no reports does not appear, and a
+     * tally padded with zeroes is noise.
+     */
+    public record TallyAnswer(
+            String ownerAccountId,
+            long total,
+            long open,
+            Map<String, Long> byReason,
+            Map<String, Long> byStatus) {
     }
 
     /**

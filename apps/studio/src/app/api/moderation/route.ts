@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { acknowledgeOnService, readDesk } from '@/lib/moderationServer';
+import { acknowledgeOnService, readDesk, readTally } from '@/lib/moderationServer';
 
 /**
  * M7 v304 (ADR 0016 amendment 304): `/api/moderation` — this Studio's door onto the service's OWNER'S
@@ -32,8 +32,14 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
   const asked = Number(new URL(request.url).searchParams.get('limit') ?? '20');
   const limit = Number.isFinite(asked) && asked > 0 ? Math.trunc(asked) : 20;
-  const answer = await readDesk(owner.trim(), limit);
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
+  const [answer, tally] = await Promise.all([readDesk(owner.trim(), limit), readTally(owner.trim())]);
+  // The TALLY is part of the desk’s answer (v312): it counts every report against the work, where the rows
+  // are a window, and a panel that showed the rows without the count would let a reader mistake the window
+  // for the whole.
+  return NextResponse.json(
+    { ...answer, tally: tally.ok ? { total: tally.total, open: tally.open, byReason: tally.byReason, byStatus: tally.byStatus } : null },
+    { status: answer.ok ? 200 : 502 },
+  );
 }
 
 /**
