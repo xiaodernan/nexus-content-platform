@@ -3,6 +3,7 @@ package dev.nexus.api.social;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -39,12 +40,16 @@ class ReportServiceTest {
     @Mock
     private ReportRepository repository;
 
+    /** v311 — the TRAIL. A report is something that happened, so it is written down. */
+    @Mock
+    private dev.nexus.api.ops.AuditService audit;
+
     private ReportService service;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(AT, ZoneOffset.UTC);
-        service = new ReportService(repository, clock);
+        service = new ReportService(repository, clock, audit);
     }
 
     private static ReportClaim claim(String accountId) {
@@ -264,5 +269,53 @@ class ReportServiceTest {
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
         assertThat(window.getValue().getPageSize()).isEqualTo(ReportService.MAX_REPORT_LIMIT);
+    }
+
+    // ── v311: the REPORT verbs are written down ───────────────────────────────────────────────────
+
+    @Test
+    void filingAReportWritesItDown() {
+        when(repository.findByReporterAccountIdAndTargetProjectIdAndReason("acct-ada", "pub-1", "spam"))
+                .thenReturn(Optional.empty());
+        when(repository.save(any(ReportEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.report("pub-1", claim("acct-ada"), "spam", "the words");
+
+        // The trail says what happened, and it says it about the PUBLICATION it happened to.
+        verify(audit).record("report", "acct-ada", "ada", "unsigned-local", "pub-1");
+    }
+
+    @Test
+    void aREFUSEDReportWritesNothingDown() {
+        // A duplicate is an ATTEMPT, not a fact: a trail that recorded it would say a complaint happened
+        // that the service refused to accept.
+        when(repository.findByReporterAccountIdAndTargetProjectIdAndReason("acct-ada", "pub-1", "spam"))
+                .thenReturn(Optional.of(new ReportEntry(
+                        "rep-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", ReportDtos.STATUS_OPEN, AT)));
+
+        assertThatThrownBy(() -> service.report("pub-1", claim("acct-ada"), "spam", ""))
+                .isInstanceOf(InvalidReport.class);
+        verify(audit, never()).record(anyString(), any(), any(), any(), any());
+    }
+
+    @Test
+    void withdrawingAReportWritesTheWITHDRAWALDown() {
+        // A DIFFERENT fact from the filing: the reporter no longer stands by it. A trail that recorded only
+        // the filing would leave the complaint standing forever in the record.
+        when(repository.findByReportId("rep-1")).thenReturn(Optional.of(new ReportEntry(
+                "rep-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", ReportDtos.STATUS_OPEN, AT)));
+
+        assertThat(service.withdraw("rep-1", claim("acct-ada"))).isTrue();
+        verify(audit).record("withdraw-report", "acct-ada", "ada", "unsigned-local", "pub-1");
+    }
+
+    @Test
+    void withdrawingSomebodyElsesReportWritesNothingDown() {
+        when(repository.findByReportId("rep-1")).thenReturn(Optional.of(new ReportEntry(
+                "rep-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", ReportDtos.STATUS_OPEN, AT)));
+
+        assertThatThrownBy(() -> service.withdraw("rep-1", claim("acct-bob")))
+                .isInstanceOf(NotYourReport.class);
+        verify(audit, never()).record(anyString(), any(), any(), any(), any());
     }
 }

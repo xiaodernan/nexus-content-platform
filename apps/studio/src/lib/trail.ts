@@ -74,6 +74,17 @@ export function trailActionText(action: string): string {
       return 'commented';
     case 'uncomment':
       return 'removed the comment';
+    // v311 — the REPORT verbs (the service records them since v311). A report is the one social act that
+    // asks somebody else to do something, so the trail says both halves of it: that a complaint was filed,
+    // and that the reporter no longer stands by it.
+    case 'report':
+      return 'reported';
+    case 'withdraw-report':
+      return 'withdrew the report';
+    // v304 — the OWNER's answer to a report. It was recorded by the service from the start (v304); the
+    // panel had no word for it and showed the raw action, which is honest but reads like a machine.
+    case 'acknowledge':
+      return 'acknowledged the report';
     default:
       return action;
   }
@@ -165,6 +176,12 @@ export interface TrailSummary {
   commented: number;
   /** How many rows were comments removed by their author (v289). */
   uncommented: number;
+  /** How many rows are reports filed (v311). */
+  reported: number;
+  /** How many rows are reports the reporter withdrew (v311). */
+  withdrewReport: number;
+  /** How many rows are reports the owner acknowledged (v311). */
+  acknowledged: number;
   /** How many rows carry an action this build does not know. */
   other: number;
   /** The total: the buckets above, added up. */
@@ -178,6 +195,9 @@ export function trailSummaryOf(rows: readonly TrailRow[]): TrailSummary {
   let unliked = 0;
   let commented = 0;
   let uncommented = 0;
+  let reported = 0;
+  let withdrewReport = 0;
+  let acknowledged = 0;
   let other = 0;
   for (const row of rows) {
     if (row.action === 'publish') published += 1;
@@ -186,6 +206,11 @@ export function trailSummaryOf(rows: readonly TrailRow[]): TrailSummary {
     else if (row.action === 'unlike') unliked += 1;
     else if (row.action === 'comment') commented += 1;
     else if (row.action === 'uncomment') uncommented += 1;
+    // v311 — the REPORT verbs have their own buckets for the same reason the social ones do: a tally
+    // that called a complaint "other" would be hiding the very thing a reader of the trail is looking for.
+    else if (row.action === 'report') reported += 1;
+    else if (row.action === 'withdraw-report') withdrewReport += 1;
+    else if (row.action === 'acknowledge') acknowledged += 1;
     else other += 1;
   }
   return {
@@ -195,8 +220,21 @@ export function trailSummaryOf(rows: readonly TrailRow[]): TrailSummary {
     unliked,
     commented,
     uncommented,
+    reported,
+    withdrewReport,
+    acknowledged,
     other,
-    total: published + tookDown + liked + unliked + commented + uncommented + other,
+    total:
+        published
+            + tookDown
+            + liked
+            + unliked
+            + commented
+            + uncommented
+            + reported
+            + withdrewReport
+            + acknowledged
+            + other,
   };
 }
 
@@ -215,6 +253,10 @@ export function trailSummaryText(summary: TrailSummary): string {
   if (summary.unliked > 0) parts.push(`${summary.unliked} unliked`);
   if (summary.commented > 0) parts.push(`${summary.commented} commented`);
   if (summary.uncommented > 0) parts.push(`${summary.uncommented} uncommented`);
+  // v311 — the REPORT verbs, in the tally's own words.
+  if (summary.reported > 0) parts.push(`${summary.reported} reported`);
+  if (summary.withdrewReport > 0) parts.push(`${summary.withdrewReport} withdrew the report`);
+  if (summary.acknowledged > 0) parts.push(`${summary.acknowledged} acknowledged`);
   if (summary.other > 0) parts.push(`${summary.other} other`);
   return parts.length === 0 ? 'nothing yet' : parts.join(' · ');
 }

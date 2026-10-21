@@ -2217,6 +2217,49 @@ try {
     await creatorPage.close();
   }
 
+  // ── §25 v311: the trail records the REPORT verbs ───────────────────────────────────────────────
+  // A report is the one social act that asks somebody else to do something, and the trail is where a
+  // reader sees what HAPPENED. A complaint that leaves no entry is a complaint nobody can audit — and
+  // a withdrawal that leaves no entry would leave the complaint standing forever in the record.
+  {
+    const trailPage = await session.newPage('about:blank');
+    await trailPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(trailPage, 'the trail page to hydrate');
+    await trailPage.evaluate("document.querySelector('[data-toolbar-trail-toggle]').click()");
+
+    const reportEntry = await until(
+      async () => (await trailPage.evaluate("!!document.querySelector('[data-trail-action=\"report\"]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the report to reach the trail' },
+    );
+    check('the trail carries the report that was filed', reportEntry !== null, 'the entry is there');
+
+    const withdrawEntry = await until(
+      async () => (await trailPage.evaluate("!!document.querySelector('[data-trail-action=\"withdraw-report\"]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the withdrawal to reach the trail' },
+    );
+    check('and the withdrawal of it', withdrawEntry !== null, 'the entry is there');
+
+    const acknowledgeEntry = await until(
+      async () => (await trailPage.evaluate("!!document.querySelector('[data-trail-action=\"acknowledge\"]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the acknowledgement to reach the trail' },
+    );
+    check('and the owner’s acknowledgement of it (v304)', acknowledgeEntry !== null, 'the entry is there');
+
+    const trailText = await trailPage.evaluate("document.querySelector('[data-toolbar-trail]')?.textContent ?? ''");
+    check('and the panel says them in the trail’s own words', trailText.includes('reported') && trailText.includes('withdrew the report') && trailText.includes('acknowledged the report'), `the trail says: ${JSON.stringify(trailText.slice(0, 300))}`);
+
+    // And the SERVICE agrees, read independently of the browser.
+    const auditRead = await fetch(`${apiBase}/audit?limit=100`);
+    const auditBody = await auditRead.json();
+    const actions = (auditBody.entries ?? []).map((e) => e.action);
+    check(
+      'the SERVICE agrees — read back independently of the browser',
+      auditRead.status === 200 && actions.includes('report') && actions.includes('withdraw-report') && actions.includes('acknowledge'),
+      `actions: ${JSON.stringify(actions)}`,
+    );
+    await trailPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

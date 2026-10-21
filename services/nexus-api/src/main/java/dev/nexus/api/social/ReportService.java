@@ -1,5 +1,6 @@
 package dev.nexus.api.social;
 
+import dev.nexus.api.ops.AuditService;
 import dev.nexus.api.social.ReportDtos.ReportClaim;
 import java.time.Clock;
 import java.time.Instant;
@@ -60,10 +61,19 @@ public class ReportService {
 
     private final ReportRepository repository;
     private final Clock clock;
+    /**
+     * v311 — the TRAIL.
+     *
+     * <p>A report is something that HAPPENED to a publication — it is filed, and it can be withdrawn — so
+     * it is written down. It is also the one social act that asks somebody else to do something, which is
+     * exactly why a reader of the trail should be able to see that it was filed.
+     */
+    private final AuditService audit;
 
-    public ReportService(ReportRepository repository, Clock clock) {
+    public ReportService(ReportRepository repository, Clock clock, AuditService audit) {
         this.repository = repository;
         this.clock = clock;
+        this.audit = audit;
     }
 
     /**
@@ -94,7 +104,17 @@ public class ReportService {
                 words,
                 ReportDtos.STATUS_OPEN,
                 when);
-        return repository.save(row);
+        ReportEntry saved = repository.save(row);
+        // v311 — the trail, INSIDE this transaction: a rolled-back report leaves no entry claiming a
+        // report happened. And only for a report that was actually filed — a refused duplicate is an
+        // attempt, not a fact.
+        audit.record(
+                "report",
+                reporter,
+                claim == null ? null : claim.handle(),
+                claim == null ? null : claim.assurance(),
+                target);
+        return saved;
     }
 
     /**
@@ -125,6 +145,15 @@ public class ReportService {
         // The status moves FORWARD and the row stays: a report that was withdrawn is a fact that happened.
         row.markRejected();
         repository.save(row);
+        // v311 — and the withdrawal is written down too. It is a DIFFERENT fact from the filing (the
+        // reporter no longer stands by it), and a trail that recorded only the filing would leave the
+        // complaint standing forever in the record.
+        audit.record(
+                "withdraw-report",
+                reporter,
+                claim == null ? null : claim.handle(),
+                claim == null ? null : claim.assurance(),
+                row.getTargetProjectId());
         return true;
     }
 

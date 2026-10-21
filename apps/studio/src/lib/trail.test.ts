@@ -108,6 +108,10 @@ describe('trail — the tally and the filter (M9 v281)', () => {
       unliked: 0,
       commented: 0,
       uncommented: 0,
+      // v311 — the report verbs have their own buckets too, and they are zero when no report was filed.
+      reported: 0,
+      withdrewReport: 0,
+      acknowledged: 0,
       other: 0,
       total: 3,
     });
@@ -185,4 +189,51 @@ describe('trail — the tally and the filter (M9 v281)', () => {
   it('a filter that matches nothing is an empty list — never the whole trail', () => {
     expect(filterTrailRows(rows, 'follow')).toEqual([]);
   });
+
+describe('trail — the REPORT verbs (M7 v311)', () => {
+  it('each report verb has its own word, and the un-verb is not folded into the verb', () => {
+    expect(trailActionText('report')).toBe('reported');
+    expect(trailActionText('withdraw-report')).toBe('withdrew the report');
+    expect(trailActionText('acknowledge')).toBe('acknowledged the report');
+    // "reported" and "withdrew the report" are DIFFERENT facts: the complaint was filed, and the reporter
+    // no longer stands by it. A trail that merged them would lose one of them.
+    expect(trailActionText('report')).not.toBe(trailActionText('withdraw-report'));
+  });
+
+  it('an action this build does not know is still passed through', () => {
+    expect(trailActionText('follow')).toBe('follow');
+    expect(trailActionText('tip')).toBe('tip');
+  });
+});
+
+describe('trail — the REPORT verbs in the tally (M7 v311)', () => {
+  it('the report verbs have their OWN buckets, not the other one', () => {
+    // A complaint is the one social act that asks somebody else to do something. A tally that called it
+    // "other" would be hiding the very thing a reader of the trail is looking for.
+    const reports = toTrailRows([
+      entry({ id: '1', action: 'report' }),
+      entry({ id: '2', action: 'report' }),
+      entry({ id: '3', action: 'withdraw-report' }),
+      entry({ id: '4', action: 'acknowledge' }),
+    ]);
+    const summary = trailSummaryOf(reports);
+    expect(summary.reported).toBe(2);
+    expect(summary.withdrewReport).toBe(1);
+    expect(summary.acknowledged).toBe(1);
+    expect(summary.other).toBe(0);
+    expect(summary.total).toBe(4);
+  });
+
+  it('and the tally says them in its own words', () => {
+    const reports = toTrailRows([
+      entry({ id: '1', action: 'report' }),
+      entry({ id: '2', action: 'withdraw-report' }),
+      entry({ id: '3', action: 'acknowledge' }),
+    ]);
+    const text = trailSummaryText(trailSummaryOf(reports));
+    expect(text).toContain('1 reported');
+    expect(text).toContain('1 withdrew the report');
+    expect(text).toContain('1 acknowledged');
+  });
+});
 });

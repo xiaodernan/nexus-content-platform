@@ -32,11 +32,11 @@
 
 ### 下一批（按优先级）
 
-1. **v311 — trail 认识社交动词**：follow/report/tip/subscribe/acknowledge 都还没进审计轨迹（现在只有 like/unlike/comment/uncomment）。
-2. **v312 — 举报按理由的计数**：理由是四选一的闭集，owner 能按理由数（开放 vs 已处理）。
-3. **v313 — 订阅到期后能不能再来一次**：数据库的“一个账号一个 plan 一条”约束让到期=死路（续订要改 schema，不是改一行代码）。
-4. **v314 — 创作者能下架自己的 plan**（服务端有 offer，还没有下架的门）。
-5. **v315 — Stage B/C 服务端接线**（仍被 ADR 0018 阻塞：无服务端账号/会话/令牌不做）。
+1. **v312 — 举报按理由的计数**：理由是四选一的闭集，owner 能按理由数（开放 vs 已处理）。
+2. **v313 — 订阅到期后能不能再来一次**：数据库的“一个账号一个 plan 一条”约束让到期=死路（续订要改 schema，不是改一行代码）。
+3. **v314 — 创作者能下架自己的 plan**（服务端有 offer，还没有下架的门）。
+4. **v315 — trail 的 target 要不要带“种类”**：follow/tip 指向账号、subscribe 指向 plan，都不是 publication（要改 audit 的表）。
+5. **v316 — Stage B/C 服务端接线**（仍被 ADR 0018 阻塞：无服务端账号/会话/令牌不做）。
 
 ### M9 审计轨迹（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）
 
@@ -75,6 +75,7 @@
 | v308 | **订阅的"站着没有"是算出来的**：行里的 active 只说明"没被取消"（过去的事实），到期是"现在"的判断——服务端算 status（active/expired/cancelled），总额只算还站着的 | social 包 **104/104**；studio **1125/1125**；E2E §18 **167/167** |
 | v309 | **经济面板把订阅和 plan 列出来**：面板原来一直写着"subscriptions are not built yet"（v274 写的时候是真的，v301 造完就变成假话了）；`/api/economy` 从 503 占位变成真的门 | studio **1126/1126**；E2E §23 **172/172** |
 | v310 | **创作者收到的那一半**：服务端 v300 就有的 `subscriptionsReceived` 终于有了门（`?creator=`），面板多出 "Received" 那一段 | social 包 **104/104**；studio **1126/1126**；E2E §24 **175/175** |
+| v311 | **trail 记录举报的两个动作**：filing 和 withdrawal 都写进审计轨迹（只有真正成立的举报才写；被拒的重复不算"发生过的事"）；面板学会说 "reported" / "withdrew the report" / "acknowledged the report" | social 包 **108/108**；studio **1130/1130**；E2E §25 **180/180** |
 | **v273** | **客户端 `ops.ts` 与线格式对齐**：`actorId`/`assurance` 变可空；`AuditAction` 对未知动词开放；匿名条目单独成桶（`__anonymous__`）；**新增契约 proof**（读 Java record + 用 tsc 编译探针） | ✅ 900/900 · proof exit 0 · 3 处 mutation 分别被 §3/§5 抓住 |
 
 ## 本次会话已落地的增量
