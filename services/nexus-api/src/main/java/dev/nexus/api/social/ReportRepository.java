@@ -32,6 +32,18 @@ public interface ReportRepository extends JpaRepository<ReportEntry, String> {
     List<ReportEntry> findByTargetProjectIdInOrderByCreatedAtDesc(
             Collection<String> targetProjectIds, Pageable pageable);
 
+    /**
+     * v326 — the SAME finder, narrowed to one reason.
+     *
+     * <p>The narrowing happens IN the query and not after it: the desk's rows are a WINDOW (the most
+     * recent N), and a window taken before the narrowing would answer a different question than the
+     * one asked — "the most recent hundred reports, of which these are the spam ones" rather than "the
+     * most recent hundred spam reports". The cap has to reach the database either way, and the two
+     * questions must not be confused.
+     */
+    List<ReportEntry> findByTargetProjectIdInAndReasonOrderByCreatedAtDesc(
+            Collection<String> targetProjectIds, String reason, Pageable pageable);
+
     /** The reports one account filed, newest first, capped by the caller's `Pageable`. */
     List<ReportEntry> findByReporterAccountIdOrderByCreatedAtDesc(String reporterAccountId, Pageable pageable);
 

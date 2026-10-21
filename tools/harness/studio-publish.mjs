@@ -2941,6 +2941,56 @@ try {
     await filedLinkPage.close();
   }
 
+  // ── §40 v326: the desk’s filter is the SERVICE’s ──────────────────────────────────────────────────
+  // The narrowing that used to happen in the browser now happens in the service’s query: the panel asks
+  // for a reason and is answered with that reason’s rows, so a desk with a thousand reports is never read
+  // whole to show the spam ones. And the TALLY is not narrowed — it is what says what is hidden.
+  {
+    const serviceFilterPage = await session.newPage('about:blank');
+    await serviceFilterPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(serviceFilterPage, 'the service filter page to hydrate');
+    await signInAs(serviceFilterPage, 'ada', 'the owner with reports against their work');
+    await serviceFilterPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
+
+    const serviceFilterThere = await until(
+      async () => (await serviceFilterPage.evaluate("!!document.querySelector('[data-desk-filter=\"spam\"]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the reason filter to show' },
+    );
+    check('the desk offers the reason filter', serviceFilterThere !== null, 'the button is there');
+
+    await serviceFilterPage.evaluate("document.querySelector('[data-desk-filter=\"spam\"]').click()");
+    const serviceNarrowed = await until(
+      async () => {
+        const reasons = await serviceFilterPage.evaluate(
+          "Array.from(document.querySelectorAll('[data-desk-report]')).map((r) => r.getAttribute('data-desk-reason'))",
+        );
+        return reasons.length > 0 && reasons.every((r) => r === 'spam') ? reasons.length : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the desk to narrow to the spam ones' },
+    );
+    check('and the panel shows ONLY that reason', serviceNarrowed !== null, `rows: ${JSON.stringify(serviceNarrowed)}`);
+
+    // And the SERVICE agrees, read independently of the browser: the answer itself is narrowed.
+    const serviceOwnerRaw = await serviceFilterPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const serviceOwner = JSON.parse(String(serviceOwnerRaw)).id;
+    const serviceDeskRead = await fetch(`${apiBase}/moderation/reports?owner=${encodeURIComponent(serviceOwner)}&reason=spam`);
+    const serviceDeskBody = await serviceDeskRead.json();
+    check(
+      'the SERVICE agrees — its own answer is narrowed to the reason',
+      serviceDeskRead.status === 200 && (serviceDeskBody.reports ?? []).length > 0 && (serviceDeskBody.reports ?? []).every((r) => r.reason === 'spam'),
+      `desk: ${JSON.stringify(serviceDeskBody.reports)}`,
+    );
+
+    // And the TALLY still counts the whole, so the reader sees what the filter is hiding.
+    const serviceTally = await serviceFilterPage.evaluate("document.querySelector('[data-desk-tally]')?.textContent ?? ''");
+    check(
+      'and the TALLY still counts the whole answer',
+      serviceTally.includes('harassment') && serviceTally.includes('spam'),
+      `the tally says: ${JSON.stringify(serviceTally)}`,
+    );
+    await serviceFilterPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

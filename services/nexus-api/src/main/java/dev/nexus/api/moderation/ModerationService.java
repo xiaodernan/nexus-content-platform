@@ -86,9 +86,10 @@ public class ModerationService {
      * which id is which) and with the reporter's words.
      */
     @Transactional(readOnly = true)
-    public List<ModerationDtos.DeskEntry> deskOf(String ownerAccountId, int limit) {
+    public List<ModerationDtos.DeskEntry> deskOf(String ownerAccountId, int limit, String reason) {
         String owner = requireOwner(ownerAccountId);
         int asked = limit <= 0 ? DEFAULT_DESK_LIMIT : Math.min(limit, MAX_DESK_LIMIT);
+        String wanted = requireReason(reason);
         List<PublishedProject> owned =
                 publications.findByOwnerAccountIdOrderByPublishedAtDesc(owner, PageRequest.of(0, OWNED_PUBLICATIONS_WINDOW));
         if (owned.isEmpty()) {
@@ -100,7 +101,10 @@ public class ModerationService {
             ids.add(publication.getProjectId());
             titles.put(publication.getProjectId(), publication.getTitle());
         }
-        return reports.findByTargetProjectIdInOrderByCreatedAtDesc(ids, PageRequest.of(0, asked)).stream()
+        List<ReportEntry> window = wanted == null
+                ? reports.findByTargetProjectIdInOrderByCreatedAtDesc(ids, PageRequest.of(0, asked))
+                : reports.findByTargetProjectIdInAndReasonOrderByCreatedAtDesc(ids, wanted, PageRequest.of(0, asked));
+        return window.stream()
                 .map(row -> new ModerationDtos.DeskEntry(
                         row.getReportId(),
                         row.getTargetProjectId(),
@@ -110,6 +114,31 @@ public class ModerationService {
                         row.getStatus(),
                         row.getCreatedAt().toEpochMilli()))
                 .toList();
+    }
+
+    /**
+     * v326 — the REASON the desk is narrowed to, or null for the whole desk.
+     *
+     * <p>The reasons are a CLOSED SET of four (the social package's own set — v295), and a reason this
+     * build does not know is REFUSED BY NAME rather than ignored: a caller that asked for a reason this
+     * service does not have, and was answered with the whole desk, would read the answer as "there was
+     * nothing of that reason" — which is a different fact, and the one that matters.
+     */
+    private static String requireReason(String reason) {
+        if (reason == null || reason.isBlank()) {
+            return null;
+        }
+        String trimmed = reason.trim();
+        switch (trimmed) {
+            case ReportDtos.REASON_SPAM:
+            case ReportDtos.REASON_HARASSMENT:
+            case ReportDtos.REASON_ILLEGAL:
+            case ReportDtos.REASON_OTHER:
+                return trimmed;
+            default:
+                throw new InvalidModeration(
+                        "a desk can be narrowed to one of spam, harassment, illegal, other — not \"" + trimmed + "\"");
+        }
     }
 
     /**

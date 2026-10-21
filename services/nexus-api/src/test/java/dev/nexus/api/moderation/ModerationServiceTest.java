@@ -106,7 +106,7 @@ class ModerationServiceTest {
         when(reports.findByTargetProjectIdInOrderByCreatedAtDesc(eq(List.of("pub-1")), any(Pageable.class)))
                 .thenReturn(List.of(report("rep-1", "pub-1", ReportDtos.STATUS_OPEN)));
 
-        List<DeskEntry> desk = service.deskOf("acct-ada", 20);
+        List<DeskEntry> desk = service.deskOf("acct-ada", 20, null);
 
         assertThat(desk).hasSize(1);
         assertThat(desk.get(0).reportId()).isEqualTo("rep-1");
@@ -133,16 +133,61 @@ class ModerationServiceTest {
     void anAccountWithNoPublicationsHasAnEmptyDesk() {
         when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
                 .thenReturn(List.of());
-        assertThat(service.deskOf("acct-ada", 20)).isEmpty();
+        assertThat(service.deskOf("acct-ada", 20, null)).isEmpty();
         verify(reports, never()).findByTargetProjectIdInOrderByCreatedAtDesc(any(), any());
+    }
+
+    // ── v326: the desk can be narrowed to ONE reason, and the narrowing is the service's ───────────
+
+    @Test
+    void theDeskCanBeNarrowedToOneReason() {
+        // The publication is built FIRST, outside the stub: a stub built inside another stub's
+        // argument is unfinished stubbing, and Mockito is right to refuse it (the house's own rule).
+        PublishedProject publication = owned("pub-1", "My First World");
+        when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of(publication));
+        when(reports.findByTargetProjectIdInAndReasonOrderByCreatedAtDesc(
+                any(), eq("spam"), any(Pageable.class)))
+                .thenReturn(List.of(report("rep-1", "pub-1", "open")));
+
+        List<DeskEntry> rows = service.deskOf("acct-ada", 20, "spam");
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).reason()).isEqualTo("spam");
+        verify(reports).findByTargetProjectIdInAndReasonOrderByCreatedAtDesc(any(), eq("spam"), any(Pageable.class));
+    }
+
+    @Test
+    void aReasonThisBuildDoesNotKnowIsREFUSEDByName() {
+        // A caller that asked for a reason this service does not have, and was answered with the whole
+        // desk, would read the answer as "there was nothing of that reason" — a different fact.
+        assertThatThrownBy(() -> service.deskOf("acct-ada", 20, "rude"))
+                .isInstanceOf(InvalidModeration.class)
+                .hasMessageContaining("one of spam, harassment, illegal, other");
+    }
+
+    @Test
+    void aBlankReasonIsNOReason() {
+        // The publication is built FIRST, outside the stub: a stub built inside another stub's
+        // argument is unfinished stubbing, and Mockito is right to refuse it (the house's own rule).
+        PublishedProject publication = owned("pub-1", "My First World");
+        when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of(publication));
+        when(reports.findByTargetProjectIdInOrderByCreatedAtDesc(any(), any(Pageable.class)))
+                .thenReturn(List.of(report("rep-1", "pub-1", "open")));
+
+        List<DeskEntry> rows = service.deskOf("acct-ada", 20, "  ");
+
+        assertThat(rows).hasSize(1);
+        verify(reports).findByTargetProjectIdInOrderByCreatedAtDesc(any(), any(Pageable.class));
     }
 
     @Test
     void theDeskRefusesACallerThatNamesNoAccount() {
-        assertThatThrownBy(() -> service.deskOf(null, 20))
+        assertThatThrownBy(() -> service.deskOf(null, 20, null))
                 .isInstanceOf(InvalidModeration.class)
                 .hasMessageContaining("belongs to an account");
-        assertThatThrownBy(() -> service.deskOf("   ", 20))
+        assertThatThrownBy(() -> service.deskOf("   ", 20, null))
                 .isInstanceOf(InvalidModeration.class)
                 .hasMessageContaining("belongs to an account");
     }
@@ -154,7 +199,7 @@ class ModerationServiceTest {
                 .thenReturn(List.of(publication));
         when(reports.findByTargetProjectIdInOrderByCreatedAtDesc(any(), any(Pageable.class))).thenReturn(List.of());
 
-        service.deskOf("acct-ada", 10_000);
+        service.deskOf("acct-ada", 10_000, null);
 
         org.mockito.ArgumentCaptor<Pageable> window = org.mockito.ArgumentCaptor.forClass(Pageable.class);
         verify(reports).findByTargetProjectIdInOrderByCreatedAtDesc(any(), window.capture());

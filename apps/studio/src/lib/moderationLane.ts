@@ -48,10 +48,13 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 /** READ the desk: the reports against the publications this account owns. */
 export async function readDesk(
   ownerAccountId: string,
+  reason: string | null = null,
   fetchImpl: FetchLike = fetch,
 ): Promise<DeskLaneAnswer> {
   try {
-    const res = await fetchImpl(`/api/moderation?owner=${encodeURIComponent(ownerAccountId)}`, {
+    // v326 — the narrowing is the service’s, so the reason travels with the question.
+    const narrowed = reason && reason.trim() !== '' ? `&reason=${encodeURIComponent(reason.trim())}` : '';
+    const res = await fetchImpl(`/api/moderation?owner=${encodeURIComponent(ownerAccountId)}${narrowed}`, {
       headers: { accept: 'application/json' },
     });
     const parsed: unknown = await res.json().catch(() => null);

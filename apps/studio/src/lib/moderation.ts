@@ -93,21 +93,6 @@ export function toDeskRows(entries: readonly unknown[]): DeskRow[] {
 }
 
 /**
- * The desk's rows for ONE reason — or all of them.
- *
- * <p>The filter asks in the SERVICE's own language (the reason's own word), the same rule the trail's
- * filter follows: a filter that matched on the display word would break the moment the display word
- * changed.
- *
- * <p>The TALLY is NOT filtered — it counts the whole answer, so a reader can always see what the filter
- * is hiding (v281's rule, the same one the trail's tally keeps).
- */
-export function filterDeskRows(rows: readonly DeskRow[], reason: string | null): DeskRow[] {
-  if (reason === null || reason === '') return [...rows];
-  return rows.filter((row) => row.reason === reason);
-}
-
-/**
  * The desk's tally: how many reports there are, and how many are still waiting.
  *
  * <p>The tally is over the rows the answer carried, so it is a count of what the owner can SEE — not a

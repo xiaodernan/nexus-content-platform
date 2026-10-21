@@ -35,13 +35,21 @@ public class ModerationController {
         this.service = service;
     }
 
-    /** The desk: the reports against the publications this account owns, newest first. */
+    /**
+     * The desk: the reports against the publications this account owns, newest first.
+     *
+     * <p>v326 — the desk can be narrowed to ONE reason, and the narrowing happens in the service
+     * (in the query), so a desk with a thousand reports does not have to be read whole to show the
+     * spam ones. The TALLY is a door of its own and is NOT narrowed: it counts every report, which is
+     * what lets a reader see what the narrowing is hiding.
+     */
     @GetMapping("/reports")
     public ResponseEntity<DeskAnswer> desk(
             @RequestParam(name = "owner") String ownerAccountId,
-            @RequestParam(name = "limit", required = false) Integer limit) {
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "reason", required = false) String reason) {
         int asked = limit == null ? ModerationService.DEFAULT_DESK_LIMIT : limit;
-        List<DeskEntry> rows = service.deskOf(ownerAccountId, asked);
+        List<DeskEntry> rows = service.deskOf(ownerAccountId, asked, reason);
         return ResponseEntity.ok(new DeskAnswer(
                 ownerAccountId == null ? null : ownerAccountId.trim(),
                 rows,

@@ -55,12 +55,16 @@ export type FetchLike = (
 export async function readDesk(
   ownerAccountId: string,
   limit: number,
+  reason: string | null = null,
   fetchImpl: FetchLike = fetch as FetchLike,
 ): Promise<DeskAnswer> {
   const apiBase = nexusApiBase();
   try {
+    // v326 — the narrowing is the SERVICE’s: the reason travels with the question, so a desk with a
+    // thousand reports does not have to be read whole to show the spam ones.
+    const narrowed = reason && reason.trim() !== '' ? `&reason=${encodeURIComponent(reason.trim())}` : '';
     const res = await fetchImpl(
-      `${apiBase}/moderation/reports?owner=${encodeURIComponent(ownerAccountId)}&limit=${encodeURIComponent(String(limit))}`,
+      `${apiBase}/moderation/reports?owner=${encodeURIComponent(ownerAccountId)}&limit=${encodeURIComponent(String(limit))}${narrowed}`,
       { headers: { accept: 'application/json' } },
     );
     const parsed: unknown = await res.json().catch(() => null);

@@ -32,7 +32,13 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
   const asked = Number(new URL(request.url).searchParams.get('limit') ?? '20');
   const limit = Number.isFinite(asked) && asked > 0 ? Math.trunc(asked) : 20;
-  const [answer, tally] = await Promise.all([readDesk(owner.trim(), limit), readTally(owner.trim())]);
+  // v326 — the REASON the desk is narrowed to, if any. It travels to the service, which does the
+  // narrowing in its query — the browser never receives the rows it did not ask for.
+  const reason = new URL(request.url).searchParams.get('reason');
+  const [answer, tally] = await Promise.all([
+    readDesk(owner.trim(), limit, reason),
+    readTally(owner.trim()),
+  ]);
   // The TALLY is part of the desk’s answer (v312): it counts every report against the work, where the rows
   // are a window, and a panel that showed the rows without the count would let a reader mistake the window
   // for the whole.

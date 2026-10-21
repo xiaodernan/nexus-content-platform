@@ -8,7 +8,7 @@ import { readMyTips } from '@/lib/tipLane';
 import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
 import { cancelSubscription, retirePlan } from '@/lib/planLane';
 import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
-import { filterDeskRows, tallyText } from '@/lib/moderation';
+import { tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { readMyFollowing, unfollowAccount, type FollowingLaneAnswer } from '@/lib/followLane';
 import { priceText } from '@/lib/economy';
@@ -275,8 +275,15 @@ export default function Toolbar() {
    */
   const [deskReason, setDeskReason] = useState<string | null>(null);
 
-  /** The reasons that OCCUR on this desk — the ones the filter offers. */
-  const deskReasons = Array.from(new Set((desk?.reports ?? []).map((row) => row.reason)));
+  /**
+   * v326 — the reasons the filter offers: the TALLY’s own keys.
+   *
+   * <p>The tally counts EVERY report against the work, so its keys are the reasons that OCCUR — even
+   * when the rows on screen are narrowed to one of them. Reading them off the rows would have been the
+   * obvious thing and the wrong one: a narrowed desk carries ONE reason, and the filter would then offer
+   * only the reason already chosen.
+   */
+  const deskReasons = Object.keys(desk?.tally?.byReason ?? {});
 
   const refreshFollowing = async () => {
     const account = session.current();
@@ -311,7 +318,7 @@ export default function Toolbar() {
     setFiled(await readMyReports(account.id));
   };
 
-  const refreshDesk = async () => {
+  const refreshDesk = async (reason: string | null = deskReason) => {
     const account = session.current();
     if (!account) {
       // A failed read is NOT an empty desk: the panel says why it could not read, rather than showing
@@ -319,7 +326,10 @@ export default function Toolbar() {
       setDesk({ ok: false, reports: [], open: 0, reason: 'the desk belongs to an account, and this device has none' });
       return;
     }
-    setDesk(await readDesk(account.id));
+    // v326 — the narrowing is the SERVICE’s: the panel asks for the reason it is showing, and the
+    // service answers with that reason’s rows. The tally is a separate read and is NOT narrowed — it is
+    // what lets a reader see what the filter is hiding.
+    setDesk(await readDesk(account.id, reason));
   };
 
   const onToggleDesk = async () => {
@@ -1116,7 +1126,10 @@ export default function Toolbar() {
                   <button
                     className={`btn ${deskReason === null ? 'tool-active' : ''}`}
                     data-desk-filter="all"
-                    onClick={() => setDeskReason(null)}
+                    onClick={() => {
+                      setDeskReason(null);
+                      void refreshDesk(null);
+                    }}
                     title="every reason"
                   >
                     All
@@ -1126,7 +1139,14 @@ export default function Toolbar() {
                       key={reason}
                       className={`btn ${deskReason === reason ? 'tool-active' : ''}`}
                       data-desk-filter={reason}
-                      onClick={() => setDeskReason(reason)}
+                      onClick={() => {
+                        const next = deskReason === reason ? null : reason;
+                        setDeskReason(next);
+                        // v326 — and the narrowing happens in the SERVICE: the panel asks again, and the
+                        // answer it gets back is the reason’s rows. The tally is not narrowed, so the
+                        // reader still sees the whole.
+                        void refreshDesk(next);
+                      }}
                       title={`only the ${reason} ones`}
                     >
                       {reason}
@@ -1137,17 +1157,18 @@ export default function Toolbar() {
               {/* v318 — a filter that matches nothing says so. An empty list under a full tally would
                   read as "the rows are still loading" — and a reader who asked for one reason and
                   saw nothing needs to be told that the desk HAS reports, just not of that one. */}
-              {filterDeskRows(desk.reports, deskReason).length === 0 && (
+              {desk.reports.length === 0 && deskReason !== null && (
                 <div data-desk-empty style={{ color: 'var(--nexus-muted)' }}>
                   no reports with this reason
                 </div>
               )}
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                {filterDeskRows(desk.reports, deskReason).map((report) => (
+                {desk.reports.map((report) => (
                   <li
                     key={report.reportId}
                     data-desk-report={report.reportId}
                     data-desk-status={report.status}
+                    data-desk-reason={report.reason}
                     style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '4px 0', borderTop: '1px solid var(--nexus-border, #262b34)' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
