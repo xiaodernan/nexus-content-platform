@@ -611,6 +611,7 @@ export function fleshedOutCount(document: GameDocument): number {
 export * from "./play";
 export * from "./sim";
 export * from "./playtest";
+export * from "./playtest-by-kind";
 export * from "./story";
 export * from "./rpg";
 export * from "./combat";

@@ -13,10 +13,13 @@ import {
   compileRpg,
   designLevel,
   generateGameCode,
+  playtestByKind,
   playtestRpg,
   playtestSeedNote,
   tuneCombat,
   type GameDocument,
+  type PlaytestReport,
+  type RpgPlaytestReport,
 } from '@nexus/game-model';
 import { GAME_DRAFT_NOT_LANDED_NOTE, gameDraft } from '@/lib/agent-game-draft';
 import {
@@ -447,12 +450,15 @@ const levelStep: Runner = async (ctx) => {
  * 种子用的是默认值（`PLAYTEST_DEFAULT_SEED`）：这一格要的是可比，不是抽样花样，
  * 所以界面上要换种子的事仍留在试玩页那一格。
  */
-const playtestStep: Runner = async (ctx) => {
-  const source = ctx.upstream.find((step) => step.id === 'level')?.draft;
-  if (!source) {
-    throw new Error('playtest 这一步没拿到上游草稿（level 那一步没留下 draft）：没有可试玩的布局，这一格不另编一份再跑');
-  }
-  const report = playtestRpg(compileRpg(source));
+/**
+ * RPG 那一条的结论。
+ *
+ * **与 2026-10-21 之前逐字相同**——红线是"今天的行为一个字都不许变"（集成用例逐字段对：
+ * `winnableBy / diedFrom / maxLevel / seed / findings / limits` 与 notes 里那句 `rpgStep`）。
+ * 单独写成函数、单独标注返回类型不是为了好看：两条路各返回一份 `StepOutcome`，
+ * `counts` 的形状才不会因为"联合类型"被并成 `maxLevel?: undefined`（那一格对 topdown 还不存在）。
+ */
+function rpgPlaytestOutcome(source: GameDocument, report: RpgPlaytestReport): StepOutcome {
   const unfinished = report.runs.filter((run) => run.status === 'playing').length;
   return {
     summary:
@@ -482,6 +488,62 @@ const playtestStep: Runner = async (ctx) => {
       '想换一次抽样去看另一种走法，去「游戏」面板那一格的试玩报告：那里种子是入参，这一格的种子固定用默认值。',
     ],
   };
+}
+
+/**
+ * topdown 那五种（2D / 2.5D / 3D / 探索 / 解谜）的结论：按它们自己的管线跑，读数是那一条管线的读数。
+ *
+ * **没有"最高等级"那一格**：这一型没有等级这件事，塞一个 0 会被读成"最高 0 级"（§159）。
+ */
+function topdownPlaytestOutcome(
+  source: GameDocument,
+  report: PlaytestReport,
+  pipeline: string,
+  engine: string,
+): StepOutcome {
+  const unfinished = report.runs.filter((run) => run.status === 'playing').length;
+  return {
+    summary:
+      `四种固定走法跑完（定种子 ${report.seed}）：${report.winnableBy}/${report.runs.length} 种通关、` +
+      `${report.diedFrom} 种中途倒下、${unfinished} 种跑到时间上限`,
+    counts: {
+      entities: source.entities.length,
+      policies: report.runs.length,
+      won: report.winnableBy,
+      lost: report.diedFrom,
+      unfinished,
+      seed: report.seed,
+      findings: report.findings.length,
+      limits: report.limits.length,
+    },
+    notes: [
+      '这一步不改设计、也不产草稿：它跑的是上面那一步摆过位置的那一份，也就是点「接受」之后真会进项目的那一份。',
+      `这份设计标的是「${source.kind}」，走的是 ${pipeline} 管线（推进用 ${engine}）——` +
+        '不是拿 RPG 的判据去试它（2026-10-21 之前这一格无条件跑 RPG，读数不是这份设计那条管线的读数）。',
+      `四种走法（定种子 ${report.seed}）：${report.runs
+        .map((run) => `${run.label} ${run.seconds} 秒→${run.status === 'won' ? '通关' : run.status === 'lost' ? '倒下' : '没结束'}`)
+        .join('、')}`,
+      ...report.findings,
+      ...report.limits,
+      playtestSeedNote(report.seed),
+    ],
+  };
+}
+
+const playtestStep: Runner = async (ctx) => {
+  const source = ctx.upstream.find((step) => step.id === 'level')?.draft;
+  if (!source) {
+    throw new Error('playtest 这一步没拿到上游草稿（level 那一步没留下 draft）：没有可试玩的布局，这一格不另编一份再跑');
+  }
+  // **按草稿标的那一型派管线**（2026-10-21）：这一格原来无条件跑 `playtestRpg(compileRpg(source))`
+  // ⇒ 链上一份 2D 的草稿会被拿 **RPG 的判据**去试，报出来的读数不是这份设计那条管线的读数（§159）。
+  // **RPG 那一条刻意与原来逐字相同**（红线：今天的行为一个字都不许变 ⇒ 集成用例逐字段对）。
+  if (source.kind === 'rpg-prototype') {
+    return rpgPlaytestOutcome(source, playtestRpg(compileRpg(source)));
+  }
+  // 别的类型（topdown 那五种）：按它们自己的管线跑，读数是那一条管线的读数
+  const { report, pipeline, engine } = playtestByKind(source);
+  return topdownPlaytestOutcome(source, report, pipeline, engine);
 };
 
 /**

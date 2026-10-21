@@ -5,6 +5,7 @@ import {
   artifactChainSentence,
   codeKindReadings,
   combatGoals,
+  compileGame,
   compileRpg,
   CODEGEN_LIMITS,
   GAME_KINDS,
@@ -12,6 +13,7 @@ import {
   generateGameCode,
   levelGoals,
   PLAYTEST_DEFAULT_SEED,
+  playtest,
   playtestRpg,
   POSITION_STAT_KEYS,
   type GameDocument,
@@ -767,6 +769,47 @@ describe('§112 多步编排的执行方', () => {
     expect(shifted.artifactChain).toBe('story');
     expect(shifted.kindNote).toBeNull();
     expect(await countGames(projectId)).toBe(0);
+  });
+
+  it('链上那份标的是 2D：试玩格跑的是 topdown 那条管线的读数（不是拿 RPG 的判据去试它）', async () => {
+    /**
+     * 2026-10-21 之前这一格无条件跑 `playtestRpg(compileRpg(source))` ⇒ 链上一份 2D 的设计
+     * 会被拿 **RPG 的判据**去试，报出来的读数不是这份设计那条管线的读数（§159）。
+     *
+     * 三条红线：
+     * ① 读数与直接调 `playtest(compileGame(...))` 逐项相等（这一格不许自己另算一套）；
+     * ② **没有"最高等级"那一格**——这一型没有等级这件事，塞一个 0 会被读成"最高 0 级"；
+     * ③ notes 里**不许**再出现 `rpgStep`（那三个字就说明它跑的是 RPG 的推进），
+     *    并且**要**说出它跑的是 topdown 那条管线。
+     *
+     * 非空洞：旧实现（无条件 RPG）在 ② 与 ③ 上都会红——它那一格一定带 `maxLevel`、一定念 `rpgStep`。
+     */
+    const projectId = await newProject('编排第四格按类型派');
+    const flat = { ...gameDraft({ goal: '为这一格造一份 2D 设计', at: '2026-01-01T00:00:00.000Z', seed: 'flat-playtest' }), kind: '2d' } as GameDocument;
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '这一份标的就是 2D',
+      runners: { level: async () => ({ summary: '探针：交一份 2D 草稿', counts: { entities: flat.entities.length }, notes: [], draft: flat }) },
+    });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    const step = result.steps.find((item) => item.id === 'playtest')!;
+    expect(step.status).toBe('done');
+
+    const direct = playtest(compileGame(flat));
+    expect(step.counts.policies).toBe(direct.runs.length);
+    expect(step.counts.won).toBe(direct.winnableBy);
+    expect(step.counts.lost).toBe(direct.diedFrom);
+    expect(step.counts.seed).toBe(direct.seed);
+    expect(step.counts.findings).toBe(direct.findings.length);
+    expect(step.counts.limits).toBe(direct.limits.length);
+    // ② 这一型没有等级 ⇒ 那一格不存在（不是 0）
+    expect(step.counts.maxLevel).toBeUndefined();
+    // ③ 念的是自己那条管线，不是 RPG 的推进
+    expect(step.notes.join('')).not.toContain('rpgStep');
+    expect(step.notes.join('')).toContain('topdown');
+    expect(step.notes.join('')).toContain('sim.step');
   });
 
   it('链上那份标的是对话那一型：它走对话那条链，错位计数是 0，链名那句照旧要说', async () => {

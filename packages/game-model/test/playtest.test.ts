@@ -10,6 +10,7 @@ import {
   playtest,
   PLAYTEST_DEFAULT_SEED,
   PLAYTEST_POLICIES,
+  playtestByKind,
   playtestRpg,
   playtestSeedNote,
   playtestStory,
@@ -337,6 +338,55 @@ function talk(doc: GameDocument, name: string, notes = ""): { document: GameDocu
   const created = entitiesOfKind(next, "dialogue").find((entity) => entity.name === name)!;
   return { document: next, id: created.id };
 }
+
+describe('按类型派试玩（§52/§53 那条链上"只跑 RPG 管线"那一处的补上）', () => {
+  /**
+   * 判据是**读数来自哪条管线**：topdown 那条跑 `sim.step`，RPG 那条跑 `rpgStep`。
+   * 同一份字节换一条管线，跑出来的每一条走法就多出 RPG 才有的那几格（等级 / 经验 / 等级门）
+   * ——这既是"两条管线不是同一条"的证据，也是"读数不是自证自成"的对照。
+   */
+  const flat = createGame('分派用的那份');
+
+  it('一份 2D 稿：读数就是 topdown 那条管线的读数（不是拿 RPG 的判据去试）', () => {
+    const result = playtestByKind(flat);
+    expect(result.kind).toBe('2d');
+    expect(result.pipeline).toBe('topdown');
+    expect(result.engine).toBe('sim.step');
+    // 逐项与直接调 `playtest(compileGame(...))` 相等：这一格不许自己另算一套
+    const direct = playtest(compileGame(flat));
+    expect(result.report.winnableBy).toBe(direct.winnableBy);
+    expect(result.report.diedFrom).toBe(direct.diedFrom);
+    expect(result.report.seed).toBe(direct.seed);
+    expect(result.report.findings).toEqual(direct.findings);
+    expect(result.report.limits).toEqual(direct.limits);
+    expect(result.report.runs.map((run) => run.status)).toEqual(direct.runs.map((run) => run.status));
+    // 顶级那几格只有 RPG 才有：这一型没有等级这件事，塞一个 0 会被读成"最高 0 级"（§159）
+    expect('maxLevel' in result).toBe(false);
+  });
+
+  it('同一份字节标成 RPG：读数就换成 RPG 那条管线的（正反两向对照）', () => {
+    const rpg = { ...flat, kind: 'rpg-prototype' } as GameDocument;
+    const result = playtestByKind(rpg);
+    expect(result.kind).toBe('rpg-prototype');
+    expect(result.pipeline).toBe('rpg');
+    expect(result.engine).toBe('sim.step+rpg.step');
+    const direct = playtestRpg(compileRpg(rpg));
+    expect(result.report.winnableBy).toBe(direct.winnableBy);
+    expect(result.report.diedFrom).toBe(direct.diedFrom);
+    expect(result.maxLevel).toBe(direct.maxLevel);
+    // 反向对照：RPG 的每一条走法都带等级/经验/等级门，topdown 的不带 ⇒ 两条管线不是同一条
+    expect('level' in result.report.runs[0]!).toBe(true);
+    expect('level' in playtestByKind(flat).report.runs[0]!).toBe(false);
+  });
+
+  it('对话那两种明说"还没接"：报告形状不同，不做一个说得过去的假报告', () => {
+    for (const kind of ['interactive-story', 'visual-novel'] as const) {
+      const doc = { ...flat, kind } as GameDocument;
+      expect(() => playtestByKind(doc)).toThrow(/还没接/);
+      expect(() => playtestByKind(doc)).toThrow(kind);
+    }
+  });
+});
 
 describe('对话管线的可达性报告（§53 对着一段对话能确定回答的那部分）', () => {
   it('连不到的段落点名报出；把它连进图里就全部可达（正反两向）', () => {
