@@ -21,6 +21,8 @@ import { priceText, subscriptionActiveText, subscriptionDaysLeftText } from './m
 export interface EconomySubscription {
   creatorId: string;
   planId: string;
+  /** v315 — the subscription's own id: the cancellation names the subscription, not the plan. */
+  id?: string;
   priceCents: PriceCents;
   currency: Currency;
   active: boolean;
@@ -48,6 +50,13 @@ export interface EconomyTip {
 /** A subscription reduced to the facts a person can act on. */
 export interface SubscriptionRow {
   planId: string;
+  /**
+   * v315 — the SUBSCRIPTION's own id.
+   *
+   * <p>Ending a subscription names the subscription, not the plan: two subscriptions of the same plan are
+   * two promises, and a panel that could only name the plan could not end one of them.
+   */
+  subscriptionId: string;
   priceText: string;
   currency: Currency;
   statusText: string;   // 'Active' | 'Expired' | 'Never'
@@ -203,6 +212,7 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
 
   return {
     planId: s.planId,
+    subscriptionId: typeof s.id === 'string' ? s.id : '',
     priceText: priceText(s.priceCents, s.currency),
     currency: s.currency,
     // v308 — the service’s standing when it gave one, the client’s own computation otherwise.

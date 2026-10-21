@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { subscribeOnService } from '@/lib/planServer';
+import { cancelSubscription, subscribeOnService } from '@/lib/planServer';
 
 /**
  * M7 v301 (ADR 0016 amendment 301): `/api/subscriptions` — this Studio's door onto the service's
@@ -40,4 +40,27 @@ export async function POST(request: Request): Promise<NextResponse> {
     claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,
   });
   return NextResponse.json(answer, { status: answer.ok ? 201 : 503 });
+}
+
+/**
+ * END a subscription — the holder’s own.
+ *
+ * <p>The subscription id and the claimer travel in the query, the same way the studio’s other doors take a
+ * claim (there is no session in this build — ADR 0018), and the service’s own words are passed through.
+ */
+export async function DELETE(request: Request): Promise<NextResponse> {
+  const url = new URL(request.url);
+  const subscriptionId = url.searchParams.get('subscriptionId');
+  const claimer = url.searchParams.get('claimer');
+  if (!subscriptionId || subscriptionId.trim() === '') {
+    return NextResponse.json({ ok: false, reason: 'the subscriptionId is missing' }, { status: 400 });
+  }
+  if (!claimer || claimer.trim() === '') {
+    return NextResponse.json(
+      { ok: false, reason: 'ending a subscription needs the account that holds it' },
+      { status: 400 },
+    );
+  }
+  const answer = await cancelSubscription(subscriptionId.trim(), { accountId: claimer.trim() });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
 }

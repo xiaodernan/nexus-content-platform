@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { retirePlan } from './planLane';
+import { cancelSubscription, retirePlan } from './planLane';
 
 /**
  * M7 v314 — the browser half of the PLANS and SUBSCRIPTIONS lane.
@@ -72,4 +72,43 @@ describe('planLane — retirePlan (client half)', () => {
     expect(answer.ok).toBe(false);
     expect(answer.reason).toContain('network down');
   });
+
+describe('planLane — cancelSubscription (client half)', () => {
+  it('asks the Studio’s own door, with the subscription id and the claimer', async () => {
+    const fetchImpl = makeFetch((url, init) => {
+      expect(url).toBe('/api/subscriptions?subscriptionId=sub-1&claimer=acct-ada');
+      expect(init?.method).toBe('DELETE');
+      return new Response(JSON.stringify({ ok: true, subscriptionId: 'sub-1', ended: true }), { status: 200 });
+    });
+    const answer = await cancelSubscription('sub-1', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.ended).toBe(true);
+  });
+
+  it('a REFUSAL carries the service’s reason', async () => {
+    const answer = await cancelSubscription(
+      'sub-1',
+      CLAIM,
+      makeFetch(() =>
+        new Response(
+          JSON.stringify({ ok: false, reason: 'this subscription was made by another account, and only its holder may end it' }),
+          { status: 502 },
+        ),
+      ),
+    );
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('only its holder may end it');
+    expect(answer.ended).toBe(false);
+  });
+
+  it('a subscription that was ALREADY ended is not a failure, and not an ending either', async () => {
+    const answer = await cancelSubscription(
+      'sub-1',
+      CLAIM,
+      makeFetch(() => new Response(JSON.stringify({ ok: true, subscriptionId: 'sub-1', ended: false }), { status: 200 })),
+    );
+    expect(answer.ok).toBe(true);
+    expect(answer.ended).toBe(false);
+  });
+});
 });

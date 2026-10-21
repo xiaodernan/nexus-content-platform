@@ -2398,6 +2398,72 @@ try {
     await retirePage.close();
   }
 
+  // ── §29 v315: the holder can END a subscription ──────────────────────────────────────────────────
+  // The service has had the ending since v300 and the panel had no button until now. Ending is not
+  // deleting: the row STAYS and its standing becomes `cancelled` — a promise that was ended is a fact that
+  // happened. The section offers a FRESH plan, because §27 ended the only subscription there was and §28
+  // retired the plan it was made against.
+  {
+    const cancelPage = await session.newPage('about:blank');
+    await cancelPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(cancelPage, 'the cancel page to hydrate');
+
+    // The creator offers a fresh plan.
+    await signInAs(cancelPage, 'ada', 'the creator of a fresh plan');
+    await openAccountPanel(cancelPage, 'the account panel to open');
+    await cancelPage.type('[data-plan-id-input]', 'pro-2');
+    await cancelPage.type('[data-plan-price-input]', '20');
+    await cancelPage.evaluate("document.querySelector('[data-plan-offer]').click()");
+    const offered = await until(
+      async () => {
+        const n = await cancelPage.evaluate("document.querySelector('[data-plan-note]')?.textContent ?? ''");
+        return n.includes('offered') ? n : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the fresh plan to be offered' },
+    );
+    check('the creator offers a fresh plan', offered !== null, `note: ${JSON.stringify(offered)}`);
+
+    // And a second account backs it.
+    await signInAs(cancelPage, 'bob', 'the supporter of the fresh plan');
+    await cancelPage.navigate(`${studioBase}/?subscribe=pro-2`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(cancelPage, 'the subscribe page to hydrate');
+    const backed = await until(
+      async () => {
+        const s = await cancelPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('backed') ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the fresh subscription to land' },
+    );
+    check('and a supporter backs it', backed !== null, `status: ${JSON.stringify(backed)}`);
+
+    // Now the holder ends it — from the panel.
+    await cancelPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const cancelButton = await until(
+      async () => (await cancelPage.evaluate("!!document.querySelector('[data-economy-cancel]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the ending button to show' },
+    );
+    check('the panel offers the holder the ending', cancelButton !== null, 'the button is there');
+
+    await cancelPage.evaluate("document.querySelector('[data-economy-cancel]').click()");
+    const ended = await until(
+      async () => (await cancelPage.evaluate("document.querySelector('[data-economy-subscription-status]')?.getAttribute('data-economy-subscription-status') ?? ''")) === 'Never',
+      { tries: 120, gapMs: 500, label: 'the subscription to show as ended' },
+    );
+    check('and the subscription shows as ended — the row stays, the promise is over', ended !== null, 'the row says Never');
+
+    // And the SERVICE agrees, read independently of the browser.
+    const holderRaw = await cancelPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const holderId = JSON.parse(String(holderRaw)).id;
+    const subsRead = await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(holderId)}`);
+    const subsBody = await subsRead.json();
+    check(
+      'the SERVICE agrees — read back independently of the browser',
+      subsRead.status === 200 && (subsBody.subscriptions ?? []).some((s) => s.planId === 'pro-2' && s.status === 'cancelled'),
+      `subscriptions: ${JSON.stringify(subsBody.subscriptions)}`,
+    );
+    await cancelPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

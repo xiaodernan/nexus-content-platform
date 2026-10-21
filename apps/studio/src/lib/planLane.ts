@@ -49,6 +49,54 @@ export async function subscribeToPlan(
   }
 }
 
+/** What one cancellation answered — the browser half. */
+export interface CancelLaneAnswer {
+  ok: boolean;
+  /** Whether the subscription MOVED. */
+  ended: boolean;
+  reason?: string;
+}
+
+/**
+ * END a subscription — the holder’s own.
+ *
+ * <p>The claimer is the account id, and only that: the service compares it with the subscription’s holder
+ * and refuses anybody else’s.
+ */
+export async function cancelSubscription(
+  subscriptionId: string,
+  claim: { accountId: string; handle?: string | null; assurance?: string | null; claimedAt?: number | null },
+  fetchImpl: FetchLike = fetch,
+): Promise<CancelLaneAnswer> {
+  try {
+    const res = await fetchImpl(
+      `/api/subscriptions?subscriptionId=${encodeURIComponent(subscriptionId)}&claimer=${encodeURIComponent(claim.accountId)}`,
+      {
+        method: 'DELETE',
+        headers: { accept: 'application/json' },
+        signal: callSignal(),
+      },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, ended: false, reason: `the subscriptions answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { ok?: unknown; ended?: unknown; reason?: unknown; message?: unknown };
+    if (body.ok === false || !res.ok) {
+      const reason =
+        typeof body.reason === 'string'
+          ? body.reason
+          : typeof body.message === 'string'
+            ? body.message
+            : `the subscriptions answered HTTP ${res.status}`;
+      return { ok: false, ended: false, reason };
+    }
+    return { ok: true, ended: body.ended === true };
+  } catch (error) {
+    return { ok: false, ended: false, reason: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 /** What one retirement answered — the browser half. */
 export interface RetireLaneAnswer {
   ok: boolean;

@@ -170,6 +170,56 @@ export async function subscribeOnService(
   }
 }
 
+/** What one cancellation answered. */
+export interface CancelAnswer {
+  ok: boolean;
+  /** Whether the subscription MOVED. A subscription that was already ended is "already ended". */
+  ended: boolean;
+  reason?: string;
+}
+
+/**
+ * END a subscription on the service — and only the holder’s own.
+ *
+ * <p>Ending is not deleting: the row STAYS and its standing becomes `cancelled`, because a promise that
+ * was ended is a fact that happened.
+ */
+export async function cancelSubscription(
+  subscriptionId: string,
+  claim: { accountId: string; handle?: string | null; assurance?: string | null; claimedAt?: number | null },
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<CancelAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(
+      `${apiBase}/subscriptions/${encodeURIComponent(subscriptionId)}?claimer=${encodeURIComponent(claim.accountId)}`,
+      { method: 'DELETE', headers: { accept: 'application/json' } },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, ended: false, reason: `the service's subscriptions door answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { ended?: unknown; reason?: unknown; message?: unknown };
+    // v313 — the refusal’s own words, whenever the answer is NOT ok.
+    if (!res.ok || body.ended === undefined) {
+      const reason =
+        typeof body.reason === 'string'
+          ? body.reason
+          : typeof body.message === 'string'
+            ? body.message
+            : `the service's subscriptions door answered HTTP ${res.status}`;
+      return { ok: false, ended: false, reason };
+    }
+    return { ok: true, ended: body.ended === true };
+  } catch (error) {
+    return {
+      ok: false,
+      ended: false,
+      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 /**
  * What one retirement answered.
  */

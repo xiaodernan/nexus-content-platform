@@ -6,7 +6,7 @@ import { readTrail, type TrailAnswer } from '@/lib/auditLane';
 import { filterTrailRows, trailSummaryOf, trailSummaryText } from '@/lib/trail';
 import { readMyTips } from '@/lib/tipLane';
 import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
-import { retirePlan } from '@/lib/planLane';
+import { cancelSubscription, retirePlan } from '@/lib/planLane';
 import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
 import { tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
@@ -187,6 +187,29 @@ export default function Toolbar() {
    * promised that month, and a creator changing their mind about the offer does not take the promise with it.
    */
   const [economyNote, setEconomyNote] = useState('');
+
+  /**
+   * v315 — end a subscription: the holder takes the promise back.
+   *
+   * <p>Ending is not deleting: the row STAYS and its standing becomes `cancelled`, because a promise that was
+   * ended is a fact that happened.
+   */
+  const onCancelSubscription = async (subscriptionId: string) => {
+    const account = session.current();
+    if (!account) {
+      setEconomyNote('the subscriptions you hold belong to an account, and this device has none');
+      return;
+    }
+    const answer = await cancelSubscription(subscriptionId, { accountId: account.id });
+    setEconomyNote(
+      answer.ok
+        ? answer.ended
+          ? `ended ${subscriptionId}`
+          : `${subscriptionId} was already ended`
+        : `not ended: ${answer.reason}`,
+    );
+    await refreshEconomy();
+  };
 
   const onRetirePlan = async (planId: string) => {
     const account = session.current();
@@ -861,6 +884,18 @@ export default function Toolbar() {
                     <div data-economy-renew-note style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>
                       {row.renewNote}
                     </div>
+                  )}
+                  {/* v315 — the holder can take the promise back. Only a STANDING subscription carries the
+                      button: an expired or an ended one has nothing left to end. */}
+                  {row.isActive && row.subscriptionId && (
+                    <button
+                      className="btn"
+                      data-economy-cancel={row.subscriptionId}
+                      onClick={() => void onCancelSubscription(row.subscriptionId)}
+                      title="end this subscription (the row stays — a promise that was ended is a fact that happened)"
+                    >
+                      Cancel
+                    </button>
                   )}
                 </li>
               ))}
