@@ -3272,6 +3272,67 @@ try {
     await receivedPage.close();
   }
 
+  // ── §49 v335: the commenter sees what THEY wrote here, and can take it back ─────────────────────────
+  // A commenter who came back to a thread could not see what they had said there — and a comment is a
+  // thing a person might want to find again, or take back. The section posts a comment of its own, because
+  // the comment the earlier section wrote has already been taken back by that section.
+  {
+    const minePage = await session.newPage('about:blank');
+    await minePage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(minePage, 'the mine page to hydrate');
+    await signInAs(minePage, 'ada', 'the commenter');
+    await minePage.navigate(`${studioBase}/?comment=${encodeURIComponent(remixProjectId ?? projectId)}`, { waitForSelector: '[data-comment-composer]', waitMs: 2000 });
+    await waitForHydration(minePage, 'the composer page to hydrate');
+
+    await minePage.type('[data-comment-body]', 'a comment the commenter can take back');
+    await minePage.evaluate("document.querySelector('[data-comment-post]').click()");
+
+    const mineThere = await until(
+      async () => {
+        const texts = await minePage.evaluate(
+          "Array.from(document.querySelectorAll('[data-comment-mine-row]')).map((r) => r.textContent ?? '')",
+        );
+        return texts.some((x) => x.includes('a comment the commenter can take back')) ? texts : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the commenter’s own comments to show' },
+    );
+    check('the commenter sees the comments they wrote here', mineThere !== null, `the rows: ${JSON.stringify(mineThere)}`);
+
+    // And the SERVICE agrees, read independently of the browser.
+    const mineRaw = await minePage.evaluate("localStorage.getItem('nexus-current-account')");
+    const mineId = JSON.parse(String(mineRaw)).id;
+    const mineComments = await fetch(`${apiBase}/comments?author=${encodeURIComponent(mineId)}&limit=50`);
+    const mineCommentsBody = await mineComments.json();
+    const serviceBodies = (mineCommentsBody.comments ?? []).map((c) => c.body);
+    check(
+      'the SERVICE agrees — the author’s own door answers with the comments they wrote',
+      mineComments.status === 200 && serviceBodies.includes('a comment the commenter can take back'),
+      `the service: ${JSON.stringify(serviceBodies)}`,
+    );
+
+    // And the commenter can take it back — the way back, not just the view.
+    await minePage.evaluate("document.querySelector('[data-comment-take-back]')?.click()");
+    const tookBack = await until(
+      async () => {
+        const note = await minePage.evaluate("document.querySelector('[data-comment-mine-note]')?.textContent ?? ''");
+        return note.includes('comment');
+      },
+      { tries: 120, gapMs: 500, label: 'the take-back to land' },
+    );
+    check('and the commenter can take it back', tookBack !== null, 'the note says so');
+
+    // And the SERVICE agrees that it is gone — read independently of the browser.
+    const mineAfter = await fetch(`${apiBase}/comments?author=${encodeURIComponent(mineId)}&limit=50`);
+    const mineAfterBody = await mineAfter.json();
+    const takenBack = (mineAfterBody.comments ?? []).find((c) => c.body === 'a comment the commenter can take back');
+    check(
+      'and the SERVICE agrees — the comment is marked as removed, and it stays on the record',
+      mineAfter.status === 200 && takenBack?.deleted === true,
+      `the comment: ${JSON.stringify(takenBack)}`,
+    );
+    await minePage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

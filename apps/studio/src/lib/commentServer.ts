@@ -87,6 +87,43 @@ export async function readComments(
  * The body is sent as it was typed: the ESCAPING is the caller's job (the service stores it verbatim),
  * and the page escapes it again on the way out.
  */
+/**
+ * v335 — READ the comments one account WROTE.
+ *
+ * <p>The other side of the same relation, the same way the tips door answers both sides (v332): a reader
+ * who wrote a comment could not see what they had written, and a comment is a thing a person might want to
+ * find again, or take back.
+ */
+export async function readCommentsWritten(
+  authorAccountId: string,
+  limit: number,
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<CommentsAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(
+      `${apiBase}/comments?author=${encodeURIComponent(authorAccountId)}&limit=${encodeURIComponent(String(limit))}`,
+      { headers: { accept: 'application/json' } },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, comments: [], visible: 0, reason: `the service's comments door answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { ok?: unknown; comments?: unknown; visible?: unknown; message?: unknown };
+    if (body.ok === false || !res.ok) {
+      const why = typeof body.message === 'string' ? body.message : `the service's comments door answered HTTP ${res.status}`;
+      return { ok: false, comments: [], visible: 0, reason: why };
+    }
+    return {
+      ok: true,
+      comments: Array.isArray(body.comments) ? (body.comments as CommentEntry[]) : [],
+      visible: typeof body.visible === 'number' ? body.visible : 0,
+    };
+  } catch (error) {
+    return { ok: false, comments: [], visible: 0, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+  }
+}
+
 export async function writeComment(
   projectId: string,
   body: string,

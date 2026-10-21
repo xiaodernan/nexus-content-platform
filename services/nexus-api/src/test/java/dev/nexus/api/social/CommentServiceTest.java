@@ -225,6 +225,27 @@ class CommentServiceTest {
         verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
         assertThat(window.getValue().getPageSize()).isEqualTo(CommentService.DEFAULT_COMMENT_LIMIT);
     }
+    // ── v335: the comments one account WROTE ───────────────────────────
+
+    @Test
+    void theCommentsOneAccountWroteAreReadNewestFirst() {
+        // The other side of the same relation: the repository has had the finder for the author's side
+        // since v285 without a service method or a door for it.
+        CommentEntry mine = new CommentEntry(
+                "c-1", "pub-1", "acct-bob", "bob", "unsigned-local", "nice", AT);
+        when(repository.findByAuthorAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of(mine));
+
+        assertThat(service.commentsWritten("acct-bob", 20)).containsExactly(mine);
+    }
+
+    @Test
+    void aCommentQuestionWithNoAuthorIsREFUSEDByName() {
+        assertThatThrownBy(() -> service.commentsWritten("  ", 20))
+                .isInstanceOf(InvalidComment.class)
+                .hasMessageContaining("needs an account");
+    }
+
     // ── v289: the trail ───────────────────────────────────────────────────────────────────────────
 
     @Test

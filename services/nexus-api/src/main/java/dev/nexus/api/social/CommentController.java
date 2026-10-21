@@ -73,16 +73,31 @@ public class CommentController {
     }
 
     /**
-     * The comments of one publication.
+     * The comments of one publication — or, with `author`, the comments one account WROTE.
      *
      * <p>Deleted comments come back too, with their flag set: a reader who can see that a comment was
      * removed is better served than a reader who cannot tell a quiet thread from a deleted one.
+     *
+     * <p>v335 — the same door, the other direction, the way the tips and the subscriptions doors answer
+     * both sides of a relation. A reader who wrote a comment could not see what they had written, and a
+     * comment is a thing a person might want to find again, or take back.
      */
     @GetMapping
     public ResponseEntity<CommentAnswer> list(
-            @RequestParam(name = "projectId") String projectId,
+            @RequestParam(name = "projectId", required = false) String projectId,
+            @RequestParam(name = "author", required = false) String authorAccountId,
             @RequestParam(name = "limit", required = false) Integer limit) {
         int asked = limit == null ? CommentService.DEFAULT_COMMENT_LIMIT : limit;
+        if (projectId == null || projectId.isBlank()) {
+            if (authorAccountId == null || authorAccountId.isBlank()) {
+                throw new InvalidComment("a comment question names whose comments they are");
+            }
+            List<Comment> written = service.commentsWritten(authorAccountId, asked).stream()
+                    .map(CommentController::toWire)
+                    .toList();
+            long visible = written.stream().filter(c -> !c.deleted()).count();
+            return ResponseEntity.ok(new CommentAnswer(authorAccountId, written, visible, asked));
+        }
         CommentService.CommentResult result = service.commentsOf(projectId, asked);
         List<Comment> comments = result.comments().stream().map(CommentController::toWire).toList();
         return ResponseEntity.ok(new CommentAnswer(result.projectId(), comments, result.visible(), asked));

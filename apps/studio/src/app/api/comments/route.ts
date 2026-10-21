@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { writeComment } from '@/lib/commentServer';
+import { readCommentsWritten, writeComment } from '@/lib/commentServer';
 
 /**
  * M7 v286 (ADR 0016 amendment 286): `/api/comments` — this Studio's door onto the service's comments.
@@ -13,6 +13,33 @@ import { writeComment } from '@/lib/commentServer';
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+/**
+ * READ the comments of a publication — or, with `author`, the comments one account WROTE.
+ *
+ * <p>v335 — the same door, the other direction, the way the tips door answers both sides of a relation
+ * (v332). A reader who wrote a comment could not see what they had written, and a comment is a thing a
+ * person might want to find again, or take back.
+ */
+export async function GET(request: Request): Promise<NextResponse> {
+  const url = new URL(request.url);
+  const author = url.searchParams.get('author');
+  if (!author || author.trim() === '') {
+    return NextResponse.json(
+      { ok: false, reason: 'the question names whose comments they are' },
+      { status: 400 },
+    );
+  }
+  const limit = Number.parseInt(url.searchParams.get('limit') ?? '20', 10);
+  const answer = await readCommentsWritten(author.trim(), Number.isFinite(limit) ? limit : 20);
+  if (!answer.ok) {
+    return NextResponse.json({ ok: false, reason: answer.reason }, { status: 502 });
+  }
+  return NextResponse.json(
+    { ok: true, comments: answer.comments, visible: answer.visible },
+    { status: 200 },
+  );
+}
 
 export async function POST(request: Request): Promise<NextResponse> {
   let body: unknown;

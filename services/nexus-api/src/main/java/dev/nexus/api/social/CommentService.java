@@ -154,6 +154,24 @@ public class CommentService {
         return new CommentResult(target, comments, visible);
     }
 
+    /**
+     * v335 — the comments one account WROTE, newest first.
+     *
+     * <p>The other side of the same relation, and the same shape the tip had (v332): the repository has
+     * had the finder for the author's side since v285 without a service method or a door for it. A reader
+     * who wrote a comment could not see what they had written — and a comment is a thing a person might
+     * want to find again, or take back.
+     */
+    @Transactional(readOnly = true)
+    public List<CommentEntry> commentsWritten(String authorAccountId, int limit) {
+        if (authorAccountId == null || authorAccountId.isBlank()) {
+            throw new InvalidComment("a comment needs an account to be from");
+        }
+        String author = authorAccountId.trim();
+        int asked = limit <= 0 ? DEFAULT_COMMENT_LIMIT : Math.min(limit, MAX_COMMENT_LIMIT);
+        return repository.findByAuthorAccountIdOrderByCreatedAtDesc(author, PageRequest.of(0, asked));
+    }
+
     /** A project id must be a usable path segment: not blank, not absurdly long. */
     private static String requireUsableProjectId(String projectId) {
         if (projectId == null || projectId.isBlank()) {

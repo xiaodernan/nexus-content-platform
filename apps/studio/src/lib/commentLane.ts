@@ -39,6 +39,50 @@ function callSignal(): AbortSignal {
  * A device with no account has no claim, and the service refuses an authorless comment BY NAME — the
  * client does not invent an actor to make the request succeed.
  */
+/**
+ * READ the comments this account WROTE — the other side of the same relation (v335).
+ *
+ * <p>A failed read is NOT an empty list: "you have written no comments" and "the comments could not be
+ * read" are different facts, and a panel that showed the first when it knew the second would tell a
+ * reader their comments had vanished.
+ */
+export async function readMyComments(
+  authorAccountId: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<{
+  ok: boolean;
+  comments: { id: string; body: string; createdAt: number; deleted: boolean; projectId: string }[];
+  reason?: string;
+}> {
+  try {
+    const res = await fetchImpl(`/api/comments?author=${encodeURIComponent(authorAccountId)}`, {
+      headers: { accept: 'application/json' },
+    });
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, comments: [], reason: `the comments answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { ok?: unknown; comments?: unknown; reason?: unknown; message?: unknown };
+    if (body.ok === false || !res.ok) {
+      const reason =
+        typeof body.reason === 'string'
+          ? body.reason
+          : typeof body.message === 'string'
+            ? body.message
+            : `the comments answered HTTP ${res.status}`;
+      return { ok: false, comments: [], reason };
+    }
+    return {
+      ok: true,
+      comments: Array.isArray(body.comments)
+        ? (body.comments as { id: string; body: string; createdAt: number; deleted: boolean; projectId: string }[])
+        : [],
+    };
+  } catch (error) {
+    return { ok: false, comments: [], reason: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 export async function postComment(
   projectId: string,
   body: string,
