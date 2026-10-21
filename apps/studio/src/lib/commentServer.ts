@@ -129,3 +129,49 @@ export async function writeComment(
     return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
   }
 }
+/** What one take-back answered. */
+export interface CommentRemoveAnswer {
+  ok: boolean;
+  /** True when a comment was ACTUALLY taken back; false when it was already gone. */
+  removed?: boolean;
+  reason?: string;
+}
+
+/**
+ * TAKE a comment back — the author's own.
+ *
+ * <p>The service answers 200 either way ("a comment that is already gone is already gone"), and it says
+ * which of the two happened: `removed` is true when a row was taken back and false when there was
+ * nothing to take back. So the caller can say WHICH of the two things happened, and not one word for
+ * both — the same rule the un-like keeps (v320).
+ */
+export async function removeCommentOnService(
+  commentId: string,
+  claimerAccountId: string,
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<CommentRemoveAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(
+      `${apiBase}/comments/${encodeURIComponent(commentId)}?claimer=${encodeURIComponent(claimerAccountId)}`,
+      { method: 'DELETE', headers: { accept: 'application/json' } },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, reason: `the service's comments door answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { ok?: unknown; removed?: unknown; reason?: unknown; message?: unknown };
+    if (body.ok === false || !res.ok) {
+      const reason =
+        typeof body.reason === 'string'
+          ? body.reason
+          : typeof body.message === 'string'
+            ? body.message
+            : `the service's comments door answered HTTP ${res.status}`;
+      return { ok: false, reason };
+    }
+    return { ok: true, removed: body.removed === true };
+  } catch (error) {
+    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+  }
+}

@@ -106,10 +106,17 @@ ${action}
       const body = row.deleted
         ? '<em class="nexus-comment-removed">this comment was removed by its author</em>'
         : row.bodyText;
+      // v321 — the taking-back, as a link to the Studio (the same arrangement as the like bar's).
+      // It is an OFFER and not a claim: the page cannot know who is reading, so every comment carries the
+      // link and the SERVICE is the one that refuses somebody else's comment by name.
+      const undo = row.deleted
+        ? ''
+        : `<a class="nexus-comment-undo" href="/?uncomment=${encodeURIComponent(row.id)}" title="take this comment back from the Studio">Take it back</a>`;
       return `<li class="nexus-comment" data-comment="${escapeHtml(row.id)}" data-comment-deleted="${row.deleted}">
 <span class="nexus-comment-author">${escapeHtml(row.authorText)}</span>
 <span class="nexus-comment-time">${escapeHtml(row.timeText)}</span>
 <div class="nexus-comment-body">${body}</div>
+${undo}
 </li>`;
     })
     .join('\n');
@@ -140,6 +147,8 @@ export const COMMENT_STYLES = `<style>
 .nexus-comment-time{color:#6b7280;font-size:10px}
 .nexus-comment-body{color:#e6e8ec;line-height:1.4;white-space:pre-wrap;word-break:break-word}
 .nexus-comment-removed{color:#6b7280;font-style:italic}
+.nexus-comment-undo{color:#6b7280;font-size:10px;text-decoration:none;align-self:flex-start}
+.nexus-comment-undo:hover{color:#3b82f6;text-decoration:underline}
 .nexus-comments-note{margin:6px 0 0;font-size:10px;line-height:1.4}
 .nexus-comments-action{display:inline-block;margin-top:6px;color:#3b82f6;font-weight:600;text-decoration:none}
 .nexus-comments-action:hover{text-decoration:underline}

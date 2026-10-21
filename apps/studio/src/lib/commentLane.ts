@@ -72,3 +72,47 @@ export async function postComment(
     return { ok: false, reason: error instanceof Error ? error.message : String(error) };
   }
 }
+/** What one take-back answered — the browser half. */
+export interface CommentRemoveLaneAnswer {
+  ok: boolean;
+  /** True when a comment was ACTUALLY taken back; false when it was already gone. */
+  removed?: boolean;
+  reason?: string;
+}
+
+/**
+ * TAKE a comment back — the author's own.
+ *
+ * <p>The claimer travels in the query, because a DELETE with no body is the conventional shape (the
+ * un-like does the same). The answer says whether a comment was ACTUALLY taken back, so the caller can
+ * tell "took it back" from "it was already gone".
+ */
+export async function removeComment(
+  commentId: string,
+  accountId: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<CommentRemoveLaneAnswer> {
+  try {
+    const res = await fetchImpl(
+      `/api/comments/${encodeURIComponent(commentId)}?claimer=${encodeURIComponent(accountId)}`,
+      { method: 'DELETE', headers: { accept: 'application/json' }, signal: callSignal() },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, reason: `the comments answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const answer = parsed as { ok?: unknown; removed?: unknown; reason?: unknown; message?: unknown };
+    if (answer.ok === false || !res.ok) {
+      const reason =
+        typeof answer.reason === 'string'
+          ? answer.reason
+          : typeof answer.message === 'string'
+            ? answer.message
+            : `the comments answered HTTP ${res.status}`;
+      return { ok: false, reason };
+    }
+    return { ok: true, removed: answer.removed === true };
+  } catch (error) {
+    return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+  }
+}

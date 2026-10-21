@@ -19,7 +19,8 @@ import AssetPanel from './AssetPanel';
 import { useStudio } from '@/lib/store';
 import { remixIdFromSearch, remixProject } from '@/lib/remixLane';
 import { likeIdFromSearch, unlikeIdFromSearch, likeClaimOf } from '@/lib/likeIntent';
-import { commentIdFromSearch } from '@/lib/commentIntent';
+import { commentIdFromSearch, uncommentIdFromSearch } from '@/lib/commentIntent';
+import { removeComment } from '@/lib/commentLane';
 import { reportIdFromSearch } from '@/lib/reportIntent';
 import { tipIdFromSearch } from '@/lib/tipIntent';
 import { subscribeIdFromSearch } from '@/lib/planIntent';
@@ -225,6 +226,40 @@ export default function Studio() {
   useEffect(() => {
     const id = reportIdFromSearch(window.location.search);
     if (id) setReportTarget(id);
+  }, []);
+
+  // v321 — an UN-COMMENT link: the artifact page's comments section sends a reader here as
+  // `/?uncomment={id}`, and the Studio takes the comment back. The chain the service needs was already
+  // there (the DELETE door, the author's own rule, the trail's `uncomment` verb since v289) — but nothing in
+  // the product pointed at it, so a comment its author could not take back was a comment that could only
+  // be lived with.
+  //
+  // The words are the service's own truth: it says whether a comment was ACTUALLY taken back, and the two
+  // cases are two different sentences — "took it back" and "it was already gone".
+  useEffect(() => {
+    const id = uncommentIdFromSearch(window.location.search);
+    if (!id) return;
+    let live = true;
+    const account = session.current();
+    if (!account) {
+      useStudio.getState().setStatus('Could not take the comment back: this device has no account, and a comment needs one');
+      return;
+    }
+    void removeComment(id, account.id).then((answer) => {
+      if (!live) return;
+      if (!answer.ok) {
+        useStudio.getState().setStatus(`Could not take the comment back: ${answer.reason}`);
+        return;
+      }
+      useStudio.getState().setStatus(
+        answer.removed === true
+          ? `took the comment back — the thread now says it was removed by its author`
+          : `that comment was already gone`,
+      );
+    });
+    return () => {
+      live = false;
+    };
   }, []);
 
   // M7 v298 — a TIP link: the profile page sends a reader here as `/?tip={accountId}`, and the Studio

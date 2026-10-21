@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { toCommentRow, toCommentRows, renderCommentsHtml } from './commentBar';
-import { commentIdFromSearch } from './commentIntent';
+import { commentIdFromSearch, uncommentIdFromSearch } from './commentIntent';
 
 /**
  * M7 v286 — the COMMENTS on the artifact page.
@@ -93,6 +93,30 @@ describe('commentBar — the section on the page (M7 v286)', () => {
     expect(html).toContain('this comment was removed by its author');
     expect(html).not.toContain('nice work');
     expect(html).toContain('data-comment-deleted="true"');
+  });
+
+  it('v321 — it offers the TAKING-BACK, as a link to the Studio', () => {
+    // The service has had the take-back since v289, and the studio has had no door for it: a comment its
+    // author could not take back was a comment that could only be lived with.
+    const rows = toCommentRows([entry()]);
+    const html = renderCommentsHtml(rows, 1, 'pub-1');
+    expect(html).toContain('href="/?uncomment=c-1"');
+    expect(html).toContain('Take it back');
+  });
+
+  it('v321 — and a comment that is ALREADY removed carries no link', () => {
+    // There is nothing to take back, so offering it would be an offer of a thing that does not exist.
+    const rows = toCommentRows([entry({ deleted: true })]);
+    const html = renderCommentsHtml(rows, 0, 'pub-1');
+    expect(html).not.toContain('uncomment=');
+  });
+
+  it('v321 — the uncomment intent reads the id out of the query, and never collides with the composer', () => {
+    expect(uncommentIdFromSearch('?uncomment=c-1')).toBe('c-1');
+    expect(uncommentIdFromSearch('?uncomment=' + encodeURIComponent('c/1'))).toBe('c/1');
+    expect(uncommentIdFromSearch('?uncomment=')).toBeNull();
+    expect(commentIdFromSearch('?uncomment=c-1')).toBeNull();
+    expect(uncommentIdFromSearch('?comment=c-1')).toBeNull();
   });
 
   it('states the VISIBLE count beside the rows', () => {

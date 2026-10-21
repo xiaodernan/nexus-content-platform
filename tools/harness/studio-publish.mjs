@@ -2742,6 +2742,71 @@ try {
     await unlikePage.close();
   }
 
+  // ── §35 v321: the UN-COMMENT gets a door in the product ───────────────────────────────────────────
+  // The service has had the take-back since v289, and the studio had NO door for it: a comment its
+  // author could not take back was a comment that could only be lived with. The link is an OFFER and
+  // not a claim — the page cannot know who is reading — and the service is the one that refuses
+  // somebody else’s comment by name.
+  {
+    const undoPage = await session.newPage('about:blank');
+    await undoPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(undoPage, 'the un-comment page to hydrate');
+    await signInAs(undoPage, 'ada', 'the account that wrote the comment');
+
+    // The page’s own comments section, read straight from the service.
+    // The comment §11 wrote lives on the fork (or on the publication itself).
+    const undoTarget = remixProjectId ?? projectId;
+    const undoComments = await (await fetch(`${apiBase}/comments?projectId=${encodeURIComponent(undoTarget)}`)).json();
+    const undoComment = (undoComments.comments ?? []).find((c) => c.deleted !== true);
+    check('the comment is still there to be taken back', undoComment?.id !== undefined, `comments: ${JSON.stringify(undoComments.comments)}`);
+
+    // The artifact page’s comments section now offers the taking-back.
+    const undoBar = await (await fetch(`${studioBase}/p/${encodeURIComponent(undoTarget)}`)).text();
+    check(
+      'the artifact page’s comments section offers the TAKING-BACK, as a link to the Studio',
+      undoBar.includes(`href="/?uncomment=${encodeURIComponent(String(undoComment?.id))}"`),
+      'the section links to /?uncomment=<id>',
+    );
+
+    // And the Studio takes it back.
+    await undoPage.navigate(
+      `${studioBase}/?uncomment=${encodeURIComponent(String(undoComment?.id))}`,
+      { waitForSelector: '#nexus-canvas', waitMs: 2000 },
+    );
+    await waitForHydration(undoPage, 'the un-comment intent page to hydrate');
+    const undoStatus = await until(
+      async () => {
+        const s = await undoPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('comment') ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the take-back to land' },
+    );
+    check(
+      'and the Studio takes the comment back, in the service’s own truth',
+      undoStatus !== null && /took the comment back/.test(String(undoStatus)),
+      `the status: ${JSON.stringify(undoStatus)}`,
+    );
+
+    // And the SERVICE agrees, read independently of the browser.
+    const undoRead = await fetch(`${apiBase}/comments?projectId=${encodeURIComponent(undoTarget)}`);
+    const undoBody = await undoRead.json();
+    check(
+      'the SERVICE agrees — the comment is marked as removed, and the visible count dropped',
+      undoRead.status === 200 && (undoBody.comments ?? []).some((c) => c.id === undoComment?.id && c.deleted === true) && undoBody.visible === 0,
+      `comments: ${JSON.stringify(undoBody.comments)} · visible: ${undoBody.visible}`,
+    );
+
+    // And the TRAIL says it happened.
+    const undoAudit = await fetch(`${apiBase}/audit?limit=100`);
+    const undoAuditBody = await undoAudit.json();
+    check(
+      'and the trail carries the taking-back',
+      undoAudit.status === 200 && (undoAuditBody.entries ?? []).some((e) => e.action === 'uncomment'),
+      `actions: ${JSON.stringify((undoAuditBody.entries ?? []).map((e) => e.action))}`,
+    );
+    await undoPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

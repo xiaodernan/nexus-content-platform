@@ -32,11 +32,11 @@
 
 ### 下一批（按优先级）
 
-1. **v321 — 订阅的续订**：唯一约束要变成“只约束还站着的行”，那是一条依赖时间的规则，唯一索引写不了（要触发器或换表 + 迁移工具）。
-2. **v322 — trail 的 target 要不要带“种类”**：follow/tip 指向账号、subscribe 指向 plan，都不是 publication（要改 audit 的表 + 迁移工具）。
-3. **v323 — 另一个“撤销”动作：评论的删除**：uncomment 服务端从 v289 就在记 ✓，客户端却没有门、没有 intent、没有链接 ✗（作者收不回自己写的评论）。
-4. **v324 — desk / trail 的筛选下沉到服务端**：现在筛选在浏览器里做（整个答案都过一遍线），服务端的门还没有 reason / action 参数。
-5. **v325 — Stage B/C 服务端接线**（仍被 ADR 0018 阻塞：无服务端账号/会话/令牌不做）。
+1. **v322 — 订阅的续订**：唯一约束要变成“只约束还站着的行”，那是一条依赖时间的规则，唯一索引写不了（要触发器或换表 + 迁移工具）。
+2. **v323 — trail 的 target 要不要带“种类”**：follow/tip 指向账号、subscribe 指向 plan，都不是 publication（要改 audit 的表 + 迁移工具）。
+3. **v324 — trail 的筛选补上 "Comment removed"**：uncomment 现在做得到了 ✓（v321），但筛选还问不出来。
+4. **v325 — desk / trail 的筛选下沉到服务端**：现在筛选在浏览器里做（整个答案都过一遍线），服务端的门还没有 reason / action 参数。
+5. **v326 — Stage B/C 服务端接线**（仍被 ADR 0018 阻塞：无服务端账号/会话/令牌不做）。
 
 ### M9 审计轨迹（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）
 
@@ -86,6 +86,7 @@
 | v318 | **desk 面板按理由筛选**（计数 v312 已经有了，但看不了：只有"出现过"的理由才有按钮 ✓；筛选用服务端自己的词 ✓，不匹配显示词；小计不筛选 ✓——滤掉的东西永远有一个数字说明它在那儿） | studio **1156/1156**；E2E §32 **207/207** |
 | v319 | **trail 的筛选补上举报的三个动作**：report / withdraw-report / acknowledge 服务端从 v311 就在记 ✓，但只有"All"才看得到 ✗；三个新按钮（Reported / Withdrew / Acknowledged）问的是 trail 自己的 action ✓，筛选行改成会换行 ✓ | studio **1158/1158**；E2E §33 **212/212** |
 | v320 | **un-like 在产品里有了门**：链路本来就全 ✓（intent / lane / Studio 的门 / 服务端的门），但产品里没有任何地方指向它 ✗——artifact 页的 like 条现在也给出"Take it back" ✓；Studio 的话改成两种情况都真的（"the like on X is gone" ✓）；trail 的筛选多一个 "Like taken back" ✓ | studio **1161/1161**；E2E §34 **219/219** |
+| v321 | **un-comment 在产品里有了门**：服务端从 v289 就有这条链 ✓，客户端却什么都没有 ✗（没有 server half / lane / route / intent / 链接）；评论段落现在给每条还在的评论一个 "Take it back" ✓；Studio 的两句话与服务端的两个答案对齐 ✓（"took the comment back" vs "that comment was already gone" ✓） | studio **1167/1167**；E2E §35 **224/224** |
 | **v273** | **客户端 `ops.ts` 与线格式对齐**：`actorId`/`assurance` 变可空；`AuditAction` 对未知动词开放；匿名条目单独成桶（`__anonymous__`）；**新增契约 proof**（读 Java record + 用 tsc 编译探针） | ✅ 900/900 · proof exit 0 · 3 处 mutation 分别被 §3/§5 抓住 |
 
 ## 本次会话已落地的增量
