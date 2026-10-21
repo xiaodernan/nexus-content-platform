@@ -135,9 +135,12 @@ type Db = ReturnType<typeof getDb>;
 
 /**
  * 能读文档的那个东西：独立连接，或者调用方已经开着的事务。
- * 只 `Pick` 出 select——读取路径不该拿到写的能力，事务归 `writeDocument` 那边管。
+ * 只 `Pick` 出 select 与 execute——读取路径不该拿到写的能力，事务归 `writeDocument` 那边管。
+ *
+ * `execute` 是 2026-10-21 加的：`design_nodes` 那一读**要绕开 drizzle 的逐行映射**
+ * （那一层在 10000 行上要多花 0.6~1.0 秒，而它对 jsonb 载荷纯属白做——映射完还是直接取 `data`）。
  */
-export type DocumentReader = Pick<Db, 'select'>;
+export type DocumentReader = Pick<Db, 'select' | 'execute'>;
 
 /** 调用方开好的事务：§188 的公开 API 补丁要在同一事务里读—改—写，类型得能带出这个文件 */
 export type DocumentTx = Tx;
@@ -568,9 +571,20 @@ export async function loadDocument(projectId: string, reader: DocumentReader = g
   for (const row of pageRows) {
     // 节点进的是 Record（键序=返回顺序），而 `Object.values(page.nodes)` 在派生上下文与测试里都会被枚举：
     // 没有 ORDER BY 时同一份文档两次读取可以给出不同的枚举顺序（#40 同一根因的另一面）
-    const nodeRows = await db.select().from(designNodes).where(eq(designNodes.pageId, row.id)).orderBy(asc(designNodes.id));
+    //
+    // **这一读绕开 drizzle 的行映射**（2026-10-21）：`design_nodes` 的载荷整份在 `data` 那一列里
+    // （jsonb），drizzle 那一层映射（每行一个 JS 对象 + 列名与类型转换）对它纯属白做——
+    // 量过：同样 10000 行，那一层多花 **0.6~1.0 秒**（首屏那 1.3 秒的大头就在这儿）。
+    // 用 `execute` 拿**原始行**：内容逐项不变（红线的回归测试见
+    // `apps/web/test/load-document-identity.integration.test.ts`），只是不替我们做那层无用功。
+    const nodeRows = await reader.execute(
+      sql`SELECT id, data FROM design_nodes WHERE page_id = ${row.id} ORDER BY id`,
+    );
     const nodes: Record<string, DesignNode> = {};
-    for (const nodeRow of nodeRows) nodes[nodeRow.id] = nodeRow.data as unknown as DesignNode;
+    for (const nodeRow of nodeRows) {
+      const raw = nodeRow as { id: string; data: unknown };
+      nodes[raw.id] = raw.data as DesignNode;
+    }
     rebuilt.push({
       id: row.id,
       name: row.name,

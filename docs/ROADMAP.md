@@ -3556,11 +3556,19 @@ image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；�
    两条路：**① 存储形状**（`design_nodes` 每节点一行 → 一页一行；存储迁移）
    与 **② 首屏只带视口内**（要"部分文档"这个新能力）。判决书见 `docs/adr/0048-first-paint-document-not-in-html.md`。
 
-    **更新（2026-10-21 中午）：两条路都被真数据否掉了（\`scripts/jsonb-agg-probe.mts\`，同一份 10000 节点文档）：**
+    **更新（2026-10-21 中午）：两条路都被真数据否掉了（`scripts/jsonb-agg-probe.mts`，同一份 10000 节点文档）：**
     逐行读 + Node 组装 **151ms + 4ms = 155ms**；jsonb_agg 一行 + JSON.parse **643ms + 741ms = 1384ms**（9 倍慢），内容逐项相等（0 条不同）。
     **⇒ 首屏那一格的真问题现在定位好了**：读 10000 行 + 在 Node 里组装，**才 155ms**——那"约 1.3 秒"里大头不在读与组装。
-    `\`loadDocument\` `还读了 pages / design_tokens / components / assets 各一张表（drizzle 行映射 × 4 张表），再加 RSC 序列化 9.37MB 载荷和浏览器那一段（解析 + 水合 + 首屏求解 + 首次绘制）。
-    **下一片的入口：把那约 1.15 秒先找出来**——在服务端（\`loadDocument\` + Next SSR 序列化）上加分段计数，同 \`scripts/perf-browser.mts\` 的 \`__studioPerf\` 口径，同一台机器同一时段量；核完那 1.15 秒在哪，再决定动手顺序（不动存储形状，不动组装位置）。
+    `loadDocument` 还读了 pages / design_tokens / components / assets 各一张表（drizzle 行映射 × 4 张表），再加 RSC 序列化 9.37MB 载荷和浏览器那一段（解析 + 水合 + 首屏求解 + 首次绘制）。
+    **⇒ 那 1.15 秒找到了（2026-10-21 下午）：是 drizzle 的逐行映射，不是数据库。**
+    `scripts/design-nodes-read-cost.mts` **交错**量同一步的两种读法（负载会漂，一次量完 A 再量 B 不可比）：
+    drizzle `select()` **817ms** vs 裸 sql（无映射）+ 同样组装 **499ms**（中位，比值 64%；那轮机器很挤，绝对值待重测）。
+    **为什么白做**：`design_nodes` 的载荷整份在 `data` 那一列（jsonb），drizzle 映射完代码里还是直接取 `row.data`。
+    **⇒ 落成代码（只改一处）**：`loadDocument` 读 `design_nodes` 改走 `reader.execute(sql`SELECT id, data …`)`（原始行，不经映射），
+    组装仍在 Node 里（不挪进 Postgres——那条 9 倍慢，已否）；`DocumentReader` 加了 `execute`（读取路径仍拿不到写的能力）。
+    **红线**：`apps/web/test/load-document-identity.integration.test.ts`——读回来的文档必须与**库里的原始行逐项相等**
+    （内容/键集合/顺序/token 引用），且**验证过故意少读一个节点就会红** ✓。
+    **⚠️ 下一格要在安静机器上重测**（同一构建、开/关两轮）把最终数写死。
    **这一格也做了（2026-10-21 后半夜，`d36d712`）**：复用再细一层——**跨帧的测量缓存**
    （尺寸没变的部分，测量结果留着；只重算坐标）。红线：10000 档扁平文档的 `layoutMs`
    **104-118ms → 76-91ms**，属性写入总延迟 **131.9ms → 94.5ms**（省 28%）。
