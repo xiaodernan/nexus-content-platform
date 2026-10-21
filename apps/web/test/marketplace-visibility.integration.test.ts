@@ -4,7 +4,7 @@ import { GET as getItem } from '../src/app/api/marketplace/[id]/route';
 import { POST as purchaseItem } from '../src/app/api/marketplace/[id]/purchase/route';
 import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
 import { SESSION_COOKIE } from '../src/server/domain/session';
-import { createMarketplaceItem, hasPurchased, purchaseMarketplaceItem } from '../src/server/domain/marketplace';
+import { createMarketplaceItem, deleteMarketplaceItem, hasPurchased, purchaseMarketplaceItem } from '../src/server/domain/marketplace';
 import { getDb } from '../src/server/db/client';
 import { sessions, users } from '../src/server/db/schema';
 
@@ -195,5 +195,31 @@ describe('§127 私有草稿的详情门（修复前：匿名拿到含内部 id 
     jar.clear();
     const res = await getItem(new Request(itemUrl(publicItemId)), { params: Promise.resolve({ id: publicItemId }) });
     expect(res.status).toBe(200);
+  });
+});
+
+describe('下架后的详情（GET 的文档曾写"包括已下架的，用于收藏者查看原因"）', () => {
+  it('下架后匿名与创作者本人都是 404 not_found，正文带中文 message', async () => {
+    const item = await createMarketplaceItem({
+      creatorId: creator.id,
+      itemType: 'component',
+      title: `下架样本 ${Date.now()}`,
+      visibility: 'public',
+      priceCredits: 0,
+    });
+    const del = await deleteMarketplaceItem(item.id, creator.id);
+    expect(del.ok).toBe(true);
+
+    jar.clear();
+    const anon = await getItem(new Request(itemUrl(item.id)), { params: Promise.resolve({ id: item.id }) });
+    expect(anon.status).toBe(404);
+    const anonBody = (await anon.json()) as { error: string; message?: string };
+    expect(anonBody.error, '详情 404 应与市场其它 [id] 门同一个稳定机器码').toBe('not_found');
+    expect(anonBody.message).toBe('物品不存在或已下架');
+
+    asUser(creatorToken);
+    const owner = await getItem(new Request(itemUrl(item.id)), { params: Promise.resolve({ id: item.id }) });
+    expect(owner.status, '没有"下架原因"可看，创作者本人也不该能点开——数据在「我的购买」那条读路').toBe(404);
+    jar.clear();
   });
 });

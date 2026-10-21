@@ -10,7 +10,8 @@ import { badRequest, failure, jsonError } from '@/server/http';
 /**
  * §127-128 Marketplace 单个物品的查询、更新与删除。
  *
- * GET：获取物品详情（包括已下架的，用于收藏者查看原因）。
+ * GET：获取在售物品详情。已下架一律 404（软删除保住数据，不保住可读性）——详情、预览、
+ * 交付三条读路同一口径；买过的人要知道"下架了"去「我的购买」，那里有状态与时间。
  * PATCH：更新物品元数据（仅创作者可操作 + CSRF 门），标题/描述/标签过发布机检。
  * DELETE：软删除物品（仅创作者可操作 + CSRF 门）。
  */
@@ -23,7 +24,7 @@ export async function GET(
   const item = await getMarketplaceItem(id);
 
   if (!item) {
-    return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    return jsonError(404, 'not_found', { message: '物品不存在或已下架' });
   }
 
   // 私有草稿只有创作者本人能看：与预览路由同一口径（[id]/preview 对 private 只放创作者）。
@@ -31,7 +32,7 @@ export async function GET(
   if (item.visibility === 'private') {
     const viewer = await currentUserOrNull();
     if (!viewer || viewer.id !== item.creatorId) {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      return jsonError(404, 'not_found', { message: '物品不存在或已下架' });
     }
   }
 
