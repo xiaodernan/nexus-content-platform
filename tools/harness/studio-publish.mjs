@@ -3389,6 +3389,26 @@ try {
     await likerPage.close();
   }
 
+  // ── §51 v339: the page carries ALL FOUR of its sources ──────────────────────────────────────────────
+  // The four side sources are read together now (the page waits for the slowest, not for their sum),
+  // and a concurrent read is exactly the kind of change that can quietly DROP one of the four. So this
+  // section says: the page still carries every one of them.
+  {
+    const sourcesHtml = await (await fetch(`${studioBase}/p/${encodeURIComponent(remixProjectId ?? projectId)}`)).text();
+    const sources = [
+      ['the likes bar', 'data-likes='],
+      ['the comments section', 'data-comments='],
+      ['the reports bar', 'data-reports='],
+      ['the history section', 'data-history='],
+    ];
+    const missing = sources.filter(([, marker]) => !sourcesHtml.includes(marker)).map(([name]) => name);
+    check(
+      'the artifact page carries all four of its sources',
+      missing.length === 0,
+      missing.length === 0 ? sources.map(([name]) => name).join(' | ') : `missing: ${missing.join(' | ')}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

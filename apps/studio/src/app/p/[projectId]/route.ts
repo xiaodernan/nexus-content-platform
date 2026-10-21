@@ -79,7 +79,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
     // v296 — the REPORTS. Read independently again: a reports door that could not be read leaves the bar
     // out ENTIRELY, because "0 reports" and "the reports could not be read" are different facts — and a
     // reader misled into thinking nobody complained is the one reader a report page must not mislead.
-    const reports = await readReports(decoded, REPORT_LIMIT);
+    // v339 — the four side sources are read TOGETHER. They are four independent facts about the
+    // same publication, and reading them one after another made the page wait for their SUM: a service
+    // that was slow by a second made the reader wait four seconds. Now the page waits for the SLOWEST
+    // of the four, and nothing else about the page changes — the same reads, the same bars, the same
+    // "a failed read leaves its section out" rule.
+    const [reports, trail, likes, comments] = await Promise.all([
+      readReports(decoded, REPORT_LIMIT),
+      readAuditTrail(HISTORY_LIMIT),
+      readLikes(decoded),
+      readComments(decoded, COMMENT_LIMIT),
+    ]);
     const reportBar = reports.ok
       ? renderReportBar({
           projectId: decoded,
@@ -89,7 +99,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
           reports: toReportRows(reports.reports),
         }) + REPORT_BAR_STYLES
       : '';
-    const trail = await readAuditTrail(HISTORY_LIMIT);
     const history = trail.ok
       ? renderHistoryHtml(historyRowsOf(trail.entries ?? [], decoded), trail.carried)
       : '';
@@ -97,7 +106,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
     // not be read leaves the bar out ENTIRELY, because "0 likes" and "the likes could not be read" are
     // different facts and a page that showed the first when it knew the second would be lying in the way
     // that matters most — a reader would conclude nobody cared.
-    const likes = await readLikes(decoded);
     // v336 — and WHO liked it, not only how many: the wire has carried the likers' names all along,
     // and the follow bar has named its followers since v288.
     const bar = likes.ok
@@ -113,7 +121,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
       : '';
     // v286 — the COMMENTS. Read independently again: a comments door that could not be read leaves the
     // section out rather than claiming the publication has no comments.
-    const comments = await readComments(decoded, COMMENT_LIMIT);
     const commentSection = comments.ok
       ? renderCommentsHtml(toCommentRows(comments.comments), comments.visible, decoded) + COMMENT_STYLES
       : '';
