@@ -383,6 +383,17 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
  * account id when the claim carried no handle: an address is better than a hole, and the panel never
  * invents a name.
  */
+/**
+ * WHEN a tip was given, in a reader's words — or null when the wire did not say.
+ *
+ * <p>Same shape as the subscription's two dates (v328, v329): the instant is the service's own clock, and
+ * it is formatted in one style everywhere so a reader can compare a tip's date with a subscription's.
+ */
+export function tipGivenText(createdAt: number | null | undefined): string | null {
+  if (typeof createdAt !== 'number' || !Number.isFinite(createdAt)) return null;
+  return new Date(createdAt).toISOString().replace('.000Z', 'Z');
+}
+
 export function tipPayerText(tip: {
   anonymous?: boolean;
   handle?: string | null;

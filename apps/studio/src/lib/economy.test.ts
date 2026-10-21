@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { PriceCents, Tip, Subscription } from './monetization';
 
 import {
+  tipGivenText,
   tipPayerText,
   toSubscriptionRow,
   toSubscriptionRows,
@@ -165,6 +166,17 @@ describe('economy — subscription rows (M8 v274)', () => {
   it('v331 — a tip with no name shows the account id rather than a blank', () => {
     expect(tipPayerText({ anonymous: false, payerId: 'acct-bob' })).toBe('acct-bob');
     expect(tipPayerText({ anonymous: false })).toBe('nobody');
+  });
+
+  it('v333 — a tip’s receipt says WHEN it was given', () => {
+    // A receipt without dates is a receipt without a history. The instant is the service's own clock, and
+    // it is formatted in one style everywhere.
+    expect(tipGivenText(1_700_000_000_000)).toBe('2023-11-14T22:13:20Z');
+  });
+
+  it('v333 — and a tip with no date says nothing rather than guessing', () => {
+    expect(tipGivenText(null)).toBeNull();
+    expect(tipGivenText(undefined)).toBeNull();
   });
 
   it('a row it cannot display honestly is dropped', () => {

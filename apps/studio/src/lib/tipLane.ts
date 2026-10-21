@@ -48,7 +48,15 @@ export async function readMyTips(
    * `payer_handle`, and the wire has the slot) — and this lane was narrowing every tip to an amount, a
    * message and a flag, throwing the name away on the way in.
    */
-  tips: { amountCents: number; message: string; anonymous: boolean; handle?: string | null; payerId?: string | null }[];
+  tips: {
+    amountCents: number;
+    message: string;
+    anonymous: boolean;
+    handle?: string | null;
+    payerId?: string | null;
+    /** v333 — WHEN the tip was given, in epoch millis. */
+    createdAt?: number | null;
+  }[];
   totalCents: number;
   count: number;
   reason?: string;
@@ -74,7 +82,14 @@ export async function readMyTips(
     return {
       ok: true,
       tips: Array.isArray(answer.tips)
-        ? (answer.tips as { amountCents: number; message: string; anonymous: boolean; handle?: string | null; payerId?: string | null }[])
+        ? (answer.tips as {
+            amountCents: number;
+            message: string;
+            anonymous: boolean;
+            handle?: string | null;
+            payerId?: string | null;
+            createdAt?: number | null;
+          }[])
         : [],
       totalCents: typeof answer.totalCents === 'number' ? answer.totalCents : 0,
       count: typeof answer.count === 'number' ? answer.count : 0,

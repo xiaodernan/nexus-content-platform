@@ -3206,6 +3206,39 @@ try {
     await gavePage.close();
   }
 
+  // ── §47 v333: the tip’s receipt says WHEN it was given ───────────────────────────────────────────
+  // A receipt without dates is a receipt without a history. The instant is the service’s own clock.
+  {
+    const datedPage = await session.newPage('about:blank');
+    await datedPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(datedPage, 'the dated page to hydrate');
+    await signInAs(datedPage, 'bob', 'the tipper');
+    await datedPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+
+    const datedThere = await until(
+      async () => (await datedPage.evaluate("!!document.querySelector('[data-economy-given]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the given tips to show' },
+    );
+    check('the tipper’s receipt is on screen', datedThere !== null, 'the rows are there');
+
+    // And the SERVICE says the same instant, read independently of the browser.
+    const datedRaw = await datedPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const datedId = JSON.parse(String(datedRaw)).id;
+    const datedTips = await fetch(`${apiBase}/tips?payer=${encodeURIComponent(datedId)}&limit=50`);
+    const datedTipsBody = await datedTips.json();
+    const serviceWhen = (datedTipsBody.tips ?? []).map((t) => t.createdAt).filter((v) => typeof v === 'number');
+    const panelWhen = await datedPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-given]')).map((s) => s.textContent ?? '')",
+    );
+    check(
+      'the receipt says the same instant the service recorded',
+      datedTips.status === 200 && serviceWhen.length > 0
+        && serviceWhen.every((w) => panelWhen.some((p) => p.includes(new Date(w).toISOString().replace('.000Z', 'Z')))),
+      `the service: ${JSON.stringify(serviceWhen)} · the panel: ${JSON.stringify(panelWhen)}`,
+    );
+    await datedPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

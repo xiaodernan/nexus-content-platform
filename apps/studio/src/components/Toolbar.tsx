@@ -11,7 +11,7 @@ import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderati
 import { tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { readMyFollowing, unfollowAccount, type FollowingLaneAnswer } from '@/lib/followLane';
-import { priceText, tipPayerText } from '@/lib/economy';
+import { priceText, tipGivenText, tipPayerText } from '@/lib/economy';
 import type { PriceCents } from '@/lib/monetization';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { remixProject } from '@/lib/remixLane';
@@ -158,7 +158,15 @@ export default function Toolbar() {
    */
   const [given, setGiven] = useState<{
     ok: boolean;
-    tips: { amountCents: number; message: string; anonymous: boolean; handle?: string | null; payerId?: string | null }[];
+    tips: {
+      amountCents: number;
+      message: string;
+      anonymous: boolean;
+      handle?: string | null;
+      payerId?: string | null;
+      /** v333 — WHEN the tip was given. */
+      createdAt?: number | null;
+    }[];
     totalCents: number;
     count: number;
     reason?: string;
@@ -1004,6 +1012,8 @@ export default function Toolbar() {
                       <span>{priceText(tip.amountCents as PriceCents, 'CNY')}</span>
                       <span style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>
                         {tip.anonymous ? 'given anonymously' : 'given in the open'}
+                        {/* v333 — and WHEN. A receipt without dates is a receipt without a history. */}
+                        {tip.createdAt ? ` · on ${tipGivenText(tip.createdAt)}` : ''}
                       </span>
                     </div>
                     {tip.message && (
