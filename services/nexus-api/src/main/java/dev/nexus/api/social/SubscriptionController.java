@@ -105,15 +105,14 @@ public class SubscriptionController {
         if (creatorAccountId != null && !creatorAccountId.isBlank()) {
             List<SubscriptionEntry> received = service.subscriptionsReceived(creatorAccountId, asked);
             List<Subscription> rows = received.stream().map(this::toWire).toList();
-            long receivedTotal = rows.stream()
-                    .filter(s -> SubscriptionDtos.STATUS_ACTIVE.equals(s.status()))
-                    .mapToLong(Subscription::priceCents)
-                    .sum();
+            // v359 — the total and the count are the DATABASE’s, over the whole table and not over the
+            // window this answer happens to carry: a creator with thirty subscribers was told what the
+            // window held.
             return ResponseEntity.ok(new ReceivedSubscriptionsAnswer(
                     creatorAccountId.trim(),
                     rows,
-                    receivedTotal,
-                    rows.size(),
+                    service.totalReceived(creatorAccountId),
+                    service.countReceived(creatorAccountId),
                     asked));
         }
         if (subscriberAccountId == null || subscriberAccountId.isBlank()) {
@@ -126,11 +125,15 @@ public class SubscriptionController {
         // v308 — the total counts the subscriptions that are STILL STANDING. An expired subscription is not
         // a commitment any more, and counting it would say the subscriber is backing a plan whose period has
         // run out.
-        long total = subs.stream()
-                .filter(s -> SubscriptionDtos.STATUS_ACTIVE.equals(s.status()))
-                .mapToLong(Subscription::priceCents)
-                .sum();
-        return ResponseEntity.ok(new SubscriptionAnswer(subscriberAccountId, subs, total, subs.size(), asked));
+        // v359 — and the total and the count are the DATABASE’s, over the whole table and not over the
+        // window this answer happens to carry: a subscriber with thirty subscriptions was told what the
+        // window held.
+        return ResponseEntity.ok(new SubscriptionAnswer(
+                subscriberAccountId,
+                subs,
+                service.totalHeld(subscriberAccountId),
+                service.countHeld(subscriberAccountId),
+                asked));
     }
 
     /**

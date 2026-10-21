@@ -106,11 +106,12 @@ public final class SubscriptionDtos {
      * shape whichever door it came through; and the answer names the CREATOR in its own field, because a
      * list of somebody's supporters is a list of their own.
      */
+    /** v359 — and the same: the count is the whole table’s, in both directions. */
     public record ReceivedSubscriptionsAnswer(
             String creatorId,
             List<Subscription> subscriptions,
             long totalCents,
-            int count,
+            long count,
             int limit) {
     }
 
@@ -123,7 +124,19 @@ public final class SubscriptionDtos {
      * computed, so the database cannot sum it), and it is a fact about the rows and not a running total the
      * service kept in its head.
      */
-    public record SubscriptionAnswer(String subscriberId, List<Subscription> subscriptions, long totalCents, int count, int limit) {
+    /**
+     * v359 — the count is the WHOLE table’s, in both directions.
+     *
+     * <p>It was the number of rows the service happened to read — the WINDOW’s size — dressed as a
+     * total. A panel that shows a list of subscriptions can now say how many there are and whether the
+     * list is a window.
+     */
+    public record SubscriptionAnswer(
+            String subscriberId,
+            List<Subscription> subscriptions,
+            long totalCents,
+            long count,
+            int limit) {
     }
 
     /** When a period ends, given the instant it started. The service computes it ONCE; nothing renews it. */

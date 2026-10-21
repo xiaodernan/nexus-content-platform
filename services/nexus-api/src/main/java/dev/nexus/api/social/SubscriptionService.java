@@ -325,6 +325,45 @@ public class SubscriptionService {
         return subscriptions.findBySubscriberAccountIdOrderBySubscribedAtDesc(subscriber, PageRequest.of(0, asked));
     }
 
+    /**
+     * v359 — how many subscriptions one account HOLDS, over the whole table.
+     *
+     * <p>The count is the DATABASE’s count, so a panel that shows a list of them can also say how many
+     * there are and whether the list is a window.
+     */
+    @Transactional(readOnly = true)
+    public long countHeld(String subscriberAccountId) {
+        String subscriber = requireAccount(subscriberAccountId, "a subscription needs an account to hold it");
+        return subscriptions.countBySubscriberAccountId(subscriber);
+    }
+
+    /**
+     * v359 — how many subscriptions one account RECEIVED, over the whole table.
+     */
+    @Transactional(readOnly = true)
+    public long countReceived(String creatorAccountId) {
+        String creator = requireAccount(creatorAccountId, "a plan needs an account to offer it");
+        return subscriptions.countByCreatorAccountId(creator);
+    }
+
+    /**
+     * v359 — how much one account HOLDS, over the whole table, standing rows only.
+     */
+    @Transactional(readOnly = true)
+    public long totalHeld(String subscriberAccountId) {
+        String subscriber = requireAccount(subscriberAccountId, "a subscription needs an account to hold it");
+        return subscriptions.sumStandingPriceCentsBySubscriberAccountId(subscriber, clock.instant());
+    }
+
+    /**
+     * v359 — how much one account RECEIVED, over the whole table, standing rows only.
+     */
+    @Transactional(readOnly = true)
+    public long totalReceived(String creatorAccountId) {
+        String creator = requireAccount(creatorAccountId, "a plan needs an account to offer it");
+        return subscriptions.sumStandingPriceCentsByCreatorAccountId(creator, clock.instant());
+    }
+
     /** The subscriptions one creator received, and how many are standing. */
     @Transactional(readOnly = true)
     public List<SubscriptionEntry> subscriptionsReceived(String creatorAccountId, int limit) {

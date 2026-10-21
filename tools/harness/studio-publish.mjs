@@ -3617,6 +3617,36 @@ try {
     );
   }
 
+  // ── §62 v359: the economy panel says the count the SERVICE counted ────────────────────────────────
+  // The count used to be the number of rows the answer happened to carry — a fact about a window.
+  {
+    const subCountPage = await session.newPage('about:blank');
+    await subCountPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(subCountPage, 'the subscription count page to hydrate');
+    await signInAs(subCountPage, 'bob', 'the subscriber');
+    await subCountPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const subCountShown = await until(
+      async () => (await subCountPage.evaluate("!!document.querySelector('[data-economy-subscription-total]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the subscription total to show' },
+    );
+    check('the economy panel says how many subscriptions there are', subCountShown !== null, 'the number is there');
+
+    // And the SERVICE agrees, read independently of the browser.
+    const subCountRaw = await subCountPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const subCountId = JSON.parse(String(subCountRaw)).id;
+    const subCountService = await (await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(subCountId)}&limit=50`)).json();
+    const serviceCount = subCountService.count;
+    const panelCount = await subCountPage.evaluate(
+      "document.querySelector('[data-economy-subscription-total]')?.textContent ?? ''",
+    );
+    check(
+      'the SERVICE agrees — the panel says the count the service counted',
+      typeof serviceCount === 'number' && panelCount.includes(`${serviceCount} subscription(s)`),
+      `the service: ${JSON.stringify(serviceCount)} · the panel: ${JSON.stringify(panelCount)}`,
+    );
+    await subCountPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

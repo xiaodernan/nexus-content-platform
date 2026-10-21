@@ -1048,8 +1048,16 @@ export default function Toolbar() {
           ) : (economyAccount.subscriptions ?? []).length === 0 ? (
             <div style={{ color: 'var(--nexus-muted)' }}>this account backs no plan</div>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {(economyAccount.subscriptions ?? []).map((row, i) => (
+            <>
+              {/* v359 — the COUNT and the TOTAL beside the rows: the service counts the WHOLE table now,
+                  so these are facts about every subscription this account holds and not about the window
+                  the rows happen to be. */}
+              <div data-economy-subscription-total style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
+                {economyAccount.subscriptionCount ?? (economyAccount.subscriptions ?? []).length} subscription(s) ·{' '}
+                {priceText((economyAccount.subscriptionTotalCents ?? 0) as PriceCents, 'CNY')} a month
+              </div>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {(economyAccount.subscriptions ?? []).map((row, i) => (
                 <li
                   key={i}
                   data-economy-subscription={row.planId}
@@ -1090,7 +1098,8 @@ export default function Toolbar() {
                 </li>
               ))}
             </ul>
-          )}
+              </>
+            )}
           {/* v310 — the creator's OTHER side: who backs this account. The panel showed what
               this account backs and what it offers, and not the third half — which is the half a creator
               most wants to see. */}

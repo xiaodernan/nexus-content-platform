@@ -431,6 +431,42 @@ class SubscriptionServiceTest {
         assertThat(standing.getEndedAt()).isNull();
     }
 
+    // ── v359: the counts and the totals are the WHOLE table's ─────────────────────
+
+    @Test
+    void theSubscriptionsOneAccountHoldsAreCountedOverTheWholeTable() {
+        // A panel that shows a list of subscriptions and says "2" when the account holds five is quoting a
+        // window, and the count is the DATABASE's count so it is a fact about the account.
+        when(subscriptions.countBySubscriberAccountId("acct-bob")).thenReturn(5L);
+
+        assertThat(service.countHeld("acct-bob")).isEqualTo(5L);
+    }
+
+    @Test
+    void theSubscriptionsOneAccountReceivedAreCountedOverTheWholeTable() {
+        when(subscriptions.countByCreatorAccountId("acct-ada")).thenReturn(9L);
+
+        assertThat(service.countReceived("acct-ada")).isEqualTo(9L);
+    }
+
+    @Test
+    void theTotalHeldIsTheWholeTablesStandingSum() {
+        // The standing is the service's word (v308) and the clock is the service's, so the instant
+        // travels with the query and the database does the same arithmetic.
+        when(subscriptions.sumStandingPriceCentsBySubscriberAccountId(eq("acct-bob"), any(java.time.Instant.class)))
+                .thenReturn(4200L);
+
+        assertThat(service.totalHeld("acct-bob")).isEqualTo(4200L);
+    }
+
+    @Test
+    void theTotalReceivedIsTheWholeTablesStandingSum() {
+        when(subscriptions.sumStandingPriceCentsByCreatorAccountId(eq("acct-ada"), any(java.time.Instant.class)))
+                .thenReturn(7500L);
+
+        assertThat(service.totalReceived("acct-ada")).isEqualTo(7500L);
+    }
+
     // ── v327: the subscriber's NAME goes on the row, so a creator sees a person ──────────────────
 
     @Test

@@ -32,6 +32,18 @@ export interface EconomyAnswer {
   /** v310 — the subscriptions this account has RECEIVED (the creator's other side). */
   received?: SubscriptionRow[];
   tips?: TipRow[];
+  /**
+   * v359 — how many subscriptions this account holds, over the WHOLE table.
+   *
+   * <p>The service counts the whole table now (v359) — the count used to be the number of rows the
+   * answer happened to carry, which is a fact about a window and not about the account.
+   */
+  subscriptionCount?: number;
+  /** v359 — and what they come to, over the whole table. */
+  subscriptionTotalCents?: number;
+  /** v359 — the same two numbers for the RECEIVED side. */
+  receivedCount?: number;
+  receivedTotalCents?: number;
   reason?: string;
 }
 
@@ -71,11 +83,15 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
     if (typeof body !== 'object' || body === null) {
       return { ok: false, reason: 'the economy answered with neither an object nor a reason' };
     }
-    const { subscriptions, received, plans, tips } = body as {
+    const { subscriptions, received, plans, tips, subscriptionCount, subscriptionTotalCents, receivedCount, receivedTotalCents } = body as {
       subscriptions?: readonly unknown[];
       received?: readonly unknown[];
       plans?: readonly unknown[];
       tips?: readonly unknown[];
+      subscriptionCount?: unknown;
+      subscriptionTotalCents?: unknown;
+      receivedCount?: unknown;
+      receivedTotalCents?: unknown;
     };
     if (!Array.isArray(subscriptions) && !Array.isArray(plans)) {
       return { ok: false, reason: 'the economy answered with no subscriptions or plans' };
@@ -87,6 +103,12 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
       received: toSubscriptionRows(received ?? []),
       // v309 — the creator's own side of the economy.
       plans: toPlanRows(plans ?? []),
+      // v359 — and the counts and the totals, which are about the WHOLE table and not about the rows
+      // the answer happens to carry.
+      subscriptionCount: typeof subscriptionCount === 'number' ? subscriptionCount : undefined,
+      subscriptionTotalCents: typeof subscriptionTotalCents === 'number' ? subscriptionTotalCents : undefined,
+      receivedCount: typeof receivedCount === 'number' ? receivedCount : undefined,
+      receivedTotalCents: typeof receivedTotalCents === 'number' ? receivedTotalCents : undefined,
       tips: toTipRows(tips ?? [], (text) => text.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>') ),
     };
   } catch (error) {
