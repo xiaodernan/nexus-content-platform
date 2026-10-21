@@ -191,6 +191,13 @@ const browser = await chromium.launch({
 });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 await context.addInitScript(PROBE);
+// §147 增量路的 A/B：**同一个构建**量两次（开/关）。
+// 为什么不用构建期的 `NEXT_PUBLIC_NEXUS_INCREMENTAL_LAYOUT`：那是构建期内联的，
+// 换一次值就得重新 build 一份 → 又变成"量两次不同的构建"（今天的教训：那种比较会被负载带偏）。
+// 运行期覆盖（store 读 `globalThis.__NEXUS_INCREMENTAL_LAYOUT__`）让两轮共用同一份构建。
+// `PERF_INCREMENTAL=0` 量全量那一档；不设（默认）量增量那一档。
+const incrementalOn = (process.env.PERF_INCREMENTAL ?? '1') !== '0';
+await context.addInitScript(`globalThis.__NEXUS_INCREMENTAL_LAYOUT__ = ${incrementalOn ? 'true' : 'false'};`);
 const page = await context.newPage();
 
 // 建一个起手项目（8 个节点），后面的规模档在它之上改文档
@@ -838,6 +845,7 @@ await browser.close();
 
 console.log('\n浏览器端指标（每档 3 次，去掉第一次预热后取中位数）：');
 console.log(`  测量口径：${measuredUnder}`);
+console.log(`  增量重解：${incrementalOn ? '开（这一轮走增量路）' : '关（这一轮走全量）'}——A/B 用**同一个构建**量的`);
 console.log('  协议：第一次是冷启动（JIT / 磁盘缓存 / 服务端首渲染都没收敛），只打印不进中位数；' +
   '跨会话比较要用同一口径、同一构建，且至少两遍取第二遍之后的那两次。');
 for (const s of samples) {

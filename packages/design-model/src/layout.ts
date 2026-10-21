@@ -504,8 +504,16 @@ function runLayout(
     const cached = byConstraint?.get(constraint);
     if (cached) return cached;
     const box = measureUncached(node, avail, depth);
-    if (byConstraint) byConstraint.set(constraint, box);
-    else cacheEntries.set(node.id, new Map([[constraint, box]]));
+    if (byConstraint) {
+      // 约束变体攒太多就整组丢（2026-10-21 补）：增量路常驻之后这份缓存跨帧不死了，
+      // 而"父的可用宽高"会随编辑不停变 → 同一个节点攒出一堆旧约束的尺寸。
+      // 那是**缓存**不是真值：留着它们省不到什么（命中的多半是最近那两个），
+      // 内存却一直涨 → 超过上界就整组重来。
+      if (byConstraint.size >= 8) byConstraint.clear();
+      byConstraint.set(constraint, box);
+    } else {
+      cacheEntries.set(node.id, new Map([[constraint, box]]));
+    }
     return box;
   };
 
@@ -795,6 +803,19 @@ function runLayout(
     if (!entry) return false;
     if (entry.x !== x || entry.y !== y) return false;
     if (Math.abs(entry.width - w) > 1e-9 || Math.abs(entry.height - h) > 1e-9) return false;
+    // **结构变了就不能沿用**（2026-10-21 补）：沿用会把上一帧那个**节点对象**整个带过来，
+    // 它的孩子表是旧的 → 画布可能照着旧的孩子表画（已删的孩子还在画布上），
+    // 而且"这一帧的解"与"全量解"就不相等了。
+    // 为什么"改动集合"救不了这一格：被删掉的那个孩子**不在这一帧的文档里**了，
+    // 而 `subtreeHasChanged` 顺着**当前**文档的孩子往下走 → 走不到它 → 判成"没变"。
+    // 所以判据得落在**结构本身**上：孩子列表（顺序与成员）对不上，就不沿用。
+    const current = page.nodes[id] ?? entry.node;
+    const before = entry.node.children ?? [];
+    const now = current.children ?? [];
+    if (before.length !== now.length) return false;
+    for (let i = 0; i < now.length; i += 1) {
+      if (before[i] !== now[i]) return false;
+    }
     return !subtreeHasChanged(id);
   };
 
@@ -826,8 +847,14 @@ function runLayout(
   ): void {
     if (canReuse(child.id, x, y, box.width, box.height)) {
       reuseSubtree(child.id);
-      if (child.parentId && resolved[child.parentId]) {
-        resolved[child.parentId]!.children.push(child.id);
+      // 往**这一轮新算的**父节点里登记这个孩子。
+      // 往"沿用来的"父节点里 push 会**污染上一帧**：上一帧那份数组被这一帧改了 →
+      // 下一帧拿它当基准、拿它比形状就都是错的，而且那个数组会一轮轮变长（越用越慢）。
+      // 沿用来的父节点不需要登记：它的孩子表本来就是上一帧那份，而**能沿用就说明结构没变**。
+      const parentEntry = child.parentId ? resolved[child.parentId] : undefined;
+      const parentWasReused = child.parentId ? prev?.nodes[child.parentId] : undefined;
+      if (parentEntry && parentEntry !== parentWasReused) {
+        parentEntry.children.push(child.id);
       }
       return;
     }
@@ -864,13 +891,28 @@ function runLayout(
     const children = visibleChildren(page, node, breakpoint);
     // 子节点**增删**了 → 这一支的形状变了，上一帧那份不能沿用（否则会留下已经删掉的子节点）。
     // 所以把它标进 affected：它自己与它的子树都要重算。
+    //
+    // 2026-10-21 改了两件事（都是实测出来的，见 docs/PERFORMANCE.md）：
+    // ① **比的是文档里的孩子表**（结构），不是上一帧那份 `resolved.children`
+    //    ——后者是**按 parentId 建的**（文档里的孩子常常没有 parentId → 那个数组常常是空的），
+    //    拿它比会判成"形状变了"，于是每一支都被标成 affected。
+    // ② **逐项比**（O(n)），不用 `children.every(c => prev.children.includes(c.id))`：
+    //    那个写法是**平方级**的——一万个孩子的页面上，它自己就是那 800ms。
     if (prev) {
-      const prevEntry = prev.nodes[node.id];
-      if (prevEntry) {
-        const sameShape =
-          prevEntry.children.length === children.length &&
-          children.every((c) => prevEntry.children.includes(c.id));
-        if (!sameShape) affected.add(node.id);
+      const prevNode = prev.nodes[node.id]?.node;
+      if (prevNode) {
+        const before = prevNode.children ?? [];
+        const now = node.children ?? [];
+        let same = before.length === now.length;
+        if (same) {
+          for (let i = 0; i < now.length; i += 1) {
+            if (before[i] !== now[i]) {
+              same = false;
+              break;
+            }
+          }
+        }
+        if (!same) affected.add(node.id);
       }
     }
     if (!children.length) return;

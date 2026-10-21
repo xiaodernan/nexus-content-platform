@@ -64,6 +64,17 @@ export class DesignStore {
   private redoStack: HistoryEntry[] = [];
   private listeners = new Set<StoreListener>();
   private revision = 0;
+  /**
+   * 文档的"第几代"：**整份换掉**（reset）时 +1，**打补丁**（execute/undo/redo）时不变。
+   *
+   * 为什么需要它：补丁走**写时拷贝**，`applyPatch` 每次都返回**新的文档对象**
+   * → "这份文档是不是上一帧那份"没法用对象身份判断（永远是新的），
+   * 于是"上一帧那份布局能不能当增量基准"这件事无从判断（2026-10-21 查出来的：
+   * 增量重解因此**从来没在编辑器里跑过**）。
+   * 而"整份换掉"（换项目/恢复快照/导入）是**真的换了**——上一帧那份解不能拿来当基准。
+   * 代数把这两件事分开：**同一代数 = 同一份文档**（只是被打了补丁）✓
+   */
+  private generation = 0;
   private openTransaction: {
     command: Command;
     snapshot: DesignDocument;
@@ -79,6 +90,12 @@ export class DesignStore {
   getDocument(): DesignDocument {
     return this.document;
   }
+
+  /**
+   * 文档代数：整份换掉时 +1，打补丁时不变。
+   * 调用方用它判断"上一帧那份结果是不是这份文档的"——对象身份做不到（补丁每次都换对象）。
+   */
+  getDocumentGeneration = (): number => this.generation;
 
   getState(): StoreState {
     const last = this.undoStack[this.undoStack.length - 1] ?? null;
@@ -166,6 +183,8 @@ export class DesignStore {
   abortTransaction(): void {
     if (!this.openTransaction) return;
     this.document = this.openTransaction.snapshot;
+    // 整份换回了另一份文档：代数 +1（上一代的那份解不能再当增量基准）
+    this.generation += 1;
     this.openTransaction = null;
     this.revision += 1;
     this.emit();
@@ -286,6 +305,8 @@ export class DesignStore {
   /** 加载外部文档（切换项目/恢复快照）：清空历史，明确告知调用方 */
   reset(document: DesignDocument, preserveHistory = false): void {
     this.document = document;
+    // 整份换掉了：代数 +1（上一代的那份解不能再当增量基准，见 generation 的注释）
+    this.generation += 1;
     if (!preserveHistory) {
       this.undoStack = [];
       this.redoStack = [];

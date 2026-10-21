@@ -128,4 +128,97 @@ describe("resolveLayoutIncremental：§147 接线的账（ROADMAP #133）", () =
       expect(incremental.nodes[childId]).toBe(beforeLayout.nodes[childId]);
     }
   });
+
+  /**
+   * 2026-10-21（增量路在编辑器里真的跑起来之后才暴露出来的一格）：
+   *
+   * **结构变了**（孩子被删/被插/被换序）时，父节点**不能**被沿用——
+   * 沿用会把上一帧那份 `children` 数组整个带过来 → 画布上留着**幽灵节点**
+   * （已经删掉的那个还在画布上，而且画的是上一帧的内容）。
+   *
+   * 为什么"改动集合"救不了它：删掉的那个孩子**不在这一帧的文档里**了，
+   * 而 `subtreeHasChanged` 是顺着**当前**文档的孩子往下走的 → 走不到它 → 判成"没变"。
+   * 所以判据得落在**结构本身**上：这一帧的孩子列表与上一帧那份对不上，就不能沿用。
+   */
+  /**
+   * 2026-10-21（增量路在编辑器里真的跑起来之后才补上的一格）：
+   *
+   * **结构变了**（孩子被删）时，增量解与全量解必须**逐项一致**——
+   * 已删的节点不能留在解里，绘制次序不能变。
+   *
+   * 一条要写清楚的边界：`ResolvedNode.children` 是**按 parentId 建的**，
+   * 而文档里的孩子**常常没有 parentId** → 那个数组常常是空的，
+   * **它不是结构表**（画布用的是文档的 children + 解里的几何）。
+   * 所以这里断言的是"解里没有它"与"次序一致"，**不是**去数那个数组。
+   */
+  /**
+   * 2026-10-21 上午补的一条**不变量守卫**：
+   *
+   * 增量路会**沿用上一帧那个对象**（`resolved[id] = prev.nodes[id]`）。
+   * 于是有一条必须成立的不变量：**这一帧不许改动上一帧那份解**——
+   * 下一帧要拿它当基准（比几何、比形状），它被改了，下一帧的判断就建立在错的东西上。
+   *
+   * 现在这份代码满足它（往"沿用来的"父节点里 push 被显式挡住了）。
+   * 这条用例防的是**将来有人改回去**：那时上一帧的数组会一轮轮变长（越用越慢），
+   * 而且下一帧的形状比对会对着被污染的数组做判断。
+   */
+  it("沿用不能污染上一帧那份解（上一帧的东西这一帧不许改）", () => {
+    const page = rowPage();
+    // **必须把 parentId 填上**：库里读回来的节点都带 parentId，
+    // 而"往父节点里登记孩子"这条路正是靠 parentId 找父节点的
+    // （没有 parentId → 那条路根本不走 → 这条用例就量不到它了）。
+    const rootId = page.rootId;
+    for (const child of page.nodes[rootId]!.children) {
+      const childNode = page.nodes[child]!;
+      page.nodes[child] = { ...childNode, parentId: rootId };
+      for (const grand of childNode.children) {
+        const grandNode = page.nodes[grand]!;
+        page.nodes[grand] = { ...grandNode, parentId: child };
+      }
+    }
+    const beforeLayout = resolveLayout(page);
+    // 上一帧那份解的快照（深拷贝：它里面是对象与数组，浅拷贝比不出来）
+    const snapshot = JSON.stringify(beforeLayout);
+    const changedId = tallerAInPlace(page);
+
+    resolveLayoutIncremental(page, {
+      prevLayout: beforeLayout,
+      changedNodeIds: new Set([changedId]),
+    });
+
+    expect(
+      JSON.stringify(beforeLayout),
+      "这一帧把上一帧那份解改了 → 下一帧拿它当基准就是错的（而且那个数组会一轮轮变长）",
+    ).toBe(snapshot);
+  });
+
+  it("删掉一个孩子：它不能留在解里，绘制次序必须与全量一致", () => {
+    // 特意造一个**非根**的固定尺寸父节点：根是直接 place 的（不走沿用判据），
+    // 而固定尺寸的父节点在"少一个孩子"时大小不变 → 最容易踩"沿用"
+    const page = createPage("Deep", 1000, 1000);
+    const rootId = page.rootId;
+    const root = page.nodes[rootId]!;
+    const mid = createNode({ type: "frame", name: "Mid", size: { width: 300, height: 100 } });
+    const kid1 = createNode({ type: "shape", name: "K1", size: { width: 40, height: 30 } });
+    const kid2 = createNode({ type: "shape", name: "K2", size: { width: 60, height: 20 } });
+    for (const node of [mid, kid1, kid2]) page.nodes[node.id] = node;
+    mid.children = [kid1.id, kid2.id];
+    root.children = [mid.id];
+
+    const beforeLayout = resolveLayout(page);
+
+    // 结构变了：mid 的孩子少了一个（mid 尺寸固定 → 大小不变 → 位置也不变）
+    page.nodes[mid.id] = { ...mid, children: [kid1.id] };
+    delete page.nodes[kid2.id];
+
+    const incremental = resolveLayoutIncremental(page, {
+      prevLayout: beforeLayout,
+      changedNodeIds: new Set([kid2.id]),
+    });
+    const full = resolveLayout(page);
+
+    expect(incremental.nodes[kid2.id], "已删的节点不该还在解里").toBeUndefined();
+    expect(incremental.paintOrder).toEqual(full.paintOrder);
+    expect(incremental.nodes).toEqual(full.nodes);
+  });
 });

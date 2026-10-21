@@ -3553,6 +3553,18 @@ image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；�
    所以改一次品牌色也会让缓存整份作废（下一帧重量一遍）——宁可多量一次，不拿说不清的复用去赌尺寸（§159）。
    **补测 3 条**（`packages/design-model/test/measure-cache.test.ts`），且验证过**摘掉修复后三条全红**
    （"受 token 影响的节点沿用了旧高度 expected 24 to be greater than 24"）——是真守卫，不是摆设。
+   **⚠️ 2026-10-21 上午：这一格底下还压着一个更大的发现——§147 的增量重解在编辑器里从来没跑过**
+   （探针查出来的：改一个节点后，**没被改**的节点不是同一个对象 → 走的是全量）。
+   三处根因：① 补丁走写时拷贝 → 文档对象每次都是新的 → 用对象身份判"是不是同一份文档"永远为假
+   → `prev` 恒为 null；② 改动集合登记在**布局求解之后**（`design.execute` 会同步触发 commit）
+   → 求解时它是空的；③ AI 事务完全没登记、undo/redo 登记太晚、`jumpTo` 走批量逆补丁也没登记。
+   修法：**文档代数**（`DesignStore.generation`：整份换掉 +1、打补丁不变）+ **先登记后变更** +
+   "算不全就强制全量"（`removeComponent`/`removeAsset`/`jumpTo`）。
+   **接上电之后又量出 7 倍的反向效果**（增量 848ms vs 全量 142ms）：根因是增量路里一个**平方级**的
+   形状检查（`children.every(c => prev.children.includes(c.id))`）＋它比错了对象
+   （拿按 parentId 建的 resolved 孩子表去比文档结构）＋往沿用来的父节点 push（污染上一帧）。
+   修完：模型层同一份真文档 **全量 27-41ms / 增量 16-29ms（测量 7 次 vs 9999 次）**。
+   完整判决书见 `docs/adr/0049-incremental-layout-was-never-running.md`。
 4. ~~**§146 的 100 档读数补齐**~~ **已落地**（2026-10-10，`docs/PERFORMANCE.md` 同日节）：
    首帧 426.3ms / 属性写入 61.3ms（两遍 31.8–90.7，抖动 2.8×）/ pan 6.1ms / 堆 98MB /
    画布 DOM 100 个（小文档视口裁剪未开）；**选中响应这一档没量到**（3 秒内手柄没出现），

@@ -159,7 +159,7 @@ export class StudioStore {
   private projectId = '';
   private listeners = new Set<() => void>();
   private snapshot!: StudioSnapshot;
-  private layoutCache: { key: string; doc: DesignDocument; pageId: string; value: ResolvedLayout | null } | null = null;
+  private layoutCache: { key: string; doc: DesignDocument; gen: number; pageId: string; value: ResolvedLayout | null } | null = null;
   /**
    * §147 增量解：自上一次布局求解以来，改动碰到过哪些节点。
    *
@@ -168,6 +168,18 @@ export class StudioStore {
    * 那才是错的。所以宁可多收，不可漏收。
    */
   private layoutChangedNodeIds = new Set<NodeId>();
+  /**
+   * §147 增量解：**这一刀的改动集合算不全** → 那一轮只能走全量。
+   *
+   * 什么时候算不全：`removeComponent` / `removeAsset` 会**扫遍所有页面**去解引用
+   * （组件定义没了，所有引用它的实例一起解开；资产下架了，所有页面上引用它的填充一起剥掉），
+   * 而那些被解开的节点**不在 op 里**（op 只带一个 componentId / assetId）。
+   * 改动集合算不全 → 增量路会把它们当成"没动过"而沿用上一帧那个对象
+   * （那个对象**内嵌旧的节点**）→ 画布还画着已删资产/已解开的实例。
+   *
+   * 算不全就不假装算全：这一刀走全量（宁可多算一次，不画错）。
+   */
+  private layoutForceFull = false;
   /**
    * §147 增量解：**跨帧**的测量缓存（"量文字"是布局里最贵的一截，而它与位置变没变无关）。
    *
@@ -339,7 +351,9 @@ export class StudioStore {
 
   private resolveFor(page: Page, document: DesignDocument, tokens: TokenStore): ResolvedLayout | null {
     const mode = document.activeMode ?? null;
-    const key = `${this.design.getState().revision}|${document.id}|${page.id}|${this.viewport}|${mode}`;
+    // 文档代数：整份换掉时 +1，打补丁时不变（见 DesignStore.generation）
+    const gen = this.design.getDocumentGeneration();
+    const key = `${this.design.getState().revision}|${gen}|${document.id}|${page.id}|${this.viewport}|${mode}`;
     // doc 身份一并判：事务内文档会变而 revision 不跳，只比 key 会拿到上一版文档的布局
     if (this.layoutCache?.key === key && this.layoutCache.doc === document) return this.layoutCache.value;
     // §147 增量解：这里**接过** `resolveLayoutIncremental`（2026-10-10），又把它撤回了（2026-10-12）——
@@ -357,19 +371,35 @@ export class StudioStore {
     // 上一帧那份解当增量基准的前提：**同一份文档、同一页**。
     // 换了项目、导入了文档、切了页，缓存里那份是**别的**文档/别的页的解，拿它当基准就是错的
     // （增量会以为那些节点没动过而沿用一份不相干的布局）。所以身份不符时基准为 null → 走全量。
+    //
+    // **这里原来比的是"文档对象身份"，那是错的**（2026-10-21 查出来的）：
+    // 补丁走写时拷贝，`applyPatch` 每次都返回**新的文档对象** → 对象身份永远不同
+    // → `prev` 永远是 null → **增量路在编辑器里从来没跑过**（跨帧的测量缓存也因此从没跨帧）。
+    // 正确的判据是**文档代数**（DesignStore.generation）：整份换掉时 +1，打补丁时不变
+    // → "同一代数 + 同一页"就等价于"同一份文档的上一帧" ✓
     const cache = this.layoutCache;
-    const prev = cache && cache.doc === document && cache.pageId === page.id ? cache.value : null;
+    const prev = cache && cache.gen === gen && cache.pageId === page.id ? cache.value : null;
     // 增量是**默认开的**，但留一个构建期开关能一键回退到全量（全量是唯一真值，§159 不假装）：
     // `NEXT_PUBLIC_NEXUS_INCREMENTAL_LAYOUT=0` 的生产构建走全量。设成别的值（含不设）都走增量。
     // 这个开关也是**量同一台机器上的 A/B**用的：同一个构建量两次（开/关），
     // 比"量两次不同的构建"可靠得多——后者的数会被机器当时的负载带偏（今天就吃过这个亏：
     // 接线前后两轮之间整台机器慢了 2.5 倍，属性写入 95.8 → 140ms 的差全在负载上）。
-    const incrementalOn = process.env.NEXT_PUBLIC_NEXUS_INCREMENTAL_LAYOUT !== '0';
+    // **运行期还能被覆盖**（`globalThis.__NEXUS_INCREMENTAL_LAYOUT__`）：为了能**同一个构建**量两次，
+    // 而 NEXT_PUBLIC_* 是构建期内联的（要换一次值就得重新 build 一份 → 又变成"两次不同的构建"）。
+    // 覆盖只在浏览器里有意义（客户端才有布局求解）；服务端没这个全局 → 用构建期那个。
+    const runtimeOverride = (globalThis as { __NEXUS_INCREMENTAL_LAYOUT__?: boolean })
+      .__NEXUS_INCREMENTAL_LAYOUT__;
+    const incrementalOn =
+      runtimeOverride === undefined
+        ? process.env.NEXT_PUBLIC_NEXUS_INCREMENTAL_LAYOUT !== '0'
+        : runtimeOverride;
     // 跨帧的测量缓存：增量路复用它（被改到的条目由增量路自己作废），
     // 全量路走之前整份清空——内容可能整体换过（导入/恢复），旧的测量不再可信。
     const measureCache = this.layoutMeasureCache;
     try {
-      if (incrementalOn && changed.size > 0 && prev) {
+      // `layoutForceFull`：这一刀的改动集合**算不全**（删组件/删资产会扫遍所有页面解引用）
+      // → 宁可多算一次走全量，也不沿用上一帧那个对象（内嵌旧节点 → 画旧内容）
+      if (incrementalOn && !this.layoutForceFull && changed.size > 0 && prev) {
         layout = resolveLayoutIncremental(page, {
           tokens,
           mode,
@@ -392,9 +422,12 @@ export class StudioStore {
       console.error('[studio] resolveLayout failed', error);
       layout = null;
     }
-    this.layoutCache = { key, doc: document, pageId: page.id, value: layout };
+    this.layoutCache = { key, doc: document, gen, pageId: page.id, value: layout };
     // 这一轮的改动已经算进这一份布局了：清空，下一轮从新的起点开始
     this.layoutChangedNodeIds = new Set<NodeId>();
+    // "这一刀算不全"的标记同理：这一轮已经走了全量（布局是新的），
+    // 下一轮起改动集合又是准的，可以回到增量
+    this.layoutForceFull = false;
     // 诊断：解算次数与命中次数分开记。一次编辑该解一次；两次说明复用没兜住
     if (
       process.env.NODE_ENV !== 'production' ||
@@ -1204,12 +1237,16 @@ export class StudioStore {
 
   execute(label: string, ops: PatchOp[]): void {
     if (!ops.length) return;
+    // §147 增量解：**先**登记这次改动碰到哪些节点。
+    // 为什么必须先：`design.execute` 会**同步**触发 commit → 布局就在那一刻求解，
+    // 登记晚了这一帧的改动集合是空的 → 走全量 → 增量路**从来没在编辑器里跑过**
+    // （2026-10-21 用探针查出来的：改一个节点后，没被改的节点不是同一个对象）。
+    // 登记早了就有了"这一帧改了谁"这份账，增量路才有基准可用。
+    this.noteLayoutOps(ops);
     const document = this.design.getDocument();
     const entry = this.design.execute(manualCommand(label, { pageId: document.activePageId, ops }));
     // #62②：这次命令的补丁进待发队列，自动保存从此发 ops 而不是整份文档
     this.pendingPatches.push(...entry.applied);
-    // §147 增量解：记下这次改动碰到了哪些节点（下一轮布局求解拿它当"改动集合"）
-    this.noteLayoutOps(ops);
     this.markDirty();
   }
 
@@ -1640,21 +1677,28 @@ export class StudioStore {
   }
 
   undo(): void {
+    // §147 增量解：撤销动过的节点也要进"改动集合"——撤销不走 execute()，
+    // 不登记的话，下一轮增量会以为那些节点"没动过"而沿用撤销前那一份几何（错的）。
+    // **同样要"先登记后变更"**：`design.undo()` 会同步触发 commit → 布局就在那一刻求解。
+    // 逆补丁在撤销之前就能从历史里取到（要撤销的那一条就在栈顶）。
+    const stack = this.design.history().undo;
+    const top = stack[stack.length - 1];
+    if (top) this.noteLayoutChanges(top.inverse);
     const entry = this.design.undo();
     if (!entry) return;
     // 撤销在服务端也是补丁（逆补丁），不是"把旧文档再发一遍"
     this.pendingPatches.push(...entry.inverse);
-    // §147 增量解：撤销动过的节点也要进"改动集合"——撤销不走 execute()，
-    // 不登记的话，下一轮增量会以为那些节点"没动过"而沿用撤销前那一份几何（错的）。
-    this.noteLayoutChanges(entry.inverse);
     this.markDirty();
   }
 
   redo(): void {
+    // 同上：重做也要先登记（要重做的那一条在 redo 栈顶）
+    const stack = this.design.history().redo;
+    const top = stack[stack.length - 1];
+    if (top) this.noteLayoutChanges(top.applied);
     const entry = this.design.redo();
     if (!entry) return;
     this.pendingPatches.push(...entry.applied);
-    this.noteLayoutChanges(entry.applied);
     this.markDirty();
   }
 
@@ -1669,6 +1713,25 @@ export class StudioStore {
       if ('nodeId' in op && op.nodeId) this.layoutChangedNodeIds.add(op.nodeId);
       if ('node' in op && op.node?.id) this.layoutChangedNodeIds.add(op.node.id);
       if ('parentId' in op && op.parentId) this.layoutChangedNodeIds.add(op.parentId);
+      // 撤销/重做会把**引用**与**实例**一起放回来（restoreAsset / restoreComponent），
+      // op 里**带着**那些节点 → 登记进改动集合就够（不登记的话增量路会沿用旧对象 → 画旧内容）
+      if ('nodes' in op && Array.isArray(op.nodes)) {
+        for (const r of op.nodes) {
+          if (r && typeof r === 'object' && 'nodeId' in r && r.nodeId) {
+            this.layoutChangedNodeIds.add(r.nodeId);
+          }
+        }
+      }
+      if ('paints' in op && Array.isArray(op.paints)) {
+        for (const r of op.paints) {
+          if (r && typeof r === 'object' && 'nodeId' in r && r.nodeId) {
+            this.layoutChangedNodeIds.add(r.nodeId);
+          }
+        }
+      }
+      // 删组件 / 删资产会**扫遍所有页面**解引用：被解开的节点不在 op 里 → 改动集合算不全
+      // → 那一刀只能走全量（见 layoutForceFull）
+      if (op.op === 'removeComponent' || op.op === 'removeAsset') this.layoutForceFull = true;
     }
   }
 
@@ -1682,6 +1745,9 @@ export class StudioStore {
     // 跳转可能一次跨多条历史（每条各有正/逆补丁集），补丁词汇表不追这种批量：
     // 如实走整份替换
     this.forceFullSave = true;
+    // §147 增量解：那一批逆补丁动过的节点**没有**逐个登记（批量跳转不追）
+    // → 改动集合算不全 → 那一轮只能走全量（见 layoutForceFull）
+    this.layoutForceFull = true;
     this.markDirty();
   }
 
@@ -1693,6 +1759,9 @@ export class StudioStore {
   ): HistoryEntry | null {
     if (!patches.length) return null;
     const document = this.design.getDocument();
+    // §147 增量解：AI 事务的改动也要进"改动集合"（与手工编辑同一条路）。
+    // **先登记**：`applyWithinTransaction` / `commitTransaction` 会同步触发 commit → 布局就在那一刻求解。
+    this.noteLayoutChanges(patches);
     this.design.beginTransaction({ label: summary, source: 'ai', patches: [], capability });
     for (const patch of patches) {
       this.design.applyWithinTransaction({ ...patch, pageId: patch.pageId ?? document.activePageId });

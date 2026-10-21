@@ -1772,3 +1772,18 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   而并行会话那篇 marketplace 的下载计数已是 0047（提交 `bfbfbec`）→ **我的改成 `ADR-0048`**
   （`docs/adr/0048-first-paint-document-not-in-html.md`），引用处一并改（TESTING / page.tsx 注释）。
   **教训**：开 ADR 前先 `ls docs/adr/` 看下一个编号空着没有——并行会话会抢号。
+
+- **2026-10-21 上午：§147 增量重解这一格的补测共 6 条**（每条都验证过"摘掉修复就红"，
+  除了标了"不变量守卫"的那一条——它防的是将来有人改回去）：
+  ① `apps/web/test/studio-incremental-layout.test.ts`：改一个节点后，**没被改**的节点沿用**同一个对象**
+     （= 增量路真的在跑；判据是**行为**不是计数）；
+  ② 同文件：整份换掉文档后**不再沿用**（那是真的换了）；
+  ③ `apps/web/test/studio-incremental-staleness.test.ts`：删资产（会扫遍所有页面解引用）
+     与别的改动**同一批** → 画布不能还画着已删资产；
+  ④ 同文件：撤销式地"放回资产"（op 里带着那些节点）→ 画布要跟着回来；
+  ⑤ `packages/design-model/test/layout-incremental.test.ts`：删掉一个孩子 → 它不能留在解里、
+     绘制次序与全量一致（这一条在 `canReuse` 补"孩子表比对"之前是**红的**：增量解 ≠ 全量解）；
+  ⑥ 同文件：**不变量守卫**——这一帧不许改动上一帧那份解（沿用来的父节点不接收 push）。
+- **顺带记一条方法上的事**：**vitest 不做类型检查，build 才做**——
+  新写的测试文件有三处类型错（`AssetRef` 缺 `createdAt`、`restoreAsset.nodes` 缺 `assetId`）
+  是 `next build` 的类型检查抓到的（vitest 全绿）。
