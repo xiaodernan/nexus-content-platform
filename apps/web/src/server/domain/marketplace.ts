@@ -830,7 +830,14 @@ export async function getCreatorEarnings(input: CreatorEarningsInput): Promise<C
 /**
  * §123 Marketplace：审计日志动作类型。
  */
-export type AuditAction = 'purchase' | 'download' | 'settle' | 'price_change' | 'list' | 'delist';
+export type AuditAction =
+  | 'purchase'
+  | 'download'
+  | 'settle'
+  | 'price_change'
+  | 'list'
+  | 'delist'
+  | 'suspicious_purchase';
 
 export interface AuditMarketplaceActionInput {
   actorId: string;
@@ -1013,20 +1020,42 @@ export async function getReports(input: GetReportsInput): Promise<ReportEntry[]>
 }
 
 /**
- * §123 检测可疑行为模式（系统自动风控）。
- * 规则：
- * - 短时间内同一买家对同一物品多次购买（刷量）
- * - 创作者给自己刷量（buyerId === creatorId）
- * - 短时间内大量购买行为（可能是机器人）
+ * §123 风控规则。`fired` 为空即这一笔没踩线。
  */
-export async function detectSuspiciousPatterns(itemId: string, buyerId: string): Promise<boolean> {
+export type SuspiciousRule = 'repeat_same_item_1h' | 'self_purchase' | 'purchase_volume_24h';
+
+export interface SuspiciousDetection {
+  fired: SuspiciousRule[];
+  /**
+   * 每条规则的读数，随审计行一起落库。`self_purchase` 是 0/1。
+   *
+   * 今天只有 24 小时总量够得着：
+   * - `repeat_same_item_1h`：同一买家同一物品只有一行（唯一索引 + already_purchased），
+   *   计数永远 ≤ 1，阈值 3 走不到；
+   * - `self_purchase`：自购在 `purchaseMarketplaceItem` 里先被 own_item 拒绝，走不到检测；
+   * - `purchase_volume_24h`：>50 笔/24h，包含刚插入的这一笔。
+   * 前两条留着，是因为约束一旦放宽（可重复购买 / 所有权转移）它们就该自己起作用；
+   * "今天够不着"写在这里，不假装它们在拦什么。
+   */
+  counts: Record<SuspiciousRule, number>;
+}
+
+/**
+ * §123 检测可疑行为模式（系统自动风控）。
+ * 返回命中规则与读数而不是 boolean：路由把这份证据写进 `marketplace_audit_log`，
+ * 只回 boolean 的话窗口一关就查不到"因为哪条规则、读数多少"。
+ */
+export async function detectSuspiciousPatterns(
+  itemId: string,
+  buyerId: string,
+): Promise<SuspiciousDetection> {
   const db = getDb();
   const now = new Date();
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
   // 规则 1：一小时内同一买家对同一物品购买超过 3 次
-  const recentPurchasesBySameBuyer = await db
+  const [recentPurchasesBySameBuyer] = await db
     .select({ count: sql<number>`count(*)` })
     .from(marketplacePurchases)
     .where(
@@ -1036,35 +1065,35 @@ export async function detectSuspiciousPatterns(itemId: string, buyerId: string):
         gte(marketplacePurchases.purchasedAt, oneHourAgo),
       ),
     );
-
-  if ((recentPurchasesBySameBuyer[0]?.count ?? 0) > 3) {
-    return true;
-  }
+  const repeatSameItemInHour = Number(recentPurchasesBySameBuyer?.count ?? 0);
 
   // 规则 2：创作者给自己购买（自刷）
-  const item = await db
+  const [item] = await db
     .select({ creatorId: marketplaceItems.creatorId })
     .from(marketplaceItems)
     .where(eq(marketplaceItems.id, itemId))
     .limit(1);
-
-  if (item.length > 0) {
-    const first = item[0];
-    if (first && first.creatorId === buyerId) {
-      return true;
-    }
-  }
+  const selfPurchase = item?.creatorId === buyerId ? 1 : 0;
 
   // 规则 3：24 小时内该买家总购买次数异常多（> 50 次）
-  const totalRecentPurchases = await db
+  const [totalRecentPurchases] = await db
     .select({ count: sql<number>`count(*)` })
     .from(marketplacePurchases)
     .where(and(eq(marketplacePurchases.buyerId, buyerId), gte(marketplacePurchases.purchasedAt, twentyFourHoursAgo)));
+  const purchaseVolume24h = Number(totalRecentPurchases?.count ?? 0);
 
-  if ((totalRecentPurchases[0]?.count ?? 0) > 50) {
-    return true;
-  }
+  const fired: SuspiciousRule[] = [];
+  if (repeatSameItemInHour > 3) fired.push('repeat_same_item_1h');
+  if (selfPurchase === 1) fired.push('self_purchase');
+  if (purchaseVolume24h > 50) fired.push('purchase_volume_24h');
 
-  return false;
+  return {
+    fired,
+    counts: {
+      repeat_same_item_1h: repeatSameItemInHour,
+      self_purchase: selfPurchase,
+      purchase_volume_24h: purchaseVolume24h,
+    },
+  };
 }
 

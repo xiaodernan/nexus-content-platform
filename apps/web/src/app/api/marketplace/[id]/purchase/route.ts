@@ -13,6 +13,10 @@ import { jsonError } from '@/server/http';
  * 拒绝按 `PurchaseResult.reason` 翻码（§151）：不存在/已下架/私有草稿 → 404；
  * 免费/自己的/已经买过 → 400。以前这里比对四句英文，句子一改状态码就跟着变。
  * 未知异常仍由 catch 回 500，并记一条服务端日志。
+ *
+ * 风控（§123）：命中规则的购买写一行 `marketplace_audit_log`
+ * （action = `suspicious_purchase`，metadata 带规则与读数）。审计是旁证不是业务前提，
+ * 写失败只记 stderr——购买已经成功，不能因为旁证没落库就翻成 500。
  */
 export async function POST(
   req: Request,
@@ -50,11 +54,22 @@ export async function POST(
       metadata: { pricePaid: result.pricePaid },
     });
 
-    // 检测可疑行为
-    const isSuspicious = await detectSuspiciousPatterns(id, user.id);
-    if (isSuspicious) {
-      console.warn(`[FRAUD] Suspicious purchase detected: buyer=${user.id}, item=${id}`);
-      // TODO: 自动创建举报或标记为待审核
+    // 检测可疑行为：命中时把规则与读数落进审计，不再只打一行 warn
+    const detection = await detectSuspiciousPatterns(id, user.id);
+    if (detection.fired.length > 0) {
+      console.warn(
+        `[FRAUD] Suspicious purchase: buyer=${user.id}, item=${id}, rules=${detection.fired.join(',')}`,
+      );
+      try {
+        await auditMarketplaceAction({
+          actorId: user.id,
+          action: 'suspicious_purchase',
+          itemId: id,
+          metadata: { rules: detection.fired, counts: detection.counts },
+        });
+      } catch (auditError) {
+        console.error('Failed to record suspicious purchase audit:', auditError);
+      }
     }
 
     // 购买成功后触发创作者分成（静默失败，不影响购买流程）

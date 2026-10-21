@@ -5247,3 +5247,15 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   类型过滤、非 uuid 回空表）；单文件 5/5 绿；受影响的四个套件 52/52；e2e §127 在真浏览器里过
   （私密草稿创建 201 → 店面不列 → 重载后「我的物品」可见且带 private 标记 → 下架收尾）；
   tsc / eslint 0。
+- **2026-10-22 第九片（#156）：可疑购买只有一行 warn——命中规则与读数现在落进审计**。
+  `detectSuspiciousPatterns` 原来只回 boolean，路由拿到 true 只 `console.warn`：窗口一关，
+  "谁、哪条规则、读数多少"都没有了；旁边的 TODO 写着"自动创建举报或标记为待审核"，
+  但 `marketplace_reports.reporter_id` 是真人外键、也没有"待审核"状态列 ⇒ 不造假的系统举报，
+  改为写 `marketplace_audit_log`（action=`suspicious_purchase`，metadata={rules,counts}）。
+  购买结果不变（审计是旁证不是业务前提，写失败只记 stderr）。顺带核实三条规则的**可达性**：
+  同一买家同一物品有唯一索引 + already_purchased ⇒ 1 小时重复计数永远 ≤1；
+  自购在 `purchaseMarketplaceItem` 里先被 own_item 拒绝 ⇒ 前两条今天够不着，
+  真正能命中的只有 24 小时 >50 笔。规则本身保留（约束放宽时它们该自己起作用）。
+  见证：新套件 8 条（50 笔不命中 / 第 51 笔 200 且审计带 rules+counts=51 / 再买 400 不增行 /
+  自购 400 不写 / 对照买家不写 / 重复计数=1 / self_purchase 直接调用能命中 / 正常 purchase 行仍在）；
+  单文件 8/8 绿；tsc / eslint 0。

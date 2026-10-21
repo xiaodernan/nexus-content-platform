@@ -1196,7 +1196,7 @@ export const marketplaceAuditLog = pgTable(
     actorId: uuid('actor_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    /** action: purchase / download / settle / price_change / list / delist */
+    /** action: purchase / download / settle / price_change / list / delist / suspicious_purchase */
     action: text('action').notNull(),
     itemId: uuid('item_id')
       .notNull()

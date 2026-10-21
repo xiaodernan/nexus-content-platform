@@ -227,3 +227,17 @@
 - 见证：`marketplace-mine.integration.test.ts` 5 条——私密草稿在列表里；列表不含已下架、
   不含别人的私密草稿；归属/创作者名/价格/下载计数字段齐；类型过滤同一语义；非 uuid 的
   creatorId 回空表而不是 22P02。5/5 绿。
+
+## 2026-10-22 补记（#156）：可疑购买的证据落进审计
+
+- 事实：`detectSuspiciousPatterns` 只回 boolean，路由命中时只 `console.warn`；TODO 写的
+  "自动创建举报或标记为待审核"两样都没有落点——`marketplace_reports.reporter_id` 是真人外键，
+  没有系统举报者，也没有"待审核"状态列。写假举报就是把平台判断伪装成用户举报。
+- 决定：检测改成返回 `{fired, counts}`，路由写一行 `marketplace_audit_log`
+  （action=`suspicious_purchase`）。购买结果不变；审计写失败只记 stderr。
+- 可达性：唯一索引 `(item_id, buyer_id)` + `already_purchased` ⇒ 1 小时重复计数 ≤1；
+  自购被 `own_item` 先拒 ⇒ 规则 1/2 今天够不着，仅规则 3（24h >50 笔）可达。
+  规则保留，够不着这件事写进函数头。
+- 见证：`marketplace-suspicious.integration.test.ts` 8 条——50 笔不命中、第 51 笔 200 并落审计
+  （counts.purchase_volume_24h=51）、重复购买 400 不增行、自购 400 不写、对照买家不写、
+  self_purchase 直接调用能命中、正常 purchase 行仍在。
