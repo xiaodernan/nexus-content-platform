@@ -83,6 +83,11 @@ try {
 
   // ── §2 the thumbnail is REAL ──────────────────────────────────────────────────────────────────────
   {
+    // v293 — thumbnail.ts draws a stroke and a clip since v292/v293, so BOTH of its siblings join the box:
+    // `strip` writes a module and IMPORTS it in the same step, and a missing sibling is an unresolved
+    // import that crashes the whole proof, not a graded failure.
+    await strip('apps/studio/src/lib/paint.ts', box);
+    await strip('apps/studio/src/lib/clip.ts', box);
     const thumb = await strip('apps/studio/src/lib/thumbnail.ts', box);
     const { docToSvg, svgToDataUri } = thumb;
     const doc = createEmptyDocument('Harbour');

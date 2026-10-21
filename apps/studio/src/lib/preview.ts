@@ -8,12 +8,13 @@ import {
   type TextNode,
 } from '@nexus/design-model';
 import { paintToCss, resolveTextStyle, strokeToCss } from './paint';
+import { clipBoxFor, clipStyleFor, intersectClips, type ClipBox } from './clip';
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
 }
 
-function styleFor(node: DesignNode, doc: DesignDocument, rect: { x: number; y: number; width: number; height: number }): string {
+function styleFor(node: DesignNode, doc: DesignDocument, rect: { x: number; y: number; width: number; height: number }, clip: ClipBox | null): string {
   const parts: string[] = [
     `position:absolute`,
     `left:${rect.x}px`,
@@ -34,13 +35,21 @@ function styleFor(node: DesignNode, doc: DesignDocument, rect: { x: number; y: n
     const s = node.strokes[0]!;
     parts.push(`border:${s.weight}px solid ${strokeToCss(s)}`);
   }
+  // The artifact flattens the tree into siblings, so a clipping container cannot wrap what it cuts —
+  // the cut travels down the walk instead and comes back out as `inset()` distances on each child's own box.
+  // One divergence is accepted, and pinned by a test rather than left silent: CSS applies `clip-path` in the
+  // element's own box BEFORE its `transform`, so a TURNED child is cut by a line that turns with it, while
+  // the canvas and the SVG cut in the container's axis. The distances are therefore computed from the
+  // child's unrotated rect — exact for the 99% of spill that happens inside unturned frames.
+  const cut = clipStyleFor(rect, clip);
+  if (cut) parts.push(`clip-path:${cut}`);
   return parts.join(';');
 }
 
-function nodeToHtml(node: DesignNode, doc: DesignDocument, layout: Record<string, { x: number; y: number; width: number; height: number }>): string {
+function nodeToHtml(node: DesignNode, doc: DesignDocument, layout: Record<string, { x: number; y: number; width: number; height: number }>, clip: ClipBox | null): string {
   const rect = layout[node.id];
   if (!node.visible || !rect) return '';
-  const base = styleFor(node, doc, rect);
+  const base = styleFor(node, doc, rect, clip);
   if (node.type === 'text') {
     const t = node as TextNode;
     const st = resolveTextStyle(doc, t.style);
@@ -54,11 +63,12 @@ function nodeToHtml(node: DesignNode, doc: DesignDocument, layout: Record<string
   return `<div style="${base}"></div>`;
 }
 
-function flatten(node: DesignNode, doc: DesignDocument, layout: Record<string, { x: number; y: number; width: number; height: number }>, out: string[]): void {
-  out.push(nodeToHtml(node, doc, layout));
+function flatten(node: DesignNode, doc: DesignDocument, layout: Record<string, { x: number; y: number; width: number; height: number }>, out: string[], clip: ClipBox | null): void {
+  out.push(nodeToHtml(node, doc, layout, clip));
+  const under = intersectClips(clip, clipBoxFor(node, layout));
   for (const cid of childIdList(node)) {
     const child = doc.nodes[cid];
-    if (child) flatten(child, doc, layout, out);
+    if (child) flatten(child, doc, layout, out, under);
   }
 }
 
@@ -89,7 +99,7 @@ export function renderPreviewHtml(doc: DesignDocument, pageId: string): string {
   const rootNode = doc.nodes[pageId];
   if (rootNode) for (const cid of childIdList(rootNode)) {
     const child = doc.nodes[cid];
-    if (child) flatten(child, doc, layout, body);
+    if (child) flatten(child, doc, layout, body, null);
   }
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 :root{${tokenVars(doc)}}

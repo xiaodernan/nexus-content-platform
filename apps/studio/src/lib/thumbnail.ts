@@ -7,6 +7,7 @@ import {
   type DesignNode,
 } from '@nexus/design-model';
 import { strokeToCss } from './paint';
+import { clipBoxFor } from './clip';
 
 function fillOf(node: DesignNode, doc: DesignDocument): string {
   const f = node.fills[0];
@@ -44,11 +45,12 @@ export function docToSvg(doc: DesignDocument, pageId: string): string {
   const w = Math.max(1, maxX - minX);
   const h = Math.max(1, maxY - minY);
 
-  const parts: string[] = [];
-  const walk = (id: string): void => {
+  const clips: string[] = [];
+  let clipSeq = 0;
+  const walk = (id: string): string => {
     const node = doc.nodes[id];
     const r = layout[id];
-    if (!node || !r || !node.visible) return;
+    if (!node || !r || !node.visible) return '';
     const fill = fillOf(node, doc);
     // Match the canvas: turn about the node's own centre, and let children turn individually.
     const turn = node.rotation
@@ -62,26 +64,36 @@ export function docToSvg(doc: DesignDocument, pageId: string): string {
     // The canvas sets globalAlpha per node and restores before recursing, so a parent's fade does not
     // multiply into its children — which is what these flat siblings do too, hence one attribute per element.
     const fade = node.opacity === 1 ? '' : ` opacity="${node.opacity}"`;
+    let self = '';
     if (node.type === 'text') {
       const size = Math.max(8, r.height * 0.6);
-      parts.push(
-        `<text${turn} x="${n(r.x + 2)}" y="${n(r.y + r.height * 0.72)}" font-family="Inter,sans-serif" font-size="${n(size)}" fill="${fill}"${fade}>${escapeXml(String(node.characters ?? '').slice(0, 80))}</text>`,
-      );
+      self = `<text${turn} x="${n(r.x + 2)}" y="${n(r.y + r.height * 0.72)}" font-family="Inter,sans-serif" font-size="${n(size)}" fill="${fill}"${fade}>${escapeXml(String(node.characters ?? '').slice(0, 80))}</text>`;
     } else if (node.type !== 'page' && node.type !== 'document') {
       if (node.type === 'ellipse') {
-        parts.push(`<ellipse${turn} cx="${n(r.x + r.width / 2)}" cy="${n(r.y + r.height / 2)}" rx="${n(r.width / 2)}" ry="${n(r.height / 2)}" fill="${fill}"${line}${fade}/>`);
+        self = `<ellipse${turn} cx="${n(r.x + r.width / 2)}" cy="${n(r.y + r.height / 2)}" rx="${n(r.width / 2)}" ry="${n(r.height / 2)}" fill="${fill}"${line}${fade}/>`;
       } else {
         const rx = 'cornerRadius' in node ? node.cornerRadius : 0;
-        parts.push(`<rect${turn} x="${n(r.x)}" y="${n(r.y)}" width="${n(r.width)}" height="${n(r.height)}" rx="${n(rx)}" fill="${fill}"${line}${fade}/>`);
+        self = `<rect${turn} x="${n(r.x)}" y="${n(r.y)}" width="${n(r.width)}" height="${n(r.height)}" rx="${n(rx)}" fill="${fill}"${line}${fade}/>`;
       }
     }
-    for (const c of childIdList(node)) walk(c);
+
+    const kids = childIdList(node).map(walk).join('');
+    // The canvas turns a node about its own centre and restores before recursing, so children keep their
+    // own unturned positions; the clip must therefore be the container's turned BOUNDS, not its quad.
+    // A clipping container cuts its CHILDREN, never its own box, and the cut is the same axis-aligned
+    // turned bounds the canvas clips to and the artifact insets to (`lib/clip`).
+    const box = clipBoxFor(node, layout);
+    if (!box || !kids) return self + kids;
+    const ref = `clip${++clipSeq}`;
+    clips.push(`<clipPath id="${ref}" clipPathUnits="userSpaceOnUse"><rect x="${n(box.x)}" y="${n(box.y)}" width="${n(box.width)}" height="${n(box.height)}" rx="${n(box.radius)}"/></clipPath>`);
+    return `${self}<g clip-path="url(#${ref})">${kids}</g>`;
   };
-  walk(pageId);
+  const body = walk(pageId);
 
   const page = layout[pageId];
   const bg = page ? `<rect x="${n(page.x)}" y="${n(page.y)}" width="${n(page.width)}" height="${n(page.height)}" fill="#0b0e14"/>` : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${n(minX)} ${n(minY)} ${n(w)} ${n(h)}" width="${Math.round(w)}" height="${Math.round(h)}" preserveAspectRatio="xMidYMid meet">${bg}${parts.join('')}</svg>`;
+  const defs = clips.length ? `<defs>${clips.join('')}</defs>` : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${n(minX)} ${n(minY)} ${n(w)} ${n(h)}" width="${Math.round(w)}" height="${Math.round(h)}" preserveAspectRatio="xMidYMid meet">${bg}${defs}${body}</svg>`;
 }
 
 /** Encode an SVG string as an inline data URI safe to drop into an <img src>. */

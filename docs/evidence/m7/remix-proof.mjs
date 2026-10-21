@@ -191,6 +191,9 @@ try {
   // ── §5 the visitor loop: the artifact page links a visitor back into the Studio ────────────────────
   {
     await strip('apps/studio/src/lib/paint.ts', box);
+    // v293 — preview.ts clips through the shared `./clip` module, so it joins the box before preview does:
+    // a missing sibling is an unresolved import that crashes the proof, not a graded failure.
+    await strip('apps/studio/src/lib/clip.ts', box);
     await strip('apps/studio/src/lib/preview.ts', box);
     // artifact.ts imports the SHARED escaper, so the box needs it first — `strip` writes a module and
 // IMPORTS it in the same step, so a module's own siblings must already be in the box.

@@ -6,6 +6,7 @@ import {
   type TextNode,
 } from '@nexus/design-model';
 import { paintToCss, resolveTextStyle, strokeToCss } from './paint';
+import { clipBoxFor } from './clip';
 import { handlePoints, rectCenter, rotateHandlePoint, ROTATE_HANDLE_GAP } from './rotate';
 import type { Viewport } from './store';
 
@@ -205,7 +206,17 @@ function drawNode(ctx: CanvasRenderingContext2D, doc: DesignDocument, layout: Re
   }
   ctx.restore();
 
+  // A clipping container cuts its CHILDREN, never its own painted box, and the cut is applied AFTER the
+  // node's own rotation is undone — the same axis-aligned turned bounds the SVG thumb and the artifact use
+  // (`lib/clip`), so a turned frame clips wider than it looks in all three renderers alike.
+  const clip = clipBoxFor(node, layout);
+  if (clip) {
+    ctx.save();
+    roundRect(ctx, clip.x, clip.y, clip.width, clip.height, clip.radius);
+    ctx.clip();
+  }
   for (const cid of childIdList(node)) drawNode(ctx, doc, layout, cid, zoom, hideId, rotations);
+  if (clip) ctx.restore();
 }
 
 function drawImagePlaceholder(ctx: CanvasRenderingContext2D, w: number, h: number, zoom: number): void {
