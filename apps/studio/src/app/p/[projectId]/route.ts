@@ -116,6 +116,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
             accountId: l.accountId,
             nameText: l.handle ? `@${l.handle}` : l.accountId,
             assurance: l.assurance ?? null,
+            // v348 — and when they liked it: the service's own instant, in UTC, in the same style as
+            // the profile bar's dates (v341-v343) and the tip receipt's (v333).
+            likedText:
+              typeof l.createdAt === 'number' && Number.isFinite(l.createdAt)
+                ? new Date(l.createdAt).toISOString().replace('.000Z', 'Z')
+                : null,
           })),
         })
       : '';

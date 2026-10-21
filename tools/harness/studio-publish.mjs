@@ -3519,6 +3519,25 @@ try {
     await planPanelPage.close();
   }
 
+  // ── §57 v348: the artifact page’s like bar says WHEN each like happened ──────────────────────────
+  // The wire has carried the instant since the like’s own beginning, and the profile bar’s dates
+  // (v341-v343) and the tip receipt’s (v333) are in the same style.
+  {
+    const likeWhenHtml = await (await fetch(`${studioBase}/p/${encodeURIComponent(remixProjectId ?? projectId)}`)).text();
+    const likeWhenService = await (await fetch(`${apiBase}/likes?projectId=${encodeURIComponent(remixProjectId ?? projectId)}&limit=50`)).json();
+    const serviceLiked = (likeWhenService.likes ?? [])
+      .map((l) => l.createdAt)
+      .filter((v) => typeof v === 'number')
+      .map((v) => new Date(v).toISOString());
+    check(
+      'the artifact page’s like bar says when each like happened',
+      serviceLiked.length > 0
+        && likeWhenHtml.includes('nexus-liker-when')
+        && serviceLiked.every((w) => likeWhenHtml.includes(w)),
+      `the service: ${JSON.stringify(serviceLiked)}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

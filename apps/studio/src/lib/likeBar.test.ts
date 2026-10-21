@@ -10,6 +10,27 @@ import { injectLikeBar, renderLikeBar } from './likeBar';
  * that could not be READ is not a count of zero.
  */
 describe('likeIntent — the URL names the publication (M7 v284)', () => {
+  it('v348 — the bar says WHEN each like happened, in the service’s own style', () => {
+    // The service has carried the instant since the like's own beginning, and the profile bar's dates
+    // (v341-v343) and the tip receipt's (v333) are in the same style.
+    const html = renderLikeBar({
+      projectId: 'pub-1',
+      count: 1,
+      likers: [{ accountId: 'acct-bob', nameText: '@bob', assurance: 'unsigned-local', likedText: '2023-11-14T22:13:20Z' }],
+    });
+    expect(html).toContain('nexus-liker-when');
+    expect(html).toContain('2023-11-14T22:13:20Z');
+  });
+
+  it('v348 — and a liker with NO date says nothing rather than guessing', () => {
+    const html = renderLikeBar({
+      projectId: 'pub-1',
+      count: 1,
+      likers: [{ accountId: 'acct-bob', nameText: '@bob', assurance: 'unsigned-local' }],
+    });
+    expect(html).not.toContain('nexus-liker-when');
+  });
+
   it('reads the like id out of the query', () => {
     expect(likeIdFromSearch('?like=pub-1')).toBe('pub-1');
     expect(likeIdFromSearch('like=pub-1')).toBe('pub-1');

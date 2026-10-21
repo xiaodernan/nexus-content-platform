@@ -43,7 +43,7 @@ export interface LikeBarFacts {
    * could see WHO follows a creator and not WHO liked their work, which is the smaller of the two facts
    * and the one a creator would want to see most. The wire has carried the likers' names all along.
    */
-  likers?: { accountId: string; nameText: string; assurance?: string | null }[];
+  likers?: { accountId: string; nameText: string; assurance?: string | null; likedText?: string | null }[];
 }
 
 /**
@@ -64,7 +64,10 @@ export function renderLikeBar(facts: LikeBarFacts): string {
   const likers = (facts.likers ?? [])
     .map((l) => {
       const text = l.assurance ? `${l.nameText} · ${l.assurance}` : l.nameText;
-      return `<li data-liker="${escapeHtml(l.accountId)}"><a href="/u/${encodeURIComponent(l.accountId)}">${escapeHtml(text)}</a></li>`;
+      // v348 — and WHEN they liked it: the instant, not "3 days ago" — a relative date goes stale the
+      // moment it is written, and a like is a fact about the past that does not move.
+      const when = l.likedText ? ` <span class="nexus-liker-when">· on ${escapeHtml(l.likedText)}</span>` : '';
+      return `<li data-liker="${escapeHtml(l.accountId)}"><a href="/u/${encodeURIComponent(l.accountId)}">${escapeHtml(text)}</a>${when}</li>`;
     })
     .join('\n');
   const list = likers ? `<ul class="nexus-likes-list">\n${likers}\n</ul>` : '';
