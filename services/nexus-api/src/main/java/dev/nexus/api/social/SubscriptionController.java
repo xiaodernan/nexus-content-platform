@@ -207,8 +207,10 @@ public class SubscriptionController {
                 row.getExpiresAt() == null ? null : row.getExpiresAt().toEpochMilli(),
                 row.getSubscriberAccountId(),
                 row.getSubscriptionId(),
-                null,
-                null,
+                // v327 — the SUBSCRIBER's name and assurance, the slots the wire already had and the
+                // service always left null. The row keeps them now, so a creator sees who backed the plan.
+                row.getSubscriberHandle(),
+                row.getSubscriberAssurance(),
                 // v308 — where the subscription STANDS, computed by the service from the row and the clock.
                 service.standingOf(row));
     }

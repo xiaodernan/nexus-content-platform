@@ -19,6 +19,15 @@ export interface SubscriptionEntry {
   expiresAt: number | null;
   subscriberId: string;
   id: string;
+  /**
+   * v327 — the SUBSCRIBER's name and assurance.
+   *
+   * <p>The service's wire has carried these slots since v300 and the service filled them with null; it
+   * fills them now (the subscription row keeps the name the subscriber's claim carried), so a creator
+   * reading the subscriptions they received sees a person and not an address.
+   */
+  handle?: string | null;
+  assurance?: string | null;
   status?: string;
 }
 

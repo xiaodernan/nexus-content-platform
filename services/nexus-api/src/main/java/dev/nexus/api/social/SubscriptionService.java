@@ -157,6 +157,9 @@ public class SubscriptionService {
         Instant when = clock.instant().truncatedTo(ChronoUnit.MILLIS);
         // The SNAPSHOT: the plan's price, currency and period AS THEY ARE NOW. A later change to the plan
         // does not rewrite what the supporter agreed to.
+        // v327 — the NAME the subscriber's claim carried goes on the row, so a creator reading
+        // the subscriptions they received sees a person and not an address. A claim that carried no
+        // handle leaves no name: the panel then shows the account id rather than inventing one.
         SubscriptionEntry row = new SubscriptionEntry(
                 UUID.randomUUID().toString(),
                 subscriber,
@@ -167,7 +170,9 @@ public class SubscriptionService {
                 offered.getPeriod(),
                 when,
                 SubscriptionDtos.expiryOf(when, offered.getPeriod()),
-                true);
+                true,
+                claim == null ? null : claim.handle(),
+                claim == null ? null : claim.assurance());
         return subscriptions.save(row);
     }
 

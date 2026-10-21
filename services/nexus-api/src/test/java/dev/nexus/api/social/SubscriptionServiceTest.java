@@ -50,8 +50,18 @@ class SubscriptionServiceTest {
         service = new SubscriptionService(plans, subscriptions, clock);
     }
 
+    /** A claim that carries a HANDLE, the way a device with an account sends one. */
+    private static CreatorClaim claimWithHandle(String accountId, String handle) {
+        return new CreatorClaim(accountId, handle, "unsigned-local", AT.toEpochMilli());
+    }
+
     private static CreatorClaim claim(String accountId) {
         return new CreatorClaim(accountId, "ada", "unsigned-local", 1_700_000_000_000L);
+    }
+
+    /** A claim that carried NO handle — a device that named only its account id. */
+    private static CreatorClaim claimWithoutHandle(String accountId) {
+        return new CreatorClaim(accountId, null, "unsigned-local", 1_700_000_000_000L);
     }
 
     private static PlanEntry plan(String planId, String creator, long price, String period) {
@@ -373,6 +383,34 @@ class SubscriptionServiceTest {
                         "s-1", "acct-ada", "acct-bob", "pro", 1500, "CNY", "month", AT, null, true)));
 
         assertThat(service.subscriptionsOf("acct-ada", 20)).hasSize(1);
+    }
+
+    // ── v327: the subscriber's NAME goes on the row, so a creator sees a person ──────────────────
+
+    @Test
+    void theSubscribersNameGoesOnTheRow() {
+        // The follow row has kept the follower's handle since v288, and a creator looking at the
+        // subscriptions they received was looking at ADDRESSES: the handle was in the claim all along.
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(plan("pro", "acct-ada", 1500, "month")));
+        when(subscriptions.findBySubscriberAccountIdAndPlanId("acct-bob", "pro")).thenReturn(Optional.empty());
+        when(subscriptions.save(any(SubscriptionEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        SubscriptionEntry row = service.subscribe("pro", claimWithHandle("acct-bob", "bob"));
+
+        assertThat(row.getSubscriberHandle()).isEqualTo("bob");
+    }
+
+    @Test
+    void aClaimWithNoHandleLeavesNoName() {
+        // A claim that carried no handle leaves no name: the panel then shows the account id rather than
+        // inventing one.
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(plan("pro", "acct-ada", 1500, "month")));
+        when(subscriptions.findBySubscriberAccountIdAndPlanId("acct-bob", "pro")).thenReturn(Optional.empty());
+        when(subscriptions.save(any(SubscriptionEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        SubscriptionEntry row = service.subscribe("pro", claimWithoutHandle("acct-bob"));
+
+        assertThat(row.getSubscriberHandle()).isNull();
     }
 
     // ── v317: the creator can CHANGE the price of a plan they offer ─────────────────────────

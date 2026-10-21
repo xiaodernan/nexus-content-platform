@@ -73,6 +73,23 @@ public class SubscriptionEntry {
     @Column(name = "active", nullable = false)
     private boolean active;
 
+    /**
+     * v327 — the HANDLE the subscriber's claim carried, when it carried one. A name beside the id.
+     *
+     * <p>The follow row has kept the follower's handle since v288, and the trail names actors by id for the
+     * same reason: an id is an address, and a name is what a person can read. A creator looking at the
+     * subscriptions they received was looking at addresses — and the handle was in the claim all along.
+     *
+     * <p>It is NULLABLE on purpose: a claim that carried no handle leaves no name, and the panel then
+     * shows the account id rather than inventing one.
+     */
+    @Column(name = "subscriber_handle", length = 64)
+    private String subscriberHandle;
+
+    /** v327 — the assurance the subscriber's claim carried, the same way the follow row keeps it. */
+    @Column(name = "subscriber_assurance", length = 64)
+    private String subscriberAssurance;
+
     protected SubscriptionEntry() {
         // JPA needs it; the service never builds one without values.
     }
@@ -88,6 +105,29 @@ public class SubscriptionEntry {
             Instant subscribedAt,
             Instant expiresAt,
             boolean active) {
+        this(subscriptionId, subscriberAccountId, creatorAccountId, planId, priceCents, currency, period,
+                subscribedAt, expiresAt, active, null, null);
+    }
+
+    /**
+     * v327 — the same subscription, and the NAME the subscriber's claim carried.
+     *
+     * <p>The overload without the name is kept: a row built without a claim (the tests do) has no name, and
+     * that is the honest state of it.
+     */
+    public SubscriptionEntry(
+            String subscriptionId,
+            String subscriberAccountId,
+            String creatorAccountId,
+            String planId,
+            long priceCents,
+            String currency,
+            String period,
+            Instant subscribedAt,
+            Instant expiresAt,
+            boolean active,
+            String subscriberHandle,
+            String subscriberAssurance) {
         this.subscriptionId = subscriptionId;
         this.subscriberAccountId = subscriberAccountId;
         this.creatorAccountId = creatorAccountId;
@@ -98,6 +138,8 @@ public class SubscriptionEntry {
         this.subscribedAt = subscribedAt;
         this.expiresAt = expiresAt;
         this.active = active;
+        this.subscriberHandle = subscriberHandle;
+        this.subscriberAssurance = subscriberAssurance;
     }
 
     public String getSubscriptionId() {
@@ -138,6 +180,16 @@ public class SubscriptionEntry {
 
     public boolean isActive() {
         return active;
+    }
+
+    /** v327 — the handle the subscriber's claim carried, or null when it carried none. */
+    public String getSubscriberHandle() {
+        return subscriberHandle;
+    }
+
+    /** v327 — the assurance the subscriber's claim carried, or null when it carried none. */
+    public String getSubscriberAssurance() {
+        return subscriberAssurance;
     }
 
     /** The subscription ends: the supporter cancelled, or its period ran out. */

@@ -101,6 +101,16 @@ describe('economy — subscription rows (M8 v274)', () => {
     expect(toSubscriptionRow(sub({ expiresAt: 1 }))!.daysLeftText).toBe('Expired');
   });
 
+  it('v327 — names WHO subscribed', () => {
+    // The service's wire has carried the subscriber all along, and the creator's list did not show it:
+    // a creator reading the subscriptions they received was looking at a plan, a price and a status, and
+    // not at the person who had put their money behind it.
+    expect(toSubscriptionRow({ ...sub(), subscriberId: 'acct-bob', handle: 'bob' })!.subscriberText).toBe('@bob');
+    expect(toSubscriptionRow({ ...sub(), subscriberId: 'acct-bob' })!.subscriberText).toBe('acct-bob');
+    // And a subscription with no subscriber at all says "nobody" — never a blank.
+    expect(toSubscriptionRow(sub())!.subscriberText).toBe('nobody');
+  });
+
   it('a row it cannot display honestly is dropped', () => {
     expect(toSubscriptionRow(null)).toBeNull();
     expect(toSubscriptionRow('string')).toBeNull();

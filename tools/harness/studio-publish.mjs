@@ -2991,6 +2991,47 @@ try {
     await serviceFilterPage.close();
   }
 
+  // ── §41 v327: the creator sees WHO is backing their plan ──────────────────────────────────────────
+  // The service’s wire has carried the subscriber’s name all along, and the creator’s list of the
+  // subscriptions they received did not show it: a plan, a price and a status, and not the person who
+  // had put their money behind it.
+  {
+    const backerPage = await session.newPage('about:blank');
+    await backerPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(backerPage, 'the backer page to hydrate');
+    await signInAs(backerPage, 'ada', 'the creator whose plan was backed');
+    await backerPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+
+    const backerThere = await until(
+      async () => (await backerPage.evaluate("!!document.querySelector('[data-economy-received]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the received subscriptions to show' },
+    );
+    check('the creator’s received subscriptions are on screen', backerThere !== null, 'the rows are there');
+
+    const backers = await backerPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-subscriber]')).map((s) => s.getAttribute('data-economy-subscriber'))",
+    );
+    check(
+      'and each row says WHO is behind it — by the NAME the supporter’s claim carried',
+      backers.length > 0 && backers.every((b) => typeof b === 'string' && b.startsWith('@')),
+      `the subscribers: ${JSON.stringify(backers)}`,
+    );
+
+    // And the SERVICE names the same subscriber, read independently of the browser.
+    const backerRaw = await backerPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const backerOwner = JSON.parse(String(backerRaw)).id;
+    const backerSubs = await fetch(`${apiBase}/subscriptions?creator=${encodeURIComponent(backerOwner)}&limit=50`);
+    const backerSubsBody = await backerSubs.json();
+    const serviceSubscribers = (backerSubsBody.subscriptions ?? []).map((s) => s.subscriberId).filter(Boolean);
+    const serviceHandles = (backerSubsBody.subscriptions ?? []).map((s) => s.handle).filter(Boolean);
+    check(
+      'the SERVICE agrees — it sends the supporter’s name on the wire, and the panel shows it',
+      backerSubs.status === 200 && serviceHandles.length > 0 && serviceHandles.every((h) => backers.includes(`@${h}`)),
+      `the service’s handles: ${JSON.stringify(serviceHandles)} · the panel: ${JSON.stringify(backers)}`,
+    );
+    await backerPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

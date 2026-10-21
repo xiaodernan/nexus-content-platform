@@ -37,6 +37,21 @@ export interface EconomySubscription {
    * say — and the client says which one it used.
    */
   status?: string | null;
+  /**
+   * v327 — WHO subscribed.
+   *
+   * <p>The service's wire has carried the subscriber's account id all along (the same shape every social
+   * fact takes — the account, the handle and the assurance the claim carried), and the client simply
+   * dropped it: a creator reading the subscriptions they received could see a plan, a price and a status,
+   * and not who had put their money behind it.
+   *
+   * <p>The `handle` and `assurance` slots are on the wire and are FILLED WITH NULL for a subscription
+   * — the row stores the account id and no handle — so the name a creator sees today is the account
+   * id, the same identity the trail already names.
+   */
+  subscriberId?: string;
+  handle?: string | null;
+  assurance?: string | null;
 }
 
 /** What the service's tip row would carry. */
@@ -71,6 +86,14 @@ export interface SubscriptionRow {
    * the way out is a creator offering a NEW plan.
    */
   renewNote: string | null;
+  /**
+   * v327 — who subscribed, in a reader’s words.
+   *
+   * <p>The handle when the claim carried one, the account id when it did not, and "nobody" when neither
+   * is there: a name a creator can read is a fact about their own business, and a blank would be a
+   * small hole in it.
+   */
+  subscriberText: string;
 }
 
 /**
@@ -201,6 +224,28 @@ export function subscriptionStandingText(standing: SubscriptionStanding): string
  * One subscription row, or `null` when it cannot be shown honestly.
  * A row needs a planId and a finite price to say what it costs.
  */
+/**
+ * WHO subscribed, in a reader's words.
+ *
+ * <p>The handle when the wire carries one, the account id when it does not, and "nobody" when neither is
+ * there. A handle is a PUBLIC name — it is on the account's own profile — so naming it to the creator
+ * of the plan is not a new disclosure; it is the name the supporter already publishes.
+ *
+ * <p><b>What the wire carries TODAY, stated rather than assumed:</b> the service's subscription row
+ * stores the SUBSCRIBER'S ACCOUNT ID and no handle, and the wire's `handle` and `assurance` slots are
+ * filled with null for a subscription. So the name a creator sees today is the account id — which is
+ * the same identity the trail already names (v270's finding: the service has no account table to
+ * resolve an id into a handle with). The handle branch is kept because the wire HAS the slot, and a
+ * service that started filling it would make the panel say the supporter's name without a single
+ * change here.
+ */
+function subscriberTextOf(sub: EconomySubscription): string {
+  const handle = typeof sub.handle === 'string' && sub.handle.length > 0 ? sub.handle : null;
+  const id = typeof sub.subscriberId === 'string' && sub.subscriberId.length > 0 ? sub.subscriberId : null;
+  if (handle) return `@${handle}`;
+  return id ?? 'nobody';
+}
+
 export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
   if (typeof sub !== 'object' || sub === null) return null;
   const s = sub as EconomySubscription;
@@ -220,6 +265,8 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
     daysLeftText: subscriptionDaysLeftText(s, Date.now()),
     // v308 — and the same standing, so the row's two answers cannot disagree.
     isActive: standing === 'active',
+    // v327 — and who subscribed.
+    subscriberText: subscriberTextOf(s),
     // v313 — and the note, for a subscription that ended: it cannot be made again, and the panel says why
     // rather than leaving the reader hunting for a button that does not exist.
     renewNote:

@@ -1031,7 +1031,13 @@ export default function Toolbar() {
                   data-economy-received-status={row.statusText}
                   style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0' }}
                 >
-                  <span>{row.planId} — {row.priceText}</span>
+                  <span>
+                    {row.planId} — {row.priceText}
+                    {/* v327 — and WHO is behind it. A creator reading the subscriptions they received
+                        was looking at a plan, a price and a status, and not at the person who had put
+                        their money behind it — the wire has carried that name all along. */}
+                    <span data-economy-subscriber={row.subscriberText}>{row.subscriberText}</span>
+                  </span>
                   <span style={{ color: 'var(--nexus-muted)' }}>{row.statusText}</span>
                 </li>
               ))}
