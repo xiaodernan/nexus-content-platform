@@ -71,3 +71,6 @@ JSON.stringify(doc);
 console.log(`JSON.stringify：${(performance.now() - tSer).toFixed(0)}ms`);
 
 await sql.end();
+// 连接关掉后 Node 的事件循环可能还挂着（postgres 客户端的定时器）→ 显式退出，
+// 否则脚本会在量完之后**挂住不退出**（管道里 stdout 是缓冲的，一挂住输出就丢了）。
+process.exit(0);
