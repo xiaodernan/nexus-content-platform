@@ -180,6 +180,22 @@ class TipServiceTest {
         assertThat(service.totalGiven("acct-bob")).isEqualTo(1500L);
     }
 
+    // ── v355: the GIVING side is counted over the WHOLE table ────────────────────────
+
+    @Test
+    void theGivingSideIsCountedOverTheWholeTable() {
+        // A receipt that says "2 tip(s)" when the payer gave twenty is a receipt about a window. The
+        // count is the DATABASE's count, over every row the payer has ever tipped.
+        when(repository.countByPayerAccountId("acct-bob")).thenReturn(20L);
+
+        assertThat(service.countGiven("acct-bob")).isEqualTo(20L);
+    }
+
+    @Test
+    void theGivingSideNeedsAnAccount() {
+        assertThatThrownBy(() -> service.countGiven("  ")).isInstanceOf(InvalidTip.class);
+    }
+
     @Test
     void theLimitIsClampedRatherThanRefused() {
         when(repository.findByRecipientAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))

@@ -46,6 +46,13 @@ public final class TipDtos {
      * <p>`totalCents` is how much the recipient was given in the answer's window — summed by the
      * DATABASE, so it is a fact about the rows and not a running total the service kept in its head.
      */
-    public record TipAnswer(String recipientAccountId, List<Tip> tips, long totalCents, int count, int limit) {
+    /**
+     * v355 — the count is the WHOLE table's, in both directions.
+     *
+     * <p>It was the number of rows the service happened to read — the WINDOW’s size — and it was
+     * dressed as a total. The count is the DATABASE's count now, so a bar that pairs it with a list of
+     * rows can also say how many of those rows there are and whether the list is a window.
+     */
+    public record TipAnswer(String recipientAccountId, List<Tip> tips, long totalCents, long count, int limit) {
     }
 }

@@ -73,7 +73,9 @@ public class TipController {
                     payerAccountId,
                     givenTips,
                     service.totalGiven(payerAccountId),
-                    givenTips.size(),
+                    // v355 — the WHOLE count, not the window's: the same rule the recipient's side has
+                    // always kept, applied to the other direction.
+                    service.countGiven(payerAccountId),
                     asked));
         }
         List<TipEntry> rows = service.tipsReceived(recipientAccountId, asked);
@@ -82,7 +84,9 @@ public class TipController {
                 recipientAccountId,
                 tips,
                 service.totalReceived(recipientAccountId),
-                tips.size(),
+                // v355 — the WHOLE count, not the window's: the same rule the like and follow bars have
+                // always kept, and the reason v350's "showing the N newest of M" note can fire at all.
+                service.countReceived(recipientAccountId),
                 asked));
     }
 

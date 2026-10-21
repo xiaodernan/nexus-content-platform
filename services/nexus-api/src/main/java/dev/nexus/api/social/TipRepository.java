@@ -35,4 +35,13 @@ public interface TipRepository extends JpaRepository<TipEntry, String> {
 
     /** How many tips one account received. */
     long countByRecipientAccountId(String recipientAccountId);
+
+    /**
+     * v355 — how many tips one account GAVE, over the WHOLE table.
+     *
+     * <p>The same count the other way round, and for the same reason as the recipient's: a count the
+     * service made up from the rows it happened to read is a count of the WINDOW, and a window's count
+     * dressed as a total is a small lie.
+     */
+    long countByPayerAccountId(String payerAccountId);
 }

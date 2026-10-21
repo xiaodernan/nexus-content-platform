@@ -3603,6 +3603,20 @@ try {
     );
   }
 
+  // ── §61 v355: the tip bar’s count is the SERVICE’s count, not the window’s ───────────────────────
+  // The count used to be the number of rows the service happened to read, so it was a fact about the
+  // window and not about the thread — and v350’s "showing the N newest of M" note could never fire.
+  {
+    const tipCountHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(accountRecord?.id ?? '')}`)).text();
+    const tipCountService = await (await fetch(`${apiBase}/tips?recipient=${encodeURIComponent(accountRecord?.id ?? '')}&limit=50`)).json();
+    check(
+      'the profile’s tip bar says the count the SERVICE counted',
+      typeof tipCountService.count === 'number'
+        && tipCountHtml.includes(`data-tips="${tipCountService.count}"`),
+      `the service: ${JSON.stringify(tipCountService.count)}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

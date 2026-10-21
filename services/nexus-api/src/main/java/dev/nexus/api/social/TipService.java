@@ -139,6 +139,18 @@ public class TipService {
         return repository.countByRecipientAccountId(recipient);
     }
 
+    /**
+     * v355 — how many tips one account GAVE, over the whole table.
+     *
+     * <p>The other direction of the same count, and the reason the service has one for each: a receipt
+     * that says "2 tip(s)" when the payer gave twenty is a receipt about a window.
+     */
+    @Transactional(readOnly = true)
+    public long countGiven(String payerAccountId) {
+        String payer = requireAccount(payerAccountId, "a tip needs an account to give it");
+        return repository.countByPayerAccountId(payer);
+    }
+
     private static String requireAccount(String accountId, String because) {
         if (accountId == null || accountId.isBlank()) {
             throw new InvalidTip(because);
