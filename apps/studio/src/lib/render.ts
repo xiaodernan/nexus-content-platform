@@ -234,6 +234,10 @@ function drawText(ctx: CanvasRenderingContext2D, node: TextNode, doc: DesignDocu
   const st = resolveTextStyle(doc, node.style);
   ctx.fillStyle = node.fills[0] ? paintToCss(node.fills[0], doc) : '#e6ecf5';
   ctx.font = st.font;
+  // Six members travel with a resolved text style; the canvas honoured five of them. `letterSpacing` is what
+  // the artifact emits and the thumb now emits too, so the author's tracking has to reach the context as well.
+  // A context that does not know the property ignores the assignment; a declared zero leaves the state alone.
+  if (st.letterSpacing) ctx.letterSpacing = `${st.letterSpacing}px`;
   ctx.textBaseline = 'top';
   ctx.textAlign = st.align;
   const lines = wrapText(ctx, node.characters, w);

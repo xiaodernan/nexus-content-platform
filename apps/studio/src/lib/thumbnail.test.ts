@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyBatch, createEmptyDocument, ellipseNode, ops, rectNode, solid, textNode, type DesignDocument, type RGBA } from '@nexus/design-model';
+import { applyBatch, createEmptyDocument, ellipseNode, ops, rectNode, solid, textNode, type DesignDocument, type RGBA, type TextStyle } from '@nexus/design-model';
 import { docToSvg, svgToDataUri } from './thumbnail';
 
 function buildDoc(withNodes = true) {
@@ -155,5 +155,120 @@ describe('thumbnail: docToSvg edges', () => {
     const svg = docToSvg(d2, d2.activePageId);
     expect(svg).toContain('A'.repeat(80));
     expect(svg).not.toContain('A'.repeat(81));
+  });
+});
+
+/**
+ * M7 v294 — the thumbnail is the only renderer that used to draw text with numbers the model never gave it.
+ * It sized the letters from the BOX (`height * 0.6`), so a headline the document sets to `font.size.2xl`
+ * = 40px painted at 57.6px in every gallery card, a 20px subhead at 38.4px, `weight` never appeared, the
+ * family was hardcoded instead of read from `font.family.body`, and left/center/right all drew at the same
+ * x. It also cut the text at 80 characters WITHOUT saying it had.
+ *
+ * The rule now: the thumb resolves the same `TextStyle` the canvas and the artifact resolve (through
+ * `paint.resolveTextStyle`, tokens included) and says so when it must drop the tail.
+ */
+function textDoc(style: Partial<TextStyle> & { sizeToken: string }, box: { width: number; height: number }, chars = 'Selected work'): DesignDocument {
+  const doc0 = createEmptyDocument('Text style');
+  const full: TextStyle = { fontFamilyToken: 'font.family.body', weight: 400, lineHeight: 1.2, letterSpacing: 0, align: 'left', ...style };
+  const t = textNode('T', chars, full, { id: 'tx', x: 100, y: 100, ...box, fills: [{ kind: 'token', ref: 'color.text' }] });
+  return applyBatch(doc0, { id: 'b1', ops: [ops.addSubtree(doc0.activePageId, 0, [t])], provenance: { mode: 'user' }, timestamp: 0 });
+}
+
+// One doc, drawn by the same call: a second `textDoc()` invents a different page id, and a page the document
+// does not have makes docToSvg return the empty placeholder — which passes every "does not contain" claim.
+const textSvg = (style: Parameters<typeof textDoc>[0], box: { width: number; height: number }, chars?: string) => {
+  const doc = textDoc(style, box, chars);
+  return docToSvg(doc, doc.activePageId);
+};
+
+const sizeOf = (svg: string) => Number(/font-size="([\d.]+)"/.exec(svg)![1]);
+
+describe('thumbnail: the declared text style', () => {
+  it('paints the size the model declares, not one derived from the box', () => {
+    // The composer's hero headline: `font.size.2xl` in an 820x96 box (composer.ts:133). Measured before this
+    // grant: the thumb painted 57.6px — 1.44x the document's own number.
+    const svg = textSvg({ sizeToken: 'font.size.2xl' }, { width: 820, height: 96 });
+    expect(sizeOf(svg)).toBe(40);
+    expect(svg).not.toContain('57.6');
+  });
+
+  it('reads the family and the weight off the style instead of hardcoding them', () => {
+    const svg = textSvg({ sizeToken: 'font.size.lg', weight: 700 }, { width: 640, height: 64 });
+    expect(svg).toContain('font-family="Inter, system-ui, sans-serif"');
+    expect(svg).toContain('font-weight="700"');
+  });
+
+  it.each([
+    ['left', { x: '100', anchor: null }],
+    ['center', { x: '250', anchor: 'middle' }],
+    ['right', { x: '400', anchor: 'end' }],
+  ] as const)('gives align=%s its own anchor', (align, want) => {
+    const svg = textSvg({ sizeToken: 'font.size.lg', align }, { width: 300, height: 28 });
+    expect(/<text[^>]*\bx="([\d.]+)"/.exec(svg)![1]).toBe(want.x);
+    if (want.anchor) expect(svg).toContain(`text-anchor="${want.anchor}"`);
+    else expect(svg).not.toContain('text-anchor');
+  });
+
+  it('breaks the author’s newlines onto their own lines with the declared leading', () => {
+    // 20px x lineHeight 1.3 → the second line sits 26px under the first. The thumb cannot measure glyphs,
+    // so it breaks only where the AUTHOR broke — the divergence from the canvas' wrap is stated in the module.
+    const svg = textSvg({ sizeToken: 'font.size.lg', lineHeight: 1.3 }, { width: 300, height: 60 }, 'one\ntwo');
+    const dys = [...svg.matchAll(/<tspan[^>]*\bdy="([\d.]+)"/g)].map((m) => m[1]);
+    expect(dys).toEqual(['16', '26']);
+  });
+
+  it('emits tracking when the style declares it', () => {
+    expect(textSvg({ sizeToken: 'font.size.lg', letterSpacing: 1.5 }, { width: 300, height: 28 })).toContain('letter-spacing="1.5"');
+  });
+
+  it('emits no tracking attribute for the default zero', () => {
+    expect(textSvg({ sizeToken: 'font.size.lg' }, { width: 300, height: 28 })).not.toContain('letter-spacing');
+  });
+
+  it('marks the cut when it has to drop the tail', () => {
+    // The cap is real (a thumb ships as a data URI inside an <img>), but the SILENCE was the lie: a card that
+    // paints 80 of 102 characters without saying so tells the viewer the words ended where they did not.
+    const svg = textSvg({ sizeToken: 'font.size.xl' }, { width: 300, height: 40 }, 'A'.repeat(100));
+    expect(svg).toContain(`${'A'.repeat(80)}…`);
+    expect(svg).not.toContain('A'.repeat(81));
+  });
+
+  it('keeps the spaces the author typed', () => {
+    const svg = textSvg({ sizeToken: 'font.size.lg' }, { width: 300, height: 28 }, 'Ford  —  ridge');
+    expect(svg).toContain('xml:space="preserve"');
+    expect(svg).toContain('Ford  —  ridge');
+  });
+
+  it('falls back to 16px when the document names a size token it does not have', () => {
+    // A published document is JSON a client posted. `resolveToken` used to throw on a reference that is not
+    // a path at all, which took the whole gallery down over one malformed style; a missing token already
+    // meant "use the fallback", and now a non-path means the same.
+    expect(sizeOf(textSvg({ sizeToken: 'font.size.does-not-exist' }, { width: 300, height: 28 }))).toBe(16);
+  });
+
+  it('draws a style whose members are not of the declared types instead of pasting them into the card', () => {
+    // The thumb is one of three readers, so the members are coerced at the SHARED resolver (paint.ts), not
+    // per renderer. This leg runs through the thumb because the thumb is the reader that emits the values
+    // into MARKUP: `/explore` puts the SVG in an `<img src="data:…">` on every visitor's page.
+    const doc0 = createEmptyDocument('Malformed');
+    const bad = {
+      fontFamilyToken: 42,
+      sizeToken: { nope: true },
+      weight: 'bold" onload="x',
+      lineHeight: 'roomy',
+      letterSpacing: 'wide',
+      align: 'middle',
+    } as unknown as TextStyle;
+    const t = textNode('T', 'hi there', bad, { id: 'tx', x: 100, y: 100, width: 300, height: 28, fills: [{ kind: 'token', ref: 'color.text' }] });
+    const doc = applyBatch(doc0, { id: 'b1', ops: [ops.addSubtree(doc0.activePageId, 0, [t])], provenance: { mode: 'user' }, timestamp: 0 });
+    const svg = docToSvg(doc, doc.activePageId);
+    expect(svg).toContain('font-size="16"');
+    expect(svg).toContain('font-family="Inter, sans-serif"');
+    expect(svg).toContain('font-weight="400"');
+    expect(svg).not.toContain('letter-spacing');
+    expect(svg).not.toContain('onload');
+    // `middle` is not one of the three alignments the model declares; the word must not travel into the markup.
+    expect(svg).not.toContain('middle');
   });
 });

@@ -6,8 +6,15 @@ import {
   type DesignDocument,
   type DesignNode,
 } from '@nexus/design-model';
-import { strokeToCss } from './paint';
+import { resolveTextStyle, strokeToCss } from './paint';
 import { clipBoxFor } from './clip';
+
+/**
+ * The most text a thumbnail may carry. A thumb travels as a data URI inside an `<img>`, so its bytes are the
+ * price of every card in the gallery — the cap is real. What was NOT real until v294: the cut used to be
+ * silent, which told a viewer the words ended where they did not. A cut is now marked.
+ */
+const TEXT_CAP = 80;
 
 function fillOf(node: DesignNode, doc: DesignDocument): string {
   const f = node.fills[0];
@@ -66,8 +73,27 @@ export function docToSvg(doc: DesignDocument, pageId: string): string {
     const fade = node.opacity === 1 ? '' : ` opacity="${node.opacity}"`;
     let self = '';
     if (node.type === 'text') {
-      const size = Math.max(8, r.height * 0.6);
-      self = `<text${turn} x="${n(r.x + 2)}" y="${n(r.y + r.height * 0.72)}" font-family="Inter,sans-serif" font-size="${n(size)}" fill="${fill}"${fade}>${escapeXml(String(node.characters ?? '').slice(0, 80))}</text>`;
+      // v294 — the thumb used to INVENT a size from the box (`height * 0.6`): a hero headline the model sets
+      // to `font.size.2xl` = 40px painted at 57.6px, a 20px subhead at 38.4px, and left/center/right all drew
+      // at the same x. It now resolves the SAME style the canvas and the artifact resolve, tokens included.
+      const st = resolveTextStyle(doc, node.style);
+      // The canvas picks the anchor point the same way (`render.drawText`: x, x + w/2, x + w).
+      const tx = st.align === 'center' ? r.x + r.width / 2 : st.align === 'right' ? r.x + r.width : r.x;
+      const anchor = st.align === 'center' ? 'middle' : st.align === 'right' ? 'end' : null;
+      const raw = String(node.characters ?? '');
+      const shown = raw.length > TEXT_CAP ? `${raw.slice(0, TEXT_CAP)}…` : raw;
+      const lh = st.sizePx * st.lineHeight;
+      // SVG's `y` is a BASELINE where the canvas' `textBaseline:'top'` is a line TOP, so 0.8em stands in for
+      // the ascent — the thumb's own stated convention, not a measurement. One divergence is accepted rather
+      // than faked: the canvas measures glyphs and WRAPS at the box width, and an SVG string has no font
+      // engine to measure with, so the thumb breaks only on the author's own newlines.
+      const lines = shown.split('\n');
+      const spans = lines.map((line, i) => `<tspan x="${n(tx)}" dy="${i === 0 ? n(st.sizePx * 0.8) : n(lh)}">${escapeXml(line)}</tspan>`).join('');
+      const weight = ` font-weight="${n(st.weight)}"`;
+      const track = st.letterSpacing ? ` letter-spacing="${n(st.letterSpacing)}"` : '';
+      // `xml:space` because the artifact renders the author's spaces (`white-space:pre-wrap`) and SVG would
+      // otherwise collapse them — a thumb that closes up the words it pictures is a different kind of lie.
+      self = `<text${turn} x="${n(tx)}" y="${n(r.y)}" font-family="${escapeXml(st.family)}" font-size="${n(st.sizePx)}"${weight}${track}${anchor ? ` text-anchor="${anchor}"` : ''} xml:space="preserve" fill="${fill}"${fade}>${spans}</text>`;
     } else if (node.type !== 'page' && node.type !== 'document') {
       if (node.type === 'ellipse') {
         self = `<ellipse${turn} cx="${n(r.x + r.width / 2)}" cy="${n(r.y + r.height / 2)}" rx="${n(r.width / 2)}" ry="${n(r.height / 2)}" fill="${fill}"${line}${fade}/>`;
