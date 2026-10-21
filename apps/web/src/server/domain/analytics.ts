@@ -290,6 +290,57 @@ export function creatorAnalytics(ownerId: string): Promise<PublicationAnalyticsR
   return analyticsFor(ownerId);
 }
 
+/**
+ * §168：**导出**这些数字（CSV）。
+ *
+ * 为什么放在**领域层**而不是路由里拼：导出与页面读的是**同一个** `creatorAnalytics`
+ * ⇒ 两处的数字**不可能漂**（页面写"3 个访客"而导出写"4"这种不一致不会发生，§159）。
+ *
+ * 三条纪律：
+ * 1. **没采到就是空**，不是 0（`completion` 与 `playTimeMs` 为 null 时写空单元格）
+ *    ⇒ "未采集"与"采到 0"在导出里也分得开（页面那一侧已经这么写了）。
+ * 2. **转义按 RFC 4180**：含逗号 / 引号 / 换行的值加引号，里面的引号写成两个
+ *    ⇒ 一个带逗号的项目名不会把整张表挪位。
+ * 3. **列名与页面那一侧说的是同一件事**（这里的中文表头是给表格软件看的那一份）。
+ */
+function csvCell(value: string): string {
+  return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+/** 导出的表头：列名 + 取值（取值那一份只在这里写 ⇒ 页面与导出不可能各写一套） */
+const EXPORT_COLUMNS: readonly { label: string; pick: (row: PublicationAnalyticsRow) => string }[] = [
+  { label: '路径', pick: (row) => row.path },
+  { label: '项目', pick: (row) => row.projectName },
+  { label: '版本', pick: (row) => String(row.version) },
+  { label: '可见性', pick: (row) => row.visibility },
+  { label: '发布时间', pick: (row) => row.publishedAt.toISOString() },
+  { label: '打开次数', pick: (row) => String(row.analytics.views) },
+  { label: '今日打开', pick: (row) => String(row.analytics.opensToday) },
+  { label: '访客', pick: (row) => String(row.analytics.visitors) },
+  { label: '今日访客', pick: (row) => String(row.analytics.visitorsToday) },
+  { label: '点赞', pick: (row) => String(row.analytics.likes) },
+  { label: '改编', pick: (row) => String(row.analytics.remixes) },
+  { label: '关注作者', pick: (row) => String(row.analytics.followers) },
+  { label: '平均完成度%', pick: (row) => (row.analytics.completion ? String(row.analytics.completion.avgPct) : '') },
+  { label: '达标的访客', pick: (row) => (row.analytics.completion ? String(row.analytics.completion.over) : '') },
+  { label: '累计可见时长毫秒', pick: (row) => (row.analytics.playTimeMs === null ? '' : String(row.analytics.playTimeMs)) },
+  { label: '被截断的心跳', pick: (row) => String(row.analytics.cappedReports) },
+  { label: '只有自己看过', pick: (row) => (row.analytics.selfOnly ? '是' : '否') },
+  { label: '疑似爬虫打开', pick: (row) => String(row.analytics.botOpens) },
+  { label: '疑似爬虫访客', pick: (row) => String(row.analytics.botVisitors) },
+];
+
+/**
+ * 把创作者侧的那一份数字导成 CSV。
+ *
+ * 空行不是数据行：没有任何发布版本时只有表头那一行（不是"一行 0"）。
+ */
+export function analyticsCsv(rows: readonly PublicationAnalyticsRow[]): string {
+  const header = EXPORT_COLUMNS.map((column) => csvCell(column.label)).join(',');
+  const body = rows.map((row) => EXPORT_COLUMNS.map((column) => csvCell(column.pick(row))).join(','));
+  return [header, ...body].join('\r\n') + '\r\n';
+}
+
 /** 单个作品的分析；不是自己的（或根本不存在）都返回 null */
 export async function publicationAnalytics(
   ownerId: string,

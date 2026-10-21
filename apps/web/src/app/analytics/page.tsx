@@ -124,6 +124,19 @@ export default async function AnalyticsPage(props: {
       <p className="mt-1 text-12 text-fg-3">
         {user.displayName} · 共 {rows.length} 个发布过的版本 · 数据只对你自己可见
       </p>
+      <p className="mt-1 text-12 text-fg-3">
+        <a
+          href="/api/analytics/export"
+          download="creator-analytics.csv"
+          data-analytics-export
+          className="underline decoration-dotted underline-offset-2"
+        >
+          导出这一份数据（CSV）
+        </a>
+        <span className="ml-2 text-fg-3">
+          导出的是上面这张表里的同一份数字；空着的格子是「未采集」，不是 0。
+        </span>
+      </p>
 
       <ul className="mt-4 grid gap-1 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-3 text-11 text-fg-3 sm:grid-cols-2">
         {DEFINITIONS.map((item) => (
