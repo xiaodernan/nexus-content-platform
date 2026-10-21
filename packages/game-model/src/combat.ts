@@ -1,6 +1,6 @@
-import { compileRpg, type RpgPlan } from "./rpg";
-import { playtestRpg, type RpgPlaytestReport } from "./playtest";
-import type { PlayActor } from "./play";
+import { playtest, playtestRpg, type PlaytestReport } from "./playtest";
+import type { GamePlan, PlayActor } from "./play";
+import { compileForKind } from "./story";
 import { findEntity, setStat, type GameDocument, type GameEntity } from "./index";
 
 /**
@@ -127,8 +127,23 @@ export type CombatStopReason = "achieved" | "round-cap" | "no-lever-left" | "not
 export interface CombatTuning {
   /** 调过之后的那份文档（一处都没保留就是原样返回） */
   document: GameDocument;
-  before: RpgPlaytestReport;
-  after: RpgPlaytestReport;
+  /**
+   * 调之前的报告 / 调之后的报告。
+   *
+   * **类型是公共那一份**（`PlaytestReport`）：战斗目标读的是走法里的
+   * `status / seconds / damageTaken / policy` ⇒ 俯视那条管线给得出同样的字段
+   * （`RpgPlaytestReport` 是它的子类型）⇒ ⇒ 一份 2D 的设计也能被同一套目标读，
+   * 而读数来自**它自己那条管线**的试玩报告，不是拿 RPG 的判据去读（§159）。
+   */
+  before: PlaytestReport;
+  after: PlaytestReport;
+  /**
+   * 这些读数来自**哪条管线**（`rpg` / `topdown`）。
+   *
+   * 为什么要有这一格：调用方（链上那一格）要把"读数来自哪条管线"写在界面上，
+   * 而它自己**不该再判一次型**（§16：类型 → 管线的唯一分派点是 `compileForKind`）。
+   */
+  pipeline: "rpg" | "topdown";
   beforeGoals: CombatGoalReading[];
   goals: CombatGoalReading[];
   /** 保留下来的改动，按发生顺序 */
@@ -141,7 +156,13 @@ export interface CombatTuning {
 
 interface LeverInput {
   document: GameDocument;
-  plan: RpgPlan;
+  /**
+   * 关卡计划（公共那一份）。
+   *
+   * 为什么不是 RPG 计划：杠杆只读 `enemies` 与 `player` ⇒ 而 `compileRpg` 的 `base`
+   * **就是** `compileGame(document)`（`rpg.ts`）⇒ ⇒ 两条管线喂的是同一种形状。
+   */
+  plan: GamePlan;
   lever: CombatLever;
 }
 
@@ -196,7 +217,7 @@ function perEnemy(
   move: (current: number) => number | null,
 ): CombatAdjustment[] {
   const out: CombatAdjustment[] = [];
-  for (const enemy of plan.base.enemies) {
+  for (const enemy of plan.enemies) {
     const to = move(fieldOf(enemy, statKey));
     if (to === null) continue;
     const item = change(enemy, document, lever, statKey, to);
@@ -209,7 +230,7 @@ function forPlayer(
   { document, plan, lever }: LeverInput,
   move: (current: number) => number | null,
 ): CombatAdjustment[] {
-  const player = plan.base.player;
+  const player = plan.player;
   if (!player) return [];
   const to = move(player.health);
   if (to === null) return [];
@@ -288,7 +309,7 @@ export const COMBAT_LEVERS: readonly CombatLever[] = [
       "把战斗拖长的另一条办法：不动敌人生命，把玩家的重击变钝。地板设在 1 而不是 0，" +
       "因为 0 伤害等于「打不动」，那是另一条毛病，不该由这条杠杆制造出来。",
     changes: ({ document, plan, lever }) => {
-      const player = plan.base.player;
+      const player = plan.player;
       if (!player) return [];
       const source = offenseSource(document, player);
       if (!source) return [];
@@ -356,7 +377,7 @@ function leversFor(goalId: CombatGoalId): CombatLever[] {
   return COMBAT_LEVERS.filter((lever) => lever.goalId === goalId);
 }
 
-function readRuns(report: RpgPlaytestReport) {
+function readRuns(report: PlaytestReport) {
   const winners = report.runs.filter((run) => run.status === "won");
   const idle = report.runs.find((run) => run.policy === "idle");
   const flee = report.runs.find((run) => run.policy === "flee");
@@ -376,7 +397,7 @@ function readRuns(report: RpgPlaytestReport) {
  * 没有赢家时 `fight-length` / `winner-pays` 判为不达标（不是"未评估"）：
  * 它们读的就是"通关那几种"，一种都没有就是无从满足，而 `reading` 里明说没有读数。
  */
-export function combatGoals(report: RpgPlaytestReport): CombatGoalReading[] {
+export function combatGoals(report: PlaytestReport): CombatGoalReading[] {
   const r = readRuns(report);
   const hasWinner = r.winners >= COMBAT_RULES.minWinners;
   const byId: Record<CombatGoalId, CombatGoalReading> = {
@@ -426,15 +447,40 @@ export function combatGoals(report: RpgPlaytestReport): CombatGoalReading[] {
 
 interface Evaluation {
   document: GameDocument;
-  plan: RpgPlan;
-  report: RpgPlaytestReport;
+  plan: GamePlan;
+  report: PlaytestReport;
   goals: CombatGoalReading[];
+  /** 这些读数来自哪条管线（跟着走，调用方不用自己再判一次型） */
+  pipeline: "rpg" | "topdown";
 }
 
+/**
+ * 按**这份设计标的那一型**派管线来读数。
+ *
+ * 2026-10-22 之前这里无条件 `compileRpg` + `playtestRpg` ⇒ 链上一份 2D 的设计
+ * 被拿 **RPG 的判据**去读 ⇒ 报出来的"战斗目标达成没有"不是这份设计那条管线的读数（§159）。
+ *
+ * **RPG 那一条逐字不变**：`compileRpg` 的 `base` 就是 `compileGame(document)`（`rpg.ts`）
+ * ⇒ 这里取 `projection.plan.base` 与直接 `compileRpg(document).base` 完全相同 ⇒
+ * 杠杆读到的 `enemies` / `player` 一模一样（既有那把尺子：game-model 的 combat 用例一条都没改）。
+ *
+ * 对话那两种**没有战斗可调** ⇒ 明说，不做一份说得过去的假读数。
+ */
 function evaluate(document: GameDocument): Evaluation {
-  const plan = compileRpg(document);
-  const report = playtestRpg(plan);
-  return { document, plan, report, goals: combatGoals(report) };
+  const projection = compileForKind(document);
+  if (projection.pipeline === "rpg") {
+    const plan = projection.plan.base;
+    const report = playtestRpg(projection.plan);
+    return { document, plan, report, goals: combatGoals(report), pipeline: "rpg" };
+  }
+  if (projection.pipeline === "topdown") {
+    const plan = projection.plan;
+    const report = playtest(projection.plan);
+    return { document, plan, report, goals: combatGoals(report), pipeline: "topdown" };
+  }
+  throw new Error(
+    `对话那一型（${document.kind}）没有战斗可调：战斗数值这一格只对俯视与 RPG 那两条管线有意义。`,
+  );
 }
 
 function goalOf(goals: CombatGoalReading[], id: CombatGoalId): CombatGoalReading {
@@ -462,11 +508,11 @@ function writeStats(document: GameDocument, changes: readonly CombatAdjustment[]
 }
 
 /** 哪些位置的数从"投影兜底"变成了"作者写的数"（provenance 翻了槽位的那些） */
-function flippedToDesign(before: RpgPlan, after: RpgPlan): string[] {
+function flippedToDesign(before: GamePlan, after: GamePlan): string[] {
   const out: string[] = [];
-  for (const actor of [after.base.player, ...after.base.enemies]) {
+  for (const actor of [after.player, ...after.enemies]) {
     if (!actor) continue;
-    const was = before.base.player?.id === actor.id ? before.base.player : before.base.enemies.find((e) => e.id === actor.id);
+    const was = before.player?.id === actor.id ? before.player : before.enemies.find((e) => e.id === actor.id);
     if (!was) continue;
     for (const row of COMBAT_ADJUSTABLE) {
       const slot = row.provenanceSlot as "health" | "damage" | "senseRadius";
@@ -499,10 +545,11 @@ export function tuneCombat(document: GameDocument, options: TuneCombatOptions = 
   let current = start;
   let stopReason: CombatStopReason = "no-lever-left";
 
-  if (!start.plan.base.player) {
+  if (!start.plan.player) {
     // 没有玩家就没有可动的对象，四种走法跑起来只是立刻失败；这时任何数值调整都是凭空改文档
     return {
       document,
+      pipeline: start.pipeline,
       before: start.report,
       after: start.report,
       beforeGoals: start.goals,
@@ -584,6 +631,7 @@ export function tuneCombat(document: GameDocument, options: TuneCombatOptions = 
   if (achieved) stopReason = "achieved";
   return {
     document: current.document,
+    pipeline: start.pipeline,
     before: start.report,
     after: current.report,
     beforeGoals: start.goals,

@@ -8,6 +8,7 @@ import {
   compileGame,
   compileRpg,
   CODEGEN_LIMITS,
+  designLevel,
   GAME_KINDS,
   GAME_KIND_STATUS,
   generateGameCode,
@@ -16,6 +17,7 @@ import {
   playtest,
   playtestRpg,
   POSITION_STAT_KEYS,
+  tuneCombat,
   type GameDocument,
 } from '@nexus/game-model';
 import type { AgentPlan, RealtimeEvent } from '@nexus/schemas';
@@ -852,6 +854,55 @@ describe('§112 多步编排的执行方', () => {
     expect(game.summary).toContain('2D 草稿');
     expect(game.notes.join('')).toContain('topdown');
     expect(game.notes.join('')).not.toContain('经验来源');
+  });
+
+  it('链上要编 2D：战斗格与布局格的读数也是 topdown 那条管线的（不是 RPG 的）', async () => {
+    /**
+     * 2026-10-22 之前，这两格在 game-model 里**无条件** `compileRpg` + `playtestRpg`
+     * ⇒ 链上一份 2D 的设计被拿 **RPG 的判据**去读 ⇒ 报出来的"战斗目标达成没有""布局摆得开不开"
+     * 不是这份设计那条管线的读数（§159）。
+     *
+     * 判据是**测试自己重算一遍**：拿第一格留下的那份草稿，自己跑一遍 `tuneCombat` /
+     * `designLevel` ⇒ 两边的读数必须逐项相等（自己给自己打分那种实现混不过去）。
+     */
+    const projectId = await newProject('编排链上要 2D 的战斗与布局');
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '这一份要编 2D',
+      gameKind: '2d',
+    });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    const game = result.steps.find((step) => step.id === 'game')!;
+    const draft = game.draft as GameDocument;
+    expect(draft.kind).toBe('2d');
+
+    // 战斗格：读数等于"拿这份草稿自己重算一遍 tuneCombat"
+    const combat = result.steps.find((step) => step.id === 'combat')!;
+    const expectedCombat = tuneCombat(draft, { at: draft.updatedAt });
+    expect(combat.counts.rounds).toBe(expectedCombat.rounds.length);
+    expect(combat.counts.goalsTotal).toBe(expectedCombat.goals.length);
+    expect(combat.counts.goalsMet).toBe(expectedCombat.goals.filter((goal) => goal.achieved).length);
+    expect(combat.counts.fastestSeconds).toBe(
+      expectedCombat.goals.find((goal) => goal.id === 'fight-length')?.metric ?? 0,
+    );
+    expect(combat.counts.winnerCost).toBe(
+      expectedCombat.goals.find((goal) => goal.id === 'winner-pays')?.metric ?? 0,
+    );
+    // 两格都要**说出自己那条管线**（RPG 那一条一个字都不加 ⇒ 今天的界面一个字不变）
+    expect(combat.notes.join('')).toContain('topdown 管线');
+
+    // 布局格：拿战斗格交回来的那份草稿重算（这一格的输入是上一格改过的那份）
+    const level = result.steps.find((step) => step.id === 'level')!;
+    const expectedLevel = designLevel(expectedCombat.document, { at: expectedCombat.document.updatedAt });
+    expect(level.counts.rounds).toBe(expectedLevel.rounds.length);
+    expect(level.counts.goalsTotal).toBe(expectedLevel.goals.length);
+    expect(level.counts.goalsMet).toBe(expectedLevel.goals.filter((goal) => goal.achieved).length);
+    expect(level.counts.layoutAuthored).toBe(
+      expectedLevel.goals.find((goal) => goal.id === 'layout-authored')?.metric ?? 0,
+    );
+    expect(level.notes.join('')).toContain('topdown 管线');
   });
 
   it('链上要编对话那一型：链上没有配方 ⇒ 诚实拒收，不是一份空草稿', async () => {

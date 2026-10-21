@@ -417,7 +417,8 @@ function readingOf<G extends { id: string }>(goals: readonly G[], id: G['id']): 
  * 为什么这一步里没有"AI 判断"：`tuneCombat` 是 game-model 里的纯函数，五条目标的阈值、
  * 七条杠杆与上下界全部写死在 `COMBAT_RULES` / `COMBAT_LEVERS`（那边不读时钟、不碰库），
  * 所以 `at` 由这一层给——同一份草稿两次跑出来的数值表逐键相同，只有时间戳跟着这一次跑动走。
- * 读数也不是估的：每一轮改完都重跑 §53 那份定种子报告（四种走法、rpgStep）。
+ * 读数也不是估的：每一轮改完都重跑 §53 那份定种子报告（四种走法；**跑的是这份设计自己那条管线**——
+ * 2026-10-22 之前这里无条件跑 `compileRpg` + `playtestRpg`，链上一份 2D 的设计被拿 RPG 的判据去读，§159）。
  *
  * 拿不到上游草稿就直接失败，**不自己编一份设计来"调"**：那一步没跑成，这一步就没东西可改，
  * 计划里它会标 failed、下游标 skipped（纪律第 4 条）。
@@ -455,6 +456,11 @@ const combatStep: Runner = async (ctx) => {
       GAME_DRAFT_NOT_LANDED_NOTE,
       `这一步没有真 provider：目标带（${COMBAT_GOAL_ORDER.length} 条）与杠杆（${COMBAT_LEVERS.length} 条）、` +
         `上下界全部是 game-model 里写死的常量（COMBAT_RULES / COMBAT_LEVERS），改的是数值不是规则（§160）。`,
+      // **读数来自哪条管线要说出来**（2026-10-22）：这一格原来无条件跑 RPG 的判据，
+      // ⇒ 链上一份 2D 的设计被拿 RPG 的读数报给用户（§159）。RPG 那一条**一个字都不加**。
+      ...(tuning.pipeline === 'rpg'
+        ? []
+        : [`这一型走 ${tuning.pipeline} 管线：这些读数来自那条管线的四种走法，不是拿 RPG 的判据去试它。`]),
       ...tuning.notes,
       COMBAT_DESIGN_LIMITS[2] ?? '',
       '接受进来的可以是这一份（调过数值的），也可以是上面那一步那份原始草稿，或下面那一步摆过位置的草稿——三个按钮各接各的，点了才会写进项目。',
@@ -506,6 +512,11 @@ const levelStep: Runner = async (ctx) => {
       GAME_DRAFT_NOT_LANDED_NOTE,
       `这一步没有真 provider：四条几何目标（${LEVEL_GOAL_ORDER.length} 条）与杠杆（${LEVEL_LEVERS.length} 条）` +
         `全部是 game-model 里写死的常量（LEVEL_RULES / LEVEL_LEVERS），改的是坐标不是规则（§160）。`,
+      // **读数来自哪条管线要说出来**（2026-10-22）：这一格原来无条件跑 RPG 的判据，
+      // ⇒ 链上一份 2D 的设计被拿 RPG 的读数报给用户（§159）。RPG 那一条**一个字都不加**。
+      ...(design.pipeline === 'rpg'
+        ? []
+        : [`这一型走 ${design.pipeline} 管线：这些读数来自那条管线的试玩，不是拿 RPG 的判据去试它。`]),
       ...design.notes,
       LEVEL_DESIGN_LIMITS[2] ?? '',
       '接受进来的可以是这一份（摆过位置的），也可以是上面两步留下的草稿——三个按钮各接各的，点了才会写进项目。',

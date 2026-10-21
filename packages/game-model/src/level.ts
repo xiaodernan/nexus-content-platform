@@ -1,7 +1,7 @@
-import { compileRpg, type RpgPlan } from "./rpg";
-import { playtestRpg, type RpgPlaytestReport } from "./playtest";
+import { playtest, playtestRpg, type PlaytestReport } from "./playtest";
 import { combatGoals, type CombatGoalReading } from "./combat";
 import { ACTOR_RADIUS, ARENA, POSITION_STAT_KEYS, clampToArena, hasAuthoredPosition, type GamePlan, type PlayActor } from "./play";
+import { compileForKind } from "./story";
 import { findEntity, GAME_ENTITY_LABELS, setStat, type GameDocument, type GameEntity, type GameEntityKind } from "./index";
 
 /**
@@ -116,8 +116,22 @@ export type LevelStopReason = "achieved" | "round-cap" | "no-lever-left" | "not-
 
 export interface LevelDesign {
   document: GameDocument;
-  before: RpgPlaytestReport;
-  after: RpgPlaytestReport;
+  /**
+   * 调之前的报告 / 调之后的报告。
+   *
+   * **类型是公共那一份**（`PlaytestReport`）：布局目标与战斗目标读的都是走法里的公共字段
+   * ⇒ 俯视那条管线给得出同样的字段（`RpgPlaytestReport` 是它的子类型）
+   * ⇒ ⇒ 一份 2D 的设计能被同一套目标读，而读数来自**它自己那条管线**（§159）。
+   */
+  before: PlaytestReport;
+  after: PlaytestReport;
+  /**
+   * 这些读数来自**哪条管线**（`rpg` / `topdown`）。
+   *
+   * 为什么要有这一格：调用方（链上那一格）要把"读数来自哪条管线"写在界面上，
+   * 而它自己**不该再判一次型**（§16：类型 → 管线的唯一分派点是 `compileForKind`）。
+   */
+  pipeline: "rpg" | "topdown";
   beforeGoals: LevelGoalReading[];
   goals: LevelGoalReading[];
   /** 上一格那几条战斗目标：进入这一格时达标几条、结束时达标几条。不相等就必须解释 */
@@ -318,17 +332,43 @@ export function levelGoals(plan: GamePlan, document: GameDocument): LevelGoalRea
 interface Evaluation {
   document: GameDocument;
   plan: GamePlan;
-  rpg: RpgPlan;
-  report: RpgPlaytestReport;
+  report: PlaytestReport;
   goals: LevelGoalReading[];
   combat: CombatGoalReading[];
+  /** 这些读数来自哪条管线（跟着走，调用方不用自己再判一次型） */
+  pipeline: "rpg" | "topdown";
 }
 
-/** 与上一格同一对函数：跑的是 `compileRpg` + `playtestRpg`，试玩页读的也是这一对 */
+/**
+ * 按**这份设计标的那一型**派管线来读数。
+ *
+ * 2026-10-22 之前这里无条件 `compileRpg` + `playtestRpg` ⇒ 链上一份 2D 的设计
+ * 被拿 **RPG 的判据**去读 ⇒ 布局目标与战斗目标的读数不是这份设计那条管线的读数（§159）。
+ *
+ * **RPG 那一条逐字不变**：`compileRpg` 的 `base` 就是 `compileGame(document)`（`rpg.ts`）
+ * ⇒ 这里取 `projection.plan.base` 与直接 `compileRpg(document).base` 完全相同
+ * ⇒ 布局目标读到的场地与实体一模一样（既有那把尺子：game-model 的 level 用例一条都没改）。
+ *
+ * **那个 `rpg` 字段去掉了**：全仓只有这一处在搬运它、没有任何地方读它
+ * ⇒ 留着它只会让人以为这一格依赖 RPG 那一层（§16：两份真值）。
+ *
+ * 对话那两种**没有位置可摆** ⇒ 明说，不做一份说得过去的假读数。
+ */
 function evaluate(document: GameDocument): Evaluation {
-  const rpg = compileRpg(document);
-  const report = playtestRpg(rpg);
-  return { document, plan: rpg.base, rpg, report, goals: levelGoals(rpg.base, document), combat: combatGoals(report) };
+  const projection = compileForKind(document);
+  if (projection.pipeline === "rpg") {
+    const plan = projection.plan.base;
+    const report = playtestRpg(projection.plan);
+    return { document, plan, report, goals: levelGoals(plan, document), combat: combatGoals(report), pipeline: "rpg" };
+  }
+  if (projection.pipeline === "topdown") {
+    const plan = projection.plan;
+    const report = playtest(projection.plan);
+    return { document, plan, report, goals: levelGoals(plan, document), combat: combatGoals(report), pipeline: "topdown" };
+  }
+  throw new Error(
+    `对话那一型（${document.kind}）没有位置可摆：布局这一格只对俯视与 RPG 那两条管线有意义。`,
+  );
 }
 
 function goalOf(goals: LevelGoalReading[], id: LevelGoalId): LevelGoalReading {
@@ -517,6 +557,7 @@ export function designLevel(document: GameDocument, options: DesignLevelOptions 
     // 这时写坐标只是把一份跑不起来的设计伪装修饰过
     return {
       document,
+      pipeline: start.pipeline,
       before: start.report,
       after: start.report,
       beforeGoals: start.goals,
@@ -604,6 +645,7 @@ export function designLevel(document: GameDocument, options: DesignLevelOptions 
   if (achieved) stopReason = "achieved";
   return {
     document: current.document,
+    pipeline: start.pipeline,
     before: start.report,
     after: current.report,
     beforeGoals: start.goals,

@@ -18,6 +18,7 @@ import {
   type GameDocument,
   type GameEntity,
   type GameEntityKind,
+  type PlaytestReport,
   type RpgPlaytestReport,
 } from "../src/index";
 
@@ -198,7 +199,12 @@ function goal(list: CombatGoalReading[], id: CombatGoalReading["id"]): CombatGoa
   return found;
 }
 
-function runOf(report: RpgPlaytestReport, policy: string) {
+/**
+ * 参数类型放宽成公共那一份（2026-10-22）：战斗目标读的是走法里的公共字段
+ * ⇒ 俯视那条管线给得出同样的报告 ⇒ 这一格现在也能读非 RPG 的设计。
+ * **断言一个字都没改**（只是这个辅助函数的类型放宽了）。
+ */
+function runOf(report: PlaytestReport, policy: string) {
   const found = report.runs.find((item) => item.policy === policy);
   if (!found) throw new Error(`四种走法里没有 ${policy}`);
   return found;

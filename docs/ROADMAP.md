@@ -946,6 +946,24 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
    **仍欠**：**界面上的类型选择器**（Agent 面板那一个下拉）还没接 ⇒ 今天只能从 API
    带 `gameKind` 跑这一条链（另作一片，要 e2e 截图那一套）；§53 的 Capture screenshots /
    Detect bugs / Fix 三格要浏览器与模型，本机不假生成（§159）。
+   **2026-10-22 战斗格与布局格也按型派（补上 ADR-0052 那一格漏掉的两步）**：
+   上一格只把**上游（编草稿）与试玩格**按型派了，战斗格与布局格当时还在 game-model 里
+   **无条件** `compileRpg` + `playtestRpg` ⇒ 链上一份 2D 的设计被拿 **RPG 的判据**去读，
+   报出来的"战斗目标达成没有""布局摆得开不开"不是这份设计那条管线的读数（§159）。
+   ⇒ **改一半比不改更坏**：上游读的是自己那条管线、下游读的是 RPG 那条 ⇒ 同一份作业里两个口径。
+   - **怎么改的**：战斗目标与布局目标读的都是**走法里的公共字段**
+     （`status / seconds / damageTaken / policy`）⇒ 类型从 `RpgPlaytestReport` 放宽成
+     `PlaytestReport`（RPG 那条是它的子类型）⇒ 两边的 `evaluate` 改成走 `compileForKind` 分派。
+   - **RPG 那条路径逐字不变**：`compileRpg` 的 `base` **就是** `compileGame(document)`（`rpg.ts`）
+     ⇒ 杠杆读到的 `enemies` / `player` 一模一样 ⇒ **既有那批 combat / level 用例的断言一个字没改就绿**
+     （只把一个测试辅助函数的参数类型放宽容）。布局格那个只被搬运、没被读过的 `rpg` 字段直接去掉（§16）。
+   - **读数来自哪条管线由模型层说**：`CombatTuning.pipeline` / `LevelDesign.pipeline` 跟着走
+     ⇒ 链上那两格在界面上**说出**自己那条管线（RPG 那一条一个字都不加 ⇒ 今天的界面一个字不变）。
+   - **凭证**：新建 `packages/game-model/test/kind-dispatch.test.ts`（3 条：2D 那份的战斗/布局读数
+     **测试自己重算一遍**（`combatGoals(playtest(compileGame(doc)))` 那一对）⇒ 不许自证自成；
+     对话那一型明说"没有战斗可调 / 没有位置可摆"）；打真库的
+     `agent-orchestration.integration.test.ts` **21 → 22 条**（链上要 2D ⇒ 战斗格与布局格的读数
+     与测试自己重算的那一份逐项相等，且两格都说出 topdown 那条管线）。
 - [~] 游戏设计系统：Player/Enemy/Weapon/Item/Quest/Dialogue/Trigger/NPC/Camera/Animation/Particle（§54）
   — **2026-09-24 落地模型层**：新开 `packages/game-model`（与 design-model / world-model 同一条纪律：
   无 React、无 IO，两端跑同一份校验）。11 类实体 + 数值旋钮 + 实体间引用 + 引用完整性校验 + 确定性投影，
@@ -5211,3 +5229,11 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   （`purchase_not_found`，不抛）；并发用例从"只数 fulfilled"改为断言恰好一个 `ok:true` +
   一个 `ok:false:already_settled`。见证：settle 3 → 6 条，市场九套件 + id-shape **132/132** 绿；
   tsc / eslint 0。
+- **2026-10-21 第七片（#153）：详情 GET 的「包括已下架的，用于收藏者查看原因」是一句谎**。
+  `getMarketplaceItem` 从第一天就 `isNull(deletedAt)`——下架后详情本来就 404，没有"原因"可看；
+  市场里也没有收藏表，这句话的受益者不存在。买过的人要在「我的购买」看状态与下架时间（#150）。
+  行为不动（软删除保住数据、不保住可读性：详情 / 预览 / 交付三条读路同一口径），改的是文档与
+  答复形状：详情两处 404 从裸 `NextResponse.json({error:'Item not found'})` 换成
+  `jsonError(404,'not_found',{message:'物品不存在或已下架'})`，与市场其余 `[id]` 门同一个稳定机器码。
+  见证：visibility 9 → 10 条（下架后匿名与创作者本人都是 404 `not_found` + 中文 message）；
+  市场九套件 + id-shape **133/133** 绿；tsc / eslint 0。
