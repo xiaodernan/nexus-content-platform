@@ -2597,6 +2597,65 @@ try {
     await filterPage.close();
   }
 
+  // ── §33 v319: the trail filters by the REPORT verbs ───────────────────────────────────────────────
+  // The trail recorded the report verbs since v311, but they were visible only under "All" — so a reader
+  // asking "was my work complained about?" had to read the whole trail to find out. The filter asks in
+  // the trail’s own action, and the SUMMARY keeps counting the whole.
+  {
+    const verbPage = await session.newPage('about:blank');
+    await verbPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(verbPage, 'the verb page to hydrate');
+    await verbPage.evaluate("document.querySelector('[data-toolbar-trail-toggle]').click()");
+
+    const verbsThere = await until(
+      async () => (await verbPage.evaluate("!!document.querySelector('[data-trail-filters]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the trail filters to show' },
+    );
+    check('the trail offers a filter for every action it records', verbsThere !== null, 'the buttons are there');
+
+    const offered = await verbPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-trail-filter]')).map((b) => b.getAttribute('data-trail-filter'))",
+    );
+    check(
+      'and the report verbs are among them',
+      offered.includes('report') && offered.includes('withdraw-report') && offered.includes('acknowledge'),
+      `the filters: ${JSON.stringify(offered)}`,
+    );
+
+    // Filter to the filings only.
+    await verbPage.evaluate("document.querySelector('[data-trail-filter=\"report\"]').click()");
+    const narrowed = await until(
+      async () => {
+        const actions = await verbPage.evaluate(
+          "Array.from(document.querySelectorAll('[data-trail-row]')).map((r) => r.getAttribute('data-trail-action'))",
+        );
+        return actions.length > 0 && actions.every((a) => a === 'report') ? actions.length : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the rows to narrow to the filings' },
+    );
+    check('filtering by an action shows ONLY that action', narrowed !== null, `rows left: ${JSON.stringify(narrowed)}`);
+
+    // And the SUMMARY still counts the whole trail.
+    const summaryAfter = await verbPage.evaluate("document.querySelector('[data-trail-summary]')?.textContent ?? ''");
+    check(
+      'and the SUMMARY still counts the whole trail',
+      summaryAfter.includes('withdrew the report') && summaryAfter.includes('reported'),
+      `the summary says: ${JSON.stringify(summaryAfter)}`,
+    );
+
+    // And "All" puts everything back.
+    await verbPage.evaluate("document.querySelector('[data-trail-filter=\"all\"]').click()");
+    const restored = await until(
+      async () => {
+        const n = await verbPage.evaluate("document.querySelectorAll('[data-trail-row]').length");
+        return n > 1 ? n : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the rows to come back' },
+    );
+    check('and the All button brings every row back', restored !== null, 'the rows are back');
+    await verbPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

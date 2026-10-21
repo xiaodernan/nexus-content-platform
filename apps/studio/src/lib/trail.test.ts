@@ -237,3 +237,25 @@ describe('trail — the REPORT verbs in the tally (M7 v311)', () => {
   });
 });
 });
+describe('trail — the REPORT verbs in the FILTER (M7 v319)', () => {
+  const rows = toTrailRows([
+    entry({ id: '1', action: 'publish' }),
+    entry({ id: '2', action: 'report' }),
+    entry({ id: '3', action: 'withdraw-report' }),
+    entry({ id: '4', action: 'acknowledge' }),
+  ]);
+
+  it('each report verb is a filter of its own, asked in the trail’s own ACTION', () => {
+    expect(filterTrailRows(rows, 'report').map((r) => r.id)).toEqual(['2']);
+    expect(filterTrailRows(rows, 'withdraw-report').map((r) => r.id)).toEqual(['3']);
+    expect(filterTrailRows(rows, 'acknowledge').map((r) => r.id)).toEqual(['4']);
+  });
+
+  it('the DISPLAY word is not the action: filtering by “reported” matches nothing', () => {
+    // The button wears the display word; the filter asks in the raw action. If the two were the same
+    // string, a rename of the display word would silently change what the filter means — and a filter
+    // that suddenly matched nothing would look like a desk that suddenly went empty.
+    expect(filterTrailRows(rows, 'reported')).toEqual([]);
+    expect(filterTrailRows(rows, 'withdrew the report')).toEqual([]);
+  });
+});

@@ -750,7 +750,10 @@ export default function Toolbar() {
               {/* v281 — the FILTERS and the TALLY. The tally counts the whole answer; the filter narrows
                   the list. Both are shown, so a reader can always see what the filter is hiding — a panel
                   that showed only the filtered count would let a filter silently hide an action. */}
-              <div data-trail-filters style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+              <div
+                data-trail-filters
+                style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}
+              >
                 <button
                   className={`btn ${trailFilter === null ? 'tool-active' : ''}`}
                   data-trail-filter="all"
@@ -793,6 +796,34 @@ export default function Toolbar() {
                   title="only the comments"
                 >
                   Commented
+                </button>
+                {/* v319 — the REPORT verbs get their own filters too. Until now they were visible only
+                    under "All", so a reader asking "was my work complained about?" had to read the whole
+                    trail to find out. The filter asks in the service's own action, like every other
+                    button here. */}
+                <button
+                  className={`btn ${trailFilter === 'report' ? 'tool-active' : ''}`}
+                  data-trail-filter="report"
+                  onClick={() => setTrailFilter('report')}
+                  title="only the reports that were filed"
+                >
+                  Reported
+                </button>
+                <button
+                  className={`btn ${trailFilter === 'withdraw-report' ? 'tool-active' : ''}`}
+                  data-trail-filter="withdraw-report"
+                  onClick={() => setTrailFilter('withdraw-report')}
+                  title="only the reports the reporter took back"
+                >
+                  Withdrew
+                </button>
+                <button
+                  className={`btn ${trailFilter === 'acknowledge' ? 'tool-active' : ''}`}
+                  data-trail-filter="acknowledge"
+                  onClick={() => setTrailFilter('acknowledge')}
+                  title="only the reports the owner answered"
+                >
+                  Acknowledged
                 </button>
                 {trailSummary && (
                   <span data-trail-summary style={{ marginLeft: 'auto', color: 'var(--nexus-muted)' }}>
