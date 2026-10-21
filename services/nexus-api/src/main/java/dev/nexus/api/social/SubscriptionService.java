@@ -227,6 +227,43 @@ public class SubscriptionService {
     }
 
     /**
+     * v317 — CHANGE the price of a plan — and only the creator's own.
+     *
+     * <p>The subscriptions already made against the plan keep the price they were made at (the SNAPSHOT,
+     * v300), and the new price is what the NEXT subscriber agrees to. The creator may not change what a
+     * supporter already agreed to, and the service does not let them: there is nothing here that touches a
+     * subscription row.
+     *
+     * <p>A plan that is RETIRED may be repriced — but it stays retired. Retiring is one-way (v314), and a
+     * price change is not a way back.
+     */
+    @Transactional
+    public PlanEntry reprice(String planId, long priceCents, String period, CreatorClaim claim) {
+        String creator = requireAccount(claim == null ? null : claim.accountId(), "a plan needs an account to offer it");
+        if (planId == null || planId.isBlank()) {
+            throw new InvalidSubscription("planId must not be blank");
+        }
+        Optional<PlanEntry> found = plans.findByPlanId(planId.trim());
+        if (found.isEmpty()) {
+            throw new InvalidSubscription("there is no plan with this id");
+        }
+        PlanEntry row = found.get();
+        if (!row.getCreatorAccountId().equals(creator)) {
+            throw new NotYourPlan(
+                    "this plan was offered by another account, and only the account that offers it may change its price");
+        }
+        if (priceCents <= 0) {
+            throw new InvalidSubscription("a plan's price must be positive, got " + priceCents);
+        }
+        if (priceCents > MAX_PRICE_CENTS) {
+            throw new InvalidSubscription("a plan's price must be at most " + MAX_PRICE_CENTS + " cents, got " + priceCents);
+        }
+        String wanted = requirePeriod(period);
+        row.reprice(priceCents, wanted);
+        return plans.save(row);
+    }
+
+    /**
      * v314 — RETIRE a plan — and only the creator's own.
      *
      * <p>Retiring takes the OFFER away: nobody new can back the plan, and the service already refuses a

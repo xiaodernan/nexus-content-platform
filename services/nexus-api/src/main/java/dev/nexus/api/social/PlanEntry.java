@@ -121,6 +121,19 @@ public class PlanEntry {
         this.active = false;
     }
 
+    /**
+     * v317 — the creator changes the price (and the period) of a plan they offer.
+     *
+     * <p>The subscriptions already made against the plan are NOT touched: each one holds the price as a
+     * SNAPSHOT (v300), so a supporter who agreed to ¥15 a month still agreed to ¥15 a month, and the
+     * creator’s new price applies to the subscribers who come after it. That is the whole point of the
+     * snapshot, and a price change is the moment it earns its keep.
+     */
+    public void reprice(long priceCents, String period) {
+        this.priceCents = priceCents;
+        this.period = period;
+    }
+
     public boolean isActive() {
         return active;
     }

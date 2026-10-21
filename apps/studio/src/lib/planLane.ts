@@ -142,6 +142,57 @@ export async function retirePlan(
   }
 }
 
+/** What one reprice answered — the browser half. */
+export interface RepriceLaneAnswer {
+  ok: boolean;
+  priceCents?: number;
+  period?: string;
+  reason?: string;
+}
+
+/**
+ * CHANGE the price of a plan — the creator's own.
+ *
+ * <p>The subscriptions already made against the plan keep their price (the snapshot), and the new price is
+ * what the next subscriber agrees to.
+ */
+export async function repricePlan(
+  planId: string,
+  priceCents: number,
+  period: string,
+  claim: { accountId: string; handle?: string | null; assurance?: string | null; claimedAt?: number | null },
+  fetchImpl: FetchLike = fetch,
+): Promise<RepriceLaneAnswer> {
+  try {
+    const res = await fetchImpl(
+      `/api/plans?planId=${encodeURIComponent(planId)}&claimer=${encodeURIComponent(claim.accountId)}`
+        + `&price=${encodeURIComponent(String(priceCents))}&period=${encodeURIComponent(period)}`,
+      { method: 'PUT', headers: { accept: 'application/json' }, signal: callSignal() },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, reason: `the plans answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { ok?: unknown; priceCents?: unknown; period?: unknown; reason?: unknown; message?: unknown };
+    if (body.ok === false || !res.ok) {
+      const reason =
+        typeof body.reason === 'string'
+          ? body.reason
+          : typeof body.message === 'string'
+            ? body.message
+            : `the plans answered HTTP ${res.status}`;
+      return { ok: false, reason };
+    }
+    return {
+      ok: true,
+      priceCents: typeof body.priceCents === 'number' ? body.priceCents : undefined,
+      period: typeof body.period === 'string' ? body.period : undefined,
+    };
+  } catch (error) {
+    return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 /** OFFER a plan. */
 export async function offerPlan(
   planId: string,

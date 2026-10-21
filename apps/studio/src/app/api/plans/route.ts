@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { offerOnService, retirePlan } from '@/lib/planServer';
+import { offerOnService, repricePlan, retirePlan } from '@/lib/planServer';
 
 /**
  * M7 v301 (ADR 0016 amendment 301): `/api/plans` — this Studio's door onto the service's plans.
@@ -10,6 +10,35 @@ import { offerOnService, retirePlan } from '@/lib/planServer';
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+/**
+ * CHANGE the price of a plan — the creator's own.
+ *
+ * <p>The plan id, the claimer, the price and the period travel in the query, the same way the retire's
+ * claimer does (there is no session in this build — ADR 0018), and the service's own words come back
+ * unchanged: a refusal that loses its reason is a refusal that has to be run again to learn anything.
+ */
+export async function PUT(request: Request): Promise<NextResponse> {
+  const url = new URL(request.url);
+  const planId = url.searchParams.get('planId');
+  const claimer = url.searchParams.get('claimer');
+  const price = Number(url.searchParams.get('price'));
+  const period = url.searchParams.get('period');
+  if (!planId || planId.trim() === '') {
+    return NextResponse.json({ ok: false, reason: 'the planId is missing' }, { status: 400 });
+  }
+  if (!claimer || claimer.trim() === '') {
+    return NextResponse.json(
+      { ok: false, reason: 'changing a plan needs the account that offers it' },
+      { status: 400 },
+    );
+  }
+  if (!Number.isFinite(price)) {
+    return NextResponse.json({ ok: false, reason: 'a plan needs a price, in cents' }, { status: 400 });
+  }
+  const answer = await repricePlan(planId.trim(), Math.trunc(price), period ?? 'month', { accountId: claimer.trim() });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
+}
 
 export async function POST(request: Request): Promise<NextResponse> {
   let body: unknown;

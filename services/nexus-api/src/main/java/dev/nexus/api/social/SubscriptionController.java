@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -130,6 +131,28 @@ public class SubscriptionController {
                 .mapToLong(Subscription::priceCents)
                 .sum();
         return ResponseEntity.ok(new SubscriptionAnswer(subscriberAccountId, subs, total, subs.size(), asked));
+    }
+
+    /**
+     * v317 — CHANGE the price of a plan — and only the creator's own.
+     *
+     * <p>The subscriptions already made against it keep the price they were made at (the SNAPSHOT), and the
+     * new price is what the next subscriber agrees to.
+     */
+    @PutMapping("/plans/{planId}")
+    public ResponseEntity<Map<String, Object>> reprice(
+            @PathVariable String planId,
+            @RequestParam(name = "claimer", required = false) String claimerAccountId,
+            @RequestParam(name = "price", required = false) Long priceCents,
+            @RequestParam(name = "period", required = false) String period) {
+        CreatorClaim claim = claimerAccountId == null ? null : new CreatorClaim(claimerAccountId, null, null, null);
+        PlanEntry row = service.reprice(planId, priceCents == null ? 0L : priceCents, period, claim);
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "planId", row.getPlanId(),
+                "priceCents", row.getPriceCents(),
+                "period", row.getPeriod(),
+                "active", row.isActive()));
     }
 
     /**

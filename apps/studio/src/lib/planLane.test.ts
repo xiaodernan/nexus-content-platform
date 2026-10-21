@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { cancelSubscription, retirePlan } from './planLane';
+import { cancelSubscription, repricePlan, retirePlan } from './planLane';
 
 /**
  * M7 v314 — the browser half of the PLANS and SUBSCRIPTIONS lane.
@@ -109,6 +109,36 @@ describe('planLane — cancelSubscription (client half)', () => {
     );
     expect(answer.ok).toBe(true);
     expect(answer.ended).toBe(false);
+  });
+});
+
+describe('planLane — repricePlan (client half)', () => {
+  it('asks the Studio’s own door, with the plan id, the claimer, the price and the period', async () => {
+    const fetchImpl = makeFetch((url, init) => {
+      expect(url).toBe('/api/plans?planId=pro&claimer=acct-ada&price=2500&period=month');
+      expect(init?.method).toBe('PUT');
+      return new Response(JSON.stringify({ ok: true, planId: 'pro', priceCents: 2500, period: 'month' }), { status: 200 });
+    });
+    const answer = await repricePlan('pro', 2500, 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.priceCents).toBe(2500);
+  });
+
+  it('a REFUSAL carries the service’s reason, not a status code', async () => {
+    const answer = await repricePlan(
+      'pro',
+      2500,
+      'month',
+      CLAIM,
+      makeFetch(() =>
+        new Response(
+          JSON.stringify({ ok: false, reason: 'this plan was offered by another account' }),
+          { status: 502 },
+        ),
+      ),
+    );
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('this plan was offered by another account');
   });
 });
 });

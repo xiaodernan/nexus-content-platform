@@ -274,6 +274,64 @@ export async function retirePlan(
   }
 }
 
+/** What one reprice answered. */
+export interface RepriceAnswer {
+  ok: boolean;
+  /** The plan's price now, in cents. */
+  priceCents?: number;
+  /** The plan's period now. */
+  period?: string;
+  reason?: string;
+}
+
+/**
+ * CHANGE the price of a plan, on the service — and only the creator's own.
+ *
+ * <p>The subscriptions already made against the plan keep the price they were made at (the snapshot), and the
+ * new price is what the NEXT subscriber agrees to.
+ */
+export async function repricePlan(
+  planId: string,
+  priceCents: number,
+  period: string,
+  claim: { accountId: string; handle?: string | null; assurance?: string | null; claimedAt?: number | null },
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<RepriceAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(
+      `${apiBase}/plans/${encodeURIComponent(planId)}?claimer=${encodeURIComponent(claim.accountId)}`
+        + `&price=${encodeURIComponent(String(priceCents))}&period=${encodeURIComponent(period)}`,
+      { method: 'PUT', headers: { accept: 'application/json' } },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, reason: `the service's plans door answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { ok?: unknown; priceCents?: unknown; period?: unknown; reason?: unknown; message?: unknown };
+    // v313 — the refusal's own words, whenever the answer is NOT ok.
+    if (body.ok === false || !res.ok) {
+      const reason =
+        typeof body.reason === 'string'
+          ? body.reason
+          : typeof body.message === 'string'
+            ? body.message
+            : `the service's plans door answered HTTP ${res.status}`;
+      return { ok: false, reason };
+    }
+    return {
+      ok: true,
+      priceCents: typeof body.priceCents === 'number' ? body.priceCents : undefined,
+      period: typeof body.period === 'string' ? body.period : undefined,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 /** OFFER a plan, on the service. */
 export async function offerOnService(
   planId: string,

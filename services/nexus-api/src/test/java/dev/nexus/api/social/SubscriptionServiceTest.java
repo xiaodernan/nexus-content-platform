@@ -375,6 +375,59 @@ class SubscriptionServiceTest {
         assertThat(service.subscriptionsOf("acct-ada", 20)).hasSize(1);
     }
 
+    // ── v317: the creator can CHANGE the price of a plan they offer ─────────────────────────
+
+    @Test
+    void theCreatorCanChangeThePriceOfTheirOwnPlan() {
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(plan("pro", "acct-ada", 1500, "month")));
+        when(plans.save(any(PlanEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        PlanEntry row = service.reprice("pro", 2500, "month", claim("acct-ada"));
+
+        assertThat(row.getPriceCents()).isEqualTo(2500L);
+        verify(plans).save(any(PlanEntry.class));
+    }
+
+    @Test
+    void aPriceChangeDoesNOTTouchTheSubscriptionsAlreadyMade() {
+        // The SNAPSHOT earns its keep here: a supporter who agreed to 1500 a month still agreed to 1500 a
+        // month, and the new price is what the NEXT subscriber agrees to.
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(plan("pro", "acct-ada", 1500, "month")));
+        when(plans.save(any(PlanEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.reprice("pro", 2500, "month", claim("acct-ada"));
+
+        verify(subscriptions, never()).save(any(SubscriptionEntry.class));
+    }
+
+    @Test
+    void changingSomebodyElsesPlanPriceIsREFUSED() {
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(plan("pro", "acct-ada", 1500, "month")));
+
+        assertThatThrownBy(() -> service.reprice("pro", 2500, "month", claim("acct-bob")))
+                .isInstanceOf(NotYourPlan.class)
+                .hasMessageContaining("only the account that offers it may change its price");
+        verify(plans, never()).save(any(PlanEntry.class));
+    }
+
+    @Test
+    void aPriceThatIsNotPositiveIsREFUSEDByName() {
+        when(plans.findByPlanId("pro")).thenReturn(Optional.of(plan("pro", "acct-ada", 1500, "month")));
+
+        assertThatThrownBy(() -> service.reprice("pro", 0, "month", claim("acct-ada")))
+                .isInstanceOf(InvalidSubscription.class)
+                .hasMessageContaining("must be positive");
+    }
+
+    @Test
+    void aPlanThatDoesNotExistIsREFUSEDByName() {
+        when(plans.findByPlanId("nope")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.reprice("nope", 2500, "month", claim("acct-ada")))
+                .isInstanceOf(InvalidSubscription.class)
+                .hasMessageContaining("no plan with this id");
+    }
+
     // ── v308: WHERE a subscription STANDS, computed rather than remembered ──────────────────────────
 
     @Test

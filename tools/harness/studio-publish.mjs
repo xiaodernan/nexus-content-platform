@@ -2505,6 +2505,41 @@ try {
     await followPage.close();
   }
 
+  // ── §31 v317: the creator can CHANGE the price of a plan they offer ───────────────────────────────
+  // The price is a SNAPSHOT, and this is the moment the snapshot earns its keep: a supporter who agreed
+  // to yesterday’s price still agreed to it, and the new price is what the NEXT subscriber agrees to.
+  {
+    const pricePage = await session.newPage('about:blank');
+    await pricePage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(pricePage, 'the price page to hydrate');
+    await signInAs(pricePage, 'ada', 'the creator of a plan to reprice');
+    await openAccountPanel(pricePage, 'the account panel to open');
+    await pricePage.type('[data-plan-id-input]', 'pro-2');
+    await pricePage.type('[data-plan-price-input]', '25');
+    await pricePage.evaluate("document.querySelector('[data-plan-reprice]').click()");
+    const repriced = await until(
+      async () => {
+        const n = await pricePage.evaluate("document.querySelector('[data-plan-note]')?.textContent ?? ''");
+        return n.includes('2500 cents') ? n : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the price change to land' },
+    );
+    check('the creator can change the price of a plan they offer', repriced !== null, `the note: ${JSON.stringify(repriced)}`);
+
+    // And the SERVICE agrees, read independently of the browser.
+    const priceRaw = await pricePage.evaluate("localStorage.getItem('nexus-current-account')");
+    const priceOwner = JSON.parse(String(priceRaw)).id;
+    const plansRead = await fetch(`${apiBase}/plans?creator=${encodeURIComponent(priceOwner)}`);
+    const plansBody = await plansRead.json();
+    const repricedPlan = (plansBody.plans ?? []).find((p) => p.planId === 'pro-2');
+    check(
+      'the SERVICE agrees — the plan now costs the new price',
+      plansRead.status === 200 && repricedPlan?.priceCents === 2500,
+      `plans: ${JSON.stringify(plansBody.plans)}`,
+    );
+    await pricePage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

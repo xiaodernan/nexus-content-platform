@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { session } from '../lib/accountSession';
-import { offerPlan } from '@/lib/planLane';
+import { offerPlan, repricePlan } from '@/lib/planLane';
 import { claimOf } from '@/lib/socialClaim';
 import type { AccountRecord } from '@/lib/accounts';
 
@@ -68,6 +68,38 @@ export function AccountPanel({ onClose }: { onClose?: () => void }) {
     setHandle('');
     setDisplayName('');
     setMessage('signed out — this device publishes anonymously again');
+  };
+
+  /**
+   * v317 — CHANGE the price of a plan this account offers.
+   *
+   * <p>The subscriptions already made against the plan keep the price they were made at (the snapshot), and
+   * the new price is what the NEXT subscriber agrees to — which is the whole point of a snapshot, and the
+   * moment it earns its keep.
+   */
+  const onRepricePlan = async () => {
+    setPlanMessage('');
+    const account = session.current();
+    if (!account) {
+      setPlanMessage('this device has no account, and a plan needs one');
+      return;
+    }
+    const cents = Math.round(Number(planPrice) * 100);
+    if (!Number.isFinite(cents) || cents <= 0) {
+      setPlanMessage('a plan must cost more than nothing');
+      return;
+    }
+    const claim = claimOf(account.id, account.handle, account.assurance);
+    if (!claim) {
+      setPlanMessage('this device has no account, and a plan needs one');
+      return;
+    }
+    const answer = await repricePlan(planId.trim(), cents, planPeriod, claim);
+    setPlanMessage(
+      answer.ok
+        ? `${planId.trim()} is now ${cents} cents (${planPeriod}) — the subscriptions already made keep the price they were agreed at`
+        : `could not change the price: ${answer.reason ?? 'no reason given'}`,
+    );
   };
 
   const onOfferPlan = async () => {
@@ -197,9 +229,22 @@ export function AccountPanel({ onClose }: { onClose?: () => void }) {
                 <option value="year">yearly</option>
               </select>
             </div>
-            <button className="btn" data-plan-offer onClick={() => void onOfferPlan()} style={{ fontSize: 11, padding: '4px 12px' }}>
-              Offer
-            </button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button className="btn" data-plan-offer onClick={() => void onOfferPlan()} style={{ fontSize: 11, padding: '4px 12px' }}>
+                Offer
+              </button>
+              {/* v317 — the same three fields, a second verb: the creator who changes the price of a plan
+                  they already offer. The subscriptions already made keep their price. */}
+              <button
+                className="btn"
+                data-plan-reprice
+                onClick={() => void onRepricePlan()}
+                style={{ fontSize: 11, padding: '4px 12px' }}
+                title="change the price of a plan you offer (the subscriptions already made keep the price they were agreed at)"
+              >
+                Change the price
+              </button>
+            </div>
             {planMessage && (
               <div data-plan-note style={{ fontSize: 11, color: 'var(--nexus-muted)' }}>
                 {planMessage}
