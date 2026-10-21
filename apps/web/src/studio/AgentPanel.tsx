@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { GAME_KINDS, GAME_KIND_LABELS, type GameKind } from '@nexus/game-model';
 import {
   AgentDraftAcceptResponseSchema,
   AgentRunResponseSchema,
@@ -8,6 +9,7 @@ import {
   type AgentRunView,
   type StepReport,
 } from '@/lib/agent-runtime';
+import { GAME_DRAFT_DEFAULT_KIND } from '@/lib/agent-game-draft';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { useRealtime } from '@/lib/useRealtime';
@@ -61,6 +63,13 @@ export function AgentPanel() {
   const [loaded, setLoaded] = useState(false);
   const [readError, setReadError] = useState<string | null>(null);
   const [goal, setGoal] = useState('');
+  /**
+   * 这一份作业要编哪一型（§51，ADR-0052/0053）。
+   *
+   * **八型今天全都编得出来**（链上有配方）⇒ 这里列全部八型，不藏哪一型。
+   * 缺省是链上的缺省型（RPG 原型）⇒ 不选就与今天的行为一模一样。
+   */
+  const [gameKind, setGameKind] = useState<GameKind>(GAME_DRAFT_DEFAULT_KIND);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [events, setEvents] = useState(0);
@@ -126,7 +135,7 @@ export function AgentPanel() {
       const res = await fetch(`/api/projects/${projectId}/agent`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...csrfHeaders() },
-        body: JSON.stringify({ goal }),
+        body: JSON.stringify({ goal, gameKind }),
       });
       const body: unknown = await res.json().catch(() => null);
       if (!alive.current) return;
@@ -256,6 +265,22 @@ export function AgentPanel() {
           </button>
         </div>
 
+        <label className="mt-1 block">
+          <span className="text-11 text-fg-3">这一轮编哪一型（只影响游戏那几步；其余几步与型无关）</span>
+          <select
+            value={gameKind}
+            onChange={(event) => setGameKind(event.target.value as GameKind)}
+            data-agent-game-kind
+            className="mt-[2px] w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-2 py-1 text-12 text-fg-1"
+          >
+            {GAME_KINDS.map((kind) => (
+              <option key={kind} value={kind}>
+                {GAME_KIND_LABELS[kind]}
+              </option>
+            ))}
+          </select>
+        </label>
+
         {note ? (
           <p className="mt-2 rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger" data-agent-note>
             {note}
@@ -289,6 +314,10 @@ export function AgentPanel() {
               </span>
               <span className="text-fg-3" data-agent-goal-echo>
                 {plan?.goal ?? ''}
+              </span>
+              {/* 这一轮编的是哪一型：跑完的人要能一眼看见（服务端那一份计划里记着，ADR-0052） */}
+              <span className="text-fg-3" data-agent-kind-echo>
+                {plan?.gameKind ? GAME_KIND_LABELS[plan.gameKind as GameKind] : GAME_KIND_LABELS[GAME_DRAFT_DEFAULT_KIND]}
               </span>
             </div>
             {run.error ? (

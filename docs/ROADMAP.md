@@ -943,9 +943,18 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
      对话那两种拒收 / 2D 那份仍是合法设计）；打真库的 `agent-orchestration.integration.test.ts`
      **18 → 21 条**（链上要 2D ⇒ 计划带型、草稿带 kind、试玩读 topdown 的数；对话那型拒收且不留任务行；
      不认识的型拒收并把八种说清楚）。
-   **仍欠**：**界面上的类型选择器**（Agent 面板那一个下拉）还没接 ⇒ 今天只能从 API
-   带 `gameKind` 跑这一条链（另作一片，要 e2e 截图那一套）；§53 的 Capture screenshots /
-   Detect bugs / Fix 三格要浏览器与模型，本机不假生成（§159）。
+   **2026-10-22 界面上的类型选择器也接上了（ADR-0052 / ADR-0053 的最后一片）**：
+   Agent 面板多一个「这一轮编哪一型」的下拉 ⇒ 请求带上 `gameKind` ⇒ 计划里记着那一型
+   （`AgentPlan.gameKind`）⇒ 面板的回显说出那一型。
+   - **八型今天全都编得出来** ⇒ 下拉里**不藏哪一型**（藏起来等于"看起来没有"）。
+   - **缺省是链上的缺省型**（RPG 原型）⇒ 不选就与今天的行为一模一样。
+   - **凭证**：e2e `agent.spec.ts` 多一条
+     （`@smoke agent 面板上的类型选择器：选 2D 就跑 2D 那一型`）：
+     缺省是 RPG 原型 ⇒ 选 2D ⇒ **服务端那一份计划里 `gameKind` 就是 `2d`**
+     ⇒ 面板回显是 2D ⇒ 第一格摘要里是"2D 草稿"
+     ⇒ 试玩格展开后 notes 里逐字出现 `topdown`（管线名在 notes 里，summary 的措辞是中性的）
+     ⇒ 截图 `screenshots/agent-kind-2d.png`。
+   **仍欠**：§53 的 Capture screenshots / Detect bugs / Fix 三格要浏览器与模型，本机不假生成（§159）。
    **2026-10-22 战斗格与布局格也按型派（补上 ADR-0052 那一格漏掉的两步）**：
    上一格只把**上游（编草稿）与试玩格**按型派了，战斗格与布局格当时还在 game-model 里
    **无条件** `compileRpg` + `playtestRpg` ⇒ 链上一份 2D 的设计被拿 **RPG 的判据**去读，

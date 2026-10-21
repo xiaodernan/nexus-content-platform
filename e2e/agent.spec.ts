@@ -62,7 +62,8 @@ function authoredPositions(entities: unknown[]): number {
 interface ServerRun {
   run: {
     taskId: string;
-    plan: { tasks: { id: string }[] } | null;
+    /** 计划里记着这一份作业要编哪一型（ADR-0052） */
+    plan: { tasks: { id: string }[]; gameKind?: string } | null;
     steps: {
       id: string;
       status: string;
@@ -293,4 +294,49 @@ test('a readiness run writes no design model and no snapshot', async ({ page }) 
   expect(JSON.stringify(after.document)).toBe(JSON.stringify(before.document));
   // 也不落快照：历史里不多一条"AI 事务"（§150 那条路根本没被走到）
   expect(snapsAfter.snapshots.length).toBe(snapsBefore.snapshots.length);
+});
+
+/**
+ * 面板上的"这一轮编哪一型"（ADR-0052 / ADR-0053）：选 2D ⇒ 这一份作业编的就是 2D 那一型。
+ *
+ * 这一层证的是**只有浏览器能证的那一段**：下拉选了什么 ⇒ 请求带的是什么 ⇒
+ * 服务端计划里记的是什么 ⇒ 面板上的结论说的是哪一条管线。
+ * 集成层能证服务端按 kind 派管线，但证不了"界面上选的那个真的传过去了"（§158）。
+ */
+test('@smoke agent 面板上的类型选择器：选 2D 就跑 2D 那一型', async ({ page }) => {
+  test.setTimeout(300_000);
+  await register(page, `agentkind+${RUN}@nexus.test`, 'e2e-secret-123');
+  const projectId = await createProject(page, `类型 ${RUN}`);
+
+  await page.click('[data-panel-tab="agent"]');
+  await expect(page.locator('[data-agent-panel]')).toBeVisible({ timeout: 30_000 });
+  // 缺省是 RPG 原型（链上的缺省型）⇒ 这一条要证明"选的那个真的生效了"
+  await expect(page.locator('[data-agent-game-kind]')).toHaveValue('rpg-prototype');
+  await page.selectOption('[data-agent-game-kind]', '2d');
+  // 面板里那个下拉与选中值要**画得出来**：面板自己会滚，fullPage 拍不到它 ⇒ 先滚到顶再拍一张
+  await page.locator('[data-agent-panel]').hover();
+  await page.mouse.wheel(0, -4000);
+  await expect(page.locator('[data-agent-game-kind]')).toBeVisible();
+  await page.screenshot({ path: 'screenshots/agent-kind-picker.png', fullPage: true });
+  await page.fill('[data-agent-goal]', `这一轮要编 2D ${RUN}`);
+  await page.click('[data-agent-run]');
+  await expect(page.locator('[data-agent-status="succeeded"]')).toBeVisible({ timeout: 90_000 });
+  await expect(page.locator('[data-agent-note]')).toHaveCount(0);
+
+  // 服务端那一份计划里记着这一型（刷新后复看不用猜）
+  const server = (await readJson<ServerRun>(page, `/api/projects/${projectId}/agent`)).run;
+  expect(server, '跑完的作业读不回来').not.toBeNull();
+  expect(server!.plan!.gameKind, '这一型没记进计划').toBe('2d');
+  // 面板上的回显说的是那一型
+  await expect(page.locator('[data-agent-kind-echo]')).toHaveText('2D');
+  // 第一格的结论说的是 2D 草稿
+  await expect(page.locator('[data-agent-step-summary="game"]')).toContainText('2D 草稿');
+  // 试玩格说的**是哪一条管线**，那句在 notes 里（summary 的措辞是中性的："四种固定走法跑完…"，
+  // 它不替任何一条管线背书）⇒ 展开那一格，notes 逐字进 DOM（与同文件里 playtest 那几行同一手法）
+  const playtestStep = server!.steps.find((step) => step.id === 'playtest');
+  expect(playtestStep, '服务端那一份里没有 playtest 这一步').toBeTruthy();
+  expect(playtestStep!.notes!.join('\n'), '服务端没说出这一型走哪条管线').toContain('topdown');
+  await page.locator('[data-agent-step="playtest"] button').first().click();
+  await expect(page.locator('[data-agent-step="playtest"]')).toContainText('topdown');
+  await page.screenshot({ path: 'screenshots/agent-kind-2d.png', fullPage: true });
 });
