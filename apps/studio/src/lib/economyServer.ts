@@ -37,6 +37,17 @@ export interface SubscriptionEntry {
    */
   period?: string | null;
   /**
+   * v375 — the plan's price NOW, in cents, or null when the wire did not say.
+   *
+   * <p>The price above is the SNAPSHOT: what the supporter agreed to. This is what the plan costs
+   * today, so a reader can see that the terms have moved since.
+   */
+  currentPriceCents?: number | null;
+  /**
+   * v375 — and the plan's period NOW, or null when the wire did not say.
+   */
+  currentPeriod?: string | null;
+  /**
    * v328 — WHEN the subscription was taken back, in epoch millis. Null when it was not.
    */
   endedAt?: number | null;

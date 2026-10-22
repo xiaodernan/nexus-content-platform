@@ -485,6 +485,28 @@ class SubscriptionServiceTest {
         assertThat(service.countPlans("acct-ada")).isZero();
     }
 
+    // ── v375: the plan's CURRENT terms, so a reader can see that the terms have moved ──────────────────
+
+    @Test
+    void theCurrentPlansAreReadInOneQueryForTheWholeWindow() {
+        // A subscription says what was AGREED and the plan says what is ON OFFER now, and a reader cannot
+        // compare the two unless the wire carries both.
+        when(plans.findAllById(any())).thenReturn(List.of(plan("pro", "acct-ada", 2500, "month")));
+
+        java.util.Map<String, PlanEntry> current = service.currentPlansOf(java.util.Set.of("pro"));
+
+        assertThat(current).containsKey("pro");
+        assertThat(current.get("pro").getPriceCents()).isEqualTo(2500);
+    }
+
+    @Test
+    void andAPlanThatIsGoneIsSimplyAbsentRatherThanPresentWithNoTerms() {
+        when(plans.findAllById(any())).thenReturn(List.of());
+
+        assertThat(service.currentPlansOf(java.util.Set.of("pro"))).isEmpty();
+        assertThat(service.currentPlanOf("pro")).isNull();
+    }
+
     @Test
     void theTotalsArePerPeriodAndNotOneMeaninglessSum() {
         // One monthly pledge and one yearly one do not add up to anything a reader can act on, so the

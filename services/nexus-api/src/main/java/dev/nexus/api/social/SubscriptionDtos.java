@@ -101,7 +101,19 @@ public final class SubscriptionDtos {
              * a yearly one. The plan's own period can change (v317 reprices a plan, period and all), and
              * this is the one that was agreed.
              */
-            String period) {
+            String period,
+            /**
+             * v375 — the plan's price NOW, in cents, or null when the plan is gone.
+             *
+             * <p>The price above is the SNAPSHOT: what the supporter agreed to. This is what the plan
+             * costs today, so a reader can see that the terms have moved since (v317 lets a creator
+             * reprice a plan, period and all).
+             */
+            Long currentPriceCents,
+            /**
+             * v375 — and the plan's period NOW, or null when the plan is gone.
+             */
+            String currentPeriod) {
     }
 
     /**

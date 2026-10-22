@@ -4,6 +4,7 @@ import type { PriceCents, Tip, Subscription } from './monetization';
 
 import {
   planCountText,
+  planTermsMovedText,
   subscriptionsTotalText,
   subscriptionsWindowText,
   tipGivenText,
@@ -284,6 +285,34 @@ describe('economy — subscription rows (M8 v274)', () => {
 
   it('v373 — and a list that shows EVERYONE says no such thing', () => {
     expect(planCountText(3, 3)).toBe('3 plans');
+  });
+
+  it('v375 — says that the plan’s terms have MOVED since the promise was made', () => {
+    // A creator may reprice a plan (v317) and the subscriptions already made keep the terms they were
+    // made at, so the reader needs to be told which price they are looking at.
+    const text = planTermsMovedText(
+      { priceText: '¥15.00', periodText: 'per month' },
+      { priceText: '¥25.00', periodText: 'per month' },
+    );
+    expect(text).toBe('the plan has changed: the price is now ¥25.00');
+  });
+
+  it('v375 — and terms that have NOT moved say nothing at all', () => {
+    expect(
+      planTermsMovedText(
+        { priceText: '¥15.00', periodText: 'per month' },
+        { priceText: '¥15.00', periodText: 'per month' },
+      ),
+    ).toBeNull();
+  });
+
+  it('v375 — and a plan that is gone says nothing rather than guessing', () => {
+    expect(planTermsMovedText({ priceText: '¥15.00', periodText: 'per month' }, null)).toBeNull();
+  });
+
+  it('v375 — the row carries the note when the wire says the plan has moved', () => {
+    const row = toSubscriptionRow({ ...sub(), period: 'month', currentPriceCents: 2500, currentPeriod: 'month' })!;
+    expect(row.movedText).toBe('the plan has changed: the price is now ¥25.00');
   });
 
   it('v373 — and a count that could not be read says NOTHING rather than a zero', () => {

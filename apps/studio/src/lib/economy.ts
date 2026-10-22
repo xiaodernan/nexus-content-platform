@@ -25,6 +25,18 @@ export interface EconomySubscription {
   id?: string;
   priceCents: PriceCents;
   currency: Currency;
+  /**
+   * v375 — the plan's price NOW, in cents, or null when the wire did not say.
+   *
+   * <p>The price above is the SNAPSHOT: what the supporter agreed to (v300). This is what the plan costs
+   * today, so a reader can see that the terms have moved since (v317 lets a creator reprice a plan, period
+   * and all).
+   */
+  currentPriceCents?: number | null;
+  /**
+   * v375 — and the plan's period NOW, or null when the wire did not say.
+   */
+  currentPeriod?: string | null;
   active: boolean;
   subscribedAt: number | null;
   expiresAt: number | null;
@@ -124,6 +136,13 @@ export interface SubscriptionRow {
    * supporter agreed to, and it is the one the row shows.
    */
   periodText: string;
+  /**
+   * v375 — that the plan’s terms have MOVED since this promise was made — or null when they have not.
+   *
+   * <p>The row’s price and period are the ones that were agreed (the snapshot ✓); the plan may since
+   * have been repriced (v317 ✓), and then the reader is looking at a promise whose plan has moved.
+   */
+  movedText: string | null;
   /**
    * v371 — that these are the terms that were AGREED, not the plan’s terms today.
    *
@@ -248,6 +267,31 @@ export function planCountText(count: number | null | undefined, shown: number): 
   const label = count === 1 ? '1 plan' : `${count} plans`;
   const more = shown > 0 && count > shown ? ` · showing the ${shown} newest of ${count}` : '';
   return `${label}${more}`;
+}
+
+/**
+ * That the plan's terms have MOVED since the subscription was made — or null when they have not.
+ *
+ * <p>v375 — a creator may reprice a plan, period and all (v317), and the subscriptions already made keep
+ * the terms they were made at (the snapshot ✓). So a supporter can hold a promise whose plan has since
+ * changed price, and the row said nothing about it: the reader saw the OLD price and could not tell it
+ * was old.
+ *
+ * <p>An unknown current price says NOTHING: a plan that is gone is not a plan with no terms, and a note
+ * that guessed would be inventing a change nobody can see.
+ */
+export function planTermsMovedText(
+  agreed: { priceText: string; periodText: string },
+  current: { priceText: string; periodText: string } | null,
+): string | null {
+  if (!current) return null;
+  const priceMoved = current.priceText !== agreed.priceText;
+  const periodMoved = current.periodText !== agreed.periodText;
+  if (!priceMoved && !periodMoved) return null;
+  const parts: string[] = [];
+  if (priceMoved) parts.push(`the price is now ${current.priceText}`);
+  if (periodMoved) parts.push(`the period is now ${current.periodText}`);
+  return `the plan has changed: ${parts.join(' and ')}`;
 }
 
 export function subscriptionsTotalText(
@@ -473,12 +517,28 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
   // The standing is computed ONCE (v313): the row's status, its `isActive` and its note must not be able to
   // disagree, and three computations of the same thing across a clock tick could.
   const standing = subscriptionStandingOf(s, Date.now());
+  // v375 — the agreed terms and the plan's CURRENT ones, read ONCE so the row and the note cannot
+  // disagree about the same facts.
+  const agreedPriceText = priceText(s.priceCents, s.currency);
+  const agreedPeriodText = planPeriodText(typeof s.period === 'string' ? s.period : '');
+  const currentTerms =
+    typeof s.currentPriceCents === 'number' && Number.isFinite(s.currentPriceCents)
+      ? {
+          priceText: priceText(s.currentPriceCents as PriceCents, s.currency),
+          periodText: planPeriodText(typeof s.currentPeriod === 'string' ? s.currentPeriod : ''),
+        }
+      : null;
 
   return {
     planId: s.planId,
     subscriptionId: typeof s.id === 'string' ? s.id : '',
-    priceText: priceText(s.priceCents, s.currency),
+    priceText: agreedPriceText,
     currency: s.currency,
+    // v375 — and whether the plan's terms have moved since this promise was made.
+    movedText: planTermsMovedText(
+      { priceText: agreedPriceText, periodText: agreedPeriodText },
+      currentTerms,
+    ),
     // v308 — the service’s standing when it gave one, the client’s own computation otherwise.
     statusText: subscriptionStandingText(standing),
     daysLeftText: subscriptionDaysLeftText(s, Date.now()),

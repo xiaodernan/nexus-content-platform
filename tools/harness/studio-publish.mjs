@@ -4022,6 +4022,43 @@ try {
     await pairSubPage.close();
   }
 
+  // ── §72 v375: the subscription’s row says the plan’s terms have MOVED since ──────────────────────
+  // The creator repriced the plan earlier in this run; the supporter’s row still carries the price that
+  // was agreed, and now says so beside it.
+  {
+    const movedPage = await session.newPage('about:blank');
+    await movedPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(movedPage, 'the moved page to hydrate');
+    await signInAs(movedPage, 'bob', 'the supporter of the repriced plan');
+    await movedPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const movedShown = await until(
+      async () => (await movedPage.evaluate("!!document.querySelector('[data-economy-moved]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the moved note to show' },
+    );
+    check('the panel says the plan has changed since the promise was made', movedShown !== null, 'the note is there');
+
+    const movedNotes = await movedPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-moved]')).map((s) => s.getAttribute('data-economy-moved'))",
+    );
+    check(
+      'and it names the price the plan costs NOW',
+      movedNotes.some((m) => m.includes('the plan has changed') && m.includes('¥25.00')),
+      `the panel: ${JSON.stringify(movedNotes)}`,
+    );
+
+    // And the SERVICE agrees — read independently of the browser.
+    const movedRaw = await movedPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const movedId = JSON.parse(String(movedRaw)).id;
+    const movedService = await (await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(movedId)}&limit=50`)).json();
+    const movedRow = (movedService.subscriptions ?? []).find((s) => s.planId === 'pro-2');
+    check(
+      'the SERVICE agrees — the wire carries the agreed price AND the plan’s current one',
+      movedRow?.priceCents === 2000 && movedRow?.currentPriceCents === 2500,
+      `the row: ${JSON.stringify(movedRow)}`,
+    );
+    await movedPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

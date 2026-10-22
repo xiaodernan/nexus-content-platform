@@ -330,6 +330,37 @@ public class SubscriptionService {
         return (int) plans.countByCreatorAccountId(creator);
     }
 
+    /**
+     * v375 — the plans' CURRENT terms, for the plans a set of subscriptions backs.
+     *
+     * <p>One query for the whole window: a subscription says what was AGREED and the plan says what is
+     * ON OFFER now, and a reader cannot compare the two unless the wire carries both. A plan that is gone
+     * is simply absent from the answer, and the wire then says nothing about the current terms rather than
+     * inventing them.
+     */
+    @Transactional(readOnly = true)
+    public java.util.Map<String, PlanEntry> currentPlansOf(java.util.Collection<String> planIds) {
+        if (planIds == null || planIds.isEmpty()) {
+            return java.util.Map.of();
+        }
+        java.util.Map<String, PlanEntry> byId = new java.util.LinkedHashMap<>();
+        for (PlanEntry plan : plans.findAllById(planIds)) {
+            byId.put(plan.getPlanId(), plan);
+        }
+        return byId;
+    }
+
+    /**
+     * v375 — ONE plan, as it stands now, or null when it is gone.
+     */
+    @Transactional(readOnly = true)
+    public PlanEntry currentPlanOf(String planId) {
+        if (planId == null || planId.isBlank()) {
+            return null;
+        }
+        return plans.findById(planId.trim()).orElse(null);
+    }
+
     /** The subscriptions one account holds. */
     @Transactional(readOnly = true)
     public List<SubscriptionEntry> subscriptionsOf(String subscriberAccountId, int limit) {

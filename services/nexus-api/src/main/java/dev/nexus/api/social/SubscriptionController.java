@@ -85,7 +85,9 @@ public class SubscriptionController {
                 request == null ? null : request.claim());
         return ResponseEntity.status(201).body(new SubscriptionAnswer(
                 row.getSubscriberAccountId(),
-                List.of(toWire(row)),
+                // v375 — and the plan's CURRENT terms, so the receipt says the same thing the list says:
+                // the plan as it stands now.
+                List.of(toWire(row, service.currentPlanOf(row.getPlanId()))),
                 // v368 — the receipt says what came to, PER PERIOD — and this subscription is one period
                 // with one amount in it.
                 List.of(new SubscriptionDtos.PeriodTotal(row.getPeriod(), row.getCurrency(), row.getPriceCents())),
@@ -109,7 +111,11 @@ public class SubscriptionController {
         int asked = limit == null ? SubscriptionService.DEFAULT_SUBSCRIPTION_LIMIT : limit;
         if (creatorAccountId != null && !creatorAccountId.isBlank()) {
             List<SubscriptionEntry> received = service.subscriptionsReceived(creatorAccountId, asked);
-            List<Subscription> rows = received.stream().map(this::toWire).toList();
+            // v375 — the plans' CURRENT terms, so a creator can see that a plan has been repriced since
+            // the promise was made. One query for the whole window.
+            java.util.Map<String, PlanEntry> current = service.currentPlansOf(
+                    received.stream().map(SubscriptionEntry::getPlanId).collect(java.util.stream.Collectors.toSet()));
+            List<Subscription> rows = received.stream().map(row -> toWire(row, current.get(row.getPlanId()))).toList();
             // v359 — the total and the count are the DATABASE’s, over the whole table and not over the
             // window this answer happens to carry: a creator with thirty subscribers was told what the
             // window held.
@@ -128,7 +134,11 @@ public class SubscriptionController {
                     "message", "the subscriber parameter is missing (or the creator parameter, for the other direction)"));
         }
         List<SubscriptionEntry> rows = service.subscriptionsOf(subscriberAccountId, asked);
-        List<Subscription> subs = rows.stream().map(this::toWire).toList();
+        // v375 — the plans' CURRENT terms, so a supporter can see that a plan has been repriced since
+        // they agreed to it. One query for the whole window.
+        java.util.Map<String, PlanEntry> current = service.currentPlansOf(
+                rows.stream().map(SubscriptionEntry::getPlanId).collect(java.util.stream.Collectors.toSet()));
+        List<Subscription> subs = rows.stream().map(row -> toWire(row, current.get(row.getPlanId()))).toList();
         // v308 — the total counts the subscriptions that are STILL STANDING. An expired subscription is not
         // a commitment any more, and counting it would say the subscriber is backing a plan whose period has
         // run out.
@@ -207,7 +217,7 @@ public class SubscriptionController {
     /**
      * The service's row, as the wire's shape — with the standing the service COMPUTED (v308).
      */
-    private Subscription toWire(SubscriptionEntry row) {
+    private Subscription toWire(SubscriptionEntry row, PlanEntry currentPlan) {
         return new Subscription(
                 row.getCreatorAccountId(),
                 row.getPlanId(),
@@ -230,7 +240,12 @@ public class SubscriptionController {
                 row.getCreatorHandle(),
                 // v367 — and WHAT PERIOD it is for, as it was when the subscription was made: the row has
                 // kept the plan's period as a snapshot since v300, and the wire never said so.
-                row.getPeriod());
+                row.getPeriod(),
+                // v375 — and what the plan costs NOW, so a reader can see that the terms have moved since
+                // the promise was made. Null when the plan is gone: an absent plan is not a plan with no
+                // terms, and the wire says nothing rather than guessing.
+                currentPlan == null ? null : currentPlan.getPriceCents(),
+                currentPlan == null ? null : currentPlan.getPeriod());
     }
 
     /**
