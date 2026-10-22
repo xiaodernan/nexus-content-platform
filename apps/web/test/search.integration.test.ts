@@ -2,6 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
 import {
   SEARCH_GROUP_KEYS,
+  SEARCH_NOT_COVERED,
+  SEARCH_ORDER_METHOD,
   normalizeQuery,
   searchPlatform,
   type SearchGroupKey,
@@ -331,5 +333,59 @@ describe('§165 × §40：分镜进全平台搜索', () => {
     expect(group(await searchPlatform('灯塔只在有人失踪时才亮', themId), 'storyboards').hits.length).toBeGreaterThan(0);
     // 分镜没有发布链路（§56/§57 发的是设计文档那一版），匿名列出来就是给访客一个 404
     expect(group(await searchPlatform('灯塔只在有人失踪时才亮', null), 'storyboards').hits).toEqual([]);
+  });
+});
+
+describe('组内按相关度排（§165 那一格"没有相关度排序"的补上）', () => {
+  it('标题完全一样 > 标题开头 > 标题里有 > 只在简介里有；相关度压过更新时间', async () => {
+    const token = `样板${RUN}`;
+    const exact = await mine(token);
+    const prefix = await mine(`${token}·续篇`);
+    const contains = await mine(`归档${token}旧稿`);
+    const detailOnly = await mine(`别的东西${RUN}`);
+    const db = getDb();
+    // 只有简介里提到那个词 ⇒ 相关度最低（标题一个字都没沾上）
+    await db.update(projects).set({ description: `这一版的简介里提到 ${token}` }).where(eq(projects.id, detailOnly));
+    // 而且它是**最新**的那一条：按更新时间排的话它会排第一
+    // ⇒ 这一条钉的是"相关度优先于时间"，不是"顺序没变"
+    await db
+      .update(projects)
+      .set({ updatedAt: new Date(Date.now() + 3600_000) })
+      .where(eq(projects.id, detailOnly));
+
+    const order = titles(await searchPlatform(token, meId), 'projects');
+    expect(order[0], '标题与搜索词完全一样的那条要排第一').toBe(token);
+    expect(order.indexOf(`${token}·续篇`), '标题以搜索词开头的排在只在简介里匹配的前面').toBeLessThan(
+      order.indexOf(`别的东西${RUN}`),
+    );
+    expect(order.indexOf(`归档${token}旧稿`), '标题里有搜索词的排在只在简介里匹配的前面').toBeLessThan(
+      order.indexOf(`别的东西${RUN}`),
+    );
+    expect(order[order.length - 1], '只在简介里匹配的那条（哪怕它是最新更新的）排最后').toBe(`别的东西${RUN}`);
+
+    // 反向：只按更新时间排的话，"只在简介里匹配"那条会跑到第一 ⇒ 证明上一条不是顺序碰巧
+    const byTime = await db
+      .select({ id: projects.id, updatedAt: projects.updatedAt })
+      .from(projects)
+      .where(eq(projects.id, detailOnly));
+    expect(byTime[0]!.updatedAt.getTime(), '这条得真的比别的新，否则这个断言量不到东西').toBeGreaterThan(
+      Date.now(),
+    );
+
+    // 清理：那条被推到"未来"的更新时间，免得它影响别的用例
+    await db.update(projects).set({ updatedAt: new Date() }).where(eq(projects.id, detailOnly));
+    // 每一档指向的确实是那一个项目（不是"名字碰巧像"的那一行）
+    const hits = group(await searchPlatform(token, meId), 'projects').hits;
+    expect(hits.find((h) => h.title === token)?.href).toBe(`/studio/${exact}`);
+    expect(hits.find((h) => h.title === `${token}·续篇`)?.href).toBe(`/studio/${prefix}`);
+    expect(hits.find((h) => h.title === `归档${token}旧稿`)?.href).toBe(`/studio/${contains}`);
+  });
+
+  it('页面上写着的口径与代码里排出来的一致（藏起来的序会被读成"平台公认最相关"）', () => {
+    expect(SEARCH_ORDER_METHOD).toContain('完全一样');
+    expect(SEARCH_ORDER_METHOD).toContain('开头');
+    // "没覆盖"那几行里不许再留"没有相关度排序"这句旧话 ⇒ 它说的是今天的限度，不是历史
+    expect(SEARCH_NOT_COVERED.join(' ')).not.toContain('相关度排序——子串匹配没有打分');
+    expect(SEARCH_NOT_COVERED.join(' ')).toContain('不看词频');
   });
 });

@@ -1,4 +1,4 @@
-import { searchPlatform, SEARCH_NOT_COVERED, normalizeQuery } from '@/server/domain/search';
+import { searchPlatform, SEARCH_NOT_COVERED, SEARCH_ORDER_METHOD, normalizeQuery } from '@/server/domain/search';
 import { currentUserOrNull } from '@/server/domain/session';
 
 export const dynamic = 'force-dynamic';
@@ -51,6 +51,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         </p>
       ) : (
         <div className="flex flex-col gap-6" data-search-results>
+          <p className="text-12 text-fg-3" data-search-method>
+            {SEARCH_ORDER_METHOD}
+          </p>
           {result.groups.map((group) =>
             group.hits.length ? (
               <section key={group.key} data-search-group={group.key}>

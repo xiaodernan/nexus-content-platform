@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, isNull, notInArray, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, isNull, notInArray, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { hiddenAuthorIds } from './blocks';
 import {
@@ -65,9 +65,18 @@ export const SEARCH_NOT_COVERED = [
   '世界与游戏条目的正文——存在文档 jsonb 里，子串匹配会连键名一起命中（搜 player 命中每一份模板骨架）',
   '画布节点里的文字内容——同上；按内容找东西请走项目内检索（§49）与上下文装配（§66-71）',
   '资产的文件内容——只搜文件名',
-  '相关度排序——子串匹配没有打分，组内按更新时间排',
+  '相关度只分四档：标题与查询完全一样 > 标题以查询开头 > 标题里有 > 只在简介/摘要/正文里有；不看词频、不看词在标题里的位置、不看点击与热度，同分时按更新时间新→旧排',
   '分镜的画面描述走 §49 语料库：那批内容进库之前存下的旧分镜，其描述要等一次保存或点「重建索引」才可搜；分镜标题不依赖语料库，一直可搜',
 ];
+
+/**
+ * 排序口径的原话（页面照抄这一句，别自己另编一套说法）。
+ *
+ * 为什么写在页面上：一个藏起来的序会被读成「平台公认最相关」，
+ * 写出来它才只是「我们这套四档排出来的」（与 trending 同一句纪律）。
+ */
+export const SEARCH_ORDER_METHOD =
+  '组内按相关度排：标题与搜索词完全一样 > 标题以搜索词开头 > 标题里有搜索词 > 只在简介/摘要/正文里有；同分时按更新时间新→旧。';
 
 export interface SearchHit {
   id: string;
@@ -94,8 +103,46 @@ export interface SearchResults {
 }
 
 /** LIKE 的转义：用户打的 `%` `_` 与 `\` 是字符，不是通配符 */
+function escapeLike(q: string): string {
+  return q.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 function likeTerm(q: string): string {
-  return `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  return `%${escapeLike(q)}%`;
+}
+
+/**
+ * 相关度分（§165 那一格「没有相关度排序」的补上）。
+ *
+ * 四档，**只看匹配落在哪儿**，不看词频、不看位置、不看点击：
+ * 标题与查询完全一样 > 标题以查询开头 > 标题里有查询 > 只在简介/摘要/正文里有。
+ * （代码里是 4/3/2/1 四个刻度，刻度本身不对外，只对外那四档的说法。）
+ *
+ * 为什么不做得更花：那些花招（TF-IDF、向量距离）要么要 provider，要么要一套语料统计；
+ * 而这个平台今天最要紧的是**说得清**——一个能被复述出来的四档，比一个藏起来的分有用。
+ * 分数算在 SQL 里（`case` + `greatest`），所以**候选集本身就是按相关度排出来的**，
+ * 不是先按时间截断再在剩下几条里排（那样「最相关的那条」可能压根没被取到）。
+ *
+ * 同一档里仍然按更新时间新→旧排（今天的行为保留为**同分时的次序**）。
+ *
+ * 标题列与详情列**分档**：详情里的命中最多拿 1 分（它在标题之下），
+ * 否则「只在简介里有」与「标题里有」会并列——那就不是四档了。
+ */
+function relevanceScore(title: SQLWrapper, details: SQLWrapper[], q: string): SQL<number> {
+  const raw = q.toLowerCase();
+  const needle = escapeLike(q).toLowerCase();
+  const t = sql`lower(${title})`;
+  const titlePart = sql<number>`case
+    when ${t} = ${raw} then 4
+    when ${t} like ${needle} || '%' then 3
+    when ${t} like '%' || ${needle} || '%' then 2
+    else 0 end`;
+  if (details.length === 0) return titlePart;
+  const detailParts = details.map((column) => {
+    const c = sql`lower(${column})`;
+    return sql<number>`case when ${c} like '%' || ${needle} || '%' then 1 else 0 end`;
+  });
+  return sql<number>`greatest(${titlePart}, ${sql.join(detailParts, sql`, `)})`;
 }
 
 export function normalizeQuery(raw: string | string[] | undefined): string {
@@ -134,7 +181,7 @@ const NO_CONTENT: ContentRows = {
   storyboards: [],
 };
 
-async function contentRows(viewerId: string, term: string, take: number): Promise<ContentRows> {
+async function contentRows(viewerId: string, q: string, term: string, take: number): Promise<ContentRows> {
   const db = getDb();
   const owned = and(eq(projects.ownerId, viewerId), isNull(projects.deletedAt));
   const [
@@ -153,28 +200,28 @@ async function contentRows(viewerId: string, term: string, take: number): Promis
       .from(worlds)
       .innerJoin(projects, eq(projects.id, worlds.projectId))
       .where(and(owned, or(ilike(worlds.name, term), ilike(worlds.summary, term))))
-      .orderBy(desc(worlds.updatedAt))
+      .orderBy(desc(relevanceScore(worlds.name, [worlds.summary], q)), desc(worlds.updatedAt))
       .limit(take),
     db
       .select({ id: games.id, name: games.name, summary: games.summary, projectId: projects.id })
       .from(games)
       .innerJoin(projects, eq(projects.id, games.projectId))
       .where(and(owned, or(ilike(games.name, term), ilike(games.summary, term))))
-      .orderBy(desc(games.updatedAt))
+      .orderBy(desc(relevanceScore(games.name, [games.summary], q)), desc(games.updatedAt))
       .limit(take),
     db
       .select({ id: characters.id, name: characters.name, projectId: projects.id })
       .from(characters)
       .innerJoin(projects, eq(projects.id, characters.projectId))
       .where(and(owned, ilike(characters.name, term)))
-      .orderBy(desc(characters.updatedAt))
+      .orderBy(desc(relevanceScore(characters.name, [], q)), desc(characters.updatedAt))
       .limit(take),
     db
       .select({ id: pages.id, name: pages.name, projectId: pages.projectId })
       .from(pages)
       .innerJoin(projects, eq(projects.id, pages.projectId))
       .where(and(owned, ilike(pages.name, term)))
-      .orderBy(desc(projects.updatedAt))
+      .orderBy(desc(relevanceScore(pages.name, [], q)), desc(projects.updatedAt))
       .limit(take),
     db
       .select({
@@ -188,7 +235,7 @@ async function contentRows(viewerId: string, term: string, take: number): Promis
       .innerJoin(pages, eq(pages.id, designNodes.pageId))
       .innerJoin(projects, eq(projects.id, pages.projectId))
       .where(and(owned, ilike(designNodes.name, term)))
-      .orderBy(desc(designNodes.updatedAt))
+      .orderBy(desc(relevanceScore(designNodes.name, [], q)), desc(designNodes.updatedAt))
       .limit(take),
     db
       .select({
@@ -200,14 +247,14 @@ async function contentRows(viewerId: string, term: string, take: number): Promis
       .from(components)
       .innerJoin(projects, eq(projects.id, components.projectId))
       .where(and(owned, or(ilike(components.name, term), ilike(components.description, term))))
-      .orderBy(desc(components.updatedAt))
+      .orderBy(desc(relevanceScore(components.name, [components.description], q)), desc(components.updatedAt))
       .limit(take),
     db
       .select({ id: assets.id, name: assets.name, kind: assets.kind, projectId: projects.id })
       .from(assets)
       .innerJoin(projects, eq(projects.id, assets.projectId))
       .where(and(owned, ilike(assets.name, term)))
-      .orderBy(desc(assets.createdAt))
+      .orderBy(desc(relevanceScore(assets.name, [], q)), desc(assets.createdAt))
       .limit(take),
     // 分镜那一组有两个来源。① 标题直接查 `storyboards` 表：这条不依赖语料库，
     // 永远可搜——语料库是后来加的，那之前存下的分镜没有块。
@@ -216,7 +263,7 @@ async function contentRows(viewerId: string, term: string, take: number): Promis
       .from(storyboards)
       .innerJoin(projects, eq(projects.id, storyboards.projectId))
       .where(and(owned, ilike(storyboards.title, term)))
-      .orderBy(desc(storyboards.updatedAt))
+      .orderBy(desc(relevanceScore(storyboards.title, [], q)), desc(storyboards.updatedAt))
       .limit(take),
     // ② 画面描述查 §49 的语料块：那份文本本来就是为检索切的（`notes` 那条断句规则不在块里，
     // 所以搜"分镜"不会命中规则说明书）。join 回 `storyboards` 而不是直接用 chunk.projectId，
@@ -234,7 +281,11 @@ async function contentRows(viewerId: string, term: string, take: number): Promis
       .innerJoin(storyboards, sql`${knowledgeChunks.sourceId} like ${storyboards.id}::text || '#%'`)
       .innerJoin(projects, eq(projects.id, storyboards.projectId))
       .where(and(eq(knowledgeChunks.sourceType, 'storyboard'), owned, ilike(knowledgeChunks.content, term)))
-      .orderBy(asc(knowledgeChunks.sourceId), asc(knowledgeChunks.chunkIndex))
+      .orderBy(
+        desc(relevanceScore(storyboards.title, [knowledgeChunks.content], q)),
+        asc(knowledgeChunks.sourceId),
+        asc(knowledgeChunks.chunkIndex),
+      )
       .limit(take),
   ]);
 
@@ -291,7 +342,7 @@ export async function searchPlatform(
         hidden.length ? notInArray(projects.ownerId, hidden) : undefined,
       ),
     )
-    .orderBy(desc(projects.updatedAt))
+    .orderBy(desc(relevanceScore(projects.name, [projects.description], q)), desc(projects.updatedAt))
     .limit(take);
   const myOnes = viewerId
     ? await db
@@ -304,7 +355,7 @@ export async function searchPlatform(
             or(ilike(projects.name, term), ilike(projects.description, term)),
           ),
         )
-        .orderBy(desc(projects.updatedAt))
+        .orderBy(desc(relevanceScore(projects.name, [projects.description], q)), desc(projects.updatedAt))
         .limit(take)
     : [];
   const projectHits = new Map<string, SearchHit>();
@@ -324,10 +375,10 @@ export async function searchPlatform(
         hidden.length ? notInArray(users.id, hidden) : undefined,
       ),
     )
-    .orderBy(users.handle)
+    .orderBy(desc(relevanceScore(users.displayName, [users.handle], q)), asc(users.handle))
     .limit(take);
 
-  const content = viewerId ? await contentRows(viewerId, term, take) : NO_CONTENT;
+  const content = viewerId ? await contentRows(viewerId, q, term, take) : NO_CONTENT;
   const studio = (projectId: string) => `/studio/${projectId}`;
 
   const groups: Record<SearchGroupKey, SearchGroup> = {
