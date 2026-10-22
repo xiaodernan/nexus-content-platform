@@ -11,12 +11,18 @@
 // It grades the WORKING TREE's service sources (committed or not) and says which, because a test run always
 // grades what is on disk — claiming otherwise would be the lie.
 //
+// It shells out through `../lib/syncproc.mjs`, NOT `node:child_process`'s sync API, because of a MEASURED
+// host fact the Tooling section of KNOWN_ISSUES records: on this machine every synchronous child-process
+// call fails with EBUSY (60/60 sequential vs 0/340 async, amendment 152), and the house rule is that EVERY
+// proof which shells out imports that bridge. Using the real `execSync` here worked twice and would have
+// failed the third time — which is exactly the "fails *always*" trap that rule exists to prevent.
+//
 // Run:  node docs/evidence/m7/service-suite-proof.mjs      (or: npm run verify:service)
 import assert from 'node:assert/strict';
-import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { execFileSync, syncApiIsBroken } from '../lib/syncproc.mjs';
 
 const ROOT = 'services/nexus-api';
 const SKIP = process.argv.includes('--skip-if-no-maven');
@@ -46,7 +52,7 @@ function digestService() {
 /** `true` when a working Maven + JDK answers; a machine without them cannot grade the service. */
 function mavenAvailable() {
   try {
-    execSync('mvn -v', { stdio: 'ignore', timeout: 60_000 });
+    execFileSync('mvn', ['-v'], { encoding: 'utf8', timeout: 60_000, shell: true });
     return true;
   } catch {
     return false;
@@ -62,7 +68,10 @@ if (!mavenAvailable()) {
   }
   throw new Error(`${line}; pass --skip-if-no-maven to treat that as a skip`);
 }
-console.log('[§0] toolchain: Maven answers');
+const bridge = syncApiIsBroken()
+  ? 'BROKEN — this proof runs on the syncproc bridge, exactly as the house rule requires'
+  : 'healthy — the bridge is used anyway, because the rule does not depend on the host it runs on';
+console.log(`[§0] toolchain: Maven answers · the REAL sync API on this host is ${bridge}`);
 
 // ── §1 digest, run, digest ──────────────────────────────────────────────────────────────────────────
 const before = digestService();
@@ -72,7 +81,7 @@ let out = '';
 let exit = 0;
 const started = Date.now();
 try {
-  out = execSync('mvn -o -B test', { cwd: ROOT, encoding: 'utf8', maxBuffer: 128 * 1024 * 1024, timeout: 900_000 });
+  out = execFileSync('mvn', ['-o', '-B', 'test'], { cwd: ROOT, encoding: 'utf8', timeout: 900_000, shell: true });
 } catch (e) {
   // A red suite is a RESULT to report, not a crash: keep the log so the totals below can name it.
   out = `${e.stdout ?? ''}${e.stderr ?? ''}`;
@@ -134,7 +143,7 @@ console.log(`[§4] ${total.tests} tests in ${perClass.length} class(es) · failu
 // ── §5 what was graded ──────────────────────────────────────────────────────────────────────────────
 const dirty = (() => {
   try {
-    return execSync(`git status --porcelain -- ${ROOT}`, { encoding: 'utf8' }).trim();
+    return execFileSync('git', ['status', '--porcelain', '--', ROOT], { encoding: 'utf8' }).trim();
   } catch {
     return '';
   }
