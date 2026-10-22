@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { DesignDocument } from '@nexus/design-model';
 import { getDb } from '../db/client';
 import { branches, projects, snapshots } from '../db/schema';
@@ -19,7 +19,7 @@ function extractSearchText(doc: DesignDocument): string {
     // 3. 每个节点的 text（文本节点内容）
     for (const nodeId of Object.keys(page.nodes)) {
       const node = page.nodes[nodeId];
-      if (node.text) parts.push(node.text);
+      if (node?.text) parts.push(node.text);
     }
   }
 
@@ -31,7 +31,10 @@ function extractSearchText(doc: DesignDocument): string {
   }
 
   // 5. metadata 描述
-  if (doc.metadata?.description) parts.push(doc.metadata.description);
+  // 文档层面没有 description 字段，改用页面的 meta.description
+  for (const page of doc.pages) {
+    if (page.meta?.description) parts.push(page.meta.description);
+  }
 
   // 6. token 描述
   for (const token of doc.tokens) {

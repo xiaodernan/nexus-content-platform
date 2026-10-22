@@ -21,6 +21,7 @@ import {
   knowledgeChunks,
   projects,
   publishedProjects,
+  snapshots,
   storyboards,
   users,
   worlds,
@@ -76,6 +77,11 @@ function titles(results: SearchResults, key: SearchGroupKey): string[] {
 
 async function mine(name: string): Promise<string> {
   return (await createProject(meId, { name, kind: 'website' })).id;
+}
+
+/** 真库句柄：这几条要往库里写行才能验 */
+function db() {
+  return getDb();
 }
 
 describe('全平台搜索的可见性（真实数据库）', () => {
@@ -387,5 +393,90 @@ describe('组内按相关度排（§165 那一格"没有相关度排序"的补�
     // "没覆盖"那几行里不许再留"没有相关度排序"这句旧话 ⇒ 它说的是今天的限度，不是历史
     expect(SEARCH_NOT_COVERED.join(' ')).not.toContain('相关度排序——子串匹配没有打分');
     expect(SEARCH_NOT_COVERED.join(' ')).toContain('不看词频');
+  });
+
+  it('六档口径写的是六档（档数与刻度数要对上，六档说成五档就是谎话）', () => {
+    // 页面那句话里数得出六档
+    expect(SEARCH_ORDER_METHOD).toContain('只在简介/摘要/正文里有');
+    expect(SEARCH_ORDER_METHOD).toContain('只在文档正文里有');
+    expect(SEARCH_ORDER_METHOD).toContain('只在语料库里');
+    // "没覆盖"那行也说的是六档，不能一处六档另一处四档
+    expect(SEARCH_NOT_COVERED.join(' ')).toContain('相关度只分六档');
+    expect(SEARCH_NOT_COVERED.join(' ')).not.toContain('相关度只分四档');
+  });
+
+  it('文档正文里的词能被搜到（第 5 档：snapshots.search_text）', async () => {
+    const token = `正文词${RUN}`;
+    const project = await mine(`正文项目${RUN}`);
+    // 往这个项目的快照 search_text 里写一个词（正文那一列的写入方是 createSnapshot）
+    await db()
+      .update(snapshots)
+      .set({ search_text: `这一版的正文里提到 ${token}` })
+      .where(eq(snapshots.projectId, project));
+
+    const results = await searchPlatform(token, meId);
+    const hit = group(results, 'designs').hits.find((h) => h.href === `/studio/${project}`);
+    expect(hit, '正文里的词应该能把那个项目的设计稿搜出来').toBeTruthy();
+  });
+
+  it('正文那一档不会把同一个结果重复很多遍（join 快照会翻倍，这里用关联子查询）', async () => {
+    const token = `不重复${RUN}`;
+    const project = await mine(`不重复项目${RUN}`);
+    const writeSnapshot = (n: number) =>
+      db()
+        .insert(snapshots)
+        .values({
+          projectId: project,
+          source: 'manual',
+          document: {
+            id: project,
+            schemaVersion: 1,
+            name: 'x',
+            pages: [],
+            activePageId: '',
+            components: [],
+            tokens: [],
+            assets: [],
+            variables: [],
+            metadata: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), modes: [] },
+          },
+          search_text: `正文 ${token} 第${n}份`,
+        });
+    const countHits = async () =>
+      group(await searchPlatform(token, meId, 25), 'designs').hits.filter((h) => h.href === `/studio/${project}`).length;
+
+    await writeSnapshot(1);
+    const one = await countHits();
+    expect(one, '正文命中时设计稿要出得来').toBeGreaterThan(0);
+
+    // 再存两份正文同样含这个词的快照 ⇒ 命中条数不该变
+    await writeSnapshot(2);
+    await writeSnapshot(3);
+    const three = await countHits();
+    expect(three, '快照多几份不该让同一个结果多出几行（join 会翻倍）').toBe(one);
+  });
+
+  it('语料库里的词能被搜到（第 6 档：knowledge_chunks.content）', async () => {
+    const token = `语料词${RUN}`;
+    const project = await mine(`语料项目${RUN}`);
+    // 先有一条世界条目（它是「世界」那一组的结果载体）
+    await db()
+      .insert(worlds)
+      .values({ projectId: project, ownerId: meId, name: `语料世界${RUN}`, summary: null })
+      .returning({ id: worlds.id });
+    // 再往语料库里写一块正文（§49 那一路）
+    await db()
+      .insert(knowledgeChunks)
+      .values({
+        projectId: project,
+        sourceType: 'lore',
+        sourceId: `${project}#lore-1`,
+        chunkIndex: 0,
+        content: `传说里说 ${token} 出现在王城`,
+      });
+
+    const hits = group(await searchPlatform(token, meId), 'worlds').hits;
+    expect(hits.length, '语料库里的词要能命中「世界」那一组').toBeGreaterThan(0);
+    expect(hits.some((h) => h.title === `语料世界${RUN}`), '命中的那条就是那个世界').toBe(true);
   });
 });

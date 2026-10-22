@@ -233,6 +233,8 @@ export const snapshots = pgTable(
     taskId: uuid('task_id'),
     createdById: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: now(),
+    /** 用于全文检索的文本摘要（标题+页面名+节点文字+visualDna描述等），用于 trigram 匹配 */
+    search_text: text('search_text'),
   },
   (t) => [index('snapshots_project_created_idx').on(t.projectId, t.createdAt)],
 );
