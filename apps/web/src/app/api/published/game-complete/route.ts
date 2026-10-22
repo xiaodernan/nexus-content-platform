@@ -26,26 +26,33 @@ import { badRequest, jsonError } from '@/server/http';
  */
 export async function POST(req: Request): Promise<NextResponse> {
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
-  const parsed = PublishedGameCompleteRequestSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+  try {
+    const parsed = PublishedGameCompleteRequestSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
+      return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    }
+    const { path, visitorKey, webdriver } = parsed.data;
+
+    const rl = getRateLimiter().hit(rateKey('published/game-complete', clientIp(req), visitorKey), 30, 60 * 60 * 1000);
+    if (!rl.allowed) return jsonError(429, 'rate_limited', { message: '上报太频繁', retryAfterMs: rl.retryAfterMs });
+
+    const publication = await findPublicPath(path);
+    if (!publication) return jsonError(404, 'not_found', { message: '没有这个公开页面，或它已经不再公开' });
+
+    const viewer = await currentUserOrNull();
+    const result = await recordGameCompletion({
+      publicationId: publication.id,
+      visitorKey,
+      userId: viewer?.id ?? null,
+      suspectedBot: classifyVisit(req.headers.get('user-agent'), webdriver),
+    });
+    if (result === 'rejected') return badRequest(['visitorKey 不合法']);
+    // duplicate 也算成功：这一次没有新增，但"已经记过了"不是错误
+    return NextResponse.json({ ok: true, recorded: result === 'recorded' });
+  } catch (error) {
+    // 这一格是**匿名可写**的入口：崩了不能只留一个 500 白页，
+    // 要把原因说出来（否则排查时只剩"服务器错误"四个字）。
+    const message = error instanceof Error ? error.message : String(error);
+    return jsonError(500, 'game_complete_failed', { message: `记这一次通关失败：${message}` });
   }
-  const { path, visitorKey, webdriver } = parsed.data;
-
-  const rl = getRateLimiter().hit(rateKey('published/game-complete', clientIp(req), visitorKey), 30, 60 * 60 * 1000);
-  if (!rl.allowed) return jsonError(429, 'rate_limited', { message: '上报太频繁', retryAfterMs: rl.retryAfterMs });
-
-  const publication = await findPublicPath(path);
-  if (!publication) return jsonError(404, 'not_found', { message: '没有这个公开页面，或它已经不再公开' });
-
-  const viewer = await currentUserOrNull();
-  const result = await recordGameCompletion({
-    publicationId: publication.id,
-    visitorKey,
-    userId: viewer?.id ?? null,
-    suspectedBot: classifyVisit(req.headers.get('user-agent'), webdriver),
-  });
-  if (result === 'rejected') return badRequest(['visitorKey 不合法']);
-  // duplicate 也算成功：这一次没有新增，但"已经记过了"不是错误
-  return NextResponse.json({ ok: true, recorded: result === 'recorded' });
 }

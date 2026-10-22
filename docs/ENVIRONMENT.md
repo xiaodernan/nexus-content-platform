@@ -64,6 +64,25 @@
 - 本机跑法：`NEXUS_REDIS_URL=redis://127.0.0.1:56379`；跨实例那层用 `npm run realtime:two-process` 验，
   它只要 Redis、不要数据库，起不来时会先打一句"线路不通"而不是等 25 秒超时。
 
+### ⚠️ 两个库：集成测试打 `nexus_regress`，**e2e 的 dev server 打 `nexus`**（2026-10-22 实测）
+
+本机 Postgres 实际监听 **55100**（`55433` 那条是旧记录，现在没有进程在听）。
+同一个实例上有多个库，而它们**各干各的**：
+
+| 谁 | 连哪个库 | 用途 |
+| --- | --- | --- |
+| 集成测试（`apps/web/test/**.integration.test.ts`） | `postgres://nexus:nexus_dev_only@localhost:55100/nexus_regress` | 打真库、可随时清 |
+| e2e（Playwright 起的 dev server） | `postgres://nexus:nexus_dev_only@localhost:55100/nexus` | 浏览器那一寸落数据的地方 |
+
+⇒ ⇒ **所以：加一条新迁移，两个库都要打**（`npm run db:migrate` 跑两遍，第二个库改一下 `NEXUS_DATABASE_URL`）。
+只打一个的后果很具体（今天踩过）：集成测试全绿（它打的那张表存在），
+而 e2e 里那一格 500，报的是 `Failed query: insert into "game_completions"`——
+**看上去像代码错了，其实是那个库里没有这张表**。
+
+> 还有一层：`reuseExistingServer: true` ⇒ Playwright 会**复用已经在跑的 dev server**，
+> 那个进程连的是**它启动时**的库 ⇒ 你在命令行里改 `NEXUS_DATABASE_URL` 对它无效。
+> 排查"e2e 里的数与库里对不上"时，先问一句"这个 dev server 启动时连的是哪个库"。
+
 ## 凭据现状
 
 环境中存在 `ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN`，它们属于 IDE Agent 运行时的会话凭据，
