@@ -73,7 +73,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                         className="flex items-baseline justify-between gap-3 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-4 py-3 hover:bg-bg-2"
                         data-search-hit={hit.id}
                       >
-                        <span className="text-14">{hit.title}</span>
+                        <span className="text-14" data-search-hit-title>
+                          {hit.title}
+                        </span>
                         {hit.detail ? <span className="truncate text-12 text-fg-3">{hit.detail}</span> : null}
                       </a>
                     </li>
