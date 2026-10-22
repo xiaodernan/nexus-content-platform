@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { applyBatch, createEmptyDocument, ops, rectNode, solid, textNode, type DesignDocument, type DesignNode, type Paint } from '@nexus/design-model';
+import { applyBatch, componentNode, createEmptyDocument, expandComponentInstances, instanceNode, ops, rectNode, solid, textNode, type DesignDocument, type DesignNode, type Paint } from '@nexus/design-model';
 import { injectRemixBar, injectMetaBar, renderArtifactHtml, renderArtifactMissing, renderArtifactUnavailable } from './artifact';
+import { docToSvg } from './thumbnail';
 
 /**
  * M7 v196 — the artifact page's rendering rules.
@@ -381,5 +382,64 @@ describe('artifact — missing and unavailable pages', () => {
     expect(html).toContain('The publication service is not answering');
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
     expect(html).not.toContain('<img');
+  });
+});
+
+describe('artifact — a publication draws the page the CANVAS drew (v296)', () => {
+  /**
+   * A component master with one body, and an instance of it on the page — the shape the Studio paints every
+   * day. The canvas reaches it through `store.instanceView`, i.e. AFTER `expandComponentInstances`; a page
+   * that renders the stored bytes sees the instance's SHELL and none of its bodies. Measured on shipped bytes
+   * before the renderers projected: the artifact drew 1 `<div>` and the card 2 rects where the canvas drew 2
+   * elements and 3 rects.
+   */
+  function instanceDoc(shiftX = 0): DesignDocument {
+    const d0 = createEmptyDocument('Harbour');
+    const cmp = componentNode('Chip', { id: 'cmp' });
+    const body = rectNode('body', { id: 'body', x: 5, y: 5, width: 120, height: 40, fills: [solid({ r: 0.2, g: 0.4, b: 0.6, a: 1 })] });
+    body.parentId = cmp.id;
+    cmp.childIds = [body.id];
+    const inst = instanceNode('Chip 1', 'cmp', { id: 'i1', x: 20, y: 30, width: 130, height: 50 });
+    if (shiftX) inst.overrides = { body: { x: shiftX } };
+    const withMaster = applyBatch(d0, { id: 'b1', ops: [ops.addSubtree(d0.rootId, 0, [cmp, body])], provenance: { mode: 'user' }, timestamp: 0 });
+    return applyBatch(withMaster, { id: 'b2', ops: [ops.addSubtree(d0.activePageId, 0, [inst])], provenance: { mode: 'user' }, timestamp: 0 });
+  }
+
+  it('draws the instance’s BODY, not only its shell', () => {
+    // The clone lands at the instance's origin plus the master child's authored offset: 20+5, 30+5. Only a
+    // renderer that knows the projection can place it — which is why this box appears nowhere in the old page.
+    const html = renderArtifactHtml({ document: instanceDoc() });
+    expect((html.match(/left:25px;top:35px/g) ?? []).length, 'one clone, drawn once').toBe(1);
+    expect(html).toContain('left:20px;top:30px'); // the instance shell is still there
+  });
+
+  it('paints the body’s fill ONCE — the master stays off the page', () => {
+    // Both would carry the same colour, so the count is the witness: a card or page that projected AND walked
+    // the master would show two. The master lives under the document root, not under the page, so the walk
+    // never reaches it.
+    const html = renderArtifactHtml({ document: instanceDoc() });
+    expect((html.match(/rgba\(51, 102, 153/g) ?? []).length, 'the clone paints the master’s fill; the master itself does not paint').toBe(1);
+    expect(html, 'the master’s own authored offset never reaches the page').not.toContain('left:5px');
+  });
+
+  it('is the same bytes for a document that was already projected', () => {
+    // `DiffCard` calls `docToSvg(expandComponentInstances(doc).doc, …)`, and the projection now runs inside
+    // the renderer too. Two projections must be one picture, or the before/after card disagrees with the page.
+    const doc = instanceDoc();
+    const twice = expandComponentInstances(expandComponentInstances(doc).doc).doc;
+    expect(renderArtifactHtml({ document: twice })).toBe(renderArtifactHtml({ document: doc }));
+    expect((renderArtifactHtml({ document: twice }).match(/left:25px;top:35px/g) ?? []).length, 'and not two clones').toBe(1);
+  });
+
+  it('moves the clone with an instance override — and the card moves with it', () => {
+    // The override is a DELTA on the master child (x 5 + 40), placed under the instance at 20 → 65. Reading the
+    // page and then requiring the card to agree is the parity claim; retyping 65 into both would pass while the
+    // two drifted apart.
+    const doc = instanceDoc(40);
+    const html = renderArtifactHtml({ document: doc });
+    const clone = /left:(\d+(?:\.\d+)?)px;top:35px/.exec(html);
+    expect(clone, 'the page drew the clone at its overridden x').not.toBeNull();
+    expect(docToSvg(doc, doc.activePageId)).toContain(`x="${clone![1]}" y="35"`);
+    expect(html).not.toContain('left:25px');
   });
 });

@@ -1,6 +1,7 @@
 import {
   childIdList,
   colorToCss,
+  expandComponentInstances,
   layoutPage,
   resolveToken,
   type DesignDocument,
@@ -44,7 +45,14 @@ const n = (x: number) => (Number.isFinite(x) ? Math.round(x * 10) / 10 : 0);
  * Model — the same `layoutPage` geometry the canvas paints (ADR 0005). Pure + no DOM: used for the
  * before/after thumbnails in the AI-diff card (§36) and reusable headless in evidence scripts.
  */
-export function docToSvg(doc: DesignDocument, pageId: string): string {
+export function docToSvg(input: DesignDocument, pageId: string): string {
+  // v296 — the card used to picture the document WITHOUT its component bodies: an instance node expands into
+  // clones only in `expandComponentInstances`, which the canvas paints through (`store.instanceView`) and this
+  // renderer never called. Measured on shipped bytes: a document the canvas drew as two elements produced a
+  // card with one rect beside the page. The projection happens here so every card — gallery, profile,
+  // before/after — answers the same question the canvas does; it is idempotent, so `DiffCard`'s own call is
+  // harmless and pinned by a test rather than assumed.
+  const doc = expandComponentInstances(input).doc;
   const layout = layoutPage(doc, pageId);
   const rects = Object.values(layout).filter((r) => Number.isFinite(r.x) && r.width > 0 && r.height > 0);
   if (!rects.length) {

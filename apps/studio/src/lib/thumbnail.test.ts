@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyBatch, createEmptyDocument, ellipseNode, ops, rectNode, solid, textNode, type DesignDocument, type RGBA, type TextStyle } from '@nexus/design-model';
+import { applyBatch, componentNode, createEmptyDocument, ellipseNode, expandComponentInstances, instanceNode, ops, rectNode, solid, textNode, type DesignDocument, type RGBA, type TextStyle } from '@nexus/design-model';
 import { docToSvg, svgToDataUri } from './thumbnail';
 
 function buildDoc(withNodes = true) {
@@ -337,5 +337,44 @@ describe('thumbnail — a posted value cannot wear an attribute (M7 v295)', () =
     const svg = docToSvg(doc, doc.activePageId);
     expect(svg, 'the authored geometry never reaches the markup').not.toContain('EVIL_geom');
     expect(svg).toContain('<rect x="0"');
+  });
+});
+
+describe('thumbnail — the card pictures the page the CANVAS drew (v296)', () => {
+  /** The same fixture as `artifact.test.ts`: a master with one body at 5,5 and an instance of it at 20,30. */
+  function instanceDoc(shiftX = 0): DesignDocument {
+    const d0 = createEmptyDocument('Thumb');
+    const cmp = componentNode('Chip', { id: 'cmp' });
+    const body = rectNode('body', { id: 'body', x: 5, y: 5, width: 120, height: 40, fills: [solid({ r: 0.2, g: 0.4, b: 0.6, a: 1 })] });
+    body.parentId = cmp.id;
+    cmp.childIds = [body.id];
+    const inst = instanceNode('Chip 1', 'cmp', { id: 'i1', x: 20, y: 30, width: 130, height: 50 });
+    if (shiftX) inst.overrides = { body: { x: shiftX } };
+    const withMaster = applyBatch(d0, { id: 'b1', ops: [ops.addSubtree(d0.rootId, 0, [cmp, body])], provenance: { mode: 'user' }, timestamp: 0 });
+    return applyBatch(withMaster, { id: 'b2', ops: [ops.addSubtree(d0.activePageId, 0, [inst])], provenance: { mode: 'user' }, timestamp: 0 });
+  }
+
+  it('draws the instance’s BODY, not only its shell', () => {
+    // The card is the gallery's only picture of a publication, so a missing clone is a card of a drawing the
+    // author never published. 20+5, 30+5 is the same placement the canvas and the artifact use. ONE document
+    // is built and read: a page id is random per document, so two calls to `instanceDoc()` are two pages.
+    const doc = instanceDoc();
+    const svg = docToSvg(doc, doc.activePageId);
+    expect((svg.match(/<rect x="25" y="35" width="120" height="40"/g) ?? []).length, 'one clone, drawn once').toBe(1);
+    expect(svg).toContain('<rect x="20" y="30"');
+    expect(svg, 'the master’s own authored offset never reaches the card').not.toContain('<rect x="5" y="5"');
+  });
+
+  it('is the same bytes for a document that was already projected', () => {
+    const doc = instanceDoc();
+    expect(docToSvg(expandComponentInstances(doc).doc, doc.activePageId)).toBe(docToSvg(doc, doc.activePageId));
+  });
+
+  it('moves the clone with an instance override', () => {
+    // The delta is on the master child (authored x 5 + 40) under an instance at 20, so the card must say 65 —
+    // the number `artifact.test.ts` reads back out of the PUBLISHED page for the same document. A drift
+    // between the two is the bug this pair of cases exists to catch.
+    const doc = instanceDoc(40);
+    expect(docToSvg(doc, doc.activePageId)).toContain('<rect x="65" y="35"');
   });
 });

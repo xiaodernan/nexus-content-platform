@@ -1,5 +1,6 @@
 import {
   childIdList,
+  expandComponentInstances,
   layoutPage,
   parseDimension,
   resolveToken,
@@ -117,7 +118,13 @@ function tokenVars(doc: DesignDocument): string {
 }
 
 /** Full standalone HTML for the iframe preview — one source of truth (the model), §3/§44. */
-export function renderPreviewHtml(doc: DesignDocument, pageId: string): string {
+export function renderPreviewHtml(input: DesignDocument, pageId: string): string {
+  // The canvas paints the PROJECTED page (`store.instanceView` → `expandComponentInstances`), so the page a
+  // person publishes has to project too — otherwise an instance's bodies exist only in the editor. Measured
+  // on shipped bytes before this line: for a document whose canvas drew two elements, the artifact drew ONE
+  // div and the gallery card TWO rects; the clone was missing from both. Projection is idempotent (pinned in
+  // `artifact.test.ts`), which is what lets a caller that already projects keep doing so.
+  const doc = expandComponentInstances(input).doc;
   const layout = layoutPage(doc, pageId);
   const page = layout[pageId];
   const body: string[] = [];
