@@ -151,6 +151,14 @@ export interface AnalyticsNumbers {
   completedVisitors: number;
   /** 疑似爬虫/自动化的通关数——另计，不进上面那一格 */
   botCompletions: number;
+  /**
+   * 通关的人**只有作者自己**。
+   *
+   * 与 `selfOnly`（看过的人只有作者自己）同一条纪律：这一格数的是"多少人玩通了"，
+   * 而如果那些"人"就是作者自己，这串数就不能当"有人玩得下去"的证据
+   * ⇒ 页面上要像"只有你自己看过"那样明写出来（§159）。
+   */
+  selfCompleted: boolean;
 }
 
 export interface PublicationAnalyticsRow {
@@ -182,6 +190,7 @@ interface VisitRollup {
 interface CompletionRollup {
   completedVisitors: number;
   botCompletions: number;
+  selfCompleted: boolean | null;
 }
 
 function int(value: unknown): number {
@@ -240,6 +249,7 @@ async function rollupVisits(publicationIds: string[], ownerId: string): Promise<
 /** 通关那一格的聚合：真人按 key 去重，爬虫另计（与访客现场同一条纪律） */
 async function rollupCompletions(
   publicationIds: string[],
+  ownerId: string,
 ): Promise<Map<string, CompletionRollup>> {
   if (!publicationIds.length) return new Map();
   const db = getDb();
@@ -248,6 +258,9 @@ async function rollupCompletions(
       publicationId: gameCompletions.publicationId,
       completedVisitors: sql<string>`count(distinct ${gameCompletions.visitorKey}) filter (where not ${gameCompletions.suspectedBot})`,
       botCompletions: sql<string>`count(distinct ${gameCompletions.visitorKey}) filter (where ${gameCompletions.suspectedBot})`,
+      // 通关的人只有作者自己 ⇒ 这串数不能当"有人玩得下去"的证据
+      // （与访客现场的 selfOnly 同一句纪律，判定也是同一种）
+      selfCompleted: sql<boolean | null>`bool_and(${gameCompletions.userId} is not null and ${gameCompletions.userId} = ${ownerId}) filter (where not ${gameCompletions.suspectedBot})`,
     })
     .from(gameCompletions)
     .where(inArray(gameCompletions.publicationId, publicationIds))
@@ -258,6 +271,7 @@ async function rollupCompletions(
       {
         completedVisitors: int(row.completedVisitors),
         botCompletions: int(row.botCompletions),
+        selfCompleted: row.selfCompleted,
       },
     ]),
   );
@@ -324,6 +338,8 @@ function assemble(
         botVisitors: rollup?.botVisitors ?? 0,
         completedVisitors: done?.completedVisitors ?? 0,
         botCompletions: done?.botCompletions ?? 0,
+        // 没有真人通关过时是 NULL（不是"全是作者"）⇒ 不该出"只有你自己通关过"那句
+        selfCompleted: done?.selfCompleted ?? false,
       },
     };
   });
@@ -366,7 +382,7 @@ async function analyticsFor(ownerId: string, onlyPublicationId?: string): Promis
   const projectIds = publications.map((row) => row.projectId);
   const [visitRows, completionRows, likeCounts, remixCounts, [followerRow]] = await Promise.all([
     rollupVisits(ids, ownerId),
-    rollupCompletions(ids),
+    rollupCompletions(ids, ownerId),
     countGrouped(likes, likes.projectId, projectIds),
     countGrouped(remixes, remixes.sourceProjectId, projectIds),
     db.select({ n: sql<string>`count(*)` }).from(follows).where(eq(follows.followeeId, ownerId)),
@@ -417,6 +433,7 @@ const EXPORT_COLUMNS: readonly { label: string; pick: (row: PublicationAnalytics
   { label: '累计可见时长毫秒', pick: (row) => (row.analytics.playTimeMs === null ? '' : String(row.analytics.playTimeMs)) },
   { label: '被截断的心跳', pick: (row) => String(row.analytics.cappedReports) },
   { label: '只有自己看过', pick: (row) => (row.analytics.selfOnly ? '是' : '否') },
+  { label: '只有自己通关', pick: (row) => (row.analytics.selfCompleted ? '是' : '否') },
   { label: '疑似爬虫打开', pick: (row) => String(row.analytics.botOpens) },
   { label: '疑似爬虫访客', pick: (row) => String(row.analytics.botVisitors) },
 ];

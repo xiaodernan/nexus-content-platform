@@ -39,7 +39,7 @@ const DEFINITIONS: { label: string; meaning: string }[] = [
   {
     label: '通关过',
     meaning:
-      '在公开可玩页上玩到了结局的**人数**（一个人在同一版里只记一次，所以这是"多少人通关过"，不是"通关了几次"）。与左边那格「完成度」是两个口径：那个说"这一页滚到哪儿"，这个说"玩通了"',
+      '在公开可玩页上玩到了结局的**人数**（一个人在同一版里只记一次，所以这是"多少人通关过"，不是"通关了几次"）。与左边那格「完成度」是两个口径：那个说"这一页滚到哪儿"，这个说"玩通了"。如果那些"人"就是作者自己，页面上会像"只有你自己看过"那样明写出来',
   },
   { label: '浏览时长', meaning: '只在标签页可见时累计；单次上报最多带走 60 秒，被截断过几次会另行标出' },
   {
@@ -361,6 +361,11 @@ export default async function AnalyticsPage(props: {
                     {row.analytics.selfOnly ? (
                       <span className="ml-1 text-11 text-amber-300" data-analytics-selfonly>
                         只有你自己看过
+                      </span>
+                    ) : null}
+                    {row.analytics.selfCompleted ? (
+                      <span className="ml-1 text-11 text-amber-300" data-analytics-self-completed>
+                        只有你自己通关过
                       </span>
                     ) : null}
                     {row.analytics.cappedReports > 0 ? (

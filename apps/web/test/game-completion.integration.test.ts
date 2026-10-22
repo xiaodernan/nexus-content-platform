@@ -165,11 +165,28 @@ describe('§168 游戏侧 completion', () => {
     expect(rows, '可疑的行照样入库').toHaveLength(1);
   });
 
-  it('不与页面的滚动完成度混为一谈：通关的那一格与完成度各说各的', async () => {    const { publicationId, path } = await publish();
+  it('不与页面的滚动完成度混为一谈：通关的那一格与完成度各说各的', async () => {
+    const { publicationId, path } = await publish();
     await recordGameCompletion({ publicationId, visitorKey: KEY(7), userId: null });
     const row = (await creatorAnalytics(ownerId)).find((item) => item.path === path)!;
     // 通关了，但这一版**没有任何访客现场** ⇒ 完成度是"未采集"（null），不是 0
     expect(row.analytics.completedVisitors).toBe(1);
     expect(row.analytics.completion, '没有心跳就没有完成度：不能拿通关去顶').toBeNull();
+  });
+
+  it('只有你自己通关过：那串数不能当"有人玩得下去"的证据（与"只有你自己看过"同一句纪律）', async () => {
+    // 作者自己玩通关 ⇒ 真人通关人数是 1，但"只有你自己通关过"必须说出来
+    const mine = await publish();
+    await recordGameCompletion({ publicationId: mine.publicationId, visitorKey: KEY(8), userId: ownerId });
+    const myRow = (await creatorAnalytics(ownerId)).find((item) => item.path === mine.path)!;
+    expect(myRow.analytics.completedVisitors).toBe(1);
+    expect(myRow.analytics.selfCompleted, '自己通关没有说出来 ⇒ 这串数会被当成"有人玩得下去"').toBe(true);
+
+    // 另一个人（匿名）通关 ⇒ 那句提醒就不该出现
+    const other = await publish();
+    await recordGameCompletion({ publicationId: other.publicationId, visitorKey: KEY(9), userId: null });
+    const otherRow = (await creatorAnalytics(ownerId)).find((item) => item.path === other.path)!;
+    expect(otherRow.analytics.completedVisitors).toBe(1);
+    expect(otherRow.analytics.selfCompleted, '有人真的玩通了 ⇒ 不该还说"只有你自己"').toBe(false);
   });
 });

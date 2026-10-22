@@ -28,6 +28,7 @@ function numbers(over: Partial<CreatorFact['numbers']> = {}): CreatorFact['numbe
     // §168：游戏侧的通关（"多少人玩到了结局"）——基线里还没有人通关
     completedVisitors: 0,
     botCompletions: 0,
+    selfCompleted: false,
     ...over,
   };
 }

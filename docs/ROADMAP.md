@@ -1,4 +1,12 @@
 # ROADMAP
+  单文件 8/8 绿；tsc / eslint 0。
+  - **同款自证提醒**（2026-10-22）：「通关过」那一格也会说**"只有你自己通关过"**
+    ⇒ 与「只有你自己看过」同一句纪律：如果那些"人"就是作者自己，这串数就不能当
+    "有人玩得下去"的证据（否则创作者能自己通关把数撑起来）。判定与访客现场同一种
+    （`bool_and(user_id = ownerId)`），页面上是行内的一小行字（`data-analytics-self-completed`），
+    导出里多一列「只有自己通关」。凭证：游戏侧 completion 的集成测多一条（作者自己通关 ⇒
+    那句提醒出现；匿名访客通关 ⇒ 那句提醒不出现）。
+# ROADMAP
 
 来源需求：`docs/specs/MASTER_DIRECTIVE.original.txt`（§181-188 里程碑）。
 执行原则：§190 `BUILD SMALL → VALIDATE → EXPAND`，§192 每个里程碑必须 `Run / Test / Screenshot / Inspect / Fix / Commit`。
