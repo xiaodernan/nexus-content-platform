@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { deskSummary, reportStatusText, tallyText, toDeskRow, toDeskRows } from './moderation';
+import { deskSummary, deskWindowText, reportStatusText, tallyText, toDeskRow, toDeskRows } from './moderation';
 import { acknowledgeReport, readDesk } from './moderationLane';
 
 /**
@@ -22,6 +22,24 @@ const A_REPORT = {
   status: 'open',
   createdAt: 1_700_000_000_000,
 };
+
+describe('moderation — the desk’s WINDOW (M7 v378)', () => {
+  it('v378 — says the rows on the screen are a WINDOW of the whole', () => {
+    // The tally above counts EVERY report and the line under it used to count the window's rows, so one
+    // screen carried two different "report(s)" numbers.
+    expect(deskWindowText(3, 5)).toBe('showing the 3 newest of 5');
+  });
+
+  it('v378 — and a list that shows EVERYONE says nothing (the tally already says)', () => {
+    expect(deskWindowText(5, 5)).toBe('');
+  });
+
+  it('v378 — and an unknown total says nothing rather than the window’s own length', () => {
+    // A count of the window's own length is the lie this increment removes.
+    expect(deskWindowText(3, null)).toBe('');
+    expect(deskWindowText(3, undefined)).toBe('');
+  });
+});
 
 describe('moderation — the desk rows', () => {
   it('v349 — a row says WHEN the complaint arrived, in the service’s own style', () => {

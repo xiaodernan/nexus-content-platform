@@ -4142,6 +4142,46 @@ try {
     await retiredPage.close();
   }
 
+  // ── §75 v378: the desk’s line says its rows are a WINDOW ────────────────────────────────────────
+  // The tally above counts EVERY report; the line under it used to count the window’s rows, so one
+  // screen carried two "report(s)" numbers and nothing said which was which.
+  {
+    const deskWindowPage = await session.newPage('about:blank');
+    await deskWindowPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(deskWindowPage, 'the desk window page to hydrate');
+    await signInAs(deskWindowPage, 'ada', 'the creator with reports against their work');
+    await deskWindowPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
+    // The panel OPENS at once and the desk's READ comes back after it — so the wait is for the READ
+    // (the tally), not for the panel: a check that read the tally the moment the panel appeared would
+    // grade a read that had not answered yet.
+    const deskWindowShown = await until(
+      async () => {
+        const tally = await deskWindowPage.evaluate("document.querySelector('[data-desk-tally]')?.textContent ?? ''");
+        return tally.length > 0 ? tally : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the desk to read' },
+    );
+    check('the desk opens and reads', deskWindowShown !== null, 'the desk is there');
+
+    const deskLine = await deskWindowPage.evaluate(
+      "document.querySelector('[data-desk-window]')?.textContent ?? ''",
+    );
+    const deskTally = await deskWindowPage.evaluate(
+      "document.querySelector('[data-desk-tally]')?.textContent ?? ''",
+    );
+    check(
+      'the desk’s line says the WINDOW — and never a count of its own',
+      deskLine === '' || (deskLine.includes('showing the') && deskLine.includes('of ')),
+      `the line: ${JSON.stringify(deskLine)} · the tally: ${JSON.stringify(deskTally)}`,
+    );
+    check(
+      'and the tally keeps the WHOLE number',
+      /\d+ report\(s\)/.test(deskTally),
+      `the tally: ${JSON.stringify(deskTally)}`,
+    );
+    await deskWindowPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

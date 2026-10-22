@@ -160,6 +160,23 @@ export function tallyText(tally: TallyFacts): string {
   return parts.join(' · ');
 }
 
+/**
+ * That the desk's rows are a WINDOW, and how many there are in all.
+ *
+ * <p>v378 — the panel's tally above counts EVERY report (v309 ✓ · v312 ✓) and the line under it counted
+ * the WINDOW's rows ✓ — so one screen carried two different "report(s)" numbers and nothing said which
+ * was which ✓. This says it: "showing the 3 newest of 5" ✓.
+ *
+ * <p>A list that shows EVERYONE says nothing ✓ — the tally above already says how many there are ✓ — and
+ * an unknown total says nothing either ✓ (a count of the window's own length would be the lie this
+ * increment removes ✓).
+ */
+export function deskWindowText(shown: number, total: number | null | undefined): string {
+  if (typeof total !== 'number' || !Number.isFinite(total)) return '';
+  if (shown <= 0 || total <= shown) return '';
+  return `showing the ${shown} newest of ${total}`;
+}
+
 export function deskSummary(rows: readonly DeskRow[]): { total: number; open: number } {
   let open = 0;
   for (const row of rows) {

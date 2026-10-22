@@ -8,7 +8,7 @@ import { readMyTips, readMyTipsGiven } from '@/lib/tipLane';
 import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
 import { cancelSubscription, retirePlan } from '@/lib/planLane';
 import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
-import { tallyText } from '@/lib/moderation';
+import { deskWindowText, tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { readMyFollowing, unfollowAccount, type FollowingLaneAnswer } from '@/lib/followLane';
 import {
@@ -1303,9 +1303,21 @@ export default function Toolbar() {
             <div style={{ color: 'var(--nexus-muted)' }}>no reports against your work</div>
           ) : (
             <>
-              <div style={{ color: 'var(--nexus-muted)', marginBottom: 6 }}>
-                {desk.reports.length} report(s) · {desk.open} still waiting
-              </div>
+              {/* v378 — the line under the TALLY used to say the WINDOW's own count ("3 report(s)"),
+                  right under the tally's whole number ("5 report(s)") — one screen, two counts, nothing
+                  saying which was which. The tally keeps the whole number; this line says the window. */}
+              {(() => {
+                const shown = desk.reports.length;
+                const total = deskReason
+                  ? desk.tally?.byReason?.[deskReason] ?? null
+                  : desk.tally?.total ?? null;
+                const window = deskWindowText(shown, total);
+                return window ? (
+                  <div data-desk-window style={{ color: 'var(--nexus-muted)', marginBottom: 6 }}>
+                    {window}
+                  </div>
+                ) : null;
+              })()}
               {/* v318 — the reason filter. Only the reasons that OCCUR get a button: a button for a reason
                   with no reports is noise, and a reader learns to skip the whole row. The TALLY keeps
                   counting the whole answer, so the filter never hides anything without a number saying it
