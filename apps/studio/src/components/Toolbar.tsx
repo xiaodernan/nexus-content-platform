@@ -1096,6 +1096,9 @@ export default function Toolbar() {
                           row's price is the one that was agreed, and the plan may since have been
                           repriced (v317), which the row said nothing about. */}
                       {row.movedText && <span data-economy-moved={row.movedText}> · {row.movedText}</span>}
+                      {/* v376 — and whether the plan is still ON OFFER: a retired plan keeps its terms, so
+                          without this the row would look like a live offer. */}
+                      {row.offerText && <span data-economy-offer={row.offerText}> · {row.offerText}</span>}
                       {/* v330 — and WHOSE plan it is. A plan id is an address, and a supporter reading
                           their own list should not have to know which address belongs to the person
                           whose work they are backing. */}
@@ -1176,6 +1179,8 @@ export default function Toolbar() {
                     {row.termsText && <span data-economy-terms={row.termsText}> · {row.termsText}</span>}
                     {/* v375 — and whether the plan's terms have MOVED since this promise was made. */}
                     {row.movedText && <span data-economy-moved={row.movedText}> · {row.movedText}</span>}
+                    {/* v376 — and whether the plan is still ON OFFER. */}
+                    {row.offerText && <span data-economy-offer={row.offerText}> · {row.offerText}</span>}
                     {/* v327 — and WHO is behind it. A creator reading the subscriptions they received
                         was looking at a plan, a price and a status, and not at the person who had put
                         their money behind it — the wire has carried that name all along. */}

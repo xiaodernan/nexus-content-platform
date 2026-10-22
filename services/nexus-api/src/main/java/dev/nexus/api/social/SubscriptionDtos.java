@@ -113,7 +113,15 @@ public final class SubscriptionDtos {
             /**
              * v375 — and the plan's period NOW, or null when the plan is gone.
              */
-            String currentPeriod) {
+            String currentPeriod,
+            /**
+             * v376 — whether the plan is STILL ON OFFER, or null when the plan is gone.
+             *
+             * <p>A retired plan keeps its terms ✓, so the price and the period above would look exactly
+             * like an offer that is still running — and a supporter reading their own list could not tell
+             * that the plan they are backing is no longer for sale.
+             */
+            Boolean currentActive) {
     }
 
     /**

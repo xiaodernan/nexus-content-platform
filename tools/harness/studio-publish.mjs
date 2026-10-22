@@ -366,13 +366,25 @@ try {
   // condition was not met. The Studio compiles its routes on demand, so the first request to `/api/publish`
   // in a dev server can take a while — and if the note says something else entirely, that is the fact worth
   // printing.
-  const ready = await until(
-    async () => {
-      const note = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? null");
-      return note && note.includes('service ready') ? note : false;
-    },
-    { tries: 200, gapMs: 500, label: 'the Studio to report the service ready' },
-  );
+  // v376 — the proof's own budget: the Studio compiles its routes on demand, and a COLD compile on a
+  // busy machine can outlast one wait — the machine this proof runs on is often busy with other
+  // projects. A RELOAD runs the probe again on a warm route, so a slow compile is not mistaken for a
+  // service that is not there. The check itself is unchanged: it still grades what the panel says.
+  let ready = null;
+  for (let attempt = 1; attempt <= 3 && ready === null; attempt += 1) {
+    ready = await until(
+      async () => {
+        const note = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? null");
+        return note && note.includes('service ready') ? note : false;
+      },
+      { tries: 200, gapMs: 500, label: 'the Studio to report the service ready' },
+    );
+    if (ready === null) {
+      console.log(`[e2e] the Studio did not report the service ready (attempt ${attempt}) \u2014 reloading the page`);
+      await page.navigate(`${studioBase}/`, { waitForSelector: '#nexus-canvas', waitMs: 1200 });
+      await waitForHydration(page, 'the Studio to hydrate again');
+    }
+  }
   const noteNow = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? null");
   check('the Studio probes the service on mount and reports it ready', ready !== null, `note: ${JSON.stringify(noteNow)}`);
   const probe = await page.evaluate("fetch('/api/publish').then((r) => r.json())");
@@ -4057,6 +4069,43 @@ try {
       `the row: ${JSON.stringify(movedRow)}`,
     );
     await movedPage.close();
+  }
+
+  // ── §73 v376: the subscription’s row says when the plan is no longer ON OFFER ──────────────────────
+  // The creator retired the plan earlier in this run; a retired plan KEEPS its terms, so without this
+  // the supporter’s row would look exactly like a live offer.
+  {
+    const offerPage = await session.newPage('about:blank');
+    await offerPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(offerPage, 'the offer page to hydrate');
+    await signInAs(offerPage, 'bob', 'the supporter of a retired plan');
+    await offerPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const offerShown = await until(
+      async () => (await offerPage.evaluate("!!document.querySelector('[data-economy-offer]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the offer note to show' },
+    );
+    check('the panel says the plan is no longer on offer', offerShown !== null, 'the note is there');
+
+    const offerNotes = await offerPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-offer]')).map((s) => s.getAttribute('data-economy-offer'))",
+    );
+    check(
+      'and the note is on the row, in the panel’s own words',
+      offerNotes.length > 0 && offerNotes.every((n) => n.includes('the plan is no longer on offer')),
+      `the panel: ${JSON.stringify(offerNotes)}`,
+    );
+
+    // And the SERVICE agrees — read independently of the browser.
+    const offerRaw = await offerPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const offerId = JSON.parse(String(offerRaw)).id;
+    const offerService = await (await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(offerId)}&limit=50`)).json();
+    const offerRow = (offerService.subscriptions ?? []).find((s) => s.planId === 'pro');
+    check(
+      'the SERVICE agrees — the wire says the plan is not on offer any more',
+      offerRow?.currentActive === false,
+      `the row: ${JSON.stringify(offerRow)}`,
+    );
+    await offerPage.close();
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────

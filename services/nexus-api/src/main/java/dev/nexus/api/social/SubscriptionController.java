@@ -245,7 +245,10 @@ public class SubscriptionController {
                 // the promise was made. Null when the plan is gone: an absent plan is not a plan with no
                 // terms, and the wire says nothing rather than guessing.
                 currentPlan == null ? null : currentPlan.getPriceCents(),
-                currentPlan == null ? null : currentPlan.getPeriod());
+                currentPlan == null ? null : currentPlan.getPeriod(),
+                // v376 — and whether the plan is still ON OFFER: a retired plan keeps its terms, so the
+                // price above would look exactly like an offer that is still running.
+                currentPlan == null ? null : currentPlan.isActive());
     }
 
     /**

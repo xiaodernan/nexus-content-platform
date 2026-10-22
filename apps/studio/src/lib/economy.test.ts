@@ -4,6 +4,7 @@ import type { PriceCents, Tip, Subscription } from './monetization';
 
 import {
   planCountText,
+  planOfferText,
   planTermsMovedText,
   subscriptionsTotalText,
   subscriptionsWindowText,
@@ -304,6 +305,30 @@ describe('economy — subscription rows (M8 v274)', () => {
         { priceText: '¥15.00', periodText: 'per month' },
       ),
     ).toBeNull();
+  });
+
+  it('v376 — says when the plan is no longer ON OFFER', () => {
+    // A retired plan KEEPS its terms, so the price and the period on the row look exactly like an offer
+    // that is still running.
+    expect(planOfferText({ active: false })).toBe('the plan is no longer on offer');
+  });
+
+  it('v376 — and a plan that is still offered says nothing', () => {
+    expect(planOfferText({ active: true })).toBeNull();
+  });
+
+  it('v376 — and a plan that is GONE says nothing: that is a different fact', () => {
+    expect(planOfferText(null)).toBeNull();
+  });
+
+  it('v376 — the row carries the note when the wire says the plan is retired', () => {
+    const row = toSubscriptionRow({
+      ...sub(),
+      currentPriceCents: 1500,
+      currentPeriod: 'month',
+      currentActive: false,
+    })!;
+    expect(row.offerText).toBe('the plan is no longer on offer');
   });
 
   it('v375 — and a plan that is gone says nothing rather than guessing', () => {

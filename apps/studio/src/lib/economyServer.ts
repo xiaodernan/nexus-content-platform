@@ -47,6 +47,8 @@ export interface SubscriptionEntry {
    * v375 — and the plan's period NOW, or null when the wire did not say.
    */
   currentPeriod?: string | null;
+  /** v376 — whether the plan is STILL ON OFFER, or null when the wire did not say. */
+  currentActive?: boolean | null;
   /**
    * v328 — WHEN the subscription was taken back, in epoch millis. Null when it was not.
    */

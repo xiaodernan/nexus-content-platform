@@ -37,6 +37,10 @@ export interface EconomySubscription {
    * v375 — and the plan's period NOW, or null when the wire did not say.
    */
   currentPeriod?: string | null;
+  /**
+   * v376 — whether the plan is STILL ON OFFER, or null when the wire did not say.
+   */
+  currentActive?: boolean | null;
   active: boolean;
   subscribedAt: number | null;
   expiresAt: number | null;
@@ -143,6 +147,10 @@ export interface SubscriptionRow {
    * have been repriced (v317 ✓), and then the reader is looking at a promise whose plan has moved.
    */
   movedText: string | null;
+  /**
+   * v376 — that the plan is no longer ON OFFER — or null when it still is.
+   */
+  offerText: string | null;
   /**
    * v371 — that these are the terms that were AGREED, not the plan’s terms today.
    *
@@ -280,6 +288,22 @@ export function planCountText(count: number | null | undefined, shown: number): 
  * <p>An unknown current price says NOTHING: a plan that is gone is not a plan with no terms, and a note
  * that guessed would be inventing a change nobody can see.
  */
+/**
+ * That the plan is no longer ON OFFER — or null when it still is.
+ *
+ * <p>v376 — a retired plan KEEPS its terms, so the price and the period on a subscription's row look
+ * exactly like an offer that is still running. A supporter reading their own list could not tell that the
+ * plan they are backing is no longer for sale, and a creator could not tell it of the supporter whose
+ * promise they hold.
+ *
+ * <p>A plan that is GONE says nothing here: that is a different fact (the plan was never retired — it
+ * is not there), and the row already says what it can say about the promise.
+ */
+export function planOfferText(current: { active: boolean } | null): string | null {
+  if (!current) return null;
+  return current.active ? null : 'the plan is no longer on offer';
+}
+
 export function planTermsMovedText(
   agreed: { priceText: string; periodText: string },
   current: { priceText: string; periodText: string } | null,
@@ -528,6 +552,10 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
           periodText: planPeriodText(typeof s.currentPeriod === 'string' ? s.currentPeriod : ''),
         }
       : null;
+  // v376 — and whether the plan is still ON OFFER: a retired plan keeps its terms, so the current terms
+  // above would look exactly like an offer that is still running.
+  const currentOffer =
+    typeof s.currentActive === 'boolean' ? { active: s.currentActive } : null;
 
   return {
     planId: s.planId,
@@ -539,6 +567,8 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
       { priceText: agreedPriceText, periodText: agreedPeriodText },
       currentTerms,
     ),
+    // v376 — and whether the plan is still on offer.
+    offerText: planOfferText(currentOffer),
     // v308 — the service’s standing when it gave one, the client’s own computation otherwise.
     statusText: subscriptionStandingText(standing),
     daysLeftText: subscriptionDaysLeftText(s, Date.now()),
