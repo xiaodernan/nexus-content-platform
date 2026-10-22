@@ -73,10 +73,14 @@ export const SEARCH_NOT_COVERED = [
  * 排序口径的原话（页面照抄这一句，别自己另编一套说法）。
  *
  * 为什么写在页面上：一个藏起来的序会被读成「平台公认最相关」，
- * 写出来它才只是「我们这套四档排出来的」（与 trending 同一句纪律）。
+ * 写出来它才只是「我们这套五档排出来的」（与 trending 同一句纪律）。
+ *
+ * 五档次序（以上已有 4 档，新增第 5 档）：
+ * 标题与搜索词完全一样 > 标题以搜索词开头 > 标题里有搜索词 > 只在简介/摘要/正文里有 > 只在文档正文里有；
+ * 不看词频、不看词在标题里的位置、不看点击与热度，同分时按更新时间新→旧排。
  */
 export const SEARCH_ORDER_METHOD =
-  '组内按相关度排：标题与搜索词完全一样 > 标题以搜索词开头 > 标题里有搜索词 > 只在简介/摘要/正文里有；同分时按更新时间新→旧。';
+  '组内按相关度排：标题与搜索词完全一样 > 标题以搜索词开头 > 标题里有搜索词 > 只在简介/摘要/正文里有 > 只在文档正文里有；同分时按更新时间新→旧。';
 
 export interface SearchHit {
   id: string;
@@ -114,21 +118,24 @@ function likeTerm(q: string): string {
 /**
  * 相关度分（§165 那一格「没有相关度排序」的补上）。
  *
- * 四档，**只看匹配落在哪儿**，不看词频、不看位置、不看点击：
- * 标题与查询完全一样 > 标题以查询开头 > 标题里有查询 > 只在简介/摘要/正文里有。
- * （代码里是 4/3/2/1 四个刻度，刻度本身不对外，只对外那四档的说法。）
+ * 五档，**只看匹配落在哪儿**，不看词频、不看位置、不看点击：
+ * 标题与查询完全一样 > 标题以查询开头 > 标题里有查询 > 只在简介/摘要/正文里有 > 只在文档正文里有。
+ * （代码里是 4/3/2/1/0 五个刻度，刻度本身不对外，只对外那五档的说法。）
  *
  * 为什么不做得更花：那些花招（TF-IDF、向量距离）要么要 provider，要么要一套语料统计；
- * 而这个平台今天最要紧的是**说得清**——一个能被复述出来的四档，比一个藏起来的分有用。
+ * 而这个平台今天最要紧的是**说得清**——一个能被复述出来的五档，比一个藏起来的分有用。
  * 分数算在 SQL 里（`case` + `greatest`），所以**候选集本身就是按相关度排出来的**，
  * 不是先按时间截断再在剩下几条里排（那样「最相关的那条」可能压根没被取到）。
  *
  * 同一档里仍然按更新时间新→旧排（今天的行为保留为**同分时的次序**）。
  *
  * 标题列与详情列**分档**：详情里的命中最多拿 1 分（它在标题之下），
- * 否则「只在简介里有」与「标题里有」会并列——那就不是四档了。
+ * 否则「只在简介里有」与「标题里有」会并列——那就不是五档了。
+ *
+ * 第 5 档（只在文档正文里有）：来自 snapshots.search_text，当设计稿/页面的标题/详情都没有命中时，
+ * 才检查文档正文里是否有搜索词。这能让创作者在搜索自己的设计稿时，即使只有正文里有该词也能被找到。
  */
-function relevanceScore(title: SQLWrapper, details: SQLWrapper[], q: string): SQL<number> {
+function relevanceScore(title: SQLWrapper, details: SQLWrapper[], q: string, searchText?: SQLWrapper): SQL<number> {
   const raw = q.toLowerCase();
   const needle = escapeLike(q).toLowerCase();
   const t = sql`lower(${title})`;
@@ -137,12 +144,19 @@ function relevanceScore(title: SQLWrapper, details: SQLWrapper[], q: string): SQ
     when ${t} like ${needle} || '%' then 3
     when ${t} like '%' || ${needle} || '%' then 2
     else 0 end`;
-  if (details.length === 0) return titlePart;
+  // 当没有 details 也没有 searchText 时，只看标题得分
+  if (details.length === 0 && !searchText) return titlePart;
   const detailParts = details.map((column) => {
     const c = sql`lower(${column})`;
     return sql<number>`case when ${c} like '%' || ${needle} || '%' then 1 else 0 end`;
   });
-  return sql<number>`greatest(${titlePart}, ${sql.join(detailParts, sql`, `)})`;
+  // 当 details 为空但提供了 searchText 时，titlePart 单独作为基准分
+  const baseScore = details.length > 0
+    ? sql<number>`greatest(${titlePart}, ${sql.join(detailParts, sql`, `)})`
+    : titlePart;
+  if (!searchText) return baseScore;
+  const searchPart = sql<number>`case when lower(${searchText}) like '%' || ${needle} || '%' then 1 else 0 end`;
+  return sql<number>`greatest(${baseScore}, ${searchPart})`;
 }
 
 export function normalizeQuery(raw: string | string[] | undefined): string {
@@ -234,8 +248,20 @@ async function contentRows(viewerId: string, q: string, term: string, take: numb
       .from(designNodes)
       .innerJoin(pages, eq(pages.id, designNodes.pageId))
       .innerJoin(projects, eq(projects.id, pages.projectId))
-      .where(and(owned, ilike(designNodes.name, term)))
-      .orderBy(desc(relevanceScore(designNodes.name, [], q)), desc(designNodes.updatedAt))
+      .innerJoin(snapshots, eq(snapshots.projectId, projects.id))
+      .where(
+        and(
+          owned,
+          or(
+            ilike(designNodes.name, term),
+            ilike(snapshots.search_text, term),
+          ),
+        ),
+      )
+      .orderBy(
+        desc(relevanceScore(designNodes.name, [], q, snapshots.search_text)),
+        desc(designNodes.updatedAt),
+      )
       .limit(take),
     db
       .select({

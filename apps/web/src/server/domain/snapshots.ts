@@ -1,10 +1,50 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { DesignDocument } from '@nexus/design-model';
 import { getDb } from '../db/client';
 import { branches, projects, snapshots } from '../db/schema';
 import { isUuid } from './ids';
 import { loadDocument, saveDocument } from './projects';
 import { stableKey } from './stable-key';
+
+// 从 DesignDocument 中提取可搜索文本，用于 snapshots.search_text
+function extractSearchText(doc: DesignDocument): string {
+  const parts: string[] = [];
+
+  // 1. 文档标题
+  if (doc.name) parts.push(doc.name);
+
+  // 2. 每个页面的名字
+  for (const page of doc.pages) {
+    if (page.name) parts.push(page.name);
+    // 3. 每个节点的 text（文本节点内容）
+    for (const nodeId of Object.keys(page.nodes)) {
+      const node = page.nodes[nodeId];
+      if (node.text) parts.push(node.text);
+    }
+  }
+
+  // 4. visualDna 描述词
+  if (doc.visualDna?.descriptors) {
+    for (const d of doc.visualDna.descriptors) {
+      parts.push(d);
+    }
+  }
+
+  // 5. metadata 描述
+  if (doc.metadata?.description) parts.push(doc.metadata.description);
+
+  // 6. token 描述
+  for (const token of doc.tokens) {
+    if (token.description) parts.push(token.description as string);
+  }
+
+  // 7. brandKit toneOfVoice
+  if (doc.brandKit?.toneOfVoice) {
+    for (const v of doc.brandKit.toneOfVoice) parts.push(v);
+  }
+
+  return parts.filter(Boolean).join(' ');
+}
 
 /**
  * §27 / §108：Snapshot 是用户项目历史，与 git 的开发历史是两回事。
@@ -105,6 +145,7 @@ export async function createSnapshot(
     .where(parentFilter)
     .orderBy(desc(snapshots.createdAt), desc(snapshots.id))
     .limit(1);
+  const searchText = extractSearchText(input.document as unknown as DesignDocument);
   const [row] = await db
     .insert(snapshots)
     .values({
@@ -117,6 +158,7 @@ export async function createSnapshot(
       document: input.document as unknown as Record<string, unknown>,
       patch: (input.patch ?? null) as Record<string, unknown> | null,
       createdById: input.createdById ?? null,
+      search_text: searchText,
     })
     .returning();
   if (input.advanceWorkspace !== false) {
