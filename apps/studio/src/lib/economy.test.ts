@@ -225,11 +225,22 @@ describe('economy — subscription rows (M8 v274)', () => {
 
   it('v368 — says the totals PER PERIOD, because a monthly and a yearly one do not add up', () => {
     const text = subscriptionsTotalText([
-      { period: 'month', totalCents: 1500 },
-      { period: 'year', totalCents: 3000 },
+      { period: 'month', currency: 'CNY', totalCents: 1500 },
+      { period: 'year', currency: 'CNY', totalCents: 3000 },
     ]);
     expect(text).toContain('per month');
     expect(text).toContain('per year');
+  });
+
+  it('v369 — and each amount says the CURRENCY it is in', () => {
+    // Money in two currencies does not add up to one number, so the totals are grouped by currency too
+    // and each amount is written in its own.
+    const text = subscriptionsTotalText([
+      { period: 'month', currency: 'CNY', totalCents: 1500 },
+      { period: 'year', currency: 'USD', totalCents: 3000 },
+    ]);
+    expect(text).toContain('¥15.00');
+    expect(text).toContain('$30.00');
   });
 
   it('v368 — and NO totals says NOTHING rather than inventing a total', () => {

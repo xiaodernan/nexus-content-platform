@@ -204,14 +204,17 @@ export interface PlanRow {
  * subscriptions would be inventing a total.
  */
 export function subscriptionsTotalText(
-  totals: readonly { period: string; totalCents: number }[] | undefined,
-  currency: Currency = 'CNY',
+  totals: readonly { period: string; currency: string; totalCents: number }[] | undefined,
 ): string {
   if (!totals || totals.length === 0) return '';
   const parts = totals
     .filter((total) => typeof total.period === 'string' && total.period.length > 0)
+    .filter((total) => typeof total.currency === 'string' && total.currency.length > 0)
     .filter((total) => typeof total.totalCents === 'number' && Number.isFinite(total.totalCents))
-    .map((total) => `${priceText(total.totalCents as PriceCents, currency)} ${planPeriodText(total.period)}`);
+    .map(
+      (total) =>
+        `${priceText(total.totalCents as PriceCents, total.currency as Currency)} ${planPeriodText(total.period)}`,
+    );
   return parts.join(' + ');
 }
 

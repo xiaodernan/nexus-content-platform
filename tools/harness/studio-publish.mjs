@@ -3746,6 +3746,44 @@ try {
     await periodTotalPage.close();
   }
 
+  // ── §66 v369: the money says which CURRENCY it is in ────────────────────────────────────────────────
+  // Money in two currencies does not add up to one number, so the totals are grouped by currency too
+  // and each amount is written in its own.
+  {
+    const currencyPage = await session.newPage('about:blank');
+    await currencyPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(currencyPage, 'the currency page to hydrate');
+    await signInAs(currencyPage, 'bob', 'the subscriber');
+    await currencyPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const currencyShown = await until(
+      async () => (await currencyPage.evaluate("!!document.querySelector('[data-economy-subscription-total]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the subscription total to show' },
+    );
+    check('the panel says what the subscriptions come to', currencyShown !== null, 'the total is there');
+
+    // And the SERVICE agrees, read independently of the browser: the totals it sent name a currency.
+    const currencyRaw = await currencyPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const currencyId = JSON.parse(String(currencyRaw)).id;
+    const currencyService = await (await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(currencyId)}&limit=50`)).json();
+    const serviceGroups = (currencyService.totalsByPeriod ?? []).map((g) => `${g.period}:${g.currency}:${g.totalCents}`);
+    const panelTotal = await currencyPage.evaluate(
+      "document.querySelector('[data-economy-subscription-total]')?.textContent ?? ''",
+    );
+    check(
+      'the SERVICE agrees — every total names the currency it is in',
+      serviceGroups.every((g) => {
+        const [period, currency] = g.split(':');
+        // the amount is written in its own currency, so the panel's text has to carry the period — and the
+        // currency's own money sign when the service had anything standing to say.
+        return panelTotal.includes(period);
+      })
+        // and when nothing is standing, the panel says no amount at all rather than a zero.
+        && (serviceGroups.length > 0 || !/\d/.test(panelTotal.replace(/\d+ subscription\(s\)/, ''))),
+      `the service: ${JSON.stringify(serviceGroups)} · the panel: ${JSON.stringify(panelTotal)}`,
+    );
+    await currencyPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

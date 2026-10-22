@@ -67,6 +67,8 @@ export interface PlanEntry {
  */
 export interface PeriodTotal {
   period: string;
+  /** v369 — the CURRENCY the amount is in: money in two currencies does not add up to one number. */
+  currency: string;
   totalCents: number;
 }
 
@@ -81,10 +83,11 @@ function toPeriodTotals(raw: unknown): PeriodTotal[] {
   const totals: PeriodTotal[] = [];
   for (const group of raw) {
     if (typeof group !== 'object' || group === null) continue;
-    const g = group as { period?: unknown; totalCents?: unknown };
+    const g = group as { period?: unknown; currency?: unknown; totalCents?: unknown };
     if (typeof g.period !== 'string' || g.period.length === 0) continue;
+    if (typeof g.currency !== 'string' || g.currency.length === 0) continue;
     if (typeof g.totalCents !== 'number' || !Number.isFinite(g.totalCents)) continue;
-    totals.push({ period: g.period, totalCents: g.totalCents });
+    totals.push({ period: g.period, currency: g.currency, totalCents: g.totalCents });
   }
   return totals;
 }

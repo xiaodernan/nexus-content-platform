@@ -109,7 +109,7 @@ public final class SubscriptionDtos {
      *
      * <p>The period is the service's own word ("once" · "month" · "year"), and the amount is in cents.
      */
-    public record PeriodTotal(String period, long totalCents) {
+    public record PeriodTotal(String period, String currency, long totalCents) {
     }
 
     /** The answer to a plan question. */

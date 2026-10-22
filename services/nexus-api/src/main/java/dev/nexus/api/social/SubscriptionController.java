@@ -85,7 +85,7 @@ public class SubscriptionController {
                 List.of(toWire(row)),
                 // v368 — the receipt says what came to, PER PERIOD — and this subscription is one period
                 // with one amount in it.
-                List.of(new SubscriptionDtos.PeriodTotal(row.getPeriod(), row.getPriceCents())),
+                List.of(new SubscriptionDtos.PeriodTotal(row.getPeriod(), row.getCurrency(), row.getPriceCents())),
                 1,
                 SubscriptionService.DEFAULT_SUBSCRIPTION_LIMIT));
     }

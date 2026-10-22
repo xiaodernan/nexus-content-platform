@@ -474,21 +474,38 @@ class SubscriptionServiceTest {
         // One monthly pledge and one yearly one do not add up to anything a reader can act on, so the
         // answer says what each period comes to.
         when(subscriptions.sumStandingPriceCentsByPeriodHeld(eq("acct-bob"), any(java.time.Instant.class)))
-                .thenReturn(List.of(new Object[] {"month", 1500L}, new Object[] {"year", 3000L}));
+                .thenReturn(List.of(new Object[] {"month", "CNY", 1500L}, new Object[] {"year", "CNY", 3000L}));
 
         List<SubscriptionDtos.PeriodTotal> totals = service.totalsHeld("acct-bob");
 
         assertThat(totals).hasSize(2);
         assertThat(totals.get(0).period()).isEqualTo("month");
+        assertThat(totals.get(0).currency()).isEqualTo("CNY");
         assertThat(totals.get(0).totalCents()).isEqualTo(1500L);
         assertThat(totals.get(1).period()).isEqualTo("year");
+        assertThat(totals.get(1).currency()).isEqualTo("CNY");
         assertThat(totals.get(1).totalCents()).isEqualTo(3000L);
+    }
+
+    @Test
+    void moneyInTwoCurrenciesNeverSharesAGroup() {
+        // A monthly pledge in CNY and a yearly one in USD do not add up to one number, so they are two
+        // groups — and each carries its own currency.
+        when(subscriptions.sumStandingPriceCentsByPeriodHeld(eq("acct-bob"), any(java.time.Instant.class)))
+                .thenReturn(List.of(new Object[] {"month", "CNY", 1500L}, new Object[] {"year", "USD", 3000L}));
+
+        List<SubscriptionDtos.PeriodTotal> totals = service.totalsHeld("acct-bob");
+
+        assertThat(totals).hasSize(2);
+        assertThat(totals.get(0).currency()).isEqualTo("CNY");
+        assertThat(totals.get(1).currency()).isEqualTo("USD");
     }
 
     @Test
     void thePeriodsComeInTheOrderAPersonWouldSayThem() {
         when(subscriptions.sumStandingPriceCentsByPeriodReceived(eq("acct-ada"), any(java.time.Instant.class)))
-                .thenReturn(List.of(new Object[] {"year", 3000L}, new Object[] {"once", 500L}, new Object[] {"month", 1500L}));
+                .thenReturn(List.of(new Object[] {"year", "CNY", 3000L}, new Object[] {"once", "CNY", 500L},
+                        new Object[] {"month", "CNY", 1500L}));
 
         List<SubscriptionDtos.PeriodTotal> totals = service.totalsReceived("acct-ada");
 

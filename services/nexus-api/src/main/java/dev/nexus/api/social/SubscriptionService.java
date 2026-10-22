@@ -385,18 +385,26 @@ public class SubscriptionService {
         return periodTotals(subscriptions.sumStandingPriceCentsByPeriodReceived(creator, clock.instant()));
     }
 
-    /** The groups, in the order a person would say the periods. */
+    /**
+     * The groups, in the order a person would say the periods.
+     *
+     * <p>v369 — a group carries its CURRENCY as well as its period: money in two currencies does not add up
+     * to one number, and a total that added them would be a number nobody could act on.
+     */
     private static List<SubscriptionDtos.PeriodTotal> periodTotals(List<Object[]> groups) {
         List<SubscriptionDtos.PeriodTotal> totals = new java.util.ArrayList<>();
         for (Object[] group : groups) {
-            if (group == null || group.length < 2) {
+            if (group == null || group.length < 3) {
                 continue;
             }
             String period = group[0] == null ? "" : String.valueOf(group[0]);
-            long cents = group[1] instanceof Number number ? number.longValue() : 0L;
-            totals.add(new SubscriptionDtos.PeriodTotal(period, cents));
+            String currency = group[1] == null ? "" : String.valueOf(group[1]);
+            long cents = group[2] instanceof Number number ? number.longValue() : 0L;
+            totals.add(new SubscriptionDtos.PeriodTotal(period, currency, cents));
         }
-        totals.sort(java.util.Comparator.comparingInt(total -> periodOrder(total.period())));
+        totals.sort(java.util.Comparator
+                .comparingInt((SubscriptionDtos.PeriodTotal total) -> periodOrder(total.period()))
+                .thenComparing(SubscriptionDtos.PeriodTotal::currency));
         return totals;
     }
 

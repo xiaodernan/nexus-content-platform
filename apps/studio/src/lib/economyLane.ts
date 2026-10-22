@@ -45,11 +45,11 @@ export interface EconomyAnswer {
    * <p>A single sum over subscriptions of different periods is a meaningless number, so the answer says
    * what is owed for each period instead.
    */
-  subscriptionTotalsByPeriod?: { period: string; totalCents: number }[];
+  subscriptionTotalsByPeriod?: { period: string; currency: string; totalCents: number }[];
   /** v359 — the count for the RECEIVED side. */
   receivedCount?: number;
   /** v368 — and its totals, per period. */
-  receivedTotalsByPeriod?: { period: string; totalCents: number }[];
+  receivedTotalsByPeriod?: { period: string; currency: string; totalCents: number }[];
   reason?: string;
 }
 
@@ -59,15 +59,16 @@ export interface EconomyAnswer {
  * <p>A malformed group is DROPPED rather than shown: a period without a name, or an amount that is not a
  * number, is not a total — and a panel that showed half of one would be wrong about money.
  */
-function toPeriodTotals(raw: unknown): { period: string; totalCents: number }[] {
+function toPeriodTotals(raw: unknown): { period: string; currency: string; totalCents: number }[] {
   if (!Array.isArray(raw)) return [];
-  const totals: { period: string; totalCents: number }[] = [];
+  const totals: { period: string; currency: string; totalCents: number }[] = [];
   for (const group of raw) {
     if (typeof group !== 'object' || group === null) continue;
-    const g = group as { period?: unknown; totalCents?: unknown };
+    const g = group as { period?: unknown; currency?: unknown; totalCents?: unknown };
     if (typeof g.period !== 'string' || g.period.length === 0) continue;
+    if (typeof g.currency !== 'string' || g.currency.length === 0) continue;
     if (typeof g.totalCents !== 'number' || !Number.isFinite(g.totalCents)) continue;
-    totals.push({ period: g.period, totalCents: g.totalCents });
+    totals.push({ period: g.period, currency: g.currency, totalCents: g.totalCents });
   }
   return totals;
 }
