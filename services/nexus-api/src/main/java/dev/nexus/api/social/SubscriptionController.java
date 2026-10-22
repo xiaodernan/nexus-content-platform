@@ -59,7 +59,8 @@ public class SubscriptionController {
         return ResponseEntity.status(201).body(new PlanAnswer(
                 row.getCreatorAccountId(),
                 List.of(toWire(row)),
-                1,
+                // v372 — and the count is the creator's WHOLE number of plans, like every other answer.
+                service.countPlans(row.getCreatorAccountId()),
                 SubscriptionService.DEFAULT_PLAN_LIMIT));
     }
 
@@ -71,7 +72,9 @@ public class SubscriptionController {
         int asked = limit == null ? SubscriptionService.DEFAULT_PLAN_LIMIT : limit;
         List<PlanEntry> rows = service.plansOf(creatorAccountId, asked);
         List<Plan> plans = rows.stream().map(SubscriptionController::toWire).toList();
-        return ResponseEntity.ok(new PlanAnswer(creatorAccountId, plans, plans.size(), asked));
+        // v372 — the count is the WHOLE table's, not the window's: a reader who sees three plans and a
+        // creator who offers five must be told which of the two the three are.
+        return ResponseEntity.ok(new PlanAnswer(creatorAccountId, plans, service.countPlans(creatorAccountId), asked));
     }
 
     /** Back a plan. 201 when the subscription was made. */

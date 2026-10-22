@@ -69,6 +69,28 @@ describe('planBar — the periods (M7 v301)', () => {
     expect(renderPlanBar({ accountId: 'acct-ada', plans: [row] })).toContain('current terms');
   });
 
+  it('v372 — says how many plans the creator offers, over the WHOLE table', () => {
+    // The bar's list is a window; a reader who saw three plans and a creator who offers five would read
+    // the three as all of them.
+    const html = renderPlanBar({ accountId: 'acct-ada', plans: toPlanRows([plan()]), count: 5 });
+    expect(html).toContain('5 plans');
+    expect(html).toContain('showing the 1 newest of 5');
+  });
+
+  it('v372 — and a list that shows EVERYONE says no such thing', () => {
+    const html = renderPlanBar({ accountId: 'acct-ada', plans: toPlanRows([plan()]), count: 1 });
+    expect(html).toContain('1 plan');
+    expect(html).not.toContain('showing the');
+  });
+
+  it('v372 — and a count that could not be read says NO count rather than the window’s length', () => {
+    // A count of zero would say the creator offers nothing, and the window's length would be a count of
+    // what happened to be on the screen.
+    const html = renderPlanBar({ accountId: 'acct-ada', plans: toPlanRows([plan()]), count: null });
+    expect(html).not.toContain('nexus-plans-count');
+    expect(html).not.toContain('showing the');
+  });
+
   it('v371 — and a RETIRED plan says no such thing: its terms are the last ones it offered', () => {
     // "current terms" on a retired plan would be wrong about it: the plan is not on offer, so its terms
     // are the ones it last offered.

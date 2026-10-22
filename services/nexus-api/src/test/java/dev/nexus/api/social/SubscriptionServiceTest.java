@@ -470,6 +470,22 @@ class SubscriptionServiceTest {
     // ── v368: the totals are PER PERIOD, because a monthly and a yearly one do not add up ───────
 
     @Test
+    void thePlansAreCountedOverTheWholeTableAndNotTheWindow() {
+        // The window a reader sees is capped at twenty; a count that counted the window would be a count
+        // of what happened to be on the screen.
+        when(plans.countByCreatorAccountId(eq("acct-ada"))).thenReturn(21L);
+
+        assertThat(service.countPlans("acct-ada")).isEqualTo(21);
+    }
+
+    @Test
+    void andACreatorWithNoPlansIsCountedAtZeroRatherThanNotCountedAtAll() {
+        when(plans.countByCreatorAccountId(eq("acct-ada"))).thenReturn(0L);
+
+        assertThat(service.countPlans("acct-ada")).isZero();
+    }
+
+    @Test
     void theTotalsArePerPeriodAndNotOneMeaninglessSum() {
         // One monthly pledge and one yearly one do not add up to anything a reader can act on, so the
         // answer says what each period comes to.

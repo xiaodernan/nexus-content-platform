@@ -82,7 +82,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
     readFollowers(accountId, null),
     readFollowing(accountId),
   ]);
-  const planBar = offered.ok ? renderPlanBar({ accountId, plans: toPlanRows(offered.plans) }) + PLAN_BAR_STYLES : '';
+  // v372 — the bar is told how many plans the creator offers (the WHOLE table's count), so it can say
+  // when its list is only a window.
+  const planBar = offered.ok
+    ? renderPlanBar({ accountId, plans: toPlanRows(offered.plans), count: offered.count }) + PLAN_BAR_STYLES
+    : '';
   const tipBar = tips.ok
     ? renderTipBar({
         accountId,

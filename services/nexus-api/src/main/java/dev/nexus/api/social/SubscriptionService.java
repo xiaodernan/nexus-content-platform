@@ -317,6 +317,19 @@ public class SubscriptionService {
         return plans.findByCreatorAccountIdOrderByCreatedAtDesc(creator, PageRequest.of(0, asked));
     }
 
+    /**
+     * v372 — how many plans one creator offers, over the WHOLE table.
+     *
+     * <p>The window the reader sees is not the whole table: a count that counted the window would be a
+     * count of what happened to be on the screen, and a bar that showed it beside a short list would be
+     * claiming that the short list is all of them.
+     */
+    @Transactional(readOnly = true)
+    public int countPlans(String creatorAccountId) {
+        String creator = requireAccount(creatorAccountId, "a plan needs an account to offer it");
+        return (int) plans.countByCreatorAccountId(creator);
+    }
+
     /** The subscriptions one account holds. */
     @Transactional(readOnly = true)
     public List<SubscriptionEntry> subscriptionsOf(String subscriberAccountId, int limit) {

@@ -131,6 +131,14 @@ export interface PlanBarFacts {
   accountId: string;
   /** The plans, or null when they could not be read. */
   plans: PlanRow[] | null;
+  /**
+   * v372 — how many plans the creator offers, over the WHOLE table — or null when the count could not be
+   * read.
+   *
+   * <p>The count is not the window's length: the bar's list is a window, and a reader who saw three plans
+   * and a creator who offers five would read the three as all of them.
+   */
+  count?: number | null;
 }
 
 /**
@@ -143,6 +151,12 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   if (facts.plans.length === 0) {
     return '';
   }
+  const shown = facts.plans.length;
+  const count = typeof facts.count === 'number' && Number.isFinite(facts.count) ? facts.count : null;
+  // v372 — the count is the WHOLE number and the list is a WINDOW, so the bar says how many it is not
+  // showing. The wording is the tip bar's (v350), so a reader who reads both bars reads one sentence.
+  const label = count === null ? '' : count === 1 ? '1 plan' : `${count} plans`;
+  const more = count !== null && shown > 0 && count > shown ? ` · showing the ${shown} newest of ${count}` : '';
   const items = facts.plans
     .map((plan) => {
       const href = `/?subscribe=${encodeURIComponent(plan.planId)}`;
@@ -160,8 +174,9 @@ ${plan.active ? `<a class="nexus-plan-action" href="${escapeHtml(href)}" title="
 </li>`;
     })
     .join('\n');
-  return `<div class="nexus-plans" data-plans="${facts.plans.length}">
+  return `<div class="nexus-plans" data-plans="${shown}" data-plan-count="${count ?? ''}">
 <div style={{ fontWeight: 600, marginBottom: 4 }}>Plans</div>
+${label ? `<div class="nexus-plans-count">${escapeHtml(label)}${escapeHtml(more)}</div>` : ''}
 <ul class="nexus-plans-list">
 ${items}
 </ul>
@@ -183,6 +198,7 @@ export function injectPlanBar(html: string, bar: string): string {
 /** The styles the bar carries with it \u2014 the profile page\u2019s shell belongs to the gallery builder. */
 export const PLAN_BAR_STYLES = `<style>
 .nexus-plans{position:fixed;left:16px;bottom:16px;z-index:10;max-width:320px;background:#12151b;border:1px solid #262b34;border-radius:6px;padding:8px 12px;color:#9aa3b2;font:11px Inter,system-ui,sans-serif}
+.nexus-plans-count{color:#9aa3b2;margin-bottom:3px}
 .nexus-plans-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
 .nexus-plan-id{color:#e6e8ec;font-weight:600}
 .nexus-plan-price{color:#9aa3b2;margin-left:8px}

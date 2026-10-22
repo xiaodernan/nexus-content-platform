@@ -18,4 +18,12 @@ public interface PlanRepository extends JpaRepository<PlanEntry, String> {
 
     /** The plans one creator offers, newest first, capped by the caller's `Pageable`. */
     List<PlanEntry> findByCreatorAccountIdOrderByCreatedAtDesc(String creatorAccountId, Pageable pageable);
+
+    /**
+     * v372 — how many plans one creator offers, over the WHOLE table.
+     *
+     * <p>The window a reader sees is not the whole table, and a count that counted the window would be a
+     * count of what happened to be on the screen.
+     */
+    long countByCreatorAccountId(String creatorAccountId);
 }

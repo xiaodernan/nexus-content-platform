@@ -3871,6 +3871,62 @@ try {
     await termsPage.close();
   }
 
+  // ── §69 v372: the profile’s plan bar says how many plans there are, and that its list is a window ──
+  // The bar’s list is the service’s window (twenty); the count is the whole table’s.
+  {
+    const manyPage = await session.newPage('about:blank');
+    await manyPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(manyPage, 'the many-plans page to hydrate');
+    await signInAs(manyPage, 'wanda', 'the creator with many plans');
+    const manyRaw = await manyPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const manyAccount = JSON.parse(String(manyRaw));
+    const manyId = manyAccount.id;
+
+    // TWENTY-ONE plans — more than the service’s window of twenty.
+    const manyStatuses = [];
+    for (let i = 0; i < 21; i += 1) {
+      const res = await fetch(`${apiBase}/plans`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          planId: `many-${i}`,
+          priceCents: 100 + i,
+          currency: 'CNY',
+          period: 'month',
+          claim: {
+            accountId: manyId,
+            handle: manyAccount.handle,
+            assurance: manyAccount.assurance,
+            claimedAt: Date.now(),
+          },
+        }),
+      });
+      manyStatuses.push(res.status);
+    }
+    check(
+      'the creator offers TWENTY-ONE plans — more than the window of twenty',
+      manyStatuses.length === 21 && manyStatuses.every((s) => s === 201),
+      `statuses: ${JSON.stringify(manyStatuses.slice(0, 3))} · ${JSON.stringify(manyStatuses.slice(-1))}`,
+    );
+
+    // And the SERVICE agrees: the count is the whole table’s, the rows are the window’s.
+    const manyService = await (await fetch(`${apiBase}/plans?creator=${encodeURIComponent(manyId)}`)).json();
+    check(
+      'the SERVICE counts the WHOLE table and the rows are the window',
+      manyService.count === 21 && manyService.plans?.length === 20,
+      `count: ${JSON.stringify(manyService.count)} · rows: ${JSON.stringify(manyService.plans?.length)}`,
+    );
+
+    // And the PAGE says both.
+    const manyProfile = await (await fetch(`${studioBase}/u/${encodeURIComponent(manyId)}`)).text();
+    check(
+      'the profile page says how many plans there are, and that its list is a window',
+      manyProfile.includes('21 plans') && manyProfile.includes('showing the 20 newest of 21'),
+      `the count is there: ${manyProfile.includes('21 plans')} · the window is there: ${manyProfile.includes('showing the 20 newest of 21')}`,
+    );
+    await manyPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

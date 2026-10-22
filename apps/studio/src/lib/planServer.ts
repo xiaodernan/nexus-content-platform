@@ -43,7 +43,14 @@ export interface SubscriptionEntry {
 export interface PlansAnswer {
   ok: boolean;
   plans: PlanEntry[];
-  count: number;
+  /**
+   * v372 — how many plans the creator offers, over the WHOLE table — or null when the count could not be
+   * read.
+   *
+   * <p>The count is NOT the window's length: the wire's count used to be the number of rows that happened
+   * to be on the screen, which is a fact about the read and not about the creator.
+   */
+  count: number | null;
   reason?: string;
 }
 
@@ -81,26 +88,28 @@ export async function readPlans(
       headers: { accept: 'application/json' },
     });
     if (!res.ok) {
-      return { ok: false, plans: [], count: 0, reason: `the service's plans door answered HTTP ${res.status}` };
+      return { ok: false, plans: [], count: null, reason: `the service's plans door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, plans: [], count: 0, reason: 'the service answered its plans door with something that is not JSON' };
+      return { ok: false, plans: [], count: null, reason: 'the service answered its plans door with something that is not JSON' };
     }
     const body = parsed as { plans?: unknown; count?: unknown };
     if (!Array.isArray(body.plans)) {
-      return { ok: false, plans: [], count: 0, reason: 'the service answered its plans door with no plans' };
+      return { ok: false, plans: [], count: null, reason: 'the service answered its plans door with no plans' };
     }
     return {
       ok: true,
       plans: body.plans as PlanEntry[],
-      count: typeof body.count === 'number' ? body.count : body.plans.length,
+      // v372 — a wire with NO count says the count is UNKNOWN: falling back to the window's length would
+      // be counting what happened to be on the screen and calling it the creator's whole catalogue.
+      count: typeof body.count === 'number' ? body.count : null,
     };
   } catch (error) {
     return {
       ok: false,
       plans: [],
-      count: 0,
+      count: null,
       reason: serviceUnreachableReason(apiBase, error),
     };
   }
