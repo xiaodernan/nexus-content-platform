@@ -42,6 +42,8 @@ function fact(over: Partial<CreatorFact> = {}): CreatorFact {
     moderation: 'clear',
     publishedAt: new Date(Date.now() - 20 * 86_400_000).toISOString(),
     daysSincePublish: 20,
+    // 基线是"不是可玩的那一类"⇒ 没有通关这回事 ⇒ 不该出现"没人玩到结局"那条
+    hasGame: false,
     numbers: numbers(),
     ...over,
   };
@@ -156,5 +158,44 @@ describe('门面三件与沉淀', () => {
     expect(out.some((f) => f.area === 'traffic' && f.evidence.includes('3 次点赞'))).toBe(true);
     // 反向对照：有人关注时这一条不该出现
     expect(areas(analyzeCreatorFacts(fact({ numbers: numbers({ likes: 3, followers: 2 }) })))).not.toContain('traffic');
+  });
+});
+
+describe('可玩的那一类：来看的人有没有玩到结局', () => {
+  /** 找出"没人玩到结局"那一条（证据里说的是"玩到结局"，不是"滚到几成"） */
+  const noFinish = (out: Finding[]) => out.find((f) => f.evidence.includes('玩到结局'));
+
+  it('有人来过但没人玩到结局 ⇒ 把"有人看"与"有人玩通"之间那段空白指出来', () => {
+    const out = analyzeCreatorFacts(
+      fact({ hasGame: true, numbers: numbers({ visitors: 5, completedVisitors: 0, selfOnly: false }) }),
+    );
+    const finding = noFinish(out);
+    expect(finding, '可玩的那一类 · 有人来但没人玩到结局 ⇒ 应该说一句').toBeTruthy();
+    expect(finding!.evidence).toContain('5 个访客');
+    // 不能把话说成"这游戏不好玩"：数据只说没人走完，没说为什么
+    expect(finding!.conclusion).toContain('不能直接说');
+    // 动作要落在平台今天真支持的事上：自己先在可玩页上走一遍
+    expect(finding!.action).toContain('play');
+  });
+
+  it('不是可玩的那一类 ⇒ 不说"没人玩到结局"（没有通关这回事）', () => {
+    const out = analyzeCreatorFacts(
+      fact({ hasGame: false, numbers: numbers({ visitors: 5, completedVisitors: 0, selfOnly: false }) }),
+    );
+    expect(noFinish(out), '拿一条不存在的尺子量它').toBeUndefined();
+  });
+
+  it('只有作者自己来过 ⇒ 不说"来的人没走完"（那是"还没别人来过"）', () => {
+    const out = analyzeCreatorFacts(
+      fact({ hasGame: true, numbers: numbers({ visitors: 1, completedVisitors: 0, selfOnly: true }) }),
+    );
+    expect(noFinish(out), '作者自己试玩不算"来的人没走完"').toBeUndefined();
+  });
+
+  it('有人玩到结局了 ⇒ 不出那一条（说了就是编）', () => {
+    const out = analyzeCreatorFacts(
+      fact({ hasGame: true, numbers: numbers({ visitors: 5, completedVisitors: 2, selfOnly: false }) }),
+    );
+    expect(noFinish(out)).toBeUndefined();
   });
 });

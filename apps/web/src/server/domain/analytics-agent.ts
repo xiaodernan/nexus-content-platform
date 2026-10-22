@@ -36,6 +36,13 @@ export interface CreatorFact {
   moderation: string;
   publishedAt: string;
   daysSincePublish: number;
+  /**
+   * 这一版**是可玩的那一类**（发布那一刻钉住了游戏设计，ADR-0009）。
+   *
+   * 有它才谈得上"有没有人玩到结局"：不是游戏的那些作品没有通关这回事，
+   * 说"没人通关"等于拿一条不存在的尺子量它（§159）。
+   */
+  hasGame: boolean;
   numbers: AnalyticsNumbers;
 }
 
@@ -141,7 +148,20 @@ export function analyzeCreatorFacts(fact: CreatorFact): Finding[] {
     });
   }
 
-  // 4. 门面三件：标题 / 简介 / 封面
+  // 4. 来看的人没玩到结局（只有可玩的那一类才有这个说法）
+  //    与上一条**不是同一件事**：上一条说的是"滚到了页面的几成"，
+  //    这一条说的是"有没有人玩到结局"⇒ 混起来就成了两句话说同一件事。
+  //    看过的人只有作者自己时不说这件事（那不是"来的人没走完"，是"还没别人来过"）。
+  if (fact.hasGame && !n.selfOnly && n.visitors > 0 && n.completedVisitors === 0) {
+    out.push({
+      area: 'retention',
+      evidence: `${n.visitors} 个访客来过这一版（这一版是可玩的那一类），其中 0 人玩到结局。`,
+      conclusion: '来的人没走完这段——这不能直接说"这游戏不好玩"，但"有人看"与"有人玩通"之间的那段空白就在这里。',
+      action: '自己先在公开可玩页上走一遍（/n/…/play）：几步之内能不能走到结局？走不通的那一步，就是访客掉下去的地方。',
+    });
+  }
+
+  // 5. 门面三件：标题 / 简介 / 封面
   const title = fact.projectName.trim();
   if (!title || title === '未命名项目') {
     out.push({
@@ -182,7 +202,7 @@ export function analyzeCreatorFacts(fact: CreatorFact): Finding[] {
     });
   }
 
-  // 5. 有互动但没沉淀
+  // 6. 有付费用户没转化
   if (n.likes > 0 && n.followers === 0) {
     out.push({
       area: 'traffic',
@@ -233,6 +253,7 @@ export async function buildCreatorFact(projectId: string, ownerId: string): Prom
     moderation: publication.moderation,
     publishedAt: publication.publishedAt,
     daysSincePublish: daysSince(publication.publishedAt),
+    hasGame: publication.hasGame,
     numbers: analytics.analytics,
   };
 }

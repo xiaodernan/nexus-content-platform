@@ -3,6 +3,7 @@ import { eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { analyzeCreatorFacts, buildCreatorFact } from '../src/server/domain/analytics-agent';
 import { createProject, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { publishProject } from '../src/server/domain/publish';
+import { saveGame } from '../src/server/domain/games';
 import { recordVisit } from '../src/server/domain/analytics';
 import { getDb } from '../src/server/db/client';
 import { assets, projects, users } from '../src/server/db/schema';
@@ -134,5 +135,61 @@ describe('装配出来的事实必须来自真实现场', () => {
     expect(await buildCreatorFact(projectId, ownerId)).not.toBe(null);
     await getDb().update(projects).set({ deletedAt: new Date() }).where(eq(projects.id, projectId));
     expect(await buildCreatorFact(projectId, ownerId)).toBe(null);
+  });
+
+  it('可玩的那一类 · 有人来过但没人玩到结局 ⇒ 事实里带 hasGame，那条发现真的出现', async () => {
+    const projectId = (await createProject(ownerId, { name: `可玩的作品${RUN}`, kind: 'website' })).id;
+    // 存一份游戏设计再发布 ⇒ 发布那一刻钉住它（ADR-0009）⇒ 那一版才是"可玩的那一类"
+    const now = new Date().toISOString();
+    const saved = await saveGame(projectId, ownerId, {
+      id: `g-${RUN}`,
+      projectId,
+      name: '一次到结局的对话',
+      summary: '两段对话，第二段没有下一段',
+      kind: 'interactive-story',
+      entities: [
+        {
+          id: 'beat-1',
+          kind: 'dialogue',
+          name: '门口',
+          notes: '你站在门口。',
+          tags: [],
+          stats: {},
+          refs: [{ id: 'ref-1', to: 'beat-2', role: '推门进去' }],
+          updatedAt: now,
+        },
+        {
+          id: 'beat-2',
+          kind: 'dialogue',
+          name: '收下这张画',
+          notes: '你收下了那张画。',
+          tags: [],
+          stats: {},
+          refs: [],
+          updatedAt: now,
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+    expect(saved.ok, '游戏设计没存进去').toBe(true);
+    const result = await publishProject(projectId, { visibility: 'public', createdById: ownerId });
+    if (!result || !result.ok) throw new Error('发布失败');
+    // 一个真人访客来看过（不是作者自己 ⇒ selfOnly 不会把这条压掉）
+    await recordVisit({
+      publicationId: result.publication.id,
+      visitorKey: KEY,
+      userId: null,
+      open: true,
+      visibleMs: 4000,
+      completionPct: 100,
+    });
+
+    const fact = await buildCreatorFact(projectId, ownerId);
+    expect(fact!.hasGame, '这一版明明钉住了游戏设计 ⇒ 事实里却没说它可玩').toBe(true);
+    const out = analyzeCreatorFacts(fact!);
+    const finding = out.find((f) => f.evidence.includes('玩到结局'));
+    expect(finding, '有人来过却没人玩到结局 ⇒ 那条发现没出现').toBeTruthy();
+    expect(finding!.evidence).toContain('0 人玩到结局');
   });
 });
