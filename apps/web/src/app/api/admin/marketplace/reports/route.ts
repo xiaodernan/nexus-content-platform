@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { currentUserOrNull } from '@/server/domain/session';
 import { REPORT_STATUSES, flagSuspiciousActivity, getMarketplaceItem, getReports } from '@/server/domain/marketplace';
+import { REPORT_REASONS } from '@/lib/marketplaceReports';
 import { csrfOk } from '@/server/security/csrf';
 import { badRequest, jsonError } from '@/server/http';
 
@@ -33,7 +34,8 @@ const ReportsQuerySchema = z.object({
  */
 const ReportSchema = z.object({
   itemId: z.string().uuid(),
-  reason: z.enum(['fraud', 'spam', 'copyright', 'inappropriate', 'other']),
+  // 名单与提交面板同源（lib/marketplaceReports）：加一种原因时不会只改一边
+  reason: z.enum(REPORT_REASONS),
   description: z.string().max(1000).optional(),
 });
 

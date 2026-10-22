@@ -127,6 +127,7 @@ export default async function MarketplacePage({
                   previewAssetId: item.previewAssetId,
                 }}
                 mine={Boolean(user && item.creatorId === user.id)}
+                signedIn={Boolean(user)}
                 typeLabel={TYPE_LABELS[item.itemType] ?? item.itemType}
                 visibilityLabel={VISIBILITY_LABELS[item.visibility] ?? item.visibility}
               />
@@ -159,6 +160,7 @@ export default async function MarketplacePage({
                       previewAssetId: item.previewAssetId,
                     }}
                     mine
+                    signedIn={Boolean(user)}
                     typeLabel={TYPE_LABELS[item.itemType] ?? item.itemType}
                     visibilityLabel={VISIBILITY_LABELS[item.visibility] ?? item.visibility}
                   />
@@ -169,7 +171,7 @@ export default async function MarketplacePage({
         </section>
       ) : (
         <p className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-4)] text-12 text-fg-3" data-marketplace-signin-hint>
-          上架需要先登录（顶栏「账号」）。
+          上架与举报需要先登录（顶栏「账号」）。
         </p>
       )}
 

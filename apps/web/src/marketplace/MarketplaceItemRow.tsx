@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
 import { saveBlob } from '@/lib/download';
+import { REPORT_REASON_LABELS, REPORT_REASONS, type ReportReason } from '@/lib/marketplaceReports';
 
 /**
  * 市场物品的一行：卡片信息 + （自己的）删除 + 下载计数。
@@ -25,11 +26,14 @@ interface ItemView {
 export function MarketplaceItemRow({
   item,
   mine,
+  signedIn,
   typeLabel,
   visibilityLabel,
 }: {
   item: ItemView;
   mine: boolean;
+  /** 未登录不显示举报入口：端点要会话，点了也只会拿到 401 */
+  signedIn: boolean;
   typeLabel: string;
   visibilityLabel: string;
 }) {
@@ -41,6 +45,11 @@ export function MarketplaceItemRow({
   const [purchased, setPurchased] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<ReportReason>('spam');
+  const [reportNote, setReportNote] = useState('');
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reported, setReported] = useState(false);
 
   const purchase = async () => {
     if (item.priceCredits === 0) {
@@ -125,6 +134,36 @@ export function MarketplaceItemRow({
     router.refresh();
   };
 
+  const submitReport = async () => {
+    setReportBusy(true);
+    try {
+      const res = await fetch('/api/admin/marketplace/reports', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({
+          itemId: item.id,
+          reason: reportReason,
+          description: reportNote.trim() || undefined,
+        }),
+      });
+      const json = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+      if (!res.ok) {
+        // 409 是"已经举报过"，不是能重试的失败：入口收起，别让同一句错误再点一次
+        setMessage(json?.message ?? json?.error ?? `举报失败（${res.status}）`);
+        if (res.status === 409) {
+          setReported(true);
+          setReportOpen(false);
+        }
+        return;
+      }
+      setReported(true);
+      setReportOpen(false);
+      setMessage('已提交举报。审核员会在市场工单台处置；工单结案不等于下架，撤内容走人工复核台。');
+    } finally {
+      setReportBusy(false);
+    }
+  };
+
   return (
     <li
       className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-3"
@@ -155,6 +194,11 @@ export function MarketplaceItemRow({
             已购买
           </span>
         ) : null}
+        {reported ? (
+          <span className="rounded bg-bg-3 px-1 text-11 text-fg-3" data-marketplace-reported>
+            已举报
+          </span>
+        ) : null}
         <span className="ml-auto text-11 text-fg-3">{item.creatorName ?? '匿名创作者'}</span>
         {mine ? (
           <button
@@ -176,6 +220,17 @@ export function MarketplaceItemRow({
             className="rounded bg-accent-1 px-2 py-1 text-11 hover:bg-accent-2"
           >
             {purchasing ? '购买中...' : '购买'}
+          </button>
+        ) : null}
+        {signedIn && !mine && !reported ? (
+          <button
+            type="button"
+            onClick={() => setReportOpen((on) => !on)}
+            aria-expanded={reportOpen}
+            data-marketplace-report={item.id}
+            className="rounded px-2 py-1 text-11 text-fg-3 hover:text-danger"
+          >
+            {reportOpen ? '收起举报' : '举报'}
           </button>
         ) : null}
         <button
@@ -232,6 +287,51 @@ export function MarketplaceItemRow({
           >
             保存
           </button>
+        </div>
+      ) : null}
+      {reportOpen ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2" data-marketplace-report-panel={item.id}>
+          <label className="flex items-center gap-1 text-11 text-fg-2">
+            原因
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value as ReportReason)}
+              data-marketplace-report-reason={item.id}
+              className="rounded bg-bg-2 px-1 py-1 text-12"
+            >
+              {REPORT_REASONS.map((value) => (
+                <option value={value} key={value}>
+                  {REPORT_REASON_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <input
+            value={reportNote}
+            onChange={(e) => setReportNote(e.target.value)}
+            maxLength={1000}
+            placeholder="补充说明（可选，最多 1000 字）"
+            data-marketplace-report-note={item.id}
+            className="min-w-[16rem] flex-1 rounded bg-bg-1 px-2 py-1 text-11 text-fg-1"
+          />
+          <button
+            type="button"
+            onClick={() => void submitReport()}
+            disabled={reportBusy}
+            data-marketplace-report-submit={item.id}
+            className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+          >
+            {reportBusy ? '提交中...' : '提交举报'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setReportOpen(false)}
+            data-marketplace-report-cancel={item.id}
+            className="rounded px-2 py-1 text-11 text-fg-3 hover:text-fg-1"
+          >
+            取消
+          </button>
+          <span className="text-11 text-fg-3">举报进审核员工单台；结案 / 驳回都不会自动下架物品。</span>
         </div>
       ) : null}
       {item.description ? <p className="mt-1 text-12 text-fg-2">{item.description}</p> : null}
