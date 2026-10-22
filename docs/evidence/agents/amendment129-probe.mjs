@@ -4,9 +4,9 @@
 // Run: node docs/evidence/agents/amendment129-probe.mjs
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from '../lib/syncproc.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '../../..');
@@ -20,14 +20,24 @@ const REASONS = [
 
 function runTests() {
   try {
+    // Through the syncproc bridge, not node:child_process's own sync API: on this host the sync family fails
+    // EBUSY (KNOWN_ISSUES, amendment 152 — 60/60 sequential vs 0/340 async), and the house rule is that every
+    // proof which shells out imports that bridge. `shell: true` because Windows resolves npx.cmd through a
+    // shell; the CVE-2024-27980 fix blocks a direct spawn of it.
     execFileSync('npx', ['vitest', 'run', 'packages/three-runtime/test/saveSnapshot.test.ts'], {
       cwd: REPO_ROOT,
       encoding: 'utf8',
       timeout: 120000,
-      stdio: 'pipe',
+      shell: true,
     });
     return { passed: true, output: '' };
   } catch (e) {
+    // A SPAWN failure is not a test failure. Reading one as "the mutation was caught" is the false green this
+    // whole arc exists to prevent, so the two are separated by shape: a spawn error has no exit status, a
+    // failing test run has a non-zero one and vitest's output.
+    if (e.status === null || e.status === undefined) {
+      return { spawnFailed: true, output: `${e.code ?? 'unknown'}: ${e.message}` };
+    }
     return { passed: false, output: e.stdout?.toString() ?? e.stderr?.toString() ?? e.message };
   }
 }
@@ -47,6 +57,13 @@ async function main() {
     }
     writeFileSync(SRC, mutated, 'utf8');
     const result = runTests();
+    if (result.spawnFailed) {
+      // Restore FIRST, then report — a probe that cannot run must never leave the tree mutated.
+      writeFileSync(SRC, original, 'utf8');
+      console.log(`  ERROR: the runner could not run (${result.output}) — that is NOT a caught mutation`);
+      allCaught = false;
+      continue;
+    }
     if (result.passed) {
       console.log(`  FAIL: tests PASSED with mutated ${r.label} — mutation NOT caught!`);
       allCaught = false;
