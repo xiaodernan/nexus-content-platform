@@ -264,9 +264,11 @@ describe('economy — subscription rows (M8 v274)', () => {
     expect(row.termsText).toBe('as agreed');
   });
 
-  it('v371 — and a PLAN says its terms are the ones on offer today', () => {
+  it('v371/v374 — and a PLAN says its terms are the ones on offer NOW', () => {
+    // v374 — the wording is a PAIR with the subscription's side: "as agreed" is what was promised and
+    // "on offer now" is what is on sale.
     const row = toPlanRow({ planId: 'pro', priceCents: 1500, period: 'month', active: true })!;
-    expect(row.termsText).toBe('current terms');
+    expect(row.termsText).toBe('on offer now');
   });
 
   it('v371 — and a RETIRED plan says no such thing: its terms are the last ones it offered', () => {

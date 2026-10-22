@@ -3851,9 +3851,11 @@ try {
     // And the PROFILE bar marks the plan as the terms on offer today.
     const termsProfile = await (await fetch(`${studioBase}/u/${encodeURIComponent(accountRecord?.id ?? "")}`)).text();
     check(
-      'the profile bar marks the plan as the terms on offer today',
-      termsProfile.includes('data-plan-terms="current terms"'),
-      `the page carries it: ${termsProfile.includes('data-plan-terms="current terms"')}`,
+      // v374 — the wording is a PAIR with the subscription's side: "on offer now" is what is on sale and
+      // "as agreed" is what was promised.
+      'the profile bar marks the plan as the terms on offer NOW',
+      termsProfile.includes('data-plan-terms="on offer now"'),
+      `the page carries it: ${termsProfile.includes('data-plan-terms="on offer now"')}`,
     );
 
     // And the SERVICE agrees about the two periods — they are two different facts, read apart.
@@ -3960,6 +3962,64 @@ try {
       `count: ${JSON.stringify(planCountService.count)}`,
     );
     await planCountPage.close();
+  }
+
+  // ── §71 v374: the two sides use ONE pair of words ────────────────────────────────────────────────────
+  // "as agreed" is what was promised; "on offer now" is what is on sale. Two different moments, two
+  // different words — and the same pair wherever the rows are shown.
+  {
+    const pairPage = await session.newPage('about:blank');
+    await pairPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(pairPage, 'the pair page to hydrate');
+    await signInAs(pairPage, 'wanda', 'the creator with many plans');
+    await pairPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const pairPlanTerms = await until(
+      async () => {
+        const terms = await pairPage.evaluate(
+          "Array.from(document.querySelectorAll('[data-economy-terms]')).map((s) => s.getAttribute('data-economy-terms'))",
+        );
+        return terms.length > 0 && terms.every((t) => t === 'on offer now') ? terms : null;
+      },
+      { tries: 120, gapMs: 500, label: 'the plan terms to show' },
+    );
+    check(
+      'the creator’s own panel says the plan’s terms are ON OFFER now',
+      pairPlanTerms !== null,
+      `the panel: ${JSON.stringify(pairPlanTerms)}`,
+    );
+
+    // And the PROFILE page says the same of the same plan.
+    const pairRaw = await pairPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const pairId = JSON.parse(String(pairRaw)).id;
+    const pairProfile = await (await fetch(`${studioBase}/u/${encodeURIComponent(pairId)}`)).text();
+    check(
+      'the profile page says the same thing about the same plan',
+      pairProfile.includes('on offer now'),
+      `the page: ${pairProfile.includes('on offer now')}`,
+    );
+
+    // And the SUBSCRIPTION side says the other half of the pair.
+    const pairSubPage = await session.newPage('about:blank');
+    await pairSubPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(pairSubPage, 'the pair subscription page to hydrate');
+    await signInAs(pairSubPage, 'bob', 'the subscriber');
+    await pairSubPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const pairSubTerms = await until(
+      async () => {
+        const terms = await pairSubPage.evaluate(
+          "Array.from(document.querySelectorAll('[data-economy-terms]')).map((s) => s.getAttribute('data-economy-terms'))",
+        );
+        return terms.length > 0 && terms.every((t) => t === 'as agreed') ? terms : null;
+      },
+      { tries: 120, gapMs: 500, label: 'the subscription terms to show' },
+    );
+    check(
+      'the supporter’s panel says the subscription’s terms were AGREED',
+      pairSubTerms !== null,
+      `the panel: ${JSON.stringify(pairSubTerms)}`,
+    );
+    await pairPage.close();
+    await pairSubPage.close();
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────

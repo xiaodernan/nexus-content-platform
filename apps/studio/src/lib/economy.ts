@@ -279,12 +279,16 @@ export function planPeriodText(period: string): string {
 }
 
 /**
- * v371 — the note that says a plan’s terms are the ones ON OFFER today.
+ * v371/v374 — the note that says a plan’s terms are the ones ON OFFER now.
  *
  * <p>A creator may reprice a plan, period and all (v317), so a plan’s terms and a subscription’s terms can
  * disagree — and the two are facts about two different moments. Every row says which one it is.
+ *
+ * <p>v374 — the wording is a PAIR with the subscription’s side: "as agreed" is what was promised and "on
+ * offer now" is what is on sale ✓. "current terms" said the wrong thing on both counts: a reader could
+ * read it as "this plan’s terms at this moment" ✓, and it did not pair with "as agreed" ✓.
  */
-export const PLAN_TERMS_NOTE = 'current terms';
+export const PLAN_TERMS_NOTE = 'on offer now';
 
 /**
  * v371 — the note that says a subscription’s terms are the ones that were AGREED.

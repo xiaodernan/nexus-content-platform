@@ -61,12 +61,12 @@ describe('planBar — the periods (M7 v301)', () => {
     expect(planPeriodText('year')).toBe('per year');
   });
 
-  it('v371 — and a plan says its terms are the ones ON OFFER today', () => {
+  it('v371/v374 — and a plan says its terms are the ones ON OFFER now', () => {
     // A creator may reprice a plan, period and all (v317), so a plan's terms and a subscription's terms
     // can disagree — and the row has to say which one it is showing.
     const row = toPlanRow(plan())!;
-    expect(row.termsText).toBe('current terms');
-    expect(renderPlanBar({ accountId: 'acct-ada', plans: [row] })).toContain('current terms');
+    expect(row.termsText).toBe('on offer now');
+    expect(renderPlanBar({ accountId: 'acct-ada', plans: [row] })).toContain('on offer now');
   });
 
   it('v372 — says how many plans the creator offers, over the WHOLE table', () => {
@@ -96,7 +96,7 @@ describe('planBar — the periods (M7 v301)', () => {
     // are the ones it last offered.
     const row = toPlanRow(plan({ active: false }))!;
     expect(row.termsText).toBeNull();
-    expect(renderPlanBar({ accountId: 'acct-ada', plans: [row] })).not.toContain('current terms');
+    expect(renderPlanBar({ accountId: 'acct-ada', plans: [row] })).not.toContain('on offer now');
   });
 
   it('PASSES AN UNKNOWN PERIOD THROUGH — the bar must not relabel a period it does not know', () => {

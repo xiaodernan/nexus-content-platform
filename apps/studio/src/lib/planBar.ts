@@ -54,10 +54,10 @@ export interface PlanRow {
    */
   openedText: string | null;
   /**
-   * v371 — that these are the terms ON OFFER today — or null when the plan is retired.
+   * v371/v374 — that these are the terms ON OFFER now — or null when the plan is retired.
    *
    * <p>A retired plan’s terms are the last ones it offered, so the note is only there while the plan is
-   * still offered — a bar that called a retired plan’s terms "current" would be wrong about it.
+   * still offered — a bar that called a retired plan’s terms "on offer" would be wrong about it.
    */
   termsText: string | null;
 }
