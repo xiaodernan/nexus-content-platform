@@ -44,7 +44,18 @@
   - **amendment 369** — `docs/evidence/m7/service-suite-proof.mjs` 的台账记录。已测（commit `521e9bc`）：clean HEAD 下 222 tests / 9 classes / 0 fail / 0 err，digest 稳定，全章 PASSED；工作树里首次跑就 RED 且正确（PublishServiceTest 6 个 Mockito `PotentialStubbingProblem`，属并行 lane 未提交的发布重构）。该 proof 不写版本号，所以台账迟补不会悬空。
   - **amendment 370** — 修正 §154 的虚假声明。原 §154 称 "all three mutations are caught by `saveSnapshot.test.ts`"，但 `ba647a0`/`d18ce95` 暴露该探针是**无效**的：它改的是类型联合（esbuild 会抹掉，等于零变异），且 `name-not-reenterable` 实际在 `saveNameSpelling.test.ts` 里、它根本没跑。已重写成改运行时 push 站点 + 跑整个 `@nexus/three-runtime` 套件 → 三种变异全中。台账须用 "Corrects amendment 154" 写法。
   - ADR 当前被并行 lane 的 amendment 371（v380）占脏，**等其提交后再补 369/370**，不混进别人的字节（house rule）。
-- **下一个可验证增量：浏览器 harness 端到端复测**。已确认 world / scene3d / assets / publish / account 全部支持 `--out`，默认写 `.scratch/vNNN`，**不脏提交证据**；golden-path 默认写 `docs/evidence/studio/harness`，但可用 `--out .scratch/golden` 覆盖。本回合先复跑 golden-path 确认 19/19（无 baseline → SKIP），再逐个复跑其余，把测得的通关数写进台账与 README。
+- **下一个可验证增量：浏览器 harness 端到端复测**。已确认 world / scene3d / assets / publish / account 全部支持 `--out`，默认写 `.scratch/vNNN`，**不脏提交证据**；golden-path 默认写 `docs/evidence/studio/harness`，但可用 `--out .scratch/golden` 覆盖。本回合已复跑全部 6 个 harness（dev server 起在 :3401，输出全写 `.scratch/*`，不脏提交证据）：
+
+| harness | 结果 | 说明 |
+|---|---|---|
+| golden-path | **19/19 PASS** | 无 baseline → 像素对比 SKIP（诚实，按设计） |
+| scene3d | **62/62 PASS** | webgl 后端可达、live、honest |
+| assets | **46/46 PASS** | 资源面只显元数据，不假装显图 |
+| account | **14/14 PASS** | 注册/登出/重注册全过 |
+| world | **28/28 绿，第 29 步超时** | 点 "save to disk" 后 **无用户可见的保存确认**（真实 gap，见 KNOWN_ISSUES） |
+| publish | **环境跳过（exit 127）** | 需 Docker + Java 服务，本机未装；非代码缺陷 |
+
+world 的保存确认缺口已写入 KNOWN_ISSUES，作为 world 面板的下一个增量（ADR 0016 当前被并行 lane 的 v380 占脏，台账入口待其提交后补）。publish 因环境缺 Docker 无法在本机跑，属已知边界。
 
 ### M9 审计轨迹（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）
 
