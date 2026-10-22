@@ -104,10 +104,12 @@ Live list. Nothing here is hidden behind marketing copy.
   an accepted 100 KB full-page PNG. Run `npm run verify:harness` (proves the harness) and
   `npm run verify:studio` (19/19 golden-path assertions against the unmodified Studio bundle).
   **Screenshots can now be COMPARED to a baseline** (`tools/harness/png.mjs`: a zero-dependency PNG decoder
-  — 8-bit RGB/RGBA, non-interlaced, everything else refused by name, and **every chunk's CRC verified** so a
-  corrupt file is refused rather than decoded to plausible garbage — plus a pixel diff; the golden-path
-  harness diffs its capture against `studio-after-compose.baseline.png` when that file exists, within 2% of
-  pixels at an 8-per-channel tolerance, and says so when there is none). Remaining honest limits: **no
+  — 8-bit RGB/RGBA, non-interlaced, everything else refused by name, **every chunk's CRC verified** so a
+  corrupt file is refused rather than decoded to plausible garbage, and **chunk ORDER enforced** (IHDR
+  first, IDAT contiguous, IEND last) — plus a pixel diff; the decision is one pure function,
+  `compareToBaseline`, which the golden-path harness and its proof both run: within 2% of pixels at an
+  8-per-channel tolerance against `studio-after-compose.baseline.png`, and an explicit SKIP when there is
+  none). Remaining honest limits: **no
   baseline is committed yet**, so the comparison arm is armed but unexercised in CI; a CRC catches
   corruption, not malice (an edited file can carry a recomputed checksum); and the harness is a local
   verification tool, not the §28/ADR 0013 untrusted-code sandbox.

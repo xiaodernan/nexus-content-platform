@@ -17,13 +17,14 @@
 //      swallows it, and a size mismatch is refused rather than compared;
 //   §3 the decoder REFUSES by name — not a PNG, an unsupported colour type, a 16-bit depth, an interlaced
 //      file, a truncated chunk — rather than guessing at pixels it cannot read;
-//   §4 the WIRING exists: the golden-path harness imports the module and compares a capture to a baseline
-//      when one is present (a guarded arm — no baseline, no assertion, and it says so).
+//   §4 the SHARED DECISION (`compareToBaseline`) — identical bytes match, no baseline SKIPS rather than
+//      failing, two different surfaces of the same size are a real red, and a size mismatch is refused;
+//   §5 the WIRING calls that shared decision, so this proof tests the rule the harness actually runs.
 //
 // Run:  node docs/evidence/studio/png-baseline-proof.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { PngRefusal, crc32, decodePng, diffPixels } from '../../../tools/harness/png.mjs';
+import { PngRefusal, compareToBaseline, crc32, decodePng, diffPixels } from '../../../tools/harness/png.mjs';
 
 const SHOTS = [
   'docs/evidence/m7/harness/studio-publish.png',
@@ -108,16 +109,74 @@ const corner = (d) => [...d.pixels.subarray(0, 3)];
   const corrupt = Buffer.from(good);
   corrupt[idatAt] ^= 0xff;
   assert.throws(() => decodePng(corrupt), (e) => e instanceof PngRefusal && /CRC mismatch in the IDAT/.test(e.message), 'a corrupted IDAT is refused by CRC');
-  console.log('[§3] refused by name: non-PNG · palette · 16-bit · interlaced · truncated · corrupted IDAT (CRC)');
+  // Chunk ORDER is part of the format: IHDR first, IDAT contiguous, IEND last. These splice WHOLE chunks, so
+  // every CRC stays valid — the arm tests the order rule and not the integrity rule it would otherwise trip.
+  const chunksOf = (b) => {
+    const out = [];
+    for (let o = 8; o + 8 <= b.length; ) {
+      const len = b.readUInt32BE(o);
+      const type = b.toString('ascii', o + 4, o + 8);
+      out.push({ type, bytes: b.subarray(o, o + 8 + len + 4) });
+      o += 8 + len + 4;
+      if (type === 'IEND') break;
+    }
+    return out;
+  };
+  const assemble = (chunks) => Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), ...chunks.map((c) => c.bytes)]);
+  const parts = chunksOf(good);
+  const ihdrChunk = parts[0];
+  assert.equal(ihdrChunk.type, 'IHDR', 'the fixture starts with IHDR');
+  const idats = parts.filter((c) => c.type === 'IDAT');
+  assert.ok(idats.length >= 2, `the fixture has ${idats.length} IDAT chunk(s); the contiguity arm needs at least 2`);
+  // a well-formed chunk that is NOT IDAT, with a correct CRC, to interrupt the run
+  const textChunk = (() => {
+    const data = Buffer.from('Comment\0x', 'latin1');
+    const body = Buffer.concat([Buffer.from('tEXt', 'ascii'), data]);
+    const out = Buffer.alloc(body.length + 8);
+    out.writeUInt32BE(data.length, 0);
+    body.copy(out, 4);
+    out.writeUInt32BE(crc32(body), out.length - 4);
+    return out;
+  })();
+  const orderCases = [
+    [assemble([idats[0], ...parts]), /first chunk is IDAT/, 'a chunk before IHDR'],
+    [assemble([ihdrChunk, ihdrChunk, ...parts.slice(1)]), /second IHDR/, 'a second IHDR'],
+    [assemble(parts.filter((c) => c.type !== 'IEND')), /no IEND/, 'a file without IEND'],
+    [assemble([...parts.slice(0, parts.indexOf(idats[1])), { type: 'tEXt', bytes: textChunk }, ...parts.slice(parts.indexOf(idats[1]))]), /must be contiguous/, 'an interrupted IDAT run'],
+  ];
+  for (const [bytes, re, label] of orderCases) {
+    assert.throws(() => decodePng(bytes), (e) => e instanceof PngRefusal && re.test(e.message), `${label} must be refused by name`);
+  }
+  console.log('[§3] refused by name: non-PNG · palette · 16-bit · interlaced · truncated · corrupted IDAT (CRC) · chunk before IHDR · second IHDR · no IEND · interrupted IDAT run');
 }
 
-// ── §4 the wiring exists (a guarded arm, not a claim of a green comparison) ─────────────────────────
+// ── §4 the SHARED decision: skip, match, and a real difference ──────────────────────────────────────
+{
+  // The capture IS the baseline here — identical bytes must match exactly.
+  const same = compareToBaseline(buf(SHOTS[1]), buf(SHOTS[1]));
+  assert.equal(same.skipped, false, 'a present baseline is compared, not skipped');
+  assert.equal(same.ok, true, 'an identical capture matches its baseline');
+  assert.equal(same.diff.differing, 0, 'and the diff says zero pixels');
+  // NO baseline is a SKIP, and a skip must be ok — a first run cannot go red for a missing file.
+  const skipped = compareToBaseline(buf(SHOTS[1]), null);
+  assert.deepEqual({ ok: skipped.ok, skipped: skipped.skipped }, { ok: true, skipped: true }, 'no baseline skips rather than failing');
+  assert.match(skipped.detail, /SKIPPED, not passed/, 'and says which it did');
+  // Two DIFFERENT surfaces of the SAME size are a real red, so the arm can fail and is not vacuous.
+  const other = compareToBaseline(buf(SHOTS[2]), buf(SHOTS[4])); // assets vs world — both 1418x802
+  assert.equal(other.ok, false, 'a different surface does not match');
+  assert.ok(other.diff.ratio > 0.02, `the differing ratio ${other.diff.ratio.toFixed(4)} must exceed the 2% ceiling`);
+  // A size mismatch is refused, not compared.
+  assert.throws(() => compareToBaseline(buf(SHOTS[0]), buf(SHOTS[4])), PngRefusal, 'different sizes are refused');
+  console.log(`[§4] decision: identical 0 px · no baseline SKIPS (ok, not passed) · a different surface ${(other.diff.ratio * 100).toFixed(1)}% differs → RED · size mismatch refused`);
+}
+
+// ── §5 the wiring runs the SHARED decision, not a private copy of it ────────────────────────────────
 {
   const src = readFileSync('tools/harness/studio-golden-path.mjs', 'utf8');
   assert.ok(/from '\.\/png\.mjs'/.test(src) || /from "\.\/png\.mjs"/.test(src), 'the golden-path harness imports the png module');
-  assert.ok(/decodePng\(/.test(src) && /diffPixels\(/.test(src), 'it decodes and diffs the capture');
+  assert.ok(/compareToBaseline\(/.test(src), 'it calls the SHARED decision, so this proof tests the rule the harness actually runs');
   assert.ok(/baseline/i.test(src), 'it compares against a baseline');
-  console.log('[§4] wiring: the golden-path harness imports, decodes and diffs against a baseline when one exists');
+  console.log('[§5] wiring: the golden-path harness calls compareToBaseline — the proof and the harness run ONE rule');
 }
 
 console.log('[png-baseline-proof] ALL SECTIONS PASSED');

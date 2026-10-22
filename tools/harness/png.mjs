@@ -95,6 +95,11 @@ export function decodePng(buf) {
 
   let ihdr = null;
   const idat = [];
+  let first = true;
+  let sawIhdr = false;
+  let sawIdat = false;
+  let idatClosed = false;
+  let sawIend = false;
   for (let off = 8; off + 8 <= buf.length; ) {
     const len = buf.readUInt32BE(off);
     const type = buf.toString('ascii', off + 4, off + 8);
@@ -107,7 +112,16 @@ export function decodePng(buf) {
         `CRC mismatch in the ${type} chunk (stored 0x${stored.toString(16)}, computed 0x${computed.toString(16)}) — the file is corrupt`,
       );
     }
+    // Chunk ORDER is part of the format, not a convention: IHDR is first, IDAT chunks are contiguous, and
+    // IEND closes the file. A decoder that ignores it silently splices image data across an interrupting
+    // chunk — the same "plausible garbage" failure the CRC check exists to prevent.
+    if (first) {
+      if (type !== 'IHDR') throw new PngRefusal(`the first chunk is ${type}, not IHDR — a PNG's header must come first`);
+      first = false;
+    }
     if (type === 'IHDR') {
+      if (sawIhdr) throw new PngRefusal('a second IHDR chunk — a PNG has exactly one header');
+      sawIhdr = true;
       ihdr = {
         width: data.readUInt32BE(0),
         height: data.readUInt32BE(4),
@@ -116,12 +130,18 @@ export function decodePng(buf) {
         interlace: data[12],
       };
     } else if (type === 'IDAT') {
+      if (idatClosed) throw new PngRefusal('an IDAT chunk after the image-data run was interrupted — IDAT chunks must be contiguous');
+      sawIdat = true;
       idat.push(data);
     } else if (type === 'IEND') {
+      sawIend = true;
       break;
+    } else if (sawIdat) {
+      idatClosed = true;
     }
     off += 8 + len + 4;
   }
+  if (!sawIend) throw new PngRefusal('no IEND chunk — the file ends before its last chunk');
   if (!ihdr) throw new PngRefusal('no IHDR chunk');
   if (!ihdr.width || !ihdr.height) throw new PngRefusal(`empty image ${ihdr.width}x${ihdr.height}`);
   if (ihdr.bitDepth !== 8) throw new PngRefusal(`unsupported bit depth ${ihdr.bitDepth} (this decoder reads 8-bit)`);
@@ -162,6 +182,29 @@ export function decodePng(buf) {
  * equal (0 = exact). Answers the count, the ratio, the largest delta seen, and the first pixel over the line —
  * so a red is actionable ("pixel 12,340 differs by 18") rather than "images differ".
  */
+/**
+ * The baseline DECISION, pure, so the harness and its proof run the SAME rule instead of the proof only
+ * checking that a call site exists. `baselineBuf` null/undefined means "no baseline committed": the arm
+ * SKIPS and says so — a first run must never go red for the absence of a file.
+ *
+ * Answers `{ ok, skipped, detail }`, plus `diff` when it actually compared. `ok` is true for a skip (nothing
+ * was asserted) and for a diff within `maxRatio`; the caller turns `ok` into its own check and the `detail`
+ * is the sentence a person reads.
+ */
+export function compareToBaseline(captureBuf, baselineBuf, { tolerance = 8, maxRatio = 0.02 } = {}) {
+  if (!baselineBuf) {
+    return { ok: true, skipped: true, detail: 'no baseline committed — the pixel comparison is SKIPPED, not passed' };
+  }
+  const d = diffPixels(decodePng(baselineBuf), decodePng(captureBuf), { tolerance });
+  const ok = d.ratio <= maxRatio;
+  return {
+    ok,
+    skipped: false,
+    diff: d,
+    detail: `${d.differing}/${d.total} px differ (${(d.ratio * 100).toFixed(3)}%) · maxDelta ${d.maxDelta}${d.firstAt ? ` · first at ${d.firstAt.x},${d.firstAt.y}` : ''}`,
+  };
+}
+
 export function diffPixels(a, b, { tolerance = 0 } = {}) {
   if (!a || !b || !a.pixels || !b.pixels) throw new PngRefusal('diffPixels needs two decoded images');
   if (a.width !== b.width || a.height !== b.height) {
