@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { currentUserOrNull } from '@/server/domain/session';
-import { getAuditLog } from '@/server/domain/marketplace';
+import { AUDIT_ACTIONS, getAuditLog } from '@/server/domain/marketplace';
 import { badRequest, jsonError } from '@/server/http';
 
 /**
@@ -20,7 +20,11 @@ import { badRequest, jsonError } from '@/server/http';
 const AuditQuerySchema = z.object({
   itemId: z.string().uuid().optional(),
   actorId: z.string().uuid().optional(),
-  action: z.enum(['purchase', 'download', 'settle', 'price_change', 'list', 'delist']).optional(),
+  /**
+   * 动作名单从域层的 `AUDIT_ACTIONS` 取，不在这里手抄：迁移 0033 加了
+   * `suspicious_purchase`，手抄的那份六项名单会让管理员按新动作筛时吃 400。
+   */
+  action: z.enum(AUDIT_ACTIONS).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
   limit: z.coerce.number().int().nonnegative().max(500).optional(),

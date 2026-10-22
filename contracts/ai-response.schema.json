@@ -28,6 +28,10 @@
           "goal": {
             "type": "string"
           },
+          "gameKind": {
+            "type": "string",
+            "maxLength": 40
+          },
           "constraints": {
             "default": [],
             "type": "array",

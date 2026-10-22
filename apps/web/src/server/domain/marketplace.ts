@@ -830,14 +830,22 @@ export async function getCreatorEarnings(input: CreatorEarningsInput): Promise<C
 /**
  * §123 Marketplace：审计日志动作类型。
  */
-export type AuditAction =
-  | 'purchase'
-  | 'download'
-  | 'settle'
-  | 'price_change'
-  | 'list'
-  | 'delist'
-  | 'suspicious_purchase';
+/**
+ * 审计动作的运行时名单：迁移 0033 的 CHECK、路由的查询校验都从这里取。
+ * 此前路由手抄了一份六项名单，0016/0033 加动作时不会跟着变——
+ * #156 写进去的 `suspicious_purchase` 在管理员按它筛选时被 400 拒，就是手抄的代价。
+ */
+export const AUDIT_ACTIONS = [
+  'purchase',
+  'download',
+  'settle',
+  'price_change',
+  'list',
+  'delist',
+  'suspicious_purchase',
+] as const;
+
+export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 export interface AuditMarketplaceActionInput {
   actorId: string;
@@ -946,7 +954,9 @@ export async function getAuditLog(input: GetAuditLogInput): Promise<AuditLogEntr
   if (input.actorId) conditions.push(eq(marketplaceAuditLog.actorId, input.actorId));
   if (input.action) conditions.push(eq(marketplaceAuditLog.action, input.action));
   if (input.startDate) conditions.push(gte(marketplaceAuditLog.occurredAt, input.startDate));
-  if (input.endDate) conditions.push(gte(marketplaceAuditLog.occurredAt, input.endDate));
+  // 右端是"这一刻及以前"：同一对字段里 start 用 gte、end 却用 gte，时间窗就会变成
+  // "晚于 end 的那些行"——管理员筛 6 月，拿回的是 12 月。
+  if (input.endDate) conditions.push(lte(marketplaceAuditLog.occurredAt, input.endDate));
 
   if (conditions.length > 0) {
     // @ts-expect-error drizzle-orm 的类型推导在这里不够聪明

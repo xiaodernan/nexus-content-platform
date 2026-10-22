@@ -6,7 +6,7 @@ import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
 import { SESSION_COOKIE } from '../src/server/domain/session';
 import { auditMarketplaceAction, createMarketplaceItem } from '../src/server/domain/marketplace';
 import { getDb } from '../src/server/db/client';
-import { marketplaceReports, sessions, users } from '../src/server/db/schema';
+import { marketplaceAuditLog, marketplaceReports, sessions, users } from '../src/server/db/schema';
 
 /**
  * §123 Marketplace 审计日志与举报的两个入口：`GET /api/admin/marketplace/audit`、
@@ -76,6 +76,13 @@ let creator: { id: string };
 let adminToken: string;
 let creatorToken: string;
 let itemId: string;
+/** 时间窗与动作筛选用另一件物品：同一物品上已有"精确值"那条用例（按 itemId 找第一行），别让新行挤掉它 */
+let windowItemId: string;
+
+/** 三个固定时刻：不动 Date.now，时间窗断言才不会由跑测试的时刻决定 */
+const T_OLD = new Date('2026-01-01T00:00:00.000Z');
+const T_MID = new Date('2026-06-01T00:00:00.000Z');
+const T_NEW = new Date('2026-12-01T00:00:00.000Z');
 
 beforeAll(async () => {
   const db = getDb();
@@ -102,6 +109,21 @@ beforeAll(async () => {
     itemId,
     metadata: { priceCredits: 42, buyer: creator.id },
   });
+
+  // 第二件物品：三行固定时刻的审计，覆盖 §123/#156 写入的 suspicious_purchase 与时间窗右端
+  const windowItem = await createMarketplaceItem({ creatorId: creator.id, itemType: 'component', title: `市场-时间窗 ${stamp}` });
+  windowItemId = windowItem.id;
+  await db.insert(marketplaceAuditLog).values([
+    { actorId: admin.id, action: 'purchase', itemId: windowItemId, occurredAt: T_OLD, metadata: {} },
+    {
+      actorId: admin.id,
+      action: 'suspicious_purchase',
+      itemId: windowItemId,
+      occurredAt: T_MID,
+      metadata: { rules: ['purchase_volume_24h'], counts: { purchase_volume_24h: 51 } },
+    },
+    { actorId: admin.id, action: 'purchase', itemId: windowItemId, occurredAt: T_NEW, metadata: {} },
+  ]);
 });
 
 afterAll(async () => {
@@ -177,6 +199,63 @@ describe('§123 市场审计日志入口（GET /api/admin/marketplace/audit）',
     asUser(adminToken);
     const res = await getAuditLog(new Request(auditUrl('?startDate=not-a-date')));
     expect(res.status).toBe(400);
+  });
+});
+
+describe('§123/#157 审计查询的动作名单与时间窗', () => {
+  interface WindowRow {
+    action: string;
+    occurredAt: string;
+    metadata: { rules?: string[]; counts?: { purchase_volume_24h?: number } };
+  }
+
+  const windowAuditUrl = (query: string): string => auditUrl(`?itemId=${windowItemId}${query}`);
+
+  it('action=suspicious_purchase（#156 真写入的那个动作）→ 200 且筛得回它', async () => {
+    asUser(adminToken);
+    const res = await getAuditLog(new Request(windowAuditUrl('&action=suspicious_purchase')));
+    expect(res.status, '新动作不在路由那张手抄名单里时这里是 400').toBe(200);
+    const rows = (await res.json()) as WindowRow[];
+    expect(rows.map((row) => row.action)).toEqual(['suspicious_purchase']);
+    expect(rows[0]!.metadata.counts?.purchase_volume_24h).toBe(51);
+  });
+
+  it('action=purchase 不会把 suspicious_purchase 顺带回来（筛的是值，不是"有 action 就行"）', async () => {
+    asUser(adminToken);
+    const res = await getAuditLog(new Request(windowAuditUrl('&action=purchase')));
+    expect(res.status).toBe(200);
+    const rows = (await res.json()) as WindowRow[];
+    expect(rows.map((row) => row.action)).toEqual(['purchase', 'purchase']);
+  });
+
+  it('endDate 是右端闭区间：这一刻及以前回来，晚于它的行不回来', async () => {
+    asUser(adminToken);
+    // 对照先证明这件物品确实有三行——否则「只回两行」可能只是 itemId 打错
+    const all = await getAuditLog(new Request(windowAuditUrl('')));
+    expect(all.status).toBe(200);
+    expect(((await all.json()) as WindowRow[]).length).toBe(3);
+
+    const res = await getAuditLog(
+      new Request(windowAuditUrl(`&endDate=${encodeURIComponent('2026-06-01T00:00:00.000Z')}`)),
+    );
+    expect(res.status).toBe(200);
+    const rows = (await res.json()) as WindowRow[];
+    expect(rows.map((row) => row.occurredAt)).toEqual([T_MID.toISOString(), T_OLD.toISOString()]);
+    expect(rows.some((row) => row.occurredAt === T_NEW.toISOString())).toBe(false);
+  });
+
+  it('startDate + endDate 围出中间那一行', async () => {
+    asUser(adminToken);
+    const res = await getAuditLog(
+      new Request(
+        windowAuditUrl(
+          `&startDate=${encodeURIComponent('2026-05-01T00:00:00.000Z')}&endDate=${encodeURIComponent('2026-07-01T00:00:00.000Z')}`,
+        ),
+      ),
+    );
+    expect(res.status).toBe(200);
+    const rows = (await res.json()) as WindowRow[];
+    expect(rows.map((row) => row.action)).toEqual(['suspicious_purchase']);
   });
 });
 

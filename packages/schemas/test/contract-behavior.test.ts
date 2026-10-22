@@ -96,6 +96,13 @@ const OVERRIDES: Record<string, unknown> = {
     visibleMs: 1000,
     completionPct: 50,
   },
+  // §168 通关那份与访客现场**同一把** key（同源同格式），所以最小报文也长一样。
+  // 漏了它 ⇒ 自动造的那份 visitorKey 不满足 32 位十六进制，于是这一格在报"自己的契约不认自己的报文"，
+  // 而真问题只是**自检表少了一项**（不是 schema 写错了）。
+  PublishedGameCompleteRequestSchema: {
+    path: '/n/handle/slug',
+    visitorKey: '0123456789abcdef0123456789abcdef',
+  },
 };
 
 /** 导出的 schema（名字以 Schema 结尾、且确实是 zod schema 的） */
