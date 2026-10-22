@@ -2100,3 +2100,15 @@ v313's record stated the bound it left: *"the decoder does not verify chunk CRCs
 The proof had to change with it, and that is the interesting half: §3's field-refusal arms mutated IHDR bytes in place, which — with the CRC enforced — tripped the integrity check FIRST and never reached the reader they exist to test. They now REPAIR the IHDR's CRC after mutating the field, so the field check is genuinely what fires; a separate arm flips one IDAT data byte and asserts the CRC refusal names `IDAT`.
 
 Measured (`png-baseline-proof.mjs` **4/4**): all five real captures still decode (their CRCs are valid), so the check does not reject honest files; the diff arms are unchanged; §3 now has six refusals by name including `corrupted IDAT (CRC)`. Bounds: a CRC catches CORRUPTION, not MALICE (an attacker can recompute it); it does not verify chunk order or that `IDAT` chunks are contiguous; and the baseline arm is still unexercised because no baseline is committed.
+
+## v377 — the baseline decision is ONE pure function, and the decoder enforces chunk ORDER (v377 — ADR 0016 amendment 365)
+
+v313 said the harness compared against a baseline only through an inline block, so its proof could assert a CALL SITE but not the RULE. v314 said the decoder checked CRCs but not the format's ORDER — and its bounds line above still reads *"it does not verify chunk order or that IDAT chunks are contiguous."* Both are the same failure mode: a verification tool whose important decision is not itself verified. Both are now closed.
+
+**The rule is a function.** `compareToBaseline(captureBuf, baselineBuf, {tolerance = 8, maxRatio = 0.02})` owns the decision and answers `{ok, skipped, detail}` (+ `diff` when it compared). A null baseline is an explicit **SKIP that is ok** — a first run must never go red for the absence of a file — and its sentence says "SKIPPED, not passed" so the two cannot be confused. `studio-golden-path.mjs` now CALLS it instead of carrying a private copy, which is what makes the proof meaningful: it exercises the rule the harness runs.
+
+**Order is part of the format.** `decodePng` refuses a chunk before IHDR, a second IHDR, an IDAT run interrupted by any other chunk, and a file with no IEND — because a decoder that ignores order does not crash, it silently splices image data across the interrupting chunk.
+
+The proof grew from four sections to five and §3 from six refusals to **ten**. The order arms splice WHOLE chunks (so every CRC stays valid and the ORDER rule fires, not the integrity rule) and build a well-formed `tEXt` chunk — CRC included — to interrupt the run. §4 is the shared decision: identical bytes are 0 px, a missing baseline SKIPS, two DIFFERENT surfaces of the same size (assets vs world) are a real **RED at 10.1% differing**, a size mismatch is refused. §5 asserts the harness calls the shared function.
+
+Measured: `png-baseline-proof.mjs` **5/5 ALL SECTIONS PASSED**; doc gate **exit 0**. Bounds: the comparison arm is still ARMED but UNEXERCISED in CI (no baseline committed); the decoder judges a chunk's position and CRC, not its SEMANTICS; and a diff says pixels CHANGED, never that they changed for the worse.
