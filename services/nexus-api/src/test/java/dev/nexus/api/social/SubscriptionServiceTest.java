@@ -467,6 +467,35 @@ class SubscriptionServiceTest {
         assertThat(service.totalReceived("acct-ada")).isEqualTo(7500L);
     }
 
+    // ── v368: the totals are PER PERIOD, because a monthly and a yearly one do not add up ───────
+
+    @Test
+    void theTotalsArePerPeriodAndNotOneMeaninglessSum() {
+        // One monthly pledge and one yearly one do not add up to anything a reader can act on, so the
+        // answer says what each period comes to.
+        when(subscriptions.sumStandingPriceCentsByPeriodHeld(eq("acct-bob"), any(java.time.Instant.class)))
+                .thenReturn(List.of(new Object[] {"month", 1500L}, new Object[] {"year", 3000L}));
+
+        List<SubscriptionDtos.PeriodTotal> totals = service.totalsHeld("acct-bob");
+
+        assertThat(totals).hasSize(2);
+        assertThat(totals.get(0).period()).isEqualTo("month");
+        assertThat(totals.get(0).totalCents()).isEqualTo(1500L);
+        assertThat(totals.get(1).period()).isEqualTo("year");
+        assertThat(totals.get(1).totalCents()).isEqualTo(3000L);
+    }
+
+    @Test
+    void thePeriodsComeInTheOrderAPersonWouldSayThem() {
+        when(subscriptions.sumStandingPriceCentsByPeriodReceived(eq("acct-ada"), any(java.time.Instant.class)))
+                .thenReturn(List.of(new Object[] {"year", 3000L}, new Object[] {"once", 500L}, new Object[] {"month", 1500L}));
+
+        List<SubscriptionDtos.PeriodTotal> totals = service.totalsReceived("acct-ada");
+
+        assertThat(totals.stream().map(SubscriptionDtos.PeriodTotal::period).toList())
+                .containsExactly("once", "month", "year");
+    }
+
     // ── v327: the subscriber's NAME goes on the row, so a creator sees a person ──────────────────
 
     @Test

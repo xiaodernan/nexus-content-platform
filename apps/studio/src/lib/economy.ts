@@ -193,6 +193,28 @@ export interface PlanRow {
  * A KNOWN period is spelled the way a person would say it; an unknown one is passed through as it arrived
  * — a panel that labelled an unknown period as "per month" would be claiming a term the creator never set.
  */
+/**
+ * What the subscriptions come to, PER PERIOD, in a reader's words.
+ *
+ * <p>v368 — a single sum over subscriptions of different periods is a meaningless number (a monthly
+ * pledge and a yearly one do not add up to anything a reader can act on), so the panel says what is owed
+ * for each period: "¥15.00 per month + ¥30.00 per year".
+ *
+ * <p>An empty list says NOTHING — a panel that printed "¥0.00" for an account with no
+ * subscriptions would be inventing a total.
+ */
+export function subscriptionsTotalText(
+  totals: readonly { period: string; totalCents: number }[] | undefined,
+  currency: Currency = 'CNY',
+): string {
+  if (!totals || totals.length === 0) return '';
+  const parts = totals
+    .filter((total) => typeof total.period === 'string' && total.period.length > 0)
+    .filter((total) => typeof total.totalCents === 'number' && Number.isFinite(total.totalCents))
+    .map((total) => `${priceText(total.totalCents as PriceCents, currency)} ${planPeriodText(total.period)}`);
+  return parts.join(' + ');
+}
+
 export function planPeriodText(period: string): string {
   switch (period) {
     case 'once':

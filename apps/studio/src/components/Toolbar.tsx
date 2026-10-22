@@ -11,7 +11,7 @@ import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderati
 import { tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { readMyFollowing, unfollowAccount, type FollowingLaneAnswer } from '@/lib/followLane';
-import { priceText, tipGivenText, tipPayerText } from '@/lib/economy';
+import { priceText, subscriptionsTotalText, tipGivenText, tipPayerText } from '@/lib/economy';
 import type { PriceCents } from '@/lib/monetization';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { remixProject } from '@/lib/remixLane';
@@ -1053,8 +1053,13 @@ export default function Toolbar() {
                   so these are facts about every subscription this account holds and not about the window
                   the rows happen to be. */}
               <div data-economy-subscription-total style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
-                {economyAccount.subscriptionCount ?? (economyAccount.subscriptions ?? []).length} subscription(s) ·{' '}
-                {priceText((economyAccount.subscriptionTotalCents ?? 0) as PriceCents, 'CNY')} a period
+                {economyAccount.subscriptionCount ?? (economyAccount.subscriptions ?? []).length} subscription(s)
+                {(() => {
+                  // v368 — the totals are PER PERIOD, and a panel that says "·" and then nothing is a
+                  // sentence with a hole in it.
+                  const total = subscriptionsTotalText(economyAccount.subscriptionTotalsByPeriod);
+                  return total ? <> · {total}</> : null;
+                })()}
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {(economyAccount.subscriptions ?? []).map((row, i) => (
@@ -1120,8 +1125,11 @@ export default function Toolbar() {
                   subscription this account received and not about the rows the answer happens to
                   carry. */}
               <div data-economy-received-total style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
-                {economyAccount.receivedCount ?? (economyAccount.received ?? []).length} subscription(s) received ·{' '}
-                {priceText((economyAccount.receivedTotalCents ?? 0) as PriceCents, 'CNY')} a period
+                {economyAccount.receivedCount ?? (economyAccount.received ?? []).length} subscription(s) received
+                {(() => {
+                  const total = subscriptionsTotalText(economyAccount.receivedTotalsByPeriod);
+                  return total ? <> · {total}</> : null;
+                })()}
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {(economyAccount.received ?? []).map((row, i) => (

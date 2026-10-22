@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { PriceCents, Tip, Subscription } from './monetization';
 
 import {
+  subscriptionsTotalText,
   tipGivenText,
   tipPayerText,
   toPlanRow,
@@ -220,6 +221,20 @@ describe('economy — subscription rows (M8 v274)', () => {
     // claiming a term nobody set.
     const row = toSubscriptionRow({ ...sub(), period: 'fortnight' })!;
     expect(row.periodText).toBe('fortnight');
+  });
+
+  it('v368 — says the totals PER PERIOD, because a monthly and a yearly one do not add up', () => {
+    const text = subscriptionsTotalText([
+      { period: 'month', totalCents: 1500 },
+      { period: 'year', totalCents: 3000 },
+    ]);
+    expect(text).toContain('per month');
+    expect(text).toContain('per year');
+  });
+
+  it('v368 — and NO totals says NOTHING rather than inventing a total', () => {
+    expect(subscriptionsTotalText([])).toBe('');
+    expect(subscriptionsTotalText(undefined)).toBe('');
   });
 
   it('a row it cannot display honestly is dropped', () => {

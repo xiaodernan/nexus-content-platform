@@ -1852,8 +1852,10 @@ try {
     );
     check(
       'and the total counts the STANDING subscriptions',
-      subsBody.totalCents === 1500,
-      `totalCents: ${JSON.stringify(subsBody.totalCents)}`,
+      // v368 — the totals are PER PERIOD, so the check adds up the groups: a monthly and a yearly
+      // pledge do not add up to one number, and the answer says each of them.
+      (subsBody.totalsByPeriod ?? []).reduce((sum, group) => sum + (group.totalCents ?? 0), 0) === 1500,
+      `totalsByPeriod: ${JSON.stringify(subsBody.totalsByPeriod)}`,
     );
 
     // And a device with NO account cannot back it: a subscription with no holder is not a commitment.
@@ -3706,6 +3708,42 @@ try {
       `the service: ${JSON.stringify(servicePeriods)} · the panel: ${JSON.stringify(panelPeriods)}`,
     );
     await periodPage.close();
+  }
+
+  // ── §65 v368: the panel’s total is PER PERIOD ───────────────────────────────────────────────────
+  // A monthly pledge and a yearly one do not add up to anything a reader can act on, so the total is
+  // said for each period separately.
+  {
+    const periodTotalPage = await session.newPage('about:blank');
+    await periodTotalPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(periodTotalPage, 'the period total page to hydrate');
+    await signInAs(periodTotalPage, 'bob', 'the subscriber');
+    await periodTotalPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const periodTotalShown = await until(
+      async () => (await periodTotalPage.evaluate("!!document.querySelector('[data-economy-subscription-total]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the subscription total to show' },
+    );
+    check('the panel says what the subscriptions come to', periodTotalShown !== null, 'the total is there');
+
+    // And the SERVICE agrees, read independently of the browser.
+    const periodTotalRaw = await periodTotalPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const periodTotalId = JSON.parse(String(periodTotalRaw)).id;
+    const periodTotalService = await (await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(periodTotalId)}&limit=50`)).json();
+    const serviceTotals = (periodTotalService.totalsByPeriod ?? []).map((g) => `${g.period}:${g.totalCents}`);
+    const panelTotal = await periodTotalPage.evaluate(
+      "document.querySelector('[data-economy-subscription-total]')?.textContent ?? ''",
+    );
+    check(
+      'the SERVICE agrees — the totals are per period, and the panel says so',
+      serviceTotals.every((g) => {
+        const [period, cents] = g.split(':');
+        return panelTotal.includes(period) && panelTotal.includes(String(cents));
+      })
+        // and when NOTHING is standing, the panel says no amount at all rather than a zero.
+        && (serviceTotals.length > 0 || !/\d/.test(panelTotal.replace(/\d+ subscription\(s\)/, ''))),
+      `the service: ${JSON.stringify(serviceTotals)} · the panel: ${JSON.stringify(panelTotal)}`,
+    );
+    await periodTotalPage.close();
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────

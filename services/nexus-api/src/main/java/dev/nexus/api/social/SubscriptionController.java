@@ -83,7 +83,9 @@ public class SubscriptionController {
         return ResponseEntity.status(201).body(new SubscriptionAnswer(
                 row.getSubscriberAccountId(),
                 List.of(toWire(row)),
-                row.getPriceCents(),
+                // v368 — the receipt says what came to, PER PERIOD — and this subscription is one period
+                // with one amount in it.
+                List.of(new SubscriptionDtos.PeriodTotal(row.getPeriod(), row.getPriceCents())),
                 1,
                 SubscriptionService.DEFAULT_SUBSCRIPTION_LIMIT));
     }
@@ -111,7 +113,9 @@ public class SubscriptionController {
             return ResponseEntity.ok(new ReceivedSubscriptionsAnswer(
                     creatorAccountId.trim(),
                     rows,
-                    service.totalReceived(creatorAccountId),
+                    // v368 — the totals, PER PERIOD: a monthly pledge and a yearly one do not add up
+                    // to anything a reader can act on.
+                    service.totalsReceived(creatorAccountId),
                     service.countReceived(creatorAccountId),
                     asked));
         }
@@ -131,7 +135,8 @@ public class SubscriptionController {
         return ResponseEntity.ok(new SubscriptionAnswer(
                 subscriberAccountId,
                 subs,
-                service.totalHeld(subscriberAccountId),
+                // v368 — the totals, per period, for the same reason.
+                service.totalsHeld(subscriberAccountId),
                 service.countHeld(subscriberAccountId),
                 asked));
     }

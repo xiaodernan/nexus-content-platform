@@ -55,11 +55,13 @@ export async function GET(request: Request): Promise<NextResponse> {
     {
       ok: true,
       subscriptions: subscriptions.subscriptions,
-      totalCents: subscriptions.totalCents,
+      // v368 — the totals, PER PERIOD: a monthly pledge and a yearly one do not add up to
+      // anything a reader can act on.
+      totalsByPeriod: subscriptions.totalsByPeriod ?? [],
       subscriptionCount: subscriptions.count,
       // v310 — the creator's other side.
       received: received.subscriptions,
-      receivedTotalCents: received.totalCents,
+      receivedTotalsByPeriod: received.totalsByPeriod ?? [],
       receivedCount: received.count,
       plans: plans.plans,
       planCount: plans.count,

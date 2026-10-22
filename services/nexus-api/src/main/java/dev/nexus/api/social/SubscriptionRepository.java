@@ -65,4 +65,29 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntry,
     long sumStandingPriceCentsByCreatorAccountId(
             @org.springframework.data.repository.query.Param("creator") String creatorAccountId,
             @org.springframework.data.repository.query.Param("now") java.time.Instant now);
+
+    /**
+     * v368 — the standing sum, GROUPED BY PERIOD, for the subscriptions one account HOLDS.
+     *
+     * <p>A single sum over subscriptions of different periods is a meaningless number: a monthly pledge
+     * and a yearly one do not add up to anything a reader can act on. The periods are a CLOSED set (the
+     * service's own: once · month · year), so the answer is a small list — one amount per period that
+     * actually has subscriptions in it.
+     */
+    @Query("SELECT s.period, COALESCE(SUM(s.priceCents), 0) FROM SubscriptionEntry s "
+            + "WHERE s.subscriberAccountId = :subscriber AND s.active = true "
+            + "AND (s.expiresAt IS NULL OR s.expiresAt > :now) GROUP BY s.period")
+    List<Object[]> sumStandingPriceCentsByPeriodHeld(
+            @org.springframework.data.repository.query.Param("subscriber") String subscriberAccountId,
+            @org.springframework.data.repository.query.Param("now") java.time.Instant now);
+
+    /**
+     * v368 — and the same, grouped by period, for the subscriptions one account RECEIVED.
+     */
+    @Query("SELECT s.period, COALESCE(SUM(s.priceCents), 0) FROM SubscriptionEntry s "
+            + "WHERE s.creatorAccountId = :creator AND s.active = true "
+            + "AND (s.expiresAt IS NULL OR s.expiresAt > :now) GROUP BY s.period")
+    List<Object[]> sumStandingPriceCentsByPeriodReceived(
+            @org.springframework.data.repository.query.Param("creator") String creatorAccountId,
+            @org.springframework.data.repository.query.Param("now") java.time.Instant now);
 }

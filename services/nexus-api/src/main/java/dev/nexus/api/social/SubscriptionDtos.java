@@ -104,6 +104,14 @@ public final class SubscriptionDtos {
             String period) {
     }
 
+    /**
+     * v368 — what one period comes to.
+     *
+     * <p>The period is the service's own word ("once" · "month" · "year"), and the amount is in cents.
+     */
+    public record PeriodTotal(String period, long totalCents) {
+    }
+
     /** The answer to a plan question. */
     public record PlanAnswer(String creatorId, List<Plan> plans, int count, int limit) {
     }
@@ -119,7 +127,14 @@ public final class SubscriptionDtos {
     public record ReceivedSubscriptionsAnswer(
             String creatorId,
             List<Subscription> subscriptions,
-            long totalCents,
+            /**
+             * v368 — the totals, PER PERIOD.
+             *
+             * <p>A single sum over subscriptions of different periods is a meaningless number — a monthly
+             * pledge and a yearly one do not add up to anything a reader can act on — so the answer says
+             * what is owed for each period instead.
+             */
+            java.util.List<PeriodTotal> totalsByPeriod,
             long count,
             int limit) {
     }
@@ -143,7 +158,8 @@ public final class SubscriptionDtos {
     public record SubscriptionAnswer(
             String subscriberId,
             List<Subscription> subscriptions,
-            long totalCents,
+            /** v368 — and the same: the totals, per period. */
+            java.util.List<PeriodTotal> totalsByPeriod,
             long count,
             int limit) {
     }

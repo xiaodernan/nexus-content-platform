@@ -364,6 +364,52 @@ public class SubscriptionService {
         return subscriptions.sumStandingPriceCentsByCreatorAccountId(creator, clock.instant());
     }
 
+    /**
+     * v368 — what the subscriptions one account HOLDS come to, PER PERIOD.
+     *
+     * <p>The periods are a CLOSED set and the answer is ordered the way a person would say them: one
+     * time · month · year.
+     */
+    @Transactional(readOnly = true)
+    public List<SubscriptionDtos.PeriodTotal> totalsHeld(String subscriberAccountId) {
+        String subscriber = requireAccount(subscriberAccountId, "a subscription needs an account to hold it");
+        return periodTotals(subscriptions.sumStandingPriceCentsByPeriodHeld(subscriber, clock.instant()));
+    }
+
+    /**
+     * v368 — and what the subscriptions one account RECEIVED come to, per period.
+     */
+    @Transactional(readOnly = true)
+    public List<SubscriptionDtos.PeriodTotal> totalsReceived(String creatorAccountId) {
+        String creator = requireAccount(creatorAccountId, "a plan needs an account to offer it");
+        return periodTotals(subscriptions.sumStandingPriceCentsByPeriodReceived(creator, clock.instant()));
+    }
+
+    /** The groups, in the order a person would say the periods. */
+    private static List<SubscriptionDtos.PeriodTotal> periodTotals(List<Object[]> groups) {
+        List<SubscriptionDtos.PeriodTotal> totals = new java.util.ArrayList<>();
+        for (Object[] group : groups) {
+            if (group == null || group.length < 2) {
+                continue;
+            }
+            String period = group[0] == null ? "" : String.valueOf(group[0]);
+            long cents = group[1] instanceof Number number ? number.longValue() : 0L;
+            totals.add(new SubscriptionDtos.PeriodTotal(period, cents));
+        }
+        totals.sort(java.util.Comparator.comparingInt(total -> periodOrder(total.period())));
+        return totals;
+    }
+
+    /** once → month → year, and anything unknown after them. */
+    private static int periodOrder(String period) {
+        return switch (period) {
+            case SubscriptionDtos.PERIOD_ONCE -> 0;
+            case SubscriptionDtos.PERIOD_MONTH -> 1;
+            case SubscriptionDtos.PERIOD_YEAR -> 2;
+            default -> 3;
+        };
+    }
+
     /** The subscriptions one creator received, and how many are standing. */
     @Transactional(readOnly = true)
     public List<SubscriptionEntry> subscriptionsReceived(String creatorAccountId, int limit) {

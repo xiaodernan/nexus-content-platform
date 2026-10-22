@@ -39,12 +39,37 @@ export interface EconomyAnswer {
    * answer happened to carry, which is a fact about a window and not about the account.
    */
   subscriptionCount?: number;
-  /** v359 — and what they come to, over the whole table. */
-  subscriptionTotalCents?: number;
-  /** v359 — the same two numbers for the RECEIVED side. */
+  /**
+   * v368 — what they come to, PER PERIOD.
+   *
+   * <p>A single sum over subscriptions of different periods is a meaningless number, so the answer says
+   * what is owed for each period instead.
+   */
+  subscriptionTotalsByPeriod?: { period: string; totalCents: number }[];
+  /** v359 — the count for the RECEIVED side. */
   receivedCount?: number;
-  receivedTotalCents?: number;
+  /** v368 — and its totals, per period. */
+  receivedTotalsByPeriod?: { period: string; totalCents: number }[];
   reason?: string;
+}
+
+/**
+ * The service's per-period totals, in the shape the panel reads.
+ *
+ * <p>A malformed group is DROPPED rather than shown: a period without a name, or an amount that is not a
+ * number, is not a total — and a panel that showed half of one would be wrong about money.
+ */
+function toPeriodTotals(raw: unknown): { period: string; totalCents: number }[] {
+  if (!Array.isArray(raw)) return [];
+  const totals: { period: string; totalCents: number }[] = [];
+  for (const group of raw) {
+    if (typeof group !== 'object' || group === null) continue;
+    const g = group as { period?: unknown; totalCents?: unknown };
+    if (typeof g.period !== 'string' || g.period.length === 0) continue;
+    if (typeof g.totalCents !== 'number' || !Number.isFinite(g.totalCents)) continue;
+    totals.push({ period: g.period, totalCents: g.totalCents });
+  }
+  return totals;
 }
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
@@ -83,15 +108,15 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
     if (typeof body !== 'object' || body === null) {
       return { ok: false, reason: 'the economy answered with neither an object nor a reason' };
     }
-    const { subscriptions, received, plans, tips, subscriptionCount, subscriptionTotalCents, receivedCount, receivedTotalCents } = body as {
+    const { subscriptions, received, plans, tips, subscriptionCount, subscriptionTotalsByPeriod, receivedCount, receivedTotalsByPeriod } = body as {
       subscriptions?: readonly unknown[];
       received?: readonly unknown[];
       plans?: readonly unknown[];
       tips?: readonly unknown[];
       subscriptionCount?: unknown;
-      subscriptionTotalCents?: unknown;
+      subscriptionTotalsByPeriod?: unknown;
       receivedCount?: unknown;
-      receivedTotalCents?: unknown;
+      receivedTotalsByPeriod?: unknown;
     };
     if (!Array.isArray(subscriptions) && !Array.isArray(plans)) {
       return { ok: false, reason: 'the economy answered with no subscriptions or plans' };
@@ -106,9 +131,9 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
       // v359 — and the counts and the totals, which are about the WHOLE table and not about the rows
       // the answer happens to carry.
       subscriptionCount: typeof subscriptionCount === 'number' ? subscriptionCount : undefined,
-      subscriptionTotalCents: typeof subscriptionTotalCents === 'number' ? subscriptionTotalCents : undefined,
+      subscriptionTotalsByPeriod: toPeriodTotals(subscriptionTotalsByPeriod),
       receivedCount: typeof receivedCount === 'number' ? receivedCount : undefined,
-      receivedTotalCents: typeof receivedTotalCents === 'number' ? receivedTotalCents : undefined,
+      receivedTotalsByPeriod: toPeriodTotals(receivedTotalsByPeriod),
       tips: toTipRows(tips ?? [], (text) => text.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>') ),
     };
   } catch (error) {

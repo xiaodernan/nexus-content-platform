@@ -59,11 +59,42 @@ export interface PlanEntry {
 }
 
 /** What one read of the subscriptions answered. */
+/**
+ * v368 — what one PERIOD comes to.
+ *
+ * <p>A single sum over subscriptions of different periods is a meaningless number, so the answer says
+ * what is owed for each period instead.
+ */
+export interface PeriodTotal {
+  period: string;
+  totalCents: number;
+}
+
+/**
+ * The service's per-period totals, in the shape the panel reads.
+ *
+ * <p>A malformed group is DROPPED rather than shown: a period without a name, or an amount that is not a
+ * number, is not a total — and a panel that showed half of one would be wrong about money.
+ */
+function toPeriodTotals(raw: unknown): PeriodTotal[] {
+  if (!Array.isArray(raw)) return [];
+  const totals: PeriodTotal[] = [];
+  for (const group of raw) {
+    if (typeof group !== 'object' || group === null) continue;
+    const g = group as { period?: unknown; totalCents?: unknown };
+    if (typeof g.period !== 'string' || g.period.length === 0) continue;
+    if (typeof g.totalCents !== 'number' || !Number.isFinite(g.totalCents)) continue;
+    totals.push({ period: g.period, totalCents: g.totalCents });
+  }
+  return totals;
+}
+
 export interface SubscriptionsAnswer {
   ok: boolean;
   subscriptions: SubscriptionEntry[];
   /** What the subscriber has committed, summed over the subscriptions that are STILL STANDING (v308). */
-  totalCents: number;
+  /** v368 — the totals, PER PERIOD. */
+  totalsByPeriod?: PeriodTotal[];
   count: number;
   reason?: string;
 }
@@ -103,27 +134,27 @@ export async function readSubscriptions(
       return {
         ok: false,
         subscriptions: [],
-        totalCents: 0,
+        totalsByPeriod: [],
         count: 0,
         reason: `the service's subscriptions door answered HTTP ${res.status} with something that is not JSON`,
       };
     }
-    const body = parsed as { subscriptions?: unknown; totalCents?: unknown; count?: unknown; message?: unknown };
+    const body = parsed as { subscriptions?: unknown; totalsByPeriod?: unknown; count?: unknown; message?: unknown };
     if (!Array.isArray(body.subscriptions)) {
       const why = typeof body.message === 'string' ? body.message : `the service's subscriptions door answered HTTP ${res.status}`;
-      return { ok: false, subscriptions: [], totalCents: 0, count: 0, reason: why };
+      return { ok: false, subscriptions: [], totalsByPeriod: [], count: 0, reason: why };
     }
     return {
       ok: true,
       subscriptions: body.subscriptions as SubscriptionEntry[],
-      totalCents: typeof body.totalCents === 'number' ? body.totalCents : 0,
+      totalsByPeriod: toPeriodTotals(body.totalsByPeriod),
       count: typeof body.count === 'number' ? body.count : body.subscriptions.length,
     };
   } catch (error) {
     return {
       ok: false,
       subscriptions: [],
-      totalCents: 0,
+      totalsByPeriod: [],
       count: 0,
       reason: serviceUnreachableReason(apiBase, error),
     };
@@ -152,27 +183,27 @@ export async function readReceivedSubscriptions(
       return {
         ok: false,
         subscriptions: [],
-        totalCents: 0,
+        totalsByPeriod: [],
         count: 0,
         reason: `the service's subscriptions door answered HTTP ${res.status} with something that is not JSON`,
       };
     }
-    const body = parsed as { subscriptions?: unknown; totalCents?: unknown; count?: unknown; message?: unknown };
+    const body = parsed as { subscriptions?: unknown; totalsByPeriod?: unknown; count?: unknown; message?: unknown };
     if (!Array.isArray(body.subscriptions)) {
       const why = typeof body.message === 'string' ? body.message : `the service's subscriptions door answered HTTP ${res.status}`;
-      return { ok: false, subscriptions: [], totalCents: 0, count: 0, reason: why };
+      return { ok: false, subscriptions: [], totalsByPeriod: [], count: 0, reason: why };
     }
     return {
       ok: true,
       subscriptions: body.subscriptions as SubscriptionEntry[],
-      totalCents: typeof body.totalCents === 'number' ? body.totalCents : 0,
+      totalsByPeriod: toPeriodTotals(body.totalsByPeriod),
       count: typeof body.count === 'number' ? body.count : body.subscriptions.length,
     };
   } catch (error) {
     return {
       ok: false,
       subscriptions: [],
-      totalCents: 0,
+      totalsByPeriod: [],
       count: 0,
       reason: serviceUnreachableReason(apiBase, error),
     };
