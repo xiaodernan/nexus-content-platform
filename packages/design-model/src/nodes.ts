@@ -720,8 +720,11 @@ export function childrenOf(page: Page, node: DesignNode): DesignNode[] {
 
 export function ancestors(page: Page, id: string): DesignNode[] {
   const chain: DesignNode[] = [];
+  const seen = new Set<string>();
   let current = page.nodes[id];
   while (current?.parentId) {
+    if (seen.has(current.parentId)) break; // 防环：畸形 parent 链不再死循环
+    seen.add(current.parentId);
     const parent = page.nodes[current.parentId];
     if (!parent) break;
     chain.push(parent);
@@ -732,8 +735,11 @@ export function ancestors(page: Page, id: string): DesignNode[] {
 
 export function descendants(page: Page, id: string): DesignNode[] {
   const out: DesignNode[] = [];
+  const seen = new Set<string>();
   const walk = (nodeId: string) => {
     for (const child of childrenOf(page, requireNode(page, nodeId))) {
+      if (seen.has(child.id)) continue; // 防环：畸形 children 链不再无限递归
+      seen.add(child.id);
       out.push(child);
       walk(child.id);
     }
@@ -748,7 +754,10 @@ export function isDescendant(
   ancestorId: string,
 ): boolean {
   let current = page.nodes[maybeChild];
+  const seen = new Set<string>();
   while (current?.parentId) {
+    if (seen.has(current.parentId)) break; // 防环：畸形 parent 链不再死循环
+    seen.add(current.parentId);
     if (current.parentId === ancestorId) return true;
     current = page.nodes[current.parentId];
   }
@@ -759,9 +768,11 @@ export function walk(
   page: Page,
   visit: (node: DesignNode, depth: number) => void,
 ): void {
+  const seen = new Set<string>();
   const walkFrom = (id: string, depth: number) => {
     const node = page.nodes[id];
-    if (!node) return;
+    if (!node || seen.has(id)) return; // 防环：畸形 children 链不再无限递归
+    seen.add(id);
     visit(node, depth);
     for (const child of node.children) walkFrom(child, depth + 1);
   };

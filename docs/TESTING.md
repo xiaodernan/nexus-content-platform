@@ -1849,3 +1849,19 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   - **回归探针**：`validate.test.ts` 的"真正成环 → cycle"这一条，**未修时是崩的（RangeError）、修完转绿**——天然红→绿证据。
   - `validate.test.ts` 补 `validatePage` 首份直接覆盖 9 条：干净页无 issue / 缺根 empty-page（早返回）/
     未知类型 / 缺 style / 缺 layout / 引用不存在子 / 父子不一致→cycle / DFS 成环→cycle / 不可达→orphan(warning)。
+
+- **2026-10-21：`validate.ts` 规则层首份直接覆盖**（`validate-lint.test.ts` 15 条）——
+  `lintDesign / measureContrast / collectTokenRefs / hasErrors / summarizeIssues` 此前只有零散间接引用。
+  覆盖：`collectTokenRefs`（收 {token} + 去重、字面量不收）；`measureContrast` 的三个 null 门
+  （非文本无前景 / 有前景但无文字则不算，即 §159「算不出来不报数」）+ 黑字白底 21:1；
+  `lintDesign` 七种规则按路径命中（unused-token / hardcoded-style@style.fills / off-px-spacing@layout.gap /
+  missing-alt / no-text-on-button / tap-target-small 走 resolvedNodes / bad-binding——且 static 空表达式不报）。
+  - **变异探针**：4px 栅格 `% 4 !== 0` → `% 4 === 0`，off-px 那条精确红，恢复 15/15 绿。
+
+- **2026-10-21：`collectSubtree` 之后同族再抓三处——`descendants` / `walk`（子环栈溢出）、
+  `ancestors` / `isDescendant`（父环死循环）**（`nodes.ts`）。同一个隐患：naive 遍历无 seen 守卫，
+  畸形文档让它们崩而不是如实边界。四处都加 seen 守卫，**无环树输出逐项不变**（全 design-model 25 文件 / 332 条回归绿作证）。
+  `traversal-cycle.test.ts` 5 条：成环不再崩（父环那两条是**同步死循环，未修时连 vitest 都只能被 SIGTERM 掐掉**——
+  比栈溢出更隐蔽，连报错都留不下）+ 无环树顺序/计数/ancestor 链不变。
+  - **方法沉淀**：修完 `collectSubtree` 那一刻就该做的**横向扫同族**——凡是「沿 children 递归」或
+    「沿 parentId 爬」且没有 seen / depth 上限的，都是同一颗雷；这次把 nodes.ts 的四处一次清完。
