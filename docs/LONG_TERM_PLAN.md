@@ -50,7 +50,7 @@
 |---|---|---|
 | golden-path | **19/19 PASS** | 无 baseline → 像素对比 SKIP（诚实，按设计） |
 | scene3d | **62/62 PASS** | webgl 后端可达、live、honest |
-| assets | **46/46 PASS** | 资源面只显元数据，不假装显图 |
+| assets | **46/46 PASS** | 资源面只显元数据，不假装显图（曾因回 2D 后读像素的 race 偶发 0/45000，已改轮询 painted 像素） |
 | account | **14/14 PASS** | 注册/登出/重注册全过 |
 | world | **34/34 PASS** | warm 复跑通过；首次 cold 超时是 harness 15s 太紧（cold 路由编译），已改 60s，非产品缺陷 |
 | publish | **环境跳过（exit 127）** | 需 Docker + Java 服务，本机未装；非代码缺陷 |

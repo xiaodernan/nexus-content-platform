@@ -441,7 +441,16 @@ try {
   // Back to 2D: the toggle must be reversible and the canvas must come back with its pixels.
   await page.evaluate("document.querySelector('[data-surface-toggle=\"2d\"]').click()");
   await page.waitForSelector('#nexus-canvas', 15000);
-  const back = await page.canvasStats('#nexus-canvas');
+  // The canvas element exists BEFORE its first paint; a one-shot read races the repaint and can see
+  // 0 painted px on a slow frame (it passed at 46/46 earlier only by timing luck). Poll for ACTUAL
+  // painted pixels, not merely the element's presence.
+  let back = null;
+  const paintDeadline = Date.now() + 15000;
+  while (Date.now() < paintDeadline) {
+    back = await page.canvasStats('#nexus-canvas');
+    if (back && back.nonEmpty > 1000) break;
+    await new Promise((r) => setTimeout(r, 100));
+  }
   check('pressing 2D restores the canvas, still painting', back && back.nonEmpty > 1000, back ? `${back.nonEmpty}/${back.total} px painted` : 'no canvas');
   const gone = await page.evaluate("window.__nexusAssets ? window.__nexusAssets.assets() : 'no-bridge'");
   check('the asset surface reports nothing once it is unmounted', gone === null, `assets() → ${JSON.stringify(gone)}`);
