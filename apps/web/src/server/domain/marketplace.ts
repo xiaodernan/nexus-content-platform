@@ -1150,6 +1150,52 @@ export async function updateReportStatus(input: UpdateReportStatusInput): Promis
   return { ok: false, reason: 'already_closed', status: existing.status as ReportStatus };
 }
 
+export interface ReporterReportEntry {
+  id: string;
+  itemId: string;
+  itemTitle: string;
+  /** 物品**此刻**的可见性；与工单结论是两件事，处置工单不会改它 */
+  itemVisibility: string;
+  itemDeletedAt: Date | null;
+  reason: string;
+  description: string | null;
+  status: ReportStatus;
+  createdAt: Date;
+  resolvedAt: Date | null;
+}
+
+/**
+ * §123/#162 举报人视角的「我的举报」：只读自己提交的那些行，按提交时间倒序。
+ *
+ * 刻意不选 `admin_notes`——那是审核员的内部复核笔记，写的人没打算给举报人看；
+ * 举报人能读到的是工单状态、原因、自己写的说明与两个时间点。物品标题并列读出来：
+ * `item_id` 对用户没有意义，而店面里的物品可能已经转私密或下架，只凭 id 无法辨认。
+ */
+export async function listReportsByReporter(reporterId: string, limit = 100): Promise<ReporterReportEntry[]> {
+  if (!isUuid(reporterId)) return [];
+
+  const rows = await getDb()
+    .select({
+      id: marketplaceReports.id,
+      itemId: marketplaceReports.itemId,
+      itemTitle: marketplaceItems.title,
+      itemVisibility: marketplaceItems.visibility,
+      itemDeletedAt: marketplaceItems.deletedAt,
+      reason: marketplaceReports.reason,
+      description: marketplaceReports.description,
+      status: marketplaceReports.status,
+      createdAt: marketplaceReports.createdAt,
+      resolvedAt: marketplaceReports.resolvedAt,
+    })
+    .from(marketplaceReports)
+    .innerJoin(marketplaceItems, eq(marketplaceReports.itemId, marketplaceItems.id))
+    .where(eq(marketplaceReports.reporterId, reporterId))
+    .orderBy(desc(marketplaceReports.createdAt))
+    .limit(limit);
+
+  return rows.map((row) => ({ ...row, status: row.status as ReportStatus }));
+}
+
 /**
  * §123 风控规则。`fired` 为空即这一笔没踩线。
  */

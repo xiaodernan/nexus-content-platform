@@ -81,6 +81,11 @@ export default async function MarketplacePage({
               我的购买
             </Link>
           ) : null}
+          {user ? (
+            <Link href="/marketplace/reports" className="text-accent-2 underline" data-marketplace-reports>
+              我的举报
+            </Link>
+          ) : null}
           <Link href="/" className="text-accent-2 underline" data-marketplace-back>
             回首页
           </Link>
