@@ -5410,3 +5410,13 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   见证：新套件 8 条（50 笔不命中 / 第 51 笔 200 且审计带 rules+counts=51 / 再买 400 不增行 /
   自购 400 不写 / 对照买家不写 / 重复计数=1 / self_purchase 直接调用能命中 / 正常 purchase 行仍在）；
   单文件 8/8 绿；tsc / eslint 0。
+
+- **2026-10-22 第十片（#157）：管理员审计查询的两处真错——新动作筛不到、时间窗右端反了**。
+  #156 把 `suspicious_purchase` 写进审计之后，`GET /api/admin/marketplace/audit` 的 action 白名单
+  还是手抄的六项：管理员按新动作筛会吃 400（`validation_failed`），不筛时却能在列表里看见这些行——
+  "写进去了但筛不出来"。同一查询里 `endDate` 用的是 `gte`：start 与 end 同向，
+  时间窗变成"晚于 end 的那些行"，筛 6 月拿回 12 月。修法两处：动作名单收进域层 `AUDIT_ACTIONS`
+  （迁移 0033 的 CHECK、路由校验同源，下次加动作不会再漂），`endDate` 改 `lte`（右端闭区间，
+  与 `startDate` 对称）。真库路由用例 4 条先红后绿：`action=suspicious_purchase` 200 且带读数
+  （修前 400）、`action=purchase` 不顺带新动作、`endDate` 只回这一刻及以前（修前回的是之后那一行）、
+  起止围出中间一行。相邻九个市场套件 93/93、`tsc -p apps/web` 与改动文件 eslint 均 0。
