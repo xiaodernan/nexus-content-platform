@@ -172,11 +172,19 @@ describe('发布与分享（真实数据库）', () => {
     const path = published.publication.path;
     expect(await unpublishProject(id, ownerId)).toBe(true);
     expect(await resolvePublishedPath(path)).toBeNull();
-    expect(await getPublication(id)).toBeNull();
+    // **2026-10-22 翻案（ADR-0055）**：这一行**不再被删掉**，只是改成 private。
+    // 原来断言 `getPublication(id)` 为 null，是因为删行会让访客现场跟着
+    // `ON DELETE CASCADE` 一起没了 ⇒ 创作者下架一次，这一版的统计就归零——
+    // 那是"没统计"，不是"没人看"（§159）。现在下架只改可见性：
+    // 公开面读不到它（上面那行仍为 null）、采集端点写不进来，
+    // 而作者自己那一行还在（分析页上标着"已停"），数也还在。
+    const stopped = await getPublication(id);
+    expect(stopped, '下架之后那一行不该消失（统计要留着）').toBeTruthy();
+    expect(stopped!.visibility, '它只是不公开了').toBe('private');
     const snapshots = await listSnapshots(id);
     expect(snapshots.some((s) => s.source === 'publish')).toBe(true);
-    // 审计页声称"发布 / 下架 / 取消发布"都记：删行这一笔必须留痕，
-    // targetId 是被删掉的那条 publication——URL 从这一刻起 404，但谁撤的不能跟着行一起消失
+    // 审计页声称"发布 / 下架 / 取消发布"都记：撤下这一笔必须留痕，
+    // targetId 是被撤下的那条 publication——URL 从这一刻起 404，但谁撤的不能跟着消失
     const events = await listAudit(200);
     const record = events.find((event) => event.action === 'publish.unpublish' && event.targetId === published.publication.id);
     expect(record?.allowed).toBe(true);

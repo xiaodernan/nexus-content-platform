@@ -279,31 +279,48 @@ export async function getPublication(projectId: string): Promise<Publication | n
   return row ? toPublication(row) : null;
 }
 
-/** 取消发布：URL 立刻失效（删行），项目本身回到 private，历史快照留着 */
+/**
+ * 取消发布：URL 立刻失效，项目本身回到 private，历史快照留着。
+ *
+ * §168 / ADR-0055：**只改可见性，不删那一行**。
+ * 删行会让访客现场跟着 `ON DELETE CASCADE` 一起没了 ⇒ 创作者下架一次，
+ * 这一版的统计就归零——那是"没统计"，不是"没人看"（§159）。
+ *
+ * 改可见性之后，三件事各归各：
+ * - 公开面读不到它（`resolvePublishedPath` 判 private ⇒ 404）⇒
+ * - 采集端点写不进来（`findPublicPath` 判 private）⇒ 下架之后不再给一个没人能打开的页面攒数 ⇒
+ * - 作者自己那一行还在，数也在（分析页上标着"已停"）⇒ 下架不等于抹掉履历。
+ *
+ * 顺带修好一个今天就有的毛病：删行之后重新发布会取不到旧行 ⇒ **版本号重置成 1**；
+ * 留着行 ⇒ 版本号接着往上走。
+ */
 export async function unpublishProject(projectId: string, actorId: string | null = null): Promise<boolean> {
   const db = getDb();
-  const deleted = await db
-    .delete(publishedProjects)
-    .where(eq(publishedProjects.projectId, projectId))
-    .returning({ id: publishedProjects.id, path: publishedProjects.path });
-  if (deleted.length) {
+  const stopped = await db
+    .update(publishedProjects)
+    .set({ visibility: 'private' })
+    // 只撤**还公开着**的那一次：已经下架过（这一行还在，只是 private）再说一次，
+    // 没有任何新东西发生 ⇒ 与"没发布过"一样如实返回 false，也不写审计（没发生的事不记）。
+    .where(and(eq(publishedProjects.projectId, projectId), ne(publishedProjects.visibility, 'private')))
+    .returning({ id: publishedProjects.id, path: publishedProjects.path, version: publishedProjects.version });
+  if (stopped.length) {
     await db.update(projects).set({ visibility: 'private' }).where(eq(projects.id, projectId));
-    // 删行这一笔必须留痕：URL 从这一刻起 404，但"谁撤的、撤的是哪一条"不能跟着行一起消失。
-    // targetId 记的是被删掉的那条 publication（行已经没了，只存在于这条审计里）。
-    // 没发布过再取消（deleted 为空）不写——没发生的事不记。
+    // 撤下这一笔必须留痕：URL 从这一刻起 404，但"谁撤的、撤的是哪一条"不能跟着行一起消失。
+    // targetId 记的是被撤下的那条 publication（行还在，只是它不公开了）。
+    // 没发布过再取消（stopped 为空）不写——没发生的事不记。
     await recordAudit({
       actorId,
       action: 'publish.unpublish',
       targetType: 'publication',
-      targetId: deleted[0]!.id,
+      targetId: stopped[0]!.id,
       allowed: true,
-      detail: { projectId, path: deleted[0]!.path },
+      detail: { projectId, path: stopped[0]!.path, version: stopped[0]!.version },
     });
     // 下架不是"构建"，所以这里只有 preview.status；而那一格读的还是解析结果——
-    // 行删了但路径仍解析得出来（例如另一行抢到了同一条 path）就是真故障，不能闭眼报 idle
-    await publishPreviewStatus(projectId, deleted[0]!.path, false);
+    // 行还在但路径仍解析得出来就是真故障，不能闭眼报 idle
+    await publishPreviewStatus(projectId, stopped[0]!.path, false);
   }
-  return deleted.length > 0;
+  return stopped.length > 0;
 }
 
 export interface PublishedPage {

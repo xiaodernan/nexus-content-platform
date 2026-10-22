@@ -61,7 +61,7 @@ export async function DELETE(req: Request, ctx: RouteContext): Promise<NextRespo
   try {
     const user = await requireUser();
     if (!(await projectBelongsTo(projectId, user.id))) return notFound();
-    return NextResponse.json({ ok: true, removed: await unpublishProject(projectId, user.id) });
+    return NextResponse.json({ ok: true, unpublished: await unpublishProject(projectId, user.id) });
   } catch (error) {
     return failure(error, `DELETE /api/projects/${projectId}/publish`);
   }

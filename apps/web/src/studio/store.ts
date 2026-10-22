@@ -1088,10 +1088,10 @@ export class StudioStore {
     this.commit();
     try {
       const res = await fetch(`/api/projects/${this.projectId}/publish`, { method: 'DELETE', headers: csrfHeaders() });
-      const body = (await res.json().catch(() => null)) as { removed?: boolean; message?: string } | null;
+      const body = (await res.json().catch(() => null)) as { unpublished?: boolean; message?: string } | null;
       if (!res.ok) throw new Error(body?.message ?? `HTTP ${res.status}`);
       this.publicationValue = null;
-      return !!body?.removed;
+      return !!body?.unpublished;
     } catch (error) {
       this.publishErrorValue = error instanceof Error ? error.message : String(error);
       return false;
