@@ -1808,7 +1808,9 @@ try {
     const profileWithPlan = await (await fetch(`${studioBase}/u/${encodeURIComponent(creator)}`)).text();
     check(
       'and the profile page shows the plan with its price',
-      profileWithPlan.includes('data-plan="pro"') && profileWithPlan.includes('¥15.00') && profileWithPlan.includes('monthly'),
+      // v371 — ONE wording for a period: the bar used to say "monthly" and the creator's own panel
+      // said "per month" for the same service's word.
+      profileWithPlan.includes('data-plan="pro"') && profileWithPlan.includes('¥15.00') && profileWithPlan.includes('per month'),
       `the page carries it: ${profileWithPlan.includes('data-plan="pro"')}`,
     );
 
@@ -3819,6 +3821,54 @@ try {
       `the service: ${JSON.stringify(serviceCount)} \u00b7 the rows: ${panelRows} \u00b7 the panel: ${JSON.stringify(panelLine)}`,
     );
     await windowPage.close();
+  }
+
+  // ── §68 v371: a price says whether it is NOW or the price that was AGREED ──────────────────────
+  // A plan's terms are the ones on offer today; a subscription's terms are the ones that were
+  // agreed — and the two can disagree, so every row says which one it is showing.
+  {
+    const termsPage = await session.newPage('about:blank');
+    await termsPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(termsPage, 'the terms page to hydrate');
+    await signInAs(termsPage, 'bob', 'the subscriber');
+    await termsPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const termsShown = await until(
+      async () => (await termsPage.evaluate("!!document.querySelector('[data-economy-terms]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the terms note to show' },
+    );
+    check('the panel says which terms each row is showing', termsShown !== null, 'the note is there');
+
+    // The SUBSCRIPTION rows are the terms that were agreed.
+    const panelTerms = await termsPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-terms]')).map((s) => s.getAttribute('data-economy-terms'))",
+    );
+    check(
+      'the panel marks the SUBSCRIPTION rows as the terms that were agreed',
+      panelTerms.length > 0 && panelTerms.every((t) => t === 'as agreed'),
+      `the panel: ${JSON.stringify(panelTerms)}`,
+    );
+
+    // And the PROFILE bar marks the plan as the terms on offer today.
+    const termsProfile = await (await fetch(`${studioBase}/u/${encodeURIComponent(accountRecord?.id ?? "")}`)).text();
+    check(
+      'the profile bar marks the plan as the terms on offer today',
+      termsProfile.includes('data-plan-terms="current terms"'),
+      `the page carries it: ${termsProfile.includes('data-plan-terms="current terms"')}`,
+    );
+
+    // And the SERVICE agrees about the two periods — they are two different facts, read apart.
+    const termsRaw = await termsPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const termsId = JSON.parse(String(termsRaw)).id;
+    const termsSubs = await (await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(termsId)}&limit=50`)).json();
+    const agreedPeriods = (termsSubs.subscriptions ?? []).map((s) => s.period).filter(Boolean);
+    const termsPlans = await (await fetch(`${apiBase}/plans?creator=${encodeURIComponent(accountRecord?.id ?? '')}`)).json();
+    const currentPeriods = (termsPlans.plans ?? []).map((p) => p.period).filter(Boolean);
+    check(
+      'the SERVICE agrees — the plan carries its own period and the subscription carries the agreed one',
+      agreedPeriods.length > 0 && currentPeriods.length > 0,
+      `the plans: ${JSON.stringify(currentPeriods)} · the subscriptions: ${JSON.stringify(agreedPeriods)}`,
+    );
+    await termsPage.close();
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────

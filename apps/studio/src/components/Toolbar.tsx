@@ -1089,6 +1089,8 @@ export default function Toolbar() {
                       {/* v367 — and WHAT PERIOD it is for, as it was when the subscription was made: a
                           reader who sees "¥15.00" cannot tell a monthly pledge from a yearly one. */}
                       {row.periodText && <span data-economy-period={row.periodText}> · {row.periodText}</span>}
+                      {/* v371 — and that these are the terms that were AGREED, not the plan’s terms today. */}
+                      {row.termsText && <span data-economy-terms={row.termsText}> · {row.termsText}</span>}
                       {/* v330 — and WHOSE plan it is. A plan id is an address, and a supporter reading
                           their own list should not have to know which address belongs to the person
                           whose work they are backing. */}
@@ -1165,6 +1167,8 @@ export default function Toolbar() {
                     {row.planId} — {row.priceText}
                     {/* v367 — and WHAT PERIOD it is for, as it was when the subscription was made. */}
                     {row.periodText && <span data-economy-period={row.periodText}> · {row.periodText}</span>}
+                    {/* v371 — and that these are the terms that were AGREED, not the plan’s terms today. */}
+                    {row.termsText && <span data-economy-terms={row.termsText}> · {row.termsText}</span>}
                     {/* v327 — and WHO is behind it. A creator reading the subscriptions they received
                         was looking at a plan, a price and a status, and not at the person who had put
                         their money behind it — the wire has carried that name all along. */}
@@ -1209,6 +1213,9 @@ export default function Toolbar() {
                 >
                   <span>{row.planId}</span>
                   <span style={{ color: 'var(--nexus-muted)' }}>{row.priceText} · {row.periodText}</span>
+                  {/* v371 — and that these are the terms ON OFFER today, beside the subscriptions’ terms
+                      that were agreed — the two can disagree, and the reader has to be able to tell. */}
+                  {row.termsText && <span data-economy-terms={row.termsText}> · {row.termsText}</span>}
                   {/* v344 — and WHEN the plan was opened. The instant, not "3 days ago": a relative date goes
                       stale the moment it is written, and a plan is a fact about the past that does not move. */}
                   {row.openedText && (

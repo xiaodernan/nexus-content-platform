@@ -54,9 +54,27 @@ describe('planIntent — the URL names the plan (M7 v301)', () => {
 
 describe('planBar — the periods (M7 v301)', () => {
   it('names each of the three periods', () => {
-    expect(planPeriodText('once')).toBe('one-off');
-    expect(planPeriodText('month')).toBe('monthly');
-    expect(planPeriodText('year')).toBe('yearly');
+    // v371 — ONE wording for a period, everywhere it is shown: the bar used to say "monthly" and the
+    // creator's own panel said "per month" for the same service's word.
+    expect(planPeriodText('once')).toBe('one time');
+    expect(planPeriodText('month')).toBe('per month');
+    expect(planPeriodText('year')).toBe('per year');
+  });
+
+  it('v371 — and a plan says its terms are the ones ON OFFER today', () => {
+    // A creator may reprice a plan, period and all (v317), so a plan's terms and a subscription's terms
+    // can disagree — and the row has to say which one it is showing.
+    const row = toPlanRow(plan())!;
+    expect(row.termsText).toBe('current terms');
+    expect(renderPlanBar({ accountId: 'acct-ada', plans: [row] })).toContain('current terms');
+  });
+
+  it('v371 — and a RETIRED plan says no such thing: its terms are the last ones it offered', () => {
+    // "current terms" on a retired plan would be wrong about it: the plan is not on offer, so its terms
+    // are the ones it last offered.
+    const row = toPlanRow(plan({ active: false }))!;
+    expect(row.termsText).toBeNull();
+    expect(renderPlanBar({ accountId: 'acct-ada', plans: [row] })).not.toContain('current terms');
   });
 
   it('PASSES AN UNKNOWN PERIOD THROUGH — the bar must not relabel a period it does not know', () => {
@@ -70,7 +88,8 @@ describe('planBar — one plan becomes one row (M7 v301)', () => {
     expect(row.planId).toBe('pro');
     expect(row.priceCents).toBe(1500);
     expect(row.priceText).toBe('\u00a515.00');
-    expect(row.periodText).toBe('monthly');
+    // v371 — ONE wording for a period, everywhere it is shown.
+    expect(row.periodText).toBe('per month');
     expect(row.active).toBe(true);
   });
 
@@ -93,7 +112,7 @@ describe('planBar — the bar on the profile (M7 v301)', () => {
     expect(html).toContain('data-plans="1"');
     expect(html).toContain('data-plan="pro"');
     expect(html).toContain('\u00a515.00');
-    expect(html).toContain('monthly');
+    expect(html).toContain('per month');
     expect(html).toContain('href="/?subscribe=pro"');
   });
 

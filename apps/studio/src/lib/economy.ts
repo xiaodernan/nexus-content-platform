@@ -125,6 +125,14 @@ export interface SubscriptionRow {
    */
   periodText: string;
   /**
+   * v371 — that these are the terms that were AGREED, not the plan’s terms today.
+   *
+   * <p>The subscription is a snapshot of the plan (v300): the price and the period on this row are the
+   * ones the supporter agreed to, and a creator may since have repriced the plan (v317) — so the two
+   * rows can disagree, and the reader has to be able to tell them apart.
+   */
+  termsText: string;
+  /**
    * v328 — WHEN the subscription was taken back, in a reader's words — or null when it was not.
    *
    * <p>The ending is the CANCELLATION's: a subscription that merely ran out of its period ended on its
@@ -185,6 +193,13 @@ export interface PlanRow {
    * creator reading the plans they offer could not tell a long-standing plan from a fresh one.
    */
   openedText: string | null;
+  /**
+   * v371 — that these are the terms ON OFFER today — or null when the plan is retired.
+   *
+   * <p>A retired plan’s terms are the last ones it offered, so the note is only there while the plan is
+   * still offered — a bar that called a retired plan’s terms "current" would be wrong about it.
+   */
+  termsText: string | null;
 }
 
 /**
@@ -229,7 +244,7 @@ export function subscriptionsTotalText(
     .filter((total) => typeof total.totalCents === 'number' && Number.isFinite(total.totalCents))
     .map(
       (total) =>
-        `${priceText(total.totalCents as PriceCents, total.currency as Currency)} ${planPeriodText(total.period)}`,
+        `${priceText(total.totalCents as PriceCents, total.currency as Currency)} ${planPeriodText(total.period)} (${SUBSCRIPTION_TERMS_NOTE})`,
     );
   return parts.join(' + ');
 }
@@ -246,6 +261,22 @@ export function planPeriodText(period: string): string {
       return period;
   }
 }
+
+/**
+ * v371 — the note that says a plan’s terms are the ones ON OFFER today.
+ *
+ * <p>A creator may reprice a plan, period and all (v317), so a plan’s terms and a subscription’s terms can
+ * disagree — and the two are facts about two different moments. Every row says which one it is.
+ */
+export const PLAN_TERMS_NOTE = 'current terms';
+
+/**
+ * v371 — the note that says a subscription’s terms are the ones that were AGREED.
+ *
+ * <p>The subscription is a SNAPSHOT of the plan (v300), so its price and its period are the ones the
+ * supporter agreed to — and the plan’s own terms may have moved since (v317).
+ */
+export const SUBSCRIPTION_TERMS_NOTE = 'as agreed';
 
 /**
  * One plan, or `null` when it cannot be shown honestly.
@@ -275,6 +306,8 @@ export function toPlanRow(plan: unknown): PlanRow | null {
     priceText: priceText(p.priceCents, p.currency),
     periodText: planPeriodText(typeof p.period === 'string' ? p.period : ''),
     active: p.active === true,
+    // v371 — and that these are the terms ON OFFER today.
+    termsText: p.active === true ? PLAN_TERMS_NOTE : null,
     // v344 — and when it was opened. The instant is the service's own, in UTC, in the same style as the
     // profile bar's dates (v342) and the tip receipt's (v333).
     openedText: planOpenedTextOf(p.createdAt),
@@ -435,6 +468,8 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
     subscriberText: subscriberTextOf(s),
     // v367 — and what period it is for, as it was when the subscription was made.
     periodText: planPeriodText(typeof s.period === 'string' ? s.period : ''),
+    // v371 — and that these are the terms that were agreed, not the plan’s terms today.
+    termsText: SUBSCRIPTION_TERMS_NOTE,
     // v328 — and when it was taken back, when it was.
     endedText: endedTextOf(s),
     // v329 — and when the support began.

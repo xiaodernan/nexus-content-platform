@@ -256,6 +256,23 @@ describe('economy — subscription rows (M8 v274)', () => {
     expect(subscriptionsWindowText(3, 2)).toBe('showing the 2 newest of 3');
   });
 
+  it('v371 — a subscription says its terms are the ones that were AGREED', () => {
+    // The subscription is a snapshot of the plan (v300): a creator may since have repriced the plan
+    // (v317), so the row has to say which terms it is showing.
+    const row = toSubscriptionRow({ ...sub(), period: 'month' })!;
+    expect(row.termsText).toBe('as agreed');
+  });
+
+  it('v371 — and a PLAN says its terms are the ones on offer today', () => {
+    const row = toPlanRow({ planId: 'pro', priceCents: 1500, period: 'month', active: true })!;
+    expect(row.termsText).toBe('current terms');
+  });
+
+  it('v371 — and a RETIRED plan says no such thing: its terms are the last ones it offered', () => {
+    const row = toPlanRow({ planId: 'pro', priceCents: 1500, period: 'month', active: false })!;
+    expect(row.termsText).toBeNull();
+  });
+
   it('v370 — and a list that shows EVERYONE says no such thing', () => {
     expect(subscriptionsWindowText(3, 3)).toBe('');
     expect(subscriptionsWindowText(0, 0)).toBe('');

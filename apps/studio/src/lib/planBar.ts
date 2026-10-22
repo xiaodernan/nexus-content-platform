@@ -16,7 +16,7 @@
  *   what a supporter needs to decide.
  */
 import { escapeHtml } from './pageShell';
-import { priceText } from './economy';
+import { PLAN_TERMS_NOTE, planPeriodText as sharedPlanPeriodText, priceText } from './economy';
 import type { Currency, PriceCents } from './monetization';
 
 /** One plan, in the service's own wire shape. */
@@ -53,6 +53,13 @@ export interface PlanRow {
    * no history — a reader cannot tell a plan opened last week from one opened last year.
    */
   openedText: string | null;
+  /**
+   * v371 — that these are the terms ON OFFER today — or null when the plan is retired.
+   *
+   * <p>A retired plan’s terms are the last ones it offered, so the note is only there while the plan is
+   * still offered — a bar that called a retired plan’s terms "current" would be wrong about it.
+   */
+  termsText: string | null;
 }
 
 /**
@@ -62,16 +69,10 @@ export interface PlanRow {
  * arrived \u2014 a bar that labelled an unknown period as \u2018monthly\u2019 would be making a claim the service never made.
  */
 export function planPeriodText(period: string): string {
-  switch (period) {
-    case 'once':
-      return 'one-off';
-    case 'month':
-      return 'monthly';
-    case 'year':
-      return 'yearly';
-    default:
-      return period;
-  }
+  // v371 — ONE wording for a period, everywhere it is shown. The bar used to say "monthly" and the
+  // creator’s own panel said "per month" for the same service’s word — and a reader comparing the two
+  // had no way to know they were the same thing.
+  return sharedPlanPeriodText(period);
 }
 
 /**
@@ -106,6 +107,8 @@ export function toPlanRow(entry: unknown): PlanRow | null {
     period,
     periodText: planPeriodText(period),
     active: p.active !== false,
+    // v371 — and that these are the terms ON OFFER today.
+    termsText: p.active !== false ? PLAN_TERMS_NOTE : null,
     // v342 — and when it was opened. The instant is the service's own, in UTC, in the same style as the
     // tip bar's dates (v341) and the economy panel's (v333).
     openedText: planOpenedTextOf(p.createdAt),
@@ -147,9 +150,12 @@ export function renderPlanBar(facts: PlanBarFacts): string {
       // v342 — and WHEN it was opened: the instant, not "3 days ago" — a relative date goes stale the
       // moment it is written, and a plan is a fact about the past that does not move.
       const opened = plan.openedText ? ` <span class="nexus-plan-opened">\u00b7 opened ${escapeHtml(plan.openedText)}</span>` : '';
-      return `<li data-plan="${escapeHtml(plan.planId)}" data-plan-price="${plan.priceCents}">
+      // v371 — and that these are the terms ON OFFER today — so a reader who compares this bar with
+      // their own subscriptions can tell a plan’s current terms from the terms they agreed to.
+      const terms = plan.termsText ? ` <span class="nexus-plan-terms">\u00b7 ${escapeHtml(plan.termsText)}</span>` : '';
+      return `<li data-plan="${escapeHtml(plan.planId)}" data-plan-price="${plan.priceCents}" data-plan-terms="${escapeHtml(plan.termsText ?? '')}">
 <span class="nexus-plan-id">${escapeHtml(plan.planId)}</span>
-<span class="nexus-plan-price">${escapeHtml(plan.priceText)} \u00b7 ${escapeHtml(plan.periodText)}${retired}${opened}</span>
+<span class="nexus-plan-price">${escapeHtml(plan.priceText)} \u00b7 ${escapeHtml(plan.periodText)}${terms}${retired}${opened}</span>
 ${plan.active ? `<a class="nexus-plan-action" href="${escapeHtml(href)}" title="back this plan from the Studio">Back it</a>` : ''}
 </li>`;
     })
