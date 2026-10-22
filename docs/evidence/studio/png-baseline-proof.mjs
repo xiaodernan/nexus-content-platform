@@ -21,6 +21,16 @@
 //      failing, two different surfaces of the same size are a real red, and a size mismatch is refused;
 //   §5 the WIRING calls that shared decision, so this proof tests the rule the harness actually runs.
 //
+// MEASURED END-TO-END 2026-10-22 — the browser arm this proof CANNOT run itself (it needs a live Studio), so
+// it was driven by hand against a real dev server on port 3299:
+//   `node tools/harness/studio-golden-path.mjs --url http://127.0.0.1:3299 --out <tmp>`
+// With NO baseline: 19/19 golden-path assertions, and `[golden-path] no baseline committed — the pixel
+// comparison is SKIPPED, not passed`. With the previous capture copied to `studio-after-compose.baseline.png`:
+// 19/19 again, and `PASS screenshot matches its BASELINE within 2% of pixels (tolerance 8/channel) —
+// 6597/1137236 px differ (0.580%) · maxDelta 248 · first at 981,10`. So the arm is not vacuous in either
+// direction: it really compares (two runs differ by 0.58%, because the composer mints random ids) and it
+// names the difference rather than waving it through.
+//
 // Run:  node docs/evidence/studio/png-baseline-proof.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
