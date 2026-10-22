@@ -4,6 +4,7 @@ import type { PriceCents, Tip, Subscription } from './monetization';
 
 import {
   subscriptionsTotalText,
+  subscriptionsWindowText,
   tipGivenText,
   tipPayerText,
   toPlanRow,
@@ -246,6 +247,19 @@ describe('economy — subscription rows (M8 v274)', () => {
   it('v368 — and NO totals says NOTHING rather than inventing a total', () => {
     expect(subscriptionsTotalText([])).toBe('');
     expect(subscriptionsTotalText(undefined)).toBe('');
+  });
+
+  it('v370 — says when the rows on the screen are the WHOLE list, and when they are not', () => {
+    // The count beside a list of subscriptions is the whole table's (v359) and the rows are the
+    // service's window (v359), so a panel that showed "3 subscription(s)" and two rows without saying
+    // so let a reader take the two for all of them.
+    expect(subscriptionsWindowText(3, 2)).toBe('showing the 2 newest of 3');
+  });
+
+  it('v370 — and a list that shows EVERYONE says no such thing', () => {
+    expect(subscriptionsWindowText(3, 3)).toBe('');
+    expect(subscriptionsWindowText(0, 0)).toBe('');
+    expect(subscriptionsWindowText(undefined, 2)).toBe('');
   });
 
   it('a row it cannot display honestly is dropped', () => {

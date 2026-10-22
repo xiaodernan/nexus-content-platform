@@ -203,6 +203,22 @@ export interface PlanRow {
  * <p>An empty list says NOTHING — a panel that printed "¥0.00" for an account with no
  * subscriptions would be inventing a total.
  */
+/**
+ * Whether the rows on the screen are the WHOLE list, said out loud.
+ *
+ * <p>v370 — the count beside a list of subscriptions is the whole table's (v359) and the rows are the
+ * service's window (v359), so a panel that showed "3 subscription(s)" and two rows without saying so let
+ * a reader take the two for all of them. The like, tip and follow bars learned this in v350; the economy
+ * panel had not.
+ *
+ * <p>An empty list says nothing: there is no window to speak of.
+ */
+export function subscriptionsWindowText(count: number | undefined, shown: number): string {
+  if (typeof count !== 'number' || !Number.isFinite(count)) return '';
+  if (shown <= 0 || count <= shown) return '';
+  return `showing the ${shown} newest of ${count}`;
+}
+
 export function subscriptionsTotalText(
   totals: readonly { period: string; currency: string; totalCents: number }[] | undefined,
 ): string {

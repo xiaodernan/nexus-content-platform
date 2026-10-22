@@ -11,7 +11,13 @@ import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderati
 import { tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { readMyFollowing, unfollowAccount, type FollowingLaneAnswer } from '@/lib/followLane';
-import { priceText, subscriptionsTotalText, tipGivenText, tipPayerText } from '@/lib/economy';
+import {
+  priceText,
+  subscriptionsTotalText,
+  subscriptionsWindowText,
+  tipGivenText,
+  tipPayerText,
+} from '@/lib/economy';
 import type { PriceCents } from '@/lib/monetization';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { remixProject } from '@/lib/remixLane';
@@ -1060,6 +1066,14 @@ export default function Toolbar() {
                   const total = subscriptionsTotalText(economyAccount.subscriptionTotalsByPeriod);
                   return total ? <> · {total}</> : null;
                 })()}
+                {(() => {
+                  // v370 — and the rows are the service's WINDOW beside the whole table's count.
+                  const window = subscriptionsWindowText(
+                    economyAccount.subscriptionCount,
+                    (economyAccount.subscriptions ?? []).length,
+                  );
+                  return window ? <> · {window}</> : null;
+                })()}
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {(economyAccount.subscriptions ?? []).map((row, i) => (
@@ -1129,6 +1143,14 @@ export default function Toolbar() {
                 {(() => {
                   const total = subscriptionsTotalText(economyAccount.receivedTotalsByPeriod);
                   return total ? <> · {total}</> : null;
+                })()}
+                {(() => {
+                  // v370 — and the rows are the service's WINDOW beside the whole table's count.
+                  const window = subscriptionsWindowText(
+                    economyAccount.receivedCount,
+                    (economyAccount.received ?? []).length,
+                  );
+                  return window ? <> · {window}</> : null;
                 })()}
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>

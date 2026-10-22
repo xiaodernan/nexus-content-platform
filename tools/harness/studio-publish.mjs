@@ -3784,6 +3784,43 @@ try {
     await currencyPage.close();
   }
 
+  // ── §67 v370: the panel says when its rows are the whole list and when they are a window ────────────
+  // The count is the whole table\u2019s and the rows are the service\u2019s window, so the panel says which
+  // of the two the reader is looking at.
+  {
+    const windowPage = await session.newPage('about:blank');
+    await windowPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(windowPage, 'the window page to hydrate');
+    await signInAs(windowPage, 'bob', 'the subscriber');
+    await windowPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const windowShown = await until(
+      async () => (await windowPage.evaluate("!!document.querySelector('[data-economy-subscription-total]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the subscription total to show' },
+    );
+    check('the panel\u2019s subscriptions are on screen', windowShown !== null, 'the total is there');
+
+    // And the SERVICE agrees, read independently of the browser: the count the panel says is the
+    // whole table\u2019s, and the rows are the window it knows about.
+    const windowRaw = await windowPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const windowId = JSON.parse(String(windowRaw)).id;
+    const windowService = await (await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(windowId)}&limit=50`)).json();
+    const serviceCount = windowService.count;
+    const panelRows = await windowPage.evaluate(
+      "document.querySelectorAll('[data-economy-subscription]').length",
+    );
+    const panelLine = await windowPage.evaluate(
+      "document.querySelector('[data-economy-subscription-total]')?.textContent ?? ''",
+    );
+    check(
+      'the SERVICE agrees \u2014 the count is the whole table\u2019s, and a short list says so',
+      typeof serviceCount === "number"
+        && panelLine.includes(`${serviceCount} subscription(s)`)
+        && (panelRows >= serviceCount || panelLine.includes('showing the')),
+      `the service: ${JSON.stringify(serviceCount)} \u00b7 the rows: ${panelRows} \u00b7 the panel: ${JSON.stringify(panelLine)}`,
+    );
+    await windowPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
