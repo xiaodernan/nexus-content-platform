@@ -1,12 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { GET as getAuditLog } from '../src/app/api/admin/marketplace/audit/route';
 import { GET as getReports, POST as fileReport } from '../src/app/api/admin/marketplace/reports/route';
+import { PATCH as updateReport } from '../src/app/api/admin/marketplace/reports/[id]/route';
 import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
 import { SESSION_COOKIE } from '../src/server/domain/session';
 import { auditMarketplaceAction, createMarketplaceItem } from '../src/server/domain/marketplace';
 import { getDb } from '../src/server/db/client';
-import { marketplaceAuditLog, marketplaceReports, sessions, users } from '../src/server/db/schema';
+import { auditEvents, marketplaceAuditLog, marketplaceReports, sessions, users } from '../src/server/db/schema';
 
 /**
  * §123 Marketplace 审计日志与举报的两个入口：`GET /api/admin/marketplace/audit`、
@@ -363,5 +364,205 @@ describe('§123 举报提交入口（POST /api/admin/marketplace/reports）', ()
     const rows = (await res.json()) as { itemId: string }[];
     expect(rows.every((row) => row.itemId === itemId)).toBe(true);
     expect(rows.some((row) => row.itemId === itemId)).toBe(true);
+  });
+});
+
+/**
+ * §123/#158：`marketplace_reports.status / admin_notes / resolved_at` 此前没有写入方。
+ * 一个只会积压的收件箱：举报能提交、能列出，却没有任何入口把工单推进一格，
+ * `GET ?status=resolved` 永远拿回空数组。这一片钉住处置入口的每道门与每次状态推进。
+ */
+describe('§123/#158 举报工单的处置（PATCH /api/admin/marketplace/reports/[id]）', () => {
+  let reviewItemId: string;
+  let dismissItemId: string;
+  let reviewReportId: string;
+  let dismissReportId: string;
+
+  const patch = (id: string, body: unknown, headers: Record<string, string>): Promise<Response> =>
+    updateReport(
+      new Request(`http://test.local/api/admin/marketplace/reports/${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ id }) },
+    );
+
+  const reportRow = async (id: string) => {
+    const [found] = await getDb().select().from(marketplaceReports).where(eq(marketplaceReports.id, id)).limit(1);
+    return found!;
+  };
+
+  beforeAll(async () => {
+    const stamp = Date.now();
+    // 两张真工单、两个真物品：处置用例不该借用别的 describe 留下来的状态
+    const reviewItem = await createMarketplaceItem({ creatorId: admin.id, itemType: 'component', title: `处置对象-结案 ${stamp}` });
+    const dismissItem = await createMarketplaceItem({ creatorId: admin.id, itemType: 'component', title: `处置对象-驳回 ${stamp}` });
+    reviewItemId = reviewItem.id;
+    dismissItemId = dismissItem.id;
+
+    const filed: string[] = [];
+    for (const targetItemId of [reviewItemId, dismissItemId]) {
+      const res = await fileReport(
+        new Request(reportsUrl(), {
+          method: 'POST',
+          headers: asUser(creatorToken, true),
+          body: JSON.stringify({ itemId: targetItemId, reason: 'spam', description: '处置状态用例' }),
+        }),
+      );
+      expect(res.status, '前置：两张工单都要真的建出来').toBe(201);
+      filed.push(((await res.json()) as { reportId: string }).reportId);
+    }
+    reviewReportId = filed[0]!;
+    dismissReportId = filed[1]!;
+  });
+
+  afterAll(async () => {
+    // audit_events.actor_id 是 SET NULL，不主动删就会在库里留一串没有 actor 的行
+    await getDb()
+      .delete(auditEvents)
+      .where(and(
+        eq(auditEvents.action, 'marketplace.report.update'),
+        inArray(auditEvents.targetId, [reviewReportId, dismissReportId]),
+      ));
+  });
+
+  it('没登录 → 401', async () => {
+    const res = await patch(reviewReportId, { status: 'reviewing' }, asUser(null, true));
+    expect(res.status).toBe(401);
+    expect((await res.json()).error).toBe('unauthenticated');
+  });
+
+  it('非 admin → 403，拒绝尝试写进审计，工单仍是 pending', async () => {
+    const res = await patch(reviewReportId, { status: 'reviewing' }, asUser(creatorToken, true));
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe('forbidden');
+    expect((await reportRow(reviewReportId)).status).toBe('pending');
+
+    const denied = await getDb()
+      .select()
+      .from(auditEvents)
+      .where(and(
+        eq(auditEvents.action, 'marketplace.report.update'),
+        eq(auditEvents.targetId, reviewReportId),
+        eq(auditEvents.allowed, false),
+      ));
+    expect(denied.length).toBeGreaterThan(0);
+    expect(denied[0]!.actorId).toBe(creator.id);
+  });
+
+  it('没有 CSRF → 403 csrf_failed，状态不变', async () => {
+    const res = await patch(reviewReportId, { status: 'reviewing' }, asUser(adminToken, false));
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe('csrf_failed');
+    expect((await reportRow(reviewReportId)).status).toBe('pending');
+  });
+
+  it('工单号不是 UUID → 404（形状不对不是服务器故障）', async () => {
+    const res = await patch('not-a-uuid', { status: 'reviewing' }, asUser(adminToken, true));
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe('report_not_found');
+  });
+
+  it('不存在的工单 → 404', async () => {
+    const res = await patch('00000000-0000-4000-8000-000000000158', { status: 'reviewing' }, asUser(adminToken, true));
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe('report_not_found');
+  });
+
+  it('status=pending → 400（初始态不是回退目标）', async () => {
+    const res = await patch(reviewReportId, { status: 'pending' }, asUser(adminToken, true));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe('validation_failed');
+  });
+
+  it('status 名单外 → 400', async () => {
+    const res = await patch(reviewReportId, { status: 'archived' }, asUser(adminToken, true));
+    expect(res.status).toBe(400);
+  });
+
+  it('adminNotes 超长 → 400', async () => {
+    const res = await patch(reviewReportId, { status: 'reviewing', adminNotes: 'x'.repeat(2001) }, asUser(adminToken, true));
+    expect(res.status).toBe(400);
+  });
+
+  it('pending → reviewing → 200；GET ?status=reviewing 读得回，resolvedAt 仍为空', async () => {
+    const res = await patch(reviewReportId, { status: 'reviewing', adminNotes: '先看交付内容' }, asUser(adminToken, true));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { report: { status: string }; message: string };
+    expect(body.report.status).toBe('reviewing');
+    expect(body.message).toContain('复核中');
+
+    const fresh = await reportRow(reviewReportId);
+    expect(fresh.status).toBe('reviewing');
+    expect(fresh.adminNotes).toBe('先看交付内容');
+    expect(fresh.resolvedAt).toBeNull();
+
+    const list = await getReports(new Request(reportsUrl('?status=reviewing')));
+    expect(list.status).toBe(200);
+    const rows = (await list.json()) as { id: string; status: string }[];
+    expect(rows.some((row) => row.id === reviewReportId && row.status === 'reviewing')).toBe(true);
+  });
+
+  it('reviewing → resolved（带结案备注）→ 200，resolvedAt 落库；GET ?status=resolved 读得回', async () => {
+    const res = await patch(reviewReportId, { status: 'resolved', adminNotes: '证据充分，已结案' }, asUser(adminToken, true));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { report: { status: string }; message: string };
+    expect(body.report.status).toBe('resolved');
+    expect(body.message).toContain('已结案');
+
+    const fresh = await reportRow(reviewReportId);
+    expect(fresh.status).toBe('resolved');
+    expect(fresh.adminNotes).toBe('证据充分，已结案');
+    expect(fresh.resolvedAt).toBeInstanceOf(Date);
+
+    const list = await getReports(new Request(reportsUrl('?status=resolved')));
+    expect(list.status).toBe(200);
+    const rows = (await list.json()) as { id: string; status: string }[];
+    expect(rows.some((row) => row.id === reviewReportId && row.status === 'resolved')).toBe(true);
+
+    // 两次成功推进（reviewing → resolved）各留一行允许审计：处置结论不只在这一次响应里
+    const allowed = await getDb()
+      .select()
+      .from(auditEvents)
+      .where(and(
+        eq(auditEvents.action, 'marketplace.report.update'),
+        eq(auditEvents.targetId, reviewReportId),
+        eq(auditEvents.allowed, true),
+      ));
+    expect(allowed.length).toBe(2);
+  });
+
+  it('已结案的工单再改 → 409，原结论与备注一字不改', async () => {
+    const res = await patch(reviewReportId, { status: 'dismissed', adminNotes: '试图翻案' }, asUser(adminToken, true));
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { error: string; status: string; message: string };
+    expect(body.error).toBe('already_closed');
+    expect(body.status).toBe('resolved');
+    expect(body.message).toContain('已结案');
+
+    const fresh = await reportRow(reviewReportId);
+    expect(fresh.status).toBe('resolved');
+    expect(fresh.adminNotes).toBe('证据充分，已结案');
+  });
+
+  it('pending → dismissed → 200：驳回也是终态，resolvedAt 落库、没有备注', async () => {
+    const res = await patch(dismissReportId, { status: 'dismissed' }, asUser(adminToken, true));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { report: { status: string }; message: string };
+    expect(body.report.status).toBe('dismissed');
+    expect(body.message).toContain('已驳回');
+
+    const fresh = await reportRow(dismissReportId);
+    expect(fresh.status).toBe('dismissed');
+    expect(fresh.resolvedAt).toBeInstanceOf(Date);
+    expect(fresh.adminNotes).toBeNull();
+  });
+
+  it('处置不是删除：结案的工单仍在按 itemId 的列表里', async () => {
+    const list = await getReports(new Request(reportsUrl(`?itemId=${reviewItemId}`)));
+    expect(list.status).toBe(200);
+    const rows = (await list.json()) as { id: string; status: string }[];
+    expect(rows.some((row) => row.id === reviewReportId && row.status === 'resolved')).toBe(true);
   });
 });

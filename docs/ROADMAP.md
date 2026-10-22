@@ -5420,3 +5420,21 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   与 `startDate` 对称）。真库路由用例 4 条先红后绿：`action=suspicious_purchase` 200 且带读数
   （修前 400）、`action=purchase` 不顺带新动作、`endDate` 只回这一刻及以前（修前回的是之后那一行）、
   起止围出中间一行。相邻九个市场套件 93/93、`tsc -p apps/web` 与改动文件 eslint 均 0。
+
+- **2026-10-23 第十一片（#158）：举报工单只会积压——处置状态三列没有写入方**。
+  `marketplace_reports` 的 `status / admin_notes / resolved_at` 建表起就没有写入方：举报能提交、能按状态列出，
+  却没有任何入口把工单推进一格，`GET ?status=resolved` 永远拿回空数组——一个只进不出的收件箱。
+  落法：域层 `REPORT_STATUSES` / `REPORT_CLOSED_STATUSES` / `REPORT_TRANSITION_STATUSES` 名单收成一处
+  （查询校验与处置正文同源，不手抄）；`updateReportStatus` 用条件 UPDATE
+  （`WHERE status NOT IN ('resolved','dismissed')`）把终态不可改写焊在 SQL 里——两位审核员同时点"结案/驳回"时，
+  后来者拿到 0 行而不是覆盖前一位的结论；0 行时重读一次，`not_found` 与 `already_closed`（带当前状态）分开答。
+  结案/驳回落 `resolved_at`，不传备注保留原备注；成功处置与"改写结案记录"两路都写 `audit_events`
+  （`marketplace.report.update`，被挡那路 `allowed=false`）。
+  路由 `PATCH /api/admin/marketplace/reports/[id]` 与裁决台同一口径：401 → 限流 429（30 次/10 分钟，
+  放在 admin 判定**之前**，否则非审核员的循环请求能把审计表刷满）→ 非 admin 403 + 拒绝审计 → CSRF 403 →
+  正文 zod 400（只收 reviewing/resolved/dismissed，`pending` 不是回退目标）→ 404 / 409（带当前状态与中文话）→ 200 带 message。
+  见证：`admin-marketplace.integration.test.ts` 从 27 条长到 **40 条**（13 条新用例：401 / 403 且审计有拒绝行 /
+  CSRF / 非 UUID 404 / 不存在 404 / pending 目标 400 / 名单外 400 / 备注超长 400 / reviewing 推进并读回 /
+  resolved 落 resolvedAt 并读回且两次成功各留一行允许审计 / 终态再改 409 且原结论一字不改 / dismissed 终态 /
+  处置不是删除）；单文件 40/40 绿，相邻九个市场套件 93/93（与 #157 基线同数），
+  `tsc -p apps/web` 与改动文件 eslint 均 0。

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { currentUserOrNull } from '@/server/domain/session';
-import { flagSuspiciousActivity, getMarketplaceItem, getReports } from '@/server/domain/marketplace';
+import { REPORT_STATUSES, flagSuspiciousActivity, getMarketplaceItem, getReports } from '@/server/domain/marketplace';
 import { csrfOk } from '@/server/security/csrf';
 import { badRequest, jsonError } from '@/server/http';
 
@@ -14,7 +14,8 @@ import { badRequest, jsonError } from '@/server/http';
  * 不再让 `parseInt('abc')` 的 NaN 或垃圾 status 直进 SQL 变成 500「查询失败」。
  */
 const ReportsQuerySchema = z.object({
-  status: z.enum(['pending', 'reviewing', 'resolved', 'dismissed']).optional(),
+  // 名单从域层取：状态列、查询校验、处置正文三处同源，不再各抄一份
+  status: z.enum(REPORT_STATUSES).optional(),
   itemId: z.string().uuid().optional(),
   limit: z.coerce.number().int().nonnegative().max(500).optional(),
   offset: z.coerce.number().int().nonnegative().optional(),

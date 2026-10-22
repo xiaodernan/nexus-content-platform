@@ -1,9 +1,10 @@
-import { and, desc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, lte, notInArray, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { marketplaceItems, assets, projects, snapshots, users, marketplacePurchases, creditLedger, marketplaceSplits, marketplaceAuditLog, marketplaceReports } from '../db/schema';
 import type { MarketplaceItemType, MarketplaceVisibility } from '../db/schema';
 import { monthPeriod } from './credits';
 import { isUuid } from './ids';
+import { recordAudit } from './audit';
 
 /**
  * §127-128 Marketplace 系统：组件 / 模板 / 设计系统 / 资产 / 世界 / 游戏 / AI 角色的交易与分享。
@@ -976,8 +977,26 @@ export async function getAuditLog(input: GetAuditLogInput): Promise<AuditLogEntr
   }));
 }
 
+/**
+ * 举报工单的状态名单：迁移的 CHECK、路由的查询与处置校验都从这里取，
+ * 不再各抄一份（#157 已经为审计动作付过一次手抄的代价）。
+ */
+export const REPORT_STATUSES = ['pending', 'reviewing', 'resolved', 'dismissed'] as const;
+export type ReportStatus = (typeof REPORT_STATUSES)[number];
+
+/**
+ * 终态：结案（成立）或驳回（不成立）。结案记录是审计证据，
+ * 不是可以反复覆盖的草稿，所以终态不再接受任何写入。
+ */
+export const REPORT_CLOSED_STATUSES = ['resolved', 'dismissed'] as const;
+export type ReportClosedStatus = (typeof REPORT_CLOSED_STATUSES)[number];
+
+/** 处置只能往这三个状态推进；`pending` 是初始态，不是可回退的目标。 */
+export const REPORT_TRANSITION_STATUSES = ['reviewing', ...REPORT_CLOSED_STATUSES] as const;
+export type ReportTransitionStatus = (typeof REPORT_TRANSITION_STATUSES)[number];
+
 export interface GetReportsInput {
-  status?: 'pending' | 'reviewing' | 'resolved' | 'dismissed';
+  status?: ReportStatus;
   itemId?: string;
   limit?: number;
   offset?: number;
@@ -989,10 +1008,24 @@ export interface ReportEntry {
   itemId: string;
   reason: string;
   description: string | null;
-  status: string;
+  status: ReportStatus;
   adminNotes: string | null;
   createdAt: Date;
   resolvedAt: Date | null;
+}
+
+function toReportEntry(row: typeof marketplaceReports.$inferSelect): ReportEntry {
+  return {
+    id: row.id,
+    reporterId: row.reporterId,
+    itemId: row.itemId,
+    reason: row.reason,
+    description: row.description,
+    status: row.status as ReportStatus,
+    adminNotes: row.adminNotes,
+    createdAt: row.createdAt,
+    resolvedAt: row.resolvedAt,
+  };
 }
 
 /**
@@ -1016,17 +1049,84 @@ export async function getReports(input: GetReportsInput): Promise<ReportEntry[]>
 
   const rows = await query.limit(limit).offset(offset);
 
-  return rows.map((row) => ({
-    id: row.id,
-    reporterId: row.reporterId,
-    itemId: row.itemId,
-    reason: row.reason,
-    description: row.description,
-    status: row.status,
-    adminNotes: row.adminNotes,
-    createdAt: row.createdAt,
-    resolvedAt: row.resolvedAt,
-  }));
+  return rows.map(toReportEntry);
+}
+
+export interface UpdateReportStatusInput {
+  reportId: string;
+  adminId: string;
+  status: ReportTransitionStatus;
+  adminNotes?: string;
+  ip?: string | null;
+}
+
+export type UpdateReportStatusResult =
+  | { ok: true; report: ReportEntry }
+  | { ok: false; reason: 'not_found' }
+  | { ok: false; reason: 'already_closed'; status: ReportStatus };
+
+/**
+ * §123 审核员处置一个举报工单（#158）。`marketplace_reports.status` 此前没有写入方：
+ * 举报只能提交、只能列出，`GET ?status=resolved` 永远拿回空数组——一个只会积压的收件箱。
+ *
+ * 终态不可改写（结案记录是证据），且判定写在 UPDATE 的 WHERE 里而不是先读再写：
+ * 两位审核员同时点"结案 / 驳回"时，后来者会拿到 0 行而不是覆盖前一位的结论。
+ * 0 行时再读一次，用"行不存在"和"已经结案"两个不同的答复说清楚发生了什么。
+ */
+export async function updateReportStatus(input: UpdateReportStatusInput): Promise<UpdateReportStatusResult> {
+  if (!isUuid(input.reportId)) return { ok: false, reason: 'not_found' };
+
+  const db = getDb();
+  const patch: { status: ReportTransitionStatus; adminNotes?: string; resolvedAt?: Date } = {
+    status: input.status,
+  };
+  // 不传备注就保留原备注：处置状态与复核笔记是两件事，改状态不该顺手清掉上一次的记录
+  if (input.adminNotes !== undefined) patch.adminNotes = input.adminNotes;
+  if (input.status !== 'reviewing') patch.resolvedAt = new Date();
+
+  const [updated] = await db
+    .update(marketplaceReports)
+    .set(patch)
+    .where(
+      and(
+        eq(marketplaceReports.id, input.reportId),
+        notInArray(marketplaceReports.status, [...REPORT_CLOSED_STATUSES]),
+      ),
+    )
+    .returning();
+
+  if (updated) {
+    // 处置一个工单是"审核员对一件被举报的内容下了结论"：谁、何时、结论为何，
+    // 与人工裁决同一份口径留进 audit_events，而不是只活在那一次 HTTP 响应里
+    await recordAudit({
+      actorId: input.adminId,
+      action: 'marketplace.report.update',
+      targetType: 'marketplace_report',
+      targetId: input.reportId,
+      allowed: true,
+      detail: { status: input.status, hasNotes: input.adminNotes !== undefined },
+      ip: input.ip,
+    });
+    return { ok: true, report: toReportEntry(updated) };
+  }
+
+  const [existing] = await db
+    .select()
+    .from(marketplaceReports)
+    .where(eq(marketplaceReports.id, input.reportId))
+    .limit(1);
+  if (!existing) return { ok: false, reason: 'not_found' };
+  // 改写结案记录同样要留痕：那不是"查询没命中"，是有人在试图推翻一个已经落下的结论
+  await recordAudit({
+    actorId: input.adminId,
+    action: 'marketplace.report.update',
+    targetType: 'marketplace_report',
+    targetId: input.reportId,
+    allowed: false,
+    detail: { reason: 'already_closed', current: existing.status, wanted: input.status },
+    ip: input.ip,
+  });
+  return { ok: false, reason: 'already_closed', status: existing.status as ReportStatus };
 }
 
 /**
