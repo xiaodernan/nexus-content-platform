@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyBatch, createEmptyDocument, ops, rectNode, solid, textNode } from '@nexus/design-model';
+import { applyBatch, createEmptyDocument, ops, rectNode, solid, textNode, type DesignDocument, type DesignNode, type Paint } from '@nexus/design-model';
 import { injectRemixBar, injectMetaBar, renderArtifactHtml, renderArtifactMissing, renderArtifactUnavailable } from './artifact';
 
 /**
@@ -208,6 +208,162 @@ describe('artifact — the META bar shows author and remix source (M7 v245)', ()
 
   it('injectMetaBar adds nothing when both owner and lineage are absent', () => {
     expect(injectMetaBar('<body></body>', null, null)).toBe('<body></body>');
+  });
+});
+
+describe('artifact — a posted value cannot wear an attribute (M7 v295)', () => {
+  /**
+   * A publication is JSON a client posted, and the service stores the object verbatim — v294's leg §5 read a
+   * malformed style back OUT of the store to prove the carrier is real. The artifact resolves a token's
+   * `$value` and writes it into a `style` attribute (`colorToCss` returns a string unchanged,
+   * `resolveTextStyle` reads the family with `String(...)`), so the exposure is per INTERPOLATION SITE.
+   * Measured on shipped bytes before this grant: all 9 of the document-derived fields that reach a `style`
+   * attribute ended that attribute, and all 3 that reach the page's own `<style>` element ended that element.
+   *
+   * The witness is the START TAG: `/^<div style="[^"]*">$/` says the element carries the ONE attribute the
+   * renderer wrote. A document that reached `ARTn=` with a raw quote in front of it made the drawing gain an
+   * ATTRIBUTE, and that tag no longer matches. Each case then reads the value back through the decoding a
+   * browser applies to an attribute, so a "fix" that deleted the hostile characters instead of carrying them
+   * would fail the drawing's own claim.
+   */
+  const evil = (n: number) => `EVIL${n}" ART${n}="x`;
+  const asNumber = (n: number) => evil(n) as unknown as number;
+  const startTagWith = (html: string, n: number) =>
+    [...html.matchAll(/<div [^>]*>/g)].map((m) => m[0]).find((t) => t.includes(`ART${n}=`)) ?? '';
+  const styleValueOf = (tag: string) => /^<div style="([^"]*)">$/.exec(tag)?.[1] ?? '';
+  /** What a browser READS out of the attribute — the escape has to be reversible, not lossy. */
+  const decoded = (value: string) => value
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  /**
+   * The two claims every attribute site has to carry, in one place: the element gained no ATTRIBUTE (its
+   * start tag is still the one `style` the renderer wrote), and the document's value is still on the page as
+   * DATA at the declaration that names it. A "fix" that deleted the hostile characters would pass the first
+   * and fail the second.
+   */
+  const carriedAsData = (html: string, n: number, at: string) => {
+    const tag = startTagWith(html, n);
+    expect(tag, `the document’s value reaches the page at ${at}`).not.toBe('');
+    expect(tag, `ART${n} stayed inside a value, so the element carries the ONE attribute`).toMatch(/^<div style="[^"]*">$/);
+    const value = decoded(styleValueOf(tag));
+    expect(value, `${at} carries the value the document named`).toContain(evil(n));
+    expect(value, `${at} is the declaration that carries it`).toContain(at);
+  };
+
+  /** Reach into the document's OWN token tree and rewrite one `$value`; the tests never retype a token. */
+  function poisonToken(doc: DesignDocument, path: string[], value: unknown): DesignDocument {
+    const set = (group: Record<string, unknown>, keys: string[]): Record<string, unknown> => {
+      const [head, ...rest] = keys;
+      if (head === undefined) return group;
+      if (!rest.length) return { ...group, [head]: { ...(group[head] as object), $value: value } };
+      return { ...group, [head]: set(group[head] as Record<string, unknown>, rest) };
+    };
+    return { ...doc, tokens: set(doc.tokens as unknown as Record<string, unknown>, path) as DesignDocument['tokens'] };
+  }
+  function oneText(doc0: DesignDocument, words: string, fills: Paint[]): DesignDocument {
+    const t = textNode('T', words, {
+      fontFamilyToken: 'font.family.body', sizeToken: 'font.size.xs',
+      weight: 400, lineHeight: 1.2, letterSpacing: 0, align: 'left',
+    }, { id: 'tx', x: 10, y: 10, width: 200, height: 40, fills });
+    return applyBatch(doc0, { id: 'b', ops: [ops.addSubtree(doc0.activePageId, 0, [t])], provenance: { mode: 'user' }, timestamp: 0 });
+  }
+  function oneBox(doc0: DesignDocument, geom: Partial<DesignNode>): DesignDocument {
+    const box = rectNode('Box', { id: 'bx', x: 10, y: 10, width: 100, height: 40, ...geom } as never);
+    return applyBatch(doc0, { id: 'b', ops: [ops.addSubtree(doc0.activePageId, 0, [box])], provenance: { mode: 'user' }, timestamp: 0 });
+  }
+
+  it('carries a family token that contains a quote as the letter’s data, not as an attribute', () => {
+    const doc = poisonToken(oneText(createEmptyDocument('Harbour'), 'WORDS_1', [{ kind: 'token', ref: 'color.text' }]),
+      ['font', 'family', 'body'], evil(1));
+    carriedAsData(renderArtifactHtml({ projectId: 'pub-1', title: 'Harbour', document: doc }), 1, 'font:');
+  });
+
+  it('carries a colour token that contains a quote as data, in the letter and in the box', () => {
+    // One resolved value, two branches of the same renderer: a text node takes it as the letter colour, any
+    // other node as `background`. `colorToCss` returns a string `$value` VERBATIM, so both were open.
+    const letter = poisonToken(oneText(createEmptyDocument('a'), 'WORDS_2', [{ kind: 'token', ref: 'color.text' }]), ['color', 'text'], evil(2));
+    carriedAsData(renderArtifactHtml({ document: letter }), 2, 'color:');
+
+    const box = poisonToken(oneBox(createEmptyDocument('b'), { fills: [{ kind: 'token', ref: 'color.text' }] as Paint[] }), ['color', 'text'], evil(3));
+    carriedAsData(renderArtifactHtml({ document: box }), 3, 'background:');
+  });
+
+  it('carries a paint alpha that is not a number as data — in a letter, a box border', () => {
+    // `rgbaCss` interpolates `a` raw and the model's `RGBA['a']` is a TYPE, not a check on posted bytes; a
+    // string there is legal JSON. `r/g/b` are rounded through `Math.round`, which a string cannot survive —
+    // the alpha is the colour channel that travels.
+    const letter = oneText(createEmptyDocument('a'), 'WORDS_4', [solid({ r: 1, g: 0, b: 0, a: asNumber(4) })]);
+    carriedAsData(renderArtifactHtml({ document: letter }), 4, 'rgba(255, 0, 0,');
+
+    const bordered = oneBox(createEmptyDocument('b'), { strokes: [{ color: { r: 0, g: 0, b: 0, a: asNumber(5) }, weight: 1, align: 'inside' }] as never });
+    carriedAsData(renderArtifactHtml({ document: bordered }), 5, 'solid rgba(0, 0, 0,');
+  });
+
+  it('carries geometry, opacity, rotation and a radius that are not numbers as data', () => {
+    // All four are typed as NUMBER, and `layoutPage` computes `origin.x + node.x` — string concatenation, not
+    // a NaN — so the authored bytes reach the declaration verbatim and each needed its own witness.
+    const doc = oneBox(createEmptyDocument('Harbour'), {
+      x: asNumber(6), opacity: asNumber(7), rotation: asNumber(8), cornerRadius: asNumber(9),
+    });
+    const html = renderArtifactHtml({ document: doc });
+    const sites = [['left:', 6], ['opacity:', 7], ['rotate(', 8], ['border-radius:', 9]] as const;
+    for (const [at, n] of sites) carriedAsData(html, n, at);
+  });
+
+  it('refuses to let a token value close the `<style>` block the page writes about itself', () => {
+    const clean = renderArtifactHtml({ document: oneText(createEmptyDocument('clean'), 'WORDS', []) });
+    // The document's token tree is printed as CSS custom properties INSIDE a `<style>` element. A `$value`
+    // carrying markup used to close that element and start another — a stored document writing an `<img>` into
+    // whoever opens its page. HTML entities would be the wrong tool here: CSS does not decode them.
+    const doc = poisonToken(oneText(createEmptyDocument('evil'), 'WORDS', []), ['color', 'text'],
+      'red;}body{display:none}</style><img src=x onerror="ART20">');
+    const html = renderArtifactHtml({ document: doc });
+
+    expect((html.match(/<\/style>/g) ?? []).length, 'the document added no style element')
+      .toBe((clean.match(/<\/style>/g) ?? []).length);
+    expect((html.match(/}/g) ?? []).length, 'the document added no rule boundary to the block')
+      .toBe((clean.match(/}/g) ?? []).length);
+    expect(html).not.toContain('<img src=x');
+    expect(html).not.toContain('body{display:none}');
+    // And the value survives as CSS' own spelling: `\3b `, `\7b `, `\7d `, `\3c ` read back as the characters
+    // they name when the custom property is substituted — which is why this is not the HTML escaper's job.
+    expect(html).toContain('red\\3b \\7d body\\7b display:none\\7d \\3c /style\\3e ');
+  });
+
+  it('escapes a token NAME, not only its value', () => {
+    const doc0 = oneText(createEmptyDocument('Harbour'), 'WORDS', []);
+    // An object KEY is whatever the client posted, and the custom property name is built from it.
+    const doc = { ...doc0, tokens: { ...(doc0.tokens as object), 'x}</style><img src=y>': { note: { $value: 1 } } } } as unknown as DesignDocument;
+    const html = renderArtifactHtml({ document: doc });
+
+    expect(html).not.toContain('<img src=y');
+    expect(html, 'the NAME still travels as data').toContain('img src=y');
+    expect(html).toContain('\\3c /style\\3e ');
+    expect((html.match(/<\/style>/g) ?? []).length, 'one style element, written by the renderer').toBe(1);
+  });
+
+  it('refuses to let the page’s own width reach the stage rule as markup', () => {
+    const doc0 = createEmptyDocument('Harbour');
+    // The stage rule is the one place the PAGE node's authored geometry is written, and `layoutPage` passes it
+    // through unrounded — so the block that styles the whole page was open from the same JSON.
+    const doc = { ...doc0, nodes: { ...doc0.nodes, [doc0.activePageId]: { ...doc0.nodes[doc0.activePageId], width: '1440}</style><img src=z onerror="ART22">' } } } as unknown as DesignDocument;
+    const html = renderArtifactHtml({ document: doc });
+
+    expect(html).not.toContain('<img src=z');
+    expect(html).toContain('\\22 ART22\\22 ');
+    expect((html.match(/<\/style>/g) ?? []).length, 'one style element, written by the renderer').toBe(1);
+  });
+
+  it('is inert for a drawing the editor could author — the page carries no entity at all', () => {
+    // The escape is a boundary, not a rewrite: a well-formed CSS value holds none of `& < > " '`, so a real
+    // publication’s bytes must not gain a single entity. Red the day someone escapes a value that has to be
+    // read by the CSS parser as something else.
+    const doc = oneText(createEmptyDocument('Harbour'), 'Harbour at dusk', [solid({ r: 1, g: 1, b: 1, a: 1 })]);
+    const html = renderArtifactHtml({ projectId: 'pub-1', title: 'Harbour', document: doc });
+
+    expect(html.match(/&(quot|amp|lt|gt|#39);/g) ?? [], 'no entity anywhere in the page').toEqual([]);
+    expect(html).toContain('font:400 12px/1.2 Inter, system-ui, sans-serif');
+    expect(html).toContain('width:1440px;height:900px');
   });
 });
 

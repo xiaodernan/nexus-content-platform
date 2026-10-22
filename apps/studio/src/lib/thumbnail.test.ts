@@ -272,3 +272,70 @@ describe('thumbnail: the declared text style', () => {
     expect(svg).not.toContain('middle');
   });
 });
+
+describe('thumbnail — a posted value cannot wear an attribute (M7 v295)', () => {
+  /**
+   * The card is SVG bytes that `/explore` hands to every visitor inside `<img src="data:…">`, so a value that
+   * closes an attribute here corrupts the PICTURE rather than the page — a smaller blast radius than the
+   * artifact's, and the same one-line rule. v295 measured the asymmetry per site on shipped bytes: the four
+   * values that reach an attribute as TEXT were open (a token's `$value` as the fill, a paint's alpha, a
+   * stroke's weight, a node's opacity), while the geometry was already closed because `n()` refuses a
+   * non-number. Both halves are pinned here — the escape where the measurement said the value travelled, and
+   * the refusal where it did not, so the next reader does not have to re-derive which is which.
+   */
+  const evil = (k: string) => `EVIL_${k}" ART_${k}="x`;
+  const raw = (k: string) => evil(k) as unknown as never;
+
+  function cardDoc(overrides: NonNullable<Parameters<typeof rectNode>[1]>, poisonTokens?: (t: DesignDocument['tokens']) => DesignDocument['tokens']): DesignDocument {
+    const doc0 = createEmptyDocument('Card');
+    const box = rectNode('Box', {
+      id: 'bx', x: 10, y: 10, width: 120, height: 60,
+      fills: [solid({ r: 0.2, g: 0.4, b: 0.9, a: 1 })], ...overrides,
+    });
+    const doc = applyBatch(doc0, { id: 'b1', ops: [ops.addSubtree(doc0.activePageId, 0, [box])], provenance: { mode: 'user' }, timestamp: 0 });
+    return poisonTokens ? { ...doc, tokens: poisonTokens(doc.tokens) } : doc;
+  }
+
+  /** Rewrite one `$value` in the document's OWN token tree — the tests never retype a token. */
+  const poison = (tokens: DesignDocument['tokens'], path: string[], value: unknown): DesignDocument['tokens'] => {
+    const set = (g: Record<string, unknown>, keys: string[]): Record<string, unknown> => {
+      const [head, ...rest] = keys;
+      if (head === undefined) return g;
+      if (!rest.length) return { ...g, [head]: { ...(g[head] as object), $value: value } };
+      return { ...g, [head]: set(g[head] as Record<string, unknown>, rest) };
+    };
+    return set(tokens as unknown as Record<string, unknown>, path) as DesignDocument['tokens'];
+  };
+
+  it('carries a colour token that contains a quote as the fill’s data, not as an attribute', () => {
+    // `colorToCss` returns a string `$value` VERBATIM, so the token the document named went straight into
+    // `fill="…"` — the same resolver seam the artifact writes through, measured in the card that shares it.
+    const doc = cardDoc({ fills: [{ kind: 'token', ref: 'color.text' }] }, (t) => poison(t, ['color', 'text'], evil('fill')));
+    const svg = docToSvg(doc, doc.activePageId);
+    expect(svg, 'the value survived, as data').toContain('fill="EVIL_fill&quot; ART_fill=&quot;x"');
+    expect(svg, 'no attribute opened where the value continues').not.toContain('" ART_fill="');
+  });
+
+  it('carries a paint alpha, a stroke weight and an opacity that are not numbers as data', () => {
+    // Three more attributes built from a POSTED value: `rgbaCss` interpolates `a` raw, and the weight and the
+    // fade are emitted unrounded on purpose (v292), so whatever the document said is what the attribute said.
+    const doc = cardDoc({
+      fills: [solid({ r: 1, g: 0, b: 0, a: raw('alpha') })],
+      strokes: [{ color: { r: 0, g: 0, b: 0, a: 1 }, weight: raw('weight'), align: 'inside' }],
+      opacity: raw('fade'),
+    });
+    const svg = docToSvg(doc, doc.activePageId);
+    for (const k of ['alpha', 'weight', 'fade']) {
+      expect(svg, `the ${k} reached an attribute as text`).toContain(evil(k).replace(/"/g, '&quot;'));
+      expect(svg, `the ${k} opened no attribute`).not.toContain(`" ART_${k}="`);
+    }
+    expect(svg).toContain('<rect ');
+  });
+
+  it('refuses a non-number where the model types geometry, so those sites needed no escape', () => {
+    const doc = cardDoc({ x: raw('geom'), width: raw('geom'), cornerRadius: raw('geom') });
+    const svg = docToSvg(doc, doc.activePageId);
+    expect(svg, 'the authored geometry never reaches the markup').not.toContain('EVIL_geom');
+    expect(svg).toContain('<rect x="0"');
+  });
+});

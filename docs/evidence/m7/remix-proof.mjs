@@ -194,11 +194,13 @@ try {
     // v293 — preview.ts clips through the shared `./clip` module, so it joins the box before preview does:
     // a missing sibling is an unresolved import that crashes the proof, not a graded failure.
     await strip('apps/studio/src/lib/clip.ts', box);
+    // v295 — preview.ts now escapes through the SHARED `./pageShell` escaper, so it inherits the same rule
+    // that made artifact.ts wait for it: `strip` writes a module and IMPORTS it in the same step, so a
+    // module's own siblings must already be in the box. Measured before this line moved:
+    // ERR_MODULE_NOT_FOUND pageShell.mjs imported from preview.mjs.
+    await strip('apps/studio/src/lib/pageShell.ts', box);
     await strip('apps/studio/src/lib/preview.ts', box);
-    // artifact.ts imports the SHARED escaper, so the box needs it first — `strip` writes a module and
-// IMPORTS it in the same step, so a module's own siblings must already be in the box.
-await strip('apps/studio/src/lib/pageShell.ts', box);
-const artifact = await strip('apps/studio/src/lib/artifact.ts', box);
+    const artifact = await strip('apps/studio/src/lib/artifact.ts', box);
     const { injectRemixBar, renderArtifactHtml } = artifact;
     const doc = createEmptyDocument('Harbour');
     const withBar = renderArtifactHtml({ projectId: 'my pub/1', document: doc });

@@ -28,8 +28,13 @@ function fillOf(node: DesignNode, doc: DesignDocument): string {
   return '#5a6e8c'; // image fill → flat placeholder in a thumbnail
 }
 
-function escapeXml(s: string): string {
-  return s.replace(/[<>&"]/g, (c) => (c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '&' ? '&amp;' : '&quot;'));
+/**
+ * The card's own markup escaper. It takes `unknown` on purpose: a posted document can carry a string where
+ * the model types a number (`opacity`, a stroke weight, an RGBA alpha), and the value that reaches this
+ * function is the one the attribute is built from — the browser does not get to be the one that finds out.
+ */
+function escapeXml(value: unknown): string {
+  return String(value).replace(/[<>&"]/g, (c) => (c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '&' ? '&amp;' : '&quot;'));
 }
 
 const n = (x: number) => (Number.isFinite(x) ? Math.round(x * 10) / 10 : 0);
@@ -58,19 +63,24 @@ export function docToSvg(doc: DesignDocument, pageId: string): string {
     const node = doc.nodes[id];
     const r = layout[id];
     if (!node || !r || !node.visible) return '';
-    const fill = fillOf(node, doc);
+    // v295 — every one of these four values comes out of the POSTED document: `fillOf` hands a token's
+    // `$value` back unchanged, and the alpha, the weight and the opacity reach `rgbaCss`/the attribute as
+    // written. They are escaped on their way into an attribute, the same way the family and the characters
+    // already were (§294). Geometry needed no such guard because `n()` refuses a non-number — that asymmetry
+    // is measured in `thumbnail.test.ts`, not assumed.
+    const fill = escapeXml(fillOf(node, doc));
     // Match the canvas: turn about the node's own centre, and let children turn individually.
     const turn = node.rotation
       ? ` transform="rotate(${n(node.rotation)} ${n(r.x + r.width / 2)} ${n(r.y + r.height / 2)})"`
       : '';
     // SVG strokes a path centred on it, exactly as `ctx.stroke()` does, so the same weight carries over.
-    // Both the weight and the alpha are emitted RAW, as the canvas and the artifact use them — rounding a
-    // 0.05-step opacity to one decimal would fade the thumb to a value no renderer was ever given.
+    // Both the weight and the alpha are emitted unrounded, as the canvas and the artifact use them — rounding
+    // a 0.05-step opacity to one decimal would fade the thumb to a value no renderer was ever given.
     const s = node.strokes[0];
-    const line = s ? ` stroke="${strokeToCss(s)}" stroke-width="${s.weight}"` : '';
+    const line = s ? ` stroke="${escapeXml(strokeToCss(s))}" stroke-width="${escapeXml(s.weight)}"` : '';
     // The canvas sets globalAlpha per node and restores before recursing, so a parent's fade does not
     // multiply into its children — which is what these flat siblings do too, hence one attribute per element.
-    const fade = node.opacity === 1 ? '' : ` opacity="${node.opacity}"`;
+    const fade = node.opacity === 1 ? '' : ` opacity="${escapeXml(node.opacity)}"`;
     let self = '';
     if (node.type === 'text') {
       // v294 — the thumb used to INVENT a size from the box (`height * 0.6`): a hero headline the model sets
