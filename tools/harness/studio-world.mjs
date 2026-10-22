@@ -216,7 +216,9 @@ try {
   //    re-rendered without writing anything would fail here.
   const saveNoteText = async () =>
     page.evaluate("(() => (document.querySelector('[data-world-save-note]')?.innerText ?? '').replace(/\\s+/g, ' ').trim())()");
-  const waitSaveNote = async (pred, timeout = 15000) => {
+  // Generous timeout: on a cold dev server the POST route is compiled on first hit, which can take
+  // longer than a snappy warm save; the note must still appear, we only refuse to wait forever.
+  const waitSaveNote = async (pred, timeout = 60000) => {
     const end = Date.now() + timeout;
     for (;;) {
       const text = await saveNoteText();

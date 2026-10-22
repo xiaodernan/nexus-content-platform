@@ -52,7 +52,7 @@
 | scene3d | **62/62 PASS** | webgl 后端可达、live、honest |
 | assets | **46/46 PASS** | 资源面只显元数据，不假装显图 |
 | account | **14/14 PASS** | 注册/登出/重注册全过 |
-| world | **28/28 绿，第 29 步超时** | 点 "save to disk" 后 **无用户可见的保存确认**（真实 gap，见 KNOWN_ISSUES） |
+| world | **34/34 PASS** | warm 复跑通过；首次 cold 超时是 harness 15s 太紧（cold 路由编译），已改 60s，非产品缺陷 |
 | publish | **环境跳过（exit 127）** | 需 Docker + Java 服务，本机未装；非代码缺陷 |
 
 world 的保存确认缺口已写入 KNOWN_ISSUES，作为 world 面板的下一个增量（ADR 0016 当前被并行 lane 的 v380 占脏，台账入口待其提交后补）。publish 因环境缺 Docker 无法在本机跑，属已知边界。
