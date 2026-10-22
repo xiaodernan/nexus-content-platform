@@ -93,6 +93,25 @@ describe('trail — the whole trail (M9 v272)', () => {
   });
 });
 
+describe('trail — the tally says WHICH rows it counts (M7 v379)', () => {
+  it('v379 — says the tally is about the ROWS on the screen', () => {
+    // The trail is a WINDOW (the service caps at a hundred and the panel asks for twenty), so a bare
+    // "4 published" was a fact about twenty rows and not about the trail.
+    const rows = toTrailRows([entry({ id: '1', action: 'publish' }), entry({ id: '2', action: 'publish' })]);
+    expect(trailSummaryText(trailSummaryOf(rows), 20)).toBe('of these 20 rows: 2 published');
+  });
+
+  it('v379 — and a tally with no rows says nothing yet, and names no rows', () => {
+    expect(trailSummaryText(trailSummaryOf([]), 20)).toBe('nothing yet');
+  });
+
+  it('v379 — and a caller that does not say how many rows it has gets the plain tally', () => {
+    // The wording stays available for a caller that has no row count: the panel always has one.
+    const rows = toTrailRows([entry({ id: '1', action: 'publish' })]);
+    expect(trailSummaryText(trailSummaryOf(rows))).toBe('1 published');
+  });
+});
+
 describe('trail — the tally and the filter (M9 v281)', () => {
   const rows = toTrailRows([
     entry({ id: '1', action: 'publish' }),

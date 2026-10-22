@@ -245,7 +245,7 @@ export function trailSummaryOf(rows: readonly TrailRow[]): TrailSummary {
  * dozen "0 took down"s as the social verbs arrived, and a reader would learn to skip it. A tally that
  * shows what happened is worth reading; a tally padded with zeroes is noise.
  */
-export function trailSummaryText(summary: TrailSummary): string {
+export function trailSummaryText(summary: TrailSummary, shown?: number): string {
   const parts: string[] = [];
   if (summary.published > 0) parts.push(`${summary.published} published`);
   if (summary.tookDown > 0) parts.push(`${summary.tookDown} took down`);
@@ -258,7 +258,15 @@ export function trailSummaryText(summary: TrailSummary): string {
   if (summary.withdrewReport > 0) parts.push(`${summary.withdrewReport} withdrew the report`);
   if (summary.acknowledged > 0) parts.push(`${summary.acknowledged} acknowledged`);
   if (summary.other > 0) parts.push(`${summary.other} other`);
-  return parts.length === 0 ? 'nothing yet' : parts.join(' · ');
+  if (parts.length === 0) return 'nothing yet';
+  const tally = parts.join(' · ');
+  // v379 — the tally counts the ROWS ON THE SCREEN, and the trail is a WINDOW (the service caps at a
+  // hundred and the panel asks for twenty) — so a bare "4 published" was a fact about twenty rows and
+  // not about the whole trail. A reader who was told how many there are cannot mistake it for the lot.
+  if (typeof shown === 'number' && Number.isFinite(shown) && shown >= 0) {
+    return `of these ${shown} rows: ${tally}`;
+  }
+  return tally;
 }
 
 /**

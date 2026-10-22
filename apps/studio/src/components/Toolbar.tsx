@@ -899,7 +899,9 @@ export default function Toolbar() {
                 </button>
                 {trailSummary && (
                   <span data-trail-summary style={{ marginLeft: 'auto', color: 'var(--nexus-muted)' }}>
-                    {trailSummaryText(trailSummary)}
+                    {/* v379 — and the tally says WHICH rows it is counting: the trail is a window, and a
+                        bare "4 published" was a fact about the rows on the screen and not about the trail. */}
+                    {trailSummaryText(trailSummary, (trail.rows ?? []).length)}
                   </span>
                 )}
               </div>

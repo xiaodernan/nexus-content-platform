@@ -902,7 +902,9 @@ try {
     {
       const summary = await page.evaluate("document.querySelector('[data-trail-summary]')?.textContent ?? ''");
       check(
-        'the panel states the tally of the whole answer',
+        // v379 — the name follows the truth: the tally counts the ROWS ON THE SCREEN, and the trail is a
+        // window. It was never the whole trail.
+        'the panel states the tally of the rows it is showing',
         /\d+ published · \d+ took down/.test(summary),
         `summary: ${JSON.stringify(summary)}`,
       );
@@ -4180,6 +4182,33 @@ try {
       `the tally: ${JSON.stringify(deskTally)}`,
     );
     await deskWindowPage.close();
+  }
+
+  // ── §76 v379: the trail’s tally says it counts the ROWS on the screen ────────────────────────────
+  // The trail is a window (the service caps at a hundred and the panel asks for twenty), so a bare
+  // "4 published" was a fact about twenty rows and not about the trail.
+  {
+    const trailTallyPage = await session.newPage('about:blank');
+    await trailTallyPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(trailTallyPage, 'the trail tally page to hydrate');
+    await signInAs(trailTallyPage, 'ada', 'the creator whose trail is on screen');
+    await trailTallyPage.evaluate("document.querySelector('[data-toolbar-trail-toggle]').click()");
+    const trailTallyShown = await until(
+      async () => {
+        const s = await trailTallyPage.evaluate("document.querySelector('[data-trail-summary]')?.textContent ?? ''");
+        return s.length > 0 ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the trail tally to show' },
+    );
+    check('the trail opens and its tally shows', trailTallyShown !== null, 'the tally is there');
+
+    const trailTally = await trailTallyPage.evaluate("document.querySelector('[data-trail-summary]')?.textContent ?? ''");
+    check(
+      'and the tally says it counts the ROWS on the screen',
+      trailTally.includes('of these ') && /\d+ rows/.test(trailTally),
+      `the tally: ${JSON.stringify(trailTally)}`,
+    );
+    await trailTallyPage.close();
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
