@@ -106,7 +106,14 @@ export interface SubscriptionsAnswer {
 export interface PlansAnswer {
   ok: boolean;
   plans: PlanEntry[];
-  count: number;
+  /**
+   * v373 — how many plans the creator offers, over the WHOLE table — or null when the count could not be
+   * read.
+   *
+   * <p>The count is NOT the window's length: the wire's count used to be the number of rows that happened
+   * to be on the screen, which is a fact about the read and not about the creator.
+   */
+  count: number | null;
   reason?: string;
 }
 
@@ -230,25 +237,27 @@ export async function readPlans(
       return {
         ok: false,
         plans: [],
-        count: 0,
+        count: null,
         reason: `the service's plans door answered HTTP ${res.status} with something that is not JSON`,
       };
     }
     const body = parsed as { plans?: unknown; count?: unknown; message?: unknown };
     if (!Array.isArray(body.plans)) {
       const why = typeof body.message === 'string' ? body.message : `the service's plans door answered HTTP ${res.status}`;
-      return { ok: false, plans: [], count: 0, reason: why };
+      return { ok: false, plans: [], count: null, reason: why };
     }
     return {
       ok: true,
       plans: body.plans as PlanEntry[],
-      count: typeof body.count === 'number' ? body.count : body.plans.length,
+      // v373 — a wire with NO count says the count is UNKNOWN: falling back to the window's length would
+      // be counting what happened to be on the screen and calling it the creator's whole catalogue.
+      count: typeof body.count === 'number' ? body.count : null,
     };
   } catch (error) {
     return {
       ok: false,
       plans: [],
-      count: 0,
+      count: null,
       reason: serviceUnreachableReason(apiBase, error),
     };
   }

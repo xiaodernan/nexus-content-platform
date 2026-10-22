@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { PriceCents, Tip, Subscription } from './monetization';
 
 import {
+  planCountText,
   subscriptionsTotalText,
   subscriptionsWindowText,
   tipGivenText,
@@ -271,6 +272,23 @@ describe('economy — subscription rows (M8 v274)', () => {
   it('v371 — and a RETIRED plan says no such thing: its terms are the last ones it offered', () => {
     const row = toPlanRow({ planId: 'pro', priceCents: 1500, period: 'month', active: false })!;
     expect(row.termsText).toBeNull();
+  });
+
+  it('v373 — says how many plans there are, and that the list is a WINDOW', () => {
+    // The count is the whole table's (v372) and the list is the service's window, so a panel that showed
+    // three plans and a creator who offers five must say so.
+    expect(planCountText(5, 3)).toBe('5 plans · showing the 3 newest of 5');
+  });
+
+  it('v373 — and a list that shows EVERYONE says no such thing', () => {
+    expect(planCountText(3, 3)).toBe('3 plans');
+  });
+
+  it('v373 — and a count that could not be read says NOTHING rather than a zero', () => {
+    // A count of zero would say the creator offers nothing, which is a different fact from "the count
+    // could not be read".
+    expect(planCountText(null, 3)).toBe('');
+    expect(planCountText(undefined, 3)).toBe('');
   });
 
   it('v370 — and a list that shows EVERYONE says no such thing', () => {

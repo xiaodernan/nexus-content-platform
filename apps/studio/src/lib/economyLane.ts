@@ -29,6 +29,10 @@ export interface EconomyAnswer {
   subscriptions?: SubscriptionRow[];
   /** v309 — the plans this account offers. */
   plans?: PlanRow[];
+  /**
+   * v373 — how many plans the account offers, over the WHOLE table — null when the count could not be read.
+   */
+  planCount?: number | null;
   /** v310 — the subscriptions this account has RECEIVED (the creator's other side). */
   received?: SubscriptionRow[];
   tips?: TipRow[];
@@ -109,7 +113,7 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
     if (typeof body !== 'object' || body === null) {
       return { ok: false, reason: 'the economy answered with neither an object nor a reason' };
     }
-    const { subscriptions, received, plans, tips, subscriptionCount, subscriptionTotalsByPeriod, receivedCount, receivedTotalsByPeriod } = body as {
+    const { subscriptions, received, plans, tips, subscriptionCount, subscriptionTotalsByPeriod, receivedCount, receivedTotalsByPeriod, planCount } = body as {
       subscriptions?: readonly unknown[];
       received?: readonly unknown[];
       plans?: readonly unknown[];
@@ -118,6 +122,7 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
       subscriptionTotalsByPeriod?: unknown;
       receivedCount?: unknown;
       receivedTotalsByPeriod?: unknown;
+      planCount?: unknown;
     };
     if (!Array.isArray(subscriptions) && !Array.isArray(plans)) {
       return { ok: false, reason: 'the economy answered with no subscriptions or plans' };
@@ -129,6 +134,8 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
       received: toSubscriptionRows(received ?? []),
       // v309 — the creator's own side of the economy.
       plans: toPlanRows(plans ?? []),
+    // v373 — and the count beside them, so the panel can say its list is a window.
+    planCount: typeof planCount === 'number' ? planCount : null,
       // v359 — and the counts and the totals, which are about the WHOLE table and not about the rows
       // the answer happens to carry.
       subscriptionCount: typeof subscriptionCount === 'number' ? subscriptionCount : undefined,

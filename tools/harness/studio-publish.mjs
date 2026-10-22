@@ -3927,6 +3927,41 @@ try {
     await manyPage.close();
   }
 
+  // ── §70 v373: the economy panel’s plan list says how many plans there are, and that it is a window ──
+  // The creator’s own panel shows the same plans the profile page does — and it says the same thing.
+  {
+    const planCountPage = await session.newPage('about:blank');
+    await planCountPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(planCountPage, 'the plan count page to hydrate');
+    await signInAs(planCountPage, 'wanda', 'the creator with many plans');
+    await planCountPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const planCountShown = await until(
+      async () => (await planCountPage.evaluate("!!document.querySelector('[data-economy-plan-count]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the plan count to show' },
+    );
+    check('the economy panel says how many plans the account offers', planCountShown !== null, 'the count is there');
+
+    const planCountLine = await planCountPage.evaluate(
+      "document.querySelector('[data-economy-plan-count]')?.textContent ?? ''",
+    );
+    check(
+      'and it says its list is a WINDOW, in the profile bar’s words',
+      planCountLine.includes('21 plans') && planCountLine.includes('showing the 20 newest of 21'),
+      `the panel: ${JSON.stringify(planCountLine)}`,
+    );
+
+    // And the SERVICE agrees — read independently of the browser.
+    const planCountRaw = await planCountPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const planCountId = JSON.parse(String(planCountRaw)).id;
+    const planCountService = await (await fetch(`${apiBase}/plans?creator=${encodeURIComponent(planCountId)}`)).json();
+    check(
+      'the SERVICE agrees — the count is the whole table’s',
+      planCountService.count === 21,
+      `count: ${JSON.stringify(planCountService.count)}`,
+    );
+    await planCountPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

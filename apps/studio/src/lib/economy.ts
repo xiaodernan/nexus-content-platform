@@ -234,6 +234,22 @@ export function subscriptionsWindowText(count: number | undefined, shown: number
   return `showing the ${shown} newest of ${count}`;
 }
 
+/**
+ * How many plans there are, and whether the list on the screen is a window.
+ *
+ * <p>v373 — the count is the WHOLE table's (v372) and the list is the service's window, so a panel that
+ * showed three plans and a creator who offers five must say so: "5 plans · showing the 3 newest of 5".
+ *
+ * <p>An unknown count says NOTHING — a count of zero would say the creator offers nothing, which is a
+ * different fact from "the count could not be read".
+ */
+export function planCountText(count: number | null | undefined, shown: number): string {
+  if (typeof count !== 'number' || !Number.isFinite(count)) return '';
+  const label = count === 1 ? '1 plan' : `${count} plans`;
+  const more = shown > 0 && count > shown ? ` · showing the ${shown} newest of ${count}` : '';
+  return `${label}${more}`;
+}
+
 export function subscriptionsTotalText(
   totals: readonly { period: string; currency: string; totalCents: number }[] | undefined,
 ): string {

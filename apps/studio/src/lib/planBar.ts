@@ -16,7 +16,7 @@
  *   what a supporter needs to decide.
  */
 import { escapeHtml } from './pageShell';
-import { PLAN_TERMS_NOTE, planPeriodText as sharedPlanPeriodText, priceText } from './economy';
+import { PLAN_TERMS_NOTE, planCountText, planPeriodText as sharedPlanPeriodText, priceText } from './economy';
 import type { Currency, PriceCents } from './monetization';
 
 /** One plan, in the service's own wire shape. */
@@ -153,10 +153,10 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   }
   const shown = facts.plans.length;
   const count = typeof facts.count === 'number' && Number.isFinite(facts.count) ? facts.count : null;
-  // v372 — the count is the WHOLE number and the list is a WINDOW, so the bar says how many it is not
-  // showing. The wording is the tip bar's (v350), so a reader who reads both bars reads one sentence.
-  const label = count === null ? '' : count === 1 ? '1 plan' : `${count} plans`;
-  const more = count !== null && shown > 0 && count > shown ? ` · showing the ${shown} newest of ${count}` : '';
+  // v372/v373 — the count is the WHOLE number and the list is a WINDOW, so the bar says how many it is not
+  // showing. The wording is the tip bar's (v350), so a reader who reads both bars reads one sentence —
+  // and it is the SHARED wording now (v373), so the creator's own panel says it the same way.
+  const countText = planCountText(count, shown);
   const items = facts.plans
     .map((plan) => {
       const href = `/?subscribe=${encodeURIComponent(plan.planId)}`;
@@ -176,7 +176,7 @@ ${plan.active ? `<a class="nexus-plan-action" href="${escapeHtml(href)}" title="
     .join('\n');
   return `<div class="nexus-plans" data-plans="${shown}" data-plan-count="${count ?? ''}">
 <div style={{ fontWeight: 600, marginBottom: 4 }}>Plans</div>
-${label ? `<div class="nexus-plans-count">${escapeHtml(label)}${escapeHtml(more)}</div>` : ''}
+${countText ? `<div class="nexus-plans-count">${escapeHtml(countText)}</div>` : ''}
 <ul class="nexus-plans-list">
 ${items}
 </ul>

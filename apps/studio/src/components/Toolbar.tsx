@@ -12,6 +12,7 @@ import { tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { readMyFollowing, unfollowAccount, type FollowingLaneAnswer } from '@/lib/followLane';
 import {
+  planCountText,
   priceText,
   subscriptionsTotalText,
   subscriptionsWindowText,
@@ -1203,7 +1204,13 @@ export default function Toolbar() {
           ) : (economyAccount.plans ?? []).length === 0 ? (
             <div style={{ color: 'var(--nexus-muted)' }}>this account offers no plan</div>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            <>
+              {/* v373 — the COUNT and the WINDOW beside the plans, in the same words the profile page's
+                  plan bar uses (v372): the list is the service's window and the count is the whole table's. */}
+              <div data-economy-plan-count style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
+                {planCountText(economyAccount.planCount, (economyAccount.plans ?? []).length)}
+              </div>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {(economyAccount.plans ?? []).map((row, i) => (
                 <li
                   key={i}
@@ -1238,6 +1245,7 @@ export default function Toolbar() {
                 </li>
               ))}
             </ul>
+              </>
           )}
         </div>
       )}

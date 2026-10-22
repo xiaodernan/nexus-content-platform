@@ -82,6 +82,22 @@ describe('economyLane — readEconomy (M8 v274)', () => {
     expect(tips).toHaveLength(1);
   });
 
+  it('v373 — carries the plans’ COUNT, so the panel can say its list is a window', async () => {
+    const answer = await readEconomy('acct-ada', async () =>
+      new Response(
+        JSON.stringify({
+          ok: true,
+          subscriptions: [],
+          plans: [{ planId: 'pro', creatorId: 'acct-ada', priceCents: 1500, currency: 'CNY', period: 'month', active: true, createdAt: 1 }],
+          planCount: 21,
+        }),
+        { status: 200 },
+      ),
+    );
+    expect(answer.ok).toBe(true);
+    expect(answer.planCount).toBe(21);
+  });
+
   it('maps the plans too — the creator’s own side of the economy (M7 v309)', async () => {
     const body = {
       ok: true,
