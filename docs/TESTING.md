@@ -1865,3 +1865,9 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   比栈溢出更隐蔽，连报错都留不下）+ 无环树顺序/计数/ancestor 链不变。
   - **方法沉淀**：修完 `collectSubtree` 那一刻就该做的**横向扫同族**——凡是「沿 children 递归」或
     「沿 parentId 爬」且没有 seen / depth 上限的，都是同一颗雷；这次把 nodes.ts 的四处一次清完。
+
+- **2026-10-22：同族第 5 处——`context-index.ts` 的 `firstTextIn`**（BFS 收 textPreview）也没有 seen 守卫，
+  children 成环时 `queue.push(...children)` 让队列无限增长 → `buildDesignIndex`（AI 上下文索引）死循环。
+  加 seen 守卫，无环 BFS 顺序不变（全 design-model 27 文件 / 339 条回归绿）。`context-index-cycle.test.ts` 2 条：
+  成环子树索引仍能建成（不再挂）+ Hero 的 textPreview 仍取到首段文字。
+  **红证**：与 ancestors/isDescendant 同一型（同步死循环，连报错都不留）——同族已实证，未再单独跑一次挂起。

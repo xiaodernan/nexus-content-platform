@@ -187,8 +187,12 @@ function nodeText(node: DesignNode): string {
 /** 子树里第一段非空文字（广度优先，按文档顺序），取到就停 */
 function firstTextIn(page: Page, node: DesignNode): string {
   const queue = [...node.children];
+  const seen = new Set<string>();
   for (let i = 0; i < queue.length; i += 1) {
-    const current = page.nodes[queue[i]!];
+    const id = queue[i]!;
+    if (seen.has(id)) continue; // 防环：children 成环时队列不再无限增长（ADR-0050）
+    seen.add(id);
+    const current = page.nodes[id];
     if (!current) continue;
     const text = nodeText(current).trim();
     if (text) return text.length > 60 ? `${text.slice(0, 60)}…` : text;
