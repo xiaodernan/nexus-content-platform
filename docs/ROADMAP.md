@@ -4232,6 +4232,10 @@ M8 整格仍是 `[~]`：MCP 与外部 Agent 那一格还没动，项目的创建
   - **踩到的一个坑（已写进 `docs/ENVIRONMENT.md`）**：e2e 的 dev server 与集成测试
     **打的是两个库**（`nexus` 与 `nexus_regress`）⇒ 新迁移**两个都要打**，
     否则集成测试全绿而 e2e 那里 500（`Failed query: insert into "game_completions"`）。
+    - **补一句真话（2026-10-22）**：上面那句"浏览器那一寸也齐了"写下的时候，这一条**还红着**——
+      dev server 连的那个库当时**还没打迁移 0034** ⇒ 那一报写不进去 ⇒ 500（`Failed query: insert into "game_completions"`）。
+      迁移打齐之后**同一份用例重跑：43 秒绿**（真玩一次 ⇒ 那一报 200 ⇒ 分析页上「通关过」= 1）⇒
+      现在这句"齐了"才是真的。教训落在 `docs/ENVIRONMENT.md` 里：**新迁移两个库都要打**。
 
 ## §147 选中响应第三片：记忆化先要"身份稳定"，否则它是个摆设
 
