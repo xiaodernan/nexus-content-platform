@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNull, lte, notInArray, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, lte, notInArray, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { marketplaceItems, assets, projects, snapshots, users, marketplacePurchases, creditLedger, marketplaceSplits, marketplaceAuditLog, marketplaceReports } from '../db/schema';
 import type { MarketplaceItemType, MarketplaceVisibility } from '../db/schema';
@@ -918,6 +918,27 @@ export async function flagSuspiciousActivity(input: FlagSuspiciousActivityInput)
   }
 
   return { reportId: report.id, isDuplicate: false };
+}
+
+/**
+ * 店面渲染用：这一页里**我已经举报过**的物品 id。
+ *
+ * `MarketplaceItemRow` 只能记住本次会话里点过的那一次提交；刷新之后按钮又出现，
+ * 买家必须再点一次提交才从 409 知道「已经举报过」。读这一条把已知状态交给界面，
+ * 与页面同一次渲染（不另开接口）。传进来的 id 是当前页的物品集合：一次 `inArray`，
+ * 不扫全表；形状不对的 id 直接丢掉（与 `listOwnedMarketplaceItems` 同一个 22P02 口径）。
+ */
+export async function listReportedItemIds(reporterId: string, itemIds: string[]): Promise<Set<string>> {
+  if (!isUuid(reporterId)) return new Set();
+  const ids = [...new Set(itemIds.filter(isUuid))];
+  if (!ids.length) return new Set();
+
+  const rows = await getDb()
+    .select({ itemId: marketplaceReports.itemId })
+    .from(marketplaceReports)
+    .where(and(eq(marketplaceReports.reporterId, reporterId), inArray(marketplaceReports.itemId, ids)));
+
+  return new Set(rows.map((row) => row.itemId));
 }
 
 export interface GetAuditLogInput {

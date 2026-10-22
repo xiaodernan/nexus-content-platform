@@ -4,6 +4,7 @@ import {
   MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR,
   listMarketplaceItems,
   listOwnedMarketplaceItems,
+  listReportedItemIds,
 } from '@/server/domain/marketplace';
 import { currentUserOrNull } from '@/server/domain/session';
 import { listProjects } from '@/server/domain/projects';
@@ -57,6 +58,8 @@ export default async function MarketplacePage({
   const projects = user ? await listProjects(user.id) : [];
   // 我的物品是所有者视角：包含私密草稿，但仍是同一个类型过滤（导航上的筛选项跟着走）
   const mine = user ? await listOwnedMarketplaceItems(user.id, { itemType }) : [];
+  // 「已举报」是服务端已知状态：刷新后入口不该又出现，409 只留作并发下的兜底
+  const reportedIds = user ? await listReportedItemIds(user.id, items.map((item) => item.id)) : new Set<string>();
 
   return (
     <main className="mx-auto flex min-h-screen max-w-[980px] flex-col gap-[var(--nexus-space-5)] p-[var(--nexus-space-6)] font-mono">
@@ -128,6 +131,7 @@ export default async function MarketplacePage({
                 }}
                 mine={Boolean(user && item.creatorId === user.id)}
                 signedIn={Boolean(user)}
+                alreadyReported={reportedIds.has(item.id)}
                 typeLabel={TYPE_LABELS[item.itemType] ?? item.itemType}
                 visibilityLabel={VISIBILITY_LABELS[item.visibility] ?? item.visibility}
               />
@@ -161,6 +165,7 @@ export default async function MarketplacePage({
                     }}
                     mine
                     signedIn={Boolean(user)}
+                    alreadyReported={reportedIds.has(item.id)}
                     typeLabel={TYPE_LABELS[item.itemType] ?? item.itemType}
                     visibilityLabel={VISIBILITY_LABELS[item.visibility] ?? item.visibility}
                   />

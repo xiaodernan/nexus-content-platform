@@ -27,6 +27,7 @@ export function MarketplaceItemRow({
   item,
   mine,
   signedIn,
+  alreadyReported,
   typeLabel,
   visibilityLabel,
 }: {
@@ -34,6 +35,8 @@ export function MarketplaceItemRow({
   mine: boolean;
   /** 未登录不显示举报入口：端点要会话，点了也只会拿到 401 */
   signedIn: boolean;
+  /** 服务端已知“我举报过这件”：刷新后入口直接不出现，不再靠再点一次拿 409 */
+  alreadyReported: boolean;
   typeLabel: string;
   visibilityLabel: string;
 }) {
@@ -49,7 +52,7 @@ export function MarketplaceItemRow({
   const [reportReason, setReportReason] = useState<ReportReason>('spam');
   const [reportNote, setReportNote] = useState('');
   const [reportBusy, setReportBusy] = useState(false);
-  const [reported, setReported] = useState(false);
+  const [reported, setReported] = useState(alreadyReported);
 
   const purchase = async () => {
     if (item.priceCredits === 0) {
