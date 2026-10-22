@@ -4108,6 +4108,40 @@ try {
     await offerPage.close();
   }
 
+  // ── §74 v377: the creator’s own panel says the plan is RETIRED ───────────────────────────────────
+  // The profile page’s bar has said "retired" since v301; the creator’s own panel showed a row
+  // with a price and no button — which reads like a live offer.
+  {
+    const retiredPage = await session.newPage('about:blank');
+    await retiredPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(retiredPage, 'the retired page to hydrate');
+    await signInAs(retiredPage, 'ada', 'the creator of the retired plan');
+    await retiredPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const retiredShown = await until(
+      async () => (await retiredPage.evaluate("!!document.querySelector('[data-economy-plan-retired]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the retired note to show' },
+    );
+    check('the creator’s own panel says the plan is retired', retiredShown !== null, 'the note is there');
+
+    const retiredNotes = await retiredPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-plan-retired]')).map((s) => s.getAttribute('data-economy-plan-retired'))",
+    );
+    check(
+      'and the note is the profile bar’s own word',
+      retiredNotes.length > 0 && retiredNotes.every((n) => n === 'retired'),
+      `the panel: ${JSON.stringify(retiredNotes)}`,
+    );
+
+    // And the PROFILE page says the same thing about the same plan.
+    const retiredProfile = await (await fetch(`${studioBase}/u/${encodeURIComponent(accountRecord?.id ?? '')}`)).text();
+    check(
+      'and the profile page says the same thing about the same plan',
+      retiredProfile.includes('retired'),
+      `the page: ${retiredProfile.includes('retired')}`,
+    );
+    await retiredPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

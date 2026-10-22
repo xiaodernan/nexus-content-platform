@@ -13,6 +13,7 @@ import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/li
 import { readMyFollowing, unfollowAccount, type FollowingLaneAnswer } from '@/lib/followLane';
 import {
   planCountText,
+  planRetiredText,
   priceText,
   subscriptionsTotalText,
   subscriptionsWindowText,
@@ -1234,6 +1235,12 @@ export default function Toolbar() {
                   {/* v371 — and that these are the terms ON OFFER today, beside the subscriptions’ terms
                       that were agreed — the two can disagree, and the reader has to be able to tell. */}
                   {row.termsText && <span data-economy-terms={row.termsText}> · {row.termsText}</span>}
+                  {/* v377 — and that the plan has been RETIRED: a retired plan keeps its terms, so the
+                      row looked exactly like a live offer — and the profile page's bar has said "retired"
+                      since v301. */}
+                  {!row.active && (
+                    <span data-economy-plan-retired="retired"> · {planRetiredText(row.active)}</span>
+                  )}
                   {/* v344 — and WHEN the plan was opened. The instant, not "3 days ago": a relative date goes
                       stale the moment it is written, and a plan is a fact about the past that does not move. */}
                   {row.openedText && (

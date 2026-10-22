@@ -299,6 +299,17 @@ export function planCountText(count: number | null | undefined, shown: number): 
  * <p>A plan that is GONE says nothing here: that is a different fact (the plan was never retired — it
  * is not there), and the row already says what it can say about the promise.
  */
+/**
+ * That a plan has been RETIRED — or an empty string when it is still offered.
+ *
+ * <p>v377 — a retired plan keeps its terms ✓, so its row looks exactly like a live offer ✓, and the
+ * creator's own panel said nothing about it ✓ (the profile page's plan bar has said "retired" since v301
+ * ✓). One wording for both screens ✓.
+ */
+export function planRetiredText(active: boolean): string {
+  return active ? '' : 'retired';
+}
+
 export function planOfferText(current: { active: boolean } | null): string | null {
   if (!current) return null;
   return current.active ? null : 'the plan is no longer on offer';

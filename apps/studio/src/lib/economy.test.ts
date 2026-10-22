@@ -5,6 +5,7 @@ import type { PriceCents, Tip, Subscription } from './monetization';
 import {
   planCountText,
   planOfferText,
+  planRetiredText,
   planTermsMovedText,
   subscriptionsTotalText,
   subscriptionsWindowText,
@@ -305,6 +306,16 @@ describe('economy — subscription rows (M8 v274)', () => {
         { priceText: '¥15.00', periodText: 'per month' },
       ),
     ).toBeNull();
+  });
+
+  it('v377 — says when the plan has been RETIRED', () => {
+    // A retired plan keeps its terms, so its row looked exactly like a live offer — and the profile
+    // page's bar has said "retired" since v301.
+    expect(planRetiredText(false)).toBe('retired');
+  });
+
+  it('v377 — and a plan that is still offered says nothing', () => {
+    expect(planRetiredText(true)).toBe('');
   });
 
   it('v376 — says when the plan is no longer ON OFFER', () => {

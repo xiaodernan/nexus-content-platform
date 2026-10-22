@@ -16,7 +16,7 @@
  *   what a supporter needs to decide.
  */
 import { escapeHtml } from './pageShell';
-import { PLAN_TERMS_NOTE, planCountText, planPeriodText as sharedPlanPeriodText, priceText } from './economy';
+import { PLAN_TERMS_NOTE, planCountText, planPeriodText as sharedPlanPeriodText, planRetiredText, priceText } from './economy';
 import type { Currency, PriceCents } from './monetization';
 
 /** One plan, in the service's own wire shape. */
@@ -160,7 +160,8 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   const items = facts.plans
     .map((plan) => {
       const href = `/?subscribe=${encodeURIComponent(plan.planId)}`;
-      const retired = plan.active ? '' : ' \\u00b7 retired';
+      // v377 — and the SHARED wording: the creator's own panel says it too (it said nothing before).
+      const retired = plan.active ? '' : ' \u00b7 ' + planRetiredText(plan.active);
       // v342 — and WHEN it was opened: the instant, not "3 days ago" — a relative date goes stale the
       // moment it is written, and a plan is a fact about the past that does not move.
       const opened = plan.openedText ? ` <span class="nexus-plan-opened">\u00b7 opened ${escapeHtml(plan.openedText)}</span>` : '';
