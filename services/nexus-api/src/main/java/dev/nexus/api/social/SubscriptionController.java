@@ -219,7 +219,10 @@ public class SubscriptionController {
                 // v328 — and WHEN it was taken back, when it was.
                 row.getEndedAt() == null ? null : row.getEndedAt().toEpochMilli(),
                 // v330 — and whose plan it was, as it was when the subscription was made.
-                row.getCreatorHandle());
+                row.getCreatorHandle(),
+                // v367 — and WHAT PERIOD it is for, as it was when the subscription was made: the row has
+                // kept the plan's period as a snapshot since v300, and the wire never said so.
+                row.getPeriod());
     }
 
     /**

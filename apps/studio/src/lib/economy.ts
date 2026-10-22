@@ -53,6 +53,13 @@ export interface EconomySubscription {
   handle?: string | null;
   assurance?: string | null;
   /**
+   * v367 — the PERIOD this subscription is for, as it was when it was made.
+   *
+   * <p>The service has kept the plan's period as a snapshot beside the price since v300; the wire now
+   * carries it too, so a reader can tell a monthly pledge from a yearly one.
+   */
+  period?: string | null;
+  /**
    * v328 — WHEN the subscription was taken back, in epoch millis. Null when it was not taken back.
    */
   endedAt?: number | null;
@@ -110,6 +117,13 @@ export interface SubscriptionRow {
    * small hole in it.
    */
   subscriberText: string;
+  /**
+   * v367 — WHAT PERIOD this subscription is for, in a reader's words — empty when the wire did not say.
+   *
+   * <p>The plan's own period can change (v317 reprices a plan, period and all); this is the one the
+   * supporter agreed to, and it is the one the row shows.
+   */
+  periodText: string;
   /**
    * v328 — WHEN the subscription was taken back, in a reader's words — or null when it was not.
    *
@@ -378,6 +392,8 @@ export function toSubscriptionRow(sub: unknown): SubscriptionRow | null {
     isActive: standing === 'active',
     // v327 — and who subscribed.
     subscriberText: subscriberTextOf(s),
+    // v367 — and what period it is for, as it was when the subscription was made.
+    periodText: planPeriodText(typeof s.period === 'string' ? s.period : ''),
     // v328 — and when it was taken back, when it was.
     endedText: endedTextOf(s),
     // v329 — and when the support began.

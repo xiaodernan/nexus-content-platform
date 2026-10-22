@@ -92,7 +92,16 @@ public final class SubscriptionDtos {
              * v330 — the plan's creator's NAME, as it was when the subscription was made. Null when the
              * plan carried no name: the panel then shows the creator's account id rather than inventing one.
              */
-            String creatorHandle) {
+            String creatorHandle,
+            /**
+             * v367 — the PERIOD this subscription is for, as it was when it was made.
+             *
+             * <p>The row has kept the plan's period as a SNAPSHOT since v300 — next to the price — and the
+             * wire never carried it, so a reader saw "¥15.00" and could not tell a monthly pledge from
+             * a yearly one. The plan's own period can change (v317 reprices a plan, period and all), and
+             * this is the one that was agreed.
+             */
+            String period) {
     }
 
     /** The answer to a plan question. */

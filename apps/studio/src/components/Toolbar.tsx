@@ -1067,6 +1067,9 @@ export default function Toolbar() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                     <span>
                       {row.planId} — {row.priceText}
+                      {/* v367 — and WHAT PERIOD it is for, as it was when the subscription was made: a
+                          reader who sees "¥15.00" cannot tell a monthly pledge from a yearly one. */}
+                      {row.periodText && <span data-economy-period={row.periodText}> · {row.periodText}</span>}
                       {/* v330 — and WHOSE plan it is. A plan id is an address, and a supporter reading
                           their own list should not have to know which address belongs to the person
                           whose work they are backing. */}
@@ -1130,6 +1133,8 @@ export default function Toolbar() {
                 >
                   <span>
                     {row.planId} — {row.priceText}
+                    {/* v367 — and WHAT PERIOD it is for, as it was when the subscription was made. */}
+                    {row.periodText && <span data-economy-period={row.periodText}> · {row.periodText}</span>}
                     {/* v327 — and WHO is behind it. A creator reading the subscriptions they received
                         was looking at a plan, a price and a status, and not at the person who had put
                         their money behind it — the wire has carried that name all along. */}

@@ -208,6 +208,20 @@ describe('economy — subscription rows (M8 v274)', () => {
     expect(row.openedText).toBeNull();
   });
 
+  it('v367 — says WHAT PERIOD the subscription is for', () => {
+    // The row has kept the plan's period as a snapshot since v300, and the wire now carries it: a reader
+    // who saw "¥15.00" could not tell a monthly pledge from a yearly one.
+    const row = toSubscriptionRow({ ...sub(), period: 'month' })!;
+    expect(row.periodText).toBe('per month');
+  });
+
+  it('v367 — and a wire with NO period says nothing rather than guessing', () => {
+    // An unknown period is passed through as it arrived — a panel that labelled it "per month" would be
+    // claiming a term nobody set.
+    const row = toSubscriptionRow({ ...sub(), period: 'fortnight' })!;
+    expect(row.periodText).toBe('fortnight');
+  });
+
   it('a row it cannot display honestly is dropped', () => {
     expect(toSubscriptionRow(null)).toBeNull();
     expect(toSubscriptionRow('string')).toBeNull();

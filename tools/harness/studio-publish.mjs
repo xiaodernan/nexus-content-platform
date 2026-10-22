@@ -3677,6 +3677,37 @@ try {
     await recvCountPage.close();
   }
 
+  // ── §64 v367: the panel says WHAT PERIOD each subscription is for ──────────────────────────────────
+  // The service has kept the plan’s period as a snapshot since v300; the wire now carries it.
+  {
+    const periodPage = await session.newPage('about:blank');
+    await periodPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(periodPage, 'the period page to hydrate');
+    await signInAs(periodPage, 'bob', 'the subscriber');
+    await periodPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const periodShown = await until(
+      async () => (await periodPage.evaluate("!!document.querySelector('[data-economy-period]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the period to show on the row' },
+    );
+    check('the panel says what period each subscription is for', periodShown !== null, 'the period is there');
+
+    // And the SERVICE agrees, read independently of the browser.
+    const periodRaw = await periodPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const periodId = JSON.parse(String(periodRaw)).id;
+    const periodService = await (await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(periodId)}&limit=50`)).json();
+    const servicePeriods = (periodService.subscriptions ?? []).map((s) => s.period).filter(Boolean);
+    const panelPeriods = await periodPage.evaluate(
+      "Array.from(document.querySelectorAll('[data-economy-period]')).map((s) => s.getAttribute('data-economy-period'))",
+    );
+    check(
+      'the SERVICE agrees — the wire carries the period and the panel shows it',
+      servicePeriods.length > 0
+        && servicePeriods.every((p) => panelPeriods.some((shown) => shown.includes(p))),
+      `the service: ${JSON.stringify(servicePeriods)} · the panel: ${JSON.stringify(panelPeriods)}`,
+    );
+    await periodPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

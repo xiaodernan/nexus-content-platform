@@ -30,6 +30,13 @@ export interface SubscriptionEntry {
   handle?: string | null;
   assurance?: string | null;
   /**
+   * v367 — the PERIOD this subscription is for, as it was when it was made.
+   *
+   * <p>The service has kept the plan's period as a snapshot beside the price since v300; the wire now
+   * carries it too, so a reader can tell a monthly pledge from a yearly one.
+   */
+  period?: string | null;
+  /**
    * v328 — WHEN the subscription was taken back, in epoch millis. Null when it was not.
    */
   endedAt?: number | null;
