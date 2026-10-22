@@ -32,11 +32,19 @@
 
 ### 下一批（按优先级）
 
-1. **v380 — 订阅行该说清"这个 plan 的条款后来变过没有"**：v375 ✓ 已经把 plan **现在的**价和周期带上线了 ✓，可客户端还没**比** ✗（行上还是那个"as agreed"的旧条款 ✓）；比一下就知道"变了：现在 ¥25.00" ✓，而且比的是**同一个 plan** ✓（行上的 planId ✓ 和 plan 栏的 planId ✓ 对得上 ✓）。
-2. **v381 — 订阅的续订**：唯一约束要变成"只约束还站着的行"，那是一条依赖时间的规则，唯一索引写不了（要触发器或换表 + 迁移工具）。
-3. **v382 — trail 的 target 要不要带"种类"**：follow/tip 指向账号、subscribe 指向 plan，都不是 publication（要改 audit 的表 + 迁移工具）。
-4. **v383 — trail 的筛选下沉到服务端**：desk 的已经在服务端了 ✓（v326），trail 的门是 ops 包里的 `/audit`，那是并行 lane 的活 ✗（这条等那条 lane 落地后再做）。
-5. **v384 — Stage B/C 服务端接线**（仍被 ADR 0018 阻塞：无服务端账号/会话/令牌不做）。
+1. **v381 — 举报人自己那栏的行该说"什么时候"提交的**：线上有 `createdAt` ✓（服务端的 `Report` 带了 ✓），可面板只写理由和状态 ✗；跟 v341–v344 那批"每个日期都该在页面上"一样 ✓，这里也漏了一条 ✓（关注行同理 ✓，线上也有 `createdAt` ✓）。
+2. **v382 — 举报人那栏要能翻页**：v380 自己说清了两条边界 ✓——"面板要的是一段窗口" ✓、"超过上限的更早那几条还没有翻页够不着" ✗；服务端的 filed 读**不接受 offset** ✓，要加一个 offset 参数 + 面板一个翻页条 ✓（follows 那边的读也是同一个形状 ✓，一条一起做 ✓）。
+3. **v383 — 订阅的续订**：唯一约束要变成"只约束还站着的行"，那是一条依赖时间的规则，唯一索引写不了（要触发器或换表 + 迁移工具）。
+4. **v384 — trail 的 target 要不要带"种类"**：follow/tip 指向账号、subscribe 指向 plan，都不是 publication（要改 audit 的表 + 迁移工具）。
+5. **v385 — trail 的筛选下沉到服务端**：desk 的已经在服务端了 ✓（v326），trail 的门是 ops 包里的 `/audit`，那是并行 lane 的活 ✗（这条等那条 lane 落地后再做）。
+
+### 我的在途增量（与并行 lane 的 v380 分开记）
+
+- **待补 ADR 0016 台账（被并行 lane 的 v380 占脏，暂不进）**：
+  - **amendment 369** — `docs/evidence/m7/service-suite-proof.mjs` 的台账记录。已测（commit `521e9bc`）：clean HEAD 下 222 tests / 9 classes / 0 fail / 0 err，digest 稳定，全章 PASSED；工作树里首次跑就 RED 且正确（PublishServiceTest 6 个 Mockito `PotentialStubbingProblem`，属并行 lane 未提交的发布重构）。该 proof 不写版本号，所以台账迟补不会悬空。
+  - **amendment 370** — 修正 §154 的虚假声明。原 §154 称 "all three mutations are caught by `saveSnapshot.test.ts`"，但 `ba647a0`/`d18ce95` 暴露该探针是**无效**的：它改的是类型联合（esbuild 会抹掉，等于零变异），且 `name-not-reenterable` 实际在 `saveNameSpelling.test.ts` 里、它根本没跑。已重写成改运行时 push 站点 + 跑整个 `@nexus/three-runtime` 套件 → 三种变异全中。台账须用 "Corrects amendment 154" 写法。
+  - ADR 当前被并行 lane 的 amendment 371（v380）占脏，**等其提交后再补 369/370**，不混进别人的字节（house rule）。
+- **下一个可验证增量：浏览器 harness 端到端复测**。已确认 world / scene3d / assets / publish / account 全部支持 `--out`，默认写 `.scratch/vNNN`，**不脏提交证据**；golden-path 默认写 `docs/evidence/studio/harness`，但可用 `--out .scratch/golden` 覆盖。本回合先复跑 golden-path 确认 19/19（无 baseline → SKIP），再逐个复跑其余，把测得的通关数写进台账与 README。
 
 ### M9 审计轨迹（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）
 
@@ -130,6 +138,7 @@
 | v377 | **创作者自己面板上的 plan 行说清"这个 plan 已经退役了"**：退役的 plan **保留它最后那套条款** ✗，行上看着跟"还在卖"一模一样 ✗（有价、有周期、没按钮 ✗，读者会以为还能买 ✗）；主页的 plan 栏从 v301 ✓ 起就写着 "retired" ✓，**自己面板上却一个字没有** ✗（一个 plan 在两块屏上一个死一个活 ✗）；现在两边用**同一套话** ✓（共享的 `planRetiredText` ✓，主页的栏 ✓ 和面板的行 ✓），还在卖的 plan **什么都不说** ✓ | studio **1250/1250**；social+moderation **162/162**；E2E §74 **311/311** |
 | v378 | **创作者面板上 desk 的行说清"这些行只是一段"**：面板上方有 tally ✓（那是**整张表**的数 ✓，v309 ✓ v312 ✓），紧接着下面一行却写"3 report(s) · 1 still waiting" ✗（那是**窗口**的数 ✗）——同一块屏上两个"report(s)" ✗，读者分不清哪个是全部 ✗；现在那一行说"showing the 3 newest of 5" ✓（带筛选时拿**那个 reason 的总数**去比 ✓，不是拿全表去比 ✓），tally 继续说整张表 ✓ | studio **1253/1253**；social+moderation **162/162**；E2E §75 **314/314** |
 | v379 | **trail 的 tally 说清它数的是"屏上这些行"**：trail 是一段**窗口** ✓（服务端封顶一百 ✓，面板要二十 ✓），可 tally 写的是"4 published · 1 took down" ✗——读起来像**整条 trail** 的数 ✗，其实只是那二十行里的 ✓（面板脚注写着"20 shown · the service caps at 100" ✓，可 tally 在旁边没有限定 ✗，先读 tally 的人看不出来 ✗）；现在 tally 自己带上它数的行数 ✓："of these 20 rows: 4 published · 1 took down" ✓，老检查的**名字**也跟着改成实话 ✓（它原来叫"the whole answer" ✗，从来就不是整条 trail ✗） | studio **1256/1256**；social+moderation **162/162**；E2E §76 **316/316** |
+| v380 *(并行 lane 在途：未提交；数字来自该 lane 声明，我未独立复测)* | **举报人自己那栏 + 关注人自己那栏，说清"一共多少"**："YOU FILED" 和 "YOU FOLLOW" 以前只有行、没有数 ✗，而且两边的毛病还不一样 ✗——举报那侧的服务端把**窗口的长度**当总数答上来（`filed.size()`）✗，读起来像总数却不是 ✓（一个报了三十七条的举报人，被告知自己有二十条 ✓；窗口空时面板还会说"你没有举报过" ✗，那是拿窗口说全表 ✓）；关注那侧相反 ✓——服务端**一直**有全表计数（`countByFollowerAccountId` ✓），可浏览器这层把它**扔了** ✗。现在服务端给举报那侧补上全表计数 ✓（`countByReporterAccountId` + `countFiledBy` ✓，线上同时带计数和上限 ✓），两条 lane 把计数带到面板 ✓，面板把它说出口 ✓："N report(s) filed · showing the N newest of M" ✓ / "N follow(s) · ..." ✓，而且"你没有举报过"要**窗口和计数都空**才说 ✓ | studio **1261/1261**；social+moderation **164/164**；E2E §77 **318/318** |
 | **v273** | **客户端 `ops.ts` 与线格式对齐**：`actorId`/`assurance` 变可空；`AuditAction` 对未知动词开放；匿名条目单独成桶（`__anonymous__`）；**新增契约 proof**（读 Java record + 用 tsc 编译探针） | ✅ 900/900 · proof exit 0 · 3 处 mutation 分别被 §3/§5 抓住 |
 
 ## 本次会话已落地的增量
