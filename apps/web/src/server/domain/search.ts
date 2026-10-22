@@ -14,6 +14,7 @@ import {
   storyboards,
   users,
   worlds,
+  snapshots,
 } from '../db/schema';
 
 /**
@@ -73,14 +74,13 @@ export const SEARCH_NOT_COVERED = [
  * 排序口径的原话（页面照抄这一句，别自己另编一套说法）。
  *
  * 为什么写在页面上：一个藏起来的序会被读成「平台公认最相关」，
- * 写出来它才只是「我们这套五档排出来的」（与 trending 同一句纪律）。
+ * 写出来它才只是「我们这套六档排出来的」（与 trending 同一句纪律）。
  *
- * 五档次序（以上已有 4 档，新增第 5 档）：
- * 标题与搜索词完全一样 > 标题以搜索词开头 > 标题里有搜索词 > 只在简介/摘要/正文里有 > 只在文档正文里有；
+ * 六档次序：标题与搜索词完全一样 > 标题以搜索词开头 > 标题里有搜索词 > 只在简介/摘要/正文里有 > 只在文档正文里有 > 只在全文/语料库里有；
  * 不看词频、不看词在标题里的位置、不看点击与热度，同分时按更新时间新→旧排。
  */
 export const SEARCH_ORDER_METHOD =
-  '组内按相关度排：标题与搜索词完全一样 > 标题以搜索词开头 > 标题里有搜索词 > 只在简介/摘要/正文里有 > 只在文档正文里有；同分时按更新时间新→旧。';
+  '组内按相关度排：标题与搜索词完全一样 > 标题以搜索词开头 > 标题里有搜索词 > 只在简介/摘要/正文里有 > 只在文档正文里有 > 只在全文/语料库里有；同分时按更新时间新→旧。';
 
 export interface SearchHit {
   id: string;
@@ -135,7 +135,7 @@ function likeTerm(q: string): string {
  * 第 5 档（只在文档正文里有）：来自 snapshots.search_text，当设计稿/页面的标题/详情都没有命中时，
  * 才检查文档正文里是否有搜索词。这能让创作者在搜索自己的设计稿时，即使只有正文里有该词也能被找到。
  */
-function relevanceScore(title: SQLWrapper, details: SQLWrapper[], q: string, searchText?: SQLWrapper): SQL<number> {
+function relevanceScore(title: SQLWrapper, details: SQLWrapper[], q: string, searchText?: SQLWrapper, corpusText?: SQLWrapper): SQL<number> {
   const raw = q.toLowerCase();
   const needle = escapeLike(q).toLowerCase();
   const t = sql`lower(${title})`;
@@ -144,19 +144,22 @@ function relevanceScore(title: SQLWrapper, details: SQLWrapper[], q: string, sea
     when ${t} like ${needle} || '%' then 3
     when ${t} like '%' || ${needle} || '%' then 2
     else 0 end`;
-  // 当没有 details 也没有 searchText 时，只看标题得分
-  if (details.length === 0 && !searchText) return titlePart;
+  // 当没有 details 也没有 searchText 也没有 corpusText 时，只看标题得分
+  if (details.length === 0 && !searchText && !corpusText) return titlePart;
   const detailParts = details.map((column) => {
     const c = sql`lower(${column})`;
     return sql<number>`case when ${c} like '%' || ${needle} || '%' then 1 else 0 end`;
   });
-  // 当 details 为空但提供了 searchText 时，titlePart 单独作为基准分
-  const baseScore = details.length > 0
+  // 当 details 为空但提供了 searchText 或 corpusText 时，titlePart 单独作为基准分
+  const baseScore = (details.length > 0 || searchText !== undefined || corpusText !== undefined)
     ? sql<number>`greatest(${titlePart}, ${sql.join(detailParts, sql`, `)})`
     : titlePart;
-  if (!searchText) return baseScore;
-  const searchPart = sql<number>`case when lower(${searchText}) like '%' || ${needle} || '%' then 1 else 0 end`;
-  return sql<number>`greatest(${baseScore}, ${searchPart})`;
+  if (!searchText && !corpusText) return baseScore;
+  // 第 5 档：只在文档正文里有（来自 search_text）
+  const searchPart = sql<number>`case when lower(${searchText ?? ''}) like '%' || ${needle} || '%' then 1 else 0 end`;
+  // 第 6 档：只在全文/语料库里有（来自 corpusText，knowledgeChunks.content）
+  const corpusPart = sql<number>`case when lower(${corpusText ?? ''}) like '%' || ${needle} || '%' then 1 else 0 end`;
+  return sql<number>`greatest(${baseScore}, ${searchPart}, ${corpusPart})`;
 }
 
 export function normalizeQuery(raw: string | string[] | undefined): string {
