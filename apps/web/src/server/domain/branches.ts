@@ -78,13 +78,25 @@ export async function ensureDefaultBranch(projectId: string): Promise<string | n
   const [created] = await db
     .insert(branches)
     .values({ projectId, name: 'main', isDefault: true, headSnapshotId: project.currentSnapshotId })
+    // #170：并发首次（两个标签页同时列分支 / 双击生成方案）都辩不出"main"存在 → 都 insert。
+    // 库里 branches_project_name_key 挡下第二条；回头读现成的那条，不报错、不建第二条 main。
+    // 背景补充（backfill）留给赢家：行已经建了，历史快照归类也已经做过。
+    .onConflictDoNothing()
     .returning({ id: branches.id });
+  if (!created) {
+    const [raced] = await db
+      .select({ id: branches.id })
+      .from(branches)
+      .where(eq(branches.projectId, projectId))
+      .limit(1);
+    return raced?.id ?? null;
+  }
   // 分支功能之前建的快照都在这条线上：不给 branchId，它们就切不回去、列表也归不了类
   await db
     .update(snapshots)
-    .set({ branchId: created!.id })
+    .set({ branchId: created.id })
     .where(and(eq(snapshots.projectId, projectId), isNull(snapshots.branchId)));
-  return created!.id;
+  return created.id;
 }
 
 export async function listBranches(projectId: string): Promise<BranchMeta[]> {
@@ -297,7 +309,11 @@ export async function createVariantBranch(
   const [row] = await db
     .insert(branches)
     .values({ projectId, name: input.name, headSnapshotId: null })
+    // #170：同名冲突由库振着（上面那道 clash 预检阻振不住并发）。
+    // 返回 null 是这个函数既有的契约（调用方换此记"没能落成分支"），不报 23505。
+    .onConflictDoNothing()
     .returning();
+  if (!row) return null;
   const head = await createSnapshot(projectId, {
     document: input.document,
     source: 'branch',

@@ -272,4 +272,21 @@ describe('多方案生成与合成（真实数据库）', () => {
     });
     expect(cross.ok).toBe(false);
   });
+
+  it('并发双发"生成方案"：同名分支永远只有一条（#170）', async () => {
+    const id = await newProject('Variant Race');
+    // 同一份文档算出来的方案名是确定的：双击按钮就是两个请求同时到。
+    // 这里键的是结果不变式：不抛异常、同名分支只有一条。
+    // （确定性地杀变异的那条在 branches.integration：直接对同名的
+    //  createVariantBranch 发两发，两边的 clash 预检都先于任何 insert 发出）。
+    const [a, b] = await Promise.all([
+      generateVariants(id, { count: 2 }),
+      generateVariants(id, { count: 2 }),
+    ]);
+    const names = (await listVariants(id)).map((v) => v.branch.name);
+    expect(new Set(names).size, '同名分支出现了两条').toBe(names.length);
+    expect(names).toContain('main');
+    const landed = (a.ok ? a.value.length : 0) + (b.ok ? b.value.length : 0);
+    expect(landed, '每条落地的方案都对应一条分支').toBe(names.length - 1);
+  });
 });

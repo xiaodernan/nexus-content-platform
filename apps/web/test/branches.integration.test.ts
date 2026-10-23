@@ -3,6 +3,7 @@ import { eq, sql as rawSql } from 'drizzle-orm';
 import { createNode, findPage, type DesignDocument } from '@nexus/design-model';
 import {
   createBranch,
+  createVariantBranch,
   currentBranchId,
   duplicateProject,
   ensureDefaultBranch,
@@ -295,5 +296,56 @@ describe('分支与副本（真实数据库）', () => {
     expect(sameName.ok).toBe(true);
     expect((await listBranches(a)).map((x) => x.name)).toEqual(['main', 'design-v1']);
     expect((await listBranches(b)).map((x) => x.name)).toEqual(['main', 'design-v1']);
+  });
+
+  it('老项目（分支行丢了）并发补 main：库挡下第二条，如实交出现成那条（#170）', async () => {
+    const id = await newProject('Legacy Branch Race');
+    const db = getDb();
+    // createProject 现在就建 main，正常路径造不出"分支行丢了"的老项目，这里手工删掉；
+    // snapshots.branchId 外键是 onDelete:'set null'，删分支行不伤快照。
+    await db.delete(branches).where(eq(branches.projectId, id));
+
+    // 真实竞态：另一个会话已经把 main 插进去、还没提交——两处 select 都看不见它，
+    // 于是两边都走到 insert。后到者阻塞在唯一索引上，等那个事务落地后才发现插重了。
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let landed!: () => void;
+    const inserted = new Promise<void>((resolve) => {
+      landed = resolve;
+    });
+    const other = db.transaction(async (tx) => {
+      await tx.insert(branches).values({ projectId: id, name: 'main', isDefault: true });
+      landed();
+      await gate;
+    });
+    await inserted;
+    // 不 await：这一发要先走到 insert 并阻塞在唯一索引上，再放开那个事务
+    const pending = ensureDefaultBranch(id);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    release();
+    const mine = await pending;
+    await other;
+
+    expect(mine, '并发补 main 失败了').toBeTruthy();
+    const rows = await db.select({ id: branches.id }).from(branches).where(eq(branches.projectId, id));
+    expect(rows).toHaveLength(1);
+    expect((await listBranches(id)).filter((x) => x.name === 'main')).toHaveLength(1);
+  });
+
+  it('并发同名建分支：库挡下第二条，如实答 null 而不是 23505（#170）', async () => {
+    const id = await newProject('Variant Branch Race');
+    const document = await loadDocument(id);
+    if (!document) throw new Error('新项目该有文档');
+    // 两发同时到：clash 预检都在任何 insert 之前发出（各自 await 完预检才插）→
+    // 两边都看不到对方 → 都 insert。库里 branches_project_name_key 挡下第二条。
+    const [a, b] = await Promise.all([
+      createVariantBranch(id, { name: 'concept-x', document, label: '甲', summary: '并发' }),
+      createVariantBranch(id, { name: 'concept-x', document, label: '乙', summary: '并发' }),
+    ]);
+    expect([a, b].filter(Boolean), '同名分支落了两条').toHaveLength(1);
+    const names = (await listBranches(id)).map((x) => x.name);
+    expect(names.filter((n) => n === 'concept-x')).toHaveLength(1);
   });
 });
