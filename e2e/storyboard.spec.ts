@@ -631,6 +631,7 @@ test('@smoke §160 成片播放预览：DEMO 渲染出的 mp4 在面板里真的
   await page.fill('[data-storyboard-prompt-input]', '灯塔的光扫过浮冰，她数着回来的每一条船');
   await page.click('[data-storyboard-create]');
   await savedState(page);
+  const shotId = (await page.locator('[data-storyboard-shot]').first().getAttribute('data-storyboard-shot'))!;
 
   // ① 渲染之前：面板里一个播放器都没有——不摆假占位（§159）
   await expect(page.locator('[data-storyboard-render-video]')).toHaveCount(0);
@@ -657,6 +658,13 @@ test('@smoke §160 成片播放预览：DEMO 渲染出的 mp4 在面板里真的
 
   // ⑤ 历史清单每条也各带一个播放器：渲过几版就能挨个回看
   await expect(page.locator('[data-storyboard-render-history] [data-storyboard-render-video]')).toHaveCount(1);
+
+  // ⑥ 渲完成片自动定位到挂着成片的那一镜（#200）：高亮落在第一镜上，播报也说清是"成片挂在了这一镜"。
+  //    这是渲染完成的视图副作用，不进撤销栈（§150 管改动，不管查看）
+  const linked = page.locator('[data-storyboard-shot-linked="true"]');
+  await expect(linked).toHaveCount(1);
+  await expect(linked).toHaveAttribute('data-storyboard-shot', shotId);
+  await expect(page.locator('[data-timeline-announce]')).toContainText('成片已挂到第 1 镜');
 
   await page.locator('[data-storyboard-render-result]').scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'screenshots/storyboard-render-playback.png' });

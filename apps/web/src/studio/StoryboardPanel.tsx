@@ -296,6 +296,12 @@ export function StoryboardPanel() {
         .then((r) => r.json())
         .catch(() => null)) as { renders?: RenderRecord[] } | null;
       setRenders((list?.renders ?? []).map((item) => ({ ...item, warnings: item.warnings ?? [] })));
+      // #200：成片挂在第一镜上，把那一镜滚进视野并高亮——刚渲完的东西要能在镜头列表里找到。
+      // 不走 focusShot()：那个函数的播报话是"用户点了定位"的口径，这里是渲染完成的副作用，
+      // 话要说明白是"成片挂在了这一镜"。同样只动视图状态，不进撤销栈（§150 管改动，不管查看）。
+      setLinkedShotId(first.id);
+      setAnnounce('成片已挂到第 1 镜，镜头列表已定位到它');
+      document.querySelector(`[data-storyboard-shot="${first.id}"]`)?.scrollIntoView({ block: 'nearest' });
     } catch (error) {
       setRenderError(error instanceof Error ? error.message : String(error));
     } finally {
