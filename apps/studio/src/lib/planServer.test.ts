@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { offerOnService, readPlans, subscribeOnService } from './planServer';
+import { offerOnService, readPlans, repricePlan, subscribeOnService } from './planServer';
 import { nexusApiBase } from './publishServer';
 
 /**
@@ -274,6 +274,137 @@ describe('planServer — offerOnService (v447)', () => {
       throw late;
     });
     const answer = await offerOnService('pro', 100, 'CNY', 'month', CLAIM, fetchImpl);
+    expect(answer.reason).toContain('did not answer within 15 seconds');
+    expect(answer.reason).not.toContain('unreachable');
+  });
+});
+
+describe('planServer — repricePlan (v448)', () => {
+  // The repricing write sits beside the offer in the same file and answers through its own reader, and
+  // the contrast between the two doors is the reason this is its own increment: the offer POSTs a JSON
+  // body with the claim NULL-FILLED (v447), while the repricing PUTs with the price in the QUERY and
+  // carries ONLY the claimer — the handle, the assurance and the claimedAt never leave the browser.
+
+  it('the repricing is a PUT to the plan’s own door, with the price and the period in the query', async () => {
+    let seenUrl = '';
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((url, init) => {
+      seenUrl = url;
+      seenInit = init;
+      return new Response(JSON.stringify({ ok: true, priceCents: 2500, period: 'year' }), { status: 200 });
+    });
+    await repricePlan('pro', 2500, 'year', CLAIM, fetchImpl);
+    expect(seenUrl).toBe(`${nexusApiBase()}/plans/pro?claimer=acct-bob&price=2500&period=year`);
+    expect(seenInit?.method).toBe('PUT');
+    expect(seenInit?.body).toBeUndefined();
+    expect(seenInit?.headers).toEqual({ accept: 'application/json' });
+  });
+
+  it('the plan id and the claimer are URL-ENCODED into the query', async () => {
+    let seenUrl = '';
+    const fetchImpl = makeFetch((url) => {
+      seenUrl = url;
+      return new Response(JSON.stringify({ ok: true, priceCents: 100, period: 'month' }), { status: 200 });
+    });
+    await repricePlan('pro plan/x', 100, 'month', { accountId: 'acct bob/../x' }, fetchImpl);
+    expect(seenUrl).toBe(`${nexusApiBase()}/plans/pro%20plan%2Fx?claimer=acct%20bob%2F..%2Fx&price=100&period=month`);
+  });
+
+  it('ONLY the claimer travels — the handle, the assurance and the claimedAt stay behind (v447’s contrast)', async () => {
+    let seenUrl = '';
+    const fetchImpl = makeFetch((url) => {
+      seenUrl = url;
+      return new Response(JSON.stringify({ ok: true, priceCents: 100, period: 'month' }), { status: 200 });
+    });
+    await repricePlan('pro', 100, 'month', CLAIM, fetchImpl);
+    expect(seenUrl).not.toContain('handle');
+    expect(seenUrl).not.toContain('assurance');
+    expect(seenUrl).not.toContain('claimedAt');
+    expect(seenUrl).toContain('claimer=acct-bob');
+  });
+
+  it('the ask carries the SERVICE budget of 15 seconds, pinned on AbortSignal.timeout (v337)', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ok: true, priceCents: 100, period: 'month' }), { status: 200 }));
+      await repricePlan('pro', 100, 'month', CLAIM, fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledWith(15_000);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('a refusal keeps the service’s OWN WORDS, even though the body carries no `ok` field (v313)', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ error: 'not-owner', message: 'only the plan’s own creator may reprice it' }), { status: 403 }),
+    );
+    const answer = await repricePlan('pro', 100, 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('only the plan’s own creator may reprice it');
+  });
+
+  it('a refusal that DOES carry `ok: false` keeps its reason too', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ ok: false, reason: 'a plan’s price cannot be negative' }), { status: 400 }),
+    );
+    const answer = await repricePlan('pro', -1, 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('a plan’s price cannot be negative');
+  });
+
+  it('an answer that is neither carries a reason about the HTTP status, naming the door', async () => {
+    const fetchImpl = makeFetch(() => new Response(JSON.stringify({ error: 'not-owner' }), { status: 403 }));
+    const answer = await repricePlan('pro', 100, 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('403');
+    expect(answer.reason).toContain("the service's plans door");
+  });
+
+  it('a success carries the NEW price and period the service answered with', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ ok: true, priceCents: 2500, period: 'year' }), { status: 200 }),
+    );
+    const answer = await repricePlan('pro', 2500, 'year', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.priceCents).toBe(2500);
+    expect(answer.period).toBe('year');
+  });
+
+  it('an answer whose price is not a number leaves the field absent, not zero', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ ok: true, priceCents: '2500', period: 7 }), { status: 200 }),
+    );
+    const answer = await repricePlan('pro', 2500, 'year', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.priceCents).toBeUndefined();
+    expect(answer.period).toBeUndefined();
+  });
+
+  it('an answer that is not JSON is a refusal naming the HTTP status, in the door’s own words', async () => {
+    const fetchImpl = makeFetch(() => new Response('<html>gateway</html>', { status: 502 }));
+    const answer = await repricePlan('pro', 100, 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('502');
+    expect(answer.reason).toContain('not JSON');
+  });
+
+  it('a repricing that never arrived answers UNREACHABLE with the address named', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw new Error('connect ECONNREFUSED');
+    });
+    const answer = await repricePlan('pro', 100, 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('nexus-api unreachable');
+    expect(answer.reason).toContain(nexusApiBase());
+  });
+
+  it('a slow repricing says it was LATE, not unreachable — the v337 distinction', async () => {
+    const late = new Error('The operation was aborted due to timeout');
+    late.name = 'TimeoutError';
+    const fetchImpl = makeFetch(() => {
+      throw late;
+    });
+    const answer = await repricePlan('pro', 100, 'month', CLAIM, fetchImpl);
     expect(answer.reason).toContain('did not answer within 15 seconds');
     expect(answer.reason).not.toContain('unreachable');
   });
