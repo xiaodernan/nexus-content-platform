@@ -5584,3 +5584,20 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   纯选中帧照旧命中，§147 选中响应不受影响。测试 `apps/web/test/studio-layout-cache.test.ts`
   三帧各钉一条（选中命中 / 半程提交不陈旧 / 换视口重算）；变异探针四臂全精确红。
   见证：`91cadd4`；studio 五套件 16/16。
+
+- **2026-10-23 第二十一片（#168）：games / worlds "一个项目一份"补上建库约束——并发双发不再插出两份**。
+  这两张表的"一个项目一份"一直只是应用层 read-then-insert 的约定（storyboards 的 project_id
+  一早就有 `.unique()`，它们漏了）。两个并发创建——双击「接受草稿」（agent/draft，createOnly）、
+  两个标签页各存一次——都查不到已有行 → 都 insert → 库里两份：用户看到"接受成功"两次，
+  其中一份永远看不见（currentRow 按 updatedAt 取最新），但导出/发布读的都是那一份，
+  另一份成幽灵行。修法两层缺一不可：① 迁移 0037 先按 updated_at 收敛历史重复行
+  （每项目留最新、id 断序），再加唯一约束——**只做迁移不做代码，并发下第二发会从
+  "静默多一行"变成 23505 直接 500**；② saveGame / saveWorld 的 insert 补
+  `onConflictDoNothing`，撞约束后重读走更新路径（createOnly 照旧拒、旧写拒照旧生效），
+  既有更新路径抽成 applyGameUpdate / applyWorldUpdate 两个助手两路共用。
+  测试：games / worlds 各加一条 Promise.all 双发探针（games 断言一成一拒且拒因含
+  "已经有一份"、countGames=1；worlds 断言两发都 ok、countWorlds=1）。
+  变异探针摘掉两处 onConflictDoNothing → 两条精确红（23505 抛出）。
+  见证：`520ab42`；八套件 99/99（games / worlds / agent-draft-accept / game-code /
+  game-publish / knowledge / context / agent-orchestration）；tsc 0、eslint 0；
+  迁移已应用到 nexus 与 nexus_regress。
