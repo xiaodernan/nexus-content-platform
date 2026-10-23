@@ -5,6 +5,7 @@ import { planBuildArc, templateBuildPlanner } from '@nexus/agent-runtime';
 import {
   buildArcState,
   runStudioBuildArc,
+  runStudioBuildArcOutcome,
   STUDIO_BUILD_ARC_ID,
   STUDIO_BUILD_CATALOG,
   STUDIO_BUILD_CHECKPOINT_POLICY,
@@ -147,5 +148,88 @@ describe('studio build lane walk (v175, planned, fake spawn)', () => {
       ['node', '--version'],
       ['node', '-e', 'console.log("arc ok:" + String(2 + 3))'],
     ]);
+  });
+});
+
+describe('runStudioBuildArcOutcome — the walk AND its display answer (v455)', () => {
+  // v177 split the walk's outcome from the answer the route renders. Until now only the answer half
+  // was graded (through runStudioBuildArc), so what the deploy face RECEIVES — and how the answer is
+  // projected out of the outcome — was reachable only by reading the mapping.
+
+  it('an unplanned goal walks NOTHING: the outcome half is null and the answer says so', async () => {
+    const { spawnLike, calls } = fakeSpawn();
+    const walk = await runStudioBuildArcOutcome({ spawnLike, goal: 'zzz qqq nonsense' });
+    expect(walk.outcome).toBeNull();
+    expect(walk.answer.ok).toBe(true);
+    if (!walk.answer.ok) return;
+    expect(walk.answer.status).toBe('unplanned');
+    expect(walk.answer.reason).toContain('invents nothing');
+    expect(walk.answer.detail).toContain('unplanned');
+    expect(walk.answer.detail).toContain(STUDIO_BUILD_ARC_ID);
+    // An unplanned goal has no planner provenance to show and no receipts to carry.
+    expect(walk.answer.planned).toBeUndefined();
+    expect(walk.answer.steps).toEqual([]);
+    expect(walk.answer.receipts).toEqual([]);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('a walked arc hands back the OUTCOME beside the answer, and the answer is its projection', async () => {
+    const { spawnLike } = fakeSpawn();
+    const walk = await runStudioBuildArcOutcome({ spawnLike });
+    expect(walk.outcome).not.toBeNull();
+    const o = walk.outcome!;
+    expect(o.arcId).toBe(STUDIO_BUILD_ARC_ID);
+    expect(o.status).toBe('completed');
+    expect(walk.answer.ok).toBe(true);
+    if (!walk.answer.ok) return;
+    expect(walk.answer.status).toBe(o.status);
+    expect(walk.answer.goal).toBe(o.goal);
+    // One answer step per outcome result, one receipt per decision, in the same order.
+    expect(walk.answer.steps).toHaveLength(o.results.length);
+    expect(walk.answer.steps.map((s) => s.callId)).toEqual(o.results.map((r) => r.callId));
+    expect(walk.answer.receipts).toEqual((o.decisions ?? []).map((d) => ({ callId: d.call.callId, granted: d.granted, reason: d.reason })));
+  });
+
+  it('the stepId is the callId MINUS the arc prefix — the prefix is the answer’s, not the step’s', async () => {
+    const { spawnLike } = fakeSpawn();
+    const walk = await runStudioBuildArcOutcome({ spawnLike });
+    if (!walk.answer.ok) return;
+    expect(walk.answer.steps.map((s) => s.stepId)).toEqual(['runtime', 'compute']);
+    for (const s of walk.answer.steps) expect(s.callId).toBe(`${STUDIO_BUILD_ARC_ID}:${s.stepId}`);
+  });
+
+  it('a step is green only when the TOOL and the VERDICT agree — a red exit is a step whose tool answered fine', async () => {
+    // The conjunction the answer’s `ok` field is made of: `r.ok && verdict.ok === true`. A container
+    // that exits 3 is a tool that ANSWERED (the outcome says its result is ok) carrying a verdict that
+    // says red — two different questions, and the answer step is the AND of them.
+    const { spawnLike } = fakeSpawn('', 3);
+    const walk = await runStudioBuildArcOutcome({ spawnLike });
+    const o = walk.outcome!;
+    expect(o.results[0]!.ok).toBe(true);
+    if (!walk.answer.ok) return;
+    expect(walk.answer.steps[0]!.ok).toBe(false);
+    expect(walk.answer.steps[0]!.detail).toContain('exit 3');
+    expect(walk.answer.status).toBe('failed');
+    expect(walk.answer.stoppedAt).toBe('runtime');
+  });
+
+  it('a completed walk’s answer carries NO stoppedAt and NO reason — absent keys, not undefined ones', async () => {
+    const { spawnLike } = fakeSpawn();
+    const walk = await runStudioBuildArcOutcome({ spawnLike });
+    if (!walk.answer.ok) return;
+    expect('stoppedAt' in walk.answer).toBe(false);
+    expect('reason' in walk.answer).toBe(false);
+  });
+
+  it('a BLANK goal falls back to the face’s default; a named one rides along on both halves', async () => {
+    const blank = await runStudioBuildArcOutcome({ spawnLike: fakeSpawn().spawnLike, goal: '   ' });
+    if (!blank.answer.ok) return;
+    expect(blank.answer.goal).toBe(STUDIO_BUILD_GOAL);
+    expect(blank.outcome?.goal).toBe(STUDIO_BUILD_GOAL);
+
+    const named = await runStudioBuildArcOutcome({ spawnLike: fakeSpawn().spawnLike, goal: 'check the numbers' });
+    if (!named.answer.ok) return;
+    expect(named.answer.goal).toBe('check the numbers');
+    expect(named.outcome?.goal).toBe('check the numbers');
   });
 });
