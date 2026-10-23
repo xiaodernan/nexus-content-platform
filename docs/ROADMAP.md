@@ -5522,3 +5522,32 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   结案后刷新看到「举报结论 / 举报成立」，点「打开」落到「我的举报」里那一条已成立→驳回后两条且标题分开读→
   在通知偏好里把「举报结论」关掉（真 PUT + 迁移 0036 生效，刷新仍为关）→静音期间第三单结案库里零行、
   收件箱仍是两条→恢复开关并再证一次落库；三张截图逐张看过。`tsc -p apps/web` 与改动文件 eslint 均 0。
+- **2026-10-23 第十七片（#164）：id 形状门的第二种形状——不是每条路由都先过一道已守住的归属门**。
+  前十个家族（`id-shape.integration.test.ts`）的洞都长在"路由 → 域助手 → 裸 `eq()`"上，
+  判据也因此写成了"域助手要守"。横向审计换了个问法：**探针实测**——拿 `not-a-uuid`
+  打全部 22 条动态 id 路由（有效报体 + 真会话/真凭据），逐条看状态码。五处现出原形：
+  - `DELETE /api/v1/projects/<id>` → **500**：`softDeleteProject` 的 `eq(projects.id,…)` 裸跑。
+    v1 这条**不像界面那条先过 `projectBelongsTo`**，所以同样的函数在界面上从来没红过；
+  - `PATCH /api/admin/users/<id>` 与 `…/plan` → **整个请求以 PostgresError 抛出**（22P02）：
+    `setUserRole` / `setUserPlan` 的 `eq(users.id, targetId)` 裸跑，路由连 `try/catch` 都没有；
+  - `POST …/characters/<id>/chat` → **500「对话失败」**：那次 `eq(characters.id,…)` 查询**写在路由里**
+    （域助手 `characters.ts` 反而守着——守错了一层照样漏）；
+  - `GET /api/projects/<id>/tasks` → **500**：`listProjectTasks` 的归属查询自己一句 `eq`。
+  修法同族同一口径：域层 `isUuid` 守卫，形状不对按"不存在"答（404 `not_found`），
+  与合法 UUID 查不到是同一种答案——不给"存在但不给你看"留侧信道（§159）。
+  角色对话那一处补在路由的查询前（它不在域层，补在域层就得为它新造一个域函数——
+  那一跃留给真需要复用时再做）。`getTask` 今天没有调用方，但它是导出的域函数，一并补上：
+  下一个调用方不该再踩同一个坑。
+  **没被漏掉的那些也记下**（证明审计是全扫不是挑软的）：branches switch / snapshots restore /
+  characters PATCH·DELETE / memories DELETE / assets 两跳 / avatar / public assets / ai jobs·tasks /
+  v1 GET·design·publish / admin reports 全部 404·400·409 如实回答；`notifications/read` 的
+  `inArray` 看着同族，但报文层 `z.string().uuid()` 已经挡住（schema 层的不变量）；
+  blocks/follow 按 handle 查文本列，本就不适用。
+  见证：`id-shape.integration.test.ts` 30 → **38 条**（域层直调 + 路由 + 正对照：改档位/改角色拿
+  "本来就是那个值"的真账号、任务账本 200、真角色对话走到 DEMO 409——没有真 provider 不生成回复）；
+  相邻七套件（agent-tasks / ai-jobs / api-tokens / audit / plan-admin / project-delete / tasks-ledger）
+  **111/111** 不回归；`route-security-gate` 5/5；`tsc -p apps/web` 0、改动文件 eslint 0。
+  **变异探针五臂**各摘一处守卫：红数 1/2/2/1/1，全部精确红在对应那条上，跑完逐字节还原。
+  方法论补一条：**"守在哪一层"不能靠文件位置推断**——`characters.ts` 的域助手全守着，
+  而 chat 路由自己查库的那一句照样漏；探针要打的是**路由**，不是域函数名单。
+
