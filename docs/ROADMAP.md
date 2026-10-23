@@ -5810,3 +5810,22 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   变异探针：逐条把路由还原成 `await req.json()` → 每次精确红 1 条（就是那条路由那一组），
   其余 4 条不受影响；逐字节还原后 5/5 复绿。
   tsc -p apps/web 0；改动文件 eslint 0；相邻七套件（knowledge ×3 / character ×3 / 本文件）71/71。
+
+- **2026-10-24 第三十二片（#182）：`/api/blocks` 补上路由级见证——§132 拉黑/屏蔽的三条边界各有钉子**。
+  起因是"91 条路由里哪些从来没有被路由模块直接 import 过"这个问法：
+  逐条比对测试源码后剩 7 条，其中 `/api/blocks`（§132 block/mute）是唯一一条
+  **用户可见、有真语义、却只有域层被间接调到**的。路由这一层有三件只有它说得清的事：
+  ① 按 handle 寻址（界面上给的是 @name，"知道某个人的 uuid"不该是能做这件事的前提）；
+  ② CSRF 双提交——写请求，没有它就是跨站就能替人拉黑；
+  ③ 解除是 no-op 不是错误（"取消"点两次不该变红）。
+  另两条最需要说清的语义钉在域层断言里：**block 把两个方向的关注一起拆掉**
+  （留一条"我关注了我拉黑的人"，关注流里就还会冒出他的内容，等于自己给 block 留口子），
+  **mute 不动关注**（"还想知道他在做什么，但不想被他找到"是合法用法），
+  以及 mute 不挡互动、block 双向都挡——把 mute 当禁言用会以为自己在处理骚扰，其实没有。
+  见证：新文件 `apps/web/test/blocks-route.integration.test.ts` 9/9 绿。
+  变异探针六种，全部精确红：摘 CSRF 门（连带把"一个关系都不写"那条一起打红）、
+  去掉 self-block 检查、把 block 拆关注改成谁都拆、完全不去拆关注、
+  `canInteract` 全放行、`userByHandle` 对不存在的人也返回一行。还原后 9/9 复绿，
+  源码零改动（只新增测试文件）。tsc -p apps/web 0；eslint 0；相邻 social 套件 19/19。
+  同批扫出的另外 6 条（`account/avatar`、`auth/login`、`auth/logout`、`ai/pending-approvals`、
+  `discover`、`published/report`）逐个看过实现：都有 zod/CSRF/`isUuid` 门，无洞，留待后续补见证。
