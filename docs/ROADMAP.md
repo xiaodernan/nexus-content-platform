@@ -6380,3 +6380,35 @@ DOM 胶水层按仓库惯例不进 vitest 单测（同 #194 先例），钉子�
 见证：e2e storyboard 播放预览用例追加三断言（linked 计数为 1、linked 的就是渲染前取的
 那个 shotId、播报含"成片已挂到第 1 镜"）。真 Chrome 两连跑通过。
 变异探针精确红：摘掉 `setLinkedShotId(first.id)` → linked 计数断言红。
+
+
+## M5 第十四片（#201）：teamCollaboration 档位落库——成员/邀请模型 + §133 五格全有拦截方
+
+§133 五格的最后一格。前三格（aiUsage / storage / generation）与 publishing（#199）都已落门，
+这片把"每个项目除 owner 外能拉几个协作者"从表格上的字变成真拦截：
+
+- **库**（迁移 0039，可重入）：`project_members`（既成事实，unique(projectId, userId) 挡
+  两个标签页同时接受同一枚邀请）+ `project_invites`（未兑现的承诺，token 是链接 secret，
+  pending / accepted / revoked 三态）。owner 自己不是成员行——teamMembers 数的是
+  "除 owner 外还能拉几个人"，把 owner 算进去 free 档（1）连自己都装不下。
+- **`credits.ts` 纯函数** `refusalForTeamSlot`：转述 `PLAN_LIMITS.teamMembers`，
+  没满放行、占满拒，拒绝话带档位/上限/当前数，并点名"撤回/移除释放名额"。
+- **`credit-ledger.ts` `teamSlotRefusalFor`**：成员 + pending 邀请**一起数**——
+  邀请没兑现也先占住，否则同一邮箱可以刷出任意多封等额度松了再兑现，门就白拦了。
+- **`team.ts` 领域层**：invite / accept / revoke / remove / list 五件事，三条纪律：
+  只有 owner 能拉人踢人（协作者互相拉人，团队就会自己长大）；**同一邮箱 pending 去重
+  必须在名额门之前**（重复邀请同一封不是拉第二个人，先过门会误伤——这条是测试跑出来
+  逼出来的顺序）；接受时邮箱必须与邀请相同（链接可转交，"发给谁的邮箱"在库里拦着，
+  不靠 secret 猜不到当唯一防线，§159）。
+- `ENFORCED_PLAN_AXES` 五格全满，`UNENFORCED_PLAN_AXES` 空数组（空不是漏，是没有还没
+  拦截方的格子）；credits 页文案改"五件事全都有真的拦截方"，空列分支照实说。
+- schemas 加四份报文：邀请请求 / 成员视图 / 邀请视图 / 名册回执（teamLimit 跟着回执走，
+  界面才说得出"3/5"）。token 不进任何回执。
+
+见证：`team.integration.test.ts` 5 条真库用例（接受落库+幂等 / pending 去重 / 名额门+
+撤回与移除释放 / owner-only 权限 / 邮箱匹配与 token 失效）；credits.test.ts +4 条
+（31/31 合跑绿）。tsc 0、eslint 0。
+变异探针 3 种全部精确红：pending 不计数（③ 红）/ 摘 owner 检查（④ 红）/ 摘邮箱匹配（⑤ 红）。
+
+**下一步**：① 成员/邀请的 API 路由与 Studio 界面（名册面板、邀请链接接受页）；
+② e2e 见证邀请→接受全链路；③ e2e storyboard 全量回归。

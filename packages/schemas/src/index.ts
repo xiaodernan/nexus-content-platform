@@ -1663,6 +1663,53 @@ export const ApiPublicationSchema = z.object({
 });
 export type ApiPublication = z.infer<typeof ApiPublicationSchema>;
 
+/**
+ * §133 teamCollaboration（#201）：协作者与邀请的入站报文。
+ *
+ * 只收 editor / viewer 两种角色：owner 是项目自带的事实（projects.ownerId），
+ * 不接受"把 owner 也变成成员"的邀请——名额数的是"除 owner 外还能拉几个人"。
+ */
+export const ApiMemberInviteRequestSchema = z.object({
+  email: z.string().email(),
+  role: z.enum(['editor', 'viewer']).default('editor'),
+});
+export type ApiMemberInviteRequest = z.infer<typeof ApiMemberInviteRequestSchema>;
+
+/** 成员视图：displayName / email 可空——用户可能没名字，guest 可能没邮箱 */
+export const ApiProjectMemberSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  displayName: z.string().nullable(),
+  email: z.string().nullable(),
+  role: z.string(),
+  createdAt: z.string(),
+});
+export type ApiProjectMember = z.infer<typeof ApiProjectMemberSchema>;
+
+/** 邀请视图：status 三态（pending / accepted / revoked），acceptedAt 只有兑现后才有 */
+export const ApiProjectInviteSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  role: z.string(),
+  status: z.string(),
+  createdAt: z.string(),
+  acceptedAt: z.string().nullable(),
+});
+export type ApiProjectInvite = z.infer<typeof ApiProjectInviteSchema>;
+
+/**
+ * 名册回执：成员 + 邀请 + 这个档位的名额上限。
+ * `teamLimit` 跟着回执走，界面才能说清"3/5"而不只是罗列人名——
+ * 上限不在回执里，用户就不知道自己离档位墙还有多远。
+ */
+export const ApiTeamRosterSchema = z.object({
+  projectId: z.string(),
+  members: z.array(ApiProjectMemberSchema),
+  invites: z.array(ApiProjectInviteSchema),
+  teamLimit: z.number().int().min(0),
+});
+export type ApiTeamRoster = z.infer<typeof ApiTeamRosterSchema>;
+
 export const ApiDesignDocumentSchema = z.object({
   projectId: z.string(),
   document: z.unknown(),

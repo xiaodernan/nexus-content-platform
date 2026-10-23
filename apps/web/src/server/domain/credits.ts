@@ -59,15 +59,17 @@ export const PLAN_MONTHLY_GRANTS: Record<PlanKey, Record<CreditLedgerKind, numbe
 
 /**
  * §133 说档位按五件事设计：AI usage / storage / generation / team collaboration / publishing。
- * 今天**有四格有真的拦截方**：AI usage（`refusalFor`，在 `credit-ledger.ts`）、
+ * 今天**五格全都有真的拦截方**：AI usage（`refusalFor`，在 `credit-ledger.ts`）、
  * storage（`refusalForStorage`，字节进存储之前问，见 `assets.ts` 的摄取门与 ADR-0018）、
  * generation（成片渲染的门：`refusalForRun` 在 `startTask` 之前问 Video credits，
  * #191 落下的那道门——本机没有视频 provider，"这个月还能渲几版"从此是真会拦的）、
  * publishing（同时公开发布的项目数上限：`refusalForPublishSlot` 在 `publishProject`
- * 落行之前问，#199 落成——换版本不占新名额，收回发布即释放）。
- * 剩下 teamCollaboration 一格记在这里是为了
- * 让界面能说清"哪些是已生效的限制、哪些还只是表格上的字"——把没拦截的上限写成已生效，
- * 是这一份文档里最贵的一种谎。
+ * 落行之前问，#199 落成——换版本不占新名额，收回发布即释放）、
+ * teamCollaboration（每个项目除 owner 外的协作者上限：`refusalForTeamSlot` 在
+ * `inviteMember` 写邀请之前问，#201 落成——pending 邀请也占名额，撤回/移除即释放）。
+ * §133 点名的五件事到此全部有拦截方，`UNENFORCED_PLAN_AXES` 只剩一个空壳——留着它
+ * 是因为界面要能说清「哪些是已生效的限制、哪些还只是表格上的字」，把没拦截的上限写成
+ * 已生效，是这一份文档里最贵的一种谎。真加了第六件事，先往这两列里放，再落拦截方。
  */
 export const PLAN_LIMITS: Record<
   PlanKey,
@@ -81,8 +83,9 @@ export const PLAN_LIMITS: Record<
 };
 
 /** 今天生效的限制有哪几格——界面上那一列"已生效 / 还没拦截方"就读这里 */
-export const ENFORCED_PLAN_AXES = ['aiUsage', 'storage', 'generation', 'publishing'] as const;
-export const UNENFORCED_PLAN_AXES = ['teamCollaboration'] as const;
+export const ENFORCED_PLAN_AXES = ['aiUsage', 'storage', 'generation', 'publishing', 'teamCollaboration'] as const;
+/** #201 之后五格全有拦截方。空数组不是漏了一格，是「没有还没拦截方的格子」 */
+export const UNENFORCED_PLAN_AXES = [] as const;
 
 /**
  * 一次成功的生成扣几点。
@@ -260,4 +263,31 @@ export function refusalForPublishSlot(check: PublishSlotCheck): string | null {
   const limit = concurrentPublishLimit(check.plan);
   if (check.activeCount < limit) return null;
   return `发布名额已满：${PLAN_LABELS[check.plan]} 档同时最多公开发 ${limit} 个项目，现在已有 ${check.activeCount} 个挂着。先把其中一个收回发布（切 private）再发；同一个项目换版本不占新名额。`;
+}
+
+/**
+ * §133 teamCollaboration 那一格：一个项目除 owner 外能拉多少协作者（#201）。
+ *
+ * 与 `refusalForPublishSlot` 同一条口径，两处不同写下来：
+ * - 这里数的是**人**（成员 + 没兑现的邀请），发布门数的是**项目**；
+ * - owner 自己不算数：`PLAN_LIMITS.teamMembers` 是"除 owner 外还能拉几个人"，
+ *   free=1 就是可以拉一个协作者。把 owner 算进去，free 档连自己都装不下。
+ *
+ * pending 邀请占名额：否则同一个邮箱可以刷出任意多封邀请，等额度松了再一次性兑现——
+ * 门就白拦了。revoked 的邀请释放名额（它的使命结束了）。
+ */
+export interface TeamSlotCheck {
+  plan: PlanKey;
+  /** 已接受的成员数 + pending 邀请数，都不含 owner 自己 */
+  activeCount: number;
+}
+
+export function teamMemberLimit(plan: PlanKey): number {
+  return PLAN_LIMITS[plan].teamMembers;
+}
+
+export function refusalForTeamSlot(check: TeamSlotCheck): string | null {
+  const limit = teamMemberLimit(check.plan);
+  if (check.activeCount < limit) return null;
+  return `协作名额已满：${PLAN_LABELS[check.plan]} 档每个项目除所有者外最多 ${limit} 人，现在成员加未兑现的邀请已有 ${check.activeCount} 个。先移除一个成员或撤回一封邀请；撤回与移除都立刻释放名额。`;
 }

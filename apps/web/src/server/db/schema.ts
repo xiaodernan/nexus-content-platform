@@ -532,6 +532,65 @@ export const publishedProjects = pgTable(
   (t) => [uniqueIndex('published_path_key').on(t.path), index('published_project_idx').on(t.projectId)],
 );
 
+/**
+ * §133 teamCollaboration 那一格（#201）：项目协作者与邀请。
+ *
+ * 两件事分开存，因为它们的生命周期不同：
+ * - `project_members` 是**既成事实**：邀请被接受后才有一行，unique(projectId, userId)
+ *   挡"同一个人在同一项目里两行"（两个标签页同时接受同一枚邀请）；
+ * - `project_invites` 是**未兑现的承诺**：pending 的行占名额（否则可以无限发邀请绕过上限），
+ *   accepted / revoked 是终态。token 是邀请链接的 secret，不参与任何鉴权 cookie。
+ *
+ * owner 自己**不是**成员行：`PLAN_LIMITS.teamMembers` 数的是"除 owner 外还能拉几个人"
+ * （free=1 就是可以拉一个协作者）。把 owner 也算进去，free 档就连自己都装不下了。
+ */
+export const PROJECT_MEMBER_ROLES = ['editor', 'viewer'] as const;
+export type ProjectMemberRole = (typeof PROJECT_MEMBER_ROLES)[number];
+
+export const PROJECT_INVITE_STATUSES = ['pending', 'accepted', 'revoked'] as const;
+export type ProjectInviteStatus = (typeof PROJECT_INVITE_STATUSES)[number];
+
+export const projectMembers = pgTable(
+  'project_members',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role').$type<ProjectMemberRole>().notNull().default('editor'),
+    invitedById: uuid('invited_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('project_members_unique').on(t.projectId, t.userId),
+    index('project_members_user_idx').on(t.userId),
+  ],
+);
+
+export const projectInvites = pgTable(
+  'project_invites',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    /** 受邀人的邮箱：接受时按它找用户（本机没有发信，链接由邀请人自己转交） */
+    email: text('email').notNull(),
+    role: text('role').$type<ProjectMemberRole>().notNull().default('editor'),
+    /** 邀请链接的 secret：/api/projects/invites/<token>/accept */
+    token: text('token').notNull(),
+    status: text('status').$type<ProjectInviteStatus>().notNull().default('pending'),
+    invitedById: uuid('invited_by').references(() => users.id, { onDelete: 'set null' }),
+    /** 兑现的那一刻：pending → accepted 时写，revoked 留 NULL */
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('project_invites_token_key').on(t.token), index('project_invites_project_idx').on(t.projectId)],
+);
+
 export const worlds = pgTable(
   'worlds',
   {

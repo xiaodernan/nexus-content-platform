@@ -18,6 +18,8 @@ import {
   refusalFor,
   refusalForPublishSlot,
   refusalForStorage,
+  refusalForTeamSlot,
+  teamMemberLimit,
   storageLimitBytes,
   videoRenderQuota,
 } from '../src/server/domain/credits';
@@ -67,7 +69,7 @@ describe('§134 五类额度与档位表（纯规则）', () => {
     }
   });
 
-  it('§133 那五件事两列合起来一格不多一格不少，今天有拦截方的是 AI usage / storage / generation / publishing', () => {
+  it('§133 那五件事两列合起来一格不多一格不少，#201 起五格全都有拦截方', () => {
     // §133 原文列的五件事：AI usage / storage / generation / team collaboration / publishing。
     // 这条断言钉的是"已生效 + 还没拦截方 = 那五件事，一格不多一格不少"，
     // 挡的是那种把表格上的上限说成已生效的写法——storage 从下一列挪上来时，这里必须跟着改。
@@ -75,8 +77,10 @@ describe('§134 五类额度与档位表（纯规则）', () => {
     expect([...ENFORCED_PLAN_AXES, ...UNENFORCED_PLAN_AXES].sort()).toEqual([...FIVE_AXES].sort());
     // #196：generation 从下一列升上来——#191 落成的渲染链额度门（refusalForRun）是它的拦截方
     // #199：publishing 也升上来了——publishProject 落行前的名额门（refusalForPublishSlot）是它的拦截方
-    expect(ENFORCED_PLAN_AXES).toEqual(['aiUsage', 'storage', 'generation', 'publishing']);
-    expect(UNENFORCED_PLAN_AXES).toEqual(['teamCollaboration']);
+    // #201：teamCollaboration 最后一格也升上来了——inviteMember 写邀请前的名额门（refusalForTeamSlot）。
+    // 五格到此全有拦截方，UNENFORCED 是空数组——空不是漏，是「没有还没拦截方的格子」
+    expect(ENFORCED_PLAN_AXES).toEqual(['aiUsage', 'storage', 'generation', 'publishing', 'teamCollaboration']);
+    expect(UNENFORCED_PLAN_AXES).toEqual([]);
   });
 });
 
@@ -254,8 +258,40 @@ describe('refusalForPublishSlot：§133 publishing 那一格的准入闸（#199�
     expect(refusalForPublishSlot({ plan: 'free', activeCount: 0 })).toBeNull();
   });
 
-  it('publishing 进了"真的会拦"那一列，teamCollaboration 是唯一还没有拦截方的那格', () => {
+  it('publishing 与 teamCollaboration 都进了"真的会拦"那一列，没拦截方的那一列空了', () => {
     expect((ENFORCED_PLAN_AXES as readonly string[]).includes('publishing')).toBe(true);
-    expect(UNENFORCED_PLAN_AXES).toEqual(['teamCollaboration']);
+    expect((ENFORCED_PLAN_AXES as readonly string[]).includes('teamCollaboration')).toBe(true);
+    expect(UNENFORCED_PLAN_AXES).toEqual([]);
+  });
+});
+
+
+describe('refusalForTeamSlot：§133 teamCollaboration 那一格的准入闸（#201）', () => {
+  it('五档的名额都直接转述 PLAN_LIMITS，且随档位单调递增', () => {
+    expect(teamMemberLimit('free')).toBe(1);
+    expect(teamMemberLimit('pro')).toBe(3);
+    for (let i = 1; i < PLAN_KEYS.length; i += 1) {
+      expect(teamMemberLimit(PLAN_KEYS[i]!)).toBeGreaterThan(teamMemberLimit(PLAN_KEYS[i - 1]!));
+    }
+  });
+
+  it('没满就放行；正好占满才拒（边界在 activeCount 上，带数字的拒绝话）', () => {
+    // free 档上限 1：0 个占着 → 放行
+    expect(refusalForTeamSlot({ plan: 'free', activeCount: 0 })).toBeNull();
+    const refusal = refusalForTeamSlot({ plan: 'free', activeCount: 1 });
+    expect(refusal).not.toBeNull();
+    expect(refusal).toContain('Free 档每个项目除所有者外最多 1 人');
+    expect(refusal).toContain('已有 1 个');
+    // 同一个占用换到名额更大的档位就放行——证明看的是档位，不是"拉过人就没有"
+    expect(refusalForTeamSlot({ plan: 'studio', activeCount: 1 })).toBeNull();
+  });
+
+  it('反向对照：把 activeCount 减一个，同一个 free 档就从拒变放行', () => {
+    expect(refusalForTeamSlot({ plan: 'free', activeCount: 1 })).not.toBeNull();
+    expect(refusalForTeamSlot({ plan: 'free', activeCount: 0 })).toBeNull();
+  });
+
+  it('拒绝话里要点名"撤回/移除释放名额"——用户得知道路怎么走', () => {
+    expect(refusalForTeamSlot({ plan: 'free', activeCount: 1 })).toContain('释放名额');
   });
 });

@@ -11,7 +11,16 @@
  */
 import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { assets, creditLedger, projects, publishedProjects, users, type CreditLedgerKind } from '../db/schema';
+import {
+  assets,
+  creditLedger,
+  projectInvites,
+  projectMembers,
+  projects,
+  publishedProjects,
+  users,
+  type CreditLedgerKind,
+} from '../db/schema';
 import {
   CREDIT_KINDS,
   GENERATION_COST,
@@ -21,6 +30,7 @@ import {
   pendingGrants,
   refusalFor,
   refusalForPublishSlot,
+  refusalForTeamSlot,
   videoRenderQuota,
   type PlanKey,
   type RenderQuotaView,
@@ -215,6 +225,30 @@ export async function publishSlotRefusalFor(ownerId: string, projectId: string):
   const plan = await planOf(ownerId);
   const activeCount = await activePublicationCount(ownerId, projectId);
   return refusalForPublishSlot({ plan, activeCount });
+}
+
+/**
+ * §133 teamCollaboration 那一格的拦截方（#201）：拉人进项目之前，数一数这个项目里
+ * "已经占了名额"的有几个。口径三行写下来：
+ * - 成员与 pending 邀请**都算**：邀请没兑现也先占住，否则同一邮箱可以刷出任意多封，
+ *   等额度松了再一次性兑现，门就白拦了；
+ * - owner 自己不算（两张表里都不会有他的行，除非被显式加为成员——那种也如实计数）；
+ * - revoked 的邀请不占：它的使命结束了，名额释放（与 unpublish 切 private 同一精神）。
+ *
+ * 只读不扣，与另外三道门一样：档位门家族没有"消耗方"账单，全是准入闸。
+ */
+export async function teamSlotRefusalFor(ownerId: string, projectId: string): Promise<string | null> {
+  const plan = await planOf(ownerId);
+  const [memberRow] = await getDb()
+    .select({ count: sql<string | number>`count(*)` })
+    .from(projectMembers)
+    .where(eq(projectMembers.projectId, projectId));
+  const [pendingRow] = await getDb()
+    .select({ count: sql<string | number>`count(*)` })
+    .from(projectInvites)
+    .where(and(eq(projectInvites.projectId, projectId), eq(projectInvites.status, 'pending')));
+  const activeCount = Number(memberRow?.count ?? 0) + Number(pendingRow?.count ?? 0);
+  return refusalForTeamSlot({ plan, activeCount });
 }
 
 export interface ChargeInput {
