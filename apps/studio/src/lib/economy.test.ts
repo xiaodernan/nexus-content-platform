@@ -20,6 +20,8 @@ import {
   tipText,
   isFreePrice,
   subscriptionActiveText,
+  subscriptionStandingOf,
+  subscriptionStandingText,
   subscriptionDaysLeftText,
   tipsTotal,
   tipCount,
@@ -509,4 +511,80 @@ describe('economy — the renewal NOTE (M7 v313)', () => {
     expect(row.renewNote).toContain('cannot renew it');
   });
 });
+});
+
+
+/**
+ * v443 — the standing of a subscription, derived directly.
+ *
+ * `subscriptionStandingOf` has been exercised since v274 only through `toSubscriptionRow`, which asks
+ * it once and shows the answer. Asked directly it states a rule no row can show: **the SERVICE's
+ * word wins, and the client's own computation is the fallback.** A wire that says `cancelled` while
+ * carrying `active: true` and a future `expiresAt` is a subscription the service has ended, and a
+ * client that recomputed the standing from the flags would show it as standing — answering a
+ * question about time with a clock that is not the service's.
+ */
+describe('economy — subscriptionStandingOf (v443)', () => {
+  const NOW = 1_700_000_000_000;
+  const FUTURE = NOW + 30 * 24 * 60 * 60 * 1000;
+  const PAST = NOW - 30 * 24 * 60 * 60 * 1000;
+
+  it('the service’s word wins, even when the flags beside it disagree', () => {
+    // cancelled on the wire, active with a future expiry in the flags: the service ended it.
+    expect(subscriptionStandingOf({ status: 'cancelled', active: true, expiresAt: FUTURE }, NOW)).toBe('cancelled');
+    // and the other way round: expired on the wire, still flagged active.
+    expect(subscriptionStandingOf({ status: 'expired', active: true, expiresAt: FUTURE }, NOW)).toBe('expired');
+    expect(subscriptionStandingOf({ status: 'active', active: false, expiresAt: PAST }, NOW)).toBe('active');
+  });
+
+  it('a status this runtime does not know falls through to the client’s own computation', () => {
+    expect(subscriptionStandingOf({ status: 'pending', active: true, expiresAt: FUTURE }, NOW)).toBe('active');
+    expect(subscriptionStandingOf({ status: 'ACTIVE', active: true, expiresAt: FUTURE }, NOW)).toBe('active');
+    // a wrong-case status is not the service's word, so the flags answer — and active is absent
+    expect(subscriptionStandingOf({ status: 'ACTIVE' }, NOW)).toBe('cancelled');
+  });
+
+  it('the client’s own computation: not active is cancelled, whatever the expiry says', () => {
+    expect(subscriptionStandingOf({ active: false, expiresAt: FUTURE }, NOW)).toBe('cancelled');
+    expect(subscriptionStandingOf({ active: false }, NOW)).toBe('cancelled');
+    expect(subscriptionStandingOf({}, NOW)).toBe('cancelled');
+  });
+
+  it('an expiry at or before now is expired — the boundary is inclusive', () => {
+    // The instant of expiry is already expired: a reader at that second is not still covered.
+    expect(subscriptionStandingOf({ active: true, expiresAt: NOW }, NOW)).toBe('expired');
+    expect(subscriptionStandingOf({ active: true, expiresAt: PAST }, NOW)).toBe('expired');
+    expect(subscriptionStandingOf({ active: true, expiresAt: FUTURE }, NOW)).toBe('active');
+  });
+
+  it('an expiry that is not a number means no expiry, not an expired subscription', () => {
+    expect(subscriptionStandingOf({ active: true, expiresAt: 'soon' }, NOW)).toBe('active');
+    expect(subscriptionStandingOf({ active: true }, NOW)).toBe('active');
+  });
+
+  it('anything that is not a subscription object is cancelled, never active', () => {
+    expect(subscriptionStandingOf(null, NOW)).toBe('cancelled');
+    expect(subscriptionStandingOf(undefined, NOW)).toBe('cancelled');
+    expect(subscriptionStandingOf('active', NOW)).toBe('cancelled');
+    expect(subscriptionStandingOf(42, NOW)).toBe('cancelled');
+    expect(subscriptionStandingOf([], NOW)).toBe('cancelled');
+  });
+
+  it('the same wire read at two different nows answers about time, not about the wire', () => {
+    const wire = { active: true, expiresAt: FUTURE };
+    expect(subscriptionStandingOf(wire, PAST)).toBe('active');
+    expect(subscriptionStandingOf(wire, FUTURE)).toBe('expired');
+    expect(subscriptionStandingOf(wire, FUTURE + 1)).toBe('expired');
+  });
+});
+
+describe('economy — subscriptionStandingText (v443)', () => {
+  it('says the three standings in the words the economy surface uses', () => {
+    expect(subscriptionStandingText('active')).toBe('Active');
+    expect(subscriptionStandingText('expired')).toBe('Expired');
+  });
+
+  it('a cancelled subscription reads Never — the word this surface always used', () => {
+    expect(subscriptionStandingText('cancelled')).toBe('Never');
+  });
 });
