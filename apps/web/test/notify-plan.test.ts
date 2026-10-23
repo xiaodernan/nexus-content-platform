@@ -3,6 +3,7 @@ import { APPROVAL_TTL_MS } from '@nexus/schemas';
 import {
   BODY_MAX,
   NOTIFICATION_KINDS,
+  NOTIFICATION_TERMINAL_STATE,
   TITLE_MAX,
   UNBACKED_NOTIFICATIONS,
   clip,
@@ -504,6 +505,63 @@ describe('ttlLabel：卡片、账本里那句理由、通知标题共用同一�
     expect(ttlLabel(30_000)).toBe('30 秒');
     expect(ttlLabel(30 * 60_000)).not.toMatch(/^0 /);
     expect(ttlLabel(30_000)).not.toMatch(/^0 /);
+  });
+});
+
+type MarketReport = Extract<NotifyEvent, { kind: 'marketplace_report' }>;
+
+const marketReport = (over: Partial<MarketReport> = {}): NotifyEvent => ({
+  kind: 'marketplace_report',
+  recipientId: 'visitor-1',
+  reportId: 'r-1',
+  itemTitle: '雨夜便利店素材包',
+  status: 'resolved',
+  ...over,
+});
+
+describe('举报工单进入终态（§123 × §164）', () => {
+  it('成立与驳回是两句话，标题念出物品名：举报人靠它认得出是哪一单', () => {
+    const resolved = planNotification(marketReport());
+    expect(resolved?.title).toContain('《雨夜便利店素材包》');
+    expect(resolved?.title).toContain('举报成立');
+    expect(resolved?.title).toContain('结案');
+
+    const dismissed = planNotification(marketReport({ status: 'dismissed' }));
+    expect(dismissed?.title).toContain('举报不成立');
+    expect(dismissed?.title).toContain('驳回');
+    // "举报成立"四个字是驳回那句的子串吗？不是——两句话不能只靠后缀区分
+    expect(dismissed?.title).not.toContain('举报成立');
+  });
+
+  it('一个工单一条结论：键挂在工单号上，换工单才是另一条', () => {
+    expect(planNotification(marketReport())?.dedupeKey).toBe('marketplace_report:r-1');
+    expect(planNotification(marketReport({ reportId: 'r-2' }))?.dedupeKey).toBe('marketplace_report:r-2');
+  });
+
+  it('链接指回「我的举报」，正文说清结论不等于物品被撤下', () => {
+    const plan = planNotification(marketReport());
+    expect(plan?.link).toBe('/marketplace/reports');
+    expect(plan?.body).toContain('不会自动下架物品');
+    // 这件事没有"造成它的人"：审核员是按工单下结论，不是对举报人做了个动作
+    expect(plan?.actorId).toBe(null);
+    expect(plan?.publicationId).toBe(null);
+  });
+
+  it('成立推 success、驳回推 info：两种结论的分量不同', () => {
+    expect(planNotification(marketReport())?.level).toBe('success');
+    expect(planNotification(marketReport({ status: 'dismissed' }))?.level).toBe('info');
+  });
+
+  it('物品名是用户输入，进标题前压平空白并裁到上限', () => {
+    const plan = planNotification(marketReport({ itemTitle: `长\n${'很'.repeat(300)}` }));
+    expect(plan?.title).not.toContain('\n');
+    expect(plan!.title.length).toBeLessThanOrEqual(TITLE_MAX);
+    expect(plan!.title.endsWith('…')).toBe(true);
+  });
+
+  it('这一类登记在名单里，并有一条真终态说明（收件箱页面从这张表印）', () => {
+    expect(Object.keys(NOTIFICATION_KINDS)).toContain('marketplace_report');
+    expect(NOTIFICATION_TERMINAL_STATE.marketplace_report.trim().length).toBeGreaterThan(10);
   });
 });
 

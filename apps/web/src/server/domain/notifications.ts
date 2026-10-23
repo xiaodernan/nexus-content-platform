@@ -85,10 +85,12 @@ function levelOf(kind: NotificationKind): 'info' | 'success' | 'warning' | 'erro
     case 'moderation':
     case 'approval':
       return 'warning';
+    // 举报结论是"你等的那件事有了回音"：信息级，成败由标题说，不用颜色替它下判断
     case 'like':
     case 'comment':
     case 'follow':
     case 'remix':
+    case 'marketplace_report':
       return 'info';
     default: {
       const exhaustive: never = kind;
@@ -286,6 +288,7 @@ export async function getNotificationSettings(userId: string): Promise<Record<No
     agent: true,
     approval: true,
     build: true,
+    marketplace_report: true,
   };
 
   for (const row of rows) {

@@ -7,7 +7,7 @@ import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
 import { SESSION_COOKIE } from '../src/server/domain/session';
 import { auditMarketplaceAction, createMarketplaceItem } from '../src/server/domain/marketplace';
 import { getDb } from '../src/server/db/client';
-import { auditEvents, marketplaceAuditLog, marketplaceReports, sessions, users } from '../src/server/db/schema';
+import { auditEvents, marketplaceAuditLog, marketplaceReports, notifications, sessions, users } from '../src/server/db/schema';
 
 /**
  * §123 Marketplace 审计日志与举报的两个入口：`GET /api/admin/marketplace/audit`、
@@ -375,6 +375,7 @@ describe('§123 举报提交入口（POST /api/admin/marketplace/reports）', ()
 describe('§123/#158 举报工单的处置（PATCH /api/admin/marketplace/reports/[id]）', () => {
   let reviewItemId: string;
   let dismissItemId: string;
+  let reviewItemTitle: string;
   let reviewReportId: string;
   let dismissReportId: string;
 
@@ -400,6 +401,7 @@ describe('§123/#158 举报工单的处置（PATCH /api/admin/marketplace/report
     const dismissItem = await createMarketplaceItem({ creatorId: admin.id, itemType: 'component', title: `处置对象-驳回 ${stamp}` });
     reviewItemId = reviewItem.id;
     dismissItemId = dismissItem.id;
+    reviewItemTitle = reviewItem.title;
 
     const filed: string[] = [];
     for (const targetItemId of [reviewItemId, dismissItemId]) {
@@ -425,7 +427,20 @@ describe('§123/#158 举报工单的处置（PATCH /api/admin/marketplace/report
         eq(auditEvents.action, 'marketplace.report.update'),
         inArray(auditEvents.targetId, [reviewReportId, dismissReportId]),
       ));
+    // §163：两次终态处置会各写一条给举报人的通知，按工单键收回，别把状态留给下一轮
+    await getDb()
+      .delete(notifications)
+      .where(inArray(notifications.dedupeKey, [
+        `marketplace_report:${reviewReportId}`,
+        `marketplace_report:${dismissReportId}`,
+      ]));
   });
+
+  const outcomeNotices = (reportId: string) =>
+    getDb()
+      .select()
+      .from(notifications)
+      .where(eq(notifications.dedupeKey, `marketplace_report:${reportId}`));
 
   it('没登录 → 401', async () => {
     const res = await patch(reviewReportId, { status: 'reviewing' }, asUser(null, true));
@@ -502,6 +517,9 @@ describe('§123/#158 举报工单的处置（PATCH /api/admin/marketplace/report
     expect(list.status).toBe(200);
     const rows = (await list.json()) as { id: string; status: string }[];
     expect(rows.some((row) => row.id === reviewReportId && row.status === 'reviewing')).toBe(true);
+
+    // §163：受理不是结论——"有人开始看了"不该让举报人以为处理完了
+    expect(await outcomeNotices(reviewReportId)).toEqual([]);
   });
 
   it('reviewing → resolved（带结案备注）→ 200，resolvedAt 落库；GET ?status=resolved 读得回', async () => {
@@ -520,6 +538,16 @@ describe('§123/#158 举报工单的处置（PATCH /api/admin/marketplace/report
     expect(list.status).toBe(200);
     const rows = (await list.json()) as { id: string; status: string }[];
     expect(rows.some((row) => row.id === reviewReportId && row.status === 'resolved')).toBe(true);
+
+    // §163：终态写一条给举报人的通知，标题念出物品名，指回「我的举报」而不是一个死链
+    const notices = await outcomeNotices(reviewReportId);
+    expect(notices).toHaveLength(1);
+    expect(notices[0]!.userId).toBe(creator.id);
+    expect(notices[0]!.kind).toBe('marketplace_report');
+    expect(notices[0]!.title).toContain('举报成立');
+    expect(notices[0]!.title).toContain(reviewItemTitle);
+    expect(notices[0]!.link).toBe('/marketplace/reports');
+    expect(notices[0]!.readAt).toBeNull();
 
     // 两次成功推进（reviewing → resolved）各留一行允许审计：处置结论不只在这一次响应里
     const allowed = await getDb()
@@ -544,6 +572,8 @@ describe('§123/#158 举报工单的处置（PATCH /api/admin/marketplace/report
     const fresh = await reportRow(reviewReportId);
     expect(fresh.status).toBe('resolved');
     expect(fresh.adminNotes).toBe('证据充分，已结案');
+    // 翻案被拒的那一次不该补发第二条结论：一个工单一条通知
+    expect(await outcomeNotices(reviewReportId)).toHaveLength(1);
   });
 
   it('pending → dismissed → 200：驳回也是终态，resolvedAt 落库、没有备注', async () => {
@@ -557,6 +587,12 @@ describe('§123/#158 举报工单的处置（PATCH /api/admin/marketplace/report
     expect(fresh.status).toBe('dismissed');
     expect(fresh.resolvedAt).toBeInstanceOf(Date);
     expect(fresh.adminNotes).toBeNull();
+
+    // 驳回也是一条结论：举报人要知道它不成立，而不是等一个永远不来的答复
+    const notices = await outcomeNotices(dismissReportId);
+    expect(notices).toHaveLength(1);
+    expect(notices[0]!.userId).toBe(creator.id);
+    expect(notices[0]!.title).toContain('举报不成立');
   });
 
   it('处置不是删除：结案的工单仍在按 itemId 的列表里', async () => {

@@ -1082,7 +1082,7 @@ export interface UpdateReportStatusInput {
 }
 
 export type UpdateReportStatusResult =
-  | { ok: true; report: ReportEntry }
+  | { ok: true; report: ReportEntry; itemTitle: string }
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'already_closed'; status: ReportStatus };
 
@@ -1128,7 +1128,15 @@ export async function updateReportStatus(input: UpdateReportStatusInput): Promis
       detail: { status: input.status, hasNotes: input.adminNotes !== undefined },
       ip: input.ip,
     });
-    return { ok: true, report: toReportEntry(updated) };
+    // 举报人收到的通知要念出物品标题（`item_id` 对他没有意义）。物品行一定在：
+    // `marketplace_reports.item_id` 是级联外键，物品真被删掉时这一行工单也早就跟着没了，
+    // 所以不为"物品不见了"写一条编个空标题的分支。
+    const [item] = await db
+      .select({ title: marketplaceItems.title })
+      .from(marketplaceItems)
+      .where(eq(marketplaceItems.id, updated.itemId))
+      .limit(1);
+    return { ok: true, report: toReportEntry(updated), itemTitle: item!.title };
   }
 
   const [existing] = await db

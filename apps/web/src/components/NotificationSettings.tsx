@@ -16,6 +16,7 @@ const KIND_LABEL: Record<NotificationKind, string> = {
   agent: 'Agent 任务',
   approval: '审批作废',
   build: '导出完成',
+  marketplace_report: '举报结论',
 };
 
 export function NotificationSettings() {

@@ -7,6 +7,9 @@ import {
   updateReportStatus,
 } from '@/server/domain/marketplace';
 import type { ReportStatus } from '@/server/domain/marketplace';
+// §164：举报人是在"审核员处置完"之后才需要知道结论的——这件事发生在举报请求早就结束之后，
+// 和人工裁决同一类，所以必须走收件箱而不是只留在这一次 PATCH 的响应里
+import { notifyReportOutcome } from '@/server/domain/marketplace-report-notify';
 import { csrfOk } from '@/server/security/csrf';
 import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
 import { badRequest, jsonError } from '@/server/http';
@@ -98,6 +101,15 @@ export async function PATCH(
       : result.report.status === 'resolved'
         ? '已结案：举报成立'
         : '已驳回：举报不成立';
+
+  // 只有终态才通知举报人一次（reviewing 由 notifyReportOutcome 自己跳过）。
+  // 放在结论与审计都落库之后：这一步通知的是已经发生的事，不是"准备处置"。
+  await notifyReportOutcome({
+    reporterId: result.report.reporterId,
+    reportId: result.report.id,
+    itemTitle: result.itemTitle,
+    status: result.report.status,
+  });
 
   return NextResponse.json({ report: result.report, message });
 }

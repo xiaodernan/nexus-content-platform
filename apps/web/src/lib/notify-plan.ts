@@ -18,7 +18,8 @@ export type NotificationKind =
   | 'generation'
   | 'agent'
   | 'approval'
-  | 'build';
+  | 'build'
+  | 'marketplace_report';
 
 /**
  * 每一类都要在这里登记一次。`Record<NotificationKind, true>` 让"加了一类忘了登记"
@@ -36,6 +37,7 @@ export const NOTIFICATION_KINDS: Record<NotificationKind, true> = {
   agent: true,
   approval: true,
   build: true,
+  marketplace_report: true,
 };
 
 /**
@@ -57,6 +59,7 @@ export const NOTIFICATION_TERMINAL_STATE: Record<NotificationKind, string> = {
   agent: '§112 的一份多步作业走完：计划落库、逐步推进、最后给出结论。',
   approval: '§74 的一道审批门在挂起时刻到期作废——不是"有人点了同意"，而是它真的结束了。',
   build: '§144 的一次导出打成包：读完文档、投出代码、取回资产，zip 合上才算完成。',
+  marketplace_report: '举报工单进入终态（成立 / 驳回）时通知举报人一次；「受理中」不是结论，不发。',
 };
 
 export interface NotificationPlan {
@@ -219,6 +222,18 @@ export type NotifyEvent =
       missingAssets: number;
       durationMs: number | null;
       detail: string | null;
+    }
+  | {
+      /**
+       * §123 × §164：举报工单进入终态时通知举报人。只由
+       * `server/domain/marketplace-report-notify.ts` 发出；受理（reviewing）不算终态——
+       * "有人开始看了"不是结论，发一条只会让举报人以为处理完了。
+       */
+      kind: 'marketplace_report';
+      recipientId: string;
+      reportId: string;
+      itemTitle: string;
+      status: 'resolved' | 'dismissed';
     };
 
 /** 项目名与对方显示名都是用户输入，进标题前要有个上限 */
@@ -444,6 +459,24 @@ export function planNotification(event: NotifyEvent): NotificationPlan | null {
         link: studioLink(event.projectId),
       };
     }
+    case 'marketplace_report':
+      return {
+        ...base,
+        actorId: null,
+        publicationId: null,
+        // 工单终态不可改写：一个工单只会有一个结论，键挂在工单上就是"一条结论一条通知"
+        dedupeKey: `marketplace_report:${event.reportId}`,
+        level: event.status === 'resolved' ? 'success' : 'info',
+        title: clip(
+          event.status === 'resolved'
+            ? `你对《${event.itemTitle}》的举报成立：工单已结案`
+            : `你对《${event.itemTitle}》的举报不成立：工单已驳回`,
+          TITLE_MAX,
+        ),
+        // 与「我的举报」页同一句边界：结论落的是工单，不是物品的去留
+        body: '结案 / 驳回都不会自动下架物品；状态与时间在「我的举报」里。',
+        link: '/marketplace/reports',
+      };
   }
 }
 
