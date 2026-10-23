@@ -181,7 +181,11 @@ export async function toggleLike(actorId: string, publicationId: string): Promis
   if (existing.length) {
     await db.delete(likes).where(and(eq(likes.projectId, pub.projectId), eq(likes.userId, actorId)));
   } else {
-    await db.insert(likes).values({ projectId: pub.projectId, userId: actorId });
+    // 并发双点（两次点击几乎同时到）时第二次 insert 会撞 (user_id, project_id) 主键（23505）。
+    // onConflictDoNothing 让"这一行已经在"直接成为终局：两次点击的答案都是"已点赞"，
+    // 与库里最终状态一致——照旧把 23505 抛出去，公开页上一次双点就是 500。
+    // 同族参照：setBlock 的 onConflictDoUpdate（blocks.ts）。
+    await db.insert(likes).values({ projectId: pub.projectId, userId: actorId }).onConflictDoNothing();
   }
   return { liked: !existing.length, count: await likeCount(pub.projectId), blocked: null, reason: null };
 }
@@ -296,7 +300,9 @@ export async function toggleFollow(actorId: string, targetUserId: string): Promi
   if (existing.length) {
     await db.delete(follows).where(and(eq(follows.followerId, actorId), eq(follows.followeeId, targetUserId)));
   } else {
-    await db.insert(follows).values({ followerId: actorId, followeeId: targetUserId });
+    // 与 toggleLike 同一道竞态：并发双点撞 (follower_id, followee_id) 主键（23505）。
+    // 终局是"已关注"，与库里一致，不把 23505 抛成 500。
+    await db.insert(follows).values({ followerId: actorId, followeeId: targetUserId }).onConflictDoNothing();
   }
   const [count] = await db
     .select({ n: sql<number>`count(*)::int` })

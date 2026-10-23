@@ -137,6 +137,16 @@ describe('Save（§59）与简介（§60）', () => {
     expect(saved[0]!.unavailableReason).toBeNull();
   });
 
+  it('并发双收藏不再 500：两次保存同时到达时终局与库一致', async () => {
+    // 与点赞/关注同一族：read-then-write 撞 (user_id, publication_id) 主键（23505）。
+    // 修复前 Promise.all 两次 toggleSave 第二次直接抛，公开页双点收藏就是 500。
+    const path = await publicPath('并发收藏', 'g');
+    const ref = await publicRefByPath(path);
+    const [a, b] = await Promise.all([toggleSave(viewerId, ref!.publicationId), toggleSave(viewerId, ref!.publicationId)]);
+    expect(a).toEqual({ saved: true, count: 1 });
+    expect(b).toEqual({ saved: true, count: 1 });
+  });
+
   it('作者下架之后收藏不悄悄消失，而是说清点不开的原因', async () => {
     const path = await publicPath('会被下架的收藏', 'f');
     const ref = await publicRefByPath(path);

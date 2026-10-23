@@ -265,7 +265,9 @@ export async function toggleSave(actorId: string, publicationId: string): Promis
   if (existing.length) {
     await db.delete(saves).where(and(eq(saves.publicationId, publicationId), eq(saves.userId, actorId)));
   } else {
-    await db.insert(saves).values({ userId: actorId, publicationId });
+    // 与 toggleLike / toggleFollow 同一道竞态：并发双点撞 (user_id, publication_id) 主键（23505）。
+    // 终局是"已收藏"，与库里一致，不把 23505 抛成 500。
+    await db.insert(saves).values({ userId: actorId, publicationId }).onConflictDoNothing();
   }
   const [count] = await db
     .select({ n: sql<number>`count(*)::int` })

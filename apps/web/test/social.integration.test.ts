@@ -87,6 +87,24 @@ describe('Like / Comment / Follow', () => {
     expect((await stateOf(path, null)).likedByMe).toBe(false);
   });
 
+  it('并发双点不再 500：两个开关同时到达时都拿到与库一致的终局', async () => {
+    // 双击是真实存在的输入（移动端尤其），不是理论竞态：read-then-write 的开关
+    // 在两次点击几乎同时到达时，第二次 insert 会撞 (user_id, project_id) 主键（23505）。
+    // 修复前这条以 PostgresError 抛出，公开页上一次双点就是 500。
+    const { path } = await published('并发点赞页', '正常内容');
+    const publicationId = (await publicRefByPath(path))!.publicationId;
+    const [a, b] = await Promise.all([toggleLike(fanId, publicationId), toggleLike(fanId, publicationId)]);
+    expect(a).toMatchObject({ liked: true, count: 1 });
+    expect(b).toMatchObject({ liked: true, count: 1 });
+    expect((await stateOf(path, fanId)).likeCount).toBe(1);
+
+    const [on, alsoOn] = await Promise.all([toggleFollow(fanId, authorId), toggleFollow(fanId, authorId)]);
+    expect(on).toMatchObject({ following: true, followers: 1 });
+    expect(alsoOn).toMatchObject({ following: true, followers: 1 });
+    // 收尾取消：后面的 discover 用例以"fan 没关注 author"为前提（与本文件其它用例的约定一致）
+    await toggleFollow(fanId, authorId);
+  });
+
   it('评论走发布机检同一份红线词表：命中就不发出去', async () => {
     const { projectId, path } = await published('评论页', '正常内容');
     const publicationId = (await publicRefByPath(path))!.publicationId;
