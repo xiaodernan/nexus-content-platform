@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { readPlans, subscribeOnService } from './planServer';
+import { offerOnService, readPlans, subscribeOnService } from './planServer';
+import { nexusApiBase } from './publishServer';
 
 /**
  * M7 v313 — the server-side half of the PLANS and SUBSCRIPTIONS lane.
@@ -143,5 +144,137 @@ describe('planServer — readPlans PAGES the plans (v396)', () => {
     expect(answer.limit).toBe(20);
     expect(answer.offset).toBe(20);
     expect(answer.reason).toContain('503');
+  });
+});
+
+describe('planServer — offerOnService (v447)', () => {
+  // The OFFER is the third server-side write door in this family to be asked directly (likes in v436,
+  // comments in v437, follows in v445). The family shape is what makes it worth pinning: the claim is
+  // NULL-FILLED here too — every absent field written as `null` rather than dropped — and the answer is
+  // read through the same reader the subscription write uses, so a refusal keeps the service's own
+  // words (v313) and a success carries the FIRST plan of the answer's list.
+
+  it('the offer is POSTed to the plans door with all five fields in the JSON body', async () => {
+    let seenUrl = '';
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((url, init) => {
+      seenUrl = url;
+      seenInit = init;
+      return new Response(JSON.stringify({ ok: true, plans: [{ planId: 'pro', priceCents: 1500, currency: 'CNY', period: 'month' }] }), { status: 201 });
+    });
+    await offerOnService('pro', 1500, 'CNY', 'month', CLAIM, fetchImpl);
+    expect(seenUrl).toBe(`${nexusApiBase()}/plans`);
+    expect(seenInit?.method).toBe('POST');
+    expect(seenInit?.headers).toMatchObject({ 'content-type': 'application/json', accept: 'application/json' });
+    expect(JSON.parse(String(seenInit?.body))).toEqual({
+      planId: 'pro',
+      priceCents: 1500,
+      currency: 'CNY',
+      period: 'month',
+      claim: { accountId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 },
+    });
+  });
+
+  it('the claim is NULL-FILLED, not dropped — the family shape the follows door shares (v445)', async () => {
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((_url, init) => {
+      seenInit = init;
+      return new Response(JSON.stringify({ ok: true, plans: [] }), { status: 201 });
+    });
+    await offerOnService('pro', 100, 'CNY', 'month', { accountId: 'acct-bob' }, fetchImpl);
+    expect(JSON.parse(String(seenInit?.body)).claim).toEqual({ accountId: 'acct-bob', handle: null, assurance: null, claimedAt: null });
+  });
+
+  it('the ask carries the SERVICE budget of 15 seconds, pinned on AbortSignal.timeout (v337)', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ok: true, plans: [] }), { status: 201 }));
+      await offerOnService('pro', 100, 'CNY', 'month', CLAIM, fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledWith(15_000);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('a refusal keeps the service’s OWN WORDS, even though the body carries no `ok` field (v313)', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ error: 'invalid-plan', message: 'a plan needs a price above zero' }), { status: 400 }),
+    );
+    const answer = await offerOnService('pro', 0, 'CNY', 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('a plan needs a price above zero');
+  });
+
+  it('a refusal that DOES carry `ok: false` keeps its reason too', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ ok: false, reason: 'this account already offers that plan' }), { status: 409 }),
+    );
+    const answer = await offerOnService('pro', 100, 'CNY', 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('this account already offers that plan');
+  });
+
+  it('a refusal carries no plan — a refused offer is not a plan that was made', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ error: 'invalid-plan', message: 'nope' }), { status: 400 }),
+    );
+    const answer = await offerOnService('pro', 100, 'CNY', 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.plan).toBeUndefined();
+  });
+
+  it('a success carries the FIRST plan of the answer’s list', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(
+        JSON.stringify({
+          ok: true,
+          plans: [
+            { planId: 'pro', priceCents: 1500, currency: 'CNY', period: 'month' },
+            { planId: 'team', priceCents: 4900, currency: 'CNY', period: 'year' },
+          ],
+        }),
+        { status: 201 },
+      ),
+    );
+    const answer = await offerOnService('pro', 1500, 'CNY', 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.plan?.planId).toBe('pro');
+    expect(answer.plan?.priceCents).toBe(1500);
+  });
+
+  it('an ok answer carrying no plan leaves the field absent rather than inventing one', async () => {
+    const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ok: true, plans: [] }), { status: 201 }));
+    const answer = await offerOnService('pro', 100, 'CNY', 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.plan).toBeUndefined();
+  });
+
+  it('an answer that is not JSON is a refusal naming the HTTP status', async () => {
+    const fetchImpl = makeFetch(() => new Response('<html>gateway</html>', { status: 502 }));
+    const answer = await offerOnService('pro', 100, 'CNY', 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('502');
+    expect(answer.reason).toContain('not JSON');
+  });
+
+  it('an offer that never arrived answers UNREACHABLE with the address named', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw new Error('connect ECONNREFUSED');
+    });
+    const answer = await offerOnService('pro', 100, 'CNY', 'month', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('nexus-api unreachable');
+    expect(answer.reason).toContain(nexusApiBase());
+  });
+
+  it('a slow offer says it was LATE, not unreachable — the v337 distinction', async () => {
+    const late = new Error('The operation was aborted due to timeout');
+    late.name = 'TimeoutError';
+    const fetchImpl = makeFetch(() => {
+      throw late;
+    });
+    const answer = await offerOnService('pro', 100, 'CNY', 'month', CLAIM, fetchImpl);
+    expect(answer.reason).toContain('did not answer within 15 seconds');
+    expect(answer.reason).not.toContain('unreachable');
   });
 });
