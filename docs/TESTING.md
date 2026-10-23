@@ -1888,11 +1888,3 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   畸形父链（`a.parentId=b`、`b.parentId=a`）会让它在 a↔b 间**同步死循环**——即"防环检查自己先挂住"。
   补上与 `ancestors` / `isDescendant` 同款的 `seen` 守卫。`traversal-cycle-extra.test.ts` 加 1 条（父环下 `isWithin` 终止）。
   **红证**：与 ancestors/isDescendant 同一型（同步死循环，连报错都不留），未再单独跑挂起。
-
-- **2026-10-23：§147 增量复用的结构判据补齐「插入 / 换序」两条**——`layout-incremental.test.ts` 的注释里
-  一直写着「孩子被删 / 被插 / 被换序」，但只有「删」有测试。补两条（改动放在**另一支**，让
-  `subtreeHasChanged` 走不到它，从而把「孩子列表的顺序与成员」这条判据单独隔离出来）：
-  插入 → 新孩子必须在解里；换序 → `paintOrder` 必须与全量一致。
-  **变异探针**：摘掉 `canReuse` 里的结构比对 → 删除与换序两条精确红；**插入那条仍绿**——新节点没有 prev entry，
-  `subtreeHasChanged` 的 `!entry → true` 已经挡住了它。这是一条**不同的**有效守卫（不是结构判据），
-  写在这里免得下次把「插入也靠结构判据」当事实。`layout-incremental` 7 条全绿。
