@@ -1492,17 +1492,21 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   不另起一张表）。定位由服务端按文档算（页面、元素名），节点被删后批注仍列得出并标明悬空；
   随 AI 请求上线走 §68 那条路（客户端上传 `annotations` 一律 400，超出 20 条与悬空都写进
   `annotationsNote`），提示词里写清"批注回答该动哪个元素，不是要照抄进设计的文案"。
-  **2026-10-21 核实：这一条三项里两项已做、只剩一项**——`@Agent` 提及解析 ✅
+  **2026-10-24 第三项补齐（#185）**，这一条三项全齐：`@Agent` 提及解析 ✅
   （`server/domain/agents.ts` 的 `findAgent` / `mentionNote`）、回复线程 ✅
-  （`comments.parentId` 那一列在，且是自引用级联）⇒ **只剩「批注的已解决状态」**：
-  `comments` 表**没有** `resolved_at` 那一列（`schema.ts:715`）⇒ 那一项要一次迁移 + 写侧 + 界面。
-  **后两样不是欠账而是没写进需求**：2026-09-25 回看 §111 原文，它要的只有"点元素 → 写评论 → Agent 自动定位"，
-  三样都已落地；回复线程与 resolved 状态是产品直觉，不是需求，不自动开工（要做得先有人提）。
-  `@Agent` 提及解析才是真欠的那一条，它挂在 §112/§113 的多 Agent 那条链上 ——
+  （`comments.parentId` 那一列在，且是自引用级联）、**批注的「已解决」状态 ✅**——
+  迁移 0038 给 `comments` 加 `resolved_at`（一行时间戳，不是布尔），
+  `PATCH /api/annotations/[id]` 标上/重新打开，界面上"标为已解决 / 重新打开"，
+  已解决的默认收起并说清收起几条，画布角标变灰淡出。
+  2026-09-25 回看 §111 原文，它要的只有"点元素 → 写评论 → Agent 自动定位"，三样早就落地；
+  回复线程与 resolved 状态当时判为"产品直觉、不是需求，不自动开工"。#185 仍然做了它，
+  理由见 ADR-0061：**已解决的批注必须不再进 AI 上下文**，否则模型会把已经收工的事重做一遍——
+  少这一条，"已解决"就只是界面装饰，而装饰正是 §159 禁的东西。
+  `@Agent` 提及解析它挂在 §112/§113 的多 Agent 那条链上 ——
   **2026-09-26 已接上**（见 M6 的"Agent 名册有写入方"那一条）：批注正文里的 `@xxx` 现在是解析的第三来源
   （排在请求提名与提示词提及之后），并且它读的是同一名册、同一道门；不是给批注单独写一套匹配。
-  验证：`annotations.integration.test.ts` 8 条 + 一条画布 e2e（含刷新后仍在、以及
-  "浮层挡住画布点击"这条反向实验——去掉 stopPropagation 那条断言立刻红）
+  验证：`annotations.integration.test.ts` 13 条 + 路由级 `annotation-resolve-route.integration.test.ts` 5 条
+  + 画布 e2e（含刷新后仍在、以及"浮层挡住画布点击"这条反向实验——去掉 stopPropagation 那条断言立刻红）
 - [~] 发布审核流水线（§131）+ 举报（§132 的一部分）— **2026-09-24 落地**：
   `publish → 机检（红线词表 + 资产出处）→ clear/review/blocked → 发布或挂人工队列`，
   机检只升级不认证（`moderation` 停在 pending，只有 role=admin 的人工裁决能写 approved/rejected，
@@ -5877,3 +5881,28 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   下一个照它做判断的人会被带偏。
   见证：合并后全仓 `[0-9a-f]{8}-[0-9a-f]{4}-` 形状的本地正则 **0 份**；
   tsc -p apps/web 0；改动文件 eslint 0；analytics 四套件 + id-shape 共 115/115 绿。
+
+- **2026-10-24 第三十五片（#185）：批注的「已解决」状态落地——一行时间戳，并且它改变了 AI 能看到什么**。
+  §111 那一行挂了很久的"只剩一项"（2026-10-21 核实）在这次补齐：`comments.resolved_at`
+  （迁移 0038）+ `setAnnotationResolved` + `PATCH /api/annotations/[id]` + 界面 + 上下文。
+  四处值得记下来的判断：
+  1. **时间戳不是布尔**。与 `projects.deleted_at` 同一条纪律：状态由存在性推出（NULL = 未解决），
+     "什么时候解决的"与"是不是解决的"是两个问题，存布尔就永远答不出前者。
+     顺带白拿一样：重新打开再标一次，第二次盖掉第一次，"反复开关过"在数据里留得下痕迹。
+  2. **库上是第二道门**：CHECK `comments_resolved_at_only_annotations` 管住
+     "公开评论（§59，node_id 为空）不能有 resolved_at"。服务端 PATCH 按同一条件取行，
+     但直接连库的人到得了那里。探针实测：摘掉约束，那条 CHECK 测试精确红。
+  3. **幂等由两道共同保证**（早退 + `next` 读回原值）。单独摘任意一道另一道还在、测试仍绿——
+     所以探针要两道一起摘才红。这条写进注释，免得下一个人把其中一道当多余的删掉。
+  4. **已解决的批注不再进 AI 上下文**，这是本片真正的行为变更：不带上去，但
+     `annotationsNote` 写明"1 条批注已标记为已解决，没有带上"（§159 不静默降级）。
+     `@Agent` 提名同样只认未解决的——收工的话不该再点名哪个 Agent。
+  见证：`annotations.integration.test.ts` 13/13、`annotation-resolve-route.integration.test.ts` 5/5、
+  `id-shape.integration.test.ts` 49/49、ai-assemble + agents + 安全结构门 43/43；
+  画布 e2e 一条绿（标上 → 默认收起 → 展开 → 刷新后仍在 → 重新打开）。
+  变异探针 6 种（不过滤已解决 / 公开评论门 / 回复门 / 归属门 / 幂等两道齐摘 / CSRF）+ 库上约束摘除，
+  全部精确红后逐字节还原。tsc -p apps/web 0；改动文件 eslint 0。
+  判决书：`docs/adr/0061-annotation-resolved-state.md`。
+  **没做的**：`PATCH` / `DELETE /api/annotations/[id]` 没加 IP 闸。它们要先过
+  `projectBelongsTo`，guest 建不出任何东西（只有一个用户行，与 `GET /api/auth/me` 同一笔欠账，
+  见 ADR-0060 的遗留段）——不在这片里顺带扩面。

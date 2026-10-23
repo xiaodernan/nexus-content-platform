@@ -27,9 +27,25 @@ export interface Annotation {
   body: string;
   author: string;
   createdAt: string;
+  /**
+   * §111「已解决」：ISO 时间，`null` = 还没解决。存在性即状态（迁移 0038），
+   * 所以这里不是布尔——"什么时候解决的"和"是不是解决的"是两件事，
+   * 存后者就再也答不出前者（重新打开再标一次，第一次的时间会被盖掉）。
+   */
+  resolvedAt: string | null;
 }
 
 export type AnnotationResult = { ok: true; annotation: Annotation } | { ok: false; reason: string };
+
+/**
+ * 标记/取消「已解决」的三种失败各自不同答案，所以不返回 boolean：
+ * - `not_found`：没有这条，或者不是你的（对外同一个答案，不泄露存在性）
+ * - `not_annotation`：这是回复线程里的一句话，"已解决"属于它头顶那条批注
+ * - `public_comment`：公开评论（§59）不钉在任何元素上，没有"解决了"这一说
+ */
+export type AnnotationResolveResult =
+  | { ok: true; annotationId: string; resolvedAt: string | null }
+  | { ok: false; reason: 'not_found' | 'not_annotation' | 'public_comment' };
 
 /**
  * 节点在哪个页面、叫什么名字。按页面的节点表找（与 Design Index 的归属判定同一口径），
@@ -58,6 +74,7 @@ export async function listAnnotations(projectId: string): Promise<Annotation[]> 
     .select({
       id: comments.id,
       nodeId: comments.nodeId,
+      resolvedAt: comments.resolvedAt,
       body: comments.body,
       createdAt: comments.createdAt,
       author: users.displayName,
@@ -81,6 +98,7 @@ export async function listAnnotations(projectId: string): Promise<Annotation[]> 
         body: r.body,
         author: r.author,
         createdAt: r.createdAt.toISOString(),
+        resolvedAt: r.resolvedAt ? r.resolvedAt.toISOString() : null,
       };
     });
 }
@@ -112,6 +130,7 @@ export async function addAnnotation(actorId: string, projectId: string, nodeId: 
       body: text,
       author: author?.displayName ?? '',
       createdAt: row!.createdAt.toISOString(),
+      resolvedAt: null,
     },
   };
 }
@@ -126,4 +145,56 @@ export async function deleteAnnotation(actorId: string, annotationId: string): P
   if (!(await projectBelongsTo(row.projectId, actorId))) return false;
   await db.delete(comments).where(and(eq(comments.id, annotationId), isNull(comments.parentId), eq(comments.projectId, row.projectId)));
   return true;
+}
+
+/**
+ * §111 批注的「已解决」：把它标成"这句话已经处理过了"。
+ *
+ * 三件事只有这里说得清：
+ * 1. **幂等**：已经解决过的再标一次，保留**第一次**的时间（"什么时候解决的"问的是第一次），
+ *    重新打开是清空。这条由**两道**共同保证：早退（值不会变就不写）+ `next` 读回原值。
+ *    实测摘掉任一道另一道还在（单独摘都还是绿的），所以探针要两道一起摘才红——
+ *    写在这里是因为下一个人改其中一道时，会以为另一道是多余的。
+ * 2. **回复与公开评论不能单独标**：前者是线程里的一句话，后者不钉在任何元素上。
+ *    服务端按 `parent_id` / `node_id` 判，库上的 CHECK 是第二道门（不是唯一一道）。
+ * 3. **归属先查**，且别人的与不存在的一律 `not_found`：不告诉调用方"这条存在，只是不是你的"。
+ */
+export async function setAnnotationResolved(
+  actorId: string,
+  annotationId: string,
+  resolved: boolean,
+): Promise<AnnotationResolveResult> {
+  // 形状不对的 id 按"没有这条批注"处理，与 deleteAnnotation 同一句口径（eq() 会撞 22P02 变 500）
+  if (!isUuid(annotationId)) return { ok: false, reason: 'not_found' };
+  const db = getDb();
+  const [row] = await db
+    .select({
+      projectId: comments.projectId,
+      parentId: comments.parentId,
+      nodeId: comments.nodeId,
+      resolvedAt: comments.resolvedAt,
+    })
+    .from(comments)
+    .where(eq(comments.id, annotationId))
+    .limit(1);
+  if (!row) return { ok: false, reason: 'not_found' };
+  if (!(await projectBelongsTo(row.projectId, actorId))) return { ok: false, reason: 'not_found' };
+  if (row.parentId !== null) return { ok: false, reason: 'not_annotation' };
+  if (row.nodeId === null) return { ok: false, reason: 'public_comment' };
+
+  const next = resolved ? (row.resolvedAt ?? new Date()) : null;
+  const unchanged = next === null ? row.resolvedAt === null : row.resolvedAt !== null;
+  if (unchanged) {
+    return {
+      ok: true,
+      annotationId,
+      resolvedAt: row.resolvedAt ? row.resolvedAt.toISOString() : null,
+    };
+  }
+  const [updated] = await db
+    .update(comments)
+    .set({ resolvedAt: next })
+    .where(and(eq(comments.id, annotationId), eq(comments.projectId, row.projectId)))
+    .returning({ resolvedAt: comments.resolvedAt });
+  return { ok: true, annotationId, resolvedAt: updated!.resolvedAt ? updated!.resolvedAt.toISOString() : null };
 }

@@ -1036,6 +1036,29 @@ export class StudioStore {
   }
 
   /**
+   * §111 批注的「已解决」。本地更新，和另外两条同一条纪律：服务端说它成了才算成，
+   * 回填用的是响应里的 `resolvedAt`（服务端时钟），不是本地 `new Date()`——
+   * 否则"什么时候解决的"取决于谁的机器，两个设备会看到两个时间。
+   */
+  async resolveAnnotation(annotationId: string, resolved: boolean): Promise<string | null> {
+    const res = await fetch(`/api/annotations/${annotationId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', ...csrfHeaders() },
+      body: JSON.stringify({ resolved }),
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { issues?: string[]; message?: string } | null;
+      return body?.issues?.join('；') ?? body?.message ?? `HTTP ${res.status}`;
+    }
+    const body = (await res.json().catch(() => null)) as { resolvedAt?: string | null } | null;
+    this.annotationsValue = this.annotationsValue.map((a) =>
+      a.id === annotationId ? { ...a, resolvedAt: body?.resolvedAt ?? null } : a,
+    );
+    this.commit();
+    return null;
+  }
+
+  /**
    * 发布 = 把当前这一版存成快照，并让公开 URL 指向它。
    * 先 save 再 publish：发出去的和屏幕上看到的必须是同一份（§16）。
    */

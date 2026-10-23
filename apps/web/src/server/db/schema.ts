@@ -731,6 +731,12 @@ export const comments = pgTable(
     parentId: uuid('parent_id').references((): any => comments.id, { onDelete: 'cascade' }),
     /** 画布批注定位（§111）：指向设计节点 */
     nodeId: text('node_id'),
+    /**
+     * §111 批注的「已解决」：一行时间戳，存在性即状态（NULL = 未解决），见迁移 0038。
+     * 公开评论（§59）这一列必须为空——CHECK `comments_resolved_at_only_annotations` 在库上。
+     * 不存布尔：两个字段会漂移，一个字段不会（与 `projects.deletedAt` 同一纪律）。
+     */
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
     body: text('body').notNull(),
     createdAt: now(),
   },

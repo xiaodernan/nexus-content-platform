@@ -2089,6 +2089,32 @@ test('@smoke 画布批注：钉在元素上、刷新还在、位置由服务端�
   await expect(page.locator('[data-annotations-panel]')).toContainText(headlineId);
   // 已存在的那条批注仍然列着，且写明它钉在 Headline 上
   await expect(page.locator(`[data-annotation="${headlineId}"]`)).toContainText('Headline · Home');
+
+  // §111「已解决」：标上之后列表默认收起、画布角标变灰；刷新后仍在（§185）
+  await page.click(`[data-annotation="${headlineId}"] [data-annotation-resolve]`);
+  await expect(page.locator(`[data-annotation-badge="${headlineId}"]`)).toHaveAttribute('data-annotation-resolved', 'on');
+  // 默认收起已解决的，但要说清收起了几条——不然"我的批注呢"没有答案
+  await expect(page.locator('[data-annotations-resolved-filter]')).toContainText('显示已解决的 1 条');
+  await expect(page.locator(`[data-annotation="${headlineId}"]`)).toHaveCount(0);
+  await page.screenshot({ path: 'screenshots/canvas-annotation-resolved.png' });
+
+  // 展开已解决的：正文划掉、状态写明"已解决"
+  await page.click('[data-annotations-resolved-filter]');
+  await expect(page.locator(`[data-annotation="${headlineId}"]`)).toHaveAttribute('data-annotation-resolved', 'on');
+  await expect(page.locator(`[data-annotation="${headlineId}"]`)).toContainText('已解决');
+
+  // 刷新：已解决是库里的一列，不是内存里的临时状态
+  await page.reload();
+  await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 30_000 });
+  await page.click('[data-annotations-toggle]');
+  await expect(page.locator(`[data-annotation-badge="${headlineId}"]`)).toHaveAttribute('data-annotation-resolved', 'on');
+  await page.click('[data-annotations-resolved-filter]');
+  await expect(page.locator(`[data-annotation="${headlineId}"]`)).toHaveAttribute('data-annotation-resolved', 'on');
+
+  // 重新打开：同一条路走回去，状态回到"未解决"（幂等的另一半）
+  await page.click(`[data-annotation="${headlineId}"] [data-annotation-resolve]`);
+  await expect(page.locator(`[data-annotation="${headlineId}"]`)).toHaveAttribute('data-annotation-resolved', 'off');
+  await expect(page.locator(`[data-annotation-badge="${headlineId}"]`)).toHaveAttribute('data-annotation-resolved', 'off');
 });
 
 

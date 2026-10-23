@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { inArray, sql as rawSql } from 'drizzle-orm';
+import { eq, inArray, sql as rawSql } from 'drizzle-orm';
 import type { AiRequest } from '@nexus/schemas';
 import { createNode, findPage } from '@nexus/design-model';
-import { addAnnotation, deleteAnnotation, listAnnotations } from '../src/server/domain/annotations';
+import { addAnnotation, deleteAnnotation, listAnnotations, setAnnotationResolved } from '../src/server/domain/annotations';
 import { assembleAiRequest } from '../src/server/ai/assemble';
 import { createProject, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
-import { projects, users } from '../src/server/db/schema';
+import { comments, projects, users } from '../src/server/db/schema';
 
 /**
  * §111 画布批注。两条最容易被糊过去的边界都在这里：
@@ -177,6 +177,130 @@ describe('批注随 AI 请求上线（§68 + §111）', () => {
     if (!result.ok) return;
     expect(result.wire.context.annotations).toEqual([]);
     expect(result.wire.context.annotationsNote).toContain('节点已经不在文档里');
+  });
+
+  it('已解决的批注不带上去，并且说明少了几条（不静默降级）', async () => {
+    const id = await newProject('已解决的批注');
+    const nodeId = await addNode(id, 'Done', '好了');
+    const created = await addAnnotation(ownerId, id, nodeId, '这个已经改好了，别再动');
+    if (!created.ok) throw new Error('前置写入失败');
+    await setAnnotationResolved(ownerId, created.annotation.id, true);
+
+    const result = await assembleAiRequest(aiRequest(id), ownerId);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // 「已解决」的意思是"这句话处理过了"：再喂给模型就是让它把收工的事重做一遍
+    expect(result.wire.context.annotations).toEqual([]);
+    expect(result.wire.context.annotationsNote).toContain('已解决');
+    expect(result.wire.context.annotationsNote).toContain('1 条');
+
+    // 正对照：同一条重新打开，就又该带上来了——否则上面那条红可能只是"批注根本没上线"
+    await setAnnotationResolved(ownerId, created.annotation.id, false);
+    const back = await assembleAiRequest(aiRequest(id), ownerId);
+    expect(back.ok).toBe(true);
+    if (!back.ok) return;
+    expect(back.wire.context.annotations).toHaveLength(1);
+    expect(back.wire.context.annotationsNote).toBeUndefined();
+  });
+});
+
+describe('批注的「已解决」（§111 / 迁移 0038）', () => {
+  it('标上再打开：状态由时间戳的存在性推出来，两次读回来一致', async () => {
+    const id = await newProject('已解决往返');
+    const nodeId = await addNode(id, 'Hero', '主标题');
+    const created = await addAnnotation(ownerId, id, nodeId, '标题压到下面的卡片了');
+    if (!created.ok) throw new Error('前置写入失败');
+    // 新写出来的一条一定是未解决：没有"默认解决"这种状态
+    expect(created.annotation.resolvedAt).toBeNull();
+    expect((await listAnnotations(id))[0]!.resolvedAt).toBeNull();
+
+    const marked = await setAnnotationResolved(ownerId, created.annotation.id, true);
+    expect(marked).toMatchObject({ ok: true, annotationId: created.annotation.id });
+    if (!marked.ok) return;
+    expect(marked.resolvedAt).toBeTruthy();
+    // 服务端读回来的与写回来的是同一个值：不是"各自算一个时间"
+    expect((await listAnnotations(id))[0]!.resolvedAt).toBe(marked.resolvedAt);
+
+    const reopened = await setAnnotationResolved(ownerId, created.annotation.id, false);
+    expect(reopened.ok && reopened.resolvedAt).toBeNull();
+    expect((await listAnnotations(id))[0]!.resolvedAt).toBeNull();
+
+    // 重新打开再标一次：这一次的时间是新的（"什么时候解决的"问的是最近那一次）
+    const again = await setAnnotationResolved(ownerId, created.annotation.id, true);
+    expect(again.ok && again.resolvedAt).toBeTruthy();
+    if (!again.ok || !again.resolvedAt || !marked.resolvedAt) return;
+    expect(new Date(again.resolvedAt).getTime()).toBeGreaterThanOrEqual(new Date(marked.resolvedAt).getTime());
+  });
+
+  it('幂等：已经解决过的再标一次，保留第一次的时间，库里还是那一行', async () => {
+    const id = await newProject('已解决幂等');
+    const nodeId = await addNode(id, 'Btn', '按钮');
+    const created = await addAnnotation(ownerId, id, nodeId, '这句话');
+    if (!created.ok) throw new Error('前置写入失败');
+    const first = await setAnnotationResolved(ownerId, created.annotation.id, true);
+    if (!first.ok) throw new Error('标记失败');
+    // 隔开足够长：两次调用若都写库，时间戳必然不同（同一毫秒里返回会被误判成"没变"）
+    await new Promise((r) => setTimeout(r, 30));
+    const second = await setAnnotationResolved(ownerId, created.annotation.id, true);
+    expect(second.ok && second.resolvedAt).toBe(first.resolvedAt);
+    const db = getDb();
+    const rows = await db.select({ n: rawSql<number>`count(*)::int` }).from(comments).where(eq(comments.projectId, id));
+    expect(rows[0]!.n).toBe(1);
+  });
+
+  it('别人的批注：标不了，且与"没有这条"同一个答案（不泄露存在性）', async () => {
+    const id = await newProject('别人标已解决');
+    const nodeId = await addNode(id, 'X', 'x');
+    const created = await addAnnotation(ownerId, id, nodeId, '一句话');
+    if (!created.ok) throw new Error('前置写入失败');
+    expect(await setAnnotationResolved(otherId, created.annotation.id, true)).toEqual({
+      ok: false,
+      reason: 'not_found',
+    });
+    expect((await listAnnotations(id))[0]!.resolvedAt).toBeNull();
+  });
+
+  it('回复与公开评论都不能单独标：它们没有「已解决」这一说', async () => {
+    const id = await newProject('不能标的两种');
+    const nodeId = await addNode(id, 'Y', 'y');
+    const created = await addAnnotation(ownerId, id, nodeId, '主批注');
+    if (!created.ok) throw new Error('前置写入失败');
+    const db = getDb();
+    // 回复与公开评论各插一条，id 由 returning 拿回来——不靠"哪一行 node_id 为空"去猜
+    const [reply] = await db
+      .insert(comments)
+      .values({ projectId: id, userId: ownerId, parentId: created.annotation.id, body: '回复一句' })
+      .returning({ id: comments.id });
+    const [publicComment] = await db
+      .insert(comments)
+      .values({ projectId: id, userId: ownerId, nodeId: null, body: '公开评论一句' })
+      .returning({ id: comments.id });
+
+    expect(await setAnnotationResolved(ownerId, reply!.id, true)).toEqual({ ok: false, reason: 'not_annotation' });
+    expect(await setAnnotationResolved(ownerId, publicComment!.id, true)).toEqual({
+      ok: false,
+      reason: 'public_comment',
+    });
+    // 主批注没被连带改动
+    expect((await listAnnotations(id))[0]!.resolvedAt).toBeNull();
+  });
+
+  it('库上是第二道门：node_id 为空 + resolved_at 非空插不进去', async () => {
+    const id = await newProject('库上的 CHECK');
+    const nodeId = await addNode(id, 'Z', 'z');
+    const created = await addAnnotation(ownerId, id, nodeId, '这句话');
+    if (!created.ok) throw new Error('前置写入失败');
+    const db = getDb();
+    // 公开评论本身插得进（那条路是 §59 的正常用途）
+    await db.insert(comments).values({ projectId: id, userId: ownerId, nodeId: null, body: '公开评论' });
+    // 但给它一个 resolved_at 就被 CHECK 挡下：绕过服务端也改不出这种行
+    await expect(
+      db
+        .insert(comments)
+        .values({ projectId: id, userId: ownerId, nodeId: null, body: '公开评论', resolvedAt: new Date() }),
+    ).rejects.toThrow();
+    const rows = await db.select({ n: rawSql<number>`count(*)::int` }).from(comments).where(eq(comments.projectId, id));
+    expect(rows[0]!.n).toBe(2); // 一条批注 + 一条公开评论，失败的那条没留下
   });
 });
 

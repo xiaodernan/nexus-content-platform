@@ -531,7 +531,9 @@ export function CanvasStage() {
               key={a.id}
               type="button"
               data-annotation-badge={a.nodeId}
-              title={`${a.nodeName}：${a.body}`}
+              // §111「已解决」的批注角标退成灰并淡出：元素上还有话，但已经处理过了
+              data-annotation-resolved={a.resolvedAt ? 'on' : 'off'}
+              title={`${a.nodeName}：${a.body}${a.resolvedAt ? '（已解决）' : ''}`}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={() => studio.select([a.nodeId])}
               style={{
@@ -542,8 +544,9 @@ export function CanvasStage() {
                 height: 14,
                 pointerEvents: 'auto',
                 borderRadius: 999,
-                background: 'var(--nexus-color-brand)',
+                background: a.resolvedAt ? 'var(--nexus-color-border-strong)' : 'var(--nexus-color-brand)',
                 border: '1px solid var(--nexus-color-bg-0)',
+                opacity: a.resolvedAt ? 0.55 : 1,
                 cursor: 'pointer',
               }}
             />

@@ -110,18 +110,22 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
   }
 
   const document = assembled.document;
-  // §111：批注从库里按项目读，再由 derive 按文档核对定位——客户端说的 nodeId 不算数
+  // §111：批注从库里按项目读，再由 derive 按文档核对定位——客户端说的 nodeId 不算数。
+  // 已标记「已解决」的那部分不带上去：它的意思是"这句话已经处理过了"，
+  // 再喂给模型就是让它把已经收工的事重做一遍。少给的那几条由 note 说明，不静默。
   const stored = await listAnnotations(projectId);
+  const open = stored.filter((a) => a.resolvedAt === null);
   const derived = deriveContextFromDocument(document, {
     ...context,
-    annotations: stored.map((a) => ({ nodeId: a.nodeId, body: a.body })),
+    annotations: open.map((a) => ({ nodeId: a.nodeId, body: a.body })),
+    resolvedCount: stored.length - open.length,
   });
   // §112：这一轮交给谁。提名可以来自三处——请求那一栏、提示词里的 @xxx、批注里的 @xxx；
   // 名册是唯一的裁判，而它读的是库（`scripts/db-seed.mts` 播种的那 13 行）。
   const resolved = resolveAgent(await loadRoster(), {
     agentKey: rest.agentKey,
     prompt: rest.prompt,
-    annotations: stored.map((a) => a.body),
+    annotations: open.map((a) => a.body),
   });
   return {
     ok: true,

@@ -4,7 +4,7 @@ import { GET as getMemories } from '../src/app/api/projects/[projectId]/memories
 import { POST as acceptDraft } from '../src/app/api/projects/[projectId]/agent/draft/route';
 import { POST as resolveModeration } from '../src/app/api/admin/moderation/[caseId]/route';
 import { POST as revokeToken } from '../src/app/api/account/api-tokens/[tokenId]/revoke/route';
-import { DELETE as removeAnnotation } from '../src/app/api/annotations/[annotationId]/route';
+import { DELETE as removeAnnotation, PATCH as resolveAnnotation } from '../src/app/api/annotations/[annotationId]/route';
 import { GET as getMarketItem, PATCH as patchMarketItem, DELETE as deleteMarketRoute } from '../src/app/api/marketplace/[id]/route';
 import { DELETE as v1DeleteProject } from '../src/app/api/v1/projects/[projectId]/route';
 import { PATCH as adminChangeRole } from '../src/app/api/admin/users/[id]/route';
@@ -74,7 +74,7 @@ import {
 } from '../src/server/domain/projects';
 import { plannedTask } from '../src/server/domain/agent-tasks';
 import { revokeApiToken } from '../src/server/domain/api-tokens';
-import { deleteAnnotation } from '../src/server/domain/annotations';
+import { deleteAnnotation, setAnnotationResolved } from '../src/server/domain/annotations';
 import { resolveCase } from '../src/server/domain/moderation';
 import { setUserPlan } from '../src/server/domain/plan-admin';
 import { setUserRole } from '../src/server/domain/roles';
@@ -367,9 +367,34 @@ describe('域层与路由层：api-tokens 吊销与 annotations 删除（id 形�
     expect(res.status).toBe(404);
   });
 
+  // #185 给这条路由加了 PATCH（批注的「已解决」）。新的写入口就是新的撞 22P02 的面：
+  // 形状门必须和 DELETE 在同一处（域层的 setAnnotationResolved），不是各写一份。
+  it('setAnnotationResolved 对非 UUID → not_found，不抛', async () => {
+    await expect(setAnnotationResolved(creator.id, 'not-a-uuid', true)).resolves.toEqual({
+      ok: false,
+      reason: 'not_found',
+    });
+  });
+
+  it('PATCH /api/annotations/not-a-uuid → 404，不是 500（eq(comments.id, …) 撞 22P02）', async () => {
+    const res = await resolveAnnotation(
+      new Request('http://test.local/api/annotations/not-a-uuid', {
+        method: 'PATCH',
+        headers: asUser(creatorToken, true),
+        body: JSON.stringify({ resolved: true }),
+      }),
+      { params: Promise.resolve({ annotationId: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
   it('正对照：合法 UUID 但不存在 → 同样的 not-found / false（形状合法的那条路照旧走到数据库再答"没有"）', async () => {
     await expect(revokeApiToken('00000000-0000-4000-8000-000000000009', creator.id)).resolves.toMatchObject({ ok: false, reason: 'not-found' });
     await expect(deleteAnnotation(creator.id, '00000000-0000-4000-8000-000000000009')).resolves.toBe(false);
+    await expect(setAnnotationResolved(creator.id, '00000000-0000-4000-8000-000000000009', true)).resolves.toEqual({
+      ok: false,
+      reason: 'not_found',
+    });
   });
 });
 

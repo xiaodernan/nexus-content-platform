@@ -20,11 +20,24 @@ export function AnnotationsPanel() {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resolving, setResolving] = useState<string | null>(null);
+  // 默认收起已解决的：留着它们只会把还没处理的那几条挤到看不见。要看得点一下
+  const [hideResolved, setHideResolved] = useState(true);
 
   const selectedId = state.selection.length === 1 ? state.selection[0]! : null;
   const selectedNode = selectedId ? state.page?.nodes[selectedId] ?? null : null;
   const mine = state.annotations.filter((a) => a.pageId === state.page?.id);
+  const resolvedCount = mine.filter((a) => a.resolvedAt !== null).length;
+  const shown = hideResolved ? mine.filter((a) => a.resolvedAt === null) : mine;
   const onSelected = selectedId ? state.annotations.filter((a) => a.nodeId === selectedId) : [];
+
+  const resolve = async (annotationId: string, resolved: boolean): Promise<void> => {
+    setResolving(annotationId);
+    setError(null);
+    const reason = await studio.resolveAnnotation(annotationId, resolved);
+    setResolving(null);
+    if (reason) setError(reason);
+  };
 
   const submit = async (): Promise<void> => {
     if (!selectedId) return;
@@ -95,25 +108,57 @@ export function AnnotationsPanel() {
             </p>
           ) : null}
 
+          {resolvedCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => setHideResolved((v) => !v)}
+              className="self-start text-11 text-fg-3 hover:text-fg-2"
+              data-annotations-resolved-filter={hideResolved ? 'hiding' : 'showing'}
+            >
+              {hideResolved ? `显示已解决的 ${resolvedCount} 条` : '收起已解决的批注'}
+            </button>
+          ) : null}
+
           <ul className="flex max-h-[220px] flex-col gap-1 overflow-auto" data-annotation-list>
-            {mine.map((a) => (
-              <li className="border-t border-[var(--nexus-color-border-subtle)] pt-1 text-11" data-annotation={a.nodeId} key={a.id}>
-                <span className="text-fg-1">{a.body}</span>
+            {shown.map((a) => (
+              <li
+                className="border-t border-[var(--nexus-color-border-subtle)] pt-1 text-11"
+                data-annotation={a.nodeId}
+                data-annotation-resolved={a.resolvedAt ? 'on' : 'off'}
+                key={a.id}
+              >
+                <span className={a.resolvedAt ? 'text-fg-3 line-through' : 'text-fg-1'}>{a.body}</span>
                 <span className="block text-fg-3">
                   {a.nodeName} · {a.pageName} · {a.author}
                   {a.pageName === '(节点已不在文档里)' ? ' · 节点已不在文档里' : ''}
+                  {a.resolvedAt ? ' · 已解决' : ''}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => void studio.removeAnnotation(a.id)}
-                  className="mt-[2px] text-fg-3 hover:text-danger"
-                  data-annotation-remove={a.id}
-                >
-                  删除
-                </button>
+                <span className="mt-[2px] flex gap-2">
+                  <button
+                    type="button"
+                    disabled={resolving === a.id}
+                    onClick={() => void resolve(a.id, a.resolvedAt === null)}
+                    className="text-fg-3 hover:text-fg-1 disabled:opacity-50"
+                    data-annotation-resolve={a.id}
+                  >
+                    {resolving === a.id ? '…' : a.resolvedAt ? '重新打开' : '标为已解决'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void studio.removeAnnotation(a.id)}
+                    className="text-fg-3 hover:text-danger"
+                    data-annotation-remove={a.id}
+                  >
+                    删除
+                  </button>
+                </span>
               </li>
             ))}
-            {mine.length === 0 ? <li className="text-11 text-fg-3">这一页还没有批注。</li> : null}
+            {shown.length === 0 ? (
+              <li className="text-11 text-fg-3">
+                {mine.length === 0 ? '这一页还没有批注。' : '这一页的批注都已标记为已解决。'}
+              </li>
+            ) : null}
           </ul>
         </div>
       ) : null}

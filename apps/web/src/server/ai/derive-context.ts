@@ -21,6 +21,8 @@ export function deriveContextFromDocument(
     pageId?: string | null;
     selection: string[];
     annotations?: { nodeId: string; body: string }[];
+    /** 已标记「已解决」而被略过的条数：不带上去，但要说明少了几条（§159 不静默降级） */
+    resolvedCount?: number;
   },
 ) {
   return {
@@ -30,7 +32,7 @@ export function deriveContextFromDocument(
       pageId: context.pageId ?? null,
       selection: context.selection,
     }),
-    ...deriveAnnotations(document, context.annotations ?? []),
+    ...deriveAnnotations(document, context.annotations ?? [], context.resolvedCount ?? 0),
     designSystemDigest: {
       tokens: document.tokens.map((token) => ({ key: token.key, type: token.type, value: token.value })),
       components: document.components.map((component) => ({
@@ -48,10 +50,14 @@ export function deriveContextFromDocument(
  * 批注的定位由文档回答：节点在哪个页面、叫什么名字，看文档而不是看调用方给的；
  * 节点已经不在文档里的批注不带（并写进 note），因为"钉在一个不存在的元素上"
  * 只会让模型去猜那个 id 像什么。
+ *
+ * `resolvedCount` 是调用方已经滤掉的那部分（§111「已解决」）：它不带上来，
+ * 但要写进 note——静默少给几条，模型只会以为"这个人没别的话要说"。
  */
 function deriveAnnotations(
   document: DesignDocument,
   incoming: { nodeId: string; body: string }[],
+  resolvedCount: number,
 ): { annotations: AnnotationContext[]; annotationsNote?: string } {
   const located = new Map<string, { pageId: string; pageName: string; nodeName: string }>();
   for (const page of document.pages) {
@@ -79,6 +85,9 @@ function deriveAnnotations(
   }
   if (dangling) {
     notes.push(`${dangling} 条批注钉的节点已经不在文档里，没有带上——批注要能定位才有意义`);
+  }
+  if (resolvedCount > 0) {
+    notes.push(`${resolvedCount} 条批注已标记为已解决，没有带上——要动它们标的那个元素就重新打开`);
   }
   return notes.length
     ? { annotations: entries, annotationsNote: `；${notes.join('；')}`.slice(1) }
