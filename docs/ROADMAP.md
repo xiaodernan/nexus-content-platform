@@ -2242,7 +2242,8 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   6. 几何类发现（越出画布、零尺寸、点击目标）依赖该页能排版成功；结构坏掉的页面会跳过排版，
      问题由 Build 行负责报出来，不会静默消失。
 - 代码投影（`codegen.ts`）与画布一样只覆盖几何/样式/文字：`typography.runs`、`animation`、`interactions`、
-  `states`、`bindings` 都还没实现——渲染层也没有，所以两边一致地缺失，不是生成器单独偷懒。
+  `bindings` 都还没实现——渲染层也没有，所以两边一致地缺失，不是生成器单独偷懒。
+  （`states` 已于 2026-10-24 补齐四处投影，见文末 §124 一节与 ADR-0062。）
 - 生成的页面组件之间没有共享组件抽取：`component`/`instance` 节点会被展开成内联子树，
   等 §13 组件系统的实例语义稳定后再收敛成 `<Component />` 引用。
 - **未定位的偶发（不伪装成已修）**：`branches.integration.test.ts` 的「内容没变时反复切换不会堆噪音快照」
@@ -6183,3 +6184,69 @@ DOM 联动层（onClick → scrollIntoView）按仓库惯例不进单测（无�
 **下一步**：M5 收尾两格——① 分镜导出（把整条分镜连同成片打进导出 zip，§105 的
 "导出必须能被重新导入"要覆盖视频产物）；② 或 §133 的 generation 档位在 render 链上的
 呈现（哪个档位每月能渲几版，页面上看得见）。
+
+## §124 状态层：`states` 从模型走到四个投影，其中只有只读页面会真的自己变（#164-167，2026-10-24）
+
+`DesignNode.states` 从模型建立那天就在，但四处投影里只有生成代码会写 `hover:bg-…`：
+画布、预览、发布页都只读 `nodeStyle(node)`，状态补丁被静默丢掉。§16 要求四处同源，
+§159 又不许"看着像功能、实际不改变任何行为"——所以按四片补齐：
+
+1. **codegen**：`hover:` / `active:` / `focus:` / `disabled:` / `data-[state=loading|error|success]:`
+   变体类；状态是整通道替换，因此"基础态有、状态态没有"的通道要显式发射重置
+   （`bg-none`、`bg-transparent`、`border-0`、`border-[transparent]`、`shadow-none`、`blur-none`、
+   `backdrop-blur-none`、`text-inherit`）。状态名与变体名的唯一来源是 `states.ts`。
+2. **code-parse**：同一张表反向解码；解出的补丁与基础态相同的类按 unmapped 报告（生成侧不会产它），
+   源代码里没有的状态直接丢掉（`states: {}`），零字段的分组保留模型原值。
+3. **预览 / 发布**：`stateStyleSheetFor` 用同一个 `nodeStyle` 算基础态与状态态、对 `CSSProperties`
+   求差，写成 `[data-node-id="…"]:hover { … !important }`——基础样式是内联的，不加 `!important`
+   就永远赢不了。没有状态节点时返回空串，页面也不产出 `<style>` 标签。
+4. **画布是编辑面，故意不加状态规则**：hover 改外观会和选择、拖拽、手柄互相干扰；
+   要看状态就开预览。这条边界写进 ADR-0062。
+
+**未兑现的口径**：`loading` / `error` / `success` 靠 `data-state="…"`，只读页没有运行时驱动去设这个属性，
+它们只在导出的代码里有语义；`disabled:` 只对真实 disabled 元素生效，生成的 JSX 目前是 `div`。
+只读页上真正自己会变的是 hover / active / focus。
+
+见证：codegen 5 条、code-parse 5 条、render 6 条；`e2e/studio.spec.ts` 的
+「§124 状态层在预览与发布页真的生效」走完整回路（代码视图加 `hover:bg-[#123456]` → 回写模型 →
+重载后仍在 → 预览页移上指针读计算色 `rgb(18, 52, 86)` → 移开读回基础色 → 发布后访客页再读一遍）。
+
+**下一步**：Properties 面板的状态编辑器（现在唯一入口是代码视图与 AI 补丁）；
+`loading` 三种状态要真可见，得先有一个设置 `data-state` 的运行时（试玩/预览驱动），不是再写一段 CSS。
+
+
+## M5 第八片（#195）：分镜导出与导回——包里多一层 storyboard，导入侧按字节类型分派摄取门
+
+M5 收尾两格的第一格（§105 的"导出必须能被重新导入"要覆盖视频产物）：
+
+- **导出侧**：`ExportPart` 加 `storyboard`；`EXPORT_FORMAT_VERSION` 2 → 3——加 part 必须升版本，
+  导入侧按**相等**判版本，不升就是自家导的包被自家拒收。README 两种文案（有 / 没有分镜）
+  外加 §160 的 DEMO 声明；`storyboard/storyboard.json` 就是 `loadStoryboard` 那份文档，
+  参考帧不重复带字节（按 id 引用 `assets/`，同一个 mp4 进包两遍只是让包变大）。
+- **导入侧**：`readManifest` 的 parts 放行 `storyboard`；`versionHint` 补 v2 分支
+  （"v2 的包里没有分镜那一层……请重新导出一次（v3）"）；`PackagePlan.storyboard`，
+  缺文件 / 坏 JSON / 过不了 `StoryboardSaveRequestSchema` 都整包拒收——包是外部输入，
+  "是自家导出的"不免检，与 design 同一口径。
+- **摄取门按字节类型分派**：`importProjectZip` 的资产循环先 `sniffVideoMime`，视频字节走
+  `uploadVideoAsset`（genMeta 记 `storyboardId` = 源分镜 id / `provider` / `demoMode` /
+  `importedFrom`），否则走原 `uploadImageAsset`。**v3 之前视频资产其实进不来**——
+  成片被当图片递过去必被拒，"导入成功但成片没了"是个既有洞，这一片补上。
+- **分镜写在资产之后**（idMap 齐了才能换号）：`remapStoryboard` 做三件事——引用过 idMap
+  换号、不在 idMap 里的引用**删字段不删镜头**（留着就是悬空指针，`saveStoryboard` 的
+  firstForeignRef 会整份拒收；为一处断引用丢掉整份分镜不如删掉它并记 note）、
+  `characterId` 一律剥掉（导出格式没有角色这一 part，不剥照样被整份拒收——
+  那是拿"导入失败"掩盖"角色没随包走"）。`ImportReceipt` 多一个 `storyboardNotes`：
+  剥了谁、断了哪条引用、库里新 id 与源 id 对不上是正常的，全部点名（§159）。
+- 路由 `QuerySchema` 枚举放行 `storyboard`；`ExportPanel` 多一个勾选；
+  `ImportPanel` 回执显示分镜份数与 notes。
+
+见证：`zip-import.test.ts` 27 条（v1/v2 拒收各带版本提示；storyboard 缺文件 / 坏 JSON /
+过不了契约三条拒收；正面用例钉住计划里带着分镜）；`export.integration.test.ts` 11 条
+（有分镜 `counts.storyboard=1` 且 README 含"分镜"与 DEMO 声明；没有分镜照实写
+"这一版没有分镜可导"；版本断言升 3）；新文件 `storyboard-import.integration.test.ts`
+2 条真往返（换号 / 剥角色 / 断引用删字段 / 成片走视频摄取门）。五文件合跑 52/52 绿，
+tsc 0、eslint 0。变异探针 4 种全部精确红：不按 mime 分派（assets 1≠2）/ 不剥 characterId
+（saveStoryboard 拒）/ 不删断引用（firstForeignRef 拒）/ 版本不升（export 版本断言红）。
+
+**下一步**：M5 收尾最后一格——§133 的 generation 档位在 render 链上的呈现；以及
+"角色随包走"仍是缺口（导出格式无 character part，当前口径是剥掉并点名，要补得先加 part 再升 v4）。

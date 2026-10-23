@@ -5,6 +5,7 @@ import { channels, getRealtimeBus } from '../realtime/bus';
 import { listProjectAssets, openAssetForOwner } from './assets';
 import { emit } from './notifications';
 import { loadDocument, loadProjectIdentity, projectBelongsTo } from './projects';
+import { loadStoryboard } from './storyboards';
 
 /**
  * §144 NO LOCK-IN 的导出那一半：把一份项目**交还到作者手里**。
@@ -28,9 +29,9 @@ import { loadDocument, loadProjectIdentity, projectBelongsTo } from './projects'
  *    代码是确定性投影出来的，不是生成的。
  */
 
-export type ExportPart = 'design' | 'code' | 'assets';
+export type ExportPart = 'design' | 'code' | 'assets' | 'storyboard';
 
-export const EXPORT_PARTS: readonly ExportPart[] = ['design', 'code', 'assets'];
+export const EXPORT_PARTS: readonly ExportPart[] = ['design', 'code', 'assets', 'storyboard'];
 
 export interface ExportOutcome {
   bytes: Uint8Array;
@@ -75,6 +76,14 @@ function manifest(args: {
   if (parts.includes('design')) lines.push(`  design/document.json — 设计文档本身（${document.pages.length} 页，${counts.design} 个文件）`);
   if (parts.includes('code')) lines.push(`  code/ — 由设计文档确定性投影出来的代码（${counts.code} 个文件）`);
   if (parts.includes('assets')) lines.push(`  assets/ — 本项目上传的资产（${counts.assets} 个文件）`);
+  if (parts.includes('storyboard')) {
+    lines.push(
+      counts.storyboard > 0
+        ? '  storyboard/storyboard.json — 分镜文档（§40-42）。镜头的参考帧在 assets/ 里，按 id 引用'
+        : '  storyboard/ — 这一版没有分镜可导（项目里还没有分镜，或库里那份读不出来）',
+    );
+    lines.push('  分镜渲染出的成片是**本地确定性推演的 DEMO 产物**（本机没有视频 provider，§160），不是 AI 生成的。');
+  }
   lines.push('', '不在这里的东西（导的是"当前这一版"，不是整个项目历史）');
   lines.push('  历史快照与分支、撤销栈、知识索引与语料、对话与 AI 任务账本、通知、审核记录。');
   lines.push('  导出是一次投影：改了设计再导一次就是另一份，它不会替你保存改动过程。');
@@ -95,9 +104,13 @@ function manifest(args: {
  * 1 → 2 的唯一原因：v1 没有 `assetRefs`。导入侧要靠它把包里的字节对回文档里引用的那个资产，
  * 少了它只能让新项目的节点指向**源项目**的资产行（共享一行记录 = 删源项目把导入项目的图一起删掉，§80）
  * 或者干脆断掉引用。宁可对拿着 v1 包的人说一句"请重新导出"，也不要导出一份图不见了的项目。
+ *
+ * 2 → 3 的原因：多了 `storyboard` 这一 part（§40-42 的分镜连同它的参考帧引用）。
+ * 版本按相等判（导入侧 `manifest.formatVersion !== EXPORT_FORMAT_VERSION` 就整包拒收），
+ * 所以加 part 必须同步升版本——否则本实例导出的包会被本实例的导入侧拒收，自己不认识自己。
  */
 export const EXPORT_FORMAT = 'nexus-project-export';
-export const EXPORT_FORMAT_VERSION = 2;
+export const EXPORT_FORMAT_VERSION = 3;
 
 /** 机器可读的那一层。与 README.txt 分工：这份给程序看，那份给人看 */
 export interface NexusManifest {
@@ -165,7 +178,7 @@ export async function buildProjectExport(
   // 类型取自项目行（设计文档里没有它）；项目行读不到就退回文档名，清单里照实写 website 之外的默认
   const identity = await loadProjectIdentity(projectId);
   const projectName = identity?.name ?? document.name;
-  const counts: Record<ExportPart, number> = { design: 0, code: 0, assets: 0 };
+  const counts: Record<ExportPart, number> = { design: 0, code: 0, assets: 0, storyboard: 0 };
   const missingAssets: string[] = [];
   const assetRefs: NexusManifest['assetRefs'] = [];
   const entries: ZipEntry[] = [];
@@ -197,6 +210,18 @@ export async function buildProjectExport(
       assetRefs.push({ path, assetId: ref.id, name: ref.name });
       counts.assets += 1;
     }
+  }
+
+  if (parts.includes('storyboard')) {
+    // 分镜文档单独一份 JSON。镜头的参考帧引用的是 assets/ 里的字节（按 id），
+    // 所以这一part 不重复带字节——同一个 mp4 在包里出现两遍只是让包变大。
+    const loaded = await loadStoryboard(projectId);
+    if (loaded?.ok) {
+      entries.push(textEntry('storyboard/storyboard.json', JSON.stringify(loaded.document, null, 2)));
+      counts.storyboard = 1;
+    }
+    // 没有分镜或读不出来：README 里那一行已经写明"这一版没有分镜可导"，
+    // 不静默跳过——否则解压的人会以为分镜从来没被创建过
   }
 
   entries.unshift(textEntry('README.txt', manifest({ projectName, parts, counts, missingAssets, document })));

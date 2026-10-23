@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createDocument } from '@nexus/design-model';
 import { crc32, textEntry, zipStore, type ZipEntry } from '@/lib/zip';
-import { IMPORT_MAX_ZIP_BYTES, importProjectZip, inspectPackage } from '@/server/domain/import';
+import { IMPORT_MAX_ZIP_BYTES, importProjectZip, inspectPackage, STORYBOARD_DOC_PATH } from '@/server/domain/import';
 import { EXPORT_FORMAT, EXPORT_FORMAT_VERSION, type NexusManifest } from '@/server/domain/export';
 
 /**
@@ -51,6 +51,27 @@ function goodDocument(): ZipEntry {
 /** 包里那份 README：两个汉字，字节数从真字节算出来，不手打（手打会把 CJK 报成 2） */
 const README = textEntry('README.txt', '说明');
 
+/** 一份过得了 StoryboardSaveRequestSchema 的分镜文档：导入侧判据的"合法那一半" */
+function storyboardDocument(): Record<string, unknown> {
+  return {
+    id: 'sb-source',
+    title: '导入用例分镜',
+    source: { arrow: 'text-to-video', prompt: '一只猫跳过围墙' },
+    shots: [
+      { id: 'shot-1', prompt: '猫走近围墙', durationMs: 3000, camera: 'wide', transition: 'cut' },
+      { id: 'shot-2', prompt: '猫起跳', durationMs: 3000, camera: 'medium', transition: 'fade', referenceAssetId: 'asset-1' },
+    ],
+    notes: [],
+  };
+}
+
+/** 拼一份 parts 含 storyboard 的包；`storyboardText` 为 null 表示包里不放那份文档 */
+function packWithStoryboard(storyboardText: string | null): Uint8Array {
+  const files = [textEntry('README.txt', '说明'), goodDocument(), textEntry('code/index.tsx', 'export const A = 1;')];
+  if (storyboardText !== null) files.push(textEntry(STORYBOARD_DOC_PATH, storyboardText));
+  return pack(files, manifestOf(files, { parts: ['design', 'code', 'assets', 'storyboard'] }));
+}
+
 /** 取一份真包的清单，改它一处再重新拼（这就是"内容没动、清单先动"那类篡改） */
 function tamperManifest(tamper: (m: NexusManifest) => unknown): Uint8Array {
   const files = [README, goodDocument(), textEntry('code/index.tsx', 'export const A = 1;')];
@@ -84,8 +105,14 @@ const REFUSALS: { label: string; bytes: Uint8Array; message: string; issues?: st
   {
     label: 'v1 的包（没有 assetRefs，导回来图片引用会断）',
     bytes: tamperManifest(() => ({ formatVersion: 1 })),
-    message: '包格式版本不认识：这份是 v1，本实例只认 v2',
+    message: '包格式版本不认识：这份是 v1，本实例只认 v3',
     issues: ['v1 的清单没有记录每个文件对应的资产 id'],
+  },
+  {
+    label: 'v2 的包（没有 storyboard 那一层，v3 才加的）',
+    bytes: tamperManifest(() => ({ formatVersion: 2 })),
+    message: '包格式版本不认识：这份是 v2，本实例只认 v3',
+    issues: ['重新导出一次（v3）'],
   },
   {
     label: '清单少了 entries',
@@ -162,6 +189,21 @@ const REFUSALS: { label: string; bytes: Uint8Array; message: string; issues?: st
     message: '包里的设计文档过不了校验，整包拒收',
   },
   {
+    label: '清单说有 storyboard，包里却没有那份文档',
+    bytes: packWithStoryboard(null),
+    message: `清单说导了 storyboard，包里却没有 ${STORYBOARD_DOC_PATH}`,
+  },
+  {
+    label: 'storyboard.json 不是合法 JSON',
+    bytes: packWithStoryboard('{这不是 JSON'),
+    message: `${STORYBOARD_DOC_PATH} 不是合法 JSON，整包拒收`,
+  },
+  {
+    label: 'storyboard.json 过不了契约（缺 source/shots 的残片）',
+    bytes: packWithStoryboard(JSON.stringify({ id: 'sb-残', title: '只有一行的分镜' })),
+    message: '包里的分镜文档过不了契约，整包拒收',
+  },
+  {
     label: '项目类型这个实例不认识',
     bytes: tamperManifest(() => ({ project: { name: '导入用例', kind: 'holodeck' } })),
     message: '清单里的项目类型这个实例不认识',
@@ -190,6 +232,16 @@ describe('§105/§144 ZIP 导入：先挡再写库', () => {
     }).not.toThrow();
     expect(plan!.ok).toBe(true);
     if (plan!.ok) expect(plan!.name).toBe('导入用例'); // 文档自己的名字兜底
+  });
+
+  it('parts 含 storyboard 且那份文档过得了契约 → 计划里带着分镜（写库前最后一关放行）', () => {
+    const plan = inspectPackage(packWithStoryboard(JSON.stringify(storyboardDocument())));
+    expect(plan.ok, plan.ok ? '' : `${plan.reason} / ${plan.issues.join('；')}`).toBe(true);
+    if (!plan.ok) return;
+    expect(plan.storyboard).not.toBeNull();
+    expect(plan.storyboard!.document.id).toBe('sb-source');
+    expect(plan.storyboard!.document.shots.map((shot) => shot.id)).toEqual(['shot-1', 'shot-2']);
+    expect(plan.storyboard!.document.shots[1]!.referenceAssetId).toBe('asset-1');
   });
 
   it('整包体积超过上限 → 还没碰 ZIP 解析就拒', async () => {

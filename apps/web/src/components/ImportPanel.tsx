@@ -23,9 +23,10 @@ interface Success {
   projectId: string;
   name: string;
   kind: string;
-  counts: { design: number; assets: number };
+  counts: { design: number; assets: number; storyboard: number };
   codeFilesIgnored: number;
   assetFailures: { path: string; reason: string }[];
+  storyboardNotes: string[];
   exportedAt: string;
   bytes: { zip: number; extracted: number };
 }
@@ -69,9 +70,10 @@ export function ImportPanel() {
         projectId: body.projectId,
         name: body.name,
         kind: body.kind ?? '',
-        counts: { design: body.counts?.design ?? 0, assets: body.counts?.assets ?? 0 },
+        counts: { design: body.counts?.design ?? 0, assets: body.counts?.assets ?? 0, storyboard: body.counts?.storyboard ?? 0 },
         codeFilesIgnored: body.codeFilesIgnored ?? 0,
         assetFailures: body.assetFailures ?? [],
+        storyboardNotes: body.storyboardNotes ?? [],
         exportedAt: body.exportedAt ?? '',
         bytes: { zip: body.bytes?.zip ?? 0, extracted: body.bytes?.extracted ?? 0 },
       });
@@ -118,6 +120,7 @@ export function ImportPanel() {
           </p>
           <p className="mt-1 text-11 text-fg-3" data-import-composition>
             进了库：设计文档 {done.counts.design} 份 · 资产 {done.counts.assets} 张
+            {done.counts.storyboard ? ` · 分镜 ${done.counts.storyboard} 份` : ''}
             {done.codeFilesIgnored > 0 ? ` · 包里的 ${done.codeFilesIgnored} 个代码文件没有入库（代码是那份文档的投影，§16）` : ''}
             {done.exportedAt ? ` · 源包导出于 ${done.exportedAt}` : ''}
           </p>
@@ -128,6 +131,13 @@ export function ImportPanel() {
                 <li key={`${f.path}-${f.reason}`} className="font-mono text-11">
                   · {f.path}：{f.reason}
                 </li>
+              ))}
+            </ul>
+          ) : null}
+          {done.storyboardNotes.length ? (
+            <ul className="mt-1 text-11 text-fg-3" data-import-storyboard-notes>
+              {done.storyboardNotes.map((note, index) => (
+                <li key={`${index}-${note}`}>· {note}</li>
               ))}
             </ul>
           ) : null}

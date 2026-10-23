@@ -23,6 +23,7 @@ const PARTS = [
   { id: 'design', label: '设计文档', hint: '这份项目当前那一版的模型本身（design model 是唯一真值，§16）' },
   { id: 'code', label: '生成的代码', hint: '由那份文档确定性投影出来的文件，不是另存的一份真相' },
   { id: 'assets', label: '上传的资产', hint: '你自己传进来的图片等原始字节' },
+  { id: 'storyboard', label: '分镜', hint: '§40-42 的分镜文档；镜头的参考帧与成片按 id 引用 assets/ 里的字节' },
 ] as const;
 
 type Part = (typeof PARTS)[number]['id'];
@@ -72,7 +73,7 @@ function kilobytes(bytes: number): string {
 export function ExportPanel() {
   const state = useStudioReady();
   const [open, setOpen] = useState(false);
-  const [picked, setPicked] = useState<Record<Part, boolean>>({ design: true, code: true, assets: true });
+  const [picked, setPicked] = useState<Record<Part, boolean>>({ design: true, code: true, assets: true, storyboard: true });
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [error, setError] = useState<string | null>(null);
