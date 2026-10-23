@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { readMyFollowing } from './followLane';
+import { followAccount, readMyFollowing, unfollowAccount } from './followLane';
 
 /**
  * M7 v316 — the browser half of the FOLLOWS lane, and the read that gives the desk its "YOU FOLLOW"
@@ -115,5 +115,162 @@ describe('followLane — readMyFollowing (client half)', () => {
     const answer = await readMyFollowing('acct-ada', -5, fetchImpl);
     expect(answer.ok).toBe(true);
     expect(answer.offset).toBe(0);
+  });
+});
+
+
+/**
+ * v438 — the WRITE half of the follows lane.
+ *
+ * `readMyFollowing` is graded above. The two writes were reached only through the profile bar that
+ * calls them, so three things this lane does differently from every server-side door were never
+ * asked: it talks to the STUDIO'S OWN door at a relative path — the service's address is
+ * server-side and the browser never learns it — it carries a 45-second budget on a WRITE rather
+ * than the read budget (v294: the first call to a route pays that route's compile), and it answers
+ * a thrown fetch with the raw message rather than an "unreachable" sentence, because the thing that
+ * failed is this Studio and not a remote service.
+ */
+describe('followLane — the write half (v438)', () => {
+  it('a follow is POSTed to the Studio’s own door, at a relative path', async () => {
+    // The service's address is server-side. A lane that built an absolute URL here would publish
+    // that address to every browser that loads the page.
+    let seenUrl = '';
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((url, init) => {
+      seenUrl = url;
+      seenInit = init;
+      return new Response(JSON.stringify({ ok: true, followerCount: 3, following: true }), { status: 200 });
+    });
+
+    const answer = await followAccount('acct-bob', { accountId: 'acct-ada', handle: 'ada' }, fetchImpl);
+
+    expect(seenUrl).toBe('/api/follows');
+    expect(seenInit?.method).toBe('POST');
+    expect(seenInit?.headers).toEqual({ 'content-type': 'application/json', accept: 'application/json' });
+    expect(JSON.parse(String(seenInit?.body))).toEqual({
+      accountId: 'acct-bob',
+      claim: { accountId: 'acct-ada', handle: 'ada' },
+    });
+    expect(answer).toEqual({ ok: true, followerCount: 3, following: true });
+  });
+
+  it('the claim travels as the browser built it — this lane does not null-fill', async () => {
+    // Pinned as MEASURED, and as a divergence: the server-side doors (v436, v437) write an absent
+    // handle as null, while this lane serialises the claim object as given, so the key is simply
+    // absent. Both reach the service; they say "empty" differently, and a caller reading one
+    // door's shape for the other's would be reading a wire that is not there.
+    let body: unknown;
+    const fetchImpl = makeFetch((_url, init) => {
+      body = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ ok: true, followerCount: 1, following: true }), { status: 200 });
+    });
+
+    await followAccount('acct-bob', { accountId: 'acct-ada' }, fetchImpl);
+
+    expect(body).toEqual({ accountId: 'acct-bob', claim: { accountId: 'acct-ada' } });
+    expect((body as { claim: Record<string, unknown> }).claim).not.toHaveProperty('handle');
+  });
+
+  it('a write carries the 45-second budget, not the read budget (v294)', async () => {
+    // The Studio's own door is a next dev server here, and the FIRST call to a route pays that
+    // route's compile. A ten-second budget was killing requests that were about to be answered.
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() =>
+        new Response(JSON.stringify({ ok: true, followerCount: 1, following: true }), { status: 200 }),
+      );
+      await followAccount('acct-bob', { accountId: 'acct-ada' }, fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledWith(45_000);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('following is read as the boolean the door said, not as truthiness', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ ok: true, followerCount: 2, following: 'yes' }), { status: 200 }),
+    );
+    const answer = await followAccount('acct-bob', { accountId: 'acct-ada' }, fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.following).toBe(false);
+  });
+
+  it('a refused follow carries a reason and NO count', async () => {
+    const withReason = makeFetch(() =>
+      new Response(JSON.stringify({ ok: false, reason: 'cannot follow yourself' }), { status: 200 }),
+    );
+    const refused = await followAccount('acct-bob', { accountId: 'acct-ada' }, withReason);
+    expect(refused.ok).toBe(false);
+    expect(refused.reason).toBe('cannot follow yourself');
+    expect(refused.followerCount).toBeUndefined();
+    expect(refused.following).toBeUndefined();
+
+    // v313 — the door's error body carries no ok field, so the reason is read from message.
+    const withMessage = makeFetch(() =>
+      new Response(JSON.stringify({ error: 'follows-unavailable', message: 'the follows door is closed' }), { status: 503 }),
+    );
+    expect((await followAccount('acct-bob', { accountId: 'acct-ada' }, withMessage)).reason).toBe('the follows door is closed');
+
+    const bare = makeFetch(() => new Response(JSON.stringify({ error: 'nope' }), { status: 500 }));
+    expect((await followAccount('acct-bob', { accountId: 'acct-ada' }, bare)).reason).toBe('the follows answered HTTP 500');
+  });
+
+  it('an answer that is not JSON is a refusal, not a crash', async () => {
+    const fetchImpl = makeFetch(() => new Response('<html>gateway', { status: 502 }));
+    const answer = await followAccount('acct-bob', { accountId: 'acct-ada' }, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('the follows answered HTTP 502 with something that is not JSON');
+  });
+
+  it('a follow that never arrived answers with the raw error, because the door is THIS Studio', async () => {
+    // No "unreachable at <address>" sentence here: the thing that failed is this Studio's own route,
+    // and naming a remote service would send a reader looking in the wrong place.
+    const fetchImpl = makeFetch(() => {
+      throw new Error('network down');
+    });
+    const answer = await followAccount('acct-bob', { accountId: 'acct-ada' }, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('network down');
+    expect(answer.reason).not.toContain('unreachable');
+  });
+
+  it('taking a follow back is a DELETE naming the account and the claimer, and only those', async () => {
+    let seenUrl = '';
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((url, init) => {
+      seenUrl = url;
+      seenInit = init;
+      return new Response(JSON.stringify({ ok: true, followerCount: 2, following: false }), { status: 200 });
+    });
+
+    const answer = await unfollowAccount('acct-bob', 'acct-ada', fetchImpl);
+
+    expect(seenUrl).toBe('/api/follows/acct-bob?claimer=acct-ada');
+    expect(seenInit?.method).toBe('DELETE');
+    expect(seenInit?.headers).toEqual({ accept: 'application/json' });
+    expect(seenInit?.body).toBeUndefined();
+    // The take-back answers with the count that is LEFT and that the follow is no longer standing.
+    expect(answer).toEqual({ ok: true, followerCount: 2, following: false });
+  });
+
+  it('an account id that needs encoding is encoded in the take-back path', async () => {
+    let seenUrl = '';
+    const fetchImpl = makeFetch((url) => {
+      seenUrl = url;
+      return new Response(JSON.stringify({ ok: true, followerCount: 0, following: false }), { status: 200 });
+    });
+
+    await unfollowAccount('acct bob/../x', 'acct-ada', fetchImpl);
+
+    expect(seenUrl).toBe(`/api/follows/${encodeURIComponent('acct bob/../x')}?claimer=acct-ada`);
+  });
+
+  it('a take-back that never arrived answers with the raw error too', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw new Error('network down');
+    });
+    const answer = await unfollowAccount('acct-bob', 'acct-ada', fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('network down');
   });
 });
