@@ -45,7 +45,7 @@
 11. ~~**v391 — tips 两个列表的翻页**~~ ✅ **已落地**：服务端 `tipsReceived`/`tipsGiven` 均按行收 offset ✓（行→页翻译从第一天就带 ✓，负值夹到第一窗 ✓）；两个方向独立翻页 ✓（收的和给的是两个不同集合 ✓）；线上答案多带 `limit` ✓ 并回映 `offset` ✓（两个在飞的读不会认错答案 ✓）；翻页条的诚实结尾是一个**数** ✓——全表计数（v355）在每个答案上都带着 ✓；窗口文案过第一窗后说"showing 21–40 of 37" ✓；越界空窗说"this page is past the end" ✓（不把一页的空说成"nobody has given this account anything" ✓）。
 12. ~~**v392 — 经济面板三个列表的翻页**~~ ✅ **已落地**：服务端 `plansOf`/`subscriptionsOf`/`subscriptionsReceived` 均按行收 offset ✓（行→页翻译从第一天就带 ✓，负值夹到第一窗 ✓）；三个列表独立翻页 ✓（持有的、收到的、提供的是三个不同集合 ✓）；三个答案记录多带 offset ✓（三个在飞的读不会认错答案 ✓）；翻页条的诚实结尾是一个**数** ✓——全表计数（v359/v372）在每个答案上都带着 ✓；窗口文案过第一窗后说位置 ✓；越界空窗说"this page is past the end" ✓。
 13. ~~**v393 — 测试覆盖补齐（部分）**~~ ✅ **已落地**：`ai-providers/src/router.ts` 的诚实契约有了话说 ✓——五个任务门 `available:false` 的 provider 按名字拒 ✓（拒绝发生在调用之前 ✓，死的 key 永远不会看起来像一个空答案 ✓），拒绝不记账 ✓，`mode` 徽章注入 live provider 立即变 'live' ✓；另一边 `relationships.ts` 早已被 `worldEngine.test.ts` 覆盖 ✓（计划里的名字是陈过的 ✓）。
-14. **v394+ — 下一批候选**：**测试覆盖补齐（存量）**（world-engine/characterAgent.ts 无直接覆盖 ✓；修 `call-recorder.test.ts` 从不导出 `Usage` 的模块 import 类型导臷 `tsc -p tsconfig.test.json` 在 HEAD 上就红 ✓）；**profile 页面的各条底线类列表**（tip bar/plan bar/follow bar 读自 planServer/tipServer 等独立 lane ✓，仍未翻页 ✓）；**M8 创作者经济**（订阅购乐、举报提交、agent 令牌——受 ADR 0018 阻塞 ✓）。
+14. **v394+ — 下一批候选**：**测试覆盖补齐（存量）**（world-engine/characterAgent.ts 无直接覆盖 ✓；修 `call-recorder.test.ts` 从不导出 `Usage` 的模块 import 类型导致 `tsc -p tsconfig.test.json` 在 HEAD 上就红 ✓）；**profile 页面的各条底线类列表**（tip bar/plan bar/follow bar 读自 planServer/tipServer 等独立 lane ✓，仍未翻页 ✓）；**M8 创作者经济**（订阅购买、举报提交、agent 令牌——受 ADR 0018 阻塞 ✓）。
 
 ### 我的在途增量（与并行 lane 的 v380 分开记）
 
