@@ -139,6 +139,24 @@ export interface PlanBarFacts {
    * and a creator who offers five would read the three as all of them.
    */
   count?: number | null;
+  /**
+   * v396 — WHICH window of the plans the bar is showing, in rows from the newest — the same rows the
+   * service pages by (v392). The list was already a WINDOW over the whole catalogue (v372); a window
+   * with no position cannot say which plans it is the window OF.
+   */
+  offset?: number;
+  /**
+   * v396 — the window's SIZE, as the service answered it. A pager that does not know how big a window
+   * is cannot name the page it would offer, so without this there is no pager — only the count.
+   */
+  limit?: number;
+  /**
+   * v396 — how to build the URL of another window, the same shape the tip bar got in v395: the profile
+   * page is server-rendered and holds no session (ADR 0018 is why), so its pager is a LINK and not a
+   * button. A bar given no builder draws no pager at all — a link it cannot build is a link it does
+   * not draw.
+   */
+  pageHref?: (offset: number) => string;
 }
 
 /**
@@ -148,15 +166,46 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   if (facts.plans === null) {
     return '';
   }
-  if (facts.plans.length === 0) {
+  const shown = facts.plans.length;
+  // v396 — the window's POSITION, in rows from the newest (the same rows the service pages by, v392).
+  // Past the first window an empty list is NOT "this creator offers nothing" — it is a page past the
+  // end, and the bar says so instead of vanishing (the tip bar learned this in v395).
+  const offset =
+    typeof facts.offset === 'number' && Number.isFinite(facts.offset) && facts.offset > 0 ? Math.floor(facts.offset) : 0;
+  const count = typeof facts.count === 'number' && Number.isFinite(facts.count) ? facts.count : null;
+  if (shown === 0 && (offset <= 0 || count === null || count <= 0)) {
     return '';
   }
-  const shown = facts.plans.length;
-  const count = typeof facts.count === 'number' && Number.isFinite(facts.count) ? facts.count : null;
   // v372/v373 — the count is the WHOLE number and the list is a WINDOW, so the bar says how many it is not
   // showing. The wording is the tip bar's (v350), so a reader who reads both bars reads one sentence —
   // and it is the SHARED wording now (v373), so the creator's own panel says it the same way.
-  const countText = planCountText(count, shown);
+  // v396 — and past the first window it says WHICH plans (the offset is the shared wording's third
+  // argument since v392), while an empty window past the end says it is past the end.
+  const countText =
+    shown <= 0 ? 'this page is past the end — the service answered an empty window' : planCountText(count, shown, offset);
+  // v396 — the PAGER, as LINKS, the same shape the tip bar got in v395: the page is server-rendered and
+  // cannot act (ADR 0018), so the route builds the URL and the bar draws an <a>; at a boundary the
+  // control is a <span> with no href — a link that went nowhere would be a lie with an href. "Older" is
+  // offered only when the NEXT window would hold something: the whole-table count rides on every
+  // answer (v372), so a page the service has already counted as empty is a page the bar does not offer.
+  const windowSize =
+    typeof facts.limit === 'number' && Number.isFinite(facts.limit) && facts.limit > 0 ? Math.floor(facts.limit) : null;
+  const hrefFor = typeof facts.pageHref === 'function' ? facts.pageHref : null;
+  const pageControl = (direction: 'newer' | 'older', target: number | null): string => {
+    const text = direction === 'newer' ? '‹ Newer' : 'Older ›';
+    const title = direction === 'newer' ? 'the newer plans' : 'the older plans';
+    if (target === null || hrefFor === null) {
+      return `<span class="nexus-plans-page" data-plans-page="${direction}" title="${title}">${text}</span>`;
+    }
+    return `<a class="nexus-plans-page" data-plans-page="${direction}" href="${escapeHtml(hrefFor(target))}" title="${title}">${text}</a>`;
+  };
+  const pager =
+    windowSize !== null && hrefFor !== null && (offset > 0 || (count !== null && count > shown))
+      ? `<div class="nexus-plans-pager">
+${pageControl('newer', offset > 0 ? Math.max(offset - windowSize, 0) : null)}
+${pageControl('older', count !== null && offset + windowSize < count ? offset + windowSize : null)}
+</div>`
+      : '';
   const items = facts.plans
     .map((plan) => {
       const href = `/?subscribe=${encodeURIComponent(plan.planId)}`;
@@ -178,9 +227,10 @@ ${plan.active ? `<a class="nexus-plan-action" href="${escapeHtml(href)}" title="
   return `<div class="nexus-plans" data-plans="${shown}" data-plan-count="${count ?? ''}">
 <div style={{ fontWeight: 600, marginBottom: 4 }}>Plans</div>
 ${countText ? `<div class="nexus-plans-count">${escapeHtml(countText)}</div>` : ''}
-<ul class="nexus-plans-list">
+${items ? `<ul class="nexus-plans-list">
 ${items}
-</ul>
+</ul>` : ''}
+${pager}
 </div>`;
 }
 
@@ -205,4 +255,8 @@ export const PLAN_BAR_STYLES = `<style>
 .nexus-plan-price{color:#9aa3b2;margin-left:8px}
 .nexus-plan-action{color:#3b82f6;font-weight:600;text-decoration:none;margin-left:8px}
 .nexus-plan-action:hover{text-decoration:underline}
+.nexus-plans-pager{display:flex;gap:10px;align-items:center;margin-top:4px}
+.nexus-plans-page{color:#f59e0b;font-weight:600;text-decoration:none}
+.nexus-plans-page:hover{text-decoration:underline}
+.nexus-plans-pager span.nexus-plans-page{color:#5b6472;font-weight:400}
 </style>`;

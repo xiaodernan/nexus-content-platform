@@ -173,3 +173,64 @@ describe('planBar — the bar on the profile (M7 v301)', () => {
     expect(injectPlanBar(noBody, '<div></div>')).toBe(noBody);
   });
 });
+
+describe('planBar — the bar PAGES through the plans (M7 v396)', () => {
+  // The same shape the tip bar got in v395: the page is server-rendered and cannot act, so the
+  // pager is a LINK the route builds, and a boundary is a span with no href.
+  const pageHref = (offset: number) => `/u/acct-ada?planOffset=${offset}`;
+  const twoPlans = () => toPlanRows([plan({ planId: 'p-1' }), plan({ planId: 'p-2' })]);
+
+  it('the first window says it is the newest, and not the only', () => {
+    const html = renderPlanBar({ accountId: 'acct-ada', plans: twoPlans(), count: 5, offset: 0, limit: 2, pageHref });
+    expect(html).toContain('showing the 2 newest of 5');
+  });
+
+  it('a later window says WHICH plans it is showing', () => {
+    // "the 2 newest" is a true thing about the first window and a false thing about the third
+    // (v386's correction, the shared wording's third argument since v392).
+    const html = renderPlanBar({ accountId: 'acct-ada', plans: twoPlans(), count: 10, offset: 4, limit: 2, pageHref });
+    expect(html).toContain('showing 5–6 of 10');
+    expect(html).not.toContain('newest');
+  });
+
+  it('an empty window past the end says so — it is not "this creator offers nothing"', () => {
+    // v301 kept an empty list off the page entirely; a window PAST the end is a different fact
+    // about a different thing — the page, not the creator.
+    const html = renderPlanBar({ accountId: 'acct-ada', plans: [], count: 5, offset: 4, limit: 2, pageHref });
+    expect(html).toContain('this page is past the end — the service answered an empty window');
+    expect(html).toContain('data-plan-count="5"');
+  });
+
+  it('but an empty FIRST window is still no bar at all', () => {
+    expect(renderPlanBar({ accountId: 'acct-ada', plans: [], count: 0, offset: 0, limit: 20, pageHref })).toBe('');
+    expect(renderPlanBar({ accountId: 'acct-ada', plans: [], count: 5, offset: 0, limit: 20, pageHref })).toBe('');
+    expect(renderPlanBar({ accountId: 'acct-ada', plans: [], count: null, offset: 4, limit: 20, pageHref })).toBe('');
+  });
+
+  it('the pager is links, and a boundary is a span with no href', () => {
+    const first = renderPlanBar({ accountId: 'acct-ada', plans: twoPlans(), count: 5, offset: 0, limit: 2, pageHref });
+    expect(first).toContain('<span class="nexus-plans-page" data-plans-page="newer"');
+    expect(first).toContain('<a class="nexus-plans-page" data-plans-page="older" href="/u/acct-ada?planOffset=2"');
+    const last = renderPlanBar({ accountId: 'acct-ada', plans: twoPlans(), count: 5, offset: 4, limit: 2, pageHref });
+    expect(last).toContain('<a class="nexus-plans-page" data-plans-page="newer" href="/u/acct-ada?planOffset=2"');
+    expect(last).toContain('<span class="nexus-plans-page" data-plans-page="older"');
+  });
+
+  it('"Older" is not offered when the next window would hold nothing', () => {
+    const html = renderPlanBar({ accountId: 'acct-ada', plans: [], count: 5, offset: 4, limit: 2, pageHref });
+    expect(html).toContain('<span class="nexus-plans-page" data-plans-page="older"');
+    expect(html).not.toContain('data-plans-page="older" href');
+  });
+
+  it('a bar that cannot build a link draws no pager — only the count', () => {
+    const html = renderPlanBar({ accountId: 'acct-ada', plans: twoPlans(), count: 5, offset: 0, limit: 2 });
+    expect(html).toContain('showing the 2 newest of 5');
+    expect(html).not.toContain('nexus-plans-pager');
+  });
+
+  it('and a window that holds the whole catalogue gets no pager at all', () => {
+    const html = renderPlanBar({ accountId: 'acct-ada', plans: twoPlans(), count: 2, offset: 0, limit: 100, pageHref });
+    expect(html).not.toContain('nexus-plans-pager');
+    expect(html).not.toContain('showing');
+  });
+});

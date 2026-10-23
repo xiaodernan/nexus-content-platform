@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { subscribeOnService } from './planServer';
+import { readPlans, subscribeOnService } from './planServer';
 
 /**
  * M7 v313 — the server-side half of the PLANS and SUBSCRIPTIONS lane.
@@ -78,5 +78,70 @@ describe('planServer — subscribeOnService (server half)', () => {
     expect(answer.ok).toBe(true);
     expect(answer.subscription?.planId).toBe('pro');
     expect(answer.subscription?.priceCents).toBe(1500);
+  });
+});
+
+describe('planServer — readPlans PAGES the plans (v396)', () => {
+  // v392 moved the plans door onto rows: `limit` and `offset` are query parameters, and the answer
+  // echoes the window it answered. The read here has to FORWARD both, and it has to come back naming
+  // the window — the profile page's pager (v396) says which plans it is showing, and it cannot
+  // say that from a URL it did not send.
+  const plansBody = (n: number, count: number) =>
+    JSON.stringify({
+      ok: true,
+      plans: Array.from({ length: n }, (_unused, i) => ({ planId: 'p-' + i, priceCents: 100, currency: 'CNY', period: 'month' })),
+      count,
+      limit: 20,
+      offset: 20,
+    });
+
+  it('the ask carries the window as limit and offset rows', async () => {
+    let seen = '';
+    const fetchImpl = makeFetch((url) => {
+      seen = url;
+      return new Response(plansBody(2, 21), { status: 200 });
+    });
+    const answer = await readPlans('acct-ada', 20, 20, fetchImpl);
+    expect(seen).toContain('creator=acct-ada');
+    expect(seen).toContain('limit=20');
+    expect(seen).toContain('offset=20');
+    expect(answer.ok).toBe(true);
+    expect(answer.count).toBe(21);
+    expect(answer.limit).toBe(20);
+    expect(answer.offset).toBe(20);
+  });
+
+  it('a negative offset is clamped to the first window, not refused', async () => {
+    let seen = '';
+    const fetchImpl = makeFetch((url) => {
+      seen = url;
+      return new Response(plansBody(1, 1), { status: 200 });
+    });
+    const answer = await readPlans('acct-ada', 20, -5, fetchImpl);
+    expect(seen).toContain('offset=0');
+    expect(answer.offset).toBe(0);
+  });
+
+  it('an answer that does not echo a limit keeps the one that was asked for', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ ok: true, plans: [], count: 0 }), { status: 200 }),
+    );
+    const answer = await readPlans('acct-ada', 7, 0, fetchImpl);
+    expect(answer.limit).toBe(7);
+    expect(answer.offset).toBe(0);
+  });
+
+  it('a refusal still names the window it was asked for', async () => {
+    let seen = '';
+    const fetchImpl = makeFetch((url) => {
+      seen = url;
+      return new Response(JSON.stringify({ error: 'plans-unavailable' }), { status: 503 });
+    });
+    const answer = await readPlans('acct-ada', 20, 20, fetchImpl);
+    expect(seen).toContain('offset=20');
+    expect(answer.ok).toBe(false);
+    expect(answer.limit).toBe(20);
+    expect(answer.offset).toBe(20);
+    expect(answer.reason).toContain('503');
   });
 });

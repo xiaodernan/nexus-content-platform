@@ -4883,6 +4883,123 @@ try {
     );
   }
 
+  // ── §81 v396: the profile page's plan bar gets its PAGER ────────────────────────────────────────────────────────────────────────────────────────────────────
+  // The plan bar on the profile page is server-rendered too (the page holds no session — ADR 0018),
+  // so its pager is a LINK the route builds, the same shape the tip bar got in v395. One creator is
+  // given TWENTY-ONE plans — one more than the window the page reads (PLAN_LIMIT, twenty) — so the
+  // count and the window can DIFFER, and the page is then read the way a reader's browser reads it:
+  // as HTML, with no hydration.
+  {
+    const planPagerPage = await session.newPage('about:blank');
+    await planPagerPage.navigate(studioBase, { waitUntil: 'networkidle0', timeoutMs: 10000 });
+    await waitForHydration(planPagerPage, 'the plan pager page to hydrate');
+    await signInAs(planPagerPage, 'planner', 'the creator whose plans are paged');
+    const pagerPlannerRaw = await planPagerPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const pagerPlanner = pagerPlannerRaw ? JSON.parse(String(pagerPlannerRaw)) : null;
+
+    // A creator that exists only as an id the plans name — the service holds no account table, and
+    // the profile page is honest about exactly that (v270). TWENTY-ONE plans: the page reads at most
+    // PLAN_LIMIT rows, so the second window holds exactly one plan and the count says 21.
+    const pagedPlannerId = `acct-plan-pager-${Date.now()}`;
+    const pagedStatuses = [];
+    for (let i = 0; i < 21; i += 1) {
+      const res = await fetch(`${apiBase}/plans`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          planId: `paged-${i}`,
+          priceCents: 100 + i,
+          currency: 'CNY',
+          period: 'month',
+          claim: {
+            accountId: pagedPlannerId,
+            handle: pagerPlanner?.handle ?? null,
+            assurance: pagerPlanner?.assurance ?? null,
+            claimedAt: pagerPlanner?.createdAt ?? null,
+          },
+        }),
+      });
+      pagedStatuses.push(res.status);
+    }
+    check(
+      'the harness gave the creator 21 plans — one more than the window the page reads',
+      pagedStatuses.length === 21 && pagedStatuses.every((s) => s === 201),
+      `statuses: ${JSON.stringify(pagedStatuses.slice(0, 3))} · ${JSON.stringify(pagedStatuses.slice(-1))}`,
+    );
+    await planPagerPage.close();
+
+    // The SERVICE counts the whole catalogue and carries the window — the difference the pager is
+    // for, and the reason a window's length could never be told as a total (v372).
+    const pagedFirst = await fetch(`${apiBase}/plans?creator=${encodeURIComponent(pagedPlannerId)}&limit=20`);
+    const pagedFirstBody = await pagedFirst.json();
+    check(
+      'the SERVICE counts 21 and carries the first window of 20',
+      pagedFirst.status === 200 && pagedFirstBody.count === 21 && (pagedFirstBody.plans ?? []).length === 20,
+      `count: ${JSON.stringify(pagedFirstBody.count)} · rows: ${JSON.stringify((pagedFirstBody.plans ?? []).length)}`,
+    );
+    const pagedSecondRead = await fetch(`${apiBase}/plans?creator=${encodeURIComponent(pagedPlannerId)}&limit=20&offset=20`);
+    const pagedSecondBody = await pagedSecondRead.json();
+    check(
+      'and the door PAGES: the second window carries the one plan the count says is left',
+      pagedSecondRead.status === 200 && (pagedSecondBody.plans ?? []).length === 1 && pagedSecondBody.count === 21,
+      `rows: ${JSON.stringify((pagedSecondBody.plans ?? []).length)} · count: ${JSON.stringify(pagedSecondBody.count)}`,
+    );
+
+    // The FIRST window, as the reader's browser would render it.
+    const firstWindowHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(pagedPlannerId)}`)).text();
+    check(
+      'the profile page states the WHOLE count, not the window',
+      firstWindowHtml.includes('data-plan-count="21"'),
+      `the count is there: ${firstWindowHtml.includes('data-plan-count="21"')}`,
+    );
+    check(
+      'the first window says it is the newest 20 of 21',
+      firstWindowHtml.includes('showing the 20 newest of 21'),
+      `the window line is there: ${firstWindowHtml.includes('showing the 20 newest of 21')}`,
+    );
+    check(
+      'on the first window "Newer" is a span with no href — there is no page before the first',
+      firstWindowHtml.includes('<span class="nexus-plans-page" data-plans-page="newer"'),
+      `newer is a span: ${firstWindowHtml.includes('<span class="nexus-plans-page" data-plans-page="newer"')}`,
+    );
+    check(
+      'and "Older" is a link to the second window',
+      firstWindowHtml.includes(`<a class="nexus-plans-page" data-plans-page="older" href="/u/${encodeURIComponent(pagedPlannerId)}?planOffset=20"`),
+      `older links to window two: ${firstWindowHtml.includes(`<a class="nexus-plans-page" data-plans-page="older" href="/u/${encodeURIComponent(pagedPlannerId)}?planOffset=20"`)}`,
+    );
+
+    // The SECOND window — the link the first window offered, followed.
+    const secondWindowHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(pagedPlannerId)}?planOffset=20`)).text();
+    check(
+      'the second window says WHICH plans it is showing',
+      secondWindowHtml.includes('showing 21–21 of 21'),
+      `the window line is there: ${secondWindowHtml.includes('showing 21–21 of 21')}`,
+    );
+    check(
+      'the second window links "Newer" back to the first window',
+      secondWindowHtml.includes(`<a class="nexus-plans-page" data-plans-page="newer" href="/u/${encodeURIComponent(pagedPlannerId)}"`),
+      `newer links back: ${secondWindowHtml.includes(`<a class="nexus-plans-page" data-plans-page="newer" href="/u/${encodeURIComponent(pagedPlannerId)}"`)}`,
+    );
+    check(
+      'and "Older" is a span — the next window would hold nothing, and the count already said so',
+      secondWindowHtml.includes('<span class="nexus-plans-page" data-plans-page="older"'),
+      `older is a span: ${secondWindowHtml.includes('<span class="nexus-plans-page" data-plans-page="older"')}`,
+    );
+
+    // A window PAST the end: an honest empty answer, not "this creator offers nothing".
+    const pastEndHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(pagedPlannerId)}?planOffset=40`)).text();
+    check(
+      'a window past the end says it is past the end',
+      pastEndHtml.includes('this page is past the end — the service answered an empty window'),
+      `the note is there: ${pastEndHtml.includes('this page is past the end')}`,
+    );
+    check(
+      'and it still states the whole count — the empty window belongs to the page, not the creator',
+      pastEndHtml.includes('data-plan-count="21"') && !pastEndHtml.includes('0 plans'),
+      `count still stated: ${pastEndHtml.includes('data-plan-count="21"')} · says "0 plans": ${pastEndHtml.includes('0 plans')}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

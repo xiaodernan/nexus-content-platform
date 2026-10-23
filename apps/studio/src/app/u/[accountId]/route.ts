@@ -37,6 +37,13 @@ const PROFILE_LIMIT = 24;
  */
 const TIP_LIMIT = 100;
 
+/**
+ * v396 — how many plans the profile page reads. The service's own window is twenty (its default
+ * cap), and the page asks for exactly that: the count on the answer (v372) says how many the creator
+ * offers over the WHOLE table, so the page states what it carried and pages the rest (v396).
+ */
+const PLAN_LIMIT = 20;
+
 function html(body: string, status: number): Response {
   return new Response(body, { status, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 }
@@ -50,6 +57,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   // `tipOffset`, so the two windows move independently — a reader on gallery page 3 who opens tip
   // page 2 keeps their place in the gallery.
   const tipOffset = Math.max(0, Number.parseInt(url.searchParams.get('tipOffset') ?? '0', 10));
+  // v396 — the plans window's own page, the THIRD window on this page (the gallery's `offset` and
+  // the tips' `tipOffset` are the other two): a reader on gallery page 3 who opens plan page 2 keeps
+  // their place in both of the others.
+  const planOffset = Math.max(0, Number.parseInt(url.searchParams.get('planOffset') ?? '0', 10));
   
   if (!accountId.trim()) {
     return html(renderProfileHtml(profileFactsOf('', [], 0, PROFILE_LIMIT, offset, query), []), 200);
@@ -81,15 +92,35 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   // page: they are four independent facts about the same account, and reading them one after another made
   // the page wait for their SUM instead of for the slowest of the four.
   const [offered, tips, followers, following] = await Promise.all([
-    readPlans(accountId),
+    readPlans(accountId, PLAN_LIMIT, planOffset),
     readTips(accountId, TIP_LIMIT, tipOffset),
     readFollowers(accountId, null),
     readFollowing(accountId),
   ]);
   // v372 — the bar is told how many plans the creator offers (the WHOLE table's count), so it can say
   // when its list is only a window.
+  // v396 — the plan bar's pager is a LINK for the same reason the tip bar's is (v395): the route is
+  // the layer that knows the URL. It keeps the reader's other two windows (the gallery page and the
+  // tips page) where they were while the plans window moves.
+  const planPageHref = (nextOffset: number): string => {
+    const params = new URLSearchParams(url.search);
+    if (nextOffset > 0) params.set('planOffset', String(nextOffset));
+    else params.delete('planOffset');
+    const search = params.toString();
+    return search ? `${url.pathname}?${search}` : url.pathname;
+  };
   const planBar = offered.ok
-    ? renderPlanBar({ accountId, plans: toPlanRows(offered.plans), count: offered.count }) + PLAN_BAR_STYLES
+    ? renderPlanBar({
+        accountId,
+        plans: toPlanRows(offered.plans),
+        count: offered.count,
+        // v396 — which window this is, how big the window is, and where the next one lives. The
+        // service pages by rows and echoes the window it answered (v392), so the bar can say WHICH
+        // plans it is showing and offer the next page as a link.
+        offset: offered.offset ?? planOffset,
+        limit: offered.limit ?? PLAN_LIMIT,
+        pageHref: planPageHref,
+      }) + PLAN_BAR_STYLES
     : '';
   // v395 — the tip bar's pager is a LINK, because the profile page is server-rendered and cannot
   // act: the route is the part of the page that knows the URL, so it builds the other windows' URLs

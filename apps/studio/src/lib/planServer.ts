@@ -51,6 +51,13 @@ export interface PlansAnswer {
    * to be on the screen, which is a fact about the read and not about the creator.
    */
   count: number | null;
+  /**
+   * v396 — the cap the service applied, and the ROW this window starts at, echoed from the ask — the
+   * same two numbers the economy panel's plans answer has carried since v392. The answer names the
+   * window it is FOR: two reads in flight cannot be mistaken for each other's answers (v382's rule).
+   */
+  limit: number;
+  offset: number;
   reason?: string;
 }
 
@@ -80,23 +87,29 @@ export type FetchLike = (
 /** Read the plans one creator offers. */
 export async function readPlans(
   creatorAccountId: string,
+  limit: number,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch as FetchLike,
 ): Promise<PlansAnswer> {
   const apiBase = nexusApiBase();
+  // v396 — the offset is ROWS, and a negative one is the first window rather than a refusal: the
+  // newest plans are the honest answer to a question about a page before the first.
+  const from = Math.max(offset, 0);
   try {
-    const res = await fetchImpl(`${apiBase}/plans?creator=${encodeURIComponent(creatorAccountId)}`, {
-      headers: { accept: 'application/json' },
-    });
+    const res = await fetchImpl(
+      `${apiBase}/plans?creator=${encodeURIComponent(creatorAccountId)}&limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(from))}`,
+      { headers: { accept: 'application/json' } },
+    );
     if (!res.ok) {
-      return { ok: false, plans: [], count: null, reason: `the service's plans door answered HTTP ${res.status}` };
+      return { ok: false, plans: [], count: null, limit, offset: from, reason: `the service's plans door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, plans: [], count: null, reason: 'the service answered its plans door with something that is not JSON' };
+      return { ok: false, plans: [], count: null, limit, offset: from, reason: 'the service answered its plans door with something that is not JSON' };
     }
-    const body = parsed as { plans?: unknown; count?: unknown };
+    const body = parsed as { plans?: unknown; count?: unknown; limit?: unknown };
     if (!Array.isArray(body.plans)) {
-      return { ok: false, plans: [], count: null, reason: 'the service answered its plans door with no plans' };
+      return { ok: false, plans: [], count: null, limit, offset: from, reason: 'the service answered its plans door with no plans' };
     }
     return {
       ok: true,
@@ -104,12 +117,18 @@ export async function readPlans(
       // v372 — a wire with NO count says the count is UNKNOWN: falling back to the window's length would
       // be counting what happened to be on the screen and calling it the creator's whole catalogue.
       count: typeof body.count === 'number' ? body.count : null,
+      // v396 — the window's size as the SERVICE applied it, and the row it starts at: the answer
+      // names the window it is for, so the bar can say which plans it is showing and page from a fact.
+      limit: typeof body.limit === 'number' && Number.isFinite(body.limit) ? body.limit : limit,
+      offset: from,
     };
   } catch (error) {
     return {
       ok: false,
       plans: [],
       count: null,
+      limit,
+      offset: from,
       reason: serviceUnreachableReason(apiBase, error),
     };
   }
