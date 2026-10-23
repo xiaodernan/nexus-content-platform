@@ -20,7 +20,9 @@ import {
   monthPeriod,
   pendingGrants,
   refusalFor,
+  videoRenderQuota,
   type PlanKey,
+  type RenderQuotaView,
 } from './credits';
 
 export interface LedgerEntry {
@@ -166,6 +168,20 @@ export async function refusalForRun(userId: string, agentKey: string, at: Date =
   const kind = creditKindForAgentKey(agentKey);
   const balances = await balancesOf(userId);
   return refusalFor({ kind, cost: GENERATION_COST[kind], balance: balances[kind] });
+}
+
+/**
+ * 成片渲染的额度视图（§133 generation 那一格在 render 链上的呈现，#196）。
+ *
+ * 与 `refusalForRun` 读同一组数、同样先 `ensureMonthlyGrants`：展示说"还可渲 N 次"
+ * 与门实际放不放行，必须来自同一次计算。月度发放是幂等的（部分唯一索引挡重复），
+ * 在这里触发与在门那里触发没有第二份真相。
+ */
+export async function renderQuotaFor(userId: string, at: Date = new Date()): Promise<RenderQuotaView> {
+  const plan = await planOf(userId);
+  await ensureMonthlyGrants(userId, plan, at);
+  const balances = await balancesOf(userId);
+  return videoRenderQuota(plan, balances.video);
 }
 
 export interface ChargeInput {

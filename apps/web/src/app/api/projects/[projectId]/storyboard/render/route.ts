@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
+import { renderQuotaFor } from '@/server/domain/credit-ledger';
 import { listStoryboardRenders, renderStoryboardDemo } from '@/server/domain/storyboard-render';
 import { failure, jsonError, notFound } from '@/server/http';
 
@@ -10,13 +11,18 @@ import { failure, jsonError, notFound } from '@/server/http';
  *
  * GET 不写库、不过 CSRF（只读入口与 /assets 同一口径）。判据是 `genMeta.storyboardId`：
  * 没有那一格的 video 资产不算分镜的产物，列进来只会让面板指着一条来路不明的片子。
+ *
+ * 同时带回 `quota`（#196）：§133 generation 那一格的呈现——本档每月发几点 Video credits、
+ * 一次扣几点、本月还可渲几版。与 POST 的额度门读同一组数（`renderQuotaFor` 与
+ * `refusalForRun` 同源），展示与门对不上比不展示更糟（§159）。
  */
 export async function GET(_req: Request, ctx: RouteContext): Promise<NextResponse> {
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
     if (!(await projectBelongsTo(projectId, user.id))) return notFound();
-    return NextResponse.json({ ok: true, renders: await listStoryboardRenders(projectId) });
+    const [renders, quota] = await Promise.all([listStoryboardRenders(projectId), renderQuotaFor(user.id)]);
+    return NextResponse.json({ ok: true, renders, quota });
   } catch (error) {
     return failure(error, `GET /api/projects/${projectId}/storyboard/render`);
   }

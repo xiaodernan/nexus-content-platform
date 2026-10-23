@@ -59,9 +59,11 @@ export const PLAN_MONTHLY_GRANTS: Record<PlanKey, Record<CreditLedgerKind, numbe
 
 /**
  * §133 说档位按五件事设计：AI usage / storage / generation / team collaboration / publishing。
- * 今天**有两格有真的拦截方**：AI usage（`refusalFor`，在 `credit-ledger.ts`）与
- * storage（`refusalForStorage`，字节进存储之前问，见 `assets.ts` 的摄取门与 ADR-0018）。
- * 剩下三格记在这里是为了
+ * 今天**有三格有真的拦截方**：AI usage（`refusalFor`，在 `credit-ledger.ts`）、
+ * storage（`refusalForStorage`，字节进存储之前问，见 `assets.ts` 的摄取门与 ADR-0018）、
+ * generation（成片渲染的门：`refusalForRun` 在 `startTask` 之前问 Video credits，
+ * #191 落下的那道门——本机没有视频 provider，"这个月还能渲几版"从此是真会拦的）。
+ * 剩下两格记在这里是为了
  * 让界面能说清"哪些是已生效的限制、哪些还只是表格上的字"——把没拦截的上限写成已生效，
  * 是这一份文档里最贵的一种谎。
  */
@@ -77,8 +79,8 @@ export const PLAN_LIMITS: Record<
 };
 
 /** 今天生效的限制有哪几格——界面上那一列"已生效 / 还没拦截方"就读这里 */
-export const ENFORCED_PLAN_AXES = ['aiUsage', 'storage'] as const;
-export const UNENFORCED_PLAN_AXES = ['generation', 'teamCollaboration', 'publishing'] as const;
+export const ENFORCED_PLAN_AXES = ['aiUsage', 'storage', 'generation'] as const;
+export const UNENFORCED_PLAN_AXES = ['teamCollaboration', 'publishing'] as const;
 
 /**
  * 一次成功的生成扣几点。
@@ -104,6 +106,41 @@ export const GENERATION_COST: Record<CreditLedgerKind, number> = {
  * 猜错会把一类额度扣到另一类头上，而余额页上看不出来。
  * 图像/视频那两类的真实消耗方要等 §38/§40 的生成端点落地，今天没有。
  */
+/**
+ * §133 generation 那一格在 render 链上的**呈现**（#196）：这个档每月发几点 Video credits、
+ * 一次成片渲染扣几点、当前余额还够渲几版。
+ *
+ * 纯函数：档位与余额是输入，视图是输出。界面上"本月还可渲 N 次"与渲染门
+ * （`refusalForRun` → `refusalFor`）必须读同一组数——展示说还有 3 次、门却早就关了，
+ * 那种对不上比不展示更糟（§159）。所以这里不新算一套成本，只转述
+ * `PLAN_MONTHLY_GRANTS` 与 `GENERATION_COST`。
+ */
+export interface RenderQuotaView {
+  plan: PlanKey;
+  planLabel: string;
+  /** 这个档每月发的 Video credits */
+  monthlyGrant: number;
+  /** 一次成片渲染扣几点（`GENERATION_COST.video`） */
+  costPerRender: number;
+  /** 当前 Video credits 余额 */
+  balance: number;
+  /** 余额还够渲几版：向下取整；负数余额（调整扣过头）夹到 0，不显示"-1 次" */
+  rendersLeft: number;
+}
+
+export function videoRenderQuota(plan: PlanKey, videoBalance: number): RenderQuotaView {
+  const costPerRender = GENERATION_COST.video;
+  return {
+    plan,
+    planLabel: PLAN_LABELS[plan],
+    monthlyGrant: PLAN_MONTHLY_GRANTS[plan].video,
+    costPerRender,
+    balance: videoBalance,
+    rendersLeft:
+      costPerRender > 0 ? Math.max(0, Math.floor(videoBalance / costPerRender)) : Number.POSITIVE_INFINITY,
+  };
+}
+
 export function creditKindForAgentKey(agentKey: string): CreditLedgerKind {
   const key = agentKey.toLowerCase();
   if (key.includes('video') || key.includes('film') || key.includes('storyboard')) return 'video';

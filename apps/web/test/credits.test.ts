@@ -17,6 +17,7 @@ import {
   refusalFor,
   refusalForStorage,
   storageLimitBytes,
+  videoRenderQuota,
 } from '../src/server/domain/credits';
 
 /**
@@ -64,14 +65,49 @@ describe('§134 五类额度与档位表（纯规则）', () => {
     }
   });
 
-  it('§133 那五件事两列合起来一格不多一格不少，今天有拦截方的是 AI usage 与 storage', () => {
+  it('§133 那五件事两列合起来一格不多一格不少，今天有拦截方的是 AI usage / storage / generation', () => {
     // §133 原文列的五件事：AI usage / storage / generation / team collaboration / publishing。
     // 这条断言钉的是"已生效 + 还没拦截方 = 那五件事，一格不多一格不少"，
     // 挡的是那种把表格上的上限说成已生效的写法——storage 从下一列挪上来时，这里必须跟着改。
     const FIVE_AXES = ['aiUsage', 'storage', 'generation', 'teamCollaboration', 'publishing'];
     expect([...ENFORCED_PLAN_AXES, ...UNENFORCED_PLAN_AXES].sort()).toEqual([...FIVE_AXES].sort());
-    expect(ENFORCED_PLAN_AXES).toEqual(['aiUsage', 'storage']);
-    expect(UNENFORCED_PLAN_AXES).toEqual(['generation', 'teamCollaboration', 'publishing']);
+    // #196：generation 从下一列升上来——#191 落成的渲染链额度门（refusalForRun）是它的拦截方
+    expect(ENFORCED_PLAN_AXES).toEqual(['aiUsage', 'storage', 'generation']);
+    expect(UNENFORCED_PLAN_AXES).toEqual(['teamCollaboration', 'publishing']);
+  });
+});
+
+describe('videoRenderQuota：§133 generation 那一格在 render 链上的呈现（#196）', () => {
+  it('free 档：每月 5 点、一次 5 点 → 余额 5 点时还可渲 1 次', () => {
+    const view = videoRenderQuota('free', 5);
+    expect(view.plan).toBe('free');
+    expect(view.planLabel).toBe('Free');
+    expect(view.monthlyGrant).toBe(PLAN_MONTHLY_GRANTS.free.video);
+    expect(view.costPerRender).toBe(GENERATION_COST.video);
+    expect(view.balance).toBe(5);
+    expect(view.rendersLeft).toBe(1);
+  });
+
+  it('余额不是一次的整数倍时向下取整（3 点够不了一次，不能四舍五入成 1）', () => {
+    expect(videoRenderQuota('free', 3).rendersLeft).toBe(0);
+    expect(videoRenderQuota('free', 9).rendersLeft).toBe(1);
+    expect(videoRenderQuota('pro', 83).rendersLeft).toBe(16);
+  });
+
+  it('负数余额夹到 0，不显示"-1 次"', () => {
+    expect(videoRenderQuota('free', -5).rendersLeft).toBe(0);
+    expect(videoRenderQuota('free', 0).rendersLeft).toBe(0);
+  });
+
+  it('每一档的呈现都直接转述发放表与成本表——展示与门不许有两份数', () => {
+    for (const plan of PLAN_KEYS) {
+      const granted = PLAN_MONTHLY_GRANTS[plan].video;
+      const view = videoRenderQuota(plan, granted);
+      expect(view.monthlyGrant).toBe(granted);
+      expect(view.costPerRender).toBe(GENERATION_COST.video);
+      // 刚发完的这个月：还可渲次数 = 发放数 / 单次成本（向下取整）
+      expect(view.rendersLeft).toBe(Math.floor(granted / GENERATION_COST.video));
+    }
   });
 });
 

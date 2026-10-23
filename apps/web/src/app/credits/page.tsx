@@ -19,8 +19,12 @@ import type { CreditLedgerKind } from '@/server/db/schema';
 
 export const dynamic = 'force-dynamic';
 
-/** 今天真的会扣点的类别。image / video / compute 三类只有发放方、没有消耗方，页面上要这么说 */
-const KINDS_WITH_A_CONSUMER: ReadonlySet<CreditLedgerKind> = new Set<CreditLedgerKind>(['ai']);
+/**
+ * 今天真的会扣点的类别。video 从 #191 起有了消耗方（分镜渲染链：一次成片扣 5 点，
+ * 只有渲成功才扣）；image / compute 两类仍只有发放方、没有消耗方，页面上要这么说——
+ * 把没有消耗方的那类说成"一次 X 点"，等于宣布一条不存在的路（§159）。
+ */
+const KINDS_WITH_A_CONSUMER: ReadonlySet<CreditLedgerKind> = new Set<CreditLedgerKind>(['ai', 'video']);
 
 function stamp(iso: string): string {
   return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
@@ -166,8 +170,8 @@ export default async function CreditsPage(): Promise<ReactElement> {
           </tbody>
         </table>
         <p className="text-12 text-warn" data-credits-enforced>
-          今天有真的拦截方的只有「{ENFORCED_PLAN_AXES.join('、')}」：额度为 0 时生成会被挡下，
-          存储写满时新的素材会被拒绝（库里已有的不会被自动删掉）。另外{' '}
+          今天有真的拦截方的只有「{ENFORCED_PLAN_AXES.join('、')}」三格：额度为 0 时生成会被挡下
+          （AI 任务与成片渲染各有一道门），存储写满时新的素材会被拒绝（库里已有的不会被自动删掉）。另外{' '}
           {UNENFORCED_PLAN_AXES.length} 格（{UNENFORCED_PLAN_AXES.join('、')}）
           目前只是这张表上的数字，还没有代码按它拒绝任何请求——把表上的上限当成已生效的限制，
           是这一页最容易说谎的方式。
@@ -179,7 +183,7 @@ export default async function CreditsPage(): Promise<ReactElement> {
         <ul className="text-12 text-fg-2" data-credits-limits>
           <li>· 没有充值入口：这一页不会出现"加点额度"的按钮，因为支付还没有接（§133 的档位今天也只能由服务端代码改）。</li>
           <li>· 失败的生成不扣点：只有跑成功并交回结果的那一次会记一行消费。</li>
-          <li>· Image / Video / Compute 三类今天只有发放、没有消耗方，所以这三类的余额只会涨不会跌。</li>
+          <li>· Video credits 有了消耗方：一次成片渲染扣 {GENERATION_COST.video} 点（§40 渲染链，只有渲成功才扣，本月还可渲几次 Studio 的分镜面板上看得见）。Image / Compute 两类今天仍只有发放、没有消耗方，余额只会涨不会跌。</li>
           <li>· 发放发生在打开这一页或跑一次生成之前（幂等，一个月一类只发一次）——本机没有常驻定时器，写成"每月 1 日自动发放"就是假的。</li>
         </ul>
       </section>

@@ -6250,3 +6250,31 @@ tsc 0、eslint 0。变异探针 4 种全部精确红：不按 mime 分派（asse
 
 **下一步**：M5 收尾最后一格——§133 的 generation 档位在 render 链上的呈现；以及
 "角色随包走"仍是缺口（导出格式无 character part，当前口径是剥掉并点名，要补得先加 part 再升 v4）。
+
+
+## M5 第九片（#196）：§133 generation 档位接上 render 链——"本月还可渲几次"与门同源
+
+M5 收尾第二格（也是最后一格）：#191 落成渲染额度门之后，"哪个档位每月能渲几版"
+一直只是 credits 页表格上的一列字。这一片把它接到渲染链上：
+
+- `credits.ts` 加纯函数 `videoRenderQuota(plan, videoBalance)`：转述 `PLAN_MONTHLY_GRANTS`
+  与 `GENERATION_COST`（每月发几点 / 一次扣几点 / 余额还够几版，向下取整、负余额夹 0）。
+  不新算一份成本——展示与门（`refusalForRun`）必须读同一组数，对不上比不展示更糟（§159）。
+- `credit-ledger.ts` 加 `renderQuotaFor(userId)`：与 `refusalForRun` 同样先
+  `ensureMonthlyGrants` 再读余额。只读入口触发幂等发放，没有第二份真相。
+- render 路由 GET 带回 `quota`；StoryboardPanel 在渲染按钮下显示
+  "Free 档：每月 5 次成片渲染 · 每次 5 点 · 本月还可渲 N 次"，0 次时按钮置灰
+  （服务端本来就会 429，置灰只是不让你白点）。
+- **两处随之不再是谎的旧文案**：`ENFORCED_PLAN_AXES` 把 generation 从"表格上的字"
+  挪进"有真的拦截方"（#191 的门就是它的拦截方）；credits 页"Video 没有消耗方"
+  （#191 起成片渲染每次扣 5 点）与"只有 ai 一类有消耗方"两处照实改。
+  e2e 钉的 image 格"今天没有消耗方"不动——变的是 video 那一格。
+
+见证：`credits.test.ts` 新增 `videoRenderQuota` 4 条（整数倍 / 向下取整 / 负余额夹 0 /
+逐档转述），axes 两条断言跟着升格；route 集成测试新增 GET quota 用例（关系断言 +
+与 `readCredits` 对源 + 连看两次不重复发放）。三文件 40/40 绿，tsc 0、eslint 0。
+变异探针 3 种全部精确红：rendersLeft 不除以成本 / 路由不吐 quota / generation 挪回未生效列。
+
+**下一步**：M5 全部收尾。候选：①"角色随包走"（导出格式加 character part 再升 v4，
+当前口径是剥掉并点名）；② §133 剩余两格（teamCollaboration / publishing）的拦截方；
+③ Studio 画布上 videoAssetId 成片的播放预览（时间线 playable 仍是 false，§160）。

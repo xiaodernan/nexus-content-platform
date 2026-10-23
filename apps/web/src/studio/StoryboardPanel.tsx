@@ -49,6 +49,20 @@ interface RenderRecord {
   warnings: string[];
 }
 
+/**
+ * §133 generation 那一格在 render 链上的呈现（#196）：本档每月发几点 Video credits、
+ * 一次成片渲染扣几点、本月还可渲几版。与 POST 的额度门读同一组数——
+ * 展示说还有次数、门却早就关了，那种对不上比不展示更糟（§159）。
+ */
+interface RenderQuota {
+  plan: string;
+  planLabel: string;
+  monthlyGrant: number;
+  costPerRender: number;
+  balance: number;
+  rendersLeft: number;
+}
+
 const STATE_TEXT: Record<string, string> = {
   idle: '',
   loading: '读取中…',
@@ -127,6 +141,8 @@ export function StoryboardPanel() {
   } | null>(null);
   /** 这个项目渲染出过的成片，新的在前（§101 资产清单的"分镜产物"那一格） */
   const [renders, setRenders] = useState<RenderRecord[]>([]);
+  /** §133：成片渲染的额度视图。拿不到就不显示也不猜——置灰只看服务端说的 0 次 */
+  const [quota, setQuota] = useState<RenderQuota | null>(null);
   /**
    * §41 时间线 ↔ 镜头列表的联动：点条上哪一格，镜头列表滚到并高亮那一镜；
    * 反过来点镜头行里的「定位」，条上那一格滚进视野。联动**不改模型**——
@@ -165,6 +181,7 @@ export function StoryboardPanel() {
         setRoster({ characters, assets });
         if (cancelled) return;
         setRenders(((r as { renders?: RenderRecord[] } | null)?.renders ?? []).map((item) => ({ ...item, warnings: item.warnings ?? [] })));
+        setQuota((r as { quota?: RenderQuota } | null)?.quota ?? null);
         const unreadable = ((c as { unreadable?: string[] } | null)?.unreadable ?? []).length;
         setRosterNote(
           characters.length === 0
@@ -919,7 +936,7 @@ export function StoryboardPanel() {
           </p>
           <button
             type="button"
-            disabled={renderBusy || sb.shots.length === 0}
+            disabled={renderBusy || sb.shots.length === 0 || quota?.rendersLeft === 0}
             onClick={() => void renderDemo()}
             data-storyboard-render
             title="把整条分镜渲成一条 mp4（DEMO：本地 ffmpeg 确定性推演，非 AI 生成）。成片挂回第一镜的 videoAssetId"
@@ -927,6 +944,13 @@ export function StoryboardPanel() {
           >
             {renderBusy ? '渲染中…' : 'DEMO 渲染整条分镜'}
           </button>
+          {quota ? (
+            <p className="mt-2 text-11 text-fg-3" data-storyboard-render-quota>
+              {quota.planLabel} 档：每月 {quota.monthlyGrant} 次成片渲染 · 每次 {quota.costPerRender} 点 ·
+              本月还可渲 {quota.rendersLeft} 次（Video credits 余额 {quota.balance} 点）
+              {quota.rendersLeft === 0 ? '——额度用尽时服务端会拒（429），这里先置灰' : ''}
+            </p>
+          ) : null}
           {renderError ? (
             <p className="mt-2 text-11 text-danger" data-storyboard-render-error>
               {renderError}

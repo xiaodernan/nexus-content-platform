@@ -156,6 +156,30 @@ describe('GET /api/projects/[projectId]/storyboard/render 的入口形状', () =
     expect(renders[0]!.storyboardId).not.toBe('');
     expect(renders[0]!.taskId).not.toBe('');
   });
+
+  it('GET 带回额度视图（#196）：与渲染门同一组数，连看两次不重复发放', async () => {
+    const projectId = await newProject('Render Route Quota');
+    type Quota = { planLabel: string; monthlyGrant: number; costPerRender: number; balance: number; rendersLeft: number };
+
+    const first = await callGet(projectId, meToken);
+    expect(first.status).toBe(200);
+    const quota = ((await first.json()) as { quota?: Quota }).quota;
+    expect(quota, 'GET 没带回 quota——界面上"本月还可渲几次"没有来源').toBeTruthy();
+    // free 档：每月 5 点 Video credits、一次成片 5 点（发放表与成本表是唯一来源）
+    expect(quota!.planLabel).toBe('Free');
+    expect(quota!.monthlyGrant).toBe(5);
+    expect(quota!.costPerRender).toBe(5);
+    expect(quota!.rendersLeft).toBe(Math.floor(quota!.balance / 5));
+
+    // 展示与门同源：readCredits 看到的 video 余额就是视图里那个数（两边不许各算一份）
+    const balance = (await readCredits(me)).balances.video;
+    expect(quota!.balance).toBe(balance);
+
+    // 幂等：再读一次，余额一个点都不多（"看了一次账"不会触发第二轮发放）
+    const second = await callGet(projectId, meToken);
+    const quota2 = ((await second.json()) as { quota?: Quota }).quota;
+    expect(quota2!.balance).toBe(quota!.balance);
+  });
 });
 
 describe('POST /api/projects/[projectId]/storyboard/render 的入口形状', () => {
