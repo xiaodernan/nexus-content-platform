@@ -172,7 +172,7 @@ class FollowServiceTest {
         when(repository.countByFollowerAccountId("acct-ada")).thenReturn(2L);
         when(repository.findByFollowerAccountIdAndFolloweeAccountId("acct-ada", "acct-bob")).thenReturn(Optional.of(one));
 
-        FollowService.FollowResult result = service.followersOf("acct-bob", "acct-ada", 20);
+        FollowService.FollowResult result = service.followersOf("acct-bob", "acct-ada", 20, 0);
 
         assertThat(result.followerCount()).isEqualTo(1L);
         assertThat(result.followingCount()).isEqualTo(2L);
@@ -186,7 +186,7 @@ class FollowServiceTest {
                 .thenReturn(List.of());
         when(repository.countByFolloweeAccountId("acct-bob")).thenReturn(0L);
 
-        FollowService.FollowResult result = service.followersOf("acct-bob", null, 20);
+        FollowService.FollowResult result = service.followersOf("acct-bob", null, 20, 0);
 
         assertThat(result.following()).isFalse();
         assertThat(result.followerCount()).isZero();
@@ -199,7 +199,7 @@ class FollowServiceTest {
                 .thenReturn(List.of());
         when(repository.countByFolloweeAccountId("acct-bob")).thenReturn(0L);
 
-        service.followersOf("acct-bob", null, 10_000);
+        service.followersOf("acct-bob", null, 10_000, 0);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findByFolloweeAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
@@ -255,5 +255,70 @@ class FollowServiceTest {
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findByFollowerAccountIdOrderByCreatedAtDesc(eq("acct-ada"), window.capture());
         assertThat(window.getValue().getPageNumber()).isZero();
+    }
+
+    // ── v397: the FOLLOWERS window can be paged, in rows ────────────────────────────────────
+
+    @Test
+    void theFollowersWindowCanBePagedInRows() {
+        // v397 — the followers list is a WINDOW (the most recent N), and until now it was the one
+        // list on the profile page a reader could not page: a creator followed by more accounts than
+        // the cap had the older followers out of reach entirely. The offset is ROWS, and asking for
+        // the rows from 20 on is page 1 of a 20-row window.
+        when(repository.findByFolloweeAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByFolloweeAccountId("acct-bob")).thenReturn(37L);
+
+        service.followersOf("acct-bob", null, 20, 20);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByFolloweeAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void theFollowersOffsetIsROWSNotAPageIndex() {
+        // v387's lesson, carried over from the following direction rather than learned again: the
+        // offset means ROWS, and PageRequest speaks PAGES. The rows from 40 on are page 2 — not
+        // page 40, which is rows 800–819 and what a pager would then call "past the end".
+        when(repository.findByFolloweeAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByFolloweeAccountId("acct-bob")).thenReturn(37L);
+
+        service.followersOf("acct-bob", null, 20, 40);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByFolloweeAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void aNegativeFollowersOffsetIsTheFirstWindow() {
+        // A page before the first does not exist; the newest rows are the honest answer, not a refusal.
+        when(repository.findByFolloweeAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByFolloweeAccountId("acct-bob")).thenReturn(37L);
+
+        service.followersOf("acct-bob", null, 20, -5);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByFolloweeAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isZero();
+    }
+
+    @Test
+    void aWindowPastTheEndIsAnEmptyAnswerNotARefusal() {
+        // The count still says 37, so the reader is told the whole number and shown none of it —
+        // which is what "past the end" means, and the reason the count travels beside the window.
+        when(repository.findByFolloweeAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByFolloweeAccountId("acct-bob")).thenReturn(37L);
+
+        FollowService.FollowResult result = service.followersOf("acct-bob", null, 20, 100);
+
+        assertThat(result.followers()).isEmpty();
+        assertThat(result.followerCount()).isEqualTo(37L);
     }
 }

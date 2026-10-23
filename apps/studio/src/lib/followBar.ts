@@ -134,6 +134,84 @@ export interface FollowBarFacts {
    */
   following?: FollowerRow[];
   followingCount?: number | null;
+  /**
+   * v397 — WHICH window of the FOLLOWERS the bar is showing, in rows from the newest — the same
+   * rows the service pages by (v390 taught the other direction; this is the direction that had no
+   * pager at all). A window with no position cannot say which followers it is the window OF.
+   */
+  followersOffset?: number;
+  /** v397 — the followers window's SIZE, as the service answered it. */
+  followersLimit?: number;
+  /**
+   * v397 — how to build the URL of another followers window. The same shape the tip bar (v395) and
+   * the plan bar (v396) got: the page is server-rendered and holds no session (ADR 0018), so its pager
+   * is a LINK and not a button, and a bar given no builder draws no pager at all.
+   */
+  followersPageHref?: (offset: number) => string;
+  /** v397 — the same three facts for the OTHER direction in this bar. */
+  followingOffset?: number;
+  /** v397 — the following window's SIZE, as the service answered it. */
+  followingLimit?: number;
+  /** v397 — how to build the URL of another following window. */
+  followingPageHref?: (offset: number) => string;
+}
+
+/** A window's size, when the wire named a positive one — a pager that does not know the window's size cannot name the page it would offer. */
+function windowSizeOf(limit: number | undefined): number | null {
+  return typeof limit === 'number' && Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : null;
+}
+
+/** A window's position, in rows from the newest. A missing or negative one is the first window. */
+function windowOffsetOf(offset: number | undefined): number {
+  return typeof offset === 'number' && Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 0;
+}
+
+/**
+ * v397 — WHICH rows a list is showing, in the shared wording (v386's correction, which the tip bar
+ * and the plan bar received in v395 and v396): the first window says it is the newest N of M, a later
+ * one names its rows, and an empty window past the end says it is past the end — the emptiness is a
+ * fact about the PAGE, not about the account.
+ */
+function followWindowLine(count: number | null, shown: number, offset: number): string {
+  if (count === null || count <= shown) return '';
+  if (shown <= 0) {
+    return offset > 0 ? ' · this page is past the end — the service answered an empty window' : '';
+  }
+  if (offset <= 0) return ` · showing the ${shown} newest of ${count}`;
+  return ` · showing ${offset + 1}–${offset + shown} of ${count}`;
+}
+
+/**
+ * v397 — the PAGER for one of the bar's two lists, and it is made of LINKS: the profile page is
+ * server-rendered and cannot act (ADR 0018), so the route — the layer that knows the URL — builds the
+ * other windows' URLs and the bar draws an <a>. At a boundary there is no page to offer and the control
+ * is a <span> with no href: a link that went nowhere would be a lie with an href. "Older" is offered
+ * only when the NEXT window would hold something — the whole-table count rides on every answer, so a
+ * page the service has already counted as empty is a page the bar does not offer.
+ */
+function followPager(
+  count: number | null,
+  shown: number,
+  offset: number,
+  windowSize: number | null,
+  hrefFor: ((offset: number) => string) | null,
+  attribute: 'followers' | 'following',
+  noun: string,
+): string {
+  if (windowSize === null || hrefFor === null) return '';
+  if (!(offset > 0 || (count !== null && count > shown))) return '';
+  const control = (direction: 'newer' | 'older', target: number | null): string => {
+    const text = direction === 'newer' ? '‹ Newer' : 'Older ›';
+    const title = direction === 'newer' ? `the newer ${noun}` : `the older ${noun}`;
+    if (target === null) {
+      return `<span class="nexus-followers-page" data-${attribute}-page="${direction}" title="${title}">${text}</span>`;
+    }
+    return `<a class="nexus-followers-page" data-${attribute}-page="${direction}" href="${escapeHtml(hrefFor(target))}" title="${title}">${text}</a>`;
+  };
+  return `<div class="nexus-followers-pager">
+${control('newer', offset > 0 ? Math.max(offset - windowSize, 0) : null)}
+${control('older', count !== null && offset + windowSize < count ? offset + windowSize : null)}
+</div>`;
 }
 
 /**
@@ -164,11 +242,20 @@ export function renderFollowBar(facts: FollowBarFacts): string {
     : '';
   // v350 — the count is the WHOLE number and the list is a WINDOW, so the bar says how many it is not
   // showing: a reader who sees "5 followers" and two names would otherwise read the two as all of them.
+  // v397 — and past the first window the line says WHICH followers (the shared wording's third
+  // argument, the one the tip and plan bars received in v395 and v396).
   const shownFollowers = (facts.followers ?? []).length;
-  const moreFollowers =
-    shownFollowers > 0 && count > shownFollowers
-      ? ` · showing the ${shownFollowers} newest of ${count}`
-      : '';
+  const followersOffset = windowOffsetOf(facts.followersOffset);
+  const moreFollowers = followWindowLine(count, shownFollowers, followersOffset);
+  const followersPager = followPager(
+    count,
+    shownFollowers,
+    followersOffset,
+    windowSizeOf(facts.followersLimit),
+    typeof facts.followersPageHref === 'function' ? facts.followersPageHref : null,
+    'followers',
+    'followers',
+  );
   // v303 — the other direction, in the SAME bar: the two lists answer ONE question (the shape of this
   // account's social life) and two panels would make the reader assemble it themselves.
   const following = (facts.following ?? [])
@@ -181,20 +268,28 @@ export function renderFollowBar(facts: FollowBarFacts): string {
     .join('\n');
   const followingCount = facts.followingCount ?? (facts.following ?? []).length;
   // v350 — and the same note for the OTHER list in this bar: it is a window too, and the count beside
-  // it is the whole number.
+  // it is the whole number. v397 — and it pages too, with the same shape and the same wording.
   const shownFollowing = (facts.following ?? []).length;
-  const moreFollowing =
-    shownFollowing > 0 && followingCount > shownFollowing
-      ? ` · showing the ${shownFollowing} newest of ${followingCount}`
-      : '';
+  const followingOffset = windowOffsetOf(facts.followingOffset);
+  const moreFollowing = followWindowLine(followingCount, shownFollowing, followingOffset);
+  const followingPager = followPager(
+    followingCount,
+    shownFollowing,
+    followingOffset,
+    windowSizeOf(facts.followingLimit),
+    typeof facts.followingPageHref === 'function' ? facts.followingPageHref : null,
+    'following',
+    'accounts this one follows',
+  );
   const followingLabel = followingCount === 1 ? '1 following' : `${followingCount} following`;
   const followingList = following
-    ? `<div class="nexus-followers-sub">${escapeHtml(followingLabel)}${moreFollowing}</div><ul class="nexus-followers-list">\n${following}\n</ul>`
+    ? `<div class="nexus-followers-sub">${escapeHtml(followingLabel)}${moreFollowing}</div><ul class="nexus-followers-list">\n${following}\n</ul>${followingPager}`
     : '';
   return `<div class="nexus-followers" data-followers="${count}" data-following="${followingCount}">
 <span class="nexus-followers-count">${escapeHtml(label)}${moreFollowers}</span>
 <a class="nexus-followers-action" href="${escapeHtml(href)}" title="follow this account from the Studio">Follow ${escapeHtml(who)}</a>
 ${list}
+${followersPager}
 ${followingList}
 </div>`;
 }
@@ -219,7 +314,10 @@ export const FOLLOW_BAR_STYLES = `<style>
 .nexus-followers-action:hover{text-decoration:underline}
 .nexus-followers-list{list-style:none;margin:0;padding:0;flex-basis:100%;display:flex;flex-direction:column;gap:2px;max-height:120px;overflow:auto}
 .nexus-followers-sub{color:#9aa3b2;margin-top:4px}
-.nexus-followers-sub{color:#9aa3b2;margin-top:4px}
+.nexus-followers-pager{flex-basis:100%;display:flex;gap:10px;align-items:center;margin-top:2px}
+.nexus-followers-page{color:#f59e0b;font-weight:600;text-decoration:none}
+.nexus-followers-page:hover{text-decoration:underline}
+.nexus-followers-pager span.nexus-followers-page{color:#5b6472;font-weight:400}
 .nexus-followers-list a{color:#cfd6e4;text-decoration:none}
 .nexus-followers-list a:hover{text-decoration:underline;color:#3b82f6}
 </style>`;

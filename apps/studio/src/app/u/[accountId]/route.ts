@@ -44,6 +44,13 @@ const TIP_LIMIT = 100;
  */
 const PLAN_LIMIT = 20;
 
+/**
+ * v397 — how many followers and how many following-rows the profile page reads. The service's own
+ * window is twenty (its default cap), and the page asks for exactly that: the counts on the answers
+ * are the WHOLE table's, so the page states what it carried and pages the rest (v397).
+ */
+const FOLLOW_LIMIT = 20;
+
 function html(body: string, status: number): Response {
   return new Response(body, { status, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 }
@@ -61,6 +68,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   // the tips' `tipOffset` are the other two): a reader on gallery page 3 who opens plan page 2 keeps
   // their place in both of the others.
   const planOffset = Math.max(0, Number.parseInt(url.searchParams.get('planOffset') ?? '0', 10));
+  // v397 — the follow bar's TWO windows, the fourth and fifth on this page. Each pages on its own
+  // parameter: a reader on gallery page 3 who opens followers page 2 keeps their place in the gallery,
+  // the tips, the plans and the following list.
+  const followersOffset = Math.max(0, Number.parseInt(url.searchParams.get('followersOffset') ?? '0', 10));
+  const followingOffset = Math.max(0, Number.parseInt(url.searchParams.get('followingOffset') ?? '0', 10));
   
   if (!accountId.trim()) {
     return html(renderProfileHtml(profileFactsOf('', [], 0, PROFILE_LIMIT, offset, query), []), 200);
@@ -94,8 +106,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   const [offered, tips, followers, following] = await Promise.all([
     readPlans(accountId, PLAN_LIMIT, planOffset),
     readTips(accountId, TIP_LIMIT, tipOffset),
-    readFollowers(accountId, null),
-    readFollowing(accountId),
+    readFollowers(accountId, null, FOLLOW_LIMIT, followersOffset),
+    readFollowing(accountId, followingOffset),
   ]);
   // v372 — the bar is told how many plans the creator offers (the WHOLE table's count), so it can say
   // when its list is only a window.
@@ -151,6 +163,23 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   // v303 — the OTHER direction of the edge: the accounts THIS account follows. It is read independently,
   // and a list that could not be read leaves its half of the bar out — the same rule the followers list
   // keeps.
+  // v397 — the follow bar's two pagers are LINKS for the same reason the tip bar's and the plan
+  // bar's are (v395, v396): the page is server-rendered and cannot act, so the route is the layer that
+  // knows the URL. Each builder moves ONE window and keeps the reader's place in the other four.
+  const followersPageHref = (nextOffset: number): string => {
+    const params = new URLSearchParams(url.search);
+    if (nextOffset > 0) params.set('followersOffset', String(nextOffset));
+    else params.delete('followersOffset');
+    const search = params.toString();
+    return search ? `${url.pathname}?${search}` : url.pathname;
+  };
+  const followingPageHref = (nextOffset: number): string => {
+    const params = new URLSearchParams(url.search);
+    if (nextOffset > 0) params.set('followingOffset', String(nextOffset));
+    else params.delete('followingOffset');
+    const search = params.toString();
+    return search ? `${url.pathname}?${search}` : url.pathname;
+  };
   const bar = followers.ok
     ? renderFollowBar({
         accountId,
@@ -164,6 +193,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
         // carries both ends of the edge — so the list shows the FOLLOWEE, not the follower.
         following: following.ok ? following.following.map(toFollowingRow).filter((r): r is NonNullable<typeof r> => r !== null) : [],
         followingCount: following.ok ? following.count : null,
+        // v397 — which window each list is showing, how big it is, and where the next one lives. The
+        // service pages both directions by rows and echoes the window it answered, so each list can say
+        // WHICH rows it is showing and offer the next page as a link.
+        followersOffset: followers.offset ?? followersOffset,
+        followersLimit: followers.limit ?? FOLLOW_LIMIT,
+        followersPageHref,
+        followingOffset: following.ok ? following.offset ?? followingOffset : followingOffset,
+        followingLimit: following.ok ? following.limit ?? FOLLOW_LIMIT : FOLLOW_LIMIT,
+        followingPageHref,
       }) + FOLLOW_BAR_STYLES
     : '';
   return html(

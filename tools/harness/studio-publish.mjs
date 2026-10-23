@@ -5000,6 +5000,175 @@ try {
     );
   }
 
+  // ── §82 v397: the profile page's follow bar gets its PAGERS ────────────────────────────────────────────────────────────────────────────────────────────────
+  // The follow bar is the LAST list on the profile page that could not page: the following
+  // direction has paged since v390 and the followers direction has not paged at all, so a
+  // creator followed by more accounts than the window could not reach the older followers. Both
+  // lists in the bar page now, each on its own parameter, as LINKS (the page is server-rendered
+  // and holds no session — ADR 0018). One account is given 21 followers and another 21
+  // followings — one more than the window the page reads — and both are graded as HTML.
+  {
+    const followPagerPage = await session.newPage('about:blank');
+    await followPagerPage.navigate(studioBase, { waitUntil: 'networkidle0', timeoutMs: 10000 });
+    await waitForHydration(followPagerPage, 'the follow pager page to hydrate');
+    await signInAs(followPagerPage, 'socialite', 'the account the paged edges belong to');
+    const pagerSocialiteRaw = await followPagerPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const pagerSocialite = pagerSocialiteRaw ? JSON.parse(String(pagerSocialiteRaw)) : null;
+
+    // A creator followed by 21 accounts: each edge names its own follower, because the service
+    // holds no account table and an account exists in it only as far as edges NAME it (v270).
+    const pagedStarId = `acct-follow-pager-${Date.now()}`;
+    const followerStatuses = [];
+    for (let i = 0; i < 21; i += 1) {
+      const res = await fetch(`${apiBase}/follows`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          accountId: pagedStarId,
+          claim: {
+            accountId: `acct-fan-${i}`,
+            handle: `fan${i}`,
+            assurance: pagerSocialite?.assurance ?? null,
+            claimedAt: pagerSocialite?.createdAt ?? null,
+          },
+        }),
+      });
+      followerStatuses.push(res.status);
+    }
+    check(
+      'the harness gave the creator 21 followers — one more than the window the page reads',
+      followerStatuses.length === 21 && followerStatuses.every((s) => s === 201 || s === 200),
+      `statuses: ${JSON.stringify(followerStatuses.slice(0, 3))} · ${JSON.stringify(followerStatuses.slice(-1))}`,
+    );
+
+    // And an account that FOLLOWS 21: the other direction of the edge, in the SAME bar.
+    const pagedFanId = `acct-following-pager-${Date.now()}`;
+    const followingStatuses = [];
+    for (let i = 0; i < 21; i += 1) {
+      const res = await fetch(`${apiBase}/follows`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          accountId: `acct-idol-${i}`,
+          claim: {
+            accountId: pagedFanId,
+            handle: pagerSocialite?.handle ?? null,
+            assurance: pagerSocialite?.assurance ?? null,
+            claimedAt: pagerSocialite?.createdAt ?? null,
+          },
+        }),
+      });
+      followingStatuses.push(res.status);
+    }
+    check(
+      'and 21 accounts this one follows — the other direction, one more than its window',
+      followingStatuses.length === 21 && followingStatuses.every((s) => s === 201 || s === 200),
+      `statuses: ${JSON.stringify(followingStatuses.slice(0, 3))} · ${JSON.stringify(followingStatuses.slice(-1))}`,
+    );
+    await followPagerPage.close();
+
+    // The SERVICE counts the whole table and carries the window, in BOTH directions.
+    const followersFirst = await fetch(`${apiBase}/follows?accountId=${encodeURIComponent(pagedStarId)}&limit=20`);
+    const followersFirstBody = await followersFirst.json();
+    check(
+      'the SERVICE counts 21 followers and carries the first window of 20',
+      followersFirst.status === 200 && followersFirstBody.followerCount === 21 && (followersFirstBody.followers ?? []).length === 20,
+      `count: ${JSON.stringify(followersFirstBody.followerCount)} · rows: ${JSON.stringify((followersFirstBody.followers ?? []).length)}`,
+    );
+    const followersSecondRead = await fetch(`${apiBase}/follows?accountId=${encodeURIComponent(pagedStarId)}&limit=20&offset=20`);
+    const followersSecondBody = await followersSecondRead.json();
+    check(
+      'and the FOLLOWERS door PAGES: the second window carries the one follower the count says is left',
+      followersSecondRead.status === 200 && (followersSecondBody.followers ?? []).length === 1 && followersSecondBody.followerCount === 21,
+      `rows: ${JSON.stringify((followersSecondBody.followers ?? []).length)} · count: ${JSON.stringify(followersSecondBody.followerCount)}`,
+    );
+    const followingFirst = await fetch(`${apiBase}/follows?follower=${encodeURIComponent(pagedFanId)}&limit=20`);
+    const followingFirstBody = await followingFirst.json();
+    check(
+      'and the FOLLOWING door counts 21 and carries the first window of 20',
+      followingFirst.status === 200 && followingFirstBody.followingCount === 21 && (followingFirstBody.following ?? []).length === 20,
+      `count: ${JSON.stringify(followingFirstBody.followingCount)} · rows: ${JSON.stringify((followingFirstBody.following ?? []).length)}`,
+    );
+
+    // The FOLLOWERS direction, as the reader's browser would render it.
+    const followersWindowHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(pagedStarId)}`)).text();
+    check(
+      'the profile page states the WHOLE follower count, not the window',
+      followersWindowHtml.includes('data-followers="21"'),
+      `the count is there: ${followersWindowHtml.includes('data-followers="21"')}`,
+    );
+    check(
+      'the first window says it is the newest 20 of 21',
+      followersWindowHtml.includes('21 followers · showing the 20 newest of 21'),
+      `the window line is there: ${followersWindowHtml.includes('showing the 20 newest of 21')}`,
+    );
+    check(
+      'on the first window "Newer" is a span with no href — there is no page before the first',
+      followersWindowHtml.includes('<span class="nexus-followers-page" data-followers-page="newer"'),
+      `newer is a span: ${followersWindowHtml.includes('<span class="nexus-followers-page" data-followers-page="newer"')}`,
+    );
+    check(
+      'and "Older" is a link to the second window',
+      followersWindowHtml.includes(`<a class="nexus-followers-page" data-followers-page="older" href="/u/${encodeURIComponent(pagedStarId)}?followersOffset=20"`),
+      `older links to window two: ${followersWindowHtml.includes(`<a class="nexus-followers-page" data-followers-page="older" href="/u/${encodeURIComponent(pagedStarId)}?followersOffset=20"`)}`,
+    );
+
+    // The SECOND window of the followers — the link the first window offered, followed.
+    const followersSecondHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(pagedStarId)}?followersOffset=20`)).text();
+    check(
+      'the second window says WHICH followers it is showing',
+      followersSecondHtml.includes('showing 21–21 of 21'),
+      `the window line is there: ${followersSecondHtml.includes('showing 21–21 of 21')}`,
+    );
+    check(
+      'the second window links "Newer" back to the first window',
+      followersSecondHtml.includes(`<a class="nexus-followers-page" data-followers-page="newer" href="/u/${encodeURIComponent(pagedStarId)}"`),
+      `newer links back: ${followersSecondHtml.includes(`<a class="nexus-followers-page" data-followers-page="newer" href="/u/${encodeURIComponent(pagedStarId)}"`)}`,
+    );
+    check(
+      'and "Older" is a span — the next window would hold nothing, and the count already said so',
+      followersSecondHtml.includes('<span class="nexus-followers-page" data-followers-page="older"'),
+      `older is a span: ${followersSecondHtml.includes('<span class="nexus-followers-page" data-followers-page="older"')}`,
+    );
+
+    // A window PAST the end: an honest empty answer, not "nobody follows this account".
+    const followersPastEndHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(pagedStarId)}?followersOffset=40`)).text();
+    check(
+      'a followers window past the end says it is past the end',
+      followersPastEndHtml.includes('this page is past the end — the service answered an empty window'),
+      `the note is there: ${followersPastEndHtml.includes('this page is past the end')}`,
+    );
+    check(
+      'and it still states the whole count — the empty window belongs to the page, not the account',
+      followersPastEndHtml.includes('data-followers="21"') && !followersPastEndHtml.includes('0 followers'),
+      `count still stated: ${followersPastEndHtml.includes('data-followers="21"')} · says "0 followers": ${followersPastEndHtml.includes('0 followers')}`,
+    );
+
+    // And the OTHER direction, in the same bar, on its own parameter.
+    const followingWindowHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(pagedFanId)}`)).text();
+    check(
+      'the following list states the whole count and says it is the newest 20 of 21',
+      followingWindowHtml.includes('21 following · showing the 20 newest of 21'),
+      `the window line is there: ${followingWindowHtml.includes('showing the 20 newest of 21')}`,
+    );
+    check(
+      'the following pager links "Older" to its own second window',
+      followingWindowHtml.includes(`<a class="nexus-followers-page" data-following-page="older" href="/u/${encodeURIComponent(pagedFanId)}?followingOffset=20"`),
+      `older links to window two: ${followingWindowHtml.includes(`<a class="nexus-followers-page" data-following-page="older" href="/u/${encodeURIComponent(pagedFanId)}?followingOffset=20"`)}`,
+    );
+    const followingSecondHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(pagedFanId)}?followingOffset=20`)).text();
+    check(
+      'and the following second window says which rows it is showing',
+      followingSecondHtml.includes('showing 21–21 of 21'),
+      `the window line is there: ${followingSecondHtml.includes('showing 21–21 of 21')}`,
+    );
+    check(
+      'with "Newer" linking back to the first window and "Older" a span',
+      followingSecondHtml.includes(`<a class="nexus-followers-page" data-following-page="newer" href="/u/${encodeURIComponent(pagedFanId)}"`) && followingSecondHtml.includes('<span class="nexus-followers-page" data-following-page="older"'),
+      `newer links back: ${followingSecondHtml.includes('data-following-page="newer" href')} · older is a span: ${followingSecondHtml.includes('<span class="nexus-followers-page" data-following-page="older"')}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

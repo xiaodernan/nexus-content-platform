@@ -70,4 +70,26 @@ public final class FollowDtos {
      */
     public record FollowingAnswer(String accountId, long followingCount, List<Follow> following, int limit) {
     }
+
+    /**
+     * v397 — the answer to WHO FOLLOWS an account, as a WINDOW beside the whole-table count.
+     *
+     * <p>{@code limit} is the cap the service applied and {@code offset} is the ROW this window starts
+     * at — the same two numbers the following direction's answer carries (v390) and the plans answer
+     * carries (v392). The answer names the window it is FOR, so a pager can say which followers it is
+     * showing and offer the next page as a link instead of guessing from a URL it half remembers.
+     *
+     * <p>It is a SEPARATE record from {@link FollowAnswer} because a WRITE's answer is not a window at
+     * all: the followers a follow carries are the edge it just made, and calling that a window of the
+     * follower table would be a small lie that grows. A read and a write are different questions.
+     */
+    public record FollowersAnswer(
+            String accountId,
+            boolean following,
+            long followerCount,
+            long followingCount,
+            List<Follow> followers,
+            int limit,
+            int offset) {
+    }
 }

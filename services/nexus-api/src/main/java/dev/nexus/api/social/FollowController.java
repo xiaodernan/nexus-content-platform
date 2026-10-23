@@ -73,6 +73,11 @@ public class FollowController {
      * meaning the filed read's offset has (v382), so a reader who follows more accounts than the cap can
      * reach the older ones. A negative offset is clamped to the first window rather than refused —
      * the newest rows are the honest answer to a question about a page before the first.
+     *
+     * <p>v397 — and so can the FOLLOWERS window, which is the door this page has needed longest: a
+     * creator followed by more accounts than the cap had the older followers out of reach entirely. The
+     * answer carries the window it answered (`limit` and `offset`), so a pager can say which followers
+     * it is showing rather than inferring it from the URL it was handed.
      */
     @GetMapping
     public ResponseEntity<?> list(
@@ -82,9 +87,13 @@ public class FollowController {
             @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "offset", required = false) Integer offset) {
         int asked = limit == null ? FollowService.DEFAULT_FOLLOW_LIMIT : limit;
+        // v397 — the window the SERVICE applied, computed here so the answer can echo exactly that
+        // and not a number the caller half remembers: a pager that is told a window size the service
+        // did not use would offer a page of the wrong shape.
+        int applied = asked <= 0 ? FollowService.DEFAULT_FOLLOW_LIMIT : Math.min(asked, FollowService.MAX_FOLLOW_LIMIT);
+        int from = offset == null ? 0 : Math.max(offset, 0);
         if (followerAccountId != null && !followerAccountId.isBlank()) {
-            int from = offset == null ? 0 : Math.max(offset, 0);
-            FollowService.FollowingResult result = service.followingOf(followerAccountId, asked, from);
+            FollowService.FollowingResult result = service.followingOf(followerAccountId, applied, from);
             List<Follow> following = result.following().stream()
                     .map(row -> new Follow(
                             row.getFollowerAccountId(),
@@ -97,14 +106,45 @@ public class FollowController {
                     result.accountId(),
                     result.followingCount(),
                     following,
-                    Math.min(Math.max(asked, 1), FollowService.MAX_FOLLOW_LIMIT)));
+                    applied));
         }
         if (accountId == null || accountId.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "invalid-follow",
                     "message", "the accountId parameter is missing (or the follower parameter, for the other direction)"));
         }
-        return ResponseEntity.ok(toWire(service.followersOf(accountId, viewerAccountId, asked)));
+        // v397 — and the followers window PAGES, in rows, with the window it answered carried on the
+        // answer: the reader who is followed by more accounts than the cap can reach the older ones,
+        // and the profile page's follow bar can say WHICH followers it is showing (v397).
+        return ResponseEntity.ok(
+                withWindow(service.followersOf(accountId, viewerAccountId, applied, from), applied, from));
+    }
+
+    /**
+     * v397 — the read's window, carried beside the rows.
+     *
+     * <p>A read and a write are different questions, so the read's answer is its OWN record: the
+     * followers a WRITE carries are the edge it just made, and a window named on that would be a
+     * window of nothing.
+     */
+    private static FollowDtos.FollowersAnswer withWindow(
+            FollowService.FollowResult result, int limit, int offset) {
+        List<Follow> followers = result.followers().stream()
+                .map(row -> new Follow(
+                        row.getFollowerAccountId(),
+                        row.getFolloweeAccountId(),
+                        row.getCreatedAt().toEpochMilli(),
+                        row.getFollowerHandle(),
+                        row.getFollowerAssurance()))
+                .toList();
+        return new FollowDtos.FollowersAnswer(
+                result.accountId(),
+                result.following(),
+                result.followerCount(),
+                result.followingCount(),
+                followers,
+                limit,
+                offset);
     }
 
     /** The service's rows, as the wire's shape. */

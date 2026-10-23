@@ -167,10 +167,17 @@ public class FollowService {
      * depend on who is asking.
      */
     @Transactional(readOnly = true)
-    public FollowResult followersOf(String accountId, String viewerAccountId, int limit) {
+    public FollowResult followersOf(String accountId, String viewerAccountId, int limit, int offset) {
         String followee = requireAccount(accountId, "a follow needs an account to follow");
         int asked = limit <= 0 ? DEFAULT_FOLLOW_LIMIT : Math.min(limit, MAX_FOLLOW_LIMIT);
-        List<FollowEntry> followers = repository.findByFolloweeAccountIdOrderByCreatedAtDesc(followee, PageRequest.of(0, asked));
+        // v397 — the followers window can be PAGED, in rows, the same shape the following direction
+        // has had since v390: the offset is ROWS past the newest ones, and Spring Data's PageRequest
+        // speaks PAGES (v387's lesson), so the translation is by whole windows. A negative offset is
+        // the first window, not a refusal — the newest rows are the honest answer to a question about
+        // a page before the first.
+        int from = Math.max(offset, 0);
+        List<FollowEntry> followers =
+                repository.findByFolloweeAccountIdOrderByCreatedAtDesc(followee, PageRequest.of(from / asked, asked));
         boolean following = viewerAccountId != null
                 && !viewerAccountId.isBlank()
                 && repository.findByFollowerAccountIdAndFolloweeAccountId(viewerAccountId.trim(), followee).isPresent();

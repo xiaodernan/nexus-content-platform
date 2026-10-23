@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { followIdFromSearch, unfollowIdFromSearch } from './followIntent';
-import { injectFollowBar, renderFollowBar, toFollowerRow, toFollowerRows } from './followBar';
+import { injectFollowBar, renderFollowBar, toFollowerRow, toFollowerRows, toFollowingRow } from './followBar';
 import { claimOf } from './socialClaim';
 
 /**
@@ -218,5 +218,112 @@ describe('followBar — the follower LIST (M9 v292)', () => {
     const html = renderFollowBar({ accountId: 'acct-ada', followerCount: 1, followers: rows });
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
+  });
+});
+
+describe('followBar — the bar PAGES both of its lists (M7 v397)', () => {
+  // The followers list was the one list on the profile page a reader could not page (v397): the
+  // following direction has paged since v390, and the tip and plan bars on the same page since v395
+  // and v396. Both lists in this bar page now, each on its own URL parameter, as LINKS — the page
+  // is server-rendered and cannot act (ADR 0018).
+  const followersPageHref = (offset: number) => `/u/acct-ada?followersOffset=${offset}`;
+  const followingPageHref = (offset: number) => `/u/acct-ada?followingOffset=${offset}`;
+  const twoFollowers = () => toFollowerRows([{ followerId: 'acct-bob', handle: 'bob' }, { followerId: 'acct-cyd', handle: 'cyd' }]);
+  const twoFollowing = () => [toFollowingRow({ followeeId: 'acct-dee', handle: 'dee' })!, toFollowingRow({ followeeId: 'acct-eve', handle: 'eve' })!];
+
+  it('the first window says it is the newest, and not the only', () => {
+    const html = renderFollowBar({ accountId: 'acct-ada', followerCount: 5, followers: twoFollowers(), followersOffset: 0, followersLimit: 2, followersPageHref });
+    expect(html).toContain('showing the 2 newest of 5');
+  });
+
+  it('a later window says WHICH followers it is showing', () => {
+    // "the 2 newest" is a true thing about the first window and a false thing about the third
+    // (v386's correction, the shared wording the tip and plan bars received in v395 and v396).
+    const html = renderFollowBar({ accountId: 'acct-ada', followerCount: 10, followers: twoFollowers(), followersOffset: 4, followersLimit: 2, followersPageHref });
+    expect(html).toContain('showing 5–6 of 10');
+    expect(html).not.toContain('newest');
+  });
+
+  it('an empty window past the end says so — it is not "nobody follows this account"', () => {
+    // v288 kept a count of zero and an unreadable count apart; v397 adds the third case: a window
+    // PAST the end is empty because the PAGE is past the end, not because nobody follows.
+    const html = renderFollowBar({ accountId: 'acct-ada', followerCount: 5, followers: [], followersOffset: 4, followersLimit: 2, followersPageHref });
+    expect(html).toContain('this page is past the end — the service answered an empty window');
+    expect(html).toContain('data-followers="5"');
+  });
+
+  it('but an empty FIRST window is still just the count', () => {
+    const html = renderFollowBar({ accountId: 'acct-ada', followerCount: 0, followers: [], followersOffset: 0, followersLimit: 20, followersPageHref });
+    expect(html).toContain('data-followers="0"');
+    expect(html).not.toContain('showing');
+    expect(html).not.toContain('nexus-followers-pager');
+  });
+
+  it('the followers pager is links, and a boundary is a span with no href', () => {
+    const first = renderFollowBar({ accountId: 'acct-ada', followerCount: 5, followers: twoFollowers(), followersOffset: 0, followersLimit: 2, followersPageHref });
+    expect(first).toContain('<span class="nexus-followers-page" data-followers-page="newer"');
+    expect(first).toContain('<a class="nexus-followers-page" data-followers-page="older" href="/u/acct-ada?followersOffset=2"');
+    const last = renderFollowBar({ accountId: 'acct-ada', followerCount: 5, followers: twoFollowers(), followersOffset: 4, followersLimit: 2, followersPageHref });
+    expect(last).toContain('<a class="nexus-followers-page" data-followers-page="newer" href="/u/acct-ada?followersOffset=2"');
+    expect(last).toContain('<span class="nexus-followers-page" data-followers-page="older"');
+  });
+
+  it('"Older" is not offered when the next window would hold nothing', () => {
+    const html = renderFollowBar({ accountId: 'acct-ada', followerCount: 5, followers: [], followersOffset: 4, followersLimit: 2, followersPageHref });
+    expect(html).toContain('<span class="nexus-followers-page" data-followers-page="older"');
+    expect(html).not.toContain('data-followers-page="older" href');
+  });
+
+  it('the OTHER list in the same bar pages too, on its own links', () => {
+    // One bar, two lists, two independent windows: a reader on followers page 2 can be on following
+    // page 1, and the two pagers must not be the same pager.
+    const html = renderFollowBar({
+      accountId: 'acct-ada',
+      followerCount: 5,
+      followers: twoFollowers(),
+      followersOffset: 0,
+      followersLimit: 2,
+      followersPageHref,
+      following: twoFollowing(),
+      followingCount: 4,
+      followingOffset: 2,
+      followingLimit: 2,
+      followingPageHref,
+    });
+    expect(html).toContain('showing 3–4 of 4');
+    expect(html).toContain('<a class="nexus-followers-page" data-following-page="newer" href="/u/acct-ada?followingOffset=0"');
+    expect(html).toContain('<span class="nexus-followers-page" data-following-page="older"');
+  });
+
+  it('an empty following window past the end says so, and the followers window line is untouched', () => {
+    const html = renderFollowBar({
+      accountId: 'acct-ada',
+      followerCount: 5,
+      followers: twoFollowers(),
+      followersOffset: 0,
+      followersLimit: 2,
+      followersPageHref,
+      following: [],
+      followingCount: 3,
+      followingOffset: 2,
+      followingLimit: 2,
+      followingPageHref,
+    });
+    // The following list is EMPTY, so its half of the bar is not drawn at all — the followers window
+    // line beside it is unaffected by a list that is not on the page.
+    expect(html).toContain('showing the 2 newest of 5');
+    expect(html).not.toContain('data-following-page');
+  });
+
+  it('a bar given no builders draws no pagers — only the counts', () => {
+    const html = renderFollowBar({
+      accountId: 'acct-ada',
+      followerCount: 5,
+      followers: twoFollowers(),
+      following: twoFollowing(),
+      followingCount: 5,
+    });
+    expect(html).toContain('showing the 2 newest of 5');
+    expect(html).not.toContain('nexus-followers-pager');
   });
 });

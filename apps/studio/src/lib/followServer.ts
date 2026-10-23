@@ -52,6 +52,14 @@ export interface FollowersAnswer {
   followers: FollowerEntry[];
   /** Whether the VIEWER follows it, when the service was asked. */
   following?: boolean;
+  /**
+   * v397 — the cap the service applied, and the ROW this window starts at, echoed from the ask —
+   * the same two numbers the following direction's answer has carried since v390 and the plans answer
+   * carries since v396. The answer names the window it is FOR: the follow bar says which followers it
+   * is showing and offers the next page as a link, and it cannot say that from a URL it did not send.
+   */
+  limit?: number;
+  offset?: number;
   reason?: string;
 }
 
@@ -68,41 +76,53 @@ export type FetchLike = (
   init?: { method?: string; headers?: Record<string, string>; body?: string; signal?: AbortSignal },
 ) => Promise<Response>;
 
-/** Read the followers of one account. */
 export async function readFollowers(
   accountId: string,
   viewerAccountId: string | null,
+  limit: number,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch as FetchLike,
 ): Promise<FollowersAnswer> {
   const apiBase = nexusApiBase();
+  // v397 — the offset is ROWS, and a negative one is the first window rather than a refusal: the
+  // newest followers are the honest answer to a question about a page before the first (the same rule
+  // the following direction has had since v390).
+  const from = Math.max(offset, 0);
   try {
     const viewer = viewerAccountId ? `&viewer=${encodeURIComponent(viewerAccountId)}` : '';
     const res = await fetchImpl(
-      `${apiBase}/follows?accountId=${encodeURIComponent(accountId)}${viewer}`,
+      `${apiBase}/follows?accountId=${encodeURIComponent(accountId)}${viewer}&limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(from))}`,
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
-      return { ok: false, followerCount: 0, followers: [], reason: `the service's follows door answered HTTP ${res.status}` };
+      return { ok: false, followerCount: 0, followers: [], limit, offset: from, reason: `the service's follows door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, followerCount: 0, followers: [], reason: 'the service answered its follows door with something that is not JSON' };
+      return { ok: false, followerCount: 0, followers: [], limit, offset: from, reason: 'the service answered its follows door with something that is not JSON' };
     }
-    const body = parsed as { followerCount?: unknown; followers?: unknown; following?: unknown };
+    const body = parsed as { followerCount?: unknown; followers?: unknown; following?: unknown; limit?: unknown };
     if (typeof body.followerCount !== 'number' || !Array.isArray(body.followers)) {
-      return { ok: false, followerCount: 0, followers: [], reason: 'the service answered its follows door with no count' };
+      return { ok: false, followerCount: 0, followers: [], limit, offset: from, reason: 'the service answered its follows door with no count' };
     }
     return {
       ok: true,
       followerCount: body.followerCount,
       followers: body.followers as FollowerEntry[],
       following: body.following === true,
+      // v397 — the window as the SERVICE applied it, and the row it starts at. A wire that echoes
+      // no limit keeps the one that was asked for: the pager needs a window size, and guessing one
+      // would offer a page of the wrong shape.
+      limit: typeof body.limit === 'number' && Number.isFinite(body.limit) ? body.limit : limit,
+      offset: from,
     };
   } catch (error) {
     return {
       ok: false,
       followerCount: 0,
       followers: [],
+      limit,
+      offset: from,
       reason: serviceUnreachableReason(apiBase, error),
     };
   }
