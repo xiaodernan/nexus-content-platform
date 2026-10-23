@@ -346,6 +346,35 @@ describe('§123 举报提交入口（POST /api/admin/marketplace/reports）', ()
     expect(body.reportId).toBeTruthy();
   });
 
+  it('并发双发提交：库里只有一行，两发都不是 500（#172）', async () => {
+    const db = getDb();
+    const stamp = Date.now();
+    const [racer] = await db
+      .insert(users)
+      .values({ displayName: `举报并发-买家 ${stamp}`, email: `mktrep+race+${stamp}@nexus.test` })
+      .returning({ id: users.id });
+    const token = await identityFor(racer!.id);
+
+    // 双击「举报」= 两个请求同时到。修前两边都查不到已有举报 → 都 insert →
+    // UNIQUE(reporter_id, item_id) 把后到的那条判 23505 → catch 成 500「举报失败」。
+    // 注意这条**不承担杀变异的责任**：两个 HTTP 请求在同一进程里不保证真的在 insert 处交叉
+    // （实测会串成一条 409），摘了守卫它照样绿。把窗口钉死、确定性杀死变异的那条在
+    // marketplace-reported.integration.test.ts：用未提交事务让后到者真的阻塞在唯一索引上。
+    // 这里钉的是用户看得见的结局：两发都不是 500，库里只有一行。
+    const [a, b] = await Promise.all([
+      post({ itemId, reason: 'spam' }, asUser(token, true)),
+      post({ itemId, reason: 'spam' }, asUser(token, true)),
+    ]);
+    expect([a.status, b.status].every((s) => s === 201 || s === 409), '并发举报不该 500').toBe(true);
+    const rows = await db
+      .select({ id: marketplaceReports.id })
+      .from(marketplaceReports)
+      .where(and(eq(marketplaceReports.reporterId, racer!.id), eq(marketplaceReports.itemId, itemId)));
+    expect(rows).toHaveLength(1);
+
+    await db.delete(users).where(eq(users.id, racer!.id));
+  });
+
   it('没有 CSRF → 403 csrf_failed（双提交是第二道防线，不能省）', async () => {
     const res = await post({ itemId, reason: 'spam' }, asUser(creatorToken, false));
     expect(res.status).toBe(403);

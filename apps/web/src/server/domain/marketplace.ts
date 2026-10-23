@@ -911,10 +911,21 @@ export async function flagSuspiciousActivity(input: FlagSuspiciousActivityInput)
       reason: input.reason,
       description: input.description,
     })
+    // #172：上面那道"已举报过"预检挡不住并发（双击提交、两个标签页）——两边都查不到 →
+    // 都 insert → 库里 marketplace_reports_unique_reporter_item 把后到的那条判 23505，
+    // 路由 catch 住变 500"举报失败"。与 purchase / settle 同一口径：撞约束就回头读现成那条，
+    // 照样答"已经举报过"（409），一次重复点击不该被报成服务器故障。
+    .onConflictDoNothing()
     .returning({ id: marketplaceReports.id });
 
   if (!report) {
-    throw new Error('Failed to create report');
+    const [raced] = await db
+      .select({ id: marketplaceReports.id })
+      .from(marketplaceReports)
+      .where(and(eq(marketplaceReports.reporterId, input.reporterId), eq(marketplaceReports.itemId, input.itemId)))
+      .limit(1);
+    if (!raced) throw new Error('Failed to create report');
+    return { reportId: raced.id, isDuplicate: true };
   }
 
   return { reportId: report.id, isDuplicate: false };

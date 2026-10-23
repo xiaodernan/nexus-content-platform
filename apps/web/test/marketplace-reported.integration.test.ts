@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { createMarketplaceItem, flagSuspiciousActivity, listReportedItemIds } from '../src/server/domain/marketplace';
 import { getDb } from '../src/server/db/client';
-import { users } from '../src/server/db/schema';
+import { marketplaceReports, users } from '../src/server/db/schema';
 
 /**
  * §123/#161：店面行上的「已举报」是**服务端已知状态**，不是只活在这一个标签页里的回忆。
@@ -77,7 +77,64 @@ describe('listReportedItemIds：店面自己知道「我举报过什么」', () 
     await expect(listReportedItemIds('not-a-uuid', [reportedItemId])).resolves.toEqual(new Set());
   });
 
-  it('空列表直接回空集（不查库也不报错）', async () => {
-    await expect(listReportedItemIds(buyer.id, [])).resolves.toEqual(new Set());
+  it('并发双发举报：库挡下第二条，照样答"已经举报过"而不是 23505（#172）', async () => {
+    const db = getDb();
+    const stamp = Date.now();
+    const [sellerRow] = await db
+      .insert(users)
+      .values({ displayName: `举报并发-卖家 ${stamp}`, email: `mktrep+race+seller+${stamp}@nexus.test` })
+      .returning({ id: users.id });
+    const itemId = (
+      await createMarketplaceItem({
+        creatorId: sellerRow!.id,
+        itemType: 'template',
+        title: `举报并发-物品 ${stamp}`,
+        visibility: 'public',
+      })
+    ).id;
+
+    // 真实竞态：另一个会话已经把这条举报插进去、还没提交——"已举报过"预检看不见未提交行，
+    // 于是照样往下走。后到者阻塞在唯一索引上，等那个事务落地后才发现插重了。
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let landed!: () => void;
+    const inserted = new Promise<void>((resolve) => {
+      landed = resolve;
+    });
+    const other = db.transaction(async (tx) => {
+      await tx.insert(marketplaceReports).values({ reporterId: buyer.id, itemId, reason: 'spam' });
+      landed();
+      await gate;
+    });
+    await inserted;
+    const pending = flagSuspiciousActivity({ reporterId: buyer.id, itemId, reason: 'fraud' });
+    // 等到这一发真的把 insert 发了出去（说明已过预检、正阻塞在那个未提交行上）再放开那个事务：
+    // 竞态窗口由此钉死，不靠 sleep 碰时序。
+    let issued = false;
+    for (let i = 0; i < 400 && !issued; i += 1) {
+      const rows = await db.execute(
+        rawSql`select 1 as hit from pg_stat_activity
+               where pid <> pg_backend_pid() and state = 'active'
+                 and query like '%insert into "marketplace_reports"%' limit 1`,
+      );
+      issued = rows.length > 0;
+      if (!issued) await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(issued, 'flagSuspiciousActivity 没能走到 insert——竞态窗口没造出来').toBe(true);
+    release();
+    const raced = await pending;
+    await other;
+
+    expect(raced.isDuplicate, '并发举报该答"已经举报过"，而不是 23505').toBe(true);
+    const rows = await db
+      .select({ id: marketplaceReports.id })
+      .from(marketplaceReports)
+      .where(and(eq(marketplaceReports.reporterId, buyer.id), eq(marketplaceReports.itemId, itemId)));
+    expect(rows).toHaveLength(1);
+    expect(raced.reportId).toBe(rows[0]!.id);
+
+    await db.delete(users).where(eq(users.id, sellerRow!.id));
   });
 });
