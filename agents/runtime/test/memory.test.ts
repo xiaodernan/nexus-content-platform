@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MemoryStore, registerMemoryTools } from '../src/memory.js';
+import { MEMORY_TOOL_SPECS, MemoryStore, registerMemoryTools } from '../src/memory.js';
 import { serializeVectors } from '../src/vectordb.js';
 import { createMemDisk } from './memDisk.js';
 import { ToolRegistry } from '../src/registry.js';
@@ -146,5 +146,52 @@ describe('vector-backed recall (v19)', () => {
     const noFile = registerMemoryTools(new ToolRegistry(), new MemoryStore(), { vectorsFile: 'gone.json', fsLike: disk });
     const inline = await noFile.invoke({ callId: 'c2', tool: 'memory.recall', args: { query: 'anything at all' } }, {});
     expect((inline.output as { engine: string }).engine).toBe('inline');
+  });
+});
+
+/**
+ * v463 — the memory TOOL SPECS, graded directly.
+ *
+ * `MEMORY_TOOL_SPECS` is the declared surface an agent is shown when it asks what memory tools exist.
+ * Every case above reaches the tools through `registerMemoryTools` + `invoke`, so the behaviour is
+ * graded — but the DECLARATION was not: which tools exist, which of them may write, and what each one
+ * asks for were reachable only by reading the loop.
+ */
+describe('the memory tool specs (v463)', () => {
+  it('the specs are the four memory tools, in this order, under one namespace', () => {
+    expect(MEMORY_TOOL_SPECS.map((s) => s.name)).toEqual(['memory.save', 'memory.recall', 'memory.list', 'memory.forget']);
+    for (const spec of MEMORY_TOOL_SPECS) expect(spec.name.startsWith('memory.'), spec.name).toBe(true);
+  });
+
+  it('save and forget carry the write permission — recall and list cannot mutate memory', () => {
+    const writers = MEMORY_TOOL_SPECS.filter((s) => s.permissions.includes('write')).map((s) => s.name);
+    expect(writers).toEqual(['memory.save', 'memory.forget']);
+    for (const spec of MEMORY_TOOL_SPECS) {
+      if (spec.name === 'memory.save' || spec.name === 'memory.forget') continue;
+      expect(spec.permissions, spec.name).toEqual(['read']);
+    }
+  });
+
+  it('every spec declares its args honestly — required named, the optional one not claimed', () => {
+    const byName = new Map(MEMORY_TOOL_SPECS.map((s) => [s.name, s]));
+    const save = byName.get('memory.save')!;
+    expect(save.args.map((a) => a.name)).toEqual(['runId', 'query', 'summary', 'refs']);
+    expect(save.args.every((a) => a.required === true)).toBe(true);
+    const recall = byName.get('memory.recall')!;
+    expect(recall.args.map((a) => a.name)).toEqual(['query', 'k']);
+    expect(recall.args[0]!.required).toBe(true);
+    expect(recall.args[1]!.required).not.toBe(true);
+    expect(byName.get('memory.list')!.args).toEqual([]);
+    const forget = byName.get('memory.forget')!;
+    expect(forget.args.map((a) => a.name)).toEqual(['id']);
+    expect(forget.args[0]!.required).toBe(true);
+    for (const spec of MEMORY_TOOL_SPECS) expect(spec.description.length, spec.name).toBeGreaterThan(0);
+  });
+
+  it('registerMemoryTools registers exactly the specs in the list — nothing more, nothing fewer', () => {
+    const registry = registerMemoryTools(new ToolRegistry(), new MemoryStore(), 'design');
+    expect(registry.list()).toEqual(MEMORY_TOOL_SPECS);
+    for (const spec of MEMORY_TOOL_SPECS) expect(registry.has(spec.name), spec.name).toBe(true);
+    expect(registry.has('memory.wipe')).toBe(false);
   });
 });
