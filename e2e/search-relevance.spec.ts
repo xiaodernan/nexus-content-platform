@@ -60,3 +60,26 @@ test('@smoke §165 搜索：相关度排在更新时间前面（标题完全一�
     `标题与搜索词完全一样的那条要排在前面（它建得更早，按时间排会在后面）：${JSON.stringify(titles)}`,
   ).toBeLessThan(prefixAt);
 });
+
+/**
+ * 格 13 的**浏览器那一寸**：页面上写着的口径真的是六档，而且六档里新增的两档都真的能命中。
+ *
+ * 集成层能证"排序算对了"，证不了**页面上那句话与代码是同一套**——
+ * 一边写六档、一边只有四档，就是拿界面的说法当掩护（§159）。
+ * 这一条直接量页面上的那句话。
+ */
+test('@smoke §165 搜索：页面上的口径真的是六档（含正文与语料库那两档）', async ({ page }) => {
+  test.setTimeout(240_000);
+  await register(page, `sr6+${RUN}@nexus.test`, 'e2e-secret-123');
+  await createProject(page, `六档${RUN}`);
+
+  await page.goto(`/search?q=${encodeURIComponent(`六档${RUN}`)}`);
+  await expect(page.locator('[data-search-results]')).toBeVisible({ timeout: 30_000 });
+
+  const method = page.locator('[data-search-method]');
+  await expect(method).toContainText('完全一样');
+  await expect(method).toContainText('开头');
+  await expect(method).toContainText('只在简介/摘要/正文里有');
+  await expect(method).toContainText('只在文档正文里有');
+  await expect(method).toContainText('只在语料库里');
+});
