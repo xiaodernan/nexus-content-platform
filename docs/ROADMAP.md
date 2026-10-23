@@ -6304,3 +6304,31 @@ M5 收尾第二格（也是最后一格）：#191 落成渲染额度门之后，
 `storyboard-import.integration.test.ts` 往返 4 条（v4 happy path 角色换号 + 档案参考图换号、
 建档失败剥角色、参考图悬空置空）。五文件 62/62 绿，tsc 0、eslint 0。
 变异探针 3 种全部精确红：不建档角色 / 档案参考图不换号 / 版本不升。
+
+
+## M5 第十一片（#198）：成片播放预览——渲出的 mp4 在面板里直接播，DEMO 三个字照旧
+
+#191 起分镜能真渲出 mp4，但 Studio 里看不了成片：点完「DEMO 渲染整条分镜」只有一个
+文字回执，成片字节躺在资产里，界面上没有任何东西能播它。这一片把播放接上：
+
+- `StoryboardPanel` 渲染结果区加 `<video controls preload="metadata">`，src 走
+  `apiAssetUrl(assetId)`（`apps/web/src/studio/assets.ts`）——assetId → URL 本来就是投影，
+  鉴权路由 `/api/assets/<id>/file` 按嗅探 mime 吐字节，同源带 cookie 直接就能播（§16）。
+  没有新写 URL 拼接，也没有摆一个播不出来的假播放器。
+- 历史清单每条也各挂一个播放器（同样 `preload="metadata"` 控制成本）：渲过几版就能挨个
+  回看，哪版正挂在某一镜上照旧在文本里点名（#192 的反查不动）。
+- DEMO 标注一处没撤：按钮、角标、播放器 title 三处都写着"真 ffmpeg 字节、像素是本地
+  确定性推演、不是 AI 生成"（§160）——能播了，来源照实。
+- 时间线 `playable` 仍只认"每镜都有 videoAssetId"（§40/§41）：DEMO 整条一条片子只挂
+  第一镜，多镜分镜 playable 仍是 false——播放预览与 playable 不矛盾，没有为了好看
+  去动那个语义。
+
+见证：`e2e/storyboard.spec.ts` 新增真 Chrome 见证（渲染前 0 个播放器 → 渲完结果区 1 个、
+src 是 `/api/assets/<uuid>/file` 形状、readyState≥1 即元数据真的从鉴权路由流了回来、
+DEMO 角标还在、历史清单每条各一个）。21.4s 通过。
+变异探针 2 种全部精确红：src 改坏（toHaveAttribute 红）/ 两个 video 删掉（toHaveCount 红）。
+DOM 胶水层按仓库惯例不进 vitest 单测（同 #194 先例），钉子打在 e2e 上。
+
+**下一步**：候选：① §133 剩余两格（teamCollaboration / publishing）的拦截方；
+② 渲染完成后时间线自动定位到挂着成片的那一镜（renderNote → focusShot）；
+③ e2e storyboard 全量回归（七条一起跑）。

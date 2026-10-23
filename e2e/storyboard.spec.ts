@@ -609,3 +609,55 @@ test('@smoke §41 时间线键盘那条路：方向键调长度、Enter 落库�
   await page.locator('[data-timeline-strip]').scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'screenshots/storyboard-timeline-keyboard.png' });
 });
+
+
+/**
+ * §160 成片播放预览：#191 起分镜能真渲出 mp4，但渲完在 Studio 里看不了成片——
+ * 用户点完「DEMO 渲染整条分镜」，只有一个文字回执。这一片把成片接进界面：
+ * 渲染结果区与历史清单每条各挂一个 <video>，src 走 apiAssetUrl 投影出的鉴权 URL。
+ *
+ * 要证的三件事：
+ * ① 渲染之前面板里一个播放器都没有——不摆「假播放器」占位（§159）；
+ * ② 真的能播：浏览器 readyState ≥ 1（HAVE_METADATA）意味着元数据真的从
+ *    /api/assets/<id>/file 经鉴权路由流回来了，不是摆着不能播的空壳；
+ * ③ DEMO 明码标注还在（§160）：播的是真字节，但「像素是本地确定性推演、不是 AI 生成」
+ *    这句话写在明处，不假装有视频 provider。
+ */
+test('@smoke §160 成片播放预览：DEMO 渲染出的 mp4 在面板里真的能播，且 DEMO 标注照旧', async ({ page }) => {
+  test.setTimeout(240_000);
+  await openStudio(page, `成片预览 ${Date.now().toString(36)}`);
+
+  await openStoryboardPanel(page);
+  await page.fill('[data-storyboard-prompt-input]', '灯塔的光扫过浮冰，她数着回来的每一条船');
+  await page.click('[data-storyboard-create]');
+  await savedState(page);
+
+  // ① 渲染之前：面板里一个播放器都没有——不摆假占位（§159）
+  await expect(page.locator('[data-storyboard-render-video]')).toHaveCount(0);
+
+  await page.click('[data-storyboard-render]');
+  await expect(page.locator('[data-storyboard-render-result]')).toBeVisible({ timeout: 120_000 });
+
+  // ② 结果区的播放器：src 是 apiAssetUrl 投影出的鉴权 URL（§16：assetId → URL 是投影）
+  const video = page.locator('[data-storyboard-render-result] [data-storyboard-render-video]');
+  await expect(video).toHaveCount(1);
+  await expect(video).toHaveAttribute('src', /^\/api\/assets\/[0-9a-f-]+\/file$/);
+
+  // ③ 真的能播：浏览器把元数据加载出来了。readyState >= 1 意味着字节真的从
+  //    /api/assets/<id>/file 流回来过——空壳 src 到不了这一格
+  await expect
+    .poll(async () => video.evaluate((el: HTMLVideoElement) => el.readyState), {
+      timeout: 60_000,
+      message: '成片播放器加载不出元数据——鉴权路由没把字节流回来',
+    })
+    .toBeGreaterThanOrEqual(1);
+
+  // ④ DEMO 明码标注（§160）：播的是真字节，但「不是 AI 生成」这句话写在明处
+  await expect(page.locator('[data-storyboard-render-result]')).toContainText('DEMO');
+
+  // ⑤ 历史清单每条也各带一个播放器：渲过几版就能挨个回看
+  await expect(page.locator('[data-storyboard-render-history] [data-storyboard-render-video]')).toHaveCount(1);
+
+  await page.locator('[data-storyboard-render-result]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'screenshots/storyboard-render-playback.png' });
+});

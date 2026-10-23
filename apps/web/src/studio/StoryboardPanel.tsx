@@ -20,6 +20,7 @@ import {
 } from '@nexus/video-model';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
+import { apiAssetUrl } from '@/studio/assets';
 import { useStudioReady } from './store';
 import { storyboardStore, useStoryboard } from './storyboardStore';
 
@@ -32,7 +33,8 @@ import { storyboardStore, useStoryboard } from './storyboardStore';
  *   所以 `playable` 一直是 false，而这一条理由要读得出来（blockers 原文显示）；
  *   「DEMO 渲染整条分镜」出的片子是真 ffmpeg 跑真链路的产物，但像素来自本地确定性
  *   推演、不是 AI 生成——按钮、角标、warnings 三处都明码标注（§160），与"假生成"隔着
- *   一条"字节是真的、来源是假的"的线；
+ *   一条"字节是真的、来源是假的"的线；渲完的成片在面板里直接播——<video> 挂的是
+ *   apiAssetUrl 投影出来的鉴权 URL，播出去的是真字节，DEMO 标注照旧（§16）；
  * - audio / subtitles / effects 三条轨照样列出来，各带一句"为什么是空的"——
  *   缺这一句，界面上"没有音频"与"渲染失败"就长得一模一样（§41）。
  *
@@ -962,6 +964,14 @@ export function StoryboardPanel() {
                 <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-1 py-[1px] text-10 text-fg-1">DEMO</span>
                 {' '}成片已挂到第一镜（整条分镜一条片子），耗时 {renderNote.renderMs} 毫秒
               </p>
+              <video
+                controls
+                preload="metadata"
+                src={apiAssetUrl(renderNote.assetId)}
+                data-storyboard-render-video
+                className="mt-1 w-full max-w-[480px] rounded-[var(--nexus-radius-sm)] bg-bg-3"
+                title="DEMO 成片预览：真 ffmpeg 渲出来的字节，像素是本地确定性推演、不是 AI 生成（§160）"
+              />
               {renderNote.warnings.length ? (
                 <ul className="flex flex-col gap-1" data-storyboard-render-warnings>
                   {renderNote.warnings.map((w) => (
@@ -985,12 +995,21 @@ export function StoryboardPanel() {
               <span className="text-11 text-fg-3">这条分镜渲过 {renders.length} 版（都是 DEMO，新的在前）：</span>
               <ul className="flex flex-col gap-1">
                 {renders.map((r) => (
-                  <li key={r.assetId} className="text-11 text-fg-2">
-                    <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-1 py-[1px] text-10 text-fg-1">DEMO</span>
-                    {' '}
-                    {new Date(r.createdAt).toLocaleString('zh-CN')} · {r.renderMs} 毫秒
-                    {r.warnings.length ? ` · ${r.warnings.length} 条没做到的` : ''}
-                    {sb.shots.some((s) => s.videoAssetId === r.assetId) ? ' · 正挂在某一镜上' : ''}
+                  <li key={r.assetId} className="flex flex-col gap-1 text-11 text-fg-2">
+                    <span>
+                      <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-1 py-[1px] text-10 text-fg-1">DEMO</span>
+                      {' '}
+                      {new Date(r.createdAt).toLocaleString('zh-CN')} · {r.renderMs} 毫秒
+                      {r.warnings.length ? ` · ${r.warnings.length} 条没做到的` : ''}
+                      {sb.shots.some((s) => s.videoAssetId === r.assetId) ? ' · 正挂在某一镜上' : ''}
+                    </span>
+                    <video
+                      controls
+                      preload="metadata"
+                      src={apiAssetUrl(r.assetId)}
+                      data-storyboard-render-video
+                      className="w-full max-w-[480px] rounded-[var(--nexus-radius-sm)] bg-bg-3"
+                    />
                   </li>
                 ))}
               </ul>
