@@ -8,6 +8,7 @@ import type { FsLike } from '@nexus/three-runtime';
 
 import {
   STUDIO_WORLD_DISK_SAVE_PATH,
+  STUDIO_WORLD_SAVE_SERVER_VERSION,
   STUDIO_WORLD_SAVES_ROOT,
   createStudioWorldSaveStore,
   readWorldSave,
@@ -16,6 +17,7 @@ import {
 } from './worldSaveServer';
 import { nodeSaveFs } from './saveFsServer';
 import { buildStudioWorld } from './world';
+import { STUDIO_SAVE_FS_SERVER_VERSION } from './saveFsServer';
 
 /** Minimal in-memory FsLike — the store never knows it is not node:fs. Root join is by string,
  *  exactly like the real store does it. */
@@ -241,5 +243,47 @@ describe('studio world save lane facts (v191)', () => {
       expect(n.ok).toBe(false);
       expect(n.reason).toContain('a world read needs a save path (a non-empty string), got ""');
     });
+  });
+});
+
+
+/**
+ * v470 — the probe’s VERSION STAMP, graded directly.
+ *
+ * `STUDIO_WORLD_SAVE_SERVER_VERSION` is the name every probe answer carries so a client can tell
+ * which build answered. The probe cases above read the state but never asked about the stamp: that
+ * it rides BOTH the available and the unavailable answer, that it names its own lane, and that the
+ * two disk lanes’ stamps are not the same word.
+ */
+describe('the probe’s version stamp (v470)', () => {
+  it('the stamp rides BOTH answers — available or not, a client can tell which build spoke', () => {
+    const ok = worldSaveState({ fs: memFs().fs });
+    expect(ok.available).toBe(true);
+    expect(ok.serverVersion).toBe(STUDIO_WORLD_SAVE_SERVER_VERSION);
+    // The store refuses a root that walks out — the constructor throws, and the probe still answers.
+    const down = worldSaveState({ fs: memFs().fs, root: '../elsewhere' });
+    expect(down.available).toBe(false);
+    expect(down.serverVersion).toBe(STUDIO_WORLD_SAVE_SERVER_VERSION);
+    expect(down.reason).toContain('walks out');
+  });
+
+  it('the stamp names its own lane and its build — a client reads both off it', () => {
+    expect(STUDIO_WORLD_SAVE_SERVER_VERSION).toContain('studio-world-save');
+    expect(STUDIO_WORLD_SAVE_SERVER_VERSION).toMatch(/v\d+$/);
+    expect(STUDIO_WORLD_SAVE_SERVER_VERSION.length).toBeGreaterThan(0);
+  });
+
+  it('the two disk lanes’ stamps are DIFFERENT words — a client can tell a world answer from a scene answer', () => {
+    expect(STUDIO_WORLD_SAVE_SERVER_VERSION).not.toBe(STUDIO_SAVE_FS_SERVER_VERSION);
+  });
+
+  it('the stamp rides the PROBE, not the write/read answers — each answer keeps its own shape', () => {
+    const { fs } = memFs();
+    const written = writeWorldSave({ path: 'w1', file: WORLD_SAVE_FILE }, { fs });
+    expect(written.ok).toBe(true);
+    expect('serverVersion' in written).toBe(false);
+    const read = readWorldSave({ path: 'w1' }, { fs });
+    expect(read.ok).toBe(true);
+    expect('serverVersion' in read).toBe(false);
   });
 });
