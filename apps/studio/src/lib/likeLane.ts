@@ -22,7 +22,7 @@ export interface LikeLaneAnswer {
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 /**
- * How long a write to the Studio's own door may take.
+ * How long a call to the Studio's own door may take — a READ, a write, or a take-back alike.
  *
  * A hung request is worse than a refused one: the panel would sit there saying nothing, and a person
  * would wait for an answer that is never coming. The timeout turns a hang into a reason, which is the
@@ -32,12 +32,17 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
  * repository, and the FIRST call to a route pays that route's compile: a ten-second timeout was killing
  * requests that were about to be answered, and the lane reported a timeout where the truth was "the
  * server was still building it".
+ *
+ * v479 — every call rides it now. The LIKE rode it from the start, but the TAKE-BACK (a DELETE) and
+ * the READ fetched with no signal at all: a door that never answered hung the unlike forever and the
+ * likers list forever, with no reason to show. A budget that covers only some of a lane's calls is a
+ * budget that believes only those calls can hang.
  */
-const WRITE_TIMEOUT_MS = 45_000;
+export const CALL_TIMEOUT_MS = 45_000;
 
 /** A signal that aborts the request when it takes too long. */
 function callSignal(): AbortSignal {
-  return AbortSignal.timeout(WRITE_TIMEOUT_MS);
+  return AbortSignal.timeout(CALL_TIMEOUT_MS);
 }
 
 /** Like a publication. */
@@ -69,6 +74,7 @@ export async function unlikePublication(
     const res = await fetchImpl(`/api/likes/${encodeURIComponent(projectId)}?claimer=${encodeURIComponent(accountId)}`, {
       method: 'DELETE',
       headers: { accept: 'application/json' },
+      signal: callSignal(),
     });
     return readAnswer(res, await safeJson(res));
   } catch (error) {
@@ -86,6 +92,7 @@ export async function readLikes(
     const viewer = viewerAccountId ? `&viewer=${encodeURIComponent(viewerAccountId)}` : '';
     const res = await fetchImpl(`/api/likes?projectId=${encodeURIComponent(projectId)}${viewer}`, {
       headers: { accept: 'application/json' },
+      signal: callSignal(),
     });
     return readAnswer(res, await safeJson(res));
   } catch (error) {

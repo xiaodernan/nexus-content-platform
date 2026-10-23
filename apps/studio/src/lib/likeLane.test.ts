@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { likePublication, unlikePublication, readLikes } from './likeLane';
+import { CALL_TIMEOUT_MS, likePublication, unlikePublication, readLikes } from './likeLane';
 
 /**
  * M7 v284 — the browser half of the LIKES lane.
@@ -114,5 +114,59 @@ describe('likeLane — readLikes (client half)', () => {
     const answer = await readLikes('pub-1', null, makeFetch(() => new Response('', { status: 503 })));
     expect(answer.ok).toBe(false);
     expect(answer.reason).toContain('503');
+  });
+});
+
+describe('likeLane — every call rides the one budget (v479)', () => {
+  // v479 — the LIKE rode the budget from the start, but the TAKE-BACK (a DELETE) and the READ fetched
+  // with no signal at all: a door that never answered hung the unlike forever and the likers list forever,
+  // with no reason to show.
+  it('the take-back and the read both carry a live, un-aborted signal', async () => {
+    const seen: Array<AbortSignal | undefined> = [];
+    const fetchImpl = makeFetch((_url, init) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(JSON.stringify({ ok: true, count: 0, liked: false }), { status: 200 });
+    });
+
+    await unlikePublication('pub-1', 'acct-ada', fetchImpl);
+    await readLikes('pub-1', 'acct-ada', fetchImpl);
+
+    expect(seen).toHaveLength(2);
+    for (const signal of seen) {
+      expect(signal).toBeInstanceOf(AbortSignal);
+      expect(signal?.aborted).toBe(false);
+    }
+  });
+
+  it('the budget is the pinned 45 seconds on every call of the lane', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ok: true, count: 1, liked: true }), { status: 200 }));
+      await likePublication('pub-1', CLAIM, fetchImpl);
+      await unlikePublication('pub-1', 'acct-ada', fetchImpl);
+      await readLikes('pub-1', 'acct-ada', fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledTimes(3);
+      expect(timeoutSpy.mock.calls.map((c) => c[0])).toEqual([45_000, 45_000, 45_000]);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('each call gets its own fresh signal — a deadline per call, never a shared one', async () => {
+    const seen: Array<AbortSignal | undefined> = [];
+    const fetchImpl = makeFetch((_url, init) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(JSON.stringify({ ok: true, count: 1, liked: true }), { status: 200 });
+    });
+
+    await readLikes('pub-1', 'acct-ada', fetchImpl);
+    await readLikes('pub-1', 'acct-ada', fetchImpl);
+
+    expect(seen[0]).toBeInstanceOf(AbortSignal);
+    expect(seen[0]).not.toBe(seen[1]);
+  });
+
+  it('the exported constant names the one number the whole lane rides', () => {
+    expect(CALL_TIMEOUT_MS).toBe(45_000);
   });
 });
