@@ -774,6 +774,9 @@ export type DeleteOutcome =
 
 export async function softDeleteProject(actorId: string, projectId: string, confirmName: string): Promise<DeleteOutcome> {
   const db = getDb();
+  // 形状不对的 id 按"不存在"处理：eq(projects.id, …) 会撞 22P02 变 500（domain/ids.ts）。
+  // v1 的 DELETE 直达这个函数（不像界面那条先过 projectBelongsTo），所以这道门必须落在域层。
+  if (!isUuid(projectId)) return { ok: false, code: 'not_found' };
   const [row] = await db
     .select({ name: projects.name })
     .from(projects)

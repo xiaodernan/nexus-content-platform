@@ -2,6 +2,7 @@ import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { users } from '../db/schema';
 import { recordAudit } from './audit';
+import { isUuid } from './ids';
 
 /**
  * §131 那条"谁是 admin 目前只能由运维改库"的收口：把提权 / 降权变成一个有判定的动作。
@@ -108,6 +109,9 @@ export async function setUserRole(actorId: string, targetId: string, role: Role)
     });
     return { ok: false, status: 400, code: 'self_change', reason: '不能改自己的角色：自己提权等于给会话被盗留了后门' };
   }
+  // 形状不对的 id 按"没有这个账号"处理：eq(users.id, …) 会撞 22P02 变 500（domain/ids.ts）。
+  // 与合法 UUID 但查不到是同一条答案——不给"存在但不给你看"留侧信道。
+  if (!isUuid(targetId)) return { ok: false, status: 404, code: 'not_found', reason: '没有这个账号' };
   const [target] = await db
     .select({ role: users.role, guest: users.guest })
     .from(users)

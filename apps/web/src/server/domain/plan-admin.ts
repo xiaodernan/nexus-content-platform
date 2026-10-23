@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { users } from '../db/schema';
 import { recordAudit } from './audit';
+import { isUuid } from './ids';
 import { PLAN_KEYS, PLAN_LIMITS, PLAN_MONTHLY_GRANTS, isPlanKey, type PlanKey } from './credits';
 
 /**
@@ -68,6 +69,9 @@ export async function setUserPlan(actorId: string, targetId: string, plan: unkno
     };
   }
 
+  // 形状不对的 id 按"没有这个账号"处理：eq(users.id, …) 会撞 22P02 变 500（domain/ids.ts）。
+  // 与 setUserRole 同一道门、同一句答案——两个端点各写一遍就会各漂各的。
+  if (!isUuid(targetId)) return { ok: false, status: 404, code: 'not_found', reason: '没有这个账号' };
   const [target] = await db
     .select({ plan: users.plan })
     .from(users)

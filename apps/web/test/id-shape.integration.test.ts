@@ -6,6 +6,11 @@ import { POST as resolveModeration } from '../src/app/api/admin/moderation/[case
 import { POST as revokeToken } from '../src/app/api/account/api-tokens/[tokenId]/revoke/route';
 import { DELETE as removeAnnotation } from '../src/app/api/annotations/[annotationId]/route';
 import { GET as getMarketItem, PATCH as patchMarketItem, DELETE as deleteMarketRoute } from '../src/app/api/marketplace/[id]/route';
+import { DELETE as v1DeleteProject } from '../src/app/api/v1/projects/[projectId]/route';
+import { PATCH as adminChangeRole } from '../src/app/api/admin/users/[id]/route';
+import { PATCH as adminChangePlan } from '../src/app/api/admin/users/[id]/plan/route';
+import { POST as characterChat } from '../src/app/api/projects/[projectId]/characters/[characterId]/chat/route';
+import { GET as listTasks } from '../src/app/api/projects/[projectId]/tasks/route';
 import { GET as getMarketPreview } from '../src/app/api/marketplace/[id]/preview/route';
 import { POST as purchaseMarketItem } from '../src/app/api/marketplace/[id]/purchase/route';
 import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
@@ -16,6 +21,10 @@ import { plannedTask } from '../src/server/domain/agent-tasks';
 import { revokeApiToken } from '../src/server/domain/api-tokens';
 import { deleteAnnotation } from '../src/server/domain/annotations';
 import { resolveCase } from '../src/server/domain/moderation';
+import { setUserPlan } from '../src/server/domain/plan-admin';
+import { setUserRole } from '../src/server/domain/roles';
+import { createProjectCharacter } from '../src/server/domain/characters';
+import { issueApiToken } from '../src/server/domain/api-tokens';
 import {
   createMarketplaceItem,
   deleteMarketplaceItem,
@@ -436,5 +445,124 @@ describe('域层与路由层：marketplace 的读与买（门收进域层，交�
       { params: Promise.resolve({ id: missing }) },
     );
     expect(res.status).toBe(404);
+  });
+});
+
+/**
+ * 第十一个家族：v1 的软删、admin 的改角色 / 改档位、角色对话、任务账本（2026-10-23 横向审计）。
+ *
+ * 这一批是同一族漏网的第二种形状：**不是每条路由都会先过一道已守住的归属门**。
+ * 前十个家族的洞都长在"路由 → 域助手 → 裸 eq()"上；这四个入口里，
+ * v1 DELETE 直达 `softDeleteProject`（界面那条先过 `projectBelongsTo`，所以从来没红过）、
+ * 两个 admin 端点的 `targetId` 直落 `eq(users.id, …)`、角色对话那次查询干脆写在路由里
+ * （不在域层，`characters.ts` 的域助手反而是守着的）、任务账本的归属查询自己一句 eq。
+ * 五处的答复现在统一成 404 / not_found——"这个东西不存在"不该因为 id 长得不像 uuid
+ * 就变成 500（§159：界面上的错误要么是用户的错，要么是服务端的错，别混）。
+ */
+describe('域层与路由层：v1 软删 / admin 改角色与档位 / 角色对话 / 任务账本（第二形状）', () => {
+  it('setUserRole 对非 UUID 的 targetId → not_found，不抛（修复前 eq(users.id,…) 撞 22P02，路由连 catch 都没有）', async () => {
+    await expect(setUserRole(admin.id, 'not-a-uuid', 'creator')).resolves.toEqual({
+      ok: false,
+      status: 404,
+      code: 'not_found',
+      reason: '没有这个账号',
+    });
+  });
+
+  it('setUserPlan 对非 UUID 的 targetId → not_found，不抛（与 setUserRole 同一道门）', async () => {
+    await expect(setUserPlan(admin.id, 'not-a-uuid', 'pro')).resolves.toEqual({
+      ok: false,
+      status: 404,
+      code: 'not_found',
+      reason: '没有这个账号',
+    });
+  });
+
+  it('PATCH /api/admin/users/not-a-uuid → 404 not_found（修复前整个请求以 PostgresError 抛出）', async () => {
+    const res = await adminChangeRole(
+      new Request(`http://test.local/api/admin/users/not-a-uuid`, {
+        method: 'PATCH',
+        headers: asUser(adminToken, true),
+        body: JSON.stringify({ role: 'creator' }),
+      }),
+      { params: Promise.resolve({ id: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe('not_found');
+  });
+
+  it('PATCH /api/admin/users/not-a-uuid/plan → 404 not_found（修复前同上）', async () => {
+    const res = await adminChangePlan(
+      new Request(`http://test.local/api/admin/users/not-a-uuid/plan`, {
+        method: 'PATCH',
+        headers: asUser(adminToken, true),
+        body: JSON.stringify({ plan: 'pro' }),
+      }),
+      { params: Promise.resolve({ id: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe('not_found');
+  });
+
+  it('DELETE /api/v1/projects/not-a-uuid → 404 project_not_found（修复前 softDeleteProject 的 eq() 撞 22P02 变 500）', async () => {
+    // 这一枚凭据只为本用例存在：v1 认 Bearer 不认 cookie，而 afterAll 删用户时 api_tokens 级联清掉
+    const issued = await issueApiToken({ userId: creator.id, name: '形状门-v1删除', scopes: ['projects:write'] });
+    const res = await v1DeleteProject(
+      new Request('http://test.local/api/v1/projects/not-a-uuid', {
+        method: 'DELETE',
+        headers: { authorization: `Bearer ${issued.token}` },
+      }),
+      { params: Promise.resolve({ projectId: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe('project_not_found');
+  });
+
+  it('POST 角色对话 characterId=not-a-uuid → 404（修复前被路由 catch 成 500「对话失败」——请求写错说成服务端的错）', async () => {
+    const res = await characterChat(
+      new Request(`http://test.local/api/projects/${realProjectId}/characters/not-a-uuid/chat`, {
+        method: 'POST',
+        headers: asUser(creatorToken, true),
+        body: JSON.stringify({ message: '在吗' }),
+      }),
+      { params: Promise.resolve({ projectId: realProjectId, characterId: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe('not_found');
+  });
+
+  it('GET /api/projects/not-a-uuid/tasks → 404（修复前 listProjectTasks 的 eq() 撞 22P02 变 500）', async () => {
+    const res = await listTasks(
+      new Request('http://test.local/api/projects/not-a-uuid/tasks', { headers: asUser(creatorToken) }),
+      { params: Promise.resolve({ projectId: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it('正对照：形状合法的路照旧走到数据库——改自己的档位回 free、任务账本读得到、角色对话走到 DEMO 409', async () => {
+    // 改档位与改角色都拿"本来就是那个值"的真账号：证明守卫没挡住正常路径，且不留下真实变更
+    await expect(setUserPlan(admin.id, creator.id, 'free')).resolves.toMatchObject({ ok: true, previous: 'free', plan: 'free' });
+    await expect(setUserRole(admin.id, creator.id, 'creator')).resolves.toMatchObject({ ok: true, previous: 'creator', role: 'creator' });
+
+    const tasks = await listTasks(
+      new Request(`http://test.local/api/projects/${realProjectId}/tasks`, { headers: asUser(creatorToken) }),
+      { params: Promise.resolve({ projectId: realProjectId }) },
+    );
+    expect(tasks.status).toBe(200);
+
+    // 真角色存在时这条路由继续往下走，直到 DEMO MODE 那道诚实的 409（没有真 provider 不生成回复）
+    const made = await createProjectCharacter(realProjectId, creator.id, { name: '形状门-真角色' });
+    expect(made.ok).toBe(true);
+    if (!made.ok) return;
+    const chat = await characterChat(
+      new Request(`http://test.local/api/projects/${realProjectId}/characters/${made.character.id}/chat`, {
+        method: 'POST',
+        headers: asUser(creatorToken, true),
+        body: JSON.stringify({ message: '在吗' }),
+      }),
+      { params: Promise.resolve({ projectId: realProjectId, characterId: made.character.id }) },
+    );
+    expect(chat.status).toBe(409);
+    expect((await chat.json()).error).toBe('demo_mode');
   });
 });

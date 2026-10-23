@@ -801,6 +801,9 @@ export async function listProjectTasks(
   actorId: string,
   limit = 50,
 ): Promise<{ tasks: TaskView[]; projectName: string } | null> {
+  // 形状不对的 id 按"没有这个项目"处理：eq(projects.id, …) 会撞 22P02 变 500（domain/ids.ts）。
+  // 这条 GET 的 404 分支说的就是"没有这个项目，或者它不属于你"，形状不对是同一种答案。
+  if (!isUuid(projectId)) return null;
   const db = getDb();
   const [owned] = await db
     .select({ name: projects.name })
@@ -820,6 +823,8 @@ export async function listProjectTasks(
 }
 
 export async function getTask(id: string): Promise<TaskView | null> {
+  // 与 listProjectTasks 同一道门：形状不对按"没有这一行"答，别把 22P02 留给调用方翻译
+  if (!isUuid(id)) return null;
   const [row] = await getDb()
     .select({ task: agentTasks, projectName: projects.name })
     .from(agentTasks)

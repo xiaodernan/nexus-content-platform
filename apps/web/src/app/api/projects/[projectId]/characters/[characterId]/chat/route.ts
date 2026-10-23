@@ -11,6 +11,7 @@ import { chatWithCharacter } from '@/server/ai/client';
 import { getEmbeddingProvider, hasEmbeddingProvider } from '@/server/ai/embedding';
 import { VectorStore } from '@/server/ai/vector-store';
 import { buildContext, buildPersonaPrompt } from '@/server/domain/character-chat';
+import { isUuid } from '@/server/domain/ids';
 import { csrfOk } from '@/server/security/csrf';
 import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
 
@@ -56,6 +57,9 @@ export async function POST(
 
     const { message, sessionId } = result.data;
 
+    // 形状不对的 id 按"没有这个角色"处理：下面那次 eq(characters.id, …) 会撞 22P02，
+    // 被这层的 catch 兜成 500「对话失败」——那句话会把请求写错说成服务端的错（domain/ids.ts）。
+    if (!isUuid(characterId)) return notFound();
     // 验证角色存在且属于该项目（404 优先于 409：不存在的东西不谈"能不能聊"）
     const db = getDb();
     const [character] = await db
