@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { offerOnService, readPlans, repricePlan, subscribeOnService } from './planServer';
+import { offerOnService, readPlans, readSubscriptions, repricePlan, subscribeOnService } from './planServer';
 import { nexusApiBase } from './publishServer';
 
 /**
@@ -405,6 +405,128 @@ describe('planServer — repricePlan (v448)', () => {
       throw late;
     });
     const answer = await repricePlan('pro', 100, 'month', CLAIM, fetchImpl);
+    expect(answer.reason).toContain('did not answer within 15 seconds');
+    expect(answer.reason).not.toContain('unreachable');
+  });
+});
+
+describe('planServer — readSubscriptions (v449)', () => {
+  // The read door beside the three writes. Three of its decisions are the reason this is its own
+  // increment, and all three are measured divergences from its neighbours rather than oversights to be
+  // smoothed: the read carries NO signal where every write in this file carries the 15-second budget
+  // (v337); a non-ok answer keeps the HTTP STATUS rather than the service's own words, the exact
+  // opposite of the writes' v313 rule; and a wire with no count falls back to the WINDOW'S LENGTH,
+  // where readPlans (v372) falls back to null.
+
+  const sub = (planId: string) => ({
+    creatorId: 'acct-ada',
+    planId,
+    priceCents: 1500,
+    currency: 'CNY',
+    active: true,
+    subscribedAt: 1_700_000_000_000,
+    expiresAt: 1_800_000_000_000,
+    subscriberId: 'acct-bob',
+    id: 'sub-' + planId,
+  });
+
+  it('the read asks BY SUBSCRIBER, encoded, as a plain GET with an accept header', async () => {
+    let seenUrl = '';
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((url, init) => {
+      seenUrl = url;
+      seenInit = init;
+      return new Response(JSON.stringify({ ok: true, subscriptions: [sub('pro')], totalCents: 1500, count: 1 }), { status: 200 });
+    });
+    await readSubscriptions('acct bob/../x', fetchImpl);
+    expect(seenUrl).toBe(`${nexusApiBase()}/subscriptions?subscriber=acct%20bob%2F..%2Fx`);
+    expect(seenInit?.method).toBeUndefined();
+    expect(seenInit?.headers).toEqual({ accept: 'application/json' });
+  });
+
+  it('the read carries NO signal — pinned as MEASURED, the budget gap named a fourth time (v337/v441/v442/v445)', async () => {
+    // Every WRITE in this file carries the service's 15-second budget; this READ does not. The gap is
+    // pinned here as observed rather than smoothed over: a test that asserted a budget nobody wrote
+    // would be the lie this house refuses.
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((_url, init) => {
+      seenInit = init;
+      return new Response(JSON.stringify({ ok: true, subscriptions: [], totalCents: 0, count: 0 }), { status: 200 });
+    });
+    await readSubscriptions('acct-bob', fetchImpl);
+    expect(seenInit?.signal).toBeUndefined();
+  });
+
+  it('a non-ok answer is a refusal naming the HTTP STATUS — and NOT the body’s words (the writes’ v313 contrast)', async () => {
+    // The write doors read the service's message whenever the answer is not ok (v313). This read does
+    // not: a non-ok status answers with the status alone. Pinned as measured, not argued.
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ error: 'subs-unavailable', message: 'the subscriptions table is being rebuilt' }), { status: 503 }),
+    );
+    const answer = await readSubscriptions('acct-bob', fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('503');
+    expect(answer.reason).not.toContain('the subscriptions table is being rebuilt');
+  });
+
+  it('a 200 whose body is not JSON is a refusal saying so, in this door’s own words', async () => {
+    // The not-JSON branch is reached only when the status says ok: a 502 answers with the status
+    // alone, and this 200 with an HTML body is the only way to ask the JSON branch directly.
+    const fetchImpl = makeFetch(() => new Response('<html>gateway</html>', { status: 200 }));
+    const answer = await readSubscriptions('acct-bob', fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('not JSON');
+  });
+
+  it('an answer with no subscriptions ARRAY is a refusal — a failed read is NOT an empty list', async () => {
+    const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ok: true, totalCents: 0 }), { status: 200 }));
+    const answer = await readSubscriptions('acct-bob', fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.subscriptions).toEqual([]);
+    expect(answer.reason).toContain('no subscriptions');
+  });
+
+  it('a success carries the subscriptions as they came, with the total the wire named', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ ok: true, subscriptions: [sub('pro'), sub('team')], totalCents: 6400, count: 2 }), { status: 200 }),
+    );
+    const answer = await readSubscriptions('acct-bob', fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.subscriptions).toHaveLength(2);
+    expect(answer.subscriptions[0]?.planId).toBe('pro');
+    expect(answer.totalCents).toBe(6400);
+    expect(answer.count).toBe(2);
+  });
+
+  it('a wire with no totalCents answers zero, and a wire with no count answers the WINDOW’S LENGTH (v372’s opposite)', async () => {
+    // readPlans answers a missing count with null — UNKNOWN. This door answers it with the length of
+    // what came back. Two doors, two fallbacks, both pinned as measured.
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ ok: true, subscriptions: [sub('pro'), sub('team')] }), { status: 200 }),
+    );
+    const answer = await readSubscriptions('acct-bob', fetchImpl);
+    expect(answer.totalCents).toBe(0);
+    expect(answer.count).toBe(2);
+  });
+
+  it('a read that never arrived answers UNREACHABLE with the address named', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw new Error('connect ECONNREFUSED');
+    });
+    const answer = await readSubscriptions('acct-bob', fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.subscriptions).toEqual([]);
+    expect(answer.reason).toContain('nexus-api unreachable');
+    expect(answer.reason).toContain(nexusApiBase());
+  });
+
+  it('a slow read says it was LATE, not unreachable — the v337 distinction', async () => {
+    const late = new Error('The operation was aborted due to timeout');
+    late.name = 'TimeoutError';
+    const fetchImpl = makeFetch(() => {
+      throw late;
+    });
+    const answer = await readSubscriptions('acct-bob', fetchImpl);
     expect(answer.reason).toContain('did not answer within 15 seconds');
     expect(answer.reason).not.toContain('unreachable');
   });
