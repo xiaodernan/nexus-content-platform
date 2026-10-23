@@ -1455,6 +1455,11 @@ export default function Toolbar() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                       <span>{report.reasonText}</span>
                       <span style={{ color: 'var(--nexus-muted)' }}>{report.statusText}</span>
+                      {report.filedAt && (
+                        <span style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>
+                          · {new Date(report.filedAt).toISOString().replace('.000Z', 'Z')}
+                        </span>
+                      )}
                     </div>
                     {/* v325 — the same LINK the owner's desk got (v324): a reporter looking at their
                         own complaint should be able to open the work it is about, and not only read its
