@@ -14,7 +14,7 @@ export interface CommentLaneAnswer {
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 /**
- * How long a write to the Studio's own door may take.
+ * How long a call to the Studio's own door may take — a READ or a write alike.
  *
  * A hung request is worse than a refused one: the panel would sit there saying nothing, and a person
  * would wait for an answer that is never coming. The timeout turns a hang into a reason, which is the
@@ -24,12 +24,16 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
  * repository, and the FIRST call to a route pays that route's compile: a ten-second timeout was killing
  * requests that were about to be answered, and the lane reported a timeout where the truth was "the
  * server was still building it".
+ *
+ * v477 — the READS ride it too. `readMyComments` fetched with no signal at all, so a door that never
+ * answered hung the panel forever with no reason to show; a budget that covers only the writes is a
+ * budget that believes only the writes can hang.
  */
-const WRITE_TIMEOUT_MS = 45_000;
+export const CALL_TIMEOUT_MS = 45_000;
 
 /** A signal that aborts the request when it takes too long. */
 function callSignal(): AbortSignal {
-  return AbortSignal.timeout(WRITE_TIMEOUT_MS);
+  return AbortSignal.timeout(CALL_TIMEOUT_MS);
 }
 
 /**
@@ -57,6 +61,7 @@ export async function readMyComments(
   try {
     const res = await fetchImpl(`/api/comments?author=${encodeURIComponent(authorAccountId)}`, {
       headers: { accept: 'application/json' },
+      signal: callSignal(),
     });
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {

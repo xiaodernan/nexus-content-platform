@@ -7,18 +7,23 @@
  */
 
 /**
- * How long a write may take. A hung request is worse than a refused one: the panel would say nothing.
+ * How long a call to the Studio's own door may take — a READ or a write alike. A hung request is
+ * worse than a refused one: the panel would say nothing.
  *
  * v294 — and it is 45 seconds, not 10. The Studio's own door is a `next dev` server in this repository,
  * and the FIRST call to a route pays that route's compile: a ten-second timeout was killing requests
  * that were about to be answered, and the lane reported a timeout where the truth was "the server was
  * still building it".
+ *
+ * v477 — the READS ride it too. `readMyFollowing` fetched with no signal at all, so a door that never
+ * answered hung the desk's YOU FOLLOW section forever with no reason to show; a budget that covers
+ * only the writes is a budget that believes only the writes can hang.
  */
-const WRITE_TIMEOUT_MS = 45_000;
+export const CALL_TIMEOUT_MS = 45_000;
 
 /** A signal that aborts the request when it takes too long. */
 function callSignal(): AbortSignal {
-  return AbortSignal.timeout(WRITE_TIMEOUT_MS);
+  return AbortSignal.timeout(CALL_TIMEOUT_MS);
 }
 
 export interface FollowLaneAnswer {
@@ -85,7 +90,7 @@ export async function readMyFollowing(
   try {
     const res = await fetchImpl(
       `/api/follows?follower=${encodeURIComponent(followerAccountId)}&offset=${encodeURIComponent(String(from))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: callSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {

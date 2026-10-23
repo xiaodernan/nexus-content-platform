@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { followAccount, readMyFollowing, unfollowAccount } from './followLane';
+import { CALL_TIMEOUT_MS, followAccount, readMyFollowing, unfollowAccount } from './followLane';
 
 /**
  * M7 v316 — the browser half of the FOLLOWS lane, and the read that gives the desk its "YOU FOLLOW"
@@ -272,5 +272,68 @@ describe('followLane — the write half (v438)', () => {
     const answer = await unfollowAccount('acct-bob', 'acct-ada', fetchImpl);
     expect(answer.ok).toBe(false);
     expect(answer.reason).toBe('network down');
+  });
+});
+
+describe('followLane — the read’s budget (v477)', () => {
+  // v477 — the reads ride the same budget the writes earned in v294. Until now `readMyFollowing` fetched
+  // with no signal at all: a door that never answered hung the desk's YOU FOLLOW section forever with no
+  // reason to show, and a budget that covers only the writes is a budget that believes only the writes
+  // can hang.
+  it('the read carries a live signal — a door that never answers becomes a reason, not a silent panel', async () => {
+    let seenSignal: AbortSignal | undefined;
+    const fetchImpl = makeFetch((_url, init) => {
+      seenSignal = init?.signal ?? undefined;
+      return new Response(JSON.stringify({ ok: true, following: [], count: 0 }), { status: 200 });
+    });
+
+    await readMyFollowing('acct-ada', 0, fetchImpl);
+
+    expect(seenSignal).toBeInstanceOf(AbortSignal);
+    expect(seenSignal?.aborted).toBe(false);
+  });
+
+  it('the read’s budget is the pinned 45 seconds — v294’s number, now the lane’s single budget', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ok: true, following: [], count: 0 }), { status: 200 }));
+      await readMyFollowing('acct-ada', 0, fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledTimes(1);
+      expect(timeoutSpy).toHaveBeenCalledWith(45_000);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('each read gets its own fresh signal — a deadline per call, never a shared one', async () => {
+    const seen: Array<AbortSignal | undefined> = [];
+    const fetchImpl = makeFetch((_url, init) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(JSON.stringify({ ok: true, following: [], count: 0 }), { status: 200 });
+    });
+
+    await readMyFollowing('acct-ada', 0, fetchImpl);
+    await readMyFollowing('acct-ada', 0, fetchImpl);
+
+    expect(seen).toHaveLength(2);
+    expect(seen[0]).toBeInstanceOf(AbortSignal);
+    expect(seen[0]).not.toBe(seen[1]);
+  });
+
+  it('one budget for the whole lane — the exported constant, the read and the write all say 45 seconds', async () => {
+    expect(CALL_TIMEOUT_MS).toBe(45_000);
+
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const read = makeFetch(() => new Response(JSON.stringify({ ok: true, following: [], count: 0 }), { status: 200 }));
+      await readMyFollowing('acct-ada', 0, read);
+      const write = makeFetch(() => new Response(JSON.stringify({ ok: true, followerCount: 1, following: true }), { status: 200 }));
+      await followAccount('acct-bob', { accountId: 'acct-ada' }, write);
+
+      expect(timeoutSpy).toHaveBeenCalledTimes(2);
+      expect(timeoutSpy.mock.calls.map((c) => c[0])).toEqual([45_000, 45_000]);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
   });
 });

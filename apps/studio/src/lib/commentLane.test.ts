@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { postComment, readMyComments, removeComment } from './commentLane';
+import { CALL_TIMEOUT_MS, postComment, readMyComments, removeComment } from './commentLane';
 
 /**
  * M7 v321 — the browser half of the COMMENTS lane, and the take-back it gained.
@@ -231,5 +231,72 @@ describe('commentLane — readMyComments (v442)', () => {
       throw new Error('network down');
     });
     expect((await readMyComments('acct-ada', down)).reason).toBe('network down');
+  });
+});
+
+describe('commentLane — the read’s budget (v477)', () => {
+  // v477 — the reads ride the same budget the writes earned in v294. Until now `readMyComments` fetched
+  // with no signal at all: a door that never answered hung the panel forever with no reason to show, and
+  // a budget that covers only the writes is a budget that believes only the writes can hang.
+  it('the read carries a live signal — a door that never answers becomes a reason, not a silent panel', async () => {
+    let seenSignal: AbortSignal | undefined;
+    const fetchImpl = makeFetch((_url, init) => {
+      seenSignal = init?.signal ?? undefined;
+      return new Response(JSON.stringify({ ok: true, comments: [] }), { status: 200 });
+    });
+
+    await readMyComments('acct-ada', fetchImpl);
+
+    expect(seenSignal).toBeInstanceOf(AbortSignal);
+    expect(seenSignal?.aborted).toBe(false);
+  });
+
+  it('the read’s budget is the pinned 45 seconds — the same number the writes earned in v294', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ok: true, comments: [] }), { status: 200 }));
+      await readMyComments('acct-ada', fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledTimes(1);
+      expect(timeoutSpy).toHaveBeenCalledWith(45_000);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('each read gets its own fresh signal — a deadline per call, never a shared one', async () => {
+    const seen: Array<AbortSignal | undefined> = [];
+    const fetchImpl = makeFetch((_url, init) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(JSON.stringify({ ok: true, comments: [] }), { status: 200 });
+    });
+
+    await readMyComments('acct-ada', fetchImpl);
+    await readMyComments('acct-ada', fetchImpl);
+
+    expect(seen).toHaveLength(2);
+    expect(seen[0]).toBeInstanceOf(AbortSignal);
+    expect(seen[0]).not.toBe(seen[1]);
+  });
+
+  it('one budget for the whole lane — the exported constant, the read and the write all say 45 seconds', async () => {
+    expect(CALL_TIMEOUT_MS).toBe(45_000);
+
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const read = makeFetch(() => new Response(JSON.stringify({ ok: true, comments: [] }), { status: 200 }));
+      await readMyComments('acct-ada', read);
+      const write = makeFetch(() =>
+        new Response(
+          JSON.stringify({ ok: true, comment: { id: 'c-1', body: 'hello', accountId: 'acct-ada', createdAt: 5 } }),
+          { status: 201 },
+        ),
+      );
+      await postComment('pub-1', 'hello', { accountId: 'acct-ada' }, write);
+
+      expect(timeoutSpy).toHaveBeenCalledTimes(2);
+      expect(timeoutSpy.mock.calls.map((c) => c[0])).toEqual([45_000, 45_000]);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
   });
 });
