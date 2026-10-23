@@ -33,10 +33,45 @@ import { GET as publicAssetGetRoute } from '../src/app/api/public/[handle]/asset
 import { GET as listTasks } from '../src/app/api/projects/[projectId]/tasks/route';
 import { GET as getMarketPreview } from '../src/app/api/marketplace/[id]/preview/route';
 import { POST as purchaseMarketItem } from '../src/app/api/marketplace/[id]/purchase/route';
+import { GET as agentGet, POST as agentPost } from '../src/app/api/projects/[projectId]/agent/route';
+import { GET as annGet, POST as annPost } from '../src/app/api/projects/[projectId]/annotations/route';
+import { GET as assetsGet } from '../src/app/api/projects/[projectId]/assets/route';
+import { POST as branchPost } from '../src/app/api/projects/[projectId]/branches/route';
+import { GET as charsGet, POST as charsPost } from '../src/app/api/projects/[projectId]/characters/route';
+import { GET as contextGet } from '../src/app/api/projects/[projectId]/context/route';
+import { PATCH as designPatch } from '../src/app/api/projects/[projectId]/design/route';
+import { POST as dupPost } from '../src/app/api/projects/[projectId]/duplicate/route';
+import { GET as exportGet } from '../src/app/api/projects/[projectId]/export/route';
+import { GET as gameGet, PUT as gamePut } from '../src/app/api/projects/[projectId]/game/route';
+import { GET as gameZipGet } from '../src/app/api/projects/[projectId]/game/code/zip/route';
+import { POST as imagesPost } from '../src/app/api/projects/[projectId]/images/route';
+import { GET as knowGet, POST as knowPost } from '../src/app/api/projects/[projectId]/knowledge/route';
+import { GET as blockGet, POST as blockPost } from '../src/app/api/projects/[projectId]/knowledge/block/route';
+import { POST as searchPost } from '../src/app/api/projects/[projectId]/knowledge/search/route';
+import { GET as memGet, POST as memPost, DELETE as memDel } from '../src/app/api/projects/[projectId]/memories/route';
+import { GET as pubGet, POST as pubPost, DELETE as pubDel } from '../src/app/api/projects/[projectId]/publish/route';
+import { GET as retGet, POST as retPost } from '../src/app/api/projects/[projectId]/retrieve/route';
+import { GET as snapGet, POST as snapPost } from '../src/app/api/projects/[projectId]/snapshots/route';
+import { GET as sbGet, PUT as sbPut } from '../src/app/api/projects/[projectId]/storyboard/route';
+import { GET as varGet, POST as varPost } from '../src/app/api/projects/[projectId]/variants/route';
+import { POST as mergePost } from '../src/app/api/projects/[projectId]/variants/merge/route';
+import { POST as dnaPost } from '../src/app/api/projects/[projectId]/visual-dna/route';
+import { GET as worldGet, PUT as worldPut } from '../src/app/api/projects/[projectId]/world/route';
+import { PUT as projectPut, PATCH as projectPatch, DELETE as projectDelete } from '../src/app/api/projects/[projectId]/route';
+import { GET as v1ProjectGet } from '../src/app/api/v1/projects/[projectId]/route';
+import { GET as marketContent } from '../src/app/api/marketplace/[id]/content/route';
+import { GET as avatarGet } from '../src/app/api/avatar/[userId]/[file]/route';
 import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
 import { SESSION_COOKIE } from '../src/server/domain/session';
 import { isUuid } from '../src/server/domain/ids';
-import { createProject, projectBelongsTo, restoreProject, softDeleteProject } from '../src/server/domain/projects';
+import {
+  createProject,
+  loadDocument,
+  projectBelongsTo,
+  restoreProject,
+  softDeleteProject,
+  updateProjectDescription,
+} from '../src/server/domain/projects';
 import { plannedTask } from '../src/server/domain/agent-tasks';
 import { revokeApiToken } from '../src/server/domain/api-tokens';
 import { deleteAnnotation } from '../src/server/domain/annotations';
@@ -883,4 +918,143 @@ describe('域层与路由层：restoreProject 的形状门与动态参数路由�
       expect(res.status, probe.name).toBe(probe.want);
     }
   }, 120_000);
+});
+
+/**
+ * 第三十片（#179）：`updateProjectDescription` 的形状门，与第二轮动态参数路由全扫。
+ *
+ * 第一轮到 #176 为止，扫的是"路由 → 域助手 → 裸 eq()"这一族，收编了 20 条。
+ * 这一轮换一个问法：**把 id-shape 测试还没碰过的动态参数路由全部打一遍**。
+ * 43 条里只有一条真漏——`PATCH /api/projects/<id>`（项目简介）：
+ * 它的路由**不过 `projectBelongsTo`**（GET / PUT / DELETE 都过，只有它不过），
+ * 而 `updateProjectDescription` 的 UPDATE 是裸 `eq(projects.id, …)`，
+ * 非 UUID 的 id 撞 22P02，路由 catch 住变 500「更新失败」——而它只是一次打错的请求。
+ * 所有权本来写在 SQL 的 `owner_id` 里（见函数头注释），所以这不是越权，是"坏形状被当成服务器故障"。
+ * 修法同族：域层形状不对按"不存在"处理回 null，路由照旧翻 404。
+ *
+ * 其余 42 条这一趟全部实测过：各自的守卫（路由先过 `projectBelongsTo`，或域层 `isUuid`）都拦得住。
+ * 它们没有修复动作，收编在这里是为了**锁住"不打 500"这条不变式**。
+ * 请求体都按各路由的契约填满（`patches` / `confirm` / `assetId` / 两个分支 id / 一份真文档），
+ * 确保每一发都真的走到数据库那一行，而不是在 zod 那层空转（#170 的教训）。
+ */
+describe('域层与路由层：updateProjectDescription 的形状门与第二轮动态参数路由全扫（#179）', () => {
+  // PUT /snapshots 与 PATCH /design 都要一份**形状合法**的文档：只改 id 的话
+  // parseDocument 会先以 400 收场，守卫根本没被走到——那正是 #170 记下的空转
+  let realDocument: Record<string, unknown> = {};
+  // v1 那几条认 Bearer 不认 cookie，所以这一轮自己签发一枚（与上一个 describe 同一招）
+  let creatorBearer = '';
+
+  beforeAll(async () => {
+    realDocument = JSON.parse(JSON.stringify((await loadDocument(realProjectId)) ?? {}));
+    creatorBearer = (
+      await issueApiToken({
+        userId: creator.id,
+        name: '形状门-凭据-二轮',
+        scopes: ['projects:read', 'projects:write', 'publish:write', 'design:read', 'design:write'],
+      })
+    ).token;
+  }, 60_000);
+
+  it('域层：updateProjectDescription 对非 UUID → null，不抛（修复前 eq(projects.id, …) 撞 22P02）', async () => {
+    await expect(updateProjectDescription(creator.id, 'not-a-uuid', '形状门')).resolves.toBeNull();
+  });
+
+  it('PATCH /api/projects/not-a-uuid → 404（修复前 500：这条 PATCH 不过 projectBelongsTo，形状门只能落在域层）', async () => {
+    const res = await projectPatch(
+      new Request('http://test.local/api/projects/not-a-uuid', {
+        method: 'PATCH',
+        headers: asUser(creatorToken, true),
+        body: JSON.stringify({ description: '形状门' }),
+      }),
+      { params: Promise.resolve({ projectId: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it('别的坏形状同样 404，不是只有 not-a-uuid 这一个字符串幸运', async () => {
+    for (const bad of ['', '1', 'abc-def', 'x'.repeat(200), '00000000-0000-9000-8000-000000000000']) {
+      const res = await projectPatch(
+        new Request(`http://test.local/api/projects/${encodeURIComponent(bad)}`, {
+          method: 'PATCH',
+          headers: asUser(creatorToken, true),
+          body: JSON.stringify({ description: '形状门' }),
+        }),
+        { params: Promise.resolve({ projectId: bad }) },
+      );
+      expect(res.status, `"${bad.slice(0, 20)}"`).toBe(404);
+    }
+  });
+
+  it('正对照：真项目的简介改得动、读得回（守卫只挡坏形状，不挡合法 id）', async () => {
+    const res = await projectPatch(
+      new Request(`http://test.local/api/projects/${realProjectId}`, {
+        method: 'PATCH',
+        headers: asUser(creatorToken, true),
+        body: JSON.stringify({ description: '形状门-简介' }),
+      }),
+      { params: Promise.resolve({ projectId: realProjectId }) },
+    );
+    expect(res.status).toBe(200);
+    expect((await res.json()).project.description).toBe('形状门-简介');
+  });
+
+  it('其余 42 条动态参数路由：not-a-uuid 一律走到数据库再答"不存在"，没有一个 500', async () => {
+    const bad = 'not-a-uuid';
+    const real = realProjectId;
+    const probes: Array<{ name: string; want: number; run: () => Promise<Response> }> = [
+      { name: 'GET /api/projects/BAD/agent', want: 404, run: () => agentGet(new Request(`http://test.local/api/projects/${bad}/agent`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/agent', want: 404, run: () => agentPost(new Request(`http://test.local/api/projects/${bad}/agent`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ goal: '形状门' }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/annotations', want: 404, run: () => annGet(new Request(`http://test.local/api/projects/${bad}/annotations`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/annotations', want: 404, run: () => annPost(new Request(`http://test.local/api/projects/${bad}/annotations`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ nodeId: 'n1', text: '形状门' }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/assets', want: 404, run: () => assetsGet(new Request(`http://test.local/api/projects/${bad}/assets`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/branches', want: 404, run: () => branchPost(new Request(`http://test.local/api/projects/${bad}/branches`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ name: '形状门' }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/characters', want: 404, run: () => charsGet(new Request(`http://test.local/api/projects/${bad}/characters`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/characters', want: 404, run: () => charsPost(new Request(`http://test.local/api/projects/${bad}/characters`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ name: '形状门' }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/context', want: 404, run: () => contextGet(new Request(`http://test.local/api/projects/${bad}/context`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'PATCH /api/projects/BAD/design', want: 404, run: () => designPatch(new Request(`http://test.local/api/projects/${bad}/design`, { method: 'PATCH', headers: asUser(creatorToken, true), body: JSON.stringify({ patches: [{ ops: [] }] }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/duplicate', want: 404, run: () => dupPost(new Request(`http://test.local/api/projects/${bad}/duplicate`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({}) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/export', want: 404, run: () => exportGet(new Request(`http://test.local/api/projects/${bad}/export?parts=design`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/game', want: 404, run: () => gameGet(new Request(`http://test.local/api/projects/${bad}/game`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'PUT /api/projects/BAD/game', want: 404, run: () => gamePut(new Request(`http://test.local/api/projects/${bad}/game`, { method: 'PUT', headers: asUser(creatorToken, true), body: JSON.stringify({ document: {} }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/game/code/zip', want: 404, run: () => gameZipGet(new Request(`http://test.local/api/projects/${bad}/game/code/zip`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/images', want: 404, run: () => imagesPost(new Request(`http://test.local/api/projects/${bad}/images`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ prompt: '形状门' }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/knowledge', want: 404, run: () => knowGet(new Request(`http://test.local/api/projects/${bad}/knowledge`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/knowledge', want: 404, run: () => knowPost(new Request(`http://test.local/api/projects/${bad}/knowledge`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({}) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/knowledge/block', want: 404, run: () => blockGet(new Request(`http://test.local/api/projects/${bad}/knowledge/block?sourceType=design&sourceId=x`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/knowledge/block', want: 404, run: () => blockPost(new Request(`http://test.local/api/projects/${bad}/knowledge/block`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ sourceType: 'design', sourceId: 'x' }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/knowledge/search', want: 404, run: () => searchPost(new Request(`http://test.local/api/projects/${bad}/knowledge/search`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ q: '形状门' }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/memories', want: 404, run: () => memGet(new Request(`http://test.local/api/projects/${bad}/memories`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/memories', want: 404, run: () => memPost(new Request(`http://test.local/api/projects/${bad}/memories`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ scope: 'world', content: '形状门' }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'DELETE /api/projects/BAD/memories', want: 404, run: () => memDel(new Request(`http://test.local/api/projects/${bad}/memories?scope=world`, { method: 'DELETE', headers: asUser(creatorToken, true) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/publish', want: 404, run: () => pubGet(new Request(`http://test.local/api/projects/${bad}/publish`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/publish', want: 404, run: () => pubPost(new Request(`http://test.local/api/projects/${bad}/publish`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ visibility: 'unlisted' }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'DELETE /api/projects/BAD/publish', want: 404, run: () => pubDel(new Request(`http://test.local/api/projects/${bad}/publish`, { method: 'DELETE', headers: asUser(creatorToken, true) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/retrieve', want: 404, run: () => retGet(new Request(`http://test.local/api/projects/${bad}/retrieve?q=x`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/retrieve', want: 404, run: () => retPost(new Request(`http://test.local/api/projects/${bad}/retrieve`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ query: '形状门' }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/snapshots', want: 404, run: () => snapGet(new Request(`http://test.local/api/projects/${bad}/snapshots`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/snapshots', want: 404, run: () => snapPost(new Request(`http://test.local/api/projects/${bad}/snapshots`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ document: { ...realDocument, id: bad } }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/storyboard', want: 404, run: () => sbGet(new Request(`http://test.local/api/projects/${bad}/storyboard`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'PUT /api/projects/BAD/storyboard', want: 404, run: () => sbPut(new Request(`http://test.local/api/projects/${bad}/storyboard`, { method: 'PUT', headers: asUser(creatorToken, true), body: JSON.stringify({ document: {} }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/variants', want: 404, run: () => varGet(new Request(`http://test.local/api/projects/${bad}/variants`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/variants', want: 404, run: () => varPost(new Request(`http://test.local/api/projects/${bad}/variants`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({}) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/variants/merge', want: 404, run: () => mergePost(new Request(`http://test.local/api/projects/${bad}/variants/merge`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ layoutBranchId: bad, visualBranchId: bad }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'POST /api/projects/BAD/visual-dna', want: 404, run: () => dnaPost(new Request(`http://test.local/api/projects/${bad}/visual-dna`, { method: 'POST', headers: asUser(creatorToken, true), body: JSON.stringify({ assetId: bad }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/projects/BAD/world', want: 404, run: () => worldGet(new Request(`http://test.local/api/projects/${bad}/world`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'PUT /api/projects/BAD/world', want: 404, run: () => worldPut(new Request(`http://test.local/api/projects/${bad}/world`, { method: 'PUT', headers: asUser(creatorToken, true), body: JSON.stringify({ document: {} }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'PUT /api/projects/BAD', want: 404, run: () => projectPut(new Request(`http://test.local/api/projects/${bad}`, { method: 'PUT', headers: asUser(creatorToken, true), body: JSON.stringify({ ...realDocument, id: bad }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'DELETE /api/projects/BAD', want: 404, run: () => projectDelete(new Request(`http://test.local/api/projects/${bad}`, { method: 'DELETE', headers: asUser(creatorToken, true), body: JSON.stringify({ confirm: 'x' }) }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/v1/projects/BAD', want: 404, run: () => v1ProjectGet(new Request(`http://test.local/api/v1/projects/${bad}`, { headers: { authorization: `Bearer ${creatorBearer}` } }), { params: Promise.resolve({ projectId: bad }) }) },
+      { name: 'GET /api/marketplace/BAD/content', want: 404, run: () => marketContent(new Request(`http://test.local/api/marketplace/${bad}/content`, {}), { params: Promise.resolve({ id: bad }) }) },
+      { name: 'GET /api/avatar/BAD/x.png', want: 404, run: () => avatarGet(new Request(`http://test.local/api/avatar/${bad}/x.png`, {}), { params: Promise.resolve({ userId: bad, file: 'x.png' }) }) },
+      // 正对照：同一个项目换成**合法** id，这一轮新接进来的路由照旧走通——
+      // 守卫挡的是坏形状，不是正常路径（"为了不打 500 把真用户也挡了"同样是一条缺陷）
+      { name: 'GET /api/projects/<真项目>/context', want: 200, run: () => contextGet(new Request(`http://test.local/api/projects/${real}/context`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: real }) }) },
+      { name: 'GET /api/projects/<真项目>/knowledge', want: 200, run: () => knowGet(new Request(`http://test.local/api/projects/${real}/knowledge`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: real }) }) },
+      { name: 'GET /api/projects/<真项目>/snapshots', want: 200, run: () => snapGet(new Request(`http://test.local/api/projects/${real}/snapshots`, { headers: asUser(creatorToken) }), { params: Promise.resolve({ projectId: real }) }) },
+    ];
+    for (const probe of probes) {
+      const res = await probe.run();
+      expect(res.status, probe.name).toBe(probe.want);
+    }
+  }, 180_000);
 });

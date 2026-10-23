@@ -5728,3 +5728,29 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   见证：`5e3180f` 之后的 studio 接线（见本次提交）；`@smoke studio slice` 两条 dev 下通过；
   生产构建全档量到；调试手动复刻确认 perf 脚本首轮挂 `typography.fontSize` 是偶发非回归。
   数与口径写进 `docs/PERFORMANCE.md` 末尾（2026-10-23 晚那一节）。
+
+- **2026-10-23 第三十片（#179）：项目简介 PATCH 对非 UUID 的 id 不再 500——`updateProjectDescription` 补形状门，43 条动态参数路由二轮全扫**。
+  **探针换了个问法**：#176 扫的是"路由 → 域助手 → 裸 eq()"这一族（收了 20 条）。
+  这一轮反过来问"**id-shape 测试还没碰过的动态参数路由有哪些**"——91 条路由里约 56 条带路径参数，
+  已覆盖 21 条，剩下 43 条全部拿 `not-a-uuid` 打了一遍（`.scratch` 探针，判据是"不得 500"）。
+  **43 条里只有一条真漏：`PATCH /api/projects/<id>`（改项目简介）**。
+  根因不是"漏了一道归属门"，而是这条路由**结构上就跟同目录的兄弟不一样**：
+  GET / PUT / DELETE 都先过 `projectBelongsTo`，只有它不过——`updateProjectDescription`
+  把所有权写在了 SQL 的 `owner_id` 里（函数头注释写明了这个取舍）。于是非 UUID 的 id
+  一路裸 `eq(projects.id, …)` 撞 22P02，被路由 catch 成 500「更新失败」，而它只是一次打错的请求。
+  修法同族：域层 `if (!isUuid(projectId)) return null` → 路由照旧 404，与 `softDeleteProject` /
+  `restoreProject` 同一道门、同一句回执。**不是越权**（ownerId 一直在 SQL 里），是"坏形状被当成服务端故障"。
+  **避空转的账**（#170 的教训第三次派上用场）：第一版探针有 4 条只拿到 400——zod 那层就收了，
+  守卫根本没被走到。逐个补满契约后才真到域层：`PATCH /design` 要 `patches` 数组、
+  `knowledge/block` 的 `sourceType` 必须在 `SOURCE_LABELS` 里（传 `world` 是 400，
+  合法值里没有 `world`，只有 `lore/history/...`）、删除项目的确认词字段叫 `confirm` 不是 `confirmName`、
+  `PUT`/`POST /snapshots` 要一份**形状合法**的真文档（只改 id 会被 `parseDocument` 先拦）。
+  补满之后 43 条**全部 404**——这才是"走到数据库再答不存在"的证据。
+  **二轮全扫的判据比一轮严**：一条探针只证明"这个坏字符串不 500"。所以这一轮加了两组对照：
+  ① 五种坏形状（空串 / `1` / `abc-def` / 200 个 x / 版本位不对的假 UUID）在 PATCH 上全部 404；
+  ② **三条正对照**（真项目 id 走 context / knowledge / snapshots 全部 200）——守卫挡的是坏形状，
+  不是正常路径，"为了不打 500 把真用户也挡了"同样是缺陷，这一组就是钉这个的。
+  见证：`id-shape.integration.test.ts` 42 → **47 条全绿**；projects / project-delete / snapshots /
+  branches 四套件 50/50；tsc 0、改动文件 eslint 0。
+  变异探针：摘掉 `updateProjectDescription` 的守卫 → 新块内 3 条精确红（域层 null、路由 404、
+  五种坏形状），其余 44 条不受影响；逐字节还原后 47/47 复绿。

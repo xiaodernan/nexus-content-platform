@@ -786,6 +786,10 @@ export async function updateProjectDescription(
   projectId: string,
   description: string | null,
 ): Promise<ProjectSummary | null> {
+  // 形状不对的 id 按"不存在"处理：eq(projects.id, …) 会撞 22P02 变 500（domain/ids.ts）。
+  // 界面这条 PATCH **不过 projectBelongsTo**（所有权写在下面 SQL 的 ownerId 里，见函数头注释），
+  // 所以这道门必须落在域层——与 softDeleteProject / restoreProject 同一道门、同一句回执（null → 404）。
+  if (!isUuid(projectId)) return null;
   const trimmed = description?.trim() ?? '';
   const [row] = await getDb()
     .update(projects)
