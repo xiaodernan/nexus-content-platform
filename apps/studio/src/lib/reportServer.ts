@@ -102,6 +102,8 @@ export interface FiledReportsAnswer {
   count: number;
   /** The cap the service applied to the window. */
   limit: number;
+  /** v382 — the zero-based index of the first row in the window. */
+  offset: number;
   reason?: string;
 }
 
@@ -110,16 +112,19 @@ export interface FiledReportsAnswer {
  *
  * <p>A reporter is owed an answer, and the only way they can learn where their complaint stands is to ask
  * for it. The rows are the reporter's OWN reports, so the identity in them is theirs.
+ *
+ * <p>v382 — offset enables paging through older reports beyond the window.
  */
 export async function readFiledReports(
   reporterAccountId: string,
+  offset: number,
   limit: number,
   fetchImpl: FetchLike = fetch as FetchLike,
 ): Promise<FiledReportsAnswer> {
   const apiBase = nexusApiBase();
   try {
     const res = await fetchImpl(
-      `${apiBase}/reports?reporter=${encodeURIComponent(reporterAccountId)}&limit=${encodeURIComponent(String(limit))}`,
+      `${apiBase}/reports?reporter=${encodeURIComponent(reporterAccountId)}&offset=${encodeURIComponent(String(offset))}&limit=${encodeURIComponent(String(limit))}`,
       { headers: { accept: 'application/json' } },
     );
     const parsed: unknown = await res.json().catch(() => null);
@@ -142,6 +147,7 @@ export async function readFiledReports(
       reports: body.reports as ReportEntry[],
       count: typeof body.count === 'number' ? body.count : body.reports.length,
       limit,
+      offset,
     };
   } catch (error) {
     return {
@@ -149,6 +155,7 @@ export async function readFiledReports(
       reports: [],
       count: 0,
       limit,
+      offset,
       reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
     };
   }

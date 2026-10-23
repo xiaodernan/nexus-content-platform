@@ -174,10 +174,10 @@ public class ReportService {
      * the door.
      */
     @Transactional(readOnly = true)
-    public List<ReportEntry> reportsFiledBy(String reporterAccountId, int limit) {
+    public List<ReportEntry> reportsFiledBy(String reporterAccountId, int offset, int limit) {
         String reporter = requireReporter(reporterAccountId);
         int asked = limit <= 0 ? DEFAULT_REPORT_LIMIT : Math.min(limit, MAX_REPORT_LIMIT);
-        return repository.findByReporterAccountIdOrderByCreatedAtDesc(reporter, PageRequest.of(0, asked));
+        return repository.findByReporterAccountIdOrderByCreatedAtDesc(reporter, PageRequest.of(offset, asked));
     }
 
     /** v380 — total reports filed by this account (the whole table, not the window). */

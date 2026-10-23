@@ -40,6 +40,8 @@ export interface FiledReportsLaneAnswer {
   count: number;
   /** v380 — the cap the service applied to the window. */
   limit: number;
+  /** v382 — the zero-based offset of the first row in the window. */
+  offset: number;
   reason?: string;
 }
 
