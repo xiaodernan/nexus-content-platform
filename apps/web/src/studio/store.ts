@@ -356,10 +356,20 @@ export class StudioStore {
     // 文档代数：整份换掉时 +1，打补丁时不变（见 DesignStore.generation）
     const gen = this.design.getDocumentGeneration();
     const key = `${this.design.getState().revision}|${gen}|${document.id}|${page.id}|${this.viewport}|${mode}`;
-    // doc 身份一并判：事务内文档会变而 revision 不跳，只比 key 会拿到上一版文档的布局
-    // 文档代数一并判：同一代数 + 同一页 = 上一帧那份文档，用它当增量基准才对（2026-10-21 修）。
-    // 原先 `this.layoutCache?.doc === document` 永远 miss（applyPatch 每次新对象），导致选中也重算布局。
-    if (this.layoutCache?.key === key && this.layoutCache.gen === gen) return this.layoutCache.value;
+    // 命中判据是三样都对上：key（revision│代数│页│视口│模式）+ 代数 + **文档对象身份**。
+    // - key + 代数：防“换了文档 / 换了页 / 换了视口”（代数只在整份替换时跳，`9dfe8b2`）；
+    // - 文档对象身份：防“事务内文档变了而 revision 不跳”——`applyWithinTransaction`
+    //   不跳 revision 也不跳代数，只比 key 会把事务中段那份**半成品文档的旧布局**交出去
+    //   （画布画的是上一帧内容）。`derivedCache` 用身份判据防的是同一件事（过期 token 表）。
+    //   `77404ed` 曾把这一条件换成“代数相同”，理由是“applyPatch 每次新对象、doc 身份永远 miss”——
+    //   那个判断对纯选中帧是错的（选中不动文档，身份本来就一样），实际效果只是砍掉了这层护栏。
+    if (
+      this.layoutCache?.key === key &&
+      this.layoutCache.gen === gen &&
+      this.layoutCache.doc === document
+    ) {
+      return this.layoutCache.value;
+    }
     // §147 增量解：这里**接过** `resolveLayoutIncremental`（2026-10-10），又把它撤回了（2026-10-12）——
     // 实测它与全量**不等**：`paintOrder` 不同（渲染次序会变，肉眼可见），而且没碰到的分支
     // 也没被复用（对象身份都不一样，"省下计算"这件事根本没发生）。证据是
