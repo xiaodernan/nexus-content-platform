@@ -5169,6 +5169,134 @@ try {
     );
   }
 
+  // ── §83 v399: the artifact page’s comment thread gets its PAGER ──────────────────────────────────────────────────────────────────────────────
+  // The comment thread has been a WINDOW since v286 (the service caps at a hundred comments) and has
+  // carried a visible count since v354, but the page could only ever show its head: a thread longer
+  // than the cap had its older comments out of reach entirely. One publication is given ONE HUNDRED
+  // AND ONE comments — one more than the window the page reads (COMMENT_LIMIT, a hundred) — so the
+  // count and the window can DIFFER, and the page is then read the way a reader’s browser reads it:
+  // as HTML, with no hydration.
+  {
+    const pagedThreadId = `pub-comment-pager-${Date.now()}`;
+    const pagedThreadOwner = `acct-comment-pager-${Date.now()}`;
+    const publishRes = await fetch(`${apiBase}/projects/${encodeURIComponent(pagedThreadId)}/publish`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        title: 'the thread that pages',
+        document: { nodes: [] },
+        owner: {
+          accountId: pagedThreadOwner,
+          handle: 'pager',
+          assurance: 'unsigned-local',
+          claimedAt: 1_700_000_000_000,
+        },
+      }),
+    });
+    check(
+      'the harness published the artifact the thread hangs on',
+      publishRes.status === 201,
+      `status: ${publishRes.status}`,
+    );
+
+    // ONE HUNDRED AND ONE comments: the page reads at most a hundred, so the second window holds
+    // exactly one comment and the count says 101.
+    const commentStatuses = [];
+    for (let i = 0; i < 101; i += 1) {
+      const res = await fetch(`${apiBase}/comments`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          projectId: pagedThreadId,
+          claim: {
+            accountId: `${pagedThreadOwner}-${i}`,
+            handle: `pager${i}`,
+            assurance: 'unsigned-local',
+            claimedAt: 1_700_000_000_000,
+          },
+          body: `paged comment ${i}`,
+        }),
+      });
+      commentStatuses.push(res.status);
+    }
+    check(
+      'the harness gave the thread 101 comments — one more than the window the page reads',
+      commentStatuses.length === 101 && commentStatuses.every((st) => st === 201),
+      `statuses: ${JSON.stringify(commentStatuses.slice(0, 3))} · ${JSON.stringify(commentStatuses.slice(-1))}`,
+    );
+
+    // The SERVICE counts the whole thread and carries the window — and the count it carries is the
+    // ROW count, which is the number a pager pages by (v399: the visible count is not a row count).
+    const threadFirst = await fetch(`${apiBase}/comments?projectId=${encodeURIComponent(pagedThreadId)}&limit=100`);
+    const threadFirstBody = await threadFirst.json();
+    check(
+      'the SERVICE counts 101 rows and carries the first window of 100',
+      threadFirst.status === 200 && threadFirstBody.total === 101 && (threadFirstBody.comments ?? []).length === 100,
+      `total: ${JSON.stringify(threadFirstBody.total)} · rows: ${JSON.stringify((threadFirstBody.comments ?? []).length)}`,
+    );
+    const threadSecond = await fetch(`${apiBase}/comments?projectId=${encodeURIComponent(pagedThreadId)}&limit=100&offset=100`);
+    const threadSecondBody = await threadSecond.json();
+    check(
+      'and the door PAGES: the second window carries the one comment the count says is left',
+      threadSecond.status === 200 && (threadSecondBody.comments ?? []).length === 1 && threadSecondBody.total === 101,
+      `rows: ${JSON.stringify((threadSecondBody.comments ?? []).length)} · total: ${JSON.stringify(threadSecondBody.total)}`,
+    );
+
+    // The FIRST window, as the reader’s browser would render it.
+    const threadFirstHtml = await (await fetch(`${studioBase}/p/${encodeURIComponent(pagedThreadId)}`)).text();
+    check(
+      'the artifact page states the WHOLE count, not the window',
+      threadFirstHtml.includes('data-comments="101"'),
+      `the count is there: ${threadFirstHtml.includes('data-comments="101"')}`,
+    );
+    check(
+      'the first window says it is the newest 100 of 101',
+      threadFirstHtml.includes('showing the 100 newest'),
+      `the window line is there: ${threadFirstHtml.includes('showing the 100 newest')}`,
+    );
+    check(
+      'on the first window "Newer" is a span with no href — there is no page before the first',
+      threadFirstHtml.includes('<span class="nexus-comments-page" data-comments-page="newer"'),
+      `newer is a span: ${threadFirstHtml.includes('<span class="nexus-comments-page" data-comments-page="newer"')}`,
+    );
+    check(
+      'and "Older" is a link to the second window',
+      threadFirstHtml.includes(`<a class="nexus-comments-page" data-comments-page="older" href="/p/${encodeURIComponent(pagedThreadId)}?commentOffset=100"`),
+      `older links to window two: ${threadFirstHtml.includes(`<a class="nexus-comments-page" data-comments-page="older" href="/p/${encodeURIComponent(pagedThreadId)}?commentOffset=100"`)}`,
+    );
+
+    // The SECOND window — the link the first window offered, followed.
+    const threadSecondHtml = await (await fetch(`${studioBase}/p/${encodeURIComponent(pagedThreadId)}?commentOffset=100`)).text();
+    check(
+      'the second window says WHICH comments it is showing',
+      threadSecondHtml.includes('showing rows 101–101 of 101'),
+      `the window line is there: ${threadSecondHtml.includes('showing rows 101–101 of 101')}`,
+    );
+    check(
+      'the second window links "Newer" back to the first window',
+      threadSecondHtml.includes(`<a class="nexus-comments-page" data-comments-page="newer" href="/p/${encodeURIComponent(pagedThreadId)}"`),
+      `newer links back: ${threadSecondHtml.includes(`<a class="nexus-comments-page" data-comments-page="newer" href="/p/${encodeURIComponent(pagedThreadId)}"`)}`,
+    );
+    check(
+      'and "Older" is a span — the next window would hold nothing, and the count already said so',
+      threadSecondHtml.includes('<span class="nexus-comments-page" data-comments-page="older"'),
+      `older is a span: ${threadSecondHtml.includes('<span class="nexus-comments-page" data-comments-page="older"')}`,
+    );
+
+    // A window PAST the end: an honest empty answer, not "this publication has no comments".
+    const threadPastEndHtml = await (await fetch(`${studioBase}/p/${encodeURIComponent(pagedThreadId)}?commentOffset=200`)).text();
+    check(
+      'a comment window past the end says it is past the end',
+      threadPastEndHtml.includes('this page is past the end — the service answered an empty window'),
+      `the note is there: ${threadPastEndHtml.includes('this page is past the end')}`,
+    );
+    check(
+      'and it still states the whole count — the empty window belongs to the page, not the publication',
+      threadPastEndHtml.includes('data-comments="101"') && !threadPastEndHtml.includes('No comments yet'),
+      `count still stated: ${threadPastEndHtml.includes('data-comments="101"')} · says "No comments yet": ${threadPastEndHtml.includes('No comments yet')}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

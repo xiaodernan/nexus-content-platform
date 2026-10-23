@@ -54,4 +54,27 @@ public final class CommentDtos {
      */
     public record CommentAnswer(String projectId, List<Comment> comments, long visible, int limit) {
     }
+
+    /**
+     * v399 — the answer to "what does this THREAD hold", as a WINDOW beside the whole thread.
+     *
+     * <p>{@code limit} is the cap the service applied, {@code offset} is the ROW this window starts at and
+     * {@code total} is how many comments the thread holds, the REMOVED ones included. The three together
+     * are what a pager needs: which rows it is showing, how big a window is, and where the end is. The
+     * row count and not the visible count is the end, because the window pages by ROWS — a thread of
+     * fifty comments of which thirty were taken back has thirty visible and fifty rows, and a pager that
+     * used the visible number would stop a reader twenty rows short of the end.
+     *
+     * <p>It is a SEPARATE record from {@link CommentAnswer} because the other direction of this door
+     * — the comments one account WROTE — does not page and has no whole-table count: putting the
+     * window's fields on its answer would name a window that was never asked for.
+     */
+    public record ThreadAnswer(
+            String projectId,
+            List<Comment> comments,
+            long visible,
+            int limit,
+            int offset,
+            long total) {
+    }
 }

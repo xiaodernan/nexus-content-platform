@@ -59,9 +59,14 @@ function injectComments(html: string, section: string): string {
   return html.replace('</body>', `${section}</body>`);
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ projectId: string }> }): Promise<Response> {
+export async function GET(request: Request, { params }: { params: Promise<{ projectId: string }> }): Promise<Response> {
   const { projectId } = await params;
   const decoded = decodeURIComponent(projectId);
+  // v399 — the comments window's own page, in rows from the newest comment. The gallery on the
+  // profile page (v270) and the profile page's four lists (v395/v396/v397) page the same way, each on
+  // its own parameter, so a reader on comment page 3 keeps their place in everything else on the page.
+  const url = new URL(request.url);
+  const commentOffset = Math.max(0, Number.parseInt(url.searchParams.get('commentOffset') ?? '0', 10));
   const answer = await readPublication(decoded);
 
   if (answer.ok) {
@@ -88,7 +93,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
       readReports(decoded, REPORT_LIMIT),
       readAuditTrail(HISTORY_LIMIT),
       readLikes(decoded),
-      readComments(decoded, COMMENT_LIMIT),
+      // v399 — the comments thread pages too, the same way the profile page's four lists do: the
+      // window's own page, in rows, so a reader on a thread longer than the cap can reach the older
+      // comments instead of being shown the head forever.
+      readComments(decoded, COMMENT_LIMIT, commentOffset),
     ]);
     const reportBar = reports.ok
       ? renderReportBar({
@@ -125,10 +133,28 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
           })),
         })
       : '';
+    // v399 — the comments pager is a LINK for the same reason every other pager on a server-rendered
+    // page is: the route is the layer that knows the URL. It moves ONE window and keeps the reader's
+    // place in the page's other windows (there is one query parameter per window, and the builder only
+    // touches its own).
+    const commentPageHref = (nextOffset: number): string => {
+      const params = new URLSearchParams(url.search);
+      if (nextOffset > 0) params.set('commentOffset', String(nextOffset));
+      else params.delete('commentOffset');
+      const search = params.toString();
+      return search ? `${url.pathname}?${search}` : url.pathname;
+    };
     // v286 — the COMMENTS. Read independently again: a comments door that could not be read leaves the
     // section out rather than claiming the publication has no comments.
     const commentSection = comments.ok
-      ? renderCommentsHtml(toCommentRows(comments.comments), comments.visible, decoded, comments.limit) +
+      ? renderCommentsHtml(toCommentRows(comments.comments), comments.visible, decoded, comments.limit, {
+          // v399 — which window this is, how big it is, where the thread ends, and where the next
+          // window lives. The service pages by rows and echoes the window it answered, so the section
+          // can say WHICH comments it is showing and offer the next page as a link.
+          offset: comments.offset ?? commentOffset,
+          total: comments.total,
+          pageHref: commentPageHref,
+        }) +
         COMMENT_STYLES
       : '';
     return new Response(

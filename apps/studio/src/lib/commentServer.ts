@@ -39,6 +39,21 @@ export interface CommentsAnswer {
    * thread and how big that window is.
    */
   limit?: number;
+  /**
+   * v399 — the ROW this window starts at, echoed from the ask — the same field every windowed
+   * answer has carried since v382. The answer names the window it is FOR: two reads in flight cannot be
+   * mistaken for each other's answers, and the page's pager can say WHICH comments it is showing.
+   */
+  offset?: number;
+  /**
+   * v399 — how many comments the thread holds, the REMOVED ones included.
+   *
+   * <p>The window pages by ROWS, so this is the number a pager pages by — not `visible`, which counts
+   * only the comments still standing. A thread of fifty comments of which thirty were taken back has
+   * thirty visible and fifty rows, and a pager that used the visible count as its end would stop a
+   * reader twenty rows short of the end.
+   */
+  total?: number;
   reason?: string;
 }
 
@@ -58,24 +73,29 @@ export type FetchLike = (
 export async function readComments(
   projectId: string,
   limit: number,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch as FetchLike,
 ): Promise<CommentsAnswer> {
   const apiBase = nexusApiBase();
+  // v399 — the offset is ROWS, and a negative one is the first window rather than a refusal: the
+  // newest comments are the honest answer to a question about a page before the first (the same rule
+  // every other windowed read here has had since v382).
+  const from = Math.max(offset, 0);
   try {
     const res = await fetchImpl(
-      `${apiBase}/comments?projectId=${encodeURIComponent(projectId)}&limit=${encodeURIComponent(String(limit))}`,
+      `${apiBase}/comments?projectId=${encodeURIComponent(projectId)}&limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(from))}`,
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
-      return { ok: false, comments: [], visible: 0, reason: `the service's comments door answered HTTP ${res.status}` };
+      return { ok: false, comments: [], visible: 0, limit, offset: from, reason: `the service's comments door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, comments: [], visible: 0, reason: 'the service answered its comments door with something that is not JSON' };
+      return { ok: false, comments: [], visible: 0, limit, offset: from, reason: 'the service answered its comments door with something that is not JSON' };
     }
-    const body = parsed as { comments?: unknown; visible?: unknown; limit?: unknown };
+    const body = parsed as { comments?: unknown; visible?: unknown; limit?: unknown; total?: unknown };
     if (!Array.isArray(body.comments)) {
-      return { ok: false, comments: [], visible: 0, reason: 'the service answered its comments door with no comments' };
+      return { ok: false, comments: [], visible: 0, limit, offset: from, reason: 'the service answered its comments door with no comments' };
     }
     return {
       ok: true,
@@ -83,12 +103,19 @@ export async function readComments(
       visible: typeof body.visible === 'number' ? body.visible : body.comments.length,
       // v354 — and the cap the service applied, so the page can say the rows it shows are a WINDOW.
       limit: typeof body.limit === 'number' ? body.limit : undefined,
+      // v399 — the window as the SERVICE answered it, and the row it starts at. A wire that echoes no
+      // limit keeps the one that was asked for: the pager needs a window size, and guessing one would
+      // offer a page of the wrong shape.
+      offset: from,
+      total: typeof body.total === 'number' && Number.isFinite(body.total) ? body.total : undefined,
     };
   } catch (error) {
     return {
       ok: false,
       comments: [],
       visible: 0,
+      limit,
+      offset: from,
       reason: serviceUnreachableReason(apiBase, error),
     };
   }

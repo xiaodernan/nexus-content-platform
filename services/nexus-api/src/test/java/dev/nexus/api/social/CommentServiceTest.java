@@ -188,8 +188,9 @@ class CommentServiceTest {
         when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
                 .thenReturn(List.of(row("c-1", "acct-ada", false), row("c-2", "acct-bob", true), row("c-3", "acct-ada", false)));
         when(repository.countByTargetProjectIdAndDeletedFalse("pub-1")).thenReturn(2L);
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(3L);
 
-        CommentService.CommentResult result = service.commentsOf("pub-1", 20);
+        CommentService.CommentResult result = service.commentsOf("pub-1", 20, 0);
 
         assertThat(result.comments()).hasSize(3);
         // A list of three of which one was removed must not be read as "there are three comments".
@@ -197,6 +198,8 @@ class CommentServiceTest {
         // v354 — and the WINDOW's own count, beside the whole thread's: the two are different sizes and
         // the caller needs both to say which is which.
         assertThat(result.shownVisible()).isEqualTo(2);
+        // v399 — and the thread's ROW count, the removed ones included: the number a pager pages by.
+        assertThat(result.total()).isEqualTo(3L);
     }
 
     // ── v354: the visible count is the WHOLE THREAD's, not the window's ────────────────────────────
@@ -209,16 +212,21 @@ class CommentServiceTest {
         when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
                 .thenReturn(List.of(row("c-1", "acct-ada", false), row("c-2", "acct-bob", true), row("c-3", "acct-ada", false)));
         when(repository.countByTargetProjectIdAndDeletedFalse("pub-1")).thenReturn(34L);
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(50L);
 
-        CommentService.CommentResult result = service.commentsOf("pub-1", 20);
+        CommentService.CommentResult result = service.commentsOf("pub-1", 20, 0);
 
         assertThat(result.visible()).isEqualTo(34L);
         assertThat(result.shownVisible()).isEqualTo(2);
+        // v399 — and the rows are not the visible ones: thirty-four visible in a thread of fifty
+        // rows, because sixteen of them were taken back. A pager that used the visible count as its
+        // end would stop a reader sixteen rows short of it.
+        assertThat(result.total()).isEqualTo(50L);
     }
 
     @Test
     void aBlankProjectIdIsRefusedByName() {
-        assertThatThrownBy(() -> service.commentsOf("   ", 20))
+        assertThatThrownBy(() -> service.commentsOf("   ", 20, 0))
                 .isInstanceOf(InvalidComment.class)
                 .hasMessageContaining("projectId must not be blank");
     }
@@ -228,7 +236,9 @@ class CommentServiceTest {
         when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        service.commentsOf("pub-1", 10_000);
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(0L);
+
+        service.commentsOf("pub-1", 10_000, 0);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
@@ -240,11 +250,80 @@ class CommentServiceTest {
         when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        service.commentsOf("pub-1", 0);
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(0L);
+
+        service.commentsOf("pub-1", 0, 0);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
         assertThat(window.getValue().getPageSize()).isEqualTo(CommentService.DEFAULT_COMMENT_LIMIT);
+    }
+
+    // ── v399: the THREAD can be PAGED, in rows ────────────────────────────────────────────
+
+    @Test
+    void theThreadCanBePagedInRows() {
+        // v399 — the thread has been a WINDOW since v286 (the service caps at a hundred comments), and a
+        // window nobody can page is the whole thread to a reader on a longer one. The offset is ROWS:
+        // asking for the rows from 20 on is page 1 of a 20-row window, which is what the captor pins.
+        when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(50L);
+
+        service.commentsOf("pub-1", 20, 20);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void theThreadOffsetIsROWSNotAPageIndex() {
+        // v387’s lesson, carried over rather than learned again: the offset means ROWS, and PageRequest
+        // speaks PAGES. The rows from 40 on are page 2 — not page 40 (rows 800–819), which is what handing the
+        // raw number to PageRequest.of answers, and what a pager would then call “past the end”.
+        when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(50L);
+
+        service.commentsOf("pub-1", 20, 40);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void aNegativeThreadOffsetIsTheFirstWindow() {
+        // A page before the first does not exist; the newest comments are the honest answer to a
+        // question about one, not a refusal.
+        when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(50L);
+
+        service.commentsOf("pub-1", 20, -5);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isZero();
+    }
+
+    @Test
+    void theTotalCountsTheRemovedRowsThePagerPagesBy() {
+        // v399 — the pager pages by ROWS, so the answer carries the thread’s ROW count, the removed ones
+        // included. Thirty-four visible comments in a thread of fifty rows: a pager that used the visible
+        // count as its end would stop a reader sixteen rows short of it.
+        when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
+                .thenReturn(List.of(row("c-1", "acct-ada", false), row("c-2", "acct-bob", true), row("c-3", "acct-ada", false)));
+        when(repository.countByTargetProjectIdAndDeletedFalse("pub-1")).thenReturn(34L);
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(50L);
+
+        CommentService.CommentResult result = service.commentsOf("pub-1", 20, 0);
+
+        assertThat(result.total()).isEqualTo(50L);
+        assertThat(result.visible()).isEqualTo(34L);
     }
     // ── v335: the comments one account WROTE ───────────────────────────
 

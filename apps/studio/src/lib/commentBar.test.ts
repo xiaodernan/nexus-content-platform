@@ -160,3 +160,88 @@ describe('commentBar — the section on the page (M7 v286)', () => {
     expect(html).toContain('&lt;script&gt;x&lt;/script&gt;');
   });
 });
+
+describe('commentBar — the thread PAGES (M7 v399)', () => {
+  // The thread has been a WINDOW since v286 (the service caps at a hundred) and said so since v354 —
+  // but the artifact page could only ever show the head of it. It pages now, in rows, as LINKS: the
+  // page is server-rendered and holds no session (ADR 0018), so the route builds the URL and the
+  // section draws an <a>.
+  const pageHref = (offset: number) => `/p/pub-1?commentOffset=${offset}`;
+  const twoComments = () => toCommentRows([entry({ id: 'c-1' }), entry({ id: 'c-2', body: 'second' })]);
+
+  it('the first window says it is the newest, and not the only', () => {
+    const html = renderCommentsHtml(twoComments(), 5, 'pub-1', 2, { offset: 0, total: 5, pageHref });
+    expect(html).toContain('5 comment(s) visible');
+    expect(html).toContain('showing the 2 newest');
+  });
+
+  it('a later window says WHICH rows it is showing', () => {
+    // "the 2 newest" is a true thing about the first window and a false thing about the third
+    // (v386's correction, the shared wording the tip and plan bars received in v395 and v396). The
+    // range is in ROWS because the window is rows — the removed ones among them are counted here.
+    const html = renderCommentsHtml(twoComments(), 5, 'pub-1', 2, { offset: 4, total: 5, pageHref });
+    expect(html).toContain('showing rows 5–6 of 5');
+    expect(html).not.toContain('newest');
+  });
+
+  it('the ROW count is the end, not the visible count — removed comments still page', () => {
+    // A thread of fifty comments of which thirty were taken back has thirty VISIBLE and fifty ROWS. A
+    // pager that used the visible count as its end would stop a reader twenty rows short of it.
+    const rows = toCommentRows([entry({ id: 'c-1' }), entry({ id: 'c-2', deleted: true, body: '' })]);
+    const html = renderCommentsHtml(rows, 30, 'pub-1', 20, { offset: 20, total: 50, pageHref });
+    expect(html).toContain('30 comment(s) visible');
+    expect(html).toContain('showing rows 21–22 of 50');
+    expect(html).toContain('data-comments-page="older" href="/p/pub-1?commentOffset=40"');
+  });
+
+  it('an empty window past the end says so — it is not "no comments yet"', () => {
+    // v286's empty state is the honest answer to a question about the FIRST window. A window PAST the
+    // end is a different fact about a different thing: the page, not the publication.
+    const html = renderCommentsHtml([], 5, 'pub-1', 2, { offset: 4, total: 5, pageHref });
+    expect(html).toContain('this page is past the end — the service answered an empty window');
+    expect(html).toContain('5 comment(s) visible in the whole thread');
+    expect(html).not.toContain('No comments yet');
+  });
+
+  it('but an empty FIRST window is still "no comments yet"', () => {
+    const html = renderCommentsHtml([], 0, 'pub-1', 2, { offset: 0, total: 0, pageHref });
+    expect(html).toContain('No comments yet');
+    expect(html).not.toContain('past the end');
+  });
+
+  it('the pager is links, and a boundary is a span with no href', () => {
+    const first = renderCommentsHtml(twoComments(), 5, 'pub-1', 2, { offset: 0, total: 5, pageHref });
+    expect(first).toContain('<span class="nexus-comments-page" data-comments-page="newer"');
+    expect(first).toContain('<a class="nexus-comments-page" data-comments-page="older" href="/p/pub-1?commentOffset=2"');
+    const last = renderCommentsHtml(twoComments(), 5, 'pub-1', 2, { offset: 4, total: 5, pageHref });
+    expect(last).toContain('<a class="nexus-comments-page" data-comments-page="newer" href="/p/pub-1?commentOffset=2"');
+    expect(last).toContain('<span class="nexus-comments-page" data-comments-page="older"');
+  });
+
+  it('"Older" is not offered when the next window would hold nothing', () => {
+    // v398's one rule, the same one every other pager in the Studio now ends on.
+    const html = renderCommentsHtml([], 5, 'pub-1', 2, { offset: 4, total: 5, pageHref });
+    expect(html).toContain('<span class="nexus-comments-page" data-comments-page="older"');
+    expect(html).not.toContain('data-comments-page="older" href');
+  });
+
+  it('a section with no URL builder draws no pager — only the window line', () => {
+    const html = renderCommentsHtml(twoComments(), 5, 'pub-1', 2, { offset: 0, total: 5 });
+    expect(html).toContain('showing the 2 newest');
+    expect(html).not.toContain('nexus-comments-pager');
+  });
+
+  it('a window that holds the whole thread gets no pager at all', () => {
+    const html = renderCommentsHtml(twoComments(), 2, 'pub-1', 100, { offset: 0, total: 2, pageHref });
+    expect(html).not.toContain('nexus-comments-pager');
+    expect(html).not.toContain('showing');
+  });
+
+  it('a thread with no row count on the wire keeps the visible count as its witness', () => {
+    // The fallback for a service that does not answer with one: v354's rule was the only witness
+    // before v399, and it stays the one for a wire that carries no total.
+    const html = renderCommentsHtml(twoComments(), 5, 'pub-1', 2, { offset: 0, pageHref });
+    expect(html).toContain('showing the 2 newest');
+    expect(html).not.toContain('nexus-comments-pager');
+  });
+});

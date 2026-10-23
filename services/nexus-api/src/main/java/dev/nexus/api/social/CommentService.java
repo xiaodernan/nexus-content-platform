@@ -92,7 +92,16 @@ public class CommentService {
              */
             long visible,
             /** How many of the SHOWN rows are visible — the window's own count, beside the whole one. */
-            long shownVisible) {
+            long shownVisible,
+            /**
+             * v399 — how many comments the thread holds, the REMOVED ones included.
+             *
+             * <p>The window pages by ROWS and the visible count is not a row count: a thread of fifty
+             * comments of which thirty were taken back has thirty visible and fifty rows, and a pager
+             * that used the visible number as its end would stop a reader twenty rows short of the end.
+             * So the row count travels too, and it is the only number a pager may page by.
+             */
+            long total) {
     }
 
     /**
@@ -167,16 +176,25 @@ public class CommentService {
 
     /** The comments of one publication, newest first, and how many of them are visible. */
     @Transactional(readOnly = true)
-    public CommentResult commentsOf(String targetProjectId, int limit) {
+    public CommentResult commentsOf(String targetProjectId, int limit, int offset) {
         String target = requireUsableProjectId(targetProjectId);
         int asked = limit <= 0 ? DEFAULT_COMMENT_LIMIT : Math.min(limit, MAX_COMMENT_LIMIT);
-        List<CommentEntry> comments = repository.findByTargetProjectIdOrderByCreatedAtDesc(target, PageRequest.of(0, asked));
+        // v399 — the thread can be PAGED, in rows, the same shape every other windowed list got
+        // (v382's filed read, v390's following, v392's plans): the offset is ROWS past the newest ones,
+        // and Spring Data's PageRequest speaks PAGES (v387's lesson), so the translation is by whole
+        // windows. A negative offset is the first window, not a refusal — the newest rows are the
+        // honest answer to a question about a page before the first.
+        int from = Math.max(offset, 0);
+        List<CommentEntry> comments =
+                repository.findByTargetProjectIdOrderByCreatedAtDesc(target, PageRequest.of(from / asked, asked));
         // v354 — the WHOLE thread's visible count (the database's count) beside the window's own.
         // Quoting the window as if it were the thread would be the same kind of lie the bars were just
         // fixed for: a page that says "3 comments" when the thread holds thirty-four.
         long shownVisible = comments.stream().filter(c -> !c.isDeleted()).count();
         long visible = repository.countByTargetProjectIdAndDeletedFalse(target);
-        return new CommentResult(target, comments, visible, shownVisible);
+        // v399 — and the thread's ROW count, the removed ones included: the number a pager pages by.
+        long total = repository.countByTargetProjectId(target);
+        return new CommentResult(target, comments, visible, shownVisible, total);
     }
 
     /**

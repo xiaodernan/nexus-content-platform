@@ -18,6 +18,7 @@
  *   better served than a reader who cannot tell it from the second.
  */
 import { escapeHtml } from './pageShell';
+import { olderWindowWouldHoldSomething } from './pager';
 
 /** One comment, in the service's own wire shape. */
 export interface CommentEntry {
@@ -93,10 +94,64 @@ export function renderCommentsHtml(
   visible: number,
   projectId: string,
   limit?: number,
+  /**
+   * v399 — WHICH window of the thread these rows are, in rows from the newest, and how to build the
+   * URL of another one. The thread has been a WINDOW since v286 (the service caps at a hundred); a
+   * window with no position cannot say which comments it is the window OF, and a page that cannot say
+   * that can only offer the head of a long thread forever.
+   */
+  window?: {
+    offset?: number;
+    /** How many comments the thread holds, the removed ones included — the number a pager pages by. */
+    total?: number | null;
+    pageHref?: (offset: number) => string;
+  },
 ): string {
   const href = `/?comment=${encodeURIComponent(projectId)}`;
   const action = `<a class="nexus-comments-action" href="${escapeHtml(href)}" title="write a comment from the Studio">Add a comment</a>`;
+  // v399 — the window's position and its end, in ROWS. A thread pages by rows because the window is
+  // rows: `visible` counts only the comments still standing, and a thread of fifty comments of which
+  // thirty were taken back has thirty visible and fifty rows.
+  const offset = typeof window?.offset === 'number' && Number.isFinite(window.offset) && window.offset > 0
+    ? Math.floor(window.offset)
+    : 0;
+  const total = typeof window?.total === 'number' && Number.isFinite(window.total) ? window.total : null;
+  const windowSize = typeof limit === 'number' && Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : null;
+  const hrefFor = typeof window?.pageHref === 'function' ? window.pageHref : null;
+  // v399 — the PAGER, and it is made of LINKS: the artifact page is server-rendered and holds no
+  // session (ADR 0018), so the route — the layer that knows the URL — builds the other windows' URLs
+  // and this section draws an <a>. At a boundary there is no page to offer and the control is a <span>
+  // with no href: a link that went nowhere would be a lie with an href. "Older" is offered only when the
+  // NEXT window would hold something (v398's one rule), so a page the service has already counted as
+  // empty is a page this section does not offer.
+  const pageControl = (direction: 'newer' | 'older', target: number | null): string => {
+    const text = direction === 'newer' ? '‹ Newer' : 'Older ›';
+    const title = direction === 'newer' ? 'the newer comments' : 'the older comments';
+    if (target === null || hrefFor === null) {
+      return `<span class="nexus-comments-page" data-comments-page="${direction}" title="${title}">${text}</span>`;
+    }
+    return `<a class="nexus-comments-page" data-comments-page="${direction}" href="${escapeHtml(hrefFor(target))}" title="${title}">${text}</a>`;
+  };
+  const pager =
+    windowSize !== null && hrefFor !== null && total !== null && (offset > 0 || total > rows.length)
+      ? `<div class="nexus-comments-pager">
+${pageControl('newer', offset > 0 ? Math.max(offset - windowSize, 0) : null)}
+${pageControl('older', olderWindowWouldHoldSomething(offset, windowSize, total) ? offset + windowSize : null)}
+</div>`
+      : '';
   if (rows.length === 0) {
+    // v399 — an empty window on a LATER page is not an empty thread: the service counted the thread
+    // and this window holds none of it, which is a fact about the page and not about the publication.
+    // The empty state below is the honest answer to a question about the FIRST window, and only that.
+    if (offset > 0 && total !== null && total > 0) {
+      return `<section class="nexus-comments" data-comments="${visible}">
+<h2>COMMENTS</h2>
+<p class="nexus-comments-note">this page is past the end — the service answered an empty window</p>
+<p class="nexus-comments-note">${visible} comment(s) visible in the whole thread</p>
+${action}
+${pager}
+</section>`;
+    }
     // The EMPTY state still offers the composer: a thread with no comments is exactly the thread a
     // reader would want to start, and a section that said "no comments" and offered nothing would be a
     // dead end.
@@ -131,10 +186,20 @@ ${undo}
   // thread.
   const removed = rows.filter((row) => row.deleted).length;
   const shownVisible = rows.length - removed;
-  const windowed = visible > shownVisible;
+  // v354/v399 — the window is the whole thread when the thread has no more rows than this window
+  // holds. The ROW count says that when the wire carried one (v399); the visible count was the only
+  // witness before it, and it stays the fallback for a service that does not answer with one.
+  const windowed = total !== null ? total > rows.length : visible > shownVisible;
   const parts = [`${visible} comment(s) visible`];
   if (windowed) {
-    parts.push(`showing the ${rows.length} newest`);
+    // v399 — and WHICH rows: "the N newest" on the first window, the rows' own numbers past it
+    // (v386's correction, the shared wording the tip and plan bars received in v395 and v396). The
+    // range is in ROWS because the window is rows, and the removed ones among them are counted here.
+    parts.push(
+      offset <= 0 || total === null
+        ? `showing the ${rows.length} newest`
+        : `showing rows ${offset + 1}–${offset + rows.length} of ${total}`,
+    );
   }
   if (removed > 0) {
     parts.push(`— ${removed} of them were taken back by their authors`);
@@ -147,6 +212,7 @@ ${items}
 </ul>
 ${more}
 ${action}
+${pager}
 </section>`;
 }
 
@@ -169,4 +235,8 @@ export const COMMENT_STYLES = `<style>
 .nexus-comments-note{margin:6px 0 0;font-size:10px;line-height:1.4}
 .nexus-comments-action{display:inline-block;margin-top:6px;color:#3b82f6;font-weight:600;text-decoration:none}
 .nexus-comments-action:hover{text-decoration:underline}
+.nexus-comments-pager{display:flex;gap:10px;align-items:center;margin-top:4px}
+.nexus-comments-page{color:#f59e0b;font-weight:600;text-decoration:none}
+.nexus-comments-page:hover{text-decoration:underline}
+.nexus-comments-pager span.nexus-comments-page{color:#5b6472;font-weight:400}
 </style>`;

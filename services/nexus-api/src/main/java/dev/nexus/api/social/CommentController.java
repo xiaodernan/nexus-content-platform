@@ -81,13 +81,24 @@ public class CommentController {
      * <p>v335 — the same door, the other direction, the way the tips and the subscriptions doors answer
      * both sides of a relation. A reader who wrote a comment could not see what they had written, and a
      * comment is a thing a person might want to find again, or take back.
+     *
+     * <p>v399 — and the THREAD direction PAGES: `offset` is ROWS past the newest comments, the same
+     * meaning the filed read's offset has (v387), so a reader on a thread longer than the cap can reach
+     * the older comments. The answer carries the window it answered — the cap applied, the row it
+     * starts at, and the thread's ROW count (the removed ones included, because that is what a pager
+     * pages by). The author direction does not page and says so by carrying no window at all.
      */
     @GetMapping
-    public ResponseEntity<CommentAnswer> list(
+    public ResponseEntity<?> list(
             @RequestParam(name = "projectId", required = false) String projectId,
             @RequestParam(name = "author", required = false) String authorAccountId,
-            @RequestParam(name = "limit", required = false) Integer limit) {
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "offset", required = false) Integer offset) {
         int asked = limit == null ? CommentService.DEFAULT_COMMENT_LIMIT : limit;
+        // v399 — the window the SERVICE applied, and the row it starts at, both computed here so the
+        // answer can echo exactly what was answered rather than what the caller half remembers.
+        int applied = asked <= 0 ? CommentService.DEFAULT_COMMENT_LIMIT : Math.min(asked, CommentService.MAX_COMMENT_LIMIT);
+        int from = offset == null ? 0 : Math.max(offset, 0);
         if (projectId == null || projectId.isBlank()) {
             if (authorAccountId == null || authorAccountId.isBlank()) {
                 throw new InvalidComment("a comment question names whose comments they are");
@@ -98,9 +109,13 @@ public class CommentController {
             long visible = written.stream().filter(c -> !c.deleted()).count();
             return ResponseEntity.ok(new CommentAnswer(authorAccountId, written, visible, asked));
         }
-        CommentService.CommentResult result = service.commentsOf(projectId, asked);
+        // v399 — and the thread PAGES, in rows, with the window it answered carried on the answer: a
+        // reader on a thread longer than the cap can reach the older comments, and the page can say
+        // WHICH rows it is showing instead of inferring it from the URL it was handed.
+        CommentService.CommentResult result = service.commentsOf(projectId, applied, from);
         List<Comment> comments = result.comments().stream().map(CommentController::toWire).toList();
-        return ResponseEntity.ok(new CommentAnswer(result.projectId(), comments, result.visible(), asked));
+        return ResponseEntity.ok(new CommentDtos.ThreadAnswer(
+                result.projectId(), comments, result.visible(), applied, from, result.total()));
     }
 
     /** The service's row, as the wire's shape. */
