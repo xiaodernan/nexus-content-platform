@@ -280,6 +280,8 @@ export class StudioStore {
     const derived = this.derivedCache;
     const tokens = derived.tokens;
     const tTokens = performance.now();
+    // layout 缓存键用"文档代数"而非对象身份：applyPatch 每次都返新对象（写时拷贝），
+    // 若缓存判 `doc === document` 则永远 miss → 选中只改 selection 也会重算整页布局（§147 常数级开销）。
     const layout = page ? this.resolveFor(page, document, tokens) : null;
     const tLayout = performance.now();
     const assetContext = derived.assetContext;
@@ -355,7 +357,9 @@ export class StudioStore {
     const gen = this.design.getDocumentGeneration();
     const key = `${this.design.getState().revision}|${gen}|${document.id}|${page.id}|${this.viewport}|${mode}`;
     // doc 身份一并判：事务内文档会变而 revision 不跳，只比 key 会拿到上一版文档的布局
-    if (this.layoutCache?.key === key && this.layoutCache.doc === document) return this.layoutCache.value;
+    // 文档代数一并判：同一代数 + 同一页 = 上一帧那份文档，用它当增量基准才对（2026-10-21 修）。
+    // 原先 `this.layoutCache?.doc === document` 永远 miss（applyPatch 每次新对象），导致选中也重算布局。
+    if (this.layoutCache?.key === key && this.layoutCache.gen === gen) return this.layoutCache.value;
     // §147 增量解：这里**接过** `resolveLayoutIncremental`（2026-10-10），又把它撤回了（2026-10-12）——
     // 实测它与全量**不等**：`paintOrder` 不同（渲染次序会变，肉眼可见），而且没碰到的分支
     // 也没被复用（对象身份都不一样，"省下计算"这件事根本没发生）。证据是
