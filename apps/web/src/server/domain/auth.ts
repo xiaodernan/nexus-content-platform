@@ -57,6 +57,25 @@ async function emailTaken(email: string): Promise<boolean> {
   return row !== undefined;
 }
 
+/**
+ * 注册时撞上 `users_email_key`：并发下另一个请求刚用同一个邮箱占了位置。
+ *
+ * drizzle 会把驱动错误包进 `DrizzleQueryError`（message 是 "Failed query: …"），
+ * `code` 与 `constraint_name` 都在 **cause 链**上而不在顶层——只看顶层等于这个函数
+ * 从来没生效过（#151 的教训）。所以沿 cause 走几步，别只读第一层。
+ */
+function isEmailTaken(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; current !== null && depth < 5; depth += 1) {
+    if (typeof current === 'object') {
+      const e = current as { code?: string; constraint_name?: string };
+      if (e.code === '23505' && e.constraint_name === 'users_email_key') return true;
+    }
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
 async function countProjects(userId: string): Promise<number> {
   const db = getDb();
   const [row] = await db
@@ -82,18 +101,29 @@ export async function register(
 
   const passwordHash = await hashPassword(input.password);
   const db = getDb();
-  const [updated] = await db
-    .update(users)
-    .set({
-      email,
-      passwordHash,
-      displayName: input.displayName?.trim() || current.displayName,
-      guest: false,
-      claimedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, current.id))
-    .returning();
+  // #174：emailTaken 是读—改—写的前半截。并发下两个请求（两个标签页同时注册同一个邮箱）
+  // 都查不到对方 → 都去 update 自己那一行 → users_email_key 把后到的那条判 23505 →
+  // 路由 catch 住变 500，而串行时同样的事只答 409「该邮箱已被注册」。
+  // 把库的裁决翻译回同一句回执：一次重复提交不该看起来像服务器故障。
+  let claimed: typeof users.$inferSelect[];
+  try {
+    claimed = await db
+      .update(users)
+      .set({
+        email,
+        passwordHash,
+        displayName: input.displayName?.trim() || current.displayName,
+        guest: false,
+        claimedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, current.id))
+      .returning();
+  } catch (error) {
+    if (!isEmailTaken(error)) throw error;
+    return { code: 'email_taken', status: 409 };
+  }
+  const updated = claimed[0];
   if (!updated) return { code: 'no_identity', status: 400 };
 
   // 提权时刻轮换会话：删掉旧 token 会话、发新 token，杜绝事先种下的固定会话。

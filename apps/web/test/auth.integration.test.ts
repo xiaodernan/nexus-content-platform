@@ -54,6 +54,52 @@ afterAll(async () => {
   }
 });
 
+  it('并发拿同一个邮箱注册：后到的那发答 409 email_taken，而不是 23505 500（#174）', async () => {
+    const db = getDb();
+    const a = await makeGuest(false);
+    const b = await makeGuest(false);
+    const email = `race-${uniq()}@nexus.test`;
+    emailBox.push(email);
+
+    // 真实竞态：另一个会话已经把同一个邮箱写进 users、还没提交——emailTaken 看不见
+    // 未提交行，于是照样往下走。后到的那发阻塞在 users_email_key 上，等那个事务落地后
+    // 才发现撞车。（直接 Promise.all 两发 register 复现不了：口令哈希把窗口拉得足够宽，
+    // 实测两发会串成"一发成功、一发 email_taken"，竞态根本没发生。）
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let landed!: () => void;
+    const inserted = new Promise<void>((resolve) => {
+      landed = resolve;
+    });
+    const other = db.transaction(async (tx) => {
+      await tx.update(users).set({ email }).where(eq(users.id, a.user.id));
+      landed();
+      await gate;
+    });
+    await inserted;
+    const pending = register(toCurrentUser(b.user), { email, password: 'whatever-123' });
+    // 等到这一发真的阻塞在 users_email_key 上（wait_event_type='Lock'）再放开那个事务：
+    // 口令哈希有几十毫秒，轮询等得起；窗口由此钉死，不靠时序碰运气。
+    let blocked = false;
+    for (let i = 0; i < 600 && !blocked; i += 1) {
+      const rows = await db.execute(
+        rawSql`select 1 as hit from pg_stat_activity
+               where pid <> pg_backend_pid() and wait_event_type = 'Lock'
+                 and query like '%update "users"%' limit 1`,
+      );
+      blocked = rows.length > 0;
+      if (!blocked) await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(blocked, 'register 没能阻塞在 users_email_key 上——竞态窗口没造出来').toBe(true);
+    release();
+    const result = await pending;
+    await other;
+
+    expect('code' in result && result.code, '并发注册同一个邮箱该答 email_taken').toBe('email_taken');
+  });
+
 describe('register（§137 认领 guest 项目）', () => {
   it('就地升级：同一 user id 换成真实账号，名下项目原封不动被认领', async () => {
     const db = getDb();
