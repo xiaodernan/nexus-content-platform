@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { FsLike } from '@nexus/three-runtime';
 
 import {
+  STUDIO_SAVE_FS_SERVER_VERSION,
   STUDIO_SCENE_DISK_SAVE_PATH,
   STUDIO_SCENE_SAVES_ROOT,
   createStudioSceneSaveStore,
@@ -16,6 +17,7 @@ import {
   saveFsState,
   writeStudioSceneSave,
 } from './saveFsServer';
+import { STUDIO_WORLD_SAVE_SERVER_VERSION } from './worldSaveServer';
 
 /** Minimal in-memory FsLike — the store never knows it is not node:fs. Root join is by string,
  *  exactly like the real store does it. */
@@ -236,5 +238,52 @@ describe('studio disk delete/rename facts (v186)', () => {
     const badFrom = renameStudioSceneSave({ from: undefined, to: 'b' }, options);
     expect(badFrom.ok).toBe(false);
     expect(badFrom.reason).toContain('a disk rename needs a from path');
+  });
+});
+
+
+/**
+ * v471 — the scene-save probe’s VERSION STAMP, graded directly.
+ *
+ * The scene lane’s probe carries `STUDIO_SAVE_FS_SERVER_VERSION` on every answer so a client can
+ * tell which build spoke, and the probe cases read the state but never asked about the stamp. The
+ * world lane’s stamp was graded at v470; this is the same question on the other side of the pair.
+ */
+describe('the scene-save probe’s version stamp (v471)', () => {
+  it('the stamp rides BOTH answers — available or not, a client can tell which build spoke', () => {
+    const ok = saveFsState({ fs: memFs().fs });
+    expect(ok.available).toBe(true);
+    expect(ok.serverVersion).toBe(STUDIO_SAVE_FS_SERVER_VERSION);
+    const down = saveFsState({ fs: memFs().fs, root: '../elsewhere' });
+    expect(down.available).toBe(false);
+    expect(down.serverVersion).toBe(STUDIO_SAVE_FS_SERVER_VERSION);
+    expect(down.reason).toContain('walks out');
+  });
+
+  it('the stamp names its own lane and its build — a client reads both off it', () => {
+    expect(STUDIO_SAVE_FS_SERVER_VERSION).toContain('studio-save-fs');
+    expect(STUDIO_SAVE_FS_SERVER_VERSION).toMatch(/v\d+$/);
+    expect(STUDIO_SAVE_FS_SERVER_VERSION.length).toBeGreaterThan(0);
+  });
+
+  it('the two disk lanes’ stamps are DIFFERENT words — the scene probe and the world probe cannot be mistaken', () => {
+    expect(STUDIO_SAVE_FS_SERVER_VERSION).not.toBe(STUDIO_WORLD_SAVE_SERVER_VERSION);
+  });
+
+  it('the stamp rides the PROBE, not the write/read/delete/rename answers — each answer keeps its own shape', () => {
+    const { fs } = memFs();
+    const options = { fs, root: 'studio-saves' };
+    const written = writeStudioSceneSave({ path: STUDIO_SCENE_DISK_SAVE_PATH, file: SAVE_FILE }, options);
+    expect(written.ok).toBe(true);
+    expect('serverVersion' in written).toBe(false);
+    const read = readStudioSceneSave({ path: STUDIO_SCENE_DISK_SAVE_PATH }, options);
+    expect(read.ok).toBe(true);
+    expect('serverVersion' in read).toBe(false);
+    const renamed = renameStudioSceneSave({ from: STUDIO_SCENE_DISK_SAVE_PATH, to: 'renamed-save' }, options);
+    expect(renamed.ok).toBe(true);
+    expect('serverVersion' in renamed).toBe(false);
+    const deleted = deleteStudioSceneSave({ path: 'renamed-save' }, options);
+    expect(deleted.ok).toBe(true);
+    expect('serverVersion' in deleted).toBe(false);
   });
 });
