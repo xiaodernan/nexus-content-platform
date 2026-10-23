@@ -1585,7 +1585,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   中文标题直接进 `Content-Disposition` 会在构造响应时抛（平台上标题几乎必是中文）、免费那一路先 `+1`
   再建包（没源项目／源项目已删／导出抛错都照样让数字变大）。2026-10-21 把这四个洞一次修掉并立了见证，
   页面上那句"下载只记计数"也随之删掉；**计数从此只有一个含义：成功交付了几次**。
-  **仍欠**：ZIP 里**不含资产字节**（要开作者名下的私有素材读路径，买家未必要得到，另作一片）。
+  **2026-10-23 已补**：ZIP 里**含资产字节**——`buildProjectExport` 加 `assets` 三档，以创作者身份走 §80 鉴权路由读私有素材（`openAssetForOwner`），买家拿到的包直接能跑，不再缺图。见 `d3efaff`。
   **2026-10-09 收益明细落地**：`/api/marketplace/earnings` GET 端点 + `/marketplace/earnings` 页面——
   聚合 `marketplace_splits` 表按日期分组，返回 totalEarned / totalSales / dailyBreakdown；
   创作者能看到自己的分成流水（一次销售 = 一行记录，按天汇总）。
