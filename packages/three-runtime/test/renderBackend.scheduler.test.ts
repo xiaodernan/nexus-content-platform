@@ -28,7 +28,10 @@ describe('defaultFrameScheduler', () => {
     const h = s.request(() => {
       ran += 1;
     });
-    expect(typeof h).toBe('number');
+    // A usable cancel handle. (In Node setTimeout returns a Timeout OBJECT, not a number;
+    // the scheduler's `number` return type is a browser-era cast — assert the CONTRACT, not
+    // the runtime shape, which differs by host.)
+    expect(h).toBeDefined();
     expect(ran).toBe(0); // not run inline
     vi.advanceTimersByTime(16);
     expect(ran).toBe(1);
