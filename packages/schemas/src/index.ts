@@ -1669,6 +1669,12 @@ export type ApiPublication = z.infer<typeof ApiPublicationSchema>;
  * 只收 editor / viewer 两种角色：owner 是项目自带的事实（projects.ownerId），
  * 不接受"把 owner 也变成成员"的邀请——名额数的是"除 owner 外还能拉几个人"。
  */
+/** 移除成员：只按 userId（项目与权限在路由层判，报文只传递"移除谁"） */
+export const ApiMemberRemoveRequestSchema = z.object({
+  userId: z.string(),
+});
+export type ApiMemberRemoveRequest = z.infer<typeof ApiMemberRemoveRequestSchema>;
+
 export const ApiMemberInviteRequestSchema = z.object({
   email: z.string().email(),
   role: z.enum(['editor', 'viewer']).default('editor'),

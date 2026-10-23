@@ -6412,3 +6412,27 @@ DOM 胶水层按仓库惯例不进 vitest 单测（同 #194 先例），钉子�
 
 **下一步**：① 成员/邀请的 API 路由与 Studio 界面（名册面板、邀请链接接受页）；
 ② e2e 见证邀请→接受全链路；③ e2e storyboard 全量回归。
+
+
+## M5 第十五片（#202）：成员/邀请的 API 路由——转发的全部艺术是不重写
+
+#201 落好了领域层，这片把五条路由接上，全部是 team.ts 的转发（§74：路由里另起一套
+"先判归属再过门"的顺序，就是那条教训在发布上重演）：
+
+- `GET /api/projects/<id>/members`：名册（成员 + 邀请 + teamLimit）。owner 与协作者都能看
+  （team.ts 的 `projectVisibleTo`：被拉进一个项目的最低语义是看得见同伴），陌生人 404。
+  `teamLimit` 跟着回执走——界面要说得清"3/5"，不能只罗列人名。token 不进任何回执。
+- `POST .../members/invite` / `.../members/remove` / `.../invites/<inviteId>/revoke`：
+  CSRF → requireUser → team.ts。被拒时错误码分得清：不在名下 404（与 characters 路由
+  同一口径，不泄露存在性），名额满 400 `invite_rejected`（话里带数字）。
+- `POST /api/projects/invites/<token>/accept`：按**当前登录用户**接受——token 证明
+  "这枚邀请是真的"，用户的邮箱证明"这封是发给我的"，缺一不可（team.ts 里校）。
+- schemas 补 `ApiMemberRemoveRequestSchema`（报文只传递"移除谁"，归属在域层判）。
+
+见证：`team-routes.integration.test.ts` 6 条（roster 三方可见性 + token 不回显 / 名额门
+经路由生效 / 非 owner 写 404 / remove 与名额释放 / revoke 与重复撤回 404 / accept 的
+邮箱与 token 两道校验）。`route-security-gate` 结构门 5/5（新路由全部 csrfOk + requireUser）。
+tsc 0、eslint 0。
+
+**下一步**：① TeamPanel 界面（名册 + 邀请表单 + 邀请链接）+ StudioShell 加 tab；
+② e2e 见证邀请→接受全链路；③ e2e storyboard 全量回归。

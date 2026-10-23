@@ -45,13 +45,30 @@ export interface InviteResult {
 }
 
 /** 这个项目的 owner 是谁；项目不存在（含已软删）返回 null */
-async function ownerOf(projectId: string): Promise<string | null> {
+export async function ownerOf(projectId: string): Promise<string | null> {
   const [row] = await getDb()
     .select({ ownerId: projects.ownerId })
     .from(projects)
     .where(and(eq(projects.id, projectId), isNull(projects.deletedAt)))
     .limit(1);
   return row?.ownerId ?? null;
+}
+
+/**
+ * 这个人能不能看到这个项目的名册：owner，或名册上的一员。
+ * 协作者能看名册是团队功能的最低语义（不然"被拉进一个项目"连同伴都看不到）；
+ * 但**看**不等于**管**——邀请/撤回/移除仍然 owner only（见那三个函数）。
+ */
+export async function projectVisibleTo(projectId: string, userId: string): Promise<boolean> {
+  const ownerId = await ownerOf(projectId);
+  if (!ownerId) return false;
+  if (ownerId === userId) return true;
+  const [row] = await getDb()
+    .select({ id: projectMembers.id })
+    .from(projectMembers)
+    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)))
+    .limit(1);
+  return Boolean(row);
 }
 
 export async function listMembers(projectId: string): Promise<ProjectMemberView[]> {
