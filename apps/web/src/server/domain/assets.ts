@@ -11,6 +11,12 @@ import {
   sniffImageMime,
   stripImageMetadata,
 } from '../storage/images';
+import {
+  MAX_VIDEO_BYTES,
+  VIDEO_MIME_EXTENSIONS,
+  sniffVideoMime,
+  videoMetadataViolations,
+} from '../storage/videos';
 import { refusalForStorage } from './credits';
 import { isUuid } from './ids';
 import { planOf, storageUsageBytes } from './credit-ledger';
@@ -180,6 +186,128 @@ export async function uploadImageAsset(
     })
     .returning();
   return { ok: true, asset: assetRowToRef(row!), removed: sanitized.removed, reused: false };
+}
+
+/**
+ * 视频字节入库（§40-42 渲染产物 → 资产行）。
+ *
+ * 与 `uploadImageAsset` 共用同一条摄取链（magic 嗅探 → 限额 → 去重 → 配额 → 落存储 → 落库），
+ * 但有两条**刻意不同**：
+ *
+ * 1. **没有 `source` 参数，写死 'generated'**。视频字节今天只有一个来源：本服务自己跑的
+ *    ffmpeg（§40-42 的 DEMO 渲染）。用户上传通道对视频保持关闭——mp4/webm 的元数据长在
+ *    容器结构里、剥不掉（见 `storage/videos.ts` 头注释），收下一颗来路不明的视频
+ *    等于收下它的 GPS 与设备指纹。将来导入/上传真的需要视频时，入口开在这里，
+ *    不开在调用方那里。
+ * 2. **元数据在摄入时复核，不在摄入时剥**。位图那条链是"剥干净再入库"；视频剥不了，
+ *    所以改成"渲染命令里就不写（`-map_metadata -1`），摄入时按容器结构验一遍"——
+ *    见到 meta 盒 / Tags 元素就拒。少这一遍，"渲染命令忘了那两个旗"会静默产出一颗
+ *    带着 encoder 与设备信息的成片，还照样进得了资产库。
+ */
+export interface VideoUploadRejection {
+  ok: false;
+  /** `invalid_video` 是"这颗字节不能进资产库"，`storage_exhausted` 是"这次放不下了"——两件事 */
+  code: 'invalid_video' | 'storage_exhausted';
+  reason: string;
+  issues: string[];
+}
+
+export type VideoUploadResult =
+  | { ok: true; asset: AssetRef; removed: string[]; reused: boolean }
+  | VideoUploadRejection;
+
+export async function uploadVideoAsset(
+  projectId: string,
+  input: {
+    data: ArrayBuffer | Uint8Array;
+    filename?: string;
+    createdById?: string;
+    /** 生成来源的元信息（prompt / provider / seed / demoMode / storyboardId / taskId） */
+    genMeta?: Record<string, unknown>;
+  },
+): Promise<VideoUploadResult> {
+  const bytes = input.data instanceof Uint8Array ? input.data : new Uint8Array(input.data);
+  const mime = sniffVideoMime(bytes);
+  if (!mime) {
+    return {
+      ok: false,
+      code: 'invalid_video',
+      reason: '只接受 MP4 / WebM 视频，且只接受本服务渲染链产出的字节',
+      issues: [
+        '文件头（magic bytes）未识别为受支持的视频容器；mp4 认第 4 字节起的 ftyp 盒，webm 认 EBML 魔数加 DocType',
+      ],
+    };
+  }
+  const violations = videoMetadataViolations(bytes);
+  if (violations.length) {
+    return {
+      ok: false,
+      code: 'invalid_video',
+      reason: '视频字节里还挂着元数据：这不是本服务渲染链的产物，或渲染命令漏了 -map_metadata -1',
+      issues: violations.map((item) => `容器里还带着 ${item}`),
+    };
+  }
+  if (bytes.length > MAX_VIDEO_BYTES) {
+    return {
+      ok: false,
+      code: 'invalid_video',
+      reason: `视频超过 ${Math.round(MAX_VIDEO_BYTES / 1024 / 1024)}MB 上限`,
+      issues: [`这一份 ${bytes.length} 字节`],
+    };
+  }
+
+  const db = getDb();
+  const checksum = createHash('sha256').update(bytes).digest('hex');
+  // 同项目内的重复渲染复用同一份字节：省存储，也让引用计数反映真实使用（与图片同一口径）
+  const [twin] = await db
+    .select()
+    .from(assets)
+    .where(and(eq(assets.projectId, projectId), eq(assets.checksum, checksum)))
+    .limit(1);
+  if (twin) return { ok: true, asset: assetRowToRef(twin), removed: [], reused: true };
+
+  // §133 的 storage 配额（ADR-0018）：与图片共用同一道门，位置也一致——复用判断之后
+  const ownerId = await projectOwnerId(projectId);
+  if (ownerId) {
+    const refusal = refusalForStorage({
+      plan: await planOf(ownerId),
+      usedBytes: await storageUsageBytes(ownerId),
+      incomingBytes: bytes.length,
+    });
+    if (refusal) {
+      return {
+        ok: false,
+        code: 'storage_exhausted',
+        reason: refusal,
+        issues: ['存储配额按所有者名下所有项目合计；被拒的是这一次写入，库里已有的素材不会被自动删掉'],
+      };
+    }
+  }
+
+  const id = randomUUID();
+  const key = `projects/${projectId}/${id}${VIDEO_MIME_EXTENSIONS[mime]}`;
+  await getStorage().put(key, bytes, mime);
+  const [row] = await db
+    .insert(assets)
+    .values({
+      id,
+      projectId,
+      kind: 'video',
+      name: displayName(input.filename, `render-${id.slice(0, 8)}${VIDEO_MIME_EXTENSIONS[mime]}`),
+      storageKey: key,
+      mime,
+      bytes: bytes.length,
+      // 视频的宽高要 ffprobe 才知道，摄入这一层不引 ffmpeg：留空，不猜
+      width: null,
+      height: null,
+      checksum,
+      source: 'generated',
+      characterId: null,
+      genMeta: { ...input.genMeta, metadataStrippedBy: 'ffmpeg -map_metadata -1 -map_chapters -1 -bitexact' },
+      createdById: input.createdById ?? null,
+    })
+    .returning();
+  return { ok: true, asset: assetRowToRef(row!), removed: [], reused: false };
 }
 
 export async function listProjectAssets(projectId: string): Promise<AssetRef[]> {

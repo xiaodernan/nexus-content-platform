@@ -113,10 +113,18 @@ export function buildFfmpegArgs(
       if (!path) {
         throw new Error(`第 ${index + 1} 镜（${segment.shotId}）计划推演参考帧 ${segment.source.assetId}，但没有给它文件`);
       }
-      // 多渲 transitionInMs 毫秒：转场叠在上一镜尾段与本镜开头，这几帧是叠化的燃料
+      // 多渲 transitionInMs 毫秒：转场叠在上一镜尾段与本镜开头，这几帧是叠化的燃料。
+      // 它只进 zoompan 的 d，**不进输入侧**——zoompan 的 d 是"每个输入帧产出 d 帧"，
+      // 输入多给一帧，这一镜就多出整整 d 帧。
       const frames = framesFor(segment.durationMs + segment.transitionInMs, plan.fps);
-      args.push('-loop', '1', '-t', durationSeconds(frames, plan.fps), '-i', path);
-      filters.push(`[${index}:v]${zoompanFilter(segment, frames, plan.width, plan.height, plan.fps)}[${label}]`);
+      // 参考帧按**单帧**进：不给 -loop / -stream_loop，也不给输入侧 -t。
+      // #188 用真 ffmpeg 抓到过这一格：`-loop 1 -t 1.400` 在一张静态图上给出 35 帧输入，
+      // zoompan 于是产出 35×42=1470 帧，整条时间线被输出侧的 -t 截断，
+      // **成片里只剩第一镜**，后两镜一帧都没出现——而 ffprobe 看时长还是"对"的。
+      // select 再兜一层：万一是颗视频（渲染产物也能被挂成参考帧），只取它的第一帧，
+      // 否则多帧输入会静默把这一镜撑长 d 倍。
+      args.push('-i', path);
+      filters.push(`[${index}:v]select='eq(n\\,0)',${zoompanFilter(segment, frames, plan.width, plan.height, plan.fps)}[${label}]`);
       return;
     }
 
@@ -160,6 +168,14 @@ export function buildFfmpegArgs(
 
   args.push('-filter_complex', filters.join(';'));
   args.push('-map', `[${current}]`);
+  // 成片不携带任何元数据。三个旗各有分工，少一个摄入门就拒（实测，不是"应该"）：
+  // -map_metadata -1：不把输入（参考图）的元数据顺过来；
+  // -map_chapters -1：不带章节轨；
+  // -bitexact：连 ffmpeg 自己的 ©too=Lavf... 品牌标签都不写。只给前两个旗时
+  //   mp4 里照样有 moov/udta/meta/ilst（实测 with-meta 与 clean 只差这个旗），
+  //   而视频的元数据剥不掉，只能在产出时就不写——摄入侧（storage/videos.ts 的
+  //   videoMetadataViolations）按容器结构复核，见到 ilst 就拒。
+  args.push('-map_metadata', '-1', '-map_chapters', '-1', '-bitexact');
   args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', String(plan.fps));
   // 成片长度必须等于计划的总时长：滤镜链理论上刚好，这里再夹一道，
   // 免得某一版 ffmpeg 多吐一帧就让 UI 上的总时长与成片对不上

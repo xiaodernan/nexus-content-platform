@@ -5969,3 +5969,106 @@ zoompan 于是每 33 毫秒就被输入掐一次，推演停在原处不动。�
 所以是绿的；改成整函数替换后才红。探针要摘到"这条性质的全部承担者"。）
 
 tsc -p packages/video-model 0；改动文件 eslint 0。
+
+## §52 产物第三条链的补记（#188）：对话的播放语义收回模型层，产物转写跟着改
+
+`packages/game-model/src/story.ts` 新增 `StoryState` / `storyInitial` / `storyStep` / `storySummary`，
+与 `sim.step`、`rpgStep` 同形：纯函数、不改传入的 state、同一输入跑出同一结果。
+之前播放语义分两处各写一遍——`StoryPlay.tsx` 的 `currentId + path` 数组、产物 `NexusStory` 的
+`visited` 布尔表；两处都是"播放器"，却没有一处能被平台页与转写同时引用（§16）。
+现在"走过几次"记成计数（`visited: Record<string, number>`）并保留 `trail`，面包屑与"第 N 次走到这里"
+都从这两个字段现算，不再各留一份。
+
+两个语义点：
+
+1. **起点开场即算走过一次**（ADR-0046 那个坑的延续）：`storyInitial` 同时写 `visited[startId] = 1`
+   与 `trail = [startId]`，绕回起点当步就认得出环，不用绕两圈。
+2. **打不中的选择返回同一个 state**，不是拷贝——"点下去没反应"就该真的没反应。
+
+产物转写同步：`NexusStory` 的 `visited` 由布尔改成计数、补 `trail`，空场那句拒绝语从 `story.ts`
+的导出插进产物（模板里不再重打一遍）。
+
+见证：`story.test.ts` 新增 8 条（计数与顺序、成环且 loop 不回退、no-op 身份、事件上限、摘要原文、
+两次同结果）；`codegen.test.ts` 那条"起点记进 visited"改成计数写法；`scripts/story-engine-proof.mts`
+9 条 → 11 条：同一串 5 步（含一次重访与一次打不中）之后，模型与 `NexusStory` 的状态
+`JSON.stringify` 逐字段相同、摘要逐字相同。game-model 全量 235/235 绿、tsc 0、eslint 0。
+浏览器那一段：`screenshots/story-play-first.png` / `story-play-end.png` 已看过——正文、唯一选项、
+空正文说明、结束句与「走过 2 段」都对。
+
+**一条环境记号**：`@smoke §51 类型分派` 这一支一次走八种画法，冷 dev server 上光 RPG 页首帧就等了
+123 秒，300s 总预算在最后一张截图前被吃光（trace 里所有断言当时都已通过）。按仓库既有惯例
+（§52 Code 那支同因放到 600s）把这一支的预算也调到 600s——**只放宽时间，不动任何断言**。
+
+**仍然欠的**：产物侧是转写，不是 import——`story.ts` 改逻辑而产物不重新生成仍会分叉，
+这条限度留在 `CODEGEN_LIMITS` 里。
+
+## §52 产物第三条链的补记（#189）：对话那一段也有浏览器 scripted 见证，且"打不中"的引用契约与模型同形
+
+`scripts/game-code-parity.mts` 原先只有页面级 STORY_* 判决：正文会换、成环会标、plan 不被写死——
+但没有**同一串选择在模型与产物两边跑出同一串状态**这一格，那正是 ADR-0046 给产物立的规矩。
+现在三条链各有一段 scripted trace 逐字节比：story 那一段 6 步（起点→第二段→起点成环→
+两个打不中→再走一圈），两个"打不中"分别是**不存在的 id** 与**别段的选择 id**。
+
+这一步同时抓出一个转写分叉：模型层 `storyStep` 打不中时原样返回**同一个 state**（`story.test.ts`
+用 `toBe(state)` 钉住），而产物 `NexusStory` 当时先造了 `next` 再 `return next`——JSON 一样、
+引用不一样，页面 `setState` 会多一次无意义重渲染。产物改成检查全部放在构造之前、打不中 `return state`，
+与模型同形；`codegen.test.ts` 加一条静态钉子（四个 guard 都返回 state，且 `return next;` 只出现在成功那一步）。
+
+判决从 31 条加到 38 条：新增 `STORY_STATE_TRACE_PARITY`（1208 字节逐字符相同）、
+`STORY_SUMMARY_PARITY`、`STORY_NOOP_IS_A_NOOP`（打不中 2 步步数与对象都没动、走通 4 步各 +1 并换新对象）、
+`STORY_LOOP_EXERCISED`（重访 d1×3 / d2×2、成环事件 3 条，按 `t` 去重——状态每一步都带整份旧事件，
+直接 flatMap 会把 3 条数成 8 条）、`STORY_ENDING_PARITY`（末段没有出边的摘要）、
+`STORY_UNPLAYABLE_REFUSAL`（一条对话都没有：`ended` + 同一句 outcome + 点一下返回同一对象）、
+`STORY_CONTROL_MUTATED_SCRIPT`（把第一步换成打不中，两边一起变且仍逐字节相同）。
+
+见证读数：`scripts/game-code-parity.mts` 38/38 绿（`PARITY_EXIT=0`）、`scripts/story-engine-proof.mts`
+11/11、game-model 全量 236/236、game-model 与 tools 的 tsc 0。**先量旧行为再修**：同一份见证在改转写之前
+跑出 38 条里 2 条红（`STORY_NOOP_IS_A_NOOP`、`STORY_UNPLAYABLE_REFUSAL`，其余含逐字节 trace 全绿），
+修完才全绿——那两条红就是这次修改的因果凭证，不是补写的断言。
+
+## M5 第三片（#189）：资产链路收下视频字节——只收本服务 ffmpeg 渲染出来的产物
+
+`apps/web/src/server/storage/videos.ts`（新）+ `assets.ts` 的 `uploadVideoAsset`：视频字节
+第一次能进资产库。与 `uploadImageAsset` 共用同一条摄取链（magic 嗅探 → 限额 → 去重 → 配额 →
+落存储 → 落库），但有两条**刻意不同**：
+
+1. **没有 `source` 参数，写死 `generated`**。视频字节今天只有一个来源：本服务自己跑的 ffmpeg
+   （§40-42 的 DEMO 渲染）。用户上传通道对视频保持关闭——mp4/webm 的元数据长在容器结构里、
+   摘不掉（见下），收下一颗来路不明的视频等于收下它的 GPS 与设备指纹。将来导入真的需要视频时，
+   入口开在领域函数里，不开在调用方那里。
+2. **元数据在摄入时复核，不在摄入时剥**。位图那条链是"剥干净再入库"；视频剥不了，所以改成
+   "渲染命令里就不写，摄入时按容器结构验一遍"。少了这一遍，"渲染命令忘了配旗"会静默产出一颗
+   带着设备信息的成片，还照样进得了资产库。
+
+"干净"按容器分别定义，定义的依据是**"本服务的渲染链能做到多干净"**（拿做不到的标准当门禁，
+只会把自家渲染产物拒之门外）：
+
+- mp4：`ilst` 里不许住东西，顶层也不许有 `meta`/`udta`/`uuid` 盒。注意 ffmpeg 的 bitexact 产物
+  也会留一个**空的** ilst 盒（实测 8 字节无子项）——那是容器形状，不是内容，所以判的是"非空"。
+- webm：matroska muxer 无论如何都会写 `Tags`（实测 `-bitexact` 只能抹掉版本号，去不掉
+  ENCODER / DURATION 本身），所以白名单只认这两个 muxer 自己的名字；出现第三个
+  （TITLE / GPS / 评论…）就说明这颗字节不是本服务渲染链的产物。
+
+**测试抓到的真 bug（比这片本身更重要）**：`zoompan` 的 `d` 是"**每个输入帧**产出 d 帧"。
+#187 用 `-loop 1 -t 1.400` 喂静态图参考帧，实际给出 35 帧输入，zoompan 于是产出 35×42=1470 帧，
+整条时间线被输出侧的 `-t` 截断——**成片只剩第一镜**，后两镜一帧未现，而 ffprobe 量时长
+还是"对"的（360 帧 / 12.000000s）。#187 那条"抽帧看过三镜"的见证因此是假的，这里一并纠正。
+修法：参考帧按**单帧**进（不给 `-loop` / `-stream_loop`、不给输入侧 `-t`），滤镜链前加
+`select='eq(n\,0)'` 兜住视频输入。修后重验三镜样片：1280x720 / 30fps / h264 / yuv420p /
+nb_frames=360 / duration=12.000000，t=1 第一镜参考图、t=5 第二镜竖图 cover、t=9.5 深色卡 +
+居中中文烧字幕，三镜各自在位。
+
+渲染命令因此补三个旗：`-map_metadata -1 -map_chapters -1 -bitexact`。三者各自承重，
+都有实测依据：摘 `-map_metadata -1`，参考帧自带的 `comment=GPS: 31.23,121.47` 整段流进成片
+ilst（真 ffmpeg 复现，正是 §80 里"位置信息顺着编码器流进成片"的现场——所以渲染器**不信任
+上游已经剥干净了**）；摘 `-bitexact`，ffmpeg 自己的 `©too=Lavf…` 品牌标签写进 ilst。
+
+见证：`apps/web/test/video-asset.integration.test.ts` 13 条（真 ffmpeg 渲出真字节再喂摄入门，
+干净/带元数据两个方向都测）；`packages/video-model` 79/79 绿；tsc 0、改动文件 eslint 0。
+变异探针 14 种全部精确红、逐字节还原：sniff 不看 DocType（mkv 改姓）/ ilst 出现即违规 /
+不递归进 moov/udta/meta / 读不懂时假装干净 / webm 白名单全拒 / webm 白名单全放行 /
+去体积上限 / 摄入不复核元数据 / 摄入不去重 / 摄入不问配额 / 去 -bitexact / 去 -map_metadata -1 /
+参考输入加回 -loop 1 / 去 select 首帧。
+
+**下一步**：把渲染接进服务端——一个"渲染这一条分镜（DEMO）"的作业，产物走这条刚接上的
+视频摄入链回填 `shot.videoAssetId`，UI 入口明码标注 DEMO 并把 warnings 显示出来。

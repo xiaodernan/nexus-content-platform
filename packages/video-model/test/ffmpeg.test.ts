@@ -56,10 +56,20 @@ describe('buildFfmpegArgs —— 帧数与输入', () => {
     const graph = filterOf(args);
     expect(graph).toContain('d=30:');
     expect(graph).toContain('d=42:');
-    // 输入侧各自的 -t 也按这个帧数给：zoompan 的 d 只决定产出帧数，
-    // 输入不够长时它会重复最后一帧——那样推演就停在原处不动了
-    expect(args.join(' ')).toContain('-t 1.000');
-    expect(args.join(' ')).toContain('-t 1.400');
+  });
+
+  it('参考帧按单帧进：不给 -loop/-stream_loop/输入侧 -t，靠 select 兜住视频输入', () => {
+    // zoompan 的 d 是"每个输入帧产出 d 帧"。输入多给一帧，这一镜就多出 d 帧，
+    // 整条时间线被输出侧 -t 截断后只剩第一镜——#188 用真 ffmpeg 抓到过：
+    // `-loop 1 -t 1.400` 给出 35 帧输入，产出 35×42=1470 帧，后两镜一帧未现。
+    const plan = planVideoRender(board([shot({ id: 'a', durationMs: 1000, referenceAssetId: 'r0' })]));
+    const { args } = buildFfmpegArgs(plan, [{ shotId: 'a', path: 'ref.mp4' }], { output: 'o.mp4' });
+    expect(args.join(' ')).not.toContain('-loop');
+    expect(args.join(' ')).not.toContain('-stream_loop');
+    // 输入侧没有任何 -t：唯一的 -t 是输出侧夹总时长那个
+    expect(args.filter((a) => a === '-t')).toHaveLength(1);
+    // 视频当参考帧时只取第一帧：eq(n\,0) 的逗号在滤镜链里必须转义，否则解析就断在这里
+    expect(filterOf(args)).toContain(String.raw`select='eq(n\,0)',zoompan=`);
   });
 
   it('色卡镜不需要 -loop 输入：color 源自己就是一路视频', () => {
@@ -182,5 +192,24 @@ describe('buildFfmpegArgs —— 不说谎', () => {
     expect(buildFfmpegArgs(plan, [], { output: 'o.mp4' }).args.join(' ')).toContain(
       `color=c=${color.replace('#', '0x')}`,
     );
+  });
+});
+
+describe('buildFfmpegArgs —— 成片不携带元数据', () => {
+  it('-map_metadata -1 -map_chapters -1：摄入门按容器结构复核，少了这两旗就进不了资产库', () => {
+    const plan = planVideoRender(
+      board([
+        shot({ id: 'a', durationMs: 1500, transition: 'fade', referenceAssetId: 'r1' }),
+        shot({ id: 'b', durationMs: 800, prompt: '第二镜' }),
+      ]),
+    );
+    const files = [{ shotId: 'a', path: 'a.png' }];
+    const args = buildFfmpegArgs(plan, files, { output: 'o.mp4' }).args;
+    // 三个旗各有分工（实测过）：-map_metadata -1 挡输入元数据、-map_chapters -1 挡章节轨、
+    // -bitexact 连 ffmpeg 自己的 ©too=Lavf 品牌标签都不写。少任何一个，
+    // 摄入门（storage/videos.ts）都会按容器结构把成片拒掉
+    expect(args.join(' ')).toContain('-map_metadata -1');
+    expect(args.join(' ')).toContain('-map_chapters -1');
+    expect(args.join(' ')).toContain('-bitexact');
   });
 });
