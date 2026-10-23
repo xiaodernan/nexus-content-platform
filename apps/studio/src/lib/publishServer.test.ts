@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  DEFAULT_LIST_LIMIT,
   listPublications,
   publishDocument,
   publishState,
@@ -291,5 +292,64 @@ describe('publishServer — unpublish (v195)', () => {
     await unpublishProject('a/b', fetchImpl);
 
     expect(urls[0]).toBe('http://127.0.0.1:8080/projects/a%2Fb');
+  });
+});
+
+describe('publishServer — the default list limit, graded directly (v474)', () => {
+  it('the constant is the pinned default: a positive integer the service door accepts', () => {
+    expect(DEFAULT_LIST_LIMIT).toBe(20);
+    expect(Number.isInteger(DEFAULT_LIST_LIMIT)).toBe(true);
+    expect(DEFAULT_LIST_LIMIT).toBeGreaterThan(0);
+  });
+
+  it('a listing asked with the constant reaches the listing door with exactly ?limit=20', async () => {
+    const urls: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      urls.push(url);
+      return response(200, { publications: [], count: 0, limit: DEFAULT_LIST_LIMIT });
+    }) as unknown as FetchLike;
+
+    const answer = await listPublications(DEFAULT_LIST_LIMIT, fetchImpl);
+
+    expect(urls[0]).toBe(`http://127.0.0.1:8080/projects?limit=${DEFAULT_LIST_LIMIT}`);
+    expect(answer.ok).toBe(true);
+    expect(answer.limit).toBe(DEFAULT_LIST_LIMIT);
+  });
+
+  it('the constant is a fallback, not a cap — a caller’s own number rides through untouched', async () => {
+    const urls: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      urls.push(url);
+      return response(200, { publications: [], count: 0, limit: 1 });
+    }) as unknown as FetchLike;
+
+    await listPublications(1, fetchImpl);
+    await listPublications(DEFAULT_LIST_LIMIT * 500, fetchImpl);
+
+    expect(urls[0]).toBe('http://127.0.0.1:8080/projects?limit=1');
+    expect(urls[1]).toBe(`http://127.0.0.1:8080/projects?limit=${DEFAULT_LIST_LIMIT * 500}`);
+  });
+
+  it('the answer’s limit is the service’s cap, never the constant — asked 10000, answered 100', async () => {
+    const fetchImpl = vi.fn(async () => response(200, { publications: [], count: 0, limit: 100 })) as unknown as FetchLike;
+
+    const answer = await listPublications(DEFAULT_LIST_LIMIT * 500, fetchImpl);
+
+    expect(answer.limit).toBe(100);
+    expect(answer.limit).not.toBe(DEFAULT_LIST_LIMIT);
+  });
+
+  it('the constant composes with the owner window and the search door', async () => {
+    const urls: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      urls.push(url);
+      return response(200, { publications: [], count: 0, limit: DEFAULT_LIST_LIMIT });
+    }) as unknown as FetchLike;
+
+    await listPublications(DEFAULT_LIST_LIMIT, fetchImpl, 'ada', 40);
+    await listPublications(DEFAULT_LIST_LIMIT, fetchImpl, undefined, undefined, 'harbour');
+
+    expect(urls[0]).toBe(`http://127.0.0.1:8080/projects?limit=${DEFAULT_LIST_LIMIT}&owner=ada&offset=40`);
+    expect(urls[1]).toBe(`http://127.0.0.1:8080/search?limit=${DEFAULT_LIST_LIMIT}&q=harbour`);
   });
 });
