@@ -2,6 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import {
   WorldEngine,
   CharacterAgent,
+  DEFAULT_AGENT_CONFIG,
   RELATIONSHIP_FLOOR,
   createCharacterId,
   createLocationId,
@@ -452,5 +453,90 @@ describe('CharacterAgent — what the world can tell the agent', () => {
     agent.updateGoalProgress('g-nobody', 50);
 
     expect(hero.goals).toHaveLength(0);
+  });
+});
+
+describe('CharacterAgent — the default config, graded directly (v475)', () => {
+  let engine: WorldEngine;
+  let world: WorldState;
+  let hero: Character;
+  let agent: CharacterAgent;
+
+  beforeEach(() => {
+    engine = new WorldEngine();
+    world = engine.getWorld();
+    const camp = engine.createLocation('Camp', 'A camp beside the road', 'landmark');
+    const forest = engine.createLocation('Forest', 'Dark trees', 'wilderness');
+    engine.connectLocations(camp.id, forest.id, {
+      type: 'road',
+      distance: 50,
+      difficulty: 2,
+      description: 'A worn road',
+    });
+    hero = engine.createCharacter('Mira', 'A traveller', 'scout', camp.id);
+    engine.addCharacterToLocation(hero.id, camp.id);
+    agent = new CharacterAgent(hero, world, engine.getRAG());
+  });
+
+  it('the constant is the full pinned shape — six named fields, each in its honest range', () => {
+    expect(Object.keys(DEFAULT_AGENT_CONFIG).sort()).toEqual([
+      'decisionThreshold', 'goalWeight', 'planningHorizon', 'riskTolerance', 'socialWeight', 'survivalWeight',
+    ]);
+    expect(DEFAULT_AGENT_CONFIG.decisionThreshold).toBe(0.6);
+    expect(DEFAULT_AGENT_CONFIG.planningHorizon).toBe(3);
+    expect(DEFAULT_AGENT_CONFIG.riskTolerance).toBe(0.5);
+    expect(DEFAULT_AGENT_CONFIG.socialWeight).toBe(0.3);
+    expect(DEFAULT_AGENT_CONFIG.goalWeight).toBe(0.4);
+    expect(DEFAULT_AGENT_CONFIG.survivalWeight).toBe(0.3);
+    for (const w of [DEFAULT_AGENT_CONFIG.riskTolerance, DEFAULT_AGENT_CONFIG.socialWeight, DEFAULT_AGENT_CONFIG.goalWeight, DEFAULT_AGENT_CONFIG.survivalWeight]) {
+      expect(w).toBeGreaterThan(0);
+      expect(w).toBeLessThanOrEqual(1);
+    }
+    expect(DEFAULT_AGENT_CONFIG.decisionThreshold).toBeGreaterThan(0);
+    expect(DEFAULT_AGENT_CONFIG.decisionThreshold).toBeLessThanOrEqual(1);
+    expect(Number.isInteger(DEFAULT_AGENT_CONFIG.planningHorizon)).toBe(true);
+    expect(DEFAULT_AGENT_CONFIG.planningHorizon).toBeGreaterThan(0);
+  });
+
+  it('the three decision weights partition unity — a decision is a weighted vote (measured, not argued)', () => {
+    const { socialWeight, goalWeight, survivalWeight } = DEFAULT_AGENT_CONFIG;
+    expect(socialWeight + goalWeight + survivalWeight).toBeCloseTo(1, 10);
+  });
+
+  it('an agent built with no config runs exactly the default — the same decision as an explicit spread', async () => {
+    const explicit = new CharacterAgent(hero, world, engine.getRAG(), { ...DEFAULT_AGENT_CONFIG });
+
+    expect(await agent.decide()).toEqual(await explicit.decide());
+  });
+
+  it('the default survival weight is observable in the decision — a hurt character rests at exactly 5×survivalWeight/10 confidence', async () => {
+    hero.status.health = 20;
+
+    const decision = await agent.decide();
+
+    expect(decision.actionId).toBe('rest');
+    expect(decision.confidence).toBeCloseTo((5 * DEFAULT_AGENT_CONFIG.survivalWeight) / 10, 10);
+  });
+
+  it('one override changes one field — and the shared default is never mutated by a construction', async () => {
+    hero.status.health = 20;
+    hero.goals.push({
+      id: 'g-1',
+      description: 'find the healing spring',
+      priority: 1,
+      status: 'active',
+      progress: 0,
+      dependencies: [],
+    });
+    // default: rest scores 5×0.3 = 1.5, heal scores 4×0.3 + 0.5×1×0.4 = 1.4 — rest wins
+    expect((await agent.decide()).actionId).toBe('rest');
+
+    const greedy = new CharacterAgent(hero, world, engine.getRAG(), { goalWeight: 1 });
+    // goalWeight 1 lifts heal to 1.7 — the ONE field named moved, and only it
+    expect((await greedy.decide()).actionId).toBe('heal');
+
+    expect(DEFAULT_AGENT_CONFIG.goalWeight).toBe(0.4);
+    const after = new CharacterAgent(hero, world, engine.getRAG());
+    expect((await after.decide()).actionId).toBe('rest');
   });
 });
