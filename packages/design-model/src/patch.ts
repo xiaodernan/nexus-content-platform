@@ -536,7 +536,10 @@ export function isWithin(
   ancestorId: string,
 ): boolean {
   let current = page.nodes[maybeDescendant];
+  const seen = new Set<string>();
   while (current?.parentId) {
+    if (seen.has(current.parentId)) break; // 防环：畸形 parent 链不再死循环（ADR-0050 第 9 处）
+    seen.add(current.parentId);
     if (current.parentId === ancestorId) return true;
     current = page.nodes[current.parentId];
   }

@@ -1883,3 +1883,8 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   **变异探针**：摘掉三处守卫后这 3 条全部 `RangeError` 变红，恢复后全绿——证明不是「即使代码坏掉也会通过」的废断言。
   **横向核对结论**：`diff.ts` 的 `walkLeaves` 走值树、`serialize.ts` 的 `stringify` 只递归 JSON 值、`health.ts` 只遍历
   已展开的扁平 `layout.nodes` 表——三者均无节点树成环风险，不需补守卫（见 ADR-0050「未做/后续」）。
+
+- **2026-10-23：同族第 9 处——`patch.ts` 的 `isWithin`**（`reparent` 的防环检查）也是父链 `while` 无 `seen` 守卫：
+  畸形父链（`a.parentId=b`、`b.parentId=a`）会让它在 a↔b 间**同步死循环**——即"防环检查自己先挂住"。
+  补上与 `ancestors` / `isDescendant` 同款的 `seen` 守卫。`traversal-cycle-extra.test.ts` 加 1 条（父环下 `isWithin` 终止）。
+  **红证**：与 ancestors/isDescendant 同一型（同步死循环，连报错都不留），未再单独跑挂起。
