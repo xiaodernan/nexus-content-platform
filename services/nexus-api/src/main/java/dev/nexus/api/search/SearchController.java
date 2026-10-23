@@ -66,11 +66,18 @@ public class SearchController {
     }
 
     /**
-     * The URL that serves a publication, built from the request that asked — the same rule the publish
+     * The URL that serves a publication, built from the CONTEXT PATH — the same rule the publish
      * controller follows, so a search result points at an address that actually serves it.
+     *
+     * <p>v429 — this door used to compose from the CURRENT REQUEST, and v425 measured what that meant:
+     * asked at {@code /search}, a result’s URL was {@code /search/projects/{id}} — an address no
+     * endpoint serves, because the read door is {@code /projects/{id}}. The old javadoc called that
+     * “the same rule the publish controller follows”, which was false: the two doors composed from
+     * different bases and disagreed about every URL they answered. A link that points at nothing is worse
+     * than no link, so the base is now the context path and the two doors agree.
      */
     private static String urlFor(String projectId) {
-        return ServletUriComponentsBuilder.fromCurrentRequest()
+        return ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/projects/{projectId}")
                 .buildAndExpand(projectId)
                 .toUriString();

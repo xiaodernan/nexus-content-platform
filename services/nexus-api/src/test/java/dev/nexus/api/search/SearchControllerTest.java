@@ -33,9 +33,12 @@ import org.springframework.web.context.request.ServletRequestAttributes;
  * carry, because a search result set is long enough to need one.
  *
  * <p>No Spring context and no database here on purpose. The request the URL is built from is a
- * {@link MockHttpServletRequest} placed AT THE DOOR'S OWN ADDRESS, which is what exposes the one fact
- * worth measuring here: this door composes its URLs from the CURRENT REQUEST, where the publish door
- * composes from the CONTEXT PATH - so a search result's URL carries the door it was asked at.
+ * {@link MockHttpServletRequest} placed AT THE DOOR'S OWN ADDRESS, which is what lets the URL be asked
+ * the one question that matters: does a result's URL name an address that SERVES it, or does it carry
+ * the door it was asked at? v425 measured this door composing from the CURRENT REQUEST - asked at
+ * /search it answered /search/projects/pub-1, an address no endpoint serves. v429 decided: the base is
+ * the CONTEXT PATH, the same rule the publish door follows, and the URL test below pins that the two
+ * doors now agree.
  */
 @ExtendWith(MockitoExtension.class)
 class SearchControllerTest {
@@ -133,17 +136,19 @@ class SearchControllerTest {
     }
 
     @Test
-    void theURLIsBuiltFromTheCurrentRequestSoItCarriesTheDoorItWasAskedAt() {
+    void theURLNamesAnAddressThatServesThePublicationNotTheDoorItWasAskedAt() {
         when(service.search(null, null, SearchService.DEFAULT_SEARCH_LIMIT, 0)).thenReturn(List.of(row("pub-1")));
 
         SearchAnswer answer = controller.search(null, null, null, null).getBody();
 
-        // MEASURED, not endorsed: this door composes from the CURRENT REQUEST, where the publish door
-        // composes from the CONTEXT PATH (v424). Asked at /search, the URL therefore carries the door it
-        // was asked at - /search/projects/pub-1 - while the publish door's own URL is /projects/pub-1.
-        // The two doors disagree about the base, and that is now a pinned fact rather than a surprise.
+        // v429 - the decision, pinned. This door used to compose from the CURRENT REQUEST, and v425
+        // measured what that meant: asked at /search, a result's URL was /search/projects/pub-1, an
+        // address no endpoint serves (the read door is /projects/{id}). The base is now the CONTEXT
+        // PATH - the publish door's own rule (v424) - so asked at /search the URL is the same address
+        // the publish door answers with. The two doors agree, and a search result points at something
+        // that serves it.
         assertThat(answer).isNotNull();
-        assertThat(answer.publications().get(0).url()).isEqualTo("http://localhost/search/projects/pub-1");
+        assertThat(answer.publications().get(0).url()).isEqualTo("http://localhost/projects/pub-1");
     }
 
     @Test
