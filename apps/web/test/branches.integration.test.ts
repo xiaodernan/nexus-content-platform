@@ -334,6 +334,48 @@ describe('分支与副本（真实数据库）', () => {
     expect((await listBranches(id)).filter((x) => x.name === 'main')).toHaveLength(1);
   });
 
+  it('并发开同名分支：库挡下第二条，回执还是那句"已经有叫 X 的分支"（#171）', async () => {
+    const id = await newProject('Branch Create Race');
+    const db = getDb();
+    // 真实竞态：另一个会话已经把同名分支插进去、还没提交——clash 预检看不见未提交行，
+    // 于是照样往下走。后到者阻塞在唯一索引上，等那个事务落地后才发现插重了。
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let landed!: () => void;
+    const inserted = new Promise<void>((resolve) => {
+      landed = resolve;
+    });
+    const other = db.transaction(async (tx) => {
+      await tx.insert(branches).values({ projectId: id, name: 'design-v1' });
+      landed();
+      await gate;
+    });
+    await inserted;
+    const pending = createBranch(id, { name: 'design-v1' });
+    // 等到这一发真的把 insert 发了出去（说明它已过 clash 预检、正阻塞在那个未提交行上）
+    // 再放开那个事务：竞态窗口由此钉死，不靠 sleep 碰时序。
+    let issued = false;
+    for (let i = 0; i < 400 && !issued; i += 1) {
+      const rows = await db.execute(
+        rawSql`select 1 as hit from pg_stat_activity
+               where pid <> pg_backend_pid() and state = 'active'
+                 and query like '%insert into "branches"%' limit 1`,
+      );
+      issued = rows.length > 0;
+      if (!issued) await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(issued, 'createBranch 没能走到 insert——竞态窗口没造出来').toBe(true);
+    release();
+    const raced = await pending;
+    await other;
+
+    expect(raced.ok, '并发开同名分支该被拒，而不是 23505').toBe(false);
+    if (!raced.ok) expect(raced.reason).toContain('已经有叫 design-v1 的分支');
+    expect((await listBranches(id)).filter((x) => x.name === 'design-v1')).toHaveLength(1);
+  });
+
   it('并发同名建分支：库挡下第二条，如实答 null 而不是 23505（#170）', async () => {
     const id = await newProject('Variant Branch Race');
     const document = await loadDocument(id);

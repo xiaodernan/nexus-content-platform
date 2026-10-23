@@ -214,7 +214,12 @@ export async function createBranch(
   const [row] = await db
     .insert(branches)
     .values({ projectId, name, headSnapshotId: null })
+    // #171：上面那道 clash 预检挡不住并发——两个标签页同时开同名分支，两边预检都在任何
+    // insert 之前发出。库里 branches_project_name_key 挡下第二条；回执与预检那条同一句措辞，
+    // 路由照旧答 400 branch_rejected，不让 23505 冒成 500。
+    .onConflictDoNothing()
     .returning();
+  if (!row) return { ok: false, reason: `已经有叫 ${name} 的分支` };
   // 开分支会挪走 currentSnapshotId（相当于切过去）：先把工作区现场存回被离开的分支，
   // 否则那些"改了还没进快照"的东西会在切走时消失。
   await stashCurrent(projectId, fromBranchId, current, `分出「${name}」前的现场`, input);
@@ -223,13 +228,13 @@ export async function createBranch(
     source: 'branch',
     label: `开分支「${name}」`,
     summary: `起点：${origin.label ?? origin.id}`,
-    branchId: row!.id,
+    branchId: row.id,
     createdById: input.createdById,
   });
   if (movingWorkspace) {
     await saveDocument(projectId, { ...startDocument, id: projectId });
   }
-  return { ok: true, branch: { ...toMeta(row!, null), headSnapshotId: head.id, current: true } };
+  return { ok: true, branch: { ...toMeta(row, null), headSnapshotId: head.id, current: true } };
 }
 
 /**
