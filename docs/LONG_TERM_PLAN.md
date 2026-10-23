@@ -172,6 +172,14 @@ world 的保存确认缺口已写入 KNOWN_ISSUES，作为 world 面板的下一
 | **v273** | **客户端 ops 模型 ↔ 服务端线格式契约** | studio **900/900（47 文件）**；`tsc` exit 0；**新 proof exit 0**（3 处 mutation 分别被 §3/§5 抓住）；服务端 **52/52** BUILD SUCCESS（未改动服务端） |
 | gate | 碰撞普查读**它被递给的那本 ledger** | doc gate exit 0；"numbers GRANTED TWICE: none" |
 | build | nexus-api 钉住编译器插件与 release 25 | 服务端 BUILD SUCCESS |
+| **test(ai-providers)** | **覆盖此前零测试的确定性 PRNG（prng.ts）** | `packages/ai-providers/test/prng.test.ts` 新增 12 例；`NODE_OPTIONS= npx vitest run --root packages/ai-providers --no-file-parallelism` → **3 文件 32/32 通过**（12 新）；`tsc --noEmit` exit 0；commit `1a64102` 已 push `origin/master` |
+| **test(design-model)** | **补齐设计模型测试面（一批增量）** | 连续新增 5 个测试文件，覆盖此前零测试/仅偶然覆盖的模块： |
+| ↳ selectors.ts | 首个直接单测（6 导出全覆盖 + 坏引用/缺失节点边界） | `selectors.test.ts` 15 例；design-model → **6 文件 74/74**（15 新）；commit `71a0a97` |
+| ↳ history.ts | `History` 撤销/重做栈首个直接单测（dispatch/undo/redo/limit/snapshots） | `history.test.ts` 9 例；→ **7 文件 83/83**（9 新）；commit `e4f6856` |
+| ↳ geometry.ts | `containsRotated`/`boundsOfSubtree` 此前零测试；整模块锁定 | `geometry.test.ts` 13 例；→ **8 文件 96/96**（13 新）；commit `3469fd4` |
+| ↳ tokens.ts | `flattenTokens`/`parseDimension`/`colorToCss` 此前零测试 | `tokens.test.ts` 13 例；→ **9 文件 109/109**（13 新）；commit `dca2c00` |
+| ↳ ops.ts | `invertOp/invertBatch/subtreeIds/getNode` + AI 锁守卫零测试 | `ops.test.ts` 8 例；→ **10 文件 117/117**（8 新）；commit `d37e19b` |
+| **下一候选** | **ai-providers/router.ts、world-engine/relationships.ts** | 设计模型测试面已闭合；转入其余包的未测模块 |
 
 ### 顺手修掉的"门根本没在跑"
 

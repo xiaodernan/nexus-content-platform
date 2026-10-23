@@ -2913,7 +2913,10 @@ try {
 
     const targetLink = await until(
       async () => (await linkPage.evaluate("!!document.querySelector('[data-desk-target]')")) === true,
-      { tries: 120, gapMs: 500, label: 'the link to the work to show' },
+      // v380 — 240 tries, not 120: the FIRST read of the desk's door pays that route's compile, and on a
+      // busy host that compile can outlast a minute. The wait is for the LINK, and a link that is on its
+      // way is not a missing link.
+      { tries: 240, gapMs: 500, label: 'the link to the work to show' },
     );
     check('the desk row carries a link to the work', targetLink !== null, 'the link is there');
 
@@ -4209,6 +4212,110 @@ try {
       `the tally: ${JSON.stringify(trailTally)}`,
     );
     await trailTallyPage.close();
+  }
+
+  // ── §77 v380: the reporter’s OWN list and the follower’s OWN list say how many, in all ────────
+  // "YOU FILED" and "YOU FOLLOW" showed their rows and nothing else, and worse: the reporter’s door
+  // answered with the WINDOW’s own length, which read as a total and was not one — a reporter with 37
+  // complaints was told they had 20. The service now counts the whole table, and the panel says that
+  // count beside the rows.
+  {
+    const countPage = await session.newPage('about:blank');
+    await countPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(countPage, 'the count page to hydrate');
+    await signInAs(countPage, 'bob', 'the reporter whose count is on screen');
+
+    // The target is recomputed here rather than reached for across a block boundary (§16's
+    // `reportTarget` is block-scoped in its own section, and the browser says so).
+    const countTarget = remixProjectId ?? projectId;
+
+    const bobRaw = await countPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const bob = bobRaw ? JSON.parse(String(bobRaw)) : null;
+    const bobClaim = {
+      accountId: bob?.id ?? '',
+      handle: bob?.handle ?? null,
+      assurance: bob?.assurance ?? null,
+      claimedAt: bob?.createdAt ?? null,
+    };
+
+    // A SECOND complaint, on the same publication with a DIFFERENT reason (the service refuses only a
+    // repeat of the SAME reason on the SAME publication). It is written through the service’s own door
+    // because the composer’s flow is proven earlier and this section is about the COUNT.
+    const secondFiled = await fetch(`${apiBase}/reports`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        projectId: countTarget,
+        reason: 'other',
+        detail: 'the harness files a second complaint, so the count and the window differ',
+        claim: bobClaim,
+      }),
+    });
+    check('the second complaint is filed', secondFiled.status === 201 || secondFiled.status === 200, `the service answered HTTP ${secondFiled.status}`);
+
+    // The whole-table count and the window: the service is asked for ONE row and still answers with the
+    // count of EVERY complaint the account filed. That difference is what this increment is about.
+    const oneRowRead = await fetch(`${apiBase}/reports?reporter=${encodeURIComponent(bob?.id ?? '')}&limit=1`);
+    const oneRowBody = await oneRowRead.json();
+    check(
+      'the SERVICE counts the WHOLE table even when it carries one row',
+      oneRowRead.status === 200 && (oneRowBody.reports ?? []).length === 1 && (oneRowBody.count ?? 0) >= 2,
+      `the service answered: ${JSON.stringify(oneRowBody)}`,
+    );
+
+    await countPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
+    const filedTotal = await until(
+      async () => {
+        const s = await countPage.evaluate("document.querySelector('[data-filed-total]')?.textContent ?? ''");
+        return s.length > 0 ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the filed count line to show' },
+    );
+    check('the reporter’s panel states how many complaints they filed in all', filedTotal !== null, `the panel says: ${JSON.stringify(filedTotal)}`);
+    check(
+      'and the number it states is the SERVICE’s whole-table count',
+      filedTotal !== null && filedTotal.includes(`${oneRowBody.count} report(s) filed`),
+      `the panel says: ${JSON.stringify(filedTotal)} · the service says: ${JSON.stringify(oneRowBody.count)}`,
+    );
+
+    // The FOLLOWER’s side: the same treatment for the accounts this device follows.
+    await signInAs(countPage, 'ada', 'the account that follows one account');
+    const adaRaw = await countPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const ada = adaRaw ? JSON.parse(String(adaRaw)) : null;
+    const followWrite = await fetch(`${apiBase}/follows`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        accountId: bob?.id ?? '',
+        claim: {
+          accountId: ada?.id ?? '',
+          handle: ada?.handle ?? null,
+          assurance: ada?.assurance ?? null,
+          claimedAt: ada?.createdAt ?? null,
+        },
+      }),
+    });
+    check('the follow is in place', followWrite.status === 200 || followWrite.status === 201, `the service answered HTTP ${followWrite.status}`);
+
+    const followsRead = await fetch(`${apiBase}/follows?follower=${encodeURIComponent(ada?.id ?? '')}`);
+    const followsBody = await followsRead.json();
+    await countPage.evaluate(`(() => {
+      if (!document.querySelector('[data-toolbar-desk]')) document.querySelector('[data-toolbar-desk-toggle]').click();
+    })()`);
+    const followingTotal = await until(
+      async () => {
+        const s = await countPage.evaluate("document.querySelector('[data-following-total]')?.textContent ?? ''");
+        return s.length > 0 ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the following count line to show' },
+    );
+    check('the follower’s panel states how many accounts it follows', followingTotal !== null, `the panel says: ${JSON.stringify(followingTotal)}`);
+    check(
+      'and the number it states is the SERVICE’s count of the whole table',
+      followingTotal !== null && followingTotal.includes(`${followsBody.followingCount} follow(s)`),
+      `the panel says: ${JSON.stringify(followingTotal)} · the service says: ${JSON.stringify(followsBody.followingCount)}`,
+    );
+    await countPage.close();
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────

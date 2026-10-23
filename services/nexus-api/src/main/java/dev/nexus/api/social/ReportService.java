@@ -180,6 +180,13 @@ public class ReportService {
         return repository.findByReporterAccountIdOrderByCreatedAtDesc(reporter, PageRequest.of(0, asked));
     }
 
+    /** v380 — total reports filed by this account (the whole table, not the window). */
+    @Transactional(readOnly = true)
+    public long countFiledBy(String reporterAccountId) {
+        String reporter = requireReporter(reporterAccountId);
+        return repository.countByReporterAccountId(reporter);
+    }
+
     /** How many reports a publication has. */
     @Transactional(readOnly = true)
     public long countOf(String targetProjectId) {

@@ -36,6 +36,10 @@ export interface FiledReportsLaneAnswer {
   ok: boolean;
   /** The reports this account filed, mapped. */
   reports: ReportRow[];
+  /** v380 — the service's count of EVERY report this account filed (the whole table, not the window). */
+  count: number;
+  /** v380 — the cap the service applied to the window. */
+  limit: number;
   reason?: string;
 }
 
@@ -56,9 +60,9 @@ export async function readMyReports(
     });
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, reports: [], reason: `the reports answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, reports: [], count: 0, limit: 20, reason: `the reports answered HTTP ${res.status} with something that is not JSON` };
     }
-    const body = parsed as { ok?: unknown; reports?: unknown; reason?: unknown; message?: unknown };
+    const body = parsed as { ok?: unknown; reports?: unknown; count?: unknown; limit?: unknown; reason?: unknown; message?: unknown };
     if (body.ok === false || !res.ok) {
       const why =
         typeof body.reason === 'string'
@@ -66,11 +70,19 @@ export async function readMyReports(
           : typeof body.message === 'string'
             ? body.message
             : `the reports answered HTTP ${res.status}`;
-      return { ok: false, reports: [], reason: why };
+      return { ok: false, reports: [], count: 0, limit: 20, reason: why };
     }
-    return { ok: true, reports: toReportRows(Array.isArray(body.reports) ? body.reports : []) };
+    const rows = Array.isArray(body.reports) ? body.reports : [];
+    return {
+      ok: true,
+      reports: toReportRows(rows),
+      // v380 — the service counts the WHOLE table now, so this number is every report the account
+      // filed and not the window the rows happen to be.
+      count: typeof body.count === 'number' ? body.count : rows.length,
+      limit: typeof body.limit === 'number' ? body.limit : 20
+    };
   } catch (error) {
-    return { ok: false, reports: [], reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, reports: [], count: 0, limit: 20, reason: error instanceof Error ? error.message : String(error) };
   }
 }
 

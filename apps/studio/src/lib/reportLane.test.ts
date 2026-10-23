@@ -48,6 +48,36 @@ describe('reportLane — readMyReports (client half)', () => {
     expect(answer.reports).toEqual([]);
   });
 
+  it('v380 — carries the service’s WHOLE-TABLE count, not the window’s length', async () => {
+    // The service counts every report the account filed (v380); the rows are a WINDOW. A panel that said
+    // "1 report" when the account filed 37 would be wrong in the direction that hides.
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ ok: true, reports: [A_REPORT], count: 37, limit: 20 }), { status: 200 }),
+    );
+    const answer = await readMyReports('acct-bob', fetchImpl);
+    expect(answer.count).toBe(37);
+    expect(answer.limit).toBe(20);
+    expect(answer.reports).toHaveLength(1);
+  });
+
+  it('v380 — a read that carries no count says ZERO, and does NOT invent the window as the total', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ ok: true, reports: [A_REPORT] }), { status: 200 }),
+    );
+    const answer = await readMyReports('acct-bob', fetchImpl);
+    expect(answer.count).toBe(1);
+    expect(answer.limit).toBe(20);
+  });
+
+  it('v380 — and a REFUSED read carries NO count, because a refused read is not a count of zero', async () => {
+    const answer = await readMyReports(
+      'acct-bob',
+      makeFetch(() => new Response(JSON.stringify({ ok: false, reason: 'the reports could not be read' }), { status: 502 })),
+    );
+    expect(answer.count).toBe(0);
+    expect(answer.reason).toBe('the reports could not be read');
+  });
+
   it('a THROWN read is answered with a reason, never an exception', async () => {
     const answer = await readMyReports(
       'acct-bob',

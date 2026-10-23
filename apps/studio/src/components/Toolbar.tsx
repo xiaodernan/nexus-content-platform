@@ -328,7 +328,7 @@ export default function Toolbar() {
   const refreshFollowing = async () => {
     const account = session.current();
     if (!account) {
-      setFollowing({ ok: false, following: [], reason: 'the follows you hold belong to an account, and this device has none' });
+      setFollowing({ ok: false, following: [], count: 0, reason: 'the follows you hold belong to an account, and this device has none' });
       return;
     }
     setFollowing(await readMyFollowing(account.id));
@@ -352,7 +352,7 @@ export default function Toolbar() {
   const refreshFiled = async () => {
     const account = session.current();
     if (!account) {
-      setFiled({ ok: false, reports: [], reason: 'the reports you filed belong to an account, and this device has none' });
+      setFiled({ ok: false, reports: [], count: 0, limit: 20, reason: 'the reports you filed belong to an account, and this device has none' });
       return;
     }
     setFiled(await readMyReports(account.id));
@@ -1428,58 +1428,72 @@ export default function Toolbar() {
             <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
           ) : !filed.ok ? (
             <div style={{ color: 'var(--nexus-muted)' }}>could not read: {filed.reason}</div>
-          ) : filed.reports.length === 0 ? (
+          ) : filed.reports.length === 0 && filed.count === 0 ? (
             <div style={{ color: 'var(--nexus-muted)' }}>you have filed no report</div>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {filed.reports.map((report) => (
-                <li
-                  key={report.id}
-                  data-filed-report={report.id}
-                  data-filed-status={report.status}
-                  style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '3px 0' }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                    <span>{report.reasonText}</span>
-                    <span style={{ color: 'var(--nexus-muted)' }}>{report.statusText}</span>
-                  </div>
-                  {/* v325 — the same LINK the owner's desk got (v324): a reporter looking at their
-                      own complaint should be able to open the work it is about, and not only read its
-                      id — the id is a name the reader has to trust. */}
-                  <div style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>
-                    <a
-                      href={`/p/${encodeURIComponent(report.targetId)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      data-filed-target={report.targetId}
-                      style={{ color: 'inherit' }}
-                    >
-                      {report.targetId}
-                    </a>
-                  </div>
-                  {/* v323 — the reporter's OWN WORDS, the way the owner's desk shows them. A reporter
-                      looking at their own complaint should see what they actually said — and a
-                      complaint without its words is a category, not a complaint. */}
-                  {report.detail && (
-                    <div data-filed-detail style={{ color: 'var(--nexus-muted)', fontSize: 10, whiteSpace: 'pre-wrap' }}>
-                      {report.detail}
+            <>
+              {/* v380 — the COUNT and the TOTAL beside the rows: the service counts the WHOLE table now,
+                  so these are facts about every report this account filed and not about the window
+                  the rows happen to be. */}
+              <div data-filed-total style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
+                {filed.count} report(s) filed
+                {(() => {
+                  const window = filed.count > 0 && filed.reports.length < filed.count
+                    ? `showing the ${filed.reports.length} newest of ${filed.count}`
+                    : '';
+                  return window ? <> · {window}</> : null;
+                })()}
+              </div>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {filed.reports.map((report) => (
+                  <li
+                    key={report.id}
+                    data-filed-report={report.id}
+                    data-filed-status={report.status}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '3px 0' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <span>{report.reasonText}</span>
+                      <span style={{ color: 'var(--nexus-muted)' }}>{report.statusText}</span>
                     </div>
-                  )}
-                  {/* v306 — a reporter can take a complaint back while it is still open. The row STAYS: a
-                      report that was withdrawn is a fact that happened. */}
-                  {report.status === 'open' && (
-                    <button
-                      className="btn"
-                      data-filed-withdraw={report.id}
-                      onClick={() => void onWithdrawReport(report.id)}
-                      title="withdraw this report: you no longer stand by it"
-                    >
-                      Withdraw
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
+                    {/* v325 — the same LINK the owner's desk got (v324): a reporter looking at their
+                        own complaint should be able to open the work it is about, and not only read its
+                        id — the id is a name the reader has to trust. */}
+                    <div style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>
+                      <a
+                        href={`/p/${encodeURIComponent(report.targetId)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        data-filed-target={report.targetId}
+                        style={{ color: 'inherit' }}
+                      >
+                        {report.targetId}
+                      </a>
+                    </div>
+                    {/* v323 — the reporter's OWN WORDS, the way the owner's desk shows them. A reporter
+                        looking at their own complaint should see what they actually said — and a
+                        complaint without its words is a category, not a complaint. */}
+                    {report.detail && (
+                      <div data-filed-detail style={{ color: 'var(--nexus-muted)', fontSize: 10, whiteSpace: 'pre-wrap' }}>
+                        {report.detail}
+                      </div>
+                    )}
+                    {/* v306 — a reporter can take a complaint back while it is still open. The row STAYS: a
+                        report that was withdrawn is a fact that happened. */}
+                    {report.status === 'open' && (
+                      <button
+                        className="btn"
+                        data-filed-withdraw={report.id}
+                        onClick={() => void onWithdrawReport(report.id)}
+                        title="withdraw this report: you no longer stand by it"
+                      >
+                        Withdraw
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
           {/* v316 — YOU FOLLOW: the accounts this device follows, and the button that takes a
               follow back. A reader who cannot undo a follow has a page that only ever grows. */}
@@ -1488,30 +1502,44 @@ export default function Toolbar() {
             <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
           ) : !following.ok ? (
             <div style={{ color: 'var(--nexus-muted)' }}>could not read: {following.reason}</div>
-          ) : following.following.length === 0 ? (
+          ) : following.following.length === 0 && following.count === 0 ? (
             <div style={{ color: 'var(--nexus-muted)' }}>this device follows nobody</div>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {following.following.map((row, i) => (
-                <li
-                  key={i}
-                  data-desk-following={row.followeeId}
-                  style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0' }}
-                >
-                  <a href={`/u/${encodeURIComponent(row.followeeId)}`} style={{ color: 'inherit' }}>
-                    {row.handle ? `@${row.handle}` : row.followeeId}
-                  </a>
-                  <button
-                    className="btn"
-                    data-desk-unfollow={row.followeeId}
-                    onClick={() => void onUnfollow(row.followeeId)}
-                    title="take this follow back"
+            <>
+              {/* v380 — the COUNT and the TOTAL beside the rows: the service counts the WHOLE table now,
+                  so these are facts about every follow this account holds and not about the window
+                  the rows happen to be. */}
+              <div data-following-total style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
+                {following.count} follow(s)
+                {(() => {
+                  const window = following.count > 0 && following.following.length < following.count
+                    ? `showing the ${following.following.length} newest of ${following.count}`
+                    : '';
+                  return window ? <> · {window}</> : null;
+                })()}
+              </div>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {following.following.map((row, i) => (
+                  <li
+                    key={i}
+                    data-desk-following={row.followeeId}
+                    style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0' }}
                   >
-                    Unfollow
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    <a href={`/u/${encodeURIComponent(row.followeeId)}`} style={{ color: 'inherit' }}>
+                      {row.handle ? `@${row.handle}` : row.followeeId}
+                    </a>
+                    <button
+                      className="btn"
+                      data-desk-unfollow={row.followeeId}
+                      onClick={() => void onUnfollow(row.followeeId)}
+                      title="take this follow back"
+                    >
+                      Unfollow
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
           {deskNote && (
             <div data-desk-note style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>

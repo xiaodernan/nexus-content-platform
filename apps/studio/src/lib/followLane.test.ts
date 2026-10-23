@@ -33,6 +33,33 @@ describe('followLane — readMyFollowing (client half)', () => {
     expect(answer.following[0]?.followeeId).toBe('acct-bob');
   });
 
+  it('v380 — carries the service’s WHOLE-TABLE count, not the window’s length', async () => {
+    // The service counts every account the device follows; the rows are a WINDOW. A panel that said
+    // "1 follow" when the device follows nine would be wrong in the direction that hides.
+    const fetchImpl = makeFetch(() =>
+      new Response(
+        JSON.stringify({
+          ok: true,
+          following: [{ followerId: 'acct-ada', followeeId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local' }],
+          count: 9,
+        }),
+        { status: 200 },
+      ),
+    );
+    const answer = await readMyFollowing('acct-ada', fetchImpl);
+    expect(answer.count).toBe(9);
+    expect(answer.following).toHaveLength(1);
+  });
+
+  it('v380 — and a REFUSED read carries NO count, because a refused read is not a count of zero', async () => {
+    const answer = await readMyFollowing(
+      'acct-ada',
+      makeFetch(() => new Response(JSON.stringify({ ok: false, reason: 'the list could not be read' }), { status: 502 })),
+    );
+    expect(answer.count).toBe(0);
+    expect(answer.following).toEqual([]);
+  });
+
   it('a REFUSED read carries the reason and NO rows', async () => {
     const answer = await readMyFollowing(
       'acct-ada',

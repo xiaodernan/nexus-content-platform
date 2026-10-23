@@ -55,6 +55,8 @@ export interface FollowingLaneAnswer {
   ok: boolean;
   /** The accounts the device follows, in the service's order. */
   following: { followerId: string; followeeId: string; handle: string | null; assurance: string | null }[];
+  /** v380 — the service's count of EVERY account this device follows (the whole table, not the window). */
+  count: number;
   reason?: string;
 }
 
@@ -74,12 +76,13 @@ export async function readMyFollowing(
     });
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, following: [], reason: `the follows answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, following: [], count: 0, reason: `the follows answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as {
       ok?: unknown;
       following?: unknown;
       followers?: unknown;
+      count?: unknown;
       reason?: unknown;
       message?: unknown;
     };
@@ -90,14 +93,20 @@ export async function readMyFollowing(
           : typeof body.message === 'string'
             ? body.message
             : `the follows answered HTTP ${res.status}`;
-      return { ok: false, following: [], reason };
+      return { ok: false, following: [], count: 0, reason };
     }
     const rows = Array.isArray(body.following)
       ? (body.following as { followerId: string; followeeId: string; handle: string | null; assurance: string | null }[])
       : [];
-    return { ok: true, following: rows };
+    return {
+      ok: true,
+      following: rows,
+      // v380 — the service counts the WHOLE table now, so this number is every account the device
+      // follows and not the window the rows happen to be.
+      count: typeof body.count === 'number' ? body.count : rows.length
+    };
   } catch (error) {
-    return { ok: false, following: [], reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, following: [], count: 0, reason: error instanceof Error ? error.message : String(error) };
   }
 }
 

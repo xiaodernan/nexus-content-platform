@@ -320,7 +320,13 @@ class CdpPage {
    * would otherwise surface ~20s later as an unhandled rejection and kill the process. Readiness
    * is then confirmed by the selector, which is the signal that actually matters.
    */
-  async navigate(url, { waitMs = 0, waitForSelector, loadTimeout = 45000 } = {}) {
+  async navigate(url, { waitMs = 0, waitForSelector, loadTimeout = 120000 } = {}) {
+    // v380 — the navigation budget is 120 SECONDS, not 45. This is the v294 rule applied one level up:
+    // the FIRST request to the Studio in a `next dev` server pays the server's compile, and a host that
+    // is busy compiling somebody ELSE's project makes that compile slower still — so a 45 s wait killed
+    // requests that were about to be answered, and the harness reported a crash where the truth was "the
+    // server was still building it". A page that never renders is not a verdict on the page.
+    //
     // Drop stale lifecycle events so a fresh navigation can't be satisfied by the last one.
     this.events.length = 0;
     const loaded = this.waitFor("Page.loadEventFired", loadTimeout).catch(() => null);

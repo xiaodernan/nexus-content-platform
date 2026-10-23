@@ -65,6 +65,9 @@ public interface ReportRepository extends JpaRepository<ReportEntry, String> {
     /** How many reports a publication has. */
     long countByTargetProjectId(String targetProjectId);
 
+    /** v380 — total reports filed by this account (for the panel to say "X of Y"). */
+    long countByReporterAccountId(String reporterAccountId);
+
     /** The report that account already filed about that publication for that reason. */
     Optional<ReportEntry> findByReporterAccountIdAndTargetProjectIdAndReason(
             String reporterAccountId, String targetProjectId, String reason);

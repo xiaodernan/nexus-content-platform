@@ -92,9 +92,15 @@ export async function readReports(
 export interface FiledReportsAnswer {
   ok: boolean;
   reports: ReportEntry[];
-  /** How many the answer carried. */
+  /**
+   * v380 — how many reports this account filed IN ALL.
+   *
+   * <p>The service counts the WHOLE table for this direction (it did not before v380 — it answered with the
+   * window’s own length, which read as a total and was not one), so this number and the rows beside it can
+   * be different sizes and both are true.
+   */
   count: number;
-  /** The cap the service applied. */
+  /** The cap the service applied to the window. */
   limit: number;
   reason?: string;
 }

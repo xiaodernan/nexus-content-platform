@@ -1,4 +1,4 @@
-/**
+﻿/**
  * M7 v296 — the REPORTS bar on the artifact page.
  *
  * A publication that has been reported is a fact a reader should be able to see — and a reader should be
@@ -49,6 +49,9 @@ export interface ReportRow {
   statusText: string;
   /** The publication the report is about — a reporter with several complaints needs to tell them apart. */
   targetId: string;
+  /** v381 — when the report was filed, as the service's own createdAt. A reporter with several complaints needs to tell them apart by WHEN, not only by what. Leave undefined when the service did not supply one: a reporter is told the facts the service gave, never a made-up date.
+ */
+  filedAt?: number;
   /**
    * v323 — the reporter's OWN WORDS, as they were written.
    *
@@ -128,6 +131,7 @@ export function toReportRow(entry: unknown): ReportRow | null {
     status,
     statusText: reportStatusText(status),
     targetId: typeof r.targetId === 'string' ? r.targetId : '',
+    filedAt: typeof r.createdAt === 'number' ? r.createdAt : undefined,
     detail: typeof r.detail === 'string' ? r.detail : '',
   };
 }
@@ -165,7 +169,8 @@ export function renderReportBar(facts: ReportBarFacts): string {
   const reasons = (facts.reports ?? [])
     .map((r) => {
       const text = r.withdrawn ? `${r.reasonText} (withdrawn)` : r.reasonText;
-      return `<li data-report="${escapeHtml(r.id)}" data-report-reason="${escapeHtml(r.reason)}"><span class="nexus-report-reason">${escapeHtml(text)}</span></li>`;
+      const when = r.filedAt !== undefined ? `<span class="nexus-report-when">提交于 ${new Date(r.filedAt).toLocaleString()}</span>` : '';
+      return `<li data-report="${escapeHtml(r.id)}" data-report-reason="${escapeHtml(r.reason)}"><span class="nexus-report-reason">${escapeHtml(text)}</span>${when}</li>`;
     })
     .join('\n');
   const list = reasons ? `<ul class="nexus-reports-list">\n${reasons}\n</ul>` : '';
@@ -196,4 +201,6 @@ export const REPORT_BAR_STYLES = `<style>
 .nexus-reports-action:hover{text-decoration:underline}
 .nexus-reports-list{list-style:none;margin:0;padding:0;flex-basis:100%;display:flex;flex-direction:column;gap:2px}
 .nexus-report-reason{color:#cfd6e4}
+ .nexus-report-when{color:#8a93a2;font-size:10px;white-space:nowrap}
 </style>`;
+

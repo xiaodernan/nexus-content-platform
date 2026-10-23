@@ -309,6 +309,24 @@ class ReportServiceTest {
         verify(audit).record("withdraw-report", "acct-ada", "ada", "unsigned-local", "pub-1");
     }
 
+    // ── v380: the reporter's OWN list is counted over the WHOLE table, not the window ──────────────
+
+    @Test
+    void theFiledsCountIsTheWHOLEtableNotTheWindowsLength() {
+        // The panel that shows a reporter their own complaints has to be able to say how many they filed in
+        // all. A count computed from the window would be a fact about the newest twenty, and would read as
+        // a fact about all of them.
+        when(repository.countByReporterAccountId("acct-ada")).thenReturn(37L);
+
+        assertThat(service.countFiledBy("acct-ada")).isEqualTo(37L);
+    }
+
+    @Test
+    void aBlankReporterIsREFUSEDByNameWhenCounting() {
+        assertThatThrownBy(() -> service.countFiledBy("  "))
+                .isInstanceOf(InvalidReport.class);
+    }
+
     @Test
     void withdrawingSomebodyElsesReportWritesNothingDown() {
         when(repository.findByReportId("rep-1")).thenReturn(Optional.of(new ReportEntry(

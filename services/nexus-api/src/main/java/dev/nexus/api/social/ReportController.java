@@ -80,10 +80,11 @@ public class ReportController {
         int asked = limit == null ? ReportService.DEFAULT_REPORT_LIMIT : limit;
         if (reporterAccountId != null && !reporterAccountId.isBlank()) {
             List<ReportEntry> filed = service.reportsFiledBy(reporterAccountId, asked);
+            long total = service.countFiledBy(reporterAccountId);
             return ResponseEntity.ok(new FiledReportsAnswer(
                     reporterAccountId.trim(),
                     filed.stream().map(ReportController::toWire).toList(),
-                    filed.size(),
+                    (int) total,
                     asked));
         }
         if (targetProjectId == null || targetProjectId.isBlank()) {
