@@ -63,6 +63,11 @@ public final class FollowDtos {
      * somebody watches is not a list of their followers, and a wire field with the wrong name is a small lie
      * that grows.
      */
-    public record FollowingAnswer(String accountId, long followingCount, List<Follow> following) {
+    /**
+     * v390 — and {@code limit} is the cap the service applied, the same field the filed read's answer
+     * carries (v382): the client can say what it asked for and what it got, and a pager needs to know
+     * the window's size to say which rows it is showing.
+     */
+    public record FollowingAnswer(String accountId, long followingCount, List<Follow> following, int limit) {
     }
 }

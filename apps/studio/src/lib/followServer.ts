@@ -30,6 +30,16 @@ export interface FollowingAnswer {
   following: FollowerEntry[];
   /** How many in all — the service's count, which can be larger than the window. */
   count: number;
+  /** The cap the service applied. */
+  limit: number;
+  /**
+   * v390 — the ROW this window starts at, echoed from the ask.
+   *
+   * <p>The answer carries the window it is FOR rather than leaving the panel to remember which ask it
+   * belongs to: two reads in flight (an un-follow, then a page) answer in whatever order the network
+   * chooses, and an answer that names its own window cannot be mistaken for the other one's.
+   */
+  offset: number;
   reason?: string;
 }
 
@@ -106,34 +116,40 @@ export async function readFollowers(
  */
 export async function readFollowing(
   accountId: string,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch as FetchLike,
 ): Promise<FollowingAnswer> {
   const apiBase = nexusApiBase();
+  const from = Math.max(offset, 0);
   try {
-    const res = await fetchImpl(`${apiBase}/follows?follower=${encodeURIComponent(accountId)}`, {
+    const res = await fetchImpl(`${apiBase}/follows?follower=${encodeURIComponent(accountId)}&offset=${encodeURIComponent(String(from))}`, {
       headers: { accept: 'application/json' },
     });
     if (!res.ok) {
-      return { ok: false, following: [], count: 0, reason: `the service's follows door answered HTTP ${res.status}` };
+      return { ok: false, following: [], count: 0, limit: 20, offset: from, reason: `the service's follows door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, following: [], count: 0, reason: 'the service answered its follows door with something that is not JSON' };
+      return { ok: false, following: [], count: 0, limit: 20, offset: from, reason: 'the service answered its follows door with something that is not JSON' };
     }
-    const body = parsed as { following?: unknown; followingCount?: unknown };
+    const body = parsed as { following?: unknown; followingCount?: unknown; limit?: unknown };
     if (!Array.isArray(body.following)) {
-      return { ok: false, following: [], count: 0, reason: 'the service answered its follows door with no list' };
+      return { ok: false, following: [], count: 0, limit: 20, offset: from, reason: 'the service answered its follows door with no list' };
     }
     return {
       ok: true,
       following: body.following as FollowerEntry[],
       count: typeof body.followingCount === 'number' ? body.followingCount : body.following.length,
+      limit: typeof body.limit === 'number' && Number.isFinite(body.limit) ? body.limit : 20,
+      offset: from,
     };
   } catch (error) {
     return {
       ok: false,
       following: [],
       count: 0,
+      limit: 20,
+      offset: from,
       reason: serviceUnreachableReason(apiBase, error),
     };
   }

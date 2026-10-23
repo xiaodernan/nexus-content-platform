@@ -68,16 +68,23 @@ public class FollowController {
      * <p>v303 — and the OTHER direction of the edge, with `follower=`: the accounts an account FOLLOWS.
      * The two directions are different questions ("who watches me" and "who do I watch"), and one query
      * cannot answer both — which is why the finder has one name per direction.
+     *
+     * <p>v390 — and the following window can be PAGED: `offset` is ROWS past the newest ones, the same
+     * meaning the filed read's offset has (v382), so a reader who follows more accounts than the cap can
+     * reach the older ones. A negative offset is clamped to the first window rather than refused —
+     * the newest rows are the honest answer to a question about a page before the first.
      */
     @GetMapping
     public ResponseEntity<?> list(
             @RequestParam(name = "accountId", required = false) String accountId,
             @RequestParam(name = "follower", required = false) String followerAccountId,
             @RequestParam(name = "viewer", required = false) String viewerAccountId,
-            @RequestParam(name = "limit", required = false) Integer limit) {
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "offset", required = false) Integer offset) {
         int asked = limit == null ? FollowService.DEFAULT_FOLLOW_LIMIT : limit;
         if (followerAccountId != null && !followerAccountId.isBlank()) {
-            FollowService.FollowingResult result = service.followingOf(followerAccountId, asked);
+            int from = offset == null ? 0 : Math.max(offset, 0);
+            FollowService.FollowingResult result = service.followingOf(followerAccountId, asked, from);
             List<Follow> following = result.following().stream()
                     .map(row -> new Follow(
                             row.getFollowerAccountId(),
@@ -89,7 +96,8 @@ public class FollowController {
             return ResponseEntity.ok(new FollowingAnswer(
                     result.accountId(),
                     result.followingCount(),
-                    following));
+                    following,
+                    Math.min(Math.max(asked, 1), FollowService.MAX_FOLLOW_LIMIT)));
         }
         if (accountId == null || accountId.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(

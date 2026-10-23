@@ -330,6 +330,16 @@ export default function Toolbar() {
   const [following, setFollowing] = useState<FollowingLaneAnswer | null>(null);
 
   /**
+   * v390 — the FOLLOWING list's PAGE: which window of the accounts this device follows, in ROWS.
+   *
+   * <p>The following list is a WINDOW (the most recent N, v303), and v380 gave it the whole-table
+   * count — so a reader who follows thirty-seven accounts was told there were thirty-seven and shown
+   * twenty, with no way to reach the other seventeen. The page is part of the ASK, the same way the
+   * desk's reason (v326) and the filed list's page (v386) are.
+   */
+  const [followingOffset, setFollowingOffset] = useState(0);
+
+  /**
    * v318 — the desk’s REASON filter.
    *
    * <p>The reasons are a closed set of four (v295) and the tally counts them (v312), so a reader can ask
@@ -359,13 +369,15 @@ export default function Toolbar() {
    */
   const deskReasons = Object.keys(desk?.tally?.byReason ?? {});
 
-  const refreshFollowing = async () => {
+  const refreshFollowing = async (offset: number = followingOffset) => {
     const account = session.current();
     if (!account) {
-      setFollowing({ ok: false, following: [], count: 0, reason: 'the follows you hold belong to an account, and this device has none' });
+      setFollowing({ ok: false, following: [], count: 0, limit: 20, offset: 0, reason: 'the follows you hold belong to an account, and this device has none' });
       return;
     }
-    setFollowing(await readMyFollowing(account.id));
+    // v390 — the page travels with the ask; the answer echoes the window it is for, so a re-read
+    // after an un-follow lands on the same page the reader is looking at.
+    setFollowing(await readMyFollowing(account.id, offset));
   };
 
   const onUnfollow = async (followeeId: string) => {
@@ -1767,6 +1779,11 @@ export default function Toolbar() {
             <div style={{ color: 'var(--nexus-muted)' }}>could not read: {following.reason}</div>
           ) : following.following.length === 0 && following.count === 0 ? (
             <div style={{ color: 'var(--nexus-muted)' }}>this device follows nobody</div>
+          ) : following.following.length === 0 ? (
+            /* v390 — an empty window on a LATER page is not an empty list: the reader asked for a page
+               past the end, and the honest answer says that rather than "this device follows nobody" —
+               which would be a fact about the whole list, told about one window. */
+            <div style={{ color: 'var(--nexus-muted)' }}>this page is past the end — the service answered an empty window</div>
           ) : (
             <>
               {/* v380 — the COUNT and the TOTAL beside the rows: the service counts the WHOLE table now,
@@ -1775,9 +1792,16 @@ export default function Toolbar() {
               <div data-following-total style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
                 {following.count} follow(s)
                 {(() => {
-                  const window = following.count > 0 && following.following.length < following.count
-                    ? `showing the ${following.following.length} newest of ${following.count}`
-                    : '';
+                  // v390 — the window says WHICH rows it is: "the N newest" on the first window, a
+                  // position past it. A reader on page three must be able to tell page three from
+                  // the whole list.
+                  const shown = following.following.length;
+                  const window =
+                    following.count > 0 && shown < following.count
+                      ? following.offset > 0
+                        ? `showing ${following.offset + 1}–${following.offset + shown} of ${following.count}`
+                        : `showing the ${shown} newest of ${following.count}`
+                      : '';
                   return window ? <> · {window}</> : null;
                 })()}
               </div>
@@ -1802,6 +1826,39 @@ export default function Toolbar() {
                   </li>
                 ))}
               </ul>
+              {/* v390 — the PAGER, the same shape the filed list (v386), the trail (v388) and the desk
+                  (v389) got. The whole-table count (v380) is on EVERY answer, so the ending here is a
+                  COUNT rather than an inference: "Older" is disabled exactly when the window already
+                  holds every follow the service counted. A pager that offered a page with nothing in
+                  it would be asking a question whose honest answer is an empty window. */}
+              <div data-following-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                <button
+                  className="btn"
+                  data-following-page="newer"
+                  disabled={following.offset <= 0}
+                  onClick={() => {
+                    const next = Math.max(following.offset - following.limit, 0);
+                    setFollowingOffset(next);
+                    void refreshFollowing(next);
+                  }}
+                  title="the newer follows"
+                >
+                  ‹ Newer
+                </button>
+                <button
+                  className="btn"
+                  data-following-page="older"
+                  disabled={following.offset + following.following.length >= following.count}
+                  onClick={() => {
+                    const next = following.offset + following.limit;
+                    setFollowingOffset(next);
+                    void refreshFollowing(next);
+                  }}
+                  title="the older follows"
+                >
+                  Older ›
+                </button>
+              </div>
             </>
           )}
           {deskNote && (

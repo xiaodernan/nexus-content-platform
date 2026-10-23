@@ -205,4 +205,55 @@ class FollowServiceTest {
         verify(repository).findByFolloweeAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
         assertThat(window.getValue().getPageSize()).isEqualTo(FollowService.MAX_FOLLOW_LIMIT);
     }
+
+    // ── v390: the following window can be PAGED, in rows ──────────────────────────────────────────
+
+    @Test
+    void theFollowingWindowCanBePagedInRows() {
+        // v390 — the following list is a WINDOW (the most recent N), and a window nobody can page is
+        // the whole list to a reader who follows more accounts than the cap. The offset is ROWS:
+        // asking for the rows from 20 on is page 1 of a 20-row window, which is what the captor pins.
+        when(repository.findByFollowerAccountIdOrderByCreatedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByFollowerAccountId("acct-ada")).thenReturn(37L);
+
+        service.followingOf("acct-ada", 20, 20);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByFollowerAccountIdOrderByCreatedAtDesc(eq("acct-ada"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void theFollowingOffsetIsROWSNotAPageIndex() {
+        // v387's lesson, applied from the start rather than discovered by the first pager: the offset
+        // means ROWS, and Spring Data's PageRequest speaks PAGES. Asking for the rows from 40 on must
+        // be answered with page 2 (rows 40–59) — not page 40 (rows 800–819), which is what handing
+        // the raw number to PageRequest.of answers, and what a pager would then call "past the end".
+        when(repository.findByFollowerAccountIdOrderByCreatedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByFollowerAccountId("acct-ada")).thenReturn(37L);
+
+        service.followingOf("acct-ada", 20, 40);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByFollowerAccountIdOrderByCreatedAtDesc(eq("acct-ada"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void aNegativeFollowingOffsetIsTheFirstWindow() {
+        // A page before the first does not exist; the newest rows are the honest answer, not a refusal.
+        when(repository.findByFollowerAccountIdOrderByCreatedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByFollowerAccountId("acct-ada")).thenReturn(37L);
+
+        service.followingOf("acct-ada", 20, -5);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByFollowerAccountIdOrderByCreatedAtDesc(eq("acct-ada"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isZero();
+    }
 }

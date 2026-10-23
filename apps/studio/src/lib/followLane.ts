@@ -57,6 +57,16 @@ export interface FollowingLaneAnswer {
   following: { followerId: string; followeeId: string; handle: string | null; assurance: string | null }[];
   /** v380 — the service's count of EVERY account this device follows (the whole table, not the window). */
   count: number;
+  /** The cap the service applied. */
+  limit: number;
+  /**
+   * v390 — the ROW this window starts at, echoed from the ask.
+   *
+   * <p>The answer carries the window it is FOR rather than leaving the panel to remember which ask it
+   * belongs to: two reads in flight (an un-follow, then a page) answer in whatever order the network
+   * chooses, and an answer that names its own window cannot be mistaken for the other one's.
+   */
+  offset: number;
   reason?: string;
 }
 
@@ -68,21 +78,25 @@ export interface FollowingLaneAnswer {
  */
 export async function readMyFollowing(
   followerAccountId: string,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch,
 ): Promise<FollowingLaneAnswer> {
+  const from = Math.max(offset, 0);
   try {
-    const res = await fetchImpl(`/api/follows?follower=${encodeURIComponent(followerAccountId)}`, {
-      headers: { accept: 'application/json' },
-    });
+    const res = await fetchImpl(
+      `/api/follows?follower=${encodeURIComponent(followerAccountId)}&offset=${encodeURIComponent(String(from))}`,
+      { headers: { accept: 'application/json' } },
+    );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, following: [], count: 0, reason: `the follows answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, following: [], count: 0, limit: 20, offset: from, reason: `the follows answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as {
       ok?: unknown;
       following?: unknown;
       followers?: unknown;
       count?: unknown;
+      limit?: unknown;
       reason?: unknown;
       message?: unknown;
     };
@@ -93,7 +107,7 @@ export async function readMyFollowing(
           : typeof body.message === 'string'
             ? body.message
             : `the follows answered HTTP ${res.status}`;
-      return { ok: false, following: [], count: 0, reason };
+      return { ok: false, following: [], count: 0, limit: 20, offset: from, reason };
     }
     const rows = Array.isArray(body.following)
       ? (body.following as { followerId: string; followeeId: string; handle: string | null; assurance: string | null }[])
@@ -103,10 +117,12 @@ export async function readMyFollowing(
       following: rows,
       // v380 — the service counts the WHOLE table now, so this number is every account the device
       // follows and not the window the rows happen to be.
-      count: typeof body.count === 'number' ? body.count : rows.length
+      count: typeof body.count === 'number' ? body.count : rows.length,
+      limit: typeof body.limit === 'number' && Number.isFinite(body.limit) ? body.limit : 20,
+      offset: from,
     };
   } catch (error) {
-    return { ok: false, following: [], count: 0, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, following: [], count: 0, limit: 20, offset: from, reason: error instanceof Error ? error.message : String(error) };
   }
 }
 

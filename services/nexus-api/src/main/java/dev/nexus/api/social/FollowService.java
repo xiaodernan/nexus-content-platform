@@ -132,12 +132,25 @@ public class FollowService {
      * repository has one finder per direction, because one query cannot answer both. The rows are called
      * `following` and not `followers` here, because a list of the accounts somebody watches is not a list
      * of their followers, and a wire field with the wrong name is a small lie that grows.
+     *
+     * <p>v390 — and the window can be PAGED: {@code offset} is ROWS past the newest ones, so a reader
+     * who follows more accounts than the cap can reach the older ones. The WHOLE-table count travels
+     * beside the window (v380), which is what lets a reader tell where the end is.
      */
     @Transactional(readOnly = true)
-    public FollowingResult followingOf(String followerAccountId, int limit) {
+    public FollowingResult followingOf(String followerAccountId, int limit, int offset) {
         String follower = requireAccount(followerAccountId, "a follow needs an account");
         int asked = limit <= 0 ? DEFAULT_FOLLOW_LIMIT : Math.min(limit, MAX_FOLLOW_LIMIT);
-        List<FollowEntry> rows = repository.findByFollowerAccountIdOrderByCreatedAtDesc(follower, PageRequest.of(0, asked));
+        // v390 — the offset is ROWS, and Spring Data's PageRequest speaks PAGES. v387 learned this the
+        // hard way on the filed read: a caller that asked for the rows from 40 on and was answered with
+        // the rows from 800 on (the raw number read as a page index) would call every page "past the
+        // end". The translation is by whole windows: an offset that is not a multiple of the window
+        // lands on the page boundary at or before it, which is the only granularity a window has. A
+        // negative offset is the first window, not a refusal — the window it names does not exist, and
+        // the newest rows are the honest answer to a question about a page before the first.
+        int from = Math.max(offset, 0);
+        List<FollowEntry> rows = repository.findByFollowerAccountIdOrderByCreatedAtDesc(
+                follower, PageRequest.of(from / asked, asked));
         return new FollowingResult(follower, repository.countByFollowerAccountId(follower), rows);
     }
 

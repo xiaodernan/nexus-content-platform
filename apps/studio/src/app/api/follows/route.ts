@@ -30,7 +30,11 @@ export async function GET(request: Request): Promise<NextResponse> {
       { status: 400 },
     );
   }
-  const answer = await readFollowing(follower.trim());
+  // v390 — and the PAGE the following list is read at, in rows. A negative or unparseable one is the
+  // first window: the newest rows are the honest answer to a question about a page before the first.
+  const askedOffset = Number(new URL(request.url).searchParams.get('offset') ?? '0');
+  const offset = Number.isFinite(askedOffset) && askedOffset > 0 ? Math.trunc(askedOffset) : 0;
+  const answer = await readFollowing(follower.trim(), offset);
   return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
 }
 

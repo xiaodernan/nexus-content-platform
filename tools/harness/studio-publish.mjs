@@ -2641,6 +2641,27 @@ try {
     );
     check('the desk shows who THIS device follows', followingRow !== null, 'the row is there');
 
+    // v390 — and the PAGER. The following list is a WINDOW (the most recent N), and the whole-table
+    // count (v380) rides on EVERY answer — so "Newer" is disabled on the first window (there is no
+    // page before it), and "Older" is disabled exactly when the window already holds every follow the
+    // service counted (here, the one follow this device holds).
+    const followingPager = await followPage.evaluate(`(() => {
+      const newer = document.querySelector('[data-following-page="newer"]');
+      const older = document.querySelector('[data-following-page="older"]');
+      return { there: !!newer && !!older, newerDisabled: newer ? newer.disabled : null, olderDisabled: older ? older.disabled : null };
+    })()`);
+    check('the following list offers a pager', followingPager.there === true, JSON.stringify(followingPager));
+    check(
+      'and on the first window "Newer" is disabled — there is no page before the first',
+      followingPager.newerDisabled === true,
+      `newer disabled: ${followingPager.newerDisabled}`,
+    );
+    check(
+      'and "Older" is disabled when the window already holds every follow the service counted',
+      followingPager.olderDisabled === true,
+      `older disabled: ${followingPager.olderDisabled}`,
+    );
+
     // And the un-follow — the button that takes it back.
     await followPage.evaluate("document.querySelector('[data-desk-unfollow]').click()");
     const unfollowed = await until(
@@ -2661,6 +2682,16 @@ try {
       'the SERVICE agrees — the edge is gone, read back independently of the browser',
       followsRead.status === 200 && (followsBody.following ?? []).length === 0,
       `following: ${JSON.stringify(followsBody.following)}`,
+    );
+
+    // v390 — and the DOOR pages too: a window past the end is the service's honest EMPTY answer,
+    // not an error — the same answer the panel shows a reader who lands there.
+    const followsOffsetRead = await fetch(`${apiBase}/follows?follower=${encodeURIComponent(followerId)}&offset=20`);
+    const followsOffsetBody = await followsOffsetRead.json();
+    check(
+      'and the follows door PAGES: a window past the end is an empty answer, not an error',
+      followsOffsetRead.status === 200 && Array.isArray(followsOffsetBody.following) && followsOffsetBody.following.length === 0,
+      `following: ${JSON.stringify(followsOffsetBody.following)}`,
     );
     await followPage.close();
   }
