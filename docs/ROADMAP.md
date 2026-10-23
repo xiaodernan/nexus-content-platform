@@ -5601,3 +5601,19 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   见证：`520ab42`；八套件 99/99（games / worlds / agent-draft-accept / game-code /
   game-publish / knowledge / context / agent-orchestration）；tsc 0、eslint 0；
   迁移已应用到 nexus 与 nexus_regress。
+
+- **2026-10-23 第二十二片（#170）：并发补 main / 建同名分支不再 23505——insert 补一句 onConflictDoNothing**。
+  `ensureDefaultBranch` 与 `createVariantBranch` 都是"先查有没有 → 没有就 insert"的读—改—写。
+  两个请求同时到（两个标签页同时打开一个还没有分支的项目、双击「生成方案」），两边预检都在任何
+  insert 之前发出 → 都 insert → 库里 `branches_project_name_key` 把后到的那条判 23505 → 500。
+  修法与 #165/#168 同一口径：`ensureDefaultBranch` insert 补 `onConflictDoNothing`，返回空行时
+  回头读该项目现成第一条分支交回去（backfill 留给赢家——行已在、历史快照归类也已做过）；
+  `createVariantBranch` insert 补 `onConflictDoNothing`，拿不到行就 `return null`（既有契约，
+  调用方据此记"没能落成分支"），不再让 23505 冒到路由层。
+  测试上的一个坑：`createProject` 现在就建 main，所以 `ensureDefaultBranch` 的 insert 支对正常项目
+  **不可达**——第一版"并发双读分支列表"是空转的（main 早已存在，根本不 insert，变异摘了守卫也不红）。
+  真正触达那一支要造 legacy 状态：删掉分支行（`snapshots.branchId` 外键是 `onDelete:'set null'`，
+  删不坏快照），再开一个事务把 main 插进去**但不提交**——两处 select 都看不见未提交行，于是都走到
+  insert，后到者阻塞在唯一索引上，等那个事务落地后才发现插重了。这样竞态是确定性的，不靠时序碰运气。
+  见证：`c4254f7`；branches + variants 两套件 21/21；tsc -p apps/web 0、改动文件 eslint 0；
+  变异探针两臂各摘一处守卫，全部精确红后逐字节还原。
