@@ -4,6 +4,7 @@ import { crc32, textEntry, zipStore, type ZipEntry } from '@/lib/zip';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { listProjectAssets, openAssetForOwner } from './assets';
 import { emit } from './notifications';
+import { listCharacters } from './characters';
 import { loadDocument, loadProjectIdentity, projectBelongsTo } from './projects';
 import { loadStoryboard } from './storyboards';
 
@@ -29,9 +30,9 @@ import { loadStoryboard } from './storyboards';
  *    代码是确定性投影出来的，不是生成的。
  */
 
-export type ExportPart = 'design' | 'code' | 'assets' | 'storyboard';
+export type ExportPart = 'design' | 'code' | 'assets' | 'storyboard' | 'character';
 
-export const EXPORT_PARTS: readonly ExportPart[] = ['design', 'code', 'assets', 'storyboard'];
+export const EXPORT_PARTS: readonly ExportPart[] = ['design', 'code', 'assets', 'storyboard', 'character'];
 
 export interface ExportOutcome {
   bytes: Uint8Array;
@@ -65,8 +66,10 @@ function manifest(args: {
   counts: Record<ExportPart, number>;
   missingAssets: string[];
   document: DesignDocument;
+  /** 库里有行、档案却读不出来的角色数（README 里要点名，不静默少导几个人） */
+  unreadableCharacters: number;
 }): string {
-  const { projectName, parts, counts, missingAssets, document } = args;
+  const { projectName, parts, counts, missingAssets, document, unreadableCharacters } = args;
   const lines: string[] = [
     `NEXUS 项目导出：${projectName}`,
     `生成时间：${new Date().toISOString()}`,
@@ -83,6 +86,16 @@ function manifest(args: {
         : '  storyboard/ — 这一版没有分镜可导（项目里还没有分镜，或库里那份读不出来）',
     );
     lines.push('  分镜渲染出的成片是**本地确定性推演的 DEMO 产物**（本机没有视频 provider，§160），不是 AI 生成的。');
+  }
+  if (parts.includes('character')) {
+    lines.push(
+      counts.character > 0
+        ? `  character/characters.json — 角色档案（${counts.character} 位）。世界归属不随包走：导入时角色挂到新项目自己的世界上`
+        : '  character/ — 这一版没有角色可导（项目里还没有角色）',
+    );
+    if (unreadableCharacters > 0) {
+      lines.push(`  另有 ${unreadableCharacters} 位角色的档案在库里读不出来，没有进包`);
+    }
   }
   lines.push('', '不在这里的东西（导的是"当前这一版"，不是整个项目历史）');
   lines.push('  历史快照与分支、撤销栈、知识索引与语料、对话与 AI 任务账本、通知、审核记录。');
@@ -105,12 +118,14 @@ function manifest(args: {
  * 少了它只能让新项目的节点指向**源项目**的资产行（共享一行记录 = 删源项目把导入项目的图一起删掉，§80）
  * 或者干脆断掉引用。宁可对拿着 v1 包的人说一句"请重新导出"，也不要导出一份图不见了的项目。
  *
+ * 3 → 4 的原因：多了 `character` 这一 part（§46 的角色档案）。分镜的镜头可以挂角色，
+ * 不带角色走的包只能把引用剥掉——剥掉是"导入成功但少了一截"，与 v1 少 assetRefs 同一类问题。
  * 2 → 3 的原因：多了 `storyboard` 这一 part（§40-42 的分镜连同它的参考帧引用）。
  * 版本按相等判（导入侧 `manifest.formatVersion !== EXPORT_FORMAT_VERSION` 就整包拒收），
  * 所以加 part 必须同步升版本——否则本实例导出的包会被本实例的导入侧拒收，自己不认识自己。
  */
 export const EXPORT_FORMAT = 'nexus-project-export';
-export const EXPORT_FORMAT_VERSION = 3;
+export const EXPORT_FORMAT_VERSION = 4;
 
 /** 机器可读的那一层。与 README.txt 分工：这份给程序看，那份给人看 */
 export interface NexusManifest {
@@ -178,8 +193,9 @@ export async function buildProjectExport(
   // 类型取自项目行（设计文档里没有它）；项目行读不到就退回文档名，清单里照实写 website 之外的默认
   const identity = await loadProjectIdentity(projectId);
   const projectName = identity?.name ?? document.name;
-  const counts: Record<ExportPart, number> = { design: 0, code: 0, assets: 0, storyboard: 0 };
+  const counts: Record<ExportPart, number> = { design: 0, code: 0, assets: 0, storyboard: 0, character: 0 };
   const missingAssets: string[] = [];
+  let unreadableCharacters = 0;
   const assetRefs: NexusManifest['assetRefs'] = [];
   const entries: ZipEntry[] = [];
 
@@ -224,7 +240,21 @@ export async function buildProjectExport(
     // 不静默跳过——否则解压的人会以为分镜从来没被创建过
   }
 
-  entries.unshift(textEntry('README.txt', manifest({ projectName, parts, counts, missingAssets, document })));
+  if (parts.includes('character')) {
+    // 角色档案一份 JSON 数组。`projectId` / `worldId` 是**源项目**的 id，不随包走——
+    // 导入侧只取 name 与 profile，角色挂到新项目自己的世界上（§46，与资产换号同一规矩）
+    const { items, unreadable } = await listCharacters(projectId);
+    if (items.length > 0) {
+      entries.push(textEntry('character/characters.json', JSON.stringify(items, null, 2)));
+      counts.character = items.length;
+    }
+    // 读不出来的档案进不了包：README 里点名数量，不静默少导几个人
+    if (unreadable.length > 0) unreadableCharacters += unreadable.length;
+  }
+
+  entries.unshift(
+    textEntry('README.txt', manifest({ projectName, parts, counts, missingAssets, document, unreadableCharacters })),
+  );
   // 机器可读的那一层放在**最前面**：读回来的一方要先认格式版本，再谈里面的内容
   entries.unshift(
     textEntry(

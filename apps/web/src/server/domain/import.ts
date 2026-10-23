@@ -17,14 +17,16 @@
  *    那种"导入成功但图不见了"比一句"这是 v1 的包，请重新导出"难查得多。
  */
 import { duplicateDocument, remapAssetIds, type DesignDocument, type ProjectType } from '@nexus/design-model';
-import { StoryboardSaveRequestSchema } from '@nexus/schemas';
+import { CharacterSchema, StoryboardSaveRequestSchema, type CharacterPayload } from '@nexus/schemas';
 import type { Storyboard, StoryboardShot } from '@nexus/video-model';
+import type { CharacterProfile } from '@nexus/world-model';
 import { crc32 } from '@/lib/zip';
 import { readZip, readZipText, type ZipFileEntry } from '@/lib/zip-read';
 import { parseDocument } from '../validation';
 import { uploadImageAsset, uploadVideoAsset } from './assets';
 import { EXPORT_FORMAT, EXPORT_FORMAT_VERSION, type NexusManifest } from './export';
 import { createProject, loadDocument, PROJECT_KINDS, saveDocument } from './projects';
+import { createProjectCharacter, updateCharacterProfile } from './characters';
 import { saveStoryboard } from './storyboards';
 import { sniffVideoMime } from '../storage/videos';
 
@@ -48,6 +50,7 @@ export const IMPORT_MAX_ZIP_BYTES = 128 * 1024 * 1024;
 export const MANIFEST_PATH = '.nexus/manifest.json';
 export const DESIGN_DOC_PATH = 'design/document.json';
 export const STORYBOARD_DOC_PATH = 'storyboard/storyboard.json';
+export const CHARACTERS_DOC_PATH = 'character/characters.json';
 const CODE_DIR = 'code/';
 const ASSETS_DIR = 'assets/';
 
@@ -55,8 +58,8 @@ export interface ImportReceipt {
   projectId: string;
   name: string;
   kind: ProjectType;
-  /** 进了库的部分：设计文档 1 份 + 资产若干 + 分镜 1 份 */
-  counts: { design: number; assets: number; storyboard: number };
+  /** 进了库的部分：设计文档 1 份 + 资产若干 + 分镜 1 份 + 角色若干 */
+  counts: { design: number; assets: number; storyboard: number; character: number };
   /** 包里有、但导入侧**故意**不用的：代码是投影 */
   codeFilesIgnored: number;
   /**
@@ -69,6 +72,11 @@ export interface ImportReceipt {
    * 不为空时导入仍然算成功——分镜已经在了，但"哪一镜少了什么"必须点名（§159）。
    */
   storyboardNotes: string[];
+  /**
+   * 角色这一层进门时发生的事：哪位没建档、哪份档案没写回去、参考图为什么被置空。
+   * 角色进不了库时分镜里挂它的镜头会被剥掉——这件事必须点名，不静默（§159）。
+   */
+  characterNotes: string[];
   /** 源包里的 `generatedAt`：让界面能说清"这是哪一次导出" */
   exportedAt: string;
   /** 整包字节与解压后字节 */
@@ -165,7 +173,7 @@ function readManifest(files: ZipFileEntry[]): { manifest?: NexusManifest; refusa
   if (!Array.isArray(manifest.entries) || !Array.isArray(manifest.assetRefs)) {
     return { refusal: refuse('.nexus/manifest.json 少了 entries 或 assetRefs，整包拒收') };
   }
-  if (!Array.isArray(manifest.parts) || manifest.parts.some((p) => p !== 'design' && p !== 'code' && p !== 'assets' && p !== 'storyboard')) {
+  if (!Array.isArray(manifest.parts) || manifest.parts.some((p) => p !== 'design' && p !== 'code' && p !== 'assets' && p !== 'storyboard' && p !== 'character')) {
     return { refusal: refuse('清单里的 parts 读不出一个合法组合', [`读到 ${JSON.stringify(manifest.parts)}`]) };
   }
   return { manifest: manifest as NexusManifest };
@@ -182,6 +190,9 @@ function versionHint(version: unknown): string {
   if (version === 2) {
     return 'v2 的包里没有分镜那一层（storyboard 这个 part 是 v3 才加的）——请在 Studio 重新导出一次（v3），否则分镜不会跟着包走';
   }
+  if (version === 3) {
+    return 'v3 的包里没有角色那一层（character 这个 part 是 v4 才加的）——请在 Studio 重新导出一次（v4），否则分镜镜头挂的角色不会跟着包走';
+  }
   return `只支持 v${EXPORT_FORMAT_VERSION}；更高版本要等本实例升级读端，更低版本要重新导出`;
 }
 
@@ -197,6 +208,8 @@ export interface PackagePlan {
   extracted: number;
   /** 包里的分镜文档（parts 含 storyboard 时）；没这一 part 就是 null——"没导"与"导了空的"是两件事 */
   storyboard: { document: Storyboard } | null;
+  /** 包里的角色档案（parts 含 character 时）；没这一 part 就是空数组 */
+  characters: CharacterPayload[];
 }
 
 /**
@@ -277,6 +290,35 @@ export function inspectPackage(zipBytes: Uint8Array): PackagePlan | ImportRefusa
     storyboard = { document: parsedStoryboard.data.document as Storyboard };
   }
 
+  // 角色那一层：parts 里说了 character，包里就必须有那份数组，且每一位都过 CharacterSchema
+  // （包是外部输入，"是自家导出的"不免检——与 design / storyboard 同一口径）
+  const characters: CharacterPayload[] = [];
+  if (manifest.parts.includes('character')) {
+    const charactersText = readZipText(files, CHARACTERS_DOC_PATH);
+    if (charactersText === null) {
+      return refuse(`清单说导了 character，包里却没有 ${CHARACTERS_DOC_PATH}`);
+    }
+    let charactersRaw: unknown;
+    try {
+      charactersRaw = JSON.parse(charactersText);
+    } catch {
+      return refuse(`${CHARACTERS_DOC_PATH} 不是合法 JSON，整包拒收`);
+    }
+    if (!Array.isArray(charactersRaw)) {
+      return refuse(`${CHARACTERS_DOC_PATH} 应该是一个角色数组，整包拒收`);
+    }
+    for (const [index, raw] of charactersRaw.entries()) {
+      const parsedCharacter = CharacterSchema.safeParse(raw);
+      if (!parsedCharacter.success) {
+        return refuse(
+          '包里的角色档案过不了契约，整包拒收',
+          parsedCharacter.error.issues.map((issue) => `第 ${index + 1} 位：${issue.path.join('.')}: ${issue.message}`),
+        );
+      }
+      characters.push(parsedCharacter.data);
+    }
+  }
+
   const rawName = manifest.project?.name;
   const preferred = typeof rawName === 'string' ? rawName.trim() : '';
   return {
@@ -288,6 +330,7 @@ export function inspectPackage(zipBytes: Uint8Array): PackagePlan | ImportRefusa
     files,
     extracted,
     storyboard,
+    characters,
   };
 }
 
@@ -301,7 +344,7 @@ export async function importProjectZip(actorId: string, zipBytes: Uint8Array): P
   const startedAt = Date.now();
   const plan = inspectPackage(zipBytes);
   if (!plan.ok) return plan;
-  const { manifest, document: source, name, kind, files, extracted, storyboard: sourceStoryboard } = plan;
+  const { manifest, document: source, name, kind, files, extracted, storyboard: sourceStoryboard, characters: sourceCharacters } = plan;
 
   // 换号才能进库：页面与组件 id 是全局主键，同一个实例里导回自己的包不换号就是撞车
   const created = await createProject(actorId, {
@@ -364,12 +407,38 @@ export async function importProjectZip(actorId: string, zipBytes: Uint8Array): P
     if (idMap.size > 0) await saveDocument(created.id, remapAssetIds(stored, idMap));
   }
 
+  // 角色写在分镜之前：镜头里的 characterId 要换成新项目自己的角色 id，characterIdMap 这会儿才齐。
+  // worldId / projectId 不随包走（导出侧就没把它们当内容）——角色挂到新项目自己的世界上（§46）
+  const characterIdMap = new Map<string, string>();
+  const characterNotes: string[] = [];
+  for (const [index, character] of sourceCharacters.entries()) {
+    const createdCharacter = await createProjectCharacter(created.id, actorId, { name: character.profile.name });
+    if (!createdCharacter.ok) {
+      characterNotes.push(
+        `第 ${index + 1} 位角色（包内 id ${character.id}）没建档：${createdCharacter.reason}。分镜里挂它的镜头已剥掉这个角色`,
+      );
+      continue;
+    }
+    // 建档只带名字（CharacterCreateRequestSchema 就这些），档案整份靠第二次写恢复；
+    // 档案里的参考图也要过 idMap——它指的是源项目的资产，不换号就是一条悬空引用
+    const remappedProfile = remapCharacterProfile(character.profile, idMap);
+    characterNotes.push(...remappedProfile.notes);
+    const updated = await updateCharacterProfile(createdCharacter.character.id, created.id, remappedProfile.profile);
+    if (!updated.ok) {
+      characterNotes.push(
+        `第 ${index + 1} 位角色（包内 id ${character.id}）的档案没写回去：${updated.reason}。分镜里挂它的镜头已剥掉这个角色`,
+      );
+      continue;
+    }
+    characterIdMap.set(character.id, updated.character.id);
+  }
+
   // 分镜写在资产之后：镜头里的 referenceAssetId / videoAssetId 要换成**新项目**的资产 id，
   // 而 idMap 这会儿才齐。顺序反了会出现"引用的资产还没进库"的假拒收
   let storyboardCount = 0;
   const storyboardNotes: string[] = [];
   if (sourceStoryboard) {
-    const remapped = remapStoryboard(sourceStoryboard.document, idMap);
+    const remapped = remapStoryboard(sourceStoryboard.document, idMap, characterIdMap);
     storyboardNotes.push(...remapped.notes);
     const saved = await saveStoryboard(created.id, actorId, { document: remapped.document });
     if (saved.ok) {
@@ -390,10 +459,11 @@ export async function importProjectZip(actorId: string, zipBytes: Uint8Array): P
     projectId: created.id,
     name,
     kind,
-    counts: { design: designCount, assets: idMap.size, storyboard: storyboardCount },
+    counts: { design: designCount, assets: idMap.size, storyboard: storyboardCount, character: characterIdMap.size },
     codeFilesIgnored: manifest.entries.filter((e) => e.path.startsWith(CODE_DIR)).length,
     assetFailures,
     storyboardNotes,
+    characterNotes,
     exportedAt: manifest.generatedAt,
     bytes: { zip: zipBytes.length, extracted },
     durationMs: Date.now() - startedAt,
@@ -425,23 +495,34 @@ function documentAssetRefs(document: DesignDocument): Set<string> {
 
 
 /**
- * 分镜进门前的净化：引用换号 + 剥角色。
+ * 分镜进门前的净化：引用换号（资产与角色两条线）。
  *
- * 换号与设计文档同一条规则（`remapAssetIds`）：引用必须指得回**这个新项目自己的**资产行。
- * 两条这份文档特有的规矩：
- * - **不在 idMap 里的引用删掉这个字段，不留悬空指针**。留着的话 `saveStoryboard` 的
- *   firstForeignRef 会整份拒收——为了一处断引用丢掉整份分镜，不如删掉它，
- *   并把"哪一镜少了什么"记进 notes。删的是字段，不是镜头。
- * - **characterId 一律剥掉**。导出格式里没有角色这一 part，角色 id 在新项目里必然不存在；
- *   不剥就是被 firstForeignRef 整份拒收——那是拿"导入失败"掩盖"角色没随包走"。
+ * 换号与设计文档同一条规则（`remapAssetIds`）：引用必须指得回**这个新项目自己的**行。
+ * - 资产引用不在 idMap 里（字节没进得来）→ **删字段不删镜头**，并记 note；
+ * - 角色引用不在 characterIdMap 里（没导 character / 那位建档失败）→ 同样剥掉并记 note。
+ *   留着就是悬空指针，`saveStoryboard` 的 firstForeignRef 会整份拒收——为了一处
+ *   断引用丢掉整份分镜，不如删掉它并把"哪一镜少了什么"写进 notes。
  */
-function remapStoryboard(sb: Storyboard, idMap: Map<string, string>): { document: Storyboard; notes: string[] } {
+function remapStoryboard(
+  sb: Storyboard,
+  idMap: Map<string, string>,
+  characterIdMap: Map<string, string>,
+): { document: Storyboard; notes: string[] } {
   const notes: string[] = [];
   const remap = (value: string | undefined, where: string): string | undefined => {
     if (value === undefined) return undefined;
     const mapped = idMap.get(value);
     if (mapped === undefined) {
       notes.push(`${where} 引用的资产 ${value} 没有进包（或字节没被收下），这处引用已删除`);
+      return undefined;
+    }
+    return mapped;
+  };
+  const remapCharacter = (value: string | undefined, where: string): string | undefined => {
+    if (value === undefined) return undefined;
+    const mapped = characterIdMap.get(value);
+    if (mapped === undefined) {
+      notes.push(`${where} 的角色 ${value} 没有进包（或建档失败），这处角色引用已剥掉`);
       return undefined;
     }
     return mapped;
@@ -453,21 +534,18 @@ function remapStoryboard(sb: Storyboard, idMap: Map<string, string>): { document
     const { characterId: _characterId, referenceAssetId: _referenceAssetId, videoAssetId: _videoAssetId, ...rest } = shot;
     const referenceAssetId = remap(shot.referenceAssetId, `${where} 的参考帧`);
     const videoAssetId = remap(shot.videoAssetId, `${where} 的成片`);
-    if (shot.characterId) {
-      notes.push(`${where} 的角色 ${shot.characterId} 没有随包导入（导出格式里没有角色这一 part），已剥离`);
-    }
+    const characterId = remapCharacter(shot.characterId, where);
     return {
       ...rest,
       ...(referenceAssetId === undefined ? {} : { referenceAssetId }),
       ...(videoAssetId === undefined ? {} : { videoAssetId }),
+      ...(characterId === undefined ? {} : { characterId }),
     };
   });
 
   const { characterId: _sourceCharacterId, referenceAssetId: _sourceReferenceAssetId, ...sourceRest } = sb.source;
   const sourceReferenceAssetId = remap(sb.source.referenceAssetId, '来源（source）的参考帧');
-  if (sb.source.characterId) {
-    notes.push(`来源（source）的角色 ${sb.source.characterId} 没有随包导入（导出格式里没有角色这一 part），已剥离`);
-  }
+  const sourceCharacterId = remapCharacter(sb.source.characterId, '来源（source）');
 
   return {
     document: {
@@ -475,9 +553,34 @@ function remapStoryboard(sb: Storyboard, idMap: Map<string, string>): { document
       source: {
         ...sourceRest,
         ...(sourceReferenceAssetId === undefined ? {} : { referenceAssetId: sourceReferenceAssetId }),
+        ...(sourceCharacterId === undefined ? {} : { characterId: sourceCharacterId }),
       },
       shots,
     },
     notes,
+  };
+}
+
+/**
+ * 角色档案里的参考图换号。`visualIdentity.referenceAssetId` 指的是源项目的资产行，
+ * 不换号就是一条悬空引用（§46/§80 同一规矩：存进去的指针也得只指得回本项目）。
+ * 换不到号就置空并记 note——置空是契约允许的形状（nullable），悬空才是Bug。
+ */
+function remapCharacterProfile(
+  profile: CharacterProfile,
+  idMap: Map<string, string>,
+): { profile: CharacterProfile; notes: string[] } {
+  const referenceAssetId = profile.visualIdentity?.referenceAssetId;
+  if (referenceAssetId === null || referenceAssetId === undefined) return { profile, notes: [] };
+  const mapped = idMap.get(referenceAssetId);
+  if (mapped === undefined) {
+    return {
+      profile: { ...profile, visualIdentity: { ...profile.visualIdentity, referenceAssetId: null } },
+      notes: [`角色「${profile.name}」的参考图 ${referenceAssetId} 没有进包（或字节没被收下），这处引用已置空`],
+    };
+  }
+  return {
+    profile: { ...profile, visualIdentity: { ...profile.visualIdentity, referenceAssetId: mapped } },
+    notes: [],
   };
 }

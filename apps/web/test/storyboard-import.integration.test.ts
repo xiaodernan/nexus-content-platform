@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { crc32, textEntry, zipStore, type ZipEntry } from '../src/lib/zip';
 import { readZip, readZipText } from '../src/lib/zip-read';
 import { buildProjectExport, type NexusManifest } from '../src/server/domain/export';
-import { importProjectZip } from '../src/server/domain/import';
-import { createProjectCharacter } from '../src/server/domain/characters';
+import { CHARACTERS_DOC_PATH, importProjectZip } from '../src/server/domain/import';
+import { createProjectCharacter, listCharacters, updateCharacterProfile } from '../src/server/domain/characters';
 import { listProjectAssets, uploadImageAsset, uploadVideoAsset } from '../src/server/domain/assets';
 import { loadStoryboard, saveStoryboard } from '../src/server/domain/storyboards';
 import { createProject } from '../src/server/domain/projects';
@@ -11,12 +11,12 @@ import { getDb } from '../src/server/db/client';
 import { users } from '../src/server/db/schema';
 
 /**
- * v3 新长出来的那一层：**分镜跟着导出包走**（§40-42 × §144）。
+ * v3/v4 长出来的两层：**分镜与角色跟着导出包走**（§40-42 × §144 × §46）。
  *
  * 这一份打真往返：源项目里造一份分镜（带参考帧、带成片、带角色），真导出、真导回来，逐条对：
  * - 镜头数与 prompt 原样回来；库里那一份是新行的 uuid，不是包里建档时的临时 id；
  * - `referenceAssetId` / `videoAssetId` 换成**新项目自己**的资产 id（换号，§16/§27 同一规矩）；
- * - `characterId` 一律剥掉并点名——导出格式里没有角色这一 part，不剥就会被 firstForeignRef 整份拒收；
+ * - `characterId` 换成新项目自己的角色 id（v4 起角色随包走；v3 及以前只能剥掉并点名）；
  * - 成片按字节类型走 `uploadVideoAsset` 而不是被当图片递过去（v3 之前视频资产其实进不来）。
  *
  * 夹具照 `video-asset.integration.test.ts` 的 mp4Clean 手搓：这一格要证的是"导入侧认不认这颗
@@ -53,6 +53,14 @@ function makePng(seed = 1): Uint8Array {
     ...chunk('IDAT', [seed, 2, 3, 4]),
     ...chunk('IEND', []),
   ]);
+}
+
+/** 读真包里第一位角色的档案（改它一处再压回去，就是"内容变了、清单重算"那类篡改） */
+function characterInPackage(zipBytes: Uint8Array): { id: string; profile: Record<string, unknown> } {
+  const text = readZipText(readZip(zipBytes), CHARACTERS_DOC_PATH);
+  if (text === null) throw new Error('真包里没有角色档案');
+  const all = JSON.parse(text) as { id: string; profile: Record<string, unknown> }[];
+  return all[0]!;
 }
 
 /** 拆成真包的两层：清单 + 其余条目（条目原样，不重新编码） */
@@ -129,6 +137,16 @@ beforeAll(async () => {
   if (!character.ok) throw new Error(`角色建档失败：${character.reason}`);
   characterId = character.character.id;
 
+  // 档案里的参考图指着刚上传的那张位图：导入侧要把它也换成新项目的资产 id（§46/§80）
+  const { items } = await listCharacters(sourceId);
+  const sourceCharacter = items.find((c) => c.id === characterId);
+  if (!sourceCharacter) throw new Error('刚建档的角色读不回来');
+  const withReference = await updateCharacterProfile(characterId, sourceId, {
+    ...sourceCharacter.profile,
+    visualIdentity: { ...sourceCharacter.profile.visualIdentity, referenceAssetId: imageAssetId },
+  });
+  if (!withReference.ok) throw new Error(`角色档案写不回去：${withReference.reason}`);
+
   // 一份**满引用**的分镜：来源带角色与参考帧，第一镜挂角色，第二镜挂参考帧与成片
   const saved = await saveStoryboard(sourceId, userId, {
     document: {
@@ -157,17 +175,19 @@ afterAll(async () => {
   // 与其它集成用例同一口径：行留给库，不在这里清（清理会撞并行文件的断言）
 });
 
-describe('§40-42 × §144：分镜跟着导出包走（v3）', () => {
-  it('完整往返：分镜回来了，引用换成新项目自己的资产，角色剥掉并点名', async () => {
-    const exported = await buildProjectExport(sourceId, userId, ['design', 'assets', 'storyboard']);
+describe('§40-42 × §144 × §46：分镜与角色跟着导出包走（v3-v4）', () => {
+  it('完整往返：分镜与角色都回来了，引用换成新项目自己的资产与角色', async () => {
+    const exported = await buildProjectExport(sourceId, userId, ['design', 'assets', 'storyboard', 'character']);
     if (!exported) throw new Error('自己的项目导不出来');
     expect(exported.counts.storyboard).toBe(1);
+    expect(exported.counts.character).toBe(1);
 
     const outcome = await importProjectZip(otherUserId, exported.bytes);
     expect(outcome.ok, outcome.ok ? '' : `${outcome.reason} / ${outcome.issues.join('；')}`).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.counts.storyboard).toBe(1);
     expect(outcome.counts.assets).toBe(2);
+    expect(outcome.counts.character).toBe(1);
 
     const back = await loadStoryboard(outcome.projectId);
     if (!back?.ok) throw new Error('导回来的项目里没有分镜');
@@ -183,6 +203,11 @@ describe('§40-42 × §144：分镜跟着导出包走（v3）', () => {
     expect(newImage, '导入的项目里没有图片资产').toBeTruthy();
     expect(newVideo, '导入的项目里没有视频资产——视频字节被当图片拒了？').toBeTruthy();
 
+    // v4：角色随包走。新项目里有一位角色，且不是源项目那一行
+    const charactersIn = await listCharacters(outcome.projectId);
+    expect(charactersIn.items.length, '导入的项目里没有角色').toBe(1);
+    const newCharacter = charactersIn.items[0]!;
+
     // 换号：引用指向新项目自己的资产行，不是源项目那两个 id
     expect(back.document.source.referenceAssetId).toBe(newImage!.id);
     expect(back.document.source.referenceAssetId).not.toBe(imageAssetId);
@@ -190,20 +215,22 @@ describe('§40-42 × §144：分镜跟着导出包走（v3）', () => {
     expect(back.document.shots[1]!.videoAssetId).toBe(newVideo!.id);
     expect(back.document.shots[1]!.videoAssetId).not.toBe(videoAssetId);
 
-    // 角色一律剥掉：导出格式里没有角色这一 part
-    expect(back.document.shots[0]!.characterId).toBeUndefined();
-    expect(back.document.source.characterId).toBeUndefined();
+    // v4：characterId 换成新项目自己的角色 id，不再剥掉
+    expect(back.document.shots[0]!.characterId).toBe(newCharacter.id);
+    expect(back.document.shots[0]!.characterId).not.toBe(characterId);
+    expect(back.document.source.characterId).toBe(newCharacter.id);
+    // 档案里的参考图也过了 idMap：指着新项目自己的资产行，不是源项目那张
+    expect(newCharacter.profile.visualIdentity.referenceAssetId).toBe(newImage!.id);
 
-    // 剥了什么、id 为什么对不上，都在 notes 里点名，不静默（§159）
+    // 角色顺利进门时一条剥离都不该有："剥掉"只属于没进来或没建档成功的
     const notes = outcome.storyboardNotes.join('\n');
-    expect(notes).toContain('已剥离');
-    expect(notes).toContain('第 1 镜（shot-1）');
-    expect(notes).toContain('来源（source）');
+    expect(notes).not.toContain('已剥离');
+    expect(notes).not.toContain('这处角色引用已剥掉');
     expect(notes).toContain('storyboardId 是源包那一份的');
   });
 
   it('成片字节过不了摄取门：项目还在，那处引用删掉并点名（删字段，不删镜头）', async () => {
-    const exported = await buildProjectExport(sourceId, userId, ['design', 'assets', 'storyboard']);
+    const exported = await buildProjectExport(sourceId, userId, ['design', 'assets', 'storyboard', 'character']);
     if (!exported) throw new Error('自己的项目导不出来');
     const { manifest, files } = packageOf(exported.bytes);
     const videoPath = manifest.assetRefs.find((r) => r.path.endsWith('.mp4'))?.path;
@@ -219,6 +246,7 @@ describe('§40-42 × §144：分镜跟着导出包走（v3）', () => {
     if (!outcome.ok) return;
     expect(outcome.counts.assets).toBe(1);
     expect(outcome.counts.storyboard).toBe(1);
+    expect(outcome.counts.character).toBe(1);
     // 字节不合格要被点名（它被当图片递过去，得到的是图片摄取门那条拒绝理由）
     const refused = outcome.assetFailures.find((f) => f.path === videoPath);
     expect(refused, '不合格的成片字节没有被点名').toBeTruthy();
@@ -232,5 +260,76 @@ describe('§40-42 × §144：分镜跟着导出包走（v3）', () => {
     const notes = outcome.storyboardNotes.join('\n');
     expect(notes).toContain('这处引用已删除');
     expect(notes).toContain('第 2 镜（shot-2） 的成片');
+  });
+
+  it('角色建档失败（包里那位没有名字）：项目还在，镜头上的角色剥掉并点名', async () => {
+    const exported = await buildProjectExport(sourceId, userId, ['design', 'assets', 'storyboard', 'character']);
+    if (!exported) throw new Error('自己的项目导不出来');
+    const { manifest, files } = packageOf(exported.bytes);
+    const base = characterInPackage(exported.bytes);
+
+    // 把包里那位角色的名字改成空串：CharacterSchema 过得去（name 只限长不限空），
+    // 但 createProjectCharacter 拒收没有名字的角色——失败发生在写库那一步，不在验包那一步
+    const nameless = files.map((f) =>
+      f.path === CHARACTERS_DOC_PATH
+        ? {
+            ...f,
+            contents: textEntry(f.path, JSON.stringify([{ ...base, profile: { ...base.profile, name: '' } }])).contents,
+          }
+        : f,
+    );
+    const outcome = await importProjectZip(otherUserId, repack(nameless, manifest, true));
+
+    expect(outcome.ok, outcome.ok ? '' : `${outcome.reason} / ${outcome.issues.join('；')}`).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.counts.character).toBe(0);
+    expect(outcome.counts.storyboard).toBe(1);
+    const characterNotes = outcome.characterNotes.join('\n');
+    expect(characterNotes).toContain('没建档');
+    expect(characterNotes).toContain('角色要有名字');
+
+    const back = await loadStoryboard(outcome.projectId);
+    if (!back?.ok) throw new Error('分镜没导回来');
+    // 剥掉的是角色引用，不是镜头：两镜都在，只是不再挂着谁
+    expect(back.document.shots[0]!.characterId).toBeUndefined();
+    expect(back.document.source.characterId).toBeUndefined();
+    expect(back.document.shots.length).toBe(2);
+    expect(outcome.storyboardNotes.join('\n')).toContain('这处角色引用已剥掉');
+  });
+
+  it('角色档案里的参考图换不到号：置空并点名，不留悬空引用', async () => {
+    const exported = await buildProjectExport(sourceId, userId, ['design', 'assets', 'storyboard', 'character']);
+    if (!exported) throw new Error('自己的项目导不出来');
+    const { manifest, files } = packageOf(exported.bytes);
+    const base = characterInPackage(exported.bytes);
+    const visualIdentity = base.profile.visualIdentity as Record<string, unknown>;
+
+    // 把档案里的参考图改成一个包里没有的资产 id：契约过得去（只查形状不查归属），
+    // 但 idMap 里没有它——这一处必须置空并点名，而不是存一条指着空气的引用
+    const dangling = files.map((f) =>
+      f.path === CHARACTERS_DOC_PATH
+        ? {
+            ...f,
+            contents: textEntry(
+              f.path,
+              JSON.stringify([
+                { ...base, profile: { ...base.profile, visualIdentity: { ...visualIdentity, referenceAssetId: 'asset-不存在' } } },
+              ]),
+            ).contents,
+          }
+        : f,
+    );
+    const outcome = await importProjectZip(otherUserId, repack(dangling, manifest, true));
+
+    expect(outcome.ok, outcome.ok ? '' : `${outcome.reason} / ${outcome.issues.join('；')}`).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.counts.character).toBe(1);
+    expect(outcome.characterNotes.join('\n')).toContain('这处引用已置空');
+    const charactersIn = await listCharacters(outcome.projectId);
+    expect(charactersIn.items[0]!.profile.visualIdentity.referenceAssetId).toBeNull();
+    // 角色本身还在，镜头上的引用也换上了新角色——坏的只是那一处参考图
+    const back = await loadStoryboard(outcome.projectId);
+    if (!back?.ok) throw new Error('分镜没导回来');
+    expect(back.document.shots[0]!.characterId).toBe(charactersIn.items[0]!.id);
   });
 });

@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { createDocument } from '@nexus/design-model';
 import { crc32, textEntry, zipStore, type ZipEntry } from '@/lib/zip';
-import { IMPORT_MAX_ZIP_BYTES, importProjectZip, inspectPackage, STORYBOARD_DOC_PATH } from '@/server/domain/import';
+import {
+  CHARACTERS_DOC_PATH,
+  IMPORT_MAX_ZIP_BYTES,
+  importProjectZip,
+  inspectPackage,
+  STORYBOARD_DOC_PATH,
+} from '@/server/domain/import';
 import { EXPORT_FORMAT, EXPORT_FORMAT_VERSION, type NexusManifest } from '@/server/domain/export';
 
 /**
@@ -65,6 +71,40 @@ function storyboardDocument(): Record<string, unknown> {
   };
 }
 
+/** 一份过得了 CharacterSchema 的角色档案：导入侧判据的"合法那一半" */
+function characterDocument(): Record<string, unknown> {
+  return {
+    id: 'char-source',
+    projectId: 'p-source',
+    worldId: null,
+    profile: {
+      name: '阿猫',
+      appearance: '黑猫，绿眼睛',
+      personality: '冷静',
+      backstory: '港口的猫',
+      goals: [],
+      fears: [],
+      relationships: [],
+      voice: { register: '低沉', pace: '慢', catchphrases: [], notes: '' },
+      visualIdentity: { palette: ['#000000'], silhouette: '瘦长', motifs: [], referenceAssetId: null },
+    },
+    createdAt: '2026-10-01T00:00:00.000Z',
+    updatedAt: '2026-10-01T00:00:00.000Z',
+  };
+}
+
+/** 拼一份 parts 含 character 的包；`charactersText` 为 null 表示包里不放那份文档 */
+function packWithCharacters(charactersText: string | null): Uint8Array {
+  const files = [
+    textEntry('README.txt', '说明'),
+    goodDocument(),
+    textEntry('code/index.tsx', 'export const A = 1;'),
+    textEntry(STORYBOARD_DOC_PATH, JSON.stringify(storyboardDocument())),
+  ];
+  if (charactersText !== null) files.push(textEntry(CHARACTERS_DOC_PATH, charactersText));
+  return pack(files, manifestOf(files, { parts: ['design', 'code', 'assets', 'storyboard', 'character'] }));
+}
+
 /** 拼一份 parts 含 storyboard 的包；`storyboardText` 为 null 表示包里不放那份文档 */
 function packWithStoryboard(storyboardText: string | null): Uint8Array {
   const files = [textEntry('README.txt', '说明'), goodDocument(), textEntry('code/index.tsx', 'export const A = 1;')];
@@ -105,14 +145,20 @@ const REFUSALS: { label: string; bytes: Uint8Array; message: string; issues?: st
   {
     label: 'v1 的包（没有 assetRefs，导回来图片引用会断）',
     bytes: tamperManifest(() => ({ formatVersion: 1 })),
-    message: '包格式版本不认识：这份是 v1，本实例只认 v3',
+    message: '包格式版本不认识：这份是 v1，本实例只认 v4',
     issues: ['v1 的清单没有记录每个文件对应的资产 id'],
   },
   {
     label: 'v2 的包（没有 storyboard 那一层，v3 才加的）',
     bytes: tamperManifest(() => ({ formatVersion: 2 })),
-    message: '包格式版本不认识：这份是 v2，本实例只认 v3',
+    message: '包格式版本不认识：这份是 v2，本实例只认 v4',
     issues: ['重新导出一次（v3）'],
+  },
+  {
+    label: 'v3 的包（没有 character 那一层，v4 才加的）',
+    bytes: tamperManifest(() => ({ formatVersion: 3 })),
+    message: '包格式版本不认识：这份是 v3，本实例只认 v4',
+    issues: ['重新导出一次（v4）'],
   },
   {
     label: '清单少了 entries',
@@ -204,6 +250,26 @@ const REFUSALS: { label: string; bytes: Uint8Array; message: string; issues?: st
     message: '包里的分镜文档过不了契约，整包拒收',
   },
   {
+    label: '清单说有 character，包里却没有那份档案',
+    bytes: packWithCharacters(null),
+    message: `清单说导了 character，包里却没有 ${CHARACTERS_DOC_PATH}`,
+  },
+  {
+    label: 'characters.json 不是合法 JSON',
+    bytes: packWithCharacters('{这不是 JSON'),
+    message: `${CHARACTERS_DOC_PATH} 不是合法 JSON，整包拒收`,
+  },
+  {
+    label: 'characters.json 不是数组',
+    bytes: packWithCharacters(JSON.stringify({ id: 'char-x' })),
+    message: `${CHARACTERS_DOC_PATH} 应该是一个角色数组，整包拒收`,
+  },
+  {
+    label: '某位角色的档案过不了契约（缺 profile 的残片）',
+    bytes: packWithCharacters(JSON.stringify([{ id: 'char-残' }])),
+    message: '包里的角色档案过不了契约，整包拒收',
+  },
+  {
     label: '项目类型这个实例不认识',
     bytes: tamperManifest(() => ({ project: { name: '导入用例', kind: 'holodeck' } })),
     message: '清单里的项目类型这个实例不认识',
@@ -242,6 +308,17 @@ describe('§105/§144 ZIP 导入：先挡再写库', () => {
     expect(plan.storyboard!.document.id).toBe('sb-source');
     expect(plan.storyboard!.document.shots.map((shot) => shot.id)).toEqual(['shot-1', 'shot-2']);
     expect(plan.storyboard!.document.shots[1]!.referenceAssetId).toBe('asset-1');
+  });
+
+  it('parts 含 character 且每位角色都过得了契约 → 计划里带着角色（写库前最后一关放行）', () => {
+    const plan = inspectPackage(packWithCharacters(JSON.stringify([characterDocument()])));
+    expect(plan.ok, plan.ok ? '' : `${plan.reason} / ${plan.issues.join('；')}`).toBe(true);
+    if (!plan.ok) return;
+    expect(plan.characters).toHaveLength(1);
+    expect(plan.characters[0]!.id).toBe('char-source');
+    expect(plan.characters[0]!.profile.name).toBe('阿猫');
+    // 源项目的 projectId / worldId 只是包里的装饰：导入侧一个都不用（只取 name 与 profile）
+    expect(plan.characters[0]!.projectId).toBe('p-source');
   });
 
   it('整包体积超过上限 → 还没碰 ZIP 解析就拒', async () => {

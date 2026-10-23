@@ -6278,3 +6278,29 @@ M5 收尾第二格（也是最后一格）：#191 落成渲染额度门之后，
 **下一步**：M5 全部收尾。候选：①"角色随包走"（导出格式加 character part 再升 v4，
 当前口径是剥掉并点名）；② §133 剩余两格（teamCollaboration / publishing）的拦截方；
 ③ Studio 画布上 videoAssetId 成片的播放预览（时间线 playable 仍是 false，§160）。
+
+
+## M5 第十片（#197）：角色随包走——导出加 character part，格式版本升到 v4
+
+#195 留下的明确缺口：分镜的镜头可以挂角色，但导出格式里没有角色那一层，导入侧只能把
+`characterId` 一律剥掉。这一片把角色接进包里：
+
+- **导出侧**：`ExportPart` 加 `character`；`EXPORT_FORMAT_VERSION` 3 → 4（加 part 必须升版本，
+  导入侧按相等判，不升就是自家包被自家拒）。`character/characters.json` 是角色档案数组；
+  `projectId` / `worldId` **不随包走**——导入时角色挂到新项目自己的世界上（§46，与资产换号
+  同一规矩）。读不出来的档案不进包，README 点名数量。
+- **导入侧**：parts 放行 `character`；`versionHint` 补 v3 分支；`PackagePlan.characters`
+  每位过 `CharacterSchema`（缺文件 / 坏 JSON / 不是数组 / 形状不过，都整包拒收）。
+  建档两步走：`createProjectCharacter`（只带名字）→ `updateCharacterProfile`（档案整份恢复）。
+- **角色档案里的参考图也换号**：`remapCharacterProfile` 把 `visualIdentity.referenceAssetId`
+  过 idMap，换不到号就置空（nullable 是契约允许的形状）并记 note——悬空引用才是Bug。
+- **分镜的 characterId 从"一律剥掉"变成"过 characterIdMap 换号"**：换不到（没导角色 /
+  那位建档失败）才剥掉并点名。`remapStoryboard` 现在是资产与角色两条换号线。
+- `ImportReceipt` 加 `counts.character` 与 `characterNotes`（没建档 / 档案没写回去 / 参考图
+  置空，全部点名）；路由枚举、ExportPanel 勾选、ImportPanel 回执同步。
+
+见证：`zip-import.test.ts` 33 条（v3 拒收带"重新导出一次（v4）"、character 四种拒收、
+正面计划带角色）；`export.integration.test.ts` 13 条（有/无角色两种 README 文案、版本断言升 4）；
+`storyboard-import.integration.test.ts` 往返 4 条（v4 happy path 角色换号 + 档案参考图换号、
+建档失败剥角色、参考图悬空置空）。五文件 62/62 绿，tsc 0、eslint 0。
+变异探针 3 种全部精确红：不建档角色 / 档案参考图不换号 / 版本不升。

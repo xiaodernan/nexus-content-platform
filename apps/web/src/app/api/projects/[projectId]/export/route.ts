@@ -24,7 +24,7 @@ const QuerySchema = z.object({
     .string()
     .optional()
     .transform((raw) => (raw ?? 'design,code,assets').split(',').map((p) => p.trim()).filter(Boolean))
-    .pipe(z.array(z.enum(['design', 'code', 'assets', 'storyboard'])).min(1)),
+    .pipe(z.array(z.enum(['design', 'code', 'assets', 'storyboard', 'character'])).min(1)),
 });
 
 interface RouteContext {
@@ -70,7 +70,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
       projectName,
       actorId: user.id,
       ok: false,
-      counts: { design: 0, code: 0, assets: 0, storyboard: 0 },
+      counts: { design: 0, code: 0, assets: 0, storyboard: 0, character: 0 },
       missingAssets: 0,
       durationMs: 0,
       detail: failure,
@@ -84,7 +84,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
 
   // 说明那一份 README 也在包里，但它不是"导出的内容"，所以数完内容再明说还附带一份说明
   const detail =
-    `内容 ${outcome.counts.design + outcome.counts.code + outcome.counts.assets + outcome.counts.storyboard} 个文件，外加一份说明` +
+    `内容 ${outcome.counts.design + outcome.counts.code + outcome.counts.assets + outcome.counts.storyboard + outcome.counts.character} 个文件，外加一份说明` +
     (outcome.missingAssets.length ? `，缺了 ${outcome.missingAssets.length} 个资产` : '');
   publishBuildStatus(projectId, 'ok', `导出完成 · ${detail}`);
   await notifyBuildComplete({
