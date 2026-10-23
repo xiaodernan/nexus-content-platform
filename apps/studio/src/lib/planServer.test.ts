@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { offerOnService, readPlans, readSubscriptions, repricePlan, subscribeOnService } from './planServer';
+import { cancelSubscription, offerOnService, readPlans, readSubscriptions, repricePlan, retirePlan, subscribeOnService } from './planServer';
 import { nexusApiBase } from './publishServer';
 
 /**
@@ -529,5 +529,154 @@ describe('planServer — readSubscriptions (v449)', () => {
     const answer = await readSubscriptions('acct-bob', fetchImpl);
     expect(answer.reason).toContain('did not answer within 15 seconds');
     expect(answer.reason).not.toContain('unreachable');
+  });
+});
+
+describe('planServer — cancelSubscription and retirePlan (v450)', () => {
+  // The last two write doors in this file, and they share one shape: a DELETE naming the thing and the
+  // claimer in the QUERY, no body, the service's 15-second budget, and an answer whose VERB field
+  // (`ended` / `retired`) must be present for the write to count as done. A 200 carrying no verb is a
+  // refusal — and a verb that is false is a SUCCESS: already ended, already retired.
+
+  it('a cancellation is a DELETE naming the subscription and the claimer, and only those', async () => {
+    let seenUrl = '';
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((url, init) => {
+      seenUrl = url;
+      seenInit = init;
+      return new Response(JSON.stringify({ ended: true }), { status: 200 });
+    });
+    await cancelSubscription('sub pro/1', CLAIM, fetchImpl);
+    expect(seenUrl).toBe(`${nexusApiBase()}/subscriptions/sub%20pro%2F1?claimer=acct-bob`);
+    expect(seenInit?.method).toBe('DELETE');
+    expect(seenInit?.body).toBeUndefined();
+    expect(seenInit?.headers).toEqual({ accept: 'application/json' });
+  });
+
+  it('a cancellation carries the SERVICE budget of 15 seconds, pinned on AbortSignal.timeout (v337)', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ended: true }), { status: 200 }));
+      await cancelSubscription('sub-1', CLAIM, fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledWith(15_000);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('a cancellation refusal keeps the service’s OWN WORDS, even though the body carries no `ok` field (v313)', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ error: 'not-owner', message: 'only the subscriber may end this subscription' }), { status: 403 }),
+    );
+    const answer = await cancelSubscription('sub-1', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.ended).toBe(false);
+    expect(answer.reason).toBe('only the subscriber may end this subscription');
+  });
+
+  it('an answer with NO verb is a refusal even at 200 — the write must say whether it moved', async () => {
+    const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    const answer = await cancelSubscription('sub-1', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('200');
+  });
+
+  it('a subscription that was ALREADY ENDED is a success answering ended:false — not a failure', async () => {
+    const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ended: false }), { status: 200 }));
+    const answer = await cancelSubscription('sub-1', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.ended).toBe(false);
+  });
+
+  it('a cancellation that never arrived answers UNREACHABLE with the address named, and a slow one says LATE', async () => {
+    const dead = makeFetch(() => {
+      throw new Error('connect ECONNREFUSED');
+    });
+    const gone = await cancelSubscription('sub-1', CLAIM, dead);
+    expect(gone.ok).toBe(false);
+    expect(gone.ended).toBe(false);
+    expect(gone.reason).toContain('nexus-api unreachable');
+    expect(gone.reason).toContain(nexusApiBase());
+
+    const late = new Error('The operation was aborted due to timeout');
+    late.name = 'TimeoutError';
+    const slow = makeFetch(() => {
+      throw late;
+    });
+    const tardy = await cancelSubscription('sub-1', CLAIM, slow);
+    expect(tardy.reason).toContain('did not answer within 15 seconds');
+    expect(tardy.reason).not.toContain('unreachable');
+  });
+
+  it('a retirement is a DELETE naming the plan and the claimer, and only those', async () => {
+    let seenUrl = '';
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((url, init) => {
+      seenUrl = url;
+      seenInit = init;
+      return new Response(JSON.stringify({ retired: true }), { status: 200 });
+    });
+    await retirePlan('pro plan/1', CLAIM, fetchImpl);
+    expect(seenUrl).toBe(`${nexusApiBase()}/plans/pro%20plan%2F1?claimer=acct-bob`);
+    expect(seenInit?.method).toBe('DELETE');
+    expect(seenInit?.body).toBeUndefined();
+    expect(seenInit?.headers).toEqual({ accept: 'application/json' });
+  });
+
+  it('a retirement carries the SERVICE budget of 15 seconds, pinned on AbortSignal.timeout (v337)', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() => new Response(JSON.stringify({ retired: true }), { status: 200 }));
+      await retirePlan('pro', CLAIM, fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledWith(15_000);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('a retirement refusal keeps the service’s OWN WORDS, even though the body carries no `ok` field (v313)', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ error: 'not-owner', message: 'only the plan’s own creator may retire it' }), { status: 403 }),
+    );
+    const answer = await retirePlan('pro', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.retired).toBe(false);
+    expect(answer.reason).toBe('only the plan’s own creator may retire it');
+  });
+
+  it('an answer with NO verb is a refusal even at 200 — the retirement must say whether it happened', async () => {
+    const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    const answer = await retirePlan('pro', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('200');
+  });
+
+  it('a plan that was ALREADY RETIRED is a success answering retired:false — the promises stand', async () => {
+    // Retiring takes the OFFER away and leaves the subscriptions alone; a second retirement of an
+    // already-retired plan says so with retired:false and is still an ok answer.
+    const fetchImpl = makeFetch(() => new Response(JSON.stringify({ retired: false }), { status: 200 }));
+    const answer = await retirePlan('pro', CLAIM, fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.retired).toBe(false);
+  });
+
+  it('a retirement that never arrived answers UNREACHABLE with the address named, and a slow one says LATE', async () => {
+    const dead = makeFetch(() => {
+      throw new Error('connect ECONNREFUSED');
+    });
+    const gone = await retirePlan('pro', CLAIM, dead);
+    expect(gone.ok).toBe(false);
+    expect(gone.retired).toBe(false);
+    expect(gone.reason).toContain('nexus-api unreachable');
+    expect(gone.reason).toContain(nexusApiBase());
+
+    const late = new Error('The operation was aborted due to timeout');
+    late.name = 'TimeoutError';
+    const slow = makeFetch(() => {
+      throw late;
+    });
+    const tardy = await retirePlan('pro', CLAIM, slow);
+    expect(tardy.reason).toContain('did not answer within 15 seconds');
+    expect(tardy.reason).not.toContain('unreachable');
   });
 });
