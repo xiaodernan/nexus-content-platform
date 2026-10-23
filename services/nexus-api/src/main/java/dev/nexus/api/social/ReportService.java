@@ -194,11 +194,12 @@ public class ReportService {
      * complaint stands is to ask for it. The repository has had the finder since v295; what was missing was
      * the door.
      */
+    /** v305 — the reports ONE ACCOUNT filed, newest first, with server-side target_type filtering. */
     @Transactional(readOnly = true)
-    public List<ReportEntry> reportsFiledBy(String reporterAccountId, int offset, int limit) {
+    public List<ReportEntry> reportsFiledBy(String reporterAccountId, int offset, int limit, String targetType) {
         String reporter = requireReporter(reporterAccountId);
         int asked = limit <= 0 ? DEFAULT_REPORT_LIMIT : Math.min(limit, MAX_REPORT_LIMIT);
-        return repository.findByReporterAccountIdOrderByCreatedAtDesc(reporter, PageRequest.of(offset, asked));
+        return repository.findByReporterAccountIdOrderByCreatedAtDesc(reporter, PageRequest.of(offset, asked), targetType);
     }
 
     /** v380 — total reports filed by this account (the whole table, not the window). */

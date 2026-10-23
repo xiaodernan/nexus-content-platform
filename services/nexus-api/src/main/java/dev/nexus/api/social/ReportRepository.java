@@ -44,8 +44,8 @@ public interface ReportRepository extends JpaRepository<ReportEntry, String> {
     List<ReportEntry> findByTargetProjectIdInAndReasonOrderByCreatedAtDesc(
             Collection<String> targetProjectIds, String reason, Pageable pageable);
 
-    /** The reports one account filed, newest first, capped by the caller's `Pageable`. */
-    List<ReportEntry> findByReporterAccountIdOrderByCreatedAtDesc(String reporterAccountId, Pageable pageable);
+    /** The reports one account filed, newest first, capped by the caller's `Pageable`, filtered by target_type. */
+    List<ReportEntry> findByReporterAccountIdOrderByCreatedAtDesc(String reporterAccountId, Pageable pageable, String targetType);
 
     /**
      * v312 — the reports about ANY of several publications, COUNTED by reason and by status.

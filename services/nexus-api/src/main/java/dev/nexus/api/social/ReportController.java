@@ -76,10 +76,11 @@ public class ReportController {
     public ResponseEntity<?> list(
             @RequestParam(name = "target", required = false) String targetProjectId,
             @RequestParam(name = "reporter", required = false) String reporterAccountId,
-            @RequestParam(name = "limit", required = false) Integer limit) {
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "targetType", required = false) String targetType) {
         int asked = limit == null ? ReportService.DEFAULT_REPORT_LIMIT : limit;
         if (reporterAccountId != null && !reporterAccountId.isBlank()) {
-            List<ReportEntry> filed = service.reportsFiledBy(reporterAccountId, asked);
+            List<ReportEntry> filed = service.reportsFiledBy(reporterAccountId, 0, asked, targetType);
             long total = service.countFiledBy(reporterAccountId);
             return ResponseEntity.ok(new FiledReportsAnswer(
                     reporterAccountId.trim(),
