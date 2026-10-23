@@ -5617,3 +5617,56 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   insert，后到者阻塞在唯一索引上，等那个事务落地后才发现插重了。这样竞态是确定性的，不靠时序碰运气。
   见证：`c4254f7`；branches + variants 两套件 21/21；tsc -p apps/web 0、改动文件 eslint 0；
   变异探针两臂各摘一处守卫，全部精确红后逐字节还原。
+
+- **2026-10-23 第二十三片（#171）：并发开同名分支不再 23505——`createBranch` 补 onConflictDoNothing**。
+  `createBranch` 与 `createVariantBranch` 是同一族读—改—写：先 clash 预检（同名就答
+  "已经有叫 X 的分支"），再 insert。#170 只修了后者，前者漏了。两个标签页同时开同名分支时，
+  两边预检都在任何 insert 之前发出 → 都 insert → `branches_project_name_key` 判 23505 →
+  路由 catch 住变 500，而本该是那句人话 400。修法：insert 补 `onConflictDoNothing`，
+  拿不到行就回 `{ok:false, reason:"已经有叫 X 的分支"}`——与预检那条**同一句措辞**。
+  见证：`be8e60d`；branches + variants 22/22，新测试连跑三遍稳定。
+
+- **2026-10-23 第二十四片（#172）：并发双发举报不再 500——撞唯一索引回头读现成那条（#172）**。
+  `flagSuspiciousActivity` 是"先查有没有 → 没有就 insert"，而
+  `marketplace_reports_unique_reporter_item` 一早就有唯一索引（幂等契约写在函数头）。
+  双击「举报」、两个标签页各提交一次，两边预检都查不到 → 都 insert → 后到的那条判 23505 →
+  路由 catch 住变 500「举报失败」，而串行时只答 409。修法同族：insert 补
+  `onConflictDoNothing`，拿不到行就按 (reporter, item) 重读一次回 `{isDuplicate:true}`。
+  测试两条：域层用未提交事务把竞态窗口钉死（确定性杀死变异）；路由层只钉用户看得见的结局
+  （两发都不是 500、库里只有一行）——**这条不承担杀变异的责任**，注释里写明了，
+  因为两个 HTTP 请求在同一进程里不保证真的在 insert 处交叉（实测会串成一条 409）。
+  见证：`75cecf5`；marketplace-reported 4/4 + admin-marketplace 41/41，市场七套件 79/79。
+
+- **2026-10-23 第二十五片（#173）：并发同名建项目不再 500——slug 撞唯一索引就换后缀重来**。
+  `createProject` 的 slug 是"查一遍有没有重名 → 没有就用 base"的读—改—写，而
+  `projects_owner_slug_key` 是 (owner_id, slug) 上的唯一索引。双击「新建项目」、两个标签页
+  同时开，两边都查不到对方 → 都插 base → 后到的那条判 23505 → 500。旧写法还藏一个静默的坑：
+  50 个候选全撞也不会报错，最后拿着一个必然冲突的 slug 去插。修法：事务体抽成
+  `writeNewProject`，由 createProject 循环驱动——查重只是省掉一次无谓的插入尝试，
+  **真正的裁判是唯一索引**：撞了 `projects_owner_slug_key` 就换下一个后缀重来，全撞满才抛
+  一句人话。认约束名是必须的：文档自己带重名页 / 重名 token 也会报 23505，那不是换 slug
+  后缀能解决的事。`isSlugConflict` 沿 cause 链走（#151 的教训）。
+  见证：`b34aefd`；projects / project-meta / project-delete / import / api-v1-write /
+  branches / snapshots 七套件 73/73。
+
+- **2026-10-23 第二十六片（#174）：并发拿同一个邮箱注册不再 500——撞 users_email_key 翻译回 409**。
+  `register` 的"这个邮箱被占了没有"是读—改—写的前半截：`emailTaken` 查一遍 → update 自己
+  那一行写死 email。两个标签页同时注册同一个邮箱，两边都查不到对方 → 都 update →
+  `users_email_key` 判 23505 → 500，而串行时只答 409「该邮箱已被注册」。
+  修法：update 包 try/catch，撞 `users_email_key` 就回 `email_taken`——和预检同一句回执。
+  测试上有个发现值得记：**直接 Promise.all 两发 register 复现不了这个竞态**——口令哈希把窗口
+  拉得足够宽，实测两发会串成"一发成功、一发 email_taken"，update 根本没交叉。所以照 #171
+  的办法把窗口钉死：另一个事务先把同一个邮箱写进 users 但不提交，`emailTaken` 看不见未提交行，
+  于是照样走到 update 并阻塞在唯一索引上。见证：`f49cff2`；auth.integration 7/7（连跑三遍稳定）。
+
+- **2026-10-23 第二十七片（#175）：并发同步语料不再 23505——删与插收进同一事务、同一把项目写锁**。
+  `syncDesignKnowledge` / `syncProjectKnowledge` 都是"删光这一类 → 逐块插回"，两步之间没有
+  事务也没有锁。两个并发同步（自动保存 + 「重建索引」、双击重建、同时存世界与存角色）各自删一轮
+  各自插一轮，后到的那发撞 `knowledge_chunks_source_key` 判 23505 → 500。串行时同样的事只是
+  "后一次同步覆盖前一次"，所以这是把一次正常并发报成了服务器故障。修法：删与插收进同一个事务，
+  并在事务里拿同一把项目写锁（ADR-0016）；调用方全都在事务**外**调同步，不会嵌套死锁；
+  锁函数用动态 import 取（绕开 knowledge ↔ projects 的模块循环，与 :455 已有的套路同一招）。
+  测试的坑：第一版拿 `design` 那一类的块键去撞，而默认路径根本不重切 design（删除范围必须等于
+  重写范围），于是窗口根本没造出来——只取非 design 的键才复现。
+  见证：knowledge / memory-search / memories 29/29 + world / games / storyboards / characters /
+  context 48/48；tsc 0、eslint 0。
