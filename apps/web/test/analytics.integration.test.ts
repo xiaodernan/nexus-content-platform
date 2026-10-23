@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { createProject } from '../src/server/domain/projects';
@@ -35,6 +36,7 @@ beforeAll(async () => {
     .values({ displayName: `分析路人${RUN}`, email: `ax+${RUN}@nexus.test`, handle: `ax${RUN}` })
     .returning({ id: users.id });
   ownerId = owner!.id;
+  await raisePlan(ownerId);
   otherId = other!.id;
 });
 

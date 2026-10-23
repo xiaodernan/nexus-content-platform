@@ -59,11 +59,13 @@ export const PLAN_MONTHLY_GRANTS: Record<PlanKey, Record<CreditLedgerKind, numbe
 
 /**
  * §133 说档位按五件事设计：AI usage / storage / generation / team collaboration / publishing。
- * 今天**有三格有真的拦截方**：AI usage（`refusalFor`，在 `credit-ledger.ts`）、
+ * 今天**有四格有真的拦截方**：AI usage（`refusalFor`，在 `credit-ledger.ts`）、
  * storage（`refusalForStorage`，字节进存储之前问，见 `assets.ts` 的摄取门与 ADR-0018）、
  * generation（成片渲染的门：`refusalForRun` 在 `startTask` 之前问 Video credits，
- * #191 落下的那道门——本机没有视频 provider，"这个月还能渲几版"从此是真会拦的）。
- * 剩下两格记在这里是为了
+ * #191 落下的那道门——本机没有视频 provider，"这个月还能渲几版"从此是真会拦的）、
+ * publishing（同时公开发布的项目数上限：`refusalForPublishSlot` 在 `publishProject`
+ * 落行之前问，#199 落成——换版本不占新名额，收回发布即释放）。
+ * 剩下 teamCollaboration 一格记在这里是为了
  * 让界面能说清"哪些是已生效的限制、哪些还只是表格上的字"——把没拦截的上限写成已生效，
  * 是这一份文档里最贵的一种谎。
  */
@@ -79,8 +81,8 @@ export const PLAN_LIMITS: Record<
 };
 
 /** 今天生效的限制有哪几格——界面上那一列"已生效 / 还没拦截方"就读这里 */
-export const ENFORCED_PLAN_AXES = ['aiUsage', 'storage', 'generation'] as const;
-export const UNENFORCED_PLAN_AXES = ['teamCollaboration', 'publishing'] as const;
+export const ENFORCED_PLAN_AXES = ['aiUsage', 'storage', 'generation', 'publishing'] as const;
+export const UNENFORCED_PLAN_AXES = ['teamCollaboration'] as const;
 
 /**
  * 一次成功的生成扣几点。
@@ -232,4 +234,30 @@ export function refusalForStorage(check: StorageCheck): string | null {
   const after = check.usedBytes + check.incomingBytes;
   if (after <= limit) return null;
   return `存储放不下：${PLAN_LABELS[check.plan]} 档上限 ${humanBytes(limit)}，已用 ${humanBytes(check.usedBytes)}，这一次还要 ${humanBytes(check.incomingBytes)}，合计 ${humanBytes(after)}。删掉一些素材再传；今天没有购买流程，加不了空间（§159）。`;
+}
+
+/**
+ * §133 publishing 那一格：同时公开发布着的项目数上限（#199）。
+ *
+ * 与 `refusalForStorage` 同一条口径——拒绝的话里带数字。三条边界写下来，因为它们
+ * 直接决定谁被拒：
+ * - 同一个项目换版本**不占新名额**：published_projects 一条 path 一行，重复发布是 UPDATE；
+ * - 收回发布（`unpublishProject` 把 visibility 切 private）**释放名额**；
+ * - 软删的项目不占名额（项目没了，公网 URL 也跟着解析不出来——与 storage"软删仍占空间"
+ *   的口径不同，那里字节还躺在存储里）。
+ */
+export interface PublishSlotCheck {
+  plan: PlanKey;
+  /** 已经处于公开发布状态的项目数，不含本次发布的这一个 */
+  activeCount: number;
+}
+
+export function concurrentPublishLimit(plan: PlanKey): number {
+  return PLAN_LIMITS[plan].concurrentPublishes;
+}
+
+export function refusalForPublishSlot(check: PublishSlotCheck): string | null {
+  const limit = concurrentPublishLimit(check.plan);
+  if (check.activeCount < limit) return null;
+  return `发布名额已满：${PLAN_LABELS[check.plan]} 档同时最多公开发 ${limit} 个项目，现在已有 ${check.activeCount} 个挂着。先把其中一个收回发布（切 private）再发；同一个项目换版本不占新名额。`;
 }

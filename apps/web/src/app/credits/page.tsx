@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 import { currentUserOrNull } from '@/server/domain/session';
-import { readCredits, storageUsageBytes, type LedgerEntry } from '@/server/domain/credit-ledger';
+import { activePublicationCount, readCredits, storageUsageBytes, type LedgerEntry } from '@/server/domain/credit-ledger';
 import {
   CREDIT_KINDS,
   CREDIT_KIND_LABELS,
@@ -11,6 +11,7 @@ import {
   PLAN_LABELS,
   PLAN_LIMITS,
   PLAN_MONTHLY_GRANTS,
+  concurrentPublishLimit,
   humanBytes,
   UNENFORCED_PLAN_AXES,
   type PlanKey,
@@ -75,6 +76,11 @@ export default async function CreditsPage(): Promise<ReactElement> {
   const storageBytes = await storageUsageBytes(user.id);
   const view = await readCredits(user.id);
   const grants = PLAN_MONTHLY_GRANTS[view.plan];
+  // §133 publishing 那一格的真实计数（#199）：名下正处于公开发布状态的项目数。
+  // 与发布门读同一个口径（visibility != private、排除软删、换版本不占名额）——
+  // 页面显示 1/1 而门放行第二个，那种对不上比不显示更糟（§159）。
+  const activePublications = await activePublicationCount(user.id);
+  const publishLimit = concurrentPublishLimit(view.plan);
 
   return (
     <main className="mx-auto flex max-w-[980px] flex-col gap-6 px-6 py-10">
@@ -170,8 +176,9 @@ export default async function CreditsPage(): Promise<ReactElement> {
           </tbody>
         </table>
         <p className="text-12 text-warn" data-credits-enforced>
-          今天有真的拦截方的只有「{ENFORCED_PLAN_AXES.join('、')}」三格：额度为 0 时生成会被挡下
-          （AI 任务与成片渲染各有一道门），存储写满时新的素材会被拒绝（库里已有的不会被自动删掉）。另外{' '}
+          今天有真的拦截方的只有「{ENFORCED_PLAN_AXES.join('、')}」四格：额度为 0 时生成会被挡下
+          （AI 任务与成片渲染各有一道门），存储写满时新的素材会被拒绝（库里已有的不会被自动删掉），
+          公开发布数达到档位上限时新的发布会被挡下（换版本不占名额，收回发布即释放）。另外{' '}
           {UNENFORCED_PLAN_AXES.length} 格（{UNENFORCED_PLAN_AXES.join('、')}）
           目前只是这张表上的数字，还没有代码按它拒绝任何请求——把表上的上限当成已生效的限制，
           是这一页最容易说谎的方式。
@@ -179,6 +186,10 @@ export default async function CreditsPage(): Promise<ReactElement> {
         <p className="text-12 text-fg-2" data-credits-storage>
           你的存储：已用 {humanBytes(storageBytes)} / {PLAN_LIMITS[view.plan].storageMb} MB
           （{PLAN_LABELS[view.plan]} 档，按名下所有项目合计；软删的项目仍占空间）。
+        </p>
+        <p className="text-12 text-fg-2" data-credits-publish-slots>
+          你的发布名额：已公开 {activePublications} / {publishLimit} 个（{PLAN_LABELS[view.plan]} 档；
+          同一个项目换版本不占新名额，收回发布即释放）。
         </p>
         <ul className="text-12 text-fg-2" data-credits-limits>
           <li>· 没有充值入口：这一页不会出现"加点额度"的按钮，因为支付还没有接（§133 的档位今天也只能由服务端代码改）。</li>

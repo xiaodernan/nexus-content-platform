@@ -37,6 +37,11 @@ beforeAll(async () => {
     .returning({ id: users.id });
   ownerId = owner!.id;
   otherId = other!.id;
+  // #199：publishing 名额门按 owner 档位计数（free=1）。本文件绝大多数用例是"同一个 owner
+  // 反复发布多个项目"的既有用法，把它们留在 free 档会被名额门误伤——那不是该把门松动的理由，
+  // 是测试数据该待在真实档位上。名额门本身由下面专门的用例用一个 free 档新用户钉。
+  await db.update(users).set({ plan: 'studio' }).where(eq(users.id, ownerId));
+  await db.update(users).set({ plan: 'studio' }).where(eq(users.id, otherId));
 });
 
 afterAll(async () => {
@@ -264,3 +269,51 @@ describe('发布与分享（真实数据库）', () => {
     expect(found!.publication.views).toBeGreaterThanOrEqual(2);
   });
 });
+
+
+  it('§133 publishing 名额门（#199）：free 档发第二个项目被拒，收回发布后放行，换版本不占名额', async () => {
+    const db = getDb();
+    // 一个 free 档新用户（users.plan 列默认 'free'，concurrentPublishes=1）——门按 owner 数名下公开发布
+    const [free] = await db
+      .insert(users)
+      .values({ displayName: 'Slot Owner', email: `slot+${Date.now()}@nexus.test` })
+      .returning({ id: users.id });
+    const freeId = free!.id;
+    try {
+      const first = (await createProject(freeId, { name: 'Slot First', kind: 'website' })).id;
+      const second = (await createProject(freeId, { name: 'Slot Second', kind: 'website' })).id;
+
+      // 第一个项目：名下还一个都没挂着 → 放行
+      const ok = await publishProject(first, { visibility: 'public', createdById: freeId });
+      if (!ok || !ok.ok) throw new Error('第一个项目应该发得出去');
+
+      // 第二个项目：名额已满（1/1）→ 拒，且拒绝话里带着档位、上限与当前数
+      const refused = await publishProject(second, { visibility: 'public', createdById: freeId });
+      if (!refused || refused.ok) throw new Error('第二个项目本应被名额门挡下');
+      expect(refused.reason).toContain('发布名额已满');
+      expect(refused.reason).toContain('Free 档同时最多公开发 1 个项目');
+      expect(refused.reason).toContain('现在已有 1 个挂着');
+      // 被拒的项目一行 published_projects 都没落下——门在落行之前
+      expect(await getPublication(second)).toBeNull();
+
+      // 同一个项目换版本不占名额：第一个项目再发一次（v1 → v2）照常放行
+      const again = await publishProject(first, { visibility: 'public', createdById: freeId });
+      if (!again || !again.ok) throw new Error('换版本不该被名额门挡下');
+      expect(again.publication.version).toBe(2);
+
+      // 收回第一个的发布（visibility 切 private）→ 名额释放，第二个项目发得出去
+      await unpublishProject(first, freeId);
+      const afterFree = await publishProject(second, { visibility: 'public', createdById: freeId });
+      if (!afterFree || !afterFree.ok) {
+        throw new Error(afterFree && !afterFree.ok ? afterFree.reason : '收回名额后第二个项目应该发得出去');
+      }
+      expect(afterFree.publication.visibility).toBe('public');
+
+      // 切 private 是下架动作：名额门只管"往外公开"的方向，下架永远放行
+      const retract = await publishProject(second, { visibility: 'private', createdById: freeId });
+      expect(retract?.ok).toBe(true);
+    } finally {
+      await db.delete(projects).where(eq(projects.ownerId, freeId));
+      await db.delete(users).where(eq(users.id, freeId));
+    }
+  });

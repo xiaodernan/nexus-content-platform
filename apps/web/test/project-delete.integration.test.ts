@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { ProjectDeleteRequestSchema } from '@nexus/schemas';
@@ -71,6 +72,7 @@ beforeAll(async () => {
     .values({ displayName: `删除路人${RUN}`, email: `s74a+${RUN}@nexus.test`, handle: `s74a${RUN}` })
     .returning({ id: users.id });
   ownerId = owner!.id;
+  await raisePlan(ownerId);
   otherId = other!.id;
 });
 

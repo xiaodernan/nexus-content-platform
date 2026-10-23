@@ -9,9 +9,9 @@
  * - 一次任务只扣一次：靠部分唯一索引 + `onConflictDoNothing`，而不是靠调用方自觉，
  *   因为 `finishTask` 有同步与异步轮询两条路都会走到收尾。
  */
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { assets, creditLedger, projects, users, type CreditLedgerKind } from '../db/schema';
+import { assets, creditLedger, projects, publishedProjects, users, type CreditLedgerKind } from '../db/schema';
 import {
   CREDIT_KINDS,
   GENERATION_COST,
@@ -20,6 +20,7 @@ import {
   monthPeriod,
   pendingGrants,
   refusalFor,
+  refusalForPublishSlot,
   videoRenderQuota,
   type PlanKey,
   type RenderQuotaView,
@@ -182,6 +183,38 @@ export async function renderQuotaFor(userId: string, at: Date = new Date()): Pro
   await ensureMonthlyGrants(userId, plan, at);
   const balances = await balancesOf(userId);
   return videoRenderQuota(plan, balances.video);
+}
+
+/**
+ * §133 publishing 那一格的拦截方（#199）：发布一个新项目之前，数一数这个人名下已经
+ * 挂着多少个公开发布。口径三行写下来，因为它们直接决定谁被拒：
+ * - 只数 `visibility != 'private'` 的行：收回发布（unpublishProject 切 private）即释放名额；
+ * - 排除本次发布的这个项目自己：一条 path 一行，换版本是 UPDATE 不是 INSERT，不占新名额；
+ * - 软删的项目不算：项目没了，公网 URL 也跟着没了（与 storage"软删仍占空间"的口径不同，
+ *   那里字节还躺在存储里，这里链接已经解析不出来）。
+ *
+ * 与 `refusalForRun` 一样只读不扣：publishing 没有"消耗方"账单，它是一道准入闸。
+ */
+export async function activePublicationCount(ownerId: string, excludeProjectId?: string): Promise<number> {
+  const [row] = await getDb()
+    .select({ count: sql<string | number>`count(*)` })
+    .from(publishedProjects)
+    .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
+    .where(
+      and(
+        eq(projects.ownerId, ownerId),
+        ne(publishedProjects.visibility, 'private'),
+        isNull(projects.deletedAt),
+        ...(excludeProjectId ? [ne(publishedProjects.projectId, excludeProjectId)] : []),
+      ),
+    );
+  return Number(row?.count ?? 0);
+}
+
+export async function publishSlotRefusalFor(ownerId: string, projectId: string): Promise<string | null> {
+  const plan = await planOf(ownerId);
+  const activeCount = await activePublicationCount(ownerId, projectId);
+  return refusalForPublishSlot({ plan, activeCount });
 }
 
 export interface ChargeInput {

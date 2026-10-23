@@ -4,6 +4,7 @@ import { analyzeHealth, type DesignDocument, type HealthReport } from '@nexus/de
 import type { RealtimeEvent } from '@nexus/schemas';
 import { getDb } from '../db/client';
 import { recordAudit } from './audit';
+import { publishSlotRefusalFor } from './credit-ledger';
 import { assets, games, projects, publishedProjects, users } from '../db/schema';
 import { recordScan, scanPublication, type AssetProvenance, type ModerationScan } from './moderation';
 import { loadDocument, lockProjectWrites } from './projects';
@@ -161,6 +162,17 @@ export async function publishProject(
     .limit(1);
   const version = (existing?.version ?? 0) + 1;
   const scan = scanPublication(document, await assetProvenance(projectId));
+  // §133 publishing 那一格的拦截方（#199）：往外新开一个公开发布之前，数一数名下已经挂了几个。
+  // 放在 gate / 机检旁边而不是更早：拒绝的回执要带上 gate 与 scan（PublishResult 的形状如此），
+  // 且这条链上被拒的分支本来就都推一条 building → failed（与相邻分支一致，不自创第三种流法）。
+  // 换版本不占名额（activePublicationCount 排除本项目自己），unpublish 切 private 即释放。
+  if (outward) {
+    const refusal = await publishSlotRefusalFor(project.ownerId, projectId);
+    if (refusal) {
+      emitBuildStatus(projectId, 'failed', refusal);
+      return { ok: false, reason: refusal, gate, scan };
+    }
+  }
   if (outward && !gate.passed) {
     // 事件里的 log 与返回给客户端的 reason 是同一个字符串，不是各写一遍的两句同义话
     const reason = `门禁未通过：${gate.blockers[0] ?? '见检查清单'}`;

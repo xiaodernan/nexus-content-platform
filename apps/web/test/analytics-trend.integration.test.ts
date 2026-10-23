@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { eq, inArray, sql as rawSql } from 'drizzle-orm';
@@ -38,6 +39,7 @@ beforeAll(async () => {
     .values({ displayName: `曲线路人${RUN}`, email: `tx+${RUN}@nexus.test`, handle: `tx${RUN}` })
     .returning({ id: users.id });
   ownerId = owner!.id;
+  await raisePlan(ownerId);
   otherId = other!.id;
 });
 

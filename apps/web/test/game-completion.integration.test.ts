@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq, sql as rawSql } from 'drizzle-orm';
 import { POST as gameComplete } from '../src/app/api/published/game-complete/route';
@@ -45,6 +46,7 @@ beforeAll(async () => {
     .values({ displayName: `通关作者${RUN}`, email: `gc+${RUN}@nexus.test`, handle: `gc${RUN}` })
     .returning({ id: users.id });
   ownerId = owner!.id;
+  await raisePlan(ownerId);
 });
 
 afterAll(async () => {

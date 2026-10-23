@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
@@ -45,7 +46,9 @@ beforeAll(async () => {
     ])
     .returning({ id: users.id, handle: users.handle });
   authorId = rows[0]!.id;
+  await raisePlan(authorId);
   fanId = rows[1]!.id;
+  await raisePlan(fanId);
   otherId = rows[2]!.id;
   fanHandle = rows[1]!.handle!;
 });

@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { createNode, findPage } from '@nexus/design-model';
@@ -28,6 +29,7 @@ beforeAll(async () => {
     ])
     .returning({ id: users.id });
   ownerId = rows[0]!.id;
+  await raisePlan(ownerId);
   viewerId = rows[1]!.id;
 });
 

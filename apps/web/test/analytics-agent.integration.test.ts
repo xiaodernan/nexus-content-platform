@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { analyzeCreatorFacts, buildCreatorFact } from '../src/server/domain/analytics-agent';
@@ -30,6 +31,7 @@ beforeAll(async () => {
     ])
     .returning({ id: users.id });
   ownerId = rows[0]!.id;
+  await raisePlan(ownerId);
   otherId = rows[1]!.id;
 });
 

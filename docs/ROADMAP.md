@@ -6332,3 +6332,34 @@ DOM 胶水层按仓库惯例不进 vitest 单测（同 #194 先例），钉子�
 **下一步**：候选：① §133 剩余两格（teamCollaboration / publishing）的拦截方；
 ② 渲染完成后时间线自动定位到挂着成片的那一镜（renderNote → focusShot）；
 ③ e2e storyboard 全量回归（七条一起跑）。
+
+
+## M5 第十二片（#199）：publishing 档位接上发布链——"同时最多公开发几个项目"从此真的会拦
+
+§133 五格里剩下的 publishing 一格（`PLAN_LIMITS.concurrentPublishes`）此前只是 credits 页
+表格上的一列字。这一片给它落了一个真拦截方：
+
+- `credits.ts` 加纯函数 `refusalForPublishSlot(check)`：转述 `PLAN_LIMITS[plan].concurrentPublishes`，
+  没满放行、占满拒，拒绝话里带档位/上限/当前数（与 `refusalForStorage` 同一条口径）。
+- `credit-ledger.ts` 加 `activePublicationCount(ownerId, excludeProjectId)` 与
+  `publishSlotRefusalFor(ownerId, projectId)`。三条口径写进注释：只数 `visibility != 'private'`
+  的行（unpublish 切 private 即释放名额）；排除本次发布的项目自己（一条 path 一行，
+  换版本是 UPDATE 不占新名额）；软删项目不占（URL 随项目消失，与 storage"软删仍占空间"不同）。
+- `publishProject` 在 scan 之后、门禁检查旁边接入：outward 且名额满 → `emitBuildStatus('failed')`
+  + 返回 `{ ok: false, reason, gate, scan }`（与相邻被拒分支同一形状，不自创第三种流法）。
+  切 private 的下架动作永远放行——挡住架等于逼着页面继续挂公网。
+- `ENFORCED_PLAN_AXES` 加入 publishing，`UNENFORCED_PLAN_AXES` 只剩 teamCollaboration；
+  credits 页"今天有真的拦截方的只有…三格"改四格并点名发布名额，新增"你的发布名额：已公开 N / M 个"
+  实览（与门读同一口径）。
+- **测试数据的档位修正**：门一生效，21 个既有集成文件里"同一 owner 反复发布多个项目"的用法
+  （free 档上限 1）全部误伤。修法不是松门，是新建 `test/support/test-plan.ts` 的 `raisePlan`
+  把这些用例的用户升到 studio 档——它们测的不是档位；名额门本身由 `publish.integration.test.ts`
+  新增用例用一个 free 档新用户钉全（第二个项目被拒且话里带数 / 换版本不占名额 / unpublish 释放 /
+  private 永远放行 / 被拒项目零行）。
+
+见证：credits.test.ts +4 条（26/26）；publish.integration 9/9；受影响的 21 个集成文件逐个复跑
+全绿（api-v1-publish / notifications / account-deletion 三处漏网逐个补上）。tsc 0、eslint 0。
+变异探针 3 种全部精确红：门整个禁用 / 去掉"排除本项目"（换版本被误拒）/ 边界 `<` 改 `<=`。
+
+**下一步**：候选：① §133 最后一格 teamCollaboration 的拦截方（需要先有成员/邀请模型，
+是比前四格大的一块）；② 渲染完成后时间线自动定位到挂着成片的那一镜；③ e2e storyboard 全量回归。

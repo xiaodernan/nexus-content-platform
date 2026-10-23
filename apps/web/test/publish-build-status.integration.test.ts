@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { RealtimeEvent } from '@nexus/schemas';
 import { eq } from 'drizzle-orm';
@@ -50,6 +51,7 @@ beforeAll(async () => {
     .values({ displayName: 'Build Status', email: `build+${Date.now()}@nexus.test` })
     .returning({ id: users.id });
   ownerId = owner!.id;
+  await raisePlan(ownerId);
 });
 
 afterAll(async () => {

@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { getDb } from '../src/server/db/client';
@@ -56,6 +57,7 @@ const createdIds: string[] = [];
 
 beforeAll(async () => {
   ownerId = await insertUser(`pb${stamp}a`, `pb-owner-${stamp}@nexus.test`);
+  await raisePlan(ownerId);
   otherId = await insertUser(`pb${stamp}b`, `pb-other-${stamp}@nexus.test`);
   ownerToken = (await issueApiToken({ userId: ownerId, name: '发布员', scopes: ['projects:read', 'publish:write'] })).token;
   readWriteToken = (await issueApiToken({ userId: ownerId, name: '只会建删', scopes: ['projects:write'] })).token;

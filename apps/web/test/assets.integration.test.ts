@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { rmSync } from 'node:fs';
 import { eq, sql as rawSql } from 'drizzle-orm';
@@ -57,6 +58,7 @@ beforeAll(async () => {
     .values({ displayName: 'Asset Intruder', email: `asset-intruder+${Date.now()}@nexus.test` })
     .returning({ id: users.id });
   ownerId = owner!.id;
+  await raisePlan(ownerId);
   otherId = other!.id;
 });
 

@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql as rawSql } from 'drizzle-orm';
 import { createDocument, createNode, findPage, type DesignDocument } from '@nexus/design-model';
@@ -33,6 +34,7 @@ beforeAll(async () => {
     .values({ displayName: 'Moderation Owner', email: `mod+${Date.now()}@nexus.test` })
     .returning({ id: users.id });
   ownerId = owner!.id;
+  await raisePlan(ownerId);
 });
 
 afterAll(async () => {

@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { inArray, sql as rawSql } from 'drizzle-orm';
 import { GET as exportAnalytics } from '../src/app/api/analytics/export/route';
@@ -84,6 +85,7 @@ beforeAll(async () => {
     .values({ displayName: `导出路人${RUN}`, email: `exo+${RUN}@nexus.test`, handle: `exo${RUN}` })
     .returning({ id: users.id });
   ownerId = owner!.id;
+  await raisePlan(ownerId);
   otherId = other!.id;
   const token = `tok-${ownerId}`;
   await db

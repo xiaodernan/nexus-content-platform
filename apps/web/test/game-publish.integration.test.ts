@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql as rawSql } from 'drizzle-orm';
 import { GameDocumentSchema } from '@nexus/schemas';
@@ -25,6 +26,7 @@ beforeAll(async () => {
     .values({ displayName: 'GameDev', email: `gp+${Date.now()}@nexus.test`, handle: `gp${Date.now().toString(36)}` })
     .returning({ id: users.id });
   ownerId = row!.id;
+  await raisePlan(ownerId);
 });
 
 afterAll(async () => {

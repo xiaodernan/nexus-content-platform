@@ -9,12 +9,14 @@ import {
   PLAN_MONTHLY_GRANTS,
   UNENFORCED_PLAN_AXES,
   balanceOf,
+  concurrentPublishLimit,
   creditKindForAgentKey,
   isPlanKey,
   monthPeriod,
   humanBytes,
   pendingGrants,
   refusalFor,
+  refusalForPublishSlot,
   refusalForStorage,
   storageLimitBytes,
   videoRenderQuota,
@@ -65,15 +67,16 @@ describe('§134 五类额度与档位表（纯规则）', () => {
     }
   });
 
-  it('§133 那五件事两列合起来一格不多一格不少，今天有拦截方的是 AI usage / storage / generation', () => {
+  it('§133 那五件事两列合起来一格不多一格不少，今天有拦截方的是 AI usage / storage / generation / publishing', () => {
     // §133 原文列的五件事：AI usage / storage / generation / team collaboration / publishing。
     // 这条断言钉的是"已生效 + 还没拦截方 = 那五件事，一格不多一格不少"，
     // 挡的是那种把表格上的上限说成已生效的写法——storage 从下一列挪上来时，这里必须跟着改。
     const FIVE_AXES = ['aiUsage', 'storage', 'generation', 'teamCollaboration', 'publishing'];
     expect([...ENFORCED_PLAN_AXES, ...UNENFORCED_PLAN_AXES].sort()).toEqual([...FIVE_AXES].sort());
     // #196：generation 从下一列升上来——#191 落成的渲染链额度门（refusalForRun）是它的拦截方
-    expect(ENFORCED_PLAN_AXES).toEqual(['aiUsage', 'storage', 'generation']);
-    expect(UNENFORCED_PLAN_AXES).toEqual(['teamCollaboration', 'publishing']);
+    // #199：publishing 也升上来了——publishProject 落行前的名额门（refusalForPublishSlot）是它的拦截方
+    expect(ENFORCED_PLAN_AXES).toEqual(['aiUsage', 'storage', 'generation', 'publishing']);
+    expect(UNENFORCED_PLAN_AXES).toEqual(['teamCollaboration']);
   });
 });
 
@@ -221,5 +224,38 @@ describe('§133 storage 那一格：放不下就拒绝新写入，拒绝的话�
   it('给人看的字节数保留一位小数——它只用于显示，比较一律用字节', () => {
     expect(humanBytes(200 * 1024 * 1024)).toBe('200MB');
     expect(humanBytes(1536 * 1024)).toBe('1.5MB');
+  });
+});
+
+
+describe('refusalForPublishSlot：§133 publishing 那一格的准入闸（#199）', () => {
+  it('五档的名额都直接转述 PLAN_LIMITS，且随档位单调递增', () => {
+    expect(concurrentPublishLimit('free')).toBe(1);
+    expect(concurrentPublishLimit('pro')).toBe(5);
+    for (let i = 1; i < PLAN_KEYS.length; i += 1) {
+      expect(concurrentPublishLimit(PLAN_KEYS[i]!)).toBeGreaterThan(concurrentPublishLimit(PLAN_KEYS[i - 1]!));
+    }
+  });
+
+  it('没满就放行；正好占满才拒（边界在 activeCount 上，带数字的拒绝话）', () => {
+    // free 档上限 1：0 个挂着 → 放行
+    expect(refusalForPublishSlot({ plan: 'free', activeCount: 0 })).toBeNull();
+    // 1 个挂着（不含本次这个项目自己）→ 拒，且话里带着档位、上限与当前数
+    const refusal = refusalForPublishSlot({ plan: 'free', activeCount: 1 });
+    expect(refusal).not.toBeNull();
+    expect(refusal).toContain('Free 档同时最多公开发 1 个项目');
+    expect(refusal).toContain('现在已有 1 个挂着');
+    // 同一个占用换到名额更大的档位就放行——证明看的是档位，不是"发过就没有"
+    expect(refusalForPublishSlot({ plan: 'studio', activeCount: 1 })).toBeNull();
+  });
+
+  it('反向对照：把 activeCount 减一个，同一个 free 档就从拒变放行', () => {
+    expect(refusalForPublishSlot({ plan: 'free', activeCount: 1 })).not.toBeNull();
+    expect(refusalForPublishSlot({ plan: 'free', activeCount: 0 })).toBeNull();
+  });
+
+  it('publishing 进了"真的会拦"那一列，teamCollaboration 是唯一还没有拦截方的那格', () => {
+    expect((ENFORCED_PLAN_AXES as readonly string[]).includes('publishing')).toBe(true);
+    expect(UNENFORCED_PLAN_AXES).toEqual(['teamCollaboration']);
   });
 });

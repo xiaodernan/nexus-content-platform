@@ -1,3 +1,4 @@
+import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { and, eq, inArray, isNull, sql as rawSql } from 'drizzle-orm';
@@ -131,6 +132,7 @@ beforeAll(async () => {
     bio: '这个人写过东西，后来决定离开。',
     avatarUrl: '/api/assets/decoy.png',
   });
+  await raisePlan(owner.id);
   other = await insertUser({
     displayName: `注销路人${RUN}`,
     email: `s144a+${RUN}@nexus.test`,
