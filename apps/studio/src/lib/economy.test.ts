@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { PriceCents, Tip, Subscription } from './monetization';
 
 import {
+  PLAN_TERMS_NOTE,
+  SUBSCRIPTION_TERMS_NOTE,
   planCountText,
   planOfferText,
   planRetiredText,
@@ -30,6 +32,8 @@ import {
   tipsTotalByAgent,
   isSubscribed,
 } from './economy';
+
+import { toPlanRow as barPlanRow } from './planBar';
 
 const pc = (n: number) => n as PriceCents;
 
@@ -586,5 +590,51 @@ describe('economy — subscriptionStandingText (v443)', () => {
 
   it('a cancelled subscription reads Never — the word this surface always used', () => {
     expect(subscriptionStandingText('cancelled')).toBe('Never');
+  });
+});
+
+/**
+ * v459 — the TERMS NOTES: the pair that tells two moments apart.
+ *
+ * A creator may reprice a plan after a supporter agreed to it (v317), so "what was promised" and
+ * "what is on sale" are two different facts — and the two notes are the only words that say which
+ * is which. They were exported since v371 and graded only through the rows that carry them: the
+ * constants themselves, and the fact that ONE constant feeds two surfaces (the economy row and the
+ * profile bar), had never been asked.
+ */
+describe('the terms notes — the pair that tells two moments apart (v459)', () => {
+  it('the two notes are DIFFERENT words — a reader must be able to tell what was promised from what is on sale', () => {
+    expect(PLAN_TERMS_NOTE).not.toBe(SUBSCRIPTION_TERMS_NOTE);
+  });
+
+  it('neither note is blank — a note that says nothing is worse than no note', () => {
+    expect(PLAN_TERMS_NOTE.trim().length).toBeGreaterThan(0);
+    expect(SUBSCRIPTION_TERMS_NOTE.trim().length).toBeGreaterThan(0);
+  });
+
+  it('a subscription says “as agreed” WHATEVER its standing — the promise was made, and the note is about that moment', () => {
+    // The standing arrives through the wire’s own two facts: active or not, and a period that has
+    // run out or not. Each of the three standings still carries the agreed terms.
+    const standings = {
+      active: sub({ active: true, expiresAt: Date.now() + 86_400_000 }),
+      expired: sub({ active: true, expiresAt: 1 }),
+      cancelled: sub({ active: false }),
+    } as const;
+    for (const [name, wire] of Object.entries(standings)) {
+      expect(subscriptionStandingOf(wire, Date.now()), name).toBe(name);
+      const row = toSubscriptionRow(wire)!;
+      expect(row.termsText, name).toBe(SUBSCRIPTION_TERMS_NOTE);
+    }
+  });
+
+  it('the profile bar and the economy row say the SAME words for the same fact — one constant, two surfaces', () => {
+    // The bar imports PLAN_TERMS_NOTE from economy: if the two ever drifted, a reader comparing the
+    // profile page with the economy panel would read two different notes for one plan.
+    const live = { planId: 'pro', priceCents: pc(1500), active: true };
+    const retired = { planId: 'pro', priceCents: pc(1500), active: false };
+    expect(barPlanRow(live)!.termsText).toBe(PLAN_TERMS_NOTE);
+    expect(barPlanRow(live)!.termsText).toBe(toPlanRow(live)!.termsText);
+    expect(barPlanRow(retired)!.termsText).toBeNull();
+    expect(barPlanRow(retired)!.termsText).toBe(toPlanRow(retired)!.termsText);
   });
 });
