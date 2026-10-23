@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { InMemoryCallRecorder, nowMs, type Usage } from '../src/call-recorder.js';
+import { InMemoryCallRecorder, nowMs } from '../src/call-recorder.js';
+import type { Usage } from '../src/types.js';
 
 // `call-recorder.ts` (the Cost Engine / Observability recorder, §53/§56) had no direct unit
 // coverage before this file. Pins the aggregation + the defensive `?? 0` on optional usage fields.
