@@ -65,6 +65,55 @@ function tallerAInPlace(page: Page): string {
   return changedId;
 }
 
+/**
+ * 两支并列：root → [mid(固定 300×100), other]；mid 里放一个或两个孩子。
+ *
+ * 用途：把**改动放在另一支（other）**，让 `subtreeHasChanged(mid)` 走不到它——
+ * 这样"mid 能不能被沿用"就只剩**孩子列表（顺序与成员）**这一条判据在管，
+ * 换序 / 插入的用例才是对着那条判据的探针，而不是被"子树里有改动"顺手挡住。
+ */
+function twoBranchPage(kids: "one" | "both"): {
+  page: Page;
+  midId: string;
+  kid1Id: string;
+  kid2Id: string;
+  otherId: string;
+} {
+  const page = createPage("Two", 1000, 1000);
+  const root = page.nodes[page.rootId]!;
+  Object.assign(root, {
+    size: { width: 400, height: 200 },
+    layout: {
+      mode: "horizontal",
+      gap: 0,
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      justify: "start",
+      items: "start",
+      clipContent: false,
+      scroll: "none",
+    },
+  });
+  const mid = createNode({ type: "frame", name: "Mid", size: { width: 300, height: 100 } });
+  Object.assign(mid, {
+    layout: {
+      mode: "vertical",
+      gap: 0,
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      justify: "start",
+      items: "start",
+      clipContent: false,
+      scroll: "none",
+    },
+  });
+  const kid1 = createNode({ type: "shape", name: "K1", size: { width: 40, height: 30 } });
+  const kid2 = createNode({ type: "shape", name: "K2", size: { width: 60, height: 20 } });
+  const other = createNode({ type: "shape", name: "Other", size: { width: 100, height: 50 } });
+  for (const node of [mid, kid1, kid2, other]) page.nodes[node.id] = node;
+  mid.children = kids === "both" ? [kid1.id, kid2.id] : [kid1.id];
+  root.children = [mid.id, other.id];
+  return { page, midId: mid.id, kid1Id: kid1.id, kid2Id: kid2.id, otherId: other.id };
+}
+
 describe("resolveLayoutIncremental：§147 接线的账（ROADMAP #133）", () => {
   it("三条兜底路径都退回全量，且与全量解相等", () => {
     const page = rowPage();
@@ -218,6 +267,53 @@ describe("resolveLayoutIncremental：§147 接线的账（ROADMAP #133）", () =
     const full = resolveLayout(page);
 
     expect(incremental.nodes[kid2.id], "已删的节点不该还在解里").toBeUndefined();
+    expect(incremental.paintOrder).toEqual(full.paintOrder);
+    expect(incremental.nodes).toEqual(full.nodes);
+  });
+
+  /**
+   * 注释里一直写着「孩子被删 / 被插 / 被换序」三种，但只有「删」有测试。
+   * 插入与换序是同一颗雷的另一半：父节点尺寸固定（少/多/换序都不改它的盒）时，
+   * 最容易踩"沿用"——沿用会把上一帧那份 `children` 整份带过来，
+   * 于是新插入的孩子**从解里消失**、或绘制次序**停在上帧**。
+   *
+   * 两条都把改动放在**另一支**（other），让 `subtreeHasChanged(mid)` 走不到它：
+   * 这样能挡住复用的就只剩「孩子列表（顺序与成员）对不上」这一条结构判据，
+   * 用例才是对那条判据的探针。
+   */
+  it("插入一个孩子：父节点不能被沿用（否则新孩子从解里消失）", () => {
+    const { page, midId, kid2Id, otherId } = twoBranchPage("one");
+    const beforeLayout = resolveLayout(page);
+
+    // 结构变了：mid 多了一个孩子；改动落在另一支的 other
+    page.nodes[midId] = { ...page.nodes[midId]!, children: [...page.nodes[midId]!.children, kid2Id] };
+    page.nodes[otherId] = { ...page.nodes[otherId]!, size: { width: 100, height: 60 } };
+
+    const incremental = resolveLayoutIncremental(page, {
+      prevLayout: beforeLayout,
+      changedNodeIds: new Set([otherId]),
+    });
+    const full = resolveLayout(page);
+
+    expect(incremental.nodes[kid2Id], "新插入的孩子必须在解里（沿用旧结构会把它漏掉）").toBeDefined();
+    expect(incremental.paintOrder).toEqual(full.paintOrder);
+    expect(incremental.nodes).toEqual(full.nodes);
+  });
+
+  it("孩子换序：父节点不能被沿用（否则绘制次序与全量不一致）", () => {
+    const { page, midId, kid1Id, kid2Id, otherId } = twoBranchPage("both");
+    const beforeLayout = resolveLayout(page);
+
+    // 结构变了：mid 的两个孩子换序；改动落在另一支的 other
+    page.nodes[midId] = { ...page.nodes[midId]!, children: [kid2Id, kid1Id] };
+    page.nodes[otherId] = { ...page.nodes[otherId]!, size: { width: 100, height: 60 } };
+
+    const incremental = resolveLayoutIncremental(page, {
+      prevLayout: beforeLayout,
+      changedNodeIds: new Set([otherId]),
+    });
+    const full = resolveLayout(page);
+
     expect(incremental.paintOrder).toEqual(full.paintOrder);
     expect(incremental.nodes).toEqual(full.nodes);
   });
