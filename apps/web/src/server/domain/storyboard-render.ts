@@ -12,6 +12,7 @@ import { loadStoryboard } from './storyboards';
 import { desc, eq } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { assets } from '../db/schema';
+import { channels, getRealtimeBus } from '../realtime/bus';
 
 /**
  * §40-42 的最后半截：把分镜**真的渲染出来**，产物走刚接上的视频摄入链落成资产。
@@ -61,6 +62,20 @@ export function findRenderFont(): string | undefined {
     if (candidate && existsSync(candidate)) return candidate;
   }
   return undefined;
+}
+
+/**
+ * §163：渲染是又一个真会走完的构建动作，所以它是 `build.status` 的生产者之一
+ * （前两个是发布与导出）。口径与发布链路同一句话：**每一格都挂在一个真发生了的
+ * 节点上，中间不插刻度**——`building` 发在 ffmpeg 真的起跑之前，`ok` 发在字节
+ * 真的进了资产库之后，`failed` 的 log 与返回给调用方的 message 逐字相同
+ * （两处各写一遍就会漂移，发布链路的用例钉的就是这一条）。
+ *
+ * 额度门与"没有分镜"那些拒绝**不发射**：渲染从未开始，就没有"构建中"可言——
+ * 被拒的请求一行任务都不落（#191），也不该在项目频道上留一串假刻度。
+ */
+function emitBuildStatus(projectId: string, status: 'building' | 'ok' | 'failed', log: string): void {
+  getRealtimeBus().publish(channels.project(projectId), { type: 'build.status', projectId, status, log });
 }
 
 export type RenderStoryboardOutcome =
@@ -237,10 +252,16 @@ export async function renderStoryboardDemo(input: RenderStoryboardInput): Promis
       },
     });
     const startedAt = Date.now();
+    emitBuildStatus(
+      input.projectId,
+      'building',
+      `开始渲染：${plan.segments.length} 镜，总长 ${(plan.totalMs / 1000).toFixed(1)} 秒`,
+    );
 
     const run = await runFfmpeg(input.ffmpegPath ?? DEFAULT_FFMPEG_PATH, built.args, input.timeoutMs ?? RENDER_TIMEOUT_MS);
     if (!run.ok) {
       await finishTask(taskId, { ok: false, error: run.message });
+      emitBuildStatus(input.projectId, 'failed', run.message);
       return { ok: false, code: run.code, message: run.message };
     }
 
@@ -265,11 +286,13 @@ export async function renderStoryboardDemo(input: RenderStoryboardInput): Promis
     });
     if (!ingested.ok) {
       await finishTask(taskId, { ok: false, error: ingested.reason });
+      emitBuildStatus(input.projectId, 'failed', ingested.reason);
       return { ok: false, code: ingested.code, message: ingested.reason, issues: ingested.issues };
     }
 
     // 只有真渲成了才扣点（video 桶一次 5 点）：finishTask 是同步与异步共用的收尾口
     await finishTask(taskId, { ok: true });
+    emitBuildStatus(input.projectId, 'ok', `渲染完成：${plan.segments.length} 镜，成片已入资产库（DEMO）`);
     return {
       ok: true,
       asset: ingested.asset,

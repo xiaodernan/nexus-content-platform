@@ -6137,3 +6137,24 @@ plain video 不算产物）、`storyboard-render-route.integration.test.ts` 8 �
 
 **下一步**：时间线预览还差"点时间线上某一格跳到那一镜"；以及 §163 build.status 与分镜
 渲染的关系（一次渲染就是一个会完成的构建操作，`build.status` 至今只有导出那一个生产者）。
+
+## M5 第六片（#193）：渲染成为 build.status 的第三个生产者——被拒的请求一条刻度都不留
+
+`renderStoryboardDemo` 往项目频道发 `build.status`（§163）：ffmpeg 起跑前 `building`、
+字节进了资产库 `ok`、中间任何一步断了 `failed`。口径与发布链路同一句话：**每一格都挂在
+一个真发生了的节点上，中间不插刻度**。
+
+最关键的一条是**不发射的地方**：额度门与"没有分镜"那些拒绝一条事件都没有——渲染从未
+开始，就没有"构建中"可言（#191 的额度门在 startTask 之前，被拒的请求一行任务都不落，
+也不该在项目频道上留一串假刻度）。`failed` 的 log 与返回给调用方的 message 逐字相同——
+两处各写一遍就会漂移，发布链路的用例钉的就是这一条。PublishPanel 本来就订着项目频道，
+所以渲染进度从这一刻起出现在同一个读数行里，不用改界面。
+
+见证：`apps/web/test/storyboard-render-build-status.integration.test.ts` 4 条（记账总线 +
+项目频道事件串：快乐路径 building→ok 且不发 preview.status / ffmpeg 起不来 building→failed
+且 log 与 message 逐字相同 / 额度耗尽与没有分镜各零事件）。变异探针 5 种全部精确红：
+不发射 building / 失败不发射 failed / 成功不发射 ok / 额度门之前就发射 building /
+failed 的 log 与 message 漂移。tsc 0、eslint 0。
+
+**下一步**：时间线预览与镜头列表的互相定位（点时间线格子找到那一镜、反过来也能跳）——
+面板联动，纯界面层，按 §90 的键盘可达要求一起做。
