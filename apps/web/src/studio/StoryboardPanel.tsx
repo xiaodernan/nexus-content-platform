@@ -38,6 +38,16 @@ import { storyboardStore, useStoryboard } from './storyboardStore';
  * 每一次改镜头都是一个补丁事务（§150）：撤销/重做是真的能回，不是重打一遍。
  */
 
+/** 一条分镜成片的记录：与 `GET /storyboard/render` 的返回同形 */
+interface RenderRecord {
+  assetId: string;
+  storyboardId: string;
+  taskId: string;
+  renderMs: number;
+  createdAt: string;
+  warnings: string[];
+}
+
 const STATE_TEXT: Record<string, string> = {
   idle: '',
   loading: '读取中…',
@@ -114,6 +124,8 @@ export function StoryboardPanel() {
     notes: string[];
     renderMs: number;
   } | null>(null);
+  /** 这个项目渲染出过的成片，新的在前（§101 资产清单的"分镜产物"那一格） */
+  const [renders, setRenders] = useState<RenderRecord[]>([]);
   const sb = snapshot.storyboard;
 
   useEffect(() => {
@@ -124,11 +136,14 @@ export function StoryboardPanel() {
     let cancelled = false;
     void (async () => {
       try {
-        const [c, a] = await Promise.all([
+        const [c, a, r] = await Promise.all([
           fetch(`/api/projects/${studio.projectId}/characters`, { cache: 'no-store' })
             .then((r) => r.json())
             .catch(() => null),
           fetch(`/api/projects/${studio.projectId}/assets`, { cache: 'no-store' })
+            .then((r) => r.json())
+            .catch(() => null),
+          fetch(`/api/projects/${studio.projectId}/storyboard/render`, { cache: 'no-store' })
             .then((r) => r.json())
             .catch(() => null),
         ]);
@@ -141,6 +156,8 @@ export function StoryboardPanel() {
           name: item.name,
         }));
         setRoster({ characters, assets });
+        if (cancelled) return;
+        setRenders(((r as { renders?: RenderRecord[] } | null)?.renders ?? []).map((item) => ({ ...item, warnings: item.warnings ?? [] })));
         const unreadable = ((c as { unreadable?: string[] } | null)?.unreadable ?? []).length;
         setRosterNote(
           characters.length === 0
@@ -248,6 +265,11 @@ export function StoryboardPanel() {
         notes: body.notes ?? [],
         renderMs: body.renderMs ?? 0,
       });
+      // 历史清单里立刻多出这一版：不刷新的话面板指着旧清单，像"刚渲的不算数"
+      const list = (await fetch(`/api/projects/${studio.projectId}/storyboard/render`, { cache: 'no-store' })
+        .then((r) => r.json())
+        .catch(() => null)) as { renders?: RenderRecord[] } | null;
+      setRenders((list?.renders ?? []).map((item) => ({ ...item, warnings: item.warnings ?? [] })));
     } catch (error) {
       setRenderError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -879,6 +901,22 @@ export function StoryboardPanel() {
                 {renderNote.notes.map((n) => (
                   <li key={n} className="text-11 text-fg-3">
                     {n}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {renders.length ? (
+            <div className="mt-2 flex flex-col gap-1" data-storyboard-render-history>
+              <span className="text-11 text-fg-3">这条分镜渲过 {renders.length} 版（都是 DEMO，新的在前）：</span>
+              <ul className="flex flex-col gap-1">
+                {renders.map((r) => (
+                  <li key={r.assetId} className="text-11 text-fg-2">
+                    <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-1 py-[1px] text-10 text-fg-1">DEMO</span>
+                    {' '}
+                    {new Date(r.createdAt).toLocaleString('zh-CN')} · {r.renderMs} 毫秒
+                    {r.warnings.length ? ` · ${r.warnings.length} 条没做到的` : ''}
+                    {sb.shots.some((s) => s.videoAssetId === r.assetId) ? ' · 正挂在某一镜上' : ''}
                   </li>
                 ))}
               </ul>

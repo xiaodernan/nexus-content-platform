@@ -9,6 +9,9 @@ import { openAssetForOwner, uploadVideoAsset } from './assets';
 import { finishTask, startTask } from './agent-tasks';
 import { refusalForRun } from './credit-ledger';
 import { loadStoryboard } from './storyboards';
+import { desc, eq } from 'drizzle-orm';
+import { getDb } from '../db/client';
+import { assets } from '../db/schema';
 
 /**
  * §40-42 的最后半截：把分镜**真的渲染出来**，产物走刚接上的视频摄入链落成资产。
@@ -249,6 +252,9 @@ export async function renderStoryboardDemo(input: RenderStoryboardInput): Promis
       createdById: input.userId,
       genMeta: {
         storyboardId: loaded.document.id,
+        // 分镜的来源那句话：`assetRowToRef` 的 generatedBy 认的是 gen.prompt，
+        // 视频成片缺这一格就拿不到 DEMO 角标——在资产面板里看着像"不是生成的"
+        prompt: loaded.document.source.prompt,
         taskId,
         provider: 'local-ffmpeg',
         demoMode: true,
@@ -276,4 +282,47 @@ export async function renderStoryboardDemo(input: RenderStoryboardInput): Promis
     // 临时目录即焚：参考帧字节与成片都不留在服务器上（库里那一条才是产物）
     rmSync(dir, { recursive: true, force: true });
   }
+}
+export interface StoryboardRenderRecord {
+  assetId: string;
+  storyboardId: string;
+  taskId: string;
+  /** 这一次渲染花了多少毫秒：面板上"最新一版"旁边那个数 */
+  renderMs: number;
+  createdAt: string;
+  /** 渲染时说到的没做到的事（没有字体→字幕没烧）：随记录一起出，不许静默 */
+  warnings: string[];
+}
+
+/**
+ * 这个项目渲染出过哪些分镜成片，新的在前。
+ *
+ * 判据只有一条：`genMeta.storyboardId` 在。那一格从 #191 起由 `renderStoryboardDemo`
+ * 自己写——没有它的 video 资产（直接插库的、别的链路产的）不算"分镜的产物"，
+ * 混进来只会让面板指着一条来路不明的片子说"这是你渲染的"。
+ *
+ * 反过来，`assetRowToRef` 的 `generatedBy` 认 `gen.prompt`：#191 之前视频成片没有
+ * 那一格，于是渲染链唯一的产物在资产面板里拿不到 DEMO 角标，看着像"不是生成的"。
+ * genMeta 里补 `prompt`（分镜的来源那句话）就是补这一格。
+ */
+export async function listStoryboardRenders(projectId: string): Promise<StoryboardRenderRecord[]> {
+  const rows = await getDb()
+    .select()
+    .from(assets)
+    .where(eq(assets.projectId, projectId))
+    .orderBy(desc(assets.createdAt));
+  const renders: StoryboardRenderRecord[] = [];
+  for (const row of rows) {
+    const meta = (row.genMeta ?? {}) as Record<string, unknown>;
+    if (typeof meta.storyboardId !== 'string') continue;
+    renders.push({
+      assetId: row.id,
+      storyboardId: meta.storyboardId,
+      taskId: typeof meta.taskId === 'string' ? meta.taskId : '',
+      renderMs: typeof meta.renderMs === 'number' ? meta.renderMs : 0,
+      createdAt: row.createdAt.toISOString(),
+      warnings: Array.isArray(meta.warnings) ? (meta.warnings as string[]) : [],
+    });
+  }
+  return renders;
 }

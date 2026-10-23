@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { eq, inArray } from 'drizzle-orm';
 import { planStoryboard } from '@nexus/video-model';
-import { POST } from '../src/app/api/projects/[projectId]/storyboard/render/route';
+import { GET, POST } from '../src/app/api/projects/[projectId]/storyboard/render/route';
 import { adjustCredits, readCredits } from '../src/server/domain/credit-ledger';
 import { createProject } from '../src/server/domain/projects';
 import { SESSION_COOKIE } from '../src/server/domain/session';
@@ -113,6 +113,50 @@ function call(projectId: string, as: string, withCsrf = true): Promise<Response>
     { params: Promise.resolve({ projectId }) },
   );
 }
+
+function callGet(projectId: string, as: string): Promise<Response> {
+  jar.clear();
+  jar.set(SESSION_COOKIE, as);
+  return GET(
+    new Request(`http://localhost:3100/api/projects/${projectId}/storyboard/render`, {
+      headers: { cookie: `${SESSION_COOKIE}=${as}` },
+    }),
+    { params: Promise.resolve({ projectId }) },
+  );
+}
+
+describe('GET /api/projects/[projectId]/storyboard/render 的入口形状', () => {
+  it('没渲过：200 + 空清单', async () => {
+    const projectId = await newProject('Render Route List Empty');
+    const res = await callGet(projectId, meToken);
+    expect(res.status).toBe(200);
+    expect((await res.json()).renders).toEqual([]);
+  });
+
+  it('不是你的项目：404', async () => {
+    const projectId = await newProject('Render Route List Foreign');
+    const res = await callGet(projectId, theyToken);
+    expect(res.status).toBe(404);
+  });
+
+  it('渲过之后：清单里就是那颗资产，storyboardId 对得上', async () => {
+    const projectId = await newProject('Render Route List Happy');
+    await saveBoard(projectId);
+    await ensureVideoCredits();
+
+    const posted = await call(projectId, meToken);
+    expect(posted.status).toBe(201);
+    const body = (await posted.json()) as { asset: { id: string } };
+
+    const res = await callGet(projectId, meToken);
+    expect(res.status).toBe(200);
+    const renders = (await res.json()).renders as { assetId: string; storyboardId: string; taskId: string }[];
+    expect(renders).toHaveLength(1);
+    expect(renders[0]!.assetId).toBe(body.asset.id);
+    expect(renders[0]!.storyboardId).not.toBe('');
+    expect(renders[0]!.taskId).not.toBe('');
+  });
+});
 
 describe('POST /api/projects/[projectId]/storyboard/render 的入口形状', () => {
   it('写请求先过 CSRF：没有双提交令牌就是 403，一行任务都不落', async () => {

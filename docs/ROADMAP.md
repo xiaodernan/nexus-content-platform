@@ -6112,3 +6112,28 @@ invalid_video / ffmpeg_missing / ffmpeg_failed / render_timeout`。路由层与 
 
 **下一步**：分镜面板的时间线与资产库之间还差一格——成片挂上之后，资产清单里要能按
 "哪条分镜的产物"反查（`genMeta.storyboardId` 已经在了，缺的是列表页的展示与筛选）。
+
+## M5 第五片（#192）：资产清单里的"分镜产物"反查——渲过几版、哪版正挂着
+
+`listStoryboardRenders(projectId)`（领域）+ `GET /api/projects/[projectId]/storyboard/render`（路由）+
+面板上的历史清单。判据只有一条：`genMeta.storyboardId` 在。那一格从 #191 起由
+`renderStoryboardDemo` 自己写——没有它的 video 资产（直接插库的、别的链路产的）不算
+"分镜的产物"，混进来只会让面板指着一条来路不明的片子说"这是你渲染的"。
+
+顺带补上一格**投影缺口**：`assetRowToRef` 的 `generatedBy`（DEMO 角标与"回到那一次任务"
+的唯一依据）认 `gen.prompt`，而 #191 的视频 genMeta 里没有这一格——渲染链唯一的产物
+在资产面板里因此拿不到 DEMO 角标，看着像"不是生成的"。修法是在 genMeta 里补
+`prompt: document.source.prompt`（分镜的来源那句话），不新开字段。
+
+**测试抓到的真行为**：同一份分镜原样再渲一次，成片**逐字节相同**，摄入门按 checksum
+去重——"渲过两次"不等于"两行"。注意 `finishTask` 每次都会扣点：钱按次收，资产按内容算，
+这两件事分开钉（去重那条用例 + 扣点那条用例各管一头）。改过一个镜头再渲，字节不同了，
+才是新的一版——清单两条、新的在前。
+
+见证：`storyboard-render.integration.test.ts` 12 条（新增去重 / 两版排序 / 跨项目隔离 /
+plain video 不算产物）、`storyboard-render-route.integration.test.ts` 8 条（GET 的 200 空清单 /
+404 / 渲后清单对得上）。变异探针 5 种全部精确红、逐字节还原：列成片不看 storyboardId /
+列成片不过项目 / 排序改成旧在前 / GET 路由不验归属 / genMeta 不写 prompt。tsc 0、eslint 0。
+
+**下一步**：时间线预览还差"点时间线上某一格跳到那一镜"；以及 §163 build.status 与分镜
+渲染的关系（一次渲染就是一个会完成的构建操作，`build.status` 至今只有导出那一个生产者）。

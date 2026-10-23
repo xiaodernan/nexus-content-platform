@@ -2,8 +2,25 @@ import { NextResponse } from 'next/server';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
-import { renderStoryboardDemo } from '@/server/domain/storyboard-render';
+import { listStoryboardRenders, renderStoryboardDemo } from '@/server/domain/storyboard-render';
 import { failure, jsonError, notFound } from '@/server/http';
+
+/**
+ * 这个项目渲染出过的分镜成片，新的在前（§101 资产清单的"分镜产物"那一格）。
+ *
+ * GET 不写库、不过 CSRF（只读入口与 /assets 同一口径）。判据是 `genMeta.storyboardId`：
+ * 没有那一格的 video 资产不算分镜的产物，列进来只会让面板指着一条来路不明的片子。
+ */
+export async function GET(_req: Request, ctx: RouteContext): Promise<NextResponse> {
+  const { projectId } = await ctx.params;
+  try {
+    const user = await requireUser();
+    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    return NextResponse.json({ ok: true, renders: await listStoryboardRenders(projectId) });
+  } catch (error) {
+    return failure(error, `GET /api/projects/${projectId}/storyboard/render`);
+  }
+}
 
 /**
  * §40 最后一格的入口：把这条分镜**真的渲染出来**。

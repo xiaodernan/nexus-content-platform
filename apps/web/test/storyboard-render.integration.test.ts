@@ -12,8 +12,8 @@ import { adjustCredits, readCredits } from '../src/server/domain/credit-ledger';
 import { createProject } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
 import { agentTasks, assets, creditLedger, projects, users } from '../src/server/db/schema';
-import { renderStoryboardDemo } from '../src/server/domain/storyboard-render';
-import { saveStoryboard } from '../src/server/domain/storyboards';
+import { listStoryboardRenders, renderStoryboardDemo } from '../src/server/domain/storyboard-render';
+import { loadStoryboard, saveStoryboard } from '../src/server/domain/storyboards';
 import { resetStorageForTests } from '../src/server/storage/config';
 
 /**
@@ -189,6 +189,11 @@ describe('renderStoryboardDemo —— §40 最后一格：分镜真的渲出来�
 
     const listed = await listProjectAssets(projectId);
     expect(listed.some((a) => a.id === result.asset.id)).toBe(true);
+    // DEMO 角标的唯一依据是 generatedBy，而它认 gen.prompt：视频成片没有那一格，
+    // 资产面板就把它显示成"不是生成的"——这正是 genMeta 里补 prompt 的原因
+    const listedVideo = listed.find((a) => a.id === result.asset.id)!;
+    expect(listedVideo.generatedBy?.demoMode).toBe(true);
+    expect(listedVideo.generatedBy?.provider).toBe('local-ffmpeg');
   });
 
   it('额度门在 startTask 之前：video 桶扣到 0 时，任务表、账本、资产表一行都不多', async () => {
@@ -334,5 +339,97 @@ describe('renderStoryboardDemo —— §40 最后一格：分镜真的渲出来�
     if (result.ok) return;
     expect(result.code).toBe('reference_unreadable');
     expect(await countTasks(strangerId), '读不到参考帧就不该落任务行').toBe(0);
+  });
+});
+
+describe('listStoryboardRenders —— 资产清单里的"分镜产物"反查', () => {
+  /** 直接插一颗没有 genMeta.storyboardId 的 video：来路不明，不算分镜的产物 */
+  async function insertPlainVideo(projectId: string): Promise<string> {
+    const key = `plain-video-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
+    await writeFile(join(storeDir, key), Uint8Array.from([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]));
+    const [row] = await getDb()
+      .insert(assets)
+      .values({ projectId, kind: 'video', name: '来路不明的视频', storageKey: key, mime: 'video/mp4', bytes: 8 })
+      .returning({ id: assets.id });
+    return row!.id;
+  }
+
+  it('没渲过：空数组；直接插的 video 没有 storyboardId，不算分镜的产物', async () => {
+    const projectId = await newProject('Renders Empty');
+    await insertPlainVideo(projectId);
+    expect(await listStoryboardRenders(projectId)).toEqual([]);
+  });
+
+  it('同一份分镜连渲两次：字节相同，摄入门去重——清单里只有一条，重复计数才是谎', async () => {
+    const projectId = await newProject('Renders Dedup');
+    const refAssetId = await uploadReference(projectId);
+    const saved = await saveStoryboard(projectId, ownerId, { document: boardWithReference(refAssetId) });
+    if (!saved.ok) throw new Error(saved.reason);
+
+    await ensureVideoCredits(ownerId, 10);
+    const first = await renderStoryboardDemo({ projectId, userId: ownerId, fontFile: FONT });
+    if (!first.ok) throw new Error(first.message);
+    const again = await renderStoryboardDemo({ projectId, userId: ownerId, fontFile: FONT });
+    if (!again.ok) throw new Error(again.message);
+
+    // 同一份分镜推出逐字节相同的成片，摄入门按 checksum 认出是同一颗：
+    // "渲过两次"不等于"两行"。注意 finishTask 每次都会扣点——钱按次收，资产按内容算
+    expect(again.asset.id).toBe(first.asset.id);
+    expect(await listStoryboardRenders(projectId)).toHaveLength(1);
+  });
+
+  it('改过一个镜头再渲：两条记录、新的在前、storyboardId 对得上，来路不明的 video 混不进来', async () => {
+    const projectId = await newProject('Renders Two');
+    const refAssetId = await uploadReference(projectId);
+    const saved = await saveStoryboard(projectId, ownerId, { document: boardWithReference(refAssetId) });
+    if (!saved.ok) throw new Error(saved.reason);
+    await insertPlainVideo(projectId);
+
+    await ensureVideoCredits(ownerId, 10);
+    const first = await renderStoryboardDemo({ projectId, userId: ownerId, fontFile: FONT });
+    if (!first.ok) throw new Error(first.message);
+
+    // 改第二个镜头的提示词：色卡字幕变了，字节就不再相同，这才是"新的一版"
+    const current = await loadStoryboard(projectId);
+    if (!current?.ok) throw new Error('读不回分镜');
+    const edited = await saveStoryboard(projectId, ownerId, {
+      document: {
+        ...current.document,
+        shots: current.document.shots.map((shot, i) => (i === 1 ? { ...shot, prompt: '猫跳下了窗台' } : shot)),
+      },
+      baseUpdatedAt: current.updatedAt,
+    });
+    if (!edited.ok) throw new Error(edited.reason);
+    const second = await renderStoryboardDemo({ projectId, userId: ownerId, fontFile: FONT });
+    if (!second.ok) throw new Error(second.message);
+
+    const renders = await listStoryboardRenders(projectId);
+    expect(renders).toHaveLength(2);
+    // 新的在前：第二次渲染的那条排第一
+    expect(renders[0]!.assetId).toBe(second.asset.id);
+    expect(renders[1]!.assetId).toBe(first.asset.id);
+    for (const r of renders) {
+      expect(r.storyboardId).toBe(saved.document.id);
+      expect(r.taskId).not.toBe('');
+      expect(r.renderMs).toBeGreaterThanOrEqual(0);
+      expect(Array.isArray(r.warnings)).toBe(true);
+      expect(typeof r.createdAt).toBe('string');
+    }
+    // 同一颗资产不会出现两次：两条记录两个 assetId
+    expect(new Set(renders.map((r) => r.assetId)).size).toBe(2);
+  });
+
+  it('跨项目隔离：A 项目渲的不出现在 B 项目的清单里', async () => {
+    const a = await newProject('Renders A');
+    const b = await newProject('Renders B');
+    const refAssetId = await uploadReference(a);
+    const saved = await saveStoryboard(a, ownerId, { document: boardWithReference(refAssetId) });
+    if (!saved.ok) throw new Error(saved.reason);
+    await ensureVideoCredits(ownerId, 10);
+    const rendered = await renderStoryboardDemo({ projectId: a, userId: ownerId, fontFile: FONT });
+    if (!rendered.ok) throw new Error(rendered.message);
+
+    expect((await listStoryboardRenders(a)).map((r) => r.assetId)).toEqual([rendered.asset.id]);
+    expect(await listStoryboardRenders(b)).toEqual([]);
   });
 });
