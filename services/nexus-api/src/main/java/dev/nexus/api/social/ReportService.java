@@ -89,11 +89,22 @@ public class ReportService {
         String words = requireDetail(detail);
         Optional<ReportEntry> existing =
                 repository.findByReporterAccountIdAndTargetProjectIdAndReason(reporter, target, why);
+        // v383 — before rejecting as a duplicate, check whether the existing report is still "standing"
+        // (has not expired). A report that has expired is no longer constrained by the uniqueness rule.
+        Instant now = clock.instant().truncatedTo(ChronoUnit.MILLIS);
         if (existing.isPresent()) {
-            throw new InvalidReport(
-                    "this account has already reported this publication as " + why + "; a second report would be the same report");
-        }
-        Instant when = clock.instant().truncatedTo(ChronoUnit.MILLIS);
+            ReportEntry existingReport = existing.get();
+            // a report expires at createdAt + period; if the period has elapsed, it is no longer standing
+            boolean isStanding = switch (existingReport.getPeriod()) {
+                case "month" -> now.isBefore(existingReport.getCreatedAt().plus(1, ChronoUnit.MONTHS));
+                case "year" -> now.isBefore(existingReport.getCreatedAt().plus(1, ChronoUnit.YEARS));
+                default -> now.isBefore(existingReport.getCreatedAt().plus(1, ChronoUnit.MONTHS));
+            };
+            if (isStanding) {
+                throw new InvalidReport(
+                        "this account has already reported this publication as " + why + "; a second report would be the same report");
+            }
+        } Instant when = clock.instant().truncatedTo(ChronoUnit.MILLIS);
         ReportEntry row = new ReportEntry(
                 UUID.randomUUID().toString(),
                 target,
