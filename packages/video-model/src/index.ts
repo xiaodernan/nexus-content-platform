@@ -4,6 +4,8 @@
  * 需求原文那条流程是 `Prompt → Storyboard → Shot list → Image references → Video generation → Timeline`。
  * 这一包里只有前三步能是真的：本机没有视频 provider，所以 `videoAssetId` 只能一直是空，
  * 时间线因此**不可播**——这不是半成品，是"没来源的那一格明说没有"（§159）。
+ * `render.ts` 补上的是"没有 provider 时能诚实做出来的那一半"：把时间线投影成一份
+ * 渲染计划（推演参考帧 + 确定性色卡），像素明码标注是 DEMO。它不冒充 provider 生成。
  *
  * 三条纪律与仓库其余模型包一致：
  * 1. **纯函数**：无 IO、无随机、无时钟。同一份输入两次投影逐字段相同（§16 的"模型即真值"要能重放）。
@@ -13,6 +15,7 @@
  */
 
 export * from './patch';
+export * from './render';
 
 /**
  * §41 的 Camera 轨上那些机位。只有这几个：更多机位要真 provider 的运镜控制才有意义。
