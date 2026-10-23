@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { giveTip, readMyTips, readMyTipsGiven } from './tipLane';
+import { CALL_TIMEOUT_MS, giveTip, readMyTips, readMyTipsGiven } from './tipLane';
 
 /**
  * M7 v331 / v332 / v333 / v334 — the browser half of the TIPS lane.
@@ -256,6 +256,72 @@ describe('tipLane — giveTip (the write half, v439)', () => {
       );
       await giveTip('acct-ada', 500, 'x', false, claim, fetchImpl);
       expect(timeoutSpy).toHaveBeenCalledWith(45_000);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+});
+
+describe('tipLane — the reads’ budget (v478)', () => {
+  // v478 — the reads ride the same budget the writes earned in v294. Until now both reads fetched with no
+  // signal at all: a door that never answered hung the tip history forever with no reason to show.
+  it('both reads carry a live signal — a door that never answers becomes a reason, not a silent panel', async () => {
+    const seen: Array<AbortSignal | undefined> = [];
+    const fetchImpl = makeFetch((_url, init) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(JSON.stringify({ ok: true, tips: [], totalCents: 0, count: 0 }), { status: 200 });
+    });
+
+    await readMyTips('acct-ada', 0, fetchImpl);
+    await readMyTipsGiven('acct-bob', 0, fetchImpl);
+
+    expect(seen).toHaveLength(2);
+    for (const signal of seen) {
+      expect(signal).toBeInstanceOf(AbortSignal);
+      expect(signal?.aborted).toBe(false);
+    }
+  });
+
+  it('the reads’ budget is the pinned 45 seconds — the same number the writes earned in v294', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ok: true, tips: [], totalCents: 0, count: 0 }), { status: 200 }));
+      await readMyTips('acct-ada', 0, fetchImpl);
+      await readMyTipsGiven('acct-bob', 0, fetchImpl);
+      expect(timeoutSpy.mock.calls.map((c) => c[0])).toEqual([45_000, 45_000]);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('each read gets its own fresh signal — a deadline per call, never a shared one', async () => {
+    const seen: Array<AbortSignal | undefined> = [];
+    const fetchImpl = makeFetch((_url, init) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(JSON.stringify({ ok: true, tips: [], totalCents: 0, count: 0 }), { status: 200 });
+    });
+
+    await readMyTips('acct-ada', 0, fetchImpl);
+    await readMyTips('acct-ada', 0, fetchImpl);
+
+    expect(seen[0]).toBeInstanceOf(AbortSignal);
+    expect(seen[0]).not.toBe(seen[1]);
+  });
+
+  it('one budget for the whole lane — the exported constant, both reads and the write all say 45 seconds', async () => {
+    expect(CALL_TIMEOUT_MS).toBe(45_000);
+
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const claim = { accountId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
+      const read = makeFetch(() => new Response(JSON.stringify({ ok: true, tips: [], totalCents: 0, count: 0 }), { status: 200 }));
+      await readMyTips('acct-ada', 0, read);
+      await readMyTipsGiven('acct-bob', 0, read);
+      const write = makeFetch(() => new Response(JSON.stringify({ ok: true, tip: A_TIP }), { status: 201 }));
+      await giveTip('acct-ada', 500, 'the harness tips you', false, claim, write);
+
+      expect(timeoutSpy).toHaveBeenCalledTimes(3);
+      expect(timeoutSpy.mock.calls.map((c) => c[0])).toEqual([45_000, 45_000, 45_000]);
     } finally {
       timeoutSpy.mockRestore();
     }
