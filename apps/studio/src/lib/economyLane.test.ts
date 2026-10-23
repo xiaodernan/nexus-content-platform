@@ -9,10 +9,10 @@ function makeFetch(handler: (url: string) => Response) {
 describe('economyLane — readEconomy (M8 v274)', () => {
   it('asks the Studio\'s own door', async () => {
     const fetchImpl = makeFetch((url) => {
-      expect(url).toBe('/api/economy?account=acct-ada');
+      expect(url).toBe('/api/economy?account=acct-ada&offset=0&receivedOffset=0&plansOffset=0');
       return new Response(JSON.stringify({ ok: true, subscriptions: [], plans: [], tips: [] }), { status: 200 });
     });
-    const answer = await readEconomy('acct-ada', fetchImpl);
+    const answer = await readEconomy('acct-ada', 0, 0, 0, fetchImpl);
     expect(answer.ok).toBe(true);
     expect(answer.subscriptions).toEqual([]);
     expect(answer.plans).toEqual([]);
@@ -20,7 +20,7 @@ describe('economyLane — readEconomy (M8 v274)', () => {
   });
 
   it('a 503 carries the service\'s reason, not a status code', async () => {
-    const answer = await readEconomy('acct-ada',
+    const answer = await readEconomy('acct-ada', 0, 0, 0,
       makeFetch(() => new Response(JSON.stringify({ ok: false, reason: 'server not built' }), { status: 503 })),
     );
     expect(answer.ok).toBe(false);
@@ -28,26 +28,26 @@ describe('economyLane — readEconomy (M8 v274)', () => {
   });
 
   it('a 503 with no body still says what it was', async () => {
-    const answer = await readEconomy('acct-ada', makeFetch(() => new Response('', { status: 503 })));
+    const answer = await readEconomy('acct-ada', 0, 0, 0, makeFetch(() => new Response('', { status: 503 })));
     expect(answer.ok).toBe(false);
     expect(answer.reason).toBe('the economy answered HTTP 503');
   });
 
   it('something that is not JSON is a reason', async () => {
-    const answer = await readEconomy('acct-ada', makeFetch(() => new Response('<html>no</html>', { status: 200 })));
+    const answer = await readEconomy('acct-ada', 0, 0, 0, makeFetch(() => new Response('<html>no</html>', { status: 200 })));
     expect(answer.ok).toBe(false);
     expect(answer.reason).toBe('the economy answered something that is not JSON');
   });
 
   it('a body with no arrays is a reason', async () => {
-    const answer = await readEconomy('acct-ada', makeFetch(() => new Response(JSON.stringify({ ok: true }), { status: 200 })));
+    const answer = await readEconomy('acct-ada', 0, 0, 0, makeFetch(() => new Response(JSON.stringify({ ok: true }), { status: 200 })));
     expect(answer.ok).toBe(false);
     expect(answer.reason).toBe('the economy answered with no subscriptions or plans');
   });
 
   it('a thrown fetch answers with the error\'s message', async () => {
     const fetchImpl = vi.fn(async () => { throw new Error('network down'); }) as unknown as typeof fetch;
-    const answer = await readEconomy('acct-ada', fetchImpl);
+    const answer = await readEconomy('acct-ada', 0, 0, 0, fetchImpl);
     expect(answer.ok).toBe(false);
     expect(answer.reason).toBe('network down');
   });
@@ -58,7 +58,7 @@ describe('economyLane — readEconomy (M8 v274)', () => {
       subscriptions: [{ creatorId: 'acct-ada', planId: 'pro', priceCents: 1500, currency: 'CNY', active: true, subscribedAt: 1, expiresAt: null }],
       tips: [{ recipientId: 'acct-ada', amountCents: 500, message: 'thanks', anonymous: false }],
     };
-    const answer = await readEconomy('acct-ada', makeFetch(() => new Response(JSON.stringify(body), { status: 200 })));
+    const answer = await readEconomy('acct-ada', 0, 0, 0, makeFetch(() => new Response(JSON.stringify(body), { status: 200 })));
     expect(answer.ok).toBe(true);
     const subs = answer.subscriptions ?? [];
     const tips = answer.tips ?? [];
@@ -74,7 +74,7 @@ describe('economyLane — readEconomy (M8 v274)', () => {
       subscriptions: [{ creatorId: 'acct-ada', planId: 'good', priceCents: 1000, currency: 'CNY', active: true, subscribedAt: 1, expiresAt: null }, { planId: '' }],
       tips: [{ recipientId: 'acct-ada', amountCents: 500, message: '', anonymous: false }, { recipientId: '' }],
     };
-    const answer = await readEconomy('acct-ada', makeFetch(() => new Response(JSON.stringify(body), { status: 200 })));
+    const answer = await readEconomy('acct-ada', 0, 0, 0, makeFetch(() => new Response(JSON.stringify(body), { status: 200 })));
     expect(answer.ok).toBe(true);
     const subs = answer.subscriptions ?? [];
     const tips = answer.tips ?? [];
@@ -83,7 +83,7 @@ describe('economyLane — readEconomy (M8 v274)', () => {
   });
 
   it('v373 — carries the plans’ COUNT, so the panel can say its list is a window', async () => {
-    const answer = await readEconomy('acct-ada', async () =>
+    const answer = await readEconomy('acct-ada', 0, 0, 0, async () =>
       new Response(
         JSON.stringify({
           ok: true,
@@ -98,13 +98,54 @@ describe('economyLane — readEconomy (M8 v274)', () => {
     expect(answer.planCount).toBe(21);
   });
 
+  it('v392 — the three lists page INDEPENDENTLY, and the pages travel in the query', async () => {
+    // The subscriptions held, the subscriptions received and the plans offered are three different
+    // questions about three different sets: one page for all three would answer none of them.
+    const fetchImpl = makeFetch((url) => {
+      expect(url).toBe('/api/economy?account=acct-ada&offset=20&receivedOffset=40&plansOffset=0');
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          subscriptions: [],
+          received: [],
+          plans: [],
+          limit: 20,
+          subscriptionOffset: 20,
+          receivedOffset: 40,
+          planOffset: 0,
+        }),
+        { status: 200 },
+      );
+    });
+    const answer = await readEconomy('acct-ada', 20, 40, 0, fetchImpl);
+    expect(answer.ok).toBe(true);
+    // and the answer echoes the windows it is FOR: three reads in flight cannot be mistaken for
+    // each other's answers (v382's rule).
+    expect(answer.subscriptionOffset).toBe(20);
+    expect(answer.receivedOffset).toBe(40);
+    expect(answer.planOffset).toBe(0);
+    expect(answer.limit).toBe(20);
+  });
+
+  it('v392 — a NEGATIVE page is the first window, not a question about a page before the first', async () => {
+    const fetchImpl = makeFetch((url) => {
+      expect(url).toBe('/api/economy?account=acct-ada&offset=0&receivedOffset=0&plansOffset=0');
+      return new Response(JSON.stringify({ ok: true, subscriptions: [], plans: [] }), { status: 200 });
+    });
+    const answer = await readEconomy('acct-ada', -5, -1, -9, fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.subscriptionOffset).toBe(0);
+    expect(answer.receivedOffset).toBe(0);
+    expect(answer.planOffset).toBe(0);
+  });
+
   it('maps the plans too — the creator’s own side of the economy (M7 v309)', async () => {
     const body = {
       ok: true,
       subscriptions: [],
       plans: [{ planId: 'pro', creatorId: 'acct-ada', priceCents: 1500, currency: 'CNY', period: 'month', active: true, createdAt: 1 }],
     };
-    const answer = await readEconomy('acct-ada', makeFetch(() => new Response(JSON.stringify(body), { status: 200 })));
+    const answer = await readEconomy('acct-ada', 0, 0, 0, makeFetch(() => new Response(JSON.stringify(body), { status: 200 })));
     expect(answer.ok).toBe(true);
     const plans = answer.plans ?? [];
     expect(plans).toHaveLength(1);

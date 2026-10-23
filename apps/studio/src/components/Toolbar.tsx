@@ -232,7 +232,25 @@ export default function Toolbar() {
   const [tipsOffset, setTipsOffset] = useState(0);
   const [givenOffset, setGivenOffset] = useState(0);
 
-  const refreshEconomy = async (tipsPage: number = tipsOffset, givenPage: number = givenOffset) => {
+  /**
+   * v392 — the ECONOMIC half's three PAGES, in ROWS.
+   *
+   * <p>The subscriptions held, the subscriptions received and the plans offered are three different
+   * questions about three different sets, so they page independently: a reader who follows a long
+   * receipt back must not move the creator's own list out from under them. All three are WINDOWS with
+   * a whole-table count on the wire (v359/v372), the same shape the tips lists had in v391.
+   */
+  const [subsOffset, setSubsOffset] = useState(0);
+  const [receivedOffset, setReceivedOffset] = useState(0);
+  const [plansOffset, setPlansOffset] = useState(0);
+
+  const refreshEconomy = async (
+    tipsPage: number = tipsOffset,
+    givenPage: number = givenOffset,
+    subsPage: number = subsOffset,
+    receivedPage: number = receivedOffset,
+    plansPage: number = plansOffset,
+  ) => {
     // WHO the device is, read NOW and not at render time: the account can be set (or changed) after the
     // toolbar last rendered, and a panel that asked "who am I" when it mounted would answer for an
     // account that no longer exists.
@@ -256,7 +274,8 @@ export default function Toolbar() {
     setGiven(await readMyTipsGiven(account.id, givenPage));
     // v309 — and the account's own half: the subscriptions it holds and the plans it offers. The service
     // computes the subscriptions’ standing (v308), so the panel shows the service’s word.
-    setEconomyAccount(await readEconomy(account.id));
+    // v392 — and the three pages those lists are read at.
+    setEconomyAccount(await readEconomy(account.id, subsPage, receivedPage, plansPage));
   };
 
   /**
@@ -1340,7 +1359,14 @@ export default function Toolbar() {
           ) : !economyAccount.ok ? (
             <div style={{ color: 'var(--nexus-muted)' }}>could not read: {economyAccount.reason}</div>
           ) : (economyAccount.subscriptions ?? []).length === 0 ? (
-            <div style={{ color: 'var(--nexus-muted)' }}>this account backs no plan</div>
+            /* v392 — an empty window on a LATER page is not an empty history: the reader asked for a
+               page past the end, and the honest answer says that rather than "this account backs no
+               plan" — which would be a fact about the whole table, told about one window. */
+            <div style={{ color: 'var(--nexus-muted)' }}>
+              {subsOffset > 0 && (economyAccount.subscriptionCount ?? 0) > 0
+                ? 'this page is past the end — the service answered an empty window'
+                : 'this account backs no plan'}
+            </div>
           ) : (
             <>
               {/* v359 — the COUNT and the TOTAL beside the rows: the service counts the WHOLE table now,
@@ -1356,9 +1382,11 @@ export default function Toolbar() {
                 })()}
                 {(() => {
                   // v370 — and the rows are the service's WINDOW beside the whole table's count.
+                  // v392 — and WHICH rows, past the first window (v386's correction).
                   const window = subscriptionsWindowText(
                     economyAccount.subscriptionCount,
                     (economyAccount.subscriptions ?? []).length,
+                    economyAccount.subscriptionOffset ?? subsOffset,
                   );
                   return window ? <> · {window}</> : null;
                 })()}
@@ -1417,6 +1445,42 @@ export default function Toolbar() {
                 </li>
               ))}
             </ul>
+              {/* v392 — the PAGER for the subscriptions this account holds, the same shape the tips
+                  lists got (v391): the whole-table count (v359) rides on every answer, so "Older" is
+                  disabled exactly when the window already holds every subscription the service
+                  counted — a pager that offered a page with nothing in it would be asking a question
+                  whose honest answer is an empty window. */}
+              <div data-economy-subs-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                <button
+                  className="btn"
+                  data-economy-subs-page="newer"
+                  disabled={subsOffset <= 0}
+                  onClick={() => {
+                    const next = Math.max(subsOffset - (economyAccount.limit ?? 20), 0);
+                    setSubsOffset(next);
+                    void refreshEconomy(tipsOffset, givenOffset, next, receivedOffset, plansOffset);
+                  }}
+                  title="the newer subscriptions"
+                >
+                  ‹ Newer
+                </button>
+                <button
+                  className="btn"
+                  data-economy-subs-page="older"
+                  disabled={
+                    (economyAccount.subscriptionOffset ?? subsOffset) + (economyAccount.subscriptions ?? []).length
+                    >= (economyAccount.subscriptionCount ?? 0)
+                  }
+                  onClick={() => {
+                    const next = subsOffset + (economyAccount.limit ?? 20);
+                    setSubsOffset(next);
+                    void refreshEconomy(tipsOffset, givenOffset, next, receivedOffset, plansOffset);
+                  }}
+                  title="the older subscriptions"
+                >
+                  Older ›
+                </button>
+              </div>
               </>
             )}
           {/* v310 — the creator's OTHER side: who backs this account. The panel showed what
@@ -1428,7 +1492,13 @@ export default function Toolbar() {
           ) : !economyAccount.ok ? (
             <div style={{ color: 'var(--nexus-muted)' }}>could not read: {economyAccount.reason}</div>
           ) : (economyAccount.received ?? []).length === 0 ? (
-            <div style={{ color: 'var(--nexus-muted)' }}>nobody backs this account</div>
+            /* v392 — the same honest ending as the held side: an empty window on a later page is not
+               an empty supporter list. */
+            <div style={{ color: 'var(--nexus-muted)' }}>
+              {receivedOffset > 0 && (economyAccount.receivedCount ?? 0) > 0
+                ? 'this page is past the end — the service answered an empty window'
+                : 'nobody backs this account'}
+            </div>
           ) : (
             <>
               {/* v363 — the COUNT and the TOTAL beside the rows, the same way the held side says them
@@ -1443,9 +1513,11 @@ export default function Toolbar() {
                 })()}
                 {(() => {
                   // v370 — and the rows are the service's WINDOW beside the whole table's count.
+                  // v392 — and WHICH rows, past the first window (v386's correction).
                   const window = subscriptionsWindowText(
                     economyAccount.receivedCount,
                     (economyAccount.received ?? []).length,
+                    economyAccount.receivedOffset ?? receivedOffset,
                   );
                   return window ? <> · {window}</> : null;
                 })()}
@@ -1487,6 +1559,40 @@ export default function Toolbar() {
                 </li>
               ))}
             </ul>
+              {/* v392 — the PAGER for the subscriptions this account RECEIVED: the creator's other
+                  side pages independently of the held side (they are two different sets), with the
+                  same honest ending — the whole-table count (v359) says where the end is. */}
+              <div data-economy-received-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                <button
+                  className="btn"
+                  data-economy-received-page="newer"
+                  disabled={receivedOffset <= 0}
+                  onClick={() => {
+                    const next = Math.max(receivedOffset - (economyAccount.limit ?? 20), 0);
+                    setReceivedOffset(next);
+                    void refreshEconomy(tipsOffset, givenOffset, subsOffset, next, plansOffset);
+                  }}
+                  title="the newer subscriptions"
+                >
+                  ‹ Newer
+                </button>
+                <button
+                  className="btn"
+                  data-economy-received-page="older"
+                  disabled={
+                    (economyAccount.receivedOffset ?? receivedOffset) + (economyAccount.received ?? []).length
+                    >= (economyAccount.receivedCount ?? 0)
+                  }
+                  onClick={() => {
+                    const next = receivedOffset + (economyAccount.limit ?? 20);
+                    setReceivedOffset(next);
+                    void refreshEconomy(tipsOffset, givenOffset, subsOffset, next, plansOffset);
+                  }}
+                  title="the older subscriptions"
+                >
+                  Older ›
+                </button>
+              </div>
               </>
           )}
           <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 8 }}>Your plans</div>
@@ -1500,13 +1606,20 @@ export default function Toolbar() {
           ) : !economyAccount.ok ? (
             <div style={{ color: 'var(--nexus-muted)' }}>could not read: {economyAccount.reason}</div>
           ) : (economyAccount.plans ?? []).length === 0 ? (
-            <div style={{ color: 'var(--nexus-muted)' }}>this account offers no plan</div>
+            /* v392 — the same honest ending: an empty window on a later page is not an empty
+               catalogue. */
+            <div style={{ color: 'var(--nexus-muted)' }}>
+              {plansOffset > 0 && (economyAccount.planCount ?? 0) > 0
+                ? 'this page is past the end — the service answered an empty window'
+                : 'this account offers no plan'}
+            </div>
           ) : (
             <>
               {/* v373 — the COUNT and the WINDOW beside the plans, in the same words the profile page's
                   plan bar uses (v372): the list is the service's window and the count is the whole table's. */}
               <div data-economy-plan-count style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
-                {planCountText(economyAccount.planCount, (economyAccount.plans ?? []).length)}
+                {/* v392 — and WHICH rows, past the first window (v386's correction). */}
+                {planCountText(economyAccount.planCount, (economyAccount.plans ?? []).length, economyAccount.planOffset ?? plansOffset)}
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {(economyAccount.plans ?? []).map((row, i) => (
@@ -1549,6 +1662,41 @@ export default function Toolbar() {
                 </li>
               ))}
             </ul>
+              {/* v392 — the PAGER for the plans this account offers: the same shape and the same
+                  honest ending as the other two lists — the whole-table count (v372) rides on every
+                  answer, so "Older" is disabled exactly when the window already holds every plan the
+                  service counted. */}
+              <div data-economy-plans-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                <button
+                  className="btn"
+                  data-economy-plans-page="newer"
+                  disabled={plansOffset <= 0}
+                  onClick={() => {
+                    const next = Math.max(plansOffset - (economyAccount.limit ?? 20), 0);
+                    setPlansOffset(next);
+                    void refreshEconomy(tipsOffset, givenOffset, subsOffset, receivedOffset, next);
+                  }}
+                  title="the newer plans"
+                >
+                  ‹ Newer
+                </button>
+                <button
+                  className="btn"
+                  data-economy-plans-page="older"
+                  disabled={
+                    (economyAccount.planOffset ?? plansOffset) + (economyAccount.plans ?? []).length
+                    >= (economyAccount.planCount ?? 0)
+                  }
+                  onClick={() => {
+                    const next = plansOffset + (economyAccount.limit ?? 20);
+                    setPlansOffset(next);
+                    void refreshEconomy(tipsOffset, givenOffset, subsOffset, receivedOffset, next);
+                  }}
+                  title="the older plans"
+                >
+                  Older ›
+                </button>
+              </div>
               </>
           )}
         </div>

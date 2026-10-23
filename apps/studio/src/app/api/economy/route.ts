@@ -34,11 +34,19 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
   const asked = Number(new URL(request.url).searchParams.get('limit') ?? '20');
   const limit = Number.isFinite(asked) && asked > 0 ? Math.trunc(asked) : 20;
+  // v392 — and the PAGES the three lists are read at, in rows. A negative or unparseable one is the
+  // first window: the newest rows are the honest answer to a question about a page before the first.
+  const askedSubs = Number(new URL(request.url).searchParams.get('offset') ?? '0');
+  const askedReceived = Number(new URL(request.url).searchParams.get('receivedOffset') ?? '0');
+  const askedPlans = Number(new URL(request.url).searchParams.get('plansOffset') ?? '0');
+  const subsOffset = Number.isFinite(askedSubs) && askedSubs > 0 ? Math.trunc(askedSubs) : 0;
+  const receivedOffset = Number.isFinite(askedReceived) && askedReceived > 0 ? Math.trunc(askedReceived) : 0;
+  const plansOffset = Number.isFinite(askedPlans) && askedPlans > 0 ? Math.trunc(askedPlans) : 0;
   const [subscriptions, received, plans] = await Promise.all([
-    readSubscriptions(account.trim(), limit),
+    readSubscriptions(account.trim(), limit, subsOffset),
     // v310 — the creator's other side: who backs me.
-    readReceivedSubscriptions(account.trim(), limit),
-    readPlans(account.trim(), limit),
+    readReceivedSubscriptions(account.trim(), limit, receivedOffset),
+    readPlans(account.trim(), limit, plansOffset),
   ]);
   // The economy is only READABLE when both halves are: a panel that showed the plans and hid the
   // subscriptions would be showing half an account.
@@ -65,6 +73,12 @@ export async function GET(request: Request): Promise<NextResponse> {
       receivedCount: received.count,
       plans: plans.plans,
       planCount: plans.count,
+      // v392 — and the windows these rows are FOR: the cap that was applied and the row each list
+      // starts at, so the panel can say which rows it is showing and page from there.
+      limit: subscriptions.limit,
+      subscriptionOffset: subscriptions.offset,
+      receivedOffset: received.offset,
+      planOffset: plans.offset,
     },
     { status: 200 },
   );

@@ -61,20 +61,28 @@ public class SubscriptionController {
                 List.of(toWire(row)),
                 // v372 — and the count is the creator's WHOLE number of plans, like every other answer.
                 service.countPlans(row.getCreatorAccountId()),
-                SubscriptionService.DEFAULT_PLAN_LIMIT));
+                SubscriptionService.DEFAULT_PLAN_LIMIT,
+                // v392 — a receipt is the first window: the row just made is the newest one.
+                0));
     }
 
     /** The plans one creator offers. */
     @GetMapping("/plans")
     public ResponseEntity<PlanAnswer> plans(
             @RequestParam(name = "creator") String creatorAccountId,
-            @RequestParam(name = "limit", required = false) Integer limit) {
+            @RequestParam(name = "limit", required = false) Integer limit,
+            // v392 — and the PAGE the list is read at, in rows: the plans are a window, and a window
+            // nobody can page is the whole catalogue to a creator with more plans than the cap. A
+            // negative offset is clamped to the first window rather than refused — the newest rows are
+            // the honest answer to a question about a page before the first.
+            @RequestParam(name = "offset", required = false) Integer offset) {
         int asked = limit == null ? SubscriptionService.DEFAULT_PLAN_LIMIT : limit;
-        List<PlanEntry> rows = service.plansOf(creatorAccountId, asked);
+        int from = offset == null ? 0 : Math.max(offset, 0);
+        List<PlanEntry> rows = service.plansOf(creatorAccountId, asked, from);
         List<Plan> plans = rows.stream().map(SubscriptionController::toWire).toList();
         // v372 — the count is the WHOLE table's, not the window's: a reader who sees three plans and a
         // creator who offers five must be told which of the two the three are.
-        return ResponseEntity.ok(new PlanAnswer(creatorAccountId, plans, service.countPlans(creatorAccountId), asked));
+        return ResponseEntity.ok(new PlanAnswer(creatorAccountId, plans, service.countPlans(creatorAccountId), asked, from));
     }
 
     /** Back a plan. 201 when the subscription was made. */
@@ -92,7 +100,8 @@ public class SubscriptionController {
                 // with one amount in it.
                 List.of(new SubscriptionDtos.PeriodTotal(row.getPeriod(), row.getCurrency(), row.getPriceCents())),
                 1,
-                SubscriptionService.DEFAULT_SUBSCRIPTION_LIMIT));
+                SubscriptionService.DEFAULT_SUBSCRIPTION_LIMIT,
+                0));
     }
 
     /**
@@ -107,10 +116,15 @@ public class SubscriptionController {
     public ResponseEntity<?> subscriptions(
             @RequestParam(name = "subscriber", required = false) String subscriberAccountId,
             @RequestParam(name = "creator", required = false) String creatorAccountId,
-            @RequestParam(name = "limit", required = false) Integer limit) {
+            @RequestParam(name = "limit", required = false) Integer limit,
+            // v392 — and the PAGE, in rows, the same meaning the plans door's offset has: both
+            // directions of this door are windows, and both can now be paged. A negative offset is
+            // clamped to the first window rather than refused.
+            @RequestParam(name = "offset", required = false) Integer offset) {
         int asked = limit == null ? SubscriptionService.DEFAULT_SUBSCRIPTION_LIMIT : limit;
+        int from = offset == null ? 0 : Math.max(offset, 0);
         if (creatorAccountId != null && !creatorAccountId.isBlank()) {
-            List<SubscriptionEntry> received = service.subscriptionsReceived(creatorAccountId, asked);
+            List<SubscriptionEntry> received = service.subscriptionsReceived(creatorAccountId, asked, from);
             // v375 — the plans' CURRENT terms, so a creator can see that a plan has been repriced since
             // the promise was made. One query for the whole window.
             java.util.Map<String, PlanEntry> current = service.currentPlansOf(
@@ -126,14 +140,15 @@ public class SubscriptionController {
                     // to anything a reader can act on.
                     service.totalsReceived(creatorAccountId),
                     service.countReceived(creatorAccountId),
-                    asked));
+                    asked,
+                    from));
         }
         if (subscriberAccountId == null || subscriberAccountId.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "invalid-subscription",
                     "message", "the subscriber parameter is missing (or the creator parameter, for the other direction)"));
         }
-        List<SubscriptionEntry> rows = service.subscriptionsOf(subscriberAccountId, asked);
+        List<SubscriptionEntry> rows = service.subscriptionsOf(subscriberAccountId, asked, from);
         // v375 — the plans' CURRENT terms, so a supporter can see that a plan has been repriced since
         // they agreed to it. One query for the whole window.
         java.util.Map<String, PlanEntry> current = service.currentPlansOf(
@@ -151,7 +166,8 @@ public class SubscriptionController {
                 // v368 — the totals, per period, for the same reason.
                 service.totalsHeld(subscriberAccountId),
                 service.countHeld(subscriberAccountId),
-                asked));
+                asked,
+                from));
     }
 
     /**

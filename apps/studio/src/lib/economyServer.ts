@@ -112,6 +112,16 @@ export interface SubscriptionsAnswer {
   /** v368 — the totals, PER PERIOD. */
   totalsByPeriod?: PeriodTotal[];
   count: number;
+  /** The cap the service applied. */
+  limit: number;
+  /**
+   * v392 — the ROW this window starts at, echoed from the ask.
+   *
+   * <p>The answer carries the window it is FOR rather than leaving the panel to remember which ask it
+   * belongs to: three reads go out together here, and they answer in whatever order the network
+   * chooses — an answer that names its own window cannot be mistaken for another one's (v382's rule).
+   */
+  offset: number;
   reason?: string;
 }
 
@@ -127,6 +137,10 @@ export interface PlansAnswer {
    * to be on the screen, which is a fact about the read and not about the creator.
    */
   count: number | null;
+  /** The cap the service applied. */
+  limit: number;
+  /** v392 — the ROW this window starts at, echoed from the ask (v382's rule). */
+  offset: number;
   reason?: string;
 }
 
@@ -144,12 +158,14 @@ export type FetchLike = (
 export async function readSubscriptions(
   subscriberAccountId: string,
   limit: number,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch as FetchLike,
 ): Promise<SubscriptionsAnswer> {
   const apiBase = nexusApiBase();
+  const from = Math.max(offset, 0);
   try {
     const res = await fetchImpl(
-      `${apiBase}/subscriptions?subscriber=${encodeURIComponent(subscriberAccountId)}&limit=${encodeURIComponent(String(limit))}`,
+      `${apiBase}/subscriptions?subscriber=${encodeURIComponent(subscriberAccountId)}&limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(from))}`,
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
@@ -159,19 +175,23 @@ export async function readSubscriptions(
         subscriptions: [],
         totalsByPeriod: [],
         count: 0,
+        limit,
+        offset: from,
         reason: `the service's subscriptions door answered HTTP ${res.status} with something that is not JSON`,
       };
     }
-    const body = parsed as { subscriptions?: unknown; totalsByPeriod?: unknown; count?: unknown; message?: unknown };
+    const body = parsed as { subscriptions?: unknown; totalsByPeriod?: unknown; count?: unknown; limit?: unknown; message?: unknown };
     if (!Array.isArray(body.subscriptions)) {
       const why = typeof body.message === 'string' ? body.message : `the service's subscriptions door answered HTTP ${res.status}`;
-      return { ok: false, subscriptions: [], totalsByPeriod: [], count: 0, reason: why };
+      return { ok: false, subscriptions: [], totalsByPeriod: [], count: 0, limit, offset: from, reason: why };
     }
     return {
       ok: true,
       subscriptions: body.subscriptions as SubscriptionEntry[],
       totalsByPeriod: toPeriodTotals(body.totalsByPeriod),
       count: typeof body.count === 'number' ? body.count : body.subscriptions.length,
+      limit: typeof body.limit === 'number' && Number.isFinite(body.limit) ? body.limit : limit,
+      offset: from,
     };
   } catch (error) {
     return {
@@ -179,6 +199,8 @@ export async function readSubscriptions(
       subscriptions: [],
       totalsByPeriod: [],
       count: 0,
+      limit,
+      offset: from,
       reason: serviceUnreachableReason(apiBase, error),
     };
   }
@@ -193,12 +215,14 @@ export async function readSubscriptions(
 export async function readReceivedSubscriptions(
   creatorAccountId: string,
   limit: number,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch as FetchLike,
 ): Promise<SubscriptionsAnswer> {
   const apiBase = nexusApiBase();
+  const from = Math.max(offset, 0);
   try {
     const res = await fetchImpl(
-      `${apiBase}/subscriptions?creator=${encodeURIComponent(creatorAccountId)}&limit=${encodeURIComponent(String(limit))}`,
+      `${apiBase}/subscriptions?creator=${encodeURIComponent(creatorAccountId)}&limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(from))}`,
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
@@ -208,19 +232,23 @@ export async function readReceivedSubscriptions(
         subscriptions: [],
         totalsByPeriod: [],
         count: 0,
+        limit,
+        offset: from,
         reason: `the service's subscriptions door answered HTTP ${res.status} with something that is not JSON`,
       };
     }
-    const body = parsed as { subscriptions?: unknown; totalsByPeriod?: unknown; count?: unknown; message?: unknown };
+    const body = parsed as { subscriptions?: unknown; totalsByPeriod?: unknown; count?: unknown; limit?: unknown; message?: unknown };
     if (!Array.isArray(body.subscriptions)) {
       const why = typeof body.message === 'string' ? body.message : `the service's subscriptions door answered HTTP ${res.status}`;
-      return { ok: false, subscriptions: [], totalsByPeriod: [], count: 0, reason: why };
+      return { ok: false, subscriptions: [], totalsByPeriod: [], count: 0, limit, offset: from, reason: why };
     }
     return {
       ok: true,
       subscriptions: body.subscriptions as SubscriptionEntry[],
       totalsByPeriod: toPeriodTotals(body.totalsByPeriod),
       count: typeof body.count === 'number' ? body.count : body.subscriptions.length,
+      limit: typeof body.limit === 'number' && Number.isFinite(body.limit) ? body.limit : limit,
+      offset: from,
     };
   } catch (error) {
     return {
@@ -228,6 +256,8 @@ export async function readReceivedSubscriptions(
       subscriptions: [],
       totalsByPeriod: [],
       count: 0,
+      limit,
+      offset: from,
       reason: serviceUnreachableReason(apiBase, error),
     };
   }
@@ -237,12 +267,14 @@ export async function readReceivedSubscriptions(
 export async function readPlans(
   creatorAccountId: string,
   limit: number,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch as FetchLike,
 ): Promise<PlansAnswer> {
   const apiBase = nexusApiBase();
+  const from = Math.max(offset, 0);
   try {
     const res = await fetchImpl(
-      `${apiBase}/plans?creator=${encodeURIComponent(creatorAccountId)}&limit=${encodeURIComponent(String(limit))}`,
+      `${apiBase}/plans?creator=${encodeURIComponent(creatorAccountId)}&limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(from))}`,
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
@@ -251,13 +283,15 @@ export async function readPlans(
         ok: false,
         plans: [],
         count: null,
+        limit,
+        offset: from,
         reason: `the service's plans door answered HTTP ${res.status} with something that is not JSON`,
       };
     }
-    const body = parsed as { plans?: unknown; count?: unknown; message?: unknown };
+    const body = parsed as { plans?: unknown; count?: unknown; limit?: unknown; message?: unknown };
     if (!Array.isArray(body.plans)) {
       const why = typeof body.message === 'string' ? body.message : `the service's plans door answered HTTP ${res.status}`;
-      return { ok: false, plans: [], count: null, reason: why };
+      return { ok: false, plans: [], count: null, limit, offset: from, reason: why };
     }
     return {
       ok: true,
@@ -265,12 +299,16 @@ export async function readPlans(
       // v373 — a wire with NO count says the count is UNKNOWN: falling back to the window's length would
       // be counting what happened to be on the screen and calling it the creator's whole catalogue.
       count: typeof body.count === 'number' ? body.count : null,
+      limit: typeof body.limit === 'number' && Number.isFinite(body.limit) ? body.limit : limit,
+      offset: from,
     };
   } catch (error) {
     return {
       ok: false,
       plans: [],
       count: null,
+      limit,
+      offset: from,
       reason: serviceUnreachableReason(apiBase, error),
     };
   }

@@ -255,10 +255,14 @@ export interface PlanRow {
  *
  * <p>An empty list says nothing: there is no window to speak of.
  */
-export function subscriptionsWindowText(count: number | undefined, shown: number): string {
+export function subscriptionsWindowText(count: number | undefined, shown: number, offset: number = 0): string {
   if (typeof count !== 'number' || !Number.isFinite(count)) return '';
   if (shown <= 0 || count <= shown) return '';
-  return `showing the ${shown} newest of ${count}`;
+  // v392 — past the first window the line says WHICH rows, the same correction the filed list's
+  // window line got in v386: "the 20 newest" is a true thing about the first window and a false
+  // thing about the third.
+  if (offset <= 0) return `showing the ${shown} newest of ${count}`;
+  return `showing ${offset + 1}–${offset + shown} of ${count}`;
 }
 
 /**
@@ -270,10 +274,16 @@ export function subscriptionsWindowText(count: number | undefined, shown: number
  * <p>An unknown count says NOTHING — a count of zero would say the creator offers nothing, which is a
  * different fact from "the count could not be read".
  */
-export function planCountText(count: number | null | undefined, shown: number): string {
+export function planCountText(count: number | null | undefined, shown: number, offset: number = 0): string {
   if (typeof count !== 'number' || !Number.isFinite(count)) return '';
   const label = count === 1 ? '1 plan' : `${count} plans`;
-  const more = shown > 0 && count > shown ? ` · showing the ${shown} newest of ${count}` : '';
+  const more = shown > 0 && count > shown
+    ? offset <= 0
+      // v392 — and past the first window, which rows (v386's correction, the same one the
+      // subscriptions' line just got).
+      ? ` · showing the ${shown} newest of ${count}`
+      : ` · showing ${offset + 1}–${offset + shown} of ${count}`
+    : '';
   return `${label}${more}`;
 }
 

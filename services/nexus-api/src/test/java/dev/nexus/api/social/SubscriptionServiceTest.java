@@ -369,7 +369,7 @@ class SubscriptionServiceTest {
         when(plans.findByCreatorAccountIdOrderByCreatedAtDesc(eq("acct-ada"), any(Pageable.class)))
                 .thenReturn(List.of(plan("pro", "acct-ada", 1500, "month")));
 
-        assertThat(service.plansOf("acct-ada", 20)).hasSize(1);
+        assertThat(service.plansOf("acct-ada", 20, 0)).hasSize(1);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(plans).findByCreatorAccountIdOrderByCreatedAtDesc(eq("acct-ada"), window.capture());
@@ -382,7 +382,84 @@ class SubscriptionServiceTest {
                 .thenReturn(List.of(new SubscriptionEntry(
                         "s-1", "acct-ada", "acct-bob", "pro", 1500, "CNY", "month", AT, null, true)));
 
-        assertThat(service.subscriptionsOf("acct-ada", 20)).hasSize(1);
+        assertThat(service.subscriptionsOf("acct-ada", 20, 0)).hasSize(1);
+    }
+
+    // ── v392: the economy panel's three windows can be PAGED, in rows ───────────────────────
+
+    @Test
+    void theSubscriptionsAnAccountHoldsCanBePagedInRows() {
+        // v392 — the subscriptions a device holds are a WINDOW, and a window nobody can page is the
+        // whole list to a supporter with more subscriptions than the cap. The offset is ROWS: asking for
+        // the rows from 20 on is page 1 of a 20-row window, which is what the captor below pins.
+        when(subscriptions.findBySubscriberAccountIdOrderBySubscribedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.subscriptionsOf("acct-ada", 20, 20);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(subscriptions).findBySubscriberAccountIdOrderBySubscribedAtDesc(eq("acct-ada"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void theSubscriptionsOffsetIsROWSNotAPageIndex() {
+        // v387's lesson, applied from the start: the offset means ROWS, and Spring Data's PageRequest
+        // speaks PAGES. Asking for the rows from 40 on must be answered with page 2 (rows 40–59) —
+        // not page 40 (rows 800–819), which is what handing the raw number to PageRequest.of answers.
+        when(subscriptions.findBySubscriberAccountIdOrderBySubscribedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.subscriptionsOf("acct-ada", 20, 40);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(subscriptions).findBySubscriberAccountIdOrderBySubscribedAtDesc(eq("acct-ada"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void theSubscriptionsReceivedCanBePagedInRowsToo() {
+        // The creator's other side gets the same translation: "who backs me" is a different question,
+        // paged the same way — a creator with more subscribers than the cap can read the older ones.
+        when(subscriptions.findByCreatorAccountIdOrderBySubscribedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.subscriptionsReceived("acct-ada", 20, 20);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(subscriptions).findByCreatorAccountIdOrderBySubscribedAtDesc(eq("acct-ada"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void thePlansWindowCanBePagedInRowsToo() {
+        // And the plans a creator offers: the same window, the same translation, the same rows — a
+        // creator with a longer catalogue than the cap can reach the plans past the first window.
+        when(plans.findByCreatorAccountIdOrderByCreatedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.plansOf("acct-ada", 20, 20);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(plans).findByCreatorAccountIdOrderByCreatedAtDesc(eq("acct-ada"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void aNegativeSubscriptionsOffsetIsTheFirstWindow() {
+        // A page before the first does not exist; the newest rows are the honest answer, not a refusal.
+        when(subscriptions.findBySubscriberAccountIdOrderBySubscribedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.subscriptionsOf("acct-ada", 20, -5);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(subscriptions).findBySubscriberAccountIdOrderBySubscribedAtDesc(eq("acct-ada"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(0);
     }
 
     // ── v330: the plan's creator's NAME is copied on, like the price ───────

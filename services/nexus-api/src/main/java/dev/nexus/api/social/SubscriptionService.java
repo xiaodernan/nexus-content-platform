@@ -311,10 +311,16 @@ public class SubscriptionService {
 
     /** The plans one creator offers. */
     @Transactional(readOnly = true)
-    public List<PlanEntry> plansOf(String creatorAccountId, int limit) {
+    public List<PlanEntry> plansOf(String creatorAccountId, int limit, int offset) {
         String creator = requireAccount(creatorAccountId, "a plan needs an account to offer it");
         int asked = limit <= 0 ? DEFAULT_PLAN_LIMIT : Math.min(limit, MAX_PLAN_LIMIT);
-        return plans.findByCreatorAccountIdOrderByCreatedAtDesc(creator, PageRequest.of(0, asked));
+        // v392 — the offset is ROWS, and Spring Data's PageRequest speaks PAGES (v387's lesson, applied
+        // from the start rather than discovered by the first pager): a caller that asked for the rows from
+        // 40 on must be answered with page 2 (rows 40–59), not page 40 (rows 800–819). A negative
+        // offset is the first window, not a refusal — the newest rows are the honest answer to a
+        // question about a page before the first.
+        int from = Math.max(offset, 0);
+        return plans.findByCreatorAccountIdOrderByCreatedAtDesc(creator, PageRequest.of(from / asked, asked));
     }
 
     /**
@@ -363,10 +369,12 @@ public class SubscriptionService {
 
     /** The subscriptions one account holds. */
     @Transactional(readOnly = true)
-    public List<SubscriptionEntry> subscriptionsOf(String subscriberAccountId, int limit) {
+    public List<SubscriptionEntry> subscriptionsOf(String subscriberAccountId, int limit, int offset) {
         String subscriber = requireAccount(subscriberAccountId, "a subscription needs an account to hold it");
         int asked = limit <= 0 ? DEFAULT_SUBSCRIPTION_LIMIT : Math.min(limit, MAX_SUBSCRIPTION_LIMIT);
-        return subscriptions.findBySubscriberAccountIdOrderBySubscribedAtDesc(subscriber, PageRequest.of(0, asked));
+        // v392 — the same rows-into-pages translation the plans read gets: the offset means ROWS.
+        int from = Math.max(offset, 0);
+        return subscriptions.findBySubscriberAccountIdOrderBySubscribedAtDesc(subscriber, PageRequest.of(from / asked, asked));
     }
 
     /**
@@ -464,10 +472,12 @@ public class SubscriptionService {
 
     /** The subscriptions one creator received, and how many are standing. */
     @Transactional(readOnly = true)
-    public List<SubscriptionEntry> subscriptionsReceived(String creatorAccountId, int limit) {
+    public List<SubscriptionEntry> subscriptionsReceived(String creatorAccountId, int limit, int offset) {
         String creator = requireAccount(creatorAccountId, "a plan needs an account to offer it");
         int asked = limit <= 0 ? DEFAULT_SUBSCRIPTION_LIMIT : Math.min(limit, MAX_SUBSCRIPTION_LIMIT);
-        return subscriptions.findByCreatorAccountIdOrderBySubscribedAtDesc(creator, PageRequest.of(0, asked));
+        // v392 — the creator's other side gets the same translation: the offset means ROWS.
+        int from = Math.max(offset, 0);
+        return subscriptions.findByCreatorAccountIdOrderBySubscribedAtDesc(creator, PageRequest.of(from / asked, asked));
     }
 
     private static String requirePlanId(String planId) {

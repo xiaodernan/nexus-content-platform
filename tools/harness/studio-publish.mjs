@@ -4617,6 +4617,153 @@ try {
     await tipPagerPage.close();
   }
 
+  // ── §79 v392: the economy panel's three lists get their PAGERS ─────────────────────────────
+  // The subscriptions held, the subscriptions received and the plans offered are WINDOWS with a
+  // whole-table count on the wire (v359/v372), so a supporter with more subscriptions than the cap could
+  // be told the whole number and shown only the head. All three page in rows now, the same shape the
+  // filed list (v386), the trail (v388), the desk (v389), the following list (v390) and the tips lists
+  // (v391) got: "Newer" is disabled on the first window (there is no page before it), and "Older" is
+  // disabled exactly when the window already holds every row the service counted.
+  {
+    const econPagerPage = await session.newPage('about:blank');
+    await econPagerPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(econPagerPage, 'the economy pager page to hydrate');
+
+    // The HELD side — signed in as the subscriber.
+    await signInAs(econPagerPage, 'bob', 'the subscriber');
+    await econPagerPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const heldRows = await until(
+      async () => (await econPagerPage.evaluate("!!document.querySelector('[data-economy-subscription]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the held subscriptions to show' },
+    );
+    check('the subscriber’s subscriptions are on screen', heldRows !== null, 'the rows are there');
+
+    // The SERVICE counts the WHOLE table even when it carries one row — the difference the pager is
+    // for, and the reason a window’s length could never be told as a total (v359).
+    const heldRaw = await econPagerPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const heldId = JSON.parse(String(heldRaw)).id;
+    const oneHeld = await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(heldId)}&limit=1`);
+    const oneHeldBody = await oneHeld.json();
+    check(
+      'the SERVICE counts the WHOLE table even when it carries one row',
+      oneHeld.status === 200 && (oneHeldBody.subscriptions ?? []).length === 1 && (oneHeldBody.count ?? 0) >= 2,
+      `the service answered: ${JSON.stringify(oneHeldBody)}`,
+    );
+
+    const heldPager = await econPagerPage.evaluate(`(() => {
+      const newer = document.querySelector('[data-economy-subs-page="newer"]');
+      const older = document.querySelector('[data-economy-subs-page="older"]');
+      return { there: !!newer && !!older, newerDisabled: newer ? newer.disabled : null, olderDisabled: older ? older.disabled : null };
+    })()`);
+    check('the held list offers a pager', heldPager.there === true, JSON.stringify(heldPager));
+    check(
+      'and on the first window "Newer" is disabled — there is no page before the first',
+      heldPager.newerDisabled === true,
+      `newer disabled: ${heldPager.newerDisabled}`,
+    );
+    check(
+      'and "Older" is disabled when the window already holds every subscription the service counted',
+      heldPager.olderDisabled === true,
+      `older disabled: ${heldPager.olderDisabled}`,
+    );
+
+    // And the door PAGES: a window past the end is the service’s honest EMPTY answer, not an error.
+    const heldOffsetRead = await fetch(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(heldId)}&offset=20`);
+    const heldOffsetBody = await heldOffsetRead.json();
+    check(
+      'and the subscriptions door PAGES: a window past the end is an empty answer, not an error',
+      heldOffsetRead.status === 200 && Array.isArray(heldOffsetBody.subscriptions) && heldOffsetBody.subscriptions.length === 0,
+      `subscriptions: ${JSON.stringify(heldOffsetBody.subscriptions)}`,
+    );
+
+    // The RECEIVED side and the PLANS — the creator’s two lists, on the same panel.
+    await signInAs(econPagerPage, 'ada', 'the creator');
+    await econPagerPage.evaluate(`(() => {
+      if (!document.querySelector('[data-toolbar-economy]')) document.querySelector('[data-toolbar-economy-toggle]').click();
+    })()`);
+    const receivedRows = await until(
+      async () => (await econPagerPage.evaluate("!!document.querySelector('[data-economy-received]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the received subscriptions to show' },
+    );
+    check('the creator’s received subscriptions are on screen', receivedRows !== null, 'the rows are there');
+
+    const creatorRaw = await econPagerPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const creatorId = JSON.parse(String(creatorRaw)).id;
+    const oneReceived = await fetch(`${apiBase}/subscriptions?creator=${encodeURIComponent(creatorId)}&limit=1`);
+    const oneReceivedBody = await oneReceived.json();
+    check(
+      'the SERVICE agrees — the creator’s door counts the whole table even when it carries one row',
+      oneReceived.status === 200 && (oneReceivedBody.subscriptions ?? []).length === 1 && (oneReceivedBody.count ?? 0) >= 2,
+      `the service answered: ${JSON.stringify(oneReceivedBody)}`,
+    );
+
+    const receivedPager = await econPagerPage.evaluate(`(() => {
+      const newer = document.querySelector('[data-economy-received-page="newer"]');
+      const older = document.querySelector('[data-economy-received-page="older"]');
+      return { there: !!newer && !!older, newerDisabled: newer ? newer.disabled : null, olderDisabled: older ? older.disabled : null };
+    })()`);
+    check('the received list offers a pager', receivedPager.there === true, JSON.stringify(receivedPager));
+    check(
+      'and on the first window "Newer" is disabled — there is no page before the first',
+      receivedPager.newerDisabled === true,
+      `newer disabled: ${receivedPager.newerDisabled}`,
+    );
+    check(
+      'and "Older" is disabled when the window already holds every subscription the service counted',
+      receivedPager.olderDisabled === true,
+      `older disabled: ${receivedPager.olderDisabled}`,
+    );
+
+    const receivedOffsetRead = await fetch(`${apiBase}/subscriptions?creator=${encodeURIComponent(creatorId)}&offset=20`);
+    const receivedOffsetBody = await receivedOffsetRead.json();
+    check(
+      'and the received door PAGES: a window past the end is an empty answer, not an error',
+      receivedOffsetRead.status === 200 && Array.isArray(receivedOffsetBody.subscriptions) && receivedOffsetBody.subscriptions.length === 0,
+      `subscriptions: ${JSON.stringify(receivedOffsetBody.subscriptions)}`,
+    );
+
+    // And the PLANS — the creator’s own catalogue, paged the same way.
+    const planRows = await until(
+      async () => (await econPagerPage.evaluate("!!document.querySelector('[data-economy-plan]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the plans to show' },
+    );
+    check('the creator’s plans are on screen', planRows !== null, 'the rows are there');
+
+    const onePlan = await fetch(`${apiBase}/plans?creator=${encodeURIComponent(creatorId)}&limit=1`);
+    const onePlanBody = await onePlan.json();
+    check(
+      'the SERVICE agrees — the plans door counts the whole catalogue even when it carries one row',
+      onePlan.status === 200 && (onePlanBody.plans ?? []).length === 1 && (onePlanBody.count ?? 0) >= 2,
+      `the service answered: ${JSON.stringify(onePlanBody)}`,
+    );
+
+    const plansPager = await econPagerPage.evaluate(`(() => {
+      const newer = document.querySelector('[data-economy-plans-page="newer"]');
+      const older = document.querySelector('[data-economy-plans-page="older"]');
+      return { there: !!newer && !!older, newerDisabled: newer ? newer.disabled : null, olderDisabled: older ? older.disabled : null };
+    })()`);
+    check('the plans list offers a pager', plansPager.there === true, JSON.stringify(plansPager));
+    check(
+      'and on the first window "Newer" is disabled — there is no page before the first',
+      plansPager.newerDisabled === true,
+      `newer disabled: ${plansPager.newerDisabled}`,
+    );
+    check(
+      'and "Older" is disabled when the window already holds every plan the service counted',
+      plansPager.olderDisabled === true,
+      `older disabled: ${plansPager.olderDisabled}`,
+    );
+
+    const plansOffsetRead = await fetch(`${apiBase}/plans?creator=${encodeURIComponent(creatorId)}&offset=20`);
+    const plansOffsetBody = await plansOffsetRead.json();
+    check(
+      'and the plans door PAGES: a window past the end is an empty answer, not an error',
+      plansOffsetRead.status === 200 && Array.isArray(plansOffsetBody.plans) && plansOffsetBody.plans.length === 0,
+      `plans: ${JSON.stringify(plansOffsetBody.plans)}`,
+    );
+    await econPagerPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

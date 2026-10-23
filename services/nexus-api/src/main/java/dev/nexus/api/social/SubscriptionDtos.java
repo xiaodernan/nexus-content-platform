@@ -132,8 +132,13 @@ public final class SubscriptionDtos {
     public record PeriodTotal(String period, String currency, long totalCents) {
     }
 
-    /** The answer to a plan question. */
-    public record PlanAnswer(String creatorId, List<Plan> plans, int count, int limit) {
+    /**
+     * The answer to a plan question.
+     *
+     * <p>v392 — and the ROW this window starts at, echoed from the ask: an answer that names its own
+     * window cannot be mistaken for another one's when two reads are in flight (v382's rule).
+     */
+    public record PlanAnswer(String creatorId, List<Plan> plans, int count, int limit, int offset) {
     }
 
     /**
@@ -156,7 +161,8 @@ public final class SubscriptionDtos {
              */
             java.util.List<PeriodTotal> totalsByPeriod,
             long count,
-            int limit) {
+            int limit,
+            int offset) {
     }
 
     /**
@@ -181,7 +187,8 @@ public final class SubscriptionDtos {
             /** v368 — and the same: the totals, per period. */
             java.util.List<PeriodTotal> totalsByPeriod,
             long count,
-            int limit) {
+            int limit,
+            int offset) {
     }
 
     /** When a period ends, given the instant it started. The service computes it ONCE; nothing renews it. */

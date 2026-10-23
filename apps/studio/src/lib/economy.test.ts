@@ -260,6 +260,13 @@ describe('economy — subscription rows (M8 v274)', () => {
     expect(subscriptionsWindowText(3, 2)).toBe('showing the 2 newest of 3');
   });
 
+  it('v392 — and past the first window the line says WHICH rows, not "the newest"', () => {
+    // v386's correction, applied to the subscriptions' line: "the 20 newest" is a true thing about
+    // the first window and a false thing about the third, and a reader on the third window is
+    // reading neither the newest nor all of them.
+    expect(subscriptionsWindowText(37, 17, 20)).toBe('showing 21–37 of 37');
+  });
+
   it('v371 — a subscription says its terms are the ones that were AGREED', () => {
     // The subscription is a snapshot of the plan (v300): a creator may since have repriced the plan
     // (v317), so the row has to say which terms it is showing.
@@ -287,6 +294,12 @@ describe('economy — subscription rows (M8 v274)', () => {
 
   it('v373 — and a list that shows EVERYONE says no such thing', () => {
     expect(planCountText(3, 3)).toBe('3 plans');
+  });
+
+  it('v392 — and past the first window the plan count says WHICH rows', () => {
+    // The same correction the subscriptions' line got (v386): the count is the whole table's and
+    // the rows are a window, so the window says where it sits.
+    expect(planCountText(37, 17, 20)).toBe('37 plans · showing 21–37 of 37');
   });
 
   it('v375 — says that the plan’s terms have MOVED since the promise was made', () => {

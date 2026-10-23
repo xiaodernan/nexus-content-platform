@@ -54,6 +54,20 @@ export interface EconomyAnswer {
   receivedCount?: number;
   /** v368 — and its totals, per period. */
   receivedTotalsByPeriod?: { period: string; currency: string; totalCents: number }[];
+  /**
+   * v392 — the cap the service applied, echoed from the ask: a panel that pages needs to know the
+   * window's size to say which rows it is showing (the same field the tips read's answer carries, v391).
+   */
+  limit?: number;
+  /**
+   * v392 — the ROW each window starts at, echoed from the ask, one per list.
+   *
+   * <p>Three reads go out together here and answer in whatever order the network chooses; an answer
+   * that names its own window cannot be mistaken for another one's (v382's rule).
+   */
+  subscriptionOffset?: number;
+  receivedOffset?: number;
+  planOffset?: number;
   reason?: string;
 }
 
@@ -86,12 +100,28 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
  * device holds is the claim the service compares. A device with no account has no economy, and the panel
  * says so rather than reading somebody else's.
  */
-export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetch): Promise<EconomyAnswer> {
+export async function readEconomy(
+  accountId: string,
+  subsOffset: number = 0,
+  receivedOffset: number = 0,
+  plansOffset: number = 0,
+  fetchImpl: FetchLike = fetch,
+): Promise<EconomyAnswer> {
+  // v392 — the three lists page INDEPENDENTLY: the subscriptions held, the subscriptions received and
+  // the plans offered are three different questions about three different sets, and one page for all
+  // three would answer none of them. A negative offset is the first window, not a question about a
+  // page before the first.
+  const subsFrom = Math.max(subsOffset, 0);
+  const receivedFrom = Math.max(receivedOffset, 0);
+  const plansFrom = Math.max(plansOffset, 0);
   try {
-    const res = await fetchImpl(`/api/economy?account=${encodeURIComponent(accountId)}`, {
-      headers: { accept: 'application/json' },
-      signal: callSignal(),
-    });
+    const res = await fetchImpl(
+      `/api/economy?account=${encodeURIComponent(accountId)}&offset=${subsFrom}&receivedOffset=${receivedFrom}&plansOffset=${plansFrom}`,
+      {
+        headers: { accept: 'application/json' },
+        signal: callSignal(),
+      },
+    );
     if (!res.ok) {
       let why = `the economy answered HTTP ${res.status}`;
       try {
@@ -113,7 +143,7 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
     if (typeof body !== 'object' || body === null) {
       return { ok: false, reason: 'the economy answered with neither an object nor a reason' };
     }
-    const { subscriptions, received, plans, tips, subscriptionCount, subscriptionTotalsByPeriod, receivedCount, receivedTotalsByPeriod, planCount } = body as {
+    const { subscriptions, received, plans, tips, subscriptionCount, subscriptionTotalsByPeriod, receivedCount, receivedTotalsByPeriod, planCount, limit, subscriptionOffset, receivedOffset: receivedOffsetEcho, planOffset } = body as {
       subscriptions?: readonly unknown[];
       received?: readonly unknown[];
       plans?: readonly unknown[];
@@ -123,6 +153,10 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
       receivedCount?: unknown;
       receivedTotalsByPeriod?: unknown;
       planCount?: unknown;
+      limit?: unknown;
+      subscriptionOffset?: unknown;
+      receivedOffset?: unknown;
+      planOffset?: unknown;
     };
     if (!Array.isArray(subscriptions) && !Array.isArray(plans)) {
       return { ok: false, reason: 'the economy answered with no subscriptions or plans' };
@@ -143,6 +177,12 @@ export async function readEconomy(accountId: string, fetchImpl: FetchLike = fetc
       receivedCount: typeof receivedCount === 'number' ? receivedCount : undefined,
       receivedTotalsByPeriod: toPeriodTotals(receivedTotalsByPeriod),
       tips: toTipRows(tips ?? [], (text) => text.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>') ),
+      // v392 — and the windows these rows are FOR, echoed from the ask: three reads in flight cannot
+      // be mistaken for each other's answers (v382's rule).
+      limit: typeof limit === 'number' && Number.isFinite(limit) ? limit : undefined,
+      subscriptionOffset: typeof subscriptionOffset === 'number' ? subscriptionOffset : subsFrom,
+      receivedOffset: typeof receivedOffsetEcho === 'number' ? receivedOffsetEcho : receivedFrom,
+      planOffset: typeof planOffset === 'number' ? planOffset : plansFrom,
     };
   } catch (error) {
     return { ok: false, reason: error instanceof Error ? error.message : String(error) };
