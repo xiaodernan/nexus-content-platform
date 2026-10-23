@@ -231,11 +231,16 @@ export function inspectPackage(zipBytes: Uint8Array): PackagePlan | ImportRefusa
     return refuse('清单里的项目类型这个实例不认识', [`读到 ${JSON.stringify(kind)}，认的是 ${PROJECT_KINDS.join(' / ')}`]);
   }
 
+  // 清单里的 name 是**装饰性**字段（只是项目名）。形状畸形时（数字 / 对象 / 布尔）退回文档名——
+  // `name?.trim()` 里的 `?.` 只挡 null/undefined，挡不住"有值但不是字符串"，那会抛 TypeError
+  // 把一次导入变成 500。装饰性字段不该让整包崩（§159：如实边界，不是崩）。
+  const rawName = manifest.project?.name;
+  const preferred = typeof rawName === 'string' ? rawName.trim() : '';
   return {
     ok: true,
     manifest,
     document: source,
-    name: (manifest.project?.name?.trim() || source.name).slice(0, 120) || '导入的项目',
+    name: (preferred || source.name).slice(0, 120) || '导入的项目',
     kind: kind as ProjectType,
     files,
     extracted,
@@ -268,7 +273,10 @@ export async function importProjectZip(actorId: string, zipBytes: Uint8Array): P
     if (!file) continue; // crossCheckManifest 已经保证这一行不会发生；留着是为了不在这条路上写 undefined
     const result = await uploadImageAsset(created.id, {
       data: file.contents,
-      filename: item.name || item.path.slice(ASSETS_DIR.length),
+      // 同一个道理：`assetRefs[].name` 也是装饰性字段，数字/对象时退回路径派生名，
+      // 别把非字符串当文件名递给 uploadImageAsset（那会在下游某次字符串操作上炸）
+      filename:
+        typeof item.name === 'string' && item.name.trim() ? item.name : item.path.slice(ASSETS_DIR.length),
       createdById: actorId,
       source: 'upload',
     });

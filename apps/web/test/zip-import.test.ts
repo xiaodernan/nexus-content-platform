@@ -177,6 +177,21 @@ describe('§105/§144 ZIP 导入：先挡再写库', () => {
     for (const want of issues ?? []) expect(outcome.issues.join('\n')).toContain(want);
   });
 
+  it('清单里的 project.name 不是字符串 → 不能崩，退回文档名（§159：如实边界，不是 500）', () => {
+    // 形状畸形的清单（手改 / 别的工具重打包）：project.name 是数字时，
+    // `name?.trim()` 里 `?.` 只挡 null/undefined，挡不住"有值但不是字符串"→ 直接 TypeError。
+    // 这个字段是**装饰性**的（名字），不该让整包导入崩掉。
+    const files = [README, goodDocument()];
+    const manifest = manifestOf(files);
+    const bytes = pack(files, { ...manifest, project: { name: 123 as never, kind: 'website' } });
+    let plan: ReturnType<typeof inspectPackage> | undefined;
+    expect(() => {
+      plan = inspectPackage(bytes);
+    }).not.toThrow();
+    expect(plan!.ok).toBe(true);
+    if (plan!.ok) expect(plan!.name).toBe('导入用例'); // 文档自己的名字兜底
+  });
+
   it('整包体积超过上限 → 还没碰 ZIP 解析就拒', async () => {
     // 只造长度，不填内容：这一格判的是 `zipBytes.length`，早于 readZip
     const huge = new Uint8Array(IMPORT_MAX_ZIP_BYTES + 1);

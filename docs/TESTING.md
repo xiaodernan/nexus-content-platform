@@ -1896,3 +1896,12 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   **变异探针**：摘掉 `canReuse` 里的结构比对 → 删除与换序两条精确红；**插入那条仍绿**——新节点没有 prev entry，
   `subtreeHasChanged` 的 `!entry → true` 已经挡住了它。这是一条**不同的**有效守卫（不是结构判据），
   写在这里免得下次把「插入也靠结构判据」当事实。`layout-incremental` 7 条全绿。
+
+- **2026-10-23：`inspectPackage` 在畸形清单上崩 500（真 bug，红→绿）**——
+  `(manifest.project?.name?.trim() || source.name)` 里的 `?.` 只挡 `null`/`undefined`，**挡不住"有值但不是字符串"**：
+  清单里 `project.name: 123` 直接抛 `TypeError: name.trim is not a function`。
+  `readManifest` 只校验 `format` / `formatVersion` / `entries` / `assetRefs` / `parts`，**没校验 `project` 的形状**。
+  一个装饰性字段（项目名）不该让整包导入从"如实拒收"变成 500（§159）。
+  修法：`typeof rawName === 'string' ? rawName.trim() : ''`，非字符串退回**文档自己的名字**；
+  `assetRefs[].name` 同款（非字符串退回路径派生名，别把数字当 `filename` 递给 `uploadImageAsset`）。
+  **红证**：新用例先复现 `TypeError`（`expected [Function] to not throw`），修后 `zip-import` **22/22 绿**；tsc + eslint 0。
