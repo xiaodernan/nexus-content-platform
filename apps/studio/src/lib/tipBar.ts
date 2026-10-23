@@ -113,6 +113,25 @@ export interface TipBarFacts {
   totalCents: number | null;
   /** The tips themselves \u2014 the amounts and the messages, without the payers. */
   tips?: TipRow[];
+  /**
+   * v395 — WHICH window of the tips the bar is showing, in rows from the newest — the same
+   * rows the service pages by (v391). The list was already a WINDOW over the whole table (v350);
+   * a window with no position cannot say which tips it is the window OF.
+   */
+  offset?: number;
+  /**
+   * v395 — the window's SIZE, as the service answered it. A pager that does not know how big a
+   * window is cannot name the page it would offer, so without this there is no pager — only the
+   * count.
+   */
+  limit?: number;
+  /**
+   * v395 — how to build the URL of another window. The profile page is server-rendered and holds
+   * no session (ADR 0018 is why), so its pager is a LINK and not a button: the page that knows the
+   * URL builds it and the bar draws an <a>. A bar given no builder draws no pager at all — a link
+   * it cannot build is a link it does not draw.
+   */
+  pageHref?: (offset: number) => string;
 }
 
 /**
@@ -139,11 +158,56 @@ export function renderTipBar(facts: TipBarFacts): string {
   // v350 — the count is the WHOLE number and the list is a WINDOW, so the bar says how many it is not
   // showing: a reader who sees "12 tips" and five messages would otherwise read the five as all of them.
   const shown = (facts.tips ?? []).length;
-  const more = shown > 0 && count > shown ? ` · showing the ${shown} newest of ${count}` : '';
+  // v395 — the window's POSITION, in rows from the newest (the same rows the service pages by,
+  // v391). v350 said "the N newest"; past the first window that is a true thing about the first
+  // window and a false thing about the third (v386's correction, the same one the filed list and
+  // the economy panel got), so the line says WHICH rows: "showing 101–150 of 150".
+  const offset =
+    typeof facts.offset === 'number' && Number.isFinite(facts.offset) && facts.offset > 0 ? Math.floor(facts.offset) : 0;
+  let more = '';
+  if (count > shown) {
+    if (shown <= 0) {
+      // v395 — an empty window PAST the first page is not an empty tip list: the service counted
+      // the tips and this window holds none of them — a fact about the page, not about the
+      // account. On the first window an empty list is the honest "no tips yet", and says nothing
+      // extra.
+      more = offset > 0 ? ' · this page is past the end — the service answered an empty window' : '';
+    } else if (offset <= 0) {
+      more = ` · showing the ${shown} newest of ${count}`;
+    } else {
+      more = ` · showing ${offset + 1}–${offset + shown} of ${count}`;
+    }
+  }
+  // v395 — the PAGER, and it is made of LINKS: the profile page is server-rendered and cannot act
+  // (it does not know who the device is — ADR 0018 is why there is no session), so the page that
+  // knows the URL builds it and the bar draws an <a>. At a boundary there is no page to offer and
+  // the control is a <span>: a link that went nowhere would be a lie with an href. "Older" is
+  // offered only when the NEXT window would hold something — the whole-table count rides on every
+  // answer (v355), so a page the service has already counted as empty is a page the bar does not
+  // offer.
+  const windowSize =
+    typeof facts.limit === 'number' && Number.isFinite(facts.limit) && facts.limit > 0 ? Math.floor(facts.limit) : null;
+  const hrefFor = typeof facts.pageHref === 'function' ? facts.pageHref : null;
+  const pageControl = (direction: 'newer' | 'older', target: number | null): string => {
+    const text = direction === 'newer' ? '‹ Newer' : 'Older ›';
+    const title = direction === 'newer' ? 'the newer tips' : 'the older tips';
+    if (target === null || hrefFor === null) {
+      return `<span class="nexus-tips-page" data-tips-page="${direction}" title="${title}">${text}</span>`;
+    }
+    return `<a class="nexus-tips-page" data-tips-page="${direction}" href="${escapeHtml(hrefFor(target))}" title="${title}">${text}</a>`;
+  };
+  const pager =
+    windowSize !== null && hrefFor !== null && (offset > 0 || count > shown)
+      ? `<div class="nexus-tips-pager">
+${pageControl('newer', offset > 0 ? Math.max(offset - windowSize, 0) : null)}
+${pageControl('older', offset + windowSize < count ? offset + windowSize : null)}
+</div>`
+      : '';
   return `<div class="nexus-tips" data-tips="${count}" data-tip-total="${facts.totalCents}">
 <span class="nexus-tips-count">${escapeHtml(label)} \u00b7 ${escapeHtml(total)}${more}</span>
 <a class="nexus-tips-action" href="${escapeHtml(href)}" title="give this account a tip from the Studio">Tip</a>
 ${list}
+${pager}
 </div>`;
 }
 
@@ -168,4 +232,8 @@ export const TIP_BAR_STYLES = `<style>
 .nexus-tips-list{list-style:none;margin:0;padding:0;flex-basis:100%;display:flex;flex-direction:column;gap:2px;max-height:110px;overflow:auto}
 .nexus-tip-amount{color:#cfd6e4;font-weight:600}
 .nexus-tip-note{color:#9aa3b2}
+.nexus-tips-pager{flex-basis:100%;display:flex;gap:10px;align-items:center;margin-top:2px}
+.nexus-tips-page{color:#f59e0b;font-weight:600;text-decoration:none}
+.nexus-tips-page:hover{text-decoration:underline}
+.nexus-tips-pager span.nexus-tips-page{color:#5b6472;font-weight:400}
 </style>`;

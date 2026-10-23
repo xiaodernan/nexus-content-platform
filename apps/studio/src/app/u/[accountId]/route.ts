@@ -46,6 +46,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   const url = new URL(request.url);
   const offset = Math.max(0, Number.parseInt(url.searchParams.get('offset') ?? '0', 10));
   const query = url.searchParams.get('q') ?? '';
+  // v395 — the tips window's own page. The gallery pages by `offset` (v270); the tip bar pages by
+  // `tipOffset`, so the two windows move independently — a reader on gallery page 3 who opens tip
+  // page 2 keeps their place in the gallery.
+  const tipOffset = Math.max(0, Number.parseInt(url.searchParams.get('tipOffset') ?? '0', 10));
   
   if (!accountId.trim()) {
     return html(renderProfileHtml(profileFactsOf('', [], 0, PROFILE_LIMIT, offset, query), []), 200);
@@ -78,7 +82,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   // the page wait for their SUM instead of for the slowest of the four.
   const [offered, tips, followers, following] = await Promise.all([
     readPlans(accountId),
-    readTips(accountId, TIP_LIMIT),
+    readTips(accountId, TIP_LIMIT, tipOffset),
     readFollowers(accountId, null),
     readFollowing(accountId),
   ]);
@@ -87,6 +91,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   const planBar = offered.ok
     ? renderPlanBar({ accountId, plans: toPlanRows(offered.plans), count: offered.count }) + PLAN_BAR_STYLES
     : '';
+  // v395 — the tip bar's pager is a LINK, because the profile page is server-rendered and cannot
+  // act: the route is the part of the page that knows the URL, so it builds the other windows' URLs
+  // and keeps the reader's gallery page and query where they were while the tips window moves.
+  const tipPageHref = (nextOffset: number): string => {
+    const params = new URLSearchParams(url.search);
+    if (nextOffset > 0) params.set('tipOffset', String(nextOffset));
+    else params.delete('tipOffset');
+    const search = params.toString();
+    return search ? `${url.pathname}?${search}` : url.pathname;
+  };
   const tipBar = tips.ok
     ? renderTipBar({
         accountId,
@@ -95,6 +109,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
         // The amounts and the messages, WITHOUT the payers: a page that listed who gave what would turn
         // a small gesture into a public list of who supports whom.
         tips: toTipRows(tips.tips),
+        // v395 — which window this is, how big the window is, and where the next one lives. The
+        // service pages by rows and echoes the window it answered (v391), so the bar can say WHICH
+        // tips it is showing and offer the next page as a link.
+        offset: tips.offset ?? tipOffset,
+        limit: tips.limit ?? TIP_LIMIT,
+        pageHref: tipPageHref,
       }) + TIP_BAR_STYLES
     : '';
   // v303 — the OTHER direction of the edge: the accounts THIS account follows. It is read independently,

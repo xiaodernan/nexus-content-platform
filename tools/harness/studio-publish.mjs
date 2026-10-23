@@ -4764,6 +4764,125 @@ try {
     await econPagerPage.close();
   }
 
+  // ── §80 v395: the profile page's tip bar gets its PAGER ────────────────────────────────────────────────────────────────────────────────────────────────
+  // The tip bar on the profile page is server-rendered — the page holds no session (ADR 0018),
+  // so its pager cannot be a button: it is a LINK, built by the route that knows the URL. One
+  // account is given MORE tips than the page's window (TIP_LIMIT, 100), so the count and the
+  // window can DIFFER, and the page is then read the way a reader's browser reads it: as HTML,
+  // with no hydration.
+  {
+    const tipPagerPage = await session.newPage('about:blank');
+    await tipPagerPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(tipPagerPage, 'the tip pager page to hydrate');
+    await signInAs(tipPagerPage, 'bob', 'the tipper for the paged recipient');
+    const pagerTipperRaw = await tipPagerPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const pagerTipper = pagerTipperRaw ? JSON.parse(String(pagerTipperRaw)) : null;
+    const pagerClaim = {
+      accountId: pagerTipper?.id ?? '',
+      handle: pagerTipper?.handle ?? null,
+      assurance: pagerTipper?.assurance ?? null,
+      claimedAt: pagerTipper?.createdAt ?? null,
+    };
+
+    // A recipient that exists only as an id the tips name — the service holds no account
+    // table, and the profile page is honest about exactly that (v270). TIP_LIMIT + 1 tips: the
+    // page reads at most TIP_LIMIT rows, so the second window holds exactly one tip and the
+    // count says 101.
+    const pagedRecipientId = `acct-tip-pager-${Date.now()}`;
+    const pagedStatuses = [];
+    for (let i = 0; i < 101; i += 1) {
+      const res = await fetch(`${apiBase}/tips`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          recipientAccountId: pagedRecipientId,
+          claim: pagerClaim,
+          amountCents: 100 + i,
+          message: `tip ${i} of 101`,
+          anonymous: false,
+        }),
+      });
+      pagedStatuses.push(res.status);
+    }
+    check(
+      'the harness gave the recipient 101 tips — one more than the window the page reads',
+      pagedStatuses.length === 101 && pagedStatuses.every((s) => s === 201 || s === 200),
+      `statuses: ${JSON.stringify(pagedStatuses.slice(0, 3))} · ${JSON.stringify(pagedStatuses.slice(-1))}`,
+    );
+    await tipPagerPage.close();
+
+    // The SERVICE counts the whole table and carries the window — the difference the pager is
+    // for, and the reason a window's length could never be told as a total (v355).
+    const pagedFirst = await fetch(`${apiBase}/tips?recipient=${encodeURIComponent(pagedRecipientId)}&limit=100`);
+    const pagedFirstBody = await pagedFirst.json();
+    check(
+      'the SERVICE counts 101 and carries the first window of 100',
+      pagedFirst.status === 200 && pagedFirstBody.count === 101 && (pagedFirstBody.tips ?? []).length === 100,
+      `count: ${JSON.stringify(pagedFirstBody.count)} · rows: ${JSON.stringify((pagedFirstBody.tips ?? []).length)}`,
+    );
+    const pagedSecondRead = await fetch(`${apiBase}/tips?recipient=${encodeURIComponent(pagedRecipientId)}&limit=100&offset=100`);
+    const pagedSecondBody = await pagedSecondRead.json();
+    check(
+      'and the door PAGES: the second window carries the one tip the count says is left',
+      pagedSecondRead.status === 200 && (pagedSecondBody.tips ?? []).length === 1 && pagedSecondBody.count === 101,
+      `rows: ${JSON.stringify((pagedSecondBody.tips ?? []).length)} · count: ${JSON.stringify(pagedSecondBody.count)}`,
+    );
+
+    // The FIRST window, as the reader's browser would render it.
+    const firstWindowHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(pagedRecipientId)}`)).text();
+    check(
+      'the profile page states the WHOLE count, not the window',
+      firstWindowHtml.includes('data-tips="101"'),
+      `the count is there: ${firstWindowHtml.includes('data-tips="101"')}`,
+    );
+    check(
+      'the first window says it is the newest 100 of 101',
+      firstWindowHtml.includes('showing the 100 newest of 101'),
+      `the window line is there: ${firstWindowHtml.includes('showing the 100 newest of 101')}`,
+    );
+    check(
+      'on the first window "Newer" is a span with no href — there is no page before the first',
+      firstWindowHtml.includes('<span class="nexus-tips-page" data-tips-page="newer"'),
+      `newer is a span: ${firstWindowHtml.includes('<span class="nexus-tips-page" data-tips-page="newer"')}`,
+    );
+    check(
+      'and "Older" is a link to the second window',
+      firstWindowHtml.includes(`<a class="nexus-tips-page" data-tips-page="older" href="/u/${encodeURIComponent(pagedRecipientId)}?tipOffset=100"`),
+      `older links to window two: ${firstWindowHtml.includes(`<a class="nexus-tips-page" data-tips-page="older" href="/u/${encodeURIComponent(pagedRecipientId)}?tipOffset=100"`)}`,
+    );
+
+    // The SECOND window — the link the first window offered, followed.
+    const secondWindowHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(pagedRecipientId)}?tipOffset=100`)).text();
+    check(
+      'the second window says WHICH tips it is showing',
+      secondWindowHtml.includes('showing 101–101 of 101'),
+      `the window line is there: ${secondWindowHtml.includes('showing 101–101 of 101')}`,
+    );
+    check(
+      'the second window links "Newer" back to the first window',
+      secondWindowHtml.includes(`<a class="nexus-tips-page" data-tips-page="newer" href="/u/${encodeURIComponent(pagedRecipientId)}"`),
+      `newer links back: ${secondWindowHtml.includes(`<a class="nexus-tips-page" data-tips-page="newer" href="/u/${encodeURIComponent(pagedRecipientId)}"`)}`,
+    );
+    check(
+      'and "Older" is a span — the next window would hold nothing, and the count already said so',
+      secondWindowHtml.includes('<span class="nexus-tips-page" data-tips-page="older"'),
+      `older is a span: ${secondWindowHtml.includes('<span class="nexus-tips-page" data-tips-page="older"')}`,
+    );
+
+    // A window PAST the end: an honest empty answer, not "nobody ever gave this account anything".
+    const pastEndHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(pagedRecipientId)}?tipOffset=200`)).text();
+    check(
+      'a window past the end says it is past the end',
+      pastEndHtml.includes('this page is past the end — the service answered an empty window'),
+      `the note is there: ${pastEndHtml.includes('this page is past the end')}`,
+    );
+    check(
+      'and it still states the whole count — the empty window belongs to the page, not the account',
+      pastEndHtml.includes('data-tips="101"') && !pastEndHtml.includes('0 tips'),
+      `count still stated: ${pastEndHtml.includes('data-tips="101"')} · says "0 tips": ${pastEndHtml.includes('0 tips')}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

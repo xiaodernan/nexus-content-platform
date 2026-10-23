@@ -128,3 +128,60 @@ describe('tipBar — the bar on the profile (M7 v298)', () => {
     expect(injectTipBar(noBody, '<div></div>')).toBe(noBody);
   });
 });
+
+describe('tipBar — the bar PAGES through the tips (M7 v395)', () => {
+  // The profile page is server-rendered and cannot act, so the pager is a LINK: the page that
+  // knows the URL builds it, and a boundary is a span with no href — a link that went nowhere
+  // would be a lie with an href.
+  const pageHref = (offset: number) => `/u/acct-bob?tipOffset=${offset}`;
+  const twoRows = () => toTipRows([entry({ id: 't-1' }), entry({ id: 't-2' })]);
+
+  it('the first window says it is the newest, and not the only', () => {
+    const html = renderTipBar({ accountId: 'acct-bob', count: 5, totalCents: 7500, tips: twoRows(), offset: 0, limit: 2, pageHref });
+    expect(html).toContain('showing the 2 newest of 5');
+  });
+
+  it('a later window says WHICH tips it is showing', () => {
+    // "the 2 newest" is a true thing about the first window and a false thing about the third
+    // (v386's correction), so past the first window the line names the rows.
+    const html = renderTipBar({ accountId: 'acct-bob', count: 10, totalCents: 15000, tips: twoRows(), offset: 4, limit: 2, pageHref });
+    expect(html).toContain('showing 5–6 of 10');
+    expect(html).not.toContain('newest');
+  });
+
+  it('an empty window past the end says so — it is not "nobody ever gave"', () => {
+    const html = renderTipBar({ accountId: 'acct-bob', count: 5, totalCents: 7500, tips: [], offset: 4, limit: 2, pageHref });
+    expect(html).toContain('this page is past the end — the service answered an empty window');
+    expect(html).toContain('data-tips="5"');
+    expect(html).not.toContain('0 tips');
+  });
+
+  it('the pager is links, and a boundary is a span with no href', () => {
+    const first = renderTipBar({ accountId: 'acct-bob', count: 5, totalCents: 7500, tips: twoRows(), offset: 0, limit: 2, pageHref });
+    expect(first).toContain('<span class="nexus-tips-page" data-tips-page="newer"');
+    expect(first).toContain('<a class="nexus-tips-page" data-tips-page="older" href="/u/acct-bob?tipOffset=2"');
+    const last = renderTipBar({ accountId: 'acct-bob', count: 5, totalCents: 7500, tips: twoRows(), offset: 4, limit: 2, pageHref });
+    expect(last).toContain('<a class="nexus-tips-page" data-tips-page="newer" href="/u/acct-bob?tipOffset=2"');
+    expect(last).toContain('<span class="nexus-tips-page" data-tips-page="older"');
+  });
+
+  it('"Older" is not offered when the next window would hold nothing', () => {
+    // The whole-table count rides on every answer, so a page the service has already counted as
+    // empty is a page the bar does not offer.
+    const html = renderTipBar({ accountId: 'acct-bob', count: 5, totalCents: 7500, tips: [], offset: 4, limit: 2, pageHref });
+    expect(html).toContain('<span class="nexus-tips-page" data-tips-page="older"');
+    expect(html).not.toContain('data-tips-page="older" href');
+  });
+
+  it('a bar that cannot build a link draws no pager — only the count', () => {
+    const html = renderTipBar({ accountId: 'acct-bob', count: 5, totalCents: 7500, tips: twoRows(), offset: 0, limit: 2 });
+    expect(html).toContain('showing the 2 newest of 5');
+    expect(html).not.toContain('nexus-tips-pager');
+  });
+
+  it('and a window that holds the whole table gets no pager at all', () => {
+    const html = renderTipBar({ accountId: 'acct-bob', count: 2, totalCents: 3000, tips: twoRows(), offset: 0, limit: 100, pageHref });
+    expect(html).not.toContain('nexus-tips-pager');
+    expect(html).not.toContain('showing');
+  });
+});
