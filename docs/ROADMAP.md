@@ -5551,3 +5551,36 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   方法论补一条：**"守在哪一层"不能靠文件位置推断**——`characters.ts` 的域助手全守着，
   而 chat 路由自己查库的那一句照样漏；探针要打的是**路由**，不是域函数名单。
 
+
+- **2026-10-23 第十八片（#165）：社交三连的并发双点 500——insert 缺一句 onConflictDoNothing**。
+  toggleLike / toggleFollow / toggleSave 都是"先查有没有 → 没有就 insert"的读—改—写。
+  两个请求同时到（双击、两个标签页、移动端连击），两边都查到"没有" →
+  都 insert → 唯一索引把后到的那条判 23505 → 500。同族的 `setBlock`
+  早就用 `onConflictDoNothing` 挡着，这三个漏了。修法同族同一口径：
+  insert 补 `onConflictDoNothing()`。终局与库一致——谁先谁后不重要，终态都是"已点赞"，
+  回执都是 200，不给"点一下 500、刷新发现赞没了"留窗口。竞态探针：`Promise.all`
+  两发同一 (user, target)，修前稳定复现 23505，修后两发都 200。见证：`697dc7c`；
+  social.integration 两条（like / follow）、profile.integration 一条（save）钉住；
+  今日复跑 social / profile / blocks / publish / api-v1-publish / unpublish / publish-build-status
+  七套件 **53/53** 绿。
+
+- **2026-10-23 第十九片（#166）：并发双发发布 500——读—改—写整段收进 advisory lock 事务**。
+  publish 的读—改—写（读 publication → 改 version / snapshotId → 写回）不在事务里；
+  两个发布请求并发时，后到者覆盖先行者的 version / snapshotId，甚至撞
+  `published_path_key` 唯一约束（23505）→ 整个请求 500。第一版修法（onConflictDoUpdate +
+  写后重读）被自己的测试抓出不诚实：后到者会把先行回执里的 snapshotId
+  改成过期值 → 回执与库不一致（正是 §159 要禁的"假完成"）。最终修法回到 §64
+  既有模式：读—改—写整段收进 `db.transaction` + `lockProjectWrites`（advisory lock，
+  与 saveDocument 同一把），版本号与快照标签锁内同源定。见证：`a04f974`；
+  publish.integration 8/8（含并发双发那条）；变异探针摘锁精确红。
+
+- **2026-10-23 第二十片（#167）：layoutCache 命中判据补回文档对象身份——"键相同文档已变"不再交出旧布局**。
+  `77404ed` 把 buildSnapshot 里 layoutCache 的 early-return 从 `key + doc 身份` 换成 `key + 代数`，
+  理由是"applyPatch 每次返新对象、doc 身份永远 miss"。探针实测这个判断对纯选中帧是错的：
+  选中不动文档，`doc === document` 本来就成立；那一下的真实效果是砍掉了"事务内文档变了而
+  revision 不跳"的护栏（`applyWithinTransaction` 不跳 revision 也不跳代数）——键一字不差而文档对象已换，
+  缓存把上一帧那份解交出去，画布画的是上一帧内容。`derivedCache` 用身份判据防的是同一件事（过期
+  token 表），两处判据本该平行。修法：命中条件三样全上（key + 代数 + 文档对象身份）；
+  纯选中帧照旧命中，§147 选中响应不受影响。测试 `apps/web/test/studio-layout-cache.test.ts`
+  三帧各钉一条（选中命中 / 半程提交不陈旧 / 换视口重算）；变异探针四臂全精确红。
+  见证：`91cadd4`；studio 五套件 16/16。
