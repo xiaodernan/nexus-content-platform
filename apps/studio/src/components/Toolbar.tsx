@@ -23,6 +23,7 @@ import {
 import type { PriceCents } from '@/lib/monetization';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { remixProject } from '@/lib/remixLane';
+import { olderWindowWouldHoldSomething } from '@/lib/pager';
 import { useStudio, type Tool } from '@/lib/store';
 import { session } from '@/lib/accountSession';
 import { AccountPanel } from './AccountPanel';
@@ -1150,7 +1151,11 @@ export default function Toolbar() {
                 <button
                   className="btn"
                   data-trail-page="older"
-                  disabled={trailFilter === null ? trail.offset + trail.count >= trail.total : trail.count < trail.limit}
+                  disabled={
+                    trailFilter === null
+                      ? !olderWindowWouldHoldSomething(trail.offset, trail.limit, trail.total)
+                      : trail.count < trail.limit
+                  }
                   onClick={() => {
                     const next = trail.offset + trail.limit;
                     setTrailOffset(next);
@@ -1238,9 +1243,11 @@ export default function Toolbar() {
                 ))}
               </ul>
               {/* v391 — the PAGER, the same shape the filed list (v386), the trail (v388), the desk
-                  (v389) and the following list (v390) got. The whole-table count (v355) is on every
-                  answer, so the ending is a COUNT: "Older" is disabled exactly when the window already
-                  holds every tip the service counted. */}
+                  (v389) and the following list (v390) got. v398 — and the ending every pager here now
+                  shares: "Older" is offered only when the NEXT window would hold something. The
+                  whole-table count (v355) rides on every answer, so the service has already counted
+                  the page a short window would offer next — and offering it anyway would be offering
+                  a page it was told is empty. */}
               <div data-economy-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
                 <button
                   className="btn"
@@ -1258,7 +1265,7 @@ export default function Toolbar() {
                 <button
                   className="btn"
                   data-economy-page="older"
-                  disabled={economy.offset + economy.tips.length >= economy.count}
+                  disabled={!olderWindowWouldHoldSomething(economy.offset, economy.limit, economy.count)}
                   onClick={() => {
                     const next = economy.offset + economy.limit;
                     setTipsOffset(next);
@@ -1335,7 +1342,7 @@ export default function Toolbar() {
                 <button
                   className="btn"
                   data-given-page="older"
-                  disabled={given.offset + given.tips.length >= given.count}
+                  disabled={!olderWindowWouldHoldSomething(given.offset, given.limit, given.count)}
                   onClick={() => {
                     const next = given.offset + given.limit;
                     setGivenOffset(next);
@@ -1467,10 +1474,11 @@ export default function Toolbar() {
                 <button
                   className="btn"
                   data-economy-subs-page="older"
-                  disabled={
-                    (economyAccount.subscriptionOffset ?? subsOffset) + (economyAccount.subscriptions ?? []).length
-                    >= (economyAccount.subscriptionCount ?? 0)
-                  }
+                  disabled={!olderWindowWouldHoldSomething(
+                    economyAccount.subscriptionOffset ?? subsOffset,
+                    economyAccount.limit ?? 20,
+                    economyAccount.subscriptionCount,
+                  )}
                   onClick={() => {
                     const next = subsOffset + (economyAccount.limit ?? 20);
                     setSubsOffset(next);
@@ -1579,10 +1587,11 @@ export default function Toolbar() {
                 <button
                   className="btn"
                   data-economy-received-page="older"
-                  disabled={
-                    (economyAccount.receivedOffset ?? receivedOffset) + (economyAccount.received ?? []).length
-                    >= (economyAccount.receivedCount ?? 0)
-                  }
+                  disabled={!olderWindowWouldHoldSomething(
+                    economyAccount.receivedOffset ?? receivedOffset,
+                    economyAccount.limit ?? 20,
+                    economyAccount.receivedCount,
+                  )}
                   onClick={() => {
                     const next = receivedOffset + (economyAccount.limit ?? 20);
                     setReceivedOffset(next);
@@ -1663,9 +1672,11 @@ export default function Toolbar() {
               ))}
             </ul>
               {/* v392 — the PAGER for the plans this account offers: the same shape and the same
-                  honest ending as the other two lists — the whole-table count (v372) rides on every
-                  answer, so "Older" is disabled exactly when the window already holds every plan the
-                  service counted. */}
+                  honest ending as the other two lists. v398 — and the ending is now the NEXT window's,
+                  not this window's: "Older" is offered only when the count says the window after this
+                  one would hold something. A full window and the end of the table agree on the answer;
+                  a SHORT window that is not the end is where the older rule ("the window already holds
+                  everything") would have offered a page the service had already counted as empty. */}
               <div data-economy-plans-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
                 <button
                   className="btn"
@@ -1683,10 +1694,11 @@ export default function Toolbar() {
                 <button
                   className="btn"
                   data-economy-plans-page="older"
-                  disabled={
-                    (economyAccount.planOffset ?? plansOffset) + (economyAccount.plans ?? []).length
-                    >= (economyAccount.planCount ?? 0)
-                  }
+                  disabled={!olderWindowWouldHoldSomething(
+                    economyAccount.planOffset ?? plansOffset,
+                    economyAccount.limit ?? 20,
+                    economyAccount.planCount,
+                  )}
                   onClick={() => {
                     const next = plansOffset + (economyAccount.limit ?? 20);
                     setPlansOffset(next);
@@ -1866,9 +1878,10 @@ export default function Toolbar() {
               </ul>
               {/* v389 — the PAGER, the same shape the filed list (v386) and the trail (v388) got: the
                   page is part of the ask, "Newer" is disabled on the first window (there is no page
-                  before it), and "Older" is disabled exactly when the window already holds every
-                  report the tally counted — which the desk can say even UNDER a reason filter, because
-                  the TALLY counts by reason over the whole table (v312) and is not narrowed. A pager
+                  before it), and v398 — "Older" is offered only when the NEXT window would hold
+                  something, which the TALLY can say even UNDER a reason filter, because the tally
+                  counts by reason over the whole table (v312) and is not narrowed. With no tally to
+                  read, a window that came back SHORT of the cap is still the end. A pager
                   that offered a page with nothing in it would be asking a question whose honest answer
                   is an empty window. */}
               <div data-desk-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
@@ -1897,7 +1910,7 @@ export default function Toolbar() {
                     // have filled it) — the trail's filtered ending (v388), for a desk whose tally
                     // could not be read.
                     return typeof total === 'number'
-                      ? deskOffset + desk.reports.length >= total
+                      ? !olderWindowWouldHoldSomething(deskOffset, desk.limit, total)
                       : desk.reports.length < desk.limit;
                   })()}
                   onClick={() => {
@@ -2001,8 +2014,9 @@ export default function Toolbar() {
                   reporter with thirty-seven complaints could see twenty and be told there were
                   thirty-seven, with no way to reach the other seventeen. The page is part of the ask
                   (the service answers that window), and a page past the end is the service's honest
-                  EMPTY answer rather than an error — which is why "Older" is disabled at the end
-                  instead of being allowed to ask a question with nothing in it. */}
+                  EMPTY answer rather than an error — v398 — which is why "Older" is offered only
+                  when the count says the NEXT window would hold something, instead of being allowed to
+                  ask a question with nothing in it. */}
               <div data-filed-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
                 <button
                   className="btn"
@@ -2020,7 +2034,7 @@ export default function Toolbar() {
                 <button
                   className="btn"
                   data-filed-page="older"
-                  disabled={filed.offset + filed.reports.length >= filed.count}
+                  disabled={!olderWindowWouldHoldSomething(filed.offset, filed.limit, filed.count)}
                   onClick={() => {
                     const next = filed.offset + filed.limit;
                     setFiledOffset(next);
@@ -2091,8 +2105,9 @@ export default function Toolbar() {
               </ul>
               {/* v390 — the PAGER, the same shape the filed list (v386), the trail (v388) and the desk
                   (v389) got. The whole-table count (v380) is on EVERY answer, so the ending here is a
-                  COUNT rather than an inference: "Older" is disabled exactly when the window already
-                  holds every follow the service counted. A pager that offered a page with nothing in
+                  COUNT rather than an inference — and since v398 it is the NEXT window's count, not
+                  this window's: "Older" is offered only when rows sit past the window that would come
+                  next. A pager that offered a page with nothing in
                   it would be asking a question whose honest answer is an empty window. */}
               <div data-following-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
                 <button
@@ -2111,7 +2126,7 @@ export default function Toolbar() {
                 <button
                   className="btn"
                   data-following-page="older"
-                  disabled={following.offset + following.following.length >= following.count}
+                  disabled={!olderWindowWouldHoldSomething(following.offset, following.limit, following.count)}
                   onClick={() => {
                     const next = following.offset + following.limit;
                     setFollowingOffset(next);
