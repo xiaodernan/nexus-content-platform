@@ -1599,11 +1599,16 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   否则"走审批门的那条路免费"）两处调用，`credit_ledger_task_kind_key` 部分唯一索引
   挡住任何第二次写（重试、批准后作业又被轮询到，都只留一行账）。
   §133 五格的今天：**AI usage 与 storage 有真拦截方**（`refusalFor` / `refusalForStorage`，
-  界面那列"已生效 / 还没拦截方"读 `ENFORCED_PLAN_AXES`）；**generation 记账但不拦截**
-  （扣点照扣，没有"超了就不许生成"的那道闸）；team collaboration 与 publishing
-  只有 `PLAN_LIMITS` 里的数字、没有执行方。仍欠的是 image/video/compute 三类的
-  **消耗方**——要 §38/§40 的真生成端点（没有 provider 就不造假消耗，§159），
-  以及 generation 那一格从"记账"升"拦截"。
+  界面那列"已生效 / 还没拦截方"读 `ENFORCED_PLAN_AXES`）；**2026-10-23 再核一遍后，
+  "generation 记账但不拦截"也是过期行——闸一直在**：五条生成入口全部先过 `refusalForRun`，
+  credits_exhausted 时一条 `agent_tasks` 都不落（判据两层：429 + 副产物行数 0），
+  见证 `apps/web/test/credits-enforcement.integration.test.ts`，见文末「第三十片半」。
+  标签与事实的对应：`ENFORCED_PLAN_AXES` 里的 `aiUsage` 指的就是这道按 `creditKindForAgentKey`
+  分桶（ai/image/video/compute 四桶）、按 `GENERATION_COST`（ai 1 / image 2 / video 5 / compute 1）
+  计价的闸 ⇒ "生成次数"这一格**已生效**，只是标签叫 aiUsage；generation 与它是同一道门，
+  没有第二道。team collaboration 与 publishing 仍只有 `PLAN_LIMITS` 里的数字、没有执行方。
+  仍欠的是 image/video/compute 三类的**真消耗方**——要 §38/§40 的真生成端点
+  （没有 provider 就不造假消耗，§159）。
 
 ## M8 — 开放能力（§188）
 - [x] MCP、外部 Agent、公开 API —— **2026-10-21 核实后升格**（这一格原来挂着 `[~]`，理由是"还有几件事没做"，
@@ -5754,3 +5759,29 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   branches 四套件 50/50；tsc 0、改动文件 eslint 0。
   变异探针：摘掉 `updateProjectDescription` 的守卫 → 新块内 3 条精确红（域层 null、路由 404、
   五种坏形状），其余 44 条不受影响；逐字节还原后 47/47 复绿。
+
+- **2026-10-23 第三十片半（#180）：五条生成入口的额度闸逐一实证——"generation 记账但不拦截"判为过期行**。
+  上一轮（394c43d）核 credits 时留了一句"欠 generation 的执行方"，这一轮不问"写没写"，
+  改问"**超额度的时候到底发不发出得去**"——把四类余额压到 0，五条入口逐个打：
+  ① `refusalForRun` 本身；② `submitClientRequest`（`POST /api/ai/jobs` 与 `/api/ai/tasks/<id>/retry`
+  都走它）；③ `runReadinessCheck`（`POST /api/projects/<id>/agent`）；④ `POST /api/ai/run` 路由；
+  ⑤ `generateDemoImage`（Image Studio）。判据两层：回 `credits_exhausted` / `credits`（429）
+  **且 `agent_tasks` 一条都没多**——只看状态码的话，一条没建的作业也会回 200。
+  正对照：把额度加回去，`refusalForRun` 回 null、本地合成照旧出图（闸挡的是超额，不是正常路径）。
+  **写测试时踩到的两个真坑（都值得记住）**：
+  ① `requireUser()` 会话查不到时会**就地造一个 guest 用户**（§137 设计）⇒ 测试里 sessions 行的
+  `tokenHash` 必须存 SHA-256（`crypto.subtle.digest`），存明文会让身份悄悄换成 guest——
+  症状是 `projectBelongsTo` 返 false、整条路以 `404 project_not_found` 收场，
+  **看起来像"项目不见了"，其实是身份换了**；
+  ② `credit_ledger` 是只追加账本（DELETE 被 plpgsql 触发器挡，报 P0001），
+  清理只能靠删 users 时间接清（afterAll 里不要 `db.delete(creditLedger)`）。
+  **标签与事实的对应（写进正文免得下次再判错）**：`ENFORCED_PLAN_AXES` 里的 `aiUsage`
+  指的就是这道按 `creditKindForAgentKey` 分桶（ai/image/video/compute 四桶）、
+  按 `GENERATION_COST`（ai 1 / image 2 / video 5 / compute 1）计价的闸 ⇒ "生成次数"这一格
+  **已生效**，只是标签叫 aiUsage；`generation` 与它是同一道门，没有第二道。
+  team collaboration 与 publishing 仍无执行方。**不改 `ENFORCED_PLAN_AXES` 的代码语义**
+  （标签命名是产品决策，本轮只修事实陈述）。
+  见证：`apps/web/test/credits-enforcement.integration.test.ts` 2/2 绿；credits / credits.test /
+  tasks-ledger(.integration) / tasks-ledger.test 五套件 39/39；tsc 0、改动文件 eslint 0。
+  变异探针：摘掉 `submit.ts` 的额度门 → 该文件精确红（`expected true to be false`），
+  从 `.scratch/submit.ts.fixed` 逐字节还原后复绿。
