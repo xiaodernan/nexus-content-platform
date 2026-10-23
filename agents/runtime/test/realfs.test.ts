@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectTextFiles, type FsDirentLike, type FsLike } from '../src/realfs.js';
+import { collectTextFiles, DEFAULT_SKIP_DIRS, type FsDirentLike, type FsLike } from '../src/realfs.js';
 
 /** Tiny virtual filesystem so the ingestion logic is proven without touching the host disk. */
 class FakeFs implements FsLike {
@@ -100,5 +100,47 @@ describe('realfs.collectTextFiles', () => {
     expect(files['clone/src/secret.ts']).toBeUndefined();
     expect(files['wtclone/lib.ts']).toBeUndefined();
     expect(files['src/app.ts']).toBeDefined();
+  });
+});
+
+/**
+ * v464 — the DEFAULT SKIP LIST, graded directly.
+ *
+ * `DEFAULT_SKIP_DIRS` is the answer to "what does a real repository grow that is not source", and the
+ * filtering case above only proves ONE of its entries works (`node_modules` in the fixture). The list
+ * itself — its exact membership, the shape of its entries, and the fact that an explicit option
+ * REPLACES it rather than extending it — had never been asked.
+ */
+describe('the default skip list (v464)', () => {
+  it('the list is exactly the six names a real repository grows that are not source', () => {
+    expect([...DEFAULT_SKIP_DIRS].sort()).toEqual(['.git', '.next', '.turbo', 'coverage', 'dist', 'node_modules']);
+    expect(DEFAULT_SKIP_DIRS.size).toBe(6);
+  });
+
+  it('every entry is a bare directory NAME — the skip matches ent.name, so a path-like entry could never match', () => {
+    for (const name of DEFAULT_SKIP_DIRS) {
+      expect(name.includes('/'), name).toBe(false);
+      expect(name.includes('\\'), name).toBe(false);
+      expect(name.length, name).toBeGreaterThan(0);
+    }
+  });
+
+  it('the default is what a no-options walk uses: all six stay out, the source stays in', () => {
+    const fixture: Record<string, string> = { 'src/real.ts': 'real\n' };
+    for (const dir of DEFAULT_SKIP_DIRS) fixture[`${dir}/junk.ts`] = 'junk\n';
+    const files = collectTextFiles('root', new FakeFs(fixture));
+    expect(Object.keys(files)).toEqual(['src/real.ts']);
+  });
+
+  it('an explicit skipDirs REPLACES the default rather than extending it — nothing is merged in behind the caller’s back', () => {
+    const fixture: Record<string, string> = {
+      'src/real.ts': 'real\n',
+      'node_modules/pkg/index.ts': 'vendor\n',
+      'dist/out.ts': 'built\n',
+    };
+    const none = collectTextFiles('root', new FakeFs(fixture), { skipDirs: new Set<string>() });
+    expect(Object.keys(none)).toEqual(['dist/out.ts', 'node_modules/pkg/index.ts', 'src/real.ts']);
+    const onlySrc = collectTextFiles('root', new FakeFs(fixture), { skipDirs: new Set(['node_modules', 'dist']) });
+    expect(Object.keys(onlySrc)).toEqual(['src/real.ts']);
   });
 });
