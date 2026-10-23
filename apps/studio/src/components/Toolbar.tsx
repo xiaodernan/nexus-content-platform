@@ -304,6 +304,12 @@ export default function Toolbar() {
    * because the desk deliberately does not name them.
    */
   const [filed, setFiled] = useState<FiledReportsLaneAnswer | null>(null);
+  /**
+   * v386 — which PAGE of the filed list is on screen. The service has paged the filed read since v382
+   * (`?offset=`, negative clamped to the first page); this is the page the panel is ASKING for, kept
+   * beside the answer so a re-read after a withdrawal lands on the same page the reader is looking at.
+   */
+  const [filedOffset, setFiledOffset] = useState(0);
 
   /**
    * v316 — the accounts THIS device follows — and the ONE way to take a follow back from the product.
@@ -357,13 +363,16 @@ export default function Toolbar() {
     await refreshFollowing();
   };
 
-  const refreshFiled = async () => {
+  // v386 — the page is part of the ASK, the same way the desk's reason is (v326): the panel names the
+  // offset it wants and the service answers that window. The default is the page already on screen, so
+  // every other caller (opening the panel, a withdrawal) keeps the reader where they were.
+  const refreshFiled = async (offset: number = filedOffset) => {
     const account = session.current();
     if (!account) {
       setFiled({ ok: false, reports: [], count: 0, limit: 20, offset: 0, reason: 'the reports you filed belong to an account, and this device has none' });
       return;
     }
-    setFiled(await readMyReports(account.id));
+    setFiled(await readMyReports(account.id, fetch, offset));
   };
 
   const refreshDesk = async (reason: string | null = deskReason) => {
@@ -1494,13 +1503,20 @@ export default function Toolbar() {
             <>
               {/* v380 — the COUNT and the TOTAL beside the rows: the service counts the WHOLE table now,
                   so these are facts about every report this account filed and not about the window
-                  the rows happen to be. */}
+                  the rows happen to be.
+
+                  v386 — and the window says WHICH rows it is: "showing 21–40 of 37" is a fact about a
+                  page, while "the 20 newest" was a fact about the first page that read like a fact about
+                  the list. A reader on page three must be able to tell page three from the whole. */}
               <div data-filed-total style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
                 {filed.count} report(s) filed
                 {(() => {
-                  const window = filed.count > 0 && filed.reports.length < filed.count
-                    ? `showing the ${filed.reports.length} newest of ${filed.count}`
-                    : '';
+                  const window =
+                    filed.count > 0 && filed.reports.length < filed.count
+                      ? filed.reports.length === 0
+                        ? `this page is past the end — the service answered an empty window`
+                        : `showing ${filed.offset + 1}–${filed.offset + filed.reports.length} of ${filed.count}`
+                      : '';
                   return window ? <> · {window}</> : null;
                 })()}
               </div>
@@ -1558,6 +1574,41 @@ export default function Toolbar() {
                   </li>
                 ))}
               </ul>
+              {/* v386 — the PAGER. v382 put the offset on the wire and v380 put the whole-table count
+                  beside the rows, so the only thing missing was a way to ASK for an older page: a
+                  reporter with thirty-seven complaints could see twenty and be told there were
+                  thirty-seven, with no way to reach the other seventeen. The page is part of the ask
+                  (the service answers that window), and a page past the end is the service's honest
+                  EMPTY answer rather than an error — which is why "Older" is disabled at the end
+                  instead of being allowed to ask a question with nothing in it. */}
+              <div data-filed-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                <button
+                  className="btn"
+                  data-filed-page="newer"
+                  disabled={filed.offset <= 0}
+                  onClick={() => {
+                    const next = Math.max(filed.offset - filed.limit, 0);
+                    setFiledOffset(next);
+                    void refreshFiled(next);
+                  }}
+                  title="the newer reports"
+                >
+                  ‹ Newer
+                </button>
+                <button
+                  className="btn"
+                  data-filed-page="older"
+                  disabled={filed.offset + filed.reports.length >= filed.count}
+                  onClick={() => {
+                    const next = filed.offset + filed.limit;
+                    setFiledOffset(next);
+                    void refreshFiled(next);
+                  }}
+                  title="the older reports"
+                >
+                  Older ›
+                </button>
+              </div>
             </>
           )}
           {/* v316 — YOU FOLLOW: the accounts this device follows, and the button that takes a

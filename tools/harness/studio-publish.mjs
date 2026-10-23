@@ -2112,6 +2112,34 @@ try {
     const filedStatus = await filedPage.evaluate("document.querySelector('[data-filed-report]')?.getAttribute('data-filed-status') ?? ''");
     check('and it says where it stands — the owner acknowledged it', filedStatus === 'acknowledged', `status: ${JSON.stringify(filedStatus)}`);
 
+    // v386 — the PAGER. v382 put the offset on the wire and v380 put the whole-table count beside the
+    // rows; this is the control that asks for an older page. Two invariants, neither of which depends on
+    // how many reports this scenario happened to file: there is NO page before the first (so "Newer" is
+    // disabled at offset 0), and "Older" is disabled exactly when the window already holds every report
+    // the service counted — a pager that offered a page with nothing in it would be asking a question
+    // whose honest answer is an empty window.
+    const pager = await filedPage.evaluate(`(() => {
+      const newer = document.querySelector('[data-filed-page="newer"]');
+      const older = document.querySelector('[data-filed-page="older"]');
+      return {
+        there: !!newer && !!older,
+        newerDisabled: newer ? newer.disabled : null,
+        olderDisabled: older ? older.disabled : null,
+      };
+    })()`);
+    check('the filed list offers a pager', pager.there === true, JSON.stringify(pager));
+    check(
+      'and on the first page "Newer" is disabled — there is no page before the first',
+      pager.newerDisabled === true,
+      `newer disabled: ${pager.newerDisabled}`,
+    );
+    const filedTotalText = await filedPage.evaluate("document.querySelector('[data-filed-total]')?.textContent ?? ''");
+    check(
+      'and the total states how many there are in all',
+      /\d+ report\(s\) filed/.test(filedTotalText),
+      `the total says: ${JSON.stringify(filedTotalText)}`,
+    );
+
     // And the SERVICE agrees, read independently of the browser.
     const reporterRaw = await filedPage.evaluate("localStorage.getItem('nexus-current-account')");
     const reporterId = JSON.parse(String(reporterRaw)).id;
@@ -2123,6 +2151,13 @@ try {
         && filedBody.reports.some((r) => r.status === 'acknowledged')
         && filedBody.reports.every((r) => typeof r.targetId === 'string' && r.targetId.length > 0),
       `reports: ${JSON.stringify(filedBody.reports)}`,
+    );
+
+    const filedRowsOnScreen = await filedPage.evaluate("document.querySelectorAll('[data-filed-report]').length");
+    check(
+      'and "Older" is disabled exactly when the window already holds every report the service counted',
+      pager.olderDisabled === filedRowsOnScreen >= filedBody.count,
+      `rows ${filedRowsOnScreen} of ${filedBody.count}, older disabled: ${pager.olderDisabled}`,
     );
 
     // And the wire carries NO identity: the reader of this list IS the reporter, so a field naming them
