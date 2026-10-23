@@ -131,6 +131,12 @@ export function publishTaskProgress(projectId: string | null, taskId: string, pr
  * - 一次任务只扣一行（库里 `credit_ledger_task_kind_key` 那条部分唯一索引兜着）；
  * - 写不进账本就让它抛。这里 catch 掉等于宣布"这次生成是免费的"，
  *   而那正是 §134 要的"消费透明"的反面。
+ *
+ * #169：CAS 只认 `running`——与 `cancelTask` / `decideApproval` 同一纪律。
+ * 没有这一条，"取消与收尾并发"时后到的那笔会把终态改写：用户取消了任务
+ * （不扣点、结果丢弃），worker 的收尾晚一步落到库里 → 状态倒回 succeeded
+ * 而且还扣了钱。观察路的 `if (task.status !== 'running') return` 只是预检，
+ * 挡不住读写之间那段时间（中间过着 gateForHandback 等慢门）。
  */
 export async function finishTask(
   id: string,
@@ -147,7 +153,7 @@ export async function finishTask(
       result: outcome.ok ? ((outcome.result ?? null) as never) : null,
       error: outcome.ok ? null : reason,
     })
-    .where(eq(agentTasks.id, id))
+    .where(and(eq(agentTasks.id, id), eq(agentTasks.status, 'running')))
     .returning({
       id: agentTasks.id,
       projectId: agentTasks.projectId,

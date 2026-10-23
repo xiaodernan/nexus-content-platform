@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, inArray, sql as rawSql } from 'drizzle-orm';
 import {
+  cancelTask,
   finishTask,
   getTask,
   listProjectTasks,
@@ -9,7 +10,7 @@ import {
 import { emit, inbox } from '../src/server/domain/notifications';
 import { createProject } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
-import { agentTasks, projects, users } from '../src/server/db/schema';
+import { agentTasks, creditLedger, projects, users } from '../src/server/db/schema';
 
 /**
  * §112 的账本 + §164 的 Generation complete 真来源。
@@ -83,6 +84,31 @@ describe('任务行的一生', () => {
 
     const ghost = await finishTask('00000000-0000-4000-8000-000000000000', { ok: true });
     expect(ghost.updated).toBe(false);
+  });
+
+  it('取消了的任务不会被晚到的收尾改写：终态只落一次，取消了不扣点（#169）', async () => {
+    const started = await startTask({
+      projectId,
+      agentKey: 'design-edit',
+      createdById: ownerId,
+      capability: 'demo',
+      input: { prompt: '取消之后 worker 才报完成' },
+    });
+    // 观察路"只写在跑的行"只是预检：它读到 running 之后、finishTask 落到库里之前，
+    // 用户的取消完全可能插进来。这一条把那个顺序钉死——取消先落，收尾后到。
+    expect(await cancelTask(started.id, '用户取消')).toBe(true);
+    const late = await finishTask(started.id, { ok: true, result: { detail: 'worker 也跑完了' } });
+    expect(late.updated, '取消之后还被收尾覆盖 → 状态倒回 succeeded，而且白扣一点').toBe(false);
+    const [row] = await getDb()
+      .select({ status: agentTasks.status })
+      .from(agentTasks)
+      .where(eq(agentTasks.id, started.id));
+    expect(row?.status).toBe('cancelled');
+    const [charge] = await getDb()
+      .select({ id: creditLedger.id })
+      .from(creditLedger)
+      .where(eq(creditLedger.taskId, started.id));
+    expect(charge, '取消了却扣了点').toBeUndefined();
   });
 
   it('失败也留行，而且带得上那句原因；没给原因时用兜底文案而不是留空', async () => {
