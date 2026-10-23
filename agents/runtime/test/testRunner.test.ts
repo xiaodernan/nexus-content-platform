@@ -8,6 +8,7 @@ import {
   predicateRunner,
   registerTestTools,
   runPredicates,
+  TEST_TOOL_SPECS,
   type TestPredicate,
 } from '../src/testRunner.js';
 
@@ -193,5 +194,43 @@ describe('test report JSONL durability (same discipline as the ledger)', () => {
     for (const p of [pass('a'), failWith('b', 'm'), pass('c')]) appendTestReport(disk, 'x/t.jsonl', runPredicates('e', [p], FILES));
     expect(loadTestReports(disk, 'x/t.jsonl', 2).reports.map((r) => r.ok)).toEqual([false, true]);
     expect(loadTestReports(disk, 'x/none.jsonl')).toEqual({ reports: [], malformed: 0 });
+  });
+});
+
+/**
+ * v466 — the test TOOL SPECS, graded directly.
+ *
+ * `TEST_TOOL_SPECS` is the declared surface behind the orchestrator’s verification step. Every case
+ * above reaches the tool through `registerTestTools` + `invoke`, so the behaviour is graded — but
+ * the DECLARATION was not: that there is exactly ONE tool, that it is gated like an exec, and that a
+ * bare call with no args is a full run.
+ */
+describe('the test tool specs (v466)', () => {
+  it('the list is exactly one spec — the verification tool, named test.run', () => {
+    expect(TEST_TOOL_SPECS.map((s) => s.name)).toEqual(['test.run']);
+    expect(TEST_TOOL_SPECS).toHaveLength(1);
+  });
+
+  it('test.run carries the EXEC permission — a run is gated like a subprocess even though it spawns none', () => {
+    expect(TEST_TOOL_SPECS[0]!.permissions).toEqual(['exec']);
+  });
+
+  it('its only arg is the optional filter — a bare call with no args is a FULL run', () => {
+    expect(TEST_TOOL_SPECS[0]!.args).toEqual([{ name: 'only', type: 'string' }]);
+    expect(TEST_TOOL_SPECS[0]!.args[0]!.required).not.toBe(true);
+  });
+
+  it('the description keeps the two promises: in-process predicates, structured engine-labelled output', () => {
+    const d = TEST_TOOL_SPECS[0]!.description;
+    expect(d.length).toBeGreaterThan(0);
+    expect(d).toContain('no subprocesses');
+    expect(d.toLowerCase()).toContain('report');
+  });
+
+  it('registerTestTools registers exactly the specs in the list — nothing more, nothing fewer', () => {
+    const registry = registerTestTools(new ToolRegistry(), predicateRunner('unit', []));
+    expect(registry.list()).toEqual(TEST_TOOL_SPECS);
+    expect(registry.has('test.run')).toBe(true);
+    expect(registry.has('test.list')).toBe(false);
   });
 });
