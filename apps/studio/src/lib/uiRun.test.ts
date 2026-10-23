@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { runUiDrive, runUiTask, uiScript, type UiRunResult } from './uiRun';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createDomDriver, runUiDrive, runUiTask, uiScript, type UiRunResult } from './uiRun';
 import type { UiDriver, UiElement } from '@nexus/agent-runtime';
 
 class FakeDriver implements UiDriver {
@@ -163,5 +163,192 @@ describe('uiRun — script shape and step edges', () => {
     expect(lines).toHaveLength(2);
     expect(JSON.parse(lines[0]!).goal).toBe('ui-task: older entry');
     expect(JSON.parse(lines[1]!).goal).toBe('ui-task: an analytics dashboard');
+  });
+});
+
+/* ---- v453: the DOM seam itself. The suite runs in Node with no DOM, so the fakes below are the
+   smallest honest ones: a tree walker that honours tag-QUALIFIED compound selectors, elements that
+   know their own tag and classes, and an input whose value accessor lives on the prototype the way a
+   browser's does. A canned answer per selector string would pass even if the driver asked for the
+   wrong one, so the matcher is real. ---- */
+
+class FakeElement {
+  tagName: string;
+  classes: string[];
+  textContent = '';
+  parent: FakeElement | null = null;
+  kids: FakeElement[] = [];
+  events: { type: string; bubbles: boolean }[] = [];
+  clicks = 0;
+  constructor(tagName: string, classes: string[] = []) {
+    this.tagName = tagName;
+    this.classes = classes;
+  }
+  append(...kids: FakeElement[]): void {
+    for (const k of kids) {
+      k.parent = this;
+      this.kids.push(k);
+    }
+  }
+  get classList(): { contains: (c: string) => boolean } {
+    return { contains: (c: string) => this.classes.includes(c) };
+  }
+  click(): void {
+    this.clicks++;
+    this.dispatchEvent(new FakeEvent('click', { bubbles: true }));
+  }
+  dispatchEvent(e: FakeEvent): boolean {
+    this.events.push({ type: e.type, bubbles: e.bubbles });
+    if (e.bubbles && this.parent) this.parent.dispatchEvent(e);
+    return true;
+  }
+}
+
+class FakeButtonElement extends FakeElement {
+  constructor(text: string) {
+    super('button', ['btn']);
+    this.textContent = text;
+  }
+}
+
+class FakeInputElement extends FakeElement {
+  placeholder: string;
+  backing = '';
+  constructor(placeholder: string) {
+    super('input', ['field']);
+    this.placeholder = placeholder;
+  }
+  get value(): string {
+    return this.backing;
+  }
+  set value(v: string) {
+    this.backing = v;
+  }
+}
+
+class FakeEvent {
+  type: string;
+  bubbles: boolean;
+  constructor(type: string, opts: { bubbles?: boolean } = {}) {
+    this.type = type;
+    this.bubbles = opts.bubbles === true;
+  }
+}
+
+function fakeDocument(root: FakeElement): Document {
+  const walk = (el: FakeElement, out: FakeElement[]): FakeElement[] => {
+    out.push(el);
+    for (const k of el.kids) walk(k, out);
+    return out;
+  };
+  return {
+    querySelectorAll(selector: string): FakeElement[] {
+      // A comma list of tag( .class ) compounds — matched for real, so a selector the driver did not
+      // ask for cannot be answered by a fake that only knew the one it was handed.
+      const compounds = selector.split(',').map((s) => s.trim());
+      return walk(root, []).filter((el) =>
+        compounds.some((c) => {
+          const m = /^([a-z]+)(?:\.([a-zA-Z-]+))?$/.exec(c);
+          return !!m && el.tagName === m[1] && (!m[2] || el.classList.contains(m[2]));
+        }),
+      );
+    },
+  } as unknown as Document;
+}
+
+describe('createDomDriver — the DOM seam over the studio’s own markup (v453)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('elements() lists the .btn buttons and .field inputs, and NOTHING else', () => {
+    // A div wearing the class is not a button: the selector is tag-QUALIFIED, and a fake that answered
+    // any .btn would have hidden that. Document order, nesting included.
+    const root = new FakeElement('body');
+    const decoyDiv = new FakeElement('div', ['btn']);
+    const compose = new FakeButtonElement('Compose');
+    const prompt = new FakeInputElement('analytics dashboard');
+    const bareButton = new FakeButtonElement('Bare');
+    bareButton.classes = [];
+    const bareInput = new FakeInputElement('bare');
+    bareInput.classes = [];
+    const wrapper = new FakeElement('div');
+    const nested = new FakeButtonElement('Nested');
+    wrapper.append(nested);
+    root.append(decoyDiv, compose, prompt, bareButton, bareInput, wrapper);
+    vi.stubGlobal('document', fakeDocument(root));
+    vi.stubGlobal('HTMLButtonElement', FakeButtonElement);
+    vi.stubGlobal('HTMLInputElement', FakeInputElement);
+
+    const els = createDomDriver().elements();
+    expect(els).toEqual([
+      { kind: 'button', label: 'Compose' },
+      { kind: 'input', label: 'analytics dashboard' },
+      { kind: 'button', label: 'Nested' },
+    ]);
+  });
+
+  it('a button’s label is its trimmed text; an input’s is its placeholder cut at 28 characters', () => {
+    const root = new FakeElement('body');
+    const padded = new FakeButtonElement('   Compose   ');
+    const long = new FakeInputElement('describe the dashboard you want, in your own words');
+    root.append(padded, long);
+    vi.stubGlobal('document', fakeDocument(root));
+    vi.stubGlobal('HTMLButtonElement', FakeButtonElement);
+    vi.stubGlobal('HTMLInputElement', FakeInputElement);
+
+    const els = createDomDriver().elements();
+    expect(els[0]!.label).toBe('Compose');
+    expect(els[1]!.label).toBe('describe the dashboard you w');
+    expect(els[1]!.label).toHaveLength(28);
+  });
+
+  it('click() clicks the element and answers with its own words — and refuses anything that is not a button', () => {
+    const root = new FakeElement('body');
+    const compose = new FakeButtonElement('Compose');
+    const prompt = new FakeInputElement('analytics dashboard');
+    root.append(compose, prompt);
+    vi.stubGlobal('document', fakeDocument(root));
+    vi.stubGlobal('HTMLButtonElement', FakeButtonElement);
+    vi.stubGlobal('HTMLInputElement', FakeInputElement);
+    const driver = createDomDriver();
+
+    expect(driver.click(0)).toBe('click:Compose');
+    expect(compose.clicks).toBe(1);
+    expect(() => driver.click(1)).toThrow(/element 1 is not a button/);
+    expect(() => driver.click(99)).toThrow(/element 99 is not a button/);
+  });
+
+  it('type() writes through the NATIVE setter and fires a bubbling input event — a React shadow does not block it', () => {
+    // The instance carries an OWN value property, the shadow a framework leaves behind. A plain
+    // assignment would write that shadow and a listener would see nothing; the driver reads the
+    // PROTOTYPE accessor's setter, which is why the backing field moves and the event fires.
+    const root = new FakeElement('body');
+    const prompt = new FakeInputElement('analytics dashboard');
+    const compose = new FakeButtonElement('Compose');
+    root.append(prompt, compose);
+    Object.defineProperty(prompt, 'value', { value: 'shadow', writable: true, configurable: true });
+    vi.stubGlobal('document', fakeDocument(root));
+    vi.stubGlobal('HTMLButtonElement', FakeButtonElement);
+    vi.stubGlobal('HTMLInputElement', FakeInputElement);
+    vi.stubGlobal('Event', FakeEvent);
+    const driver = createDomDriver();
+
+    expect(driver.type(0, 'sales overview')).toBe('type:analytics dashboard=sales overview');
+    expect(prompt.backing).toBe('sales overview');
+    expect(prompt.events).toEqual([{ type: 'input', bubbles: true }]);
+    expect(root.events).toEqual([{ type: 'input', bubbles: true }]); // it bubbled
+    expect(() => driver.type(1, 'x')).toThrow(/element 1 is not an input/);
+  });
+
+  it('the driver reads the document at CALL time, not at creation', () => {
+    const root = new FakeElement('body');
+    vi.stubGlobal('document', fakeDocument(root));
+    vi.stubGlobal('HTMLButtonElement', FakeButtonElement);
+    vi.stubGlobal('HTMLInputElement', FakeInputElement);
+    const driver = createDomDriver();
+    expect(driver.elements()).toEqual([]);
+    root.append(new FakeButtonElement('Later'));
+    expect(driver.elements()).toEqual([{ kind: 'button', label: 'Later' }]);
   });
 });
