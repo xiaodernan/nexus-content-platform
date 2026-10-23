@@ -4,7 +4,7 @@ import { projectBelongsTo } from '@/server/domain/projects';
 import { getDb } from '@/server/db/client';
 import { characters, memories } from '@/server/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import { badRequest, jsonError, notFound } from '@/server/http';
+import { readJson, badRequest, jsonError, notFound } from '@/server/http';
 import { z } from 'zod';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
@@ -49,7 +49,7 @@ export async function POST(
       return jsonError(429, 'rate_limited', { message: '对话太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
     }
 
-    const parsed = await req.json();
+    const parsed = await readJson(req);
     const result = ChatRequestSchema.safeParse(parsed);
     if (!result.success) {
       return badRequest(result.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));

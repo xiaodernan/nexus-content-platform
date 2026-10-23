@@ -4,7 +4,7 @@ import { getEmbeddingProvider, hasEmbeddingProvider } from '@/server/ai/embeddin
 import { VectorStore } from '@/server/ai/vector-store';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
-import { badRequest, jsonError } from '@/server/http';
+import { readJson, badRequest, jsonError } from '@/server/http';
 import { z } from 'zod';
 
 const SearchQuerySchema = z.object({
@@ -29,7 +29,7 @@ export async function POST(
       return jsonError(404, 'not_found', { message: '项目不存在' });
     }
 
-    const raw = await req.json();
+    const raw = await readJson(req);
     const parsed = SearchQuerySchema.safeParse(raw);
     if (!parsed.success) {
       return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));

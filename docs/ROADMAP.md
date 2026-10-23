@@ -5785,3 +5785,28 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   tasks-ledger(.integration) / tasks-ledger.test 五套件 39/39；tsc 0、改动文件 eslint 0。
   变异探针：摘掉 `submit.ts` 的额度门 → 该文件精确红（`expected true to be false`），
   从 `.scratch/submit.ts.fixed` 逐字节还原后复绿。
+
+- **2026-10-23 第三十一片（#181）：坏 JSON 正文不再变成 500——`req.json()` 抛的 SyntaxError 按 400 收，三条路由同族修完**。
+  `marketplace/route.ts` 里那句注释早就记着这一族："此前 `await req.json()` 在 try 之外，
+  非 JSON 正文直接把请求带崩成 500"——当时只修了那一条。这一轮反过来问
+  "还有哪些路由把 `await req.json()` 放在了会把它接住的地方"，全仓扫出**三条**：
+  `POST /api/projects/<id>/knowledge/block`、`POST /api/projects/<id>/knowledge/search`、
+  `POST /api/projects/<id>/characters/<characterId>/chat`。三处都是同一个形状：
+  `req.json()` 在 try 里，SyntaxError 被 catch 收走，回的话从"请求体不是 JSON"
+  变成"读取语料块失败 / 检索失败 / 对话失败"——**调用方写错了请求，服务端报自己的故障**。
+  错误码是契约的一部分：500 会让客户端走上重试与报警，而它该做的是改正文。
+  修法用仓库里早就有的 `readJson(req)`（`server/http.ts`，解析失败回 null），
+  不新造helper：三条路由的 zod schema 都是 `z.object(...)`，`safeParse(null)` 照旧 400，
+  话术与 marketplace 那条一致（`validation_failed` + 指出是 body）。
+  **同族扫完的结论**：`/api/ai/run` 与 `/api/ai/jobs` 早就做对了（try 包 `req.text()` + `JSON.parse`，
+  坏正文回 400「请求体必须是 JSON」），`import.ts` 里两处 `JSON.parse` 也各自拒收；
+  这三条是这一族剩下的全部。
+  见证：新文件 `apps/web/test/bad-json-body.integration.test.ts` 5/5 绿。判据三层——
+  ① 六种坏法（截断 JSON / 空正文 / 数组 / 字符串 / 数字 / null）全部 400；
+  ② 只打三条路由不够，另钉两条**早就做对了**的同族路由（`/api/ai/run`、`/api/ai/jobs`），
+  将来谁把它们"统一"成上面那种写法，这条会红；
+  ③ **正对照**：正常正文照旧走完——block/search 200，chat 停在 409 `demo_mode`
+  （今天的正确答案：没有真 provider 就不假装角色在说话；它在这里的含义是正文解析成功了）。
+  变异探针：逐条把路由还原成 `await req.json()` → 每次精确红 1 条（就是那条路由那一组），
+  其余 4 条不受影响；逐字节还原后 5/5 复绿。
+  tsc -p apps/web 0；改动文件 eslint 0；相邻七套件（knowledge ×3 / character ×3 / 本文件）71/71。
