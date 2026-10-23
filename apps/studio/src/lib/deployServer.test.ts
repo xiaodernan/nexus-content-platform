@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import {
   createStudioDeploySink,
   deployArcState,
+  nodeDeployFs,
   readStudioDeployRecords,
   runStudioDeployArc,
   studioDeployCheckpointPolicyError,
@@ -311,5 +315,46 @@ describe('studio deploy records read-back (v178)', () => {
       expect(s.status).toBe('unplanned');
       expect(s.facts).toEqual([]);
     });
+  });
+});
+
+describe('nodeDeployFs — the production fs the sink lands on (v456)', () => {
+  // Every other case in this file injects an in-memory fake. The DEFAULT is this one, and its two
+  // decisions had no direct case: it makes the directory before it appends, and its reads are node's
+  // own. A real temp directory is the honest witness — no fake can answer for mkdir.
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'nexus-deploy-fs-'));
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('appendFileSync CREATES the directory — a records path may be the first thing in it', async () => {
+    const file = join(dir, 'deep', 'nested', 'deployments.jsonl');
+    expect(existsSync(join(dir, 'deep'))).toBe(false);
+    nodeDeployFs.appendFileSync(file, '{"arcId":"a"}\n');
+    expect(existsSync(join(dir, 'deep', 'nested'))).toBe(true);
+    expect(nodeDeployFs.readFileSync(file, 'utf8')).toBe('{"arcId":"a"}\n');
+  });
+
+  it('appendFileSync APPENDS — the records file is append-only, not rewritten', () => {
+    const file = join(dir, 'records.jsonl');
+    nodeDeployFs.appendFileSync(file, 'one\n');
+    nodeDeployFs.appendFileSync(file, 'two\n');
+    expect(nodeDeployFs.readFileSync(file, 'utf8')).toBe('one\ntwo\n');
+  });
+
+  it('readFileSync hands back the bytes as written — JSONL survives whole', () => {
+    const file = join(dir, 'records.jsonl');
+    const lines = ['{"a":1}', '{"b":"two words"}', '{"c":null}'].join('\n') + '\n';
+    nodeDeployFs.appendFileSync(file, lines);
+    expect(nodeDeployFs.readFileSync(file, 'utf8')).toBe(lines);
+  });
+
+  it('readFileSync on a missing file throws ENOENT — node’s own answer, not a fake’s', () => {
+    expect(() => nodeDeployFs.readFileSync(join(dir, 'nope.jsonl'), 'utf8')).toThrow(/ENOENT/);
   });
 });
