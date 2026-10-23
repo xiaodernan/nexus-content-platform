@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild, type SpawnLike } from '../src/execHost.js';
-import { GIT_STAGED_TOOL_SPECS, gitStagedPolicy, parseStagedDiff, registerGitStagedTool, tallyStagedCounts } from '../src/gitStagedTool.js';
+import { GIT_STAGED_TOOL_SPECS, gitStagedPolicy, parseStagedDiff, registerGitStagedTool, STAGED_CHANGE_ORDER, tallyStagedCounts } from '../src/gitStagedTool.js';
 import { GIT_DIFF_FLAGS, gitEnv } from '../src/gitTools.js';
 
 const ADDED = `diff --git a/notes/widget.md b/notes/widget.md
@@ -476,5 +476,49 @@ describe('v66 — a cut index read is a WINDOW on the index, not a census of it'
         expect(o.detail).toContain(`index holds ${o.truncated ? 'AT LEAST ' : ''}${o.totals.files} change(s)`);
       }
     }
+  });
+});
+
+/**
+ * v469 — the STAGED CHANGE ORDER, graded directly.
+ *
+ * `STAGED_CHANGE_ORDER` is the order the tally is spoken in, and the tally case above proves the
+ * SENTENCE comes out canonical — but the constant that decides it was never asked: its membership,
+ * that no kind is spoken twice, that the sentence’s order IS this list’s order whatever order the
+ * counts arrive in, and that every kind the parser can name is on the list at all.
+ */
+describe('the staged change order (v469)', () => {
+  const COPIED = `diff --git a/src.md b/copy.md
+similarity index 90%
+copy from src.md
+copy to copy.md
+index 1111111..2222222 100644
+--- a/src.md
++++ b/copy.md
+@@ -1 +1 @@
+-here
++here, copied
+`;
+
+  it('the order is the five git change kinds, in the canonical sentence order', () => {
+    expect(STAGED_CHANGE_ORDER).toEqual(['added', 'modified', 'deleted', 'renamed', 'copied']);
+  });
+
+  it('no kind appears twice — a sentence that counted one kind twice would double-report it', () => {
+    expect(new Set(STAGED_CHANGE_ORDER).size).toBe(STAGED_CHANGE_ORDER.length);
+  });
+
+  it('the tally speaks in THIS order whatever order the counts arrive in', () => {
+    const shuffled: Partial<Record<(typeof STAGED_CHANGE_ORDER)[number], number>> = {};
+    for (const kind of [...STAGED_CHANGE_ORDER].reverse()) shuffled[kind] = 1;
+    const expected = STAGED_CHANGE_ORDER.map((k) => `1 ${k}`).join(', ');
+    expect(tallyStagedCounts(shuffled)).toBe(expected);
+  });
+
+  it('every kind the parser can name is on the list — the vocabulary and the sentence agree', () => {
+    const parsed = parseStagedDiff([ADDED, MODIFIED, DELETED, RENAMED, COPIED].join(''));
+    const kinds = new Set(parsed.files.map((f) => f.change));
+    expect(kinds.size).toBe(5);
+    for (const kind of kinds) expect(STAGED_CHANGE_ORDER, kind).toContain(kind);
   });
 });
