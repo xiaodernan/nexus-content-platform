@@ -1128,3 +1128,40 @@ drizzle 817ms vs 裸 sql 499ms）。**同一层在别的路径上跑着**，所�
 （今天补上）⇒ 也顺带把 M8 整格从 `[~]` 升到 `[x]`（那一格挂着的"还没做"逐条核实后都已落地或今天补上）。
 ⇒ 顺带记一条：**ROADMAP 里的"还没做"是历史快照**——今天第三次撞见（§132、API 访问账、这一条）⇒
 **动手之前先核实那一行现在是什么状态**（§159：不拿旧账当现状）。
+
+### 2026-10-23 晚：流式首屏落地（§147 第三片）——"文档是否完整"的前置已经被 `state.ready` 满足
+
+**改法**（`apps/web/src/app/studio/[projectId]/page.tsx` + `apps/web/src/studio/StudioShell.tsx`）：
+服务端创建文档 promise 后**不 await**，作为 prop 流给客户端；`DocumentStream` 用 `use()` 解包，
+到了才 `studio.bootstrap()`。包在 `<Suspense fallback={null}>` 里 ⇒ shell 先 flush，
+文档 chunk 后到。`bootstrap` 与 `useEffect` 里那个 `studio.load()` **谁先到都安全**：
+`bootstrap` 对"已经 load 过同一个 projectId"是幂等 no-op（store.ts 的同名判断），不会互相覆盖。
+
+**2026-10-21 那格撞上的产品问题有工程答案了**：当时记的是"流式的前置是'文档是否完整'这个状态
+（编辑前未齐就要等 ⇒ 那次等待就是流式的代价）"。**这个状态本来就有**：`state.ready`——
+画布只在 `bootstrap`/`load` 装好**全量**文档之后渲染 ⇒ **编辑不可能早于文档到齐**
+（没有画布可点）⇒ "多久开始编辑"两种答案都安全，不必等产品拍板。
+
+**生产构建 A/B**（`next build` 后两个 `next start`，同一构建、`NEXUS_STUDIO_SSR_DOCUMENT=1/0`、
+`scripts/perf-browser.mts`，1000 档，3 次丢预热取中位；口径 `prod-stream-on/off-5e3180f`）：
+
+| 指标 | stream-on（流式） | stream-off（客户端 fetch） |
+|---|---|---|
+| 首帧（起手 8 节点） | **46.6ms** | 103.1ms |
+| 首帧（1000 节点） | 283ms | **161.9ms** |
+| 属性写入 → 画布（1000） | 8.8ms | 9.3ms |
+| 选中响应（1000） | 14.7ms | 19.4ms |
+| pan/zoom 中位帧距 | 6.1ms | 6.1ms |
+| JS 堆峰值（1000） | 37MB | 33MB |
+
+- **小文档快 2.2×**（46.6 vs 103.1）：省掉客户端那次 fetch 往返。
+- **1000 档稍慢**（283 vs 162ms）：RSC 的 flight 序列化/反序列化比 fetch + `JSON.parse` 重，
+  但**同量级**（都远低于旧"同步阻塞 HTML"的 2 秒级，旧数是 dev 口径、不可直接比）。
+- 交互指标两态持平（属性写入、选中、帧距）⇒ 流式不动编辑路径的任何前提。
+- 老路（整份文档同步进 HTML）这一轮**没有重测**：代码已换成流式，要对比得临时回退；
+  需要那个数的话按 `NEXUS_STUDIO_SSR_DOCUMENT` 的三态（默认流式 / `0` 客户端取）另跑。
+
+**验证**：`@smoke studio slice` 两条（渲染模型 + 选中改属性撤销保存）在 dev 下通过；
+生产构建首帧全档量到（起手 8 节点 46.6ms、1000 节点 283ms）；调试期手动复刻 perf 脚本
+前置步骤（pan/zoom 后 goto 再点标题节点）确认属性面板照旧出现——perf 脚本第一轮挂在
+`typography.fontSize` 超时是偶发（build 后 CPU 未冷），重跑即过，**不是流式引入的回归**。

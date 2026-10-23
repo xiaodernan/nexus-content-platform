@@ -5713,3 +5713,18 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   判决书：`docs/adr/0058-report-escalation-duplicate-cases.md` 与
   `docs/adr/0059-asset-checksum-twin-duplicates.md`。
   在此之前，新代码不许给这两处加唯一索引。
+
+- **2026-10-23 第二十九片半（#178）：流式首屏落地并实测（§147 第三片）**。
+  `page.tsx` 创建文档 promise 后**不 await**，流给客户端；`StudioShell` 里新增 `DocumentStream`
+  （`use()` 解包 + `bootstrap`，包在 `<Suspense fallback={null}>`）⇒ shell 先 flush、文档 chunk 后到。
+  **2026-10-21 记的那个产品问题有工程答案了**：当时说流式的前置是"文档是否完整"这个状态——
+  **这个状态本来就有**（`state.ready`：画布只在 bootstrap/load 装好全量文档后渲染）⇒
+  编辑不可能早于文档到齐 ⇒ "用户多久开始编辑"两种答案都安全，不必等产品拍板。
+  `bootstrap` 与 `load()` 谁先到都安全（bootstrap 对已 load 过的同一项目是幂等 no-op）。
+  **生产构建 A/B**（同一构建、`NEXUS_STUDIO_SSR_DOCUMENT=1/0`、`perf-browser.mts` 1000 档）：
+  起手 8 节点首帧 **46.6ms vs 103.1ms**（流式快 2.2×，省一次 fetch 往返）；
+  1000 节点首帧 283ms vs 161.9ms（流式稍慢——flight 序列化比 fetch+JSON.parse 重，但同量级）；
+  属性写入 8.8 vs 9.3ms、选中 14.7 vs 19.4ms、帧距 6.1ms 两态持平。
+  见证：`5e3180f` 之后的 studio 接线（见本次提交）；`@smoke studio slice` 两条 dev 下通过；
+  生产构建全档量到；调试手动复刻确认 perf 脚本首轮挂 `typography.fontSize` 是偶发非回归。
+  数与口径写进 `docs/PERFORMANCE.md` 末尾（2026-10-23 晚那一节）。

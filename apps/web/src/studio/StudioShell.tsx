@@ -1,6 +1,6 @@
 'use client';
 
-import { Profiler, useEffect, useState, type ProfilerOnRenderCallback } from 'react';
+import { Profiler, Suspense, use, useEffect, useState, type ProfilerOnRenderCallback } from 'react';
 import type { DesignDocument } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
 import { studio, useStudio } from './store';
@@ -91,25 +91,46 @@ const recordRender = (id: string): ProfilerOnRenderCallback => (_id, _phase, act
 
 const recordWorkspaceRender = recordRender('workspace');
 
+/**
+ * §147 流式首屏的客户端那一半：服务端文档**后到**，到了才 bootstrap。
+ *
+ * 三件事写在这里因为它们都不显眼：
+ * 1. `use()` 解包 promise——pending 时本组件挂起（Suspense fallback 是 null，
+ *    shell 的其余部分照常显示），文档 chunk 到达后自动接着渲染；
+ * 2. `bootstrap` 与 `useEffect` 里那个 `studio.load()` **谁先到都安全**：
+ *    `bootstrap` 对"已经 load 过同一个 projectId"是幂等 no-op（store.ts 的同名判断），
+ *    所以不会互相覆盖，也不会把首屏省下来的那次往返又赌输；
+ * 3. 读失败时服务端已 `.catch(() => null)`，这里只会拿到 null——什么都不做，
+ *    `load()` 的失败路径照旧把原因显示出来（不装作读过）。
+ */
+function DocumentStream({ documentPromise }: { documentPromise: Promise<DesignDocument | null> }) {
+  const document = use(documentPromise);
+  useEffect(() => {
+    if (document) studio.bootstrap(document);
+  }, [document]);
+  return null;
+}
+
 /** §4 Studio 外壳：负责载入与保存时机，不做布局细节 */
 export function StudioShell({
   projectId,
   demoMode,
-  initialDocument,
+  documentPromise,
 }: {
   projectId: string;
   demoMode: boolean;
-  /** 服务端随 HTML 带下来的那一份文档；没有它就走原来的"水合后再 fetch" */
-  initialDocument?: DesignDocument;
+  /**
+   * 服务端那份文档的 promise（§147 流式首屏，2026-10-23）。**不 await 地传下来**：
+   * shell 先渲染，文档作为同一个响应的后续 chunk 后到——`use()` 在这个组件树下
+   * 解开它。没有它（构建开关关掉 SSR 文档）就走原来的"水合后再 fetch"。
+   */
+  documentPromise?: Promise<DesignDocument | null>;
 }) {
   const state = useStudio();
 
   useEffect(() => {
-    // 先装服务端给的那一份，再叫 load()：它看到 `loadedFor` 已经对上就直接返回，
-    // 于是首屏少一次接口往返，而"没有 initialDocument"的老路径一行都没变。
-    if (initialDocument) studio.bootstrap(initialDocument);
     void studio.load(projectId);
-  }, [projectId, initialDocument]);
+  }, [projectId]);
 
   useEffect(() => {
     // 四份真值各自收尾：设计文档走画布的撤销栈，世界、游戏与分镜文档走各自的待写队列
@@ -128,6 +149,11 @@ export function StudioShell({
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-0 text-fg-1" data-studio-root data-project-id={projectId}>
+      {documentPromise ? (
+        <Suspense fallback={null}>
+          <DocumentStream documentPromise={documentPromise} />
+        </Suspense>
+      ) : null}
       {state.ready ? (
         <Profiler id="workspace" onRender={recordWorkspaceRender}>
           <StudioWorkspace zoom={state.zoom} demoMode={demoMode} />
