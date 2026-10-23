@@ -7,6 +7,7 @@ import {
   runContainerExec,
   STUDIO_CONTAINER_IMAGE,
   STUDIO_CONTAINER_POLICY,
+  STUDIO_CONTAINER_WORKDIR_ROOT,
   studioContainerPolicyError,
 } from './containerServer';
 
@@ -123,5 +124,85 @@ describe('studio container lane state (v172)', () => {
     const s = await containerLaneState({ spawnLike });
     expect(s.available).toBe(false);
     expect(s.reason).toContain('docker CLI failed');
+  });
+});
+
+describe('studio container workdir root, graded directly (v472)', () => {
+  it('the constant is a posix container jail root, and the policy carries that very constant', () => {
+    expect(STUDIO_CONTAINER_WORKDIR_ROOT).toBe('/workspace');
+    expect(STUDIO_CONTAINER_WORKDIR_ROOT.startsWith('/')).toBe(true);
+    expect(STUDIO_CONTAINER_WORKDIR_ROOT.includes('\\')).toBe(false);
+    expect(STUDIO_CONTAINER_WORKDIR_ROOT.split('/').some((p) => p === '..')).toBe(false);
+    expect(STUDIO_CONTAINER_WORKDIR_ROOT.endsWith('/')).toBe(false);
+    expect(STUDIO_CONTAINER_POLICY.workdirRoot).toBe(STUDIO_CONTAINER_WORKDIR_ROOT);
+    expect(studioContainerPolicyError()).toBeNull();
+  });
+
+  it('a run with no cwd — or a cwd that is not a string — lands exactly at the root, and docker is told so', async () => {
+    const { spawnLike, calls } = fakeSpawn();
+    for (const cwd of [undefined, 42]) {
+      const a = await runContainerExec({ argv: ['node', '--version'], cwd }, { spawnLike });
+      expect(a.ok).toBe(true);
+      if (a.ok) {
+        expect(a.ran).toBe(true);
+        expect(a.result.workdir).toBe(STUDIO_CONTAINER_WORKDIR_ROOT);
+      }
+    }
+    expect(calls).toHaveLength(2);
+    for (const call of calls) {
+      const at = call.args.indexOf('-w');
+      expect(at).toBeGreaterThan(-1);
+      expect(call.args[at + 1]).toBe(STUDIO_CONTAINER_WORKDIR_ROOT);
+    }
+  });
+
+  it('a relative cwd is jailed UNDER the root, never beside it', async () => {
+    const { spawnLike, calls } = fakeSpawn();
+    const sub = await runContainerExec({ argv: ['node', '--version'], cwd: 'sub/dir' }, { spawnLike });
+    expect(sub.ok).toBe(true);
+    if (sub.ok) expect(sub.result.workdir).toBe(STUDIO_CONTAINER_WORKDIR_ROOT + '/sub/dir');
+    const dot = await runContainerExec({ argv: ['node', '--version'], cwd: '.' }, { spawnLike });
+    expect(dot.ok).toBe(true);
+    if (dot.ok) expect(dot.result.workdir).toBe(STUDIO_CONTAINER_WORKDIR_ROOT);
+    expect(calls).toHaveLength(2);
+    expect(calls[0]!.args[calls[0]!.args.indexOf('-w') + 1]).toBe(STUDIO_CONTAINER_WORKDIR_ROOT + '/sub/dir');
+    expect(calls[1]!.args[calls[1]!.args.indexOf('-w') + 1]).toBe(STUDIO_CONTAINER_WORKDIR_ROOT);
+  });
+
+  it('an escaping cwd is refused by name before any spawn — the root is a jail, not a suggestion', async () => {
+    const { spawnLike, calls } = fakeSpawn();
+    const escapes: Array<[unknown, string]> = [
+      ['../etc', 'path escapes the allowed root'],
+      ['..\\..\\etc', 'path escapes the allowed root'],
+      ['/etc', 'absolute paths are not allowed'],
+      ['C:\\win', 'absolute paths are not allowed'],
+    ];
+    for (const [cwd, why] of escapes) {
+      const a = await runContainerExec({ argv: ['node', '--version'], cwd }, { spawnLike });
+      expect(a.ok).toBe(true);
+      if (a.ok) {
+        expect(a.ran).toBe(false);
+        expect(a.result.planned).toBe(false);
+        expect(a.result.reason).toContain('cwd refused');
+        expect(a.result.reason).toContain(why);
+        expect(a.result.dockerArgs).toEqual([]);
+      }
+    }
+    expect(calls).toHaveLength(0);
+  });
+
+  it('the lane state states the pinned root on both branches — available or not', async () => {
+    const up = await containerLaneState({ spawnLike: fakeSpawn('29.8.2\n').spawnLike });
+    expect(up.available).toBe(true);
+    expect(up.workdirRoot).toBe(STUDIO_CONTAINER_WORKDIR_ROOT);
+    const down = await containerLaneState({
+      spawnLike: () => ({
+        onData: () => {},
+        onEnd: (l: (e: { code: number | null; signal: string | null; error?: string }) => void) => setImmediate(() => l({ code: null, signal: null, error: 'spawn ENOENT' })),
+        kill: () => {},
+      }),
+    });
+    expect(down.available).toBe(false);
+    expect(down.workdirRoot).toBe(STUDIO_CONTAINER_WORKDIR_ROOT);
   });
 });
