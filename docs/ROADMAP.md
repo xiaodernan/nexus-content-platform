@@ -5670,3 +5670,22 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   重写范围），于是窗口根本没造出来——只取非 design 的键才复现。
   见证：knowledge / memory-search / memories 29/29 + world / games / storyboards / characters /
   context 48/48；tsc 0、eslint 0。
+
+- **2026-10-23 第二十八片（#176）：恢复路由对非 UUID 的 id 不再 500——`restoreProject` 补形状门，20 条动态参数路由全扫**。
+  拿 `not-a-uuid` 把 id-shape 测试没覆盖到的动态参数路由全部打了一遍（20 条），
+  只有一条真漏：`POST /api/projects/<id>/restore`。恢复这条路**直达域层**（不像别的
+  项目路由先过 `projectBelongsTo`），而 `restoreProject` 的 UPDATE 是裸
+  `eq(projects.id, …)`——非 UUID 的 id 撞 22P02，路由 catch 住变 500「恢复失败」，
+  而它只是一次打错的请求。修法同族：域层形状不对按"不存在"处理回 null，路由照旧
+  翻 404，与 `softDeleteProject` 同一道门、同一句回执。其余 19 条实测全部安全：
+  `ai/jobs` 两条路的 `taskByJobId` 查的是 text 列 `providerJobId`（作业号本来就不是
+  UUID 形状）；tasks 的 approval/retry 走已有的门；assets 两条走 `rowById`；
+  branches switch 双 id 都验；characters/memories/snapshots 三族的子 id 门都在；
+  v1 三条先过 `projectBelongsTo`。这 19 条没有修复动作，收编进测试是为了锁住
+  "不打 500"这条不变式。**收编时避开了空转**：角色 PATCH 的报文按
+  `CharacterProfileSchema` 填满、v1 补丁带必填的 `summary`——第一版探针这两条都只在
+  zod 层拿了 400，守卫根本没被走到（#170 的教训）；v1 design PATCH 补上 summary 后
+  从 400 变 404，正是"真的走到域层"的证据。
+  见证：`5e3180f`；id-shape 42/42；projects / project-delete / snapshots / branches
+  四套件加 id-shape 共 92/92；api-v1 8/8；tsc 0、改动文件 eslint 0。
+  变异探针：摘掉 `restoreProject` 的守卫，域层与路由两条测试精确红，其余 40 条不受影响。
