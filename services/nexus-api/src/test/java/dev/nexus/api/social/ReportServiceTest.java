@@ -272,6 +272,50 @@ class ReportServiceTest {
         assertThat(window.getValue().getPageSize()).isEqualTo(ReportService.MAX_REPORT_LIMIT);
     }
 
+    // ── v387: the offset is ROWS, and the pages it translates to are pinned ─────────────────────────
+
+    @Test
+    void theOffsetIsROWSNotAPageIndex() {
+        when(repository.findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        // A reporter with 37 complaints paging by 20: the second window starts at ROW 40.
+        service.reportsFiledBy("acct-bob", 40, 20, null);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
+        // Page 2 of 20 is rows 40–59. Handing the raw 40 to `PageRequest.of` would read it as page 40 —
+        // rows 800–819, an empty window a reader would be told was "past the end".
+        assertThat(window.getValue().getOffset()).isEqualTo(40L);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void anOffsetThatIsNotAWholeWindowLandsOnThePageBoundaryAtOrBeforeIt() {
+        when(repository.findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.reportsFiledBy("acct-bob", 25, 20, null);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
+        // Row 25 is inside the SECOND window (rows 20–39), and that window is the one whose rows the
+        // caller asked a question about. A page boundary is the only granularity a window has.
+        assertThat(window.getValue().getOffset()).isEqualTo(20L);
+    }
+
+    @Test
+    void aNegativeOffsetIsTheFirstWindowNotARefusal() {
+        when(repository.findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.reportsFiledBy("acct-bob", -40, 20, null);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
+        assertThat(window.getValue().getOffset()).isZero();
+    }
+
     // ── v311: the REPORT verbs are written down ───────────────────────────────────────────────────
 
     @Test

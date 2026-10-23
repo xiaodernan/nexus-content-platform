@@ -241,10 +241,16 @@ public class ReportService {
         int asked = limit <= 0 ? DEFAULT_REPORT_LIMIT : Math.min(limit, MAX_REPORT_LIMIT);
         int from = Math.max(offset, 0);
         String wanted = requireTargetType(targetType);
+        // v387 — the offset is ROWS, and Spring Data's `PageRequest` speaks PAGES. The parameter is named
+        // offset and the lane documents it as "starting at offset", so a caller that asked for the rows
+        // from 40 on must not be answered with the rows from 800 on — which is what handing the raw
+        // number to `PageRequest.of` does (it reads it as a page index). The translation is by whole
+        // windows: an offset that is not a multiple of the window lands on the page boundary at or
+        // before it, which is the only page whose rows the caller asked a question about.
+        PageRequest window = PageRequest.of(from / asked, asked);
         return wanted == null
-                ? repository.findByReporterAccountIdOrderByCreatedAtDesc(reporter, PageRequest.of(from, asked))
-                : repository.findByReporterAccountIdAndTargetTypeOrderByCreatedAtDesc(
-                        reporter, wanted, PageRequest.of(from, asked));
+                ? repository.findByReporterAccountIdOrderByCreatedAtDesc(reporter, window)
+                : repository.findByReporterAccountIdAndTargetTypeOrderByCreatedAtDesc(reporter, wanted, window);
     }
 
     /**
