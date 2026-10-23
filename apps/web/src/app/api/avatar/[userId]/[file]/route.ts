@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { openAvatar } from '@/server/domain/avatar';
+import { isUuid } from '@/server/domain/ids';
 import { bytesResponse, notFound } from '@/server/http';
 
 /**
@@ -12,15 +13,13 @@ import { bytesResponse, notFound } from '@/server/http';
  */
 export const dynamic = 'force-dynamic';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 interface RouteContext {
   params: Promise<{ userId: string; file: string }>;
 }
 
 export async function GET(_req: Request, ctx: RouteContext): Promise<NextResponse> {
   const { userId, file } = await ctx.params;
-  if (!UUID.test(userId)) return notFound();
+  if (!isUuid(userId)) return notFound();
   const found = await openAvatar(userId, decodeURIComponent(file));
   if (!found) return notFound();
   // 私有素材要 private，头像本来就是给所有人看的；nosniff 与 CSP 由同一个 helper 带上

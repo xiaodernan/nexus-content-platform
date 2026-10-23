@@ -1,3 +1,4 @@
+import { isUuid } from './ids';
 import { and, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { MAX_FLUSH_MS, clampReportedMs, utcDay, validVisitorKey } from '@/lib/visit-meter';
 import { getDb } from '../db/client';
@@ -345,16 +346,13 @@ function assemble(
   });
 }
 
-/** 形状不对的 id 不进 SQL：让 Postgres 报 22P02 会变成 500，而它该给的是"读不到"那个同一个答案 */
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * 作者名下的发布版本 + 六个数。所有权在 where 里，不在调用方：
  * 传别人的 publicationId 只会拿到空列表，所以"存在但看不到"这种含糊状态没有藏身处。
  */
 async function analyticsFor(ownerId: string, onlyPublicationId?: string): Promise<PublicationAnalyticsRow[]> {
   // 与 buildCreatorFact 同一道门禁：非法 UUID 直接是空结果，不是 500（"读不到"与"不存在"同答）
-  if (onlyPublicationId !== undefined && !UUID.test(onlyPublicationId)) return [];
+  if (onlyPublicationId !== undefined && !isUuid(onlyPublicationId)) return [];
   const db = getDb();
   const publications = await db
     .select({

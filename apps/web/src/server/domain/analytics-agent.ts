@@ -1,5 +1,6 @@
 import type { DesignDocument } from '@nexus/design-model';
 import { documentReferencesAsset } from './assets';
+import { isUuid } from './ids';
 import { getPublication } from './publish';
 import { publicationAnalytics, type AnalyticsNumbers } from './analytics';
 import { readSnapshot } from './snapshots';
@@ -215,15 +216,12 @@ export function analyzeCreatorFacts(fact: CreatorFact): Finding[] {
   return out;
 }
 
-/** 形状不对的 id 不进 SQL：让 Postgres 报 22P02 会变成 500，而它该给的是"读不到"那个同一个答案 */
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * 读库装配一份事实。归属不通过就返回 null（与"这个项目没有发布过"同一个答案，
  * 不区分别人的项目与不存在的项目，免得拿它探谁有什么）。
  */
 export async function buildCreatorFact(projectId: string, ownerId: string): Promise<CreatorFact | null> {
-  if (!UUID.test(projectId)) return null;
+  if (!isUuid(projectId)) return null;
   const db = getDb();
   const [row] = await db
     .select({ name: projects.name, description: projects.description, ownerId: projects.ownerId, deletedAt: projects.deletedAt })
