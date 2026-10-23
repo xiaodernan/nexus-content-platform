@@ -8,7 +8,7 @@ import {
   rectNode,
   type OpBatch,
 } from '@nexus/design-model';
-import { handleHitTest, handlePoints, hitRotated, normalizeDeg, rectCenter, rotateHandlePoint, rotationFromDrag, snapAngleDeg, subtreeRotatePlan } from './rotate';
+import { ROTATE_HANDLE_GAP, handleHitTest, handlePoints, hitRotated, normalizeDeg, rectCenter, rotateHandlePoint, rotationFromDrag, snapAngleDeg, subtreeRotatePlan } from './rotate';
 
 const R = { x: 0, y: 0, width: 200, height: 100 }; // centre (100,50)
 
@@ -178,5 +178,50 @@ describe('rotate — angle and hit edges', () => {
   it('handleHitTest misses just outside the tolerance, hits just inside', () => {
     expect(handleHitTest(R, 0, { x: 2, y: 2 }, 1)).toBeNull();
     expect(handleHitTest(R, 0, { x: 2, y: 2 }, 5)?.[2]).toBe('nw');
+  });
+});
+
+describe('rotate: the handle gap constant, graded directly (v473)', () => {
+  it('the constant is the pinned screen-space gap, and the historical literal was this constant all along', () => {
+    expect(ROTATE_HANDLE_GAP).toBe(24);
+    expect(Number.isInteger(ROTATE_HANDLE_GAP)).toBe(true);
+    expect(ROTATE_HANDLE_GAP).toBeGreaterThan(0);
+    // the cases above painted the grip with a literal 24 — the same number, now named
+    expect(rotateHandlePoint(R, 0, ROTATE_HANDLE_GAP)).toEqual(rotateHandlePoint(R, 0, 24));
+    expect(rotateHandlePoint(R, 90, ROTATE_HANDLE_GAP)).toEqual(rotateHandlePoint(R, 90, 24));
+  });
+
+  it('at rest the grip sits exactly the constant above the top edge, on the centre line', () => {
+    const grip = rotateHandlePoint(R, 0, ROTATE_HANDLE_GAP);
+    const topMid = { x: rectCenter(R).x, y: R.y };
+    expect(grip.x).toBeCloseTo(topMid.x, 10);
+    expect(grip.y).toBeCloseTo(R.y - ROTATE_HANDLE_GAP, 10);
+    expect(Math.hypot(grip.x - topMid.x, grip.y - topMid.y)).toBeCloseTo(ROTATE_HANDLE_GAP, 10);
+  });
+
+  it('the gap rides every rotation — the stem is exactly the constant long at any angle', () => {
+    const c = rectCenter(R);
+    for (let deg = 0; deg < 360; deg += 1) {
+      const rad = deg * (Math.PI / 180);
+      const topMid = { x: c.x + Math.sin(rad) * (R.height / 2), y: c.y - Math.cos(rad) * (R.height / 2) };
+      const grip = rotateHandlePoint(R, deg, ROTATE_HANDLE_GAP);
+      expect(Math.hypot(grip.x - topMid.x, grip.y - topMid.y)).toBeCloseTo(ROTATE_HANDLE_GAP, 9);
+    }
+  });
+
+  it('the constant is screen-space: divided by zoom, the painted stem is the constant at every zoom', () => {
+    for (const z of [0.25, 0.5, 1, 2, 4]) {
+      const grip = rotateHandlePoint(R, 0, ROTATE_HANDLE_GAP / z);
+      const topMid = { x: rectCenter(R).x, y: R.y };
+      expect(Math.hypot(grip.x - topMid.x, grip.y - topMid.y) * z).toBeCloseTo(ROTATE_HANDLE_GAP, 9);
+    }
+  });
+
+  it('the gap does not scale with the node — every height keeps the same constant stem', () => {
+    for (const height of [4, 40, 100, 1000]) {
+      const r = { x: 0, y: 0, width: 200, height };
+      const grip = rotateHandlePoint(r, 0, ROTATE_HANDLE_GAP);
+      expect(Math.hypot(grip.x - (r.x + r.width / 2), grip.y - r.y)).toBeCloseTo(ROTATE_HANDLE_GAP, 9);
+    }
   });
 });
