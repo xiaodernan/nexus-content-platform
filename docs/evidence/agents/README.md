@@ -56,7 +56,7 @@ same file is then asserted to run ZERO programs. `porcelain-path-proof.mjs` (v61
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 644/644 + @nexus/exec-host 336/336 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 640/640 + @nexus/exec-host 340/340 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -133,8 +133,8 @@ the SHAPE around it. One source, and no way for a loosening to look like a refac
 ## Unit tests (vitest, `agents/runtime/test`)
 
 The parenthesized counts below are the committed state, and they are checkable rather than
-decorative: the runtime rows sum to exactly **644** (43 files) and the `exec-host/*` rows to exactly
-**336** (13 files) — the same totals `npm test` prints. A row whose number drifts from its file is a
+decorative: the runtime rows sum to exactly **640** (43 files) and the `exec-host/*` rows to exactly
+**340** (13 files) — the same totals `npm test` prints. A row whose number drifts from its file is a
 documentation bug, so an increment that adds a case updates its row in the same commit. v63 found this
 table itself adrift: the `gitTools.test.ts` row still read (51) where HEAD measured 65, because every case
 that file gained after am. 61 (when the package total this table reproduced was 201) was tallied into the
