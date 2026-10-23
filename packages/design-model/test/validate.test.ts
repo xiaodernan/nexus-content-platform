@@ -132,3 +132,73 @@ describe('validateDocument (M7 v243)', () => {
     expect(c).toContain('active-page-missing');
   });
 });
+
+// v426 — the GEOMETRY axis. The graph checker said `ok: true` about a document whose `x` was the string
+// "040" (measured on HEAD), and `layoutPage` then handed the three renderers three different pictures of
+// the same box (plan §6: `left:040px`, `x="0"`, `moveTo("0400")`). The renderer's own answer to a value it
+// cannot place is SILENCE, so this is the only place a person can learn why the canvas is empty.
+describe('validateDocument geometry axis (M7 v426)', () => {
+  /** The same bytes a POST brings in: the declared `number` is a promise JSON.parse never kept. */
+  function withGeom(id: string, geom: Record<string, unknown>): DesignDocument {
+    const d = clone(withRect());
+    Object.assign(d.nodes[id] as unknown as Record<string, unknown>, geom);
+    return d;
+  }
+  const details = (doc: unknown) => (validateDocument(doc).ok ? [] : validateDocument(doc).problems.map((p) => p.detail));
+
+  it('refuses a document whose geometry is not a number, naming node, field and type', () => {
+    const d = withGeom('r1', { x: '040' });
+    expect(codes(d)).toContain('geometry-not-a-number');
+    expect(details(d).join('\n')).toContain('r1 (a rectangle) has non-finite x (string)');
+  });
+
+  it('names each bad field of one node, and nothing that is a number', () => {
+    const d = withGeom('r1', { x: null, width: [1] });
+    const line = details(d).find((t) => t.startsWith('r1'))!;
+    // read the field LIST, not a substring: 'y' lives inside 'array' and 'renderer'
+    const named = /has non-finite ([^(]+) \(([^)]+)\)/.exec(line);
+    expect(named![1].split(', ')).toEqual(['x', 'width']);
+    expect(named![2].split(', ')).toEqual(['null', 'array']);
+  });
+
+  it('accepts the geometry the model actually authors — including 0, negatives and fractions', () => {
+    const d = withGeom('r1', { x: -20.5, y: 0, width: 0, height: 1 / 3 });
+    expect(validateDocument(d).ok).toBe(true);
+  });
+
+  it('says what a corrupt ACTIVE PAGE costs: the page draws empty', () => {
+    const d = clone(withRect());
+    Object.assign(d.nodes[d.activePageId] as unknown as Record<string, unknown>, { width: '1440' });
+    const line = details(d).find((t) => t.includes('active page'))!;
+    expect(line).toContain('falls back to 0');
+    expect(line).toContain('width');
+  });
+
+  it('names a corrupt auto-layout gap or padding entry', () => {
+    const d = clone(withRect());
+    const pageId = d.activePageId;
+    const frame = pageNode('F', { id: 'fr', parentId: pageId, childIds: ['r1'], layout: { mode: 'vertical', gap: '10', padding: { top: NaN, right: 0, bottom: 0, left: 0 }, primaryAxis: 'start', counterAxis: 'start' } as never });
+    d.nodes['fr'] = frame;
+    (d.nodes[pageId] as unknown as { childIds: string[] }).childIds = ['fr'];
+    d.nodes['r1']!.parentId = 'fr';
+    const c = codes(d);
+    expect(c).toContain('layout-not-a-number');
+    expect(c.filter((x) => x === 'layout-not-a-number')).toHaveLength(2); // gap AND padding.top
+    expect(details(d).join('\n')).toContain('layout.gap (string)');
+    expect(details(d).join('\n')).toContain('top: number');
+  });
+
+  it('reports the TYPE of an offending value, never its bytes', () => {
+    const d = withGeom('r1', { y: '<img src=x onerror=alert(1)>' });
+    const all = JSON.stringify(validateDocument(d));
+    expect(all).not.toContain('onerror');
+    expect(all).not.toContain('<img');
+    expect(details(d).join('\n')).toContain('(string)');
+  });
+
+  it('does not charge the document root, whose own geometry is read by nothing', () => {
+    const d = clone(withRect());
+    Object.assign(d.nodes[d.rootId] as unknown as Record<string, unknown>, { x: 'oops' });
+    expect(codes(d)).not.toContain('geometry-not-a-number');
+  });
+});

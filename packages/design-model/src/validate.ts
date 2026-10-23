@@ -23,6 +23,14 @@
  *    `pageIds` beside the pages. Consumers filter by `type` (`PageTabs` does), which is why this has never
  *    been visible — but it means "every entry of `pageIds` is a page" is FALSE, and this check does not
  *    assert it. It is recorded as a bound, not repaired here.
+ *
+ * The GRAPH axis is not the only one a document from outside can fail. `layoutPage` (v426) also reads
+ * `x`/`y`/`width`/`height` and a container's `layout.gap`/`layout.padding` as NUMBERS, and the declared
+ * types do not survive JSON.parse: one string `"040"` there produced three different pictures — the
+ * artifact wrote it into CSS, the card coerced it to 0, the canvas concatenated it. The graph checker
+ * said `ok: true` about that document. So a GEOMETRY axis lives here too, naming the node, the field and
+ * the value's TYPE, because the renderer's own answer is silence: the node simply is not drawn, and a
+ * person looking at an empty canvas cannot tell whether the document is empty or corrupt.
  */
 import type { DesignDocument, DesignNode, NexusId } from './types.js';
 
@@ -141,6 +149,32 @@ export function validateDocument(doc: unknown): DocumentVerdict {
     if (Array.isArray(list) && !list.includes(key)) {
       add('parent-does-not-list-child', `${key}.parentId is ${parentId}, but ${parentId} does not list ${key} as a child`);
     }
+  }
+
+  // ---- geometry: the fields a renderer needs in order to place a drawing ----
+  const finite = (v: unknown): boolean => typeof v === 'number' && Number.isFinite(v);
+  // The TYPE is the whole story; the bytes are attacker-shaped and do not belong in a diagnostic string.
+  const shape = (v: unknown): string => (v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v);
+  for (const [key, node] of Object.entries(nodes)) {
+    if (!isObj(node) || key === rootId) continue; // a document's own geometry is read by nothing
+    const bad = (['x', 'y', 'width', 'height'] as const).filter((f) => !finite(node[f]));
+    if (!bad.length) continue;
+    if (key === doc.activePageId) {
+      add('geometry-not-a-number', `the active page ${key} has non-finite ${bad.join(', ')} (${bad.map((f) => shape(node[f])).join(', ')}) — the page rect falls back to 0, so the page draws empty`);
+      continue;
+    }
+    add('geometry-not-a-number', `${key} (a ${String(node.type)}) has non-finite ${bad.join(', ')} (${bad.map((f) => shape(node[f])).join(', ')}) — layoutPage emits no rect for it, so no renderer draws it and its subtree goes with it`);
+  }
+
+  // ---- auto-layout terms: the numbers a container ADDS to its running cursor ----
+  for (const [key, node] of Object.entries(nodes)) {
+    if (!isObj(node) || key === rootId) continue;
+    const layout = node.layout;
+    if (!isObj(layout)) continue;
+    if (!finite(layout.gap)) add('layout-not-a-number', `${key} (a ${String(node.type)}) has a non-finite layout.gap (${shape(layout.gap)}) — the cursor treats it as 0`);
+    if (!isObj(layout.padding)) continue;
+    const pad = Object.entries(layout.padding as Record<string, unknown>).filter(([, v]) => !finite(v));
+    if (pad.length) add('layout-not-a-number', `${key} (a ${String(node.type)}) has non-finite layout.padding entries (${pad.map(([f, v]) => `${f}: ${shape(v)}`).join(', ')}) — the cursor treats them as 0`);
   }
 
   // ---- no cycles, and every node reachable from the root ----

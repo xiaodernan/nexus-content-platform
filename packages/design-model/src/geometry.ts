@@ -9,6 +9,29 @@ export interface AbsRect {
 }
 
 /**
+ * An authored field is usable ONLY when it already is a finite number. `DesignNode` types these fields as
+ * `number`, but the typed path (ops validation) is not the only way bytes reach a layout: a published
+ * document is JSON a client POSTED and the service stores verbatim, and a local snapshot is a file read
+ * back off disk. JS then makes ONE such value look THREE ways — `0 + "40"` is the string `"040"`, which the
+ * artifact emits as `left:040px`, which the card's finite-guard rounds to `0`, which the 2D context then
+ * receives as `"0400"` (a width concatenated onto an x). Dropping the node here is the only answer all
+ * three renderers already share: each skips a node with no rect (`render.ts`'s `!r`, `thumbnail.ts`'s
+ * `!layout[id]`, `preview.ts`'s `layout[k.id] === undefined`).
+ */
+function isFiniteNumber(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v);
+}
+
+/** A number a layout ADDS to a running cursor: a corrupt term is 0, so one bad sibling cannot poison the row. */
+function step(v: unknown): number {
+  return isFiniteNumber(v) ? v : 0;
+}
+
+/** Every node needs a size; only a free-positioned node also needs a position of its own. */
+const hasSize = (n: DesignNode): boolean => isFiniteNumber(n.width) && isFiniteNumber(n.height);
+const hasPosition = (n: DesignNode): boolean => isFiniteNumber(n.x) && isFiniteNumber(n.y);
+
+/**
  * Pure projection of authored positions + auto-layout into absolute page-space rects.
  * The Design Model stores intent (authored x/y or a `layout`); this resolves them so the
  * canvas renderer, hit-testing and live preview all agree on one geometry (ADR 0005).
@@ -17,12 +40,19 @@ export interface AbsRect {
  * cyclic documents, but `layoutPage` is also fed persisted/deserialised state, so a
  * corrupt snapshot must degrade rather than blow the stack or hang the render loop.
  * First placement wins for a node reachable by more than one path.
+ *
+ * TOTAL in its output: every `AbsRect` it emits is four finite numbers. A node whose own authored
+ * geometry is not finite gets NO rect, and its subtree with it — an absolute position cannot be derived
+ * through a parent that has none. The page rect always exists and its corrupt size falls back to 0,
+ * which is what the three renderers already do for a missing page (`?? 0`, `n()`, the empty clip): the
+ * drawing says "I do not know the size" instead of inventing one. `validateDocument` names the fields
+ * this skips, so the silence is diagnosable.
  */
 export function layoutPage(doc: DesignDocument, pageId: NexusId): Record<NexusId, AbsRect> {
   const out: Record<NexusId, AbsRect> = {};
   const page = doc.nodes[pageId];
   if (!page) return out;
-  out[pageId] = { x: 0, y: 0, width: page.width, height: page.height };
+  out[pageId] = { x: 0, y: 0, width: step(page.width), height: step(page.height) };
   placeChildren(doc, page, { x: 0, y: 0 }, out, new Set([pageId]));
   return out;
 }
@@ -41,22 +71,26 @@ function placeChildren(
 
   if (layout) {
     const pad = layout.padding ?? { top: 0, right: 0, bottom: 0, left: 0 };
-    let cx = origin.x + pad.left;
-    let cy = origin.y + pad.top;
+    let cx = origin.x + step(pad.left);
+    let cy = origin.y + step(pad.top);
+    const gap = step(layout.gap);
     const horizontal = layout.mode === 'horizontal' || layout.mode === 'wrap';
     for (const k of kids) {
+      visited.add(k.id);
+      // x/y are the layout's to give, so a corrupt authored position is not a reason to skip
+      if (!hasSize(k)) continue;
       const rect: AbsRect = { x: cx, y: cy, width: k.width, height: k.height };
       out[k.id] = rect;
-      visited.add(k.id);
       placeChildren(doc, k, { x: cx, y: cy }, out, visited);
-      if (horizontal) cx += k.width + layout.gap;
-      else cy += k.height + layout.gap;
+      if (horizontal) cx += k.width + gap;
+      else cy += k.height + gap;
     }
   } else {
     for (const k of kids) {
+      visited.add(k.id);
+      if (!hasPosition(k) || !hasSize(k)) continue;
       const rect: AbsRect = { x: origin.x + k.x, y: origin.y + k.y, width: k.width, height: k.height };
       out[k.id] = rect;
-      visited.add(k.id);
       placeChildren(doc, k, { x: rect.x, y: rect.y }, out, visited);
     }
   }

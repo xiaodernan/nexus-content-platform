@@ -6,6 +6,7 @@ import {
   ops,
   rectNode,
   textNode,
+  validateDocument,
   type DesignDocument,
   type NexusId,
   type TextStyle,
@@ -224,5 +225,92 @@ describe('render: the declared text style reaches every renderer', () => {
     expect(svg).toContain('font-weight="400"');
     expect(svg).not.toContain('alert');
     expect(svg).not.toContain('text-anchor');
+  });
+});
+
+/**
+ * v426 — the same threat in the OTHER field family. A published document is JSON a client POSTed and the
+ * service stores verbatim, so `x`/`y`/`width`/`height` arrive as whatever the client wrote, and `layoutPage`
+ * ADDED them. Measured on HEAD before this block existed, one authored `x: "040"` gave three pictures of one
+ * box: the artifact wrote `left:040px`, the SVG card painted it at `x="0"`, and the canvas received
+ * `moveTo("0400", …)` — the width concatenated onto the x, because `roundRect` does `x + w`. A nested child
+ * inherited the string too (`kid` at x=5 became `"0405"`). `validateDocument` said `ok: true`.
+ * The boundary is in the model (`geometry.ts`): four finite numbers or NO RECT, which is the one answer all
+ * three renderers already share — each skips a node with no rect.
+ */
+describe('render: geometry that is not a number draws nothing in any renderer', () => {
+  /** One honest box, one whose authored `x` is the string "040" — the spelling the probe measured. */
+  function geomDoc(which: 'both' | 'honest' | 'corrupt' | 'none'): DesignDocument {
+    const doc0 = createEmptyDocument('Geometry');
+    if (which === 'none') return doc0;
+    const page = doc0.activePageId;
+    const nodes: ReturnType<typeof rectNode>[] = [];
+    if (which !== 'corrupt') nodes.push(rectNode('Honest', { id: 'honest', x: 10, y: 20, width: 100, height: 40 }));
+    if (which !== 'honest') nodes.push(rectNode('Corrupt', { id: 'corrupt', x: 300, y: 20, width: 100, height: 40 }));
+    const doc = applyBatch(doc0, {
+      id: 'b1',
+      ops: nodes.map((n, i) => ops.addSubtree(page, i, [n])),
+      provenance: { mode: 'user' },
+      timestamp: 0,
+    });
+    // These bytes never pass the op validator, so the authoring path cannot make them — a POST can.
+    if (which !== 'honest') Object.assign(doc.nodes['corrupt'] as unknown as Record<string, unknown>, { x: '040' });
+    return doc;
+  }
+
+  const artBoxes = (html: string) =>
+    [...html.matchAll(/left:(-?[\d.]+)px;top:(-?[\d.]+)px;width:(-?[\d.]+)px;height:(-?[\d.]+)px/g)].map((m) => m.slice(1).join('|'));
+  const cardRects = (svg: string) =>
+    [...svg.matchAll(/<rect x="(-?[\d.]+)" y="(-?[\d.]+)" width="(-?[\d.]+)" height="(-?[\d.]+)"/g)].map((m) => m.slice(1).join('|'));
+
+  const GEOMETRY = new Set(['setTransform', 'fillRect', 'strokeRect', 'rect', 'moveTo', 'lineTo', 'arc', 'arcTo', 'ellipse', 'translate', 'rotate', 'scale']);
+  /** The draw-call stream of a document, node painting only (`setTransform` is the viewport, not the model). */
+  function canvasCalls(doc: DesignDocument, showChrome = false) {
+    const { ctx, calls } = fakeCtx();
+    drawScene(ctx, sceneFor(doc, doc.activePageId, { showChrome }) as never, 800, 600, 1);
+    return calls.filter((c) => c.fn !== 'setTransform');
+  }
+
+  it('one document, three renderers, one answer: the corrupt box is simply not drawn', () => {
+    const doc = geomDoc('both');
+    expect(artBoxes(renderPreviewHtml(doc, doc.activePageId))).toEqual(['10|20|100|40']);
+    // the card paints the page background first, then the one box it was given a place for
+    expect(cardRects(docToSvg(doc, doc.activePageId))).toEqual(['0|0|1440|900', '10|20|100|40']);
+
+    const calls = canvasCalls(doc);
+    expect(calls.some((c) => c.fn === 'moveTo' && c.args.join('|') === '10|20')).toBe(true);
+    // the corrupt box would have reached the context as moveTo("040", 20) and arcTo("040100", …)
+    expect(calls.filter((c) => GEOMETRY.has(c.fn)).some((c) => c.args.some((a) => typeof a === 'string'))).toBe(false);
+  });
+
+  it('the canvas receives no non-number anywhere a geometry number belongs', () => {
+    const geom = canvasCalls(geomDoc('both'), true).filter((c) => GEOMETRY.has(c.fn));
+    expect(geom.length).toBeGreaterThan(0); // the belt: a stream that never painted anything proves nothing
+    for (const c of geom) {
+      for (const [i, arg] of c.args.entries()) {
+        expect(Number.isFinite(arg as number), `${c.fn} arg ${i} is ${typeof arg} ${String(arg)}`).toBe(true);
+      }
+    }
+  });
+
+  it('a corrupt box contributes no draw call at all — the same stream an empty page gives', () => {
+    // 'corrupt' is the page holding ONLY the un-placeable node, so it must paint exactly what a page with no
+    // boxes at all paints. 'both' must then equal 'honest' — the corrupt neighbour is invisible to the canvas
+    // too. The last two lines are the belt: the equality is not two empty streams agreeing by accident.
+    const empty = canvasCalls(geomDoc('none'));
+    expect(canvasCalls(geomDoc('corrupt'))).toEqual(empty);
+    const honestOnly = canvasCalls(geomDoc('honest'));
+    expect(canvasCalls(geomDoc('both'))).toEqual(honestOnly);
+    expect(honestOnly.length).toBeGreaterThan(empty.length);
+    expect(empty.length).toBeGreaterThan(0); // the page itself still paints, so this is not a dead fixture
+  });
+
+  it('the checker names what the renderers silently drop', () => {
+    const verdict = validateDocument(geomDoc('both'));
+    expect(verdict.ok).toBe(false);
+    const problems = verdict.ok ? [] : verdict.problems;
+    expect(problems.map((p) => p.code)).toContain('geometry-not-a-number');
+    expect(problems.find((p) => p.detail.includes('corrupt'))!.detail).toContain('x (string)');
+    expect(problems.some((p) => p.detail.includes('honest'))).toBe(false);
   });
 });
