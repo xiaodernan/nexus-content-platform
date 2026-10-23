@@ -5,6 +5,7 @@ import { ToolRegistry } from '../src/registry.js';
 import {
   createIndexProvider,
   deserializeIndex,
+  INDEX_SCHEMA_VERSION,
   fingerprintFiles,
   loadIndex,
   rescanIndex,
@@ -162,5 +163,44 @@ describe('cold build → persist → reload is identity (v79)', () => {
     if (!reloaded.ok) return;
     expect(reloaded.index).toStrictEqual(cold);
     expect(queryIndex(reloaded.index, 'second line', 1)).toStrictEqual(queryIndex(cold, 'second line', 1));
+  });
+});
+
+/**
+ * v462 — the index snapshot’s schema VERSION, graded directly.
+ *
+ * `INDEX_SCHEMA_VERSION` is stamped by the writer and enforced by the reader, and the rejection case
+ * above only ever proves the reader refuses a HARDCODED 7 — nothing asks that the writer stamps THIS
+ * constant, or that one bump moves both halves together.
+ */
+describe('the index snapshot’s schema version (v462)', () => {
+  it('the writer stamps the CURRENT version on every snapshot it writes', () => {
+    const wire = JSON.parse(serializeIndex(buildIndex(FILES), fingerprintFiles(FILES))) as { schemaVersion: number };
+    expect(wire.schemaVersion).toBe(INDEX_SCHEMA_VERSION);
+    const empty = JSON.parse(serializeIndex(buildIndex({}), fingerprintFiles({}))) as { schemaVersion: number };
+    expect(empty.schemaVersion).toBe(INDEX_SCHEMA_VERSION);
+  });
+
+  it('the reader accepts exactly that version — a future one is refused with its number in the reason', () => {
+    const good = serializeIndex(buildIndex(FILES), fingerprintFiles(FILES));
+    expect(deserializeIndex(good).ok).toBe(true);
+    const future = JSON.parse(good) as Record<string, unknown>;
+    future.schemaVersion = INDEX_SCHEMA_VERSION + 1;
+    const refused = deserializeIndex(JSON.stringify(future));
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) expect(refused.reason).toContain(String(INDEX_SCHEMA_VERSION + 1));
+  });
+
+  it('the version is a positive integer — a version that is not a count is not a version', () => {
+    expect(Number.isInteger(INDEX_SCHEMA_VERSION)).toBe(true);
+    expect(INDEX_SCHEMA_VERSION).toBeGreaterThanOrEqual(1);
+  });
+
+  it('one constant feeds both halves — the stamped snapshot round-trips at the stamped version', () => {
+    const back = deserializeIndex(serializeIndex(buildIndex(FILES), fingerprintFiles(FILES)));
+    expect(back.ok).toBe(true);
+    if (!back.ok) return;
+    const wire = JSON.parse(serializeIndex(back.index, back.fingerprints)) as { schemaVersion: number };
+    expect(wire.schemaVersion).toBe(INDEX_SCHEMA_VERSION);
   });
 });
