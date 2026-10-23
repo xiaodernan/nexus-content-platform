@@ -37,8 +37,8 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
   const fields = javaRecordFields(CONTROLLER, 'Entry');
   assert.deepEqual(
     fields.map((f) => f.name),
-    ['id', 'action', 'actorId', 'targetId', 'createdAt', 'assurance'],
-    'the service answers with exactly these six fields, in this order',
+    ['id', 'action', 'actorId', 'targetId', 'targetType', 'createdAt', 'assurance'],
+    'the service answers with exactly these seven fields, in this order',
   );
   // The instant is epoch MILLISECONDS, so the wire type is a long — and the client's is a number. The
   // comment above the record says so; the TYPE says so, and the type is what the compiler checks.
@@ -50,7 +50,10 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
     const f = fields.find((x) => x.name === name);
     assert.equal(f.type, 'String', `${name} is a String on the wire, so it can carry null`);
   }
-  console.log("[§1] the service's wire record: 6 fields (id, action, actorId, targetId, createdAt, assurance) · the instant is a long (epoch ms) · actorId and assurance are Strings, so they can carry null");
+  // v384 — the target's kind is a String like the rest, and it is NOT one of the nullable two: the
+  // service refuses an entry that does not name a kind, so every entry on this wire carries one.
+  assert.equal(fields.find((f) => f.name === 'targetType').type, 'String', 'the target kind is a String on the wire');
+  console.log("[§1] the service's wire record: 7 fields (id, action, actorId, targetId, targetType, createdAt, assurance) · the instant is a long (epoch ms) · actorId and assurance are Strings, so they can carry null");
 }
 
 // ── §2 the trail's INPUT shape reads exactly the wire's fields ─────────────────────────────────────
@@ -71,7 +74,7 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
   const laneFields = tsInterfaceFields(SERVER_LANE, 'AuditEntry');
   const wire = javaRecordFields(CONTROLLER, 'Entry').map((f) => f.name);
   assertSameFields(wire, laneFields, 'the server lane');
-  console.log(`[§3] the server lane's shape: ${laneFields.length} fields (${laneFields.join(', ')}) — the same six, in the same service`);
+  console.log(`[§3] the server lane's shape: ${laneFields.length} fields (${laneFields.join(', ')}) — the same seven, in the same service`);
 }
 
 // ── §4 the two client shapes agree with EACH OTHER ────────────────────────────────────────────────
@@ -85,7 +88,7 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
     [...trailFields].sort(),
     "the trail's input shape and the server lane's shape name the same fields — one wire shape, one list of names",
   );
-  console.log("[§4] the two client shapes name the same six fields: one wire shape, one list of names");
+  console.log("[§4] the two client shapes name the same seven fields: one wire shape, one list of names");
 }
 
 // ── §5 it has been shown to FAIL ───────────────────────────────────────────────────────────────────

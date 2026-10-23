@@ -108,7 +108,13 @@ public class LikeService {
         // v289 — the trail, INSIDE this transaction: a rolled-back like leaves no entry claiming a like
         // happened. And only for a like that was NEW — a second like changes nothing, and a trail that
         // recorded it would be recording an attempt rather than a fact.
-        audit.record("like", account, claim == null ? null : claim.handle(), claim == null ? null : claim.assurance(), target);
+        audit.record(
+                "like",
+                account,
+                claim == null ? null : claim.handle(),
+                claim == null ? null : claim.assurance(),
+                target,
+                AuditService.TARGET_PUBLICATION);
         return new LikeResult(target, true, repository.countByTargetProjectId(target), List.of(saved));
     }
 
@@ -130,7 +136,13 @@ public class LikeService {
         }
         repository.delete(existing.get());
         // v289 — the trail says the like was taken back, because that is something that happened too.
-        audit.record("unlike", account, claim == null ? null : claim.handle(), claim == null ? null : claim.assurance(), target);
+        audit.record(
+                "unlike",
+                account,
+                claim == null ? null : claim.handle(),
+                claim == null ? null : claim.assurance(),
+                target,
+                AuditService.TARGET_PUBLICATION);
         return new LikeResult(target, false, repository.countByTargetProjectId(target), List.of());
     }
 

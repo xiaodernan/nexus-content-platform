@@ -90,6 +90,8 @@ class ModerationServiceTest {
                 "spam",
                 "the words the reporter wrote",
                 status,
+                ReportDtos.PERIOD_MONTH,
+                AuditService.TARGET_PUBLICATION,
                 AT);
     }
 
@@ -221,7 +223,7 @@ class ModerationServiceTest {
         assertThat(answer.status()).isEqualTo(ReportDtos.STATUS_ACKNOWLEDGED);
         verify(reports).save(any(ReportEntry.class));
         // and the fact that it happened is in the trail
-        verify(audit).record("acknowledge", "acct-ada", null, null, "pub-1");
+        verify(audit).record("acknowledge", "acct-ada", null, null, "pub-1", AuditService.TARGET_PUBLICATION);
     }
 
     @Test
@@ -235,7 +237,7 @@ class ModerationServiceTest {
                 .isInstanceOf(NotYourPublication.class)
                 .hasMessageContaining("does not own");
         verify(reports, never()).save(any(ReportEntry.class));
-        verify(audit, never()).record(anyString(), any(), any(), any(), any());
+        verify(audit, never()).record(anyString(), any(), any(), any(), any(), any());
     }
 
     @Test

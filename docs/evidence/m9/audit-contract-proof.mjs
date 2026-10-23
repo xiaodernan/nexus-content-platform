@@ -65,8 +65,8 @@ const CLIENT_ASSURANCE = 'apps/studio/src/lib/assurance.ts';
     });
   assert.deepEqual(
     fields.map((f) => f.name),
-    ['id', 'action', 'actorId', 'targetId', 'createdAt', 'assurance'],
-    'the service answers with exactly these six fields, in this order',
+    ['id', 'action', 'actorId', 'targetId', 'targetType', 'createdAt', 'assurance'],
+    'the service answers with exactly these seven fields, in this order',
   );
   // The instant is epoch MILLISECONDS, so the wire type is a long — and the client's is a number. The
   // comment above the record says so; the TYPE says so, and the type is what the compiler checks.
@@ -81,7 +81,10 @@ const CLIENT_ASSURANCE = 'apps/studio/src/lib/assurance.ts';
   assert.equal(fields.find((f) => f.name === 'id').type, 'String', 'the id is a String on the wire');
   assert.equal(fields.find((f) => f.name === 'targetId').type, 'String', 'the target is a String on the wire');
   assert.equal(fields.find((f) => f.name === 'action').type, 'String', 'the action is a String on the wire — a free-form verb, not an enum');
-  console.log('[§1] the service\'s wire record: 6 fields (id, action, actorId, targetId, createdAt, assurance) · the instant is a long (epoch ms) · actorId and assurance are Strings, so they can carry null');
+  // v384 — the target's kind. A String like the rest, and NOT one of the nullable two: the service
+  // refuses an entry that does not name a kind, so every entry on this wire carries one.
+  assert.equal(fields.find((f) => f.name === 'targetType').type, 'String', 'the target kind is a String on the wire');
+  console.log('[§1] the service\'s wire record: 7 fields (id, action, actorId, targetId, targetType, createdAt, assurance) · the instant is a long (epoch ms) · actorId and assurance are Strings, so they can carry null');
 }
 
 // ── §2 the client's own model ───────────────────────────────────────────────────────────────────────
@@ -118,13 +121,13 @@ const clientFields = (() => {
 {
   assert.deepEqual(
     clientFields.map((f) => f.name),
-    ['id', 'action', 'actorId', 'targetId', 'createdAt', 'assurance'],
-    'the client model declares exactly the six fields the service answers with, in the same order',
+    ['id', 'action', 'actorId', 'targetId', 'targetType', 'createdAt', 'assurance'],
+    'the client model declares exactly the seven fields the service answers with, in the same order',
   );
   for (const f of clientFields) {
     assert.ok(f.required, `AuditEntry.${f.name} is OPTIONAL in the client — the service always sends it, and a client that treats it as optional would have to invent a default`);
   }
-  console.log('[§2] the client\'s model: the same six fields, the same order, all REQUIRED — the service always sends them, so the client does not get to decide they are optional');
+  console.log('[§2] the client\'s model: the same seven fields, the same order, all REQUIRED — the service always sends them, so the client does not get to decide they are optional');
 }
 
 // ── §3 the nullable wire fields are nullable in the client ──────────────────────────────────────────
@@ -142,11 +145,11 @@ const clientFields = (() => {
 // Widening everything would be just as wrong as narrowing everything: a client that treats the id as
 // optional would have to invent one, and an invented id is a row nobody can address.
 {
-  for (const name of ['id', 'action', 'targetId', 'createdAt']) {
+  for (const name of ['id', 'action', 'targetId', 'targetType', 'createdAt']) {
     const f = clientFields.find((x) => x.name === name);
     assert.ok(!f.nullable, `AuditEntry.${name} must NOT accept null — the service always sends it`);
   }
-  console.log('[§4] the non-nullable wire fields are non-nullable in the client: id, action, targetId and createdAt are all required — the fix widened the two fields that are nullable and nothing else');
+  console.log('[§4] the non-nullable wire fields are non-nullable in the client: id, action, targetId, targetType and createdAt are all required — the fix widened the two fields that are nullable and nothing else');
 }
 
 // ── §5 a REAL anonymous entry is accepted by the client's own type ───────────────────────────────────
@@ -172,6 +175,7 @@ const anonymous: AuditEntry = {
   action: 'publish',
   actorId: null,
   targetId: 'pub-1',
+  targetType: 'publication',
   createdAt: 1700000000000,
   assurance: null,
 };
@@ -182,6 +186,7 @@ const named: AuditEntry = {
   action: 'publish',
   actorId: 'acct-ada' as AccountId,
   targetId: 'pub-1',
+  targetType: 'publication',
   createdAt: 1700000000000,
   assurance: 'unsigned-local' as NonNullable<AuditEntry['assurance']>,
 };
@@ -251,5 +256,5 @@ export const probe = [anonymous, named, future];
   }
 }
 
-console.log('\n[summary] M9 v273: the service answers with 6 fields (id, action, actorId, targetId, createdAt, assurance) · the instant is a long, so epoch MILLISECONDS, the client\'s own unit · actorId and assurance are NULLABLE on the wire and NULLABLE in the client, and the other four are nullable in neither · the client\'s own type ACCEPTS a real anonymous entry, a named entry and an unknown verb, checked by the TypeScript compiler itself · and an anonymous entry belongs to no account');
+console.log('\n[summary] M9 v273/v384: the service answers with 7 fields (id, action, actorId, targetId, targetType, createdAt, assurance) · the instant is a long, so epoch MILLISECONDS, the client\'s own unit · actorId and assurance are NULLABLE on the wire and NULLABLE in the client, and the other five are nullable in neither · the client\'s own type ACCEPTS a real anonymous entry, a named entry and an unknown verb, checked by the TypeScript compiler itself · and an anonymous entry belongs to no account');
 console.log('[m9-audit-contract-proof] ALL ASSERTIONS PASSED (two source files, read as the languages that define them, and one of them compiled)');

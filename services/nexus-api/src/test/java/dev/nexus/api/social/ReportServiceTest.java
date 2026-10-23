@@ -14,6 +14,7 @@ import dev.nexus.api.social.ReportDtos.ReportClaim;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -132,7 +133,7 @@ class ReportServiceTest {
     void aSECONDReportForTheSameReasonIsREFUSEDByName() {
         when(repository.findByReporterAccountIdAndTargetProjectIdAndReason("acct-ada", "pub-1", "spam"))
                 .thenReturn(Optional.of(new ReportEntry(
-                        "r-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", "open", AT)));
+                        "r-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", "open", ReportDtos.PERIOD_MONTH, dev.nexus.api.ops.AuditService.TARGET_PUBLICATION, AT)));
 
         assertThatThrownBy(() -> service.report("pub-1", claim("acct-ada"), "spam", "again"))
                 .isInstanceOf(InvalidReport.class)
@@ -173,7 +174,7 @@ class ReportServiceTest {
     @Test
     void withdrawingYourOwnOpenReportMarksItRejectedAndKeepsTheRow() {
         ReportEntry mine = new ReportEntry(
-                "r-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", "open", AT);
+                "r-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", "open", ReportDtos.PERIOD_MONTH, dev.nexus.api.ops.AuditService.TARGET_PUBLICATION, AT);
         when(repository.findByReportId("r-1")).thenReturn(Optional.of(mine));
         when(repository.save(any(ReportEntry.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -188,7 +189,7 @@ class ReportServiceTest {
     @Test
     void withdrawingSomebodyElsesReportIsREFUSEDAndChangesNothing() {
         when(repository.findByReportId("r-1")).thenReturn(Optional.of(new ReportEntry(
-                "r-1", "pub-1", "acct-someone-else", "bob", "unsigned-local", "spam", "", "open", AT)));
+                "r-1", "pub-1", "acct-someone-else", "bob", "unsigned-local", "spam", "", "open", ReportDtos.PERIOD_MONTH, dev.nexus.api.ops.AuditService.TARGET_PUBLICATION, AT)));
 
         assertThatThrownBy(() -> service.withdraw("r-1", claim("acct-ada")))
                 .isInstanceOf(NotYourReport.class)
@@ -199,7 +200,7 @@ class ReportServiceTest {
     @Test
     void withdrawingAReportThatIsAlreadyWithdrawnIsALREADY_WITHDRAWNAndNotAFailure() {
         when(repository.findByReportId("r-1")).thenReturn(Optional.of(new ReportEntry(
-                "r-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", "rejected", AT)));
+                "r-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", "rejected", ReportDtos.PERIOD_MONTH, dev.nexus.api.ops.AuditService.TARGET_PUBLICATION, AT)));
 
         assertThat(service.withdraw("r-1", claim("acct-ada"))).isFalse();
         verify(repository, never()).save(any());
@@ -216,7 +217,7 @@ class ReportServiceTest {
     @Test
     void theReportsOfAPublicationCarryTheCountAndAreCapped() {
         ReportEntry one = new ReportEntry(
-                "r-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", "open", AT);
+                "r-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", "open", ReportDtos.PERIOD_MONTH, dev.nexus.api.ops.AuditService.TARGET_PUBLICATION, AT);
         when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
                 .thenReturn(List.of(one));
         when(repository.countByTargetProjectId("pub-1")).thenReturn(4L);
@@ -244,17 +245,17 @@ class ReportServiceTest {
         when(repository.findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        service.reportsFiledBy("acct-bob", 20);
+        service.reportsFiledBy("acct-bob", 0, 20, null);
 
         verify(repository).findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class));
     }
 
     @Test
     void aReadWithNoAccountIsREFUSEDByName() {
-        assertThatThrownBy(() -> service.reportsFiledBy(null, 20))
+        assertThatThrownBy(() -> service.reportsFiledBy(null, 0, 20, null))
                 .isInstanceOf(InvalidReport.class)
                 .hasMessageContaining("need that account to be named");
-        assertThatThrownBy(() -> service.reportsFiledBy("   ", 20))
+        assertThatThrownBy(() -> service.reportsFiledBy("   ", 0, 20, null))
                 .isInstanceOf(InvalidReport.class)
                 .hasMessageContaining("need that account to be named");
     }
@@ -264,7 +265,7 @@ class ReportServiceTest {
         when(repository.findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        service.reportsFiledBy("acct-bob", 10_000);
+        service.reportsFiledBy("acct-bob", 0, 10_000, null);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
@@ -282,7 +283,7 @@ class ReportServiceTest {
         service.report("pub-1", claim("acct-ada"), "spam", "the words");
 
         // The trail says what happened, and it says it about the PUBLICATION it happened to.
-        verify(audit).record("report", "acct-ada", "ada", "unsigned-local", "pub-1");
+        verify(audit).record("report", "acct-ada", "ada", "unsigned-local", "pub-1", dev.nexus.api.ops.AuditService.TARGET_PUBLICATION);
     }
 
     @Test
@@ -291,11 +292,11 @@ class ReportServiceTest {
         // that the service refused to accept.
         when(repository.findByReporterAccountIdAndTargetProjectIdAndReason("acct-ada", "pub-1", "spam"))
                 .thenReturn(Optional.of(new ReportEntry(
-                        "rep-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", ReportDtos.STATUS_OPEN, AT)));
+                        "rep-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", ReportDtos.STATUS_OPEN, ReportDtos.PERIOD_MONTH, dev.nexus.api.ops.AuditService.TARGET_PUBLICATION, AT)));
 
         assertThatThrownBy(() -> service.report("pub-1", claim("acct-ada"), "spam", ""))
                 .isInstanceOf(InvalidReport.class);
-        verify(audit, never()).record(anyString(), any(), any(), any(), any());
+        verify(audit, never()).record(anyString(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -303,10 +304,16 @@ class ReportServiceTest {
         // A DIFFERENT fact from the filing: the reporter no longer stands by it. A trail that recorded only
         // the filing would leave the complaint standing forever in the record.
         when(repository.findByReportId("rep-1")).thenReturn(Optional.of(new ReportEntry(
-                "rep-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", ReportDtos.STATUS_OPEN, AT)));
+                "rep-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", ReportDtos.STATUS_OPEN, ReportDtos.PERIOD_MONTH, dev.nexus.api.ops.AuditService.TARGET_PUBLICATION, AT)));
 
         assertThat(service.withdraw("rep-1", claim("acct-ada"))).isTrue();
-        verify(audit).record("withdraw-report", "acct-ada", "ada", "unsigned-local", "pub-1");
+        verify(audit).record(
+                "withdraw-report",
+                "acct-ada",
+                "ada",
+                "unsigned-local",
+                "pub-1",
+                dev.nexus.api.ops.AuditService.TARGET_PUBLICATION);
     }
 
     // ── v380: the reporter's OWN list is counted over the WHOLE table, not the window ──────────────
@@ -330,10 +337,158 @@ class ReportServiceTest {
     @Test
     void withdrawingSomebodyElsesReportWritesNothingDown() {
         when(repository.findByReportId("rep-1")).thenReturn(Optional.of(new ReportEntry(
-                "rep-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", ReportDtos.STATUS_OPEN, AT)));
+                "rep-1", "pub-1", "acct-ada", "ada", "unsigned-local", "spam", "", ReportDtos.STATUS_OPEN, ReportDtos.PERIOD_MONTH, dev.nexus.api.ops.AuditService.TARGET_PUBLICATION, AT)));
 
         assertThatThrownBy(() -> service.withdraw("rep-1", claim("acct-bob")))
                 .isInstanceOf(NotYourReport.class);
-        verify(audit, never()).record(anyString(), any(), any(), any(), any());
+        verify(audit, never()).record(anyString(), any(), any(), any(), any(), any());
+    }
+
+    // ── v383: the duplicate rule is TIME-AWARE — a report STANDS for a period, then lapses ───────────
+
+    @Test
+    void anEXPIREDReportNoLongerConstrainsASecondOne() {
+        // The rule is about a STANDING complaint. This one was filed forty days ago under a month's
+        // standing and has lapsed, so the same account may say the same thing again — and the new row is
+        // the one that stands.
+        when(repository.findByReporterAccountIdAndTargetProjectIdAndReason("acct-ada", "pub-1", "spam"))
+                .thenReturn(Optional.of(new ReportEntry(
+                        "r-1",
+                        "pub-1",
+                        "acct-ada",
+                        "ada",
+                        "unsigned-local",
+                        "spam",
+                        "",
+                        "open",
+                        ReportDtos.PERIOD_MONTH,
+                        dev.nexus.api.ops.AuditService.TARGET_PUBLICATION,
+                        AT.minus(40, ChronoUnit.DAYS))));
+        when(repository.save(any(ReportEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        ReportEntry row = service.report("pub-1", claim("acct-ada"), "spam", "again, after the first lapsed");
+
+        assertThat(row.getStatus()).isEqualTo("open");
+        assertThat(row.getCreatedAt()).isEqualTo(AT);
+        verify(audit)
+                .record(
+                        "report",
+                        "acct-ada",
+                        "ada",
+                        "unsigned-local",
+                        "pub-1",
+                        dev.nexus.api.ops.AuditService.TARGET_PUBLICATION);
+    }
+
+    @Test
+    void aReportOneDayShortOfItsPeriodStillSTANDS() {
+        // The boundary is the period, not the calendar month: thirty days into a month's standing the
+        // complaint is still standing, and a second one is still the same report.
+        when(repository.findByReporterAccountIdAndTargetProjectIdAndReason("acct-ada", "pub-1", "spam"))
+                .thenReturn(Optional.of(new ReportEntry(
+                        "r-1",
+                        "pub-1",
+                        "acct-ada",
+                        "ada",
+                        "unsigned-local",
+                        "spam",
+                        "",
+                        "open",
+                        ReportDtos.PERIOD_MONTH,
+                        dev.nexus.api.ops.AuditService.TARGET_PUBLICATION,
+                        AT.minus(29, ChronoUnit.DAYS))));
+
+        assertThatThrownBy(() -> service.report("pub-1", claim("acct-ada"), "spam", "again"))
+                .isInstanceOf(InvalidReport.class)
+                .hasMessageContaining("already reported");
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void aYearPeriodExpiresAYearLaterNotAMonth() {
+        // The period is read off the ROW: a row filed under a year expires by the year even though this
+        // build files months — the row's own terms, not today's policy.
+        when(repository.findByReporterAccountIdAndTargetProjectIdAndReason("acct-ada", "pub-1", "spam"))
+                .thenReturn(Optional.of(new ReportEntry(
+                        "r-1",
+                        "pub-1",
+                        "acct-ada",
+                        "ada",
+                        "unsigned-local",
+                        "spam",
+                        "",
+                        "open",
+                        ReportDtos.PERIOD_YEAR,
+                        dev.nexus.api.ops.AuditService.TARGET_PUBLICATION,
+                        AT.minus(40, ChronoUnit.DAYS))));
+
+        assertThatThrownBy(() -> service.report("pub-1", claim("acct-ada"), "spam", "again"))
+                .isInstanceOf(InvalidReport.class)
+                .hasMessageContaining("already reported");
+    }
+
+    @Test
+    void theFiledRowCarriesTheStandingPeriod() {
+        when(repository.findByReporterAccountIdAndTargetProjectIdAndReason("acct-ada", "pub-1", "spam"))
+                .thenReturn(Optional.empty());
+        when(repository.save(any(ReportEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        ReportEntry row = service.report("pub-1", claim("acct-ada"), "spam", "");
+
+        assertThat(row.getPeriod()).isEqualTo(ReportDtos.PERIOD_MONTH);
+    }
+
+    // ── v384: the filed list can be narrowed by the KIND of thing reported ─────────────────────────
+
+    @Test
+    void theFiledListNarrowedByKindAsksTheFILTEREDFinder() {
+        // v326's lesson, the reporter's direction: the window is "the newest N of that kind", asked of the
+        // database — not "the newest N, of which these are of that kind" computed afterwards.
+        when(repository.findByReporterAccountIdAndTargetTypeOrderByCreatedAtDesc(
+                        eq("acct-bob"), eq("publication"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.reportsFiledBy("acct-bob", 0, 20, "publication");
+
+        verify(repository)
+                .findByReporterAccountIdAndTargetTypeOrderByCreatedAtDesc(
+                        eq("acct-bob"), eq("publication"), any(Pageable.class));
+        verify(repository, never()).findByReporterAccountIdOrderByCreatedAtDesc(any(), any(Pageable.class));
+    }
+
+    @Test
+    void theFiledListWithNoKindAsksTheUNFILTEREDFinder() {
+        when(repository.findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.reportsFiledBy("acct-bob", 0, 20, null);
+
+        verify(repository).findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class));
+        verify(repository, never())
+                .findByReporterAccountIdAndTargetTypeOrderByCreatedAtDesc(any(), any(), any(Pageable.class));
+    }
+
+    @Test
+    void aKindOUTSIDETheThreeIsREFUSEDByNameRatherThanANSWERINGTHEWHOLELIST() {
+        // A caller that asked for one kind and was answered with everything would read the answer as
+        // "nothing of that kind" — a different fact, and the one that matters.
+        assertThatThrownBy(() -> service.reportsFiledBy("acct-bob", 0, 20, "world"))
+                .isInstanceOf(InvalidReport.class)
+                .hasMessageContaining("account")
+                .hasMessageContaining("plan")
+                .hasMessageContaining("publication")
+                .hasMessageContaining("world");
+        verify(repository, never()).findByReporterAccountIdOrderByCreatedAtDesc(any(), any(Pageable.class));
+    }
+
+    @Test
+    void theFiledRowCarriesTheKindOfThingItIsAbout() {
+        when(repository.findByReporterAccountIdAndTargetProjectIdAndReason("acct-ada", "pub-1", "spam"))
+                .thenReturn(Optional.empty());
+        when(repository.save(any(ReportEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        ReportEntry row = service.report("pub-1", claim("acct-ada"), "spam", "");
+
+        assertThat(row.getTargetType()).isEqualTo(dev.nexus.api.ops.AuditService.TARGET_PUBLICATION);
     }
 }

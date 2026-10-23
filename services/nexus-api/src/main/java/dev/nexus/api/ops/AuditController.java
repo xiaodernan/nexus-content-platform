@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>{@code actorId} and {@code assurance} are NULLABLE here, and the client's model says otherwise: an
  * anonymous publish has no actor, and the trail records that rather than inventing one. The client's type is
  * the one that will have to widen — this service will not fake an actor to fit a type.
+ *
+ * <p>v384 — and {@code targetType} says what KIND of thing the target id names (account, plan or
+ * publication), declared by the caller that acted rather than guessed from the id's spelling. It is never
+ * null on this wire: the service refuses an entry that does not name a kind.
  */
 @RestController
 @RequestMapping("/audit")
@@ -33,6 +37,7 @@ public class AuditController {
             String action,
             String actorId,
             String targetId,
+            String targetType,
             long createdAt,
             String assurance) {
     }
@@ -56,6 +61,7 @@ public class AuditController {
                         row.getAction(),
                         row.getActorAccountId(),
                         row.getTargetId(),
+                        row.getTargetType(),
                         row.getOccurredAt().toEpochMilli(),
                         row.getActorAssurance()))
                 .toList();

@@ -118,7 +118,13 @@ public class CommentService {
         CommentEntry saved = repository.save(row);
         // v289 — the trail, INSIDE this transaction: a rolled-back comment leaves no entry claiming a
         // comment was made.
-        audit.record("comment", account, claim == null ? null : claim.handle(), claim == null ? null : claim.assurance(), target);
+        audit.record(
+                "comment",
+                account,
+                claim == null ? null : claim.handle(),
+                claim == null ? null : claim.assurance(),
+                target,
+                AuditService.TARGET_PUBLICATION);
         return saved;
     }
 
@@ -149,7 +155,13 @@ public class CommentService {
         row.markDeleted();
         repository.save(row);
         // v289 — the trail says the comment was removed by its author.
-        audit.record("uncomment", account, claim == null ? null : claim.handle(), claim == null ? null : claim.assurance(), row.getTargetProjectId());
+        audit.record(
+                "uncomment",
+                account,
+                claim == null ? null : claim.handle(),
+                claim == null ? null : claim.assurance(),
+                row.getTargetProjectId(),
+                AuditService.TARGET_PUBLICATION);
         return true;
     }
 

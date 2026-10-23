@@ -686,7 +686,7 @@ class PublishServiceTest {
 
         service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", "unsigned-local", CLAIMED_AT_MS));
 
-        verify(audit).record("publish", "acct-ada", "ada", "unsigned-local", "doc-1");
+        verify(audit).record("publish", "acct-ada", "ada", "unsigned-local", "doc-1", dev.nexus.api.ops.AuditService.TARGET_PUBLICATION);
     }
 
     @Test
@@ -698,7 +698,7 @@ class PublishServiceTest {
 
         // the entry EXISTS and says nobody did it: an audit trail that could not say "nobody" would have to
         // invent an actor.
-        verify(audit).record("publish", null, null, null, "doc-1");
+        verify(audit).record("publish", null, null, null, "doc-1", dev.nexus.api.ops.AuditService.TARGET_PUBLICATION);
     }
 
     @Test
@@ -709,7 +709,7 @@ class PublishServiceTest {
 
         service.publish("doc-1", "T2", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", "unsigned-local", CLAIMED_AT_MS));
 
-        verify(audit).record("publish", "acct-ada", "ada", "unsigned-local", "doc-1");
+        verify(audit).record("publish", "acct-ada", "ada", "unsigned-local", "doc-1", dev.nexus.api.ops.AuditService.TARGET_PUBLICATION);
     }
 
     @Test
@@ -720,7 +720,7 @@ class PublishServiceTest {
 
         // the request carried a CLAIMER, not a claim: the service never saw a handle or an assurance for it
         // and records none rather than borrowing the publication's.
-        verify(audit).record("unpublish", "acct-ada", null, null, "doc-1");
+        verify(audit).record("unpublish", "acct-ada", null, null, "doc-1", dev.nexus.api.ops.AuditService.TARGET_PUBLICATION);
     }
 
     @Test
@@ -736,6 +736,6 @@ class PublishServiceTest {
         assertThatThrownBy(() -> service.unpublish("doc-1", "acct-someone-else"), null)
                 .isInstanceOf(NotTheOwner.class);
 
-        verify(audit, never()).record(any(), any(), any(), any(), any());
+        verify(audit, never()).record(any(), any(), any(), any(), any(), any());
     }
 }

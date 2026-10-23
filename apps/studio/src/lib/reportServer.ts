@@ -134,13 +134,14 @@ export async function readFiledReports(
         reports: [],
         count: 0,
         limit,
+        offset,
         reason: `the service's reports door answered HTTP ${res.status} with something that is not JSON`,
       };
     }
     const body = parsed as { reports?: unknown; count?: unknown; message?: unknown };
     if (!Array.isArray(body.reports)) {
       const why = typeof body.message === 'string' ? body.message : `the service's reports door answered HTTP ${res.status}`;
-      return { ok: false, reports: [], count: 0, limit, reason: why };
+      return { ok: false, reports: [], count: 0, limit, offset, reason: why };
     }
     return {
       ok: true,

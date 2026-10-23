@@ -77,10 +77,15 @@ public class ReportController {
             @RequestParam(name = "target", required = false) String targetProjectId,
             @RequestParam(name = "reporter", required = false) String reporterAccountId,
             @RequestParam(name = "limit", required = false) Integer limit,
-            @RequestParam(name = "targetType", required = false) String targetType) {
+            @RequestParam(name = "targetType", required = false) String targetType,
+            @RequestParam(name = "offset", required = false) Integer offset) {
         int asked = limit == null ? ReportService.DEFAULT_REPORT_LIMIT : limit;
         if (reporterAccountId != null && !reporterAccountId.isBlank()) {
-            List<ReportEntry> filed = service.reportsFiledBy(reporterAccountId, 0, asked, targetType);
+            // v382 — the offset pages past the newest rows. A negative one is clamped to the first page
+            // rather than refused: the window it asks for does not exist, and the newest rows are the
+            // honest answer to a question about a page before the first.
+            int from = offset == null ? 0 : Math.max(offset, 0);
+            List<ReportEntry> filed = service.reportsFiledBy(reporterAccountId, from, asked, targetType);
             long total = service.countFiledBy(reporterAccountId);
             return ResponseEntity.ok(new FiledReportsAnswer(
                     reporterAccountId.trim(),

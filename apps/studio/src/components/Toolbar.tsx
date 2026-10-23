@@ -352,7 +352,7 @@ export default function Toolbar() {
   const refreshFiled = async () => {
     const account = session.current();
     if (!account) {
-      setFiled({ ok: false, reports: [], count: 0, limit: 20, reason: 'the reports you filed belong to an account, and this device has none' });
+      setFiled({ ok: false, reports: [], count: 0, limit: 20, offset: 0, reason: 'the reports you filed belong to an account, and this device has none' });
       return;
     }
     setFiled(await readMyReports(account.id));

@@ -158,7 +158,7 @@ public class PublishService {
         // v271 — the take-down names an account id and NOTHING else: the request carried a CLAIMER, not a
         // claim, so the service never saw a handle or an assurance for it and records none rather than
         // borrowing the publication's.
-        audit.record("unpublish", claimerAccountId, null, null, projectId);
+        audit.record("unpublish", claimerAccountId, null, null, projectId, dev.nexus.api.ops.AuditService.TARGET_PUBLICATION);
         return true;
     }
 
@@ -194,7 +194,8 @@ public class PublishService {
                     claim == null ? null : claim.accountId(),
                     claim == null ? null : claim.handle(),
                     claim == null ? null : claim.assurance(),
-                    projectId);
+                    projectId,
+                    dev.nexus.api.ops.AuditService.TARGET_PUBLICATION);
             return saved;
         }
         // v242: the TAKEOVER rule. A row that already names an owner may not be re-published under a
@@ -221,7 +222,8 @@ public class PublishService {
                 claim == null ? null : claim.accountId(),
                 claim == null ? null : claim.handle(),
                 claim == null ? null : claim.assurance(),
-                projectId);
+                projectId,
+                dev.nexus.api.ops.AuditService.TARGET_PUBLICATION);
         return saved;
     }
 

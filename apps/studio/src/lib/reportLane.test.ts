@@ -26,7 +26,7 @@ const A_REPORT = {
 describe('reportLane — readMyReports (client half)', () => {
   it('asks the Studio’s own door, naming the reporter', async () => {
     const fetchImpl = makeFetch((url) => {
-      expect(url).toBe('/api/reports?reporter=acct-bob');
+      expect(url).toBe('/api/reports?reporter=acct-bob&offset=0');
       return new Response(JSON.stringify({ ok: true, reports: [A_REPORT], count: 1, limit: 20 }), { status: 200 });
     });
     const answer = await readMyReports('acct-bob', fetchImpl);
@@ -46,6 +46,31 @@ describe('reportLane — readMyReports (client half)', () => {
     expect(answer.ok).toBe(false);
     expect(answer.reason).toBe('the reports could not be read');
     expect(answer.reports).toEqual([]);
+  });
+
+  it('v382 — asks for the window it is told to page to, and says which window it asked for', async () => {
+    // The service pages by offset: the window is "the newest N of THIS account's reports, starting at
+    // offset". The lane asks for the offset it was given and echoes it, so a panel always knows which
+    // slice of the reporter's history it is looking at — including after a failed read.
+    const fetchImpl = makeFetch((url) => {
+      expect(url).toBe('/api/reports?reporter=acct-bob&offset=40');
+      return new Response(JSON.stringify({ ok: true, reports: [A_REPORT], count: 57, limit: 20 }), { status: 200 });
+    });
+    const answer = await readMyReports('acct-bob', fetchImpl, 40);
+    expect(answer.ok).toBe(true);
+    expect(answer.offset).toBe(40);
+    expect(answer.count).toBe(57);
+  });
+
+  it('v382 — a failed read still names the window it ASKED for', async () => {
+    const answer = await readMyReports(
+      'acct-bob',
+      makeFetch(() => new Response(JSON.stringify({ ok: false, reason: 'the reports could not be read' }), { status: 502 })),
+      40,
+    );
+    expect(answer.ok).toBe(false);
+    expect(answer.offset).toBe(40);
+    expect(answer.reason).toBe('the reports could not be read');
   });
 
   it('v380 — carries the service’s WHOLE-TABLE count, not the window’s length', async () => {

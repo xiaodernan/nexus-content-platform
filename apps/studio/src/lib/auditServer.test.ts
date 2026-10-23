@@ -14,9 +14,9 @@ function makeFetch(handler: (url: string) => Response) {
 
 const TRAIL = {
   entries: [
-    { id: '9', action: 'unpublish', actorId: 'acct-ada', targetId: 'pub-1', createdAt: 1_776_000_100_000, assurance: 'unsigned-local' },
-    { id: '8', action: 'publish', actorId: 'acct-ada', targetId: 'pub-1', createdAt: 1_776_000_000_000, assurance: 'unsigned-local' },
-    { id: '7', action: 'publish', actorId: null, targetId: 'pub-2', createdAt: 1_775_999_900_000, assurance: null },
+    { id: '9', action: 'unpublish', actorId: 'acct-ada', targetId: 'pub-1', targetType: 'publication', createdAt: 1_776_000_100_000, assurance: 'unsigned-local' },
+    { id: '8', action: 'publish', actorId: 'acct-ada', targetId: 'pub-1', targetType: 'publication', createdAt: 1_776_000_000_000, assurance: 'unsigned-local' },
+    { id: '7', action: 'publish', actorId: null, targetId: 'pub-2', targetType: 'publication', createdAt: 1_775_999_900_000, assurance: null },
   ],
   count: 3,
   limit: 20,

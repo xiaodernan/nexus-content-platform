@@ -251,7 +251,7 @@ class LikeServiceTest {
         service.like("pub-1", claim("acct-ada"));
 
         // A like is something that happened to a publication, so the trail says it happened.
-        verify(audit).record("like", "acct-ada", "ada", "unsigned-local", "pub-1");
+        verify(audit).record("like", "acct-ada", "ada", "unsigned-local", "pub-1", AuditService.TARGET_PUBLICATION);
     }
 
     @Test
@@ -263,7 +263,7 @@ class LikeServiceTest {
         service.like("pub-1", claim("acct-ada"));
 
         // Nothing changed, so nothing is written: the trail records what HAPPENED, not what was attempted.
-        verify(audit, never()).record(any(), any(), any(), any(), any());
+        verify(audit, never()).record(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -271,7 +271,7 @@ class LikeServiceTest {
         assertThatThrownBy(() -> service.like("pub-1", null)).isInstanceOf(InvalidLike.class);
 
         // A refused mutation changed nothing, so the trail says nothing about it.
-        verify(audit, never()).record(any(), any(), any(), any(), any());
+        verify(audit, never()).record(any(), any(), any(), any(), any(), any());
     }
 }
 

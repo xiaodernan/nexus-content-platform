@@ -17,6 +17,11 @@ export interface AuditEntry {
   action: string;
   actorId: string | null;
   targetId: string;
+  /**
+   * v384 — what KIND of thing the entry happened to: account, plan or publication. Never null on this
+   * wire: the service refuses an entry that does not name a kind, so the lane types it as it arrives.
+   */
+  targetType: string;
   createdAt: number;
   assurance: string | null;
 }

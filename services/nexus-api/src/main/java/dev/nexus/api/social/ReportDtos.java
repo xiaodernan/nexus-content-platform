@@ -32,6 +32,15 @@ public final class ReportDtos {
     public static final String STATUS_REJECTED = "rejected";
 
     /**
+     * v383 — how long a report STANDS. A CLOSED SET of two, read off the row rather than off today's
+     * policy: a report filed under one period expires by that period even after the policy moves.
+     */
+    public static final String PERIOD_MONTH = "month";
+
+    /** @see #PERIOD_MONTH */
+    public static final String PERIOD_YEAR = "year";
+
+    /**
      * v304 — the OWNER's status: the owner of the reported publication has seen the report.
      *
      * <p>It is NOT {@link #STATUS_REVIEWED} and NOT {@link #STATUS_RESOLVED}. Those two are a

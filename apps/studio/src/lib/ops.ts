@@ -32,6 +32,19 @@ export type AuditAction =
   // 已知动词给出补全，但类型上不排斥别的字符串。
   | (string & Record<never, never>);
 
+/**
+ * v384 — 审计条目的目标"种类"：account / plan / publication。
+ *
+ * 服务端只接受这三个（闭集，`AuditService` 在写入时按名字拒绝第四个），所以线上永远只会出现这三个值；
+ * `string & Record<never, never>` 那一臂与 `AuditAction` 同理——服务端是独立部署的，一个更早就加了
+ * 新种类的服务端不能让整个客户端编译不过。客户端只读、只展示，不自行判定。
+ */
+export type AuditTargetType =
+  | 'account'
+  | 'plan'
+  | 'publication'
+  | (string & Record<never, never>);
+
 /** 审计条目：由服务端写入并下发，客户端只做只读展示。 */
 export interface AuditEntry {
   id: string;
@@ -44,6 +57,14 @@ export interface AuditEntry {
    */
   actorId: AccountId | null;
   targetId: string;
+  /**
+   * v384 — 这条条目发生在什么"种类"的东西上：账号、plan 还是作品。
+   *
+   * **不可空**，与 `actorId`/`assurance` 相反：服务端在写入时就要求声明种类（闭集之外的按名字拒绝），
+   * 线上每一条都带。客户端把它声明成可空就是在声明一个服务端从不会发送的形状——v273 的对称规则：
+   * 服务端总是发送的字段，客户端没有权利当它可选。
+   */
+  targetType: AuditTargetType;
   createdAt: number;
   /**
    * 这一条值多少。**可空**，理由同 `actorId`：没有 actor 就没有 claim，也就没有 assurance 可说。

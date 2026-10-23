@@ -32,18 +32,19 @@
 
 ### 下一批（按优先级）
 
-1. **v381 — 举报人自己那栏的行该说"什么时候"提交的**：线上有 `createdAt` ✓（服务端的 `Report` 带了 ✓），可面板只写理由和状态 ✗；跟 v341–v344 那批"每个日期都该在页面上"一样 ✓，这里也漏了一条 ✓（关注行同理 ✓，线上也有 `createdAt` ✓）。
-2. **v382 — 举报人那栏要能翻页**：v380 自己说清了两条边界 ✓——"面板要的是一段窗口" ✓、"超过上限的更早那几条还没有翻页够不着" ✗；服务端的 filed 读**不接受 offset** ✓，要加一个 offset 参数 + 面板一个翻页条 ✓（follows 那边的读也是同一个形状 ✓，一条一起做 ✓）。
-3. **v383 — 订阅的续订**：唯一约束要变成"只约束还站着的行"，那是一条依赖时间的规则，唯一索引写不了（要触发器或换表 + 迁移工具）。
-4. **v384 — trail 的 target 要不要带"种类"**：follow/tip 指向账号、subscribe 指向 plan，都不是 publication（要改 audit 的表 + 迁移工具）。
-5. **v385 — trail 的筛选下沉到服务端**：desk 的已经在服务端了 ✓（v326），trail 的门是 ops 包里的 `/audit`，那是并行 lane 的活 ✗（这条等那条 lane 落地后再做）。
+1. ~~**v381 — 举报人自己那栏的行该说"什么时候"提交的**~~ ✅ **已落地**（5209b0f）：行上现在有 filed 日期 ✓（服务端一直带着 ✓，面板丢了 ✓）；关注行同理 ✓。
+2. ~~**v382 — 举报人那栏要能翻页**~~ ✅ **已落地**（04684bb）：服务端 filed 读收 `offset` ✓（负值夹到 0 ✓），follows 读同一个形状 ✓；面板的翻页条是剩下的 UI 活 ✓（管线已通 ✓）。
+3. ~~**v383 — 订阅的续订**~~ ✅ **已落地**（e35b59e）："只约束还站着的行"用**服务端的时间感知检查**表达 ✓（过期可重报 ✓，差一天仍 standing ✓），不是唯一索引能写的那条规则 ✓（唯一约束已删 ✓，race 已命名 ✓）。
+4. ~~**v384 — trail 的 target 要不要带"种类"**~~ ✅ **已落地**（ed20681 + 本轮修复）：audit 表加 `target_type` 闭集列 ✓（account/plan/publication ✓），`record` 改 6 参 ✓，每个调用点显式声明自己的种类 ✓；filed 列表可按 kind 过滤 ✓（`?targetType=` ✓，集外按名字拒 ✓）。
+5. **v385 — trail 的筛选下沉到服务端**（**下一增量**）：desk 的已经在服务端了 ✓（v326），trail 的门是 ops 包里的 `/audit` ✓；v384 已把这条 lane 的接收方（6 参 `record` + 闭集 targetType ✓）落地 ✓，阻塞解除 ✓。做法照 v326：`AuditController` 收 `action`（和 `targetType` ✓）查询参数 ✓、闭集校验集外按名字拒 ✓、`AuditService.list` 带过滤 + count ✓、`auditServer.ts`/`auditLane.ts`/`api/audit/route.ts` 透传 ✓、`Toolbar.tsx` 的筛选按钮改成带筛选重读 ✓（去掉产品路径里的客户端 `filterTrailRows` ✓）。
+6. **v386+ — filed 面板的翻页条 UI**（v382 的管线已通 ✓，差一个条 ✓）；**M8 创作者经济**（订阅购买、举报提交、agent 令牌）；**测试覆盖补齐**（ai-providers/router.ts、world-engine/relationships.ts 等未测模块）。
 
 ### 我的在途增量（与并行 lane 的 v380 分开记）
 
-- **待补 ADR 0016 台账（被并行 lane 的 v380 占脏，暂不进）**：
-  - **amendment 369** — `docs/evidence/m7/service-suite-proof.mjs` 的台账记录。已测（commit `521e9bc`）：clean HEAD 下 222 tests / 9 classes / 0 fail / 0 err，digest 稳定，全章 PASSED；工作树里首次跑就 RED 且正确（PublishServiceTest 6 个 Mockito `PotentialStubbingProblem`，属并行 lane 未提交的发布重构）。该 proof 不写版本号，所以台账迟补不会悬空。
-  - **amendment 370** — 修正 §154 的虚假声明。原 §154 称 "all three mutations are caught by `saveSnapshot.test.ts`"，但 `ba647a0`/`d18ce95` 暴露该探针是**无效**的：它改的是类型联合（esbuild 会抹掉，等于零变异），且 `name-not-reenterable` 实际在 `saveNameSpelling.test.ts` 里、它根本没跑。已重写成改运行时 push 站点 + 跑整个 `@nexus/three-runtime` 套件 → 三种变异全中。台账须用 "Corrects amendment 154" 写法。
-  - ADR 当前被并行 lane 的 amendment 371（v380）占脏，**等其提交后再补 369/370**，不混进别人的字节（house rule）。
+- ~~**待补 ADR 0016 台账（被并行 lane 的 v380 占脏，暂不进）**~~ ✅ **已清空**：两条的内容都以**新编号**落地（当时 ADR 被并行 lane 的 amendment 371 占脏 →，按 house rule 不混写 →，于是顺延到空闲号 →；369/370 两个号至今空着 →，号码唯一性由 doc gate 把关 ✓）：
+  - service-suite proof 的台账 → **Amendment 376**（`docs/evidence/m7/service-suite-proof.mjs` 的 digest + surefire 总数门禁 ✓，240 tests / 10 classes ✓）。
+  - §154 虚假声明的修正 → **Amendment 375**（"Corrects amendment 154" 写法 ✓：探针改的是类型联合、跑错了套件 ✓，已重写成改运行时 push 站点 + 全包套件 ✓，三种变异全中 ✓）。
+  - 本轮的 v384-fix（并行 lane 半成品调用方的接收方 + history 回归）→ **Amendment 377**。
 - **下一个可验证增量：浏览器 harness 端到端复测**。已确认 world / scene3d / assets / publish / account 全部支持 `--out`，默认写 `.scratch/vNNN`，**不脏提交证据**；golden-path 默认写 `docs/evidence/studio/harness`，但可用 `--out .scratch/golden` 覆盖。本回合已复跑全部 6 个 harness（dev server 起在 :3401，输出全写 `.scratch/*`，不脏提交证据）：
 
 | harness | 结果 | 说明 |
@@ -150,6 +151,11 @@ world 的保存确认缺口已写入 KNOWN_ISSUES，作为 world 面板的下一
 | v378 | **创作者面板上 desk 的行说清"这些行只是一段"**：面板上方有 tally ✓（那是**整张表**的数 ✓，v309 ✓ v312 ✓），紧接着下面一行却写"3 report(s) · 1 still waiting" ✗（那是**窗口**的数 ✗）——同一块屏上两个"report(s)" ✗，读者分不清哪个是全部 ✗；现在那一行说"showing the 3 newest of 5" ✓（带筛选时拿**那个 reason 的总数**去比 ✓，不是拿全表去比 ✓），tally 继续说整张表 ✓ | studio **1253/1253**；social+moderation **162/162**；E2E §75 **314/314** |
 | v379 | **trail 的 tally 说清它数的是"屏上这些行"**：trail 是一段**窗口** ✓（服务端封顶一百 ✓，面板要二十 ✓），可 tally 写的是"4 published · 1 took down" ✗——读起来像**整条 trail** 的数 ✗，其实只是那二十行里的 ✓（面板脚注写着"20 shown · the service caps at 100" ✓，可 tally 在旁边没有限定 ✗，先读 tally 的人看不出来 ✗）；现在 tally 自己带上它数的行数 ✓："of these 20 rows: 4 published · 1 took down" ✓，老检查的**名字**也跟着改成实话 ✓（它原来叫"the whole answer" ✗，从来就不是整条 trail ✗） | studio **1256/1256**；social+moderation **162/162**；E2E §76 **316/316** |
 | v380 *(并行 lane 在途：未提交；数字来自该 lane 声明，我未独立复测)* | **举报人自己那栏 + 关注人自己那栏，说清"一共多少"**："YOU FILED" 和 "YOU FOLLOW" 以前只有行、没有数 ✗，而且两边的毛病还不一样 ✗——举报那侧的服务端把**窗口的长度**当总数答上来（`filed.size()`）✗，读起来像总数却不是 ✓（一个报了三十七条的举报人，被告知自己有二十条 ✓；窗口空时面板还会说"你没有举报过" ✗，那是拿窗口说全表 ✓）；关注那侧相反 ✓——服务端**一直**有全表计数（`countByFollowerAccountId` ✓），可浏览器这层把它**扔了** ✗。现在服务端给举报那侧补上全表计数 ✓（`countByReporterAccountId` + `countFiledBy` ✓，线上同时带计数和上限 ✓），两条 lane 把计数带到面板 ✓，面板把它说出口 ✓："N report(s) filed · showing the N newest of M" ✓ / "N follow(s) · ..." ✓，而且"你没有举报过"要**窗口和计数都空**才说 ✓ | studio **1261/1261**；social+moderation **164/164**；E2E §77 **318/318** |
+| v381 | **举报人自己那栏的行说"什么时候"提交的**：服务端的 `Report` 从 v295 起就带着 `createdAt` ✓，举报者自己的面板却只写理由和状态 ✗——跟 v341–v344 那批"每个日期都该在页面上"一样 ✓，这里漏了一条 ✓（关注行同理 ✓）；现在行上有 filed 日期 ✓，关注行也带上自己的 createdAt ✓ | studio 受影响文件 **90/90**；`tsc` exit 0（该提交未随附全量数字 ✓，全量基线见 v384-fix 行 ✓） |
+| v382 | **举报人那栏要能翻页**：服务端的 filed 读不接受 offset ✓，超过上限的更早那几条翻页够不着 ✗；现在收 `offset` ✓（负值夹到 0 ✓），follows 的读同一个形状 ✓，每条答案都带自己问的窗口 ✓（失败的读也说 ✓）；面板的翻页条随后续增量 ✓ | 同上（ADR 0016 amendment 372 记录了受影响文件 90/90 ✓） |
+| v383 | **订阅的续订**："同一个人对同一件作品的重复举报"要变成"只约束还站着的行" ✓，那是依赖时间的规则 ✓，唯一索引写不了 ✓；现在唯一约束删除 ✓、服务端做 UTC 日历月/年的 standing 检查 ✓（过期可重报 ✓、差一天仍 standing ✓、年周期同理 ✓），race 已命名 ✓ | 服务端 **240/240**（含本轮复测 ✓）；报告用例 +8（过期可重报/差一天/年周期/period 记录/双 finder/集外拒绝 ✓） |
+| v384 | **trail 的 target 带上了"种类"**：follow/tip 指向账号、subscribe 指向 plan，都不是 publication ✓；audit 表加 `target_type` 闭集列 ✓（account/plan/publication ✓，集外按名字拒 ✓），`record` 改 6 参 ✓、每个调用点显式声明种类 ✓，ReportEntry 也带自己的 kind ✓（filed 列表可按 kind 过滤 ✓）；客户端 `AuditTargetType` + `TrailRow.targetType` ✓，缺 kind 的行丢弃而不是编一个 ✓ | 服务端 **240/240**（10 类 ✓）；studio 受影响 5 文件 **90/90**；`tsc` exit 0；trail/audit/social 三个契约 proof exit 0 |
+| v384-fix | **修 HEAD 编译断点 + history 回归**：并行 lane 的 v383/v384 落地时接收方缺失 ✓（`getPeriod()`、6 参 `record`、绑不上的 targetType finder ✓），客户端 offset 缺三处 ✓；补齐后**全树测试发现 `history.test.ts` 8 例红** ✓——v280 的 fixture 没有 `targetType` ✓，被 v384 的"缺 kind 即丢弃"规则全部丢掉 ✓；fixture 更新为新线格式 ✓ 并补一条"缺 kind 被丢弃"的用例 ✓（这正是该规则要的 ✓） | 服务端 **240/240**；studio **1286/1286**（67 文件 ✓）；`tsc` exit 0 |
 | **v273** | **客户端 `ops.ts` 与线格式对齐**：`actorId`/`assurance` 变可空；`AuditAction` 对未知动词开放；匿名条目单独成桶（`__anonymous__`）；**新增契约 proof**（读 Java record + 用 tsc 编译探针） | ✅ 900/900 · proof exit 0 · 3 处 mutation 分别被 §3/§5 抓住 |
 
 ## 本次会话已落地的增量
@@ -219,7 +225,7 @@ world 的保存确认缺口已写入 KNOWN_ISSUES，作为 world 面板的下一
 ## 验收标准（每次提交前）
 
 - [ ] `tsc --noEmit`（apps/studio）= 0 错误（并发 lane 的在途文件除外，且要在记录里写明）。
-- [ ] `npx vitest run --root apps/studio --no-file-parallelism` 全文件全绿（当前基线 **870/870**，45 文件）。
+- [ ] `npx vitest run --root apps/studio --no-file-parallelism` 全文件全绿（当前基线 **1286/1286**，67 文件）。
 - [ ] 受影响包的服务端 / headless / real-browser 检查全绿。
 - [ ] `git status` 只包含本增量所属文件（**path-scoped commit**）。
 - [ ] ADR 0016 ledger 有对应 amendment，且数字唯一（门禁会报 "numbers GRANTED TWICE"）。

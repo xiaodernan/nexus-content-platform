@@ -276,14 +276,14 @@ class CommentServiceTest {
         service.comment("pub-1", claim("acct-ada"), "nice work");
 
         // A comment is something that happened to a publication, so the trail says it happened.
-        verify(audit).record("comment", "acct-ada", "ada", "unsigned-local", "pub-1");
+        verify(audit).record("comment", "acct-ada", "ada", "unsigned-local", "pub-1", AuditService.TARGET_PUBLICATION);
     }
 
     @Test
     void aREFUSEDCommentIsNOTWrittenToTheTrail() {
         assertThatThrownBy(() -> service.comment("pub-1", claim("acct-ada"), "   ")).isInstanceOf(InvalidComment.class);
 
-        verify(audit, never()).record(any(), any(), any(), any(), any());
+        verify(audit, never()).record(any(), any(), any(), any(), any(), any());
     }
 }
 

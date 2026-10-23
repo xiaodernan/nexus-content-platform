@@ -39,6 +39,18 @@ public class AuditService {
     /** The default number of entries a listing answers with. */
     public static final int DEFAULT_LIST_LIMIT = 20;
 
+    /**
+     * v384 — the kinds of thing an entry can happen to. A CLOSED SET of three, because a reader must be
+     * able to count by kind and a caller must not be able to invent a fourth.
+     */
+    public static final String TARGET_ACCOUNT = "account";
+
+    /** @see #TARGET_ACCOUNT */
+    public static final String TARGET_PLAN = "plan";
+
+    /** @see #TARGET_ACCOUNT */
+    public static final String TARGET_PUBLICATION = "publication";
+
     private final AuditEntryRepository repository;
     private final Clock clock;
 
@@ -48,24 +60,61 @@ public class AuditService {
     }
 
     /**
-     * Record that something happened to a publication.
+     * Record that something happened.
      *
-     * @param action what happened — {@code publish} or {@code unpublish}
+     * @param action what happened — {@code publish}, {@code unpublish}, {@code report}, …
      * @param actorAccountId the account that did it, or null when nobody was named
      * @param actorHandle the handle a claim carried, or null
      * @param actorAssurance the assurance a claim carried, or null
-     * @param targetId the project id the event happened to
+     * @param targetId the id of the thing it happened to
+     * @param targetType what KIND of thing that id names — one of {@link #TARGET_ACCOUNT},
+     *     {@link #TARGET_PLAN}, {@link #TARGET_PUBLICATION}; a refusal names the three rather than
+     *     guessing, because a caller that is told only "no" has to guess
      */
     @Transactional
-    public void record(String action, String actorAccountId, String actorHandle, String actorAssurance, String targetId) {
+    public void record(
+            String action,
+            String actorAccountId,
+            String actorHandle,
+            String actorAssurance,
+            String targetId,
+            String targetType) {
         if (action == null || action.isBlank()) {
             throw new IllegalArgumentException("an audit entry must name what happened");
         }
         if (targetId == null || targetId.isBlank()) {
             throw new IllegalArgumentException("an audit entry must name what it happened to");
         }
+        String kind = requireTargetType(targetType);
         Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
-        repository.save(new AuditEntry(action, actorAccountId, actorHandle, actorAssurance, targetId, now));
+        repository.save(new AuditEntry(action, actorAccountId, actorHandle, actorAssurance, targetId, kind, now));
+    }
+
+    /**
+     * v384 — the target's kind, or a refusal that names the three.
+     *
+     * <p>The kind is a fact the CALLER knows — it acted on an account, a plan or a publication — so it is
+     * declared and validated here rather than sniffed back out of the id's spelling: a prefix rule would
+     * misread a plan a creator happened to name "account-of-a-friend", and a trail that classified by
+     * spelling would be a trail that was wrong quietly.
+     */
+    private static String requireTargetType(String targetType) {
+        if (targetType == null || targetType.isBlank()) {
+            throw new IllegalArgumentException(
+                    "an audit entry must name what kind of thing it happened to: " + TARGET_ACCOUNT + ", "
+                            + TARGET_PLAN + " or " + TARGET_PUBLICATION);
+        }
+        String trimmed = targetType.trim();
+        switch (trimmed) {
+            case TARGET_ACCOUNT:
+            case TARGET_PLAN:
+            case TARGET_PUBLICATION:
+                return trimmed;
+            default:
+                throw new IllegalArgumentException(
+                        "an audit entry's target is an " + TARGET_ACCOUNT + ", a " + TARGET_PLAN + " or a "
+                                + TARGET_PUBLICATION + " — not \"" + trimmed + "\"");
+        }
     }
 
     /** The trail, newest first, capped. */

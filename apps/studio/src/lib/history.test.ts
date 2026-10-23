@@ -7,12 +7,16 @@ import { historyRowsOf, injectHistory, renderHistoryHtml } from './history';
  *
  * The two rules the suite grades: the filter is EXACT (only the entries naming this publication), and the
  * page says when it has none rather than implying nothing happened.
+ *
+ * v384 — the wire grew a THIRD fact per row (the kind of thing the target id names), so a row that cannot
+ * say what sort of thing it happened to is dropped here too, exactly as the toolbar's trail drops it.
  */
 const entry = (over: Record<string, unknown> = {}) => ({
   id: '7',
   action: 'publish',
   actorId: 'acct-ada',
   targetId: 'pub-1',
+  targetType: 'publication',
   createdAt: 1_776_000_000_000,
   assurance: 'unsigned-local',
   ...over,
@@ -49,6 +53,11 @@ describe('history — the entries for ONE publication (M9 v280)', () => {
 
   it('a row it cannot display honestly is dropped, not faked', () => {
     const rows = historyRowsOf([entry({ id: '1' }), entry({ id: '2', targetId: null }), entry({ id: '3' })], 'pub-1');
+    expect(rows.map((r) => r.id)).toEqual(['1', '3']);
+  });
+
+  it('a row that cannot say what KIND of thing it happened to is dropped too (v384)', () => {
+    const rows = historyRowsOf([entry({ id: '1' }), entry({ id: '2', targetType: null }), entry({ id: '3' })], 'pub-1');
     expect(rows.map((r) => r.id)).toEqual(['1', '3']);
   });
 });

@@ -30,7 +30,12 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
   const asked = Number(new URL(request.url).searchParams.get('limit') ?? '20');
   const limit = Number.isFinite(asked) && asked > 0 ? Math.trunc(asked) : 20;
-  const answer = await readFiledReports(reporter.trim(), limit);
+  // v382 — the offset pages past the newest rows. A negative or nonsense one is clamped to the first
+  // page rather than refused: the window it names does not exist, and the newest rows are the honest
+  // answer to a question about a page before the first.
+  const from = Number(new URL(request.url).searchParams.get('offset') ?? '0');
+  const offset = Number.isFinite(from) ? Math.max(Math.trunc(from), 0) : 0;
+  const answer = await readFiledReports(reporter.trim(), offset, limit);
   return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
 }
 

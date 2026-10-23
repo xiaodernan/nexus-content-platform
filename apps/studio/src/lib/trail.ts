@@ -26,6 +26,8 @@ export interface TrailEntry {
   action?: unknown;
   actorId?: unknown;
   targetId?: unknown;
+  /** v384 — the kind of thing the target id names: account, plan or publication. */
+  targetType?: unknown;
   createdAt?: unknown;
   assurance?: unknown;
 }
@@ -44,6 +46,11 @@ export interface TrailRow {
   anonymous: boolean;
   /** The project the entry happened to. */
   targetId: string;
+  /**
+   * v384 — the kind of thing the target is, as the service declared it: `account`, `plan` or
+   * `publication`. The service's own word, kept verbatim — the same rule the action keeps.
+   */
+  targetType: string;
   /** The instant, in epoch milliseconds as the service sent it. */
   createdAt: number;
   /** The instant as UTC text, second precision. */
@@ -103,11 +110,32 @@ export function trailActorText(actorId: string, assurance: string | null): strin
 }
 
 /**
+ * The display word for a target's kind.
+ *
+ * The three the service writes are spelled the way a person would say them; anything else — a kind a newer
+ * service added — is passed through as it arrived. The same honesty rule `trailActionText` keeps: a panel
+ * that cannot recognise a word must not invent one for it.
+ */
+export function trailTargetTypeText(targetType: string): string {
+  switch (targetType) {
+    case 'account':
+      return 'account';
+    case 'plan':
+      return 'plan';
+    case 'publication':
+      return 'publication';
+    default:
+      return targetType;
+  }
+}
+
+/**
  * ONE entry, or `null` when it cannot be shown honestly.
  *
  * A row needs an id (so the panel can key it), an action (so it can say what happened), a target (so it can
- * say what it happened to) and a finite instant (so it can say when). Missing any of those is not a row with
- * a blank column — it is a row this build would have to invent values for, so it is dropped instead.
+ * say what it happened to), the KIND of that target (v384 — so it can say what sort of thing it happened
+ * to) and a finite instant (so it can say when). Missing any of those is not a row with a blank column —
+ * it is a row this build would have to invent values for, so it is dropped instead.
  */
 export function toTrailRow(entry: unknown): TrailRow | null {
   if (typeof entry !== 'object' || entry === null) return null;
@@ -115,6 +143,10 @@ export function toTrailRow(entry: unknown): TrailRow | null {
   if (typeof e.id !== 'string' || e.id.length === 0) return null;
   if (typeof e.action !== 'string' || e.action.length === 0) return null;
   if (typeof e.targetId !== 'string' || e.targetId.length === 0) return null;
+  // v384 — the target's kind is part of what the row asserts. A row that cannot say what sort of thing it
+  // happened to is dropped like any other row that cannot be shown honestly — and the panel's count
+  // discrepancy makes the drop visible rather than silent.
+  if (typeof e.targetType !== 'string' || e.targetType.length === 0) return null;
   if (typeof e.createdAt !== 'number' || !Number.isFinite(e.createdAt)) return null;
 
   const actorId = typeof e.actorId === 'string' && e.actorId.length > 0 ? e.actorId : null;
@@ -127,6 +159,7 @@ export function toTrailRow(entry: unknown): TrailRow | null {
     actorText: actorId ? trailActorText(actorId, assurance) : 'nobody (anonymous)',
     anonymous: actorId === null,
     targetId: e.targetId,
+    targetType: e.targetType,
     createdAt: e.createdAt,
     timeText: new Date(e.createdAt).toISOString().replace('.000Z', 'Z'),
   };

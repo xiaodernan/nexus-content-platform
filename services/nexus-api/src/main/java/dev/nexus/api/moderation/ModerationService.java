@@ -209,7 +209,7 @@ public class ModerationService {
         }
         row.markAcknowledged();
         reports.save(row);
-        audit.record("acknowledge", owner, null, null, row.getTargetProjectId());
+        audit.record("acknowledge", owner, null, null, row.getTargetProjectId(), AuditService.TARGET_PUBLICATION);
         return new ModerationDtos.DispositionAnswer(row.getReportId(), row.getStatus(), true);
     }
 

@@ -16,9 +16,9 @@ function makeFetch(handler: (url: string) => Response) {
 const TRAIL = {
   ok: true,
   entries: [
-    { id: '9', action: 'unpublish', actorId: 'acct-ada', targetId: 'pub-1', createdAt: 1_776_000_100_000, assurance: 'unsigned-local' },
-    { id: '8', action: 'publish', actorId: 'acct-ada', targetId: 'pub-1', createdAt: 1_776_000_000_000, assurance: 'unsigned-local' },
-    { id: '7', action: 'publish', actorId: null, targetId: 'pub-2', createdAt: 1_775_999_900_000, assurance: null },
+    { id: '9', action: 'unpublish', actorId: 'acct-ada', targetId: 'pub-1', targetType: 'publication', createdAt: 1_776_000_100_000, assurance: 'unsigned-local' },
+    { id: '8', action: 'publish', actorId: 'acct-ada', targetId: 'pub-1', targetType: 'publication', createdAt: 1_776_000_000_000, assurance: 'unsigned-local' },
+    { id: '7', action: 'publish', actorId: null, targetId: 'pub-2', targetType: 'publication', createdAt: 1_775_999_900_000, assurance: null },
   ],
   count: 3,
   limit: 20,
@@ -41,7 +41,7 @@ describe('auditLane — readTrail (client half)', () => {
     const dragged = {
       ok: true,
       entries: [
-        { id: '9', action: 'publish', actorId: null, targetId: 'pub-1', createdAt: 1, assurance: null },
+        { id: '9', action: 'publish', actorId: null, targetId: 'pub-1', targetType: 'publication', createdAt: 1, assurance: null },
         { id: 'broken', action: 'publish', actorId: null, targetId: null, createdAt: 1, assurance: null },
       ],
       count: 2,
@@ -52,6 +52,21 @@ describe('auditLane — readTrail (client half)', () => {
       expect(answer.rows).toHaveLength(1); // the malformed entry was dropped, not faked
       expect(answer.count).toBe(2); // and the service still says there are two
     });
+  });
+
+  it('v384 — a row the service sent with no KIND is dropped, and the count still says it was carried', async () => {
+    const kindless = {
+      ok: true,
+      entries: [
+        { id: '9', action: 'publish', actorId: 'acct-ada', targetId: 'pub-1', createdAt: 1, assurance: 'unsigned-local' },
+      ],
+      count: 1,
+      limit: 20,
+    };
+    const answer = await readTrail(20, makeFetch(() => new Response(JSON.stringify(kindless), { status: 200 })));
+    expect(answer.ok).toBe(true);
+    expect(answer.rows).toHaveLength(0); // dropped, not shown with an invented kind
+    expect(answer.count).toBe(1); // and the discrepancy is visible
   });
 
   it('a refusal carries the SERVICE’S reason, not a status code', async () => {

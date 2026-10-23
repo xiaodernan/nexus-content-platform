@@ -1253,3 +1253,26 @@ Measured: `apps/studio` **1256/1256 (67 files)**, the service’s social + moder
 Measured: `apps/studio` **1261/1261 (67 files)**, the service’s social + moderation packages **164/164**, `npx tsc -p apps/studio/tsconfig.json` **exit 0**, doc gate **exit 0**, the real-browser E2E **318/318** with the new §77.
 
 **Bounds (§60).** The counts are the SERVICE’s counts — a `COUNT` over the whole table — and the panel still asks for a window beside them (it does not read the whole table into the browser). These two lists still have NO pager: a reporter with more complaints than the cap sees the newest ones and the number that says so, and the older ones are not reachable from this panel yet — named here rather than pretended. The withdrawal’s own status line still says exactly what the service said about it, and a refusal still names the rule that was broken. And the follower’s count is the service’s `followingCount`, which it has always sent — this increment only stops dropping it and says it out loud.
+
+## v381+v382 — the reporter's own rows say WHEN they were filed, and the window can be paged past (M7/v381+v382 — ADR 0016 amendment 372)
+
+**The gap.** The report row has carried its filed instant since v295; the reporter's own panel showed the reason and the status and dropped the date — the same "every date should be on the page" rule v341–v344 applied everywhere else, missed here. And "YOU FILED" is a window with no pager: the client lane began sending `offset`, but the service ignored it (the controller hardcoded `0`) and the lane's failure answers did not name the window they asked for.
+**What was completed.** The controller reads and clamps the offset (a negative one is the first page, not a refusal — the window it names does not exist). The lane asks for the offset and echoes it in every answer, success and failure alike: a panel must know which window it is looking at even when the read failed.
+**Files.** `services/nexus-api/src/main/java/dev/nexus/api/social/ReportController.java`, `apps/studio/src/lib/reportLane.ts` + `reportServer.ts` + `app/api/reports/route.ts` + `components/Toolbar.tsx`, `reportLane.test.ts` (+2).
+Measured: studio affected files **90/90**, `tsc` exit 0, the service **240/240**.
+**Bounds (§60).** The panel does not page yet — the lane and the door carry the offset, and a pager control is the next increment. A page past the end answers an empty window, which is the service's honest answer, not an error.
+
+## v383 — the duplicate-report rule is TIME-AWARE: a report STANDS for a period, then lapses (M7/v383 — ADR 0016 amendment 373)
+
+**The gap.** "The same account cannot report the same publication for the same reason twice" held forever: a publication that was since fixed stayed held down by a complaint about its old state.
+**The rule.** A report stands for a month (as filed today) and expires at its own `createdAt + period`, read off the ROW — a row filed under one period expires by that period even after the policy moves. The addition is calendar arithmetic in UTC, not `Instant.plus` (an Instant has no months; a "month" of thirty days would expire a report filed on the 31st a day early, every time). An unknown period expires by the month rather than standing forever.
+**The constraint is gone, and the cost is named.** "At most one STANDING report per (reporter, target, reason)" is a rule about a moving instant, and a UNIQUE index cannot express one — so the rule lives in the service. Two simultaneous filings can now both pass the check and both land; a database-level rule needs a trigger or a migration tool, and this build has neither. Named, not pretended.
+**Files.** `ReportEntry.java` (the `period` column; the constraint's removal with its reasons), `ReportDtos.java` (the closed set of two), `ReportService.java` (`isStanding`), `ReportServiceTest.java` (+4: expired no longer constrains; one day short still STANDS; a year expires a year later; the row carries the period).
+Measured: the service **240/240**, BUILD SUCCESS — and this increment also REPAIRED HEAD, which did not compile: the call sites had landed without their receiving halves.
+
+## the SERVICE suite's verdict is a gated one (M2 — ADR 0016 amendment 376)
+
+**The gap.** `mvn test` was a command a human ran; nothing asserted its totals. A suite that silently stopped collecting a class would read as a pass.
+**The proof.** `docs/evidence/m7/service-suite-proof.mjs` digests the service sources, runs `mvn -o -B test`, asserts the digest did not move under the run, then grades the surefire totals — 0 failures / 0 errors / tests > 0 / exit 0 / every `*Test.java` on disk present.
+Measured (2026-10-23, after amendments 372–374): **240 tests, 10 classes, 0 failures, 0 errors, BUILD SUCCESS**. The first run at the previous HEAD went RED and correctly so — the service did not compile.
+**Bounds (§60).** The proof grades the totals, not the cases; the digest covers the service sources only.

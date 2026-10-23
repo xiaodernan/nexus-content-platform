@@ -58,6 +58,21 @@ public class AuditEntry {
     @Column(name = "target_id", nullable = false, length = 200)
     private String targetId;
 
+    /**
+     * v384 — what KIND of thing the event happened to.
+     *
+     * <p>An id alone does not say what it names, and a rule guessed from an id's spelling is a rule that
+     * breaks the day somebody names a plan "account-something": the caller KNOWS what it acted on, so the
+     * caller declares it and this column records the declaration. A CLOSED SET of three — {@code account},
+     * {@code plan}, {@code publication} — validated by the service on the way in ({@code AuditService}).
+     *
+     * <p>Not nullable: every entry this build writes names one. The verbs that existed before this column
+     * (publish, unpublish, like, unlike, comment, uncomment, report, withdraw-report, acknowledge) all
+     * happened to a PUBLICATION, which is what the service records for them.
+     */
+    @Column(name = "target_type", nullable = false, length = 16)
+    private String targetType;
+
     /** When it happened. */
     @Column(name = "occurred_at", nullable = false)
     private Instant occurredAt;
@@ -66,12 +81,20 @@ public class AuditEntry {
         // for JPA
     }
 
-    public AuditEntry(String action, String actorAccountId, String actorHandle, String actorAssurance, String targetId, Instant occurredAt) {
+    public AuditEntry(
+            String action,
+            String actorAccountId,
+            String actorHandle,
+            String actorAssurance,
+            String targetId,
+            String targetType,
+            Instant occurredAt) {
         this.action = action;
         this.actorAccountId = actorAccountId;
         this.actorHandle = actorHandle;
         this.actorAssurance = actorAssurance;
         this.targetId = targetId;
+        this.targetType = targetType;
         this.occurredAt = occurredAt;
     }
 
@@ -101,5 +124,9 @@ public class AuditEntry {
 
     public Instant getOccurredAt() {
         return occurredAt;
+    }
+
+    public String getTargetType() {
+        return targetType;
     }
 }

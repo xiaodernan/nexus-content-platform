@@ -44,8 +44,20 @@ public interface ReportRepository extends JpaRepository<ReportEntry, String> {
     List<ReportEntry> findByTargetProjectIdInAndReasonOrderByCreatedAtDesc(
             Collection<String> targetProjectIds, String reason, Pageable pageable);
 
-    /** The reports one account filed, newest first, capped by the caller's `Pageable`, filtered by target_type. */
-    List<ReportEntry> findByReporterAccountIdOrderByCreatedAtDesc(String reporterAccountId, Pageable pageable, String targetType);
+    /** The reports one account filed, newest first, capped by the caller's `Pageable`. */
+    List<ReportEntry> findByReporterAccountIdOrderByCreatedAtDesc(String reporterAccountId, Pageable pageable);
+
+    /**
+     * v382/v384 — the SAME finder, narrowed to one kind of target.
+     *
+     * <p>The narrowing happens IN the query and not after it, for the reason v326 gave the desk: the rows
+     * are a WINDOW (the most recent N), and a window taken before the narrowing would answer "the most
+     * recent N reports, of which these are the ones about accounts" rather than "the most recent N reports
+     * about accounts". The property is in the NAME, so the derivation binds it; a trailing parameter the
+     * name never mentions would not be bound at all.
+     */
+    List<ReportEntry> findByReporterAccountIdAndTargetTypeOrderByCreatedAtDesc(
+            String reporterAccountId, String targetType, Pageable pageable);
 
     /**
      * v312 — the reports about ANY of several publications, COUNTED by reason and by status.

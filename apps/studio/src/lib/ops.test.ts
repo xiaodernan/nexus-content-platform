@@ -24,6 +24,7 @@ const entry: AuditEntry = {
   action: 'publish',
   actorId: 'acct-actor' as AccountId,
   targetId: 'pub-1',
+  targetType: 'publication',
   createdAt: 1_700_000_000_000,
   assurance: 'unsigned-local',
 };
@@ -65,6 +66,9 @@ describe('ops — AuditEntry shape', () => {
     expect(entry.action).toBe('publish');
     expect(entry.actorId).toBe('acct-actor');
     expect(entry.targetId).toBe('pub-1');
+    // v384 — the kind of thing the entry happened to. The service always sends it (it refuses an entry
+    // that does not name a kind), so the client model carries it as a required field.
+    expect(entry.targetType).toBe('publication');
     expect(entry.createdAt).toBe(1_700_000_000_000);
     expect(entry.assurance).toBe('unsigned-local');
   });
@@ -159,6 +163,7 @@ describe('ops — isAuditEntryOwnedBy', () => {
     actorId: 'user-1',
     action: 'publish',
     targetId: 'art-1',
+    targetType: 'publication',
     createdAt: 1700000000000,
     assurance: 'unsigned-local',
   };
@@ -196,6 +201,7 @@ describe('ops — auditEntriesByAction', () => {
     actorId: 'u-1',
     action: 'publish',
     targetId: 'art-1',
+    targetType: 'publication',
     createdAt: 100,
     assurance: 'unsigned-local',
   };
@@ -281,6 +287,7 @@ describe('ops — isAuditEntryOwnedBy', () => {
     action: 'follow',
     actorId: 'acct-a',
     targetId: 'art-1',
+    targetType: 'publication',
     createdAt: 1_700_000_000_000,
     assurance: 'unsigned-local' as Assurance,
   };
@@ -309,6 +316,7 @@ describe('ops — v273 与服务端线格式对齐', () => {
     action: 'publish',
     actorId: null,
     targetId: 'pub-1',
+    targetType: 'publication',
     createdAt: 1_700_000_000_000,
     assurance: null,
     ...over,

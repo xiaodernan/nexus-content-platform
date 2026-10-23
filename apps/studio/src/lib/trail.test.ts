@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { toTrailRow, toTrailRows, trailActionText, trailActorText, trailSummaryOf, trailSummaryText, filterTrailRows } from './trail';
+import { toTrailRow, toTrailRows, trailActionText, trailActorText, trailSummaryOf, trailSummaryText, trailTargetTypeText, filterTrailRows } from './trail';
 
 /**
  * M9 v272 — the AUDIT TRAIL's reading half.
@@ -15,6 +15,7 @@ const entry = (over: Record<string, unknown> = {}) => ({
   action: 'publish',
   actorId: 'acct-ada',
   targetId: 'pub-1',
+  targetType: 'publication',
   createdAt: 1_776_000_000_000,
   assurance: 'unsigned-local',
   ...over,
@@ -70,6 +71,28 @@ describe('trail — one entry becomes one row (M9 v272)', () => {
     expect(toTrailRow(entry({ targetId: null }))).toBeNull();
     expect(toTrailRow(entry({ createdAt: 'yesterday' }))).toBeNull();
     expect(toTrailRow(entry({ createdAt: Number.NaN }))).toBeNull();
+  });
+
+  it('v384 — the row carries the KIND of thing it happened to, as the service declared it', () => {
+    const row = toTrailRow(entry())!;
+    expect(row.targetType).toBe('publication');
+    expect(toTrailRow(entry({ targetType: 'account' }))!.targetType).toBe('account');
+    expect(toTrailRow(entry({ targetType: 'plan' }))!.targetType).toBe('plan');
+  });
+
+  it('v384 — a row that cannot say what KIND of thing it happened to is dropped like any other', () => {
+    // The kind is part of what the row asserts: a follow and a publish both happened to an id, and a row
+    // that could not say which sort of id would be asking the reader to guess.
+    expect(toTrailRow(entry({ targetType: null }))).toBeNull();
+    expect(toTrailRow(entry({ targetType: '' }))).toBeNull();
+  });
+
+  it('v384 — the three kinds are spelled as a person would say them, and an unknown one passes through', () => {
+    expect(trailTargetTypeText('account')).toBe('account');
+    expect(trailTargetTypeText('plan')).toBe('plan');
+    expect(trailTargetTypeText('publication')).toBe('publication');
+    // A kind a newer service added is shown as it arrived — the same rule the action keeps.
+    expect(trailTargetTypeText('world')).toBe('world');
   });
 });
 

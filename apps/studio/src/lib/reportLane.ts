@@ -51,18 +51,24 @@ export interface FiledReportsLaneAnswer {
  * <p>A failed read is NOT an empty list: "you have filed no report" and "the reports could not be read"
  * are different facts, and a panel that showed the first when it knew the second would tell a reporter
  * their complaint had vanished.
+ *
+ * <p>v382 — {@code offset} pages past the newest rows, so a reporter with more complaints than the cap
+ * can reach the older ones. The answer echoes the offset it asked for, so a panel always knows which
+ * window it is looking at — including on a failed read, where the window is still the one that was asked.
  */
 export async function readMyReports(
   accountId: string,
   fetchImpl: FetchLike = fetch,
+  offset: number = 0,
 ): Promise<FiledReportsLaneAnswer> {
+  const from = Math.max(offset, 0);
   try {
-    const res = await fetchImpl(`/api/reports?reporter=${encodeURIComponent(accountId)}`, {
+    const res = await fetchImpl(`/api/reports?reporter=${encodeURIComponent(accountId)}&offset=${encodeURIComponent(String(from))}`, {
       headers: { accept: 'application/json' },
     });
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, reports: [], count: 0, limit: 20, reason: `the reports answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, reports: [], count: 0, limit: 20, offset: from, reason: `the reports answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as { ok?: unknown; reports?: unknown; count?: unknown; limit?: unknown; reason?: unknown; message?: unknown };
     if (body.ok === false || !res.ok) {
@@ -72,7 +78,7 @@ export async function readMyReports(
           : typeof body.message === 'string'
             ? body.message
             : `the reports answered HTTP ${res.status}`;
-      return { ok: false, reports: [], count: 0, limit: 20, reason: why };
+      return { ok: false, reports: [], count: 0, limit: 20, offset: from, reason: why };
     }
     const rows = Array.isArray(body.reports) ? body.reports : [];
     return {
@@ -81,10 +87,18 @@ export async function readMyReports(
       // v380 — the service counts the WHOLE table now, so this number is every report the account
       // filed and not the window the rows happen to be.
       count: typeof body.count === 'number' ? body.count : rows.length,
-      limit: typeof body.limit === 'number' ? body.limit : 20
+      limit: typeof body.limit === 'number' ? body.limit : 20,
+      offset: from,
     };
   } catch (error) {
-    return { ok: false, reports: [], count: 0, limit: 20, reason: error instanceof Error ? error.message : String(error) };
+    return {
+      ok: false,
+      reports: [],
+      count: 0,
+      limit: 20,
+      offset: from,
+      reason: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
