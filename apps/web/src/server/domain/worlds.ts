@@ -78,34 +78,11 @@ export async function saveWorld(
     return { ok: false, reason: `这份世界属于别的项目（${document.projectId}），不能写进当前项目。` };
   }
 
-  const db = getDb();
   const stamped: WorldDocument = { ...document, projectId };
   const existing = await currentRow(projectId);
-  if (existing) {
-    const stored = WorldDocumentSchema.safeParse(existing.document);
-    // 拒绝"更旧的写"：卸载时可能同时有两个 PUT 在飞，乱序到达不能让旧版本赢
-    if (stored.success && stored.data.updatedAt > stamped.updatedAt) {
-      return {
-        ok: false,
-        reason: `库里已有一份比这次更新的世界（${stored.data.updatedAt} > ${stamped.updatedAt}），这次写入被拒。`,
-      };
-    }
-    const [row] = await db
-      .update(worlds)
-      .set({
-        document: stamped,
-        name: stamped.name,
-        summary: stamped.summary,
-        updatedAt: new Date(),
-      })
-      .where(eq(worlds.id, existing.id))
-      .returning({ id: worlds.id });
-    if (!row) return { ok: false, reason: '保存世界文档时没写到任何行' };
-    await syncProjectKnowledge(projectId);
-    return { ok: true, document: { ...stamped, id: row.id } };
-  }
+  if (existing) return await applyWorldUpdate(projectId, existing, stamped);
 
-  const [inserted] = await db
+  const [inserted] = await getDb()
     .insert(worlds)
     .values({
       projectId,
@@ -114,9 +91,51 @@ export async function saveWorld(
       summary: stamped.summary,
       document: stamped,
     })
+    // #168：并发创建（两个标签页各存一次）都查不到已有行 → 都 insert。
+    // 迁移 0037 给 project_id 加了唯一约束，后到的那条在这里被挡下，回头走更新路径——
+    // "一个项目一份"由库守着，不靠两个请求谁跑得快。
+    .onConflictDoNothing()
     .returning({ id: worlds.id });
+  if (inserted) {
+    await syncProjectKnowledge(projectId);
+    return { ok: true, document: { ...stamped, id: inserted.id } };
+  }
+  // 撞了唯一约束：另一个请求刚插了同一项目的那一行。重新读出来走更新路径
+  // （"拒绝更旧的写"那道判断在助手里面，照旧生效）。
+  const raced = await currentRow(projectId);
+  if (!raced) {
+    return { ok: false, reason: '保存世界文档时并发写入丢失（唯一约束挡下第二次插入后重读不到行）' };
+  }
+  return await applyWorldUpdate(projectId, raced, stamped);
+}
+
+/** 已有那一行的写入口：旧写拒绝 / 否则整份换新 */
+async function applyWorldUpdate(
+  projectId: string,
+  existing: NonNullable<Awaited<ReturnType<typeof currentRow>>>,
+  stamped: WorldDocument,
+): Promise<WorldResult> {
+  const stored = WorldDocumentSchema.safeParse(existing.document);
+  // 拒绝"更旧的写"：卸载时可能同时有两个 PUT 在飞，乱序到达不能让旧版本赢
+  if (stored.success && stored.data.updatedAt > stamped.updatedAt) {
+    return {
+      ok: false,
+      reason: `库里已有一份比这次更新的世界（${stored.data.updatedAt} > ${stamped.updatedAt}），这次写入被拒。`,
+    };
+  }
+  const [row] = await getDb()
+    .update(worlds)
+    .set({
+      document: stamped,
+      name: stamped.name,
+      summary: stamped.summary,
+      updatedAt: new Date(),
+    })
+    .where(eq(worlds.id, existing.id))
+    .returning({ id: worlds.id });
+  if (!row) return { ok: false, reason: '保存世界文档时没写到任何行' };
   await syncProjectKnowledge(projectId);
-  return { ok: true, document: { ...stamped, id: inserted!.id } };
+  return { ok: true, document: { ...stamped, id: row.id } };
 }
 
 /** 项目被删时 worlds 靠外键级联；这里只给测试与运维一个明确的断言入口 */

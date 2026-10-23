@@ -536,7 +536,9 @@ export const worlds = pgTable(
   'worlds',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id')
+      .references(() => projects.id, { onDelete: 'cascade' })
+      .unique(),
     ownerId: uuid('owner_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
@@ -653,7 +655,9 @@ export const games = pgTable(
   'games',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id')
+      .references(() => projects.id, { onDelete: 'cascade' })
+      .unique(),
     ownerId: uuid('owner_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),

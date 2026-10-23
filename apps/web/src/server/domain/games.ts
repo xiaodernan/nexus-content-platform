@@ -87,44 +87,63 @@ export async function saveGame(
     return { ok: false, reason: `这份游戏属于别的项目（${document.projectId}），不能写进当前项目。` };
   }
 
-  const db = getDb();
   const stamped: GameDocument = { ...document, projectId };
   const existing = await currentRow(projectId);
-  if (existing) {
-    // 这一条要在"更旧的写"那道判断之前：草稿的时间戳本来就是跑那一刻的，
-    // 拿它去比一份被用户改过的设计只会得到"这次写入被拒（旧版本）"那种误导的原因
-    if (options?.createOnly) {
-      return {
-        ok: false,
-        reason: `这个项目已经有一份游戏设计（「${existing.name}」），接受草稿不会覆盖它——要换掉请先在 Game Studio 里删掉或改那一份。`,
-      };
-    }
-    const stored = GameDocumentSchema.safeParse(existing.document);
-    // 拒绝"更旧的写"：两个 PUT 乱序到达时不能让旧版本赢
-    if (stored.success && stored.data.updatedAt > stamped.updatedAt) {
-      return {
-        ok: false,
-        reason: `库里已有一份比这次更新的游戏（${stored.data.updatedAt} > ${stamped.updatedAt}），这次写入被拒。`,
-      };
-    }
-    const [row] = await db
-      .update(games)
-      .set({ document: stamped, name: stamped.name, summary: stamped.summary, updatedAt: new Date() })
-      .where(eq(games.id, existing.id))
-      .returning({ id: games.id });
-    if (!row) return { ok: false, reason: '保存游戏文档时没写到任何行' };
-    // 存了但检索不到 = 对 AI 不存在（§49）。与角色/世界/分镜同一口径：写成功后重建这一份语料
-    await syncProjectKnowledge(projectId);
-    return { ok: true, document: { ...stamped, id: row.id } };
-  }
+  if (existing) return await applyGameUpdate(projectId, existing, stamped, options);
 
-  const [inserted] = await db
+  const [inserted] = await getDb()
     .insert(games)
     .values({ projectId, ownerId, name: stamped.name, summary: stamped.summary, document: stamped })
+    // #168：并发创建（双击「接受草稿」、两个标签页各存一次）都查不到已有行 → 都 insert。
+    // 迁移 0037 给 project_id 加了唯一约束，后到的那条在这里被挡下，回头走更新路径——
+    // "一个项目一份"由库守着，不靠两个请求谁跑得快。
+    .onConflictDoNothing()
     .returning({ id: games.id });
-  if (!inserted) return { ok: false, reason: '新建游戏时没写到任何行' };
+  if (inserted) {
+    await syncProjectKnowledge(projectId);
+    return { ok: true, document: { ...stamped, id: inserted.id } };
+  }
+  // 撞了唯一约束：另一个请求刚插了同一项目的那一行。重新读出来走更新路径
+  // （createOnly 在助手里面拒——那份是别人刚插的，同样不能覆盖）。
+  const raced = await currentRow(projectId);
+  if (!raced) {
+    return { ok: false, reason: '保存游戏文档时并发写入丢失（唯一约束挡下第二次插入后重读不到行）' };
+  }
+  return await applyGameUpdate(projectId, raced, stamped, options);
+}
+
+/** 已有那一行的写入口：createOnly 拒绝 / 旧写拒绝 / 否则整份换新 */
+async function applyGameUpdate(
+  projectId: string,
+  existing: NonNullable<Awaited<ReturnType<typeof currentRow>>>,
+  stamped: GameDocument,
+  options?: { createOnly?: boolean },
+): Promise<GameResult> {
+  // 这一条要在"更旧的写"那道判断之前：草稿的时间戳本来就是跑那一刻的，
+  // 拿它去比一份被用户改过的设计只会得到"这次写入被拒（旧版本）"那种误导的原因
+  if (options?.createOnly) {
+    return {
+      ok: false,
+      reason: `这个项目已经有一份游戏设计（「${existing.name}」），接受草稿不会覆盖它——要换掉请先在 Game Studio 里删掉或改那一份。`,
+    };
+  }
+  const stored = GameDocumentSchema.safeParse(existing.document);
+  // 拒绝"更旧的写"：两个 PUT 乱序到达时不能让旧版本赢
+  if (stored.success && stored.data.updatedAt > stamped.updatedAt) {
+    return {
+      ok: false,
+      reason: `库里已有一份比这次更新的游戏（${stored.data.updatedAt} > ${stamped.updatedAt}），这次写入被拒。`,
+    };
+  }
+  const [row] = await getDb()
+    .update(games)
+    .set({ document: stamped, name: stamped.name, summary: stamped.summary, updatedAt: new Date() })
+    .where(eq(games.id, existing.id))
+    .returning({ id: games.id });
+  if (!row) return { ok: false, reason: '保存游戏文档时没写到任何行' };
+  // 存了但检索不到 = 对 AI 不存在（§49）。与角色/世界/分镜同一口径：写成功后重建这一份语料
   await syncProjectKnowledge(projectId);
-  return { ok: true, document: { ...stamped, id: inserted.id } };
+  return { ok: true, document: { ...stamped, id: row.id } };
 }
 
 /** 项目被删时 games 靠外键级联；这里给测试与运维一个明确的断言入口 */

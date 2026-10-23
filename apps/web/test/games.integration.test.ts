@@ -244,6 +244,24 @@ describe('createOnly：只在项目还没有游戏文档时写（§52 接受入�
     expect(loaded?.ok && loaded.document.entities.length).toBe(freshDraft.entities.length);
   });
 
+  it('并发双发"接受草稿"：库里只有一份，第二次如实答"已经有一份"（#168）', async () => {
+    const id = await newProject('Game Race');
+    const game = createGame('竞速', id);
+    // 两个请求同时到：都查不到已有行 → 都 insert。迁移 0037 的唯一约束挡下第二个，
+    // 它回头走更新路径，被 createOnly 拒——用户看到的是"已经有一份"，不是库里两份游戏。
+    const [a, b] = await Promise.all([
+      saveGame(id, ownerId, game, { createOnly: true }),
+      saveGame(id, ownerId, game, { createOnly: true }),
+    ]);
+    const ok = [a, b].filter((r) => r.ok);
+    const refused = [a, b].filter((r) => !r.ok);
+    expect(ok, '两个都成功 → 库里插出了两份（唯一约束没挡住）').toHaveLength(1);
+    expect(refused).toHaveLength(1);
+    if (!refused[0] || refused[0].ok) throw new Error('该有一条被拒');
+    expect(refused[0].reason).toContain('已经有一份');
+    expect(await countGames(id), '一个项目一份').toBe(1);
+  });
+
   it('接受写进去的草稿进得了语料库（AI 事后读得到它，§49 那条链不断）', async () => {
     const id = await newProject('接受进语料');
     expect((await saveGame(id, ownerId, draft(null), { createOnly: true })).ok).toBe(true);

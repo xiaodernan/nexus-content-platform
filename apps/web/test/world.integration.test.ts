@@ -221,4 +221,17 @@ describe('并发写入的次序（卸载时会有两个 PUT 在飞）', () => {
     expect(loaded?.ok && loaded.document.name).toBe('新的那份');
     expect(loaded?.ok && loaded.document.nodes.some((n) => n.title === '结局')).toBe(true);
   });
+
+  it('并发双发保存：库里只有一份，后到的那条走更新路径而不是插出第二份（#168）', async () => {
+    const id = await newProject('World Race');
+    const world = createWorld('竞速', id);
+    // 两个请求同时到：都查不到已有行 → 都 insert。迁移 0037 的唯一约束挡下第二个，
+    // 它重新读出来走更新路径——"一个项目一份"由库守着，不靠两个请求谁跑得快。
+    const [a, b] = await Promise.all([saveWorld(id, ownerId, world), saveWorld(id, ownerId, world)]);
+    expect(a.ok).toBe(true);
+    expect(b.ok).toBe(true);
+    expect(await countWorlds(id), '一个项目一份').toBe(1);
+    const loaded = await loadWorld(id);
+    expect(loaded?.ok).toBe(true);
+  });
 });
