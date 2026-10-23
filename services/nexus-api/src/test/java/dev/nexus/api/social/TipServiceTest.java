@@ -149,7 +149,7 @@ class TipServiceTest {
         when(repository.sumAmountCentsByRecipientAccountId("acct-bob")).thenReturn(1500L);
         when(repository.countByRecipientAccountId("acct-bob")).thenReturn(3L);
 
-        assertThat(service.tipsReceived("acct-bob", 20)).containsExactly(one);
+        assertThat(service.tipsReceived("acct-bob", 20, 0)).containsExactly(one);
         // The total is summed by the DATABASE, so it is a fact about the rows and not a running total the
         // service kept in its head.
         assertThat(service.totalReceived("acct-bob")).isEqualTo(1500L);
@@ -168,7 +168,7 @@ class TipServiceTest {
         when(repository.findByPayerAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
                 .thenReturn(List.of(given));
 
-        assertThat(service.tipsGiven("acct-bob", 20)).containsExactly(given);
+        assertThat(service.tipsGiven("acct-bob", 20, 0)).containsExactly(given);
     }
 
     @Test
@@ -201,7 +201,7 @@ class TipServiceTest {
         when(repository.findByRecipientAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        service.tipsReceived("acct-bob", 10_000);
+        service.tipsReceived("acct-bob", 10_000, 0);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findByRecipientAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
@@ -210,6 +210,68 @@ class TipServiceTest {
 
     @Test
     void readingTheTipsNeedsAnAccountToo() {
-        assertThatThrownBy(() -> service.tipsReceived("  ", 20)).isInstanceOf(InvalidTip.class);
+        assertThatThrownBy(() -> service.tipsReceived("  ", 20, 0)).isInstanceOf(InvalidTip.class);
+    }
+
+    // ── v391: the tips windows can be PAGED, in rows ──────────────────────────────────────────
+
+    @Test
+    void theReceivedWindowCanBePagedInRows() {
+        // v391 — the tips a creator was given are a WINDOW, and a window nobody can page is the whole
+        // list to a creator with more tips than the cap. The offset is ROWS: asking for the rows from 20
+        // on is page 1 of a 20-row window, which is what the captor below pins.
+        when(repository.findByRecipientAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.tipsReceived("acct-bob", 20, 20);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByRecipientAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void theReceivedOffsetIsROWSNotAPageIndex() {
+        // v387's lesson, applied from the start: the offset means ROWS, and Spring Data's PageRequest
+        // speaks PAGES. Asking for the rows from 40 on must be answered with page 2 (rows 40–59) —
+        // not page 40 (rows 800–819), which is what handing the raw number to PageRequest.of answers.
+        when(repository.findByRecipientAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.tipsReceived("acct-bob", 20, 40);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByRecipientAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void theGivenWindowCanBePagedInRowsToo() {
+        // The payer's receipt gets the same translation: the other direction of the same relation is
+        // paged the same way, or a reader with a long receipt could not read its tail.
+        when(repository.findByPayerAccountIdOrderByCreatedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.tipsGiven("acct-ada", 20, 20);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByPayerAccountIdOrderByCreatedAtDesc(eq("acct-ada"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void aNegativeTipsOffsetIsTheFirstWindow() {
+        // A page before the first does not exist; the newest rows are the honest answer, not a refusal.
+        when(repository.findByRecipientAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.tipsReceived("acct-bob", 20, -5);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByRecipientAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isZero();
     }
 }

@@ -4477,6 +4477,146 @@ try {
     await countPage.close();
   }
 
+  // ── §78 v391: the two tips lists get their PAGERS ──────────────────────────────────────────────────
+  // "TIPS" and "GIVEN" are WINDOWS with a whole-table count on the wire (v355), so a creator with more
+  // tips than the cap could be told the whole number and shown only the head — the same shape the
+  // filed list (v386), the trail (v388), the desk (v389) and the following list (v390) fixed. Both
+  // sides page in rows now: "Newer" is disabled on the first window (there is no page before it), and
+  // "Older" is disabled exactly when the window already holds every tip the service counted.
+  {
+    const tipPagerPage = await session.newPage('about:blank');
+    await tipPagerPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(tipPagerPage, 'the tips pager page to hydrate');
+
+    // The tipper’s own claim, read from the signed-in device — the same shape §77 uses.
+    await signInAs(tipPagerPage, 'bob', 'the tipper');
+    const tipperRaw = await tipPagerPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const tipper = tipperRaw ? JSON.parse(String(tipperRaw)) : null;
+    const tipperClaim = {
+      accountId: tipper?.id ?? '',
+      handle: tipper?.handle ?? null,
+      assurance: tipper?.assurance ?? null,
+      claimedAt: tipper?.createdAt ?? null,
+    };
+
+    // A SECOND tip, written through the service’s own door (the composer’s flow is proven in
+    // §17): the count and the window must be able to DIFFER for a pager to mean anything, and the
+    // service counts the whole table either way.
+    const secondTip = await fetch(`${apiBase}/tips`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        recipientAccountId: accountRecord?.id ?? '',
+        claim: tipperClaim,
+        amountCents: 700,
+        message: 'the harness tips you a second time, so the count and the window differ',
+        anonymous: false,
+      }),
+    });
+    check('the second tip is recorded', secondTip.status === 201 || secondTip.status === 200, `the service answered HTTP ${secondTip.status}`);
+
+    // The RECEIVED side — signed in as the recipient.
+    await signInAs(tipPagerPage, 'ada', 'the recipient of the tips');
+    await tipPagerPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const receivedRows = await until(
+      async () => (await tipPagerPage.evaluate("!!document.querySelector('[data-economy-payer]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the received tips to show' },
+    );
+    check('the recipient’s tips are on screen', receivedRows !== null, 'the rows are there');
+
+    // The SERVICE counts the WHOLE table even when it carries one row — the difference the pager
+    // is for, and the reason a window’s length could never be told as a total (v355).
+    const recipientRaw = await tipPagerPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const recipientId = JSON.parse(String(recipientRaw)).id;
+    const oneReceived = await fetch(`${apiBase}/tips?recipient=${encodeURIComponent(recipientId)}&limit=1`);
+    const oneReceivedBody = await oneReceived.json();
+    check(
+      'the SERVICE counts the WHOLE table even when it carries one row',
+      oneReceived.status === 200 && (oneReceivedBody.tips ?? []).length === 1 && (oneReceivedBody.count ?? 0) >= 2,
+      `the service answered: ${JSON.stringify(oneReceivedBody)}`,
+    );
+
+    const receivedPager = await tipPagerPage.evaluate(`(() => {
+      const newer = document.querySelector('[data-economy-page="newer"]');
+      const older = document.querySelector('[data-economy-page="older"]');
+      return { there: !!newer && !!older, newerDisabled: newer ? newer.disabled : null, olderDisabled: older ? older.disabled : null };
+    })()`);
+    check('the received list offers a pager', receivedPager.there === true, JSON.stringify(receivedPager));
+    check(
+      'and on the first window "Newer" is disabled — there is no page before the first',
+      receivedPager.newerDisabled === true,
+      `newer disabled: ${receivedPager.newerDisabled}`,
+    );
+    check(
+      'and "Older" is disabled when the window already holds every tip the service counted',
+      receivedPager.olderDisabled === true,
+      `older disabled: ${receivedPager.olderDisabled}`,
+    );
+
+    // And the panel states the SERVICE’s whole-table count beside the rows, not the window’s.
+    const receivedPanelText = await tipPagerPage.evaluate("document.querySelector('[data-toolbar-economy]')?.textContent ?? ''");
+    check(
+      'and the panel states the SERVICE’s count of the whole table',
+      receivedPanelText.includes(`${oneReceivedBody.count} tip(s)`),
+      `the panel says: ${JSON.stringify(receivedPanelText.slice(0, 160))} · the service says: ${JSON.stringify(oneReceivedBody.count)}`,
+    );
+
+    // The GIVEN side — the same treatment for what this account gave.
+    await signInAs(tipPagerPage, 'bob', 'the tipper again');
+    await tipPagerPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const givenRows = await until(
+      async () => (await tipPagerPage.evaluate("!!document.querySelector('[data-economy-given]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the given tips to show' },
+    );
+    check('the tipper’s own side shows what they gave', givenRows !== null, 'the rows are there');
+
+    const givenPager = await tipPagerPage.evaluate(`(() => {
+      const newer = document.querySelector('[data-given-page="newer"]');
+      const older = document.querySelector('[data-given-page="older"]');
+      return { there: !!newer && !!older, newerDisabled: newer ? newer.disabled : null, olderDisabled: older ? older.disabled : null };
+    })()`);
+    check('the given list offers a pager', givenPager.there === true, JSON.stringify(givenPager));
+    check(
+      'and on the first window "Newer" is disabled — there is no page before the first',
+      givenPager.newerDisabled === true,
+      `newer disabled: ${givenPager.newerDisabled}`,
+    );
+    check(
+      'and "Older" is disabled when the window already holds every tip the service counted',
+      givenPager.olderDisabled === true,
+      `older disabled: ${givenPager.olderDisabled}`,
+    );
+
+    // And the SERVICE agrees on the given side, read independently of the browser.
+    const giverRaw = await tipPagerPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const giverId = JSON.parse(String(giverRaw)).id;
+    const oneGiven = await fetch(`${apiBase}/tips?payer=${encodeURIComponent(giverId)}&limit=1`);
+    const oneGivenBody = await oneGiven.json();
+    check(
+      'the SERVICE agrees — the payer’s door counts the whole table even when it carries one row',
+      oneGiven.status === 200 && (oneGivenBody.tips ?? []).length === 1 && (oneGivenBody.count ?? 0) >= 2,
+      `the service answered: ${JSON.stringify(oneGivenBody)}`,
+    );
+
+    // And both doors PAGE: a window past the end is the service’s honest EMPTY answer, not an
+    // error — the same answer the panel shows a reader who lands there.
+    const receivedOffsetRead = await fetch(`${apiBase}/tips?recipient=${encodeURIComponent(recipientId)}&offset=20`);
+    const receivedOffsetBody = await receivedOffsetRead.json();
+    check(
+      'and the received door PAGES: a window past the end is an empty answer, not an error',
+      receivedOffsetRead.status === 200 && Array.isArray(receivedOffsetBody.tips) && receivedOffsetBody.tips.length === 0,
+      `tips: ${JSON.stringify(receivedOffsetBody.tips)}`,
+    );
+    const givenOffsetRead = await fetch(`${apiBase}/tips?payer=${encodeURIComponent(giverId)}&offset=20`);
+    const givenOffsetBody = await givenOffsetRead.json();
+    check(
+      'and the given door PAGES: a window past the end is an empty answer, not an error',
+      givenOffsetRead.status === 200 && Array.isArray(givenOffsetBody.tips) && givenOffsetBody.tips.length === 0,
+      `tips: ${JSON.stringify(givenOffsetBody.tips)}`,
+    );
+    await tipPagerPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

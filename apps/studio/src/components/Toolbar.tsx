@@ -194,6 +194,10 @@ export default function Toolbar() {
     }[];
     totalCents: number;
     count: number;
+    /** The cap the service applied. */
+    limit: number;
+    /** v391 — the ROW this window starts at, echoed from the ask. */
+    offset: number;
     reason?: string;
   } | null>(null);
 
@@ -210,10 +214,25 @@ export default function Toolbar() {
     }[];
     totalCents: number;
     count: number;
+    /** The cap the service applied. */
+    limit: number;
+    /** v391 — the ROW this window starts at, echoed from the ask. */
+    offset: number;
     reason?: string;
   } | null>(null);
 
-  const refreshEconomy = async () => {
+  /**
+   * v391 — the two tips lists' PAGES, in ROWS — the received side and the given side page
+   * independently, because they are two different questions about two different sets.
+   *
+   * <p>Both lists are WINDOWS with a whole-table count on the wire (v355), so a creator with more tips
+   * than the cap could be told the whole number and shown only the head. The page is part of the ASK,
+   * the same way the desk's reason (v326) and the following list's page (v390) are.
+   */
+  const [tipsOffset, setTipsOffset] = useState(0);
+  const [givenOffset, setGivenOffset] = useState(0);
+
+  const refreshEconomy = async (tipsPage: number = tipsOffset, givenPage: number = givenOffset) => {
     // WHO the device is, read NOW and not at render time: the account can be set (or changed) after the
     // toolbar last rendered, and a panel that asked "who am I" when it mounted would answer for an
     // account that no longer exists.
@@ -226,13 +245,15 @@ export default function Toolbar() {
         tips: [],
         totalCents: 0,
         count: 0,
+        limit: 20,
+        offset: 0,
         reason: 'this device has no account, and the economy is per account',
       });
       return;
     }
-    setEconomy(await readMyTips(account.id));
+    setEconomy(await readMyTips(account.id, tipsPage));
     // v332 — and the tips this account gave.
-    setGiven(await readMyTipsGiven(account.id));
+    setGiven(await readMyTipsGiven(account.id, givenPage));
     // v309 — and the account's own half: the subscriptions it holds and the plans it offers. The service
     // computes the subscriptions’ standing (v308), so the panel shows the service’s word.
     setEconomyAccount(await readEconomy(account.id));
@@ -1153,11 +1174,28 @@ export default function Toolbar() {
             <div style={{ color: 'var(--nexus-muted)' }}>could not read: {economy.reason}</div>
           ) : economy.count === 0 ? (
             <div style={{ color: 'var(--nexus-muted)' }}>no tips yet — nobody has given this account anything</div>
+          ) : economy.tips.length === 0 ? (
+            /* v391 — an empty window on a LATER page is not an empty history: the reader asked for a
+               page past the end, and the honest answer says that rather than "nobody has given this
+               account anything" — which would be a fact about the whole table, told about one window. */
+            <div style={{ color: 'var(--nexus-muted)' }}>this page is past the end — the service answered an empty window</div>
           ) : (
             <>
               <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 6 }}>Tips</div>
               <div style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
                 {economy.count} tip(s) · {priceText(economy.totalCents as PriceCents, 'CNY')} received
+                {/* v391 — and WHICH tips: the count is the whole table (v355), so the window says
+                    where it sits in it. "The 20 newest" on the first window, a position past it. */}
+                {(() => {
+                  const shown = economy.tips.length;
+                  const window =
+                    economy.count > shown
+                      ? economy.offset > 0
+                        ? ` · showing ${economy.offset + 1}–${economy.offset + shown} of ${economy.count}`
+                        : ` · showing the ${shown} newest of ${economy.count}`
+                      : '';
+                  return window ? <span>{window}</span> : null;
+                })()}
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {economy.tips.map((tip, i) => (
@@ -1180,6 +1218,38 @@ export default function Toolbar() {
                   </li>
                 ))}
               </ul>
+              {/* v391 — the PAGER, the same shape the filed list (v386), the trail (v388), the desk
+                  (v389) and the following list (v390) got. The whole-table count (v355) is on every
+                  answer, so the ending is a COUNT: "Older" is disabled exactly when the window already
+                  holds every tip the service counted. */}
+              <div data-economy-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                <button
+                  className="btn"
+                  data-economy-page="newer"
+                  disabled={economy.offset <= 0}
+                  onClick={() => {
+                    const next = Math.max(economy.offset - economy.limit, 0);
+                    setTipsOffset(next);
+                    void refreshEconomy(next, givenOffset);
+                  }}
+                  title="the newer tips"
+                >
+                  ‹ Newer
+                </button>
+                <button
+                  className="btn"
+                  data-economy-page="older"
+                  disabled={economy.offset + economy.tips.length >= economy.count}
+                  onClick={() => {
+                    const next = economy.offset + economy.limit;
+                    setTipsOffset(next);
+                    void refreshEconomy(next, givenOffset);
+                  }}
+                  title="the older tips"
+                >
+                  Older ›
+                </button>
+              </div>
             </>
           )}
           {/* v332 — the tips THIS account gave: the receipt a reader had nowhere to read. */}
@@ -1190,10 +1260,25 @@ export default function Toolbar() {
             <div style={{ color: 'var(--nexus-muted)' }}>could not read: {given.reason}</div>
           ) : given.count === 0 ? (
             <div style={{ color: 'var(--nexus-muted)' }}>this account has given no tips</div>
+          ) : given.tips.length === 0 ? (
+            /* v391 — the same honest ending as the received side: an empty window on a later page is
+               not an empty receipt. */
+            <div style={{ color: 'var(--nexus-muted)' }}>this page is past the end — the service answered an empty window</div>
           ) : (
             <>
               <div style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
                 {given.count} tip(s) · {priceText(given.totalCents as PriceCents, 'CNY')} given
+                {/* v391 — and WHICH tips, the same way the received side says it. */}
+                {(() => {
+                  const shown = given.tips.length;
+                  const window =
+                    given.count > shown
+                      ? given.offset > 0
+                        ? ` · showing ${given.offset + 1}–${given.offset + shown} of ${given.count}`
+                        : ` · showing the ${shown} newest of ${given.count}`
+                      : '';
+                  return window ? <span>{window}</span> : null;
+                })()}
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {given.tips.map((tip, i) => (
@@ -1212,6 +1297,36 @@ export default function Toolbar() {
                   </li>
                 ))}
               </ul>
+              {/* v391 — the PAGER for the given side: a receipt with more tips than the cap has a
+                  tail, and the whole-table count (v355) says exactly where it ends. */}
+              <div data-given-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                <button
+                  className="btn"
+                  data-given-page="newer"
+                  disabled={given.offset <= 0}
+                  onClick={() => {
+                    const next = Math.max(given.offset - given.limit, 0);
+                    setGivenOffset(next);
+                    void refreshEconomy(tipsOffset, next);
+                  }}
+                  title="the newer tips"
+                >
+                  ‹ Newer
+                </button>
+                <button
+                  className="btn"
+                  data-given-page="older"
+                  disabled={given.offset + given.tips.length >= given.count}
+                  onClick={() => {
+                    const next = given.offset + given.limit;
+                    setGivenOffset(next);
+                    void refreshEconomy(tipsOffset, next);
+                  }}
+                  title="the older tips"
+                >
+                  Older ›
+                </button>
+              </div>
             </>
           )}
           {/* v309 — the SUBSCRIPTIONS and the PLANS, for real. The panel used to say "subscriptions are not

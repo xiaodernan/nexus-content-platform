@@ -95,10 +95,16 @@ public class TipService {
      * moment two tips arrived together.
      */
     @Transactional(readOnly = true)
-    public List<TipEntry> tipsReceived(String recipientAccountId, int limit) {
+    public List<TipEntry> tipsReceived(String recipientAccountId, int limit, int offset) {
         String recipient = requireAccount(recipientAccountId, "a tip needs an account to be for");
         int asked = limit <= 0 ? DEFAULT_TIP_LIMIT : Math.min(limit, MAX_TIP_LIMIT);
-        return repository.findByRecipientAccountIdOrderByCreatedAtDesc(recipient, PageRequest.of(0, asked));
+        // v391 — the offset is ROWS, and Spring Data's PageRequest speaks PAGES (v387's lesson, applied
+        // from the start rather than discovered by the first pager): a caller that asked for the rows from
+        // 40 on must be answered with page 2 (rows 40–59), not page 40 (rows 800–819). A negative
+        // offset is the first window, not a refusal — the newest rows are the honest answer to a
+        // question about a page before the first.
+        int from = Math.max(offset, 0);
+        return repository.findByRecipientAccountIdOrderByCreatedAtDesc(recipient, PageRequest.of(from / asked, asked));
     }
 
     /**
@@ -110,10 +116,12 @@ public class TipService {
      * could not see what they gave had a receipt with no place to read it.
      */
     @Transactional(readOnly = true)
-    public List<TipEntry> tipsGiven(String payerAccountId, int limit) {
+    public List<TipEntry> tipsGiven(String payerAccountId, int limit, int offset) {
         String payer = requireAccount(payerAccountId, "a tip needs an account to give it");
         int asked = limit <= 0 ? DEFAULT_TIP_LIMIT : Math.min(limit, MAX_TIP_LIMIT);
-        return repository.findByPayerAccountIdOrderByCreatedAtDesc(payer, PageRequest.of(0, asked));
+        // v391 — the same rows-into-pages translation the received side gets: the offset means ROWS.
+        int from = Math.max(offset, 0);
+        return repository.findByPayerAccountIdOrderByCreatedAtDesc(payer, PageRequest.of(from / asked, asked));
     }
 
     /**

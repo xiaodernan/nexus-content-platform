@@ -33,9 +33,13 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   }
   const limit = Number.parseInt(url.searchParams.get('limit') ?? '20', 10);
+  // v391 — and the PAGE the list is read at, in rows. A negative or unparseable one is the first
+  // window: the newest rows are the honest answer to a question about a page before the first.
+  const askedOffset = Number.parseInt(url.searchParams.get('offset') ?? '0', 10);
+  const offset = Number.isFinite(askedOffset) && askedOffset > 0 ? askedOffset : 0;
   const answer = recipient
-    ? await readTips(recipient, Number.isFinite(limit) ? limit : 20)
-    : await readTipsGiven(payer as string, Number.isFinite(limit) ? limit : 20);
+    ? await readTips(recipient, Number.isFinite(limit) ? limit : 20, offset)
+    : await readTipsGiven(payer as string, Number.isFinite(limit) ? limit : 20, offset);
   if (!answer.ok) {
     return NextResponse.json({ ok: false, reason: answer.reason }, { status: 503 });
   }
@@ -44,6 +48,9 @@ export async function GET(request: Request): Promise<NextResponse> {
     tips: answer.tips,
     totalCents: answer.totalCents,
     count: answer.count,
+    // v391 — and the cap that was applied: a panel that pages needs to know the window's size to
+    // say which rows it is showing, the same field the filed read's answer carries (v382).
+    limit: answer.limit,
   });
 }
 

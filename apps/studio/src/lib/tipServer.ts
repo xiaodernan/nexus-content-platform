@@ -33,6 +33,16 @@ export interface TipsAnswer {
   totalCents: number;
   /** How many tips the answer carried. */
   count: number;
+  /** The cap the service applied. */
+  limit: number;
+  /**
+   * v391 — the ROW this window starts at, echoed from the ask.
+   *
+   * <p>The answer carries the window it is FOR rather than leaving the panel to remember which ask it
+   * belongs to: two reads in flight (a new tip, then a page) answer in whatever order the network
+   * chooses, and an answer that names its own window cannot be mistaken for the other one's.
+   */
+  offset: number;
   reason?: string;
 }
 
@@ -59,62 +69,70 @@ export type FetchLike = (
 export async function readTipsGiven(
   payerAccountId: string,
   limit: number,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch as FetchLike,
 ): Promise<TipsAnswer> {
   const apiBase = nexusApiBase();
+  const from = Math.max(offset, 0);
   try {
     const res = await fetchImpl(
-      `${apiBase}/tips?payer=${encodeURIComponent(payerAccountId)}&limit=${encodeURIComponent(String(limit))}`,
+      `${apiBase}/tips?payer=${encodeURIComponent(payerAccountId)}&limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(from))}`,
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, tips: [], totalCents: 0, count: 0, reason: `the service's tips door answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, reason: `the service's tips door answered HTTP ${res.status} with something that is not JSON` };
     }
-    const body = parsed as { ok?: unknown; tips?: unknown; totalCents?: unknown; count?: unknown; message?: unknown };
+    const body = parsed as { ok?: unknown; tips?: unknown; totalCents?: unknown; count?: unknown; limit?: unknown; message?: unknown };
     if (body.ok === false || !res.ok) {
       const reason =
         typeof body.message === 'string' ? body.message : `the service's tips door answered HTTP ${res.status}`;
-      return { ok: false, tips: [], totalCents: 0, count: 0, reason };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, reason };
     }
     return {
       ok: true,
       tips: Array.isArray(body.tips) ? (body.tips as TipEntry[]) : [],
       totalCents: typeof body.totalCents === 'number' ? body.totalCents : 0,
       count: typeof body.count === 'number' ? body.count : 0,
+      limit: typeof body.limit === 'number' && Number.isFinite(body.limit) ? body.limit : limit,
+      offset: from,
     };
   } catch (error) {
-    return { ok: false, tips: [], totalCents: 0, count: 0, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
 export async function readTips(
   recipientAccountId: string,
   limit: number,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch as FetchLike,
 ): Promise<TipsAnswer> {
   const apiBase = nexusApiBase();
+  const from = Math.max(offset, 0);
   try {
     const res = await fetchImpl(
-      `${apiBase}/tips?recipient=${encodeURIComponent(recipientAccountId)}&limit=${encodeURIComponent(String(limit))}`,
+      `${apiBase}/tips?recipient=${encodeURIComponent(recipientAccountId)}&limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(from))}`,
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
-      return { ok: false, tips: [], totalCents: 0, count: 0, reason: `the service's tips door answered HTTP ${res.status}` };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, reason: `the service's tips door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, tips: [], totalCents: 0, count: 0, reason: 'the service answered its tips door with something that is not JSON' };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, reason: 'the service answered its tips door with something that is not JSON' };
     }
-    const body = parsed as { tips?: unknown; totalCents?: unknown; count?: unknown };
+    const body = parsed as { tips?: unknown; totalCents?: unknown; count?: unknown; limit?: unknown };
     if (!Array.isArray(body.tips)) {
-      return { ok: false, tips: [], totalCents: 0, count: 0, reason: 'the service answered its tips door with no tips' };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, reason: 'the service answered its tips door with no tips' };
     }
     return {
       ok: true,
       tips: body.tips as TipEntry[],
       totalCents: typeof body.totalCents === 'number' ? body.totalCents : 0,
       count: typeof body.count === 'number' ? body.count : body.tips.length,
+      limit: typeof body.limit === 'number' && Number.isFinite(body.limit) ? body.limit : limit,
+      offset: from,
     };
   } catch (error) {
     return {
@@ -122,6 +140,8 @@ export async function readTips(
       tips: [],
       totalCents: 0,
       count: 0,
+      limit,
+      offset: from,
       reason: serviceUnreachableReason(apiBase, error),
     };
   }

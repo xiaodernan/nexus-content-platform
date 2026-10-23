@@ -38,6 +38,7 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
  */
 export async function readMyTips(
   recipientAccountId: string,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch,
 ): Promise<{
   ok: boolean;
@@ -59,17 +60,23 @@ export async function readMyTips(
   }[];
   totalCents: number;
   count: number;
+  /** The cap the service applied. */
+  limit: number;
+  /** v391 — the ROW this window starts at, echoed from the ask. */
+  offset: number;
   reason?: string;
 }> {
+  const from = Math.max(offset, 0);
   try {
-    const res = await fetchImpl(`/api/tips?recipient=${encodeURIComponent(recipientAccountId)}`, {
-      headers: { accept: 'application/json' },
-    });
+    const res = await fetchImpl(
+      `/api/tips?recipient=${encodeURIComponent(recipientAccountId)}&offset=${encodeURIComponent(String(from))}`,
+      { headers: { accept: 'application/json' } },
+    );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, tips: [], totalCents: 0, count: 0, reason: `the tips answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit: 20, offset: from, reason: `the tips answered HTTP ${res.status} with something that is not JSON` };
     }
-    const answer = parsed as { ok?: unknown; tips?: unknown; totalCents?: unknown; count?: unknown; reason?: unknown; message?: unknown };
+    const answer = parsed as { ok?: unknown; tips?: unknown; totalCents?: unknown; count?: unknown; limit?: unknown; reason?: unknown; message?: unknown };
     if (answer.ok === false || !res.ok) {
       const reason =
         typeof answer.reason === 'string'
@@ -77,7 +84,7 @@ export async function readMyTips(
           : typeof answer.message === 'string'
             ? answer.message
             : `the tips answered HTTP ${res.status}`;
-      return { ok: false, tips: [], totalCents: 0, count: 0, reason };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit: 20, offset: from, reason };
     }
     return {
       ok: true,
@@ -93,9 +100,11 @@ export async function readMyTips(
         : [],
       totalCents: typeof answer.totalCents === 'number' ? answer.totalCents : 0,
       count: typeof answer.count === 'number' ? answer.count : 0,
+      limit: typeof answer.limit === 'number' && Number.isFinite(answer.limit) ? answer.limit : 20,
+      offset: from,
     };
   } catch (error) {
-    return { ok: false, tips: [], totalCents: 0, count: 0, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, tips: [], totalCents: 0, count: 0, limit: 20, offset: from, reason: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -107,6 +116,7 @@ export async function readMyTips(
  */
 export async function readMyTipsGiven(
   payerAccountId: string,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch,
 ): Promise<{
   ok: boolean;
@@ -121,17 +131,23 @@ export async function readMyTipsGiven(
   }[];
   totalCents: number;
   count: number;
+  /** The cap the service applied. */
+  limit: number;
+  /** v391 — the ROW this window starts at, echoed from the ask. */
+  offset: number;
   reason?: string;
 }> {
+  const from = Math.max(offset, 0);
   try {
-    const res = await fetchImpl(`/api/tips?payer=${encodeURIComponent(payerAccountId)}`, {
-      headers: { accept: 'application/json' },
-    });
+    const res = await fetchImpl(
+      `/api/tips?payer=${encodeURIComponent(payerAccountId)}&offset=${encodeURIComponent(String(from))}`,
+      { headers: { accept: 'application/json' } },
+    );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, tips: [], totalCents: 0, count: 0, reason: `the tips answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit: 20, offset: from, reason: `the tips answered HTTP ${res.status} with something that is not JSON` };
     }
-    const answer = parsed as { ok?: unknown; tips?: unknown; totalCents?: unknown; count?: unknown; reason?: unknown; message?: unknown };
+    const answer = parsed as { ok?: unknown; tips?: unknown; totalCents?: unknown; count?: unknown; limit?: unknown; reason?: unknown; message?: unknown };
     if (answer.ok === false || !res.ok) {
       const reason =
         typeof answer.reason === 'string'
@@ -139,7 +155,7 @@ export async function readMyTipsGiven(
           : typeof answer.message === 'string'
             ? answer.message
             : `the tips answered HTTP ${res.status}`;
-      return { ok: false, tips: [], totalCents: 0, count: 0, reason };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit: 20, offset: from, reason };
     }
     return {
       ok: true,
@@ -155,9 +171,11 @@ export async function readMyTipsGiven(
         : [],
       totalCents: typeof answer.totalCents === 'number' ? answer.totalCents : 0,
       count: typeof answer.count === 'number' ? answer.count : 0,
+      limit: typeof answer.limit === 'number' && Number.isFinite(answer.limit) ? answer.limit : 20,
+      offset: from,
     };
   } catch (error) {
-    return { ok: false, tips: [], totalCents: 0, count: 0, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, tips: [], totalCents: 0, count: 0, limit: 20, offset: from, reason: error instanceof Error ? error.message : String(error) };
   }
 }
 

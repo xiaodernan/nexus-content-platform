@@ -56,18 +56,25 @@ public class TipController {
      * <p>v332 — the same door, the other direction, the same way the subscriptions door answers both
      * "what do I back" and "who backs me" (v310). A reader who gave money and could not see what they gave
      * had a receipt with no place to read it.
+     *
+     * <p>v391 — and BOTH directions can be PAGED: `offset` is ROWS past the newest ones, the same
+     * meaning the filed read's offset has (v382), so a creator with more tips than the cap can reach the
+     * older ones. A negative offset is clamped to the first window rather than refused — the newest
+     * rows are the honest answer to a question about a page before the first.
      */
     @GetMapping
     public ResponseEntity<TipAnswer> list(
             @RequestParam(name = "recipient", required = false) String recipientAccountId,
             @RequestParam(name = "payer", required = false) String payerAccountId,
-            @RequestParam(name = "limit", required = false) Integer limit) {
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "offset", required = false) Integer offset) {
         int asked = limit == null ? TipService.DEFAULT_TIP_LIMIT : limit;
+        int from = offset == null ? 0 : Math.max(offset, 0);
         if (recipientAccountId == null || recipientAccountId.isBlank()) {
             if (payerAccountId == null || payerAccountId.isBlank()) {
                 throw new InvalidTip("a tip question names who received it or who gave it");
             }
-            List<TipEntry> given = service.tipsGiven(payerAccountId, asked);
+            List<TipEntry> given = service.tipsGiven(payerAccountId, asked, from);
             List<Tip> givenTips = given.stream().map(TipController::toWire).toList();
             return ResponseEntity.ok(new TipAnswer(
                     payerAccountId,
@@ -78,7 +85,7 @@ public class TipController {
                     service.countGiven(payerAccountId),
                     asked));
         }
-        List<TipEntry> rows = service.tipsReceived(recipientAccountId, asked);
+        List<TipEntry> rows = service.tipsReceived(recipientAccountId, asked, from);
         List<Tip> tips = rows.stream().map(TipController::toWire).toList();
         return ResponseEntity.ok(new TipAnswer(
                 recipientAccountId,
