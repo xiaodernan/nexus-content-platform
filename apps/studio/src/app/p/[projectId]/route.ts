@@ -48,6 +48,9 @@ const REPORT_LIMIT = 100;
  * because a thread can be long and the page states what it carried.
  */
 const COMMENT_LIMIT = 100;
+// v400 — the likers window's own size: the service's DEFAULT, so the page shows the same twenty
+// likers it has always shown and can now page past them.
+const LIKE_LIMIT = 20;
 
 /**
  * v286 — insert the comments section before the closing body tag. PURE and testable, like the other
@@ -67,6 +70,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ proj
   // its own parameter, so a reader on comment page 3 keeps their place in everything else on the page.
   const url = new URL(request.url);
   const commentOffset = Math.max(0, Number.parseInt(url.searchParams.get('commentOffset') ?? '0', 10));
+  // v400 — the likers window's own page, in rows from the newest like. The comments window pages on its
+  // own parameter (v399), so a reader on liker page 3 keeps their place in the thread and vice versa.
+  const likeOffset = Math.max(0, Number.parseInt(url.searchParams.get('likeOffset') ?? '0', 10));
   const answer = await readPublication(decoded);
 
   if (answer.ok) {
@@ -92,7 +98,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ proj
     const [reports, trail, likes, comments] = await Promise.all([
       readReports(decoded, REPORT_LIMIT),
       readAuditTrail(HISTORY_LIMIT),
-      readLikes(decoded),
+      // v400 — the likers list pages too, the same way the comments thread does (v399): the window's
+      // own page, in rows, so a reader on a publication liked by more accounts than the cap can reach
+      // the older likers instead of being shown the head forever.
+      readLikes(decoded, LIKE_LIMIT, likeOffset),
       // v399 — the comments thread pages too, the same way the profile page's four lists do: the
       // window's own page, in rows, so a reader on a thread longer than the cap can reach the older
       // comments instead of being shown the head forever.
@@ -110,6 +119,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ proj
     const history = trail.ok
       ? renderHistoryHtml(historyRowsOf(trail.entries ?? [], decoded), trail.carried)
       : '';
+    // v400 — the likers pager is a LINK for the same reason every other pager on a server-rendered
+    // page is: the route is the layer that knows the URL. It moves ONE window and keeps the reader's
+    // place in the page's other windows (there is one query parameter per window, and the builder only
+    // touches its own).
+    const likePageHref = (nextOffset: number): string => {
+      const params = new URLSearchParams(url.search);
+      if (nextOffset > 0) params.set('likeOffset', String(nextOffset));
+      else params.delete('likeOffset');
+      const search = params.toString();
+      return search ? `${url.pathname}?${search}` : url.pathname;
+    };
     // v284 — the LIKES bar. Read independently of the history and of the document: a count that could
     // not be read leaves the bar out ENTIRELY, because "0 likes" and "the likes could not be read" are
     // different facts and a page that showed the first when it knew the second would be lying in the way
@@ -131,6 +151,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ proj
                 ? new Date(l.createdAt).toISOString().replace('.000Z', 'Z')
                 : null,
           })),
+          // v400 — which window this is, how big it is, where the likers end, and where the next
+          // window lives. The service pages by rows and echoes the window it answered, so the bar can
+          // say WHICH likers it is showing and offer the next page as a link.
+          window: {
+            offset: likes.offset ?? likeOffset,
+            total: likes.count,
+            limit: likes.limit ?? LIKE_LIMIT,
+            pageHref: likePageHref,
+          },
         })
       : '';
     // v399 — the comments pager is a LINK for the same reason every other pager on a server-rendered

@@ -203,3 +203,105 @@ describe('likeBar — the bar is inserted into the artifact page (M7 v284)', () 
     expect(injectLikeBar(page, '<div></div>')).toBe(page);
   });
 });
+
+describe('likeBar — the likers list PAGES (M7 v400)', () => {
+  // The route’s builder, in miniature: the parameter is DROPPED on the first window, so the first
+  // window’s URL is the page’s own (v399’s shape — the route is the layer that knows the URL).
+  const pageHref = (offset: number) => (offset > 0 ? `/p/pub-1?likeOffset=${offset}` : '/p/pub-1');
+  const twoLikers = () => [
+    { accountId: 'acct-bob', nameText: '@bob' },
+    { accountId: 'acct-ada', nameText: '@ada' },
+  ];
+
+  it('a later window says WHICH likers it is showing', () => {
+    // "the 2 newest of 5" is a true thing about the first window and a false thing about the third
+    // (v386's correction, the shared wording the tip and plan bars received in v395 and v396). The
+    // range is in ROWS because the window is rows.
+    const html = renderLikeBar({
+      projectId: 'pub-1',
+      count: 21,
+      likers: twoLikers(),
+      window: { offset: 20, total: 21, limit: 20, pageHref },
+    });
+    expect(html).toContain('showing rows 21–22 of 21');
+    expect(html).not.toContain('newest');
+  });
+
+  it('the count is the end — a like is never soft-deleted, so the count IS the row count', () => {
+    // Unlike the comment thread (v399), an un-like DELETES its row, so the whole count the bar has
+    // always carried is exactly the number a pager pages by — no second number is needed.
+    const html = renderLikeBar({
+      projectId: 'pub-1',
+      count: 21,
+      likers: twoLikers(),
+      window: { offset: 20, total: 21, limit: 20, pageHref },
+    });
+    expect(html).toContain('data-likes="21"');
+    expect(html).toContain('showing rows 21–22 of 21');
+  });
+
+  it('an empty window past the end says so — it is not "nobody liked this"', () => {
+    // v350's window line is the honest answer to a question about the FIRST window. A window PAST the
+    // end is a different fact about a different thing: the page, not the publication.
+    const html = renderLikeBar({
+      projectId: 'pub-1',
+      count: 21,
+      likers: [],
+      window: { offset: 40, total: 21, limit: 20, pageHref },
+    });
+    expect(html).toContain('this page is past the end — the service answered an empty window');
+    expect(html).toContain('data-likes="21"');
+    expect(html).not.toContain('newest');
+  });
+
+  it('but an empty FIRST window of an unliked publication says nothing extra', () => {
+    const html = renderLikeBar({
+      projectId: 'pub-1',
+      count: 0,
+      likers: [],
+      window: { offset: 0, total: 0, limit: 20, pageHref },
+    });
+    expect(html).toContain('data-likes="0"');
+    expect(html).not.toContain('past the end');
+    expect(html).not.toContain('nexus-likes-pager');
+  });
+
+  it('the pager is links, and a boundary is a span with no href', () => {
+    const first = renderLikeBar({
+      projectId: 'pub-1',
+      count: 21,
+      likers: twoLikers(),
+      window: { offset: 0, total: 21, limit: 20, pageHref },
+    });
+    expect(first).toContain('<span class="nexus-likes-page" data-likes-page="newer"');
+    expect(first).toContain('<a class="nexus-likes-page" data-likes-page="older" href="/p/pub-1?likeOffset=20"');
+  });
+
+  it('the second window links "Newer" back and leaves "Older" a span', () => {
+    const second = renderLikeBar({
+      projectId: 'pub-1',
+      count: 21,
+      likers: twoLikers(),
+      window: { offset: 20, total: 21, limit: 20, pageHref },
+    });
+    expect(second).toContain('<a class="nexus-likes-page" data-likes-page="newer" href="/p/pub-1"');
+    expect(second).toContain('<span class="nexus-likes-page" data-likes-page="older"');
+  });
+
+  it('a bar given no URL builder draws no pager at all', () => {
+    const html = renderLikeBar({
+      projectId: 'pub-1',
+      count: 21,
+      likers: twoLikers(),
+      window: { offset: 20, total: 21, limit: 20 },
+    });
+    expect(html).toContain('showing rows 21–22 of 21');
+    expect(html).not.toContain('nexus-likes-pager');
+  });
+
+  it('a bar given no window at all keeps v350’s wording', () => {
+    const html = renderLikeBar({ projectId: 'pub-1', count: 5, likers: twoLikers() });
+    expect(html).toContain('showing the 2 newest of 5');
+    expect(html).not.toContain('nexus-likes-pager');
+  });
+});

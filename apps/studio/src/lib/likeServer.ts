@@ -28,6 +28,17 @@ export interface LikeAnswer {
   count: number;
   /** The likes themselves, newest first. */
   likes: LikeEntry[];
+  /**
+   * v400 — the cap the service applied, so the page can say the rows it shows are a WINDOW and how
+   * big that window is. The like bar has shown a window since v350 without being able to name its size.
+   */
+  limit?: number;
+  /**
+   * v400 — the ROW this window starts at, echoed from the ask — the same field every windowed
+   * answer has carried since v382. The answer names the window it is FOR, so the page’s pager can say
+   * WHICH likers it is showing instead of inferring it from the URL it was handed.
+   */
+  offset?: number;
   reason?: string;
 }
 
@@ -43,31 +54,53 @@ export type FetchLike = (
  * own storage, so the page cannot know whether YOU liked it. It reports the count — a fact that does
  * not depend on who is asking — and the Studio, where the account lives, is where "you liked it" can be
  * answered. The bound is stated on the page rather than papered over.
+ *
+ * v400 — and the likers list PAGES, in rows: the offset is ROWS past the newest likes, the same
+ * meaning every other windowed read here has had since v382, and a negative one is the first window
+ * rather than a refusal (the newest likes are the honest answer to a question about a page before the
+ * first). The answer echoes the window it answered, so the page can say which likers it is showing.
  */
-export async function readLikes(projectId: string, fetchImpl: FetchLike = fetch as FetchLike): Promise<LikeAnswer> {
+export async function readLikes(
+  projectId: string,
+  limit: number,
+  offset: number = 0,
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<LikeAnswer> {
   const apiBase = nexusApiBase();
+  const from = Math.max(offset, 0);
   try {
     const res = await fetchImpl(
-      `${apiBase}/likes?projectId=${encodeURIComponent(projectId)}`,
+      `${apiBase}/likes?projectId=${encodeURIComponent(projectId)}&limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(from))}`,
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
-      return { ok: false, count: 0, likes: [], reason: `the service's likes door answered HTTP ${res.status}` };
+      return { ok: false, count: 0, likes: [], limit, offset: from, reason: `the service's likes door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, count: 0, likes: [], reason: 'the service answered its likes door with something that is not JSON' };
+      return { ok: false, count: 0, likes: [], limit, offset: from, reason: 'the service answered its likes door with something that is not JSON' };
     }
-    const body = parsed as { count?: unknown; likes?: unknown };
+    const body = parsed as { count?: unknown; likes?: unknown; limit?: unknown; offset?: unknown };
     if (typeof body.count !== 'number' || !Array.isArray(body.likes)) {
-      return { ok: false, count: 0, likes: [], reason: 'the service answered its likes door with no count' };
+      return { ok: false, count: 0, likes: [], limit, offset: from, reason: 'the service answered its likes door with no count' };
     }
-    return { ok: true, count: body.count, likes: body.likes as LikeEntry[] };
+    return {
+      ok: true,
+      count: body.count,
+      likes: body.likes as LikeEntry[],
+      // v400 — the window as the SERVICE answered it, and the row it starts at. A wire that echoes no
+      // limit keeps the one that was asked for: the pager needs a window size, and guessing one would
+      // offer a page of the wrong shape.
+      limit: typeof body.limit === 'number' ? body.limit : limit,
+      offset: from,
+    };
   } catch (error) {
     return {
       ok: false,
       count: 0,
       likes: [],
+      limit,
+      offset: from,
       reason: serviceUnreachableReason(apiBase, error),
     };
   }

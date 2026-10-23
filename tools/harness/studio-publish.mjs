@@ -5297,6 +5297,133 @@ try {
     );
   }
 
+  // ── §84 v400: the artifact page’s like bar gets its PAGER ──────────────────────────────────────────────────────────────────────────
+  // The likers list has been a WINDOW since v350 (the service caps at a hundred) and the count has
+  // been the WHOLE number all along, but the bar could only ever show its head: a publication liked
+  // by more accounts than the page’s window had its older likers out of reach entirely. One
+  // publication is given TWENTY-ONE likes — one more than the window the page reads (LIKE_LIMIT,
+  // twenty) — so the count and the window can DIFFER, and the page is then read the way a reader’s
+  // browser reads it: as HTML, with no hydration.
+  {
+    const pagedLikesId = `pub-like-pager-${Date.now()}`;
+    const pagedLikesOwner = `acct-like-pager-${Date.now()}`;
+    const publishRes = await fetch(`${apiBase}/projects/${encodeURIComponent(pagedLikesId)}/publish`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        title: 'the publication that is liked',
+        document: { nodes: [] },
+        owner: {
+          accountId: pagedLikesOwner,
+          handle: 'pager',
+          assurance: 'unsigned-local',
+          claimedAt: 1_700_000_000_000,
+        },
+      }),
+    });
+    check(
+      'the harness published the artifact the likes hang on',
+      publishRes.status === 201,
+      `status: ${publishRes.status}`,
+    );
+
+    // TWENTY-ONE DISTINCT accounts: a like is de-duplicated per account, so twenty-one likes from one
+    // account would be ONE like, and the window and the count could never differ.
+    const likeStatuses = [];
+    for (let i = 0; i < 21; i += 1) {
+      const res = await fetch(`${apiBase}/likes`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          projectId: pagedLikesId,
+          claim: {
+            accountId: `${pagedLikesOwner}-${i}`,
+            handle: `liker${i}`,
+            assurance: 'unsigned-local',
+            claimedAt: 1_700_000_000_000,
+          },
+        }),
+      });
+      likeStatuses.push(res.status);
+    }
+    check(
+      'the harness gave the publication 21 likes — one more than the window the page reads',
+      likeStatuses.length === 21 && likeStatuses.every((st) => st === 201),
+      `statuses: ${JSON.stringify(likeStatuses.slice(0, 3))} · ${JSON.stringify(likeStatuses.slice(-1))}`,
+    );
+
+    // The SERVICE counts the whole list and carries the window — and a like is never soft-deleted
+    // (an un-like DELETES its row), so the count IS the row count a pager pages by.
+    const likesFirst = await fetch(`${apiBase}/likes?projectId=${encodeURIComponent(pagedLikesId)}&limit=20`);
+    const likesFirstBody = await likesFirst.json();
+    check(
+      'the SERVICE counts 21 and carries the first window of 20',
+      likesFirst.status === 200 && likesFirstBody.count === 21 && (likesFirstBody.likes ?? []).length === 20,
+      `count: ${JSON.stringify(likesFirstBody.count)} · rows: ${JSON.stringify((likesFirstBody.likes ?? []).length)}`,
+    );
+    const likesSecond = await fetch(`${apiBase}/likes?projectId=${encodeURIComponent(pagedLikesId)}&limit=20&offset=20`);
+    const likesSecondBody = await likesSecond.json();
+    check(
+      'and the door PAGES: the second window carries the one like the count says is left',
+      likesSecond.status === 200 && (likesSecondBody.likes ?? []).length === 1 && likesSecondBody.count === 21,
+      `rows: ${JSON.stringify((likesSecondBody.likes ?? []).length)} · count: ${JSON.stringify(likesSecondBody.count)}`,
+    );
+
+    // The FIRST window, as the reader’s browser would render it.
+    const likesFirstHtml = await (await fetch(`${studioBase}/p/${encodeURIComponent(pagedLikesId)}`)).text();
+    check(
+      'the artifact page states the WHOLE count, not the window',
+      likesFirstHtml.includes('data-likes="21"'),
+      `the count is there: ${likesFirstHtml.includes('data-likes="21"')}`,
+    );
+    check(
+      'the first window says it is the newest 20 of 21',
+      likesFirstHtml.includes('showing the 20 newest of 21'),
+      `the window line is there: ${likesFirstHtml.includes('showing the 20 newest of 21')}`,
+    );
+    check(
+      'on the first window "Newer" is a span with no href — there is no page before the first',
+      likesFirstHtml.includes('<span class="nexus-likes-page" data-likes-page="newer"'),
+      `newer is a span: ${likesFirstHtml.includes('<span class="nexus-likes-page" data-likes-page="newer"')}`,
+    );
+    check(
+      'and "Older" is a link to the second window',
+      likesFirstHtml.includes(`<a class="nexus-likes-page" data-likes-page="older" href="/p/${encodeURIComponent(pagedLikesId)}?likeOffset=20"`),
+      `older links to window two: ${likesFirstHtml.includes(`<a class="nexus-likes-page" data-likes-page="older" href="/p/${encodeURIComponent(pagedLikesId)}?likeOffset=20"`)}`,
+    );
+
+    // The SECOND window — the link the first window offered, followed.
+    const likesSecondHtml = await (await fetch(`${studioBase}/p/${encodeURIComponent(pagedLikesId)}?likeOffset=20`)).text();
+    check(
+      'the second window says WHICH likers it is showing',
+      likesSecondHtml.includes('showing rows 21–21 of 21'),
+      `the window line is there: ${likesSecondHtml.includes('showing rows 21–21 of 21')}`,
+    );
+    check(
+      'the second window links "Newer" back to the first window',
+      likesSecondHtml.includes(`<a class="nexus-likes-page" data-likes-page="newer" href="/p/${encodeURIComponent(pagedLikesId)}"`),
+      `newer links back: ${likesSecondHtml.includes(`<a class="nexus-likes-page" data-likes-page="newer" href="/p/${encodeURIComponent(pagedLikesId)}"`)}`,
+    );
+    check(
+      'and "Older" is a span — the next window would hold nothing, and the count already said so',
+      likesSecondHtml.includes('<span class="nexus-likes-page" data-likes-page="older"'),
+      `older is a span: ${likesSecondHtml.includes('<span class="nexus-likes-page" data-likes-page="older"')}`,
+    );
+
+    // A window PAST the end: an honest empty answer, not "nobody liked this".
+    const likesPastEndHtml = await (await fetch(`${studioBase}/p/${encodeURIComponent(pagedLikesId)}?likeOffset=40`)).text();
+    check(
+      'a likers window past the end says it is past the end',
+      likesPastEndHtml.includes('this page is past the end — the service answered an empty window'),
+      `the note is there: ${likesPastEndHtml.includes('this page is past the end')}`,
+    );
+    check(
+      'and it still states the whole count — the empty window belongs to the page, not the publication',
+      likesPastEndHtml.includes('data-likes="21"'),
+      `count still stated: ${likesPastEndHtml.includes('data-likes="21"')}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

@@ -53,4 +53,26 @@ public final class LikeDtos {
             long count,
             List<Like> likes) {
     }
+
+    /**
+     * v400 — the answer to “who liked this”, as a WINDOW beside the whole count.
+     *
+     * <p>{@code limit} is the cap the service applied, {@code offset} is the ROW this window starts at and
+     * {@code count} is how many accounts liked the publication. The three together are what a pager needs:
+     * which rows it is showing, how big a window is, and where the end is. A like is never taken back out
+     * of the count (an un-like DELETES its row), so the count IS the row count here — unlike the comment
+     * thread’s answer (v399), which had to carry a separate total because removed comments keep their rows.
+     *
+     * <p>It is a SEPARATE record from {@link LikeAnswer} because the WRITE answers (a like, an un-like)
+     * are not windows: putting the window’s fields on their answer would name a window that was never
+     * asked for.
+     */
+    public record LikesAnswer(
+            String projectId,
+            boolean liked,
+            long count,
+            List<Like> likes,
+            int limit,
+            int offset) {
+    }
 }

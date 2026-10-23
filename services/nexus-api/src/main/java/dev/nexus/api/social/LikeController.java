@@ -2,6 +2,7 @@ package dev.nexus.api.social;
 
 import dev.nexus.api.social.LikeDtos.Like;
 import dev.nexus.api.social.LikeDtos.LikeAnswer;
+import dev.nexus.api.social.LikeDtos.LikesAnswer;
 import dev.nexus.api.social.LikeDtos.LikeClaim;
 import dev.nexus.api.social.LikeDtos.LikeRequest;
 import java.util.List;
@@ -79,26 +80,43 @@ public class LikeController {
      *
      * <p>{@code viewer} is the account asking, and it decides the {@code liked} flag — nothing else.
      * A reader who is nobody still gets a true answer: the count does not depend on who is asking.
+     *
+     * <p>v400 — and the list PAGES: {@code offset} is ROWS past the newest likes, the same meaning the
+     * filed read’s offset has (v387), so a reader on a publication liked by more accounts than the cap
+     * can reach the older likers. The answer carries the window it answered — the cap applied, the row it
+     * starts at — beside the whole count, so the page can say WHICH likers it is showing instead of
+     * inferring it from the URL it was handed.
      */
     @GetMapping
-    public ResponseEntity<LikeAnswer> list(
+    public ResponseEntity<?> list(
             @RequestParam(name = "projectId") String projectId,
             @RequestParam(name = "viewer", required = false) String viewerAccountId,
-            @RequestParam(name = "limit", required = false) Integer limit) {
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "offset", required = false) Integer offset) {
         int asked = limit == null ? LikeService.DEFAULT_LIKE_LIMIT : limit;
-        return ResponseEntity.ok(toWire(service.likesOf(projectId, viewerAccountId, asked)));
+        // v400 — the window the SERVICE applied, and the row it starts at, both computed here so the
+        // answer can echo exactly what was answered rather than what the caller half remembers.
+        int applied = asked <= 0 ? LikeService.DEFAULT_LIKE_LIMIT : Math.min(asked, LikeService.MAX_LIKE_LIMIT);
+        int from = offset == null ? 0 : Math.max(offset, 0);
+        LikeService.LikeResult answer = service.likesOf(projectId, viewerAccountId, applied, from);
+        List<Like> likes = answer.likes().stream().map(LikeController::toWire).toList();
+        return ResponseEntity.ok(new LikesAnswer(
+                answer.projectId(), answer.liked(), answer.count(), likes, applied, from));
     }
 
-    /** The service's rows, as the wire's shape: the client's three fields, plus the two the service knows. */
+    /** One row, as the wire's shape: the client's three fields, plus the two the service knows. */
+    private static Like toWire(LikeEntry row) {
+        return new Like(
+                row.getActorAccountId(),
+                row.getTargetProjectId(),
+                row.getCreatedAt().toEpochMilli(),
+                row.getActorHandle(),
+                row.getActorAssurance());
+    }
+
+    /** The service's whole answer, as the wire's shape. */
     private static LikeAnswer toWire(LikeService.LikeResult answer) {
-        List<Like> likes = answer.likes().stream()
-                .map(row -> new Like(
-                        row.getActorAccountId(),
-                        row.getTargetProjectId(),
-                        row.getCreatedAt().toEpochMilli(),
-                        row.getActorHandle(),
-                        row.getActorAssurance()))
-                .toList();
+        List<Like> likes = answer.likes().stream().map(LikeController::toWire).toList();
         return new LikeAnswer(answer.projectId(), answer.liked(), answer.count(), likes);
     }
 

@@ -186,7 +186,7 @@ class LikeServiceTest {
         when(repository.countByTargetProjectId("pub-1")).thenReturn(7L);
         when(repository.findByTargetProjectIdAndActorAccountId("pub-1", "acct-ada")).thenReturn(Optional.of(one));
 
-        LikeService.LikeResult answer = service.likesOf("pub-1", "acct-ada", 20);
+        LikeService.LikeResult answer = service.likesOf("pub-1", "acct-ada", 20, 0);
 
         assertThat(answer.count()).isEqualTo(7L);
         assertThat(answer.liked()).isTrue();
@@ -201,7 +201,7 @@ class LikeServiceTest {
                 .thenReturn(List.of(one));
         when(repository.countByTargetProjectId("pub-1")).thenReturn(7L);
 
-        LikeService.LikeResult answer = service.likesOf("pub-1", null, 20);
+        LikeService.LikeResult answer = service.likesOf("pub-1", null, 20, 0);
 
         assertThat(answer.count()).isEqualTo(7L);
         assertThat(answer.liked()).isFalse();
@@ -210,7 +210,7 @@ class LikeServiceTest {
 
     @Test
     void aBlankProjectIdIsRefusedByName() {
-        assertThatThrownBy(() -> service.likesOf("   ", "acct-ada", 20))
+        assertThatThrownBy(() -> service.likesOf("   ", "acct-ada", 20, 0))
                 .isInstanceOf(InvalidLike.class)
                 .hasMessageContaining("projectId must not be blank");
     }
@@ -221,7 +221,7 @@ class LikeServiceTest {
                 .thenReturn(List.of());
         when(repository.countByTargetProjectId("pub-1")).thenReturn(0L);
 
-        service.likesOf("pub-1", null, 10_000);
+        service.likesOf("pub-1", null, 10_000, 0);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
@@ -234,11 +234,79 @@ class LikeServiceTest {
                 .thenReturn(List.of());
         when(repository.countByTargetProjectId("pub-1")).thenReturn(0L);
 
-        service.likesOf("pub-1", null, 0);
+        service.likesOf("pub-1", null, 0, 0);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
         assertThat(window.getValue().getPageSize()).isEqualTo(LikeService.DEFAULT_LIKE_LIMIT);
+    }
+
+    // ── v400: the likers list can be PAGED, in rows ────────────────────────────────────────
+
+    @Test
+    void theLikersListCanBePagedInRows() {
+        // v400 — the likers list has been a WINDOW since the like's own beginning (the service caps at
+        // a hundred), and a window nobody can page is the whole list to a reader on a publication liked
+        // by more accounts than the cap. The offset is ROWS: asking for the rows from 20 on is page 1
+        // of a 20-row window, which is what the captor pins.
+        when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(21L);
+
+        service.likesOf("pub-1", null, 20, 20);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void theLikersOffsetIsROWSNotAPageIndex() {
+        // v387's lesson, carried over rather than learned again: the offset means ROWS, and PageRequest
+        // speaks PAGES. The rows from 40 on are page 2 — not page 40 (rows 800–819), which is what
+        // handing the raw number to PageRequest.of answers, and what a pager would then call "past the
+        // end".
+        when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(21L);
+
+        service.likesOf("pub-1", null, 20, 40);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void aNegativeLikersOffsetIsTheFirstWindow() {
+        // A page before the first does not exist; the newest likes are the honest answer, not a refusal.
+        when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(21L);
+
+        service.likesOf("pub-1", null, 20, -5);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isZero();
+    }
+
+    @Test
+    void theCountIsTheWholeListNotTheWindow() {
+        // v400 — the pager pages by ROWS, and a like is never soft-deleted: an un-like DELETES its
+        // row, so the count IS the row count here (unlike the comment thread's answer, v399, which had
+        // to carry a separate total because removed comments keep their rows). A window of two likers
+        // beside a count of twenty-one is the difference the pager is for.
+        when(repository.findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), any(Pageable.class)))
+                .thenReturn(List.of(row("pub-1", "acct-ada"), row("pub-1", "acct-bob")));
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(21L);
+
+        LikeService.LikeResult answer = service.likesOf("pub-1", null, 20, 20);
+
+        assertThat(answer.likes()).hasSize(2);
+        assertThat(answer.count()).isEqualTo(21L);
     }
     // ── v289: the trail ───────────────────────────────────────────────────────────────────────────
 

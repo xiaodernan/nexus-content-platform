@@ -151,12 +151,25 @@ public class LikeService {
      *
      * <p>{@code viewerAccountId} may be null — a reader who is nobody is a reader, and the answer is
      * still true: the count does not depend on who is asking.
+     *
+     * <p>v400 — and the likers list is a WINDOW that can be PAGED, in rows: {@code offset} is ROWS past
+     * the newest likes, so a publication liked by more accounts than the cap can have its older likers
+     * read instead of only ever showing the head. The count is the whole number and the window is the
+     * rows the answer carries — the two are told apart by the caller, exactly as every other windowed
+     * list here does.
      */
     @Transactional(readOnly = true)
-    public LikeResult likesOf(String targetProjectId, String viewerAccountId, int limit) {
+    public LikeResult likesOf(String targetProjectId, String viewerAccountId, int limit, int offset) {
         String target = requireUsableProjectId(targetProjectId);
         int asked = limit <= 0 ? DEFAULT_LIKE_LIMIT : Math.min(limit, MAX_LIKE_LIMIT);
-        List<LikeEntry> likes = repository.findByTargetProjectIdOrderByCreatedAtDesc(target, PageRequest.of(0, asked));
+        // v400 — the likers list can be PAGED, in rows, the same shape every other windowed list got
+        // (v382’s filed read, v390’s following, v392’s plans, v399’s comment thread): the offset is ROWS
+        // past the newest likes, and Spring Data’s PageRequest speaks PAGES (v387’s lesson), so the
+        // translation is by whole windows. A negative offset is the first window, not a refusal — the
+        // newest likes are the honest answer to a question about a page before the first.
+        int from = Math.max(offset, 0);
+        List<LikeEntry> likes =
+                repository.findByTargetProjectIdOrderByCreatedAtDesc(target, PageRequest.of(from / asked, asked));
         long count = repository.countByTargetProjectId(target);
         boolean liked = viewerAccountId != null
                 && !viewerAccountId.isBlank()

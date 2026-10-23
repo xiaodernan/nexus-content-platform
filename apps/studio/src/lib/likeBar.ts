@@ -27,6 +27,7 @@
  *   not.
  */
 import { escapeHtml } from './pageShell';
+import { olderWindowWouldHoldSomething } from './pager';
 
 /** What the bar needs to know. */
 export interface LikeBarFacts {
@@ -44,6 +45,20 @@ export interface LikeBarFacts {
    * and the one a creator would want to see most. The wire has carried the likers' names all along.
    */
   likers?: { accountId: string; nameText: string; assurance?: string | null; likedText?: string | null }[];
+  /**
+   * v400 — WHICH window of the likers these rows are, in rows from the newest like, and how to build
+   * the URL of another one. The list has been a WINDOW since v350 (the service caps it); a window with
+   * no position cannot say which likers it is the window OF, and a page that cannot say that can only
+   * offer the head of a long list forever.
+   */
+  window?: {
+    offset?: number;
+    /** How many accounts liked the publication — the whole number, and the one a pager pages by. */
+    total?: number | null;
+    /** How big a window is, as the service answered it. */
+    limit?: number;
+    pageHref?: (offset: number) => string;
+  };
 }
 
 /**
@@ -74,12 +89,60 @@ export function renderLikeBar(facts: LikeBarFacts): string {
   // v350 — the count is the WHOLE number and the list is a WINDOW, so the bar says how many it is not
   // showing: a reader who sees "5 likes" and two names would otherwise read the two as all of them.
   const shown = (facts.likers ?? []).length;
-  const more = shown > 0 && facts.count > shown ? ` · showing the ${shown} newest of ${facts.count}` : '';
+  // v400 — the window's position and its end, in ROWS. A like is never soft-deleted (an un-like
+  // DELETES its row), so the count IS the row count here — unlike the comment thread's answer (v399),
+  // which had to carry a separate total because removed comments keep their rows. The count is the
+  // fallback end for a caller that passed no window at all.
+  const offset = typeof facts.window?.offset === 'number' && Number.isFinite(facts.window.offset) && facts.window.offset > 0
+    ? Math.floor(facts.window.offset)
+    : 0;
+  const total = typeof facts.window?.total === 'number' && Number.isFinite(facts.window.total)
+    ? facts.window.total
+    : facts.count;
+  const windowSize = typeof facts.window?.limit === 'number' && Number.isFinite(facts.window.limit) && facts.window.limit > 0
+    ? Math.floor(facts.window.limit)
+    : null;
+  const hrefFor = typeof facts.window?.pageHref === 'function' ? facts.window.pageHref : null;
+  // v400 — the PAGER, and it is made of LINKS: the artifact page is server-rendered and holds no
+  // session (ADR 0018), so the route — the layer that knows the URL — builds the other windows' URLs
+  // and this bar draws an <a>. At a boundary there is no page to offer and the control is a <span> with
+  // no href: a link that went nowhere would be a lie with an href. "Older" is offered only when the
+  // NEXT window would hold something (v398's one rule), so a page the service has already counted as
+  // empty is a page this bar does not offer.
+  const pageControl = (direction: 'newer' | 'older', target: number | null): string => {
+    const text = direction === 'newer' ? '‹ Newer' : 'Older ›';
+    const title = direction === 'newer' ? 'the newer likes' : 'the older likes';
+    if (target === null || hrefFor === null) {
+      return `<span class="nexus-likes-page" data-likes-page="${direction}" title="${title}">${text}</span>`;
+    }
+    return `<a class="nexus-likes-page" data-likes-page="${direction}" href="${escapeHtml(hrefFor(target))}" title="${title}">${text}</a>`;
+  };
+  const pager =
+    windowSize !== null && hrefFor !== null && total !== null && (offset > 0 || total > shown)
+      ? `<div class="nexus-likes-pager">
+${pageControl('newer', offset > 0 ? Math.max(offset - windowSize, 0) : null)}
+${pageControl('older', olderWindowWouldHoldSomething(offset, windowSize, total) ? offset + windowSize : null)}
+</div>`
+      : '';
+  let more = '';
+  if (offset > 0 && shown === 0 && total > 0) {
+    // v400 — an empty window on a LATER page is not an empty publication: the service counted the
+    // likers and this window holds none of them, which is a fact about the page and not about the work.
+    more = ' · this page is past the end — the service answered an empty window';
+  } else if (shown > 0 && total > shown) {
+    // v400 — and WHICH likers: "the N newest of M" on the first window, the rows' own numbers past it
+    // (v386's correction, the shared wording the tip and plan bars received in v395 and v396). The range
+    // is in ROWS because the window is rows.
+    more = offset <= 0
+      ? ` · showing the ${shown} newest of ${total}`
+      : ` · showing rows ${offset + 1}–${offset + shown} of ${total}`;
+  }
   return `<div class="nexus-likes" data-likes="${facts.count}">
 <span class="nexus-likes-count">\u2764 ${escapeHtml(label)}${more}</span>
 <a class="nexus-likes-action" href="${escapeHtml(href)}" title="like this publication from the Studio">Like</a>
 <a class="nexus-likes-undo" href="${escapeHtml(undoHref)}" title="take the like back from the Studio">Take it back</a>
 ${list}
+${pager}
 </div>`;
 }
 
@@ -107,4 +170,8 @@ export const LIKE_BAR_STYLES = `<style>
 .nexus-likes-list a:hover{text-decoration:underline;color:#e6e8ec}
 .nexus-likes-undo{color:#9aa3b2;font-weight:600;text-decoration:none;border-left:1px solid #262b34;padding-left:10px}
 .nexus-likes-undo:hover{text-decoration:underline;color:#e6e8ec}
+.nexus-likes-pager{display:flex;gap:10px;align-items:center}
+.nexus-likes-page{color:#f59e0b;font-weight:600;text-decoration:none}
+.nexus-likes-page:hover{text-decoration:underline}
+.nexus-likes-pager span.nexus-likes-page{color:#5b6472;font-weight:400}
 </style>`;
