@@ -7,6 +7,7 @@ import {
   newId,
   ops,
   rectNode,
+  solid,
   textNode,
   type DesignDocument,
   type Op,
@@ -14,6 +15,7 @@ import {
 } from '@nexus/design-model';
 import {
   AGENT_LEDGER_KEY,
+  agentBatchFor,
   appendLedgerLine,
   corpusFromDoc,
   ledgerLine,
@@ -21,6 +23,7 @@ import {
   planAgentRun,
   planRepairs,
   qaForDoc,
+  qaInputForDoc,
   readAgentLedger,
   studioMemoryForget,
   studioMemoryOverview,
@@ -416,5 +419,171 @@ describe('agentDock — memory overview with corrupt storage', () => {
     const ov = studioMemoryOverview(new CorruptKv() as never);
     expect(ov.total).toBe(0);
     expect(ov.records).toEqual([]);
+  });
+});
+
+
+/**
+ * v446 — the dock's two own builders, graded directly.
+ *
+ * `agentBatchFor` turns a handoff into the OpBatch the editor applies, and `qaInputForDoc` turns a page
+ * into the shape the visual QA reads. Both were reached only through the panel and through `qaForDoc`,
+ * so their own decisions were never asked. Two of those decisions are the reason this is its own
+ * increment: the banner is APPENDED to the page where the demo batch (v434) lands on top, and a child
+ * whose geometry is not finite is SKIPPED rather than laid out as NaN.
+ */
+describe('agentDock — agentBatchFor (v446)', () => {
+  const handoff = {
+    from: 'researcher' as const,
+    to: 'editor' as const,
+    goal: 'tighten the hero spacing',
+    via: 'fs.index',
+    refs: [{ path: 'page/hero.txt' }, { path: 'page/footer.txt' }],
+    runId: 'run-1',
+  };
+
+  function pageWithChildren(count: number) {
+    const base = createEmptyDocument('Dock');
+    const page = base.activePageId;
+    let doc = base;
+    for (let i = 0; i < count; i++) {
+      doc = applyBatch(doc, {
+        id: `b${i}`,
+        ops: [ops.addSubtree(page, i, [rectNode(`Box ${i}`, { x: 10 * i, y: 10, width: 40, height: 20 })])],
+        provenance: { mode: 'user' },
+        timestamp: 0,
+      });
+    }
+    return { doc, page };
+  }
+
+  it('the banner is APPENDED to the page, where the demo batch lands on top (v434)', () => {
+    const { doc, page } = pageWithChildren(2);
+    const batch = agentBatchFor(doc, page, 'tighten the hero spacing', handoff);
+    expect(batch.ops).toHaveLength(1);
+    const op = batch.ops[0]!;
+    if (op.type !== 'addSubtree') throw new Error('the dock lands its banner as an addSubtree');
+    expect(op.index).toBe(2);
+    expect(op.nodes).toHaveLength(1);
+    expect(op.nodes[0]!.type).toBe('text');
+  });
+
+  it('the banner names the goal and the handoff’s refs, so a reader knows whose words these are', () => {
+    const { doc, page } = pageWithChildren(0);
+    const batch = agentBatchFor(doc, page, 'tighten the hero spacing', handoff);
+    const op = batch.ops[0]!;
+    if (op.type !== 'addSubtree') throw new Error('expected an addSubtree');
+    const banner = op.nodes[0]!;
+    expect(banner.name).toBe('Agent Note');
+    expect(banner.type === 'text' && banner.characters).toBe('AGENT · tighten the hero spacing · proposed for page/hero.txt, page/footer.txt');
+  });
+
+  it('the provenance names the agent runtime and the studio dock', () => {
+    const { doc, page } = pageWithChildren(0);
+    const batch = agentBatchFor(doc, page, 'tighten the hero spacing', handoff);
+    expect(batch.provenance).toEqual({ mode: 'demo', provider: 'nexus-agent-runtime', label: 'studio agent dock' });
+    expect(batch.summary).toBe('Agent proposal: tighten the hero spacing');
+  });
+
+  it('the batch is stamped with a wall-clock instant, not clock-zero (the demo batch differs)', () => {
+    const { doc, page } = pageWithChildren(0);
+    const before = Date.now();
+    const batch = agentBatchFor(doc, page, 'tighten the hero spacing', handoff);
+    expect(batch.timestamp).toBeGreaterThan(0);
+    expect(batch.timestamp).toBeGreaterThanOrEqual(before);
+    expect(batch.timestamp).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('the banner carries the dock’s fixed geometry', () => {
+    const { doc, page } = pageWithChildren(0);
+    const batch = agentBatchFor(doc, page, 'tighten the hero spacing', handoff);
+    const op = batch.ops[0]!;
+    if (op.type !== 'addSubtree') throw new Error('expected an addSubtree');
+    const banner = op.nodes[0]!;
+    expect(banner).toMatchObject({ x: 24, y: 24, width: 560, height: 28 });
+  });
+
+  it('applies cleanly and lands as the LAST child of the page', () => {
+    const { doc, page } = pageWithChildren(2);
+    const batch = agentBatchFor(doc, page, 'tighten the hero spacing', handoff);
+    const after = applyBatch(doc, batch);
+    const children = childIdList(after.nodes[page]!);
+    expect(children).toHaveLength(3);
+    const bannerId = batch.ops[0]!.type === 'addSubtree' ? batch.ops[0]!.nodes[0]!.id : '';
+    expect(children[2]).toBe(bannerId);
+    expect(after.nodes[bannerId]?.name).toBe('Agent Note');
+  });
+
+  it('a handoff with no refs still builds a batch — the empty join pinned as measured', () => {
+    // `refs.map(...).join(', ')` over nothing is the empty string, so the banner reads
+    // "proposed for " with nothing after it. Pinned as measured rather than smoothed over.
+    const { doc, page } = pageWithChildren(0);
+    const batch = agentBatchFor(doc, page, 'a goal', { ...handoff, refs: [] });
+    const op = batch.ops[0]!;
+    if (op.type !== 'addSubtree') throw new Error('expected an addSubtree');
+    const banner = op.nodes[0]!;
+    expect(banner.type === 'text' && banner.characters).toBe('AGENT · a goal · proposed for ');
+  });
+});
+
+describe('agentDock — qaInputForDoc (v446)', () => {
+  function pageWith(build: (doc: DesignDocument, page: string) => DesignDocument) {
+    const base = createEmptyDocument('Dock');
+    const page = base.activePageId;
+    return { doc: build(base, page), page };
+  }
+
+  it('answers null for a page the layout does not know', () => {
+    const { doc } = pageWith((d) => d);
+    expect(qaInputForDoc(doc, 'no-such-page')).toBeNull();
+  });
+
+  it('reads the page rect and one rect per child, from real layout', () => {
+    const { doc, page } = pageWith((d, p) =>
+      applyBatch(d, { id: 'b1', ops: [ops.addSubtree(p, 0, [rectNode('Box', { x: 10, y: 10, width: 80, height: 60 })])], provenance: { mode: 'user' }, timestamp: 0 }),
+    );
+    const input = qaInputForDoc(doc, page);
+    expect(input).not.toBeNull();
+    expect(input!.page).toMatchObject({ x: 0, y: 0 });
+    const ids = Object.keys(input!.rects);
+    expect(ids).toHaveLength(1);
+    expect(input!.rects[ids[0]!]).toMatchObject({ x: 10, y: 10, width: 80, height: 60 });
+  });
+
+  it('a filled child carries its css fill, and the page’s background rides along as bg', () => {
+    const { doc, page } = pageWith((d, p) => {
+      const next = applyBatch(d, { id: 'b1', ops: [ops.addSubtree(p, 0, [rectNode('Box', { x: 0, y: 0, width: 10, height: 10, fills: [solid({ r: 0.2, g: 0.4, b: 0.9, a: 1 })] })])], provenance: { mode: 'user' }, timestamp: 0 });
+      next.nodes[p]!.fills = [solid({ r: 1, g: 1, b: 1, a: 1 })];
+      return next;
+    });
+    const input = qaInputForDoc(doc, page);
+    const id = Object.keys(input!.rects)[0]!;
+    expect(input!.rects[id]!.fill).toBe('rgba(51, 102, 230, 1)');
+    expect(input!.rects[id]!.bg).toBe('rgba(255, 255, 255, 1)');
+  });
+
+  it('a child with no fill carries neither fill nor bg', () => {
+    const { doc, page } = pageWith((d, p) =>
+      applyBatch(d, { id: 'b1', ops: [ops.addSubtree(p, 0, [rectNode('Box', { x: 0, y: 0, width: 10, height: 10 })])], provenance: { mode: 'user' }, timestamp: 0 }),
+    );
+    const input = qaInputForDoc(doc, page);
+    const id = Object.keys(input!.rects)[0]!;
+    expect(input!.rects[id]).toEqual({ x: 0, y: 0, width: 10, height: 10 });
+    expect(input!.rects[id]).not.toHaveProperty('fill');
+    expect(input!.rects[id]).not.toHaveProperty('bg');
+  });
+
+  it('a child whose geometry is not finite is SKIPPED, not laid out as NaN (v426)', () => {
+    // layoutPage gives a non-finite box no rectangle at all, and this reader honours that: the child
+    // is absent from the QA input rather than arriving as a rect full of NaN.
+    const { doc, page } = pageWith((d, p) => {
+      const bad = rectNode('Bad', { x: 0, y: 0, width: 10, height: 10 });
+      const next = applyBatch(d, { id: 'b1', ops: [ops.addSubtree(p, 0, [rectNode('Good', { x: 0, y: 0, width: 10, height: 10 }), bad])], provenance: { mode: 'user' }, timestamp: 0 });
+      next.nodes[bad.id]!.x = Number.NaN;
+      return next;
+    });
+    const input = qaInputForDoc(doc, page);
+    const names = Object.keys(input!.rects).map((id) => doc.nodes[id]?.name);
+    expect(names).toEqual(['Good']);
   });
 });
