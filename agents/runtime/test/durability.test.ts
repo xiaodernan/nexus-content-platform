@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   deserializeMemory,
+  DISK_TOOL_SPECS,
+  MEMORY_SCHEMA_VERSION,
   guardedJoin,
   loadMemoryStore,
   registerDiskTools,
@@ -100,5 +102,64 @@ describe('guardedJoin + disk tools (allowlisted root, §28)', () => {
     expect((listed.output as { paths: string[] }).paths).toEqual(['a/x.md', 'a/y.bin']);
     const filtered = await registry.invoke({ callId: 'c4', tool: 'disk.list', args: { prefix: 'a/y' } }, {});
     expect((filtered.output as { paths: string[] }).paths).toEqual(['a/y.bin']);
+  });
+});
+
+/**
+ * v460 — the durability CONSTANTS, graded directly.
+ *
+ * `MEMORY_SCHEMA_VERSION` is the one number both halves of the file agree on: the writer stamps it and
+ * the reader refuses anything else, and the round-trip cases above only ever prove the two halves
+ * agree with EACH OTHER — a bump that moved one and not the other would still round-trip. `DISK_TOOL_SPECS`
+ * is the declared surface an agent is shown when it asks what disk tools exist, and until now it was
+ * reachable only through the behaviour the loop over it produces.
+ */
+describe('the durability constants, graded directly (v460)', () => {
+  it('the writer stamps the CURRENT version and the reader accepts exactly that one — a bump moves both together', () => {
+    const stamped = JSON.parse(serializeMemory(sampleStore())) as { schemaVersion: number };
+    expect(stamped.schemaVersion).toBe(MEMORY_SCHEMA_VERSION);
+    const future = deserializeMemory(JSON.stringify({ schemaVersion: MEMORY_SCHEMA_VERSION + 1, records: [] }));
+    expect(future.ok).toBe(false);
+    if (!future.ok) expect(future.reason).toContain(String(MEMORY_SCHEMA_VERSION + 1));
+    const present = deserializeMemory(JSON.stringify({ schemaVersion: MEMORY_SCHEMA_VERSION, records: [] }));
+    expect(present.ok).toBe(true);
+  });
+
+  it('the schema version is a positive integer — a version that is not a count is not a version', () => {
+    expect(Number.isInteger(MEMORY_SCHEMA_VERSION)).toBe(true);
+    expect(MEMORY_SCHEMA_VERSION).toBeGreaterThanOrEqual(1);
+  });
+
+  it('DISK_TOOL_SPECS is the three allowlisted disk tools, in this order', () => {
+    expect(DISK_TOOL_SPECS.map((s) => s.name)).toEqual(['disk.read', 'disk.write', 'disk.list']);
+  });
+
+  it('only disk.write carries the write permission — the read paths cannot mutate the disk', () => {
+    const writers = DISK_TOOL_SPECS.filter((s) => s.permissions.includes('write')).map((s) => s.name);
+    expect(writers).toEqual(['disk.write']);
+    for (const spec of DISK_TOOL_SPECS) {
+      if (spec.name === 'disk.write') continue;
+      expect(spec.permissions, spec.name).toEqual(['read']);
+    }
+  });
+
+  it('every spec declares its args honestly — the required ones named, the optional one not claimed', () => {
+    const byName = new Map(DISK_TOOL_SPECS.map((s) => [s.name, s]));
+    expect(byName.get('disk.read')!.args).toEqual([{ name: 'path', type: 'string', required: true }]);
+    const write = byName.get('disk.write')!;
+    expect(write.args.map((a) => a.name)).toEqual(['path', 'content']);
+    expect(write.args.every((a) => a.required === true)).toBe(true);
+    const list = byName.get('disk.list')!;
+    expect(list.args).toHaveLength(1);
+    expect(list.args[0]!.name).toBe('prefix');
+    expect(list.args[0]!.required).not.toBe(true);
+    for (const spec of DISK_TOOL_SPECS) expect(spec.description.length, spec.name).toBeGreaterThan(0);
+  });
+
+  it('registerDiskTools registers exactly the specs in the list — nothing more, nothing fewer', () => {
+    const registry = registerDiskTools(new ToolRegistry(), { root: 'out', fsLike: createMemDisk({ listing: 'real' }) });
+    expect(registry.list()).toEqual(DISK_TOOL_SPECS);
+    for (const spec of DISK_TOOL_SPECS) expect(registry.has(spec.name), spec.name).toBe(true);
+    expect(registry.has('disk.delete')).toBe(false);
   });
 });
