@@ -135,6 +135,13 @@ export default function Toolbar() {
    * filter can no longer disagree with itself between two halves.
    */
   const [trailFilter, setTrailFilter] = useState<string | null>(null);
+  /**
+   * v388 — which PAGE of the trail is on screen, in ROWS (the service's meaning, v387). The trail is the
+   * one table that only grows, so the newest twenty is a window and not the trail; this is the window
+   * the panel is asking for. A filter change resets it to the first window — the newest twenty of THAT
+   * action is a different question with its own beginning.
+   */
+  const [trailOffset, setTrailOffset] = useState(0);
 
   /**
    * v281 — the DERIVED view of the trail: the rows the current filter admits, and the tally of what the
@@ -147,8 +154,10 @@ export default function Toolbar() {
   const trailSummary = trail?.ok ? trailSummaryOf(trail.rows ?? []) : null;
 
   // v385 — the filter is part of the ASK: changing it re-reads the trail with the action named, the same
-  // way the desk's reason filter re-reads the desk (v326).
-  const refreshTrail = async (action: string | null = trailFilter) => setTrail(await readTrail(20, action));
+  // way the desk's reason filter re-reads the desk (v326). v388 — and so is the page: the offset travels
+  // in rows, and every other caller (opening the panel) keeps the page the reader was on.
+  const refreshTrail = async (action: string | null = trailFilter, offset: number = trailOffset) =>
+    setTrail(await readTrail(20, action, offset));
 
   /**
    * v299 — the creator's OWN economy: the tips this device's account was given, and how much they came to.
@@ -828,7 +837,12 @@ export default function Toolbar() {
                     setTrailFilter(null);
                     // v385 — and the narrowing happens in the SERVICE: the panel asks again with the
                     // action named, and the answer it gets back is that action's rows.
-                    void refreshTrail(null);
+                    // v388 — and a new question starts at its own first window: the newest twenty of
+                    // EVERY action and the newest twenty of THIS one are different sets with different
+                    // beginnings, so a page carried over from the old question would be a page of
+                    // nothing.
+                    setTrailOffset(0);
+                    void refreshTrail(null, 0);
                   }}
                   title="every action"
                 >
@@ -841,7 +855,9 @@ export default function Toolbar() {
                     setTrailFilter('publish');
                     // v385 — the narrowing is the SERVICE's: the panel asks again with the action
                     // named, and the answer it gets back is that action's rows.
-                    void refreshTrail('publish');
+                    // v388 — and the new question starts at its own first window (see 'All').
+                    setTrailOffset(0);
+                    void refreshTrail('publish', 0);
                   }}
                   title="only the publishes"
                 >
@@ -854,7 +870,9 @@ export default function Toolbar() {
                     setTrailFilter('unpublish');
                     // v385 — the narrowing is the SERVICE's: the panel asks again with the action
                     // named, and the answer it gets back is that action's rows.
-                    void refreshTrail('unpublish');
+                    // v388 — and the new question starts at its own first window (see 'All').
+                    setTrailOffset(0);
+                    void refreshTrail('unpublish', 0);
                   }}
                   title="only the take-downs"
                 >
@@ -870,7 +888,9 @@ export default function Toolbar() {
                     setTrailFilter('like');
                     // v385 — the narrowing is the SERVICE's: the panel asks again with the action
                     // named, and the answer it gets back is that action's rows.
-                    void refreshTrail('like');
+                    // v388 — and the new question starts at its own first window (see 'All').
+                    setTrailOffset(0);
+                    void refreshTrail('like', 0);
                   }}
                   title="only the likes"
                 >
@@ -883,7 +903,9 @@ export default function Toolbar() {
                     setTrailFilter('comment');
                     // v385 — the narrowing is the SERVICE's: the panel asks again with the action
                     // named, and the answer it gets back is that action's rows.
-                    void refreshTrail('comment');
+                    // v388 — and the new question starts at its own first window (see 'All').
+                    setTrailOffset(0);
+                    void refreshTrail('comment', 0);
                   }}
                   title="only the comments"
                 >
@@ -899,7 +921,9 @@ export default function Toolbar() {
                     setTrailFilter('unlike');
                     // v385 — the narrowing is the SERVICE's: the panel asks again with the action
                     // named, and the answer it gets back is that action's rows.
-                    void refreshTrail('unlike');
+                    // v388 — and the new question starts at its own first window (see 'All').
+                    setTrailOffset(0);
+                    void refreshTrail('unlike', 0);
                   }}
                   title="only the likes that were taken back"
                 >
@@ -915,7 +939,9 @@ export default function Toolbar() {
                     setTrailFilter('uncomment');
                     // v385 — the narrowing is the SERVICE's: the panel asks again with the action
                     // named, and the answer it gets back is that action's rows.
-                    void refreshTrail('uncomment');
+                    // v388 — and the new question starts at its own first window (see 'All').
+                    setTrailOffset(0);
+                    void refreshTrail('uncomment', 0);
                   }}
                   title="only the comments that were taken back"
                 >
@@ -932,7 +958,9 @@ export default function Toolbar() {
                     setTrailFilter('report');
                     // v385 — the narrowing is the SERVICE's: the panel asks again with the action
                     // named, and the answer it gets back is that action's rows.
-                    void refreshTrail('report');
+                    // v388 — and the new question starts at its own first window (see 'All').
+                    setTrailOffset(0);
+                    void refreshTrail('report', 0);
                   }}
                   title="only the reports that were filed"
                 >
@@ -945,7 +973,9 @@ export default function Toolbar() {
                     setTrailFilter('withdraw-report');
                     // v385 — the narrowing is the SERVICE's: the panel asks again with the action
                     // named, and the answer it gets back is that action's rows.
-                    void refreshTrail('withdraw-report');
+                    // v388 — and the new question starts at its own first window (see 'All').
+                    setTrailOffset(0);
+                    void refreshTrail('withdraw-report', 0);
                   }}
                   title="only the reports the reporter took back"
                 >
@@ -958,7 +988,9 @@ export default function Toolbar() {
                     setTrailFilter('acknowledge');
                     // v385 — the narrowing is the SERVICE's: the panel asks again with the action
                     // named, and the answer it gets back is that action's rows.
-                    void refreshTrail('acknowledge');
+                    // v388 — and the new question starts at its own first window (see 'All').
+                    setTrailOffset(0);
+                    void refreshTrail('acknowledge', 0);
                   }}
                   title="only the reports the owner answered"
                 >
@@ -1011,15 +1043,59 @@ export default function Toolbar() {
                   </li>
                 ))}
               </ul>
-              {/* FOUR numbers, because there are four different questions. What is SHOWN is what the
-                  filter admits. What the SERVICE CARRIED is its own count for that question — the two
+              {/* The numbers, because there are several different questions. What is SHOWN is what the
+                  filter admits; what the SERVICE CARRIED is its own count for that question — the two
                   disagree OUT LOUD when the reading half dropped a row it could not display honestly.
                   What the WHOLE TRAIL HOLDS is the service's count narrowed or not: since v385 the filter
                   is the service's, so the excluded rows never reach the browser, and this is the number
                   that still says what the filter is hiding. And the CAP, because every number above it is
-                  a fact about a window. */}
+                  a fact about a window.
+
+                  v388 — and the window says WHICH rows it is, but only when it honestly can. With no
+                  filter on, "showing 21–40 of 137" is a fact about the whole trail's own order. With a
+                  filter on, a range would have to be counted against a set whose size the service never
+                  answers — so the footer counts the action's rows in this window and states the whole
+                  beside them, rather than inventing a position in a set nobody counted. */}
               <div style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>
-                {trailRows.length} shown · the service carried {trail.count} · the whole trail holds {trail.total} · the service caps at {trail.limit}
+                {trailFilter === null
+                  ? `showing ${trail.offset + 1}–${trail.offset + trail.count} of ${trail.total} · ${trailRows.length} on screen · the service caps at ${trail.limit}`
+                  : `${trailRows.length} shown of this action · the service carried ${trail.count} · the whole trail holds ${trail.total} · the service caps at ${trail.limit}`}
+              </div>
+              {/* v388 — the PAGER, the same shape the filed list got in v386: the page is part of the ask
+                  (the service answers the window at that row offset), "Newer" is disabled on the first
+                  window because there is no page before it, and "Older" is disabled when there is no
+                  older window to ask for — which the service has already answered, in two different
+                  ways: unfiltered, the whole-trail count says where the end is; filtered, a window that
+                  came back SHORT of the cap is the end of that action's rows (a service that had more
+                  would have filled it). Either way the panel never asks a question whose honest answer
+                  is an empty window. */}
+              <div data-trail-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                <button
+                  className="btn"
+                  data-trail-page="newer"
+                  disabled={trail.offset <= 0}
+                  onClick={() => {
+                    const next = Math.max(trail.offset - trail.limit, 0);
+                    setTrailOffset(next);
+                    void refreshTrail(trailFilter, next);
+                  }}
+                  title="the newer entries"
+                >
+                  ‹ Newer
+                </button>
+                <button
+                  className="btn"
+                  data-trail-page="older"
+                  disabled={trailFilter === null ? trail.offset + trail.count >= trail.total : trail.count < trail.limit}
+                  onClick={() => {
+                    const next = trail.offset + trail.limit;
+                    setTrailOffset(next);
+                    void refreshTrail(trailFilter, next);
+                  }}
+                  title="the older entries"
+                >
+                  Older ›
+                </button>
               </div>
             </>
           )}

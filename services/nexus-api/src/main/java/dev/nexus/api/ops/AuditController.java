@@ -63,6 +63,9 @@ public class AuditController {
 
     /**
      * v385 — narrowed to one action when the caller names one, and always beside the WHOLE trail's size.
+     * v388 — and paged past the newest rows when an offset is named, in ROWS like the filed read's
+     * (v387): the trail is the one table that only grows, so a reader has to be able to ask for the
+     * older entries rather than only ever being shown the newest window.
      *
      * <p>An action outside the service's own set is refused by name (400), the same way the desk refuses
      * a reason it does not have (v326): answering a question about a verb this service never recorded
@@ -71,9 +74,11 @@ public class AuditController {
     @GetMapping
     public ResponseEntity<Trail> list(
             @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "offset", required = false) Integer offset,
             @RequestParam(name = "action", required = false) String action) {
         int asked = limit == null ? AuditService.DEFAULT_LIST_LIMIT : limit;
-        List<Entry> entries = service.list(asked, action).stream()
+        int from = offset == null ? 0 : Math.max(offset, 0);
+        List<Entry> entries = service.list(asked, from, action).stream()
                 .map(row -> new Entry(
                         String.valueOf(row.getId()),
                         row.getAction(),

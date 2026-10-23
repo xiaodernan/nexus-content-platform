@@ -886,18 +886,19 @@ try {
       `hrefs: ${JSON.stringify(rows.slice(0, 3).map((r) => r.href))}`,
     );
 
-    // v281/v385 — FOUR numbers, because there are four different questions: what is SHOWN (the filter
-    // admits), what the SERVICE CARRIED for that question (the reading half's drops are the gap between
-    // the two), how many the WHOLE TRAIL holds (what the filter is hiding), and the CAP every window
-    // answers under.
+    // v281/v385/v388 — the footer states the window and the whole: "showing 1–20 of 137 · 20 on screen ·
+    // the service caps at 20" is a fact about WHICH rows, HOW MANY rendered, and HOW BIG the trail is.
+    // The range is the service's window and the on-screen count is what the reading half accepted — a
+    // smaller on-screen number is exactly the discrepancy the footer exists to expose.
     const footer = await page.evaluate("document.querySelector('[data-toolbar-trail]')?.textContent ?? ''");
-    const stated = /(\d+) shown · the service carried (\d+) · the whole trail holds (\d+) · the service caps at (\d+)/.exec(footer);
+    const stated = /showing (\d+)–(\d+) of (\d+) · (\d+) on screen · the service caps at (\d+)/.exec(footer);
     check(
-      'the trail states the service’s count beside what it rendered',
-      // shown can never exceed what the service carried — a smaller number is exactly the discrepancy the
-      // footer exists to expose — and the carried window is never larger than the whole trail.
-      stated !== null && Number(stated[1]) <= Number(stated[2]) && Number(stated[2]) <= Number(stated[3]) && Number(stated[4]) >= 1,
-      `${stated ? stated[0] : JSON.stringify(footer.slice(-140))}`,
+      'the trail states WHICH rows it is showing, and how big the whole trail is',
+      stated !== null
+        && Number(stated[4]) <= Number(stated[2]) - Number(stated[1]) + 1
+        && Number(stated[2]) <= Number(stated[3])
+        && Number(stated[5]) >= 1,
+      `${stated ? stated[0] : JSON.stringify(footer.slice(-160))}`,
     );
 
     // §9.6 v281 — the trail’s FILTERS and its TALLY.
@@ -977,7 +978,7 @@ try {
       const narrowedFooter = await until(
         async () => {
           const text = await page.evaluate("document.querySelector('[data-toolbar-trail]')?.textContent ?? ''");
-          const m = /(\d+) shown · the service carried (\d+) · the whole trail holds (\d+) · the service caps at (\d+)/.exec(text);
+          const m = /(\d+) shown of this action · the service carried (\d+) · the whole trail holds (\d+) · the service caps at (\d+)/.exec(text);
           return m && Number(m[3]) > Number(m[1]) ? m : false;
         },
         { tries: 20, gapMs: 300, label: 'the filtered footer to state the whole trail' },
@@ -986,6 +987,40 @@ try {
         'a filtered trail still states the WHOLE trail’s size — what the filter hid is counted by the service, not guessed',
         narrowedFooter !== null,
         narrowedFooter ? narrowedFooter[0] : 'no footer',
+      );
+
+      // v388 — and the PAGER. The trail is the one table that only grows, so the newest twenty is a
+      // window and not the trail: "Newer" is disabled on the first window (there is no page before it),
+      // and "Older" is disabled exactly when the window already holds every entry the service counted.
+      const trailPager = await page.evaluate(`(() => {
+        const newer = document.querySelector('[data-trail-page="newer"]');
+        const older = document.querySelector('[data-trail-page="older"]');
+        return { there: !!newer && !!older, newerDisabled: newer ? newer.disabled : null, olderDisabled: older ? older.disabled : null };
+      })()`);
+      check('the trail offers a pager', trailPager.there === true, JSON.stringify(trailPager));
+      check(
+        'and on the first window "Newer" is disabled — there is no page before the first',
+        trailPager.newerDisabled === true,
+        `newer disabled: ${trailPager.newerDisabled}`,
+      );
+      // Back to the whole trail, where the whole-trail count says exactly where the end is.
+      await page.evaluate("document.querySelector('[data-trail-filter=\"all\"]').click()");
+      const allPager = await until(
+        async () => {
+          const text = await page.evaluate("document.querySelector('[data-toolbar-trail]')?.textContent ?? ''");
+          const m = /showing (\d+)–(\d+) of (\d+) · (\d+) on screen/.exec(text);
+          return m && Number(m[1]) === 1 ? m : false;
+        },
+        { tries: 20, gapMs: 300, label: 'the whole trail back on the first window' },
+      );
+      const allPagerState = await page.evaluate(`(() => {
+        const older = document.querySelector('[data-trail-page="older"]');
+        return { olderDisabled: older ? older.disabled : null };
+      })()`);
+      check(
+        'and "Older" is disabled exactly when the window already holds every entry the service counted',
+        allPager !== null && allPagerState.olderDisabled === Number(allPager[2]) >= Number(allPager[3]),
+        allPager ? `${allPager[0]} · older disabled: ${allPagerState.olderDisabled}` : 'no footer',
       );
       const filteredSummary = await page.evaluate("document.querySelector('[data-trail-summary]')?.textContent ?? ''");
       check(

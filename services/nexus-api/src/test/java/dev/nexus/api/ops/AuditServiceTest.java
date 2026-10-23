@@ -37,6 +37,9 @@ import org.springframework.data.domain.Pageable;
  * <p>v385 gave the LISTING a filter that lives in the service: a named action narrows the query itself,
  * an action outside the recorded set is refused BY NAME before any window is read, and the whole-trail
  * count travels beside the window so a reader can still see what the filter is hiding.
+ *
+ * <p>v388 gave it a PAGE: the offset is ROWS (the filed read's meaning), translated into the pages Spring
+ * Data speaks, so a reader can reach the entries the cap used to hide.
  */
 @ExtendWith(MockitoExtension.class)
 class AuditServiceTest {
@@ -126,7 +129,7 @@ class AuditServiceTest {
 
     @Test
     void theListingIsCappedAtTheServicesOwnCeiling() {
-        service.list(10_000, null);
+        service.list(10_000, 0, null);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findAllByOrderByOccurredAtDesc(window.capture());
@@ -135,7 +138,7 @@ class AuditServiceTest {
 
     @Test
     void theListingOfANothingAskIsClampedToOneRatherThanREFUSED() {
-        service.list(0, null);
+        service.list(0, 0, null);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findAllByOrderByOccurredAtDesc(window.capture());
@@ -146,7 +149,7 @@ class AuditServiceTest {
 
     @Test
     void aNamedActionNarrowsTheListingInTheQUERYRatherThanInTheBrowser() {
-        service.list(20, AuditService.ACTION_UNPUBLISH);
+        service.list(20, 0, AuditService.ACTION_UNPUBLISH);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findByActionOrderByOccurredAtDesc(eq(AuditService.ACTION_UNPUBLISH), window.capture());
@@ -158,7 +161,7 @@ class AuditServiceTest {
 
     @Test
     void noActionAskedIsTheWholeTrailAndNoFilterFinderIsTouched() {
-        service.list(20, null);
+        service.list(20, 0, null);
 
         verify(repository).findAllByOrderByOccurredAtDesc(any(Pageable.class));
         verify(repository, never()).findByActionOrderByOccurredAtDesc(any(), any(Pageable.class));
@@ -166,7 +169,7 @@ class AuditServiceTest {
 
     @Test
     void aBlankActionIsTheWholeTrailNotAnEmptyWindow() {
-        service.list(20, "   ");
+        service.list(20, 0, "   ");
 
         verify(repository).findAllByOrderByOccurredAtDesc(any(Pageable.class));
         verify(repository, never()).findByActionOrderByOccurredAtDesc(any(), any(Pageable.class));
@@ -174,7 +177,7 @@ class AuditServiceTest {
 
     @Test
     void anActionOUTSIDETheRecordedSetIsREFUSEDAndTheRefusalNAMESTheSet() {
-        assertThatThrownBy(() -> service.list(20, "frobnicate"))
+        assertThatThrownBy(() -> service.list(20, 0, "frobnicate"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("frobnicate")
                 .hasMessageContaining(AuditService.ACTION_PUBLISH)
@@ -187,13 +190,35 @@ class AuditServiceTest {
     @Test
     void everyVerbTheSetNamesIsAQuestionTheServiceWillAnswer() {
         for (String action : AuditService.ACTIONS) {
-            service.list(20, action);
+            service.list(20, 0, action);
         }
 
         ArgumentCaptor<String> asked = ArgumentCaptor.forClass(String.class);
         verify(repository, times(AuditService.ACTIONS.size()))
                 .findByActionOrderByOccurredAtDesc(asked.capture(), any(Pageable.class));
         assertThat(asked.getAllValues()).containsExactlyElementsOf(AuditService.ACTIONS);
+    }
+
+    @Test
+    void theOffsetIsROWSNotAPageIndex() {
+        service.list(20, 40, null);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findAllByOrderByOccurredAtDesc(window.capture());
+        // Page 2 of 20 is rows 40–59. Handing the raw 40 to `PageRequest.of` reads it as page 40 — rows
+        // 800–819, an empty window a reader would be told was "past the end" (the v387 lesson, applied to
+        // this door from the start rather than discovered by its first pager).
+        assertThat(window.getValue().getOffset()).isEqualTo(40L);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void aNegativeOffsetIsTheFirstWindowRatherThanARefusal() {
+        service.list(20, -40, null);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findAllByOrderByOccurredAtDesc(window.capture());
+        assertThat(window.getValue().getOffset()).isZero();
     }
 
     @Test

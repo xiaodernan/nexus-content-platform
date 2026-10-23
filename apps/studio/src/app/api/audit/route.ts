@@ -41,10 +41,16 @@ export async function GET(request: Request): Promise<NextResponse> {
   // v385 — the filter travels verbatim: the service owns the closed set of verbs and refuses an unknown
   // one BY NAME, so the route's job is to forward the question, not to answer a different one.
   const action = params.get('action');
+  // v388 — and so does the page, in ROWS (the filed read's meaning, v387). A negative or unparseable
+  // offset is the first window rather than a refusal: a page before the first does not exist, and the
+  // newest rows are the honest answer to a question about it.
+  const rawOffset = params.get('offset');
+  const parsedOffset = rawOffset === null ? 0 : Number.parseInt(rawOffset, 10);
+  const from = Number.isFinite(parsedOffset) ? Math.max(parsedOffset, 0) : 0;
 
   try {
     const ask = action === null || action === '' ? '' : `&action=${encodeURIComponent(action)}`;
-    const res = await fetch(`${nexusApiBase()}/audit?limit=${encodeURIComponent(String(asked))}${ask}`, {
+    const res = await fetch(`${nexusApiBase()}/audit?limit=${encodeURIComponent(String(asked))}&offset=${encodeURIComponent(String(from))}${ask}`, {
       headers: { accept: 'application/json' },
       signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
     });

@@ -32,6 +32,14 @@ export interface TrailAnswer {
    * service's own count rather than guessing.
    */
   total: number;
+  /**
+   * v388 — the ROW this window starts at, echoed from the ask.
+   *
+   * The answer carries the window it is FOR rather than leaving the panel to remember which ask it
+   * belongs to: two reads in flight (a filter change, then a page) answer in whatever order the network
+   * chooses, and an answer that names its own window cannot be mistaken for the other one's.
+   */
+  offset: number;
   /** Why it could not be read, when it could not. */
   reason?: string;
 }
@@ -40,21 +48,30 @@ export interface TrailAnswer {
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 /**
- * Read the trail, newest first — narrowed to one action when one is named.
+ * Read the trail, newest first — narrowed to one action when one is named, from a row offset on.
  *
  * v385 — `action` is the SERVICE's own word for a verb (`publish`, `unpublish`, …), asked in the query
  * rather than filtered in the browser: the window that comes back is the newest N entries OF THAT
  * ACTION, which is a different set from "the newest N that happen to carry it" once the trail outgrows
  * the cap. `null` asks for the whole trail.
  *
+ * v388 — and `offset` is ROWS (the same meaning the filed read's offset has, v387): the trail is the one
+ * table that only grows, so the older entries are a question a reader is allowed to ask.
+ *
  * `count` is the service's own number and `rows.length` is what could be rendered: the two are BOTH kept,
  * because a row the pure half could not display honestly is dropped — and a panel that only reported the
  * rendered count would be hiding the drop.
  */
-export async function readTrail(limit: number, action: string | null, fetchImpl: FetchLike = fetch): Promise<TrailAnswer> {
+export async function readTrail(
+  limit: number,
+  action: string | null,
+  offset: number,
+  fetchImpl: FetchLike = fetch,
+): Promise<TrailAnswer> {
+  const from = Math.max(offset, 0);
   const ask = action === null || action === '' ? '' : `&action=${encodeURIComponent(action)}`;
   try {
-    const res = await fetchImpl(`/api/audit?limit=${encodeURIComponent(String(limit))}${ask}`, {
+    const res = await fetchImpl(`/api/audit?limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(from))}${ask}`, {
       headers: { accept: 'application/json' },
     });
     if (!res.ok) {
@@ -69,20 +86,23 @@ export async function readTrail(limit: number, action: string | null, fetchImpl:
       } catch {
         // no body — the status line stays as the reason
       }
-      return { ok: false, count: 0, limit, total: 0, reason: why };
+      return { ok: false, count: 0, limit, total: 0, offset: from, reason: why };
     }
     let body: unknown;
     try {
       body = await res.json();
     } catch {
-      return { ok: false, count: 0, limit, total: 0, reason: 'the trail answered something that is not JSON' };
+      return { ok: false, count: 0, limit, total: 0, offset: from, reason: 'the trail answered something that is not JSON' };
     }
     if (typeof body !== 'object' || body === null) {
-      return { ok: false, count: 0, limit, total: 0, reason: 'the trail answered with neither an object nor a reason' };
+      return { ok: false, count: 0, limit, total: 0, offset: from, reason: 'the trail answered with neither an object nor a reason' };
     }
     const { entries, count, limit: capped, total } = body as { entries?: unknown; count?: unknown; limit?: unknown; total?: unknown };
+    // v388 — the window this answer is FOR is the one that was asked for. The service does not echo it
+    // (the filed door does not either); the lane does, because the panel has to be able to say which
+    // window it is looking at even when two reads are in flight at once.
     if (!Array.isArray(entries)) {
-      return { ok: false, count: 0, limit, total: 0, reason: 'the trail answered with no entries at all' };
+      return { ok: false, count: 0, limit, total: 0, offset: from, reason: 'the trail answered with no entries at all' };
     }
     return {
       ok: true,
@@ -90,8 +110,9 @@ export async function readTrail(limit: number, action: string | null, fetchImpl:
       count: typeof count === 'number' && Number.isFinite(count) ? count : entries.length,
       limit: typeof capped === 'number' && Number.isFinite(capped) ? capped : limit,
       total: typeof total === 'number' && Number.isFinite(total) ? total : typeof count === 'number' && Number.isFinite(count) ? count : entries.length,
+      offset: from,
     };
   } catch (error) {
-    return { ok: false, count: 0, limit, total: 0, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, count: 0, limit, total: 0, offset: from, reason: error instanceof Error ? error.message : String(error) };
   }
 }

@@ -164,19 +164,27 @@ public class AuditService {
     }
 
     /**
-     * The trail, newest first, capped — narrowed to ONE action when one is named.
+     * The trail, newest first, capped — narrowed to ONE action when one is named, and PAGED past the
+     * newest rows when an offset is named.
      *
      * <p>v385 — the narrowing happens IN THE QUERY, not in the browser: the window is "the newest N
      * entries OF THAT ACTION", which is a different set from "the newest N entries that happen to be of
      * that action" once the trail outgrows the cap. The panel used to filter what it had already read
      * (v281), which was honest about the window it held and silent about everything past the cap; the
      * service now answers the question that was actually asked.
+     *
+     * <p>v388 — and the window can be PAGED: the trail is the one table that only grows, so a reader who
+     * wants last month's entries has to be able to ask for them. The offset is ROWS, the same meaning the
+     * filed read's offset has (v387) — and the same translation into the pages Spring Data speaks,
+     * because handing a row count to {@code PageRequest.of} answers with the rows twenty windows further
+     * on and calls them "past the end".
      */
     @Transactional(readOnly = true)
-    public List<AuditEntry> list(int limit, String action) {
+    public List<AuditEntry> list(int limit, int offset, String action) {
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
+        int from = Math.max(offset, 0);
         String wanted = requireAction(action);
-        PageRequest window = PageRequest.of(0, effective);
+        PageRequest window = PageRequest.of(from / effective, effective);
         return wanted == null
                 ? repository.findAllByOrderByOccurredAtDesc(window)
                 : repository.findByActionOrderByOccurredAtDesc(wanted, window);
