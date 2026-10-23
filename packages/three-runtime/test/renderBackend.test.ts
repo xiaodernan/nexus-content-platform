@@ -7,10 +7,11 @@
 // cases grade the seam on its own terms — a headless backend that cannot know a triangle count must SAY
 // zero rather than invent one, a scheduler must name which implementation is in force rather than let a
 // caller guess, and a manual scheduler must run a callback exactly when a test says so.
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import * as THREE from 'three';
 import {
   createHeadlessBackend,
+  createWebGLBackend,
   webglAvailable,
   defaultFrameScheduler,
   manualFrameScheduler,
@@ -198,5 +199,40 @@ describe('the manual scheduler: frames run when a test says, and only then', () 
     expect(scheduler.step()).toBe(1);
     expect(ran).toEqual(['kept']);
     expect(kept).not.toBe(dropped); // handles are distinct
+  });
+});
+
+describe('the WebGL backend where there is no GL (v476)', () => {
+  // The production factory is the one export of the seam no case had ever asked directly: in Node there is
+  // no GL context, so the honest question is what it DOES there. It throws the real renderer's own error —
+  // it does not answer a headless backend in disguise, and it does not swallow the failure into a null.
+  it('refuses to exist where there is no GL context — the real renderer’s error, not a fake backend', () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const canvas = {
+        addEventListener: () => {},
+        getContext: () => null,
+      } as unknown as HTMLCanvasElement;
+
+      expect(() => createWebGLBackend(canvas, CONFIG)).toThrow(/WebGL context/);
+    } finally {
+      quiet.mockRestore();
+    }
+  });
+
+  it('the canvas it is handed is the canvas it uses — a probe error propagates from the real construction', () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const canvas = {
+        addEventListener: () => {},
+        getContext: () => {
+          throw new Error('probe-marker');
+        },
+      } as unknown as HTMLCanvasElement;
+
+      expect(() => createWebGLBackend(canvas, CONFIG)).toThrow('probe-marker');
+    } finally {
+      quiet.mockRestore();
+    }
   });
 });
