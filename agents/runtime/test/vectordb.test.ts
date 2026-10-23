@@ -4,6 +4,7 @@ import { hybridScore } from '../src/embedding.js';
 import {
   buildVectorDb,
   deserializeVectors,
+  VECTOR_SCHEMA_VERSION,
   loadVectors,
   queryVectors,
   saveVectors,
@@ -56,5 +57,41 @@ describe('vectordb (v18 local exact-scan store)', () => {
     const wrongDim = { ...db, dim: 8 };
     expect(deserializeVectors(serializeVectors(wrongDim)).ok).toBe(false);
     expect(loadVectors(createMemDisk({ listing: 'refuse' }), 'none.json')).toEqual({ ok: false, reason: 'no such file: none.json' });
+  });
+});
+
+/**
+ * v461 — the vector store’s schema VERSION, graded directly.
+ *
+ * `VECTOR_SCHEMA_VERSION` is the number the builder stamps and the reader refuses to move past. The
+ * rejection matrix below only ever proves the reader refuses a HARDCODED 9 — nothing asks that the
+ * writer stamps THIS constant, or that a bump of the constant moves both halves together.
+ */
+describe('the vector store’s schema version (v461)', () => {
+  it('the builder stamps the CURRENT version on every db it builds', () => {
+    expect(buildVectorDb(SEED).schemaVersion).toBe(VECTOR_SCHEMA_VERSION);
+    expect(buildVectorDb([]).schemaVersion).toBe(VECTOR_SCHEMA_VERSION);
+  });
+
+  it('the reader accepts exactly that version — a future one is refused with its number in the reason', () => {
+    const db = buildVectorDb(SEED);
+    const future = deserializeVectors(JSON.stringify({ ...db, schemaVersion: VECTOR_SCHEMA_VERSION + 1 }));
+    expect(future.ok).toBe(false);
+    if (!future.ok) expect(future.reason).toContain(String(VECTOR_SCHEMA_VERSION + 1));
+    const present = deserializeVectors(serializeVectors(db));
+    expect(present.ok).toBe(true);
+  });
+
+  it('the version is a positive integer — a version that is not a count is not a version', () => {
+    expect(Number.isInteger(VECTOR_SCHEMA_VERSION)).toBe(true);
+    expect(VECTOR_SCHEMA_VERSION).toBeGreaterThanOrEqual(1);
+  });
+
+  it('one constant feeds both halves — the stamped db round-trips at the stamped version', () => {
+    const wire = JSON.parse(serializeVectors(buildVectorDb(SEED))) as { schemaVersion: number };
+    expect(wire.schemaVersion).toBe(VECTOR_SCHEMA_VERSION);
+    const back = deserializeVectors(serializeVectors(buildVectorDb(SEED)));
+    expect(back.ok).toBe(true);
+    if (back.ok) expect(back.db.schemaVersion).toBe(VECTOR_SCHEMA_VERSION);
   });
 });
