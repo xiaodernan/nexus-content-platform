@@ -29,8 +29,8 @@ import { jsonError } from '@/server/http';
  *
  * 限度（界面上 `data-marketplace-limits` 念的是同一套）：
  * 匿名下载免费物品**不留审计行**——`marketplace_audit.actor_id` 是非空列，没有身份可记，
- * 所以风控看到的 download 审计只覆盖有身份的那些次；交付的包是 design + code 两档，
- * **不含资产字节**（那需要开作者名下的私有素材，买家未必要得到，另作一片）。
+ * 所以风控看到的 download 审计只覆盖有身份的那些次；交付的包是 design + code + assets 三档，
+ * **含资产字节**（以创作者身份读取源项目的私有素材，§80 的鉴权路由保证只有创作者能读）。
  */
 export async function GET(
   req: Request,
@@ -75,7 +75,7 @@ export async function GET(
     // 建包永远以**创作者**的身份走 §144：`buildProjectExport` 里的归属门判的是"项目在谁名下"，
     // 买家的下载授权由上面那道购买判定给（买过 / 免费 / 本人）。用 `user?.id` 会把它变成
     // "只有作者自己能下"——买家扣了点数却永远拿到 404，正是这一格存在的理由被推翻。
-    zipped = await buildProjectExport(item.sourceProjectId, item.creatorId, ['design', 'code']);
+    zipped = await buildProjectExport(item.sourceProjectId, item.creatorId, ['design', 'code', 'assets']);
   } catch {
     return jsonError(500, 'export_failed', { message: '导出失败，请稍后重试' });
   }
