@@ -119,12 +119,22 @@ public class ReportService {
         // v311 — the trail, INSIDE this transaction: a rolled-back report leaves no entry claiming a
         // report happened. And only for a report that was actually filed — a refused duplicate is an
         // attempt, not a fact.
+        // v384 — target_type for the trail: "account" for follow/tip, "plan" for subscribe,
+        // "publication" for publish (will be rewritten in a later increment)
+        String targetType;
+        if (target != null && target.startsWith("account-")) {
+            targetType = "account";
+        } else if (target != null && target.startsWith("plan-")) {
+            targetType = "plan";
+        } else {
+            targetType = "publication";
+        }
         audit.record(
                 "report",
                 reporter,
                 claim == null ? null : claim.handle(),
                 claim == null ? null : claim.assurance(),
-                target);
+                target, targetType);
         return saved;
     }
 
