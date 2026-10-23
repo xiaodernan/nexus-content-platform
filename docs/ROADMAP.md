@@ -5699,3 +5699,17 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   见证：`5e3180f`；id-shape 42/42；projects / project-delete / snapshots / branches
   四套件加 id-shape 共 92/92；api-v1 8/8；tsc 0、改动文件 eslint 0。
   变异探针：摘掉 `restoreProject` 的守卫，域层与路由两条测试精确红，其余 40 条不受影响。
+
+- **2026-10-23 第二十九片（#177）：两个"已知不修"落成 ADR，等产品表态**。
+  并发审计（#170-#176）扫到最后剩两处竞态，都**不修但记下**：
+  ① `moderation.ts` `fileReport` 的举报升级是读—改—写且 `moderation_cases`
+  无唯一索引——并发双举报同一 publication 会建两条未结案。加部分唯一索引有真实
+  副作用（同 publication 新版发布的 findings 会被旧未结案挡掉）；收进项目写锁则让
+  机检与举报共用入口全排队，换来的只是"审核员少看一眼重复行"。
+  ② `assets.ts` 上传的 checksum twin 无唯一索引——并发双传同一字节会多一行、
+  配额多算一份（不 500、不损毁）。加唯一索引会堵死"同项目传两张一样的图"
+  与"归属不同角色"的合理诉求。两处的修法都等一个产品决定
+  （"同 publication 允许多少条并行未结案" / "同项目同字节是否必须一行"），
+  判决书：`docs/adr/0058-report-escalation-duplicate-cases.md` 与
+  `docs/adr/0059-asset-checksum-twin-duplicates.md`。
+  在此之前，新代码不许给这两处加唯一索引。
