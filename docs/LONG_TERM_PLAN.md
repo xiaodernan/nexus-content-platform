@@ -53,7 +53,7 @@
 19. ~~**v399 — artifact 页评论串的翻页**~~ ✅ **已落地**（3f30b34）：v286 起评论区就是窗口（服务端封顶 100）、v354 起有 visible 计数 ✓，但从未能翻页 ✓——比封顶长的线程只能看到头 ✓；现在 CommentService.commentsOf 按行收 offset ✓（PageRequest.of(from/asked, asked)，负值夹 0 ✓），CommentResult 新建 long total ✓（线程行数、含已删除——pager 按行翻页，visible 不是行数 ✓），CommentDtos 新建 ThreadAnswer ✓（与 CommentAnswer 分开：author 方向不翻页、无全表计数 ✓）；客户端 readComments 转发并回映 ✓，renderCommentsHtml 第五参改为可选 window 对象 ✓（越界空窗独立文案、位置感知的 showing rows A–B of total、路由造链接的 pager ✓）；route 加 commentOffset 参数 ✓。
 20. ~~**v400 — artifact 页 like bar 的翻页**~~ ✅ **已落地**（0e811c2）：v350 起 likers 列表就是窗口、计数一直是全表数字 ✓，但从未能翻页 ✓——赞数超过窗口的发布物只能看到最新的那些 ✓；现在 likesOf 按行收 offset ✓（PageRequest.of(from/asked, asked)，负值夹 0 ✓），LikeDtos 新建 LikesAnswer ✓（与 LikeAnswer 分开：写入的答案不是窗口 ✓）；计数即行数 ✓（unlike 直接删行、不像 v399 需要第二个数字 ✓）；客户端 readLikes 转发并回映 ✓，likeBar 窗口行位置感知 ✓、越界空窗独立文案 ✓、路由造链接的 pager ✓；route 加 LIKE_LIMIT=20、likeOffset 参数 ✓。
 21. **v401 — 角色 agent 的自己的规则，直接评分**：world-engine/characterAgent.ts 从来只被 worldEngine.test.ts 间接跑到 ✓，今天有了自己的直接问话 ✓（fed116e，25 用例）：动作集合要对（rest 无条件可用含 locationless——v162 崩溃点、move 按路程定价、同地者可对话、声明且同在的 NPC 只算一个、地面物品给 take、伤残给 heal、活动目标给 pursue）；决策要自矟（选中项在可用集、替代项≤3 且不含选中项、置信度 [0,1]、低血低能选 rest、一无所有仍得 rest）；执行要落地（rest 回血封顶、move 改地点写事件、对话写双边关系首次 floor 再次 +5、声明关系保名长数、take 移物、不可用动作按名拒绝）；世界告知 agent 要自由方向（知识可加、目标进度夹紧且完成时关闭、别人的目标不动）。
-22. **v402+ — 下一批候选**：**其余窗口化列表的翻页**（收藏、agent 会话等尚未有翻页条的列表 ✓）；**M8 创作者经济**（订阅购乐、举报提交、agent 令牌——受 ADR 0018 阻塞 ✓）。
+22. **v402+ — 下一批候选**：**其余窗口化列表的翻页**（收藏、agent 会话等尚未有翻页条的列表 ✓）；**M8 创作者经济**（订阅购买、举报提交、agent 令牌——受 ADR 0018 阻塞 ✓）。
 
 ### 我的在途增量（与并行 lane 的 v380 分开记）
 
