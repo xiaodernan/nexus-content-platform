@@ -12,6 +12,7 @@ import { renderHistoryHtml } from './history';
 import { renderLikeBar } from './likeBar';
 import { renderPlanBar } from './planBar';
 import { renderTipBar } from './tipBar';
+import { REPORT_BAR_STYLES, REPORT_REASONS, renderReportBar, reportReasonText } from './reportBar';
 
 /**
  * v457 — the six dock panels' style seams, graded as a FAMILY.
@@ -119,5 +120,88 @@ describe('the dock bars’ style seams — one family, six blocks (v457)', () =>
       expect(emitted.size, bar.name).toBeGreaterThan(0);
       for (const c of emitted) expect(declared.has(c), `${bar.name} emits .${c}, which its stylesheet never declares`).toBe(true);
     }
+  });
+});
+
+/**
+ * v458 — the report bar’s two unasked exports: its reason VOCABULARY and its style block.
+ *
+ * `REPORT_REASONS` is the closed set the composer’s dropdown is built from — the client’s own four,
+ * and no others — and until now the list itself had never been asked: WHAT a reader can report is a
+ * decision, and it lived in a constant only the component read. `REPORT_BAR_STYLES` is the seventh
+ * panel’s stylesheet, and the family guard above never met it.
+ */
+describe('the report bar’s reason vocabulary (v458)', () => {
+  it('the vocabulary is the client’s own four, in this order', () => {
+    expect([...REPORT_REASONS]).toEqual(['spam', 'harassment', 'illegal', 'other']);
+  });
+
+  it('no reason appears twice — a dropdown would offer the same complaint twice', () => {
+    expect(new Set(REPORT_REASONS).size).toBe(REPORT_REASONS.length);
+    expect(REPORT_REASONS.length).toBe(4);
+  });
+
+  it('every reason in the vocabulary has a reader’s word — and “other” is the one that is not its own', () => {
+    for (const reason of REPORT_REASONS) {
+      const text = reportReasonText(reason);
+      expect(text.length, reason).toBeGreaterThan(0);
+      if (reason === 'other') expect(text).toBe('something else');
+      else expect(text).toBe(reason);
+    }
+  });
+
+  it('the four reader words are all different — a reader can tell the complaints apart', () => {
+    const words = REPORT_REASONS.map((r) => reportReasonText(r));
+    expect(new Set(words).size).toBe(words.length);
+  });
+});
+
+describe('the report bar’s style block — the seventh panel joins the family (v458)', () => {
+  const FAMILY = [
+    { name: 'planBar', styles: PLAN_BAR_STYLES },
+    { name: 'likeBar', styles: LIKE_BAR_STYLES },
+    { name: 'followBar', styles: FOLLOW_BAR_STYLES },
+    { name: 'commentBar', styles: COMMENT_STYLES },
+    { name: 'history', styles: HISTORY_STYLES },
+    { name: 'tipBar', styles: TIP_BAR_STYLES },
+  ] as const;
+
+  it('ships its CSS as ONE well-formed <style> block', () => {
+    expect(REPORT_BAR_STYLES.startsWith('<style>')).toBe(true);
+    expect(REPORT_BAR_STYLES.endsWith('</style>')).toBe(true);
+    expect(REPORT_BAR_STYLES.match(/<style/g) ?? []).toHaveLength(1);
+    expect(REPORT_BAR_STYLES.match(/<\/style>/g) ?? []).toHaveLength(1);
+  });
+
+  it('every class it declares is namespaced under nexus-report', () => {
+    const declared = [...declaredClasses(REPORT_BAR_STYLES)];
+    expect(declared.length).toBeGreaterThan(0);
+    for (const c of declared) expect(c.startsWith('nexus-report'), `.${c}`).toBe(true);
+  });
+
+  it('its classes collide with NONE of the six blocks already in the family', () => {
+    const mine = declaredClasses(REPORT_BAR_STYLES);
+    for (const bar of FAMILY) {
+      for (const c of declaredClasses(bar.styles)) {
+        expect(mine.has(c), `.${c} is declared by both ${bar.name} and reportBar`).toBe(false);
+      }
+    }
+  });
+
+  it('renderReportBar emits ONLY classes its own block declares', () => {
+    // A withdrawn report with a filed instant beside a fresh one: the row carries the reason, and
+    // the instant emits the when-class — the per-row classes are the drift surface.
+    const html = renderReportBar({
+      projectId: 'proj-1',
+      count: 2,
+      reports: [
+        { id: 'r1', reason: 'spam', reasonText: 'spam', withdrawn: false, status: 'open', statusText: 'not acknowledged yet', targetId: 'proj-1', filedAt: 1700000000000, detail: 'buy followers' },
+        { id: 'r2', reason: 'other', reasonText: 'something else', withdrawn: true, status: 'rejected', statusText: 'withdrawn by the reporter', targetId: 'proj-1', detail: '' },
+      ],
+    });
+    const declared = declaredClasses(REPORT_BAR_STYLES);
+    const emitted = emittedClasses(html);
+    expect(emitted.size).toBeGreaterThan(0);
+    for (const c of emitted) expect(declared.has(c), `reportBar emits .${c}, which its stylesheet never declares`).toBe(true);
   });
 });
