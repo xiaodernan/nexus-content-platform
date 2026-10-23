@@ -365,17 +365,22 @@ export async function syncDesignKnowledge(
 ): Promise<{ chunks: number }> {
   const db = getDb();
   const chunks = chunksFromDesign(document, projectId);
-  await db
-    .delete(knowledgeChunks)
-    .where(
-      and(
-        eq(knowledgeChunks.projectId, projectId),
-        eq(knowledgeChunks.sourceType, 'design'),
-      ),
-    );
-  for (const part of chunkRows(chunks, projectId)) {
-    await db.insert(knowledgeChunks).values(part);
-  }
+  const parts = chunkRows(chunks, projectId);
+  // #175：删了再插不是原子的。两个并发同步（自动保存 + 「重建索引」、或者双击重建）
+  // 各自删一轮、各自插一轮，后到的那发撞 `knowledge_chunks_source_key` 判 23505 →
+  // 整个请求 500，而串行时同样的事只是"后一次同步覆盖前一次"。
+  // 收进一个事务并拿同一把项目写锁（ADR-0016）：同步之间从此串行，删与插也一起成功一起失败。
+  // 动态 import 绕开 knowledge ↔ projects 的模块循环（两个方向都只在函数体内用它）。
+  const { lockProjectWrites } = await import('./projects');
+  await db.transaction(async (tx) => {
+    await lockProjectWrites(tx, projectId);
+    await tx
+      .delete(knowledgeChunks)
+      .where(and(eq(knowledgeChunks.projectId, projectId), eq(knowledgeChunks.sourceType, 'design')));
+    for (const part of parts) {
+      await tx.insert(knowledgeChunks).values(part);
+    }
+  });
   return { chunks: chunks.length };
 }
 
@@ -513,19 +518,23 @@ export async function syncProjectKnowledge(
     })));
   } else {
     // 无 embedding provider：回落到原逻辑（embedding 留 null）
-    await db
-      .delete(knowledgeChunks)
-      .where(
-        options.includeDesign
-          ? eq(knowledgeChunks.projectId, projectId)
-          : and(
-              eq(knowledgeChunks.projectId, projectId),
-              ne(knowledgeChunks.sourceType, 'design'),
-            ),
-      );
-    for (const part of chunkRows(chunks, projectId)) {
-      await db.insert(knowledgeChunks).values(part);
-    }
+    // #175：与 syncDesignKnowledge 同一道竞态、同一道修法——删与插同一个事务、
+    // 同一把项目写锁。上面那条有 provider 的路走 VectorStore.upsertChunks，
+    // 它自己管并发，这里不动它。
+    const { lockProjectWrites } = await import('./projects');
+    await db.transaction(async (tx) => {
+      await lockProjectWrites(tx, projectId);
+      await tx
+        .delete(knowledgeChunks)
+        .where(
+          options.includeDesign
+            ? eq(knowledgeChunks.projectId, projectId)
+            : and(eq(knowledgeChunks.projectId, projectId), ne(knowledgeChunks.sourceType, 'design')),
+        );
+      for (const part of chunkRows(chunks, projectId)) {
+        await tx.insert(knowledgeChunks).values(part);
+      }
+    });
   }
   return { chunks: chunks.length };
 }

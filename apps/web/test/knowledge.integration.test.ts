@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
+import { and, eq, inArray, ne, sql as rawSql } from 'drizzle-orm';
 import { addMemory, deleteMemory } from '../src/server/domain/memories';
 import { createProjectCharacter, updateCharacterProfile } from '../src/server/domain/characters';
 import { saveWorld } from '../src/server/domain/worlds';
@@ -595,5 +595,65 @@ describe('§49 × §46：镜头的角色在语料里是名字（真实数据库�
     const text = full.blocks.map((b) => b.content).join('\n');
     expect(text, '语料里没写出角色名字 = 名册与镜头之间那一格还空着').toContain('角色：守夜人');
     expect(text, '内部 uuid 还留在可检索的散文里').not.toContain(characterId);
+  });
+  it('并发同步语料：删与插一起成功一起失败，不 23505（#175）', async () => {
+    const db = getDb();
+    const id = await newProject('RAG Race');
+    const saved = await saveWorld(id, owner, worldWithText(id));
+    expect(saved.ok).toBe(true);
+    // 先同步一次，把这一次会产出的块键读出来（下面要用其中一个键去撞唯一索引）。
+    // 只取非 design 的键：syncProjectKnowledge 默认不重切 design 那一类（删除范围必须等于
+    // 重写范围），拿 design 的键去撞根本不会发生。
+    await syncProjectKnowledge(id);
+    const keys = await db
+      .select({
+        sourceType: knowledgeChunks.sourceType,
+        sourceId: knowledgeChunks.sourceId,
+        chunkIndex: knowledgeChunks.chunkIndex,
+      })
+      .from(knowledgeChunks)
+      .where(and(eq(knowledgeChunks.projectId, id), ne(knowledgeChunks.sourceType, 'design')));
+    expect(keys.length).toBeGreaterThan(0);
+    await db.delete(knowledgeChunks).where(eq(knowledgeChunks.projectId, id));
+
+    // 真实竞态：另一个会话已经占了其中一个块键、还没提交。同步读的是**源表**，
+    // 看不见这一行，于是照样删（删不到它）照样插，后到者阻塞在 knowledge_chunks_source_key 上。
+    // 那个会话按 ADR-0016 拿着同一把项目写锁——修好之后，同步会先拿到锁才动手，
+    // 于是排在那之后：它删得掉那一行，也插得进自己的。
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let landed!: () => void;
+    const inserted = new Promise<void>((resolve) => {
+      landed = resolve;
+    });
+    const { lockProjectWrites } = await import('../src/server/domain/projects');
+    const other = db.transaction(async (tx) => {
+      await lockProjectWrites(tx, id);
+      await tx.insert(knowledgeChunks).values({ ...keys[0]!, projectId: id, content: '占位', tokens: 1 });
+      landed();
+      await gate;
+    });
+    await inserted;
+    const pending = syncProjectKnowledge(id);
+    // 等到这一发真的阻塞住了（等锁或等唯一索引，都是 wait_event_type='Lock'）再放开那个事务
+    let blocked = false;
+    for (let i = 0; i < 600 && !blocked; i += 1) {
+      const rows = await db.execute(
+        rawSql`select 1 as hit from pg_stat_activity
+               where pid <> pg_backend_pid() and wait_event_type = 'Lock' limit 1`,
+      );
+      blocked = rows.length > 0;
+      if (!blocked) await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(blocked, 'syncProjectKnowledge 没能阻塞——竞态窗口没造出来').toBe(true);
+    release();
+    const out = await pending;
+    await other;
+
+    expect(out.chunks).toBeGreaterThan(0);
+    const after = await db.select().from(knowledgeChunks).where(eq(knowledgeChunks.projectId, id));
+    expect(after).toHaveLength(out.chunks);
   });
 });
