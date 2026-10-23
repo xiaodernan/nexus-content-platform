@@ -314,6 +314,7 @@ export const FOLLOW_BAR_STYLES = `<style>
 .nexus-followers-action:hover{text-decoration:underline}
 .nexus-followers-list{list-style:none;margin:0;padding:0;flex-basis:100%;display:flex;flex-direction:column;gap:2px;max-height:120px;overflow:auto}
 .nexus-followers-sub{color:#9aa3b2;margin-top:4px}
+.nexus-follower-when{color:#9aa3b2;margin-left:4px}
 .nexus-followers-pager{flex-basis:100%;display:flex;gap:10px;align-items:center;margin-top:2px}
 .nexus-followers-page{color:#f59e0b;font-weight:600;text-decoration:none}
 .nexus-followers-page:hover{text-decoration:underline}

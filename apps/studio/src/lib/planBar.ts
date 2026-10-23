@@ -253,6 +253,8 @@ export const PLAN_BAR_STYLES = `<style>
 .nexus-plans-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
 .nexus-plan-id{color:#e6e8ec;font-weight:600}
 .nexus-plan-price{color:#9aa3b2;margin-left:8px}
+.nexus-plan-terms{color:#9aa3b2;margin-left:6px}
+.nexus-plan-opened{color:#9aa3b2;margin-left:6px}
 .nexus-plan-action{color:#3b82f6;font-weight:600;text-decoration:none;margin-left:8px}
 .nexus-plan-action:hover{text-decoration:underline}
 .nexus-plans-pager{display:flex;gap:10px;align-items:center;margin-top:4px}

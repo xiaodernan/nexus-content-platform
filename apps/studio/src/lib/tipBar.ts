@@ -232,6 +232,7 @@ export const TIP_BAR_STYLES = `<style>
 .nexus-tips-list{list-style:none;margin:0;padding:0;flex-basis:100%;display:flex;flex-direction:column;gap:2px;max-height:110px;overflow:auto}
 .nexus-tip-amount{color:#cfd6e4;font-weight:600}
 .nexus-tip-note{color:#9aa3b2}
+.nexus-tip-when{color:#9aa3b2;margin-left:4px}
 .nexus-tips-pager{flex-basis:100%;display:flex;gap:10px;align-items:center;margin-top:2px}
 .nexus-tips-page{color:#f59e0b;font-weight:600;text-decoration:none}
 .nexus-tips-page:hover{text-decoration:underline}
