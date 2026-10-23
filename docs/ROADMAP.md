@@ -5936,3 +5936,36 @@ tsc -p packages/video-model 0；改动文件 eslint 0。
 
 **下一步**：`buildFfmpegArgs(plan, inputs)`——把计划翻成可执行的 ffmpeg 命令，
 并用真 ffmpeg 渲一条 3 镜的样片，ffprobe 验时长与分辨率（下一片）。
+
+## M5 第二片（#187）：渲染计划 → 真的能跑的 ffmpeg 命令行，并且真的跑出了一条片子
+
+`packages/video-model/src/ffmpeg.ts`：`buildFfmpegArgs(plan, files, {output, fontFile})`
+把上一片的计划翻成 argv。**这一层用真 ffmpeg 8.1.1 验过**，不是"看起来对"：
+
+三镜样片（参考帧 1600×900 竖图 + 色卡字幕 + tracking 横摇，转场 fade→cut），
+`ffprobe` 实测：`1280x720 / 30fps / h264 / yuv420p / nb_frames=360 / duration=12.000000`，
+与 `plan.totalMs = 12000` **一帧不差**。抽帧看过：两张参考帧按 cover 适配铺满、
+色卡居中烧字幕（中文字体 msyh.ttc，arial 只有方框——所以字体文件是入参，不是硬编码）。
+
+过程中测试抓到一个真 bug：帧数被当成毫秒传进了 `seconds()`，30 帧写成 `0.001` 秒，
+zoompan 于是每 33 毫秒就被输入掐一次，推演停在原处不动。已加 `durationSeconds(frames, fps)`
+并把这一格写成钉子（变异探针 E：把 `/fps` 改回 `/1000`，测试精确红）。
+
+四处判断：
+1. **参考镜多渲 `transitionInMs` 毫秒**：转场叠在"上一镜尾段 + 本镜开头"这个共享窗口上，
+   少给这几帧，`xfade` 会把片尾啃掉一口（成片比时间线短）。
+2. **`xfade` 的 offset = 本镜起点 − 转场时长**，正好铺在上一镜尾段上；
+   `cut` 边界走 `concat`（不需要两段重叠）。最后一镜的 `transitionOut` 没人接——
+   这一点现在写进计划的 `notes`，否则界面上改它不会有任何效果却说不出为什么。
+3. **滤镜链转义单独一个函数**：`:` `,` `;` `[` `]` `'` `\` `%` 全是结构字符，
+   不转义要么解析失败，要么被悄悄吃掉一段字幕。
+4. **不说谎**：计划里有色卡字幕但没给字体文件时，不静默丢——进 `warnings`，
+   调用方必须显示。计划说有参考帧却找不到文件时直接抛错，不静默换成色卡。
+
+见证：`packages/video-model/test/ffmpeg.test.ts` 15 条，全套 video-model 77/77 绿。
+变异探针 8 种全部精确红：参考镜不多渲头 / xfade offset 用错 /
+缺文件时静默跳过 / 缺字体不告警 / 帧数当毫秒 / 完全不去转义 / 摘 renderable 门 /
+（E 与 F 各自单独摘都曾失手过——第一版探针只摘了 `\` 一条 replace，其余七条还在，
+所以是绿的；改成整函数替换后才红。探针要摘到"这条性质的全部承担者"。）
+
+tsc -p packages/video-model 0；改动文件 eslint 0。

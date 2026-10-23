@@ -82,7 +82,11 @@ export interface RenderSegment {
   motion?: RenderMotion;
   /** 这一镜与**下一镜**怎么接 */
   transitionOut: ShotTransition;
-  /** 上一镜的转场吃掉的，属于这一镜尾段的毫秒数 */
+  /**
+   * 上一镜的转场长度：混合窗口同时是**上一镜的尾段**与**这一镜的开头**，
+   * 所以这一镜的渲染起点比它的时间线起点早这么多毫秒。
+   * 第一镜前面什么都没有，所以是 0。
+   */
   transitionInMs: number;
 }
 
@@ -125,16 +129,41 @@ const CAMERA_MOTION: Record<ShotCamera, RenderMotion> = {
 const CARD_CAPTION_MAX = 24;
 
 /**
- * 色卡取色：FNV-1a 散列 shotId → 色相。
+ * 色卡取色：FNV-1a 散列 shotId → 色相 → `#rrggbb`。
+ *
  * 不是随机——同一个 shotId 永远是同一个颜色（§16 要能重放），
  * 而不同的镜头拿到不同的颜色，拼起来才分得清哪一帧是哪一镜。
+ *
+ * 输出**十六进制**而不是 `hsl(...)`：下游是 ffmpeg 的 `color` 源，它只认
+ * `0xRRGGBB` 与颜色名。把 HSL 留给渲染器去解析，等于让每个渲染器各写一遍
+ * 颜色解析——那是第二份真值（§16 要避免的那件事）。
  */
-function cardColor(shotId: string): string {
+export function cardColor(shotId: string): string {
   let h = 2166136261;
   for (const ch of shotId) h = (h ^ ch.codePointAt(0)!) * 16777619;
-  const hue = (h >>> 0) % 360;
+  const hue = ((h >>> 0) % 360) / 360;
   // 明度压在 22%：深底才能让白色 caption 读得清，也压得住 Demo 标识的刺眼感
-  return `hsl(${hue} 42% 22%)`;
+  return hslToHex(hue, 0.42, 0.22);
+}
+
+/** HSL → `#rrggbb`。标准变换，没有取巧：同一组 (h,s,l) 永远得到同一个 hex */
+export function hslToHex(h: number, s: number, l: number): string {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const hp = (((h % 1) + 1) % 1) * 6;
+  const x = c * (1 - Math.abs((hp % 2) - 1));
+  const [r, g, b] =
+    hp < 1 ? [c, x, 0]
+    : hp < 2 ? [x, c, 0]
+    : hp < 3 ? [0, c, x]
+    : hp < 4 ? [0, x, c]
+    : hp < 5 ? [x, 0, c]
+    : [c, 0, x];
+  const m = l - c / 2;
+  const to = (v: number): string =>
+    Math.round(Math.min(1, Math.max(0, v + m)) * 255)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${to(r!)}${to(g!)}${to(b!)}`;
 }
 
 /**
@@ -164,7 +193,7 @@ export function planVideoRender(storyboard: Storyboard): VideoRenderPlan {
       // 色卡没有可推的画面：给它一套"不动"的推演等于假装有运动
       ...(source.kind === 'reference' ? { motion: CAMERA_MOTION[shot.camera] } : {}),
       transitionOut: shot.transition,
-      // 上一镜的转场吃的是这一镜的开头；第一镜前面什么都没有，所以是 0
+      // 混合窗口 = 上一镜的尾段 + 这一镜的开头。第一镜前面什么都没有，所以是 0
       transitionInMs: index === 0 ? 0 : TRANSITION_MS[previous!.transition],
     });
     cursor += shot.durationMs;
@@ -185,9 +214,17 @@ export function planVideoRender(storyboard: Storyboard): VideoRenderPlan {
     const transitions = storyboard.shots.filter((s) => s.transition !== 'cut').length;
     notes.push(
       transitions > 0
-        ? `${transitions} 镜带转场（fade/dissolve/wipe），按 ${RENDER_FPS}fps 交叉淡入淡出；cut 不占用额外时间。`
+        ? `${transitions} 镜的下一衔接是转场（fade/dissolve/wipe），按 ${RENDER_FPS}fps 交叉淡入淡出；cut 不占用额外时间。`
         : '所有衔接都是硬切（cut）：不需要两段画面重叠，渲染最快。',
     );
+    // 最后一镜的 transitionOut 后面没有镜头，所以它谁也不衔接——说出来，
+    // 否则界面上"这一镜标了 dissolve"会让人以为片尾还有一次叠化
+    const last = storyboard.shots[storyboard.shots.length - 1]!;
+    if (last.transition !== 'cut') {
+      notes.push(
+        `最后一镜标的是 ${last.transition}，但它后面没有镜头：这个转场不产生任何效果，改它不会改变成片。`,
+      );
+    }
     notes.push(
       `本机没有视频 provider（§79 的 generateVideo / imageToVideo 要真 key）：这份计划由本地确定性推演产出，像素是 DEMO，不是 AI 生成。`,
     );

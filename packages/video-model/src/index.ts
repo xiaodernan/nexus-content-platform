@@ -16,6 +16,7 @@
 
 export * from './patch';
 export * from './render';
+export * from './ffmpeg';
 
 /**
  * §41 的 Camera 轨上那些机位。只有这几个：更多机位要真 provider 的运镜控制才有意义。
