@@ -3649,7 +3649,9 @@ test('@smoke §112/§73 名册下拉：点了 QA 就不能把补丁交回画布�
  * 两者都是**同一条计划**）、以及没接的类型给出的页面——三者必须来自同一张表（`GAME_KIND_STATUS`）。
  */
 test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D 出等轴测，标 3D 出立体视角，标探索出走近才看得见，标解谜出机关连线', async ({ page }) => {
-  test.setTimeout(300_000);
+  // 一支要走完八种画法、每种都重载一次播放页：冷 dev server 上光 RPG 页首帧就能等 123 秒，
+  // 300s 会在最后几张截图前被吃光（断言全过，红的是预算）。与 §52 Code 那支同样放到 600s。
+  test.setTimeout(600_000);
   const stamp = Date.now().toString(36);
   const projectId = await createProject(page, `对话游戏 ${stamp}`);
 

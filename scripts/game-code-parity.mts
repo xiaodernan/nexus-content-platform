@@ -7,6 +7,7 @@ import {
   MAX_FRAME_SECONDS,
   PLAYER_ATTACK_COOLDOWN,
   SIM_NO_PLAYER_OUTCOME,
+  STORY_NO_BEATS_OUTCOME,
   XP_BASE,
   XP_STEP,
   artifactChainSentence,
@@ -21,6 +22,9 @@ import {
   rpgSummary,
   simSummary,
   step,
+  storyInitial,
+  storyStep,
+  storySummary,
   validateGame,
   xpToNext,
   type ArtifactChain,
@@ -32,6 +36,8 @@ import {
   type RpgState,
   type SimInput,
   type SimState,
+  type StoryPlan,
+  type StoryState,
 } from '@nexus/game-model';
 
 /**
@@ -49,13 +55,17 @@ import {
  *   Origin 与平台（3100）不同；页面自带 `connect-src 'none'`，脚本输出里逐条核对它没往别处发请求；
  * - 参照串是主机侧跑平台自己的代码（`sim.ts` 与 `rpg.ts`）得到的，不是产物。
  *
- * **两条链各跑一遍**（§52 第二条链落地之后，只测 2D 那一半就等于没测新加的那一半）：
+ * **三条链各跑一遍**（每加一条链就补一段；只测旧的那几条等于新链没测）：
  * - `topdown`：`battleDoc` 标 `2d`，产物里只有 `NexusSim`，参照是 `sim.ts`；
  * - `rpg`：`growthDoc` 与那份**除经验那一格外逐字节相同**（`SAME_GEOMETRY_ONLY_GROWTH`），
  *   产物里多一段 `NexusRpg`，参照是 `rpg.ts`。两份 trace 必须**不同**（`RPG_LAYER_NOT_DECORATIVE`）——
  *   同几何、同输入、只有成长层在中间，还跑出同一串状态，就说明那一段转写没参与运算。
  *   等级门那一支另外喂一份带 `requiredLevel` 的计划（`RPG_GATE_HELD`）：它每帧都触发，
  *   所以既钉住"扣住不发"的文案，也钉住 RPG 那一条自己的事件流上限。
+ * - `story`：`storyDoc` 标 `interactive-story`，产物里是 `NexusStory`，参照是 `story.ts`。
+ *   选择序列里走一圈成环，中间插两步**打不中**的（不存在的 id、别段的选择 id）：
+ *   成环事件要长出来，打不中要原样返回同一个对象——两边的"没动"必须是同一种没动。
+ *   另喂两份计划：收束（末段没有出边）与一条对话都没有（开不了场），各钉住一句文案。
  *
  * 用法：`npx tsx scripts/game-code-parity.mts`（不需要 dev server，也不需要数据库）。
  * 每条判决单独打一行 `verdict 名称: 细节`；任何一条不过就退非 0，且不把"没跑到"算成"跑过了"。
@@ -150,6 +160,20 @@ const storyDoc = build('对话', 'interactive-story', [
   { id: 'e1', kind: 'enemy', name: '巡逻兵', stats: { health: 3, damage: 1, speed: 120, detectionRange: 400, x: 300, y: 200 } },
 ]);
 
+/**
+ * 收束那一份：开场指向第二段，第二段没有出边。
+ * `storyDoc` 是个环，走不到"这一段没有出边"那句；结束分支要另一份计划才跑得到。
+ */
+const endingStoryDoc = build('收束', 'interactive-story', [
+  { id: 's1', kind: 'dialogue', name: '开场', refs: [{ to: 's2', role: '继续' }] },
+  { id: 's2', kind: 'dialogue', name: '收束' },
+]);
+
+/** 一条对话都没有：`compileStory` 判它开不了场，产物读的是同一个 outcome 常量 */
+const emptyStoryDoc = build('空故事', 'interactive-story', [
+  { id: 'e1', kind: 'enemy', name: '巡逻兵', stats: { health: 3, damage: 1, speed: 120, detectionRange: 400, x: 300, y: 200 } },
+]);
+
 interface Frame {
   input: SimInput;
   dt: number;
@@ -225,6 +249,58 @@ function runRpgReference(document: GameDocument, frames: Frame[]): RpgState[] {
   return trace;
 }
 
+/** 对话的一步：`moves` 是这一步**该不该**往前走；false 的两步是故意打不中的 */
+interface StoryChoiceSpec {
+  choiceId: string;
+  moves: boolean;
+}
+
+/**
+ * 对话那一段的 scripted 选择：起点 → 第二段 → 起点（成环）→ 两个打不中的 →
+ * 起点 → 第二段 → 起点（再成两次环）。
+ *
+ * 第三步是不存在的 id，第四步是**第二段的选择 id 拿到起点去点**（id 在计划里、但不在当前段）——
+ * 两种打不中都走"没动"那一支，而两种"没动"必须是同一种没动。
+ */
+function storyScript(plan: StoryPlan): StoryChoiceSpec[] {
+  const start = plan.beats.find((beat) => beat.id === plan.startId);
+  const forward = start?.choices[0];
+  if (!start || !forward) throw new Error('对话底稿的起点没有选项：一致性见证无从跑起');
+  const second = plan.beats.find((beat) => beat.id === forward.to);
+  const back = second?.choices.find((choice) => choice.to === start.id) ?? second?.choices[0];
+  if (!second || !back) throw new Error('对话底稿的第二段没有可走的选项：见证走不成一圈');
+  return [
+    { choiceId: forward.id, moves: true },
+    { choiceId: back.id, moves: true },
+    { choiceId: 'no-such-choice', moves: false },
+    { choiceId: back.id, moves: false },
+    { choiceId: forward.id, moves: true },
+    { choiceId: back.id, moves: true },
+  ];
+}
+
+/** 收束那一份：走到没有出边的那一段，再点一次原来的选择（当前段没有它，所以不动） */
+function endingScript(plan: StoryPlan): StoryChoiceSpec[] {
+  const start = plan.beats.find((beat) => beat.id === plan.startId);
+  const forward = start?.choices[0];
+  if (!start || !forward) throw new Error('收束底稿的起点没有选项：结束分支跑不到');
+  return [
+    { choiceId: forward.id, moves: true },
+    { choiceId: forward.id, moves: false },
+  ];
+}
+
+/** 平台侧的对话参照串：跑的是 `story.ts`，喂的是 `artifactPayload` 那份 story 计划 */
+function runStoryReference(plan: StoryPlan, script: StoryChoiceSpec[]): StoryState[] {
+  let state = storyInitial(plan);
+  const trace: StoryState[] = [state];
+  for (const spec of script) {
+    state = storyStep(plan, state, spec.choiceId);
+    trace.push(state);
+  }
+  return trace;
+}
+
 const verdicts: { name: string; ok: boolean; detail: string }[] = [];
 function verdict(name: string, ok: boolean, detail: string): void {
   verdicts.push({ name, ok, detail });
@@ -271,6 +347,8 @@ const rpgFramesJson = JSON.stringify(frames);
 
 const gatePlan = planOf('rpg', artifactPayload(gateDoc));
 const storyPlan = planOf('story', artifactPayload(storyDoc));
+const endingStoryPlan = planOf('story', artifactPayload(endingStoryDoc));
+const emptyStoryPlan = planOf('story', artifactPayload(emptyStoryDoc));
 const gateFrames = gateScript(gatePlan);
 const gateReference = runRpgReference(gateDoc, gateFrames);
 
@@ -377,6 +455,45 @@ async function runInPage(target: typeof page, engine: string, planJson: unknown,
       return { traceJson: JSON.stringify(trace), summary: api.summary(data.planJson, state) };
     },
     { engine, planJson, script },
+  );
+}
+
+/** 对话引擎在页面里的形状：`step` 只吃一个选择 id（没有帧、没有 dt），签名与另外两条链不同 */
+interface PageStory {
+  initialState: (p: unknown) => unknown;
+  step: (p: unknown, s: unknown, choiceId: string) => unknown;
+  summary: (p: unknown, s: unknown) => string;
+}
+
+/**
+ * 把整段选择交给**产物自己的**对话引擎，一次 evaluate 跑完整条 trace。
+ *
+ * 除状态串之外还收两样：末态摘要，以及"这一步是不是原样返回了同一个对象"。
+ * 后者是模型层写下的契约（打不中就是没动，连对象也不换），产物转写必须同形——
+ * JSON 一样但偷偷换了个新对象，依赖引用不变的页面代码就会与平台页分叉。
+ */
+async function runStoryInPage(
+  target: typeof storyPage,
+  planJson: unknown,
+  script: StoryChoiceSpec[],
+): Promise<{ traceJson: string; summary: string; sameObject: boolean[] }> {
+  return await target.evaluate(
+    (data) => {
+      const w = window as unknown as { NexusStory?: PageStory };
+      const api = w.NexusStory;
+      if (!api) throw new Error('产物页面里没有 NexusStory 这个引擎');
+      let state = api.initialState(data.planJson);
+      const trace: unknown[] = [state];
+      const sameObject: boolean[] = [];
+      for (const spec of data.script) {
+        const next = api.step(data.planJson, state, spec.choiceId);
+        sameObject.push(next === state);
+        state = next;
+        trace.push(state);
+      }
+      return { traceJson: JSON.stringify(trace), summary: api.summary(data.planJson, state), sameObject };
+    },
+    { planJson, script },
   );
 }
 
@@ -664,6 +781,104 @@ try {
     'STORY_PLAN_MATCHES',
     storyPlanEqual,
     `页里 NEXUS_PLAN 与 artifactPayload(${storyDoc.name}) 逐字节${storyPlanEqual ? '相同' : '不同'}`,
+  );
+
+  // ———— 对话那一段的 scripted 见证：同一串选择，模型与产物两边逐字段比 ————
+  const storyChoices = storyScript(storyPlan);
+  const storyReference = runStoryReference(storyPlan, storyChoices);
+  const storyReferenceJson = JSON.stringify(storyReference);
+  const storyPlayed = await runStoryInPage(storyPage, storyPlan, storyChoices);
+  let storyFirstDiff = -1;
+  const storyLimit = Math.min(storyPlayed.traceJson.length, storyReferenceJson.length);
+  for (let i = 0; i < storyLimit; i += 1) {
+    if (storyPlayed.traceJson[i] !== storyReferenceJson[i]) {
+      storyFirstDiff = i;
+      break;
+    }
+  }
+  verdict(
+    'STORY_STATE_TRACE_PARITY',
+    storyPlayed.traceJson === storyReferenceJson,
+    storyPlayed.traceJson === storyReferenceJson
+      ? `${storyChoices.length} 步（含 2 步打不中）、${storyReference.length} 个状态、${storyReferenceJson.length} 字节逐字符相同`
+      : `第 ${storyFirstDiff} 字节起不同（浏览器 ${storyPlayed.traceJson.length} / Node ${storyReferenceJson.length}）：…${storyPlayed.traceJson.slice(Math.max(0, storyFirstDiff - 60), storyFirstDiff + 60)} ⟶ …${storyReferenceJson.slice(Math.max(0, storyFirstDiff - 60), storyFirstDiff + 60)}`,
+  );
+
+  const storyStates = JSON.parse(storyPlayed.traceJson) as StoryState[];
+  const lastStory = storyStates[storyStates.length - 1]!;
+  const storySummaryEqual = storyPlayed.summary === storySummary(storyPlan, lastStory);
+  verdict(
+    'STORY_SUMMARY_PARITY',
+    storySummaryEqual,
+    storySummaryEqual ? `末态摘要逐字相同：${storyPlayed.summary}` : `页里「${storyPlayed.summary}」≠ Node「${storySummary(storyPlan, lastStory)}」`,
+  );
+
+  // 打不中的两步：步数不动、返回同一个对象；走通的四步：步数 +1、换新对象。
+  // 只比 JSON 看不到"偷偷换了个拷贝"——那正是转写最容易走样的地方。
+  const movement = storyChoices.map((spec, index) => ({
+    spec,
+    advanced: storyStates[index + 1]!.steps === storyStates[index]!.steps + 1,
+    same: storyPlayed.sameObject[index],
+  }));
+  const wrongMovement = movement.filter((entry) => entry.advanced !== entry.spec.moves);
+  const wrongIdentity = movement.filter((entry) => entry.same !== !entry.spec.moves);
+  verdict(
+    'STORY_NOOP_IS_A_NOOP',
+    wrongMovement.length === 0 && wrongIdentity.length === 0,
+    wrongMovement.length === 0 && wrongIdentity.length === 0
+      ? '打不中的 2 步（不存在的 id、别段的选择 id）步数与对象都没动；走通的 4 步各 +1 步并换新对象'
+      : `${wrongMovement.map((entry) => `「${entry.spec.choiceId}」步数${entry.advanced ? '动了' : '没动'}`).join('、')}${wrongMovement.length && wrongIdentity.length ? '；' : ''}${wrongIdentity.map((entry) => `「${entry.spec.choiceId}」${entry.same ? '返回同一对象' : '换了新对象'}`).join('、')}`,
+  );
+
+  const revisits = Object.entries(lastStory.visited).filter(([, count]) => count > 1);
+  // 事件流每一步都随状态带一份完整的旧事件，直接 flatMap 会把同一条数好几遍（3 条数成 8 条）。
+  // 按 `t` 去重后才是真正发生过几次成环。
+  const loopEvents = new Map<number, string>();
+  for (const state of storyStates) {
+    for (const event of state.events) if (event.text.includes('成环')) loopEvents.set(event.t, event.text);
+  }
+  const movedSteps = storyChoices.filter((spec) => spec.moves).length;
+  verdict(
+    'STORY_LOOP_EXERCISED',
+    lastStory.loop && revisits.length > 0 && loopEvents.size > 0 && lastStory.steps === movedSteps,
+    `末态「${storyPlan.beats.find((beat) => beat.id === lastStory.beatId)?.name ?? '（没有）'}」、走 ${lastStory.steps} 步（走通 ${movedSteps} 次）、重访 ${revisits.map(([id, count]) => `${id}×${count}`).join('、')}、成环事件 ${loopEvents.size} 条、面包屑 ${lastStory.trail.length} 段`,
+  );
+
+  const endingChoices = endingScript(endingStoryPlan);
+  const endingReferenceJson = JSON.stringify(runStoryReference(endingStoryPlan, endingChoices));
+  const endingPlayed = await runStoryInPage(storyPage, endingStoryPlan, endingChoices);
+  const endingStates = JSON.parse(endingPlayed.traceJson) as StoryState[];
+  const endingNodeSummary = storySummary(endingStoryPlan, endingStates[endingStates.length - 1]!);
+  verdict(
+    'STORY_ENDING_PARITY',
+    endingPlayed.traceJson === endingReferenceJson && endingPlayed.summary === endingNodeSummary && endingPlayed.summary.includes('没有出边'),
+    `收束 trace 与 story.ts ${endingPlayed.traceJson === endingReferenceJson ? '逐字符相同' : '不同'}；末态摘要${endingPlayed.summary === endingNodeSummary ? '相同' : '不同'}：${endingPlayed.summary}`,
+  );
+
+  const emptyChoices: StoryChoiceSpec[] = [{ choiceId: 'any', moves: false }];
+  const emptyReferenceJson = JSON.stringify(runStoryReference(emptyStoryPlan, emptyChoices));
+  const emptyPlayed = await runStoryInPage(storyPage, emptyStoryPlan, emptyChoices);
+  const emptyStates = JSON.parse(emptyPlayed.traceJson) as StoryState[];
+  verdict(
+    'STORY_UNPLAYABLE_REFUSAL',
+    emptyPlayed.traceJson === emptyReferenceJson &&
+      emptyStates[0]!.status === 'ended' &&
+      emptyStates[0]!.outcome === STORY_NO_BEATS_OUTCOME &&
+      emptyPlayed.sameObject[0] === true,
+    `一条对话都没有的计划：初始态与 story.ts ${emptyPlayed.traceJson === emptyReferenceJson ? '逐字符相同' : '不同'}，status=${emptyStates[0]!.status}，outcome=「${String(emptyStates[0]!.outcome)}」，点一下${emptyPlayed.sameObject[0] ? '原样返回同一个对象' : '**换了新对象**'}`,
+  );
+
+  // 反向控制：把第一步换成打不中的 id——两边都必须跟着变，且变完仍逐字节相同。
+  // 若 trace 没变，说明"相等"跟选择无关，上面几格是空的。
+  const mutatedStoryChoices = storyChoices.map((spec, index) => (index === 0 ? { choiceId: 'no-such-choice', moves: false } : spec));
+  const mutatedStoryReferenceJson = JSON.stringify(runStoryReference(storyPlan, mutatedStoryChoices));
+  const mutatedStoryPlayed = await runStoryInPage(storyPage, storyPlan, mutatedStoryChoices);
+  verdict(
+    'STORY_CONTROL_MUTATED_SCRIPT',
+    mutatedStoryPlayed.traceJson !== storyPlayed.traceJson &&
+      mutatedStoryPlayed.traceJson === mutatedStoryReferenceJson &&
+      mutatedStoryReferenceJson !== storyReferenceJson,
+    `把第一步换成打不中的 id：浏览器侧${mutatedStoryPlayed.traceJson !== storyPlayed.traceJson ? '确实变了' : '**没变**（见证不敏感）'}，Node 侧跑同一份改动${mutatedStoryPlayed.traceJson === mutatedStoryReferenceJson ? '仍与产物逐字节相同' : '与产物不等'}`,
   );
 
   // 选一个选项 → 正文换成目标那一段（这是「对话链真的在跑」的那一格）

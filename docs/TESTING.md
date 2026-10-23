@@ -1905,3 +1905,28 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   修法：`typeof rawName === 'string' ? rawName.trim() : ''`，非字符串退回**文档自己的名字**；
   `assetRefs[].name` 同款（非字符串退回路径派生名，别把数字当 `filename` 递给 `uploadImageAsset`）。
   **红证**：新用例先复现 `TypeError`（`expected [Function] to not throw`），修后 `zip-import` **22/22 绿**；tsc + eslint 0。
+- **2026-10-24：ADR-0046 补记——播放语义收回模型层，产物转写跟着改（`storyStep`）**——
+  `story.ts` 原先只有编译期判定，播放语义却分两处各写一遍：`StoryPlay.tsx` 的 `currentId + path` 数组、
+  产物里 `NexusStory` 的 `visited` 布尔表。两处都是"播放器"，却没有一处能被平台页与转写同时引用（§16）。
+  现在模型层多了 `StoryState` / `storyInitial` / `storyStep` / `storySummary`，与 `sim.step`、`rpgStep` 同形
+  （纯函数、不改入参、同一输入同一结果）；"走过几次"记成计数并保留 `trail`，起点开场即算走过一次，
+  打不中的选择返回**同一个** state（"点下去没反应"就该真的没反应）。
+  `story.test.ts` 新增 8 条（计数与顺序、成环与 loop 不回退、no-op 身份、事件上限、摘要原文、两次同结果），
+  `codegen.test.ts` 那条起点钉子改成计数写法；`scripts/story-engine-proof.mts` 从 9 条加到 11 条：
+  同一串 5 步（含一次重访与一次打不中）之后，模型与 `NexusStory` 的状态 `JSON.stringify` 逐字段相同、摘要逐字相同。
+  game-model 全量 235 条绿、tsc 0、eslint 0。
+  **变异电池 4 条各自精确红、逐字节还原**：起点不记 visited（开场/成环摘要红）、`prior > 1`（第一次回访不标成环）、
+  转写不记 `trail`（vm 见证里"模型与产物逐字段相同"那一条红，其余 10 条仍绿）、no-op 改成返回拷贝（`toBe(state)` 红）。
+  **浏览器见证**：`@smoke §51 类型分派` 这一支 1 passed（10.2m），`story-play-first/end.png` 已看过——
+  正文、唯一选项、空正文说明、结束句与「走过 2 段」都对。
+  **一条环境记号（不是产品缺陷）**：这一支一次走八种画法，冷 dev server 上光 RPG 页首帧就等了 123 秒；
+  原先 300s 的总预算在最后一张截图前被吃光，而 trace 里**所有断言当时都已通过**。
+  与 §52 Code 那支同因同法，预算放到 600s（`test.setTimeout(600_000)`，只放宽时间，不动断言）后为绿。
+- **2026-10-24：对话那一段补上浏览器 scripted 见证（38 条判决），转写的 no-op 身份与模型对齐**——
+  `scripts/game-code-parity.mts` 原先只有页面级 STORY_* 判决，没有"同一串选择 → 同一串状态"这一格。
+  现在三条链各一段 scripted trace：story 6 步（一圈成环 + 两个打不中 + 再一圈），Node 参照跑 `story.ts`。
+  **先量后修**：改转写之前同一份见证 38 条里红 2 条——`STORY_NOOP_IS_A_NOOP` 与 `STORY_UNPLAYABLE_REFUSAL`
+  指向同一件事：模型打不中时原样返回同一个 state，产物却先造 `next` 再 `return next`（JSON 一样、引用不同）。
+  把四个 guard 提到构造之前并 `return state` 后，38/38 绿；`codegen.test.ts` 加静态钉子
+  （`return next;` 只许出现在成功那一步）。另加收束（末段没有出边）与空故事（一条对话都没有）两份计划，
+  各钉一句文案。读数：parity 38/38、story vm 11/11、game-model 236/236、tsc 0。

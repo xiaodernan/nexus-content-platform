@@ -8,8 +8,14 @@ import {
   linkEntities,
   removeEntity,
   updateEntity,
+  EVENT_CAP,
+  STORY_NO_BEATS_OUTCOME,
+  storyInitial,
+  storyStep,
+  storySummary,
   GAME_KIND_STATUS,
   type GameDocument,
+  type StoryPlan,
 } from "../src/index";
 
 /**
@@ -266,3 +272,155 @@ describe("compileForKind：类型 → 管线的唯一分派点", () => {
 });
 
 
+
+/** 一条两段的环：甲 → 乙 → 甲。起点按"文档顺序第一条"取，用来钉重访与成环 */
+function loopPlan(): { plan: StoryPlan; a: string; b: string } {
+  let doc = emptyStory("环");
+  const a = talk(doc, "甲", "第一段");
+  doc = a.document;
+  const b = talk(doc, "乙", "第二段");
+  doc = b.document;
+  doc = link(doc, a.id, b.id, "去乙");
+  doc = link(doc, b.id, a.id, "回甲");
+  return { plan: compileStory(doc), a: a.id, b: b.id };
+}
+
+describe("storyInitial / storyStep：播放语义收回模型层（ADR-0046）", () => {
+  it("开场就是走过的一段：起点同时记进 trail 与 visited，步数为 0", () => {
+    const { plan, a } = loopPlan();
+    expect(storyInitial(plan)).toEqual({
+      beatId: a,
+      trail: [a],
+      visited: { [a]: 1 },
+      steps: 0,
+      loop: false,
+      status: "playing",
+      outcome: null,
+      events: [],
+    });
+  });
+
+  it("一条对话都没有：状态直接是 ended，摘要说得出当前没有段落", () => {
+    const plan = compileStory(emptyStory("没有对话"));
+    const state = storyInitial(plan);
+    expect(state).toMatchObject({
+      beatId: null,
+      trail: [],
+      visited: {},
+      steps: 0,
+      loop: false,
+      status: "ended",
+      outcome: STORY_NO_BEATS_OUTCOME,
+    });
+    // 结束之后点什么都没用：返回同一个对象，不给"点下去好像动了"的假动作
+    expect(storyStep(plan, state, "随便")).toBe(state);
+    expect(storySummary(plan, state)).toContain("当前段落：（没有）");
+  });
+
+  it("选一项就跳到目标段、记一步并保留走过的顺序；传入的 state 一个字段都不改", () => {
+    const { plan, a, b } = loopPlan();
+    const state = storyInitial(plan);
+    Object.freeze(state.trail);
+    Object.freeze(state.visited);
+    Object.freeze(state.events);
+    const choice = plan.beats.find((beat) => beat.id === a)!.choices.find((entry) => entry.to === b)!;
+
+    const next = storyStep(plan, state, choice.id);
+    expect(next).not.toBe(state);
+    expect(next.beatId).toBe(b);
+    expect(next.steps).toBe(1);
+    expect(next.trail).toEqual([a, b]);
+    expect(next.visited).toEqual({ [a]: 1, [b]: 1 });
+    expect(next.loop).toBe(false);
+    expect(next.events).toEqual([]);
+    // 原状态没有被这次的推进改掉（React 里可以直接 setState，回放也才可复现）
+    expect(state.beatId).toBe(a);
+    expect(state.steps).toBe(0);
+    expect(state.trail).toEqual([a]);
+  });
+
+  it("打不中的选择状态不动：id 不存在、目标段不在计划里，都返回同一个对象", () => {
+    const { plan } = loopPlan();
+    const state = storyInitial(plan);
+    expect(storyStep(plan, state, "根本没有这个选项")).toBe(state);
+
+    // 历史脏数据：选择指向一个不在计划里的段落——不能崩，也不能假装跳了过去
+    const startId = plan.startId!;
+    const ghost: StoryPlan = {
+      ...plan,
+      beats: plan.beats.map((beat) =>
+        beat.id === startId ? { ...beat, choices: [{ id: "c-ghost", label: "去不存在", to: "不在计划里" }] } : beat,
+      ),
+    };
+    expect(storyStep(ghost, state, "c-ghost")).toBe(state);
+  });
+
+  it("走回走过的一段：计数 +1、loop 置真、事件说出回到哪一段；loop 不会落回 false", () => {
+    const { plan, a, b } = loopPlan();
+    const beatA = plan.beats.find((beat) => beat.id === a)!;
+    const beatB = plan.beats.find((beat) => beat.id === b)!;
+    let state = storyInitial(plan);
+    state = storyStep(plan, state, beatA.choices[0]!.id); // 甲 → 乙
+    state = storyStep(plan, state, beatB.choices[0]!.id); // 乙 → 甲（重访）
+
+    expect(state.beatId).toBe(a);
+    expect(state.steps).toBe(2);
+    expect(state.visited).toEqual({ [a]: 2, [b]: 1 });
+    expect(state.loop).toBe(true);
+    expect(state.trail).toEqual([a, b, a]);
+    expect(state.events).toHaveLength(1);
+    expect(state.events[0]).toMatchObject({ t: 2 });
+    expect(state.events[0]!.text).toContain("又回到「甲」");
+    expect(state.events[0]!.text).toContain("成环");
+
+    // 再走一步（甲 → 乙，乙也是重访）：loop 仍是 true，计数继续涨
+    state = storyStep(plan, state, beatA.choices[0]!.id);
+    expect(state.loop).toBe(true);
+    expect(state.visited[b]).toBe(2);
+    expect(state.events).toHaveLength(2);
+  });
+
+  it("事件流有上限（与 sim 同一个 EVENT_CAP）：一圈圈走不会攒下无界事件", () => {
+    const { plan, a, b } = loopPlan();
+    const beatA = plan.beats.find((beat) => beat.id === a)!;
+    const beatB = plan.beats.find((beat) => beat.id === b)!;
+    let state = storyInitial(plan);
+    const rounds = EVENT_CAP + 12;
+    for (let i = 0; i < rounds; i += 1) {
+      state = storyStep(plan, state, (state.beatId === a ? beatA : beatB).choices[0]!.id);
+    }
+    expect(state.steps).toBe(rounds);
+    expect(state.events).toHaveLength(EVENT_CAP);
+    // 重访计数不被事件上限截断：走了几遍就是几遍
+    expect(state.visited[a]! + state.visited[b]!).toBe(rounds + 1);
+  });
+
+  it("摘要由状态现算：当前段、步数、成环与终点各说各的", () => {
+    const { plan, a, b } = loopPlan();
+    const beatA = plan.beats.find((beat) => beat.id === a)!;
+    const beatB = plan.beats.find((beat) => beat.id === b)!;
+    expect(storySummary(plan, storyInitial(plan))).toBe("当前段落：甲 · 已走 0 步");
+
+    const atB = storyStep(plan, storyInitial(plan), beatA.choices[0]!.id);
+    expect(storySummary(plan, atB)).toBe("当前段落：乙 · 已走 1 步");
+
+    const back = storyStep(plan, atB, beatB.choices[0]!.id);
+    expect(storySummary(plan, back)).toContain("当前段落：甲");
+    expect(storySummary(plan, back)).toContain("成环");
+
+    let doc = emptyStory("终点");
+    const only = talk(doc, "唯一一段", "正文");
+    doc = only.document;
+    const endPlan = compileStory(doc);
+    expect(storySummary(endPlan, storyInitial(endPlan))).toBe(
+      "当前段落：唯一一段 · 已走 0 步 · 这一段没有出边：走到这里就结束了",
+    );
+  });
+
+  it("同一状态同一选择两次跑出同一结果（纯函数）", () => {
+    const { plan, a, b } = loopPlan();
+    const state = storyInitial(plan);
+    const choice = plan.beats.find((beat) => beat.id === a)!.choices.find((entry) => entry.to === b)!;
+    expect(storyStep(plan, state, choice.id)).toEqual(storyStep(plan, state, choice.id));
+  });
+});

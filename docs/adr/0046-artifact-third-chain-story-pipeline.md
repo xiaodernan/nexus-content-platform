@@ -1,6 +1,6 @@
 # ADR-0046：产物接上第三条链——对话管线（`story`）转写进 `engine.js`
 
-- 状态：**已采纳**（2026-10-20：片 1 实现落地 + 片 2 浏览器见证 31 条全绿 + 片 3 真浏览器那一格走过）
+- 状态：**已采纳**（2026-10-20：片 1 实现落地 + 片 2 浏览器见证 31 条全绿 + 片 3 真浏览器那一格走过；2026-10-24：播放语义收回模型层，见文末补记）
 - 日期：2026-10-20
 - 关联：§52、§51、§16、§81、§159、ADR-0038（转写与浏览器一致性见证）、ADR-0044（错位说出来）、ADR-0045（`ARTIFACT_CHAINS` 成为唯一分派点）、ADR-0039（链上 code 那格）
 - 落地记录：`eb7cddf`（片 1 实现）· `475935e`（两个坑的返工）· `a992277`（片 2 见证 24→31 条 + 一份不依赖浏览器的 vm 见证）
@@ -106,3 +106,46 @@ ADR-0045 把"这一份带不带引擎"从一句判断变成一张表（`ARTIFACT
   四处都读同一张表，不用改（这是 ADR-0045 留的红利）。
 - **仍然欠的**：这之后 `ARTIFACT_CHAINS` 覆盖了 `GameProjection["pipeline"]` 的全部三个键
   （`topdown` / `story` / `rpg`），**没有第四种管线**；将来若加管线，仍是这张表多一个键。
+
+## 补记：播放语义回到模型层（2026-10-24）
+
+上面三片把对话引擎送进了产物，但播放语义仍只活在 `StoryPlay.tsx` 的 React 状态里：
+`currentId` 加一个 `path` 数组，跳到哪一段、走过几次都由组件自己算；产物那段 `NexusStory`
+另有一张 `visited` 布尔表。两处都是"播放器"，却没有一处能被平台页与转写同时引用（§16）。
+
+这一片补的是 ADR-0045 留下的第一格：
+
+- `story.ts` 新增 `StoryState` / `storyInitial` / `storyStep` / `storySummary`，与 `sim.ts` 的
+  `step`、`rpg.ts` 的 `rpgStep` 同形：纯函数、不改传入的 state、同一输入跑出同一结果。
+  "走过几次"记成计数（`visited: Record<string, number>`）并保留 `trail`——平台的面包屑与
+  "第 N 次走到这里"都从这两个字段现算，不再各留一份。
+- 起点在开场就算走过一次（本文档第二个坑的延续）：`storyInitial` 同时写 `visited[startId] = 1`
+  与 `trail = [startId]`，绕回起点当步就认得出环。
+- 打不中的选择返回**同一个** state，不是拷贝："点下去没反应"就该真的没反应。
+- 产物转写跟着改成同一组字段：`NexusStory` 的 `visited` 由布尔改成计数、补 `trail`，
+  空场那句拒绝语从 `story.ts` 的导出插进产物，不在模板里重打一遍。
+- 见证：`scripts/story-engine-proof.mts` 新增两条——同一串 5 步（含重访与一次打不中）之后，
+  模型与 `NexusStory` 的状态 `JSON.stringify` 逐字段相同、摘要逐字相同；
+  `story.test.ts` 新增 8 条钉住计数、成环、no-op、事件上限与摘要；
+  `codegen.test.ts` 那条"起点记进 visited"改成检查计数写法。
+- **仍然欠的**：产物侧是转写，不是 import——`story.ts` 改逻辑而产物不重新生成仍会分叉。
+  这条限度留在 `CODEGEN_LIMITS` 里，浏览器见证对三条链各跑一段 scripted 输入。
+
+## 补记：对话那一段的浏览器 scripted 见证（2026-10-24）
+
+上一节最后一句当时还是**许愿**：`scripts/game-code-parity.mts` 里 story 只有页面级判决，
+没有"同一串选择 → 同一串状态"的逐字节比对。这一片把它补上，顺手抓到一个转写分叉。
+
+- 三条链各一段 scripted trace；story 那一段 6 步：起点 → 第二段 → 起点（成环）→
+  两个打不中（不存在的 id / 别段的选择 id）→ 再绕一圈。Node 参照直接调 `storyStep`。
+- 审计出的分叉：`storyStep` 打不中时返回**同一个 state**（`story.test.ts` 用 `toBe(state)` 钉住），
+  而 `NexusStory` 先构造 `next` 再 `return next`。JSON 一样、引用不同——页面若依赖
+  `setState` 的引用相等来跳过重渲染，两者行为就分叉。转写改成四个 guard 在构造之前
+  `return state`，成功那一步才造新对象；`codegen.test.ts` 加静态钉子
+  （`return next;` 只允许出现一次，且在 `var next = {` 之后）。
+- 新增判决：`STORY_STATE_TRACE_PARITY`、`STORY_SUMMARY_PARITY`、`STORY_NOOP_IS_A_NOOP`、
+  `STORY_LOOP_EXERCISED`、`STORY_ENDING_PARITY`（末段没有出边）、`STORY_UNPLAYABLE_REFUSAL`
+  （一条对话都没有）、`STORY_CONTROL_MUTATED_SCRIPT`；parity 31 → 38。
+- **先量后修**：改转写之前跑同一份见证，38 条里恰好 2 条红（no-op 身份与空故事拒绝），
+  其余（含 1208 字节的 trace）全绿；修后 38/38。
+- 仍然欠的：产物是转写，不是 import；这条没有变，只是现在三条链的转写都各有一段活见证。

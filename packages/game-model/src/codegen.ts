@@ -6,7 +6,7 @@ import {
   type GameEntityKind,
 } from "./index";
 import { PLAY_KIND_SHAPES, compileGame, type GamePlan, type PlayActor, type StatSource } from "./play";
-import { compileForKind, compileStory, type GameProjection, type StoryPlan } from "./story";
+import { compileForKind, compileStory, STORY_NO_BEATS_OUTCOME, type GameProjection, type StoryPlan } from "./story";
 import { compileRpg } from "./rpg";
 import {
   CONTACT_COOLDOWN,
@@ -29,22 +29,23 @@ import {
  * 1. **产物跑哪一条链，由 `compileForKind` 那一处分派点决定，不在这一格再判断一次类型**。
  *    §51 的类型表里 `2d / 2.5d / 3d / 探索 / 解谜` 五种读 `compileGame` 排的 2D 俯视计划，
  *    `rpg-prototype` 在**同一份计划**外面套一层成长循环（`compileRpg` / `rpgStep`），对话两型读 `compileStory`。
- *    产物里带了引擎的链记在 `ARTIFACT_CHAINS` 这一处（就是产物侧的分派表）：今天有 `topdown` 与 `rpg` 两条，
- *    所以 `engine.js` 永远是 `sim.ts` 的转写，而标了 RPG 原型的那一份再多一段 `rpg.ts` 的转写（`NexusRpg`），
- *    `plan.json` 里随之多出一次 `compileRpg` 算出来的 `growth`。对话管线**还没有引擎**，那一型必须由
- *    `codeKindReadings()` 把错位说出来（README、index.html、界面三处念同一句）；
+ *    产物里带了引擎的链记在 `ARTIFACT_CHAINS` 这一处（就是产物侧的分派表）：`topdown` / `rpg` / `story` 三条，
+ *    分别转写 `sim.ts`、`rpg.ts`、`story.ts`；`plan.json` 里随之多出 `growth` 或对话那一段。
+ *    `codeKindReadings()` 的错位句由这张表现算——三条链齐了之后它对八型**全部为空**；
+ *    但它仍然留在那里：将来若加一条管线而产物没跟上，那句话会自己回来，而不是这里再判断一次类型。
  *    把"拿走的就是页面上跑的那一种"写回对不上的那一型就是 §159 级的谎，2026-10-17 那次实测
  *    （`.scratch/kind-probe*.ts`，读数记在 `docs/TESTING.md`）量到的就是它：
- *    RPG 草稿投影出来的产物没有成长循环，视觉小说投影出来是一个开不了场的空场子。
- *    前者已经在 `d8b8a3c` 之后由这一格补上（补的是引擎，不是文案：那句 `kindNote` 随分派表自己变空），
- *    后者还在。**为什么 `plan.json` 与 `plan.js` 必须是同一次 `JSON.stringify` 的结果**：
+ *    RPG 草稿投影出来的产物没有成长循环，视觉小说投影出来是一个开不了场的空场子——两者后来都由
+ *    "补引擎而不是改文案"补上了（ADR-0045 / ADR-0046）。**为什么 `plan.json` 与 `plan.js` 必须是同一次 `JSON.stringify` 的结果**：
  *    两处各写一遍就是两份真值，一份旧一份新时浏览器跑的是后者，而作者看到的是前者。
  * 2. **规则的数字不许重打**。引擎是 `sim.ts` 的转写，冷却、定步长上限、事件条数上限、
  *    没有玩家那句拒绝，全部由生成时从 `sim.ts` 的导出插进产物；成长层更直接——升级曲线、每级加成与
  *    兜底经验是 `compileRpg` 算进那份 `growth` 数据的，源头是 `rpg.ts` 的导出，产物侧一个数都不新打。
  *    转写这件事本身是这一格的限度：`sim.ts` 或 `rpg.ts` 改了逻辑而产物没重新生成，两者就会分叉，
  *    所以界面上不许说"产物就是平台跑的那一套"，只能说"产物是它的转写，数字由同一处供给"。
- *    浏览器里的一致性见证记在 `docs/TESTING.md`（两条链各一段 scripted 输入，逐字节比 trace）。
+ *    一致性见证记在 `docs/TESTING.md`：三条链各一段 scripted 输入，在浏览器里逐字节比 trace；
+ *    story 那一段另有一份不依赖浏览器的 Node `vm` 见证（`scripts/story-engine-proof.mts`），
+ *    内存紧、Chrome 起不来时它是降级凭证，不是替代品。
  * 3. **不在主机执行（§81）**。这一格里没有 `eval`、没有子进程、不读写文件、不联网：
  *    生成 = 纯字符串投影，运行 = 浏览器沙箱。产物自己也带一道 CSP，`connect-src 'none'`
  *    把它按在本地：一份下载的关卡不该在玩家机器上打洞。
@@ -593,22 +594,36 @@ function engineSource(chain: ArtifactChain): string {
       "    var story = plan;",
       // 起点也是**走过的一段**：不把它记进去，绕回起点的那一步不会被认出是环（要绕两圈才认得）。
       "    var visited = {};",
-      "    if (story.startId) visited[story.startId] = true;",
+      "    var trail = [];",
+      "    if (story.startId) { visited[story.startId] = 1; trail.push(story.startId); }",
       "    return {",
       "      beatId: story.startId,",
+      "      trail: trail,",
       "      visited: visited,",
       "      steps: 0,",
       "      loop: false,",
       "      status: story.playable ? \"playing\" : \"ended\",",
-      "      outcome: story.playable ? null : \"这份设计里没有可读的对白，故事开不了场。\",",
+      "      outcome: story.playable ? null : " + JSON.stringify(STORY_NO_BEATS_OUTCOME) + ",",
       "      events: [],",
       "    };",
       "  },",
-      "  // choiceId 打不中就状态不动——不给\"点下去没反应\"的假动作",
+      "  // 打不中就原样返回**同一个对象**（与 story.ts 同一条契约）：不新建一份再悄悄丢掉，",
+      "  // 页面里 setState 读到同一引用就不重渲染——换成拷贝会多一次无意义的渲染。",
       "  step: function (plan, state, choiceId) {",
       "    var story = plan;",
+      "    if (state.status !== \"playing\") return state;",
+      "    var beat = beatById(story, state.beatId);",
+      "    if (!beat) return state;",
+      "    var choice = null;",
+      "    for (var i = 0; i < beat.choices.length; i += 1) {",
+      "      if (beat.choices[i].id === choiceId) { choice = beat.choices[i]; break; }",
+      "    }",
+      "    if (!choice) return state;",
+      "    var target = beatById(story, choice.to);",
+      "    if (!target) return state;",
       "    var next = {",
       "      beatId: state.beatId,",
+      "      trail: state.trail.slice(),",
       "      visited: copy(state.visited),",
       "      steps: state.steps,",
       "      loop: state.loop,",
@@ -616,24 +631,16 @@ function engineSource(chain: ArtifactChain): string {
       "      outcome: state.outcome,",
       "      events: state.events.slice(),",
       "    };",
-      "    if (state.status !== \"playing\") return next;",
-      "    var beat = beatById(story, state.beatId);",
-      "    if (!beat) return next;",
-      "    var choice = null;",
-      "    for (var i = 0; i < beat.choices.length; i += 1) {",
-      "      if (beat.choices[i].id === choiceId) { choice = beat.choices[i]; break; }",
-      "    }",
-      "    if (!choice) return next;",
-      "    var target = beatById(story, choice.to);",
-      "    if (!target) return next;",
+      "    var prior = next.visited[target.id] || 0;",
       "    next.beatId = target.id;",
       "    next.steps += 1;",
       "    // 模型里允许成环，播放器负责标出来（不是禁止）",
-      "    if (next.visited[target.id]) {",
+      "    if (prior > 0) {",
       "      next.loop = true;",
       "      push(next.events, next.steps, \"又回到「\" + target.name + \"」（这段对话成环了）\");",
       "    }",
-      "    next.visited[target.id] = true;",
+      "    next.visited[target.id] = prior + 1;",
+      "    next.trail.push(target.id);",
       "    return next;",
       "  },",
       "  summary: function (plan, state) {",

@@ -874,16 +874,18 @@ describe("第三条链：对话两型真的带对话引擎（ADR-0046）", () =>
   });
 });
 
-describe("对话那条链的转写：两个坑各钉一条", () => {
+describe("对话那条链的转写：三个坑各钉一条", () => {
   /**
-   * 这两条是**实测抓出来的**（2026-10-20，用 Node 的 `vm` 直接跑产物里的 `NexusStory` 时抓的，
-   * 那份脚本在 `.scratch/story-engine-proof.mts`；浏览器那一层见 `scripts/game-code-parity.mts`）：
+   * 这三条是**实测抓出来的**（2026-10-20 用 Node 的 `vm` 直接跑产物里的 `NexusStory`；
+   * 那份脚本现在在 `scripts/story-engine-proof.mts`，浏览器那一层见 `scripts/game-code-parity.mts`）：
    *
    * ① **载荷形状**：story 那条链的产物计划**就是** StoryPlan 本身（`artifactPayload` 交的是
    *    `compileStory` 的结果），不是 `{ story: StoryPlan }`。引擎若读 `plan.story.startId`，
    *    拿到的是 undefined——页面一打开就崩，而单测（只看字节）照样全绿。
    * ② **起点也是走过的一段**：起点若不记进 `visited`，绕回起点的那一步不会被认出是环，
    *    要绕两圈才标得出来——那是"成环"这件事被推迟了一整圈。
+   * ③ **打不中要原样返回同一个对象**：模型层的契约是"没动就是不换引用"，
+   *    产物若返回一份拷贝，页面 setState 会多一次无意义的重渲染——JSON 一样，行为不一样。
    */
   const storyOutput = (): GameCodeOutput => {
     const document = {
@@ -914,6 +916,27 @@ describe("对话那条链的转写：两个坑各钉一条", () => {
 
   it("起点也记进 visited：绕回起点那一步就该认出是环，不必再绕一圈", () => {
     const engine = file(storyOutput(), "engine.js").contents;
-    expect(engine, "起点没被记进 visited：绕回起点那一步认不出是环").toContain("visited[story.startId] = true;");
+    expect(engine, "起点没被记进 visited：绕回起点那一步认不出是环").toContain("visited[story.startId] = 1;");
+    // 走过几次要留得下：平台页「第 N 次走到这里」读的是计数，布尔值只能答"走过没有"
+    expect(engine, "visited 只记了布尔：重复次数说不出来").toContain("next.visited[target.id] = prior + 1;");
+  });
+
+  it("打不中的选择原样返回同一个对象：与 story.ts 的契约同形，不新建拷贝", () => {
+    const engine = file(storyOutput(), "engine.js").contents;
+    const storyEngine = engine.slice(engine.indexOf("var NexusStory"));
+    for (const guard of [
+      'if (state.status !== "playing") return state;',
+      "if (!beat) return state;",
+      "if (!choice) return state;",
+      "if (!target) return state;",
+    ]) {
+      expect(storyEngine, `对话引擎没走"原样返回"那一支：${guard}`).toContain(guard);
+    }
+    // 走通一步才换新对象；打不中新建拷贝会让页面 setState 多一次无意义的重渲染
+    const nextAt = storyEngine.indexOf("var next = {");
+    const returnNextCount = storyEngine.match(/return next;/g)?.length ?? 0;
+    expect(nextAt, "对话引擎里没有成功那一步的状态构造").toBeGreaterThan(-1);
+    expect(returnNextCount, "对话引擎不只在成功那一步返回 next：打不中的分支也新建了拷贝").toBe(1);
+    expect(storyEngine.indexOf("return next;"), "`return next;` 排在了状态构造之前：打不中也会走到它").toBeGreaterThan(nextAt);
   });
 });

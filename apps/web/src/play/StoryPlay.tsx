@@ -1,7 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { playtestStory, type StoryPlan, type StoryPlaytestReport } from '@nexus/game-model';
+import {
+  playtestStory,
+  storyInitial,
+  storyStep,
+  type StoryPlan,
+  type StoryPlaytestReport,
+  type StoryState,
+} from '@nexus/game-model';
 
 /**
  * §51 的 Interactive Story / Visual Novel 走的那条投影：`compileStory` 排出来的段落与选择，
@@ -17,14 +24,14 @@ import { playtestStory, type StoryPlan, type StoryPlaytestReport } from '@nexus/
  */
 export function StoryPlay({ plan, onComplete }: { plan: StoryPlan; onComplete?: () => void }) {
   const byId = useMemo(() => new Map(plan.beats.map((beat) => [beat.id, beat])), [plan]);
-  const [currentId, setCurrentId] = useState<string | null>(plan.startId);
-  /** 走过的顺序（含重复）：面包屑与"第 N 次走到这里"都从这份算 */
-  const [path, setPath] = useState<string[]>(plan.startId ? [plan.startId] : []);
+  // 播放语义在模型层（`storyInitial` / `storyStep`）：产物里那段 `NexusStory` 是同一组函数的转写，
+  // 不是另一套规则。这里只留 React 的那一份状态容器（§16：唯一真值不在组件里）。
+  const [state, setState] = useState<StoryState>(() => storyInitial(plan));
   // §53：对话管线没有"走法"，能确定回答的是"点不点得到"——按引用连线算可达性（报告见下）
   const [report, setReport] = useState<StoryPlaytestReport | null>(null);
 
-  const beat = currentId ? byId.get(currentId) ?? null : null;
-  const repeats = beat ? path.filter((id) => id === beat.id).length : 0;
+  const beat = state.beatId ? byId.get(state.beatId) ?? null : null;
+  const repeats = beat ? state.visited[beat.id] ?? 0 : 0;
 
   // §168：走到一个结局就算"通关"（对话管线的通关就是玩到了一个结局），
   // 而且**只报一次**：同一个访客在一个版本上只记一次，重头再走一遍不重复报。
@@ -36,13 +43,11 @@ export function StoryPlay({ plan, onComplete }: { plan: StoryPlan; onComplete?: 
     onComplete();
   }, [beat?.ending, beat?.id, onComplete]);
 
-  const go = (to: string) => {
-    setCurrentId(to);
-    setPath((prev) => [...prev, to]);
+  const go = (choiceId: string) => {
+    setState((prev) => storyStep(plan, prev, choiceId));
   };
   const restart = () => {
-    setCurrentId(plan.startId);
-    setPath(plan.startId ? [plan.startId] : []);
+    setState(storyInitial(plan));
   };
 
   if (!plan.playable) {
@@ -64,7 +69,7 @@ export function StoryPlay({ plan, onComplete }: { plan: StoryPlan; onComplete?: 
     <div className="flex flex-col gap-3" data-story-play>
       <div className="flex flex-wrap items-center gap-2 text-11 text-fg-3">
         <span data-story-progress>
-          走过 {path.length} 段 · 共 {plan.beats.length} 段可读
+          走过 {state.trail.length} 段 · 共 {plan.beats.length} 段可读
         </span>
         <button type="button" onClick={restart} className="px-2 py-0.5 text-11 underline" data-story-restart>
           从头开始
@@ -96,7 +101,7 @@ export function StoryPlay({ plan, onComplete }: { plan: StoryPlan; onComplete?: 
               <button
                 key={choice.id}
                 type="button"
-                onClick={() => go(choice.to)}
+                onClick={() => go(choice.id)}
                 className="rounded border border-[var(--nexus-color-border-subtle)] px-3 py-1.5 text-left text-12 hover:border-[var(--nexus-color-border-strong)]"
                 data-story-choice={choice.to}
               >
@@ -112,7 +117,7 @@ export function StoryPlay({ plan, onComplete }: { plan: StoryPlan; onComplete?: 
       </article>
 
       <div className="text-11 text-fg-3" data-story-trail>
-        {path.map((id, index) => `${index + 1}. ${byId.get(id)?.name ?? '（读不到名字）'}`).join(' → ')}
+        {state.trail.map((id, index) => `${index + 1}. ${byId.get(id)?.name ?? '（读不到名字）'}`).join(' → ')}
       </div>
 
       {/* §53 对话管线的"自动跑一遍"：查可达性，不是跑走法——按钮的话与报告的限度一起显示 */}

@@ -5,6 +5,7 @@ import {
 } from "./index";
 import { compileGame, type GamePlan } from "./play";
 import { compileRpg, type RpgPlan } from "./rpg";
+import { EVENT_CAP } from "./sim";
 
 /**
  * §51 里 Interactive Story / Visual Novel 那两种类型的可玩投影：对话驱动。
@@ -189,6 +190,112 @@ export function compileStory(document: GameDocument): StoryPlan {
     blockers,
     notes,
   };
+}
+
+/**
+ * §51 对话管线的播放语义：与 `sim.ts` 的 `step`、`rpg.ts` 的 `rpgStep` 同形——
+ * 纯函数、不改传入的 state、同一状态同一选择跑出同一结果。
+ *
+ * 为什么要从组件里搬出来：这一段规则（跳到哪一段、第几次走过、成环怎么标）原来只活在
+ * `StoryPlay.tsx` 的 React 状态里，产物侧那一段 `NexusStory` 是另行转写的——两处对不上时
+ * 只有真浏览器看得出来。搬进模型层之后，平台页面读这里，产物转写照着这里写，
+ * `scripts/story-engine-proof.mts` 再把两边同一串选择跑出来的状态逐字段比一遍（§16）。
+ *
+ * 判定（起点、悬空引用、终点）**不在这里重做**：那些在编译期已经判完写进 `StoryPlan`，
+ * 这里只负责播放——与 ADR-0046 给产物立的那条同一条规矩。
+ */
+
+/** 一步事件。`t` 是**第几步**（对话没有时间轴；产物里共享的 `push` 只认一个数，sim 那边是秒） */
+export interface StoryEvent {
+  t: number;
+  text: string;
+}
+
+export interface StoryState {
+  /** 当前段落；开不了场时为 null */
+  beatId: string | null;
+  /** 走过的顺序（含重复）：平台面包屑读它 */
+  trail: string[];
+  /** 每段走过几次：起点在开场就算一次（不记进去，绕回起点要绕两圈才认得出环） */
+  visited: Record<string, number>;
+  steps: number;
+  /** 走过一次重访之后就为 true，不会落回 false */
+  loop: boolean;
+  status: "playing" | "ended";
+  /** 结束的原因；只有开不了场时有值 */
+  outcome: string | null;
+  events: StoryEvent[];
+}
+
+/** 没有可读对白时那句话。产物侧转写念的是同一句，不是另写一遍 */
+export const STORY_NO_BEATS_OUTCOME = "这份设计里没有可读的对白，故事开不了场。";
+
+export function storyInitial(plan: StoryPlan): StoryState {
+  const visited: Record<string, number> = {};
+  const trail: string[] = [];
+  if (plan.startId) {
+    visited[plan.startId] = 1;
+    trail.push(plan.startId);
+  }
+  return {
+    beatId: plan.startId,
+    trail,
+    visited,
+    steps: 0,
+    loop: false,
+    status: plan.playable ? "playing" : "ended",
+    outcome: plan.playable ? null : STORY_NO_BEATS_OUTCOME,
+    events: [],
+  };
+}
+
+/**
+ * 选一项：跳到目标段、记一步、把重访标出来。
+ *
+ * 打不中的选择（id 不存在、目标段不在计划里）**状态不动**——不给"点下去没反应"的假动作，
+ * 并且原样返回**同一个对象**（React 的 setState 读到同一引用就不重渲染）。走通一步才换新对象。
+ */
+export function storyStep(plan: StoryPlan, state: StoryState, choiceId: string): StoryState {
+  if (state.status !== "playing") return state;
+  const beat = plan.beats.find((entry) => entry.id === state.beatId);
+  if (!beat) return state;
+  const choice = beat.choices.find((entry) => entry.id === choiceId);
+  if (!choice) return state;
+  const target = plan.beats.find((entry) => entry.id === choice.to);
+  if (!target) return state;
+
+  const visited = { ...state.visited };
+  const prior = visited[target.id] ?? 0;
+  const events = state.events.slice();
+  const steps = state.steps + 1;
+  let loop = state.loop;
+  if (prior > 0) {
+    loop = true;
+    events.push({ t: steps, text: `又回到「${target.name}」（这段对话成环了）` });
+    if (events.length > EVENT_CAP) events.shift();
+  }
+  visited[target.id] = prior + 1;
+  return {
+    ...state,
+    beatId: target.id,
+    trail: [...state.trail, target.id],
+    visited,
+    steps,
+    loop,
+    events,
+  };
+}
+
+/** 产物 HUD 的那一行摘要；平台页读的是同一份字段，不另算一套 */
+export function storySummary(plan: StoryPlan, state: StoryState): string {
+  const beat = plan.beats.find((entry) => entry.id === state.beatId);
+  const out = [
+    `当前段落：${beat ? beat.name : "（没有）"}`,
+    `已走 ${state.steps} 步`,
+  ];
+  if (state.loop) out.push("这段对话成环了：有一处你走过不止一遍（模型里允许成环，这里只标出来）");
+  if (beat?.ending) out.push("这一段没有出边：走到这里就结束了");
+  return out.join(" · ");
 }
 
 /** 一份文档按它自己标的类型编译出来的投影；`pipeline: null` = 这个类型今天没接 */

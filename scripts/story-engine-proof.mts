@@ -7,7 +7,15 @@
  * 页面渲染那一层留给真浏览器（`scripts/game-code-parity.mts` 的 STORY_* 那几条）。
  */
 import vm from 'node:vm';
-import { artifactChainSentence, generateGameCode, artifactPayload, type GameDocument } from '../packages/game-model/src/index';
+import {
+  artifactChainSentence,
+  generateGameCode,
+  artifactPayload,
+  storyInitial,
+  storyStep,
+  storySummary,
+  type GameDocument,
+} from '../packages/game-model/src/index';
 
 const AT = '2026-01-01T00:00:00.000Z';
 
@@ -104,6 +112,32 @@ check('成环被标出来', afterLoop.loop === true && summary.includes('成环'
 
 // ⑥ 摘要说清当前段落与步数
 check('摘要说清当前段落', summary.includes(startBeat.name) || summary.includes(targetBeat.name), `摘要：${summary}`);
+
+// ⑦ 模型与转写跑同一串选择：平台页读的是 `storyStep`，产物跑的是 `NexusStory`——
+//    两边不是"看起来一样"，而是同一串输入之后状态逐字段相同（含一次打不中的选择）。
+//    转写若偷偷改了重访计数或成环的判定，这一条会精确红，而只看字节的断言抓不到。
+let modelState = storyInitial(plan);
+let engineState: unknown = NexusStory.initialState(plan);
+const script = [firstChoice.id, backChoice.id, firstChoice.id, backChoice.id, '根本没有这个选项'];
+let traceSame = JSON.stringify(modelState) === JSON.stringify(engineState);
+let traceAt = `开场${traceSame ? '=' : '≠'}`;
+for (const id of script) {
+  modelState = storyStep(plan, modelState, id);
+  engineState = NexusStory.step(plan, engineState, id);
+  const same = JSON.stringify(modelState) === JSON.stringify(engineState);
+  traceSame = traceSame && same;
+  traceAt += ` → ${id}${same ? '=' : '≠'}`;
+}
+check(
+  '模型与产物转写逐字段相同',
+  traceSame,
+  `同一串 ${script.length} 步（含重访与一次打不中）之后状态${traceSame ? '相同' : '不同'}：${traceAt}`,
+);
+check(
+  '摘要也逐字相同',
+  storySummary(plan, modelState) === NexusStory.summary(plan, engineState),
+  `模型摘要「${storySummary(plan, modelState)}」`,
+);
 
 
 // ③④ 载荷与页面形状（这两条本来是浏览器那一层的，但它们量的都是**字节**，Node 侧能量）
