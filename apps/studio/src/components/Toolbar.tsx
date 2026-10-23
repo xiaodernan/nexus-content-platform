@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { renderPreviewHtml } from '@/lib/preview';
 import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
 import { readTrail, type TrailAnswer } from '@/lib/auditLane';
-import { filterTrailRows, trailSummaryOf, trailSummaryText } from '@/lib/trail';
+import { trailSummaryOf, trailSummaryText } from '@/lib/trail';
 import { readMyTips, readMyTipsGiven } from '@/lib/tipLane';
 import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
 import { cancelSubscription, retirePlan } from '@/lib/planLane';
@@ -128,19 +128,27 @@ export default function Toolbar() {
    * v281 — which ACTION the panel is showing. \'null\' is every action, and the filter asks the trail in the
    * trail's own language (\'publish\' / \'unpublish\'), not in the display verb — a filter that matched on
    * the display verb would break the moment the display verb changed.
+   *
+   * v385 — and since this increment the question is ASKED OF THE SERVICE rather than answered in the
+   * browser: the rows on the screen are the service's answer to "the newest N of that action", not a
+   * subset the panel cut out of a window it already held. One place decides what the filter means, so the
+   * filter can no longer disagree with itself between two halves.
    */
   const [trailFilter, setTrailFilter] = useState<string | null>(null);
 
   /**
    * v281 — the DERIVED view of the trail: the rows the current filter admits, and the tally of what the
-   * answer carried in all. The tally is over ALL the rows, not the filtered ones: the panel says "the
-   * service said 3 published and 1 take-down" and the filter narrows the LIST, so a reader can always see
-   * what the filter is hiding.
+   * answer carried. The tally is over the rows the ANSWER carried: the panel says "the service said
+   * 3 published and 1 take-down" and the filter narrows the LIST, so a reader can always see what the
+   * filter is hiding — and since v385 the service's own whole-trail count (trail.total) says HOW MUCH it
+   * is hiding, because the excluded rows never reach the browser to be counted.
    */
-  const trailRows = trail?.ok ? filterTrailRows(trail.rows ?? [], trailFilter) : [];
+  const trailRows = trail?.ok ? trail.rows ?? [] : [];
   const trailSummary = trail?.ok ? trailSummaryOf(trail.rows ?? []) : null;
 
-  const refreshTrail = async () => setTrail(await readTrail(20));
+  // v385 — the filter is part of the ASK: changing it re-reads the trail with the action named, the same
+  // way the desk's reason filter re-reads the desk (v326).
+  const refreshTrail = async (action: string | null = trailFilter) => setTrail(await readTrail(20, action));
 
   /**
    * v299 — the creator's OWN economy: the tips this device's account was given, and how much they came to.
@@ -807,7 +815,12 @@ export default function Toolbar() {
                 <button
                   className={`btn ${trailFilter === null ? 'tool-active' : ''}`}
                   data-trail-filter="all"
-                  onClick={() => setTrailFilter(null)}
+                  onClick={() => {
+                    setTrailFilter(null);
+                    // v385 — and the narrowing happens in the SERVICE: the panel asks again with the
+                    // action named, and the answer it gets back is that action's rows.
+                    void refreshTrail(null);
+                  }}
                   title="every action"
                 >
                   All
@@ -815,7 +828,12 @@ export default function Toolbar() {
                 <button
                   className={`btn ${trailFilter === 'publish' ? 'tool-active' : ''}`}
                   data-trail-filter="publish"
-                  onClick={() => setTrailFilter('publish')}
+                  onClick={() => {
+                    setTrailFilter('publish');
+                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
+                    // named, and the answer it gets back is that action's rows.
+                    void refreshTrail('publish');
+                  }}
                   title="only the publishes"
                 >
                   Published
@@ -823,7 +841,12 @@ export default function Toolbar() {
                 <button
                   className={`btn ${trailFilter === 'unpublish' ? 'tool-active' : ''}`}
                   data-trail-filter="unpublish"
-                  onClick={() => setTrailFilter('unpublish')}
+                  onClick={() => {
+                    setTrailFilter('unpublish');
+                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
+                    // named, and the answer it gets back is that action's rows.
+                    void refreshTrail('unpublish');
+                  }}
                   title="only the take-downs"
                 >
                   Taken down
@@ -834,7 +857,12 @@ export default function Toolbar() {
                 <button
                   className={`btn ${trailFilter === 'like' ? 'tool-active' : ''}`}
                   data-trail-filter="like"
-                  onClick={() => setTrailFilter('like')}
+                  onClick={() => {
+                    setTrailFilter('like');
+                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
+                    // named, and the answer it gets back is that action's rows.
+                    void refreshTrail('like');
+                  }}
                   title="only the likes"
                 >
                   Liked
@@ -842,7 +870,12 @@ export default function Toolbar() {
                 <button
                   className={`btn ${trailFilter === 'comment' ? 'tool-active' : ''}`}
                   data-trail-filter="comment"
-                  onClick={() => setTrailFilter('comment')}
+                  onClick={() => {
+                    setTrailFilter('comment');
+                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
+                    // named, and the answer it gets back is that action's rows.
+                    void refreshTrail('comment');
+                  }}
                   title="only the comments"
                 >
                   Commented
@@ -853,7 +886,12 @@ export default function Toolbar() {
                 <button
                   className={`btn ${trailFilter === 'unlike' ? 'tool-active' : ''}`}
                   data-trail-filter="unlike"
-                  onClick={() => setTrailFilter('unlike')}
+                  onClick={() => {
+                    setTrailFilter('unlike');
+                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
+                    // named, and the answer it gets back is that action's rows.
+                    void refreshTrail('unlike');
+                  }}
                   title="only the likes that were taken back"
                 >
                   Like taken back
@@ -864,7 +902,12 @@ export default function Toolbar() {
                 <button
                   className={`btn ${trailFilter === 'uncomment' ? 'tool-active' : ''}`}
                   data-trail-filter="uncomment"
-                  onClick={() => setTrailFilter('uncomment')}
+                  onClick={() => {
+                    setTrailFilter('uncomment');
+                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
+                    // named, and the answer it gets back is that action's rows.
+                    void refreshTrail('uncomment');
+                  }}
                   title="only the comments that were taken back"
                 >
                   Comment removed
@@ -876,7 +919,12 @@ export default function Toolbar() {
                 <button
                   className={`btn ${trailFilter === 'report' ? 'tool-active' : ''}`}
                   data-trail-filter="report"
-                  onClick={() => setTrailFilter('report')}
+                  onClick={() => {
+                    setTrailFilter('report');
+                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
+                    // named, and the answer it gets back is that action's rows.
+                    void refreshTrail('report');
+                  }}
                   title="only the reports that were filed"
                 >
                   Reported
@@ -884,7 +932,12 @@ export default function Toolbar() {
                 <button
                   className={`btn ${trailFilter === 'withdraw-report' ? 'tool-active' : ''}`}
                   data-trail-filter="withdraw-report"
-                  onClick={() => setTrailFilter('withdraw-report')}
+                  onClick={() => {
+                    setTrailFilter('withdraw-report');
+                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
+                    // named, and the answer it gets back is that action's rows.
+                    void refreshTrail('withdraw-report');
+                  }}
                   title="only the reports the reporter took back"
                 >
                   Withdrew
@@ -892,7 +945,12 @@ export default function Toolbar() {
                 <button
                   className={`btn ${trailFilter === 'acknowledge' ? 'tool-active' : ''}`}
                   data-trail-filter="acknowledge"
-                  onClick={() => setTrailFilter('acknowledge')}
+                  onClick={() => {
+                    setTrailFilter('acknowledge');
+                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
+                    // named, and the answer it gets back is that action's rows.
+                    void refreshTrail('acknowledge');
+                  }}
                   title="only the reports the owner answered"
                 >
                   Acknowledged
@@ -944,13 +1002,15 @@ export default function Toolbar() {
                   </li>
                 ))}
               </ul>
-              {/* THREE numbers, because there are three different questions. What is SHOWN is what the
-                  filter admits. What could be RENDERED is what the reading half accepted. What the SERVICE
-                  says it carried is its own count. The last two must disagree OUT LOUD when the reading half
-                  dropped a row it could not display honestly — and the first two differ whenever a filter
-                  is on, which is the filter working, not a discrepancy. */}
+              {/* FOUR numbers, because there are four different questions. What is SHOWN is what the
+                  filter admits. What the SERVICE CARRIED is its own count for that question — the two
+                  disagree OUT LOUD when the reading half dropped a row it could not display honestly.
+                  What the WHOLE TRAIL HOLDS is the service's count narrowed or not: since v385 the filter
+                  is the service's, so the excluded rows never reach the browser, and this is the number
+                  that still says what the filter is hiding. And the CAP, because every number above it is
+                  a fact about a window. */}
               <div style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>
-                {trailRows.length} shown · {(trail.rows ?? []).length} renderable · the service carried {trail.count} · the service caps at {trail.limit}
+                {trailRows.length} shown · the service carried {trail.count} · the whole trail holds {trail.total} · the service caps at {trail.limit}
               </div>
             </>
           )}

@@ -301,15 +301,3 @@ export function trailSummaryText(summary: TrailSummary, shown?: number): string 
   }
   return tally;
 }
-
-/**
- * v281 — the rows of ONE action, or all of them.
- *
- * `action` is the service's own word, not the display verb: the panel's filter asks the trail in the
- * trail's language, and the mapping to "published" / "took down" happens when the row is RENDERED. A
- * filter that matched on the display verb would break the moment the display verb changed.
- */
-export function filterTrailRows(rows: readonly TrailRow[], action: string | null): TrailRow[] {
-  if (action === null || action === '') return [...rows];
-  return rows.filter((row) => row.action === action);
-}

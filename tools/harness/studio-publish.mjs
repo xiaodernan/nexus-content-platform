@@ -886,15 +886,17 @@ try {
       `hrefs: ${JSON.stringify(rows.slice(0, 3).map((r) => r.href))}`,
     );
 
-    // v281 — THREE numbers, because there are three different questions: what is SHOWN (the filter
-    // admits), what could be RENDERED (the reading half accepted), and what the SERVICE says it carried.
+    // v281/v385 — FOUR numbers, because there are four different questions: what is SHOWN (the filter
+    // admits), what the SERVICE CARRIED for that question (the reading half's drops are the gap between
+    // the two), how many the WHOLE TRAIL holds (what the filter is hiding), and the CAP every window
+    // answers under.
     const footer = await page.evaluate("document.querySelector('[data-toolbar-trail]')?.textContent ?? ''");
-    const stated = /(\d+) shown · (\d+) renderable · the service carried (\d+) · the service caps at (\d+)/.exec(footer);
+    const stated = /(\d+) shown · the service carried (\d+) · the whole trail holds (\d+) · the service caps at (\d+)/.exec(footer);
     check(
       'the trail states the service’s count beside what it rendered',
-      // group 2 = rows the reading half accepted, group 3 = the count the SERVICE reported: renderable can
-      // never exceed it, and a smaller number is exactly the discrepancy this footer exists to expose.
-      stated !== null && Number(stated[2]) <= Number(stated[3]) && Number(stated[4]) >= 1,
+      // shown can never exceed what the service carried — a smaller number is exactly the discrepancy the
+      // footer exists to expose — and the carried window is never larger than the whole trail.
+      stated !== null && Number(stated[1]) <= Number(stated[2]) && Number(stated[2]) <= Number(stated[3]) && Number(stated[4]) >= 1,
       `${stated ? stated[0] : JSON.stringify(footer.slice(-140))}`,
     );
 
@@ -965,6 +967,31 @@ try {
         '‘All’ puts every row back — a filter that could not be undone would be a trap',
         allBack !== null,
         `${allBack === null ? 0 : allBack.length} row(s) vs ${rows.length}`,
+      );
+
+      // v385 — and the filter is the SERVICE's, which the panel proves the only way it can: with the
+      // take-down filter on, the footer still states the WHOLE trail's size beside the filtered window.
+      // The browser never saw the excluded rows, so that number can only have come from the service —
+      // a panel that filtered in the browser would have nothing whole left to count.
+      await page.evaluate("document.querySelector('[data-trail-filter=\"unpublish\"]').click()");
+      const narrowedFooter = await until(
+        async () => {
+          const text = await page.evaluate("document.querySelector('[data-toolbar-trail]')?.textContent ?? ''");
+          const m = /(\d+) shown · the service carried (\d+) · the whole trail holds (\d+) · the service caps at (\d+)/.exec(text);
+          return m && Number(m[3]) > Number(m[1]) ? m : false;
+        },
+        { tries: 20, gapMs: 300, label: 'the filtered footer to state the whole trail' },
+      );
+      check(
+        'a filtered trail still states the WHOLE trail’s size — what the filter hid is counted by the service, not guessed',
+        narrowedFooter !== null,
+        narrowedFooter ? narrowedFooter[0] : 'no footer',
+      );
+      const filteredSummary = await page.evaluate("document.querySelector('[data-trail-summary]')?.textContent ?? ''");
+      check(
+        'and the tally still says WHICH rows it counts — the ones on the screen, filter or no filter',
+        /of these \d+ rows:/.test(filteredSummary),
+        `summary: ${JSON.stringify(filteredSummary)}`,
       );
     }
   }

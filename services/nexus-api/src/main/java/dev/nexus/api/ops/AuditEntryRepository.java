@@ -15,4 +15,14 @@ public interface AuditEntryRepository extends JpaRepository<AuditEntry, Long> {
 
     /** Newest first, capped by the caller's `Pageable`. */
     List<AuditEntry> findAllByOrderByOccurredAtDesc(Pageable pageable);
+
+    /**
+     * v385 — one ACTION's entries, newest first, capped by the caller's `Pageable`.
+     *
+     * The property is in the method name so the derivation binds it, and the filter is in the QUERY:
+     * the window a caller gets is the newest N of THAT ACTION, not the newest N entries that happen to
+     * carry it — the two sets diverge the moment the trail outgrows the cap, and a panel that filtered
+     * in the browser would only ever have seen the second.
+     */
+    List<AuditEntry> findByActionOrderByOccurredAtDesc(String action, Pageable pageable);
 }

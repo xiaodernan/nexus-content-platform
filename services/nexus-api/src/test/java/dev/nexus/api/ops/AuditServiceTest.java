@@ -3,6 +3,7 @@ package dev.nexus.api.ops;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,6 +33,10 @@ import org.springframework.data.domain.Pageable;
  *
  * <p>The clock is PINNED, so the instant an entry records is asserted rather than read back and compared
  * to itself.
+ *
+ * <p>v385 gave the LISTING a filter that lives in the service: a named action narrows the query itself,
+ * an action outside the recorded set is refused BY NAME before any window is read, and the whole-trail
+ * count travels beside the window so a reader can still see what the filter is hiding.
  */
 @ExtendWith(MockitoExtension.class)
 class AuditServiceTest {
@@ -121,7 +126,7 @@ class AuditServiceTest {
 
     @Test
     void theListingIsCappedAtTheServicesOwnCeiling() {
-        service.list(10_000);
+        service.list(10_000, null);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findAllByOrderByOccurredAtDesc(window.capture());
@@ -130,10 +135,71 @@ class AuditServiceTest {
 
     @Test
     void theListingOfANothingAskIsClampedToOneRatherThanREFUSED() {
-        service.list(0);
+        service.list(0, null);
 
         ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findAllByOrderByOccurredAtDesc(window.capture());
         assertThat(window.getValue().getPageSize()).isEqualTo(1);
+    }
+
+    // ── v385: the filter is the SERVICE's, and the window is the filtered one ───────────────────────
+
+    @Test
+    void aNamedActionNarrowsTheListingInTheQUERYRatherThanInTheBrowser() {
+        service.list(20, AuditService.ACTION_UNPUBLISH);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByActionOrderByOccurredAtDesc(eq(AuditService.ACTION_UNPUBLISH), window.capture());
+        // The cap still applies to the FILTERED window: twenty of THAT action, not twenty of everything
+        // that happen to carry it.
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+        verify(repository, never()).findAllByOrderByOccurredAtDesc(any(Pageable.class));
+    }
+
+    @Test
+    void noActionAskedIsTheWholeTrailAndNoFilterFinderIsTouched() {
+        service.list(20, null);
+
+        verify(repository).findAllByOrderByOccurredAtDesc(any(Pageable.class));
+        verify(repository, never()).findByActionOrderByOccurredAtDesc(any(), any(Pageable.class));
+    }
+
+    @Test
+    void aBlankActionIsTheWholeTrailNotAnEmptyWindow() {
+        service.list(20, "   ");
+
+        verify(repository).findAllByOrderByOccurredAtDesc(any(Pageable.class));
+        verify(repository, never()).findByActionOrderByOccurredAtDesc(any(), any(Pageable.class));
+    }
+
+    @Test
+    void anActionOUTSIDETheRecordedSetIsREFUSEDAndTheRefusalNAMESTheSet() {
+        assertThatThrownBy(() -> service.list(20, "frobnicate"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("frobnicate")
+                .hasMessageContaining(AuditService.ACTION_PUBLISH)
+                .hasMessageContaining(AuditService.ACTION_ACKNOWLEDGE);
+        // The refusal happens BEFORE the query: a window nobody asked for is never read.
+        verify(repository, never()).findAllByOrderByOccurredAtDesc(any(Pageable.class));
+        verify(repository, never()).findByActionOrderByOccurredAtDesc(any(), any(Pageable.class));
+    }
+
+    @Test
+    void everyVerbTheSetNamesIsAQuestionTheServiceWillAnswer() {
+        for (String action : AuditService.ACTIONS) {
+            service.list(20, action);
+        }
+
+        ArgumentCaptor<String> asked = ArgumentCaptor.forClass(String.class);
+        verify(repository, times(AuditService.ACTIONS.size()))
+                .findByActionOrderByOccurredAtDesc(asked.capture(), any(Pageable.class));
+        assertThat(asked.getAllValues()).containsExactlyElementsOf(AuditService.ACTIONS);
+    }
+
+    @Test
+    void theCountIsTheWHOLETrailSoAFilterCanSayWhatItIsHiding() {
+        when(repository.count()).thenReturn(137L);
+
+        assertThat(service.count()).isEqualTo(137L);
     }
 }

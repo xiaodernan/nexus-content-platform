@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { toTrailRow, toTrailRows, trailActionText, trailActorText, trailSummaryOf, trailSummaryText, trailTargetTypeText, filterTrailRows } from './trail';
+import { toTrailRow, toTrailRows, trailActionText, trailActorText, trailSummaryOf, trailSummaryText, trailTargetTypeText } from './trail';
 
 /**
  * M9 v272 — the AUDIT TRAIL's reading half.
@@ -135,7 +135,7 @@ describe('trail — the tally says WHICH rows it counts (M7 v379)', () => {
   });
 });
 
-describe('trail — the tally and the filter (M9 v281)', () => {
+describe('trail — the TALLY over the rows the answer carried (M9 v281)', () => {
   const rows = toTrailRows([
     entry({ id: '1', action: 'publish' }),
     entry({ id: '2', action: 'unpublish' }),
@@ -218,20 +218,6 @@ describe('trail — the tally and the filter (M9 v281)', () => {
     expect(trailActionText('uncomment')).toBe('removed the comment');
   });
 
-  it('the filter asks the trail in the TRAIL’S language, not the display verb', () => {
-    expect(filterTrailRows(rows, 'publish').map((r) => r.id)).toEqual(['1', '3']);
-    expect(filterTrailRows(rows, 'unpublish').map((r) => r.id)).toEqual(['2']);
-  });
-
-  it('no filter is every row, in order', () => {
-    expect(filterTrailRows(rows, null).map((r) => r.id)).toEqual(['1', '2', '3']);
-    expect(filterTrailRows(rows, '').map((r) => r.id)).toEqual(['1', '2', '3']);
-  });
-
-  it('a filter that matches nothing is an empty list — never the whole trail', () => {
-    expect(filterTrailRows(rows, 'follow')).toEqual([]);
-  });
-
 describe('trail — the REPORT verbs (M7 v311)', () => {
   it('each report verb has its own word, and the un-verb is not folded into the verb', () => {
     expect(trailActionText('report')).toBe('reported');
@@ -278,45 +264,4 @@ describe('trail — the REPORT verbs in the tally (M7 v311)', () => {
     expect(text).toContain('1 acknowledged');
   });
 });
-});
-describe('trail — the REPORT verbs in the FILTER (M7 v319)', () => {
-  const rows = toTrailRows([
-    entry({ id: '1', action: 'publish' }),
-    entry({ id: '2', action: 'report' }),
-    entry({ id: '3', action: 'withdraw-report' }),
-    entry({ id: '4', action: 'acknowledge' }),
-  ]);
-
-  it('each report verb is a filter of its own, asked in the trail’s own ACTION', () => {
-    expect(filterTrailRows(rows, 'report').map((r) => r.id)).toEqual(['2']);
-    expect(filterTrailRows(rows, 'withdraw-report').map((r) => r.id)).toEqual(['3']);
-    expect(filterTrailRows(rows, 'acknowledge').map((r) => r.id)).toEqual(['4']);
-  });
-
-  it('v320 — the undoing of the like is a filter of its own', () => {
-    // The service has recorded `unlike` since v289, and since v320 the product can do it — so a filter
-    // that could not ask for it would leave a recorded fact in the "All" bucket with no way to name it.
-    const withUnlike = toTrailRows([entry({ id: '1', action: 'like' }), entry({ id: '2', action: 'unlike' })]);
-    expect(filterTrailRows(withUnlike, 'unlike').map((r) => r.id)).toEqual(['2']);
-    expect(filterTrailRows(withUnlike, 'like').map((r) => r.id)).toEqual(['1']);
-  });
-
-  it('v322 — the undoing of the comment is a filter of its own', () => {
-    // The service has recorded `uncomment` since v289, and since v321 the product can do it — so a filter
-    // that could not ask for it would leave a recorded fact in the "All" bucket with no way to name it.
-    const withRemoved = toTrailRows([
-      entry({ id: '1', action: 'comment' }),
-      entry({ id: '2', action: 'uncomment' }),
-    ]);
-    expect(filterTrailRows(withRemoved, 'uncomment').map((r) => r.id)).toEqual(['2']);
-    expect(filterTrailRows(withRemoved, 'comment').map((r) => r.id)).toEqual(['1']);
-  });
-
-  it('the DISPLAY word is not the action: filtering by “reported” matches nothing', () => {
-    // The button wears the display word; the filter asks in the raw action. If the two were the same
-    // string, a rename of the display word would silently change what the filter means — and a filter
-    // that suddenly matched nothing would look like a desk that suddenly went empty.
-    expect(filterTrailRows(rows, 'reported')).toEqual([]);
-    expect(filterTrailRows(rows, 'withdrew the report')).toEqual([]);
-  });
 });

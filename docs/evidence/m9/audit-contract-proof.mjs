@@ -28,6 +28,10 @@
 //      not by a hand-written imitation of it;
 //   §6 the client's own grouping helper keeps an anonymous entry out of every account's bucket, and
 //      the anonymous bucket key can never collide with a real account id.
+//   §7 (v385) the ANSWER ENVELOPE agrees too: the service's `Trail` record and the lane's `TrailAnswer`
+//      carry the same three numbers — what this answer carried, the cap it was answered under, and how
+//      many the WHOLE trail holds — because a filter the service applies is invisible to the browser,
+//      and that third number is the only thing that can still say what the filter is hiding.
 //
 // Requires nothing but Node:  node docs/evidence/m9/audit-contract-proof.mjs
 import assert from 'node:assert/strict';
@@ -44,6 +48,7 @@ const CONTROLLER = 'services/nexus-api/src/main/java/dev/nexus/api/ops/AuditCont
 const CLIENT_MODEL = 'apps/studio/src/lib/ops.ts';
 const CLIENT_ACCOUNT = 'apps/studio/src/lib/community.ts';
 const CLIENT_ASSURANCE = 'apps/studio/src/lib/assurance.ts';
+const CLIENT_LANE = 'apps/studio/src/lib/auditLane.ts';
 
 // ── §1 the service's own wire record ────────────────────────────────────────────────────────────────
 // The wire shape is a Java `record` in the controller, so the field list and the field types are read
@@ -256,5 +261,52 @@ export const probe = [anonymous, named, future];
   }
 }
 
-console.log('\n[summary] M9 v273/v384: the service answers with 7 fields (id, action, actorId, targetId, targetType, createdAt, assurance) · the instant is a long, so epoch MILLISECONDS, the client\'s own unit · actorId and assurance are NULLABLE on the wire and NULLABLE in the client, and the other five are nullable in neither · the client\'s own type ACCEPTS a real anonymous entry, a named entry and an unknown verb, checked by the TypeScript compiler itself · and an anonymous entry belongs to no account');
+// ── §7 the answer ENVELOPE agrees (v385) ─────────────────────────────────────────────────────────────
+// The entry is one half of the contract; the envelope around it is the other. v385 moved the panel's
+// action filter into the service, which means the browser no longer sees the rows the filter excluded —
+// so the envelope grew a third number (`total`: how many the whole trail holds, narrowed or not) and
+// that number is now part of the promise. A rename on either side would leave the panel stating a
+// whole it never received, which is the kind of quiet lie this proof exists to catch.
+{
+  const src = readFileSync(CONTROLLER, 'utf8');
+  const trail = /public\s+record\s+Trail\s*\(([\s\S]*?)\)\s*\{/.exec(src);
+  assert.ok(trail, `the service's answer record was not found in ${CONTROLLER} — the contract this proof grades has MOVED`);
+  const wireFields = trail[1]
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => {
+      const m = /^([A-Za-z_][\w.<>\[\]]*)\s+([A-Za-z_]\w*)$/.exec(s);
+      assert.ok(m, `the envelope field "${s}" is not in the shape "Type name" — the proof must know how to read it`);
+      return { type: m[1], name: m[2] };
+    });
+  assert.deepEqual(
+    wireFields.map((f) => f.name),
+    ['entries', 'count', 'limit', 'total'],
+    'the envelope carries the entries and the three numbers',
+  );
+  // The three numbers are NUMBERS on the wire — a count typed as a string would render as text.
+  for (const f of wireFields.filter((x) => x.name !== 'entries')) {
+    assert.ok(f.type === 'int' || f.type === 'long', `the envelope's ${f.name} is a ${f.type} on the wire — the panel states it as a number`);
+  }
+
+  const lane = readFileSync(CLIENT_LANE, 'utf8');
+  const answer = /export\s+interface\s+TrailAnswer\s*\{([\s\S]*?)\n\}/.exec(lane);
+  assert.ok(answer, `the lane's answer shape was not found in ${CLIENT_LANE} — the contract this proof grades has MOVED`);
+  const laneFields = answer[1]
+    .split('\n')
+    .map((l) => /^\s{2}([A-Za-z]+)\s*[?]?:/.exec(l))
+    .filter(Boolean)
+    .map((m) => m[1]);
+  for (const name of ['count', 'limit', 'total']) {
+    assert.ok(laneFields.includes(name), `TrailAnswer.${name} is missing — the service sends it, and a lane that drops it is a panel that cannot say what it is showing`);
+  }
+  for (const name of ['count', 'limit', 'total']) {
+    const optional = new RegExp(`\\n\\s{2}${name}\\?\\s*:`).test(answer[1]);
+    assert.ok(!optional, `TrailAnswer.${name} must be REQUIRED — the service always sends it, and an optional field is a field the panel would have to invent a default for`);
+  }
+  console.log('[§7] the answer envelope agrees: entries · count · limit · total on the wire, and count/limit/total REQUIRED in the lane — the whole-trail number a filtered window needs travels both ways');
+}
+
+console.log('\n[summary] M9 v273/v384/v385: the service answers with 7 fields (id, action, actorId, targetId, targetType, createdAt, assurance) · the instant is a long, so epoch MILLISECONDS, the client\'s own unit · actorId and assurance are NULLABLE on the wire and NULLABLE in the client, and the other five are nullable in neither · the client\'s own type ACCEPTS a real anonymous entry, a named entry and an unknown verb, checked by the TypeScript compiler itself · an anonymous entry belongs to no account · and the answer envelope carries the whole-trail count a service-side filter needs');
 console.log('[m9-audit-contract-proof] ALL ASSERTIONS PASSED (two source files, read as the languages that define them, and one of them compiled)');

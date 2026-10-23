@@ -36,8 +36,9 @@
 2. ~~**v382 — 举报人那栏要能翻页**~~ ✅ **已落地**（04684bb）：服务端 filed 读收 `offset` ✓（负值夹到 0 ✓），follows 读同一个形状 ✓；面板的翻页条是剩下的 UI 活 ✓（管线已通 ✓）。
 3. ~~**v383 — 订阅的续订**~~ ✅ **已落地**（e35b59e）："只约束还站着的行"用**服务端的时间感知检查**表达 ✓（过期可重报 ✓，差一天仍 standing ✓），不是唯一索引能写的那条规则 ✓（唯一约束已删 ✓，race 已命名 ✓）。
 4. ~~**v384 — trail 的 target 要不要带"种类"**~~ ✅ **已落地**（ed20681 + 本轮修复）：audit 表加 `target_type` 闭集列 ✓（account/plan/publication ✓），`record` 改 6 参 ✓，每个调用点显式声明自己的种类 ✓；filed 列表可按 kind 过滤 ✓（`?targetType=` ✓，集外按名字拒 ✓）。
-5. **v385 — trail 的筛选下沉到服务端**（**下一增量**）：desk 的已经在服务端了 ✓（v326），trail 的门是 ops 包里的 `/audit` ✓；v384 已把这条 lane 的接收方（6 参 `record` + 闭集 targetType ✓）落地 ✓，阻塞解除 ✓。做法照 v326：`AuditController` 收 `action`（和 `targetType` ✓）查询参数 ✓、闭集校验集外按名字拒 ✓、`AuditService.list` 带过滤 + count ✓、`auditServer.ts`/`auditLane.ts`/`api/audit/route.ts` 透传 ✓、`Toolbar.tsx` 的筛选按钮改成带筛选重读 ✓（去掉产品路径里的客户端 `filterTrailRows` ✓）。
-6. **v386+ — filed 面板的翻页条 UI**（v382 的管线已通 ✓，差一个条 ✓）；**M8 创作者经济**（订阅购买、举报提交、agent 令牌）；**测试覆盖补齐**（ai-providers/router.ts、world-engine/relationships.ts 等未测模块）。
+5. ~~**v385 — trail 的筛选下沉到服务端**~~ ✅ **已落地**：`AuditController` 收 `action` 查询参数 ✓、`AuditService.list(limit, action)` 在查询里收窄 ✓（闭集九个动词 ✓，集外按名字拒 ✓，拒绝先于读窗口 ✓）；答案包络加第三数 `total`（全 trail 大小 ✓，筛选藏了什么由服务端说 ✓，v281 的"看得见过滤器藏了什么"因此没有丢 ✓）；`auditLane.ts`/`route.ts` 透传 ✓，`Toolbar.tsx` 按钮改为带筛选重读 ✓，`filterTrailRows` 退役 ✓（一个活儿两处做就会自己跟自己不一致 ✓）；audit-contract-proof 加 §7 考核信封 ✓。
+6. **v386 — filed 面板的翻页条 UI**（**下一增量**）：v382 的 offset 管线已通 ✓（服务端收 offset ✓、lane 每个答案带窗口 ✓、route 转发 ✓），差面板上一个条 ✓；做法照 desk 的筛选条 ✓（按钮 + 重读 ✓），注意"越过末尾答空窗"是服务端的诚实答案 ✓（不是错误 ✓）。
+7. **v387+ — M8 创作者经济**（订阅购买、举报提交、agent 令牌）；**测试覆盖补齐**（ai-providers/router.ts、world-engine/relationships.ts 等未测模块）。
 
 ### 我的在途增量（与并行 lane 的 v380 分开记）
 
@@ -155,6 +156,7 @@ world 的保存确认缺口已写入 KNOWN_ISSUES，作为 world 面板的下一
 | v382 | **举报人那栏要能翻页**：服务端的 filed 读不接受 offset ✓，超过上限的更早那几条翻页够不着 ✗；现在收 `offset` ✓（负值夹到 0 ✓），follows 的读同一个形状 ✓，每条答案都带自己问的窗口 ✓（失败的读也说 ✓）；面板的翻页条随后续增量 ✓ | 同上（ADR 0016 amendment 372 记录了受影响文件 90/90 ✓） |
 | v383 | **订阅的续订**："同一个人对同一件作品的重复举报"要变成"只约束还站着的行" ✓，那是依赖时间的规则 ✓，唯一索引写不了 ✓；现在唯一约束删除 ✓、服务端做 UTC 日历月/年的 standing 检查 ✓（过期可重报 ✓、差一天仍 standing ✓、年周期同理 ✓），race 已命名 ✓ | 服务端 **240/240**（含本轮复测 ✓）；报告用例 +8（过期可重报/差一天/年周期/period 记录/双 finder/集外拒绝 ✓） |
 | v384 | **trail 的 target 带上了"种类"**：follow/tip 指向账号、subscribe 指向 plan，都不是 publication ✓；audit 表加 `target_type` 闭集列 ✓（account/plan/publication ✓，集外按名字拒 ✓），`record` 改 6 参 ✓、每个调用点显式声明种类 ✓，ReportEntry 也带自己的 kind ✓（filed 列表可按 kind 过滤 ✓）；客户端 `AuditTargetType` + `TrailRow.targetType` ✓，缺 kind 的行丢弃而不是编一个 ✓ | 服务端 **240/240**（10 类 ✓）；studio 受影响 5 文件 **90/90**；`tsc` exit 0；trail/audit/social 三个契约 proof exit 0 |
+| v385 | **trail 的筛选下沉到服务端**：面板的筛选原来只切浏览器已经拿到的那段 ✓（v281），而 trail 是有帽的窗口 ✓——"最新的 20 条里恰好是 takedown 的"和"最新的 20 条 takedown"是两个集合 ✓（desk 在 v326 就学过 ✓）；现在 `/audit?action=` 在查询里收窄 ✓，动词是**闭集九个** ✓、集外按名字拒 ✓（拒绝先于读窗口 ✓）；筛选进了服务端 ✓，浏览器就看不见被排除的行 ✓——服务端于是多答一个 `total`（全 trail 大小 ✓），页脚四数并存 ✓（"N shown · carried M · whole holds T · caps at L" ✓）；`filterTrailRows` 退役 ✓（含其测试 ✓） | 服务端 **246/246**（10 类 ✓，+6 ✓）；studio **1282/1282**（67 文件 ✓）；`tsc` exit 0；audit-contract proof exit 0（新 §7 信封契约 ✓）；trail/social proof exit 0 |
 | v384-fix | **修 HEAD 编译断点 + history 回归**：并行 lane 的 v383/v384 落地时接收方缺失 ✓（`getPeriod()`、6 参 `record`、绑不上的 targetType finder ✓），客户端 offset 缺三处 ✓；补齐后**全树测试发现 `history.test.ts` 8 例红** ✓——v280 的 fixture 没有 `targetType` ✓，被 v384 的"缺 kind 即丢弃"规则全部丢掉 ✓；fixture 更新为新线格式 ✓ 并补一条"缺 kind 被丢弃"的用例 ✓（这正是该规则要的 ✓） | 服务端 **240/240**；studio **1286/1286**（67 文件 ✓）；`tsc` exit 0 |
 | **v273** | **客户端 `ops.ts` 与线格式对齐**：`actorId`/`assurance` 变可空；`AuditAction` 对未知动词开放；匿名条目单独成桶（`__anonymous__`）；**新增契约 proof**（读 Java record + 用 tsc 编译探针） | ✅ 900/900 · proof exit 0 · 3 处 mutation 分别被 §3/§5 抓住 |
 
@@ -225,7 +227,7 @@ world 的保存确认缺口已写入 KNOWN_ISSUES，作为 world 面板的下一
 ## 验收标准（每次提交前）
 
 - [ ] `tsc --noEmit`（apps/studio）= 0 错误（并发 lane 的在途文件除外，且要在记录里写明）。
-- [ ] `npx vitest run --root apps/studio --no-file-parallelism` 全文件全绿（当前基线 **1286/1286**，67 文件）。
+- [ ] `npx vitest run --root apps/studio --no-file-parallelism` 全文件全绿（当前基线 **1282/1282**，67 文件）。
 - [ ] 受影响包的服务端 / headless / real-browser 检查全绿。
 - [ ] `git status` 只包含本增量所属文件（**path-scoped commit**）。
 - [ ] ADR 0016 ledger 有对应 amendment，且数字唯一（门禁会报 "numbers GRANTED TWICE"）。

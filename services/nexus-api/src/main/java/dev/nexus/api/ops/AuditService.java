@@ -51,6 +51,30 @@ public class AuditService {
     /** @see #TARGET_ACCOUNT */
     public static final String TARGET_PUBLICATION = "publication";
 
+    // ── v385: the verbs this build RECORDS, as a closed set ──────────────────────────────────────────
+    // The filter asks the trail in the trail's own language, and the language is a CLOSED SET for the
+    // same reason the desk's reasons are (v326): a caller that asked for a verb this service has never
+    // recorded, and was answered with an empty window, would read the answer as "nothing of that action
+    // ever happened" — which is a different fact from "this service does not know that verb", and the
+    // one that matters when the trail is the only witness.
+    //
+    // A verb joins this set in the SAME commit that records it. The set is the service's vocabulary;
+    // a vocabulary that grew silently would be a filter that lied quietly.
+    public static final String ACTION_PUBLISH = "publish";
+    public static final String ACTION_UNPUBLISH = "unpublish";
+    public static final String ACTION_LIKE = "like";
+    public static final String ACTION_UNLIKE = "unlike";
+    public static final String ACTION_COMMENT = "comment";
+    public static final String ACTION_UNCOMMENT = "uncomment";
+    public static final String ACTION_REPORT = "report";
+    public static final String ACTION_WITHDRAW_REPORT = "withdraw-report";
+    public static final String ACTION_ACKNOWLEDGE = "acknowledge";
+
+    /** Every verb this build records, in the order a reader meets them. */
+    public static final List<String> ACTIONS =
+            List.of(ACTION_PUBLISH, ACTION_UNPUBLISH, ACTION_LIKE, ACTION_UNLIKE, ACTION_COMMENT,
+                    ACTION_UNCOMMENT, ACTION_REPORT, ACTION_WITHDRAW_REPORT, ACTION_ACKNOWLEDGE);
+
     private final AuditEntryRepository repository;
     private final Clock clock;
 
@@ -117,10 +141,57 @@ public class AuditService {
         }
     }
 
-    /** The trail, newest first, capped. */
+    /**
+     * v385 — the action a listing is narrowed to, or null for the whole trail.
+     *
+     * <p>The verbs are a CLOSED SET (this build's own), and one outside it is REFUSED BY NAME with the
+     * set named in the refusal: a caller that asked for a verb this service has never recorded, and was
+     * answered with an empty window, would read the answer as "nothing of that action ever happened" —
+     * a different fact from "this service does not know that verb", and the one that matters when the
+     * trail is the only witness. The desk's reasons are refused the same way (v326), and for the same
+     * reason: an answer to a question the caller did not ask is worse than a refusal.
+     */
+    private static String requireAction(String action) {
+        if (action == null || action.isBlank()) {
+            return null;
+        }
+        String trimmed = action.trim();
+        if (ACTIONS.contains(trimmed)) {
+            return trimmed;
+        }
+        throw new IllegalArgumentException("a trail can be narrowed to one of " + String.join(", ", ACTIONS)
+                + " — not \"" + trimmed + "\"");
+    }
+
+    /**
+     * The trail, newest first, capped — narrowed to ONE action when one is named.
+     *
+     * <p>v385 — the narrowing happens IN THE QUERY, not in the browser: the window is "the newest N
+     * entries OF THAT ACTION", which is a different set from "the newest N entries that happen to be of
+     * that action" once the trail outgrows the cap. The panel used to filter what it had already read
+     * (v281), which was honest about the window it held and silent about everything past the cap; the
+     * service now answers the question that was actually asked.
+     */
     @Transactional(readOnly = true)
-    public List<AuditEntry> list(int limit) {
+    public List<AuditEntry> list(int limit, String action) {
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
-        return repository.findAllByOrderByOccurredAtDesc(PageRequest.of(0, effective));
+        String wanted = requireAction(action);
+        PageRequest window = PageRequest.of(0, effective);
+        return wanted == null
+                ? repository.findAllByOrderByOccurredAtDesc(window)
+                : repository.findByActionOrderByOccurredAtDesc(wanted, window);
+    }
+
+    /**
+     * v385 — how many entries the WHOLE trail holds, narrowed or not.
+     *
+     * <p>The panel states it beside the window it is showing, and that is what keeps a filter honest:
+     * with the narrowing in the service, the browser never sees the rows the filter excluded, so the one
+     * number that can still say "the filter is hiding something" has to come from the service too. The
+     * desk's tally door (v312) is the same idea for the same reason.
+     */
+    @Transactional(readOnly = true)
+    public long count() {
+        return repository.count();
     }
 }
