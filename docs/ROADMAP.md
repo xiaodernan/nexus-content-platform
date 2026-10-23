@@ -6072,3 +6072,43 @@ ilst（真 ffmpeg 复现，正是 §80 里"位置信息顺着编码器流进成�
 
 **下一步**：把渲染接进服务端——一个"渲染这一条分镜（DEMO）"的作业，产物走这条刚接上的
 视频摄入链回填 `shot.videoAssetId`，UI 入口明码标注 DEMO 并把 warnings 显示出来。
+
+## M5 第四片（#191）：渲染接进服务端与界面——分镜真的渲成一条 mp4，DEMO 三个字明码标注
+
+`storyboard-render.ts`（领域函数）+ `POST /api/projects/[projectId]/storyboard/render`（路由）+
+`StoryboardPanel` 的「DEMO 渲染整条分镜」按钮。把 #186/#187/#189 三片接成一条完整的链：
+`loadStoryboard → planVideoRender → buildFfmpegArgs → runFfmpeg → uploadVideoAsset`，
+四道顺序纪律与两条生成链同口径（额度门在 `startTask` 之前、参考帧按 id 取字节走 `openAssetForOwner`、
+扣点只在成功收尾、渲染进程有 120s 墙上时钟上限）。
+
+三条**说不说谎**的设计：
+
+1. **DEMO 三个字出现在三处**：按钮标题、结果区的角标、`genMeta.demoMode: true`。
+   像素来自本地确定性推演 + 真 ffmpeg——字节是真的、来源是假的，这两件事必须分开说（§160）。
+2. **warnings 必须显示**：没有中文字体时 drawtext 烧不出汉字，`buildFfmpegArgs` 会明说
+   "字幕没有烧进画面"；路由把 warnings 原样带回，界面渲染出来——没做到的事不许静默（§159）。
+3. **成片挂回第一镜**：整条分镜一条片子，走 `applyOps` 的 `updateShot` 补丁挂
+   `videoAssetId`（§150），一次渲染 = 一个可撤销事务，不新增补丁形状。
+
+失败码十一种各有各的说法：`no_storyboard / unreadable_storyboard / not_renderable /
+reference_unreadable / reference_not_visual / credits_exhausted / storage_exhausted /
+invalid_video / ffmpeg_missing / ffmpeg_failed / render_timeout`。路由层与 /images 对齐：
+429（额度）/ 413（存储）/ 400（其余）/ 201（成片）。
+
+**测试抓到的两件真事**：
+
+- **免费档每月只发 5 点 video 额度**：快乐路径一次渲染就见底，后面的用例撞上的是额度门
+  而不是自己要测的那道门。修法与 image-studio 测试同口径：开跑前兜到 10 点，测完还回去。
+- **`node:fs` 的 `readFile`/`writeFile` 在 @types/node 24 里是回调式**，同步版叫
+  `readFileSync`/`writeFileSync`：第一版 import 错了，`await readFile(output)` 的类型是 void。
+  仓库里 `storage/index.ts` 一贯从 `node:fs/promises` import，就按这个来。
+
+见证：`apps/web/test/storyboard-render.integration.test.ts` 9 条（真 ffmpeg 真渲染，含 ffprobe
+验时长 2.4s = 两镜之和）、`storyboard-render-route.integration.test.ts` 5 条（CSRF 403 /
+别人项目 404 / 无分镜与空分镜 400 / 快乐路径 201 / 额度 429 且三表行数不变）。
+变异探针 6 种全部精确红、逐字节还原：摘额度门 / 参考帧不做归属校验（`openAssetForOwner` →
+`openAssetFile`）/ 删参考帧 mime 门 / 删超时 kill / 失败路径不 `finishTask`（任务永远 running）/
+扣点提前到 ffmpeg 之前（失败也扣钱）。tsc 0、改动文件 eslint 0。
+
+**下一步**：分镜面板的时间线与资产库之间还差一格——成片挂上之后，资产清单里要能按
+"哪条分镜的产物"反查（`genMeta.storyboardId` 已经在了，缺的是列表页的展示与筛选）。

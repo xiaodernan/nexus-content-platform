@@ -29,6 +29,9 @@ import { storyboardStore, useStoryboard } from './storyboardStore';
  * - 「切一版分镜」是**本地确定性断句**，不是 AI 分镜（notes 里那句原样显示，§159 不许假生成）；
  * - 时间线**能编辑不能播**：§40 的 Video generation 那一格要真 provider，本机不假造像素，
  *   所以 `playable` 一直是 false，而这一条理由要读得出来（blockers 原文显示）；
+ *   「DEMO 渲染整条分镜」出的片子是真 ffmpeg 跑真链路的产物，但像素来自本地确定性
+ *   推演、不是 AI 生成——按钮、角标、warnings 三处都明码标注（§160），与"假生成"隔着
+ *   一条"字节是真的、来源是假的"的线；
  * - audio / subtitles / effects 三条轨照样列出来，各带一句"为什么是空的"——
  *   缺这一句，界面上"没有音频"与"渲染失败"就长得一模一样（§41）。
  *
@@ -102,6 +105,15 @@ export function StoryboardPanel() {
   const [rosterNote, setRosterNote] = useState<string | null>(null);
   const [imageBusy, setImageBusy] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [renderBusy, setRenderBusy] = useState(false);
+  const [renderError, setRenderError] = useState<string | null>(null);
+  /** 上一次 DEMO 渲染的交代：没做到的事（warnings）与计划说的每一句（notes）原样显示（§159） */
+  const [renderNote, setRenderNote] = useState<{
+    assetId: string;
+    warnings: string[];
+    notes: string[];
+    renderMs: number;
+  } | null>(null);
   const sb = snapshot.storyboard;
 
   useEffect(() => {
@@ -193,6 +205,55 @@ export function StoryboardPanel() {
     },
     [studio.projectId],
   );
+
+  /**
+   * §40 最后一格：把**整条分镜**真的渲出来。与 makeReference 同口径——
+   * 像素是本地确定性推演 + 真 ffmpeg（DEMO，§160），但链路是真的：额度门在
+   * startTask 之前、参考帧按 id 取字节走归属校验、字节过视频摄入门、只有成功才扣点。
+   * 成片是整条分镜一条片子，挂回第一镜的 videoAssetId（§150 补丁事务，可撤销）。
+   * warnings 里"没有字体→字幕没烧"这类没做到的事必须显示，不许静默。
+   */
+  const renderDemo = useCallback(async () => {
+    if (!sb || sb.shots.length === 0) return;
+    setRenderBusy(true);
+    setRenderError(null);
+    setRenderNote(null);
+    try {
+      const res = await fetch(`/api/projects/${studio.projectId}/storyboard/render`, {
+        method: 'POST',
+        headers: { ...csrfHeaders() },
+      });
+      const body = (await res.json().catch(() => null)) as
+        | {
+            asset?: { id: string };
+            warnings?: string[];
+            notes?: string[];
+            renderMs?: number;
+            message?: string;
+          }
+        | null;
+      if (!res.ok || !body?.asset) throw new Error(body?.message ?? `HTTP ${res.status}`);
+      const first = sb.shots[0]!;
+      storyboardStore.applyOps([
+        {
+          op: 'updateShot',
+          id: first.id,
+          before: { videoAssetId: first.videoAssetId },
+          after: { videoAssetId: body.asset.id },
+        },
+      ]);
+      setRenderNote({
+        assetId: body.asset.id,
+        warnings: body.warnings ?? [],
+        notes: body.notes ?? [],
+        renderMs: body.renderMs ?? 0,
+      });
+    } catch (error) {
+      setRenderError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setRenderBusy(false);
+    }
+  }, [sb, studio.projectId]);
 
   const timeline = useMemo(() => (sb ? timelineOf(sb) : null), [sb]);
 
@@ -777,6 +838,53 @@ export function StoryboardPanel() {
             </li>
           ))}
         </ul>
+
+        <section className="border-t border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]" data-storyboard-render-panel>
+          <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">渲染（§40 最后一格 · DEMO）</h3>
+          <p className="mt-1 text-11 text-fg-2">
+            真 ffmpeg、真链路：额度门在任务之前，参考帧按 id 取字节（带归属校验），成片过视频摄入门，只有成功才扣点。
+            但像素是**本地确定性推演，不是 AI 生成**——这一条明码标注，不假装有视频 provider（§159/§160）。
+          </p>
+          <button
+            type="button"
+            disabled={renderBusy || sb.shots.length === 0}
+            onClick={() => void renderDemo()}
+            data-storyboard-render
+            title="把整条分镜渲成一条 mp4（DEMO：本地 ffmpeg 确定性推演，非 AI 生成）。成片挂回第一镜的 videoAssetId"
+            className="mt-2 rounded-[var(--nexus-radius-sm)] bg-bg-3 px-3 py-1 text-12 text-fg-1 disabled:opacity-40"
+          >
+            {renderBusy ? '渲染中…' : 'DEMO 渲染整条分镜'}
+          </button>
+          {renderError ? (
+            <p className="mt-2 text-11 text-danger" data-storyboard-render-error>
+              {renderError}
+            </p>
+          ) : null}
+          {renderNote ? (
+            <div className="mt-2 flex flex-col gap-1" data-storyboard-render-result>
+              <p className="text-11 text-fg-2">
+                <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-1 py-[1px] text-10 text-fg-1">DEMO</span>
+                {' '}成片已挂到第一镜（整条分镜一条片子），耗时 {renderNote.renderMs} 毫秒
+              </p>
+              {renderNote.warnings.length ? (
+                <ul className="flex flex-col gap-1" data-storyboard-render-warnings>
+                  {renderNote.warnings.map((w) => (
+                    <li key={w} className="text-11 text-warn">
+                      {w}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <ul className="flex flex-col gap-1">
+                {renderNote.notes.map((n) => (
+                  <li key={n} className="text-11 text-fg-3">
+                    {n}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </section>
 
         <section className="border-t border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]" data-storyboard-timeline>
           <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">时间线（§41）</h3>
