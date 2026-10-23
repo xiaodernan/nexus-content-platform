@@ -42,6 +42,42 @@ export function getRateLimiter(): RateLimiter {
   return singleton;
 }
 
+/**
+ * 身份之前的闸：§137 的 guest 自动签发把"按 user.id 限流"这一族变成了空转。
+ *
+ * 中间件给每个没有会话 cookie 的请求签一个**随机** token 并写回 cookie，
+ * `requireUser()` 拿不到会话行就**就地建一个 guest 用户**。于是按 `user.id`
+ * 拼的限流键对"不存 cookie 的客户端"每次都是新键——实测（`.scratch` 探针，
+ * 打 `/api/published/report`）：
+ *   12 个不同 token → 建 12 个 guest 用户、**0 次 429**；
+ *   同一个 token 打 12 次 → 只建 1 个 guest，第 11 次起 429（按身份的那道闸本身是生效的）。
+ * 更糟的是 `POST /api/projects`、`POST /api/ai/run`、`POST /api/account/api-tokens`
+ * 这几条**本来就没有任何限流**：于是一个绕开 cookie 的客户端可以无上限地
+ * 建用户 + 项目 + 文档 + 任务行，把"首次体验"变成一条免成本的写入口。
+ *
+ * 所以在拿到身份**之前**先按 IP 挡一道，且闸门必须放在 `requireUser()` 之前——
+ * 被挡住的请求一个 guest 都不该建（建了就是"限流了但还是付了代价"）。
+ * 与 `auth/register` 同一形状（那一格早就这么做了：`rateKey('auth/register', ip)`）。
+ *
+ * 两条限度，说清而不是绕过去：
+ * 1. **标识不出来的请求不进这个桶**（没有 `x-forwarded-for` / `x-real-ip`）。
+ *    限流只能限住能标识的对象；给标识不出的请求一个共享桶，会把同部署下的
+ *    正常用户一起挡掉——那是用一种故障换另一种故障。生产前面总有反代，会带上 XFF。
+ * 2. IP 是粗粒度身份：同一 NAT 后的多人共用一个桶。所以限额取宽，
+ *    真正的"这个人"仍由各路由原有的按身份闸去管——这里是兜底，不是替代。
+ */
+export function ipWriteGate(
+  route: string,
+  req: Request,
+  limit: number,
+  windowMs: number,
+): { limited: false } | { limited: true; retryAfterMs: number } {
+  const ip = clientIp(req);
+  if (!ip) return { limited: false };
+  const rl = getRateLimiter().hit(rateKey(route, ip), limit, windowMs);
+  return rl.allowed ? { limited: false } : { limited: true, retryAfterMs: rl.retryAfterMs };
+}
+
 /** 拼限流桶的键：路由 + 身份（用户或 IP）。 */
 export function rateKey(route: string, ip: string | null, userId?: string | null): string {
   return `${route}|${userId ?? 'anon'}|${ip ?? 'no-ip'}`;

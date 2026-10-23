@@ -4,7 +4,7 @@ import { addComment, publicRefByPath, remixPublication, toggleLike } from '@/ser
 import { toggleSave } from '@/server/domain/profile';
 import { csrfOk } from '@/server/security/csrf';
 import { emit } from '@/server/domain/notifications';
-import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
+import { clientIp, getRateLimiter, ipWriteGate, rateKey } from '@/server/security/rateLimit';
 import { jsonError } from '@/server/http';
 
 /**
@@ -29,6 +29,12 @@ export async function POST(req: Request): Promise<NextResponse> {
   const path = typeof body?.path === 'string' ? body.path : '';
   if (!ACTIONS.includes(action as (typeof ACTIONS)[number])) return jsonError(400, 'bad_action', { message: 'action 必须是 like / comment / remix' });
   if (!path.startsWith('/n/')) return jsonError(400, 'bad_path', { message: 'path 必须是一个公开作品地址' });
+
+  // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，下面那道按身份的限流
+  // 对它空转（marketplace 那条注释早就点破过"换 cookie 就能无限造行"）。
+  // 所以这道按 IP 的闸放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。
+  const gate = ipWriteGate('published/interact', req, 120, 60 * 60 * 1000);
+  if (gate.limited) return jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
 
   const user = await requireUser();
   const rl = getRateLimiter().hit(rateKey(`published/${action}`, clientIp(req), user.id), RATE_PER_MINUTE, 60_000);

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { PROJECT_KINDS, createProject, listProjects } from '@/server/domain/projects';
 import { csrfOk } from '@/server/security/csrf';
+import { ipWriteGate } from '@/server/security/rateLimit';
 import { badRequest, failure, jsonError, readJson } from '@/server/http';
 
 const CreateProjectSchema = z.object({
@@ -21,6 +22,10 @@ export async function GET(): Promise<NextResponse> {
 
 export async function POST(req: Request): Promise<NextResponse> {
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，按身份限流对它空转。
+  // 所以这道按 IP 的闸必须放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。
+  const gate = ipWriteGate('projects/create', req, 20, 3600000);
+  if (gate.limited) return jsonError(429, 'rate_limited', { message: '建项目太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
   const body = await readJson(req);
   const parsed = CreateProjectSchema.safeParse(body);
   if (!parsed.success) {

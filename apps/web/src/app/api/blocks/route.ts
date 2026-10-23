@@ -3,7 +3,7 @@ import { BlocksClearRequestSchema, BlocksRequestSchema } from '@nexus/schemas';
 import { clearBlock, setBlock, userByHandle } from '@/server/domain/blocks';
 import { requireUser } from '@/server/domain/session';
 import { csrfOk } from '@/server/security/csrf';
-import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
+import { clientIp, getRateLimiter, ipWriteGate, rateKey } from '@/server/security/rateLimit';
 import { badRequest, jsonError, readJson } from '@/server/http';
 
 /**
@@ -25,6 +25,12 @@ async function rateLimit(req: Request, userId: string): Promise<NextResponse | n
 
 export async function POST(req: Request): Promise<NextResponse> {
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，按身份限流对它空转
+  // （marketplace 那条注释早就点破过"换 cookie 就能无限造行"，但 user.id + IP 双键仍挡不住新身份）。
+  // 所以这道按 IP 的闸必须放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。
+  const gate = ipWriteGate('blocks', req, 60, 3600000);
+  if (gate.limited) return jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
+
   const body = await readJson(req);
   if (!body) return badRequest(['请求体必须是 JSON']);
   const parsed = BlocksRequestSchema.safeParse(body);
@@ -45,6 +51,12 @@ export async function POST(req: Request): Promise<NextResponse> {
 /** 解除。没有这一行就是 no-op 而不是错误：界面上"取消"点两次不该变红 */
 export async function DELETE(req: Request): Promise<NextResponse> {
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，按身份限流对它空转
+  // （marketplace 那条注释早就点破过"换 cookie 就能无限造行"，但 user.id + IP 双键仍挡不住新身份）。
+  // 所以这道按 IP 的闸必须放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。
+  const gate = ipWriteGate('blocks', req, 60, 3600000);
+  if (gate.limited) return jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
+
   const body = await readJson(req);
   if (!body) return badRequest(['请求体必须是 JSON']);
   const parsed = BlocksClearRequestSchema.safeParse(body);

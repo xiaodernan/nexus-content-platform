@@ -5829,3 +5829,34 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   源码零改动（只新增测试文件）。tsc -p apps/web 0；eslint 0；相邻 social 套件 19/19。
   同批扫出的另外 6 条（`account/avatar`、`auth/login`、`auth/logout`、`ai/pending-approvals`、
   `discover`、`published/report`）逐个看过实现：都有 zod/CSRF/`isUuid` 门，无洞，留待后续补见证。
+
+- **2026-10-24 第三十三片（#183）：§137 的 guest 自动签发把"按 user.id 限流"那一族变成了空转——10 条写入口补上"身份之前的闸"**。
+  `middleware` 给每个没有会话 cookie 的请求签一个**随机** token，`requireUser()`
+  拿不到会话行就**就地建一个 guest 用户**。于是 `rateKey(route, ip, userId)` 拼出来的
+  `${route}|${userId}|${ip}` 对不存 cookie 的客户端每次都是新键。探针实测（打真库，
+  `POST /api/published/report`）：**12 个不同 token → 建 12 个 guest、0 次 429**；
+  同一个 token 打 12 次 → 只建 1 个 guest、第 11 次起 429（按身份的那道闸本身是生效的，
+  失效的只是它的键）。`marketplace/route.ts` 的注释早就点破过这件事并加了双键，
+  但双键挡不住新身份。
+  **更糟的是扫下来三条写入口本来就没有任何限流**：`POST /api/projects`、
+  `POST /api/ai/run`、`POST /api/account/api-tokens`——一个绕开 cookie 的客户端
+  可以无上限地建用户 + 项目 + 文档 + 任务行 + 凭据。`/api/ai/run` 虽有 §133 的额度闸，
+  但 free 档每月发 100 点而 guest 可以无限新建：额度闸限的是"一个身份做多少"，
+  限不住"建多少个身份"。
+  修法：新增 `ipWriteGate(route, req, limit, windowMs)`（`server/security/rateLimit.ts`），
+  接到 10 条写入口上，**一律放在 `requireUser()` 之前**——被挡住的请求一个 guest 都不该建
+  （建了就是"限流了但还是付了代价"）。与 `auth/register` 完全同形状。
+  两条限度说清而不是绕过去：① 标识不出 IP（没有 XFF）的请求不进这个桶——
+  给它们一个共享桶会把正常用户一起挡掉，那是用一种故障换另一种故障；
+  ② IP 是粗粒度身份，限额取宽，各路由原有的按身份闸一条没删（兜底，不是替代）。
+  见证：新文件 `apps/web/test/guest-write-gate.integration.test.ts` 4/4 绿。
+  判据三层：① 25 个不同 token 打 `POST /api/projects` → 前 20 个 201、后 5 个 429，
+  **且只建 20 个 guest**（被挡的没付代价）；② 公开举报入口同样兜住；
+  ③ 正对照：稳定身份照旧放行（3/3 个 201、只建 1 个 guest），以及无 XFF 时闸让路。
+  变异探针两种都精确红：摘掉闸、以及**把闸挪到 `requireUser()` 之后**（顺序错 =
+  被挡的请求照样建 guest）。还原后 4/4 复绿。
+  受影响五套件 43/43、social 相关 26/26；tsc -p apps/web 0；改动文件 eslint 0。
+  判决书：`docs/adr/0060-guest-autoprovisioning-needs-pre-identity-rate-limit.md`。
+  **遗留（写进 ADR，不假装没有）**：`GET /api/auth/me`、`GET /api/projects` 这类
+  **读**入口也会建 guest（一个用户行，没别的副产品）。没给读入口加闸——
+  给 GET 回 429 会让账号面板直接坏掉，值得单独评估。
