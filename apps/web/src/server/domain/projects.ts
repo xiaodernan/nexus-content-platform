@@ -67,60 +67,111 @@ export interface CreateProjectInput {
   fromDocument?: DesignDocument;
 }
 
+/** slug 后缀最多试到第几个：真有人建 50 个同名项目，该收到一句人话而不是一个必然冲突的 slug */
+const SLUG_ATTEMPTS = 50;
+
+/**
+ * drizzle 会把驱动错误包进 `DrizzleQueryError`（message 是 "Failed query: …"），
+ * `code` 与 `constraint_name` 都在 **cause 链**上而不在顶层——只看顶层等于这个函数
+ * 从来没生效过（#151 的教训）。所以沿 cause 走几步，别只读第一层。
+ *
+ * 还要认约束名：文档自己带重名页 / 重名 token 也会报 23505，那不是"换个 slug 后缀"
+ * 能解决的事，必须照旧抛出去。
+ */
+function isSlugConflict(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; current !== null && depth < 5; depth += 1) {
+    if (typeof current === 'object') {
+      const e = current as { code?: string; constraint_name?: string };
+      if (e.code === '23505' && e.constraint_name === 'projects_owner_slug_key') return true;
+    }
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
+/**
+ * 项目行、文档、main 分支与初始快照一次写进去。返回 null = slug 撞了唯一索引
+ * （并发下另一个请求刚占了同一个 slug），调用方换下一个后缀重来。
+ */
+async function writeNewProject(
+  ownerId: string,
+  slug: string,
+  input: CreateProjectInput,
+  document: DesignDocument,
+): Promise<string | null> {
+  const db = getDb();
+  let projectId = '';
+  try {
+    await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(projects)
+        .values({
+          ownerId,
+          slug,
+          name: input.name,
+          kind: input.kind,
+          activePageId: document.activePageId,
+          // 起点文档自带的主题 mode 也要落库，否则 Duplicate 一份带主题的项目会丢掉它
+          activeMode: document.activeMode ?? null,
+          modes: document.metadata.modes ?? null,
+        })
+        .returning({ id: projects.id });
+      projectId = row!.id;
+      document.id = projectId;
+      await writeDocument(tx, projectId, document);
+      // §28：项目一开始就有 main 分支，快照挂在它下面，head 指向初始版本
+      const [branch] = await tx
+        .insert(branches)
+        .values({ projectId, name: 'main', isDefault: true })
+        .returning({ id: branches.id });
+      const [initial] = await tx
+        .insert(snapshots)
+        .values({
+          projectId,
+          branchId: branch!.id,
+          label: '初始版本',
+          source: 'manual',
+          document: document as unknown as Record<string, unknown>,
+          summary: '项目创建',
+        })
+        .returning({ id: snapshots.id });
+      await tx.update(branches).set({ headSnapshotId: initial!.id }).where(eq(branches.id, branch!.id));
+      await tx.update(projects).set({ currentSnapshotId: initial!.id }).where(eq(projects.id, projectId));
+    });
+  } catch (error) {
+    if (!isSlugConflict(error)) throw error;
+    return null;
+  }
+  return projectId;
+}
+
 export async function createProject(ownerId: string, input: CreateProjectInput): Promise<DesignDocument> {
   const db = getDb();
   const document = input.fromDocument
     ? { ...clone(input.fromDocument), name: input.name }
     : createDocument(input.name, input.kind);
   const slugBase = slugify(input.name);
-  let slug = slugBase;
-  for (let i = 2; i < 50; i += 1) {
+
+  // #173：slug 一直是"查一遍有没有重名 → 没有就用 base"的读—改—写。并发下两个请求
+  // （双击「新建项目」、两个标签页同时开）都查不到对方 → 都插 base →
+  // projects_owner_slug_key 把后到的那条判 23505 → 整个请求 500。
+  // 所以查重只是省掉一次无谓的插入尝试，**真正的裁判是唯一索引**：撞了就换下一个后缀重来。
+  let projectId = '';
+  for (let attempt = 0; attempt < SLUG_ATTEMPTS; attempt += 1) {
+    const slug = attempt === 0 ? slugBase : `${slugBase}-${attempt + 1}`;
     const clash = await db
       .select({ id: projects.id })
       .from(projects)
       .where(and(eq(projects.ownerId, ownerId), eq(projects.slug, slug)))
       .limit(1);
-    if (!clash.length) break;
-    slug = `${slugBase}-${i}`;
+    if (clash.length) continue;
+    projectId = (await writeNewProject(ownerId, slug, input, document)) ?? '';
+    if (projectId) break;
   }
-
-  let projectId = '';
-  await db.transaction(async (tx) => {
-    const [row] = await tx
-      .insert(projects)
-      .values({
-        ownerId,
-        slug,
-        name: input.name,
-        kind: input.kind,
-        activePageId: document.activePageId,
-        // 起点文档自带的主题 mode 也要落库，否则 Duplicate 一份带主题的项目会丢掉它
-        activeMode: document.activeMode ?? null,
-        modes: document.metadata.modes ?? null,
-      })
-      .returning({ id: projects.id });
-    projectId = row!.id;
-    document.id = projectId;
-    await writeDocument(tx, projectId, document);
-    // §28：项目一开始就有 main 分支，快照挂在它下面，head 指向初始版本
-    const [branch] = await tx
-      .insert(branches)
-      .values({ projectId, name: 'main', isDefault: true })
-      .returning({ id: branches.id });
-    const [initial] = await tx
-      .insert(snapshots)
-      .values({
-        projectId,
-        branchId: branch!.id,
-        label: '初始版本',
-        source: 'manual',
-        document: document as unknown as Record<string, unknown>,
-        summary: '项目创建',
-      })
-      .returning({ id: snapshots.id });
-    await tx.update(branches).set({ headSnapshotId: initial!.id }).where(eq(branches.id, branch!.id));
-    await tx.update(projects).set({ currentSnapshotId: initial!.id }).where(eq(projects.id, projectId));
-  });
+  if (!projectId) {
+    throw new Error(`项目名「${input.name}」下已经有太多同名项目，换个名字吧`);
+  }
 
   // 返回从库里读回来的那份，而不是内存里的那份：创建路径本身也要被验证
   const stored = await loadDocument(projectId);

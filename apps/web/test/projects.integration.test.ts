@@ -37,6 +37,60 @@ async function newProject(name: string) {
   return { document, id: document.id };
 }
 
+  it('并发同名建项目：slug 撞车换后缀重试，而不是 23505 500（#173）', async () => {
+    const db = getDb();
+    const name = `并发建项目 ${Date.now()}`;
+    // 先建一次拿到这个name 会被收成什么 slug，再把它删掉把位置腾出来
+    const first = await createProject(ownerId, { name, kind: 'website' });
+    const [slugRow] = await db.select({ slug: projects.slug }).from(projects).where(eq(projects.id, first.id));
+    const slug = slugRow!.slug;
+    await db.delete(projects).where(eq(projects.id, first.id));
+
+    // 真实竞态：另一个会话已经占了同一个 slug、还没提交——查重看不见未提交行，
+    // 于是照样往下走。后到者阻塞在唯一索引上，等那个事务落地后才发现撞车。
+    let racerId = '';
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let landed!: () => void;
+    const inserted = new Promise<void>((resolve) => {
+      landed = resolve;
+    });
+    const other = db.transaction(async (tx) => {
+      const [row] = await tx.insert(projects).values({ ownerId, slug, name }).returning({ id: projects.id });
+      racerId = row!.id;
+      landed();
+      await gate;
+    });
+    await inserted;
+    const pending = createProject(ownerId, { name, kind: 'website' });
+    // 等到这一发真的阻塞在唯一索引上（wait_event_type='Lock'）再放开那个事务：
+    // 竞态窗口由此钉死，不靠 sleep 碰时序。
+    let blocked = false;
+    for (let i = 0; i < 400 && !blocked; i += 1) {
+      const rows = await db.execute(
+        rawSql`select 1 as hit from pg_stat_activity
+               where pid <> pg_backend_pid() and wait_event_type = 'Lock'
+                 and query like '%insert into "projects"%' limit 1`,
+      );
+      blocked = rows.length > 0;
+      if (!blocked) await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(blocked, 'createProject 没能阻塞在唯一索引上——竞态窗口没造出来').toBe(true);
+    release();
+    const document = await pending;
+    await other;
+
+    expect(document.id).toBeTruthy();
+    const rows = await db.select({ slug: projects.slug }).from(projects).where(eq(projects.ownerId, ownerId));
+    expect(rows.filter((r) => r.slug === slug), '原 slug 只能有一条').toHaveLength(1);
+    expect(rows.filter((r) => r.slug === `${slug}-2`), '撞车的那发该换成 -2 后缀').toHaveLength(1);
+    created.push(document.id);
+
+    await db.delete(projects).where(eq(projects.id, racerId));
+  });
+
 describe('项目领域层（真实数据库）', () => {
   it('创建项目后可以原样读回设计文档，且 id 稳定', async () => {
     const { document, id } = await newProject('Roundtrip Site');
