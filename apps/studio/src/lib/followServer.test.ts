@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { readFollowers, readFollowing } from './followServer';
+import { followOnService, readFollowers, readFollowing, unfollowOnService } from './followServer';
+import { nexusApiBase } from './publishServer';
 
 /**
  * M7 v397 — the server-side half of the FOLLOWS lane.
@@ -159,5 +160,164 @@ describe('followServer — readFollowing PAGES the other direction (v390, v397)'
     const answer = await readFollowing('acct-ada', 0, fetchImpl);
     expect(answer.count).toBe(1);
     expect(answer.limit).toBe(20);
+  });
+});
+
+
+/**
+ * v445 — the WRITE half of the service-side follows door.
+ *
+ * Both reads are graded above. The two writes were reached only through the Studio's own route, so
+ * what a follow carries on its way to the service and what a refusal answers were never asked. This
+ * door is the third of the three server-side writes (likes in v436, comments in v437), and the family
+ * shape is what makes it worth pinning: the claim is NULL-FILLED here, where the browser lane (v438)
+ * sends it as built — and the budget is the SERVICE's 15 seconds, not the lane's 45.
+ */
+describe('followServer — the write half (v445)', () => {
+  it('a follow is POSTed to the service with the claim null-filled, not as built', async () => {
+    // The family shape, and the divergence from the lane (v438): the server-side doors write an
+    // absent handle as null, so the service can tell "empty" from "never asked" either way.
+    let seenUrl = '';
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((url, init) => {
+      seenUrl = url;
+      seenInit = init;
+      return new Response(JSON.stringify({ ok: true, followerCount: 7, following: true }), { status: 200 });
+    });
+
+    const answer = await followOnService('acct-bob', { accountId: 'acct-ada', handle: 'ada', claimedAt: 99 }, fetchImpl);
+
+    expect(seenUrl).toBe(`${nexusApiBase()}/follows`);
+    expect(seenInit?.method).toBe('POST');
+    expect(seenInit?.headers).toEqual({ 'content-type': 'application/json', accept: 'application/json' });
+    expect(JSON.parse(String(seenInit?.body))).toEqual({
+      accountId: 'acct-bob',
+      claim: { accountId: 'acct-ada', handle: 'ada', assurance: null, claimedAt: 99 },
+    });
+    expect(answer).toEqual({ ok: true, followerCount: 7, following: true });
+  });
+
+  it('every absent claim field is written as null', async () => {
+    let body: unknown;
+    const fetchImpl = makeFetch((_url, init) => {
+      body = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ ok: true, followerCount: 1, following: true }), { status: 200 });
+    });
+
+    await followOnService('acct-bob', { accountId: 'acct-ada' }, fetchImpl);
+
+    expect(body).toEqual({
+      accountId: 'acct-bob',
+      claim: { accountId: 'acct-ada', handle: null, assurance: null, claimedAt: null },
+    });
+  });
+
+  it('following is read as the boolean the service said, not as truthiness', async () => {
+    const fetchImpl = makeFetch(() =>
+      new Response(JSON.stringify({ ok: true, followerCount: 2, following: 'yes' }), { status: 200 }),
+    );
+    const answer = await followOnService('acct-bob', { accountId: 'acct-ada' }, fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.following).toBe(false);
+  });
+
+  it('a refused follow carries a reason and NO count', async () => {
+    const withReason = makeFetch(() =>
+      new Response(JSON.stringify({ ok: false, reason: 'cannot follow yourself' }), { status: 200 }),
+    );
+    const refused = await followOnService('acct-bob', { accountId: 'acct-ada' }, withReason);
+    expect(refused.ok).toBe(false);
+    expect(refused.reason).toBe('cannot follow yourself');
+    expect(refused.followerCount).toBeUndefined();
+    expect(refused.following).toBeUndefined();
+
+    // v313 — the service's error body carries no ok field, so the reason is read from message.
+    const withMessage = makeFetch(() =>
+      new Response(JSON.stringify({ error: 'follows-unavailable', message: 'the follows door is closed' }), { status: 503 }),
+    );
+    expect((await followOnService('acct-bob', { accountId: 'acct-ada' }, withMessage)).reason).toBe('the follows door is closed');
+
+    const bare = makeFetch(() => new Response(JSON.stringify({ error: 'nope' }), { status: 500 }));
+    expect((await followOnService('acct-bob', { accountId: 'acct-ada' }, bare)).reason).toBe('the follows answered HTTP 500');
+  });
+
+  it('an answer that is not JSON is a refusal, not a crash', async () => {
+    const fetchImpl = makeFetch(() => new Response('<html>gateway', { status: 502 }));
+    const answer = await followOnService('acct-bob', { accountId: 'acct-ada' }, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('the follows answered HTTP 502 with something that is not JSON');
+  });
+
+  it('a follow that never reached the service says UNREACHABLE — and a slow one says it was late', async () => {
+    // The contrast with the lane (v438): this door talks to a REMOTE service, so a failure here has
+    // an address to name, and a busy service is not a gone one.
+    const down = makeFetch(() => {
+      throw new Error('connect ECONNREFUSED');
+    });
+    const refused = await followOnService('acct-bob', { accountId: 'acct-ada' }, down);
+    expect(refused.ok).toBe(false);
+    expect(refused.reason).toContain('nexus-api unreachable');
+
+    const late = new Error('the budget ran out');
+    late.name = 'TimeoutError';
+    const slow = makeFetch(() => {
+      throw late;
+    });
+    const timedOut = await followOnService('acct-bob', { accountId: 'acct-ada' }, slow);
+    expect(timedOut.reason).toContain('did not answer within 15 seconds');
+    expect(timedOut.reason).not.toContain('unreachable');
+  });
+
+  it('the ask carries the SERVICE budget of 15 seconds, not the lane’s 45', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() =>
+        new Response(JSON.stringify({ ok: true, followerCount: 1, following: true }), { status: 200 }),
+      );
+      await followOnService('acct-bob', { accountId: 'acct-ada' }, fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledWith(15_000);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('taking a follow back is a DELETE naming the account and the claimer, and only those', async () => {
+    let seenUrl = '';
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((url, init) => {
+      seenUrl = url;
+      seenInit = init;
+      return new Response(JSON.stringify({ ok: true, followerCount: 6, following: false }), { status: 200 });
+    });
+
+    const answer = await unfollowOnService('acct-bob', 'acct-ada', fetchImpl);
+
+    expect(seenUrl).toBe(`${nexusApiBase()}/follows/acct-bob?claimer=acct-ada`);
+    expect(seenInit?.method).toBe('DELETE');
+    expect(seenInit?.headers).toEqual({ accept: 'application/json' });
+    // The claimer is the account id — and only that. No handle, no assurance, no instant, no body.
+    expect(seenInit?.body).toBeUndefined();
+    expect(answer).toEqual({ ok: true, followerCount: 6, following: false });
+  });
+
+  it('an account id that needs encoding is encoded in the take-back path', async () => {
+    let seenUrl = '';
+    const fetchImpl = makeFetch((url) => {
+      seenUrl = url;
+      return new Response(JSON.stringify({ ok: true, followerCount: 0, following: false }), { status: 200 });
+    });
+
+    await unfollowOnService('acct bob/../x', 'acct-ada', fetchImpl);
+
+    expect(seenUrl).toBe(`${nexusApiBase()}/follows/${encodeURIComponent('acct bob/../x')}?claimer=acct-ada`);
+  });
+
+  it('a take-back that never reached the service names the service too', async () => {
+    const down = makeFetch(() => {
+      throw new Error('connect ECONNREFUSED');
+    });
+    const answer = await unfollowOnService('acct-bob', 'acct-ada', down);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('nexus-api unreachable');
   });
 });
