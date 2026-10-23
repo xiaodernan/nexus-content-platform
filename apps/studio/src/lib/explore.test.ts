@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderExploreHtml, renderExploreUnavailable, toExploreItem, type ExploreItem } from './explore';
+import { renderExploreCards, renderExploreHtml, renderExploreUnavailable, toExploreItem, type ExploreItem } from './explore';
 
 const item = (over: Partial<ExploreItem> = {}): ExploreItem => ({
   projectId: 'pub-1',
@@ -197,5 +197,80 @@ describe('explore — the service answer becomes a card (M7 v265)', () => {
     const html = renderExploreHtml([failed], { count: 1, limit: 24, offset: 0, query: "" });
     expect(html).not.toContain('<img');
     expect(html).toContain('the service is down');
+  });
+});
+
+describe('renderExploreCards — the card grid the gallery and the profile share (v454)', () => {
+  // v270 exported the grid so the profile page draws the SAME cards; until now the grid itself was
+  // reached only through renderExploreHtml, so what one card IS was never asked directly.
+  const card = (over: Partial<ExploreItem> = {}): ExploreItem => ({
+    projectId: 'proj-1',
+    title: 'Neon Dashboard',
+    version: 3,
+    publishedAt: '2026-10-01T00:00:00.000Z',
+    ...over,
+  });
+
+  it('one li.card per item, each carrying data-explore-card — the hook a reader finds a card by', () => {
+    const html = renderExploreCards([card(), card({ projectId: 'proj-2' })]);
+    expect(html.startsWith('<ul class="grid">')).toBe(true);
+    expect(html.endsWith('</ul>')).toBe(true);
+    expect(html.match(/data-explore-card=/g)).toHaveLength(2);
+    expect(html).toContain('data-explore-card="proj-1"');
+    expect(html).toContain('data-explore-card="proj-2"');
+    // Two li.card elements — counted by their opening tag, not by lines (a card is several lines).
+    expect(html.match(/<li class="card"/g)).toHaveLength(2);
+  });
+
+  it('a card with a thumbnail draws the IMG, and the absence note stays off the card', () => {
+    const html = renderExploreCards([card({ thumbnail: 'data:image/png;base64,AAAA', note: 'nothing to draw' })]);
+    expect(html).toContain('<img src="data:image/png;base64,AAAA" alt="Neon Dashboard">');
+    expect(html).not.toContain('nothing to draw');
+    expect(html).not.toContain('class="empty"');
+  });
+
+  it('a card with NO thumbnail SHOWS the note — a blank card lies', () => {
+    const withNote = renderExploreCards([card({ note: 'preview unavailable' })]);
+    expect(withNote).toContain('<span class="empty">preview unavailable</span>');
+    expect(withNote).not.toContain('<img');
+    // No note at all falls back to the declared words rather than an empty span.
+    const noNote = renderExploreCards([card()]);
+    expect(noNote).toContain('<span class="empty">no preview</span>');
+  });
+
+  it('the byline is a LINK to the author’s profile — a name becomes an address', () => {
+    const html = renderExploreCards([
+      card({ owner: { accountId: 'acct-ada', handle: 'ada', assurance: 'signed' } }),
+    ]);
+    expect(html).toContain('<a class="by" href="/u/acct-ada">by ada · signed</a>');
+    // An owner the service did not record means NO byline — never `by undefined`.
+    const anon = renderExploreCards([card({ owner: null })]);
+    expect(anon).not.toContain('class="by"');
+    expect(anon).not.toContain('by undefined');
+  });
+
+  it('a remixed card names its source with a link; a non-remix carries no such line', () => {
+    const remix = renderExploreCards([card({ remixedFrom: 'proj parent/1' })]);
+    expect(remix).toContain('<a class="remixed" href="/p/proj%20parent%2F1">remixed from proj parent/1</a>');
+    const plain = renderExploreCards([card({ remixedFrom: null })]);
+    expect(plain).not.toContain('remixed from');
+  });
+
+  it('the two actions are open and remix, both addressed by encoded project id', () => {
+    const html = renderExploreCards([card({ projectId: 'proj 1/2' })]);
+    expect(html).toContain('<a href="/p/proj%201%2F2">open</a>');
+    expect(html).toContain('<a class="remix" href="/?remix=proj%201%2F2">remix</a>');
+  });
+
+  it('caller-controlled text is ESCAPED on its way into the card', () => {
+    // A title is a stranger's words: it lands in a text node and an attribute, so it is escaped
+    // rather than interpolated — the one rule every server-rendered page in this app shares.
+    const html = renderExploreCards([card({ title: '<script>alert(\"x\")</script> & \'quoted\'' })]);
+    expect(html).toContain('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; &#39;quoted&#39;');
+    expect(html).not.toContain('<script>');
+  });
+
+  it('an empty gallery still renders the grid — an empty list is not a missing page', () => {
+    expect(renderExploreCards([])).toBe('<ul class="grid"></ul>');
   });
 });
