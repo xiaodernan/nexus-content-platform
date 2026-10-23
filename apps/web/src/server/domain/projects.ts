@@ -868,6 +868,10 @@ export async function softDeleteProject(actorId: string, projectId: string, conf
 /** 恢复：只动"确实被软删过"的行，所以一个没删过的项目在这里返回 null 而不是"恢复成功" */
 export async function restoreProject(actorId: string, projectId: string): Promise<{ name: string } | null> {
   const db = getDb();
+  // 形状不对的 id 按"不存在"处理：eq(projects.id, …) 会撞 22P02 变 500（domain/ids.ts）。
+  // 界面这条恢复路直达这个函数（不像别的路由先过 projectBelongsTo），所以这道门必须落在域层——
+  // 与 softDeleteProject 同一道门、同一句回执（null → 路由的 404）。
+  if (!isUuid(projectId)) return null;
   const [row] = await db
     .update(projects)
     .set({ deletedAt: null })

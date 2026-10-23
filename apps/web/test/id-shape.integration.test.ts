@@ -10,13 +10,33 @@ import { DELETE as v1DeleteProject } from '../src/app/api/v1/projects/[projectId
 import { PATCH as adminChangeRole } from '../src/app/api/admin/users/[id]/route';
 import { PATCH as adminChangePlan } from '../src/app/api/admin/users/[id]/plan/route';
 import { POST as characterChat } from '../src/app/api/projects/[projectId]/characters/[characterId]/chat/route';
+import { GET as jobStatusGet } from '../src/app/api/ai/jobs/[jobId]/route';
+import { POST as jobCancelPost } from '../src/app/api/ai/jobs/[jobId]/cancel/route';
+import { POST as approvalDecide, GET as approvalRead } from '../src/app/api/ai/tasks/[taskId]/approval/route';
+import { POST as taskRetryPost } from '../src/app/api/ai/tasks/[taskId]/retry/route';
+import { PATCH as reportStatusPatch } from '../src/app/api/admin/marketplace/reports/[id]/route';
+import { GET as assetFileGet } from '../src/app/api/assets/[assetId]/file/route';
+import { DELETE as assetDeleteRoute } from '../src/app/api/assets/[assetId]/route';
+import { POST as branchSwitchPost } from '../src/app/api/projects/[projectId]/branches/[branchId]/switch/route';
+import {
+  PATCH as characterProfilePatch,
+  DELETE as characterDeleteRoute,
+} from '../src/app/api/projects/[projectId]/characters/[characterId]/route';
+import { DELETE as memoryDeleteRoute } from '../src/app/api/projects/[projectId]/memories/[memoryId]/route';
+import { GET as snapshotReadRoute } from '../src/app/api/projects/[projectId]/snapshots/[snapshotId]/route';
+import { POST as snapshotRestorePost } from '../src/app/api/projects/[projectId]/snapshots/[snapshotId]/restore/route';
+import { GET as v1DesignGetRoute, PATCH as v1DesignPatchRoute } from '../src/app/api/v1/projects/[projectId]/design/route';
+import { POST as v1PublishPost } from '../src/app/api/v1/projects/[projectId]/publish/route';
+import { POST as projectRestorePost } from '../src/app/api/projects/[projectId]/restore/route';
+import { GET as gameCodeGetRoute } from '../src/app/api/projects/[projectId]/game/code/route';
+import { GET as publicAssetGetRoute } from '../src/app/api/public/[handle]/assets/[assetId]/route';
 import { GET as listTasks } from '../src/app/api/projects/[projectId]/tasks/route';
 import { GET as getMarketPreview } from '../src/app/api/marketplace/[id]/preview/route';
 import { POST as purchaseMarketItem } from '../src/app/api/marketplace/[id]/purchase/route';
 import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
 import { SESSION_COOKIE } from '../src/server/domain/session';
 import { isUuid } from '../src/server/domain/ids';
-import { createProject, projectBelongsTo } from '../src/server/domain/projects';
+import { createProject, projectBelongsTo, restoreProject, softDeleteProject } from '../src/server/domain/projects';
 import { plannedTask } from '../src/server/domain/agent-tasks';
 import { revokeApiToken } from '../src/server/domain/api-tokens';
 import { deleteAnnotation } from '../src/server/domain/annotations';
@@ -565,4 +585,302 @@ describe('域层与路由层：v1 软删 / admin 改角色与档位 / 角色对�
     expect(chat.status).toBe(409);
     expect((await chat.json()).error).toBe('demo_mode');
   });
+});
+
+/**
+ * 第二十三片（#176）：`restoreProject` 的形状门，与其余动态参数路由的全扫。
+ *
+ * 探针五打的是 id-shape 前几片没覆盖到的动态参数路由。20 条里只有一条真漏了：
+ * `POST /api/projects/<id>/restore`。恢复这条路**直达域层**（不像别的项目路由先过
+ * `projectBelongsTo`），而 `restoreProject` 的 UPDATE 是裸 `eq(projects.id, …)`——
+ * 非 UUID 的 id 撞 22P02，路由 catch 住变 500「恢复失败」，而它只是一次打错的请求。
+ * 修法同族：形状不对按"不存在"处理，回 404，与 softDeleteProject 同一道门同一句回执。
+ *
+ * 其余 19 条这一趟全部实测过：各自的守卫（域层 isUuid / 先过 projectBelongsTo）都拦得住。
+ * 它们没有修复动作，收编在这里是为了**锁住"不打 500"这条不变式**——将来哪条路由的
+ * 守卫被摘掉，这张表当场红。请求体都按各路由的契约填满（角色档案、v1 补丁带 summary），
+ * 确保每一发都真的走到数据库那一行，而不是在 zod 那层空转（#170 的教训）。
+ */
+describe('域层与路由层：restoreProject 的形状门与动态参数路由全扫（#176）', () => {
+  let creatorBearer = '';
+
+  beforeAll(async () => {
+    creatorBearer = (
+      await issueApiToken({
+        userId: creator.id,
+        name: '形状门-凭据',
+        scopes: ['projects:read', 'projects:write', 'publish:write', 'design:read', 'design:write'],
+      })
+    ).token;
+  }, 60_000);
+
+  it('域层：restoreProject 对非 UUID → null，不抛（修复前 eq(projects.id, …) 撞 22P02）', async () => {
+    await expect(restoreProject(creator.id, 'not-a-uuid')).resolves.toBeNull();
+  });
+
+  it('POST /api/projects/not-a-uuid/restore → 404（修复前 500：恢复路直达域层，不过 projectBelongsTo）', async () => {
+    const res = await projectRestorePost(
+      new Request('http://test.local/api/projects/not-a-uuid/restore', {
+        method: 'POST',
+        headers: asUser(creatorToken, true),
+      }),
+      { params: Promise.resolve({ projectId: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it('正对照：真项目没删过 → 404；软删之后恢复 → 200（守卫只挡坏形状，不挡合法 id）', async () => {
+    const name = `形状门-恢复正对照 ${Date.now()}`;
+    const made = await createProject(creator.id, { name, kind: 'website' });
+    // 没删过的项目：恢复不动它——404 而不是一句"恢复成功"但其实什么都没发生的 200
+    const untouched = await projectRestorePost(
+      new Request(`http://test.local/api/projects/${made.id}/restore`, {
+        method: 'POST',
+        headers: asUser(creatorToken, true),
+      }),
+      { params: Promise.resolve({ projectId: made.id }) },
+    );
+    expect(untouched.status).toBe(404);
+
+    const deleted = await softDeleteProject(creator.id, made.id, name);
+    expect(deleted).toMatchObject({ ok: true });
+    const restored = await projectRestorePost(
+      new Request(`http://test.local/api/projects/${made.id}/restore`, {
+        method: 'POST',
+        headers: asUser(creatorToken, true),
+      }),
+      { params: Promise.resolve({ projectId: made.id }) },
+    );
+    expect(restored.status).toBe(200);
+    expect((await restored.json()).restored).toBe(true);
+  }, 60_000);
+
+  it('其余 19 条动态参数路由：not-a-uuid 一律走到数据库再答"不存在"，没有一个 500', async () => {
+    const bearer = { authorization: `Bearer ${creatorBearer}` };
+    const bad = 'not-a-uuid';
+    const real = realProjectId;
+    const probes: Array<{ name: string; want: number; run: () => Promise<Response> }> = [
+      {
+        name: 'GET /api/ai/jobs/not-a-uuid',
+        want: 404,
+        run: () =>
+          jobStatusGet(new Request('http://test.local/api/ai/jobs/not-a-uuid', { headers: asUser(creatorToken) }), {
+            params: Promise.resolve({ jobId: bad }),
+          }),
+      },
+      {
+        name: 'POST /api/ai/jobs/not-a-uuid/cancel',
+        want: 404,
+        run: () =>
+          jobCancelPost(
+            new Request('http://test.local/api/ai/jobs/not-a-uuid/cancel', {
+              method: 'POST',
+              headers: asUser(creatorToken, true),
+            }),
+            { params: Promise.resolve({ jobId: bad }) },
+          ),
+      },
+      {
+        name: 'POST /api/ai/tasks/not-a-uuid/approval',
+        want: 404,
+        run: () =>
+          approvalDecide(
+            new Request('http://test.local/api/ai/tasks/not-a-uuid/approval', {
+              method: 'POST',
+              headers: asUser(creatorToken, true),
+              body: JSON.stringify({ decision: 'approve' }),
+            }),
+            { params: Promise.resolve({ taskId: bad }) },
+          ),
+      },
+      {
+        name: 'GET /api/ai/tasks/not-a-uuid/approval',
+        want: 404,
+        run: () =>
+          approvalRead(new Request('http://test.local/api/ai/tasks/not-a-uuid/approval', { headers: asUser(creatorToken) }), {
+            params: Promise.resolve({ taskId: bad }),
+          }),
+      },
+      {
+        name: 'POST /api/ai/tasks/not-a-uuid/retry',
+        want: 404,
+        run: () =>
+          taskRetryPost(
+            new Request('http://test.local/api/ai/tasks/not-a-uuid/retry', {
+              method: 'POST',
+              headers: asUser(creatorToken, true),
+            }),
+            { params: Promise.resolve({ taskId: bad }) },
+          ),
+      },
+      {
+        name: 'PATCH /api/admin/marketplace/reports/not-a-uuid',
+        want: 404,
+        run: () =>
+          reportStatusPatch(
+            new Request('http://test.local/api/admin/marketplace/reports/not-a-uuid', {
+              method: 'PATCH',
+              headers: asUser(adminToken, true),
+              body: JSON.stringify({ status: 'reviewing' }),
+            }),
+            { params: Promise.resolve({ id: bad }) },
+          ),
+      },
+      {
+        name: 'GET /api/assets/not-a-uuid/file',
+        want: 404,
+        run: () =>
+          assetFileGet(new Request('http://test.local/api/assets/not-a-uuid/file', { headers: asUser(creatorToken) }), {
+            params: Promise.resolve({ assetId: bad }),
+          }),
+      },
+      {
+        name: 'DELETE /api/assets/not-a-uuid',
+        want: 404,
+        run: () =>
+          assetDeleteRoute(
+            new Request('http://test.local/api/assets/not-a-uuid', { method: 'DELETE', headers: asUser(creatorToken, true) }),
+            { params: Promise.resolve({ assetId: bad }) },
+          ),
+      },
+      {
+        // switchBranch 的形状门在 branches.ts：projectId / branchId 两个都验
+        name: 'POST /api/projects/<真项目>/branches/not-a-uuid/switch',
+        want: 400,
+        run: () =>
+          branchSwitchPost(
+            new Request(`http://test.local/api/projects/${real}/branches/not-a-uuid/switch`, {
+              method: 'POST',
+              headers: asUser(creatorToken, true),
+            }),
+            { params: Promise.resolve({ projectId: real, branchId: bad }) },
+          ),
+      },
+      {
+        // 补丁报文按 CharacterProfileSchema 填满：空转到 zod 那层的 400 不算走到守卫
+        name: 'PATCH /api/projects/<真项目>/characters/not-a-uuid',
+        want: 400,
+        run: () =>
+          characterProfilePatch(
+            new Request(`http://test.local/api/projects/${real}/characters/not-a-uuid`, {
+              method: 'PATCH',
+              headers: asUser(creatorToken, true),
+              body: JSON.stringify({
+                profile: {
+                  name: '形状门',
+                  appearance: '',
+                  personality: '',
+                  backstory: '',
+                  goals: [],
+                  fears: [],
+                  relationships: [],
+                  voice: { register: '', pace: '', catchphrases: [], notes: '' },
+                  visualIdentity: { palette: [], silhouette: '', motifs: [], referenceAssetId: null },
+                },
+              }),
+            }),
+            { params: Promise.resolve({ projectId: real, characterId: bad }) },
+          ),
+      },
+      {
+        name: 'DELETE /api/projects/<真项目>/characters/not-a-uuid',
+        want: 404,
+        run: () =>
+          characterDeleteRoute(
+            new Request(`http://test.local/api/projects/${real}/characters/not-a-uuid`, {
+              method: 'DELETE',
+              headers: asUser(creatorToken, true),
+            }),
+            { params: Promise.resolve({ projectId: real, characterId: bad }) },
+          ),
+      },
+      {
+        name: 'DELETE /api/projects/<真项目>/memories/not-a-uuid',
+        want: 404,
+        run: () =>
+          memoryDeleteRoute(
+            new Request(`http://test.local/api/projects/${real}/memories/not-a-uuid`, {
+              method: 'DELETE',
+              headers: asUser(creatorToken, true),
+            }),
+            { params: Promise.resolve({ projectId: real, memoryId: bad }) },
+          ),
+      },
+      {
+        name: 'GET /api/projects/<真项目>/snapshots/not-a-uuid',
+        want: 404,
+        run: () =>
+          snapshotReadRoute(new Request(`http://test.local/api/projects/${real}/snapshots/not-a-uuid`, { headers: asUser(creatorToken) }), {
+            params: Promise.resolve({ projectId: real, snapshotId: bad }),
+          }),
+      },
+      {
+        name: 'POST /api/projects/<真项目>/snapshots/not-a-uuid/restore',
+        want: 400,
+        run: () =>
+          snapshotRestorePost(
+            new Request(`http://test.local/api/projects/${real}/snapshots/not-a-uuid/restore`, {
+              method: 'POST',
+              headers: asUser(creatorToken, true),
+            }),
+            { params: Promise.resolve({ projectId: real, snapshotId: bad }) },
+          ),
+      },
+      {
+        name: 'GET /api/v1/projects/not-a-uuid/design',
+        want: 404,
+        run: () =>
+          v1DesignGetRoute(new Request('http://test.local/api/v1/projects/not-a-uuid/design', { headers: bearer }), {
+            params: Promise.resolve({ projectId: bad }),
+          }),
+      },
+      {
+        // summary 是 ApiDesignPatchRequestSchema 的必填项：不带它 400 出自 zod，守卫根本没被走到
+        name: 'PATCH /api/v1/projects/not-a-uuid/design',
+        want: 404,
+        run: () =>
+          v1DesignPatchRoute(
+            new Request('http://test.local/api/v1/projects/not-a-uuid/design', {
+              method: 'PATCH',
+              headers: { ...bearer, 'content-type': 'application/json' },
+              body: JSON.stringify({ summary: '形状门', ops: [{ op: 'removePage', pageId: bad }] }),
+            }),
+            { params: Promise.resolve({ projectId: bad }) },
+          ),
+      },
+      {
+        name: 'POST /api/v1/projects/not-a-uuid/publish',
+        want: 404,
+        run: () =>
+          v1PublishPost(
+            new Request('http://test.local/api/v1/projects/not-a-uuid/publish', {
+              method: 'POST',
+              headers: { ...bearer, 'content-type': 'application/json' },
+              body: JSON.stringify({ visibility: 'unlisted' }),
+            }),
+            { params: Promise.resolve({ projectId: bad }) },
+          ),
+      },
+      {
+        name: 'GET /api/projects/not-a-uuid/game/code',
+        want: 404,
+        run: () =>
+          gameCodeGetRoute(new Request('http://test.local/api/projects/not-a-uuid/game/code', { headers: asUser(creatorToken) }), {
+            params: Promise.resolve({ projectId: bad }),
+          }),
+      },
+      {
+        name: 'GET /api/public/<handle>/assets/not-a-uuid',
+        want: 404,
+        run: () =>
+          publicAssetGetRoute(new Request('http://test.local/api/public/nobody/assets/not-a-uuid', {}), {
+            params: Promise.resolve({ handle: 'nobody', assetId: bad }),
+          }),
+      },
+    ];
+    for (const probe of probes) {
+      const res = await probe.run();
+      expect(res.status, probe.name).toBe(probe.want);
+    }
+  }, 120_000);
 });
