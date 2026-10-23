@@ -1592,8 +1592,18 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 - [~] Credits 与订阅（Free/Pro/Creator/Studio/Enterprise），消费透明（§133-134）
   —— 第一片已落地（账本 + 一类消费 + 一格拦截）；第二片把 storage 那一格也接上真的执行方
   （摄取门里拒绝新字节，413，见文末"§133/§134 第二片"与 ADR-0018）；
-  欠的是 image/video/compute 三类的消耗方、generation/team collaboration/publishing 三格的执行方
   （~~改档位的入口~~ 已在 2026-09-30 接上：`/admin/users` 的档位选择，见 ADR-0021）
+  **2026-10-23 核对后改口径**：原句"欠 generation 的执行方"是**过期行**——
+  generation 这一类**消费早已落地**：`chargeGeneration` 在同步收尾（`finishTask`）
+  与审批批准（`decideApproval`：挂起那一次 `deliver` 没走收尾，补丁落地这一次要照扣，
+  否则"走审批门的那条路免费"）两处调用，`credit_ledger_task_kind_key` 部分唯一索引
+  挡住任何第二次写（重试、批准后作业又被轮询到，都只留一行账）。
+  §133 五格的今天：**AI usage 与 storage 有真拦截方**（`refusalFor` / `refusalForStorage`，
+  界面那列"已生效 / 还没拦截方"读 `ENFORCED_PLAN_AXES`）；**generation 记账但不拦截**
+  （扣点照扣，没有"超了就不许生成"的那道闸）；team collaboration 与 publishing
+  只有 `PLAN_LIMITS` 里的数字、没有执行方。仍欠的是 image/video/compute 三类的
+  **消耗方**——要 §38/§40 的真生成端点（没有 provider 就不造假消耗，§159），
+  以及 generation 那一格从"记账"升"拦截"。
 
 ## M8 — 开放能力（§188）
 - [x] MCP、外部 Agent、公开 API —— **2026-10-21 核实后升格**（这一格原来挂着 `[~]`，理由是"还有几件事没做"，
