@@ -300,15 +300,28 @@ describe('artifact — a posted value cannot wear an attribute (M7 v295)', () =>
     carriedAsData(renderArtifactHtml({ document: bordered }), 5, 'solid rgba(0, 0, 0,');
   });
 
-  it('carries geometry, opacity, rotation and a radius that are not numbers as data', () => {
-    // All four are typed as NUMBER, and `layoutPage` computes `origin.x + node.x` — string concatenation, not
-    // a NaN — so the authored bytes reach the declaration verbatim and each needed its own witness.
-    const doc = oneBox(createEmptyDocument('Harbour'), {
-      x: asNumber(6), opacity: asNumber(7), rotation: asNumber(8), cornerRadius: asNumber(9),
-    });
+  it('refuses a geometry that is not a number, and carries opacity, rotation and a radius as data', () => {
+    // v426 moved the POSITION site: `left`/`top`/`width`/`height` are read from the rect `layoutPage` emits,
+    // and a node whose own authored geometry is not a finite number gets no rect, so `nodeToHtml` writes no
+    // div for it — the posted bytes now never reach the page, as markup OR as data. `opacity`, `rotation` and
+    // `cornerRadius` are read off the NODE and still interpolate verbatim, so they keep their escape witness.
+    // The honest box is both: it carries the three sites, and it is the belt that proves the refused box's
+    // absence is a refusal and not a document that never renders.
+    const refused = rectNode('Refused', { id: 'r', x: asNumber(6), y: 10, width: 100, height: 40 } as never);
+    const honest = rectNode('Honest', {
+      id: 'h', x: 10, y: 10, width: 100, height: 40,
+      opacity: asNumber(7), rotation: asNumber(8), cornerRadius: asNumber(9),
+    } as never);
+    const doc0 = createEmptyDocument('Harbour');
+    // TWO addSubtree ops: the reducer wires only `nodes[0]` of one op to the parent, so a second box passed
+    // in the same array would live in `nodes` and be walked by nobody — an empty page dressed up as a refusal.
+    const doc = applyBatch(doc0, { id: 'b', ops: [ops.addSubtree(doc0.activePageId, 0, [honest]), ops.addSubtree(doc0.activePageId, 0, [refused])], provenance: { mode: 'user' }, timestamp: 0 });
     const html = renderArtifactHtml({ document: doc });
-    const sites = [['left:', 6], ['opacity:', 7], ['rotate(', 8], ['border-radius:', 9]] as const;
-    for (const [at, n] of sites) carriedAsData(html, n, at);
+
+    expect(Object.keys(doc.nodes), 'both boxes are in the document').toEqual(expect.arrayContaining(['r', 'h']));
+    expect((html.match(/position:absolute/g) ?? []).length, 'one refused box costs one div, not the drawing').toBe(1);
+    for (const [at, n] of [['opacity:', 7], ['rotate(', 8], ['border-radius:', 9]] as const) carriedAsData(html, n, at);
+    for (const spelling of ['EVIL6', 'ART6']) expect(html, `${spelling} is refused before it is written`).not.toContain(spelling);
   });
 
   it('refuses to let a token value close the `<style>` block the page writes about itself', () => {
@@ -343,15 +356,18 @@ describe('artifact — a posted value cannot wear an attribute (M7 v295)', () =>
     expect((html.match(/<\/style>/g) ?? []).length, 'one style element, written by the renderer').toBe(1);
   });
 
-  it('refuses to let the page’s own width reach the stage rule as markup', () => {
+  it('refuses the page’s own non-number width, so the bytes never reach the stage rule', () => {
     const doc0 = createEmptyDocument('Harbour');
-    // The stage rule is the one place the PAGE node's authored geometry is written, and `layoutPage` passes it
-    // through unrounded — so the block that styles the whole page was open from the same JSON.
+    // The stage rule is the one place the PAGE's size is written, and it reads the rect `layoutPage` emits —
+    // whose size is `step(...)`. A width that is not a number therefore falls back to 0 (v426) instead of
+    // travelling to `cssValue` as markup; the neighbour below pins the honest `width:1440px`, which is what
+    // makes `width:0px` here a reading about the refusal rather than about a missing rule.
     const doc = { ...doc0, nodes: { ...doc0.nodes, [doc0.activePageId]: { ...doc0.nodes[doc0.activePageId], width: '1440}</style><img src=z onerror="ART22">' } } } as unknown as DesignDocument;
     const html = renderArtifactHtml({ document: doc });
 
     expect(html).not.toContain('<img src=z');
-    expect(html).toContain('\\22 ART22\\22 ');
+    for (const spelling of ['1440}', 'ART22', '\\22 ']) expect(html, `${spelling} is refused before it is written`).not.toContain(spelling);
+    expect(html, 'the stage rule is there and reads the fallback').toContain('width:0px;height:900px');
     expect((html.match(/<\/style>/g) ?? []).length, 'one style element, written by the renderer').toBe(1);
   });
 
