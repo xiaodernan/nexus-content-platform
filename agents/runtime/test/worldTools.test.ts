@@ -3,6 +3,7 @@ import { ToolRegistry } from '../src/registry.js';
 import {
   WORLD_LOCATION_TYPES,
   WORLD_LORE_CATEGORIES,
+  WORLD_SIMULATE_MAX_STEPS,
   WORLD_TOOL_SPECS,
   registerWorldTools,
   type WorldDriver,
@@ -362,5 +363,45 @@ describe('world tools — v162: the world simulates and its bonds are readable',
     const r = await invoke('world.simulate', { steps: 1 });
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/not a function/);
+  });
+});
+
+/**
+ * v467 — the simulate door’s CEILING, graded directly.
+ *
+ * `WORLD_SIMULATE_MAX_STEPS` is the one number that keeps one call from moving the world forever. The
+ * cases above ask what happens to steps that are not positive whole numbers; the ceiling itself — the
+ * boundary at the cap, and one step past it naming the cap and the remedy — had never been asked.
+ */
+describe('world tools — v467: the simulate ceiling', () => {
+  it('the cap is a positive whole number — a ceiling that is not a count is not a ceiling', () => {
+    expect(Number.isInteger(WORLD_SIMULATE_MAX_STEPS)).toBe(true);
+    expect(WORLD_SIMULATE_MAX_STEPS).toBeGreaterThan(0);
+  });
+
+  it('a call at exactly the cap moves the world — the boundary is inclusive', async () => {
+    const { invoke, calls } = wired();
+    const r = await invoke('world.simulate', { steps: WORLD_SIMULATE_MAX_STEPS });
+    expect(r.ok).toBe(true);
+    expect(calls).toContain(`simulate:${WORLD_SIMULATE_MAX_STEPS}`);
+  });
+
+  it('one step past the cap is refused, naming the cap and the remedy — and the world does not move', async () => {
+    const { invoke, calls } = wired();
+    const r = await invoke('world.simulate', { steps: WORLD_SIMULATE_MAX_STEPS + 1 });
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain(String(WORLD_SIMULATE_MAX_STEPS));
+    expect(r.error).toContain('call it again for more');
+    expect(calls.some((c) => c.startsWith('simulate'))).toBe(false);
+  });
+
+  it('the refusal is the same rule at any distance past the cap — not a range check', async () => {
+    const { invoke, calls } = wired();
+    for (const steps of [WORLD_SIMULATE_MAX_STEPS + 1, 1_000_000, Number.MAX_SAFE_INTEGER]) {
+      const r = await invoke('world.simulate', { steps });
+      expect(r.ok, String(steps)).toBe(false);
+      expect(r.error, String(steps)).toContain(String(WORLD_SIMULATE_MAX_STEPS));
+    }
+    expect(calls.some((c) => c.startsWith('simulate'))).toBe(false);
   });
 });
