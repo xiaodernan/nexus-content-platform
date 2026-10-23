@@ -6,7 +6,7 @@ import { getDb } from '../db/client';
 import { recordAudit } from './audit';
 import { assets, games, projects, publishedProjects, users } from '../db/schema';
 import { recordScan, scanPublication, type AssetProvenance, type ModerationScan } from './moderation';
-import { loadDocument } from './projects';
+import { loadDocument, lockProjectWrites } from './projects';
 import { currentBranchId } from './branches';
 import { emit } from './notifications';
 import { createSnapshot, readSnapshot } from './snapshots';
@@ -184,14 +184,6 @@ export async function publishProject(
 
   const handle = await ensureHandle(project.ownerId);
   const path = `/n/${handle}/${project.slug}`;
-  const snapshot = await createSnapshot(projectId, {
-    document,
-    source: 'publish',
-    label: `发布 v${version}`,
-    summary: `可见性：${input.visibility}`,
-    branchId: await currentBranchId(projectId),
-    createdById: input.createdById,
-  });
   // §50 / ADR-0009：游戏设计一起钉进这一版。原样存，不在这里做"能解析才存"的筛选——
   // 解析失败要在公开页上明说，而不是悄悄变成"这个游戏没有内容"
   const [gameRow] = await db
@@ -200,46 +192,74 @@ export async function publishProject(
     .where(eq(games.projectId, projectId))
     .limit(1);
 
-  let row: typeof publishedProjects.$inferSelect | undefined;
-  if (existing) {
-    // 一条 path 一行：换版本而不是新增，否则同一个 URL 会有两行在抢唯一索引
-    [row] = await db
-      .update(publishedProjects)
-      .set({
-        snapshotId: snapshot.id,
-        gameDocument: gameRow?.document ?? null,
-        visibility: input.visibility,
-        version,
-        publishedById: input.createdById,
-        publishedAt: new Date(),
-      })
-      .where(eq(publishedProjects.id, existing.id))
-      .returning();
-  } else {
-    [row] = await db
-      .insert(publishedProjects)
-      .values({
-        projectId,
-        snapshotId: snapshot.id,
-        gameDocument: gameRow?.document ?? null,
-        path,
-        visibility: input.visibility,
-        version: 1,
-        publishedById: input.createdById,
-      })
-      .returning();
-  }
+  // 读—改—写整段串行（ADR-0016 的 advisory lock，与 saveDocument 同一把）：两个标签页同时点
+  // 发布时，锁外两次都会读到"还没有这一行"，然后双双 insert 同一条 path——撞
+  // published_path_key（23505）⇒ 整个请求 500。锁内重读让第二次看到第一次落下的行，
+  // 走"换版本"（v1 → v2）；快照标签与公开行的版本号在锁内同源定，两个回执各自如实。
+  // 上面那次锁外读取只服务"被挡下时记第几版"（那条路不写公开行）。
+  const written = await db.transaction(
+    async (tx): Promise<{ row: typeof publishedProjects.$inferSelect; snapshotId: string }> => {
+    await lockProjectWrites(tx, projectId);
+    const [current] = await tx
+      .select()
+      .from(publishedProjects)
+      .where(eq(publishedProjects.projectId, projectId))
+      .orderBy(desc(publishedProjects.version))
+      .limit(1);
+    const nextVersion = (current?.version ?? 0) + 1;
+    // 快照在锁内创建：标签里的版本号与即将写进公开行的那一个同源
+      const snapshot = await createSnapshot(projectId, {
+        document,
+        source: 'publish',
+        label: `发布 v${nextVersion}`,
+        summary: `可见性：${input.visibility}`,
+        branchId: await currentBranchId(projectId),
+        createdById: input.createdById,
+      });
+      if (current) {
+        // 一条 path 一行：换版本而不是新增，否则同一个 URL 会有两行在抢唯一索引
+        const [updated] = await tx
+          .update(publishedProjects)
+          .set({
+            snapshotId: snapshot.id,
+            gameDocument: gameRow?.document ?? null,
+            visibility: input.visibility,
+            version: nextVersion,
+            publishedById: input.createdById,
+            publishedAt: new Date(),
+          })
+          .where(eq(publishedProjects.id, current.id))
+          .returning();
+        if (!updated) throw new Error('发布更新没有写进任何行');
+        return { row: updated, snapshotId: snapshot.id };
+      }
+      const [inserted] = await tx
+        .insert(publishedProjects)
+        .values({
+          projectId,
+          snapshotId: snapshot.id,
+          gameDocument: gameRow?.document ?? null,
+          path,
+          visibility: input.visibility,
+          version: nextVersion,
+          publishedById: input.createdById,
+        })
+        .returning();
+      if (!inserted) throw new Error('发布插入没有写进任何行');
+      return { row: inserted, snapshotId: snapshot.id };
+    },
+  );
   await db.update(projects).set({ visibility: input.visibility }).where(eq(projects.id, projectId));
+  const publication = toPublication(written.row);
   if (outward) {
     await recordScan({
       projectId,
-      publicationId: row!.id,
-      publicationVersion: version,
+      publicationId: publication.id,
+      publicationVersion: publication.version,
       visibility: input.visibility,
       scan,
     });
   }
-  const publication = toPublication(row!);
   // §80 / §84：把一页内容放到公网上这一步，是"谁在什么时候让外面能看到的"这个问题的答案。
   // 记的是这次发布本身（含切成 private 的下架），不是发布尝试失败——那类原因在案卷里
   await recordAudit({
@@ -248,7 +268,7 @@ export async function publishProject(
     targetType: 'publication',
     targetId: publication.id,
     allowed: true,
-    detail: { visibility: input.visibility, version, path: publication.path },
+    detail: { visibility: input.visibility, version: publication.version, path: publication.path },
   });
   // §164：四类里只有"发布完成"今天真的有服务端终态，所以它是这一条的主体而不是装饰。
   // 收件人是项目所有者——他可能已经把这个标签页关掉了，回执不该只活在刚才那次请求里。
@@ -259,13 +279,13 @@ export async function publishProject(
     projectName: project.name,
     publicationId: publication.id,
     path: publication.path,
-    version,
+    version: publication.version,
     visibility: input.visibility,
   });
   // 到这里才是"这一版构建产物真的落库了"：publication 行写好、审计与通知都记上了
-  emitBuildStatus(projectId, 'ok', `v${version} · ${publication.path} · 可见性 ${input.visibility}`);
+  emitBuildStatus(projectId, 'ok', `v${publication.version} · ${publication.path} · 可见性 ${input.visibility}`);
   await publishPreviewStatus(projectId, publication.path, outward);
-  return { ok: true, publication, gate, scan, snapshotId: snapshot.id };
+  return { ok: true, publication, gate, scan, snapshotId: written.snapshotId };
 }
 
 export async function getPublication(projectId: string): Promise<Publication | null> {

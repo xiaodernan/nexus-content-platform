@@ -120,6 +120,34 @@ describe('发布与分享（真实数据库）', () => {
     expect(otherId).toBeTruthy();
   });
 
+  it('并发双发发布不再 500：一条 path 一行，两个回执都与库里一致', async () => {
+    // 两个标签页同时点发布：两次都读到"还没有这一行"时，第二次 insert 会撞
+    // published_path_key（23505）⇒ 整个请求 500。修复前 Promise.all 两发稳定复现。
+    const id = await newProject('Publish Race');
+    const [a, b] = await Promise.all([
+      publishProject(id, { visibility: 'public', createdById: ownerId }),
+      publishProject(id, { visibility: 'public', createdById: ownerId }),
+    ]);
+    if (!a || !a.ok) throw new Error('并发里的第一次发布失败了');
+    if (!b || !b.ok) throw new Error('并发里的第二次发布失败了');
+    // 一条 path 一行：两发指向同一行，不会同一 URL 两行抢唯一索引
+    expect(b.publication.id).toBe(a.publication.id);
+    expect(b.publication.path).toBe(a.publication.path);
+    const db = getDb();
+    const rows = await db
+      .select({ snapshotId: publishedProjects.snapshotId, version: publishedProjects.version })
+      .from(publishedProjects)
+      .where(eq(publishedProjects.projectId, id));
+    expect(rows).toHaveLength(1);
+    // 串行化之后第二次走"换版本"：库里那一行是 v2，钉的是两发里后到的那一版快照
+    // （先回执的那一份在它回执的瞬间为真，随后被后者取代——与顺序发布两次同一语义）
+    expect(rows[0]!.version).toBe(2);
+    expect([a.publication.snapshotId, b.publication.snapshotId]).toContain(rows[0]!.snapshotId);
+    // 两次发布各自钉的快照都留在历史里：发布一次一版，没有哪一版被悄悄吞掉
+    const snaps = await listSnapshots(id);
+    expect(snaps.filter((s) => s.source === 'publish')).toHaveLength(2);
+  });
+
   it('公开链接锁的是发布那一刻：之后再改工作区也不会换掉它', async () => {
     const id = await newProject('Publish Pin');
     const first = await publishProject(id, { visibility: 'public', createdById: ownerId });
