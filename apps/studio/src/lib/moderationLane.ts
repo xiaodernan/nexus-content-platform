@@ -7,17 +7,21 @@
 import { toDeskRows, type DeskRow, type TallyFacts } from './moderation';
 
 /**
- * How long a write may take. A hung request is worse than a refused one: the panel would sit there
- * saying nothing.
+ * How long a call to the Studio's own door may take — a READ or a write alike. A hung request is worse
+ * than a refused one: the panel would sit there saying nothing.
  *
  * It is 45 seconds, not 10, for the reason the tips lane records: the Studio's own door is a `next dev`
  * server, and the FIRST call to a route pays that route's compile.
+ *
+ * v480 — the READ rides it too. `readDesk` fetched with no signal at all, so a door that never answered
+ * hung the owner's desk forever with no reason to show; a budget that covers only the writes is a
+ * budget that believes only the writes can hang.
  */
-const WRITE_TIMEOUT_MS = 45_000;
+export const CALL_TIMEOUT_MS = 45_000;
 
 /** A signal that aborts the request when it takes too long. */
 function callSignal(): AbortSignal {
-  return AbortSignal.timeout(WRITE_TIMEOUT_MS);
+  return AbortSignal.timeout(CALL_TIMEOUT_MS);
 }
 
 export interface DeskLaneAnswer {
@@ -76,7 +80,7 @@ export async function readDesk(
     const narrowed = reason && reason.trim() !== '' ? `&reason=${encodeURIComponent(reason.trim())}` : '';
     const res = await fetchImpl(
       `/api/moderation?owner=${encodeURIComponent(ownerAccountId)}${narrowed}&offset=${encodeURIComponent(String(from))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: callSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {

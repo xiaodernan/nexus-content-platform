@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { fileReport, readMyReports, withdrawReport } from './reportLane';
+import { CALL_TIMEOUT_MS, fileReport, readMyReports, withdrawReport } from './reportLane';
 
 /**
  * M7 v305 — the browser half of the REPORTER’s view.
@@ -269,10 +269,10 @@ describe('reportLane — fileReport (v441)', () => {
     }
   });
 
-  it('the take-back carries NO budget of its own — pinned as measured, not as intended', async () => {
-    // The filing above carries 45 seconds; the withdrawal beside it sends no signal at all, so a
-    // door that never answers leaves the take-back hanging. Named here rather than left silent:
-    // this is the failure mode v337 was written for, and the next cycle can close it or defend it.
+  it('the take-back carries the lane’s budget — the gap this file named, closed at v480', async () => {
+    // This case used to pin the ABSENCE: the filing carried 45 seconds, the withdrawal beside it sent
+    // no signal at all, and a door that never answers left the take-back hanging. v480 closed it — the
+    // take-back rides the same budget as every other call of the lane.
     let seenInit: RequestInit | undefined;
     const fetchImpl = makeFetch((_url, init) => {
       seenInit = init;
@@ -281,6 +281,61 @@ describe('reportLane — fileReport (v441)', () => {
 
     await withdrawReport('rep-1', 'acct-bob', fetchImpl);
 
-    expect(seenInit?.signal).toBeUndefined();
+    expect(seenInit?.signal).toBeInstanceOf(AbortSignal);
+    expect(seenInit?.signal?.aborted).toBe(false);
+  });
+});
+
+describe('reportLane — every call rides the one budget (v480)', () => {
+  // v480 — the FILING rode the budget from the start, but the filed-reports READ and the take-back (a
+  // DELETE) fetched with no signal at all: a door that never answered hung both, with no reason to show.
+  it('the read and the take-back both carry a live, un-aborted signal', async () => {
+    const seen: Array<AbortSignal | undefined> = [];
+    const fetchImpl = makeFetch((_url, init) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(JSON.stringify({ ok: true, reports: [], count: 0, limit: 20 }), { status: 200 });
+    });
+
+    await readMyReports('acct-bob', fetchImpl);
+    await withdrawReport('rep-1', 'acct-bob', fetchImpl);
+
+    expect(seen).toHaveLength(2);
+    for (const signal of seen) {
+      expect(signal).toBeInstanceOf(AbortSignal);
+      expect(signal?.aborted).toBe(false);
+    }
+  });
+
+  it('the budget is the pinned 45 seconds on every call of the lane', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const claim = { accountId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local', claimedAt: 1_776_000_000_000 };
+      const fetchImpl = makeFetch(() => new Response(JSON.stringify({ ok: true, reports: [A_REPORT] }), { status: 200 }));
+      await fileReport('pub-1', 'harassment', 'the words the reporter wrote', claim, fetchImpl);
+      await readMyReports('acct-bob', fetchImpl);
+      await withdrawReport('rep-1', 'acct-bob', fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledTimes(3);
+      expect(timeoutSpy.mock.calls.map((c) => c[0])).toEqual([45_000, 45_000, 45_000]);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('each call gets its own fresh signal — a deadline per call, never a shared one', async () => {
+    const seen: Array<AbortSignal | undefined> = [];
+    const fetchImpl = makeFetch((_url, init) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(JSON.stringify({ ok: true, reports: [], count: 0, limit: 20 }), { status: 200 });
+    });
+
+    await readMyReports('acct-bob', fetchImpl);
+    await readMyReports('acct-bob', fetchImpl);
+
+    expect(seen[0]).toBeInstanceOf(AbortSignal);
+    expect(seen[0]).not.toBe(seen[1]);
+  });
+
+  it('the exported constant names the one number the whole lane rides', () => {
+    expect(CALL_TIMEOUT_MS).toBe(45_000);
   });
 });

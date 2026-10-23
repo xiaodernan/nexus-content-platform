@@ -14,6 +14,24 @@
  */
 import { toTrailRows, type TrailRow } from './trail';
 
+/**
+ * How long a call to the Studio's own door may take.
+ *
+ * A hung request is worse than a refused one: the panel would sit there saying nothing, and a person
+ * would wait for an answer that is never coming. The timeout turns a hang into a reason, which is the
+ * only shape this lane knows how to show.
+ *
+ * It is 45 seconds, not 10, for the reason every other lane records: the Studio's own door is a
+ * `next dev` server, and the FIRST call to a route pays that route's compile (v294). Until v480 this
+ * lane had no budget at all — the only lane that reads with no deadline, so a door that never answered
+ * hung the trail forever with no reason to show.
+ */
+export const CALL_TIMEOUT_MS = 45_000;
+
+/** A signal that aborts the request when it takes too long. */
+function callSignal(): AbortSignal {
+  return AbortSignal.timeout(CALL_TIMEOUT_MS);
+}
 /** What one read of the trail answered. */
 export interface TrailAnswer {
   ok: boolean;
@@ -73,6 +91,7 @@ export async function readTrail(
   try {
     const res = await fetchImpl(`/api/audit?limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(from))}${ask}`, {
       headers: { accept: 'application/json' },
+      signal: callSignal(),
     });
     if (!res.ok) {
       // The door answers a 503 with ITS OWN reason (the service was down, or it answered nonsense), and the

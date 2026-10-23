@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { acknowledgeReport, readDesk } from './moderationLane';
+import { CALL_TIMEOUT_MS, acknowledgeReport, readDesk } from './moderationLane';
 
 /**
  * M7 v415 — the browser half of the OWNER'S DESK, graded directly.
@@ -189,5 +189,46 @@ describe('acknowledgeReport — the browser says the owner has seen it (v415)', 
       throw new Error('network down');
     });
     expect((await acknowledgeReport('rep-9', 'acct-o', thrown.fetchImpl)).reason).toBe('network down');
+  });
+});
+
+describe('moderationLane — the read rides the budget (v480)', () => {
+  // v480 — `readDesk` fetched with no signal at all, so a door that never answered hung the owner's desk
+  // forever with no reason to show; the acknowledge already rode the budget.
+  it('the read carries a live, un-aborted signal', async () => {
+    const { fetchImpl, seen } = makeFetch(() => new Response(deskBody(1), { status: 200 }));
+
+    await readDesk('acct-o', null, 0, fetchImpl);
+
+    expect(seen[0]?.init?.signal).toBeInstanceOf(AbortSignal);
+    expect(seen[0]?.init?.signal?.aborted).toBe(false);
+  });
+
+  it('the budget is the pinned 45 seconds on both the read and the acknowledge', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const read = makeFetch(() => new Response(deskBody(1), { status: 200 }));
+      await readDesk('acct-o', null, 0, read.fetchImpl);
+      const write = makeFetch(() => new Response(JSON.stringify({ ok: true, moved: true, status: 'resolved' }), { status: 200 }));
+      await acknowledgeReport('rep-9', 'acct-o', write.fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledTimes(2);
+      expect(timeoutSpy.mock.calls.map((c) => c[0])).toEqual([45_000, 45_000]);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('each read gets its own fresh signal — a deadline per call, never a shared one', async () => {
+    const { fetchImpl, seen } = makeFetch(() => new Response(deskBody(1), { status: 200 }));
+
+    await readDesk('acct-o', null, 0, fetchImpl);
+    await readDesk('acct-o', null, 0, fetchImpl);
+
+    expect(seen[0]?.init?.signal).toBeInstanceOf(AbortSignal);
+    expect(seen[0]?.init?.signal).not.toBe(seen[1]?.init?.signal);
+  });
+
+  it('the exported constant names the one number the whole lane rides', () => {
+    expect(CALL_TIMEOUT_MS).toBe(45_000);
   });
 });

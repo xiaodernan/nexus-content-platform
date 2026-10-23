@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { readTrail } from './auditLane';
+import { CALL_TIMEOUT_MS, readTrail } from './auditLane';
 
 /**
  * M9 v272 — the browser half of the AUDIT TRAIL's reading lane.
@@ -159,5 +159,52 @@ describe('auditLane — readTrail (client half)', () => {
     const answer = await readTrail(20, null, 0, fetchImpl);
     expect(answer.ok).toBe(false);
     expect(answer.reason).toBe('network down');
+  });
+});
+
+describe('auditLane — the read finally has a budget (v480)', () => {
+  // v480 — this was the only lane that read with no deadline at all: a door that never answered hung the
+  // trail forever with no reason to show. The budget is the same 45 seconds every other lane rides.
+  it('the read carries a live, un-aborted signal', async () => {
+    let seenSignal: AbortSignal | undefined;
+    const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
+      seenSignal = init?.signal ?? undefined;
+      return new Response(JSON.stringify(TRAIL), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    await readTrail(20, null, 0, fetchImpl);
+
+    expect(seenSignal).toBeInstanceOf(AbortSignal);
+    expect(seenSignal?.aborted).toBe(false);
+  });
+
+  it('the budget is the pinned 45 seconds — the same number every other lane rides', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = vi.fn(async () => new Response(JSON.stringify(TRAIL), { status: 200 })) as unknown as typeof fetch;
+      await readTrail(20, null, 0, fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledTimes(1);
+      expect(timeoutSpy).toHaveBeenCalledWith(45_000);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('each read gets its own fresh signal — a deadline per call, never a shared one', async () => {
+    const seen: Array<AbortSignal | undefined> = [];
+    const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(JSON.stringify(TRAIL), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    await readTrail(20, null, 0, fetchImpl);
+    await readTrail(20, null, 0, fetchImpl);
+
+    expect(seen[0]).toBeInstanceOf(AbortSignal);
+    expect(seen[0]).not.toBe(seen[1]);
+  });
+
+  it('the exported constant names the one number the lane rides', () => {
+    expect(CALL_TIMEOUT_MS).toBe(45_000);
   });
 });

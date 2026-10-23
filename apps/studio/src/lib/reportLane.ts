@@ -6,19 +6,24 @@
  */
 
 /**
- * How long a write may take. A hung request is worse than a refused one: the composer would sit there
- * saying nothing.
+ * How long a call to the Studio's own door may take — a READ, a take-back, or a filing alike.
+ *
+ * A hung request is worse than a refused one: the composer would sit there saying nothing.
  *
  * v294 — and it is 45 seconds, not 10. The Studio's own door is a `next dev` server in this repository, and
  * the FIRST call to a route pays that route's compile: a ten-second timeout was killing requests that were
  * about to be answered, and the lane reported a timeout where the truth was "the server was still building
  * it".
+ *
+ * v480 — every call rides it now. The FILING rode it from the start, but the filed-reports READ and the
+ * take-back (a DELETE) fetched with no signal at all; a budget that covers only some of a lane's calls is
+ * a budget that believes only those calls can hang.
  */
-const WRITE_TIMEOUT_MS = 45_000;
+export const CALL_TIMEOUT_MS = 45_000;
 
 /** A signal that aborts the request when it takes too long. */
 function callSignal(): AbortSignal {
-  return AbortSignal.timeout(WRITE_TIMEOUT_MS);
+  return AbortSignal.timeout(CALL_TIMEOUT_MS);
 }
 
 export interface ReportLaneAnswer {
@@ -65,6 +70,7 @@ export async function readMyReports(
   try {
     const res = await fetchImpl(`/api/reports?reporter=${encodeURIComponent(accountId)}&offset=${encodeURIComponent(String(from))}`, {
       headers: { accept: 'application/json' },
+      signal: callSignal(),
     });
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -124,7 +130,7 @@ export async function withdrawReport(
   try {
     const res = await fetchImpl(
       `/api/reports?reportId=${encodeURIComponent(reportId)}&claimer=${encodeURIComponent(claimerAccountId)}`,
-      { method: 'DELETE', headers: { accept: 'application/json' } },
+      { method: 'DELETE', headers: { accept: 'application/json' }, signal: callSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
