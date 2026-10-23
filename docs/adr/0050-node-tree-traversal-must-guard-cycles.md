@@ -15,6 +15,10 @@
 | `nodes.ts` `walk` | 沿 `children` 递归 | 同上：栈溢出 |
 | `nodes.ts` `ancestors` | 沿 `parentId` 爬 | 同步死循环（`while` 不退出） |
 | `nodes.ts` `isDescendant` | 沿 `parentId` 爬 | 同上：死循环 |
+| `context-index.ts` `firstTextIn` | 沿 `children` BFS | 队列无限增长 → `buildDesignIndex` 挂死（连报错都没有） |
+| `codegen.ts` `renderTree` | 沿 `children` 递归 | 栈溢出（`RangeError`） |
+| `layout.ts` `measure` | 沿 `visibleChildren` 递归 | 同上：栈溢出（用**路径集合**：进栈 add / 出栈 delete，而非全局 visited——它会在不同约束下重复测量同节点，全局 visited 会误伤正常重测） |
+| `components.ts` `collect`（组件实例化收子树） | 沿 `node.children` 递归 | 同上：栈溢出 |
 
 **为什么本意是"报 cycle"却崩了**：`validatePage` 是**先调 `collectSubtree` 求 reachable、再跑自己的
 `detectCycle`**（`validate.ts`）。于是成环文档在第一行就先把 `collectSubtree` 撑爆——**cycle 检测根本没机会跑**。
@@ -30,12 +34,15 @@
 
 硬约束（回归判据）：
 1. **无环树的输出逐项不变**——加守卫只把"崩 / hang"变成"有界"，绝不改变正常语义。
-   （实证：全 design-model 25 文件 / 332 条回归绿。）
+   （实证：全 design-model 27 文件 / 339 条回归绿。）
 2. **成环必须终止而非崩**——回归用"成环不再抛 / 不再挂 + 无环树顺序·计数·ancestor 链不变"双断言钉死。
 
 横向清同族：修 `collectSubtree` 那一刻就该顺手扫的——凡是"沿 children 递归 / 沿 parentId 爬 且没有
-seen 或 depth 上限"的都是同一颗雷。本次把 `collectSubtree / descendants / walk / ancestors / isDescendant`
-五处一次清完，配套 `traversal-cycle.test.ts`。
+seen 或 depth 上限"的都是同一颗雷。第一批把 `collectSubtree / descendants / walk / ancestors / isDescendant`
+五处一次清完（配套 `traversal-cycle.test.ts`）；第二批沿"消费端"遍历补齐 `firstTextIn`（第 5 处，
+`context-index-cycle.test.ts`）、`renderTree`（codegen）、`measure`（layout）、`collect`（components 实例化），
+配套 `traversal-cycle-extra.test.ts`。每处都做了**变异探针**：摘掉守卫后对应测试立即 `RangeError` 变红，
+证明不是"即使代码坏掉也会通过"的废断言。
 
 ## 后果
 
@@ -45,5 +52,7 @@ seen 或 depth 上限"的都是同一颗雷。本次把 `collectSubtree / descen
 
 ## 未做 / 后续
 
-- `codegen` / `context-index` / `diff` / `serialize` 里若还有同型的"沿树递归无守卫"，按同一规则补齐。
+- `diff` / `serialize` 已横向核对：`diff.ts` 的 `walkLeaves` 走的是**值树**（不是节点树，不会成环），
+  `serialize.ts` 的 `stringify` 同样只递归 JSON 值、`serializePage` 用扁平 `Object.values` —— 二者均无节点树
+  成环风险，不必加守卫。`health.ts` 只遍历 `layout.nodes` 这张已展开的扁平表，也不递归节点树。
 - 更彻底：在补丁应用侧（`reparent` 一类）拒绝产生成环，把畸形文档挡在生成之前；本 ADR 只保证"即使生成了也不崩"。

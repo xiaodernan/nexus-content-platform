@@ -504,7 +504,9 @@ function classOf(node: DesignNode, parent: DesignNode | null, ctx: RenderCtx): s
   ].join(" ");
 }
 
-function renderTree(node: DesignNode, parent: DesignNode | null, ctx: RenderCtx, depth: number): string {
+function renderTree(node: DesignNode, parent: DesignNode | null, ctx: RenderCtx, depth: number, seen: Set<string> = new Set()): string {
+  if (seen.has(node.id)) return ""; // 防环：畸形 children 链不再无限递归（ADR-0050）
+  seen.add(node.id);
   const pad = "  ".repeat(depth + 2);
   const isRoot = !parent;
   const { tag, leaf, runtimeOnly } = elementFor(node, isRoot);
@@ -545,7 +547,7 @@ function renderTree(node: DesignNode, parent: DesignNode | null, ctx: RenderCtx,
   } else if (node.text) {
     body.push(`${pad}  ${jsxText(node.text)}`);
   }
-  for (const child of children) body.push(renderTree(child, node, ctx, depth + 1));
+  for (const child of children) body.push(renderTree(child, node, ctx, depth + 1, seen));
   if (!body.length) return `${open} />`;
   return `${open}>\n${body.join("\n")}\n${pad}</${tag}>`;
 }

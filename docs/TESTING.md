@@ -1871,3 +1871,15 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   加 seen 守卫，无环 BFS 顺序不变（全 design-model 27 文件 / 339 条回归绿）。`context-index-cycle.test.ts` 2 条：
   成环子树索引仍能建成（不再挂）+ Hero 的 textPreview 仍取到首段文字。
   **红证**：与 ancestors/isDescendant 同一型（同步死循环，连报错都不留）——同族已实证，未再单独跑一次挂起。
+
+- **2026-10-23：同族第 6–8 处——消费端遍历 `codegen.renderTree` / `layout.measure` / `components.collect`**
+  也都没带 seen 守卫，畸形成环文档会让它们栈溢出（`RangeError`）。三者分别：renderTree 沿 `childrenOf` 递归生成
+  React 组件、measure 沿 `visibleChildren` 递归自底向上测量、collect 沿 `node.children` 递归把组件实例子树收进只读投影。
+  各加循环守卫（renderTree 用传参 `Set`、collect 用闭包内 `Set`、measure 用**路径集合**——`measure` 会在不同约束
+  （可用宽高 / 深度）下重复测量同一节点 id，用全局 visited 会把正常重测误判成环、把子树塌成 0；改成进栈 add / 出栈 delete
+  （`try/finally`）的路径集合，只挡"当前路径上又遇到自己"的真环），
+  **无环树输出逐项不变**（全 design-model 27 文件 / 339 条回归绿作证）。
+  `traversal-cycle-extra.test.ts` 3 条：generatePageComponent / resolveLayout / applyInstanceOverrides 遇子环均终止且仍产出结果。
+  **变异探针**：摘掉三处守卫后这 3 条全部 `RangeError` 变红，恢复后全绿——证明不是「即使代码坏掉也会通过」的废断言。
+  **横向核对结论**：`diff.ts` 的 `walkLeaves` 走值树、`serialize.ts` 的 `stringify` 只递归 JSON 值、`health.ts` 只遍历
+  已展开的扁平 `layout.nodes` 表——三者均无节点树成环风险，不需补守卫（见 ADR-0050「未做/后续」）。

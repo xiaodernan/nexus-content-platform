@@ -496,8 +496,15 @@ function runLayout(
   };
 
   /** 自底向上测量：avail 为父级给定的约束（null 表示无约束） */
+  // 防环（ADR-0050 第 7 处）：沿**当前递归路径**记 seen，进栈 add、出栈 delete。
+  // 同一节点会在不同约束（可用宽高 / 深度）下被**重复测量**（缓存按约束分键），用全局 visited 会把
+  // 正常重测误判成环、把子树塌成 0；路径集合只挡"当前路径上又遇到自己"的真环。
+  const path = new Set<string>();
   const measure = (rawNode: DesignNode, avail: Box2, depth = 0): Box => {
     const node = applyResponsive(rawNode, breakpoint);
+    if (path.has(node.id)) return { width: 0, height: 0 };
+    path.add(node.id);
+    try {
     // 键分两层：节点 id 一层（作废时整组删），约束（可用宽高 + 深度）一层
     const constraint = `${avail.width ?? "-"}|${avail.height ?? "-"}|${depth}`;
     const byConstraint = cacheEntries.get(node.id);
@@ -515,6 +522,9 @@ function runLayout(
       cacheEntries.set(node.id, new Map([[constraint, box]]));
     }
     return box;
+    } finally {
+      path.delete(node.id);
+    }
   };
 
   const measureUncached = (

@@ -37,7 +37,10 @@ export function applyInstanceOverrides(
   component?: ComponentDefinition,
 ): ResolvedInstance {
   const nodes: Record<string, DesignNode> = {};
+  const seen = new Set<string>();
   const collect = (id: string) => {
+    if (seen.has(id)) return; // 防环：畸形 children 链不再无限递归（ADR-0050）
+    seen.add(id);
     const node = page.nodes[id];
     if (!node) return;
     nodes[id] = clone(node);
