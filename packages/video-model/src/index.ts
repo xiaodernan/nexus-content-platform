@@ -377,6 +377,50 @@ export function dropIndexFor(
 }
 
 /** 空分镜：新建项目里那一格"还没有分镜"的样子，与"切完是 0 镜"共用同一个形状 */
+/**
+ * §41 时间线布局：每一镜在条上占多少像素。
+ *
+ * 与面板同一条规则：宽度 = 时长占比 × 条宽，但有下限——一格 100 毫秒在 9 秒的条上
+ * 只有两三个像素，看上去根本"没有"这一镜。下限是**布局**不是数据：模型里的
+ * `durationMs` 一个字节都没改（§16，时间线是投影）。
+ *
+ * `totalMs <= 0` 时按 1 毫秒算：除零会得到 NaN，而那会被 CSS 当成 0 宽，
+ * 整条线悄悄消失——空分镜不该渲染成一条隐形的时间线。
+ */
+export const TIMELINE_BLOCK_MIN_PX = 6;
+
+export function timelineBlockWidths(
+  shots: readonly Pick<StoryboardShot, 'durationMs'>[],
+  totalMs: number,
+  stripWidth: number,
+): number[] {
+  const safeTotal = Math.max(1, totalMs);
+  return shots.map((shot) => Math.max(TIMELINE_BLOCK_MIN_PX, (shot.durationMs / safeTotal) * stripWidth));
+}
+
+/**
+ * §41 时间线 ↔ 镜头列表联动：条上哪一个像素落在哪一镜上。
+ *
+ * 判据是**布局后的累计宽度**（含上面的下限），不是时长的线性换算——否则点一个
+ * 被下限抬宽的短格，命中的是它的邻居。返回最终下标；越界夹到两端
+ * （点在条外右侧 = 最后一镜，左侧 = 第一镜），空分镜返回 -1（没有可对上的镜头）。
+ */
+export function shotIndexAtX(
+  shots: readonly Pick<StoryboardShot, 'durationMs'>[],
+  totalMs: number,
+  stripWidth: number,
+  x: number,
+): number {
+  if (shots.length === 0) return -1;
+  const widths = timelineBlockWidths(shots, totalMs, stripWidth);
+  let cursor = 0;
+  for (let i = 0; i < widths.length; i += 1) {
+    cursor += widths[i]!;
+    if (x < cursor) return i;
+  }
+  return shots.length - 1;
+}
+
 export function emptyStoryboard(id = 'storyboard-1'): Storyboard {
   return {
     id,

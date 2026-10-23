@@ -12,6 +12,7 @@ import {
   SHOT_MS_COARSE_STEP,
   SHOT_MS_STEP,
   SHOT_TRANSITIONS,
+  shotIndexAtX,
   timelineOf,
   type ShotCamera,
   type ShotTransition,
@@ -126,6 +127,12 @@ export function StoryboardPanel() {
   } | null>(null);
   /** 这个项目渲染出过的成片，新的在前（§101 资产清单的"分镜产物"那一格） */
   const [renders, setRenders] = useState<RenderRecord[]>([]);
+  /**
+   * §41 时间线 ↔ 镜头列表的联动：点条上哪一格，镜头列表滚到并高亮那一镜；
+   * 反过来点镜头行里的「定位」，条上那一格滚进视野。联动**不改模型**——
+   * 它是投影上的取景框而不是一次编辑，所以不进撤销栈（§150 管的是改动，不是查看）。
+   */
+  const [linkedShotId, setLinkedShotId] = useState<string | null>(null);
   const sb = snapshot.storyboard;
 
   useEffect(() => {
@@ -278,6 +285,34 @@ export function StoryboardPanel() {
   }, [sb, studio.projectId]);
 
   const timeline = useMemo(() => (sb ? timelineOf(sb) : null), [sb]);
+
+  /** 时间线 → 镜头列表：滚到那一镜并高亮；读屏也有一句（§90 焦点之外要有回话） */
+  const focusShot = (shotId: string, index: number): void => {
+    setLinkedShotId(shotId);
+    setAnnounce(`第 ${index + 1} 镜：镜头列表已定位到这一镜`);
+    document.querySelector(`[data-storyboard-shot="${shotId}"]`)?.scrollIntoView({ block: 'nearest' });
+  };
+
+  /** 镜头列表 → 时间线：把那一格滚进视野（条是横的，两个方向都要） */
+  const locateOnStrip = (shotId: string, index: number): void => {
+    setLinkedShotId(shotId);
+    setAnnounce(`第 ${index + 1} 镜：已在时间线上定位`);
+    document.querySelector(`[data-timeline-block="${shotId}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  };
+
+  /**
+   * 条上点中的是哪一镜。判据走 `shotIndexAtX`（布局后的累计宽度，含短格下限）——
+   * 按时长线性换算会把点在被下限抬宽的短格上的点击算到邻居身上。
+   * 像素坐标取**点击那一刻的** rect：条宽会随面板伸缩，拿状态里的旧宽度会对偏。
+   */
+  const locateFromStrip = (event: React.MouseEvent<HTMLDivElement>): void => {
+    const el = stripRef.current;
+    if (!el || !sb || sb.shots.length === 0) return;
+    const rect = el.getBoundingClientRect();
+    const at = shotIndexAtX(sb.shots, timeline?.totalMs ?? 0, rect.width, event.clientX - rect.left);
+    if (at < 0) return;
+    focusShot(sb.shots[at]!.id, at);
+  };
 
   /**
    * §41 的时间线编辑：拖右边缘 trim/extend、拖整块 reorder、点左上角的转场标记换衔接；
@@ -661,8 +696,13 @@ export function StoryboardPanel() {
           {sb.shots.map((shot, index) => (
             <li
               key={shot.id}
-              className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2"
+              className={cn(
+                'rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2',
+                // 时间线上点过的那一格：列表里这一镜高亮——联动是取景框，不进撤销栈
+                linkedShotId === shot.id ? 'border-accent-2' : null,
+              )}
               data-storyboard-shot={shot.id}
+              data-storyboard-shot-linked={linkedShotId === shot.id ? 'true' : undefined}
             >
               {/* 换行是必要的：面板只有 264px 宽，机位+转场+时长已经占满一行，
                   不换行时 ↑↓＋✕ 四个动作会被裁到面板外面——点得到但看不见，等于没有 */}
@@ -670,6 +710,16 @@ export function StoryboardPanel() {
                 <span className="font-mono text-11 text-fg-3">
                   {String(index + 1).padStart(2, '0')}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => locateOnStrip(shot.id, index)}
+                  title="在时间线上找到这一镜"
+                  aria-label={`在时间线上定位第 ${index + 1} 镜`}
+                  data-storyboard-locate={shot.id}
+                  className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 py-[2px] text-11 text-fg-2"
+                >
+                  定位
+                </button>
                 <select
                   value={shot.camera}
                   onChange={(e) =>
@@ -942,7 +992,8 @@ export function StoryboardPanel() {
           <div
             ref={stripRef}
             role="list"
-            aria-label={`时间线：${sb.shots.length} 个镜头按顺序排开。拖格子右边缘改长度、拖整块换位置；键盘按 Tab 到右边缘用方向键改`}
+            onClick={locateFromStrip}
+            aria-label={`时间线：${sb.shots.length} 个镜头按顺序排开。拖格子右边缘改长度、拖整块换位置；点任意一格在镜头列表里定位那一镜；键盘按 Tab 到右边缘用方向键改`}
             className="mt-2 flex h-9 w-full min-w-0 overflow-hidden rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2"
             data-timeline-strip
             data-timeline-total-ms={String(timeline?.totalMs ?? 0)}
@@ -1035,6 +1086,7 @@ export function StoryboardPanel() {
           </div>
           <p className="mt-1 text-11 text-fg-3">
             拖右边缘改长度（吸附 {SHOT_MS_STEP} 毫秒，下限 {MIN_SHOT_MS} 毫秒）、拖整块换位、点左上角的转场标记换衔接、
+            点条上任意一格在镜头列表里定位那一镜（反向用镜头行里的「定位」）、
             <span data-timeline-split-hint>双击一格在点击处切成两镜</span>（两半共享同一张参考帧——切的是时间线，不是像素）；
             松手才写库，每一步都可撤销。键盘：Tab 到格子的右边缘，左右方向键调长度（Shift 一格 {SHOT_MS_COARSE_STEP} 毫秒），
             Enter 落库、Esc 取消；换位用镜头表里的 ↑ ↓，精确毫秒用那个数字框——四条路改的是同一份模型。

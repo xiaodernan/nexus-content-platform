@@ -8,6 +8,9 @@ import {
   MIN_SHOT_MS,
   SHOT_MS_COARSE_STEP,
   SHOT_MS_STEP,
+  shotIndexAtX,
+  TIMELINE_BLOCK_MIN_PX,
+  timelineBlockWidths,
   type Storyboard,
   type StoryboardShot,
 } from '../src/index';
@@ -146,5 +149,44 @@ describe('keyboardTrimDelta —— 键盘那条 trim 的档位与放行规则', 
       expect(Number.isInteger(ms)).toBe(true);
       expect(ms % SHOT_MS_STEP).toBe(0);
     }
+  });
+});
+
+describe('timelineBlockWidths / shotIndexAtX —— 条的布局与命中（§41 联动的底座）', () => {
+  const shots = [shot('a', 1000), shot('b', 2000), shot('c', 3000)];
+  const total = 6000;
+
+  it('宽度按时长占比，短格有下限：100 毫秒在 9 秒的条上也有 6 像素，不是"没有这一镜"', () => {
+    // 600px 条上 1000/2000/3000 毫秒：比例各 1/6、2/6、3/6
+    expect(timelineBlockWidths(shots, total, 600)).toEqual([100, 200, 300]);
+    // 9 秒的条上夹一格 100 毫秒：2.67px，被下限抬到 6——这一格看得见，点得到
+    expect(timelineBlockWidths([shot('long', 8900), shot('tiny', 100)], 9000, 240)).toEqual([
+      (8900 / 9000) * 240,
+      TIMELINE_BLOCK_MIN_PX,
+    ]);
+  });
+
+  it('总长 0 或负数不产出 NaN：空分镜的时间线不该悄悄消失', () => {
+    const widths = timelineBlockWidths(shots, 0, 600);
+    expect(widths.every((w) => Number.isFinite(w))).toBe(true);
+  });
+
+  it('命中按布局后的累计宽度：点中间命中自己，不按线性换算跳到邻居', () => {
+    // 600px 条：a 占 0-100，b 占 100-300，c 占 300-600
+    expect(shotIndexAtX(shots, total, 600, 50)).toBe(0);
+    expect(shotIndexAtX(shots, total, 600, 150)).toBe(1);
+    expect(shotIndexAtX(shots, total, 600, 450)).toBe(2);
+    // 中间一格被下限抬宽（2.67px → 6px）：点 85px 命中的是这一格自己；
+    // 按时长线性换算会把它算进第三格（82.67px 起）——下限不改数据，但改命中
+    const floored = [shot('a', 3000), shot('b', 100), shot('c', 5900)];
+    expect(shotIndexAtX(floored, 9000, 240, 79)).toBe(0);
+    expect(shotIndexAtX(floored, 9000, 240, 85)).toBe(1);
+    expect(shotIndexAtX(floored, 9000, 240, 87)).toBe(2);
+  });
+
+  it('越界夹到两端，空分镜没有可对上的镜头', () => {
+    expect(shotIndexAtX(shots, total, 600, -50)).toBe(0);
+    expect(shotIndexAtX(shots, total, 600, 9999)).toBe(2);
+    expect(shotIndexAtX([], 0, 600, 10)).toBe(-1);
   });
 });
