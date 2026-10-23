@@ -39,6 +39,16 @@ describe('moderation — the desk’s WINDOW (M7 v378)', () => {
     expect(deskWindowText(3, null)).toBe('');
     expect(deskWindowText(3, undefined)).toBe('');
   });
+
+  it('v389 — past the first window the line gives the POSITION, not "the newest"', () => {
+    // "The 20 newest of 37" is a fact about the first window; on page three it would be a lie.
+    expect(deskWindowText(20, 37, 20)).toBe('showing 21–40 of 37');
+    expect(deskWindowText(17, 37, 20)).toBe('showing 21–37 of 37');
+  });
+
+  it('v389 — and the first window keeps saying "the newest" — that is what it is', () => {
+    expect(deskWindowText(3, 37, 0)).toBe('showing the 3 newest of 37');
+  });
 });
 
 describe('moderation — the desk rows', () => {
@@ -125,10 +135,10 @@ it('a row carries the reason, the reporter\u2019s WORDS and the status', () => {
 describe('moderationLane \u2014 the browser half', () => {
   it('asks the Studio\u2019s own door, naming the owner', async () => {
     const fetchImpl = makeFetch((url) => {
-      expect(url).toBe('/api/moderation?owner=acct-ada');
+      expect(url).toBe('/api/moderation?owner=acct-ada&offset=0');
       return new Response(JSON.stringify({ ok: true, reports: [A_REPORT], limit: 20 }), { status: 200 });
     });
-    const answer = await readDesk('acct-ada', null, fetchImpl);
+    const answer = await readDesk('acct-ada', null, 0, fetchImpl);
     expect(answer.ok).toBe(true);
     expect(answer.reports).toHaveLength(1);
     expect(answer.reports[0]?.reportId).toBe('rep-1');
@@ -139,12 +149,37 @@ describe('moderationLane \u2014 the browser half', () => {
     const answer = await readDesk(
       'acct-ada',
       null,
+      0,
       makeFetch(() => new Response(JSON.stringify({ ok: false, reason: 'the desk could not be read' }), { status: 502 })),
     );
     expect(answer.ok).toBe(false);
     expect(answer.reason).toBe('the desk could not be read');
     expect(answer.reports).toEqual([]);
     expect(answer.open).toBe(0);
+  });
+
+  // v389 \u2014 the desk's window can be PAGED, and the page is part of the ask.
+
+  it('v389 \u2014 a named OFFSET travels in the query, in rows', async () => {
+    const fetchImpl = makeFetch((url) => {
+      expect(url).toBe('/api/moderation?owner=acct-ada&reason=spam&offset=40');
+      return new Response(JSON.stringify({ ok: true, reports: [A_REPORT], limit: 20 }), { status: 200 });
+    });
+    const answer = await readDesk('acct-ada', 'spam', 40, fetchImpl);
+    expect(answer.ok).toBe(true);
+    // and the answer echoes the window it is FOR: two reads in flight cannot be mistaken for each other.
+    expect(answer.offset).toBe(40);
+    expect(answer.limit).toBe(20);
+  });
+
+  it('v389 \u2014 a negative offset is the first window, not a refusal', async () => {
+    const fetchImpl = makeFetch((url) => {
+      expect(url).toBe('/api/moderation?owner=acct-ada&offset=0');
+      return new Response(JSON.stringify({ ok: true, reports: [], limit: 20 }), { status: 200 });
+    });
+    const answer = await readDesk('acct-ada', null, -5, fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.offset).toBe(0);
   });
 
   it('the acknowledgement names the report and the owner', async () => {
@@ -200,6 +235,7 @@ describe('moderation — the TALLY (M7 v312)', () => {
     const withTally = await readDesk(
       'acct-ada',
       null,
+      0,
       makeFetch(() =>
         new Response(
           JSON.stringify({ ok: true, reports: [A_REPORT], tally: { total: 3, open: 1, byReason: { spam: 2 } } }),
@@ -213,6 +249,7 @@ describe('moderation — the TALLY (M7 v312)', () => {
     const withoutTally = await readDesk(
       'acct-ada',
       null,
+      0,
       makeFetch(() => new Response(JSON.stringify({ ok: true, reports: [A_REPORT] }), { status: 200 })),
     );
     expect(withoutTally.tally).toBeNull();

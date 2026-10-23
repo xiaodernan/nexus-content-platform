@@ -2095,6 +2095,37 @@ try {
       `the desk names nobody: ${!deskHtml.includes('bob')}`,
     );
 
+    // v389 — and the PAGER. The desk is a WINDOW (the most recent N), and a window nobody can page
+    // is the whole list to an owner with more complaints than the cap: "Newer" is disabled on the
+    // first window (there is no page before it), and "Older" is disabled exactly when the window
+    // already holds every report the tally counted — here, the one report the harness filed.
+    const deskPager = await deskPage.evaluate(`(() => {
+      const newer = document.querySelector('[data-desk-page="newer"]');
+      const older = document.querySelector('[data-desk-page="older"]');
+      return { there: !!newer && !!older, newerDisabled: newer ? newer.disabled : null, olderDisabled: older ? older.disabled : null };
+    })()`);
+    check('the desk offers a pager', deskPager.there === true, JSON.stringify(deskPager));
+    check(
+      'and on the first window "Newer" is disabled — there is no page before the first',
+      deskPager.newerDisabled === true,
+      `newer disabled: ${deskPager.newerDisabled}`,
+    );
+    check(
+      'and "Older" is disabled when the window already holds every report the tally counted',
+      deskPager.olderDisabled === true,
+      `older disabled: ${deskPager.olderDisabled}`,
+    );
+    // And the DOOR pages too, read independently of the browser: a window past the end is the
+    // service's honest EMPTY answer, not an error — the same answer the panel shows a reader who
+    // lands there.
+    const deskOffsetRead = await fetch(`${apiBase}/moderation/reports?owner=${encodeURIComponent(ownerId)}&offset=20`);
+    const deskOffsetBody = await deskOffsetRead.json();
+    check(
+      'and the desk door PAGES: a window past the end is an empty answer, not an error',
+      deskOffsetRead.status === 200 && Array.isArray(deskOffsetBody.reports) && deskOffsetBody.reports.length === 0,
+      `desk: ${JSON.stringify(deskOffsetBody.reports)}`,
+    );
+
     // The ONE power the owner has over a report: to say they have seen it.
     await deskPage.evaluate("document.querySelector('[data-desk-acknowledge]').click()");
     const acknowledged = await until(

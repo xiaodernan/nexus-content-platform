@@ -42,14 +42,21 @@ public class ModerationController {
      * (in the query), so a desk with a thousand reports does not have to be read whole to show the
      * spam ones. The TALLY is a door of its own and is NOT narrowed: it counts every report, which is
      * what lets a reader see what the narrowing is hiding.
+     *
+     * <p>v389 — and the window can be PAGED: {@code offset} is ROWS past the newest ones, the same
+     * meaning the filed read's offset has (v382), so an owner with more complaints than the cap can
+     * reach the older ones. A negative offset is clamped to the first window rather than refused —
+     * the newest rows are the honest answer to a question about a page before the first.
      */
     @GetMapping("/reports")
     public ResponseEntity<DeskAnswer> desk(
             @RequestParam(name = "owner") String ownerAccountId,
             @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "offset", required = false) Integer offset,
             @RequestParam(name = "reason", required = false) String reason) {
         int asked = limit == null ? ModerationService.DEFAULT_DESK_LIMIT : limit;
-        List<DeskEntry> rows = service.deskOf(ownerAccountId, asked, reason);
+        int from = offset == null ? 0 : Math.max(offset, 0);
+        List<DeskEntry> rows = service.deskOf(ownerAccountId, asked, from, reason);
         return ResponseEntity.ok(new DeskAnswer(
                 ownerAccountId == null ? null : ownerAccountId.trim(),
                 rows,

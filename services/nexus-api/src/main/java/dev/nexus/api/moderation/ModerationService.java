@@ -84,11 +84,23 @@ public class ModerationService {
      * <p>The rows are the reports themselves, with the publication they are about named beside them (the
      * title as well as the id, because an owner with twenty publications should not have to remember
      * which id is which) and with the reporter's words.
+     *
+     * <p>v389 — and the window can be PAGED: {@code offset} is ROWS past the newest ones, so an owner
+     * with more complaints than the cap can reach the older ones. The desk is a queue, and a queue that
+     * only ever shows its head is a queue whose tail nobody can read.
      */
     @Transactional(readOnly = true)
-    public List<ModerationDtos.DeskEntry> deskOf(String ownerAccountId, int limit, String reason) {
+    public List<ModerationDtos.DeskEntry> deskOf(String ownerAccountId, int limit, int offset, String reason) {
         String owner = requireOwner(ownerAccountId);
         int asked = limit <= 0 ? DEFAULT_DESK_LIMIT : Math.min(limit, MAX_DESK_LIMIT);
+        // v389 — the offset is ROWS, and Spring Data's PageRequest speaks PAGES. v387 learned this the
+        // hard way on the filed read: a caller that asked for the rows from 40 on and was answered with
+        // the rows from 800 on (the raw number read as a page index) would call every page "past the
+        // end". The translation is by whole windows: an offset that is not a multiple of the window
+        // lands on the page boundary at or before it, which is the only granularity a window has. A
+        // negative offset is the first window, not a refusal — the window it names does not exist, and
+        // the newest rows are the honest answer to a question about a page before the first.
+        int from = Math.max(offset, 0);
         String wanted = requireReason(reason);
         List<PublishedProject> owned =
                 publications.findByOwnerAccountIdOrderByPublishedAtDesc(owner, PageRequest.of(0, OWNED_PUBLICATIONS_WINDOW));
@@ -101,10 +113,11 @@ public class ModerationService {
             ids.add(publication.getProjectId());
             titles.put(publication.getProjectId(), publication.getTitle());
         }
-        List<ReportEntry> window = wanted == null
-                ? reports.findByTargetProjectIdInOrderByCreatedAtDesc(ids, PageRequest.of(0, asked))
-                : reports.findByTargetProjectIdInAndReasonOrderByCreatedAtDesc(ids, wanted, PageRequest.of(0, asked));
-        return window.stream()
+        PageRequest window = PageRequest.of(from / asked, asked);
+        List<ReportEntry> rows = wanted == null
+                ? reports.findByTargetProjectIdInOrderByCreatedAtDesc(ids, window)
+                : reports.findByTargetProjectIdInAndReasonOrderByCreatedAtDesc(ids, wanted, window);
+        return rows.stream()
                 .map(row -> new ModerationDtos.DeskEntry(
                         row.getReportId(),
                         row.getTargetProjectId(),

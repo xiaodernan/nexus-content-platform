@@ -339,6 +339,17 @@ export default function Toolbar() {
   const [deskReason, setDeskReason] = useState<string | null>(null);
 
   /**
+   * v389 — the desk's PAGE: which window of the desk the panel is showing, in ROWS.
+   *
+   * <p>The desk is a WINDOW (the most recent N, v326), and a window nobody can page is the whole list
+   * to an owner with more complaints than the cap. The page is part of the ASK, the same way the
+   * reason is (v326): the panel names the offset it wants and the service answers that window. A
+   * filter change resets it to the first window — the newest twenty of THAT reason is a different
+   * question with its own beginning.
+   */
+  const [deskOffset, setDeskOffset] = useState(0);
+
+  /**
    * v326 — the reasons the filter offers: the TALLY’s own keys.
    *
    * <p>The tally counts EVERY report against the work, so its keys are the reasons that OCCUR — even
@@ -384,18 +395,19 @@ export default function Toolbar() {
     setFiled(await readMyReports(account.id, fetch, offset));
   };
 
-  const refreshDesk = async (reason: string | null = deskReason) => {
+  const refreshDesk = async (reason: string | null = deskReason, offset: number = deskOffset) => {
     const account = session.current();
     if (!account) {
       // A failed read is NOT an empty desk: the panel says why it could not read, rather than showing
       // "nobody has reported your work" and being wrong.
-      setDesk({ ok: false, reports: [], open: 0, reason: 'the desk belongs to an account, and this device has none' });
+      setDesk({ ok: false, reports: [], open: 0, limit: 20, offset: 0, reason: 'the desk belongs to an account, and this device has none' });
       return;
     }
     // v326 — the narrowing is the SERVICE’s: the panel asks for the reason it is showing, and the
     // service answers with that reason’s rows. The tally is a separate read and is NOT narrowed — it is
-    // what lets a reader see what the filter is hiding.
-    setDesk(await readDesk(account.id, reason));
+    // what lets a reader see what the filter is hiding. v389 — and the page travels with the ask the
+    // same way; the answer echoes the window it is for, so a late answer cannot land on the wrong page.
+    setDesk(await readDesk(account.id, reason, offset));
   };
 
   const onToggleDesk = async () => {
@@ -1447,7 +1459,14 @@ export default function Toolbar() {
           ) : !desk.ok ? (
             <div style={{ color: 'var(--nexus-muted)' }}>could not read: {desk.reason}</div>
           ) : desk.reports.length === 0 ? (
-            <div style={{ color: 'var(--nexus-muted)' }}>no reports against your work</div>
+            <div style={{ color: 'var(--nexus-muted)' }}>
+              {/* v389 — an empty window on a LATER page is not an empty desk: the reader asked for a
+                  page past the end, and the honest answer says that rather than "no reports against
+                  your work" — which would be a fact about the whole desk, told about one window. */}
+              {deskOffset > 0
+                ? 'this page is past the end — the service answered an empty window'
+                : 'no reports against your work'}
+            </div>
           ) : (
             <>
               {/* v378 — the line under the TALLY used to say the WINDOW's own count ("3 report(s)"),
@@ -1458,7 +1477,8 @@ export default function Toolbar() {
                 const total = deskReason
                   ? desk.tally?.byReason?.[deskReason] ?? null
                   : desk.tally?.total ?? null;
-                const window = deskWindowText(shown, total);
+                // v389 — the window says WHICH rows it is, so the offset travels with the question.
+                const window = deskWindowText(shown, total, deskOffset);
                 return window ? (
                   <div data-desk-window style={{ color: 'var(--nexus-muted)', marginBottom: 6 }}>
                     {window}
@@ -1476,7 +1496,10 @@ export default function Toolbar() {
                     data-desk-filter="all"
                     onClick={() => {
                       setDeskReason(null);
-                      void refreshDesk(null);
+                      // v389 — a filter change is a different question with its own beginning: the page
+                      // resets to the first window rather than asking page three of a new filter.
+                      setDeskOffset(0);
+                      void refreshDesk(null, 0);
                     }}
                     title="every reason"
                   >
@@ -1492,8 +1515,10 @@ export default function Toolbar() {
                         setDeskReason(next);
                         // v326 — and the narrowing happens in the SERVICE: the panel asks again, and the
                         // answer it gets back is the reason’s rows. The tally is not narrowed, so the
-                        // reader still sees the whole.
-                        void refreshDesk(next);
+                        // reader still sees the whole. v389 — and the page goes back to the first
+                        // window: the newest twenty of THAT reason is a question with its own beginning.
+                        setDeskOffset(0);
+                        void refreshDesk(next, 0);
                       }}
                       title={`only the ${reason} ones`}
                     >
@@ -1564,6 +1589,52 @@ export default function Toolbar() {
                   </li>
                 ))}
               </ul>
+              {/* v389 — the PAGER, the same shape the filed list (v386) and the trail (v388) got: the
+                  page is part of the ask, "Newer" is disabled on the first window (there is no page
+                  before it), and "Older" is disabled exactly when the window already holds every
+                  report the tally counted — which the desk can say even UNDER a reason filter, because
+                  the TALLY counts by reason over the whole table (v312) and is not narrowed. A pager
+                  that offered a page with nothing in it would be asking a question whose honest answer
+                  is an empty window. */}
+              <div data-desk-pager style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                <button
+                  className="btn"
+                  data-desk-page="newer"
+                  disabled={deskOffset <= 0}
+                  onClick={() => {
+                    const next = Math.max(deskOffset - desk.limit, 0);
+                    setDeskOffset(next);
+                    void refreshDesk(deskReason, next);
+                  }}
+                  title="the newer reports"
+                >
+                  ‹ Newer
+                </button>
+                <button
+                  className="btn"
+                  data-desk-page="older"
+                  disabled={(() => {
+                    const total = deskReason
+                      ? desk.tally?.byReason?.[deskReason] ?? null
+                      : desk.tally?.total ?? null;
+                    // The tally's own count says where the end is; with no tally to read, a window
+                    // that came back short of the cap is the end (a service with more rows would
+                    // have filled it) — the trail's filtered ending (v388), for a desk whose tally
+                    // could not be read.
+                    return typeof total === 'number'
+                      ? deskOffset + desk.reports.length >= total
+                      : desk.reports.length < desk.limit;
+                  })()}
+                  onClick={() => {
+                    const next = deskOffset + desk.limit;
+                    setDeskOffset(next);
+                    void refreshDesk(deskReason, next);
+                  }}
+                  title="the older reports"
+                >
+                  Older ›
+                </button>
+              </div>
             </>
           )}
           {/* v305 — the REPORTER's half: the complaints YOU filed, and where each one stands. The

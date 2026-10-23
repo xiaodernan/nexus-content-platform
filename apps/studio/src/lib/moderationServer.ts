@@ -52,20 +52,25 @@ export type FetchLike = (
  *
  * <p>The owner is named in the query, because this build has no session to hold it (ADR 0018) — the same
  * claim the take-down and the withdrawal name.
+ *
+ * <p>v389 — and `offset` is ROWS past the newest ones, so a desk with more reports than the cap can be
+ * paged. A negative offset is clamped to the first window, the same way the service clamps it.
  */
 export async function readDesk(
   ownerAccountId: string,
   limit: number,
   reason: string | null = null,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch as FetchLike,
 ): Promise<DeskAnswer> {
   const apiBase = nexusApiBase();
+  const from = Math.max(offset, 0);
   try {
     // v326 — the narrowing is the SERVICE’s: the reason travels with the question, so a desk with a
-    // thousand reports does not have to be read whole to show the spam ones.
+    // thousand reports does not have to be read whole to show the spam ones. v389 — and so does the page.
     const narrowed = reason && reason.trim() !== '' ? `&reason=${encodeURIComponent(reason.trim())}` : '';
     const res = await fetchImpl(
-      `${apiBase}/moderation/reports?owner=${encodeURIComponent(ownerAccountId)}&limit=${encodeURIComponent(String(limit))}${narrowed}`,
+      `${apiBase}/moderation/reports?owner=${encodeURIComponent(ownerAccountId)}&limit=${encodeURIComponent(String(limit))}${narrowed}&offset=${encodeURIComponent(String(from))}`,
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);

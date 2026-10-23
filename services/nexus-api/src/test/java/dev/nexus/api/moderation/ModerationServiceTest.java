@@ -108,7 +108,7 @@ class ModerationServiceTest {
         when(reports.findByTargetProjectIdInOrderByCreatedAtDesc(eq(List.of("pub-1")), any(Pageable.class)))
                 .thenReturn(List.of(report("rep-1", "pub-1", ReportDtos.STATUS_OPEN)));
 
-        List<DeskEntry> desk = service.deskOf("acct-ada", 20, null);
+        List<DeskEntry> desk = service.deskOf("acct-ada", 20, 0, null);
 
         assertThat(desk).hasSize(1);
         assertThat(desk.get(0).reportId()).isEqualTo("rep-1");
@@ -135,7 +135,7 @@ class ModerationServiceTest {
     void anAccountWithNoPublicationsHasAnEmptyDesk() {
         when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
                 .thenReturn(List.of());
-        assertThat(service.deskOf("acct-ada", 20, null)).isEmpty();
+        assertThat(service.deskOf("acct-ada", 20, 0, null)).isEmpty();
         verify(reports, never()).findByTargetProjectIdInOrderByCreatedAtDesc(any(), any());
     }
 
@@ -152,7 +152,7 @@ class ModerationServiceTest {
                 any(), eq("spam"), any(Pageable.class)))
                 .thenReturn(List.of(report("rep-1", "pub-1", "open")));
 
-        List<DeskEntry> rows = service.deskOf("acct-ada", 20, "spam");
+        List<DeskEntry> rows = service.deskOf("acct-ada", 20, 0, "spam");
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).reason()).isEqualTo("spam");
@@ -163,7 +163,7 @@ class ModerationServiceTest {
     void aReasonThisBuildDoesNotKnowIsREFUSEDByName() {
         // A caller that asked for a reason this service does not have, and was answered with the whole
         // desk, would read the answer as "there was nothing of that reason" — a different fact.
-        assertThatThrownBy(() -> service.deskOf("acct-ada", 20, "rude"))
+        assertThatThrownBy(() -> service.deskOf("acct-ada", 20, 0, "rude"))
                 .isInstanceOf(InvalidModeration.class)
                 .hasMessageContaining("one of spam, harassment, illegal, other");
     }
@@ -178,7 +178,7 @@ class ModerationServiceTest {
         when(reports.findByTargetProjectIdInOrderByCreatedAtDesc(any(), any(Pageable.class)))
                 .thenReturn(List.of(report("rep-1", "pub-1", "open")));
 
-        List<DeskEntry> rows = service.deskOf("acct-ada", 20, "  ");
+        List<DeskEntry> rows = service.deskOf("acct-ada", 20, 0, "  ");
 
         assertThat(rows).hasSize(1);
         verify(reports).findByTargetProjectIdInOrderByCreatedAtDesc(any(), any(Pageable.class));
@@ -186,10 +186,10 @@ class ModerationServiceTest {
 
     @Test
     void theDeskRefusesACallerThatNamesNoAccount() {
-        assertThatThrownBy(() -> service.deskOf(null, 20, null))
+        assertThatThrownBy(() -> service.deskOf(null, 20, 0, null))
                 .isInstanceOf(InvalidModeration.class)
                 .hasMessageContaining("belongs to an account");
-        assertThatThrownBy(() -> service.deskOf("   ", 20, null))
+        assertThatThrownBy(() -> service.deskOf("   ", 20, 0, null))
                 .isInstanceOf(InvalidModeration.class)
                 .hasMessageContaining("belongs to an account");
     }
@@ -201,11 +201,83 @@ class ModerationServiceTest {
                 .thenReturn(List.of(publication));
         when(reports.findByTargetProjectIdInOrderByCreatedAtDesc(any(), any(Pageable.class))).thenReturn(List.of());
 
-        service.deskOf("acct-ada", 10_000, null);
+        service.deskOf("acct-ada", 10_000, 0, null);
 
         org.mockito.ArgumentCaptor<Pageable> window = org.mockito.ArgumentCaptor.forClass(Pageable.class);
         verify(reports).findByTargetProjectIdInOrderByCreatedAtDesc(any(), window.capture());
         assertThat(window.getValue().getPageSize()).isEqualTo(ModerationService.MAX_DESK_LIMIT);
+    }
+
+    // ── v389: the desk's window can be PAGED, in rows ──────────────────────────────────────
+
+    @Test
+    void theDeskWindowCanBePagedInRows() {
+        // v389 — the desk is a WINDOW (the most recent N), and a window nobody can page is the whole
+        // list to a reader with more than N complaints. The offset is ROWS: asking for the rows from 20
+        // on is page 1 of a 20-row window, which is what the captor below pins.
+        PublishedProject publication = ownedId("pub-1");
+        when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of(publication));
+        when(reports.findByTargetProjectIdInOrderByCreatedAtDesc(any(), any(Pageable.class))).thenReturn(List.of());
+
+        service.deskOf("acct-ada", 20, 20, null);
+
+        org.mockito.ArgumentCaptor<Pageable> window = org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        verify(reports).findByTargetProjectIdInOrderByCreatedAtDesc(any(), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void theDeskOffsetIsROWSNotAPageIndex() {
+        // v387's lesson, applied from the start rather than discovered by the first pager: the offset
+        // means ROWS, and Spring Data's PageRequest speaks PAGES. Asking for the rows from 40 on must
+        // be answered with page 2 (rows 40–59) — not page 40 (rows 800–819), which is what handing
+        // the raw number to PageRequest.of answers, and what a pager would then call "past the end".
+        PublishedProject publication = ownedId("pub-1");
+        when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of(publication));
+        when(reports.findByTargetProjectIdInOrderByCreatedAtDesc(any(), any(Pageable.class))).thenReturn(List.of());
+
+        service.deskOf("acct-ada", 20, 40, null);
+
+        org.mockito.ArgumentCaptor<Pageable> window = org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        verify(reports).findByTargetProjectIdInOrderByCreatedAtDesc(any(), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
+    }
+
+    @Test
+    void aNegativeDeskOffsetIsTheFirstWindow() {
+        // A page before the first does not exist; the newest rows are the honest answer, not a refusal.
+        PublishedProject publication = ownedId("pub-1");
+        when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of(publication));
+        when(reports.findByTargetProjectIdInOrderByCreatedAtDesc(any(), any(Pageable.class))).thenReturn(List.of());
+
+        service.deskOf("acct-ada", 20, -5, null);
+
+        org.mockito.ArgumentCaptor<Pageable> window = org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        verify(reports).findByTargetProjectIdInOrderByCreatedAtDesc(any(), window.capture());
+        assertThat(window.getValue().getPageNumber()).isZero();
+    }
+
+    @Test
+    void theDeskWindowCanBePagedUnderAReasonFilter() {
+        // The narrowed finder gets the same translation: the reason travels with the page, and the
+        // window is the newest N OF THAT REASON from that row on — one question asked in one place.
+        PublishedProject publication = ownedId("pub-1");
+        when(publications.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(Pageable.class)))
+                .thenReturn(List.of(publication));
+        when(reports.findByTargetProjectIdInAndReasonOrderByCreatedAtDesc(any(), eq("spam"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.deskOf("acct-ada", 20, 40, "spam");
+
+        org.mockito.ArgumentCaptor<Pageable> window = org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        verify(reports).findByTargetProjectIdInAndReasonOrderByCreatedAtDesc(any(), eq("spam"), window.capture());
+        assertThat(window.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(window.getValue().getPageSize()).isEqualTo(20);
     }
 
     // ── the disposition: who may dispose, and what it says ───────────────────────────────────────

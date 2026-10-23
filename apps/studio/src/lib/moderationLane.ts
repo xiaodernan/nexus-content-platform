@@ -26,6 +26,17 @@ export interface DeskLaneAnswer {
   reports: DeskRow[];
   /** How many are still waiting to be acknowledged. */
   open: number;
+  /** The cap the service applied. */
+  limit: number;
+  /**
+   * v389 — the ROW this window starts at, echoed from the ask.
+   *
+   * <p>The answer carries the window it is FOR rather than leaving the panel to remember which ask it
+   * belongs to: two reads in flight (a filter change, then a page) answer in whatever order the network
+   * chooses, and an answer that names its own window cannot be mistaken for the other one's. The same
+   * rule the trail's answer keeps (v388).
+   */
+  offset: number;
   /**
    * v312 — the TALLY: how many reports there are against the work in all, and how many by reason.
    *
@@ -45,25 +56,36 @@ export interface DispositionLaneAnswer {
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
-/** READ the desk: the reports against the publications this account owns. */
+/**
+ * READ the desk: the reports against the publications this account owns.
+ *
+ * v389 — and the window can be PAGED: `offset` is ROWS past the newest ones, the same meaning the
+ * trail's and the filed read's offsets have, so an owner with more complaints than the cap can reach
+ * the older ones. A negative offset is the first window, not a refusal.
+ */
 export async function readDesk(
   ownerAccountId: string,
   reason: string | null = null,
+  offset: number = 0,
   fetchImpl: FetchLike = fetch,
 ): Promise<DeskLaneAnswer> {
+  const from = Math.max(offset, 0);
   try {
-    // v326 — the narrowing is the service’s, so the reason travels with the question.
+    // v326 — the narrowing is the service’s, so the reason travels with the question. v389 — and so
+    // does the page: the window the panel is showing is part of the ask, not a fact the service keeps.
     const narrowed = reason && reason.trim() !== '' ? `&reason=${encodeURIComponent(reason.trim())}` : '';
-    const res = await fetchImpl(`/api/moderation?owner=${encodeURIComponent(ownerAccountId)}${narrowed}`, {
-      headers: { accept: 'application/json' },
-    });
+    const res = await fetchImpl(
+      `/api/moderation?owner=${encodeURIComponent(ownerAccountId)}${narrowed}&offset=${encodeURIComponent(String(from))}`,
+      { headers: { accept: 'application/json' } },
+    );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, reports: [], open: 0, reason: `the desk answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, reports: [], open: 0, limit: 20, offset: from, reason: `the desk answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as {
       ok?: unknown;
       reports?: unknown;
+      limit?: unknown;
       tally?: unknown;
       reason?: unknown;
       message?: unknown;
@@ -75,7 +97,7 @@ export async function readDesk(
           : typeof body.message === 'string'
             ? body.message
             : `the desk answered HTTP ${res.status}`;
-      return { ok: false, reports: [], open: 0, reason: why };
+      return { ok: false, reports: [], open: 0, limit: 20, offset: from, reason: why };
     }
     const rows = toDeskRows(Array.isArray(body.reports) ? body.reports : []);
     const tally = body.tally;
@@ -83,6 +105,8 @@ export async function readDesk(
       ok: true,
       reports: rows,
       open: rows.filter((row) => row.open).length,
+      limit: typeof body.limit === 'number' && Number.isFinite(body.limit) ? body.limit : 20,
+      offset: from,
       // v312 — the tally, when the service gave one. A tally that could not be read stays null: zero would
       // say "nobody complained".
       tally:
@@ -96,7 +120,7 @@ export async function readDesk(
           : null,
     };
   } catch (error) {
-    return { ok: false, reports: [], open: 0, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, reports: [], open: 0, limit: 20, offset: from, reason: error instanceof Error ? error.message : String(error) };
   }
 }
 

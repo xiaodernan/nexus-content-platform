@@ -35,8 +35,12 @@ export async function GET(request: Request): Promise<NextResponse> {
   // v326 — the REASON the desk is narrowed to, if any. It travels to the service, which does the
   // narrowing in its query — the browser never receives the rows it did not ask for.
   const reason = new URL(request.url).searchParams.get('reason');
+  // v389 — and the PAGE the desk is read at, in rows. A negative or unparseable one is the first
+  // window: the newest rows are the honest answer to a question about a page before the first.
+  const askedOffset = Number(new URL(request.url).searchParams.get('offset') ?? '0');
+  const offset = Number.isFinite(askedOffset) && askedOffset > 0 ? Math.trunc(askedOffset) : 0;
   const [answer, tally] = await Promise.all([
-    readDesk(owner.trim(), limit, reason),
+    readDesk(owner.trim(), limit, reason, offset),
     readTally(owner.trim()),
   ]);
   // The TALLY is part of the desk’s answer (v312): it counts every report against the work, where the rows

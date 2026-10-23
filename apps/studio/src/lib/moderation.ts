@@ -167,14 +167,20 @@ export function tallyText(tally: TallyFacts): string {
  * the WINDOW's rows ✓ — so one screen carried two different "report(s)" numbers and nothing said which
  * was which ✓. This says it: "showing the 3 newest of 5" ✓.
  *
+ * <p>v389 — and the window says WHICH rows it is. "The 3 newest of 5" is a fact about the FIRST window
+ * that read like a fact about the list; on a later page it would be a lie, so past the first window the
+ * line gives the position instead: "showing 21–40 of 37" — the same correction the filed list got in
+ * v386. A reader on page three must be able to tell page three from the whole.
+ *
  * <p>A list that shows EVERYONE says nothing ✓ — the tally above already says how many there are ✓ — and
  * an unknown total says nothing either ✓ (a count of the window's own length would be the lie this
  * increment removes ✓).
  */
-export function deskWindowText(shown: number, total: number | null | undefined): string {
+export function deskWindowText(shown: number, total: number | null | undefined, offset: number = 0): string {
   if (typeof total !== 'number' || !Number.isFinite(total)) return '';
   if (shown <= 0 || total <= shown) return '';
-  return `showing the ${shown} newest of ${total}`;
+  if (offset <= 0) return `showing the ${shown} newest of ${total}`;
+  return `showing ${offset + 1}–${offset + shown} of ${total}`;
 }
 
 export function deskSummary(rows: readonly DeskRow[]): { total: number; open: number } {
