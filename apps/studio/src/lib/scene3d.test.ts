@@ -18,7 +18,11 @@ import {
   normalizeAngle,
   nextBodyPlacement,
   ORBIT_PAN_LIMIT,
-  clampLightIntensity,
+  ORBIT_PAN_PER_PIXEL,
+  ORBIT_PAN_PER_KEY,
+  ORBIT_RADIANS_PER_PIXEL,
+  ORBIT_ZOOM_PER_NOTCH,
+  SCENE_DOCUMENT_DEFAULT_AT,  clampLightIntensity,
   clampEntityName,
   entityComponentsOf,
   lightIntensityOf,
@@ -2708,5 +2712,73 @@ describe('activateScene — the world the panel reads is the world it writes (M5
     // The only bodies anywhere are the four this surface's own builder composed — the authoring did nothing.
     const total = [...scenes.values()].reduce((n, s) => n + s.entities.size, 0);
     expect(total).toBe(4);
+  });
+});
+
+describe('the input scales — what a pixel, a notch and a key press are worth (v451)', () => {
+  // The component (Scene3D.tsx) is the only consumer of these five numbers, and it is not a file this
+  // suite can run: no DOM, no pointer events. What CAN be asked directly is the scale each constant
+  // declares and the arithmetic the component performs with it, fed through the pure orbit functions
+  // the suite already believes in. A control whose scale nobody has stated is a control that lies.
+
+  it('a HUNDRED dragged pixels is one radian, and both axes share the one scale', async () => {
+    // The component maps a drag to `azimuth: -dx * ORBIT_RADIANS_PER_PIXEL` and
+    // `elevation: -dy * ORBIT_RADIANS_PER_PIXEL` — ONE constant for both axes, so a diagonal drag turns
+    // the camera diagonally instead of skewing it.
+    const flat: OrbitState = { azimuth: 0, elevation: 0, distance: 10, panX: 0, panZ: 0 };
+    // A drag of 100px right and 100px down is the component's `-dx * K`, `-dy * K` — one radian each way.
+    const straight = applyOrbit(flat, { azimuth: -100 * ORBIT_RADIANS_PER_PIXEL, elevation: -100 * ORBIT_RADIANS_PER_PIXEL });
+    expect(straight.azimuth).toBeCloseTo(-1, 12);
+    expect(straight.elevation).toBeCloseTo(-1, 12);
+    const diagonal = applyOrbit(flat, { azimuth: -60 * ORBIT_RADIANS_PER_PIXEL, elevation: -80 * ORBIT_RADIANS_PER_PIXEL });
+    expect(diagonal.azimuth).toBeCloseTo(-0.6, 12);
+    expect(diagonal.elevation).toBeCloseTo(-0.8, 12);
+  });
+
+  it('a wheel notch is a TENTH of the distance the camera stands at — the zoom is multiplicative', async () => {
+    // The component computes `notches * ORBIT_ZOOM_PER_NOTCH * distance`, so a notch near and a notch
+    // far move by different amounts and the same proportion: the zoom feels identical at every range.
+    const near = applyOrbit({ azimuth: 0, elevation: 0, distance: 4, panX: 0, panZ: 0 }, { distance: -1 * ORBIT_ZOOM_PER_NOTCH * 4 });
+    const far = applyOrbit({ azimuth: 0, elevation: 0, distance: 40, panX: 0, panZ: 0 }, { distance: -1 * ORBIT_ZOOM_PER_NOTCH * 40 });
+    expect(near.distance).toBeCloseTo(3.6, 12);
+    expect(far.distance).toBeCloseTo(36, 12);
+    // A tenth of 4 and a tenth of 40 are different steps — the proportion is the constant, not the step.
+    expect(far.distance - 36).toBe(0);
+    // And the range still binds: a notch inward from the nearest wall leaves the camera where it was.
+    const atWall = applyOrbit({ azimuth: 0, elevation: 0, distance: ORBIT_DISTANCE_MIN, panX: 0, panZ: 0 }, { distance: -1 * ORBIT_ZOOM_PER_NOTCH * ORBIT_DISTANCE_MIN });
+    expect(atWall.distance).toBe(ORBIT_DISTANCE_MIN);
+  });
+
+  it('one key press is worth TWENTY-FIVE dragged pixels', async () => {
+    // ORBIT_PAN_PER_KEY / ORBIT_PAN_PER_PIXEL is 25: a tap and a drag that agree are one control, not
+    // two that happen to move the same target.
+    expect(ORBIT_PAN_PER_KEY / ORBIT_PAN_PER_PIXEL).toBe(25);
+    const facing: OrbitState = { azimuth: 0, elevation: 0, distance: 10, panX: 0, panZ: 0 };
+    const byKey = applyPan(facing, { forward: ORBIT_PAN_PER_KEY });
+    const byDrag = applyPan(facing, { forward: 25 * ORBIT_PAN_PER_PIXEL });
+    expect(byKey).toEqual(byDrag);
+  });
+
+  it('the pan box is FORTY-EIGHT key presses wide — the scale is stated against its own limit', async () => {
+    // ORBIT_PAN_LIMIT is ±12 and a press is 0.5, so forty-eight presses walk the target from one wall
+    // to the other. The number a person can count is the number the constants agree on.
+    expect((2 * ORBIT_PAN_LIMIT) / ORBIT_PAN_PER_KEY).toBe(48);
+    let orbit: OrbitState = { azimuth: 0, elevation: 0, distance: 10, panX: 0, panZ: 0 };
+    for (let i = 0; i < 48; i++) orbit = applyPan(orbit, { right: ORBIT_PAN_PER_KEY });
+    expect(orbit.panX).toBe(ORBIT_PAN_LIMIT);
+  });
+
+  it('a scene frame lands at SCENE_DOCUMENT_DEFAULT_AT when the caller names no place', async () => {
+    const bodies = [{ id: 'e-1', name: 'Cube', kind: 'mesh', position: { x: 0, y: 0, z: 0 } }];
+    const [op] = composeDocumentOps({ pageId: 'page-1', index: 0, sceneName: 'S', bodies });
+    if (op?.type !== 'addSubtree') throw new Error('expected an addSubtree');
+    const frame = op.nodes[0]!;
+    expect(frame.x).toBe(SCENE_DOCUMENT_DEFAULT_AT.x);
+    expect(frame.y).toBe(SCENE_DOCUMENT_DEFAULT_AT.y);
+    // And a place the caller names wins over the default — the default is a fallback, not a floor.
+    const [moved] = composeDocumentOps({ pageId: 'page-1', index: 0, sceneName: 'S', bodies, at: { x: 300, y: 120 } });
+    if (moved?.type !== 'addSubtree') throw new Error('expected an addSubtree');
+    expect(moved.nodes[0]!.x).toBe(300);
+    expect(moved.nodes[0]!.y).toBe(120);
   });
 });
