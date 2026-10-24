@@ -7,6 +7,7 @@
  */
 
 import { childrenOf } from "./nodes";
+import { NODE_STATES, STATE_VARIANT } from "./states";
 import { toHex, tokenRefKey } from "./tokens";
 import type {
   BreakpointName,
@@ -15,6 +16,7 @@ import type {
   Page,
   Paint,
   RGBA,
+  Style,
   Token,
 } from "./types";
 
@@ -297,31 +299,29 @@ function layoutClasses(
   return out;
 }
 
-function styleClasses(node: DesignNode, prefix: string): string[] {
+function styleClasses(node: DesignNode, prefix: string, variant = ""): string[] {
   const out: string[] = [];
+  const push = (cls: string | null): void => {
+    if (cls) out.push(`${variant}${cls}`);
+  };
   const style = node.style;
   const r = style.cornerRadius;
   const corners = [r.topLeft, r.topRight, r.bottomRight, r.bottomLeft];
   if (corners.some((c) => c)) {
     if (corners.every((c) => c === corners[0])) {
-      const cls = lengthClass(corners[0], prefix, (inner) => `rounded-[${inner}]`);
-      if (cls) out.push(cls);
+      push(lengthClass(corners[0], prefix, (inner) => `rounded-[${inner}]`));
     } else {
       const perCorner = ["rounded-tl", "rounded-tr", "rounded-br", "rounded-bl"];
       for (let i = 0; i < 4; i += 1) {
-        const cls = lengthClass(corners[i], prefix, (inner) => `${perCorner[i]}-[${inner}]`);
-        if (cls) out.push(cls);
+        push(lengthClass(corners[i], prefix, (inner) => `${perCorner[i]}-[${inner}]`));
       }
     }
   }
   const stroke = style.strokes.find((s) => s.visible !== false);
   if (stroke) {
-    out.push(`border-[${Math.round(stroke.width * 100) / 100}px]`);
+    out.push(`${variant}border-[${Math.round(stroke.width * 100) / 100}px]`);
     const color = firstSolid(stroke.paints);
-    const cls = color
-      ? colorClass(color.color, prefix, (inner) => `border-[${inner}]`)
-      : null;
-    if (cls) out.push(cls);
+    push(color ? colorClass(color.color, prefix, (inner) => `border-[${inner}]`) : null);
   }
   for (const effect of style.effects) {
     if (effect.visible === false) continue;
@@ -332,20 +332,62 @@ function styleClasses(node: DesignNode, prefix: string): string[] {
       const num = (v: unknown): string =>
         lengthClass(v, prefix, (inner) => inner) ?? "0px";
       out.push(
-        `shadow-[${inset}${num(effect.offsetX)}_${num(effect.offsetY)}_${num(effect.blur)}_${num(effect.spread)}_${color}]`,
+        `${variant}shadow-[${inset}${num(effect.offsetX)}_${num(effect.offsetY)}_${num(effect.blur)}_${num(effect.spread)}_${color}]`,
       );
     }
     if (effect.kind === "layer-blur" && effect.blur) {
-      out.push(`blur-[${lengthClass(effect.blur, prefix, (i) => i) ?? "0px"}]`);
+      out.push(`${variant}blur-[${lengthClass(effect.blur, prefix, (i) => i) ?? "0px"}]`);
     }
     if (effect.kind === "background-blur" && effect.blur) {
-      out.push(`backdrop-blur-[${lengthClass(effect.blur, prefix, (i) => i) ?? "0px"}]`);
+      out.push(`${variant}backdrop-blur-[${lengthClass(effect.blur, prefix, (i) => i) ?? "0px"}]`);
     }
   }
-  if (style.opacity !== 1) out.push(`opacity-[${style.opacity}]`);
-  if (style.blendMode !== "normal") out.push(`mix-blend-${style.blendMode}`);
-  if (style.rotation) out.push(`rotate-[${style.rotation}deg]`);
-  if (style.cursor !== "default") out.push(`cursor-${style.cursor}`);
+  if (style.opacity !== 1) out.push(`${variant}opacity-[${style.opacity}]`);
+  if (style.blendMode !== "normal") out.push(`${variant}mix-blend-${style.blendMode}`);
+  if (style.rotation) out.push(`${variant}rotate-[${style.rotation}deg]`);
+  if (style.cursor !== "default") out.push(`${variant}cursor-${style.cursor}`);
+  return out;
+}
+
+/**
+ * §124 状态补丁 → Tailwind 变体前缀类（ADR-0062 part ①）。
+ *
+ * 只发补丁里真正指定的四通道：fills → bg（text 节点是字色 text-）、
+ * strokes → border、effects → shadow/blur、opacity。变体前缀取自
+ * STATE_VARIANT（唯一来源，code-parse 读同一张表）。补丁没有的状态不发射——
+ * 类名里不出现作者没写过的状态。
+ */
+function stateClasses(node: DesignNode, prefix: string): string[] {
+  const states = node.states;
+  if (!states) return [];
+  const out: string[] = [];
+  for (const state of NODE_STATES) {
+    const patch = states[state];
+    if (!patch) continue;
+    const variant = STATE_VARIANT[state];
+    if (patch.fills) {
+      const solid = firstSolid(patch.fills);
+      if (solid) {
+        const cls = isTextLabel(node)
+          ? colorClass(solid.color, prefix, (inner) => `${variant}text-[${inner}]`)
+          : colorClass(solid.color, prefix, (inner) => `${variant}bg-[${inner}]`);
+        if (cls) out.push(cls);
+      }
+    }
+    // 其余三通道复用 styleClasses：合成一个只有补丁通道的 style，
+    // variant 前缀让每个类都带上状态变体
+    const style: Style = {
+      fills: [],
+      strokes: patch.strokes ?? [],
+      cornerRadius: { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0 },
+      effects: patch.effects ?? [],
+      opacity: patch.opacity ?? 1,
+      blendMode: "normal",
+      rotation: 0,
+      cursor: "default",
+    };
+    out.push(...styleClasses({ ...node, style }, prefix, variant));
+  }
   return out;
 }
 
@@ -499,6 +541,7 @@ function classOf(node: DesignNode, parent: DesignNode | null, ctx: RenderCtx): s
     }),
     ...backgroundClasses(node, ctx.prefix),
     ...styleClasses(node, ctx.prefix),
+    ...stateClasses(node, ctx.prefix),
     ...typographyClasses(node, ctx.prefix),
     ...responsiveClasses(node, ctx.prefix),
   ].join(" ");

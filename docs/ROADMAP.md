@@ -6599,3 +6599,37 @@ editor 404、viewer 403 变 404。均逐字节还原（bda62ccde72e / 07948d067a
 
 **下一步**：① ADR-0062 状态层投影四片（并行会话丢失，设计文档幸存，可接手重做）；
 ② 协作者通知/邀请过期等团队体验边角；③ e2e 覆盖协作者跨面板读（浏览器见证）。
+
+
+## M5 第二十一片（#208）：状态层投影 part ①——codegen 发射变体类，状态名只有一份表
+
+§124 的 states（hover/active/focus/disabled/loading/error/success）从第一天就在
+DesignNode 上，但 codegen 一个状态类都没发过——模型里写了等于白写（§159）。
+ADR-0062 分四片补，本片是第①片：**生成代码里出现状态变体类**。
+
+- **`states.ts` 新文件，状态名与变体前缀的唯一来源**：`NODE_STATES`（七态 as const
+  数组）+ `STATE_VARIANT`（hover→`hover:`、active→`active:`、focus→`focus:`、
+  disabled→`disabled:`、loading/error/success→`data-[state=…]:`）。code-parse
+  （part ②）也从这里读，杜绝"生成写 `data-[state=loading]:`、解析只认
+  `data-state=loading`"的半通事故。`NodeStateStyle` / `NodeStates` 类型同文件定义。
+- **types.ts 的 NodeState 改为转发**：本地字面量联合删除，`export type { NodeState }
+  from "./states"`；`states` 字段类型改用 `NodeStates`。全仓除 types.ts 外无其它
+  NodeState 引用，改造零连带。
+- **codegen `stateClasses(node, prefix)`**：只发补丁里真正指定的四通道——
+  fills→bg（text 节点是字色 `text-[…]`，与渲染层同一份契约）、strokes→border、
+  effects→shadow/blur、opacity；变体前缀拼在 utility 前。补丁没有的状态、
+  没有指定的通道，一律不发射。`styleClasses` 加可选 `variant` 参数复用同一套
+  token/字面量逻辑（默认空串，基础态行为逐字节不变）。
+- **未兑现的口径**（ADR-0062 明载）：loading/error/success 的 `data-[state=…]`
+  变体目前只是类名，生成的 JSX 元素并没有 data-state 属性，运行时还不生效；
+  真正兑现要等 part ③ 的只读样式表和后续运行时接线。本片只保证"类发得对"。
+
+见证：新增 states-codegen.test.ts 8 例（hover fills→`hover:bg-[…]`、无 states 零变体类、
+七态前缀逐一从 STATE_VARIANT 发射、text 节点状态 fills 是字色、strokes/effects/opacity
+三通道带前缀、未指定通道不发射、token 引用走 CSS 变量、表与 NODE_STATES 严格同键）。
+design-model 全包 353 例绿。变异探针 3 种精确红：摘 classOf 里的 stateClasses 接入 →
+5 个发射用例红；STATE_VARIANT.loading 改成半通的 `data-state=loading:` → 表完整性断言红
+（七态用例同源读取仍自洽，硬编码断言就是抓这个）；摘 text 字色分支 → text 用例红。
+均逐字节还原（b697580ab283 / 1f5bdf58bfbb）。
+
+**下一步**：part ② code-parse 往返（解析 `hover:bg-[…]` 回 states，§19 往返 0 ops/0 unmapped 不变）。

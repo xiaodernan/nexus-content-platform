@@ -5,6 +5,8 @@
  * 渲染层、代码生成层、预览层都只是它的投影（§16）。
  */
 
+import type { NodeStates } from "./states";
+
 export type NodeId = string;
 export type PageId = string;
 export type TokenKey = string;
@@ -197,9 +199,11 @@ export interface Animation {
   enabled?: boolean;
 }
 
-/** §124 状态系统 */
-export type NodeState =
-  "hover" | "active" | "focus" | "disabled" | "loading" | "error" | "success";
+/**
+ * §124 状态系统：NodeState / NodeStateStyle / NodeStates 的唯一来源在
+ * states.ts（ADR-0062），这里只做转发，免得两边各抄一份状态名。
+ */
+export type { NodeState } from "./states";
 
 /** §123 交互构建器 */
 export interface Interaction {
@@ -408,12 +412,7 @@ export interface DesignNode {
   responsive?: ResponsiveRule[];
   animation?: Animation[];
   interactions?: Interaction[];
-  states?: Partial<
-    Record<
-      NodeState,
-      Partial<Pick<Style, "fills" | "opacity" | "strokes" | "effects">>
-    >
-  >;
+  states?: NodeStates;
   bindings?: Binding[];
 
   /** 变量 / token 绑定表：属性路径 → token key（§12） */
