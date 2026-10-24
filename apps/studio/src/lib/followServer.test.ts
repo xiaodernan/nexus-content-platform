@@ -321,3 +321,59 @@ describe('followServer — the write half (v445)', () => {
     expect(answer.reason).toContain('nexus-api unreachable');
   });
 });
+
+
+describe('followServer — the read carries the budget (v481)', () => {
+  // readFollowers (v397) has carried the service's 15-second budget since v337; the read in the OTHER
+  // direction — readFollowing (v390) — still fetched with no signal at all, so a service that never
+  // answered left the profile page's following window waiting forever. v481 closes it: the two
+  // directions now agree.
+
+  const followingBody = (n: number, count: number) =>
+    JSON.stringify({
+      followingCount: count,
+      following: Array.from({ length: n }, (_unused, i) => ({
+        accountId: `acct-${i}`,
+        followeeId: 'acct-ada',
+        createdAt: 1_700_000_000_000,
+      })),
+      limit: 20,
+      offset: 0,
+    });
+
+  it('readFollowing carries an active signal — the following window can no longer wait forever', async () => {
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((_url, init) => {
+      seenInit = init;
+      return new Response(followingBody(0, 0), { status: 200 });
+    });
+    await readFollowing('acct-ada', 0, fetchImpl);
+    expect(seenInit?.signal).toBeInstanceOf(AbortSignal);
+    expect((seenInit?.signal as AbortSignal).aborted).toBe(false);
+  });
+
+  it('the read budget is the service call budget — 15 seconds, asked of AbortSignal.timeout', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() => new Response(followingBody(0, 0), { status: 200 }));
+      await readFollowing('acct-ada', 0, fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledWith(15_000);
+      expect(timeoutSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('the two directions agree — readFollowers already carried the budget, and each gets its own signal', async () => {
+    const seen: (AbortSignal | undefined)[] = [];
+    const fetchImpl = makeFetch((_url, init) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(JSON.stringify({ followerCount: 0, followers: [], limit: 20, offset: 0 }), { status: 200 });
+    });
+    await readFollowers('acct-ada', null, 20, 0, fetchImpl);
+    await readFollowing('acct-ada', 0, fetchImpl);
+    expect(seen[0]).toBeInstanceOf(AbortSignal);
+    expect(seen[1]).toBeInstanceOf(AbortSignal);
+    expect(seen[0]).not.toBe(seen[1]);
+  });
+});

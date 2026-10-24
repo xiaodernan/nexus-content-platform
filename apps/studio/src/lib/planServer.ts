@@ -98,7 +98,7 @@ export async function readPlans(
   try {
     const res = await fetchImpl(
       `${apiBase}/plans?creator=${encodeURIComponent(creatorAccountId)}&limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(from))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
       return { ok: false, plans: [], count: null, limit, offset: from, reason: `the service's plans door answered HTTP ${res.status}` };
@@ -143,6 +143,7 @@ export async function readSubscriptions(
   try {
     const res = await fetchImpl(`${apiBase}/subscriptions?subscriber=${encodeURIComponent(subscriberAccountId)}`, {
       headers: { accept: 'application/json' },
+      signal: serviceCallSignal(),
     });
     if (!res.ok) {
       return { ok: false, subscriptions: [], totalCents: 0, count: 0, reason: `the service's subscriptions door answered HTTP ${res.status}` };

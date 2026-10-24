@@ -10,6 +10,7 @@
  * is an honest page and one that throws into a route handler is a 500.
  */
 import { nexusApiBase } from './publishServer';
+import { serviceCallSignal } from './serviceCall';
 
 /** One audit entry, in the service's own wire shape. */
 export interface AuditEntry {
@@ -52,6 +53,7 @@ export async function readAuditTrail(limit: number, fetchImpl: FetchLike = fetch
   try {
     const res = await fetchImpl(`${apiBase}/audit?limit=${encodeURIComponent(String(limit))}`, {
       headers: { accept: 'application/json' },
+      signal: serviceCallSignal(),
     });
     if (!res.ok) {
       return { ok: false, carried: 0, limit, reason: `the service's audit door answered HTTP ${res.status}` };

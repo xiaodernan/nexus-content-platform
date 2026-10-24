@@ -144,6 +144,7 @@ export async function readFollowing(
   try {
     const res = await fetchImpl(`${apiBase}/follows?follower=${encodeURIComponent(accountId)}&offset=${encodeURIComponent(String(from))}`, {
       headers: { accept: 'application/json' },
+      signal: serviceCallSignal(),
     });
     if (!res.ok) {
       return { ok: false, following: [], count: 0, limit: 20, offset: from, reason: `the service's follows door answered HTTP ${res.status}` };

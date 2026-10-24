@@ -66,3 +66,33 @@ describe('auditServer — readAuditTrail (M9 v280)', () => {
     expect(answer.reason).toContain('network down');
   });
 });
+
+
+describe('auditServer — the read carries the budget (v481)', () => {
+  // v337 gave every door in the Studio's own folder the service's 15-second budget; the audit trail's
+  // reader (v280) still fetched with no signal at all, so a service that never answered left the
+  // history page waiting forever, with no sentence and no reason. v481 closes it.
+
+  it('readAuditTrail carries an active signal — the history can no longer wait forever', async () => {
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
+      seenInit = init;
+      return new Response(JSON.stringify(TRAIL), { status: 200 });
+    }) as unknown as typeof fetch;
+    await readAuditTrail(20, fetchImpl);
+    expect(seenInit?.signal).toBeInstanceOf(AbortSignal);
+    expect((seenInit?.signal as AbortSignal).aborted).toBe(false);
+  });
+
+  it('the read budget is the service call budget — 15 seconds, asked of AbortSignal.timeout', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = vi.fn(async () => new Response(JSON.stringify(TRAIL), { status: 200 })) as unknown as typeof fetch;
+      await readAuditTrail(20, fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledWith(15_000);
+      expect(timeoutSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+});

@@ -254,3 +254,61 @@ describe('reportServer — reportOnService FILES a report (v405)', () => {
     expect(answer.reason).toContain('unreachable');
   });
 });
+
+
+describe('reportServer — every door carries the budget (v481)', () => {
+  // v337 gave the writes the service's 15-second budget, and v480 gave the withdraw its own. The two
+  // READS — readReports (v405) and readFiledReports (v382) — still fetched with no signal at all, so a
+  // service that never answered left the artifact page's reports panel and the filed-reports panel
+  // waiting forever, with no sentence and no reason. v481 closes it: all four doors ride the same
+  // budget, and each asks for its own.
+
+  const claim = { accountId: 'acct-p', handle: 'payer', assurance: 'unsigned-local', claimedAt: 1_776_000_000_000 };
+
+  it('both reads, the withdraw and the filing all carry an active signal', async () => {
+    const seen: (AbortSignal | undefined)[] = [];
+    const fetchImpl = makeFetch((_url, init) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(reportsBody(0, 0), { status: 200 });
+    });
+    await readReports('pub-1', 100, fetchImpl);
+    await readFiledReports('acct-r', 0, 20, fetchImpl);
+    await withdrawReport('rep-1', 'acct-r', fetchImpl);
+    await reportOnService('pub-1', 'spam', 'x', claim, fetchImpl);
+    expect(seen).toHaveLength(4);
+    for (const signal of seen) {
+      expect(signal).toBeInstanceOf(AbortSignal);
+      expect((signal as AbortSignal).aborted).toBe(false);
+    }
+  });
+
+  it('the budget is the service call budget — 15 seconds, asked of AbortSignal.timeout', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() => new Response(reportsBody(0, 0), { status: 200 }));
+      await readReports('pub-1', 100, fetchImpl);
+      await readFiledReports('acct-r', 0, 20, fetchImpl);
+      await withdrawReport('rep-1', 'acct-r', fetchImpl);
+      await reportOnService('pub-1', 'spam', 'x', claim, fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledWith(15_000);
+      expect(timeoutSpy).toHaveBeenCalledTimes(4);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('each door gets a FRESH signal — four calls cannot share one budget', async () => {
+    const seen: (AbortSignal | undefined)[] = [];
+    const fetchImpl = makeFetch((_url, init) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(reportsBody(0, 0), { status: 200 });
+    });
+    await readReports('pub-1', 100, fetchImpl);
+    await readFiledReports('acct-r', 0, 20, fetchImpl);
+    await withdrawReport('rep-1', 'acct-r', fetchImpl);
+    await reportOnService('pub-1', 'spam', 'x', claim, fetchImpl);
+    expect(seen[0]).not.toBe(seen[1]);
+    expect(seen[1]).not.toBe(seen[2]);
+    expect(seen[2]).not.toBe(seen[3]);
+  });
+});

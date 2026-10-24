@@ -9,6 +9,7 @@
  * DOCUMENT is perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
+import { serviceCallSignal } from './serviceCall';
 
 /**
  * One report, in the service's own wire shape.
@@ -58,7 +59,7 @@ export async function readReports(
   try {
     const res = await fetchImpl(
       `${apiBase}/reports?target=${encodeURIComponent(projectId)}&limit=${encodeURIComponent(String(limit))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
       return { ok: false, reports: [], count: 0, reason: `the service's reports door answered HTTP ${res.status}` };
@@ -125,7 +126,7 @@ export async function readFiledReports(
   try {
     const res = await fetchImpl(
       `${apiBase}/reports?reporter=${encodeURIComponent(reporterAccountId)}&offset=${encodeURIComponent(String(offset))}&limit=${encodeURIComponent(String(limit))}`,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -185,7 +186,7 @@ export async function withdrawReport(
   try {
     const res = await fetchImpl(
       `${apiBase}/reports/${encodeURIComponent(reportId)}?claimer=${encodeURIComponent(claimerAccountId)}`,
-      { method: 'DELETE', headers: { accept: 'application/json' } },
+      { method: 'DELETE', headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -230,6 +231,7 @@ export async function reportOnService(
           claimedAt: claim.claimedAt ?? null,
         },
       }),
+      signal: serviceCallSignal(),
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {

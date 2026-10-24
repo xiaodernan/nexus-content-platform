@@ -411,12 +411,12 @@ describe('planServer — repricePlan (v448)', () => {
 });
 
 describe('planServer — readSubscriptions (v449)', () => {
-  // The read door beside the three writes. Three of its decisions are the reason this is its own
-  // increment, and all three are measured divergences from its neighbours rather than oversights to be
-  // smoothed: the read carries NO signal where every write in this file carries the 15-second budget
-  // (v337); a non-ok answer keeps the HTTP STATUS rather than the service's own words, the exact
+  // The read door beside the three writes. Two of its decisions are the reason this is its own
+  // increment, and both are measured divergences from its neighbours rather than oversights to be
+  // smoothed: a non-ok answer keeps the HTTP STATUS rather than the service's own words, the exact
   // opposite of the writes' v313 rule; and a wire with no count falls back to the WINDOW'S LENGTH,
-  // where readPlans (v372) falls back to null.
+  // where readPlans (v372) falls back to null. The third divergence this file once named — the read
+  // carrying no signal where every write carried the 15-second budget (v337) — closed at v481.
 
   const sub = (planId: string) => ({
     creatorId: 'acct-ada',
@@ -444,17 +444,18 @@ describe('planServer — readSubscriptions (v449)', () => {
     expect(seenInit?.headers).toEqual({ accept: 'application/json' });
   });
 
-  it('the read carries NO signal — pinned as MEASURED, the budget gap named a fourth time (v337/v441/v442/v445)', async () => {
-    // Every WRITE in this file carries the service's 15-second budget; this READ does not. The gap is
-    // pinned here as observed rather than smoothed over: a test that asserted a budget nobody wrote
-    // would be the lie this house refuses.
+  it('the read carries the lane’s budget — the gap this file named four times (v337/v441/v442/v445), closed at v481', async () => {
+    // This case used to pin the ABSENCE: every WRITE in this file carried the service's 15-second
+    // budget, and this READ sent no signal at all, so a service that never answered left the read
+    // hanging. v481 closed it — the read rides the same budget as every write beside it.
     let seenInit: RequestInit | undefined;
     const fetchImpl = makeFetch((_url, init) => {
       seenInit = init;
       return new Response(JSON.stringify({ ok: true, subscriptions: [], totalCents: 0, count: 0 }), { status: 200 });
     });
     await readSubscriptions('acct-bob', fetchImpl);
-    expect(seenInit?.signal).toBeUndefined();
+    expect(seenInit?.signal).toBeInstanceOf(AbortSignal);
+    expect((seenInit?.signal as AbortSignal).aborted).toBe(false);
   });
 
   it('a non-ok answer is a refusal naming the HTTP STATUS — and NOT the body’s words (the writes’ v313 contrast)', async () => {
@@ -678,5 +679,63 @@ describe('planServer — cancelSubscription and retirePlan (v450)', () => {
     const tardy = await retirePlan('pro', CLAIM, slow);
     expect(tardy.reason).toContain('did not answer within 15 seconds');
     expect(tardy.reason).not.toContain('unreachable');
+  });
+});
+
+
+describe('planServer — the READS carry the budget too (v481)', () => {
+  // v337 gave every WRITE in this folder the service's 15-second budget. The two READS beside them —
+  // readPlans (v372) and readSubscriptions (v449) — still fetched with no signal at all, so a service
+  // that never answered left the server-rendered plans and subscriptions panels waiting forever, with
+  // no sentence and no reason. v481 closes it: both reads ride the same budget the writes do.
+
+  const plansBody = JSON.stringify({ ok: true, plans: [], count: 0, limit: 20, offset: 0 });
+
+  it('readPlans carries an active signal — the plans page can no longer wait forever', async () => {
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((_url, init) => {
+      seenInit = init;
+      return new Response(plansBody, { status: 200 });
+    });
+    await readPlans('acct-ada', 20, 0, fetchImpl);
+    expect(seenInit?.signal).toBeInstanceOf(AbortSignal);
+    expect((seenInit?.signal as AbortSignal).aborted).toBe(false);
+  });
+
+  it('readSubscriptions carries an active signal too', async () => {
+    let seenInit: RequestInit | undefined;
+    const fetchImpl = makeFetch((_url, init) => {
+      seenInit = init;
+      return new Response(JSON.stringify({ ok: true, subscriptions: [], totalCents: 0, count: 0 }), { status: 200 });
+    });
+    await readSubscriptions('acct-bob', fetchImpl);
+    expect(seenInit?.signal).toBeInstanceOf(AbortSignal);
+    expect((seenInit?.signal as AbortSignal).aborted).toBe(false);
+  });
+
+  it('the reads’ budget is the service call budget — 15 seconds, asked of AbortSignal.timeout', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      const fetchImpl = makeFetch(() => new Response(plansBody, { status: 200 }));
+      await readPlans('acct-ada', 20, 0, fetchImpl);
+      await readSubscriptions('acct-bob', fetchImpl);
+      expect(timeoutSpy).toHaveBeenCalledWith(15_000);
+      expect(timeoutSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('each read gets a FRESH signal — two reads in flight cannot share one budget', async () => {
+    const seen: (AbortSignal | undefined)[] = [];
+    const fetchImpl = makeFetch((_url, init) => {
+      seen.push(init?.signal ?? undefined);
+      return new Response(plansBody, { status: 200 });
+    });
+    await readPlans('acct-ada', 20, 0, fetchImpl);
+    await readSubscriptions('acct-bob', fetchImpl);
+    expect(seen[0]).toBeInstanceOf(AbortSignal);
+    expect(seen[1]).toBeInstanceOf(AbortSignal);
+    expect(seen[0]).not.toBe(seen[1]);
   });
 });
