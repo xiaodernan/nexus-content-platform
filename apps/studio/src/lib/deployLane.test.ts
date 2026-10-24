@@ -210,3 +210,18 @@ describe('deployLane — the probe answers a 200 it cannot read HONESTLY (v485)'
     expect(p.recordCount).toBe(0);
   });
 });
+
+describe('deployLane — a 200 whose body is JSON but NOT the probe’s shape is a named refusal (v486)', () => {
+  // v485 closed the unreadable body; this closes the readable-but-wrong one. The dock reads
+  // steps.length without a guard, so a wrong-shaped 200 would crash the panel — and a cast is not
+  // a contract. The route ANSWERED; what it answered is not the thing this lane promised.
+
+  it('a wrong-shaped 200 names the route and the status — never a crash, never a pass-through', async () => {
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ available: 'yes', steps: 'nope' }), { status: 200 })) as typeof fetch;
+    const p = await probeDeployLane();
+    expect(p.available).toBe(false);
+    expect(p.reason).toBe('deploy route answered 200 with a body that is not the probe’s shape');
+    expect(p.recordCount).toBe(0);
+    expect(p.steps).toEqual([]);
+  });
+});

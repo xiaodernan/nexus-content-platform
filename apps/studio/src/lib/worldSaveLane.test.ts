@@ -192,3 +192,16 @@ describe('worldSaveLane — the probe answers a 200 it cannot read HONESTLY (v48
     expect(p.reason).not.toContain('unreachable');
   });
 });
+
+describe('worldSaveLane — a 200 whose body is JSON but NOT the probe’s shape is a named refusal (v486)', () => {
+  // v485 closed the unreadable body; this closes the readable-but-wrong one. The dock reads
+  // steps.length without a guard, so a wrong-shaped 200 would crash the panel — and a cast is not
+  // a contract. The route ANSWERED; what it answered is not the thing this lane promised.
+
+  it('a wrong-shaped 200 names the route and the status — never a crash, never a pass-through', async () => {
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ available: 'yes', steps: 'nope' }), { status: 200 })) as typeof fetch;
+    const p = await probeWorldSaves();
+    expect(p.available).toBe(false);
+    expect(p.reason).toBe('world-saves route answered 200 with a body that is not the probe’s shape');
+  });
+});

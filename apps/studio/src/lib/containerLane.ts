@@ -61,6 +61,26 @@ function unreachableReason(error: unknown): string {
   return `studio server unreachable: ${error instanceof Error ? error.message : String(error)}`;
 }
 
+/**
+ * v485 closed the UNREADABLE body; v486 closes the READABLE-BUT-WRONG one. The dock reads
+ * `steps.length` without a guard, so a 200 whose body is JSON but not the probe's shape would
+ * crash the panel — and a cast is not a contract. A wrong shape is a NAMED refusal, the same way an
+ * unreadable body is: the route answered, and what it answered is not the thing this lane promised.
+ */
+function isContainerProbeShape(body: unknown): body is ContainerLaneProbe {
+  if (typeof body !== 'object' || body === null) return false;
+  const p = body as Partial<ContainerLaneProbe>;
+  return (
+    typeof p.available === 'boolean' &&
+    typeof p.serverVersion === 'string' &&
+    typeof p.reason === 'string' &&
+    typeof p.image === 'string' &&
+    typeof p.workdirRoot === 'string' &&
+    Array.isArray(p.rules) &&
+    p.rules.every((row) => Array.isArray(row) && row.every((cell) => typeof cell === 'string'))
+  );
+}
+
 export async function probeContainerLane(): Promise<ContainerLaneProbe> {
   try {
     const res = await fetch('/api/agent/container', { cache: 'no-store', signal: callSignal() });
@@ -75,6 +95,9 @@ export async function probeContainerLane(): Promise<ContainerLaneProbe> {
       // "unreachable" here would be the lie the house refuses: the server was there. The other doors
       // of this very file already say it plainly; the probe now says it too.
       return { available: false, serverVersion: '', reason: `container route answered ${res.status} with a non-JSON body`, image: '', workdirRoot: '', rules: [] };
+    }
+    if (!isContainerProbeShape(probe)) {
+      return { available: false, serverVersion: '', reason: `container route answered ${res.status} with a body that is not the probe’s shape`, image: '', workdirRoot: '', rules: [] };
     }
     return probe;
   } catch (e) {

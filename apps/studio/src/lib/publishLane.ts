@@ -96,6 +96,21 @@ export interface PublishLaneAnswer {
   reason?: string;
 }
 
+/**
+ * v485 closed the UNREADABLE body; v486 closes the READABLE-BUT-WRONG one. The dock reads
+ * `steps.length` without a guard, so a 200 whose body is JSON but not the probe's shape would
+ * crash the panel — and a cast is not a contract. A wrong shape is a NAMED refusal, the same way an
+ * unreadable body is: the route answered, and what it answered is not the thing this lane promised.
+ */
+function isPublishProbeShape(body: unknown): body is PublishLaneProbe {
+  if (typeof body !== 'object' || body === null) return false;
+  const p = body as Partial<PublishLaneProbe>;
+  return (
+    typeof p.available === 'boolean' &&
+    typeof p.apiBase === 'string'
+  );
+}
+
 export async function probePublish(): Promise<PublishLaneProbe> {
   try {
     const res = await fetch('/api/publish', { cache: 'no-store', signal: callSignal() });
@@ -108,6 +123,9 @@ export async function probePublish(): Promise<PublishLaneProbe> {
       // "unreachable" here would be the lie the house refuses: the server was there. The other doors
       // of this very file already say it plainly; the probe now says it too.
       return { available: false, apiBase: '', reason: `publish route answered ${res.status} with a non-JSON body` };
+    }
+    if (!isPublishProbeShape(probe)) {
+      return { available: false, apiBase: '', reason: `publish route answered ${res.status} with a body that is not the probe’s shape` };
     }
     return probe;
   } catch (e) {
