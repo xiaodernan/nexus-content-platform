@@ -36,11 +36,11 @@ describe('flattenTokens', () => {
   it('flattens nested groups into dotted-path keys', () => {
     const flat = flattenTokens(group);
     expect(Object.keys(flat).sort()).toEqual(['color.bg', 'color.brand', 'font.size.sm', 'font.size.xl']);
-    expect(flat['color.brand'].$value).toBe('#ff0044');
+    expect(flat['color.brand']?.$value).toBe('#ff0044');
   });
   it('honors a prefix', () => {
     const flat = flattenTokens(group, 'theme');
-    expect(flat['theme.color.brand'].$value).toBe('#ff0044');
+    expect(flat['theme.color.brand']?.$value).toBe('#ff0044');
   });
 });
 

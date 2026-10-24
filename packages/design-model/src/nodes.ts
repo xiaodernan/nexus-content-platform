@@ -17,6 +17,7 @@ import type {
   TextStyle,
   TokenGroup,
 } from './types.js';
+import { SCHEMA_VERSION } from './types.js';
 
 type NodeOverrides = Partial<NodeBase>;
 
@@ -171,7 +172,7 @@ export function createEmptyDocument(name = 'Untitled Project'): DesignDocument {
   docNode.pageIds = [page.id];
 
   return {
-    schemaVersion: 1,
+    schemaVersion: SCHEMA_VERSION,
     id: docNode.id,
     name,
     rootId: docNode.id,

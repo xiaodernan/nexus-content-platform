@@ -9,11 +9,18 @@ describe('defaultTokens (ADR 0008 DTCG theme)', () => {
   it('returns a populated theme with the expected top-level groups and anchors', () => {
     const t = defaultTokens();
     expect(Object.keys(t)).toEqual(expect.arrayContaining(['color', 'font', 'space', 'radius']));
-    expect((t.color as Record<string, { $value: string }>).brand.$value).toBe('#6ea8fe');
-    expect((t.font.size as Record<string, { $value: string }>).xl.$value).toBe('28px');
-    expect((t.radius as Record<string, { $value: string }>).full.$value).toBe('9999px');
+    // `defaultTokens` is a DTCG group tree; read it through one narrow, OPTIONAL view so the
+    // assertions stay type-safe under `noUncheckedIndexedAccess` (an absent leaf reads undefined).
+    const theme = t as unknown as {
+      color: Record<string, { $value?: string; $type?: string }>;
+      font: { size: Record<string, { $value?: string }> };
+      radius: Record<string, { $value?: string }>;
+    };
+    expect(theme.color.brand?.$value).toBe('#6ea8fe');
+    expect(theme.font.size.xl?.$value).toBe('28px');
+    expect(theme.radius.full?.$value).toBe('9999px');
     // each leaf carries a $type
-    expect((t.color as Record<string, { $type: string }>).text.$type).toBe('color');
+    expect(theme.color.text?.$type).toBe('color');
   });
 });
 

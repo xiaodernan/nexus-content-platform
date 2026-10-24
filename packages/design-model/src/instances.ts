@@ -42,7 +42,7 @@ export interface ExpandedInstances {
  * one genuinely ambiguous shape — a master child literally named `text` carrying a text-only patch — folds
  * to the SAME answer either way, so the rule cannot be fooled into a wrong result.)
  */
-export function normalizeInstanceOverrides(overrides: InstanceNode['overrides']): Record<NexusId, InstanceChildOverride> {
+export function normalizeInstanceOverrides(overrides: InstanceNode['overrides'] | undefined): Record<NexusId, InstanceChildOverride> {
   const o = (overrides ?? {}) as Record<NexusId, unknown>;
   const byId: Record<NexusId, InstanceChildOverride> = {};
   const legacyText: Record<string, string> = {};

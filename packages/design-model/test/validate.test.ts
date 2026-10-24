@@ -157,8 +157,8 @@ describe('validateDocument geometry axis (M7 v426)', () => {
     const line = details(d).find((t) => t.startsWith('r1'))!;
     // read the field LIST, not a substring: 'y' lives inside 'array' and 'renderer'
     const named = /has non-finite ([^(]+) \(([^)]+)\)/.exec(line);
-    expect(named![1].split(', ')).toEqual(['x', 'width']);
-    expect(named![2].split(', ')).toEqual(['null', 'array']);
+    expect(named![1]!.split(', ')).toEqual(['x', 'width']);
+    expect(named![2]!.split(', ')).toEqual(['null', 'array']);
   });
 
   it('accepts the geometry the model actually authors — including 0, negatives and fractions', () => {
@@ -177,7 +177,7 @@ describe('validateDocument geometry axis (M7 v426)', () => {
   it('names a corrupt auto-layout gap or padding entry', () => {
     const d = clone(withRect());
     const pageId = d.activePageId;
-    const frame = pageNode('F', { id: 'fr', parentId: pageId, childIds: ['r1'], layout: { mode: 'vertical', gap: '10', padding: { top: NaN, right: 0, bottom: 0, left: 0 }, primaryAxis: 'start', counterAxis: 'start' } as never });
+    const frame = pageNode('F', { id: 'fr', parentId: pageId, childIds: ['r1'], layout: { mode: 'vertical', gap: '10', padding: { top: NaN, right: 0, bottom: 0, left: 0 }, primaryAxis: 'start', counterAxis: 'start' } } as never);
     d.nodes['fr'] = frame;
     (d.nodes[pageId] as unknown as { childIds: string[] }).childIds = ['fr'];
     d.nodes['r1']!.parentId = 'fr';
