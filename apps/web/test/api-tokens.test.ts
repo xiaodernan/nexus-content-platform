@@ -292,6 +292,7 @@ describe('三处 scope 名单是同一份：常量 / 迁移里生效的 CHECK / 
       'GET /api/v1/projects',
       'GET /api/v1/projects/[projectId]',
       'GET /api/v1/projects/[projectId]/design',
+      'GET /api/v1/projects/[projectId]/members',
       'PATCH /api/v1/projects/[projectId]/design',
       'POST /api/v1/projects',
       'POST /api/v1/projects/[projectId]/publish',

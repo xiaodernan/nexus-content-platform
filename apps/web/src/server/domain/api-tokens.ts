@@ -7,6 +7,7 @@ import type {
   ApiDesignPatchResult,
   ApiProject,
   ApiProjectDetail,
+  ApiTeamRoster,
   ApiTokenRecord,
   ApiTokenScope,
 } from '@nexus/schemas';
@@ -17,8 +18,9 @@ import { apiAccessBuckets, apiTokens, projects, users } from '../db/schema';
 import { parseDocument } from '../validation';
 import { destructiveActions, nodeNamer, WEB_APPROVAL_POLICY } from '../ai/approvals';
 import { loadDocument, lockProjectWrites, writeProjectDocument } from './projects';
-import { projectWriteAccess } from './team';
-import { projectVisibleTo } from './team';
+import { listInvites, listMembers, ownerOf, projectVisibleTo, projectWriteAccess } from './team';
+import { planOf } from './credit-ledger';
+import { teamMemberLimit } from './credits';
 import { createSnapshot } from './snapshots';
 import { currentBranchId } from './branches';
 import { recordAudit } from './audit';
@@ -324,6 +326,22 @@ export async function apiDesignDocument(ownerId: string, projectId: string): Pro
   const document = await loadDocument(projectId);
   if (!document) return null;
   return { projectId, document, ...digestOf(document), source: 'database' };
+}
+
+/**
+ * §133 的 v1 端点（#207）：项目名册。owner 与协作者都读得着（`projectVisibleTo`，
+ * "被拉进一个项目"的最低语义是看得见同伴）；凭据不属于这个项目的人与不存在的项目
+ * 同一个答案（null，路由翻成 404）——v1 的写端点早就是这个口径（0028 注释）。
+ *
+ * 装配与界面名册路由**同一套函数**（listMembers / listInvites / teamMemberLimit）：
+ * §74 说的"不在路由里重写第二遍"对 API 一样成立，两边算术不同步比没有 API 更糟。
+ * 邀请的 token 是 secret：`listInvites` 回的视图里没有它，这边也不加。
+ */
+export async function apiTeamRoster(userId: string, projectId: string): Promise<ApiTeamRoster | null> {
+  if (!(await projectVisibleTo(projectId, userId))) return null;
+  const [members, invites] = await Promise.all([listMembers(projectId), listInvites(projectId)]);
+  const plan = await planOf((await ownerOf(projectId)) ?? userId);
+  return { projectId, members, invites, teamLimit: teamMemberLimit(plan) };
 }
 
 /**

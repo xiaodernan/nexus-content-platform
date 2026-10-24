@@ -6569,3 +6569,33 @@ editor 404、viewer 403 变 404。均逐字节还原（bda62ccde72e / 07948d067a
 
 **下一步**：① v1 API 的 team 端点（#207）；② ADR-0062 状态层投影四片（并行会话丢失，
 可接手重做）；③ 协作者通知/邀请过期等团队体验边角。
+
+
+## M5 第二十片（#207）：v1 API 的 team 端点——名册读端点 + team:read 一格
+
+§188 的公开 API 到 #206 为止只有项目/设计/发布四口，团队功能（#201-#203）一点没露出去。
+本片补上最保守也最有用的一格：**名册只读端点**。
+
+- **迁移 0040**：`api_tokens_scopes_known` CHECK 加 `team:read`（形状同 0019/0027/0028：
+  text[] + CHECK，不重建 pg enum）。两个库都打（regress 供集成测试、nexus 供 e2e）。
+- **schemas**：`API_TOKEN_SCOPES` 加 `team:read`；`ApiTokensPanel` 的 SCOPE_LABELS
+  同步补文案（Record<ApiTokenScope, string> 逼着补，漏一个 tsc 就红）。
+- **域函数 `apiTeamRoster`**：与界面名册路由**同一套装配**（listMembers/listInvites/
+  teamMemberLimit，§74 不在路由里重写第二遍）；owner 与协作者读得着（projectVisibleTo），
+  外人 null → 路由 404 project_not_found（v1 各端点同一句"不存在"）。邀请 token 是
+  secret，回执里不出现。
+- **路由 `GET /api/v1/projects/[projectId]/members`**：authorizeApiRequest('team:read')
+  → apiTeamRoster → schema 校验 → recordApiAccess → apiJson。没有 POST：邀请/撤回/移除
+  是 owner 的管理动作，公网凭据背后没有人可批（§133）。
+- **静态三方一致测试自动把关**：api-tokens.test.ts 的"常量 / 迁移里生效的 CHECK /
+  v1 端点真的执行它"三处比对——加 scope 不加端点会红，加端点不加 scope 也会红；
+  端点名从文件位置推导，手抄的第四份名单同步更新。
+
+见证：新增 `api-v1-team.integration.test.ts` 5 例（owner 读到名册且无 token 泄漏、协作者
+凭据也读得着、外人 404、无 team:read 凭据 403、访问账留行 + 非 UUID 404）；id-shape 补
+一条 v1 members 的 not-a-uuid 探针（不打 500 不变式）。api-tokens.test.ts 24 例全绿。
+变异探针 2 种精确红：apiTeamRoster 改回 owner-only → 协作者读 404；摘 recordApiAccess
+→ 账目断言红。均逐字节还原（2bee4e55ec35 / b38d085351b8）。
+
+**下一步**：① ADR-0062 状态层投影四片（并行会话丢失，设计文档幸存，可接手重做）；
+② 协作者通知/邀请过期等团队体验边角；③ e2e 覆盖协作者跨面板读（浏览器见证）。

@@ -1513,6 +1513,7 @@ export const API_TOKEN_SCOPES = [
   'publish:write',
   'design:read',
   'design:write',
+  'team:read',
 ] as const;
 export const ApiTokenScopeSchema = z.enum(API_TOKEN_SCOPES);
 export type ApiTokenScope = z.infer<typeof ApiTokenScopeSchema>;

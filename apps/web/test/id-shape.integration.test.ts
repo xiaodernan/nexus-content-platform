@@ -27,6 +27,7 @@ import { GET as snapshotReadRoute } from '../src/app/api/projects/[projectId]/sn
 import { POST as snapshotRestorePost } from '../src/app/api/projects/[projectId]/snapshots/[snapshotId]/restore/route';
 import { GET as v1DesignGetRoute, PATCH as v1DesignPatchRoute } from '../src/app/api/v1/projects/[projectId]/design/route';
 import { POST as v1PublishPost } from '../src/app/api/v1/projects/[projectId]/publish/route';
+import { GET as v1MembersGetRoute } from '../src/app/api/v1/projects/[projectId]/members/route';
 import { POST as projectRestorePost } from '../src/app/api/projects/[projectId]/restore/route';
 import { GET as gameCodeGetRoute } from '../src/app/api/projects/[projectId]/game/code/route';
 import { GET as publicAssetGetRoute } from '../src/app/api/public/[handle]/assets/[assetId]/route';
@@ -669,7 +670,7 @@ describe('域层与路由层：restoreProject 的形状门与动态参数路由�
       await issueApiToken({
         userId: creator.id,
         name: '形状门-凭据',
-        scopes: ['projects:read', 'projects:write', 'publish:write', 'design:read', 'design:write'],
+        scopes: ['projects:read', 'projects:write', 'publish:write', 'design:read', 'design:write', 'team:read'],
       })
     ).token;
   }, 60_000);
@@ -922,6 +923,14 @@ describe('域层与路由层：restoreProject 的形状门与动态参数路由�
           ),
       },
       {
+        name: 'GET /api/v1/projects/not-a-uuid/members',
+        want: 404,
+        run: () =>
+          v1MembersGetRoute(new Request('http://test.local/api/v1/projects/not-a-uuid/members', { headers: bearer }), {
+            params: Promise.resolve({ projectId: bad }),
+          }),
+      },
+      {
         name: 'GET /api/projects/not-a-uuid/game/code',
         want: 404,
         run: () =>
@@ -975,7 +984,7 @@ describe('域层与路由层：updateProjectDescription 的形状门与第二轮
       await issueApiToken({
         userId: creator.id,
         name: '形状门-凭据-二轮',
-        scopes: ['projects:read', 'projects:write', 'publish:write', 'design:read', 'design:write'],
+        scopes: ['projects:read', 'projects:write', 'publish:write', 'design:read', 'design:write', 'team:read'],
       })
     ).token;
   }, 60_000);

@@ -29,6 +29,7 @@ const SCOPE_LABELS: Record<ApiTokenScope, string> = {
   'publish:write': '发布与下架（unlisted 上限：public 要走界面，机检与人工裁决在人的路径上）',
   'design:read': '读设计文档本体（整份，没有分页）',
   'design:write': '给设计文档打补丁（一次调用 = 一个事务，删除类 op 一律拒）',
+  'team:read': '读项目名册：成员与邀请（owner 与协作者可读；邀请链接的 secret 不在回执里）',
 };
 
 interface TryResult {
