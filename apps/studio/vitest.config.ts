@@ -16,6 +16,10 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: {
     alias: {
+      // The route modules under `src/app/**` import their server half through `@/…`, which `tsconfig.json`
+      // declares and this file did not — so a route could not be imported by a test at all. Same target as
+      // tsconfig's `paths`, so the alias resolves to the file a reviewer is reading.
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@nexus/three-runtime': fileURLToPath(new URL('../../packages/three-runtime/src/index.ts', import.meta.url)),
     },
   },

@@ -9,8 +9,13 @@ import { DEFAULT_LIST_LIMIT as LIST_DEFAULT, listPublications, publishDocument, 
  * Node runtime, because this is the hop that holds the service's address (`NEXUS_API_URL`) and does the
  * fetching — the browser never learns either. The POST body names an ACTION and the project:
  *
- *   { action: "publish", projectId, title, document }   → the service's receipt, passed through
- *   { action: "read",    projectId }                    → the publication, document included
+ *   { action: "publish",   projectId, title, document } → the service's receipt, passed through
+ *   { action: "read",      projectId }                  → the publication, document included
+ *   { action: "unpublish", projectId, claimer }         → whether anything actually moved
+ *   { action: "list",      limit, owner }               → what is published; names NO project
+ *
+ * The refusal sentences below quote this vocabulary, so a caller that sends a name from it never has to guess
+ * whether the route knows the action.
  *
  * A service that is NOT RUNNING is the ordinary state of a frontend-first repository, so it arrives as
  * `ok: false` with a reason rather than as a 500 — the panel needs to say "the service is not up", not
@@ -29,10 +34,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ ok: false, reason: 'the body is not JSON; this route answers { action: "publish" | "read", projectId, … }' }, { status: 400 });
+    return NextResponse.json({ ok: false, reason: 'the body is not JSON; this route answers { action: "publish" | "read" | "unpublish" | "list", projectId, … }' }, { status: 400 });
   }
-  if (typeof body !== 'object' || body === null) {
-    return NextResponse.json({ ok: false, reason: 'the body is not an object; this route answers { action: "publish" | "read", projectId, … }' }, { status: 400 });
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return NextResponse.json({ ok: false, reason: 'the body is not an object; this route answers { action: "publish" | "read" | "unpublish" | "list", projectId, … }' }, { status: 400 });
   }
 
   const { action, projectId, title, document, limit, owner, claimer } = body as {
@@ -74,7 +79,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json(await unpublishProject(projectId, undefined, claimer as string | undefined));
   }
   return NextResponse.json(
-    { ok: false, reason: `action is ${typeof action === 'string' ? `"${action}"` : String(action)}; this route speaks "publish", "read" and "unpublish" only` },
+    { ok: false, reason: `action is ${typeof action === 'string' ? `"${action}"` : String(action)}; this route speaks "publish", "read", "unpublish" and "list" only` },
     { status: 400 },
   );
 }
