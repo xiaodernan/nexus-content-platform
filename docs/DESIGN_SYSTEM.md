@@ -58,6 +58,23 @@ ColorField · TreeItem · Panel · Splitter · Badge · Toast · CommandBar · A
 - 状态覆盖 §124：hover / active / focus / disabled / loading / error / success
 - 图标统一一套线性图标集，24px 网格、1.5px 描边
 
+### 状态层的模型口径（§124，ADR-0062）
+
+节点上的 `states` 是**整通道替换**的补丁（fills / strokes / effects / opacity 各自整体覆盖），
+不是逐项合并。四处投影都从这一份补丁出发：
+
+- **生成代码**：`hover:` / `active:` / `focus:` / `disabled:` / `data-[state=loading|error|success]:`
+  变体类；基础态有、状态态没有的通道显式发射重置（`bg-none`、`border-0`、`shadow-none`、
+  `blur-none`、`backdrop-blur-none`、`text-inherit`），否则"换掉背景"在 hover 时会变成"留着背景"。
+- **代码 → 模型**：同一张变体表反向解码；解出的值与基础态相同的类按 unmapped 报出来（生成侧不会产它）。
+- **预览 / 发布**：只读页面用内联样式，所以状态规则带 `!important`，且只写与基础态不同的属性。
+  没有状态节点时页面不产出 `<style>` 标签。
+- **画布**：不加状态规则——它是编辑面，hover 改外观会和选择、拖拽、手柄打架；看状态请开预览。
+- `loading` / `error` / `success` 需要运行时设置 `data-state`。预览页用服务端 `?state=loading|error|success`
+  明确演示它们（ADR-0063：只有定义了该状态的节点才变，切状态不丢 viewport/page/zoom），
+  发布页不给这个控件——访客看的是作品，不是状态模拟器。`disabled:` 只对真实 disabled 元素生效。
+  只读页上真正自己会变的是 hover / active / focus。
+
 ## 动效（§122）
 
 只允许：fade / slide(≤8px) / scale / spring / scroll reveal / micro-interaction。

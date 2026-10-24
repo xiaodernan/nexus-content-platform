@@ -4368,6 +4368,71 @@ test('@smoke §124 状态层在预览与发布页真的生效（ADR-0062 part �
   expect(errors).toEqual([]);
 });
 
+/**
+ * §124 × ADR-0063：只读页的状态预览。
+ * loading / error / success 靠 data-state 兑现，没有运行时驱动；预览页用服务端 `?state=`
+ * 明确演示它们。判据有三条：只有真定义了这个状态的节点才变、没定义的节点一个字节不动、
+ * 切状态不丢当前取景框（viewport / page / zoom）。
+ */
+test('@smoke §124 状态预览：?state=loading 只让定义了该状态的节点变，且不丢取景框', async ({ page }) => {
+  test.setTimeout(240_000);
+  const projectId = await createProject(page, `状态预览 ${Date.now().toString(36)}`);
+  const ctaId = await layerId(page, 'Primary CTA');
+  const headlineId = await layerId(page, 'Headline');
+
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await page.click('[data-view="code"]');
+  await page.click('[data-code-edit]');
+  const editor = page.locator('[data-code-editor]');
+  const withLoading = (await editor.inputValue())
+    .split('\n')
+    .map((line) =>
+      line.includes(ctaId)
+        ? line.replace('className="', 'className="data-[state=loading]:opacity-[0.4] ')
+        : line,
+    )
+    .join('\n');
+  expect(withLoading).toContain('data-[state=loading]:opacity-[0.4]');
+  await editor.fill(withLoading);
+  await page.click('[data-code-apply]');
+  await expect(page.locator('[data-code-report-applied]')).toContainText('states');
+  await page.click('[data-view="canvas"]');
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
+
+  const opacity = (target: Page, id: string) =>
+    target.evaluate((nodeId) => {
+      const el = document.querySelector(`[data-node-id="${nodeId}"]`);
+      return el ? getComputedStyle(el).opacity : '';
+    }, id);
+
+  await page.goto(`/preview/${projectId}?viewport=tablet`);
+  const previewBar = page.locator('[data-state-preview]');
+  await expect(previewBar).toBeVisible();
+  await expect.poll(() => opacity(page, ctaId)).toBe('1');
+
+  // 切到 loading：参数进 URL、取景框不丢、只有定义了 loading 的 CTA 变淡
+  await page.click('[data-state-preview-option="loading"]');
+  await expect(page).toHaveURL(new RegExp(`/preview/${projectId}\\?viewport=tablet&state=loading`));
+  await expect(page.locator('[data-preview-frame]')).toHaveCSS('width', '768px');
+  await expect(page.locator(`[data-node-id="${ctaId}"]`)).toHaveAttribute('data-state', 'loading');
+  await expect.poll(() => opacity(page, ctaId)).toBe('0.4');
+  await expect(previewBar.locator('[data-state-preview-note]')).toContainText('只有定义了 loading 状态');
+  // 没有 loading 状态的节点：参数不会让它"看起来变了"
+  await expect(page.locator(`[data-node-id="${headlineId}"]`)).not.toHaveAttribute('data-state', 'loading');
+  await expect.poll(() => opacity(page, headlineId)).toBe('1');
+
+  // 切到没定义过的 error：CTA 回到基础透明度，但仍然只有 CTA 会带 data-state
+  await page.click('[data-state-preview-option="error"]');
+  await expect.poll(() => opacity(page, ctaId)).toBe('1');
+  await expect(page.locator(`[data-node-id="${ctaId}"]`)).not.toHaveAttribute('data-state', 'error');
+
+  // 基础态清掉参数，viewport 仍留着
+  await page.click('[data-state-preview-option="none"]');
+  await expect(page).not.toHaveURL(/state=/);
+  await expect(page).toHaveURL(/viewport=tablet/);
+  await expect.poll(() => opacity(page, ctaId)).toBe('1');
+});
+
 
 /**
  * §124 × ADR-0062 part ⑤：Properties 面板状态编辑器。
