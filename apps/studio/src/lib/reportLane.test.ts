@@ -339,3 +339,50 @@ describe('reportLane — every call rides the one budget (v480)', () => {
     expect(CALL_TIMEOUT_MS).toBe(45_000);
   });
 });
+describe('reportLane — when the budget FIRES the door says it was LATE (v482)', () => {
+  // The lane has carried a deadline since v294 (the writes) and v477–v481 (the reads), but a fired
+  // budget surfaced the PLATFORM's string — "The operation was aborted due to timeout" — which names
+  // neither the door nor the budget, and cannot tell a reader whether the door is gone or merely late.
+  // The publish lane named this distinction in v294 and the service door in v337; v482 extends the
+  // sentence to every lane.
+
+  const late = () => {
+    const error = new Error('The operation was aborted due to timeout');
+    error.name = 'TimeoutError';
+    return error;
+  };
+  const claim = { accountId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
+
+  it('a fired budget says the reports was LATE — the lane’s own door and the 45 seconds, not the platform’s string', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw late();
+    });
+    const answer = await fileReport('pub-1', 'spam', 'x', claim, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('the reports did not answer within 45 seconds');
+    expect(answer.reason).not.toContain('aborted');
+  });
+
+
+  it('a door that is GONE keeps its own message — the distinction is real, not a rename', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw new Error('network down');
+    });
+    const answer = await fileReport('pub-1', 'spam', 'x', claim, fetchImpl);
+    expect(answer.reason).toBe('network down');
+    expect(answer.reason).not.toContain('45 seconds');
+  });
+
+
+  it('every call of the lane rides the same distinction — read, take-back and filing alike', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw late();
+    });
+    const read = await readMyReports('acct-bob', fetchImpl);
+    const withdrawn = await withdrawReport('rep-1', 'acct-bob', fetchImpl);
+    const filed = await fileReport('pub-1', 'spam', 'x', claim, fetchImpl);
+    expect(read.reason).toBe('the reports did not answer within 45 seconds');
+    expect(withdrawn.reason).toBe('the reports did not answer within 45 seconds');
+    expect(filed.reason).toBe('the reports did not answer within 45 seconds');
+  });
+});

@@ -21,6 +21,22 @@ function callSignal(): AbortSignal {
   return AbortSignal.timeout(WRITE_TIMEOUT_MS);
 }
 
+/**
+ * Why a call to this lane's door did not answer.
+ *
+ * <p>A TIMEOUT is not an unreachable door: the door may well be there, and slow. Saying "unreachable"
+ * about a door that is merely late is the same kind of lie the house's rule about failed reads is about
+ * — a reader who is told the thing is gone when it is only late stops looking for it. The publish lane
+ * named this distinction in v294 and the service door in v337; v482 extends the sentence to every lane.
+ */
+function unreachableReason(error: unknown, door: string): string {
+  if (error instanceof Error && error.name === 'TimeoutError') {
+    return `${door} did not answer within ${WRITE_TIMEOUT_MS / 1000} seconds`;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
+
 export interface PlanLaneAnswer {
   ok: boolean;
   plan?: { planId: string; priceCents: number; period: string };
@@ -45,7 +61,7 @@ export async function subscribeToPlan(
     });
     return readAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, reason: unreachableReason(error, 'the subscriptions') };
   }
 }
 
@@ -93,7 +109,7 @@ export async function cancelSubscription(
     }
     return { ok: true, ended: body.ended === true };
   } catch (error) {
-    return { ok: false, ended: false, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, ended: false, reason: unreachableReason(error, 'the subscriptions') };
   }
 }
 
@@ -138,7 +154,7 @@ export async function retirePlan(
     }
     return { ok: true, retired: body.retired === true };
   } catch (error) {
-    return { ok: false, retired: false, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, retired: false, reason: unreachableReason(error, 'the plans') };
   }
 }
 
@@ -189,7 +205,7 @@ export async function repricePlan(
       period: typeof body.period === 'string' ? body.period : undefined,
     };
   } catch (error) {
-    return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, reason: unreachableReason(error, 'the plans') };
   }
 }
 
@@ -211,7 +227,7 @@ export async function offerPlan(
     });
     return readAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, reason: unreachableReason(error, 'the plans') };
   }
 }
 

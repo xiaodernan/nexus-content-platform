@@ -25,6 +25,22 @@ function callSignal(): AbortSignal {
   return AbortSignal.timeout(CALL_TIMEOUT_MS);
 }
 
+/**
+ * Why a call to this lane's door did not answer.
+ *
+ * <p>A TIMEOUT is not an unreachable door: the door may well be there, and slow. Saying "unreachable"
+ * about a door that is merely late is the same kind of lie the house's rule about failed reads is about
+ * — a reader who is told the thing is gone when it is only late stops looking for it. The publish lane
+ * named this distinction in v294 and the service door in v337; v482 extends the sentence to every lane.
+ */
+function unreachableReason(error: unknown, door: string): string {
+  if (error instanceof Error && error.name === 'TimeoutError') {
+    return `${door} did not answer within ${CALL_TIMEOUT_MS / 1000} seconds`;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
+
 export interface TipLaneAnswer {
   ok: boolean;
   tip?: { recipientId: string; amountCents: number };
@@ -108,7 +124,7 @@ export async function readMyTips(
       offset: from,
     };
   } catch (error) {
-    return { ok: false, tips: [], totalCents: 0, count: 0, limit: 20, offset: from, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, tips: [], totalCents: 0, count: 0, limit: 20, offset: from, reason: unreachableReason(error, 'the tips') };
   }
 }
 
@@ -179,7 +195,7 @@ export async function readMyTipsGiven(
       offset: from,
     };
   } catch (error) {
-    return { ok: false, tips: [], totalCents: 0, count: 0, limit: 20, offset: from, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, tips: [], totalCents: 0, count: 0, limit: 20, offset: from, reason: unreachableReason(error, 'the tips') };
   }
 }
 
@@ -216,6 +232,6 @@ export async function giveTip(
     const tips = Array.isArray(answer.tips) ? (answer.tips as { recipientId: string; amountCents: number }[]) : [];
     return { ok: true, tip: tips[0] };
   } catch (error) {
-    return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, reason: unreachableReason(error, 'the tips') };
   }
 }

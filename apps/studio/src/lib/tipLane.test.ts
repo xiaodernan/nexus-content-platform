@@ -327,3 +327,50 @@ describe('tipLane — the reads’ budget (v478)', () => {
     }
   });
 });
+describe('tipLane — when the budget FIRES the door says it was LATE (v482)', () => {
+  // The lane has carried a deadline since v294 (the writes) and v477–v481 (the reads), but a fired
+  // budget surfaced the PLATFORM's string — "The operation was aborted due to timeout" — which names
+  // neither the door nor the budget, and cannot tell a reader whether the door is gone or merely late.
+  // The publish lane named this distinction in v294 and the service door in v337; v482 extends the
+  // sentence to every lane.
+
+  const late = () => {
+    const error = new Error('The operation was aborted due to timeout');
+    error.name = 'TimeoutError';
+    return error;
+  };
+  const claim = { accountId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
+
+  it('a fired budget says the tips was LATE — the lane’s own door and the 45 seconds, not the platform’s string', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw late();
+    });
+    const answer = await giveTip('acct-ada', 100, 'thanks', false, claim, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('the tips did not answer within 45 seconds');
+    expect(answer.reason).not.toContain('aborted');
+  });
+
+
+  it('a door that is GONE keeps its own message — the distinction is real, not a rename', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw new Error('network down');
+    });
+    const answer = await giveTip('acct-ada', 100, 'thanks', false, claim, fetchImpl);
+    expect(answer.reason).toBe('network down');
+    expect(answer.reason).not.toContain('45 seconds');
+  });
+
+
+  it('every call of the lane rides the same distinction — both reads and the tip alike', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw late();
+    });
+    const mine = await readMyTips('acct-ada', 0, fetchImpl);
+    const given = await readMyTipsGiven('acct-ada', 0, fetchImpl);
+    const tipped = await giveTip('acct-ada', 100, 'thanks', false, claim, fetchImpl);
+    expect(mine.reason).toBe('the tips did not answer within 45 seconds');
+    expect(given.reason).toBe('the tips did not answer within 45 seconds');
+    expect(tipped.reason).toBe('the tips did not answer within 45 seconds');
+  });
+});

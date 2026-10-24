@@ -154,3 +154,57 @@ describe('economyLane — readEconomy (M8 v274)', () => {
     expect(plans[0]!.periodText).toBe('per month');
   });
 });
+
+describe('economyLane — when the budget FIRES the door says it was LATE (v482)', () => {
+  // The lane has carried a deadline since v294 (the writes) and v477–v481 (the reads), but a fired
+  // budget surfaced the PLATFORM's string — "The operation was aborted due to timeout" — which names
+  // neither the door nor the budget, and cannot tell a reader whether the door is gone or merely late.
+  // The publish lane named this distinction in v294 and the service door in v337; v482 extends the
+  // sentence to every lane.
+
+  const late = () => {
+    const error = new Error('The operation was aborted due to timeout');
+    error.name = 'TimeoutError';
+    return error;
+  };
+
+  it('a fired budget says the economy was LATE — the lane’s own door and the 45 seconds, not the platform’s string', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw late();
+    });
+    const answer = await readEconomy('acct-ada', 0, 0, 0, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('the economy did not answer within 45 seconds');
+    expect(answer.reason).not.toContain('aborted');
+  });
+
+
+  it('a door that is GONE keeps its own message — the distinction is real, not a rename', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw new Error('network down');
+    });
+    const answer = await readEconomy('acct-ada', 0, 0, 0, fetchImpl);
+    expect(answer.reason).toBe('network down');
+    expect(answer.reason).not.toContain('45 seconds');
+  });
+
+
+  it('the fired budget keeps the answer a refusal, not an empty panel — no rows are invented for a late door', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw late();
+    });
+    const answer = await readEconomy('acct-ada', 0, 0, 0, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.subscriptions).toBeUndefined();
+    expect(answer.plans).toBeUndefined();
+    expect(answer.reason).toBe('the economy did not answer within 45 seconds');
+  });
+
+  it('a DOMException from a real AbortSignal is read the same way — the branch keys on the name, not the class', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+    });
+    const answer = await readEconomy('acct-ada', 0, 0, 0, fetchImpl);
+    expect(answer.reason).toBe('the economy did not answer within 45 seconds');
+  });
+});

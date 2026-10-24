@@ -288,3 +288,40 @@ describe('publishLane — answer-shape edges', () => {
     expect(u.reason).toContain('studio server unreachable');
   });
 });
+describe('publishLane — when the budget FIRES the door says it was LATE (v482)', () => {
+  // The lane has carried a deadline since v294 (the writes) and v477–v481 (the reads), but a fired
+  // budget surfaced the PLATFORM's string — "The operation was aborted due to timeout" — which names
+  // neither the door nor the budget, and cannot tell a reader whether the door is gone or merely late.
+  // The publish lane named this distinction in v294 and the service door in v337; v482 extends the
+  // sentence to every lane.
+
+  let originalFetch: typeof fetch;
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('a fired budget says the Studio was LATE — the v294 distinction, pinned at last', async () => {
+    globalThis.fetch = vi.fn(async () => {
+      const error = new Error('The operation was aborted due to timeout');
+      error.name = 'TimeoutError';
+      throw error;
+    }) as unknown as typeof fetch;
+    const answer = await publishProject('doc-1', 'Harbour', { pages: [] });
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('the Studio did not answer within 45 seconds');
+    expect(answer.reason).not.toContain('aborted');
+    expect(answer.reason).not.toContain('unreachable');
+  });
+
+  it('a Studio that is GONE still says unreachable — the distinction is real, not a rename', async () => {
+    globalThis.fetch = vi.fn(async () => {
+      throw new Error('ECONNREFUSED');
+    }) as unknown as typeof fetch;
+    const answer = await publishProject('doc-1', 'Harbour', { pages: [] });
+    expect(answer.reason).toContain('studio server unreachable');
+    expect(answer.reason).not.toContain('45 seconds');
+  });
+});

@@ -232,3 +232,47 @@ describe('moderationLane — the read rides the budget (v480)', () => {
     expect(CALL_TIMEOUT_MS).toBe(45_000);
   });
 });
+describe('moderationLane — when the budget FIRES the door says it was LATE (v482)', () => {
+  // The lane has carried a deadline since v294 (the writes) and v477–v481 (the reads), but a fired
+  // budget surfaced the PLATFORM's string — "The operation was aborted due to timeout" — which names
+  // neither the door nor the budget, and cannot tell a reader whether the door is gone or merely late.
+  // The publish lane named this distinction in v294 and the service door in v337; v482 extends the
+  // sentence to every lane.
+
+  const late = () => {
+    const error = new Error('The operation was aborted due to timeout');
+    error.name = 'TimeoutError';
+    return error;
+  };
+
+  it('a fired budget says the desk was LATE — the lane’s own door and the 45 seconds, not the platform’s string', async () => {
+    const { fetchImpl } = makeFetch(() => {
+      throw late();
+    });
+    const answer = await readDesk('acct-o', null, 0, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('the desk did not answer within 45 seconds');
+    expect(answer.reason).not.toContain('aborted');
+  });
+
+
+  it('a door that is GONE keeps its own message — the distinction is real, not a rename', async () => {
+    const { fetchImpl } = makeFetch(() => {
+      throw new Error('network down');
+    });
+    const answer = await readDesk('acct-o', null, 0, fetchImpl);
+    expect(answer.reason).toBe('network down');
+    expect(answer.reason).not.toContain('45 seconds');
+  });
+
+
+  it('every call of the lane rides the same distinction — the desk read and the acknowledgement alike', async () => {
+    const { fetchImpl } = makeFetch(() => {
+      throw late();
+    });
+    const desk = await readDesk('acct-o', null, 0, fetchImpl);
+    const acked = await acknowledgeReport('rep-1', 'acct-o', fetchImpl);
+    expect(desk.reason).toBe('the desk did not answer within 45 seconds');
+    expect(acked.reason).toBe('the desk did not answer within 45 seconds');
+  });
+});

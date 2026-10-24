@@ -37,6 +37,22 @@ function callSignal(): AbortSignal {
 }
 
 /**
+ * Why a call to this lane's door did not answer.
+ *
+ * <p>A TIMEOUT is not an unreachable door: the door may well be there, and slow. Saying "unreachable"
+ * about a door that is merely late is the same kind of lie the house's rule about failed reads is about
+ * — a reader who is told the thing is gone when it is only late stops looking for it. The publish lane
+ * named this distinction in v294 and the service door in v337; v482 extends the sentence to every lane.
+ */
+function unreachableReason(error: unknown, door: string): string {
+  if (error instanceof Error && error.name === 'TimeoutError') {
+    return `${door} did not answer within ${CALL_TIMEOUT_MS / 1000} seconds`;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
+
+/**
  * Write a comment.
  *
  * The CLAIM travels with it: the account id, the handle, the assurance, and the instant in milliseconds.
@@ -84,7 +100,7 @@ export async function readMyComments(
         : [],
     };
   } catch (error) {
-    return { ok: false, comments: [], reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, comments: [], reason: unreachableReason(error, 'the comments') };
   }
 }
 
@@ -118,7 +134,7 @@ export async function postComment(
     const comment = answer.comment as CommentLaneAnswer['comment'];
     return { ok: true, comment };
   } catch (error) {
-    return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, reason: unreachableReason(error, 'the comments') };
   }
 }
 /** What one take-back answered — the browser half. */
@@ -162,6 +178,6 @@ export async function removeComment(
     }
     return { ok: true, removed: answer.removed === true };
   } catch (error) {
-    return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, reason: unreachableReason(error, 'the comments') };
   }
 }

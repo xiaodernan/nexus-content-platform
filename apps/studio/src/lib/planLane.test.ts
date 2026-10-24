@@ -329,3 +329,55 @@ describe('planLane — offerPlan (v440)', () => {
     expect((await offerPlan('plan-9', 1200, 'CNY', 'month', CLAIM, down)).reason).toBe('network down');
   });
 });
+
+describe('planLane — when the budget FIRES the door says it was LATE (v482)', () => {
+  // The lane has carried a deadline since v294 (the writes) and v477–v481 (the reads), but a fired
+  // budget surfaced the PLATFORM's string — "The operation was aborted due to timeout" — which names
+  // neither the door nor the budget, and cannot tell a reader whether the door is gone or merely late.
+  // The publish lane named this distinction in v294 and the service door in v337; v482 extends the
+  // sentence to every lane.
+
+  const late = () => {
+    const error = new Error('The operation was aborted due to timeout');
+    error.name = 'TimeoutError';
+    return error;
+  };
+  const claim = { accountId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
+
+  it('a fired budget says the subscriptions was LATE — the lane’s own door and the 45 seconds, not the platform’s string', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw late();
+    });
+    const answer = await subscribeToPlan('pro', claim, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('the subscriptions did not answer within 45 seconds');
+    expect(answer.reason).not.toContain('aborted');
+  });
+
+
+  it('a door that is GONE keeps its own message — the distinction is real, not a rename', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw new Error('network down');
+    });
+    const answer = await subscribeToPlan('pro', claim, fetchImpl);
+    expect(answer.reason).toBe('network down');
+    expect(answer.reason).not.toContain('45 seconds');
+  });
+
+
+  it('every call rides the same distinction — and each names its OWN door: subscriptions or plans', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw late();
+    });
+    const subscribed = await subscribeToPlan('pro', claim, fetchImpl);
+    const cancelled = await cancelSubscription('sub-1', claim, fetchImpl);
+    const retired = await retirePlan('pro', claim, fetchImpl);
+    const repriced = await repricePlan('pro', 200, 'month', claim, fetchImpl);
+    const offered = await offerPlan('pro', 200, 'CNY', 'month', claim, fetchImpl);
+    expect(subscribed.reason).toBe('the subscriptions did not answer within 45 seconds');
+    expect(cancelled.reason).toBe('the subscriptions did not answer within 45 seconds');
+    expect(retired.reason).toBe('the plans did not answer within 45 seconds');
+    expect(repriced.reason).toBe('the plans did not answer within 45 seconds');
+    expect(offered.reason).toBe('the plans did not answer within 45 seconds');
+  });
+});
