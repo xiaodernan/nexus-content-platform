@@ -565,3 +565,48 @@ describe('举报工单进入终态（§123 × §164）', () => {
   });
 });
 
+
+type Team = Extract<NotifyEvent, { kind: 'team' }>;
+
+const team = (over: Partial<Team> = {}): NotifyEvent => ({
+  kind: 'team',
+  recipientId: 'owner-1',
+  actorId: 'editor-1',
+  actorName: '小林',
+  projectId: 'proj-1',
+  projectName: '小站',
+  role: 'editor',
+  ...over,
+});
+
+describe('邀请被兑现（§133 × §164）', () => {
+  it('标题念出是谁、以什么角色进了哪个项目：两种角色不能读成同一句', () => {
+    const plan = planNotification(team());
+    expect(plan?.title).toContain('小林');
+    expect(plan?.title).toContain('《小站》');
+    expect(plan?.title).toContain('可编辑');
+
+    const viewer = planNotification(team({ role: 'viewer' }));
+    expect(viewer?.title).toContain('只读');
+    expect(viewer?.title).not.toContain('可编辑');
+  });
+
+  it('同一个人在同一个项目里只「加入」一次：键挂在项目与人上', () => {
+    expect(planNotification(team())?.dedupeKey).toBe('team:proj-1:editor-1');
+    expect(planNotification(team({ projectId: 'proj-2' }))?.dedupeKey).toBe('team:proj-2:editor-1');
+  });
+
+  it('指向 Studio 的团队面板（不是公开页），actor 是加入的那个人', () => {
+    const plan = planNotification(team());
+    expect(plan?.link).toBe('/studio/proj-1');
+    expect(plan?.actorId).toBe('editor-1');
+    expect(plan?.publicationId).toBe(null);
+    // 「有人进来了」是这个项目里发生的一件好事，但不该和失败共用颜色
+    expect(plan?.level).toBe('success');
+  });
+
+  it('这一类登记在名单里，并有一条真终态说明（收件箱页面从这张表印）', () => {
+    expect(Object.keys(NOTIFICATION_KINDS)).toContain('team');
+    expect(NOTIFICATION_TERMINAL_STATE.team.trim().length).toBeGreaterThan(10);
+  });
+});

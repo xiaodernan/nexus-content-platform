@@ -129,4 +129,15 @@ describe('§164 通知偏好写端点的门', () => {
     expect(ok.status).toBe(200);
     expect((await getNotificationSettings(owner)).comment).toBe(!before.comment);
   });
+
+  it('第十二类 team 的开关能落库：迁移 0042 的 CHECK 与登记表一起长', async () => {
+    const off = await put({ kind: 'team', enabled: false }, asUser(ownerToken));
+    expect(off.status).toBe(200);
+    // 关掉之后 emit 那一侧也会压住这一类（shouldSendNotification 读的就是这张表）
+    expect((await getNotificationSettings(owner)).team).toBe(false);
+
+    const back = await put({ kind: 'team', enabled: true }, asUser(ownerToken));
+    expect(back.status).toBe(200);
+    expect((await getNotificationSettings(owner)).team).toBe(true);
+  });
 });

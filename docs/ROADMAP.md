@@ -6801,3 +6801,28 @@ team 7/7、team-routes + api-v1-team 11/11、credits 36/36 全绿；tsc 0 eslint
 摘配额 `gt` → `again.ok` 变 false；`expired` 恒 false → `listed.expired` 红；摘去重 `gt` → 再邀命中同一封；
 摘 accepted 幂等 → ⑦ 报"已兑现的邀请不该因为后来过期而报失败"。
 迁移已打 regress（`55100/nexus_regress`）与开发库（`55100/nexus`）。
+
+## M5 第二十七片（#214）：邀请兑现 → 项目 owner 收到一条 team 通知
+
+§164 的登记表在 #94 之后长到十一类，而 §133 的邀请链路一直是"静默"的：协作者接受了邀请，
+owner 只能靠自己再去看名册。迁移 0042 的注释写着「#213 之后邀请被兑现会通知项目 owner」，
+但登记表补了第十二类 `team` 之后，真正的构造点还空着——`notify-producers.test.ts` 的普查
+因此红着（登记了却没有走得通的生产者）。
+
+这一片把缺的那一格补齐：
+
+- **生产者 `team.ts` 的 `acceptInvite`**：成员行与邀请状态那个事务提交之后发一条 `team`。
+  收件人按 `projects.ownerId` 现取（邀请行上的 `invitedById` 只是"当时谁发的"），actor 是接受邀请的人，
+  `role` 来自邀请行。**只认"加入"这个终态**：发出 / 撤回 / 过期都不发；幂等重放早在函数上半段返回，
+  刷新接受页不会把收件箱再点亮一次。
+- **收件箱与偏好的消费者**：收件箱页与设置面板的 `KIND_LABEL`、`levelOf`（info 档）、
+  `getNotificationSettings` 的默认全开——`NotificationKind` 是联合类型，这些手写表少一格就 tsc 红，
+  这正是它们存在的意义。
+- **迁移 0042**：`notification_settings_kind_check` 放进 `'team'`；只改设置表，
+  `notifications.kind` 一直是纯 text（唯一写入方是 `planNotification`）。
+
+**见证**：`notify-plan.test.ts` 加四例（两种角色读成两句、dedupe 键落到项目+人、链接指 Studio 团队面板、
+登记与终态说明同在）；`team.integration.test.ts` ① 在真库上断言"兑现后 owner 恰好一条 team 通知
+（标题带加入者与项目名），同一枚邀请再接受一次仍然只有那一条"；`notifications-settings.integration.test.ts`
+再加一例，把 `team` 的开关真的写进库里（迁移 0042 的 CHECK 不是装饰）。
+`notify-plan` + `notify-producers` 56/56、team 集成 7/7、通知偏好 5/5 绿。迁移 0042 已打到开发库（`55100/nexus`）。

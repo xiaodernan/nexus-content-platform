@@ -91,6 +91,7 @@ function levelOf(kind: NotificationKind): 'info' | 'success' | 'warning' | 'erro
     case 'follow':
     case 'remix':
     case 'marketplace_report':
+    case 'team':
       return 'info';
     default: {
       const exhaustive: never = kind;
@@ -289,6 +290,7 @@ export async function getNotificationSettings(userId: string): Promise<Record<No
     approval: true,
     build: true,
     marketplace_report: true,
+    team: true,
   };
 
   for (const row of rows) {

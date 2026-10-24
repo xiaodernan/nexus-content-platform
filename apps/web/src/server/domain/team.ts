@@ -4,6 +4,7 @@ import { isUuid } from './ids';
 import { getDb } from '../db/client';
 import { projectInvites, projectMembers, projects, users } from '../db/schema';
 import { teamSlotRefusalFor } from './credit-ledger';
+import { emit } from './notifications';
 
 /**
  * §133 teamCollaboration 那一格的领域逻辑（#201）：协作者与邀请。
@@ -233,7 +234,7 @@ export async function acceptInvite(token: string, userId: string): Promise<{ ok:
     .limit(1);
   if (!invite) return { ok: false, reason: '这枚邀请不存在' };
   if (invite.status === 'revoked') return { ok: false, reason: '这枚邀请已被撤回' };
-  const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  const [user] = await db.select({ email: users.email, displayName: users.displayName }).from(users).where(eq(users.id, userId)).limit(1);
   if (!user?.email || user.email.toLowerCase() !== invite.email.toLowerCase()) {
     return { ok: false, reason: '这枚邀请不是发给你的邮箱的' };
   }
@@ -257,6 +258,28 @@ export async function acceptInvite(token: string, userId: string): Promise<{ ok:
       .set({ status: 'accepted', acceptedAt: new Date() })
       .where(eq(projectInvites.id, invite.id));
   });
+  // §164 × §133：邀请兑现是「有人进了你的项目」的终态。发出 / 撤回 / 过期都不发，
+  // 幂等重放早在上面就返回了，所以刷新接受页不会把收件箱再点亮一次。
+  // 收件人按 projects.ownerId 现取：邀请行上的 invitedById 只是「当时谁发的」。
+  const ownerId = await ownerOf(invite.projectId);
+  if (ownerId && ownerId !== userId) {
+    const [project] = await db
+      .select({ name: projects.name })
+      .from(projects)
+      .where(eq(projects.id, invite.projectId))
+      .limit(1);
+    if (project) {
+      await emit({
+        kind: 'team',
+        recipientId: ownerId,
+        actorId: userId,
+        actorName: user.displayName ?? user.email,
+        projectId: invite.projectId,
+        projectName: project.name,
+        role: invite.role,
+      });
+    }
+  }
   return { ok: true, projectId: invite.projectId };
 }
 

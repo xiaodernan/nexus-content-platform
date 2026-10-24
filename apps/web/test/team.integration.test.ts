@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq, sql as rawSql } from 'drizzle-orm';
+import { eq, and, sql as rawSql } from 'drizzle-orm';
 import {
   acceptInvite,
   inviteMember,
@@ -10,7 +10,7 @@ import {
 } from '../src/server/domain/team';
 import { createProject } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
-import { projectInvites, projects, users } from '../src/server/db/schema';
+import { notifications, projectInvites, projects, users } from '../src/server/db/schema';
 
 /**
  * §133 teamCollaboration（#201）：协作者与邀请，打真实 Postgres。
@@ -91,6 +91,23 @@ describe('§133 协作者与邀请（真实数据库）', () => {
     expect(accepted.ok).toBe(true);
     expect(accepted.projectId).toBe(memberProject);
 
+    // §164 × §133：兑现这一刻才往 owner 收件箱写一条——「有人进了你的项目」是唯一的终态
+    const teamNotes = async () =>
+      getDb()
+        .select({ title: notifications.title })
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.userId, ownerId),
+            eq(notifications.kind, 'team'),
+            eq(notifications.projectId, memberProject),
+          ),
+        );
+    const firstNotes = await teamNotes();
+    expect(firstNotes.length).toBe(1);
+    expect(firstNotes[0]!.title).toContain('团队 Editor');
+    expect(firstNotes[0]!.title).toContain('《成员用例项目》');
+
     const members = await listMembers(memberProject);
     expect(members.length).toBe(1);
     expect(members[0]!.userId).toBe(editorId);
@@ -100,6 +117,8 @@ describe('§133 协作者与邀请（真实数据库）', () => {
     const second = await acceptInvite(await tokenOf(invited.invite!.id), editorId);
     expect(second.ok).toBe(true);
     expect((await listMembers(memberProject)).length).toBe(1);
+    // 幂等重放不是「又有人进来了」：收件箱里仍然只有那一条
+    expect((await teamNotes()).length).toBe(1);
     const invites = await listInvites(memberProject);
     expect(invites.find((i) => i.id === invited.invite!.id)?.status).toBe('accepted');
     expect(invites.find((i) => i.id === invited.invite!.id)?.acceptedAt).not.toBeNull();

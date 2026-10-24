@@ -21,6 +21,7 @@ const KIND_LABEL: Record<InboxItem['kind'], string> = {
   approval: '审批作废',
   build: '导出',
   marketplace_report: '举报结论',
+  team: '团队',
   other: '未分类',
 };
 

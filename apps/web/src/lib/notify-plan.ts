@@ -19,7 +19,8 @@ export type NotificationKind =
   | 'agent'
   | 'approval'
   | 'build'
-  | 'marketplace_report';
+  | 'marketplace_report'
+  | 'team';
 
 /**
  * 每一类都要在这里登记一次。`Record<NotificationKind, true>` 让"加了一类忘了登记"
@@ -38,6 +39,7 @@ export const NOTIFICATION_KINDS: Record<NotificationKind, true> = {
   approval: true,
   build: true,
   marketplace_report: true,
+  team: true,
 };
 
 /**
@@ -60,6 +62,7 @@ export const NOTIFICATION_TERMINAL_STATE: Record<NotificationKind, string> = {
   approval: '§74 的一道审批门在挂起时刻到期作废——不是"有人点了同意"，而是它真的结束了。',
   build: '§144 的一次导出打成包：读完文档、投出代码、取回资产，zip 合上才算完成。',
   marketplace_report: '举报工单进入终态（成立 / 驳回）时通知举报人一次；「受理中」不是结论，不发。',
+  team: '邀请被真的兑现：有人接受了发给他的邀请、成员行落库，才算「有人进了你的项目」；发出邀请 / 撤回 / 过期都不发。',
 };
 
 export interface NotificationPlan {
@@ -234,6 +237,22 @@ export type NotifyEvent =
       reportId: string;
       itemTitle: string;
       status: 'resolved' | 'dismissed';
+    }
+  | {
+      /**
+       * §133 × §164：邀请被兑现——有人真的进了你的项目。
+       *
+       * 只认「加入」这个终态：发出邀请、被撤回、过期都不是「有人进来了」，
+       * 那几件事要么是 owner 自己做的、要么是时间到了，都不该点亮收件箱。
+       * 收件人是项目 owner；actor 是加入的人（关系屏蔽对这条同样生效）。
+       */
+      kind: 'team';
+      recipientId: string;
+      actorId: string;
+      actorName: string;
+      projectId: string;
+      projectName: string;
+      role: 'editor' | 'viewer';
     };
 
 /** 项目名与对方显示名都是用户输入，进标题前要有个上限 */
@@ -477,6 +496,23 @@ export function planNotification(event: NotifyEvent): NotificationPlan | null {
         body: '结案 / 驳回都不会自动下架物品；状态与时间在「我的举报」里。',
         link: '/marketplace/reports',
       };
+
+    case 'team':
+      return {
+        ...base,
+        actorId: event.actorId,
+        publicationId: null,
+        // 一个人在一个项目里只「加入」一次：被移除后再加回来是同一件事的重复，不再点亮收件箱
+        dedupeKey: `team:${event.projectId}:${event.actorId}`,
+        level: 'success',
+        title: clip(
+          `${event.actorName} 接受了邀请，成为《${event.projectName}》的${TEAM_ROLE_LABEL[event.role]}`,
+          TITLE_MAX,
+        ),
+        body: null,
+        // 团队面板在 Studio 里，公开页上没有它
+        link: studioLink(event.projectId),
+      };
   }
 }
 
@@ -493,6 +529,12 @@ export function ttlLabel(ms: number): string {
   if (minutes >= 1) return `${Math.round(minutes)} 分钟`;
   return `${Math.round(ms / 1000)} 秒`;
 }
+
+/** 团队角色的人话读法：editor / viewer 在标题里要分开读（与 TeamPanel 的 ROLE_LABELS 同一口径） */
+const TEAM_ROLE_LABEL: Record<'editor' | 'viewer', string> = {
+  editor: '协作者（可编辑）',
+  viewer: '协作者（只读）',
+};
 
 /** DEMO Mock 的"完成"和真模型的"完成"要能在标题上分开读（§160） */
 const CAPABILITY_LABEL: Record<'real' | 'demo' | 'unavailable', string> = {

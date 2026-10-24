@@ -17,6 +17,7 @@ const KIND_LABEL: Record<NotificationKind, string> = {
   approval: '审批作废',
   build: '导出完成',
   marketplace_report: '举报结论',
+  team: '成员加入',
 };
 
 export function NotificationSettings() {
