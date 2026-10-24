@@ -226,4 +226,33 @@ describe('§133 协作者与邀请（真实数据库）', () => {
     expect(again.invite!.id).not.toBe(invite.id);
     expect(again.invite!.expired).toBe(false);
   });
+
+  /**
+   * ⑦ 顺序钉子：`acceptInvite` 里 **accepted 的幂等判断排在过期检查之前**。
+   *
+   * 这不是随手一排：一枚已经兑现的邀请，不该因为"后来过了 7 天"而被说成失败——
+   * 成员行早就在了，报失败会让用户以为没进去。把过期检查提到 accepted 之前，
+   * 这条用例必须红（探针见 ROADMAP #213）。
+   */
+  it('⑦ 已接受的邀请不因后来过期而失败（accepted 幂等优先于过期检查）', async () => {
+    for (const i of await listInvites(memberProject)) {
+      if (i.status === 'pending') expect(await revokeInvite(memberProject, i.id, ownerId)).toBe(true);
+    }
+    await removeMember(memberProject, editorId, ownerId);
+
+    const invited = await inviteMember(memberProject, ownerId, { email: await emailOf(editorId), role: 'viewer' });
+    expect(invited.ok).toBe(true);
+    const token = await tokenOf(invited.invite!.id);
+    expect((await acceptInvite(token, editorId)).ok).toBe(true);
+
+    // 兑现之后再把有效期改到过去
+    await getDb()
+      .update(projectInvites)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(projectInvites.id, invited.invite!.id));
+
+    const again = await acceptInvite(token, editorId);
+    expect(again.ok, '已兑现的邀请不该因为后来过期而报失败').toBe(true);
+    expect(again.projectId).toBe(memberProject);
+  });
 });

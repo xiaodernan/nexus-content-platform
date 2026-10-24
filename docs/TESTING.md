@@ -1936,6 +1936,7 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   四处必须同时成立，缺一件功能就是假的：① 新邀带 7 天截止；② `acceptInvite` 拒绝过期（accepted 幂等**优先**）；
   ③ `teamSlotRefusalFor` 不数过期 pending（否则一枚失效邀请把 owner 永久堵在门外）；
   ④ 去重查询排除过期（否则重邀同一个人会拿到一封失效邀请）。
-  **变异探针 4 种全精确红**（逐个摘 / 逐个还原）：摘 `acceptInvite` 检查 → `rejected.ok` 变 true；
-  摘配额 `gt` → `again.ok` 变 false；`expired` 恒 false → `listed.expired` 红；摘去重 `gt` → 再邀命中同一封。
-  team 6/6、team-routes + api-v1-team 11/11、credits 36/36；tsc 0 eslint 0。迁移已打 regress + `55100/nexus`。
+  **变异探针 5 种全精确红**（逐个摘 / 逐个还原）：摘 `acceptInvite` 检查 → `rejected.ok` 变 true；
+  摘配额 `gt` → `again.ok` 变 false；`expired` 恒 false → `listed.expired` 红；摘去重 `gt` → 再邀命中同一封；
+  摘 accepted 幂等 → ⑦ 报"已兑现的邀请不该因为后来过期而报失败"（**顺序钉子**：accepted 幂等优先于过期检查）。
+  team 7/7、team-routes + api-v1-team 11/11、credits 36/36；tsc 0 eslint 0。迁移已打 regress + `55100/nexus`。

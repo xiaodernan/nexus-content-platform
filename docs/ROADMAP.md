@@ -6792,7 +6792,9 @@ part ①②③ 都有单测，但"预览页移上指针真的变色"这件事只
   `data-team-invite-expired` 供 e2e 断言。
 
 **见证**：`team.integration.test.ts` 加 ⑥（有效期 ~7 天、改期到过去后收不了、名册 `expired=true` 且 status 仍 pending、
-free 档下再邀同一个人成功且不是去重命中）。team 6/6、team-routes + api-v1-team 11/11、credits 36/36 全绿；tsc 0 eslint 0。
-**变异探针 4 种全精确红**（逐个摘、逐个还原）：摘 `acceptInvite` 过期检查 → `rejected.ok` 变 true；
-摘配额 `gt` → `again.ok` 变 false；`expired` 恒 false → `listed.expired` 红；摘去重 `gt` → 再邀命中同一封。
+free 档下再邀同一个人成功且不是去重命中）与 ⑦（**顺序钉子**：已接受的邀请不因后来过期而失败——accepted 幂等优先）。
+team 7/7、team-routes + api-v1-team 11/11、credits 36/36 全绿；tsc 0 eslint 0。
+**变异探针 5 种全精确红**（逐个摘、逐个还原）：摘 `acceptInvite` 过期检查 → `rejected.ok` 变 true；
+摘配额 `gt` → `again.ok` 变 false；`expired` 恒 false → `listed.expired` 红；摘去重 `gt` → 再邀命中同一封；
+摘 accepted 幂等 → ⑦ 报"已兑现的邀请不该因为后来过期而报失败"。
 迁移已打 regress（`55100/nexus_regress`）与开发库（`55100/nexus`）。
