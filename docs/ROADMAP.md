@@ -6674,3 +6674,40 @@ token 引用反解 {color.primary}、整通道替换 toEqual 严断言、rounded
 
 **下一步**：part ③ 预览/发布只读样式表（stateStyleSheetFor 差量 + !important，
 无状态节点返空串，接进 preview/[projectId] 与 n/[handle]/[slug] 两个页面）。
+import io, sys
+
+path = "docs/ROADMAP.md"
+src = io.open(path, encoding="utf-8", newline="").read()
+entry = '''
+
+## M5 第二十三片（#210）：状态层投影 part ③——预览/发布只读样式表，!important 越过内联样式
+
+part ①② 之后状态在代码视图里进出自由，但预览与发布页仍只读 nodeStyle 的基础态——
+状态补丁被静默丢掉（§159 说的"看着像功能、实际不改变任何行为"）。本片把状态投影到
+两个只读页面。
+
+- **`apps/web/src/studio/state-styles.ts` 新模块 `stateStyleSheetFor`**：对每个带
+  states 的节点，用同一个 nodeStyle 分别算基础态与状态态（状态补丁按整通道替换
+  覆进 style），对 CSSProperties 求差，差量写成
+  `[data-node-id="…"]:hover { … !important }`。基础样式仍是内联，状态规则靠
+  !important 越过它——不写的话服务端渲染的 style="background-color: …" 永远赢。
+- **CSS_RESET**：基础态有、状态态显式清空的通道必须显式重置
+  （background-color: transparent / box-shadow: none / filter: none /
+  backdrop-filter: none / color: inherit / opacity: 1），否则 hover 会保留
+  上一层的视觉，而那恰恰是作者说要换掉的东西（ADR-0062）。
+- **状态选择器与 Tailwind 变体是两套**：代码视图用 STATE_VARIANT 的 Tailwind
+  前缀（hover: / data-[state=loading]:），只读页面用真实 CSS
+  （:hover / [data-state="loading"]），同唱 NODE_STATES 一张名册。
+- **画布不加状态规则**（ADR-0062：编辑面 hover 改外观会和选择/拖拽/手柄打架）；
+  预览页与发布页（n/[handle]/[slug]）在各自画框内注入 <style data-nexus-states>，
+  空样式表不产标签。loading/error/success 三条只读页面没有运行时驱动设置
+  data-state，规则在但暂不触发——ADR 已明载此口径，不假称生效。
+
+见证：新增 state-styles.test.ts 9 例（hover fills 差量、无状态空串、opacity、
+loading 属性选择器、fills/effects/text 三种重置、多状态多规则且只含差量、
+补丁与基础态一致不发射空规则）。变异探针 3 种精确红：摘 !important→7 红；
+摘重置分支→3 个重置用例红；摘空差量守卫→"一致不发射"用例红。均逐字节还原
+（0cf8360681bb）。apps/web typecheck + eslint 过。
+
+**下一步**：part ④ 浏览器见证（e2e/studio.spec.ts 加"§124 状态层在预览与发布页
+真的生效"全回路用例）+ ADR 点名但尚未兑现的 reset 类往返（hover:bg-none 等）。

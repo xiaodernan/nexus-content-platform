@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation';
-import { TokenStore, findPage, resolveLayout, type BreakpointName, type DesignDocument } from '@nexus/design-model';
+import { TokenStore, findPage, resolveLayout, type BreakpointName, type DesignDocument, type ResolvedNode } from '@nexus/design-model';
 import { requireUser } from '@/server/domain/session';
 import { loadDocument } from '@/server/domain/projects';
 import { projectVisibleTo } from '@/server/domain/team';
 import { apiAssetUrl, assetContextFor } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
+import { stateStyleSheetFor } from '@/studio/state-styles';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,11 @@ export default async function PreviewPage({ params, searchParams }: Props) {
   const zoom = Math.min(1, Math.max(0.25, Number(query.zoom ?? 1) || 1));
   // 预览是同源的鉴权场景：图走作者自己的资产路由（§38）
   const assets = assetContextFor(document, apiAssetUrl);
+  // §124 状态层只读投影（ADR-0062）：差量样式表，无状态节点时是空串
+  const stateSheet = stateStyleSheetFor(
+    layout.paintOrder.map((id) => layout.nodes[id]).filter((r): r is ResolvedNode => Boolean(r)),
+    { tokens, mode: document.activeMode ?? null, assets },
+  );
 
   return (
     <main className="min-h-screen w-full overflow-auto bg-bg-0 pb-[var(--nexus-space-10)]" data-preview-root data-page={page.name}>
@@ -62,6 +68,7 @@ export default async function PreviewPage({ params, searchParams }: Props) {
             boxShadow: '0 0 0 1px var(--nexus-color-border-subtle)',
           }}
         >
+          {stateSheet ? <style data-nexus-states>{stateSheet}</style> : null}
           {layout.paintOrder.map((id) => {
             const resolved = layout.nodes[id];
             if (!resolved) return null;

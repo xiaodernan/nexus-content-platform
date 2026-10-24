@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { TokenStore, findPage, resolveLayout } from '@nexus/design-model';
+import { TokenStore, findPage, resolveLayout, type ResolvedNode } from '@nexus/design-model';
 import { getPublishedPage, recordView } from '@/server/domain/publish';
 import { buildPublishedSeo } from '@/server/domain/seo';
 import { requestOrigin } from '@/lib/origin';
@@ -8,6 +8,7 @@ import { publicationState } from '@/server/domain/social';
 import { currentUserOrNull } from '@/server/domain/session';
 import { assetContextFor, publicAssetUrl } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
+import { stateStyleSheetFor } from '@/studio/state-styles';
 import { ReportControl } from './ReportControl';
 import { PublicationActions } from './PublicationActions';
 import { VisitMeter } from './VisitMeter';
@@ -65,6 +66,11 @@ export default async function PublishedPage({ params, searchParams }: Props) {
   const layout = resolveLayout(page, { tokens, mode });
   // 匿名访客的图走公共资产路由：可见性由"这一版发布确实引用了它"决定（§57）
   const assets = assetContextFor(document, (assetId) => publicAssetUrl(decodeURIComponent(handle), assetId));
+  // §124 状态层只读投影（ADR-0062）：发布页与预览页同一套差量样式表
+  const stateSheet = stateStyleSheetFor(
+    layout.paintOrder.map((id) => layout.nodes[id]).filter((r): r is ResolvedNode => Boolean(r)),
+    { tokens, mode, assets },
+  );
   await recordView(publication.id).catch(() => undefined);
   // 访客身份只读不签发：这里用 currentUserOrNull 而不是 requireUser，
   // 否则每一个点开链接的人都会在库里造出一个 guest 用户
@@ -105,6 +111,7 @@ export default async function PublishedPage({ params, searchParams }: Props) {
             boxShadow: '0 0 0 1px var(--nexus-color-border-subtle)',
           }}
         >
+          {stateSheet ? <style data-nexus-states>{stateSheet}</style> : null}
           {layout.paintOrder.map((id) => {
             const resolved = layout.nodes[id];
             if (!resolved) return null;
