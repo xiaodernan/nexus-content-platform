@@ -31,7 +31,7 @@ describe('relativeLuminance', () => {
   it('expands 3-digit hex to the doubled 6-digit value', () => {
     // #f00 === #ff0000 === pure red
     expect(relativeLuminance('#f00')).toBeCloseTo(0.2126, 4);
-    expect(relativeLuminance('#f00')).toBeCloseTo(relativeLuminance('#ff0000'), 10);
+    expect(relativeLuminance('#f00')).toBeCloseTo(relativeLuminance('#ff0000')!, 10);
   });
 
   it('parses rgb() and rgba() and ignores the alpha channel', () => {
@@ -39,7 +39,7 @@ describe('relativeLuminance', () => {
     expect(relativeLuminance('rgba(0, 255, 0, 0.5)')).toBeCloseTo(0.7152, 4);
     // alpha must not leak into the luminance
     expect(relativeLuminance('rgba(0, 255, 0, 1)')).toBeCloseTo(
-      relativeLuminance('rgba(0, 255, 0, 0.1)'),
+      relativeLuminance('rgba(0, 255, 0, 0.1)')!,
       10,
     );
   });

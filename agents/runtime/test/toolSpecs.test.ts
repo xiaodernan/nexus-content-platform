@@ -12,8 +12,9 @@ import { describe, expect, it } from 'vitest';
 import { BUILD_TOOL_SPECS } from '../src/buildArc.js';
 import { DEPLOY_TOOL_SPECS } from '../src/deployArc.js';
 import { UI_TOOL_SPECS } from '../src/domkit.js';
+import type { ToolSpec } from '../src/types.js';
 
-const byName = (specs: { name: string }[]) => Object.fromEntries(specs.map((s) => [s.name, s]));
+const byName = (specs: ToolSpec[]): Record<string, ToolSpec> => Object.fromEntries(specs.map((s) => [s.name, s]));
 
 describe('BUILD_TOOL_SPECS — the one exec door (§28)', () => {
   it('declares exactly build.verify, gated by exec', () => {

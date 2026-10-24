@@ -48,7 +48,10 @@ describe('planBuildArc — refusal reasons', () => {
 
   it('refuses an argv that is empty or contains an empty string', () => {
     expect(planBuildArc({ ...valid, steps: [{ stepId: 's', argv: [], rationale: 'r' }] }).ok).toBe(false);
-    expect(planBuildArc({ ...valid, steps: [{ stepId: 's', argv: ['x', ''], rationale: 'r' }] }).reason).toContain('argv');
+    const bad = planBuildArc({ ...valid, steps: [{ stepId: 's', argv: ['x', ''], rationale: 'r' }] });
+    expect(bad.ok).toBe(false);
+    if (bad.ok) return;
+    expect(bad.reason).toContain('argv');
   });
 });
 
