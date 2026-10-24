@@ -143,8 +143,16 @@ test('@smoke 分镜面板：切句成镜、改一镜能撤、撤销结果真的�
 
   // 删掉最后一镜可以撤回来，并且回到**原来那一位**（patch 里那条"记下原位置"的兑现）
   const lastId = await shots.last().getAttribute('data-storyboard-shot');
-  // 动作按钮要在面板那 264px 里看得见：裁出界外的按钮 Playwright 照样点得到，用户点不到
-  await expect(page.locator(`[data-storyboard-remove="${lastId}"]`)).toBeInViewport();
+  // 动作按钮要在面板那 264px 里看得见：裁出界外的按钮 Playwright 照样点得到，用户点不到。
+  // 按这句话的字面来断言——按钮的左右不出面板的左右（264px 那条竖边）。竖直方向不断言：
+  // 镜头列表本来就是滚动区（flex-1 overflow-auto），三镜时最后一镜在折叠线下是正常的，
+  // 滚一下就到；2026-10-24 把时间线钉上面板底部之后折叠线还更高了。
+  // （这里早先写的是 toBeInViewport：两个方向都要在视口里。#194 给每卡加了「定位」钮、
+  // 卡片从三个包装行变四个之后它必红——那不是裁剪，是列表该滚，不是产品坏了。）
+  const panelBox = (await page.locator('[data-storyboard-panel]').boundingBox())!;
+  const removeBox = (await page.locator(`[data-storyboard-remove="${lastId}"]`).boundingBox())!;
+  expect(removeBox.x).toBeGreaterThanOrEqual(panelBox.x);
+  expect(removeBox.x + removeBox.width).toBeLessThanOrEqual(panelBox.x + panelBox.width + 1);
   await page.click(`[data-storyboard-remove="${lastId}"]`);
   await expect(shots).toHaveCount(2);
   await savedState(page);
@@ -380,11 +388,13 @@ async function serverShotDetails(page: Page): Promise<{ id: string; prompt: stri
  */
 async function dblclickBlock(page: Page, selector: string, spot: { fraction: number } | { fromLeftPx: number }): Promise<void> {
   const block = page.locator(selector);
-  await block.scrollIntoViewIfNeeded();
-  await expect(block).toBeInViewport();
   const box = (await block.boundingBox())!;
-  const x = 'fraction' in spot ? box.x + box.width * spot.fraction : box.x + spot.fromLeftPx;
-  await page.mouse.dblclick(x, box.y + box.height / 2);
+  const x = 'fraction' in spot ? box.width * spot.fraction : spot.fromLeftPx;
+  // 走 locator.dblclick 而不是 page.mouse.dblclick(量好的视口坐标)：布局会在两次点击之间动
+  // ——点名/配额那几段是挂载后异步落下来的，点条的第一击还会触发"把镜头滚进视野"的滚动。
+  // 量的时候对得上，第二次点击时目标已经移走了，dblclick 根本不会在块上合成。
+  // locator 的点击自带行动性检查（可见、占据稳定、命中本元素），位移发生时会等它稳下来。
+  await block.dblclick({ position: { x, y: box.height / 2 } });
 }
 
 /**

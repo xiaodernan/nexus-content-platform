@@ -1023,7 +1023,49 @@ export function StoryboardPanel() {
           ) : null}
         </section>
 
-        <section className="border-t border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]" data-storyboard-timeline>
+        <section className="border-t border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]" data-storyboard-timeline-doc>
+          <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">时间线（§41）· 说明与轨道</h3>
+          <p className="mt-1 text-11 text-fg-3">
+            拖右边缘改长度（吸附 {SHOT_MS_STEP} 毫秒，下限 {MIN_SHOT_MS} 毫秒）、拖整块换位、点左上角的转场标记换衔接、
+            点条上任意一格在镜头列表里定位那一镜（反向用镜头行里的「定位」）、
+            <span data-timeline-split-hint>双击一格在点击处切成两镜</span>（两半共享同一张参考帧——切的是时间线，不是像素）；
+            松手才写库，每一步都可撤销。键盘：Tab 到格子的右边缘，左右方向键调长度（Shift 一格 {SHOT_MS_COARSE_STEP} 毫秒），
+            Enter 落库、Esc 取消；换位用镜头表里的 ↑ ↓，精确毫秒用那个数字框——四条路改的是同一份模型。
+          </p>
+          <ul className="mt-2 flex flex-col gap-1">
+            {(timeline?.tracks ?? []).map((track) => (
+              <li key={track.kind} className="text-11 text-fg-2" data-storyboard-track={track.kind}>
+                <span className="font-mono text-fg-3">{track.kind}</span>
+                {'：'}
+                {track.clips.length ? `${track.clips.length} 格` : `空——${track.emptyReason ?? '这一版没有内容'}`}
+              </li>
+            ))}
+          </ul>
+          {timeline?.blockers.length ? (
+            <ul className="mt-2 flex flex-col gap-1">
+              {timeline.blockers.map((b) => (
+                <li key={b} className="text-11 text-fg-3" data-storyboard-blocker>
+                  {b}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+
+
+        <section className="border-t border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]">
+          <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">这一版分镜是怎么来的</h3>
+          <ul className="mt-1 flex flex-col gap-1">
+            {sb.notes.map((note) => (
+              <li key={note} className="text-11 leading-relaxed text-fg-3" data-storyboard-note>
+                {note}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+        <section className="shrink-0 border-t border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]" data-storyboard-timeline>
           <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">时间线（§41）</h3>
           <p className="mt-1 text-11 text-fg-2">
             总长 {String((timeline?.totalMs ?? 0) / 1000)} 秒 ·
@@ -1133,13 +1175,6 @@ export function StoryboardPanel() {
               );
             })}
           </div>
-          <p className="mt-1 text-11 text-fg-3">
-            拖右边缘改长度（吸附 {SHOT_MS_STEP} 毫秒，下限 {MIN_SHOT_MS} 毫秒）、拖整块换位、点左上角的转场标记换衔接、
-            点条上任意一格在镜头列表里定位那一镜（反向用镜头行里的「定位」）、
-            <span data-timeline-split-hint>双击一格在点击处切成两镜</span>（两半共享同一张参考帧——切的是时间线，不是像素）；
-            松手才写库，每一步都可撤销。键盘：Tab 到格子的右边缘，左右方向键调长度（Shift 一格 {SHOT_MS_COARSE_STEP} 毫秒），
-            Enter 落库、Esc 取消；换位用镜头表里的 ↑ ↓，精确毫秒用那个数字框——四条路改的是同一份模型。
-          </p>
           {drag ? (
             <p className="mt-1 text-11 text-accent-2" data-timeline-readout>
               {drag.kind === 'trim'
@@ -1151,37 +1186,7 @@ export function StoryboardPanel() {
           <p className="sr-only" role="status" data-timeline-announce>
             {announce}
           </p>
-          <ul className="mt-2 flex flex-col gap-1">
-            {(timeline?.tracks ?? []).map((track) => (
-              <li key={track.kind} className="text-11 text-fg-2" data-storyboard-track={track.kind}>
-                <span className="font-mono text-fg-3">{track.kind}</span>
-                {'：'}
-                {track.clips.length ? `${track.clips.length} 格` : `空——${track.emptyReason ?? '这一版没有内容'}`}
-              </li>
-            ))}
-          </ul>
-          {timeline?.blockers.length ? (
-            <ul className="mt-2 flex flex-col gap-1">
-              {timeline.blockers.map((b) => (
-                <li key={b} className="text-11 text-fg-3" data-storyboard-blocker>
-                  {b}
-                </li>
-              ))}
-            </ul>
-          ) : null}
         </section>
-
-        <section className="border-t border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]">
-          <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">这一版分镜是怎么来的</h3>
-          <ul className="mt-1 flex flex-col gap-1">
-            {sb.notes.map((note) => (
-              <li key={note} className="text-11 leading-relaxed text-fg-3" data-storyboard-note>
-                {note}
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
     </div>
   );
 }
