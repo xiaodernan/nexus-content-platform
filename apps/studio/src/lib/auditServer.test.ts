@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { readAuditTrail } from './auditServer';
+import { nexusApiBase } from './publishServer';
 
 /**
  * M9 v280 — the server-side half of the AUDIT TRAIL's reader.
@@ -94,5 +95,39 @@ describe('auditServer — the read carries the budget (v481)', () => {
     } finally {
       timeoutSpy.mockRestore();
     }
+  });
+});
+
+
+describe('auditServer — when the budget FIRES the door says the service was LATE (v483)', () => {
+  // v481 gave the trail's read the 15-second budget; what nobody pinned is what the reader sees when it
+  // FIRES. The catch hand-rolled "nexus-api unreachable at …: <message>" — so a fired budget was answered
+  // as a service that was GONE, the exact lie the v337 helper was written to end. v483 routes the door
+  // through serviceUnreachableReason.
+
+  const late = () => {
+    const error = new Error('The operation was aborted due to timeout');
+    error.name = 'TimeoutError';
+    return error;
+  };
+
+  it('a fired budget says the service was LATE — not "unreachable", and not the platform’s string', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw late();
+    });
+    const answer = await readAuditTrail(20, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe(`the service at ${nexusApiBase()} did not answer within 15 seconds`);
+    expect(answer.reason).not.toContain('unreachable');
+    expect(answer.reason).not.toContain('aborted');
+  });
+
+  it('a service that is GONE keeps the unreachable sentence with its own message', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw new Error('connect ECONNREFUSED');
+    });
+    const answer = await readAuditTrail(20, fetchImpl);
+    expect(answer.reason).toBe(`nexus-api unreachable at ${nexusApiBase()}: connect ECONNREFUSED`);
+    expect(answer.reason).not.toContain('15 seconds');
   });
 });

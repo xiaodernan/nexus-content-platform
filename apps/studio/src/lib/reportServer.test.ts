@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { readReports, readFiledReports, withdrawReport, reportOnService, type ReportEntry } from './reportServer';
+import { nexusApiBase } from './publishServer';
 
 /**
  * M7 v405 — the server-side half of the REPORTS reader, writer and withdrawer.
@@ -310,5 +311,54 @@ describe('reportServer — every door carries the budget (v481)', () => {
     expect(seen[0]).not.toBe(seen[1]);
     expect(seen[1]).not.toBe(seen[2]);
     expect(seen[2]).not.toBe(seen[3]);
+  });
+});
+
+
+describe('reportServer — when the budget FIRES the door says the service was LATE (v483)', () => {
+  // v481 gave these four doors the 15-second budget; what nobody pinned is what the reader sees when
+  // it FIRES. The catches hand-rolled "nexus-api unreachable at …: <message>" — so a fired budget was
+  // answered as a service that was GONE, the exact lie the v337 helper was written to end. v483 routes
+  // all four doors through serviceUnreachableReason.
+
+  const late = () => {
+    const error = new Error('The operation was aborted due to timeout');
+    error.name = 'TimeoutError';
+    return error;
+  };
+
+  const claim = { accountId: 'acct-p', handle: 'payer', assurance: 'unsigned-local', claimedAt: 1_776_000_000_000 };
+
+  it('a fired budget says the service was LATE — not "unreachable", and not the platform’s string', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw late();
+    });
+    const answer = await readReports('pub-1', 100, fetchImpl);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe(`the service at ${nexusApiBase()} did not answer within 15 seconds`);
+    expect(answer.reason).not.toContain('unreachable');
+    expect(answer.reason).not.toContain('aborted');
+  });
+
+  it('a service that is GONE keeps the unreachable sentence with its own message', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw new Error('connect ECONNREFUSED');
+    });
+    const answer = await readReports('pub-1', 100, fetchImpl);
+    expect(answer.reason).toBe(`nexus-api unreachable at ${nexusApiBase()}: connect ECONNREFUSED`);
+    expect(answer.reason).not.toContain('15 seconds');
+  });
+
+  it('every door of the file rides the same distinction — both reads, the take-back and the filing', async () => {
+    const fetchImpl = makeFetch(() => {
+      throw late();
+    });
+    const reports = await readReports('pub-1', 100, fetchImpl);
+    const filed = await readFiledReports('acct-r', 0, 20, fetchImpl);
+    const withdrawn = await withdrawReport('rep-1', 'acct-r', fetchImpl);
+    const reported = await reportOnService('pub-1', 'spam', 'x', claim, fetchImpl);
+    for (const answer of [reports, filed, withdrawn, reported]) {
+      expect(answer.reason).toBe(`the service at ${nexusApiBase()} did not answer within 15 seconds`);
+    }
   });
 });

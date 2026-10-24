@@ -9,7 +9,7 @@
  * DOCUMENT is perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
-import { serviceCallSignal } from './serviceCall';
+import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
 
 /**
  * One report, in the service's own wire shape.
@@ -82,7 +82,7 @@ export async function readReports(
       ok: false,
       reports: [],
       count: 0,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -158,7 +158,7 @@ export async function readFiledReports(
       count: 0,
       limit,
       offset,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -202,7 +202,7 @@ export async function withdrawReport(
     return {
       ok: false,
       withdrawn: false,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -235,7 +235,7 @@ export async function reportOnService(
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 

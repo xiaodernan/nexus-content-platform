@@ -353,3 +353,50 @@ describe('publishServer — the default list limit, graded directly (v474)', () 
     expect(urls[1]).toBe(`http://127.0.0.1:8080/search?limit=${DEFAULT_LIST_LIMIT}&q=harbour`);
   });
 });
+
+describe('publishServer — when the budget FIRES the door says the service was LATE (v483)', () => {
+  // This door's own comment has said since v294 that "hung" must mean hung and not "the compiler was
+  // busy" — and its five catches still hand-rolled "nexus-api unreachable at …: <message>", so a fired
+  // 45-second budget was answered as a service that was GONE. v483 gives the door the same sentence
+  // serviceCall.ts makes for the 15-second doors (v337), at this door's own 45 seconds.
+
+  const late = () => {
+    const error = new Error('The operation was aborted due to timeout');
+    error.name = 'TimeoutError';
+    return error;
+  };
+
+  it('a fired budget says the service was LATE — not "unreachable", and not the platform’s string', async () => {
+    const fetchImpl = vi.fn(async () => {
+      throw late();
+    }) as unknown as FetchLike;
+    const state = await publishState(fetchImpl);
+    expect(state.available).toBe(false);
+    expect(state.reason).toBe(`the service at ${nexusApiBase()} did not answer within 45 seconds`);
+    expect(state.reason).not.toContain('unreachable');
+    expect(state.reason).not.toContain('aborted');
+  });
+
+  it('a service that is GONE keeps the unreachable sentence with its own message', async () => {
+    const fetchImpl = vi.fn(async () => {
+      throw new Error('fetch failed');
+    }) as unknown as FetchLike;
+    const state = await publishState(fetchImpl);
+    expect(state.reason).toBe(`nexus-api unreachable at ${nexusApiBase()}: fetch failed`);
+    expect(state.reason).not.toContain('45 seconds');
+  });
+
+  it('every door of the file rides the same distinction — the probe, the publish, the read, the list and the take-down', async () => {
+    const fetchImpl = vi.fn(async () => {
+      throw late();
+    }) as unknown as FetchLike;
+    const probe = await publishState(fetchImpl);
+    const published = await publishDocument('doc-1', 'Harbour', { pages: [] }, fetchImpl);
+    const read = await readPublication('doc-1', fetchImpl);
+    const listed = await listPublications(20, fetchImpl);
+    const taken = await unpublishProject('doc-1', fetchImpl);
+    for (const answer of [probe, published, read, listed, taken]) {
+      expect(answer.reason).toBe(`the service at ${nexusApiBase()} did not answer within 45 seconds`);
+    }
+  });
+});

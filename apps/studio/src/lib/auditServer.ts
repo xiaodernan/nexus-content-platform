@@ -10,7 +10,7 @@
  * is an honest page and one that throws into a route handler is a 500.
  */
 import { nexusApiBase } from './publishServer';
-import { serviceCallSignal } from './serviceCall';
+import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
 
 /** One audit entry, in the service's own wire shape. */
 export interface AuditEntry {
@@ -77,7 +77,7 @@ export async function readAuditTrail(limit: number, fetchImpl: FetchLike = fetch
       ok: false,
       carried: 0,
       limit,
-      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+      reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }

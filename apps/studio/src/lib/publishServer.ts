@@ -34,6 +34,22 @@ const DEFAULT_API_BASE = 'http://127.0.0.1:8080';
  */
 export const PUBLISH_CALL_TIMEOUT_MS = 45_000;
 
+/**
+ * Why a call to the service did not answer.
+ *
+ * <p>A TIMEOUT is not an unreachable service: the service may well be there, and slow. Saying "unreachable"
+ * about a service that is merely busy is the same kind of lie the house's rule about failed reads is about
+ * — a reader who is told the thing is gone when it is only late stops looking for it. The same distinction
+ * `serviceCall.ts` makes for the 15-second doors (v337), at THIS door's own 45 seconds (v294): the publish
+ * door keeps its own budget, so it keeps its own sentence for spending it.
+ */
+function publishUnreachableReason(apiBase: string, error: unknown): string {
+  if (error instanceof Error && error.name === 'TimeoutError') {
+    return `the service at ${apiBase} did not answer within ${PUBLISH_CALL_TIMEOUT_MS / 1000} seconds`;
+  }
+  return `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`;
+}
+
 export function nexusApiBase(): string {
   const configured = process.env.NEXUS_API_URL;
   return configured && configured.trim() ? configured.trim().replace(/\/+$/, '') : DEFAULT_API_BASE;
@@ -107,7 +123,7 @@ export async function publishState(fetchImpl: FetchLike = fetch as FetchLike): P
     if (res.status === 404) return { available: true, apiBase, probeStatus: 404 };
     return { available: false, apiBase, probeStatus: res.status, reason: `the service answered ${res.status} for the probe id; a reachable nexus-api answers 404 for a project it has never published` };
   } catch (e) {
-    return { available: false, apiBase, reason: `nexus-api unreachable at ${apiBase}: ${e instanceof Error ? e.message : String(e)}` };
+    return { available: false, apiBase, reason: publishUnreachableReason(apiBase, e) };
   }
 }
 
@@ -152,7 +168,7 @@ export async function publishDocument(
     }
     return { ok: false, reason: `nexus-api answered ${res.status} with a non-JSON body` };
   } catch (e) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${e instanceof Error ? e.message : String(e)}` };
+    return { ok: false, reason: publishUnreachableReason(apiBase, e) };
   }
 }
 
@@ -185,7 +201,7 @@ export async function readPublication(projectId: string, fetchImpl: FetchLike = 
     }
     return { ok: false, reason: `nexus-api answered ${res.status} with a non-JSON body` };
   } catch (e) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${e instanceof Error ? e.message : String(e)}` };
+    return { ok: false, reason: publishUnreachableReason(apiBase, e) };
   }
 }
 
@@ -273,7 +289,7 @@ export async function listPublications(
     }
     return { ok: false, reason: `nexus-api answered ${res.status} with a non-JSON body` };
   } catch (e) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${e instanceof Error ? e.message : String(e)}` };
+    return { ok: false, reason: publishUnreachableReason(apiBase, e) };
   }
 }
 
@@ -304,6 +320,6 @@ export async function unpublishProject(
     }
     return { ok: false, reason: `nexus-api answered ${res.status} with a non-JSON body` };
   } catch (e) {
-    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${e instanceof Error ? e.message : String(e)}` };
+    return { ok: false, reason: publishUnreachableReason(apiBase, e) };
   }
 }
