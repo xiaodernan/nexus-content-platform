@@ -1,17 +1,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { GET } from './route';
+import { nexusApiBase } from '@/lib/publishServer';
 
 /**
  * M7 v496 (ADR 0016 amendment 489) — the audit ROUTE, graded directly.
  *
- * This door is the only one in the Studio that talks to the service DIRECTLY — no lib in between — and
- * it says so in its own comment: what crosses the door is the SERVICE'S OWN answer, not a re-shaping of
- * it. That makes its rules the route's alone: the clamp on a silly ask, the verbatim filter, and above
- * all the rule that a refused filter is answered with the SERVICE'S OWN NAME for the set it accepts,
- * because "HTTP 400" would throw away the one part a reader can act on.
+ * v510 (ADR 0016 amendment 503): this door stopped reading the service BY HAND. It used to build the
+ * URL, pick its own 5-second budget and answer its own sentences — a SECOND reader of the service's
+ * audit door beside `auditServer.ts`, disagreeing with it about the budget, the unreachable sentence
+ * and the named refusal. The read is the lib's now; what is left here is what belongs to a door and
+ * to nothing else: which window is asked for, which fields travel verbatim, and which status each kind
+ * of answer earns. The refused filter still crosses the door carrying the SERVICE'S OWN NAME for the
+ * set it accepts (v385) — the lib carries that name through — because "HTTP 400" would throw away
+ * the one part a reader can act on.
  *
- * The service is faked at the `fetch` boundary, the same boundary the route itself calls.
+ * The service is still faked at the `fetch` boundary, the same boundary the lib calls, one level
+ * below the route.
  */
 
 interface Call {
@@ -156,7 +161,7 @@ describe('audit route — the GET ask (v496)', () => {
     expect(await res.json()).toEqual({ ok: true, entries: [{ id: 'a-1' }], count: 3, limit: 20, total: 57 });
   });
 
-  it('a THROWN call is a 503 carrying the error\u2019s own words — the panel is told what went wrong', async () => {
+  it('a THROWN call is a 503 naming the service\u2019s own words — the panel is told what went wrong', async () => {
     calls = [];
     vi.stubGlobal(
       'fetch',
@@ -166,6 +171,39 @@ describe('audit route — the GET ask (v496)', () => {
     );
     const res = await get('');
     expect(res.status).toBe(503);
-    expect((await res.json()).reason).toBe('the network is unreachable');
+    expect((await res.json()).reason).toBe(`nexus-api unreachable at ${nexusApiBase()}: the network is unreachable`);
+  });
+});
+
+
+describe('audit route — the door reads through the ONE reader (v510)', () => {
+  // v510 took the hand-rolled fetch out of this door. The route used to give the service FIVE
+  // seconds; the artifact page's reader gives it fifteen. The door asks through the lib now, so the
+  // budget is the shared one and the sentence for a service that never answered is the shared one.
+
+  it('the door asks with the SHARED service budget — fifteen seconds, not the five it used to pick', async () => {
+    stubService({ status: 200, json: { ok: true, entries: [], count: 0, limit: 20, total: 0 } });
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      await get('');
+      expect(timeoutSpy).toHaveBeenCalledWith(15_000);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  it('a budget that FIRES is a 503 saying the service was LATE — the shared sentence, not a raw abort', async () => {
+    calls = [];
+    vi.stubGlobal(
+      'fetch',
+      async () => {
+        const error = new Error('The operation was aborted due to timeout');
+        error.name = 'TimeoutError';
+        throw error;
+      },
+    );
+    const res = await get('');
+    expect(res.status).toBe(503);
+    expect((await res.json()).reason).toBe(`the service at ${nexusApiBase()} did not answer within 15 seconds`);
   });
 });

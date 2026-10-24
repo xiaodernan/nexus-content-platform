@@ -97,7 +97,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ proj
     // "a failed read leaves its section out" rule.
     const [reports, trail, likes, comments] = await Promise.all([
       readReports(decoded, REPORT_LIMIT),
-      readAuditTrail(HISTORY_LIMIT),
+      readAuditTrail({ limit: HISTORY_LIMIT }),
       // v400 — the likers list pages too, the same way the comments thread does (v399): the window's
       // own page, in rows, so a reader on a publication liked by more accounts than the cap can reach
       // the older likers instead of being shown the head forever.

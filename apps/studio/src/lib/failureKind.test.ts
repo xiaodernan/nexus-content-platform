@@ -58,7 +58,7 @@ const readers: Array<[string, (fetchImpl: typeof fetch) => Promise<AnswerShape>]
   ['economyServer.readPlans', (f) => readCreatorPlans('acct-grace', 20, 0, f)],
   ['planServer.readPlans', (f) => readPlans('acct-grace', 20, 0, f)],
   ['planServer.readSubscriptions', (f) => readPlanSubscriptions('acct-ada', f)],
-  ['auditServer.readAuditTrail', (f) => readAuditTrail(20, f)],
+  ['auditServer.readAuditTrail', (f) => readAuditTrail({ limit: 20 }, f)],
 ];
 
 describe('the door libs name the kind of “no” they got (v507)', () => {

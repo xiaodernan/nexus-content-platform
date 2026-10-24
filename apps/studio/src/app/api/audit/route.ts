@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { serviceFailureStatus } from '@/lib/serviceCall';
 
-import { nexusApiBase } from '@/lib/publishServer';
+import { readAuditTrail } from '@/lib/auditServer';
 
 /**
  * M9 v272 (ADR 0016 amendment 272): `/api/audit` — this Studio's door onto the service's audit trail.
@@ -17,6 +17,13 @@ import { nexusApiBase } from '@/lib/publishServer';
  * v385 (ADR 0016 amendment 385): an `action` the caller names travels to the service, which narrows the
  * window itself — the same hop, the same answer shape, plus the service's `total` (how many the whole
  * trail holds) so a reader can still see what the filter is hiding.
+ *
+ * v510 (ADR 0016 amendment 503): the route stopped reading the service BY HAND. It used to build the
+ * URL, pick its own 5-second budget and answer its own sentences — a SECOND reader of the same service
+ * door beside `auditServer.ts`, disagreeing with it about the budget, the unreachable sentence and
+ * the named refusal. The read is the lib’s now; what is left here is what belongs to a door and to
+ * nothing else: which window is asked for, which fields travel verbatim, and which status each kind
+ * of answer earns (v507’s rule, read off the answer rather than picked per branch).
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,13 +33,6 @@ const DEFAULT_LIMIT = 20;
 
 /** The most the panel asks for. The service clamps to its own 100; the route refuses a silly ask up front. */
 const MAX_LIMIT = 100;
-
-/** How long the service may take. The trail is a small read; a hung one should not hang the panel. */
-const CALL_TIMEOUT_MS = 5000;
-
-function html(reason: string, status: number): NextResponse {
-  return NextResponse.json({ ok: false, reason }, { status });
-}
 
 export async function GET(request: Request): Promise<NextResponse> {
   const params = new URL(request.url).searchParams;
@@ -49,35 +49,17 @@ export async function GET(request: Request): Promise<NextResponse> {
   const parsedOffset = rawOffset === null ? 0 : Number.parseInt(rawOffset, 10);
   const from = Number.isFinite(parsedOffset) ? Math.max(parsedOffset, 0) : 0;
 
-  try {
-    const ask = action === null || action === '' ? '' : `&action=${encodeURIComponent(action)}`;
-    const res = await fetch(`${nexusApiBase()}/audit?limit=${encodeURIComponent(String(asked))}&offset=${encodeURIComponent(String(from))}${ask}`, {
-      headers: { accept: 'application/json' },
-      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
-    });
-    if (!res.ok) {
-      // v385 — a refused filter is a 400 that NAMES the set, and that name is the part a reader can act
-      // on; answering "HTTP 400" would throw the reason away.
-      const refusal = await res.json().catch(() => null);
-      const named =
-        refusal && typeof refusal === 'object' && typeof (refusal as { message?: unknown }).message === 'string'
-          ? (refusal as { message: string }).message
-          : null;
-      return html(named ?? `the service's audit door answered HTTP ${res.status}`, serviceFailureStatus('invalid'));
-    }
-    let body: unknown;
-    try {
-      body = await res.json();
-    } catch {
-      return html('the service answered its audit door with something that is not JSON', serviceFailureStatus('invalid'));
-    }
-    if (typeof body !== 'object' || body === null || !Array.isArray((body as { entries?: unknown }).entries)) {
-      return html('the service answered its audit door with no entries at all', serviceFailureStatus('invalid'));
-    }
-    const { entries, count, limit, total } = body as { entries: unknown; count?: unknown; limit?: unknown; total?: unknown };
-    return NextResponse.json({ ok: true, entries, count, limit, total });
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    return html(reason, serviceFailureStatus('unreachable'));
+  const answer = await readAuditTrail({ limit: asked, offset: from, action });
+  if (!answer.ok) {
+    // v507’s rule, read off the answer: the service answered unusably is a 502, it did not answer
+    // at all is a 503, and the reason is the lib’s own — the service’s named refusal when it named one.
+    return NextResponse.json({ ok: false, reason: answer.reason }, { status: serviceFailureStatus(answer.failure) });
   }
+  return NextResponse.json({
+    ok: true,
+    entries: answer.entries,
+    count: answer.carried,
+    limit: answer.limit,
+    total: answer.total,
+  });
 }
