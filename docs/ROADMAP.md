@@ -6633,3 +6633,44 @@ design-model 全包 353 例绿。变异探针 3 种精确红：摘 classOf 里�
 均逐字节还原（b697580ab283 / 1f5bdf58bfbb）。
 
 **下一步**：part ② code-parse 往返（解析 `hover:bg-[…]` 回 states，§19 往返 0 ops/0 unmapped 不变）。
+import io
+
+path = "docs/ROADMAP.md"
+src = io.open(path, encoding="utf-8", newline="").read()
+entry = '''
+
+## M5 第二十二片（#209）：状态层投影 part ②——code-parse 往返，状态类回写成 states 补丁
+
+part ① 之后 codegen 会发 `hover:bg-[…]` 这类变体类，但 code-parse 的 VARIANTS 表
+里只有 md:/lg:/xl: 三个断点前缀——状态类会整条掉进"不在白名单"的 unmapped，
+§19 的往返不变式（parse(generate(page)) 零补丁零 unmapped）在带 states 的页面上
+直接破功。本片把状态类接回来。
+
+- **反向表从 STATE_VARIANT 反推**：`STATE_VARIANTS`（前缀 → 状态名）由
+  `Object.entries(STATE_VARIANT)` 映射得来，不手抄第二份表（ADR-0062 的唯一来源
+  纪律）。开发时这里真翻过一次车：entries 产出的是 [状态名, 前缀]，按
+  [前缀, 状态名] 解构 → `STATE_VARIANT["hover:"]` 全是 undefined，9 个测试全红。
+  as 断言把类型检查也骗过去了，是测试抓住的。
+- **decodeState：桶即完整真相**。状态变体类先进各自的桶（与断点桶同构），整桶交给
+  decodeState 做**整通道替换**——只认 fills/strokes/effects/opacity 四通道
+  （与 stateClasses 发射侧严格对称）：fills→bg-[…]（text 节点是 text-[…] 字色）、
+  strokes→border-[宽度px]+border-[颜色]、effects→shadow/blur、opacity。
+  桶里缺席的通道即删除；一个通道都不剩的状态整个删掉。桶里任何其它类
+  （如 hover:rounded-[8px]）如实 unmapped。
+- **stateOps 回写**：与 responsiveOps 同构，写 `states` 路径一个 set op；
+  四通道整体覆盖该状态（不是合并——合并会让"删掉 base fills 只留 opacity"这种
+  编辑把旧 fills 残留下来）。
+
+见证：新增 states-parse.test.ts 9 例（带 states 模型往返 0 ops/0 unmapped、
+hover:bg 新增、text 字色、border 双腿、shadow、data-[state=loading]:opacity、
+token 引用反解 {color.primary}、整通道替换 toEqual 严断言、rounded 越界 unmapped
+且不回写）。design-model 全包 362 例绿。变异探针 3 种精确红：摘 stateOps 接线→
+7 红；decodeState 去掉 text 字色分支→text 用例红；stateOps 改合并→整通道替换
+用例红（第一轮探针没红——toMatchObject 是部分匹配放过了残留 fills，已把该用例
+收紧为 toEqual 后复测精确红）。均逐字节还原（f8c253061551）。
+
+已知边界（与 responsive 同构）：把某状态的全部类删干净时，模型里的状态条目保留
+（断点删除也是这个行为）；要删单个通道，桶里留任意一个该类状态的类即可触发替换。
+
+**下一步**：part ③ 预览/发布只读样式表（stateStyleSheetFor 差量 + !important，
+无状态节点返空串，接进 preview/[projectId] 与 n/[handle]/[slug] 两个页面）。

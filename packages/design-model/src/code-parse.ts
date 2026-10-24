@@ -11,6 +11,8 @@
 
 import { childrenOf, clone, getByPath, sameValue, setOnObject } from "./nodes";
 import { generatePageComponent } from "./codegen";
+import { STATE_VARIANT } from "./states";
+import type { NodeState, NodeStates, NodeStateStyle } from "./states";
 import type { PatchOp } from "./patch";
 import type {
   BreakpointName,
@@ -417,6 +419,11 @@ const VARIANT_PREFIX: Record<BreakpointName, string> = {
   wide: "xl:",
 };
 
+/** 状态变体前缀 → 状态名：从 STATE_VARIANT 反推，不手抄第二份表（ADR-0062） */
+const STATE_VARIANTS: [string, NodeState][] = (
+  Object.entries(STATE_VARIANT) as [NodeState, string][]
+).map(([state, prefix]) => [prefix, state]);
+
 /** 随父容器语义变化的尺寸类：父级本次也被改时不核对，避免误判 */
 const PARENT_SCOPED = new Set(["flex-1", "self-stretch", "w-fit", "h-fit", "w-full", "h-full"]);
 
@@ -583,6 +590,7 @@ interface Decode {
   checked: string[];
   unmapped: { token: string; reason: string }[];
   responsive: Map<BreakpointName, VariantDecode>;
+  states: Map<NodeState, VariantDecode>;
 }
 
 /** 响应式覆盖：codegen 只产出这些字段，回写也只接受这些字段 */
@@ -689,6 +697,128 @@ function decodeVariant(
   return out;
 }
 
+/**
+ * 单个状态的补丁类 → NodeStateStyle（ADR-0062 part ②）。
+ *
+ * 状态补丁是整通道替换：这个桶就是该状态的完整真相——codegen 的 stateClasses
+ * 只发 fills / strokes / effects / opacity 四通道，这里也只认这四通道；
+ * 桶里缺席的通道即删除（调用方整块替换该状态），不逐项合并。
+ */
+function decodeState(
+  tokens: string[],
+  node: DesignNode,
+  state: NodeState,
+  ctx: Ctx,
+): VariantDecode {
+  const list = [...tokens];
+  const out: VariantDecode = { patch: {}, checked: [], unmapped: [] };
+  const current = node.states?.[state];
+  const isText = node.type === "text";
+  const note = (token: string, reason: string): void => {
+    out.unmapped.push({ token, reason });
+  };
+
+  // ---- fills：bg-[…]；text 节点的状态字色是 text-[…]（与 stateClasses 同一契约）----
+  const fillsHits: Hit[] = [];
+  if (isText) {
+    for (const hit of takeUtility(list, "text").arbitrary) {
+      if (
+        colorOf(hit.value, ctx) !== null ||
+        /^(linear|radial|conic)-gradient\(/.test(hit.value)
+      ) {
+        fillsHits.push(hit);
+      } else note(hit.literal, "状态补丁只支持 fills/strokes/effects/opacity 四通道（ADR-0062）");
+    }
+  } else {
+    fillsHits.push(...takeUtility(list, "bg").all);
+  }
+  const paints: Paint[] = [];
+  for (const hit of fillsHits) {
+    const gradient = parseGradient(hit.value, ctx);
+    if (gradient) {
+      paints.push(gradient);
+      out.checked.push(hit.literal);
+    } else {
+      const color = colorOf(hit.value, ctx);
+      if (color === null) note(hit.literal, "状态 fills 需要颜色、渐变或 token 引用");
+      else {
+        paints.push({ kind: "solid", color });
+        out.checked.push(hit.literal);
+      }
+    }
+  }
+  if (paints.length) out.patch.fills = paints;
+
+  // ---- strokes：border-[宽度px] + border-[颜色] ----
+  const borders = takeUtility(list, "border");
+  if (borders.all.length) {
+    const width = borders.all
+      .map((hit) => numberOf(hit.value))
+      .find((n): n is number => n !== null);
+    const colorHit = borders.all.find((hit) => colorOf(hit.value, ctx) !== null);
+    if (width === undefined || !colorHit) {
+      borders.all.forEach((hit) =>
+        note(hit.literal, "状态描边需要 border-[宽度px] 与 border-[颜色] 两个类"),
+      );
+    } else {
+      out.patch.strokes = [
+        {
+          paints: [{ kind: "solid", color: colorOf(colorHit.value, ctx)! }],
+          width,
+          position: node.style.strokes[0]?.position ?? "inside",
+        },
+      ];
+      out.checked.push(...borders.all.map((hit) => hit.literal));
+    }
+  }
+
+  // ---- effects：shadow-[…] / blur-[…] / backdrop-blur-[…] ----
+  let effects: Effect[] = [...(current?.effects ?? [])];
+  let effectsTouched = false;
+  const shadows = takeUtility(list, "shadow");
+  if (shadows.all.length) {
+    const hit = shadows.all[0]!;
+    const effect = parseShadow(hit.value, ctx);
+    if (!effect) note(hit.literal, "状态投影只有 shadow-[x_y_blur_spread_color] 这一种写法能映射回模型");
+    else {
+      effects = [
+        effect,
+        ...effects.filter((e) => e.kind !== "drop-shadow" && e.kind !== "inner-shadow"),
+      ];
+      out.checked.push(hit.literal);
+      effectsTouched = true;
+    }
+  }
+  const layerBlur = takeUtility(list, "blur");
+  const backdropBlur = takeUtility(list, "backdrop-blur");
+  if (layerBlur.all.length || backdropBlur.all.length) {
+    const hit = layerBlur.all[0] ?? backdropBlur.all[0]!;
+    const n = numberOf(hit.value);
+    if (n === null) note(hit.literal, "状态模糊需要 px 数值");
+    else {
+      const kind = layerBlur.all.length ? "layer-blur" : "background-blur";
+      effects = [...effects.filter((e) => e.kind !== kind), { kind, blur: n } as Effect];
+      out.checked.push(hit.literal);
+      effectsTouched = true;
+    }
+  }
+  if (effectsTouched) out.patch.effects = effects;
+
+  // ---- opacity ----
+  const opacity = takeUtility(list, "opacity");
+  if (opacity.all.length) {
+    const n = Number(opacity.all[0]!.value);
+    if (!Number.isFinite(n)) note(opacity.all[0]!.literal, "状态 opacity 需要 0..1 的数字");
+    else {
+      out.patch.opacity = n;
+      out.checked.push(opacity.all[0]!.literal);
+    }
+  }
+
+  for (const token of list) note(token, "状态补丁只支持 fills/strokes/effects/opacity 四通道（ADR-0062）");
+  return out;
+}
+
 const tokenRefKeyOf = (value: unknown): string | null =>
   typeof value === "string" && /^\{([^{}]+)\}$/.test(value) ? value.slice(1, -1) : null;
 
@@ -737,7 +867,7 @@ function decodeClasses(
   ctx: Ctx,
 ): Decode {
   const list = [...source];
-  const d: Decode = { props: new Map(), checked: [], unmapped: [], responsive: new Map() };
+  const d: Decode = { props: new Map(), checked: [], unmapped: [], responsive: new Map(), states: new Map() };
 
   const variants = new Map<BreakpointName, string[]>();
   for (const token of [...list]) {
@@ -747,6 +877,20 @@ function decodeClasses(
       const bucket = variants.get(breakpoint) ?? [];
       bucket.push(token.slice(prefix.length));
       variants.set(breakpoint, bucket);
+      break;
+    }
+  }
+
+  // 状态变体（hover:/active:/data-[state=loading]: …）先进各自的桶，
+  // 整桶交给 decodeState 做整通道替换（ADR-0062）
+  const stateTokens = new Map<NodeState, string[]>();
+  for (const token of [...list]) {
+    for (const [prefix, state] of STATE_VARIANTS) {
+      if (!token.startsWith(prefix)) continue;
+      list.splice(list.indexOf(token), 1);
+      const bucket = stateTokens.get(state) ?? [];
+      bucket.push(token.slice(prefix.length));
+      stateTokens.set(state, bucket);
       break;
     }
   }
@@ -1358,6 +1502,16 @@ function decodeClasses(
     d.responsive.set(breakpoint, nested);
   }
 
+  for (const [state, tokens] of stateTokens) {
+    const nested = decodeState(tokens, node, state, ctx);
+    const prefix = STATE_VARIANT[state];
+    nested.checked.forEach((token) => d.checked.push(`${prefix}${token}`));
+    nested.unmapped.forEach((entry) =>
+      d.unmapped.push({ token: `${prefix}${entry.token}`, reason: `状态 ${state}：${entry.reason}` }),
+    );
+    d.states.set(state, nested);
+  }
+
   for (const token of list) note(token, "不在 Design ↔ Code 类名白名单里（§19）");
   return d;
 }
@@ -1538,6 +1692,38 @@ function responsiveOps(
   applied.push("responsive");
 }
 
+/**
+ * 状态补丁回写（ADR-0062 part ②）。整通道替换：解码出的四通道整体覆盖该状态，
+ * 一个通道都不剩的状态整个删掉。与 responsiveOps 同构，但写的是 states 路径。
+ */
+function stateOps(
+  decoded: Decode,
+  node: DesignNode,
+  ops: PatchOp[],
+  applied: string[],
+): void {
+  if (!decoded.states.size) return;
+  const states: NodeStates = clone(node.states ?? {});
+  let changed = false;
+  for (const [state, nested] of decoded.states) {
+    const overlay = nested.patch as NodeStateStyle;
+    if (!Object.keys(overlay).length) {
+      if (states[state]) {
+        delete states[state];
+        changed = true;
+      }
+      continue;
+    }
+    if (sameValue(states[state], overlay)) continue;
+    states[state] = overlay;
+    changed = true;
+  }
+  if (!changed) return;
+  if (sameValue(states, node.states ?? {})) return;
+  ops.push({ op: "set", nodeId: node.id, path: "states", value: states });
+  applied.push("states");
+}
+
 function mergePatch(
   current: Record<string, unknown>,
   next: Record<string, unknown>,
@@ -1639,6 +1825,7 @@ export function codeToPageOps(
       mapping.applied.push(path);
     }
     responsiveOps(decoded, node, ops, mapping.applied, mapping.unmapped);
+    stateOps(decoded, node, ops, mapping.applied);
 
     if (node.code) {
       const content = el.literals.join(" ");
