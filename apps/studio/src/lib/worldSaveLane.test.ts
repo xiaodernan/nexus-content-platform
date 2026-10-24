@@ -106,3 +106,74 @@ describe('worldSaveLane write/read (v191)', () => {
     expect(r.reason).toContain('studio server unreachable');
   });
 });
+
+
+describe('worldSaveLane — the Studio-route lane finally carries a budget (v484)', () => {
+  // This lane calls the global fetch directly — it predates the injected-fetch lanes, and the signal
+  // sweep that counts fetchImpl( call sites never saw it, so a route that never answered hung the panel
+  // forever with no reason to show. v484 gives it the budget every other door has had since v294 — and
+  // the same lateness sentence the publish lane carries.
+
+  const OK_BODY = { available: true, serverVersion: 'studio-world-save-v1', root: '.nexus/world-saves', kind: 'fs', saves: ['world-saved'], count: 1 };
+  const late = () => {
+    const error = new Error('The operation was aborted due to timeout');
+    error.name = 'TimeoutError';
+    return error;
+  };
+
+  it('every call carries an active signal — the route can no longer hang the panel forever', async () => {
+    const seen: (RequestInit | undefined)[] = [];
+    globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      seen.push(init);
+      return new Response(JSON.stringify(OK_BODY), { status: 200 });
+    }) as typeof fetch;
+    await probeWorldSaves();
+    await writeWorldSaveToDisk(WORLD_SAVE_LANE_DISK_SAVE_PATH, { format: 'x' });
+    await readWorldSaveFromDisk(WORLD_SAVE_LANE_DISK_SAVE_PATH);
+    for (const init of seen) {
+      expect(init?.signal).toBeInstanceOf(AbortSignal);
+      expect((init?.signal as AbortSignal).aborted).toBe(false);
+    }
+    expect(seen).toHaveLength(3);
+    expect(seen[0]?.signal).not.toBe(seen[1]?.signal);
+  });
+
+
+  it('the budget is the pinned 45 seconds — spy-witnessed on AbortSignal.timeout', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      globalThis.fetch = vi.fn(async () => new Response(JSON.stringify(OK_BODY), { status: 200 })) as typeof fetch;
+      await probeWorldSaves();
+      await writeWorldSaveToDisk(WORLD_SAVE_LANE_DISK_SAVE_PATH, { format: 'x' });
+      await readWorldSaveFromDisk(WORLD_SAVE_LANE_DISK_SAVE_PATH);
+      expect(timeoutSpy).toHaveBeenCalledWith(45_000);
+      expect(timeoutSpy).toHaveBeenCalledTimes(3);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+
+  it('a fired budget says the Studio was LATE — not "unreachable", and not the platform’s string', async () => {
+    globalThis.fetch = vi.fn(async () => {
+      throw late();
+    }) as typeof fetch;
+    const a0 = await probeWorldSaves();
+    const a1 = await writeWorldSaveToDisk(WORLD_SAVE_LANE_DISK_SAVE_PATH, { format: 'x' });
+    const a2 = await readWorldSaveFromDisk(WORLD_SAVE_LANE_DISK_SAVE_PATH);
+    expect(a0.reason).toBe('the Studio did not answer within 45 seconds');
+    expect(a1.reason).toBe('the Studio did not answer within 45 seconds');
+    expect(a2.reason).toBe('the Studio did not answer within 45 seconds');
+    expect(a0.reason).not.toContain('aborted');
+  });
+
+
+  it('a Studio that is GONE keeps the unreachable sentence with its own message', async () => {
+    globalThis.fetch = vi.fn(async () => {
+      throw new Error('connection refused');
+    }) as typeof fetch;
+    const probe = await probeWorldSaves();
+    expect(probe.reason).toBe('studio server unreachable: connection refused');
+    expect(probe.reason).not.toContain('45 seconds');
+  });
+});
