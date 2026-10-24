@@ -6711,3 +6711,36 @@ loading 属性选择器、fills/effects/text 三种重置、多状态多规则�
 
 **下一步**：part ④ 浏览器见证（e2e/studio.spec.ts 加"§124 状态层在预览与发布页
 真的生效"全回路用例）+ ADR 点名但尚未兑现的 reset 类往返（hover:bg-none 等）。
+import io, sys
+
+path = "docs/ROADMAP.md"
+src = io.open(path, encoding="utf-8", newline="").read()
+entry = '''
+
+## M5 第二十四片（#211）：状态层 reset 类往返——hover:bg-none 们进生成器与解析器
+
+ADR-0062 点名"删掉基础态里有、状态态里没有的通道必须显式发射重置"，part ①②
+只处理了取值类，重置类（bg-none / bg-transparent / border-0 / border-[transparent] /
+shadow-none / blur-none / backdrop-blur-none / text-inherit）两边都不认——作者在
+代码视图写 hover:bg-none 会掉进 unmapped，模型里 fills: [] 也生不出类。本片补上。
+
+- **codegen 发射**：补丁通道是显式空数组时发射重置类——fills: [] → text 节点
+  `text-inherit`，其它 `bg-none` + `bg-transparent`；strokes: [] → `border-0` +
+  `border-[transparent]`；effects: [] → `shadow-none` + `blur-none` +
+  `backdrop-blur-none`。opacity 是标量没有"空"形态，reset 不适用于它（文档化边界）。
+- **code-parse 回解**：bg-none/bg-transparent → fills: []；text-inherit → fills: []；
+  border-0/border-[transparent] → strokes: []；shadow-none/blur-none/backdrop-blur-none
+  → effects: []。与取值类冲突时重置优先，取值类如实 unmapped（不静默丢弃，§159）。
+- **与 part ③ 的闭环**：模型 fills: [] → 代码 hover:bg-none → 解析回 fills: [] →
+  只读页面差量出 background-color: transparent !important。三处同一口径。
+
+见证：states-codegen.test.ts +2（重置类发射、text-inherit 不是 bg-none）；
+states-parse.test.ts +6（bg-none 往返、border 重置、shadow-none、text-inherit、
+重置与取值冲突、显式重置模型往返 0 ops/0 unmapped）。design-model 全包 370 例绿。
+变异探针 3 种精确红：摘 codegen fills 重置发射→6 红（含往返与 text-inherit）；
+摘 parse fillsReset 识别→3 红；borderResets 过滤器永不命中→2 红。均逐字节还原
+（ba7546a2cf20 / codegen b6feef78f72e）。
+
+**下一步**：part ④ e2e 浏览器见证（e2e/studio.spec.ts「§124 状态层在预览与发布页
+真的生效」全回路：代码视图加 hover:bg-[#123456] → 回写 → 重载仍在 → 预览读计算色 →
+发布后访客页再读）。

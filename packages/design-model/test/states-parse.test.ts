@@ -140,6 +140,70 @@ describe("状态类 → states 补丁（ADR-0062 part ②）", () => {
     });
   });
 
+  it("hover:bg-none + hover:bg-transparent → fills: []（显式重置）", () => {
+    const page = starterPage();
+    const id = nodeId(page, "Hero");
+    let code = injectClass(source(page), id, "hover:bg-none");
+    code = injectClass(code, id, "hover:bg-transparent");
+    expect(statesOp(page, code)).toEqual({
+      op: "set",
+      nodeId: id,
+      path: "states",
+      value: { hover: { fills: [] } },
+    });
+  });
+
+  it("hover:border-0 + hover:border-[transparent] → strokes: []", () => {
+    const page = starterPage();
+    const id = nodeId(page, "Hero");
+    let code = injectClass(source(page), id, "hover:border-0");
+    code = injectClass(code, id, "hover:border-[transparent]");
+    expect(statesOp(page, code)).toEqual({
+      op: "set",
+      nodeId: id,
+      path: "states",
+      value: { hover: { strokes: [] } },
+    });
+  });
+
+  it("hover:shadow-none → effects: []", () => {
+    const page = starterPage();
+    const id = nodeId(page, "Hero");
+    const code = injectClass(source(page), id, "hover:shadow-none");
+    expect(statesOp(page, code)).toMatchObject({
+      value: { hover: { effects: [] } },
+    });
+  });
+
+  it("text 节点 hover:text-inherit → fills: []", () => {
+    const page = starterPage();
+    const id = nodeId(page, "Headline");
+    const code = injectClass(source(page), id, "hover:text-inherit");
+    expect(statesOp(page, code)).toMatchObject({
+      value: { hover: { fills: [] } },
+    });
+  });
+
+  it("重置与取值同时出现：重置优先，取值类如实 unmapped", () => {
+    const page = starterPage();
+    const id = nodeId(page, "Hero");
+    let code = injectClass(source(page), id, "hover:bg-none");
+    code = injectClass(code, id, "hover:bg-[#ffffff]");
+    const result = parse(page, code);
+    const mapping = result.mappings.find((m) => m.nodeId === id)!;
+    expect(mapping.unmapped.map((u) => u.token)).toContain("hover:bg-[#ffffff]");
+    expect(statesOp(page, code)).toMatchObject({ value: { hover: { fills: [] } } });
+  });
+
+  it("显式重置的模型往返：零补丁、零 unmapped（§19 扩展到重置通道）", () => {
+    const page = starterPage();
+    const hero = page.nodes[nodeId(page, "Hero")]!;
+    hero.states = { hover: { fills: [], strokes: [], effects: [] } };
+    const result = parse(page);
+    expect(result.ops).toEqual([]);
+    expect(result.mappings.flatMap((m) => m.unmapped)).toEqual([]);
+  });
+
   it("hover:rounded-[8px] 不在四通道里：如实 unmapped，且不回写任何 states", () => {
     const page = starterPage();
     const id = nodeId(page, "Hero");

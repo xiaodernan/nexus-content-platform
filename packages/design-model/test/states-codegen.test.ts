@@ -83,6 +83,23 @@ describe("§124 状态层 → 变体类（ADR-0062 part ①）", () => {
     expect(line).toContain("hover:bg-[var(--nx-color-primary)]");
   });
 
+  it("显式清空的通道发射重置类：bg-none/bg-transparent、border-0、shadow-none（ADR-0062）", () => {
+    const line = nodeLineWithStates({ hover: { fills: [], strokes: [], effects: [] } });
+    expect(line).toContain("hover:bg-none");
+    expect(line).toContain("hover:bg-transparent");
+    expect(line).toContain("hover:border-0");
+    expect(line).toContain("hover:border-[transparent]");
+    expect(line).toContain("hover:shadow-none");
+    expect(line).toContain("hover:blur-none");
+    expect(line).toContain("hover:backdrop-blur-none");
+  });
+
+  it("text 节点显式清空 fills 发射 text-inherit，不是 bg-none", () => {
+    const line = nodeLineWithStates({ hover: { fills: [] } }, "text");
+    expect(line).toContain("hover:text-inherit");
+    expect(line).not.toContain("hover:bg-none");
+  });
+
   it("STATE_VARIANT 与 NODE_STATES 严格同键；loading/error/success 是 data-state 变体", () => {
     expect(Object.keys(STATE_VARIANT).sort()).toEqual([...NODE_STATES].sort());
     expect(STATE_VARIANT.loading).toBe("data-[state=loading]:");

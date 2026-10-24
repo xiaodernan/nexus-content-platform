@@ -365,7 +365,12 @@ function stateClasses(node: DesignNode, prefix: string): string[] {
     const patch = states[state];
     if (!patch) continue;
     const variant = STATE_VARIANT[state];
-    if (patch.fills) {
+    if (patch.fills && !patch.fills.length) {
+      // 显式重置（ADR-0062）：清空基础态也有的通道必须发射重置类——少了重置，
+      // hover 会保留上一层的视觉，而这恰恰是作者明确说要换掉的东西
+      if (isTextLabel(node)) out.push(`${variant}text-inherit`);
+      else out.push(`${variant}bg-none`, `${variant}bg-transparent`);
+    } else if (patch.fills) {
       const solid = firstSolid(patch.fills);
       if (solid) {
         const cls = isTextLabel(node)
@@ -373,6 +378,12 @@ function stateClasses(node: DesignNode, prefix: string): string[] {
           : colorClass(solid.color, prefix, (inner) => `${variant}bg-[${inner}]`);
         if (cls) out.push(cls);
       }
+    }
+    if (patch.strokes && !patch.strokes.length) {
+      out.push(`${variant}border-0`, `${variant}border-[transparent]`);
+    }
+    if (patch.effects && !patch.effects.length) {
+      out.push(`${variant}shadow-none`, `${variant}blur-none`, `${variant}backdrop-blur-none`);
     }
     // 其余三通道复用 styleClasses：合成一个只有补丁通道的 style，
     // variant 前缀让每个类都带上状态变体

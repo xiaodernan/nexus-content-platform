@@ -720,8 +720,16 @@ function decodeState(
 
   // ---- fills：bg-[…]；text 节点的状态字色是 text-[…]（与 stateClasses 同一契约）----
   const fillsHits: Hit[] = [];
+  let fillsReset = false;
   if (isText) {
-    for (const hit of takeUtility(list, "text").arbitrary) {
+    const texts = takeUtility(list, "text");
+    for (const hit of texts.bare) {
+      if (hit.literal === "text-inherit") {
+        fillsReset = true;
+        out.checked.push(hit.literal);
+      }
+    }
+    for (const hit of texts.arbitrary) {
       if (
         colorOf(hit.value, ctx) !== null ||
         /^(linear|radial|conic)-gradient\(/.test(hit.value)
@@ -730,28 +738,52 @@ function decodeState(
       } else note(hit.literal, "状态补丁只支持 fills/strokes/effects/opacity 四通道（ADR-0062）");
     }
   } else {
-    fillsHits.push(...takeUtility(list, "bg").all);
+    for (const hit of takeUtility(list, "bg").all) {
+      // 显式重置（ADR-0062）：bg-none / bg-transparent → 整个 fills 通道清空
+      if (hit.value === "none" || hit.value === "transparent") {
+        fillsReset = true;
+        out.checked.push(hit.literal);
+      } else fillsHits.push(hit);
+    }
   }
   const paints: Paint[] = [];
+  const paintHits: Hit[] = [];
   for (const hit of fillsHits) {
     const gradient = parseGradient(hit.value, ctx);
     if (gradient) {
       paints.push(gradient);
-      out.checked.push(hit.literal);
+      paintHits.push(hit);
     } else {
       const color = colorOf(hit.value, ctx);
       if (color === null) note(hit.literal, "状态 fills 需要颜色、渐变或 token 引用");
       else {
         paints.push({ kind: "solid", color });
-        out.checked.push(hit.literal);
+        paintHits.push(hit);
       }
     }
   }
-  if (paints.length) out.patch.fills = paints;
+  if (fillsReset) {
+    // 显式重置（ADR-0062）：整个 fills 通道清空；同桶里的取值类如实报冲突
+    out.patch.fills = [];
+    for (const hit of paintHits) note(hit.literal, "重置类与取值类同时出现：整通道替换下重置优先");
+  } else {
+    for (const hit of paintHits) out.checked.push(hit.literal);
+    if (paints.length) out.patch.fills = paints;
+  }
 
-  // ---- strokes：border-[宽度px] + border-[颜色] ----
+  // ---- strokes：border-[宽度px] + border-[颜色]；border-0 / border-[transparent] 是重置 ----
   const borders = takeUtility(list, "border");
-  if (borders.all.length) {
+  const borderResets = borders.all.filter(
+    (hit) => hit.literal === "border-0" || hit.value === "transparent",
+  );
+  if (borderResets.length) {
+    // 显式重置（ADR-0062）：整个描边通道清空；同桶里的取值类如实报冲突
+    out.patch.strokes = [];
+    for (const hit of borders.all) {
+      if (borderResets.includes(hit)) out.checked.push(hit.literal);
+      else note(hit.literal, "重置类与取值类同时出现：整通道替换下重置优先");
+    }
+  } else if (borders.all.length) {
     const width = borders.all
       .map((hit) => numberOf(hit.value))
       .find((n): n is number => n !== null);
@@ -773,36 +805,46 @@ function decodeState(
   }
 
   // ---- effects：shadow-[…] / blur-[…] / backdrop-blur-[…] ----
-  let effects: Effect[] = [...(current?.effects ?? [])];
-  let effectsTouched = false;
-  const shadows = takeUtility(list, "shadow");
-  if (shadows.all.length) {
-    const hit = shadows.all[0]!;
-    const effect = parseShadow(hit.value, ctx);
-    if (!effect) note(hit.literal, "状态投影只有 shadow-[x_y_blur_spread_color] 这一种写法能映射回模型");
-    else {
-      effects = [
-        effect,
-        ...effects.filter((e) => e.kind !== "drop-shadow" && e.kind !== "inner-shadow"),
-      ];
-      out.checked.push(hit.literal);
-      effectsTouched = true;
+  const shadowHits = takeUtility(list, "shadow").all;
+  const layerBlurHits = takeUtility(list, "blur").all;
+  const backdropBlurHits = takeUtility(list, "backdrop-blur").all;
+  const effectHits = [...shadowHits, ...layerBlurHits, ...backdropBlurHits];
+  if (effectHits.some((hit) => hit.value === "none")) {
+    // 显式重置（ADR-0062）：shadow-none / blur-none / backdrop-blur-none
+    // → 整个 effects 通道清空；同桶里的取值类如实报冲突
+    out.patch.effects = [];
+    for (const hit of effectHits) {
+      if (hit.value === "none") out.checked.push(hit.literal);
+      else note(hit.literal, "重置类与取值类同时出现：整通道替换下重置优先");
     }
-  }
-  const layerBlur = takeUtility(list, "blur");
-  const backdropBlur = takeUtility(list, "backdrop-blur");
-  if (layerBlur.all.length || backdropBlur.all.length) {
-    const hit = layerBlur.all[0] ?? backdropBlur.all[0]!;
-    const n = numberOf(hit.value);
-    if (n === null) note(hit.literal, "状态模糊需要 px 数值");
-    else {
-      const kind = layerBlur.all.length ? "layer-blur" : "background-blur";
-      effects = [...effects.filter((e) => e.kind !== kind), { kind, blur: n } as Effect];
-      out.checked.push(hit.literal);
-      effectsTouched = true;
+  } else if (effectHits.length) {
+    let effects: Effect[] = [...(current?.effects ?? [])];
+    for (const hit of shadowHits) {
+      const effect = parseShadow(hit.value, ctx);
+      if (!effect) note(hit.literal, "状态投影只有 shadow-[x_y_blur_spread_color] 这一种写法能映射回模型");
+      else {
+        effects = [
+          effect,
+          ...effects.filter((e) => e.kind !== "drop-shadow" && e.kind !== "inner-shadow"),
+        ];
+        out.checked.push(hit.literal);
+      }
     }
+    for (const [hits, kind] of [
+      [layerBlurHits, "layer-blur"],
+      [backdropBlurHits, "background-blur"],
+    ] as const) {
+      for (const hit of hits) {
+        const n = numberOf(hit.value);
+        if (n === null) note(hit.literal, "状态模糊需要 px 数值");
+        else {
+          effects = [...effects.filter((e) => e.kind !== kind), { kind, blur: n } as Effect];
+          out.checked.push(hit.literal);
+        }
+      }
+    }
+    out.patch.effects = effects;
   }
-  if (effectsTouched) out.patch.effects = effects;
 
   // ---- opacity ----
   const opacity = takeUtility(list, "opacity");
