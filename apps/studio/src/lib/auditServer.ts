@@ -10,7 +10,7 @@
  * is an honest page and one that throws into a route handler is a 500.
  */
 import { nexusApiBase } from './publishServer';
-import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
+import { serviceCallSignal, serviceUnreachableReason, type ServiceFailureKind } from './serviceCall';
 
 /** One audit entry, in the service's own wire shape. */
 export interface AuditEntry {
@@ -30,6 +30,8 @@ export interface AuditEntry {
 /** What one read of the trail answered. */
 export interface AuditTrailAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   entries?: AuditEntry[];
   /** How many entries the answer CARRIED in all — not just the ones for one target. */
   carried: number;
@@ -56,15 +58,15 @@ export async function readAuditTrail(limit: number, fetchImpl: FetchLike = fetch
       signal: serviceCallSignal(),
     });
     if (!res.ok) {
-      return { ok: false, carried: 0, limit, reason: `the service's audit door answered HTTP ${res.status}` };
+      return { ok: false, carried: 0, limit, failure: 'invalid', reason: `the service's audit door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, carried: 0, limit, reason: 'the service answered its audit door with something that is not JSON' };
+      return { ok: false, carried: 0, limit, failure: 'invalid', reason: 'the service answered its audit door with something that is not JSON' };
     }
     const body = parsed as { entries?: unknown; count?: unknown; limit?: unknown };
     if (!Array.isArray(body.entries)) {
-      return { ok: false, carried: 0, limit, reason: 'the service answered its audit door with no entries at all' };
+      return { ok: false, carried: 0, limit, failure: 'invalid', reason: 'the service answered its audit door with no entries at all' };
     }
     return {
       ok: true,
@@ -77,7 +79,7 @@ export async function readAuditTrail(limit: number, fetchImpl: FetchLike = fetch
       ok: false,
       carried: 0,
       limit,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }

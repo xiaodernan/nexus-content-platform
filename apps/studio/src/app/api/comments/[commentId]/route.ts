@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { removeCommentOnService } from '@/lib/commentServer';
 
@@ -30,5 +31,5 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ c
     );
   }
   const answer = await removeCommentOnService(decodeURIComponent(commentId), claimer.trim());
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }

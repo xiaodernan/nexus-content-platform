@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { readPlans, readReceivedSubscriptions, readSubscriptions } from '@/lib/economyServer';
 
@@ -51,13 +52,13 @@ export async function GET(request: Request): Promise<NextResponse> {
   // The economy is only READABLE when both halves are: a panel that showed the plans and hid the
   // subscriptions would be showing half an account.
   if (!subscriptions.ok) {
-    return NextResponse.json({ ok: false, reason: subscriptions.reason }, { status: 502 });
+    return NextResponse.json({ ok: false, reason: subscriptions.reason, failure: subscriptions.failure }, { status: serviceFailureStatus(subscriptions.failure) });
   }
   if (!received.ok) {
-    return NextResponse.json({ ok: false, reason: received.reason }, { status: 502 });
+    return NextResponse.json({ ok: false, reason: received.reason, failure: received.failure }, { status: serviceFailureStatus(received.failure) });
   }
   if (!plans.ok) {
-    return NextResponse.json({ ok: false, reason: plans.reason }, { status: 502 });
+    return NextResponse.json({ ok: false, reason: plans.reason, failure: plans.failure }, { status: serviceFailureStatus(plans.failure) });
   }
   return NextResponse.json(
     {

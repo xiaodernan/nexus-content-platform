@@ -10,7 +10,7 @@
  * whose DOCUMENT is perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
-import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
+import { serviceCallSignal, serviceUnreachableReason, type ServiceFailureKind } from './serviceCall';
 
 /** One like, in the service's own wire shape. */
 export interface LikeEntry {
@@ -24,6 +24,8 @@ export interface LikeEntry {
 /** What one read of the likes answered. */
 export interface LikeAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   /** How many accounts liked the publication. */
   count: number;
   /** The likes themselves, newest first. */
@@ -74,15 +76,15 @@ export async function readLikes(
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
-      return { ok: false, count: 0, likes: [], limit, offset: from, reason: `the service's likes door answered HTTP ${res.status}` };
+      return { ok: false, count: 0, likes: [], limit, offset: from, failure: 'invalid', reason: `the service's likes door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, count: 0, likes: [], limit, offset: from, reason: 'the service answered its likes door with something that is not JSON' };
+      return { ok: false, count: 0, likes: [], limit, offset: from, failure: 'invalid', reason: 'the service answered its likes door with something that is not JSON' };
     }
     const body = parsed as { count?: unknown; likes?: unknown; limit?: unknown; offset?: unknown };
     if (typeof body.count !== 'number' || !Array.isArray(body.likes)) {
-      return { ok: false, count: 0, likes: [], limit, offset: from, reason: 'the service answered its likes door with no count' };
+      return { ok: false, count: 0, likes: [], limit, offset: from, failure: 'invalid', reason: 'the service answered its likes door with no count' };
     }
     return {
       ok: true,
@@ -101,7 +103,7 @@ export async function readLikes(
       likes: [],
       limit,
       offset: from,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -128,15 +130,15 @@ export async function readLikesOnService(
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
-      return { ok: false, count: 0, likes: [], reason: `the service's likes door answered HTTP ${res.status}` };
+      return { ok: false, count: 0, likes: [], failure: 'invalid', reason: `the service's likes door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, count: 0, likes: [], reason: 'the service answered its likes door with something that is not JSON' };
+      return { ok: false, count: 0, likes: [], failure: 'invalid', reason: 'the service answered its likes door with something that is not JSON' };
     }
     const body = parsed as { count?: unknown; likes?: unknown };
     if (typeof body.count !== 'number' || !Array.isArray(body.likes)) {
-      return { ok: false, count: 0, likes: [], reason: 'the service answered its likes door with no count' };
+      return { ok: false, count: 0, likes: [], failure: 'invalid', reason: 'the service answered its likes door with no count' };
     }
     return { ok: true, count: body.count, likes: body.likes as LikeEntry[] };
   } catch (error) {
@@ -144,7 +146,7 @@ export async function readLikesOnService(
       ok: false,
       count: 0,
       likes: [],
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -152,6 +154,8 @@ export async function readLikesOnService(
 /** What a like WRITE answered. */
 export interface LikeWriteAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   count?: number;
   liked?: boolean;
   reason?: string;
@@ -187,7 +191,7 @@ export async function likeOnService(
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -205,7 +209,7 @@ export async function unlikeOnService(
     );
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -226,7 +230,7 @@ async function safeJson(res: Response): Promise<unknown> {
  */
 function readWriteAnswer(res: Response, body: unknown): LikeWriteAnswer {
   if (typeof body !== 'object' || body === null) {
-    return { ok: false, reason: `the likes answered HTTP ${res.status} with something that is not JSON` };
+    return { ok: false, failure: 'invalid', reason: `the likes answered HTTP ${res.status} with something that is not JSON` };
   }
   const answer = body as { ok?: unknown; count?: unknown; liked?: unknown; reason?: unknown; message?: unknown };
   // v313 — the reason is read whenever the answer is NOT ok, and not only when the body

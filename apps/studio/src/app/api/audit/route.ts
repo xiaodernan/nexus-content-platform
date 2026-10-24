@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { nexusApiBase } from '@/lib/publishServer';
 
@@ -62,21 +63,21 @@ export async function GET(request: Request): Promise<NextResponse> {
         refusal && typeof refusal === 'object' && typeof (refusal as { message?: unknown }).message === 'string'
           ? (refusal as { message: string }).message
           : null;
-      return html(named ?? `the service's audit door answered HTTP ${res.status}`, 503);
+      return html(named ?? `the service's audit door answered HTTP ${res.status}`, serviceFailureStatus('invalid'));
     }
     let body: unknown;
     try {
       body = await res.json();
     } catch {
-      return html('the service answered its audit door with something that is not JSON', 503);
+      return html('the service answered its audit door with something that is not JSON', serviceFailureStatus('invalid'));
     }
     if (typeof body !== 'object' || body === null || !Array.isArray((body as { entries?: unknown }).entries)) {
-      return html('the service answered its audit door with no entries at all', 503);
+      return html('the service answered its audit door with no entries at all', serviceFailureStatus('invalid'));
     }
     const { entries, count, limit, total } = body as { entries: unknown; count?: unknown; limit?: unknown; total?: unknown };
     return NextResponse.json({ ok: true, entries, count, limit, total });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    return html(reason, 503);
+    return html(reason, serviceFailureStatus('unreachable'));
   }
 }

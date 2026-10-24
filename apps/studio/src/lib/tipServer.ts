@@ -9,7 +9,7 @@
  * PUBLICATIONS are perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
-import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
+import { serviceCallSignal, serviceUnreachableReason, type ServiceFailureKind } from './serviceCall';
 
 /** One tip, in the service's own wire shape. */
 export interface TipEntry {
@@ -28,6 +28,8 @@ export interface TipEntry {
 /** What one read of the tips answered. */
 export interface TipsAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   tips: TipEntry[];
   /** How much the account was given, in cents, as the DATABASE summed it. */
   totalCents: number;
@@ -49,6 +51,8 @@ export interface TipsAnswer {
 /** What one write answered. */
 export interface TipWriteAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   tip?: TipEntry;
   reason?: string;
 }
@@ -81,7 +85,7 @@ export async function readTipsGiven(
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, reason: `the service's tips door answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, failure: 'invalid', reason: `the service's tips door answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as { ok?: unknown; tips?: unknown; totalCents?: unknown; count?: unknown; limit?: unknown; message?: unknown };
     if (body.ok === false || !res.ok) {
@@ -98,7 +102,7 @@ export async function readTipsGiven(
       offset: from,
     };
   } catch (error) {
-    return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -116,15 +120,15 @@ export async function readTips(
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
-      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, reason: `the service's tips door answered HTTP ${res.status}` };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, failure: 'invalid', reason: `the service's tips door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, reason: 'the service answered its tips door with something that is not JSON' };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, failure: 'invalid', reason: 'the service answered its tips door with something that is not JSON' };
     }
     const body = parsed as { tips?: unknown; totalCents?: unknown; count?: unknown; limit?: unknown };
     if (!Array.isArray(body.tips)) {
-      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, reason: 'the service answered its tips door with no tips' };
+      return { ok: false, tips: [], totalCents: 0, count: 0, limit, offset: from, failure: 'invalid', reason: 'the service answered its tips door with no tips' };
     }
     return {
       ok: true,
@@ -142,7 +146,7 @@ export async function readTips(
       count: 0,
       limit,
       offset: from,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -177,7 +181,7 @@ export async function tipOnService(
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -197,7 +201,7 @@ async function safeJson(res: Response): Promise<unknown> {
  */
 function readWriteAnswer(res: Response, body: unknown): TipWriteAnswer {
   if (typeof body !== 'object' || body === null) {
-    return { ok: false, reason: `the tips answered HTTP ${res.status} with something that is not JSON` };
+    return { ok: false, failure: 'invalid', reason: `the tips answered HTTP ${res.status} with something that is not JSON` };
   }
   const answer = body as { ok?: unknown; tips?: unknown; reason?: unknown; message?: unknown };
   // v313 — the reason is read whenever the answer is NOT ok, and not only when the body

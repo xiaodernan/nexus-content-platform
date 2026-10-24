@@ -93,10 +93,10 @@ describe('likes [projectId] route — the DELETE ask (v491)', () => {
     expect(await res.json()).toEqual({ ok: true, count: 2, liked: false });
   });
 
-  it('the service\u2019s refusal is a 503 with the reason', async () => {
+  it('the service\u2019s refusal is a 502 with the reason', async () => {
     stubService({ status: 403, json: { error: 'forbidden', message: 'that like is not yours to take back' } });
     const res = await withdraw('pub-1', '?claimer=acct-eve');
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     expect((await res.json()).reason).toBe('that like is not yours to take back');
   });
 });

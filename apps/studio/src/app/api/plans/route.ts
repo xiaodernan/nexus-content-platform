@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { offerOnService, repricePlan, retirePlan } from '@/lib/planServer';
 
@@ -37,7 +38,7 @@ export async function PUT(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, reason: 'a plan needs a price, in cents' }, { status: 400 });
   }
   const answer = await repricePlan(planId.trim(), Math.trunc(price), period ?? 'month', { accountId: claimer.trim() });
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -82,7 +83,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,
     },
   );
-  return NextResponse.json(answer, { status: answer.ok ? 201 : 503 });
+  return NextResponse.json(answer, { status: answer.ok ? 201 : serviceFailureStatus(answer.failure) });
 
 }
 
@@ -107,5 +108,5 @@ export async function DELETE(request: Request): Promise<NextResponse> {
     );
   }
   const answer = await retirePlan(planId.trim(), { accountId: claimer.trim() });
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }

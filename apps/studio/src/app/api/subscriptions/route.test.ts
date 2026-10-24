@@ -112,10 +112,10 @@ describe('subscriptions route — the POST ask (v497)', () => {
     expect(await res.json()).toEqual({ ok: true, subscription: { id: 's-9' } });
   });
 
-  it('the service\u2019s refusal is a 503 with the reason', async () => {
+  it('the service\u2019s refusal is a 502 with the reason', async () => {
     stubService({ status: 502, json: { ok: false, reason: 'the service is down' } });
     const res = await post({ planId: 'plan-1', claim });
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     expect((await res.json()).reason).toBe('the service is down');
   });
 });

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { cancelSubscription, subscribeOnService } from '@/lib/planServer';
 
@@ -39,7 +40,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     assurance: typeof c.assurance === 'string' ? c.assurance : null,
     claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,
   });
-  return NextResponse.json(answer, { status: answer.ok ? 201 : 503 });
+  return NextResponse.json(answer, { status: answer.ok ? 201 : serviceFailureStatus(answer.failure) });
 }
 
 /**
@@ -62,5 +63,5 @@ export async function DELETE(request: Request): Promise<NextResponse> {
     );
   }
   const answer = await cancelSubscription(subscriptionId.trim(), { accountId: claimer.trim() });
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { readFiledReports, reportOnService, withdrawReport } from '@/lib/reportServer';
 
@@ -36,7 +37,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const from = Number(new URL(request.url).searchParams.get('offset') ?? '0');
   const offset = Number.isFinite(from) ? Math.max(Math.trunc(from), 0) : 0;
   const answer = await readFiledReports(reporter.trim(), offset, limit);
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -89,7 +90,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,
     },
   );
-  return NextResponse.json(answer, { status: answer.ok ? 201 : 503 });
+  return NextResponse.json(answer, { status: answer.ok ? 201 : serviceFailureStatus(answer.failure) });
 }
 
 /**
@@ -112,5 +113,5 @@ export async function DELETE(request: Request): Promise<NextResponse> {
     );
   }
   const answer = await withdrawReport(reportId.trim(), claimer.trim());
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }

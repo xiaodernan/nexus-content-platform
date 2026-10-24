@@ -93,10 +93,10 @@ describe('follows [accountId] route — the DELETE ask (v492)', () => {
     expect(await res.json()).toEqual({ ok: true, followerCount: 2, following: false });
   });
 
-  it('the service\u2019s refusal is a 503 with the reason', async () => {
+  it('the service\u2019s refusal is a 502 with the reason', async () => {
     stubService({ status: 403, json: { error: 'forbidden', message: 'that follow is not yours to take back' } });
     const res = await unfollow('acct-grace', '?claimer=acct-eve');
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     expect((await res.json()).reason).toBe('that follow is not yours to take back');
   });
 });

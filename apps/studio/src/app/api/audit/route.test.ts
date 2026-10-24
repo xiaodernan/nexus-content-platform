@@ -119,33 +119,33 @@ describe('audit route — the GET ask (v496)', () => {
     expect(calls[0]!.url).toContain('offset=40');
   });
 
-  it('a refused FILTER is a 503 carrying the service\u2019s OWN NAME for the set it accepts', async () => {
+  it('a refused FILTER is a 502 carrying the service\u2019s OWN NAME for the set it accepts', async () => {
     stubService({ status: 400, json: { error: 'bad_filter', message: 'the action must be one of publish, unpublish, take-down' } });
     const res = await get('?action=nonsense');
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.ok).toBe(false);
     expect(body.reason).toBe('the action must be one of publish, unpublish, take-down');
   });
 
-  it('a refused ask with NO message still names the HTTP number — it is not answered as a bare 503', async () => {
+  it('a refused ask with NO message still names the HTTP number — it is not answered as a bare 502', async () => {
     stubService({ status: 400, json: { error: 'bad_filter' } });
     const res = await get('?action=nonsense');
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     expect((await res.json()).reason).toBe("the service's audit door answered HTTP 400");
   });
 
-  it('a body that is not JSON is a 503 naming that, not an empty trail', async () => {
+  it('a body that is not JSON is a 502 naming that, not an empty trail', async () => {
     stubService({ status: 200, json: undefined });
     const res = await get('');
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     expect((await res.json()).reason).toBe('the service answered its audit door with something that is not JSON');
   });
 
   it('a 200 with no entries array is a refusal — the route does not report an empty trail it never read', async () => {
     stubService({ status: 200, json: { ok: true, somethingElse: true } });
     const res = await get('');
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     expect((await res.json()).reason).toBe('the service answered its audit door with no entries at all');
   });
 

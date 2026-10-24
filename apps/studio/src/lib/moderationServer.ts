@@ -7,7 +7,7 @@
  * DOCUMENT is perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
-import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
+import { serviceCallSignal, serviceUnreachableReason, type ServiceFailureKind } from './serviceCall';
 
 /** One report, in the service's desk shape. */
 export interface DeskEntry {
@@ -23,6 +23,8 @@ export interface DeskEntry {
 /** What one read of the desk answered. */
 export interface DeskAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   /** The desk's rows. Empty when the read failed — and the reason says so. */
   reports: DeskEntry[];
   /** The cap the service applied. */
@@ -33,6 +35,8 @@ export interface DeskAnswer {
 /** What one disposition answered. */
 export interface DispositionAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   /** The report the disposition was about. */
   reportId?: string;
   /** Where the report stands now. */
@@ -75,12 +79,12 @@ export async function readDesk(
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, reports: [], limit, reason: `the service's desk answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, reports: [], limit, failure: 'invalid', reason: `the service's desk answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as { reports?: unknown; limit?: unknown; message?: unknown };
     if (!Array.isArray(body.reports)) {
       const why = typeof body.message === 'string' ? body.message : `the service's desk answered HTTP ${res.status}`;
-      return { ok: false, reports: [], limit, reason: why };
+      return { ok: false, reports: [], limit, failure: 'invalid', reason: why };
     }
     return {
       ok: true,
@@ -92,7 +96,7 @@ export async function readDesk(
       ok: false,
       reports: [],
       limit,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -102,6 +106,8 @@ export async function readDesk(
  */
 export interface TallyAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   total: number;
   open: number;
   byReason: Record<string, number>;
@@ -133,7 +139,7 @@ export async function readTally(
         open: 0,
         byReason: {},
         byStatus: {},
-        reason: `the service's tally door answered HTTP ${res.status} with something that is not JSON`,
+        failure: 'invalid', reason: `the service's tally door answered HTTP ${res.status} with something that is not JSON`,
       };
     }
     const body = parsed as {
@@ -145,7 +151,7 @@ export async function readTally(
     };
     if (typeof body.total !== 'number' || typeof body.open !== 'number') {
       const why = typeof body.message === 'string' ? body.message : `the service's tally door answered HTTP ${res.status}`;
-      return { ok: false, total: 0, open: 0, byReason: {}, byStatus: {}, reason: why };
+      return { ok: false, total: 0, open: 0, byReason: {}, byStatus: {}, failure: 'invalid', reason: why };
     }
     return {
       ok: true,
@@ -161,7 +167,7 @@ export async function readTally(
       open: 0,
       byReason: {},
       byStatus: {},
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -184,12 +190,12 @@ export async function acknowledgeOnService(
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, reason: `the service's desk answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, failure: 'invalid', reason: `the service's desk answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as { reportId?: unknown; status?: unknown; moved?: unknown; message?: unknown };
     if (!res.ok) {
       const why = typeof body.message === 'string' ? body.message : `the service's desk answered HTTP ${res.status}`;
-      return { ok: false, reason: why };
+      return { ok: false, failure: 'invalid', reason: why };
     }
     return {
       ok: true,
@@ -200,7 +206,7 @@ export async function acknowledgeOnService(
   } catch (error) {
     return {
       ok: false,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }

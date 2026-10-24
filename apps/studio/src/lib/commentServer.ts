@@ -9,7 +9,7 @@
  * page whose DOCUMENT is perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
-import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
+import { serviceCallSignal, serviceUnreachableReason, type ServiceFailureKind } from './serviceCall';
 
 /** One comment, in the service's own wire shape. */
 export interface CommentEntry {
@@ -26,6 +26,8 @@ export interface CommentEntry {
 /** What one read of the comments answered. */
 export interface CommentsAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   comments: CommentEntry[];
   /**
    * v354 — how many comments are VISIBLE, over the WHOLE thread.
@@ -60,6 +62,8 @@ export interface CommentsAnswer {
 /** What one write answered. */
 export interface CommentWriteAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   comment?: CommentEntry;
   reason?: string;
 }
@@ -87,15 +91,15 @@ export async function readComments(
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
-      return { ok: false, comments: [], visible: 0, limit, offset: from, reason: `the service's comments door answered HTTP ${res.status}` };
+      return { ok: false, comments: [], visible: 0, limit, offset: from, failure: 'invalid', reason: `the service's comments door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, comments: [], visible: 0, limit, offset: from, reason: 'the service answered its comments door with something that is not JSON' };
+      return { ok: false, comments: [], visible: 0, limit, offset: from, failure: 'invalid', reason: 'the service answered its comments door with something that is not JSON' };
     }
     const body = parsed as { comments?: unknown; visible?: unknown; limit?: unknown; total?: unknown };
     if (!Array.isArray(body.comments)) {
-      return { ok: false, comments: [], visible: 0, limit, offset: from, reason: 'the service answered its comments door with no comments' };
+      return { ok: false, comments: [], visible: 0, limit, offset: from, failure: 'invalid', reason: 'the service answered its comments door with no comments' };
     }
     return {
       ok: true,
@@ -116,7 +120,7 @@ export async function readComments(
       visible: 0,
       limit,
       offset: from,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -147,12 +151,12 @@ export async function readCommentsWritten(
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, comments: [], visible: 0, reason: `the service's comments door answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, comments: [], visible: 0, failure: 'invalid', reason: `the service's comments door answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as { ok?: unknown; comments?: unknown; visible?: unknown; message?: unknown };
     if (body.ok === false || !res.ok) {
       const why = typeof body.message === 'string' ? body.message : `the service's comments door answered HTTP ${res.status}`;
-      return { ok: false, comments: [], visible: 0, reason: why };
+      return { ok: false, comments: [], visible: 0, failure: 'invalid', reason: why };
     }
     return {
       ok: true,
@@ -160,7 +164,7 @@ export async function readCommentsWritten(
       visible: typeof body.visible === 'number' ? body.visible : 0,
     };
   } catch (error) {
-    return { ok: false, comments: [], visible: 0, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, comments: [], visible: 0, failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -189,7 +193,7 @@ export async function writeComment(
     });
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, reason: `the comments answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, failure: 'invalid', reason: `the comments answered HTTP ${res.status} with something that is not JSON` };
     }
     const answer = parsed as { ok?: unknown; comments?: unknown; reason?: unknown; message?: unknown };
     if (answer.ok === false || !res.ok) {
@@ -204,12 +208,14 @@ export async function writeComment(
     const comments = Array.isArray(answer.comments) ? (answer.comments as CommentEntry[]) : [];
     return { ok: true, comment: comments[0] };
   } catch (error) {
-    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 /** What one take-back answered. */
 export interface CommentRemoveAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   /** True when a comment was ACTUALLY taken back; false when it was already gone. */
   removed?: boolean;
   reason?: string;
@@ -236,7 +242,7 @@ export async function removeCommentOnService(
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, reason: `the service's comments door answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, failure: 'invalid', reason: `the service's comments door answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as { ok?: unknown; removed?: unknown; reason?: unknown; message?: unknown };
     if (body.ok === false || !res.ok) {
@@ -250,6 +256,6 @@ export async function removeCommentOnService(
     }
     return { ok: true, removed: body.removed === true };
   } catch (error) {
-    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error) };
   }
 }

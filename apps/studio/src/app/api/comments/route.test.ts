@@ -168,7 +168,7 @@ describe('comments route — the POST ask (v488)', () => {
     });
   });
 
-  it('the service’s own answer is passed through, and its refusal is a 503 with the reason', async () => {
+  it('the service’s own answer is passed through, and its refusal is a 502 with the reason', async () => {
     stubService({ status: 201, json: { ok: true, comments: [{ id: 'c-9' }] } });
     const ok = await post({ projectId: 'pub-1', body: 'hello', claim });
     expect(ok.status).toBe(201);
@@ -176,7 +176,7 @@ describe('comments route — the POST ask (v488)', () => {
 
     stubService({ status: 502, json: { ok: false, reason: 'the service is down' } });
     const refused = await post({ projectId: 'pub-1', body: 'hello', claim });
-    expect(refused.status).toBe(503);
+    expect(refused.status).toBe(502);
     expect((await refused.json()).reason).toBe('the service is down');
   });
 });

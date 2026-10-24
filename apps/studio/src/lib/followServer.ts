@@ -9,7 +9,7 @@
  * whose PUBLICATIONS are perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
-import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
+import { serviceCallSignal, serviceUnreachableReason, type ServiceFailureKind } from './serviceCall';
 
 /** One follower, in the service's own wire shape. */
 export interface FollowerEntry {
@@ -26,6 +26,8 @@ export interface FollowerEntry {
  */
 export interface FollowingAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   /** The accounts the account follows, newest first. */
   following: FollowerEntry[];
   /** How many in all — the service's count, which can be larger than the window. */
@@ -46,6 +48,8 @@ export interface FollowingAnswer {
 /** What one read of the followers answered. */
 export interface FollowersAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   /** How many accounts follow the account. */
   followerCount: number;
   /** The followers themselves, newest first. */
@@ -66,6 +70,8 @@ export interface FollowersAnswer {
 /** What one write answered. */
 export interface FollowWriteAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   followerCount?: number;
   following?: boolean;
   reason?: string;
@@ -95,15 +101,15 @@ export async function readFollowers(
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
-      return { ok: false, followerCount: 0, followers: [], limit, offset: from, reason: `the service's follows door answered HTTP ${res.status}` };
+      return { ok: false, followerCount: 0, followers: [], limit, offset: from, failure: 'invalid', reason: `the service's follows door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, followerCount: 0, followers: [], limit, offset: from, reason: 'the service answered its follows door with something that is not JSON' };
+      return { ok: false, followerCount: 0, followers: [], limit, offset: from, failure: 'invalid', reason: 'the service answered its follows door with something that is not JSON' };
     }
     const body = parsed as { followerCount?: unknown; followers?: unknown; following?: unknown; limit?: unknown };
     if (typeof body.followerCount !== 'number' || !Array.isArray(body.followers)) {
-      return { ok: false, followerCount: 0, followers: [], limit, offset: from, reason: 'the service answered its follows door with no count' };
+      return { ok: false, followerCount: 0, followers: [], limit, offset: from, failure: 'invalid', reason: 'the service answered its follows door with no count' };
     }
     return {
       ok: true,
@@ -123,7 +129,7 @@ export async function readFollowers(
       followers: [],
       limit,
       offset: from,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -147,15 +153,15 @@ export async function readFollowing(
       signal: serviceCallSignal(),
     });
     if (!res.ok) {
-      return { ok: false, following: [], count: 0, limit: 20, offset: from, reason: `the service's follows door answered HTTP ${res.status}` };
+      return { ok: false, following: [], count: 0, limit: 20, offset: from, failure: 'invalid', reason: `the service's follows door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, following: [], count: 0, limit: 20, offset: from, reason: 'the service answered its follows door with something that is not JSON' };
+      return { ok: false, following: [], count: 0, limit: 20, offset: from, failure: 'invalid', reason: 'the service answered its follows door with something that is not JSON' };
     }
     const body = parsed as { following?: unknown; followingCount?: unknown; limit?: unknown };
     if (!Array.isArray(body.following)) {
-      return { ok: false, following: [], count: 0, limit: 20, offset: from, reason: 'the service answered its follows door with no list' };
+      return { ok: false, following: [], count: 0, limit: 20, offset: from, failure: 'invalid', reason: 'the service answered its follows door with no list' };
     }
     return {
       ok: true,
@@ -171,7 +177,7 @@ export async function readFollowing(
       count: 0,
       limit: 20,
       offset: from,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -200,7 +206,7 @@ export async function followOnService(
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -218,7 +224,7 @@ export async function unfollowOnService(
     );
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -239,7 +245,7 @@ async function safeJson(res: Response): Promise<unknown> {
  */
 function readWriteAnswer(res: Response, body: unknown): FollowWriteAnswer {
   if (typeof body !== 'object' || body === null) {
-    return { ok: false, reason: `the follows answered HTTP ${res.status} with something that is not JSON` };
+    return { ok: false, failure: 'invalid', reason: `the follows answered HTTP ${res.status} with something that is not JSON` };
   }
   const answer = body as { ok?: unknown; followerCount?: unknown; following?: unknown; reason?: unknown; message?: unknown };
   // v313 — the reason is read whenever the answer is NOT ok, and not only when the body

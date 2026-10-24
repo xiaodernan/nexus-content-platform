@@ -9,7 +9,7 @@
  * DOCUMENT is perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
-import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
+import { serviceCallSignal, serviceUnreachableReason, type ServiceFailureKind } from './serviceCall';
 
 /**
  * One report, in the service's own wire shape.
@@ -31,6 +31,8 @@ export interface ReportEntry {
 /** What one read of the reports answered. */
 export interface ReportsAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   reports: ReportEntry[];
   /** How many reports the answer carried. */
   count: number;
@@ -40,6 +42,8 @@ export interface ReportsAnswer {
 /** What one write answered. */
 export interface ReportWriteAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   report?: ReportEntry;
   reason?: string;
 }
@@ -62,15 +66,15 @@ export async function readReports(
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
-      return { ok: false, reports: [], count: 0, reason: `the service's reports door answered HTTP ${res.status}` };
+      return { ok: false, reports: [], count: 0, failure: 'invalid', reason: `the service's reports door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, reports: [], count: 0, reason: 'the service answered its reports door with something that is not JSON' };
+      return { ok: false, reports: [], count: 0, failure: 'invalid', reason: 'the service answered its reports door with something that is not JSON' };
     }
     const body = parsed as { reports?: unknown; count?: unknown };
     if (!Array.isArray(body.reports)) {
-      return { ok: false, reports: [], count: 0, reason: 'the service answered its reports door with no reports' };
+      return { ok: false, reports: [], count: 0, failure: 'invalid', reason: 'the service answered its reports door with no reports' };
     }
     return {
       ok: true,
@@ -82,7 +86,7 @@ export async function readReports(
       ok: false,
       reports: [],
       count: 0,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -92,6 +96,8 @@ export async function readReports(
  */
 export interface FiledReportsAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   reports: ReportEntry[];
   /**
    * v380 — how many reports this account filed IN ALL.
@@ -136,13 +142,13 @@ export async function readFiledReports(
         count: 0,
         limit,
         offset,
-        reason: `the service's reports door answered HTTP ${res.status} with something that is not JSON`,
+        failure: 'invalid', reason: `the service's reports door answered HTTP ${res.status} with something that is not JSON`,
       };
     }
     const body = parsed as { reports?: unknown; count?: unknown; message?: unknown };
     if (!Array.isArray(body.reports)) {
       const why = typeof body.message === 'string' ? body.message : `the service's reports door answered HTTP ${res.status}`;
-      return { ok: false, reports: [], count: 0, limit, offset, reason: why };
+      return { ok: false, reports: [], count: 0, limit, offset, failure: 'invalid', reason: why };
     }
     return {
       ok: true,
@@ -158,7 +164,7 @@ export async function readFiledReports(
       count: 0,
       limit,
       offset,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -166,6 +172,8 @@ export async function readFiledReports(
 /** What one withdrawal answered. */
 export interface WithdrawAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   /** Whether the report actually moved. A report that was already withdrawn is "already withdrawn", not an error. */
   withdrawn: boolean;
   reason?: string;
@@ -190,19 +198,19 @@ export async function withdrawReport(
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, withdrawn: false, reason: `the service's reports door answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, withdrawn: false, failure: 'invalid', reason: `the service's reports door answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as { withdrawn?: unknown; message?: unknown };
     if (!res.ok) {
       const why = typeof body.message === 'string' ? body.message : `the service's reports door answered HTTP ${res.status}`;
-      return { ok: false, withdrawn: false, reason: why };
+      return { ok: false, withdrawn: false, failure: 'invalid', reason: why };
     }
     return { ok: true, withdrawn: body.withdrawn === true };
   } catch (error) {
     return {
       ok: false,
       withdrawn: false,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -235,7 +243,7 @@ export async function reportOnService(
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -256,7 +264,7 @@ async function safeJson(res: Response): Promise<unknown> {
  */
 function readWriteAnswer(res: Response, body: unknown): ReportWriteAnswer {
   if (typeof body !== 'object' || body === null) {
-    return { ok: false, reason: `the reports answered HTTP ${res.status} with something that is not JSON` };
+    return { ok: false, failure: 'invalid', reason: `the reports answered HTTP ${res.status} with something that is not JSON` };
   }
   const answer = body as { ok?: unknown; reports?: unknown; reason?: unknown; message?: unknown };
   // v313 — the reason is read whenever the answer is NOT ok, and not only when the body

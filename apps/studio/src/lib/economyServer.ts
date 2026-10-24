@@ -7,7 +7,7 @@
  * DOCUMENT is perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
-import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
+import { serviceCallSignal, serviceUnreachableReason, type ServiceFailureKind } from './serviceCall';
 
 /** One subscription, in the service's own wire shape. */
 export interface SubscriptionEntry {
@@ -107,6 +107,8 @@ function toPeriodTotals(raw: unknown): PeriodTotal[] {
 
 export interface SubscriptionsAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   subscriptions: SubscriptionEntry[];
   /** What the subscriber has committed, summed over the subscriptions that are STILL STANDING (v308). */
   /** v368 — the totals, PER PERIOD. */
@@ -128,6 +130,8 @@ export interface SubscriptionsAnswer {
 /** What one read of the plans answered. */
 export interface PlansAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   plans: PlanEntry[];
   /**
    * v373 — how many plans the creator offers, over the WHOLE table — or null when the count could not be
@@ -177,13 +181,13 @@ export async function readSubscriptions(
         count: 0,
         limit,
         offset: from,
-        reason: `the service's subscriptions door answered HTTP ${res.status} with something that is not JSON`,
+        failure: 'invalid', reason: `the service's subscriptions door answered HTTP ${res.status} with something that is not JSON`,
       };
     }
     const body = parsed as { subscriptions?: unknown; totalsByPeriod?: unknown; count?: unknown; limit?: unknown; message?: unknown };
     if (!Array.isArray(body.subscriptions)) {
       const why = typeof body.message === 'string' ? body.message : `the service's subscriptions door answered HTTP ${res.status}`;
-      return { ok: false, subscriptions: [], totalsByPeriod: [], count: 0, limit, offset: from, reason: why };
+      return { ok: false, subscriptions: [], totalsByPeriod: [], count: 0, limit, offset: from, failure: 'invalid', reason: why };
     }
     return {
       ok: true,
@@ -201,7 +205,7 @@ export async function readSubscriptions(
       count: 0,
       limit,
       offset: from,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -234,13 +238,13 @@ export async function readReceivedSubscriptions(
         count: 0,
         limit,
         offset: from,
-        reason: `the service's subscriptions door answered HTTP ${res.status} with something that is not JSON`,
+        failure: 'invalid', reason: `the service's subscriptions door answered HTTP ${res.status} with something that is not JSON`,
       };
     }
     const body = parsed as { subscriptions?: unknown; totalsByPeriod?: unknown; count?: unknown; limit?: unknown; message?: unknown };
     if (!Array.isArray(body.subscriptions)) {
       const why = typeof body.message === 'string' ? body.message : `the service's subscriptions door answered HTTP ${res.status}`;
-      return { ok: false, subscriptions: [], totalsByPeriod: [], count: 0, limit, offset: from, reason: why };
+      return { ok: false, subscriptions: [], totalsByPeriod: [], count: 0, limit, offset: from, failure: 'invalid', reason: why };
     }
     return {
       ok: true,
@@ -258,7 +262,7 @@ export async function readReceivedSubscriptions(
       count: 0,
       limit,
       offset: from,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -285,13 +289,13 @@ export async function readPlans(
         count: null,
         limit,
         offset: from,
-        reason: `the service's plans door answered HTTP ${res.status} with something that is not JSON`,
+        failure: 'invalid', reason: `the service's plans door answered HTTP ${res.status} with something that is not JSON`,
       };
     }
     const body = parsed as { plans?: unknown; count?: unknown; limit?: unknown; message?: unknown };
     if (!Array.isArray(body.plans)) {
       const why = typeof body.message === 'string' ? body.message : `the service's plans door answered HTTP ${res.status}`;
-      return { ok: false, plans: [], count: null, limit, offset: from, reason: why };
+      return { ok: false, plans: [], count: null, limit, offset: from, failure: 'invalid', reason: why };
     }
     return {
       ok: true,
@@ -309,7 +313,7 @@ export async function readPlans(
       count: null,
       limit,
       offset: from,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }

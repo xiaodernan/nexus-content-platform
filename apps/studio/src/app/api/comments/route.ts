@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { readCommentsWritten, writeComment } from '@/lib/commentServer';
 
@@ -33,7 +34,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const limit = Number.parseInt(url.searchParams.get('limit') ?? '20', 10);
   const answer = await readCommentsWritten(author.trim(), Number.isFinite(limit) ? limit : 20);
   if (!answer.ok) {
-    return NextResponse.json({ ok: false, reason: answer.reason }, { status: 502 });
+    return NextResponse.json({ ok: false, reason: answer.reason, failure: answer.failure }, { status: serviceFailureStatus(answer.failure) });
   }
   return NextResponse.json(
     { ok: true, comments: answer.comments, visible: answer.visible },
@@ -83,5 +84,5 @@ export async function POST(request: Request): Promise<NextResponse> {
     assurance: typeof c.assurance === 'string' ? c.assurance : null,
     claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,
   });
-  return NextResponse.json(answer, { status: answer.ok ? 201 : 503 });
+  return NextResponse.json(answer, { status: answer.ok ? 201 : serviceFailureStatus(answer.failure) });
 }

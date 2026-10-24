@@ -26,10 +26,17 @@ import { GET as tipsGet, POST as tipsPost } from './tips/route';
  * the service is asked on twelve doors and forwarded as asked on four. A new row is a 201 on five doors
  * and a 200 on three.
  *
- * None of that is a bug — each number is the one its own door's comment defends — but an unwritten
- * contract is one a later edit cannot keep. This file asks every door the SAME three questions and
- * pins the answers, so that changing one of them becomes a decision somebody has to make rather than
- * an accident nobody notices.
+ * None of that is a bug — but an unwritten contract is one a later edit cannot keep. This file asks every
+ * door the SAME three questions and pins the answers, so that changing one of them becomes a decision
+ * somebody has to make rather than an accident nobody notices.
+ *
+ * v507 — the FIRST of those answers turned out to BE the accident. The read-refusal split below (a 502 on
+ * six doors, a 503 on three) had no defense in any comment: git shows the 503s come from the v284–v298
+ * wave and the 502s from the v305–v335 wave, and the plans door answered BOTH — 502 for a read that
+ * failed and 503 for a write that failed the same way. The repair names the two kinds of failure once
+ * (`serviceCall.ts`) and derives every door's status from the kind, so the same failure now earns the
+ * same number on every door: **the service answered and could not be served is a 502; the service did
+ * not answer at all is a 503.**
  *
  * The service is faked at the `fetch` boundary, the same way each door's own suite fakes it.
  */
@@ -116,22 +123,89 @@ describe('the door contract — a read refusal’s STATUS (v499)', () => {
     expect((await moderationGet(req('/api/moderation?owner=acct-ada'))).status).toBe(502);
   });
 
-  it('the tips door answers 503 — the same failure, a different number', async () => {
+  it('the tips door answers 502 — the same failure, the SAME number (v507)', async () => {
     mode = 'refuse';
     stubService();
+    expect((await tipsGet(req('/api/tips?recipient=acct-ada'))).status).toBe(502);
+  });
+
+  it('the likes door answers 502 — the same failure, the SAME number (v507)', async () => {
+    mode = 'refuse';
+    stubService();
+    expect((await likesGet(req('/api/likes?projectId=pub-1'))).status).toBe(502);
+  });
+
+  it('the audit door answers 502 — the same failure, the SAME number (v507)', async () => {
+    mode = 'refuse';
+    stubService();
+    expect((await auditGet(req('/api/audit'))).status).toBe(502);
+  });
+});
+
+describe('the door contract — the service that does not answer (v507)', () => {
+  // The one failure that is not the service's own words: the call threw. Every door answers 503,
+  // and only then — a door that answered 503 for a REFUSAL was claiming the service was down when all
+  // it knew was that the answer was no good (v507).
+  function stubDeadService() {
+    vi.stubGlobal(
+      'fetch',
+      async () => {
+        throw new Error('nexus-api unreachable');
+      },
+    );
+  }
+
+  it('a THROWN call is a 503 on the comments door', async () => {
+    stubDeadService();
+    expect((await commentsGet(req('/api/comments?author=acct-ada'))).status).toBe(503);
+  });
+
+  it('a THROWN call is a 503 on the reports door', async () => {
+    stubDeadService();
+    expect((await reportsGet(req('/api/reports?reporter=acct-ada'))).status).toBe(503);
+  });
+
+  it('a THROWN call is a 503 on the follows door', async () => {
+    stubDeadService();
+    expect((await followsGet(req('/api/follows?follower=acct-ada'))).status).toBe(503);
+  });
+
+  it('a THROWN call is a 503 on the economy door', async () => {
+    stubDeadService();
+    expect((await economyGet(req('/api/economy?account=acct-ada'))).status).toBe(503);
+  });
+
+  it('a THROWN call is a 503 on the moderation door', async () => {
+    stubDeadService();
+    expect((await moderationGet(req('/api/moderation?owner=acct-ada'))).status).toBe(503);
+  });
+
+  it('a THROWN call is a 503 on the tips door', async () => {
+    stubDeadService();
     expect((await tipsGet(req('/api/tips?recipient=acct-ada'))).status).toBe(503);
   });
 
-  it('the likes door answers 503 — the same failure, a different number', async () => {
-    mode = 'refuse';
-    stubService();
+  it('a THROWN call is a 503 on the likes door', async () => {
+    stubDeadService();
     expect((await likesGet(req('/api/likes?projectId=pub-1'))).status).toBe(503);
   });
 
-  it('the audit door answers 503 — the same failure, a different number', async () => {
-    mode = 'refuse';
-    stubService();
+  it('a THROWN call is a 503 on the audit door', async () => {
+    stubDeadService();
     expect((await auditGet(req('/api/audit'))).status).toBe(503);
+  });
+
+  it('a THROWN call is a 503 on the plans door’s WRITE — the same rule on the verb that answers 201', async () => {
+    // The plans door has no read: the plans READ is the economy door’s answer (v309), graded above. What
+    // the plans door owns is the write, and it answers 201 for a new plan and 503 when the service did
+    // not answer at all — the same rule, on the verb that used to answer 503 for a refusal too.
+    stubDeadService();
+    expect((await plansPost(jsonPost('/api/plans', { planId: 'plan-1', priceCents: 500, claim }))).status).toBe(503);
+  });
+
+  it('a THROWN call is a 503 on the subscriptions door’s write', async () => {
+    stubDeadService();
+    expect((await subsPost(jsonPost('/api/subscriptions', { planId: 'plan-1', claim }))).status).toBe(503);
   });
 });
 

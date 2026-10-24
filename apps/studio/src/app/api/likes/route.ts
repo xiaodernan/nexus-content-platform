@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { likeOnService, readLikesOnService, unlikeOnService } from '@/lib/likeServer';
 
@@ -36,7 +37,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     Number.isFinite(limit) ? limit : DEFAULT_LIMIT,
   );
   if (!answer.ok) {
-    return NextResponse.json({ ok: false, reason: answer.reason }, { status: 503 });
+    return NextResponse.json({ ok: false, reason: answer.reason, failure: answer.failure }, { status: serviceFailureStatus(answer.failure) });
   }
   return NextResponse.json({
     ok: true,
@@ -83,6 +84,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     assurance: typeof c.assurance === 'string' ? c.assurance : null,
     claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,
   });
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 503 });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }
 

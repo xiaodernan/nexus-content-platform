@@ -200,7 +200,7 @@ describe('reports route — the POST ask (v489)', () => {
     expect(calls[0]!.body?.projectId).toBe('  pub-1  ');
   });
 
-  it('the service\u2019s own answer is passed through, and its refusal is a 503 with the reason', async () => {
+  it('the service\u2019s own answer is passed through, and its refusal is a 502 with the reason', async () => {
     stubService({ status: 201, json: { ok: true, reports: [{ id: 'r-9' }] } });
     const ok = await post({ projectId: 'pub-1', reason: 'spam', claim });
     expect(ok.status).toBe(201);
@@ -208,7 +208,7 @@ describe('reports route — the POST ask (v489)', () => {
 
     stubService({ status: 502, json: { ok: false, reason: 'the service is down' } });
     const refused = await post({ projectId: 'pub-1', reason: 'spam', claim });
-    expect(refused.status).toBe(503);
+    expect(refused.status).toBe(502);
     expect((await refused.json()).reason).toBe('the service is down');
   });
 });

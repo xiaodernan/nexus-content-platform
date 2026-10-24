@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { readTips, readTipsGiven, tipOnService } from '@/lib/tipServer';
 
@@ -41,7 +42,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     ? await readTips(recipient, Number.isFinite(limit) ? limit : 20, offset)
     : await readTipsGiven(payer as string, Number.isFinite(limit) ? limit : 20, offset);
   if (!answer.ok) {
-    return NextResponse.json({ ok: false, reason: answer.reason }, { status: 503 });
+    return NextResponse.json({ ok: false, reason: answer.reason, failure: answer.failure }, { status: serviceFailureStatus(answer.failure) });
   }
   return NextResponse.json({
     ok: true,
@@ -100,5 +101,5 @@ export async function POST(request: Request): Promise<NextResponse> {
       claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,
     },
   );
-  return NextResponse.json(answer, { status: answer.ok ? 201 : 503 });
+  return NextResponse.json(answer, { status: answer.ok ? 201 : serviceFailureStatus(answer.failure) });
 }

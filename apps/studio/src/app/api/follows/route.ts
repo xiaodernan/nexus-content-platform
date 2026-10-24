@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { followOnService, readFollowing, unfollowOnService } from '@/lib/followServer';
 
@@ -35,7 +36,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const askedOffset = Number(new URL(request.url).searchParams.get('offset') ?? '0');
   const offset = Number.isFinite(askedOffset) && askedOffset > 0 ? Math.trunc(askedOffset) : 0;
   const answer = await readFollowing(follower.trim(), offset);
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -72,6 +73,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     assurance: typeof c.assurance === 'string' ? c.assurance : null,
     claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,
   });
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 503 });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }
 

@@ -195,10 +195,10 @@ describe('follows route — the POST ask (v492)', () => {
     expect(await res.json()).toEqual({ ok: true, followerCount: 4, following: true });
   });
 
-  it('the service\u2019s refusal is a 503 with the reason', async () => {
+  it('the service\u2019s refusal is a 502 with the reason', async () => {
     stubService({ status: 502, json: { ok: false, reason: 'the service is down' } });
     const res = await post({ accountId: 'acct-grace', claim });
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     expect((await res.json()).reason).toBe('the service is down');
   });
 });

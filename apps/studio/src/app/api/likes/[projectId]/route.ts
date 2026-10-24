@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { unlikeOnService } from '@/lib/likeServer';
 
@@ -25,5 +26,5 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ p
     );
   }
   const answer = await unlikeOnService(decodeURIComponent(projectId), claimer);
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 503 });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }

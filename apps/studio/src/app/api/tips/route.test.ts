@@ -117,19 +117,19 @@ describe('tips route — the GET ask (v490)', () => {
     expect(calls[0]!.url).toContain('recipient=%20acct-ada%20');
   });
 
-  it('the lib\u2019s refusal on the RECIPIENT side is a 503 that names the HTTP number — not a 200 with an empty list', async () => {
+  it('the lib\u2019s refusal on the RECIPIENT side is a 502 that names the HTTP number \u2014 not a 200 with an empty list', async () => {
     stubService({ status: 503, json: { error: 'down', message: 'the service is down' } });
     const res = await get('?recipient=acct-ada');
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.ok).toBe(false);
     expect(body.reason).toBe("the service's tips door answered HTTP 503");
   });
 
-  it('the lib\u2019s refusal on the PAYER side is a 503 carrying the service\u2019s OWN words', async () => {
+  it('the lib\u2019s refusal on the PAYER side is a 502 carrying the service\u2019s OWN words', async () => {
     stubService({ status: 503, json: { error: 'down', message: 'the service is down' } });
     const res = await get('?payer=acct-grace');
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.ok).toBe(false);
     expect(body.reason).toBe('the service is down');
@@ -229,7 +229,7 @@ describe('tips route — the POST ask (v490)', () => {
     expect(calls[0]!.body?.anonymous).toBe(true);
   });
 
-  it('the service\u2019s own answer is passed through, and its refusal is a 503 with the reason', async () => {
+  it('the service\u2019s own answer is passed through, and its refusal is a 502 with the reason', async () => {
     stubService({ status: 201, json: { ok: true, tips: [{ id: 't-9' }] } });
     const ok = await post({ recipientAccountId: 'acct-ada', amountCents: 500, claim });
     expect(ok.status).toBe(201);
@@ -237,7 +237,7 @@ describe('tips route — the POST ask (v490)', () => {
 
     stubService({ status: 502, json: { ok: false, reason: 'the service is down' } });
     const refused = await post({ recipientAccountId: 'acct-ada', amountCents: 500, claim });
-    expect(refused.status).toBe(503);
+    expect(refused.status).toBe(502);
     expect((await refused.json()).reason).toBe('the service is down');
   });
 });

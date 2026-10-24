@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { acknowledgeOnService, readDesk, readTally } from '@/lib/moderationServer';
 
@@ -48,7 +49,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   // for the whole.
   return NextResponse.json(
     { ...answer, tally: tally.ok ? { total: tally.total, open: tally.open, byReason: tally.byReason, byStatus: tally.byStatus } : null },
-    { status: answer.ok ? 200 : 502 },
+    { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) },
   );
 }
 
@@ -81,5 +82,5 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, reason: 'the desk needs a reportId to acknowledge' }, { status: 400 });
   }
   const answer = await acknowledgeOnService(reportId.trim(), owner.trim());
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }

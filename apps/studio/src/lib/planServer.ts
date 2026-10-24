@@ -9,7 +9,7 @@
  * PUBLICATIONS are perfectly fine.
  */
 import { nexusApiBase } from './publishServer';
-import { serviceCallSignal, serviceUnreachableReason } from './serviceCall';
+import { serviceCallSignal, serviceUnreachableReason, type ServiceFailureKind } from './serviceCall';
 
 /** One plan, in the service's own wire shape. */
 export interface PlanEntry {
@@ -42,6 +42,8 @@ export interface SubscriptionEntry {
 /** What one read of the plans answered. */
 export interface PlansAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   plans: PlanEntry[];
   /**
    * v372 — how many plans the creator offers, over the WHOLE table — or null when the count could not be
@@ -64,6 +66,8 @@ export interface PlansAnswer {
 /** What one read of the subscriptions answered. */
 export interface SubscriptionsAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   subscriptions: SubscriptionEntry[];
   /** What the subscriber has committed, in cents, over the STANDING subscriptions. */
   totalCents: number;
@@ -74,6 +78,8 @@ export interface SubscriptionsAnswer {
 /** What one write answered. */
 export interface PlanWriteAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   plan?: PlanEntry;
   subscription?: SubscriptionEntry;
   reason?: string;
@@ -101,15 +107,15 @@ export async function readPlans(
       { headers: { accept: 'application/json' }, signal: serviceCallSignal() },
     );
     if (!res.ok) {
-      return { ok: false, plans: [], count: null, limit, offset: from, reason: `the service's plans door answered HTTP ${res.status}` };
+      return { ok: false, plans: [], count: null, limit, offset: from, failure: 'invalid', reason: `the service's plans door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, plans: [], count: null, limit, offset: from, reason: 'the service answered its plans door with something that is not JSON' };
+      return { ok: false, plans: [], count: null, limit, offset: from, failure: 'invalid', reason: 'the service answered its plans door with something that is not JSON' };
     }
     const body = parsed as { plans?: unknown; count?: unknown; limit?: unknown };
     if (!Array.isArray(body.plans)) {
-      return { ok: false, plans: [], count: null, limit, offset: from, reason: 'the service answered its plans door with no plans' };
+      return { ok: false, plans: [], count: null, limit, offset: from, failure: 'invalid', reason: 'the service answered its plans door with no plans' };
     }
     return {
       ok: true,
@@ -129,7 +135,7 @@ export async function readPlans(
       count: null,
       limit,
       offset: from,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -146,15 +152,15 @@ export async function readSubscriptions(
       signal: serviceCallSignal(),
     });
     if (!res.ok) {
-      return { ok: false, subscriptions: [], totalCents: 0, count: 0, reason: `the service's subscriptions door answered HTTP ${res.status}` };
+      return { ok: false, subscriptions: [], totalCents: 0, count: 0, failure: 'invalid', reason: `the service's subscriptions door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, subscriptions: [], totalCents: 0, count: 0, reason: 'the service answered its subscriptions door with something that is not JSON' };
+      return { ok: false, subscriptions: [], totalCents: 0, count: 0, failure: 'invalid', reason: 'the service answered its subscriptions door with something that is not JSON' };
     }
     const body = parsed as { subscriptions?: unknown; totalCents?: unknown; count?: unknown };
     if (!Array.isArray(body.subscriptions)) {
-      return { ok: false, subscriptions: [], totalCents: 0, count: 0, reason: 'the service answered its subscriptions door with no subscriptions' };
+      return { ok: false, subscriptions: [], totalCents: 0, count: 0, failure: 'invalid', reason: 'the service answered its subscriptions door with no subscriptions' };
     }
     return {
       ok: true,
@@ -168,7 +174,7 @@ export async function readSubscriptions(
       subscriptions: [],
       totalCents: 0,
       count: 0,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -197,13 +203,15 @@ export async function subscribeOnService(
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
 /** What one cancellation answered. */
 export interface CancelAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   /** Whether the subscription MOVED. A subscription that was already ended is "already ended". */
   ended: boolean;
   reason?: string;
@@ -228,7 +236,7 @@ export async function cancelSubscription(
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, ended: false, reason: `the service's subscriptions door answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, ended: false, failure: 'invalid', reason: `the service's subscriptions door answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as { ended?: unknown; reason?: unknown; message?: unknown };
     // v313 — the refusal’s own words, whenever the answer is NOT ok.
@@ -246,7 +254,7 @@ export async function cancelSubscription(
     return {
       ok: false,
       ended: false,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -256,6 +264,8 @@ export async function cancelSubscription(
  */
 export interface RetireAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   /** Whether the plan was retired BY THIS CALL — a plan that was already retired is "already retired". */
   retired: boolean;
   reason?: string;
@@ -280,7 +290,7 @@ export async function retirePlan(
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, retired: false, reason: `the service's plans door answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, retired: false, failure: 'invalid', reason: `the service's plans door answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as { retired?: unknown; reason?: unknown; message?: unknown };
     // v313 — the refusal’s own words, whenever the answer is NOT ok. The service’s error body carries no
@@ -300,7 +310,7 @@ export async function retirePlan(
     return {
       ok: false,
       retired: false,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -308,6 +318,8 @@ export async function retirePlan(
 /** What one reprice answered. */
 export interface RepriceAnswer {
   ok: boolean;
+  /** v507 — which kind of “no” this is, when `ok` is false. */
+  failure?: ServiceFailureKind;
   /** The plan's price now, in cents. */
   priceCents?: number;
   /** The plan's period now. */
@@ -337,7 +349,7 @@ export async function repricePlan(
     );
     const parsed: unknown = await res.json().catch(() => null);
     if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, reason: `the service's plans door answered HTTP ${res.status} with something that is not JSON` };
+      return { ok: false, failure: 'invalid', reason: `the service's plans door answered HTTP ${res.status} with something that is not JSON` };
     }
     const body = parsed as { ok?: unknown; priceCents?: unknown; period?: unknown; reason?: unknown; message?: unknown };
     // v313 — the refusal's own words, whenever the answer is NOT ok.
@@ -358,7 +370,7 @@ export async function repricePlan(
   } catch (error) {
     return {
       ok: false,
-      reason: serviceUnreachableReason(apiBase, error),
+      failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error),
     };
   }
 }
@@ -393,7 +405,7 @@ export async function offerOnService(
     });
     return readWriteAnswer(res, await safeJson(res));
   } catch (error) {
-    return { ok: false, reason: serviceUnreachableReason(apiBase, error) };
+    return { ok: false, failure: 'unreachable', reason: serviceUnreachableReason(apiBase, error) };
   }
 }
 
@@ -414,7 +426,7 @@ async function safeJson(res: Response): Promise<unknown> {
  */
 function readWriteAnswer(res: Response, body: unknown): PlanWriteAnswer {
   if (typeof body !== 'object' || body === null) {
-    return { ok: false, reason: `the answer was HTTP ${res.status} with something that is not JSON` };
+    return { ok: false, failure: 'invalid', reason: `the answer was HTTP ${res.status} with something that is not JSON` };
   }
   const answer = body as {
     ok?: unknown;

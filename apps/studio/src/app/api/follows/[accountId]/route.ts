@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { serviceFailureStatus } from '@/lib/serviceCall';
 
 import { unfollowOnService } from '@/lib/followServer';
 
@@ -25,5 +26,5 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ a
     );
   }
   const answer = await unfollowOnService(decodeURIComponent(accountId), claimer);
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 503 });
+  return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }

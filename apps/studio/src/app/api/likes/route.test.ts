@@ -103,10 +103,10 @@ describe('likes route — the GET ask (v491)', () => {
     expect(calls[0]!.url).toContain('limit=20');
   });
 
-  it('the lib\u2019s refusal is a 503 carrying the lib\u2019s OWN reason — not a 200 with an empty count', async () => {
+  it('the lib\u2019s refusal is a 502 carrying the lib\u2019s OWN reason \u2014 not a 200 with an empty count', async () => {
     stubService({ status: 503, json: { error: 'down', message: 'the service is down' } });
     const res = await get('?projectId=pub-1');
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.ok).toBe(false);
     expect(body.reason).toBe("the service's likes door answered HTTP 503");
@@ -115,7 +115,7 @@ describe('likes route — the GET ask (v491)', () => {
   it('a 200 that is not the likes shape is a refusal, not a count of zero', async () => {
     stubService({ status: 200, json: { ok: true, somethingElse: true } });
     const res = await get('?projectId=pub-1');
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     expect((await res.json()).reason).toBe('the service answered its likes door with no count');
   });
 
@@ -188,10 +188,10 @@ describe('likes route — the POST ask (v491)', () => {
     expect(await res.json()).toEqual({ ok: true, count: 4, liked: true });
   });
 
-  it('the service\u2019s refusal is a 503 with the reason', async () => {
+  it('the service\u2019s refusal is a 502 with the reason', async () => {
     stubService({ status: 502, json: { ok: false, reason: 'the service is down' } });
     const res = await post({ projectId: 'pub-1', claim });
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(502);
     expect((await res.json()).reason).toBe('the service is down');
   });
 });
