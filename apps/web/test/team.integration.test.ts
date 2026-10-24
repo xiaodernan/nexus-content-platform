@@ -181,4 +181,49 @@ describe('§133 协作者与邀请（真实数据库）', () => {
     expect(ghost.ok).toBe(false);
     expect(ghost.reason).toContain('不存在');
   });
+
+  /**
+   * ⑥ 有效期（#213）。三件事必须同时成立，少一件这功能就是假的：
+   * - 新邀**真的带**一个 7 天后的截止（不是"永远有效"）；
+   * - 过期后**收不了**（不是"仍然能兑现"）；
+   * - 过期的 pending **不占名额**（否则一枚失效邀请会把人永久堵在门外），
+   *   且重新邀请同一个人**不是去重命中**那封过期的。
+   */
+  it('⑥ 邀请 7 天有效期：过期收不了、不占名额、名册标成已过期', async () => {
+    // 清场：前几条用例可能在 memberProject 上留下 pending；editor 也不该是成员（否则占名额）
+    for (const i of await listInvites(memberProject)) {
+      if (i.status === 'pending') expect(await revokeInvite(memberProject, i.id, ownerId)).toBe(true);
+    }
+    await removeMember(memberProject, editorId, ownerId); // 不是成员时返回 false，不影响
+
+    const invited = await inviteMember(memberProject, ownerId, { email: await emailOf(editorId), role: 'editor' });
+    expect(invited.ok).toBe(true);
+    const invite = invited.invite!;
+    const ttl = new Date(invite.expiresAt).getTime() - Date.now();
+    expect(ttl).toBeGreaterThan(6.9 * 86_400_000);
+    expect(ttl).toBeLessThan(7.1 * 86_400_000);
+    expect(invite.expired).toBe(false);
+
+    // 把有效期改到过去（模拟时间流逝，而不是真等 7 天）
+    await getDb()
+      .update(projectInvites)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(projectInvites.id, invite.id));
+
+    // 名册：标成已过期；status 仍是 pending（过期不是第四种 status，是计算值）
+    const listed = (await listInvites(memberProject)).find((i) => i.id === invite.id)!;
+    expect(listed.expired).toBe(true);
+    expect(listed.status).toBe('pending');
+
+    // 收不了
+    const rejected = await acceptInvite(await tokenOf(invite.id), editorId);
+    expect(rejected.ok).toBe(false);
+    expect(rejected.reason).toContain('已过期');
+
+    // 不占名额 + 不是去重命中：free 档（1 个名额）下再邀同一个人仍然成功，且是新的一封
+    const again = await inviteMember(memberProject, ownerId, { email: await emailOf(editorId), role: 'editor' });
+    expect(again.ok).toBe(true);
+    expect(again.invite!.id).not.toBe(invite.id);
+    expect(again.invite!.expired).toBe(false);
+  });
 });

@@ -1693,7 +1693,11 @@ export const ApiProjectMemberSchema = z.object({
 });
 export type ApiProjectMember = z.infer<typeof ApiProjectMemberSchema>;
 
-/** 邀请视图：status 三态（pending / accepted / revoked），acceptedAt 只有兑现后才有 */
+/**
+ * 邀请视图：status 三态（pending / accepted / revoked），acceptedAt 只有兑现后才有。
+ * `expired` 是**计算值**（status==='pending' 且 expiresAt 已过），不是第四种 status——
+ * 加一档状态要改 CHECK、改类型、改所有读路径，而"过期"是时间的函数（迁移 0041）。
+ */
 export const ApiProjectInviteSchema = z.object({
   id: z.string(),
   email: z.string(),
@@ -1701,6 +1705,10 @@ export const ApiProjectInviteSchema = z.object({
   status: z.string(),
   createdAt: z.string(),
   acceptedAt: z.string().nullable(),
+  /** 有效期截止（ISO） */
+  expiresAt: z.string(),
+  /** 已过期：不再占名额、也收不了 */
+  expired: z.boolean(),
 });
 export type ApiProjectInvite = z.infer<typeof ApiProjectInviteSchema>;
 

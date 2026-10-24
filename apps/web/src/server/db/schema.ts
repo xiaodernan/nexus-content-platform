@@ -587,6 +587,14 @@ export const projectInvites = pgTable(
     /** 兑现的那一刻：pending → accepted 时写，revoked 留 NULL */
     acceptedAt: timestamp('accepted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * 有效期（#213）：过期后不再占名额、也收不了。
+     * "过期"是 `status='pending' AND expires_at <= now()` 的**计算值**，不是第四种 status——
+     * 加一档状态要改 CHECK、改类型、改所有读路径，而"过期"是时间的函数，不该让人去改一行状态。
+     */
+    expiresAt: timestamp('expires_at', { withTimezone: true })
+      .notNull()
+      .default(sql`now() + interval '7 days'`),
   },
   (t) => [uniqueIndex('project_invites_token_key').on(t.token), index('project_invites_project_idx').on(t.projectId)],
 );

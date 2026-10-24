@@ -9,7 +9,7 @@
  * - 一次任务只扣一次：靠部分唯一索引 + `onConflictDoNothing`，而不是靠调用方自觉，
  *   因为 `finishTask` 有同步与异步轮询两条路都会走到收尾。
  */
-import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, ne, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import {
   assets,
@@ -243,10 +243,18 @@ export async function teamSlotRefusalFor(ownerId: string, projectId: string): Pr
     .select({ count: sql<string | number>`count(*)` })
     .from(projectMembers)
     .where(eq(projectMembers.projectId, projectId));
+  // 过期的 pending 邀请**不占名额**（#213）：它已经收不了了，还占着就会把人永久堵在门外。
+  // 判据与 `inviteView` 的 expired 同一个：status='pending' 且 expires_at 已过。
   const [pendingRow] = await getDb()
     .select({ count: sql<string | number>`count(*)` })
     .from(projectInvites)
-    .where(and(eq(projectInvites.projectId, projectId), eq(projectInvites.status, 'pending')));
+    .where(
+      and(
+        eq(projectInvites.projectId, projectId),
+        eq(projectInvites.status, 'pending'),
+        gt(projectInvites.expiresAt, new Date()),
+      ),
+    );
   const activeCount = Number(memberRow?.count ?? 0) + Number(pendingRow?.count ?? 0);
   return refusalForTeamSlot({ plan, activeCount });
 }

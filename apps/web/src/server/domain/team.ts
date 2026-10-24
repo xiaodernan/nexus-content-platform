@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull } from 'drizzle-orm';
 import { isUuid } from './ids';
 import { getDb } from '../db/client';
 import { projectInvites, projectMembers, projects, users } from '../db/schema';
@@ -30,6 +30,10 @@ export interface ProjectMemberView {
   createdAt: string;
 }
 
+/** 邀请有效期（天）。与迁移 0041 的 `now() + interval '7 days'` 是同一个数：改这里要连迁移一起改 */
+export const INVITE_TTL_DAYS = 7;
+const INVITE_TTL_MS = INVITE_TTL_DAYS * 86_400_000;
+
 export interface ProjectInviteView {
   id: string;
   email: string;
@@ -37,6 +41,26 @@ export interface ProjectInviteView {
   status: string;
   createdAt: string;
   acceptedAt: string | null;
+  /** 有效期截止（ISO） */
+  expiresAt: string;
+  /** `status==='pending' && expiresAt<=now` 的**计算值**——不是第四种 status（见迁移 0041 的注释） */
+  expired: boolean;
+}
+
+type InviteRow = typeof projectInvites.$inferSelect;
+
+/** 行 → 视图：`expired` 只在这里算一次，list / invite / 名册三处不各算一套 */
+function inviteView(row: InviteRow, now = Date.now()): ProjectInviteView {
+  return {
+    id: row.id,
+    email: row.email,
+    role: row.role,
+    status: row.status,
+    createdAt: row.createdAt.toISOString(),
+    acceptedAt: row.acceptedAt ? row.acceptedAt.toISOString() : null,
+    expiresAt: row.expiresAt.toISOString(),
+    expired: row.status === 'pending' && row.expiresAt.getTime() <= now,
+  };
 }
 
 export interface InviteResult {
@@ -135,14 +159,7 @@ export async function listInvites(projectId: string): Promise<ProjectInviteView[
     .from(projectInvites)
     .where(eq(projectInvites.projectId, projectId))
     .orderBy(desc(projectInvites.createdAt));
-  return rows.map((r) => ({
-    id: r.id,
-    email: r.email,
-    role: r.role,
-    status: r.status,
-    createdAt: r.createdAt.toISOString(),
-    acceptedAt: r.acceptedAt ? r.acceptedAt.toISOString() : null,
-  }));
+  return rows.map((r) => inviteView(r));
 }
 
 /**
@@ -166,20 +183,19 @@ export async function inviteMember(
   const [existing] = await getDb()
     .select()
     .from(projectInvites)
-    .where(and(eq(projectInvites.projectId, projectId), eq(projectInvites.email, email), eq(projectInvites.status, 'pending')))
+    .where(
+      and(
+        eq(projectInvites.projectId, projectId),
+        eq(projectInvites.email, email),
+        eq(projectInvites.status, 'pending'),
+        // 过期的那封不算「同一封」：它收不了，也不占名额（见 teamSlotRefusalFor）。
+        // 不排掉它，重新邀请同一个人会拿到一封已经失效的邀请。
+        gt(projectInvites.expiresAt, new Date()),
+      ),
+    )
     .limit(1);
   if (existing) {
-    return {
-      ok: true,
-      invite: {
-        id: existing.id,
-        email: existing.email,
-        role: existing.role,
-        status: existing.status,
-        createdAt: existing.createdAt.toISOString(),
-        acceptedAt: existing.acceptedAt ? existing.acceptedAt.toISOString() : null,
-      },
-    };
+    return { ok: true, invite: inviteView(existing) };
   }
   const refusal = await teamSlotRefusalFor(ownerId, projectId);
   if (refusal) return { ok: false, reason: refusal };
@@ -191,19 +207,13 @@ export async function inviteMember(
       role: input.role,
       token: randomUUID(),
       invitedById: actorId,
+      expiresAt: new Date(Date.now() + INVITE_TTL_MS),
     })
     .returning();
   if (!row) return { ok: false, reason: '邀请没写进去' };
   return {
     ok: true,
-    invite: {
-      id: row.id,
-      email: row.email,
-      role: row.role,
-      status: row.status,
-      createdAt: row.createdAt.toISOString(),
-      acceptedAt: null,
-    },
+    invite: inviteView(row),
     token: row.token,
   };
 }
@@ -228,6 +238,13 @@ export async function acceptInvite(token: string, userId: string): Promise<{ ok:
     return { ok: false, reason: '这枚邀请不是发给你的邮箱的' };
   }
   if (invite.status === 'accepted') return { ok: true, projectId: invite.projectId };
+  // 过期检查放在 accepted 之后：已经兑现的邀请不该因为"后来过期了"而被说成失败（幂等优先）。
+  if (invite.expiresAt.getTime() <= Date.now()) {
+    return {
+      ok: false,
+      reason: `这枚邀请已过期（有效期 ${INVITE_TTL_DAYS} 天），请让邀请人重新发一封`,
+    };
+  }
   // 成员行与邀请状态同一个事务：成员写进去而邀请还 pending，下次接受会再走一遍
   // （unique 挡住重复行，但"这枚邀请兑现了"这件事必须一起落）
   await db.transaction(async (tx) => {

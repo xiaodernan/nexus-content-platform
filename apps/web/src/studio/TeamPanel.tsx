@@ -31,6 +31,10 @@ interface Invite {
   status: string;
   createdAt: string;
   acceptedAt: string | null;
+  /** 有效期截止（ISO）；过期后不再占名额、也收不了 */
+  expiresAt: string;
+  /** status==='pending' 且 expiresAt 已过——计算值，不是第四种 status */
+  expired: boolean;
 }
 
 interface Roster {
@@ -69,7 +73,11 @@ export function TeamPanel() {
     void reload();
   }, [reload]);
 
-  const occupied = roster ? roster.members.length + roster.invites.filter((i) => i.status === 'pending').length : 0;
+  // 过期的 pending 邀请不占名额（与服务端 teamSlotRefusalFor 同一口径）——
+  // 界面上的"已占 N"如果比服务端多算，用户会以为自己满了而服务端其实放行。
+  const livePending = roster ? roster.invites.filter((i) => i.status === 'pending' && !i.expired).length : 0;
+  const expiredPending = roster ? roster.invites.filter((i) => i.status === 'pending' && i.expired).length : 0;
+  const occupied = roster ? roster.members.length + livePending : 0;
   const full = roster ? occupied >= roster.teamLimit : false;
 
   const invite = async () => {
@@ -173,7 +181,8 @@ export function TeamPanel() {
         </div>
         <p className="text-11 text-fg-3" data-team-slots>
           已占 {occupied} / {roster?.teamLimit ?? '—'} 个名额（成员 {roster?.members.length ?? 0} + 未兑现邀请{' '}
-          {roster?.invites.filter((i) => i.status === 'pending').length ?? 0}）
+          {livePending}）
+          {expiredPending > 0 ? `；另有 ${expiredPending} 封已过期，不占名额` : ''}
           {full ? '——满了，服务端会拒新的邀请（400）' : ''}
         </p>
       </section>
@@ -230,10 +239,18 @@ export function TeamPanel() {
         {roster && roster.invites.length ? (
           <ul className="flex flex-col gap-1">
             {roster.invites.map((i) => (
-              <li key={i.id} className="flex items-center justify-between gap-2 text-12 text-fg-2" data-team-invite-row={i.id}>
+              <li
+                key={i.id}
+                className="flex items-center justify-between gap-2 text-12 text-fg-2"
+                data-team-invite-row={i.id}
+                data-team-invite-expired={i.expired ? 'true' : 'false'}
+              >
                 <span>
                   {i.email} · {ROLE_LABELS[i.role] ?? i.role} ·{' '}
-                  {i.status === 'pending' ? '未兑现' : i.status === 'accepted' ? '已接受' : '已撤回'}
+                  {i.status === 'pending' ? (i.expired ? '已过期' : '未兑现') : i.status === 'accepted' ? '已接受' : '已撤回'}
+                  {i.status === 'pending' ? (
+                    <span className="text-11 text-fg-3"> · 有效至 {i.expiresAt.slice(0, 10)}</span>
+                  ) : null}
                 </span>
                 {i.status === 'pending' ? (
                   <button

@@ -6774,3 +6774,25 @@ part ①②③ 都有单测，但"预览页移上指针真的变色"这件事只
 
 **下一步**：协作者通知/邀请过期等团队体验边角；§124 的 Properties 面板状态编辑器
 （ADR 明载"入口仍只有代码视图与 AI 补丁，这是下一片的事"）。
+
+## M5 第二十六片（#213）：邀请的有效期——7 天过期、不占名额、名册标成已过期
+
+`project_invites` 自 #201 起没有 `expires_at`：一枚 pending 邀请**永远**占着名额、链接也永远有效。
+这一片把"时间"接进来，四处必须同时成立，缺一件功能就是假的：
+
+- **迁移 0041**：加 `expires_at`（可重入：`IF NOT EXISTS` → 设默认 → 回填历史行 `created_at+7d` → `SET NOT NULL`）。
+  **不新增 status**：过期是 `status='pending' AND expires_at<=now()` 的**计算值**，不是第四种状态——
+  加一档要改 CHECK / 类型 / 所有读路径，而"过期"是时间的函数，不该让人去改一行状态。
+- **域层 `team.ts`**：`INVITE_TTL_DAYS=7`；`inviteView()` 统一算 `expired`；新邀写 `expiresAt`；
+  去重查询排除已过期的（否则重新邀请同一个人会拿到一封失效邀请）；`acceptInvite` 在 accepted 幂等**之后**拒绝过期。
+- **配额 `credit-ledger.ts`**：`teamSlotRefusalFor` 只数**未过期**的 pending——过期的还占名额，
+  就是把 owner 永久堵在门外。
+- **契约**：`ApiProjectInviteSchema` 加 `expiresAt` + `expired`（roster 与 v1 team 同源，两处自动跟上）。
+- **界面 TeamPanel**：名额计数与"已占 N"排除过期；行内显示「已过期 / 有效至 YYYY-MM-DD」；
+  `data-team-invite-expired` 供 e2e 断言。
+
+**见证**：`team.integration.test.ts` 加 ⑥（有效期 ~7 天、改期到过去后收不了、名册 `expired=true` 且 status 仍 pending、
+free 档下再邀同一个人成功且不是去重命中）。team 6/6、team-routes + api-v1-team 11/11、credits 36/36 全绿；tsc 0 eslint 0。
+**变异探针 4 种全精确红**（逐个摘、逐个还原）：摘 `acceptInvite` 过期检查 → `rejected.ok` 变 true；
+摘配额 `gt` → `again.ok` 变 false；`expired` 恒 false → `listed.expired` 红；摘去重 `gt` → 再邀命中同一封。
+迁移已打 regress（`55100/nexus_regress`）与开发库（`55100/nexus`）。

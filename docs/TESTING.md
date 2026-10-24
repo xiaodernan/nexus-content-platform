@@ -1930,3 +1930,12 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   把四个 guard 提到构造之前并 `return state` 后，38/38 绿；`codegen.test.ts` 加静态钉子
   （`return next;` 只许出现在成功那一步）。另加收束（末段没有出边）与空故事（一条对话都没有）两份计划，
   各钉一句文案。读数：parity 38/38、story vm 11/11、game-model 236/236、tsc 0。
+
+- **2026-10-24：#213 邀请有效期（7 天）**——`project_invites` 补 `expires_at`（迁移 0041，可重入回填 `created_at+7d`）。
+  **不新增 status**：过期是 `status='pending' && expires_at<=now()` 的**计算值**（视图带 `expired` 布尔）。
+  四处必须同时成立，缺一件功能就是假的：① 新邀带 7 天截止；② `acceptInvite` 拒绝过期（accepted 幂等**优先**）；
+  ③ `teamSlotRefusalFor` 不数过期 pending（否则一枚失效邀请把 owner 永久堵在门外）；
+  ④ 去重查询排除过期（否则重邀同一个人会拿到一封失效邀请）。
+  **变异探针 4 种全精确红**（逐个摘 / 逐个还原）：摘 `acceptInvite` 检查 → `rejected.ok` 变 true；
+  摘配额 `gt` → `again.ok` 变 false；`expired` 恒 false → `listed.expired` 红；摘去重 `gt` → 再邀命中同一封。
+  team 6/6、team-routes + api-v1-team 11/11、credits 36/36；tsc 0 eslint 0。迁移已打 regress + `55100/nexus`。
