@@ -84,8 +84,8 @@ describe('§133 协作者与邀请（真实数据库）', () => {
     const invited = await inviteMember(memberProject, ownerId, { email: await emailOf(editorId), role: 'editor' });
     expect(invited.ok).toBe(true);
     expect(invited.invite?.status).toBe('pending');
-    // 回执里不出现 token：secret 不该从任何接口漏出去
-    expect(JSON.stringify(invited)).not.toContain(await tokenOf(invited.invite!.id));
+    // 新邀这一回把 token 给出来：它是一次性链接的 secret，不给前端就没法转交（#203）
+    expect(invited.token).toBe(await tokenOf(invited.invite!.id));
 
     const accepted = await acceptInvite(await tokenOf(invited.invite!.id), editorId);
     expect(accepted.ok).toBe(true);
@@ -113,9 +113,14 @@ describe('§133 协作者与邀请（真实数据库）', () => {
     const second = await inviteMember(memberProject, ownerId, { email: await emailOf(strangerId), role: 'viewer' });
     expect(second.ok).toBe(true);
     expect(second.invite?.id).toBe(first.invite!.id);
+    // 去重这一回不返 token：那一封创建时已经展示过，链接 secret 不重复出货
+    expect(second.token).toBeUndefined();
     const strangerEmail = await emailOf(strangerId);
     const pending = (await listInvites(memberProject)).filter((i) => i.status === 'pending' && i.email === strangerEmail);
     expect(pending.length).toBe(1);
+    // 名册视图永远不带 token：常驻可读的 secret 等于没有 secret
+    const rosterJson = JSON.stringify(await listInvites(memberProject));
+    expect(rosterJson).not.toContain(await tokenOf(first.invite!.id));
   });
 
   it('③ 名额门：free 档拉第二个被拒且话里带数字；撤回后释放名额', async () => {

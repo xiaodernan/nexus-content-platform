@@ -19,6 +19,6 @@ export default defineConfig({
     command: 'npm run dev -w @nexus/web',
     url: WEB_URL,
     reuseExistingServer: true,
-    timeout: 120_000,
+    timeout: 180_000,
   },
 });

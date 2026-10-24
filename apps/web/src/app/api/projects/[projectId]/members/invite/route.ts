@@ -29,7 +29,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ projectId: str
         ? notFound()
         : jsonError(400, 'invite_rejected', { message: result.reason });
     }
-    return NextResponse.json({ ok: true, invite: result.invite }, { status: 201 });
+    // token 只在创建这一下随响应回去：roster 永远不给它，撤回再邀才有新的一枚
+    return NextResponse.json({ ok: true, invite: result.invite, token: result.token }, { status: 201 });
   } catch (error) {
     return failure(error, `POST /api/projects/${projectId}/members/invite`);
   }

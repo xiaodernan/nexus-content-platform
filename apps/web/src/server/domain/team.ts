@@ -42,6 +42,12 @@ export interface InviteResult {
   ok: boolean;
   reason?: string;
   invite?: ProjectInviteView;
+  /**
+   * 邀请链接的 secret，**只在新建这一下返回**。roster（GET）永远不给它——
+  一个常驻可读的 token 等于没有 secret；撤回再邀会拿到新的一枚。
+   * 命中 pending 去重时**不返回**：那一封的 token 在它创建时已经展示过。
+   */
+  token?: string;
 }
 
 /** 这个项目的 owner 是谁；项目不存在（含已软删）返回 null */
@@ -170,6 +176,7 @@ export async function inviteMember(
       createdAt: row.createdAt.toISOString(),
       acceptedAt: null,
     },
+    token: row.token,
   };
 }
 

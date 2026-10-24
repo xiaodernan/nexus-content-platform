@@ -6436,3 +6436,31 @@ tsc 0、eslint 0。
 
 **下一步**：① TeamPanel 界面（名册 + 邀请表单 + 邀请链接）+ StudioShell 加 tab；
 ② e2e 见证邀请→接受全链路；③ e2e storyboard 全量回归。
+
+
+## M5 第十六片（#203）：TeamPanel + 邀请接受页——§133 团队协作的界面落地
+
+#201/#202 把领域层与路由都落好了，这片是同一件事的最后一厘米：浏览器里真能走完
+"owner 发邀请 → 协作者接受 → 名册多一个人"。
+
+- `TeamPanel`（Studio 新 tab「团队」）：名册（成员 + 邀请 + teamLimit 三数齐全，
+  界面说得出"已占 1 / 1"）、邀请表单、**一次性链接展示区**（`data-team-fresh-link`）。
+  链接旁边明写"本机没有发信服务，链接由你转交"——不假装有邮件（§160）。
+- `InviteResult.token` 只在**新建这一下**返回（#202 漏接的这段补上）：roster 永远不给它，
+  去重命中也不给。前端的展示纪律跟着这条走——刷新页面链接就没了，要链接只能撤回再邀。
+- `/invites/[token]` 落地页：未登录只说"先去登录再打开这条链接"（accept 按当前用户校邮箱）；
+  已登录给接受按钮，被拒的话原样显示服务端的原因，不猜不重试。
+- `StudioShell` 加 `team` tab；满员时邀请按钮照旧能点——服务端会拒，界面先说清为什么
+  （§159：展示与门不许对不上）。
+
+见证：`team.integration.test.ts` 契约随演进更新（新邀回执带 token 且与库中一致 / 去重不返
+token / 名册 JSON 不含 token），11/11 与 team-routes 合跑绿；e2e `team.spec.ts` 真 Chrome
+全链路通过（owner 发邀 → 满员拒绝话术 → 换 editor 登录接受 → 回 owner 视角名册+1，
+32.9s）。变异探针 2 种精确红：摘新邀分支 token（① 红）/ 去重分支加 token（② 红）。
+顺带修了两个环境坑：e2e 的 dev server 库 `nexus` 补打迁移 0039（两个库都要打，
+ENVIRONMENT.md 的规矩）；playwright webServer 超时 120s→180s、用例 300s→360s
+（冷编译偶发超时）。
+
+**下一步**：① e2e storyboard 全量回归（七条一起跑）；② 协作者进得了其它面板
+（design/assets 的 projectBelongsTo 目前只认 owner，可扩 projectVisibleTo）；
+③ editor/viewer 的实质读写差别（目前只是档案标签，§160 已明码标注）。

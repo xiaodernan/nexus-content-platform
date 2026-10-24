@@ -13,6 +13,7 @@ import { HealthRail } from './HealthPanel';
 import { WorldPanel } from './WorldPanel';
 import { GamePanel } from './GamePanel';
 import { StoryboardPanel } from './StoryboardPanel';
+import { TeamPanel } from './TeamPanel';
 import { CharacterPanel } from './CharacterPanel';
 import { MemoryPanel } from './MemoryPanel';
 import { RetrievePanel } from './RetrievePanel';
@@ -36,6 +37,7 @@ type PanelTab =
   | 'world'
   | 'game'
   | 'storyboard'
+  | 'team'
   | 'characters'
   | 'memory'
   | 'retrieve'
@@ -51,6 +53,7 @@ const TABS: { id: PanelTab; label: string }[] = [
   { id: 'world', label: '世界' },
   { id: 'game', label: '游戏' },
   { id: 'storyboard', label: '分镜' },
+  { id: 'team', label: '团队' },
   { id: 'characters', label: '角色' },
   { id: 'memory', label: '记忆' },
   { id: 'retrieve', label: '检索' },
@@ -221,6 +224,8 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             <GamePanel />
           ) : tab === 'storyboard' ? (
             <StoryboardPanel />
+          ) : tab === 'team' ? (
+            <TeamPanel />
           ) : tab === 'characters' ? (
             <CharacterPanel />
           ) : tab === 'memory' ? (
