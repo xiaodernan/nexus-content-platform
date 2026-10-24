@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { currentBranchId, listBranches } from '@/server/domain/branches';
 import { createSnapshot, listSnapshots } from '@/server/domain/snapshots';
 import { parseDocument } from '@/server/validation';
@@ -19,7 +20,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     const [snapshotList, branchList] = await Promise.all([
       listSnapshots(projectId),
       listBranches(projectId),

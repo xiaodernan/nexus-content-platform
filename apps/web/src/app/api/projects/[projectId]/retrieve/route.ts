@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { retrieveProjectKnowledge } from '@/server/domain/knowledge';
 import { badRequest, failure, notFound, readJson } from '@/server/http';
 
@@ -21,7 +21,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   if (!query.trim()) return badRequest(['要先给一句查询。']);
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     const result = await retrieveProjectKnowledge(projectId, query, Number.isFinite(limit) ? limit : 8);
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
@@ -37,7 +37,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   if (typeof query !== 'string' || !query.trim()) return badRequest(['要先给一句查询。']);
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     const result = await retrieveProjectKnowledge(
       projectId,
       query,

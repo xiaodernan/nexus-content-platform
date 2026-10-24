@@ -6503,3 +6503,38 @@ ENVIRONMENT.md 的规矩）；playwright webServer 超时 120s→180s、用例 3
 
 **下一步**：① 协作者进得了其它面板（design/assets 等路由的 projectBelongsTo 只认 owner，
 可扩 `projectVisibleTo`）；② editor/viewer 的实质读写差别；③ v1 API 的 team 端点。
+
+
+## M5 第十八片（#205）：协作者可见性贯通——读路径放名册成员，写路径仍 owner-only
+
+#201-#203 把团队功能立了起来（成员/邀请/名册/接受页），但成员进了项目**只能看到名册**：
+其余 30+ 条路由的 `projectBelongsTo` 只认 owner，协作者点不开项目本身。本片把**读路径**
+的归属判定换成 team.ts 里已有的 `projectVisibleTo`（owner 或名册成员），写路径一律不动
+（留给 #206 的 editor/viewer 角色门禁）。
+
+- **28 处读判定换门**：4 个面板页（studio/world/game/preview）+ 19 条 GET 路由
+  （project/assets/context/export/snapshots/world/game/storyboard/publish/characters/
+  knowledge/memories/agent/annotations/variants/retrieve/knowledge-search/visual-dna/
+  knowledge-block GET）+ retrieve 与 knowledge/search 两个语义上是读的 POST +
+  5 个领域读函数（assetProjectId / apiProjectDetail / apiDesignDocument /
+  projectGameCode / buildProjectExport / assembleAiRequest）。
+- **写路径保持 owner-only**：所有 POST/PUT/PATCH/DELETE 变更路由（design、assets 上传、
+  publish、snapshots、branches、memories、annotations、characters、agent、images 等）
+  仍走 `projectBelongsTo`。#206 再按 editor/viewer 给写操作分角色。
+- **踩到并修掉一个真回归**：`projectBelongsTo` 进门第一件事是 `isUuid` 形状门，
+  `projectVisibleTo` 走的 `ownerOf` 没有——非 UUID 的 projectId 直接进 `eq()` 撞 22P02，
+  404 变 500。id-shape.integration.test.ts 三条精确抓住。修法：`ownerOf` 补同一道形状门
+  （与 projects.ts:485/503 同族函数同一写法）。
+- **视觉 dna / knowledge search 的判定**：visual-dna POST 只算不写（写入走客户端
+  setVisualDna 事务，那边是 owner 门），knowledge/search 与 retrieve POST 只读语料，
+  都按"读"放行；knowledge/block 的 POST（Agent 组装用）同样只读，一并放行。
+  GET 变体对"块不存在"如实回 404 block_not_found，与"人不该看"的 404 不是一回事。
+
+见证：新增 `apps/web/test/collaborator-visibility.integration.test.ts` 3 例（成员四条读路
+径 200/陌生人 404；成员 POST memories 404 而 owner 201；owner 读路径回归护栏），打真
+Postgres（nexus_regress）。靶向回归 32 个集成测试文件 376 例：373 过 + id-shape 3 红
+（即上述回归，修复后 63/63 全绿）。变异探针 2 种精确红：assets GET 门换回
+projectBelongsTo → 成员读立刻 404；摘 ownerOf 形状门 → id-shape 回 500。均逐字节还原。
+
+**下一步**：① editor/viewer 的实质读写差别（#206：协作者按角色门禁写操作）；
+② v1 API 的 team 端点（#207）；③ 并行会话丢失的 ADR-0062 状态层投影四片可接手重做。

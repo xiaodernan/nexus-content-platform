@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { addMemory, clearMemories, countMemoriesByScope, listMemories } from '@/server/domain/memories';
 import { searchMemories } from '@/server/domain/memory-search';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
@@ -21,7 +22,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   const query = new URL(req.url).searchParams.get('q');
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     if (query?.trim()) {
       const result = await searchMemories(user.id, projectId, query);
       return NextResponse.json({ ok: true, ...result, counts: await countMemoriesByScope(user.id, projectId) });

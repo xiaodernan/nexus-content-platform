@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { renderQuotaFor } from '@/server/domain/credit-ledger';
 import { listStoryboardRenders, renderStoryboardDemo } from '@/server/domain/storyboard-render';
 import { failure, jsonError, notFound } from '@/server/http';
@@ -20,7 +21,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     const [renders, quota] = await Promise.all([listStoryboardRenders(projectId), renderQuotaFor(user.id)]);
     return NextResponse.json({ ok: true, renders, quota });
   } catch (error) {

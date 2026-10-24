@@ -5,7 +5,8 @@ import { channels, getRealtimeBus } from '../realtime/bus';
 import { listProjectAssets, openAssetForOwner } from './assets';
 import { emit } from './notifications';
 import { listCharacters } from './characters';
-import { loadDocument, loadProjectIdentity, projectBelongsTo } from './projects';
+import { loadDocument, loadProjectIdentity } from './projects';
+import { projectVisibleTo } from './team';
 import { loadStoryboard } from './storyboards';
 
 /**
@@ -185,7 +186,7 @@ export async function buildProjectExport(
   parts: ExportPart[],
 ): Promise<ExportOutcome | null> {
   // 归属在动字节之前判：不是自己的项目，连"有这个项目"都不该从这一格漏出去
-  if (!(await projectBelongsTo(projectId, actorId))) return null;
+  if (!(await projectVisibleTo(projectId, actorId))) return null;
   const document = await loadDocument(projectId);
   if (!document) return null;
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { generateVariants, listVariants } from '@/server/domain/variants';
 import { csrfOk } from '@/server/security/csrf';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
@@ -17,7 +18,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     return NextResponse.json({ ok: true, variants: await listVariants(projectId) });
   } catch (error) {
     return failure(error, `GET /api/projects/${projectId}/variants`);

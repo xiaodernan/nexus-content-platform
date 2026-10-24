@@ -8,6 +8,7 @@ import {
 } from '@/lib/agent-runtime';
 import { convergeStaleRun, latestPlannedTask, type PlannedTaskView } from '@/server/domain/agent-tasks';
 import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { requireUser } from '@/server/domain/session';
 import { runReadinessCheck } from '@/server/agent/runtime';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
@@ -57,7 +58,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     let task = await latestPlannedTask(projectId, user.id);
     if (!task) return NextResponse.json({ ok: true, run: null }, { headers: NO_STORE });
     // 断在半路的那一行：读的时候收敛（§162 / ADR-0011 同一口径），收敛之后重新读一次，

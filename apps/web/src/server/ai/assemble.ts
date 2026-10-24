@@ -6,7 +6,7 @@ import { deriveContextFromDocument } from '@/server/ai/derive-context';
 import { listAnnotations } from '@/server/domain/annotations';
 import { loadRoster, resolveAgent, type ResolvedAgent } from '@/server/domain/agents';
 import { buildProjectContext } from '@/server/domain/context';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 
 /**
  * §68 的落地半：AI 请求的上下文由**服务端装配**，客户端只报"我在哪、选了什么"。
@@ -85,7 +85,7 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
   }
 
   const { projectId } = context;
-  if (!(await projectBelongsTo(projectId, ownerId))) {
+  if (!(await projectVisibleTo(projectId, ownerId))) {
     return { ok: false, status: 404, code: 'project_not_found', message: '这个项目不存在，或者不属于你。' };
   }
 

@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import { TokenStore, findPage, resolveLayout, type BreakpointName, type DesignDocument } from '@nexus/design-model';
 import { requireUser } from '@/server/domain/session';
-import { loadDocument, projectBelongsTo } from '@/server/domain/projects';
+import { loadDocument } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { apiAssetUrl, assetContextFor } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
 
@@ -24,7 +25,7 @@ export default async function PreviewPage({ params, searchParams }: Props) {
   const { projectId } = await params;
   const query = await searchParams;
   const user = await requireUser();
-  if (!(await projectBelongsTo(projectId, user.id))) notFound();
+  if (!(await projectVisibleTo(projectId, user.id))) notFound();
   const document = (await loadDocument(projectId)) as DesignDocument | null;
   if (!document) notFound();
 

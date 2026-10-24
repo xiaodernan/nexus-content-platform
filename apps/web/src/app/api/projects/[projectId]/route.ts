@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { loadDocument, projectBelongsTo, saveDocument, softDeleteProject, updateProjectDescription } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { scanTextForRedlines } from '@/server/domain/moderation';
 import { parseDocument } from '@/server/validation';
 import { ProjectDeleteRequestSchema, ProjectPatchRequestSchema } from '@nexus/schemas';
@@ -16,7 +17,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     const document = await loadDocument(projectId);
     if (!document) return notFound();
     return NextResponse.json({ projectId, document });

@@ -3,7 +3,7 @@ import { retrieveProjectKnowledge } from '@/server/domain/knowledge';
 import { getEmbeddingProvider, hasEmbeddingProvider } from '@/server/ai/embedding';
 import { VectorStore } from '@/server/ai/vector-store';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { readJson, badRequest, jsonError } from '@/server/http';
 import { z } from 'zod';
 
@@ -25,7 +25,7 @@ export async function POST(
     const user = await requireUser();
     const { projectId } = await params;
 
-    if (!(await projectBelongsTo(projectId, user.id))) {
+    if (!(await projectVisibleTo(projectId, user.id))) {
       return jsonError(404, 'not_found', { message: '项目不存在' });
     }
 

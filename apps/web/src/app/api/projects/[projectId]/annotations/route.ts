@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { addAnnotation, listAnnotations } from '@/server/domain/annotations';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
 
@@ -19,7 +20,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     return NextResponse.json({ ok: true, items: await listAnnotations(projectId) });
   } catch (error) {
     return failure(error, `GET /api/projects/${projectId}/annotations`);

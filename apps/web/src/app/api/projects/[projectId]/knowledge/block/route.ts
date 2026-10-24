@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readKnowledgeBlock, SOURCE_LABELS, type KnowledgeSourceType } from '@/server/domain/knowledge';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { readJson, badRequest, failure, jsonError, notFound } from '@/server/http';
 import { z } from 'zod';
 
@@ -47,7 +47,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   }
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     const { blocks } = await readKnowledgeBlock(projectId, sourceType as KnowledgeSourceType, sourceId);
     if (!blocks.length) {
       // 说清是"库里没有这一块"而不是给一个空列表装作成功：来源被删而索引还没重建就是这个形状
@@ -67,7 +67,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
     const user = await requireUser();
     const { projectId } = await ctx.params;
 
-    if (!(await projectBelongsTo(projectId, user.id))) {
+    if (!(await projectVisibleTo(projectId, user.id))) {
       return jsonError(404, 'not_found', { message: '项目不存在' });
     }
 

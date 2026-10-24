@@ -180,7 +180,7 @@ export async function createSnapshot(
   return toMeta(row!);
 }
 
-/** 归属由调用方（路由）先过 projectBelongsTo；这里再按 projectId 收口，避免跨项目读 */
+/** 归属由调用方（路由）先过 projectVisibleTo（owner 或名册成员）；这里再按 projectId 收口，避免跨项目读 */
 export async function readSnapshot(
   projectId: string,
   snapshotId: string,

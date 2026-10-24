@@ -3,6 +3,7 @@ import { CharacterCreateRequestSchema } from '@nexus/schemas';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { createProjectCharacter, listCharacters } from '@/server/domain/characters';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
 
@@ -19,7 +20,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     const { items, unreadable } = await listCharacters(projectId);
     return NextResponse.json({ ok: true, characters: items, unreadable });
   } catch (error) {

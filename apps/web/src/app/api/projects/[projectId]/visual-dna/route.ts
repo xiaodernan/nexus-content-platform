@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { VisualDnaRequestSchema } from '@nexus/schemas';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { assetProjectId, openAssetFile } from '@/server/domain/assets';
 import { extractVisualDna } from '@/server/domain/visualDna';
 import { csrfOk } from '@/server/security/csrf';
@@ -28,7 +28,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   }
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     // 图必须属于这个项目：否则"A 项目提 B 项目的图"会绕过项目边界做身份判断
     if ((await assetProjectId(parsed.data.assetId)) !== projectId) return notFound();
     const file = await openAssetFile(parsed.data.assetId);

@@ -17,6 +17,7 @@ import { apiAccessBuckets, apiTokens, projects, users } from '../db/schema';
 import { parseDocument } from '../validation';
 import { destructiveActions, nodeNamer, WEB_APPROVAL_POLICY } from '../ai/approvals';
 import { loadDocument, lockProjectWrites, projectBelongsTo, writeProjectDocument } from './projects';
+import { projectVisibleTo } from './team';
 import { createSnapshot } from './snapshots';
 import { currentBranchId } from './branches';
 import { recordAudit } from './audit';
@@ -279,7 +280,7 @@ export async function apiProjectList(ownerId: string): Promise<ApiProject[]> {
  * 要不要再拉整份"，一次读档换它一个准确数，值得。
  */
 export async function apiProjectDetail(ownerId: string, projectId: string): Promise<ApiProjectDetail | null> {
-  if (!(await projectBelongsTo(projectId, ownerId))) return null;
+  if (!(await projectVisibleTo(projectId, ownerId))) return null;
   const db = getDb();
   const [row] = await db
     .select({
@@ -318,7 +319,7 @@ export async function apiProjectDetail(ownerId: string, projectId: string): Prom
  * 读的是库里那一份，不是调用方递进来的；`source: 'database'` 把这一句写进报文里。
  */
 export async function apiDesignDocument(ownerId: string, projectId: string): Promise<ApiDesignDocument | null> {
-  if (!(await projectBelongsTo(projectId, ownerId))) return null;
+  if (!(await projectVisibleTo(projectId, ownerId))) return null;
   const document = await loadDocument(projectId);
   if (!document) return null;
   return { projectId, document, ...digestOf(document), source: 'database' };

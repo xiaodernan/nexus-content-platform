@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { compileForKind } from '@nexus/game-model';
 import { loadGame } from '@/server/domain/games';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { requireUser } from '@/server/domain/session';
 import { PlayByKind, describeProjection } from '@/play/PlayByKind';
 
@@ -24,7 +24,7 @@ export const dynamic = 'force-dynamic';
 export default async function GameRuntimePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const user = await requireUser();
-  if (!(await projectBelongsTo(projectId, user.id))) notFound();
+  if (!(await projectVisibleTo(projectId, user.id))) notFound();
 
   const game = await loadGame(projectId);
   if (!game) {

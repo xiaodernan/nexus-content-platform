@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { RealtimeEvent } from '@nexus/schemas';
 import { currentUserOrNull } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { channels, getRealtimeBus } from '@/server/realtime/bus';
 import { acquireConnection, releaseConnection } from '@/server/realtime/connections';
 import { jsonError } from '@/server/http';
@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic';
  * 拆成两条连接会让每个标签页占两条长连接，而浏览器对同源 HTTP/1.1 只有约 6 条。
  *
  * 三件必须做的事：
- * - **鉴权与所有权走同一条路**。SSE 是普通 HTTP，所以会话与 `projectBelongsTo` 原样生效——
+ * - **鉴权与所有权走同一条路**。SSE 是普通 HTTP，所以会话与 `projectVisibleTo` 原样生效——
  *   这也是不选独立 WS 进程的理由之一（见 ADR）。
  * - **心跳**。没有数据的连接会被中间代理静默掐断，且断了客户端不知道；定期发一行注释保活。
  * - **断开就退订**。客户端关页面时浏览器会 abort，不清理就会留下一个永远收不到人的定时器。
@@ -41,7 +41,7 @@ export async function GET(req: Request): Promise<Response> {
   if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
 
   const projectId = new URL(req.url).searchParams.get('projectId');
-  if (projectId && !(await projectBelongsTo(projectId, user.id))) {
+  if (projectId && !(await projectVisibleTo(projectId, user.id))) {
     // 与其它入口同一口径：不属于你的项目一律 404，不区分"不存在"与"不是你的"
     return jsonError(404, 'not_found');
   }

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, isNull } from 'drizzle-orm';
+import { isUuid } from './ids';
 import { getDb } from '../db/client';
 import { projectInvites, projectMembers, projects, users } from '../db/schema';
 import { teamSlotRefusalFor } from './credit-ledger';
@@ -52,6 +53,9 @@ export interface InviteResult {
 
 /** 这个项目的 owner 是谁；项目不存在（含已软删）返回 null */
 export async function ownerOf(projectId: string): Promise<string | null> {
+  // 与 projects.ts 的 projectBelongsTo 同一道形状门：路径参数形状不对时
+  // 根本不去碰数据库——非 UUID 的 eq() 会撞 22P02 把 404 变 500（id-shape 测试钉着）
+  if (!isUuid(projectId)) return null;
   const [row] = await getDb()
     .select({ ownerId: projects.ownerId })
     .from(projects)

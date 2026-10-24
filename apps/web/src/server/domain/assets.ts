@@ -21,6 +21,7 @@ import { refusalForStorage } from './credits';
 import { isUuid } from './ids';
 import { planOf, storageUsageBytes } from './credit-ledger';
 import { assetRowToRef, projectBelongsTo, projectOwnerId } from './projects';
+import { projectVisibleTo } from './team';
 import { readSnapshot } from './snapshots';
 
 /**
@@ -342,7 +343,7 @@ export async function assetProjectId(assetId: string): Promise<string | null> {
 /** 作者视角取图：非本人项目一律 null，路由据此回 404（403 会泄露"这个 id 存在"） */export async function openAssetForOwner(assetId: string, ownerId: string): Promise<AssetFile | null> {
   const row = await rowById(assetId);
   if (!row?.projectId) return null;
-  if (!(await projectBelongsTo(row.projectId, ownerId))) return null;
+  if (!(await projectVisibleTo(row.projectId, ownerId))) return null;
   return openAssetFile(assetId);
 }
 

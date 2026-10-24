@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { knowledgeStats, syncProjectKnowledge } from '@/server/domain/knowledge';
 import { failure, jsonError, notFound } from '@/server/http';
 
@@ -14,7 +15,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     const stats = await knowledgeStats(projectId);
     return NextResponse.json({ ok: true, ...stats, vectorAvailable: stats.vectorized > 0 });
   } catch (error) {

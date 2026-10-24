@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import { StudioShell } from '@/studio/StudioShell';
 import { isDemoMode } from '@/lib/env';
 import { requireUser } from '@/server/domain/session';
-import { loadDocument, projectBelongsTo } from '@/server/domain/projects';
+import { loadDocument } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ interface Props {
 export default async function StudioPage({ params }: Props) {
   const { projectId } = await params;
   const user = await requireUser();
-  if (!(await projectBelongsTo(projectId, user.id))) notFound();
+  if (!(await projectVisibleTo(projectId, user.id))) notFound();
   // 首屏那一份文档由服务端读出来，但**不阻塞首帧**（§147 第三片，2026-10-23）：
   // 这里创建 promise 之后**不 await**——React 先把 shell flush 出去，文档读取
   // （10000 档约 434ms）与首帧重叠；文档字节作为同一个响应的后续 chunk 流下来，

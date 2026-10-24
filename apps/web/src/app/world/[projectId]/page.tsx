@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { buildWorldScene } from '@nexus/world-model';
 import { listCharacters } from '@/server/domain/characters';
 import { loadWorld } from '@/server/domain/worlds';
-import { loadDocument, projectBelongsTo } from '@/server/domain/projects';
+import { loadDocument } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { requireUser } from '@/server/domain/session';
 import { WorldWalk } from '@/world3d/WorldWalk';
 
@@ -19,7 +20,7 @@ export const dynamic = 'force-dynamic';
 export default async function WorldRuntimePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const user = await requireUser();
-  if (!(await projectBelongsTo(projectId, user.id))) notFound();
+  if (!(await projectVisibleTo(projectId, user.id))) notFound();
 
   const [world, project] = await Promise.all([loadWorld(projectId), loadDocument(projectId)]);
   if (!project) notFound();

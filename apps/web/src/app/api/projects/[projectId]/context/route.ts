@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectVisibleTo } from '@/server/domain/team';
 import { buildProjectContext } from '@/server/domain/context';
 import { failure, jsonError, notFound } from '@/server/http';
 
@@ -32,7 +32,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   }
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
     const result = await buildProjectContext(projectId, user.id, {
       maxIndexChars: requested,
       corpusQuery: corpusQuery || undefined,

@@ -1,5 +1,5 @@
 import { generateGameCode, type GameCodeOutput, type GameDocument } from '@nexus/game-model';
-import { projectBelongsTo } from './projects';
+import { projectVisibleTo } from './team';
 import { loadGame } from './games';
 import type { CurrentUser } from './session';
 
@@ -43,7 +43,7 @@ export type GameCodeGate = { ok: true; document: GameDocument; output: GameCodeO
  * 换了一种拼写说出来。所以 `game_missing` 一定是在归属判掉之后才可能产生的。
  */
 export async function projectGameCode(user: CurrentUser, projectId: string): Promise<GameCodeGate> {
-  if (!(await projectBelongsTo(projectId, user.id))) return { ok: false, refusal: { status: 404, error: 'not_found' } };
+  if (!(await projectVisibleTo(projectId, user.id))) return { ok: false, refusal: { status: 404, error: 'not_found' } };
 
   const result = await loadGame(projectId);
   if (!result) {
