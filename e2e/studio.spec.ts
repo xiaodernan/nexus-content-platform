@@ -4274,3 +4274,96 @@ test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份�
   await expect(chainLine).toBeInViewport();
   await page.screenshot({ path: 'screenshots/game-code-story-chain.png' });
 });
+
+
+/**
+ * §124 × ADR-0062 part ④：状态层在预览与发布页真的生效。
+ * 完整回路：代码视图加 hover:bg-[#123456] → 回写模型 → 重载后仍在 →
+ * 预览页移上指针读计算色、移开读回基础色 → 发布后访客页再读一遍。
+ * 画布是编辑面，不加状态规则（ADR-0062）——同一指针动作在画布上必须读不到变化。
+ */
+test('@smoke §124 状态层在预览与发布页真的生效（ADR-0062 part ④）', async ({ page }) => {
+  test.setTimeout(240_000);
+  const errors: string[] = [];
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  page.on('pageerror', (e) => errors.push(String(e)));
+
+  const projectName = `状态层 ${Date.now().toString(36)}`;
+  const projectId = await createProject(page, projectName);
+  const ctaId = await layerId(page, 'Primary CTA');
+
+  // 代码视图：给 Primary CTA 的 className 加一个 hover 背景（§124 → ADR-0062）
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await page.click('[data-view="code"]');
+  await page.click('[data-code-edit]');
+  const editor = page.locator('[data-code-editor]');
+  await expect(editor).toBeVisible();
+  const withHover = (await editor.inputValue())
+    .split('\n')
+    .map((line) =>
+      line.includes(ctaId) ? line.replace('className="', 'className="hover:bg-[#123456] ') : line,
+    )
+    .join('\n');
+  expect(withHover).toContain('hover:bg-[#123456]');
+  await editor.fill(withHover);
+  await page.click('[data-code-apply]');
+  await expect(page.locator('[data-code-report-applied]')).toContainText('states');
+  await expect(page.locator('[data-code-view]')).toContainText('hover:bg-[#123456]');
+
+  // 画布是编辑面：指针移上去也不改色（ADR-0062：画布不加状态规则）
+  await page.click('[data-view="canvas"]');
+  const ctaColor = (target: Page) =>
+    target.evaluate((id) => {
+      const el = document.querySelector(`[data-node-id="${id}"]`);
+      return el ? getComputedStyle(el).backgroundColor : '';
+    }, ctaId);
+  await expect.poll(() => ctaColor(page)).toBe('rgb(107, 79, 240)');
+  await page.hover(`[data-node-id="${ctaId}"]`);
+  await expect.poll(() => ctaColor(page)).toBe('rgb(107, 79, 240)');
+  await page.mouse.move(0, 0);
+
+  // 落库后重载：状态补丁还在模型里，代码视图重新读得到（§19 回写不是一次性幻术）
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
+  await page.reload();
+  await waitForCanvas(page);
+  await page.click('[data-view="code"]');
+  await expect(page.locator('[data-code-view]')).toContainText('hover:bg-[#123456]');
+
+  // 预览页：移上指针读计算色，移开读回基础色（!important 越过内联基础样式）
+  await page.goto(`/preview/${projectId}`);
+  const previewCta = page.locator(`[data-node-id="${ctaId}"]`);
+  await expect(previewCta).toBeVisible();
+  await expect.poll(() => ctaColor(page)).toBe('rgb(107, 79, 240)');
+  await previewCta.hover();
+  await expect.poll(() => ctaColor(page)).toBe('rgb(18, 52, 86)');
+  await page.mouse.move(0, 0);
+  await expect.poll(() => ctaColor(page)).toBe('rgb(107, 79, 240)');
+
+  // 发布后访客页再读一遍：发布的那一刻快照同样兑现状态
+  await page.goto(`/studio/${projectId}`);
+  await waitForCanvas(page);
+  if (!(await page.locator('[data-publish-submit]').isVisible())) {
+    await page.click('[data-publish-open]');
+    await expect(page.locator('[data-publish-submit]')).toBeVisible();
+  }
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  const url = page.locator('[data-publish-url]');
+  await expect(url).toBeVisible({ timeout: 30_000 });
+  const publishedPath = (await url.getAttribute('href'))!;
+
+  const visitor = await page.context().newPage();
+  await visitor.goto(publishedPath);
+  const visitorCta = visitor.locator(`[data-node-id="${ctaId}"]`);
+  await expect(visitorCta).toBeVisible();
+  await expect.poll(() => ctaColor(visitor)).toBe('rgb(107, 79, 240)');
+  await visitorCta.hover();
+  await expect.poll(() => ctaColor(visitor)).toBe('rgb(18, 52, 86)');
+  await visitor.mouse.move(0, 0);
+  await expect.poll(() => ctaColor(visitor)).toBe('rgb(107, 79, 240)');
+  await visitor.close();
+
+  expect(errors).toEqual([]);
+});

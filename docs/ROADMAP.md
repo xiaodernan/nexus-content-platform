@@ -6744,3 +6744,29 @@ states-parse.test.ts +6（bg-none 往返、border 重置、shadow-none、text-in
 **下一步**：part ④ e2e 浏览器见证（e2e/studio.spec.ts「§124 状态层在预览与发布页
 真的生效」全回路：代码视图加 hover:bg-[#123456] → 回写 → 重载仍在 → 预览读计算色 →
 发布后访客页再读）。
+import io, sys
+
+path = "docs/ROADMAP.md"
+src = io.open(path, encoding="utf-8", newline="").read()
+entry = '''
+
+## M5 第二十五片（#212）：状态层投影 part ④——浏览器见证全回路，ADR-0062 四片收口
+
+part ①②③ 都有单测，但"预览页移上指针真的变色"这件事只有浏览器能见证。
+本片按 ADR-0062 写明的回路走一遍，四片至此收口。
+
+- **e2e/studio.spec.ts 新增「§124 状态层在预览与发布页真的生效」**：代码视图给
+  Primary CTA 的 className 加 `hover:bg-[#123456]` → apply → 回写报告出现 states →
+  画布悬停**不变色**（ADR：画布是编辑面，不加状态规则）→ 等落库 → reload →
+  代码视图仍读得到那个类 → 预览页悬停读计算色 `rgb(18, 52, 86)`、移开读回基础色
+  `rgb(107, 79, 240)` → 公开发布 → 访客页同样两个读数。每个页面各有一个反向读数。
+- **真跑过**：dev server（NEXUS_DATABASE_URL 指 55100 的 nexus 库）+ 系统 Chrome，
+  34s 通过；变异探针（stateStyleSheetFor 恒返空串）精确红在预览悬停那一步
+  （expected rgb(18,52,86) / received rgb(107,79,240)），逐字节还原后复跑 13.4s 绿。
+
+至此 ADR-0062 四片全部落地：① codegen 发射变体类（#208）② code-parse 往返（#209）
+③ 预览/发布只读样式表（#210）④ 浏览器见证（#212），外加 #211 的 reset 类往返。
+§124 的 states 从"模型里躺着没人读"变成"代码视图进、预览/发布出、往返保真"。
+
+**下一步**：协作者通知/邀请过期等团队体验边角；§124 的 Properties 面板状态编辑器
+（ADR 明载"入口仍只有代码视图与 AI 补丁，这是下一片的事"）。
