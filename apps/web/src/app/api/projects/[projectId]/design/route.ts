@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
-import { patchProjectDocument, projectBelongsTo } from '@/server/domain/projects';
+import { patchProjectDocument } from'@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { ProjectDesignPatchRequestSchema, type DesignPatchPayload } from '@nexus/schemas';
 import type { DesignPatch, PatchOp } from '@nexus/design-model';
 import { csrfOk } from '@/server/security/csrf';
@@ -29,7 +30,9 @@ export async function PATCH(req: Request, ctx: RouteContext): Promise<NextRespon
   }
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     // wire 上的 ops 只能是 record（schemas 不依赖 design-model）；模型侧同一条桥接见 api-tokens.ts
     const patches: DesignPatch[] = parsed.data.patches.map((patch: DesignPatchPayload) => ({
       ...patch,

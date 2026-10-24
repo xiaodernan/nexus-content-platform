@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { mergeVariants } from '@/server/domain/variants';
 import { csrfOk } from '@/server/security/csrf';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
@@ -28,7 +28,9 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   if (name !== undefined && name !== null && typeof name !== 'string') return badRequest(['name 必须是字符串']);
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await mergeVariants(projectId, {
       layoutBranchId,
       visualBranchId,

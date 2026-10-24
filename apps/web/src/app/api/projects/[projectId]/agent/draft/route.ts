@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { AgentDraftAcceptRequestSchema, StepReportSchema, type StepReport } from '@/lib/agent-runtime';
 import { plannedTask } from '@/server/domain/agent-tasks';
 import { recordAudit } from '@/server/domain/audit';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { requireUser } from '@/server/domain/session';
 import { saveGame } from '@/server/domain/games';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
@@ -47,7 +47,9 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const rl = getRateLimiter().hit(rateKey('agent/draft/accept', clientIp(req), user.id), 20, 10 * 60_000);
     if (!rl.allowed) {
       return jsonError(429, 'rate_limited', { message: '接受太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });

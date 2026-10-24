@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
-import { loadDocument, projectBelongsTo, saveDocument, softDeleteProject, updateProjectDescription } from '@/server/domain/projects';
+import { loadDocument, saveDocument, softDeleteProject, updateProjectDescription } from'@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { projectVisibleTo } from '@/server/domain/team';
 import { scanTextForRedlines } from '@/server/domain/moderation';
 import { parseDocument } from '@/server/validation';
@@ -38,7 +39,9 @@ export async function PUT(req: Request, ctx: RouteContext): Promise<NextResponse
   }
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     await saveDocument(projectId, parsed.document);
     // 不回读整份文档：这条链是自动保存，每改一个像素都会跑一次，
     // 而 4000 节点那一档量下来，"读回来再序列化发出去"就是这次请求里最大的一块。

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { projectVisibleTo } from '@/server/domain/team';
 import { addMemory, clearMemories, countMemoriesByScope, listMemories } from '@/server/domain/memories';
 import { searchMemories } from '@/server/domain/memory-search';
@@ -49,7 +49,9 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   };
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await addMemory({ ownerId: user.id, projectId, scope, subjectId, content });
     if (!result.ok) return jsonError(400, 'memory_rejected', { message: result.reason });
     return NextResponse.json({ ok: true, memory: result.entry }, { status: 201 });
@@ -70,7 +72,9 @@ export async function DELETE(req: Request, ctx: RouteContext): Promise<NextRespo
   if (!scope) return badRequest(['要先选定清哪一类记忆（?scope=…）。']);
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await clearMemories(user.id, projectId, scope);
     if (result.reason) return jsonError(400, 'memory_rejected', { message: result.reason });
     return NextResponse.json({ ok: true, removed: result.removed });

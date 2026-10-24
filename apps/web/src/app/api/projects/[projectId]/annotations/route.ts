@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { projectVisibleTo } from '@/server/domain/team';
 import { addAnnotation, listAnnotations } from '@/server/domain/annotations';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
@@ -37,7 +37,9 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   if (typeof text !== 'string') return badRequest(['text 必须是字符串']);
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await addAnnotation(user.id, projectId, nodeId, text);
     if (!result.ok) return badRequest([result.reason]);
     return NextResponse.json({ ok: true, annotation: result.annotation });

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { getDb } from '@/server/db/client';
 import { characters, memories } from '@/server/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -42,7 +42,9 @@ export async function POST(
     const user = await requireUser();
     const { projectId, characterId } = await params;
 
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
 
     const rl = getRateLimiter().hit(rateKey('character-chat', clientIp(req), user.id), 20, 10 * 60_000);
     if (!rl.allowed) {

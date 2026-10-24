@@ -81,6 +81,30 @@ export async function projectVisibleTo(projectId: string, userId: string): Promi
   return Boolean(row);
 }
 
+/**
+ * 写路径的三态门（#206）：owner 与 editor 写得，viewer 只读，陌生人当作不存在。
+ *
+ * 为什么不是 projectVisibleTo 那样的布尔：viewer 是名册上的人，给他 404"项目不存在"
+ * 是假话；而陌生人必须继续 404（不泄露项目存在性，与全站同一口径）。editor/viewer 的
+ * 差别到这一片才落地——#201-#205 里 role 只是名册上的档案标签，写着玩的不算数。
+ * 形状门在 ownerOf 里（非 UUID 直接 not_found），这里不重复。
+ */
+export async function projectWriteAccess(
+  projectId: string,
+  userId: string,
+): Promise<'ok' | 'read_only' | 'not_found'> {
+  const ownerId = await ownerOf(projectId);
+  if (!ownerId) return 'not_found';
+  if (ownerId === userId) return 'ok';
+  const [row] = await getDb()
+    .select({ role: projectMembers.role })
+    .from(projectMembers)
+    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)))
+    .limit(1);
+  if (!row) return 'not_found';
+  return row.role === 'viewer' ? 'read_only' : 'ok';
+}
+
 export async function listMembers(projectId: string): Promise<ProjectMemberView[]> {
   const rows = await getDb()
     .select({

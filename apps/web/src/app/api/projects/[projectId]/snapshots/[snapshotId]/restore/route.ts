@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { currentBranchId } from '@/server/domain/branches';
 import { restoreSnapshot } from '@/server/domain/snapshots';
 import { csrfOk } from '@/server/security/csrf';
@@ -19,7 +19,9 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId, snapshotId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await restoreSnapshot(projectId, snapshotId, {
       createdById: user.id,
       branchId: await currentBranchId(projectId),

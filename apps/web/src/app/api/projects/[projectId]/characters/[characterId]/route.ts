@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { CharacterProfileSchema } from '@nexus/schemas';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { deleteCharacter, updateCharacterProfile } from '@/server/domain/characters';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
 
@@ -27,7 +27,9 @@ export async function PATCH(req: Request, ctx: RouteContext): Promise<NextRespon
   }
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await updateCharacterProfile(characterId, projectId, parsed.data);
     if (!result.ok) return jsonError(400, 'character_rejected', { message: result.reason });
     return NextResponse.json({ ok: true, character: result.character });
@@ -41,7 +43,9 @@ export async function DELETE(req: Request, ctx: RouteContext): Promise<NextRespo
   const { projectId, characterId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const removed = await deleteCharacter(characterId, projectId);
     if (!removed) return notFound();
     return NextResponse.json({ ok: true, removed: true });

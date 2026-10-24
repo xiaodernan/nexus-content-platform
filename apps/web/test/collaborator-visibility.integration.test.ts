@@ -41,6 +41,8 @@ let ownerToken = '';
 let memberToken = '';
 let strangerToken = '';
 let projectId = '';
+let editorProjectId = '';
+let viewerProjectId = '';
 
 async function hashToken(token: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
@@ -114,7 +116,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   const db = getDb();
-  await db.delete(memories).where(eq(memories.projectId, projectId));
+  for (const pid of [projectId, editorProjectId, viewerProjectId]) {
+    if (pid) await db.delete(memories).where(eq(memories.projectId, pid));
+  }
   await db.delete(projects).where(eq(projects.ownerId, ownerId));
   await db.delete(users).where(eq(users.id, ownerId));
   await db.delete(users).where(eq(users.id, memberId));
@@ -156,25 +160,108 @@ describe('#205 协作者可见性贯通（读路径放名册成员，写路径�
     expect(strangerBlock.status, 'knowledge/block POST 陌生人应 404').toBe(404);
   });
 
-  it('② 写路径仍 owner-only：成员 POST memories 404，owner 过得去（201）', async () => {
-    asUser(memberToken);
-    const memberWrite = await postMemories(
-      post(`http://test.local/api/projects/${projectId}/memories`, { scope: 'session', content: '成员不该写得进来' }),
-      ctxProject(projectId),
-    );
-    expect(memberWrite.status).toBe(404);
-
+  // #206 起写路径按角色分流（本项目的成员是 editor）：editor 写得动、陌生人仍 404。
+  // 角色分流本身的完整契约在下面的 #206 describe 里；这里留一条陌生人 404 的护栏。
+  it('② 写路径对陌生人仍 404：不泄露项目存在性（#206 后 editor 可写，见下方角色 describe）', async () => {
     asUser(ownerToken);
-    const ownerWrite = await postMemories(
-      post(`http://test.local/api/projects/${projectId}/memories`, { scope: 'session', content: 'owner 写得进来' }),
-      ctxProject(projectId),
-    );
-    expect(ownerWrite.status).toBe(201);
+    const lonely = (await createProject(ownerId, { name: `可见性-无人项目 ${Date.now()}`, kind: 'website' })).id;
+    try {
+      asUser(strangerToken);
+      const strangerWrite = await postMemories(
+        post(`http://test.local/api/projects/${lonely}/memories`, { scope: 'session', content: '陌生人不该写得进来' }),
+        ctxProject(lonely),
+      );
+      expect(strangerWrite.status).toBe(404);
+    } finally {
+      await getDb().delete(projects).where(eq(projects.id, lonely));
+    }
   });
 
   it('③ owner 自己的读路径不受影响（回归护栏）', async () => {
     asUser(ownerToken);
     const res = await getAssets(get(`http://test.local/api/projects/${projectId}/assets`), ctxProject(projectId));
     expect(res.status).toBe(200);
+  });
+});
+
+
+describe('#206 editor/viewer 的实质读写差别（role 不再是档案标签）', () => {
+  beforeAll(async () => {
+    const db = getDb();
+    const stamp = Date.now();
+    // free 档每个项目只有 1 个成员位（team-routes ② 钉着），editor 与 viewer 分两个项目
+    editorProjectId = (await createProject(ownerId, { name: `角色-editor-${stamp}`, kind: 'website' })).id;
+    viewerProjectId = (await createProject(ownerId, { name: `角色-viewer-${stamp}`, kind: 'website' })).id;
+
+    const inviteAndAccept = async (pid: string, userId: string, role: 'editor' | 'viewer'): Promise<void> => {
+      const email = (await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1))[0]!.email!;
+      asUser(ownerToken);
+      const invited = await postInvite(
+        post(`http://test.local/api/projects/${pid}/members/invite`, { email, role }),
+        ctxProject(pid),
+      );
+      expect(invited.status, '邀请应成功').toBe(201);
+      const token = (
+        await db.select({ token: projectInvites.token }).from(projectInvites).where(eq(projectInvites.projectId, pid)).limit(1)
+      )[0]!.token;
+      const tokenForUser = userId === memberId ? memberToken : strangerToken;
+      asUser(tokenForUser);
+      const accepted = await postAccept(post(`http://test.local/api/projects/invites/${token}/accept`, {}), {
+        params: Promise.resolve({ token }),
+      });
+      expect(accepted.status, '接受应成功').toBe(200);
+      jar.clear();
+    };
+
+    await inviteAndAccept(editorProjectId, memberId, 'editor');
+    await inviteAndAccept(viewerProjectId, strangerId, 'viewer');
+  });
+
+  it('① viewer 读得通，写被 403 read_only_role——不是 404：名册上的人不该被告诉"项目不存在"', async () => {
+    asUser(strangerToken); // stranger 在 viewerProjectId 上是 viewer
+    const readRes = await getAssets(get(`http://test.local/api/projects/${viewerProjectId}/assets`), ctxProject(viewerProjectId));
+    expect(readRes.status, 'viewer 读资产应放行').toBe(200);
+
+    const writeRes = await postMemories(
+      post(`http://test.local/api/projects/${viewerProjectId}/memories`, { scope: 'session', content: 'viewer 不该写得进来' }),
+      ctxProject(viewerProjectId),
+    );
+    expect(writeRes.status, 'viewer 写应 403 而不是 404').toBe(403);
+    const body = (await writeRes.json()) as { error?: string };
+    expect(body.error).toBe('read_only_role');
+  });
+
+  it('② editor 写得动：同一条写路径 201（与 owner 无别）', async () => {
+    asUser(memberToken); // member 在 editorProjectId 上是 editor
+    const writeRes = await postMemories(
+      post(`http://test.local/api/projects/${editorProjectId}/memories`, { scope: 'session', content: 'editor 写得进来' }),
+      ctxProject(editorProjectId),
+    );
+    expect(writeRes.status).toBe(201);
+  });
+
+  it('③ 陌生人（不在名册）写仍然 404：不泄露项目存在性', async () => {
+    asUser(ownerToken);
+    // 用一个谁都不在名册上的项目：临时建一个，不邀请任何人
+    const lonely = (await createProject(ownerId, { name: `角色-无人项目 ${Date.now()}`, kind: 'website' })).id;
+    try {
+      asUser(memberToken); // member 不在 lonely 的名册上
+      const writeRes = await postMemories(
+        post(`http://test.local/api/projects/${lonely}/memories`, { scope: 'session', content: '陌生人不该写得进来' }),
+        ctxProject(lonely),
+      );
+      expect(writeRes.status, '陌生人写应 404').toBe(404);
+    } finally {
+      await getDb().delete(projects).where(eq(projects.id, lonely));
+    }
+  });
+
+  it('④ owner 在自己项目上不受角色门影响（回归护栏）', async () => {
+    asUser(ownerToken);
+    const writeRes = await postMemories(
+      post(`http://test.local/api/projects/${viewerProjectId}/memories`, { scope: 'session', content: 'owner 永远写得进' }),
+      ctxProject(viewerProjectId),
+    );
+    expect(writeRes.status).toBe(201);
   });
 });

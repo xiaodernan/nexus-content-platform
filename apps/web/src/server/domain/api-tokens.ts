@@ -16,7 +16,8 @@ import { getDb } from '../db/client';
 import { apiAccessBuckets, apiTokens, projects, users } from '../db/schema';
 import { parseDocument } from '../validation';
 import { destructiveActions, nodeNamer, WEB_APPROVAL_POLICY } from '../ai/approvals';
-import { loadDocument, lockProjectWrites, projectBelongsTo, writeProjectDocument } from './projects';
+import { loadDocument, lockProjectWrites, writeProjectDocument } from './projects';
+import { projectWriteAccess } from './team';
 import { projectVisibleTo } from './team';
 import { createSnapshot } from './snapshots';
 import { currentBranchId } from './branches';
@@ -351,7 +352,8 @@ export async function apiPatchDesign(
   patch: ApiDesignPatchRequest,
 ): Promise<ApiPatchOutcome> {
   // 归属判定与读端点同一口径：别人的项目与不存在的项目回同一句话
-  if (!(await projectBelongsTo(projectId, owner.userId))) {
+  const writeAccess = await projectWriteAccess(projectId, owner.userId);
+  if (writeAccess !== 'ok') {
     // 越权尝试要留行（§80 建 `audit_events` 就是为了"谁试过做什么"）。写端点一开，
     // "有人拿别人的项目 id 递过补丁"就是这张表要回答的第一件事，而响应里那句故意什么都没说。
     await recordAudit({
@@ -363,7 +365,7 @@ export async function apiPatchDesign(
       detail: {
         tokenId: owner.tokenId,
         tokenHint: owner.tokenHint,
-        reason: 'not_owner',
+        reason: writeAccess === 'read_only' ? 'read_only_role' : 'not_owner',
         summary: patch.summary,
         attemptedOps: patch.ops.length,
       },

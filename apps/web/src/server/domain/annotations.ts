@@ -2,7 +2,8 @@ import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { DesignDocument } from '@nexus/design-model';
 import { getDb } from '../db/client';
 import { comments, users } from '../db/schema';
-import { loadDocument, projectBelongsTo } from './projects';
+import { loadDocument } from './projects';
+import { projectWriteAccess } from './team';
 import { isUuid } from './ids';
 
 /**
@@ -45,7 +46,7 @@ export type AnnotationResult = { ok: true; annotation: Annotation } | { ok: fals
  */
 export type AnnotationResolveResult =
   | { ok: true; annotationId: string; resolvedAt: string | null }
-  | { ok: false; reason: 'not_found' | 'not_annotation' | 'public_comment' };
+  | { ok: false; reason: 'not_found' | 'not_annotation' | 'public_comment' | 'read_only' };
 
 /**
  * 节点在哪个页面、叫什么名字。按页面的节点表找（与 Design Index 的归属判定同一口径），
@@ -107,7 +108,9 @@ export async function addAnnotation(actorId: string, projectId: string, nodeId: 
   const text = body.trim();
   if (!text) return { ok: false, reason: '批注是空的' };
   if (text.length > 1000) return { ok: false, reason: '批注超过 1000 字' };
-  if (!(await projectBelongsTo(projectId, actorId))) return { ok: false, reason: '这不是你的项目' };
+  const access = await projectWriteAccess(projectId, actorId);
+  if (access === 'not_found') return { ok: false, reason: '这不是你的项目' };
+  if (access === 'read_only') return { ok: false, reason: '查看者角色对这个项目只读，不能加批注' };
 
   const document = await loadDocument(projectId);
   if (!document) return { ok: false, reason: '读不到这个项目的设计文档' };
@@ -142,7 +145,8 @@ export async function deleteAnnotation(actorId: string, annotationId: string): P
   const db = getDb();
   const [row] = await db.select({ projectId: comments.projectId }).from(comments).where(eq(comments.id, annotationId)).limit(1);
   if (!row) return false;
-  if (!(await projectBelongsTo(row.projectId, actorId))) return false;
+  const access = await projectWriteAccess(row.projectId, actorId);
+  if (access !== 'ok') return false;
   await db.delete(comments).where(and(eq(comments.id, annotationId), isNull(comments.parentId), eq(comments.projectId, row.projectId)));
   return true;
 }
@@ -178,7 +182,9 @@ export async function setAnnotationResolved(
     .where(eq(comments.id, annotationId))
     .limit(1);
   if (!row) return { ok: false, reason: 'not_found' };
-  if (!(await projectBelongsTo(row.projectId, actorId))) return { ok: false, reason: 'not_found' };
+  const access = await projectWriteAccess(row.projectId, actorId);
+  if (access === 'not_found') return { ok: false, reason: 'not_found' };
+  if (access === 'read_only') return { ok: false, reason: 'read_only' };
   if (row.parentId !== null) return { ok: false, reason: 'not_annotation' };
   if (row.nodeId === null) return { ok: false, reason: 'public_comment' };
 

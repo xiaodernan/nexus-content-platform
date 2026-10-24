@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { projectVisibleTo } from '@/server/domain/team';
 import { getPublication, publishProject, unpublishProject, type Visibility } from '@/server/domain/publish';
 import { csrfOk } from '@/server/security/csrf';
@@ -40,7 +40,9 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   }
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await publishProject(projectId, { visibility: visibility as Visibility, createdById: user.id });
     if (!result) return notFound();
     if (!result.ok) {
@@ -61,7 +63,9 @@ export async function DELETE(req: Request, ctx: RouteContext): Promise<NextRespo
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     return NextResponse.json({ ok: true, unpublished: await unpublishProject(projectId, user.id) });
   } catch (error) {
     return failure(error, `DELETE /api/projects/${projectId}/publish`);

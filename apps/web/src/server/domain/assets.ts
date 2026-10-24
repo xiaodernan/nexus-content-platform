@@ -20,7 +20,8 @@ import {
 import { refusalForStorage } from './credits';
 import { isUuid } from './ids';
 import { planOf, storageUsageBytes } from './credit-ledger';
-import { assetRowToRef, projectBelongsTo, projectOwnerId } from './projects';
+import { assetRowToRef, projectOwnerId } from './projects';
+import { projectWriteAccess } from './team';
 import { projectVisibleTo } from './team';
 import { readSnapshot } from './snapshots';
 
@@ -398,7 +399,8 @@ export async function openAssetForPublicPath(handle: string, assetId: string): P
 export async function deleteAsset(assetId: string, ownerId: string): Promise<boolean> {
   const row = await rowById(assetId);
   if (!row?.projectId) return false;
-  if (!(await projectBelongsTo(row.projectId, ownerId))) return false;
+  const access = await projectWriteAccess(row.projectId, ownerId);
+  if (access !== 'ok') return false;
   const db = getDb();
   await db.delete(assets).where(eq(assets.id, assetId));
   await getStorage().delete(row.storageKey);

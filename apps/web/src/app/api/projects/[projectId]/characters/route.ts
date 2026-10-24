@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { CharacterCreateRequestSchema } from '@nexus/schemas';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { projectVisibleTo } from '@/server/domain/team';
 import { createProjectCharacter, listCharacters } from '@/server/domain/characters';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
@@ -38,7 +38,9 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   }
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await createProjectCharacter(projectId, user.id, parsed.data);
     if (!result.ok) return jsonError(400, 'character_rejected', { message: result.reason });
     return NextResponse.json({ ok: true, character: result.character }, { status: 201 });

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { projectVisibleTo } from '@/server/domain/team';
 import { loadStoryboard, saveStoryboard } from '@/server/domain/storyboards';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
@@ -39,7 +39,9 @@ export async function PUT(req: Request, ctx: RouteContext): Promise<NextResponse
   if (!body || typeof body !== 'object') return badRequest(['请求体必须是 JSON 对象']);
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await saveStoryboard(projectId, user.id, body);
     if (!result.ok) return jsonError(400, 'storyboard_rejected', { message: result.reason });
     return NextResponse.json({ ok: true, storyboard: result.document, updatedAt: result.updatedAt });

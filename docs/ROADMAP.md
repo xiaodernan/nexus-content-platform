@@ -6538,3 +6538,34 @@ projectBelongsTo → 成员读立刻 404；摘 ownerOf 形状门 → id-shape �
 
 **下一步**：① editor/viewer 的实质读写差别（#206：协作者按角色门禁写操作）；
 ② v1 API 的 team 端点（#207）；③ 并行会话丢失的 ADR-0062 状态层投影四片可接手重做。
+
+
+## M5 第十九片（#206）：editor/viewer 的实质读写差别——写路径三态门，role 不再是档案标签
+
+#201-#205 之后协作者能读项目了，但**所有写路径仍然只认 owner**：邀请时选的
+editor/viewer 只是名册上的一个字符串（§160 早就明码标注"未接"）。本片把 role 接进写门。
+
+- **team.ts 新增 `projectWriteAccess(projectId, userId)`**：三态 `'ok' | 'read_only' |
+  'not_found'`。owner 与 editor → ok；viewer → read_only；陌生人/不存在 → not_found。
+  为什么不是布尔：viewer 是名册上的人，给他 404"项目不存在"是假话；陌生人必须继续
+  404（不泄露项目存在性，与全站同一口径）。形状门复用 ownerOf 的 isUuid（#205 的教训）。
+- **25 条写路由换门**：`not_found` → notFound()（原行为）；`read_only` →
+  `jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；
+  写入权限在 owner 与 editor 手里' })`。覆盖 design/assets/storyboard/world/game/
+  characters/knowledge/memories/annotations/variants/branches/publish/agent/images/
+  duplicate/snapshots 全家。
+- **5 个领域层写函数同源换门**：annotations 的 add/delete/setResolved（add 的拒绝话
+  说清"查看者只读，不能加批注"；AnnotationResolveResult 的 reason 联合加 `read_only`）、
+  deleteAsset、apiPatchDesign（v1 API 保持 404 一律的约，但审计 reason 区分
+  read_only_role 与 not_owner——"谁试过写别人的项目"这张表要能回答）。
+- 团队管理（邀请/撤回/移除）仍 owner-only，不动（§133：协作者之间不能互相拉人）。
+
+见证：collaborator-visibility.integration.test.ts 扩到 7 例——viewer 读 200 / 写 403
+read_only_role（不是 404）、editor 写 201、陌生人写 404、owner 护栏。#205 的旧 ②
+（"写路径仍 owner-only"）随本片改约为"editor 可写、陌生人 404"——那是 #205 时代的
+临时契约，本片就是来兑现它的。靶向回归 36 文件 406 例全绿。变异探针 2 种精确红：
+projectWriteAccess 摘角色判定 → viewer 写变 201；memories POST 门换回 owner-only →
+editor 404、viewer 403 变 404。均逐字节还原（bda62ccde72e / 07948d067aa9）。
+
+**下一步**：① v1 API 的 team 端点（#207）；② ADR-0062 状态层投影四片（并行会话丢失，
+可接手重做）；③ 协作者通知/邀请过期等团队体验边角。

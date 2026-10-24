@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
-import { projectBelongsTo } from '@/server/domain/projects';
+import { projectWriteAccess } from '@/server/domain/team';
 import { projectVisibleTo } from '@/server/domain/team';
 import { knowledgeStats, syncProjectKnowledge } from '@/server/domain/knowledge';
 import { failure, jsonError, notFound } from '@/server/http';
@@ -35,7 +35,9 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await syncProjectKnowledge(projectId, { includeDesign: true });
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
