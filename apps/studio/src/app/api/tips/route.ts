@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serviceFailureStatus } from '@/lib/serviceCall';
+import { doorName } from '@/lib/doorName';
 
 import { readTips, readTipsGiven, tipOnService } from '@/lib/tipServer';
 
@@ -23,11 +24,14 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
-  const recipient = url.searchParams.get('recipient');
+  // v508 — both names are read through the one rule (doorName): the service never trims, so
+  // forwarding “ acct-ada ” would ask about an account that does not exist and answer with an empty
+  // list that reads as “nobody tipped this account”.
+  const recipient = doorName(url.searchParams.get('recipient'));
   // v332 — the PAYER's side of the same door: a reader who gave money and could not see what they gave
   // had a receipt with no place to read it.
-  const payer = url.searchParams.get('payer');
-  if (!recipient && !payer) {
+  const payer = doorName(url.searchParams.get('payer'));
+  if (recipient === '' && payer === '') {
     return NextResponse.json(
       { ok: false, reason: 'the question names who received the tips or who gave them' },
       { status: 400 },
@@ -38,9 +42,9 @@ export async function GET(request: Request): Promise<NextResponse> {
   // window: the newest rows are the honest answer to a question about a page before the first.
   const askedOffset = Number.parseInt(url.searchParams.get('offset') ?? '0', 10);
   const offset = Number.isFinite(askedOffset) && askedOffset > 0 ? askedOffset : 0;
-  const answer = recipient
+  const answer = recipient !== ''
     ? await readTips(recipient, Number.isFinite(limit) ? limit : 20, offset)
-    : await readTipsGiven(payer as string, Number.isFinite(limit) ? limit : 20, offset);
+    : await readTipsGiven(payer, Number.isFinite(limit) ? limit : 20, offset);
   if (!answer.ok) {
     return NextResponse.json({ ok: false, reason: answer.reason, failure: answer.failure }, { status: serviceFailureStatus(answer.failure) });
   }

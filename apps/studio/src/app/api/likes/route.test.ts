@@ -68,11 +68,23 @@ describe('likes route — the GET ask (v491)', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('the door trims NOTHING — a whitespace projectId is forwarded exactly as the browser asked it', async () => {
+  it('a padded projectId is asked about as the name the caller MEANT (v508)', async () => {
+    // The service never trims, so forwarding the padding would ask about a publication that does not
+    // exist and answer with an empty list that reads as “this publication has no likes”.
     stubService({ status: 200, json: { ok: true, count: 0, likes: [] } });
-    await get('?projectId=%20pub-1%20');
+    await get('?projectId=%20pub-1%20&viewer=%20acct-ada%20');
     expect(calls).toHaveLength(1);
-    expect(calls[0]!.url).toContain('projectId=%20pub-1%20');
+    expect(calls[0]!.url).toContain('projectId=pub-1');
+    expect(calls[0]!.url).toContain('viewer=acct-ada');
+    expect(calls[0]!.url).not.toContain('%20pub-1');
+  });
+
+  it('a projectId that is only space is refused before the service is asked (v508)', async () => {
+    stubService({ status: 200, json: { ok: true, count: 0, likes: [] } });
+    const res = await get('?projectId=%20%20');
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('the projectId parameter is missing');
+    expect(calls).toHaveLength(0);
   });
 
   it('a question with no viewer asks the service for no viewer — and answers liked: false', async () => {

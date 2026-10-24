@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serviceFailureStatus } from '@/lib/serviceCall';
+import { doorName } from '@/lib/doorName';
 
 import { unlikeOnService } from '@/lib/likeServer';
 
@@ -18,13 +19,16 @@ export const dynamic = 'force-dynamic';
 export async function DELETE(request: Request, { params }: { params: Promise<{ projectId: string }> }): Promise<NextResponse> {
   const { projectId } = await params;
   const url = new URL(request.url);
-  const claimer = url.searchParams.get('claimer');
-  if (!claimer) {
+  // v508 — the claimer is read through the one rule (doorName): the service never trims, so a
+  // padded claimer would be compared against an account that does not exist and refused as
+  // “not yours” — the wrong sentence for a name that was never really named.
+  const claimer = doorName(url.searchParams.get('claimer'));
+  if (claimer === '') {
     return NextResponse.json(
       { ok: false, reason: 'a like needs an account: the service cannot tell one anonymous like from the same one twice' },
       { status: 400 },
     );
   }
-  const answer = await unlikeOnService(decodeURIComponent(projectId), claimer);
+  const answer = await unlikeOnService(doorName(decodeURIComponent(projectId)), claimer);
   return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }

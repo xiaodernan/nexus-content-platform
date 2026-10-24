@@ -110,11 +110,23 @@ describe('tips route — the GET ask (v490)', () => {
     expect(calls[0]!.url).toContain('offset=40');
   });
 
-  it('the door trims NOTHING — a whitespace recipient is forwarded exactly as the browser asked it', async () => {
+  it('a padded recipient is asked about as the name the caller MEANT (v508)', async () => {
+    // The service never trims — zero `.trim()` in all of services/ — so forwarding the padding would
+    // ask about an account that does not exist and answer with an empty list that reads as “nobody
+    // tipped this account”. The door asks about acct-ada, which is the account that was meant.
     stubService({ status: 200, json: { ok: true, tips: [], totalCents: 0, count: 0, limit: 20, offset: 0 } });
     await get('?recipient=%20acct-ada%20');
     expect(calls).toHaveLength(1);
-    expect(calls[0]!.url).toContain('recipient=%20acct-ada%20');
+    expect(calls[0]!.url).toContain('recipient=acct-ada');
+    expect(calls[0]!.url).not.toContain('%20acct-ada');
+  });
+
+  it('a recipient that is only space is refused before the service is asked (v508)', async () => {
+    stubService({ status: 200, json: { ok: true, tips: [], totalCents: 0, count: 0, limit: 20, offset: 0 } });
+    const res = await get('?recipient=%20%20');
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('the question names who received the tips or who gave them');
+    expect(calls).toHaveLength(0);
   });
 
   it('the lib\u2019s refusal on the RECIPIENT side is a 502 that names the HTTP number \u2014 not a 200 with an empty list', async () => {

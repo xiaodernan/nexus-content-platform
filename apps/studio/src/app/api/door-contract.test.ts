@@ -43,11 +43,16 @@ import { GET as tipsGet, POST as tipsPost } from './tips/route';
 
 let mode: 'ok' | 'refuse' = 'ok';
 
+/** v508 — every URL the stub was asked, so a test can say what the door ASKED, not only what it answered. */
+const seen: string[] = [];
+
 function stubService() {
+  seen.length = 0;
   vi.stubGlobal(
     'fetch',
     async (input: string | URL, init?: { method?: string; body?: string }) => {
       const url = String(input);
+      seen.push(url);
       if (mode === 'refuse') {
         return new Response(JSON.stringify({ error: 'down', message: 'the service is down' }), { status: 503 });
       }
@@ -209,7 +214,7 @@ describe('the door contract — the service that does not answer (v507)', () => 
   });
 });
 
-describe('the door contract — a BLANK account (v499)', () => {
+describe('the door contract — a BLANK account (v499, answered uniformly in v508)', () => {
   it('the comments door refuses a blank author before the service is asked', async () => {
     mode = 'ok';
     stubService();
@@ -250,27 +255,32 @@ describe('the door contract — a BLANK account (v499)', () => {
     expect((await res.json()).reason).toBe('the desk belongs to an account, and this request names none');
   });
 
-  it('the tips door FORWARDS a whitespace recipient — this door trims nothing, and the service’s empty window is the honest answer', async () => {
+  it('the tips door refuses a blank recipient before the service is asked (v508)', async () => {
     mode = 'ok';
     stubService();
-    const res = await tipsGet(req('/api/tips?recipient=%20acct-ada%20'));
-    expect(res.status).toBe(200);
+    const res = await tipsGet(req('/api/tips?recipient=%20%20'));
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('the question names who received the tips or who gave them');
+    expect(seen, 'a name that is blank after trimming is not asked about at all').toHaveLength(0);
   });
 
-  it('the likes door FORWARDS a whitespace projectId — this door trims nothing', async () => {
+  it('the likes door refuses a blank projectId before the service is asked (v508)', async () => {
     mode = 'ok';
     stubService();
-    const res = await likesGet(req('/api/likes?projectId=%20pub-1%20'));
-    expect(res.status).toBe(200);
+    const res = await likesGet(req('/api/likes?projectId=%20%20'));
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('the projectId parameter is missing');
+    expect(seen, 'a name that is blank after trimming is not asked about at all').toHaveLength(0);
   });
 
-  it('the take-back doors FORWARD a whitespace claimer — the likes and follows segments trim nothing either', async () => {
+  it('the take-back doors refuse a blank claimer before the service is asked (v508)', async () => {
     mode = 'ok';
     stubService();
-    const like = await unlike(req('/api/likes/pub-1?claimer=%20acct-ada%20'), { params: Promise.resolve({ projectId: 'pub-1' }) });
-    expect(like.status).toBe(200);
-    const follow = await unfollow(req('/api/follows/acct-grace?claimer=%20acct-ada%20'), { params: Promise.resolve({ accountId: 'acct-grace' }) });
-    expect(follow.status).toBe(200);
+    const like = await unlike(req('/api/likes/pub-1?claimer=%20%20'), { params: Promise.resolve({ projectId: 'pub-1' }) });
+    expect(like.status).toBe(400);
+    const follow = await unfollow(req('/api/follows/acct-grace?claimer=%20%20'), { params: Promise.resolve({ accountId: 'acct-grace' }) });
+    expect(follow.status).toBe(400);
+    expect(seen, 'a name that is blank after trimming is not asked about at all').toHaveLength(0);
   });
 });
 
@@ -333,6 +343,59 @@ describe('the door contract — a WRITE’s status (v499)', () => {
     expect((await plansPut(req('/api/plans?planId=plan-1&claimer=acct-ada&price=500'))).status).toBe(200);
     expect((await unlike(req('/api/likes/pub-1?claimer=acct-ada'), { params: Promise.resolve({ projectId: 'pub-1' }) })).status).toBe(200);
     expect((await unfollow(req('/api/follows/acct-grace?claimer=acct-ada'), { params: Promise.resolve({ accountId: 'acct-grace' }) })).status).toBe(200);
+  });
+});
+
+describe('the door contract — a PADDED name is the name (v508)', () => {
+  // The service never trims — zero `.trim()` in all of services/ — so a door that forwarded
+  // “ acct-ada ” would ask about an account that does not exist and answer with an empty list that
+  // reads as “this account has nothing”. v499 recorded four doors doing exactly that; v508 asks every
+  // door about the name the caller MEANT, and this is the question that keeps it that way.
+  it('the tips door asks about the trimmed recipient, not the padding', async () => {
+    mode = 'ok';
+    stubService();
+    await tipsGet(req('/api/tips?recipient=%20acct-ada%20'));
+    expect(seen.some((u) => u.includes('recipient=acct-ada'))).toBe(true);
+    expect(seen.some((u) => u.includes('%20acct-ada'))).toBe(false);
+  });
+
+  it('the tips door asks about the trimmed payer on the other side of the same door', async () => {
+    mode = 'ok';
+    stubService();
+    await tipsGet(req('/api/tips?payer=%20acct-grace%20'));
+    expect(seen.some((u) => u.includes('payer=acct-grace'))).toBe(true);
+    expect(seen.some((u) => u.includes('%20acct-grace'))).toBe(false);
+  });
+
+  it('the likes door asks about the trimmed projectId, and the trimmed viewer', async () => {
+    mode = 'ok';
+    stubService();
+    await likesGet(req('/api/likes?projectId=%20pub-1%20&viewer=%20acct-ada%20'));
+    expect(seen.some((u) => u.includes('projectId=pub-1'))).toBe(true);
+    expect(seen.some((u) => u.includes('viewer=acct-ada'))).toBe(true);
+    expect(seen.some((u) => u.includes('%20pub-1'))).toBe(false);
+  });
+
+  it('the take-back doors ask about the trimmed claimer', async () => {
+    mode = 'ok';
+    stubService();
+    await unlike(req('/api/likes/pub-1?claimer=%20acct-ada%20'), { params: Promise.resolve({ projectId: 'pub-1' }) });
+    await unfollow(req('/api/follows/acct-grace?claimer=%20acct-ada%20'), { params: Promise.resolve({ accountId: 'acct-grace' }) });
+    expect(seen.some((u) => u.includes('claimer=acct-ada'))).toBe(true);
+    expect(seen.some((u) => u.includes('%20acct-ada'))).toBe(false);
+  });
+
+  it('the doors that always trimmed keep doing it — the rule is the whole house’s now', async () => {
+    mode = 'ok';
+    stubService();
+    await commentsGet(req('/api/comments?author=%20acct-ada%20'));
+    await reportsGet(req('/api/reports?reporter=%20acct-ada%20'));
+    await followsGet(req('/api/follows?follower=%20acct-ada%20'));
+    await economyGet(req('/api/economy?account=%20acct-ada%20'));
+    await moderationGet(req('/api/moderation?owner=%20acct-ada%20'));
+    for (const asked of seen) {
+      expect(asked, 'no door asks about a padded name any more').not.toContain('%20acct-ada');
+    }
   });
 });
 

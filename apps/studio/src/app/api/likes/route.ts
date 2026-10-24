@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serviceFailureStatus } from '@/lib/serviceCall';
+import { doorName } from '@/lib/doorName';
 
 import { likeOnService, readLikesOnService, unlikeOnService } from '@/lib/likeServer';
 
@@ -25,11 +26,15 @@ const DEFAULT_LIMIT = 20;
 
 export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
-  const projectId = url.searchParams.get('projectId');
-  if (!projectId) {
+  // v508 — the name the caller meant, trimmed: the service never trims (zero `.trim()` in all of
+  // services/), so a door that forwarded the padding would ask about a publication that does not
+  // exist and answer with an empty list — which reads as “this publication has no likes” when the
+  // truth is that nobody asked about the publication the caller meant.
+  const projectId = doorName(url.searchParams.get('projectId'));
+  if (projectId === '') {
     return NextResponse.json({ ok: false, reason: 'the projectId parameter is missing' }, { status: 400 });
   }
-  const viewer = url.searchParams.get('viewer') ?? '';
+  const viewer = doorName(url.searchParams.get('viewer'));
   const limit = Number.parseInt(url.searchParams.get('limit') ?? String(DEFAULT_LIMIT), 10);
   const answer = await readLikesOnService(
     projectId,

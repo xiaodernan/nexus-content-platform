@@ -65,12 +65,22 @@ describe('likes [projectId] route — the DELETE ask (v491)', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('the claimer travels UNTRIMMED — the padding reaches the service, because this door trims nothing', async () => {
+  it('a padded claimer is asked about as the name the caller MEANT (v508)', async () => {
+    // The service never trims, so a padded claimer would be compared against an account that does
+    // not exist and refused as “not yours” — the wrong sentence for a name that was never really named.
     stubService({ status: 200, json: { ok: true, count: 3, liked: false } });
     await withdraw('pub-1', '?claimer=%20acct-ada%20');
     expect(calls).toHaveLength(1);
     expect(calls[0]!.method).toBe('DELETE');
-    expect(calls[0]!.url).toContain('claimer=%20acct-ada%20');
+    expect(calls[0]!.url).toContain('claimer=acct-ada');
+    expect(calls[0]!.url).not.toContain('%20acct-ada');
+  });
+
+  it('a claimer that is only space is refused before the service is asked (v508)', async () => {
+    stubService({ status: 200, json: { ok: true, count: 3, liked: false } });
+    const res = await withdraw('pub-1', '?claimer=%20%20');
+    expect(res.status).toBe(400);
+    expect(calls).toHaveLength(0);
   });
 
   it('the path segment is DECODED before the ask — a lowercase escape arrives at the service in its canonical form', async () => {
