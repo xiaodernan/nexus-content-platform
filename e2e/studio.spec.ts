@@ -4367,3 +4367,90 @@ test('@smoke §124 状态层在预览与发布页真的生效（ADR-0062 part �
 
   expect(errors).toEqual([]);
 });
+
+
+/**
+ * §124 × ADR-0062 part ⑤：Properties 面板状态编辑器。
+ * part ④ 之前，states 补丁只有代码视图一个入口（ADR-0062 原话：「入口仍只有代码视图
+ * 与 AI 补丁，这是下一片的事」）。本片把面板编辑器接上：选中节点 → 交互状态页签 →
+ * 四通道编辑，每个通道一次写入 = 一个可撤销事务（§149）。
+ *
+ * 回路：面板绑 token → 代码视图读得到 hover:bg-[var(--nx-color-accent)] →
+ * 预览页移上指针读计算色 rgb(34, 211, 238)（color.accent 种子值 #22d3ee）→
+ * 回面板改透明度/描边、清填充、删状态，代码视图逐步核对——删了就不该再有 hover:。
+ */
+test('@smoke §124 状态编辑器进面板：token 绑定/透明度/描边/清除/删除都落进模型（ADR-0062 part ⑤）', async ({ page }) => {
+  test.setTimeout(240_000);
+  const errors: string[] = [];
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  page.on('pageerror', (e) => errors.push(String(e)));
+
+  const projectName = `状态面板 ${Date.now().toString(36)}`;
+  const projectId = await createProject(page, projectName);
+  const ctaId = await layerId(page, 'Primary CTA');
+
+  const ctaColor = (target: Page) =>
+    target.evaluate((id) => {
+      const el = document.querySelector(`[data-node-id="${id}"]`);
+      return el ? getComputedStyle(el).backgroundColor : '';
+    }, ctaId);
+
+  // 选中 Primary CTA：面板出现「交互状态（§124）」节，hover 页签默认在场
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await expect(page.locator('h3', { hasText: '交互状态（§124）' })).toBeVisible();
+  await expect(page.locator('[data-state-tab="hover"]')).toBeVisible();
+  // 画布是编辑面：选中后悬停读数也不变（ADR-0062：画布不加状态规则）
+  await page.hover(`[data-node-id="${ctaId}"]`);
+  await expect.poll(() => ctaColor(page)).toBe('rgb(107, 79, 240)');
+  await page.mouse.move(0, 0);
+
+  // ① hover 填充绑 color.accent：代码视图读得到 var 引用，不是字面量
+  await page.click('[data-state-fill-bind="hover"] [data-token-bind]');
+  await page.locator('[data-state-fill-bind="hover"]').getByText('color.accent').click();
+  await page.click('[data-view="code"]');
+  await expect(page.locator('[data-code-view]')).toContainText('hover:bg-[var(--nx-color-accent)]');
+
+  // 预览页兑现：移上指针读 token 解析值 rgb(34, 211, 238)（#22d3ee），移开读回基础色
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
+  await page.goto(`/preview/${projectId}`);
+  const previewCta = page.locator(`[data-node-id="${ctaId}"]`);
+  await expect(previewCta).toBeVisible();
+  await expect.poll(() => ctaColor(page)).toBe('rgb(107, 79, 240)');
+  await previewCta.hover();
+  await expect.poll(() => ctaColor(page)).toBe('rgb(34, 211, 238)');
+  await page.mouse.move(0, 0);
+  await expect.poll(() => ctaColor(page)).toBe('rgb(107, 79, 240)');
+
+  // ② 回面板改透明度：hover:opacity-[0.5]
+  await page.goto(`/studio/${projectId}`);
+  await waitForCanvas(page);
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await page.fill('[data-state-opacity="hover"]', '0.5');
+  await page.click('[data-view="code"]');
+  await expect(page.locator('[data-code-view]')).toContainText('hover:opacity-[0.5]');
+
+  // ③ 清 hover 填充：显式重置类 hover:bg-none（ADR-0062：清空基础态也有的通道必须发射重置类）
+  await page.click('[data-view="canvas"]');
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await page.click('[data-state-fill-clear="hover"]');
+  await page.click('[data-view="code"]');
+  await expect(page.locator('[data-code-view]')).toContainText('hover:bg-none');
+
+  // ④ 描边宽 2：hover:border-[2px]
+  await page.click('[data-view="canvas"]');
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await page.fill('[data-state-stroke-width="hover"]', '2');
+  await page.click('[data-view="code"]');
+  await expect(page.locator('[data-code-view]')).toContainText('hover:border-[2px]');
+
+  // ⑤ 删掉 hover 状态补丁：代码里一个 hover: 都不该剩（ADR-0062：没写过的状态不发射）
+  await page.click('[data-view="canvas"]');
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await page.click('[data-state-drop="hover"]');
+  await page.click('[data-view="code"]');
+  await expect(page.locator('[data-code-view]')).not.toContainText('hover:');
+
+  expect(errors).toEqual([]);
+});

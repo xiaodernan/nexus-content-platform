@@ -6,8 +6,10 @@ import {
   isTokenRef,
   makeTokenRef,
   tokenRefKey,
+  NODE_STATES,
   type ColorValue,
   type DesignNode,
+  type NodeState,
   type Paint,
   type Token,
 } from '@nexus/design-model';
@@ -191,6 +193,14 @@ export function PropertiesPanel() {
         />
       </Section>
 
+      <Section title="交互状态（§124）">
+        {nodes.length === 1 ? (
+          <StateEditor node={nodes[0]!} write={write} tokens={state.tokens} mode={state.activeMode} colorTokens={tokensOfType(['color'])} />
+        ) : (
+          <p className="text-12 text-fg-3">多选时请逐个元素编辑状态补丁</p>
+        )}
+      </Section>
+
       <Section title="状态">
         <div className="grid grid-cols-2 gap-[var(--nexus-space-2)]">
           {nodes.length === 1 ? (
@@ -207,6 +217,215 @@ export function PropertiesPanel() {
           <AlignMenu onAlign={(edge) => studio.alignSelection(edge)} disabled={nodes.length < 2} />
         </div>
       </Section>
+    </div>
+  );
+}
+
+const STATE_LABELS: Record<NodeState, string> = {
+  hover: '悬停',
+  active: '按下',
+  focus: '聚焦',
+  disabled: '禁用',
+  loading: '加载中',
+  error: '错误',
+  success: '成功',
+};
+
+/**
+ * §124 交互状态编辑器（ADR-0062「下一片的事」）：状态补丁从此不只有代码视图一个入口。
+ *
+ * 画布不预览状态（编辑面 hover 会干扰选择与拖拽，ADR-0062）——这里只把补丁写进模型，
+ * 移上指针的效果去预览或发布页看。面板上说清这件事，不让人以为改了没生效（§159）。
+ * 每个通道一次写入 = 一个可撤销事务（§149）；整通道替换，"清除"即写空数组，
+ * 由生成器发射重置类（hover:bg-none 等，ADR-0062）。
+ */
+function StateEditor({
+  node,
+  write,
+  tokens,
+  mode,
+  colorTokens,
+}: {
+  node: DesignNode;
+  write: (path: string, value: unknown) => void;
+  tokens: ReturnType<typeof useStudio>['tokens'];
+  mode: string | null;
+  colorTokens: Token[];
+}) {
+  const [active, setActive] = useState<NodeState>('hover');
+  // 颜色输入沿用 FillList 的草稿+失焦提交：拖动取色轮不产生一串可撤销事务
+  const [drafts, setDrafts] = useState<{ fill?: string; stroke?: string; shadow?: string }>({});
+  const patch = node.states?.[active];
+  const isText = node.type === 'text';
+  const solid = patch?.fills?.find((p) => p.kind === 'solid' && p.visible !== false);
+  const fillColor = solid && solid.kind === 'solid' ? solid.color : undefined;
+  const stroke = (patch?.strokes ?? []).find((s) => s.visible !== false);
+  const strokeSolid = stroke?.paints.find((p) => p.kind === 'solid' && p.visible !== false);
+  const strokeColor = strokeSolid && strokeSolid.kind === 'solid' ? strokeSolid.color : undefined;
+  const shadow = (patch?.effects ?? []).find((e) => e.kind === 'drop-shadow' || e.kind === 'inner-shadow');
+  const shadowColor = shadow && 'color' in shadow ? shadow.color : undefined;
+  const hexOf = (value: ColorValue | undefined): string => {
+    const hex = resolveColor(value, tokens, mode);
+    return /^#[0-9a-f]{6}$/i.test(hex) ? hex : '#000000';
+  };
+
+  const setFills = (color: ColorValue) => write(`states.${active}.fills`, [{ kind: 'solid', color }]);
+  const setStroke = (width: number, color: ColorValue) =>
+    write(`states.${active}.strokes`, [{ paints: [{ kind: 'solid', color }], width, position: 'inside' }]);
+  const setShadow = (params: { offsetX: number; offsetY: number; blur: number; spread: number; color: ColorValue }) =>
+    write(`states.${active}.effects`, [{ kind: 'drop-shadow', ...params }]);
+  const clearOpacity = () => {
+    const next = { ...(node.states ?? {}) };
+    const current = { ...(next[active] ?? {}) };
+    delete current.opacity;
+    next[active] = current;
+    write('states', next);
+  };
+  const dropState = () => {
+    const next = { ...(node.states ?? {}) };
+    delete next[active];
+    write('states', next);
+  };
+
+  return (
+    <div className="flex flex-col gap-[var(--nexus-space-2)]">
+      <div className="flex flex-wrap gap-1">
+        {NODE_STATES.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => {
+              setActive(s);
+              setDrafts({});
+            }}
+            className={cn('rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11', s === active ? 'bg-brand text-bg-0' : 'bg-bg-2 text-fg-3 hover:text-fg-1')}
+            data-state-tab={s}
+          >
+            {STATE_LABELS[s]}
+          </button>
+        ))}
+      </div>
+      <p className="text-11 text-fg-3">画布不预览状态（避免干扰选择与拖拽）；移上指针的效果去预览或发布页看（ADR-0062）。</p>
+
+      <div className="flex items-center gap-2">
+        <span className="w-14 shrink-0 text-12 text-fg-2">{isText ? '字色' : '背景'}</span>
+        <input
+          type="color"
+          value={drafts.fill ?? hexOf(fillColor)}
+          onChange={(e) => setDrafts({ ...drafts, fill: e.target.value })}
+          onBlur={() => {
+            if (drafts.fill) setFills(drafts.fill);
+            setDrafts({ ...drafts, fill: undefined });
+          }}
+          className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
+          data-state-fill={active}
+        />
+        <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3">{fillColor === undefined ? '未设置' : typeof fillColor === 'string' ? fillColor : resolveColor(fillColor, tokens, mode)}</span>
+        <span data-state-fill-bind={active}>
+          <TokenBindButton active={isTokenRef(fillColor)} tokens={colorTokens} onPick={(key) => setFills(makeTokenRef(key))} />
+        </span>
+        <button type="button" onClick={() => write(`states.${active}.fills`, [])} className="px-1 text-12 text-fg-3 hover:text-danger" title="清除该通道（生成器发射重置类）" data-state-fill-clear={active}>
+          ×
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className="w-14 shrink-0 text-12 text-fg-2">描边</span>
+        <input
+          type="number"
+          min={0}
+          step={0.5}
+          value={stroke?.width ?? 1}
+          onChange={(e) => setStroke(Number(e.target.value), (strokeColor ?? '#ffffff') as ColorValue)}
+          onKeyDown={(e) => e.stopPropagation()}
+          className="w-16 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
+          data-state-stroke-width={active}
+        />
+        <input
+          type="color"
+          value={drafts.stroke ?? hexOf(strokeColor)}
+          onChange={(e) => setDrafts({ ...drafts, stroke: e.target.value })}
+          onBlur={() => {
+            if (drafts.stroke) setStroke(stroke?.width ?? 1, drafts.stroke);
+            setDrafts({ ...drafts, stroke: undefined });
+          }}
+          className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
+          data-state-stroke-color={active}
+        />
+        <button type="button" onClick={() => write(`states.${active}.strokes`, [])} className="px-1 text-12 text-fg-3 hover:text-danger" title="清除描边通道" data-state-stroke-clear={active}>
+          ×
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-1">
+        <NumberField
+          label="阴影 X"
+          value={shadow && 'offsetX' in shadow ? shadow.offsetX ?? 0 : 0}
+          onSet={(v) => setShadow({ offsetX: v, offsetY: shadow && 'offsetY' in shadow ? shadow.offsetY ?? 0 : 0, blur: shadow && 'blur' in shadow ? shadow.blur ?? 0 : 0, spread: shadow && 'spread' in shadow ? shadow.spread ?? 0 : 0, color: (shadowColor ?? '#000000') as ColorValue })}
+        />
+        <NumberField
+          label="阴影 Y"
+          value={shadow && 'offsetY' in shadow ? shadow.offsetY ?? 0 : 0}
+          onSet={(v) => setShadow({ offsetX: shadow && 'offsetX' in shadow ? shadow.offsetX ?? 0 : 0, offsetY: v, blur: shadow && 'blur' in shadow ? shadow.blur ?? 0 : 0, spread: shadow && 'spread' in shadow ? shadow.spread ?? 0 : 0, color: (shadowColor ?? '#000000') as ColorValue })}
+        />
+        <NumberField
+          label="模糊"
+          value={shadow && 'blur' in shadow ? shadow.blur ?? 0 : 0}
+          onSet={(v) => setShadow({ offsetX: shadow && 'offsetX' in shadow ? shadow.offsetX ?? 0 : 0, offsetY: shadow && 'offsetY' in shadow ? shadow.offsetY ?? 0 : 0, blur: v, spread: shadow && 'spread' in shadow ? shadow.spread ?? 0 : 0, color: (shadowColor ?? '#000000') as ColorValue })}
+        />
+        <NumberField
+          label="扩散"
+          value={shadow && 'spread' in shadow ? shadow.spread ?? 0 : 0}
+          onSet={(v) => setShadow({ offsetX: shadow && 'offsetX' in shadow ? shadow.offsetX ?? 0 : 0, offsetY: shadow && 'offsetY' in shadow ? shadow.offsetY ?? 0 : 0, blur: shadow && 'blur' in shadow ? shadow.blur ?? 0 : 0, spread: v, color: (shadowColor ?? '#000000') as ColorValue })}
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-14 shrink-0 text-12 text-fg-2">阴影色</span>
+        <input
+          type="color"
+          value={drafts.shadow ?? hexOf(shadowColor)}
+          onChange={(e) => setDrafts({ ...drafts, shadow: e.target.value })}
+          onBlur={() => {
+            if (drafts.shadow) setShadow({ offsetX: shadow && 'offsetX' in shadow ? shadow.offsetX ?? 0 : 0, offsetY: shadow && 'offsetY' in shadow ? shadow.offsetY ?? 0 : 0, blur: shadow && 'blur' in shadow ? shadow.blur ?? 0 : 0, spread: shadow && 'spread' in shadow ? shadow.spread ?? 0 : 0, color: drafts.shadow });
+            setDrafts({ ...drafts, shadow: undefined });
+          }}
+          className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
+          data-state-shadow-color={active}
+        />
+        <button type="button" onClick={() => write(`states.${active}.effects`, [])} className="px-1 text-12 text-fg-3 hover:text-danger" title="清除效果通道" data-state-effects-clear={active}>
+          ×
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className="w-14 shrink-0 text-12 text-fg-2">透明度</span>
+        <input
+          type="number"
+          min={0}
+          max={1}
+          step={0.05}
+          value={patch?.opacity ?? node.style.opacity}
+          onChange={(e) => {
+            const next = Number(e.target.value);
+            if (Number.isFinite(next)) write(`states.${active}.opacity`, Math.min(1, Math.max(0, next)));
+          }}
+          onKeyDown={(e) => e.stopPropagation()}
+          className="w-20 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
+          data-state-opacity={active}
+        />
+        <button type="button" onClick={clearOpacity} className="px-1 text-12 text-fg-3 hover:text-danger" title="清除透明度覆盖" data-state-opacity-clear={active}>
+          ×
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={dropState}
+        className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-12 text-danger"
+        data-state-drop={active}
+      >
+        删除{STATE_LABELS[active]}状态补丁
+      </button>
     </div>
   );
 }
