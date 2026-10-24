@@ -77,7 +77,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
   const c = claim as { accountId?: unknown; handle?: unknown; assurance?: unknown; claimedAt?: unknown };
-  if (typeof c.accountId !== 'string' || c.accountId.length === 0) {
+  if (typeof c.accountId !== 'string') {
     return NextResponse.json(
       { ok: false, reason: 'a like needs an account: the service cannot tell one anonymous like from the same one twice' },
       { status: 400 },

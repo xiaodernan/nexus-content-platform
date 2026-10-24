@@ -72,7 +72,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
   const c = claim as { accountId?: unknown; handle?: unknown; assurance?: unknown; claimedAt?: unknown };
-  if (typeof c.accountId !== 'string' || c.accountId.length === 0) {
+  // v511 — claim body: only check existence of accountId, not blank content (mirrors doorName.ts rule)
+  if (typeof c.accountId !== 'string') {
     return NextResponse.json(
       { ok: false, reason: 'a comment needs an account: a comment with no author has nobody to take it back and nobody to answer to' },
       { status: 400 },

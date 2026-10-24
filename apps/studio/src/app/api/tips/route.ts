@@ -90,8 +90,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
   const c = claim as { accountId?: unknown; handle?: unknown; assurance?: unknown; claimedAt?: unknown };
-  if (typeof c.accountId !== 'string' || c.accountId.length === 0) {
-    return NextResponse.json({ ok: false, reason: 'a tip needs an account to be from' }, { status: 400 });
+  if (typeof c.accountId !== 'string') {
+    return NextResponse.json(
+      { ok: false, reason: 'a tip needs an account to be from' },
+      { status: 400 },
+    );
   }
   const answer = await tipOnService(
     recipientAccountId,
