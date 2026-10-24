@@ -76,7 +76,16 @@ export async function probeSaveFs(): Promise<SaveFsLaneProbe> {
     if (!res.ok) {
       return { available: false, serverVersion: '', reason: `probe route answered ${res.status}` };
     }
-    return (await res.json()) as SaveFsLaneProbe;
+    let probe: SaveFsLaneProbe;
+    try {
+      probe = (await res.json()) as SaveFsLaneProbe;
+    } catch {
+      // v485 — a 200 whose body cannot be read is a door that ANSWERED, badly. Answering
+      // "unreachable" here would be the lie the house refuses: the server was there. The other doors
+      // of this very file already say it plainly; the probe now says it too.
+      return { available: false, serverVersion: '', reason: `save-fs route answered ${res.status} with a non-JSON body` };
+    }
+    return probe;
   } catch (e) {
     return {
       available: false,

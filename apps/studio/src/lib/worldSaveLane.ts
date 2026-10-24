@@ -75,7 +75,16 @@ export async function probeWorldSaves(): Promise<WorldSaveLaneProbe> {
     if (!res.ok) {
       return { available: false, serverVersion: '', reason: `probe route answered ${res.status}` };
     }
-    return (await res.json()) as WorldSaveLaneProbe;
+    let probe: WorldSaveLaneProbe;
+    try {
+      probe = (await res.json()) as WorldSaveLaneProbe;
+    } catch {
+      // v485 — a 200 whose body cannot be read is a door that ANSWERED, badly. Answering
+      // "unreachable" here would be the lie the house refuses: the server was there. The other doors
+      // of this very file already say it plainly; the probe now says it too.
+      return { available: false, serverVersion: '', reason: `world-saves route answered ${res.status} with a non-JSON body` };
+    }
+    return probe;
   } catch (e) {
     return {
       available: false,

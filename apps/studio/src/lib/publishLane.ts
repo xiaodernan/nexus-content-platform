@@ -100,7 +100,16 @@ export async function probePublish(): Promise<PublishLaneProbe> {
   try {
     const res = await fetch('/api/publish', { cache: 'no-store', signal: callSignal() });
     if (!res.ok) return { available: false, apiBase: '', reason: `publish route answered ${res.status}` };
-    return (await res.json()) as PublishLaneProbe;
+    let probe: PublishLaneProbe;
+    try {
+      probe = (await res.json()) as PublishLaneProbe;
+    } catch {
+      // v485 — a 200 whose body cannot be read is a door that ANSWERED, badly. Answering
+      // "unreachable" here would be the lie the house refuses: the server was there. The other doors
+      // of this very file already say it plainly; the probe now says it too.
+      return { available: false, apiBase: '', reason: `publish route answered ${res.status} with a non-JSON body` };
+    }
+    return probe;
   } catch (e) {
     return { available: false, apiBase: '', reason: studioUnreachableReason(e) };
   }

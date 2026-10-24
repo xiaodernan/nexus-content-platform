@@ -145,3 +145,18 @@ describe('containerLane — the Studio-route lane finally carries a budget (v484
     expect(probe.reason).not.toContain('45 seconds');
   });
 });
+
+describe('containerLane — the probe answers a 200 it cannot read HONESTLY (v485)', () => {
+  // The probe parsed its 200 body with a bare cast: a body that could not be read fell into the
+  // catch and was answered "studio server unreachable" — a false sentence about a server that had
+  // just answered. v485 parses it in its own try and names the route and the status instead, the
+  // sentence every other door of this file already uses.
+
+  it('a 200 with an unreadable body names the route and the status — not "unreachable"', async () => {
+    globalThis.fetch = vi.fn(async () => new Response('<html>nope</html>', { status: 200 })) as typeof fetch;
+    const p = await probeContainerLane();
+    expect(p.available).toBe(false);
+    expect(p.reason).toBe('container route answered 200 with a non-JSON body');
+    expect(p.reason).not.toContain('unreachable');
+  });
+});

@@ -86,11 +86,15 @@ describe('buildLane run (v174)', () => {
     expect(a.reason).toContain('502');
   });
 
-  it('probe treats an unreadable 200 body as unreachable, not as a pass-through', async () => {
+  it('probe answers a 200 with an unreadable body HONESTLY — the route answered, badly (the lie this file pinned, closed at v485)', async () => {
+    // This case used to pin the ABSENCE of honesty: a 200 whose body could not be parsed fell into the
+    // catch and was answered "studio server unreachable" — a false sentence about a server that had
+    // just answered. v485 closes it: the probe names the route and the status, like every other door.
     globalThis.fetch = vi.fn(async () => new Response('not-json', { status: 200 })) as typeof fetch;
     const p = await probeBuildLane();
     expect(p.available).toBe(false);
-    expect(p.reason).toContain('studio server unreachable');
+    expect(p.reason).toBe('build route answered 200 with a non-JSON body');
+    expect(p.reason).not.toContain('unreachable');
     expect(p.steps).toEqual([]);
   });
 });

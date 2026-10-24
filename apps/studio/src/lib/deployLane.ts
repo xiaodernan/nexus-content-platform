@@ -94,7 +94,16 @@ export async function probeDeployLane(): Promise<DeployLaneProbe> {
     if (!res.ok) {
       return { available: false, serverVersion: '', reason: `probe route answered ${res.status}`, arcId: '', goal: '', engine: '', steps: [], recordsPath: '', recordCount: 0 };
     }
-    return (await res.json()) as DeployLaneProbe;
+    let probe: DeployLaneProbe;
+    try {
+      probe = (await res.json()) as DeployLaneProbe;
+    } catch {
+      // v485 — a 200 whose body cannot be read is a door that ANSWERED, badly. Answering
+      // "unreachable" here would be the lie the house refuses: the server was there. The other doors
+      // of this very file already say it plainly; the probe now says it too.
+      return { available: false, serverVersion: '', reason: `deploy route answered ${res.status} with a non-JSON body`, arcId: '', goal: '', engine: '', steps: [], recordsPath: '', recordCount: 0 };
+    }
+    return probe;
   } catch (e) {
     return {
       available: false,

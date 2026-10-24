@@ -78,7 +78,16 @@ export async function probeBuildLane(): Promise<BuildLaneProbe> {
     if (!res.ok) {
       return { available: false, serverVersion: '', reason: `probe route answered ${res.status}`, arcId: '', goal: '', engine: '', steps: [] };
     }
-    return (await res.json()) as BuildLaneProbe;
+    let probe: BuildLaneProbe;
+    try {
+      probe = (await res.json()) as BuildLaneProbe;
+    } catch {
+      // v485 — a 200 whose body cannot be read is a door that ANSWERED, badly. Answering
+      // "unreachable" here would be the lie the house refuses: the server was there. The other doors
+      // of this very file already say it plainly; the probe now says it too.
+      return { available: false, serverVersion: '', reason: `build route answered ${res.status} with a non-JSON body`, arcId: '', goal: '', engine: '', steps: [] };
+    }
+    return probe;
   } catch (e) {
     return {
       available: false,
