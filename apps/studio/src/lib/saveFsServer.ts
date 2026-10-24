@@ -16,6 +16,8 @@ import { dirname } from 'node:path';
 
 import { createFsSaveStore, type FsLike, type SaveStore } from '@nexus/three-runtime';
 
+import { askFailureKindOf, type AskFailureKind } from './doorFailure';
+
 /** Where disk saves live, relative to the studio server's cwd (apps/studio in dev). */
 export const STUDIO_SCENE_SAVES_ROOT = '.nexus/scene-saves';
 
@@ -100,6 +102,11 @@ export function saveFsState(options: { fs?: StudioSaveFs; root?: string } = {}):
 /** What a successful write answers: where the bytes landed and how many there are. */
 export interface SaveFsWriteAnswer {
   ok: boolean;
+  /**
+   * v509: which kind of “no” this is, when ok is false — the ask (a 400) or the machine (a 503).
+   * Absent on a refused ask: doorFailure.ts reads an answer that names no kind as the ask.
+   */
+  failure?: AskFailureKind;
   path?: string;
   bytes?: number;
   reason?: string;
@@ -128,20 +135,30 @@ export function writeStudioSceneSave(
   try {
     store = createStudioSceneSaveStore(options);
   } catch (e) {
-    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+    // v509: the store could not even be BUILT — that is this server’s own configuration, never
+    // the caller’s ask, so the kind is the machine’s and the door answers 503 for it.
+    return { ok: false, reason: e instanceof Error ? e.message : String(e), failure: 'the-machine' };
   }
   try {
     const contents = JSON.stringify(request.file);
     store.writeAtomic(request.path, contents);
     return { ok: true, path: request.path, bytes: contents.length };
   } catch (e) {
-    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+    // v509: the store threw. A refused NAME is the ask; a device error (ENOSPC, EACCES, the
+    // rename wrapper) is the machine. The classifier reads the difference off the error, and the
+    // door derives its status from the kind instead of answering 400 for both.
+    return { ok: false, reason: e instanceof Error ? e.message : String(e), failure: askFailureKindOf(e) };
   }
 }
 
 /** What a successful read answers: the parsed save file, ready for a loader. */
 export interface SaveFsReadAnswer {
   ok: boolean;
+  /**
+   * v509: which kind of “no” this is, when ok is false — the ask (a 400) or the machine (a 503).
+   * Absent on a refused ask: doorFailure.ts reads an answer that names no kind as the ask.
+   */
+  failure?: AskFailureKind;
   path?: string;
   file?: unknown;
   reason?: string;
@@ -164,13 +181,18 @@ export function readStudioSceneSave(
   try {
     store = createStudioSceneSaveStore(options);
   } catch (e) {
-    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+    // v509: the store could not even be BUILT — that is this server’s own configuration, never
+    // the caller’s ask, so the kind is the machine’s and the door answers 503 for it.
+    return { ok: false, reason: e instanceof Error ? e.message : String(e), failure: 'the-machine' };
   }
   let contents: string | null;
   try {
     contents = store.read(request.path);
   } catch (e) {
-    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+    // v509: the store threw. A refused NAME is the ask; a device error (ENOSPC, EACCES, the
+    // rename wrapper) is the machine. The classifier reads the difference off the error, and the
+    // door derives its status from the kind instead of answering 400 for both.
+    return { ok: false, reason: e instanceof Error ? e.message : String(e), failure: askFailureKindOf(e) };
   }
   if (contents === null) {
     return { ok: false, reason: `"${request.path}" is not in the store — there is no save under that name` };
@@ -190,6 +212,11 @@ export function readStudioSceneSave(
 /** What a successful delete answers: whether the name was there to take (the store's own boolean). */
 export interface SaveFsDeleteAnswer {
   ok: boolean;
+  /**
+   * v509: which kind of “no” this is, when ok is false — the ask (a 400) or the machine (a 503).
+   * Absent on a refused ask: doorFailure.ts reads an answer that names no kind as the ask.
+   */
+  failure?: AskFailureKind;
   path?: string;
   deleted?: boolean;
   reason?: string;
@@ -211,19 +238,29 @@ export function deleteStudioSceneSave(
   try {
     store = createStudioSceneSaveStore(options);
   } catch (e) {
-    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+    // v509: the store could not even be BUILT — that is this server’s own configuration, never
+    // the caller’s ask, so the kind is the machine’s and the door answers 503 for it.
+    return { ok: false, reason: e instanceof Error ? e.message : String(e), failure: 'the-machine' };
   }
   try {
     const deleted = store.delete(request.path);
     return { ok: true, path: request.path, deleted };
   } catch (e) {
-    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+    // v509: the store threw. A refused NAME is the ask; a device error (ENOSPC, EACCES, the
+    // rename wrapper) is the machine. The classifier reads the difference off the error, and the
+    // door derives its status from the kind instead of answering 400 for both.
+    return { ok: false, reason: e instanceof Error ? e.message : String(e), failure: askFailureKindOf(e) };
   }
 }
 
 /** What a successful rename answers: where the bytes ended up (the store's own resolution). */
 export interface SaveFsRenameAnswer {
   ok: boolean;
+  /**
+   * v509: which kind of “no” this is, when ok is false — the ask (a 400) or the machine (a 503).
+   * Absent on a refused ask: doorFailure.ts reads an answer that names no kind as the ask.
+   */
+  failure?: AskFailureKind;
   from?: string;
   to?: string;
   reason?: string;
@@ -249,12 +286,17 @@ export function renameStudioSceneSave(
   try {
     store = createStudioSceneSaveStore(options);
   } catch (e) {
-    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+    // v509: the store could not even be BUILT — that is this server’s own configuration, never
+    // the caller’s ask, so the kind is the machine’s and the door answers 503 for it.
+    return { ok: false, reason: e instanceof Error ? e.message : String(e), failure: 'the-machine' };
   }
   try {
     const to = store.rename(request.from, request.to);
     return { ok: true, from: request.from, to };
   } catch (e) {
-    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+    // v509: the store threw. A refused NAME is the ask; a device error (ENOSPC, EACCES, the
+    // rename wrapper) is the machine. The classifier reads the difference off the error, and the
+    // door derives its status from the kind instead of answering 400 for both.
+    return { ok: false, reason: e instanceof Error ? e.message : String(e), failure: askFailureKindOf(e) };
   }
 }

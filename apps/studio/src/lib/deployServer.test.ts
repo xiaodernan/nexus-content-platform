@@ -358,3 +358,55 @@ describe('nodeDeployFs — the production fs the sink lands on (v456)', () => {
     expect(() => nodeDeployFs.readFileSync(join(dir, 'nope.jsonl'), 'utf8')).toThrow(/ENOENT/);
   });
 });
+
+
+/**
+ * v509 (ADR 0016 amendment 502) — WHOSE fault a failed deploy is: the arc’s verdict, or the machine’s.
+ *
+ * The arc’s verdicts (not-green, unplanned, denied) are answers about the BUILD, and the door answers
+ * 200 for them — the arc spoke. A records file that refuses the engine’s words is a different truth:
+ * THIS server’s disk said no, the deploy did not happen, and a 200 would read as an attempt that came
+ * up short. So the sink’s refusal stamps the answer with the machine’s kind (doorFailure.ts) and the
+ * door answers 503 — the same failure on the same disk that the scene lane answers 503 for.
+ */
+describe('the deploy lane says WHOSE fault it was (v509)', () => {
+  it('a green arc whose records the disk REFUSES is a machine failure — the kind rides the answer', async () => {
+    const { spawnLike } = fakeSpawn();
+    const { fs } = fakeFs();
+    const broken: StudioDeployFs = {
+      ...fs,
+      appendFileSync: () => {
+        throw Object.assign(new Error('ENOSPC: no space left on device, open \'.nexus/deployments.jsonl\''), { code: 'ENOSPC' });
+      },
+    };
+    const a = await runStudioDeployArc({ spawnLike, fs: broken, recordsPath: 'records.jsonl' });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('failed');
+    expect(a.failure).toBe('the-machine');
+    expect(a.reason).toContain('the record did not land');
+    expect(a.reason).toContain('ENOSPC');
+    expect(a.facts).toEqual([]);
+    expect(a.recordsPath).toBeUndefined();
+  });
+
+  it('a RECORDED deploy names no kind — an answered door is a 200', async () => {
+    const { spawnLike } = fakeSpawn();
+    const { fs } = fakeFs();
+    const a = await runStudioDeployArc({ spawnLike, fs, recordsPath: 'records.jsonl' });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('recorded');
+    expect(a.failure).toBeUndefined();
+  });
+
+  it('a NOT-GREEN arc names no kind either — the arc answered about the build, and the door answers 200', async () => {
+    const { spawnLike } = fakeSpawn(3);
+    const { fs } = fakeFs();
+    const a = await runStudioDeployArc({ spawnLike, fs });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('not-green');
+    expect(a.failure).toBeUndefined();
+  });
+});

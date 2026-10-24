@@ -287,3 +287,83 @@ describe('the scene-save probe’s version stamp (v471)', () => {
     expect('serverVersion' in deleted).toBe(false);
   });
 });
+
+
+/**
+ * v509 (ADR 0016 amendment 502) — WHOSE fault a failed disk ask is: the ask, or the machine.
+ *
+ * Until now every failure on this lane answered the same way — `ok: false` plus a sentence — and the
+ * route above turned every one of them into a 400. But the sentences are two different truths: a name
+ * the store refuses is the CALLER’s to see, and a disk that says EACCES is the machine’s. The answers
+ * now carry the kind (doorFailure.ts), and the door derives its status from it: 400 for the ask, 503
+ * for the machine. The device errors below are injected the way node:fs really throws — with a `code`
+ * of their own — and the rename case is the store’s own wrapper, which keeps the failed syscall’s
+ * words and drops its field.
+ */
+describe('the disk lane says WHOSE fault it was (v509)', () => {
+  it('a device error is the machine’s — the raw fs sentence rides the answer with the kind that earns a 503', () => {
+    const { fs } = memFs();
+    const broken: FsLike = {
+      ...fs,
+      writeFileSync: () => {
+        throw Object.assign(new Error("EACCES: permission denied, open 'studio-saves/last-saved.tmp'"), { code: 'EACCES' });
+      },
+    };
+    const write = writeStudioSceneSave({ path: 'last-saved', file: SAVE_FILE }, { fs: broken, root: 'studio-saves' });
+    expect(write.ok).toBe(false);
+    expect(write.failure).toBe('the-machine');
+    expect(write.reason).toContain('EACCES');
+  });
+
+  it('a failed RENAME is the machine’s too — the store kept the failed syscall’s words and dropped its code, and the classifier still knows', () => {
+    const { fs, files } = memFs();
+    const broken: FsLike = {
+      ...fs,
+      renameSync: () => {
+        throw Object.assign(new Error('ENOSPC: no space left on device, rename'), { code: 'ENOSPC' });
+      },
+    };
+    const write = writeStudioSceneSave({ path: 'last-saved', file: SAVE_FILE }, { fs: broken, root: 'studio-saves' });
+    expect(write.ok).toBe(false);
+    expect(write.failure).toBe('the-machine');
+    expect(write.reason).toContain('renaming');
+    expect(write.reason).toContain('ENOSPC');
+    expect(files.has('studio-saves/last-saved.tmp'), 'the store cleaned its own temp up').toBe(false);
+  });
+
+  it('a refused NAME is the ask — the store’s own sentence, and the kind that earns a 400', () => {
+    const { fs } = memFs();
+    const options = { fs, root: 'studio-saves' };
+    const write = writeStudioSceneSave({ path: 'C:/escape.json', file: SAVE_FILE }, options);
+    expect(write.ok).toBe(false);
+    expect(write.failure).toBe('the-ask');
+    expect(write.reason).toContain('absolute path');
+    const deleted = deleteStudioSceneSave({ path: 'C:/escape.json' }, options);
+    expect(deleted.failure).toBe('the-ask');
+    const renamed = renameStudioSceneSave({ from: 'a', to: 'C:/escape.json' }, options);
+    expect(renamed.failure).toBe('the-ask');
+  });
+
+  it('a store that cannot be BUILT is the machine’s — this server’s own root, never the caller’s ask', () => {
+    const { fs } = memFs();
+    const bad = { fs, root: '../elsewhere' };
+    const write = writeStudioSceneSave({ path: 'last-saved', file: SAVE_FILE }, bad);
+    expect(write.ok).toBe(false);
+    expect(write.failure).toBe('the-machine');
+    expect(write.reason).toContain('walks out');
+    const read = readStudioSceneSave({ path: 'last-saved' }, bad);
+    expect(read.failure).toBe('the-machine');
+    const deleted = deleteStudioSceneSave({ path: 'last-saved' }, bad);
+    expect(deleted.failure).toBe('the-machine');
+    const renamed = renameStudioSceneSave({ from: 'a', to: 'b' }, bad);
+    expect(renamed.failure).toBe('the-machine');
+  });
+
+  it('a missing save names NO kind — “not there” is an answer about the name, and doorFailure reads no kind as the ask', () => {
+    const { fs } = memFs();
+    const read = readStudioSceneSave({ path: 'nowhere' }, { fs, root: 'studio-saves' });
+    expect(read.ok).toBe(false);
+    expect(read.failure).toBeUndefined();
+    expect(read.reason).toContain('is not in the store');
+  });
+});

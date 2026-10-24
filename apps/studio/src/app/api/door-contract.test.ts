@@ -5,6 +5,8 @@ import { GET as buildArcGet, POST as buildArcPost } from './agent/build-arc/rout
 import { DELETE as commentTakeBack } from './comments/[commentId]/route';
 import { GET as commentsGet, POST as commentsPost } from './comments/route';
 import { POST as containerPost } from './agent/container/route';
+import { POST as saveFsPost } from './agent/save-fs/route';
+import { POST as worldSavesPost } from './agent/world-saves/route';
 import { POST as deployPost } from './agent/deploy/route';
 import { GET as economyGet } from './economy/route';
 import { GET as followsGet, POST as followsPost } from './follows/route';
@@ -39,9 +41,108 @@ import { GET as tipsGet, POST as tipsPost } from './tips/route';
  * not answer at all is a 503.**
  *
  * The service is faked at the `fetch` boundary, the same way each door's own suite fakes it.
+ *
+ * v509 — the AGENT doors joined the same discipline. They had kept their author’s number: every one
+ * of them answered 400 for `ok: false`, whether the caller’s ask was refused or the MACHINE failed,
+ * and a lib that threw took the route down as a bare 500 with no sentence at all. `doorFailure.ts`
+ * names the two kinds once and every agent door now derives its status from them: 400 for a refused
+ * ask, 503 for a failed machine, 200 for an answered door. The agent libs are faked at their OWN
+ * seam — a delegating stub that is the real lib, byte for byte, until a failure mode says otherwise
+ * — because a failing machine cannot be provoked through a route any other way: the fs is injected
+ * one seam BELOW the route (each lib builds its own store over node:fs), and docker is not on the
+ * test machine. The two disk doors’ libs answer every failure as an answer, so only their ANSWER
+ * mode is faked; the three arc doors’ libs can also throw, and that is faked too.
  */
 
 let mode: 'ok' | 'refuse' = 'ok';
+
+/**
+ * v509 — which way the five agent libs are faked. `ok` is the REAL lib (the default, so every other
+ * block in this file still grades the real doors); `machine` is a lib that answers with the machine’s
+ * own failure; `throw` is a lib that breaks the house’s rule and throws instead of answering.
+ */
+let agentMode: 'ok' | 'machine' | 'throw' = 'ok';
+
+vi.mock('@/lib/containerServer', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/containerServer')>();
+  return {
+    ...actual,
+    runContainerExec: async (...args: Parameters<typeof actual.runContainerExec>) => {
+      if (agentMode === 'throw') throw new Error('spawn docker ENOENT');
+      if (agentMode === 'machine') {
+        return { ok: false, reason: 'the container runtime is not on this machine', failure: 'the-machine' as const };
+      }
+      return actual.runContainerExec(...args);
+    },
+  };
+});
+
+vi.mock('@/lib/buildServer', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/buildServer')>();
+  return {
+    ...actual,
+    runStudioBuildArc: async (...args: Parameters<typeof actual.runStudioBuildArc>) => {
+      if (agentMode === 'throw') throw new Error('the build engine could not be summoned');
+      if (agentMode === 'machine') {
+        return { ok: false, reason: 'the container host refused the walk', failure: 'the-machine' as const };
+      }
+      return actual.runStudioBuildArc(...args);
+    },
+  };
+});
+
+vi.mock('@/lib/deployServer', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/deployServer')>();
+  return {
+    ...actual,
+    runStudioDeployArc: async (...args: Parameters<typeof actual.runStudioDeployArc>) => {
+      if (agentMode === 'throw') throw new Error('the records file could not be opened');
+      if (agentMode === 'machine') {
+        // The arc’s own honest shape when the sink refused: ok:true, the verdict is failed, and the
+        // machine’s words name the disk. A 200 here would read as a deploy that was attempted.
+        return {
+          ok: true as const,
+          status: 'failed' as const,
+          reason: 'runtime was not recorded: the record did not land: ENOSPC: no space left on device',
+          goal: 'verify the runtime',
+          build: { status: 'completed', detail: 'build arc: 2/2 step(s) green' },
+          detail: 'deploy arc: nothing recorded — failed at runtime',
+          facts: [],
+          unmeasured: [],
+          deployReceipts: [],
+          failure: 'the-machine' as const,
+        };
+      }
+      return actual.runStudioDeployArc(...args);
+    },
+  };
+});
+
+vi.mock('@/lib/saveFsServer', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/saveFsServer')>();
+  return {
+    ...actual,
+    writeStudioSceneSave: (...args: Parameters<typeof actual.writeStudioSceneSave>) => {
+      if (agentMode === 'machine') {
+        return { ok: false, reason: 'EISDIR: illegal operation on a directory, read', failure: 'the-machine' as const };
+      }
+      return actual.writeStudioSceneSave(...args);
+    },
+  };
+});
+
+vi.mock('@/lib/worldSaveServer', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/worldSaveServer')>();
+  return {
+    ...actual,
+    writeWorldSave: (...args: Parameters<typeof actual.writeWorldSave>) => {
+      if (agentMode === 'machine') {
+        return { ok: false, reason: 'ENOSPC: no space left on device, write', failure: 'the-machine' as const };
+      }
+      return actual.writeWorldSave(...args);
+    },
+  };
+});
 
 /** v508 — every URL the stub was asked, so a test can say what the door ASKED, not only what it answered. */
 const seen: string[] = [];
@@ -90,6 +191,7 @@ function stubService() {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  agentMode = 'ok';
 });
 
 const claim = { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
@@ -421,5 +523,93 @@ describe('the door contract — the doors that answer NOTHING about the service 
     expect(typeof audit.GET).toBe('function');
     expect(audit.DELETE).toBeUndefined();
     expect(audit.POST).toBeUndefined();
+  });
+});
+
+
+describe('the door contract — the AGENT doors, and WHOSE fault it was (v509)', () => {
+  // v507 gave the service doors one rule and v508 gave them one name discipline; the agent doors kept
+  // their author’s number. Every one of them answered 400 for `ok: false` — a refused ask and a failed
+  // machine alike — and a lib that threw took the route down as a bare 500 with no sentence. Now the
+  // status is derived from the answer’s kind (doorFailure.ts): the ask is a 400, the machine is a 503,
+  // an answered door is a 200 — the same answer to the same question on every door in the house.
+  it('a refused ASK is a 400 on every agent door — the door’s own sentence, before the machine is asked', async () => {
+    agentMode = 'ok';
+    // container: a malformed argv, refused before docker is asked at all
+    const container = await containerPost(jsonPost('/api/agent/container', { argv: [] }));
+    expect(container.status).toBe(400);
+    expect((await container.json()).reason).toBe('argv must be a non-empty array of non-empty strings (no shell strings)');
+    // the two disk doors: a name the store refuses, answered with the store’s own sentence
+    const save = await saveFsPost(jsonPost('/api/agent/save-fs', { action: 'write', path: 'C:/escape.json', file: { a: 1 } }));
+    expect(save.status).toBe(400);
+    expect((await save.json()).reason).toContain('absolute path');
+    const world = await worldSavesPost(jsonPost('/api/agent/world-saves', { action: 'write', path: 'C:/escape.json', file: { world: {} } }));
+    expect(world.status).toBe(400);
+    expect((await world.json()).reason).toContain('absolute path');
+  });
+
+  it('a failed MACHINE is a 503 on the container door — not a 400, and not a bare 500', async () => {
+    agentMode = 'machine';
+    const res = await containerPost(jsonPost('/api/agent/container', { argv: ['node', '--version'] }));
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.failure).toBe('the-machine');
+    expect(body.reason).toContain('the container runtime is not on this machine');
+  });
+
+  it('a failed MACHINE is a 503 on the build-arc door', async () => {
+    agentMode = 'machine';
+    const res = await buildArcPost(jsonPost('/api/agent/build-arc', { goal: 'verify the runtime' }));
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.failure).toBe('the-machine');
+    expect(body.reason).toContain('the container host refused the walk');
+  });
+
+  it('a failed MACHINE is a 503 on the deploy door — even though the arc answered ok: true', async () => {
+    // The deploy arc’s honest answer when the records sink refused is ok:true with the verdict
+    // “failed” and the machine’s own words. A 200 for that reads as a deploy that was attempted.
+    agentMode = 'machine';
+    const res = await deployPost(jsonPost('/api/agent/deploy', { goal: 'verify the runtime' }));
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('failed');
+    expect(body.failure).toBe('the-machine');
+    expect(body.reason).toContain('the record did not land');
+  });
+
+  it('a failed MACHINE is a 503 on the save-fs door — the same disk, the same number the scene lane earns', async () => {
+    agentMode = 'machine';
+    const res = await saveFsPost(jsonPost('/api/agent/save-fs', { action: 'write', path: 'last-saved', file: { a: 1 } }));
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.failure).toBe('the-machine');
+    expect(body.reason).toContain('EISDIR');
+  });
+
+  it('a failed MACHINE is a 503 on the world-saves door', async () => {
+    agentMode = 'machine';
+    const res = await worldSavesPost(jsonPost('/api/agent/world-saves', { action: 'write', path: 'world-saved', file: { world: {} } }));
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.failure).toBe('the-machine');
+    expect(body.reason).toContain('ENOSPC');
+  });
+
+  it('a lib that THROWS is the machine failing — 503 with the machine’s own words, on every arc door', async () => {
+    // The house’s rule since v284: a lib answers a failed ask with a reason, never a thrown error. A
+    // lib that throws anyway is news — and the door now says whose it was instead of dying as a bare 500.
+    agentMode = 'throw';
+    const container = await containerPost(jsonPost('/api/agent/container', { argv: ['node', '--version'] }));
+    expect(container.status).toBe(503);
+    expect((await container.json()).reason).toBe('the container exec threw instead of answering: spawn docker ENOENT');
+    const build = await buildArcPost(jsonPost('/api/agent/build-arc', { goal: 'verify the runtime' }));
+    expect(build.status).toBe(503);
+    expect((await build.json()).reason).toBe('the build arc threw instead of answering: the build engine could not be summoned');
+    const deploy = await deployPost(jsonPost('/api/agent/deploy', { goal: 'verify the runtime' }));
+    expect(deploy.status).toBe(503);
+    expect((await deploy.json()).reason).toBe('the deploy arc threw instead of answering: the records file could not be opened');
   });
 });

@@ -287,3 +287,70 @@ describe('the probe’s version stamp (v470)', () => {
     expect('serverVersion' in read).toBe(false);
   });
 });
+
+
+/**
+ * v509 (ADR 0016 amendment 502) — WHOSE fault a failed world-save ask is: the ask, or the machine.
+ *
+ * The world lane answers failures the same way the scene lane does (v509): a name the store refuses is
+ * the caller’s to see and earns a 400; a disk that says no is the machine’s and earns a 503. The device
+ * errors below are injected the way node:fs really throws — with a `code` of their own.
+ */
+describe('the world lane says WHOSE fault it was (v509)', () => {
+  it('a device error is the machine’s — the raw fs sentence rides the answer with the kind that earns a 503', () => {
+    const { fs } = memFs();
+    const broken: FsLike = {
+      ...fs,
+      writeFileSync: () => {
+        throw Object.assign(new Error("ENOSPC: no space left on device, open 'world-saves/world-saved.tmp'"), { code: 'ENOSPC' });
+      },
+    };
+    const write = writeWorldSave({ path: STUDIO_WORLD_DISK_SAVE_PATH, file: WORLD_SAVE_FILE }, { fs: broken, root: 'world-saves' });
+    expect(write.ok).toBe(false);
+    expect(write.failure).toBe('the-machine');
+    expect(write.reason).toContain('ENOSPC');
+  });
+
+  it('a failed RENAME is the machine’s too — the store’s wrapper kept the failed syscall’s words and dropped its code', () => {
+    const { fs } = memFs();
+    const broken: FsLike = {
+      ...fs,
+      renameSync: () => {
+        throw Object.assign(new Error('EACCES: permission denied, rename'), { code: 'EACCES' });
+      },
+    };
+    const write = writeWorldSave({ path: STUDIO_WORLD_DISK_SAVE_PATH, file: WORLD_SAVE_FILE }, { fs: broken, root: 'world-saves' });
+    expect(write.ok).toBe(false);
+    expect(write.failure).toBe('the-machine');
+    expect(write.reason).toContain('renaming');
+    expect(write.reason).toContain('EACCES');
+  });
+
+  it('a refused NAME is the ask — the store’s own sentence, and the kind that earns a 400', () => {
+    const { fs } = memFs();
+    const options = { fs, root: 'world-saves' };
+    const write = writeWorldSave({ path: 'C:/escape.json', file: WORLD_SAVE_FILE }, options);
+    expect(write.ok).toBe(false);
+    expect(write.failure).toBe('the-ask');
+    expect(write.reason).toContain('absolute path');
+  });
+
+  it('a store that cannot be BUILT is the machine’s — this server’s own root, never the caller’s ask', () => {
+    const { fs } = memFs();
+    const bad = { fs, root: '../elsewhere' };
+    const write = writeWorldSave({ path: STUDIO_WORLD_DISK_SAVE_PATH, file: WORLD_SAVE_FILE }, bad);
+    expect(write.ok).toBe(false);
+    expect(write.failure).toBe('the-machine');
+    expect(write.reason).toContain('walks out');
+    const read = readWorldSave({ path: STUDIO_WORLD_DISK_SAVE_PATH }, bad);
+    expect(read.failure).toBe('the-machine');
+  });
+
+  it('a missing world save names NO kind — “not there” is an answer about the name, and doorFailure reads no kind as the ask', () => {
+    const { fs } = memFs();
+    const read = readWorldSave({ path: 'nowhere' }, { fs, root: 'world-saves' });
+    expect(read.ok).toBe(false);
+    expect(read.failure).toBeUndefined();
+    expect(read.reason).toContain('is not in the store');
+  });
+});

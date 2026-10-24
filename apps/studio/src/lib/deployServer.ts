@@ -30,6 +30,8 @@ import type { SpawnLike } from '@nexus/exec-host';
 
 import { buildArcState, STUDIO_BUILD_ARC_ID, STUDIO_BUILD_ENGINE, runStudioBuildArcOutcome, type BuildArcState } from './buildServer';
 
+import type { AskFailureKind } from './doorFailure';
+
 /** Where the deploy records live — one JSONL line per recorded fact, append-only. */
 export const STUDIO_DEPLOY_RECORDS_PATH = '.nexus/deployments.jsonl';
 
@@ -74,8 +76,15 @@ export function createStudioDeploySink(options: {
   arcId: string;
   goal: string;
   engine: string;
-}): { sink: DeploySink; records: DeployRecord[] } {
+}): { sink: DeploySink; records: DeployRecord[]; refusals: string[] } {
   const records: DeployRecord[] = [];
+  /**
+   * v509: the machine’s own words, one entry per fact the sink could not land. A refusal here is
+   * never the caller’s ask — the records file is THIS server’s disk, and a disk that says no is a
+   * machine failure (doorFailure.ts). The words are kept so the door can answer 503 with them
+   * instead of a 200 that claims a deploy was attempted.
+   */
+  const refusals: string[] = [];
   const sink: DeploySink = async (request) => {
     const record: DeployRecord = {
       at: Date.now(),
@@ -88,12 +97,14 @@ export function createStudioDeploySink(options: {
     try {
       options.fs.appendFileSync(options.recordsPath, `${JSON.stringify(record)}\n`);
     } catch (e) {
-      return { ok: false, detail: `the record did not land: ${e instanceof Error ? e.message : String(e)}` };
+      const words = e instanceof Error ? e.message : String(e);
+      refusals.push(words);
+      return { ok: false, detail: `the record did not land: ${words}` };
     }
     records.push(record);
     return { ok: true, detail: `recorded ${request.stepId} → ${options.recordsPath}` };
   };
-  return { sink, records };
+  return { sink, records, refusals };
 }
 
 /** Count the durable lines already in the records file — 0 when none exist yet. */
@@ -210,10 +221,16 @@ export interface DeployArcAnswerFact {
  * stated reason), never errors; only an unexpected route failure is `ok: false`.
  */
 export type DeployArcAnswer =
-  | { ok: false; reason: string }
+  | { ok: false; reason: string; failure?: AskFailureKind }
   | {
       ok: true;
       status: 'recorded' | 'not-green' | 'unplanned' | 'nothing-measured' | 'no-sink' | 'denied' | 'failed';
+      /**
+       * v509: which kind of “no” rode along with an otherwise honest answer. Present when the machine
+       * failed — the records sink could not take the engine’s words — so the door answers 503 for an
+       * arc it could not perform, instead of a 200 that reads as “attempted”.
+       */
+      failure?: AskFailureKind;
       stoppedAt?: string;
       reason?: string;
       /** The goal the arc was planned for (the request's, or the face's default). */
@@ -285,7 +302,7 @@ export async function runStudioDeployArc(
   }
   const fs = options.fs ?? nodeDeployFs;
   const recordsPath = options.recordsPath ?? STUDIO_DEPLOY_RECORDS_PATH;
-  const { sink, records } = createStudioDeploySink({ fs, recordsPath, arcId: STUDIO_BUILD_ARC_ID, goal, engine: STUDIO_BUILD_ENGINE });
+  const { sink, records, refusals } = createStudioDeploySink({ fs, recordsPath, arcId: STUDIO_BUILD_ARC_ID, goal, engine: STUDIO_BUILD_ENGINE });
   const registry = registerDeployTools(new ToolRegistry(), sink);
   const checkpoint = policyCheckpoint(STUDIO_DEPLOY_CHECKPOINT_POLICY);
   const outcome = await runDeployArc(walk.outcome, { registry, checkpoint, recordReceipts: true });
@@ -297,6 +314,8 @@ export async function runStudioDeployArc(
   return {
     ok: true,
     status: outcome.status,
+    // v509: a sink that refused is the machine failing, not an attempt that came up short.
+    ...(refusals.length > 0 ? { failure: 'the-machine' as const } : {}),
     ...(outcome.stoppedAt === undefined ? {} : { stoppedAt: outcome.stoppedAt }),
     ...(outcome.reason === undefined ? {} : { reason: outcome.reason }),
     goal,
