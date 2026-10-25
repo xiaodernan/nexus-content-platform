@@ -42,6 +42,13 @@ export interface CreditEntry {
   /** Epoch milliseconds, supplied by the host — the ledger never reads a clock. */
   at: number;
   kind: 'grant' | 'spend' | 'refund' | 'adjust';
+  /**
+   * Optional opaque reference to WHAT this movement was for — the id of the thing bought, sold or
+   * paid for. Carried verbatim and never interpreted by the ledger, so a consumer can derive its
+   * own history (the marketplace reads it back as the template a purchase was for) without the
+   * ledger holding a second, purpose-specific list.
+   */
+  ref?: string;
 }
 
 /** An append-only ledger. `entries` is the ONLY state; every balance is derived from it. */
