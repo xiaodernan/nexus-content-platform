@@ -126,4 +126,26 @@ describe('layoutCache：命中判据的三种帧', () => {
     ).not.toBe(before.layout);
     expect(after.tokens, '文档没动：token 表照旧复用').toBe(before.tokens);
   });
+
+  it('换文档：缓存不得交出去别的文档的布局', () => {
+    stubFetch();
+    const first = scene('换文档 A');
+    const store = new StudioStore();
+    store.bootstrap(first.document);
+    const firstLayout = store.getSnapshot().layout;
+    expect(firstLayout).not.toBeNull();
+
+    // 换一份文档 = design.reset → generation +1 → key 整体换；缓存里那份解是第一份的，不能交出去
+    const second = scene('换文档 B');
+    store.bootstrap(second.document);
+    const after = store.getSnapshot();
+    expect(
+      after.layout,
+      '换文档后还拿到第一份文档的布局 → 缓存 key / 代数没把「文档身份」锁住',
+    ).not.toBe(firstLayout);
+    expect(
+      after.layout!.nodes[second.aId]!.node.text,
+      '布局里嵌的还是第一份文档的内容',
+    ).toBe('甲');
+  });
 });
