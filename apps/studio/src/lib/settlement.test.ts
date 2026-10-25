@@ -1,0 +1,145 @@
+/**
+ * M8 — direct coverage for the settlement statement (src/lib/settlement.ts).
+ *
+ * These pin what makes a statement trustworthy: the OPENING → movements → CLOSING shape whose
+ * closing must equal the account's whole-ledger balance for EVERY window (the reconciliation
+ * identity), inclusive bounds with open ends, and per-ref attribution as a signed net. A statement
+ * whose closing disagrees with the ledger is a statement about a different ledger.
+ */
+import { describe, expect, it } from 'vitest';
+import { appendCreditEntry, balanceOf, emptyCreditLedger, type CreditLedger } from './credits';
+import { attributionByRef, statementFor, statementLine, statementReconciles } from './settlement';
+
+function fixture(): CreditLedger {
+  let l = emptyCreditLedger();
+  const add = (id: string, accountId: string, delta: number, at: number, ref?: string, kind: 'grant' | 'spend' | 'refund' | 'adjust' = 'grant') => {
+    const d = appendCreditEntry(l, { id, accountId, delta, reason: `r-${id}`, at, kind, ...(ref === undefined ? {} : { ref }) });
+    if (!d.ok) throw new Error('fixture: ' + d.reason);
+    l = d.ledger;
+  };
+  add('g1', 'acc-1', 1000, 100); // before the window
+  add('s1', 'acc-1', -200, 200, 't1', 'spend'); // inside
+  add('g2', 'acc-1', 50, 300, undefined, 'adjust'); // inside
+  add('s2', 'acc-1', -100, 400, 't2', 'spend'); // inside
+  add('x1', 'acc-2', 700, 250, 't1'); // another account
+  return l;
+}
+
+describe('settlement: the statement shape', () => {
+  it('a whole-ledger statement opens at zero and closes at the balance', () => {
+    const s = statementFor(fixture(), 'acc-1');
+    expect(s.opening).toBe(0);
+    expect(s.earned).toBe(1050); // 1000 + 50
+    expect(s.spent).toBe(300); // 200 + 100, as a positive number
+    expect(s.closing).toBe(750);
+    expect(s.closing).toBe(balanceOf(fixture(), 'acc-1'));
+    expect(s.movements).toBe(4);
+    expect(s.firstAt).toBe(100);
+    expect(s.lastAt).toBe(400);
+    expect(s.from).toBeNull();
+    expect(s.to).toBeNull();
+  });
+
+  it('a windowed statement folds the earlier entries into the opening balance', () => {
+    const s = statementFor(fixture(), 'acc-1', { from: 200, to: 400 });
+    expect(s.opening).toBe(1000); // only g1 is strictly before the window
+    expect(s.earned).toBe(50);
+    expect(s.spent).toBe(300);
+    expect(s.closing).toBe(750); // 1000 + 50 − 300
+    expect(s.movements).toBe(3);
+    expect(s.entries.map((e) => e.id)).toEqual(['s1', 'g2', 's2']);
+    expect(s.from).toBe(200);
+    expect(s.to).toBe(400);
+  });
+
+  it('bounds are INCLUSIVE at both ends', () => {
+    const s = statementFor(fixture(), 'acc-1', { from: 200, to: 200 });
+    expect(s.entries.map((e) => e.id)).toEqual(['s1']); // the entry AT 200 is inside
+    expect(s.opening).toBe(1000);
+  });
+
+  it('an absent bound is open: no `from` is the beginning, no `to` is everything after', () => {
+    const fromOnly = statementFor(fixture(), 'acc-1', { from: 300 });
+    expect(fromOnly.entries.map((e) => e.id)).toEqual(['g2', 's2']);
+    expect(fromOnly.opening).toBe(800); // g1 (+1000) and s1 (−200) are both strictly before 300
+    expect(fromOnly.after).toBe(0); // no upper bound, so nothing happens after the close
+    const toOnly = statementFor(fixture(), 'acc-1', { to: 300 });
+    expect(toOnly.entries.map((e) => e.id)).toEqual(['g1', 's1', 'g2']);
+    expect(toOnly.opening).toBe(0);
+    expect(toOnly.after).toBe(-100); // s2 happens after the close and is carried so a reader can walk on
+  });
+
+  it('an account with nothing in the window says so rather than reporting a vacuous zero', () => {
+    const s = statementFor(fixture(), 'acc-1', { from: 9_000, to: 9_999 });
+    expect(s.movements).toBe(0);
+    expect(s.firstAt).toBeNull();
+    expect(s.lastAt).toBeNull();
+    expect(s.entries).toEqual([]);
+    expect(s.closing).toBe(s.opening); // nothing moved inside
+    expect(statementLine(s)).toContain('no movements');
+  });
+
+  it('an unknown account reconciles at zero', () => {
+    const s = statementFor(fixture(), 'nobody');
+    expect(s.movements).toBe(0);
+    expect(s.closing).toBe(0);
+    expect(statementReconciles(fixture(), s)).toBe(true);
+  });
+});
+
+describe('settlement: the reconciliation identity holds for every window', () => {
+  it('opening + earned − spent + after equals the whole-ledger balance, whatever the window', () => {
+    const ledger = fixture();
+    for (const w of [undefined, { from: 0 }, { to: 9_999 }, { from: 200, to: 400 }, { from: 250 }, { to: 250 }, { from: 100, to: 100 }, { from: 9_000 }, { to: 0 }]) {
+      for (const account of ['acc-1', 'acc-2', 'nobody']) {
+        const s = statementFor(ledger, account, w);
+        expect(statementReconciles(ledger, s), `${account} over ${JSON.stringify(w)}`).toBe(true);
+        expect(s.opening + s.earned - s.spent + s.after).toBe(balanceOf(ledger, account));
+      }
+    }
+  });
+
+  it('with no upper bound, `after` is zero and closing IS the whole-ledger balance', () => {
+    const ledger = fixture();
+    for (const w of [undefined, { from: 0 }, { from: 200 }, { from: 9_000 }]) {
+      const s = statementFor(ledger, 'acc-1', w);
+      expect(s.after).toBe(0);
+      expect(s.closing).toBe(balanceOf(ledger, 'acc-1'));
+    }
+  });
+
+  it('with an upper bound, closing is the balance AS OF the close and `after` walks to the present', () => {
+    const s = statementFor(fixture(), 'acc-1', { to: 250 });
+    expect(s.closing).toBe(800); // as of 250: +1000 − 200
+    expect(s.after).toBe(-50); // g2 (+50) and s2 (−100) happened after the close
+    expect(s.closing + s.after).toBe(750); // the present balance
+  });
+});
+
+describe('settlement: attribution by ref', () => {
+  it('nets each referenced thing and orders by net, then ref', () => {
+    const ledger = fixture();
+    expect(attributionByRef(ledger, 'acc-1')).toEqual([
+      { ref: 't2', net: -100, count: 1 },
+      { ref: 't1', net: -200, count: 1 },
+    ]);
+    // the SELLER side: acc-2 was credited through t1
+    expect(attributionByRef(ledger, 'acc-2')).toEqual([{ ref: 't1', net: 700, count: 1 }]);
+  });
+
+  it('honours the window and ignores movements that reference nothing', () => {
+    const ledger = fixture();
+    expect(attributionByRef(ledger, 'acc-1', { from: 400 })).toEqual([{ ref: 't2', net: -100, count: 1 }]);
+    expect(attributionByRef(ledger, 'acc-1', { from: 9_000 })).toEqual([]);
+  });
+});
+
+describe('settlement: the one-line verdict', () => {
+  it('names the window, the flows and the opening → closing walk', () => {
+    const line = statementLine(statementFor(fixture(), 'acc-1', { from: 200, to: 400 }));
+    expect(line).toContain('200..400');
+    expect(line).toContain('+50 / −300');
+    expect(line).toContain('1000 → 750');
+    expect(statementLine(statementFor(fixture(), 'acc-1'))).toContain('all time');
+  });
+});
