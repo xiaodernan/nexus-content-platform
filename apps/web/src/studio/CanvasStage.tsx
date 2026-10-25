@@ -464,7 +464,9 @@ export function CanvasStage() {
     <div
       ref={surfaceRef}
       data-canvas-surface
-      className="relative h-full w-full touch-none overflow-hidden bg-bg-0"
+      // overflow-clip 而不是 hidden：hidden 仍是滚动容器，聚焦/scrollIntoView 会把它滚出偏移，
+      // 而画布的 屏幕→模型 映射只认 pan/zoom，滚过之后每次点选都落在别的节点上
+      className="relative h-full w-full touch-none overflow-clip bg-bg-0"
       style={{ cursor: preview.marquee ? 'crosshair' : spaceRef.current ? 'grab' : 'default' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
