@@ -4519,3 +4519,120 @@ test('@smoke §124 状态编辑器进面板：token 绑定/透明度/描边/清�
 
   expect(errors).toEqual([]);
 });
+
+/**
+ * §124 × ADR-0062 part ⑤ 的续：状态补丁的复制与批量应用。
+ *
+ * 面板此前只能逐个节点编辑状态：同一份 hover 补丁要贴到三个元素就得手抄三次。
+ * 本片给剪贴板一个界面入口——单选复制当前页签的补丁、单选粘贴、多选一次贴给全部，
+ * 粘贴是**一条事务**（§149）。见证走真行为：撤销/重做只回滚/重放这一贴、去预览页
+ * 移上指针两个元素都变淡；多选批量贴后同样一次撤销全回去。
+ */
+test('@smoke §124 状态补丁复制/批量应用：贴到另一个元素、一次撤销只回滚这一贴', async ({ page }) => {
+  test.setTimeout(240_000);
+  const errors: string[] = [];
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  page.on('pageerror', (e) => errors.push(String(e)));
+
+  const projectId = await createProject(page, `状态复制 ${Date.now().toString(36)}`);
+  const ctaId = await layerId(page, 'Primary CTA');
+  const headlineId = await layerId(page, 'Headline');
+
+  const opacityOf = (target: Page, id: string) =>
+    target.evaluate((nodeId) => {
+      const el = document.querySelector(`[data-node-id="${nodeId}"]`);
+      return el ? getComputedStyle(el).opacity : '';
+    }, id);
+
+  // ① CTA 做一个 hover 补丁（透明度 0.5），复制它：剪贴板说清来自哪个元素的哪个状态
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await page.fill('[data-state-opacity="hover"]', '0.5');
+  await page.click('[data-state-copy="hover"]');
+  const note = page.locator('[data-states-clipboard-note]');
+  await expect(note).toContainText('Primary CTA');
+  await expect(note).toContainText('悬停');
+
+  // ② 单选 Headline 粘贴：模型里读得到 0.5（面板页签跟着剪贴板回到 hover）
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await page.click('[data-state-paste="single"]');
+  await expect(page.locator('[data-state-opacity="hover"]')).toHaveValue('0.5');
+
+  // ③ 撤销一次：只回滚「贴到 Headline」这一贴，CTA 自己的补丁不动；重做把它贴回来
+  await page.locator('[data-canvas-surface]').click({ position: { x: 6, y: 6 } });
+  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await expect(page.locator('[data-state-opacity="hover"]')).toHaveValue('1');
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await expect(page.locator('[data-state-opacity="hover"]')).toHaveValue('0.5');
+  await page.locator('[data-canvas-surface]').click({ position: { x: 6, y: 6 } });
+  await page.getByTitle('重做（Ctrl+Shift+Z）').click();
+
+  // ④ 预览页真指针兑现：两个元素悬停都变淡，移开都回到 1。
+  //    落库屏障读的是服务端文档本身：`已保存` 标签可能是上一次保存留下的，
+  //    在它上面等会让 goto 抢在这一次自动保存之前，预览页就拿到没有 states 的旧文档。
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          async ({ pid, cta, headline }) => {
+            const res = await fetch(`/api/projects/${pid}`, { cache: 'no-store' });
+            const body = (await res.json()) as {
+              document?: { pages?: { nodes: Record<string, { states?: { hover?: { opacity?: number } } }> }[] };
+            };
+            const nodes = body.document?.pages?.[0]?.nodes ?? {};
+            return `${nodes[cta]?.states?.hover?.opacity ?? 'x'}/${nodes[headline]?.states?.hover?.opacity ?? 'x'}`;
+          },
+          { pid: projectId, cta: ctaId, headline: headlineId },
+        ),
+      { timeout: 30_000 },
+    )
+    .toBe('0.5/0.5');
+  await page.goto(`/preview/${projectId}`);
+  const previewCta = page.locator(`[data-node-id="${ctaId}"]`);
+  const previewHeadline = page.locator(`[data-node-id="${headlineId}"]`);
+  await expect(previewCta).toBeVisible();
+  // 状态条只在 stateSheet 非空时出现：先钉住"服务端文档带着 states"这个前提，
+  // 否则下面悬停失败时分不清是没落库还是投影坏了
+  await expect(page.locator('[data-state-preview]')).toBeVisible();
+  await previewCta.hover();
+  await expect.poll(() => opacityOf(page, ctaId)).toBe('0.5');
+  await page.mouse.move(0, 0);
+  await expect.poll(() => opacityOf(page, ctaId)).toBe('1');
+  await previewHeadline.hover();
+  await expect.poll(() => opacityOf(page, headlineId)).toBe('0.5');
+  await page.mouse.move(0, 0);
+  await expect.poll(() => opacityOf(page, headlineId)).toBe('1');
+
+  // ⑤ 回 Studio（剪贴板是会话内的视图态，重新复制一次），多选（Shift 追加）批量贴：
+  //    一次贴给两个元素，撤销一次全部回滚、源元素不受影响
+  await page.goto(`/studio/${projectId}`);
+  await waitForCanvas(page);
+  // Headline 身上已经带着上一段落库的 0.5，批量贴之前先把复制源改成 0.4：
+  // 不然"撤销后回到 0.5"和"撤销没生效"看起来一模一样
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await page.fill('[data-state-opacity="hover"]', '0.4');
+  await page.click('[data-state-copy="hover"]');
+  await page.click(`[data-node-id="${headlineId}"]`, { modifiers: ['Shift'] });
+  const batch = page.locator('[data-state-paste-batch="2"]');
+  await expect(batch).toBeVisible();
+  await expect(batch).toContainText('2 个元素');
+  await batch.click();
+  // 点击已选中的元素是"准备拖动"，不会把多选塌成单选：先点空白清选区再逐个核对
+  await page.locator('[data-canvas-surface]').click({ position: { x: 6, y: 6 } });
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await expect(page.locator('[data-state-opacity="hover"]')).toHaveValue('0.4');
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await expect(page.locator('[data-state-opacity="hover"]')).toHaveValue('0.4');
+
+  // 撤销只回滚这一贴：Headline 回到它自己上一次的 0.5，CTA 保留 0.4 那次编辑
+  await page.locator('[data-canvas-surface]').click({ position: { x: 6, y: 6 } });
+  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await expect(page.locator('[data-state-opacity="hover"]')).toHaveValue('0.5');
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await expect(page.locator('[data-state-opacity="hover"]')).toHaveValue('0.4');
+
+  expect(errors).toEqual([]);
+});

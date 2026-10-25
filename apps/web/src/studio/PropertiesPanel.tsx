@@ -15,6 +15,7 @@ import {
 } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
 import { resolveColor } from './render';
+import { STATE_LABELS } from './state-labels';
 import { studio, useStudio, useStudioReady } from './store';
 
 const FITS: { value: NonNullable<Extract<Paint, { kind: 'image' }>['fit']>; label: string }[] = [
@@ -197,7 +198,36 @@ export function PropertiesPanel() {
         {nodes.length === 1 ? (
           <StateEditor node={nodes[0]!} write={write} tokens={state.tokens} mode={state.activeMode} colorTokens={tokensOfType(['color'])} />
         ) : (
-          <p className="text-12 text-fg-3">多选时请逐个元素编辑状态补丁</p>
+          <div className="flex flex-col gap-[var(--nexus-space-2)]">
+            <p className="text-12 text-fg-3">
+              多选时不做逐通道编辑：在一个元素上复制状态补丁，再整份贴给选中的 {nodes.length} 个元素（一次事务，撤销一次全回去）。
+            </p>
+            {state.statesClipboard ? (
+              <p className="text-11 text-fg-3" data-states-clipboard-note>
+                剪贴板：{state.statesClipboard.sourceName} 的「{STATE_LABELS[state.statesClipboard.state]}」补丁
+              </p>
+            ) : (
+              <p className="text-11 text-fg-3" data-states-clipboard-empty>
+                剪贴板为空：先单选一个已有状态补丁的元素，点「复制」。
+              </p>
+            )}
+            <button
+              type="button"
+              disabled={!state.statesClipboard}
+              onClick={() => {
+                if (state.statesClipboard) studio.pasteStates(nodes.map((n) => n.id));
+              }}
+              className={cn(
+                'rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-12',
+                state.statesClipboard ? 'text-fg-2 hover:bg-bg-2' : 'cursor-not-allowed text-fg-3 opacity-50',
+              )}
+              data-state-paste-batch={nodes.length}
+            >
+              {state.statesClipboard
+                ? `粘贴「${STATE_LABELS[state.statesClipboard.state]}」补丁到 ${nodes.length} 个元素`
+                : '粘贴到选中元素'}
+            </button>
+          </div>
         )}
       </Section>
 
@@ -220,16 +250,6 @@ export function PropertiesPanel() {
     </div>
   );
 }
-
-const STATE_LABELS: Record<NodeState, string> = {
-  hover: '悬停',
-  active: '按下',
-  focus: '聚焦',
-  disabled: '禁用',
-  loading: '加载中',
-  error: '错误',
-  success: '成功',
-};
 
 /**
  * §124 交互状态编辑器（ADR-0062「下一片的事」）：状态补丁从此不只有代码视图一个入口。
@@ -255,6 +275,7 @@ function StateEditor({
   const [active, setActive] = useState<NodeState>('hover');
   // 颜色输入沿用 FillList 的草稿+失焦提交：拖动取色轮不产生一串可撤销事务
   const [drafts, setDrafts] = useState<{ fill?: string; stroke?: string; shadow?: string }>({});
+  const { statesClipboard } = useStudio();
   const patch = node.states?.[active];
   const isText = node.type === 'text';
   const solid = patch?.fills?.find((p) => p.kind === 'solid' && p.visible !== false);
@@ -306,6 +327,49 @@ function StateEditor({
         ))}
       </div>
       <p className="text-11 text-fg-3">画布不预览状态（避免干扰选择与拖拽）；移上指针的效果去预览或发布页看（ADR-0062）。</p>
+
+      <div className="flex flex-wrap items-center gap-1">
+        <button
+          type="button"
+          onClick={() => studio.copyStates(node.id, active)}
+          disabled={!patch || !Object.keys(patch).length}
+          title={patch && Object.keys(patch).length ? `复制「${STATE_LABELS[active]}」的整份补丁` : `「${STATE_LABELS[active]}」还没有补丁，没有可复制的通道`}
+          className={cn(
+            'rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11',
+            patch && Object.keys(patch).length ? 'text-fg-2 hover:bg-bg-2' : 'cursor-not-allowed text-fg-3 opacity-50',
+          )}
+          data-state-copy={active}
+        >
+          复制「{STATE_LABELS[active]}」补丁
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!statesClipboard) return;
+            studio.pasteStates([node.id]);
+            setActive(statesClipboard.state);
+            setDrafts({});
+          }}
+          disabled={!statesClipboard}
+          title={
+            statesClipboard
+              ? `粘贴 ${statesClipboard.sourceName} 的「${STATE_LABELS[statesClipboard.state]}」补丁（整通道覆盖）`
+              : '剪贴板为空：先选一个已有状态补丁的元素复制'
+          }
+          className={cn(
+            'rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11',
+            statesClipboard ? 'text-fg-2 hover:bg-bg-2' : 'cursor-not-allowed text-fg-3 opacity-50',
+          )}
+          data-state-paste="single"
+        >
+          粘贴{statesClipboard ? `「${STATE_LABELS[statesClipboard.state]}」` : ''}补丁
+        </button>
+      </div>
+      {statesClipboard ? (
+        <p className="text-11 text-fg-3" data-states-clipboard-note>
+          剪贴板：{statesClipboard.sourceName} 的「{STATE_LABELS[statesClipboard.state]}」补丁（粘贴会整份覆盖目标这个状态的通道）
+        </p>
+      ) : null}
 
       <div className="flex items-center gap-2">
         <span className="w-14 shrink-0 text-12 text-fg-2">{isText ? '字色' : '背景'}</span>

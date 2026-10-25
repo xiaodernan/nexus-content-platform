@@ -23,6 +23,8 @@ import {
   type DocumentDiff,
   type HistoryEntry,
   type NodeId,
+  type NodeState,
+  type NodeStateStyle,
   type NodeType,
   type Page,
   type PatchOp,
@@ -37,6 +39,7 @@ import type { VariantEntry } from '@/server/domain/variants';
 import type { Publication, Visibility } from '@/server/domain/publish';
 import { apiAssetUrl, assetContextFor, type AssetUrlContext } from './assets';
 import { csrfHeaders } from '@/lib/csrf';
+import { STATE_LABELS } from './state-labels';
 
 /**
  * Studio 客户端状态：唯一真值仍然是 DesignStore 里的 DesignDocument（§9/§16）。
@@ -50,6 +53,17 @@ import { csrfHeaders } from '@/lib/csrf';
 export type ViewportMode = 'design' | BreakpointName;
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+/**
+ * §124 状态补丁的剪贴板（ADR-0062 part ⑤ 的续）：一条**视图态**，不落库、不进撤销栈。
+ * 只存一份补丁 + 它来自哪个节点的哪个状态，粘贴时整通道覆盖（与面板逐通道写入同一语义）。
+ */
+export interface StatesClipboard {
+  state: NodeState;
+  patch: NodeStateStyle;
+  sourceNodeId: NodeId;
+  sourceName: string;
+}
 
 /** Compare（§27）的一份结果：比较的快照 + 与当前文档的字段级差异 */
 export interface CompareResult {
@@ -114,6 +128,8 @@ export interface StudioSnapshot {
   assetError: string | null;
   /** 上传成功后的一次性回执，例如"已剥离 EXIF"；下一次动作即清除 */
   assetNotice: string | null;
+  /** §124 状态补丁剪贴板：null = 还没复制过（粘贴入口据此禁用，不是"贴了个空补丁"） */
+  statesClipboard: StatesClipboard | null;
   revision: number;
   activeMode: string | null;
 }
@@ -231,6 +247,7 @@ export class StudioStore {
   private assetBusyValue = false;
   private assetErrorValue: string | null = null;
   private assetNoticeValue: string | null = null;
+  private statesClipboardValue: StatesClipboard | null = null;
 
   constructor() {
     this.design.subscribe(() => this.commit());
@@ -346,6 +363,7 @@ export class StudioStore {
       assetBusy: this.assetBusyValue,
       assetError: this.assetErrorValue,
       assetNotice: this.assetNoticeValue,
+      statesClipboard: this.statesClipboardValue,
       revision: state.revision,
       activeMode: document.activeMode ?? null,
     };
@@ -497,6 +515,11 @@ export class StudioStore {
         throw new Error(body?.message ?? body?.error ?? `HTTP ${res.status}`);
       }
       const body = (await res.json()) as { document: DesignDocument };
+      // §147 流式首屏：这份 GET 在飞的那几百毫秒里，服务端随 HTML 下来的同一份文档
+      // 可能已经 bootstrap 装上，用户也已经开始选元素/编辑。这里再 reset 一次会把
+      // 选择和这段时间的编辑一起抹掉——表现是"刚点中的元素自己没了"。
+      // loadedFor 仍是本项目且已 ready，说明装进来的就是同一份文档，保留会话状态。
+      if (this.ready && this.loadedFor === projectId) return;
       this.design.reset(body.document);
       this.selection = [];
       this.dirty = false;
@@ -1296,6 +1319,44 @@ export class StudioStore {
     const ids = nodeIds.filter((id) => this.snapshot.page?.nodes[id]);
     if (!ids.length) return;
     this.execute(label ?? `修改 ${path}`, ids.map((id) => ({ op: 'set', nodeId: id, path, value })));
+  }
+
+  /**
+   * §124：复制某个状态补丁到剪贴板。空补丁没有可贴的东西，返回 false 而不是复制一份空对象——
+   * 否则"粘贴"看着成功、生成器一个类都不多（§159）。
+   */
+  copyStates(nodeId: NodeId, state: NodeState): boolean {
+    const node = this.snapshot.page?.nodes[nodeId];
+    const patch = node?.states?.[state];
+    if (!node || !patch || !Object.keys(patch).length) return false;
+    this.statesClipboardValue = {
+      state,
+      patch: structuredClone(patch),
+      sourceNodeId: nodeId,
+      sourceName: node.name,
+    };
+    this.commit();
+    return true;
+  }
+
+  /**
+   * §124：把剪贴板里的状态补丁整份贴到这些节点上，返回真正落到的节点数。
+   *
+   * 整通道替换（ADR-0062 withState）：贴过去的补丁覆盖目标节点该状态原有的全部通道，
+   * 不会与它已有的通道逐项合并。所有节点合成**一条**命令，撤销一次全回去（§149）。
+   * 同一份补丁值传给每个 op 是安全的：applyPatch 对每个 set 都会 clone 一次（§16 的唯一写入方），
+   * 贴完的节点之间、以及它们与剪贴板之间不共享可变对象。
+   */
+  pasteStates(nodeIds: readonly NodeId[]): number {
+    const clip = this.statesClipboardValue;
+    if (!clip) return 0;
+    const ids = nodeIds.filter((id) => this.snapshot.page?.nodes[id]);
+    if (!ids.length) return 0;
+    this.execute(
+      `粘贴${STATE_LABELS[clip.state]}状态补丁`,
+      ids.map((id) => ({ op: 'set', nodeId: id, path: `states.${clip.state}`, value: clip.patch })),
+    );
+    return ids.length;
   }
 
   setPosition(nodeId: NodeId, x: number, y: number): void {
