@@ -111,6 +111,17 @@ export function subscriptionDaysLeftText(sub: Subscription | null, now: number):
   return `${Math.ceil((sub.expiresAt - now) / (1000 * 60 * 60 * 24))} d left`;
 }
 
+/** 展示“几个 plan · 其中 N 最新的 M”。total 是整张表的数量，displayed 是当前窗口的行数。 */
+export function planCountText(total: number, displayed: number): string {
+  return `${total} plans · showing the ${displayed} newest of ${total}`;
+}
+
+/** 计划已退役的展示文本。currentActive 为 false 或 null 表示已退役，否则表示正在出售。 */
+export function planRetiredText(currentActive: boolean | null, currentPriceCents: number | null): string {
+  if (currentActive === false || currentPriceCents === null) return 'the plan is no longer on offer';
+  return 'the plan has changed: the price is now ¥' + (currentPriceCents / 100).toFixed(2);
+}
+
 /** 单条打赏占全部打赏总额的百分比（整数，0–100）。totalCents <= 0 时返回 0，避免除零。 */
 export function tipPercentShare(tip: Tip, totalCents: number): number {
   if (!totalCents || totalCents <= 0) return 0;
