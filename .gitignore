@@ -63,3 +63,12 @@ vitest.config.ts.timestamp-*.mjs
 # reason .scratch/ is: an untracked foreign tree in the working directory is one `git add -A` away from being
 # swept into an unrelated commit, and amendment 215 records that happening once already.
 .workbuddy-ai/
+
+# scratch scripts and commit-message drafts. Measured 2026-10-25: 361 untracked `tmp_*.py` debug
+# scripts and a `commit_msg.txt` in the working tree — the same hazard `.scratch/` and
+# `.workbuddy-ai/` above exist for, one `git add -A` away from being swept into an unrelated
+# commit (amendments 196 and 215 each record that happening). None is tracked
+# (`git ls-files "tmp_*"` → 0), so ignoring the pattern deletes nothing; `git add -f` still
+# forces one in if a scratch file is ever meant to land.
+tmp_*
+commit_msg.txt
