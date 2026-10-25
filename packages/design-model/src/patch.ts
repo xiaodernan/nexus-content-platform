@@ -7,6 +7,12 @@ import { clone, findPage, requireNode } from "./nodes";
  */
 export type PatchOp =
   | { op: "set"; nodeId: string; path: string; value: unknown }
+  /**
+   * 删除一个字段（`set` 的逆）。`set` 的 `value` 在内存里允许 undefined 表示"删掉"，
+   * 但 undefined 过不了 JSON：报文里那个键会整条消失。所以撤销"往空处新增字段"
+   * 必须发成 unset，而不是一条没值的 set。
+   */
+  | { op: "unset"; nodeId: string; path: string }
   | {
       op: "merge";
       nodeId: string;
@@ -153,6 +159,18 @@ function pathSet(
   current[parts[parts.length - 1]!] = value;
 }
 
+function pathUnset(target: Record<string, unknown>, path: string): void {
+  const parts = path.split(".");
+  let current: Record<string, unknown> = target;
+  for (let i = 0; i < parts.length - 1; i += 1) {
+    const next = current[parts[i]!];
+    // 中间层不存在/不是对象：本来就没有这个字段，删除是幂等的
+    if (next === null || typeof next !== "object") return;
+    current = next as Record<string, unknown>;
+  }
+  delete current[parts[parts.length - 1]!];
+}
+
 function deepMergeInto(
   target: Record<string, unknown>,
   patch: Record<string, unknown>,
@@ -201,6 +219,16 @@ function applyToPage(
           op.path,
           clone(op.value),
         );
+        touched.add(op.nodeId);
+        break;
+      }
+      case "unset": {
+        const node = cow.node(page, op.nodeId);
+        if (!node) {
+          skipped.push({ index, reason: `node ${op.nodeId} not found` });
+          break;
+        }
+        pathUnset(node as unknown as Record<string, unknown>, op.path);
         touched.add(op.nodeId);
         break;
       }
@@ -606,14 +634,41 @@ export function invertPatch(
       case "set": {
         const node = page?.nodes[op.nodeId];
         if (!node) break;
-        ops.push({
-          op: "set",
-          nodeId: op.nodeId,
-          path: op.path,
-          value: clone(
-            pathGet(node as unknown as Record<string, unknown>, op.path),
-          ),
-        });
+        const before = pathGet(
+          node as unknown as Record<string, unknown>,
+          op.path,
+        );
+        // 之前没有这个字段：逆操作是"删掉"，不是一条 value=undefined 的 set
+        // （后者序列化时整个 value 键会消失，服务端收到的是非法 op）
+        ops.push(
+          before === undefined
+            ? { op: "unset", nodeId: op.nodeId, path: op.path }
+            : {
+                op: "set",
+                nodeId: op.nodeId,
+                path: op.path,
+                value: clone(before),
+              },
+        );
+        break;
+      }
+      case "unset": {
+        const node = page?.nodes[op.nodeId];
+        if (!node) break;
+        const before = pathGet(
+          node as unknown as Record<string, unknown>,
+          op.path,
+        );
+        ops.push(
+          before === undefined
+            ? { op: "unset", nodeId: op.nodeId, path: op.path }
+            : {
+                op: "set",
+                nodeId: op.nodeId,
+                path: op.path,
+                value: clone(before),
+              },
+        );
         break;
       }
       case "merge": {
@@ -855,6 +910,20 @@ export function diffPatch(
             : undefined,
           after: clone(op.value),
           kind: "modified",
+        });
+        break;
+      case "unset":
+        entries.push({
+          nodeId: op.nodeId,
+          nodeName: node?.name ?? nameOf(op.nodeId),
+          path: op.path,
+          before: node
+            ? clone(
+                pathGet(node as unknown as Record<string, unknown>, op.path),
+              )
+            : undefined,
+          after: undefined,
+          kind: "removed",
         });
         break;
       case "merge": {

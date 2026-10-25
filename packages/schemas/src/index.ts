@@ -20,6 +20,9 @@ export const NodeTypeEnum = z.enum([
 /** 设计补丁 op：与 @nexus/design-model 的 PatchOp 一一对应 */
 export const PatchOpSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('set'), nodeId: z.string(), path: z.string(), value: z.unknown() }),
+  // 删除某个字段（`set` 的逆）。不能把"删掉"写成缺 value 的 set：JSON 会把这个键丢掉，
+  // 报文到了服务端只剩一条没值的 set，而"忘了写 value"和"要删掉"必须是两件事
+  z.object({ op: z.literal('unset'), nodeId: z.string(), path: z.string() }),
   z.object({ op: z.literal('merge'), nodeId: z.string(), path: z.string().optional().default(''), value: z.record(z.string(), z.unknown()) }),
   z.object({ op: z.literal('insert'), node: z.record(z.string(), z.unknown()), parentId: z.string(), index: z.number().int().min(0).optional() }),
   z.object({ op: z.literal('remove'), nodeId: z.string() }),

@@ -44,6 +44,26 @@
             "properties": {
               "op": {
                 "type": "string",
+                "const": "unset"
+              },
+              "nodeId": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "op",
+              "nodeId",
+              "path"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
                 "const": "merge"
               },
               "nodeId": {

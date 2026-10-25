@@ -141,6 +141,88 @@ describe("invertPatch", () => {
     expect(after.document.pages[0]!.nodes[hero.id]!.size.height).toBe(320);
   });
 
+  it("撤销「往空处新增字段」发 unset：序列化后不是一条没值的 set", () => {
+    const { doc, title } = seed();
+    expect(title.states).toBeUndefined();
+    const patch: DesignPatch = {
+      ops: [
+        {
+          op: "set",
+          nodeId: title.id,
+          path: "states.hover",
+          value: { opacity: 0.5 },
+        },
+      ],
+    };
+    const inverse = invertPatch(doc, patch);
+    expect(inverse.ops).toEqual([
+      { op: "unset", nodeId: title.id, path: "states.hover" },
+    ]);
+
+    // 走一遍报文：JSON 会丢掉 value=undefined 的键，而少一个键的 set 在服务端是 `value: 非必填` 被拒
+    const wire = JSON.parse(JSON.stringify({ patches: [inverse] })) as {
+      patches: DesignPatch[];
+    };
+    expect(wire.patches[0]!.ops[0]).toEqual({
+      op: "unset",
+      nodeId: title.id,
+      path: "states.hover",
+    });
+
+    const undone = applyPatch(
+      applyPatch(doc, patch).document,
+      wire.patches[0]!,
+    ).document;
+    const node = findPage(undone, patch.pageId ?? undone.activePageId)!.nodes[
+      title.id
+    ]!;
+    expect(node.states?.hover).toBeUndefined();
+  });
+
+  it("unset 的逆把原值放回来：删掉一个本来存在的字段可以回滚", () => {
+    const { doc, title } = seed();
+    const withState = applyPatch(doc, {
+      ops: [
+        {
+          op: "set",
+          nodeId: title.id,
+          path: "states.hover",
+          value: { opacity: 0.5 },
+        },
+      ],
+    }).document;
+    const del: DesignPatch = {
+      ops: [{ op: "unset", nodeId: title.id, path: "states.hover" }],
+    };
+    const inverse = invertPatch(withState, del);
+    expect(inverse.ops).toEqual([
+      {
+        op: "set",
+        nodeId: title.id,
+        path: "states.hover",
+        value: { opacity: 0.5 },
+      },
+    ]);
+    const after = applyPatch(applyPatch(withState, del).document, inverse)
+      .document;
+    expect(
+      findPage(after, after.activePageId)!.nodes[title.id]!.states?.hover,
+    ).toEqual({ opacity: 0.5 });
+  });
+
+  it("unset 对本来就没有的字段是幂等的：不跳过、不报错", () => {
+    const { doc, title } = seed();
+    const result = applyPatch(doc, {
+      ops: [{ op: "unset", nodeId: title.id, path: "states.hover.opacity" }],
+    });
+    expect(result.skipped).toEqual([]);
+    expect(result.touchedNodeIds).toContain(title.id);
+    expect(
+      findPage(result.document, result.document.activePageId)!.nodes[title.id]!
+        .states,
+    ).toBeUndefined();
+  });
+
   it("restores merges partially (only patched keys)", () => {
     const { doc, hero } = seed();
     const patch: DesignPatch = {
