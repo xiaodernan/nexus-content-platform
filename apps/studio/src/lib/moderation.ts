@@ -149,15 +149,24 @@ export interface TallyFacts {
  *
  * <p>The reasons are in the order they came — the service's order — and only the reasons that OCCUR: a
  * tally padded with zeroes is noise, and a reader learns to skip it.
+ *
+ * <p>v377 — the tally counts the ROWS ON THE SCREEN, and the desk is a WINDOW (the service caps at a
+ * hundred and the panel asks for twenty) — so a bare "5 report(s)" was a fact about twenty rows and
+ * not about the whole desk. A reader who was told how many there are cannot mistake it for the lot.
  */
-export function tallyText(tally: TallyFacts): string {
+export function tallyText(tally: TallyFacts, shown?: number): string {
   const parts: string[] = [];
   parts.push(`${tally.total} report(s)`);
   if (tally.open > 0) parts.push(`${tally.open} still waiting`);
   for (const [reason, count] of Object.entries(tally.byReason)) {
     parts.push(`${count} ${reportReasonText(reason)}`);
   }
-  return parts.join(' · ');
+  const tallyStr = parts.join(' · ');
+  // v377 — the tally counts the ROWS ON THE SCREEN, and the desk is a WINDOW
+  if (typeof shown === 'number' && Number.isFinite(shown) && shown >= 0) {
+    return `of these ${shown} rows: ${tallyStr}`;
+  }
+  return tallyStr;
 }
 
 /**
