@@ -940,7 +940,7 @@ export function StoryboardPanel() {
           <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">渲染（§40 最后一格 · DEMO）</h3>
           <p className="mt-1 text-11 text-fg-2">
             真 ffmpeg、真链路：额度门在任务之前，参考帧按 id 取字节（带归属校验），成片过视频摄入门，只有成功才扣点。
-            但像素是**本地确定性推演，不是 AI 生成**——这一条明码标注，不假装有视频 provider（§159/§160）。
+            但像素是<strong>本地确定性推演，不是 AI 生成</strong>——这一条明码标注，不假装有视频 provider（§159/§160）。
           </p>
           <button
             type="button"
