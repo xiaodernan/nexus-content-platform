@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import {
   WorldEngine,
   WorldRAG,
@@ -124,10 +124,24 @@ describe('WorldEngine', () => {
     expect(forestLoc.inhabitants).toContain(char.id);
   });
 
-  it('starts and stops engine', () => {
-    engine.start();
-    engine.stop();
-    // Should not throw
+  it('start schedules the tick + autosave intervals, is idempotent, and stop clears them', () => {
+    // The old form of this test called start(); stop(); with a "Should not throw" comment and
+    // asserted NOTHING — a green that proved only that neither method threw. `isRunning` is
+    // private, but the intervals it schedules are observable, so the contract is graded directly.
+    vi.useFakeTimers();
+    try {
+      expect(vi.getTimerCount(), 'a fresh engine has scheduled nothing').toBe(0);
+      engine.start();
+      const afterStart = vi.getTimerCount();
+      expect(afterStart, 'start() must schedule the tick interval (and autosave when configured)').toBeGreaterThan(0);
+      engine.start(); // a second start must NOT add a second pair of intervals
+      expect(vi.getTimerCount(), 'start() is idempotent: a second call schedules nothing more').toBe(afterStart);
+      engine.stop();
+      expect(vi.getTimerCount(), 'stop() must clear every interval start() created').toBe(0);
+    } finally {
+      engine.stop();
+      vi.useRealTimers();
+    }
   });
 
   it('serializes and deserializes world state', () => {
