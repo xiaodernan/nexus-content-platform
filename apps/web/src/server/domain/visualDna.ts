@@ -204,6 +204,12 @@ function decodePngToRgba(png: PngChunks): Uint8Array | string {
         break;
       case 3: {
         const index = filtered[at]!;
+        // 索引越界 = 畸形调色板：读出来是 undefined，会一路 NaN 进亮度/主色统计，
+        // 于是 extractVisualDna 交回一份 ok:true 却全是 NaN 的"DNA"（§159 禁的假数据）。
+        // 这里如实拒绝，不猜一个颜色、不降级成假数据。
+        if (index * 3 + 2 >= palette!.length) {
+          return `调色板索引 ${index} 超出 PLTE 范围（仅 ${Math.floor(palette!.length / 3)} 色）`;
+        }
         r = palette![index * 3]!;
         g = palette![index * 3 + 1]!;
         b = palette![index * 3 + 2]!;
