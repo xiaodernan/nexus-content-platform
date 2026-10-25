@@ -7,7 +7,7 @@ import {
   nodeNamer,
   WEB_APPROVAL_POLICY,
 } from '@/server/ai/approvals';
-import type { AiResponse } from '@nexus/schemas';
+import type { AiResponse, DesignPatchPayload } from '@nexus/schemas';
 import type { DesignDocument } from '@nexus/design-model';
 
 /**
@@ -44,6 +44,11 @@ function resp(patches: unknown[], extra: Partial<AiResponse> = {}): AiResponse {
   return { explanation: 'did something', patches: patches as AiResponse['patches'], ...extra } as unknown as AiResponse;
 }
 
+/** 把补丁 op 列表包成 DesignPatchPayload，避开字面量 op 联合类型的过度约束（测试夹具只关心 op 字段） */
+function patch(ops: unknown[]): DesignPatchPayload {
+  return { pageId: 'p1', ops: ops as DesignPatchPayload['ops'] } as DesignPatchPayload;
+}
+
 describe('nodeNamer：高危动作要报得出人读得懂的名字', () => {
   const nameOf = nodeNamer(doc);
 
@@ -68,22 +73,19 @@ describe('destructiveActions：从补丁里扫出要审批的删除类动作', (
   const nameOf = nodeNamer(doc);
 
   it('策略不含 delete 时一律不拦（反向对照：别把策略写死成永远拦）', () => {
-    const out = destructiveActions([{ pageId: 'p1', ops: [{ op: 'remove', nodeId: 'n-footer' }] }], [], nameOf);
+    const out = destructiveActions([patch([{ op: 'remove', nodeId: 'n-footer' }])], [], nameOf);
     expect(out).toEqual([]);
   });
 
   it('五种删除 op 全部识别，且给出可读理由', () => {
-    const patch = {
-      pageId: 'p1',
-      ops: [
-        { op: 'remove', nodeId: 'n-footer' },
-        { op: 'removePage', pageId: 'p1' },
-        { op: 'removeToken', key: 'tk1' },
-        { op: 'removeAsset', assetId: 'a1' },
-        { op: 'removeComponent', componentId: 'c1' },
-      ],
-    };
-    const out = destructiveActions([patch], WEB_APPROVAL_POLICY, nameOf);
+    const p = patch([
+      { op: 'remove', nodeId: 'n-footer' },
+      { op: 'removePage', pageId: 'p1' },
+      { op: 'removeToken', key: 'tk1' },
+      { op: 'removeAsset', assetId: 'a1' },
+      { op: 'removeComponent', componentId: 'c1' },
+    ]);
+    const out = destructiveActions([p], WEB_APPROVAL_POLICY, nameOf);
     expect(out).toHaveLength(DESTRUCTIVE_OPS.length);
     expect(out.map((a) => a.action)).toEqual(['delete', 'delete', 'delete', 'delete', 'delete']);
     expect(out[0]!.reason).toContain('页脚');
@@ -91,20 +93,17 @@ describe('destructiveActions：从补丁里扫出要审批的删除类动作', (
   });
 
   it('非删除 op（add / update / move）不当作高危', () => {
-    const patch = {
-      pageId: 'p1',
-      ops: [
-        { op: 'add', nodeId: 'n-new', node: {} },
-        { op: 'update', nodeId: 'n-footer', props: {} },
-        { op: 'reparent', nodeId: 'n-footer', parentId: 'n-root' },
-      ],
-    };
-    expect(destructiveActions([patch], WEB_APPROVAL_POLICY, nameOf)).toEqual([]);
+    const p = patch([
+      { op: 'add', nodeId: 'n-new', node: {} },
+      { op: 'update', nodeId: 'n-footer', props: {} },
+      { op: 'reparent', nodeId: 'n-footer', parentId: 'n-root' },
+    ]);
+    expect(destructiveActions([p], WEB_APPROVAL_POLICY, nameOf)).toEqual([]);
   });
 
   it('每个删除 op 都产生一条（去重交给定门时的 union，这里只负责扫全）', () => {
-    const patch = { pageId: 'p1', ops: [{ op: 'remove', nodeId: 'n-footer' }, { op: 'remove', nodeId: 'n-footer' }] };
-    const out = destructiveActions([patch], WEB_APPROVAL_POLICY, nameOf);
+    const p = patch([{ op: 'remove', nodeId: 'n-footer' }, { op: 'remove', nodeId: 'n-footer' }]);
+    const out = destructiveActions([p], WEB_APPROVAL_POLICY, nameOf);
     // 两个相同的删除 op → 两条原始记录；并到一条是 gateResponse 里 union 的职责
     expect(out).toHaveLength(2);
     expect(out.every((a) => a.reason === 'remove → 页脚')).toBe(true);
