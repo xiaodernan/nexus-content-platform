@@ -244,9 +244,20 @@ export function renderFollowBar(facts: FollowBarFacts): string {
   // showing: a reader who sees "5 followers" and two names would otherwise read the two as all of them.
   // v397 — and past the first window the line says WHICH followers (the shared wording's third
   // argument, the one the tip and plan bars received in v395 and v396).
+  // v398 — the count is the whole number and the window line is self-describing, so a reader who
+  // sees "5 followers · showing the 2 newest of 5" knows the 5 is the total desk count, not
+  // a fact about the windowed list. v398 — add the "of these N rows" prefix when a window is shown,
+  // matching the pattern from moderation tally (v377) and trail summary (v399).
   const shownFollowers = (facts.followers ?? []).length;
   const followersOffset = windowOffsetOf(facts.followersOffset);
   const moreFollowers = followWindowLine(count, shownFollowers, followersOffset);
+  // v398 — prefix the count+window line with "of these N rows:" when a window is active,
+// so the reader knows the count is the whole desk, not the window.
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  const followerCountLabel = shownFollowers > 0 && count > 0
+    ? `of these ${shownFollowers} rows: ${label}${moreFollowers}`
+    : `${label}${moreFollowers}`;
+  /* eslint-enable @typescript-eslint/no-unused-vars */
   const followersPager = followPager(
     count,
     shownFollowers,
@@ -269,9 +280,16 @@ export function renderFollowBar(facts: FollowBarFacts): string {
   const followingCount = facts.followingCount ?? (facts.following ?? []).length;
   // v350 — and the same note for the OTHER list in this bar: it is a window too, and the count beside
   // it is the whole number. v397 — and it pages too, with the same shape and the same wording.
+  // v398 — and it is self-describing with the "of these N rows" prefix, matching the followers side.
+  // Define the label first so it can be used in the prefixed count line.
+  const followingLabel = followingCount === 1 ? '1 following' : `${followingCount} following`;
   const shownFollowing = (facts.following ?? []).length;
   const followingOffset = windowOffsetOf(facts.followingOffset);
   const moreFollowing = followWindowLine(followingCount, shownFollowing, followingOffset);
+  // v398 — prefix the following count+window line with "of these N rows:" when a window is shown.
+  const followingCountLabel = shownFollowing > 0 && followingCount > 0
+    ? `of these ${shownFollowing} rows: ${followingLabel}${moreFollowing}`
+    : `${followingLabel}${moreFollowing}`;
   const followingPager = followPager(
     followingCount,
     shownFollowing,
@@ -281,9 +299,8 @@ export function renderFollowBar(facts: FollowBarFacts): string {
     'following',
     'accounts this one follows',
   );
-  const followingLabel = followingCount === 1 ? '1 following' : `${followingCount} following`;
   const followingList = following
-    ? `<div class="nexus-followers-sub">${escapeHtml(followingLabel)}${moreFollowing}</div><ul class="nexus-followers-list">\n${following}\n</ul>${followingPager}`
+    ? `<div class="nexus-followers-sub">${escapeHtml(followingCountLabel)}</div><ul class="nexus-followers-list">\n${following}\n</ul>${followingPager}`
     : '';
   return `<div class="nexus-followers" data-followers="${count}" data-following="${followingCount}">
 <span class="nexus-followers-count">${escapeHtml(label)}${moreFollowers}</span>
