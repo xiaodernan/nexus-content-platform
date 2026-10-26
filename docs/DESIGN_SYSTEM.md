@@ -75,6 +75,11 @@ ColorField · TreeItem · Panel · Splitter · Badge · Toast · CommandBar · A
   发布页不给这个控件——访客看的是作品，不是状态模拟器。`disabled:` 只对真实 disabled 元素生效。
   只读页上真正自己会变的是 hover / active / focus。
 
+状态补丁可以在属性面板里**复制**再**粘贴**：剪贴板只存复制那一刻的整份补丁（视图态，不落库、
+不进撤销栈；复制后再改源节点，贴出来的仍是旧值），粘贴是整通道覆盖；多选时一次贴给所有选中元素
+只算**一条**命令，撤销一次全部回滚。空补丁（没有该状态，或通道已全清）不进入剪贴板——
+"复制成功"和"什么都没发生"不能长得一样。
+
 ## 动效（§122）
 
 只允许：fade / slide(≤8px) / scale / spring / scroll reveal / micro-interaction。

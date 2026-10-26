@@ -6841,3 +6841,52 @@ owner 只能靠自己再去看名册。迁移 0042 的注释写着「#213 之后
 （标题带加入者与项目名），同一枚邀请再接受一次仍然只有那一条"；`notifications-settings.integration.test.ts`
 再加一例，把 `team` 的开关真的写进库里（迁移 0042 的 CHECK 不是装饰）。
 `notify-plan` + `notify-producers` 56/56、team 集成 7/7、通知偏好 5/5 绿。迁移 0042 已打到开发库（`55100/nexus`）。
+
+## §124 状态补丁的复制/批量应用（ADR-0062 part ⑤ 续）：剪贴板是事务的来源，不是共享对象
+
+§124 的状态编辑器此前只能逐节点、逐通道写：同一个 hover 补丁要套到三个元素，得手抄三遍，
+而整通道替换的语义下抄漏一个通道，就等于把目标原来那条覆盖掉。本片补上复制/粘贴，
+并把批量粘贴做成**一条**事务。
+
+- **剪贴板是视图态**（`StudioSnapshot.statesClipboard`）：只存 `{state, patch, sourceNodeId, sourceName}`，
+  不落库、不进撤销栈——它记录"要贴什么"，不是文档的一部分。`copyStates` 对空补丁
+  （没这个状态，或状态在但通道已清成 `{}`）返回 false，入口据此禁用：复制一份空对象会让
+  "粘贴成功"和"什么都没发生"长得一样（§159）。
+- **粘贴整通道覆盖，值快照在复制那一刻**：`pasteStates` 给每个目标发一条
+  `set states.<state>`，值来自复制时 `structuredClone` 的补丁；`applyPatch` 对每个 `set`
+  再 clone 一次（§16 的唯一写入方），目标之间、目标与剪贴板之间不共享可变对象。
+- **N 个目标 = 一条命令**（§149）：多选批量贴只进一条 history，撤销一次全部回滚，源节点不动。
+  面板：单选给「复制 / 粘贴」两颗按钮与剪贴板来源说明；多选只给一颗
+  `data-state-paste-batch="N"` 的批量按钮，剪贴板为空时禁用并说明原因。
+- **状态名只有一份表**：`apps/web/src/studio/state-labels.ts` 的 `STATE_LABELS`
+  （面板页签、按钮、撤销标签、剪贴板说明共用），从 `PropertiesPanel` 里搬出来。
+
+**浏览器见证**（`e2e/studio.spec.ts:4531`，12.3s 通过）：CTA 写 hover 0.5 → 复制（说明写着来自
+Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headline 回 1、CTA 仍 0.5）→ 重做 →
+预览页两个元素真指针 hover 到 0.5、移开回 1 → 回 Studio 把源改成 0.4 → 多选两个元素批量贴
+（都是 0.4）→ 撤销后 Headline 回到它自己的 0.5、CTA 保留 0.4。
+落库屏障读的是 `GET /api/projects/:id` 里的文档本身：`已保存 HH:MM:SS` 可能是上一次保存留下的，
+在它上面等会让预览页拿到没有 states 的旧文档（`autosave-label-is-not-persistence-proof` 那笔账）。
+
+**见证撞出来的三处真缺陷**（都不是测试写法问题）：
+
+1. **画布 surface 的 `overflow-hidden` 吃掉点击映射**（`98bbfe9`）：`hidden` 仍然是滚动容器，
+   聚焦/`scrollIntoView` 会把它滚出偏移，而屏幕→模型映射只认 pan/zoom，滚过之后每次点选都落在
+   别的节点上。换 `overflow-clip` 后聚焦框/选区框不再被裁，也不必改投影数学。
+2. **流式首屏的 GET 晚到会抹掉会话**（`f4fb179`）：§147 让服务端随 HTML 先 bootstrap 同一份文档；
+   `load()` 的 GET 晚几百毫秒返回时原先无条件 `reset()`，把用户刚选中的元素和这段时间的编辑一起清掉
+   （表现是"刚点中的元素自己没了"，批量粘贴的多选就是被它清掉的）。现在
+   `ready && loadedFor === projectId` 时直接返回——装进来的就是同一份文档，会话状态优先。
+   `studio-stream-boot.test.ts` 两例：门控 fetch 造确定性竞态，外加"换项目仍要重置"的反向控制；
+   变异（守卫改成 `false &&`）精确红在"选择保留"那一例。
+3. **撤销"往空处新增字段"发出的是 JSON 会丢键的 `set`**（`6248106`）：PATCH 实测 400
+   （`patches.2.ops.0.value: expected nonoptional, received undefined`）。新增显式 `unset` op
+   （schema / apply / invert / diff / contracts / MCP 说明），"忘了写 value"仍然是错误而不是静默删除。
+   详见 ADR-0065。
+
+**读数**：clipboard 5 例、流式首屏 2 例、`unset` 2 例、patch-commands 36 例，共 45/45 绿；
+两条变异探针各自精确红并逐字节还原（守卫改 `false &&` → 1 红；`pathUnset` 换成空实现 → 1 红）。
+
+**已知边界**：剪贴板不跨刷新/项目（视图态），也不能只复制单个通道；粘贴对没有该状态的目标是新建，
+对已有目标才是整份覆盖。`unset` 只删指定路径的叶子，不清理祖先空对象（`states` 会留下 `{}`）。
+
