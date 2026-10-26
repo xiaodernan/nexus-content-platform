@@ -5,6 +5,7 @@ import {
 } from '@nexus/world-model';
 import { useSyncExternalStore } from 'react';
 import { csrfHeaders } from '@/lib/csrf';
+import { isStudioReadOnly } from './read-only';
 
 /**
  * 世界文档的客户端真值：面板（§44）与图视图（§45）都读这一份，
@@ -134,6 +135,9 @@ class WorldStore {
   }
 
   setLocal(next: WorldDocument): void {
+    // 只读（viewer）：本地也不落。写库虽然会被按下（`commit` 的闸），但先把界面改掉
+    // 再永远存不上，等于让用户以为改成功了（§159）
+    if (isStudioReadOnly()) return;
     this.commit_({ world: next, ready: true, saveState: 'dirty' });
   }
 
@@ -160,6 +164,7 @@ class WorldStore {
 
   /** 写库。同一时刻只让一次请求在飞；在飞期间的改动记一笔"还欠一次"，前一次落地后立刻补发 */
   async commit(): Promise<void> {
+    if (isStudioReadOnly()) return;
     const { projectId, world } = this.snapshotValue;
     if (!projectId || !world) return;
     if (this.saving) {
@@ -228,6 +233,7 @@ class WorldStore {
 
   /** 页面要走了（关标签 / 刷新 / 切项目）：把还欠着的那次写发出去 */
   flushSave(): void {
+    if (isStudioReadOnly()) return;
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;

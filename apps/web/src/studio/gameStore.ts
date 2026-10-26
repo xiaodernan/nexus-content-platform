@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { createGame, validateGame, type GameDocument } from '@nexus/game-model';
 import { csrfHeaders } from '@/lib/csrf';
+import { isStudioReadOnly } from './read-only';
 
 /**
  * §54 游戏设计文档的客户端真值：面板读这一份。与设计文档（画布 store）、
@@ -129,11 +130,14 @@ class GameStore {
    * 刚改好的那条数值还是被拒了。
    */
   setLocal(next: GameDocument): void {
+    // 只读（viewer）：本地也不落——界面先改掉、写库却被按下，等于让用户以为改成功了
+    if (isStudioReadOnly()) return;
     this.commit_({ game: next, ready: true, saveState: 'dirty', notice: null });
   }
 
   /** 写库。同一时刻只让一次请求在飞；在飞期间的改动记一笔"还欠一次"，前一次落地后立刻补发 */
   async commit(): Promise<void> {
+    if (isStudioReadOnly()) return;
     const { projectId, game } = this.snapshotValue;
     if (!projectId || !game) return;
     if (this.saving) {
@@ -195,6 +199,7 @@ class GameStore {
 
   /** 页面要走了（关标签 / 刷新 / 切项目）：把还欠着的那次写发出去 */
   flushSave(): void {
+    if (isStudioReadOnly()) return;
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;

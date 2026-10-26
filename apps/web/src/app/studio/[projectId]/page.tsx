@@ -3,7 +3,7 @@ import { StudioShell } from '@/studio/StudioShell';
 import { isDemoMode } from '@/lib/env';
 import { requireUser } from '@/server/domain/session';
 import { loadDocument } from '@/server/domain/projects';
-import { projectVisibleTo } from '@/server/domain/team';
+import { projectWriteAccess } from '@/server/domain/team';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,10 @@ interface Props {
 export default async function StudioPage({ params }: Props) {
   const { projectId } = await params;
   const user = await requireUser();
-  if (!(await projectVisibleTo(projectId, user.id))) notFound();
+  // 用写门的三态一次拿到"看不看得见 + 能不能写"：viewer 仍进得来（名册上的人看得到项目），
+  // 但壳体要知道自己是只读的——界面不假装能改，服务端 403 不该是用户第一次听到这件事的地方。
+  const access = await projectWriteAccess(projectId, user.id);
+  if (access === 'not_found') notFound();
   // 首屏那一份文档由服务端读出来，但**不阻塞首帧**（§147 第三片，2026-10-23）：
   // 这里创建 promise 之后**不 await**——React 先把 shell flush 出去，文档读取
   // （10000 档约 434ms）与首帧重叠；文档字节作为同一个响应的后续 chunk 流下来，
@@ -33,6 +36,7 @@ export default async function StudioPage({ params }: Props) {
     <StudioShell
       projectId={projectId}
       demoMode={await isDemoMode()}
+      readOnly={access === 'read_only'}
       documentPromise={documentPromise ?? undefined}
     />
   );

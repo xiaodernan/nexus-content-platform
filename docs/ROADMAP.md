@@ -6936,3 +6936,43 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
 在改角色上说这句是假话（§164 只给真发生的事发通知）。
 
 ---
+
+## §133 × #206 viewer 只读 Studio：横幅先说清，编辑在本地就按下
+
+写门（#206）在服务端已经是三态的：viewer 的写请求一律 403 `read_only_role`。但客户端不知道
+自己是 viewer——画布照样接受拖拽、面板照样收编辑，用户先把界面改掉，再看着同一次改动被 403
+打回顶栏。本片把这件事提前到界面：
+
+- **角色由服务端给壳体**：`/studio/[projectId]` 改用 `projectWriteAccess`（三态）而不是
+  `projectVisibleTo`——viewer 仍进得来（名册上的人看得到项目，不是 404），只是 `readOnly` 为真。
+  `StudioShell` 拿这一个 prop 设置模块级的只读闸（`read-only.ts`），四个 store 共用一份
+  （它们本来就是模块单例，各存一份只会分叉）。
+- **设计文档**：`execute` / `undo` / `redo` / `save` / `flushSave` / `markDirty` / `renameDocument` /
+  `jumpTo` / `applyAiTransaction` 全部在本地按下——不改文档、不进撤销栈、不排队保存、不标脏。
+  两处例外是**视图偏好**：`setPage` / `setMode` 照旧本地生效（翻页、看模式是"看"），
+  但 `markDirty` 的闸让它们不写库，下次载入回到服务端的值。
+- **世界 / 游戏 / 分镜**：`setLocal`（world/game）与 `planFrom` / `applyOps` / `splitShot` /
+  `undo` / `redo`（storyboard）各自在入口先挡；`commit` / `flushSave` 也挡（第二道）。
+  这样"新建骨架""切一版分镜"这类动作不会先换掉界面再永远存不上。
+- **横幅说实话**：`data-studio-read-only`，写明"文档可以看，编辑不会落到文档上——服务端会拒绝写请求（403）"。
+
+**见证**：`apps/web/test/studio-read-only.test.ts` 6 例（设计文档三条 + world/game/storyboard 各一）：
+只读下 execute/addNode/renameDocument/delete/undo/redo/save/flushSave 全不生效且**零写请求**；
+切模式本地生效但 dirty 不变；关闸后编辑生效、`PATCH …/design` 落库、撤销能回；
+三个子文档 store 只读下不换本地、不发 PUT，关闸后两条都发生。
+`e2e/team.spec.ts` ⑥（37.2s 通过）：被降为 viewer 的 editor 重新登录进 Studio，
+横幅可见且文案里有"查看者"；截图 `screenshots/team-viewer-read-only.png`。
+
+**变异探针**（逐个摘、逐个还原，sha256 不变）：摘 `execute` 闸 → ① 红在"文档不该变"；
+摘 `markDirty` 闸 → ①② 各红（脏标记与视图偏好）；摘 storyboard `applyOps` 闸 → 分镜用例红在
+"只读下本地真值被换掉"；摘 `planFrom` 闸 → 同用例红在"只读下切出的那版分镜落了地"；
+摘 world `setLocal` 闸 → world 用例红；把 page.tsx 的 `readOnly={access === 'read_only'}` 写死
+`false` → e2e ⑥ 精确红在横幅不可见。共 6 臂。
+
+**一处取舍**：storyboard 的 `setLocal` 一开始也加了闸，但三个入口（planFrom / applyOps / undo·redo）
+已经各自先挡，漏斗上那道在可达路径上量不出差别——无法被见证的守卫按本仓纪律不留，删掉。
+
+**不做**：只读不把按钮藏起来。发布 / 生成 / 快照这些显式动作仍会走到服务端并拿到 403 的原话
+（面板照常展示原因）——那是有用的回执，本地藏掉反而让人不知道发生了什么。
+
+---

@@ -40,6 +40,7 @@ import type { Publication, Visibility } from '@/server/domain/publish';
 import { apiAssetUrl, assetContextFor, type AssetUrlContext } from './assets';
 import { csrfHeaders } from '@/lib/csrf';
 import { STATE_LABELS } from './state-labels';
+import { isStudioReadOnly } from './read-only';
 
 /**
  * Studio 客户端状态：唯一真值仍然是 DesignStore 里的 DesignDocument（§9/§16）。
@@ -539,6 +540,9 @@ export class StudioStore {
   }
 
   markDirty(): void {
+    // 只读：不标脏、不排下一次自动保存。少数"文档里的视图偏好"（切页/切模式）
+    // 仍然在本地生效，但没有一行改动需要写出去——界面不该显示"未保存"，那是在等一次不会发生的写。
+    if (isStudioReadOnly()) return;
     this.dirty = true;
     this.editSeq += 1;
     this.saveStateValue = 'idle';
@@ -563,6 +567,7 @@ export class StudioStore {
    * 在途期间的新编辑累进新的队列，这一轮送走的那份在成功后才作废、失败则放回队头。
    */
   async save(): Promise<void> {
+    if (isStudioReadOnly()) return;
     if (!this.projectId || !this.ready) return;
     if (this.inflight) await this.inflight;
     // 取走这一轮要送的补丁：在途期间的新编辑累进新的队列，成功后不会被误清
@@ -632,6 +637,7 @@ export class StudioStore {
   }
 
   flushSave(): void {
+    if (isStudioReadOnly()) return;
     if (this.saveTimer) {
       clearTimeout(this.saveTimer);
       this.saveTimer = null;
@@ -1207,7 +1213,11 @@ export class StudioStore {
     this.commit();
   }
 
-  /** activeMode / activePageId 不是节点编辑，补丁词汇表里没有对应 op：写回文档并标脏，不进撤销栈 */
+  /**
+   * activeMode / activePageId 不是节点编辑，补丁词汇表里没有对应 op：写回文档并标脏，不进撤销栈。
+   * 只读（viewer）时这两条**仍然在本地生效**——翻别的页面、看别的模式是看而不是改；
+   * `markDirty` 的闸让它们只停在本地，既不标脏也不排保存。
+   */
   setMode(mode: string | null): void {
     const document = clone(this.design.getDocument());
     document.activeMode = mode;
@@ -1297,6 +1307,9 @@ export class StudioStore {
 
   execute(label: string, ops: PatchOp[]): void {
     if (!ops.length) return;
+    // viewer 只读：编辑在本地就按下，不排队、不进撤销栈——否则界面会先"改成功"，
+    // 再由服务端 403 把同一次改动打成失败（§159 不让界面假装能改）
+    if (isStudioReadOnly()) return;
     // §147 增量解：**先**登记这次改动碰到哪些节点。
     // 为什么必须先：`design.execute` 会**同步**触发 commit → 布局就在那一刻求解，
     // 登记晚了这一帧的改动集合是空的 → 走全量 → 增量路**从来没在编辑器里跑过**
@@ -1671,6 +1684,8 @@ export class StudioStore {
 
   /** 项目名存在 documents.name（不是节点），与 activePageId 一样走文档级写入 */
   renameDocument(name: string): void {
+    // 改名不是"浏览"：它改的是项目对外的名字，只读角色不该在本地先改出一个假名字
+    if (isStudioReadOnly()) return;
     const document = clone(this.design.getDocument());
     document.name = name.slice(0, 120);
     this.design.reset(document, true);
@@ -1775,6 +1790,7 @@ export class StudioStore {
   }
 
   undo(): void {
+    if (isStudioReadOnly()) return;
     // §147 增量解：撤销动过的节点也要进"改动集合"——撤销不走 execute()，
     // 不登记的话，下一轮增量会以为那些节点"没动过"而沿用撤销前那一份几何（错的）。
     // **同样要"先登记后变更"**：`design.undo()` 会同步触发 commit → 布局就在那一刻求解。
@@ -1790,6 +1806,7 @@ export class StudioStore {
   }
 
   redo(): void {
+    if (isStudioReadOnly()) return;
     // 同上：重做也要先登记（要重做的那一条在 redo 栈顶）
     const stack = this.design.history().redo;
     const top = stack[stack.length - 1];
@@ -1839,6 +1856,8 @@ export class StudioStore {
   }
 
   jumpTo(entryId: string): void {
+    // 历史跳转会换掉文档内容（与撤销同一族），只读下不许动：不是浏览，是一次重建
+    if (isStudioReadOnly()) return;
     if (!this.design.jumpTo(entryId)) return;
     // 跳转可能一次跨多条历史（每条各有正/逆补丁集），补丁词汇表不追这种批量：
     // 如实走整份替换
@@ -1856,6 +1875,8 @@ export class StudioStore {
     capability?: { provider: string; model: string; demoMode: boolean },
   ): HistoryEntry | null {
     if (!patches.length) return null;
+    // AI 事务也是一次编辑：只读下不落到模型上，调用方拿 null 就知道"没发生"
+    if (isStudioReadOnly()) return null;
     const document = this.design.getDocument();
     // §147 增量解：AI 事务的改动也要进"改动集合"（与手工编辑同一条路）。
     // **先登记**：`applyWithinTransaction` / `commitTransaction` 会同步触发 commit → 布局就在那一刻求解。

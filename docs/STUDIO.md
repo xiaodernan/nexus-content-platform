@@ -26,6 +26,16 @@ import screenshots / codebase context / design ↔ code），但**不复刻其 U
 
 窄屏（<1280px）：左面板折叠为图标栏，右面板变为底部抽屉；AI 命令栏始终可达。
 
+## 协作角色（§133）
+
+- **editor** 与 **owner** 写门相同；**viewer** 读得到整份项目，写请求在服务端被
+  `403 read_only_role` 拒（写门每次现读成员行，改角色立刻生效）。
+- 壳体按服务端判出的角色渲染：viewer 顶部常驻 `data-studio-read-only` 横幅，说明"能看不能改"。
+  客户端的四个 store（设计 / 世界 / 游戏 / 分镜）在本地就把编辑按下——不换文档、不进撤销栈、
+  不排队保存，避免"界面先改成功、再被 403 打回"（§159）。服务端的 403 仍是最后一道，不是唯一一道。
+- 例外是**视图偏好**：切换页面与显示模式照旧在本地生效（那是"看"），只是不标脏、不写库，
+  下次载入服务端那份时回到原值。
+
 ## 左面板（§5）
 
 Pages · Layers · Components · Assets · Variables · Design System · AI Agents · Code · History

@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { planStoryboard, splitShotAt, storyboardTransaction, type Storyboard, type StoryboardOp } from '@nexus/video-model';
 import { csrfHeaders } from '@/lib/csrf';
+import { isStudioReadOnly } from './read-only';
 
 /**
  * §40-42 分镜的客户端真值：面板读这一份，写库走 `/api/projects/[id]/storyboard`。
@@ -142,6 +143,8 @@ class StoryboardStore {
    * 界面上要把这句说清楚（notes 里已经带着"不是模型给的镜头语言"）。
    */
   async planFrom(prompt: string): Promise<void> {
+    // 只读（viewer）：切出的一版分镜落不进库，也就不该先换掉界面（§159 不假装改成了）
+    if (isStudioReadOnly()) return;
     const { projectId } = this.snapshotValue;
     if (!projectId) return;
     const sb = planStoryboard(prompt);
@@ -160,6 +163,8 @@ class StoryboardStore {
    * 补丁本身由 `@nexus/video-model/patch` 算逆，这里只管栈与写库。
    */
   applyOps(ops: StoryboardOp[], save = true): void {
+    // 只读：不进撤销栈、不改本地真值——撤销栈里留一条撤不动的编辑比没有更糟
+    if (isStudioReadOnly()) return;
     const current = this.snapshotValue.storyboard;
     if (!current) return;
     let tx;
@@ -183,6 +188,9 @@ class StoryboardStore {
    * 被拒时原因进 `notice` 那同一格：静默的拒绝与"点了没反应"分不开（§159）。
    */
   splitShot(shotId: string, atMs: number, secondId: string): boolean {
+    // 只读：下面走 applyOps，但 applyOps 的闸不会把"切成功"的回执也挡掉——
+    // 这里先返回 false，别在什么都没切的时候弹一句"切成两镜了"（§159）
+    if (isStudioReadOnly()) return false;
     const sb = this.snapshotValue.storyboard;
     if (!sb) return false;
     const at = sb.shots.findIndex((shot) => shot.id === shotId);
@@ -228,6 +236,7 @@ class StoryboardStore {
   }
 
   undo(): void {
+    if (isStudioReadOnly()) return;
     const tx = this.undoStack[this.undoStack.length - 1];
     if (!tx) return;
     this.undoStack = this.undoStack.slice(0, -1);
@@ -237,6 +246,7 @@ class StoryboardStore {
   }
 
   redo(): void {
+    if (isStudioReadOnly()) return;
     const tx = this.redoStack[this.redoStack.length - 1];
     if (!tx) return;
     this.redoStack = this.redoStack.slice(0, -1);
@@ -251,6 +261,7 @@ class StoryboardStore {
   }
 
   async commit(): Promise<void> {
+    if (isStudioReadOnly()) return;
     const { projectId, storyboard } = this.snapshotValue;
     if (!projectId || !storyboard) return;
     if (this.saving) {
@@ -306,6 +317,7 @@ class StoryboardStore {
   }
 
   flushSave(): void {
+    if (isStudioReadOnly()) return;
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;

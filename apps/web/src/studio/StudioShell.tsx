@@ -4,6 +4,7 @@ import { Profiler, Suspense, use, useEffect, useState, type ProfilerOnRenderCall
 import type { DesignDocument } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
 import { studio, useStudio } from './store';
+import { setStudioReadOnly } from './read-only';
 import { TopBar } from './TopBar';
 import { LayersPanel } from './LayersPanel';
 import { HistoryPanel } from './HistoryPanel';
@@ -118,10 +119,17 @@ function DocumentStream({ documentPromise }: { documentPromise: Promise<DesignDo
 export function StudioShell({
   projectId,
   demoMode,
+  readOnly,
   documentPromise,
 }: {
   projectId: string;
   demoMode: boolean;
+  /**
+   * viewer 角色：服务端 `projectWriteAccess` 判出来的，不是界面猜的。
+   * 只读时四个 store 的编辑/保存入口都会在本地按下（`read-only.ts`），
+   * 横幅把原因说在前面——服务端的 403 仍是最后一道，不是唯一一道。
+   */
+  readOnly: boolean;
   /**
    * 服务端那份文档的 promise（§147 流式首屏，2026-10-23）。**不 await 地传下来**：
    * shell 先渲染，文档作为同一个响应的后续 chunk 后到——`use()` 在这个组件树下
@@ -130,6 +138,11 @@ export function StudioShell({
   documentPromise?: Promise<DesignDocument | null>;
 }) {
   const state = useStudio();
+
+  useEffect(() => {
+    setStudioReadOnly(readOnly);
+    return () => setStudioReadOnly(false);
+  }, [readOnly]);
 
   useEffect(() => {
     void studio.load(projectId);
@@ -156,6 +169,15 @@ export function StudioShell({
         <Suspense fallback={null}>
           <DocumentStream documentPromise={documentPromise} />
         </Suspense>
+      ) : null}
+      {readOnly ? (
+        <p
+          data-studio-read-only
+          className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] bg-bg-2 px-[var(--nexus-space-3)] py-1 text-11 text-warn"
+        >
+          你是这个项目的查看者（viewer）：文档可以看，编辑不会落到文档上——服务端会拒绝写请求（403）。
+          要改内容，让所有者把角色改成可编辑。
+        </p>
       ) : null}
       {state.ready ? (
         <Profiler id="workspace" onRender={recordWorkspaceRender}>

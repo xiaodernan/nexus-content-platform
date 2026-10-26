@@ -13,6 +13,7 @@ import { expect, test, type Page } from '@playwright/test';
  * ⑤ **改角色是立刻生效的写**：owner 把 editor 降为 viewer → 刷新后仍是 viewer。
  *    只靠界面内存不算数——刷新会重新 GET 名册，值还在才说明落库了；
  *    名额计数同时不能动：改角色不是"换一个人"。
+ * ⑥ 被降级的人再进 Studio：只读横幅出现（界面先说清），不是进去先改再被 403 打回。
  */
 
 const password = 'e2e-team-secret-123';
@@ -119,4 +120,15 @@ test('@smoke §133 团队协作：owner 发邀请 → 换 editor 登录接受 �
   await expect(page.locator('[data-team-member] select[data-team-member-role]')).toHaveValue('viewer', { timeout: 20_000 });
 
   await page.screenshot({ path: 'screenshots/team-role-changed.png' });
+
+  // ⑥ 被降为 viewer 的 editor 再进 Studio：横幅先一步说清"能看不能改"
+  //    服务端的 403 是最后一道，不该是用户第一次听说这件事（§159）。
+  //    顺带证明 page.tsx 用的是写门三态：viewer 进得来（不是 404），只是壳体只读。
+  await page.goto('/');
+  await logoutVia(page);
+  await loginVia(page, editorEmail);
+  await page.goto(studioUrl);
+  await expect(page.locator('[data-studio-read-only]')).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator('[data-studio-read-only]')).toContainText('查看者');
+  await page.screenshot({ path: 'screenshots/team-viewer-read-only.png' });
 });
