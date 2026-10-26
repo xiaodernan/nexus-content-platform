@@ -68,4 +68,28 @@ describe('visualDna：畸形调色板输入如实拒绝', () => {
       expect(Number.isFinite(res.stats.meanLuminance)).toBe(true);
     }
   });
+
+  it('小 IHDR + 大 IDAT 的解压炸弹 → 拒绝，不把内存打爆', () => {
+    // IHDR 只声明 1x1（RGBA 的 expected = 1*(1*4+1) = 5 字节），但 IDAT 解压出来 1MB。
+    // 没有 maxOutputLength 时 inflateSync 会先解出整块 1MB 才轮到 raw.length<expected 检查——
+    // 攻击者用几十 KB 的压缩包就能把它吹到 GB 级（上游只卡了"压缩体积"与"声明像素数"，
+    // 声明 1x1 两者都过）。所以必须给 inflate 一个解压上限。
+    const ihdr = Buffer.alloc(13);
+    ihdr.writeUInt32BE(1, 0);
+    ihdr.writeUInt32BE(1, 4);
+    ihdr[8] = 8;
+    ihdr[9] = 6; // 8bit RGBA
+    const bomb = deflateSync(Buffer.alloc(1024 * 1024)); // 1MB 全 0，压缩后仅约 1KB
+    const bytes = new Uint8Array(
+      Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        chunk('IHDR', ihdr),
+        chunk('IDAT', new Uint8Array(bomb)),
+        chunk('IEND', Buffer.alloc(0)),
+      ]),
+    );
+    const res = extractVisualDna(bytes);
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.reason).toContain('IDAT 解压失败');
+  });
 });

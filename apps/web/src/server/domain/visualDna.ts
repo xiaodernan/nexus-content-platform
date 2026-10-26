@@ -16,6 +16,12 @@ import type { VisualDna } from '@nexus/design-model';
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 /** 参与统计的像素上限：再多对描述符没有增益，却会把请求拖成 CPU 瓶颈 */
 const MAX_SAMPLES = 60_000;
+/**
+ * 解压后字节上限：40MP 的 RGBA（上游 `storage/images` 的 `MAX_IMAGE_PIXELS`）约 200MB，
+ * 留一点余量。超过它的 IDAT 一律当解压炸弹拒绝——**在 inflate 之前**，不然一个声明
+ * 1x1、IDAT 却能吹到 GB 级的小文件就能把内存打爆（上游只卡压缩体积与声明像素数）。
+ */
+export const MAX_DECODED_BYTES = 256 * 1024 * 1024;
 
 export interface PixelStats {
   width: number;
@@ -129,15 +135,20 @@ function decodePngToRgba(png: PngChunks): Uint8Array | string {
   const channels = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }[png.colorType];
   if (!channels) return `暂不支持 colorType ${png.colorType}`;
 
+  const stride = png.width * channels;
+  const expected = png.height * (stride + 1);
+  // 解压上限：IDAT 解压后必须恰好是 expected 字节。给 inflate 一个硬上限，挡住
+  // "小 IHDR + 大 IDAT"的解压炸弹——上游只卡压缩体积与声明像素数，声明 1x1 两者都过，
+  // 但 IDAT 可以吹到 GB 级（§SECURITY；与 zip-read 的 maxOutputLength 同理）。
+  if (expected > MAX_DECODED_BYTES) {
+    return `解压后 ${expected} 字节超过解码上限 ${MAX_DECODED_BYTES}`;
+  }
   let raw: Uint8Array;
   try {
-    raw = new Uint8Array(inflateSync(Buffer.from(png.idat)));
+    raw = new Uint8Array(inflateSync(Buffer.from(png.idat), { maxOutputLength: expected }));
   } catch (error) {
     return `IDAT 解压失败：${error instanceof Error ? error.message : String(error)}`;
   }
-
-  const stride = png.width * channels;
-  const expected = png.height * (stride + 1);
   if (raw.length < expected) return `解压后字节数 ${raw.length} 小于所需的 ${expected}`;
 
   const filtered = new Uint8Array(png.height * stride);
