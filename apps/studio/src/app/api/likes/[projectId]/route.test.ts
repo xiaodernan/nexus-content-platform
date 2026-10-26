@@ -45,6 +45,13 @@ const withdraw = (projectId: string, search: string) =>
     params: Promise.resolve({ projectId }),
   });
 
+/**
+ * The name the door asked the service to look up — the segment of the address the lib composed, decoded
+ * the way the service decodes it. A byte needle on the URL cannot tell `pub%2F1` (the name `pub/1`) from
+ * `pub%252F1` (the name `pub%2F1`); the parser can.
+ */
+const nameAsked = (url: string): string => decodeURIComponent(new URL(url).pathname.split('/')[2]!);
+
 describe('likes [projectId] route — the DELETE ask (v491)', () => {
   it('a missing claimer is refused BEFORE the service is asked — a like needs an account to take it back', async () => {
     stubService({ status: 200, json: { ok: true, count: 3, liked: false } });
@@ -83,16 +90,43 @@ describe('likes [projectId] route — the DELETE ask (v491)', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('the path segment is DECODED before the ask — a lowercase escape arrives at the service in its canonical form', async () => {
+  it('the segment is asked about AS THE FRAMEWORK HANDED IT — a percent in a name is not a second escape (v523)', async () => {
+    // v491 wrote this case as a normalisation of a lowercase escape into an uppercase one, which assumed a
+    // route receives the RAW path bytes of the URL. It does not: Next decodes a dynamic segment before a
+    // route sees it (`base-server.js`'s `prepareDestination`, the file dev and prod share), so bytes
+    // wearing an escape can only have arrived DOUBLE-encoded — and decoding them again asks the service
+    // about a name nobody sent.
     stubService({ status: 200, json: { ok: true, count: 3, liked: false } });
     await withdraw('pub%2f1', '?claimer=acct-ada');
     expect(calls).toHaveLength(1);
-    expect(calls[0]!.url).toContain('/likes/pub%2F1?');
+    expect(nameAsked(calls[0]!.url)).toBe('pub%2f1');
   });
 
-  it('a path segment that is not a valid escape THROWS — the door guards the claimer and nothing else', async () => {
+  it('a padded segment is asked about as the name the caller MEANT (v523)', async () => {
     stubService({ status: 200, json: { ok: true, count: 3, liked: false } });
-    await expect(withdraw('pub%', '?claimer=acct-ada')).rejects.toThrow();
+    await withdraw(' pub-1 ', '?claimer=acct-ada');
+    expect(calls).toHaveLength(1);
+    expect(nameAsked(calls[0]!.url)).toBe('pub-1');
+  });
+
+  it('a segment that NAMES a broken escape is still a name — the door asks, and nothing throws (v523)', async () => {
+    // The bytes `pub%` are what the framework hands a route for the URL `/api/likes/pub%25`. The second
+    // decode threw `URIError` out of the handler, and a thrown handler is a 500 with no sentence about a
+    // name the caller can see they sent.
+    stubService({ status: 200, json: { ok: true, count: 3, liked: false } });
+    const res = await withdraw('pub%', '?claimer=acct-ada');
+    expect(res.status).toBe(200);
+    expect(calls).toHaveLength(1);
+    expect(nameAsked(calls[0]!.url)).toBe('pub%');
+  });
+
+  it('a segment that is only space is refused before the service is asked (v523)', async () => {
+    // The trim came first, so forwarding the padding was how this door ended up asking `/likes/` — the
+    // COLLECTION door — about a name that is nothing, and answering whatever that returns.
+    stubService({ status: 200, json: { ok: true, count: 3, liked: false } });
+    const res = await withdraw(' ', '?claimer=acct-ada');
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('a like needs the publication it points at: this URL names none');
     expect(calls).toHaveLength(0);
   });
 

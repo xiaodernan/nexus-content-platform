@@ -17,8 +17,18 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ projectId: string }> }): Promise<NextResponse> {
-  const { projectId } = await params;
   const url = new URL(request.url);
+  // v523 — the segment is read the same way as the claimer: ONE decode (Next has already decoded it; a
+  // second decode threw `URIError` out of the handler on a publication id that carries a percent, which is
+  // a 500 with no sentence and no ask) and the one rule — a name blank after trimming names no publication,
+  // and this door says so in its own sentence instead of asking the collection endpoint about nothing.
+  const projectId = doorName((await params).projectId);
+  if (projectId === '') {
+    return NextResponse.json(
+      { ok: false, reason: 'a like needs the publication it points at: this URL names none' },
+      { status: 400 },
+    );
+  }
   // v508 — the claimer is read through the one rule (doorName). v521 corrected the claim made here, that
   // the service never trims: it trims every name it reads. The rule is the door’s own — a name blank
   // after trimming names nobody — so this door says that in its own sentence instead of forwarding an
@@ -30,6 +40,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ p
       { status: 400 },
     );
   }
-  const answer = await unlikeOnService(doorName(decodeURIComponent(projectId)), claimer);
+  const answer = await unlikeOnService(projectId, claimer);
   return NextResponse.json(answer, { status: answer.ok ? 200 : serviceFailureStatus(answer.failure) });
 }

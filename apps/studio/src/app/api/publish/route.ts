@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { OwnerClaim } from '@/lib/accounts';
 
+import { doorName } from '@/lib/doorName';
 import { DEFAULT_LIST_LIMIT as LIST_DEFAULT, listPublications, publishDocument, publishState, readPublication, unpublishProject } from '@/lib/publishServer';
 
 /**
@@ -62,7 +63,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json(await listPublications(asked, undefined, narrowed));
   }
 
-  if (typeof projectId !== 'string' || !projectId.trim()) {
+  // v523 — the last door amendment 507 did not convert: it DECIDED on the trimmed bytes (`!projectId.trim()`)
+  // and then forwarded the padding, so a publish stored the key ` p1 ` while the canonical read URL asks
+  // about `p1` — a name the reader cannot reach. The Java side keeps what it is sent (`PublishService` stores
+  // the id as it arrives and `requireUsableId` never trims), so the trim had to happen HERE, once, on the way
+  // in. A name blank after trimming is not a name, and the refusal is the door's own sentence.
+  const name = doorName(projectId);
+  if (name === '') {
     return NextResponse.json({ ok: false, reason: 'projectId is required and must be a non-empty string' }, { status: 400 });
   }
 
@@ -70,13 +77,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (typeof title !== 'string' || !title.trim()) {
       return NextResponse.json({ ok: false, reason: 'title is required and must be a non-empty string' }, { status: 400 });
     }
-    return NextResponse.json(await publishDocument(projectId, title, document, undefined, owner as OwnerClaim | undefined));
+    return NextResponse.json(await publishDocument(name, title, document, undefined, owner as OwnerClaim | undefined));
   }
   if (action === 'read') {
-    return NextResponse.json(await readPublication(projectId));
+    return NextResponse.json(await readPublication(name));
   }
   if (action === 'unpublish') {
-    return NextResponse.json(await unpublishProject(projectId, undefined, claimer as string | undefined));
+    return NextResponse.json(await unpublishProject(name, undefined, claimer as string | undefined));
   }
   return NextResponse.json(
     { ok: false, reason: `action is ${typeof action === 'string' ? `"${action}"` : String(action)}; this route speaks "publish", "read", "unpublish" and "list" only` },

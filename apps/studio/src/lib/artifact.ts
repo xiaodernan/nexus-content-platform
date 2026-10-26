@@ -87,6 +87,19 @@ export function renderArtifactMissing(projectId: string): string {
 }
 
 /**
+ * v523 — the URL carried NO id at all. 400 rather than the 404 above, and the two pages stay separate for the
+ * same reason 404 and 503 do: "nothing is published under that name" is an answer about a publication, while
+ * "this address named none" is an answer about the address — and a page that printed an empty `<code></code>`
+ * would show the reader a name they never sent, then tell them it does not exist.
+ */
+export function renderArtifactUnnamed(): string {
+  return shell(
+    'This URL names no publication',
+    `<h1>This URL names no publication</h1><p>The address carried no publication id, so there is nothing to look up.</p><p>Check the part of the address after <code>/p/</code> — it is the publication&apos;s id.</p>`,
+  );
+}
+
+/**
  * The service could not be reached, or answered something unusable.
  *
  * 503 rather than 404, and the difference matters: "nothing is published here" and "the thing that knows what

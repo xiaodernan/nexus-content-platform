@@ -9,6 +9,7 @@ import { readTips } from '@/lib/tipServer';
 import { readPlans } from '@/lib/planServer';
 import { injectPlanBar, renderPlanBar, toPlanRows, PLAN_BAR_STYLES } from '@/lib/planBar';
 import { injectTipBar, renderTipBar, toTipRows, TIP_BAR_STYLES } from '@/lib/tipBar';
+import { doorName } from '@/lib/doorName';
 
 /**
  * M7 v270 (ADR 0016 amendment 270): `/u/{accountId}` — the PROFILE page, what ONE account has published.
@@ -56,7 +57,13 @@ function html(body: string, status: number): Response {
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ accountId: string }> }): Promise<Response> {
-  const accountId = decodeURIComponent((await params).accountId);
+  // v523 — ONE decode, and the one rule: a name is the bytes the caller sent without the accidental space
+  // around them. Next has already decoded the segment before handing it over (`base-server.js`'s
+  // `prepareDestination`, the file dev and prod share), so the second decode here turned a profile whose
+  // id carries a percent into a 500 with no sentence and no ask, and this page fans out FIVE asks about one
+  // name — the listing (which trimmed on its own) and the four side doors (which did not). Deciding trimmed
+  // and forwarding the padding answered about two accounts at once.
+  const accountId = doorName((await params).accountId);
   const url = new URL(request.url);
   const offset = Math.max(0, Number.parseInt(url.searchParams.get('offset') ?? '0', 10));
   const query = url.searchParams.get('q') ?? '';
@@ -74,7 +81,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   const followersOffset = Math.max(0, Number.parseInt(url.searchParams.get('followersOffset') ?? '0', 10));
   const followingOffset = Math.max(0, Number.parseInt(url.searchParams.get('followingOffset') ?? '0', 10));
   
-  if (!accountId.trim()) {
+  if (accountId === '') {
     return html(renderProfileHtml(profileFactsOf('', [], 0, PROFILE_LIMIT, offset, query), []), 200);
   }
 

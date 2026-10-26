@@ -384,6 +384,21 @@ describe('the door contract — a BLANK account (v499, answered uniformly in v50
     expect(follow.status).toBe(400);
     expect(seen, 'a name that is blank after trimming is not asked about at all').toHaveLength(0);
   });
+
+  it('the take-back doors refuse a blank SEGMENT before the service is asked (v523)', async () => {
+    // The claimer has been guarded since v508 and the name in the URL has not, so a segment of space made
+    // each of these doors ask the COLLECTION door — `/comments/`, `/likes/`, `/follows/` — about nothing,
+    // and answer with whatever that happens to return.
+    mode = 'ok';
+    stubService();
+    const comment = await commentTakeBack(req('/api/comments/c-1?claimer=acct-ada'), { params: Promise.resolve({ commentId: ' ' }) });
+    const like = await unlike(req('/api/likes/pub-1?claimer=acct-ada'), { params: Promise.resolve({ projectId: ' ' }) });
+    const follow = await unfollow(req('/api/follows/acct-grace?claimer=acct-ada'), { params: Promise.resolve({ accountId: ' ' }) });
+    for (const [door, res] of [['comments', comment], ['likes', like], ['follows', follow]] as const) {
+      expect(res.status, door).toBe(400);
+    }
+    expect(seen, 'a name that is blank after trimming is not asked about at all').toHaveLength(0);
+  });
 });
 
 describe('the door contract — a WRITE’s status (v499)', () => {

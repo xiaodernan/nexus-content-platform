@@ -45,6 +45,13 @@ const unfollow = (accountId: string, search: string) =>
     params: Promise.resolve({ accountId }),
   });
 
+/**
+ * The name the door asked the service to look up — the segment of the address the lib composed, decoded
+ * the way the service decodes it. A byte needle on the URL cannot tell `acct%2Fgrace` (the name `acct/grace`)
+ * from `acct%252Fgrace` (the name `acct%2Fgrace`); the parser can.
+ */
+const nameAsked = (url: string): string => decodeURIComponent(new URL(url).pathname.split('/')[2]!);
+
 describe('follows [accountId] route — the DELETE ask (v492)', () => {
   it('a missing claimer is refused BEFORE the service is asked — a follow with no follower has no edge to draw', async () => {
     stubService({ status: 200, json: { ok: true, followerCount: 3, following: false } });
@@ -83,16 +90,45 @@ describe('follows [accountId] route — the DELETE ask (v492)', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('the path segment is DECODED before the ask — a lowercase escape arrives at the service in its canonical form', async () => {
+  it('the segment is asked about AS THE FRAMEWORK HANDED IT — a percent in a name is not a second escape (v523)', async () => {
+    // v492 wrote this case as a normalisation of a lowercase escape into an uppercase one, which assumed a
+    // route receives the RAW path bytes of the URL. It does not: Next decodes a dynamic segment before a
+    // route sees it (`base-server.js`'s `prepareDestination`, the file dev and prod share), so bytes
+    // wearing an escape can only have arrived DOUBLE-encoded — and decoding them again asks the service
+    // about a name nobody sent. The door forwards what it was handed; the service looks up exactly that.
     stubService({ status: 200, json: { ok: true, followerCount: 3, following: false } });
     await unfollow('acct%2fgrace', '?claimer=acct-ada');
     expect(calls).toHaveLength(1);
-    expect(calls[0]!.url).toContain('/follows/acct%2Fgrace?');
+    expect(nameAsked(calls[0]!.url)).toBe('acct%2fgrace');
   });
 
-  it('a path segment that is not a valid escape THROWS — the door guards the claimer and nothing else', async () => {
+  it('a padded segment is asked about as the name the caller MEANT (v523)', async () => {
+    // The trim this door already runs on the SEGMENT (`doorName`) is the rule amendment 501 wrote for
+    // names read from a query; this keeps it on the record beside the ask, not only in the source.
     stubService({ status: 200, json: { ok: true, followerCount: 3, following: false } });
-    await expect(unfollow('acct%', '?claimer=acct-ada')).rejects.toThrow();
+    await unfollow(' acct-grace ', '?claimer=acct-ada');
+    expect(calls).toHaveLength(1);
+    expect(nameAsked(calls[0]!.url)).toBe('acct-grace');
+  });
+
+  it('a segment that NAMES a broken escape is still a name — the door asks, and nothing throws (v523)', async () => {
+    // The bytes `acct%` are what the framework hands a route for the URL `/api/follows/acct%25`. The second
+    // decode threw `URIError` out of the handler, and a thrown handler is a 500 with no sentence about a
+    // name the caller can see they sent.
+    stubService({ status: 200, json: { ok: true, followerCount: 3, following: false } });
+    const res = await unfollow('acct%', '?claimer=acct-ada');
+    expect(res.status).toBe(200);
+    expect(calls).toHaveLength(1);
+    expect(nameAsked(calls[0]!.url)).toBe('acct%');
+  });
+
+  it('a segment that is only space is refused before the service is asked (v523)', async () => {
+    // The trim came first, so forwarding the padding was how this door ended up asking `/follows/` — the
+    // COLLECTION door — about a name that is nothing, and answering whatever that returns.
+    stubService({ status: 200, json: { ok: true, followerCount: 3, following: false } });
+    const res = await unfollow(' ', '?claimer=acct-ada');
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('a follow needs the account it points at: this URL names none');
     expect(calls).toHaveLength(0);
   });
 

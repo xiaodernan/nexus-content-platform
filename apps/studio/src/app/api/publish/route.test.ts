@@ -291,6 +291,22 @@ describe('publish route — the guards that run before any call', () => {
     });
   }
 
+  for (const action of ['publish', 'read', 'unpublish']) {
+    it(`a padded project id on \`${action}\` is asked about as the name the caller MEANT (v523)`, async () => {
+      // Amendment 507 wrote that a name read from a POST BODY travels this rule, and this door kept
+      // deciding with the trim (`!projectId.trim()`) while forwarding the padding. A publish that stores
+      // ` p1 ` is a key the canonical read URL cannot reach: `/p/%2520p1%2520` asks about `p1`, because a
+      // name is the bytes it carries without the accidental space around them.
+      const calls = stubFetch(okWith({ projectId: 'p1', title: 'T', version: 1 }));
+      await ask({ action, projectId: ' p1 ', title: 'T' });
+      expect(calls).toHaveLength(1);
+      const bytes = `${calls[0]!.url} ${calls[0]!.raw ?? ''}`;
+      expect(bytes, `the padded name reached the service on \`${action}\`: ${bytes}`).not.toContain('%20p1');
+      expect(bytes).not.toContain('" p1 "');
+      expect(bytes).toContain('p1');
+    });
+  }
+
   for (const title of [undefined, '', '   ', 42]) {
     it(`a publish title of ${JSON.stringify(title) ?? 'absent'} is refused without asking the service`, async () => {
       const calls = stubFetch(okWith({}));
