@@ -180,3 +180,53 @@ describe('comments route — the POST ask (v488)', () => {
     expect((await refused.json()).reason).toBe('the service is down');
   });
 });
+
+/**
+ * M7 v521 (ADR 0016 amendment 507) — the body’s names join the rule the query names already kept.
+ *
+ * v508 put every name read from a QUERY on `doorName` — the bytes the caller meant, trimmed, and a name
+ * that is blank after trimming is not a name at all. The names read from a POST BODY kept the
+ * authoring-wave check (`length === 0`), which is a check on the LENGTH of the padding: `“   ”` was a
+ * publication, and v511 then stripped the blank check off the claim’s account entirely, citing
+ * `doorName` as its reason — the opposite of what that rule says. What that costs a caller is the whole
+ * point: the door stopped answering, the service refused, and a caller’s own malformed ask came back as
+ * a 502. These cases ask the body the three questions the GET block already asks the query.
+ */
+describe('comments route — the POST body’s names go through the one rule (v521)', () => {
+  const claim = { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
+
+  it('a projectId that is only space is not a publication — refused BEFORE the service is asked', async () => {
+    stubService({ status: 201, json: { ok: true, comment: { id: 'c-1' } } });
+    const res = await post({ projectId: '   ', body: 'hello', claim });
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('the projectId is missing');
+    expect(calls, 'a name that is blank after trimming is not asked about at all').toHaveLength(0);
+  });
+
+  it('a claim whose accountId is empty or only space is not a claim — refused BEFORE the service is asked', async () => {
+    for (const blank of ['', '   ']) {
+      stubService({ status: 201, json: { ok: true, comment: { id: 'c-1' } } });
+      const res = await post({ projectId: 'pub-1', body: 'hello', claim: { accountId: blank } });
+      expect(res.status, `accountId ${JSON.stringify(blank)} is not an author`).toBe(400);
+      expect((await res.json()).reason).toBe('a comment needs an account: a comment with no author has nobody to take it back and nobody to answer to');
+      expect(calls, 'the door answers the ask, so the service never hears about it').toHaveLength(0);
+    }
+  });
+
+  it('a padded projectId is asked about TRIMMED — the door asks about the publication the caller meant', async () => {
+    stubService({ status: 201, json: { ok: true, comment: { id: 'c-1' } } });
+    await post({ projectId: '  pub-1  ', body: 'hello', claim });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body).toMatchObject({ projectId: 'pub-1' });
+  });
+
+  it('a padded claim accountId travels TRIMMED, and the comment BODY is DATA — padding there is the caller’s own', async () => {
+    stubService({ status: 201, json: { ok: true, comment: { id: 'c-1' } } });
+    await post({ projectId: 'pub-1', body: '  hello  ', claim: { accountId: '  acct-ada  ', handle: '  ada  ' } });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body).toMatchObject({
+      claim: { accountId: 'acct-ada', handle: '  ada  ' },
+      body: '  hello  ',
+    });
+  });
+});

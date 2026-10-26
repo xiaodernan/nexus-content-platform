@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serviceFailureStatus } from '@/lib/serviceCall';
+import { doorName } from '@/lib/doorName';
 
 import { followOnService, readFollowing, unfollowOnService } from '@/lib/followServer';
 
@@ -49,8 +50,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ ok: false, reason: 'the body is not an object' }, { status: 400 });
   }
-  const { accountId, claim } = body as { accountId?: unknown; claim?: unknown };
-  if (typeof accountId !== 'string' || accountId.length === 0) {
+  const { accountId: accountIdRaw, claim } = body as { accountId?: unknown; claim?: unknown };
+  // v521 — the account FOLLOWED is a name, and the GET half of this door already read its name through the
+  // rule; the body checked only LENGTH, so three spaces was an account to ask about.
+  const accountId = doorName(accountIdRaw);
+  if (accountId === '') {
     return NextResponse.json({ ok: false, reason: 'the accountId is missing' }, { status: 400 });
   }
   if (typeof claim !== 'object' || claim === null) {
@@ -61,14 +65,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
   const c = claim as { accountId?: unknown; handle?: unknown; assurance?: unknown; claimedAt?: unknown };
-  if (typeof c.accountId !== 'string') {
+  // v521 — v511 read doorName’s rule as “a name only has to be a string”. The rule says the opposite: a name
+  // blank after trimming is not a name. The service refused such a claim BY NAME, the refusal carried no
+  // failure kind, and the door answered 502 for a follower whose device sent an empty account.
+  const follower = doorName(c.accountId);
+  if (follower === '') {
     return NextResponse.json(
       { ok: false, reason: 'a follow needs an account: a follow with no follower has no edge to draw' },
       { status: 400 },
     );
   }
   const answer = await followOnService(accountId, {
-    accountId: c.accountId,
+    accountId: follower,
     handle: typeof c.handle === 'string' ? c.handle : null,
     assurance: typeof c.assurance === 'string' ? c.assurance : null,
     claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,

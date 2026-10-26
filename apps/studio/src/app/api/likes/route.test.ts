@@ -69,8 +69,8 @@ describe('likes route — the GET ask (v491)', () => {
   });
 
   it('a padded projectId is asked about as the name the caller MEANT (v508)', async () => {
-    // The service never trims, so forwarding the padding would ask about a publication that does not
-    // exist and answer with an empty list that reads as “this publication has no likes”.
+    // v521 corrected the claim made under this case — that the service never trims. It trims every name it
+    // reads; what the case grades is the door’s own URL, which asks about the name without the padding.
     stubService({ status: 200, json: { ok: true, count: 0, likes: [] } });
     await get('?projectId=%20pub-1%20&viewer=%20acct-ada%20');
     expect(calls).toHaveLength(1);
@@ -205,5 +205,45 @@ describe('likes route — the POST ask (v491)', () => {
     const res = await post({ projectId: 'pub-1', claim });
     expect(res.status).toBe(502);
     expect((await res.json()).reason).toBe('the service is down');
+  });
+});
+
+/**
+ * M7 v521 (ADR 0016 amendment 507) — the body’s names join the rule the query names already kept.
+ *
+ * This door is where v508’s `doorName` already reads the QUERY names; the POST body’s names kept the
+ * length-only check, and the claim’s account lost its blank check in v511 — so a caller who named an
+ * account as three spaces was answered by the SERVICE’s refusal, as a 502, instead of by this door’s own
+ * sentence at a 400. The three questions the GET block asks a query parameter are asked here of the body.
+ */
+describe('likes route — the POST body’s names go through the one rule (v521)', () => {
+  const claim = { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
+
+  it('a projectId that is only space is not a publication — refused BEFORE the service is asked', async () => {
+    stubService({ status: 200, json: { ok: true, count: 1, liked: true } });
+    const res = await post({ projectId: '   ', claim });
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('the projectId is missing');
+    expect(calls, 'a name that is blank after trimming is not asked about at all').toHaveLength(0);
+  });
+
+  it('a claim whose accountId is empty or only space is not a claim — refused BEFORE the service is asked', async () => {
+    for (const blank of ['', '   ']) {
+      stubService({ status: 200, json: { ok: true, count: 1, liked: true } });
+      const res = await post({ projectId: 'pub-1', claim: { accountId: blank } });
+      expect(res.status, `accountId ${JSON.stringify(blank)} is not an account`).toBe(400);
+      expect((await res.json()).reason).toBe('a like needs an account: the service cannot tell one anonymous like from the same one twice');
+      expect(calls, 'the door answers the ask, so the service never hears about it').toHaveLength(0);
+    }
+  });
+
+  it('a padded projectId and a padded claim account are asked about TRIMMED', async () => {
+    stubService({ status: 200, json: { ok: true, count: 1, liked: true } });
+    await post({ projectId: '  pub-1  ', claim: { accountId: '  acct-ada  ', handle: '  ada  ' } });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body).toMatchObject({
+      projectId: 'pub-1',
+      claim: { accountId: 'acct-ada', handle: '  ada  ' },
+    });
   });
 });

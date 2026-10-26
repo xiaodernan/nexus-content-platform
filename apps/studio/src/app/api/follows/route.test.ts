@@ -202,3 +202,43 @@ describe('follows route — the POST ask (v492)', () => {
     expect((await res.json()).reason).toBe('the service is down');
   });
 });
+
+/**
+ * M7 v521 (ADR 0016 amendment 507) — the body’s names join the rule the query names already kept.
+ *
+ * This door asks about TWO names in one body — the account followed (`accountId`) and the account doing
+ * the following (`claim.accountId`) — and they were guarded by two DIFFERENT checks: the first by a
+ * length-only check that lets `“   ”` through, the second by v511’s existence-only check. Both are names,
+ * so both are decided by `doorName` now, and the refusal keeps each name’s own sentence.
+ */
+describe('follows route — the POST body’s names go through the one rule (v521)', () => {
+  const claim = { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
+
+  it('an accountId that is only space is not an account — refused BEFORE the service is asked', async () => {
+    stubService({ status: 200, json: { ok: true, followerCount: 1, following: true } });
+    const res = await post({ accountId: '   ', claim });
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('the accountId is missing');
+    expect(calls, 'a name that is blank after trimming is not asked about at all').toHaveLength(0);
+  });
+
+  it('a claim whose accountId is empty or only space is not a claim — refused BEFORE the service is asked', async () => {
+    for (const blank of ['', '   ']) {
+      stubService({ status: 200, json: { ok: true, followerCount: 1, following: true } });
+      const res = await post({ accountId: 'acct-grace', claim: { accountId: blank } });
+      expect(res.status, `accountId ${JSON.stringify(blank)} is not a follower`).toBe(400);
+      expect((await res.json()).reason).toBe('a follow needs an account: a follow with no follower has no edge to draw');
+      expect(calls, 'the door answers the ask, so the service never hears about it').toHaveLength(0);
+    }
+  });
+
+  it('both names are asked about TRIMMED — the followee and the follower alike', async () => {
+    stubService({ status: 200, json: { ok: true, followerCount: 1, following: true } });
+    await post({ accountId: '  acct-grace  ', claim: { accountId: '  acct-ada  ' } });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body).toMatchObject({
+      accountId: 'acct-grace',
+      claim: { accountId: 'acct-ada' },
+    });
+  });
+});

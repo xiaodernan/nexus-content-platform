@@ -449,10 +449,12 @@ describe('the door contract — a WRITE’s status (v499)', () => {
 });
 
 describe('the door contract — a PADDED name is the name (v508)', () => {
-  // The service never trims — zero `.trim()` in all of services/ — so a door that forwarded
-  // “ acct-ada ” would ask about an account that does not exist and answer with an empty list that
-  // reads as “this account has nothing”. v499 recorded four doors doing exactly that; v508 asks every
-  // door about the name the caller MEANT, and this is the question that keeps it that way.
+  // v521 corrected what this block used to claim — that the service never trims. It does: every social
+  // service reads a name through `isBlank()` and then `trim()`. So the padding was never a wrong lookup;
+  // the rule is the door’s own: a name blank after trimming names nothing, and the door refuses it with
+  // its own sentence rather than forwarding an empty name the service answers as `invalid`, which v507
+  // turns into a 502 — a number no browser can read as its own missing signature. v499 found four doors
+  // forwarding the padding; v508 asks every door about the name the caller MEANT, and this keeps it that way.
   it('the tips door asks about the trimmed recipient, not the padding', async () => {
     mode = 'ok';
     stubService();

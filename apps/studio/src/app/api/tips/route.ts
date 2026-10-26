@@ -24,9 +24,10 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
-  // v508 — both names are read through the one rule (doorName): the service never trims, so
-  // forwarding “ acct-ada ” would ask about an account that does not exist and answer with an empty
-  // list that reads as “nobody tipped this account”.
+  // v508 — both names are read through the one rule (doorName). v521 corrected the claim made here, that
+  // the service never trims: it trims every name it reads, isBlank() first and trim() after, so padding
+  // was never a wrong lookup. The rule is the door’s own — a name blank after trimming names nobody —
+  // and the padding is the URL’s, not the caller’s, so the door asks about acct-ada.
   const recipient = doorName(url.searchParams.get('recipient'));
   // v332 — the PAYER's side of the same door: a reader who gave money and could not see what they gave
   // had a receipt with no place to read it.
@@ -69,14 +70,17 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ ok: false, reason: 'the body is not an object' }, { status: 400 });
   }
-  const { recipientAccountId, amountCents, message, anonymous, claim } = body as {
+  const { recipientAccountId: recipientRaw, amountCents, message, anonymous, claim } = body as {
     recipientAccountId?: unknown;
     amountCents?: unknown;
     message?: unknown;
     anonymous?: unknown;
     claim?: unknown;
   };
-  if (typeof recipientAccountId !== 'string' || recipientAccountId.length === 0) {
+  // v521 — the GET half of this door asks about the recipient through doorName since v508; the POST half
+  // asked about the same account with a LENGTH check. A name is a name on either plane.
+  const recipientAccountId = doorName(recipientRaw);
+  if (recipientAccountId === '') {
     return NextResponse.json({ ok: false, reason: 'the recipientAccountId is missing' }, { status: 400 });
   }
   if (typeof amountCents !== 'number' || !Number.isFinite(amountCents)) {
@@ -90,7 +94,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
   const c = claim as { accountId?: unknown; handle?: unknown; assurance?: unknown; claimedAt?: unknown };
-  if (typeof c.accountId !== 'string') {
+  // v521 — v511 read doorName’s rule as “a name only has to be a string”. The rule says the opposite: a name
+  // blank after trimming is not a name. Money with no payer named is the one thing this service refuses
+  // hardest, and the door answered 502 — a number the caller cannot tell from a broken service.
+  const payer = doorName(c.accountId);
+  if (payer === '') {
     return NextResponse.json(
       { ok: false, reason: 'a tip needs an account to be from' },
       { status: 400 },
@@ -99,10 +107,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   const answer = await tipOnService(
     recipientAccountId,
     Math.floor(amountCents),
+    // The MESSAGE is DATA: the tipper’s own words, forwarded as sent.
     typeof message === 'string' ? message : '',
     anonymous === true,
     {
-      accountId: c.accountId,
+      accountId: payer,
       handle: typeof c.handle === 'string' ? c.handle : null,
       assurance: typeof c.assurance === 'string' ? c.assurance : null,
       claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,

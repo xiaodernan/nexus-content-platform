@@ -66,8 +66,8 @@ describe('follows [accountId] route — the DELETE ask (v492)', () => {
   });
 
   it('a padded claimer is asked about as the name the caller MEANT (v508)', async () => {
-    // The service never trims, so a padded claimer would be compared against an account that does
-    // not exist and refused as “not yours” — the wrong sentence for a name that was never really named.
+    // v521 corrected the claim made under this case — that the service never trims. It trims every name it
+    // reads; what the case grades is the door’s own URL, which names the claimer without the padding.
     stubService({ status: 200, json: { ok: true, followerCount: 3, following: false } });
     await unfollow('acct-grace', '?claimer=%20acct-ada%20');
     expect(calls).toHaveLength(1);

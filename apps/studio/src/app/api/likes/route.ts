@@ -26,10 +26,10 @@ const DEFAULT_LIMIT = 20;
 
 export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
-  // v508 — the name the caller meant, trimmed: the service never trims (zero `.trim()` in all of
-  // services/), so a door that forwarded the padding would ask about a publication that does not
-  // exist and answer with an empty list — which reads as “this publication has no likes” when the
-  // truth is that nobody asked about the publication the caller meant.
+  // v508 — the name the caller meant, trimmed. v521 corrected the claim written here, that the service
+  // never trims: it trims every name it reads, isBlank() first and trim() after, so padding was never a
+  // wrong lookup. The rule is the door’s own — a name blank after trimming names nothing — and the
+  // padding is the URL’s, not the caller’s, so the door asks about pub-1.
   const projectId = doorName(url.searchParams.get('projectId'));
   if (projectId === '') {
     return NextResponse.json({ ok: false, reason: 'the projectId parameter is missing' }, { status: 400 });
@@ -64,8 +64,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ ok: false, reason: 'the body is not an object' }, { status: 400 });
   }
-  const { projectId, claim } = body as { projectId?: unknown; claim?: unknown };
-  if (typeof projectId !== 'string' || projectId.length === 0) {
+  const { projectId: projectIdRaw, claim } = body as { projectId?: unknown; claim?: unknown };
+  // v521 — the name read from this BODY joins the rule the GET half of this door reads through doorName:
+  // the bytes the caller meant, trimmed, and a name blank after trimming is not a name at all.
+  const projectId = doorName(projectIdRaw);
+  if (projectId === '') {
     return NextResponse.json({ ok: false, reason: 'the projectId is missing' }, { status: 400 });
   }
   if (typeof claim !== 'object' || claim === null) {
@@ -77,14 +80,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
   const c = claim as { accountId?: unknown; handle?: unknown; assurance?: unknown; claimedAt?: unknown };
-  if (typeof c.accountId !== 'string') {
+  // v521 — v511 read doorName’s rule as “a name only has to be a string”. The rule says the opposite: a name
+  // blank after trimming is not a name. The service refused such a claim BY NAME, the refusal carried no
+  // failure kind, and the door answered 502 for a liker whose device simply sent an empty account.
+  const liker = doorName(c.accountId);
+  if (liker === '') {
     return NextResponse.json(
       { ok: false, reason: 'a like needs an account: the service cannot tell one anonymous like from the same one twice' },
       { status: 400 },
     );
   }
   const answer = await likeOnService(projectId, {
-    accountId: c.accountId,
+    accountId: liker,
     handle: typeof c.handle === 'string' ? c.handle : null,
     assurance: typeof c.assurance === 'string' ? c.assurance : null,
     claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,

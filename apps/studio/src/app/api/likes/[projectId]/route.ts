@@ -19,9 +19,10 @@ export const dynamic = 'force-dynamic';
 export async function DELETE(request: Request, { params }: { params: Promise<{ projectId: string }> }): Promise<NextResponse> {
   const { projectId } = await params;
   const url = new URL(request.url);
-  // v508 — the claimer is read through the one rule (doorName): the service never trims, so a
-  // padded claimer would be compared against an account that does not exist and refused as
-  // “not yours” — the wrong sentence for a name that was never really named.
+  // v508 — the claimer is read through the one rule (doorName). v521 corrected the claim made here, that
+  // the service never trims: it trims every name it reads. The rule is the door’s own — a name blank
+  // after trimming names nobody — so this door says that in its own sentence instead of forwarding an
+  // empty claimer for the service to refuse.
   const claimer = doorName(url.searchParams.get('claimer'));
   if (claimer === '') {
     return NextResponse.json(

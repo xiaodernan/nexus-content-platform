@@ -111,9 +111,10 @@ describe('tips route — the GET ask (v490)', () => {
   });
 
   it('a padded recipient is asked about as the name the caller MEANT (v508)', async () => {
-    // The service never trims — zero `.trim()` in all of services/ — so forwarding the padding would
-    // ask about an account that does not exist and answer with an empty list that reads as “nobody
-    // tipped this account”. The door asks about acct-ada, which is the account that was meant.
+    // v521 corrected the claim made under this case — that the service never trims, zero `.trim()` in all
+    // of services/. It trims every name it reads, isBlank() first and trim() after. What the case grades
+    // is the door’s own URL: it asks about acct-ada, the name under the padding, and keeps the padding
+    // out of the address it writes.
     stubService({ status: 200, json: { ok: true, tips: [], totalCents: 0, count: 0, limit: 20, offset: 0 } });
     await get('?recipient=%20acct-ada%20');
     expect(calls).toHaveLength(1);
@@ -251,5 +252,52 @@ describe('tips route — the POST ask (v490)', () => {
     const refused = await post({ recipientAccountId: 'acct-ada', amountCents: 500, claim });
     expect(refused.status).toBe(502);
     expect((await refused.json()).reason).toBe('the service is down');
+  });
+});
+
+/**
+ * M7 v521 (ADR 0016 amendment 507) — the body’s names join the rule the query names already kept.
+ *
+ * This door reads its QUERY names through `doorName` since v508, so one account id is asked about
+ * trimmed on the way in and was asked about raw on the way out: the write half kept the length-only
+ * check for the recipient and, after v511, no blank check at all for the payer. A tipper who typed three
+ * spaces as the payer was answered with the service’s refusal at a 502. The message is the payer’s own
+ * words and is DATA: it travels exactly as sent.
+ */
+describe('tips route — the POST body’s names go through the one rule (v521)', () => {
+  const claim = { accountId: 'acct-grace', handle: 'grace', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
+
+  it('a recipientAccountId that is only space is not an account — refused BEFORE the service is asked', async () => {
+    stubService({ status: 201, json: { ok: true, tips: [{ id: 't-1' }] } });
+    const res = await post({ recipientAccountId: '   ', amountCents: 500, claim });
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('the recipientAccountId is missing');
+    expect(calls, 'a name that is blank after trimming is not asked about at all').toHaveLength(0);
+  });
+
+  it('a claim whose accountId is empty or only space is not a payer — refused BEFORE the service is asked', async () => {
+    for (const blank of ['', '   ']) {
+      stubService({ status: 201, json: { ok: true, tips: [{ id: 't-1' }] } });
+      const res = await post({ recipientAccountId: 'acct-ada', amountCents: 500, claim: { accountId: blank } });
+      expect(res.status, `accountId ${JSON.stringify(blank)} pays no tip`).toBe(400);
+      expect((await res.json()).reason).toBe('a tip needs an account to be from');
+      expect(calls, 'the door answers the ask, so the service never hears about it').toHaveLength(0);
+    }
+  });
+
+  it('both names are asked about TRIMMED, and the message is DATA — the payer’s space is the payer’s own', async () => {
+    stubService({ status: 201, json: { ok: true, tips: [{ id: 't-1' }] } });
+    await post({
+      recipientAccountId: '  acct-ada  ',
+      amountCents: 500,
+      message: '  well done  ',
+      claim: { accountId: '  acct-grace  ', handle: '  grace  ' },
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body).toMatchObject({
+      recipientAccountId: 'acct-ada',
+      message: '  well done  ',
+      claim: { accountId: 'acct-grace', handle: '  grace  ' },
+    });
   });
 });

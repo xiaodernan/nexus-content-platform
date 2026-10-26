@@ -194,10 +194,15 @@ describe('reports route — the POST ask (v489)', () => {
     expect(calls[0]!.body?.detail).toBe('');
   });
 
-  it('the SUBJECT is not trimmed — the route trims the account it is asked about, not the thing reported', async () => {
+  it('the SUBJECT travels trimmed, because it is a name, and the DETAIL travels as sent, because it is data', async () => {
     stubService({ status: 201, json: { ok: true, reports: [{ id: 'r-1' }] } });
-    await post({ projectId: '  pub-1  ', reason: 'spam', claim });
-    expect(calls[0]!.body?.projectId).toBe('  pub-1  ');
+    await post({ projectId: '  pub-1  ', reason: 'spam', detail: '  again  ', claim });
+    // This case is v489's, and it pinned the opposite: the account trimmed, the reported publication
+    // forwarded raw. v521 re-aims it. The service reads the reported id with isBlank() and then trim(), so
+    // a padded id asked about no publication and the refusal carried no failure kind — the browser got a
+    // 502 for a report the service had never seen. A name is a name whichever plane it arrives on.
+    expect(calls[0]!.body?.projectId).toBe('pub-1');
+    expect(calls[0]!.body?.detail).toBe('  again  ');
   });
 
   it('the service\u2019s own answer is passed through, and its refusal is a 502 with the reason', async () => {
@@ -267,5 +272,62 @@ describe('reports route — the DELETE ask (v489)', () => {
     const body = await res.json();
     expect(body.ok).toBe(false);
     expect(body.reason).toBe('that report is not yours to withdraw');
+  });
+});
+
+/**
+ * M7 v521 (ADR 0016 amendment 507) — the body’s names join the rule the query names already kept.
+ *
+ * This door is the one that pinned the OLD answer out loud: a case below (v489) says the SUBJECT is not
+ * trimmed, because the route trims only “the account it is asked about” — the claimer on the query. The
+ * rule written in v508 does not sort a body’s names from a query’s: a name is an address, and the door
+ * asks about the bytes the caller meant, or refuses when those bytes are only padding. v511 then
+ * stripped the blank check off the reporter’s account, so this door answered a caller’s own malformed
+ * ask with the SERVICE’S refusal at a 502. The pinned case is re-aimed here, and the re-aim is disclosed
+ * in the grant’s record.
+ */
+describe('reports route — the POST body’s names go through the one rule (v521)', () => {
+  const claim = { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
+
+  it('a projectId that is only space is not a publication — refused BEFORE the service is asked', async () => {
+    stubService({ status: 201, json: { ok: true, reports: [{ id: 'r-1' }] } });
+    const res = await post({ projectId: '   ', reason: 'spam', claim });
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('the projectId is missing');
+    expect(calls, 'a name that is blank after trimming is not asked about at all').toHaveLength(0);
+  });
+
+  it('a reason that is only space is not a reason — refused with the reason’s own sentence', async () => {
+    stubService({ status: 201, json: { ok: true, reports: [{ id: 'r-1' }] } });
+    const res = await post({ projectId: 'pub-1', reason: '   ', claim });
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('a report needs a reason: one of spam, harassment, illegal, other');
+    expect(calls, 'a blank reason is the caller’s ask, not the service’s failure').toHaveLength(0);
+  });
+
+  it('a claim whose accountId is empty or only space is not a claim — refused BEFORE the service is asked', async () => {
+    for (const blank of ['', '   ']) {
+      stubService({ status: 201, json: { ok: true, reports: [{ id: 'r-1' }] } });
+      const res = await post({ projectId: 'pub-1', reason: 'spam', claim: { accountId: blank } });
+      expect(res.status, `accountId ${JSON.stringify(blank)} is not a reporter`).toBe(400);
+      expect((await res.json()).reason).toBe('a report needs an account: a report with no reporter cannot be followed up');
+      expect(calls, 'the door answers the ask, so the service never hears about it').toHaveLength(0);
+    }
+  });
+
+  it('the names are asked about TRIMMED, and the DETAIL is DATA — the reporter’s own words keep their own space', async () => {
+    stubService({ status: 201, json: { ok: true, reports: [{ id: 'r-1' }] } });
+    await post({
+      projectId: '  pub-1  ',
+      reason: 'spam',
+      detail: '  the same three posts again  ',
+      claim: { accountId: '  acct-ada  ', handle: '  ada  ' },
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body).toMatchObject({
+      projectId: 'pub-1',
+      detail: '  the same three posts again  ',
+      claim: { accountId: 'acct-ada', handle: '  ada  ' },
+    });
   });
 });

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serviceFailureStatus } from '@/lib/serviceCall';
+import { doorName } from '@/lib/doorName';
 
 import { readCommentsWritten, writeComment } from '@/lib/commentServer';
 
@@ -52,12 +53,15 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ ok: false, reason: 'the body is not an object' }, { status: 400 });
   }
-  const { projectId, claim, body: text } = body as {
+  const { projectId: projectIdRaw, claim, body: text } = body as {
     projectId?: unknown;
     claim?: unknown;
     body?: unknown;
   };
-  if (typeof projectId !== 'string' || projectId.length === 0) {
+  // v521 — a name read from a BODY goes through the rule a name read from a QUERY already kept: the bytes
+  // the caller meant, trimmed. Checking only LENGTH let three spaces be a publication.
+  const projectId = doorName(projectIdRaw);
+  if (projectId === '') {
     return NextResponse.json({ ok: false, reason: 'the projectId is missing' }, { status: 400 });
   }
   if (typeof text !== 'string' || text.trim().length === 0) {
@@ -72,15 +76,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
   const c = claim as { accountId?: unknown; handle?: unknown; assurance?: unknown; claimedAt?: unknown };
-  // v511 — claim body: only check existence of accountId, not blank content (mirrors doorName.ts rule)
-  if (typeof c.accountId !== 'string') {
+  // v521 — v511 cited doorName’s rule for dropping the blank check here; the rule says the opposite: a name
+  // blank after trimming is not a name. The service refuses such a claim BY NAME, its refusal carries no
+  // failure kind, and the door answered 502 for a writer who simply forgot to sign.
+  const accountId = doorName(c.accountId);
+  if (accountId === '') {
     return NextResponse.json(
       { ok: false, reason: 'a comment needs an account: a comment with no author has nobody to take it back and nobody to answer to' },
       { status: 400 },
     );
   }
   const answer = await writeComment(projectId, text, {
-    accountId: c.accountId,
+    accountId,
     handle: typeof c.handle === 'string' ? c.handle : null,
     assurance: typeof c.assurance === 'string' ? c.assurance : null,
     claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,

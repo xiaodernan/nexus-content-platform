@@ -184,3 +184,43 @@ describe('subscriptions route — the DELETE ask (v497)', () => {
     expect((await res.json()).reason).toBe('that subscription is not yours to end');
   });
 });
+
+/**
+ * M7 v521 (ADR 0016 amendment 507) — the body’s names join the rule the query names already kept.
+ *
+ * The ending half of this door already read both of its names through the blank rule — a blank claimer
+ * is refused at the door, by name, before the service is asked. The subscribing half asked the SAME two
+ * names of the BODY with a length-only check and, after v511, no blank check at all on the holder’s
+ * account. One door, two answers to one question; this is the half that caught up.
+ */
+describe('subscriptions route — the POST body’s names go through the one rule (v521)', () => {
+  const claim = { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
+
+  it('a planId that is only space is not an address — refused BEFORE the service is asked', async () => {
+    stubService({ status: 201, json: { ok: true, subscriptions: [{ id: 's-1' }] } });
+    const res = await post({ planId: '   ', claim });
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('the planId is missing');
+    expect(calls, 'a name that is blank after trimming is not asked about at all').toHaveLength(0);
+  });
+
+  it('a claim whose accountId is empty or only space is not a holder — refused BEFORE the service is asked', async () => {
+    for (const blank of ['', '   ']) {
+      stubService({ status: 201, json: { ok: true, subscriptions: [{ id: 's-1' }] } });
+      const res = await post({ planId: 'plan-1', claim: { accountId: blank } });
+      expect(res.status, `accountId ${JSON.stringify(blank)} holds no subscription`).toBe(400);
+      expect((await res.json()).reason).toBe('a subscription needs an account to hold it');
+      expect(calls, 'the door answers the ask, so the service never hears about it').toHaveLength(0);
+    }
+  });
+
+  it('both names are asked about TRIMMED — the plan and the subscriber alike', async () => {
+    stubService({ status: 201, json: { ok: true, subscriptions: [{ id: 's-1' }] } });
+    await post({ planId: '  plan-1  ', claim: { accountId: '  acct-ada  ', handle: '  ada  ' } });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body).toMatchObject({
+      planId: 'plan-1',
+      claim: { accountId: 'acct-ada', handle: '  ada  ' },
+    });
+  });
+});

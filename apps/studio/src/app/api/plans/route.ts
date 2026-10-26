@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serviceFailureStatus } from '@/lib/serviceCall';
+import { doorName } from '@/lib/doorName';
 
 import { offerOnService, repricePlan, retirePlan } from '@/lib/planServer';
 
@@ -51,14 +52,17 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ ok: false, reason: 'the body is not an object' }, { status: 400 });
   }
-  const { planId, priceCents, currency, period, claim } = body as {
+  const { planId: planIdRaw, priceCents, currency, period, claim } = body as {
     planId?: unknown;
     priceCents?: unknown;
     currency?: unknown;
     period?: unknown;
     claim?: unknown;
   };
-  if (typeof planId !== 'string' || planId.length === 0) {
+  // v521 — a plan id is a NAME, so it is asked about through the rule a query name already kept: the bytes
+  // the caller meant, trimmed. Checking only LENGTH let three spaces name a plan.
+  const planId = doorName(planIdRaw);
+  if (planId === '') {
     return NextResponse.json({ ok: false, reason: 'the planId is missing' }, { status: 400 });
   }
   if (typeof priceCents !== 'number' || !Number.isFinite(priceCents)) {
@@ -68,7 +72,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, reason: 'a plan needs an account to offer it' }, { status: 400 });
   }
   const c = claim as { accountId?: unknown; handle?: unknown; assurance?: unknown; claimedAt?: unknown };
-  if (typeof c.accountId !== 'string') {
+  // v521 — v511 read this check as doorName's rule saying a name needs only to be a string. The rule says
+  // the opposite: a name blank after trimming is not a name. The service refuses such a claim BY NAME, its
+  // refusal carries no failure kind, and the door answered 502 for a caller who simply forgot to sign.
+  const accountId = doorName(c.accountId);
+  if (accountId === '') {
     return NextResponse.json(
       { ok: false, reason: 'a plan needs an account to offer it' },
       { status: 400 },
@@ -77,10 +85,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   const answer = await offerOnService(
     planId,
     Math.floor(priceCents),
+    // CURRENCY and PERIOD are DATA: the caller’s own bytes, forwarded as sent.
     typeof currency === 'string' ? currency : 'CNY',
     typeof period === 'string' ? period : 'month',
     {
-      accountId: c.accountId,
+      accountId,
       handle: typeof c.handle === 'string' ? c.handle : null,
       assurance: typeof c.assurance === 'string' ? c.assurance : null,
       claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,

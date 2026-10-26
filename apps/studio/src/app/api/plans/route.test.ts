@@ -279,3 +279,44 @@ describe('plans route — the DELETE ask (v493)', () => {
     expect((await res.json()).reason).toBe('that plan is not yours to retire');
   });
 });
+
+/**
+ * M7 v521 (ADR 0016 amendment 507) — the body’s names join the rule the query names already kept.
+ *
+ * A plan id is the sharpest name in the house: the service’s own comment says an id “is an address people
+ * are given”. The PUT and DELETE halves of this door already trimmed their names and refused a blank one;
+ * the POST half checked only LENGTH, and v511 stripped the blank check off the offerer’s account. So the
+ * same ask, offered instead of repriced, was answered by the service’s refusal at a 502.
+ */
+describe('plans route — the POST body’s names go through the one rule (v521)', () => {
+  const claim = { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 };
+
+  it('a planId that is only space is not an address — refused BEFORE the service is asked', async () => {
+    stubService({ status: 201, json: { ok: true, plans: [{ planId: 'plan-1' }] } });
+    const res = await post({ planId: '   ', priceCents: 500, claim });
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe('the planId is missing');
+    expect(calls, 'a name that is blank after trimming is not asked about at all').toHaveLength(0);
+  });
+
+  it('a claim whose accountId is empty or only space is not an offerer — refused BEFORE the service is asked', async () => {
+    for (const blank of ['', '   ']) {
+      stubService({ status: 201, json: { ok: true, plans: [{ planId: 'plan-1' }] } });
+      const res = await post({ planId: 'plan-1', priceCents: 500, claim: { accountId: blank } });
+      expect(res.status, `accountId ${JSON.stringify(blank)} does not offer a plan`).toBe(400);
+      expect((await res.json()).reason).toBe('a plan needs an account to offer it');
+      expect(calls, 'the door answers the ask, so the service never hears about it').toHaveLength(0);
+    }
+  });
+
+  it('both names are asked about TRIMMED — and the currency and period are the caller’s own words', async () => {
+    stubService({ status: 201, json: { ok: true, plans: [{ planId: 'plan-1' }] } });
+    await post({ planId: '  plan-1  ', priceCents: 500, currency: ' CNY ', claim: { accountId: '  acct-ada  ' } });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body).toMatchObject({
+      planId: 'plan-1',
+      claim: { accountId: 'acct-ada' },
+      currency: ' CNY ',
+    });
+  });
+});

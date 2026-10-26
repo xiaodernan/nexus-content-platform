@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serviceFailureStatus } from '@/lib/serviceCall';
+import { doorName } from '@/lib/doorName';
 
 import { readFiledReports, reportOnService, withdrawReport } from '@/lib/reportServer';
 
@@ -50,16 +51,20 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ ok: false, reason: 'the body is not an object' }, { status: 400 });
   }
-  const { projectId, reason, detail, claim } = body as {
+  const { projectId: projectIdRaw, reason: reasonRaw, detail, claim } = body as {
     projectId?: unknown;
     reason?: unknown;
     detail?: unknown;
     claim?: unknown;
   };
-  if (typeof projectId !== 'string' || projectId.length === 0) {
+  // v521 — the publication reported on is a NAME, so it is asked about through the rule the query names
+  // already kept. The REASON is not a name but it is a closed set, and the service reads it with
+  // isBlank(): a reason of only space is no reason, and this door says so with its own sentence.
+  const projectId = doorName(projectIdRaw);
+  if (projectId === '') {
     return NextResponse.json({ ok: false, reason: 'the projectId is missing' }, { status: 400 });
   }
-  if (typeof reason !== 'string' || reason.length === 0) {
+  if (typeof reasonRaw !== 'string' || reasonRaw.trim().length === 0) {
     return NextResponse.json(
       { ok: false, reason: 'a report needs a reason: one of spam, harassment, illegal, other' },
       { status: 400 },
@@ -73,7 +78,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
   const c = claim as { accountId?: unknown; handle?: unknown; assurance?: unknown; claimedAt?: unknown };
-  if (typeof c.accountId !== 'string') {
+  // v521 — v511 read this check as doorName's rule saying a name needs only to be a string. The rule says
+  // the opposite: a name blank after trimming is not a name. The service refuses such a claim BY NAME, its
+  // refusal carries no failure kind, and the door answered 502 for a reporter nobody can follow up.
+  const accountId = doorName(c.accountId);
+  if (accountId === '') {
     return NextResponse.json(
       { ok: false, reason: 'a report needs an account: a report with no reporter cannot be followed up' },
       { status: 400 },
@@ -81,10 +90,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
   const answer = await reportOnService(
     projectId,
-    reason,
+    // The REASON is a closed-set value, not a name: it is blank-checked on trimmed bytes and forwarded as
+    // sent, so the set the service matches against still sees the caller’s own spelling.
+    reasonRaw,
+    // DETAIL is DATA: the caller’s own bytes, forwarded as sent.
     typeof detail === 'string' ? detail : '',
     {
-      accountId: c.accountId,
+      accountId,
       handle: typeof c.handle === 'string' ? c.handle : null,
       assurance: typeof c.assurance === 'string' ? c.assurance : null,
       claimedAt: typeof c.claimedAt === 'number' ? c.claimedAt : null,
