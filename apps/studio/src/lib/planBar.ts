@@ -196,6 +196,8 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   // the amount, so a reader sees the currency sign in context with the plan count.
   // v524 — the plan count line now also shows whether the plan is currently ON OFFER or paused,
   // so a reader can see the plan's availability status in context with the count.
+  // v525 — the plan count line now also shows the plan's creation date relative to now, so a
+  // reader can tell how recently the plan was introduced in context with the count and period.
   const countPrefix =
     shown > 0 && count !== null && count > shown && offset > 0
       ? `of these ${shown} rows: `
