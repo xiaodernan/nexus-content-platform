@@ -529,7 +529,13 @@ export const publishedProjects = pgTable(
     views: bigint('views', { mode: 'number' }).notNull().default(0),
     publishedAt: timestamp('published_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('published_path_key').on(t.path), index('published_project_idx').on(t.projectId)],
+  (t) => [
+    uniqueIndex('published_path_key').on(t.path),
+    index('published_project_idx').on(t.projectId),
+    // §61 发现页 / trending 的热读路径：`WHERE visibility='public' ORDER BY published_at DESC LIMIT 200`
+    // （social.ts 的 discover 查询）。没有它，这一句是全表扫 + 排序；有了它，倒序扫描直接取前 N 行。
+    index('published_visibility_published_idx').on(t.visibility, t.publishedAt),
+  ],
 );
 
 /**
