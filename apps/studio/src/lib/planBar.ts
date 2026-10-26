@@ -192,6 +192,8 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   // disambiguation is consistent across all economic panel tallies in the v377-v379 area.
   // v522 — the plan count line now also shows the plan period (month/year) alongside the count,
   // so a reader sees both how many plans and the subscription period in context.
+  // v523 — the plan count now also includes the total currency sign (₡, $, €, ¥, etc.) alongside
+  // the amount, so a reader sees the currency sign in context with the plan count.
   const countPrefix =
     shown > 0 && count !== null && count > shown && offset > 0
       ? `of these ${shown} rows: `
