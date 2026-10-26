@@ -157,11 +157,13 @@ export function renderTipBar(facts: TipBarFacts): string {
   const list = rows ? `<ul class="nexus-tips-list">\n${rows}\n</ul>` : '';
   // v350 — the count is the WHOLE number and the list is a WINDOW, so the bar says how many it is not
   // showing: a reader who sees "12 tips" and five messages would otherwise read the five as all of them.
+  // v519 — the count is the whole number and the window line is self-describing, so a reader who
+  // sees "12 tips · showing the 5 newest of 12" knows the 12 is the total desk count, not
+  // a fact about the windowed list. v519 — add the "of these N rows" prefix when a window is shown,
+  // matching the pattern from moderation tally (v377), follower tally (v398), like bar (v400),
+  // comment bar (v399), and plan bar (v518).
   const shown = (facts.tips ?? []).length;
-  // v395 — the window's POSITION, in rows from the newest (the same rows the service pages by,
-  // v391). v350 said "the N newest"; past the first window that is a true thing about the first
-  // window and a false thing about the third (v386's correction, the same one the filed list and
-  // the economy panel got), so the line says WHICH rows: "showing 101–150 of 150".
+  // v519 — define the window line with "of these N rows:" prefix when a window is shown.
   const offset =
     typeof facts.offset === 'number' && Number.isFinite(facts.offset) && facts.offset > 0 ? Math.floor(facts.offset) : 0;
   let more = '';
@@ -171,11 +173,15 @@ export function renderTipBar(facts: TipBarFacts): string {
       // the tips and this window holds none of them — a fact about the page, not about the
       // account. On the first window an empty list is the honest "no tips yet", and says nothing
       // extra.
-      more = offset > 0 ? ' · this page is past the end — the service answered an empty window' : '';
+      more = offset > 0 ? `of these 0 rows: · this page is past the end — the service answered an empty window` : '';
     } else if (offset <= 0) {
+      // v519 — no window prefix on the first window (offset <= 0), matching the pattern where
+      // the first window is the default view and doesn't need the "of these N rows" disambiguation.
       more = ` · showing the ${shown} newest of ${count}`;
     } else {
-      more = ` · showing ${offset + 1}–${offset + shown} of ${count}`;
+      // v519 — prefix the window line with "of these N rows:" when a window is shown (offset > 0),
+      // so the reader knows the count is the whole desk, not the windowed subset.
+      more = `of these ${shown} rows: · showing ${offset + 1}–${offset + shown} of ${count}`;
     }
   }
   // v395 — the PAGER, and it is made of LINKS: the profile page is server-rendered and cannot act
