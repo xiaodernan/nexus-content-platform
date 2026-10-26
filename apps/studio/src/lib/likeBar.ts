@@ -89,6 +89,7 @@ export function renderLikeBar(facts: LikeBarFacts): string {
   // v350 — the count is the WHOLE number and the list is a WINDOW, so the bar says how many it is not
   // showing: a reader who sees "5 likes" and two names would otherwise read the two as all of them.
   const shown = (facts.likers ?? []).length;
+// v400 window line prefix will be added below
   // v400 — the window's position and its end, in ROWS. A like is never soft-deleted (an un-like
   // DELETES its row), so the count IS the row count here — unlike the comment thread's answer (v399),
   // which had to carry a separate total because removed comments keep their rows. The count is the
