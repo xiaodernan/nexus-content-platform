@@ -31,6 +31,9 @@ export interface ProjectMemberView {
   createdAt: string;
 }
 
+/** 成员角色只有两种（owner 是 `projects.ownerId` 的事实，不在成员行里授予） */
+export type MemberRole = 'editor' | 'viewer';
+
 /** 邀请有效期（天）。与迁移 0041 的 `now() + interval '7 days'` 是同一个数：改这里要连迁移一起改 */
 export const INVITE_TTL_DAYS = 7;
 const INVITE_TTL_MS = INVITE_TTL_DAYS * 86_400_000;
@@ -174,7 +177,7 @@ export async function listInvites(projectId: string): Promise<ProjectInviteView[
 export async function inviteMember(
   projectId: string,
   actorId: string,
-  input: { email: string; role: 'editor' | 'viewer' },
+  input: { email: string; role: MemberRole },
 ): Promise<InviteResult> {
   const ownerId = await ownerOf(projectId);
   if (!ownerId || ownerId !== actorId) {
@@ -304,4 +307,30 @@ export async function removeMember(projectId: string, memberUserId: string, acto
     .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, memberUserId)))
     .returning({ id: projectMembers.id });
   return removed.length > 0;
+}
+
+/** 改角色的结果：404 的两种来源分开，路由才能说清"是项目不在你名下"还是"这个人不在名册上" */
+export type ChangeRoleResult = 'ok' | 'not_owner' | 'not_member';
+
+/**
+ * 变更一个协作者的角色：owner only，立刻生效。
+ *
+ * 选的不是"踢掉再邀"：那要对方重新点链接接受，中间这段时间他既进不去、也没人知道他为什么进不去。
+ * 角色存在成员行上，而 `projectWriteAccess` 每次写请求都现读这一行——所以降级不需要让会话失效，
+ * 下一次写就会被 403 挡住；升级也不需要新的邀请。这与"名额"无关，改角色不占新位置。
+ */
+export async function changeMemberRole(
+  projectId: string,
+  memberUserId: string,
+  actorId: string,
+  role: MemberRole,
+): Promise<ChangeRoleResult> {
+  const ownerId = await ownerOf(projectId);
+  if (!ownerId || ownerId !== actorId) return 'not_owner';
+  const updated = await getDb()
+    .update(projectMembers)
+    .set({ role })
+    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, memberUserId)))
+    .returning({ id: projectMembers.id });
+  return updated.length > 0 ? 'ok' : 'not_member';
 }

@@ -2,9 +2,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, and, sql as rawSql } from 'drizzle-orm';
 import {
   acceptInvite,
+  changeMemberRole,
   inviteMember,
   listInvites,
   listMembers,
+  projectWriteAccess,
   removeMember,
   revokeInvite,
 } from '../src/server/domain/team';
@@ -273,5 +275,47 @@ describe('§133 协作者与邀请（真实数据库）', () => {
     const again = await acceptInvite(token, editorId);
     expect(again.ok, '已兑现的邀请不该因为后来过期而报失败').toBe(true);
     expect(again.projectId).toBe(memberProject);
+  });
+
+  /**
+   * ⑧ 角色变更（owner only，立刻生效）。
+   *
+   * 写门 `projectWriteAccess` 每次请求都现读成员行——所以"改了角色"这件事必须用**写门本身**
+   * 来证，而不是只看名册上的字符串：editor→viewer 之后同一个人立刻 read_only，改回来立刻 ok。
+   * 另外三件：非 owner 改不了；名册上没这个人时不会凭空插一行；同一角色重复改是幂等的。
+   */
+  it('⑧ 角色变更：owner 改 editor→viewer 立刻只读，改回立刻可写；非 owner 改不了', async () => {
+    // 清场：⑦ 结束时 editor 是 viewer 成员；先撤掉，统一从"新邀一个 editor"开始
+    for (const i of await listInvites(memberProject)) {
+      if (i.status === 'pending') expect(await revokeInvite(memberProject, i.id, ownerId)).toBe(true);
+    }
+    await removeMember(memberProject, editorId, ownerId);
+
+    const invited = await inviteMember(memberProject, ownerId, { email: await emailOf(editorId), role: 'editor' });
+    expect(invited.ok).toBe(true);
+    expect((await acceptInvite(await tokenOf(invited.invite!.id), editorId)).ok).toBe(true);
+    expect(await projectWriteAccess(memberProject, editorId)).toBe('ok');
+
+    // 降级：名册与写门同时变成 viewer / read_only（写门现读，不需要重新登录）
+    expect(await changeMemberRole(memberProject, editorId, ownerId, 'viewer')).toBe('ok');
+    expect((await listMembers(memberProject)).find((m) => m.userId === editorId)?.role).toBe('viewer');
+    expect(await projectWriteAccess(memberProject, editorId)).toBe('read_only');
+
+    // 升级：回到可写
+    expect(await changeMemberRole(memberProject, editorId, ownerId, 'editor')).toBe('ok');
+    expect(await projectWriteAccess(memberProject, editorId)).toBe('ok');
+
+    // 只有 owner 能改：成员自己与路人都拿不到这个动作
+    expect(await changeMemberRole(memberProject, editorId, editorId, 'viewer')).toBe('not_owner');
+    expect(await changeMemberRole(memberProject, editorId, strangerId, 'viewer')).toBe('not_owner');
+    expect((await listMembers(memberProject)).find((m) => m.userId === editorId)?.role).toBe('editor');
+
+    // 名册上没有这个人：owner 也改不了，也不会凭空插一行
+    expect(await changeMemberRole(memberProject, strangerId, ownerId, 'viewer')).toBe('not_member');
+    expect((await listMembers(memberProject)).some((m) => m.userId === strangerId)).toBe(false);
+
+    // 幂等：同一角色再改一次仍是 ok，成员行不重复
+    expect(await changeMemberRole(memberProject, editorId, ownerId, 'editor')).toBe('ok');
+    expect((await listMembers(memberProject)).filter((m) => m.userId === editorId).length).toBe(1);
   });
 });

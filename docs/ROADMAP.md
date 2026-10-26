@@ -1610,7 +1610,11 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   标签与事实的对应：`ENFORCED_PLAN_AXES` 里的 `aiUsage` 指的就是这道按 `creditKindForAgentKey`
   分桶（ai/image/video/compute 四桶）、按 `GENERATION_COST`（ai 1 / image 2 / video 5 / compute 1）
   计价的闸 ⇒ "生成次数"这一格**已生效**，只是标签叫 aiUsage；generation 与它是同一道门，
-  没有第二道。team collaboration 与 publishing 仍只有 `PLAN_LIMITS` 里的数字、没有执行方。
+  没有第二道。**2026-10-26 核对后改口径**：此前写的"team collaboration 与 publishing 仍只有
+  数字、没有执行方"是过期行——两格在 #201/#205 就有了执行方：`teamSlotRefusalFor` 在 `inviteMember`
+  写邀请之前问（成员 + 未过期 pending 邀请一起数，`apps/web/src/server/domain/team.ts`），
+  `publishSlotRefusalFor` 在发布之前问（`apps/web/src/server/domain/publish.ts`），拒绝话里带
+  档位与数字；`ENFORCED_PLAN_AXES` 收全五格、`UNENFORCED_PLAN_AXES` 为空，`credits.test.ts` 钉着。
   仍欠的是 image/video/compute 三类的**真消耗方**——要 §38/§40 的真生成端点
   （没有 provider 就不造假消耗，§159）。
 
@@ -6890,3 +6894,45 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
 **已知边界**：剪贴板不跨刷新/项目（视图态），也不能只复制单个通道；粘贴对没有该状态的目标是新建，
 对已有目标才是整份覆盖。`unset` 只删指定路径的叶子，不清理祖先空对象（`states` 会留下 `{}`）。
 
+
+## §133 协作者角色变更：改角色立刻生效，不用「踢掉再邀」
+
+#201-#206 之后 editor/viewer 在写门上真的分开了（`projectWriteAccess` 每次写请求现读成员行），
+但**改角色没有入口**：把一个人从可编辑降为只读，只能移除再邀——对方要重新点链接接受，
+中间这段时间他既进不去、也没人知道他为什么进不去；名额还会在撤回与接受之间空出来被别人占掉。
+
+- **一条写路由**：`POST /api/projects/<id>/members/role`，CSRF → requireUser → `changeMemberRole`
+  （转发纪律与 invite/remove 相同，归属判断留在 `team.ts`）。报文 `ApiMemberRoleRequestSchema`
+  只收 editor/viewer：owner 是 `projects.ownerId` 的事实，不是可授予的角色——枚举里放 `owner`
+  等于给"转让项目"开一个没实现的入口。
+- **立刻生效**：角色存在成员行上，写门每次现读。降级后下一条写就 403 `read_only_role`；
+  升级后不必重新接受邀请。会话不失效、身份不换、名额不动（改角色不是换人）。
+- **拒绝分得清**：非 owner → 404（与"项目不存在"同一口径，不泄露存在性）；
+  owner 已过门但名册上没有这个人 → 404 `member_not_found`。
+- **界面说实话**：成员行多一个角色下拉（`data-team-member-role`），成功后通知带名字与新角色；
+  页脚原先那句"editor/viewer 只是档案标签、权限模型还没接"是过期行（#206 后写门已落地），
+  改成"editor 能编辑；viewer 的写请求会被服务端拒绝（403）。改角色立刻生效，不需要对方重新接受
+  邀请，也不影响名额。"
+
+**见证**：`team.integration.test.ts` ⑧（真库：改 viewer 后 `projectWriteAccess` 立刻 `read_only`、
+改回立刻 `ok`、非 owner 改不了、不在名册 `not_member`、成员行不重复）；`team-routes.integration.test.ts` ⑦
+（缺 CSRF 403 / `role:'owner'` 400 / owner 改成功并落库 / 降级后同一成员的写请求
+**403 `read_only_role`** / 非 owner 404 / 不在名册 404 `member_not_found`）。两文件 15/15 绿，
+`route-security-gate` 5/5（新路由结构门）。
+
+`e2e/team.spec.ts` ⑤（39.4s 通过）：真浏览器里 owner 用下拉把 editor 降为可查看，读到成功话，
+**刷新后**（重新 GET 名册）值仍是 viewer，名额仍 1/1；截图 `screenshots/team-role-changed.png`。
+
+**见证撞出来的缺陷**：这条 e2e 第一次跑卡满 6 分钟——"注册 editor → 登出 → 注册 owner"那一步，
+点完登出立刻 `goto('/')` 把还在飞的 `/api/auth/logout` 掐掉了，下一页仍是 editor 的会话，
+注册页签永远不出现。登出改为等界面切回未登录态（`[data-auth-tab="register"]` 可见）再走，
+三处登出都换掉；重跑 39.4s 绿。这不是测试写法的小事：登出按钮点完立刻离开首页，
+登出请求同样可能被掐掉（本轮真浏览器证据），人换账号时会看到"登出了但还登录着"。
+
+**变异**：去掉 owner 门 → 两文件各红在"非 owner"断言（2 红）；`.set({ role })` 写死成
+`role:'editor'` → ⑧ 红在"库里的角色不是 viewer"（1 红）；两次都逐字节还原（sha256 不变）。
+
+**不做**：改角色不发通知——`planNotification` 的 team 事件措辞是"加入了项目"，
+在改角色上说这句是假话（§164 只给真发生的事发通知）。
+
+---

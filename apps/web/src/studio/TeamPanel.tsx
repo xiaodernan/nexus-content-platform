@@ -11,8 +11,8 @@ import { useStudioReady } from './store';
  * - **邀请链接只展示一次**：token 是 secret，roster 永远不给它，链接在创建那一回
  *   显示，刷新/重进页面就再也拿不到（要链接只能撤回再邀，拿新的一枚）。本机没有发信，
  *   链接由邀请人自己转交——这句话写在链接旁边，不假装有邮件服务；
- * - **本机没有角色权限的实质差别**：editor / viewer 只是档案里的一个标签，
- *   协作者的读写权限模型还没接（§160 不假造）。所以界面上不承诺"viewer 不能改"。
+ * - **角色有实质差别**（#206）：editor 能写，viewer 的写请求会被服务端 403 挡下。
+ *   owner 可以改成员角色，改完立刻生效——写门每次现读成员行，不需要对方重新接受邀请。
  */
 
 interface Member {
@@ -211,21 +211,40 @@ export function TeamPanel() {
             {roster.members.map((m) => (
               <li key={m.id} className="flex items-center justify-between gap-2 text-12 text-fg-2" data-team-member={m.userId}>
                 <span>
-                  {m.displayName ?? '（没有名字）'} · {m.email ?? '（没有邮箱）'} · {ROLE_LABELS[m.role] ?? m.role}
+                  {m.displayName ?? '（没有名字）'} · {m.email ?? '（没有邮箱）'}
                 </span>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void act(`/api/projects/${state.projectId}/members/remove`, `已移除 ${m.displayName ?? m.email ?? m.userId}`, {
-                      userId: m.userId,
-                    })
-                  }
-                  data-team-remove={m.userId}
-                  className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-[1px] text-11 text-danger disabled:opacity-40"
-                >
-                  移除
-                </button>
+                <span className="flex items-center gap-2">
+                  <select
+                    value={m.role}
+                    disabled={busy}
+                    onChange={(e) =>
+                      void act(
+                        `/api/projects/${state.projectId}/members/role`,
+                        `已把 ${m.displayName ?? m.email ?? m.userId} 改为${e.target.value === 'editor' ? '可编辑' : '可查看'}`,
+                        { userId: m.userId, role: e.target.value },
+                      )
+                    }
+                    data-team-member-role={m.userId}
+                    aria-label={`${m.displayName ?? m.email ?? m.userId} 的角色`}
+                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 p-1 text-11 text-fg-1 disabled:opacity-40"
+                  >
+                    <option value="editor">可编辑</option>
+                    <option value="viewer">可查看</option>
+                  </select>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      void act(`/api/projects/${state.projectId}/members/remove`, `已移除 ${m.displayName ?? m.email ?? m.userId}`, {
+                        userId: m.userId,
+                      })
+                    }
+                    data-team-remove={m.userId}
+                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-[1px] text-11 text-danger disabled:opacity-40"
+                  >
+                    移除
+                  </button>
+                </span>
               </li>
             ))}
           </ul>
@@ -274,8 +293,8 @@ export function TeamPanel() {
       </section>
 
       <p className="text-11 text-fg-3">
-        本机没有发信服务：邀请链接由你转交。editor / viewer 只是档案标签——协作者的读写权限模型还没接，
-        界面上不承诺"可查看不能改"（§160 不假造）。
+        本机没有发信服务：邀请链接由你转交。editor 能编辑；viewer 的写请求会被服务端拒绝（403）。
+        改角色立刻生效，不需要对方重新接受邀请，也不影响名额。
       </p>
     </div>
   );

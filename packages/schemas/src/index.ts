@@ -1679,6 +1679,16 @@ export const ApiMemberRemoveRequestSchema = z.object({
 });
 export type ApiMemberRemoveRequest = z.infer<typeof ApiMemberRemoveRequestSchema>;
 
+/**
+ * 变更成员角色：同样只收 editor / viewer。owner 是 `projects.ownerId` 的事实，
+ * 不是可以直接授予的第四个角色——把它收进枚举等于给"转让项目"开了一个没实现的入口。
+ */
+export const ApiMemberRoleRequestSchema = z.object({
+  userId: z.string(),
+  role: z.enum(['editor', 'viewer']),
+});
+export type ApiMemberRoleRequest = z.infer<typeof ApiMemberRoleRequestSchema>;
+
 export const ApiMemberInviteRequestSchema = z.object({
   email: z.string().email(),
   role: z.enum(['editor', 'viewer']).default('editor'),
