@@ -2875,9 +2875,11 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
   变异探针：把 `clothing` 的 `.default('')` 去掉 → **红第三条**，消息就是"旧行读不出来"，
   证明那个默认值不是装饰；还原后 `character-fields + characters` 两个文件 **10 条全过**。
   `npm run typecheck` 七个工程干净（没有一处字面量构造档案被这次改动打破）。
-- 仍未做：`traits` 的界面输入口（面板上还没有那一栏）；把这四栏喂进 §39 的正题——
-  **生成时真的按 identity/clothing/style 保持一致**（今天角色场景的锚点只用 palette 一栏），
-  以及 knowledge / RAG 文本里带上这四栏（现在检索命不中"穿靛蓝斗篷的那个角色"）。
+- ~~仍未做：`traits` 的界面输入口（面板上还没有那一栏）~~——**2026-10-27 补上**（收尾记在下面
+  "traits 的输入口"一节）；把这四栏喂进 §39 的正题——
+  **生成时真的按 identity/clothing/style 保持一致**（当时角色场景的锚点只用 palette 一栏，
+  后来按"§39 的第二半"接上了），
+  以及 knowledge / RAG 文本里带上这四栏（当时检索命不中"穿靛蓝斗篷的那个角色"，同节补上）。
 
 **接上§39 的第二半：这四栏进得了检索**
 存进档案只是第一半——检索拿不到，就等于**对 AI 不存在**（面板上看得见，模型查不着）。
@@ -2885,7 +2887,8 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
 凭证：`character-fields.integration.test.ts` 新增两条断言——保存档案后直接查 `knowledge_chunks`，
 `%靛蓝斗篷%` 与 `%认路很快%` 都要有行；变异探针把这四行从切分里删掉 → **红在"穿着写进了档案，却没进知识索引"**，
 还原后 `character-fields + knowledge` 两个文件 **11 条全过**。
-仍欠：`traits` 的界面输入口；以及让生成真的读这四栏（今天角色场景的锚点只用 palette）。
+~~仍欠：`traits` 的界面输入口~~（2026-10-27 补上，见下面"traits 的输入口"一节）；
+让生成读这四栏随后落地（见"§39 的第二半（补记）"）。
 
 ## traits 的输入口：试过，没落地，症状与下一步实验记在这里（2026-09-27）
 面板里加了一个逗号分隔的 traits 输入框，用例填进去之后点"保存档案"——**按钮一直不可点，`click` 等到超时**。
@@ -2897,6 +2900,25 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
 若那样 dirty 就变真，问题在 `traits` 这个键本身（`textField` 的联合类型不含数组字段，
 `patchProfile` 的入参类型与 `withProfile` 的合并语义要复核）；若仍然不真，问题在这个输入框挂载的位置。
 不查清就不写"已完成"：现在面板上少一栏 traits，是**已知缺口**。
+
+**2026-10-27 收尾：** 当日补丁没进仓库，原始失败已无法复现，所以不把今天的根因冒充成"就是那天那条"。
+这次先把同类输入的真实行为量了一遍，发现的是一个更广的毛病：**所有列表字段**（目标 / 恐惧 / 口头禅 /
+母题 / 色板）每次按键都把数组 `join` 回 `value`，刚敲下的分隔符在解析时被 `filter(Boolean)` 吃掉——
+Chrome 里逐键输入 `目标A` ⏎ `目标B`，输入框值变成 `目标A目标B`，母题同理 `母题A母题B`；
+此时保存按钮仍可点，所以问题不是"dirty 不真"（那天猜的两个方向都不在点上），
+而是**第二个条目根本开不了头**。traits 只是新加的那一栏，一出生就落进同一套写法。
+- 修复：`ListText` 留住"正在敲的原文"（文本 `useState` + `useRef` 记外部数组，只有外部值真的不同
+  才用 join 覆盖，保存后光标不跳），分隔符只参与解析：目标 / 恐惧 / 口头禅走换行，母题 / 特征走逗号，
+  色板走空格。画风之后补上"特征"输入口（`data-character-field="traits"`）；编辑器容器按
+  `selected.id` 加 key（`data-character-editor`），换角色不带走上一个的草稿。
+- 凭证：`e2e/character-fields.spec.ts` 用 `pressSequentially` 真逐键敲 换行 / 逗号 / 空格，先断言
+  敲完立刻还在（旧代码在 `:55` 处得到 `目标A目标B`），保存后直接 GET `/api/projects/<id>/characters`
+  断言 `traits === ['怕水','话多']`、`goals === ['目标A','目标B']`（数组不是原文塞字符串），
+  再重载重新选角断言四栏原文；截图 `screenshots/character-fields.png`。
+- 变异探针：把 `setText(next)` 换成 `setText(joinList(splitList(next, mode), mode))` →
+  **红在 `e2e/character-fields.spec.ts:55`，Received 是 `目标A目标B`**；还原回
+  sha256 `83319aab…f301d9` 后重跑 **1 passed**。
+- 仍欠：列表字段没有"输入到一半就自动保存"以外的撤销（角色编辑本就不进 Command 栈，见面板注释）。
 
 ## §39 的第二半（补记）：角色的四栏现在真的走到生成请求里
 上一次因内存耗尽（node v8 abort）退回的接线，这次跑通了并落地：

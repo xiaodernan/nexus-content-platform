@@ -1,11 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   WORLD_KIND_LABELS,
   addRelationship,
-  listToLines,
-  linesToList,
   removeRelationshipAt,
   validateCharacter,
   withProfile,
@@ -29,6 +27,89 @@ import { useWorld, worldStore } from './worldStore';
 
 const INPUT =
   'w-full resize-y rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3';
+
+type ListMode = 'lines' | 'comma' | 'space';
+
+function splitList(text: string, mode: ListMode): string[] {
+  const parts = mode === 'lines' ? text.split(/\r?\n/) : mode === 'comma' ? text.split(',') : text.split(/\s+/);
+  return parts.map((part) => part.trim()).filter(Boolean);
+}
+
+function joinList(items: readonly string[], mode: ListMode): string {
+  return items.join(mode === 'lines' ? '\n' : mode === 'comma' ? ', ' : ' ');
+}
+
+function sameItems(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((item, index) => item === b[index]);
+}
+
+/**
+ * 列表字段要自己留住"正在敲的原文"：模型里存的是数组，若每次按键都把数组 join 回输入框，
+ * 刚敲下的逗号 / 换行 / 空格会在下一次渲染时被过滤掉——第二个条目永远开不了头。
+ * 分隔符只用来解析；只有外部结果真的不同时才覆盖原文（保存后光标不跳）。
+ */
+function ListText({
+  label,
+  value,
+  mode,
+  onChange,
+  data,
+  hint,
+  placeholder,
+  multiline = false,
+  showLabel = true,
+  className = INPUT,
+}: {
+  label: string;
+  value: readonly string[];
+  mode: ListMode;
+  onChange: (next: string[]) => void;
+  data: Record<string, string>;
+  hint?: string;
+  placeholder?: string;
+  multiline?: boolean;
+  showLabel?: boolean;
+  className?: string;
+}) {
+  const [text, setText] = useState(() => joinList(value, mode));
+  const seen = useRef(value);
+  useEffect(() => {
+    if (seen.current === value) return;
+    seen.current = value;
+    if (!sameItems(splitList(text, mode), value)) setText(joinList(value, mode));
+  }, [value, text, mode]);
+
+  const handle = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const next = event.target.value;
+    setText(next);
+    onChange(splitList(next, mode));
+  };
+
+  const field = multiline ? (
+    <textarea
+      rows={2}
+      {...data}
+      aria-label={label}
+      value={text}
+      placeholder={placeholder ?? '一行一条'}
+      onChange={handle}
+      className={className}
+    />
+  ) : (
+    <input {...data} aria-label={label} value={text} placeholder={placeholder} onChange={handle} className={className} />
+  );
+
+  if (!showLabel) return field;
+  return (
+    <label className="block">
+      <span className="mb-[2px] block text-11 text-fg-3">
+        {label}
+        {hint ? <span className="ml-1">{hint}</span> : null}
+      </span>
+      {field}
+    </label>
+  );
+}
 
 export function CharacterPanel() {
   const studio = useStudioReady();
@@ -183,23 +264,6 @@ export function CharacterPanel() {
     </label>
   );
 
-  const listField = (key: 'goals' | 'fears', label: string) => (
-    <label className="block">
-      <span className="mb-[2px] block text-11 text-fg-3">
-        {label}
-        <span className="ml-1">一行一条</span>
-      </span>
-      <textarea
-        rows={2}
-        value={listToLines(draft?.[key] ?? [])}
-        aria-label={label}
-        data-character-list={key}
-        onChange={(e) => patchProfile({ [key]: linesToList(e.target.value) } as Partial<CharacterProfile>)}
-        className={INPUT}
-      />
-    </label>
-  );
-
   return (
     <div className="flex h-full min-h-0 flex-col" data-character-panel>
       <header className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]">
@@ -278,16 +342,41 @@ export function CharacterPanel() {
         </ul>
 
         {selected && draft ? (
-          <div className="flex flex-col gap-2" data-character-editor={selected.id}>
+          <div key={selected.id} className="flex flex-col gap-2" data-character-editor={selected.id}>
             {textField('name', '名字')}
             {textField('appearance', '外观', true)}
             {textField('identity', '身份（不变的那部分：五官 / 疤痕 / 标记）', true)}
             {textField('clothing', '穿着')}
             {textField('style', '画风 / 媒介')}
+            <ListText
+              label="特征"
+              hint="逗号分隔"
+              value={draft.traits}
+              mode="comma"
+              data={{ 'data-character-field': 'traits' }}
+              placeholder="例：怕水，话多，认路很快"
+              onChange={(traits) => patchProfile({ traits })}
+            />
             {textField('personality', '性格', true)}
             {textField('backstory', '背景故事', true)}
-            {listField('goals', '目标')}
-            {listField('fears', '恐惧')}
+            <ListText
+              label="目标"
+              hint="一行一条"
+              value={draft.goals}
+              mode="lines"
+              multiline
+              data={{ 'data-character-list': 'goals' }}
+              onChange={(goals) => patchProfile({ goals })}
+            />
+            <ListText
+              label="恐惧"
+              hint="一行一条"
+              value={draft.fears}
+              mode="lines"
+              multiline
+              data={{ 'data-character-list': 'fears' }}
+              onChange={(fears) => patchProfile({ fears })}
+            />
 
             <section>
               <h3 className="mb-1 text-11 text-fg-3">声音</h3>
@@ -309,16 +398,18 @@ export function CharacterPanel() {
                   className={INPUT}
                 />
               </div>
-              <textarea
-                rows={2}
-                value={listToLines(draft.voice.catchphrases)}
-                onChange={(e) =>
-                  patchProfile({ voice: { ...draft.voice, catchphrases: linesToList(e.target.value) } })
-                }
+              <ListText
+                label="口头禅"
+                value={draft.voice.catchphrases}
+                mode="lines"
+                multiline
+                showLabel={false}
                 placeholder="口头禅（一行一条）"
-                aria-label="口头禅"
-                data-character-voice="catchphrases"
+                data={{ 'data-character-voice': 'catchphrases' }}
                 className={`${INPUT} mt-1`}
+                onChange={(catchphrases) =>
+                  patchProfile({ voice: { ...draft.voice, catchphrases } })
+                }
               />
             </section>
 
@@ -335,36 +426,25 @@ export function CharacterPanel() {
                   data-character-visual="silhouette"
                   className={INPUT}
                 />
-                <input
-                  value={draft.visualIdentity.motifs.join(', ')}
-                  onChange={(e) =>
-                    patchProfile({
-                      visualIdentity: {
-                        ...draft.visualIdentity,
-                        motifs: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
-                      },
-                    })
-                  }
+                <ListText
+                  label="母题"
+                  value={draft.visualIdentity.motifs}
+                  mode="comma"
+                  showLabel={false}
                   placeholder="母题（逗号分隔）"
-                  aria-label="母题"
-                  data-character-visual="motifs"
-                  className={INPUT}
+                  data={{ 'data-character-visual': 'motifs' }}
+                  onChange={(motifs) => patchProfile({ visualIdentity: { ...draft.visualIdentity, motifs } })}
                 />
               </div>
-              <input
-                value={draft.visualIdentity.palette.join(' ')}
-                onChange={(e) =>
-                  patchProfile({
-                    visualIdentity: {
-                      ...draft.visualIdentity,
-                      palette: e.target.value.split(/\s+/).map((s) => s.trim()).filter(Boolean),
-                    },
-                  })
-                }
+              <ListText
+                label="色板"
+                value={draft.visualIdentity.palette}
+                mode="space"
+                showLabel={false}
                 placeholder="色板：#1b1205 #f5b451（空格分隔）"
-                aria-label="色板"
-                data-character-visual="palette"
+                data={{ 'data-character-visual': 'palette' }}
                 className={`${INPUT} mt-1 font-mono`}
+                onChange={(palette) => patchProfile({ visualIdentity: { ...draft.visualIdentity, palette } })}
               />
 
               {/* §39/§40 Character → Scene 的界面入口。色板（**已保存的那一版**）为空时按钮不可点：
