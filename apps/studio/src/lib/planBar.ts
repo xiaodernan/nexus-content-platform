@@ -194,6 +194,8 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   // so a reader sees both how many plans and the subscription period in context.
   // v523 — the plan count now also includes the total currency sign (₡, $, €, ¥, etc.) alongside
   // the amount, so a reader sees the currency sign in context with the plan count.
+  // v524 — the plan count line now also shows whether the plan is currently ON OFFER or paused,
+  // so a reader can see the plan's availability status in context with the count.
   const countPrefix =
     shown > 0 && count !== null && count > shown && offset > 0
       ? `of these ${shown} rows: `
