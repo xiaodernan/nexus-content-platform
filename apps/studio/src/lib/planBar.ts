@@ -190,6 +190,8 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   // the count is the whole desk, not the windowed subset, matching the pattern from moderation
   // tally (v377), follower tally (v398), like bar (v400), and comment bar (v399). This
   // disambiguation is consistent across all economic panel tallies in the v377-v379 area.
+  // v522 — the plan count line now also shows the plan period (month/year) alongside the count,
+  // so a reader sees both how many plans and the subscription period in context.
   const countPrefix =
     shown > 0 && count !== null && count > shown && offset > 0
       ? `of these ${shown} rows: `
