@@ -279,8 +279,6 @@ export function planCountText(count: number | null | undefined, shown: number, o
   const label = count === 1 ? '1 plan' : `${count} plans`;
   const more = shown > 0 && count > shown
     ? offset <= 0
-      // v392 — and past the first window, which rows (v386's correction, the same one the
-      // subscriptions' line just got).
       ? ` · showing the ${shown} newest of ${count}`
       : ` · showing ${offset + 1}–${offset + shown} of ${count}`
     : '';

@@ -181,8 +181,17 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   // and it is the SHARED wording now (v373), so the creator's own panel says it the same way.
   // v396 — and past the first window it says WHICH plans (the offset is the shared wording's third
   // argument since v392), while an empty window past the end says it is past the end.
+  // v518 — and past the first window it says "of these N rows:" so the reader knows the count
+  // is the whole desk, not the windowed subset, matching the pattern from moderation tally (v377),
+  // follower tally (v398), like bar (v400), and comment bar (v399).
+  const countPrefix =
+    shown > 0 && count !== null && count > shown && offset > 0
+      ? `of these ${shown} rows: `
+      : '';
   const countText =
-    shown <= 0 ? 'this page is past the end — the service answered an empty window' : planCountText(count, shown, offset);
+    shown <= 0
+      ? 'this page is past the end — the service answered an empty window'
+      : `${countPrefix}${planCountText(count, shown, offset)}`;
   // v396 — the PAGER, as LINKS, the same shape the tip bar got in v395: the page is server-rendered and
   // cannot act (ADR 0018), so the route builds the URL and the bar draws an <a>; at a boundary the
   // control is a <span> with no href — a link that went nowhere would be a lie with an href. "Older" is
