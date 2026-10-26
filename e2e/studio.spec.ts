@@ -37,6 +37,53 @@ async function layerId(page: Page, name: string): Promise<string> {
   return id;
 }
 
+/**
+ * §147 的验收前提：把项目当前页撑到 target 个节点。
+ * 先离开 Studio 再写——store 里还留着 8 节点那一份，自动保存在卸载时可能把它盖回去；
+ * 写完再读一次服务端，只认服务端说的节点数（客户端加了多少只是意图）。
+ * 新节点克隆一份已合法的节点：手写字面量会缺 style/layout 字段，那种文档会白屏。
+ */
+async function growDocument(page: Page, projectId: string, target: number): Promise<number> {
+  await page.goto('/');
+  const csrf = (await page.context().cookies()).find((cookie) => cookie.name === 'nexus_csrf')?.value ?? '';
+  const current = await page.request.get(`/api/projects/${projectId}`);
+  expect(current.status(), `读取项目失败：${await current.text()}`).toBe(200);
+  interface RawNode {
+    id: string;
+    children?: string[];
+    text?: unknown;
+    [key: string]: unknown;
+  }
+  const doc = ((await current.json()) as { document: { pages: { rootId: string; nodes: Record<string, RawNode> }[] } })
+    .document;
+  const docPage = doc.pages[0]!;
+  const root = docPage.nodes[docPage.rootId];
+  const template = Object.values(docPage.nodes).find((node) => node.id !== docPage.rootId);
+  if (!root?.children || !template) throw new Error('默认项目里找不到可克隆的根节点或模板节点');
+  for (let i = Object.keys(docPage.nodes).length; i < target; i += 1) {
+    const id = `virtual_${i.toString(36)}`;
+    docPage.nodes[id] = {
+      ...structuredClone(template),
+      id,
+      name: `虚拟化 ${i}`,
+      parentId: root.id,
+      children: [],
+      ...(typeof template.text === 'string' ? { text: `压测文本 ${i}` } : {}),
+    };
+    root.children.push(id);
+  }
+  const put = await page.request.put(`/api/projects/${projectId}`, {
+    headers: { 'x-csrf-token': csrf },
+    data: doc,
+  });
+  expect(put.status(), `写入大文档失败：${await put.text()}`).toBe(200);
+  const readBack = await page.request.get(`/api/projects/${projectId}`);
+  const saved = (await readBack.json()) as { document: { pages: { nodes: Record<string, unknown> }[] } };
+  const total = saved.document.pages.reduce((sum, p) => sum + Object.keys(p.nodes).length, 0);
+  expect(total, '服务端没有存下目标节点数').toBe(target);
+  return total;
+}
+
 test('@smoke studio slice renders the model on canvas with DEMO MODE visible', async ({ page }) => {
   test.setTimeout(90_000);
   await createProject(page, `切片 ${Date.now().toString(36)}`);
@@ -4635,4 +4682,47 @@ test('@smoke §124 状态补丁复制/批量应用：贴到另一个元素、一
   await expect(page.locator('[data-state-opacity="hover"]')).toHaveValue('0.4');
 
   expect(errors).toEqual([]);
+});
+
+/**
+ * §147 浏览器级验收：过阈值才裁剪，且"裁了"这件事在界面上有两个可核对的数。
+ * 8 节点是**对照**——小文档不改变可观察行为，画布上不该出现徽标；
+ * 500 节点（阈值 400 以上、单页上限以内）画布 DOM 必须只剩一屏，
+ * 图层树报全量（data-layer-total），但 DOM 只铺看得见的那几十行。
+ */
+test('@smoke §147 500 节点：画布只画视口内的、图层树报全量但只铺可见行', async ({ page }) => {
+  test.setTimeout(180_000);
+  const projectId = await createProject(page, `虚拟化 ${Date.now().toString(36)}`);
+  await expect(page.locator('[data-canvas-virtualized]')).toHaveCount(0);
+
+  const TARGET = 500;
+  const total = await growDocument(page, projectId, TARGET);
+  await page.goto(`/studio/${projectId}`);
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 60_000 });
+
+  const badge = page.locator('[data-canvas-virtualized]');
+  await expect(badge).toBeVisible({ timeout: 60_000 });
+  await expect(badge).toContainText('画布按视口裁剪');
+  const text = (await badge.textContent()) ?? '';
+  const match = /显示\s*(\d+)\s*\/\s*(\d+)/.exec(text);
+  expect(match, `徽标没有给出"显示 N / M"两个数：${text}`).not.toBeNull();
+  const shown = Number(match![1]);
+  const claimedTotal = Number(match![2]);
+  expect(claimedTotal, '徽标里的总数应当是文档里的节点数').toBe(total);
+  expect(shown, '徽标说显示了一屏，就得真的少于一页').toBeGreaterThan(0);
+  expect(shown, '徽标说显示了一屏，可是几乎整页都画了').toBeLessThan(total / 2);
+
+  const counts = await page.evaluate(() => ({
+    canvas: document.querySelectorAll('[data-canvas-frame] [data-node-id]').length,
+    layerRows: document.querySelectorAll('[data-layer-id]').length,
+    layerTotal: Number(document.querySelector('[data-layer-total]')?.getAttribute('data-layer-total') ?? -1),
+  }));
+  // 画布 DOM 与徽标的"显示 N"是同一件事的两个证据：画布真只留了那一屏
+  expect(counts.canvas, '画布 DOM 没跟着视口裁剪').toBe(shown);
+  // 图层树的总行数是文档侧真数（根节点不列行：500 个节点 ⇒ 499 行）
+  expect(counts.layerTotal, '图层树没有报出全量').toBe(total - 1);
+  expect(counts.layerRows, '图层树仍然铺了全部行').toBeGreaterThan(0);
+  expect(counts.layerRows).toBeLessThan(200);
+
+  await page.screenshot({ path: 'screenshots/canvas-virtualized-500.png' });
 });
