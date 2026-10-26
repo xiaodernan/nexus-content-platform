@@ -79,3 +79,8 @@ AI 那条路上一共三个地方可以放这道门，位置不同，能保证�
 也没有真 worker 的端到端验证（本机 DEMO MODE 到不了一步真 provider 的异步提交）。
 但这与"泄漏"是两回事：没被问过 = 没把结果交回过任何浏览器。
 
+**2026-10-27 核对后改口径**：上面的两笔代价都已变化——① 队列不再只有内存后端，
+配 `NEXUS_REDIS_URL` 就是 Redis（跨实例、重启不丢；连不上启动失败，不悄悄退回内存）；
+② 等待中的挂起行**已有 TTL**（`APPROVAL_TTL_MS` = 24 小时，`convergeExpiredApproval`
+在读的时候收敛成 `cancelled` 并发通知，见 ADR-0022）。仍欠的是真 provider 下真 worker 的端到端。
+

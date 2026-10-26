@@ -575,7 +575,9 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   见下一节。`ai-async-refused.png` 是旧版留下的截图，别再拿它当现行凭据。）
   **仍然没有测到**：真 provider 下的异步落地
   （要一台接上 key 的 ai-service + worker，本机 DEMO MODE 到不了那一步），
-  以及 Redis 队列的跨实例游标（现在还是进程内内存队列，刷新即查不到，这一点在报文 `backend` 里就带着）。
+  以及 Redis 队列的跨实例游标（~~现在还是进程内内存队列，刷新即查不到~~——**2026-10-27 核对**：
+  Redis 后端已在 `apps/ai-service/src/ai_service/jobs.py` 落地，配 `NEXUS_REDIS_URL` 启用；
+  这一条仍然成立的意思是 web 异步路径没有在真 Redis 上端到端跑过）。
 - §162 取消与重试（2026-10-09，ADR-0032）：`apps/web/test/ai-jobs.integration.test.ts` 从 23 条长到 **41 条**，
   新增 18 条分四组，各钉一句话：
   ① **取消 9 条**——200 是"受理"不是"已停止"（响应里 jobStatus 照实带，可能仍是 running）；

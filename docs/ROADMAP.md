@@ -72,7 +72,9 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [x] AI Service（FastAPI, `apps/ai-service`）：契约强制 + Provider 抽象 + Model Router + OpenAI 兼容适配器 + 删除类审批门
 - [~] AI Service 任务队列 / 异步生成作业（§162）— **两侧现在接上了**：ai-service 那侧有真 worker（入队 / 执行 / 状态，
   9 条 python 测试钉着），web 这侧有消费者（提交、按游标翻译活动、把观察到的终态落进账本，见 M6 那条）。
-   仍欠：Redis 后端跨实例（今天默认内存）、embedding/RAG、图像/视频 provider
+   ~~仍欠：Redis 后端跨实例（今天默认内存）~~——**2026-10-27 核对后改口径**：Redis 后端已有
+   （`apps/ai-service/src/ai_service/jobs.py`，配 `NEXUS_REDIS_URL` 启用；配了却连不上就启动失败，
+   不会悄悄退回内存）。仍欠：embedding/RAG、图像/视频 provider
    （界面上的提交入口已接上：提交/取消/重试与账本实时见 2026-09-26 / 10-09 那两条）
 - [x] Design Agent：意图 → Plan → design patch → 画布更新 → AI Diff 说明（§20/25/151，DEMO MODE 确定性规则；真实模型规划待 line 43 的 provider）
 - [x] Design → Code（React + TS + Tailwind，`packages/design-model/src/codegen.ts` + Studio 代码视图）
@@ -616,8 +618,11 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
    一度带一个 `heightAt` 函数，而 WorldScene 是服务端组件作为 props 传给客户端 3D 组件的——
    Next 运行时报 "Functions cannot be passed directly to Client Components"，3D 页白屏；
    投影改成纯数据（查询用模块级 `terrainHeightAt`），并加一条「场景投影是纯数据」的
-    typeof 断言防 Regression。仍欠：**在地形上直接画地形的编辑器**（今天是数字输入，
-    拖拽画圆台要等世界图支持）与真正的坡地/高度场（圆台是硬边，缝怎么走写在限度里）。
+    typeof 断言防 Regression。~~仍欠：在地形上直接画地形的编辑器（今天是数字输入，拖拽画圆台要等世界图支持）~~
+   ——**2026-10-27 核对后改口径**：图上画地形已在 2026-10-13 的 §140 落地（`WorldGraphView.tsx`
+   的「画地形」模式走 `terrainDraw.ts` 的 `plateauFromDrag`，拖一个圆就写进世界文档）；坡地已在
+   2026-10-15 落地（`WorldPanel.tsx` 的剖面可选 `cone`，线性降到 0）。仍欠的只剩**真正的高度场**：
+   圆台与坡都是解析形状，缝怎么走、超出半径怎么算写在 ADR-0034 的限度里。
     取舍与踩过的坑：`docs/adr/0034-world-terrain-walkable-plateaus.md`。
 - [x] Game Studio：2D / 2.5D / 3D / 探索 / Interactive Story / RPG 原型 / Puzzle / Visual Novel（§51）
   — **2026-09-25 第一片（2D 可玩）落地**：`packages/game-model` 新增 `play.ts`（编译关卡计划）与
@@ -1406,7 +1411,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   另外一条**证伪**记在这里：`contentHeight <= viewportHeight → 100` 那个提前返回是死分支
   （下面的 100 上限本来就给出同样答案），删掉之后测试仍然全绿，所以留着它只是假装钉住了规则。
 
-  **按天曲线已在 2026-09-30 落地**（见文末「§168 第二片」）；游戏侧 completion 事件仍欠。
+  **按天曲线已在 2026-09-30 落地**（见文末「§168 第二片」）；~~游戏侧 completion 事件仍欠~~——
+  **2026-10-27 核对**：`/api/published/game-complete` 收公开页的通关上报、落 `game_completions`
+  （`recordGameCompletion`，`apps/web/src/server/domain/analytics.ts`），分析页的 completion 读的就是它。
   **爬虫与真人区分已在 2026-10-16 落地**（第三片：`classifyVisit` 疑似另计，真人的数逐格
   filter 掉爬虫，`botOpens` 另给一格；详见文末「§168 第三片」与 ADR-0043）。
   **取消发布不再把统计一起删掉**——2026-10-22 落地（ADR-0055）：`unpublishProject` **不再删
@@ -1796,10 +1803,13 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   配了 Redis 却连不上 → 启动直接失败，不会悄悄退回内存后端。`/healthz` 里那个写死的
   `pending: 0` 换成了真计数（`backend`/`capacity`/`note` 一起报），没跑 lifespan 时报 `backend: none` 而不是崩。
   `progress` 在没有真进度来源时恒为 `null` —— 不编一条 0.2→0.9 的假刻度。
-  仍欠的两笔：① **web 侧还没有消费者**（`/api/ai/run` 仍走同步路径），所以这条队列今天对产品行为没有影响，
-  它是图片/视频/3D 那条链的前置；② §163 的实时推送已在 2026-09-26 落地（见下面那条），
-  但**它推的是同步请求的两个真端点**（开始与结束），队列那条路还没有事件可推——
-  等 web 侧消费者接上 ai-service 的 `/v1/ai/jobs`，中间态才有来源，届时 `progress` 才允许不是 0/1。
+  ~~仍欠的两笔：① **web 侧还没有消费者**（`/api/ai/run` 仍走同步路径）~~——
+  **2026-10-27 核对后改口径**：web 侧消费者已接上（`/api/ai/jobs` 提交、`GET /api/ai/jobs/<id>`
+  轮询、`POST …/cancel` 取消；Studio 命令行那个「异步作业」勾选走同一条落地事务，见本页作业队列那一条）；
+  剩下的一笔是：§163 的实时推送已在 2026-09-26 落地（见下面那条），
+  但**它推的是同步请求的两个真端点**（开始与结束），队列那条路**没有真进度来源**——
+  `jobs.py` 里的 `progress` 在拿到真刻度前恒为 `null`，不编一条 0.2→0.9 的假刻度；
+  等 ai-service 给出中间态，`progress` 才允许不是 0/1。
   验证：45 条 pytest（新增 9 条）+ 真 Redis 跑通 9/9（`NEXUS_REDIS_URL=redis://127.0.0.1:6380/0`），
   真 uvicorn 起服务手工核对过 202→failed(provider-unavailable)→404 三种回话；
   两次反向实验（计数器写死 0、worker 无论什么都算完成）各自打中对应用例。
@@ -1967,8 +1977,15 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
     这一句钉在测试里：异步那条路如果绕过门，`approve` 之前就能在报文里看到 `remove`。
   限度如实记下：DEMO MODE 下异步只能验到那句 409 拒收（平台的 DEMO 口径在 web 进程内，
   不让同一个"没配 key"在两条路上长出两种假结果），所以**异步落地补丁这一段在浏览器里还没有真验过**，
-  它验的是集成层（假 ai-service 按契约报状态）；等满 3 分钟没结束说的是"还没结束"，不是"快好了"；
-  `awaiting_approval` 的行仍然没有 TTL（2026-10-01 接上，见本页最后一条）；跨实例游标仍靠 Redis 后端（未做）；真 worker 端到端仍欠。
+  它验的是集成层（假 ai-service 按契约报状态）；**2026-10-27 核对**：这一段已过时——2026-10-09 的
+  DEMO 队列入口让浏览器里能跑 queued / approval-held / cancelled 三态（见本页 10-09 那条与
+  `ai-async-queued/approval-held/cancelled.png`），真 provider 下的异步取消仍未验；
+  等满 3 分钟没结束说的是"还没结束"，不是"快好了"；
+  ~~`awaiting_approval` 的行仍然没有 TTL~~——**2026-10-27 核对后改口径**：过期已落地
+  （`APPROVAL_TTL_MS` = 24 小时；`approvalExpiresAt` / `convergeExpiredApproval` 在**读的时候**
+  把断掉的状态收敛成 `cancelled`，并按 ADR-0011 的口径不养清扫进程；作废同时发一条通知，ADR-0022）；
+  跨实例作业游标在 Redis 后端下可用（`apps/ai-service/src/ai_service/jobs.py`，配 `NEXUS_REDIS_URL` 启用）；
+  真 worker + 真 provider 的端到端仍欠。
   验证：`ai-jobs.integration.test.ts` 17 条（新增 6 条打真库：remove 挂起 + 通知零条 + 库里那一份完整、
   反向对照同一份报文换个非破坏 op 就一路到底、批准后报文里 op 回来了、放弃后什么都不回来、
   同一次挂起被问两次给的是同一份 `delivered`、文档里查不到的 id 理由退回那个 id 而照样拦）。
@@ -2019,7 +2036,8 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
     （200 变 409）——e2e 开跑时先预热一次，且 DEMO 作业两段等待刻意拉长到 2.2~3.4 秒，
     让取消窗口先于任何终态收敛（受理在先是语义，不是抢跑）。
   - 仍然没有测到：真 provider 下的异步取消（要一台接上 key 的 ai-service + worker）；
-    Redis 队列后端（跨实例游标、进程内存重启即失这一点照旧写在报文 `backend` 里）。
+    ~~Redis 队列后端~~（**2026-10-27 核对**：Redis 后端已落地，配 `NEXUS_REDIS_URL` 启用；
+    web 异步路径还没在真 Redis 上端到端跑过，这一格只差这一次实测）。
 - [x] #10 账本实时：每一条任务状态写出都出声，账本页不刷新自己变（2026-10-09）—
   事件用的是 `packages/schemas` 里早就有、却一直没有写入方的 `generation.progress`
   （`RealtimeEventSchema` 那个 union，ADR-0010/0029 的"事件只是加速器、权威永远是库"口径）。
@@ -2085,8 +2103,12 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
     而"这一轮是谁"始终跟着账本（`x-nexus-agent` 头 / 观察报文的 `agent`）。
   限度如实记下：**每一次越权仍然白跑一次 provider 调用**（提示词是提前告知，不是拦截；
   真提前拦法要在请求阶段按 op 数预拒，而那一步今天还不知道会不会有 op）；
-  `resolveAgent` 只解析**一个**负责人，§113 的 handoff 链与多 Agent 调度**还没有实现**，
-  所以"这一轮由谁负责"目前是一个标签加一份权限，还不是编排；名册生效前提是已播种。
+  `resolveAgent` 只解析**一个**负责人。~~§113 的 handoff 链与多 Agent 调度还没有实现~~
+  ——**2026-10-27 核对后改口径**：handoff 链与按依赖的多 Agent 调度都已落地
+  （`apps/web/src/lib/agent-runtime.ts` 的 `handoffOf` 只把**自己声明的依赖**的上游产物交给这一步；
+  `apps/web/src/server/agent/runtime.ts` 的主循环按 `readyIds` / `blockedIds` 逐步分派、把 `handedOff`
+  记进每一步的报告）。仍欠的是**运行中动态改派与并发编排**，
+  所以单次生成里"这一轮由谁负责"仍是一个标签加一份权限；名册生效前提是已播种。
   验证：`agents.test.ts` 17 条纯单测（解析优先级、去重、`a@b.com` 与 `someone@design.com` 不算提及、
     空名册、`mentionNote` 各分支）；`agents.integration.test.ts` 9 条打真库（13 行职责非空、
     `design` 有 `design.patch` 而 `qa` 没有、自报 `agent` 被 400、`@qa` 解析出库里那一份职责与权限、
@@ -2136,9 +2158,10 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   revert 后 20 条全绿。
   限度如实记下：`hasCoverImage` 两条路径都测过（真被画到 → 算封面；资产在库里但这一版没画到 → 不算，
   与 §57/§166 同一口径）；
-  ~~按天曲线~~、游戏侧 completion 事件这两件仍是 §168 记着的欠账，这一片没有替它们说话；
+  ~~按天曲线~~、~~游戏侧 completion 事件~~这两件当时仍是 §168 记着的欠账，这一片没有替它们说话；
   **按天曲线已在 2026-09-30 落地**（见文末「§168 第二片」）；**爬虫与真人区分已在 2026-10-16 落地**
-  （第三片，见文末「§168 第三片」与 ADR-0043）；游戏侧 completion 事件仍欠。
+  （第三片，见文末「§168 第三片」与 ADR-0043）；**游戏侧通关上报后来也接上了**——2026-10-27 核对：
+  `/api/published/game-complete` → `recordGameCompletion`。
   建议全部限于平台今天真支持的动作（改标题/写简介/放封面/改可见性/把链接发出去），没有"投放""买流量"。
 
 

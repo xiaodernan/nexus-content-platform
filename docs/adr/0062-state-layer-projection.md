@@ -55,4 +55,7 @@
   只读页面上真正可见的是 hover / active / focus 这类浏览器伪类。
   `disabled:` 同理只对真实 `disabled` 元素生效，生成的 JSX 目前是 `div`——
   作者把它接到自己的按钮上时才兑现。
-- 入口仍只有代码视图与 AI 补丁：Properties 面板还没有状态编辑器，这是下一片的事。
+- 入口仍只有代码视图与 AI 补丁：~~Properties 面板还没有状态编辑器，这是下一片的事。~~
+  **2026-10-27 核对后改口径**：Properties 面板已有状态编辑器（`PropertiesPanel.tsx` 的
+  `<StateEditor>`，2026-10-24 落地，2026-10-25 补上 `data-state-copy` 复制与批量粘贴）；
+  仍欠的是 `loading` / `error` / `success` 的运行时驱动，见上一条。
