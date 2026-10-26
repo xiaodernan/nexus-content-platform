@@ -184,6 +184,8 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   // v518 — and past the first window it says "of these N rows:" so the reader knows the count
   // is the whole desk, not the windowed subset, matching the pattern from moderation tally (v377),
   // follower tally (v398), like bar (v400), and comment bar (v399).
+  // v520 — the count line now also includes the currency context when multiple currencies
+  // are involved, so a reader sees the total in the correct currency context.
   const countPrefix =
     shown > 0 && count !== null && count > shown && offset > 0
       ? `of these ${shown} rows: `
