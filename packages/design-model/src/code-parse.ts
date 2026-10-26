@@ -221,7 +221,14 @@ function parseAttributes(el: JsxElement, s: Scanner): void {
   }
 }
 
-function parseChildren(s: Scanner, issues: ParseIssue[]): {
+/**
+ * 递归下钻的层数上限。生成器产出的单组件结构很浅（个位数层），128 层是极宽裕的上界；
+ * 它的作用是挡住"病态深嵌套 JSX 让 parseElement↔parseChildren 递归栈溢出"——
+ * 代码视图里粘贴一段几万层 `<div>` 就会触发 RangeError，而这里只该回一条 issue，不该崩。
+ */
+const MAX_JSX_DEPTH = 128;
+
+function parseChildren(s: Scanner, issues: ParseIssue[], depth: number): {
   literals: string[];
   children: JsxElement[];
 } {
@@ -250,7 +257,7 @@ function parseChildren(s: Scanner, issues: ParseIssue[]): {
     }
     if (s.peek() === "<") {
       flush();
-      const child = parseElement(s, issues);
+      const child = parseElement(s, issues, depth);
       if (child) children.push(child);
       continue;
     }
@@ -280,7 +287,7 @@ function parseChildren(s: Scanner, issues: ParseIssue[]): {
   }
 }
 
-function parseElement(s: Scanner, issues: ParseIssue[]): JsxElement | null {
+function parseElement(s: Scanner, issues: ParseIssue[], depth: number): JsxElement | null {
   if (s.peek() !== "<") return null;
   const line = s.lineNo;
   s.take(1);
@@ -310,8 +317,15 @@ function parseElement(s: Scanner, issues: ParseIssue[]): JsxElement | null {
     issues.push({ line: s.lineNo, message: `<${el.tag}> 的属性区无法解析` });
     return el;
   }
+  if (depth >= MAX_JSX_DEPTH) {
+    issues.push({ line, message: `嵌套超过 ${MAX_JSX_DEPTH} 层：超出受支持 JSX 子集（防止递归过深）` });
+    // 不再下钻：把这一层当叶子返回；消费掉 '>'，剩下的子节点由上层继续消费
+    // （每个 '<' 只消费一次，所以不会死循环，递归栈也停在 MAX_JSX_DEPTH）。
+    if (s.peek() === ">") s.take(1);
+    return el;
+  }
   s.take(1);
-  const body = parseChildren(s, issues);
+  const body = parseChildren(s, issues, depth + 1);
   el.literals = body.literals;
   el.children = body.children;
   if (s.starts("</")) {
@@ -344,7 +358,7 @@ export function parseJsx(source: string): JsxParseResult {
     s.skipWhitespace();
     if (s.eof() || s.peek() === ")" || s.starts("</")) break;
     if (s.peek() === "<") {
-      const el = parseElement(s, issues);
+      const el = parseElement(s, issues, 0);
       if (!el) continue;
       if (root) {
         issues.push({ line: el.line, message: "组件里有第二个根元素" });
