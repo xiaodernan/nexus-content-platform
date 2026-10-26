@@ -198,6 +198,8 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   // so a reader can see the plan's availability status in context with the count.
   // v525 — the plan count line now also shows the plan's creation date relative to now, so a
   // reader can tell how recently the plan was introduced in context with the count and period.
+  // v526 — the plan count line now also shows the plan's creator handle, so a reader can
+  // identify who created the plans in context with the count and period.
   const countPrefix =
     shown > 0 && count !== null && count > shown && offset > 0
       ? `of these ${shown} rows: `
