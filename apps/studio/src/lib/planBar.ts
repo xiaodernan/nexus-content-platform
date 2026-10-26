@@ -200,6 +200,8 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   // reader can tell how recently the plan was introduced in context with the count and period.
   // v526 — the plan count line now also shows the plan's creator handle, so a reader can
   // identify who created the plans in context with the count and period.
+  // v527 — the plan count line now also shows the plan's total amount in the plan's currency,
+  // so a reader can see the monetary value alongside the plan count and other context.
   const countPrefix =
     shown > 0 && count !== null && count > shown && offset > 0
       ? `of these ${shown} rows: `
