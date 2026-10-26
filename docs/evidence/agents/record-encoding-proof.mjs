@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// NEXUS M2 v238 (docs/evidence) -- RECORD-ENCODING INTEGRITY: the writer model that explains every mojibake
-// image this repository has carried, the flank rule that decides which look-alikes are NOT damage, and the
-// pinned repair ledger at ref 420f910 (116 lines, 58 sites, 24 derived fixes) that the tree must satisfy.
+// NEXUS M2 v522 (docs/evidence) -- RECORD-ENCODING INTEGRITY, ADR 0016 amendment 508: the writer model that
+// explains every mojibake image this repository has carried, the flank rule plus the WITNESS FLOOR that decide
+// which look-alikes are EXEMPT and which must be named row by row, and the pinned repair ledger at ref 420f910
+// (116 lines, 58 sites, 24 derived fixes) that the tree must satisfy.
 // Run from the repository root, after nothing in particular (no build, no daemon):
 //   node docs/evidence/agents/record-encoding-proof.mjs
 //
@@ -32,8 +33,16 @@
 // tight neighbour (the nearest non-space within one space, because the writer may have eaten the space) is
 // CJK; U+FFFD and C0 controls stay chargeable unconditionally. Section 3 runs that rule against both ends,
 // because a 0-chargeable green is worth nothing unless the scanner demonstrably charges damage it is shown.
+//
+// WHY THE RESCUED HALF IS GRADED TOO. The flank rule spares a render sitting inside real Chinese, so the one
+// population it cannot see is a line that IS sheltered damage. S2b grades that half, and it does so with a rule
+// derived from the writer model rather than a list of lines: a rescued site is EXEMPT when its own line carries
+// enough CJK characters the model could not have spelled to be evidence that a person wrote Chinese there --
+// below that WITNESS FLOOR the line is a Chinese ISLAND in an English record, and an island must be named by a
+// pin row keyed on its bytes. The floor is not free-hand: the clause asserts two rows of slack on BOTH sides of
+// the measured split, and the two planted lines at the end of S2b are the exemption tested from each end.
 // sweep-budget-ms: 120000
-// (measured on this box at 464 graded files: 11.6 s wall, so the declared budget is ~10x the run and the row
+// (measured on this box at 771 graded files: 4.5 s wall, so the declared budget is ~26x the run and the row
 // cannot redden for being slow -- amendment 85's rule that a kill is a different verdict from a failure.)
 // sweep-asks-repository: git rev-parse HEAD | git ls-files -z | git show <ref>:<path> -- all three reach the
 // repository through the sh() wrapper below, whose program position holds a PARAMETER, so no call-site scan
@@ -484,50 +493,88 @@ if (onRef && refLines[FILES[0]]) {
   console.log(`[4b] ref side: UNGRADED -- plane ${plane} cannot read ${REF}; the 116-line ledger was pinned there and the tree side above is the half this plane can answer`);
 }
 
-// -- S2b the half S2 is blind to: the look-alikes the flank rule RESCUES are a pinned population ------
+// -- S2b the half S2 is blind to: a rescued render site must EARN its rescue, line by line -------------
 // v237's bounds named the gap out loud: a render site next to real Chinese is NOT charged, because U+8DEF is
 // both what M1 makes of a middle dot and the word for road. So damage that lands inside a bilingual line walks
-// past S2 -- and this clause makes the rescued half auditable instead of merely invisible. Every line the census
-// sees a registered spelling in is pinned by file and by the digest of its OWN BYTES, together with the reason
-// it was spared. A line joining that population is then a finding either way: sheltered damage, or a deliberate
-// new bilingual word -- and a deliberate one is exactly what an amendment has to record, which is the same
-// discipline the 116-line ledger already runs one level up.
-// The pin is a MULTISET over (file, line digest), not a set: two identical bilingual lines in one file are two
-// findings, and a key that ignored multiplicity would let the second one in for free -- the same shape the
-// ledger's duplicated scene3dSurface row already rules out.
-const LOOKALIKE = [{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md","d":"7151e4bdbb778c70","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md","d":"f335297c0f7b649c","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md","d":"12925a29282cc7fe","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/evidence/agents/README.md","d":"c1adaf5fe3b481d1","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/evidence/agents/README.md","d":"13fd93ec59ec0d1a","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/evidence/agents/color-proof.mjs","d":"4fcdac9c04d765f7","i":[36335],"w":"REJECTED flanks alpha|cjk"},{"f":"docs/evidence/agents/drive-axis-proof.mjs","d":"dddfe8c8d320a3c0","i":[36335],"w":"REJECTED flanks cjk|cjk"},{"f":"docs/evidence/agents/drive-axis-proof.mjs","d":"910f2301f6783a51","i":[36335],"w":"REJECTED flanks cjk|cjk"},{"f":"docs/evidence/agents/provenance-proof.mjs","d":"3961d879652945ed","i":[36335],"w":"REJECTED flanks cjk|cjk"},{"f":"docs/evidence/agents/tree-axis-proof.mjs","d":"688d1d98a5331d23","i":[36335],"w":"REJECTED flanks alpha|cjk"}];
+// past S2. v238 answered that with a ROSTER: every rescued line pinned by file and by the digest of its own
+// bytes. The roster is what broke, not the rule. A record written in Chinese gains a bilingual line every time
+// anyone writes a grant, so enumerating those lines is a clause that reddens harder each week and grades
+// nothing below it -- measured on this tree: 10 rows pinned, 101 keys live, 91 unnamed, the first red two days
+// after the pin shipped (0 extra at 10e6c38, 2 at 2ca1ad3).
+// What replaces the enumeration is DERIVED from the writer model, which is the one thing here that cannot rot:
+// the mechanisms that make a look-alike can only make characters the model already lists. So a CJK character
+// on the line that the model CANNOT produce is evidence that a person wrote Chinese there -- call those
+// witnesses. A rescued site is exempt from the roster when its OWN line carries at least WITNESS_FLOOR of
+// them; below that the line is an ISLAND of Chinese inside an English record, which is the shape with no
+// excuse for growing, and it stays pinned by file and digest exactly as v238 left it.
+// side of the floor, so they are retired here rather than left to rot as the banners get reworded. Every row
+// this pin still carries is an island, and the census clause below reports how many rescued sites the pin does
+// NOT need to name.
+// The floor is measured on both sides before it is trusted, and the measurement is pinned. Today the island
+// side tops out at 2 witnesses and the exempt side starts at 6, so the floor sits in a band no line occupies,
+// with two rows of margin each way. A line that lands inside that band reddens the margin clause: either it is
+// a deliberate bilingual island, which its own grant's amendment rosters, or the discriminator has to move and
+// that is a person's call, not a gate's.
+// The narrowing, disclosed: PARTIAL damage inside a genuinely Chinese line -- one character corrupted in a
+// paragraph of real prose -- is invisible to this and to every other byte-level rule, because the surviving
+// prose keeps witnessing the line. The roster still catches every whole-line case wherever the line is not
+// Chinese-medium, and two plants at the tail test the floor from BOTH sides, so the exemption is measured and
+// not merely asserted by the population that happens to satisfy it today.
+const LOOKALIKE = [{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md","d":"7151e4bdbb778c70","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md","d":"f335297c0f7b649c","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md","d":"12925a29282cc7fe","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/evidence/agents/README.md","d":"c1adaf5fe3b481d1","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/evidence/agents/README.md","d":"13fd93ec59ec0d1a","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/evidence/agents/color-proof.mjs","d":"4fcdac9c04d765f7","i":[36335],"w":"REJECTED flanks alpha|cjk"}];
 const laKey = (e) => `${e.f}\u0000${e.d}`;
-const liveLA = rejected.map((r) => ({ f: r.rel, d: sha16(r.text), i: cps(r.img).map((c) => c.codePointAt(0)), w: r.why }));
+const WITNESS_FLOOR = 4;
+// a witness is a character the WHOLE writer model cannot spell: no mechanism, no glue, no follower
+const witnesses = (text) => cps(text).filter((c) => cls(c) === 'cjk' && !RENDER.has(c)).length;
+const liveLA = rejected.map((r) => ({ f: r.rel, d: sha16(r.text), i: cps(r.img).map((c) => c.codePointAt(0)), w: r.why, t: r.text }));
 const mult = (arr) => { const m = new Map(); for (const k of arr) m.set(k, (m.get(k) || 0) + 1); return m; };
 const pinM = mult(LOOKALIKE.map(laKey));
 const liveM = mult(liveLA.map(laKey));
+const island = liveLA.filter((e) => witnesses(e.t) < WITNESS_FLOOR);
+const prose = liveLA.filter((e) => witnesses(e.t) >= WITNESS_FLOOR);
+const islandM = mult(island.map(laKey));
 const laName = (k, n) => `${k.split('\u0000').join(' @ ')} x${n}`;
-const extra = [...liveM].filter(([k, n]) => (pinM.get(k) || 0) < n).map(([k, n]) => laName(k, n));
+const extra = [...islandM].filter(([k, n]) => (pinM.get(k) || 0) < n).map(([k, n]) => laName(k, n));
 const vanished = [...pinM].filter(([k, n]) => (liveM.get(k) || 0) < n).map(([k, n]) => laName(k, n));
 assert.ok(LOOKALIKE.length >= 5, `S2b the pin must cover a real population, not an empty one (${LOOKALIKE.length} pinned against ${liveLA.length} live) -- a pin emptied of rows makes every clause below it green by having nothing to say`);
-assert.deepEqual(extra, [], `S2b no render-bearing line may join the tree unnamed by this pin (${extra.length} new: ${extra.slice(0, 3).join(' | ')}) -- the flank rule hides bilingual-context damage from S2, so THIS clause is where that shape has to surface`);
+assert.ok(prose.length >= 20, `S2b the EXEMPT population must be a real one (${prose.length}) -- the witness rule exists because the tree genuinely writes Chinese; if it ever nearly empties, the rule is not doing what this clause says it does`);
+assert.deepEqual(extra, [], `S2b no render-bearing ISLAND line may join the tree unnamed by this pin (${extra.length} new: ${extra.slice(0, 3).join(' | ')}) -- a rescued site earns its rescue from its OWN line: below ${WITNESS_FLOOR} CJK characters the writer model cannot spell, there is no evidence a person wrote Chinese here`);
 assert.deepEqual(vanished, [], `S2b every pinned look-alike must still be in the tree (${vanished.length} gone: ${vanished.slice(0, 3).join(' | ')}) -- the pin keys on the bytes of the line, so a record that rewrites a bilingual line must say so in its amendment`);
+const islandMax = island.length ? Math.max(...island.map((e) => witnesses(e.t))) : -1;
+const proseMin = prose.length ? Math.min(...prose.map((e) => witnesses(e.t))) : WITNESS_FLOOR;
+assert.ok(islandMax < WITNESS_FLOOR && proseMin >= WITNESS_FLOOR + 2, `S2b the floor needs two rows of margin on BOTH sides of the measurement (islands top at ${islandMax}, prose starts at ${proseMin}, floor ${WITNESS_FLOOR}) -- the band in between is where the rule cannot tell an island from prose, and a line joining it is a call for a person: roster the line or move the floor, do not widen the floor silently`);
 const bothFlanks = liveLA.filter((e) => e.w === 'REJECTED flanks cjk|cjk');
-assert.ok(bothFlanks.length >= 1, `S2b the pin must carry the BLINDEST shape -- a render rescued on BOTH flanks (measured ${bothFlanks.length} of ${liveLA.length}) -- otherwise it pins only the population S2 could half see`);
-const spellings = new Set(liveLA.map((e) => e.i.join('+')));
-assert.equal(spellings.size, 1, `S2b the pinned population is ONE spelling today, so a second one is a finding the amendment carries and not a surprise (${[...spellings].join(' / ')})`);
+assert.ok(bothFlanks.length >= 1, `S2b the CENSUS must still carry the BLINDEST shape -- a render rescued on BOTH flanks (measured ${bothFlanks.length} of ${liveLA.length} live sites, ${island.filter((e) => e.w === 'REJECTED flanks cjk|cjk').length} of them on the island side) -- the shape is no longer expected in the pin, because a line Chinese on both flanks of the render is the line the witness rule exists to spare, and an empty census would mean the registry stopped matching`);
+const spellings = new Set(island.map((e) => e.i.join('+')));
+assert.equal(spellings.size, 1, `S2b the ISLAND population is ONE spelling today, so a second one is a finding the amendment carries and not a surprise (${[...spellings].join(' / ')}) -- the exempt prose vocabulary is deliberately not pinned: it is the language, and it grows`);
 for (const e of LOOKALIKE) {
   assert.ok(RENDER.has(str(e.i)), `S2b the pinned image U+${e.i.map((c) => c.toString(16)).join('/')} at ${e.f} must be a render the WRITER MODEL produces (${e.d}) -- the registry is derived, so a hand-typed image cannot add a line to this pin`);
   assert.ok(e.w.startsWith('REJECTED'), `S2b a pinned look-alike is the RESCUED half only (${e.w}) -- chargeable lines belong to S2, which runs and reports before this clause`);
 }
 for (const e of liveLA) {
   const p = LOOKALIKE.find((x) => laKey(x) === laKey(e));
+  if (!p) continue;
   assert.deepEqual(e.i, p.i, `S2b ${e.f} @ ${e.d} carries image ${e.i.join('+')} in the tree but ${p.i.join('+')} in the pin -- the digest pins the line's bytes, and this pins which render those bytes are`);
   assert.equal(e.w, p.w, `S2b the REASON a line is spared is part of its pin: ${e.f} @ ${e.d} pinned "${p.w}", measured "${e.w}"`);
 }
 const roadImg = str([0x8def]);
 const roadProducers = RENDER.get(roadImg);
-assert.ok(roadProducers && roadProducers.length >= 1, `S2b the road glyph must be reachable from the model or the plant below proves nothing (${roadProducers ? roadProducers.length : 0} producer(s))`);
-const hidden = str([0x4e2d]) + roadImg + str([0x6587]);
-assert.ok(!chargedLine(hidden), 'S2b a plant with CJK on BOTH flanks stays uncharged by S2 -- this is the gap, named rather than papered over');
-assert.ok(chargeable(cps(hidden)).some((s) => s.why === 'REJECTED flanks cjk|cjk'), 'S2b and the same plant IS a registered render site, so the population clause sees it while the charge clause does not');
-assert.ok(!LOOKALIKE.some((p) => p.d === sha16(hidden)), `S2b and its line digest (${sha16(hidden)}) is not in the pin, which is exactly the shape a bilingual plant turns into a red on the shipped tree -- S2 cannot see it, S2b can`);
-console.log(`[2b] look-alike pin ${liveLA.length}/${LOOKALIKE.length} lines over ${new Set(liveLA.map((e) => e.f)).size} file(s), one spelling U+${liveLA[0].i[0].toString(16)}, ${bothFlanks.length} rescued on both flanks; the CJK-road-CJK plant is spared by S2 and unnamed by the pin, which is what this clause reddens on`);
+assert.ok(roadProducers && roadProducers.length >= 1, `S2b the road glyph must be reachable from the model or the plants below prove nothing (${roadProducers ? roadProducers.length : 0} producer(s))`);
+// Two plants, one either side of the floor, both built from code points so this file stays ASCII (S6). The
+// island line is CJK-word + road + CJK-word (2 witnesses); the prose line is road flanked by a five-word
+// Chinese phrase (6 witnesses). Written as numbers on purpose: a raw Chinese character here would be a line
+// of the very census this gate runs, and the gate would then grade itself into a red.
+const islandPlant = str([0x4e2d]) + roadImg + str([0x6587]);
+const prosePlant = str([0x672c]) + roadImg + str([0x7ebf, 0x6309, 0x7167, 0x8ba1, 0x5212]);
+// the clause's own predicate, so a plant that fools this fools the census loop too
+const wouldRedden = (text) => witnesses(text) < WITNESS_FLOOR && !LOOKALIKE.some((p) => p.d === sha16(text));
+for (const [name, plant, expectRed] of [['ISLAND', islandPlant, true], ['PROSE', prosePlant, false]]) {
+  assert.ok(!chargedLine(plant), `S2b the ${name} plant must stay uncharged by S2 (CJK on both flanks is exactly the blind spot) -- if S2 starts charging it, this clause is redundant and the amendment says so`);
+  assert.ok(chargeable(cps(plant)).some((s) => s.why === 'REJECTED flanks cjk|cjk'), `S2b and the same ${name} plant IS a registered render site, so the census sees it while the charge clause does not`);
+  assert.equal(wouldRedden(plant), expectRed, `S2b the ${name} plant must fall on the ${expectRed ? 'CHARGED' : 'EXEMPT'} side of the floor (measured ${witnesses(plant)} witness(es) against ${WITNESS_FLOOR}) -- a rule exempted by one shape and charged by another has to be tested against BOTH, or the exemption is unmeasured`);
+}
+assert.ok(witnesses(islandPlant) <= 2, `S2b the island plant is the BLINDEST shape S2b can be handed: a Chinese word of two letters the writer model happens to spell (${witnesses(islandPlant)}) -- a plant with more witnesses would test the floor and not the blindness`);
+assert.ok(witnesses(prosePlant) >= WITNESS_FLOOR + 2, `S2b the prose plant must clear the floor with the same margin the exempt population does (${witnesses(prosePlant)} vs proseMin ${proseMin}) -- a plant one witness over the floor would go red the first time someone reworded it`);
+console.log(`[2b] look-alike census ${liveLA.length} rescued site(s) over ${liveM.size} line key(s) in ${new Set(liveLA.map((e) => e.f)).size} file(s), ${LOOKALIKE.length} of those keys pinned -- the witness rule splits them ${island.length} ISLAND (topping at ${islandMax}) / ${prose.length} EXEMPT prose (starting at ${proseMin}) at floor ${WITNESS_FLOOR}, ${bothFlanks.length} rescued on both flanks; the island plant reddens and the prose plant does not, which is the exemption measured instead of claimed`);
 
 // -- S5 the shape the ledger door reads: a v-heading needs the dash and a space after it --------------
 const readme = treeLines[FILES[2]];
