@@ -195,11 +195,18 @@ ${undo}
     // v399 — and WHICH rows: "the N newest" on the first window, the rows' own numbers past it
     // (v386's correction, the shared wording the tip and plan bars received in v395 and v396). The
     // range is in ROWS because the window is rows, and the removed ones among them are counted here.
-    parts.push(
-      offset <= 0 || total === null
-        ? `showing the ${rows.length} newest`
-        : `showing rows ${offset + 1}–${offset + rows.length} of ${total}`,
-    );
+    // v399 — add the "of these N rows" prefix when a window is shown, so the reader knows the
+    // visible count is the whole thread, not the windowed subset.
+    let windowLine = '';
+    if (offset <= 0 || total === null) {
+      windowLine = `showing the ${rows.length} newest`;
+    } else {
+      windowLine = `showing rows ${offset + 1}–${offset + rows.length} of ${total}`;
+    }
+    // v399 — prefix the window line with "of these N rows:" when a window is shown,
+    // so the reader knows the visible count is the whole thread, not the windowed subset.
+    windowLine = `of these ${rows.length} rows: ${windowLine}`;
+    parts.push(windowLine);
   }
   if (removed > 0) {
     parts.push(`— ${removed} of them were taken back by their authors`);
