@@ -1089,6 +1089,43 @@ export const VisualBenchmarkRequestSchema = z
   });
 export type VisualBenchmarkRequest = z.infer<typeof VisualBenchmarkRequestSchema>;
 
+/** §86 比较结果的跨端形状：客户端拿它验过才渲染，界面上每个数都能回指到服务端算出的那一份 */
+export const VisualBenchmarkResponseSchema = z.object({
+  ok: z.literal(true),
+  referenceAssetId: z.string(),
+  candidateAssetId: z.string(),
+  reference: z.object({ width: z.number(), height: z.number() }),
+  candidate: z.object({ width: z.number(), height: z.number() }),
+  shapeMismatch: z.boolean(),
+  metrics: z.object({
+    layout: z.object({
+      score: z.number(),
+      refInkCells: z.number(),
+      candInkCells: z.number(),
+      meaning: z.string(),
+    }),
+    spacing: z.object({ vertical: z.number(), horizontal: z.number(), meaning: z.string() }),
+    alignment: z.object({
+      score: z.number(),
+      refEdges: z.number(),
+      candEdges: z.number(),
+      matched: z.number(),
+      meaning: z.string(),
+    }),
+    color: z.object({
+      score: z.number(),
+      luminanceDelta: z.number(),
+      warmthDelta: z.number(),
+      refPalette: z.array(z.object({ color: z.string(), share: z.number() })),
+      candPalette: z.array(z.object({ color: z.string(), share: z.number() })),
+      meaning: z.string(),
+    }),
+    pixel: z.object({ meanAbsLuminanceDiff: z.number(), meaning: z.string() }),
+  }),
+  notMeasured: z.array(z.object({ area: z.string(), reason: z.string() })),
+});
+export type VisualBenchmarkResponse = z.infer<typeof VisualBenchmarkResponseSchema>;
+
 /**
  * §178 项目健康 / §179 Quality Gate 的跨端形状。
  *

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { AssetRef, DesignDocument } from '@nexus/design-model';
+import type { VisualBenchmarkResponse } from '@nexus/schemas';
 import { cn } from '@/lib/cn';
 import { apiAssetUrl } from './assets';
 import { SketchPad } from './SketchPad';
@@ -48,14 +49,63 @@ function formatBytes(n?: number): string {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
+const pct = (v: number): string => `${Math.round(v * 100)}%`;
+
+/**
+ * §86 结果区。纪律：测不出的维度渲染"测不出"+ 原因，绝不渲染成 0 分（§159）；
+ * 像素亮度差标明是原始读数不是分数——它不参与"像不像"的结论。
+ */
+function VisualBenchmarkResult({ r }: { r: VisualBenchmarkResponse }) {
+  const m = r.metrics;
+  return (
+    <div className="mt-2 flex flex-col gap-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2 text-12" data-vbench-result>
+      <p className="font-mono text-11 text-fg-3">
+        {r.reference.width}×{r.reference.height} × {r.candidate.width}×{r.candidate.height}
+      </p>
+      <ul className="flex flex-col gap-[2px]">
+        <li data-vbench-layout title={m.layout.meaning}>
+          布局 {pct(m.layout.score)}
+        </li>
+        <li data-vbench-spacing title={m.spacing.meaning}>
+          间距（纵/横）{pct(m.spacing.vertical)} / {pct(m.spacing.horizontal)}
+        </li>
+        <li data-vbench-alignment title={m.alignment.meaning}>
+          对齐 {pct(m.alignment.score)}
+        </li>
+        <li data-vbench-color title={m.color.meaning}>
+          颜色 {pct(m.color.score)}
+        </li>
+      </ul>
+      <p className="text-fg-3" title={m.pixel.meaning} data-vbench-pixel>
+        像素亮度平均差 {m.pixel.meanAbsLuminanceDiff.toFixed(3)}（原始读数，不是分数）
+      </p>
+      {r.shapeMismatch ? (
+        <p className="text-warn" data-vbench-shape-mismatch>
+          两图宽高比差超过 5%，下面的分数要在这个前提下读。
+        </p>
+      ) : null}
+      <ul className="flex flex-col gap-[2px] text-fg-3">
+        {r.notMeasured.map((n) => (
+          <li key={n.area} data-vbench-notmeasured={n.area}>
+            测不出 {n.area}：{n.reason}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function AssetsPanel() {
   const state = useStudioReady();
   const assets = state.assets as AssetRef[];
   const [prompt, setPrompt] = useState('');
+  const [vrefId, setVrefId] = useState('');
+  const [vcandId, setVcandId] = useState('');
   const counts = useMemo(() => {
     const found = referenceCounts(state.document);
     return new Map(assets.map((a) => [a.id, found.get(a.id) ?? 0]));
   }, [assets, state.document]);
+  const imageAssets = useMemo(() => assets.filter((a) => a.kind === 'image'), [assets]);
 
   return (
     <div className="flex h-full min-h-0 flex-col" data-assets-panel>
@@ -105,6 +155,66 @@ export function AssetsPanel() {
             })}
           />
         </div>
+      </details>
+
+      {/* §86 视觉基准的界面入口：从资产清单里点两份位图（参考 × 生成），服务端做本地
+          确定性结构比较。这一格是**真数**，不是 DEMO——不借任何 provider。
+          两份下拉不筛 mime：JPEG/WebP 选进去会让路由用 415 把"只支持 PNG、是哪张"
+          讲清楚，比面板自己猜一份 mime 白名单诚实（§159）。 */}
+      <details className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2" data-vbench-section>
+        <summary className="cursor-pointer font-mono text-11 text-fg-3">视觉基准（比较两张 PNG）</summary>
+        {imageAssets.length < 2 ? (
+          <p className="mt-2 text-12 text-fg-3">
+            需要至少两张位图资产：一张当参考图，一张当生成结果。先上传或生成图片。
+          </p>
+        ) : (
+          <div className="mt-2 flex flex-col gap-1">
+            <label className="flex items-center gap-2 text-12 text-fg-2">
+              参考图
+              <select
+                value={vrefId}
+                onChange={(e) => setVrefId(e.target.value)}
+                disabled={state.assetBusy}
+                data-vbench-reference
+                className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-1 py-1 text-12 text-fg-1"
+              >
+                <option value="">选一张…</option>
+                {imageAssets.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2 text-12 text-fg-2">
+              生成图
+              <select
+                value={vcandId}
+                onChange={(e) => setVcandId(e.target.value)}
+                disabled={state.assetBusy}
+                data-vbench-candidate
+                className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-1 py-1 text-12 text-fg-1"
+              >
+                <option value="">选一张…</option>
+                {imageAssets.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              disabled={state.assetBusy || !vrefId || !vcandId}
+              onClick={() => void studio.compareVisualBenchmark(vrefId, vcandId)}
+              data-vbench-run
+              className="self-start rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-1 font-mono text-11 text-fg-2 hover:bg-bg-0 disabled:opacity-50"
+            >
+              {state.assetBusy ? '比较中…' : '比较结构'}
+            </button>
+          </div>
+        )}
+        {state.visualBenchmarkResult ? <VisualBenchmarkResult r={state.visualBenchmarkResult} /> : null}
       </details>
 
       {state.assetError ? (

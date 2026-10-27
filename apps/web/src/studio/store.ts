@@ -32,7 +32,15 @@ import {
   type VisualDna,
 } from '@nexus/design-model';
 import type { Annotation } from '@/server/domain/annotations';
-import { ModerationScanSchema, ProjectHealthReportSchema, VisualDnaSchema, type DesignPatchPayload, type ModerationScan } from '@nexus/schemas';
+import {
+  ModerationScanSchema,
+  ProjectHealthReportSchema,
+  VisualBenchmarkResponseSchema,
+  VisualDnaSchema,
+  type DesignPatchPayload,
+  type ModerationScan,
+  type VisualBenchmarkResponse,
+} from '@nexus/schemas';
 import type { SnapshotEntry, SnapshotMeta } from '@/server/domain/snapshots';
 import type { BranchMeta } from '@/server/domain/branches';
 import type { VariantEntry } from '@/server/domain/variants';
@@ -131,6 +139,8 @@ export interface StudioSnapshot {
   assetNotice: string | null;
   /** §124 状态补丁剪贴板：null = 还没复制过（粘贴入口据此禁用，不是"贴了个空补丁"） */
   statesClipboard: StatesClipboard | null;
+  /** §86 视觉基准上一次比较的结果：纯计算不进模型，换项目即清（下面两个入口都清） */
+  visualBenchmarkResult: VisualBenchmarkResponse | null;
   revision: number;
   activeMode: string | null;
 }
@@ -249,6 +259,7 @@ export class StudioStore {
   private assetErrorValue: string | null = null;
   private assetNoticeValue: string | null = null;
   private statesClipboardValue: StatesClipboard | null = null;
+  private vbenchResultValue: VisualBenchmarkResponse | null = null;
 
   constructor() {
     this.design.subscribe(() => this.commit());
@@ -365,6 +376,7 @@ export class StudioStore {
       assetError: this.assetErrorValue,
       assetNotice: this.assetNoticeValue,
       statesClipboard: this.statesClipboardValue,
+      visualBenchmarkResult: this.vbenchResultValue,
       revision: state.revision,
       activeMode: document.activeMode ?? null,
     };
@@ -493,6 +505,7 @@ export class StudioStore {
     this.saveError = null;
     this.loadError = null;
     this.ready = true;
+    this.vbenchResultValue = null;
     this.commit();
     // 这三份"随文档一起来的附属信息"一个都不能省：漏掉 refreshAnnotations 时，
     // 首屏不再 fetch 文档确实快了，但元素上的批注与发布状态整片消失——
@@ -508,6 +521,7 @@ export class StudioStore {
     this.projectId = projectId;
     this.ready = false;
     this.loadError = null;
+    this.vbenchResultValue = null;
     this.commit();
     try {
       const res = await fetch(`/api/projects/${projectId}`, { cache: 'no-store' });
@@ -1641,6 +1655,47 @@ export class StudioStore {
       }
       this.execute('从参考图提取 Visual DNA', [{ op: 'setVisualDna', dna: parsed.data as VisualDna }]);
       this.assetNoticeValue = `已提取视觉语言：${parsed.data.descriptors.join('、')}。它现在约束后续生成，可撤销。`;
+      return true;
+    } catch (error) {
+      this.assetErrorValue = error instanceof Error ? error.message : String(error);
+      return false;
+    } finally {
+      this.assetBusyValue = false;
+      this.commit();
+    }
+  }
+
+  /**
+   * §86 视觉基准：参考图 × 生成图 → 结构化指标。比较是纯计算、不写模型，
+   * 所以不走 execute——结果只落在面板状态里，由面板把 notMeasured 一并渲染出来。
+   * 响应先过 `VisualBenchmarkResponseSchema` 再进状态：形状不符如实报错，
+   * 不渲染服务端说了算的半份数（§159）。
+   */
+  async compareVisualBenchmark(referenceAssetId: string, candidateAssetId: string): Promise<boolean> {
+    if (!this.projectId) return false;
+    this.assetBusyValue = true;
+    this.assetErrorValue = null;
+    this.assetNoticeValue = null;
+    this.vbenchResultValue = null;
+    this.commit();
+    try {
+      const res = await fetch(`/api/projects/${this.projectId}/visual-benchmark`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ referenceAssetId, candidateAssetId }),
+      });
+      const payload: unknown = await res.json().catch(() => null);
+      if (!res.ok) {
+        const body = payload as { message?: string; issues?: string[] } | null;
+        throw new Error(body?.message ?? body?.issues?.join('；') ?? `HTTP ${res.status}`);
+      }
+      const parsed = VisualBenchmarkResponseSchema.safeParse(payload);
+      if (!parsed.success) {
+        throw new Error(
+          `基准结果不符合契约：${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('；')}`,
+        );
+      }
+      this.vbenchResultValue = parsed.data;
       return true;
     } catch (error) {
       this.assetErrorValue = error instanceof Error ? error.message : String(error);
