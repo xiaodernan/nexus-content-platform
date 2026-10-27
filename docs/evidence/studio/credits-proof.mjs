@@ -100,7 +100,10 @@ try {
   const bad = credits.validateCreditLedger(tampered);
   assert.equal(bad.ok, false, 'a ledger that dips negative was accepted');
   assert.ok(bad.problems.some((p) => p.code === 'negative-balance'), 'the validator did not name the negative prefix');
-  console.log(`  balance derives to ${credits.balanceOf(ledger, 'buyerB')}; retry/overdraw/fractional refused by name; tampered ledger named (${bad.problems.length} problem(s))`);
+  const badAt = credits.validateCreditLedger({ entries: [{ id: 'y', accountId: 'a', delta: 5, reason: 'ok', at: Number.NaN, kind: 'grant' }] });
+  assert.equal(badAt.ok, false, 'a ledger with a non-finite `at` was accepted');
+  assert.ok(badAt.problems.some((p) => p.code === 'bad-at'), 'the validator did not name a non-finite `at`');
+  console.log(`  balance derives to ${credits.balanceOf(ledger, 'buyerB')}; retry/overdraw/fractional refused by name; tampered ledger named (${bad.problems.length} problem(s)); non-finite \`at\` named`);
 
   // ── §2 the catalog is the inventory ──────────────────────────────────────────────────────────────
   console.log('§2 the catalog is the inventory');
@@ -228,7 +231,12 @@ try {
   refundLedger = credits.appendCreditEntry(refundLedger, { id: 'x1', accountId: 'buyerB', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' }).ledger;
   refundLedger = credits.appendCreditEntry(refundLedger, { id: 'x2', accountId: 'buyerB', delta: 200, reason: 'refund', at: 2, kind: 'refund', ref: 'tpl-paid2' }).ledger;
   assert.deepEqual(wallet.buildWalletView(catalog, refundLedger, 'buyerB').ownedTemplateIds, [], 'a refund granted ownership');
-  console.log(`  buyerB owns ${wv.ownedTemplateIds.join(', ')}; affordable ${wv.affordableTemplateIds.join(', ')}; authorA owns ${authorWv.ownedTemplateIds.join(', ')}; refund is not ownership`);
+  // The ledger is shared: a subscription spend carries a PLAN id in `ref`, which is not a template.
+  let subLedger = credits.emptyCreditLedger();
+  subLedger = credits.appendCreditEntry(subLedger, { id: 'u1', accountId: 'buyerB', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' }).ledger;
+  subLedger = credits.appendCreditEntry(subLedger, { id: 'u2', accountId: 'buyerB', delta: -300, reason: 'subscription "pro"', at: 2, kind: 'spend', ref: 'plan-pro' }).ledger;
+  assert.deepEqual(wallet.buildWalletView(catalog, subLedger, 'buyerB').ownedTemplateIds, [], 'a subscription spend was reported as template ownership');
+  console.log(`  buyerB owns ${wv.ownedTemplateIds.join(', ')}; affordable ${wv.affordableTemplateIds.join(', ')}; authorA owns ${authorWv.ownedTemplateIds.join(', ')}; a refund and a non-template ref are not ownership`);
 } finally {
   rmSync(box, { recursive: true, force: true });
 }

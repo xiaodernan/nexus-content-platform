@@ -52,9 +52,13 @@ export function buildWalletView(catalog: TemplateCatalog, ledger: CreditLedger, 
   const balance = balanceOf(ledger, viewerId);
   const owned = new Set<string>();
   for (const e of ledger.entries) {
-    if (e.accountId === viewerId && e.kind === 'spend' && typeof e.ref === 'string' && e.ref.length > 0) {
-      owned.add(e.ref);
-    }
+    if (e.accountId !== viewerId || e.kind !== 'spend') continue;
+    if (typeof e.ref !== 'string' || e.ref.length === 0) continue;
+    // A spend's `ref` is OPAQUE: the same ledger also carries spends for things that are not
+    // templates (a subscription, a tip). Only a ref that NAMES a catalog listing is template
+    // ownership — otherwise the wallet would report "you own plan-pro" because you subscribed.
+    if (!templateById(catalog, e.ref)) continue;
+    owned.add(e.ref);
   }
   const affordable: string[] = [];
   for (const listing of catalog.listings) {
@@ -77,9 +81,4 @@ export function walletOwns(view: WalletView, templateId: string): boolean {
 /** Whether this viewer can afford a given template id — a thin, named read over the view's derived set. */
 export function walletCanAfford(view: WalletView, templateId: string): boolean {
   return view.affordableTemplateIds.includes(templateId);
-}
-
-/** Look up one listing by id through the catalog — the wallet reuses the catalog, it does not copy it. */
-export function walletListingById(catalog: TemplateCatalog, templateId: string) {
-  return templateById(catalog, templateId);
 }

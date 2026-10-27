@@ -112,6 +112,10 @@ export function appendCreditEntry(ledger: CreditLedger, entry: CreditEntry): Cre
  * Replay the whole ledger and answer a VERDICT — the same discipline `validateDocument` follows.
  * The check is stronger than the final balance: it asserts that NO account went below zero at ANY
  * prefix, not merely at the end, so a ledger that dipped negative and recovered is still named.
+ *
+ * It also names an entry whose `at` is not finite or whose `reason` is blank. `appendCreditEntry`
+ * refuses both, so a ledger carrying either did not come from the appender — and a non-finite `at`
+ * is not cosmetic: the settlement windows read it, and a NaN silently mis-buckets an entry.
  */
 export function validateCreditLedger(ledger: CreditLedger): CreditLedgerVerdict {
   const problems: CreditLedgerProblem[] = [];
@@ -121,6 +125,8 @@ export function validateCreditLedger(ledger: CreditLedger): CreditLedgerVerdict 
     if (typeof e.id !== 'string' || e.id === '') problems.push({ code: 'bad-id', detail: 'an entry has no non-empty string id' });
     else if (seen.has(e.id)) problems.push({ code: 'duplicate-id', detail: `entry id "${e.id}" appears more than once` });
     seen.add(e.id);
+    if (typeof e.reason !== 'string' || e.reason === '') problems.push({ code: 'bad-reason', detail: `entry "${e.id}" has no non-empty reason` });
+    if (typeof e.at !== 'number' || !Number.isFinite(e.at)) problems.push({ code: 'bad-at', detail: `entry "${e.id}" has no finite at — a settlement window reads it` });
     if (typeof e.accountId !== 'string' || e.accountId === '') { problems.push({ code: 'bad-account', detail: 'an entry has no non-empty string accountId' }); continue; }
     if (typeof e.delta !== 'number' || !Number.isInteger(e.delta)) { problems.push({ code: 'bad-delta', detail: `entry "${e.id}" delta is not a whole number: ${String(e.delta)}` }); continue; }
     if (e.delta === 0) problems.push({ code: 'zero-delta', detail: `entry "${e.id}" moves nothing` });

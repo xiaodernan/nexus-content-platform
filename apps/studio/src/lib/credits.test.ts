@@ -151,6 +151,18 @@ describe('credits: validateCreditLedger replays every prefix', () => {
     expect(codes).toContain('zero-delta');
     expect(codes).toContain('bad-delta');
   });
+
+  it('names a non-finite `at` and a blank `reason` — the fields a settlement window reads', () => {
+    const v = validateCreditLedger({ entries: [
+      entry({ id: 'bad-at', at: Number.NaN }),
+      entry({ id: 'bad-reason', reason: '' }),
+    ] });
+    expect(v.ok).toBe(false);
+    if (v.ok) return;
+    const codes = v.problems.map((p) => p.code);
+    expect(codes).toContain('bad-at');
+    expect(codes).toContain('bad-reason');
+  });
 });
 
 describe('credits: determinism', () => {

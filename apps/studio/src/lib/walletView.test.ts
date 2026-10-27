@@ -85,6 +85,17 @@ describe('buildWalletView', () => {
     expect(view.ownedTemplateIds).toEqual([]);
     expect(view.affordableTemplateIds).toEqual([]); // spent below zero is impossible via marketplace, but the view reports the ledger as-is
   });
+
+  it('a spend whose ref names NO listing is not template ownership', () => {
+    // The ledger is shared: a subscription spend carries a plan id in `ref`, which is not a template.
+    const ledger = ledgerOf([
+      { id: 'e-earn', accountId: 'buyerB', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' },
+      { id: 'e-sub', accountId: 'buyerB', delta: -300, reason: 'subscription "pro"', at: 2, kind: 'spend', ref: 'plan-pro' },
+    ]);
+    const view = buildWalletView(catalog(), ledger, 'buyerB');
+    expect(view.ownedTemplateIds).toEqual([]); // 'plan-pro' is not in the catalog
+    expect(view.balanceCents).toBe(700);
+  });
 });
 
 describe('wallet helpers', () => {
