@@ -56,7 +56,7 @@ same file is then asserted to run ZERO programs. `porcelain-path-proof.mjs` (v61
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 640/640 + @nexus/exec-host 340/340 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 658/658 + @nexus/exec-host 344/344 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -133,9 +133,13 @@ the SHAPE around it. One source, and no way for a loosening to look like a refac
 ## Unit tests (vitest, `agents/runtime/test`)
 
 The parenthesized counts below are the committed state, and they are checkable rather than
-decorative: the runtime rows sum to exactly **640** (43 files) and the `exec-host/*` rows to exactly
-**340** (13 files) — the same totals `npm test` prints. A row whose number drifts from its file is a
-documentation bug, so an increment that adds a case updates its row in the same commit. v63 found this
+decorative: over the basenames HEAD owns under each package's `test/` directory, the runtime rows sum to exactly **640** (43 files) and the `exec-host/*` rows to exactly
+**344** (13 files) — the population the recount door measures, each row counting every file that
+shares its basename. The table reaches one basename further on the runtime side: `src/buildArc.test.ts`
+(18), the only basename there with no file under `test/`. So the runtime's rows total 658 over 44
+basenames (46 files) — the totals `npm test` prints, like the exec host's 344 over 13 basenames (14
+files). A row whose number drifts from its file is a documentation bug, so an increment that adds a
+case updates its row in the same commit. v63 found this
 table itself adrift: the `gitTools.test.ts` row still read (51) where HEAD measured 65, because every case
 that file gained after am. 61 (when the package total this table reproduced was 201) was tallied into the
 total and never into its own row — renumbered now by re-reading the vitest JSON per file, not by adding the
@@ -187,6 +191,7 @@ never the sum of the deltas.
 | `repair.test.ts` +edge-snap (5) | v27: near-edge unproposed by default, opt-in snaps x flush with y untouched and px stated, right-edge snap uses page.width − width, a corner snaps the fixed-order side first and reports the other honestly in `remaining`, two independent slips both snap clean + determinism |
 | `testRunner.test.ts` (23) | v28: predicate engine semantics (all-pass detail, VERBATIM failure messages, throw→`threw:` without crashing, name-order + first-registration duplicate wins, empty pack = stated vacuous failure, `only` filter + miss), tool contract (exec-gated without checkpoint, `{ok, detail}` + structured report when granted, unknown `only` errors), lazy file re-read after a write, runTask end-to-end (completed run journals 1 ok report; never-passing predicate → 3 honest reports + `failed_verification`; hosts without the tool keep the field absent), JSONL append/reload with malformed counting + last-N + missing-file empty; v31: the tool AWAITS an async runner with an identical report shape, a REJECTING async runner surfaces as a tool error not a crash, runTask journals async-runner reports like any other; v466: the tool SPECS asked directly — exactly one spec named `test.run`, carrying the EXEC permission (a run is gated like a subprocess even though it spawns none), its only arg the optional `only` filter so a bare call is a full run, the description’s two promises (in-process predicates, structured engine-labelled output) held verbatim, and registration registering exactly that spec |
 | `execSandbox.test.ts` (18) | v29: allowlisted argv → inert plan (jail-resolved cwd, rule budgets, `matchedRule`, `executes:false` asserted field-for-field), default-deny refusal quoting the argv, `'*'` as argument wildcard matches but arity is fixed and shell-shaped single tokens still deny, path/separators in the executable refused before matching, malformed requests (non-array/empty/non-string tokens), cwd `..`+absolute+drive-letter refused via `guardedJoin` while missing cwd means the root, env scrubbed to allowlist with dropped names sorted, budgets clamped to policy ceilings, empty allow array denies everything, determinism + plan owns its data (no shared refs), invalid policy refused before the request and `registerExecTools` throws at registration, `exec.plan` callable WITHOUT a checkpoint (read perm) with `executes:false` in the output, refusals succeed as tool calls (`planned:false` + reason), registry `string[]` validation on argv |
+| `buildArc.test.ts` (18) | the BUILD arc as data and as a walk: `planBuildArc` plans inert stages and Step-shaped doors and executes nothing, and refuses a malformed spec with a stated reason rather than a half-plan; `registerBuildTools` names the engine, declares exec permissions and typed args, is a dangerous door (no checkpoint, no run), and passes the answer's KIND through to the tool output instead of swallowing it; `runBuildArc` walks green to the end through the ONE door, stops at no-verifier when the registry holds no door, ends at a §28 denial before the door with the receipt naming who refused, carries a red VERDICT as a failed verification carrying the engine's own detail and NO kind, carries a MACHINE failure's kind up the answer, names a thrown door as the machine failing, names a refusal as no kind at all, stops at the first red step with the later steps never running, refuses an invalid spec before any door with the receipts empty and owned, owes a plain checkpoint the receipt note rather than a silent empty, and carries the caller's ToolCall through the checkpoint so the receipts join to the steps |
 | `buildPlanner.test.ts` (21) | `templateBuildPlanner`: catalog validation thrown at CONSTRUCTION (an empty catalog, a duplicate template id, an argv that is empty or holds an empty string), keyword-matched goal selection plus the always-on baseline, and the plan the template's own steps make |
 | `deployArc.test.ts` (24) | `planDeployArc` refuses a build arc that did not complete, turns each stdout-bearing step into a fact, freezes inert `deploy.record` steps and names green-but-unmeasured steps rather than summarising them; `runDeployArc` walks the arc the plan describes |
 | `codeIndex.sourcePrior.test.ts` (5) | `sourcePrior` boosts real source trees (`src/`, `lib/`) that are not tests, does NOT boost test/spec files even when they live in `src/`, discounts `docs/`/README/`.test.`/`.spec.` basenames anywhere, answers the neutral 1.0 for everything else, and is deterministic for identical inputs |
