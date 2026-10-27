@@ -412,6 +412,18 @@ export default async function AnalyticsPage(props: {
                   <CompletionCell analytics={row.analytics} />
                   {/* §168：游戏侧的通关——"多少人玩到了结局"（一个人只记一次） */}
                   <Cell value={row.analytics.completedVisitors} col="completed" />
+                  {/* §167：互动作品侧的走通——非互动作品写「—」（不是 0，是这一版没有这条流程） */}
+                  <td
+                    className="px-2 py-1 text-right font-mono text-12 text-fg-1"
+                    data-analytics-value="interactive_completed"
+                    data-analytics-interactive={row.interactive ? 'yes' : 'no'}
+                  >
+                    {row.interactive ? (
+                      row.analytics.interactiveCompleted.toLocaleString('zh-CN')
+                    ) : (
+                      <span className="text-fg-3">—</span>
+                    )}
+                  </td>
                   <td
                     className="px-2 py-1 text-right font-mono text-12 text-fg-1"
                     data-analytics-value="play_time"
@@ -431,10 +443,11 @@ export default async function AnalyticsPage(props: {
 
       <p className="mt-4 text-11 text-fg-3">
         还能往下做的两件事：把窗口粒度做到小时
-        （库里就是一天一行，按小时画等于编一个不存在的分辨率）、以及互动作品的 completion
-        （它们还没有运行时事件，今天只能靠人点一下来算）。
+        （库里就是一天一行，按小时画等于编一个不存在的分辨率）。
         游戏这一类的 completion 已经接上了——公开可玩页上玩到了结局就记一次，
         于是「通关过」那一格说的是"多少人玩通了"（一个人在同一版里只记一次）。
+        互动作品的 completion 也接上了——公开设计稿页上点着跳页、走到了没有出路的终点页就记一次，
+        「互动完成」那一格说的是"多少人走通过"；直接打开终点页不算，非互动作品那一格写「—」。
         爬虫与真人的区分已按"疑似另计"落地（见上面的口径）——UA 名单是保守的，漏掉的爬虫仍会混进真人的数里，
         这一条限度不假装已经解决。
       </p>

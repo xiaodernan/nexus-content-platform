@@ -106,6 +106,8 @@ export function InteractiveEnd({ path, pageId }: { path: string; pageId: string 
       walked ||= false;
     }
     if (!walked) {
+      // 直达的不进 outcomes：同一份文档里此后真点着走进来（SPA 翻页不换文档）还要能正常上报
+      setRecord('not-walked');
       return;
     }
     outcomes.set(scope, 'recording');

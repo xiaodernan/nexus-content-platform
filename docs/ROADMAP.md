@@ -4340,7 +4340,7 @@ M8 整格仍是 `[~]`：MCP 与外部 Agent 那一格还没动，项目的创建
       迁移打齐之后**同一份用例重跑：43 秒绿**（真玩一次 ⇒ 那一报 200 ⇒ 分析页上「通关过」= 1）⇒
       现在这句"齐了"才是真的。教训落在 `docs/ENVIRONMENT.md` 里：**新迁移两个库都要打**。
 
-**2026-10-27 互动侧的 completion 落地**：
+**2026-10-27 互动侧的 completion 落地（ADR-0066）**：
 新表 `work_completions`（迁移 `0044`）+ `published_projects.interactive`（发布那一刻按钉住的快照算出的结论）
 + `POST /api/published/work-complete` + 公开设计稿页上报（`InteractiveSurface.tsx`，一个标签页只报一次）
 + 分析页多一格「互动完成」（没有互动流程的作品显示 `—`：那是"没有可走的东西"，不是"没人走完"）。
@@ -4351,10 +4351,22 @@ M8 整格仍是 `[~]`：MCP 与外部 Agent 那一格还没动，项目的创建
   静态作品的任何页、有下一跳的页都写不进一行。
 - **与游戏通关分开存、分开数**：粒度同款（真人按 key 去重、爬虫另计、只有作者自己走通要明说），
   但「通关过」与「互动完成」是两个事件，混进一格会让那一列谁也不说。
-- **凭证**：`apps/web/test/work-completion.integration.test.ts` 10 条（打真库）——发布时 `interactive` 真假 /
-  记一次是 1 且游戏那格仍是 0 / 同人再报不加一而换人才是 2 / 爬虫另计但留痕 / 非终点页与静态作品都 400
-  且零行 / CSRF·key·路径三道边界 / private 零行 / 无 UA 按疑似爬虫 / 只有自己走通要明说 /
-  完成度是"未采集"（null）不拿完成事件顶；`packages/design-model/test/interactions.test.ts` 5 条（纯函数）。
+- **凭证**：`apps/web/test/work-completion.integration.test.ts` 9 条（打真库）——发布时 `interactive` 真假 /
+  记一次是 1 且游戏那格仍是 0 / 同人再报不加一而换人才是 2 / 爬虫另计但留痕 / 路由四道边界
+  （CSRF、key 形状、路径不存在、**非终点页 400**——伪造 pageId 记不上一行）/ 静态作品没有终点页
+  ⇒ 400 且分析行 `interactive=false`（那一格显示「—」的依据）/ private 零行 / 无 UA 按疑似爬虫 /
+  只有自己走通要明说 / 三个口径各是各的（走通了 ≠ 通关了，完成度仍是"未采集"）；
+  `packages/design-model/test/interactions.test.ts` 5 条（纯函数：下一跳的认定、终点页的认定）。
+  - **2026-10-27 浏览器那一寸也齐了**（e2e `e2e/interactive-work.spec.ts`，真点一遍 20 秒）：
+    用 studio 同一个 PUT 摆一份两页互动稿 ⇒ 发布 ⇒ 一个**匿名**访客（盖掉 `navigator.webdriver`）
+    真点到热点 ⇒ 翻页是真的（URL 带 `?page=`）⇒ 那一报 200 且 `recorded: true` ⇒
+    创作者那边「互动完成」= 1 且「通关过」仍是 0；另一个访客**直达**终点页 ⇒ 横幅照常出现、
+    显示"不算走通"、零上报。
+    - **e2e 抓到过一个真 bug（已修）**：终点横幅的 `not-walked` 状态写进了文案与类型，
+      effect 却漏了 `setRecord`——直达访客永远停在 SSR 的"checking"文案，一行不发但一句真话也没有。
+      集成层测不到这个纯客户端状态机；把漏掉的那行补上后同一份用例绿。
+      变异验证：拆掉 `setRecord('not-walked')` ⇒ e2e 精确红在直达断言上
+      （`interactive-work.spec.ts:133`），恢复（sha256 逐字节核对）后绿。
 
 ## §147 选中响应第三片：记忆化先要"身份稳定"，否则它是个摆设
 
