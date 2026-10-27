@@ -7,6 +7,7 @@ import {
   CONTAINER_MOUNT_FLAGS,
   CONTAINER_NAME_PREFIX,
   appendContainerRun,
+  containerRunFailure,
   createContainerExecHost,
   formatContainerLine,
   loadContainerAudits,
@@ -433,5 +434,69 @@ describe('container journal (v51 discipline, container-shaped)', () => {
     await h2.host.run({ argv: ['node', 'app.js'] }, OK_GATE);
     expect(loadContainerRuns(disk2, FILE, 1).runs).toHaveLength(1);
     expect(loadContainerRuns(disk2, 'x/none.jsonl')).toEqual({ runs: [], malformed: 0 });
+  });
+});
+
+/**
+ * v526 — WHICH kind of "no" a container run's RECORD carries. The rule lives in ONE place
+ * (containerRunFailure), so every door that reads the record reads it the same way, and the
+ * table below is that rule's whole surface: TWO shapes are the machine failing, and every
+ * other shape names no kind.
+ */
+describe('containerRunFailure — the ONE rule (v526)', () => {
+  const record = (over: Partial<ContainerRunResult>): ContainerRunResult => ({
+    ran: true,
+    planned: true,
+    reason: '',
+    argv: ['node', '--version'],
+    image: 'node:22-alpine',
+    workdir: '/workspace',
+    dockerArgs: ['run', '--rm'],
+    exitCode: 0,
+    signal: null,
+    stdout: '',
+    stderr: '',
+    truncated: false,
+    killedByBudget: false,
+    spawnError: '',
+    ...over,
+  });
+
+  it('a client that NEVER LIVED is the machine failing — and the words are the spawn error', () => {
+    expect(containerRunFailure(record({ exitCode: null, spawnError: 'spawn docker ENOENT' }))).toEqual({
+      kind: 'the-machine',
+      why: 'never-started',
+      words: 'spawn docker ENOENT',
+    });
+  });
+
+  it('a client KILLED FROM OUTSIDE is the machine failing — the signal is the word', () => {
+    expect(containerRunFailure(record({ exitCode: null, signal: 'SIGKILL' }))).toEqual({
+      kind: 'the-machine',
+      why: 'killed-outside',
+      words: 'SIGKILL',
+    });
+  });
+
+  it('the host’s OWN budget kill names NO kind — the plan’s timeout is the plan’s own act', () => {
+    expect(containerRunFailure(record({ exitCode: null, signal: 'SIGTERM', killedByBudget: true }))).toBeUndefined();
+  });
+
+  it('a RED VERDICT names no kind — the container ran and exited nonzero', () => {
+    expect(containerRunFailure(record({ exitCode: 3 }))).toBeUndefined();
+  });
+
+  it('a client that reported BOTH an exit code and a signal names NO kind — the verdict is known', () => {
+    expect(containerRunFailure(record({ exitCode: 0, signal: 'SIGTERM' }))).toBeUndefined();
+  });
+
+  it('a POLICY refusal names NO kind — the ask was refused before any client was summoned', () => {
+    expect(
+      containerRunFailure(record({ ran: false, planned: false, reason: 'no allowlist rule matches (default-deny)' })),
+    ).toBeUndefined();
+  });
+
+  it('a GREEN run names NO kind — the door answered', () => {
+    expect(containerRunFailure(record({}))).toBeUndefined();
   });
 });

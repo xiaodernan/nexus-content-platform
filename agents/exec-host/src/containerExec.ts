@@ -216,6 +216,45 @@ export interface ContainerRuntimeProbe {
 }
 
 /**
+ * M7 v526 (ADR 0016 amendment 512): WHICH kind of "no" a container run's RECORD carries — the ONE
+ * place the house asks that question, so no door has to re-guess it from a sentence.
+ *
+ * <p>Two shapes are the MACHINE failing, and the record already carries both facts:
+ *
+ * <p>  · `spawnError` is not empty — the docker client never lived. The ask was fine and the client
+ *      could not even be summoned (v524 named this one; v525 carried it up the arc's seam).
+ * <p>  · the client was TERMINATED BY A SIGNAL THE HOST DID NOT SEND: `signal` is set, `exitCode` is
+ *      null (no exit code was ever reported) and `killedByBudget` is false (the host did not kill it —
+ *      it was killed from outside). The ask was fine and the machine died mid-flight, so the container's
+ *      verdict is UNKNOWN rather than bad, and a door that reads it as a red verdict is claiming the
+ *      container answered when the machine is the thing that could not.
+ *
+ * <p>Everything else names NO kind, and each of those is an answer rather than a machine failure: a red
+ * VERDICT is a verdict (the container ran and exited nonzero), a POLICY refusal is the ask's own
+ * business, and the host's OWN budget kill is the plan's own act — the timeout the ask was given
+ * expired, the host did exactly what it was told, and the container was retired by name.
+ */
+export type ContainerRunKind = 'the-machine';
+
+/** Which of the machine's failures the record shows, in the machine's own words. */
+export interface ContainerRunFailure {
+  /** The kind every door derives its status from. */
+  kind: ContainerRunKind;
+  /** `never-started` — the docker client never lived; `killed-outside` — it died mid-flight, unasked. */
+  why: 'never-started' | 'killed-outside';
+  /** The machine's own words: the spawn error, or the signal that killed the client. */
+  words: string;
+}
+
+export function containerRunFailure(result: ContainerRunResult): ContainerRunFailure | undefined {
+  if (result.spawnError !== '') return { kind: 'the-machine', why: 'never-started', words: result.spawnError };
+  if (result.signal !== null && result.exitCode === null && !result.killedByBudget) {
+    return { kind: 'the-machine', why: 'killed-outside', words: result.signal };
+  }
+  return undefined;
+}
+
+/**
  * One honest question: is there a docker daemon here at all? Absence is a NORMAL answer, not an
  * error — a host configured with a probe refuses legibly ("container runtime unavailable: …")
  * instead of surfacing a raw ENOENT from the spawn layer.

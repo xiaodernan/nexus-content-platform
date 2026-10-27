@@ -16,8 +16,14 @@ import {
   studioBuildCheckpointPolicyError,
 } from './buildServer';
 
-/** Minimal SpawnLike fake — the host never knows it is not docker. `error` is the CLIENT's own failure. */
-function fakeSpawn(stdout = 'arc ok:5\n', code: number | null = 0, error = '') {
+/**
+ * Minimal SpawnLike fake — the host never knows it is not docker. `error` is the CLIENT's own failure.
+ *
+ * v526 — `signal` is the fourth shape the client's end event can carry: the client was TERMINATED by
+ * a signal, so it never reported an exit code. `code` is null in that shape, and the host's record
+ * keeps `killedByBudget` false because the host's own budget timer is not what fired.
+ */
+function fakeSpawn(stdout = 'arc ok:5\n', code: number | null = 0, error = '', signal: string | null = null) {
   const calls: Array<{ cmd: string; args: string[] }> = [];
   const spawnLike = (cmd: string, args: string[]) => {
     calls.push({ cmd, args });
@@ -26,7 +32,7 @@ function fakeSpawn(stdout = 'arc ok:5\n', code: number | null = 0, error = '') {
         if (stdout !== '') l('stdout', Buffer.from(stdout));
       },
       onEnd: (l: (e: { code: number | null; signal: string | null; error?: string }) => void) => {
-        setImmediate(() => l({ code, signal: null, ...(error === '' ? {} : { error }) }));
+        setImmediate(() => l({ code, signal, ...(error === '' ? {} : { error }) }));
       },
       kill: () => {},
     };
@@ -278,5 +284,48 @@ describe('runStudioBuildArcOutcome — WHICH kind of "no" the answer is (v525)',
     expect(a.status).toBe('unplanned');
     expect(a.failure).toBeUndefined();
     expect(askDoorStatus(a)).toBe(200);
+  });
+});
+
+/**
+ * v526 — the SECOND way the machine fails: the docker client was TERMINATED by a signal before it
+ * reported an exit code. v524/v525 taught this arc the first way (the client never lived); this
+ * shape was invisible to them — it arrived as a red verdict (`exit null`), so the build answer said
+ * "the step verified bad" and the door answered 200 for a build that never ran.
+ *
+ * The discriminator is in the RECORD, not in a sentence: `signal` is set, `exitCode` is null and
+ * `killedByBudget` is false (the host did not kill it — it was killed from outside). The host's own
+ * budget kill is the plan's own act and stays kind-less.
+ */
+describe('runStudioBuildArcOutcome — the machine that DIED mid-flight (v526)', () => {
+  it('a client killed from OUTSIDE is the machine failing — the answer names the signal', async () => {
+    const { spawnLike } = fakeSpawn('', null, '', 'SIGKILL');
+    const walk = await runStudioBuildArcOutcome({ spawnLike });
+    expect(walk.answer.ok).toBe(true);
+    if (!walk.answer.ok) return;
+    expect(walk.answer.status).toBe('failed');
+    expect(walk.answer.failure).toBe('the-machine');
+    expect(walk.answer.reason).toContain('SIGKILL');
+    expect(walk.answer.reason).toContain('before it reported an exit code');
+    expect(walk.answer.detail).toContain('the machine failed at runtime');
+    // The walk knows it too — the answer is its projection, not a second reading of the same bytes.
+    expect(walk.outcome?.failure).toBe('the-machine');
+  });
+
+  it('a machine failure earns 503 — the door did not perform the ask', async () => {
+    const { spawnLike } = fakeSpawn('', null, '', 'SIGKILL');
+    const a = await runStudioBuildArc({ spawnLike });
+    expect(askDoorStatus(a)).toBe(503);
+  });
+
+  it('the walk STOPS at the first death — no second step is asked of a dead machine', async () => {
+    const { spawnLike, calls } = fakeSpawn('', null, '', 'SIGKILL');
+    const walk = await runStudioBuildArcOutcome({ spawnLike });
+    expect(walk.answer.ok).toBe(true);
+    if (!walk.answer.ok) return;
+    expect(walk.outcome?.stoppedAt).toBe('runtime');
+    expect(walk.answer.steps).toHaveLength(1);
+    expect(walk.answer.receipts).toHaveLength(1);
+    expect(calls).toHaveLength(1);
   });
 });

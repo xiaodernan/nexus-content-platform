@@ -284,3 +284,60 @@ describe('studio container answer — whose “no” it is (v524)', () => {
     expect(a.detail).toContain('never started');
   });
 });
+
+/**
+ * v526 — the SECOND way the machine fails, and the one the record used to hide: the docker client
+ * is terminated by a signal the HOST did not send, so the record carries that signal with no exit
+ * code and no spawn error. Nothing ever reported, so the container's verdict is UNKNOWN — and before
+ * the repair this exact shape answered `ran: true` with “→ exit null”, which reads as a container that
+ * ran and exited nothing. The rule now lives in exec-host (`containerRunFailure`), so this lane and
+ * the build arc cannot disagree about the same bytes.
+ */
+describe('studio container answer — the client killed from OUTSIDE (v526)', () => {
+  function fakeDockerKilledOutside() {
+    const calls: Array<{ cmd: string; args: string[] }> = [];
+    const spawnLike = (cmd: string, args: string[]) => {
+      calls.push({ cmd, args });
+      return {
+        onData: () => {},
+        onEnd: (l: (e: { code: number | null; signal: string | null; error?: string }) => void) => {
+          setImmediate(() => l({ code: null, signal: 'SIGKILL' }));
+        },
+        kill: () => {},
+      };
+    };
+    return { spawnLike, calls };
+  }
+
+  it('a docker killed by an OUTSIDE signal is the MACHINE’s failure — and the door refuses the word “ran”', async () => {
+    const { spawnLike, calls } = fakeDockerKilledOutside();
+    const a = await runContainerExec({ argv: ['node', '--version'] }, { spawnLike });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.ran).toBe(false);
+    expect(a.failure).toBe('the-machine');
+    expect(Object.keys(a).sort()).toEqual(['detail', 'failure', 'ok', 'ran', 'result']);
+    expect(a.detail).toContain('killed by SIGKILL');
+    expect(a.detail).toContain('before it reported an exit code');
+    expect(a.detail).toContain(STUDIO_CONTAINER_IMAGE);
+    // The host's raw record stays beside the door's verdict — the signal is the fact, and the door
+    // quotes it rather than inventing a verdict out of the missing exit code.
+    expect(a.result.signal).toBe('SIGKILL');
+    expect(a.result.exitCode).toBeNull();
+    expect(a.result.spawnError).toBe('');
+    expect(calls).toHaveLength(1);
+  });
+
+  it('the host’s OWN budget kill is still a red verdict — the plan’s timeout is the plan’s own act', async () => {
+    // The studio lane's own timeout is ten seconds of wall clock, so that shape is graded in the
+    // exec-host package, where `killedByBudget` can be set directly. What this file pins is that the
+    // lane reads the RECORD's flag and not the signal: a run that ended by the host's own budget kill
+    // names no kind, and the lane's answer says so.
+    const { spawnLike } = fakeSpawn();
+    const a = await runContainerExec({ argv: ['node', '--version'] }, { spawnLike });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.failure).toBeUndefined();
+    expect(a.result.killedByBudget).toBe(false);
+  });
+});

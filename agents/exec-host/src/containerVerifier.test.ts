@@ -52,7 +52,7 @@ function stubHost(result: Partial<ContainerRunResult>): { host: ContainerHost; c
 }
 
 /** Fake docker client: records every spawn, answers asynchronously (listeners attach after the spawn call). */
-function fakeSpawn(exitCode: number | null, opts: { stdout?: string; error?: string } = {}) {
+function fakeSpawn(exitCode: number | null, opts: { stdout?: string; error?: string; signal?: string | null } = {}) {
   const spawned: Array<{ command: string; args: string[]; opts: ExecSpawnOptions }> = [];
   const spawnLike: SpawnLike = (command, args, o) => {
     spawned.push({ command, args, opts: o });
@@ -60,7 +60,7 @@ function fakeSpawn(exitCode: number | null, opts: { stdout?: string; error?: str
     const endListeners: Array<(end: { code: number | null; signal: string | null; error?: string }) => void> = [];
     queueMicrotask(() => {
       if (opts.stdout !== undefined) for (const l of dataListeners) l('stdout', opts.stdout);
-      for (const l of endListeners) l({ code: exitCode, signal: null, ...(opts.error ? { error: opts.error } : {}) });
+      for (const l of endListeners) l({ code: exitCode, signal: opts.signal ?? null, ...(opts.error ? { error: opts.error } : {}) });
     });
     const child: ExecChild = {
       onData: (l) => dataListeners.push(l),
@@ -180,5 +180,40 @@ describe('containerVerifyRunner — the wall holds on the real host path', () =>
     expect(answer.ok).toBe(false);
     expect(answer.detail).toContain('exit 3');
     expect(spawned).toHaveLength(1);
+  });
+});
+
+/**
+ * v526 — the client that was KILLED FROM OUTSIDE. The record answers with a signal, no exit code and
+ * no spawn error, and that is the whole of the difference between "the container ran and said no" and
+ * "the machine died before the container said anything". The second one is the machine failing, and a
+ * door that answers 200 for it is claiming a verdict nobody ever reported.
+ */
+describe('containerVerifyRunner — the client killed from OUTSIDE (v526)', () => {
+  it('an outside signal carries the machine’s kind — the container’s verdict is unknown, not bad', async () => {
+    const { spawned, spawnLike } = fakeSpawn(null, { signal: 'SIGKILL' });
+    const host = createContainerExecHost(POLICY, { spawnLike });
+    const answer = await containerVerifyRunner(host)({ arcId: 'arc-9', stepId: 'build', argv: ['node', '--version'] });
+    expect(answer.ok).toBe(false);
+    expect(answer.failure).toBe('the-machine');
+    expect(answer.detail).toContain('killed by SIGKILL');
+    expect(answer.detail).toContain('before it reported an exit code');
+    expect(spawned).toHaveLength(1);
+  });
+
+  it('the host’s OWN budget kill carries NO kind — the plan’s timeout is the plan’s own act', async () => {
+    // The record says the host killed the client (`killedByBudget`), so the run ended the way the ask
+    // told it to end. That is a red verdict, not a broken machine, and it names no kind.
+    const { host } = stubHost({ exitCode: null, signal: 'SIGTERM', killedByBudget: true });
+    const answer = await containerVerifyRunner(host)({ arcId: 'a', stepId: 's', argv: ['node'] });
+    expect(answer.ok).toBe(false);
+    expect(answer.failure).toBeUndefined();
+    expect(answer.detail).toContain('killed at timeout budget');
+  });
+
+  it('a client that reported BOTH an exit code and a signal carries NO kind — the verdict is known', async () => {
+    const { host } = stubHost({ exitCode: 0, signal: 'SIGTERM' });
+    const answer = await containerVerifyRunner(host)({ arcId: 'a', stepId: 's', argv: ['node'] });
+    expect(answer.failure).toBeUndefined();
   });
 });

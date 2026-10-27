@@ -18,6 +18,7 @@ import {
   type StudioDeployFs,
 } from './deployServer';
 import { STUDIO_BUILD_ARC_ID, STUDIO_BUILD_GOAL } from './buildServer';
+import { askDoorStatus } from './doorFailure';
 
 /**
  * Minimal SpawnLike fake — the host never knows it is not docker. Unlike v174's, the
@@ -25,6 +26,10 @@ import { STUDIO_BUILD_ARC_ID, STUDIO_BUILD_GOAL } from './buildServer';
  * `--version` answers v22.11.0, the compute step answers arc ok:5.
  *
  * M5 v263 — the EXIT CODE is the first argument, and the stdout may be overridden.
+ *
+ * v526 — `signal` is the fourth shape the client's end event can carry: the client was TERMINATED by
+ * a signal and never reported an exit code, so the record's `exitCode` is null and the host's own
+ * budget timer is not what fired.
  *
  * This file's red-verdict case used to read `fakeSpawn('', 0)` — a call shaped like
  * `buildServer.test.ts`'s fake, which takes the STDOUT first. This fake has always taken the
@@ -35,7 +40,7 @@ import { STUDIO_BUILD_ARC_ID, STUDIO_BUILD_GOAL } from './buildServer';
  * stdout with a zero exit code is GREEN. The stdout override below exists so a case can say
  * that out loud instead of by accident.
  */
-function fakeSpawn(code: number | null = 0, stdout?: string, error = '') {
+function fakeSpawn(code: number | null = 0, stdout?: string, error = '', signal: string | null = null) {
   const calls: Array<{ cmd: string; args: string[] }> = [];
   const spawnLike = (cmd: string, args: string[]) => {
     calls.push({ cmd, args });
@@ -43,7 +48,7 @@ function fakeSpawn(code: number | null = 0, stdout?: string, error = '') {
     return {
       onData: (l: (s: 'stdout' | 'stderr', c: Buffer | string) => void) => l('stdout', Buffer.from(out)),
       onEnd: (l: (e: { code: number | null; signal: string | null; error?: string }) => void) => {
-        setImmediate(() => l({ code, signal: null, ...(error === '' ? {} : { error }) }));
+        setImmediate(() => l({ code, signal, ...(error === '' ? {} : { error }) }));
       },
       kill: () => {},
     };
@@ -440,5 +445,34 @@ describe('the deploy lane inherits the build door’s kind (v525)', () => {
     expect(a.status).toBe('not-green');
     expect(a.failure).toBeUndefined();
     expect(a.detail).not.toContain('the machine failed inside the build');
+  });
+});
+
+/**
+ * v526 — the deploy door inherits the build door's kind, and the build door learned a SECOND way
+ * the machine fails: the docker client was TERMINATED by a signal before it reported an exit code.
+ * Before v526 that shape arrived at the build arc as a red verdict (`exit null`), so the deploy
+ * said "a build arc that did not complete" and answered 200 for a build that never ran.
+ */
+describe('the deploy lane inherits the build door’s SECOND kind (v526)', () => {
+  it('a build whose client was killed from OUTSIDE is a machine failure — the deploy names it', async () => {
+    const { spawnLike } = fakeSpawn(null, undefined, '', 'SIGKILL');
+    const { fs, appends } = fakeFs();
+    const a = await runStudioDeployArc({ spawnLike, fs });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('not-green');
+    expect(a.failure).toBe('the-machine');
+    expect(a.detail).toContain('the machine failed inside the build');
+    expect(a.reason).toContain('SIGKILL');
+    expect(a.facts).toEqual([]);
+    expect(appends).toHaveLength(0);
+  });
+
+  it('the deploy door answers 503 — the deploy did not happen because the machine could not', async () => {
+    const { spawnLike } = fakeSpawn(null, undefined, '', 'SIGKILL');
+    const { fs } = fakeFs();
+    const a = await runStudioDeployArc({ spawnLike, fs });
+    expect(askDoorStatus(a)).toBe(503);
   });
 });

@@ -27,6 +27,7 @@ export {
   CONTAINER_ISOLATION_ARGS,
   CONTAINER_MOUNT_FLAGS,
   CONTAINER_NAME_PREFIX,
+  containerRunFailure,
   createContainerExecHost,
   formatContainerLine,
   appendContainerRun,
@@ -44,6 +45,8 @@ export {
   type ContainerPlan,
   type ContainerPolicy,
   type ContainerPolicyBase,
+  type ContainerRunFailure,
+  type ContainerRunKind,
   type ContainerRunResult,
   type ContainerRuntimeProbe,
 } from './containerExec.js';

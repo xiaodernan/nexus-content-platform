@@ -9,6 +9,7 @@
  * so the §63-style duties of this product face never touch the host FS from day one.
  */
 import {
+  containerRunFailure,
   createContainerExecHost,
   probeContainerRuntime,
   validateContainerPolicy,
@@ -99,15 +100,19 @@ export type ContainerExecAnswer =
  * that never started would be telling the caller the machine answered when the machine is the
  * thing that could not. So `ran` here is the door's answer to "did a container run", and
  * `result` stays the host's raw record beside it.
+ *
+ * <p>v526 — the same answer now covers the SECOND way the machine fails: a client killed from
+ * OUTSIDE before it reported an exit code. The record decides which of the two it was
+ * (`containerRunFailure`, one rule in exec-host), so this door and the build arc cannot disagree
+ * about the same bytes, and neither of them has to read a sentence to guess.
  */
 function containerRunVerdict(result: ContainerRunResult): { ran: boolean; detail: string; failure?: AskFailureKind } {
-  const neverSpawned = result.spawnError !== '';
-  if (neverSpawned) {
-    return {
-      ran: false,
-      detail: `container ${result.image} ${result.argv.join(' ')} → never started (${result.spawnError})`,
-      failure: 'the-machine',
-    };
+  const failure = containerRunFailure(result);
+  if (failure) {
+    const detail = failure.why === 'never-started'
+      ? `container ${result.image} ${result.argv.join(' ')} → never started (${failure.words})`
+      : `container ${result.image} ${result.argv.join(' ')} → killed by ${failure.words} before it reported an exit code`;
+    return { ran: false, detail, failure: failure.kind };
   }
   if (!result.ran) return { ran: false, detail: result.reason };
   return {

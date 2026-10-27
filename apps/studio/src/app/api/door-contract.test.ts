@@ -68,8 +68,13 @@ let mode: 'ok' | 'refuse' = 'ok';
  * v509 — which way the five agent libs are faked. `ok` is the REAL lib (the default, so every other
  * block in this file still grades the real doors); `machine` is a lib that answers with the machine’s
  * own failure; `throw` is a lib that breaks the house’s rule and throws instead of answering.
+ *
+ * v526 — `killed` is the THIRD way a machine fails, and the one the record used to hide: the docker
+ * client is terminated by a signal the HOST did not send, so the record carries a signal, no exit
+ * code and no spawn error. The ask was fine and the machine died mid-flight, so the container’s
+ * verdict is UNKNOWN rather than bad.
  */
-let agentMode: 'ok' | 'machine' | 'throw' = 'ok';
+let agentMode: 'ok' | 'machine' | 'killed' | 'throw' = 'ok';
 
 /**
  * v524 — the docker the container door meets when the MACHINE failed: the client cannot even be summoned,
@@ -84,6 +89,20 @@ const DOCKER_IS_NOT_HERE = () => ({
   kill: () => {},
 });
 
+/**
+ * v526 — the docker that was KILLED FROM OUTSIDE: the client started and then a signal the host
+ * never sent took it down, so the record answers with that signal and no exit code at all. The
+ * spawn error is empty, which is exactly what made this shape invisible before: the door read it
+ * as a container that exited `null` — a verdict — when the truth is that nothing ever reported.
+ */
+const DOCKER_WAS_KILLED = () => ({
+  onData: () => {},
+  onEnd: (l: (e: { code: number | null; signal: string | null; error?: string }) => void) => {
+    setImmediate(() => l({ code: null, signal: 'SIGKILL' }));
+  },
+  kill: () => {},
+});
+
 vi.mock('@/lib/containerServer', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/containerServer')>();
   return {
@@ -92,6 +111,11 @@ vi.mock('@/lib/containerServer', async (importOriginal) => {
       if (agentMode === 'throw') throw new Error('spawn docker ENOENT');
       if (agentMode === 'machine') {
         return actual.runContainerExec(args[0], { ...args[1], spawnLike: DOCKER_IS_NOT_HERE });
+      }
+      if (agentMode === 'killed') {
+        // v526: the REAL lane over a docker that was killed from outside — the shape that used to
+        // answer 200 with “→ exit null”, as though a container had run and said nothing.
+        return actual.runContainerExec(args[0], { ...args[1], spawnLike: DOCKER_WAS_KILLED });
       }
       return actual.runContainerExec(...args);
     },
@@ -110,6 +134,11 @@ vi.mock('@/lib/buildServer', async (importOriginal) => {
         // never emits — so the 503 pin below graded a shape the test author typed, not the answer
         // production gives.
         return actual.runStudioBuildArc({ ...args[0], spawnLike: DOCKER_IS_NOT_HERE });
+      }
+      if (agentMode === 'killed') {
+        // v526: the REAL lane over a docker that was killed from outside. The build cannot answer
+        // "the step verified bad" about a step that never reported, so the kind rides up.
+        return actual.runStudioBuildArc({ ...args[0], spawnLike: DOCKER_WAS_KILLED });
       }
       return actual.runStudioBuildArc(...args);
     },
@@ -137,6 +166,11 @@ vi.mock('@/lib/deployServer', async (importOriginal) => {
           deployReceipts: [],
           failure: 'the-machine' as const,
         };
+      }
+      if (agentMode === 'killed') {
+        // v526: the REAL deploy lane over the same killed docker. The build cannot go green, so the
+        // deploy never reaches the sink and the records file is never touched.
+        return actual.runStudioDeployArc({ ...args[0], spawnLike: DOCKER_WAS_KILLED });
       }
       return actual.runStudioDeployArc(...args);
     },
@@ -677,5 +711,60 @@ describe('the door contract — the AGENT doors, and WHOSE fault it was (v509)',
     const deploy = await deployPost(jsonPost('/api/agent/deploy', { goal: 'verify the runtime' }));
     expect(deploy.status).toBe(503);
     expect((await deploy.json()).reason).toBe('the deploy arc threw instead of answering: the records file could not be opened');
+  });
+});
+
+/**
+ * v526 — the machine that DIED MID-FLIGHT, and the one shape the record used to hide.
+ *
+ * The v525 record NAMED this shape ("a container killed by an OUTSIDE signal still ends the run with
+ * `code: null` and a `signal` while `spawnError` stays empty") and said it "stays a 400" — a number no
+ * door ever produced. MEASURED, it answered 200 at both doors: the container door said `ran: true` with
+ * "→ exit null" and the build door said "failed" with no kind, so a machine that DIED was wearing the
+ * same answer as a container that ran and exited nonzero. Both readings claimed a verdict nobody ever
+ * reported.
+ *
+ * The fix is not a second guess at the sentence — it is the RECORD's own facts: a signal with no exit
+ * code and no spawn error means the client was killed by something the host did not send, so the
+ * machine failed and the container's verdict is unknown. The host's OWN budget kill is the plan's own
+ * act and stays a plain red verdict (graded in the exec-host package, where that flag can be set
+ * directly — the studio's own timeout is ten seconds of wall clock per case).
+ */
+describe('the door contract — the machine that DIED mid-flight (v526)', () => {
+  it('a client killed from OUTSIDE is a 503 on the container door — the machine named the signal', async () => {
+    agentMode = 'killed';
+    const res = await containerPost(jsonPost('/api/agent/container', { argv: ['node', '--version'] }));
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    // The door ANSWERED: ok is true, no container ran, and the kind says the machine failed. The
+    // detail names the signal, because "the machine failed" without the signal is a claim nobody can
+    // check against the record.
+    expect(body.ok).toBe(true);
+    expect(body.ran).toBe(false);
+    expect(body.failure).toBe('the-machine');
+    expect(body.detail).toContain('killed by SIGKILL');
+    expect(body.detail).toContain('before it reported an exit code');
+  });
+
+  it('a client killed from OUTSIDE is a 503 on the build-arc door — the arc names the kind', async () => {
+    agentMode = 'killed';
+    const res = await buildArcPost(jsonPost('/api/agent/build-arc', { goal: 'verify the runtime' }));
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('failed');
+    expect(body.failure).toBe('the-machine');
+    expect(body.reason).toContain('SIGKILL');
+  });
+
+  it('a client killed from OUTSIDE is a 503 on the deploy door — the build’s kind rides up', async () => {
+    agentMode = 'killed';
+    const res = await deployPost(jsonPost('/api/agent/deploy', { goal: 'verify the runtime' }));
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('not-green');
+    expect(body.failure).toBe('the-machine');
+    expect(body.detail).toContain('the machine failed inside the build');
   });
 });
