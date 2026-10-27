@@ -394,10 +394,30 @@ async function writeDocument(tx: Tx, projectId: string, document: DesignDocument
       await tx.insert(designNodes).values(part);
     }
   }
-  for (const node of updatedNodes) {
-    await tx.update(designNodes)
-      .set({ parentId: node.parentId, nodeType: node.nodeType, name: node.name, sortIndex: node.sortIndex, data: node.data, visible: node.visible, locked: node.locked, updatedAt: new Date() })
-      .where(and(eq(designNodes.pageId, node.pageId), eq(designNodes.id, node.id)));
+  // 批量 UPDATE：一条 `UPDATE … FROM (VALUES …)` 取代逐条。普通保存只改 1 个节点无所谓，但批量编辑 /
+  // 切分支（switchBranch 拿整份新文档 saveDocument）会判出成百上千个节点——424 节点逐条实测 912ms~5.8s、
+  // 批量 95ms（§147）。按 500 条一块：9 列 × 500 = 4500 参数，远低于 Postgres 单条 65535 上限。
+  // 显式 cast 是必须的：VALUES 字面量默认 text，design_nodes.id/page_id 本就是 text，其余列各有类型。
+  const NODE_UPDATE_CHUNK = 500;
+  for (let i = 0; i < updatedNodes.length; i += NODE_UPDATE_CHUNK) {
+    const chunk = updatedNodes.slice(i, i + NODE_UPDATE_CHUNK);
+    const rows = chunk.map(
+      (node) =>
+        sql`(${node.pageId}::text, ${node.id}::text, ${node.parentId ?? null}::text, ${node.nodeType}::text, ${node.name}::text, ${node.sortIndex}::int, ${JSON.stringify(node.data)}::jsonb, ${node.visible}::boolean, ${node.locked}::boolean)`,
+    );
+    await tx.execute(sql`
+      update design_nodes as n set
+        parent_id = v.parent_id,
+        node_type = v.node_type,
+        name = v.name,
+        sort_index = v.sort_index,
+        data = v.data,
+        visible = v.visible,
+        locked = v.locked,
+        updated_at = now()
+      from (values ${sql.join(rows, sql`, `)}) as v(page_id, id, parent_id, node_type, name, sort_index, data, visible, locked)
+      where n.page_id = v.page_id and n.id = v.id
+    `);
   }
   for (const [pageId, ids] of deletedByPage) {
     for (const part of chunked(ids)) {
