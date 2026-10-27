@@ -82,6 +82,36 @@ describe('§86 compareVisuals（纯函数，真 PNG 字节）', () => {
     expect(result.result.notMeasured.map((n) => n.area).sort()).toEqual(['componentCorrectness', 'typography']);
   });
 
+  it('多色图自比 ⇒ 调色板被 6 色截断后颜色分仍必须是 1', () => {
+    // 8 条竖条纹 = 8 个互异主色，但调色板只保留 6 个：share 按"全部采样像素"算，
+    // 被截掉的两条会让 share 合计只有 0.75。eval 基线当场抓到过自比颜色分 = 0.495——
+    // 那时"颜色相似度"量的是调色板覆盖率而不是相似度（§159）。
+    const stripes: Rgba[] = [
+      [255, 0, 0, 255],
+      [0, 255, 0, 255],
+      [0, 0, 255, 255],
+      [255, 255, 0, 255],
+      [0, 255, 255, 255],
+      [255, 0, 255, 255],
+      [128, 0, 0, 255],
+      [0, 128, 128, 255],
+    ];
+    const bytes = png(S, S, (x) => stripes[Math.floor(x / 16)]!);
+    const result = compareVisuals(bytes, bytes);
+    if (!result.ok) throw new Error(result.reason);
+    const { metrics } = result.result;
+    expect(metrics.layout.score).toBe(1);
+    expect(metrics.spacing.vertical).toBe(1);
+    expect(metrics.spacing.horizontal).toBe(1);
+    expect(metrics.alignment.score).toBe(1);
+    expect(metrics.color.score).toBeCloseTo(1, 10);
+    // 钉住前提：截断真的发生了（8 色 → 6 色、质量 < 1）。前提没了，这条就不再防那只 bug
+    expect(metrics.color.refPalette).toHaveLength(6);
+    const mass = metrics.color.refPalette.reduce((n, p) => n + p.share, 0);
+    expect(mass).toBeGreaterThan(0.7);
+    expect(mass).toBeLessThan(0.8);
+  });
+
   it('内容挪到对角 ⇒ 布局与对齐都掉到 0，颜色不动', () => {
     const reference = png(S, S, blockAt(8, 8));
     const candidate = png(S, S, blockAt(72, 72));
@@ -92,6 +122,12 @@ describe('§86 compareVisuals（纯函数，真 PNG 字节）', () => {
     expect(metrics.alignment.score).toBe(0);
     expect(metrics.alignment.matched).toBe(0);
     expect(metrics.color.score).toBeCloseTo(1, 10);
+    // 间距是"相似度"，必须落在 0..1：rowInk 曾按整行累加（全墨行读出 32），
+    // 这里会显示 -300% —— 一个相似度指标打出负分是谎报（§159）。行节奏只挪位置 ⇒ 仍应很高
+    expect(metrics.spacing.vertical).toBeGreaterThan(0.5);
+    expect(metrics.spacing.vertical).toBeLessThanOrEqual(1);
+    expect(metrics.spacing.horizontal).toBeGreaterThan(0.5);
+    expect(metrics.spacing.horizontal).toBeLessThanOrEqual(1);
   });
 
   it('挪半格（±2 格容差内）⇒ 对齐仍是 1，布局掉一半', () => {
@@ -134,7 +170,8 @@ describe('§86 compareVisuals（纯函数，真 PNG 字节）', () => {
     if (!same.ok) throw new Error(same.reason);
     const result = compareVisuals(reference, candidate);
     if (!result.ok) throw new Error(result.reason);
-    expect(result.result.metrics.spacing.vertical).toBeLessThan(0.5);
+    expect(result.result.metrics.spacing.vertical).toBeLessThan(0.9);
+    expect(result.result.metrics.spacing.vertical).toBeGreaterThan(0.5);
     expect(same.result.metrics.spacing.vertical).toBe(1);
   });
 

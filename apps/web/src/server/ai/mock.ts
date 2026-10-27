@@ -276,7 +276,10 @@ const RULES: Rule[] = [
         text: topic === '定价' ? '选择适合你的宇宙' : topic === '亮点' ? '为什么选择 NEXUS' : '现在开始创作',
         size: { width: 'hug', height: 'hug' },
         typography: {
-          fontFamily: '{font.display}',
+          // 默认 token 目录里只有 font.heading / font.body / font.mono——
+          // 这里曾写 {font.display}，一个不存在的 key：codegen 照发 var(--nx-font-display)，
+          // parse 认不回已知 token，于是每次「加区块」的往返都多一条 set op（§85 eval 首跑抓到）
+          fontFamily: '{font.heading}',
           fontSize: 48,
           fontWeight: 700,
           lineHeight: 1.15,

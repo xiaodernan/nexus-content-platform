@@ -127,8 +127,11 @@ function renderPixels(input: SynthInput): Uint8Array {
   const { width, height } = input;
   const digest = seedBytes(input);
   const rand = rngFrom(digest);
-  // 色相那一格**总是**从流里取一次：有参考图时用它只是把这一格换掉，后面的形状/横带位置不变，
-  // 于是"变体"确实是同一张图的换色，而不是另一张不相干的图
+  // 色相那一格**总是**从流里取一次：没锚点时用它，有锚点时锚点顶替它。
+  // 但锚点也在 seedBytes 的身份哈希里（不然字节相同，去重复用会把变体塌回原图——
+  // 那颗按钮第二次点击等于什么都没生成），所以整个流都变：形状与横带的位置随之不同。
+  // "变体"不是同一张图的换色，而是一张以锚点色相打底色渐变的新构图——
+  // §85 eval 用"锚点色相的像素质量 > 反事实锚点"钉住锚点→像素这条链，断了它会红。
   const drawnHue = rand();
   const hue = input.hueAnchor ?? drawnHue;
   

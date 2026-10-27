@@ -221,8 +221,10 @@ function planeOf(width: number, height: number, rgba: Uint8Array): Plane | strin
       if (seen) {
         lum[gy * GRID + gx] = sumCellL / seen;
         ink[gy * GRID + gx] = inked / seen;
-        rowInk[gy] = (rowInk[gy] ?? 0) + inked / seen;
-        colInk[gx] = (colInk[gx] ?? 0) + inked / seen;
+        // 按整行/整列摊（÷GRID）：读数是"这一行有墨的占比"，落在 0..1。
+        // 不摊的话一行全墨会读出 32，1-平均差能到负数——界面上就会显示"-300% 的相似度"
+        rowInk[gy] = (rowInk[gy] ?? 0) + inked / seen / GRID;
+        colInk[gx] = (colInk[gx] ?? 0) + inked / seen / GRID;
       }
     }
   }
@@ -310,7 +312,10 @@ export function compareVisuals(referenceBytes: Uint8Array, candidateBytes: Uint8
   const matched = matchEdges(refRowEdges, candRowEdges) + matchEdges(refColEdges, candColEdges);
   const alignmentScore = refEdges === 0 ? (candEdges === 0 ? 1 : 0) : matched / refEdges;
 
-  // 颜色：参考图的每种主色按占比在候选主色里找最近色，距离越远扣得越多
+  // 颜色：参考图的每种主色按占比在候选主色里找最近色，距离越远扣得越多。
+  // 调色板只保留 6 个主色，share 却是按全部采样像素算的——不按参考图挑中的那部分质量
+  // 归一的话，自比（两张同一张图）会因为参考图自己超出 6 色的部分丢失而到不了 1，
+  // "颜色相似度"就成了"调色板覆盖率"的谎。
   let colorScore = 0;
   for (const entry of a.palette) {
     const d = (p: PaletteEntry) => {
@@ -325,6 +330,8 @@ export function compareVisuals(referenceBytes: Uint8Array, candidateBytes: Uint8
     const nearest = b.palette.length ? Math.min(...b.palette.map(d)) : 441.67;
     colorScore += entry.share * (1 - Math.min(1, nearest / 441.67));
   }
+  const refColorMass = a.palette.reduce((n, p) => n + p.share, 0);
+  const finalColorScore = refColorMass > 0 ? colorScore / refColorMass : 0;
 
   return {
     ok: true,
@@ -352,7 +359,7 @@ export function compareVisuals(referenceBytes: Uint8Array, candidateBytes: Uint8
           meaning: `参考图的内容条带边有多少条在候选图 ±${EDGE_TOLERANCE} 格内找到对应；两边都没有条带时是 1`,
         },
         color: {
-          score: colorScore,
+          score: finalColorScore,
           luminanceDelta: b.meanLuminance - a.meanLuminance,
           warmthDelta: b.warmth - a.warmth,
           refPalette: a.palette,

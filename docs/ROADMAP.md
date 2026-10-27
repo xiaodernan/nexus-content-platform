@@ -1831,7 +1831,14 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   `packages/schemas` 的 `VisualBenchmarkResponseSchema`，客户端先验再渲染。**真浏览器里当场抓到一个
   指标谎报**：间距显示 -300% —— rowInk/colInk 按整行累加、全墨行读出 32，"1-平均差"能到负数；
   改为按 GRID 摊成"该行有墨占比"（0..1），对角 fixtures 实测 88%（= 4.0/32 的解析值），
-  单测加了 0..1 边界钉。**仍欠**：§85 Evaluation 没有开工；§86 的 provider 接入半边
+  单测加了 0..1 边界钉。**§85 Evaluation 第一切片已落地（2026-10-28）**：`scripts/eval-baseline.mts`
+  跑生产真路径（真库 RAG / 真 provider 补丁 / 真 codegen 往返 / 真 a11y 门禁），九维里本机可测的
+  五维有了首跑读数（RAG recall@5 100%、往返 5/5 干净、a11y 检出 4/4 等，见 `docs/EVALUATION.md`）；
+  不断言阈值，但结构不变式红即非零码退出。首跑 7 条不变式红 5 条，归因出**三个产品真缺陷**
+  （§86 颜色指标自比 ≠1 的分母谎、§38 合成链"换色不变构图"的假注释、DEMO provider 引用不存在的
+  `{font.display}` token）加两个评测自己的错（语料少建一条 lore、引用检查器把链式 insert 当幻觉），
+  全部修复并有回归钉。**仍欠**：§85 的真实 provider 半边（LLM 裁判 / Tool selection / Agent task
+  completion）、RAG 向量半（#110）；§86 的 provider 接入半边
   （typography / componentCorrectness 的真实来源）；metrics/tracing 也没接，
   所以"线上发生了什么"目前只能靠审计表 + stderr。
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在
