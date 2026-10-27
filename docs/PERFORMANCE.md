@@ -133,9 +133,11 @@ codegen 把 code-only 区域发成 JSX 里的字符串字面量（`packages/desi
 - ~~**拷贝仍是整份**~~：`applyPatch` 已落地结构共享（写时拷贝 `CopyOnWrite` 类），
   10k 节点 `execute + undo ×10` 从 657.9ms 降至 **168.3ms**（≈ 3.9×），
   同会话前后对照（`scripts/perf-baseline.mts`），详见 `packages/design-model/test/structural-sharing.test.ts`。
-- **持久层还有两处已知但不划算的**：`writeDocument` 里 token 与 component 仍是**一行一条 INSERT**
-  （几十条时无所谓，几百条就会变成 2.5s 里可见的一段）；`loadDocument` 按页面逐页查节点（N+1），
-  页面数上去以后每页一次往返。两者都不影响正确性，等真的被量到再改。
+- ~~**`writeDocument` 里 token 与 component 一行一条 INSERT**~~：**2026-10-27 量到并修掉**——
+  500 条 token 逐条 INSERT **2229ms**、一次多行 INSERT **89ms**（同一事务、同一台机器，rolled-back 探针，
+  `nexus_regress`）。已改成批量 INSERT（`apps/web/src/server/domain/projects.ts`），
+  `document-*` 四套集成测 19 条全绿（增量保存 / 补丁保存 / 读写争用 / 并发写）。省下约 **2.1s**。
+- **`loadDocument` 按页面逐页查节点（N+1）**：页面数上去以后每页一次往返；还没量到，等真被量到再改。
 - **画布侧没有虚拟化 / 增量渲染**：`resolveLayout` 每次改动重排整页（10k 节点 ≈ 98ms），
   Studio 现在靠"一次只改一个节点"掩盖它；真正的 §147 要按视口裁剪 + 脏子树重排。
 - **没有 worker**：排版与体检都跑在主线程上。
