@@ -1074,6 +1074,22 @@ export const VisualDnaResponseSchema = z.object({
 export type VisualDnaResponse = z.infer<typeof VisualDnaResponseSchema>;
 
 /**
+ * §86 视觉基准：参考图 × 生成图的比较请求（浏览器 ↔ web 服务端）。
+ * 比较在 web 服务端做——两张图都得从存储里解出像素；响应不进这张表，
+ * 结果整体回到客户端展示（同一份指标可以被任何调用方复算）。
+ */
+export const VisualBenchmarkRequestSchema = z
+  .object({
+    referenceAssetId: z.string().min(1).max(128),
+    candidateAssetId: z.string().min(1).max(128),
+  })
+  .refine((v) => v.referenceAssetId !== v.candidateAssetId, {
+    message: '参考图与生成图是同一份资产：和它自己比没有意义',
+    path: ['candidateAssetId'],
+  });
+export type VisualBenchmarkRequest = z.infer<typeof VisualBenchmarkRequestSchema>;
+
+/**
  * §178 项目健康 / §179 Quality Gate 的跨端形状。
  *
  * 算法只有一份（`@nexus/design-model` 的 analyzeHealth），但 Studio 实时显示的那份和

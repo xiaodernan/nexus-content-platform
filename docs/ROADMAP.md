@@ -1817,8 +1817,17 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   `audit_events` 这张表建库起就有、注释写着"含被拒绝的越权尝试"，但**全库没有一处写它**——
   "有表"不等于"有审计"。现在有了写入方（登录/注册成功与失败、人工裁决含重复裁决与越权尝试、
   发布/下架/取消发布、角色变更），以及 `/admin/audit` 页。取舍见下方进度记录。
-  **仍欠**：§85 Evaluation 与 §86 Visual Benchmark 没有开工；metrics/tracing 也没接，
-  所以"线上发生了什么"目前只能靠这张审计表 + stderr。
+  **§86 Visual Benchmark 第一切片已落地（2026-10-28）**：确定性本地比较两张 PNG（参考 × 生成），不用 provider。
+  指标按 MASTER_DIRECTIVE 的"不要只做 pixel-perfect"拆成结构：32×32 归一化网格（各自按自己的尺寸映射，不重采样）、
+  布局=软 Jaccard、间距=行列墨量剖面差、对齐=±2 格容差的带边匹配、颜色=加权调色板得分，另给
+  meanAbsLuminanceDiff 做原始像素读数（明确标注"不是分数"）；纵横比差 >5% 披露 shapeMismatch。
+  测不出的两维如实进 `notMeasured`：typography（位图测不出字号字重）、componentCorrectness（像素统计答不了
+  "这块是不是那个组件"，等视觉 provider）。路由 `POST /api/projects/[projectId]/visual-benchmark`：
+  CSRF、两张图都必须是本项目的（404 不泄露存在性）、非 PNG 415、解不开 422 带原因、纯计算不写库。
+  见证：9 条纯函数用例（真 PNG 字节）+ 7 条真库真存储路由用例；变异探针把 softIoU 写死为 1 ⇒
+  精确红在"对角布局 0"与"半格 toBeLessThan(1)"两处，恢复（sha256 核对）后全绿。取舍见 ADR-0067。
+  **仍欠**：§85 Evaluation 没有开工；§86 还没有界面入口（Studio 面板调这条路由）与 provider 接入半边；
+  metrics/tracing 也没接，所以"线上发生了什么"目前只能靠审计表 + stderr。
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在
   `docs/PERFORMANCE.md`。2026-09-24 补上浏览器端：`npm run perf:browser`（`scripts/perf-browser.mts`）
   在真 Chrome 里量首帧、pan/zoom 帧距与"属性写入→画布重绘"延迟，当天数字与其三条必须一起读的限定

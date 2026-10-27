@@ -433,3 +433,22 @@ export function extractVisualDna(
   };
   return { ok: true, dna, stats };
 }
+
+export interface DecodedPixels {
+  width: number;
+  height: number;
+  /** RGBA，每像素 4 字节；半透明像素由调用方自己决定怎么处理 */
+  rgba: Uint8Array;
+}
+
+/**
+ * 解出像素给别的本地像素分析用（§86 视觉基准与 DNA 同一份解码器——
+ * 两套解码器早晚会各自烂掉一边）。全透明的图也照常交回：比较模块自己判"没有内容"。
+ */
+export function decodePngPixels(bytes: Uint8Array): DecodedPixels | string {
+  const png = readPng(bytes);
+  if (typeof png === 'string') return png;
+  const rgba = decodePngToRgba(png);
+  if (typeof rgba === 'string') return rgba;
+  return { width: png.width, height: png.height, rgba };
+}
