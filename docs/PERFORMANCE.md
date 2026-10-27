@@ -137,7 +137,10 @@ codegen 把 code-only 区域发成 JSX 里的字符串字面量（`packages/desi
   500 条 token 逐条 INSERT **2229ms**、一次多行 INSERT **89ms**（同一事务、同一台机器，rolled-back 探针，
   `nexus_regress`）。已改成批量 INSERT（`apps/web/src/server/domain/projects.ts`），
   `document-*` 四套集成测 19 条全绿（增量保存 / 补丁保存 / 读写争用 / 并发写）。省下约 **2.1s**。
-- **`loadDocument` 按页面逐页查节点（N+1）**：页面数上去以后每页一次往返；还没量到，等真被量到再改。
+- ~~**`loadDocument` 按页面逐页查节点（N+1）**~~：**2026-10-27 量到并修掉**——20 页 64ms vs 9ms、
+  50 页 **135ms vs 13ms**（每页一次往返 ≈2.7ms，`nexus_regress` 同机探针）。改成一条
+  `WHERE page_id IN (…)` 批量读 + 按 `page_id` 分组，`ORDER BY page_id, id` 保证页内键序不变。
+  凭证：`load-document-identity` 2 条 + `document-*` 19 条 + `branches`/`snapshots` 18 条集成测全绿。
 - **画布侧没有虚拟化 / 增量渲染**：`resolveLayout` 每次改动重排整页（10k 节点 ≈ 98ms），
   Studio 现在靠"一次只改一个节点"掩盖它；真正的 §147 要按视口裁剪 + 脏子树重排。
 - **没有 worker**：排版与体检都跑在主线程上。

@@ -643,22 +643,39 @@ export async function loadDocument(projectId: string, reader: DocumentReader = g
   // 否则一次自动保存就可能把客户端传来的 storageKey 当成事实写回存储层（§80）。
   document.assets = assetRows.map(assetRowToRef);
 
+  // 一次把这一份文档所有页面的节点读回来（原来是每页一条 SELECT）：50 页实测 135ms → 13ms，
+  // 见 docs/PERFORMANCE.md §147。ORDER BY page_id, id 保证页内仍按 id 有序，
+  // 与逐页读时的键序逐项一致（load-document-identity 集成测盯着这一点）。
+  const pageIds = pageRows.map((row) => row.id);
+  const nodeRowsByPage = new Map<string, { id: string; data: unknown }[]>();
+  if (pageIds.length > 0) {
+    // 用 IN ($1,$2,…) 而不是 `= ANY(${数组})`：drizzle 的 sql 模板会把数组参数展开成参数列表，
+    // 直接 ANY(数组) 会生成 ANY(($1)) 这种把单值当数组的写法（22P02 malformed array literal）。
+    const idList = sql.join(
+      pageIds.map((id) => sql`${id}`),
+      sql`, `,
+    );
+    const allNodeRows = await reader.execute(
+      sql`SELECT page_id, id, data FROM design_nodes WHERE page_id IN (${idList}) ORDER BY page_id, id`,
+    );
+    for (const nodeRow of allNodeRows) {
+      const raw = nodeRow as { page_id: string; id: string; data: unknown };
+      const list = nodeRowsByPage.get(raw.page_id);
+      if (list) list.push({ id: raw.id, data: raw.data });
+      else nodeRowsByPage.set(raw.page_id, [{ id: raw.id, data: raw.data }]);
+    }
+  }
+
   const rebuilt: Page[] = [];
   for (const row of pageRows) {
     // 节点进的是 Record（键序=返回顺序），而 `Object.values(page.nodes)` 在派生上下文与测试里都会被枚举：
     // 没有 ORDER BY 时同一份文档两次读取可以给出不同的枚举顺序（#40 同一根因的另一面）
     //
     // **这一读绕开 drizzle 的行映射**（2026-10-21）：`design_nodes` 的载荷整份在 `data` 那一列里
-    // （jsonb），drizzle 那一层映射（每行一个 JS 对象 + 列名与类型转换）对它纯属白做——
-    // 量过：同样 10000 行，那一层多花 **0.6~1.0 秒**（首屏那 1.3 秒的大头就在这儿）。
-    // 用 `execute` 拿**原始行**：内容逐项不变（红线的回归测试见
-    // `apps/web/test/load-document-identity.integration.test.ts`），只是不替我们做那层无用功。
-    const nodeRows = await reader.execute(
-      sql`SELECT id, data FROM design_nodes WHERE page_id = ${row.id} ORDER BY id`,
-    );
+    // （jsonb），drizzle 那一层映射对它纯属白做——量过：同样 10000 行多花 0.6~1.0 秒。
+    // 用 `execute` 拿原始行；批量化后仍是原始行，只是从"每页一条"合成"整份一条"。
     const nodes: Record<string, DesignNode> = {};
-    for (const nodeRow of nodeRows) {
-      const raw = nodeRow as { id: string; data: unknown };
+    for (const raw of nodeRowsByPage.get(row.id) ?? []) {
       nodes[raw.id] = raw.data as DesignNode;
     }
     rebuilt.push({
