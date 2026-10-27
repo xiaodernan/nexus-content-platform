@@ -28,3 +28,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0016  | Agent runtime v0: hermetic demo loop + tool registry         | Accepted |
 | 0017  | Reproducible browser verification: a zero-dependency CDP harness | Accepted |
 | 0018  | Accounts, ownership and publication identity                 | Proposed |
+| 0019  | Credits ledger & creator-economy model layer                | Accepted |
