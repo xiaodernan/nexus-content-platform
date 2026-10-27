@@ -12,8 +12,8 @@ export const dynamic = 'force-dynamic';
  *
  * 每一栏都只放真公开的东西，理由写在页面上而不是只在这里：
  * 作品只列公网上传着的；世界与角色只列属于这些公开作品的、且只给名字与一句 tagline；
- * 游戏那一栏只有一个计数和一句说明：设计文档（§54）已经有了，可玩构建（§50/§53）还没有，
- * 所以这里不列"游戏卡片"——没有可展示的东西就明说，比省掉一栏诚实。
+ * 游戏也只列公开作品：发布那一刻钉住了游戏设计的那几份给"试玩"入口（`/play` 真的能玩），
+ * 只有设计稿的那几份照实写"没有可玩版本"——两种都列出来，不把没有的东西画成有。
  */
 export default async function ProfilePage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
@@ -138,6 +138,26 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
 
       <section>
         <h2 className="text-13 font-semibold text-fg-1">游戏（{profile.games.count}）</h2>
+        {profile.games.entries.length ? (
+          <ul className="mt-1 flex flex-col gap-1" data-profile-games>
+            {profile.games.entries.map((g) => (
+              <li className="text-12 text-fg-2" data-profile-game={g.path} key={g.path}>
+                {g.playable ? (
+                  <Link href={`${g.path}/play`} className="text-fg-1 underline" data-profile-game-play>
+                    试玩《{g.name}》
+                  </Link>
+                ) : (
+                  <>
+                    {g.name}{' '}
+                    <span className="text-fg-3" data-profile-game-design-only>
+                      只有设计稿，没有可玩版本
+                    </span>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <p className="mt-1 text-11 text-fg-3" data-profile-games-note>
           {profile.games.note}
         </p>

@@ -2,6 +2,8 @@ import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { createNode, findPage } from '@nexus/design-model';
+import { createGame } from '@nexus/game-model';
+import { saveGame } from '../src/server/domain/games';
 import { accountOf, listSaves, profileOf, toggleSave, updateProfile } from '../src/server/domain/profile';
 import { publicRefByPath } from '../src/server/domain/social';
 import { publishProject } from '../src/server/domain/publish';
@@ -107,14 +109,41 @@ describe('profileOf（§60 的可见性边界）', () => {
     expect(document).toBeTruthy();
   });
 
-  it('游戏那一栏数的是 kind=game 的项目，说明里分清"已有"和"还没开工"', async () => {
+  it('游戏栏：只列公开作品——钉住游戏设计的给试玩入口，只有设计稿的照实写', async () => {
     const [row] = await getDb().select({ handle: users.handle }).from(users).where(eq(users.id, ownerId)).limit(1);
+    const empty = await profileOf(row!.handle!, viewerId);
+    expect(empty!.games.count).toBe(0);
+    expect(empty!.games.entries).toEqual([]);
+    expect(empty!.games.note).toContain('没有公开的游戏版本');
+
+    // 能玩的那一份：建游戏项目 → 存一份游戏设计 → 发布 public（发布那一刻把设计钉进发布行）
+    const playableId = (await createProject(ownerId, { name: '能玩的游戏', kind: 'game' })).id;
+    const gameDoc = { ...createGame('试玩关', null), updatedAt: new Date().toISOString() };
+    expect((await saveGame(playableId, ownerId, gameDoc)).ok).toBe(true);
+    const playable = await publishProject(playableId, { visibility: 'public', createdById: ownerId });
+    if (!playable || !playable.ok) throw new Error('前置发布失败');
+
+    // 只有设计稿的一份：发布时项目里还没有游戏设计 ⇒ 钉不住，`/play` 也就没有可玩版本
+    const designOnlyId = (await createProject(ownerId, { name: '只有设计稿的游戏', kind: 'game' })).id;
+    const designOnly = await publishProject(designOnlyId, { visibility: 'public', createdById: ownerId });
+    if (!designOnly || !designOnly.ok) throw new Error('前置发布失败');
+
+    // 不公开的那一份不许出现在公网主页上
+    const privateId = (await createProject(ownerId, { name: '私有的游戏', kind: 'game' })).id;
+    await publishProject(privateId, { visibility: 'private', createdById: ownerId });
+
     const profile = await profileOf(row!.handle!, viewerId);
-    expect(profile!.games.count).toBe(0);
-    expect(profile!.games.note).toContain('§54');
-    expect(profile!.games.note).toContain('Playtest');
-    // 别说"还没开工"涵盖整栏：设计文档这一半已经落地了
-    expect(profile!.games.note).not.toContain('这一栏现在是空的');
+    expect(profile!.games.count, '只数公开的游戏作品').toBe(2);
+    const playableEntry = profile!.games.entries.find((g) => g.name === '能玩的游戏');
+    expect(playableEntry, '钉住了游戏设计的公开作品要出现在主页上').toMatchObject({
+      path: playable.publication.path,
+      playable: true,
+    });
+    const designOnlyEntry = profile!.games.entries.find((g) => g.name === '只有设计稿的游戏');
+    expect(designOnlyEntry?.playable, '没有钉住游戏设计的公开作品不能被写成"能玩"').toBe(false);
+    expect(profile!.games.entries.some((g) => g.name === '私有的游戏'), '私有的东西不许出现在公网主页').toBe(false);
+    expect(profile!.games.note).toContain('1 份');
+    expect(profile!.games.note).toContain('设计稿');
   });
 });
 

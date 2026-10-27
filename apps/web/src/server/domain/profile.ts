@@ -12,7 +12,8 @@ import { DELETED_USER_LABEL } from './audit';
  * - 作品只列**公网上传着**的那些（published_projects.visibility='public' 且没被人工拒绝）；
  * - 世界与角色只列属于这些公开作品的，而且只给名字与一句可展示的话——
  *   世界文档、角色档案（声音、关系、记忆）是作者项目里的内容，发布一张设计稿不等于把它们放上公网；
- * - 游戏表是空的（M5 未开工），所以给 0 并说明原因，而不是省掉这一栏让人以为漏了。
+ * - 游戏也只列公开的：发布那一刻钉住了游戏设计的那几份给"试玩"入口（`/play` 真能玩），
+ *   只有设计稿的那几份照实写"没有可玩版本"——两种都列出来，不把没有的东西画成有。
  */
 
 /** 三张表三种外键名，分支写清楚比一个 as never 的索引表达式好读，也不给类型留洞 */
@@ -118,6 +119,13 @@ export interface PublicEntityEntry {
   project: string;
 }
 
+export interface PublicGameEntry {
+  name: string;
+  path: string;
+  /** 发布那一刻钉住了游戏设计 ⇒ `/play` 真的能玩（ADR-0009）；没有就只是设计稿 */
+  playable: boolean;
+}
+
 export interface ProfileView {
   handle: string;
   name: string;
@@ -126,7 +134,7 @@ export interface ProfileView {
   works: DiscoverCard[];
   worlds: PublicEntityEntry[];
   characters: PublicEntityEntry[];
-  games: { count: number; note: string };
+  games: { count: number; entries: PublicGameEntry[]; note: string };
   followers: number;
   following: number;
   followingByViewer: boolean;
@@ -179,13 +187,29 @@ export async function profileOf(handle: string, viewerId: string | null): Promis
         .where(inArray(characters.projectId, projectIds))
     : [];
 
-  const [[followers], [following], [gameCount], followed, relation] = await Promise.all([
+  const [[followers], [following], gameRows, followed, relation] = await Promise.all([
     db.select({ n: sql<number>`count(*)::int` }).from(follows).where(eq(follows.followeeId, person.id)),
     db.select({ n: sql<number>`count(*)::int` }).from(follows).where(eq(follows.followerId, person.id)),
+    // §60 游戏栏：只列公网上传着的游戏作品。`playable` 以**发布那一刻钉住的设计**为准
+    // （ADR-0009），不读工作稿——工作稿里有设计、这一版没钉住，`/play` 就是空的。
     db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(projects)
-      .where(and(eq(projects.ownerId, person.id), eq(projects.kind, 'game'), isNull(projects.deletedAt))),
+      .select({
+        name: projects.name,
+        path: publishedProjects.path,
+        playable: sql<boolean>`${publishedProjects.gameDocument} is not null`,
+      })
+      .from(publishedProjects)
+      .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
+      .where(
+        and(
+          eq(projects.ownerId, person.id),
+          eq(projects.kind, 'game'),
+          eq(publishedProjects.visibility, 'public'),
+          sql`${publishedProjects.moderation} <> 'rejected'`,
+          isNull(projects.deletedAt),
+        ),
+      )
+      .orderBy(desc(publishedProjects.publishedAt)),
     viewerId && viewerId !== person.id
       ? db
           .select({ followerId: follows.followerId })
@@ -213,10 +237,9 @@ export async function profileOf(handle: string, viewerId: string | null): Promis
       project: c.project,
     })),
     games: {
-      count: gameCount?.n ?? 0,
-      note:
-        '这一栏数的是 kind=game 的项目。§54 的游戏设计文档（11 类实体、数值与引用）已经能存能改，' +
-        '在 Studio 的「游戏」面板里；把设计变成可玩东西的那半（§50 构建、§53 Playtest）还没开工。',
+      count: gameRows.length,
+      entries: gameRows.map((g) => ({ name: g.name, path: g.path, playable: g.playable === true })),
+      note: gamesNote(gameRows),
     },
     followers: followers?.n ?? 0,
     following: following?.n ?? 0,
@@ -224,6 +247,16 @@ export async function profileOf(handle: string, viewerId: string | null): Promis
     blockedByViewer: viewerId === person.id ? null : relation,
     isSelf: viewerId === person.id,
   };
+}
+
+/** 游戏栏那句说明：数字必须是这一栏真有的东西，别把"设计稿"说成"可玩" */
+function gamesNote(rows: { playable: boolean }[]): string {
+  if (!rows.length) return '这一栏只列公网上传着的游戏作品：现在没有公开的游戏版本。';
+  const playable = rows.filter((r) => r.playable).length;
+  const designOnly = rows.length - playable;
+  if (!designOnly) return `${playable} 份公开作品在发布那一刻钉住了游戏设计，点进去就能玩。`;
+  if (!playable) return `${designOnly} 份公开作品只有设计稿：发布时还没有可玩的游戏设计。`;
+  return `${playable} 份公开作品在发布那一刻钉住了游戏设计，点进去就能玩；另外 ${designOnly} 份只有设计稿。`;
 }
 
 function taglineOf(profile: unknown): string | null {
