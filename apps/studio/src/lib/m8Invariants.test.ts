@@ -32,12 +32,14 @@ import {
   appendCreditEntry,
   balanceOf,
   emptyCreditLedger,
+  heldRefsOf,
   validateCreditLedger,
   type CreditEntry,
   type CreditLedger,
 } from './credits';
 import { addTemplate, emptyTemplateCatalog, type TemplateCatalog, type TemplateListing } from './templateCatalog';
 import { purchaseTemplate, templateAffordable } from './marketplace';
+import { refundPurchase } from './refund';
 import { statementFor, statementReconciles } from './settlement';
 import { buildWalletView } from './walletView';
 
@@ -237,6 +239,71 @@ describe('M8 invariants: the settlement statement', () => {
           expect(statement.opening).toBe(independentOpening);
         }
       }
+    }
+  });
+});
+
+describe('M8 invariants: the refund mechanism', () => {
+  function mustAppend(ledger: CreditLedger, entry: CreditEntry): CreditLedger {
+    const res = appendCreditEntry(ledger, entry);
+    if (!res.ok) throw new Error(`append refused: ${res.reason}`);
+    return res.ledger;
+  }
+
+  it('buy → refund restores both balances, releases the hold, and validates', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const rnd = mulberry32(seed * 23 + 11);
+      const price = int(rnd, 1, 900);
+      const buyerStart = int(rnd, price, 2000);
+      const authorStart = int(rnd, price, 2000);
+
+      const added = addTemplate(emptyTemplateCatalog(), {
+        id: 't-ref', title: 'Refundable', description: 'd', authorId: 'author',
+        priceCents: price, category: 'other', tags: [], documentId: 'doc', createdAt: 1,
+      });
+      if (!added.ok) throw new Error(`listing refused: ${added.reason}`);
+      const catalog = added.catalog;
+
+      let ledger = emptyCreditLedger();
+      ledger = mustAppend(ledger, { id: `g-b-${seed}`, accountId: 'buyer', delta: buyerStart, reason: 'top-up', at: 1, kind: 'grant' });
+      ledger = mustAppend(ledger, { id: `g-a-${seed}`, accountId: 'author', delta: authorStart, reason: 'top-up', at: 2, kind: 'grant' });
+
+      const bought = purchaseTemplate(catalog, ledger, { templateId: 't-ref', buyerId: 'buyer', entryId: `buy-${seed}`, at: 3 });
+      if (!bought.ok) throw new Error(`purchase refused: ${bought.reason}`);
+      expect(balanceOf(bought.ledger, 'buyer')).toBe(buyerStart - price);
+      expect(heldRefsOf(bought.ledger, 'buyer').has('t-ref')).toBe(true);
+
+      const refunded = refundPurchase(catalog, bought.ledger, { templateId: 't-ref', buyerId: 'buyer', entryId: `refund-${seed}`, at: 4 });
+      if (!refunded.ok) throw new Error(`refund refused: ${refunded.reason}`);
+      expect(balanceOf(refunded.ledger, 'buyer')).toBe(buyerStart);
+      expect(balanceOf(refunded.ledger, 'author')).toBe(authorStart);
+      expect(heldRefsOf(refunded.ledger, 'buyer').has('t-ref')).toBe(false);
+      expect(validateCreditLedger(refunded.ledger)).toEqual({ ok: true, problems: [] });
+
+      // A second refund is refused and does not move the ledger.
+      const snapshot = refunded.ledger.entries.length;
+      const twice = refundPurchase(catalog, refunded.ledger, { templateId: 't-ref', buyerId: 'buyer', entryId: `refund2-${seed}`, at: 5 });
+      expect(twice.ok).toBe(false);
+      expect(refunded.ledger.entries.length).toBe(snapshot);
+    }
+  });
+
+  it('heldRefsOf is exactly the refs with a positive spend-minus-refund net', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const rnd = mulberry32(seed * 29 + 13);
+      let ledger = mustAppend(emptyCreditLedger(), { id: `g-${seed}`, accountId: 'acc-a', delta: 10_000, reason: 'top-up', at: 0, kind: 'grant' });
+      const net = new Map<string, number>();
+      for (let i = 0; i < 30; i++) {
+        const ref = `ref-${int(rnd, 0, 3)}`;
+        const kind = rnd() < 0.4 ? 'refund' : 'spend';
+        const delta = kind === 'refund' ? int(rnd, 1, 100) : -int(rnd, 1, 100);
+        const res = appendCreditEntry(ledger, { id: `e-${seed}-${i}`, accountId: 'acc-a', delta, reason: kind, at: i, kind, ref });
+        if (!res.ok) continue;
+        ledger = res.ledger;
+        net.set(ref, (net.get(ref) ?? 0) + (kind === 'spend' ? 1 : -1));
+      }
+      const expected = [...net.entries()].filter(([, n]) => n > 0).map(([r]) => r).sort();
+      expect([...heldRefsOf(ledger, 'acc-a')].sort()).toEqual(expected);
     }
   });
 });
