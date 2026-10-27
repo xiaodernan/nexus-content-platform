@@ -212,7 +212,13 @@ try {
     assert.equal(injectRemixBar('<div>x</div>', 'p1'), '<div>x</div>', 'no </body> → returned unchanged');
 
     const route = readFileSync('apps/studio/src/app/p/[projectId]/route.ts', 'utf8');
-    assert.ok(/projectId: decodeURIComponent\(projectId\)/.test(route), 'the route passes the projectId to the renderer');
+    // v527 — v523 gave this route ONE decode and ONE name rule: Next has already decoded the segment, so the
+    // route decides on the trimmed bytes and FORWARDS them. The needle that demanded
+    // `projectId: decodeURIComponent(projectId)` was asking for the SECOND decode v523 removed — it went
+    // stale on a route that had become MORE correct. The needle now names the rule that replaced it.
+    assert.ok(/doorName\(\s*\(await params\)\.projectId\s*\)/.test(route), 'the route names the segment through the ONE rule');
+    assert.ok(/renderArtifactHtml\(\s*\{[^)]*\bprojectId\b/.test(route), 'and the renderer RECEIVES the id that rule produced');
+    assert.ok(!/decodeURIComponent/.test(route), 'and the route does NOT decode the segment a second time');
     const studio = readFileSync('apps/studio/src/components/Studio.tsx', 'utf8');
     assert.ok(/remixIdFromSearch\(window\.location\.search\)/.test(studio), 'the Studio reads the remix intent from the URL');
     assert.ok(/remixProject\(id\)/.test(studio), 'the Studio fetches the publication');

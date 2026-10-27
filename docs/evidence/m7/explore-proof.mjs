@@ -108,7 +108,15 @@ try {
   {
     const route = readFileSync('apps/studio/src/app/explore/route.ts', 'utf8');
     assert.ok(/export const runtime = 'nodejs'/.test(route), 'the route declares the Node runtime (the service address stays server-side)');
-    assert.ok(/await listPublications\(EXPLORE_LIMIT\)/.test(route), 'the route LISTS publications');
+    // v527 — the listing call grew a WINDOW and a QUERY (v275 gave the gallery a search and a page), so the
+    // one-argument needle went stale on a route that still lists. The needle now names what the call must
+    // MEAN — the cap bounds the per-row fan-out and comes FIRST, and the window and the query the URL asked
+    // for are FORWARDED — instead of the arity the call happened to have.
+    assert.ok(/await listPublications\(\s*EXPLORE_LIMIT\b/.test(route), 'the route LISTS publications, capped by EXPLORE_LIMIT');
+    assert.ok(/listPublications\([^)]*\boffset\b/.test(route), 'and it FORWARDS the window the URL asked for');
+    assert.ok(/listPublications\([^)]*\bquery\b/.test(route), 'and the query');
+    assert.ok(/searchParams\.get\(\s*['"]q['"]\s*\)/.test(route), 'the query is read from the URL');
+    assert.ok(/searchParams\.get\(\s*['"]offset['"]\s*\)/.test(route), 'and so is the window');
     // v270 — the per-row read-and-draw is the SHARED builder's, because the profile page needs the same
     // fan-out and two copies of it would drift. The route CALLS the builder; the builder does the reading.
     assert.ok(/buildGalleryItems\(/.test(route), 'the route builds its cards with the SHARED builder');
