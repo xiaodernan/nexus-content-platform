@@ -14,8 +14,10 @@
  *       invent a movement that never happened.</li>
  *   <li><b>Atomic.</b> The buyer's credit and the author's claw-back are appended together, or neither
  *       is. A refund that credited the buyer and failed to debit the author would mint credits.</li>
- *   <li><b>A refund is not repeatable.</b> A second refund of the same purchase is refused by name;
- *       otherwise a buyer could be paid back twice for one sale.</li>
+ *   <li><b>A refund is not repeatable, but a RE-PURCHASE is (v529).</b> Purchases and refunds PAIR: the n-th
+ *       refund reverses the n-th purchase (FIFO). Refunding more times than buying is refused by name;
+ *       a buyer who refunded and bought again can refund again, because that purchase was never
+ *       refunded.</li>
  *   <li><b>The author must be able to cover it.</b> A claw-back that would drive the author below zero
  *       is refused whole, with the balance that was actually there — the same rule the ledger applies
  *       to every spend.</li>
@@ -52,11 +54,17 @@ export function refundPurchase(catalog: TemplateCatalog, ledger: CreditLedger, r
   if (typeof refund.buyerId !== 'string' || refund.buyerId === '') return { ok: false, reason: 'a refund needs the buyerId it is for' };
   if (typeof refund.entryId !== 'string' || refund.entryId === '') return { ok: false, reason: 'a refund needs a non-empty entryId (the idempotency key of the buyer\'s credit)' };
 
-  const purchase = ledger.entries.find((e) => e.accountId === refund.buyerId && e.kind === 'spend' && e.ref === refund.templateId);
-  if (!purchase) return { ok: false, reason: `${refund.buyerId} holds no purchase of "${listing.title}" to refund` };
-  if (ledger.entries.some((e) => e.accountId === refund.buyerId && e.kind === 'refund' && e.ref === refund.templateId)) {
-    return { ok: false, reason: `the purchase of "${listing.title}" has already been refunded — a refund is not repeatable` };
+  // Purchases and refunds PAIR: the n-th refund reverses the n-th purchase (FIFO). Counting them
+  // separately is what lets a re-purchase after a refund be refunded again; a per-REF "already
+  // refunded" check refused it, which was wrong — the second purchase was never refunded.
+  const purchases = ledger.entries.filter((e) => e.accountId === refund.buyerId && e.kind === 'spend' && e.ref === refund.templateId);
+  const refunds = ledger.entries.filter((e) => e.accountId === refund.buyerId && e.kind === 'refund' && e.ref === refund.templateId);
+  if (purchases.length === 0) return { ok: false, reason: `${refund.buyerId} holds no purchase of "${listing.title}" to refund` };
+  if (refunds.length >= purchases.length) {
+    return { ok: false, reason: `every purchase of "${listing.title}" has already been refunded — a refund is not repeatable` };
   }
+  // The OLDEST unrefunded purchase is the one reversed, and ITS recorded price is the amount.
+  const purchase = purchases[refunds.length]!;
 
   const priceCents = -purchase.delta; // the purchase's delta is negative
   if (priceCents <= 0) return { ok: false, reason: 'the recorded purchase does not debit a positive price, so there is nothing to reverse' };

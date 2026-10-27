@@ -56,6 +56,27 @@ describe('refundPurchase: the happy path', () => {
     expect(balanceOf(d.ledger, 'author-1')).toBe(600); // 600 grant + 500 sale - 500 claw-back
   });
 
+  it('a re-purchase after a refund can be refunded again (refunds pair with PURCHASES, not with the ref)', () => {
+    let ledger = ledgerOf(grant('buyer-1', 2000), grant('author-1', 1000), buy(-500), sale());
+    const first = refundPurchase(catalog(), ledger, { templateId: 't1', buyerId: 'buyer-1', entryId: 'r1', at: 3 });
+    if (!first.ok) throw new Error(`first refund refused: ${first.reason}`);
+    ledger = first.ledger;
+
+    const again = appendCreditEntry(ledger, { ...buy(-500), id: 'buy-2' });
+    if (!again.ok) throw new Error(`re-purchase refused: ${again.reason}`);
+    ledger = again.ledger;
+    expect(holdsTemplate(ledger, 'buyer-1', 't1')).toBe(true);
+
+    const second = refundPurchase(catalog(), ledger, { templateId: 't1', buyerId: 'buyer-1', entryId: 'r2', at: 5 });
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(balanceOf(second.ledger, 'buyer-1')).toBe(2000); // 2000 - 500 + 500 - 500 + 500
+    expect(holdsTemplate(second.ledger, 'buyer-1', 't1')).toBe(false);
+
+    const third = refundPurchase(catalog(), second.ledger, { templateId: 't1', buyerId: 'buyer-1', entryId: 'r3', at: 6 });
+    expect(third.ok).toBe(false);
+  });
+
   it('releases ownership, and a re-purchase holds it again', () => {
     let ledger = ledgerOf(grant('buyer-1', 1000), grant('author-1', 100), buy(), sale());
     expect(holdsTemplate(ledger, 'buyer-1', 't1')).toBe(true);

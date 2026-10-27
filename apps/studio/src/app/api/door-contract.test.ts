@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { GET as auditGet } from './audit/route';
-import { GET as buildArcGet, POST as buildArcPost } from './agent/build-arc/route';
+import { POST as buildArcPost } from './agent/build-arc/route';
 import { DELETE as commentTakeBack } from './comments/[commentId]/route';
 import { GET as commentsGet, POST as commentsPost } from './comments/route';
 import { POST as containerPost } from './agent/container/route';
@@ -52,6 +52,14 @@ import { GET as tipsGet, POST as tipsPost } from './tips/route';
  * one seam BELOW the route (each lib builds its own store over node:fs), and docker is not on the
  * test machine. The two disk doors’ libs answer every failure as an answer, so only their ANSWER
  * mode is faked; the three arc doors’ libs can also throw, and that is faked too.
+ *
+ * v524 — the container door’s `machine` mode was the exception to that promise, and the exception hid
+ * the defect: the stub answered `{ ok: false, reason: 'the container runtime is not on this machine' }`,
+ * a body the shipped lane never emits. The real lane answers that machine with `ok: true` and the words
+ * “container node:22-alpine node --version → exit null” — a door claiming a run, at 200, because nothing
+ * read the spawn error riding in the record. The stub now runs the REAL lane over a docker that cannot be
+ * started, so the 503 pin grades an answer production gives, and a second pin keeps the policy refusal
+ * where it belongs: an answered door, 200, the lane’s own sentence.
  */
 
 let mode: 'ok' | 'refuse' = 'ok';
@@ -63,6 +71,19 @@ let mode: 'ok' | 'refuse' = 'ok';
  */
 let agentMode: 'ok' | 'machine' | 'throw' = 'ok';
 
+/**
+ * v524 — the docker the container door meets when the MACHINE failed: the client cannot even be summoned,
+ * so the child never lives and the record carries a spawn error with no exit code. The real lane runs over
+ * this seam, so the answer graded below is the answer production emits, not a body the test author typed.
+ */
+const DOCKER_IS_NOT_HERE = () => ({
+  onData: () => {},
+  onEnd: (l: (e: { code: number | null; signal: string | null; error?: string }) => void) => {
+    setImmediate(() => l({ code: null, signal: null, error: 'spawn docker ENOENT' }));
+  },
+  kill: () => {},
+});
+
 vi.mock('@/lib/containerServer', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/containerServer')>();
   return {
@@ -70,7 +91,7 @@ vi.mock('@/lib/containerServer', async (importOriginal) => {
     runContainerExec: async (...args: Parameters<typeof actual.runContainerExec>) => {
       if (agentMode === 'throw') throw new Error('spawn docker ENOENT');
       if (agentMode === 'machine') {
-        return { ok: false, reason: 'the container runtime is not on this machine', failure: 'the-machine' as const };
+        return actual.runContainerExec(args[0], { ...args[1], spawnLike: DOCKER_IS_NOT_HERE });
       }
       return actual.runContainerExec(...args);
     },
@@ -565,14 +586,33 @@ describe('the door contract — the AGENT doors, and WHOSE fault it was (v509)',
     expect((await world.json()).reason).toContain('absolute path');
   });
 
-  it('a failed MACHINE is a 503 on the container door — not a 400, and not a bare 500', async () => {
+  it('a failed MACHINE is a 503 on the container door — the shipped lane over a docker that cannot start', async () => {
     agentMode = 'machine';
     const res = await containerPost(jsonPost('/api/agent/container', { argv: ['node', '--version'] }));
     expect(res.status).toBe(503);
     const body = await res.json();
-    expect(body.ok).toBe(false);
+    // v524: the door ANSWERED — ok is true, no container ran, and the machine named itself. Before the
+    // repair this same machine answered 200 with “container … → exit null”, and the stub below stood in
+    // for a shape the lane never emits.
+    expect(body.ok).toBe(true);
+    expect(body.ran).toBe(false);
     expect(body.failure).toBe('the-machine');
-    expect(body.reason).toContain('the container runtime is not on this machine');
+    expect(body.detail).toContain('never started');
+    expect(body.detail).toContain('spawn docker ENOENT');
+  });
+
+  it('a POLICY refusal is the door answering — 200, ran:false, the lane’s own sentence (v524)', async () => {
+    // The other half of the same rule, pinned beside it: an argv the allowlist never named is the
+    // caller’s to see, the lane answers in its own words, and no number is charged for it. The refusal
+    // happens before the docker client is summoned, so this grades on a machine with or without docker.
+    agentMode = 'ok';
+    const res = await containerPost(jsonPost('/api/agent/container', { argv: ['ls', '-la'] }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.ran).toBe(false);
+    expect(body.failure).toBeUndefined();
+    expect(body.detail).toContain('no allowlist rule matches');
   });
 
   it('a failed MACHINE is a 503 on the build-arc door', async () => {

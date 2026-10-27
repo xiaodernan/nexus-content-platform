@@ -41,7 +41,7 @@ const MUTATIONS = [
   { id: 'M10', file: 'templateCatalog', find: 'if (tokens.length === 0) return [];', replace: 'if (tokens.length === 0) return catalog.listings.map((listing) => ({ listing, score: 0 }));', why: 'an empty query answers the whole catalog instead of nothing' },
   { id: 'M11', file: 'ledgerStore', find: 'if (envelope.version !== LEDGER_FORMAT_VERSION) {', replace: 'if (false) {', why: 'the loader accepts a format version it does not know' },
   { id: 'M12', file: 'creditsStore', find: 'if (!loaded.ok) return { ok: false, reason: loaded.reason };', replace: "if (!loaded.ok) return { ok: true, ledger: emptyCreditLedger(), source: 'empty' };", why: 'a corrupt stored ledger is silently emptied (a balance erased)' },
-  { id: 'M13', file: 'refund', find: "if (ledger.entries.some((e) => e.accountId === refund.buyerId && e.kind === 'refund' && e.ref === refund.templateId)) {", replace: 'if (false) {', why: 'a purchase can be refunded twice (the buyer is paid back twice for one sale)' },
+  { id: 'M13', file: 'refund', find: 'if (refunds.length >= purchases.length) {', replace: 'if (refunds.length >= 1) {', why: 'a re-purchase after a refund can never be refunded (the old per-ref bug)' },
   { id: 'M14', file: 'templateCatalog', find: '/[^\\p{L}\\p{N}]+/u', replace: '/[^a-z0-9]+/', why: 'the tokenizer deletes non-Latin text (a Chinese query finds nothing)' },
 ];
 

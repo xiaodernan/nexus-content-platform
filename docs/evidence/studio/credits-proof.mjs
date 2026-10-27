@@ -308,7 +308,14 @@ try {
   const twice = refund.refundPurchase(catalog, refunded.ledger, { templateId: 'tpl-paid', buyerId: 'buyerB', entryId: 'rr2', at: 5 });
   assert.equal(twice.ok, false, 'a purchase was refunded twice');
   assert.match(twice.reason, /already been refunded/);
-  console.log(`  refund returned ${refunded.priceCents} to the buyer and clawed it back from the author; ownership and the remix right are released; a second refund is refused`);
+  // A RE-PURCHASE is refundable again: refunds pair with purchases, not with the ref.
+  const rebought = market.purchaseTemplate(catalog, refunded.ledger, { templateId: 'tpl-paid', buyerId: 'buyerB', entryId: 'rg4', at: 6 });
+  assert.equal(rebought.ok, true, rebought.reason);
+  const refundedAgain = refund.refundPurchase(catalog, rebought.ledger, { templateId: 'tpl-paid', buyerId: 'buyerB', entryId: 'rr3', at: 7 });
+  assert.equal(refundedAgain.ok, true, `a re-purchase could not be refunded: ${refundedAgain.reason}`);
+  assert.equal(credits.balanceOf(refundedAgain.ledger, 'buyerB'), 1000, 'the second cycle did not make the buyer whole');
+  assert.equal(credits.balanceOf(refundedAgain.ledger, 'authorA'), 100, 'the second cycle did not claw back');
+  console.log(`  refund returned ${refunded.priceCents} to the buyer and clawed it back from the author; ownership and the remix right are released; a second refund is refused; a RE-PURCHASE is refundable again`);
 } finally {
   rmSync(box, { recursive: true, force: true });
 }

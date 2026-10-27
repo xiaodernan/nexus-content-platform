@@ -206,3 +206,81 @@ describe('studio container workdir root, graded directly (v472)', () => {
     expect(down.workdirRoot).toBe(STUDIO_CONTAINER_WORKDIR_ROOT);
   });
 });
+
+describe('studio container answer — whose “no” it is (v524)', () => {
+  // The door used to answer a machine with no docker as a RUN: `ran: true` and the sentence
+  // “container node:22-alpine node --version → exit null”, because the host's `ran` is only its record
+  // that the promise settled — the docker client was summoned, it came back with a spawn error and no
+  // exit code. The exec-host's OWN registry reader throws for both of those bytes, and a 200 with an
+  // exit-code sentence tells the caller their ask was performed when the machine is the thing that
+  // could not perform it. So the lane now reads `spawnError` and stamps the kind.
+
+  function fakeDockerMissing() {
+    const calls: Array<{ cmd: string; args: string[] }> = [];
+    const spawnLike = (cmd: string, args: string[]) => {
+      calls.push({ cmd, args });
+      return {
+        onData: () => {},
+        onEnd: (l: (e: { code: number | null; signal: string | null; error?: string }) => void) => {
+          setImmediate(() => l({ code: null, signal: null, error: 'spawn docker ENOENT' }));
+        },
+        kill: () => {},
+      };
+    };
+    return { spawnLike, calls };
+  }
+
+  it('a docker the machine cannot start is the MACHINE’s failure — the door refuses the word “ran”', async () => {
+    const { spawnLike, calls } = fakeDockerMissing();
+    const a = await runContainerExec({ argv: ['node', '--version'] }, { spawnLike });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.ran).toBe(false);
+    expect(a.failure).toBe('the-machine');
+    expect(Object.keys(a).sort()).toEqual(['detail', 'failure', 'ok', 'ran', 'result']);
+    expect(a.detail).toContain('never started');
+    expect(a.detail).toContain('spawn docker ENOENT');
+    expect(a.detail).toContain(STUDIO_CONTAINER_IMAGE);
+    // The host's raw record stays beside the door's verdict — including the ran the door refuses.
+    expect(a.result.spawnError).toBe('spawn docker ENOENT');
+    expect(a.result.exitCode).toBeNull();
+    expect(a.result.ran).toBe(true);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.cmd).toBe('docker');
+  });
+
+  it('a policy refusal names NO kind and keeps the lane’s sentence in detail — the ask was the problem', async () => {
+    const { spawnLike, calls } = fakeSpawn();
+    const a = await runContainerExec({ argv: ['ls', '-la'] }, { spawnLike });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.ran).toBe(false);
+    expect(a.failure).toBeUndefined();
+    expect('failure' in a).toBe(false);
+    expect(Object.keys(a).sort()).toEqual(['detail', 'ok', 'ran', 'result']);
+    expect(a.detail).toContain('no allowlist rule matches');
+    expect(a.result.spawnError).toBe('');
+    expect(calls).toHaveLength(0);
+  });
+
+  it('a container that really ran names no kind either — a green run is the door answering', async () => {
+    const { spawnLike, calls } = fakeSpawn();
+    const a = await runContainerExec({ argv: ['node', '-e', 'console.log("jail ok")'] }, { spawnLike });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.ran).toBe(true);
+    expect(a.failure).toBeUndefined();
+    expect(a.detail).toContain('exit 0');
+    expect(calls).toHaveLength(1);
+  });
+
+  it('the machine’s failure is stamped even when the ask is well-formed but the host never got a stream', async () => {
+    const { spawnLike } = fakeDockerMissing();
+    const a = await runContainerExec({ argv: ['node', '-e', 'console.log("jail ok")'], cwd: 'build' }, { spawnLike });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.ran).toBe(false);
+    expect(a.failure).toBe('the-machine');
+    expect(a.detail).toContain('never started');
+  });
+});

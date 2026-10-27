@@ -18,6 +18,8 @@ import {
   type SpawnLike,
 } from '@nexus/exec-host';
 
+import type { AskFailureKind } from './doorFailure';
+
 /** The ONE image this lane pins; the request can never name one (v166's rule, inherited). */
 export const STUDIO_CONTAINER_IMAGE = 'node:22-alpine';
 /** Container-side jail root; the request's cwd is a RELATIVE subpath of it. */
@@ -77,10 +79,42 @@ export interface ContainerExecBody {
 /**
  * The route's answer. A policy refusal is an HONEST answer (`ran: false` plus the stated
  * reason), never an error; only a malformed request is `ok: false`.
+ *
+ * v524 — the machine's own failure is now read off the host's record and stamped as a kind
+ * (`doorFailure.ts`), so the door answers 503 for a docker that is not on this machine instead
+ * of answering 200 with a sentence that says the container ran and exited `null`.
  */
 export type ContainerExecAnswer =
   | { ok: false; reason: string }
-  | { ok: true; ran: boolean; detail: string; result: ContainerRunResult };
+  | { ok: true; ran: boolean; detail: string; result: ContainerRunResult; failure?: AskFailureKind };
+
+/**
+ * Did a container run, and what is the one sentence the reader deserves?
+ *
+ * <p>`result.ran` is the HOST's record of its promise settling — the docker client was summoned
+ * and it came back, so a machine with no docker at all still answers `ran: true` with
+ * `exitCode: null` and the spawn error in `spawnError`. The door cannot report that as a run: the
+ * exec-host's own registry reader treats the same two bytes as errors (`if (!result.ran) throw`
+ * / `if (result.spawnError !== '') throw`), and a door that said `ran: true` about a container
+ * that never started would be telling the caller the machine answered when the machine is the
+ * thing that could not. So `ran` here is the door's answer to "did a container run", and
+ * `result` stays the host's raw record beside it.
+ */
+function containerRunVerdict(result: ContainerRunResult): { ran: boolean; detail: string; failure?: AskFailureKind } {
+  const neverSpawned = result.spawnError !== '';
+  if (neverSpawned) {
+    return {
+      ran: false,
+      detail: `container ${result.image} ${result.argv.join(' ')} → never started (${result.spawnError})`,
+      failure: 'the-machine',
+    };
+  }
+  if (!result.ran) return { ran: false, detail: result.reason };
+  return {
+    ran: true,
+    detail: `container ${result.image} ${result.argv.join(' ')} → exit ${result.exitCode}${result.killedByBudget ? ' (killed at timeout budget)' : ''}${result.truncated ? ' (output truncated)' : ''}`,
+  };
+}
 
 export async function runContainerExec(body: unknown, options: { spawnLike?: SpawnLike } = {}): Promise<ContainerExecAnswer> {
   const input = (typeof body === 'object' && body !== null ? body : {}) as ContainerExecBody;
@@ -96,8 +130,6 @@ export async function runContainerExec(body: unknown, options: { spawnLike?: Spa
     checkpoint: () => true,
     callId: 'studio-dock-container-lane',
   });
-  const detail = !result.ran
-    ? result.reason
-    : `container ${result.image} ${result.argv.join(' ')} → exit ${result.exitCode}${result.killedByBudget ? ' (killed at timeout budget)' : ''}${result.truncated ? ' (output truncated)' : ''}`;
-  return { ok: true, ran: result.ran, detail, result };
+  const verdict = containerRunVerdict(result);
+  return { ok: true, ...verdict, result };
 }

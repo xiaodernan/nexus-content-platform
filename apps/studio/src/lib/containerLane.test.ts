@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { probeContainerLane, requestContainerExec } from './containerLane';
+import { containerAnswerLine, probeContainerLane, requestContainerExec } from './containerLane';
 
 const realFetch = globalThis.fetch;
 
@@ -172,5 +172,43 @@ describe('containerLane — a 200 whose body is JSON but NOT the probe’s shape
     expect(p.available).toBe(false);
     expect(p.reason).toBe('container route answered 200 with a body that is not the probe’s shape');
     expect(p.rules).toEqual([]);
+  });
+});
+
+describe('containerAnswerLine — the one line the dock shows for the container door (v524)', () => {
+  // The door keeps its sentence in `detail` for EVERY answer about a well-formed ask — a container that
+  // ran, a request the allowlist refused, a docker the machine could not start. The panel branched on
+  // `ran` and read `reason` in the false branch, where the door writes nothing, so a refusal reached the
+  // reader as the literal word "refused" and the lane's own words were lost. The reading now lives here,
+  // where it can be graded, and never branches on `ran` at all.
+
+  it('an answered door shows the door’s own sentence — whether or not a container ran', () => {
+    expect(containerAnswerLine({ ok: true, ran: true, detail: 'container node:22-alpine node --version → exit 0' })).toBe(
+      'container node:22-alpine node --version → exit 0',
+    );
+    expect(containerAnswerLine({ ok: true, ran: false, detail: 'no allowlist rule matches ["ls","-la"] (default-deny)' })).toBe(
+      'no allowlist rule matches ["ls","-la"] (default-deny)',
+    );
+    expect(containerAnswerLine({ ok: true, ran: false, detail: 'container node:22-alpine node --version → never started (spawn docker ENOENT)' })).toContain(
+      'never started',
+    );
+  });
+
+  it('a refused ask is never printed as the bare word “refused”', () => {
+    const line = containerAnswerLine({ ok: true, ran: false, detail: 'cwd refused: path escapes the allowed root' });
+    expect(line).toBe('cwd refused: path escapes the allowed root');
+    expect(line).not.toBe('refused');
+  });
+
+  it('an ask that never reached the lane keeps its reason', () => {
+    expect(containerAnswerLine({ ok: false, reason: 'argv must be a non-empty array of non-empty strings (no shell strings)' })).toBe(
+      'argv must be a non-empty array of non-empty strings (no shell strings)',
+    );
+    expect(containerAnswerLine({ ok: false })).toBe('container route failed');
+  });
+
+  it('an ok answer carrying no sentence is NAMED — this body is a cast, not a contract', () => {
+    expect(containerAnswerLine({ ok: true, ran: true })).toBe('container route answered without a sentence');
+    expect(containerAnswerLine({ ok: true, ran: false })).toBe('container route answered without a sentence');
   });
 });

@@ -24,7 +24,7 @@ import {
 } from '@/lib/agentDock';
 import type { ChainStageHandoff, QaReport } from '@nexus/agent-runtime';
 import { createDomDriver, runUiTask } from '@/lib/uiRun';
-import { probeContainerLane, requestContainerExec, type ContainerLaneProbe } from '@/lib/containerLane';
+import { containerAnswerLine, probeContainerLane, requestContainerExec, type ContainerLaneProbe } from '@/lib/containerLane';
 import { probeBuildLane, requestBuildArcRun, type BuildLaneProbe } from '@/lib/buildLane';
 import { probeDeployLane, requestDeployArcRun, type DeployLaneProbe } from '@/lib/deployLane';
 
@@ -135,7 +135,7 @@ export default function AgentPanel() {
     if (!containerAsk || !container) return;
     setContainerBusy(true);
     const answer = await requestContainerExec({ argv: containerAsk });
-    const line = answer.ok ? (answer.ran ? (answer.detail ?? '') : (answer.reason ?? 'refused')) : (answer.reason ?? 'container route failed');
+    const line = containerAnswerLine(answer);
     setContainerLine(line);
     setContainerAsk(null);
     setContainerBusy(false);

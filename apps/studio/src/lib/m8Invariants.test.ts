@@ -285,6 +285,19 @@ describe('M8 invariants: the refund mechanism', () => {
       const twice = refundPurchase(catalog, refunded.ledger, { templateId: 't-ref', buyerId: 'buyer', entryId: `refund2-${seed}`, at: 5 });
       expect(twice.ok).toBe(false);
       expect(refunded.ledger.entries.length).toBe(snapshot);
+
+      // A RE-PURCHASE is refundable again: refunds pair with PURCHASES, not with the ref.
+      const rebought = purchaseTemplate(catalog, refunded.ledger, { templateId: 't-ref', buyerId: 'buyer', entryId: `buy2-${seed}`, at: 6 });
+      if (!rebought.ok) throw new Error(`re-purchase refused: ${rebought.reason}`);
+      expect(heldRefsOf(rebought.ledger, 'buyer').has('t-ref')).toBe(true);
+      const refundedAgain = refundPurchase(catalog, rebought.ledger, { templateId: 't-ref', buyerId: 'buyer', entryId: `refund-2-${seed}`, at: 7 });
+      if (!refundedAgain.ok) throw new Error(`second-cycle refund refused: ${refundedAgain.reason}`);
+      expect(balanceOf(refundedAgain.ledger, 'buyer')).toBe(buyerStart);
+      expect(balanceOf(refundedAgain.ledger, 'author')).toBe(authorStart);
+      expect(heldRefsOf(refundedAgain.ledger, 'buyer').has('t-ref')).toBe(false);
+      expect(validateCreditLedger(refundedAgain.ledger)).toEqual({ ok: true, problems: [] });
+      const third = refundPurchase(catalog, refundedAgain.ledger, { templateId: 't-ref', buyerId: 'buyer', entryId: `refund-3-${seed}`, at: 8 });
+      expect(third.ok).toBe(false);
     }
   });
 

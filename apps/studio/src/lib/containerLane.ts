@@ -31,6 +31,21 @@ export interface ContainerExecRequest {
 }
 
 /**
+ * The one line the dock shows for the container door's answer.
+ *
+ * <p>v524: the door keeps its sentence in `detail` for EVERY answer it gives about a well-formed ask — a
+ * container that ran, a request the allowlist refused, and a docker the machine could not start — while
+ * `reason` holds only the refusals that never reached the lane. The panel used to branch on `ran` and read
+ * `reason` there, so a policy refusal printed the literal word "refused" and the door's own words never
+ * reached the reader. The lane reads `detail` for every answered door instead; an answer with no sentence
+ * is named as such, because this body is a cast, not a contract (v486's rule, applied to the exec answer).
+ */
+export function containerAnswerLine(answer: ContainerExecAnswer): string {
+  if (!answer.ok) return answer.reason ?? 'container route failed';
+  return answer.detail ?? 'container route answered without a sentence';
+}
+
+/**
  * How long the Studio's own door waits for its route to answer.
  *
  * <p>These lanes call the global `fetch` directly — they predate the injected-fetch lanes, and the
