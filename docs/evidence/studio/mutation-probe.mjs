@@ -21,7 +21,7 @@ const STUDIO = join(REPO, 'apps', 'studio');
 const BOX = join(STUDIO, '.nexus-mut-probe');
 const VITEST = join(REPO, 'node_modules', 'vitest', 'vitest.mjs');
 
-const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore'];
+const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore'];
 const TEST_FILES = [...MODULES.map((m) => `${m}.test.ts`), 'm8Invariants.test.ts'];
 
 /**
@@ -40,6 +40,7 @@ const MUTATIONS = [
   { id: 'M09', file: 'templateRemix', find: "if (listing.authorId === viewerId) return { ok: true, basis: 'owned' };", replace: '// mutation: the author branch is removed', why: 'an author loses ownership of their own listing' },
   { id: 'M10', file: 'templateCatalog', find: 'if (tokens.length === 0) return [];', replace: 'if (tokens.length === 0) return catalog.listings.map((listing) => ({ listing, score: 0 }));', why: 'an empty query answers the whole catalog instead of nothing' },
   { id: 'M11', file: 'ledgerStore', find: 'if (envelope.version !== LEDGER_FORMAT_VERSION) {', replace: 'if (false) {', why: 'the loader accepts a format version it does not know' },
+  { id: 'M12', file: 'creditsStore', find: 'if (!loaded.ok) return { ok: false, reason: loaded.reason };', replace: "if (!loaded.ok) return { ok: true, ledger: emptyCreditLedger(), source: 'empty' };", why: 'a corrupt stored ledger is silently emptied (a balance erased)' },
 ];
 
 function stage() {

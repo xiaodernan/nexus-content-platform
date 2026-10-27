@@ -24,7 +24,8 @@
 //      source by name instead of throwing;
 //   §6 the wallet view is DERIVED: owned = authored + spent-ref; affordable = the marketplace's gate;
 //   §7 the wire format round-trips and refuses a bad record (a future version, a negative prefix);
-//   §8 HEAD is byte-identical: everything ran in memory.
+//   §8 the local-first store distinguishes an ABSENT key (empty) from a corrupt one (refused);
+//   §9 HEAD is byte-identical: everything ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/credits-proof.mjs
 
@@ -36,7 +37,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import { execFileSync } from '../lib/syncproc.mjs';
 
 const REPO = process.cwd();
-const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore'];
+const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore'];
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 
@@ -66,6 +67,7 @@ try {
   const remix = await import(pathToFileURL(join(libDir, 'templateRemix.mjs')).href);
   const wallet = await import(pathToFileURL(join(libDir, 'walletView.mjs')).href);
   const store = await import(pathToFileURL(join(libDir, 'ledgerStore.mjs')).href);
+  const creditsStore = await import(pathToFileURL(join(libDir, 'creditsStore.mjs')).href);
 
   // Sanity: the real modules were imported, not re-implemented here.
   for (const [name, mod, fn] of [
@@ -77,6 +79,7 @@ try {
     ['templateRemix', remix, 'remixTemplateToProject'],
     ['walletView', wallet, 'buildWalletView'],
     ['ledgerStore', store, 'serializeLedger'],
+    ['creditsStore', creditsStore, 'loadCredits'],
   ]) {
     assert.equal(typeof mod[fn], 'function', `${name}.${fn} was not imported — the module was not run`);
   }
@@ -259,12 +262,31 @@ try {
   assert.equal(dipped.ok, false, 'a ledger that dips negative was loaded');
   assert.match(dipped.reason, /not consistent/);
   console.log(`  ${real.entries.length} entries round-trip byte-identically; a future version and a negative prefix are refused by name`);
+
+  // ── §8 the local-first store distinguishes absence from corruption ──────────────────────────────
+  console.log('§8 the local-first store distinguishes an absent key from a corrupt one');
+  const mem = new Map();
+  const kv = { getItem: (k) => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => { mem.set(k, v); } };
+  const emptyLoad = creditsStore.loadCredits(kv);
+  assert.equal(emptyLoad.ok, true, 'an absent key was treated as an error');
+  assert.equal(emptyLoad.source, 'empty');
+  const saved = creditsStore.saveCredits(kv, real);
+  assert.equal(saved.ok, true, `a valid ledger was refused by save: ${saved.reason}`);
+  const storedLoad = creditsStore.loadCredits(kv);
+  assert.equal(storedLoad.ok, true, `the saved ledger did not load: ${storedLoad.reason}`);
+  assert.equal(storedLoad.source, 'stored');
+  assert.deepEqual(storedLoad.ledger.entries, real.entries, 'the store changed the entries');
+  mem.set(creditsStore.CREDITS_STORAGE_KEY, '{not json');
+  const corruptLoad = creditsStore.loadCredits(kv);
+  assert.equal(corruptLoad.ok, false, 'a corrupt record was silently emptied');
+  assert.match(corruptLoad.reason, /not JSON/);
+  console.log(`  absent -> empty; ${real.entries.length} entries saved (${saved.bytes} bytes) and reloaded; a corrupt record is refused, not emptied`);
 } finally {
   rmSync(box, { recursive: true, force: true });
 }
 
-// ── §8 HEAD is byte-identical ─────────────────────────────────────────────────────────────────────
+// ── §9 HEAD is byte-identical ─────────────────────────────────────────────────────────────────────
 const after = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(after, head, 'the repository HEAD moved while the proof ran');
-console.log(`§8 HEAD unchanged (${head.slice(0, 12)})`);
+console.log(`§9 HEAD unchanged (${head.slice(0, 12)})`);
 console.log('ALL SECTIONS PASSED');
