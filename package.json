@@ -41,7 +41,9 @@
     "verify:service": "node docs/evidence/m7/service-suite-proof.mjs",
     "verify:credits": "node docs/evidence/studio/credits-proof.mjs",
     "verify:mutation": "node docs/evidence/studio/mutation-probe.mjs",
-    "verify:credits-surface": "node tools/harness/studio-credits.mjs"
+    "verify:credits-surface": "node tools/harness/studio-credits.mjs",
+    "verify:ci-wiring": "node docs/evidence/ci/ci-wiring-proof.mjs",
+    "verify:proofs": "node tools/ci/proof-set.mjs"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

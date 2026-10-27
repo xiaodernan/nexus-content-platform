@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
 
 jobs:
@@ -12,7 +12,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # The evidence proofs strip TypeScript out of the modules they grade through `node:module`'s
+          # type-stripper, so the runner that grades them must be a Node that carries it — and the box that
+          # WRITES these proofs runs Node 24. A build on a Node the proofs cannot run on is a red nobody
+          # can read, and `engines` says only ">=20", which cannot decide this.
+          node-version: 24
           cache: npm
       - name: Install (workspace root)
         run: npm ci || npm install
@@ -32,3 +36,5 @@ jobs:
         run: npm run test
       - name: Build
         run: npm run build
+      - name: Evidence proofs
+        run: npm run verify:proofs

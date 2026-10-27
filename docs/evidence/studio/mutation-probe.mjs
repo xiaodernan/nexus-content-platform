@@ -9,6 +9,13 @@
 //
 // The temp dir is removed in a `finally`, so a crash cannot leave a mutated copy in the tree.
 //
+// sweep-budget-ms: 1200000
+// The budget above is the CI runner's and the agents sweep's to read (amendments 85 and 94), and it is
+// measured, not comfortable: 18 mutations, each a serial `vitest run` of the copied suite — 410.7 s standing
+// alone and 404.9 s beside a concurrent `npm ci` on 2026-10-28, both on this Windows box, all 18 KILLED.
+// 1 200 000 ms is ~2.9x the slower reading, which is the headroom a shared CI runner needs; a row killed for
+// being slow is a TIMEOUT, and amendment 85 refused to let that be the same verdict as a failure.
+//
 // Run:  node docs/evidence/studio/mutation-probe.mjs
 
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
