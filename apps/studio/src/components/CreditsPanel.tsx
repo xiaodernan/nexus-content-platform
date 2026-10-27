@@ -1,0 +1,171 @@
+'use client';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { buildCreatorDashboard, creatorDashboardLine } from '@/lib/creatorDashboard';
+import type { CreditLedger } from '@/lib/credits';
+import { buildDemoCreditsScene } from '@/lib/creditsDemo';
+import { loadCredits, saveCredits } from '@/lib/creditsStore';
+import { priceText, type PriceCents } from '@/lib/monetization';
+import { statementFor, statementLine, statementReconciles } from '@/lib/settlement';
+import { buildWalletView } from '@/lib/walletView';
+
+/**
+ * M8 — the CREDITS surface. A STANDALONE page (`/credits`), not a Studio pane, so it touches no shared
+ * mount point: `Studio.tsx`, the toolbar and the surface store all belong to the editor lane.
+ *
+ * §60 is the point of this file. This build has no credits service and no payment, so:
+ *   - the face says `DEMO MODE` and states that nothing here moves real money;
+ *   - the only way to get a ledger is to LOAD THE DEMO FIXTURE, which is a local record built by the
+ *     real appender and marketplace (`creditsDemo.ts`), not invented in the view;
+ *   - the ledger is read and written through `creditsStore` over `localStorage` — the SAME path a real
+ *     local-first ledger would use, so what the page demonstrates is the real persistence.
+ *
+ * An absent local key is an EMPTY ledger and the page says so; it does not fabricate a balance.
+ */
+export default function CreditsPanel() {
+  const scene = useMemo(() => buildDemoCreditsScene(), []);
+  const [ledger, setLedger] = useState<CreditLedger | null>(null);
+  const [source, setSource] = useState<'stored' | 'empty' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const loaded = loadCredits(window.localStorage);
+      if (!loaded.ok) { setError(loaded.reason); return; }
+      setLedger(loaded.ledger);
+      setSource(loaded.source);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, []);
+
+  const loadDemo = useCallback(() => {
+    try {
+      const saved = saveCredits(window.localStorage, scene.ledger);
+      if (!saved.ok) { setError(saved.reason); return; }
+      setLedger(scene.ledger);
+      setSource('stored');
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [scene]);
+
+  const clearLocal = useCallback(() => {
+    try {
+      // An empty ledger is a VALID record, so clearing writes one rather than deleting the key.
+      const saved = saveCredits(window.localStorage, { entries: [] });
+      if (!saved.ok) { setError(saved.reason); return; }
+      setLedger({ entries: [] });
+      setSource('stored');
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, []);
+
+  const wallet = ledger ? buildWalletView(scene.catalog, ledger, scene.viewerId) : null;
+  const creator = ledger ? buildCreatorDashboard(scene.catalog, ledger, scene.creatorId) : null;
+  const statement = ledger ? statementFor(ledger, scene.viewerId) : null;
+  const reconciles = ledger && statement ? statementReconciles(ledger, statement) : false;
+  const empty = !ledger || source === 'empty' || ledger.entries.length === 0;
+
+  return (
+    <div
+      id="nexus-credits"
+      data-surface="credits"
+      style={{ minHeight: '100vh', padding: 16, background: 'var(--nexus-bg)', color: 'var(--nexus-text)', fontSize: 12 }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+        <strong style={{ letterSpacing: 0.4 }}>CREDITS (M8)</strong>
+        <span style={{ color: 'var(--nexus-muted)' }} data-credits-mode>
+          DEMO MODE · no credits service and no payment — this ledger is local and illustrative
+        </span>
+      </div>
+      <div style={{ color: 'var(--nexus-muted)', marginBottom: 12, maxWidth: 780 }}>
+        This page reads and writes the ledger through the same local-first store a real ledger would use
+        (<code>nexus.credits.v1</code> in this browser). Nothing here moves real money.
+      </div>
+
+      {error && (
+        <div data-credits-error style={{ color: '#d9534f', marginBottom: 10 }}>
+          error: {error}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        <button type="button" className="btn" data-credits-load onClick={loadDemo}>
+          Load a demo ledger
+        </button>
+        <button type="button" className="btn" data-credits-clear onClick={clearLocal} style={{ opacity: 0.7 }}>
+          Clear the local ledger
+        </button>
+      </div>
+
+      {empty ? (
+        <div data-credits-empty style={{ color: 'var(--nexus-muted)', maxWidth: 780 }}>
+          No movements yet. This build cannot earn or spend credits, so the local ledger starts empty.
+          Load the demo fixture to see the wallet, the creator dashboard and the statement.
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 14, maxWidth: 980 }}>
+          {wallet && (
+            <section data-credits-wallet style={{ border: '1px solid var(--nexus-border)', padding: 12 }}>
+              <strong>WALLET · {scene.viewerId}</strong>
+              <div style={{ marginTop: 6 }}>
+                balance: <b>{wallet.balanceCents} credits</b>
+              </div>
+              <div>owns: {wallet.ownedTemplateIds.length ? wallet.ownedTemplateIds.join(', ') : 'nothing'}</div>
+              <div>affordable now: {wallet.affordableTemplateIds.length ? wallet.affordableTemplateIds.join(', ') : 'nothing'}</div>
+            </section>
+          )}
+
+          {creator && (
+            <section data-credits-creator style={{ border: '1px solid var(--nexus-border)', padding: 12 }}>
+              <strong>CREATOR · {scene.creatorId}</strong>
+              <div style={{ marginTop: 6 }}>{creatorDashboardLine(creator)}</div>
+              <div>listings: {creator.myListings.map((l) => l.title).join(', ') || 'none'}</div>
+            </section>
+          )}
+
+          {statement && (
+            <section data-credits-statement style={{ border: '1px solid var(--nexus-border)', padding: 12 }}>
+              <strong>STATEMENT</strong>
+              <div style={{ marginTop: 6 }}>{statementLine(statement)}</div>
+              <div>reconciles: {reconciles ? 'yes' : 'NO'}</div>
+            </section>
+          )}
+
+          <section data-credits-store style={{ border: '1px solid var(--nexus-border)', padding: 12 }}>
+            <strong>STORE · {scene.catalog.listings.length} listing(s)</strong>
+            <table style={{ width: '100%', marginTop: 6, borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th align="left">template</th>
+                  <th align="left">author</th>
+                  <th align="left">price</th>
+                  <th align="left">you</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scene.catalog.listings.map((listing) => {
+                  const owned = wallet?.ownedTemplateIds.includes(listing.id) ?? false;
+                  const affordable = wallet?.affordableTemplateIds.includes(listing.id) ?? false;
+                  const state = owned ? 'owned' : affordable ? 'affordable' : listing.priceCents === 0 ? 'free' : 'out of reach';
+                  return (
+                    <tr key={listing.id} data-credits-listing={listing.id}>
+                      <td>{listing.title}</td>
+                      <td>{listing.authorId}</td>
+                      <td>{priceText(listing.priceCents as PriceCents, 'CNY')}</td>
+                      <td>{state}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
