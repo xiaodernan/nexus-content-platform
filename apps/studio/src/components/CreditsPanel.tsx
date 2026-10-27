@@ -2,11 +2,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { buildCreatorDashboard, creatorDashboardLine } from '@/lib/creatorDashboard';
-import type { CreditLedger } from '@/lib/credits';
+import { heldRefsOf, type CreditLedger } from '@/lib/credits';
 import { buildDemoCreditsScene } from '@/lib/creditsDemo';
 import { loadCredits, saveCredits } from '@/lib/creditsStore';
 import { purchaseTemplate } from '@/lib/marketplace';
 import { priceText, type PriceCents } from '@/lib/monetization';
+import { refundPurchase } from '@/lib/refund';
 import { statementFor, statementLine, statementReconciles } from '@/lib/settlement';
 import type { TemplateListing } from '@/lib/templateCatalog';
 import { buildWalletView } from '@/lib/walletView';
@@ -89,11 +90,34 @@ export default function CreditsPanel() {
     setError(null);
   }, [ledger, scene]);
 
+  /**
+   * REFUND one purchase: the REAL refund mechanism on the LOCAL ledger — the buyer is made whole and
+   * the author is clawed back atomically, then the result is persisted. It reverses the purchase the
+   * ledger recorded, so ownership (which is net of refunds) releases the template.
+   */
+  const onRefund = useCallback((listing: TemplateListing) => {
+    if (!ledger) return;
+    const decision = refundPurchase(scene.catalog, ledger, {
+      templateId: listing.id,
+      buyerId: scene.viewerId,
+      entryId: `demo-refund-${listing.id}-${Date.now()}`,
+      at: Date.now(),
+    });
+    if (!decision.ok) { setError(decision.reason); return; }
+    const saved = saveCredits(window.localStorage, decision.ledger);
+    if (!saved.ok) { setError(saved.reason); return; }
+    setLedger(decision.ledger);
+    setError(null);
+  }, [ledger, scene]);
+
   const wallet = ledger ? buildWalletView(scene.catalog, ledger, scene.viewerId) : null;
   // "Still to buy" = the marketplace's affordability gate MINUS what is already owned. The model
   // deliberately lets an owned listing stay affordable (ADR 0019's bound), so the panel does the
   // subtraction rather than inviting a second purchase of one item.
   const stillToBuy = wallet ? wallet.affordableTemplateIds.filter((id) => !wallet.ownedTemplateIds.includes(id)) : [];
+  // What the viewer HOLDS by a recorded purchase — net of refunds. A refund is only offered for these:
+  // an authored listing is "owned" but was never bought, so there is no purchase to reverse.
+  const heldRefs = ledger ? heldRefsOf(ledger, scene.viewerId) : new Set<string>();
   const creator = ledger ? buildCreatorDashboard(scene.catalog, ledger, scene.creatorId) : null;
   const statement = ledger ? statementFor(ledger, scene.viewerId) : null;
   const reconciles = ledger && statement ? statementReconciles(ledger, statement) : false;
@@ -114,7 +138,8 @@ export default function CreditsPanel() {
       <div style={{ color: 'var(--nexus-muted)', marginBottom: 12, maxWidth: 780 }}>
         This page reads and writes the ledger through the same local-first store a real ledger would use
         (<code>nexus.credits.v1</code> in this browser). Buying a template appends a real two-entry
-        transaction to that LOCAL ledger — it spends demo credits, not money.
+        transaction to that LOCAL ledger; refunding reverses the recorded purchase. Both spend demo
+        credits, not money.
       </div>
 
       {error && (
@@ -187,13 +212,14 @@ export default function CreditsPanel() {
                   // and can afford. Offering "Buy" on something already owned would invite a second
                   // purchase of one item — the model allows it, but the panel should not suggest it.
                   const buyable = !owned && affordable && listing.priceCents > 0;
+                  const refundable = heldRefs.has(listing.id) && listing.priceCents > 0;
                   return (
                     <tr key={listing.id} data-credits-listing={listing.id}>
                       <td>{listing.title}</td>
                       <td>{listing.authorId}</td>
                       <td>{priceText(listing.priceCents as PriceCents, 'CNY')}</td>
                       <td>{state}</td>
-                      <td>
+                      <td style={{ display: 'flex', gap: 4 }}>
                         {buyable ? (
                           <button
                             type="button"
@@ -203,6 +229,17 @@ export default function CreditsPanel() {
                             style={{ fontSize: 10, padding: '1px 6px' }}
                           >
                             Buy
+                          </button>
+                        ) : null}
+                        {refundable ? (
+                          <button
+                            type="button"
+                            className="btn"
+                            data-credits-refund={listing.id}
+                            onClick={() => onRefund(listing)}
+                            style={{ fontSize: 10, padding: '1px 6px', opacity: 0.8 }}
+                          >
+                            Refund
                           </button>
                         ) : null}
                       </td>

@@ -94,6 +94,18 @@ try {
   writeFileSync(file, Buffer.from(shot.data, 'base64'));
   console.log(`screenshot: ${file}`);
 
+  // 4c. REFUND: reversing the recorded purchase releases ownership (net of refunds).
+  const refundClicked = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-refund=\"tpl-mobile\"]'); if (!b) return false; b.click(); return true; })()",
+  );
+  check('the store offers a Refund action for a held purchase', refundClicked === true, `refund clicked: ${refundClicked}`);
+  await page.waitForFunction("(document.querySelector('[data-credits-wallet]')?.innerText ?? '').includes('balance: 500 credits')", { timeout: 10000 });
+  const afterRefund = await page.evaluate(
+    "(() => ({ wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, refundGone: !document.querySelector('[data-credits-refund=\"tpl-mobile\"]'), buyBack: !!document.querySelector('[data-credits-buy=\"tpl-mobile\"]') }))()",
+  );
+  check('refunding makes the buyer whole (300 -> 500) and releases ownership', /balance: 500 credits/.test(afterRefund.wallet ?? '') && /owns: tpl-saas can still buy/.test(afterRefund.wallet ?? ''), afterRefund.wallet);
+  check('the refunded listing is no longer held and can be bought again', afterRefund.refundGone === true && afterRefund.buyBack === true, JSON.stringify(afterRefund));
+
   // 5. PERSISTENCE: a full reload reads the ledger back from localStorage.
   await page.navigate(`${URL_BASE}/credits`, { waitForSelector: '#nexus-credits' });
   // The FIRST render after a reload has no ledger yet (the effect has not run), so waiting for
@@ -103,7 +115,7 @@ try {
   const afterReload = await page.evaluate(
     "(() => ({ empty: !!document.querySelector('[data-credits-empty]'), wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }))()",
   );
-  check('the ledger PERSISTS across a reload (localStorage)', afterReload.empty === false && /balance: 300 credits/.test(afterReload.wallet ?? '') && /owns: tpl-saas, tpl-mobile/.test(afterReload.wallet ?? ''), JSON.stringify(afterReload));
+  check('the ledger PERSISTS across a reload (localStorage)', afterReload.empty === false && /balance: 500 credits/.test(afterReload.wallet ?? '') && /owns: tpl-saas can still buy/.test(afterReload.wallet ?? ''), JSON.stringify(afterReload));
 
   // 6. clearing writes a valid empty ledger and returns the page to its empty state.
   await page.evaluate("(() => { const b = document.querySelector('[data-credits-clear]'); if (!b) return false; b.click(); return true; })()");
