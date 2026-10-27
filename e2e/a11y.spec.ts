@@ -13,8 +13,9 @@ import { expect, test, type Page } from '@playwright/test';
  * 纪律（与 scripts/eval-baseline.mts 同一条）：不断言阈值，先记读数；只有**结构不变式**
  * 才许红——这里钉的是「扫描不是空转」：axe 真的加载了、真的跑过了规则、
  * 而且通过列表非空（对一张白页 axe 也"全绿"，那种绿不算证据）。
- * 违规按 impact 分类打印进报告，真数抄 docs/EVALUATION.md；
- * 哪些违规是产品要修的、哪些是评测对象（发布那一刻的快照）自带的，归因后再定门。
+ * 违规按 impact 分类打印进报告，真数抄 docs/EVALUATION.md。
+ * 「这条违规是壳的还是要修的」不许凭节点标签归因：首跑把两处壳上小字（「还没有评论。」、
+ * 统计告知段）当成了"快照自带的作者颜色"，改 token 后 7 处一起消失才证明它们全属于平台。
  */
 
 const require = createRequire(process.cwd() + '/package.json');
@@ -105,10 +106,9 @@ test('§85 渲染后无障碍：公开作品页跑 axe（WCAG 2.0/2.1 A+AA），
   }
 
   const critical = byImpact.get('critical')?.length ?? 0;
-  // 结构不变式：critical = 0。2026-10-28 首跑读数：24 过 / 39 不适用 / 1 类 serious
-  // （color-contrast ×7：平台壳 5——header meta、Built with NEXUS、评论计数、分享按钮、
-  // 徽章——加起手设计投影 2，后者是作者内容的领地，公开页忠实渲染快照不改写颜色，
-  // 设计期由 analyzeHealth 的静态门禁分级）。壳上的 serious 是真实欠账，记进
-  // docs/EVALUATION.md，换 token 要动全站色板，另开切片。
+  // 结构不变式：critical = 0。这一门只管"扫描真的发生过、且没有致命项"，不管 serious 有几条：
+  // 首跑的 7 处 color-contrast 全部同源于 --nexus-color-fg-3 一个 token，改色后归零，
+  // 而那个对比度 floor 由 style-tokens.test.ts 按 tokens.css 的字面值钉——比在这里断言
+  // 一个数字稳。读数一律进 docs/EVALUATION.md，不抄进注释：注释没有读者会复核。
   expect(critical).toBe(0);
 });

@@ -1839,11 +1839,18 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   `{font.display}` token）加两个评测自己的错（语料少建一条 lore、引用检查器把链式 insert 当幻觉），
   全部修复并有回归钉。**第二片同日落地：渲染后页面的无障碍**（`e2e/a11y.spec.ts`）：真发布流程
   建公开作品页，匿名访客在真 Chrome 里对真 DOM 跑 axe（WCAG 2.0/2.1 A+AA）——设计模型的静态门禁
-  测的是设计，渲染投影只有 axe 才测得到。读数进 `docs/EVALUATION.md`（24 过 / 39 不适用 /
-  serious color-contrast ×7 = 平台壳 5 + 作者投影 2，critical 0），结构不变式钉
-  `passes>0`（防白页假绿）与 `critical===0`；壳上的 color-contrast 是记账的真实欠账，
-  换 token 动全站色板，另开切片。**仍欠**：§85 的真实 provider 半边（LLM 裁判 / Tool selection /
-  Agent task completion）、RAG 向量半（#110）、渲染页键盘走查；§86 的 provider 接入半边
+  测的是设计，渲染投影只有 axe 才测得到。首跑 serious color-contrast ×7（24 过 / 39 不适用 /
+  critical 0），全部同源于一个 token `--nexus-color-fg-3`——改前暗色对四级表面是
+  4.19/3.99/3.70/3.34、浅色 2.93/3.11/2.73/2.51，两个主题都不过 AA 的 4.5。**第三片当天修掉**：
+  暗 `#828ca8`、浅 `#5b6478`，重算得 5.87/5.58/5.18/4.67 与 5.59/5.93/5.21/4.79 全过 AA，
+  与 fg-2 仍差 1.49×/1.32×（三级文本层级没塌），axe 复跑**违规 0 条**。钉法是
+  `style-tokens.test.ts` 里按 tokens.css 字面值算对比度的两道门（变异臂：token 改回旧值恰好红 2 条），
+  因为全站 639 处 `text-fg-3` 里有些落在没有浏览器门的 bg-3 上（市场「已举报」徽标、Agent 面板 busy 态）。
+  **这一片还推翻了我自己写的一条归因**：首跑说 7 处里有 2 处是"作者快照的忠实渲染"，
+  而改 token 后它们一起消失——「还没有评论。」与统计告知段都在壳上，作者投影一条都没进 violations。
+  结构不变式钉 `passes>0`（防白页假绿）与 `critical===0`。**仍欠**：§85 的真实 provider 半边（LLM 裁判 /
+  Tool selection / Agent task completion）、RAG 向量半（#110）、渲染页键盘走查与市场/Studio 等
+  其余界面的 axe；§86 的 provider 接入半边
   （typography / componentCorrectness 的真实来源）；metrics/tracing 也没接，
   所以"线上发生了什么"目前只能靠审计表 + stderr。
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在

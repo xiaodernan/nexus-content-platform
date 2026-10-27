@@ -9,10 +9,12 @@
   --nexus-color-bg-2: #171a24;
   --nexus-color-bg-3: #1f2330;
 
-  /* 文本：主 / 次 / 占位 */
+  /* 文本：主 / 次 / 占位。
+     fg-3 是 11/12px 小字与占位符用的颜色，在四级表面上都必须过 WCAG AA 的 4.5:1，
+     不许随手调暗回去——style-tokens.test.ts 按本文件的值算对比度钉着这条。 */
   --nexus-color-fg-1: #eef1f6;
   --nexus-color-fg-2: #a4adc0;
-  --nexus-color-fg-3: #6b7488;
+  --nexus-color-fg-3: #828ca8;
 
   /* 品牌与强调 */
   --nexus-color-brand: #5b6cff;
@@ -96,7 +98,7 @@
   --nexus-color-bg-3: #e3e7f0;
   --nexus-color-fg-1: #12141c;
   --nexus-color-fg-2: #4a5265;
-  --nexus-color-fg-3: #8a92a6;
+  --nexus-color-fg-3: #5b6478;
   --nexus-color-border-subtle: #dfe3ec;
   --nexus-color-border-strong: #c3c9d6;
 }
