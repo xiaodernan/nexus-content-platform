@@ -63,9 +63,25 @@ export function normalizeTags(tags: readonly string[]): string[] {
   return out;
 }
 
-/** The query's own tokens: lowercased, split on non-alphanumerics, length >= 2, de-duplicated. */
+/**
+ * The query's own tokens: lowercased, split on anything that is not a LETTER or NUMBER in ANY script,
+ * de-duplicated. A token is kept when it is 2+ characters OR carries a non-ASCII character.
+ *
+ * <p>Both halves of that rule are deliberate. `\p{L}`/`\p{N}` keep non-Latin text: the previous
+ * `[^a-z0-9]` split DELETED every CJK character, so a Chinese query tokenized to nothing and the
+ * catalog could not be searched in Chinese at all — a real defect for a Chinese-facing product. The
+ * 2-character floor is an ASCII heuristic (single Latin letters are noise), and the non-ASCII
+ * exemption exists because in CJK a single character IS a word: "图" must be searchable.
+ */
 export function queryTokens(query: string): string[] {
-  return [...new Set(query.toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length >= 2))];
+  return [
+    ...new Set(
+      query
+        .toLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter((t) => t.length >= 2 || /[^\x00-\x7F]/.test(t)),
+    ),
+  ];
 }
 
 /**

@@ -42,10 +42,16 @@ const MUTATIONS = [
   { id: 'M11', file: 'ledgerStore', find: 'if (envelope.version !== LEDGER_FORMAT_VERSION) {', replace: 'if (false) {', why: 'the loader accepts a format version it does not know' },
   { id: 'M12', file: 'creditsStore', find: 'if (!loaded.ok) return { ok: false, reason: loaded.reason };', replace: "if (!loaded.ok) return { ok: true, ledger: emptyCreditLedger(), source: 'empty' };", why: 'a corrupt stored ledger is silently emptied (a balance erased)' },
   { id: 'M13', file: 'refund', find: "if (ledger.entries.some((e) => e.accountId === refund.buyerId && e.kind === 'refund' && e.ref === refund.templateId)) {", replace: 'if (false) {', why: 'a purchase can be refunded twice (the buyer is paid back twice for one sale)' },
+  { id: 'M14', file: 'templateCatalog', find: '/[^\\p{L}\\p{N}]+/u', replace: '/[^a-z0-9]+/', why: 'the tokenizer deletes non-Latin text (a Chinese query finds nothing)' },
 ];
 
+/**
+ * Copy the suite ONCE. Deleting and re-copying it before EVERY mutation tripped the host's
+ * safe-delete guard, which counts deletions per turn (3 mutations × 21 files = 63 > 50). Each
+ * mutation now overwrites ONE file and restores it from the pristine source, so the only bulk
+ * delete is the final cleanup (21 files, under the threshold).
+ */
 function stage() {
-  rmSync(BOX, { recursive: true, force: true });
   mkdirSync(BOX, { recursive: true });
   for (const module of MODULES) cpSync(join(SRC, `${module}.ts`), join(BOX, `${module}.ts`));
   for (const test of TEST_FILES) cpSync(join(SRC, test), join(BOX, test));
@@ -61,11 +67,11 @@ function runSuite() {
 }
 
 const results = [];
+stage();
 try {
   for (const mutation of MUTATIONS) {
-    stage();
     const path = join(BOX, `${mutation.file}.ts`);
-    const original = readFileSync(path, 'utf8');
+    const original = readFileSync(join(SRC, `${mutation.file}.ts`), 'utf8');
     if (!original.includes(mutation.find)) {
       results.push({ ...mutation, verdict: 'ERROR', detail: 'the mutation target was not found in the source' });
       console.log(`${mutation.id} ERROR     ${mutation.file}: target not found`);
@@ -74,6 +80,8 @@ try {
     writeFileSync(path, original.replace(mutation.find, mutation.replace), 'utf8');
 
     const result = runSuite();
+    writeFileSync(path, original, 'utf8'); // restore before the next mutation
+
     if (result.error || result.status === null) {
       results.push({ ...mutation, verdict: 'ERROR', detail: `vitest did not run: ${result.error?.message ?? 'no status'}` });
       console.log(`${mutation.id} ERROR     ${mutation.file}: vitest did not run`);

@@ -132,9 +132,13 @@ try {
   const hit = catalogMod.searchTemplates(catalog, 'pro dashboard');
   assert.ok(hit.length >= 1 && hit.some((h) => h.listing.id === 'tpl-paid'), 'exact-token search missed the listing');
   assert.equal(catalogMod.searchTemplates(catalog, 'quantum').length, 0, 'a query that matches nothing must answer nothing');
+  // A Chinese query must TOKENIZE. The old `[^a-z0-9]` split deleted every CJK character, so the
+  // catalog could not be searched in Chinese at all — measured here rather than assumed.
+  assert.deepEqual(catalogMod.queryTokens('仪表盘 SaaS'), ['仪表盘', 'saas'], 'the tokenizer deleted non-Latin text');
+  assert.deepEqual(catalogMod.queryTokens('图'), ['图'], 'a single CJK character was dropped');
   const byPrice = catalogMod.sortByPriceAsc(catalog).map((l) => l.id);
   assert.deepEqual(byPrice, ['tpl-free', 'tpl-paid2', 'tpl-paid'], 'the price sort is not ascending');
-  console.log(`  ${catalog.listings.length} listings; duplicate refused; search('pro dashboard') -> ${hit.length}; search('quantum') -> 0; price order ${byPrice.join(' < ')}`);
+  console.log(`  ${catalog.listings.length} listings; duplicate refused; search('pro dashboard') -> ${hit.length}; search('quantum') -> 0; a CJK query tokenizes; price order ${byPrice.join(' < ')}`);
 
   // ── §3 the marketplace is atomic ────────────────────────────────────────────────────────────────
   console.log('§3 the marketplace is atomic');

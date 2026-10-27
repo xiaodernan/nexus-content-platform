@@ -138,6 +138,11 @@ describe('templateCatalog: search is honest exact-token AND', () => {
   it('a query that matches nothing answers an empty list, not a fuzzy guess', () => {
     expect(searchTemplates(c, 'quantum blockchain')).toEqual([]);
   });
+
+  it('finds a CJK-titled listing by a CJK query (the tokenizer must not delete non-Latin text)', () => {
+    const zh = build(listing({ id: 't-zh', title: '仪表盘模板', description: '一个数据仪表盘。', tags: ['仪表盘'], category: 'dashboard' }));
+    expect(searchTemplates(zh, '仪表盘').map((r) => r.listing.id)).toEqual(['t-zh']);
+  });
 });
 
 describe('templateCatalog: the pure helpers', () => {
@@ -147,5 +152,11 @@ describe('templateCatalog: the pure helpers', () => {
 
   it('queryTokens lowercases, splits on non-alphanumerics, drops 1-char tokens and de-duplicates', () => {
     expect(queryTokens('Hero, HERO pricing! a b2b')).toEqual(['hero', 'pricing', 'b2b']);
+  });
+
+  it('queryTokens keeps non-Latin letters, and still drops a 1-char ASCII token', () => {
+    expect(queryTokens('仪表盘 SaaS')).toEqual(['仪表盘', 'saas']);
+    expect(queryTokens('图')).toEqual(['图']); // a single CJK character is meaningful
+    expect(queryTokens('a')).toEqual([]); // a single ASCII character is not
   });
 });
