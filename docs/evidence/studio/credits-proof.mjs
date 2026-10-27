@@ -23,7 +23,8 @@
 //   §5 the remix handoff forks a NEW document (id changes, source untouched) and reports a malformed
 //      source by name instead of throwing;
 //   §6 the wallet view is DERIVED: owned = authored + spent-ref; affordable = the marketplace's gate;
-//   §7 HEAD is byte-identical: everything ran in memory.
+//   §7 the wire format round-trips and refuses a bad record (a future version, a negative prefix);
+//   §8 HEAD is byte-identical: everything ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/credits-proof.mjs
 
@@ -35,7 +36,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import { execFileSync } from '../lib/syncproc.mjs';
 
 const REPO = process.cwd();
-const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView'];
+const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore'];
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 
@@ -64,6 +65,7 @@ try {
   const settle = await import(pathToFileURL(join(libDir, 'settlement.mjs')).href);
   const remix = await import(pathToFileURL(join(libDir, 'templateRemix.mjs')).href);
   const wallet = await import(pathToFileURL(join(libDir, 'walletView.mjs')).href);
+  const store = await import(pathToFileURL(join(libDir, 'ledgerStore.mjs')).href);
 
   // Sanity: the real modules were imported, not re-implemented here.
   for (const [name, mod, fn] of [
@@ -74,6 +76,7 @@ try {
     ['settlement', settle, 'statementFor'],
     ['templateRemix', remix, 'remixTemplateToProject'],
     ['walletView', wallet, 'buildWalletView'],
+    ['ledgerStore', store, 'serializeLedger'],
   ]) {
     assert.equal(typeof mod[fn], 'function', `${name}.${fn} was not imported — the module was not run`);
   }
@@ -237,12 +240,31 @@ try {
   subLedger = credits.appendCreditEntry(subLedger, { id: 'u2', accountId: 'buyerB', delta: -300, reason: 'subscription "pro"', at: 2, kind: 'spend', ref: 'plan-pro' }).ledger;
   assert.deepEqual(wallet.buildWalletView(catalog, subLedger, 'buyerB').ownedTemplateIds, [], 'a subscription spend was reported as template ownership');
   console.log(`  buyerB owns ${wv.ownedTemplateIds.join(', ')}; affordable ${wv.affordableTemplateIds.join(', ')}; authorA owns ${authorWv.ownedTemplateIds.join(', ')}; a refund and a non-template ref are not ownership`);
+
+  // ── §7 the wire format round-trips and refuses a bad record ─────────────────────────────────────
+  console.log('§7 the ledger wire format round-trips and refuses a bad record');
+  const wire = store.serializeLedger(real);
+  const reloaded = store.deserializeLedger(wire);
+  assert.equal(reloaded.ok, true, `a valid ledger was refused: ${reloaded.reason}`);
+  assert.deepEqual(reloaded.ledger.entries, real.entries, 'the round-trip changed the entries');
+  assert.equal(store.serializeLedger(reloaded.ledger), wire, 'serialization is not deterministic');
+  const badVersion = store.deserializeLedger(JSON.stringify({ version: store.LEDGER_FORMAT_VERSION + 1, entries: [] }));
+  assert.equal(badVersion.ok, false, 'a future format version was accepted');
+  assert.match(badVersion.reason, /unsupported ledger format version/);
+  const dippedWire = JSON.stringify({ version: store.LEDGER_FORMAT_VERSION, entries: [
+    { id: 'a', accountId: 'acc-1', delta: 50, reason: 'grant', at: 1, kind: 'grant' },
+    { id: 'b', accountId: 'acc-1', delta: -100, reason: 'spend', at: 2, kind: 'spend' },
+  ] });
+  const dipped = store.deserializeLedger(dippedWire);
+  assert.equal(dipped.ok, false, 'a ledger that dips negative was loaded');
+  assert.match(dipped.reason, /not consistent/);
+  console.log(`  ${real.entries.length} entries round-trip byte-identically; a future version and a negative prefix are refused by name`);
 } finally {
   rmSync(box, { recursive: true, force: true });
 }
 
-// ── §7 HEAD is byte-identical ─────────────────────────────────────────────────────────────────────
+// ── §8 HEAD is byte-identical ─────────────────────────────────────────────────────────────────────
 const after = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(after, head, 'the repository HEAD moved while the proof ran');
-console.log(`§7 HEAD unchanged (${head.slice(0, 12)})`);
+console.log(`§8 HEAD unchanged (${head.slice(0, 12)})`);
 console.log('ALL SECTIONS PASSED');
