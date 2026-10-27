@@ -12,8 +12,11 @@
  *   4. the store lists all three listings and marks the free one and the owned one;
  *   5. the ledger PERSISTS across a full reload — it was written through `creditsStore` to localStorage,
  *      so a fresh page reads it back (this is the local-first claim, measured);
- *   6. clearing writes a VALID empty ledger and the page returns to its empty state;
- *   7. no uncaught page errors, and a screenshot is written as evidence.
+ *   6. the refund POLICY is the HOST's choice: the page declares "no deadline" by default, switching
+ *      to a 30-day window makes the demo's 2023 purchase REFUSED by policy (the local ledger does not
+ *      move), and switching back allows it — the mechanism never makes this decision itself;
+ *   7. clearing writes a VALID empty ledger and the page returns to its empty state;
+ *   8. no uncaught page errors, and a screenshot is written as evidence.
  *
  * Usage: node tools/harness/studio-credits.mjs [--url http://127.0.0.1:3210] [--out DIR]
  *
@@ -117,13 +120,48 @@ try {
   );
   check('the ledger PERSISTS across a reload (localStorage)', afterReload.empty === false && /balance: 500 credits/.test(afterReload.wallet ?? '') && /owns: tpl-saas can still buy/.test(afterReload.wallet ?? ''), JSON.stringify(afterReload));
 
-  // 6. clearing writes a valid empty ledger and returns the page to its empty state.
+  // 6. the refund POLICY: the host chooses the window, and the mechanism obeys it.
+  const policyLine = async () =>
+    page.evaluate("document.querySelector('[data-credits-policy-line]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null");
+  check('the page declares its refund policy on its face', /REFUND POLICY · no deadline/.test((await policyLine()) ?? ''), await policyLine());
+
+  await page.evaluate("(() => { const b = document.querySelector('[data-credits-policy=\"30d\"]'); if (!b) return false; b.click(); return true; })()");
+  await page.waitForFunction("(document.querySelector('[data-credits-policy-line]')?.innerText ?? '').includes('30-day window')", { timeout: 10000 });
+  check('switching the policy rewrites the declared window', /30-day window from the purchase/.test((await policyLine()) ?? ''), await policyLine());
+
+  await page.evaluate("(() => { const b = document.querySelector('[data-credits-refund=\"tpl-saas\"]'); if (!b) return false; b.click(); return true; })()");
+  await page.waitForSelector('[data-credits-error]', 10000);
+  const refused = await page.evaluate(
+    "(() => ({ error: document.querySelector('[data-credits-error]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, stillHeld: !!document.querySelector('[data-credits-refund=\"tpl-saas\"]') }))()",
+  );
+  check(
+    'a closed window REFUSES the refund by policy and leaves the local ledger untouched',
+    /refund window/.test(refused.error ?? '') && /balance: 500 credits/.test(refused.wallet ?? '') && /owns: tpl-saas/.test(refused.wallet ?? '') && refused.stillHeld === true,
+    JSON.stringify(refused),
+  );
+
+  // Switching back to "no deadline" must allow the SAME refund — proving the refusal above was the
+  // policy's and not a broken page.
+  await page.evaluate("(() => { const b = document.querySelector('[data-credits-policy=\"none\"]'); if (!b) return false; b.click(); return true; })()");
+  await page.waitForFunction("(document.querySelector('[data-credits-policy-line]')?.innerText ?? '').includes('no deadline')", { timeout: 10000 });
+  await page.evaluate("(() => { const b = document.querySelector('[data-credits-refund=\"tpl-saas\"]'); if (!b) return false; b.click(); return true; })()");
+  await page.waitForFunction("(document.querySelector('[data-credits-wallet]')?.innerText ?? '').includes('balance: 1000 credits')", { timeout: 10000 });
+  const allowed = await page.evaluate(
+    "(() => ({ wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, error: !!document.querySelector('[data-credits-error]') }))()",
+  );
+  check(
+    'with no declared deadline the same refund is allowed (500 -> 1000)',
+    /balance: 1000 credits/.test(allowed.wallet ?? '') && /owns: nothing/.test(allowed.wallet ?? '') && allowed.error === false,
+    JSON.stringify(allowed),
+  );
+
+  // 7. clearing writes a valid empty ledger and returns the page to its empty state.
   await page.evaluate("(() => { const b = document.querySelector('[data-credits-clear]'); if (!b) return false; b.click(); return true; })()");
   await sleep(300);
   const cleared = await page.evaluate("!!document.querySelector('[data-credits-empty]')");
   check('clearing the local ledger returns the page to its empty state', cleared === true, String(cleared));
 
-  // 7. no uncaught page errors (the screenshot was taken on the populated surface above).
+  // 8. no uncaught page errors (the screenshot was taken on the populated surface above).
   check('no uncaught page errors', session.pageErrors.length === 0, JSON.stringify(session.pageErrors).slice(0, 400));
 } finally {
   await page.close();

@@ -26,7 +26,9 @@
 //   §7 the wire format round-trips and refuses a bad record (a future version, a negative prefix);
 //   §8 the local-first store distinguishes an ABSENT key (empty) from a corrupt one (refused);
 //   §9 a refund is atomic, reverses ownership and the remix right, and is not repeatable;
-//   §10 HEAD is byte-identical: everything ran in memory.
+//   §10 a refund POLICY is the HOST's declaration: a closed window refuses before the mechanism runs
+//      and moves nothing, the closing instant is inclusive, and a broken policy is refused by name;
+//   §11 HEAD is byte-identical: everything ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/credits-proof.mjs
 
@@ -38,7 +40,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import { execFileSync } from '../lib/syncproc.mjs';
 
 const REPO = process.cwd();
-const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund'];
+const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy'];
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 
@@ -70,6 +72,7 @@ try {
   const store = await import(pathToFileURL(join(libDir, 'ledgerStore.mjs')).href);
   const creditsStore = await import(pathToFileURL(join(libDir, 'creditsStore.mjs')).href);
   const refund = await import(pathToFileURL(join(libDir, 'refund.mjs')).href);
+  const refundPolicy = await import(pathToFileURL(join(libDir, 'refundPolicy.mjs')).href);
 
   // Sanity: the real modules were imported, not re-implemented here.
   for (const [name, mod, fn] of [
@@ -83,6 +86,7 @@ try {
     ['ledgerStore', store, 'serializeLedger'],
     ['creditsStore', creditsStore, 'loadCredits'],
     ['refund', refund, 'refundPurchase'],
+    ['refundPolicy', refundPolicy, 'refundPurchaseUnderPolicy'],
   ]) {
     assert.equal(typeof mod[fn], 'function', `${name}.${fn} was not imported — the module was not run`);
   }
@@ -316,12 +320,61 @@ try {
   assert.equal(credits.balanceOf(refundedAgain.ledger, 'buyerB'), 1000, 'the second cycle did not make the buyer whole');
   assert.equal(credits.balanceOf(refundedAgain.ledger, 'authorA'), 100, 'the second cycle did not claw back');
   console.log(`  refund returned ${refunded.priceCents} to the buyer and clawed it back from the author; ownership and the remix right are released; a second refund is refused; a RE-PURCHASE is refundable again`);
+
+  // ── §10 a refund POLICY is the host's declaration ───────────────────────────────────────────────
+  console.log("§10 a refund policy is the host's declaration, applied before the mechanism");
+  let policyLedger = credits.emptyCreditLedger();
+  policyLedger = credits.appendCreditEntry(policyLedger, { id: 'pg1', accountId: 'buyerC', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' }).ledger;
+  policyLedger = credits.appendCreditEntry(policyLedger, { id: 'pg2', accountId: 'authorA', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' }).ledger;
+  const policyBuy = market.purchaseTemplate(catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerC', entryId: 'pg3', at: 2 });
+  assert.equal(policyBuy.ok, true, policyBuy.reason);
+  policyLedger = policyBuy.ledger;
+
+  assert.equal(refundPolicy.describeRefundPolicy(refundPolicy.NO_REFUND_DEADLINE), 'no deadline', 'a declared no-deadline policy was not named');
+  assert.match(refundPolicy.refundPolicyProblem({}), /windowMs/, 'a policy that never declared a window was read as "no deadline"');
+
+  const beforePolicy = policyLedger.entries.length;
+  const late = refundPolicy.refundPurchaseUnderPolicy(
+    catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerC', entryId: 'pr-late', at: 13 }, { windowMs: 10 }, 13,
+  );
+  assert.equal(late.ok, false, 'a closed window allowed the refund');
+  assert.match(late.reason, /refund window/);
+  assert.match(late.reason, /closed 1 ms ago/);
+  assert.equal(policyLedger.entries.length, beforePolicy, 'a refused policy ask moved the ledger');
+  assert.equal(credits.balanceOf(policyLedger, 'buyerC'), 500, 'a refused policy ask changed the buyer balance');
+
+  const atEdge = refundPolicy.refundPurchaseUnderPolicy(
+    catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerC', entryId: 'pr-edge', at: 12 }, { windowMs: 10 }, 12,
+  );
+  assert.equal(atEdge.ok, true, `the closing instant was treated as outside the window: ${atEdge.reason}`);
+  assert.equal(atEdge.priceCents, 500, 'the policy path lost the recorded price');
+
+  const noDeadline = refundPolicy.refundPurchaseUnderPolicy(
+    catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerC', entryId: 'pr-never', at: 1_700_000_000_000 },
+    refundPolicy.NO_REFUND_DEADLINE, 1_700_000_000_000,
+  );
+  assert.equal(noDeadline.ok, true, `a declared no-deadline policy refused a refund: ${noDeadline.reason}`);
+
+  const neverBought = refundPolicy.refundPurchaseUnderPolicy(
+    catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerZ', entryId: 'pr-zero', at: 99 }, { windowMs: 0 }, 99,
+  );
+  assert.equal(neverBought.ok, false, 'a policy resurrected a purchase nobody made');
+  assert.match(neverBought.reason, /holds no purchase/, 'a structural refusal did not come back in the mechanism\'s words');
+  assert.doesNotMatch(neverBought.reason, /refund window/, 'the policy answered a question that belongs to the mechanism');
+
+  const broken = refundPolicy.refundPurchaseUnderPolicy(
+    catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerC', entryId: 'pr-broken', at: 99 }, {}, 99,
+  );
+  assert.equal(broken.ok, false, 'a policy with no windowMs was applied');
+  assert.match(broken.reason, /windowMs/, 'a broken policy was not refused by name');
+
+  console.log('  a 10 ms window refused the refund 1 ms past closing and moved NOTHING; it allowed one AT the closing instant; "no deadline" allowed it years later; a buyer with no purchase got the mechanism\'s sentence; a policy that never declared a window was refused by name');
 } finally {
   rmSync(box, { recursive: true, force: true });
 }
 
-// ── §10 HEAD is byte-identical ────────────────────────────────────────────────────────────────────
+// ── §11 HEAD is byte-identical ────────────────────────────────────────────────────────────────────
 const after = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(after, head, 'the repository HEAD moved while the proof ran');
-console.log(`§10 HEAD unchanged (${head.slice(0, 12)})`);
+console.log(`§11 HEAD unchanged (${head.slice(0, 12)})`);
 console.log('ALL SECTIONS PASSED');

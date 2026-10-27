@@ -2,10 +2,10 @@
 // prove the test suite CATCHES it. A suite that cannot kill a mutation is decoration, and this repo's
 // verification discipline names the probe for exactly that reason.
 //
-// It never touches the real source. It copies the seven modules and their eight test files into a temp
-// dir INSIDE `apps/studio` (vitest's root, so the suite resolves and `@nexus/design-model` resolves
-// through the workspace's node_modules), applies ONE textual mutation, runs the suite, and records the
-// verdict: non-zero exit = KILLED (the suite caught the break), zero = SURVIVED (a gap in the suite).
+// It never touches the real source. It copies the modules and their test files into a temp dir INSIDE
+// `apps/studio` (vitest's root, so the suite resolves and `@nexus/design-model` resolves through the
+// workspace's node_modules), applies ONE textual mutation, runs the suite, and records the verdict:
+// non-zero exit = KILLED (the suite caught the break), zero = SURVIVED (a gap in the suite).
 //
 // The temp dir is removed in a `finally`, so a crash cannot leave a mutated copy in the tree.
 //
@@ -21,7 +21,7 @@ const STUDIO = join(REPO, 'apps', 'studio');
 const BOX = join(STUDIO, '.nexus-mut-probe');
 const VITEST = join(REPO, 'node_modules', 'vitest', 'vitest.mjs');
 
-const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund'];
+const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy'];
 const TEST_FILES = [...MODULES.map((m) => `${m}.test.ts`), 'm8Invariants.test.ts'];
 
 /**
@@ -43,6 +43,10 @@ const MUTATIONS = [
   { id: 'M12', file: 'creditsStore', find: 'if (!loaded.ok) return { ok: false, reason: loaded.reason };', replace: "if (!loaded.ok) return { ok: true, ledger: emptyCreditLedger(), source: 'empty' };", why: 'a corrupt stored ledger is silently emptied (a balance erased)' },
   { id: 'M13', file: 'refund', find: 'if (refunds.length >= purchases.length) {', replace: 'if (refunds.length >= 1) {', why: 'a re-purchase after a refund can never be refunded (the old per-ref bug)' },
   { id: 'M14', file: 'templateCatalog', find: '/[^\\p{L}\\p{N}]+/u', replace: '/[^a-z0-9]+/', why: 'the tokenizer deletes non-Latin text (a Chinese query finds nothing)' },
+  { id: 'M15', file: 'refundPolicy', find: 'if (closesAt !== null && now > closesAt) {', replace: 'if (false) {', why: 'a closed refund window no longer refuses (the host policy is ignored)' },
+  { id: 'M16', file: 'refundPolicy', find: 'now > closesAt', replace: 'now >= closesAt', why: 'the closing instant is treated as OUTSIDE the window' },
+  { id: 'M17', file: 'refundPolicy', find: 'if (problem) return { ok: false, reason: problem };', replace: 'if (false) return { ok: false, reason: problem };', why: 'a policy that never declared a window is read as "no deadline"' },
+  { id: 'M18', file: 'refund', find: 'return purchases[refunds.length] ?? null;', replace: 'return purchases[purchases.length - 1] ?? null;', why: 'the window is measured on the NEWEST purchase instead of the one FIFO reverses' },
 ];
 
 /**

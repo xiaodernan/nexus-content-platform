@@ -100,3 +100,9 @@ Two forces shaped the design:
   fork, derived wallet — and asserts HEAD is unchanged.
 - The ROADMAP's M8 row records the model half honestly. The server half and the Studio UI wiring remain
   open, and the lane's subscriptions/plans/tips stay blocked by ADR 0018.
+
+## Amendment 1 (v529–v530, studio) — the refund mechanism and its policy SHAPE
+
+- The "no refund policy" bound in Tradeoffs narrows rather than disappears. Two pure modules were added beside the seven above: `refund.ts` (the MECHANISM: reverse one recorded purchase atomically, pay the recorded price, claw the author back, pair the n-th refund with the n-th purchase — ADR 0020 + its Amendment 1) and `refundPolicy.ts` (the POLICY SHAPE: a host declares `windowMs: number | null`, `NO_REFUND_DEADLINE` names "no deadline", the window is measured from the purchase FIFO would reverse, the closing instant is inclusive, and a broken declaration is refused by name — ADR 0020 Amendment 2).
+- What remains the host's: WHO may ask (the mechanism's caller), whether an author consents, where a service stores a per-listing policy, and how a service-held ledger re-runs either layer server-side. The modules still invent no business rule; they make one declarable and apply it.
+- The seven-module Consequences above are now nine, and `credits-proof.mjs` gains §9 (refund) and §10 (policy).

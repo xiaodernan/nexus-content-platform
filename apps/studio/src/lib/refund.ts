@@ -44,6 +44,33 @@ export type RefundDecision =
   | { ok: true; ledger: CreditLedger; buyerEntry: CreditEntry; authorEntry: CreditEntry; priceCents: number }
   | { ok: false; reason: string };
 
+/** The purchases a buyer recorded for one listing, oldest first. */
+function purchasesOf(ledger: CreditLedger, buyerId: string, templateId: string): CreditEntry[] {
+  return ledger.entries.filter((e) => e.accountId === buyerId && e.kind === 'spend' && e.ref === templateId);
+}
+
+/** The refunds this buyer already took for one listing, oldest first. */
+function refundsOf(ledger: CreditLedger, buyerId: string, templateId: string): CreditEntry[] {
+  return ledger.entries.filter((e) => e.accountId === buyerId && e.kind === 'refund' && e.ref === templateId);
+}
+
+/**
+ * The purchase a refund would reverse, or null when there is none to reverse.
+ *
+ * <p>Purchases and refunds PAIR: the n-th refund reverses the n-th purchase (FIFO). Counting them
+ * separately is what lets a re-purchase after a refund be refunded again; a per-REF "already
+ * refunded" check refused it, which was wrong — the second purchase was never refunded.
+ *
+ * <p>This is the ONE owner of the pairing rule. `refundPurchase` asks it what to reverse, and a
+ * policy layer (`refundPolicy.ts`) asks it the same question so a deadline is measured on the
+ * purchase that would actually be reversed rather than on a purchase that would not.
+ */
+export function purchaseAwaitingRefund(ledger: CreditLedger, buyerId: string, templateId: string): CreditEntry | null {
+  const purchases = purchasesOf(ledger, buyerId, templateId);
+  const refunds = refundsOf(ledger, buyerId, templateId);
+  return purchases[refunds.length] ?? null;
+}
+
 /**
  * Reverse one purchase of a listing by a buyer. Pure and atomic: on any refusal the ledger handed in is
  * untouched. The `priceCents` returned is the amount the ORIGINAL purchase recorded.
@@ -54,17 +81,16 @@ export function refundPurchase(catalog: TemplateCatalog, ledger: CreditLedger, r
   if (typeof refund.buyerId !== 'string' || refund.buyerId === '') return { ok: false, reason: 'a refund needs the buyerId it is for' };
   if (typeof refund.entryId !== 'string' || refund.entryId === '') return { ok: false, reason: 'a refund needs a non-empty entryId (the idempotency key of the buyer\'s credit)' };
 
-  // Purchases and refunds PAIR: the n-th refund reverses the n-th purchase (FIFO). Counting them
-  // separately is what lets a re-purchase after a refund be refunded again; a per-REF "already
-  // refunded" check refused it, which was wrong — the second purchase was never refunded.
-  const purchases = ledger.entries.filter((e) => e.accountId === refund.buyerId && e.kind === 'spend' && e.ref === refund.templateId);
-  const refunds = ledger.entries.filter((e) => e.accountId === refund.buyerId && e.kind === 'refund' && e.ref === refund.templateId);
+  // Two DIFFERENT refusals keep their own sentences: "you never bought it" and "you already refunded
+  // every purchase" are different facts, and pairing alone cannot tell the caller which one it is.
+  const purchases = purchasesOf(ledger, refund.buyerId, refund.templateId);
+  const refunds = refundsOf(ledger, refund.buyerId, refund.templateId);
   if (purchases.length === 0) return { ok: false, reason: `${refund.buyerId} holds no purchase of "${listing.title}" to refund` };
   if (refunds.length >= purchases.length) {
     return { ok: false, reason: `every purchase of "${listing.title}" has already been refunded — a refund is not repeatable` };
   }
   // The OLDEST unrefunded purchase is the one reversed, and ITS recorded price is the amount.
-  const purchase = purchases[refunds.length]!;
+  const purchase = purchaseAwaitingRefund(ledger, refund.buyerId, refund.templateId)!;
 
   const priceCents = -purchase.delta; // the purchase's delta is negative
   if (priceCents <= 0) return { ok: false, reason: 'the recorded purchase does not debit a positive price, so there is nothing to reverse' };

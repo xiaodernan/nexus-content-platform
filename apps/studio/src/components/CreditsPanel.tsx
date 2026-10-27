@@ -7,7 +7,12 @@ import { buildDemoCreditsScene } from '@/lib/creditsDemo';
 import { loadCredits, saveCredits } from '@/lib/creditsStore';
 import { purchaseTemplate } from '@/lib/marketplace';
 import { priceText, type PriceCents } from '@/lib/monetization';
-import { refundPurchase } from '@/lib/refund';
+import {
+  describeRefundPolicy,
+  NO_REFUND_DEADLINE,
+  refundPurchaseUnderPolicy,
+  type RefundPolicy,
+} from '@/lib/refundPolicy';
 import { statementFor, statementLine, statementReconciles } from '@/lib/settlement';
 import type { TemplateListing } from '@/lib/templateCatalog';
 import { buildWalletView } from '@/lib/walletView';
@@ -30,6 +35,18 @@ export default function CreditsPanel() {
   const [ledger, setLedger] = useState<CreditLedger | null>(null);
   const [source, setSource] = useState<'stored' | 'empty' | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * The refund POLICY the page applies. The model declares the SHAPE; the HOST chooses the window, and
+   * this demo page is the host. `none` is a declared policy too — `NO_REFUND_DEADLINE` says so out
+   * loud — while `30d` is the panel's own example, NOT a model default. Switching it changes what the
+   * next refund is allowed to do, which is exactly the decision the mechanism refuses to make.
+   */
+  const [policyChoice, setPolicyChoice] = useState<'none' | '30d'>('none');
+  const policy: RefundPolicy = useMemo(
+    () => (policyChoice === '30d' ? { windowMs: 30 * 86_400_000 } : NO_REFUND_DEADLINE),
+    [policyChoice],
+  );
 
   useEffect(() => {
     try {
@@ -91,24 +108,26 @@ export default function CreditsPanel() {
   }, [ledger, scene]);
 
   /**
-   * REFUND one purchase: the REAL refund mechanism on the LOCAL ledger — the buyer is made whole and
-   * the author is clawed back atomically, then the result is persisted. It reverses the purchase the
-   * ledger recorded, so ownership (which is net of refunds) releases the template.
+   * REFUND one purchase: the REAL refund mechanism on the LOCAL ledger, with the page's POLICY applied
+   * first — the buyer is made whole and the author is clawed back atomically, then the result is
+   * persisted. It reverses the purchase the ledger recorded, so ownership (which is net of refunds)
+   * releases the template. A policy that has closed the window refuses BEFORE the mechanism runs, so
+   * the local ledger is untouched.
    */
   const onRefund = useCallback((listing: TemplateListing) => {
     if (!ledger) return;
-    const decision = refundPurchase(scene.catalog, ledger, {
+    const decision = refundPurchaseUnderPolicy(scene.catalog, ledger, {
       templateId: listing.id,
       buyerId: scene.viewerId,
       entryId: `demo-refund-${listing.id}-${Date.now()}`,
       at: Date.now(),
-    });
+    }, policy, Date.now());
     if (!decision.ok) { setError(decision.reason); return; }
     const saved = saveCredits(window.localStorage, decision.ledger);
     if (!saved.ok) { setError(saved.reason); return; }
     setLedger(decision.ledger);
     setError(null);
-  }, [ledger, scene]);
+  }, [ledger, scene, policy]);
 
   const wallet = ledger ? buildWalletView(scene.catalog, ledger, scene.viewerId) : null;
   // "Still to buy" = the marketplace's affordability gate MINUS what is already owned. The model
@@ -154,6 +173,36 @@ export default function CreditsPanel() {
         </button>
         <button type="button" className="btn" data-credits-clear onClick={clearLocal} style={{ opacity: 0.7 }}>
           Clear the local ledger
+        </button>
+      </div>
+
+      {/*
+        The refund POLICY strip. The mechanism in `refund.ts` deliberately does not decide WHEN a
+        refund is allowed (ADR 0019/0020); the host does, and this page is the host. Switching the
+        policy changes what the NEXT refund may do — with a 30-day window, the demo's purchase (made at
+        a fixed 2023 instant) is already outside it, so the refusal is observable rather than implied.
+      */}
+      <div data-credits-policy-strip style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+        <span data-credits-policy-line style={{ color: 'var(--nexus-muted)' }}>
+          REFUND POLICY · {describeRefundPolicy(policy)}
+        </span>
+        <button
+          type="button"
+          className="btn"
+          data-credits-policy="none"
+          onClick={() => setPolicyChoice('none')}
+          style={{ fontSize: 10, padding: '1px 6px', opacity: policyChoice === 'none' ? 1 : 0.6 }}
+        >
+          No deadline
+        </button>
+        <button
+          type="button"
+          className="btn"
+          data-credits-policy="30d"
+          onClick={() => setPolicyChoice('30d')}
+          style={{ fontSize: 10, padding: '1px 6px', opacity: policyChoice === '30d' ? 1 : 0.6 }}
+        >
+          30-day window
         </button>
       </div>
 
