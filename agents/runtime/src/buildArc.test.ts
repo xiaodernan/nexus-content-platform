@@ -22,11 +22,16 @@ const SPEC: BuildArcSpec = {
 };
 
 /** A recording verifier: green unless the command says otherwise, and it COUNTS its calls. */
-function fakeVerifier(answer?: Partial<{ ok: boolean; detail: string; engine: string }>) {
+function fakeVerifier(answer?: Partial<{ ok: boolean; detail: string; engine: string; failure: 'the-machine' }>) {
   const calls: BuildVerifyRequest[] = [];
   const verifier = async (request: BuildVerifyRequest) => {
     calls.push(request);
-    return { ok: answer?.ok ?? true, detail: answer?.detail ?? `ran ${request.argv.join(' ')}`, engine: answer?.engine ?? 'fake' };
+    return {
+      ok: answer?.ok ?? true,
+      detail: answer?.detail ?? `ran ${request.argv.join(' ')}`,
+      engine: answer?.engine ?? 'fake',
+      ...(answer?.failure === undefined ? {} : { failure: answer.failure }),
+    };
   };
   return { calls, verifier };
 }
@@ -99,6 +104,16 @@ describe('registerBuildTools — the injected door', () => {
     const names = BUILD_TOOL_SPECS[0]!.args.map((a) => a.name);
     expect(names).toEqual(['arcId', 'stepId', 'argv', 'cwd']);
   });
+
+  it('passes the kind through to the tool output — the door does not swallow it', async () => {
+    // The runner is the only layer that KNOWS the machine failed, so the kind has to survive the
+    // registry's own output shape: a door that dropped it here would leave the arc with a red
+    // verdict and no way to tell it from a step that verified bad.
+    const fake = fakeVerifier({ ok: false, detail: 'docker client failed: spawn docker ENOENT', failure: 'the-machine' });
+    const registry = wired(fake.verifier);
+    const res = await registry.invoke({ callId: 'c3', tool: BUILD_VERIFY_TOOL, args: { arcId: 'a', stepId: 's', argv: ['node'] } }, { checkpoint: () => true });
+    expect((res.output as { failure?: string }).failure).toBe('the-machine');
+  });
 });
 
 describe('runBuildArc — the walk', () => {
@@ -142,6 +157,45 @@ describe('runBuildArc — the walk', () => {
     expect(outcome.stoppedAt).toBe('s1');
     expect(outcome.reason).toContain('verified red');
     expect(outcome.reason).toContain('exit 3');
+  });
+
+  it('a machine failure rides the answer up — the arc carries the kind the runner gave it', async () => {
+    // The runner is the only layer that knows the MACHINE failed (a docker that never started). The
+    // arc must carry that kind up — otherwise the door above has to guess from a sentence, and a
+    // guess reads a machine that never started as a step that verified bad.
+    const fake = fakeVerifier({ ok: false, detail: 'docker client failed: spawn docker ENOENT', failure: 'the-machine' });
+    const outcome = await runBuildArc(SPEC, { registry: wired(fake.verifier), checkpoint: () => true });
+    expect(outcome.status).toBe('failed');
+    expect(outcome.stoppedAt).toBe('s1');
+    expect(outcome.failure).toBe('the-machine');
+    expect(outcome.reason).toContain('spawn docker ENOENT');
+  });
+
+  it('a red verdict names NO kind — a step that verified bad is not the machine failing', async () => {
+    // The counterpart: the container RAN and answered exit 3. That is a verdict the arc reports in
+    // its own words; a kind here would make a proven-bad step read as an unavailable machine.
+    const fake = fakeVerifier({ ok: false, detail: 'container node → exit 3' });
+    const outcome = await runBuildArc(SPEC, { registry: wired(fake.verifier), checkpoint: () => true });
+    expect(outcome.status).toBe('failed');
+    expect(outcome.failure).toBeUndefined();
+  });
+
+  it('a door that BROKE is the machine failing — a throw is not a refusal', async () => {
+    const verifier = async (): Promise<never> => {
+      throw new Error('the host vanished mid-verify');
+    };
+    const outcome = await runBuildArc(SPEC, { registry: wired(verifier), checkpoint: () => true });
+    expect(outcome.status).toBe('failed');
+    expect(outcome.stoppedAt).toBe('s1');
+    expect(outcome.failure).toBe('the-machine');
+    expect(outcome.reason).toContain('the host vanished mid-verify');
+  });
+
+  it('a §28 denial names NO kind — a refusal is the ask’s own business', async () => {
+    const fake = fakeVerifier();
+    const outcome = await runBuildArc(SPEC, { registry: wired(fake.verifier), checkpoint: () => false });
+    expect(outcome.status).toBe('denied');
+    expect(outcome.failure).toBeUndefined();
   });
 
   it('walks step by step: the first red step stops it, later steps never run', async () => {

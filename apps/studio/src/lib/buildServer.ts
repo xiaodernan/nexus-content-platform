@@ -34,6 +34,7 @@ import {
 } from '@nexus/agent-runtime';
 
 import { containerLaneState, createStudioContainerHost, STUDIO_CONTAINER_IMAGE, STUDIO_CONTAINER_POLICY } from './containerServer';
+import type { AskFailureKind } from './doorFailure';
 
 /** The ONE arc id this face serves; every callId joins to it. */
 export const STUDIO_BUILD_ARC_ID = 'studio-build-arc';
@@ -128,6 +129,11 @@ export interface BuildArcAnswerStep {
  * The route's answer. A planner that finds nothing to summon and a walked-but-red arc are
  * both HONEST answers (`status: 'unplanned'` / `'failed'` plus the stated reason), never
  * errors; only an unexpected route failure is `ok: false`.
+ *
+ * v525: the answer now carries WHICH kind of "no" it is (`doorFailure.ts`), read off the walk
+ * rather than picked here. A red verdict is the machine answering — the container ran and the
+ * step is bad — and stays a 200. A docker that never started is the MACHINE failing, and the
+ * kind rides the answer so the door answers 503 instead of a 200 that reads as "attempted".
  */
 export type BuildArcAnswer =
   | { ok: false; reason: string }
@@ -136,6 +142,11 @@ export type BuildArcAnswer =
       status: BuildArcStatus | 'unplanned';
       stoppedAt?: string;
       reason?: string;
+      /**
+       * Which kind of "no" this answer is. Present when the machine failed — the container could
+       * not start — so the door derives 503 from it (askDoorStatus), never 200.
+       */
+      failure?: AskFailureKind;
       /** The goal this walk planned for (the request's, or the face's default). */
       goal: string;
       /** WHO chose the steps — the planner's provenance, stamped on the answer (§63). */
@@ -197,7 +208,9 @@ export async function runStudioBuildArcOutcome(options: { spawnLike?: SpawnLike;
       ? `build arc ${outcome.arcId}: ${green}/${steps.length} step(s) green — engine ${STUDIO_BUILD_ENGINE} — ${plannedBy}`
       : outcome.status === 'denied'
         ? `build arc ${outcome.arcId}: denied at ${outcome.stoppedAt ?? '?'} — ${outcome.reason ?? ''}`
-        : `build arc ${outcome.arcId}: ${outcome.status} at ${outcome.stoppedAt ?? '?'} — ${outcome.reason ?? ''}`;
+        : outcome.failure === 'the-machine'
+          ? `build arc ${outcome.arcId}: the machine failed at ${outcome.stoppedAt ?? '?'} — ${outcome.reason ?? ''}`
+          : `build arc ${outcome.arcId}: ${outcome.status} at ${outcome.stoppedAt ?? '?'} — ${outcome.reason ?? ''}`;
   return {
     outcome,
     answer: {
@@ -205,6 +218,10 @@ export async function runStudioBuildArcOutcome(options: { spawnLike?: SpawnLike;
       status: outcome.status,
       ...(outcome.stoppedAt === undefined ? {} : { stoppedAt: outcome.stoppedAt }),
       ...(outcome.reason === undefined ? {} : { reason: outcome.reason }),
+      // v525: the walk knows whether the MACHINE failed (the runner stamped it) — the answer
+      // carries that kind up, and the route derives 503 from it. Absent otherwise: a red verdict
+      // is a verdict, and an answer with no kind is the door answering.
+      ...(outcome.failure === undefined ? {} : { failure: outcome.failure }),
       goal,
       planned: drafted.draft.provenance,
       detail,

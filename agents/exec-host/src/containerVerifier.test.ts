@@ -108,6 +108,28 @@ describe('containerVerifyRunner — adapter mapping over a stub host', () => {
     expect(killed.detail).toContain('killed at timeout budget');
   });
 
+  it('a docker client that could not START carries the machine’s kind — the door above need not guess', async () => {
+    // The ask was fine and the client never started. The detail says it in prose, but prose is not a
+    // kind: without this the arc above reads the same sentence as a step that verified bad.
+    const { host } = stubHost({ ran: true, spawnError: 'spawn docker ENOENT' });
+    const answer = await containerVerifyRunner(host)({ arcId: 'a', stepId: 's', argv: ['node'] });
+    expect(answer.ok).toBe(false);
+    expect(answer.failure).toBe('the-machine');
+  });
+
+  it('a refusal carries NO kind — a refused ask is the ask’s own business', async () => {
+    const { host } = stubHost({ ran: false, planned: false, reason: 'no allowlist rule matches (default-deny)' });
+    const answer = await containerVerifyRunner(host)({ arcId: 'a', stepId: 's', argv: ['curl'] });
+    expect(answer.failure).toBeUndefined();
+  });
+
+  it('a red verdict carries NO kind — a container that ran and exited nonzero is a verdict', async () => {
+    const { host } = stubHost({ exitCode: 3 });
+    const answer = await containerVerifyRunner(host)({ arcId: 'a', stepId: 's', argv: ['node'] });
+    expect(answer.ok).toBe(false);
+    expect(answer.failure).toBeUndefined();
+  });
+
   it('the engine name is the caller’s override or the pinned image', async () => {
     const { host } = stubHost({});
     expect((await containerVerifyRunner(host, { engine: 'custom-runner' })({ arcId: 'a', stepId: 's', argv: ['node'] })).engine).toBe('custom-runner');
@@ -136,6 +158,19 @@ describe('containerVerifyRunner — the wall holds on the real host path', () =>
     expect(answer.ok).toBe(false);
     expect(answer.detail).toContain('default-deny');
     expect(spawned).toHaveLength(0);
+  });
+
+  it('a docker client that cannot START is the machine failing, and says so with a kind', async () => {
+    // The real host path: the client never lived. The run result carries `spawnError`, and the
+    // adapter turns that fact into the machine's kind — the door above must not read it as a step
+    // that verified bad.
+    const { spawned, spawnLike } = fakeSpawn(null, { error: 'spawn docker ENOENT' });
+    const host = createContainerExecHost(POLICY, { spawnLike });
+    const answer = await containerVerifyRunner(host)({ arcId: 'arc-9', stepId: 'build', argv: ['node', '--version'] });
+    expect(answer.ok).toBe(false);
+    expect(answer.failure).toBe('the-machine');
+    expect(answer.detail).toContain('spawn docker ENOENT');
+    expect(spawned).toHaveLength(1);
   });
 
   it('a failing command inside the container is a red verdict with the container’s exit code', async () => {

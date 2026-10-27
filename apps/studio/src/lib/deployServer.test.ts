@@ -35,7 +35,7 @@ import { STUDIO_BUILD_ARC_ID, STUDIO_BUILD_GOAL } from './buildServer';
  * stdout with a zero exit code is GREEN. The stdout override below exists so a case can say
  * that out loud instead of by accident.
  */
-function fakeSpawn(code: number | null = 0, stdout?: string) {
+function fakeSpawn(code: number | null = 0, stdout?: string, error = '') {
   const calls: Array<{ cmd: string; args: string[] }> = [];
   const spawnLike = (cmd: string, args: string[]) => {
     calls.push({ cmd, args });
@@ -43,7 +43,7 @@ function fakeSpawn(code: number | null = 0, stdout?: string) {
     return {
       onData: (l: (s: 'stdout' | 'stderr', c: Buffer | string) => void) => l('stdout', Buffer.from(out)),
       onEnd: (l: (e: { code: number | null; signal: string | null; error?: string }) => void) => {
-        setImmediate(() => l({ code, signal: null }));
+        setImmediate(() => l({ code, signal: null, ...(error === '' ? {} : { error }) }));
       },
       kill: () => {},
     };
@@ -408,5 +408,37 @@ describe('the deploy lane says WHOSE fault it was (v509)', () => {
     if (!a.ok) return;
     expect(a.status).toBe('not-green');
     expect(a.failure).toBeUndefined();
+  });
+});
+
+/**
+ * v525 — the deploy door stood on the build door, so it inherited the build door's blind spot: a
+ * build arc that failed because the MACHINE failed (docker never started) was the same not-green
+ * answer as a build arc that failed because a step verified bad, and both earned a 200 that reads
+ * as "attempted". The kind now rides the build's answer up, and the deploy answer carries it.
+ */
+describe('the deploy lane inherits the build door’s kind (v525)', () => {
+  it('a build that could not RUN is a machine failure — the deploy names it and deploys nothing', async () => {
+    const { spawnLike } = fakeSpawn(0, undefined, 'spawn docker ENOENT');
+    const { fs, appends } = fakeFs();
+    const a = await runStudioDeployArc({ spawnLike, fs });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('not-green');
+    expect(a.failure).toBe('the-machine');
+    expect(a.detail).toContain('the machine failed inside the build');
+    expect(a.facts).toEqual([]);
+    expect(appends).toHaveLength(0);
+  });
+
+  it('a RED build still names no kind — a step that verified bad is not the machine failing', async () => {
+    const { spawnLike } = fakeSpawn(3);
+    const { fs } = fakeFs();
+    const a = await runStudioDeployArc({ spawnLike, fs });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('not-green');
+    expect(a.failure).toBeUndefined();
+    expect(a.detail).not.toContain('the machine failed inside the build');
   });
 });

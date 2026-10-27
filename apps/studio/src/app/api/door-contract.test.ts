@@ -105,7 +105,11 @@ vi.mock('@/lib/buildServer', async (importOriginal) => {
     runStudioBuildArc: async (...args: Parameters<typeof actual.runStudioBuildArc>) => {
       if (agentMode === 'throw') throw new Error('the build engine could not be summoned');
       if (agentMode === 'machine') {
-        return { ok: false, reason: 'the container host refused the walk', failure: 'the-machine' as const };
+        // v525: the REAL lane over a docker that cannot start. The stub used to answer
+        // `{ ok: false, reason: 'the container host refused the walk' }` — a body the shipped lane
+        // never emits — so the 503 pin below graded a shape the test author typed, not the answer
+        // production gives.
+        return actual.runStudioBuildArc({ ...args[0], spawnLike: DOCKER_IS_NOT_HERE });
       }
       return actual.runStudioBuildArc(...args);
     },
@@ -615,13 +619,18 @@ describe('the door contract — the AGENT doors, and WHOSE fault it was (v509)',
     expect(body.detail).toContain('no allowlist rule matches');
   });
 
-  it('a failed MACHINE is a 503 on the build-arc door', async () => {
+  it('a failed MACHINE is a 503 on the build-arc door — the shipped lane over a docker that cannot start', async () => {
     agentMode = 'machine';
     const res = await buildArcPost(jsonPost('/api/agent/build-arc', { goal: 'verify the runtime' }));
     expect(res.status).toBe(503);
     const body = await res.json();
+    // v525: the door ANSWERED — ok is true, the verdict is 'failed', and the kind names whose
+    // failure it is. Before the repair the build answer carried no kind at all, so this same
+    // machine earned a 200 that read as "attempted".
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('failed');
     expect(body.failure).toBe('the-machine');
-    expect(body.reason).toContain('the container host refused the walk');
+    expect(body.reason).toContain('spawn docker ENOENT');
   });
 
   it('a failed MACHINE is a 503 on the deploy door — even though the arc answered ok: true', async () => {

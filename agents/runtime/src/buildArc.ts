@@ -49,6 +49,20 @@ export interface BuildVerifyRequest {
   cwd?: string;
 }
 
+/**
+ * Which kind of "no" a verify door's answer carries.
+ *
+ * <p>The runtime is spawn-free, so it never knows what failed — but the RUNNER it was handed does, and
+ * a runner that knows the MACHINE failed must be able to say so across the seam. Otherwise the door
+ * above has to guess from a sentence, and a guess reads a machine that never started as a step that
+ * verified bad: two different facts, one number, and the caller rewrites the wrong thing.
+ *
+ * <p>Only the machine kind travels here. A refused ask is the arc's own business — a denial is a
+ * verdict the arc reports in its own words — while "the machine could not do it" is a fact nobody
+ * above should have to infer from prose.
+ */
+export type BuildVerifyFailure = 'the-machine';
+
 export interface BuildVerifyAnswer {
   ok: boolean;
   detail: string;
@@ -56,6 +70,11 @@ export interface BuildVerifyAnswer {
   engine: string;
   /** The engine's own stdout, when it has one — the proof's claim that the step COMPUTED rests on this, not on `ok` alone. */
   stdout?: string;
+  /**
+   * The machine failed — the runner knows it, and the arc cannot see it from the detail. Carried so
+   * the door above can answer 503 instead of reading a failed verification as a refused ask.
+   */
+  failure?: BuildVerifyFailure;
 }
 
 export type BuildVerifier = (request: BuildVerifyRequest) => Promise<BuildVerifyAnswer>;
@@ -69,7 +88,13 @@ export function registerBuildTools(registry: ToolRegistry, verifier: BuildVerifi
         argv: args.argv as string[],
         ...(args.cwd === undefined ? {} : { cwd: String(args.cwd) }),
       });
-      return { ok: answer.ok, detail: answer.detail, engine: answer.engine, ...(answer.stdout === undefined ? {} : { stdout: answer.stdout }) };
+      return {
+        ok: answer.ok,
+        detail: answer.detail,
+        engine: answer.engine,
+        ...(answer.stdout === undefined ? {} : { stdout: answer.stdout }),
+        ...(answer.failure === undefined ? {} : { failure: answer.failure }),
+      };
     });
   }
   return registry;
@@ -159,6 +184,12 @@ export interface BuildArcOutcome {
   /** Step that did not pass, when the arc stopped before its own end. */
   stoppedAt?: string;
   reason?: string;
+  /**
+   * The machine failed while this arc walked — the runner said so, and the arc carries it up so the
+   * door above never has to read a failed verification as a failed ask. Absent when the machine
+   * answered: a red verdict is a verdict, and a denial is the ask's own refusal.
+   */
+  failure?: BuildVerifyFailure;
   /** What the arc deliberately did NOT do, and why — never a silent omission. */
   notes: string[];
   /**
@@ -228,12 +259,15 @@ export async function runBuildArc(spec: BuildArcSpec, opts: BuildArcOptions): Pr
         status: denied ? 'denied' : 'failed',
         stoppedAt: step.stepId,
         reason: denied ? `denied at ${step.stepId}: ${res.error}` : `${step.stepId} did not run: ${res.error}`,
+        // The door did not ANSWER — it broke. The only way a registered build.verify door does not
+        // answer here is to throw, and a throw is the machine failing, not the ask being refused.
+        ...(denied ? {} : { failure: 'the-machine' as const }),
         notes: [],
       });
     }
     // The door RAN; its own verdict is the arc's verdict. A red answer is a failed
     // verification — the engine answered, the step is bad, and the detail is the engine's.
-    const verdict = res.output as { ok?: boolean; detail?: string } | undefined;
+    const verdict = res.output as { ok?: boolean; detail?: string; failure?: BuildVerifyFailure } | undefined;
     if (!verdict || verdict.ok !== true) {
       return durable({
         arcId: spec.arcId,
@@ -244,6 +278,9 @@ export async function runBuildArc(spec: BuildArcSpec, opts: BuildArcOptions): Pr
         status: 'failed',
         stoppedAt: step.stepId,
         reason: `${step.stepId} verified red: ${verdict?.detail ?? 'no detail was stated'}`,
+        // The runner may KNOW more than the verdict says: a docker that never started is the
+        // machine failing, and the runner is the only layer that can tell that from a red step.
+        ...(verdict?.failure === undefined ? {} : { failure: verdict.failure }),
         notes: [],
       });
     }

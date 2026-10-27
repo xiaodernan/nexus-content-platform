@@ -31,8 +31,12 @@ export function containerVerifyRunner(host: ContainerHost, options: ContainerVer
       { argv: request.argv, ...(request.cwd === undefined ? {} : { cwd: request.cwd }) },
       { preApproved: true, callId: `${request.arcId}:${request.stepId}` },
     );
+    // A refusal that never ran is the ASK's: the policy or the §28 gate said no before the client
+    // was summoned, and a refused ask is the caller's to see. A client that could not START is the
+    // MACHINE's: the ask was fine and this door could not perform it — so the kind rides the answer
+    // and the door above answers 503 instead of reading it as a step that verified bad.
     if (!result.ran) return { ok: false, detail: result.reason, engine };
-    if (result.spawnError !== '') return { ok: false, detail: `docker client failed: ${result.spawnError}`, engine };
+    if (result.spawnError !== '') return { ok: false, detail: `docker client failed: ${result.spawnError}`, engine, failure: 'the-machine' };
     const ok = result.exitCode === 0 && !result.killedByBudget;
     const detail = `container ${result.image} ${result.argv.join(' ')} → exit ${result.exitCode}${result.killedByBudget ? ' (killed at timeout budget)' : ''}${result.truncated ? ` (output truncated${result.truncatedStreams && result.truncatedStreams.length > 0 ? `: ${result.truncatedStreams.join(' + ')}` : ''})` : ''}`;
     return { ok, detail, engine, ...(result.stdout === '' ? {} : { stdout: result.stdout }) };

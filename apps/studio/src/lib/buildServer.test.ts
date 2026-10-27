@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CONTAINER_ISOLATION_ARGS, CONTAINER_MOUNT_FLAGS } from '@nexus/exec-host';
 import { planBuildArc, templateBuildPlanner } from '@nexus/agent-runtime';
 
+import { askDoorStatus } from './doorFailure';
 import {
   buildArcState,
   runStudioBuildArc,
@@ -15,8 +16,8 @@ import {
   studioBuildCheckpointPolicyError,
 } from './buildServer';
 
-/** Minimal SpawnLike fake — the host never knows it is not docker. */
-function fakeSpawn(stdout = 'arc ok:5\n', code: number | null = 0) {
+/** Minimal SpawnLike fake — the host never knows it is not docker. `error` is the CLIENT's own failure. */
+function fakeSpawn(stdout = 'arc ok:5\n', code: number | null = 0, error = '') {
   const calls: Array<{ cmd: string; args: string[] }> = [];
   const spawnLike = (cmd: string, args: string[]) => {
     calls.push({ cmd, args });
@@ -25,7 +26,7 @@ function fakeSpawn(stdout = 'arc ok:5\n', code: number | null = 0) {
         if (stdout !== '') l('stdout', Buffer.from(stdout));
       },
       onEnd: (l: (e: { code: number | null; signal: string | null; error?: string }) => void) => {
-        setImmediate(() => l({ code, signal: null }));
+        setImmediate(() => l({ code, signal: null, ...(error === '' ? {} : { error }) }));
       },
       kill: () => {},
     };
@@ -231,5 +232,51 @@ describe('runStudioBuildArcOutcome — the walk AND its display answer (v455)', 
     if (!named.answer.ok) return;
     expect(named.answer.goal).toBe('check the numbers');
     expect(named.outcome?.goal).toBe('check the numbers');
+  });
+});
+
+describe('runStudioBuildArcOutcome — WHICH kind of "no" the answer is (v525)', () => {
+  // The build door's answer used to carry no kind at all, so a door that could not start docker and a
+  // step that verified bad were the SAME answer: ok:true, status 'failed', and a 200 that reads as
+  // "attempted". The kind rides the walk up now, and the status is DERIVED from it.
+
+  it('a docker that never STARTED is the machine failing — the answer says whose failure it is', async () => {
+    const { spawnLike } = fakeSpawn('', 0, 'spawn docker ENOENT');
+    const walk = await runStudioBuildArcOutcome({ spawnLike });
+    expect(walk.answer.ok).toBe(true);
+    if (!walk.answer.ok) return;
+    expect(walk.answer.status).toBe('failed');
+    expect(walk.answer.failure).toBe('the-machine');
+    expect(walk.answer.detail).toContain('the machine failed');
+    expect(walk.answer.reason).toContain('spawn docker ENOENT');
+    // The walk knows it too — the answer is its projection, not a second reading of the same bytes.
+    expect(walk.outcome?.failure).toBe('the-machine');
+  });
+
+  it('a machine failure earns 503 — the door did not perform the ask', async () => {
+    const { spawnLike } = fakeSpawn('', 0, 'spawn docker ENOENT');
+    const a = await runStudioBuildArc({ spawnLike });
+    expect(askDoorStatus(a)).toBe(503);
+  });
+
+  it('a RED verdict names NO kind — the container ran and the step is bad, so the door answers 200', async () => {
+    const { spawnLike } = fakeSpawn('', 3);
+    const a = await runStudioBuildArc({ spawnLike });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('failed');
+    expect(a.failure).toBeUndefined();
+    expect(a.detail).not.toContain('the machine failed');
+    expect(askDoorStatus(a)).toBe(200);
+  });
+
+  it('an UNPLANNED goal names NO kind — nothing was asked of the machine, so the door answers 200', async () => {
+    const { spawnLike } = fakeSpawn();
+    const a = await runStudioBuildArc({ spawnLike, goal: 'zzz qqq nonsense' });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('unplanned');
+    expect(a.failure).toBeUndefined();
+    expect(askDoorStatus(a)).toBe(200);
   });
 });

@@ -276,11 +276,18 @@ export async function runStudioDeployArc(
     return {
       ok: true,
       status: 'not-green',
+      // v525: the BUILD arc names the kind when the machine failed inside it (a docker that never
+      // started). The deploy stands on that build, so the kind rides up: a deploy that could not be
+      // performed is a 503, not a 200 that reads as "nothing deployed, build was red".
+      ...(walk.answer.failure === undefined ? {} : { failure: walk.answer.failure }),
       ...(walk.answer.stoppedAt === undefined ? {} : { stoppedAt: walk.answer.stoppedAt }),
       reason: walk.answer.reason,
       goal,
       build: { status: buildStatus, detail: buildDetail },
-      detail: `deploy arc ${STUDIO_BUILD_ARC_ID}: nothing deployed — a build arc that did not complete (${buildStatus}) deploys nothing`,
+      detail:
+        walk.answer.failure === 'the-machine'
+          ? `deploy arc ${STUDIO_BUILD_ARC_ID}: nothing deployed — the machine failed inside the build (${buildStatus})`
+          : `deploy arc ${STUDIO_BUILD_ARC_ID}: nothing deployed — a build arc that did not complete (${buildStatus}) deploys nothing`,
       facts: [],
       unmeasured: [],
       deployReceipts: [],
