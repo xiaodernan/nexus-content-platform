@@ -1837,8 +1837,13 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   不断言阈值，但结构不变式红即非零码退出。首跑 7 条不变式红 5 条，归因出**三个产品真缺陷**
   （§86 颜色指标自比 ≠1 的分母谎、§38 合成链"换色不变构图"的假注释、DEMO provider 引用不存在的
   `{font.display}` token）加两个评测自己的错（语料少建一条 lore、引用检查器把链式 insert 当幻觉），
-  全部修复并有回归钉。**仍欠**：§85 的真实 provider 半边（LLM 裁判 / Tool selection / Agent task
-  completion）、RAG 向量半（#110）；§86 的 provider 接入半边
+  全部修复并有回归钉。**第二片同日落地：渲染后页面的无障碍**（`e2e/a11y.spec.ts`）：真发布流程
+  建公开作品页，匿名访客在真 Chrome 里对真 DOM 跑 axe（WCAG 2.0/2.1 A+AA）——设计模型的静态门禁
+  测的是设计，渲染投影只有 axe 才测得到。读数进 `docs/EVALUATION.md`（24 过 / 39 不适用 /
+  serious color-contrast ×7 = 平台壳 5 + 作者投影 2，critical 0），结构不变式钉
+  `passes>0`（防白页假绿）与 `critical===0`；壳上的 color-contrast 是记账的真实欠账，
+  换 token 动全站色板，另开切片。**仍欠**：§85 的真实 provider 半边（LLM 裁判 / Tool selection /
+  Agent task completion）、RAG 向量半（#110）、渲染页键盘走查；§86 的 provider 接入半边
   （typography / componentCorrectness 的真实来源）；metrics/tracing 也没接，
   所以"线上发生了什么"目前只能靠审计表 + stderr。
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在

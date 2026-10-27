@@ -80,7 +80,27 @@ notMeasured：typography / componentCorrectness（等视觉 provider）、真实
 | 干净基线 | score=100 · 零发现 |
 | 注入 4 类违规（低对比 / 缺 alt / 无名按钮 / 过小点击目标） | **检出 4/4**，全部定位到节点 · a11y 分 70 |
 
-notMeasured：渲染后页面的 axe / 键盘可达性（需真浏览器；设计模型这层只测静态规则）。
+notMeasured：渲染后页面的**键盘**可达性（axe 盖不了真键盘走查；渲染半边见下一节）。
+
+### 渲染后页面的无障碍（axe × 真浏览器 · e2e/a11y.spec.ts）
+
+设计模型的静态门禁测的是**设计**；Next 壳 + 渲染投影只有对真 DOM 跑 axe 才测得到。
+方法：走真发布流程建公开作品页，匿名访客在真 Chrome 里对 `/n/<handle>/<slug>` 注入
+axe-core（WCAG 2.0/2.1 A+AA 四个 tag），读 `violations`。
+
+2026-10-28 首跑读数（三跑一致）：**通过规则 24 · 不适用 39 · 违规 1 类**
+——serious `color-contrast` ×7，归因两条线：
+
+| 来源 | 节点 | 处置 |
+|---|---|---|
+| 平台壳 5 | header meta、radius 徽章、"Built with NEXUS"、评论计数、分享按钮 | **真实欠账**——换 token 动全站色板，另开切片 |
+| 设计投影 2 | `li` / `p`（作者快照的忠实渲染） | 领地归作者（§16）——设计期由 analyzeHealth 静态门禁分级，平台不得改写作者颜色 |
+
+结构不变式（进 exit code 的那种）：`passes.length > 0`（对白页 axe 也"全绿"，那种绿不算
+证据——这条防的是扫描根本没发生）与 `critical === 0`（当前读数下全站 critical 为 0）。
+不断言 serious 数——壳上的 color-contrast 是已记账的债，不是允许的回归。
+
+notMeasured：键盘可达性人工走查、Studio 界面的 axe（本次只扫公开作品页一个面）。
 
 ### Performance
 
@@ -110,5 +130,5 @@ notMeasured：渲染后页面的 axe / 键盘可达性（需真浏览器；设�
 - Hallucination 的 LLM 裁判、Tool selection、Agent task completion——需真 provider / 真 agent 循环
 - RAG 的向量半（embedding provider 未接入，#110）
 - typography / componentCorrectness 视觉指标（需视觉 provider，§86 第二半）
-- 渲染后页面的无障碍（axe / 键盘，需真浏览器）
+- 渲染后页面的键盘可达性（人工走查）；Studio 界面的 axe（已扫的只有公开作品页）
 - Performance——见 `docs/PERFORMANCE.md`
