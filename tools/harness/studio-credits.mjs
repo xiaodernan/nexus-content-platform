@@ -76,6 +76,24 @@ try {
     JSON.stringify(rows),
   );
 
+  // 4b. BUY: the REAL marketplace transaction on the local ledger.
+  const buyClicked = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-buy=\"tpl-mobile\"]'); if (!b) return false; b.click(); return true; })()",
+  );
+  check('the store offers a Buy action for an affordable, unowned listing', buyClicked === true, `buy clicked: ${buyClicked}`);
+  await page.waitForFunction("(document.querySelector('[data-credits-wallet]')?.innerText ?? '').includes('balance: 300 credits')", { timeout: 10000 });
+  const afterBuy = await page.evaluate(
+    "(() => ({ wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, stillBuyable: !!document.querySelector('[data-credits-buy=\"tpl-mobile\"]') }))()",
+  );
+  check('buying debits the buyer by the price (500 -> 300)', /balance: 300 credits/.test(afterBuy.wallet ?? ''), afterBuy.wallet);
+  check('the purchased template is now owned and no longer offered', /owns: tpl-saas, tpl-mobile/.test(afterBuy.wallet ?? '') && afterBuy.stillBuyable === false, JSON.stringify(afterBuy));
+
+  // evidence: a screenshot of the POPULATED surface (before the reload and clear).
+  const shot = await page.send('Page.captureScreenshot', { format: 'png' });
+  const file = join(OUT_DIR, 'credits-surface.png');
+  writeFileSync(file, Buffer.from(shot.data, 'base64'));
+  console.log(`screenshot: ${file}`);
+
   // 5. PERSISTENCE: a full reload reads the ledger back from localStorage.
   await page.navigate(`${URL_BASE}/credits`, { waitForSelector: '#nexus-credits' });
   // The FIRST render after a reload has no ledger yet (the effect has not run), so waiting for
@@ -85,7 +103,7 @@ try {
   const afterReload = await page.evaluate(
     "(() => ({ empty: !!document.querySelector('[data-credits-empty]'), wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }))()",
   );
-  check('the ledger PERSISTS across a reload (localStorage)', afterReload.empty === false && /balance: 500 credits/.test(afterReload.wallet ?? ''), JSON.stringify(afterReload));
+  check('the ledger PERSISTS across a reload (localStorage)', afterReload.empty === false && /balance: 300 credits/.test(afterReload.wallet ?? '') && /owns: tpl-saas, tpl-mobile/.test(afterReload.wallet ?? ''), JSON.stringify(afterReload));
 
   // 6. clearing writes a valid empty ledger and returns the page to its empty state.
   await page.evaluate("(() => { const b = document.querySelector('[data-credits-clear]'); if (!b) return false; b.click(); return true; })()");
@@ -93,11 +111,7 @@ try {
   const cleared = await page.evaluate("!!document.querySelector('[data-credits-empty]')");
   check('clearing the local ledger returns the page to its empty state', cleared === true, String(cleared));
 
-  // 7. evidence: a screenshot, and no uncaught page errors.
-  const shot = await page.send('Page.captureScreenshot', { format: 'png' });
-  const file = join(OUT_DIR, 'credits-surface.png');
-  writeFileSync(file, Buffer.from(shot.data, 'base64'));
-  console.log(`screenshot: ${file}`);
+  // 7. no uncaught page errors (the screenshot was taken on the populated surface above).
   check('no uncaught page errors', session.pageErrors.length === 0, JSON.stringify(session.pageErrors).slice(0, 400));
 } finally {
   await page.close();

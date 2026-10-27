@@ -5,8 +5,10 @@ import { buildCreatorDashboard, creatorDashboardLine } from '@/lib/creatorDashbo
 import type { CreditLedger } from '@/lib/credits';
 import { buildDemoCreditsScene } from '@/lib/creditsDemo';
 import { loadCredits, saveCredits } from '@/lib/creditsStore';
+import { purchaseTemplate } from '@/lib/marketplace';
 import { priceText, type PriceCents } from '@/lib/monetization';
 import { statementFor, statementLine, statementReconciles } from '@/lib/settlement';
+import type { TemplateListing } from '@/lib/templateCatalog';
 import { buildWalletView } from '@/lib/walletView';
 
 /**
@@ -64,7 +66,34 @@ export default function CreditsPanel() {
     }
   }, []);
 
+  /**
+   * BUY one listing: the REAL marketplace transaction on the LOCAL ledger. It appends the buyer's debit
+   * and the author's credit atomically, then persists the result through `creditsStore`. This spends
+   * DEMO credits, not money — the surface says so on its face — but the arithmetic, the atomicity and
+   * the persistence are the ones the rest of the model enforces.
+   */
+  const onBuy = useCallback((listing: TemplateListing) => {
+    if (!ledger) return;
+    const decision = purchaseTemplate(scene.catalog, ledger, {
+      templateId: listing.id,
+      buyerId: scene.viewerId,
+      // The HOST supplies the instant and the idempotency key (ADR 0010); a timestamp keeps a second
+      // purchase in a later session from colliding with this one.
+      entryId: `demo-buy-${listing.id}-${Date.now()}`,
+      at: Date.now(),
+    });
+    if (!decision.ok) { setError(decision.reason); return; }
+    const saved = saveCredits(window.localStorage, decision.ledger);
+    if (!saved.ok) { setError(saved.reason); return; }
+    setLedger(decision.ledger);
+    setError(null);
+  }, [ledger, scene]);
+
   const wallet = ledger ? buildWalletView(scene.catalog, ledger, scene.viewerId) : null;
+  // "Still to buy" = the marketplace's affordability gate MINUS what is already owned. The model
+  // deliberately lets an owned listing stay affordable (ADR 0019's bound), so the panel does the
+  // subtraction rather than inviting a second purchase of one item.
+  const stillToBuy = wallet ? wallet.affordableTemplateIds.filter((id) => !wallet.ownedTemplateIds.includes(id)) : [];
   const creator = ledger ? buildCreatorDashboard(scene.catalog, ledger, scene.creatorId) : null;
   const statement = ledger ? statementFor(ledger, scene.viewerId) : null;
   const reconciles = ledger && statement ? statementReconciles(ledger, statement) : false;
@@ -84,7 +113,8 @@ export default function CreditsPanel() {
       </div>
       <div style={{ color: 'var(--nexus-muted)', marginBottom: 12, maxWidth: 780 }}>
         This page reads and writes the ledger through the same local-first store a real ledger would use
-        (<code>nexus.credits.v1</code> in this browser). Nothing here moves real money.
+        (<code>nexus.credits.v1</code> in this browser). Buying a template appends a real two-entry
+        transaction to that LOCAL ledger — it spends demo credits, not money.
       </div>
 
       {error && (
@@ -116,7 +146,7 @@ export default function CreditsPanel() {
                 balance: <b>{wallet.balanceCents} credits</b>
               </div>
               <div>owns: {wallet.ownedTemplateIds.length ? wallet.ownedTemplateIds.join(', ') : 'nothing'}</div>
-              <div>affordable now: {wallet.affordableTemplateIds.length ? wallet.affordableTemplateIds.join(', ') : 'nothing'}</div>
+              <div>can still buy: {stillToBuy.length ? stillToBuy.join(', ') : 'nothing'}</div>
             </section>
           )}
 
@@ -145,6 +175,7 @@ export default function CreditsPanel() {
                   <th align="left">author</th>
                   <th align="left">price</th>
                   <th align="left">you</th>
+                  <th align="left">action</th>
                 </tr>
               </thead>
               <tbody>
@@ -152,12 +183,29 @@ export default function CreditsPanel() {
                   const owned = wallet?.ownedTemplateIds.includes(listing.id) ?? false;
                   const affordable = wallet?.affordableTemplateIds.includes(listing.id) ?? false;
                   const state = owned ? 'owned' : affordable ? 'affordable' : listing.priceCents === 0 ? 'free' : 'out of reach';
+                  // A listing is buyable only when it is a PAID listing the viewer does not already own
+                  // and can afford. Offering "Buy" on something already owned would invite a second
+                  // purchase of one item — the model allows it, but the panel should not suggest it.
+                  const buyable = !owned && affordable && listing.priceCents > 0;
                   return (
                     <tr key={listing.id} data-credits-listing={listing.id}>
                       <td>{listing.title}</td>
                       <td>{listing.authorId}</td>
                       <td>{priceText(listing.priceCents as PriceCents, 'CNY')}</td>
                       <td>{state}</td>
+                      <td>
+                        {buyable ? (
+                          <button
+                            type="button"
+                            className="btn"
+                            data-credits-buy={listing.id}
+                            onClick={() => onBuy(listing)}
+                            style={{ fontSize: 10, padding: '1px 6px' }}
+                          >
+                            Buy
+                          </button>
+                        ) : null}
+                      </td>
                     </tr>
                   );
                 })}

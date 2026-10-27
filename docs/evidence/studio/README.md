@@ -15,7 +15,7 @@ npm run verify:assets-surface         # the Assets surface's headless proof (M3 
 npm run verify:assets                 # 29/29 Assets-surface assertions in a real browser (needs the Studio on :3210)
 npm run verify:credits                # the M8 credits sub-system's headless proof (§1–§7: ledger, catalog, atomic marketplace, reconciling dashboard/statement, remix fork, derived wallet)
 npm run verify:mutation               # the M8 mutation probe: 12 deliberate breaks, each must be KILLED by the suite (temp copies; real source untouched)
-npm run verify:credits-surface        # 11/11 checks on the /credits page in a real browser — load, wallet/creator/statement, store, reload-persistence, clear (needs the Studio on :3210)
+npm run verify:credits-surface        # 14/14 checks on the /credits page in a real browser — load, wallet/creator/statement, store, BUY, reload-persistence, clear (needs the Studio on :3210)
 ```
 
 Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-parallelism`
