@@ -151,12 +151,12 @@ codegen 把 code-only 区域发成 JSX 里的字符串字面量（`packages/desi
   所以没有"一行改动就快一倍"的余地。它只在「健康」页签 / Publish 弹层打开时跑，Studio 侧已
   `useDeferredValue` + 传 `layouts`；再省要靠增量（只重算脏子树），但那会动到可访问性门禁的对比度判定，
   风险高于收益，留到真被量到卡顿再做。
-- **`writeDocument` 的 `updatedNodes` 仍是逐条 UPDATE**（§147 剩余，2026-10-27 量到）：普通自动保存只改
+- ~~**`writeDocument` 的 `updatedNodes` 逐条 UPDATE**~~：**2026-10-27 量到并修掉**——普通自动保存只改
   1 个节点，逐条无所谓；但**批量编辑 / 切分支**（`switchBranch` 拿整份新文档调 `saveDocument`）会让 jsonb
-  差集判出成百上千个节点，逐条 UPDATE 是往返绑定的——424 节点实测 912ms~5.8s（机器负载高时抖），
-  改成一条 `UPDATE … FROM (VALUES …)` 只要 **95ms**（≈10~60×）。**没改**是因为它在保存主路径上、
-  且要处理 jsonb 传参与 Postgres 单条 65535 参数上限（得按 ~500 节点分块 + 显式 cast），改错会写坏文档；
-  等有干净机器量 + 愿意补一套"批量改 N 个节点"的集成测时再做。删除侧（`movedNodes` 逐条 delete）同理，但通常很少。
+  差集判出成百上千个节点，逐条 UPDATE 是往返绑定的——424 节点实测 912ms~5.8s，改成一条
+  `UPDATE … FROM (VALUES …)` 只要 **95ms**（≈10~60×）。实现按 500 条一块（9 列 ×500=4500 参数，远低于
+  Postgres 单条 65535 上限）+ 各列显式 cast，语义与逐条一致。凭证：`document-*`/`identity`/`branches`/
+  `snapshots` 39 条 + 新增 `document-bulk-update`（620 节点跨分块边界）全绿。删除侧（`movedNodes` 逐条 delete）同理，但通常很少。
 - 浏览器端指标 — `npm run perf:browser`（`scripts/perf-browser.mts`）。建真项目、在真 Chrome 里量
   首帧（画布出现第一个节点）、pan/zoom 帧距与 >33ms 的帧、属性写入到画布重绘的延迟；
   每档 3 次，去掉第一次预热取中位数。
