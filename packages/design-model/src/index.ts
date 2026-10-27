@@ -16,3 +16,4 @@ export * from "./viewport";
 export * from "./codegen";
 export * from "./code-parse";
 export * from "./concepts";
+export * from "./interactions";

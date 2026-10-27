@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { TokenStore, findPage, resolveLayout, type ResolvedNode } from '@nexus/design-model';
+import { TokenStore, findPage, hasClickNavigation, isTerminalInteractivePage, navigateTargetsOnPage, resolveLayout, type ResolvedNode } from '@nexus/design-model';
 import { getPublishedPage, recordView } from '@/server/domain/publish';
 import { buildPublishedSeo } from '@/server/domain/seo';
 import { requestOrigin } from '@/lib/origin';
@@ -12,6 +12,7 @@ import { stateStyleSheetFor } from '@/studio/state-styles';
 import { ReportControl } from './ReportControl';
 import { PublicationActions } from './PublicationActions';
 import { VisitMeter } from './VisitMeter';
+import { InteractiveEnd, InteractiveHotspots, type Hotspot } from './InteractiveSurface';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,6 +78,31 @@ export default async function PublishedPage({ params, searchParams }: Props) {
   const viewer = await currentUserOrNull();
   const actions = await publicationState(publication.path, viewer?.id ?? null);
 
+  // §167/§168：这一版钉住的设计稿有没有"点了会换页"的流程。判定只看模型
+  // （click + navigate、目标是另一张存在的页），几何直接取发布快照算出来的绝对坐标。
+  // 解析不出位置的节点不铺热点——铺一个量不到位置的按钮等于把点击交给运气。
+  const flow = hasClickNavigation(document);
+  const targets = flow ? navigateTargetsOnPage(document, page.id) : {};
+  const hotspots: Hotspot[] = flow
+    ? Object.entries(targets).flatMap(([nodeId, targetPageId]) => {
+        const resolved = layout.nodes[nodeId];
+        const target = findPage(document, targetPageId);
+        if (!resolved || !target) return [];
+        return [
+          {
+            nodeId,
+            targetPageId,
+            targetName: target.name,
+            x: resolved.x,
+            y: resolved.y,
+            width: resolved.width,
+            height: resolved.height,
+          },
+        ];
+      })
+    : [];
+  const terminal = isTerminalInteractivePage(document, page.id);
+
   return (
     <main className="min-h-screen w-full bg-bg-0 text-fg-1" data-published-root data-published-path={publication.path}>
       <header className="flex flex-wrap items-center gap-[var(--nexus-space-3)] border-b border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-4)] py-[var(--nexus-space-2)]">
@@ -121,8 +147,19 @@ export default async function PublishedPage({ params, searchParams }: Props) {
               </div>
             );
           })}
+          {/* 热点盖在画面最上层：命中区就是模型说那个节点在哪，不量 DOM、不猜形状 */}
+          <InteractiveHotspots path={publication.path} hotspots={hotspots} />
         </div>
       </div>
+      {/* §167：这一版跑的是哪一段互动，写在页面上而不是只留在注释里。
+          没有热点也没有终点时不出现——静态设计稿不该被说成"能点的作品" */}
+      {hotspots.length ? (
+        <p className="px-[var(--nexus-space-4)] pt-[var(--nexus-space-3)] text-12 text-fg-2" data-interactive-note>
+          这一版把「点击 → 跳到另一页」的交互跑起来了：鼠标移到可点的区域会亮一圈，点它翻到那一页。
+          悬停、弹窗、状态切换等其余交互在这一版里不会发生。
+        </p>
+      ) : null}
+      {terminal ? <InteractiveEnd path={publication.path} pageId={page.id} /> : null}
       {/* §50：这一版钉住了游戏设计才有这个入口。没有钉住就不出现，
           也不给一个"点进去说没有内容"的链接——那等于用入口骗一次点击 */}
       {publication.hasGame ? (

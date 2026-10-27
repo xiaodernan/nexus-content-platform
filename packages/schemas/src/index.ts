@@ -691,6 +691,20 @@ export const PublishedGameCompleteRequestSchema = z.object({
 export type PublishedGameCompleteRequest = z.infer<typeof PublishedGameCompleteRequestSchema>;
 
 /**
+ * §167/§168：**互动作品**（非游戏的设计稿）走到终点的那一声。
+ *
+ * `pageId` 是客户端声称走到的终点页——服务端不直接信它：会用发布时钉住的快照
+ * 确认这一页真的存在、真的是"没有下一跳"的终点，且这一版确实有可走通的点击跳页。
+ */
+export const PublishedWorkCompleteRequestSchema = z.object({
+  path: z.string().min(3).max(200),
+  visitorKey: z.string().regex(/^[0-9a-f]{32}$/),
+  pageId: z.string().min(1).max(120),
+  webdriver: z.boolean().optional(),
+});
+export type PublishedWorkCompleteRequest = z.infer<typeof PublishedWorkCompleteRequestSchema>;
+
+/**
  * §164 标已读。ids 与 all 二选一（都不给是客户端 bug，两个都给时 all 优先），
  * id 必须是 uuid：收件箱按人查询，这里只是把"能标别人的行"挡在报文层。
  */

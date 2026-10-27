@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import { and, desc, eq, isNotNull, isNull, ne, sql as rawSql } from 'drizzle-orm';
-import { analyzeHealth, type DesignDocument, type HealthReport } from '@nexus/design-model';
+import { analyzeHealth, hasClickNavigation, type DesignDocument, type HealthReport } from '@nexus/design-model';
 import type { RealtimeEvent } from '@nexus/schemas';
 import { getDb } from '../db/client';
 import { recordAudit } from './audit';
@@ -46,6 +46,8 @@ export interface Publication {
   snapshotId: string | null;
   /** §50 / ADR-0009：这一版有没有钉住游戏设计——决定公开页要不要出现「可玩」入口 */
   hasGame: boolean;
+  /** §167/§168：这一版钉住的设计稿有没有可走通的点击跳页——分析页据此决定「互动完成」是否适用 */
+  interactive: boolean;
   views: number;
   publishedAt: string;
 }
@@ -65,6 +67,7 @@ function toPublication(row: typeof publishedProjects.$inferSelect): Publication 
     moderation: row.moderation,
     snapshotId: row.snapshotId,
     hasGame: row.gameDocument !== null && row.gameDocument !== undefined,
+    interactive: row.interactive,
     views: row.views,
     publishedAt: row.publishedAt.toISOString(),
   };
@@ -235,6 +238,8 @@ export async function publishProject(
           .set({
             snapshotId: snapshot.id,
             gameDocument: gameRow?.document ?? null,
+            // 结论存进这一行（快照不变 ⇒ 结论不变）：分析页读一格，不去翻每份快照文档
+            interactive: hasClickNavigation(document),
             visibility: input.visibility,
             version: nextVersion,
             publishedById: input.createdById,
@@ -251,6 +256,7 @@ export async function publishProject(
           projectId,
           snapshotId: snapshot.id,
           gameDocument: gameRow?.document ?? null,
+          interactive: hasClickNavigation(document),
           path,
           visibility: input.visibility,
           version: nextVersion,

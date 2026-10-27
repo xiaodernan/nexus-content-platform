@@ -41,6 +41,11 @@ const DEFINITIONS: { label: string; meaning: string }[] = [
     meaning:
       '在公开可玩页上玩到了结局的人数（一个人在同一版里只记一次，所以这是"多少人通关过"，不是"通关了几次"）。与左边那格「完成度」是两个口径：那个说"这一页滚到哪儿"，这个说"玩通了"。如果那些"人"就是作者自己，页面上会像"只有你自己看过"那样明写出来',
   },
+  {
+    label: '互动完成',
+    meaning:
+      '在公开设计稿页上点着跳页、走到了没有出路的终点页的人数（一个人在同一版里只记一次）。只认「点击 → 跳到另一页」这一种交互；直接打开终点页不算。非互动作品这一格写「—」——那不是 0，是这一版没有这条流程',
+  },
   { label: '浏览时长', meaning: '只在标签页可见时累计；单次上报最多带走 60 秒，被截断过几次会另行标出' },
   {
     label: '疑似爬虫',
@@ -336,6 +341,7 @@ export default async function AnalyticsPage(props: {
                 <th className="px-2 py-1 text-right font-normal">粉丝</th>
                 <th className="px-2 py-1 text-right font-normal">完成度</th>
                 <th className="px-2 py-1 text-right font-normal">通关过</th>
+                <th className="px-2 py-1 text-right font-normal">互动完成</th>
                 <th className="px-2 py-1 text-right font-normal">时长</th>
               </tr>
             </thead>
@@ -381,6 +387,16 @@ export default async function AnalyticsPage(props: {
                     {row.analytics.botCompletions > 0 ? (
                       <span className="ml-1 text-11 text-fg-3" data-analytics-bot-completions>
                         {row.analytics.botCompletions} 次通关来自爬虫/自动化（未计入）
+                      </span>
+                    ) : null}
+                    {row.analytics.selfInteractiveCompleted ? (
+                      <span className="ml-1 text-11 text-amber-300" data-analytics-self-interactive-completed>
+                        只有你自己走通过
+                      </span>
+                    ) : null}
+                    {row.analytics.botInteractiveCompletions > 0 ? (
+                      <span className="ml-1 text-11 text-fg-3" data-analytics-bot-interactive-completions>
+                        {row.analytics.botInteractiveCompletions} 次走通来自爬虫/自动化（未计入）
                       </span>
                     ) : null}
                   </td>

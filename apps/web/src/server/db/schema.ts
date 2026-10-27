@@ -520,6 +520,15 @@ export const publishedProjects = pgTable(
      * NULL 有两种来源（这一版没有游戏设计 / 这行早于迁移 0012），都不回填。
      */
     gameDocument: jsonb('game_document'),
+    /**
+     * §167/§168：这一版钉住的设计稿里有没有**可走通的点击跳页**。
+     *
+     * 存的是发布那一刻的结论（快照不会变 ⇒ 结论也不会变），分析页靠它决定
+     * 「互动完成」那一格是数还是 `—`：给一份没有互动流程的作品显示 0，
+     * 会被读成"没人走完"，而事实是"没有可走的东西"（§159）。
+     * 迁移 0044 会按快照回填历史行。
+     */
+    interactive: boolean('interactive').notNull().default(false),
     /** /n/<handle>/<slug>（§56） */
     path: text('path').notNull(),
     visibility: Visibility('visibility').notNull().default('public'),
@@ -1004,6 +1013,38 @@ export const gameCompletions = pgTable(
   (t) => [
     uniqueIndex('game_completions_once').on(t.publicationId, t.visitorKey),
     index('game_completions_pub_idx').on(t.publicationId),
+  ],
+);
+
+/**
+ * §168：**互动作品**（非游戏）的 completion——访客从带点击跳页的作品上走到了终点。
+ *
+ * 为什么不是 `game_completions` 的表名里多一列：游戏通关与互动稿走到终点是**两个事件来源**，
+ * 但粒度同一条纪律——一个访客在一个发布版本上只记一次，数的是"多少人走通过"。
+ * 两件事分开存，是因为将来任一来源的规则要改（比如终点判定）时，
+ * 不必在一个混合表里猜每一行来自哪套规则。
+ *
+ * 与页面的滚动完成度（`publication_visits.completion_pct`）依旧分开：
+ * 那个说"这一页滚到哪儿"，这个说"走完了设计稿里的流程"。
+ */
+export const workCompletions = pgTable(
+  'work_completions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    publicationId: uuid('publication_id')
+      .notNull()
+      .references(() => publishedProjects.id, { onDelete: 'cascade' }),
+    /** 与访客现场、游戏通关同一把匿名 key：对得上"谁看过 / 谁走完了" */
+    visitorKey: text('visitor_key').notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    /** 走到的终点页：一份作品可能有多个终点，这一列说得清是哪一条路 */
+    pageId: text('page_id').notNull(),
+    suspectedBot: boolean('suspected_bot').notNull().default(false),
+    completedAt: timestamp('completed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('work_completions_once').on(t.publicationId, t.visitorKey),
+    index('work_completions_pub_idx').on(t.publicationId),
   ],
 );
 

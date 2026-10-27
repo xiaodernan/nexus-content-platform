@@ -2,7 +2,7 @@ import { isUuid } from './ids';
 import { and, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { MAX_FLUSH_MS, clampReportedMs, utcDay, validVisitorKey } from '@/lib/visit-meter';
 import { getDb } from '../db/client';
-import { follows, gameCompletions, likes, projects, publicationVisits, publishedProjects, remixes } from '../db/schema';
+import { follows, gameCompletions, likes, projects, publicationVisits, publishedProjects, remixes, workCompletions } from '../db/schema';
 import type { Visibility } from './publish';
 
 /**
@@ -115,6 +115,48 @@ export async function recordGameCompletion(
 }
 
 /**
+ * §167/§168：记一次"设计稿走通了"（访客点着跳页，走到了没有出路的终点页）。
+ *
+ * 与游戏通关**同一套粒度**，因为它们回答的是同一个问题（"有多少人走到了头"）：
+ * 1. 一个访客在一个发布版本上只记一次（唯一索引）⇒ 计数是人数，不是次数；
+ * 2. 爬虫照收但另计；3. key 不合法连一行都不写。
+ *
+ * 多出来的那一栏 `pageId` 是**终点页**：同一个作品可能有好几个终点
+ * （分支各自走到底），记下来才能解释"这一版人是怎么散的"。
+ * "这一页确实是终点"由路由用**钉住的快照**判定，这一层只负责存。
+ */
+export interface WorkCompletionInput {
+  publicationId: string;
+  visitorKey: unknown;
+  userId: string | null;
+  /** 到达的终点页；调用方已按快照验证过它没有出路 */
+  pageId: string;
+  suspectedBot?: boolean;
+  at?: Date;
+}
+
+export async function recordWorkCompletion(
+  input: WorkCompletionInput,
+): Promise<'recorded' | 'duplicate' | 'rejected'> {
+  const visitorKey = validVisitorKey(input.visitorKey);
+  if (!visitorKey) return 'rejected';
+  const db = getDb();
+  const inserted = await db
+    .insert(workCompletions)
+    .values({
+      publicationId: input.publicationId,
+      visitorKey,
+      userId: input.userId,
+      pageId: input.pageId,
+      suspectedBot: input.suspectedBot === true,
+      completedAt: input.at ?? new Date(),
+    })
+    .onConflictDoNothing({ target: [workCompletions.publicationId, workCompletions.visitorKey] })
+    .returning({ id: workCompletions.id });
+  return inserted.length ? 'recorded' : 'duplicate';
+}
+
+/**
  * 六个数的真实口径。每一项都写着它数的是什么——`followers` 是作者级而不是这一版级，
  * `views` 含作者自己的刷新，这些区别不写出来就会被读成别的意思。
  * null = 这一项没采到，界面必须原样显示"未采集"。
@@ -160,6 +202,18 @@ export interface AnalyticsNumbers {
    * ⇒ 页面上要像"只有你自己看过"那样明写出来（§159）。
    */
   selfCompleted: boolean;
+  /**
+   * §168 互动作品：**走通过多少人**（真人，按 key 去重）。
+   *
+   * 与 `completedVisitors`（游戏通关）分开：两个事件来源、两套判定，
+   * 混在一格会让读者以为"玩通了"和"点着走完了"是同一件事。
+   * 作品没有互动流程时这一格没有意义，界面靠 `interactive` 显示 `—` 而不是 0。
+   */
+  interactiveCompleted: number;
+  /** 疑似爬虫/自动化的互动完成数——另计，不进上面那一格 */
+  botInteractiveCompletions: number;
+  /** 走通的人只有作者自己（与 `selfCompleted` 同一条纪律） */
+  selfInteractiveCompleted: boolean;
 }
 
 export interface PublicationAnalyticsRow {
@@ -170,6 +224,8 @@ export interface PublicationAnalyticsRow {
   version: number;
   visibility: Visibility;
   publishedAt: Date;
+  /** §167/§168：这一版钉住的设计稿有没有可走通的点击跳页（发布时存的结论） */
+  interactive: boolean;
   analytics: AnalyticsNumbers;
 }
 
@@ -278,6 +334,41 @@ async function rollupCompletions(
   );
 }
 
+/** 互动作品的那一格：与通关同一套粒度（真人按 key 去重、爬虫另计） */
+interface WorkCompletionRollup {
+  completedVisitors: number;
+  botCompletions: number;
+  selfCompleted: boolean | null;
+}
+
+async function rollupWorkCompletions(
+  publicationIds: string[],
+  ownerId: string,
+): Promise<Map<string, WorkCompletionRollup>> {
+  if (!publicationIds.length) return new Map();
+  const db = getDb();
+  const rows = await db
+    .select({
+      publicationId: workCompletions.publicationId,
+      completedVisitors: sql<string>`count(distinct ${workCompletions.visitorKey}) filter (where not ${workCompletions.suspectedBot})`,
+      botCompletions: sql<string>`count(distinct ${workCompletions.visitorKey}) filter (where ${workCompletions.suspectedBot})`,
+      selfCompleted: sql<boolean | null>`bool_and(${workCompletions.userId} is not null and ${workCompletions.userId} = ${ownerId}) filter (where not ${workCompletions.suspectedBot})`,
+    })
+    .from(workCompletions)
+    .where(inArray(workCompletions.publicationId, publicationIds))
+    .groupBy(workCompletions.publicationId);
+  return new Map(
+    rows.map((row) => [
+      row.publicationId,
+      {
+        completedVisitors: int(row.completedVisitors),
+        botCompletions: int(row.botCompletions),
+        selfCompleted: row.selfCompleted,
+      },
+    ]),
+  );
+}
+
 async function countGrouped(
   table: typeof likes | typeof remixes,
   column: typeof likes.projectId | typeof remixes.sourceProjectId,
@@ -304,9 +395,11 @@ function assemble(
     visibility: Visibility;
     publishedAt: Date;
     views: number;
+    interactive: boolean;
   }[],
   visits: Map<string, VisitRollup>,
   completions: Map<string, CompletionRollup>,
+  workDone: Map<string, WorkCompletionRollup>,
   likeCounts: Map<string, number>,
   remixCounts: Map<string, number>,
   followers: number,
@@ -314,6 +407,7 @@ function assemble(
   return publications.map((publication) => {
     const rollup = visits.get(publication.publicationId);
     const done = completions.get(publication.publicationId);
+    const work = workDone.get(publication.publicationId);
     return {
       ...publication,
       analytics: {
@@ -341,6 +435,10 @@ function assemble(
         botCompletions: done?.botCompletions ?? 0,
         // 没有真人通关过时是 NULL（不是"全是作者"）⇒ 不该出"只有你自己通关过"那句
         selfCompleted: done?.selfCompleted ?? false,
+        // 互动作品那一格与游戏通关分开算（两个事件来源、两套判定，§168）
+        interactiveCompleted: work?.completedVisitors ?? 0,
+        botInteractiveCompletions: work?.botCompletions ?? 0,
+        selfInteractiveCompleted: work?.selfCompleted ?? false,
       },
     };
   });
@@ -364,6 +462,7 @@ async function analyticsFor(ownerId: string, onlyPublicationId?: string): Promis
       visibility: publishedProjects.visibility,
       publishedAt: publishedProjects.publishedAt,
       views: publishedProjects.views,
+      interactive: publishedProjects.interactive,
     })
     .from(publishedProjects)
     .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
@@ -378,14 +477,15 @@ async function analyticsFor(ownerId: string, onlyPublicationId?: string): Promis
   if (!publications.length) return [];
   const ids = publications.map((row) => row.publicationId);
   const projectIds = publications.map((row) => row.projectId);
-  const [visitRows, completionRows, likeCounts, remixCounts, [followerRow]] = await Promise.all([
+  const [visitRows, completionRows, workCompletionRows, likeCounts, remixCounts, [followerRow]] = await Promise.all([
     rollupVisits(ids, ownerId),
     rollupCompletions(ids, ownerId),
+    rollupWorkCompletions(ids, ownerId),
     countGrouped(likes, likes.projectId, projectIds),
     countGrouped(remixes, remixes.sourceProjectId, projectIds),
     db.select({ n: sql<string>`count(*)` }).from(follows).where(eq(follows.followeeId, ownerId)),
   ]);
-  return assemble(publications, visitRows, completionRows, likeCounts, remixCounts, int(followerRow?.n));
+  return assemble(publications, visitRows, completionRows, workCompletionRows, likeCounts, remixCounts, int(followerRow?.n));
 }
 
 /** 创作者侧：我所有发布过的版本，各带六个数 */
@@ -428,6 +528,10 @@ const EXPORT_COLUMNS: readonly { label: string; pick: (row: PublicationAnalytics
   { label: '达标的访客', pick: (row) => (row.analytics.completion ? String(row.analytics.completion.over) : '') },
   { label: '通关过人数', pick: (row) => String(row.analytics.completedVisitors) },
   { label: '疑似爬虫通关', pick: (row) => String(row.analytics.botCompletions) },
+  // 非互动作品这一格没有意义 ⇒ 留空（与页面上那个 `—` 同一句话：空不是 0）
+  { label: '互动完成人数', pick: (row) => (row.interactive ? String(row.analytics.interactiveCompleted) : '') },
+  { label: '疑似爬虫互动完成', pick: (row) => (row.interactive ? String(row.analytics.botInteractiveCompletions) : '') },
+  { label: '只有自己走通', pick: (row) => (row.interactive ? (row.analytics.selfInteractiveCompleted ? '是' : '否') : '') },
   { label: '累计可见时长毫秒', pick: (row) => (row.analytics.playTimeMs === null ? '' : String(row.analytics.playTimeMs)) },
   { label: '被截断的心跳', pick: (row) => String(row.analytics.cappedReports) },
   { label: '只有自己看过', pick: (row) => (row.analytics.selfOnly ? '是' : '否') },
