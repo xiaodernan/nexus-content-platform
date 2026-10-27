@@ -13,8 +13,8 @@ npm run verify:scene-surface          # the 3D surface's headless proof (M5 v142
 npm run verify:scene                  # 55/55 3D-surface assertions in a real browser (needs the Studio on :3210)
 npm run verify:assets-surface         # the Assets surface's headless proof (M3 v153, amendment 153)
 npm run verify:assets                 # 29/29 Assets-surface assertions in a real browser (needs the Studio on :3210)
-npm run verify:credits                # the M8 credits sub-system's headless proof (§1–§7: ledger, catalog, atomic marketplace, reconciling dashboard/statement, remix fork, derived wallet)
-npm run verify:mutation               # the M8 mutation probe: 12 deliberate breaks, each must be KILLED by the suite (temp copies; real source untouched)
+npm run verify:credits                # the M8 credits sub-system's headless proof (§1–§10: ledger, catalog, atomic marketplace, reconciling dashboard/statement, remix fork, derived wallet, wire format, local-first store, refund)
+npm run verify:mutation               # the M8 mutation probe: 13 deliberate breaks, each must be KILLED by the suite (temp copies; real source untouched)
 npm run verify:credits-surface        # 14/14 checks on the /credits page in a real browser — load, wallet/creator/statement, store, BUY, reload-persistence, clear (needs the Studio on :3210)
 ```
 

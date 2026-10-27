@@ -90,6 +90,29 @@ export function accountsOf(ledger: CreditLedger): string[] {
 }
 
 /**
+ * The refs an account holds a NET-POSITIVE claim on: purchases (`spend`) minus refunds, per ref.
+ *
+ * <p>A single `spend` entry stops being the whole story once refunds exist: an account that bought,
+ * refunded and bought again holds the thing; one that bought and refunded does not. Counting
+ * `spend − refund` per ref answers "does this account hold it NOW" without a second, stored ownership
+ * list — the same derived-not-stored rule the rest of the ledger follows.
+ *
+ * <p>Refs are OPAQUE: this function says nothing about WHAT a ref names. A consumer that cares (the
+ * wallet, the remix right) intersects the answer with the catalog.
+ */
+export function heldRefsOf(ledger: CreditLedger, accountId: string): Set<string> {
+  const net = new Map<string, number>();
+  for (const e of ledger.entries) {
+    if (e.accountId !== accountId || typeof e.ref !== 'string' || e.ref === '') continue;
+    if (e.kind === 'spend') net.set(e.ref, (net.get(e.ref) ?? 0) + 1);
+    else if (e.kind === 'refund') net.set(e.ref, (net.get(e.ref) ?? 0) - 1);
+  }
+  const held = new Set<string>();
+  for (const [ref, count] of net) if (count > 0) held.add(ref);
+  return held;
+}
+
+/**
  * Append one entry, or refuse it BY NAME. The returned ledger is a NEW value; the input is never
  * mutated, so a caller that keeps the old ledger keeps a consistent snapshot.
  */

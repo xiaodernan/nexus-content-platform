@@ -96,6 +96,28 @@ describe('buildWalletView', () => {
     expect(view.ownedTemplateIds).toEqual([]); // 'plan-pro' is not in the catalog
     expect(view.balanceCents).toBe(700);
   });
+
+  it('a refunded purchase is no longer owned (ownership is NET of refunds)', () => {
+    const ledger = ledgerOf([
+      { id: 'e-earn', accountId: 'buyerB', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' },
+      { id: 'e-buy', accountId: 'buyerB', delta: -500, reason: 'template "Pro Dashboard"', at: 2, kind: 'spend', ref: 'tpl-paid' },
+      { id: 'e-refund', accountId: 'buyerB', delta: 500, reason: 'refund', at: 3, kind: 'refund', ref: 'tpl-paid' },
+    ]);
+    const view = buildWalletView(catalog(), ledger, 'buyerB');
+    expect(view.ownedTemplateIds).toEqual([]);
+    expect(view.balanceCents).toBe(1000);
+  });
+
+  it('a re-purchase after a refund holds the template again', () => {
+    const ledger = ledgerOf([
+      { id: 'e-earn', accountId: 'buyerB', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' },
+      { id: 'e-buy', accountId: 'buyerB', delta: -500, reason: 'template "Pro Dashboard"', at: 2, kind: 'spend', ref: 'tpl-paid' },
+      { id: 'e-refund', accountId: 'buyerB', delta: 500, reason: 'refund', at: 3, kind: 'refund', ref: 'tpl-paid' },
+      { id: 'e-buy2', accountId: 'buyerB', delta: -500, reason: 'template "Pro Dashboard"', at: 4, kind: 'spend', ref: 'tpl-paid' },
+    ]);
+    const view = buildWalletView(catalog(), ledger, 'buyerB');
+    expect(view.ownedTemplateIds).toEqual(['tpl-paid']);
+  });
 });
 
 describe('wallet helpers', () => {

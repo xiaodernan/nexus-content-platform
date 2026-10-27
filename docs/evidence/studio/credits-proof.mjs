@@ -25,7 +25,8 @@
 //   §6 the wallet view is DERIVED: owned = authored + spent-ref; affordable = the marketplace's gate;
 //   §7 the wire format round-trips and refuses a bad record (a future version, a negative prefix);
 //   §8 the local-first store distinguishes an ABSENT key (empty) from a corrupt one (refused);
-//   §9 HEAD is byte-identical: everything ran in memory.
+//   §9 a refund is atomic, reverses ownership and the remix right, and is not repeatable;
+//   §10 HEAD is byte-identical: everything ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/credits-proof.mjs
 
@@ -37,7 +38,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import { execFileSync } from '../lib/syncproc.mjs';
 
 const REPO = process.cwd();
-const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore'];
+const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund'];
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 
@@ -68,6 +69,7 @@ try {
   const wallet = await import(pathToFileURL(join(libDir, 'walletView.mjs')).href);
   const store = await import(pathToFileURL(join(libDir, 'ledgerStore.mjs')).href);
   const creditsStore = await import(pathToFileURL(join(libDir, 'creditsStore.mjs')).href);
+  const refund = await import(pathToFileURL(join(libDir, 'refund.mjs')).href);
 
   // Sanity: the real modules were imported, not re-implemented here.
   for (const [name, mod, fn] of [
@@ -80,6 +82,7 @@ try {
     ['walletView', wallet, 'buildWalletView'],
     ['ledgerStore', store, 'serializeLedger'],
     ['creditsStore', creditsStore, 'loadCredits'],
+    ['refund', refund, 'refundPurchase'],
   ]) {
     assert.equal(typeof mod[fn], 'function', `${name}.${fn} was not imported — the module was not run`);
   }
@@ -281,12 +284,33 @@ try {
   assert.equal(corruptLoad.ok, false, 'a corrupt record was silently emptied');
   assert.match(corruptLoad.reason, /not JSON/);
   console.log(`  absent -> empty; ${real.entries.length} entries saved (${saved.bytes} bytes) and reloaded; a corrupt record is refused, not emptied`);
+
+  // ── §9 a refund is atomic and reverses ownership ────────────────────────────────────────────────
+  console.log('§9 a refund is atomic and reverses ownership');
+  let refundable = credits.emptyCreditLedger();
+  refundable = credits.appendCreditEntry(refundable, { id: 'rg1', accountId: 'buyerB', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' }).ledger;
+  refundable = credits.appendCreditEntry(refundable, { id: 'rg2', accountId: 'authorA', delta: 100, reason: 'tip', at: 2, kind: 'grant' }).ledger;
+  const boughtForRefund = market.purchaseTemplate(catalog, refundable, { templateId: 'tpl-paid', buyerId: 'buyerB', entryId: 'rg3', at: 3 });
+  assert.equal(boughtForRefund.ok, true, boughtForRefund.reason);
+  refundable = boughtForRefund.ledger;
+  assert.equal(wallet.walletOwns(wallet.buildWalletView(catalog, refundable, 'buyerB'), 'tpl-paid'), true, 'the buyer does not own what they bought');
+  const refunded = refund.refundPurchase(catalog, refundable, { templateId: 'tpl-paid', buyerId: 'buyerB', entryId: 'rr1', at: 4 });
+  assert.equal(refunded.ok, true, `the refund was refused: ${refunded.reason}`);
+  assert.equal(refunded.priceCents, 500, 'the refund did not use the recorded price');
+  assert.equal(credits.balanceOf(refunded.ledger, 'buyerB'), 1000, 'the buyer was not made whole');
+  assert.equal(credits.balanceOf(refunded.ledger, 'authorA'), 100, 'the author was not clawed back');
+  assert.equal(wallet.walletOwns(wallet.buildWalletView(catalog, refunded.ledger, 'buyerB'), 'tpl-paid'), false, 'a refunded purchase still counts as ownership');
+  assert.equal(remix.remixRightFor(catalog, refunded.ledger, 'buyerB', 'tpl-paid').ok, false, 'a refunded purchase still grants the remix right');
+  const twice = refund.refundPurchase(catalog, refunded.ledger, { templateId: 'tpl-paid', buyerId: 'buyerB', entryId: 'rr2', at: 5 });
+  assert.equal(twice.ok, false, 'a purchase was refunded twice');
+  assert.match(twice.reason, /already been refunded/);
+  console.log(`  refund returned ${refunded.priceCents} to the buyer and clawed it back from the author; ownership and the remix right are released; a second refund is refused`);
 } finally {
   rmSync(box, { recursive: true, force: true });
 }
 
-// ── §9 HEAD is byte-identical ─────────────────────────────────────────────────────────────────────
+// ── §10 HEAD is byte-identical ────────────────────────────────────────────────────────────────────
 const after = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(after, head, 'the repository HEAD moved while the proof ran');
-console.log(`§9 HEAD unchanged (${head.slice(0, 12)})`);
+console.log(`§10 HEAD unchanged (${head.slice(0, 12)})`);
 console.log('ALL SECTIONS PASSED');

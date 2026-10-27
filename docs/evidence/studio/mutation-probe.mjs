@@ -21,7 +21,7 @@ const STUDIO = join(REPO, 'apps', 'studio');
 const BOX = join(STUDIO, '.nexus-mut-probe');
 const VITEST = join(REPO, 'node_modules', 'vitest', 'vitest.mjs');
 
-const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore'];
+const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund'];
 const TEST_FILES = [...MODULES.map((m) => `${m}.test.ts`), 'm8Invariants.test.ts'];
 
 /**
@@ -36,11 +36,12 @@ const MUTATIONS = [
   { id: 'M05', file: 'marketplace', find: 'if (listing.authorId === purchase.buyerId)', replace: 'if (false)', why: 'an author may buy their own listing' },
   { id: 'M06', file: 'settlement', find: 'closing: opening + earned - spent,', replace: 'closing: opening + earned + spent,', why: 'the closing balance adds spends instead of subtracting them' },
   { id: 'M07', file: 'settlement', find: 'after += e.delta;', replace: 'after += 0;', why: 'entries after a bounded window are dropped from `after`' },
-  { id: 'M08', file: 'walletView', find: 'if (!templateById(catalog, e.ref)) continue;', replace: '// mutation: any spend ref becomes ownership', why: 'a subscription ref reads as template ownership (the 3ac210e bug)' },
+  { id: 'M08', file: 'walletView', find: 'if (templateById(catalog, ref)) owned.add(ref);', replace: 'owned.add(ref);', why: 'a subscription ref reads as template ownership (the 3ac210e bug)' },
   { id: 'M09', file: 'templateRemix', find: "if (listing.authorId === viewerId) return { ok: true, basis: 'owned' };", replace: '// mutation: the author branch is removed', why: 'an author loses ownership of their own listing' },
   { id: 'M10', file: 'templateCatalog', find: 'if (tokens.length === 0) return [];', replace: 'if (tokens.length === 0) return catalog.listings.map((listing) => ({ listing, score: 0 }));', why: 'an empty query answers the whole catalog instead of nothing' },
   { id: 'M11', file: 'ledgerStore', find: 'if (envelope.version !== LEDGER_FORMAT_VERSION) {', replace: 'if (false) {', why: 'the loader accepts a format version it does not know' },
   { id: 'M12', file: 'creditsStore', find: 'if (!loaded.ok) return { ok: false, reason: loaded.reason };', replace: "if (!loaded.ok) return { ok: true, ledger: emptyCreditLedger(), source: 'empty' };", why: 'a corrupt stored ledger is silently emptied (a balance erased)' },
+  { id: 'M13', file: 'refund', find: "if (ledger.entries.some((e) => e.accountId === refund.buyerId && e.kind === 'refund' && e.ref === refund.templateId)) {", replace: 'if (false) {', why: 'a purchase can be refunded twice (the buyer is paid back twice for one sale)' },
 ];
 
 function stage() {

@@ -13,7 +13,8 @@
  *   <li><b>Ownership is DERIVED, not stored.</b> "May this viewer remix?" is answered by reading the
  *       ledger and the catalog — never a second, marketplace-specific "owner" list that could
  *       disagree with the ledger. A free template (`priceCents === 0`) is remixable by anyone; a
- *       paid one is remixable by its author or by a viewer with a `spend` entry named for it.</li>
+ *       paid one is remixable by its author or by a viewer who HOLDS it — `spend` minus `refund` per
+ *       ref (`heldRefsOf`), so a refunded purchase stops being a right to remix.</li>
  *   <li><b>The fork is the product's job.</b> This module calls `forkDocument` and reports its
  *       outcome; it invents no document identity of its own, so a remix and a copy are the same
  *       primitive and cannot drift.</li>
@@ -29,7 +30,7 @@
 
 import { forkDocument, type DesignDocument } from '@nexus/design-model';
 
-import type { CreditLedger } from './credits';
+import { heldRefsOf, type CreditLedger } from './credits';
 import { templateById, type TemplateCatalog } from './templateCatalog';
 
 /** Whether this viewer may remix this template, and on what basis. Derived; decides nothing. */
@@ -47,9 +48,9 @@ export function remixRightFor(catalog: TemplateCatalog, ledger: CreditLedger, vi
   if (typeof viewerId !== 'string' || viewerId === '') return { ok: false, reason: 'a remix needs the viewerId it is requested by' };
   if (listing.priceCents === 0) return { ok: true, basis: 'free' };
   if (listing.authorId === viewerId) return { ok: true, basis: 'owned' };
-  const owns = ledger.entries.some((e) => e.accountId === viewerId && e.kind === 'spend' && e.ref === templateId);
+  const owns = heldRefsOf(ledger, viewerId).has(templateId);
   if (owns) return { ok: true, basis: 'owned' };
-  return { ok: false, reason: `${viewerId} has not purchased "${listing.title}" — only the owner may remix a paid template` };
+  return { ok: false, reason: `${viewerId} does not hold "${listing.title}" — only the owner may remix a paid template` };
 }
 
 /** The outcome of forking a template into a new project, or the reason it could not be done. */

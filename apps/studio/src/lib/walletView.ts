@@ -13,8 +13,8 @@
  *   <li><b>The balance is the ledger's.</b> `balanceCents` is `balanceOf`; the wallet never keeps a
  *       second number for the same account.</li>
  *   <li><b>Ownership is derived, not stored.</b> A viewer owns a template if they authored it or if the
- *       ledger carries a `spend` entry whose `ref` names it (the same record the marketplace wrote when
- *       they bought it). There is no separate "owned" list to disagree with the ledger.</li>
+ *       ledger holds a NET-POSITIVE claim on it — `spend` minus `refund`, per ref (`heldRefsOf`). There
+ *       is no separate "owned" list to disagree with the ledger.</li>
  *   <li><b>"Affordable" is the marketplace's own gate.</b> Rather than re-implement the price/balance
  *       check, the view calls `templateAffordable` — so a free template (cloned, never bought) and the
  *       viewer's own listings (which they cannot buy) are reported the same way the buy button would.</li>
@@ -25,7 +25,7 @@
  * has. A viewer with no entries simply has a zero balance and an empty wallet — never a thrown error.
  */
 
-import { balanceOf, type CreditLedger } from './credits';
+import { balanceOf, heldRefsOf, type CreditLedger } from './credits';
 import { templateById, type TemplateCatalog } from './templateCatalog';
 import { templateAffordable } from './marketplace';
 
@@ -50,15 +50,12 @@ export interface WalletView {
  */
 export function buildWalletView(catalog: TemplateCatalog, ledger: CreditLedger, viewerId: string): WalletView {
   const balance = balanceOf(ledger, viewerId);
+  // Ownership is NET of refunds (`heldRefsOf`: spend − refund per ref), and a ref only counts as
+  // template ownership when it NAMES a catalog listing — the ledger is shared, so a subscription's
+  // plan id must not read as one.
   const owned = new Set<string>();
-  for (const e of ledger.entries) {
-    if (e.accountId !== viewerId || e.kind !== 'spend') continue;
-    if (typeof e.ref !== 'string' || e.ref.length === 0) continue;
-    // A spend's `ref` is OPAQUE: the same ledger also carries spends for things that are not
-    // templates (a subscription, a tip). Only a ref that NAMES a catalog listing is template
-    // ownership — otherwise the wallet would report "you own plan-pro" because you subscribed.
-    if (!templateById(catalog, e.ref)) continue;
-    owned.add(e.ref);
+  for (const ref of heldRefsOf(ledger, viewerId)) {
+    if (templateById(catalog, ref)) owned.add(ref);
   }
   const affordable: string[] = [];
   for (const listing of catalog.listings) {

@@ -14,6 +14,7 @@ import {
   balanceOf,
   emptyCreditLedger,
   historyOf,
+  heldRefsOf,
   validateCreditLedger,
   type CreditEntry,
   type CreditLedger,
@@ -162,6 +163,38 @@ describe('credits: validateCreditLedger replays every prefix', () => {
     const codes = v.problems.map((p) => p.code);
     expect(codes).toContain('bad-at');
     expect(codes).toContain('bad-reason');
+  });
+});
+
+describe('credits: heldRefsOf — net of refunds', () => {
+  it('a spend holds a ref, a refund releases it, and a re-purchase holds it again', () => {
+    let l = build(entry({ id: 'g', delta: 1000 }));
+    const spend = (id: string) => appendCreditEntry(l, { id, accountId: 'acc-1', delta: -500, reason: 'buy', at: 2, kind: 'spend', ref: 't1' });
+
+    const s1 = spend('s1');
+    if (!s1.ok) throw new Error('unreachable');
+    l = s1.ledger;
+    expect([...heldRefsOf(l, 'acc-1')]).toEqual(['t1']);
+
+    const refund = appendCreditEntry(l, { id: 'r1', accountId: 'acc-1', delta: 500, reason: 'refund', at: 3, kind: 'refund', ref: 't1' });
+    if (!refund.ok) throw new Error('unreachable');
+    l = refund.ledger;
+    expect(heldRefsOf(l, 'acc-1').has('t1')).toBe(false);
+
+    const s2 = spend('s2');
+    if (!s2.ok) throw new Error('unreachable');
+    l = s2.ledger;
+    expect(heldRefsOf(l, 'acc-1').has('t1')).toBe(true);
+  });
+
+  it('ignores entries with no ref, and other accounts', () => {
+    const l = build(
+      entry({ id: 'a', delta: 100 }),
+      entry({ id: 'g2', accountId: 'acc-2', delta: 100, reason: 'grant' }),
+      entry({ id: 'b', accountId: 'acc-2', delta: -50, reason: 'buy', at: 2, kind: 'spend', ref: 't1' }),
+    );
+    expect(heldRefsOf(l, 'acc-1').size).toBe(0);
+    expect([...heldRefsOf(l, 'acc-2')]).toEqual(['t1']);
   });
 });
 

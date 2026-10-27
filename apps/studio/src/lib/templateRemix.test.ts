@@ -35,7 +35,20 @@ describe('remixRightFor', () => {
   it('a paid template is refused for a viewer with no purchase', () => {
     const r = remixRightFor(catalog(), { entries: [] }, 'buyerB', 'tpl-paid');
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toMatch(/not purchased/);
+    if (!r.ok) expect(r.reason).toMatch(/does not hold/);
+  });
+
+  it('a refunded purchase no longer grants the right to remix', () => {
+    const ledger: CreditLedger = {
+      entries: [
+        { id: 'e0', accountId: 'buyerB', delta: 1000, reason: 'top-up', at: 2000, kind: 'grant' },
+        { id: 'e1', accountId: 'buyerB', delta: -500, reason: 'template "Pro Dashboard"', at: 3000, kind: 'spend', ref: 'tpl-paid' },
+        { id: 'e2', accountId: 'buyerB', delta: 500, reason: 'refund', at: 4000, kind: 'refund', ref: 'tpl-paid' },
+      ],
+    };
+    const r = remixRightFor(catalog(), ledger, 'buyerB', 'tpl-paid');
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/does not hold/);
   });
 
   it('a paid template is owned by a viewer who holds a spend entry for it', () => {
@@ -80,7 +93,7 @@ describe('remixTemplateToProject', () => {
   it('refuses a paid template the viewer has not purchased', () => {
     const res = remixTemplateToProject(doc('doc-paid', 'Pro'), catalog(), { entries: [] }, 'buyerB', 'tpl-paid');
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.reason).toMatch(/not purchased/);
+    if (!res.ok) expect(res.reason).toMatch(/does not hold/);
   });
 
   it('forks a paid template the viewer owns', () => {
