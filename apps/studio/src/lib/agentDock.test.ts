@@ -409,10 +409,10 @@ describe('agentDock — memory overview with corrupt storage', () => {
       getItem(k: string): string | null {
         return k === STUDIO_MEMORY_FILE ? 'not json at all' : null;
       }
-      setItem(_k: string, _v: string): void {
+      setItem(): void {
         // no-op for tests
       }
-      removeItem(_k: string): void {
+      removeItem(): void {
         // no-op for tests
       }
     }

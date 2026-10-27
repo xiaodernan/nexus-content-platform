@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { currentAccountStore, currentAccount, type KeyValueStore } from './currentAccount';
 import { AccountRegistry, isOwnerClaim, type AccountRecord } from './accounts';
 
@@ -25,7 +25,7 @@ function fakeStore(): KeyValueStore & { calls: string[]; data: string } {
   };
 }
 
-function aRecord(overrides: Partial<AccountRecord> = {}): AccountRecord {
+function aRecord(): AccountRecord {
   const registry = new AccountRegistry();
   const now = 1_700_000_000_000;
   return registry.register('nexus-user', 'Nexus User', { deviceSeed: 'seed-1', now });

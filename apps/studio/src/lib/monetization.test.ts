@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AccountId } from './community';
-import type { Subscription, Currency, PriceCents, Tip } from './monetization';
+import type { Subscription, PriceCents, Tip } from './monetization';
 import {
   currencySymbol,
   isFreePrice,

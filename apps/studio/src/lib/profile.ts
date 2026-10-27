@@ -44,7 +44,7 @@ export interface ProfileRow {
  * The claims are the service's only knowledge of the account, so the facts come from them — and a row with
  * no owner says nothing rather than contributing an empty name.
  */
-export function profileFactsOf(accountId: string, rows: readonly ProfileRow[], count: number, limit: number, offset: number = 0, query: string = ''): ProfileFacts {
+export function profileFactsOf(accountId: string, rows: readonly ProfileRow[], count: number, limit: number): ProfileFacts {
   let handle: string | null = null;
   let assurance: string | null = null;
   for (const row of rows) {

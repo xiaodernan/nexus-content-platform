@@ -66,7 +66,7 @@ describe('publishLane — publishProject (client half)', () => {
   });
 
   it('passes the service answer through unchanged', async () => {
-    const fetchImpl = makeFetch((_url, _body) => {
+    const fetchImpl = makeFetch(() => {
       return new Response(
         JSON.stringify({ ok: true, projectId: 'doc-1', title: 'Harbour', version: 3, url: 'http://127.0.0.1:8080/projects/doc-1' }),
         { status: 200 },
@@ -144,7 +144,7 @@ describe('publishLane — readPublished (client half)', () => {
 
   it('passes the document through when the service returns one', async () => {
     const doc = { pages: [{ id: 'p1' }] };
-    const fetchImpl = makeFetch((_url, body) => {
+    const fetchImpl = makeFetch(() => {
       return new Response(JSON.stringify({ ok: true, projectId: 'doc-1', document: doc }), { status: 200 });
     });
     globalThis.fetch = fetchImpl;

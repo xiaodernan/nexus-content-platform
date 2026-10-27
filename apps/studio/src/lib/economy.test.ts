@@ -24,7 +24,6 @@ import {
   subscriptionActiveText,
   subscriptionStandingOf,
   subscriptionStandingText,
-  subscriptionDaysLeftText,
   tipsTotal,
   tipCount,
   tipPercentShare,

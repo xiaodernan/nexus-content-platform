@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { serviceFailureStatus } from '@/lib/serviceCall';
 import { doorName } from '@/lib/doorName';
 
-import { followOnService, readFollowing, unfollowOnService } from '@/lib/followServer';
+import { followOnService, readFollowing } from '@/lib/followServer';
 
 /**
  * M7 v288 (ADR 0016 amendment 288): `/api/follows` — this Studio's door onto the service's follows.
@@ -11,9 +11,12 @@ import { followOnService, readFollowing, unfollowOnService } from '@/lib/followS
  * browser never learns where `services/nexus-api` lives.
  *
  * Two verbs, two shapes:
+ *   GET    — the accounts this device follows, newest first and paged in rows.
  *   POST   — follow an account. The body carries the account id and the CLAIM.
- *   DELETE — take the follow back. The claimer is a query parameter, because a DELETE with no body is
- *            the conventional shape (the publication's take-down does the same).
+ *
+ * The take-back is NOT here: an un-follow names the account it takes back, so it lives at
+ * `/api/follows/[accountId]` (DELETE), the same addressed shape `/api/likes/[projectId]` uses. A
+ * DELETE with no address would have to read its target from a body, which is not what a DELETE is.
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

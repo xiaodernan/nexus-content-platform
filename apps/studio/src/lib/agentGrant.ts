@@ -8,8 +8,6 @@
  * 与 ADR 0018 §60 一致：无 signedIn 徽章、无会话、无半接线 OAuth。
  */
 
-import type { AccountId } from './community';
-
 /** 外部 agent 对某目标的授权条目，供客户端展示“哪些 agent 可对该项目发布/remix/读取”。 */
 export interface AgentGrant {
   id: string;

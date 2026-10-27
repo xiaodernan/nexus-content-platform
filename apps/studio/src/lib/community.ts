@@ -188,6 +188,9 @@ export function toggleFollow(following: ReadonlySet<AccountId>, targetId: Accoun
 /** Stage C Follow：查询某账号正在关注的集合（接口预留：ADR 0018 落地后由服务端/持久层提供真实实现，
  *  这里只做纯内存占位，供客户端先写 UI 与测试）。 */
 export function followingOf(viewerId: AccountId): Set<AccountId> {
+  // The viewer is part of the API the caller compiles against; this placeholder has no store to read it
+  // from until ADR 0018 lands.
+  void viewerId;
   return new Set();
 }
 

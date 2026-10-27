@@ -154,7 +154,7 @@ describe('insertInstance — a second copy of a master', () => {
 
 describe('detachInstance — an instance becomes plain layers again', () => {
   it('replaces the instance with concrete copies and no live link left', () => {
-    const { doc, inst } = withComponent();
+    const { inst } = withComponent();
     useStudio.getState().select([inst.id]);
 
     useStudio.getState().detachInstance();
@@ -192,7 +192,7 @@ describe('detachInstance — an instance becomes plain layers again', () => {
 
 describe('setInstanceOverride — one leaf of one instance, one op', () => {
   it('writes the patch onto the named master child and leaves the other overrides alone', () => {
-    const { doc, inst, leaf } = withComponent();
+    const { inst, leaf } = withComponent();
     useStudio.getState().select([inst.id]);
 
     useStudio.getState().setInstanceOverride(inst.id, leaf.id, { width: 200, characters: 'YO' });

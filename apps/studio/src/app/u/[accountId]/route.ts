@@ -82,7 +82,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   const followingOffset = Math.max(0, Number.parseInt(url.searchParams.get('followingOffset') ?? '0', 10));
   
   if (accountId === '') {
-    return html(renderProfileHtml(profileFactsOf('', [], 0, PROFILE_LIMIT, offset, query), []), 200);
+    return html(renderProfileHtml(profileFactsOf('', [], 0, PROFILE_LIMIT), []), 200);
   }
 
   const listing = await listPublications(PROFILE_LIMIT, undefined, accountId, offset, query);
@@ -94,7 +94,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
     (projectId) => readPublication(projectId),
     (doc, pageId) => svgToDataUri(docToSvg(doc, pageId)),
   );
-  const facts = profileFactsOf(accountId, rows, listing.count ?? rows.length, listing.limit ?? PROFILE_LIMIT, offset, query);
+  const facts = profileFactsOf(accountId, rows, listing.count ?? rows.length, listing.limit ?? PROFILE_LIMIT);
   // v288 — the FOLLOWERS. Read independently of the publications: a followers door that could not be read
   // leaves the bar out ENTIRELY, because "0 followers" and "the followers could not be read" are different
   // facts and a page that showed the first when it knew the second would make a reader conclude nobody is

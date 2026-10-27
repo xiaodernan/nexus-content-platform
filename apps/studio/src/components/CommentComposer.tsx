@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { postComment, readMyComments, removeComment } from '@/lib/commentLane';
 import { session } from '@/lib/accountSession';
@@ -29,7 +29,7 @@ export function CommentComposer({ projectId, onClose }: { projectId: string; onC
   const [mine, setMine] = useState<{ id: string; body: string; createdAt: number; deleted: boolean; projectId: string }[]>([]);
   const [mineNote, setMineNote] = useState('');
 
-  const readMine = async () => {
+  const readMine = useCallback(async () => {
     const account = session.current();
     if (!account) {
       setMine([]);
@@ -45,12 +45,12 @@ export function CommentComposer({ projectId, onClose }: { projectId: string; onC
     setMine(answer.comments.filter((c) => c.projectId === projectId));
     // The note is NOT cleared here: the take-back sets it, and a re-read that wiped it would leave the
     // reader with a list that changed and no word about why.
-  };
+  }, [projectId]);
 
   useEffect(() => {
     void readMine();
-    // The composer's project is fixed for as long as it is open.
-  }, [projectId]);
+    // The composer's project is fixed for as long as it is open, and the reader is rebuilt for it.
+  }, [readMine]);
 
   const takeBack = async (commentId: string) => {
     const account = session.current();

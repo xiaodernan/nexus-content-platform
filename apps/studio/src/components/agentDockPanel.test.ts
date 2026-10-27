@@ -57,8 +57,6 @@ const render = (): string => {
   mirrorLiveStateIntoServerSnapshot();
   return renderToStaticMarkup(React.createElement(AgentPanel, {}));
 };
-const countOf = (html: string, needle: string): number => html.split(needle).length - 1;
-
 describe('AgentPanel — the dock before anything is asked (v503)', () => {
   it('opens with its name and its §28 promise', () => {
     const html = render();

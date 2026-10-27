@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import type { Assurance } from './assurance';
 import {
   isKnownAssurance,
   KNOWN_ASSURANCES,

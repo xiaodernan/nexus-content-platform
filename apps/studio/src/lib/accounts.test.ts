@@ -9,7 +9,6 @@ import {
   isOwnerClaim,
   normalizeHandle,
   ownerClaim,
-  type AccountRecord,
 } from './accounts';
 
 /**

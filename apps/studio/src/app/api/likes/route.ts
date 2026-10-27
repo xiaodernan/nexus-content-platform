@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { serviceFailureStatus } from '@/lib/serviceCall';
 import { doorName } from '@/lib/doorName';
 
-import { likeOnService, readLikesOnService, unlikeOnService } from '@/lib/likeServer';
+import { likeOnService, readLikesOnService } from '@/lib/likeServer';
 
 /**
  * M7 v284 (ADR 0016 amendment 284): `/api/likes` — this Studio's door onto the service's likes.
@@ -10,11 +10,13 @@ import { likeOnService, readLikesOnService, unlikeOnService } from '@/lib/likeSe
  * The service's address is server-side (the same hop `/api/publish` performs), so the browser never
  * learns where `services/nexus-api` lives. What crosses the door is the SERVICE'S OWN answer.
  *
- * Three verbs, three shapes:
+ * Two verbs, two shapes:
  *   GET    — the likes of a publication, and whether the VIEWER is among them.
  *   POST   — like a publication. The body carries the project id and the CLAIM.
- *   DELETE — take a like back. The claimer is a query parameter, because a DELETE with no body is the
- *            conventional shape (the publication's take-down does the same).
+ *
+ * The take-back is NOT here: an un-like names the publication it takes back, so it lives at
+ * `/api/likes/[projectId]` (DELETE). A DELETE with no address would have to read its target from a
+ * body, which is not what a DELETE is.
  *
  * The route is `force-dynamic`: the answer is a database read, and caching it would be storing a system
  * of record's contents in a place the next write cannot invalidate.

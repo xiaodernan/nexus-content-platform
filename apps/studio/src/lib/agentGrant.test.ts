@@ -158,7 +158,6 @@ describe('agentGrant — grantsExpiringWithin', () => {
 });
 
 describe('agentGrant — grantsForTarget', () => {
-  const now = 1_700_000_000_000;
   const grants: AgentGrant[] = [
     { ...grant, id: 'g-1', targetId: 'pub-1' },
     { ...grant, id: 'g-2', targetId: 'pub-2' },

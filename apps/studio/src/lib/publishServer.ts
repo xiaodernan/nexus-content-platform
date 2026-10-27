@@ -137,8 +137,14 @@ export async function publishDocument(
   title: string,
   document: unknown,
   fetchImpl: FetchLike = fetch as FetchLike,
-  /** The Studio's claim of who published this — attached, never enforced by the client (ADR 0018). */
-  owner?: OwnerClaim,
+  /**
+   * The Studio's claim of who published this — attached, never enforced by the client (ADR 0018).
+   *
+   * <p>The WIRE shape, not the client's `OwnerClaim`: `kind` is the client-side tag that makes a claim
+   * a claim in the browser, and the service's own rows never carry it. A body parsed at the door is
+   * exactly these four fields, so this is the type the function reads.
+   */
+  owner?: Omit<OwnerClaim, 'kind'>,
 ): Promise<PublishAnswer> {
   const apiBase = nexusApiBase();
   try {

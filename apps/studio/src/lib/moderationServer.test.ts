@@ -87,14 +87,14 @@ describe('moderationServer — readDesk reads the owner’s desk (v407)', () => 
   });
 
   it('a body that is not JSON is a refusal with a reason, not a throw', async () => {
-    const { fetchImpl, seen } = makeFetch(() => new Response('not json', { status: 200 }));
+    const { fetchImpl } = makeFetch(() => new Response('not json', { status: 200 }));
     const answer = await readDesk('acct-o', 100, null, 0, fetchImpl);
     expect(answer.ok).toBe(false);
     expect(answer.reason).toContain('not JSON');
   });
 
   it('a call that never answers is an unreachable reason, not a hang', async () => {
-    const { fetchImpl, seen } = makeFetch(() => {
+    const { fetchImpl } = makeFetch(() => {
       throw new Error('connect ECONNREFUSED');
     });
     const answer = await readDesk('acct-o', 100, null, 0, fetchImpl);
@@ -121,14 +121,14 @@ describe('moderationServer — readTally counts EVERY report, not the window (v4
   });
 
   it('missing breakdowns answer empty maps, not undefined', async () => {
-    const { fetchImpl, seen } = makeFetch(() => new Response(JSON.stringify({ total: 3, open: 1 }), { status: 200 }));
+    const { fetchImpl } = makeFetch(() => new Response(JSON.stringify({ total: 3, open: 1 }), { status: 200 }));
     const answer = await readTally('acct-o', fetchImpl);
     expect(answer.byReason).toEqual({});
     expect(answer.byStatus).toEqual({});
   });
 
   it('a tally that does not count is a refusal — not a row of zeros read as “nobody reported this”', async () => {
-    const { fetchImpl, seen } = makeFetch(() => new Response(JSON.stringify({ open: 2 }), { status: 200 }));
+    const { fetchImpl } = makeFetch(() => new Response(JSON.stringify({ open: 2 }), { status: 200 }));
     const answer = await readTally('acct-o', fetchImpl);
     expect(answer.ok).toBe(false);
     expect(answer.total).toBe(0);
@@ -136,7 +136,7 @@ describe('moderationServer — readTally counts EVERY report, not the window (v4
   });
 
   it('a refusal names the service’s message when there is one', async () => {
-    const { fetchImpl, seen } = makeFetch(() =>
+    const { fetchImpl } = makeFetch(() =>
       new Response(JSON.stringify({ message: 'the owner is unknown' }), { status: 404 },
     ));
     const answer = await readTally('acct-o', fetchImpl);
@@ -145,7 +145,7 @@ describe('moderationServer — readTally counts EVERY report, not the window (v4
   });
 
   it('a call that never answers is an unreachable reason, not a hang', async () => {
-    const { fetchImpl, seen } = makeFetch(() => {
+    const { fetchImpl } = makeFetch(() => {
       throw new Error('connect ECONNREFUSED');
     });
     const answer = await readTally('acct-o', fetchImpl);
@@ -170,7 +170,7 @@ describe('moderationServer — acknowledgeOnService moves a report, or says it d
   });
 
   it('an answer that moved nothing says so: moved is false, and that is not an error', async () => {
-    const { fetchImpl, seen } = makeFetch(() => new Response(JSON.stringify({ status: 'acknowledged', moved: false }), { status: 200 }));
+    const { fetchImpl } = makeFetch(() => new Response(JSON.stringify({ status: 'acknowledged', moved: false }), { status: 200 }));
     const answer = await acknowledgeOnService('rep-1', 'acct-o', fetchImpl);
     expect(answer.ok).toBe(true);
     expect(answer.moved).toBe(false);
@@ -178,13 +178,13 @@ describe('moderationServer — acknowledgeOnService moves a report, or says it d
   });
 
   it('an answer with no reportId keeps the one that was asked about', async () => {
-    const { fetchImpl, seen } = makeFetch(() => new Response(JSON.stringify({ status: 'acknowledged', moved: true }), { status: 200 }));
+    const { fetchImpl } = makeFetch(() => new Response(JSON.stringify({ status: 'acknowledged', moved: true }), { status: 200 }));
     const answer = await acknowledgeOnService('rep-9', 'acct-o', fetchImpl);
     expect(answer.reportId).toBe('rep-9');
   });
 
   it('moved is read strictly — a truthy non-boolean is not a move', async () => {
-    const { fetchImpl, seen } = makeFetch(() => new Response(JSON.stringify({ moved: 'yes' }), { status: 200 }));
+    const { fetchImpl } = makeFetch(() => new Response(JSON.stringify({ moved: 'yes' }), { status: 200 }));
     const answer = await acknowledgeOnService('rep-1', 'acct-o', fetchImpl);
     expect(answer.moved).toBe(false);
   });
@@ -204,7 +204,7 @@ describe('moderationServer — acknowledgeOnService moves a report, or says it d
   });
 
   it('a body that is not JSON is a refusal naming the status, not a crash', async () => {
-    const { fetchImpl, seen } = makeFetch(() => new Response('<html>gateway</html>', { status: 502 }));
+    const { fetchImpl } = makeFetch(() => new Response('<html>gateway</html>', { status: 502 }));
     const answer = await acknowledgeOnService('rep-1', 'acct-o', fetchImpl);
     expect(answer.ok).toBe(false);
     expect(answer.reason).toContain('502');
@@ -212,7 +212,7 @@ describe('moderationServer — acknowledgeOnService moves a report, or says it d
   });
 
   it('a call that never answers is an unreachable reason, not a hang', async () => {
-    const { fetchImpl, seen } = makeFetch(() => {
+    const { fetchImpl } = makeFetch(() => {
       throw new Error('connect ECONNREFUSED');
     });
     const answer = await acknowledgeOnService('rep-1', 'acct-o', fetchImpl);

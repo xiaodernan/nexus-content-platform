@@ -120,7 +120,7 @@ describe('publishServer — publishing', () => {
     }) as unknown as FetchLike;
 
     const owner = { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local' as const, claimedAt: 1_700_000_000_000 };
-    const answer = await publishDocument('doc-1', 'Harbour at dusk', { pages: [] }, fetchImpl, owner as any);
+    const answer = await publishDocument('doc-1', 'Harbour at dusk', { pages: [] }, fetchImpl, owner);
 
     expect(answer.ok).toBe(true);
     expect(calls[0]!.body).toEqual({

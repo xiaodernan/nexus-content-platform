@@ -14,8 +14,8 @@
  * - **Prices are cents and the formatter owns the symbol.** `priceText` is the single source
  *   of truth for "¥15.00 / 月" — a panel that formatted cents differently would drift.
  */
-import type { Subscription, Tip, PriceCents, Currency } from './monetization';
-import { priceText, subscriptionActiveText, subscriptionDaysLeftText } from './monetization';
+import type { PriceCents, Currency } from './monetization';
+import { priceText, subscriptionDaysLeftText } from './monetization';
 
 /** What the service's subscription row would carry — mirrors the client's own type. */
 export interface EconomySubscription {

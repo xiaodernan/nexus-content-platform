@@ -147,7 +147,7 @@ describe('renderPreviewHtml — the escaping contract (v410)', () => {
   });
 
   it('the :root block is CSS-escaped, not HTML-escaped — CSS does not decode entities', () => {
-    let doc = createEmptyDocument('Harbour');
+    const doc = createEmptyDocument('Harbour');
     (doc.tokens.color as Record<string, unknown>).evil = { $type: 'color', $value: 'a<b>c' };
     const html = renderPreviewHtml(doc, doc.activePageId);
     // `<` travels as its CSS escape, so the value survives as one character and the block stays closed.
@@ -156,7 +156,7 @@ describe('renderPreviewHtml — the escaping contract (v410)', () => {
   });
 
   it('a token NAME cannot close the style block either — the key is escaped like the value', () => {
-    let doc = createEmptyDocument('Harbour');
+    const doc = createEmptyDocument('Harbour');
     (doc.tokens as unknown as Record<string, unknown>)['x}</style><img src=y>'] = { $type: 'color', $value: '#fff' };
     const html = renderPreviewHtml(doc, doc.activePageId);
     expect(html).toContain('\\7d');
