@@ -71,6 +71,7 @@ function fixture(over: Options = {}): PublishedPage {
       hasGame: false,
       views: 12,
       publishedAt: '2026-09-20T02:03:04.000Z',
+      interactive: false,
     },
     document,
     ownerName: '阿岚',

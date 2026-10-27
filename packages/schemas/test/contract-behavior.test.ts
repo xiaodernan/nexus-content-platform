@@ -41,6 +41,10 @@ function build(node: unknown, depth = 0): unknown {
     if (typeof n['format'] === 'string') {
       if (n['format'] === 'date-time') return '2026-01-01T00:00:00.000Z';
       if (n['format'] === 'uri' || n['format'] === 'url') return 'https://example.com/';
+      // z.string().email() 在 JSON Schema 里就是 format:'email'——自动造不出 ⇒ 邀请接口那一格
+      // 在报"自己的契约不认自己的报文"。真问题是最小报文生成器少认了一个标准 format，
+      // 不是 schema 写错了，所以修在这（以后再有 email 字段也自动覆盖，不用补 OVERRIDES）。
+      if (n['format'] === 'email') return 'user@example.com';
     }
     const min = typeof n['minLength'] === 'number' ? n['minLength'] : 1;
     return 'x'.repeat(Math.max(1, min));
@@ -102,6 +106,12 @@ const OVERRIDES: Record<string, unknown> = {
   PublishedGameCompleteRequestSchema: {
     path: '/n/handle/slug',
     visitorKey: '0123456789abcdef0123456789abcdef',
+  },
+  // §167/§168 互动作品通关那一声：同一把 32 位十六进制 key + 客户端声称走到的终点页 id。
+  PublishedWorkCompleteRequestSchema: {
+    path: '/n/handle/slug',
+    visitorKey: '0123456789abcdef0123456789abcdef',
+    pageId: 'p1',
   },
 };
 

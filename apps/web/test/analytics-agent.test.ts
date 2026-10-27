@@ -17,6 +17,9 @@ function numbers(over: Partial<CreatorFact['numbers']> = {}): CreatorFact['numbe
     visitorsToday: 2,
     likes: 1,
     remixes: 0,
+    interactiveCompleted: 0,
+    botInteractiveCompletions: 0,
+    selfInteractiveCompleted: true,
     // 基线是"一份什么都齐的作品"：连关注都有，才能把下面那条"有赞无关"的规则单独测出来
     followers: 1,
     completion: { avgPct: 72, over: 9 },
