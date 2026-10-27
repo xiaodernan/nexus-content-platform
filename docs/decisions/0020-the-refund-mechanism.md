@@ -65,3 +65,11 @@ been paid back for — the ledger would disagree with itself.
 - The proof gains §9 (a refund reverses ownership and the remix right, and is not repeatable) and the
   mutation probe gains M13 (a purchase refunded twice) → 13/13 killed.
 - ADR 0019 is unchanged: its "no refund policy" bound still holds. This record adds the mechanism only.
+
+## Amendment 1 (v529, studio) — refunds PAIR with purchases: the n-th refund reverses the n-th purchase
+
+- **The false sentence, corrected where it stands.** The Consequences above say a refund "is not repeatable". Read as a per-REF rule, it refused the second refund of a template a buyer had refunded and then bought AGAIN — the second purchase was never refunded, so the refusal was reversing a fact that had not happened. The rule narrows to: a refund is not repeatable for the SAME purchase; purchases and refunds pair in order (FIFO).
+- **The repair.** `refundPurchase` counts the buyer's spends and refunds of the template and reverses `purchases[refunds.length]` — the OLDEST unrefunded purchase — at ITS recorded price. A refund is still refused when the counts are equal; after a refund the balance returns to where it began.
+- **Files:** `apps/studio/src/lib/refund.ts` (the pairing), `refund.test.ts` (+1 case: buy → refund → buy → refund succeeds; a third refund is refused), `m8Invariants.test.ts` (the seeded property now exercises the two-refund path), `docs/evidence/studio/credits-proof.mjs` (§9 gains the re-purchase leg), `mutation-probe.mjs` (M13's target reads the pair, not the ref).
+- **Measured (2026-10-27):** studio suite **2686/2686**; `tsc --noEmit` 0; `eslint . --max-warnings=0` 0; `next build` clean; `verify:credits` **17/17** in a real browser, including "the refunded listing can be bought again" and the ledger persisting across a reload.
+- **Bounds (§60), stated.** The POLICY question remains open and belongs to the host or a future service: nothing here decides WHEN a refund is allowed, only that one refund pairs with one purchase. The ledger is still local; a refund over a service-held ledger must re-run these rules server-side.
