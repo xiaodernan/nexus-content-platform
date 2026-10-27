@@ -144,8 +144,13 @@ codegen 把 code-only 区域发成 JSX 里的字符串字面量（`packages/desi
 - **画布侧没有虚拟化 / 增量渲染**：`resolveLayout` 每次改动重排整页（10k 节点 ≈ 98ms），
   Studio 现在靠"一次只改一个节点"掩盖它；真正的 §147 要按视口裁剪 + 脏子树重排。
 - **没有 worker**：排版与体检都跑在主线程上。
-- **健康层每次改动全量重算**（`analyzeHealth` 10k 节点 ≈ 218ms）：只在「健康」页签或 Publish 弹层打开时发生，
-  但文档大了要改成防抖或增量（`analyzeHealth` 已接受外部传入 `layouts`，就是为了那一天）。
+- **健康层全量重算**（`analyzeHealth`）：**2026-10-27 量了 10k 节点的分解**——
+  `resolveLayout` 94ms / `validateDocument` 89ms / **`lintDesign` 184ms（最大头）** /
+  整份 `analyzeHealth` 438ms，传入已解析 `layouts` 时 262ms。`lintDesign` 的大头是每节点的
+  `collectTokenRefs`（深走属性树）与 `measureContrast`（沿祖先链合成背景），都是 O(n·深度)、无 O(n²)，
+  所以没有"一行改动就快一倍"的余地。它只在「健康」页签 / Publish 弹层打开时跑，Studio 侧已
+  `useDeferredValue` + 传 `layouts`；再省要靠增量（只重算脏子树），但那会动到可访问性门禁的对比度判定，
+  风险高于收益，留到真被量到卡顿再做。
 - 浏览器端指标 — `npm run perf:browser`（`scripts/perf-browser.mts`）。建真项目、在真 Chrome 里量
   首帧（画布出现第一个节点）、pan/zoom 帧距与 >33ms 的帧、属性写入到画布重绘的延迟；
   每档 3 次，去掉第一次预热取中位数。
