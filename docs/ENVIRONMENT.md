@@ -118,8 +118,17 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
   一条 studio 用例动辄建一个项目，`e2e/studio.spec.ts` 单文件就有 57 处调用，所以**跑这一支的
   中途就会把名额用光**——2026-10-28 实测：storyboard（8 条）+ team + account-deletion 之后，
   studio 那批只剩 4 条能过。界面上只写一句"建项目太频繁了，稍后再试"。
-  `createProjectNamed` 现在把这次 POST 的答复接住了：非 2xx 当场带话收场，不再等满 60 秒导航超时。
+  `createProjectNamed` 现在把这次 POST 的答复接住了：非 2xx 当场带话收场，不再等满 60 秒导航超时，
+  并且把服务端算好的 `retryAfterMs` 一起报出来（2026-10-28 实测："还要等 20 分钟"）——照这个数等，别猜。
   同样**不要为测试放宽它**；挑着跑，或等窗口（每 3 分钟出一个名额）。
+- **"扫很多张界面"的用例改用夹具账号，别再消耗这两道闸**（同日第七片落地）：
+  `e2e/support/auth-session.ts` 的 `reusableMemberWithProject(page, email, password, 首建项目名)`
+  先登固定邮箱（登录那道是按**邮箱** 10 次/15 分钟，`login/route.ts`，不是按 IP），登不上才注册；
+  名下已有项目就直接用（读 `GET /api/projects`，按会话、不限流），一个也不建。
+  夹具账号 `kbd-walk+fixture@nexus.test`（口令同 e2e 惯例 `e2e-secret-123`）名下那个项目就是
+  `e2e/keyboard-surfaces.spec.ts` 的载体。**这不是绕开闸**：闸照旧生效，只是不再为"每次都想要新的空项目"
+  这种并不需要的诉求重复花名额。用之前想清楚一件事——夹具会被上一轮留下的状态污染
+  （项目里会有已发布/已改过的痕迹），所以只有**与内容无关**的读数（tab 序、axe、焦点）才适合走这条路。
 - **"身份还是 guest"有第二种成因，别一上来就怪限流**（同日实测）：这些界面是 SSR 出来的，HTML 一 attach
   就能 `fill`／`click`，可那一刻 React 的委托监听还没挂上，**点击会静默丢掉**——POST 压根没发出去。
   分辨只看答复码：`0` = 点击被吞（水合没到），`429` = 限流。屏障不能用 `waitForSelector('[data-auth-tab=…]')`

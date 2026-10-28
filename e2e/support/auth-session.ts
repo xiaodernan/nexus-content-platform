@@ -42,9 +42,15 @@ export async function waitForAuthFormHydrated(page: Page): Promise<void> {
   await wakeByTabToggle(page);
 }
 
-/** 提交登录／注册表单，并确认会话真的成了 member。两条腿都带水合屏障。 */
-async function submitAuthForm(page: Page, tab: 'login' | 'register', email: string, password: string): Promise<void> {
-  const doing = tab === 'register' ? '注册' : '登录';
+/** 提交登录／注册表单的结果，供断言与"登不上就换个法子"的探测两条路共用。 */
+interface AuthAttempt {
+  status: number;
+  upgraded: boolean;
+  shown: string | null;
+}
+
+/** 提交登录／注册表单，等会话真的变成 member 或界面上给出那句话。两条腿都带水合屏障。 */
+async function submitAuthForm(page: Page, tab: 'login' | 'register', email: string, password: string): Promise<AuthAttempt> {
   await page.goto('/');
   await waitForAuthFormHydrated(page); // 结束时表单停在「注册」那一态
   if (tab === 'login') await page.click('[data-auth-tab="login"]');
@@ -55,30 +61,99 @@ async function submitAuthForm(page: Page, tab: 'login' | 'register', email: stri
     .catch(() => null);
   await page.click('[data-auth-submit]');
   const status = (await attempted)?.status() ?? 0;
+  // 成功与失败各等自己那一声，谁先到算谁：只等"变成 member"的话，一次错口令要把
+  // 20 秒耗满才返回 false，而界面上的话早在半秒前就写出来了。
+  const upgraded = await Promise.race([
+    page
+      .waitForFunction(
+        () => document.querySelector('[data-auth-identity]')?.getAttribute('data-auth-identity') === 'member',
+        undefined,
+        { timeout: 20_000, polling: 250 },
+      )
+      .then(() => true)
+      .catch(() => false),
+    page
+      .waitForSelector('[data-auth-error]', { timeout: 20_000, state: 'attached' })
+      .then(() => false)
+      .catch(() => true),
+  ]);
   // 这一声读数必须**不等待**：`locator.textContent()` 会先等元素出现，而成功时
   // `[data-auth-error]` 根本不存在——`.catch(() => null)` 救不了它，reject 发生在测试超时那一刻
   // （实测把绿的路径拖成 145 秒后整条测试超时）。`evaluate` 是一次性读数，元素不在就是 null。
   const shown = await page.evaluate(() => document.querySelector('[data-auth-error]')?.textContent?.trim() ?? null);
-  await expect(
-    page.locator('[data-auth-identity]'),
+  return { status, upgraded, shown };
+}
+
+function authFailureMessage(tab: 'login' | 'register', attempt: AuthAttempt): string {
+  const doing = tab === 'register' ? '注册' : '登录';
+  const { status, shown } = attempt;
+  return (
     `${doing}没把会话变成 member（HTTP ${status}${shown ? ` · 界面上写：${shown}` : ''}）` +
-      (status === 0
-        ? '——POST 压根没发出去：这是水合没等到，不是限流。'
-        : status === 429
-          ? `——这是${doing}限流：连着跑多轮 e2e 会先把名额用光（注册是同一 IP 每小时 10 次）。` +
-            '等滑动窗口腾出名额再跑，别放宽产品里那道闸。'
-          : ''),
-  ).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
+    (status === 0
+      ? '——POST 压根没发出去：这是水合没等到，不是限流。'
+      : status === 429
+        ? `——这是${doing}限流：连着跑多轮 e2e 会先把名额用光（注册是同一 IP 每小时 10 次）。` +
+          '等滑动窗口腾出名额再跑，别放宽产品里那道闸。'
+        : '')
+  );
 }
 
 /** 注册一个 member 会话。 */
 export async function registerMember(page: Page, email: string, password: string): Promise<void> {
-  await submitAuthForm(page, 'register', email, password);
+  const attempt = await submitAuthForm(page, 'register', email, password);
+  await expect(
+    page.locator('[data-auth-identity]'),
+    authFailureMessage('register', attempt),
+  ).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
 }
 
 /** 登录成一个已存在的 member 会话（游客态调用；已登录时界面上没有这两个页签）。 */
 export async function loginMember(page: Page, email: string, password: string): Promise<void> {
-  await submitAuthForm(page, 'login', email, password);
+  const attempt = await submitAuthForm(page, 'login', email, password);
+  await expect(
+    page.locator('[data-auth-identity]'),
+    authFailureMessage('login', attempt),
+  ).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
+}
+
+/** 能不能登进去，登不进去不报错——给可复用的夹具账号用（账号还不存在时要去注册）。 */
+export async function loginMemberIfPossible(page: Page, email: string, password: string): Promise<boolean> {
+  return (await submitAuthForm(page, 'login', email, password)).upgraded;
+}
+
+/**
+ * 属于这个会话名下的第一个项目 id；一个都没有时返回 null。
+ * 读的是 `GET /api/projects`（按会话，不限流），不新建——建项目按 IP 每小时只放行 20 次。
+ */
+export async function firstProjectId(page: Page): Promise<string | null> {
+  const res = await page.request.get('/api/projects');
+  if (!res.ok()) throw new Error(`读取名下项目失败（HTTP ${res.status()}：${await res.text()}）`);
+  const body = (await res.json()) as { projects: { id: string; updatedAt?: string }[] };
+  const ids = body.projects.map((p) => p.id);
+  return ids[0] ?? null;
+}
+
+/**
+ * 一把贵的门复用两次：可复用的 member 会话 + 名下一个真项目。
+ *
+ * 为什么不是"每次注册一个新账号、建一个新项目"：注册按 IP 每小时 10 次、建项目每小时 20 次
+ * （`docs/ENVIRONMENT.md`），而 §85 这类"一次注册要扫五张界面"的读数**不需要新的空项目**，
+ * 只需要一个真项目。所以先试登录固定夹具邮箱，登不上（账号还不存在）才注册；
+ * 名下有项目就直接用，一个也不建。
+ * **没有为测试放宽服务端那两道闸**，只是不重复消耗它们。
+ */
+export async function reusableMemberWithProject(
+  page: Page,
+  email: string,
+  password: string,
+  firstProjectName: string,
+): Promise<{ projectId: string; freshAccount: boolean; freshProject: boolean }> {
+  const freshAccount = !(await loginMemberIfPossible(page, email, password));
+  if (freshAccount) await registerMember(page, email, password);
+  let projectId = await firstProjectId(page);
+  const freshProject = projectId === null;
+  if (projectId === null) projectId = await createProjectNamed(page, firstProjectName);
+  return { projectId, freshAccount, freshProject };
 }
 
 /** 用界面上的新建项目表单建一个项目，返回项目 id。 */
@@ -105,11 +180,15 @@ export async function createProjectNamed(page: Page, name: string): Promise<stri
   await page.click('[data-create-project]');
   const res = await attempted;
   if (res && !res.ok()) {
-    const body = (await res.json().catch(() => null)) as { message?: string; issues?: string[] } | null;
+    const body = (await res.json().catch(() => null)) as { message?: string; issues?: string[]; retryAfterMs?: number } | null;
     const said = body?.message ?? body?.issues?.join('；') ?? `HTTP ${res.status()}`;
+    // retryAfterMs 是服务端算出来的"还要等多久腾出一个名额"（`rateLimit.ts` 里窗口最早那条 + 窗口 - now）。
+    // 报出来是为了**照实等**，而不是等一个猜的数：20 次/小时的滑动窗口在 20 次连建之后会给出接近一小时的数。
+    const wait =
+      typeof body?.retryAfterMs === 'number' && body.retryAfterMs > 0 ? `（还要等 ${Math.ceil(body.retryAfterMs / 60_000)} 分钟）` : '';
     throw new Error(
       `建项目被服务端拒了（HTTP ${res.status()} · 界面上写：${said}）` +
-        (res.status() === 429 ? '——这是建项目限流：等窗口腾出名额再跑，别放宽产品里那道闸。' : ''),
+        (res.status() === 429 ? `——这是建项目限流：等窗口腾出名额再跑${wait}，别放宽产品里那道闸。` : ''),
     );
   }
   await page.waitForURL(/\/studio\/[^/]+$/, { timeout: 60_000 });
