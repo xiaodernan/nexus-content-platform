@@ -82,3 +82,32 @@ export function walletOwns(view: WalletView, templateId: string): boolean {
 export function walletCanAfford(view: WalletView, templateId: string): boolean {
   return view.affordableTemplateIds.includes(templateId);
 }
+
+
+/** One row of the STORE as one viewer reads it (v540). */
+export interface StoreRow {
+  /** The listing's ref — the name the marketplace and the ledger both use. */
+  ref: string;
+  /** Whether the catalog still carries it. False = RETIRED: only the record remembers it. */
+  listed: boolean;
+}
+
+/**
+ * The STORE's rows for one viewer (v540): what the shelf carries, then what the RECORD says the
+ * viewer still owns after the shelf forgot it. The order is the catalog's own, then the retired refs
+ * sorted by id — deterministic, so a surface cannot reorder itself between two reads of the same facts.
+ *
+ * <p>A retired listing NOBODY bought is not a row: the shelf forgot it and it is not the viewer's, so
+ * the store would have nothing to render it from. A plan id is not a row either — `buildWalletView`
+ * already refuses to read an unsold ref as template ownership (v539), so this function INHERITS that
+ * rule rather than re-deriving it, and a page that renders these rows cannot resurrect the bug.
+ */
+export function storeRows(catalog: TemplateCatalog, ledger: CreditLedger, viewerId: string): StoreRow[] {
+  const rows: StoreRow[] = catalog.listings.map((listing) => ({ ref: listing.id, listed: true }));
+  const onShelf = new Set(rows.map((row) => row.ref));
+  const view = buildWalletView(catalog, ledger, viewerId);
+  for (const ref of view.ownedTemplateIds.filter((id) => !onShelf.has(id)).sort()) {
+    rows.push({ ref, listed: false });
+  }
+  return rows;
+}

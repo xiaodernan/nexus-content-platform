@@ -24,6 +24,10 @@
  *   6d. the statement reads BY LISTING (v536): each ref's row names what it actually did — the
  *      listing bought and fully refunded still says `spent … · refunded …` with net 0 and two
  *      movements, a held purchase names its spend only, and an untouched listing has no row at all;
+ *   6e. the shelf can RETIRE a listing (v540): an unowned listing leaves the shelf outright, while
+ *      a listing the buyer PAID FOR keeps its row, states that it is retired, keeps naming the
+ *      buyer as its owner, and keeps a Refund action that reads the RECORD — pressing it makes the
+ *      buyer whole and the now-unowned row finally leaves;
  *   7. clearing writes a VALID empty ledger and the page returns to its empty state;
  *   8. no uncaught page errors, and a screenshot is written as evidence.
  *
@@ -335,6 +339,47 @@ try {
       /\(2 movement\(s\)\)/.test(backToAll.rows['tpl-saas'] ?? '') &&
       /\(3 movement\(s\)\)/.test(backToAll.rows['tpl-mobile'] ?? ''),
     JSON.stringify(backToAll),
+  );
+
+  // 6e. THE SHELF'S OTHER VERB (v540). The catalog could only ADD until v539, so a take-down was a
+  // capability with no producer on the surface. Retire is that verb, and the check that matters is the
+  // one a shelf alone cannot answer: a listing the buyer PAID FOR stays owned, stays refundable, and
+  // only then — once the refund has released the hold — does the retired row leave.
+  await page.evaluate("(() => { const b = document.querySelector('[data-credits-retire=\"tpl-starter\"]'); if (!b) return false; b.click(); return true; })()");
+  await page.waitForFunction("(() => document.querySelectorAll('[data-credits-listing]').length === 2)()", { timeout: 10000 });
+  const retiredFree = await page.evaluate(
+    "(() => ({ count: document.querySelectorAll('[data-credits-listing]').length, gone: !document.querySelector('[data-credits-listing=\"tpl-starter\"]'), header: document.querySelector('[data-credits-store]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }))()",
+  );
+  check(
+    'a retire WITHDRAWS an unowned listing from the shelf, and the shelf says its new size',
+    retiredFree.count === 2 && retiredFree.gone === true && /2 listing\(s\)/.test(retiredFree.header ?? ''),
+    JSON.stringify(retiredFree),
+  );
+
+  await page.evaluate("(() => { const b = document.querySelector('[data-credits-retire=\"tpl-mobile\"]'); if (!b) return false; b.click(); return true; })()");
+  await page.waitForFunction("(() => !!document.querySelector('[data-credits-listing=\"tpl-mobile\"][data-credits-retired=\"true\"]'))()", { timeout: 10000 });
+  const retiredOwned = await page.evaluate(
+    "(() => { const r = document.querySelector('[data-credits-listing=\"tpl-mobile\"]'); const b = r?.querySelector('[data-credits-refund=\"tpl-mobile\"]'); return { retired: r?.getAttribute('data-credits-retired') ?? null, row: r?.innerText.replace(/\\s+/g, ' ').trim() ?? null, wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, refund: !!b, disabled: b?.disabled ?? null, header: document.querySelector('[data-credits-store]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }; })()",
+  );
+  check(
+    'a listing the buyer OWNS keeps its row after a retire, says it is retired, and keeps its Refund action',
+    retiredOwned.retired === 'true' && /retired/.test(retiredOwned.row ?? '') &&
+      /owns: tpl-mobile/.test(retiredOwned.wallet ?? '') && /balance: 800 credits/.test(retiredOwned.wallet ?? '') &&
+      retiredOwned.refund === true && retiredOwned.disabled === false &&
+      /1 listing\(s\)/.test(retiredOwned.header ?? '') && /1 retired you still own/.test(retiredOwned.header ?? ''),
+    JSON.stringify(retiredOwned),
+  );
+
+  await page.evaluate("(() => { const b = document.querySelector('[data-credits-refund=\"tpl-mobile\"]'); if (!b) return false; b.click(); return true; })()");
+  await page.waitForFunction("(document.querySelector('[data-credits-wallet]')?.innerText ?? '').includes('balance: 1000 credits')", { timeout: 10000 });
+  const refundedRetired = await page.evaluate(
+    "(() => ({ wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, gone: !document.querySelector('[data-credits-listing=\"tpl-mobile\"]'), error: document.querySelector('[data-credits-error]')?.innerText.trim() ?? null, header: document.querySelector('[data-credits-store]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }))()",
+  );
+  check(
+    'a refund of a RETIRED ref reads the record: the buyer is made whole and the released row leaves',
+    /balance: 1000 credits/.test(refundedRetired.wallet ?? '') && /owns: nothing/.test(refundedRetired.wallet ?? '') &&
+      refundedRetired.gone === true && refundedRetired.error === null && /1 listing\(s\)/.test(refundedRetired.header ?? ''),
+    JSON.stringify(refundedRetired),
   );
 
   // 7. clearing writes a valid empty ledger and returns the page to its empty state.

@@ -11,9 +11,9 @@
 //
 // sweep-budget-ms: 1200000
 // The budget above is the CI runner's and the agents sweep's to read (amendments 85 and 94), and it is
-// measured, not comfortable: 32 mutations, each a serial `vitest run` of the copied suite — the 28-arm run
+// measured, not comfortable: 34 mutations, each a serial `vitest run` of the copied suite — the 28-arm run
 // stood alone at 239 s on 2026-10-28 with all 28 KILLED, the 29-arm run (M29, v537) was ALL KILLED the same
-// day, the 30-arm run (M30, v538) was ALL KILLED too, and the 32-arm run (M31–M32, v539) is ALL KILLED; the
+// day, the 30-arm run (M30, v538) was ALL KILLED too, and the 32-arm run (M31–M32, v539) is ALL KILLED and the 34-arm run (M33–M34, v540) is ALL KILLED; the
 // later three runs had no separately recorded wall
 // time. Readings move with host load, not with the arm count
 // alone: the 27-arm sweep read 241 s, the 25-arm 216 s and the 23-arm 166.2 s standing alone, and the 18-arm
@@ -80,6 +80,8 @@ const MUTATIONS = [
   { id: 'M30', file: 'refund', find: "const sellerId = sale ? sale.accountId : listing ? listing.authorId : null;", replace: "const sellerId = listing ? listing.authorId : sale ? sale.accountId : null;", why: 'the claw-back targets the catalog\'s current author instead of the account the SALE credited (an account that was never paid is debited)' },
   { id: 'M31', file: 'templateCatalog', find: 'return { ok: true, catalog: { listings: catalog.listings.filter((l) => l.id !== id) }, listing };', replace: 'return { ok: true, catalog, listing };', why: 'a retire removes NOTHING — the listing stays on the shelf while the caller is told it withdrew' },
   { id: 'M32', file: 'walletView', find: 'if (listed || refSoldIn(ledger, ref)) owned.add(ref);', replace: 'if (listed) owned.add(ref);', why: 'a RETIRED listing stops being owned — the shelf erases a purchase the record still holds' },
+  { id: 'M33', file: 'walletView', find: '    rows.push({ ref, listed: false });', replace: '    // mutation: a retired ref never becomes a row', why: 'the STORE drops a purchase the shelf forgot — the buyer loses the row that carries their refund door' },
+  { id: 'M34', file: 'walletView', find: 'catalog.listings.map((listing) => ({ ref: listing.id, listed: true }))', replace: 'catalog.listings.map((listing) => ({ ref: listing.id, listed: false }))', why: 'every shelf row reads as retired, so the store cannot tell what is still for sale' },
 ];
 
 /**

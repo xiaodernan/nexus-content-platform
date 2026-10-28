@@ -15,8 +15,13 @@ import {
   type RefundPolicy,
 } from '@/lib/refundPolicy';
 import { attributionByRef, attributionLine, statementFor, statementLine, statementReconciles, type SettlementWindow } from '@/lib/settlement';
-import type { TemplateListing } from '@/lib/templateCatalog';
-import { buildWalletView } from '@/lib/walletView';
+import {
+  retireTemplate,
+  templateById,
+  type TemplateCatalog,
+  type TemplateListing,
+} from '@/lib/templateCatalog';
+import { buildWalletView, storeRows } from '@/lib/walletView';
 
 /**
  * M8 — the CREDITS surface. A STANDALONE page (`/credits`), not a Studio pane, so it touches no shared
@@ -33,6 +38,13 @@ import { buildWalletView } from '@/lib/walletView';
  */
 export default function CreditsPanel() {
   const scene = useMemo(() => buildDemoCreditsScene(), []);
+  /**
+   * The SHELF this page renders (v540). It starts as the demo fixture's catalog and a RETIRE replaces
+   * it: a take-down is a window operation on what is FOR SALE, and this page is the host. The LEDGER is
+   * untouched by it, so retiring a listing a buyer paid for cannot hide their purchase — the store's
+   * rows are the shelf PLUS what the record says the viewer still owns (`storeRows`).
+   */
+  const [catalog, setCatalog] = useState<TemplateCatalog>(scene.catalog);
   const [ledger, setLedger] = useState<CreditLedger | null>(null);
   const [source, setSource] = useState<'stored' | 'empty' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +134,7 @@ export default function CreditsPanel() {
    */
   const onBuy = useCallback((listing: TemplateListing) => {
     if (!ledger) return;
-    const decision = purchaseTemplate(scene.catalog, ledger, {
+    const decision = purchaseTemplate(catalog, ledger, {
       templateId: listing.id,
       buyerId: scene.viewerId,
       // The HOST supplies the instant and the idempotency key (ADR 0010); a timestamp keeps a second
@@ -135,21 +147,21 @@ export default function CreditsPanel() {
     if (!saved.ok) { setError(saved.reason); return; }
     setLedger(decision.ledger);
     setError(null);
-  }, [ledger, scene]);
+  }, [catalog, ledger, scene]);
 
   /**
-   * REFUND one purchase: the REAL refund mechanism on the LOCAL ledger, with the page's POLICY applied
-   * first — the buyer is made whole and the author is clawed back atomically, then the result is
-   * persisted. It reverses the purchase the ledger recorded, so ownership (which is net of refunds)
-   * releases the template. A policy that has closed the window refuses BEFORE the mechanism runs, so
-   * the local ledger is untouched.
+   * REFUND one purchase BY REF: the REAL refund mechanism on the LOCAL ledger, with the page's POLICY
+   * applied first — the buyer is made whole and the author is clawed back atomically, then the result
+   * is persisted. It takes the REF rather than a listing (v540): a purchase whose listing was retired
+   * has no listing left to hand over, and the record — not the shelf — is what the mechanism reads. A
+   * policy that has closed the window refuses BEFORE the mechanism runs, so the ledger is untouched.
    */
-  const onRefund = useCallback((listing: TemplateListing) => {
+  const onRefund = useCallback((ref: string) => {
     if (!ledger) return;
-    const decision = refundPurchaseUnderPolicy(scene.catalog, ledger, {
-      templateId: listing.id,
+    const decision = refundPurchaseUnderPolicy(catalog, ledger, {
+      templateId: ref,
       buyerId: scene.viewerId,
-      entryId: `demo-refund-${listing.id}-${Date.now()}`,
+      entryId: `demo-refund-${ref}-${Date.now()}`,
       at: Date.now(),
     }, policy, Date.now());
     if (!decision.ok) { setError(decision.reason); return; }
@@ -157,9 +169,22 @@ export default function CreditsPanel() {
     if (!saved.ok) { setError(saved.reason); return; }
     setLedger(decision.ledger);
     setError(null);
-  }, [ledger, scene, policy]);
+  }, [catalog, ledger, scene, policy]);
 
-  const wallet = ledger ? buildWalletView(scene.catalog, ledger, scene.viewerId) : null;
+  /**
+   * RETIRE one listing (v540): the catalog's take-down verb, on the local shelf this page renders. It
+   * touches NO ledger entry — a take-down decides what is FOR SALE, never what was bought — so a buyer
+   * keeps what they paid for, and their store row keeps a Refund door the shelf's absence cannot close.
+   * The model refuses a SECOND retire of the same id by name; the surface simply no longer offers one.
+   */
+  const onRetire = useCallback((ref: string) => {
+    const decision = retireTemplate(catalog, ref);
+    if (!decision.ok) { setError(decision.reason); return; }
+    setCatalog(decision.catalog);
+    setError(null);
+  }, [catalog]);
+
+  const wallet = ledger ? buildWalletView(catalog, ledger, scene.viewerId) : null;
   // "Still to buy" = the marketplace's affordability gate MINUS what is already owned. The model
   // deliberately lets an owned listing stay affordable (ADR 0019's bound), so the panel does the
   // subtraction rather than inviting a second purchase of one item.
@@ -170,13 +195,17 @@ export default function CreditsPanel() {
   // The PREFLIGHT's instant. It only decides whether a Refund button is OFFERED as clickable; the
   // click re-asks with its own `Date.now()`, so a stale render can never authorise a write.
   const refundNow = Date.now();
-  const creator = ledger ? buildCreatorDashboard(scene.catalog, ledger, scene.creatorId) : null;
+  const creator = ledger ? buildCreatorDashboard(catalog, ledger, scene.creatorId) : null;
   const statement = ledger ? statementFor(ledger, scene.viewerId, statementWindow) : null;
   // What each LISTING did for this account, by name (v536), over the SAME window the statement reads
   // (v537) — so a purchase that was fully refunded reports both halves instead of netting to a zero
   // that would look like nothing happened, and a movement outside the window is not silently counted.
   const attribution = ledger ? attributionByRef(ledger, scene.viewerId, statementWindow) : [];
   const reconciles = ledger && statement ? statementReconciles(ledger, statement) : false;
+  // The STORE's rows (v540): the shelf, then what the RECORD says this viewer still owns after the
+  // shelf forgot it — so a retire can never hide a purchase, or the Refund door that reverses it.
+  const rows = ledger ? storeRows(catalog, ledger, scene.viewerId) : [];
+  const retiredRows = rows.filter((row) => !row.listed).length;
   const empty = !ledger || source === 'empty' || ledger.entries.length === 0;
 
   return (
@@ -321,7 +350,10 @@ export default function CreditsPanel() {
           )}
 
           <section data-credits-store style={{ border: '1px solid var(--nexus-border)', padding: 12 }}>
-            <strong>STORE · {scene.catalog.listings.length} listing(s)</strong>
+            <strong>
+              STORE · {catalog.listings.length} listing(s)
+              {retiredRows > 0 ? ` · ${retiredRows} retired you still own` : ''}
+            </strong>
             <table style={{ width: '100%', marginTop: 6, borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
@@ -333,29 +365,35 @@ export default function CreditsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {scene.catalog.listings.map((listing) => {
-                  const owned = wallet?.ownedTemplateIds.includes(listing.id) ?? false;
-                  const affordable = wallet?.affordableTemplateIds.includes(listing.id) ?? false;
-                  const state = owned ? 'owned' : affordable ? 'affordable' : listing.priceCents === 0 ? 'free' : 'out of reach';
+                {rows.map((row) => {
+                  const listing = templateById(catalog, row.ref);
+                  const owned = wallet?.ownedTemplateIds.includes(row.ref) ?? false;
+                  const affordable = wallet?.affordableTemplateIds.includes(row.ref) ?? false;
+                  const state = !listing
+                    ? 'owned · retired, no longer listed'
+                    : owned ? 'owned' : affordable ? 'affordable' : listing.priceCents === 0 ? 'free' : 'out of reach';
                   // A listing is buyable only when it is a PAID listing the viewer does not already own
                   // and can afford. Offering "Buy" on something already owned would invite a second
                   // purchase of one item — the model allows it, but the panel should not suggest it.
-                  const buyable = !owned && affordable && listing.priceCents > 0;
-                  const refundable = heldRefs.has(listing.id) && listing.priceCents > 0;
+                  const buyable = !!listing && !owned && affordable && listing.priceCents > 0;
+                  // A retired row was BOUGHT by definition (that is why the record still shows it), so
+                  // its price is no longer on the shelf to read; the refund door follows the HOLD, not a
+                  // price the catalog forgot.
+                  const refundable = heldRefs.has(row.ref) && (listing ? listing.priceCents > 0 : true);
                   // Ask the policy layer BEFORE the click: the same gate the write reads, so a
                   // disabled button and a refused click cannot tell different stories.
                   const eligibility = refundable && ledger
-                    ? refundEligibility(scene.catalog, ledger, { templateId: listing.id, buyerId: scene.viewerId }, policy, refundNow)
+                    ? refundEligibility(catalog, ledger, { templateId: row.ref, buyerId: scene.viewerId }, policy, refundNow)
                     : null;
                   const refundBlocked = eligibility && !eligibility.eligible ? eligibility.reason : null;
                   return (
-                    <tr key={listing.id} data-credits-listing={listing.id}>
-                      <td>{listing.title}</td>
-                      <td>{listing.authorId}</td>
-                      <td>{priceText(listing.priceCents as PriceCents, 'CNY')}</td>
+                    <tr key={row.ref} data-credits-listing={row.ref} data-credits-retired={row.listed ? undefined : 'true'}>
+                      <td>{listing ? listing.title : <code>{row.ref}</code>}</td>
+                      <td>{listing ? listing.authorId : '—'}</td>
+                      <td>{listing ? priceText(listing.priceCents as PriceCents, 'CNY') : '—'}</td>
                       <td>{state}</td>
                       <td style={{ display: 'flex', gap: 4 }}>
-                        {buyable ? (
+                        {listing && buyable ? (
                           <button
                             type="button"
                             className="btn"
@@ -366,15 +404,31 @@ export default function CreditsPanel() {
                             Buy
                           </button>
                         ) : null}
+                        {listing ? (
+                          /*
+                            The TAKE-DOWN (v540). The catalog could only ADD until v539; this is the verb
+                            a host uses to withdraw a listing. It writes nothing to the ledger, so the
+                            row below it is re-read from the RECORD if this viewer paid for it.
+                          */
+                          <button
+                            type="button"
+                            className="btn"
+                            data-credits-retire={row.ref}
+                            onClick={() => onRetire(row.ref)}
+                            style={{ fontSize: 10, padding: '1px 6px', opacity: 0.7 }}
+                          >
+                            Retire
+                          </button>
+                        ) : null}
                         {refundable ? (
                           <button
                             type="button"
                             className="btn"
-                            data-credits-refund={listing.id}
+                            data-credits-refund={row.ref}
                             data-credits-refund-blocked={refundBlocked ? 'true' : undefined}
                             disabled={refundBlocked !== null}
                             title={refundBlocked ?? undefined}
-                            onClick={() => onRefund(listing)}
+                            onClick={() => onRefund(row.ref)}
                             style={{ fontSize: 10, padding: '1px 6px', opacity: refundBlocked ? 0.4 : 0.8 }}
                           >
                             Refund

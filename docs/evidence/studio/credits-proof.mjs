@@ -531,6 +531,24 @@ try {
   assert.equal(wallet.walletOwns(retiredWallet, 'tpl-paid'), true, 'a RETIRED listing stopped being owned — the shelf erased a purchase');
   assert.equal(wallet.walletOwns(retiredWallet, 'tpl-free'), false, 'a listing never bought read as owned');
 
+  // The STORE's rows (v540) are the shelf PLUS what the record says the viewer still owns: a retired
+  // ref is a row of its own, marked retired, while a retired listing NOBODY bought is not a row at all.
+  assert.deepEqual(
+    wallet.storeRows(shelf, shelfLedger, 'buyerR'),
+    [{ ref: 'tpl-free', listed: true }, { ref: 'tpl-paid', listed: true }],
+    'the store did not read the shelf in its own order',
+  );
+  assert.deepEqual(
+    wallet.storeRows(retired.catalog, shelfLedger, 'buyerR'),
+    [{ ref: 'tpl-free', listed: true }, { ref: 'tpl-paid', listed: false }],
+    'the store dropped a retired ref the record says is owned',
+  );
+  assert.deepEqual(
+    wallet.storeRows(retired.catalog, shelfLedger, 'strangerR'),
+    [{ ref: 'tpl-free', listed: true }],
+    'a retired listing nobody owns was shown as a row',
+  );
+
   const reversedRetired = refund.refundPurchase(retired.catalog, shelfLedger, { templateId: 'tpl-paid', buyerId: 'buyerR', entryId: 'sr1', at: 30 });
   assert.equal(reversedRetired.ok, true, `a retired ref could not be reversed: ${reversedRetired.ok ? '' : reversedRetired.reason}`);
   assert.equal(credits.balanceOf(reversedRetired.ledger, 'buyerR'), 1000, 'the buyer was not made whole for a retired ref');
@@ -543,7 +561,7 @@ try {
   assert.equal(relisted.ok, true, `a retired id could not be listed again: ${relisted.reason}`);
   assert.equal(catalogMod.templateById(relisted.catalog, 'tpl-paid')?.authorId, 'authorB', 'the re-listing did not name its new author');
 
-  console.log(`  the listing withdrew cleanly (1 left, the input untouched, a second retire refused by name); the buyer still OWNS the retired ref and the wallet can tell it from a plan id; the refund made the buyer whole (${credits.balanceOf(reversedRetired.ledger, 'buyerR')}) and clawed back exactly the recorded seller (${credits.balanceOf(reversedRetired.ledger, 'authorA')}), naming "tpl-paid" (not in this catalog); the retired id re-listed under a new author`);
+  console.log(`  the listing withdrew cleanly (1 left, the input untouched, a second retire refused by name); the buyer still OWNS the retired ref and the wallet can tell it from a plan id; the refund made the buyer whole (${credits.balanceOf(reversedRetired.ledger, 'buyerR')}) and clawed back exactly the recorded seller (${credits.balanceOf(reversedRetired.ledger, 'authorA')}), naming "tpl-paid" (not in this catalog); the STORE's rows were the shelf plus the retired ref the record owns (and a stranger saw only the shelf); the retired id re-listed under a new author`);
 
 } finally {
   rmSync(box, { recursive: true, force: true });

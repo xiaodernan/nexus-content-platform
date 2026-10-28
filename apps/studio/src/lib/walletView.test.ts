@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 
 import type { CreditLedger } from './credits';
-import { addTemplate, emptyTemplateCatalog, type TemplateCatalog, type TemplateListing } from './templateCatalog';
-import { buildWalletView, walletCanAfford, walletOwns } from './walletView';
+import { addTemplate, emptyTemplateCatalog, retireTemplate, type TemplateCatalog, type TemplateListing } from './templateCatalog';
+import { buildWalletView, storeRows, walletCanAfford, walletOwns } from './walletView';
 
 const FREE: TemplateListing = {
   id: 'tpl-free', title: 'Starter', description: 'A free starter', authorId: 'authorA',
@@ -145,5 +145,49 @@ describe('wallet helpers', () => {
     expect(walletOwns(view, 'tpl-paid2')).toBe(false);
     expect(walletCanAfford(view, 'tpl-paid2')).toBe(true); // 500 balance >= 200
     expect(walletCanAfford(view, 'tpl-free')).toBe(false); // free is cloned, not bought
+  });
+});
+
+
+describe('storeRows (v540)', () => {
+  it('lists the shelf in the catalog\'s own order when the viewer owns nothing unlisted', () => {
+    const rows = storeRows(catalog(), ledgerOf([]), 'stranger');
+    expect(rows).toEqual([
+      { ref: 'tpl-free', listed: true },
+      { ref: 'tpl-paid', listed: true },
+      { ref: 'tpl-paid2', listed: true },
+    ]);
+  });
+
+  it('appends a retired ref the record shows was SOLD, marked retired, and never a plan id', () => {
+    const ledger = ledgerOf([
+      { id: 'e-earn', accountId: 'buyerB', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' },
+      { id: 'e-buy', accountId: 'buyerB', delta: -500, reason: 'template "Pro Dashboard"', at: 2, kind: 'spend', ref: 'tpl-paid' },
+      { id: 'e-sale', accountId: 'authorA', delta: 500, reason: 'sale of "Pro Dashboard"', at: 2, kind: 'grant', ref: 'tpl-paid' },
+      // The ledger is shared: a subscription spend carries a plan id, which no one ever SOLD.
+      { id: 'e-sub', accountId: 'buyerB', delta: -300, reason: 'subscription "pro"', at: 3, kind: 'spend', ref: 'plan-pro' },
+    ]);
+    const retired = retireTemplate(catalog(), 'tpl-paid');
+    if (!retired.ok) throw new Error(retired.reason);
+    const rows = storeRows(retired.catalog, ledger, 'buyerB');
+    expect(rows).toEqual([
+      { ref: 'tpl-free', listed: true },
+      { ref: 'tpl-paid2', listed: true },
+      { ref: 'tpl-paid', listed: false },
+    ]);
+    expect(rows.map((row) => row.ref)).not.toContain('plan-pro');
+  });
+
+  it('does not show a retired listing nobody bought — the shelf forgot it and it is not yours', () => {
+    const ledger = ledgerOf([
+      { id: 'e-earn', accountId: 'buyerB', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' },
+    ]);
+    const retired = retireTemplate(catalog(), 'tpl-paid');
+    if (!retired.ok) throw new Error(retired.reason);
+    const rows = storeRows(retired.catalog, ledger, 'buyerB');
+    expect(rows).toEqual([
+      { ref: 'tpl-free', listed: true },
+      { ref: 'tpl-paid2', listed: true },
+    ]);
   });
 });
