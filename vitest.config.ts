@@ -19,6 +19,21 @@ export default defineConfig({
     // `npm test` 的 social / trending 三条就是这么红的（串行跑 12/12 绿）。
     // 串行整套 352s（88 个文件 / 954 条），比"绿得随机"便宜。要恢复并行，得先把这些用例改成不吃列表宽度。
     fileParallelism: false,
+    // §85 第十八片的覆盖率仪器。**只在显式调用时开**（`npm run coverage:models`）——
+    // `--coverage` 由 CLI 给，默认 `npm test` 不付这份开销，也就不必为它放宽任何超时。
+    // 范围锁在 `packages/game-model/src`：这一片要回答的是"清单没列到的分支有没有"，
+    // 那需要**能点名到行**的读数；全仓百分比只会把三个模型链的分支稀释成一团没法读的噪声。
+    // 这里**没有** exclude：第一版把 `index.ts` 当纯转出口排掉了，读一眼才发现它是 `createGame` /
+    // `patchEntity` / `removeEntity` / `validateGame` 这 21 个函数的家——仪器刚装上就先自断一块盲区分母，
+    // 那种"抬高"不是读数，是我自己看不见了。
+    // 阈值不在这里：`coverage:parity` 只跑两份对账文件，分母天生是残的（87% 分支是**正常的**读数），
+    // 把门钉在它身上等于逼我把范围写宽。那条钉在 `coverage:models` 的命令行上——只钉整套跑的那份读数。
+    coverage: {
+      provider: 'v8',
+      include: ['packages/game-model/src/**/*.ts'],
+      reporter: ['text', 'json', 'json-summary'],
+      reportsDirectory: './coverage',
+    },
   },
   resolve: {
     alias: {

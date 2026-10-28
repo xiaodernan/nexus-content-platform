@@ -111,7 +111,7 @@ export function compileStory(document: GameDocument): StoryPlan {
 
   const beats: StoryBeat[] = dialogues.map((entity) => {
     const choices: StoryChoice[] = [];
-    for (const ref of entity.refs ?? []) {
+    for (const ref of entity.refs) {
       const target = byId.get(ref.to);
       if (!target) {
         danglingRefs += 1;
@@ -130,7 +130,7 @@ export function compileStory(document: GameDocument): StoryPlan {
       });
       incoming.add(ref.to);
     }
-    const text = entity.notes ?? "";
+    const text = entity.notes;
     return {
       id: entity.id,
       name: entity.name,

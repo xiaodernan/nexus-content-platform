@@ -998,7 +998,7 @@ function readmeSource(
     "",
     "针对这一份设计的发现：",
     ...(notes.length ? notes.map((line) => `- ${line}`) : ["- 无：这份设计的每个实体都进了投影。"]),
-    ...(plan.notes.length ? plan.notes.map((line) => `- 投影说：${line}`) : []),
+    ...plan.notes.map((line) => `- 投影说：${line}`),
     ...(plan.blockers.length ? plan.blockers.map((line) => `- 跑不起来：${line}`) : []),
     "",
     "改设计请改文档再重新生成；手改产物里的字节会在下一次生成时被覆盖（§16）。",

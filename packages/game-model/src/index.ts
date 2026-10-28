@@ -483,7 +483,7 @@ export function validateGame(document: GameDocument): GameIssue[] {
     issues.push({ code: "missing-name", message: "游戏没有名字" });
   }
   const seen = new Set<string>();
-  for (const entity of document.entities ?? []) {
+  for (const entity of document.entities) {
     const label = entity.name?.trim() || entity.id;
     if (!isGameEntityKind(entity.kind)) {
       issues.push({
@@ -510,7 +510,7 @@ export function validateGame(document: GameDocument): GameIssue[] {
         entityId: entity.id,
       });
     }
-    for (const [key, value] of Object.entries(entity.stats ?? {})) {
+    for (const [key, value] of Object.entries(entity.stats)) {
       if (!isUsableStatValue(value)) {
         issues.push({
           code: "bad-stat",
@@ -521,9 +521,9 @@ export function validateGame(document: GameDocument): GameIssue[] {
     }
   }
   const seenPair = new Set<string>();
-  for (const entity of document.entities ?? []) {
+  for (const entity of document.entities) {
     const label = entity.name?.trim() || entity.id;
-    for (const ref of entity.refs ?? []) {
+    for (const ref of entity.refs) {
       if (ref.to === entity.id) {
         issues.push({
           code: "self-ref",
@@ -595,14 +595,14 @@ export function referenceGraph(document: GameDocument): {
       id: entity.id,
       name: entity.name,
       kind: entity.kind,
-      statCount: Object.keys(entity.stats ?? {}).length,
+      statCount: Object.keys(entity.stats).length,
     };
     byId.set(entity.id, view);
     return view;
   });
   const edges: GameGraphEdge[] = [];
   for (const entity of document.entities) {
-    for (const ref of entity.refs ?? []) {
+    for (const ref of entity.refs) {
       const from = byId.get(entity.id);
       const to = byId.get(ref.to);
       if (!from || !to) continue;
@@ -615,7 +615,7 @@ export function referenceGraph(document: GameDocument): {
 /** 有多少个实体真的填了内容（说明或数值），而不是只剩模板里的名字 */
 export function fleshedOutCount(document: GameDocument): number {
   return document.entities.filter(
-    (entity) => entity.notes.trim().length > 0 || Object.keys(entity.stats ?? {}).length > 0,
+    (entity) => entity.notes.trim().length > 0 || Object.keys(entity.stats).length > 0,
   ).length;
 }
 

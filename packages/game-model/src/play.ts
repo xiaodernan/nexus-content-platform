@@ -190,9 +190,7 @@ function playerOffense(
   document: GameDocument,
   player: GameEntity,
 ): { damage: number; from: StatSource; reach: number; reachIsDesign: boolean; note: string | null } {
-  const weapon = document.entities.find(
-    (entity) => entity.kind === "weapon" && (entity.refs ?? []).some((ref) => ref.to === player.id),
-  );
+  const weapon = document.entities.find((entity) => entity.kind === "weapon" && entity.refs.some((ref) => ref.to === player.id));
   const own = stat(player, "attackPower");
   const damage = own ?? (weapon ? stat(weapon, "damage") : null);
   const reach = weapon ? stat(weapon, "range") : null;
@@ -269,7 +267,7 @@ function toActor(entity: GameEntity, hostile: boolean, index: number, count: num
     hostile,
     reach: 0,
     reachIsDesign: false,
-    template: Object.keys(entity.stats ?? {}).length === 0 && !entity.notes.trim(),
+    template: Object.keys(entity.stats).length === 0 && !entity.notes.trim(),
     provenance: {
       health: health.from,
       damage: damage.from,
@@ -277,7 +275,7 @@ function toActor(entity: GameEntity, hostile: boolean, index: number, count: num
       senseRadius: sense.from,
       position: authored ? "design" : "default",
     },
-    stats: { ...(entity.stats ?? {}) },
+    stats: { ...entity.stats },
   };
 }
 
@@ -359,7 +357,7 @@ export function compileGame(document: GameDocument): GamePlan {
 
   const triggers = triggerEnts.map((entity, index, all) => {
     const radius = pick(entity, "radius", PLAY_DEFAULTS.triggerRadius);
-    const refTarget = (entity.refs ?? []).map((ref) => byId.get(ref.to)).find((target): target is GameEntity => Boolean(target));
+    const refTarget = entity.refs.map((ref) => byId.get(ref.to)).find((target): target is GameEntity => Boolean(target));
     const anchor = refTarget ? placedById.get(refTarget.id) : null;
     // 作者摆过就听作者的，没摆才锚到引用对象、再没才排环
     const authored = authoredPosition(entity);
@@ -380,7 +378,7 @@ export function compileGame(document: GameDocument): GamePlan {
 
   const quests = ofKind(document, "quest").map((entity) => {
     const goals: PlayQuestGoal[] = [];
-    for (const ref of entity.refs ?? []) {
+    for (const ref of entity.refs) {
       const target = byId.get(ref.to);
       if (!target) continue;
       if (target.kind === "enemy") goals.push({ kind: "defeat", actorId: target.id, label: `打倒 ${target.name}` });
@@ -395,7 +393,7 @@ export function compileGame(document: GameDocument): GamePlan {
       judgeable: goals.length > 0,
       why: goals.length
         ? `引用了 ${goals.length} 个可判定的对象`
-        : (entity.refs ?? []).length
+        : entity.refs.length
           ? "引用的不是敌人、物品或触发器（可能是对话、NPC 或已删除的实体）——投影判不出这条任务什么时候算完成。"
           : "这条任务没有引用任何对象，没有可判定的完成条件。",
       timeLimit: timeLimit === null ? null : Math.max(0, timeLimit),

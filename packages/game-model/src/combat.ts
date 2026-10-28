@@ -244,7 +244,7 @@ function offenseSource(document: GameDocument, player: PlayActor): { entity: Gam
   if (!playerEntity) return null;
   if (statOf(playerEntity, "attackPower") !== null) return { entity: playerEntity, key: "attackPower" };
   const weapon = document.entities.find(
-    (entity) => entity.kind === "weapon" && (entity.refs ?? []).some((ref) => ref.to === player.id),
+    (entity) => entity.kind === "weapon" && entity.refs.some((ref) => ref.to === player.id),
   );
   if (weapon && statOf(weapon, "damage") !== null) return { entity: weapon, key: "damage" };
   return null;

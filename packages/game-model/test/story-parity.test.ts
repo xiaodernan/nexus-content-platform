@@ -402,6 +402,25 @@ const scenarios: Scenario[] = [
     premise: (plan) => (plan.beats.length === 3 ? null : `三段对话没都编进计划（${String(plan.beats.length)} 段）`),
   },
   {
+    // 第十八片：覆盖率仪器点名 `story.ts:156` 那个 `unreachable.length > 5` 的臂**从没被走过**——
+    // 前面那份「断线」只有两条走不到，落在 `: ""` 那一臂。名字截到第五个之后那句
+    // 「等 N 条」是这句披露的一部分，没人编出来过就等于没人知道它在不在。
+    name: "八条线里七条互不相连：走不到的那六条要换成「等 6 条」，不是列满五个名字就完事",
+    document: storyDoc("八个孤岛", "interactive-story", [
+      { id: "d1", name: "甲", refs: [{ to: "d2", role: "接" }] },
+      { id: "d2", name: "乙" },
+      { id: "d3", name: "丙" },
+      { id: "d4", name: "丁" },
+      { id: "d5", name: "戊" },
+      { id: "d6", name: "己" },
+      { id: "d7", name: "庚" },
+      { id: "d8", name: "辛" },
+    ]),
+    mustHit: true,
+    mustLoop: false,
+    premise: (plan) => (plan.beats.length === 8 ? null : `八条对话没都编进计划（${String(plan.beats.length)} 段）`),
+  },
+  {
     name: "一条对话都没有：开不了场，两边念同一句拒绝",
     document: storyDoc("只有敌人", "interactive-story", [], [{ id: "e1", name: "巡逻兵", kind: "enemy" }]),
     mustHit: false,
@@ -508,12 +527,33 @@ const STORY_RULES: RuleRow[] = [
  * （几个终点、几条悬空引用、有没有非对话实体……），再拿投影实际说了没有**逐份底稿正反比一遍**。
  * 三种红法：该说没说=漏报（臂 Z 撞的就是这一格）、不该说说了=误报、没一份底稿落到这一格=这一行是空的。
  * 反事实那两串不参与：它们被人删过段落，终点数与投影当时说的那句本来就对不上，那是播放守卫的见证、不是投影的。
+ *
+ * 第十八片又加了一行 `inner`：它不是第十二句，是第十一句**内部**那个 `unreachable.length > 5` 的臂——
+ * 覆盖率读数点出来的（`story.ts:156` 那一臂从没走过）。它不进下面那条 push 等式，所以它得当场证明自己
+ * 确实挂在那句话上，而不是绕过等式混进来的一句新话。
  */
+/** 一句话说在哪：notes 与 blockers 两处，按**单条**留着——臂要验的是"它混在哪一句里"，拼成一大串就看不出来了 */
+const notesOf = (r: StoryRun): string[] => [...r.plan.notes, ...r.plan.blockers];
+
+/** 认一句话：定长的找子串，带可变数字的那句给它自己的正则 */
+type Phrase = string | RegExp;
+const matches = (note: string, phrase: Phrase): boolean => (typeof phrase === "string" ? note.includes(phrase) : phrase.test(note));
+const spoken = (r: StoryRun, phrase: Phrase): boolean => notesOf(r).some((note) => matches(note, phrase));
+/** 两句是不是**同一条 note** 里的：主话与臂的关系就靠这个钉住 */
+const spokenTogether = (r: StoryRun, a: Phrase, b: Phrase): boolean => notesOf(r).some((note) => matches(note, a) && matches(note, b));
+
 interface NoteRow {
   rule: string;
-  needle: string;
+  /**
+   * 这句说了没有——在投影某一条 note 的字里认。
+   * 「等 N 条」那一行给的是正则：写死成字串就成了「只有这一份底稿的那个数」，
+   * 换一份走不到的条数不同的底稿就会假报漏报。
+   */
+  phrase: Phrase;
   /** 该不该说：只读文档与计划里的形状，不读 `notes` 的字 */
   triggers: (r: StoryRun) => boolean;
+  /** 同一句 note 内部的臂填上它挂在**哪句主话**上（那句的 `rule`）；主话留空，因为它们各占一处 push */
+  inner?: string;
 }
 
 /** 引用怎么数：从**原始文档**数，不读投影自己跳过了什么——读它的输出就等于信它的输出 */
@@ -540,21 +580,27 @@ function rootCount(plan: StoryPlan): number {
   return plan.beats.filter((beat) => !pointed.has(beat.id)).length;
 }
 
-/** 投影说了的话放在哪：notes 与 blockers 两处 */
-const noteSaid = (r: StoryRun) => `${r.plan.notes.join(" ")} ${r.plan.blockers.join(" ")}`;
-
 const STORY_NOTE_RULES: NoteRow[] = [
-  { rule: "起手那句「投影不扩写、不生成、不补对话」", needle: "投影不扩写、不生成、不补对话", triggers: () => true },
-  { rule: "有非对话实体时那句「这条管线一个都不读」", needle: "这条管线一个都不读", triggers: (r) => refShape(r.document).nonDialogueEntities > 0 },
-  { rule: "一条对话都没有时 blocker 那句", needle: "这份设计里一条对话实体都没有", triggers: (r) => r.plan.beats.length === 0 },
-  { rule: "全都被人指时那句「没有天然入口」", needle: "没有天然入口", triggers: (r) => r.plan.beats.length > 0 && rootCount(r.plan) === 0 },
-  { rule: "多条互不相连的线时那句「从这里走不到的 N 条」", needle: "条互不相连的对话线", triggers: (r) => rootCount(r.plan) > 1 },
-  { rule: "引用指着非对话时那句「指向的不是对话」", needle: "指向的不是对话", triggers: (r) => refShape(r.document).offKind > 0 },
-  { rule: "悬空引用那句「这些选项被跳过」", needle: "指向的实体不在文档里", triggers: (r) => refShape(r.document).dangling > 0 },
-  { rule: "没写关系文字时那句「拿目标对话的名字顶上」", needle: "没写关系文字", triggers: (r) => refShape(r.document).blankRole > 0 },
-  { rule: "正文为空时那句「投影不替作者补一句开场白」", needle: "设计说明是空的", triggers: (r) => r.plan.beats.some((beat) => beat.textEmpty) },
-  { rule: "有终点段时那句「没有任何出边，走到那里就结束了」", needle: "没有任何出边", triggers: (r) => r.plan.beats.length > 0 && r.plan.beats.some((beat) => beat.ending) },
-  { rule: "收尾那句「对话之间可以互相指成环」", needle: "对话之间可以互相指成环", triggers: (r) => r.plan.beats.length > 0 },
+  { rule: "起手那句「投影不扩写、不生成、不补对话」", phrase: "投影不扩写、不生成、不补对话", triggers: () => true },
+  { rule: "有非对话实体时那句「这条管线一个都不读」", phrase: "这条管线一个都不读", triggers: (r) => refShape(r.document).nonDialogueEntities > 0 },
+  { rule: "一条对话都没有时 blocker 那句", phrase: "这份设计里一条对话实体都没有", triggers: (r) => r.plan.beats.length === 0 },
+  { rule: "全都被人指时那句「没有天然入口」", phrase: "没有天然入口", triggers: (r) => r.plan.beats.length > 0 && rootCount(r.plan) === 0 },
+  { rule: "多条互不相连的线时那句「从这里走不到的 N 条」", phrase: "条互不相连的对话线", triggers: (r) => rootCount(r.plan) > 1 },
+  {
+    // 上面那句的尾巴：名字只列五个，第六个起改成「等 N 条」。这一臂在两份对账都绿的读数里从没被走过
+    // （`coverage:models` 点名 story.ts:156），列满五个名字与截断成一句，读者看到的是同一类披露、
+    // 得到的是不同数量的信息——所以它单独占一行，而不是跟在上面那句里蒙一次 hit。
+    rule: "走不到的超过五个名字时那句「等 N 条」",
+    phrase: / 等 \d+ 条/,
+    triggers: (r) => rootCount(r.plan) - 1 > 5,
+    inner: "多条互不相连的线时那句「从这里走不到的 N 条」",
+  },
+  { rule: "引用指着非对话时那句「指向的不是对话」", phrase: "指向的不是对话", triggers: (r) => refShape(r.document).offKind > 0 },
+  { rule: "悬空引用那句「这些选项被跳过」", phrase: "指向的实体不在文档里", triggers: (r) => refShape(r.document).dangling > 0 },
+  { rule: "没写关系文字时那句「拿目标对话的名字顶上」", phrase: "没写关系文字", triggers: (r) => refShape(r.document).blankRole > 0 },
+  { rule: "正文为空时那句「投影不替作者补一句开场白」", phrase: "设计说明是空的", triggers: (r) => r.plan.beats.some((beat) => beat.textEmpty) },
+  { rule: "有终点段时那句「没有任何出边，走到那里就结束了」", phrase: "没有任何出边", triggers: (r) => r.plan.beats.length > 0 && r.plan.beats.some((beat) => beat.ending) },
+  { rule: "收尾那句「对话之间可以互相指成环」", phrase: "对话之间可以互相指成环", triggers: (r) => r.plan.beats.length > 0 },
 ];
 
 const built = scenarios.map((scenario) => ({ scenario, run: walk(scenario) }));
@@ -669,14 +715,14 @@ describe("模型与产物转写的对账（跑在 npm test 里，不再靠人记
     expect(missed.map((m) => `${m.row.rule}（哪一串选择都没走过这一格）`).join("；"), `${missed.length} / ${STORY_RULES.length} 条规则从没被踩过`).toBe("");
   });
 
-  it(`投影那 ${STORY_NOTE_RULES.length} 句该不该说逐份底稿正反比一遍（漏报、误报、空行三种都红）`, () => {
+  it(`投影那 ${STORY_NOTE_RULES.length} 个读数该不该说逐份底稿正反比一遍（漏报、误报、空行三种都红）`, () => {
     const scenarioRuns = runs.filter((r) => r.origin === "scenario");
     const rows = STORY_NOTE_RULES.map((row) => {
-      const cases = scenarioRuns.map((r) => ({ name: r.name, want: row.triggers(r), got: noteSaid(r).includes(row.needle) }));
+      const cases = scenarioRuns.map((r) => ({ name: r.name, want: row.triggers(r), got: spoken(r, row.phrase) }));
       return { row, cases };
     });
     const inert = rows.filter((x) => !x.cases.some((c) => c.want)).map((x) => `${x.row.rule}：没有一份底稿落到这一格`);
-    expect(inert.join("；"), `${inert.length} / ${STORY_NOTE_RULES.length} 句的门是空的`).toBe("");
+    expect(inert.join("；"), `${inert.length} / ${STORY_NOTE_RULES.length} 行的门是空的`).toBe("");
     const silent = rows
       .map((x) => `${x.row.rule}：该说没说 → ${x.cases.filter((c) => c.want && !c.got).map((c) => c.name).join("、")}`)
       .filter((s) => !s.endsWith("→ "));
@@ -692,9 +738,27 @@ describe("模型与产物转写的对账（跑在 npm test 里，不再靠人记
     const source = readFileSync(fileURLToPath(new URL("../src/story.ts", import.meta.url)), "utf8");
     const notePushes = (source.match(/notes\.push\(/g) ?? []).length;
     const blockerPushes = (source.match(/blockers\.push\(/g) ?? []).length;
+    const sentences = STORY_NOTE_RULES.filter((row) => !row.inner);
     expect(
-      STORY_NOTE_RULES.length,
-      `清单 ${STORY_NOTE_RULES.length} 句，源码那边是 notes.push ×${notePushes} + blockers.push ×${blockerPushes} + 起手数组里那 1 句 = ${notePushes + blockerPushes + 1}（对不上就是有一方在说谎）`,
+      sentences.length,
+      `清单 ${sentences.length} 句（另有 ${STORY_NOTE_RULES.length - sentences.length} 行数的是同一句内部的臂），源码那边是 notes.push ×${notePushes} + blockers.push ×${blockerPushes} + 起手数组里那 1 句 = ${notePushes + blockerPushes + 1}（对不上就是有一方在说谎）`,
     ).toBe(notePushes + blockerPushes + 1);
+    // `inner` 是这条哨兵唯一的旁路，所以旁路得自己证明挂得住——读的是**投影实际说的话**，不是谓词：
+    // ① 它点名的那句主话必须在清单上（改名、指错句都算断）；
+    // ② 那段字每出现一次都得和主话的字**在同一条 note 里**（跑到别的话里去了，它就是另一句，正该进等式、不该绕）；
+    // ③ 至少一份底稿主话说了而那段字没说（同进同出就等于第二句主话，也不该挂在别人身上）。
+    const drafts = runs.filter((r) => r.origin === "scenario");
+    const broken = STORY_NOTE_RULES.filter((row) => row.inner)
+      .map((arm) => {
+        const parent = sentences.find((row) => row.rule === arm.inner);
+        if (!parent) return `${arm.rule}：它挂的主话「${String(arm.inner)}」不在清单上`;
+        if (drafts.some((r) => spoken(r, arm.phrase) && !spokenTogether(r, arm.phrase, parent.phrase)))
+          return `${arm.rule}：有底稿把这段尾巴说在了别的话里——它不是那句的臂`;
+        if (drafts.every((r) => !spoken(r, parent.phrase) || spoken(r, arm.phrase)))
+          return `${arm.rule}：主话说了它必定说，同进同出就是第二句主话`;
+        return null;
+      })
+      .filter((s): s is string => !!s);
+    expect(broken.join("；"), "清单里的 inner 行不再是「同一句里的臂」了").toBe("");
   });
 });
