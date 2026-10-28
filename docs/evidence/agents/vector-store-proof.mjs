@@ -3,6 +3,12 @@
 // exact cosine scan (stated), persisted to a jailed JSON file and reloaded in a COLD reader.
 // Cold-loaded ranking must be bit-identical to the inline scorer. Run after `npm run build`:
 //   node docs/evidence/agents/vector-store-proof.mjs
+//
+// v532 (amendment 518) — the corpus is the repository's SOURCE; a dot-directory is tooling, not source.
+// Measured 2026-10-28 on the authoring worktree: `.scratch/`'s untracked `.js`/`.md` files sort before
+// `agents/` and consumed the alphabetical first-120 window, so the third query found nothing here while
+// a clean checkout was green. Amendment 149's nested-`.git` skip in code-index was this observation one
+// directory narrower; the filter below is the wider rule, kept in the proof that owns the window.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -18,7 +24,10 @@ fs.mkdirSync(`${JAIL}/state`, { recursive: true });
 
 // Corpus: index chunks of the real repo (first 300 files' worth, deterministic subset).
 const files = collectTextFiles('.', fs);
-const paths = Object.keys(files).sort().slice(0, 120);
+const paths = Object.keys(files)
+  .filter((p) => !p.split('/').some((seg) => seg.startsWith('.')))
+  .sort()
+  .slice(0, 120);
 const entries = [];
 for (const p of paths) {
   for (const c of chunkFile(p, files[p]).slice(0, 2)) {

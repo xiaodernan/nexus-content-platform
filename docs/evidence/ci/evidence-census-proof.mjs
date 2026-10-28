@@ -38,6 +38,13 @@
 // pre-pulls `node:22-alpine` (the one blocker all three named) and `verify:build-lane`, `verify:container-lane`
 // and `verify:deploy-lane` exist, so the census derives them and their deferral entries are deleted.
 //
+// v532 (amendment 518) — the 79 swept proofs were TRIAGED, not wired wholesale: comments stripped, then
+// scanned for a service reach (ci-wiring §6), a child spawn, and a shipped-build import. The 17 that import
+// a dist and start no child of their own were measured; 16 joined the build as rows and one stayed swept as
+// a NAMED red (code-index: its top-5 expectation no longer holds on the grown corpus — measured, not
+// guessed, and recorded in the amendment). The census now prints 39 row + 63 swept, and a swept proof that
+// is red on this box is a sentence in the ledger rather than an unopened door.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';

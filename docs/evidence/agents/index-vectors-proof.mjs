@@ -7,6 +7,10 @@
 // and any drift falls the WHOLE query back to inline scoring, stated (never a half-vector
 // ranking). Run from the repo root after `npm run build`:
 //   node docs/evidence/agents/index-vectors-proof.mjs
+// sweep-budget-ms: 300000
+// v532 (amendment 518) — this proof walks the whole real corpus and vectorises it: 97.4 s measured on the
+// authoring box 2026-10-28, so it declares its own budget instead of leaning on the runner's 240 000 ms
+// fallback (amendment 85: the budget belongs to the row).
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
