@@ -69,7 +69,7 @@ export function ResolveButtons({ caseId }: { caseId: string }) {
         type="button"
         disabled={busy}
         onClick={() => void resolve('rejected')}
-        className="rounded bg-danger px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+        className="rounded bg-danger px-2 py-1 text-11 text-accent-fg disabled:opacity-50"
         data-resolve="rejected"
       >
         拒绝并撤下

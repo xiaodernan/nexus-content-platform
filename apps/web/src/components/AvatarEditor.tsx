@@ -92,6 +92,7 @@ export function AvatarEditor({ initialUrl }: { initialUrl: string | null }) {
             type="file"
             accept="image/png,image/jpeg,image/webp,image/gif"
             disabled={pending}
+            aria-label="选择头像图片"
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) void upload(file);

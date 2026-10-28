@@ -125,7 +125,7 @@ export function GameGraphView() {
             type="button"
             onClick={() => void gameStore.createSkeleton(studio.document?.name ?? '未命名游戏')}
             data-game-graph-create
-            className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1"
+            className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg"
           >
             创建游戏骨架（模板）
           </button>
@@ -202,7 +202,7 @@ export function GameGraphView() {
               type="button"
               onClick={connect}
               data-game-graph-connect
-              className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1"
+              className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg"
             >
               连一条
             </button>

@@ -15,6 +15,7 @@
   --color-brand: var(--nexus-color-brand);
   --color-accent-1: var(--nexus-color-accent-1);
   --color-accent-2: var(--nexus-color-accent-2);
+  --color-accent-fg: var(--nexus-color-accent-fg);
   --color-danger: var(--nexus-color-danger);
   --color-warn: var(--nexus-color-warn);
   --color-info: var(--nexus-color-info);

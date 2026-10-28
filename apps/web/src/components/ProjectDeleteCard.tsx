@@ -89,7 +89,7 @@ export function ProjectDeleteCard({
           type="button"
           disabled={busy || typed.trim().length === 0}
           onClick={() => void remove()}
-          className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1 disabled:opacity-40"
+          className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-40"
           data-project-delete-confirm={projectId}
         >
           {busy ? '删除中…' : '确认删除'}

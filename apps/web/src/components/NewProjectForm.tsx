@@ -56,7 +56,13 @@ export function NewProjectForm() {
         className="min-w-[180px] flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-[var(--nexus-space-3)] py-2 text-14 placeholder:text-fg-3"
         data-project-name-input
       />
-      <select value={kind} onChange={(e) => setKind(e.target.value)} className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-2 text-13" data-project-kind-select>
+      <select
+        value={kind}
+        onChange={(e) => setKind(e.target.value)}
+        aria-label="项目类型"
+        className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-2 text-13"
+        data-project-kind-select
+      >
         {KINDS.map((item) => (
           <option key={item.value} value={item.value}>
             {item.label}

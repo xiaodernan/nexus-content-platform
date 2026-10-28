@@ -91,7 +91,7 @@ function BranchSection() {
             className={cn(
               'rounded border px-[6px] py-[1px] font-mono text-11 disabled:cursor-default',
               branch.current
-                ? 'border-transparent bg-accent-2 text-bg-0'
+                ? 'border-transparent bg-accent-2 text-accent-fg'
                 : 'border-[var(--nexus-color-border-subtle)] text-fg-3 hover:bg-bg-2',
             )}
             data-branch={branch.id}
@@ -244,7 +244,7 @@ function SnapshotSection() {
                 className={cn(
                   'shrink-0 rounded border px-1 text-11 disabled:opacity-50',
                   comparing
-                    ? 'border-transparent bg-accent-2 text-bg-0'
+                    ? 'border-transparent bg-accent-2 text-accent-fg'
                     : 'border-[var(--nexus-color-border-subtle)] text-fg-3 hover:bg-bg-2',
                 )}
                 data-snapshot-compare={snapshot.id}
@@ -332,7 +332,7 @@ export function HistoryPanel() {
                   <span
                     className={cn(
                       'rounded px-1 font-mono text-11 uppercase',
-                      entry.source === 'ai' ? 'bg-accent-2 text-bg-0' : 'bg-bg-2 text-fg-3',
+                      entry.source === 'ai' ? 'bg-accent-2 text-accent-fg' : 'bg-bg-2 text-fg-3',
                     )}
                   >
                     {entry.source}

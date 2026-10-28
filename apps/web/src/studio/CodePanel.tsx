@@ -139,7 +139,7 @@ export function CodePanel() {
                   'rounded-[var(--nexus-radius-sm)] border px-[var(--nexus-space-2)] py-1 text-12',
                   draft === active.contents
                     ? 'cursor-not-allowed border-[var(--nexus-color-border-subtle)] text-fg-3'
-                    : 'border-transparent bg-accent-2 text-white hover:opacity-90',
+                    : 'border-transparent bg-accent-2 text-accent-fg hover:opacity-90',
                 )}
               >
                 应用到模型

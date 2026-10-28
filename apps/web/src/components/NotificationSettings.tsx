@@ -61,7 +61,7 @@ export function NotificationSettings() {
               onClick={() => toggle(kind, !settings[kind])}
               disabled={saving}
               className={`rounded px-2 py-1 text-11 ${
-                settings[kind] ? 'bg-accent-2 text-white' : 'bg-bg-2 text-fg-3'
+                settings[kind] ? 'bg-accent-2 text-accent-fg' : 'bg-bg-2 text-fg-3'
               }`}
               aria-label={`${KIND_LABEL[kind]}：${settings[kind] ? '开启' : '关闭'}`}
             >

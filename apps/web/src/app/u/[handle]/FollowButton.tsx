@@ -38,7 +38,7 @@ export function FollowButton({ handle, initialFollowing, initialFollowers }: { h
         disabled={busy}
         onClick={() => void click()}
         data-follow-button={following ? 'on' : 'off'}
-        className="rounded bg-accent-2 px-3 py-1 text-12 text-fg-1 disabled:opacity-50"
+        className="rounded bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
       >
         {following ? '已关注' : '关注'} · {followers}
       </button>

@@ -65,6 +65,7 @@ export function ReportControl({ path }: { path: string }) {
           <select
             value={reason}
             onChange={(e) => setReason(e.target.value)}
+            aria-label="举报理由"
             className="rounded bg-bg-1 px-2 py-1 text-11 text-fg-1"
             data-report-reason
           >
@@ -86,7 +87,7 @@ export function ReportControl({ path }: { path: string }) {
             type="button"
             disabled={busy}
             onClick={() => void submit()}
-            className="rounded bg-accent-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+            className="rounded bg-accent-2 px-2 py-1 text-11 text-accent-fg disabled:opacity-50"
             data-report-submit
           >
             {busy ? '提交中…' : '提交举报'}

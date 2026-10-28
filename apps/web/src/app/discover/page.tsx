@@ -39,7 +39,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
               href={`/discover?sort=${tab.id}`}
               data-discover-tab={tab.id}
               data-current={tab.id === result.sort ? 'true' : 'false'}
-              className={`rounded px-2 py-1 text-12 ${tab.id === result.sort ? 'bg-accent-2 text-fg-1' : 'bg-bg-2 text-fg-2'}`}
+              className={`rounded px-2 py-1 text-12 ${tab.id === result.sort ? 'bg-accent-2 text-accent-fg' : 'bg-bg-2 text-fg-2'}`}
             >
               {tab.label}
             </Link>

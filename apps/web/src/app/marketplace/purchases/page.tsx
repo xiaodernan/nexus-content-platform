@@ -147,7 +147,7 @@ export default function PurchasesPage() {
                       type="button"
                       onClick={() => void download(row)}
                       disabled={busy === row.itemId}
-                      className="rounded bg-accent-1 px-2 py-1 text-12 text-bg-0 disabled:opacity-50"
+                      className="rounded bg-accent-1 px-2 py-1 text-12 text-accent-fg disabled:opacity-50"
                       data-purchase-download={row.itemId}
                     >
                       {busy === row.itemId ? '打包中...' : '下载'}

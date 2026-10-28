@@ -258,7 +258,7 @@ export function AgentPanel() {
             data-agent-run
             className={cn(
               'shrink-0 rounded-[var(--nexus-radius-sm)] px-2 py-1 text-12',
-              busy ? 'bg-bg-3 text-fg-3' : 'bg-accent-1 text-bg-0 hover:bg-accent-2',
+              busy ? 'bg-bg-3 text-fg-3' : 'bg-accent-1 text-accent-fg hover:bg-accent-2',
             )}
           >
             {busy ? '跑着…' : '跑一次检查'}
@@ -388,7 +388,7 @@ function StepRow({
               data-agent-accept-step={step.id}
               className={cn(
                 'rounded-[var(--nexus-radius-sm)] px-2 py-[2px] text-11',
-                accepting ? 'bg-bg-3 text-fg-3' : 'bg-accent-1 text-bg-0 hover:bg-accent-2',
+                accepting ? 'bg-bg-3 text-fg-3' : 'bg-accent-1 text-accent-fg hover:bg-accent-2',
               )}
             >
               {accepting ? '写着…' : '接受进项目'}

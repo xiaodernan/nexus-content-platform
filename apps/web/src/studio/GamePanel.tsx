@@ -89,7 +89,7 @@ export function GamePanel() {
           disabled={snapshot.saveState === 'saving'}
           onClick={() => void gameStore.createSkeleton(studio.document?.name ?? '未命名游戏')}
           data-game-create
-          className="self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1 disabled:opacity-50"
+          className="self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
         >
           创建游戏骨架（模板）
         </button>
@@ -170,7 +170,7 @@ export function GamePanel() {
           href={`/game/${studio.projectId}`}
           target="_blank"
           rel="noreferrer"
-          className="mt-2 inline-block rounded-[var(--nexus-radius-sm)] bg-accent-2 px-2 py-1 font-mono text-11 text-fg-1"
+          className="mt-2 inline-block rounded-[var(--nexus-radius-sm)] bg-accent-2 px-2 py-1 font-mono text-11 text-accent-fg"
           data-game-play
         >
           试玩这份设计 →
@@ -244,7 +244,7 @@ export function GamePanel() {
           type="button"
           onClick={() => void gameStore.commit()}
           data-game-save
-          className="mt-2 self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1"
+          className="mt-2 self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg"
         >
           保存到库
         </button>

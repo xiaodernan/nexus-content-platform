@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createProjectNamed, registerMember } from './support/auth-session';
 
 /**
  * §85 第三片：**只用键盘的人能不能走完这一页**——第二片 notMeasured 清单里
@@ -138,46 +139,6 @@ async function focusablePopulation(page: Page): Promise<{ included: string[]; ex
   }, FOCUSABLE);
 }
 
-async function register(page: Page, email: string, password: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-auth-email]', email);
-  await page.fill('[data-auth-password]', password);
-  // 先把这一声 POST 的答复码留住。2026-10-28 连跑多轮时这里红过两次，报的都是
-  // 「身份还是 guest」——那不是这条腿坏了，是产品自己的注册限流（同 IP 每小时 10 次，
-  // apps/web/src/app/api/auth/register/route.ts）把名额用光了。答复码要进第一条报错里，
-  // 下一个人不用重新猜；**不要为测试放宽那道闸**。
-  const attempted = page
-    .waitForResponse((r) => /\/api\/auth\/register$/.test(new URL(r.url()).pathname), { timeout: 30_000 })
-    .catch(() => null);
-  await page.click('[data-auth-submit]');
-  const res = await attempted;
-  const status = res?.status() ?? 0;
-  // 这一次读界面错误必须**不等待**：`locator.textContent()` 会先等元素出现，而注册成功时
-  // `[data-auth-error]` 根本不存在——`.catch(() => null)` 救不了它，因为 reject 发生在
-  // 测试超时那一刻（实测把绿的路径拖成 145 秒后整条测试超时）。`evaluate` 是一次性读数，
-  // 元素不在就是 null。
-  const shown = (
-    await page.evaluate(() => document.querySelector('[data-auth-error]')?.textContent?.trim() ?? null)
-  ) ?? null;
-  await expect(
-    page.locator('[data-auth-identity]'),
-    `注册没把会话升成 member（HTTP ${status}${shown ? ` · 界面上写：${shown}` : ''}）` +
-      (status === 429
-        ? '——这是注册限流：同一个 IP 每小时只放行 10 次注册，连着跑多轮 e2e 会先把名额用光。' +
-          '等滑动窗口腾出名额再跑，别放宽产品里这道闸。'
-        : ''),
-  ).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
-}
-
-async function createProject(page: Page, name: string): Promise<string> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
-  return new URL(page.url()).pathname.split('/').pop()!;
-}
-
 /** 与 §167 同一条纪律：先离开 Studio 再写文档（store 里那份旧稿会在卸载时盖回来）。 */
 async function setInteractiveDocument(page: Page, projectId: string): Promise<string> {
   await page.goto('/');
@@ -213,8 +174,8 @@ async function setInteractiveDocument(page: Page, projectId: string): Promise<st
 
 test('§85 键盘可达性：Tab 走完公开页、Enter 按响互动热点（WCAG 2.1.1）', async ({ page, browser }) => {
   test.setTimeout(300_000);
-  await register(page, `kbd+${RUN}@nexus.test`, 'e2e-secret-123');
-  const projectId = await createProject(page, `键盘走查${RUN}`);
+  await registerMember(page, `kbd+${RUN}@nexus.test`, 'e2e-secret-123');
+  const projectId = await createProjectNamed(page, `键盘走查${RUN}`);
   const endPageId = await setInteractiveDocument(page, projectId);
 
   await page.goto(`/studio/${projectId}`);

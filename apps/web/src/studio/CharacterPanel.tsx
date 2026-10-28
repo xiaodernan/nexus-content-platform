@@ -290,7 +290,7 @@ export function CharacterPanel() {
             disabled={saving}
             onClick={() => void create()}
             data-character-create
-            className="shrink-0 rounded-[var(--nexus-radius-sm)] bg-accent-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+            className="shrink-0 rounded-[var(--nexus-radius-sm)] bg-accent-2 px-2 py-1 text-11 text-accent-fg disabled:opacity-50"
           >
             建
           </button>
@@ -598,7 +598,7 @@ export function CharacterPanel() {
                 data-character-save
                 className={cn(
                   'rounded-[var(--nexus-radius-sm)] px-3 py-1 text-12',
-                  dirty ? 'bg-accent-2 text-fg-1' : 'bg-bg-2 text-fg-3',
+                  dirty ? 'bg-accent-2 text-accent-fg' : 'bg-bg-2 text-fg-3',
                 )}
               >
                 {saving ? '保存中…' : dirty ? '保存档案' : '没有改动'}

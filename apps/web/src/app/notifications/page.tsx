@@ -142,7 +142,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
                 {page.pagination.hasMore ? (
                   <Link
                     href={`/notifications?page=${page.pagination.page + 1}`}
-                    className="rounded-[var(--nexus-radius-sm)] bg-accent-1 px-3 py-1.5 text-12 text-accent-2 hover:bg-accent-2"
+                    className="rounded-[var(--nexus-radius-sm)] bg-accent-1 px-3 py-1.5 text-12 text-accent-fg hover:bg-accent-2"
                     data-pagination-next
                   >
                     下一页 →

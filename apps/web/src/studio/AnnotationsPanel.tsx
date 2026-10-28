@@ -89,7 +89,7 @@ export function AnnotationsPanel() {
                 type="button"
                 disabled={busy || !text.trim()}
                 onClick={() => void submit()}
-                className="self-start rounded bg-accent-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+                className="self-start rounded bg-accent-2 px-2 py-1 text-11 text-accent-fg disabled:opacity-50"
                 data-annotation-submit
               >
                 {busy ? '写入中…' : '批注这个元素'}

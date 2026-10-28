@@ -1870,9 +1870,30 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   变成"必然整条测试超时"，报错却还写着"注册没把会话升成 member"（把人往限流上带）。改成不等待的一次性
   读数（`page.evaluate` 取 `querySelector(...)?.textContent`）后同一条腿 **9.6 秒**绿，上面那组读数
   （分母 9／走查 11／命中 9／排除 1）一字不差复现。教训：**"等一个不该存在的元素"不是稳妥兜底，
-  是把绿路变成死路**——读"有没有"要用不等待的 API。**仍欠**：§85 的真实 provider 半边（LLM 裁判 /
+  是把绿路变成死路**——读"有没有"要用不等待的 API。
+  **第四片同日落地：登录后那九张界面长什么样**（`e2e/a11y-internal.spec.ts`，一次注册扫首页／Studio／
+  发现／市场／通知／数据／搜索／额度／凭据）。首跑三类缺陷：`label`×2、`select-name`×3、`color-contrast`×2。
+  对比度那条不是手滑——按 tokens.css 字面值量全库的"同串底色+文字"配对，67 条里 **36 条不及格**
+  （32 条是同一个写法 `bg-accent-2 text-fg-1`，暗色 1.60:1），根因是三个 accent 不随主题翻转而 `fg-*`／`bg-*`
+  翻，所以"亮色实底 + 任一文本 token"必在某个主题上塌。修法是给这类底色一个不翻转的前景 token
+  `--nexus-color-accent-fg`（46 条串／32 个文件），并删掉那个从没被引用过、白字压 brand 只有 4.17 的
+  诱饵 token `--nexus-color-brand-fg`。可及名那五条补齐之后，**拿同一判据去找全库又翻出 6 处一模一样的**，
+  它们全在默认收起的面板与点开才出现的表单里——**axe 只看得见渲染出来的 DOM，结构上就扫不到它们**，
+  于是新增 `control-names.test.ts` 按 JSX 字面判（`aria-label`／`aria-labelledby`／`title`／被 `<label>` 包住／
+  `id`+`htmlFor` 五选一），并把对比度配对钉进 `style-tokens.test.ts`。两道门都有"验电"：改之前的写法必须红，
+  合法写法必须放，`onChange={(e) => …}` 里的 `>` 不许把开标签截断。改完复跑九张 **违规 0 / critical 0**（17.6 秒）。
+  这一片还纠正了第三片留下的一句归因：那句"两次红都是限流"只算对一半——同一形态（身份仍是 guest）
+  还有一条独立成因：**SSR 的 HTML 一 attach 就能点，可 React 的委托监听还没挂上，点击静默丢掉**（实测同一
+  脚本两次跑一次成一次败，答复码是 0，因为 POST 压根没发）。`waitForSelector('[data-auth-tab=…]')` 等的是
+  HTML 不是水合，所以它不是屏障；屏障只能是"点下去之后 DOM 真的按状态变了"，落进
+  `e2e/support/auth-session.ts`（切一次登录／注册看昵称框消失再回来；建项目看 `disabled` 被点亮），
+  两片 a11y e2e 已改用它。**分辨办法：答复码 0 = 点击被吞，429 = 限流**。
+  另记两笔技术账：① 其余 9 个 e2e 文件仍是无屏障的老写法（`data-auth-email` 一填就点），
+  该换成 `registerMember`／`createProjectNamed`；② `bg-brand text-bg-0` 这类写法在**浅色主题**下会塌
+  （浅 `bg-0` 是近白，压 brand 只有 4.17），今天不算违规只因为产品里没有切到浅色的入口。
+  **仍欠**：§85 的真实 provider 半边（LLM 裁判 /
   Tool selection / Agent task completion）、RAG 向量半（#110）、Studio / 市场 / 收件箱等其余界面的
-  键盘走查与 axe；§86 的 provider 接入半边
+  键盘走查（axe 九张已扫，见上）；§86 的 provider 接入半边
   （typography / componentCorrectness 的真实来源）；metrics/tracing 也没接，
   所以"线上发生了什么"目前只能靠审计表 + stderr。
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在
@@ -2268,9 +2289,18 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
      §165 的 `or(ilike(description,…))` 与 §166 的 `og:description` 第一级从此才有东西可命中——
      `project-meta.integration.test.ts` 里那条"写进去之前搜不到、写进去之后搜得到并且把简介当 detail 带出来"就是这条闭环的钉子。
      历史项目仍然是空的（不回填、不拿名字凑一句），SEO 那侧继续走第二级摘要。
-  2. `projects.deleted_at` 同样全是读：13 处 `isNull(projects.deletedAt)` 外加 `publish.ts:246` 单独挡一次，
-     但全库没有一处把项目标记为已删除——软删除链路本身没落地。§166 的 sitemap 谓词因此是**防御性**的：
-     今天它永远为真，等软删上线时它已经在位（集成测试直接改库造那一行，并在注释里写明是手工造的）。
+  2. ~~`projects.deleted_at` 同样全是读：13 处 `isNull(projects.deletedAt)` 外加 `publish.ts:246` 单独挡一次，
+     但全库没有一处把项目标记为已删除——软删除链路本身没落地。~~
+     **已还（`23f6b81`，§74）——这一条在本文件里挂了 20 天没人复核，今天按代码核对才发现它早就成立了**：
+     写入方是 `server/domain/projects.ts` 的 `softDeleteProject`（审批门：逐字输入项目名，`confirmName`
+     不等就记一条 `allowed:false` 的审计并返回 `approval_required`）与 `restoreProject`（只动 `isNotNull` 的行，
+     没删过的项目返回 null 而不是"恢复成功"）；路由 `DELETE /api/projects/<id>` + `POST …/restore`；
+     界面是首页的「回收站」。**记这一笔的教训不是"软删没做"，而是"做过就要当场划掉"**：
+     下一轮我照着这条过时口径把"补软删除链路"列成了本轮的活，白排一格。
+     §166 的 sitemap 谓词从此不是防御性的空转——它挡的是真会发生的事。
+     **一处如实欠着**：`seo.integration.test.ts:99` 造"已删除的项目"仍是直接 `UPDATE projects SET deleted_at`，
+     没走 `softDeleteProject` 那条真路径（`project-delete.integration.test.ts` 那 20 条走的是真路径）。
+     后果具体可见：审批门与审计那一段坏了，SEO 这条腿不会红。
 - 资产服务已落地（任务 #9c，§38/§80/§101/§182）：图片上传 → magic-bytes 判定 → 元数据剥离 → 对象存储 → 鉴权路由 →
   画布/预览/发布四条投影同源。仍欠的两笔如实记下：
   1. `stripImageMetadata` 只做**结构化剥离**（PNG/JPEG/WebP/GIF 的 EXIF/XMP/IPTC/注释段），没有重新编码/缩略图/有损统一化——

@@ -86,7 +86,7 @@ export function ProjectDescriptionEditor({
           type="button"
           disabled={busy}
           onClick={() => void save(value)}
-          className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1 disabled:opacity-50"
+          className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
           data-project-desc-save={projectId}
         >
           {busy ? '保存中…' : '保存简介'}

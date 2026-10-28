@@ -202,7 +202,7 @@ export function RetrievePanel() {
             disabled={busy || !query.trim()}
             onClick={() => void search()}
             data-retrieve-run
-            className="shrink-0 rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-11 text-fg-1 disabled:opacity-50"
+            className="shrink-0 rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-11 text-accent-fg disabled:opacity-50"
           >
             查
           </button>

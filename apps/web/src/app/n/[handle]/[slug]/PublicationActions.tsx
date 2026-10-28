@@ -172,7 +172,7 @@ export function PublicationActions({ state }: { state: PublicationState }) {
           type="button"
           disabled={busy || !text.trim()}
           onClick={() => void onComment()}
-          className="rounded bg-accent-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+          className="rounded bg-accent-2 px-2 py-1 text-11 text-accent-fg disabled:opacity-50"
           data-comment-submit
         >
           发送

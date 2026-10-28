@@ -191,7 +191,7 @@ export function ExportPanel() {
               onClick={() => void run()}
               data-export-run
               className={cn(
-                'rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1 disabled:opacity-50',
+                'rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50',
               )}
             >
               {busy ? '打包中…' : `导出 ${chosen.join('+') || '（没勾东西）'}`}

@@ -100,6 +100,7 @@ export function ImportPanel() {
         type="file"
         accept="application/zip,.zip"
         disabled={busy}
+        aria-label="选择要导入的 zip 包"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) void run(file);

@@ -113,6 +113,11 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
   连着跑两轮浏览器用例，第二轮就会拿到 429，界面上只留一句"认证失败"、`data-auth-identity` 停在 `guest`——
   看上去像用例坏了，其实是名额用光。**不要为了跑测试放宽这道闸**（它是 §SECURITY 的防批量建号）；
   要么等窗口腾名额（每 6 分钟出一个），要么一轮里只挑相关的那几条跑。
+- **"身份还是 guest"有第二种成因，别一上来就怪限流**（同日实测）：这些界面是 SSR 出来的，HTML 一 attach
+  就能 `fill`／`click`，可那一刻 React 的委托监听还没挂上，**点击会静默丢掉**——POST 压根没发出去。
+  分辨只看答复码：`0` = 点击被吞（水合没到），`429` = 限流。屏障不能用 `waitForSelector('[data-auth-tab=…]')`
+  （它等的是 HTML 不是水合），要用"点下去之后 DOM 真的按状态变了"——已封装在 `e2e/support/auth-session.ts`
+  的 `registerMember`／`createProjectNamed` 里，新写的浏览器用例请直接用。
 
 ## Git Hooks（重要）
 

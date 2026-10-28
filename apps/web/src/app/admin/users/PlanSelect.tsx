@@ -70,6 +70,7 @@ export function PlanSelect({
         value={choice}
         disabled={busy}
         onChange={(event) => setChoice(event.target.value as Plan)}
+        aria-label="该用户的订阅档位"
         className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
         data-plan-select={handle ?? userId}
       >

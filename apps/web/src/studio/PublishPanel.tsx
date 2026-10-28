@@ -201,7 +201,7 @@ export function PublishPanel() {
               disabled={state.publishBusy}
               onClick={() => void studio.publish(visibility)}
               data-publish-submit
-              className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1 disabled:opacity-50"
+              className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
             >
               {state.publishBusy ? '发布中…' : publication ? '重新发布' : '发布'}
             </button>

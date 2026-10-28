@@ -140,7 +140,13 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
         />
         {projects.length ? (
           <>
-            <select value={projectId} onChange={(e) => void pickProject(e.target.value)} data-marketplace-create-project className="rounded bg-bg-2 px-1 py-1 text-12">
+            <select
+              value={projectId}
+              onChange={(e) => void pickProject(e.target.value)}
+              aria-label="来源项目"
+              data-marketplace-create-project
+              className="rounded bg-bg-2 px-1 py-1 text-12"
+            >
               <option value="">来源项目（可选）</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -148,7 +154,14 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
                 </option>
               ))}
             </select>
-            <select value={previewAssetId} onChange={(e) => setPreviewAssetId(e.target.value)} data-marketplace-create-preview className="rounded bg-bg-2 px-1 py-1 text-12" disabled={!projectId}>
+            <select
+              value={previewAssetId}
+              onChange={(e) => setPreviewAssetId(e.target.value)}
+              aria-label="预览素材"
+              data-marketplace-create-preview
+              className="rounded bg-bg-2 px-1 py-1 text-12"
+              disabled={!projectId}
+            >
               <option value="">预览素材（可选，先选项目）</option>
               {assets.map((asset) => (
                 <option key={asset.id} value={asset.id}>
@@ -164,7 +177,7 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
         onClick={() => void submit()}
         disabled={busy || !title.trim()}
         data-marketplace-create-submit
-        className="mt-2 rounded bg-accent-1 px-3 py-1 text-12 text-fg-1 disabled:opacity-50"
+        className="mt-2 rounded bg-accent-1 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
       >
         {busy ? '上架中…' : '上架'}
       </button>

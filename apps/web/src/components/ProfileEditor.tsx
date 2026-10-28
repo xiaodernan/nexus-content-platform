@@ -51,7 +51,7 @@ export function ProfileEditor({ initialBio }: { initialBio: string | null }) {
           type="button"
           disabled={busy}
           onClick={() => void save()}
-          className="rounded bg-accent-2 px-3 py-1 text-12 text-fg-1 disabled:opacity-50"
+          className="rounded bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
           data-bio-save
         >
           {busy ? '保存中…' : '保存简介'}

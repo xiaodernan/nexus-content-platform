@@ -582,7 +582,7 @@ export function StoryboardPanel() {
           disabled={!prompt.trim() || snapshot.saveState === 'saving'}
           onClick={() => void storyboardStore.planFrom(prompt)}
           data-storyboard-create
-          className="self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1 disabled:opacity-50"
+          className="self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
         >
           切一版分镜
         </button>
@@ -967,7 +967,7 @@ export function StoryboardPanel() {
           {renderNote ? (
             <div className="mt-2 flex flex-col gap-1" data-storyboard-render-result>
               <p className="text-11 text-fg-2">
-                <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-1 py-[1px] text-10 text-fg-1">DEMO</span>
+                <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-1 py-[1px] text-10 text-accent-fg">DEMO</span>
                 {' '}成片已挂到第一镜（整条分镜一条片子），耗时 {renderNote.renderMs} 毫秒
               </p>
               <video
@@ -1003,7 +1003,7 @@ export function StoryboardPanel() {
                 {renders.map((r) => (
                   <li key={r.assetId} className="flex flex-col gap-1 text-11 text-fg-2">
                     <span>
-                      <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-1 py-[1px] text-10 text-fg-1">DEMO</span>
+                      <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-1 py-[1px] text-10 text-accent-fg">DEMO</span>
                       {' '}
                       {new Date(r.createdAt).toLocaleString('zh-CN')} · {r.renderMs} 毫秒
                       {r.warnings.length ? ` · ${r.warnings.length} 条没做到的` : ''}

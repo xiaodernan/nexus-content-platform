@@ -102,7 +102,7 @@ function VariantCard({
           {branch.name}
         </span>
         {branch.current ? (
-          <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-[5px] py-[1px] text-11 text-fg-1">当前</span>
+          <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-[5px] py-[1px] text-11 text-accent-fg">当前</span>
         ) : null}
         <span className="ml-auto flex items-center gap-1">
           <button
@@ -192,7 +192,7 @@ export function VariantsBoard() {
           disabled={state.snapshotBusy}
           onClick={() => void studio.generateVariants(count)}
           data-variant-generate
-          className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-2 py-1 text-12 text-fg-1 disabled:opacity-50"
+          className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-2 py-1 text-12 text-accent-fg disabled:opacity-50"
         >
           {state.snapshotBusy ? '生成中…' : '生成候选方案'}
         </button>
@@ -223,6 +223,7 @@ export function VariantsBoard() {
         <select
           value={layoutId ?? ''}
           onChange={(e) => setLayoutId(e.target.value || null)}
+          aria-label="布局来源"
           data-variant-layout
           className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-[2px] text-12 text-fg-1"
         >
@@ -237,6 +238,7 @@ export function VariantsBoard() {
         <select
           value={visualId ?? ''}
           onChange={(e) => setVisualId(e.target.value || null)}
+          aria-label="视觉来源"
           data-variant-visual
           className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-[2px] text-12 text-fg-1"
         >

@@ -280,6 +280,7 @@ export function DesignSystemPanel() {
             <select
               value={newToken.type}
               onChange={(e) => setNewToken((t) => ({ ...t, type: e.target.value as Token['type'] }))}
+              aria-label="新 token 的类型"
               data-token-new-type
               className="rounded-[var(--nexus-radius-sm)] bg-bg-1 px-1 py-1 text-11 text-fg-1"
             >
@@ -307,7 +308,7 @@ export function DesignSystemPanel() {
               type="button"
               onClick={addToken}
               data-token-new-submit
-              className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-2 py-[2px] text-11 text-fg-1"
+              className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-2 py-[2px] text-11 text-accent-fg"
             >
               加入
             </button>

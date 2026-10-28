@@ -102,7 +102,7 @@ export function WorldPanel() {
           disabled={snapshot.saveState === 'saving'}
           onClick={() => void worldStore.createSkeleton(studio.document?.name ?? '未命名世界')}
           data-world-create
-          className="self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1 disabled:opacity-50"
+          className="self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
         >
           创建世界骨架（模板）
         </button>
@@ -313,7 +313,7 @@ export function WorldPanel() {
           type="button"
           onClick={() => void worldStore.commit()}
           data-world-save
-          className="mt-2 self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1"
+          className="mt-2 self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg"
         >
           保存到库
         </button>

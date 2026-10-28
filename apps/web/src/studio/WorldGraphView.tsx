@@ -92,7 +92,7 @@ export function WorldGraphView() {
             type="button"
             onClick={() => void worldStore.createSkeleton(studio.document?.name ?? '未命名世界')}
             data-graph-create
-            className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1"
+            className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg"
           >
             创建世界骨架（模板）
           </button>
@@ -272,7 +272,7 @@ export function WorldGraphView() {
           data-world-terrain-mode
           className={cn(
             'rounded bg-bg-2 px-2 py-1 text-11',
-            terrainMode ? 'bg-accent-2 text-fg-1' : 'text-fg-2 hover:bg-bg-3',
+            terrainMode ? 'bg-accent-2 text-accent-fg' : 'text-fg-2 hover:bg-bg-3',
           )}
         >
           画地形
@@ -304,7 +304,7 @@ export function WorldGraphView() {
                   data-world-terrain-profile={option}
                   className={cn(
                     'rounded px-2 py-1 text-11',
-                    terrainProfile === option ? 'bg-accent-2 text-fg-1' : 'bg-bg-2 text-fg-2 hover:bg-bg-3',
+                    terrainProfile === option ? 'bg-accent-2 text-accent-fg' : 'bg-bg-2 text-fg-2 hover:bg-bg-3',
                   )}
                 >
                   {option === 'mesa' ? '台面' : '坡'}
@@ -348,7 +348,7 @@ export function WorldGraphView() {
               type="button"
               onClick={connect}
               data-graph-connect
-              className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-fg-1"
+              className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg"
             >
               连一条
             </button>

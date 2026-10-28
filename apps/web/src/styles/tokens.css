@@ -18,9 +18,15 @@
 
   /* 品牌与强调 */
   --nexus-color-brand: #5b6cff;
-  --nexus-color-brand-fg: #ffffff;
   --nexus-color-accent-1: #8b5cf6;
   --nexus-color-accent-2: #22d3ee;
+  /* 强调面上的文字色。三个 accent 都是亮色且**不随主题翻转**，而 fg-1/fg-2/fg-3/bg-0
+     都跟着主题翻（暗色近白、浅色近黑）——所以"亮色实底 + 任一文本 token"必然在两个主题中的
+     某一个上过 AA：暗色下 #eef1f6 压 #22d3ee 只有 1.60:1，浅色下 #f7f8fb 压 #22d3ee 只有 1.70:1。
+     前景必须由底色一侧定，不能让用文字 token 的人自己猜。这条值在两个主题里都一样。
+     brand 也归它管：白字压 #5b6cff 只有 4.17:1，原来那个 --nexus-color-brand-fg:#ffffff 因此删了。
+     量法与门见 apps/web/test/style-tokens.test.ts（按本文件的字面值算，不靠浏览器）。 */
+  --nexus-color-accent-fg: #0a0b10;
 
   /* 语义色 */
   --nexus-color-danger: #f2555a;

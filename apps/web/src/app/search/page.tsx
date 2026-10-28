@@ -33,7 +33,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           placeholder="项目 / 用户 / 世界 / 游戏 / 角色 / 设计稿 / 组件 / 资产"
           className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-3 py-2 text-14 text-fg-1 outline-none focus:bg-bg-2"
         />
-        <button type="submit" data-search-submit className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-4 py-2 text-13 text-bg-0">
+        <button type="submit" data-search-submit className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-4 py-2 text-13 text-accent-fg">
           搜
         </button>
       </form>

@@ -82,7 +82,7 @@ export function TriageButtons({ reportId }: { reportId: string }) {
           type="button"
           disabled={busy}
           onClick={() => void send('dismissed')}
-          className="rounded bg-danger px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+          className="rounded bg-danger px-2 py-1 text-11 text-accent-fg disabled:opacity-50"
           data-triage="dismissed"
         >
           驳回（举报不成立）

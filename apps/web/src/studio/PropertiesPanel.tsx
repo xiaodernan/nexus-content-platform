@@ -760,6 +760,7 @@ function FillList(props: {
               <select
                 value={paint.fit ?? 'cover'}
                 onChange={(e) => write(`style.fills.${index}.fit`, e.target.value)}
+                aria-label="图片填充方式"
                 className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-11 text-fg-2"
                 data-fill-fit={index}
               >
