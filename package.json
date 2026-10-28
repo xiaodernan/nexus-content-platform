@@ -42,6 +42,7 @@
     "verify:credits": "node docs/evidence/studio/credits-proof.mjs",
     "verify:mutation": "node docs/evidence/studio/mutation-probe.mjs",
     "verify:credits-surface": "node tools/harness/studio-credits.mjs",
+    "verify:template-publish": "node docs/evidence/studio/publish-proof.mjs",
     "verify:ci-wiring": "node docs/evidence/ci/ci-wiring-proof.mjs",
     "verify:evidence-census": "node docs/evidence/ci/evidence-census-proof.mjs",
     "verify:audit-contract": "node docs/evidence/m9/audit-contract-proof.mjs",
