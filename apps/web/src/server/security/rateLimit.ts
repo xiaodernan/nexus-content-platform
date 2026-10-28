@@ -8,6 +8,8 @@
  * 但绝不是「不限量」：单实例仍能挡住暴力破解。
  */
 
+import { increment } from '../observability';
+
 export interface RateLimiter {
   /** 记一次命中并返回是否放行；同时回带当前窗口计数供 Retry-After 参考。 */
   hit(key: string, limit: number, windowMs: number): { allowed: boolean; count: number; retryAfterMs: number };
@@ -24,6 +26,14 @@ class MemoryRateLimiter implements RateLimiter {
     const allowed = window.length < limit;
     if (allowed) window.push(now);
     this.hits.set(key, window);
+    /**
+     * 只取键的第一段（路由字面量）当标签，不看后面两段。
+     * 限流键的形状是 `路由|身份|IP`，而 `auth/login` 那一格的"身份"传的是**邮箱**
+     * （`rateKey('auth/login', ip, parsed.data.email.toLowerCase())`）——整串键进指标标签，
+     * 等于把账号名单与 IP 抄进一个内存里长住、访问面还可能更宽的地方。
+     * 闸的判定次数不需要知道是谁；要查具体人时去审计表，那张表有访问门与保留期。
+     */
+    increment('nexus_rate_limit_decisions_total', { gate: key.split('|')[0] ?? 'unknown', allowed: String(allowed) });
     // 窗口里最早那条到期的时间 = 再过多久能腾出一个名额。
     const oldest = window[0] ?? now;
     return { allowed, count: window.length, retryAfterMs: allowed ? 0 : Math.max(0, oldest + windowMs - now) };

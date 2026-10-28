@@ -10,6 +10,7 @@ import { agentLedgerFields, mentionNote } from '@/server/domain/agents';
 import { finishTask, holdForApproval, recordCapabilityRefusal, startTask, type TaskCapability } from '@/server/domain/agent-tasks';
 import { refusalForRun } from '@/server/domain/credit-ledger';
 import { clientIp, ipWriteGate } from '@/server/security/rateLimit';
+import { increment, observe } from '@/server/observability';
 import { emit } from '@/server/domain/notifications';
 import { csrfOk } from '@/server/security/csrf';
 import { badRequest, failure, jsonError } from '@/server/http';
@@ -73,6 +74,15 @@ export async function POST(req: Request): Promise<NextResponse> {
   const startedAt = Date.now();
 
   const settle = async (ok: boolean, detail: string | null): Promise<void> => {
+    /**
+     * 计数放在 `if (!taskId …) return` **之前**：taskId 还没建就失败的那几次也是"这次请求走到终态了"，
+     * 漏掉它们会让这条曲线在最需要看的时候（装配之前就炸）恰好是平的。
+     * 同一个 `durationMs` 喂给指标和 §164 的通知——两处各算一次时间，就会有两个数，
+     * 而"面板说 1.2 秒、通知说 1.9 秒"这种事没人能解释。
+     */
+    const durationMs = Date.now() - startedAt;
+    increment('nexus_ai_runs_total', { capability, outcome: ok ? 'ok' : 'failed' });
+    observe('nexus_ai_run_duration_ms', durationMs, { capability, outcome: ok ? 'ok' : 'failed' });
     if (!taskId || !requesterId) return;
     await finishTask(taskId, ok ? { ok, result: { detail } } : { ok, error: detail ?? '执行失败，没有给出原因' });
     // 今天生成是同步回话，这条通知几乎紧跟着响应到达；但它记的是"这件事真的结束了"，
@@ -86,7 +96,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       agentKey: agentKey ?? parsed.data.intent,
       capability,
       ok,
-      durationMs: Date.now() - startedAt,
+      durationMs,
       detail,
     });
   };

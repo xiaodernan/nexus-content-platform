@@ -1908,8 +1908,12 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   **仍欠**：§85 的真实 provider 半边（LLM 裁判 /
   Tool selection / Agent task completion）、RAG 向量半（#110）、Studio / 市场 / 收件箱等其余界面的
   键盘走查（axe 九张已扫，见上）；§86 的 provider 接入半边
-  （typography / componentCorrectness 的真实来源）；metrics/tracing 也没接，
-  所以"线上发生了什么"目前只能靠审计表 + stderr。
+  （typography / componentCorrectness 的真实来源）。
+  **metrics/tracing 那一格同日落地（第十一片）**：进程内计数器 8 个指标 + `x-nexus-trace` 追踪 id +
+  库里三张账，读面是 `GET /api/admin/metrics`（JSON／Prometheus 文本）与 `/admin/observability`，
+  决策见 `docs/adr/0068-in-process-metrics-and-trace-id.md`。"线上发生了什么"不再只能靠审计表 + stderr；
+  **仍欠的观测**是按路由的状态码与延迟分布（Next 16 没有"每请求开始/结束"钩子，要它得改路由形状）、
+  对外抓取目标与告警。
   **第五片同日落地：还第四片那笔浅色账时，发现门自己在骗人**（`style-tokens.test.ts`）。
   第四片把"同串底色+文字"钉进门里时只查了暗色——暗色是产品当前唯一渲染的那套，看起来合理。
   把这条门扩到两个主题后它没有立刻红，而是**继续绿**：一查才知道 `valueOf()` 用了两次 `replace`

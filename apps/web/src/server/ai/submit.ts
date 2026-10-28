@@ -5,6 +5,7 @@ import { assembleAiRequest } from './assemble';
 import { agentLedgerFields, mentionNote } from '@/server/domain/agents';
 import { submitJob, type JobSubmitResult } from '@/server/domain/ai-jobs';
 import { refusalForRun } from '@/server/domain/credit-ledger';
+import { increment } from '@/server/observability';
 import { jsonError } from '@/server/http';
 
 /**
@@ -54,6 +55,7 @@ export async function submitClientRequest(
     ...(opts?.retry ? { retry: opts.retry } : {}),
   });
   if (!submitted.ok) {
+    increment('nexus_ai_jobs_submitted_total', { capability: isDemo ? 'demo' : 'real', outcome: 'rejected' });
     return {
       ok: false,
       response: jsonError(submitted.status ?? 503, submitted.error.code, {
@@ -62,6 +64,7 @@ export async function submitClientRequest(
       }),
     };
   }
+  increment('nexus_ai_jobs_submitted_total', { capability: isDemo ? 'demo' : 'real', outcome: 'ok' });
 
   const headers: Record<string, string> = { 'x-nexus-task': submitted.taskId };
   if (fields.agent) headers['x-nexus-agent'] = fields.agent.key;

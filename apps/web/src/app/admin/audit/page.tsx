@@ -60,6 +60,9 @@ export default async function AdminAuditPage() {
           <Link href="/admin/access" className="text-accent-2-ink underline" data-audit-access>
             访问账
           </Link>
+          <Link href="/admin/observability" className="text-accent-2-ink underline" data-audit-observability>
+            观测
+          </Link>
         </nav>
       </header>
 

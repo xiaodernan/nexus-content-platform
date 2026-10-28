@@ -134,6 +134,12 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
   分辨只看答复码：`0` = 点击被吞（水合没到），`429` = 限流。屏障不能用 `waitForSelector('[data-auth-tab=…]')`
   （它等的是 HTML 不是水合），要用"点下去之后 DOM 真的按状态变了"——已封装在 `e2e/support/auth-session.ts`
   的 `registerMember`／`createProjectNamed` 里，新写的浏览器用例请直接用。
+- **管理员界面的浏览器用例：先跑用例，再 `npm run e2e:admin-fixture`**（同日第十一片落地）：
+  注册接口没有"第一个账号当管理员"这条路，所以 `/admin/*` 那几张页在 e2e 里读不到，除非把某个
+  夹具账号提成 admin。那个脚本**只 `UPDATE role`，绝不插用户**——口令因此仍来自真注册路径，
+  测试里没有第二个"约定的哈希"。顺序是刻意的：先跑 `e2e/observability.spec.ts`（它注册
+  `obs-admin+fixture@nexus.test`），脚本才认得这个人；反过来跑它退出 1 并告诉你先跑哪条。
+  URL 里没有 `nexus_dev_only` 时它直接拒绝执行，别拿它连生产库。
 
 ## Git Hooks（重要）
 

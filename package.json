@@ -24,6 +24,7 @@
     "mcp:serve:http": "npm run start:http -w @nexus/mcp-server",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test --grep @smoke",
+    "e2e:admin-fixture": "tsx scripts/e2e-admin-fixture.mts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db-migrate.mts",
     "two:instance": "tsx scripts/two-instance-roundtrip.mts",

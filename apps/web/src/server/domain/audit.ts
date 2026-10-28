@@ -1,6 +1,7 @@
 import { desc, eq } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { auditEvents, users } from '../db/schema';
+import { currentTraceId, increment } from '../observability';
 
 /**
  * §80 / §84 的审计事件。`audit_events` 这张表建库起就有，注释写着"含被拒绝的越权尝试"，
@@ -51,6 +52,18 @@ export interface AuditEntry {
 }
 
 export async function recordAudit(input: AuditInput): Promise<boolean> {
+  /**
+   * 追踪 id 落进 `detail`（不加列：这一样是"怎么把已有的行串起来"，不是新的业务事实，
+   * 为一个日志标签做一次迁移不值）。只在 detail 是个普通对象时合进去——它是 `unknown`，
+   * 数组与标量都塞不进键值，而硬造一层包装会让审计页上那几行的形状变来变去。
+   */
+  const traceId = await currentTraceId();
+  const plain = input.detail;
+  const isPlainObject = typeof plain === 'object' && plain !== null && !Array.isArray(plain);
+  const detail = traceId && isPlainObject ? { ...(plain as Record<string, unknown>), traceId } : plain;
+  // 记的是"这次决定发生了"，与下面写库成不成败无关：写在成功之后会让"库抖一下"的那几次凭空消失，
+  // 而那恰恰是最该看得见有流量的几次
+  increment('nexus_audit_decisions_total', { action: input.action, allowed: String(input.allowed) });
   try {
     await getDb()
       .insert(auditEvents)
@@ -60,13 +73,17 @@ export async function recordAudit(input: AuditInput): Promise<boolean> {
         targetType: input.targetType ?? null,
         targetId: input.targetId ?? null,
         allowed: input.allowed,
-        detail: (input.detail ?? null) as never,
+        detail: (detail ?? null) as never,
         ip: input.ip ?? null,
       });
     return true;
   } catch (error) {
     // 审计写不上不影响这次请求的结论，但也不能静默：这一行就是"证据没留下"这件事本身的证据
-    console.error('[audit] 写入失败', input.action, error instanceof Error ? error.message : String(error));
+    increment('nexus_audit_write_failures_total');
+    console.error(
+      `[audit] 写入失败 trace=${traceId ?? '-'} ${input.action} allowed=${input.allowed} ` +
+        (error instanceof Error ? error.message : String(error)),
+    );
     return false;
   }
 }

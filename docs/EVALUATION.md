@@ -356,6 +356,62 @@ Tailwind 映射门，没有浏览器读数——如实记在这里，不假装�
 当前为 0 处，出现时由同一道硬门收。
 
 
+#### 第十一片（同日）：「线上发生了什么」第一次有读数——进程内计数器 + 追踪 id
+
+`docs/ROADMAP.md` 在 §84/§85 的"仍欠"里那句话是：**"metrics/tracing 也没接，所以『线上发生了什么』
+目前只能靠审计表 + stderr"**。这一片补的就是那一格，补法是零新依赖、零路由改形（决策与取舍见 `docs/adr/0068-in-process-metrics-and-trace-id.md`）。
+
+两层读数，形状不同是因为它们回答的问题不同：
+
+- **进程内**（`server/observability.ts`）：8 个声明出来的指标 + `x-nexus-trace` 追踪 id。
+  它记的是"速率闸放没放、错误钩子响没响、这一次生成多久"这类**跨重启就断掉**的事，
+  所以 API 与页面都明写 `scope: single-process`（连 pid、uptime、Node 版本一起给），不许一个局部数被读成全局。
+- **库里的账**（`server/domain/metrics.ts`）：审计决定、生成任务（含 `avg` 耗时）、凭据用量按窗口分组。
+  它跨重启、跨实例，因为真值本来就在业务表里——**这一层不是新造的流水，是把已有的行聚出来**。
+
+2026-10-29 首跑读数。下表取自**看图那一次**（单跑管理员那条，52.6s，进程 33660，图 `.scratch/shots/41-admin-observability.png`）；
+三条合跑另一次是 22.0s、进程 25832、审计分组 7 组——数字会随窗口漂，形状不会。
+
+| 读数 | 值 |
+| --- | --- |
+| 页头（进程内那层的自我声明） | `进程 33660 · 本实例已运行 31 秒 · Node v24.15.0` |
+| 本次启动攒下的进程内序列 | 2 条：`nexus_audit_decisions_total{action=auth.login allowed=true} 2`、`nexus_rate_limit_decisions_total{gate=auth/login allowed=true} 2` |
+| Prometheus 文本暴露 | 7 行（`# TYPE` + 上面两条 + 直方图那族） |
+| 库里的账 · 审计决定 | 8 组：`auth.register 放行 46`／`publish 放行 37`／`auth.login 放行 16`／`auth.login 拒绝 5`／`user.delete 拒绝 1` … |
+| 库里的账 · 生成任务 | `succeeded / demo / 5 条 / 均耗时 463 ms` |
+| 库里的账 · 凭据用量 | 空，页面上写"这个窗口里没有行。" |
+
+**这一片判的不是"有没有接口"，而是"计数器有没有真的在动"**——所以管理员那条用例把顺序本身当判据：
+先用 member 身份登一次录（这一步必然过限流闸、必然落一条审计），**再**开管理员上下文去读；
+读到的那两条序列必须正好是刚才那两次。反过来，`/api/health` 这类"看起来该有"的端点今天没有，
+我没有为了让某条用例好写去造一个（游客那两条改用真存在的 `/` 与 `/discover`）。
+
+四道变异臂（每条都 `cp` 备份、还原后 md5 逐字节复核）：
+
+| 臂 | 改动 | 结果 |
+| --- | --- | --- |
+| A 摘掉写入方 | `rateLimit.ts` 那行 `increment(…)` 换成注释 | **3 条红**：「这些指标只有声明、没有写入方：nexus_rate_limit_decisions_total」／具名锚点缺该行／"真跑一次限流闸"那格拿不到账 |
+| B 往标签里塞身份 | `audit.ts` 的标签加 `actorId: input.actorId` | **首版只红了一条**——见下 |
+| C 往声明里塞身份 | `METRICS` 的 `nexus_audit_decisions_total` 加 `email: null` | 新加的「标签名单本身不含身份类字段」当场红（调用点那格合法，只有声明层看得见） |
+| D 摘掉响应头 | `middleware.ts` 的 `response.headers.set(TRACE_HEADER, …)` 换成注释 | e2e 游客那条红在 `首页的响应头里没有 x-nexus-trace` |
+
+**B 臂抓到的是门自己的洞，比那笔违章严重**：身份禁令原来按 `/(?:increment|observe)\([^)]*\)/` 取调用点，
+而 `[^)]*` 会在 `String(input.allowed` 的那个 `)` 处截断——`actorId` 正好落在截断之后。
+于是**一处真实的身份泄漏摆在同一行里，门报绿**（第五片那条"读不懂就放行的 `continue`"是同一个病形）。
+判据改成按括号配对走完整个实参列表，同一改动重跑：「标签名单与调用点对不上」+「观测里出现了身份标签」**两条一起红**。
+教训一句：**用正则取一段代码，截断点之后的内容就是门看不见的地方**——凡按文本判代码的门，都要问一句"它在哪里停手"。
+
+还原后复跑：单测 **27 绿**（`observability` 17／`observability-instrumented` 8／`observability-audit-failure` 2）
++ 集成 **4 绿**（`observability-ledger.integration`，真库 `nexus_regress`，探针行前后各删一次）+ e2e **3 绿**。
+
+**刻意留白（写清楚，不装作测过）**：①**按路由的状态码与延迟分布**没有——Next 16 的 instrumentation
+只给 `register()` 与 `onRequestError`，没有"每个请求开始/结束"的钩子，要拿到它得把每个 route handler 包一层，
+那是路由改形，不是补观测；硬凑一个平均值冒充延迟分布，比留白更坏。②**告警与抓取目标**没有：
+`/api/admin/metrics` 只给管理员（401／403 两条用例钉着），没有对外 `/metrics`，也没有任何阈值判断。
+③真实 provider 那半边仍欠（LLM 裁判／Tool selection／Agent 完成率），这一片只是让"跑没跑、多久、成没成"先有账。
+④`nexus_ai_runs_total` 与耗时直方图在 DEMO 链上读数（463 ms 那组），**不代表任何真模型**。
+
+
 #### 第六片：屏障铺到其余浏览器用例，顺手让共享 helper 自己现形（2026-10-28 同日）
 
 那条技术账记的是"9 个文件"，实际扫下来是 **20 个 spec 有同一族无屏障写法**——不止注册那 9 个，
@@ -453,3 +509,6 @@ notMeasured：浅色主题**在浏览器里**仍没有门（axe 只跑暗色；�
   浅色主题自第八片起有了浏览器门（游客可见五张），但**登录后的浅色**（Studio／通知等）与
   带透明度的底色仍没量。
 - Performance——见 `docs/PERFORMANCE.md`
+- 观测（第十一片）量到的是**决定与结果**：按路由的 HTTP 状态码分布与延迟分位数**没有读数**
+  （Next 16 的 instrumentation 只有 `onRequestError`，拿它得把每个 route handler 包一层，属于改路由形状）；
+  也没有对外抓取目标与告警；耗时直方图目前只有 DEMO 链那一档。
