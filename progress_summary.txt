@@ -92,7 +92,7 @@ Summary of "of these N rows" pattern application:
   - v518: Plan bar - "of these N rows" prefix
   - v519: Tip bar - "of these N rows" prefix
 
-Completed increments (77 total):
+Completed increments (78 total):
   - v511-v513: API route validations and monetization
   - v514-v519: "of these N rows" pattern on economic panel tallies
   - v520-v532: Plan bar refinements (23 increments)
@@ -119,5 +119,6 @@ Completed increments (77 total):
   - v576: plan bar opened and last-updated timestamp context (v576) - complete & pushed
   - v577: plan bar opened, last-updated, and status word context (v577) - complete & pushed
   - v578: plan bar price with currency sign context (v578) - complete & pushed
+  - v579: plan bar creator handle with @ prefix context (v579) - complete & pushed
 
 Continuing: long-term development without stopping - next increment v577 in progress
