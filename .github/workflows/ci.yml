@@ -10,6 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The evidence proofs audit this repository's HISTORY (`git log -S` in hunk-shape §3), and a
+          # depth-1 clone holds one commit: measured on ubuntu, the history claim answered `[]` and the
+          # row went red — the proof was right and the clone could not answer. History is a declared
+          # input of the proofs step, so it is fetched.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           # The evidence proofs strip TypeScript out of the modules they grade through `node:module`'s

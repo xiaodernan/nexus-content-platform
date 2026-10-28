@@ -20,6 +20,13 @@
 //   §6 the v51 audit record carries the same naming, so "whose bytes were dropped" is answerable a
 //      week later from the file alone;
 //   §7 §9: every write inside os.tmpdir, this repo's HEAD compared byte-wise at the end.
+//
+// v534 (amendment 520): this proof's program is now spoken by `sh` on POSIX and by `node -e` on Windows.
+// The exec.run door passes NO env — envAllow filters the CALLER's env, which is empty — so a bare program
+// name resolves through execvp's default path, /bin:/usr/bin on Linux: git is there, node (under
+// /usr/local/bin) is not. The ubuntu verdict was `spawn node ENOENT`. The host also refuses an absolute
+// path BY DESIGN ("executable must be a bare name"), so the fix is a program that needs no PATH: `sh`,
+// whose `printf` is a BUILTIN. The pipes and budgets under test are untouched.
 // Run after `npm run build`:  node docs/evidence/agents/pipes-proof.mjs
 import assert from 'node:assert/strict';
 import { execFileSync } from '../lib/syncproc.mjs';
@@ -70,13 +77,22 @@ async function throughExecRun(argv, cap, { journal, root = workRoot } = {}) {
   if (!res.ok) throw new Error(`exec.run failed: ${res.error}`);
   return res.output;
 }
-const writes = (stdoutFirst) => [
-  'node',
-  '-e',
-  stdoutFirst
-    ? `process.stdout.write(${JSON.stringify(ANSWER)}); process.stderr.write(${JSON.stringify(NOISE('E'))})`
-    : `process.stderr.write(${JSON.stringify(NOISE('E'))}); process.stdout.write(${JSON.stringify(ANSWER)})`,
-];
+const shQuote = (s) => `'${s.replace(/'/g, `'\\''`)}'`;
+/** The same program in two tongues: POSIX writes via sh's printf BUILTIN (no PATH needed); Windows uses node. */
+const program = (stdoutFirst) => {
+  const answer = `printf '%s' ${shQuote(ANSWER)}`;
+  const noise = `printf '%s' ${shQuote(NOISE('E'))} >&2`;
+  return ['sh', '-c', stdoutFirst ? `${answer}; ${noise}` : `${noise}; ${answer}`];
+};
+const writes = (stdoutFirst) => process.platform === 'win32'
+  ? [
+      'node',
+      '-e',
+      stdoutFirst
+        ? `process.stdout.write(${JSON.stringify(ANSWER)}); process.stderr.write(${JSON.stringify(NOISE('E'))})`
+        : `process.stderr.write(${JSON.stringify(NOISE('E'))}); process.stdout.write(${JSON.stringify(ANSWER)})`,
+    ]
+  : program(stdoutFirst);
 
 try {
   // ---------- §1 the answer is whole, so the sentence must not implicate it ----------
@@ -84,7 +100,7 @@ try {
   const whole = await throughExecRun(writes(true), CAP);
   assert.equal(whole.result.exitCode, 0, 'the program finished on its own');
   assert.equal(whole.result.stdout, ANSWER, 'stdout is BYTE-IDENTICAL to the answer');
-  const control = execFileSync('node', writes(true).slice(1), { encoding: 'utf8', maxBuffer: 1 << 26, cwd: workRoot, stdio: ['ignore', 'pipe', 'pipe'] });
+  const control = execFileSync(writes(true)[0], writes(true).slice(1), { encoding: 'utf8', maxBuffer: 1 << 26, cwd: workRoot, stdio: ['ignore', 'pipe', 'pipe'] });
   assert.equal(control, ANSWER, 'control, run outside the sandbox with no ceiling: this is the whole stdout the program produces');
   assert.equal(whole.result.truncated, true, 'and yes, bytes were dropped — on the other pipe');
   assert.deepEqual(whole.result.truncatedStreams, ['stderr'], 'v56: the host says WHICH');

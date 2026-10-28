@@ -52,6 +52,13 @@
 // cwd-axis and tree-axis, tree-motion witnesses red because the shared tree moved mid-run; isolated, which
 // inherits code-index by running it on a clean checkout. The census now prints 87 row + 15 swept.
 //
+// v534 (amendment 520) — the forty-eight rows met ubuntu (run 40693312992): 78/84 green, and the six reds were
+// platform facts the proofs had been taking from Windows — POSIX executable bits on helpers, a scrubbed PATH
+// that has no /usr/local/bin, exec.run's empty env, a 1 ms timer racing a fast child, a depth-1 clone, and an
+// attached child that survives on POSIX. All six repaired and verified on both planes; the checkout now takes
+// fetch-depth 0 because history is a declared input. The two sweep reds above (code-index, confession) are
+// repaired too and STAY SWEPT until v535 wires them, so this census's counts are unchanged: 87 row + 15 swept.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';

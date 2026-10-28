@@ -71,8 +71,9 @@ Node-only proofs; v533 ran the sweep over all 81 and wired the forty-eight green
 gate here can make GitHub run: it reads bytes
 committed in this repository, and whether the workflow executes on `master` is knowable only from the real
 runs — it ran red (`40603544099`, amendment 515's four exec-host cases on ubuntu), then green four times
-(`40659064493` with 12 rows, `40662063095` with 17, `40664659344` with 20, `40682580110` with 36), which is
-the evidence this section was waiting for.
+(`40659064493` with 12 rows, `40662063095` with 17, `40664659344` with 20, `40682580110` with 36), then red
+again on the first run that carried all 84 rows (`40693312992`: 78/84 green, six platform reds, repaired at
+v534 — the row-by-row account is below), which is the evidence this section was waiting for.
 
 ## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more)
 
@@ -178,12 +179,42 @@ swept + 6 tool + 0 deferred · 0 unclassified · rows 84+3**, arms 14/14; `verif
 increment's final bytes printed **84/84 green · residue named 3** on the authoring box (2026-10-28), every
 new row far inside the 240 000 ms fallback.
 
+**v534 — the forty-eight rows met ubuntu, and six were red.** Run `40693312992` was the first to carry the
+whole 84-row population onto a Linux runner: **78/84 green**, six reds, each naming a platform fact the proof
+had been taking from Windows. `config` and `streams` wrote a helper script without the executable bit — on
+POSIX git EXECUTES `diff.external`/`fsmonitor`/hooks, so the shell refused and git exited 128 (Windows ignores
+the bit); `streams`' hook ALSO ran `node` under a scrubbed PATH that does not contain `/usr/local/bin`, so its
+body is now `printf | tr` (a builtin and a `/usr/bin` tool). `pipes` drove a `node` program through `exec.run`,
+which supplies NO env — the policy's `envAllow` filters an empty caller env, so a bare name resolves through
+execvp's default `/bin:/usr/bin`: git is there, node is not (`spawn node ENOENT`), and the host refuses an
+absolute path BY DESIGN, so the program is now `sh -c` with `printf` builtin on POSIX (`node -e` on Windows).
+`door-kill` met a timer race: a 1 ms budget can fire AFTER a fast child finished, `child.kill()` is then a
+no-op and the record honestly says `signal: null` beside exit 0 — the row now retries to a real kill (four
+attempts), names the late-timer case in its output, and prints the record it graded. `hunk-shape` read
+`git log -S` over a depth-1 clone and got `[]` — history is a declared input of the proofs step, so the
+workflow now checks out with `fetch-depth: 0`. `reap`'s §5 asserted that an attached child dies with its
+parent — true on win32, false on POSIX (measured: 6 → 13 beats), so §5 is a platform branch now, and the
+teardown's unconditional `taskkill` became `killTree()` (taskkill on win32, a recorded-pid SIGTERM elsewhere;
+on Linux the old call was a spawn error nobody read). Every repair was verified on BOTH planes — this Windows
+box and a `node:22` docker plane (git 2.39.5) — before this paragraph was written. The same increment closed
+the two sweep reds v533 named: `code-index` now builds its corpus from `git ls-files` on an indexed plane
+(567 files, 3 590 chunks on this box) and its second query was re-pinned to the file's own envelope
+vocabulary (`serializeApp deserializeApp PersistEnvelope APP_STORAGE_VERSION` → `persist.ts` at #1, 0.617),
+with the old tokens recorded beside the pin; `confession`'s §9 pin had been red for 582 commits because
+`record-encoding`'s declaration (v237, `2642033`) added a third silent name — the pin is now the measured
+three-name face. `isolated` was not re-run this increment: its clean-checkout arm ran `code-index`, so the
+repaired code-index is expected to unblock it, and that is a prediction, not a measurement.
+
 **What the census does NOT claim.** It classifies the 15 still-swept proofs; it does not run them in the build
 — the agents sweep stays the human-run channel, with its own budgets (240 000 ms default, 3 600 000 ms
-ceiling). The 15, named: 10 green (`asks-axis`, `build-arc`, `closure`, `container`, `deploy-arc`,
-`drive-axis`, `ebusy`, `plane-axis`, `provenance`, `timeout-axis` — the three container rows need a docker
-daemon, the rest start children of their own) and the 5 reds above. The forty-eight new rows' verdicts on
-ubuntu are knowable only from the next run; their authored timings
+ceiling). The 15, named: 12 green (`asks-axis`, `build-arc`, `closure`, `code-index` and `confession` since
+v534's repairs, `container`, `deploy-arc`, `drive-axis`, `ebusy`, `plane-axis`, `provenance`, `timeout-axis` —
+the three container rows need a docker daemon, the rest start children of their own) and the 3 reds above
+(`cwd-axis`/`tree-axis`, tree-motion witnesses; `isolated`, whose clean-checkout arm is a reproducibility
+verdict). v533's forty-eight rows ran on ubuntu for the first time in `40693312992` — **78/84 green, six
+platform reds** (`config`, `streams`, `hunk-shape`, `pipes`, `door-kill`, `reap`), each caused by a POSIX fact
+the proof had been taking from Windows; v534 repaired all six and verified each on both planes, and the
+post-fix ubuntu verdict is knowable only from the next run. Their authored timings
 above are this Windows box's, and the CI box has been 2–3× faster on every repo-wide row so far. The
 three lane rows have a REAL prerequisite: a docker daemon holding `node:22-alpine`. The workflow pre-pulls it
 before the proof step; a human running `verify:proofs` on a docker-less box will see those three redden with

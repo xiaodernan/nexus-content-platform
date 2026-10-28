@@ -20,11 +20,16 @@
 //   §4 the platform answer is a value, not a rumour: where there is no reaper the host says
 //      `unsupported-platform` and the survivor still writes, and this section asserts whichever
 //      branch is true HERE rather than pretending both were measured;
-//   §5 a non-detached child is NOT a survivor — the plain kill already gets it, so the increment is
-//      scoped to what measurement showed, not to a general promise of killing every descendant;
+//   §5 which children a plain kill already gets is a PLATFORM answer, measured here: on win32 an
+//      attached child dies with its parent, so the increment is scoped to detached survivors; on
+//      POSIX the same attached child KEEPS WRITING (v534 measured it — a parent's death does not end
+//      its children), so there the limit covers every child, and the platform branch says so;
 //   §6 the v51 record carries the new claim, and the v30/v51 readers are unmoved by it.
 // §9 throughout: real processes, but every file under os.tmpdir, nothing of THIS repo touched, home
 // HEAD compared byte-wise at the end — and cleanup waits for survivors, because that is the bug.
+// v534 (amendment 520): the teardown and §0's probe end are platform-honest too — taskkill on win32,
+// a recorded-pid SIGTERM on POSIX (the old teardown called taskkill unconditionally, which on Linux
+// is a spawn error nobody read; the survivors outlived the run).
 // v86 turned two of §9's rules on this file itself: an assertion about silence may not be satisfied by
 // a survivor that never existed (`0 === 0`), and teardown reaps the ORPHANS the parents recorded,
 // because a detached grandchild is not in a dead parent's tree. A cleanup that throws now reports the
@@ -89,6 +94,18 @@ const parentPid = (tag) => {
   return line === undefined ? 0 : Number(line.split(' ')[1]);
 };
 
+/** End a process this proof started: taskkill's tree on win32, a direct signal elsewhere (handles are recorded, so orphans are still named). */
+const killTree = (pid) => {
+  if (process.platform === 'win32') spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true });
+  else {
+    try {
+      process.kill(pid, 'SIGTERM');
+    } catch {
+      /* already gone */
+    }
+  }
+};
+
 /**
  * M2 v86 — `ran: true` is the host's claim about ONE process: the spawn call it made succeeded.
  * It says nothing about whether that process ever RAN, and on this box the difference is measured,
@@ -147,7 +164,7 @@ try {
     const pid = parentPid('latency');
     if (pid > 0) {
       spawnLatencyMs = Date.now() - latencyStarted;
-      spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true }); // end the probe instead of waiting out its ceiling
+      killTree(pid); // end the probe instead of waiting out its ceiling
       break;
     }
     await sleep(50);
@@ -219,15 +236,20 @@ try {
   assert.equal(typeof TREE_REAPER_AVAILABLE, 'boolean', 'the host exposes whether reaping exists HERE, so §2 could assert the truth of this box instead of a hope');
   console.log(`[reap-proof] §4 platform=${process.platform} TREE_REAPER_AVAILABLE=${TREE_REAPER_AVAILABLE} · DEFAULT_TREE_REAPER(0)=false (async, and a failed call is reported, never hidden)`);
 
-  // ---------- §5 scope: an ATTACHED child was never the problem ----------
+  // ---------- §5 scope: WHICH children a plain kill already gets — a platform answer, measured here ----------
   const { result: attached, live: attachLive } = await runKilled('attach', { mode: 'attached', reapTree: false });
   const attachedAtKill = beats('attach-g');
   await sleep(900);
   const attachedLater = beats('attach-g');
   assert.equal(attached.descendantsStopped, 'not-attempted', 'the host started one process and stopped it; that is all it claims');
   assert.ok(attachLive && attachedAtKill > 0, `the attached grandchild was seen writing BEFORE the kill (${attachedAtKill} beats) — v86: without that, "no growth after" below is 0 === 0 and would certify any silence whatsoever, including the silence of a process that never started`);
-  assert.equal(attachedLater, attachedAtKill, `an attached child died with its parent (${attachedAtKill} beats, then nothing) — so this increment is about DETACHED survivors, and §1/§2 measured exactly that`);
-  console.log(`[reap-proof] §5 attached child: ${attachedAtKill} beats at the kill, ${attachedLater} after — no survivor to reap, which is why the default was never a bug, only a limit`);
+  if (process.platform === 'win32') {
+    assert.equal(attachedLater, attachedAtKill, `an attached child died with its parent on win32 (${attachedAtKill} beats, then nothing) — so on this platform the increment is scoped to DETACHED survivors, and §1/§2 measured exactly that`);
+    console.log(`[reap-proof] §5 attached child on win32: ${attachedAtKill} beats at the kill, ${attachedLater} after — no survivor to reap, which is why the default was never a bug, only a limit`);
+  } else {
+    assert.ok(attachedLater > attachedAtKill, `an attached child KEPT WRITING on ${process.platform} (${attachedAtKill} → ${attachedLater} beats) — a parent's death does not end its children here, so §1's limit covers EVERY child, not only detached ones; the host's answer is the platform one, "unsupported-platform", and it is the truth`);
+    console.log(`[reap-proof] §5 attached child on ${process.platform}: ${attachedAtKill} → ${attachedLater} beats — surviving is not a detached-only property here, and the host says so (${attached.descendantsStopped})`);
+  }
 
   // ---------- §6 v51 carries the new claim; v30/v51 readers are unmoved ----------
   const journal = `${workRoot}/journal/reap.jsonl`;
@@ -254,7 +276,7 @@ try {
   // v86: the tree, not the parent — §1 deliberately leaves an ORPHAN, and an orphan is not reachable
   // through its dead parent's pid, so the handles come from the line the parent wrote while alive.
   const handles = ['latency', 'plain', 'reap', 'attach', 'journaled'].flatMap((tag) => treeHandles(tag));
-  for (const pid of handles) spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true });
+  for (const pid of handles) killTree(pid);
   console.log(`[reap-proof] teardown: ${handles.length} process handle(s) recorded by the parents themselves were killed before the directory was touched (parent-only reaping would have found a dead tree and an open file)`);
   await sleep(400);
   let removed = false;

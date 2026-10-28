@@ -26,7 +26,7 @@
 // Run after `npm run build`:  node docs/evidence/agents/config-proof.mjs
 import assert from 'node:assert/strict';
 import { execFileSync } from '../lib/syncproc.mjs';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -118,6 +118,11 @@ try {
   git('add', 'a.txt');
   git('commit', '-q', '-m', 'chore: human seed commit');
   writeFileSync(join(dir, 'evil.sh'), '#!/bin/sh\necho "git ran the configured helper" >> ' + posixTrip + '\n');
+  // v534 (amendment 520): on POSIX git EXECUTES diff.external/fsmonitor, so the helper needs the executable
+  // bit — without it the shell refuses, git exits 128, and the control that shows the hole was real reddened
+  // on ubuntu (measured; the Windows box ignores the bit and had never asked). The bit changes nothing on
+  // Windows and makes the premise true on the box that enforces it.
+  chmodSync(join(dir, 'evil.sh'), 0o755);
   writeFileSync(join(dir, 'ignore-all'), '*\n');
 
   // A tree with BOTH a staged and an unstaged change, plus an untracked file to hide.

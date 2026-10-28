@@ -22,7 +22,7 @@
 // Run after `npm run build`:  node docs/evidence/agents/streams-proof.mjs
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from '../lib/syncproc.mjs';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -142,7 +142,14 @@ try {
   const hooks = `${workRoot}/hooks`;
   mkdirSync(hooks, { recursive: true });
   git('config', 'core.hooksPath', hooks);
-  writeFileSync(`${hooks}/pre-commit`, '#!/bin/sh\nnode -e "process.stderr.write(\'X\'.repeat(20000)); process.exit(1)"\n');
+  // v534 (amendment 520): the hook emitted its noise with `node`, which the scrubbed env's default PATH does
+  // not carry on POSIX (/usr/local/bin is not in it) — the hosted run reddened on ubuntu with "node: not
+  // found" while the raw control (full PATH) passed. `printf | tr` needs only /bin and /usr/bin, which every
+  // sh has with no PATH at all, and it is the same 20 000 bytes on one unterminated line.
+  writeFileSync(`${hooks}/pre-commit`, "#!/bin/sh\nprintf '%20000s' '' | tr ' ' X >&2\nexit 1\n");
+  // v534 (amendment 520): a hook git cannot EXECUTE is not a hook — on POSIX the executable bit is the
+  // difference, and without it the control below reddened on ubuntu (measured) while Windows never asked.
+  chmodSync(`${hooks}/pre-commit`, 0o755);
   writeFileSync(`${repo}/work.md`, 'a change the hook will refuse\n');
   git('add', '.');
   const rawRefusal = (() => { try { execFileSync('git', ['commit', '-m', 'x'], { cwd: repo, encoding: 'utf8', env: gitEnv(process.env), stdio: ['ignore', 'pipe', 'pipe'] }); return { code: 0, out: '', err: '' }; } catch (e) { return { code: e.status, out: e.stdout ?? '', err: e.stderr ?? '' }; } })();

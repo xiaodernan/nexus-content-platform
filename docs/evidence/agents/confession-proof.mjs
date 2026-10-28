@@ -456,7 +456,13 @@ console.log(`[§6] wiring: ${failedRows.length} synthetic reds → declaring ${s
   assert.deepEqual(['ceiling.declined.length', 'ceiling.readable.length', 'ceiling.silent.length'].filter((v) => !axisLine.includes(v)), [], 'the axis sentence names a face that did not come from aliasCeiling, so a row edit can no longer move it');
   const deadNames = [...new Set(unreadable.map((c) => c.row))].sort();
   const live = sw.aliasCeiling(deadNames.map((n) => [n, rows.find((r) => basename(r.path) === n).text]));
-  assert.deepEqual([live.declined, live.readable, live.silent.map((s) => s.row)], [[], [], ['closure-proof.mjs', 'cwd-axis-proof.mjs']], `(§9) over the LIVE population every invisible clause sits on the silent face, so the sentence's first two branches print zero this cycle — if a row ever moves one onto a face its own edit can close, this is the check that says the axis will name it`);
+  // v534 (amendment 520) — the pin had been RED for 582 commits, and the v533 sweep is what found it:
+  // record-encoding-proof.mjs's `// sweep-asks-repository: git rev-parse HEAD | git ls-files -z | git show
+  // <ref>:<path>` declaration landed at 2642033 (v237) and its three verbs are unreadable through the arm's
+  // ceiling, so the live silent face has held three names since. A pin that does not move when the thing it
+  // names moves is amendment 513's stale needle; the face is re-pinned by measurement, and the two empty
+  // branches still assert the rule this section exists for.
+  assert.deepEqual([live.declined, live.readable, live.silent.map((s) => s.row)], [[], [], ['closure-proof.mjs', 'cwd-axis-proof.mjs', 'record-encoding-proof.mjs']], `(§9) over the LIVE population every invisible clause sits on the silent face, so the sentence's first two branches print zero this cycle — if a row ever moves one onto a face its own edit can close, this is the check that says the axis will name it`);
   console.log(`[§9] the axis's ceiling, three faces computed: declined → ${JSON.stringify(face(OWNER))}, the row's own edit → ${JSON.stringify(face(noLocation(OWNER)))}; a readable alias that misses the verb → ${JSON.stringify(face(PARTIAL))}; borrowed frame → ${JSON.stringify(face(BORROWED))} and its same edit → ${JSON.stringify(face(noLocation(BORROWED)))} · live: ${deadNames.length} dead rows, ${live.declined.length}/${live.readable.length}/${live.silent.length} by face (${live.silent.map((s) => s.row).join(', ')})`);
 }
 

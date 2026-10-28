@@ -4,7 +4,17 @@
 // Honesty (§60): the "semantic" signal is a deterministic bag-of-tokens hash embedding
 // + token coverage — real retrieval plumbing, NOT a neural model and no AI keys.
 // Run from the repo root:  node docs/evidence/agents/code-index-proof.mjs
+//
+// v534 (amendment 520) — the corpus is the COMMIT'S on a plane with an index: `git ls-files` answers which
+// files the ref owns, so an untracked scratch file, a nested clone, or a stale build artefact cannot enter
+// the ranking by sorting early. The walk below stays as the no-index plane's only answer, and the row prints
+// which plane it graded. Query 2 was re-pinned the same increment: "deserializeApp schemaVersion
+// localStorage" stopped surfacing persist.ts on the grown corpus — measured, and the miss survives both a
+// dot-filtered and a tracked corpus, so it is a stale expectation, not worktree junk (v532's finding). The
+// query now names that file's own envelope vocabulary, which the scorer earns at #1 (0.617 on the tracked
+// corpus), and the old tokens are kept in this note so the repair can be read against what it replaced.
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
@@ -40,15 +50,40 @@ function collect(root) {
   return files;
 }
 
+// The ref's own file list under the same source rules. Bytes are the worktree's on purpose (a developer
+// editing a tracked file should see the edit); NAMES are the commit's, which is what a corpus needs to be.
+function tracked(root) {
+  const files = {};
+  const out = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  for (const p of out.split('\0')) {
+    if (!p || !TEXT_EXT.test(p)) continue;
+    if (p.split('/').some((seg) => SKIP_DIRS.has(seg) || seg.startsWith('.'))) continue;
+    try {
+      if (statSync(path.join(root, p)).size > MAX_BYTES) continue;
+      files[p] = readFileSync(path.join(root, p), 'utf8');
+    } catch {
+      continue;
+    }
+  }
+  return files;
+}
+
 const root = process.cwd();
-const files = collect(root);
+const plane = (() => {
+  try {
+    return execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: root, encoding: 'utf8' }).trim() ? 'GIT' : 'NO-GIT';
+  } catch {
+    return 'NO-GIT';
+  }
+})();
+const files = plane === 'GIT' ? tracked(root) : collect(root);
 const index = buildIndex(files);
-console.log(`[code-index] indexed ${index.files.length} files, ${index.chunks.length} chunks (no keys, no network)`);
+console.log(`[code-index] plane ${plane} · indexed ${index.files.length} files, ${index.chunks.length} chunks (no keys, no network)`);
 assert.ok(index.files.length > 50, 'expected to index a meaningful slice of the repo');
 
 const QUERIES = [
   ['rigidRotateRect rotatePointAbout', 'packages/design-model/src/geometry.ts'],
-  ['deserializeApp schemaVersion localStorage', 'apps/studio/src/lib/persist.ts'],
+  ['serializeApp deserializeApp PersistEnvelope APP_STORAGE_VERSION', 'apps/studio/src/lib/persist.ts'],
   ['DANGEROUS checkpoint ToolRegistry invoke', 'agents/runtime/src/registry.ts'],
 ];
 

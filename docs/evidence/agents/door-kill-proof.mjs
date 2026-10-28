@@ -70,11 +70,28 @@ const faces = [
 
 console.log('§1 一次真超时：句子说对了动作是谁做的');
 for (const [label, makePolicy, register, tool, args] of faces) {
-  const o = await read(makePolicy(), register, tool, args, 1, `kill:${label}`);
+  // v534: a 1 ms timer can fire AFTER the child finished on a loaded runner (measured: ubuntu red at
+  // `git.log: the signal the host used`). Then child.kill() is a no-op and the record honestly says
+  // `signal: null` beside exit 0 — the host DECIDED at its budget but stopped nothing. That attempt is
+  // not this section's case; retry until the kill actually lands (4 attempts make the stall improbable).
+  let o = null;
+  let beats = 0;
+  for (let attempt = 1; attempt <= 4 && o === null; attempt += 1) {
+    const r = await read(makePolicy(), register, tool, args, 1, `kill:${label}:${attempt}`);
+    if (r.killed && r.killed.signal !== null) {
+      o = r;
+      break;
+    }
+    assert.ok(r.killed, `${label}: the attempt neither killed nor finished: ${JSON.stringify(r)}`);
+    assert.equal(r.exitCode, 0, `${label}: a null-signal kill on a non-clean exit is unexplained: ${JSON.stringify(r.killed)} exit ${r.exitCode}`);
+    beats += 1;
+  }
+  assert.ok(o, `${label}: 4 attempts at a 1 ms budget and the record never carried a real kill (${beats} late timers)`);
+  if (beats > 0) console.log(`  ${label.padEnd(11)} (${beats} attempt(s) where the timer fired after the child was gone — signal null, exit 0, contract holds)`);
   console.log(`  ${label.padEnd(11)} ok=${o.ok} exit=${o.exitCode} killed=${JSON.stringify(o.killed)} windowed=${'windowed' in o} · ${String(o.detail).slice(0, 96)}…`);
   assert.equal(o.ok, false, `${label}: a killed read is not an answer`);
   assert.ok(o.killed, `${label}: the record says a KILL happened, not merely that numbers are missing`);
-  assert.equal(o.killed.signal, 'SIGTERM', `${label}: the signal the host used`);
+  assert.equal(o.killed.signal, 'SIGTERM', `${label}: the signal the host used (record says ${JSON.stringify(o.killed)})`);
   assert.ok(o.detail.includes('the exec host KILLED this read at its own timeout budget'), `${label}: ${o.detail}`);
   assert.ok(!/git REFUSED/.test(o.detail), `${label}: the door must not credit git with the host's decision — it was still running: ${o.detail}`);
   assert.equal('windowed' in o, false, `${label}: a timeout trims no pipe, so v69's window key stays away (kill ≠ cut)`);
