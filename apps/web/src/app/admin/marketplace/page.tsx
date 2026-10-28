@@ -54,10 +54,10 @@ export default async function AdminMarketplacePage({
           这个页面对 {user.displayName}（role={user.role}）不开放：举报工单与交易审计只对 role=admin 可见。
         </p>
         <p className="mt-1 text-11 text-fg-3">
-          成为审核员要走 <Link href="/admin/users" className="text-accent-2 underline">账号与角色</Link>
+          成为审核员要走 <Link href="/admin/users" className="text-accent-2-ink underline">账号与角色</Link>
           由现有审核员提权（不能改自己、guest 不给提权，每次尝试都进审计）。
         </p>
-        <Link href="/" className="mt-4 inline-block text-12 text-accent-2 underline">
+        <Link href="/" className="mt-4 inline-block text-12 text-accent-2-ink underline">
           回到我的项目
         </Link>
       </main>
@@ -82,19 +82,19 @@ export default async function AdminMarketplacePage({
           </p>
         </div>
         <nav className="flex gap-3 text-11">
-          <Link href="/admin/moderation" className="text-accent-2 underline" data-marketplace-moderation>
+          <Link href="/admin/moderation" className="text-accent-2-ink underline" data-marketplace-moderation>
             复核台
           </Link>
-          <Link href="/admin/users" className="text-accent-2 underline" data-marketplace-users>
+          <Link href="/admin/users" className="text-accent-2-ink underline" data-marketplace-users>
             账号与角色
           </Link>
-          <Link href="/admin/audit" className="text-accent-2 underline" data-marketplace-audit>
+          <Link href="/admin/audit" className="text-accent-2-ink underline" data-marketplace-audit>
             审计事件
           </Link>
-          <Link href="/admin/realtime" className="text-accent-2 underline" data-marketplace-realtime>
+          <Link href="/admin/realtime" className="text-accent-2-ink underline" data-marketplace-realtime>
             实时总线
           </Link>
-          <Link href="/admin/access" className="text-accent-2 underline" data-marketplace-access>
+          <Link href="/admin/access" className="text-accent-2-ink underline" data-marketplace-access>
             访问账
           </Link>
         </nav>
@@ -103,7 +103,7 @@ export default async function AdminMarketplacePage({
       <section className="rounded-[var(--nexus-radius-sm)] bg-bg-2 p-3" data-marketplace-scope>
         <p className="text-12 text-fg-2">
           结案 / 驳回落的是工单结论：<strong>不会</strong>下架物品，也不会撤下已发布的公开页。
-          要让内容不可访问，用 <Link href="/admin/moderation" className="text-accent-2 underline">人工复核台</Link>
+          要让内容不可访问，用 <Link href="/admin/moderation" className="text-accent-2-ink underline">人工复核台</Link>
           的「拒绝并撤下」。
         </p>
         <p className="mt-1 text-11 text-fg-3">

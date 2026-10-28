@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
  */
 const STATUS_LABELS: Record<ReportStatus, { label: string; className: string }> = {
   pending: { label: '待受理', className: 'text-fg-2' },
-  reviewing: { label: '审核中', className: 'text-accent-2' },
+  reviewing: { label: '审核中', className: 'text-accent-2-ink' },
   resolved: { label: '举报成立', className: 'text-green-400' },
   dismissed: { label: '举报不成立', className: 'text-fg-3' },
 };
@@ -41,7 +41,7 @@ export default async function MyReportsPage(): Promise<ReactElement> {
       <main className="mx-auto flex min-h-screen max-w-[980px] flex-col gap-[var(--nexus-space-4)] p-[var(--nexus-space-6)] font-mono" data-reports-denied="anonymous">
         <h1 className="text-[var(--nexus-font-size-28)] font-semibold tracking-tight">我的举报</h1>
         <p className="text-13 text-fg-2">需要先登录：举报按举报人存放，没有身份就没有可归属的那一份。</p>
-        <Link href="/login" className="text-accent-2 underline">
+        <Link href="/login" className="text-accent-2-ink underline">
           去登录
         </Link>
       </main>
@@ -62,7 +62,7 @@ export default async function MyReportsPage(): Promise<ReactElement> {
             撤内容走人工复核台；作者也可能自己把物品下架或转私密。
           </p>
         </div>
-        <Link href="/marketplace" className="shrink-0 text-accent-2 underline" data-reports-back>
+        <Link href="/marketplace" className="shrink-0 text-accent-2-ink underline" data-reports-back>
           回市场
         </Link>
       </header>

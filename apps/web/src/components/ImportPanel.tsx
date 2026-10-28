@@ -114,7 +114,7 @@ export function ImportPanel() {
         <div className="mt-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-import-receipt>
           <p className="text-11 text-fg-1">
             已导入为项目{' '}
-            <a href={`/studio/${done.projectId}`} className="text-accent-2 underline" data-import-open={done.projectId}>
+            <a href={`/studio/${done.projectId}`} className="text-accent-2-ink underline" data-import-open={done.projectId}>
               {done.name}
             </a>
             <span className="ml-2 font-mono text-11 text-fg-3">

@@ -32,7 +32,7 @@ export default async function WorldRuntimePage({ params }: { params: Promise<{ p
         <p className="text-13 text-fg-2">
           3D 运行时读的是世界文档（§44）与你在世界图（§45）上摆过的位置。先去 Studio 建骨架、填几条内容。
         </p>
-        <Link href={`/studio/${projectId}`} className="text-13 text-accent-2 underline">
+        <Link href={`/studio/${projectId}`} className="text-13 text-accent-2-ink underline">
           回到 Studio 的世界面板
         </Link>
       </main>

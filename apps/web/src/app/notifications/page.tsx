@@ -61,7 +61,7 @@ function Row({ item }: { item: InboxItem }): ReactElement {
       {item.body ? <span className="w-full text-11 text-fg-3">「{item.body}」</span> : null}
       <span className="text-11 text-fg-3">{stamp(item.createdAt)}</span>
       {item.link ? (
-        <Link href={item.link} className="text-11 text-accent-2 underline" data-notification-link>
+        <Link href={item.link} className="text-11 text-accent-2-ink underline" data-notification-link>
           打开
         </Link>
       ) : (
@@ -87,7 +87,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
       <main className="mx-auto max-w-[900px] px-6 py-16" data-notification-denied="anonymous">
         <h1 className="text-[var(--nexus-font-size-21)] font-semibold">通知</h1>
         <p className="mt-2 text-13 text-fg-2">需要先登录：收件箱按人存放，没有身份就没有可归属的那一份。</p>
-        <Link href="/" className="mt-4 inline-block text-12 text-accent-2 underline">
+        <Link href="/" className="mt-4 inline-block text-12 text-accent-2-ink underline">
           回到首页
         </Link>
       </main>
@@ -200,7 +200,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
       <NotificationSettings />
 
       <p className="mt-8 text-11 text-fg-3">
-        <Link href="/" className="text-accent-2 underline">
+        <Link href="/" className="text-accent-2-ink underline">
           回到首页
         </Link>
       </p>

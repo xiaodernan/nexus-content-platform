@@ -44,13 +44,13 @@ export default async function AdminRealtimePage() {
           </p>
         </div>
         <nav className="flex gap-3 text-11">
-          <Link href="/admin/users" className="text-accent-2 underline" data-realtime-users>
+          <Link href="/admin/users" className="text-accent-2-ink underline" data-realtime-users>
             账号与角色
           </Link>
-          <Link href="/admin/moderation" className="text-accent-2 underline" data-realtime-moderation>
+          <Link href="/admin/moderation" className="text-accent-2-ink underline" data-realtime-moderation>
             复核台
           </Link>
-          <Link href="/admin/audit" className="text-accent-2 underline" data-realtime-audit>
+          <Link href="/admin/audit" className="text-accent-2-ink underline" data-realtime-audit>
             审计事件
           </Link>
         </nav>

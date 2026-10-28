@@ -34,7 +34,7 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
         <p className="text-13 text-fg-2">
           可玩投影读的是 §54 的游戏设计文档（11 类实体、数值与引用）。先去 Studio 的「游戏」面板建骨架、填几个数。
         </p>
-        <Link href={`/studio/${projectId}`} className="text-13 text-accent-2 underline">
+        <Link href={`/studio/${projectId}`} className="text-13 text-accent-2-ink underline">
           回到 Studio 的游戏面板
         </Link>
       </main>
@@ -66,7 +66,7 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
             {describeProjection(game.document, projection)}
           </p>
         </div>
-        <Link href={`/studio/${projectId}`} className="text-11 text-accent-2 underline" data-game-back>
+        <Link href={`/studio/${projectId}`} className="text-11 text-accent-2-ink underline" data-game-back>
           回 Studio 改设计
         </Link>
       </header>

@@ -83,12 +83,12 @@ export function AccountPanel({ user }: { user: Identity }) {
           )}
           {/* §134：游客也在被记账（一次生成扣的就是这个会话名下那 100 点），
               所以这一页对两种身份都得进得去 */}
-          <Link href="/credits" className="ml-2 text-12 text-accent-2 underline" data-credits-link>
+          <Link href="/credits" className="ml-2 text-12 text-accent-2-ink underline" data-credits-link>
             额度与消费
           </Link>
           {/* §188：公开 API 的凭据也是账号的一部分，游客没有可认领的项目，这一页只对登录态开 */}
           {!user.guest ? (
-            <Link href="/api-tokens" className="ml-2 text-12 text-accent-2 underline" data-api-tokens-link>
+            <Link href="/api-tokens" className="ml-2 text-12 text-accent-2-ink underline" data-api-tokens-link>
               API 凭据
             </Link>
           ) : null}

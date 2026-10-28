@@ -72,21 +72,21 @@ export default async function MarketplacePage({
         </div>
         <div className="flex items-center gap-3">
           {user ? (
-            <Link href="/marketplace/earnings" className="text-accent-2 underline" data-marketplace-earnings>
+            <Link href="/marketplace/earnings" className="text-accent-2-ink underline" data-marketplace-earnings>
               我的收入
             </Link>
           ) : null}
           {user ? (
-            <Link href="/marketplace/purchases" className="text-accent-2 underline" data-marketplace-purchases>
+            <Link href="/marketplace/purchases" className="text-accent-2-ink underline" data-marketplace-purchases>
               我的购买
             </Link>
           ) : null}
           {user ? (
-            <Link href="/marketplace/reports" className="text-accent-2 underline" data-marketplace-reports>
+            <Link href="/marketplace/reports" className="text-accent-2-ink underline" data-marketplace-reports>
               我的举报
             </Link>
           ) : null}
-          <Link href="/" className="text-accent-2 underline" data-marketplace-back>
+          <Link href="/" className="text-accent-2-ink underline" data-marketplace-back>
             回首页
           </Link>
         </div>

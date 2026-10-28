@@ -421,7 +421,7 @@ export function CommandBar() {
       {taskId ? (
         <p className="text-11 text-fg-3" data-ai-task>
           这次请求记为任务 {taskId.slice(0, 8)} ·
-          <a href={`/tasks/${state.projectId}`} className="ml-1 text-accent-2 underline">
+          <a href={`/tasks/${state.projectId}`} className="ml-1 text-accent-2-ink underline">
             这个项目的任务列表
           </a>
         </p>
@@ -465,7 +465,7 @@ export function CommandBar() {
             >
               放弃
             </button>
-            <a href={`/tasks/${state.projectId}`} className="text-11 text-accent-2 underline" data-approval-link>
+            <a href={`/tasks/${state.projectId}`} className="text-11 text-accent-2-ink underline" data-approval-link>
               在任务列表里看这一行
             </a>
           </div>

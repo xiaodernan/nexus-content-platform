@@ -51,13 +51,13 @@ export default async function AdminUsersPage() {
           </p>
         </div>
         <nav className="flex gap-3 text-11">
-          <Link href="/admin/audit" className="text-accent-2 underline" data-users-audit>
+          <Link href="/admin/audit" className="text-accent-2-ink underline" data-users-audit>
             看审计事件
           </Link>
-          <Link href="/admin/realtime" className="text-accent-2 underline" data-users-realtime>
+          <Link href="/admin/realtime" className="text-accent-2-ink underline" data-users-realtime>
             实时总线
           </Link>
-          <Link href="/admin/access" className="text-accent-2 underline" data-users-access>
+          <Link href="/admin/access" className="text-accent-2-ink underline" data-users-access>
             访问账
           </Link>
         </nav>
@@ -87,7 +87,7 @@ export default async function AdminUsersPage() {
             <span className="flex min-w-0 flex-col">
               <span className="truncate text-13 text-fg-1" data-account-name>
                 {account.name}
-                {account.handle ? <a href={`/u/${account.handle}`} className="ml-2 text-11 text-accent-2 underline">@{account.handle}</a> : null}
+                {account.handle ? <a href={`/u/${account.handle}`} className="ml-2 text-11 text-accent-2-ink underline">@{account.handle}</a> : null}
                 {account.guest ? <span className="ml-2 text-11 text-fg-3">未认领的 guest</span> : null}
               </span>
               <span className="text-11 text-fg-3" data-account-role={account.role}>

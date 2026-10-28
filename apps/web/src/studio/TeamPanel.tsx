@@ -193,7 +193,7 @@ export function TeamPanel() {
         </p>
       ) : null}
       {notice ? (
-        <p className="text-11 text-accent-2" data-team-notice>
+        <p className="text-11 text-accent-2-ink" data-team-notice>
           {notice}
         </p>
       ) : null}

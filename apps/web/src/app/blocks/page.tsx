@@ -24,7 +24,7 @@ export default async function BlocksPage() {
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-13 text-fg-1" data-block-row-name>
           {b.name}
-          {b.handle ? <a href={`/u/${b.handle}`} className="ml-2 text-11 text-accent-2 underline">@{b.handle}</a> : null}
+          {b.handle ? <a href={`/u/${b.handle}`} className="ml-2 text-11 text-accent-2-ink underline">@{b.handle}</a> : null}
         </span>
         <span className="text-11 text-fg-3">
           {b.kind === 'block' ? '拉黑：互相不能互动' : '屏蔽：只是你这侧不再看到'} · {new Date(b.createdAt).toLocaleDateString('zh-CN')}
@@ -38,7 +38,7 @@ export default async function BlocksPage() {
     <main className="mx-auto flex max-w-[720px] flex-col gap-4 px-6 py-10" data-blocks-root>
       <header className="flex items-baseline justify-between gap-3">
         <h1 className="text-[var(--nexus-font-size-21)] font-semibold">已拉黑与已屏蔽</h1>
-        <Link href="/" className="text-11 text-accent-2 underline" data-blocks-home>
+        <Link href="/" className="text-11 text-accent-2-ink underline" data-blocks-home>
           回主页
         </Link>
       </header>

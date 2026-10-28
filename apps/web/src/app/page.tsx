@@ -56,19 +56,19 @@ export default async function HomePage() {
       {/* 这一排在 820px 的容器里放不下五个链接加一句说明：不 flex-wrap 就会被 flex 压着
           在词中间断行（"全平台搜/索"），所以链接各自 nowrap、整排允许换行。 */}
       <nav className="flex flex-wrap items-center gap-3 text-13" data-site-nav>
-        <a href="/search" className="whitespace-nowrap text-accent-2 underline" data-nav-search>
+        <a href="/search" className="whitespace-nowrap text-accent-2-ink underline" data-nav-search>
           全平台搜索
         </a>
-        <a href="/discover" className="whitespace-nowrap text-accent-2 underline" data-nav-discover>
+        <a href="/discover" className="whitespace-nowrap text-accent-2-ink underline" data-nav-discover>
           发现
         </a>
-        <a href="/marketplace" className="whitespace-nowrap text-accent-2 underline" data-nav-marketplace>
+        <a href="/marketplace" className="whitespace-nowrap text-accent-2-ink underline" data-nav-marketplace>
           市场
         </a>
-        <a href="/analytics" className="whitespace-nowrap text-accent-2 underline" data-nav-analytics>
+        <a href="/analytics" className="whitespace-nowrap text-accent-2-ink underline" data-nav-analytics>
           创作数据
         </a>
-        <a href="/blocks" className="whitespace-nowrap text-accent-2 underline" data-nav-blocks>
+        <a href="/blocks" className="whitespace-nowrap text-accent-2-ink underline" data-nav-blocks>
           已拉黑与已屏蔽
         </a>
         <NotificationBell />
@@ -152,7 +152,7 @@ export default async function HomePage() {
         <h2 className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-16)] font-medium">我的主页</h2>
         {account.handle ? (
           <p className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-13)]">
-            <a href={`/u/${account.handle}`} className="text-accent-2 underline" data-my-profile-link>
+            <a href={`/u/${account.handle}`} className="text-accent-2-ink underline" data-my-profile-link>
               /u/{account.handle}
             </a>
             <span className="ml-[var(--nexus-space-2)] text-fg-3">这里只会出现你公开过的作品</span>

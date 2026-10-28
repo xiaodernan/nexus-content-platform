@@ -174,7 +174,7 @@ export function AccountDeletionPanel() {
                   <li key={d.id}>
                     <Link
                       href={`/studio/${d.id}`}
-                      className="text-11 text-accent-2 underline"
+                      className="text-11 text-accent-2-ink underline"
                       data-account-export-draft={d.id}
                     >
                       {d.name}

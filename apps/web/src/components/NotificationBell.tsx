@@ -74,7 +74,7 @@ export function NotificationBell() {
   const unread = summary.unread ?? 0;
   return (
     <span className="flex items-center gap-2">
-      <Link href="/notifications" className="text-accent-2 underline" data-notification-bell="ready">
+      <Link href="/notifications" className="text-accent-2-ink underline" data-notification-bell="ready">
         通知<span data-notification-unread={unread}>{unread > 0 ? `（${unread} 条未读）` : `（${summary.total ?? 0} 条）`}</span>
       </Link>
       <span className="text-11 text-fg-3" data-realtime={realtime.state}>

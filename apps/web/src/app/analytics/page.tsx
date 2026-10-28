@@ -105,7 +105,7 @@ export default async function AnalyticsPage(props: {
       <main className="mx-auto max-w-[900px] px-6 py-16" data-analytics-denied="anonymous">
         <h1 className="text-[var(--nexus-font-size-21)] font-semibold">创作数据</h1>
         <p className="mt-2 text-13 text-fg-2">需要先登录：这里只列你自己发布过的版本。</p>
-        <Link href="/" className="mt-4 inline-block text-12 text-accent-2 underline">
+        <Link href="/" className="mt-4 inline-block text-12 text-accent-2-ink underline">
           回到首页
         </Link>
       </main>
@@ -220,7 +220,7 @@ export default async function AnalyticsPage(props: {
           ) : null}
           <Link
             href={`/analytics${windowDays === DEFAULT_RANGE ? '' : `?days=${windowDays}`}`}
-            className="mt-2 inline-block text-11 text-accent-2 underline"
+            className="mt-2 inline-block text-11 text-accent-2-ink underline"
           >
             收起这份分析
           </Link>
@@ -244,7 +244,7 @@ export default async function AnalyticsPage(props: {
                 <Link
                   key={option}
                   href={`/analytics?days=${option}${projectId ? `&project=${projectId}` : ''}`}
-                  className={option === windowDays ? 'text-fg-1 underline' : 'text-accent-2 underline'}
+                  className={option === windowDays ? 'text-fg-1 underline' : 'text-accent-2-ink underline'}
                   data-analytics-range-option={option}
                 >
                   {option} 天
@@ -359,7 +359,7 @@ export default async function AnalyticsPage(props: {
                     <span className="ml-1 text-11 text-fg-3">第 {row.version} 版</span>
                     <Link
                       href={`/analytics?project=${row.projectId}`}
-                      className="ml-1 text-11 text-accent-2 underline"
+                      className="ml-1 text-11 text-accent-2-ink underline"
                       data-analytics-ask
                     >
                       为什么没人看？
@@ -451,7 +451,7 @@ export default async function AnalyticsPage(props: {
         爬虫与真人的区分已按"疑似另计"落地（见上面的口径）——UA 名单是保守的，漏掉的爬虫仍会混进真人的数里，
         这一条限度不假装已经解决。
       </p>
-      <Link href="/" className="mt-3 inline-block text-12 text-accent-2 underline">
+      <Link href="/" className="mt-3 inline-block text-12 text-accent-2-ink underline">
         回到我的项目
       </Link>
     </main>

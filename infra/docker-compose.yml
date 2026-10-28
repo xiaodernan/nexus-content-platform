@@ -11,7 +11,9 @@ services:
     container_name: nexus-postgres
     profiles: ['core', 'full']
     restart: unless-stopped
-    ports: ['55433:5432']
+    # 55433 是文档里的开发端口；55100 是集成测试用的别名（同一实例、不同库，
+    # 例如 nexus_regress）。两个端口都留着，免得并行会话各自改映射把对方弄断。
+    ports: ['55433:5432', '55100:5432']
     environment:
       POSTGRES_USER: nexus
       POSTGRES_PASSWORD: nexus_dev_only

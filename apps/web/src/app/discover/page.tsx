@@ -45,7 +45,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
             </Link>
           ))}
         </nav>
-        <Link href="/search" className="text-12 text-accent-2 underline" data-search-link>
+        <Link href="/search" className="text-12 text-accent-2-ink underline" data-search-link>
           按关键词搜全平台
         </Link>
       </header>
@@ -107,7 +107,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
       {result.hiddenAuthors > 0 ? (
         <p className="text-11 text-fg-3" data-discover-hidden={result.hiddenAuthors}>
           这次按你的屏蔽名单过滤掉了 {result.hiddenAuthors} 个人的作品 ·
-          <a href="/blocks" className="ml-1 text-accent-2 underline">
+          <a href="/blocks" className="ml-1 text-accent-2-ink underline">
             看看是谁
           </a>
         </p>

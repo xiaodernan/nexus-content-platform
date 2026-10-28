@@ -58,16 +58,16 @@ export default async function AdminAccessPage({
           </p>
         </div>
         <nav className="flex gap-3 text-11">
-          <Link href="/admin/users" className="text-accent-2 underline" data-access-users>
+          <Link href="/admin/users" className="text-accent-2-ink underline" data-access-users>
             账号与角色
           </Link>
-          <Link href="/admin/realtime" className="text-accent-2 underline" data-access-realtime>
+          <Link href="/admin/realtime" className="text-accent-2-ink underline" data-access-realtime>
             实时总线
           </Link>
-          <Link href="/admin/audit" className="text-accent-2 underline" data-access-audit>
+          <Link href="/admin/audit" className="text-accent-2-ink underline" data-access-audit>
             审计事件
           </Link>
-          <Link href="/admin/moderation" className="text-accent-2 underline" data-access-moderation>
+          <Link href="/admin/moderation" className="text-accent-2-ink underline" data-access-moderation>
             复核台
           </Link>
         </nav>

@@ -20,6 +20,10 @@
   --nexus-color-brand: #5b6cff;
   --nexus-color-accent-1: #8b5cf6;
   --nexus-color-accent-2: #22d3ee;
+  /* 强调色**当文字**时的颜色（与当底色时分开）。accent-2 是亮青，暗色底上 10.9:1，
+     浅色底上只有 1.70:1——直接拿它写链接，浅色主题里等于看不清。所以文字这一侧跟着主题翻：
+     暗色仍是原青，浅色换成深青 #0f6b7a（对 bg-0..bg-3 最低 4.98:1）。 */
+  --nexus-color-accent-2-ink: #22d3ee;
   /* 强调面上的文字色。三个 accent 都是亮色且**不随主题翻转**，而 fg-1/fg-2/fg-3/bg-0
      都跟着主题翻（暗色近白、浅色近黑）——所以"亮色实底 + 任一文本 token"必然在两个主题中的
      某一个上过 AA：暗色下 #eef1f6 压 #22d3ee 只有 1.60:1，浅色下 #f7f8fb 压 #22d3ee 只有 1.70:1。
@@ -105,6 +109,7 @@
   --nexus-color-fg-1: #12141c;
   --nexus-color-fg-2: #4a5265;
   --nexus-color-fg-3: #5b6478;
+  --nexus-color-accent-2-ink: #0f6b7a;
   --nexus-color-border-subtle: #dfe3ec;
   --nexus-color-border-strong: #c3c9d6;
 }

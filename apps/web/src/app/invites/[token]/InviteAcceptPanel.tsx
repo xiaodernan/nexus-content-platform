@@ -40,8 +40,8 @@ export function InviteAcceptPanel({ token }: { token: string }) {
   if (joinedProjectId) {
     return (
       <div className="flex flex-col gap-2" data-invite-accepted>
-        <p className="text-13 text-accent-2">已加入项目。</p>
-        <Link href={`/studio/${joinedProjectId}`} className="text-13 text-accent-2 underline">
+        <p className="text-13 text-accent-2-ink">已加入项目。</p>
+        <Link href={`/studio/${joinedProjectId}`} className="text-13 text-accent-2-ink underline">
           打开这个项目
         </Link>
       </div>

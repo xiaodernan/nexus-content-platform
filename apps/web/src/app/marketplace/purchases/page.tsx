@@ -34,7 +34,7 @@ function statusOf(row: PurchaseRow): { label: string; className: string } {
     return { label: '已下架（不再交付）', className: 'text-fg-3' };
   }
   if (row.visibility === 'private') {
-    return { label: '已转私密（已购仍可下载）', className: 'text-accent-2' };
+    return { label: '已转私密（已购仍可下载）', className: 'text-accent-2-ink' };
   }
   return { label: '在售', className: 'text-green-400' };
 }
@@ -97,7 +97,7 @@ export default function PurchasesPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/marketplace" className="text-accent-2 underline" data-purchases-back>
+          <Link href="/marketplace" className="text-accent-2-ink underline" data-purchases-back>
             回市场
           </Link>
         </div>
@@ -113,7 +113,7 @@ export default function PurchasesPage() {
         </p>
       ) : rows.length === 0 ? (
         <p className="text-fg-2" data-purchases-empty>
-          还没有买过东西。<Link href="/marketplace" className="text-accent-2 underline">去市场看看</Link>。
+          还没有买过东西。<Link href="/marketplace" className="text-accent-2-ink underline">去市场看看</Link>。
         </p>
       ) : (
         <ul className="flex flex-col gap-2" data-purchases-list>

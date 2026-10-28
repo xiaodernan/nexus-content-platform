@@ -189,7 +189,7 @@ export function MarketplaceItemRow({
         <span className="rounded bg-bg-3 px-1 text-11 text-fg-2" data-marketplace-item-visibility={item.visibility}>
           {visibilityLabel}
         </span>
-        <span className="text-12 text-accent-2" data-marketplace-item-price={item.priceCredits}>
+        <span className="text-12 text-accent-2-ink" data-marketplace-item-price={item.priceCredits}>
           {item.priceCredits > 0 ? `${item.priceCredits} credits` : '免费'}
         </span>
         {purchased ? (

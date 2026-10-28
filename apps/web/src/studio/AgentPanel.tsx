@@ -36,7 +36,7 @@ const STATUS_MARK: Record<string, string> = {
 
 const STATUS_TONE: Record<string, string> = {
   pending: 'text-fg-3',
-  running: 'text-accent-2',
+  running: 'text-accent-2-ink',
   done: 'text-fg-2',
   failed: 'text-danger',
   skipped: 'text-warn',

@@ -41,7 +41,7 @@ function EntryRow({ entry }: { entry: LedgerEntry }): ReactElement {
     <tr data-credit-entry={entry.reason} data-credit-kind={entry.kind} data-credit-delta={entry.delta}>
       <td className="py-1 pr-3 text-11 text-fg-3">{stamp(entry.createdAt)}</td>
       <td className="py-1 pr-3 text-12 text-fg-2">{CREDIT_KIND_LABELS[entry.kind]}</td>
-      <td className={`py-1 pr-3 text-12 font-medium ${entry.delta < 0 ? 'text-danger' : 'text-accent-2'}`}>
+      <td className={`py-1 pr-3 text-12 font-medium ${entry.delta < 0 ? 'text-danger' : 'text-accent-2-ink'}`}>
         {entry.delta > 0 ? `+${entry.delta}` : entry.delta}
       </td>
       <td className="py-1 pr-3 text-12 text-fg-1">{entry.reason}</td>
@@ -66,7 +66,7 @@ export default async function CreditsPage(): Promise<ReactElement> {
           这里显示的是四类额度（AI / Image / Video / Compute）与每一笔消费。得先登录或注册，
           才谈得上"谁的额度"。
         </p>
-        <Link href="/" className="text-13 text-accent-2 underline">
+        <Link href="/" className="text-13 text-accent-2-ink underline">
           回到首页登录
         </Link>
       </main>
@@ -162,7 +162,7 @@ export default async function CreditsPage(): Promise<ReactElement> {
               <tr key={plan} data-plan-row={plan} className={plan === view.plan ? 'text-fg-1' : 'text-fg-2'}>
                 <td className="py-1 pr-3 text-12">
                   {PLAN_LABELS[plan]}
-                  {plan === view.plan ? <b className="ml-1 text-11 text-accent-2">（你在这档）</b> : null}
+                  {plan === view.plan ? <b className="ml-1 text-11 text-accent-2-ink">（你在这档）</b> : null}
                 </td>
                 <td className="py-1 pr-3 text-12">{PLAN_MONTHLY_GRANTS[plan].ai}</td>
                 <td className="py-1 pr-3 text-12">{PLAN_MONTHLY_GRANTS[plan].image}</td>

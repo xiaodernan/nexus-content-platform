@@ -66,13 +66,13 @@
 
 ### ⚠️ 两个库：集成测试打 `nexus_regress`，**e2e 的 dev server 打 `nexus`**（2026-10-22 实测）
 
-本机 Postgres 实际监听 **55100**（`55433` 那条是旧记录，现在没有进程在听）。
+本机 Postgres 容器**同时**转发 `55100` 与 `55433`（`infra/docker-compose.yml` 双映射，同一实例）：`55100` 是既有集成测试脚本使用的别名，`55433` 是代码里的默认值。两个端口指向同一个库实例，别只改其中一个。
 同一个实例上有多个库，而它们**各干各的**：
 
 | 谁 | 连哪个库 | 用途 |
 | --- | --- | --- |
 | 集成测试（`apps/web/test/**.integration.test.ts`） | `postgres://nexus:nexus_dev_only@localhost:55100/nexus_regress` | 打真库、可随时清 |
-| e2e（Playwright 起的 dev server） | `postgres://nexus:nexus_dev_only@localhost:55100/nexus` | 浏览器那一寸落数据的地方 |
+| e2e（Playwright 起的 dev server） | `postgres://nexus:nexus_dev_only@localhost:55433/nexus`（代码默认；显式设成 55100 也行） | 浏览器那一寸落数据的地方 |
 
 ⇒ ⇒ **所以：加一条新迁移，两个库都要打**（`npm run db:migrate` 跑两遍，第二个库改一下 `NEXUS_DATABASE_URL`）。
 只打一个的后果很具体（今天踩过）：集成测试全绿（它打的那张表存在），

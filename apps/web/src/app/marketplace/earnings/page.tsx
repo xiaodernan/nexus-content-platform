@@ -63,7 +63,7 @@ export default function EarningsPage() {
         <div className="flex gap-8">
           <div>
             <div className="text-11 text-fg-3">累计收入</div>
-            <div className="text-[var(--nexus-font-size-21)] font-semibold text-accent-2" data-earnings-total>
+            <div className="text-[var(--nexus-font-size-21)] font-semibold text-accent-2-ink" data-earnings-total>
               {summary.totalEarned} credits
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function EarningsPage() {
                 <tr key={day.date} className="border-b border-[var(--nexus-color-border-subtle)]">
                   <td className="py-2 text-fg-1">{day.date}</td>
                   <td className="py-2 text-right text-fg-1">{day.salesCount}</td>
-                  <td className="py-2 text-right text-accent-2">{day.totalAmount} credits</td>
+                  <td className="py-2 text-right text-accent-2-ink">{day.totalAmount} credits</td>
                 </tr>
               ))}
             </tbody>

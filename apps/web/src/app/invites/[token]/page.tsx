@@ -34,7 +34,7 @@ export default async function InviteAcceptPage({ params }: { params: Promise<{ t
       {user ? (
         <InviteAcceptPanel token={token} />
       ) : (
-        <Link href="/" className="text-13 text-accent-2 underline">
+        <Link href="/" className="text-13 text-accent-2-ink underline">
           回首页登录
         </Link>
       )}

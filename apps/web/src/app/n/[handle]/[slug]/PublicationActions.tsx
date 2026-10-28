@@ -149,7 +149,7 @@ export function PublicationActions({ state }: { state: PublicationState }) {
           {saved ? '已收藏' : '收藏这一版'}
         </button>
         {state.ownerHandle ? (
-          <a href={`/u/${state.ownerHandle}`} className="text-11 text-accent-2 underline" data-action-author>
+          <a href={`/u/${state.ownerHandle}`} className="text-11 text-accent-2-ink underline" data-action-author>
             作者主页
           </a>
         ) : null}

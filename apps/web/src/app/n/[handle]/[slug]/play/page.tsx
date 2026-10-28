@@ -25,7 +25,7 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
   if (!page) notFound();
 
   const back = (
-    <Link href={path} className="text-11 text-accent-2 underline" data-play-back>
+    <Link href={path} className="text-11 text-accent-2-ink underline" data-play-back>
       回到作品页
     </Link>
   );

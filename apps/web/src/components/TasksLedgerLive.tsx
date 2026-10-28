@@ -112,7 +112,7 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
           <span className="text-11 text-fg-3" data-tasks-realtime={realtime.state}>
             实时：{REALTIME_TEXT[realtime.state]}
           </span>
-          <Link href={`/studio/${projectId}`} className="text-11 text-accent-2 underline" data-tasks-back>
+          <Link href={`/studio/${projectId}`} className="text-11 text-accent-2-ink underline" data-tasks-back>
             回 Studio
           </Link>
         </div>

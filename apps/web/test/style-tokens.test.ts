@@ -300,3 +300,51 @@ describe('强调色当文字（§90 无障碍 · 浅色主题的钱先记着，�
     expect(AS_TEXT.length).toBe(3); // 名单只有三个：多一个色被当文字用，就要在这里登记它的读数
   });
 });
+
+/**
+ * 强调色**当文字**（不是当底色）在浅色主题里的可读性。
+ *
+ * §85 第八片把浅色主题第一次放进真浏览器，最低一处 **1.70:1** 就是 #22d3ee 压 #f7f8fb。
+ * 那 89 处全是中性表面上的链接/价格/提示文字；修法不是逐个挑颜色，而是把"当文字"的
+ * 强调色拆成随主题翻转的 `accent-2-ink`（暗色保持原青，浅色换成深青）。
+ * 这道门同时钉三件事：界面里不再直接拿亮青当文字、ink 在四个表面上过 AA、原值确实不及格。
+ */
+describe('强调色当文字（§90 无障碍 · accent-2-ink 硬门）', () => {
+  const dark = colorsOf(':root {');
+  const light = colorsOf(':root {', "[data-nexus-theme='light'] {");
+
+  it('界面里不再直接拿 text-accent-2 当文字色（浅色下只有 1.70:1）', () => {
+    const offenders: string[] = [];
+    for (const file of tsxFiles(SRC)) {
+      const lines = readFileSync(file, 'utf8').split('\n');
+      lines.forEach((line, i) => {
+        if (/\btext-accent-2(?!-)/.test(line)) offenders.push(`${relative(process.cwd(), file)}:${i + 1}`);
+      });
+    }
+    expect(offenders, `还有 ${offenders.length} 处直接用亮青当文字：\n${offenders.slice(0, 10).join('\n')}`).toEqual([]);
+  });
+
+  it('Tailwind 层把 accent-2-ink 暴露出来了，否则类名会静默失效', () => {
+    const globals = readFileSync(join(SRC, 'app/globals.css'), 'utf8');
+    expect(globals).toContain('--color-accent-2-ink: var(--nexus-color-accent-2-ink)');
+  });
+
+  for (const [label, colors] of [['暗色', dark], ['浅色', light]] as const) {
+    it(`${label}主题下 accent-2-ink 对 bg-0..bg-3 都过 4.5`, () => {
+      const fg = colors.get('--nexus-color-accent-2-ink');
+      expect(fg, 'tokens.css 里没有 --nexus-color-accent-2-ink 的颜色声明').toBeTruthy();
+      for (const level of ['0', '1', '2', '3']) {
+        const bg = colors.get(`--nexus-color-bg-${level}`);
+        expect(bg).toBeTruthy();
+        const ratio = contrast(fg!, bg!);
+        expect(ratio, `${label}：accent-2-ink #${fg} 对 bg-${level} #${bg} 只有 ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+  }
+
+  it('验电：原来那个亮青在浅色底上必须不及格', () => {
+    expect(contrast(light.get('--nexus-color-accent-2')!, light.get('--nexus-color-bg-0')!)).toBeLessThan(4.5);
+    expect(contrast(dark.get('--nexus-color-accent-2-ink')!, dark.get('--nexus-color-bg-3')!)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+

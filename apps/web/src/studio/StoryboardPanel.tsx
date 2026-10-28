@@ -1176,7 +1176,7 @@ export function StoryboardPanel() {
             })}
           </div>
           {drag ? (
-            <p className="mt-1 text-11 text-accent-2" data-timeline-readout>
+            <p className="mt-1 text-11 text-accent-2-ink" data-timeline-readout>
               {drag.kind === 'trim'
                 ? `第 ${sb.shots.findIndex((candidate) => candidate.id === drag.shotId) + 1} 镜：${(drag.startMs / 1000).toFixed(1)} 秒 → ${(drag.previewMs / 1000).toFixed(1)} 秒`
                 : `把第 ${drag.fromIndex + 1} 镜拖到第 ${drag.previewIndex + 1} 位`}
