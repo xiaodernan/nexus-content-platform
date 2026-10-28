@@ -57,6 +57,10 @@
       `a[data-action-author]` 56×21。**还欠的是那两半**：① `resolveLayout` 没传 `breakpoint`，作者的
       mobile 变体在发布时被丢掉；② 投影要不要按访客视口缩放（`/preview` 已有 `?zoom=` 的先例）。
       改完要复跑这一片，并把 Studio／发现／市场／后台的窄视口补进读数。
+- [ ] **对账门的覆盖率那一寸**（第十五片 notMeasured 第 3 条）：`sim-parity` / `story-parity` 跑的输入
+      是我造的脚本（13 + 10 串），"这些行被真走过"目前没有读数。做法：对 `packages/game-model/src`
+      跑一遍这两份对账收 v8 覆盖，把 `sim.ts` / `rpg.ts` / `story.ts` 三个文件的百分比与未踏到的行写进
+      `docs/EVALUATION.md`，再按漏的那几行补输入——**不许反过来为凑数字放宽断言**。
 - [ ] **之后**：导出 → 空实例恢复演练、`docs/PERFORMANCE.md` 剩余项。
 
 并行会话边界（2026-10-28 实测）：observability 子系统由另一会话在途；上表前五项都在 UI 主题层，
@@ -6298,9 +6302,16 @@ tsc -p packages/video-model 0；改动文件 eslint 0。
 状态逐步对账（字段集合 / 逐字段值 / 摘要 / "打不中原样返回同一个对象"的引用契约），跑在 `npm test` 里。
 此前那份对账住在 `scripts/story-engine-proof.mts`——没有 npm script、不进 vitest include，
 只有人记得手动跑才响，等于一扇没人踢的门；脚本的 11 条逐条有了归宿之后删掉了。
-**照实还欠的那半**：`topdown` 与 `rpg` 两条链仍然只有浏览器 scripted 见证 +
+**照实还欠的那半**：~~`topdown` 与 `rpg` 两条链仍然只有浏览器 scripted 见证 +
 "数字由同一处供给"那道静态闸，静态闸不证明两边算术相同——`sim.ts` 改了逻辑而产物没跟上，
-今天还得有人跑 `npm run parity:game-code` 才知道。
+今天还得有人跑 `npm run parity:game-code` 才知道。~~
+2026-10-29（评估第十五片）也改口径：那条限度说的事实到这一片才真的关掉。
+`packages/game-model/test/sim-parity.test.ts` 把 `sim.ts` / `rpg.ts` 与产物里那两段转写
+（`NexusSim` / `NexusRpg`）在同一串 `(input, dt)` 帧下逐步对账，四把尺子与 story 那条共用
+（`test/support/artifact-vm.ts`：取字节、建 vm 上下文取全局、按键排序序列化、字段集合比较）。
+浏览器 scripted 见证（`npm run parity:game-code`）没有失业——它量的是渲染与点击，这一片量的是转写语义。
+五条变异臂（触及少算一记自身半径 / 等级门差一 / 去掉定步长上限 / 摘要漏乘升级次数 /
+只改转写那一侧的同一处触及）逐条把门踢红，读数见 `docs/EVALUATION.md` 第十五片。
 
 ## §52 产物第三条链的补记（#188 的见证补记）：对话那一段也有浏览器 scripted 见证，且"打不中"的引用契约与模型同形
 

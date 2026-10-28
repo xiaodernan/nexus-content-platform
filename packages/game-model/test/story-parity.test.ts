@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import vm from "node:vm";
 import {
   EVENT_CAP,
   STORY_NO_BEATS_OUTCOME,
@@ -14,9 +13,17 @@ import {
   type GameKind,
   type StoryPlan,
 } from "../src/index";
+import {
+  artifactFile,
+  canon,
+  clip,
+  fieldDiff,
+  loadArtifactEngine,
+  shippedPlan as shippedPlanBytes,
+} from "./support/artifact-vm";
 
 /**
- * §85 第十三片：**模型 ↔ 产物转写**的对账，跑在 `npm test` 里。
+ * §85 第十四片：**模型 ↔ 产物转写**的对账，跑在 `npm test` 里。
  *
  * 这条门补的是一格存在了很久的心虚。ADR-0046 收尾时留下的原话：
  * "仍然欠的：产物侧是转写，不是 import——`story.ts` 改逻辑而产物不重新生成仍会分叉。"
@@ -39,6 +46,10 @@ import {
  *
  * 浏览器那一层（渲染、点击、`#story` 容器）不在这里，那是 `scripts/game-code-parity.mts`
  * 的 STORY_* 几条；这一片只管"转写的语义与模型同不同"。
+ *
+ * 取字节、加载全局、按键排序序列化、字段集合比较这四把尺子住在
+ * `test/support/artifact-vm.ts`——`sim-parity.test.ts`（另外两条链）用的是同一把。
+ * 对账工具本身写两份，就跟转写写两份一样会说谎。
  */
 
 const AT = "2026-01-01T00:00:00.000Z";
@@ -98,46 +109,18 @@ interface StoryEngineView {
   summary: (plan: unknown, state: EngineState) => string;
 }
 
-function fileOf(output: GameCodeOutput, path: string): string {
-  const found = output.files.find((f) => f.path === path);
-  if (!found) throw new Error(`产物里没有 ${path}：只生成了 ${output.files.map((f) => f.path).join("、")}`);
-  return found.contents;
-}
-
-/** 把产物自己的 `engine.js` 放进一个新上下文里取回 `NexusStory`——不重写一份逻辑，也不 import 模型 */
+/**
+ * 把产物自己的 `engine.js` 放进一个**新建的**上下文里取回 `NexusStory`——不重写一份逻辑，
+ * 也不 import 模型。取字节、建上下文、查全局这三步是三条链共用的，住在 support 里。
+ */
 function storyEngineFrom(output: GameCodeOutput): StoryEngineView {
-  const context = vm.createContext({}) as { NexusStory?: StoryEngineView };
-  vm.runInContext(fileOf(output, "engine.js"), context, { filename: "engine.js" });
-  const engine = context.NexusStory;
-  if (!engine) throw new Error("产物 engine.js 里没有 NexusStory——对账无从跑起");
-  return engine;
+  return loadArtifactEngine<StoryEngineView>(output, "NexusStory");
 }
 
 /** 喂给产物的是**它自己要念的那份**（plan.json 的字节），不是主机手里那个对象：载荷少带一个字段也会在这里红 */
 function shippedPlan(output: GameCodeOutput): StoryPlan {
-  return JSON.parse(fileOf(output, "plan.json")) as StoryPlan;
+  return shippedPlanBytes(output) as StoryPlan;
 }
-
-/** 按键排序后再序列化：比的是值，不是键序 */
-function canon(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canon).join(",")}]`;
-  if (value !== null && typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>).sort((a, b) => (a[0] < b[0] ? -1 : 1));
-    return `{${entries.map(([k, v]) => `${k}:${canon(v)}`).join(",")}}`;
-  }
-  return JSON.stringify(value) ?? "undefined";
-}
-
-function fieldDiff(model: object, view: object): string | null {
-  const a = Object.keys(model).sort();
-  const b = Object.keys(view).sort();
-  if (a.join(",") === b.join(",")) return null;
-  const onlyModel = a.filter((k) => !b.includes(k));
-  const onlyView = b.filter((k) => !a.includes(k));
-  return `模型独有 [${onlyModel.join(",")}]、产物独有 [${onlyView.join(",")}]`;
-}
-
-const clip = (s: string): string => (s.length > 320 ? `${s.slice(0, 320)}…` : s);
 
 /**
  * 一串确定的选择：每轮把这份计划里的**每一条选择**都按同一顺序试一遍，中间夹打不中的 id。
@@ -391,7 +374,7 @@ describe("模型与产物转写的对账（跑在 npm test 里，不再靠人记
     const document = scenarios.find((s) => s.name.startsWith("悬空引用"))!.document;
     const output = generateGameCode(document);
     for (const path of ["plan.json", "plan.js", "engine.js"]) {
-      expect(fileOf(output, path), `${path} 里混进了非对话实体`).not.toContain("巡逻兵");
+      expect(artifactFile(output, path), `${path} 里混进了非对话实体`).not.toContain("巡逻兵");
     }
     expect(compileStory(document).notes.join(" "), "投影没交代它忽略了多少条引用").toContain("1 个非对话实体");
   });
@@ -402,10 +385,10 @@ describe("模型与产物转写的对账（跑在 npm test 里，不再靠人记
       { id: "d2", name: "名字ZZZ乙", text: "正文QQQ回应" },
     ]);
     const output = generateGameCode(document);
-    const engine = fileOf(output, "engine.js");
+    const engine = artifactFile(output, "engine.js");
     for (const authored of ["名字ZZZ甲", "名字ZZZ乙", "正文QQQ开场", "选项MMM"]) {
       expect(engine, `产物代码里出现了作者写的「${authored}」——那意味着内容被拼进了代码，不只是数据`).not.toContain(authored);
-      expect(fileOf(output, "plan.json")).toContain(authored);
+      expect(artifactFile(output, "plan.json")).toContain(authored);
     }
   });
 

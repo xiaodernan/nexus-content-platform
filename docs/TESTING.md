@@ -1624,6 +1624,10 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   这份见证让"转写语义对不对"始终有凭证。它进仓库了：`scripts/story-engine-proof.mts`（9 条，全绿）。
   （2026-10-29 改口：这份对账已经进门，跑在 `npm test` 里 —— `packages/game-model/test/story-parity.test.ts`，
   十条线逐步比状态、摘要与引用契约；那个手跑脚本随之删除，11 条逐条另有归宿。）
+  （同日第十五片再扩一步：**同一把尺子现在也量 `NexusSim` 与 `NexusRpg`**——
+  `packages/game-model/test/sim-parity.test.ts` 19 条，四把尺子搬到共用的
+  `packages/game-model/test/support/artifact-vm.ts`。那句"纯逻辑所以能在 vm 里跑"从这一片起
+  是量出来的：`engineSource()` 函数体里 `document` / `window` 出现 0 次。）
 - **片 2（`a992277`）浏览器见证**：`scripts/game-code-parity.mts` 判决 **24 → 31 条**，
   新增 7 条 `STORY_*`：页面加载（pageerror 0）/ 链名那句与生成器逐字相同 / 对话那型没有画布 /
   页里 `NEXUS_PLAN` 与主机侧 `artifactPayload` 逐字节相同 / **点一个选项正文换成目标那一段**
@@ -1648,6 +1652,10 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   所以它可以在 Node 的 `vm` 里跑——于是「转写语义对不对」这件事**不依赖浏览器**，
   内存紧、Chrome 起不来的时候仍然有凭证（`scripts/story-engine-proof.mts`，9 条全绿）。
   —— 2026-10-29 起这份凭证不再需要人记得去取：同一件事在 `packages/game-model/test/story-parity.test.ts` 里，`npm test` 每次都会跑。
+  同日第十五片：`topdown` 与 `rpg` 那两条链的同一件事也进了 `npm test`
+  （`packages/game-model/test/sim-parity.test.ts`，五条变异臂 K / L / M / N / O 各红过一次，
+  其中 O 改的是转写那一侧；读数见 `docs/EVALUATION.md` 第十五片）。
+  浏览器那条 `npm run parity:game-code` 没有失业——它量的是渲染与点击，这两份门量的是转写语义。
 
 2026-10-20 第五轮：全量回归（分四批，隔离库）—— 2026-10-20 的绿基线
 
@@ -1921,6 +1929,9 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   同一串 5 步（含一次重访与一次打不中）之后，模型与 `NexusStory` 的状态 `JSON.stringify` 逐字段相同、摘要逐字相同。
   game-model 全量 235 条绿、tsc 0、eslint 0。
   （那 11 条现在在 `packages/game-model/test/story-parity.test.ts`，14 条、进 `npm test`；脚本已删，读数见 2026-10-29。）
+  同一条纪律同日扩到另外两条链：`sim.ts` / `rpg.ts` 与 `NexusSim` / `NexusRpg` 的逐步对账在
+  `packages/game-model/test/sim-parity.test.ts`（19 条），两边共用的四把尺子在
+  `packages/game-model/test/support/artifact-vm.ts`——**对账工具写两份，就跟转写写两份一样会说谎**。
   **变异电池 4 条各自精确红、逐字节还原**：起点不记 visited（开场/成环摘要红）、`prior > 1`（第一次回访不标成环）、
   转写不记 `trail`（vm 见证里"模型与产物逐字段相同"那一条红，其余 10 条仍绿）、no-op 改成返回拷贝（`toBe(state)` 红）。
   **浏览器见证**：`@smoke §51 类型分派` 这一支 1 passed（10.2m），`story-play-first/end.png` 已看过——

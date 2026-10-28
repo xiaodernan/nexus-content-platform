@@ -98,3 +98,23 @@
 - 编排链上的 `code` 那一步**同日接上**（2026-10-15，配方从七步变八步）：它吃 level 那份草稿、
   只报投影的读数，**不留草稿也不写库**，所以接受入口仍然只有三颗按钮、缺省那份仍是链末的 level。
   取舍与六臂电池读数见 `0039-code-step-in-chain-projection-not-draft.md`。
+
+## 补记：那句"vitest 里跑产物就是主机执行"被两片对账改写了（2026-10-29，评估第十四、十五片）
+
+这份 ADR 原话里有两处今天不成立，照实改口：
+
+- 原话「**代价：多了一条需要浏览器与 loopback 端口的见证**……它不进 vitest（vitest 里跑产物就是
+  主机执行，§81 直接违）」。事实是：**转写那三段是纯逻辑**，量出来的不是猜的——`engineSource()`
+  整个函数体里 `document` / `window` 出现 0 次，`NexusSim` / `NexusRpg` / `NexusStory` 都不碰 DOM。
+  所以它们能放进一个**新建的** `vm.createContext({})`（没有 `require` / `process` / `fs`）里跑，
+  与模型层在同一串输入下逐步比状态。两片已经把三条链都搬进 `npm test`：
+  `packages/game-model/test/story-parity.test.ts`（第十四片）与
+  `packages/game-model/test/sim-parity.test.ts`（第十五片，四把尺子与它共用
+  `test/support/artifact-vm.ts`）。
+- §81 没被绕过，是被**重新界定**：这里执行的是本仓库 `codegen.ts` 自己的模板，不是作者或 AI 写的
+  代码。这句话不能只写在注释里，所以两条链各钉一条逐字扫描的门——拿带"名字ZZZ…"的底稿生成，
+  断言那些串在 `engine.js` 里一个都不出现、在 `plan.json` 里都出现。真出现的那天，这段对账就不该在主机跑。
+
+**没有改变的**：浏览器见证（`npm run parity:game-code`）仍然是那条量**渲染与点击**的路，
+`render.js`、HUD、`#story` 容器都不在 vm 里。静态闸（"数字由同一处供给"）也留着——它管的是
+`RULES.contactCooldown` 这些数不许重打，与"两边算术相同"是两件事，现在两条都有门。

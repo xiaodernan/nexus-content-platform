@@ -629,6 +629,70 @@ notMeasured：只把 **story 一条链**的对账搬进门。`topdown` 与 `rpg`
 的静态闸——静态闸证明的是同一处供给，**不证明两边算术相同**，那条链 `sim.ts` 改了逻辑而产物没跟上，
 今天还得有人记得跑浏览器见证才知道。第二片量的正是这种"门在但没人踢"，这一片只还了三分之一。
 
+#### 第十五片（2026-10-29）：把剩下那三分之二也搬进门——`sim.ts` / `rpg.ts` 与 `NexusSim` / `NexusRpg` 逐步对账
+
+上一片的 notMeasured 就是这一片的任务。先量前提再动手：`engineSource()`（`codegen.ts:338-580`）
+整个函数体里 `document` / `window` 出现 **0 次**——`NexusSim` 与 `NexusRpg` 和 `NexusStory` 一样是
+纯逻辑，所以它们也能放进新建的 `vm.createContext({})` 里跑。ADR-0038 那句"它不进 vitest（vitest 里跑
+产物就是主机执行，§81 直接违）"因此当场过期，去那份 ADR 末尾照实改了口（改的是这句，不是那条纪律：
+执行的是本仓库自己的模板，作者的字只进 `plan.json`，两条链各钉一条逐字扫描的门）。
+
+**做法**：新建 `packages/game-model/test/sim-parity.test.ts`，19 条——13 串 topdown 帧输入、
+3 条比较器与载荷自身的钉子（topdown 那一侧），rpg 那一侧 2 串帧输入 + 1 条"成长那一段真的走到过
+升级与扣住"。
+四把尺子（取字节、建上下文取全局、按键排序序列化、字段集合比较）**搬到共用的
+`packages/game-model/test/support/artifact-vm.ts`**，`story-parity.test.ts` 改成 import 它：
+对账工具本身写两份，就跟转写写两份一样会说谎。输入流一律由模型那侧的状态算出来再原样重放给产物
+（各算各的会自己把分叉抹平）。rpg 那一条还多验一件事：产物读的是**摊平后的**载荷
+`{...plan.base, chain:"rpg", notes, growth}`，而模型侧的 `rpgStep` 吃的是嵌套 `RpgPlan`——
+喂给产物的永远是 `plan.json` 的字节，不是主机手里那个对象。
+
+**首跑 3 红 3 绿，红的全是我的底稿在说谎，两边一次都没分叉**（转写目前比我的假设更老实）：
+
+1. `player.damage=0`、`provenance.damage="default"`——玩家的伤害读 `attackPower`，`damage` 那个键是
+   敌人用的（`play.ts:196`）。我按常识写了 `damage: 5`，于是没人倒下 → 没经验 → 没升级，三条声称
+   "打死/升级"的线全空。修底稿而不是修断言。
+2. "没有玩家"那条我断言 `px===0 && py===0`，投影给的是场地中心 `(600, 380)`。
+3. "dt 越界"把 `5 / -1 / 0.1` 三帧写成**一串**却声称走到 `t=0.1`，实量 `t=0.2`（0.1+0+0.1）——
+   一句断言里塞两个规则就谁也钉不住。拆成两条，各钉一个数：跳 5 秒那一帧只许推进 0.1；
+   负 dt 那一帧 `t` 一格都不许走。
+
+还抓到共用尺子上的一处过头：`moved===true` 那道空转闸对"开局就被拒绝"那条正好是反的——它的空转
+形状就是**不动**。加一个 `frozen` 标记把断言换成"一动都不许动"，而不是把闸放宽。
+
+**两条臂一开始是惰的**，这比"没红"更值得记：臂 K（触及少算一记自身半径）在原来的贴身底稿上
+两边行为一模一样，因为那个距离怎么算都够得着；臂 L（等级门差一）因为经验给到 60 点一路升到 3 级，
+`requiredLevel <= level` 那个**等号**从没被踩到。底稿改完才各红一次：新加"空手站桩挥击"那条把敌人摆在
+相距 20（超出 0 点武器射程、没超出两半径之和 16+16），等级门那条经验改成 25（`xpToNext(1)=20`、
+`xpToNext(2)=35`，正好停在 2 级）。**惰臂与没测过是同一件事**——这也是为什么每条线都带 `reached`。
+
+**五条臂，各红一次**（改完立刻还原，逐字节比 md5；还原后复跑 19/19 绿）：
+
+| 臂 | 改哪一侧 | 实际读数（照抄） |
+| --- | --- | --- |
+| K | 模型 `sim.ts` 触及 `player.radius + player.reach` → 只留 `player.reach` | **1 failed / 18 passed**；`第 1 帧（dt=0.05、…挥击）之后`：模型 `damageDealt:0, enemies:[{active:true,health:5}]`、产物 `damageDealt:5, enemies:[{active:false,health:0}]` |
+| L | 模型 `rpg.ts` 等级门 `requiredLevel <= next.level` → `<` | **1 failed / 18 passed**；`NexusRpg 第 107 帧`：模型事件多一句「条件满足了，但要 2 级才能交（现在 2 级）——完成先扣住」、`outcome:null, questDone:{}`；产物是「完成任务「开启祭坛」 +5 经验」、`outcome:"1 条可判定的任务全部完成（5.3 秒）。", questDone:{q1:5.35}` |
+| M | 模型 `sim.ts` 去掉定步长上限 `Math.min(…, MAX_FRAME_SECONDS)` | **1 failed / 18 passed**；`第 1 帧（dt=5、…收手）之后`：模型 `activated:{t1:5}`、`events:[{t:5,…}]`；产物 `t1:0.1`、`{t:0.1,…}` |
+| N | 模型 `rpg.ts` 摘要里派生伤害漏乘次数 `damage * state.levelUps` → `damage` | **3 failed / 16 passed**；`开场：摘要对不上` 模型「… 伤害 6 …」产物「… 伤害 5 …」——**状态一模一样，只有那行字不同**，值比看不出来，第三条尺子单独把它抓住 |
+| O | **转写侧** `codegen.ts` 里 `var reach = player.radius + player.reach;` → 只留 `player.reach`（模型一个字不动） | **1 failed / 18 passed**，红的还是"空手站桩挥击"那条，两边读数与臂 K 正好对调：模型 `damageDealt:5, active:false`、产物 `damageDealt:0, active:true` |
+
+臂 O 是这一片最想要的：它证明门不是只朝一个方向响。臂 N 证明第三条尺子不是装饰（故事链那片
+的臂 J 是同形状，两条实时链此前一次都没有）。
+
+**读数**：`npx vitest run packages/game-model/test/sim-parity.test.ts` **19/19 绿**（五条臂各自红过
+一次，还原后复跑绿）；`npx vitest run packages/game-model` **15 files / 269 tests 全绿**（其中
+`sim-parity` 19、重构后的 `story-parity` 14 条一条没少）；`tsc -p packages/game-model` 退 0、
+`eslint` 对改动的四个文件退 0。为取臂 L 的完整读数，曾把 `support/artifact-vm.ts` 里的 `clip` 从 320 临时放宽到 3000 跑一次再还原——
+还原后 `grep -n 320` 打出来的仍是原来那一行（`text.length > 320 ? text.slice(0, 320)`）。
+
+notMeasured：
+1. **渲染层不在门里**。`render.js`、HUD、画布、`#story` 容器仍只有 `npm run parity:game-code`
+   那条浏览器见证（要 Chrome、要人跑）。这一片量的是转写语义，两句在 ROADMAP 里分开写。
+2. **对账跑的是"当场由源码生成的产物"**，所以它抓的是**仓库里两份逻辑分叉**；作者机器上那份三年前
+   下载的产物与今天的模型分叉，它抓不到——那要靠版本号，界面上现在说的是"是它的转写"。
+3. **脚本没走到的分支不在门里**，而且我没有覆盖率读数能证明"`sim.ts` 每一行都被踩过"。
+   下一片该量的就是这个：给这类对账配一个 coverage 闸，把"我造了 12 串输入"换成"这些行被真走过"。
+
 ### Performance
 
 不在此复测：规模基准与热点路径的真数见 `docs/PERFORMANCE.md`（§146/§147 测量协议）。

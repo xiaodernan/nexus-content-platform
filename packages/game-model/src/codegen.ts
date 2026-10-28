@@ -43,11 +43,14 @@ import {
  *    兜底经验是 `compileRpg` 算进那份 `growth` 数据的，源头是 `rpg.ts` 的导出，产物侧一个数都不新打。
  *    转写这件事本身是这一格的限度：`sim.ts` 或 `rpg.ts` 改了逻辑而产物没重新生成，两者就会分叉，
  *    所以界面上不许说"产物就是平台跑的那一套"，只能说"产物是它的转写，数字由同一处供给"。
- *    一致性见证记在 `docs/TESTING.md`：三条链各一段 scripted 输入，在浏览器里逐字节比 trace；
- *    story 那一段另有一份不依赖浏览器的对账，跑在 `npm test` 里
- *    （`packages/game-model/test/story-parity.test.ts`：把上面那段模板放进一个新建的 `vm` 上下文，
- *    与 `story.ts` 同一串选择逐步比状态、摘要与"打不中原样返回"的引用契约）。
- *    它跑的是这一格自己的模板、不是作者写的代码——作者的字只进 `plan.json`，那条测试里钉着。
+ *    这句限度现在有两处见证，量的是两件事：`docs/TESTING.md` 记的三条链各一段 scripted 输入，
+ *    在**浏览器**里逐字节比 trace（渲染与点击，`npm run parity:game-code`）；三条链的**纯逻辑**
+ *    另各有一份不依赖浏览器的对账跑在 `npm test` 里——
+ *    `story-parity.test.ts` 比 `story.ts` 与 `NexusStory`，`sim-parity.test.ts` 比 `sim.ts` 与
+ *    `NexusSim`、`rpg.ts` 与 `NexusRpg`（同一串 `(input, dt)` 帧逐步比状态字段集合、逐字段的值、
+ *    摘要与"打不中原样返回同一个对象"的引用契约；四把尺子住在共用的
+ *    `packages/game-model/test/support/artifact-vm.ts`）。
+ *    它们跑的是这一格自己的模板、不是作者写的代码——作者的字只进 `plan.json`，那两条测试里各钉着一条。
  * 3. **不在主机执行（§81）**。这一格里没有 `eval`、没有子进程、不读写文件、不联网：
  *    生成 = 纯字符串投影，运行 = 浏览器沙箱。产物自己也带一道 CSP，`connect-src 'none'`
  *    把它按在本地：一份下载的关卡不该在玩家机器上打洞。
