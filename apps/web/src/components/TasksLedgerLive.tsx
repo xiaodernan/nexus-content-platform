@@ -119,7 +119,7 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
       </header>
 
       {note ? (
-        <p className="text-11 text-danger" data-tasks-live-note>
+        <p className="text-11 text-danger-ink" data-tasks-live-note>
           {note}
         </p>
       ) : null}

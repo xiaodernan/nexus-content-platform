@@ -157,12 +157,12 @@ export function SketchPad({
         {busy || submitting ? '生成中…' : '从草图生成（DEMO · 扣 2 点）'}
       </button>
       {exportError ? (
-        <p className="text-12 text-warn" data-sketch-export-error>
+        <p className="text-12 text-warn-ink" data-sketch-export-error>
           {exportError}
         </p>
       ) : null}
       {strokes.length > 0 && !canGenerate ? (
-        <p className="text-11 text-warn" data-sketch-need-prompt>
+        <p className="text-11 text-warn-ink" data-sketch-need-prompt>
           上面的描述文字还空着——草图管构图，文字管画什么，缺一样都生成不了。
         </p>
       ) : null}

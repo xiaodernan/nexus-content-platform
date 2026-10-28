@@ -42,7 +42,7 @@ export default async function WorldRuntimePage({ params }: { params: Promise<{ p
     return (
       <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-world3d="broken">
         <h1 className="text-[var(--nexus-font-size-21)] font-semibold">库里的世界读不出来</h1>
-        <p className="text-13 text-danger" data-world-error>
+        <p className="text-13 text-danger-ink" data-world-error>
           {world.reason}
         </p>
         <p className="text-11 text-fg-3">这里不会用一份空场景代替它：那看起来像"世界是空的"，而实际是读不出来。</p>

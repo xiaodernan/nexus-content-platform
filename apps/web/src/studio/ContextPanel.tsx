@@ -363,7 +363,7 @@ export function ContextPanel() {
                 <div className="mt-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-context-block>
                   {block.busy ? <p className="text-11 text-fg-3">取整块中…</p> : null}
                   {block.error ? (
-                    <p className="text-11 leading-relaxed text-danger" data-context-block-error>
+                    <p className="text-11 leading-relaxed text-danger-ink" data-context-block-error>
                       {block.error}
                     </p>
                   ) : null}

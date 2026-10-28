@@ -88,7 +88,7 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
       </div>
 
       <div className="ml-auto flex items-center gap-[var(--nexus-space-2)]">
-        <span className={cn('font-mono text-12', state.saveState === 'error' ? 'text-danger' : 'text-fg-3')} data-save-state>
+        <span className={cn('font-mono text-12', state.saveState === 'error' ? 'text-danger-ink' : 'text-fg-3')} data-save-state>
           {saveLabel}
         </span>
         <div className="flex items-center gap-1">

@@ -221,13 +221,13 @@ export function GameGraphView() {
             type="button"
             onClick={removeEdge}
             data-game-graph-remove-ref
-            className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-danger"
+            className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-danger-ink"
           >
             摘掉这条引用
           </button>
         ) : null}
         <span
-          className={cn('ml-auto font-mono text-11', snapshot.saveState === 'error' ? 'text-danger' : 'text-fg-3')}
+          className={cn('ml-auto font-mono text-11', snapshot.saveState === 'error' ? 'text-danger-ink' : 'text-fg-3')}
           data-game-graph-state
         >
           {snapshot.saveState === 'saving'
@@ -245,12 +245,12 @@ export function GameGraphView() {
         />
       </div>
       {snapshot.notice ? (
-        <p className="px-3 py-2 text-11 text-warn" data-game-graph-notice>
+        <p className="px-3 py-2 text-11 text-warn-ink" data-game-graph-notice>
           {snapshot.notice}
         </p>
       ) : null}
       {snapshot.error ? (
-        <p className="px-3 py-2 text-11 text-danger" data-game-graph-error>
+        <p className="px-3 py-2 text-11 text-danger-ink" data-game-graph-error>
           {snapshot.error}
         </p>
       ) : null}

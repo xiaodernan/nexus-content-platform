@@ -34,14 +34,14 @@ export function HealthPanel({ report, source }: { report: HealthReport; source?:
       {report.blockers.length ? (
         <ul className="flex flex-col gap-[2px]" data-health-blockers>
           {report.blockers.map((blocker) => (
-            <li key={blocker} className="text-11 text-danger">
+            <li key={blocker} className="text-11 text-danger-ink">
               · {blocker}
             </li>
           ))}
         </ul>
       ) : null}
       {report.notRun.length ? (
-        <p className="text-11 text-warn" data-gate-not-run>
+        <p className="text-11 text-warn-ink" data-gate-not-run>
           未运行：{report.notRun.join('、')}
         </p>
       ) : null}
@@ -77,7 +77,7 @@ export function HealthRail() {
             className="font-mono text-12"
             data-health-rail-state={report.passed ? 'pass' : 'fail'}
           >
-            <span className={report.passed ? 'text-fg-2' : 'text-danger'}>
+            <span className={report.passed ? 'text-fg-2' : 'text-danger-ink'}>
               {report.passed ? '可发布' : '有阻塞'}
             </span>
           </span>
@@ -118,7 +118,7 @@ function HealthRow({ check }: { check: HealthCheck }) {
         <span
           className={cn(
             'w-[12px] shrink-0 font-mono text-12',
-            check.state === 'pass' ? 'text-fg-2' : check.state === 'fail' ? 'text-danger' : 'text-warn',
+            check.state === 'pass' ? 'text-fg-2' : check.state === 'fail' ? 'text-danger-ink' : 'text-warn-ink',
           )}
         >
           {STATE_MARK[check.state]}
@@ -147,7 +147,7 @@ function HealthRow({ check }: { check: HealthCheck }) {
               <span
                 className={cn(
                   'mr-1 font-mono uppercase',
-                  finding.severity === 'error' ? 'text-danger' : finding.severity === 'warning' ? 'text-warn' : 'text-fg-3',
+                  finding.severity === 'error' ? 'text-danger-ink' : finding.severity === 'warning' ? 'text-warn-ink' : 'text-fg-3',
                 )}
               >
                 {finding.severity[0]}

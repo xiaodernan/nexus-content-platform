@@ -43,7 +43,7 @@ export function UnblockButton({ handle }: { handle: string }) {
         解除
       </button>
       {error ? (
-        <span className="text-11 text-danger" data-unblock-error>
+        <span className="text-11 text-danger-ink" data-unblock-error>
           {error}
         </span>
       ) : null}

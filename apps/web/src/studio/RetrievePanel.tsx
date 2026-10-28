@@ -156,7 +156,7 @@ export function RetrievePanel() {
           // 读失败时这里一个芯片都不许出现：芯片缺席本来是"这一类真的没块"的证据，
           // 让它替一次网络故障作证就是把证据变成谎。
           <div className="mt-2 flex flex-wrap items-center gap-2" data-knowledge-unavailable>
-            <span className="font-mono text-11 text-danger">语料库读不到：{statsFailed}</span>
+            <span className="font-mono text-11 text-danger-ink">语料库读不到：{statsFailed}</span>
             <button
               type="button"
               disabled={busy}
@@ -231,7 +231,7 @@ export function RetrievePanel() {
           </button>
         </div>
         {message ? (
-          <p className="mt-2 text-11 text-danger" data-retrieve-error>
+          <p className="mt-2 text-11 text-danger-ink" data-retrieve-error>
             {message}
           </p>
         ) : null}

@@ -300,12 +300,12 @@ export function CharacterPanel() {
           记忆属于 §48 的独立存储，不在档案里放一个假字段。
         </p>
         {message ? (
-          <p className="mt-2 text-11 text-danger" data-character-error>
+          <p className="mt-2 text-11 text-danger-ink" data-character-error>
             {message}
           </p>
         ) : null}
         {unreadable.length ? (
-          <p className="mt-2 text-11 text-warn" data-character-unreadable>
+          <p className="mt-2 text-11 text-warn-ink" data-character-unreadable>
             有 {unreadable.length} 个角色的档案读不出来：{unreadable[0]}
           </p>
         ) : null}
@@ -501,7 +501,7 @@ export function CharacterPanel() {
               </div>
               {studio.assetError || studio.assetNotice ? (
                 <p
-                  className={cn('mt-1 text-11', studio.assetError ? 'text-danger' : 'text-fg-3')}
+                  className={cn('mt-1 text-11', studio.assetError ? 'text-danger-ink' : 'text-fg-3')}
                   data-character-notice
                 >
                   {studio.assetError ?? studio.assetNotice}
@@ -529,7 +529,7 @@ export function CharacterPanel() {
                         onClick={() => setDraft(removeRelationshipAt({ ...selected, profile: draft }, index).profile)}
                         aria-label="删除这条关系"
                         data-character-relationship-remove={index}
-                        className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger"
+                        className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger-ink"
                       >
                         ×
                       </button>
@@ -568,7 +568,7 @@ export function CharacterPanel() {
                 />
               </div>
               {!world.world ? (
-                <p className="mt-1 text-11 text-warn">这个项目还没有世界，关系没有可指向的条目。</p>
+                <p className="mt-1 text-11 text-warn-ink">这个项目还没有世界，关系没有可指向的条目。</p>
               ) : null}
             </section>
 
@@ -583,7 +583,7 @@ export function CharacterPanel() {
             {issues.length ? (
               <ul className="flex flex-col gap-[2px]" data-character-issues>
                 {issues.map((issue) => (
-                  <li key={`${issue.code}-${issue.path}`} className="text-11 text-warn">
+                  <li key={`${issue.code}-${issue.path}`} className="text-11 text-warn-ink">
                     · {issue.message}
                   </li>
                 ))}
@@ -608,7 +608,7 @@ export function CharacterPanel() {
                 disabled={saving}
                 onClick={() => void remove()}
                 data-character-delete
-                className="rounded-[var(--nexus-radius-sm)] px-2 py-1 text-12 text-fg-3 hover:text-danger disabled:opacity-50"
+                className="rounded-[var(--nexus-radius-sm)] px-2 py-1 text-12 text-fg-3 hover:text-danger-ink disabled:opacity-50"
               >
                 删除角色
               </button>

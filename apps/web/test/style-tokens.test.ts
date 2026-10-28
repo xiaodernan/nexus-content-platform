@@ -348,3 +348,52 @@ describe('强调色当文字（§90 无障碍 · accent-2-ink 硬门）', () => 
   });
 });
 
+/**
+ * 语义色（danger / warn）**当文字**在浅色主题里的可读性。
+ *
+ * accent-2 那一笔还掉后，第八片首跑剩下的同类就是这两个：#f2555a 压白底 2.95、#f5a623 压白底 1.93。
+ * 它们几乎都用在错误/警告文案上——正是用户出事时最需要读清楚的字。修法与 accent-2-ink 同形：
+ * 暗色保持原值（danger 4.64 已过），浅色换成深色（danger #b42318 / warn #7a4f00）。
+ */
+describe('语义色当文字（§90 无障碍 · danger-ink / warn-ink 硬门）', () => {
+  const dark = colorsOf(':root {');
+  const light = colorsOf(':root {', "[data-nexus-theme='light'] {");
+
+  it('界面里不再直接拿 text-danger / text-warn 当文字色', () => {
+    const offenders: string[] = [];
+    for (const file of tsxFiles(SRC)) {
+      const lines = readFileSync(file, 'utf8').split('\n');
+      lines.forEach((line, i) => {
+        if (/\btext-(danger|warn)(?!-)/.test(line)) offenders.push(`${relative(process.cwd(), file)}:${i + 1}`);
+      });
+    }
+    expect(offenders, `还有 ${offenders.length} 处直接用语义色当文字：\n${offenders.slice(0, 10).join('\n')}`).toEqual([]);
+  });
+
+  it('Tailwind 层把 danger-ink / warn-ink 暴露出来了', () => {
+    const globals = readFileSync(join(SRC, 'app/globals.css'), 'utf8');
+    expect(globals).toContain('--color-danger-ink: var(--nexus-color-danger-ink)');
+    expect(globals).toContain('--color-warn-ink: var(--nexus-color-warn-ink)');
+  });
+
+  for (const [label, colors] of [['暗色', dark], ['浅色', light]] as const) {
+    it(`${label}主题下 danger-ink / warn-ink 对 bg-0..bg-3 都过 4.5`, () => {
+      for (const name of ['danger', 'warn'] as const) {
+        const fg = colors.get(`--nexus-color-${name}-ink`);
+        expect(fg, `tokens.css 里没有 --nexus-color-${name}-ink`).toBeTruthy();
+        for (const level of ['0', '1', '2', '3']) {
+          const bg = colors.get(`--nexus-color-bg-${level}`);
+          expect(bg).toBeTruthy();
+          const ratio = contrast(fg!, bg!);
+          expect(ratio, `${label}：${name}-ink #${fg} 对 bg-${level} #${bg} 只有 ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    });
+  }
+
+  it('验电：原值在浅色底上必须不及格', () => {
+    expect(contrast(light.get('--nexus-color-danger')!, light.get('--nexus-color-bg-0')!)).toBeLessThan(4.5);
+    expect(contrast(light.get('--nexus-color-warn')!, light.get('--nexus-color-bg-0')!)).toBeLessThan(4.5);
+  });
+});
+

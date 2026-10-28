@@ -231,7 +231,7 @@ export function MarketplaceItemRow({
             onClick={() => setReportOpen((on) => !on)}
             aria-expanded={reportOpen}
             data-marketplace-report={item.id}
-            className="rounded px-2 py-1 text-11 text-fg-3 hover:text-danger"
+            className="rounded px-2 py-1 text-11 text-fg-3 hover:text-danger-ink"
           >
             {reportOpen ? '收起举报' : '举报'}
           </button>
@@ -250,7 +250,7 @@ export function MarketplaceItemRow({
             type="button"
             onClick={() => void remove()}
             data-marketplace-remove={item.id}
-            className="rounded px-2 py-1 text-11 text-fg-3 hover:text-danger"
+            className="rounded px-2 py-1 text-11 text-fg-3 hover:text-danger-ink"
           >
             下架
           </button>

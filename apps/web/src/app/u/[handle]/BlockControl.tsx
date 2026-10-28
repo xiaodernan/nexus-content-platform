@@ -100,7 +100,7 @@ export function BlockControl({ handle, initial }: { handle: string; initial: Kin
       </div>
       {kind ? <p className="max-w-[22rem] text-right text-11 text-fg-3" data-block-note>{COPY[kind].note}</p> : null}
       {notice ? (
-        <p className="text-11 text-danger" data-block-notice>
+        <p className="text-11 text-danger-ink" data-block-notice>
           {notice}
         </p>
       ) : null}

@@ -77,7 +77,7 @@ export function NewProjectForm() {
       >
         {busy ? '创建中…' : '新建项目'}
       </button>
-      {error ? <p className="w-full text-12 text-danger">{error}</p> : null}
+      {error ? <p className="w-full text-12 text-danger-ink">{error}</p> : null}
     </form>
   );
 }

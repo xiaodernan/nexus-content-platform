@@ -222,7 +222,7 @@ export function CodePanel() {
             </p>
           )}
           {report.unmapped.length > 0 && (
-            <ul className="text-warn" data-code-report-unmapped>
+            <ul className="text-warn-ink" data-code-report-unmapped>
               {report.unmapped.map((entry) => (
                 <li key={`${entry.nodeName}:${entry.line}`}>
                   第 {entry.line} 行 {entry.nodeName}：{entry.reasons.join('；')} ——
@@ -232,7 +232,7 @@ export function CodePanel() {
             </ul>
           )}
           {report.issues.length > 0 && (
-            <ul className="text-warn" data-code-report-issues>
+            <ul className="text-warn-ink" data-code-report-issues>
               {report.issues.map((issue) => (
                 <li key={issue}>{issue}</li>
               ))}

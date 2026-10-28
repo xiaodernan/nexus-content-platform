@@ -173,7 +173,7 @@ export function StudioShell({
       {readOnly ? (
         <p
           data-studio-read-only
-          className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] bg-bg-2 px-[var(--nexus-space-3)] py-1 text-11 text-warn"
+          className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] bg-bg-2 px-[var(--nexus-space-3)] py-1 text-11 text-warn-ink"
         >
           你是这个项目的查看者（viewer）：文档可以看，编辑不会落到文档上——服务端会拒绝写请求（403）。
           要改内容，让所有者把角色改成可编辑。

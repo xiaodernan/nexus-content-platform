@@ -80,7 +80,7 @@ function VisualBenchmarkResult({ r }: { r: VisualBenchmarkResponse }) {
         像素亮度平均差 {m.pixel.meanAbsLuminanceDiff.toFixed(3)}（原始读数，不是分数）
       </p>
       {r.shapeMismatch ? (
-        <p className="text-warn" data-vbench-shape-mismatch>
+        <p className="text-warn-ink" data-vbench-shape-mismatch>
           两图宽高比差超过 5%，下面的分数要在这个前提下读。
         </p>
       ) : null}
@@ -218,7 +218,7 @@ export function AssetsPanel() {
       </details>
 
       {state.assetError ? (
-        <p className="shrink-0 bg-warn/15 px-[var(--nexus-space-3)] py-2 text-12 text-warn" data-asset-error>
+        <p className="shrink-0 bg-warn/15 px-[var(--nexus-space-3)] py-2 text-12 text-warn-ink" data-asset-error>
           {state.assetError}
         </p>
       ) : null}

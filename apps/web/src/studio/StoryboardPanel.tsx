@@ -565,7 +565,7 @@ export function StoryboardPanel() {
               : '这个项目还没有分镜。写一句话，下面按标点把它切成镜头表——这是本地确定性断句，不是 AI 分镜（provider 未接入前不做假生成）。'}
         </p>
         {snapshot.error ? (
-          <p className="text-11 text-danger" data-storyboard-error>
+          <p className="text-11 text-danger-ink" data-storyboard-error>
             {snapshot.error}
           </p>
         ) : null}
@@ -695,7 +695,7 @@ export function StoryboardPanel() {
           </button>
         </div>
         {snapshot.error ? (
-          <p className="mt-1 text-11 text-danger" data-storyboard-error>
+          <p className="mt-1 text-11 text-danger-ink" data-storyboard-error>
             {snapshot.error}
           </p>
         ) : null}
@@ -710,7 +710,7 @@ export function StoryboardPanel() {
           </p>
         ) : null}
         {imageError ? (
-          <p className="mt-1 text-11 text-danger" data-storyboard-image-error>
+          <p className="mt-1 text-11 text-danger-ink" data-storyboard-image-error>
             参考图没生成：{imageError}
           </p>
         ) : null}
@@ -960,7 +960,7 @@ export function StoryboardPanel() {
             </p>
           ) : null}
           {renderError ? (
-            <p className="mt-2 text-11 text-danger" data-storyboard-render-error>
+            <p className="mt-2 text-11 text-danger-ink" data-storyboard-render-error>
               {renderError}
             </p>
           ) : null}
@@ -981,7 +981,7 @@ export function StoryboardPanel() {
               {renderNote.warnings.length ? (
                 <ul className="flex flex-col gap-1" data-storyboard-render-warnings>
                   {renderNote.warnings.map((w) => (
-                    <li key={w} className="text-11 text-warn">
+                    <li key={w} className="text-11 text-warn-ink">
                       {w}
                     </li>
                   ))}

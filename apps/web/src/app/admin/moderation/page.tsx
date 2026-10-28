@@ -105,7 +105,7 @@ export default async function AdminModerationPage() {
               {entry.decision === 'blocked' ? '机检挡下了这次发布' : '机检挂起，页面已发出'}
             </span>
             {entry.reportCount > 0 ? (
-              <span className="text-11 text-danger" data-case-reports={String(entry.reportCount)}>
+              <span className="text-11 text-danger-ink" data-case-reports={String(entry.reportCount)}>
                 另有 {entry.reportCount} 条举报
               </span>
             ) : null}

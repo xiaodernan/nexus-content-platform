@@ -37,6 +37,10 @@
   --nexus-color-warn: #f5a623;
   --nexus-color-info: #3b82f6;
   --nexus-color-success: #22c55e;
+  /* 语义色当文字时同样要跟着主题翻：danger 在暗色底上 4.64（过），浅色底上只有 2.95；
+     warn 在浅色底上只有 1.93。深色值分别对 bg-0..bg-3 最低 5.31 / 5.76。 */
+  --nexus-color-danger-ink: #f2555a;
+  --nexus-color-warn-ink: #f5a623;
 
   /* 描边 */
   --nexus-color-border-subtle: #262b3a;
@@ -110,6 +114,8 @@
   --nexus-color-fg-2: #4a5265;
   --nexus-color-fg-3: #5b6478;
   --nexus-color-accent-2-ink: #0f6b7a;
+  --nexus-color-danger-ink: #b42318;
+  --nexus-color-warn-ink: #7a4f00;
   --nexus-color-border-subtle: #dfe3ec;
   --nexus-color-border-strong: #c3c9d6;
 }

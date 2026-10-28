@@ -498,7 +498,7 @@ export function CommandBar() {
         <ActivityFeed plan={result.plans[0]} activities={result.activities} />
       ) : null}
       {error ? (
-        <p className="mb-1 text-12 text-danger" data-ai-error>
+        <p className="mb-1 text-12 text-danger-ink" data-ai-error>
           {error}
         </p>
       ) : null}

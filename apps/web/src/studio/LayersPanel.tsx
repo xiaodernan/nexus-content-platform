@@ -288,7 +288,7 @@ function LayerRow(props: {
             e.stopPropagation();
             studio.setVisible(node.id, !node.visible);
           }}
-          className={cn('shrink-0 px-1', node.visible ? 'text-fg-3' : 'text-danger')}
+          className={cn('shrink-0 px-1', node.visible ? 'text-fg-3' : 'text-danger-ink')}
         >
           {node.visible ? '◉' : '◌'}
         </button>
@@ -299,7 +299,7 @@ function LayerRow(props: {
             e.stopPropagation();
             studio.setLocked(node.id, !node.locked);
           }}
-          className={cn('shrink-0 px-1', node.locked ? 'text-warn' : 'text-fg-3')}
+          className={cn('shrink-0 px-1', node.locked ? 'text-warn-ink' : 'text-fg-3')}
         >
           {node.locked ? '⊘' : '○'}
         </button>

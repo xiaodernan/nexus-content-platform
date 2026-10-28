@@ -324,7 +324,7 @@ export function WorldGraphView() {
                 type="button"
                 onClick={removePickedPlateau}
                 data-world-terrain-remove-selected
-                className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-danger"
+                className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-danger-ink"
               >
                 删除这个圆台
               </button>
@@ -367,7 +367,7 @@ export function WorldGraphView() {
             type="button"
             onClick={removeEdge}
             data-graph-remove-edge
-            className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-danger"
+            className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-danger-ink"
           >
             删除这条关系
           </button>
@@ -375,7 +375,7 @@ export function WorldGraphView() {
         <span
           className={cn(
             'ml-auto font-mono text-11',
-            snapshot.saveState === 'error' ? 'text-danger' : 'text-fg-3',
+            snapshot.saveState === 'error' ? 'text-danger-ink' : 'text-fg-3',
           )}
           data-graph-state
         >
@@ -393,7 +393,7 @@ export function WorldGraphView() {
         <span data-graph-pending={snapshot.saveState === 'saving' || snapshot.saveState === 'dirty' ? 'true' : 'false'} />
       </div>
       {snapshot.notice ? (
-        <p className="px-3 py-2 text-11 text-warn" data-graph-notice>
+        <p className="px-3 py-2 text-11 text-warn-ink" data-graph-notice>
           {snapshot.notice}
           <button
             type="button"
@@ -406,7 +406,7 @@ export function WorldGraphView() {
         </p>
       ) : null}
       {snapshot.error ? (
-        <p className="px-3 py-2 text-11 text-danger" data-graph-error>
+        <p className="px-3 py-2 text-11 text-danger-ink" data-graph-error>
           {snapshot.error}
         </p>
       ) : null}

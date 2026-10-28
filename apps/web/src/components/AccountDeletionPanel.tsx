@@ -152,7 +152,7 @@ export function AccountDeletionPanel() {
       <p className="text-11 text-fg-2">注销之后：这个人的登录入口关闭、所有会话与 API 凭据作废、私有草稿收进回收站；已发布的作品继续在公网可达，只是作者名换成「已注销的用户」。</p>
       {loading ? <p className="text-11 text-fg-3" data-account-delete-loading>正在核对你名下的东西…</p> : null}
       {loadError ? (
-        <p className="text-11 text-danger" data-account-delete-load-error>
+        <p className="text-11 text-danger-ink" data-account-delete-load-error>
           没能读到清单：{loadError}
         </p>
       ) : null}

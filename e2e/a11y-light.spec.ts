@@ -204,3 +204,43 @@ test('§85 浅色主题在真浏览器里的 axe（游客可见的五张页）',
   }
   expect(failures, `结构不变式红在：\n${failures.join('\n')}`).toEqual([]);
 });
+
+/**
+ * accent-2 与 danger 的 token 门算的是字面值；这一条把 **danger-ink 真的落到错误文案上** 量出来。
+ *
+ * 载体挑"登录失败"：它是游客就能触发的真实错误路径，不需要注册名额，也不依赖 Studio。
+ * 断言三件事：错误真的出现、计算色等于浅色 token、对它的有效底色过 AA。
+ * warn-ink 没有同样轻的游客入口（它出现在 Studio/凭据状态里），由 `style-tokens.test.ts` 的
+ * 字面值门与 Tailwind 映射门兜着——这里不假装量过。
+ */
+test('§90 浅色下登录错误的 danger-ink 真的过 AA（浏览器量）', async ({ page }) => {
+  const { waitForAuthFormHydrated } = await import('./support/auth-session');
+  await page.goto('/');
+  await waitForAuthFormHydrated(page);
+  await page.click('[data-auth-tab="login"]');
+  await toLight(page);
+  await page.fill('[data-auth-email]', `nobody-${Date.now()}@nexus.test`);
+  await page.fill('[data-auth-password]', 'definitely-wrong-123');
+  await page.click('[data-auth-submit]');
+  const error = page.locator('[data-auth-error]');
+  await expect(error).toBeVisible({ timeout: 30_000 });
+
+  const measured = await page.evaluate(() => {
+    const el = document.querySelector('[data-auth-error]');
+    if (!el) throw new Error('data-auth-error 不在 DOM 里');
+    const background = (node: Element): string => {
+      for (let cur: Element | null = node; cur; cur = cur.parentElement) {
+        const c = getComputedStyle(cur).backgroundColor;
+        if (c && c !== 'transparent' && !/rgba\([^)]*,\s*0\s*\)/.test(c)) return c;
+      }
+      return getComputedStyle(document.body).backgroundColor;
+    };
+    return { text: (el.textContent ?? '').trim(), fg: getComputedStyle(el).color, bg: background(el) };
+  });
+
+  const ratio = contrast(measured.fg, measured.bg);
+  console.log(`\n  【登录错误（浅色）】「${measured.text}」 ${measured.fg} 压 ${measured.bg} = ${ratio.toFixed(2)}:1`);
+  expect(measured.text.length, '错误文案是空的——这条就没有量到东西').toBeGreaterThan(0);
+  expect(measured.fg, '错误文案没有吃到浅色的 danger-ink').toBe(rgbFrom("[data-nexus-theme='light']", 'danger-ink'));
+  expect(ratio, `danger-ink 压 ${measured.bg} 只有 ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
+});

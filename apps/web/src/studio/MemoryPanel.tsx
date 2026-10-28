@@ -255,7 +255,7 @@ export function MemoryPanel() {
           </p>
         ) : null}
         {message ? (
-          <p className="mt-2 text-11 text-danger" data-memory-error>
+          <p className="mt-2 text-11 text-danger-ink" data-memory-error>
             {message}
           </p>
         ) : null}
@@ -325,7 +325,7 @@ export function MemoryPanel() {
             记下
           </button>
           {needsSubject && !effectiveSubject ? (
-            <p className="mt-1 text-11 text-warn" data-memory-need-subject>
+            <p className="mt-1 text-11 text-warn-ink" data-memory-need-subject>
               {scope === 'world' ? '先建世界，再记世界类的记忆。' : '先选一个角色。'}
             </p>
           ) : null}
@@ -346,7 +346,7 @@ export function MemoryPanel() {
                     disabled={busy}
                     onClick={() => void clearScope(group.scope)}
                     data-memory-clear={group.scope}
-                    className="ml-auto text-11 text-fg-3 underline hover:text-danger disabled:opacity-50"
+                    className="ml-auto text-11 text-fg-3 underline hover:text-danger-ink disabled:opacity-50"
                   >
                     清空这一类
                   </button>
@@ -368,7 +368,7 @@ export function MemoryPanel() {
                       onClick={() => void remove(entry.id)}
                       aria-label="删除这条记忆"
                       data-memory-remove={entry.id}
-                      className={cn('shrink-0 px-1 text-12 text-fg-3 hover:text-danger', !entry.embedded && 'opacity-90')}
+                      className={cn('shrink-0 px-1 text-12 text-fg-3 hover:text-danger-ink', !entry.embedded && 'opacity-90')}
                     >
                       ×
                     </button>

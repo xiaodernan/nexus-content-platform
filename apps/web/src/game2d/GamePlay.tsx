@@ -439,7 +439,7 @@ export function GamePlay({
   if (!plan.playable) {
     return (
       <div className="flex flex-col gap-2" data-game-blocked>
-        <p className="text-13 text-danger">这一份设计跑不起来：</p>
+        <p className="text-13 text-danger-ink">这一份设计跑不起来：</p>
         <ul className="flex flex-col gap-1">
           {plan.blockers.map((line) => (
             <li key={line} className="text-12 text-fg-2" data-game-blocker>

@@ -188,7 +188,7 @@ export function TeamPanel() {
       </section>
 
       {error ? (
-        <p className="text-11 text-danger" data-team-error>
+        <p className="text-11 text-danger-ink" data-team-error>
           {error}
         </p>
       ) : null}
@@ -240,7 +240,7 @@ export function TeamPanel() {
                       })
                     }
                     data-team-remove={m.userId}
-                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-[1px] text-11 text-danger disabled:opacity-40"
+                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-[1px] text-11 text-danger-ink disabled:opacity-40"
                   >
                     移除
                   </button>
@@ -279,7 +279,7 @@ export function TeamPanel() {
                       void act(`/api/projects/${state.projectId}/invites/${i.id}/revoke`, `已撤回给 ${i.email} 的邀请`)
                     }
                     data-team-revoke={i.id}
-                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-[1px] text-11 text-warn disabled:opacity-40"
+                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-[1px] text-11 text-warn-ink disabled:opacity-40"
                   >
                     撤回
                   </button>

@@ -93,7 +93,7 @@ export function WorldPanel() {
                 )}
         </p>
         {snapshot.error ? (
-          <p className="text-11 text-danger" data-world-error>
+          <p className="text-11 text-danger-ink" data-world-error>
             {snapshot.error}
           </p>
         ) : null}
@@ -125,7 +125,7 @@ export function WorldPanel() {
           <span
             className={cn(
               'ml-auto font-mono text-11',
-              snapshot.saveState === 'error' ? 'text-danger' : 'text-fg-3',
+              snapshot.saveState === 'error' ? 'text-danger-ink' : 'text-fg-3',
             )}
             data-world-state
           >
@@ -152,7 +152,7 @@ export function WorldPanel() {
           className="mt-2 w-full resize-y rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3"
         />
         {snapshot.error ? (
-          <p className="mt-2 text-11 text-danger" data-world-error>
+          <p className="mt-2 text-11 text-danger-ink" data-world-error>
             {snapshot.error}
           </p>
         ) : null}
@@ -193,7 +193,7 @@ export function WorldPanel() {
                         onClick={() => edit(removeWorldNode(world, node.id), true)}
                         aria-label={`删除 ${node.title}`}
                         data-world-remove={node.id}
-                        className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger"
+                        className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger-ink"
                       >
                         ×
                       </button>
@@ -370,7 +370,7 @@ function TerrainSection({
               onClick={() => apply(plateaus.filter((p) => p.id !== plateau.id))}
               aria-label={`删除圆台 ${plateau.id}`}
               data-world-plateau-remove={plateau.id}
-              className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger"
+              className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger-ink"
             >
               ×
             </button>
@@ -459,7 +459,7 @@ function TerrainSection({
             type="button"
             onClick={() => apply(null)}
             data-world-terrain-clear
-            className="shrink-0 px-2 py-1 text-11 text-fg-3 hover:text-danger"
+            className="shrink-0 px-2 py-1 text-11 text-fg-3 hover:text-danger-ink"
           >
             收掉地形
           </button>

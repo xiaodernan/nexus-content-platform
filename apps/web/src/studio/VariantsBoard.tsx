@@ -205,13 +205,13 @@ export function VariantsBoard() {
       </div>
 
       {state.snapshotError ? (
-        <p className="mb-2 text-12 text-danger" data-variant-error>
+        <p className="mb-2 text-12 text-danger-ink" data-variant-error>
           {state.snapshotError}
         </p>
       ) : null}
 
       {state.variantNotes.length ? (
-        <ul className="mb-2 flex flex-col gap-1 text-11 text-warn" data-variant-notes>
+        <ul className="mb-2 flex flex-col gap-1 text-11 text-warn-ink" data-variant-notes>
           {state.variantNotes.map((note) => (
             <li key={note}>· {note}</li>
           ))}

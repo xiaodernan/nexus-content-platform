@@ -169,7 +169,7 @@ export function AccountPanel({ user }: { user: Identity }) {
               {busy ? '处理中…' : mode === 'register' ? '注册并认领项目' : '登录'}
             </button>
           </div>
-          {error ? <p className="text-12 text-danger" data-auth-error>{error}</p> : null}
+          {error ? <p className="text-12 text-danger-ink" data-auth-error>{error}</p> : null}
         </form>
       ) : null}
     </section>

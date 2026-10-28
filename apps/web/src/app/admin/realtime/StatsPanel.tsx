@@ -71,7 +71,7 @@ export function RealtimeStatsPanel() {
 
   if (error) {
     return (
-      <p className="text-13 text-danger" data-realtime-stats="error" data-realtime-error>
+      <p className="text-13 text-danger-ink" data-realtime-stats="error" data-realtime-error>
         {error}
       </p>
     );

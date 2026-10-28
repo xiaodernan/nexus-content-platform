@@ -38,15 +38,15 @@ const STATUS_TONE: Record<string, string> = {
   pending: 'text-fg-3',
   running: 'text-accent-2-ink',
   done: 'text-fg-2',
-  failed: 'text-danger',
-  skipped: 'text-warn',
+  failed: 'text-danger-ink',
+  skipped: 'text-warn-ink',
 };
 
 const REAL_TIME_TONE: Record<string, string> = {
   idle: 'text-fg-3',
-  connecting: 'text-warn',
+  connecting: 'text-warn-ink',
   open: 'text-fg-3',
-  closed: 'text-danger',
+  closed: 'text-danger-ink',
 };
 
 function messageOf(body: unknown): string | null {
@@ -234,7 +234,7 @@ export function AgentPanel() {
           这一轮不改设计、不发布、不生成像素。
         </p>
         {run?.capability === 'demo' ? (
-          <p className="mt-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-warn" data-agent-planner="demo">
+          <p className="mt-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-warn-ink" data-agent-planner="demo">
             计划由确定性配方生成（DEMO 规划），不是模型规划的；每一步的读数是真的。
           </p>
         ) : null}
@@ -282,12 +282,12 @@ export function AgentPanel() {
         </label>
 
         {note ? (
-          <p className="mt-2 rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger" data-agent-note>
+          <p className="mt-2 rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger-ink" data-agent-note>
             {note}
           </p>
         ) : null}
         {readError ? (
-          <p className="mt-2 rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger" data-agent-read-error>
+          <p className="mt-2 rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger-ink" data-agent-read-error>
             {readError}
           </p>
         ) : null}
@@ -304,7 +304,7 @@ export function AgentPanel() {
           <div className="mt-3 flex flex-col gap-2" data-agent-plan>
             <div className="flex flex-wrap items-baseline gap-x-2 text-11">
               <span
-                className={cn('font-mono', run.status === 'failed' ? 'text-danger' : run.status === 'succeeded' ? 'text-fg-2' : 'text-warn')}
+                className={cn('font-mono', run.status === 'failed' ? 'text-danger-ink' : run.status === 'succeeded' ? 'text-fg-2' : 'text-warn-ink')}
                 data-agent-status={run.status}
               >
                 {run.status === 'succeeded' ? '完成' : run.status === 'failed' ? '失败' : '进行中'}
@@ -321,7 +321,7 @@ export function AgentPanel() {
               </span>
             </div>
             {run.error ? (
-              <p className="rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger" data-agent-error>
+              <p className="rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger-ink" data-agent-error>
                 {run.error}
               </p>
             ) : null}
@@ -399,7 +399,7 @@ function StepRow({
           </div>
           {acceptNote ? (
             <p
-              className={cn('text-11', acceptNote.ok ? 'text-fg-2' : 'text-danger')}
+              className={cn('text-11', acceptNote.ok ? 'text-fg-2' : 'text-danger-ink')}
               data-agent-accept-note={acceptNote.ok ? 'ok' : 'refused'}
             >
               {acceptNote.text}
@@ -422,7 +422,7 @@ function StepRow({
           {step.handedOff?.length ? (
             <p className="text-11 text-fg-3">上游交接：{step.handedOff.map((item) => `${item.from}${item.artifact ? `(${item.artifact})` : ''}`).join('、')}</p>
           ) : null}
-          {step.because?.length ? <p className="text-11 text-warn">被牵连：{step.because.join('、')}</p> : null}
+          {step.because?.length ? <p className="text-11 text-warn-ink">被牵连：{step.because.join('、')}</p> : null}
         </div>
       ) : null}
     </li>

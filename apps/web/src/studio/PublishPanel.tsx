@@ -149,7 +149,7 @@ export function PublishPanel() {
           ) : null}
 
           {state.publishError ? (
-            <p className="mb-2 text-11 text-danger" data-publish-error>
+            <p className="mb-2 text-11 text-danger-ink" data-publish-error>
               {state.publishError}
             </p>
           ) : null}

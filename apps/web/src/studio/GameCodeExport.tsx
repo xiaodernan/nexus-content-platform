@@ -172,7 +172,7 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
       ) : null}
 
       {error ? (
-        <p className="mt-2 text-11 leading-relaxed text-danger" data-game-code-error>
+        <p className="mt-2 text-11 leading-relaxed text-danger-ink" data-game-code-error>
           {error}
         </p>
       ) : null}

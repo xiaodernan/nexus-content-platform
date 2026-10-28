@@ -44,7 +44,7 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
     return (
       <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-game-runtime="broken">
         <h1 className="text-[var(--nexus-font-size-21)] font-semibold">库里的游戏设计读不出来</h1>
-        <p className="text-13 text-danger" data-game-error>
+        <p className="text-13 text-danger-ink" data-game-error>
           {game.reason}
         </p>
         <p className="text-11 text-fg-3">

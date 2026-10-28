@@ -299,7 +299,7 @@ export function DesignSystemPanel() {
             className="mt-1 w-full rounded-[var(--nexus-radius-sm)] bg-bg-1 px-2 py-1 font-mono text-11 text-fg-1 outline-none"
           />
           {formError ? (
-            <p className="mt-1 text-11 text-danger" data-token-form-error>
+            <p className="mt-1 text-11 text-danger-ink" data-token-form-error>
               {formError}
             </p>
           ) : null}
@@ -372,7 +372,7 @@ export function DesignSystemPanel() {
                           data-token-remove={token.key}
                           className={cn(
                             'shrink-0 rounded-[var(--nexus-radius-sm)] px-1 text-11',
-                            removable ? 'text-fg-3 hover:bg-bg-2 hover:text-danger' : 'cursor-not-allowed opacity-30',
+                            removable ? 'text-fg-3 hover:bg-bg-2 hover:text-danger-ink' : 'cursor-not-allowed opacity-30',
                           )}
                         >
                           ×

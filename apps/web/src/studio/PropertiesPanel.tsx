@@ -241,7 +241,7 @@ export function PropertiesPanel() {
           ) : null}
         </div>
         <div className="mt-[var(--nexus-space-2)] flex gap-[var(--nexus-space-2)]">
-          <button type="button" onClick={() => studio.deleteSelection()} className="flex-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-12 text-danger">
+          <button type="button" onClick={() => studio.deleteSelection()} className="flex-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-12 text-danger-ink">
             删除
           </button>
           <AlignMenu onAlign={(edge) => studio.alignSelection(edge)} disabled={nodes.length < 2} />
@@ -388,7 +388,7 @@ function StateEditor({
         <span data-state-fill-bind={active}>
           <TokenBindButton active={isTokenRef(fillColor)} tokens={colorTokens} onPick={(key) => setFills(makeTokenRef(key))} />
         </span>
-        <button type="button" onClick={() => write(`states.${active}.fills`, [])} className="px-1 text-12 text-fg-3 hover:text-danger" title="清除该通道（生成器发射重置类）" data-state-fill-clear={active}>
+        <button type="button" onClick={() => write(`states.${active}.fills`, [])} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="清除该通道（生成器发射重置类）" data-state-fill-clear={active}>
           ×
         </button>
       </div>
@@ -416,7 +416,7 @@ function StateEditor({
           className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
           data-state-stroke-color={active}
         />
-        <button type="button" onClick={() => write(`states.${active}.strokes`, [])} className="px-1 text-12 text-fg-3 hover:text-danger" title="清除描边通道" data-state-stroke-clear={active}>
+        <button type="button" onClick={() => write(`states.${active}.strokes`, [])} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="清除描边通道" data-state-stroke-clear={active}>
           ×
         </button>
       </div>
@@ -456,7 +456,7 @@ function StateEditor({
           className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
           data-state-shadow-color={active}
         />
-        <button type="button" onClick={() => write(`states.${active}.effects`, [])} className="px-1 text-12 text-fg-3 hover:text-danger" title="清除效果通道" data-state-effects-clear={active}>
+        <button type="button" onClick={() => write(`states.${active}.effects`, [])} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="清除效果通道" data-state-effects-clear={active}>
           ×
         </button>
       </div>
@@ -477,7 +477,7 @@ function StateEditor({
           className="w-20 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
           data-state-opacity={active}
         />
-        <button type="button" onClick={clearOpacity} className="px-1 text-12 text-fg-3 hover:text-danger" title="清除透明度覆盖" data-state-opacity-clear={active}>
+        <button type="button" onClick={clearOpacity} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="清除透明度覆盖" data-state-opacity-clear={active}>
           ×
         </button>
       </div>
@@ -485,7 +485,7 @@ function StateEditor({
       <button
         type="button"
         onClick={dropState}
-        className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-12 text-danger"
+        className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-12 text-danger-ink"
         data-state-drop={active}
       >
         删除{STATE_LABELS[active]}状态补丁
@@ -770,7 +770,7 @@ function FillList(props: {
                   </option>
                 ))}
               </select>
-              <button type="button" onClick={() => removeAt(index)} className="px-1 text-12 text-fg-3 hover:text-danger" title="移除该填充层">
+              <button type="button" onClick={() => removeAt(index)} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="移除该填充层">
                 ×
               </button>
             </div>
@@ -808,7 +808,7 @@ function FillList(props: {
           <button
             type="button"
             onClick={() => removeAt(index)}
-            className="px-1 text-12 text-fg-3 hover:text-danger"
+            className="px-1 text-12 text-fg-3 hover:text-danger-ink"
             title="移除该填充层"
           >
             ×
@@ -832,7 +832,7 @@ function FillList(props: {
         <ImageUploadButton nodeId={nodes[0]!.id} label="+ 图片" />
       </div>
       {assetError ? (
-        <p className="rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger" data-asset-error>
+        <p className="rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger-ink" data-asset-error>
           {assetError}
         </p>
       ) : null}

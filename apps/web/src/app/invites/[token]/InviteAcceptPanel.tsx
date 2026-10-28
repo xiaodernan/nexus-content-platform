@@ -60,7 +60,7 @@ export function InviteAcceptPanel({ token }: { token: string }) {
         {busy ? '处理中…' : '接受邀请，加入这个项目'}
       </button>
       {error ? (
-        <p className="text-12 text-danger" data-invite-error>
+        <p className="text-12 text-danger-ink" data-invite-error>
           {error}
         </p>
       ) : null}

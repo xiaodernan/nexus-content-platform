@@ -349,7 +349,7 @@ export function ApiTokensPanel() {
       ) : null}
 
       {error ? (
-        <p className="text-12 text-danger" data-token-error>
+        <p className="text-12 text-danger-ink" data-token-error>
           {error}
         </p>
       ) : null}
@@ -360,7 +360,7 @@ export function ApiTokensPanel() {
       ) : null}
 
       {listError ? (
-        <p className="text-12 text-warn" data-token-list-failed>
+        <p className="text-12 text-warn-ink" data-token-list-failed>
           凭据列表读不到：{listError}（这不等于你名下没有凭据）
           <button type="button" className="ml-2 underline" onClick={() => void load()} data-token-retry>
             再读一次
@@ -420,7 +420,7 @@ export function ApiTokensPanel() {
                     })()}
                   </td>
                   <td
-                    className={`py-1 pr-3 text-11 ${status.tone === 'bad' ? 'text-danger' : status.tone === 'warn' ? 'text-warn' : 'text-fg-2'}`}
+                    className={`py-1 pr-3 text-11 ${status.tone === 'bad' ? 'text-danger-ink' : status.tone === 'warn' ? 'text-warn-ink' : 'text-fg-2'}`}
                     data-token-status={record.revokedAt ? 'revoked' : 'active'}
                   >
                     {status.text}

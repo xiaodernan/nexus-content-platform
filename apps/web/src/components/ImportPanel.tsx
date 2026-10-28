@@ -129,7 +129,7 @@ export function ImportPanel() {
             {done.exportedAt ? ` · 源包导出于 ${done.exportedAt}` : ''}
           </p>
           {done.assetFailures.length ? (
-            <ul className="mt-1 text-11 text-warn" data-import-asset-failures>
+            <ul className="mt-1 text-11 text-warn-ink" data-import-asset-failures>
               <li>有 {done.assetFailures.length} 张资产没能进库，项目已经在了，但下面这几张图会断着：</li>
               {done.assetFailures.map((f) => (
                 <li key={`${f.path}-${f.reason}`} className="font-mono text-11">
@@ -146,7 +146,7 @@ export function ImportPanel() {
             </ul>
           ) : null}
           {done.characterNotes.length ? (
-            <ul className="mt-1 text-11 text-warn" data-import-character-notes>
+            <ul className="mt-1 text-11 text-warn-ink" data-import-character-notes>
               {done.characterNotes.map((note, index) => (
                 <li key={`${index}-${note}`}>· {note}</li>
               ))}
@@ -157,7 +157,7 @@ export function ImportPanel() {
 
       {refused ? (
         <div className="mt-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-import-refused>
-          <p className="text-11 text-danger" data-import-refusal-reason>
+          <p className="text-11 text-danger-ink" data-import-refusal-reason>
             没收这份包（HTTP {refused.status}）：{refused.reason}
           </p>
           {refused.issues.length ? (

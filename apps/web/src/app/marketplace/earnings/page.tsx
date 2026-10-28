@@ -48,7 +48,7 @@ export default function EarningsPage() {
   }
 
   if (error) {
-    return <div className="p-6 text-13 text-danger">{error}</div>;
+    return <div className="p-6 text-13 text-danger-ink">{error}</div>;
   }
 
   if (!summary) {

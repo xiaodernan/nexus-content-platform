@@ -88,7 +88,7 @@ export function TriageButtons({ reportId }: { reportId: string }) {
           驳回（举报不成立）
         </button>
         {error ? (
-          <span className="text-11 text-danger" data-triage-error>
+          <span className="text-11 text-danger-ink" data-triage-error>
             {error}
           </span>
         ) : null}

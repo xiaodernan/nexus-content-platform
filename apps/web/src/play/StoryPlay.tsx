@@ -56,7 +56,7 @@ export function StoryPlay({ plan, onComplete }: { plan: StoryPlan; onComplete?: 
         <h2 className="text-13 font-semibold">这一段开不了场</h2>
         <ul className="mt-2 flex flex-col gap-1">
           {plan.blockers.map((blocker) => (
-            <li key={blocker} className="text-12 text-danger" data-story-blocker>
+            <li key={blocker} className="text-12 text-danger-ink" data-story-blocker>
               {blocker}
             </li>
           ))}

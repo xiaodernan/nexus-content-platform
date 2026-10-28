@@ -91,7 +91,7 @@ export function PlanSelect({
       </button>
       {self ? <span className="text-11 text-fg-3">（你自己）</span> : null}
       {notice ? (
-        <span className="text-11 text-danger" data-plan-notice>
+        <span className="text-11 text-danger-ink" data-plan-notice>
           {notice}
         </span>
       ) : null}

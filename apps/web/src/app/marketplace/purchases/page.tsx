@@ -104,7 +104,7 @@ export default function PurchasesPage() {
       </header>
 
       {error ? (
-        <p className="text-danger" data-purchases-error>
+        <p className="text-danger-ink" data-purchases-error>
           {error}
         </p>
       ) : rows === null ? (

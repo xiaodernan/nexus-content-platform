@@ -74,7 +74,7 @@ export function RoleButton({
         {role === 'admin' ? '降为普通' : '提为审核员'}
       </button>
       {notice ? (
-        <span className="text-11 text-danger" data-role-notice>
+        <span className="text-11 text-danger-ink" data-role-notice>
           {notice}
         </span>
       ) : null}

@@ -103,7 +103,7 @@ export function AnnotationsPanel() {
             </p>
           )}
           {error ? (
-            <p className="text-11 text-danger" data-annotation-error>
+            <p className="text-11 text-danger-ink" data-annotation-error>
               {error}
             </p>
           ) : null}
@@ -146,7 +146,7 @@ export function AnnotationsPanel() {
                   <button
                     type="button"
                     onClick={() => void studio.removeAnnotation(a.id)}
-                    className="text-fg-3 hover:text-danger"
+                    className="text-fg-3 hover:text-danger-ink"
                     data-annotation-remove={a.id}
                   >
                     删除

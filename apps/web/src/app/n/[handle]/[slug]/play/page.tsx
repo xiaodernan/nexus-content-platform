@@ -50,7 +50,7 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
         <h1 className="text-[var(--nexus-font-size-21)] font-semibold">这一版钉住的游戏读不出来</h1>
         <ul className="flex flex-col gap-1">
           {parsed.error.issues.slice(0, 5).map((issue) => (
-            <li key={`${issue.path.join('.')}-${issue.message}`} className="text-12 text-danger" data-play-issue>
+            <li key={`${issue.path.join('.')}-${issue.message}`} className="text-12 text-danger-ink" data-play-issue>
               {issue.path.join('.') || 'document'}：{issue.message}
             </li>
           ))}

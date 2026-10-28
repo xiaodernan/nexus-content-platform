@@ -41,7 +41,7 @@ function EntryRow({ entry }: { entry: LedgerEntry }): ReactElement {
     <tr data-credit-entry={entry.reason} data-credit-kind={entry.kind} data-credit-delta={entry.delta}>
       <td className="py-1 pr-3 text-11 text-fg-3">{stamp(entry.createdAt)}</td>
       <td className="py-1 pr-3 text-12 text-fg-2">{CREDIT_KIND_LABELS[entry.kind]}</td>
-      <td className={`py-1 pr-3 text-12 font-medium ${entry.delta < 0 ? 'text-danger' : 'text-accent-2-ink'}`}>
+      <td className={`py-1 pr-3 text-12 font-medium ${entry.delta < 0 ? 'text-danger-ink' : 'text-accent-2-ink'}`}>
         {entry.delta > 0 ? `+${entry.delta}` : entry.delta}
       </td>
       <td className="py-1 pr-3 text-12 text-fg-1">{entry.reason}</td>
@@ -175,7 +175,7 @@ export default async function CreditsPage(): Promise<ReactElement> {
             ))}
           </tbody>
         </table>
-        <p className="text-12 text-warn" data-credits-enforced>
+        <p className="text-12 text-warn-ink" data-credits-enforced>
           §133 点名的五件事今天全都有真的拦截方（{ENFORCED_PLAN_AXES.join('、')}）：额度为 0 时生成会被挡下
           （AI 任务与成片渲染各有一道门），存储写满时新的素材会被拒绝（库里已有的不会被自动删掉），
           公开发布数达到档位上限时新的发布会被挡下（换版本不占名额，收回发布即释放），

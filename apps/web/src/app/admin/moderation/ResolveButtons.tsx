@@ -75,7 +75,7 @@ export function ResolveButtons({ caseId }: { caseId: string }) {
         拒绝并撤下
       </button>
       {error ? (
-        <span className="text-11 text-danger" data-resolve-error>
+        <span className="text-11 text-danger-ink" data-resolve-error>
           {error}
         </span>
       ) : null}

@@ -43,7 +43,7 @@ export function FollowButton({ handle, initialFollowing, initialFollowers }: { h
         {following ? '已关注' : '关注'} · {followers}
       </button>
       {error ? (
-        <span className="text-11 text-danger" data-follow-error>
+        <span className="text-11 text-danger-ink" data-follow-error>
           {error}
         </span>
       ) : null}

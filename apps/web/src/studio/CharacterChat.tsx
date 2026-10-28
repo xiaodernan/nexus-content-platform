@@ -76,7 +76,7 @@ export function CharacterChat({
         </ul>
       ) : null}
       {error ? (
-        <p className="mb-1 text-11 text-warn" data-character-chat-error>
+        <p className="mb-1 text-11 text-warn-ink" data-character-chat-error>
           {error}
         </p>
       ) : null}

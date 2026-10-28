@@ -65,7 +65,7 @@ function Row({ item }: { item: InboxItem }): ReactElement {
           打开
         </Link>
       ) : (
-        <span className="text-11 text-warn" data-notification-unavailable={item.unavailable ?? '未知'}>
+        <span className="text-11 text-warn-ink" data-notification-unavailable={item.unavailable ?? '未知'}>
           {item.unavailable ?? '没有可跳转的页面'}
         </span>
       )}

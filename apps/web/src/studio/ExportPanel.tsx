@@ -162,7 +162,7 @@ export function ExportPanel() {
                 </p>
               )}
               {receipt.missing ? (
-                <p className="mt-1 text-11 text-warn" data-export-missing>
+                <p className="mt-1 text-11 text-warn-ink" data-export-missing>
                   有 {receipt.missing} 个资产在存储里取不回来了，它们没进包，包里的 README.txt 写了名字。
                 </p>
               ) : null}
@@ -170,7 +170,7 @@ export function ExportPanel() {
           ) : null}
 
           {error ? (
-            <p className="mb-2 text-11 text-danger" data-export-error>
+            <p className="mb-2 text-11 text-danger-ink" data-export-error>
               {error}
             </p>
           ) : null}

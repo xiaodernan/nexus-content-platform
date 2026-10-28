@@ -199,7 +199,7 @@ function SnapshotSection() {
         </button>
       </div>
       {state.snapshotError ? (
-        <p className="shrink-0 px-[var(--nexus-space-3)] pb-[var(--nexus-space-2)] text-11 text-warn" data-snapshot-error>
+        <p className="shrink-0 px-[var(--nexus-space-3)] pb-[var(--nexus-space-2)] text-11 text-warn-ink" data-snapshot-error>
           快照操作未完成：{state.snapshotError}
         </p>
       ) : null}
@@ -281,7 +281,7 @@ function SnapshotSection() {
                   <li className="px-[var(--nexus-space-3)] text-11 text-fg-3">这份快照和当前文档一致。</li>
                 ) : null}
                 {state.compare.diff.truncated ? (
-                  <li className="px-[var(--nexus-space-3)] text-11 text-warn">
+                  <li className="px-[var(--nexus-space-3)] text-11 text-warn-ink">
                     差异过多，只列出前 {state.compare.diff.entries.length} 处。
                   </li>
                 ) : null}
@@ -344,7 +344,7 @@ export function HistoryPanel() {
                   <span>
                     {entry.patchCount} 补丁 / {entry.diff.length} 变更
                   </span>
-                  {entry.capability?.demoMode ? <span className="text-warn">DEMO</span> : null}
+                  {entry.capability?.demoMode ? <span className="text-warn-ink">DEMO</span> : null}
                 </span>
               </button>
               <button

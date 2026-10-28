@@ -96,7 +96,7 @@ export function ReportControl({ path }: { path: string }) {
         </div>
       ) : null}
       {error ? (
-        <span className="text-11 text-danger" data-report-error>
+        <span className="text-11 text-danger-ink" data-report-error>
           {error}
         </span>
       ) : null}

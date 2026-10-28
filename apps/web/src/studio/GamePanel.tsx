@@ -80,7 +80,7 @@ export function GamePanel() {
                 '整份设计由模型生成（§52 的 Game Agent 真规划）要真实 provider，没接入前不做假生成。'}
         </p>
         {snapshot.error ? (
-          <p className="text-11 text-danger" data-game-error>
+          <p className="text-11 text-danger-ink" data-game-error>
             {snapshot.error}
           </p>
         ) : null}
@@ -113,7 +113,7 @@ export function GamePanel() {
           <span
             className={cn(
               'ml-auto font-mono text-11',
-              snapshot.saveState === 'error' ? 'text-danger' : 'text-fg-3',
+              snapshot.saveState === 'error' ? 'text-danger-ink' : 'text-fg-3',
             )}
             data-game-state
           >
@@ -176,12 +176,12 @@ export function GamePanel() {
           试玩这份设计 →
         </a>
         {snapshot.error ? (
-          <p className="mt-2 text-11 text-danger" data-game-error>
+          <p className="mt-2 text-11 text-danger-ink" data-game-error>
             {snapshot.error}
           </p>
         ) : null}
         {snapshot.notice ? (
-          <p className="mt-2 text-11 text-warn" data-game-notice>
+          <p className="mt-2 text-11 text-warn-ink" data-game-notice>
             {snapshot.notice}
           </p>
         ) : null}
@@ -303,7 +303,7 @@ function EntityCard({
           onClick={() => edit(removeEntity(game, entity.id), true)}
           aria-label={`删除 ${entity.name}`}
           data-game-remove={entity.id}
-          className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger"
+          className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger-ink"
         >
           ×
         </button>
@@ -349,7 +349,7 @@ function EntityCard({
                 onClick={() => edit(removeStat(game, entity.id, key), true)}
                 aria-label={`删除数值 ${key}`}
                 data-game-stat-remove={`${entity.id}:${key}`}
-                className="shrink-0 px-1 text-11 text-fg-3 hover:text-danger"
+                className="shrink-0 px-1 text-11 text-fg-3 hover:text-danger-ink"
               >
                 ×
               </button>
@@ -403,7 +403,7 @@ function EntityCard({
                     onClick={() => edit(removeRef(game, entity.id, ref.id), true)}
                     aria-label="摘掉这条引用"
                     data-game-ref-remove={ref.id}
-                    className="shrink-0 px-1 text-fg-3 hover:text-danger"
+                    className="shrink-0 px-1 text-fg-3 hover:text-danger-ink"
                   >
                     ×
                   </button>
