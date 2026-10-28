@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { appendCreditEntry, balanceOf, emptyCreditLedger, type CreditLedger } from './credits';
-import { attributionByRef, statementFor, statementLine, statementReconciles } from './settlement';
+import { attributionByRef, attributionLine, statementFor, statementLine, statementReconciles } from './settlement';
 
 function fixture(): CreditLedger {
   let l = emptyCreditLedger();
@@ -216,6 +216,12 @@ describe('settlement: attribution by ref', () => {
     expect(attributionByRef(l, 'buyer')).toEqual([
       { ref: 'tpl', earned: 0, spent: 200, refunded: 200, clawedBack: 0, net: 0, count: 2 },
     ]);
+  });
+
+  it('the one-line reading names the flows that happened and omits the zeros', () => {
+    const ledger = reversalFixture();
+    expect(attributionLine(attributionByRef(ledger, 'author')[0]!)).toBe('t1: earned 500 · clawed back 500 · net 0 (2 movement(s))');
+    expect(attributionLine(attributionByRef(ledger, 'buyer')[0]!)).toBe('t1: spent 500 · refunded 500 · net 0 (2 movement(s))');
   });
 
   it('net is the buckets added up AND the raw deltas added up — never a second bookkeeping', () => {

@@ -21,6 +21,9 @@
  *   6c. the DEADLINE is visible (v534): beside the Refund action the row states the closing instant
  *      the preflight computed — "no deadline" under a declared no-deadline policy, and a dated
  *      `refund until …` for a purchase made under a 30-day window;
+ *   6d. the statement reads BY LISTING (v536): each ref's row names what it actually did — the
+ *      listing bought and fully refunded still says `spent … · refunded …` with net 0 and two
+ *      movements, a held purchase names its spend only, and an untouched listing has no row at all;
  *   7. clearing writes a VALID empty ledger and the page returns to its empty state;
  *   8. no uncaught page errors, and a screenshot is written as evidence.
  *
@@ -248,6 +251,33 @@ try {
       Number.isFinite(closesMs) && closesMs > buyAt - 1000 &&
       /refund until \d{4}-/.test(dated.text ?? ''),
     JSON.stringify(dated),
+  );
+
+  // 6d. BY LISTING (v535/v536). The statement's totals say what moved; these rows say WHICH listing
+  // moved it, by name. The row that matters is the one a net could hide: tpl-saas was bought and then
+  // fully refunded, so its net is 0 — and it must still say `spent 500 · refunded 500` rather than
+  // disappear into "nothing happened". A listing nobody touched contributes no row at all.
+  const byListing = await page.evaluate(
+    "(() => { const sec = document.querySelector('[data-credits-attribution]'); const rows = {}; for (const el of document.querySelectorAll('[data-credits-attr]')) { rows[el.getAttribute('data-credits-attr')] = { net: el.getAttribute('data-credits-attr-net'), text: el.textContent.trim() }; } return { present: !!sec, rows }; })()",
+  );
+  check(
+    'a purchase that was fully refunded keeps both halves on its own row (net 0, two movements)',
+    byListing.present === true && byListing.rows['tpl-saas']?.net === '0' &&
+      /spent 500/.test(byListing.rows['tpl-saas']?.text ?? '') &&
+      /refunded 500/.test(byListing.rows['tpl-saas']?.text ?? '') &&
+      /net 0/.test(byListing.rows['tpl-saas']?.text ?? '') &&
+      /\(2 movement\(s\)\)/.test(byListing.rows['tpl-saas']?.text ?? ''),
+    JSON.stringify(byListing),
+  );
+  check(
+    'a listing bought, refunded and bought AGAIN names all three movements; an untouched listing has no row',
+    byListing.rows['tpl-mobile']?.net === '-200' &&
+      /spent 400/.test(byListing.rows['tpl-mobile']?.text ?? '') &&
+      /refunded 200/.test(byListing.rows['tpl-mobile']?.text ?? '') &&
+      /net -200/.test(byListing.rows['tpl-mobile']?.text ?? '') &&
+      /\(3 movement\(s\)\)/.test(byListing.rows['tpl-mobile']?.text ?? '') &&
+      byListing.rows['tpl-starter'] === undefined,
+    JSON.stringify(byListing.rows),
   );
 
   // 7. clearing writes a valid empty ledger and returns the page to its empty state.

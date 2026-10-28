@@ -14,7 +14,7 @@ import {
   refundPurchaseUnderPolicy,
   type RefundPolicy,
 } from '@/lib/refundPolicy';
-import { statementFor, statementLine, statementReconciles } from '@/lib/settlement';
+import { attributionByRef, attributionLine, statementFor, statementLine, statementReconciles } from '@/lib/settlement';
 import type { TemplateListing } from '@/lib/templateCatalog';
 import { buildWalletView } from '@/lib/walletView';
 
@@ -143,6 +143,10 @@ export default function CreditsPanel() {
   const refundNow = Date.now();
   const creator = ledger ? buildCreatorDashboard(scene.catalog, ledger, scene.creatorId) : null;
   const statement = ledger ? statementFor(ledger, scene.viewerId) : null;
+  // What each LISTING did for this account, by name (v536) — the same derived reading the statement
+  // makes, per ref, so a purchase that was fully refunded reports both halves instead of netting to a
+  // zero that would look like nothing happened.
+  const attribution = ledger ? attributionByRef(ledger, scene.viewerId) : [];
   const reconciles = ledger && statement ? statementReconciles(ledger, statement) : false;
   const empty = !ledger || source === 'empty' || ledger.entries.length === 0;
 
@@ -241,6 +245,26 @@ export default function CreditsPanel() {
               <strong>STATEMENT</strong>
               <div style={{ marginTop: 6 }}>{statementLine(statement)}</div>
               <div>reconciles: {reconciles ? 'yes' : 'NO'}</div>
+              {/*
+                The per-listing reading (v535/v536). The statement above says what moved; these rows say
+                WHICH LISTING moved it, with the same four names — so "sold, then fully clawed back"
+                stays a row (net 0, two movements) instead of collapsing into "never sold".
+              */}
+              <div
+                data-credits-attribution
+                style={{ marginTop: 8, borderTop: '1px solid var(--nexus-border)', paddingTop: 6 }}
+              >
+                <div style={{ color: 'var(--nexus-muted)' }}>BY LISTING · what each one did for {scene.viewerId}</div>
+                {attribution.length === 0 ? (
+                  <div style={{ color: 'var(--nexus-muted)' }}>no movement carries a listing reference yet</div>
+                ) : (
+                  attribution.map((row) => (
+                    <div key={row.ref} data-credits-attr={row.ref} data-credits-attr-net={String(row.net)}>
+                      {attributionLine(row)}
+                    </div>
+                  ))
+                )}
+              </div>
             </section>
           )}
 

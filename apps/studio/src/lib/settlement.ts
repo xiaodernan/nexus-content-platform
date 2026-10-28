@@ -176,6 +176,22 @@ export function attributionByRef(ledger: CreditLedger, accountId: string, window
 }
 
 /**
+ * One deterministic line per ref, naming the flows it actually carried. Zero buckets are OMITTED —
+ * the same reading `statementLine` makes for its two refund buckets — and the omission MEANS zero,
+ * so a listing that sold and was fully clawed back says both halves out loud while a listing that was
+ * only ever bought does not pretend a refund happened. The count travels beside the net because two
+ * movements that cancel are a history a one-word verdict would erase.
+ */
+export function attributionLine(row: RefAttribution): string {
+  const parts: string[] = [];
+  if (row.earned !== 0) parts.push(`earned ${row.earned}`);
+  if (row.spent !== 0) parts.push(`spent ${row.spent}`);
+  if (row.refunded !== 0) parts.push(`refunded ${row.refunded}`);
+  if (row.clawedBack !== 0) parts.push(`clawed back ${row.clawedBack}`);
+  return `${row.ref}: ${parts.join(' · ')} · net ${row.net} (${row.count} movement(s))`;
+}
+
+/**
  * The one-line, deterministic verdict for a panel or a ledger row: the window, the flows, and the
  * closing balance. A statement with no movements says so rather than reporting a vacuous zero.
  */

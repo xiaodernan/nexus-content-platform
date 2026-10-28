@@ -234,6 +234,7 @@ try {
   }
   const revRow = settle.attributionByRef(rev, 'authorA');
   assert.deepEqual(revRow, [{ ref: 'tpl-rev', earned: 300, spent: 0, refunded: 0, clawedBack: 300, net: 0, count: 2 }], 'a sold-then-refunded listing lost its history');
+  assert.equal(settle.attributionLine(revRow[0]), 'tpl-rev: earned 300 · clawed back 300 · net 0 (2 movement(s))', 'the per-ref line does not name the two halves');
   const revSum = rev.entries.reduce((sum, e) => sum + e.delta, 0);
   assert.equal(revRow[0].net, revSum, 'the buckets and the raw deltas disagree');
   console.log(`  buyerB 1000 earned / 700 spent / 300 balance; the dashboard identity is earned − spent + refunded − clawedBack; window 0..250 -> closing 500, after -200, reconciles; authorA attribution ${JSON.stringify(attr)}; a sold-then-clawed-back ref stays named ${JSON.stringify(revRow[0])}`);
