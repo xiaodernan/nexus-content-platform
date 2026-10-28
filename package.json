@@ -48,6 +48,9 @@
     "verify:record-encoding": "node docs/evidence/agents/record-encoding-proof.mjs",
     "verify:pipeline": "node docs/evidence/studio/pipeline-proof.mjs",
     "verify:table-recount": "node docs/evidence/agents/table-recount-proof.mjs",
+    "verify:build-lane": "node docs/evidence/studio/build-lane-proof.mjs",
+    "verify:container-lane": "node docs/evidence/studio/container-lane-proof.mjs",
+    "verify:deploy-lane": "node docs/evidence/studio/deploy-lane-proof.mjs",
     "verify:proofs": "node tools/ci/proof-set.mjs"
   },
   "devDependencies": {

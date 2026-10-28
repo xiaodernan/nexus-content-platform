@@ -34,6 +34,10 @@
 // the sweep's code-position tokenizer (amendment 89). A bare side-effect `import './x.mjs'` is NOT read; such a
 // module would surface as an orphan (a RED), never as a silent helper. No tracked module uses that form today.
 //
+// v531 (amendment 517) — the three Studio lane proofs v530 DEFERRED are derivable ROWS now: the workflow
+// pre-pulls `node:22-alpine` (the one blocker all three named) and `verify:build-lane`, `verify:container-lane`
+// and `verify:deploy-lane` exist, so the census derives them and their deferral entries are deleted.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -93,33 +97,10 @@ export const ROSTER = [
     run: 'node docs/evidence/studio/style-override-probe.mjs',
     why: 'ADR 0015\'s mutation probe: six arms each mutate one line of the style-override path and run the smallest suite that can see it, restoring every file in `finally`; a build row that edits the tree under test is not a verdict, so the arm log lives in its own header',
   },
-  {
-    file: 'docs/evidence/studio/build-lane-proof.mjs',
-    class: 'deferred',
-    run: 'node docs/evidence/studio/build-lane-proof.mjs',
-    why: 'the dock build face planned by the template planner — green on the authoring box, but as a row it would grade the sandbox: exec-host runs containers with `--pull never`, and a fresh build plane has no `node:22-alpine` image to run',
-    measured: '6.7 s on 2026-10-28, Windows box, docker present (the container self-check really ran)',
-    blocker: 'the build plane must PRE-PULL `node:22-alpine` before this row can be a row; without the image a fresh runner answers "no such image" and the red would name the sandbox, not the code',
-    next: 'v531 adds a `docker pull node:22-alpine` step to ci.yml and wires all three lane proofs together; this census then derives them as rows and v531\'s records say so',
-  },
-  {
-    file: 'docs/evidence/studio/container-lane-proof.mjs',
-    class: 'deferred',
-    run: 'node docs/evidence/studio/container-lane-proof.mjs',
-    why: 'the dock exec lane born in the container — green on the authoring box, but §4 runs a REAL ephemeral container with `--pull never`, so a fresh build plane without the pinned `node:22-alpine` image fails before any assertion about the lane',
-    measured: '1.8 s on 2026-10-28, Windows box, docker present (the ephemeral jail ran `console.log("jail ok")`)',
-    blocker: 'same pre-pull as the build lane: the image must exist on the build plane before the row can run, or the row grades the image cache rather than the lane',
-    next: 'wired with its two siblings in v531 after the ci.yml pre-pull step lands; the census will then report it as a row, and the residue count drops by three',
-  },
-  {
-    file: 'docs/evidence/studio/deploy-lane-proof.mjs',
-    class: 'deferred',
-    run: 'node docs/evidence/studio/deploy-lane-proof.mjs',
-    why: 'the dock deploy face\'s first product consumer — green on the authoring box, but the arc runs through the same `--pull never` container host, so a fresh build plane lacks the pinned image this row needs',
-    measured: '7.4 s on 2026-10-28, Windows box, docker present (a real deployments record was written to a temp box)',
-    blocker: 'the same `node:22-alpine` pre-pull as the other two lanes; the deploy record path itself is a temp box and needs nothing else',
-    next: 'wired in v531 with a `docker pull node:22-alpine` step ahead of the proof step; this entry is deleted the day the census derives the row, and a stale deferral is a RED',
-  },
+  // v531 — the three Studio lane proofs that were DEFERRED here are now derivable ROWS: `verify:build-lane`,
+  // `verify:container-lane` and `verify:deploy-lane` exist in package.json and the workflow pre-pulls
+  // `node:22-alpine`, which was the blocker all three named. Their entries are deleted, not reworded: a
+  // deferral that outlives its blocker is the stale record this census refuses in the other direction.
 ];
 
 /** Every `verify:*` command that is one `node` call, whatever it targets — import-closure roots, not rows. */

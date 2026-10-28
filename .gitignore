@@ -72,3 +72,7 @@ vitest.config.ts.timestamp-*.mjs
 # forces one in if a scratch file is ever meant to land.
 tmp_*
 commit_msg.txt
+
+# the mutation probe's per-process scratch box (v531). A crashed run leaves one behind, and an
+# untracked box in apps/studio is one broad `git add` away from an unrelated commit.
+.nexus-mut-probe*/

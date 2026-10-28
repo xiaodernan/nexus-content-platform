@@ -25,7 +25,12 @@ import { spawnSync } from '../lib/syncproc.mjs';
 const REPO = process.cwd();
 const SRC = join(REPO, 'apps', 'studio', 'src', 'lib');
 const STUDIO = join(REPO, 'apps', 'studio');
-const BOX = join(STUDIO, '.nexus-mut-probe');
+// One box per PROCESS, named in the argv filter too: a fixed `.nexus-mut-probe` let two concurrent runs
+// (a human's and CI's, or two of this repository's lanes) share the directory, and the first to finish
+// deleted the box under the other's feet — measured 2026-10-28 as ENOENT on the loser's restore write, a
+// red that named the sandbox instead of any code. Two runs now own two boxes and neither can see the other.
+const BOX_NAME = `.nexus-mut-probe-${process.pid}`;
+const BOX = join(STUDIO, BOX_NAME);
 const VITEST = join(REPO, 'node_modules', 'vitest', 'vitest.mjs');
 
 const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy'];
@@ -70,7 +75,7 @@ function stage() {
 
 /** Run the temp suite; returns the spawn result. The filter keeps it to the copied files only. */
 function runSuite() {
-  return spawnSync(process.execPath, [VITEST, 'run', '.nexus-mut-probe', '--no-file-parallelism'], {
+  return spawnSync(process.execPath, [VITEST, 'run', BOX_NAME, '--no-file-parallelism'], {
     cwd: STUDIO,
     env: { ...process.env, NODE_OPTIONS: '' },
     encoding: 'utf8',

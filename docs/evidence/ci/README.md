@@ -64,14 +64,14 @@ exclusions, where the stubs append to a log so "did anything execute" is measure
 ### What this does NOT claim
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
-never turned into a `verify:*` script stays invisible to the build. At this ref 109 tracked `.mjs` modules sit
-under `docs/evidence/` while 15 are rows. Wiring the rest is the next repair, named and not claimed — amendment
-516's census below closes the invisibility half of that hole and wires the four that need nothing but Node. And
-no gate here can make GitHub run: it reads bytes committed in this repository, and whether the workflow now
-executes on `master` is knowable only from the first real run — it ran red (`40603544099`, amendment 515's four
-exec-host cases on ubuntu) and then green (`40659064493`), which is the evidence this section was waiting for.
+never turned into a `verify:*` script stays invisible to the build. Amendments 516 and 517 closed that half:
+the census below gives every one of the **111** tracked modules a disposition, and the derived population is
+**20 running rows + 3 excluded by name** at this ref. And no gate here can make GitHub run: it reads bytes
+committed in this repository, and whether the workflow executes on `master` is knowable only from the real
+runs — it ran red (`40603544099`, amendment 515's four exec-host cases on ubuntu), then green twice
+(`40659064493` with 12 rows, `40662063095` with 17), which is the evidence this section was waiting for.
 
-## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (M0/v530 — ADR 0016 amendment 516)
+## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs)
 
 ```
 npm run verify:evidence-census   # a row inside the population it counts
@@ -81,11 +81,11 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 | class | count at this ref | how it is decided |
 | --- | --- | --- |
-| ROW | **20** (17 run + 3 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
+| ROW | **23** (20 run + 3 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **3** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs` |
 | SWEPT | **79** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — the human-run channel is named, not guessed from a filename shape |
 | TOOL | **6** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, two arms scripts, the isolated-build arms, the SVG generator) |
-| DEFERRED | **3** | the three Studio lane proofs — green on the authoring box, blocked on the build plane's missing `node:22-alpine` pre-pull; each names its blocker and v531 as the repair, and all three are printed on every run |
+| DEFERRED | **0** | none at this ref — the three Studio lane proofs v530 deferred are ROWS since v531 (the workflow pre-pulls `node:22-alpine`, their one blocker). The class and its refusals stay for the next proof a sandbox really blocks |
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
@@ -105,19 +105,33 @@ Four rows that needed nothing but Node walked through the door in the same incre
 Two of them (`record-encoding`, `table-recount`) are ALSO in the agents sweep's population; the census prints
 that overlap every run — double coverage, not a conflict.
 
+**v531 — the deferral that named its blocker was repaired first.** The three Studio lane proofs are build rows:
+`verify:build-lane` (5.5 s), `verify:container-lane` (1.5 s) and `verify:deploy-lane` (6.1 s) on the authoring
+box (2026-10-28, docker present, `node:22-alpine` b6f26b36c8ff). The workflow now runs `docker pull
+node:22-alpine` BEFORE `Evidence proofs`, because exec-host spawns every container with `--pull never`: on a
+fresh runner the image does not exist, and without the pre-pull the red would name the image cache rather than
+the lane. The census derives the three as rows and their deferral entries are deleted — a deferral that
+outlives its blocker is the same stale record the census refuses in the other direction. On docker-less
+planes `verify:proofs` now reddens on these three with "no such image", which is the honest prerequisite.
+
 **Measured, on the day the census shipped (2026-10-28).** `npm run verify:evidence-census` prints **111 tracked
 modules = 20 row + 3 helper + 79 swept + 6 tool + 3 deferred · 0 unclassified · rows 17+3**, with **14/14 arms
-MATCHED**. The derived build population is now **17 running + 3 excluded** (12+3 at v528). The first fully green
-CI run (`40659064493`, the push that carried amendment 515) executed `Build` and `Evidence proofs` on ubuntu
-for the first time: **12/12 rows green in 35 s**, `verify:mutation` 33.1 s (272.7 s on the Windows box — the
-runner's own declared budget is unchanged). The four new rows' ubuntu verdict is knowable from the next run,
-the same bound amendment 515 stated.
+MATCHED**. The four new rows' ubuntu verdict arrived with run `40662063095` (the 17-row population's first
+run, fully green): **17/17 rows green**, `audit-contract` 1.5 s, `record-encoding` 1.0 s, `pipeline` 0.1 s,
+`table-recount` 16.9 s, `mutation` 55.4 s, job 3 m 19 s. At v531 the census prints **111 = 23 row + 3 helper +
+79 swept + 6 tool + 0 deferred · 0 unclassified · rows 20+3**, arms still 14/14, and the wired workflow reads
+as 10 steps with the proof step ninth and the build seventh.
+
+The mutation row's scratch box is now **per process** (`.nexus-mut-probe-<pid>`). v530's own full-set run
+overlapped a still-running earlier one, and the loser reddened with `ENOENT` on the winner's cleanup — a red
+that named the sandbox, not the code. One box per run means the two cannot meet.
 
 **What the census does NOT claim.** It classifies the 79 swept proofs; it does not run them in the build — the
-agents sweep stays the human-run channel, with its own budgets (240 000 ms default, 3 600 000 ms ceiling). It
-does not wire the three deferred lane proofs: `--pull never` means a fresh build plane must already hold
-`node:22-alpine`, and v531 is the named repair. The closure reads `from '…'` and `import('…')` through the
-sweep's tokenizer; a bare side-effect `import './x.mjs'` is not read and would surface as an orphan (a RED),
-not as a silent helper — no tracked module uses that form at this ref. And a module on disk that the commit
-does not own is invisible by design: the population is the INDEX's, because CI can only run what the commit
-owns.
+agents sweep stays the human-run channel, with its own budgets (240 000 ms default, 3 600 000 ms ceiling). The
+three lane rows have a REAL prerequisite: a docker daemon holding `node:22-alpine`. The workflow pre-pulls it
+before the proof step; a human running `verify:proofs` on a docker-less box will see those three redden with
+"no such image", which names the missing sandbox rather than the lane. The closure reads `from '…'` and
+`import('…')` through the sweep's tokenizer; a bare side-effect `import './x.mjs'` is not read and would
+surface as an orphan (a RED), not as a silent helper — no tracked module uses that form at this ref. And a
+module on disk that the commit does not own is invisible by design: the population is the INDEX's, because CI
+can only run what the commit owns.

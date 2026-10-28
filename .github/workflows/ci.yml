@@ -36,5 +36,10 @@ jobs:
         run: npm run test
       - name: Build
         run: npm run build
+      - name: Docker image (pre-pull for the lane proofs)
+        # exec-host spawns containers with `--pull never` (its lanes must not depend on a registry at
+        # run time), so the image the Studio lane proofs use has to exist BEFORE the proofs start. On a
+        # fresh runner it does not, and the red would name the image cache rather than the lane.
+        run: docker pull node:22-alpine
       - name: Evidence proofs
         run: npm run verify:proofs
