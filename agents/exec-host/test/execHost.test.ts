@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ToolRegistry } from '@nexus/agent-runtime';
 import type { ExecPolicy } from '@nexus/agent-runtime';
 import {
@@ -424,6 +424,101 @@ describe('the process tree (v55): what a timeout kill stops, and what it says it
     // (EBUSY), so it drives `taskkill` through the working async path. A sync reaper is still
     // accepted by the host, which awaits either shape.
     expect(await DEFAULT_TREE_REAPER(0)).toBe(false); // pid 0 is not somebody else's process; and the call must not throw
+  });
+});
+
+/**
+ * M2 v529 (ADR 0016 amendment 515): `unsupported-platform` is a statement about the BUILT-IN reaper.
+ * It was being read as a veto over the OPERATOR's, and that was invisible on this box: every case in
+ * the block above passes on Windows because `process.platform` answers "yes" there. Run 40603544099 —
+ * the first CI run this repository ever produced, on ubuntu — went red on four of them. That run is
+ * the evidence, and it exists only because amendment 514 wired the proofs into the build.
+ *
+ * The other plane is reproduced IN THIS PROCESS: `TREE_REAPER_AVAILABLE` is computed at import, so the
+ * module is re-imported after `process.platform` is redefined. Nothing spawns here, and that is
+ * deliberate: on the fake linux plane the built-in reaper returns false before touching `taskkill`,
+ * whereas a fake win32 plane would make it kill a real pid the fake harness just invented.
+ */
+describe('whose answer is asked (v529): the platform gates the built-in reaper, not the operator\'s', () => {
+  type ExecHostModule = typeof import('../src/execHost.js');
+
+  async function loadOnPlane(platform: string): Promise<ExecHostModule> {
+    const original = process.platform;
+    Object.defineProperty(process, 'platform', { value: platform, configurable: true });
+    try {
+      vi.resetModules();
+      return await import('../src/execHost.js');
+    } finally {
+      Object.defineProperty(process, 'platform', { value: original, configurable: true });
+    }
+  }
+
+  /**
+   * The tree harness again, over a module instance chosen by plane. `which` decides WHOSE reaper the
+   * host receives, so it must be passed through untouched: a harness that wrapped the built-in to
+   * count its calls would hand the host a different function and answer a question nobody asked.
+   */
+  function planeHarness(mod: ExecHostModule, which: 'mine' | 'builtin' | 'none') {
+    const reaped: number[] = [];
+    let kills = 0;
+    let child: FakeChild | undefined;
+    const spawnLike: SpawnLike = () => {
+      const c = new FakeChild();
+      c.kill = () => {
+        kills += 1;
+        c.killed = true;
+        c.emitEnd({ code: null, signal: 'SIGTERM' });
+      };
+      child = c;
+      return { onData: (l) => c.onData(l), onEnd: (l) => c.onEnd(l), kill: c.kill, pid: 4242 };
+    };
+    const options: Parameters<typeof mod.createExecHost>[1] = { spawnLike, reapTree: true };
+    if (which === 'mine') {
+      options.reaper = (pid) => {
+        reaped.push(pid);
+        queueMicrotask(() => child!.emitEnd({ code: 1, signal: null }));
+        return true;
+      };
+    } else if (which === 'builtin') {
+      options.reaper = mod.DEFAULT_TREE_REAPER; // the same object the host would have defaulted to
+    }
+    return { host: mod.createExecHost(POLICY, options), reaped, killsOf: () => kills };
+  }
+
+  const onNoReaperPlane = async () => {
+    const mod = await loadOnPlane('linux');
+    expect(mod.TREE_REAPER_AVAILABLE).toBe(false); // the precondition the old code read as a veto, asserted rather than assumed
+    return mod;
+  };
+
+  it('a reaper the caller supplied is CALLED on a plane where the built-in one has no implementation', async () => {
+    const mod = await onNoReaperPlane();
+    const h = planeHarness(mod, 'mine');
+    const r = await h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE);
+    expect(h.reaped).toEqual([4242]); // the declaration of reach was asked about, not overruled by the OS label
+    expect(r.descendantsStopped).toBe('reaped');
+    expect(h.killsOf()).toBe(0); // and the substitution rule still holds: a success is never followed by a direct kill
+  });
+
+  it('a host given no reaper on that plane is still answered unsupported-platform, and still kills what it can reach', async () => {
+    const mod = await onNoReaperPlane();
+    const h = planeHarness(mod, 'none');
+    const r = await h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE);
+    expect(h.reaped).toEqual([]); // mine was never installed: this is the built-in's plane answer
+    expect(r.descendantsStopped).toBe('unsupported-platform');
+    expect(h.killsOf()).toBe(1); // the fallback kill is what ended the run — v55's honesty, unchanged
+  });
+
+  it('handing over the built-in reaper BY NAME does not turn it into the operator\'s', async () => {
+    // The rule keys on WHOSE reaper it is, not on whether the option was written down: `options.reaper`
+    // being present is not extra reach when the value is the very function the host would have used.
+    // Had the host called it, the fake plane would answer `reaper-failed` (it returns false there) —
+    // so the verdict word alone is what separates "consulted the platform" from "asked the reaper".
+    const mod = await onNoReaperPlane();
+    const h = planeHarness(mod, 'builtin');
+    const r = await h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE);
+    expect(r.descendantsStopped).toBe('unsupported-platform');
+    expect(r.signal).toBe('SIGTERM'); // ended by the kill, because no reaper was asked at all
   });
 });
 

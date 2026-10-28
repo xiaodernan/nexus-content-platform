@@ -119,7 +119,7 @@ export type DescendantsStopped =
   | 'reaped' /** the tree reaper reported success and the survivor was silenced (measured, win32) */
   | 'reaper-failed' /** asked for, ran, reported failure */
   | 'no-pid' /** the adapter gave the host no process handle, so a tree kill is impossible */
-  | 'unsupported-platform' /** no reaper is implemented here, and none was pretended */
+  | 'unsupported-platform' /** the BUILT-IN reaper has no implementation here, and none was pretended — an operator's own reaper is still asked (v529) */
   | 'not-attempted'; /** the host killed only its own child — v30's behaviour, still the default */
 
 /**
@@ -138,7 +138,9 @@ export type TreeReaper = (pid: number) => boolean | Promise<boolean>;
  * survivor goes silent. So the host reaps by substitution, never in addition; the exit fields then
  * carry what the OS reported (code 1, signal null) beside `killedByBudget: true`, because the host
  * knows it killed the run and the process knows it was force-terminated.
- * Anywhere else: no implementation, and no pretending — the answer is `unsupported-platform`.
+ * Anywhere else: no implementation of THIS one, and no pretending — the answer is `unsupported-platform`.
+ * That sentence is about the built-in reaper: a caller that hands the host a reaper has declared its
+ * own reach, and the host asks it whatever machine it runs on (v529 — the veto was the bug).
  *
  * ⚠️ M2 v86 — this used to call `spawnSync`, and on this host **every synchronous spawn API fails
  * with `EBUSY`** (`spawnSync` / `execFileSync` / `execSync`, in a worker thread too), while the
@@ -171,7 +173,13 @@ export const DEFAULT_TREE_REAPER: TreeReaper = async (pid) => {
     return false;
   }
 };
-/** False on any platform where the host has no tree reaper, so `unsupported-platform` can be told apart from a failed call. */
+/**
+ * Whether `DEFAULT_TREE_REAPER` can do anything HERE — read it as a claim about the built-in reaper,
+ * not about the host. It separates `unsupported-platform` from a failed call, and since v529 it is
+ * consulted only when the reaper in play IS the built-in one: an injected reaper is called wherever
+ * it was handed over. Computed at import, so a witness reproduces another plane by setting
+ * `process.platform` before loading the module, which is how the ubuntu behaviour got measured here.
+ */
 export const TREE_REAPER_AVAILABLE = process.platform === 'win32';
 
 const noRun = (over: Partial<ExecRunResult>): ExecRunResult => ({
@@ -239,6 +247,14 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
   const journal = options.journal;
   const reapTree = options.reapTree ?? false;
   const reaper = options.reaper ?? DEFAULT_TREE_REAPER;
+  // M2 v529: `unsupported-platform` is a statement about the BUILT-IN reaper, and it was being read
+  // as a veto over the operator's. An injected reaper IS a declaration of reach — "here is how a
+  // tree is stopped, on this machine" — so consulting a win32-only constant before calling it threw
+  // away the one fact the caller supplied. Measured on the ubuntu plane that `npm run verify:proofs`
+  // reached for the first time in run 40603544099: `reapTree: true` plus the caller's own reaper
+  // never reached that reaper (`reaperCalled=0`), and the run answered the PLATFORM's verdict.
+  // Identity, not the platform, decides whose answer is being asked.
+  const reaperIsBuiltIn = reaper === DEFAULT_TREE_REAPER;
   let seq = 0;
   return {
     policy,
@@ -330,7 +346,7 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
           } else if (child.pid === undefined) {
             descendants = 'no-pid';
             child.kill();
-          } else if (!TREE_REAPER_AVAILABLE) {
+          } else if (reaperIsBuiltIn && !TREE_REAPER_AVAILABLE) {
             descendants = 'unsupported-platform';
             child.kill();
           } else {
