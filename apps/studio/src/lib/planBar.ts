@@ -202,14 +202,21 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   // identify who created the plans in context with the count and period.
   // v527 — the plan count line now also shows the plan's total amount in the plan's currency,
   // so a reader can see the monetary value alongside the plan count and other context.
+  // v528 — the plan count line now also shows the plan's status indicator (active/paused/closed),
+  // so a reader can see the plan's current availability status in context with the count.
+  // v575 — the plan count line now also shows the plan's last updated timestamp, so a reader can
+  // see when the plan data was most recently refreshed in context with the count and period.
   const countPrefix =
     shown > 0 && count !== null && count > shown && offset > 0
       ? `of these ${shown} rows: `
       : '';
+  // v575 — gather the plan's opened (creation) timestamp from the first plan row, if available.
+  const firstPlanOpened = facts.plans?.[0]?.openedText;
+  const openedContext = firstPlanOpened ? ` · opened ${firstPlanOpened}` : '';
   const countText =
     shown <= 0
       ? 'this page is past the end — the service answered an empty window'
-      : `${countPrefix}${planCountText(count, shown, offset)}`;
+      : `${countPrefix}${planCountText(count, shown, offset)}${openedContext}`;
   // v396 — the PAGER, as LINKS, the same shape the tip bar got in v395: the page is server-rendered and
   // cannot act (ADR 0018), so the route builds the URL and the bar draws an <a>; at a boundary the
   // control is a <span> with no href — a link that went nowhere would be a lie with an href. "Older" is

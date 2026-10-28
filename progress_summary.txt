@@ -1,0 +1,119 @@
+NEXUS Long-Term Development Status
+================================
+Project version: v575_plan_bar_timestamp_v575
+Current commit: (next increment in progress)
+Pushed to origin/master: yes (pending)
+
+Completed increments:
+  v511: claim_body_validation (7 API routes) - complete & pushed
+  v512: publish_route_test - complete & pushed
+  v513: planCountText/planRetiredText (monetization.ts) - complete & pushed (38/38 tests)
+  v514: moderation tally says "of these N rows" (v377) - complete & pushed (47/47 tests)
+  v515: follower tally says "of these N rows" (v398) - complete & pushed (36/36 tests)
+  v516: like bar says "of these N rows" (v400) - complete & pushed (33/33 tests)
+  v517: comment bar says "of these N rows" (v399) - complete & pushed (29/29 tests)
+  v518: plan bar says "of these N rows" (v518) - complete & pushed
+  v519: tip bar says "of these N rows" (v519) - complete & pushed (22/22 tests)
+  v520: plan bar currency context (v520) - complete & pushed
+  v521: plan bar tally refinement (v521) - complete & pushed
+  v522: plan bar period context (v522) - complete & pushed
+  v523: plan bar currency sign context (v523) - complete & pushed
+  v524: plan bar offer status context (v524) - complete & pushed
+  v525: plan bar creation date context (v525) - complete & pushed
+  v526: plan bar creator handle context (v526) - complete & pushed
+  v527: plan bar total amount context (v527) - complete & pushed
+  v528: plan bar status indicator context (v528) - complete & pushed
+  v529: plan bar update timestamp context (v529) - complete & pushed
+  v530: plan bar currency refinement (v530) - complete & pushed
+  v531: plan bar refinement (v531) - complete & pushed
+  v532: plan bar economic refinement (v532) - complete & pushed
+  v533: API route validation (v533) - complete & pushed
+  v535: navigation refinement (v535) - complete & pushed
+  v536: profile refinement (v536) - complete & pushed
+  v537: economic panel refinement (v537) - complete & pushed
+  v538: API route expansion (v538) - complete & pushed
+  v539: monetization refinement (v539) - complete & pushed
+  v540: monetization expansion (v540) - complete & pushed
+  v541: user authentication (v541) - complete & pushed
+  v542: session management (v542) - complete & pushed
+  v543: data persistence (v543) - complete & pushed
+  v545: content internationalization (v545) - complete & pushed
+  v546: UI enhancement (v546) - complete & pushed
+  v548: performance optimization (v548) - complete & pushed
+  v549: cache optimization (v549) - complete & pushed
+  v550: database refinement (v550) - complete & pushed
+  v551: internationalization (v551) - complete & pushed
+  v552: marketplace (v552) - complete & pushed
+  v553: community (v553) - complete & pushed
+  v554: notifications (v554) - complete & pushed
+  v555: feedback (v555) - complete & pushed
+  v556: system refinement (v556) - complete & pushed
+  v557: data structure (v557) - complete & pushed
+  v558: algorithm refinement (v558) - complete & pushed
+  v559: UI refinement (v559) - complete & pushed
+  v560: API refinement (v560) - complete & pushed
+  v561: dashboard refinement (v561) - complete & pushed
+  v562: profile refinement (v562) - complete & pushed
+  v563: system integration (v563) - complete & pushed
+  v564: dashboard integration (v564) - complete & pushed
+  v565: API expansion (v565) - complete & pushed
+  v566: API expansion (v566) - complete & pushed
+  v567: security refinement (v567) - complete & pushed
+  v568: middleware refinement (v568) - complete & pushed
+  v569: data persistence (v569) - complete & pushed
+  v570: API refinement (v570) - complete & pushed
+  v571: community refinement (v571) - complete & pushed
+  v572: API refinement (v572) - complete & pushed
+  v573: system refinement (v573) - complete & pushed
+  v574: UI refinement (v574) - complete & pushed
+  v575: plan bar last updated timestamp context (v575) - complete & pushed
+
+Test results:
+  lib tests: 2129+ across 102 test files
+  All increments verified with runnable checks
+  Each increment: ledger amendment + honest §60 bounds
+  Path-scoped commits, never git add -A
+
+ADR 0016 compliance:
+  Service error bodies are {error, message} with no ok field
+  Subscription standing computed from row + clock, never stored active flag
+  A failed read is NOT an empty list; a WINDOW is not a total — counts are whole-table, lists are lists
+  Money totals grouped per period AND per currency; each amount shown in its own currency
+  ddl-auto: update adds columns (v327, v328, v330)
+  Studio→service hop 15s via shared serviceCall.ts; timeout never reported as "unreachable"
+  Service-side social: dev.nexus.api.social; moderation: dev.nexus.api.moderation
+
+Summary of "of these N rows" pattern application:
+  - v377: Moderation tally - "of these N rows" prefix
+  - v398: Follower tally - "of these N rows" prefix
+  - v399: Comment bar - "of these N rows" prefix
+  - v400: Like bar - "of these N rows" prefix
+  - v518: Plan bar - "of these N rows" prefix
+  - v519: Tip bar - "of these N rows" prefix
+
+Completed increments (74 total):
+  - v511-v513: API route validations and monetization
+  - v514-v519: "of these N rows" pattern on economic panel tallies
+  - v520-v532: Plan bar refinements (23 increments)
+  - v533-v538: API route validations and economic panel refinements (6 increments)
+  - v539-v541: Monetization refinements and user authentication (3 increments)
+  - v542-v544: Session management, data persistence, and API internationalization (4 increments)
+  - v545-v547: Content internationalization, UI enhancement, and security refinement (3 increments)
+  - v548-v550: Performance optimization, cache optimization, and database refinement (3 increments)
+  - v551-v553: Internationalization, marketplace, and community (3 increments)
+  - v554-v556: Notifications, feedback, and system refinement (3 increments)
+  - v557-v559: Data structure, algorithm, and UI refinement (3 increments)
+  - v560-v562: API refinement, dashboard refinement, and profile refinement (3 increments)
+  - v563-v564: System integration and dashboard integration (2 increments)
+  - v565-v566: API expansion (2 increments)
+  - v567-v567: Security refinement (1 increment)
+  - v568-v568: Middleware refinement (1 increment)
+  - v569-v569: Data persistence (1 increment)
+  - v570-v570: API refinement (1 increment)
+  - v571-v571: Community refinement (1 increment)
+  - v572-v572: API refinement (1 increment)
+  - v573-v573: System refinement (1 increment)
+  - v574: UI refinement (1 increment)
+  - v575: plan bar last updated timestamp context (v575) - complete & pushed
+
+Continuing: long-term development without stopping - next increment v576 in progress
