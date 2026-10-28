@@ -214,6 +214,18 @@ try {
   assert.equal(all.after, 0, 'an unbounded window carries an `after`');
   assert.equal(all.closing, credits.balanceOf(real, 'buyerB'), 'an unbounded closing is not the balance');
   assert.equal(settle.statementReconciles(real, all), true, 'the unbounded statement does not reconcile');
+  // v537: a bounded statement says what happens AFTER its close, so `closing` is not mistaken for the
+  // account's balance; an unbounded one omits the clause (zero means zero).
+  assert.equal(
+    settle.statementLine(st),
+    'statement: buyerB · 0..250 · +1000 / −500 over 2 movement(s) · 0 → 500 · after −200 · balance 300',
+    'a bounded statement hides what happens after it',
+  );
+  assert.equal(
+    settle.statementLine(all),
+    'statement: buyerB · all time · +1000 / −700 over 3 movement(s) · 0 → 300',
+    'an unbounded statement names an `after` it does not have',
+  );
   const attr = settle.attributionByRef(real, 'authorA');
   assert.deepEqual(attr, [{ ref: 'tpl-paid', earned: 500, spent: 0, refunded: 0, clawedBack: 0, net: 500, count: 1 }], 'attribution by ref is wrong');
   // v535: a sale and its FULL reversal net to zero, and the row still says what happened — the two

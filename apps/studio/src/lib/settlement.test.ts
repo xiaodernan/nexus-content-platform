@@ -247,4 +247,35 @@ describe('settlement: the one-line verdict', () => {
     expect(line).toContain('1000 → 750');
     expect(statementLine(statementFor(fixture(), 'acc-1'))).toContain('all time');
   });
+
+  it('a bounded statement names what happens AFTER its close, so `closing` is not read as the balance', () => {
+    const s = statementFor(fixture(), 'acc-1', { from: 200, to: 300 });
+    // inside: s1 (−200) and g2 (+50); after the close: s2 (−100)
+    expect(s.closing).toBe(850);
+    expect(s.after).toBe(-100);
+    const line = statementLine(s);
+    expect(line).toContain('200..300');
+    expect(line).toContain('850');
+    expect(line).toContain('after −100');
+    expect(line).toContain('balance 750'); // closing + after, the account's present balance
+    // ...and the unbound statement says nothing about an `after` it does not have: omission means zero.
+    expect(statementLine(statementFor(fixture(), 'acc-1'))).not.toContain('after');
+  });
+
+  it('a window with no movements still walks its opening to its close and carries what follows', () => {
+    const s = statementFor(fixture(), 'acc-1', { from: 250, to: 290 });
+    // nothing happens inside; g1/s1 are before (opening 800), g2/s2 are after (−50)
+    expect(s.movements).toBe(0);
+    expect(s.entries).toEqual([]);
+    expect(s.opening).toBe(800);
+    expect(s.closing).toBe(800);
+    expect(s.after).toBe(-50);
+    const line = statementLine(s);
+    expect(line).toContain('250..290');
+    expect(line).toContain('no movements');
+    expect(line).toContain('800 → 800');
+    expect(line).toContain('after −50');
+    expect(line).toContain('balance 750');
+    expect(statementReconciles(fixture(), s)).toBe(true);
+  });
 });

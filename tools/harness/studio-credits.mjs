@@ -280,6 +280,63 @@ try {
     JSON.stringify(byListing.rows),
   );
 
+  // 6e. THE WINDOW IS THE READER'S (v537). A statement is a reading of the record, and WHICH window
+  // it reads is the host's choice, not the model's. The demo span is the fixture's own 2023 instants,
+  // so this session's movements fall AFTER the close: `closing` stops being the balance and the line
+  // must say so. The same window feeds the per-listing rows, so a refund whose purchase is outside it
+  // is stated as the refund it was (the Amendment 7 bound, now operable).
+  const readWindow = async () =>
+    page.evaluate(
+      "(() => { const rows = {}; for (const el of document.querySelectorAll('[data-credits-attr]')) { rows[el.getAttribute('data-credits-attr')] = el.textContent.trim(); } return { window: document.querySelector('[data-credits-window-line]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, line: document.querySelector('[data-credits-statement-line]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, card: document.querySelector('[data-credits-statement]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, rows }; })()",
+    );
+  const chooseWindow = async (choice, needle) => {
+    await page.evaluate(
+      `(() => { const b = document.querySelector('[data-credits-window="${choice}"]'); if (!b) return false; b.click(); return true; })()`,
+    );
+    await page.waitForFunction(
+      `(() => (document.querySelector('[data-credits-window-line]')?.innerText ?? '').includes(${JSON.stringify(needle)}))()`,
+      { timeout: 10000 },
+    );
+  };
+  await chooseWindow('demo', "the demo ledger's own span");
+  const demoWindow = await readWindow();
+  check(
+    'a BOUNDED window says what follows it: the demo span closes at 500 and names the +300 after it',
+    /1700000300000\.\.1700000400000/.test(demoWindow.line ?? '') &&
+      /0 → 500/.test(demoWindow.line ?? '') &&
+      /after \+300/.test(demoWindow.line ?? '') &&
+      /balance 800/.test(demoWindow.line ?? '') &&
+      /reconciles: yes/.test(demoWindow.card ?? '') &&
+      /tpl-saas: spent 500 · net -500 \(1 movement\(s\)\)/.test(demoWindow.rows['tpl-saas'] ?? '') &&
+      demoWindow.rows['tpl-mobile'] === undefined,
+    JSON.stringify(demoWindow),
+  );
+  await chooseWindow('session', 'since ');
+  const sessionWindow = await readWindow();
+  check(
+    'the SESSION window (since this page opened) folds the earlier era into the opening (500 → 800) and states the refund alone',
+    /statement: buyer-1 · \d{13}\.\.−/.test(sessionWindow.line ?? '') &&
+      /\+0 \/ −200/.test(sessionWindow.line ?? '') &&
+      /refunded 500/.test(sessionWindow.line ?? '') &&
+      /500 → 800/.test(sessionWindow.line ?? '') &&
+      !/ after /.test(sessionWindow.line ?? '') &&
+      /reconciles: yes/.test(sessionWindow.card ?? '') &&
+      /tpl-saas: refunded 500 · net 500 \(1 movement\(s\)\)/.test(sessionWindow.rows['tpl-saas'] ?? '') &&
+      /tpl-mobile: spent 200 · net -200 \(1 movement\(s\)\)/.test(sessionWindow.rows['tpl-mobile'] ?? ''),
+    JSON.stringify(sessionWindow),
+  );
+  await chooseWindow('all', 'all time');
+  const backToAll = await readWindow();
+  check(
+    'switching back to the whole record restores the all-time line and both rows',
+    /all time/.test(backToAll.window ?? '') &&
+      /statement: buyer-1 · all time/.test(backToAll.line ?? '') &&
+      !/ after /.test(backToAll.line ?? '') &&
+      /\(2 movement\(s\)\)/.test(backToAll.rows['tpl-saas'] ?? '') &&
+      /\(3 movement\(s\)\)/.test(backToAll.rows['tpl-mobile'] ?? ''),
+    JSON.stringify(backToAll),
+  );
+
   // 7. clearing writes a valid empty ledger and returns the page to its empty state.
   await page.evaluate("(() => { const b = document.querySelector('[data-credits-clear]'); if (!b) return false; b.click(); return true; })()");
   await sleep(300);

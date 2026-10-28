@@ -193,18 +193,29 @@ export function attributionLine(row: RefAttribution): string {
 
 /**
  * The one-line, deterministic verdict for a panel or a ledger row: the window, the flows, and the
- * closing balance. A statement with no movements says so rather than reporting a vacuous zero.
+ * walk from the opening to the close. A statement with no movements says so rather than reporting a
+ * vacuous zero.
+ *
+ * <p>`closing` is the balance AT THE CLOSE, which is the account's present balance only when no upper
+ * bound stopped the statement early (v537). When entries follow the close they are named — `after ±N ·
+ * balance M` — because a bounded statement that ended at `closing` would otherwise read as if the
+ * account stopped there. The clause is omitted when `after` is zero, the same rule the refund buckets
+ * follow: an unbounded statement is not made noisier by a clause that has nothing to say.
  */
 export function statementLine(statement: AccountStatement): string {
   const span = statement.from === null && statement.to === null ? 'all time' : `${statement.from ?? '−'}..${statement.to ?? '−'}`;
-  if (statement.movements === 0) return `statement: ${statement.accountId} · ${span} · no movements · balance ${statement.closing}`;
+  const after =
+    statement.after === 0
+      ? ''
+      : ` · after ${statement.after > 0 ? '+' : '−'}${Math.abs(statement.after)} · balance ${statement.closing + statement.after}`;
+  if (statement.movements === 0) return `statement: ${statement.accountId} · ${span} · no movements · ${statement.opening} → ${statement.closing}${after}`;
   // Refund-shaped flows are stated only when something of the kind happened: a statement with none
   // is not made noisier by two zeros, and a statement with one cannot hide it behind a net figure.
   const refundFlows =
     statement.refunded === 0 && statement.clawedBack === 0
       ? ''
       : ` · refunded ${statement.refunded} · clawed back ${statement.clawedBack}`;
-  return `statement: ${statement.accountId} · ${span} · +${statement.earned} / −${statement.spent}${refundFlows} over ${statement.movements} movement(s) · ${statement.opening} → ${statement.closing}`;
+  return `statement: ${statement.accountId} · ${span} · +${statement.earned} / −${statement.spent}${refundFlows} over ${statement.movements} movement(s) · ${statement.opening} → ${statement.closing}${after}`;
 }
 
 /**

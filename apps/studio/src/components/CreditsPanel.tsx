@@ -14,7 +14,7 @@ import {
   refundPurchaseUnderPolicy,
   type RefundPolicy,
 } from '@/lib/refundPolicy';
-import { attributionByRef, attributionLine, statementFor, statementLine, statementReconciles } from '@/lib/settlement';
+import { attributionByRef, attributionLine, statementFor, statementLine, statementReconciles, type SettlementWindow } from '@/lib/settlement';
 import type { TemplateListing } from '@/lib/templateCatalog';
 import { buildWalletView } from '@/lib/walletView';
 
@@ -48,6 +48,35 @@ export default function CreditsPanel() {
     () => (policyChoice === '30d' ? { windowMs: 30 * 86_400_000 } : NO_REFUND_DEADLINE),
     [policyChoice],
   );
+
+  /**
+   * The STATEMENT WINDOW the page reads over (v537). The model refuses to read a clock (ADR 0010), so
+   * the host chooses the window; this page offers three honest ones: the whole record, the demo
+   * fixture's own 2023 span (which puts this session's movements AFTER the close, so `closing` stops
+   * being the balance), and this page's session (which folds the demo era into the opening balance).
+   * The SAME window feeds `attributionByRef`, so the per-listing rows obey it too — a refund whose
+   * purchase falls outside the window is stated as the refund it was, which is the Amendment 7 bound
+   * made operable instead of implied.
+   */
+  const [windowChoice, setWindowChoice] = useState<'all' | 'demo' | 'session'>('all');
+  const sessionStart = useMemo(() => Date.now(), []);
+  const demoBounds = useMemo(() => {
+    const instants = scene.ledger.entries.map((e) => e.at);
+    return { from: Math.min(...instants), to: Math.max(...instants) };
+  }, [scene]);
+  // Named `statementWindow`, not `window`: this component reads `window.localStorage` below, and a
+  // shadowed global would compile to a ledger read off a SettlementWindow.
+  const statementWindow: SettlementWindow | undefined = useMemo(() => {
+    if (windowChoice === 'demo') return demoBounds;
+    if (windowChoice === 'session') return { from: sessionStart };
+    return undefined;
+  }, [windowChoice, demoBounds, sessionStart]);
+  const windowLabel =
+    windowChoice === 'all'
+      ? 'all time — every movement in the record'
+      : windowChoice === 'demo'
+        ? `${new Date(demoBounds.from).toISOString()}..${new Date(demoBounds.to).toISOString()} — the demo ledger's own span`
+        : `since ${new Date(sessionStart).toISOString()} — this page opened`;
 
   useEffect(() => {
     try {
@@ -142,11 +171,11 @@ export default function CreditsPanel() {
   // click re-asks with its own `Date.now()`, so a stale render can never authorise a write.
   const refundNow = Date.now();
   const creator = ledger ? buildCreatorDashboard(scene.catalog, ledger, scene.creatorId) : null;
-  const statement = ledger ? statementFor(ledger, scene.viewerId) : null;
-  // What each LISTING did for this account, by name (v536) — the same derived reading the statement
-  // makes, per ref, so a purchase that was fully refunded reports both halves instead of netting to a
-  // zero that would look like nothing happened.
-  const attribution = ledger ? attributionByRef(ledger, scene.viewerId) : [];
+  const statement = ledger ? statementFor(ledger, scene.viewerId, statementWindow) : null;
+  // What each LISTING did for this account, by name (v536), over the SAME window the statement reads
+  // (v537) — so a purchase that was fully refunded reports both halves instead of netting to a zero
+  // that would look like nothing happened, and a movement outside the window is not silently counted.
+  const attribution = ledger ? attributionByRef(ledger, scene.viewerId, statementWindow) : [];
   const reconciles = ledger && statement ? statementReconciles(ledger, statement) : false;
   const empty = !ledger || source === 'empty' || ledger.entries.length === 0;
 
@@ -243,7 +272,30 @@ export default function CreditsPanel() {
           {statement && (
             <section data-credits-statement style={{ border: '1px solid var(--nexus-border)', padding: 12 }}>
               <strong>STATEMENT</strong>
-              <div style={{ marginTop: 6 }}>{statementLine(statement)}</div>
+              {/*
+                The window is the READER's (v537). These buttons are the host choosing what the line
+                below and the per-listing rows are a reading OF; the model reads no clock, so none of
+                the three windows is a default it invented.
+              */}
+              <div
+                data-credits-window-strip
+                style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 6, flexWrap: 'wrap' }}
+              >
+                <span data-credits-window-line style={{ color: 'var(--nexus-muted)' }}>WINDOW · {windowLabel}</span>
+                {(['all', 'demo', 'session'] as const).map((choice) => (
+                  <button
+                    key={choice}
+                    type="button"
+                    className="btn"
+                    data-credits-window={choice}
+                    onClick={() => setWindowChoice(choice)}
+                    style={{ fontSize: 10, padding: '1px 6px', opacity: windowChoice === choice ? 1 : 0.6 }}
+                  >
+                    {choice === 'all' ? 'All time' : choice === 'demo' ? "Demo's span" : 'This session'}
+                  </button>
+                ))}
+              </div>
+              <div data-credits-statement-line style={{ marginTop: 6 }}>{statementLine(statement)}</div>
               <div>reconciles: {reconciles ? 'yes' : 'NO'}</div>
               {/*
                 The per-listing reading (v535/v536). The statement above says what moved; these rows say
@@ -254,9 +306,9 @@ export default function CreditsPanel() {
                 data-credits-attribution
                 style={{ marginTop: 8, borderTop: '1px solid var(--nexus-border)', paddingTop: 6 }}
               >
-                <div style={{ color: 'var(--nexus-muted)' }}>BY LISTING · what each one did for {scene.viewerId}</div>
+                <div style={{ color: 'var(--nexus-muted)' }}>BY LISTING · what each one did for {scene.viewerId} in this window</div>
                 {attribution.length === 0 ? (
-                  <div style={{ color: 'var(--nexus-muted)' }}>no movement carries a listing reference yet</div>
+                  <div style={{ color: 'var(--nexus-muted)' }}>no movement in this window carries a listing reference yet</div>
                 ) : (
                   attribution.map((row) => (
                     <div key={row.ref} data-credits-attr={row.ref} data-credits-attr-net={String(row.net)}>

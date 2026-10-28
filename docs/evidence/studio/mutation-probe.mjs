@@ -11,10 +11,12 @@
 //
 // sweep-budget-ms: 1200000
 // The budget above is the CI runner's and the agents sweep's to read (amendments 85 and 94), and it is
-// measured, not comfortable: 28 mutations, each a serial `vitest run` of the copied suite — 239 s standing
-// alone on 2026-10-28, all 28 KILLED. Readings move with host load, not with the arm count alone: the 27-arm
-// sweep read 241 s, the 25-arm 216 s and the 23-arm 166.2 s standing alone, and the 18-arm sweep read 410.7 s
-// standing alone and 404.9 s beside a concurrent `npm ci` earlier the same day on this Windows box. 1 200 000 ms
+// measured, not comfortable: 29 mutations, each a serial `vitest run` of the copied suite — the 28-arm run
+// stood alone at 239 s on 2026-10-28 with all 28 KILLED, and the 29-arm run (M29 added, v537) was ALL KILLED
+// the same day without a separately recorded wall time. Readings move with host load, not with the arm count
+// alone: the 27-arm sweep read 241 s, the 25-arm 216 s and the 23-arm 166.2 s standing alone, and the 18-arm
+// sweep read 410.7 s standing alone and 404.9 s beside a concurrent `npm ci` earlier the same day on this
+// Windows box. 1 200 000 ms
 // remains ~2.9x the SLOWEST reading and ~5.0x the latest standing one, which is the headroom a shared CI runner
 // needs; a row killed for being slow is a TIMEOUT, and amendment 85 refused to let that be the same verdict as
 // a failure.
@@ -72,6 +74,7 @@ const MUTATIONS = [
   { id: 'M26', file: 'settlement', find: "else if (flow.kind === 'refunded') cur.refunded += flow.amount;", replace: "else if (flow.kind === 'refunded') cur.earned += flow.amount;", why: 'per-ref attribution counts a returned purchase as income (its net no longer matches the ledger)' },
   { id: 'M27', file: 'settlement', find: 'else cur.clawedBack += flow.amount;', replace: 'else cur.spent += flow.amount;', why: 'per-ref attribution reports a seller claw-back as the creator buying something' },
   { id: 'M28', file: 'settlement', find: '  if (row.refunded !== 0) parts.push(`refunded ${row.refunded}`);', replace: '  parts.push(`refunded ${row.refunded}`);', why: 'the per-ref line claims a refund on every row, including the rows that never had one' },
+  { id: 'M29', file: 'settlement', find: 'statement.after === 0', replace: 'false', why: 'every statement names an `after` — including an unbounded one whose `after` is zero, so the clause stops meaning "entries follow the close"' },
 ];
 
 /**
