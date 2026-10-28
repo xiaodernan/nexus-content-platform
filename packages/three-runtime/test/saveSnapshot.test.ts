@@ -3124,7 +3124,18 @@ describe('M5 v256 — a save file’s rows are ordered by CREATION, not by a coi
   }
 
   it('mints a stamp that is fixed-width and strictly increasing, so the sort key IS the creation order', () => {
-    const ids = mint(runtime, scene, 200);
+    // The clock is PINNED for the mint loop. The 9→10 crossing inside one millisecond is the state an
+    // unpadded counter gets wrong, and racing the host to produce it made this case measure the machine:
+    // CI run 40664263104 failed it because a fast ubuntu loop crossed the millisecond boundary before
+    // stamp 10. With `Date.now` frozen the crossing exists by construction on every host, and the sort
+    // assertion below still fails on an unpadded counter — that is the property, not the host's speed.
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    let ids: EntityId[];
+    try {
+      ids = mint(runtime, scene, 200);
+    } finally {
+      clock.mockRestore();
+    }
     const malformed = ids.filter((id) => !ID_SHAPE.test(id));
     expect(malformed.slice(0, 3), `${malformed.length} of ${ids.length} minted ids do not spell <ms>-<8-digit stamp>-<tail>: ${malformed.slice(0, 3).join(', ')}`).toEqual([]);
 
@@ -3141,7 +3152,7 @@ describe('M5 v256 — a save file’s rows are ordered by CREATION, not by a coi
       const before = fieldsOf(ids[index - 1]!);
       return here.ms === before.ms && Number(here.stamp) === 10 && Number(before.stamp) === 9;
     }).length;
-    expect(nineToTen, 'no two mints crossed stamp 9 into 10 inside one millisecond, so no row here needed a fixed-width key').toBeGreaterThan(0);
+    expect(nineToTen, 'the pinned clock put every mint in one millisecond, so the 9 into 10 crossing must exist — a zero here means the mint loop read a clock it was told not to').toBeGreaterThan(0);
 
     // And the claim the file acts on: sorting the ids answers with the order the bodies were made.
     expect([...ids].sort(), 'sorting minted ids must answer with creation order').toEqual(ids);
