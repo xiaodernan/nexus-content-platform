@@ -112,7 +112,45 @@ axe-core（WCAG 2.0/2.1 A+AA 四个 tag），读 `violations`。
 证据——这条防的是扫描根本没发生）与 `critical === 0`。
 不断言 serious 数——0 是当前读数而不是保证，扫不到的面（见下）才是这一项真正的边界。
 
-notMeasured：键盘可达性人工走查、Studio / 市场等其余界面的 axe（本门只扫公开作品页）。
+notMeasured：键盘可达性（见下一节，已单独量过）、Studio / 市场等其余界面的 axe（本门只扫公开作品页）。
+
+### 只用键盘的人能不能走完这一页（键盘可达性 · e2e/keyboard-a11y.spec.ts）
+
+axe 量的是 DOM 的形状（有没有名字、对比度够不够），量不到 tab 顺序、焦点可见性，
+也量不到"点了会翻页的东西能不能被 Enter 按响"。载体用 §167 那份两页互动稿
+（首页一个 `click → navigate` 节点）：它是平台上唯一"必须按一下才走得通"的公开页，
+所以也是唯一能被键盘走查证伪的地方。访客匿名、只用键盘，`navigator.webdriver` 照 §167 盖掉。
+
+2026-10-28 读数：**分母（DOM 里可聚焦的控件）9 个 · 走查 11 步 · 页内命中 9 个（覆盖 9/9）·
+排除项 1 个（评论「发送」按钮 disabled，空输入时本来就不该可达）**。tab 顺序逐字等于 DOM 顺序：
+举报 → 点赞 → 关注 → Remix → 收藏 → 作者主页 → 复制链接 → 评论框 → 热点。
+焦点指示：前 8 个走 UA 默认环（computed `outline: solid 2px rgb(91,108,255)`），
+热点走 Tailwind ring（`box-shadow`，它自己写了 `focus:outline-none`）——页内**无指示的停留点 0 个**，
+唯一没有指示的是 Next 的开发工具 portal（在 `[data-published-root]` 之外，不是我们的界面）。
+焦点按 Enter 落在热点上：URL 变成 `?page=<终点页>`，`/api/published/work-complete` 回 **200 且
+`recorded: true`**——键盘走通与鼠标走通进的是同一个数，不是另开一条假路。
+
+六道结构不变式（首个红会遮住后面的门，所以"点名到缺陷"的那道放在最前）：
+非空转 / 热点在册 / 无陷阱 / 覆盖 / 顺序 / 焦点可见。变异臂 4 条（0=基线不改，跑完逐字节 md5 复核还原）：
+
+| 臂 | 缺陷 | 预测的首个红 | 实测 |
+| --- | --- | --- | --- |
+| 0 | 不改 | 全绿 | ✅ 1 passed |
+| A | 「复制链接」加正 `tabIndex={1}` | 门「顺序」 | ✅ MATCHED |
+| B | 热点加 `tabIndex={-1}` | 门「热点在册」 | ❌ 第一版红在门「顺序」 |
+| C | 热点摘掉 `focus-visible:ring-2` | 门「焦点可见」 | ✅ MATCHED |
+
+**B 这一臂否证了我写下的两句判据**，两句都已照实测改写：
+① 我原以为门「覆盖」能抓到"控件被改成 `tabindex=-1`／`disabled`"——抓不到：这两种写法会让控件
+**从分母里一起蒸发**，两侧同源就永远相等。现在排除项照实打印成读数，热点由「热点在册」那道专门门盯。
+② 我原以为 B 会先在热点那道上红——实际浏览器在热点退出 tab 序后，给投影出的根节点框**补了一个
+tab 停留点**（读数里那个 `div#NEXUS STUDIO…`），顺序门先红。红是真红，但报的不是这个缺陷，
+所以把「热点在册」提到走查之前重跑，B 才按名字红（上表记的是重跑后的结果，第一版记录留在
+`scratch-logs/kbd-battery.log`）。浏览器为什么会补出那个停留点，我没有证据，不作解释。
+
+顺带量到一条评测自己的运行条件：注册按 IP 限流 **10 次/小时**，而 e2e 有 10 个文件各注册一个新账号——
+连跑第二轮就会 429，界面上只留 `data-auth-identity="guest"`，看着像用例坏了。今天两次红都是这个原因。
+**没有为测试放宽那道闸**：报错里现在直接印 HTTP 答复码与限流说明，节奏限制写进 `docs/ENVIRONMENT.md`。
 
 ### Performance
 
@@ -147,5 +185,6 @@ notMeasured：键盘可达性人工走查、Studio / 市场等其余界面的 ax
 - Hallucination 的 LLM 裁判、Tool selection、Agent task completion——需真 provider / 真 agent 循环
 - RAG 的向量半（embedding provider 未接入，#110）
 - typography / componentCorrectness 视觉指标（需视觉 provider，§86 第二半）
-- 渲染后页面的键盘可达性（人工走查）；Studio 界面的 axe（已扫的只有公开作品页）
+- 键盘走查只走过公开作品页那一张（见上一节）——Studio / 市场 / 收件箱的 tab 序、焦点指示与陷阱都没量；
+  这些面的 axe 同样没扫（本门只扫公开作品页）
 - Performance——见 `docs/PERFORMANCE.md`

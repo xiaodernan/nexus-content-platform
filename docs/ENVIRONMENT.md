@@ -108,6 +108,11 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
 - web 通过 `NEXUS_AI_SERVICE_URL`（本地写在 `apps/web/.env.local`）访问；未设置时首页显示"未配置"，
   设置但连不上显示"不可达"，绝不显示成可用。
 - 内存约束：`next dev` + `uvicorn` + Postgres 已接近 2.5GB 空闲上限，Playwright 跑 e2e 时不要另开浏览器。
+- **注册限流给 e2e 的节奏设了上限**（2026-10-28 实测）：`POST /api/auth/register` 按 IP 滑动窗口
+  限 **10 次/小时**（`apps/web/src/app/api/auth/register/route.ts`），而 e2e 里 10 个文件各自注册一个新账号。
+  连着跑两轮浏览器用例，第二轮就会拿到 429，界面上只留一句"认证失败"、`data-auth-identity` 停在 `guest`——
+  看上去像用例坏了，其实是名额用光。**不要为了跑测试放宽这道闸**（它是 §SECURITY 的防批量建号）；
+  要么等窗口腾名额（每 6 分钟出一个），要么一轮里只挑相关的那几条跑。
 
 ## Git Hooks（重要）
 

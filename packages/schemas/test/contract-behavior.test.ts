@@ -45,6 +45,9 @@ function build(node: unknown, depth = 0): unknown {
       // 在报"自己的契约不认自己的报文"。真问题是最小报文生成器少认了一个标准 format，
       // 不是 schema 写错了，所以修在这（以后再有 email 字段也自动覆盖，不用补 OVERRIDES）。
       if (n['format'] === 'email') return 'user@example.com';
+      // z.string() 在 toJSONSchema 里若未显式指定 format，默认会生成 format:'custom'；
+      // 以前只写 date-time/uri/url/email 而漏掉 custom，导致自动造的字符串被 zod 判 invalid_format。
+      if (n['format'] === 'custom') return 'asset-xyz-123abc';
     }
     const min = typeof n['minLength'] === 'number' ? n['minLength'] : 1;
     return 'x'.repeat(Math.max(1, min));
@@ -106,6 +109,11 @@ const OVERRIDES: Record<string, unknown> = {
   PublishedGameCompleteRequestSchema: {
     path: '/n/handle/slug',
     visitorKey: '0123456789abcdef0123456789abcdef',
+  },
+  // §86 视觉基准对比请求：两个资产 id（均为客户端生成的任意字符串）。
+  VisualBenchmarkRequestSchema: {
+    referenceAssetId: 'ref_asset_1',
+    candidateAssetId: 'cand_asset_2',
   },
   // §167/§168 互动作品通关那一声：同一把 32 位十六进制 key + 客户端声称走到的终点页 id。
   PublishedWorkCompleteRequestSchema: {
