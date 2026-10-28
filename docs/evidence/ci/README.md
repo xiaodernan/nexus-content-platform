@@ -214,7 +214,9 @@ the three container rows need a docker daemon, the rest start children of their 
 verdict). v533's forty-eight rows ran on ubuntu for the first time in `40693312992` — **78/84 green, six
 platform reds** (`config`, `streams`, `hunk-shape`, `pipes`, `door-kill`, `reap`), each caused by a POSIX fact
 the proof had been taking from Windows; v534 repaired all six and verified each on both planes, and the
-post-fix ubuntu verdict is knowable only from the next run. Their authored timings
+post-fix verdict arrived as run `40697674971` (sha `604d14e`): **84/84 green of a derived population of 87 ·
+residue named: 3**, the six at `config` 0.5 s · `door-kill` 0.9 s · `hunk-shape` 0.4 s · `pipes` 0.4 s ·
+`reap` 6.3 s of its declared 600 000 ms · `streams` 1.0 s, the job in 5 m 10 s. Their authored timings
 above are this Windows box's, and the CI box has been 2–3× faster on every repo-wide row so far. The
 three lane rows have a REAL prerequisite: a docker daemon holding `node:22-alpine`. The workflow pre-pulls it
 before the proof step; a human running `verify:proofs` on a docker-less box will see those three redden with
