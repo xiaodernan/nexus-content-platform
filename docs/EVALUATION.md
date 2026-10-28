@@ -519,6 +519,70 @@ notMeasured：浅色主题**在浏览器里**仍没有门（axe 只跑暗色；�
 带透明度的底色（`bg-danger/10 + text-danger` 那类真底色是混合结果，按实底算会得到 1:1，只能交给浏览器判）、
 收起面板的 axe（名字那半已由 `control-names` 门接住，对比度与其余规则仍没有门）、后台 / 管理界面。
 
+#### 第十四片（2026-10-29）：手跑的见证等于没有见证——story 链的模型↔转写对账进 `npm test`
+
+尺子还是那句"说法与事实要对上"，这一遍量的是**评估自己**。ADR-0046 收尾时写的限度是原话：
+
+> 仍然欠的：产物侧是转写，不是 import——`story.ts` 改逻辑而产物不重新生成仍会分叉。
+
+对账**早就写过了**——`scripts/story-engine-proof.mts` 里那 11 条，第 ⑦ 条就是"同一串选择在
+模型与 `NexusStory` 两边跑出逐字段相同的状态"。但它住在 `scripts/` 下，`package.json` 里
+**连一个 npm script 都没有**（`parity:game-code`、`two:instance`、`realtime:two-process`、
+`probe:413` 都有，就它没有），`vitest.config.ts` 的 include 也不认它。也就是说：门是砌好的，
+只是没人踢就不会响。`story.ts` 改了重访计数或成环判定而产物转写没跟上，`npm test` 全绿——
+这与"没有这条门"是同一件事。`codegen.test.ts` 里那三条钉子（载荷形状 / 起点记进 visited /
+打不中返回同一个对象）看的都是**字节**，字节对得上而语义分叉抓不到。
+
+**做法**：新建 `packages/game-model/test/story-parity.test.ts`，把产物自己的 `engine.js`
+放进一个新建的 `vm` 上下文取出 `NexusStory`，喂它的计划是**它自己要念的那份**
+（`plan.json` 的字节 parse 回来，不是主机手里那个对象），与 `storyInitial` / `storyStep` /
+`storySummary` 逐步比三样东西：状态**字段集合**（模型加字段而转写漏了→精确报出 `模型独有 [x]`）、
+逐字段**的值**（按键排序后比，免得键序谎报分叉）、**摘要字符串**与**"打不中在原样返回同一个对象"**
+的引用契约（两边"动没动"必须一致）。十条线表驱动：直线到终点、绕回起点、自指一步成环、
+三岔汇合成环、正文留空、悬空引用 + 指着非对话的引用、全都互指（没有天然入口）、两条互不相连的线、
+一条对话都没有、`visual-novel` 同一条链。每跑完一遍都断言非空转：`steps>0`、`misses>0`、
+该走通的 `hits>0`、该成环的 `sawLoop`。每底稿还带一条 `premise`，钉住"投影真的把我以为的
+那个形状编出来了"（比如悬空那条：选择必须只剩 1 条，且 notes 里必须报出 1 条悬空 + 1 条非对话）。
+
+**首跑抓到自己一条空转**：13 条里红 1 条——"成环那条线真的把事件挤到上限"量到
+`maxEvents=39`，从没碰到 `EVENT_CAP=40`。默认 20 轮 × 一圈两个选择、其中只有重访那步才产生事件，
+堆不满。要是我当时把断言写成 `<= EVENT_CAP`，这条门就永远绿着却什么都没见证。改成那条线单独
+跑 60 轮，`maxEvents` 恰好等于 40——模型 `if (length > CAP) shift()` 一次、产物
+`while (length > RULES.eventCap) shift()`，两边丢弃最旧那一步第一次被真的比过。修完 13/13。
+
+**三条臂，各红一次**（都改完立刻恢复，md5 与备份逐字节一致）：
+
+| 臂 | 改哪 | 期望 | 实际读数 |
+| --- | --- | --- | --- |
+| H | 模型 `if (prior > 0)` → `prior > 1`（转写不动） | 成环判定分叉 | **6 failed / 7 passed**；最干净的一条是"自己指自己：第 1 步「d1-ref-0」之后：模型 `loop:false`、产物 `loop:true` + 事件「又回到「独白」（这段对话成环了）」" |
+| I | 模型 `StoryState` 多带一个 `turns`（转写不动） | 字段集合门 | **11 failed / 2 passed**，每条的消息就是 `开场：状态字段集合对不上——模型独有 [turns]、产物独有 []` |
+| J | 转写打不中那支 `return state` → `return Object.assign({}, state)` | 引用契约门 | **10 failed**，`第 2 步「根本没有这个选项」：一边动了引用、一边没动（模型原样返回、产物换新对象）`——**值完全相同**，只看 JSON 比不出来，`codegen.test.ts` 那三条字节的钉子这时全绿 |
+
+臂 J 是这一片最想要的东西：它证明第三条比较不是装饰。臂 H 证明前两条不是装饰。
+
+**收掉的重复见证**：删掉 `scripts/story-engine-proof.mts`。它那 11 条逐条都有归宿——①起点从
+投影来 / ③选一个跳到目标 / ④打不中状态不动 / ⑤成环标出 / ⑥摘要说清当前段落 / ⑦逐字段与摘要相同
+→ 本片的逐步对账（且从"一串 5 步"扩到十条线）；②非对话实体不进载荷 → 新增那条
+"非对话的实体一个都不进对话那份载荷"；载荷两份序列化逐字节相同、对话那页没有画布、README 与
+页面念同一句链名 → `codegen.test.ts` 本来就有（`:843` 那对、`:495` 那句）。留两份必然一份说谎。
+三处源码注释（`story.ts`、`codegen.ts`、`codegen.test.ts`）与 `docs/TESTING.md` 的指向一起改口。
+
+**关于 §81（生成代码不得在主机执行）**：在 `vm` 里跑的是 `codegen.ts` **自己的模板**，
+不是作者或 AI 写的代码——作者写的字只进 `plan.json`（数据），一个字都不进 `engine.js`。
+这句话不能只写在注释里，所以有一道门逐字扫：拿一份带"名字ZZZ甲 / 正文QQQ开场 / 选项MMM"的底稿，
+断言这三个串在 `engine.js` 里**一个都不出现**、在 `plan.json` 里**都出现**。哪天模板真的把内容
+拼进代码，这条先红，那时这份对账也不该在主机跑。上下文是 `vm.createContext({})` 新建的，
+没有 `require` / `process` / `fs`。
+
+**读数**：`npx vitest run packages/game-model/test/story-parity.test.ts` 14/14 绿（三条臂各自红过一次）；
+`npx vitest run packages/game-model` **14 files / 249 tests 全绿**（这片之前那一份记录写的是 235/235）；
+`tsc -p packages/game-model` 退 0、`eslint` 对改动的四个文件退 0。
+
+notMeasured：只把 **story 一条链**的对账搬进门。`topdown` 与 `rpg` 两条仍然只有
+`scripts/game-code-parity.mts` 的浏览器 scripted trace + `codegen.test.ts` 那道"数字由同一处供给"
+的静态闸——静态闸证明的是同一处供给，**不证明两边算术相同**，那条链 `sim.ts` 改了逻辑而产物没跟上，
+今天还得有人记得跑浏览器见证才知道。第二片量的正是这种"门在但没人踢"，这一片只还了三分之一。
+
 ### Performance
 
 不在此复测：规模基准与热点路径的真数见 `docs/PERFORMANCE.md`（§146/§147 测量协议）。

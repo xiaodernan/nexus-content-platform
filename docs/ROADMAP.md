@@ -6272,8 +6272,16 @@ tsc -p packages/video-model 0；改动文件 eslint 0。
 123 秒，300s 总预算在最后一张截图前被吃光（trace 里所有断言当时都已通过）。按仓库既有惯例
 （§52 Code 那支同因放到 600s）把这一支的预算也调到 600s——**只放宽时间，不动任何断言**。
 
-**仍然欠的**：产物侧是转写，不是 import——`story.ts` 改逻辑而产物不重新生成仍会分叉，
-这条限度留在 `CODEGEN_LIMITS` 里。
+**仍然欠的**：~~产物侧是转写，不是 import——`story.ts` 改逻辑而产物不重新生成仍会分叉，
+这条限度留在 `CODEGEN_LIMITS` 里。~~
+2026-10-29（评估第十四片）改口径：**转写这件事没变，变的是"分了叉没人知道"**。
+`packages/game-model/test/story-parity.test.ts` 把模型与产物里的 `NexusStory` 在同一串选择下的
+状态逐步对账（字段集合 / 逐字段值 / 摘要 / "打不中原样返回同一个对象"的引用契约），跑在 `npm test` 里。
+此前那份对账住在 `scripts/story-engine-proof.mts`——没有 npm script、不进 vitest include，
+只有人记得手动跑才响，等于一扇没人踢的门；脚本的 11 条逐条有了归宿之后删掉了。
+**照实还欠的那半**：`topdown` 与 `rpg` 两条链仍然只有浏览器 scripted 见证 +
+"数字由同一处供给"那道静态闸，静态闸不证明两边算术相同——`sim.ts` 改了逻辑而产物没跟上，
+今天还得有人跑 `npm run parity:game-code` 才知道。
 
 ## §52 产物第三条链的补记（#188 的见证补记）：对话那一段也有浏览器 scripted 见证，且"打不中"的引用契约与模型同形
 

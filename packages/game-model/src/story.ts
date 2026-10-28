@@ -199,7 +199,8 @@ export function compileStory(document: GameDocument): StoryPlan {
  * 为什么要从组件里搬出来：这一段规则（跳到哪一段、第几次走过、成环怎么标）原来只活在
  * `StoryPlay.tsx` 的 React 状态里，产物侧那一段 `NexusStory` 是另行转写的——两处对不上时
  * 只有真浏览器看得出来。搬进模型层之后，平台页面读这里，产物转写照着这里写，
- * `scripts/story-engine-proof.mts` 再把两边同一串选择跑出来的状态逐字段比一遍（§16）。
+ * `packages/game-model/test/story-parity.test.ts` 再把两边同一串选择跑出来的状态逐字段比一遍（§16）——
+ * 那是对账，不是 import：改这里的规则而不改转写，`npm test` 会红。
  *
  * 判定（起点、悬空引用、终点）**不在这里重做**：那些在编译期已经判完写进 `StoryPlan`，
  * 这里只负责播放——与 ADR-0046 给产物立的那条同一条规矩。

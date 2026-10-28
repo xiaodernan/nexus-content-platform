@@ -876,8 +876,10 @@ describe("第三条链：对话两型真的带对话引擎（ADR-0046）", () =>
 
 describe("对话那条链的转写：三个坑各钉一条", () => {
   /**
-   * 这三条是**实测抓出来的**（2026-10-20 用 Node 的 `vm` 直接跑产物里的 `NexusStory`；
-   * 那份脚本现在在 `scripts/story-engine-proof.mts`，浏览器那一层见 `scripts/game-code-parity.mts`）：
+   * 这三条是**实测抓出来的**（2026-10-20 用 Node 的 `vm` 直接跑产物里的 `NexusStory`，
+   * 那份脚本当时叫 `scripts/story-engine-proof.mts`；浏览器那一层见 `scripts/game-code-parity.mts`。
+   * 同一串对账现在住在 `packages/game-model/test/story-parity.test.ts`，跑在 `npm test` 里——
+   * 下面这三条钉子只看**字节**，字节对得上而语义分叉要靠那一份）：
    *
    * ① **载荷形状**：story 那条链的产物计划**就是** StoryPlan 本身（`artifactPayload` 交的是
    *    `compileStory` 的结果），不是 `{ story: StoryPlan }`。引擎若读 `plan.story.startId`，
