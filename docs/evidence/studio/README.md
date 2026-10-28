@@ -15,7 +15,7 @@ npm run verify:assets-surface         # the Assets surface's headless proof (M3 
 npm run verify:assets                 # 29/29 Assets-surface assertions in a real browser (needs the Studio on :3210)
 npm run verify:credits                # the M8 credits sub-system's headless proof (§1–§11: ledger, catalog, atomic marketplace, reconciling dashboard/statement, remix fork, derived wallet, wire format, local-first store, refund with the seller's claw-back named apart, refund policy, refund PREFLIGHT)
 npm run verify:mutation               # the M8 mutation probe: 25 deliberate breaks, each must be KILLED by the suite (temp copies; real source untouched)
-npm run verify:credits-surface        # 24/24 checks on the /credits page in a real browser — load, wallet/creator/statement, store, BUY, REFUND, reload-persistence, refund POLICY (a closed window DISABLES the Refund action with the reason before any click, pressing it writes nothing, switching back re-enables it), the seller's CLAW-BACK reported apart from spent (needs the Studio on :3210)
+npm run verify:credits-surface        # 26/26 checks on the /credits page in a real browser — load, wallet/creator/statement, store, BUY, REFUND, reload-persistence, refund POLICY (a closed window DISABLES the Refund action with the reason before any click, pressing it writes nothing, switching back re-enables it), the seller's CLAW-BACK reported apart from spent, and the refund DEADLINE stated beside the action (no deadline, or the preflight's own dated close) (needs the Studio on :3210)
 ```
 
 Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-parallelism`

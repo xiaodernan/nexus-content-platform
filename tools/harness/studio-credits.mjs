@@ -18,6 +18,9 @@
  *      same refund — the mechanism never makes this decision itself;
  *   6b. the refund is REPORTED under its own name: the creator dashboard shows the claw-back apart
  *      from `spent`, the statement shows `refunded` apart from `earned`, and both reconcile;
+ *   6c. the DEADLINE is visible (v534): beside the Refund action the row states the closing instant
+ *      the preflight computed — "no deadline" under a declared no-deadline policy, and a dated
+ *      `refund until …` for a purchase made under a 30-day window;
  *   7. clearing writes a VALID empty ledger and the page returns to its empty state;
  *   8. no uncaught page errors, and a screenshot is written as evidence.
  *
@@ -181,6 +184,16 @@ try {
     reenabled.disabled === false && reenabled.title === null && reenabled.blocked === null,
     JSON.stringify(reenabled),
   );
+  // v534: the deadline the preflight computed is SAID. Under "no deadline" the row states that, so a
+  // reader never has to infer "refundable forever" from the absence of a refusal.
+  const noDeadlineShown = await page.evaluate(
+    "(() => { const r = document.querySelector('[data-credits-listing=\"tpl-saas\"]'); const s = r?.querySelector('[data-credits-refund-until]'); return { attr: s?.getAttribute('data-credits-refund-until') ?? null, text: s?.textContent?.trim() ?? null }; })()",
+  );
+  check(
+    'with no declared deadline the surface says so beside the action',
+    noDeadlineShown.attr === 'no deadline' && /refund: no deadline/.test(noDeadlineShown.text ?? ''),
+    JSON.stringify(noDeadlineShown),
+  );
   await page.evaluate("(() => { const b = document.querySelector('[data-credits-refund=\"tpl-saas\"]'); if (!b) return false; b.click(); return true; })()");
   await page.waitForFunction("(document.querySelector('[data-credits-wallet]')?.innerText ?? '').includes('balance: 1000 credits')", { timeout: 10000 });
   const allowed = await page.evaluate(
@@ -204,6 +217,37 @@ try {
       /clawed back 500/.test(flows.creator ?? '') && /refunded 0/.test(flows.creator ?? '') &&
       /refunded 700/.test(flows.statement ?? '') && /reconciles: yes/.test(flows.statement ?? ''),
     JSON.stringify(flows),
+  );
+
+  // 6c. THE DEADLINE IS VISIBLE (v534). A purchase made NOW under a 30-day window is refundable until
+  // purchase + 30d, and the row must state that INSTANT — the preflight's `closesAt`, not a promise of
+  // "forever". The instant is read off the DOM attribute and parsed; the date is not asserted to the
+  // millisecond because the purchase instant is the page's clock, but it must be a real future instant.
+  const mobileBought = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-buy=\"tpl-mobile\"]'); if (!b) return false; b.click(); return true; })()",
+  );
+  await page.waitForFunction(
+    "(document.querySelector('[data-credits-wallet]')?.innerText ?? '').includes('balance: 800 credits')",
+    { timeout: 10000 },
+  );
+  const buyAt = Date.now();
+  await page.evaluate("(() => { const b = document.querySelector('[data-credits-policy=\"30d\"]'); if (!b) return false; b.click(); return true; })()");
+  await page.waitForFunction("(document.querySelector('[data-credits-policy-line]')?.innerText ?? '').includes('30-day window')", { timeout: 10000 });
+  await page.waitForFunction(
+    "(() => !!document.querySelector('[data-credits-listing=\"tpl-mobile\"] [data-credits-refund-until]'))()",
+    { timeout: 10000 },
+  );
+  const dated = await page.evaluate(
+    "(() => { const r = document.querySelector('[data-credits-listing=\"tpl-mobile\"]'); const s = r?.querySelector('[data-credits-refund-until]'); const b = r?.querySelector('[data-credits-refund=\"tpl-mobile\"]'); return { attr: s?.getAttribute('data-credits-refund-until') ?? null, text: s?.textContent?.trim() ?? null, disabled: b?.disabled ?? null }; })()",
+  );
+  const closesMs = typeof dated.attr === 'string' ? Date.parse(dated.attr) : NaN;
+  check(
+    'a purchase under a 30-day window shows WHEN its refund closes, and the action stays offered',
+    mobileBought === true && dated.disabled === false &&
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(dated.attr ?? '') &&
+      Number.isFinite(closesMs) && closesMs > buyAt - 1000 &&
+      /refund until \d{4}-/.test(dated.text ?? ''),
+    JSON.stringify(dated),
   );
 
   // 7. clearing writes a valid empty ledger and returns the page to its empty state.

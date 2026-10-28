@@ -304,6 +304,27 @@ export default function CreditsPanel() {
                             Refund
                           </button>
                         ) : null}
+                        {/*
+                          The DEADLINE the preflight already computed, said out loud (v534). v531 made
+                          the gate answer `closesAt` before a click; a surface that knows the instant
+                          and never shows it leaves the person to guess "until when?". This is the
+                          preflight's own answer, not a second computation: an eligible row states the
+                          instant its refund window closes, or that this host declared none.
+                        */}
+                        {eligibility?.eligible ? (
+                          <span
+                            data-credits-refund-until={
+                              eligibility.closesAt === null
+                                ? 'no deadline'
+                                : new Date(eligibility.closesAt).toISOString()
+                            }
+                            style={{ fontSize: 10, color: 'var(--nexus-muted)', alignSelf: 'center' }}
+                          >
+                            {eligibility.closesAt === null
+                              ? 'refund: no deadline'
+                              : `refund until ${new Date(eligibility.closesAt).toISOString()}`}
+                          </span>
+                        ) : null}
                       </td>
                     </tr>
                   );
