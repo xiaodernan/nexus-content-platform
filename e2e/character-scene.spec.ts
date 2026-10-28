@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createProjectNamed } from './support/auth-session';
 
 /**
  * §39 / §40 的 Character → Scene 在真浏览器里点一遍。
@@ -10,11 +11,7 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 async function openStudio(page: Page, name: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await createProjectNamed(page, name);
 }
 
 test('@smoke 角色 → 场景：填了视觉标识才点得动，生成物进同一份清单并带 DEMO 角标', async ({ page }) => {

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createProjectNamed, registerMember } from './support/auth-session';
 
 /**
  * §165 搜索的**浏览器那一寸**（ADR-0056）：相关度排序在真页面上真的按那四档排。
@@ -20,20 +21,12 @@ const RUN = Date.now().toString(36);
 const TOKEN = `样板${RUN}`;
 
 async function register(page: Page, email: string, password: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-auth-email]', email);
-  await page.fill('[data-auth-password]', password);
-  await page.click('[data-auth-submit]');
-  await expect(page.locator('[data-auth-identity]')).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
+  await registerMember(page, email, password);
 }
 
 /** 用首页真实的那个入口建项目（不是直接写库 ⇒ 建出来的是平台自己的项目） */
 async function createProject(page: Page, name: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await createProjectNamed(page, name);
 }
 
 test('@smoke §165 搜索：相关度排在更新时间前面（标题完全一样的那条在最前）', async ({ page }) => {

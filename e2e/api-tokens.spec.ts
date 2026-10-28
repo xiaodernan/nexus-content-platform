@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createProjectNamed, registerMember } from './support/auth-session';
 
 /**
  * §188 M8 的真浏览器那一寸：凭据不是"看起来配好了"，而是**真发一次 HTTP 拿回真 JSON**。
@@ -21,19 +22,11 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 async function createProjectAsGuest(page: Page, name: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await createProjectNamed(page, name);
 }
 
 async function register(page: Page, email: string, password: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-auth-email]', email);
-  await page.fill('[data-auth-password]', password);
-  await page.click('[data-auth-submit]');
-  await expect(page.locator('[data-auth-identity]')).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
+  await registerMember(page, email, password);
 }
 
 /** 在页面上下文里真发一次带 Bearer 的请求，返回状态码与报文里的 error（不是 fetch 的模拟） */

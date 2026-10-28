@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { createProjectNamed } from './support/auth-session';
 
 /**
  * §168 的第二片（按天曲线与跨作品总览）在真浏览器里的那一格。
@@ -18,11 +19,7 @@ test('@smoke §168 曲线：窗口是密集的，缺的那天在图上看得出�
   test.setTimeout(300_000);
   const name = `曲线作品${Date.now().toString(36)}`;
 
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await createProjectNamed(page, name);
 
   await page.click('[data-publish-open]');
   await expect(page.locator('[data-publish-submit]')).toBeVisible();
@@ -109,11 +106,7 @@ test('@smoke §168 导出：点那个链接真的下一个 CSV 下来，数字�
   test.setTimeout(300_000);
   const name = `导出作品${Date.now().toString(36)}`;
 
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await createProjectNamed(page, name);
 
   // 发布一版 ⇒ 才有"发布过的版本"可导
   await page.click('[data-publish-open]');

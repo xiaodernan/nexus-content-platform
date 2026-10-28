@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { expect, test, type Page } from '@playwright/test';
+import { createProjectNamed, registerMember } from './support/auth-session';
 
 /**
  * §85 第二片：**渲染后页面的无障碍**——§85 第一切片 notMeasured 清单里
@@ -35,20 +36,11 @@ interface AxeResults {
 }
 
 async function register(page: Page, email: string, password: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-auth-email]', email);
-  await page.fill('[data-auth-password]', password);
-  await page.click('[data-auth-submit]');
-  await expect(page.locator('[data-auth-identity]')).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
+  await registerMember(page, email, password);
 }
 
 async function createProject(page: Page, name: string): Promise<string> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
-  return new URL(page.url()).pathname.split('/').pop()!;
+  return createProjectNamed(page, name);
 }
 
 test('§85 渲染后无障碍：公开作品页跑 axe（WCAG 2.0/2.1 A+AA），读数进 EVALUATION', async ({ page, browser }) => {

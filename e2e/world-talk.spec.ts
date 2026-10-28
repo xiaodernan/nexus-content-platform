@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createProjectNamed } from './support/auth-session';
 
 /**
  * §140 的 talk 在真浏览器里点一遍：3D 世界的 HUD 上「跟角色说话」展开的是
@@ -7,12 +8,7 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 async function createProject(page: Page, name: string): Promise<string> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
-  return page.url().split('/').pop()!;
+  return createProjectNamed(page, name);
 }
 
 test('@smoke 世界 talk：HUD 上跟 §46 角色档案说话，DEMO 下诚实 409', async ({ page }) => {

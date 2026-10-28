@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+import { loginMember, registerMember } from './support/auth-session';
+import { createProjectNamed } from './support/auth-session';
 
 /**
  * §133 teamCollaboration（#201-203）的浏览器全链路：owner 发邀请 → editor 接受 → 名册多一个人。
@@ -19,20 +21,11 @@ import { expect, test, type Page } from '@playwright/test';
 const password = 'e2e-team-secret-123';
 
 async function registerVia(page: Page, email: string): Promise<void> {
-  await page.goto('/');
-  await page.click('[data-auth-tab="register"]');
-  await page.fill('[data-auth-email]', email);
-  await page.fill('[data-auth-password]', password);
-  await page.click('[data-auth-submit]');
+  await registerMember(page, email, password);
 }
 
 async function loginVia(page: Page, email: string): Promise<void> {
-  await page.goto('/');
-  await page.click('[data-auth-tab="login"]');
-  await page.fill('[data-auth-email]', email);
-  await page.fill('[data-auth-password]', password);
-  await page.click('[data-auth-submit]');
-  await expect(page.locator('[data-auth-identity]')).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
+  await loginMember(page, email, password);
 }
 
 /**
@@ -59,9 +52,7 @@ test('@smoke §133 团队协作：owner 发邀请 → 换 editor 登录接受 �
   // owner 注册 → 建项目
   await registerVia(page, ownerEmail);
   await expect(page.locator('[data-auth-identity]')).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
-  await page.fill('[data-project-name-input]', `团队项目 ${stamp}`);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
+  await createProjectNamed(page, `团队项目 ${stamp}`);
   const studioUrl = page.url();
 
   // ① 团队面板：名额从 roster 来（free 档 1 人，不含所有者）

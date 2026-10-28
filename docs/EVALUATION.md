@@ -220,6 +220,28 @@ tab 停留点**（读数里那个 `div#NEXUS STUDIO…`），顺序门先红。�
 另有 9 个 e2e 文件仍是老的无屏障写法（`data-auth-email` 一填就点，今天全绿的记录不变），
 已按名字记进 `docs/ROADMAP.md` 的技术账。
 
+#### 第六片：屏障铺到其余浏览器用例，顺手让共享 helper 自己现形（2026-10-28 同日）
+
+那条技术账记的是"9 个文件"，实际扫下来是 **20 个 spec 有同一族无屏障写法**——不止注册那 9 个，
+建项目那一条腿（`fill` 名字就点）同样会静默丢点击。改法是零调用点改动：各文件的本地 helper
+保留名字与签名，函数体换成对 `support/auth-session.ts` 的一行委托；本地特有的附加等待
+（`waitForCanvas`、`[data-node-id]` 数 8）留在原处。`auth.spec.ts` 是唯一例外——
+被测的就是登录/注册这条流程，整段换成 `registerMember` 等于不测它，于是只借
+`waitForAuthFormHydrated` 那一层屏障，登录/注册/错误口令三条腿仍自己走。净减 90 行重复。
+
+**共享 helper 第一次被大量调用，当场露出第二个洞**：建项目也有限流
+（`POST /api/projects` 每 IP 每小时 **20 次**——比注册那道 10 次/小时更容易先撞），
+而被拒时 `createProjectNamed` 只是 `waitForURL` 等满 60 秒报"导航超时"，真原因（界面上那句
+"建项目太频繁了，稍后再试"）一个字都不露。我因此误判过一次"5 条 studio 用例回归"。
+现在它先把那次 POST 的答复接住，非 2xx 当场带话收场。
+**这条新路径是拿真实现场验的电**（不是构造的）：名额正好用光时重跑，报错从
+`TimeoutError: page.waitForURL: Timeout 60000ms exceeded` 变成
+`HTTP 429 · 界面上写：建项目太频繁了，稍后再试——这是建项目限流：等窗口腾出名额再跑，别放宽产品里那道闸`。
+
+复跑读数：auth 2 条／storyboard 8 条／team 1 条／account-deletion 1 条／character-chat 1 条／
+studio 前 4 条——**全绿**；studio 其余几条撞在上面那道限流上，等窗口腾名额再补，
+数字与"别放宽闸"记进 `docs/ENVIRONMENT.md`。
+
 #### 第五片：还浅色那笔账时，发现门自己在无声跳过（2026-10-28 同日）
 
 第四片记了一笔"今天不算违规、只因为产品里没有切到浅色的入口"的账（`bg-brand text-bg-0` 浅色 4.17）。

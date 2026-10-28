@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createProjectNamed } from './support/auth-session';
 
 /**
  * §40-42 的分镜面板在真浏览器里点一遍：切一版 → 改一镜 → 撤销 → 重读 → 整页刷新。
@@ -11,11 +12,7 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 async function openStudio(page: Page, name: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await createProjectNamed(page, name);
 }
 
 async function openStoryboardPanel(page: Page): Promise<void> {

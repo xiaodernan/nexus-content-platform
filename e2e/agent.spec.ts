@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createProjectNamed, registerMember } from './support/auth-session';
 
 /**
  * §112 多步 Agent 协作的真浏览器那一寸（§158 的 Run → Test → Screenshot → Inspect）。
@@ -24,22 +25,14 @@ import { expect, test, type Page } from '@playwright/test';
 const RUN = Date.now().toString(36);
 
 async function register(page: Page, email: string, password: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-auth-email]', email);
-  await page.fill('[data-auth-password]', password);
-  await page.click('[data-auth-submit]');
-  await expect(page.locator('[data-auth-identity]')).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
+  await registerMember(page, email, password);
 }
 
 /** 建一个项目并等画布真的画出那 8 个节点——读数要跟画布对，所以先等画布稳定 */
 async function createProject(page: Page, name: string): Promise<string> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  const id = await createProjectNamed(page, name);
   await expect(page.locator('[data-node-id]')).toHaveCount(8);
-  return new URL(page.url()).pathname.split('/').pop()!;
+  return id;
 }
 
 async function readJson<T>(page: Page, path: string): Promise<T> {

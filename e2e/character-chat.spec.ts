@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createProjectNamed } from './support/auth-session';
 
 /**
  * §47 的「跟角色说话」在真浏览器里点一遍。
@@ -9,11 +10,7 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 async function openStudio(page: Page, name: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await createProjectNamed(page, name);
 }
 
 test('@smoke 角色对话：DEMO MODE 下诚实地说"需要真 provider"，不编一句假回复', async ({ page }) => {

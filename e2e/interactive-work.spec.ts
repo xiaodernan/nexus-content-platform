@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createProjectNamed, registerMember } from './support/auth-session';
 
 /**
  * §167 **互动作品的 completion** 在真浏览器里的那一寸。
@@ -25,20 +26,11 @@ import { expect, test, type Page } from '@playwright/test';
 const RUN = Date.now().toString(36);
 
 async function register(page: Page, email: string, password: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-auth-email]', email);
-  await page.fill('[data-auth-password]', password);
-  await page.click('[data-auth-submit]');
-  await expect(page.locator('[data-auth-identity]')).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
+  await registerMember(page, email, password);
 }
 
 async function createProject(page: Page, name: string): Promise<string> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
-  return new URL(page.url()).pathname.split('/').pop()!;
+  return createProjectNamed(page, name);
 }
 
 /**

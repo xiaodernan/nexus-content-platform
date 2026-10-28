@@ -1,6 +1,7 @@
 import { deflateSync } from 'node:zlib';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page, type Request } from '@playwright/test';
+import { createProjectNamed } from './support/auth-session';
 
 /**
  * Studio 竖向切片（§M1）：建项目 → 画布渲染模型 → 选中/改属性 → AI 命令栏（DEMO MODE）→ 撤销 → 自动保存。
@@ -8,12 +9,9 @@ import { expect, test, type Page, type Request } from '@playwright/test';
  */
 
 async function createProject(page: Page, name: string): Promise<string> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
+  const id = await createProjectNamed(page, name);
   await waitForCanvas(page);
-  return new URL(page.url()).pathname.split('/').pop()!;
+  return id;
 }
 
 /** 客户端 store 载入是异步的：先等模型投影出现，再断言具体数量 */

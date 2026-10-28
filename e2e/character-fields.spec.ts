@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createProjectNamed } from './support/auth-session';
 
 /**
  * §39 / §46：角色面板里所有"列表型"字段（目标 / 恐惧 / 口头禅 / 母题 / 色板 / 特征）
@@ -8,11 +9,7 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 async function openStudio(page: Page, name: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await createProjectNamed(page, name);
 }
 
 test('@smoke 角色列表字段：逐键输入的换行/逗号/空格不被吃掉，保存后重载仍在', async ({ page }) => {

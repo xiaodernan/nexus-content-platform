@@ -113,6 +113,13 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
   连着跑两轮浏览器用例，第二轮就会拿到 429，界面上只留一句"认证失败"、`data-auth-identity` 停在 `guest`——
   看上去像用例坏了，其实是名额用光。**不要为了跑测试放宽这道闸**（它是 §SECURITY 的防批量建号）；
   要么等窗口腾名额（每 6 分钟出一个），要么一轮里只挑相关的那几条跑。
+- **建项目也有限流，而且比注册那一道更早撞**（同日实测）：`POST /api/projects` 按 IP 限
+  **20 次/小时**（`apps/web/src/app/api/projects/route.ts` 的 `ipWriteGate('projects/create', …)`）。
+  一条 studio 用例动辄建一个项目，`e2e/studio.spec.ts` 单文件就有 57 处调用，所以**跑这一支的
+  中途就会把名额用光**——2026-10-28 实测：storyboard（8 条）+ team + account-deletion 之后，
+  studio 那批只剩 4 条能过。界面上只写一句"建项目太频繁了，稍后再试"。
+  `createProjectNamed` 现在把这次 POST 的答复接住了：非 2xx 当场带话收场，不再等满 60 秒导航超时。
+  同样**不要为测试放宽它**；挑着跑，或等窗口（每 3 分钟出一个名额）。
 - **"身份还是 guest"有第二种成因，别一上来就怪限流**（同日实测）：这些界面是 SSR 出来的，HTML 一 attach
   就能 `fill`／`click`，可那一刻 React 的委托监听还没挂上，**点击会静默丢掉**——POST 压根没发出去。
   分辨只看答复码：`0` = 点击被吞（水合没到），`429` = 限流。屏障不能用 `waitForSelector('[data-auth-tab=…]')`

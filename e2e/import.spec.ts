@@ -5,6 +5,7 @@ import { expect, test, type Page } from '@playwright/test';
 // 打包用的写入器就是导出那一条链上的同一个（store、不压缩）：
 // 这里要的是"一份合法但没清单的 ZIP"，自己手拼字节只会测到我自己的拼法
 import { textEntry, zipStore } from '../apps/web/src/lib/zip';
+import { createProjectNamed } from './support/auth-session';
 
 /**
  * §105 / §144 第二片的真浏览器那一寸：作者下载的那份 zip，**在浏览器里点一下就能装回来**。
@@ -25,12 +26,7 @@ import { textEntry, zipStore } from '../apps/web/src/lib/zip';
 const ZIP_PATH = resolve('.scratch/browser-import-source.zip');
 
 async function createProject(page: Page, name: string): Promise<string> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
-  return new URL(page.url()).pathname.split('/').pop()!;
+  return createProjectNamed(page, name);
 }
 
 /** 顶栏那三样默认全勾，直接下载；文件留在磁盘上给导入那一步用 */

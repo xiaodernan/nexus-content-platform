@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createProjectNamed } from './support/auth-session';
 
 /**
  * §38 Image Studio 的第一条箭头（Text → Image）在真浏览器里走一遍。
@@ -14,13 +15,9 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 async function createProject(page: Page, name: string): Promise<string> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  const id = await createProjectNamed(page, name);
   await expect(page.locator('[data-node-id]')).toHaveCount(8);
-  return new URL(page.url()).pathname.split('/').pop()!;
+  return id;
 }
 
 async function layerId(page: Page, name: string): Promise<string> {

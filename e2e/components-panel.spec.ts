@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createProjectNamed } from './support/auth-session';
 
 /**
  * §13 组件的界面投影：把选中的框存为主组件、删除它，并且**撤销能完整回来**。
@@ -11,11 +12,7 @@ import { expect, test } from '@playwright/test';
  */
 
 async function openStudio(page: import('@playwright/test').Page, name: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await createProjectNamed(page, name);
 }
 
 test('@smoke 组件面板：存为组件 → 删除 → 撤销把定义与实例链接一起带回来', async ({ page }) => {

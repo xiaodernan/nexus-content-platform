@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { createProjectNamed, registerMember } from './support/auth-session';
 
 /**
  * §144 最后一格（注销账号 / ADR-0025 的六件事）在真浏览器里的那一格。
@@ -13,11 +14,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
  */
 
 async function createProject(page: Page, name: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('[data-project-name-input]', name);
-  await page.click('[data-create-project]');
-  await page.waitForURL(/\/studio\/[^/]+$/);
-  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 60_000 });
+  await createProjectNamed(page, name);
 }
 
 /** 发布到公网：拿到 `/n/<handle>/<slug>`，作者名也从这一页的标题栏读，不在测试里重打一遍 */
@@ -47,11 +44,7 @@ test('@smoke §144 注销：数从服务端来 → 打错字看得见 → 收据
   const draftName = `收走的草稿 ${tag}`;
 
   // 1) 注册成真实账号——"注销"这件事只有对登录得进来的账号才做得成
-  await page.goto('/');
-  await page.fill('[data-auth-email]', email);
-  await page.fill('[data-auth-password]', password);
-  await page.click('[data-auth-submit]');
-  await expect(page.locator('[data-auth-identity]')).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
+  await registerMember(page, email, password);
 
   // 2) 一个发布过的作品（留下）+ 一个从没发布过的草稿（收进回收站）
   await createProject(page, publishedName);

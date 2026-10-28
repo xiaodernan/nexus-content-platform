@@ -1919,6 +1919,19 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   （可见文字"图"是"图层"的前缀，2.5.3 也过）。
   **仍欠**：① 那 194 处"强调色当文字"在浅色下的 -ink token（入口出现即被上面的自查门逼出来）；
   ② 浅色主题至今没有任何浏览器门（axe 只跑暗色），它现在只有 token 层的字面值门兜着。
+  **第六片同日落地：把水合屏障铺到其余浏览器用例**（技术账①还清）。实测范围比①记的宽——
+  不止那 9 个注册的文件，**20 个 spec 里有同一族无屏障写法**（`fill` 项目名就点、`fill` 邮箱就点提交），
+  每一条都可能静默丢点击。改法不动任何调用点：各文件那个本地 helper 保留名字与签名，
+  函数体换成对 `support/auth-session.ts` 的**一行委托**，本地特有的附加等待（`waitForCanvas`、
+  `[data-node-id]` 数 8）留在原处；`auth.spec.ts` 例外——它测的就是登录/注册这条流程本身，
+  整段换成 `registerMember` 等于不测它，所以只借 `waitForAuthFormHydrated` 这一层屏障。
+  净减 90 行重复。**共享 helper 于是第一次被真正大量调用**，当场露出它自己的第二个洞：
+  建项目也有限流（`POST /api/projects` 每 IP 每小时 **20 次**），被拒时 `waitForURL` 只会安静耗满
+  60 秒再报"导航超时"，把真原因埋得死死的（我据此误判过一次"5 条 studio 用例回归"）。
+  现在它把那次 POST 的答复接住、非 2xx 当场带话收场，并且这条新路径**是拿真实的名额耗尽现场验的电**：
+  报错从"Timeout 60000ms"变成"HTTP 429 · 界面上写：建项目太频繁了，稍后再试"。
+  复跑：auth(2)／storyboard(8)／team／account-deletion／character-chat／studio 前 4 条全绿；
+  studio 其余几条撞在建项目限流上，等窗口再补（`docs/ENVIRONMENT.md` 记了这道闸的数字）。
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在
   `docs/PERFORMANCE.md`。2026-09-24 补上浏览器端：`npm run perf:browser`（`scripts/perf-browser.mts`）
   在真 Chrome 里量首帧、pan/zoom 帧距与"属性写入→画布重绘"延迟，当天数字与其三条必须一起读的限定
