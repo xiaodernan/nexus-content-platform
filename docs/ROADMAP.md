@@ -1373,6 +1373,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   已了结的一笔：`projects.deletedAt` 以前只有读没有写，sitemap 那条谓词只是防御性的——
   2026-09-26 §74 补上写入方之后它变成可测的，`project-delete.integration.test.ts` 里
   "删掉的项目不在 sitemap、恢复后又在"就是那条断言。
+  **2026-10-29 收的尾**：`seo.integration.test.ts` 那一条同主题的用例当时还写着"软删这列没有写入方"，
+  直接 `UPDATE … SET deleted_at` 绕过域函数——那句前提早已过期，改成走 `softDeleteProject`，
+  并补上以前哪都没有的那一格：**确认门拒绝的那一次，清单与 URL 一个字都不该变**（审计同时留一条 `allowed=false`）。
   **封面图已在 2026-10-07 落地**（见 commit 9353d02：发现页卡片显示封面图）；
   `/u/<handle>` 与 `/discover` 的 per-page metadata 没做（§166 原文范围是 public projects）；
   sitemap 截到 5000 条，超了只 warn + 截断，没有 sitemap index。
@@ -2106,7 +2109,14 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   **"终态由有人来问才收敛"是这一片的取舍而不是疏忽**，为什么不许 web 起后台轮询器写在
   `docs/adr/0011-job-convergence-on-read.md`；那句"没人问就一直停在在跑"是真的，别读成"后台会自己补上"。
   还欠：界面上提交异步作业的入口与那条 409 的验证——**同日已经补上**（见下面 §162 × §74 那一条）；
-  跨实例的游标要靠 Redis 后端；真 ai-service + 真 worker 的端到端一条待补。
+  ~~跨实例的游标要靠 Redis 后端~~——**2026-10-29 核对后改口径**：活动游标是 `agent_tasks.activity_cursor`
+  这一**列**，由 `bumpActivityCursor` 的 CAS 推进（`domain/agent-tasks.ts:404`），本来就跨实例——
+  两个 web 进程同时来问也只有一个推得动。这一句今天有了凭证而不只是推断：
+  `ai-jobs.integration.test.ts` 新增"两个观察者同时来问同一个作业"，两次 GET 由测试里的
+  一道闸强制同时在飞（判据含 `maxInFlight === 2`，闸没生效时那条用例自己红），
+  推出来的事件是 3 条而不是 6 条；把 CAS 的谓词摘掉，它当场红在 6 条上。
+  真要靠 ai-service 那侧 Redis 后端的是**作业本身活在哪个进程**（`backend: 'memory'` 那句提示说的就是这件事）。
+  仍欠：真 ai-service + 真 worker 的端到端一条待补。
 - [x] §162 × §74：异步作业的结果接上同一道审批门，Studio 有了真入口（2026-09-26）—
   上面那片记的两句欠账其实是一句链：**没有入口 → 没人来问 → 终态不收敛**。而当时就算有人问，
   拿到的也只是状态：`settle` 把 provider 那份完整结果换成一句摘要（`result.detail`）就完事，

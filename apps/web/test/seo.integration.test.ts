@@ -1,11 +1,11 @@
 import { raisePlan } from './support/test-plan';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq, sql as rawSql } from 'drizzle-orm';
+import { and, eq, sql as rawSql } from 'drizzle-orm';
 import { listSitemapEntries, publishProject, resolvePublishedPath, unpublishProject, type PublishedPage } from '../src/server/domain/publish';
 import { buildPublishedSeo } from '../src/server/domain/seo';
-import { createProject } from '../src/server/domain/projects';
+import { createProject, softDeleteProject } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
-import { projects, publishedProjects, users } from '../src/server/db/schema';
+import { auditEvents, projects, publishedProjects, users } from '../src/server/db/schema';
 
 /**
  * §166 的读取端：sitemap 与公开页元数据。
@@ -36,6 +36,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   const db = getDb();
+  // 审计行的 actorId 是 `onDelete: 'set null'`，不先清就会在下面删用户之后留下无主的行
+  await db.delete(auditEvents).where(eq(auditEvents.actorId, ownerId));
   await db.delete(projects).where(eq(projects.ownerId, ownerId));
   await db.delete(users).where(eq(users.id, ownerId));
 });
@@ -64,6 +66,17 @@ async function setModeration(publicationId: string, moderation: 'pending' | 'rej
   await db.update(publishedProjects).set({ moderation }).where(eq(publishedProjects.id, publicationId));
 }
 
+/** 这一条用例自己造的审计行（按项目 + 放行与否取，避免读到别人留下的同名动作） */
+async function auditRow(projectId: string, allowed: boolean): Promise<unknown> {
+  const db = getDb();
+  const [row] = await db
+    .select({ action: auditEvents.action, allowed: auditEvents.allowed, detail: auditEvents.detail })
+    .from(auditEvents)
+    .where(and(eq(auditEvents.targetId, projectId), eq(auditEvents.action, 'project.delete'), eq(auditEvents.allowed, allowed)))
+    .limit(1);
+  return row ?? null;
+}
+
 describe('sitemap 与公开页元数据（真实数据库）', () => {
   it('public 进清单；unlisted 不进，同一次查询里互为对照', async () => {
     const listed = await publish(`SEO 公开${RUN}`, 'public');
@@ -90,17 +103,36 @@ describe('sitemap 与公开页元数据（真实数据库）', () => {
     expect(await resolvePublishedPath(target.publication.path)).toBeNull();
   });
 
-  it('项目删除后不再出现在清单里（软删这列目前没有写入方，按读取端规则直接写列）', async () => {
-    const db = getDb();
-    const target = await publish(`SEO 待删除${RUN}`, 'public');
+  it('项目删除后不再出现在清单里（走的是真删除那条路：确认名不对就不该收手）', async () => {
+    const name = `SEO 待删除${RUN}`;
+    const target = await publish(name, 'public');
     const control = await publish(`SEO 删除对照${RUN}`, 'public');
     expect(await sitemapPaths()).toContain(target.publication.path);
 
-    await db.update(projects).set({ deletedAt: new Date() }).where(eq(projects.id, target.publication.projectId));
+    /**
+     * 这一条以前是直接 `UPDATE projects SET deleted_at`，标题写着"软删这列目前没有写入方"。
+     * 那句已经过期：`softDeleteProject` 是它的第一个写入方。绕过域函数写列，测到的是
+     * "读取端认得这一列"，而产品里根本没有"绕过域函数"的那条路——真删项目时如果确认门、
+     * 归属门或审计哪一段坏了，这条用例照样绿。所以改成走真那一步，并且先演一次"没删成"。
+     */
+    const refused = await softDeleteProject(ownerId, target.publication.projectId, '名字打错了');
+    expect(refused).toEqual({ ok: false, code: 'approval_required' });
+    const stillThere = await sitemapPaths();
+    expect(stillThere).toContain(target.publication.path);
+    expect(await resolvePublishedPath(target.publication.path)).not.toBeNull();
+    expect(await auditRow(target.publication.projectId, false)).toMatchObject({
+      action: 'project.delete',
+      detail: { reason: 'confirm_mismatch' },
+    });
+
+    const deleted = await softDeleteProject(ownerId, target.publication.projectId, name);
+    expect(deleted).toEqual({ ok: true, name });
     const paths = await sitemapPaths();
     expect(paths).not.toContain(target.publication.path);
+    // 反向对照：同一次查询里另一个人的项目还在，说明不是查询整体空了
     expect(paths).toContain(control.publication.path);
     expect(await resolvePublishedPath(target.publication.path)).toBeNull();
+    expect(await auditRow(target.publication.projectId, true)).toMatchObject({ action: 'project.delete' });
   });
 
   it('取消发布：清单与 URL 同时收手，lastmod 用的是真实发布时间', async () => {

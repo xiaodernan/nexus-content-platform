@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
-import { createServer, type Server } from 'node:http';
+import { createServer, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { AiJobStatusResponse, AiRequest, AiResponse } from '@nexus/schemas';
 import { AiJobObservationSchema, APPROVAL_TTL_MS } from '@nexus/schemas';
@@ -40,6 +40,53 @@ let lastSubmitted: unknown = null;
 /** 取消端点的可变剧本：默认"受理、作业还在跑（只立标志，状态仍是 running）" */
 let cancelScript: { status: number; body: unknown } | null = null;
 let cancelCalls: string[] = [];
+/**
+ * 让 N 个并发 GET **都到齐**之后再一起答话。
+ *
+ * 并发用例要的是"两次观察真的重叠在游标上"，不是"大概会重叠"。没有这道闸，
+ * 两个 `observeJob` 很可能一个跑完另一个才开始，那条断言就以"顺序执行"的形态通过，
+ * 而它声称量的是竞争——**这种绿比红更坏**。有了它，两次 GET 一定同时在飞，
+ * 而 `observeJob` 是"先读任务行 → 再问状态 → 后 CAS 推进"，所以两次读到的游标必然相同。
+ * 用例另外断言 `maxInFlight === 2`：闸没生效时那一格会红，门就不许空转。
+ */
+let statusBarrier: { need: number; arrived: number; waiters: Array<() => void> } | null = null;
+let inFlight = 0;
+let maxInFlight = 0;
+
+function armStatusBarrier(need: number): void {
+  statusBarrier = { need, arrived: 0, waiters: [] };
+}
+
+async function passStatusBarrier(): Promise<void> {
+  const barrier = statusBarrier;
+  if (!barrier) return;
+  barrier.arrived += 1;
+  if (barrier.arrived >= barrier.need) {
+    statusBarrier = null; // 一次性的：不许留给下一个用例
+    for (const release of barrier.waiters) release();
+    barrier.waiters = [];
+    return;
+  }
+  await new Promise<void>((resolve) => barrier.waiters.push(resolve));
+}
+
+/** 状态端点那一支：要在答话之前等一道并发闸，所以它是 async 的（回调签名要 void，由调用方接住） */
+async function answerStatus(url: string, res: ServerResponse): Promise<void> {
+  getCalls += 1;
+  inFlight += 1;
+  maxInFlight = Math.max(maxInFlight, inFlight);
+  try {
+    await passStatusBarrier();
+  } finally {
+    inFlight -= 1;
+  }
+  const status = nextStatus;
+  const unknown = statusForUnknown;
+  const found = status && url === `/v1/ai/jobs/${status.jobId}`;
+  res.writeHead(found ? 200 : unknown.status, { 'content-type': 'application/json' });
+  res.end(JSON.stringify(found ? status : unknown.body));
+}
+
 /** 手工推进的作业状态：每个用例自己决定下一次 GET 报什么 */
 function scriptedJob(over: Partial<AiJobStatusResponse>): AiJobStatusResponse {
   return {
@@ -126,14 +173,9 @@ beforeAll(async () => {
       return;
     }
     if (req.method === 'GET' && req.url?.startsWith('/v1/ai/jobs/')) {
-      getCalls += 1;
-      if (nextStatus && req.url === `/v1/ai/jobs/${nextStatus.jobId}`) {
-        res.writeHead(200, { 'content-type': 'application/json' });
-        res.end(JSON.stringify(nextStatus));
-        return;
-      }
-      res.writeHead(statusForUnknown.status, { 'content-type': 'application/json' });
-      res.end(JSON.stringify(statusForUnknown.body));
+      // 只有这一支需要 await（并发用例要在里面等闸），而 Node 的回调签名要 void——
+      // 所以把异步那段挪进 `answerStatus`，这里 `void` 接住它，不把整台服务器改成 async
+      void answerStatus(req.url, res);
       return;
     }
     res.writeHead(404, { 'content-type': 'application/json' });
@@ -151,6 +193,14 @@ afterEach(() => {
   cancelScript = null;
   cancelCalls = [];
   statusForUnknown = { status: 404, body: { code: 'not_found', message: 'job not found' } };
+  // 闸没被走满（用例中途红了、只来了一次 GET）时把等待方全部放行，
+  // 否则那个请求会一直挂着，把后面所有用例一起拖成超时——红要红得干净，不许留下卡死的服务器
+  if (statusBarrier) {
+    for (const release of statusBarrier.waiters) release();
+    statusBarrier = null;
+  }
+  inFlight = 0;
+  maxInFlight = 0;
 });
 
 afterAll(async () => {
@@ -400,6 +450,42 @@ describe('活动列表 → 实时事件：推过的不再推第二遍', () => {
     await observeJob(submitted.jobId, ownerId);
     expect(events.slice(before)).toEqual(['agent.step:3:provider:mine']);
     expect((await taskRow(submitted.taskId)).activityCursor).toBe(4);
+    unsubscribe();
+  });
+
+  /**
+   * 上面那条量的是"顺序"：问两次，第二次不再推。这一条量的是**竞争**——
+   * 而"跨实例要靠 Redis 后端"这句口径（已改）说的正是这件事：游标是 `agent_tasks.activity_cursor`
+   * 这一**列**，由 `bumpActivityCursor` 的 CAS 推进，所以两个 web 进程同时来问也只有一个推得动。
+   * 真要让它们同时来问，就得让两次 GET 同时在飞（见 `armStatusBarrier`）——
+   * 否则这条用例退化成顺序跑，照样绿，而它声称量的是并发。
+   */
+  it('两个观察者同时来问同一个作业：每条活动最多推一次，游标只推进一次', async () => {
+    const submitted = await submit();
+    const events: string[] = [];
+    const unsubscribe = getRealtimeBus().subscribe(channels.project(projectId), (e) => {
+      if (e.type === 'agent.step' || e.type === 'agent.activity') events.push(`${e.type}:${'stepId' in e ? e.stepId : e.activity.stage}`);
+    });
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'running',
+      activities: [
+        { stage: 'assemble', status: 'started', summary: '装配上下文' },
+        { stage: 'assemble', status: 'completed', summary: '目录 12 页' },
+        { stage: 'note', status: 'info', summary: '这一条只是交代一句' },
+      ],
+    });
+    armStatusBarrier(2);
+    const both = await Promise.all([observeJob(submitted.jobId, ownerId), observeJob(submitted.jobId, ownerId)]);
+
+    // 两次观察都真的看到了那三条活动（不是其中一次什么都没问到）
+    expect(both[0]?.activities).toHaveLength(3);
+    expect(both[1]?.activities).toHaveLength(3);
+    // 竞争成立的前提：两次 GET 同时在飞
+    expect(maxInFlight, '两次观察没有重叠——闸没生效，这条用例退化成顺序跑').toBe(2);
+    // 判据：三条，不是六条。两个观察者里必须有一个 CAS 输掉，一条都不推
+    expect(events).toEqual(['agent.step:0:assemble', 'agent.step:1:assemble', 'agent.activity:note']);
+    expect((await taskRow(submitted.taskId)).activityCursor).toBe(3);
     unsubscribe();
   });
 });
