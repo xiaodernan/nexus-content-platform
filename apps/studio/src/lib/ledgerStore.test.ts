@@ -51,6 +51,21 @@ describe('ledgerStore: round-trip', () => {
     if (!loaded.ok) throw new Error('unreachable');
     expect(loaded.ledger.entries[0]!.ref).toBeUndefined();
   });
+
+  it('a ledger carrying a clawback survives the round-trip — the kind is part of the format', () => {
+    const ledger = build(
+      grant(),
+      grant({ id: 'e2', delta: -40, reason: 'template "t1"', at: 2_000, kind: 'spend', ref: 't1' }),
+      grant({ id: 'e3', accountId: 'acc-2', delta: 40, reason: 'sale of "t1"', at: 2_000, kind: 'grant', ref: 't1' }),
+      grant({ id: 'e4', accountId: 'acc-2', delta: -40, reason: 'refund of "t1"', at: 3_000, kind: 'clawback', ref: 't1' }),
+      grant({ id: 'e5', delta: 40, reason: 'refund of "t1"', at: 3_000, kind: 'refund', ref: 't1' }),
+    );
+    const loaded = deserializeLedger(serializeLedger(ledger));
+    expect(loaded.ok).toBe(true);
+    if (!loaded.ok) return;
+    expect(loaded.ledger.entries).toEqual(ledger.entries);
+    expect(loaded.ledger.entries[3]!.kind).toBe('clawback');
+  });
 });
 
 describe('ledgerStore: refusals, each by name', () => {

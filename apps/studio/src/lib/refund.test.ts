@@ -41,8 +41,10 @@ describe('refundPurchase: the happy path', () => {
     expect(balanceOf(d.ledger, 'buyer-1')).toBe(1000); // 1000 - 500 + 500
     expect(balanceOf(d.ledger, 'author-1')).toBe(100); // 100 + 500 - 500
     expect(d.buyerEntry).toMatchObject({ accountId: 'buyer-1', delta: 500, kind: 'refund', ref: 't1' });
-    expect(d.authorEntry).toMatchObject({ accountId: 'author-1', delta: -500, kind: 'spend', ref: 't1' });
+    expect(d.authorEntry).toMatchObject({ accountId: 'author-1', delta: -500, kind: 'clawback', ref: 't1' });
     expect(d.authorEntry.id).toBe('r1:author');
+    // The seller's side is a claw-back, NOT a purchase: losing a sale must not read as acquiring it.
+    expect(holdsTemplate(d.ledger, 'author-1', 't1')).toBe(false);
   });
 
   it('uses the price the PURCHASE recorded, not the listing\'s price today', () => {

@@ -12,6 +12,7 @@ import {
   accountsOf,
   appendCreditEntry,
   balanceOf,
+  creditFlowOf,
   emptyCreditLedger,
   historyOf,
   heldRefsOf,
@@ -203,5 +204,47 @@ describe('credits: determinism', () => {
     const es = [entry(), entry({ id: 'e2', delta: -40, kind: 'spend' }), entry({ id: 'e3', accountId: 'acc-2', delta: 7, kind: 'adjust' })];
     expect(balanceOf(build(...es), 'acc-1')).toBe(balanceOf(build(...es), 'acc-1'));
     expect(balanceOf(build(...es), 'acc-2')).toBe(7);
+  });
+});
+
+describe('credits: the refund-shaped kinds, and the ONE classification', () => {
+  it('a refund must be positive and a clawback negative — each refused by name', () => {
+    const l = build(entry({ id: 'g', delta: 1000 }));
+    const positiveClawback = appendCreditEntry(l, { id: 'c1', accountId: 'acc-1', delta: 50, reason: 'claw back', at: 2, kind: 'clawback' });
+    expect(positiveClawback.ok).toBe(false);
+    if (positiveClawback.ok) return;
+    expect(positiveClawback.reason).toContain('must be negative');
+    const negativeRefund = appendCreditEntry(l, { id: 'r1', accountId: 'acc-1', delta: -50, reason: 'refund', at: 2, kind: 'refund' });
+    expect(negativeRefund.ok).toBe(false);
+    if (negativeRefund.ok) return;
+    expect(negativeRefund.reason).toContain('must be positive');
+  });
+
+  it('classifies each movement by KIND, not by sign', () => {
+    expect(creditFlowOf(entry({ kind: 'refund', delta: 300 }))).toEqual({ kind: 'refunded', amount: 300 });
+    expect(creditFlowOf(entry({ kind: 'clawback', delta: -300 }))).toEqual({ kind: 'clawedBack', amount: 300 });
+    expect(creditFlowOf(entry({ kind: 'grant', delta: 100 }))).toEqual({ kind: 'earned', amount: 100 });
+    expect(creditFlowOf(entry({ kind: 'spend', delta: -40 }))).toEqual({ kind: 'spent', amount: 40 });
+    expect(creditFlowOf(entry({ kind: 'adjust', delta: -7 }))).toEqual({ kind: 'spent', amount: 7 });
+  });
+
+  it('a clawback is not a purchase, so it never reads as ownership', () => {
+    const l = build(entry({ id: 'g', delta: 1000 }), {
+      id: 'c1', accountId: 'acc-1', delta: -500, reason: 'refund of "t1"', at: 2, kind: 'clawback', ref: 't1',
+    });
+    expect([...heldRefsOf(l, 'acc-1')]).toEqual([]);
+  });
+
+  it('the validator names an entry whose sign contradicts its kind', () => {
+    const verdict = validateCreditLedger({
+      entries: [
+        { id: 'x', accountId: 'acc-1', delta: 500, reason: 'refund', at: 1, kind: 'refund' },
+        { id: 'y', accountId: 'acc-1', delta: -5, reason: 'refund', at: 2, kind: 'refund' },
+        { id: 'z', accountId: 'acc-1', delta: 5, reason: 'clawback', at: 3, kind: 'clawback' },
+      ],
+    });
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.problems.map((p) => p.code)).toEqual(expect.arrayContaining(['refund-sign', 'clawback-sign']));
   });
 });

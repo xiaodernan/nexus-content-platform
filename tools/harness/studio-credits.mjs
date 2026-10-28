@@ -16,6 +16,8 @@
  *      to a 30-day window DISABLES the Refund action (the preflight names the reason before the
  *      click), pressing it anyway writes nothing, and switching back re-enables it and allows the
  *      same refund — the mechanism never makes this decision itself;
+ *   6b. the refund is REPORTED under its own name: the creator dashboard shows the claw-back apart
+ *      from `spent`, the statement shows `refunded` apart from `earned`, and both reconcile;
  *   7. clearing writes a VALID empty ledger and the page returns to its empty state;
  *   8. no uncaught page errors, and a screenshot is written as evidence.
  *
@@ -188,6 +190,20 @@ try {
     'with no declared deadline the same refund is allowed (500 -> 1000)',
     /balance: 1000 credits/.test(allowed.wallet ?? '') && /owns: nothing/.test(allowed.wallet ?? '') && allowed.error === false,
     JSON.stringify(allowed),
+  );
+
+  // 6b. WHAT THE REFUND IS CALLED. The author lost a sale, so the claw-back must be reported as a
+  // claw-back — not as the creator spending — and the buyer's returned credits as `refunded` — not as
+  // income. Both projections must reconcile after the reversal.
+  const flows = await page.evaluate(
+    "(() => ({ creator: document.querySelector('[data-credits-creator]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, statement: document.querySelector('[data-credits-statement]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }))()",
+  );
+  check(
+    'the creator dashboard reports the claw-back apart from spent, and the statement reports refunds apart from earned',
+    /holds 100/.test(flows.creator ?? '') && /earned 600/.test(flows.creator ?? '') && /spent 0/.test(flows.creator ?? '') &&
+      /clawed back 500/.test(flows.creator ?? '') && /refunded 0/.test(flows.creator ?? '') &&
+      /refunded 700/.test(flows.statement ?? '') && /reconciles: yes/.test(flows.statement ?? ''),
+    JSON.stringify(flows),
   );
 
   // 7. clearing writes a valid empty ledger and returns the page to its empty state.

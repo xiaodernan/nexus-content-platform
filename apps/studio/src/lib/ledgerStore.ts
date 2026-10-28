@@ -50,7 +50,10 @@ export function serializeLedger(ledger: CreditLedger): string {
 
 export type LedgerLoad = { ok: true; ledger: CreditLedger } | { ok: false; reason: string };
 
-const KINDS = new Set<CreditEntry['kind']>(['grant', 'spend', 'refund', 'adjust']);
+// The kind vocabulary is part of the format. `clawback` (ADR 0020, Amendment 4) joins it without a
+// version bump: the ENVELOPE did not change, and a reader that predates the kind refuses the record
+// by name (the check below) instead of mis-reading it — the safe failure this loader promises.
+const KINDS = new Set<CreditEntry['kind']>(['grant', 'spend', 'refund', 'adjust', 'clawback']);
 
 /**
  * Parse and validate wire text into a ledger, or refuse it BY NAME. A parse error, a version this

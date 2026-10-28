@@ -7,13 +7,17 @@
  * refund allowed". The second question is a business policy for the host (or a future service), and
  * inventing it here would be the mistake ADR 0019 warned about.
  *
- * <p>Four rules keep the transaction honest (§60):
+ * <p>Five rules keep the transaction honest (§60):
  * <ul>
  *   <li><b>The purchase is the fact.</b> The buyer is credited the price the PURCHASE recorded, not the
  *       listing's price today — a creator may have repriced since, and refunding the new price would
  *       invent a movement that never happened.</li>
  *   <li><b>Atomic.</b> The buyer's credit and the author's claw-back are appended together, or neither
  *       is. A refund that credited the buyer and failed to debit the author would mint credits.</li>
+ *   <li><b>The seller's side is a `clawback`, not a `spend`.</b> It carries the listing's ref because it
+ *       reverses a movement about that listing, but it is not a purchase: `heldRefsOf` ignores it, so
+ *       losing a sale can never read as acquiring the template, and a dashboard reports it apart from
+ *       the author's own spending.</li>
  *   <li><b>A refund is not repeatable, but a RE-PURCHASE is (v529).</b> Purchases and refunds PAIR: the n-th
  *       refund reverses the n-th purchase (FIFO). Refunding more times than buying is refused by name;
  *       a buyer who refunded and bought again can refund again, because that purchase was never
@@ -145,7 +149,7 @@ export function refundPurchase(catalog: TemplateCatalog, ledger: CreditLedger, r
     delta: -priceCents,
     reason: `refund of "${listing.title}"`,
     at: refund.at,
-    kind: 'spend',
+    kind: 'clawback',
     ref: listing.id,
   });
   if (!debit.ok) return { ok: false, reason: `the author's claw-back was refused, so the refund is refused whole: ${debit.reason}` };

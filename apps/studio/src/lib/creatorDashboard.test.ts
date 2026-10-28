@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { appendCreditEntry, balanceOf, emptyCreditLedger, type CreditLedger } from './credits';
 import { addTemplate, emptyTemplateCatalog, type TemplateCatalog } from './templateCatalog';
 import { purchaseTemplate } from './marketplace';
+import { refundPurchase } from './refund';
 import { buildCreatorDashboard, creatorDashboardLine } from './creatorDashboard';
 
 function fixture() {
@@ -37,6 +38,8 @@ describe('creatorDashboard: an unsigned visitor', () => {
     expect(d.myListings).toEqual([]);
     expect(d.earned).toBe(0);
     expect(d.spent).toBe(0);
+    expect(d.refunded).toBe(0);
+    expect(d.clawedBack).toBe(0);
     expect(d.movements).toBe(0);
     expect(d.referenced).toEqual([]);
     expect(d.affordable).toEqual([]);
@@ -59,12 +62,47 @@ describe('creatorDashboard: a viewer with a history', () => {
     expect(d.catalogSize).toBe(3);
   });
 
-  it('earned minus spent IS the balance — the derived numbers cannot drift', () => {
+  it('earned − spent + refunded − clawedBack IS the balance — the derived numbers cannot drift', () => {
     const { catalog, ledger } = fixture();
+    const refunded = refundPurchase(catalog, ledger, { templateId: 't1', buyerId: 'buyer-1', entryId: 'r1', at: 3_000 });
+    if (!refunded.ok) throw new Error(`fixture refund refused: ${refunded.reason}`);
     for (const id of ['buyer-1', 'author-1', 'nobody-1']) {
+      const d = buildCreatorDashboard(catalog, refunded.ledger, id);
+      expect(d.earned - d.spent + d.refunded - d.clawedBack).toBe(balanceOf(refunded.ledger, id));
+    }
+    // With no refund-shaped movement the same identity reduces to earned − spent.
+    for (const id of ['buyer-1', 'author-1']) {
       const d = buildCreatorDashboard(catalog, ledger, id);
+      expect(d.refunded).toBe(0);
+      expect(d.clawedBack).toBe(0);
       expect(d.earned - d.spent).toBe(balanceOf(ledger, id));
     }
+  });
+
+  it('a refund is not income and a claw-back is not spending — each gets its own bucket', () => {
+    const { catalog, ledger } = fixture();
+    const refunded = refundPurchase(catalog, ledger, { templateId: 't1', buyerId: 'buyer-1', entryId: 'r1', at: 3_000 });
+    if (!refunded.ok) throw new Error(`fixture refund refused: ${refunded.reason}`);
+
+    const buyer = buildCreatorDashboard(catalog, refunded.ledger, 'buyer-1');
+    expect(buyer.earned).toBe(900); // the grant — a refund does not inflate what the buyer earned
+    expect(buyer.spent).toBe(500); // the purchase — the refund does not erase what they spent
+    expect(buyer.refunded).toBe(500);
+    expect(buyer.clawedBack).toBe(0);
+    expect(buyer.balance).toBe(900); // 900 − 500 + 500
+
+    const author = buildCreatorDashboard(catalog, refunded.ledger, 'author-1');
+    expect(author.earned).toBe(500); // the sale DID happen; it is not un-earned by the reversal
+    expect(author.spent).toBe(0); // the claw-back is not the author buying anything
+    expect(author.clawedBack).toBe(500);
+    expect(author.refunded).toBe(0);
+    expect(author.balance).toBe(0); // 500 sale − 500 claw-back
+
+    const line = creatorDashboardLine(author);
+    expect(line).toContain('earned 500');
+    expect(line).toContain('spent 0');
+    expect(line).toContain('clawed back 500');
+    expect(line).toContain('refunded 0');
   });
 
   it('an author sees their own listings and their sale as a referenced movement', () => {

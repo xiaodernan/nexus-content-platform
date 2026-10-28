@@ -94,7 +94,7 @@ describe('settlement: the reconciliation identity holds for every window', () =>
       for (const account of ['acc-1', 'acc-2', 'nobody']) {
         const s = statementFor(ledger, account, w);
         expect(statementReconciles(ledger, s), `${account} over ${JSON.stringify(w)}`).toBe(true);
-        expect(s.opening + s.earned - s.spent + s.after).toBe(balanceOf(ledger, account));
+        expect(s.opening + s.earned - s.spent + s.refunded - s.clawedBack + s.after).toBe(balanceOf(ledger, account));
       }
     }
   });
@@ -113,6 +113,53 @@ describe('settlement: the reconciliation identity holds for every window', () =>
     expect(s.closing).toBe(800); // as of 250: +1000 − 200
     expect(s.after).toBe(-50); // g2 (+50) and s2 (−100) happened after the close
     expect(s.closing + s.after).toBe(750); // the present balance
+  });
+});
+
+describe('settlement: refund-shaped flows are their own buckets', () => {
+  function reversalFixture(): CreditLedger {
+    let l = emptyCreditLedger();
+    const add = (id: string, accountId: string, delta: number, at: number, kind: 'grant' | 'spend' | 'refund' | 'adjust' | 'clawback', ref?: string) => {
+      const d = appendCreditEntry(l, { id, accountId, delta, reason: `r-${id}`, at, kind, ...(ref === undefined ? {} : { ref }) });
+      if (!d.ok) throw new Error('fixture: ' + d.reason);
+      l = d.ledger;
+    };
+    add('g1', 'buyer', 1000, 100, 'grant');
+    add('s1', 'buyer', -500, 200, 'spend', 't1');
+    add('sale', 'author', 500, 200, 'grant', 't1');
+    add('r1', 'buyer', 500, 300, 'refund', 't1');
+    add('c1', 'author', -500, 300, 'clawback', 't1');
+    return l;
+  }
+
+  it('money coming back is `refunded`, money taken back is `clawedBack` — never earned or spent', () => {
+    const l = reversalFixture();
+    const buyer = statementFor(l, 'buyer');
+    expect(buyer.earned).toBe(1000); // the grant only
+    expect(buyer.spent).toBe(500); // the purchase only
+    expect(buyer.refunded).toBe(500);
+    expect(buyer.clawedBack).toBe(0);
+    expect(buyer.closing).toBe(1000);
+    expect(statementReconciles(l, buyer)).toBe(true);
+
+    const author = statementFor(l, 'author');
+    expect(author.earned).toBe(500); // the sale DID happen
+    expect(author.spent).toBe(0); // the claw-back is not a purchase
+    expect(author.refunded).toBe(0);
+    expect(author.clawedBack).toBe(500);
+    expect(author.closing).toBe(0);
+    expect(statementReconciles(l, author)).toBe(true);
+
+    expect(statementLine(buyer)).toContain('refunded 500');
+    expect(statementLine(author)).toContain('clawed back 500');
+  });
+
+  it('a window holding only the reversal reports it without touching earned', () => {
+    const s = statementFor(reversalFixture(), 'buyer', { from: 300, to: 300 });
+    expect(s.earned).toBe(0);
+    expect(s.spent).toBe(0);
+    expect(s.refunded).toBe(500);
+    expect(s.closing).toBe(1000); // 500 opening + 500 refunded
   });
 });
 

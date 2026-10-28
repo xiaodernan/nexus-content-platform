@@ -18,14 +18,17 @@
 //   §2 the catalog is the inventory: a duplicate id is refused, search is exact-token AND, and a
 //      query that matches nothing answers nothing;
 //   §3 the marketplace is ATOMIC: a purchase moves both accounts, and a refusal moves NEITHER;
-//   §4 the dashboard and the statement RECONCILE: earned − spent === balance, and
-//      opening + earned − spent + after === the whole-ledger balance over a bounded window;
+//   §4 the dashboard and the statement RECONCILE: earned − spent + refunded − clawedBack === balance,
+//      and opening + earned − spent + refunded − clawedBack + after === the whole-ledger balance over
+//      a bounded window;
 //   §5 the remix handoff forks a NEW document (id changes, source untouched) and reports a malformed
 //      source by name instead of throwing;
 //   §6 the wallet view is DERIVED: owned = authored + spent-ref; affordable = the marketplace's gate;
 //   §7 the wire format round-trips and refuses a bad record (a future version, a negative prefix);
 //   §8 the local-first store distinguishes an ABSENT key (empty) from a corrupt one (refused);
-//   §9 a refund is atomic, reverses ownership and the remix right, and is not repeatable;
+//   §9 a refund is atomic, reverses ownership and the remix right, and is not repeatable; the
+//      seller's side is a `clawback` (NOT a purchase), and both projections report refunds and
+//      claw-backs apart from earned/spent;
 //   §10 a refund POLICY is the HOST's declaration: a closed window refuses before the mechanism runs
 //      and moves nothing, the closing instant is inclusive, a broken policy is refused by name, and
 //      the PREFLIGHT (`refundEligibility`) answers the same gate without writing anything;
@@ -191,7 +194,7 @@ try {
   real = b2.ledger;
   for (const who of ['buyerB', 'authorA', 'authorB']) {
     const d = dash.buildCreatorDashboard(catalog, real, who);
-    assert.equal(d.earned - d.spent, d.balance, `the dashboard does not reconcile for ${who}`);
+    assert.equal(d.earned - d.spent + d.refunded - d.clawedBack, d.balance, `the dashboard does not reconcile for ${who}`);
   }
   const buyerDash = dash.buildCreatorDashboard(catalog, real, 'buyerB');
   assert.equal(buyerDash.balance, 300, 'buyerB balance');
@@ -212,7 +215,7 @@ try {
   assert.equal(settle.statementReconciles(real, all), true, 'the unbounded statement does not reconcile');
   const attr = settle.attributionByRef(real, 'authorA');
   assert.deepEqual(attr, [{ ref: 'tpl-paid', net: 500, count: 1 }], 'attribution by ref is wrong');
-  console.log(`  buyerB 1000 earned / 700 spent / 300 balance; window 0..250 -> closing 500, after -200, reconciles; authorA attribution ${JSON.stringify(attr)}`);
+  console.log(`  buyerB 1000 earned / 700 spent / 300 balance; the dashboard identity is earned − spent + refunded − clawedBack; window 0..250 -> closing 500, after -200, reconciles; authorA attribution ${JSON.stringify(attr)}`);
 
   // ── §5 the remix handoff forks a NEW document ───────────────────────────────────────────────────
   console.log('§5 the remix handoff forks a NEW document');
@@ -309,6 +312,24 @@ try {
   assert.equal(refunded.priceCents, 500, 'the refund did not use the recorded price');
   assert.equal(credits.balanceOf(refunded.ledger, 'buyerB'), 1000, 'the buyer was not made whole');
   assert.equal(credits.balanceOf(refunded.ledger, 'authorA'), 100, 'the author was not clawed back');
+  assert.equal(refunded.authorEntry.kind, 'clawback', 'the seller side of a refund is not a clawback');
+  // The claw-back is NOT a purchase: the author earned the sale and neither spent nor lost an earned
+  // figure — the reversal is reported under its own name by both projections.
+  const authorAfterRefund = dash.buildCreatorDashboard(catalog, refunded.ledger, 'authorA');
+  assert.equal(authorAfterRefund.earned, 600, 'the claw-back un-earned what the author earned');
+  assert.equal(authorAfterRefund.spent, 0, 'the claw-back was reported as the author spending');
+  assert.equal(authorAfterRefund.clawedBack, 500, 'the dashboard did not report the claw-back');
+  const authorStatement = settle.statementFor(refunded.ledger, 'authorA');
+  assert.equal(authorStatement.spent, 0, 'the statement called the claw-back spending');
+  assert.equal(authorStatement.clawedBack, 500, 'the statement did not report the claw-back');
+  assert.equal(settle.statementReconciles(refunded.ledger, authorStatement), true, 'the author statement does not reconcile');
+  const buyerAfterRefund = dash.buildCreatorDashboard(catalog, refunded.ledger, 'buyerB');
+  assert.equal(buyerAfterRefund.earned, 1000, 'the refund was counted as income');
+  assert.equal(buyerAfterRefund.refunded, 500, 'the dashboard did not report the refund');
+  const buyerStatement = settle.statementFor(refunded.ledger, 'buyerB');
+  assert.equal(buyerStatement.earned, 1000, 'the statement counted the refund as income');
+  assert.equal(buyerStatement.refunded, 500, 'the statement did not report the refund');
+  assert.equal(settle.statementReconciles(refunded.ledger, buyerStatement), true, 'the buyer statement does not reconcile');
   assert.equal(wallet.walletOwns(wallet.buildWalletView(catalog, refunded.ledger, 'buyerB'), 'tpl-paid'), false, 'a refunded purchase still counts as ownership');
   assert.equal(remix.remixRightFor(catalog, refunded.ledger, 'buyerB', 'tpl-paid').ok, false, 'a refunded purchase still grants the remix right');
   const twice = refund.refundPurchase(catalog, refunded.ledger, { templateId: 'tpl-paid', buyerId: 'buyerB', entryId: 'rr2', at: 5 });
@@ -321,7 +342,7 @@ try {
   assert.equal(refundedAgain.ok, true, `a re-purchase could not be refunded: ${refundedAgain.reason}`);
   assert.equal(credits.balanceOf(refundedAgain.ledger, 'buyerB'), 1000, 'the second cycle did not make the buyer whole');
   assert.equal(credits.balanceOf(refundedAgain.ledger, 'authorA'), 100, 'the second cycle did not claw back');
-  console.log(`  refund returned ${refunded.priceCents} to the buyer and clawed it back from the author; ownership and the remix right are released; a second refund is refused; a RE-PURCHASE is refundable again`);
+  console.log(`  refund returned ${refunded.priceCents} to the buyer and clawed it back from the author; the seller side is a CLAWBACK (not a purchase, not ownership); the dashboard reports refunded 500 / clawed back 500 apart from earned/spent, and both statements reconcile; ownership and the remix right are released; a second refund is refused; a RE-PURCHASE is refundable again`);
 
   // ── §10 a refund POLICY is the host's declaration ───────────────────────────────────────────────
   console.log("§10 a refund policy is the host's declaration, applied before the mechanism");

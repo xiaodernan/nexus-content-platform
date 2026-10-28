@@ -11,10 +11,12 @@
 //
 // sweep-budget-ms: 1200000
 // The budget above is the CI runner's and the agents sweep's to read (amendments 85 and 94), and it is
-// measured, not comfortable: 18 mutations, each a serial `vitest run` of the copied suite — 410.7 s standing
-// alone and 404.9 s beside a concurrent `npm ci` on 2026-10-28, both on this Windows box, all 18 KILLED.
-// 1 200 000 ms is ~2.9x the slower reading, which is the headroom a shared CI runner needs; a row killed for
-// being slow is a TIMEOUT, and amendment 85 refused to let that be the same verdict as a failure.
+// measured, not comfortable: 23 mutations, each a serial `vitest run` of the copied suite — 166.2 s standing
+// alone on 2026-10-28, all 23 KILLED. Readings move with host load, not with the arm count alone: the 18-arm
+// sweep read 410.7 s standing alone and 404.9 s beside a concurrent `npm ci` earlier the same day on this
+// Windows box. 1 200 000 ms remains ~2.9x the SLOWER reading and ~7.2x the standing one, which is the
+// headroom a shared CI runner needs; a row killed for being slow is a TIMEOUT, and amendment 85 refused to
+// let that be the same verdict as a failure.
 //
 // Run:  node docs/evidence/studio/mutation-probe.mjs
 
@@ -46,7 +48,7 @@ const MUTATIONS = [
   { id: 'M03', file: 'credits', find: 'if (ledger.entries.some((e) => e.id === entry.id))', replace: 'if (false)', why: 'the idempotency key is ignored (a retry applies twice)' },
   { id: 'M04', file: 'marketplace', find: 'delta: -listing.priceCents,', replace: 'delta: listing.priceCents,', why: 'the buyer is CREDITED instead of debited' },
   { id: 'M05', file: 'marketplace', find: 'if (listing.authorId === purchase.buyerId)', replace: 'if (false)', why: 'an author may buy their own listing' },
-  { id: 'M06', file: 'settlement', find: 'closing: opening + earned - spent,', replace: 'closing: opening + earned + spent,', why: 'the closing balance adds spends instead of subtracting them' },
+  { id: 'M06', file: 'settlement', find: 'closing: opening + earned - spent + refunded - clawedBack,', replace: 'closing: opening + earned + spent + refunded - clawedBack,', why: 'the closing balance adds spends instead of subtracting them' },
   { id: 'M07', file: 'settlement', find: 'after += e.delta;', replace: 'after += 0;', why: 'entries after a bounded window are dropped from `after`' },
   { id: 'M08', file: 'walletView', find: 'if (templateById(catalog, ref)) owned.add(ref);', replace: 'owned.add(ref);', why: 'a subscription ref reads as template ownership (the 3ac210e bug)' },
   { id: 'M09', file: 'templateRemix', find: "if (listing.authorId === viewerId) return { ok: true, basis: 'owned' };", replace: '// mutation: the author branch is removed', why: 'an author loses ownership of their own listing' },
@@ -60,6 +62,10 @@ const MUTATIONS = [
   { id: 'M17', file: 'refundPolicy', find: 'if (problem) return { ok: false, reason: problem };', replace: 'if (false) return { ok: false, reason: problem };', why: 'a policy that never declared a window is read as "no deadline"' },
   { id: 'M18', file: 'refund', find: 'return purchases[refunds.length] ?? null;', replace: 'return purchases[purchases.length - 1] ?? null;', why: 'the window is measured on the NEWEST purchase instead of the one FIFO reverses' },
   { id: 'M19', file: 'refundPolicy', find: 'closesAt: gate.closesAt,', replace: 'closesAt: null,', why: 'the preflight reports no closing instant even when the policy sets one (a surface promises "refundable forever")' },
+  { id: 'M20', file: 'refund', find: "kind: 'clawback',", replace: "kind: 'spend',", why: 'the seller side of a refund is a purchase again (it reads as ownership, and a creator dashboard calls it spending)' },
+  { id: 'M21', file: 'credits', find: "if (entry.kind === 'refund') return { kind: 'refunded', amount: Math.abs(entry.delta) };", replace: 'if (false) return { kind: \'refunded\', amount: Math.abs(entry.delta) };', why: 'the classifier stops reading the kind, so a refund is counted as earned income' },
+  { id: 'M22', file: 'settlement', find: 'closing: opening + earned - spent + refunded - clawedBack,', replace: 'closing: opening + earned - spent,', why: 'the statement closing forgets the refund-shaped flows, so it stops reconciling' },
+  { id: 'M23', file: 'creatorDashboard', find: 'else clawedBack += flow.amount;', replace: 'else spent += flow.amount;', why: 'a claw-back is reported as the creator spending their own credits' },
 ];
 
 /**

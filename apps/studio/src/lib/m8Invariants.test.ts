@@ -72,11 +72,12 @@ function randomLedger(seed: number, n: number): CreditLedger {
   let guard = 0;
   for (let i = 0; i < n && guard < n * 20; i++, guard++) {
     const accountId = pick(rnd, ACCOUNTS);
-    const kind = pick(rnd, ['grant', 'spend', 'adjust', 'refund'] as const);
+    const kind = pick(rnd, ['grant', 'spend', 'adjust', 'refund', 'clawback'] as const);
     let delta: number;
-    if (kind === 'spend') {
+    if (kind === 'spend' || kind === 'clawback') {
+      // A clawback is a refund-shaped debit too: it must obey the same "never below zero" rule.
       const balance = balanceOf(ledger, accountId);
-      if (balance <= 0) continue; // no affordable spend for this account; try another entry
+      if (balance <= 0) continue; // no affordable debit for this account; try another entry
       delta = -int(rnd, 1, balance);
     } else {
       delta = int(rnd, 1, 100);
@@ -229,7 +230,7 @@ describe('M8 invariants: the settlement statement', () => {
         for (const accountId of ACCOUNTS) {
           const statement = statementFor(ledger, accountId, { from, to });
           expect(statementReconciles(ledger, statement)).toBe(true);
-          expect(statement.opening + statement.earned - statement.spent + statement.after)
+          expect(statement.opening + statement.earned - statement.spent + statement.refunded - statement.clawedBack + statement.after)
             .toBe(balanceOf(ledger, accountId));
 
           // Non-vacuous: opening must equal an INDEPENDENT sum of the entries before the window.

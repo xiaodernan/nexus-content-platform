@@ -8,12 +8,18 @@
  *
  * <p>The statement's shape is the one an accountant would recognise — an OPENING balance, the
  * movements inside the window, and a CLOSING balance — because the property that makes it
- * trustworthy is arithmetic rather than decorative: **opening + earned − spent + after must equal
- * the account's whole-ledger balance, for every account and every window**. A statement that does
- * not reconcile is a statement about a different ledger, and the tests pin the identity across a
- * grid of windows. The stronger reading — `closing` alone equals the whole-ledger balance — holds
- * exactly when the window has no upper bound, because then no entry happens after the close; with
- * a `to`, the entries after it are carried in `after` so a reader can still walk to the present.
+ * trustworthy is arithmetic rather than decorative: **opening + earned − spent + refunded −
+ * clawedBack + after must equal the account's whole-ledger balance, for every account and every
+ * window**. A statement that does not reconcile is a statement about a different ledger, and the
+ * tests pin the identity across a grid of windows. The stronger reading — `closing` alone equals the
+ * whole-ledger balance — holds exactly when the window has no upper bound, because then no entry
+ * happens after the close; with a `to`, the entries after it are carried in `after` so a reader can
+ * still walk to the present.
+ *
+ * <p>Refund-shaped movements are NOT folded into earned/spent (v532): money returned to a buyer is
+ * not income, and money clawed back from a seller is not spending. Each bucket reads the ONE
+ * classification `credits.ts` owns (`creditFlowOf`), so this statement and the creator dashboard can
+ * never call the same movement by two names.
  *
  * <p>Windows are inclusive at both ends, and an absent bound is open (no `from` means the beginning
  * of the record; no `to` means everything after). The host supplies the window — this module never
@@ -24,7 +30,7 @@
  * than a claim about it.
  */
 
-import { balanceOf, type CreditEntry, type CreditLedger } from './credits';
+import { balanceOf, creditFlowOf, type CreditEntry, type CreditLedger } from './credits';
 
 /** An inclusive time window over a ledger's `at` values. An absent bound is open. */
 export interface SettlementWindow {
@@ -39,13 +45,18 @@ export interface AccountStatement {
   to: number | null;
   /** The balance carried by every entry strictly BEFORE the window. */
   opening: number;
-  /** Whole cents credited inside the window. */
+  /** Whole cents credited inside the window (grants, sales, upward adjustments) — NOT refunds. */
   earned: number;
-  /** Whole cents debited inside the window, as a POSITIVE number. */
+  /** Whole cents debited inside the window by the account's own spending — NOT claw-backs. */
   spent: number;
-  /** opening + earned − spent. The balance AS OF the window's close — entries after it have not
-   *  happened yet from this statement's point of view, and their sum travels in `after`. With no
-   *  upper bound `after` is 0, so `closing` IS the account's whole-ledger balance. */
+  /** Whole cents RETURNED to the account as a buyer inside the window. */
+  refunded: number;
+  /** Whole cents TAKEN BACK from the account as a seller inside the window, as a positive number. */
+  clawedBack: number;
+  /** opening + earned − spent + refunded − clawedBack. The balance AS OF the window's close —
+   *  entries after it have not happened yet from this statement's point of view, and their sum
+   *  travels in `after`. With no upper bound `after` is 0, so `closing` IS the account's
+   *  whole-ledger balance. */
   closing: number;
   /** The sum of this account's entries strictly AFTER the window's close, so a reader can walk
    *  from the statement's closing to the ledger's present balance. */
@@ -73,6 +84,8 @@ export function statementFor(ledger: CreditLedger, accountId: string, window?: S
   let opening = 0;
   let earned = 0;
   let spent = 0;
+  let refunded = 0;
+  let clawedBack = 0;
   let after = 0;
   let movements = 0;
   let firstAt: number | null = null;
@@ -90,8 +103,11 @@ export function statementFor(ledger: CreditLedger, accountId: string, window?: S
       continue;
     }
     movements++;
-    if (e.delta > 0) earned += e.delta;
-    else spent += -e.delta;
+    const flow = creditFlowOf(e);
+    if (flow.kind === 'earned') earned += flow.amount;
+    else if (flow.kind === 'spent') spent += flow.amount;
+    else if (flow.kind === 'refunded') refunded += flow.amount;
+    else clawedBack += flow.amount;
     if (firstAt === null) firstAt = e.at;
     lastAt = e.at;
     entries.push(e);
@@ -103,7 +119,9 @@ export function statementFor(ledger: CreditLedger, accountId: string, window?: S
     opening,
     earned,
     spent,
-    closing: opening + earned - spent,
+    refunded,
+    clawedBack,
+    closing: opening + earned - spent + refunded - clawedBack,
     after,
     movements,
     firstAt,
@@ -142,16 +160,22 @@ export function attributionByRef(ledger: CreditLedger, accountId: string, window
 export function statementLine(statement: AccountStatement): string {
   const span = statement.from === null && statement.to === null ? 'all time' : `${statement.from ?? '−'}..${statement.to ?? '−'}`;
   if (statement.movements === 0) return `statement: ${statement.accountId} · ${span} · no movements · balance ${statement.closing}`;
-  return `statement: ${statement.accountId} · ${span} · +${statement.earned} / −${statement.spent} over ${statement.movements} movement(s) · ${statement.opening} → ${statement.closing}`;
+  // Refund-shaped flows are stated only when something of the kind happened: a statement with none
+  // is not made noisier by two zeros, and a statement with one cannot hide it behind a net figure.
+  const refundFlows =
+    statement.refunded === 0 && statement.clawedBack === 0
+      ? ''
+      : ` · refunded ${statement.refunded} · clawed back ${statement.clawedBack}`;
+  return `statement: ${statement.accountId} · ${span} · +${statement.earned} / −${statement.spent}${refundFlows} over ${statement.movements} movement(s) · ${statement.opening} → ${statement.closing}`;
 }
 
 /**
- * The reconciliation identity: opening + earned − spent + after must equal the account's
- * whole-ledger balance, for every account and every window. It is vacuous only while the module
- * buckets entries correctly — the moment one is misfiled the identity breaks, which is exactly why
- * a consumer (or the suite) can run it and trust the answer. With no upper bound `after` is 0, so
- * the identity reduces to the stronger reading: closing IS the balance.
+ * The reconciliation identity: opening + earned − spent + refunded − clawedBack + after must equal
+ * the account's whole-ledger balance, for every account and every window. It is vacuous only while
+ * the module buckets entries correctly — the moment one is misfiled the identity breaks, which is
+ * exactly why a consumer (or the suite) can run it and trust the answer. With no upper bound `after`
+ * is 0, so the identity reduces to the stronger reading: closing IS the balance.
  */
 export function statementReconciles(ledger: CreditLedger, statement: AccountStatement): boolean {
-  return statement.opening + statement.earned - statement.spent + statement.after === balanceOf(ledger, statement.accountId);
+  return statement.opening + statement.earned - statement.spent + statement.refunded - statement.clawedBack + statement.after === balanceOf(ledger, statement.accountId);
 }
