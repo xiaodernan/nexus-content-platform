@@ -39,6 +39,8 @@ export interface PlanRow {
   priceCents: number;
   /** The price as a reader sees it \u2014 \u00a515.00. */
   priceText: string;
+  /** v578 — the currency the price is denominated in; the wire's word, or the row's default. */
+  currency: Currency;
   /** The period: once, month or year. */
   period: string;
   /** The period in a reader's words. */
@@ -53,6 +55,8 @@ export interface PlanRow {
    * no history — a reader cannot tell a plan opened last week from one opened last year.
    */
   openedText: string | null;
+  /** v579 — the creator's handle as the wire gave it, or null when it did not name one. */
+  handle: string | null;
   /**
    * v371/v374 — that these are the terms ON OFFER now — or null when the plan is retired.
    *
@@ -104,9 +108,12 @@ export function toPlanRow(entry: unknown): PlanRow | null {
     planId: p.planId,
     priceCents: p.priceCents,
     priceText: priceText(p.priceCents as PriceCents, currency),
+    currency,
     period,
     periodText: planPeriodText(period),
     active: p.active !== false,
+    // v579 — the creator's handle, when the wire named one; a blank string is no handle at all.
+    handle: typeof p.handle === 'string' && p.handle.length > 0 ? p.handle : null,
     // v371 — and that these are the terms ON OFFER today.
     termsText: p.active !== false ? PLAN_TERMS_NOTE : null,
     // v342 — and when it was opened. The instant is the service's own, in UTC, in the same style as the
@@ -220,7 +227,8 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   const firstPlanStatus = facts.plans?.[0]?.active ? 'Active' : facts.plans?.[0]?.active === false ? 'Closed' : 'Paused';
   const statusContext = firstPlanStatus ? ` · ${firstPlanStatus}` : '';
   // v578 — gather the plan's price with currency sign from the first plan row, if available and shown.
-  const firstPlanPrice = facts.plans?.[0]?.priceCents !== null && facts.plans?.[0]?.priceCents > 0 ? priceText(facts.plans?.[0]?.priceCents as PriceCents, facts.plans?.[0]?.currency as Currency) : '';
+  const firstPlan = facts.plans?.[0] ?? null;
+  const firstPlanPrice = firstPlan !== null && firstPlan.priceCents > 0 ? priceText(firstPlan.priceCents as PriceCents, firstPlan.currency) : '';
   const priceContext = firstPlanPrice ? ` · ${firstPlanPrice}` : '';
   // v579 — gather the plan's creator handle with assurance from the first plan row, if available.
   const firstPlanHandle = facts.plans?.[0]?.handle;
@@ -228,7 +236,9 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   const countText =
     shown <= 0
       ? 'this page is past the end — the service answered an empty window'
-      : `${countPrefix}${planCountText(count, shown, offset)}${openedContext}${updatedContext}${statusContext}${priceContext}${handleContext}`;
+      : typeof count !== 'number'
+        ? ''
+        : `${countPrefix}${planCountText(count, shown, offset)}${openedContext}${updatedContext}${statusContext}${priceContext}${handleContext}`;
   // v396 — the PAGER, as LINKS, the same shape the tip bar got in v395: the page is server-rendered and
   // cannot act (ADR 0018), so the route builds the URL and the bar draws an <a>; at a boundary the
   // control is a <span> with no href — a link that went nowhere would be a lie with an href. "Older" is

@@ -30,7 +30,7 @@ const BARS = [
     name: 'planBar',
     styles: PLAN_BAR_STYLES,
     prefix: 'nexus-plan',
-    render: () => renderPlanBar({ accountId: 'acct-ada', plans: [{ planId: 'pro', priceCents: 1500, priceText: '\u00a515.00', period: 'month', periodText: 'per month', active: true, openedText: 'opened last week', termsText: 'the terms on offer now' }], count: 1 }),
+    render: () => renderPlanBar({ accountId: 'acct-ada', plans: [{ planId: 'pro', priceCents: 1500, priceText: '\u00a515.00', currency: 'CNY', period: 'month', periodText: 'per month', active: true, openedText: 'opened last week', termsText: 'the terms on offer now', handle: null }], count: 1 }),
   },
   {
     name: 'likeBar',
