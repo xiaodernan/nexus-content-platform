@@ -384,6 +384,38 @@ try {
   assert.equal(credits.balanceOf(refundedAgain.ledger, 'authorA'), 100, 'the second cycle did not claw back');
   console.log(`  refund returned ${refunded.priceCents} to the buyer and clawed it back from the author; the seller side is a CLAWBACK (not a purchase, not ownership); the dashboard reports refunded 500 / clawed back 500 apart from earned/spent, and both statements reconcile; ownership and the remix right are released; a second refund is refused; a RE-PURCHASE is refundable again; a refund dated BEFORE the purchase it reverses (2 vs 3) was refused by name and moved nothing`);
 
+  // v538: WHO WAS PAID is a LEDGER fact, not a catalog one. A listing that left the catalog still has a
+  // purchase to reverse, and a re-authored listing must not claw back from an account that was never paid.
+  const emptyCatalog = catalogMod.emptyTemplateCatalog();
+  let recordLedger = credits.emptyCreditLedger();
+  recordLedger = credits.appendCreditEntry(recordLedger, { id: 'dg1', accountId: 'buyerD', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' }).ledger;
+  recordLedger = credits.appendCreditEntry(recordLedger, { id: 'dg2', accountId: 'authorA', delta: 100, reason: 'tip', at: 2, kind: 'grant' }).ledger;
+  const boughtRecord = market.purchaseTemplate(catalog, recordLedger, { templateId: 'tpl-paid', buyerId: 'buyerD', entryId: 'dg3', at: 3 });
+  assert.equal(boughtRecord.ok, true, boughtRecord.reason);
+  const delisted = refund.refundPurchase(emptyCatalog, boughtRecord.ledger, { templateId: 'tpl-paid', buyerId: 'buyerD', entryId: 'dr1', at: 4 });
+  assert.equal(delisted.ok, true, `a delisted listing could not be refunded: ${delisted.reason}`);
+  assert.equal(credits.balanceOf(delisted.ledger, 'buyerD'), 1000, 'the buyer of a delisted listing was not made whole');
+  assert.equal(credits.balanceOf(delisted.ledger, 'authorA'), 100, 'the recorded seller of a delisted listing was not clawed back');
+  assert.equal(delisted.authorEntry.accountId, 'authorA', 'the delisted claw-back left the account the sale credited');
+  assert.equal(delisted.buyerEntry.reason, 'refund of "tpl-paid" (not in this catalog)', 'the delisted refund was named by a title the catalog stopped claiming');
+
+  const reauthored = catalogMod.addTemplate(emptyCatalog, { ...PAID, authorId: 'authorB' });
+  assert.equal(reauthored.ok, true, reauthored.reason);
+  let reauthoredLedger = credits.emptyCreditLedger();
+  reauthoredLedger = credits.appendCreditEntry(reauthoredLedger, { id: 'ag1', accountId: 'buyerE', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' }).ledger;
+  reauthoredLedger = credits.appendCreditEntry(reauthoredLedger, { id: 'ag2', accountId: 'authorA', delta: 500, reason: 'tip', at: 2, kind: 'grant' }).ledger;
+  const boughtReauthored = market.purchaseTemplate(catalog, reauthoredLedger, { templateId: 'tpl-paid', buyerId: 'buyerE', entryId: 'ag3', at: 3 });
+  assert.equal(boughtReauthored.ok, true, boughtReauthored.reason);
+  const clawedFromSale = refund.refundPurchase(reauthored.catalog, boughtReauthored.ledger, { templateId: 'tpl-paid', buyerId: 'buyerE', entryId: 'ar1', at: 4 });
+  assert.equal(clawedFromSale.ok, true, `the re-authored listing was not reversed: ${clawedFromSale.reason}`);
+  assert.equal(clawedFromSale.authorEntry.accountId, 'authorA', 'the claw-back targeted the catalog current author, not the account the sale credited');
+  assert.equal(clawedFromSale.ledger.entries.some((e) => e.accountId === 'authorB'), false, 'an account that was never paid was debited');
+
+  const unbacked = refund.refundPurchase(emptyCatalog, { entries: boughtRecord.ledger.entries.filter((e) => e.kind !== 'grant' || e.ref === undefined) }, { templateId: 'tpl-paid', buyerId: 'buyerD', entryId: 'ur1', at: 4 });
+  assert.equal(unbacked.ok, false, 'a purchase with no recorded sale was refunded from nowhere');
+  assert.match(unbacked.reason, /records no sale/);
+  console.log(`  a DELISTED ref still reversed from the record (buyer made whole, authorA clawed back, named "tpl-paid" (not in this catalog)); a RE-AUTHORED catalog clawed back from the account the SALE credited, and authorB — never paid — was never debited; a purchase the record cannot pair with a sale was refused by name`);
+
   // ── §10 a refund POLICY is the host's declaration ───────────────────────────────────────────────
   console.log("§10 a refund policy is the host's declaration, applied before the mechanism");
   let policyLedger = credits.emptyCreditLedger();

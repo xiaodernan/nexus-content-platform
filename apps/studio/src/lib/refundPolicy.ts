@@ -13,9 +13,11 @@
  * <p>Four rules keep it honest (§60):
  * <ul>
  *   <li><b>The policy never decides whether the mechanism would reverse the purchase.</b> Pairing
- *       (FIFO), "a refund is not repeatable", the author's solvency and the listing's existence stay
- *       `refund.ts`'s answers; a policy ask with no refundable purchase is answered with the
- *       mechanism's own sentence rather than a policy opinion.</li>
+ *       (FIFO), "a refund is not repeatable", the seller's solvency, a sale the record can name and a
+ *       listing's existence stay `refund.ts`'s answers; a policy ask with no refundable purchase is
+ *       answered with the mechanism's own sentence rather than a policy opinion. Since v538 the listing
+ *       is not even required: a delisted ref is reversed from the record, and the window sentence names
+ *       it by REF rather than a title the catalog stopped claiming.</li>
  *   <li><b>The window is measured from the purchase the refund would REVERSE</b> — the oldest
  *       unrefunded one — not from the newest, so a re-purchase starts its own window.</li>
  *   <li><b>The closing instant is inclusive.</b> A refund asked at exactly `purchaseAt + windowMs` is
@@ -33,7 +35,7 @@
 
 import type { CreditEntry, CreditLedger } from './credits';
 import { refundInstantProblem, refundPairing, refundPurchase, type RefundDecision, type TemplateRefund } from './refund';
-import { templateById, type TemplateCatalog } from './templateCatalog';
+import type { TemplateCatalog } from './templateCatalog';
 
 /** What a host declares about refunds. One field today; a shape so a second rule has a home. */
 export interface RefundPolicy {
@@ -94,7 +96,7 @@ export function refundWindowClosesAt(purchaseAt: number, policy: RefundPolicy): 
 }
 
 type RefundGate =
-  | { ok: true; purchase: CreditEntry; closesAt: number | null; priceCents: number }
+  | { ok: true; purchase: CreditEntry; closesAt: number | null; priceCents: number; label: string }
   | { ok: false; reason: string };
 
 /**
@@ -136,10 +138,10 @@ function refundGate(
             : `${closedFor} ms`;
     return {
       ok: false,
-      reason: `the refund window for "${templateById(catalog, ask.templateId)!.title}" closed ${late} ago — the policy allows ${describeRefundPolicy(policy)}, and the purchase it would reverse was made at ${pairing.purchase.at}`,
+      reason: `the refund window for ${pairing.label} closed ${late} ago — the policy allows ${describeRefundPolicy(policy)}, and the purchase it would reverse was made at ${pairing.purchase.at}`,
     };
   }
-  return { ok: true, purchase: pairing.purchase, closesAt, priceCents: pairing.priceCents };
+  return { ok: true, purchase: pairing.purchase, closesAt, priceCents: pairing.priceCents, label: pairing.label };
 }
 
 /** What the preflight says about one refund ask — the answer a surface needs BEFORE it offers a button. */

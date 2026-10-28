@@ -92,6 +92,47 @@ describe('refundPurchase: the happy path', () => {
   });
 });
 
+describe('refundPurchase: the RECORD decides who was paid (v538)', () => {
+  const empty = emptyTemplateCatalog();
+
+  it('refunds a listing the catalog no longer lists — the record has the purchase and the sale', () => {
+    const ledger = ledgerOf(grant('buyer-1', 1000), grant('author-1', 100), buy(), sale());
+    const d = refundPurchase(empty, ledger, refund);
+    expect(d.ok).toBe(true);
+    if (!d.ok) return;
+    expect(d.priceCents).toBe(500);
+    expect(balanceOf(d.ledger, 'buyer-1')).toBe(1000);
+    expect(balanceOf(d.ledger, 'author-1')).toBe(100); // 100 + 500 sale − 500 claw-back
+    // The sentence names the REF, because the catalog stopped claiming a title.
+    expect(d.buyerEntry.reason).toBe('refund of "t1" (not in this catalog)');
+    expect(holdsTemplate(d.ledger, 'buyer-1', 't1')).toBe(false);
+  });
+
+  it('claws back from the account the SALE credited, not the catalog\'s current author', () => {
+    // The catalog was re-authored AFTER the sale: it now names author-2, who was never paid.
+    const ledger = ledgerOf(grant('buyer-1', 1000), buy(), sale()); // the sale alone funds author-1 (500)
+    const readded = addTemplate(emptyTemplateCatalog(), { ...LISTING, authorId: 'author-2' });
+    if (!readded.ok) throw new Error(`fixture: ${readded.reason}`);
+    const d = refundPurchase(readded.catalog, ledger, refund);
+    expect(d.ok).toBe(true);
+    if (!d.ok) return;
+    expect(d.authorEntry.accountId).toBe('author-1');
+    expect(balanceOf(d.ledger, 'author-1')).toBe(0); // 500 sale − 500 claw-back
+    expect(balanceOf(d.ledger, 'author-2')).toBe(0); // never paid, never debited
+  });
+
+  it('refuses a purchase the record cannot pair with a sale, when no catalog listing can answer either', () => {
+    const ledger = ledgerOf(grant('buyer-1', 1000), buy()); // the buyer's debit, no seller's credit
+    const d = refundPurchase(empty, ledger, refund);
+    expect(d.ok).toBe(false);
+    if (d.ok) return;
+    expect(d.reason).toContain('records no sale');
+    expect(d.reason).toContain('"t1" (not in this catalog)');
+    expect(ledger.entries.length).toBe(2); // nothing appended
+    expect(balanceOf(ledger, 'buyer-1')).toBe(500);
+  });
+});
+
 describe('refundPurchase: refusals, each by name', () => {
   const refuse = (ledger: CreditLedger, over: Partial<typeof refund> = {}, cat: TemplateCatalog = catalog()) => {
     const d = refundPurchase(cat, ledger, { ...refund, ...over });
@@ -99,9 +140,9 @@ describe('refundPurchase: refusals, each by name', () => {
     return d.ok ? '' : d.reason;
   };
 
-  it('an unknown template', () => {
+  it('a template neither the record nor the catalog knows', () => {
     const ledger = ledgerOf(grant('buyer-1', 1000), buy(), sale());
-    expect(refuse(ledger, { templateId: 'ghost' })).toContain('no template is listed');
+    expect(refuse(ledger, { templateId: 'ghost' })).toContain('holds no purchase of "ghost" (not in this catalog)');
   });
 
   it('a blank buyerId or entryId', () => {

@@ -157,11 +157,25 @@ describe('refundPurchaseUnderPolicy: the window decides, the mechanism reverses'
     expect(d.reason).not.toContain('refund window');
   });
 
-  it('an unknown listing is answered by the mechanism even when the window has closed', () => {
+  it('a ref neither the record nor the catalog knows is answered by the mechanism even when the window has closed', () => {
     const d = refundPurchaseUnderPolicy(catalog(), funded(), { ...refund, templateId: 'ghost' }, { windowMs: 0 }, 1_700_000_000_000);
     expect(d.ok).toBe(false);
     if (d.ok) return;
-    expect(d.reason).toContain('no template is listed');
+    expect(d.reason).toContain('holds no purchase of "ghost" (not in this catalog)');
+  });
+
+  it('a DELISTED ref still gets the window measured on its purchase — the sentence names the ref, not a title (v538)', () => {
+    // The catalog is empty, so the old gate's `templateById(...)!.title` would have crashed here.
+    const closed = refundPurchaseUnderPolicy(emptyTemplateCatalog(), funded(), refund, { windowMs: 10 }, 2 + 10 + 1);
+    expect(closed.ok).toBe(false);
+    if (closed.ok) return;
+    expect(closed.reason).toContain('the refund window for "t1" (not in this catalog) closed 1 ms ago');
+    // …and inside the window the same ref is refunded from the record.
+    const inside = refundPurchaseUnderPolicy(emptyTemplateCatalog(), funded(), refund, { windowMs: 10 }, 2 + 10);
+    expect(inside.ok).toBe(true);
+    if (!inside.ok) return;
+    expect(balanceOf(inside.ledger, 'buyer-1')).toBe(1000);
+    expect(balanceOf(inside.ledger, 'author-1')).toBe(100);
   });
 
   it('a fully refunded listing is answered by the mechanism\'s "not repeatable" sentence', () => {
