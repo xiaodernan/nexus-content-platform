@@ -653,7 +653,7 @@ export function StoryboardPanel() {
           <span
             className={cn(
               'ml-auto rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11',
-              snapshot.saveState === 'error' ? 'bg-warn text-bg-0' : 'text-fg-3',
+              snapshot.saveState === 'error' ? 'bg-warn text-accent-fg' : 'text-fg-3',
             )}
             data-storyboard-save-state
           >

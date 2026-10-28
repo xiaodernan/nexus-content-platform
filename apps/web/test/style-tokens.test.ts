@@ -146,10 +146,21 @@ describe('强调面上的文字（§90 无障碍 · 同串底色+文字 ≥4.5�
   const dark = colorsOf(':root {');
   const light = colorsOf(':root {', "[data-nexus-theme='light'] {");
 
-  /** 把 tokens.css 的十六进制按 Tailwind 的用法映射成类名 → 值（浅色主题另算一份）。 */
+  /**
+   * 把 tokens.css 的十六进制按 Tailwind 的用法映射成类名 → 值（主题由调用方给）。
+   *
+   * 返回 null 只有一种诚实的情况：这个名字压根不是 `--nexus-color-*`，例如 `text-white`
+   * 是 Tailwind 的内建色，不归这份文件管——那种交给浏览器里的 axe 判。
+   * 名字在 tokens.css 里却查不到值，就是这道门在骗人，所以那种情况直接红。
+   */
   function valueOf(colors: Map<string, string>, cls: string): string | null {
-    const name = cls.replace(/^text-/, '').replace(/^bg-/, '');
-    return colors.get(`--nexus-color-${name}`) ?? null;
+    const name = cls.startsWith('text-') ? cls.slice(5) : cls.startsWith('bg-') ? cls.slice(3) : null;
+    if (name === null) return null;
+    const key = `--nexus-color-${name}`;
+    if (!defined.has(key)) return null;
+    const value = colors.get(key);
+    expect(value, `${key} 在 tokens.css 里有声明，colorsOf 却没读到——门在假装看过它`).toBeTruthy();
+    return value ?? null;
   }
 
   const pairs: Array<{ file: string; line: number; bg: string; fg: string }> = [];
@@ -171,17 +182,19 @@ describe('强调面上的文字（§90 无障碍 · 同串底色+文字 ≥4.5�
     expect(pairs.some((p) => p.fg === 'text-accent-fg')).toBe(true);
   });
 
-  it('暗色主题（产品当前唯一渲染的那一套）下每条配对都过 4.5', () => {
-    const bad: string[] = [];
-    for (const p of pairs) {
-      const bg = valueOf(dark, p.bg);
-      const fg = valueOf(dark, p.fg);
-      if (!bg || !fg) continue; // 不是本文件定义的色（例如 text-inherit），交给浏览器判
-      const ratio = contrast(fg, bg);
-      if (ratio < 4.5) bad.push(`${p.file}:${p.line} ${p.fg} #${fg} 压在 ${p.bg} #${bg} 上 = ${ratio.toFixed(2)}`);
-    }
-    expect(bad, `暗色下不过 AA 的有 ${bad.length} 处：\n${bad.slice(0, 12).join('\n')}`).toEqual([]);
-  });
+  for (const [label, colors] of [['暗色', dark], ['浅色', light]] as const) {
+    it(`${label}主题（浅色那套还没浏览器门覆盖，见 §90 技术债）下每条配对都过 4.5`, () => {
+      const bad: string[] = [];
+      for (const p of pairs) {
+        const bg = valueOf(colors, p.bg);
+        const fg = valueOf(colors, p.fg);
+        if (!bg || !fg) continue; // 不是 tokens.css 管的色（例如 text-white），交给浏览器判
+        const ratio = contrast(fg, bg);
+        if (ratio < 4.5) bad.push(`${p.file}:${p.line} ${p.fg} #${fg} 压在 ${p.bg} #${bg} 上 = ${ratio.toFixed(2)}`);
+      }
+      expect(bad, `${label}下不过 AA 的有 ${bad.length} 处：\n${bad.slice(0, 12).join('\n')}`).toEqual([]);
+    });
+  }
 
   it('accent-fg 这个前景 token 存在的理由就是不随主题翻转：它在两个主题下对每个强调面都过 4.5', () => {
     for (const [label, colors] of [['暗色', dark], ['浅色', light]] as const) {
@@ -202,8 +215,88 @@ describe('强调面上的文字（§90 无障碍 · 同串底色+文字 ≥4.5�
     // 而"用 bg-0 当文字色"在浅色主题下同样会坏——这正是它不该被当前景用的原因
     expect(contrast(light.get('--nexus-color-bg-0')!, light.get('--nexus-color-accent-2')!)).toBeLessThan(4.5);
     // 曾经有个 --nexus-color-brand-fg 是 #ffffff，白字压 brand 只有 4.17：
-    // 曾经有个 --nexus-color-brand-fg 是 #ffffff，白字压 brand 只有 4.17：
     // 它看着像"品牌面的专用前景"却是错的，所以被 accent-fg 取代并删掉。
     expect(contrast('ffffff', dark.get('--nexus-color-brand')!)).toBeLessThan(4.5);
+    // 2026-10-28 的第二次验电：这道门曾经**绿着漏掉 22 处**。valueOf 用两次 replace 剥前缀，
+    // text-bg-0 被剥成 "0"，查不到值就走了那条"不是本文件的色"的 continue——跳过得无声无息。
+    // 所以名字在 tokens.css 里就必须解析得出值（上面 valueOf 里那条 expect），
+    // 而下面这两条钉住解析器的边界：token 名要解析，Tailwind 内建色才允许返回 null。
+    expect(valueOf(light, 'text-bg-0')).toBe('f7f8fb');
+    expect(valueOf(dark, 'bg-brand')).toBe('5b6cff');
+    expect(valueOf(light, 'text-white')).toBeNull();
+    // 浅色下那 22 处的实际读数：改之前最低 1.91，改之后 accent-fg 对同一批底色全过
+    expect(contrast(light.get('--nexus-color-bg-0')!, light.get('--nexus-color-warn')!)).toBeLessThan(4.5);
+    expect(contrast(light.get('--nexus-color-bg-0')!, light.get('--nexus-color-brand')!)).toBeLessThan(4.5);
+  });
+});
+
+/**
+ * 把强调色**当文字**用（`text-accent-2` 这类）是同一枚硬币的另一面。
+ *
+ * 上一道门管的是"强调色当底"，这一道管"强调色当字"。根因还是那个：三个强调色不随主题翻，
+ * 而它们脚下的表面翻。暗色下 cyan #22d3ee 压近黑有 8.66，浅色下同一个 cyan 压近白只剩 **1.46**
+ * ——不是差一点，是完全读不出来。全站这个写法有 194 处（accent-2 85 / danger 73 / warn 36）。
+ *
+ * 这一条今天**不判红**，理由要写清楚：产品里没有任何地方把 `data-nexus-theme` 设成 `dark`
+ * 以外的值（`apps/web/src/app/layout.tsx` 钉死），浅色是一套**跑不到**的主题。
+ * 但"跑不到"是今天的状态，不是门禁可以永久豁免的理由——所以这道门自己去源码里查那个前提，
+ * **入口一出现，它当场变成硬门**。这样这笔账不会靠一行注释躺在文档里等人想起。
+ */
+describe('强调色当文字（§90 无障碍 · 浅色主题的钱先记着，入口一出现就收）', () => {
+  const AS_TEXT = ['accent-2', 'danger', 'warn'] as const;
+  const dark = colorsOf(':root {');
+  const light = colorsOf(':root {', "[data-nexus-theme='light'] {");
+
+  /** 能把主题写到 dark 以外的地方——一处都没有，就说明浅色没有入口。 */
+  function lightThemeWriters(): string[] {
+    const writers: string[] = [];
+    for (const file of tsxFiles(SRC)) {
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .forEach((line, i) => {
+          if (!line.includes('data-nexus-theme')) return;
+          if (!/data-nexus-theme\s*=\s*["']dark["']/.test(line)) {
+            writers.push(`${relative(process.cwd(), file)}:${i + 1} ${line.trim().slice(0, 80)}`);
+          }
+        });
+    }
+    return writers;
+  }
+
+  /** 某个强调色当文字时，在四级表面上最差的那一档。 */
+  function worstOn(colors: Map<string, string>, name: string): { level: string; ratio: number } {
+    const rows = ['0', '1', '2', '3'].map((level) => ({
+      level,
+      ratio: contrast(colors.get(`--nexus-color-${name}`)!, colors.get(`--nexus-color-bg-${level}`)!),
+    }));
+    return rows.sort((a, b) => a.ratio - b.ratio)[0]!;
+  }
+
+  it('暗色（当前唯一跑得到的那套）下这三个色当文字，在四级表面上全过 4.5', () => {
+    for (const name of AS_TEXT) {
+      const w = worstOn(dark, name);
+      expect(w.ratio, `暗色：text-${name} 压在 bg-${w.level} 上只有 ${w.ratio.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('浅色的读数仍然不及格，且这道门自己盯着前提：入口一出现就变硬门', () => {
+    const bad = AS_TEXT.map((name) => ({ name, ...worstOn(light, name) })).filter((r) => r.ratio < 4.5);
+    const writers = lightThemeWriters();
+    if (writers.length > 0) {
+      expect(
+        bad,
+        `浅色主题有了入口（${writers.join(' ; ')}），这笔账当场变成硬缺陷：\n` +
+          bad.map((r) => `text-${r.name} 压在 bg-${r.level} 上 = ${r.ratio.toFixed(2)}`).join('\n') +
+          '\n修法是照 accent-fg 的样子给每个色一个会随主题翻的 -ink 前景 token。',
+      ).toEqual([]);
+      return;
+    }
+    // 前提还没变：浅色跑不到。这条断言钉的是"门还在看着这笔账"——
+    // 若有人已经把它修好了，bad 会空掉而这里会红，那就该回头把上面那条硬门打开。
+    expect(
+      bad.length,
+      '浅色下这三个色当文字**理应**仍不及格；若全过了，说明 -ink token 已落地，请把这道自查门改成硬门',
+    ).toBeGreaterThan(0);
+    expect(AS_TEXT.length).toBe(3); // 名单只有三个：多一个色被当文字用，就要在这里登记它的读数
   });
 });

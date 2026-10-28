@@ -101,7 +101,7 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
               data-viewport={v.id}
               className={cn(
                 'rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-2)] py-1 text-12',
-                state.viewport === v.id ? 'bg-brand text-bg-0' : 'text-fg-3 hover:bg-bg-2',
+                state.viewport === v.id ? 'bg-brand text-accent-fg' : 'text-fg-3 hover:bg-bg-2',
               )}
             >
               {v.label}
@@ -147,7 +147,7 @@ function TopButton(props: { label: string; shortcut?: string; disabled?: boolean
       aria-pressed={props.active}
       className={cn(
         'rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-2)] py-1 text-12',
-        props.active ? 'bg-brand text-bg-0' : 'text-fg-2 hover:bg-bg-2',
+        props.active ? 'bg-brand text-accent-fg' : 'text-fg-2 hover:bg-bg-2',
         props.disabled && 'cursor-not-allowed opacity-40 hover:bg-transparent',
       )}
     >

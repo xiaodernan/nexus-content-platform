@@ -273,7 +273,7 @@ export function ApiTokensPanel() {
           type="button"
           onClick={() => void create()}
           disabled={busy || !name.trim() || scopes.length === 0}
-          className="h-[30px] rounded-[var(--nexus-radius-sm)] bg-brand px-3 text-12 text-bg-0 disabled:opacity-40"
+          className="h-[30px] rounded-[var(--nexus-radius-sm)] bg-brand px-3 text-12 text-accent-fg disabled:opacity-40"
           data-token-create
         >
           签发凭据

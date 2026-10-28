@@ -211,6 +211,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
               key={item.id}
               type="button"
               title={item.label}
+              aria-label={item.label}
               onClick={() => {
                 setTab(item.id);
                 setRailOpen(true);
@@ -297,7 +298,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
                 data-demo-mode={demoMode ? 'on' : 'off'}
                 className={cn(
                   'ml-auto rounded-[var(--nexus-radius-sm)] px-2 py-1 font-mono text-12',
-                  demoMode ? 'bg-warn text-bg-0' : 'bg-success text-bg-0',
+                  demoMode ? 'bg-warn text-accent-fg' : 'bg-success text-accent-fg',
                 )}
               >
                 {demoMode ? 'DEMO MODE' : 'LIVE PROVIDER'}

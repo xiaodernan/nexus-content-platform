@@ -72,7 +72,7 @@ export function NewProjectForm() {
       <button
         type="submit"
         disabled={busy || !name.trim()}
-        className="rounded-[var(--nexus-radius-sm)] bg-brand px-[var(--nexus-space-4)] py-2 text-14 font-medium text-bg-0 disabled:opacity-40"
+        className="rounded-[var(--nexus-radius-sm)] bg-brand px-[var(--nexus-space-4)] py-2 text-14 font-medium text-accent-fg disabled:opacity-40"
         data-create-project
       >
         {busy ? '创建中…' : '新建项目'}

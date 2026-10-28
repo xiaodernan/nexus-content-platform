@@ -53,20 +53,22 @@ export default async function HomePage() {
         </span>
       </header>
 
-      <nav className="flex items-center gap-3 text-13" data-site-nav>
-        <a href="/search" className="text-accent-2 underline" data-nav-search>
+      {/* 这一排在 820px 的容器里放不下五个链接加一句说明：不 flex-wrap 就会被 flex 压着
+          在词中间断行（"全平台搜/索"），所以链接各自 nowrap、整排允许换行。 */}
+      <nav className="flex flex-wrap items-center gap-3 text-13" data-site-nav>
+        <a href="/search" className="whitespace-nowrap text-accent-2 underline" data-nav-search>
           全平台搜索
         </a>
-        <a href="/discover" className="text-accent-2 underline" data-nav-discover>
+        <a href="/discover" className="whitespace-nowrap text-accent-2 underline" data-nav-discover>
           发现
         </a>
-        <a href="/marketplace" className="text-accent-2 underline" data-nav-marketplace>
+        <a href="/marketplace" className="whitespace-nowrap text-accent-2 underline" data-nav-marketplace>
           市场
         </a>
-        <a href="/analytics" className="text-accent-2 underline" data-nav-analytics>
+        <a href="/analytics" className="whitespace-nowrap text-accent-2 underline" data-nav-analytics>
           创作数据
         </a>
-        <a href="/blocks" className="text-accent-2 underline" data-nav-blocks>
+        <a href="/blocks" className="whitespace-nowrap text-accent-2 underline" data-nav-blocks>
           已拉黑与已屏蔽
         </a>
         <NotificationBell />

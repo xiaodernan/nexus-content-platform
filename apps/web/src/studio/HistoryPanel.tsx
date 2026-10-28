@@ -36,7 +36,7 @@ function DiffRow({ entry }: { entry: DiffEntry }) {
         <span
           className={cn(
             'shrink-0 rounded px-1 font-mono',
-            entry.kind === 'removed' ? 'bg-warn text-bg-0' : entry.kind === 'added' ? 'bg-success text-bg-0' : 'bg-bg-2 text-fg-3',
+            entry.kind === 'removed' ? 'bg-warn text-accent-fg' : entry.kind === 'added' ? 'bg-success text-accent-fg' : 'bg-bg-2 text-fg-3',
           )}
         >
           {KIND_LABEL[entry.kind]}
@@ -258,7 +258,7 @@ function SnapshotSection() {
                 className={cn(
                   'shrink-0 rounded border px-1 text-11 disabled:opacity-50',
                   pending === snapshot.id
-                    ? 'border-transparent bg-warn text-bg-0'
+                    ? 'border-transparent bg-warn text-accent-fg'
                     : 'border-[var(--nexus-color-border-subtle)] text-fg-3 hover:bg-bg-2',
                 )}
                 data-snapshot-restore={snapshot.id}

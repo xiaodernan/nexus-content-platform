@@ -74,7 +74,7 @@ export function PublishPanel() {
         data-publish-open
         className={cn(
           'rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-3)] py-1 text-13',
-          publication && publication.visibility !== 'private' ? 'bg-brand text-bg-0' : 'border border-[var(--nexus-color-border-strong)] text-fg-2 hover:bg-bg-2',
+          publication && publication.visibility !== 'private' ? 'bg-brand text-accent-fg' : 'border border-[var(--nexus-color-border-strong)] text-fg-2 hover:bg-bg-2',
         )}
       >
         {statusLabel}

@@ -452,7 +452,7 @@ export function CommandBar() {
               disabled={approvalBusy}
               onClick={() => void decide('approve')}
               data-approval-approve
-              className="rounded-[var(--nexus-radius-sm)] bg-warn px-2 py-[2px] text-11 text-bg-0 disabled:opacity-50"
+              className="rounded-[var(--nexus-radius-sm)] bg-warn px-2 py-[2px] text-11 text-accent-fg disabled:opacity-50"
             >
               批准并交回编辑区
             </button>
@@ -504,7 +504,7 @@ export function CommandBar() {
       ) : null}
       {result && !error ? (
         <p className="mb-1 flex flex-wrap items-center gap-2 text-12 text-fg-2" data-ai-result>
-          <span className={cn('rounded px-[5px] py-[1px] font-mono text-11', demoMode ? 'bg-warn text-bg-0' : 'bg-success text-bg-0')} data-demo-mode={demoMode ? 'on' : 'off'}>
+          <span className={cn('rounded px-[5px] py-[1px] font-mono text-11', demoMode ? 'bg-warn text-accent-fg' : 'bg-success text-accent-fg')} data-demo-mode={demoMode ? 'on' : 'off'}>
             {demoMode ? 'DEMO MODE' : 'LIVE'}
           </span>
           <span>{result.explanation || '已完成'}</span>
@@ -574,7 +574,7 @@ export function CommandBar() {
           type="button"
           disabled={busy || !prompt.trim()}
           onClick={() => void submit()}
-          className="h-[34px] shrink-0 rounded-[var(--nexus-radius-md)] bg-brand px-[var(--nexus-space-4)] text-13 font-medium text-bg-0 disabled:opacity-40"
+          className="h-[34px] shrink-0 rounded-[var(--nexus-radius-md)] bg-brand px-[var(--nexus-space-4)] text-13 font-medium text-accent-fg disabled:opacity-40"
           data-ai-submit
         >
           {busy ? '执行中…' : '执行'}

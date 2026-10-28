@@ -196,7 +196,7 @@ export function VariantsBoard() {
         >
           {state.snapshotBusy ? '生成中…' : '生成候选方案'}
         </button>
-        <span className="rounded-[var(--nexus-radius-sm)] bg-warn px-2 py-[2px] font-mono text-11 text-bg-0" data-variant-demo-mode>
+        <span className="rounded-[var(--nexus-radius-sm)] bg-warn px-2 py-[2px] font-mono text-11 text-accent-fg" data-variant-demo-mode>
           DEMO MODE
         </span>
         <span className="text-11 text-fg-3">

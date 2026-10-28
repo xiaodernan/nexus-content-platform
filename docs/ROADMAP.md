@@ -1889,13 +1889,36 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   `e2e/support/auth-session.ts`（切一次登录／注册看昵称框消失再回来；建项目看 `disabled` 被点亮），
   两片 a11y e2e 已改用它。**分辨办法：答复码 0 = 点击被吞，429 = 限流**。
   另记两笔技术账：① 其余 9 个 e2e 文件仍是无屏障的老写法（`data-auth-email` 一填就点），
-  该换成 `registerMember`／`createProjectNamed`；② `bg-brand text-bg-0` 这类写法在**浅色主题**下会塌
-  （浅 `bg-0` 是近白，压 brand 只有 4.17），今天不算违规只因为产品里没有切到浅色的入口。
+  该换成 `registerMember`／`createProjectNamed`；② `bg-brand text-bg-0` 这类写法在浅色主题下会塌——
+  这条当天还清，但**还账时发现的门病比账本身严重**，记在第五片。
   **仍欠**：§85 的真实 provider 半边（LLM 裁判 /
   Tool selection / Agent task completion）、RAG 向量半（#110）、Studio / 市场 / 收件箱等其余界面的
   键盘走查（axe 九张已扫，见上）；§86 的 provider 接入半边
   （typography / componentCorrectness 的真实来源）；metrics/tracing 也没接，
   所以"线上发生了什么"目前只能靠审计表 + stderr。
+  **第五片同日落地：还第四片那笔浅色账时，发现门自己在骗人**（`style-tokens.test.ts`）。
+  第四片把"同串底色+文字"钉进门里时只查了暗色——暗色是产品当前唯一渲染的那套，看起来合理。
+  把这条门扩到两个主题后它没有立刻红，而是**继续绿**：一查才知道 `valueOf()` 用了两次 `replace`
+  剥前缀，`text-bg-0` 被剥成 `"0"`，查不到值就走了那条"不是本文件的色"的 `continue`——
+  **跳过是无声的**。把"名字在 tokens.css 里就必须解析得出值"变成硬断言后，红出来 **22 处**：
+  `bg-brand text-bg-0` 12 处（浅色 3.93）、`bg-warn text-bg-0` 7 处（**1.91**）、`bg-success text-bg-0`
+  3 处（2.15）。修法与第四片同一条：换成不翻转的 `text-accent-fg`（12 个文件／22 条串）——
+  暗色下 `bg-0` 本来就是 `#0a0b10`，与 accent-fg 同值，所以**这一批改在看得见的主题上零变化**，
+  只是把一套跑不到的主题从"迟早要塌"变成"已经过 AA"。看图确认过（`.scratch/shots-lighttheme.mjs`
+  强制 `data-nexus-theme=light` 拍首页／Studio／市场，控制台无报错）。
+  同一把尺子反过来量"强调色**当文字**"（`text-accent-2` 这类）又量出 **194 处**：accent-2 85／danger 73／warn 36，
+  暗色最低 4.64 全过，浅色最低 **1.46／1.64／2.72** 全塌——根因还是那一个：强调色不随主题翻，表面翻。
+  这 194 处今天不动，因为产品里没有任何地方把主题写到 `dark` 以外（`app/layout.tsx` 钉死），
+  为跑不到的界面重排 194 条 class 是投机；但豁免不能靠注释维持，所以新加了一道**会自查前提的门**：
+  它每次运行都去源码里找"把 `data-nexus-theme` 设成非 dark 的写法"，找到了就把这笔账当硬缺陷判红，
+  找不到就只钉住"读数仍不及格"这一事实（有人修好后它会红，提示把硬门打开）。变异臂实测过：
+  临时塞一个 `setAttribute('data-nexus-theme', t)` 进去，门当场红出三条读数并给出修法。
+  同批看图还顺手修了两处门看不见的：首页那排导航链接在 820px 容器里放不下，flex 会把中文链接
+  从词中间切断（"全平台搜/索"）——`flex-wrap` + 每条链接 `whitespace-nowrap`；Studio 左轨的按钮
+  按设计只画标签的第一个字（`{item.label[0]}`），读屏软件因此只念得出"图"，补 `aria-label` 给全名
+  （可见文字"图"是"图层"的前缀，2.5.3 也过）。
+  **仍欠**：① 那 194 处"强调色当文字"在浅色下的 -ink token（入口出现即被上面的自查门逼出来）；
+  ② 浅色主题至今没有任何浏览器门（axe 只跑暗色），它现在只有 token 层的字面值门兜着。
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在
   `docs/PERFORMANCE.md`。2026-09-24 补上浏览器端：`npm run perf:browser`（`scripts/perf-browser.mts`）
   在真 Chrome 里量首帧、pan/zoom 帧距与"属性写入→画布重绘"延迟，当天数字与其三条必须一起读的限定

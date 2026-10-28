@@ -319,7 +319,7 @@ function StateEditor({
               setActive(s);
               setDrafts({});
             }}
-            className={cn('rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11', s === active ? 'bg-brand text-bg-0' : 'bg-bg-2 text-fg-3 hover:text-fg-1')}
+            className={cn('rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11', s === active ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1')}
             data-state-tab={s}
           >
             {STATE_LABELS[s]}
@@ -675,10 +675,10 @@ function SizeField(props: {
           className="w-full min-w-0 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
           data-prop={`size.${axis}`}
         />
-        <button type="button" title="hug：贴合内容" onClick={() => onSet('hug')} className={cn('rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11', value === 'hug' ? 'bg-brand text-bg-0' : 'bg-bg-2 text-fg-3')}>
+        <button type="button" title="hug：贴合内容" onClick={() => onSet('hug')} className={cn('rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11', value === 'hug' ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3')}>
           H
         </button>
-        <button type="button" title="fill：填满父级" onClick={() => onSet('fill')} className={cn('rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11', value === 'fill' ? 'bg-brand text-bg-0' : 'bg-bg-2 text-fg-3')}>
+        <button type="button" title="fill：填满父级" onClick={() => onSet('fill')} className={cn('rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11', value === 'fill' ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3')}>
           F
         </button>
       </span>
@@ -853,7 +853,7 @@ function TokenBindButton({ active, tokens, onPick }: { active: boolean; tokens: 
         type="button"
         title="绑定 token"
         onClick={() => setOpen((v) => !v)}
-        className={cn('rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11', active ? 'bg-brand text-bg-0' : 'bg-bg-2 text-fg-3 hover:text-fg-1')}
+        className={cn('rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11', active ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1')}
         data-token-bind
       >
        链

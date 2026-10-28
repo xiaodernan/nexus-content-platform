@@ -163,7 +163,7 @@ export function AccountPanel({ user }: { user: Identity }) {
             <button
               type="submit"
               disabled={busy}
-              className="rounded-[var(--nexus-radius-sm)] bg-brand px-[var(--nexus-space-4)] py-2 text-14 font-medium text-bg-0 disabled:opacity-40"
+              className="rounded-[var(--nexus-radius-sm)] bg-brand px-[var(--nexus-space-4)] py-2 text-14 font-medium text-accent-fg disabled:opacity-40"
               data-auth-submit
             >
               {busy ? '处理中…' : mode === 'register' ? '注册并认领项目' : '登录'}

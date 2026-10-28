@@ -107,7 +107,7 @@ export function LayersPanel() {
           <button
             type="button"
             onClick={() => setAdding((v) => !v)}
-            className="rounded-[var(--nexus-radius-sm)] bg-brand px-2 py-1 text-12 text-bg-0"
+            className="rounded-[var(--nexus-radius-sm)] bg-brand px-2 py-1 text-12 text-accent-fg"
             data-add-node
           >
             +
