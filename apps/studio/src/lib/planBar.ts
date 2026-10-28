@@ -219,10 +219,13 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   // v577 — gather the plan's status word (Active/Paused/Closed) from the first plan row, if available.
   const firstPlanStatus = facts.plans?.[0]?.active ? 'Active' : facts.plans?.[0]?.active === false ? 'Closed' : 'Paused';
   const statusContext = firstPlanStatus ? ` · ${firstPlanStatus}` : '';
+  // v578 — gather the plan's price with currency sign from the first plan row, if available and shown.
+  const firstPlanPrice = facts.plans?.[0]?.priceCents !== null && facts.plans?.[0]?.priceCents > 0 ? priceText(facts.plans?.[0]?.priceCents as PriceCents, facts.plans?.[0]?.currency as Currency) : '';
+  const priceContext = firstPlanPrice ? ` · ${firstPlanPrice}` : '';
   const countText =
     shown <= 0
       ? 'this page is past the end — the service answered an empty window'
-      : `${countPrefix}${planCountText(count, shown, offset)}${openedContext}${updatedContext}${statusContext}`;
+      : `${countPrefix}${planCountText(count, shown, offset)}${openedContext}${updatedContext}${statusContext}${priceContext}`;
   // v396 — the PAGER, as LINKS, the same shape the tip bar got in v395: the page is server-rendered and
   // cannot act (ADR 0018), so the route builds the URL and the bar draws an <a>; at a boundary the
   // control is a <span> with no href — a link that went nowhere would be a lie with an href. "Older" is
