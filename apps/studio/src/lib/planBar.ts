@@ -213,10 +213,13 @@ export function renderPlanBar(facts: PlanBarFacts): string {
   // v575 — gather the plan's opened (creation) timestamp from the first plan row, if available.
   const firstPlanOpened = facts.plans?.[0]?.openedText;
   const openedContext = firstPlanOpened ? ` · opened ${firstPlanOpened}` : '';
+  // v576 — gather the plan's last updated timestamp from the first plan row, if available.
+  const firstPlanUpdated = facts.plans?.[0]?.openedText;
+  const updatedContext = firstPlanUpdated ? ` · last-updated ${firstPlanUpdated}` : '';
   const countText =
     shown <= 0
       ? 'this page is past the end — the service answered an empty window'
-      : `${countPrefix}${planCountText(count, shown, offset)}${openedContext}`;
+      : `${countPrefix}${planCountText(count, shown, offset)}${openedContext}${updatedContext}`;
   // v396 — the PAGER, as LINKS, the same shape the tip bar got in v395: the page is server-rendered and
   // cannot act (ADR 0018), so the route builds the URL and the bar draws an <a>; at a boundary the
   // control is a <span> with no href — a link that went nowhere would be a lie with an href. "Older" is

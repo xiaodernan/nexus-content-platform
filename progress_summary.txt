@@ -1,6 +1,6 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v575_plan_bar_timestamp_v575
+Project version: v576_plan_bar_timestamp_v576
 Current commit: (next increment in progress)
 Pushed to origin/master: yes (pending)
 
@@ -67,6 +67,7 @@ Completed increments:
   v573: system refinement (v573) - complete & pushed
   v574: UI refinement (v574) - complete & pushed
   v575: plan bar last updated timestamp context (v575) - complete & pushed
+  v576: plan bar opened and last-updated timestamp context (v576) - complete & pushed
 
 Test results:
   lib tests: 2129+ across 102 test files
@@ -91,7 +92,7 @@ Summary of "of these N rows" pattern application:
   - v518: Plan bar - "of these N rows" prefix
   - v519: Tip bar - "of these N rows" prefix
 
-Completed increments (74 total):
+Completed increments (75 total):
   - v511-v513: API route validations and monetization
   - v514-v519: "of these N rows" pattern on economic panel tallies
   - v520-v532: Plan bar refinements (23 increments)
@@ -115,5 +116,6 @@ Completed increments (74 total):
   - v573-v573: System refinement (1 increment)
   - v574: UI refinement (1 increment)
   - v575: plan bar last updated timestamp context (v575) - complete & pushed
+  - v576: plan bar opened and last-updated timestamp context (v576) - complete & pushed
 
-Continuing: long-term development without stopping - next increment v576 in progress
+Continuing: long-term development without stopping - next increment v577 in progress
