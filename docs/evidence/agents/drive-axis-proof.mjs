@@ -42,6 +42,11 @@ const tmpDrive = sw.driveOf(tmp);
 const nmReal = realpathSync(join(root, 'node_modules'));
 const nmDrive = sw.driveOf(nmReal);
 const win32Host = /^[A-Za-z]:/.test(repoDrive);
+// The verdict a same-drive dest must print: a Windows box answers SAME DRIVE; a POSIX box has one root, so
+// the question does not arise and the answer is POSIX-SINGLE-ROOT. Until v539's repair the POSIX clause
+// could not fire (its comparison was a string against a Path), so both hosts printed SAME DRIVE and no such
+// branch existed here — the first ubuntu run of this row caught exactly that.
+const sameVerdict = win32Host ? /SAME DRIVE/ : /POSIX-SINGLE-ROOT/;
 assert.equal(nmDrive, repoDrive, `the repository's own node_modules realpath is on ${nmDrive} while the repository is on ${repoDrive} — the junctions v81 makes would cross a drive even at a same-drive dest, so §3's clean arm is not clean`);
 assert.ok(existsSync(HOME_RUNTIME_DIST), `this proof grades a built tree; ${HOME_RUNTIME_DIST} is missing — run \`npm run build\` first`);
 // The pre-v84 default, computed here rather than described: `mkdtempSync(join(tmpdir(), …))`.
@@ -133,7 +138,7 @@ const dline = dfltLines.find((l) => l.startsWith('[isolated]'));
 assert.ok(dline, `the runner printed no [isolated] line: ${JSON.stringify(dfltLines)}`);
 assert.equal(dflt.driveMismatch, false, `the DEFAULT dest ${dflt.dir} is on ${dflt.destDrive} while the repository is on ${dflt.repoDrive} — v84's fix is not in effect`);
 assert.equal(dflt.destDrive, dflt.repoDrive, 'the two drive fields must agree when the mismatch field says they do, or the printed sentence is not the computed one');
-assert.match(dline, /SAME DRIVE/, `the [isolated] line must state the drive verdict it computed: ${dline}`);
+assert.match(dline, sameVerdict, `the [isolated] line must state the drive verdict it computed: ${dline}`);
 assert.ok(dline.includes(`chosen: ${dflt.destChoice}`), 'the line must name HOW the dest was chosen, not only where it is');
 assert.ok(!dline.includes('CROSS-DRIVE'), 'the default arm must not report a mismatch it does not have');
 assert.ok(!resolve(dflt.dir).startsWith(resolve(root)), `the temp tree is at ${dflt.dir}: on the repository's drive is the point, INSIDE the repository is not — §9 still forbids that`);
@@ -167,7 +172,7 @@ console.log('§4 那句话的形状：不靠这台机器凑');
 const vv = (dir) => sw.driveVerdict({ dir, chose: 'caller-supplied', tmpDir: tmp, tmpDrive, repoDrive });
 const sameSentence = vv(join(sameBase, 'x'));
 assert.equal(sameSentence.mismatch, false, `a dest on the repository's own base ${sameBase} reported ${JSON.stringify(sameSentence.phrase)}`);
-assert.match(sameSentence.phrase, /SAME DRIVE/, `same-drive sentence missing from ${JSON.stringify(sameSentence.phrase)}`);
+assert.match(sameSentence.phrase, sameVerdict, `same-drive sentence missing from ${JSON.stringify(sameSentence.phrase)}`);
 if (otherRoot) {
   const crossSentence = vv(join(otherRoot, 'x'));
   assert.equal(crossSentence.mismatch, true, 'a dest on the other volume must be called a mismatch');
@@ -196,4 +201,4 @@ const totalMs = Date.now() - started;
 assert.ok(totalMs < sw.DEFAULT_PROOF_TIMEOUT_MS, `this witness took ${totalMs}ms against the ${sw.DEFAULT_PROOF_TIMEOUT_MS}ms a sweep row gets — v83 learned this the hard way and v84 must not relearn it`);
 const checkoutMs = Math.round(totalMs / Math.max(checkouts, 1));
 console.log(`[5] home dist ${homeAfter.digest.slice(0, 16)} (${homeAfter.files} files) UNMOVED across ${checkouts} clean checkouts (~${checkoutMs}ms each) · this proof scheduled itself in ${totalMs}ms of ${sw.DEFAULT_PROOF_TIMEOUT_MS}ms · an isolated BUILD arm is not schedulable at all: 513.0s same-drive and 522.4s cross-drive were measured back to back, both more than 2× the row budget`);
-console.log(`\n[summary] the drive under a clean checkout is an axis of isolation, now named by the runner and pinned here: ${observed.length} arms of relative() show that ${cross ? `a cross-drive pair returns an ABSOLUTE "relative" path whose ./<drive>: request names nothing under the app dir while the same-drive pair climbs out with ..${sep} and reaches the entry (§2)` : 'a same-drive pair climbs out with .. and reaches the entry (§2, cross-drive unavailable here)'}; the default dest is now on the repository's own drive (${dflt.dir}, ${dflt.destChoice}) and prints SAME DRIVE${crossIso ? `, while a caller can still ask for the other volume and is told CROSS-DRIVE plus who chose it` : ''} (§3); the sentence is graded on every shape this host can name, including the one it cannot reach (§4); and the home build did not move while any of it happened (§5). Bounds, stated: this proof runs NO build, so the two build verdicts it leans on — cross-drive exit 1 with the module-not-found reason, same-drive exit 0 over 59 lines — are quoted from ONE back-to-back pair measured by the human-run \`isolated-arms.mjs\` on ONE box whose tmpdir is on ${tmpDrive} and whose repository is on ${repoDrive}, and a build arm's duration is load-dependent; on a host where those are the same volume the pre-v84 default was already right and §1 says so instead of claiming a fix it did not need; and a same-drive clean tree buys a compiling checkout, not a green isolated sweep — an archived tree still has no dist, which is what v83's §3 measured.`);
+console.log(`\n[summary] the drive under a clean checkout is an axis of isolation, now named by the runner and pinned here: ${observed.length} arms of relative() show that ${cross ? `a cross-drive pair returns an ABSOLUTE "relative" path whose ./<drive>: request names nothing under the app dir while the same-drive pair climbs out with ..${sep} and reaches the entry (§2)` : 'a same-drive pair climbs out with .. and reaches the entry (§2, cross-drive unavailable here)'}; the default dest is now on the repository's own drive (${dflt.dir}, ${dflt.destChoice}) and prints ${win32Host ? 'SAME DRIVE' : 'POSIX-SINGLE-ROOT'}${crossIso ? `, while a caller can still ask for the other volume and is told CROSS-DRIVE plus who chose it` : ''} (§3); the sentence is graded on every shape this host can name, including the one it cannot reach (§4); and the home build did not move while any of it happened (§5). Bounds, stated: this proof runs NO build, so the two build verdicts it leans on — cross-drive exit 1 with the module-not-found reason, same-drive exit 0 over 59 lines — are quoted from ONE back-to-back pair measured by the human-run \`isolated-arms.mjs\` on ONE box whose tmpdir is on ${tmpDrive} and whose repository is on ${repoDrive}, and a build arm's duration is load-dependent; on a host where those are the same volume the pre-v84 default was already right and §1 says so instead of claiming a fix it did not need; and a same-drive clean tree buys a compiling checkout, not a green isolated sweep — an archived tree still has no dist, which is what v83's §3 measured.`);

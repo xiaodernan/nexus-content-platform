@@ -70,6 +70,13 @@
 // now prints 100 row + 2 swept, and the two stayed by measurement: cwd-axis and tree-axis are tree-motion
 // witnesses whose verdict is a property of a quiet tree, and a build worktree is never quiet.
 //
+// v539 (amendment 522) — the thirteen rows met ubuntu: twelve green, and drive-axis RED because its POSIX
+// clause could never fire (driveVerdict compared a STRING with a Path object, so a single-root host printed
+// the Windows sentence; one line now compares strings, and the proof branches its default-arm expectation on
+// the same platform fact). Both planes green after the repair. The population is 101 row + 2 swept here, not
+// because this census changed: another lane's verify:template-publish landed in fa53c57 and the ROW class
+// DERIVED it — a new verify:* script is a row the day the commit owns it.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';

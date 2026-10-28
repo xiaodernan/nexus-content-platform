@@ -1447,7 +1447,11 @@ export function isolatedDest(cwd = process.cwd(), prefix = 'nexus-isolated-', mk
 export function driveVerdict(where) {
   const destDrive = driveOf(where.dir);
   const mismatch = destDrive !== where.repoDrive;
-  const posix = where.repoDrive === parse('/') && destDrive === parse('/');
+  // v539 (amendment 522): driveOf returns parse(resolve(p)).root — a STRING ('/' on POSIX, 'D:\\' on
+  // Windows). Comparing it with parse('/') (a path OBJECT) was never true, so the POSIX clause could not
+  // fire on POSIX either: the first ubuntu run of verify:drive-axis printed "SAME DRIVE" where its §4
+  // requires POSIX-SINGLE-ROOT and reddened naming exactly this sentence.
+  const posix = where.repoDrive === '/' && destDrive === '/';
   return {
     destDrive,
     mismatch,

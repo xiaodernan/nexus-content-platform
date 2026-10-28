@@ -75,7 +75,7 @@ runs — it ran red (`40603544099`, amendment 515's four exec-host cases on ubun
 again on the first run that carried all 84 rows (`40693312992`: 78/84 green, six platform reds, repaired at
 v534 — the row-by-row account is below), which is the evidence this section was waiting for.
 
-## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more; amendment 520 at v534 repaired the six ubuntu reds that population's first full run found; amendment 521 at v535 wired the last thirteen green swept proofs)
+## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more; amendment 520 at v534 repaired the six ubuntu reds that population's first full run found; amendment 521 at v535 wired the last thirteen green swept proofs; amendment 522 at v539 repaired the one ubuntu red those thirteen's first contact exposed — a POSIX clause that could never fire)
 
 ```
 npm run verify:evidence-census   # a row inside the population it counts
@@ -85,7 +85,7 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 | class | count at this ref | how it is decided |
 | --- | --- | --- |
-| ROW | **100** (97 run + 3 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
+| ROW | **101** (98 run + 3 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **3** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs` |
 | SWEPT | **2** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — at this ref only `cwd-axis` and `tree-axis`, the tree-motion witnesses, which stay there by measurement (their verdict is about whether the walked tree moved during the run) |
 | TOOL | **6** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, two arms scripts, the isolated-build arms, the SVG generator) |
@@ -223,6 +223,32 @@ nothing but time (47 s, measured, no marker needed). The census prints **111 = 1
 during a run, so their greenness is a property of a quiet tree — v533's own whole-population sweep reddened
 both because other lanes were writing while it ran. A build that shares its worktree with every other lane
 would encode that coincidence as a gate, and a gate that reddens when a neighbour commits is not a verdict.
+
+**v539 — the thirteen rows met ubuntu; one was red, and the clause it exposed had never been able to fire.**
+Runs `40714702936` (sha `fa53c57`) and `40715800324` (sha `6ed5f6b`) both carried population 101 =
+98 run + 3 (the m8 lane's `verify:template-publish` joined in `fa53c57`) and both printed **97/98 green**.
+Twelve of the thirteen new rows were green: `asks-axis` 7.5 s · `build-arc` 0.9 s · `closure` 1.1 s ·
+`code-index` 5.4 s · `confession` 61.1 s · `container` 6.7 s · `deploy-arc` 0.7 s · `ebusy` 2.5 s ·
+`isolated` 134.4 s (its 900 000 ms clean-checkout build, green on the runner's single volume — the wiring
+amendment could only predict that) · `plane-axis` 2.6 s · `provenance` 19.4 s · `timeout-axis` 35.9 s.
+The thirteenth, `drive-axis`, was RED in 0.4 s both times, with the same sentence: "the POSIX arm must say
+the question does not arise instead of claiming a Windows-shaped victory: /tmp/nexus-x on / vs the
+repository on / — SAME DRIVE, so relative() can name these paths and a bundler can follow them". The defect
+was in the runner: `driveVerdict()` compared `where.repoDrive` — `driveOf()`'s STRING — with `parse('/')`, a
+Path OBJECT, so the POSIX clause was unreachable on every host and a single-root box claimed a Windows-shaped
+victory; the proof's §4 builds that POSIX pair synthetically and asserts the clause exists, so the wired row
+graded exactly the branch the runner could not reach. The comparison is now string-to-string
+(`where.repoDrive === '/' && destDrive === '/'`), and the proof needed the mirror repair: its default-arm
+assertion expected `/SAME DRIVE/` on every host, so after the runner fix a POSIX host reddened with "the
+[isolated] line must state the drive verdict it computed: … POSIX-SINGLE-ROOT" (observed on the node:22
+plane); both sites now require `win32Host ? /SAME DRIVE/ : /POSIX-SINGLE-ROOT/`, keeping §4's two absences
+(a Windows host must not print the POSIX clause; a POSIX host must not print either Windows word). Verified
+after the fix on both planes: win32 `--only drive-axis` **OK 25.1 s**, node:22 docker plane **OK 29.6 s**.
+The pre-flight clone's other reds are plane artifacts, each with its green CI counterpart: `provenance` red
+because a Windows `git clone` checks out CRLF while `git show` serves LF (CI 19.4 s), and `ebusy` / `isolated`
+TIMEOUT on the D: bind mount (240.1 s / 901.1 s against CI's 2.5 s / 134.4 s). The census prints **112 = 101
+row + 3 helper + 2 swept + 6 tool + 0 deferred · 0 unclassified · rows 98+3**, arms 14/14; the population
+moved 100→101 with no census edit because the m8 row is DERIVED, not declared.
 
 **What the census does NOT claim.** It classifies the 2 still-swept proofs; it does not run them in the build
 — the agents sweep stays the human-run channel, with its own budgets (240 000 ms default, 3 600 000 ms
