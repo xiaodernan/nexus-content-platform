@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { ThemeScript } from '@/components/ThemeScript';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -8,13 +10,20 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0a0b10',
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#0a0b10' },
+    { media: '(prefers-color-scheme: light)', color: '#f7f8fb' },
+  ],
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="zh-CN" data-nexus-theme="dark">
-      <body className="min-h-screen bg-bg-0 text-fg-1 antialiased">{children}</body>
+    <html lang="zh-CN" data-nexus-theme="dark" suppressHydrationWarning>
+      <body className="min-h-screen bg-bg-0 text-fg-1 antialiased">
+        <ThemeScript />
+        {children}
+        <ThemeToggle />
+      </body>
     </html>
   );
 }

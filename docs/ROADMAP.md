@@ -50,7 +50,7 @@
 - [x] **浅色 / accent-2 当文字** → `--nexus-color-accent-2-ink`（89 处 / 34 文件，`049d6d2`）。
 - [x] **浅色 / danger 与 warn 当文字** → 同形状的 `-ink`（132 处 / 56 文件，`4e64418` 之后的下一片；两主题 × 四级表面都过 AA）。
 - [ ] **浅色 / 其余语义色清点**：`text-success` / `text-info` / `text-brand` 当前为 0，出现即按同一道门收。
-- [ ] **浅色入口**：主题切换（系统偏好 + 显式选择、持久化），并把第五片"入口一出现就变硬门"的自查门转成硬门。
+- [x] **浅色入口**：主题切换（系统偏好 + 显式选择、持久化），并把第五片"入口一出现就变硬门"的自查门转成硬门（`acada56` 之后的主题片）。
 - [ ] **主题切换的浏览器见证**：暗/浅 × 首页 / Studio / 公开页，axe + 键盘双门；浅色读数进 `docs/EVALUATION.md`。
 - [ ] **之后**：移动端布局体检（公开页优先）、导出 → 空实例恢复演练、`docs/PERFORMANCE.md` 剩余项。
 
@@ -7259,3 +7259,24 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
 - 门：`style-tokens.test.ts` 22/22——源码不许残留裸 `text-danger`/`text-warn`、两主题 × 四级表面 ≥4.5、原值浅色必须不及格。
 - 浏览器见证：浅色下登录失败 `rgb(180, 35, 24)` 压 `rgb(247, 248, 251)` = **6.19:1**；五张页 axe 复跑仍 0 违规。
 - 仍欠：warn 没有游客可触发的轻入口，只有字面值门与 Tailwind 映射门；success/info/brand 当前 0 处。
+
+## §120 主题入口：系统偏好 + 显式选择 + 持久化（2026-10-29）
+
+浅色之前只是 tokens.css 里的一套值，产品里没有入口（`layout.tsx` 把 `data-nexus-theme="dark"` 钉死）。
+这一片把入口做出来，并把"入口一出现就变硬门"的自查门真正转硬。
+
+- **首帧**：`ThemeScript` 放在 `<body>` 第一个子节点，同步读 `localStorage['nexus-theme']`；
+  没存过才看 `prefers-color-scheme`。`<html suppressHydrationWarning>` 是必须的——脚本先于 React
+  改属性，否则每个浅色首访都会报 hydration mismatch（首跑真的报了，e2e 现在监听 console 钉住它）。
+- **切换**：`ThemeToggle` 一个按钮，暗 ↔ 浅，写回 localStorage；`data-theme-toggle-ready="1"`
+  是给 e2e 的水合屏障（本仓 2026-10-28 反复踩过"点了但 React 没接住"）。
+- **判据只有一份**：`apps/web/src/lib/theme.ts` 的 `resolveTheme`，脚本与组件共用同一套规则；
+  4 条单测钉显式优先、系统兜底、非法值不产生第三种主题。`theme.test.ts` 4/4。
+- **e2e**（`e2e/theme-toggle.spec.ts`，40.6s）：暗系统下点一次 → 属性/底色/按钮态全翻 → 刷新仍浅 →
+  点回去变暗；浅系统首访直接浅色；全程 console 无 hydration 告警。
+- **既有暗色基准不漂移**：`playwright.config.ts` 全局 `colorScheme: 'dark'`。Playwright 默认浅色，
+  不钉这一行会让 20+ 个既有用例整体换主题。浅色用例自己 `emulateMedia`。
+- **回归**：`auth.spec.ts` 两条 @smoke 通过（浮动按钮没有挡住任何点击）；`a11y-internal.spec.ts`
+  九张登录后界面（含这个新按钮）仍 **0 违规 / critical 0**（13.6m，慢但完整）。
+- **仍欠**：登录后界面的**浅色**还没扫（现在只扫了游客五张）；这是下一片。
+

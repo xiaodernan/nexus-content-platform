@@ -12,6 +12,9 @@ export default defineConfig({
     baseURL: WEB_URL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    // 产品首访跟随系统偏好；Playwright 默认浅色会让既有暗色用例整体漂移。
+    // 浅色用例（a11y-light / theme-toggle）自己显式 emulateMedia。
+    colorScheme: 'dark',
   },
   // 本机下载不到 Playwright 自带 Chromium，统一用系统 Chrome（docs/ENVIRONMENT.md）
   projects: [{ name: 'chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome' } }],

@@ -237,10 +237,10 @@ describe('强调面上的文字（§90 无障碍 · 同串底色+文字 ≥4.5�
  * 而它们脚下的表面翻。暗色下 cyan #22d3ee 压近黑有 8.66，浅色下同一个 cyan 压近白只剩 **1.46**
  * ——不是差一点，是完全读不出来。全站这个写法有 194 处（accent-2 85 / danger 73 / warn 36）。
  *
- * 这一条今天**不判红**，理由要写清楚：产品里没有任何地方把 `data-nexus-theme` 设成 `dark`
- * 以外的值（`apps/web/src/app/layout.tsx` 钉死），浅色是一套**跑不到**的主题。
- * 但"跑不到"是今天的状态，不是门禁可以永久豁免的理由——所以这道门自己去源码里查那个前提，
- * **入口一出现，它当场变成硬门**。这样这笔账不会靠一行注释躺在文档里等人想起。
+ * 2026-10-28 主题入口（ThemeScript / ThemeToggle）落地后，这道门真的走进了硬分支。
+ * 注意硬分支钉的**不是"原色在浅色下及格"**——原色本来就不随主题翻，要求它及格等于要求
+ * 强调色变成另一个颜色；硬分支钉的是每个色都有一枚 `-ink`，且 `-ink` 在浅色四级表面上过 AA。
+ * 这样"入口出现"与"文字可读"是同一件事，而不是靠一行注释躺在文档里等人想起。
  */
 describe('强调色当文字（§90 无障碍 · 浅色主题的钱先记着，入口一出现就收）', () => {
   const AS_TEXT = ['accent-2', 'danger', 'warn'] as const;
@@ -279,16 +279,21 @@ describe('强调色当文字（§90 无障碍 · 浅色主题的钱先记着，�
     }
   });
 
-  it('浅色的读数仍然不及格，且这道门自己盯着前提：入口一出现就变硬门', () => {
+  it('入口未出现时保留读数；入口一出现就要求每个色都有过 AA 的 -ink', () => {
     const bad = AS_TEXT.map((name) => ({ name, ...worstOn(light, name) })).filter((r) => r.ratio < 4.5);
     const writers = lightThemeWriters();
     if (writers.length > 0) {
+      // 入口存在：真正决定可读性的是 -ink，不是原色。三个强调色本身不随主题翻，
+      // 所以"原色在浅色下不及格"是设计事实，不是缺陷；门要钉的是每个色都有 ink 且 ink 过 AA。
+      const missing = AS_TEXT.filter((name) => !light.get(`--nexus-color-${name}-ink`));
       expect(
-        bad,
-        `浅色主题有了入口（${writers.join(' ; ')}），这笔账当场变成硬缺陷：\n` +
-          bad.map((r) => `text-${r.name} 压在 bg-${r.level} 上 = ${r.ratio.toFixed(2)}`).join('\n') +
-          '\n修法是照 accent-fg 的样子给每个色一个会随主题翻的 -ink 前景 token。',
+        missing,
+        `浅色入口已出现（${writers.join(' ; ')}），但这些色没有 -ink：${missing.join(', ')}`,
       ).toEqual([]);
+      for (const name of AS_TEXT) {
+        const w = worstOn(light, `${name}-ink`);
+        expect(w.ratio, `浅色：${name}-ink 压在 bg-${w.level} 上只有 ${w.ratio.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
+      }
       return;
     }
     // 前提还没变：浅色跑不到。这条断言钉的是"门还在看着这笔账"——

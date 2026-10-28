@@ -412,6 +412,22 @@ Tailwind 映射门，没有浏览器读数——如实记在这里，不假装�
 ④`nexus_ai_runs_total` 与耗时直方图在 DEMO 链上读数（463 ms 那组），**不代表任何真模型**。
 
 
+#### 主题入口（2026-10-29）：系统偏好 → 浅色，两套都真的落到像素上
+
+浅色在此之前只是 tokens.css 里的一套值，`layout.tsx` 把主题钉死在 `dark`。这一片把入口做出来：
+
+| 读数 | 值 |
+| --- | --- |
+| 显式切换（暗系统） | `html[data-nexus-theme]` dark → light，body 底色 `rgb(247, 248, 251)`；刷新仍浅；再点回 dark |
+| 首次访问跟随系统（浅色系统） | 首帧即 `light`（无暗→浅闪烁） |
+| console hydration 告警 | **0**（未加 `suppressHydrationWarning` 时首跑有；加了之后 e2e 监听并断言为 0） |
+| 纯判据单测 | 4/4（显式优先 / 系统兜底 / 非法值 / 存储键唯一） |
+| 既有暗色回归 | `auth.spec.ts` 2 条 @smoke 通过；`a11y-internal.spec.ts` 九张页 0 违规（13.6m） |
+
+**代价与边界**：`playwright.config.ts` 全局钉 `colorScheme: 'dark'`，否则 Playwright 默认浅色会让
+既有暗色用例整体漂移；浅色用例自己 `emulateMedia`。登录后界面的浅色**还没有扫**——下一片。
+
+
 #### 第六片：屏障铺到其余浏览器用例，顺手让共享 helper 自己现形（2026-10-28 同日）
 
 那条技术账记的是"9 个文件"，实际扫下来是 **20 个 spec 有同一族无屏障写法**——不止注册那 9 个，
