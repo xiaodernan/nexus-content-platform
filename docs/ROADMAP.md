@@ -52,7 +52,12 @@
 - [ ] **浅色 / 其余语义色清点**：`text-success` / `text-info` / `text-brand` 当前为 0，出现即按同一道门收。
 - [x] **浅色入口**：主题切换（系统偏好 + 显式选择、持久化），并把第五片"入口一出现就变硬门"的自查门转成硬门（`acada56` 之后的主题片）。
 - [ ] **主题切换的浏览器见证**：暗/浅 × 首页 / Studio / 公开页，axe + 键盘双门；浅色读数进 `docs/EVALUATION.md`。
-- [ ] **之后**：移动端布局体检（公开页优先）、导出 → 空实例恢复演练、`docs/PERFORMANCE.md` 剩余项。
+- [~] **移动端布局体检（公开页优先）**：第一片已量（`e2e/mobile-layout.spec.ts`，第十三片）——真发布语料
+      五张 × 两栏，读数在 `docs/EVALUATION.md`：帧宽全 1440、390 下要平移 1082px、首屏可见 27%、
+      `a[data-action-author]` 56×21。**还欠的是那两半**：① `resolveLayout` 没传 `breakpoint`，作者的
+      mobile 变体在发布时被丢掉；② 投影要不要按访客视口缩放（`/preview` 已有 `?zoom=` 的先例）。
+      改完要复跑这一片，并把 Studio／发现／市场／后台的窄视口补进读数。
+- [ ] **之后**：导出 → 空实例恢复演练、`docs/PERFORMANCE.md` 剩余项。
 
 并行会话边界（2026-10-28 实测）：observability 子系统由另一会话在途；上表前五项都在 UI 主题层，
 与它不重叠；提交只用临时索引/精确 `git add`，不碰它的 7 个在途文件。
@@ -1909,8 +1914,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   该换成 `registerMember`／`createProjectNamed`；② `bg-brand text-bg-0` 这类写法在浅色主题下会塌——
   这条当天还清，但**还账时发现的门病比账本身严重**，记在第五片。
   **仍欠**：§85 的真实 provider 半边（LLM 裁判 /
-  Tool selection / Agent task completion）、RAG 向量半（#110）、Studio / 市场 / 收件箱等其余界面的
-  键盘走查（axe 九张已扫，见上）；§86 的 provider 接入半边
+  Tool selection / Agent task completion）、RAG 向量半（#110）、~~Studio / 市场 / 收件箱等其余界面的
+  键盘走查（axe 九张已扫，见上）~~（**第七片已还键盘那一半**：首页／Studio／发现／市场／通知五张登录界面
+  加上公开页共六张有读数；键盘仍未量的是后台／管理界面与"点开才出现"的控件）；§86 的 provider 接入半边
   （typography / componentCorrectness 的真实来源）。
   **metrics/tracing 那一格同日落地（第十一片）**：进程内计数器 8 个指标 + `x-nexus-trace` 追踪 id +
   库里三张账，读面是 `GET /api/admin/metrics`（JSON／Prometheus 文本）与 `/admin/observability`，
@@ -1972,6 +1978,19 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   （浅色没真的落到被扫的那些像素上就判红、且这张不算读数），变异臂把属性改回 `dark` ⇒ 五张全红，
   md5 逐字节复核还原；首版这道门还被自己的判据抓过一次（只挑 `a[href]` 取样，而 `/search` 无结果时
   **一个链接都没有**，把"页面恰好是空的"报成了"浅色没生效"）。
+  **第十三片（2026-10-29）：移动端第一次被量**（`e2e/mobile-layout.spec.ts`）。此前 27 个 e2e 文件里
+  `isMobile`／`hasTouch` 一次都没出现过，axe 与键盘走查全在桌面宽度上跑——**宽度不在任何门的分母里**。
+  载体换成 `/sitemap.xml` 里的真发布作品页（匿名，不碰注册 10/小时与建项目 20/小时那两道闸），
+  同一份快照在 390×844 与 1280×900 两栏各读一遍。读数：**五张帧宽全是 1440×900**，390 下文档横向溢出 0px
+  （被 `overflow-x-auto` 的平移容器吃掉），但要平移 **1082px** 才能看到右缘，**首屏只看得见 27%**（桌面栏 89%）；
+  0/5 张存在"滚不动的裁切"；每页 10–11 个可见点击目标，其中 1–2 个不足 24×24，真缺陷是
+  `a[data-action-author]` **56×21**（flex 项，2.5.8 的行内豁免不适用），另一个 `a(试玩这一版 →)` 100×23
+  走行内豁免、已按规则排除。**根因在代码里点名**：`apps/web/src/app/n/[handle]/[slug]/page.tsx` 调
+  `resolveLayout(page, { tokens, mode })` **没传 `breakpoint`**，而 `/preview` 那条路认 `?viewport=`——
+  作者写的 mobile 变体在发布这一刻被整条丢掉；这跟"投影要不要按视口缩放"是两半账，分开还。
+  门只有四条结构性不变式（请求视口 = 页面自报视口、帧量得到、名册非空、200 才算读数），阈值一个没钉。
+  这一片还纠正了自己的一条证据：`curl` 那遍读到公开页 `meta viewport` 是 `width=device-width` 且没有
+  theme-color，浏览器两栏都不是这个形状，**按浏览器为准，那句 curl 不当结论用**。
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在
   `docs/PERFORMANCE.md`。2026-09-24 补上浏览器端：`npm run perf:browser`（`scripts/perf-browser.mts`）
   在真 Chrome 里量首帧、pan/zoom 帧距与"属性写入→画布重绘"延迟，当天数字与其三条必须一起读的限定
