@@ -64,16 +64,17 @@ exclusions, where the stubs append to a log so "did anything execute" is measure
 ### What this does NOT claim
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
-never turned into a `verify:*` script stays invisible to the build. Amendments 516–518 closed that half:
+never turned into a `verify:*` script stays invisible to the build. Amendments 516–519 closed that half:
 the census below gives every one of the **111** tracked modules a disposition, and the derived population is
-**36 running rows + 3 excluded by name** at this ref (v532 triaged the swept population and wired the sixteen
-Node-only proofs). And no gate here can make GitHub run: it reads bytes
+**84 running rows + 3 excluded by name** at this ref (v532 triaged the swept population and wired sixteen
+Node-only proofs; v533 ran the sweep over all 81 and wired the forty-eight green dist+spawn proofs). And no
+gate here can make GitHub run: it reads bytes
 committed in this repository, and whether the workflow executes on `master` is knowable only from the real
-runs — it ran red (`40603544099`, amendment 515's four exec-host cases on ubuntu), then green three times
-(`40659064493` with 12 rows, `40662063095` with 17, `40664659344` with 20), which is the evidence this
-section was waiting for.
+runs — it ran red (`40603544099`, amendment 515's four exec-host cases on ubuntu), then green four times
+(`40659064493` with 12 rows, `40662063095` with 17, `40664659344` with 20, `40682580110` with 36), which is
+the evidence this section was waiting for.
 
-## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs)
+## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more)
 
 ```
 npm run verify:evidence-census   # a row inside the population it counts
@@ -83,9 +84,9 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 | class | count at this ref | how it is decided |
 | --- | --- | --- |
-| ROW | **39** (36 run + 3 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
+| ROW | **87** (84 run + 3 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **3** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs` |
-| SWEPT | **63** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — the human-run channel is named, not guessed from a filename shape |
+| SWEPT | **15** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — the human-run channel is named, not guessed from a filename shape |
 | TOOL | **6** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, two arms scripts, the isolated-build arms, the SVG generator) |
 | DEFERRED | **0** | none at this ref — the three Studio lane proofs v530 deferred are ROWS since v531 (the workflow pre-pulls `node:22-alpine`, their one blocker). The class and its refusals stay for the next proof a sandbox really blocks |
 
@@ -153,9 +154,36 @@ are: 48 dist importers that also start a child, 9 spawn-only (the sweep
 runner's own witnesses, plus `isolated-proof`'s 900 000 ms isolated builds and `timeout-axis`'s deliberate
 timeout), 3 docker/reach, 2 axis witnesses (`cwd-axis`, `drive-axis`), and `code-index`'s red.
 
-**What the census does NOT claim.** It classifies the 63 still-swept proofs; it does not run them in the build
+**v533 — the sweep ran itself, and the green half walked through.** The triage instrument for this batch was
+the repository's own sweep, run whole over HEAD `28a8930`'s 81 tracked proofs: **76 OK · 5 FAIL · 0 TIMEOUT in
+987 s**. The forty-eight OK rows that import a shipped `dist` and start only git/node are build rows now,
+each named by its own `verify:*` script and its own timing on the authoring box (2026-10-28): `asset-tools`
+1.3 s · `bridge-report` 12.5 s · `budgets` 8.7 s · `changes` 0.3 s · `color` 7.0 s · `commit-echo` 13.2 s ·
+`commit` 1.7 s · `config` 4.3 s · `confirm` 1.6 s · `conflict` 6.7 s · `cut-tally` 6.4 s · `door-kill` 9.8 s ·
+`durability` 0.4 s · `durable-arc` 3.1 s · `exec-host` 0.4 s · `exec-sandbox` 0.2 s · `exectest` 0.2 s ·
+`git-aware` 0.4 s · `gitlog` 1.5 s · `greencommit` 2.1 s · `hunk-shape` 4.5 s · `inspect` 2.5 s · `intent`
+2.8 s · `log-window` 11.8 s · `agent-pipeline` 8.9 s · `pipes` 3.2 s · `policyaudit` 1.3 s · `policygate`
+1.4 s · `porcelain-path` 6.9 s · `prefix` 4.2 s · `reap` 15.1 s (declares `// sweep-budget-ms: 600000`) ·
+`reaper-survivor` 9.3 s · `receipts` 4.7 s · `record-window` 12.0 s · `remember` 2.7 s · `report-kill` 3.0 s ·
+`report-window` 1.7 s · `role-arc` 3.9 s · `runreceipts` 4.7 s · `scene-tools` 0.5 s · `show` 3.7 s ·
+`spawnlog` 2.8 s · `staged` 3.2 s · `streams` 5.1 s · `two-tree` 3.1 s · `verdict` 12.2 s · `window` 4.6 s ·
+`world-tools` 0.6 s. The five reds are named, not wired and not hidden: `code-index`'s stale top-5 (v532's
+named red); `confession`'s §9 pin — it enumerates the live silent face as two rows, and `record-encoding`'s
+declaration (v237, **582 commits ago**) makes it three, so the pin has been red since; `cwd-axis` and
+`tree-axis`, the tree-motion witnesses, red because the shared worktree moved under the run (1552 → 1575
+files, both digests in the ledger); and `isolated`, whose clean-checkout arm runs `code-index` and reports
+that red as a reproducibility finding, which is its job. The census prints **111 = 87 row + 3 helper + 15
+swept + 6 tool + 0 deferred · 0 unclassified · rows 84+3**, arms 14/14; `verify:ci-wiring` reads population
+**87 = 84 + 3**, five rows declaring their own milliseconds, 0 refused. The full derived set over this
+increment's final bytes printed **84/84 green · residue named 3** on the authoring box (2026-10-28), every
+new row far inside the 240 000 ms fallback.
+
+**What the census does NOT claim.** It classifies the 15 still-swept proofs; it does not run them in the build
 — the agents sweep stays the human-run channel, with its own budgets (240 000 ms default, 3 600 000 ms
-ceiling). The sixteen new rows' verdicts on ubuntu are knowable only from the next run; their authored timings
+ceiling). The 15, named: 10 green (`asks-axis`, `build-arc`, `closure`, `container`, `deploy-arc`,
+`drive-axis`, `ebusy`, `plane-axis`, `provenance`, `timeout-axis` — the three container rows need a docker
+daemon, the rest start children of their own) and the 5 reds above. The forty-eight new rows' verdicts on
+ubuntu are knowable only from the next run; their authored timings
 above are this Windows box's, and the CI box has been 2–3× faster on every repo-wide row so far. The
 three lane rows have a REAL prerequisite: a docker daemon holding `node:22-alpine`. The workflow pre-pulls it
 before the proof step; a human running `verify:proofs` on a docker-less box will see those three redden with

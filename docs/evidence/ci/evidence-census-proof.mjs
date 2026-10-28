@@ -45,6 +45,13 @@
 // guessed, and recorded in the amendment). The census now prints 39 row + 63 swept, and a swept proof that
 // is red on this box is a sentence in the ledger rather than an unopened door.
 //
+// v533 (amendment 519) — the sweep was aimed at ITSELF as the triage instrument: one whole run over HEAD
+// 28a8930's 81 tracked proofs returned 76 OK / 5 FAIL / 0 TIMEOUT, and the forty-eight OK rows that import a
+// shipped dist and start only git/node were wired. The five reds are named in the ledger and stay swept:
+// code-index's stale top-5; confession's §9 pin stale since v237 (582 commits, a third silent-face row);
+// cwd-axis and tree-axis, tree-motion witnesses red because the shared tree moved mid-run; isolated, which
+// inherits code-index by running it on a clean checkout. The census now prints 87 row + 15 swept.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
