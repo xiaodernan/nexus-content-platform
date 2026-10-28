@@ -386,8 +386,19 @@ async function writeDocument(tx: Tx, projectId: string, document: DesignDocument
   // 换页的节点不能走 UPDATE：主键是 (page_id, id)，按新 page_id 去 UPDATE 一行都匹配不到，
   // 节点会悄悄留在旧页上。按「删旧行 + 插新行」处理。
   const movedNodes = incomingNodes.filter((node) => changedIds.has(node.id) && existingPageOf.get(node.id) !== node.pageId);
+  // 换页的节点：先按**旧页**分组，再 chunked + inArray 批量删（与下面 deletedByPage 同一套），
+  // 不逐条往返——切分支 / 跨页剪切一大片子树时 movedNodes 可能有几百条。删完再走下面的批量插入。
+  const movedByPage = new Map<string, string[]>();
   for (const node of movedNodes) {
-    await tx.delete(designNodes).where(and(eq(designNodes.pageId, existingPageOf.get(node.id)!), eq(designNodes.id, node.id)));
+    const oldPage = existingPageOf.get(node.id)!;
+    const ids = movedByPage.get(oldPage);
+    if (ids) ids.push(node.id);
+    else movedByPage.set(oldPage, [node.id]);
+  }
+  for (const [oldPage, ids] of movedByPage) {
+    for (const part of chunked(ids)) {
+      await tx.delete(designNodes).where(and(eq(designNodes.pageId, oldPage), inArray(designNodes.id, part)));
+    }
   }
   if (addedNodes.length || movedNodes.length) {
     for (const part of chunked([...addedNodes, ...movedNodes])) {
