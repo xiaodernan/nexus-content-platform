@@ -1623,7 +1623,8 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   （`内存资源不足` → `USB: usb_service_win.cc` → Chrome 直接崩 → harness 还会跟着重启），
   这份见证让"转写语义对不对"始终有凭证。它进仓库了：`scripts/story-engine-proof.mts`（9 条，全绿）。
   （2026-10-29 改口：这份对账已经进门，跑在 `npm test` 里 —— `packages/game-model/test/story-parity.test.ts`，
-  十条线逐步比状态、摘要与引用契约；那个手跑脚本随之删除，11 条逐条另有归宿。）
+  十条线逐步比状态、摘要与引用契约；那个手跑脚本随之删除，11 条逐条另有归宿。第十七片起是 14 串线，
+  并配两张清单——播放 15 行读逐帧账本、投影 11 行配源码计数哨兵。）
   （同日第十五片再扩一步：**同一把尺子现在也量 `NexusSim` 与 `NexusRpg`**——
   `packages/game-model/test/sim-parity.test.ts` 19 条（第十六片起 35 条），四把尺子搬到共用的
   `packages/game-model/test/support/artifact-vm.ts`。那句"纯逻辑所以能在 vm 里跑"从这一片起
@@ -1666,6 +1667,13 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   删掉挥击触及里的武器射程后**照样 19 全绿**——两侧一起错，对账门结构上就看不见。
   六条臂 P–U 各红一次（P–T 两侧同改、只有清单能红；U 验上面那条新的静态门）。惰性与臂表读数在
   `docs/EVALUATION.md` 第十六片。
+  同日第十七片：同一件事搬到 **story 那条链**（`story-parity.test.ts` 14 → 19 条，播放 `STORY_RULES` 15 行 +
+  投影 `STORY_NOTE_RULES` 11 行 + 源码计数哨兵；惰性同样是量出来的——HEAD 那 14 条在两侧同时
+  `prior > 0`→`> 1` 后照旧全绿）。那两支 `storyStep` 的守卫**正常投影产不出触发它们的计划**，
+  所以只能当场改一份计划反事实地喂给两边。七条臂 V–AB 全红，其中 **Z 改的是投影那张表本身**：
+  第一版只问"这句至少被一份底稿编出来过"，把"有终点就说"改成"两个以上才说"它照绿——
+  现在每行带一个从文档形状独立算的谓词，与投影实际说了没有逐份底稿正反比，**漏报 / 误报 / 空行三种都红**
+  （Z 抓漏报、AA 抓误报、AB 抓空行）。读数在 `docs/EVALUATION.md` 第十七片。
   浏览器那条 `npm run parity:game-code` 没有失业——它量的是渲染与点击，这两份门量的是转写语义。
 
 2026-10-20 第五轮：全量回归（分四批，隔离库）—— 2026-10-20 的绿基线
@@ -1939,7 +1947,7 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   `codegen.test.ts` 那条起点钉子改成计数写法；`scripts/story-engine-proof.mts` 从 9 条加到 11 条：
   同一串 5 步（含一次重访与一次打不中）之后，模型与 `NexusStory` 的状态 `JSON.stringify` 逐字段相同、摘要逐字相同。
   game-model 全量 235 条绿、tsc 0、eslint 0。
-  （那 11 条现在在 `packages/game-model/test/story-parity.test.ts`，14 条、进 `npm test`；脚本已删，读数见 2026-10-29。）
+  （那 11 条现在在 `packages/game-model/test/story-parity.test.ts`，第十七片起 19 条并配两张清单、进 `npm test`；脚本已删，读数见 2026-10-29。）
   同一条纪律同日扩到另外两条链：`sim.ts` / `rpg.ts` 与 `NexusSim` / `NexusRpg` 的逐步对账在
   `packages/game-model/test/sim-parity.test.ts`（19 条，第十六片起 35 条并配规则清单），两边共用的四把尺子在
   `packages/game-model/test/support/artifact-vm.ts`——**对账工具写两份，就跟转写写两份一样会说谎**。
