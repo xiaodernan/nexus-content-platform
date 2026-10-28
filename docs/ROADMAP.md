@@ -1862,7 +1862,15 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   根节点框补了一个 tab 停留点，首红落在「顺序」而不是热点那道——红是真红但没点名缺陷，所以把
   「热点在册」提到走查之前。顺带记下一条运行条件：注册按 IP 限流 10 次/小时，而 e2e 有 10 个文件
   各注册一个新账号，连跑第二轮会 429 且界面上只留 `guest`（看着像用例坏了）——**没有为测试放宽那道闸**，
-  只把答复码印进第一条报错，节奏写进 `docs/ENVIRONMENT.md`。**仍欠**：§85 的真实 provider 半边（LLM 裁判 /
+  只把答复码印进第一条报错，节奏写进 `docs/ENVIRONMENT.md`。
+  **而那句诊断自己把绿路走死了（同日下一轮实测）**：上面那四条臂是在诊断加进去之前跑的；诊断要读
+  `[data-auth-error]`，写成 `locator.textContent().catch(() => null)`——注册成功时那个元素不存在，
+  Playwright 便先等它出现，而 `actionTimeout` 没设（不限时），`.catch()` 只在测试超时把等待 reject 掉
+  的那一刻才生效。同一元素 `count()` 117ms 报"不在"，紧接 `textContent()` 挂 **145 秒**，基线从"能过"
+  变成"必然整条测试超时"，报错却还写着"注册没把会话升成 member"（把人往限流上带）。改成不等待的一次性
+  读数（`page.evaluate` 取 `querySelector(...)?.textContent`）后同一条腿 **9.6 秒**绿，上面那组读数
+  （分母 9／走查 11／命中 9／排除 1）一字不差复现。教训：**"等一个不该存在的元素"不是稳妥兜底，
+  是把绿路变成死路**——读"有没有"要用不等待的 API。**仍欠**：§85 的真实 provider 半边（LLM 裁判 /
   Tool selection / Agent task completion）、RAG 向量半（#110）、Studio / 市场 / 收件箱等其余界面的
   键盘走查与 axe；§86 的 provider 接入半边
   （typography / componentCorrectness 的真实来源）；metrics/tracing 也没接，
