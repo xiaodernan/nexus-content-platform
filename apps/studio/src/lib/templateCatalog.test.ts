@@ -15,6 +15,7 @@ import {
   listingsByCategory,
   normalizeTags,
   queryTokens,
+  retireTemplate,
   searchTemplates,
   sortByNewest,
   sortByPriceAsc,
@@ -158,5 +159,44 @@ describe('templateCatalog: the pure helpers', () => {
     expect(queryTokens('仪表盘 SaaS')).toEqual(['仪表盘', 'saas']);
     expect(queryTokens('图')).toEqual(['图']); // a single CJK character is meaningful
     expect(queryTokens('a')).toEqual([]); // a single ASCII character is not
+  });
+});
+
+describe('templateCatalog: retiring (v539)', () => {
+  it('withdraws the listing and returns it, keeping the others in order — and never mutates the catalog it was handed', () => {
+    const c = build(listing({ id: 'a' }), listing({ id: 'b' }), listing({ id: 'c' }));
+    const r = retireTemplate(c, 'b');
+    if (!r.ok) throw new Error(`retire refused: ${r.reason}`);
+    expect(r.listing.id).toBe('b');
+    expect(r.catalog.listings.map((l) => l.id)).toEqual(['a', 'c']);
+    expect(templateById(r.catalog, 'b')).toBeNull();
+    expect(c.listings.map((l) => l.id)).toEqual(['a', 'b', 'c']); // the input is untouched
+  });
+
+  it('refuses an unknown id, an empty id and a SECOND retire by name — a retire that acts twice must be visible', () => {
+    const c = build(listing({ id: 'a' }));
+    const once = retireTemplate(c, 'a');
+    if (!once.ok) throw new Error('the first retire was refused');
+    const twice = retireTemplate(once.catalog, 'a');
+    expect(twice.ok).toBe(false);
+    if (twice.ok) return;
+    expect(twice.reason).toContain('lists no template "a" to retire');
+    const unknown = retireTemplate(c, 'ghost');
+    expect(unknown.ok).toBe(false);
+    if (unknown.ok) return;
+    expect(unknown.reason).toContain('lists no template "ghost" to retire');
+    const empty = retireTemplate(c, '');
+    expect(empty.ok).toBe(false);
+    if (empty.ok) return;
+    expect(empty.reason).toMatch(/needs the id/);
+  });
+
+  it('a retired id can be listed AGAIN — the window reopens, and the new listing names its own author', () => {
+    const c = build(listing({ id: 'a' }));
+    const gone = retireTemplate(c, 'a');
+    if (!gone.ok) throw new Error('the retire was refused');
+    const again = addTemplate(gone.catalog, listing({ id: 'a', authorId: 'acc-2' }));
+    if (!again.ok) throw new Error(`re-listing refused: ${again.reason}`);
+    expect(templateById(again.catalog, 'a')?.authorId).toBe('acc-2');
   });
 });

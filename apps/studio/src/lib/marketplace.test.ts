@@ -6,9 +6,9 @@
  * conservation a transfer must hold.
  */
 import { describe, expect, it } from 'vitest';
-import { appendCreditEntry, balanceOf, emptyCreditLedger, historyOf, type CreditLedger } from './credits';
+import { appendCreditEntry, balanceOf, emptyCreditLedger, historyOf, type CreditEntry, type CreditLedger } from './credits';
 import { addTemplate, emptyTemplateCatalog, type TemplateCatalog } from './templateCatalog';
-import { purchasesOf, purchaseTemplate, templateAffordable } from './marketplace';
+import { purchasesOf, purchaseTemplate, refSoldIn, saleOfPurchase, templateAffordable } from './marketplace';
 
 function fixture() {
   let catalog: TemplateCatalog = emptyTemplateCatalog();
@@ -153,5 +153,27 @@ describe('marketplace: affordability is derived, and decides nothing', () => {
     const d = purchaseTemplate(catalog, ledger, buy);
     if (!d.ok) throw new Error('unreachable');
     expect(historyOf(d.ledger, 'buyer-1').map((e) => e.kind)).toEqual(['grant', 'spend']);
+  });
+});
+
+describe('marketplace: WHO WAS PAID is the paired write (v538, owned here since v539)', () => {
+  it('saleOfPurchase reads the account the sale credited, and refSoldIn says the ref named a template', () => {
+    const { catalog, ledger } = fixture();
+    const d = purchaseTemplate(catalog, ledger, buy);
+    if (!d.ok) throw new Error(`fixture purchase refused: ${d.reason}`);
+    expect(saleOfPurchase(d.ledger, d.buyerEntry)?.accountId).toBe('author-1');
+    expect(refSoldIn(d.ledger, 't1')).toBe(true);
+    expect(refSoldIn(d.ledger, 'plan-pro')).toBe(false);
+  });
+
+  it('a grant at a DIFFERENT instant is not the sale, and a purchase with no ref has none', () => {
+    // A hand-built record: a top-up carrying the same ref at another instant must not be read as a sale.
+    const g1: CreditEntry = { id: 'g1', accountId: 'author-1', delta: 500, reason: 'top-up', at: 5, kind: 'grant', ref: 't1' };
+    const s1: CreditEntry = { id: 's1', accountId: 'buyer-1', delta: -500, reason: 'template "SaaS Landing"', at: 2, kind: 'spend', ref: 't1' };
+    const s2: CreditEntry = { id: 's2', accountId: 'buyer-1', delta: -300, reason: 'subscription "pro"', at: 6, kind: 'spend' };
+    const ledger: CreditLedger = { entries: [g1, s1, s2] };
+    expect(saleOfPurchase(ledger, s1)).toBeNull();
+    expect(refSoldIn(ledger, 't1')).toBe(false);
+    expect(saleOfPurchase(ledger, s2)).toBeNull();
   });
 });

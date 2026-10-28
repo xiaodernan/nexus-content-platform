@@ -27,7 +27,7 @@
 
 import { balanceOf, heldRefsOf, type CreditLedger } from './credits';
 import { templateById, type TemplateCatalog } from './templateCatalog';
-import { templateAffordable } from './marketplace';
+import { refSoldIn, templateAffordable } from './marketplace';
 
 /** The facts a viewer's wallet screen needs, all derived. */
 export interface WalletView {
@@ -50,12 +50,15 @@ export interface WalletView {
  */
 export function buildWalletView(catalog: TemplateCatalog, ledger: CreditLedger, viewerId: string): WalletView {
   const balance = balanceOf(ledger, viewerId);
-  // Ownership is NET of refunds (`heldRefsOf`: spend − refund per ref), and a ref only counts as
-  // template ownership when it NAMES a catalog listing — the ledger is shared, so a subscription's
-  // plan id must not read as one.
+  // Ownership is NET of refunds (`heldRefsOf`: spend − refund per ref), and an unlisted ref only
+  // counts as template ownership when the RECORD shows it was SOLD (v539) — the ledger is shared, so
+  // a subscription's plan id must not read as one, while a listing that was RETIRED is still owned by
+  // whoever paid for it. The catalog answers first; the record answers when the catalog has forgotten
+  // the listing, which is the same division of authority the refund mechanism follows.
   const owned = new Set<string>();
   for (const ref of heldRefsOf(ledger, viewerId)) {
-    if (templateById(catalog, ref)) owned.add(ref);
+    const listed = templateById(catalog, ref) !== null;
+    if (listed || refSoldIn(ledger, ref)) owned.add(ref);
   }
   const affordable: string[] = [];
   for (const listing of catalog.listings) {

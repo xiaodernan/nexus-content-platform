@@ -93,8 +93,22 @@ describe('buildWalletView', () => {
       { id: 'e-sub', accountId: 'buyerB', delta: -300, reason: 'subscription "pro"', at: 2, kind: 'spend', ref: 'plan-pro' },
     ]);
     const view = buildWalletView(catalog(), ledger, 'buyerB');
-    expect(view.ownedTemplateIds).toEqual([]); // 'plan-pro' is not in the catalog
+    expect(view.ownedTemplateIds).toEqual([]); // 'plan-pro' is not in the catalog, and the record never sold it
     expect(view.balanceCents).toBe(700);
+  });
+
+  it('a RETIRED listing is still owned when the record shows it was sold (v539)', () => {
+    // The buyer paid, the marketplace wrote the sale at the SAME instant, and the listing has since
+    // left the catalog: ownership is the record's fact, not the shelf's.
+    const ledger = ledgerOf([
+      { id: 'e-earn', accountId: 'buyerB', delta: 1000, reason: 'top-up', at: 1, kind: 'grant' },
+      { id: 'e-buy', accountId: 'buyerB', delta: -500, reason: 'template "Pro Dashboard"', at: 2, kind: 'spend', ref: 'tpl-retired' },
+      { id: 'e-sale', accountId: 'authorA', delta: 500, reason: 'sale of "Pro Dashboard"', at: 2, kind: 'grant', ref: 'tpl-retired' },
+    ]);
+    const view = buildWalletView(catalog(), ledger, 'buyerB'); // the catalog does NOT list tpl-retired
+    expect(view.ownedTemplateIds).toEqual(['tpl-retired']);
+    expect(walletOwns(view, 'tpl-retired')).toBe(true);
+    expect(view.balanceCents).toBe(500);
   });
 
   it('a refunded purchase is no longer owned (ownership is NET of refunds)', () => {

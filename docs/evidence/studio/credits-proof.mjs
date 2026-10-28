@@ -33,7 +33,10 @@
 //      and moves nothing, the closing instant is inclusive, an ASK dated before the purchase is
 //      refused by the same ordering rule, a broken policy is refused by name, and the PREFLIGHT
 //      (`refundEligibility`) answers the same gate without writing anything;
-//   §11 HEAD is byte-identical: everything ran in memory.
+//   §11 a listing can be RETIRED, and a retire erases nothing the record says: the catalog is what is
+//      for sale NOW and the ledger is what was BOUGHT, so the buyer still owns a retired ref, can
+//      still be made whole for it by name, and the id can be listed again under another author;
+//   §12 HEAD is byte-identical: everything ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/credits-proof.mjs
 
@@ -494,12 +497,60 @@ try {
   assert.match(broken.reason, /windowMs/, 'a broken policy was not refused by name');
 
   console.log('  a 10 ms window refused the refund 1 ms past closing and moved NOTHING; it allowed one AT the closing instant; "no deadline" allowed it years later; a buyer with no purchase got the mechanism\'s sentence; a policy that never declared a window was refused by name; an ask at 1 (purchase at 2) was refused by the ORDERING rule in both readers and moved nothing; the PREFLIGHT reported the same gate (eligible at the edge with purchaseAt 2 / closesAt 12, refused past it, deferred on a missing purchase) without touching the ledger');
+  // ── §11 a listing can be RETIRED, and a retire erases nothing the record says ───────────────────
+  console.log('§11 a listing can be retired, and a retire erases nothing the record says');
+  // v539. The catalog could only ADD — a listing was immortal once it landed — so the situation v538
+  // taught the refund to reverse (a listing that LEFT the catalog) had no producer. This section
+  // exercises the missing verb and the division of authority it makes visible: the CATALOG says what
+  // is for sale NOW, the LEDGER says what was bought. A retire removes a shelf slot, never a purchase.
+  let shelf = catalogMod.emptyTemplateCatalog();
+  for (const listing of [FREE, PAID]) {
+    const added = catalogMod.addTemplate(shelf, listing);
+    assert.equal(added.ok, true, `retire fixture refused: ${added.reason}`);
+    shelf = added.catalog;
+  }
+  let shelfLedger = credits.emptyCreditLedger();
+  shelfLedger = credits.appendCreditEntry(shelfLedger, { id: 'sg1', accountId: 'buyerR', delta: 1000, reason: 'top-up', at: 10, kind: 'grant' }).ledger;
+  const shelfBought = market.purchaseTemplate(shelf, shelfLedger, { templateId: 'tpl-paid', buyerId: 'buyerR', entryId: 'sb1', at: 20 });
+  assert.equal(shelfBought.ok, true, shelfBought.reason);
+  shelfLedger = shelfBought.ledger;
+
+  const retired = catalogMod.retireTemplate(shelf, 'tpl-paid');
+  assert.equal(retired.ok, true, retired.reason);
+  assert.equal(retired.listing.id, 'tpl-paid', 'the retire did not report the listing it withdrew');
+  assert.equal(catalogMod.templateById(retired.catalog, 'tpl-paid'), null, 'a retired listing is still listed');
+  assert.equal(catalogMod.templateById(shelf, 'tpl-paid')?.id, 'tpl-paid', 'the retire mutated the catalog it was handed');
+  const twiceRetired = catalogMod.retireTemplate(retired.catalog, 'tpl-paid');
+  assert.equal(twiceRetired.ok, false, 'a SECOND retire was silently accepted');
+  assert.match(twiceRetired.reason, /lists no template "tpl-paid" to retire/, 'a second retire was not refused by name');
+
+  // The record still says the ref was SOLD — that fact is what keeps it a template rather than a plan.
+  assert.equal(market.refSoldIn(shelfLedger, 'tpl-paid'), true, 'the record does not show the sale');
+  assert.equal(market.refSoldIn(shelfLedger, 'plan-pro'), false, 'a plan id nobody sold read as a template');
+  const retiredWallet = wallet.buildWalletView(retired.catalog, shelfLedger, 'buyerR');
+  assert.equal(wallet.walletOwns(retiredWallet, 'tpl-paid'), true, 'a RETIRED listing stopped being owned — the shelf erased a purchase');
+  assert.equal(wallet.walletOwns(retiredWallet, 'tpl-free'), false, 'a listing never bought read as owned');
+
+  const reversedRetired = refund.refundPurchase(retired.catalog, shelfLedger, { templateId: 'tpl-paid', buyerId: 'buyerR', entryId: 'sr1', at: 30 });
+  assert.equal(reversedRetired.ok, true, `a retired ref could not be reversed: ${reversedRetired.ok ? '' : reversedRetired.reason}`);
+  assert.equal(credits.balanceOf(reversedRetired.ledger, 'buyerR'), 1000, 'the buyer was not made whole for a retired ref');
+  assert.equal(credits.balanceOf(reversedRetired.ledger, 'authorA'), 0, 'the recorded seller kept a reversed sale');
+  assert.equal(reversedRetired.buyerEntry.reason, 'refund of "tpl-paid" (not in this catalog)', 'the sentence named a title the catalog stopped claiming');
+
+  // The window REOPENS: the id can be listed again under a DIFFERENT author, and the sale already in
+  // the record still belongs to the account that was paid.
+  const relisted = catalogMod.addTemplate(retired.catalog, { ...PAID, authorId: 'authorB' });
+  assert.equal(relisted.ok, true, `a retired id could not be listed again: ${relisted.reason}`);
+  assert.equal(catalogMod.templateById(relisted.catalog, 'tpl-paid')?.authorId, 'authorB', 'the re-listing did not name its new author');
+
+  console.log(`  the listing withdrew cleanly (1 left, the input untouched, a second retire refused by name); the buyer still OWNS the retired ref and the wallet can tell it from a plan id; the refund made the buyer whole (${credits.balanceOf(reversedRetired.ledger, 'buyerR')}) and clawed back exactly the recorded seller (${credits.balanceOf(reversedRetired.ledger, 'authorA')}), naming "tpl-paid" (not in this catalog); the retired id re-listed under a new author`);
+
 } finally {
   rmSync(box, { recursive: true, force: true });
 }
 
-// ── §11 HEAD is byte-identical ────────────────────────────────────────────────────────────────────
+// ── §12 HEAD is byte-identical ────────────────────────────────────────────────────────────────────
 const after = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(after, head, 'the repository HEAD moved while the proof ran');
-console.log(`§11 HEAD unchanged (${head.slice(0, 12)})`);
+console.log(`§12 HEAD unchanged (${head.slice(0, 12)})`);
 console.log('ALL SECTIONS PASSED');

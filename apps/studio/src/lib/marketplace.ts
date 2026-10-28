@@ -96,3 +96,41 @@ export function templateAffordable(catalog: TemplateCatalog, ledger: CreditLedge
 export function purchasesOf(ledger: CreditLedger, accountId: string): CreditEntry[] {
   return ledger.entries.filter((e) => e.accountId === accountId && e.ref !== undefined);
 }
+
+/**
+ * The SALE that credited the seller of a purchase, or null when the record carries none (v538, moved
+ * here in v539).
+ *
+ * <p>A purchase is TWO entries appended at ONE instant, both carrying the listing's id as `ref` — the
+ * pairing this module writes — so who was PAID is a fact the ledger holds alone. It lives here, beside
+ * that paired write, because the pairing is the marketplace's convention: the refund mechanism and
+ * the wallet both ask this ONE owner rather than each re-deriving it. Reading the author off the
+ * catalog instead would answer with whoever holds the listing NOW: a retired listing has no current
+ * author, and a re-listed one has an account that was never paid.
+ */
+export function saleOfPurchase(ledger: CreditLedger, purchase: CreditEntry): CreditEntry | null {
+  if (purchase.ref === undefined) return null;
+  return (
+    ledger.entries.find(
+      (e) =>
+        e.kind === 'grant' &&
+        e.ref === purchase.ref &&
+        e.at === purchase.at &&
+        e.accountId !== purchase.accountId &&
+        e.delta > 0,
+    ) ?? null
+  );
+}
+
+/**
+ * Whether the record shows this ref being SOLD to anyone (v539).
+ *
+ * <p>The wallet must tell "a template" from "a subscription plan id" without the catalog, because a
+ * listing can be RETIRED and the buyer still owns what they paid for. The distinguishing fact is the
+ * one this module writes: a ref that a sale credits names a template, while a plan id never got a
+ * paired sale. This is a read over the record, not an assumption about ref SHAPE — refs are opaque
+ * by design (`credits.ts`).
+ */
+export function refSoldIn(ledger: CreditLedger, ref: string): boolean {
+  return ledger.entries.some((e) => e.kind === 'spend' && e.ref === ref && saleOfPurchase(ledger, e) !== null);
+}

@@ -41,6 +41,7 @@
 
 import { appendCreditEntry, balanceOf, heldRefsOf, type CreditEntry, type CreditLedger } from './credits';
 import { templateById, type TemplateCatalog } from './templateCatalog';
+import { saleOfPurchase } from './marketplace';
 
 export interface TemplateRefund {
   templateId: string;
@@ -80,29 +81,6 @@ export function purchaseAwaitingRefund(ledger: CreditLedger, buyerId: string, te
   const purchases = purchasesOf(ledger, buyerId, templateId);
   const refunds = refundsOf(ledger, buyerId, templateId);
   return purchases[refunds.length] ?? null;
-}
-
-/**
- * The SALE that credited the seller of a purchase, or null when the record carries none (v538).
- *
- * <p>The marketplace appends the buyer's `spend` and the seller's credit at ONE instant, both carrying
- * the listing's id as `ref` (`marketplace.ts`), so who was PAID is a ledger fact. Reading the author
- * off the catalog instead would claw back whoever owns the listing NOW: a delisted listing has no
- * current author at all, and a re-authored one has an account that was never paid. This is the one
- * owner of "who was paid" for a refund, exactly as `purchaseAwaitingRefund` owns "what is reversed".
- */
-export function saleOfPurchase(ledger: CreditLedger, purchase: CreditEntry): CreditEntry | null {
-  if (purchase.ref === undefined) return null;
-  return (
-    ledger.entries.find(
-      (e) =>
-        e.kind === 'grant' &&
-        e.ref === purchase.ref &&
-        e.at === purchase.at &&
-        e.accountId !== purchase.accountId &&
-        e.delta > 0,
-    ) ?? null
-  );
 }
 
 /** What a refund ask must satisfy before ANY entry may move — the mechanism's structural answer. */

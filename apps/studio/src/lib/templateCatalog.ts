@@ -108,6 +108,36 @@ export function templateById(catalog: TemplateCatalog, id: string): TemplateList
   return catalog.listings.find((l) => l.id === id) ?? null;
 }
 
+/** What a retire decided: the NEW catalog, the listing it withdrew, or a refusal by name. */
+export type TemplateRetireDecision =
+  | { ok: true; catalog: TemplateCatalog; listing: TemplateListing }
+  | { ok: false; reason: string };
+
+/**
+ * Withdraw one listing, or refuse BY NAME (v539).
+ *
+ * <p>Until now the catalog could only ADD: a listing was immortal once it landed, so an author could
+ * not take one down and the surface had no producer for "a listing that left the catalog" — the
+ * situation `refundPairing` learned to reverse from the record in v538 could only be reached by
+ * hand-built fixtures. This is the missing verb, and it is a WINDOW operation, not an eraser: the
+ * catalog is what is FOR SALE now, while what was BOUGHT is the ledger's record (`credits.ts`), which
+ * this function never touches. A retire therefore removes a listing from the shelf, not a purchase
+ * from history — the wallet keeps owning a retired ref the record shows was sold (`walletView.ts`),
+ * and a buyer can still be made whole for it (`refund.ts`).
+ *
+ * <p>A second retire of the same id is REFUSED rather than silently idempotent: naming a listing the
+ * catalog no longer carries is an error the caller should see, and the refusal is what lets a
+ * take-down command report "already withdrawn" instead of pretending it acted. A retired id may be
+ * ADDED again — as the same listing or under a different author — because the catalog is a window
+ * that can reopen; the previous purchase history stays with whichever account was actually paid.
+ */
+export function retireTemplate(catalog: TemplateCatalog, id: string): TemplateRetireDecision {
+  if (typeof id !== 'string' || id === '') return { ok: false, reason: 'a retire needs the id of the listing to withdraw' };
+  const listing = templateById(catalog, id);
+  if (!listing) return { ok: false, reason: `the catalog lists no template "${id}" to retire` };
+  return { ok: true, catalog: { listings: catalog.listings.filter((l) => l.id !== id) }, listing };
+}
+
 export function listingsByAuthor(catalog: TemplateCatalog, authorId: string): TemplateListing[] {
   return catalog.listings.filter((l) => l.authorId === authorId);
 }

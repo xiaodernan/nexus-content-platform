@@ -11,9 +11,10 @@
 //
 // sweep-budget-ms: 1200000
 // The budget above is the CI runner's and the agents sweep's to read (amendments 85 and 94), and it is
-// measured, not comfortable: 30 mutations, each a serial `vitest run` of the copied suite — the 28-arm run
+// measured, not comfortable: 32 mutations, each a serial `vitest run` of the copied suite — the 28-arm run
 // stood alone at 239 s on 2026-10-28 with all 28 KILLED, the 29-arm run (M29, v537) was ALL KILLED the same
-// day, and the 30-arm run (M30, v538) was ALL KILLED too; neither later run had a separately recorded wall
+// day, the 30-arm run (M30, v538) was ALL KILLED too, and the 32-arm run (M31–M32, v539) is ALL KILLED; the
+// later three runs had no separately recorded wall
 // time. Readings move with host load, not with the arm count
 // alone: the 27-arm sweep read 241 s, the 25-arm 216 s and the 23-arm 166.2 s standing alone, and the 18-arm
 // sweep read 410.7 s standing alone and 404.9 s beside a concurrent `npm ci` earlier the same day on this
@@ -54,7 +55,7 @@ const MUTATIONS = [
   { id: 'M05', file: 'marketplace', find: 'if (listing.authorId === purchase.buyerId)', replace: 'if (false)', why: 'an author may buy their own listing' },
   { id: 'M06', file: 'settlement', find: 'closing: opening + earned - spent + refunded - clawedBack,', replace: 'closing: opening + earned + spent + refunded - clawedBack,', why: 'the closing balance adds spends instead of subtracting them' },
   { id: 'M07', file: 'settlement', find: 'after += e.delta;', replace: 'after += 0;', why: 'entries after a bounded window are dropped from `after`' },
-  { id: 'M08', file: 'walletView', find: 'if (templateById(catalog, ref)) owned.add(ref);', replace: 'owned.add(ref);', why: 'a subscription ref reads as template ownership (the 3ac210e bug)' },
+  { id: 'M08', file: 'walletView', find: 'if (listed || refSoldIn(ledger, ref)) owned.add(ref);', replace: 'owned.add(ref);', why: 'a subscription ref reads as template ownership (the 3ac210e bug)' },
   { id: 'M09', file: 'templateRemix', find: "if (listing.authorId === viewerId) return { ok: true, basis: 'owned' };", replace: '// mutation: the author branch is removed', why: 'an author loses ownership of their own listing' },
   { id: 'M10', file: 'templateCatalog', find: 'if (tokens.length === 0) return [];', replace: 'if (tokens.length === 0) return catalog.listings.map((listing) => ({ listing, score: 0 }));', why: 'an empty query answers the whole catalog instead of nothing' },
   { id: 'M11', file: 'ledgerStore', find: 'if (envelope.version !== LEDGER_FORMAT_VERSION) {', replace: 'if (false) {', why: 'the loader accepts a format version it does not know' },
@@ -77,6 +78,8 @@ const MUTATIONS = [
   { id: 'M28', file: 'settlement', find: '  if (row.refunded !== 0) parts.push(`refunded ${row.refunded}`);', replace: '  parts.push(`refunded ${row.refunded}`);', why: 'the per-ref line claims a refund on every row, including the rows that never had one' },
   { id: 'M29', file: 'settlement', find: 'statement.after === 0', replace: 'false', why: 'every statement names an `after` — including an unbounded one whose `after` is zero, so the clause stops meaning "entries follow the close"' },
   { id: 'M30', file: 'refund', find: "const sellerId = sale ? sale.accountId : listing ? listing.authorId : null;", replace: "const sellerId = listing ? listing.authorId : sale ? sale.accountId : null;", why: 'the claw-back targets the catalog\'s current author instead of the account the SALE credited (an account that was never paid is debited)' },
+  { id: 'M31', file: 'templateCatalog', find: 'return { ok: true, catalog: { listings: catalog.listings.filter((l) => l.id !== id) }, listing };', replace: 'return { ok: true, catalog, listing };', why: 'a retire removes NOTHING — the listing stays on the shelf while the caller is told it withdrew' },
+  { id: 'M32', file: 'walletView', find: 'if (listed || refSoldIn(ledger, ref)) owned.add(ref);', replace: 'if (listed) owned.add(ref);', why: 'a RETIRED listing stops being owned — the shelf erases a purchase the record still holds' },
 ];
 
 /**
