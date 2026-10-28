@@ -27,7 +27,8 @@
 //   §8 the local-first store distinguishes an ABSENT key (empty) from a corrupt one (refused);
 //   §9 a refund is atomic, reverses ownership and the remix right, and is not repeatable;
 //   §10 a refund POLICY is the HOST's declaration: a closed window refuses before the mechanism runs
-//      and moves nothing, the closing instant is inclusive, and a broken policy is refused by name;
+//      and moves nothing, the closing instant is inclusive, a broken policy is refused by name, and
+//      the PREFLIGHT (`refundEligibility`) answers the same gate without writing anything;
 //   §11 HEAD is byte-identical: everything ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/credits-proof.mjs
@@ -87,6 +88,7 @@ try {
     ['creditsStore', creditsStore, 'loadCredits'],
     ['refund', refund, 'refundPurchase'],
     ['refundPolicy', refundPolicy, 'refundPurchaseUnderPolicy'],
+    ['refundPolicy', refundPolicy, 'refundEligibility'],
   ]) {
     assert.equal(typeof mod[fn], 'function', `${name}.${fn} was not imported — the module was not run`);
   }
@@ -349,6 +351,21 @@ try {
   assert.equal(atEdge.ok, true, `the closing instant was treated as outside the window: ${atEdge.reason}`);
   assert.equal(atEdge.priceCents, 500, 'the policy path lost the recorded price');
 
+  // The PREFLIGHT: the same gate, answered without writing. A surface can disable the action instead
+  // of discovering the refusal on click, and both answers must agree.
+  const eligible = refundPolicy.refundEligibility(catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerC' }, { windowMs: 10 }, 12);
+  assert.equal(eligible.eligible, true, 'a refund inside the window was not reported eligible');
+  assert.equal(eligible.purchaseAt, 2, 'the preflight lost the purchase instant it measured');
+  assert.equal(eligible.closesAt, 12, 'the preflight did not compute the closing instant');
+  assert.equal(eligible.priceCents, 500, 'the preflight lost the recorded price');
+  const ineligible = refundPolicy.refundEligibility(catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerC' }, { windowMs: 10 }, 13);
+  assert.equal(ineligible.eligible, false, 'a closed window was reported eligible');
+  assert.match(ineligible.reason, /refund window/, 'the preflight did not name the closed window');
+  const noPurchaseInPreflight = refundPolicy.refundEligibility(catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerZ' }, { windowMs: 0 }, 99);
+  assert.equal(noPurchaseInPreflight.eligible, false, 'a preflight resurrected a purchase nobody made');
+  assert.match(noPurchaseInPreflight.reason, /holds no purchase/, 'the preflight did not defer to the mechanism');
+  assert.equal(policyLedger.entries.length, beforePolicy, 'the preflight moved the ledger');
+
   const noDeadline = refundPolicy.refundPurchaseUnderPolicy(
     catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerC', entryId: 'pr-never', at: 1_700_000_000_000 },
     refundPolicy.NO_REFUND_DEADLINE, 1_700_000_000_000,
@@ -368,7 +385,7 @@ try {
   assert.equal(broken.ok, false, 'a policy with no windowMs was applied');
   assert.match(broken.reason, /windowMs/, 'a broken policy was not refused by name');
 
-  console.log('  a 10 ms window refused the refund 1 ms past closing and moved NOTHING; it allowed one AT the closing instant; "no deadline" allowed it years later; a buyer with no purchase got the mechanism\'s sentence; a policy that never declared a window was refused by name');
+  console.log('  a 10 ms window refused the refund 1 ms past closing and moved NOTHING; it allowed one AT the closing instant; "no deadline" allowed it years later; a buyer with no purchase got the mechanism\'s sentence; a policy that never declared a window was refused by name; the PREFLIGHT reported the same gate (eligible at the edge with purchaseAt 2 / closesAt 12, refused past it, deferred on a missing purchase) without touching the ledger');
 } finally {
   rmSync(box, { recursive: true, force: true });
 }

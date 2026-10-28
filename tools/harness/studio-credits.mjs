@@ -13,8 +13,9 @@
  *   5. the ledger PERSISTS across a full reload — it was written through `creditsStore` to localStorage,
  *      so a fresh page reads it back (this is the local-first claim, measured);
  *   6. the refund POLICY is the HOST's choice: the page declares "no deadline" by default, switching
- *      to a 30-day window makes the demo's 2023 purchase REFUSED by policy (the local ledger does not
- *      move), and switching back allows it — the mechanism never makes this decision itself;
+ *      to a 30-day window DISABLES the Refund action (the preflight names the reason before the
+ *      click), pressing it anyway writes nothing, and switching back re-enables it and allows the
+ *      same refund — the mechanism never makes this decision itself;
  *   7. clearing writes a VALID empty ledger and the page returns to its empty state;
  *   8. no uncaught page errors, and a screenshot is written as evidence.
  *
@@ -129,21 +130,55 @@ try {
   await page.waitForFunction("(document.querySelector('[data-credits-policy-line]')?.innerText ?? '').includes('30-day window')", { timeout: 10000 });
   check('switching the policy rewrites the declared window', /30-day window from the purchase/.test((await policyLine()) ?? ''), await policyLine());
 
-  await page.evaluate("(() => { const b = document.querySelector('[data-credits-refund=\"tpl-saas\"]'); if (!b) return false; b.click(); return true; })()");
-  await page.waitForSelector('[data-credits-error]', 10000);
-  const refused = await page.evaluate(
-    "(() => ({ error: document.querySelector('[data-credits-error]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, stillHeld: !!document.querySelector('[data-credits-refund=\"tpl-saas\"]') }))()",
+  // v531: the surface asks the policy layer BEFORE the click. Under a closed window the Refund action
+  // is DISABLED and carries the gate's own sentence in its title — the refusal is visible, not
+  // discovered by pressing it.
+  await page.waitForFunction(
+    "(() => { const b = document.querySelector('[data-credits-refund=\"tpl-saas\"]'); return !!b && b.disabled === true; })()",
+    { timeout: 10000 },
+  );
+  const preflight = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-refund=\"tpl-saas\"]'); return { disabled: b?.disabled ?? null, title: b?.getAttribute('title') ?? null, blocked: b?.getAttribute('data-credits-refund-blocked') ?? null, wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, error: !!document.querySelector('[data-credits-error]') }; })()",
   );
   check(
-    'a closed window REFUSES the refund by policy and leaves the local ledger untouched',
-    /refund window/.test(refused.error ?? '') && /balance: 500 credits/.test(refused.wallet ?? '') && /owns: tpl-saas/.test(refused.wallet ?? '') && refused.stillHeld === true,
-    JSON.stringify(refused),
+    'a closed window DISABLES the Refund action and names the reason before any click',
+    preflight.disabled === true && /refund window/.test(preflight.title ?? '') && preflight.blocked === 'true' &&
+      /balance: 500 credits/.test(preflight.wallet ?? '') && /owns: tpl-saas/.test(preflight.wallet ?? '') && preflight.error === false,
+    JSON.stringify(preflight),
   );
 
-  // Switching back to "no deadline" must allow the SAME refund — proving the refusal above was the
-  // policy's and not a broken page.
+  // Pressing it anyway must be INERT: a disabled button dispatches no click, so nothing is written and
+  // no error banner appears.
+  const pressed = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-refund=\"tpl-saas\"]'); if (!b) return null; b.click(); return true; })()",
+  );
+  await sleep(300);
+  const afterPress = await page.evaluate(
+    "(() => ({ disabled: document.querySelector('[data-credits-refund=\"tpl-saas\"]')?.disabled ?? null, wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, error: !!document.querySelector('[data-credits-error]') }))()",
+  );
+  check(
+    'pressing the disabled action writes nothing and stays disabled',
+    pressed === true && afterPress.disabled === true && afterPress.error === false &&
+      /balance: 500 credits/.test(afterPress.wallet ?? '') && /owns: tpl-saas/.test(afterPress.wallet ?? ''),
+    JSON.stringify(afterPress),
+  );
+
+  // Switching back to "no deadline" must RE-ENABLE it and allow the SAME refund — proving the
+  // refusal above was the policy's and not a broken page.
   await page.evaluate("(() => { const b = document.querySelector('[data-credits-policy=\"none\"]'); if (!b) return false; b.click(); return true; })()");
   await page.waitForFunction("(document.querySelector('[data-credits-policy-line]')?.innerText ?? '').includes('no deadline')", { timeout: 10000 });
+  await page.waitForFunction(
+    "(() => { const b = document.querySelector('[data-credits-refund=\"tpl-saas\"]'); return !!b && b.disabled === false; })()",
+    { timeout: 10000 },
+  );
+  const reenabled = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-refund=\"tpl-saas\"]'); return { disabled: b?.disabled ?? null, title: b?.getAttribute('title') ?? null, blocked: b?.getAttribute('data-credits-refund-blocked') ?? null }; })()",
+  );
+  check(
+    'switching back re-enables the Refund action and clears the reason',
+    reenabled.disabled === false && reenabled.title === null && reenabled.blocked === null,
+    JSON.stringify(reenabled),
+  );
   await page.evaluate("(() => { const b = document.querySelector('[data-credits-refund=\"tpl-saas\"]'); if (!b) return false; b.click(); return true; })()");
   await page.waitForFunction("(document.querySelector('[data-credits-wallet]')?.innerText ?? '').includes('balance: 1000 credits')", { timeout: 10000 });
   const allowed = await page.evaluate(

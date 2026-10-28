@@ -10,7 +10,7 @@
  * may be asked for. `windowMs: null` is a DECLARED policy — "this host sets no deadline" — not the
  * absence of one; `NO_REFUND_DEADLINE` names it so a surface never has to guess.
  *
- * <p>Three rules keep it honest (§60):
+ * <p>Four rules keep it honest (§60):
  * <ul>
  *   <li><b>The policy never decides whether the mechanism would reverse the purchase.</b> Pairing
  *       (FIFO), "a refund is not repeatable", the author's solvency and the listing's existence stay
@@ -21,11 +21,14 @@
  *   <li><b>The closing instant is inclusive.</b> A refund asked at exactly `purchaseAt + windowMs` is
  *       inside the window; the first millisecond after it is outside. A boundary nobody states is a
  *       boundary every host interprets differently.</li>
+ *   <li><b>The gate is SHARED with the preflight.</b> `refundEligibility` answers before a click the
+ *       same question `refundPurchaseUnderPolicy` answers on one, so a disabled action and a refused
+ *       write cannot tell different stories.</li>
  * </ul>
  */
 
-import type { CreditLedger } from './credits';
-import { purchaseAwaitingRefund, refundPurchase, type RefundDecision, type TemplateRefund } from './refund';
+import type { CreditEntry, CreditLedger } from './credits';
+import { refundPairing, refundPurchase, type RefundDecision, type TemplateRefund } from './refund';
 import { templateById, type TemplateCatalog } from './templateCatalog';
 
 /** What a host declares about refunds. One field today; a shape so a second rule has a home. */
@@ -86,32 +89,31 @@ export function refundWindowClosesAt(purchaseAt: number, policy: RefundPolicy): 
   return purchaseAt + policy.windowMs;
 }
 
+type RefundGate =
+  | { ok: true; purchase: CreditEntry; closesAt: number | null; priceCents: number }
+  | { ok: false; reason: string };
+
 /**
- * Reverse a purchase WITH the host's policy applied first.
- *
- * <p>The order is the point: the policy is validated, the purchase the mechanism WOULD reverse is
- * looked up, its own instant is compared to the window, and only then does the mechanism run. When
- * there is no refundable purchase the mechanism's refusal is returned verbatim — a policy cannot
- * resurrect a purchase that pairing or solvency would refuse.
+ * The policy layer's ENTIRE judgement, in one place: validate the declaration, ask the mechanism
+ * which purchase a refund would reverse, and measure the window on THAT purchase. The preflight and
+ * the write both call it, so "the button is offered" and "the click succeeds" cannot disagree.
  */
-export function refundPurchaseUnderPolicy(
+function refundGate(
   catalog: TemplateCatalog,
   ledger: CreditLedger,
-  refund: TemplateRefund,
+  ask: Pick<TemplateRefund, 'templateId' | 'buyerId'>,
   policy: RefundPolicy,
   now: number,
-): RefundDecision {
+): RefundGate {
   const problem = refundPolicyProblem(policy);
   if (problem) return { ok: false, reason: problem };
 
-  // Ask the mechanism's own pairing rule WHICH purchase this refund would reverse. `refundPurchase`
-  // recomputes it below; the lookup here exists so the window is measured on the same purchase and a
-  // structural refusal comes back in the mechanism's words, not in a policy opinion.
-  const purchase = purchaseAwaitingRefund(ledger, refund.buyerId, refund.templateId);
-  if (!purchase) return refundPurchase(catalog, ledger, refund);
-  if (!templateById(catalog, refund.templateId)) return refundPurchase(catalog, ledger, refund);
+  // The mechanism's structural rules answer FIRST and verbatim: "you never bought it" is not a window
+  // opinion, and a policy must not speak where pairing or solvency already refused.
+  const pairing = refundPairing(catalog, ledger, ask);
+  if (!pairing.ok) return pairing;
 
-  const closesAt = refundWindowClosesAt(purchase.at, policy);
+  const closesAt = refundWindowClosesAt(pairing.purchase.at, policy);
   if (closesAt !== null && now > closesAt) {
     const closedFor = now - closesAt;
     const late =
@@ -124,9 +126,58 @@ export function refundPurchaseUnderPolicy(
             : `${closedFor} ms`;
     return {
       ok: false,
-      reason: `the refund window for "${templateById(catalog, refund.templateId)!.title}" closed ${late} ago — the policy allows ${describeRefundPolicy(policy)}, and the purchase it would reverse was made at ${purchase.at}`,
+      reason: `the refund window for "${templateById(catalog, ask.templateId)!.title}" closed ${late} ago — the policy allows ${describeRefundPolicy(policy)}, and the purchase it would reverse was made at ${pairing.purchase.at}`,
     };
   }
+  return { ok: true, purchase: pairing.purchase, closesAt, priceCents: pairing.priceCents };
+}
 
+/** What the preflight says about one refund ask — the answer a surface needs BEFORE it offers a button. */
+export type RefundEligibility =
+  | { eligible: true; purchase: CreditEntry; purchaseAt: number; closesAt: number | null; priceCents: number }
+  | { eligible: false; reason: string };
+
+/**
+ * Whether a refund WOULD be allowed right now — answered without writing a single entry.
+ *
+ * <p>For a surface deciding whether to offer the action at all. It reads the same gate the write
+ * reads, so a disabled button and a refused click can never disagree. It does not promise the write
+ * will succeed — the idempotency key and a concurrent ledger change are still the caller's — but
+ * every reason it reports is a reason the write would report too.
+ */
+export function refundEligibility(
+  catalog: TemplateCatalog,
+  ledger: CreditLedger,
+  ask: Pick<TemplateRefund, 'templateId' | 'buyerId'>,
+  policy: RefundPolicy,
+  now: number,
+): RefundEligibility {
+  const gate = refundGate(catalog, ledger, ask, policy, now);
+  if (!gate.ok) return { eligible: false, reason: gate.reason };
+  return {
+    eligible: true,
+    purchase: gate.purchase,
+    purchaseAt: gate.purchase.at,
+    closesAt: gate.closesAt,
+    priceCents: gate.priceCents,
+  };
+}
+
+/**
+ * Reverse a purchase WITH the host's policy applied first.
+ *
+ * <p>The order is the point: the policy is validated, the purchase the mechanism WOULD reverse is
+ * looked up, its own instant is compared to the window, and only then does the mechanism run. When
+ * the gate refuses, nothing is appended — the ledger handed in is untouched.
+ */
+export function refundPurchaseUnderPolicy(
+  catalog: TemplateCatalog,
+  ledger: CreditLedger,
+  refund: TemplateRefund,
+  policy: RefundPolicy,
+  now: number,
+): RefundDecision {
+  const gate = refundGate(catalog, ledger, refund, policy, now);
+  if (!gate.ok) return { ok: false, reason: gate.reason };
   return refundPurchase(catalog, ledger, refund);
 }

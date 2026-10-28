@@ -5,6 +5,7 @@ import { holdsTemplate, refundPurchase } from './refund';
 import {
   describeRefundPolicy,
   NO_REFUND_DEADLINE,
+  refundEligibility,
   refundPolicyProblem,
   refundPurchaseUnderPolicy,
   refundWindowClosesAt,
@@ -228,5 +229,85 @@ describe('refundPurchaseUnderPolicy: the window belongs to the purchase it would
     expect(second.ok).toBe(true);
     if (!second.ok) return;
     expect(balanceOf(second.ledger, 'buyer-1')).toBe(2000);
+  });
+});
+
+describe('refundEligibility: the preflight answers before anything is written', () => {
+  const funded = () => ledgerOf(grant('buyer-1', 1000), grant('author-1', 100), buy(), sale());
+
+  it('reports eligible inside the window, naming the purchase it measured and when the window closes', () => {
+    const e = refundEligibility(catalog(), funded(), refund, { windowMs: 10 }, 5);
+    expect(e.eligible).toBe(true);
+    if (!e.eligible) return;
+    expect(e.purchaseAt).toBe(2);
+    expect(e.closesAt).toBe(12);
+    expect(e.priceCents).toBe(500);
+  });
+
+  it('the closing instant is inside; the next millisecond is outside with the window sentence', () => {
+    const boundary = refundEligibility(catalog(), funded(), refund, { windowMs: 10 }, 12);
+    const late = refundEligibility(catalog(), funded(), refund, { windowMs: 10 }, 13);
+    expect(boundary.eligible).toBe(true);
+    expect(late.eligible).toBe(false);
+    if (late.eligible) return;
+    expect(late.reason).toContain('refund window');
+    expect(late.reason).toContain('closed 1 ms ago');
+  });
+
+  it('a buyer with no purchase is answered by the mechanism, not by the policy', () => {
+    const e = refundEligibility(catalog(), ledgerOf(grant('buyer-1', 1000)), refund, { windowMs: 0 }, refund.at);
+    expect(e.eligible).toBe(false);
+    if (e.eligible) return;
+    expect(e.reason).toContain('holds no purchase');
+    expect(e.reason).not.toContain('refund window');
+  });
+
+  it('a broken policy is refused by name even when the purchase would be refundable', () => {
+    const e = refundEligibility(catalog(), funded(), refund, {} as RefundPolicy, refund.at);
+    expect(e.eligible).toBe(false);
+    if (e.eligible) return;
+    expect(e.reason).toContain('windowMs');
+  });
+
+  it('an author who cannot cover the claw-back is reported ineligible before the click', () => {
+    const ledger = ledgerOf(grant('buyer-1', 1000), buy(), grant('author-1', 100));
+    const e = refundEligibility(catalog(), ledger, refund, NO_REFUND_DEADLINE, refund.at);
+    expect(e.eligible).toBe(false);
+    if (e.eligible) return;
+    expect(e.reason).toContain('cannot cover it');
+  });
+
+  it('a declared no-deadline policy closes at null and stays eligible at any later instant', () => {
+    const e = refundEligibility(catalog(), funded(), refund, NO_REFUND_DEADLINE, 1_700_000_000_000);
+    expect(e.eligible).toBe(true);
+    if (!e.eligible) return;
+    expect(e.closesAt).toBeNull();
+  });
+
+  it('measures the window on the purchase FIFO would reverse, not the newest', () => {
+    const ledger = ledgerOf(grant('buyer-1', 2000), grant('author-1', 1000), buy(-500, 2, 'buy-1'), buy(-500, 50, 'buy-2'), sale(2));
+    const e = refundEligibility(catalog(), ledger, refund, { windowMs: 10 }, 55);
+    expect(e.eligible).toBe(false);
+    if (e.eligible) return;
+    expect(e.reason).toContain('made at 2');
+  });
+
+  it('never moves the ledger, and agrees with the write on every case it can see', () => {
+    const cases: Array<[CreditLedger, RefundPolicy, number]> = [
+      [funded(), NO_REFUND_DEADLINE, 5],
+      [funded(), { windowMs: 10 }, 12],
+      [funded(), { windowMs: 10 }, 13],
+      [ledgerOf(grant('buyer-1', 1000)), { windowMs: 0 }, 3],
+      [funded(), {} as RefundPolicy, 3],
+      [ledgerOf(grant('buyer-1', 1000), buy(), grant('author-1', 100)), NO_REFUND_DEADLINE, 3],
+    ];
+    for (const [ledger, policy, now] of cases) {
+      const before = ledger.entries.length;
+      const preflight = refundEligibility(catalog(), ledger, refund, policy, now);
+      const write = refundPurchaseUnderPolicy(catalog(), ledger, refund, policy, now);
+      expect(preflight.eligible).toBe(write.ok);
+      if (!preflight.eligible && !write.ok) expect(preflight.reason).toBe(write.reason);
+      expect(ledger.entries.length).toBe(before);
+    }
   });
 });

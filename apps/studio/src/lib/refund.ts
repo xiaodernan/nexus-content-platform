@@ -71,26 +71,40 @@ export function purchaseAwaitingRefund(ledger: CreditLedger, buyerId: string, te
   return purchases[refunds.length] ?? null;
 }
 
+/** What a refund ask must satisfy before ANY entry may move — the mechanism's structural answer. */
+export type RefundPairing =
+  | { ok: true; purchase: CreditEntry; priceCents: number }
+  | { ok: false; reason: string };
+
 /**
- * Reverse one purchase of a listing by a buyer. Pure and atomic: on any refusal the ledger handed in is
- * untouched. The `priceCents` returned is the amount the ORIGINAL purchase recorded.
+ * Every STRUCTURAL rule a refund must satisfy, in one place: the listing exists, the buyer is named,
+ * a purchase is left to reverse, its recorded price is positive, and the author can cover the
+ * claw-back.
+ *
+ * <p>`refundPurchase` and the policy layer's preflight both ask HERE, so "may this be refunded at
+ * all" and "run the refund" can never disagree: one owner of listing existence, pairing, the price
+ * and solvency. The `entryId` is NOT part of it — it is the host's idempotency key for the write, and
+ * a preflight that would not write has no key to give.
  */
-export function refundPurchase(catalog: TemplateCatalog, ledger: CreditLedger, refund: TemplateRefund): RefundDecision {
-  const listing = templateById(catalog, refund.templateId);
-  if (!listing) return { ok: false, reason: `no template is listed under id "${refund.templateId}"` };
-  if (typeof refund.buyerId !== 'string' || refund.buyerId === '') return { ok: false, reason: 'a refund needs the buyerId it is for' };
-  if (typeof refund.entryId !== 'string' || refund.entryId === '') return { ok: false, reason: 'a refund needs a non-empty entryId (the idempotency key of the buyer\'s credit)' };
+export function refundPairing(
+  catalog: TemplateCatalog,
+  ledger: CreditLedger,
+  ask: Pick<TemplateRefund, 'templateId' | 'buyerId'>,
+): RefundPairing {
+  const listing = templateById(catalog, ask.templateId);
+  if (!listing) return { ok: false, reason: `no template is listed under id "${ask.templateId}"` };
+  if (typeof ask.buyerId !== 'string' || ask.buyerId === '') return { ok: false, reason: 'a refund needs the buyerId it is for' };
 
   // Two DIFFERENT refusals keep their own sentences: "you never bought it" and "you already refunded
   // every purchase" are different facts, and pairing alone cannot tell the caller which one it is.
-  const purchases = purchasesOf(ledger, refund.buyerId, refund.templateId);
-  const refunds = refundsOf(ledger, refund.buyerId, refund.templateId);
-  if (purchases.length === 0) return { ok: false, reason: `${refund.buyerId} holds no purchase of "${listing.title}" to refund` };
+  const purchases = purchasesOf(ledger, ask.buyerId, ask.templateId);
+  const refunds = refundsOf(ledger, ask.buyerId, ask.templateId);
+  if (purchases.length === 0) return { ok: false, reason: `${ask.buyerId} holds no purchase of "${listing.title}" to refund` };
   if (refunds.length >= purchases.length) {
     return { ok: false, reason: `every purchase of "${listing.title}" has already been refunded — a refund is not repeatable` };
   }
   // The OLDEST unrefunded purchase is the one reversed, and ITS recorded price is the amount.
-  const purchase = purchaseAwaitingRefund(ledger, refund.buyerId, refund.templateId)!;
+  const purchase = purchaseAwaitingRefund(ledger, ask.buyerId, ask.templateId)!;
 
   const priceCents = -purchase.delta; // the purchase's delta is negative
   if (priceCents <= 0) return { ok: false, reason: 'the recorded purchase does not debit a positive price, so there is nothing to reverse' };
@@ -99,6 +113,20 @@ export function refundPurchase(catalog: TemplateCatalog, ledger: CreditLedger, r
   if (authorBalance < priceCents) {
     return { ok: false, reason: `${listing.authorId} holds ${authorBalance} and the refund claws back ${priceCents} — the author cannot cover it` };
   }
+  return { ok: true, purchase, priceCents };
+}
+
+/**
+ * Reverse one purchase of a listing by a buyer. Pure and atomic: on any refusal the ledger handed in is
+ * untouched. The `priceCents` returned is the amount the ORIGINAL purchase recorded.
+ */
+export function refundPurchase(catalog: TemplateCatalog, ledger: CreditLedger, refund: TemplateRefund): RefundDecision {
+  const pairing = refundPairing(catalog, ledger, refund);
+  if (!pairing.ok) return pairing;
+  if (typeof refund.entryId !== 'string' || refund.entryId === '') return { ok: false, reason: 'a refund needs a non-empty entryId (the idempotency key of the buyer\'s credit)' };
+
+  const listing = templateById(catalog, refund.templateId)!; // pairing proved it exists
+  const priceCents = pairing.priceCents;
 
   const credit = appendCreditEntry(ledger, {
     id: refund.entryId,

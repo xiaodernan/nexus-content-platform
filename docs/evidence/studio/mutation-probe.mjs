@@ -59,6 +59,7 @@ const MUTATIONS = [
   { id: 'M16', file: 'refundPolicy', find: 'now > closesAt', replace: 'now >= closesAt', why: 'the closing instant is treated as OUTSIDE the window' },
   { id: 'M17', file: 'refundPolicy', find: 'if (problem) return { ok: false, reason: problem };', replace: 'if (false) return { ok: false, reason: problem };', why: 'a policy that never declared a window is read as "no deadline"' },
   { id: 'M18', file: 'refund', find: 'return purchases[refunds.length] ?? null;', replace: 'return purchases[purchases.length - 1] ?? null;', why: 'the window is measured on the NEWEST purchase instead of the one FIFO reverses' },
+  { id: 'M19', file: 'refundPolicy', find: 'closesAt: gate.closesAt,', replace: 'closesAt: null,', why: 'the preflight reports no closing instant even when the policy sets one (a surface promises "refundable forever")' },
 ];
 
 /**

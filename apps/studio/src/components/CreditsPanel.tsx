@@ -10,6 +10,7 @@ import { priceText, type PriceCents } from '@/lib/monetization';
 import {
   describeRefundPolicy,
   NO_REFUND_DEADLINE,
+  refundEligibility,
   refundPurchaseUnderPolicy,
   type RefundPolicy,
 } from '@/lib/refundPolicy';
@@ -137,6 +138,9 @@ export default function CreditsPanel() {
   // What the viewer HOLDS by a recorded purchase — net of refunds. A refund is only offered for these:
   // an authored listing is "owned" but was never bought, so there is no purchase to reverse.
   const heldRefs = ledger ? heldRefsOf(ledger, scene.viewerId) : new Set<string>();
+  // The PREFLIGHT's instant. It only decides whether a Refund button is OFFERED as clickable; the
+  // click re-asks with its own `Date.now()`, so a stale render can never authorise a write.
+  const refundNow = Date.now();
   const creator = ledger ? buildCreatorDashboard(scene.catalog, ledger, scene.creatorId) : null;
   const statement = ledger ? statementFor(ledger, scene.viewerId) : null;
   const reconciles = ledger && statement ? statementReconciles(ledger, statement) : false;
@@ -262,6 +266,12 @@ export default function CreditsPanel() {
                   // purchase of one item — the model allows it, but the panel should not suggest it.
                   const buyable = !owned && affordable && listing.priceCents > 0;
                   const refundable = heldRefs.has(listing.id) && listing.priceCents > 0;
+                  // Ask the policy layer BEFORE the click: the same gate the write reads, so a
+                  // disabled button and a refused click cannot tell different stories.
+                  const eligibility = refundable && ledger
+                    ? refundEligibility(scene.catalog, ledger, { templateId: listing.id, buyerId: scene.viewerId }, policy, refundNow)
+                    : null;
+                  const refundBlocked = eligibility && !eligibility.eligible ? eligibility.reason : null;
                   return (
                     <tr key={listing.id} data-credits-listing={listing.id}>
                       <td>{listing.title}</td>
@@ -285,8 +295,11 @@ export default function CreditsPanel() {
                             type="button"
                             className="btn"
                             data-credits-refund={listing.id}
+                            data-credits-refund-blocked={refundBlocked ? 'true' : undefined}
+                            disabled={refundBlocked !== null}
+                            title={refundBlocked ?? undefined}
                             onClick={() => onRefund(listing)}
-                            style={{ fontSize: 10, padding: '1px 6px', opacity: 0.8 }}
+                            style={{ fontSize: 10, padding: '1px 6px', opacity: refundBlocked ? 0.4 : 0.8 }}
                           >
                             Refund
                           </button>
