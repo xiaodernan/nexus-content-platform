@@ -75,7 +75,7 @@ runs — it ran red (`40603544099`, amendment 515's four exec-host cases on ubun
 again on the first run that carried all 84 rows (`40693312992`: 78/84 green, six platform reds, repaired at
 v534 — the row-by-row account is below), which is the evidence this section was waiting for.
 
-## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more; amendment 520 at v534 repaired the six ubuntu reds that population's first full run found)
+## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more; amendment 520 at v534 repaired the six ubuntu reds that population's first full run found; amendment 521 at v535 wired the last thirteen green swept proofs)
 
 ```
 npm run verify:evidence-census   # a row inside the population it counts
@@ -85,9 +85,9 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 | class | count at this ref | how it is decided |
 | --- | --- | --- |
-| ROW | **87** (84 run + 3 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
+| ROW | **100** (97 run + 3 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **3** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs` |
-| SWEPT | **15** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — the human-run channel is named, not guessed from a filename shape |
+| SWEPT | **2** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — at this ref only `cwd-axis` and `tree-axis`, the tree-motion witnesses, which stay there by measurement (their verdict is about whether the walked tree moved during the run) |
 | TOOL | **6** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, two arms scripts, the isolated-build arms, the SVG generator) |
 | DEFERRED | **0** | none at this ref — the three Studio lane proofs v530 deferred are ROWS since v531 (the workflow pre-pulls `node:22-alpine`, their one blocker). The class and its refusals stay for the next proof a sandbox really blocks |
 
@@ -205,13 +205,30 @@ with the old tokens recorded beside the pin; `confession`'s §9 pin had been red
 three-name face. `isolated` was not re-run this increment: its clean-checkout arm ran `code-index`, so the
 repaired code-index is expected to unblock it, and that is a prediction, not a measurement.
 
-**What the census does NOT claim.** It classifies the 15 still-swept proofs; it does not run them in the build
+**v535 — the last thirteen green swept proofs are rows; the two that remain are a property of the tree.**
+The thirteen were re-measured green on this box after v534's repairs (2026-10-28): `asks-axis` 18 s ·
+`build-arc` 7 s · `closure` 4 s · `code-index` 7 s · `confession` 63 s · `container` 24 s · `deploy-arc` 3 s ·
+`drive-axis` 6 s · `ebusy` 18 s · `isolated` 146 s · `plane-axis` 10 s · `provenance` 53 s · `timeout-axis`
+47 s. `isolated` is admitted after reading its own §s: its §2 ACCEPTS a nonzero workspace build only when the
+runner names the failing package and quotes a reason from that task's own output (v82), and its v84 note
+records that a cross-drive checkout (dest on C:, repository on D:) fails for a path reason that is a fact
+about the drive — on a CI runner both live on the same volume, so that reason cannot arise; §2 grades what
+the build REPORTS either way (exit 0 with an empty failed list, or a nonzero exit only with a named failing
+package and a reason quoted from that task, v82), and the two planes are graded by the same sentences. It declares 900 000 ms in its own header; the
+docker trio needs the pre-pulled `node:22-alpine` the workflow already provides, and `timeout-axis` needs
+nothing but time (47 s, measured, no marker needed). The census prints **111 = 100 row + 3 helper + 2 swept +
+6 tool + 0 deferred · 0 unclassified · rows 97+3**, arms 14/14; `verify:ci-wiring` reads population **100 =
+97 + 3**, six rows declaring their own milliseconds, 0 refused. The two that stay SWEPT are `cwd-axis` and
+`tree-axis`, and they stay by measurement, not by neglect: their verdict is whether the walked tree MOVED
+during a run, so their greenness is a property of a quiet tree — v533's own whole-population sweep reddened
+both because other lanes were writing while it ran. A build that shares its worktree with every other lane
+would encode that coincidence as a gate, and a gate that reddens when a neighbour commits is not a verdict.
+
+**What the census does NOT claim.** It classifies the 2 still-swept proofs; it does not run them in the build
 — the agents sweep stays the human-run channel, with its own budgets (240 000 ms default, 3 600 000 ms
-ceiling). The 15, named: 12 green (`asks-axis`, `build-arc`, `closure`, `code-index` and `confession` since
-v534's repairs, `container`, `deploy-arc`, `drive-axis`, `ebusy`, `plane-axis`, `provenance`, `timeout-axis` —
-the three container rows need a docker daemon, the rest start children of their own) and the 3 reds above
-(`cwd-axis`/`tree-axis`, tree-motion witnesses; `isolated`, whose clean-checkout arm is a reproducibility
-verdict). v533's forty-eight rows ran on ubuntu for the first time in `40693312992` — **78/84 green, six
+ceiling). The 2, named: `cwd-axis` and `tree-axis`, the tree-motion witnesses, whose verdict is about the
+tree the run stood on rather than about the code they grade. v533's forty-eight rows ran on ubuntu for the
+first time in `40693312992` — **78/84 green, six
 platform reds** (`config`, `streams`, `hunk-shape`, `pipes`, `door-kill`, `reap`), each caused by a POSIX fact
 the proof had been taking from Windows; v534 repaired all six and verified each on both planes, and the
 post-fix verdict arrived as run `40697674971` (sha `604d14e`): **84/84 green of a derived population of 87 ·

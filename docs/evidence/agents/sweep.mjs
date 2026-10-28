@@ -1633,7 +1633,13 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
   if (build) {
     const started = Date.now();
     // `spawn('npm')` is ENOENT on Windows — npm is an npm.cmd and needs a shell (measured, not assumed).
-    const b = await run('cmd.exe', ['/c', 'npm', 'run', 'build'], { cwd: root, timeoutMs: 1_800_000 });
+    // v535: that shell does not exist on POSIX, where npm is a binary on PATH, so the invocation is a
+    // platform value — this arm now runs inside the build (verify:isolated), and `run` REJECTS on a spawn
+    // error, so the Windows form unconditionally tried on ubuntu would have been a hard red naming cmd.exe
+    // rather than the build.
+    const b = process.platform === 'win32'
+      ? await run('cmd.exe', ['/c', 'npm', 'run', 'build'], { cwd: root, timeoutMs: 1_800_000 })
+      : await run('npm', ['run', 'build'], { cwd: root, timeoutMs: 1_800_000 });
     const raw = `${b.stdout}\n${b.stderr}`;
     // Written to `dest`, OUTSIDE `root`: the checked-out tree's CONTENT must be the ref and nothing else —
     // since v132 that tree also holds the clone's own `.git`, which is the repository rather than content,

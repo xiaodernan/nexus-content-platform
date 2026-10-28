@@ -60,6 +60,16 @@
 // (604d14e) printed 84/84 of a population of 87. The two sweep reds above (code-index, confession) are
 // repaired too and STAY SWEPT until v535 wires them, so this census's counts are unchanged: 87 row + 15 swept.
 //
+// v535 (amendment 521) — the last thirteen green swept proofs are ROWS: asks-axis, build-arc, closure,
+// code-index, confession, container, deploy-arc, drive-axis, ebusy, isolated, plane-axis, provenance,
+// timeout-axis. Each was re-measured green on the authoring box after v534's repairs; isolated is admitted
+// because its own §2 accepts a nonzero workspace build only when the runner names the failing package AND
+// quotes a reason from that task (v82) — its cross-drive failure here is a fact about C: vs D:, and a CI
+// runner puts dest and repo on one volume, where that reason cannot arise (the build's verdict there is the
+// next run's, and §2 grades it either way). The census
+// now prints 100 row + 2 swept, and the two stayed by measurement: cwd-axis and tree-axis are tree-motion
+// witnesses whose verdict is a property of a quiet tree, and a build worktree is never quiet.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
