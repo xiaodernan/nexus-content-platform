@@ -17,18 +17,30 @@ import type { Assurance } from './assurance';
  * The KNOWN verbs are the union the product designs for; the `string & Record<never, never>` arm says the wire
  * may carry a verb this build has never heard of, and keeps the editor's completion for the known ones. That is
  * not speculation: the service is a SEPARATE deployable, so a verb can be added there before this client is
- * rebuilt, and a client that rejected the answer would show a gap instead of the event (v271's finding
- * that only `publish` and `unpublish` exist server-side today — the other five are design, not fact).
+ * rebuilt, and a client that rejected the answer would show a gap instead of the event.
+ *
+ * v541 — the known set is the SERVICE's nine (`AuditService.ACTIONS`, v385) plus the three verbs this client
+ * still designs for (`remix`/`follow`/`tip`), not the seven the Stage D pre-design happened to guess. The union
+ * already ACCEPTED the other five through its unknown arm, which is why nothing failed to compile: the cost of
+ * the short list was paid in the label table below, where five verbs the service records today had no words.
+ * `docs/evidence/m9/audit-contract-proof.mjs` §8 now reads the nine out of `AuditService.java` and refuses a
+ * client whose known set stops covering them.
  */
 export type AuditAction =
   | 'publish'
   | 'unpublish'
+  | 'like'
+  | 'unlike'
+  | 'comment'
+  | 'uncomment'
+  | 'report'
+  | 'withdraw-report'
+  | 'acknowledge'
+  // 下面三个是**客户端还在设计、服务端尚未记录**的动词（v541 按 `AuditService.ACTIONS` 实测区分）。
   | 'remix'
   | 'follow'
-  | 'like'
-  | 'comment'
   | 'tip'
-  // 一个**这个版本还不认识的**动词。`Record<never, never>` 与 `string` 相交，编辑器仍然为上面七个
+  // 一个**这个版本还不认识的**动词。`Record<never, never>` 与 `string` 相交，编辑器仍然为上面那些
   // 已知动词给出补全，但类型上不排斥别的字符串。
   | (string & Record<never, never>);
 
@@ -72,19 +84,48 @@ export interface AuditEntry {
   assurance: Assurance | null;
 }
 
+/**
+ * v541 — 举报的"状态"闭集：照抄服务端 `ReportDtos` 的 STATUS_*，顺序也是它声明的顺序。
+ *
+ * 这个数组是客户端唯一的词表来源：下面的 `reportsByStatus`/`reportStatsText` 用它建桶，
+ * `docs/evidence/m9/audit-contract-proof.mjs` §8 把它和 Java 里的常量逐一对账。写成数组而不是只写进类型，
+ * 是因为"分桶必须对每个值都存在"这条规则需要运行时也读得到词表——类型层做不到（见下）。
+ *
+ * `reviewed`/`resolved` 在服务端只是**声明**：`ReportDtos` 的 javadoc 说它们是"管理员的词汇，而这个版本
+ * 没有管理员，所以是有意不可达"。客户端仍然给它们留桶——一个更早就加了管理员的服务端要能落进来，
+ * 而丢掉一个服务端已经命名的词正是 v541 要修的缺陷。
+ */
+export const REPORT_STATUSES = ['open', 'reviewed', 'resolved', 'rejected', 'acknowledged'] as const;
+
+/** 举报的"原因"闭集：服务端 `ReportDtos` 的 REASON_* 四个，与 `reportBar.ts` 的 `REPORT_REASONS` 同一套。 */
+export const REPORT_REASONS = ['spam', 'harassment', 'illegal', 'other'] as const;
+
+/**
+ * 状态：服务端声明的五个，加上一个**这个版本还不认识的**字符串臂。
+ *
+ * 字符串臂不是宽容，是事实：服务端是独立部署的。但它也是这个缺陷能被编译期藏起来的原因——
+ * `Record<Report['status'], …>` 在这种联合上塌缩成一个字符串索引签名，于是
+ * `out[r.status].push(r)` 类型检查通过、运行时在 `acknowledged`（v304 起真的会下发）上抛
+ * `TypeError`。所以分桶的返回类型明写 `Record<string, …>`，由代码自己保证桶一定在。
+ */
+export type ReportStatus = (typeof REPORT_STATUSES)[number] | (string & Record<never, never>);
+
+/** 原因：与服务端同名的四个，加上同一个未知臂。今天四个都是可达的（`ReportController` 按闭集拒绝第四个之外的）。 */
+export type ReportReason = (typeof REPORT_REASONS)[number] | (string & Record<never, never>);
+
 /** 举报：reporterId/targetId/createdAt 由客户端填写并发给服务端；status 由服务端更新下发。 */
 export interface Report {
   id: string;
   reporterId: AccountId;
   targetId: string;
-  reason: 'spam' | 'harassment' | 'illegal' | 'other';
+  reason: ReportReason;
   detail: string;
-  status: 'open' | 'reviewed' | 'resolved' | 'rejected';
+  status: ReportStatus;
   createdAt: number;
 }
 
 /** 举报状态展示文本，供客户端卡片/详情页直接使用。 */
-export function reportStatusText(status: Report['status']): string {
+export function reportStatusText(status: ReportStatus): string {
   switch (status) {
     case 'open':
       return 'Open';
@@ -94,12 +135,24 @@ export function reportStatusText(status: Report['status']): string {
       return 'Resolved';
     case 'rejected':
       return 'Rejected';
+    // v541 — 服务端 v304 就在写这个状态（`ReportEntry.markAcknowledged`），客户端却回答 "Unknown"：
+    // 一个自己对接的服务端已经命名的词被说成不认识，是把线格式的事实读丢了。
+    case 'acknowledged':
+      return 'Acknowledged';
+    // v541 — 未知的词**原样传出**，与已发布的同类函数 `reportBar.ts` 的 `reportStatusText` 同规则：
+    // 把它折进任何一个已知标签，都是在替服务端宣布它没宣布过的处置结果。
     default:
-      return 'Unknown';
+      return status;
   }
 }
 
-/** 判断举报是否已终结（resolved/rejected），纯判断，供客户端决定是否显示“再举报”入口。 */
+/**
+ * 判断举报是否已终结（resolved/rejected），纯判断，供客户端决定是否显示“再举报”入口。
+ *
+ * v541 — `acknowledged` **不算终结**，这是服务端自己的区分：`ReportDtos` 的 javadoc 说“属主能如实说的
+ * 只是他看到了——这是一个比 review 小得多的主张”。一条被确认看到的举报仍然站着，仍然可以撤销，
+ * 所以“再举报”入口必须继续出现。
+ */
 export function isReportClosed(report: Report): boolean {
   return report.status === 'resolved' || report.status === 'rejected';
 }
@@ -124,46 +177,76 @@ export function auditEntriesSince(
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
-/** 按状态统计举报，例如 "Open: 2, Resolved: 1, Rejected: 1"，供客户端摘要栏展示。 */
+/**
+ * 按状态统计举报，例如 "open: 2, resolved: 1, rejected: 1"，供客户端摘要栏展示。
+ *
+ * v541 — 原来这张表是手抄的四个状态，`counts[r.status] += 1` 在服务端真会下发的 `acknowledged` 上
+ * 读出 `undefined + 1 = NaN`，而 `NaN > 0` 是假，于是那一行**既不报错也不出现**：一条确认看到的举报
+ * 会让摘要栏说 "No reports"。现在计数按到达的值开，声明过的五个排在前面（服务端的声明顺序），
+ * 没见过的值追加在后面——一个词表更新过的服务端不会让任何一行消失。
+ */
 export function reportStatsText(reports: ReadonlyArray<Report>): string {
-  const counts: Record<Report['status'], number> = {
-    open: 0,
-    reviewed: 0,
-    resolved: 0,
-    rejected: 0,
-  };
-  for (const r of reports) counts[r.status] += 1;
-  const parts = Object.entries(counts)
+  const counts = new Map<string, number>();
+  for (const status of REPORT_STATUSES) counts.set(status, 0);
+  for (const r of reports) {
+    const status = String(r.status);
+    counts.set(status, (counts.get(status) ?? 0) + 1);
+  }
+  const parts = [...counts.entries()]
     .filter(([, c]) => c > 0)
     .map(([s, c]) => `${s}: ${c}`);
   return parts.length ? parts.join(', ') : 'No reports';
 }
 
-/** 未处理举报数量（open/reviewed），供客户端摘要栏展示。 */
+/**
+ * 还在等人处理的举报数量（open/reviewed），供客户端摘要栏展示。
+ *
+ * v541 — `acknowledged` **两个计数都不算**，这是有意的：`reportOpenCount` 说“还没人动过”，
+ * `reportResolvedCount` 说“已经处置完”，而属主确认看到既不是前者也不是后者（服务端原话：那是一个比
+ * resolution 小得多的主张）。要让摘要栏一行都不丢，读 `reportStatsText`——它对整张词表是全覆盖的。
+ */
 export function reportOpenCount(reports: ReadonlyArray<Report>): number {
   return reports.filter((r) => r.status === 'open' || r.status === 'reviewed').length;
 }
 
-/** 已处理举报数量（resolved/rejected），供客户端摘要栏展示。 */
+/** 已处置举报数量（resolved/rejected），供客户端摘要栏展示。理由见 `reportOpenCount`。 */
 export function reportResolvedCount(reports: ReadonlyArray<Report>): number {
   return reports.filter((r) => r.status === 'resolved' || r.status === 'rejected').length;
 }
 
-/** 把审计动作映射为中文展示标签，供客户端卡片/列表直接使用。 */
+/**
+ * 把审计动作映射为中文展示标签，供客户端卡片/列表直接使用。
+ *
+ * v541 — 补上服务端 v385 已经记录的五个动词。修之前线上每一条 `unlike`/`uncomment`/`report`/
+ * `withdraw-report`/`acknowledge` 都被原样吐出英文 token（`default: return action`），而三个尚未被记录的
+ * 动词倒是有标签——**标签表比词表宽，这是能测出来的**：`audit-contract-proof.mjs` §10 逐个动词断言
+ * 标签不等于原 token，并把这个"客户端先标签、服务端后记录"的剩余差集原样打印出来。
+ */
 export function auditEntryLabel(action: AuditEntry['action']): string {
   switch (action) {
     case 'publish':
       return '发布';
     case 'unpublish':
       return '下架';
+    case 'like':
+      return '点赞';
+    case 'unlike':
+      return '取消点赞';
+    case 'comment':
+      return '评论';
+    case 'uncomment':
+      return '取消评论';
+    case 'report':
+      return '举报';
+    case 'withdraw-report':
+      return '撤销举报';
+    case 'acknowledge':
+      return '确认已阅';
+    // 以下三个：客户端在设计，服务端还没有记录（v541 实测差集，见函数注释）。
     case 'remix':
       return '混改';
     case 'follow':
       return '关注';
-    case 'like':
-      return '点赞';
-    case 'comment':
-      return '评论';
     case 'tip':
       return '打赏';
     default:
@@ -215,26 +298,46 @@ export function auditEntriesByAction(
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
-/** 把举报按原因分组，供客户端按原因分栏展示。不改原数组。 */
-export function reportsByReason(reports: ReadonlyArray<Report>): Record<Report['reason'], Report[]> {
-  const out: Record<Report['reason'], Report[]> = {
-    spam: [],
-    harassment: [],
-    illegal: [],
-    other: [],
-  };
-  for (const r of reports) out[r.reason].push(r);
-  return out;
+/**
+ * 把举报按原因分组，供客户端按原因分栏展示。不改原数组。
+ *
+ * v541 — 返回类型明写 `Record<string, …>`：原因联合带未知字符串臂时，`Record<Report['reason'], …>` 会塌缩
+ * 成索引签名，于是 `out[r.reason].push(r)` 编译得过、遇到一个更新的词表就在运行时抛 `TypeError`。
+ * 声明过的四个桶一定在（哪怕没有行），没见过的值自己成桶，不丢。
+ */
+export function reportsByReason(reports: ReadonlyArray<Report>): Record<string, Report[]> {
+  return bucketReportsBy(reports, REPORT_REASONS, (r) => String(r.reason));
 }
 
-/** 把举报按状态分组，供客户端按状态分栏展示（与 reportsByReason 对称）。不改原数组。 */
-export function reportsByStatus(reports: ReadonlyArray<Report>): Record<Report['status'], Report[]> {
-  const out: Record<Report['status'], Report[]> = {
-    open: [],
-    reviewed: [],
-    resolved: [],
-    rejected: [],
-  };
-  for (const r of reports) out[r.status].push(r);
+/**
+ * 把举报按状态分组，供客户端按状态分栏展示（与 reportsByReason 对称）。不改原数组。
+ *
+ * v541 — 这条是今天就能撞上的：`ReportEntry.markAcknowledged`（v304）真的会把 `acknowledged` 发到线上，
+ * 而修之前的桶表只有四个名字，`out['acknowledged'].push` 抛 `TypeError: Cannot read properties of undefined`。
+ */
+export function reportsByStatus(reports: ReadonlyArray<Report>): Record<string, Report[]> {
+  return bucketReportsBy(reports, REPORT_STATUSES, (r) => String(r.status));
+}
+
+/**
+ * 分桶：先按声明顺序把整张词表摆出来（读者要能看到“这个状态一条也没有”这一事实），再把没见过的值
+ * 追加在末尾，按到达顺序。两个分组函数共用，规则只写一遍。
+ */
+function bucketReportsBy(
+  reports: ReadonlyArray<Report>,
+  vocabulary: readonly string[],
+  key: (report: Report) => string,
+): Record<string, Report[]> {
+  const out: Record<string, Report[]> = {};
+  for (const name of vocabulary) out[name] = [];
+  for (const r of reports) {
+    const k = key(r);
+    const bucket = out[k];
+    if (bucket) {
+      bucket.push(r);
+    } else {
+      out[k] = [r];
+    }
+  }
   return out;
 }
