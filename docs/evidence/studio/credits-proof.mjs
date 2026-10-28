@@ -215,8 +215,28 @@ try {
   assert.equal(all.closing, credits.balanceOf(real, 'buyerB'), 'an unbounded closing is not the balance');
   assert.equal(settle.statementReconciles(real, all), true, 'the unbounded statement does not reconcile');
   const attr = settle.attributionByRef(real, 'authorA');
-  assert.deepEqual(attr, [{ ref: 'tpl-paid', net: 500, count: 1 }], 'attribution by ref is wrong');
-  console.log(`  buyerB 1000 earned / 700 spent / 300 balance; the dashboard identity is earned − spent + refunded − clawedBack; window 0..250 -> closing 500, after -200, reconciles; authorA attribution ${JSON.stringify(attr)}`);
+  assert.deepEqual(attr, [{ ref: 'tpl-paid', earned: 500, spent: 0, refunded: 0, clawedBack: 0, net: 500, count: 1 }], 'attribution by ref is wrong');
+  // v535: a sale and its FULL reversal net to zero, and the row still says what happened — the two
+  // histories must not collapse into "never sold".
+  const buyerAttr = settle.attributionByRef(real, 'buyerB');
+  assert.deepEqual(buyerAttr, [
+    { ref: 'tpl-paid2', earned: 0, spent: 200, refunded: 0, clawedBack: 0, net: -200, count: 1 },
+    { ref: 'tpl-paid', earned: 0, spent: 500, refunded: 0, clawedBack: 0, net: -500, count: 1 },
+  ], 'the buyer attribution does not name each purchase');
+  let rev = credits.emptyCreditLedger();
+  for (const e of [
+    { id: 'sale-rev', accountId: 'authorA', delta: 300, reason: 'sale', at: 10, kind: 'grant', ref: 'tpl-rev' },
+    { id: 'back-rev', accountId: 'authorA', delta: -300, reason: 'refund claw-back', at: 20, kind: 'clawback', ref: 'tpl-rev' },
+  ]) {
+    const d = credits.appendCreditEntry(rev, e);
+    assert.equal(d.ok, true, d.reason);
+    rev = d.ledger;
+  }
+  const revRow = settle.attributionByRef(rev, 'authorA');
+  assert.deepEqual(revRow, [{ ref: 'tpl-rev', earned: 300, spent: 0, refunded: 0, clawedBack: 300, net: 0, count: 2 }], 'a sold-then-refunded listing lost its history');
+  const revSum = rev.entries.reduce((sum, e) => sum + e.delta, 0);
+  assert.equal(revRow[0].net, revSum, 'the buckets and the raw deltas disagree');
+  console.log(`  buyerB 1000 earned / 700 spent / 300 balance; the dashboard identity is earned − spent + refunded − clawedBack; window 0..250 -> closing 500, after -200, reconciles; authorA attribution ${JSON.stringify(attr)}; a sold-then-clawed-back ref stays named ${JSON.stringify(revRow[0])}`);
 
   // ── §5 the remix handoff forks a NEW document ───────────────────────────────────────────────────
   console.log('§5 the remix handoff forks a NEW document');

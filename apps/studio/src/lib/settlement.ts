@@ -130,26 +130,48 @@ export function statementFor(ledger: CreditLedger, accountId: string, window?: S
   };
 }
 
-/** What each referenced thing netted this account inside the window, largest first. */
+/**
+ * What each referenced thing did for this account inside the window, largest net first.
+ *
+ * <p>A single `net` was a lossy reading (v535): a sale of 500 followed by a full claw-back nets 0 —
+ * indistinguishable from a listing that never sold. The buckets keep the two histories apart, and
+ * they are the SAME names the statement uses, read through the one classifier `creditFlowOf` owns, so
+ * a movement cannot be called earned here and refunded one row lower. `net` is derived from the
+ * buckets (`earned − spent + refunded − clawedBack`), not from the raw deltas: if the classifier ever
+ * mislabels a movement the arithmetic disagrees with the ledger, which is a fact a test can pin,
+ * whereas a second independent sum would hide it.
+ */
 export interface RefAttribution {
   ref: string;
-  /** The signed sum of every movement carrying this ref — positive for a seller, negative for a buyer. */
+  /** Credits a sale or grant through this ref ADDED to this account. */
+  earned: number;
+  /** Credits this account SPENT through this ref (its own purchases). */
+  spent: number;
+  /** Credits RETURNED to this account as a buyer through this ref. */
+  refunded: number;
+  /** Credits TAKEN BACK from this account as a seller through this ref, as a positive number. */
+  clawedBack: number;
+  /** earned − spent + refunded − clawedBack — positive net for a seller, negative for a buyer. */
   net: number;
   count: number;
 }
 
 export function attributionByRef(ledger: CreditLedger, accountId: string, window?: SettlementWindow): RefAttribution[] {
-  const byRef = new Map<string, { net: number; count: number }>();
+  const byRef = new Map<string, Omit<RefAttribution, 'ref'>>();
   for (const e of ledger.entries) {
     if (e.accountId !== accountId || e.ref === undefined) continue;
     if (!inside(e.at, window)) continue;
-    const cur = byRef.get(e.ref) ?? { net: 0, count: 0 };
-    cur.net += e.delta;
+    const cur = byRef.get(e.ref) ?? { earned: 0, spent: 0, refunded: 0, clawedBack: 0, net: 0, count: 0 };
+    const flow = creditFlowOf(e);
+    if (flow.kind === 'earned') cur.earned += flow.amount;
+    else if (flow.kind === 'spent') cur.spent += flow.amount;
+    else if (flow.kind === 'refunded') cur.refunded += flow.amount;
+    else cur.clawedBack += flow.amount;
     cur.count += 1;
     byRef.set(e.ref, cur);
   }
   return [...byRef.entries()]
-    .map(([ref, v]) => ({ ref, net: v.net, count: v.count }))
+    .map(([ref, v]) => ({ ref, ...v, net: v.earned - v.spent + v.refunded - v.clawedBack }))
     .sort((a, b) => b.net - a.net || (a.ref < b.ref ? -1 : a.ref > b.ref ? 1 : 0));
 }
 

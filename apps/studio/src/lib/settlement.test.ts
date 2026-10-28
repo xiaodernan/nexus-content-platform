@@ -3,8 +3,10 @@
  *
  * These pin what makes a statement trustworthy: the OPENING → movements → CLOSING shape whose
  * closing must equal the account's whole-ledger balance for EVERY window (the reconciliation
- * identity), inclusive bounds with open ends, and per-ref attribution as a signed net. A statement
- * whose closing disagrees with the ledger is a statement about a different ledger.
+ * identity), inclusive bounds with open ends, and per-ref attribution that NAMES what each listing
+ * did (earned / spent / refunded / clawedBack) instead of folding a sale and its full reversal into
+ * one net of zero. A statement whose closing disagrees with the ledger is a statement about a
+ * different ledger.
  */
 import { describe, expect, it } from 'vitest';
 import { appendCreditEntry, balanceOf, emptyCreditLedger, type CreditLedger } from './credits';
@@ -22,6 +24,22 @@ function fixture(): CreditLedger {
   add('g2', 'acc-1', 50, 300, undefined, 'adjust'); // inside
   add('s2', 'acc-1', -100, 400, 't2', 'spend'); // inside
   add('x1', 'acc-2', 700, 250, 't1'); // another account
+  return l;
+}
+
+/** One purchase and its full reversal, seen from both sides — the ledger the attribution tests read. */
+function reversalFixture(): CreditLedger {
+  let l = emptyCreditLedger();
+  const add = (id: string, accountId: string, delta: number, at: number, kind: 'grant' | 'spend' | 'refund' | 'adjust' | 'clawback', ref?: string) => {
+    const d = appendCreditEntry(l, { id, accountId, delta, reason: `r-${id}`, at, kind, ...(ref === undefined ? {} : { ref }) });
+    if (!d.ok) throw new Error('fixture: ' + d.reason);
+    l = d.ledger;
+  };
+  add('g1', 'buyer', 1000, 100, 'grant');
+  add('s1', 'buyer', -500, 200, 'spend', 't1');
+  add('sale', 'author', 500, 200, 'grant', 't1');
+  add('r1', 'buyer', 500, 300, 'refund', 't1');
+  add('c1', 'author', -500, 300, 'clawback', 't1');
   return l;
 }
 
@@ -117,21 +135,6 @@ describe('settlement: the reconciliation identity holds for every window', () =>
 });
 
 describe('settlement: refund-shaped flows are their own buckets', () => {
-  function reversalFixture(): CreditLedger {
-    let l = emptyCreditLedger();
-    const add = (id: string, accountId: string, delta: number, at: number, kind: 'grant' | 'spend' | 'refund' | 'adjust' | 'clawback', ref?: string) => {
-      const d = appendCreditEntry(l, { id, accountId, delta, reason: `r-${id}`, at, kind, ...(ref === undefined ? {} : { ref }) });
-      if (!d.ok) throw new Error('fixture: ' + d.reason);
-      l = d.ledger;
-    };
-    add('g1', 'buyer', 1000, 100, 'grant');
-    add('s1', 'buyer', -500, 200, 'spend', 't1');
-    add('sale', 'author', 500, 200, 'grant', 't1');
-    add('r1', 'buyer', 500, 300, 'refund', 't1');
-    add('c1', 'author', -500, 300, 'clawback', 't1');
-    return l;
-  }
-
   it('money coming back is `refunded`, money taken back is `clawedBack` — never earned or spent', () => {
     const l = reversalFixture();
     const buyer = statementFor(l, 'buyer');
@@ -164,20 +167,69 @@ describe('settlement: refund-shaped flows are their own buckets', () => {
 });
 
 describe('settlement: attribution by ref', () => {
-  it('nets each referenced thing and orders by net, then ref', () => {
+  it('names each referenced thing by flow and orders by net, then ref', () => {
     const ledger = fixture();
     expect(attributionByRef(ledger, 'acc-1')).toEqual([
-      { ref: 't2', net: -100, count: 1 },
-      { ref: 't1', net: -200, count: 1 },
+      { ref: 't2', earned: 0, spent: 100, refunded: 0, clawedBack: 0, net: -100, count: 1 },
+      { ref: 't1', earned: 0, spent: 200, refunded: 0, clawedBack: 0, net: -200, count: 1 },
     ]);
     // the SELLER side: acc-2 was credited through t1
-    expect(attributionByRef(ledger, 'acc-2')).toEqual([{ ref: 't1', net: 700, count: 1 }]);
+    expect(attributionByRef(ledger, 'acc-2')).toEqual([{ ref: 't1', earned: 700, spent: 0, refunded: 0, clawedBack: 0, net: 700, count: 1 }]);
   });
 
   it('honours the window and ignores movements that reference nothing', () => {
     const ledger = fixture();
-    expect(attributionByRef(ledger, 'acc-1', { from: 400 })).toEqual([{ ref: 't2', net: -100, count: 1 }]);
+    expect(attributionByRef(ledger, 'acc-1', { from: 400 })).toEqual([{ ref: 't2', earned: 0, spent: 100, refunded: 0, clawedBack: 0, net: -100, count: 1 }]);
     expect(attributionByRef(ledger, 'acc-1', { from: 9_000 })).toEqual([]);
+  });
+
+  it('a listing that SOLD and was fully clawed back is not the same row as one that never sold', () => {
+    let l = emptyCreditLedger();
+    const add = (id: string, accountId: string, delta: number, at: number, kind: 'grant' | 'spend' | 'refund' | 'adjust' | 'clawback', ref?: string) => {
+      const d = appendCreditEntry(l, { id, accountId, delta, reason: `r-${id}`, at, kind, ...(ref === undefined ? {} : { ref }) });
+      if (!d.ok) throw new Error('fixture: ' + d.reason);
+      l = d.ledger;
+    };
+    add('sale-t1', 'author', 500, 200, 'grant', 't1');
+    add('back-t1', 'author', -500, 300, 'clawback', 't1');
+    add('sale-t2', 'author', 300, 400, 'grant', 't2');
+
+    const rows = attributionByRef(l, 'author');
+    expect(rows).toEqual([
+      { ref: 't2', earned: 300, spent: 0, refunded: 0, clawedBack: 0, net: 300, count: 1 },
+      // net zero, but the row still says a sale WAS made and WAS taken back
+      { ref: 't1', earned: 500, spent: 0, refunded: 0, clawedBack: 500, net: 0, count: 2 },
+    ]);
+    expect(rows.some((r) => r.ref === 't3')).toBe(false); // never sold → absent, not a zero row
+  });
+
+  it('a buyer who bought and was refunded keeps both halves named', () => {
+    let l = emptyCreditLedger();
+    const add = (id: string, delta: number, at: number, kind: 'grant' | 'spend' | 'refund' | 'adjust' | 'clawback', ref?: string) => {
+      const d = appendCreditEntry(l, { id, accountId: 'buyer', delta, reason: `r-${id}`, at, kind, ...(ref === undefined ? {} : { ref }) });
+      if (!d.ok) throw new Error('fixture: ' + d.reason);
+      l = d.ledger;
+    };
+    add('g', 1000, 100, 'grant');
+    add('buy', -200, 200, 'spend', 'tpl');
+    add('back', 200, 300, 'refund', 'tpl');
+    expect(attributionByRef(l, 'buyer')).toEqual([
+      { ref: 'tpl', earned: 0, spent: 200, refunded: 200, clawedBack: 0, net: 0, count: 2 },
+    ]);
+  });
+
+  it('net is the buckets added up AND the raw deltas added up — never a second bookkeeping', () => {
+    const ledger = reversalFixture();
+    for (const who of ['buyer', 'author']) {
+      for (const row of attributionByRef(ledger, who)) {
+        const raw = ledger.entries
+          .filter((e) => e.accountId === who && e.ref === row.ref)
+          .reduce((sum, e) => sum + e.delta, 0);
+        expect(row.net, `${who}/${row.ref}`).toBe(row.earned - row.spent + row.refunded - row.clawedBack);
+        expect(row.net, `${who}/${row.ref}`).toBe(raw);
+        expect(row.count).toBe(ledger.entries.filter((e) => e.accountId === who && e.ref === row.ref).length);
+      }
+    }
   });
 });
 
