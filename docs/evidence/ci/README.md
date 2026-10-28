@@ -75,7 +75,7 @@ runs — it ran red (`40603544099`, amendment 515's four exec-host cases on ubun
 again on the first run that carried all 84 rows (`40693312992`: 78/84 green, six platform reds, repaired at
 v534 — the row-by-row account is below), which is the evidence this section was waiting for.
 
-## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more)
+## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more; amendment 520 at v534 repaired the six ubuntu reds that population's first full run found)
 
 ```
 npm run verify:evidence-census   # a row inside the population it counts
