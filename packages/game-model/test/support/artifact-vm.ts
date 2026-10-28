@@ -125,6 +125,13 @@ export interface ReplayTrace<TState> {
   maxEvents: number;
   /** 走完这一串之后模型那侧的状态：场景"到底有没有走到那一格"读它，不靠人眼看 */
   final: TState;
+  /**
+   * 模型那侧**逐帧**的状态，第 0 格是开局。
+   * 只留 `final` 的那一版对账问得出"最后赢没赢"，问不出"中间那一格走过没有"——
+   * 冷却挡住的那一帧、丢弃最旧事件的那一帧、夹住边界的那一帧，都只在过程里。
+   * 第十六片的规则清单读的就是它。分叉时它停在分叉那一帧，不留后面的。
+   */
+  history: TState[];
 }
 
 /** 逐步重放：每一帧都比字段集合、逐字段的值与摘要，第一条不吻合就带着两边的读数停下 */
@@ -138,7 +145,7 @@ export function replay<TState, TPlan>(
 ): ReplayTrace<TState> {
   let model = harness.initial(plan);
   let view = engine.initialState(shipped);
-  const trace: ReplayTrace<TState> = { divergence: null, frames: 0, moved: false, maxEvents: 0, final: model };
+  const trace: ReplayTrace<TState> = { divergence: null, frames: 0, moved: false, maxEvents: 0, final: model, history: [model] };
 
   const compare = (at: string): boolean => {
     const fields = fieldDiff(model as object, view as object);
@@ -170,6 +177,7 @@ export function replay<TState, TPlan>(
     view = engine.step(shipped, view, frame.input, frame.dt);
     trace.frames += 1;
     trace.final = model;
+    trace.history.push(model);
     if (model !== modelBefore) trace.moved = true;
     const events = harness.eventsAt(model);
     if (events.length > trace.maxEvents) trace.maxEvents = events.length;

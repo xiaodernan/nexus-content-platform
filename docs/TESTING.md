@@ -1625,9 +1625,14 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   （2026-10-29 改口：这份对账已经进门，跑在 `npm test` 里 —— `packages/game-model/test/story-parity.test.ts`，
   十条线逐步比状态、摘要与引用契约；那个手跑脚本随之删除，11 条逐条另有归宿。）
   （同日第十五片再扩一步：**同一把尺子现在也量 `NexusSim` 与 `NexusRpg`**——
-  `packages/game-model/test/sim-parity.test.ts` 19 条，四把尺子搬到共用的
+  `packages/game-model/test/sim-parity.test.ts` 19 条（第十六片起 35 条），四把尺子搬到共用的
   `packages/game-model/test/support/artifact-vm.ts`。那句"纯逻辑所以能在 vm 里跑"从这一片起
   是量出来的：`engineSource()` 函数体里 `document` / `window` 出现 0 次。）
+  （再同日的第十六片把那句话从"我量过"变成"有门"：`codegen.test.ts` 新增一条静态闸，
+  三条链各自的 `engine.js` 里十个浏览器词各出现 0 次，断言消息带行数与字节数，
+  读数 `topdown 176/8128`、`rpg 259/11973`、`story 245/10651`；同一条测试自带反向控制，
+  种进去一段真碰 DOM 的代码它必须逐词点名。守的是 `vm.createContext({})` 那个前提——
+  模板哪天碰了 DOM，两扇对账门就只是"没跑起来"，而把它"修好"的最省事办法是塞一个假 window。）
 - **片 2（`a992277`）浏览器见证**：`scripts/game-code-parity.mts` 判决 **24 → 31 条**，
   新增 7 条 `STORY_*`：页面加载（pageerror 0）/ 链名那句与生成器逐字相同 / 对话那型没有画布 /
   页里 `NEXUS_PLAN` 与主机侧 `artifactPayload` 逐字节相同 / **点一个选项正文换成目标那一段**
@@ -1655,6 +1660,12 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   同日第十五片：`topdown` 与 `rpg` 那两条链的同一件事也进了 `npm test`
   （`packages/game-model/test/sim-parity.test.ts`，五条变异臂 K / L / M / N / O 各红过一次，
   其中 O 改的是转写那一侧；读数见 `docs/EVALUATION.md` 第十五片）。
+  同日第十六片：**那道门对自己盖住了哪些规则是沉默的**，同一份测试现在自带规则清单
+  （`SIM_RULES` 34 条 + `RPG_RULES` 10 条，谓词读 `ReplayTrace.history` 那段逐帧账本，
+  没人踩过的条直接点名）。为什么需要它：把上一片那 19 条取回工作区，在**模型与转写两侧同时**
+  删掉挥击触及里的武器射程后**照样 19 全绿**——两侧一起错，对账门结构上就看不见。
+  六条臂 P–U 各红一次（P–T 两侧同改、只有清单能红；U 验上面那条新的静态门）。惰性与臂表读数在
+  `docs/EVALUATION.md` 第十六片。
   浏览器那条 `npm run parity:game-code` 没有失业——它量的是渲染与点击，这两份门量的是转写语义。
 
 2026-10-20 第五轮：全量回归（分四批，隔离库）—— 2026-10-20 的绿基线
@@ -1930,7 +1941,7 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   game-model 全量 235 条绿、tsc 0、eslint 0。
   （那 11 条现在在 `packages/game-model/test/story-parity.test.ts`，14 条、进 `npm test`；脚本已删，读数见 2026-10-29。）
   同一条纪律同日扩到另外两条链：`sim.ts` / `rpg.ts` 与 `NexusSim` / `NexusRpg` 的逐步对账在
-  `packages/game-model/test/sim-parity.test.ts`（19 条），两边共用的四把尺子在
+  `packages/game-model/test/sim-parity.test.ts`（19 条，第十六片起 35 条并配规则清单），两边共用的四把尺子在
   `packages/game-model/test/support/artifact-vm.ts`——**对账工具写两份，就跟转写写两份一样会说谎**。
   **变异电池 4 条各自精确红、逐字节还原**：起点不记 visited（开场/成环摘要红）、`prior > 1`（第一次回访不标成环）、
   转写不记 `trail`（vm 见证里"模型与产物逐字段相同"那一条红，其余 10 条仍绿）、no-op 改成返回拷贝（`toBe(state)` 红）。

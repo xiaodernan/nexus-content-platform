@@ -34,6 +34,7 @@ import {
   type GameEntityKind,
   type GameKind,
   type GameCodeOutput,
+  type ArtifactChain,
   type GeneratedGameFile,
 } from "../src/index";
 
@@ -185,6 +186,13 @@ function hostEntryHits(contents: string): string[] {
   return HOST_ENTRY_SPELLINGS.filter((spelling) => contents.includes(spelling));
 }
 
+/** `engine.js` 那一层碰了浏览器 API 就叫"转写不再是纯逻辑"，node:vm 里的那两扇门当场失去前提 */
+const ENGINE_DOM_SPELLINGS = ["document", "window", "canvas", "localStorage", "sessionStorage", "addEventListener", "requestAnimationFrame", "getContext", "alert(", "navigator"];
+
+function engineDomHits(contents: string): string[] {
+  return ENGINE_DOM_SPELLINGS.filter((spelling) => contents.includes(spelling));
+}
+
 describe("§52 最后一格：把设计投影成一份拿得走的产物", () => {
   it("产物就是登记的那七份文件，每份都标了来历", () => {
     const output = generateGameCode(levelDraft());
@@ -290,6 +298,41 @@ describe("§52 最后一格：把设计投影成一份拿得走的产物", () =>
     const missingCounters = Object.keys(state.counters).filter((key) => !engine.includes(`${key}: 0`));
     expect(missingCounters).toEqual([]);
     // 静态闸就到此为止：它证明形状齐，不证明算术同（那一条在浏览器里量）
+  });
+
+  it("engine.js 那段是纯逻辑：一条浏览器 API 都不许碰——vm 里那两扇对账门的前提钉在这", () => {
+    // 为什么要有这一条：sim-parity / rpg 那两扇门把转写出来的 engine.js 放进一个 `vm.createContext({})`
+    // 里逐步比状态，那个上下文里没有 document / window / canvas——**它能跑，前提是那段代码不碰浏览器**。
+    // 这个前提从前只写在注释里，没有任何门守着：模板里只要有人加一句 `requestAnimationFrame`，
+    // 对账门是红（跑不起来），但产品页面也可能同时靠那句才动，修的人会把闸往上下文里塞个假的 window，
+    // 从此"两边一样"指的是"两边都拿到同一个假 window"——那不是对账。
+    const chains: { label: ArtifactChain; document: GameDocument }[] = [
+      { label: "topdown", document: { ...levelDraft(), kind: "2d" } },
+      { label: "rpg", document: levelDraft() },
+      {
+        label: "story",
+        document: {
+          ...build("两个人的对话", [
+            { id: "d1", kind: "dialogue", name: "开场", stats: {}, refs: [{ to: "d2", role: "点头" }] },
+            { id: "d2", kind: "dialogue", name: "回应", stats: {}, refs: [{ to: "d1", role: "回头" }] },
+          ]),
+          kind: "interactive-story",
+        },
+      },
+    ];
+    for (const chain of chains) {
+      const output = generateGameCode(chain.document);
+      expect(output.artifactChain, `${chain.label} 那一份没落到预期的链，扫的就不是它的引擎`).toBe(chain.label);
+      const engine = file(output, "engine.js").contents;
+      const at = `${chain.label}：${engine.split("\n").length} 行、${Buffer.byteLength(engine, "utf8")} 字节`;
+      expect(engineDomHits(engine), `${at} 里出现了浏览器 API [${engineDomHits(engine).join("、")}]——那段一旦碰 DOM，node:vm 里的逐步对账就失去前提`).toEqual([]);
+    }
+    // 反向控制：扫描器对一段真的写进 DOM 的代码必须点名，否则"没扫到"与"没在扫"读起来一样
+    expect(
+      engineDomHits("var ctx = document.querySelector('#c').getContext('2d'); window.addEventListener('keydown', on); requestAnimationFrame(loop);"),
+      "把 DOM 代码种进去，这条扫描一个都不点名就是装饰品",
+    ).toEqual(["document", "window", "addEventListener", "requestAnimationFrame", "getContext"]);
+    expect(engineDomHits('alert("x"); navigator.clipboard; localStorage.setItem("k", "v");')).toEqual(["localStorage", "alert(", "navigator"]);
   });
 
   it("形状表从模型来；配色是产物自己的默认，并且承认这一点", () => {
