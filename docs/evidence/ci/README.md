@@ -65,6 +65,59 @@ exclusions, where the stubs append to a log so "did anything execute" is measure
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
 never turned into a `verify:*` script stays invisible to the build. At this ref 109 tracked `.mjs` modules sit
-under `docs/evidence/` while 15 are rows. Wiring the rest is the next repair, named and not claimed. And no
-gate here can make GitHub run: it reads bytes committed in this repository, and whether the workflow now
-executes on `master` is knowable only from the first real run.
+under `docs/evidence/` while 15 are rows. Wiring the rest is the next repair, named and not claimed — amendment
+516's census below closes the invisibility half of that hole and wires the four that need nothing but Node. And
+no gate here can make GitHub run: it reads bytes committed in this repository, and whether the workflow now
+executes on `master` is knowable only from the first real run — it ran red (`40603544099`, amendment 515's four
+exec-host cases on ubuntu) and then green (`40659064493`), which is the evidence this section was waiting for.
+
+## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (M0/v530 — ADR 0016 amendment 516)
+
+```
+npm run verify:evidence-census   # a row inside the population it counts
+```
+
+Every tracked module under `docs/evidence` now has a disposition, and the build re-derives all of them:
+
+| class | count at this ref | how it is decided |
+| --- | --- | --- |
+| ROW | **20** (17 run + 3 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
+| HELPER | **3** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs` |
+| SWEPT | **79** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — the human-run channel is named, not guessed from a filename shape |
+| TOOL | **6** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, two arms scripts, the isolated-build arms, the SVG generator) |
+| DEFERRED | **3** | the three Studio lane proofs — green on the authoring box, blocked on the build plane's missing `node:22-alpine` pre-pull; each names its blocker and v531 as the repair, and all three are printed on every run |
+
+Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
+commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **14
+fixture arms** prove each refusal on a synthetic plane; the prose-import arm proves the tokenizer is the sweep's,
+not a byte regex.
+
+Four rows that needed nothing but Node walked through the door in the same increment:
+
+| row | proof | measured on the authoring box (2026-10-28) |
+| --- | --- | --- |
+| `verify:audit-contract` | `m9/audit-contract-proof.mjs` | 4.2 s — reads the service's Java record and the client model, then asks the TypeScript compiler |
+| `verify:record-encoding` | `agents/record-encoding-proof.mjs` | 4.4 s — the record corpus's encoding census (120 000 ms own budget) |
+| `verify:pipeline` | `studio/pipeline-proof.mjs` | 0.7 s — prompt → design-model ops → layout → undo/redo → AI diff |
+| `verify:table-recount` | `agents/table-recount-proof.mjs` | 38.2 s — boots vitest and reconciles this directory's README table (300 000 ms own budget) |
+
+Two of them (`record-encoding`, `table-recount`) are ALSO in the agents sweep's population; the census prints
+that overlap every run — double coverage, not a conflict.
+
+**Measured, on the day the census shipped (2026-10-28).** `npm run verify:evidence-census` prints **111 tracked
+modules = 20 row + 3 helper + 79 swept + 6 tool + 3 deferred · 0 unclassified · rows 17+3**, with **14/14 arms
+MATCHED**. The derived build population is now **17 running + 3 excluded** (12+3 at v528). The first fully green
+CI run (`40659064493`, the push that carried amendment 515) executed `Build` and `Evidence proofs` on ubuntu
+for the first time: **12/12 rows green in 35 s**, `verify:mutation` 33.1 s (272.7 s on the Windows box — the
+runner's own declared budget is unchanged). The four new rows' ubuntu verdict is knowable from the next run,
+the same bound amendment 515 stated.
+
+**What the census does NOT claim.** It classifies the 79 swept proofs; it does not run them in the build — the
+agents sweep stays the human-run channel, with its own budgets (240 000 ms default, 3 600 000 ms ceiling). It
+does not wire the three deferred lane proofs: `--pull never` means a fresh build plane must already hold
+`node:22-alpine`, and v531 is the named repair. The closure reads `from '…'` and `import('…')` through the
+sweep's tokenizer; a bare side-effect `import './x.mjs'` is not read and would surface as an orphan (a RED),
+not as a silent helper — no tracked module uses that form at this ref. And a module on disk that the commit
+does not own is invisible by design: the population is the INDEX's, because CI can only run what the commit
+owns.

@@ -43,6 +43,11 @@
     "verify:mutation": "node docs/evidence/studio/mutation-probe.mjs",
     "verify:credits-surface": "node tools/harness/studio-credits.mjs",
     "verify:ci-wiring": "node docs/evidence/ci/ci-wiring-proof.mjs",
+    "verify:evidence-census": "node docs/evidence/ci/evidence-census-proof.mjs",
+    "verify:audit-contract": "node docs/evidence/m9/audit-contract-proof.mjs",
+    "verify:record-encoding": "node docs/evidence/agents/record-encoding-proof.mjs",
+    "verify:pipeline": "node docs/evidence/studio/pipeline-proof.mjs",
+    "verify:table-recount": "node docs/evidence/agents/table-recount-proof.mjs",
     "verify:proofs": "node tools/ci/proof-set.mjs"
   },
   "devDependencies": {

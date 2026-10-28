@@ -30,6 +30,9 @@
 // A tree with no `.git` cannot answer which modules the commit owns, so this census REFUSES on such a plane
 // instead of guessing from the filesystem (amendment 130 measured that cost: a row that asks the repository
 // dies at `git ls-tree … → exit 128`, and the archive plane's "42 reds" were one question answered 42 times).
+// The closure's own bound: it reads the import forms this corpus writes — `from '…'` and `import('…')` — through
+// the sweep's code-position tokenizer (amendment 89). A bare side-effect `import './x.mjs'` is NOT read; such a
+// module would surface as an orphan (a RED), never as a silent helper. No tracked module uses that form today.
 //
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
@@ -222,7 +225,7 @@ export function censusOf({ tracked, scripts, excluded = [], roster = [], swept =
   }
 
   const unclassified = tracked.filter((f) => classes.get(f) === 'unclassified');
-  const counts = { row: 0, helper: 0, swept: 0, tool: 0, deferred: 0, unclassified: unclassified.length };
+  const counts = { row: 0, helper: 0, swept: 0, tool: 0, deferred: 0, unclassified: 0 };
   for (const c of classes.values()) if (c in counts) counts[c]++;
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   if (total !== tracked.length) violations.push(`the census closes at ${total} over a population of ${tracked.length} — a module in no class is a module nobody decided about`);
@@ -233,12 +236,12 @@ export function censusOf({ tracked, scripts, excluded = [], roster = [], swept =
 // ── the fixture arms: every refusal above, measured on a synthetic plane ─────────────────────────────
 const BASE = () => ({
   files: {
-    'docs/evidence/x/row-proof.mjs': "import { leaf } from './helper.mjs';\n",
+    'docs/evidence/x/row-proof.mjs': "import { h } from './helper.mjs';\n",
     'docs/evidence/x/excluded-proof.mjs': '// the service this proof needs is not on this plane\n',
-    'docs/evidence/x/helper.mjs': "import './leaf.mjs';\n",
+    'docs/evidence/x/helper.mjs': "import { l } from './leaf.mjs';\n",
     'docs/evidence/x/leaf.mjs': '\n',
     'docs/evidence/x/swept-proof.mjs': '\n',
-    'docs/evidence/x/tool.mjs': "import './tool-helper.mjs';\n",
+    'docs/evidence/x/tool.mjs': "import { t } from './tool-helper.mjs';\n",
     'docs/evidence/x/tool-helper.mjs': '\n',
   },
   scripts: {
@@ -292,7 +295,7 @@ const ARMS = [
   }],
   ['A8 a deferral with no next repair', (f) => {
     f.roster.push({
-      file: 'docs/evidence/x/swept-proof.mjs', // a name the sweep does not walk on this plane is NOT what this arm targets; see below
+      file: 'docs/evidence/x/swept-proof.mjs', // the file this plane's sweep population starts with; the arm empties that population so the entry stays a deferral
       class: 'deferred',
       run: 'node docs/evidence/x/swept-proof.mjs',
       why: 'a deferred entry exists to name what would wire it, and this arm removes exactly that sentence',
@@ -310,11 +313,11 @@ const ARMS = [
   ['A10 a file declared twice', (f) => { f.roster.push({ ...f.roster[0] }); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('twice')), r.violations.join(' | '));
   }],
-  ['A11 an import the commit does not own', (f) => { f.files['docs/evidence/x/row-proof.mjs'] = "import './missing.mjs';\n"; }, (r) => {
+  ['A11 an import the commit does not own', (f) => { f.files['docs/evidence/x/row-proof.mjs'] = "import { m } from './missing.mjs';\n"; }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('missing.mjs') && v.includes('does not own')), r.violations.join(' | '));
   }],
   ['A12 an import written only in prose', (f) => {
-    f.files['docs/evidence/x/row-proof.mjs'] = "// import './ghost.mjs'\nconst s = \"import './ghost.mjs'\";\n";
+    f.files['docs/evidence/x/row-proof.mjs'] = "// import { g } from './ghost.mjs'\nconst s = \"import { g } from './ghost.mjs'\";\n";
   }, (r) => {
     assert.ok(!r.violations.some((v) => v.includes('ghost.mjs')), `prose became an edge: ${r.violations.join(' | ')}`);
     assert.ok(r.unclassified.includes('docs/evidence/x/helper.mjs'), 'the real import was removed, so the helper must fall out of the closure');
