@@ -180,6 +180,33 @@ describe('refundPurchaseUnderPolicy: the window decides, the mechanism reverses'
     if (d.ok) return;
     expect(d.reason).toContain('cannot cover it');
   });
+
+  it('refuses a refund ASKED before the purchase existed, and the ledger does not move (v533)', () => {
+    // The window bounds how LATE a refund may be; this bounds how EARLY. The ask's own instant is
+    // compared to the purchase the refund would reverse, so a preflight and a write agree.
+    const ledger = funded(); // purchase at 2
+    const before = ledger.entries.length;
+    const d = refundPurchaseUnderPolicy(catalog(), ledger, refund, NO_REFUND_DEADLINE, 1);
+    expect(d.ok).toBe(false);
+    if (d.ok) return;
+    expect(d.reason).toContain('before the purchase it reverses');
+    expect(d.reason).toContain('purchase was recorded at 2');
+    expect(ledger.entries.length).toBe(before);
+    expect(balanceOf(ledger, 'buyer-1')).toBe(500);
+  });
+
+  it('the MECHANISM judges the instant the write would record, even when the ask instant looks fine', () => {
+    // `now` (5) is after the purchase, but the caller asked the write to RECORD 1 — a caller whose two
+    // instants disagree gets the mechanism's refusal, because the record is what the history would say.
+    const ledger = funded();
+    const before = ledger.entries.length;
+    const d = refundPurchaseUnderPolicy(catalog(), ledger, { ...refund, at: 1 }, NO_REFUND_DEADLINE, 5);
+    expect(d.ok).toBe(false);
+    if (d.ok) return;
+    expect(d.reason).toContain('before the purchase it reverses');
+    expect(d.reason).toContain('refund asks for 1');
+    expect(ledger.entries.length).toBe(before);
+  });
 });
 
 describe('refundPurchaseUnderPolicy: the window belongs to the purchase it would reverse', () => {
@@ -202,8 +229,9 @@ describe('refundPurchaseUnderPolicy: the window belongs to the purchase it would
     expect(late.reason).toContain('closed 1 ms ago');
     expect(late.reason).toContain('made at 100');
 
-    // …and the boundary itself is inside it, so a re-purchase really does get its own window.
-    const second = refundPurchaseUnderPolicy(catalog(), ledger, { ...refund, entryId: 'r2' }, { windowMs: 10 }, 110);
+    // …and the boundary itself is inside it, so a re-purchase really does get its own window. The
+    // REFUND's recorded instant follows the re-purchase: v533 refuses a reversal dated before it.
+    const second = refundPurchaseUnderPolicy(catalog(), ledger, { ...refund, entryId: 'r2', at: 110 }, { windowMs: 10 }, 110);
     expect(second.ok).toBe(true);
     if (!second.ok) return;
     expect(holdsTemplate(second.ledger, 'buyer-1', 't1')).toBe(false);
@@ -225,7 +253,7 @@ describe('refundPurchaseUnderPolicy: the window belongs to the purchase it would
     const first = refundPurchaseUnderPolicy(catalog(), ledger, refund, NO_REFUND_DEADLINE, 60);
     if (!first.ok) throw new Error(`first refund refused: ${first.reason}`);
     expect(first.buyerEntry.delta).toBe(500);
-    const second = refundPurchaseUnderPolicy(catalog(), first.ledger, { ...refund, entryId: 'r2' }, NO_REFUND_DEADLINE, 61);
+    const second = refundPurchaseUnderPolicy(catalog(), first.ledger, { ...refund, entryId: 'r2', at: 61 }, NO_REFUND_DEADLINE, 61);
     expect(second.ok).toBe(true);
     if (!second.ok) return;
     expect(balanceOf(second.ledger, 'buyer-1')).toBe(2000);
@@ -292,11 +320,23 @@ describe('refundEligibility: the preflight answers before anything is written', 
     expect(e.reason).toContain('made at 2');
   });
 
+  it('an ask at an instant BEFORE the purchase is ineligible, in the mechanism\'s own words (v533)', () => {
+    // A surface asking "can this be refunded at time 1" when the purchase happened at 2 must be told
+    // the purchase did not exist yet — not offered a button whose window has not even opened.
+    const e = refundEligibility(catalog(), funded(), refund, NO_REFUND_DEADLINE, 1);
+    expect(e.eligible).toBe(false);
+    if (e.eligible) return;
+    expect(e.reason).toContain('before the purchase it reverses');
+    expect(e.reason).toContain('purchase was recorded at 2');
+    expect(e.reason).not.toContain('refund window');
+  });
+
   it('never moves the ledger, and agrees with the write on every case it can see', () => {
     const cases: Array<[CreditLedger, RefundPolicy, number]> = [
       [funded(), NO_REFUND_DEADLINE, 5],
       [funded(), { windowMs: 10 }, 12],
       [funded(), { windowMs: 10 }, 13],
+      [funded(), NO_REFUND_DEADLINE, 1],
       [ledgerOf(grant('buyer-1', 1000)), { windowMs: 0 }, 3],
       [funded(), {} as RefundPolicy, 3],
       [ledgerOf(grant('buyer-1', 1000), buy(), grant('author-1', 100)), NO_REFUND_DEADLINE, 3],

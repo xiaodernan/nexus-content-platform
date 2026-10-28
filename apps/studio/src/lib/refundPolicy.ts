@@ -24,11 +24,15 @@
  *   <li><b>The gate is SHARED with the preflight.</b> `refundEligibility` answers before a click the
  *       same question `refundPurchaseUnderPolicy` answers on one, so a disabled action and a refused
  *       write cannot tell different stories.</li>
+ *   <li><b>An ASK cannot precede the purchase either (v533).</b> The window bounds how LATE a refund
+ *       may be; the ordering rule bounds how EARLY. The mechanism refuses a refund dated before the
+ *       purchase it reverses, and the gate asks the same question about `now` — the instant of the
+ *       ask — so a preflight never offers a button at a moment the purchase did not yet exist.</li>
  * </ul>
  */
 
 import type { CreditEntry, CreditLedger } from './credits';
-import { refundPairing, refundPurchase, type RefundDecision, type TemplateRefund } from './refund';
+import { refundInstantProblem, refundPairing, refundPurchase, type RefundDecision, type TemplateRefund } from './refund';
 import { templateById, type TemplateCatalog } from './templateCatalog';
 
 /** What a host declares about refunds. One field today; a shape so a second rule has a home. */
@@ -112,6 +116,12 @@ function refundGate(
   // opinion, and a policy must not speak where pairing or solvency already refused.
   const pairing = refundPairing(catalog, ledger, ask);
   if (!pairing.ok) return pairing;
+
+  // How EARLY is bounded by the same rule the mechanism applies, asked about the instant of the ask
+  // (the window below bounds how LATE). A preflight at an instant before the purchase therefore
+  // refuses with the mechanism's own sentence rather than offering an action that cannot exist yet.
+  const early = refundInstantProblem(pairing.purchase.at, now);
+  if (early) return { ok: false, reason: early };
 
   const closesAt = refundWindowClosesAt(pairing.purchase.at, policy);
   if (closesAt !== null && now > closesAt) {

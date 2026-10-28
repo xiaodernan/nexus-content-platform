@@ -131,4 +131,26 @@ describe('refundPurchase: refusals, each by name', () => {
     expect(ledger.entries.length).toBe(before); // neither entry was appended
     expect(balanceOf(ledger, 'buyer-1')).toBe(500);
   });
+
+  it('a refund dated BEFORE the purchase it reverses — and the ledger does not move (v533)', () => {
+    // The instant is host-supplied, so the ledger's arithmetic would happily record a reversal that
+    // precedes its cause. The mechanism refuses it by name instead: both instants in the sentence.
+    const ledger = ledgerOf(grant('buyer-1', 1000), grant('author-1', 100), buy(), sale()); // purchase at 2
+    const before = ledger.entries.length;
+    const reason = refuse(ledger, { at: 1 });
+    expect(reason).toContain('before the purchase it reverses');
+    expect(reason).toContain('purchase was recorded at 2');
+    expect(reason).toContain('refund asks for 1');
+    expect(ledger.entries.length).toBe(before); // neither entry was appended
+    expect(balanceOf(ledger, 'buyer-1')).toBe(500);
+  });
+
+  it('allows a refund at the SAME instant as the purchase — a batched pair is coherent', () => {
+    const ledger = ledgerOf(grant('buyer-1', 1000), grant('author-1', 100), buy(), sale());
+    const d = refundPurchase(catalog(), ledger, { ...refund, at: 2 });
+    expect(d.ok).toBe(true);
+    if (!d.ok) return;
+    expect(balanceOf(d.ledger, 'buyer-1')).toBe(1000);
+    expect(holdsTemplate(d.ledger, 'buyer-1', 't1')).toBe(false);
+  });
 });

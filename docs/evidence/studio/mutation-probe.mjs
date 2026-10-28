@@ -11,12 +11,12 @@
 //
 // sweep-budget-ms: 1200000
 // The budget above is the CI runner's and the agents sweep's to read (amendments 85 and 94), and it is
-// measured, not comfortable: 23 mutations, each a serial `vitest run` of the copied suite — 166.2 s standing
-// alone on 2026-10-28, all 23 KILLED. Readings move with host load, not with the arm count alone: the 18-arm
-// sweep read 410.7 s standing alone and 404.9 s beside a concurrent `npm ci` earlier the same day on this
-// Windows box. 1 200 000 ms remains ~2.9x the SLOWER reading and ~7.2x the standing one, which is the
-// headroom a shared CI runner needs; a row killed for being slow is a TIMEOUT, and amendment 85 refused to
-// let that be the same verdict as a failure.
+// measured, not comfortable: 25 mutations, each a serial `vitest run` of the copied suite — 216 s standing
+// alone on 2026-10-28, all 25 KILLED. Readings move with host load, not with the arm count alone: the 23-arm
+// sweep read 166.2 s standing alone, and the 18-arm sweep read 410.7 s standing alone and 404.9 s beside a
+// concurrent `npm ci` earlier the same day on this Windows box. 1 200 000 ms remains ~2.9x the SLOWEST reading
+// and ~5.6x the latest standing one, which is the headroom a shared CI runner needs; a row killed for being
+// slow is a TIMEOUT, and amendment 85 refused to let that be the same verdict as a failure.
 //
 // Run:  node docs/evidence/studio/mutation-probe.mjs
 
@@ -66,6 +66,8 @@ const MUTATIONS = [
   { id: 'M21', file: 'credits', find: "if (entry.kind === 'refund') return { kind: 'refunded', amount: Math.abs(entry.delta) };", replace: 'if (false) return { kind: \'refunded\', amount: Math.abs(entry.delta) };', why: 'the classifier stops reading the kind, so a refund is counted as earned income' },
   { id: 'M22', file: 'settlement', find: 'closing: opening + earned - spent + refunded - clawedBack,', replace: 'closing: opening + earned - spent,', why: 'the statement closing forgets the refund-shaped flows, so it stops reconciling' },
   { id: 'M23', file: 'creatorDashboard', find: 'else clawedBack += flow.amount;', replace: 'else spent += flow.amount;', why: 'a claw-back is reported as the creator spending their own credits' },
+  { id: 'M24', file: 'refund', find: 'const early = refundInstantProblem(pairing.purchase.at, refund.at);', replace: 'const early = null;', why: 'the mechanism records a refund dated before the purchase it reverses (a history that cannot have happened)' },
+  { id: 'M25', file: 'refundPolicy', find: 'const early = refundInstantProblem(pairing.purchase.at, now);', replace: 'const early = null;', why: 'the preflight offers a refund at an instant before the purchase existed' },
 ];
 
 /**

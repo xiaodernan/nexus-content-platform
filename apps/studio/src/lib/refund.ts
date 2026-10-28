@@ -25,6 +25,11 @@
  *   <li><b>The author must be able to cover it.</b> A claw-back that would drive the author below zero
  *       is refused whole, with the balance that was actually there — the same rule the ledger applies
  *       to every spend.</li>
+ *   <li><b>A reversal cannot precede its cause (v533).</b> The instants are host-supplied, so the model
+ *       can be handed a history that never happened: a refund dated BEFORE the purchase it reverses.
+ *       It is refused by name; the same instant is allowed, because a host that batches a purchase and
+ *       its reversal in one tick is coherent. One comparison covers BOTH entries the refund writes —
+ *       the buyer's spend and the author's sale were recorded at the same `at`.</li>
  * </ul>
  *
  * <p>Ownership is NET of refunds: `heldRefsOf` in `credits.ts` counts `spend − refund` per ref, so a
@@ -121,6 +126,37 @@ export function refundPairing(
 }
 
 /**
+ * Why `at` cannot be the instant of a refund that reverses a purchase made at `purchaseAt`, or null
+ * when it can.
+ *
+ * <p>Every instant in this sub-system is HOST-SUPPLIED (ADR 0010), so a host can hand the model a
+ * history that never happened: a reversal dated before the movement it reverses. The ledger's
+ * arithmetic would accept it — the balances still add up — and the statements would then report a
+ * refund inside a window where the purchase had not yet occurred. The ordering is therefore stated
+ * as a rule rather than left to the host's clock discipline.
+ *
+ * <p>The SAME instant is allowed: a host that batches a purchase and its reversal in one tick is
+ * coherent, and the refund window already treats the purchase instant as inclusive. One millisecond
+ * earlier is refused by name, with both instants in the sentence.
+ *
+ * <p>This one comparison covers BOTH entries a refund writes: the buyer's credit reverses the
+ * buyer's `spend`, the author's claw-back reverses the author's SALE, and the marketplace recorded
+ * both at the same `purchase.at`.
+ *
+ * <p>It is the ONE owner of the ordering rule: `refundPurchase` asks it about the instant the write
+ * would record, and `refundPolicy`'s gate asks it about the instant the ASK is made, so a preflight
+ * never reports eligible at a moment the purchase did not yet exist.
+ */
+export function refundInstantProblem(purchaseAt: number, at: number): string | null {
+  // A non-finite instant is `appendCreditEntry`'s named refusal, not an ordering opinion; letting it
+  // through here keeps each rule with its own owner. (NaN fails every comparison, so an ordering
+  // check would fall through anyway.)
+  if (!Number.isFinite(at)) return null;
+  if (at >= purchaseAt) return null;
+  return `a refund cannot be dated ${purchaseAt - at} ms before the purchase it reverses — the purchase was recorded at ${purchaseAt} and the refund asks for ${at}`;
+}
+
+/**
  * Reverse one purchase of a listing by a buyer. Pure and atomic: on any refusal the ledger handed in is
  * untouched. The `priceCents` returned is the amount the ORIGINAL purchase recorded.
  */
@@ -128,6 +164,10 @@ export function refundPurchase(catalog: TemplateCatalog, ledger: CreditLedger, r
   const pairing = refundPairing(catalog, ledger, refund);
   if (!pairing.ok) return pairing;
   if (typeof refund.entryId !== 'string' || refund.entryId === '') return { ok: false, reason: 'a refund needs a non-empty entryId (the idempotency key of the buyer\'s credit)' };
+  // The instant the WRITE would record, against the instant the purchase records. Refused before the
+  // first append, so a refusal writes nothing (atomicity is the same rule as solvency).
+  const early = refundInstantProblem(pairing.purchase.at, refund.at);
+  if (early) return { ok: false, reason: early };
 
   const listing = templateById(catalog, refund.templateId)!; // pairing proved it exists
   const priceCents = pairing.priceCents;

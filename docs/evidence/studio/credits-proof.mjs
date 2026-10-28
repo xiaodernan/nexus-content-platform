@@ -28,10 +28,11 @@
 //   §8 the local-first store distinguishes an ABSENT key (empty) from a corrupt one (refused);
 //   §9 a refund is atomic, reverses ownership and the remix right, and is not repeatable; the
 //      seller's side is a `clawback` (NOT a purchase), and both projections report refunds and
-//      claw-backs apart from earned/spent;
+//      claw-backs apart from earned/spent; a reversal dated BEFORE its cause is refused by name;
 //   §10 a refund POLICY is the HOST's declaration: a closed window refuses before the mechanism runs
-//      and moves nothing, the closing instant is inclusive, a broken policy is refused by name, and
-//      the PREFLIGHT (`refundEligibility`) answers the same gate without writing anything;
+//      and moves nothing, the closing instant is inclusive, an ASK dated before the purchase is
+//      refused by the same ordering rule, a broken policy is refused by name, and the PREFLIGHT
+//      (`refundEligibility`) answers the same gate without writing anything;
 //   §11 HEAD is byte-identical: everything ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/credits-proof.mjs
@@ -307,6 +308,12 @@ try {
   assert.equal(boughtForRefund.ok, true, boughtForRefund.reason);
   refundable = boughtForRefund.ledger;
   assert.equal(wallet.walletOwns(wallet.buildWalletView(catalog, refundable, 'buyerB'), 'tpl-paid'), true, 'the buyer does not own what they bought');
+  // v533: instants are HOST-SUPPLIED, so the mechanism refuses a history that cannot have happened —
+  // a reversal dated before the movement it reverses. The purchase was recorded at 3; this asks for 2.
+  const earlyRefund = refund.refundPurchase(catalog, refundable, { templateId: 'tpl-paid', buyerId: 'buyerB', entryId: 'rr-early', at: 2 });
+  assert.equal(earlyRefund.ok, false, 'a refund was dated before the purchase it reverses');
+  assert.match(earlyRefund.reason, /before the purchase it reverses/);
+  assert.equal(refundable.entries.length, boughtForRefund.ledger.entries.length, 'a refused early refund moved the ledger');
   const refunded = refund.refundPurchase(catalog, refundable, { templateId: 'tpl-paid', buyerId: 'buyerB', entryId: 'rr1', at: 4 });
   assert.equal(refunded.ok, true, `the refund was refused: ${refunded.reason}`);
   assert.equal(refunded.priceCents, 500, 'the refund did not use the recorded price');
@@ -342,7 +349,7 @@ try {
   assert.equal(refundedAgain.ok, true, `a re-purchase could not be refunded: ${refundedAgain.reason}`);
   assert.equal(credits.balanceOf(refundedAgain.ledger, 'buyerB'), 1000, 'the second cycle did not make the buyer whole');
   assert.equal(credits.balanceOf(refundedAgain.ledger, 'authorA'), 100, 'the second cycle did not claw back');
-  console.log(`  refund returned ${refunded.priceCents} to the buyer and clawed it back from the author; the seller side is a CLAWBACK (not a purchase, not ownership); the dashboard reports refunded 500 / clawed back 500 apart from earned/spent, and both statements reconcile; ownership and the remix right are released; a second refund is refused; a RE-PURCHASE is refundable again`);
+  console.log(`  refund returned ${refunded.priceCents} to the buyer and clawed it back from the author; the seller side is a CLAWBACK (not a purchase, not ownership); the dashboard reports refunded 500 / clawed back 500 apart from earned/spent, and both statements reconcile; ownership and the remix right are released; a second refund is refused; a RE-PURCHASE is refundable again; a refund dated BEFORE the purchase it reverses (2 vs 3) was refused by name and moved nothing`);
 
   // ── §10 a refund POLICY is the host's declaration ───────────────────────────────────────────────
   console.log("§10 a refund policy is the host's declaration, applied before the mechanism");
@@ -357,6 +364,21 @@ try {
   assert.match(refundPolicy.refundPolicyProblem({}), /windowMs/, 'a policy that never declared a window was read as "no deadline"');
 
   const beforePolicy = policyLedger.entries.length;
+
+  // v533: the window bounds how LATE a refund may be; the ordering rule bounds how EARLY. An ask at
+  // instant 1 (the purchase is at 2) must be refused as an ASK — the preflight and the write alike.
+  const earlyAsk = refundPolicy.refundEligibility(
+    catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerC' }, refundPolicy.NO_REFUND_DEADLINE, 1,
+  );
+  assert.equal(earlyAsk.eligible, false, 'the preflight offered a refund before the purchase existed');
+  assert.match(earlyAsk.reason, /before the purchase it reverses/, 'the early ask was not refused by the ordering rule');
+  assert.doesNotMatch(earlyAsk.reason, /refund window/, 'the ordering refusal came back in the window\'s words');
+  const earlyAskWrite = refundPolicy.refundPurchaseUnderPolicy(
+    catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerC', entryId: 'pr-early', at: 5 }, refundPolicy.NO_REFUND_DEADLINE, 1,
+  );
+  assert.equal(earlyAskWrite.ok, false, 'a policy write was allowed before the purchase existed');
+  assert.equal(policyLedger.entries.length, beforePolicy, 'an early ask moved the ledger');
+
   const late = refundPolicy.refundPurchaseUnderPolicy(
     catalog, policyLedger, { templateId: 'tpl-paid', buyerId: 'buyerC', entryId: 'pr-late', at: 13 }, { windowMs: 10 }, 13,
   );
@@ -406,7 +428,7 @@ try {
   assert.equal(broken.ok, false, 'a policy with no windowMs was applied');
   assert.match(broken.reason, /windowMs/, 'a broken policy was not refused by name');
 
-  console.log('  a 10 ms window refused the refund 1 ms past closing and moved NOTHING; it allowed one AT the closing instant; "no deadline" allowed it years later; a buyer with no purchase got the mechanism\'s sentence; a policy that never declared a window was refused by name; the PREFLIGHT reported the same gate (eligible at the edge with purchaseAt 2 / closesAt 12, refused past it, deferred on a missing purchase) without touching the ledger');
+  console.log('  a 10 ms window refused the refund 1 ms past closing and moved NOTHING; it allowed one AT the closing instant; "no deadline" allowed it years later; a buyer with no purchase got the mechanism\'s sentence; a policy that never declared a window was refused by name; an ask at 1 (purchase at 2) was refused by the ORDERING rule in both readers and moved nothing; the PREFLIGHT reported the same gate (eligible at the edge with purchaseAt 2 / closesAt 12, refused past it, deferred on a missing purchase) without touching the ledger');
 } finally {
   rmSync(box, { recursive: true, force: true });
 }
