@@ -80,7 +80,10 @@ const SLUG_ATTEMPTS = 50;
  */
 function isSlugConflict(error: unknown): boolean {
   let current: unknown = error;
-  for (let depth = 0; current !== null && depth < 5; depth += 1) {
+  // 停在 null **或** undefined：cause 链一般两层就到底（DrizzleQueryError → 驱动错误 → 空），
+  // 只挡 null 的话第三轮读 undefined.cause 会抛 TypeError，把真正那句（外键、检查约束、
+  // 别的唯一索引）换成一句跟病因无关的话。两实例演练把 A 侧用户 id 递给 B 侧导入时就是这么炸的。
+  for (let depth = 0; current !== null && current !== undefined && depth < 5; depth += 1) {
     if (typeof current === 'object') {
       const e = current as { code?: string; constraint_name?: string };
       if (e.code === '23505' && e.constraint_name === 'projects_owner_slug_key') return true;

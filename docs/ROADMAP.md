@@ -123,7 +123,11 @@
       **6 段 throw 哨兵**（删了不会变绿，只会把说得出名字的错误换成下一行的 TypeError）、**4 段 codegen**（沿用上一片判读）。
       还欠的（写进 EVALUATION 第二十片 notMeasured）：`L1/L2` 两条臂红的是同一组测试，":831 由哪条单独钉"没答案；
       变异只查了这一片的新见证；throw 那 6 段是读代码 + 推理，没探针。
-- [ ] **之后**：导出 → 空实例恢复演练、`docs/PERFORMANCE.md` 剩余项。
+- [x] **之后**：导出 → 空实例恢复演练。**2026-10-29 重跑并扩**（第二十一片）：判据 7 → 20 条（走满 storyboard / character
+      两层），臂从"设了 `NEXUS_TWO_INSTANCE_SKIP_ASSETS=1` 才跑、跑完就 exit(0)"变成默认五趟，
+      另加三趟探针去证那三条臂红不到的判据自己有牙；探针当场抓到 `isSlugConflict` 在 cause 链走到头时
+      自己抛 TypeError、把库里那句外键违例换成一句与病因无关的话（修复 + 真库见证见 `projects.integration.test.ts`）。
+- [ ] **之后**：`docs/PERFORMANCE.md` 剩余项。
 
 并行会话边界（2026-10-28 实测）：observability 子系统由另一会话在途；上表前五项都在 UI 主题层，
 与它不重叠；提交只用临时索引/精确 `git add`，不碰它的 7 个在途文件。
@@ -7389,4 +7393,32 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
 - **回归**：`auth.spec.ts` 两条 @smoke 通过（浮动按钮没有挡住任何点击）；`a11y-internal.spec.ts`
   九张登录后界面（含这个新按钮）仍 **0 违规 / critical 0**（13.6m，慢但完整）。
 - **仍欠**：登录后界面的**浅色**还没扫（现在只扫了游客五张）；这是下一片。
+
+## 两实例往返：那条演练过期了 25 天，重跑并让它自己检查牙（2026-10-29）
+
+上面「两实例往返」那一节（2026-10-04）写的 7 条判据、22 条迁移、"臂只在 `NEXUS_TWO_INSTANCE_SKIP_ASSETS=1` 时执行"，
+今天全部过期。这一片把它重跑并改掉，逐条读数见 `docs/EVALUATION.md` 第二十一片。
+
+- **过期不是因为没做，是因为做绿过一次之后它不响**：这三个月里 `import.ts` 长出分镜换号与角色换号两段代码，
+  B 侧迁移从 22 条涨到 45 条，脚本一次也没再跑。跑绿过的见证同样会过期，而它过期时没有人知道——
+  与第十四片那句"门是砌好的，没人踢就不会响"是同一件事的两种形状。
+- **判据 7 → 20**：走满 design / assets / storyboard / character 四层；引用完整性与文案等价**分开判**
+  （`*_TEXT_EQUAL` 把引用字段排除，`*_REF_CONSERVED` 单独数引用），`B_EMPTY_BEFORE_IMPORT` 从"父进程的意图"
+  变成 B 侧孩子在导入前逐表 `count(*)` 的实测数。
+- **臂默认全跑（5 趟）**：由同一份好包剪出五份改过的包，各自导进一份全新的 B；
+  实测分别红 16 / 10 / 5 / 5 / 7 条。`foreign-asset-id` 那一趟证的是"字节全在、CRC 全对，只有字节是谁是假的"
+  ⇒ 只有引用那七条红，`ASSET_BYTES_EQUAL` / `B_STORAGE_IS_OWN_COPY` 照旧绿。
+- **归类规则**（`VERDICT_NAMES`）：每趟只点名该红的那几条，其余按定义必须照旧绿；名册对不上就失败。
+  它当场纠正了我自己一次——`no-design` 点名 10 条、实测红 16 条，而那句"该红的 10 条全红"当时**是真的**。
+- **三趟探针**证那三条臂红不到的判据有牙：库不重建再导一次（`B_EMPTY_BEFORE_IMPORT` 红）、
+  导出后删掉 A 侧角色（`A_UNCHANGED_AFTER_EXPORT` 红）、把 A 侧用户 id 递给 B 的导入（17 条红，
+  挡在前面的是 `projects_owner_id_users_id_fk`，SQLSTATE 23503）。
+- **抓到一条真缺陷**：`domain/projects.ts` 的 `isSlugConflict` 沿 `cause` 链走五步（#151 的教训），
+  但循环只挡 `null` 不挡 `undefined`。链一般两层就到底，于是第三轮在 `undefined` 上读 `cause` 自己炸了——
+  **任何非 slug 的库错误都拿不到原话**，被换成一句 `Cannot read properties of undefined (reading 'cause')`。
+  唯一不被它炸到的那条路恰恰是它要认的那条（slug 冲突在第二层就 return）。修复一行，
+  见证加在 `apps/web/test/projects.integration.test.ts`（真库、不存在归属 id → 要求链上有 23503 且顶层不是那句
+  TypeError；旧代码上实测红）。`projects.integration.test.ts` 17/17。
+- **口径更正**：`docs/TESTING.md` / `docs/adr/0024-project-export-zip.md` 里"7 条判据全绿""22 条迁移""臂只在设 env 时"
+  三处旧说法同片改口。仍然欠的那寸没变：这条脚本不在 `npm test` 里，也没有 CI 跑它。
 

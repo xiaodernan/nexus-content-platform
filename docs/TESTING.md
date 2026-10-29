@@ -50,6 +50,17 @@
    三个孩子进程各拿自己那一侧 env，A 导出的 zip 在 B 装回来，7 条判据全绿
    （文档摘要 757 字对上、资产 sha `9f05a9262dad…` 对上、B 的存储目录里是自己那份新路径的 PNG）。
    这一片只剩 **413** 一条没被真请求证过。见 ADR-0024 第二则补记。
+   **2026-10-29 重跑并扩：7 条 → 20 条，臂从"要设 env 才跑"变成默认九趟判定**（主跑 + 五趟臂 + 三趟探针）。
+   上一条那种"跑绿过一次"的见证会过期：这三个月里 `import.ts` 长出了分镜换号与角色换号两段代码、
+   B 侧迁移从 22 条涨到 45 条，而脚本一次没再跑过。现在判据走满 design / assets / storyboard / character 四层，
+   并且**每一趟臂与探针都点名"哪几条必须红、其余必须照旧绿"**——没红过的判据按 §85 就是没测过的判据。
+   实测：20 条全绿；五趟臂分别红 16 / 10 / 5 / 5 / 7 条；三趟探针分别红 1 / 1 / 17 条；zip 31215 字节。
+   探针顺手抓到一条真缺陷（`domain/projects.ts` 的 `isSlugConflict` 沿 cause 链走时只挡 `null` 不挡 `undefined`，
+   于是任何非 slug 的库错误都被换成一句 `Cannot read properties of undefined (reading 'cause')`），
+   修复带一条真库见证见 `apps/web/test/projects.integration.test.ts`。逐条读数与限度见 EVALUATION 第二十一片。
+   **它仍然不在 `npm test` 里**：要第二个库（每趟 `drop` + `create` + 迁移 45 条）、要删第二个存储目录、
+   一跑约 3 分钟，`vitest.config.ts` 的 include 也不认 `scripts/**`。也就是说这道门靠人踢，
+   最后一次踢是 2026-10-29；第十四片那句"门是砌好的，没人踢就不会响"对它同样成立。
    **413 那一格 2026-10-07 补上**：`npm run probe:413`（先起 `npm run dev`）走真 HTTP——
    真 middleware 签的会话与 CSRF、真路由、真状态码。实测
    `声明 2GB → 413 {"error":"too_large","reason":"整包 2048MB 超过导入上限 128MB"}`。

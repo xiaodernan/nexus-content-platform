@@ -438,3 +438,37 @@ describe('§146 顶档走真实那道门（ADR-0015）', () => {
     expect(ok.ok, ok.ok ? '' : ok.issues.join('；')).toBe(true);
   }, 180_000);
 });
+
+describe('库里的错误要照原样抛出去（cause 链走到头那一臂）', () => {
+  it('外键违例抛回的是外键那句，不是 cause 链走过头的那句 TypeError', async () => {
+    // 归属不存在的用户 ⇒ projects_owner_id_fkey 违例。isSlugConflict 只在 23505 加那个约束名上说 true，
+    // 其余每一条都该走"照原样抛"。第二十一片探针 P3 实测到的却是 `Cannot read properties of undefined
+    // (reading 'cause')`——cause 链两层就到底，第三轮在 undefined 上读 cause 自己炸了，
+    // 病因被换成一句与病因无关的话，路由给出去的状态码与原因也就无从可读。
+    const ghost = '00000000-0000-0000-0000-000000000000';
+    const failure = await createProject(ghost, { name: `幽灵归属 ${Date.now()}`, kind: 'website' }).then(
+      () => null,
+      (error: unknown) => error,
+    );
+    expect(failure, '归属不存在的用户，项目却建成了').not.toBeNull();
+    const top = failure instanceof Error ? failure.message : String(failure);
+    expect(top, `抛回来的是 cause 链自己的话：${top}`).not.toContain("reading 'cause'");
+    // DrizzleQueryError 的顶层只有 "Failed query: …"，code 与约束名都在 cause 链上（isSlugConflict 的注释同一件事）。
+    // 所以这一条判的是"链上真的带着库给的那句"，而不是顶层那句话长得对不对。
+    const messages: string[] = [];
+    const codes: string[] = [];
+    let cursor: unknown = failure;
+    for (let depth = 0; depth < 5 && cursor !== null && cursor !== undefined; depth += 1) {
+      // 逐层结构化读取，不用 String()：链上任何一层都可能不是 Error，而 unknown 直接进
+      // 模板字符串只会得到 Object 的默认格式，把该看的两句冲掉。
+      const layer = cursor as { message?: unknown; code?: unknown; cause?: unknown };
+      messages.push(typeof layer.message === 'string' ? layer.message : Object.prototype.toString.call(cursor));
+      codes.push(typeof layer.code === 'string' ? layer.code : '');
+      cursor = layer.cause;
+    }
+    expect(messages.join('\n'), `cause 链一共 ${messages.length} 层，没一句提到外键`).toMatch(
+      /violates foreign key constraint/i,
+    );
+    expect(codes, `cause 链上的 SQLSTATE：${codes.join(' / ')}`).toContain('23503');
+  });
+});

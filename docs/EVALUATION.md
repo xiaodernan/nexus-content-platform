@@ -1392,6 +1392,131 @@ notMeasured：
    漂移照样发生。切块规则仍然没读，所以这 6 段只能说"是仪器给的"。
 6. **§85 真 provider 那一半照旧欠着**：这一片全是本地纯函数，没有生成、没有发布、没有付费调用。
 
+#### 第二十一片（2026-10-29）：那条演练过期了 25 天——重跑它、扩到分镜与角色，再让它自己检查牙
+
+`docs/ROADMAP.md` 上那条 `[ ] **之后**：导出 → 空实例恢复演练` 挂了一个月，原因不是没做，是**做绿过一次之后它不响**：
+`npm run two:instance` 于 2026-10-04 跑绿（7 条判据），此后 `import.ts` 里长出了分镜换号与角色换号两段代码、
+B 侧的迁移从 22 条涨到 45 条，而那条脚本一次也没再跑。第十四片写的是"手跑的见证等于没有见证"，
+这一片是同一条道理的另一种形状：**跑绿过的见证也会过期，而它过期时没有人知道**。
+
+先把它为什么仍不在 `npm test` 里说清楚：它要第二个库（每一趟 `drop` + `create` + 迁移）、
+要删第二个存储目录、要起九个孩子进程、一趟约 3 分钟。这道门靠人踢，所以这里记的是"最后一次踢"的日期与读数。
+
+**三处改动**（`scripts/two-instance-roundtrip.mts`，900 增 / 141 删）：
+
+① **臂每趟都跑**。原先那条"包里没有 assets"的臂只在 `NEXUS_TWO_INSTANCE_SKIP_ASSETS=1` 时执行，
+   执行完就 `process.exit(0)`——也就是所有人实际跑的那一跑从来没证过自己的判据会红。
+   现在 A 侧只导出一次，五份改过的包由同一份好包剪出来（`readZip` → 按 prefix 丢条目 → 同步改 `parts` /
+   `entries` / `assetRefs` → 重打包），各自导进一份全新的 B。
+② **判据从 7 条扩到 20 条**，走满 storyboard 与 character 两层。新加的 13 条里，
+   `B_EMPTY_BEFORE_IMPORT` 是**父进程以前只声明、没有数过**的那件事（现在由 B 侧孩子在导入前
+   逐表 `count(*)`：`projects=0 users=0 assets=0 characters=0 storyboards=0`）；
+   `*_TEXT_EQUAL` 与 `*_REF_CONSERVED` 是分开的两件事——文案逐字相同并不等于引用还接得上。
+③ **三趟探针**（下面那张表）。臂只能红掉"B 侧读回来什么"那一串，有 3 条判据臂红不到，
+   于是它们至今没红过——按 §85 的口径，**没红过的判据就是没测过的判据**。
+
+**判据的归类规则也是这一片新立的**（`VERDICT_NAMES` 那 20 个名字）：每一趟只点名"该红的那几条"，
+其余按定义必须照旧绿。三条都不许含糊——点名该红的没红＝判据没牙；没点名的红了＝这一趟动的比它声称的多；
+名册对不上＝有人加了判据却没人想过它该在哪一趟里红过。这条规则当场纠正了我自己一次：
+`no-design` 第一版点名 10 条，实测红 16 条，而打印那句"该红的 10 条全红"**当时是真的**——
+漏掉的 6 条悄悄红在背后。这正是"一条把一切都弄红的臂什么也不证明"的温和版本。
+
+**主跑的 20 条**（逐字，`npm run two:instance` 2026-10-29，zip 31215 字节，每趟 `[fresh B] 45 migration(s) applied`）：
+
+```
+verdict B_EMPTY_BEFORE_IMPORT: PASS — projects=0 users=0 assets=0 characters=0 storyboards=0
+verdict B_IS_NEW_PROJECT: PASS — A=9abb528a B=f723022e
+verdict B_OWNED_BY_B_USER: PASS — A 用户 a4219e3e，B 用户 327ee667
+verdict DOCUMENT_DIGEST_EQUAL: PASS — A 757 字 / B 757 字
+verdict B_ASSET_COUNT_ONE: PASS — 库里行数 1，counts.assets=1
+verdict ASSET_BYTES_EQUAL: PASS — A 9f05a9262dad B 9f05a9262dad
+verdict NO_ASSET_FAILURES: PASS — 一条也没有
+verdict BUNDLE_ASSET_MAP_VALID: PASS — 包里 assetRefs 1 条 ["8f6c6e64"]，A 侧资产行 ["8f6c6e64"]
+verdict DOC_REF_ASSET_OWNED: PASS — 画布上那张图：A 引用 8f6c6e64，B 引用 175142b4，B 自己的资产行 ["175142b4"]
+verdict B_STORAGE_IS_OWN_COPY: PASS — B 侧 ["projects/f723022e-d463-48c9-a333-04a047a86061/175142b4-e2df-4f26-a7b3-6be7305f3265.png"]，sha 9f05a9262dad；A 侧 11 张，路径无一重合
+verdict STORYBOARD_ROW_CREATED: PASS — counts.storyboard=1，B 侧读回 415 字摘要
+verdict STORYBOARD_TEXT_EQUAL: PASS — A 415 字 / B 415 字（标题、来源那句话、三镜的 id·文案·时长·机位·转场、notes）
+verdict STORYBOARD_REF_CONSERVED: PASS — 参考帧/成片引用 A 2 条、B 2 条；角色引用 A 2 条、B 2 条
+verdict STORYBOARD_IS_B_OWN_ROW: PASS — A 的分镜行 43160ebc，B 的分镜行 ecad2095
+verdict STORYBOARD_NOTES_CLEAN: PASS — notes 1 条（干净的那一份只剩"已入库并且点名两侧行 id"那一条）
+verdict CHARACTER_COUNT_ONE: PASS — counts.character=1，B 侧角色行 1 位
+verdict CHARACTER_PROFILE_EQUAL: PASS — 档案文案摘要 A 381 字 / B 381 字（参考图那格不算，它走引用那条）
+verdict CHARACTER_REF_CONSERVED: PASS — 参考图：A 8f6c6e64，B 175142b4
+verdict CHARACTER_NOTES_CLEAN: PASS — notes 0 条
+verdict A_UNCHANGED_AFTER_EXPORT: PASS — 导出后又读了一遍 A：文档 757 字，分镜 415 字，档案 381 字
+```
+
+**这一份读数在改过 cause 链拼法之后又整跑复跑了一遍**（`.scratch/s21-drill-7.txt`，同样 exit 0）：20 条主跑、
+五趟臂的红数 16/10/5/5/7、三趟探针的 1/1/17 一字不差地复现，`9f05a9262dad` 与 757/415/381 字也复现。
+不复现的是**每一趟自己的随机形状**：项目/资产/分镜行的 id 前缀每趟新抛 uuid，`A 侧 N 张` 那一格会随 A 的存储目录
+累积而涨（第一跑 11 张、复跑 12 张）。所以引用它们时记住：**判据读的是"这引用是不是 B 自己的行"，不是"这个 uuid 叫什么"**；
+把某一次的前缀当成稳定坐标，就是这一片开头那条病（跑绿过的见证被当成永真）换了个写法回来。
+
+**五趟臂**（每趟一份全新的 B；读数里"点名 N / 其余 M"就是那一趟的红绿分布，N+M 恒为 20）：
+
+| 臂 | 点名红 | 这一趟在证的事 | 还额外成立的那件事（`extra`，结构判据，不读中文） |
+| --- | --- | --- | --- |
+| `no-design` | 16 | 清单没声明 design ⇒ 整包拒收，一个字节都不落库；红只红在"B 侧读回来什么"这一侧 | `refusal` 非空 **且** `projectId === ''` **且** 五张表导入前全 0 |
+| `no-assets` | 10 | 包里没有 assets 那一份 ⇒ 文档/分镜/角色三层仍然进库，红的只有"字节是谁"那一串 | 每条 `assetFailures` 的 path 都**不**以 `assets/` 开头（失败来自断链，不来自没收到字节） |
+| `skip-storyboard` | 5 | 分镜整层不进库，而文案与角色一层不受影响 | `parts` 里没有 `storyboard` **且** B 侧角色仍有 1 位 |
+| `skip-character` | 5 | 少导 character 这一 part ⇒ 挂在镜头上的角色引用被剥掉（分镜文案照旧在） | `parts` 里没有 `character` **且** `counts.storyboard === 1` |
+| `foreign-asset-id` | 7 | 字节全在、CRC 全对，只有"字节是谁"是假的 ⇒ 只有引用完整性那几条能红 | 有失败但都不是 `assets/` 那一条 **且** 包里那条 assetRef 不在 A 的资产行里 |
+
+`skip-character` 那趟一开始我把 `STORYBOARD_NOTES_CLEAN` 放进了"该绿"——错的：剥掉一个 `characterId`
+**必然**留下一条 note。读数不接受"我以为"，它挪进了该红那一列，claim 跟着改。
+
+**三趟探针**（每一趟只动一个变量，各自点名那 1 条 / 17 条必须红，其余照旧绿）：
+
+| 探针 | 动的那一个变量 | 点名该红 | 实测 |
+| --- | --- | --- | --- |
+| `probe-dirty-b` | B 的库**不重建**（存储目录换成新的，免得"目录里两张 PNG"替这条判据说话） | `B_EMPTY_BEFORE_IMPORT` 1 条 | PASS，其余 19 条照旧绿 |
+| `probe-mutated-a` | 导出之后删掉 A 侧那位角色（`deleteCharacter` 返回 `true`） | `A_UNCHANGED_AFTER_EXPORT` 1 条 | PASS，其余 19 条照旧绿 |
+| `probe-foreign-owner` | 把 A 侧的用户 id 直接递给 B 的导入 | 17 条（含 `B_OWNED_BY_B_USER`） | PASS，照旧绿的 3 条是 `B_EMPTY_BEFORE_IMPORT` / `BUNDLE_ASSET_MAP_VALID` / `A_UNCHANGED_AFTER_EXPORT` |
+
+**探针 P3 顺手抓到一条产品缺陷**，这是这一片唯一的真 bug：
+
+```
+[probe-foreign-owner] role b 抛出：Failed query: insert into "projects" ("id", "owner_id", "slug", "name", "kind",
+  "description", "visibility", "fork_of", "active_page_id", "c ← [23503] insert or update on table "projects"
+  violates foreign key constraint "projects_owner_id_users_id_fk"
+```
+
+修好之前那一行是 `role b 抛出：Cannot read properties of undefined (reading 'cause')`——
+外键违例被换成了一句与病因无关的话。病因在 `domain/projects.ts` 的 `isSlugConflict`：
+它沿 `cause` 链走五步（#151 的教训：`code` 与约束名不在顶层），但循环条件只挡 `null` 不挡 `undefined`。
+链一般两层就到底（`DrizzleQueryError` → 驱动错误 → 空），于是**第三轮在 `undefined` 上读 `cause` 自己炸了**。
+唯一不被它炸到的那条路，恰恰是它要认的那条：slug 冲突在第二层就 `return true` 走人了。
+**推论：任何一条 23503 之外的库错误——别的唯一索引、检查约束、外键——都拿不到原话**，
+路由与 ADR-0024 许诺的那些状态码在这一类情况下报不出原因。
+
+- 见证：`apps/web/test/projects.integration.test.ts` 新增一条，用不存在的归属 id 建项目，
+  要求①顶层那句不是 `reading 'cause'`，②`cause` 链上带着 `violates foreign key constraint`，③链上有 SQLSTATE `23503`。
+  ②③合起来是为了**别把 Drizzle 的包装错误当缺陷**——顶层本来就只有 `Failed query: …`，
+  光判"不含 TypeError"会红在一件不存在的事上；这条判据在修好的代码上跑绿、在旧代码上实测红：
+  `AssertionError: 抛回来的是 cause 链自己的话：Cannot read properties of undefined (reading 'cause')`。
+  文件整体 17/17。
+
+**还有一次红是探针抓的我自己**：`refusal` 那一句第一版按整串截 400 字，而 `[23503]` 在第二层，
+被第一层那句很长的 SQL 挤掉了 ⇒ `extraOk` 判 false，`PROBE_FOREIGN_OWNER` 当场 FAIL。
+改成"每一层单独截 140 字"之后才看得见。这与第十八片那条同源：**读数写得不说人话，判据就判不到那件事**。
+
+被这一片推翻或改口的旧说法：`docs/TESTING.md`、`docs/ROADMAP.md`、`docs/adr/0024-project-export-zip.md`
+三处都还写着"7 条判据全绿""22 条迁移""臂只在 `NEXUS_TWO_INSTANCE_SKIP_ASSETS=1`""zip 28141 字节"，
+同片改成 20 条 / 45 条 / 默认五趟臂 + 三趟探针 / 31215 字节。
+
+**notMeasured（这一片）**
+
+1. **A 侧那一跑仍是一次导出配一次导入**：没有测"同一份包导两次会怎样"（P1 探针测的是**不空库**，
+   不是"同一个 B 用户拿同一份包导两遍"——那属于幂等/去重，是另一片的事）。
+2. **`B_OWNED_BY_B_USER` 红在探针里靠的是外键**，不是判据先接住：产品侧那条路（`POST /api/projects/import`
+   带一个不属于本实例的 actor）在 HTTP 层会拿 403 还是 500，这一片没量——它要真 HTTP 载体，见 ADR-0024 补记里
+   那条"状态码没有一条被真请求证过"的旧账。
+3. `probe-mutated-a` 只动 character 一层。A 侧**改文档**或**改分镜**之后 `A_UNCHANGED_AFTER_EXPORT` 会不会红，
+   是同一条判据的另外两个臂，没造。
+4. 判据名册（`VERDICT_NAMES`）钉的是"20 条都在每一趟里被归过类"，钉不了"这 20 条覆盖得了这层的哪些行为"——
+   比如分镜里 `videoAssetId` 那一格在演练语料里永远是空的（只造了参考帧），它换没换号没有读数。
+5. 这条脚本仍然不在 `npm test` 里，也没有 CI 跑它；第十四片那句"门是砌好的，没人踢就不会响"对它同样成立。
+
 ### Performance
 
 不在此复测：规模基准与热点路径的真数见 `docs/PERFORMANCE.md`（§146/§147 测量协议）。
