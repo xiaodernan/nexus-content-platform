@@ -124,10 +124,12 @@ const PROOFS_STEP = '      - name: Evidence proofs\n        run: npm run verify:
 // runner's header prose — so the one-hit rule refused the arm, the gate never ran, and the arm reported its own
 // prose as a gate failure. An arm whose needle is ambiguous is a crash, not a red: that is the lesson, and the
 // `file: ` prefix is what makes each needle unique in the file that carries it. v545 retired the docker row
-// (its blocker — a pre-pulled pgvector image — is now satisfied by the workflow), so A11 moved to the live-stack
+// (its blocker — a pre-pulled pgvector image — is now satisfied by the workflow) and v546 retired the
+// live-stack row (the proof never touches `studio-publish.mjs`; that harness is `verify:publish-e2e`, outside
+// the derived population, and the runner pins JDK 25 and pulls the image). A11 now aims at the maven+PostgreSQL
 // row that remains: the arm grades the reason rule, and any surviving exclusion can carry it.
 const SERVICE_ROW = "    file: 'docs/evidence/m7/service-suite-proof.mjs',";
-const LIVE_STACK_ROW = "    needs: 'the live stack — it publishes through tools/harness/studio-publish.mjs against a service that answers',";
+const SERVICE_NEEDS_ROW = "    needs: 'maven and a real PostgreSQL — it grades the surefire XML written by `mvn -B test` on services/nexus-api',";
 
 // A14's premise is the WHOLE population's declaration set, so its edits are DERIVED, not copied: at v528 one
 // row declared a budget and deleting that one armed §9; by v540 six did, and the hardcoded delete left five
@@ -174,7 +176,7 @@ const GATE_ARMS = [
     }],
     sig: /nothing OUTSIDE its comments reaches/,
   },
-  { tag: 'A11-exclusion-without-a-reason', clause: '§6', edits: [{ file: RUNNER, from: LIVE_STACK_ROW, to: "    needs: 'docker'," }], sig: /without naming what it needs/ },
+  { tag: 'A11-exclusion-without-a-reason', clause: '§6', edits: [{ file: RUNNER, from: SERVICE_NEEDS_ROW, to: "    needs: 'docker'," }], sig: /without naming what it needs/ },
   { tag: 'A12-runner-path-swapped', clause: '§7', edits: [{ file: PKG, from: '"verify:proofs": "node tools/ci/proof-set.mjs"', to: '"verify:proofs": "node tools/ci/proof-set-old.mjs"' }], sig: /must be the same door/ },
   { tag: 'A13-gate-not-in-its-own-set', clause: '§8', edits: [{ file: PKG, from: '    "verify:ci-wiring": "node docs/evidence/ci/ci-wiring-proof.mjs",\n', to: '' }], sig: /verify:ci-wiring is/ },
   { tag: 'A14-nobody-declares-a-budget', clause: '§9', edits: DECLARED_MARKERS, sig: /no row of the running set declares a budget/ },
@@ -202,13 +204,14 @@ const GATE_ARMS = [
 }
 
 // ── half 2: the runner ────────────────────────────────────────────────────────────────────────────────
-// A synthetic plane, because the claim is about EXIT CODES and nothing else: nine derived `verify:*` rows — seven
-// runnable stubs plus the two shipped EXCLUDED paths. v545 retired the docker-daemon row, and the plane stayed at
-// NINE because two arms live on that size: R6 deletes one row and still stands at eight, above the >=8 floor, so
-// `unknownExclusions` is the clause that fires; R8 deletes two and falls to seven, below it, so the floor is. At
-// eight rows R6's own clause would be unreachable — the floor would answer first — which is the "clause that can
-// never fire" v539 named. Each stub appends to `ran.log`, which makes "this run executed nothing" a fact about a
-// file rather than a reading of a sentence.
+// A synthetic plane, because the claim is about EXIT CODES and nothing else: nine derived `verify:*` rows — eight
+// runnable stubs plus the one shipped EXCLUDED path. v545 retired the docker-daemon row and v546 the live-stack
+// row; the plane stayed at NINE by growing a stub each time, because two arms live on that size: R6 deletes the
+// excluded row and still stands at eight, above the >=8 floor, so `unknownExclusions` is the clause that fires;
+// R8 deletes two stubs and falls to seven, below it, so the floor is. At eight rows R6's own clause would be
+// unreachable — the floor would answer first — which is the "clause that can never fire" v539 named. Each stub
+// appends to `ran.log`, which makes "this run executed nothing" a fact about a file rather than a reading of a
+// sentence.
 // Every stub declares its own generous budget. The runner arms pass `--budget 600` to the whole synthetic
 // plane to prove a ROW's marker beats the fallback (R2b), and on a loaded box a healthy stub once took 0.7 s
 // and was killed before the row under test could speak — the arm's subject is `c`, so no other row may be
@@ -223,7 +226,7 @@ const BASE_BODIES = {
   'docs/evidence/stub/e.mjs': stub('e'),
   'docs/evidence/stub/f.mjs': stub('f'),
   'docs/evidence/stub/g.mjs': stub('g'),
-  'docs/evidence/m7/publish-proof.mjs': EXCLUDED_STUB,
+  'docs/evidence/stub/h.mjs': stub('h'),
   'docs/evidence/m7/service-suite-proof.mjs': EXCLUDED_STUB,
 };
 const BASE_SCRIPTS = {
@@ -234,10 +237,10 @@ const BASE_SCRIPTS = {
   'verify:stub-e': 'node docs/evidence/stub/e.mjs',
   'verify:stub-f': 'node docs/evidence/stub/f.mjs',
   'verify:stub-g': 'node docs/evidence/stub/g.mjs',
-  'verify:publish': 'node docs/evidence/m7/publish-proof.mjs',
+  'verify:stub-h': 'node docs/evidence/stub/h.mjs',
   'verify:service': 'node docs/evidence/m7/service-suite-proof.mjs',
 };
-const ALL_GREEN = /7\/7 green of a derived population of 9/;
+const ALL_GREEN = /8\/8 green of a derived population of 9/;
 const HANG = "import { appendFileSync } from 'node:fs';\nappendFileSync('ran.log', 'c\\n');\nsetTimeout(() => {}, 30000);\n";
 // R2b's subject is row `c` and only row `c`: a computed budget of 30 s over a 1.5 s busy loop is the margin
 // the arm needs, because on a loaded box the loop plus node startup measured 4.8 s — the same run in which
@@ -278,12 +281,12 @@ const RUNNER_ARMS = [
   { tag: 'R2c-undeclared-slow-row-is-killed', bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': SLOW_WITHOUT_MARKER }, argv: ['--budget', '600'], code: 1, has: [/── verify:stub-c TIMEOUT ──/, /\[default 600ms\]/], lacks: [/\bRED\b/], ran: true },
   { tag: 'R3-only-typo-certifies-nothing', argv: ['--only', 'nosuchrow'], code: 1, has: [/NOTHING RAN/], lacks: [ALL_GREEN], ran: false },
   { tag: 'R3b-only-selects-one-row', argv: ['--only', 'stub-a'], code: 0, has: [/1\/1 green of a derived population of 9/], lacks: [/verify:stub-b/], ran: true, ranRows: 1 },
-  { tag: 'R4-list-runs-nothing', argv: ['--list'], code: 0, has: [/RUN      verify:stub-a/, /EXCLUDED verify:publish/], lacks: [/OK \d/], ran: false },
+  { tag: 'R4-list-runs-nothing', argv: ['--list'], code: 0, has: [/RUN      verify:stub-a/, /EXCLUDED verify:service/], lacks: [/OK \d/], ran: false },
   { tag: 'R5-dangling-script-is-red-not-skipped', remove: ['docs/evidence/stub/d.mjs'], argv: [], code: 1, has: [/points at a proof file that is not on disk/], lacks: [ALL_GREEN], ran: false },
-  { tag: 'R6-stale-exclusion-named', scripts: Object.fromEntries(Object.entries(BASE_SCRIPTS).filter(([k]) => k !== 'verify:publish')), argv: [], code: 1, has: [/EXCLUDED names a file that is not in the derived population/], lacks: [ALL_GREEN], ran: false },
+  { tag: 'R6-stale-exclusion-named', scripts: Object.fromEntries(Object.entries(BASE_SCRIPTS).filter(([k]) => k !== 'verify:service')), argv: [], code: 1, has: [/EXCLUDED names a file that is not in the derived population/], lacks: [ALL_GREEN], ran: false },
   { tag: 'R7-missing-build-is-named-not-red', bodies: { ...BASE_BODIES, 'docs/evidence/stub/e.mjs': `${stub('e')}const target = './packages/fake/dist/index.js';\nconsole.log(target);\n` }, argv: [], code: 1, has: [/the build these proofs grade is not there/], lacks: [/── verify:stub-e RED ──/], ran: false },
   { tag: 'R8-population-floor', scripts: Object.fromEntries(Object.entries(BASE_SCRIPTS).filter(([k]) => !['verify:stub-d', 'verify:stub-e'].includes(k))), argv: [], code: 1, has: [/admits almost nothing/], lacks: [ALL_GREEN], ran: false },
-  { tag: 'R9-exclusion-without-a-reason', edits: [{ file: RUNNER, from: LIVE_STACK_ROW, to: "    needs: 'docker'," }], argv: [], code: 1, has: [/is excluded without naming what it needs/], lacks: [ALL_GREEN], ran: false },
+  { tag: 'R9-exclusion-without-a-reason', edits: [{ file: RUNNER, from: SERVICE_NEEDS_ROW, to: "    needs: 'docker'," }], argv: [], code: 1, has: [/is excluded without naming what it needs/], lacks: [ALL_GREEN], ran: false },
   { tag: 'R10-budget-must-be-a-number', argv: ['--budget', 'abc'], code: 1, has: [/a budget is a whole number of milliseconds/], lacks: [/running 6 derived/], ran: false },
   { tag: 'R11-budget-flag-without-a-value', argv: ['--budget', ''], code: 1, has: [/given without a number/], lacks: [/running 6 derived/], ran: false },
 ];

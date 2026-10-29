@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-10-29T16:42:22.201Z",
+  "ranAt": "2026-10-29T17:17:46.190Z",
   "arms": 40,
   "matched": 40,
   "armNames": [
@@ -47,10 +47,10 @@
     "R11-budget-flag-without-a-value"
   ],
   "subjects": {
-    "workflow": "3d09c34620ccf958cd0824a6afb3c9ff34259c7e0513a65b29c9da73fd63fe8d",
+    "workflow": "c24f5ec1120d93f10674fb23b785d8376f26eba8852584c3fb75d4f24f4aa134",
     "gate": "c416b8832786ee8d67fc2c7af04559e33f737dd906cfe4f3dc911e0a3535f3cd",
-    "arms": "c304f24bd45f458b8210ca674ba0e3403983adb8ae039ea78298735eafe65f37",
-    "runner": "a9e7e139c69b920b3785f331a49711741e0c7add856f00587d5c9a5104b5ef3a",
+    "arms": "c2cc3a0c6875faf7e0d001ec519679835410666ef89674dd59e2cbdf0bc13264",
+    "runner": "1ae0489083422422432633c0c1f1075d7c5bc305b0a172c2006556582372435d",
     "sweep": "ead49485592dc696b99878ef19ba4802519f43746a55956dc9c22dd5fcdb84a9",
     "scripts": "4f13a845cd9e400b99e3de1617490e81e04721dcbdbead22b5458e555fe2bc7f",
     "rule": "d950d243b7678dda17d00f877e2a3cbdf94d7d70a1eafed0c2fb59aa06b437d1"
@@ -389,7 +389,7 @@
     {
       "name": "verify:publish",
       "file": "docs/evidence/m7/publish-proof.mjs",
-      "marker": null
+      "marker": "// sweep-budget-ms: 900000"
     },
     {
       "name": "verify:qa",

@@ -22,6 +22,12 @@
 // removed by name at the end; the jar is built into the service's own `target/`, which is gitignored.
 //
 // Requires: Java 25, Maven, and a running Docker daemon. Run:  node docs/evidence/m7/publish-proof.mjs
+//
+// v546 (ADR 0016 amendment 529): this is a BUILD ROW now, and it declares its own budget. Warm on the
+// authoring box it measured 2 m 16 s end to end; on the runner the local Maven repository starts cold, and
+// that build is the expensive part (the proof's own Maven call is allowed 600 s below). A 240 s default
+// would kill the row at the build, which is a fact about the repository's temperature, not about the proof.
+// sweep-budget-ms: 900000
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createConnection, createServer } from 'node:net';

@@ -55,10 +55,6 @@ export const PROOF_COMMAND = /^node +(docs\/evidence\/\S+\.mjs)$/;
  */
 export const EXCLUDED = [
   {
-    file: 'docs/evidence/m7/publish-proof.mjs',
-    needs: 'the live stack — it publishes through tools/harness/studio-publish.mjs against a service that answers',
-  },
-  {
     file: 'docs/evidence/m7/service-suite-proof.mjs',
     needs: 'maven and a real PostgreSQL — it grades the surefire XML written by `mvn -B test` on services/nexus-api',
   },

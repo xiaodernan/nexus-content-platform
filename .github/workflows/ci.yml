@@ -34,6 +34,17 @@ jobs:
           # can read, and `engines` says only ">=20", which cannot decide this.
           node-version: 24
           cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          # The m7 rows build services/nexus-api with Maven, and publish-proof asserts `java -version`
+          # matches /version "25/ while the image's DEFAULT JDK is 17. The toolchain is PINNED here the way
+          # Node is: ambient JDK selection is exactly the environment a proof must not be at the mercy of,
+          # and a pinned action survives the image moving under us. `cache: maven` warms the local
+          # repository the first building row pays for, so later runs restore it instead of downloading it.
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+          cache-dependency-path: services/nexus-api/pom.xml
       - name: Install (workspace root)
         run: npm ci || npm install
       - name: ADR index integrity
