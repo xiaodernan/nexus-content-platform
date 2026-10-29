@@ -35,6 +35,9 @@
  *      asks for exactly that, the shelf does not move, and the smaller record survives a reload;
  *   6i. a CREATOR sees their own take-downs (v544): the dashboard names what the author withdrew (and
  *      "none" for listings that are on sale), and that reading survives a reload;
+ *   6j. a creator can PUBLISH (v546): the button builds a real Design Document through `publishListing`
+ *      and the shelf gains a listing it did not hold before — without touching the withdrawal record —
+ *      and the published shelf survives a reload;
  *   7. clearing writes a VALID empty ledger and the page returns to its empty state;
  *   8. no uncaught page errors, and a screenshot is written as evidence.
  *
@@ -517,6 +520,38 @@ try {
     'the creator still sees that take-down after a reload (the card reads the same record as the strip)',
     creatorReload.withdrawn === 2 && /withdrawn: SaaS Dashboard/.test(creatorReload.mine ?? ''),
     JSON.stringify(creatorReload),
+  );
+
+  // 6j. THE PUBLISH LINE (v546). Until now every row this page rendered had been typed into the demo
+  // fixture: `publishTemplate` had a proof and no producer. The button builds the model's own empty
+  // document (a real, valid graph) and hands it to `publishListing`, which asks the withdrawal record
+  // before it adds. After 6i the shelf holds nothing and the record holds [mobile, saas], so the draft
+  // takes the first free id — and the record must not move.
+  const publishClick = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-publish]'); if (!b) return false; b.click(); return true; })()",
+  );
+  await page.waitForFunction("(() => document.querySelectorAll('[data-credits-listing]').length === 1)()", { timeout: 10000 });
+  const published = await page.evaluate(
+    "(() => ({ rows: document.querySelectorAll('[data-credits-listing]').length, withdrawn: document.querySelectorAll('[data-credits-withdrawn]').length, row: document.querySelector('[data-credits-listing=\"tpl-local-1\"]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, header: document.querySelector('[data-credits-store]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, error: !!document.querySelector('[data-credits-error]') }))()",
+  );
+  check(
+    'Publish draft puts a real design on the shelf (one listing, named, priced) without touching the record',
+    publishClick === true && published.rows === 1 && published.withdrawn === 2 &&
+      /Local Draft 1/.test(published.row ?? '') && /author-1/.test(published.row ?? '') &&
+      /¥3\.00/.test(published.row ?? '') && /1 listing\(s\)/.test(published.header ?? '') && published.error === false,
+    JSON.stringify(published),
+  );
+
+  await page.navigate(`${URL_BASE}/credits`, { waitForSelector: '#nexus-credits' });
+  await page.waitForFunction("!!document.querySelector('[data-credits-wallet]')", { timeout: 20000 });
+  const publishedReload = await page.evaluate(
+    "(() => ({ rows: document.querySelectorAll('[data-credits-listing]').length, withdrawn: document.querySelectorAll('[data-credits-withdrawn]').length, row: document.querySelector('[data-credits-listing=\"tpl-local-1\"]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, header: document.querySelector('[data-credits-store]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }))()",
+  );
+  check(
+    'a PUBLISHED draft survives a reload: the store reads back the listing it was saved with',
+    publishedReload.rows === 1 && publishedReload.withdrawn === 2 &&
+      /Local Draft 1/.test(publishedReload.row ?? '') && /1 listing\(s\)/.test(publishedReload.header ?? ''),
+    JSON.stringify(publishedReload),
   );
 
   // 7. clearing writes a valid empty ledger and returns the page to its empty state.

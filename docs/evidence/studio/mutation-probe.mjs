@@ -11,7 +11,7 @@
 //
 // sweep-budget-ms: 1200000
 // The budget above is the CI runner's and the agents sweep's to read (amendments 85 and 94), and it is
-// measured, not comfortable: 41 mutations, each a serial `vitest run` of the copied suite — the 28-arm run
+// measured, not comfortable: 42 mutations, each a serial `vitest run` of the copied suite — the 28-arm run
 // stood alone at 239 s on 2026-10-28 with all 28 KILLED, the 29-arm run (M29, v537) was ALL KILLED the same
 // day, the 30-arm run (M30, v538) was ALL KILLED too, and the 32-arm run (M31–M32, v539) is ALL KILLED and the 34-arm run (M33–M34, v540) is ALL KILLED and the 35-arm run (M35, v541) is ALL KILLED and the 38-arm run (M36–M38, v542) is ALL KILLED and the 40-arm run (M39–M40, v543) is ALL KILLED and the 41-arm run (M41, v544) is ALL KILLED; the
 // later runs had no separately recorded wall
@@ -40,7 +40,7 @@ const BOX_NAME = `.nexus-mut-probe-${process.pid}`;
 const BOX = join(STUDIO, BOX_NAME);
 const VITEST = join(REPO, 'node_modules', 'vitest', 'vitest.mjs');
 
-const MODULES = ['credits', 'templateCatalog', 'catalogStore', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy'];
+const MODULES = ['credits', 'templateCatalog', 'catalogStore', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy', 'publish'];
 const TEST_FILES = [...MODULES.map((m) => `${m}.test.ts`), 'm8Invariants.test.ts'];
 
 /**
@@ -89,6 +89,7 @@ const MUTATIONS = [
   { id: 'M39', file: 'templateCatalog', find: 'withdrawn: withdrawn.filter((entry) => entry.id !== id), listing };', replace: 'withdrawn: [...withdrawn], listing };', why: 'a PUT-BACK returns the listing to the shelf but leaves it in the withdrawal record — one id on both sides' },
   { id: 'M40', file: 'templateCatalog', find: 'return { ok: true, withdrawn: withdrawn.filter((entry) => entry.id !== id) };', replace: 'return { ok: true, withdrawn: [] };', why: 'a DISCARD forgets every withdrawn listing instead of the one that was named' },
   { id: 'M41', file: 'templateCatalog', find: 'return withdrawn.filter((entry) => entry.authorId === authorId);', replace: 'return [...withdrawn];', why: "a CREATOR's dashboard shows every author's take-downs, so the card cannot tell whose inventory it is" },
+  { id: 'M42', file: 'publish', find: 'if (withdrawn.some((entry) => entry.id === published.listing.id)) {', replace: 'if (false) {', why: 'a publish reuses an id the withdrawal record still holds, building a shelf the store refuses to save' },
 ];
 
 /**

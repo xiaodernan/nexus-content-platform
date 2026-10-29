@@ -23,7 +23,7 @@
 
 import { validateDocument, type DesignDocument } from '@nexus/design-model';
 
-import { addTemplate, emptyTemplateCatalog, type TemplateListing } from './templateCatalog';
+import { addTemplate, emptyTemplateCatalog, type TemplateCatalog, type TemplateListing } from './templateCatalog';
 
 /** The author's terms. `now` is host-supplied; the model never reads a clock (ADR 0010). */
 export interface PublishTemplateInput {
@@ -63,4 +63,37 @@ export function publishTemplate(doc: DesignDocument, input: PublishTemplateInput
   });
   if (!added.ok) return { ok: false, reason: added.reason };
   return { ok: true, listing: added.listing };
+}
+
+export type CatalogPublishDecision =
+  | { ok: true; catalog: TemplateCatalog; listing: TemplateListing }
+  | { ok: false; reason: string };
+
+/**
+ * Publish a design INTO an existing shelf (v546): the move a creator makes on the page, as ONE decision.
+ *
+ * <p>`publishTemplate` answers a listing in isolation, and a caller that adds it to a shelf which still
+ * REMEMBERS that id would build a document `catalogStore` refuses to save — the same overlap a
+ * hand-rolled put-back made in v543, reached from the other side. So this verb asks the withdrawal
+ * record before it adds: one id on one side by construction, not by the caller remembering both halves.
+ * The record itself is never touched (a publish does not re-list what was withdrawn), and the live
+ * shelf's own rules are `addTemplate`'s — publishing cannot drift from adding.
+ */
+export function publishListing(
+  catalog: TemplateCatalog,
+  withdrawn: readonly TemplateListing[],
+  doc: DesignDocument,
+  input: PublishTemplateInput,
+): CatalogPublishDecision {
+  const published = publishTemplate(doc, input);
+  if (!published.ok) return { ok: false, reason: published.reason };
+  if (withdrawn.some((entry) => entry.id === published.listing.id)) {
+    return {
+      ok: false,
+      reason: `the withdrawal record still holds "${published.listing.id}" - put it back or discard it before publishing under that id`,
+    };
+  }
+  const added = addTemplate(catalog, published.listing);
+  if (!added.ok) return { ok: false, reason: added.reason };
+  return { ok: true, catalog: added.catalog, listing: added.listing };
 }

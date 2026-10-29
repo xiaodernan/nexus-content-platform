@@ -13,7 +13,10 @@
 //   §4 the catalog's own rules still apply (blank title, negative price, unknown category);
 //   §5 a published listing LANDS: the local-first catalog store persists it, refuses a corrupt record
 //      and refuses two listings under one id;
-//   §6 HEAD is byte-identical: everything ran in memory.
+//   §6 publishing INTO an existing shelf is ONE decision (v546): the shelf gains the listing in order,
+//      the inputs are untouched, and an id the withdrawal record still holds is refused by name — the
+//      overlap `catalogStore` refuses to save cannot be built from this side either;
+//   §7 HEAD is byte-identical: everything ran in memory.
 //
 // Run:  node docs/evidence/studio/publish-proof.mjs
 
@@ -122,12 +125,39 @@ try {
   assert.equal(duplicate.ok, false, 'a catalog with a duplicate id was loaded');
   assert.match(duplicate.reason, /already listed/);
   console.log(`  absent -> empty; ${withPublished.catalog.listings.length} listing saved (${saved.bytes} bytes) and reloaded; a corrupt record and a duplicate id are refused`);
+
+  // ── §6 publishing INTO a shelf is one decision (v546) ───────────────────────────────────────────
+  console.log('§6 publishing into an existing shelf is one decision, and the withdrawal record owns its ids');
+  const seeded = catalogMod.addTemplate(catalogMod.emptyTemplateCatalog(), {
+    id: 'tpl-seed', title: 'Seed Listing', description: 'Already on the shelf.', authorId: 'author-2',
+    priceCents: 200, category: 'landing', tags: ['seed'], documentId: 'doc-seed', createdAt: 1_700_000_000_000,
+  });
+  assert.equal(seeded.ok, true, `the seed listing was refused: ${seeded.reason}`);
+  const shelfBefore = JSON.stringify(seeded.catalog);
+
+  const joined = publish.publishListing(seeded.catalog, [], doc(), input);
+  assert.equal(joined.ok, true, `a valid design was refused by the shelf: ${joined.reason}`);
+  assert.deepEqual(joined.catalog.listings.map((l) => l.id), ['tpl-seed', 'tpl-pub'], 'the publish did not join the shelf in order');
+  assert.equal(JSON.stringify(seeded.catalog), shelfBefore, 'publishListing mutated the input catalog');
+
+  const onShelf = publish.publishListing(seeded.catalog, [], doc(), { ...input, id: 'tpl-seed' });
+  assert.equal(onShelf.ok, false, 'a publish reused an id the shelf already lists');
+  assert.match(onShelf.reason, /tpl-seed/);
+
+  // The withdrawn listing is NOT on the shelf, so only the RECORD forbids this id — the exact overlap
+  // `catalogStore` refuses to write, which a hand-rolled publish would only discover at save time.
+  const withdrawnOnly = [{ ...seeded.listing, id: 'tpl-gone' }];
+  const inRecord = publish.publishListing(seeded.catalog, withdrawnOnly, doc(), { ...input, id: 'tpl-gone' });
+  assert.equal(inRecord.ok, false, 'a publish reused an id the withdrawal record still holds');
+  assert.match(inRecord.reason, /withdrawal record/);
+  assert.deepEqual(seeded.catalog.listings.map((l) => l.id), ['tpl-seed'], 'a refused publish moved the shelf');
+  console.log(`  shelf [seed, pub]; a live id and a withdrawn-only id are both refused by name`);
 } finally {
   rmSync(box, { recursive: true, force: true });
 }
 
-// ── §6 HEAD is byte-identical ────────────────────────────────────────────────────────────────────────
+// ── §7 HEAD is byte-identical ────────────────────────────────────────────────────────────────────────
 const after = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(after, head, 'the repository HEAD moved while the proof ran');
-console.log(`§6 HEAD unchanged (${head.slice(0, 12)})`);
+console.log(`§7 HEAD unchanged (${head.slice(0, 12)})`);
 console.log('ALL SECTIONS PASSED');

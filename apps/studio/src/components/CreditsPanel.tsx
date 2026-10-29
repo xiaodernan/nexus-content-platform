@@ -1,4 +1,5 @@
 'use client';
+import { createEmptyDocument } from '@nexus/design-model';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { buildCreatorDashboard, creatorDashboardLine } from '@/lib/creatorDashboard';
@@ -8,6 +9,7 @@ import { loadCatalog, saveCatalog } from '@/lib/catalogStore';
 import { loadCredits, saveCredits } from '@/lib/creditsStore';
 import { purchaseTemplate } from '@/lib/marketplace';
 import { priceText, type PriceCents } from '@/lib/monetization';
+import { publishListing } from '@/lib/publish';
 import {
   describeRefundPolicy,
   NO_REFUND_DEADLINE,
@@ -252,6 +254,38 @@ export default function CreditsPanel() {
     setError(null);
   }, [catalog, withdrawn]);
 
+  /**
+   * PUBLISH one draft onto the shelf (v546): the creator's entry point, which the page could not reach
+   * before — `publishTemplate` had a proof and no producer, so every row a person saw had been typed
+   * into the demo fixture. The design is the model's own EMPTY document (a real, valid graph), the id
+   * is chosen to be free on BOTH sides, and `publishListing` asks the withdrawal record before it
+   * adds, so this click can never build a shelf `catalogStore` would refuse to save. Persisted before
+   * it renders, like every other write on this page.
+   */
+  const onPublish = useCallback(() => {
+    let n = 1;
+    while (
+      templateById(catalog, `tpl-local-${n}`) !== null ||
+      withdrawn.some((entry) => entry.id === `tpl-local-${n}`)
+    ) n += 1;
+    const id = `tpl-local-${n}`;
+    const decision = publishListing(catalog, withdrawn, createEmptyDocument(`Local Draft ${n}`), {
+      id,
+      title: `Local Draft ${n}`,
+      description: 'A demo design published from this page.',
+      authorId: scene.creatorId,
+      priceCents: 300,
+      category: 'landing',
+      tags: ['draft'],
+      now: Date.now(),
+    });
+    if (!decision.ok) { setError(decision.reason); return; }
+    const saved = saveCatalog(window.localStorage, decision.catalog, withdrawn);
+    if (!saved.ok) { setError(saved.reason); return; }
+    setCatalog(decision.catalog);
+    setError(null);
+  }, [catalog, withdrawn, scene]);
+
   const wallet = ledger ? buildWalletView(catalog, ledger, scene.viewerId) : null;
   // "Still to buy" = the marketplace's affordability gate MINUS what is already owned. The model
   // deliberately lets an owned listing stay affordable (ADR 0019's bound), so the panel does the
@@ -431,6 +465,17 @@ export default function CreditsPanel() {
               STORE · {catalog.listings.length} listing(s)
               {retiredRows > 0 ? ` · ${retiredRows} retired you still own` : ''}
             </strong>
+            <div style={{ marginTop: 6 }}>
+              <button
+                type="button"
+                className="btn"
+                data-credits-publish
+                onClick={onPublish}
+                style={{ fontSize: 10, padding: '1px 6px', opacity: 0.8 }}
+              >
+                Publish draft
+              </button>
+            </div>
             <table style={{ width: '100%', marginTop: 6, borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
