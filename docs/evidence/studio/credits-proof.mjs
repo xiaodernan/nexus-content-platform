@@ -578,6 +578,10 @@ try {
   assert.equal(discarded.ok, true, `a withdrawn listing could not be discarded: ${discarded.reason}`);
   assert.deepEqual(discarded.withdrawn, [], 'the discard did not forget the listing');
   assert.equal(catalogMod.discardWithdrawn([], 'tpl-paid').ok, false, 'a discard of an unknown id was accepted');
+  // The CREATOR's view (v544) reads the SAME record, filtered to the author: the seller sees their own
+  // take-down, and a stranger's dashboard does not.
+  assert.deepEqual(catalogMod.withdrawnByAuthor(loadedRetired.withdrawn, PAID.authorId).map((listing) => listing.id), ['tpl-paid'], 'the author could not see their own take-down');
+  assert.deepEqual(catalogMod.withdrawnByAuthor(loadedRetired.withdrawn, 'strangerA'), [], 'a stranger saw a take-down that was not theirs');
 
   // A version-1 document — written before take-downs were remembered — is MIGRATED, not refused: its
   // shelf is the same shelf, and an empty withdrawal record is the truthful reading of it.

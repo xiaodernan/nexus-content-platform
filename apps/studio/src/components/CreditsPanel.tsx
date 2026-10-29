@@ -22,6 +22,7 @@ import {
   relistTemplate,
   retireTemplate,
   templateById,
+  withdrawnByAuthor,
   type TemplateCatalog,
   type TemplateListing,
 } from '@/lib/templateCatalog';
@@ -263,6 +264,10 @@ export default function CreditsPanel() {
   // click re-asks with its own `Date.now()`, so a stale render can never authorise a write.
   const refundNow = Date.now();
   const creator = ledger ? buildCreatorDashboard(catalog, ledger, scene.creatorId) : null;
+  // The creator's OWN take-downs (v544): the shelf's record is global, and a dashboard that only read
+  // the shelf could not tell "never published" from "withdrawn". This reads the same record the strip
+  // renders, filtered to the author the card is about.
+  const myWithdrawn = withdrawnByAuthor(withdrawn, scene.creatorId);
   const statement = ledger ? statementFor(ledger, scene.viewerId, statementWindow) : null;
   // What each LISTING did for this account, by name (v536), over the SAME window the statement reads
   // (v537) — so a purchase that was fully refunded reports both halves instead of netting to a zero
@@ -364,6 +369,9 @@ export default function CreditsPanel() {
               <strong>CREATOR · {scene.creatorId}</strong>
               <div style={{ marginTop: 6 }}>{creatorDashboardLine(creator)}</div>
               <div>listings: {creator.myListings.map((l) => l.title).join(', ') || 'none'}</div>
+              <div data-credits-creator-withdrawn>
+                withdrawn: {myWithdrawn.map((l) => l.title).join(', ') || 'none'}
+              </div>
             </section>
           )}
 

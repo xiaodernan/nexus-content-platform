@@ -33,6 +33,8 @@
  *      (and out of the withdrawn record) — again across a reload;
  *   6h. a take-down can be DISCARDED instead (v543): the withdrawal record only shrinks when a caller
  *      asks for exactly that, the shelf does not move, and the smaller record survives a reload;
+ *   6i. a CREATOR sees their own take-downs (v544): the dashboard names what the author withdrew (and
+ *      "none" for listings that are on sale), and that reading survives a reload;
  *   7. clearing writes a VALID empty ledger and the page returns to its empty state;
  *   8. no uncaught page errors, and a screenshot is written as evidence.
  *
@@ -486,6 +488,35 @@ try {
     'a DISCARD survives a reload: the record reads back with only the take-down that was kept',
     discardReload.rows === 1 && discardReload.withdrawn === 1 && discardReload.ids[0] === 'tpl-mobile',
     JSON.stringify(discardReload),
+  );
+
+  // 6i. THE CREATOR'S OWN VIEW (v544). The strip is the HOST's reading of the whole record; a creator
+  // dashboard is the AUTHOR's, and before this check a listing vanished from it the moment it was taken
+  // down — "never published" and "withdrawn" looked the same. After 6h the shelf holds [saas]; retire
+  // that last listing and the author's own card must name it.
+  const retireCreator = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-retire=\"tpl-saas\"]'); if (!b) return false; b.click(); return true; })()",
+  );
+  await page.waitForFunction("(() => (document.querySelector('[data-credits-creator-withdrawn]')?.innerText ?? '').includes('SaaS Dashboard'))()", { timeout: 10000 });
+  const creatorTakeDown = await page.evaluate(
+    "(() => ({ rows: document.querySelectorAll('[data-credits-listing]').length, withdrawn: document.querySelectorAll('[data-credits-withdrawn]').length, card: document.querySelector('[data-credits-creator]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, mine: document.querySelector('[data-credits-creator-withdrawn]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }))()",
+  );
+  check(
+    "the CREATOR's own card names the listing they took down (listings none, withdrawn SaaS Dashboard)",
+    retireCreator === true && creatorTakeDown.rows === 0 && creatorTakeDown.withdrawn === 2 &&
+      /listings: none/.test(creatorTakeDown.card ?? '') && /withdrawn: SaaS Dashboard/.test(creatorTakeDown.mine ?? ''),
+    JSON.stringify(creatorTakeDown),
+  );
+
+  await page.navigate(`${URL_BASE}/credits`, { waitForSelector: '#nexus-credits' });
+  await page.waitForFunction("!!document.querySelector('[data-credits-wallet]')", { timeout: 20000 });
+  const creatorReload = await page.evaluate(
+    "(() => ({ mine: document.querySelector('[data-credits-creator-withdrawn]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, withdrawn: document.querySelectorAll('[data-credits-withdrawn]').length }))()",
+  );
+  check(
+    'the creator still sees that take-down after a reload (the card reads the same record as the strip)',
+    creatorReload.withdrawn === 2 && /withdrawn: SaaS Dashboard/.test(creatorReload.mine ?? ''),
+    JSON.stringify(creatorReload),
   );
 
   // 7. clearing writes a valid empty ledger and returns the page to its empty state.

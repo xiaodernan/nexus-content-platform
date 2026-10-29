@@ -233,3 +233,15 @@ export function discardWithdrawn(withdrawn: readonly TemplateListing[], id: stri
   if (!withdrawn.some((entry) => entry.id === id)) return { ok: false, reason: `the withdrawn record lists no template "${id}" to discard` };
   return { ok: true, withdrawn: withdrawn.filter((entry) => entry.id !== id) };
 }
+/**
+ * The listings ONE author has withdrawn (v544), in the record's own order.
+ *
+ * <p>The shelf's withdrawal record is global to the shelf, and the strip that renders it is the HOST's
+ * view. A creator dashboard is the AUTHOR's view, and until this read existed it could only answer
+ * "what is on sale": once a listing was taken down it vanished from the creator's own inventory, so
+ * "never published" and "withdrawn" looked the same. This is the missing half of that answer, and it
+ * reads the SAME record the shelf keeps rather than a second one.
+ */
+export function withdrawnByAuthor(withdrawn: readonly TemplateListing[], authorId: string): TemplateListing[] {
+  return withdrawn.filter((entry) => entry.authorId === authorId);
+}

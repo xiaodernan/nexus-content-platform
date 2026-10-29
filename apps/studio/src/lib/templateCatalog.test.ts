@@ -22,6 +22,7 @@ import {
   sortByNewest,
   sortByPriceAsc,
   templateById,
+  withdrawnByAuthor,
   type TemplateCatalog,
   type TemplateListing,
 } from './templateCatalog';
@@ -244,5 +245,18 @@ describe('templateCatalog: a withdrawn listing has TWO exits (v543)', () => {
     expect(missing.ok).toBe(false);
     if (missing.ok) return;
     expect(missing.reason).toContain('lists no template "a" to discard');
+  });
+});
+describe('templateCatalog: a CREATOR can see their own take-downs (v544)', () => {
+  it("reports only that author's withdrawn listings, in the record's own order", () => {
+    const mine = listing({ id: 'a', authorId: 'acc-1' });
+    const theirs = listing({ id: 'b', authorId: 'acc-2', createdAt: 2_000 });
+    const mineToo = listing({ id: 'c', authorId: 'acc-1', createdAt: 3_000 });
+
+    expect(withdrawnByAuthor([mine, theirs, mineToo], 'acc-1').map((entry) => entry.id)).toEqual(['a', 'c']);
+    expect(withdrawnByAuthor([mine, theirs, mineToo], 'acc-2').map((entry) => entry.id)).toEqual(['b']);
+    expect(withdrawnByAuthor([mine, theirs], 'acc-3')).toEqual([]);
+    // A read, not a filter in place: the record it was handed is unchanged.
+    expect([mine, theirs].map((entry) => entry.id)).toEqual(['a', 'b']);
   });
 });
