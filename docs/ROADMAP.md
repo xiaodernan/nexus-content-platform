@@ -49,7 +49,9 @@
 
 - [x] **浅色 / accent-2 当文字** → `--nexus-color-accent-2-ink`（89 处 / 34 文件，`049d6d2`）。
 - [x] **浅色 / danger 与 warn 当文字** → 同形状的 `-ink`（132 处 / 56 文件，`4e64418` 之后的下一片；两主题 × 四级表面都过 AA）。
-- [ ] **浅色 / 其余语义色清点**：`text-success` / `text-info` / `text-brand` 当前为 0，出现即按同一道门收。
+- [x] **浅色 / 其余语义色清点**：`text-success` / `text-info` / `text-brand` 当前为 0，出现即按同一道门收。
+      `style-tokens.test.ts` 新增两条常驻门（0 处扫描 + 验电：这三个原色在主题 × 四级表面里最差
+      1.84 / 2.97 / 3.37，都过不了 AA）；该文件 24/24 绿。
 - [x] **浅色入口**：主题切换（系统偏好 + 显式选择、持久化），并把第五片"入口一出现就变硬门"的自查门转成硬门（`acada56` 之后的主题片）。
 - [x] **主题切换的浏览器见证**：暗/浅 × 首页 / Studio / 公开页，axe + 键盘双门；浅色读数进 `docs/EVALUATION.md`。
       六组合各 0 违规 / 0 critical / 0 对比度节点，切换键 Enter 与 Space 都真的翻像素；登录后九张浅色 axe 0 违规；
@@ -7509,3 +7511,25 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
 - `GamePlay.tsx` / `RpgPlay.tsx` / `WorldWalk.tsx` 三处 window keydown 对 Space 与方向键同样
   无条件 `preventDefault`，同类 WCAG 2.1.1 风险没量也没改（夹具项目里没有游戏设计，没有语料）。
 - 运行中改系统主题不生效（只首帧读 `prefers-color-scheme`），没有浏览器见证。
+
+## §90 其余语义色当文字：从"一次清点"变成一道常驻门（2026-10-29）
+
+需求原文（ROADMAP 浅色系列）：`text-success` / `text-info` / `text-brand` 当前为 0，出现即按同一道门收。
+
+**落点**
+
+- `apps/web/test/style-tokens.test.ts` 新增 `describe('其余语义色当文字…')` 两条：
+  ① 扫 `apps/web/src` 全部 `.ts/.tsx`，`\btext-(success|info|brand)(?!-)` 一处都不许有
+  （`-ink` 变体不在禁令里；`hover:` / `focus:` 前缀与 `/opacity` 后缀都会被这条正则抓到）；
+  ② 验电：这三个原色在"两个主题 × 四级表面"八格里最差分别是 success 1.84 / info 2.97 / brand 3.37——
+  都过不了 AA 4.5，所以"0 处"是现状不是洁癖；若哪天八格全过，这条门自己就该删。
+
+**凭证**
+
+- `npx vitest run apps/web/test/style-tokens.test.ts` → **24 passed**（原 22 + 新 2）；eslint 0。
+- 全仓 grep（排除 docs）：`text-success|text-info|text-brand` **0 处命中**。
+
+**仍欠**
+
+- 这道门只扫 `apps/web/src`（平台界面）。`packages/design-model` 的 codegen 会生成用户设计稿的
+  Tailwind 类名，那是用户的设计 token，不是平台 UI，不在这道门的账上。

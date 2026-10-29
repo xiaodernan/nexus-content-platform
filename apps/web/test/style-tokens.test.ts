@@ -402,3 +402,40 @@ describe('语义色当文字（§90 无障碍 · danger-ink / warn-ink 硬门）
   });
 });
 
+/**
+ * 其余语义色（success / info / brand）当文字：今天 **0 处**。
+ *
+ * accent-2 / danger / warn 三笔都还完之后，ROADMAP 上剩的同类就是这三个名字。它们不是"应该没事"，
+ * 而是**没人用过**——根因与前三个一样：原色不随主题翻，表面翻。按 tokens.css 的字面值算，
+ * 浅色下 success 最差 1.84、info 2.97、brand 3.37（各自对着 bg-0..bg-3 里最不利的一档，都是 bg-3），
+ * 所以"0 处"是现状而不是保证。这道门钉的是这行 0：谁先拿原色当文字，谁就得先把 `-ink` 建出来
+ * （两主题 × 四级表面 ≥4.5）再改类名——与前三笔同一道门，不新开一种做法。
+ */
+describe('其余语义色当文字（§90 无障碍 · 当前 0 处，出现即按同一道门收）', () => {
+  const NAMES = ['success', 'info', 'brand'] as const;
+  const dark = colorsOf(':root {');
+  const light = colorsOf(':root {', "[data-nexus-theme='light'] {");
+
+  it('界面里没有一处拿原色当文字（出现时先建 -ink，再把这道门改成硬门）', () => {
+    const offenders: string[] = [];
+    for (const file of tsxFiles(SRC)) {
+      const lines = readFileSync(file, 'utf8').split('\n');
+      lines.forEach((line, i) => {
+        if (/\btext-(success|info|brand)(?!-)/.test(line)) offenders.push(`${relative(process.cwd(), file)}:${i + 1}`);
+      });
+    }
+    expect(offenders, `出现了 ${offenders.length} 处原色当文字：\n${offenders.slice(0, 10).join('\n')}`).toEqual([]);
+  });
+
+  it('验电：这三个原色确实各有一处（主题 × 表面）过不了 4.5，所以"0 处"不是洁癖', () => {
+    for (const name of NAMES) {
+      const worst = Math.min(
+        ...[dark, light].flatMap((colors) =>
+          ['0', '1', '2', '3'].map((level) => contrast(colors.get(`--nexus-color-${name}`)!, colors.get(`--nexus-color-bg-${level}`)!)),
+        ),
+      );
+      expect(worst, `${name} 在两个主题四级表面上最差 ${worst.toFixed(2)}——若真全过了，这道门就该删`).toBeLessThan(4.5);
+    }
+  });
+});
+
