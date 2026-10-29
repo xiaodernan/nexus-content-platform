@@ -16,7 +16,7 @@
     "lint": "npm run typecheck && npm run eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "coverage:models": "vitest run --coverage packages/game-model --coverage.thresholds.branches=94 --coverage.thresholds.statements=99 --coverage.thresholds.functions=97 --coverage.thresholds.lines=99",
+    "coverage:models": "vitest run --coverage packages/game-model --coverage.thresholds.branches=95 --coverage.thresholds.statements=99.5 --coverage.thresholds.functions=99 --coverage.thresholds.lines=99.5",
     "coverage:parity": "vitest run --coverage packages/game-model/test/sim-parity.test.ts packages/game-model/test/story-parity.test.ts",
     "coverage:arms": "tsx scripts/coverage-arms.mts",
     "perf:browser": "tsx scripts/perf-browser.mts",

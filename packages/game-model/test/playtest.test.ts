@@ -6,6 +6,7 @@ import {
   compileStory,
   createGame,
   entitiesOfKind,
+  GAME_KIND_STATUS,
   linkEntities,
   playtest,
   PLAYTEST_DEFAULT_SEED,
@@ -20,6 +21,7 @@ import {
   updateEntity,
   type GameDocument,
   type GamePlan,
+  type StoryPlan,
 } from "../src/index";
 
 /**
@@ -249,6 +251,20 @@ describe('报告点得出的具体毛病', () => {
     expect(report.findings[0]).toContain("跑不起来");
     expect(report.runs.every((run) => run.status === "lost")).toBe(true);
   });
+
+  it('跑不起来而一条原因都没留下：那句要说"原因未列出"，不许留个冒号就完事', () => {
+    // `playtest.ts:185` 的 `|| "原因未列出"` 在正常投影里走不到：`playable: Boolean(player)`
+    // 与"没有玩家实体"那条 blocker 是同一个函数里前后 6 行写的（play.ts:327 / :433），同真同假。
+    // 可达的那条路是**库内直接调用**：`playtest` 收的是一份计划，一份被改过的计划
+    // （blockers 被清空）就是这个形状 ⇒ 只能反事实地喂，同第十七片那两支守卫的规矩。
+    const noPlayer = plan((doc) => updateEntity(doc, entitiesOfKind(doc, "player")[0]!.id, { kind: "npc" }));
+    const bare: GamePlan = { ...noPlayer, blockers: [] };
+    expect(playtest(bare).findings[0]).toBe('这份设计跑不起来：原因未列出');
+    // 正向对照：同一份计划把原因填回去，说的就是原因本身，不许换成那句兜底
+    const spoken = playtest(noPlayer).findings[0];
+    expect(spoken).toContain("没有玩家实体");
+    expect(spoken).not.toContain("原因未列出");
+  });
 });
 
 it('报告自带限度说明，界面不用另外解释', () => {
@@ -411,6 +427,29 @@ describe('按类型派试玩（§52/§53 那条链上"只跑 RPG 管线"那一�
       expect(result.report.reachableEmptyText).toBe(0);
     }
   });
+
+  it('表里那一型一旦没接管线：试玩直接拒绝，理由由那张表供给，不许交一份空报告', () => {
+    // `playtest-by-kind.ts:93` 那句 throw 从没执行过——`GAME_KIND_STATUS` 今天八型全接上了管线，
+    // 正常输入走不到它。这一格只能**反事实地喂**（与 codegen 那条披露用例同一个手法）：
+    // 临时把 visual-novel 的管线改成 null，让"这一型没接"这件事真的成立一次。
+    // 它钉的是将来：加一型而忘了接试玩时，这里要说"没接"，而不是给作者一份跑得完的空报告。
+    const original = GAME_KIND_STATUS['visual-novel'];
+    try {
+      GAME_KIND_STATUS['visual-novel'] = { ...original, pipeline: null, note: '表里临时那句：这一型今天没有可跑的引擎。' };
+      const doc = { ...flat, kind: 'visual-novel' } as GameDocument;
+      expect(() => playtestByKind(doc)).toThrow(/今天还没有接上管线/);
+      // 那句话的内容来自表，不是抄死的文案：改表里那句，拒绝里跟着换
+      expect(() => playtestByKind(doc)).toThrow('表里临时那句：这一型今天没有可跑的引擎。');
+      // 正向对照（表还被改着的同一次运行里）：别的型照旧派得出管线，红的不是"整个分派都崩了"
+      expect(playtestByKind(flat).pipeline).toBe('topdown');
+    } finally {
+      GAME_KIND_STATUS['visual-novel'] = original;
+    }
+    // 表恢复后同一份输入照旧走对话那条管线——这条也顺带证明 try 里改的确实只是那一行
+    const restored = playtestByKind({ ...flat, kind: 'visual-novel' } as GameDocument);
+    expect(restored.pipeline).toBe('story');
+    expect(GAME_KIND_STATUS['visual-novel']).toBe(original);
+  });
 });
 
 describe('对话管线的可达性报告（§53 对着一段对话能确定回答的那部分）', () => {
@@ -478,5 +517,117 @@ describe('对话管线的可达性报告（§53 对着一段对话能确定回�
     const report = playtestStory(compileStory(emptyStory("空")));
     expect(report.findings[0]).toContain("跑不起来");
     expect(report.reachable).toBe(0);
+  });
+
+  it('对话那份也是：原因被清空就说"原因未列出"，不许留个冒号', () => {
+    // 与 topdown 那条同一个臂的另一半（`playtest.ts:359`）：`compileStory` 在没有对话时
+    // 是"blockers 推一条 + playable 设 false"一起写的（story.ts:89 / :97），所以正常投影同样走不到。
+    const real = compileStory(emptyStory("空"));
+    expect(real.blockers.length, "前提：真投影那份是带着原因的").toBeGreaterThan(0);
+    const bare: StoryPlan = { ...real, blockers: [] };
+    expect(playtestStory(bare).findings[0]).toBe('这份设计跑不起来：原因未列出');
+    // 正向对照：同一份计划带着真 blockers，说的是那条原因
+    expect(playtestStory(real).findings[0]).not.toContain("原因未列出");
+  });
+
+  it('起点那一段已经不在了：可达照实说 0，不崩、也不把每一段算成可达', () => {
+    // `playtest.ts:347` 的 `?? []` 防的是"队列里这个 id 在段落表里找不到"。今天入队的只有两类：
+    // `plan.startId`（后面那批都被 :348 的 `byId.has` 挡着）——所以可达的路是**改过的计划**：
+    // startId 还指着一段已被删掉的对话。这正是"存档里的计划与段落对不上"那个形状。
+    let doc = emptyStory("起点没了");
+    const a = talk(doc, "开场", "站在这儿");
+    doc = a.document;
+    const b = talk(doc, "推门", "门开了");
+    doc = b.document;
+    doc = link(doc, a.id, b.id, "推门进去");
+    const storyPlan = compileStory(doc);
+    const orphan: StoryPlan = { ...storyPlan, startId: "这段已经被删了" };
+    const report = playtestStory(orphan);
+    expect(report.reachable, "起点找不到，凭什么还能走到别处").toBe(0);
+    expect(report.total).toBe(2);
+    expect(report.unreachableNames).toEqual(["开场", "推门"]);
+    expect(report.findings.join(" ")).toContain("0/2 段从起点可达");
+    // 正向对照：同一份计划把起点换回来，两段就都可达——红的不是"playtestStory 一律报 0"
+    expect(playtestStory({ ...orphan, startId: a.id }).reachable).toBe(2);
+  });
+
+  it('两条路通向同一段、而它们又互相指着：每段只数一次，环不把自己绕死', () => {
+    // `playtest.ts:345` 那句 `continue` 要的是"同一个 id 被排进队两次"。只有**起点同时指着环上的
+    // 两段**才会出现：起点→甲、起点→乙、甲↔乙 ⇒ 处理乙时甲还没出队，于是甲被再排一次。
+    // 既有那条"环"用例是甲↔乙而起点只指着其中一头，每个 id 只入队一遍，所以没走到这一格。
+    let doc = emptyStory("两条路");
+    const s = talk(doc, "起点", "…");
+    doc = s.document;
+    const a = talk(doc, "甲", "…");
+    doc = a.document;
+    const b = talk(doc, "乙", "…");
+    doc = b.document;
+    doc = link(doc, s.id, a.id, "去甲");
+    doc = link(doc, s.id, b.id, "去乙");
+    doc = link(doc, a.id, b.id, "找乙");
+    doc = link(doc, b.id, a.id, "找甲");
+    const reached = playtestStory(compileStory(doc));
+    expect(reached.total).toBe(3);
+    expect(reached.reachable, "绕回来那段被数了两次").toBe(3);
+    expect(reached.unreachableNames).toEqual([]);
+    // 反向对照：同一张图里加一座谁都到不了的孤岛，可达数就少一——
+    // 钉住"这个数是沿连线走出来的"，不是把 total 抄了一遍
+    const withIsland = talk(doc, "孤岛", "…");
+    expect(playtestStory(compileStory(withIsland.document)).reachable).toBe(3);
+    expect(playtestStory(compileStory(withIsland.document)).total).toBe(4);
+  });
+
+  it('连不到的段落有五个：点名前三个、剩下写成"等 5 段"，数目不许被截断偷走', () => {
+    // `playtest.ts:363` 那个 `> 3` 的阈值上一片之前只有一臂走过（≤3 时那句空串）。
+    // 截断是披露的一部分：句子里只点三个名字，但"一共几段连不到"必须说出来。
+    let doc = emptyStory("五座孤岛");
+    const s = talk(doc, "起点", "…");
+    doc = s.document;
+    for (const name of ["甲", "乙", "丙", "丁", "戊"]) doc = talk(doc, name, "…").document;
+    const five = playtestStory(compileStory(doc));
+    expect(five.unreachableNames).toEqual(["甲", "乙", "丙", "丁", "戊"]); // 数据里五个都在
+    const line = five.findings.find((f) => f.includes("段从起点可达"))!;
+    expect(line).toContain("「甲」、「乙」、「丙」");
+    expect(line).toContain(" 等 5 段");
+    expect(line, "句子里只该点前三个名字").not.toContain("「丁」");
+    // 正向对照：三座孤岛时那句不带"等 N 段"——阈值被人挪动（>3 改成 ≥3 之类）就红在这里
+    let threeDoc = emptyStory("三座孤岛");
+    threeDoc = talk(threeDoc, "起点", "…").document;
+    for (const name of ["甲", "乙", "丙"]) threeDoc = talk(threeDoc, name, "…").document;
+    const three = playtestStory(compileStory(threeDoc));
+    expect(three.findings.join(" ")).not.toContain("等 ");
+    expect(three.findings.join(" ")).toContain("「甲」、「乙」、「丙」");
+  });
+
+  it('重复的那一段下面还压着没走的：跳过它继续走，而不是整个遍历到此为止', () => {
+    // 上一条"两条路"已经把 `:345` 那句 `continue` 走过了，但**走过不等于钉住**：把它改成 `break`
+    // 在那张图上读出完全一样的数（栈里只剩那个重复项，两者都正好结束）。要分开它，得让重复项
+    // **下面还压着没处理过的段**：起点先排「还在队里」，再排「合流」，最后排「分岔」，而「分岔」又指回
+    // 「合流」⇒ 队列变成 [还在队里, 合流₁, 合流₂]，后一个先出队被数过，前一个就是那句 `continue`
+    // 的收件人，而「还在队里」还压在它下面等。`break` 会把这段永远漏掉，而覆盖率看不见这个差别。
+    function queueShape(name: string, linkStartToPending: boolean): GameDocument {
+      let d = emptyStory(name);
+      const s = talk(d, "起点", "…");
+      d = s.document;
+      const p = talk(d, "还在队里", "…");
+      d = p.document;
+      const c = talk(d, "合流", "…");
+      d = c.document;
+      const f = talk(d, "分岔", "…");
+      d = f.document;
+      if (linkStartToPending) d = link(d, s.id, p.id, "先排它");
+      d = link(d, s.id, c.id, "再排合流");
+      d = link(d, s.id, f.id, "最后排分岔");
+      return link(d, f.id, c.id, "也到合流");
+    }
+    const report = playtestStory(compileStory(queueShape("队底还有一段", true)));
+    expect(report.total).toBe(4);
+    expect(report.reachable, "重复项下面那段被 break 丢了").toBe(4);
+    expect(report.unreachableNames).toEqual([]);
+    // 反方向对照：把起点到「还在队里」那条线拆掉，同一个数就必须少一——
+    // 钉住"这 4 是沿连线走出来的"，不是"函数把 total 抄了一遍"（那两种写法在这里分不开）
+    const noPending = playtestStory(compileStory(queueShape("队底空着", false)));
+    expect(noPending.reachable).toBe(3);
+    expect(noPending.unreachableNames).toEqual(["还在队里"]);
   });
 });

@@ -15,6 +15,7 @@ import {
   linkEntities,
   removeEntity,
   rpgStep,
+  rpgSummary,
   setStat,
   xpToNext,
   type GameDocument,
@@ -75,6 +76,21 @@ function link(doc: GameDocument, from: string, to: string, role: string): GameDo
   const result = linkEntities(doc, from, to, role);
   if (result.reason) throw new Error(`前置引用失败：${result.reason}`);
   return result.document;
+}
+
+/**
+ * 一份"击杀 25 经验 → 同帧升到 2 级 → 2 级门放行 → 任务结算"的底稿：
+ * `drive` 跑到它末尾就是通关。两条用例共用（等级门那条、HUD 那句"通关"那条），
+ * 因为"能赢"这件事只该有一个构造法——两处各写一遍，改一处就会让另一处悄悄变成空跑。
+ */
+function winnableDocument(name: string): GameDocument {
+  let doc = emptyDoc(name);
+  doc = addFighter(doc, 5);
+  const quest = addQuest(doc, "到了级再交", { requiredLevel: 2 });
+  doc = quest.document;
+  const enemy = addEnemy(doc, "看门的", { xpReward: 25, health: 2 });
+  doc = enemy.document;
+  return link(doc, findEntity(doc, quest.id)!.id, enemy.id, "打倒");
 }
 
 /** 无头驱动：冲向最近的目标（敌人/物品）并挥击。确定性——没有随机项 */
@@ -216,14 +232,7 @@ describe("rpgStep：成长循环", () => {
 
   it("等级门：没到级时条件满足也不结算、不发任务赏钱；经验够了升级的同一次击杀能过门", () => {
     // 能过门的一份：击杀 25 经验 → 同帧升到 2 级 → 门（requiredLevel 2）放行 → 任务结算
-    let pass = emptyDoc("过门");
-    pass = addFighter(pass, 5);
-    const passQuest = addQuest(pass, "到了级再交", { requiredLevel: 2 });
-    pass = passQuest.document;
-    const passEnemy = addEnemy(pass, "看门的", { xpReward: 25, health: 2 });
-    pass = passEnemy.document;
-    pass = link(pass, findEntity(pass, passQuest.id)!.id, passEnemy.id, "打倒");
-    const passPlan = compileRpg(pass);
+    const passPlan = compileRpg(winnableDocument("过门"));
     const passEnd = drive(passPlan, initialRpgState(passPlan), 20);
     expect(passEnd.level).toBe(2);
     expect(passEnd.base.status).toBe("won"); // 任务在升到 2 级后结算 → 全部可判定任务完成
@@ -254,6 +263,44 @@ describe("rpgStep：成长循环", () => {
     const a = drive(plan, initialRpgState(plan), 6);
     const b = drive(plan, initialRpgState(plan), 6);
     expect(a).toEqual(b);
+  });
+});
+
+describe("HUD 那行摘要：没人、通关、失败三格各说什么", () => {
+  it("计划里没有玩家：伤害那句照实说 0，不凭空造一个玩家来算加成", () => {
+    // `rpg.ts:240` 那个 `: 0` 与 `:243` 的「失败」在上一片之前从没被执行过：正常底稿都有玩家，
+    // 而 `initialState` 一发现没玩家就把状态判成 lost，于是 HUD 只在"进行中"那一格被人读过。
+    // 这一格不是理论——删掉玩家的那份存档就是这个形状。
+    let doc = emptyDoc("没有玩家");
+    const enemy = addEnemy(doc, "还在的", { health: 3 });
+    doc = enemy.document;
+    const plan = compileRpg(doc);
+    expect(plan.base.player, "前提：这份计划真的没有玩家").toBe(null);
+    const state = initialRpgState(plan);
+    expect(state.base.status).toBe("lost");
+    const hud = rpgSummary(plan, state);
+    expect(hud).toContain("伤害 0");
+    expect(hud).toContain("失败");
+    expect(hud).not.toContain("进行中");
+    // 正向对照：同一份加一个写了 attackPower=5 的玩家 → 伤害是设计里的数（0 级不加成），状态说进行中
+    const withPlayer = compileRpg(addFighter(doc, 5));
+    const live = initialRpgState(withPlayer);
+    const lit = rpgSummary(withPlayer, live);
+    expect(lit).toContain(`伤害 ${5 + LEVEL_BONUS.damage * live.levelUps}`);
+    expect(lit).not.toContain("伤害 0");
+    expect(lit).toContain("进行中");
+  });
+
+  it("打赢的那一份，HUD 末尾说的是「通关」，不是开局那句「进行中」", () => {
+    const plan = compileRpg(winnableDocument("打赢"));
+    const before = rpgSummary(plan, initialRpgState(plan));
+    expect(before).toContain("进行中");
+    const end = drive(plan, initialRpgState(plan), 20);
+    expect(end.base.status, "前提：这份底稿真的打赢了").toBe("won");
+    const hud = rpgSummary(plan, end);
+    expect(hud).toContain("通关");
+    expect(hud).not.toContain("进行中");
+    expect(hud).not.toContain("失败");
   });
 });
 

@@ -343,8 +343,12 @@ export function playtestStory(plan: StoryPlan): StoryPlaytestReport {
     while (queue.length) {
       const id = queue.pop()!;
       if (seen.has(id)) continue;
+      // 排进来的 id 可能已经不在段落表里（改过的计划：startId 指着删掉的那一段）。
+      // 不认它就不能算"可达"——`seen.add(id)` 之前先查，否则 `reachable` 会把一段不存在的对话数进去。
+      const beat = byId.get(id);
+      if (!beat) continue;
       seen.add(id);
-      for (const choice of byId.get(id)?.choices ?? []) {
+      for (const choice of beat.choices) {
         if (byId.has(choice.to) && !seen.has(choice.to)) queue.push(choice.to);
       }
     }

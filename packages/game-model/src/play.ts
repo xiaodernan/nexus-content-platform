@@ -1,5 +1,4 @@
 import {
-  GAME_ENTITY_LABELS,
   isGameEntityKind,
   type GameDocument,
   type GameEntity,
@@ -318,8 +317,10 @@ export function compileGame(document: GameDocument): GamePlan {
     );
   }
 
-  if (playerEnts.length > 1) {
-    notes.push(`文档里有 ${playerEnts.length} 个玩家实体，这一版只用第一个（${player?.name ?? ""}）：多玩家不是模型能表达的，是网络同步的事。`);
+  // `player &&` 不是第二条行为分支：`length > 1` 时第一个必定在。加它是因为不写就得写成
+  // `player?.name ?? ""`，而那一臂永远走不通——覆盖率读数里它会一直占一格（§85 第十八片）。
+  if (player && playerEnts.length > 1) {
+    notes.push(`文档里有 ${playerEnts.length} 个玩家实体，这一版只用第一个（${player.name}）：多玩家不是模型能表达的，是网络同步的事。`);
   }
 
   const blockers: string[] = [];
@@ -581,11 +582,3 @@ export const PLAY_KIND_SHAPES: Partial<Record<GameEntityKind, "circle" | "square
   item: "diamond",
   npc: "triangle",
 };
-
-export function playLegend(): { kind: GameEntityKind; label: string; shape: string }[] {
-  return (Object.keys(PLAY_KIND_SHAPES) as GameEntityKind[]).map((kind) => ({
-    kind,
-    label: GAME_ENTITY_LABELS[kind],
-    shape: PLAY_KIND_SHAPES[kind] ?? "circle",
-  }));
-}

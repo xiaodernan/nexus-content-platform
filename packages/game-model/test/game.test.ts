@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   addEntity,
+  compileForKind,
   countRefsFor,
   createGame,
   entitiesOfKind,
@@ -8,10 +9,15 @@ import {
   fleshedOutCount,
   GAME_ENTITY_KINDS,
   GAME_ENTITY_LABELS,
+  GAME_KIND_LABELS,
+  GAME_KINDS,
+  GAME_KIND_STATUS,
   gameCounts,
   isGameEntityKind,
+  isGameKind,
   isUsableStatValue,
   linkEntities,
+  pipelineOfKind,
   referenceGraph,
   removeEntity,
   removeRef,
@@ -255,6 +261,25 @@ describe('实体之间的引用', () => {
     expect(refs[0]!.role).toBe('由玩家挥动');
   });
 
+  it('摘一条不存在的引用：源实体没有、或 refId 对不上，都原样交回同一份文档', () => {
+    // `index.ts:469` 那句 `return document;` 在上一片之前从没被执行过——所有用例摘的都是刚连上的那条。
+    // 可达的路是实的：库里那份数据的引用被人删过、或面板拿着一个已经消失的实体 id 来调（旧存档回放）。
+    const { document, weapon } = linked();
+    const refs = findEntity(document, weapon.id)!.refs;
+    expect(refs).toHaveLength(1);
+    // ① refId 对不上：必须原样交回**同一个对象**，不是"内容恰好相同的一份新文档"——
+    //    后者会让上游拿引用相等判断"这次编辑有没有改到东西"直接失真。
+    const wrongId = removeRef(document, weapon.id, '这条引用的 id 不存在');
+    expect(wrongId).toBe(document);
+    // ② 源实体根本不在文档里：不许凭空造一个实体，也不许拿别人的 id 去摘
+    const ghost = removeRef(document, '没有这个实体', refs[0]!.id);
+    expect(ghost).toBe(document);
+    // 正向对照：同一次调用换成真的 refId，那条引用就真的没了——红的不是"removeRef 压根不干活"
+    const removed = removeRef(document, weapon.id, refs[0]!.id);
+    expect(removed).not.toBe(document);
+    expect(findEntity(removed, weapon.id)!.refs).toHaveLength(0);
+  });
+
   it('删实体时两头都清：自己发出的引用没了，别人指向它的引用也摘掉', () => {
     const game = createGame('g');
     const weapon = entityNamed(game, '武器');
@@ -447,5 +472,39 @@ describe('投影', () => {
     // 只改名字不算"填过内容"
     doc = updateEntity(doc, entityNamed(doc, '镜头').id, { name: '过肩' });
     expect(fleshedOutCount(doc)).toBe(2);
+  });
+});
+
+describe('类型表那两个只读入口', () => {
+  // 第十八片的覆盖率读数点到 `isGameKind` / `pipelineOfKind` 两个函数 0%——不是它们死了，
+  // 是**调用方在 web**（`PlayByKind.tsx` / `agent/runtime.ts`），而这一门只扫 `packages/game-model`。
+  // 与其把读数解释成"范围外"，不如在这里给它们各自配一份模型侧的见证：这两个函数是界面上
+  // "这一型叫什么 / 这一型走哪条管线"那两格的唯一供给点，说错就是页面上直接显示 undefined。
+  it('isGameKind 认得表里全部八型，别的一概说不', () => {
+    for (const kind of GAME_KINDS) {
+      expect(isGameKind(kind), `${kind} 明明在表里，却不肯认`).toBe(true);
+      // 认得出的那一型必须有中文名可查——`isGameKind` 收窄之后调用方就直接索引标签表
+      expect(GAME_KIND_LABELS[kind], `${kind} 被认成类型，标签表里却没有它`).toBeTruthy();
+    }
+    // 认不出来的每一种形状都要说不：大小写、实体类名、空串、非字符串
+    for (const notKind of ['2D', '2 d', '', 'player', 'rpg', undefined, null, 42, { kind: '2d' }]) {
+      expect(isGameKind(notKind), `${JSON.stringify(notKind)} 不是类型，却被认成了`).toBe(false);
+    }
+    // 名单与状态表同源：这里数的不是手抄的八，而是"两张表的键一模一样"
+    expect(GAME_KINDS.slice().sort()).toEqual(Object.keys(GAME_KIND_STATUS).sort());
+  });
+
+  it('pipelineOfKind 读的就是分派点走的那一条：八型逐一对账，两个入口不许分家', () => {
+    // §16 的同一份模型不许有两个出口：`pipelineOfKind` 只读表，`compileForKind` 才是派发。
+    // 两边一旦分家，界面上说"这一型有战斗格"而点进去走的是对话管线（§159 那一类谎）。
+    const doc = createGame('对账');
+    for (const kind of GAME_KINDS) {
+      const projected = compileForKind({ ...doc, kind });
+      expect(pipelineOfKind(kind), `${kind}：表说的管线与分派点实际走的那条不是同一条`).toBe(projected.pipeline);
+    }
+    // 这一格不是恒真：两个实现各自独立（一个读表、一个按表派发），改坏任何一边都会红。
+    // 最后这一句顺手钉住"今天没有一型是 null"——它正是 `playtest-by-kind.ts` 那句拒绝
+    // 只能靠反事实喂的原因（表里一旦出现 null，这句先红，那条用例的写法就得跟着改）。
+    expect(GAME_KINDS.filter((kind) => pipelineOfKind(kind) === null)).toEqual([]);
   });
 });

@@ -192,6 +192,31 @@ describe('任务的完成条件判不判得出来', () => {
     expect(noWin.notes.join(' ')).toContain('没有"赢"');
   });
 
+  it('引用指向一个已经不存在的实体：那条目标跳过，任务明说判不出来', () => {
+    // 仪器点名的 `play.ts:383` 是 quest 的 refs 里那句 `if (!target) continue`——
+    // 「引用还挂着、被引用的实体已经没了」这一格从没走过（删实体那条链确实会留下这种引用）。
+    // 它必须既不高高兴兴算成「完成了一个目标」，也不炸：投影对不存在的目标只能说「判不出来」。
+    const doc = createGame('引用落空');
+    const quest = entitiesOfKind(doc, 'quest')[0]!;
+    const [enemy] = entitiesOfKind(doc, 'enemy');
+    const dangling: GameDocument = {
+      ...doc,
+      entities: doc.entities.map((entity) =>
+        entity.id === quest.id ? { ...entity, refs: [{ id: 'ref-ghost', to: '已经不在了', role: '讨伐' }] } : entity,
+      ),
+    };
+    const plan = compileGame(dangling);
+    const q = plan.quests.find((x) => x.id === quest.id)!;
+    expect(q.goals).toHaveLength(0);
+    expect(q.judgeable).toBe(false);
+    expect(q.why).toContain('不是敌人、物品或触发器');
+    // 正向对照：同一条引用把 to 换成真存在的敌人就立刻可判——红的是那个 id，不是引用的形状
+    const linked = compileGame(link(doc, quest.id, enemy!.id, '讨伐'));
+    const ok = linked.quests.find((x) => x.id === quest.id)!;
+    expect(ok.goals.map((g) => g.kind)).toEqual(['defeat']);
+    expect(ok.judgeable).toBe(true);
+  });
+
   it('timeLimit 存在才声明"按秒解释"，不存在就不提', () => {
     let doc = createGame('限时');
     const [quest] = entitiesOfKind(doc, 'quest');
@@ -271,6 +296,19 @@ describe('位置从哪来（作者摆的 x / y vs 同心环）', () => {
     expect(authoredPosition(entityOf(doc, placed!.id))).toEqual({ x: 233, y: 97, clamped: false });
     expect(authoredPosition(entityOf(doc, halfOnly.id))).toBe(null);
     expect(authoredPosition(entityOf(doc, untouched!.id))).toBe(null);
+  });
+
+  it('判位置的尺子也接得住「没有实体」：undefined 说不，不抛错也不当成摆过', () => {
+    // 第十八片的仪器点名 `play.ts:231` 那段 `return false` 从没走过——今天三个调用点都递得出实体。
+    // 签名收 `GameEntity | undefined`（`entities.find(...)` 就是这么交出来的），不钉这一条，
+    // 将来谁把 find 的结果直接递进来，就没有任何东西知道「没实体」那一格没人看过。
+    expect(hasAuthoredPosition(undefined)).toBe(false);
+    // 正向对照：同一把尺子量到有实体的那一份，说的不是同一个字（上面那条不是恒 false）
+    const doc = createGame('有实体');
+    const [player] = entitiesOfKind(doc, 'player');
+    const placed = write(write(doc, player!.id, POSITION_STAT_KEYS.x, 120), player!.id, POSITION_STAT_KEYS.y, 80);
+    expect(hasAuthoredPosition(entityOf(placed, player!.id))).toBe(true);
+    expect(hasAuthoredPosition(entityOf(placed, player!.id))).not.toBe(hasAuthoredPosition(undefined));
   });
 
   it('场外的坐标钳回场地内并写进 notes；场内的那份不该出现这句话', () => {

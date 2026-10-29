@@ -11,6 +11,7 @@ import {
   setStat,
   simSummary,
   step,
+  updateEntity,
   type GameDocument,
   type GamePlan,
   type SimInput,
@@ -61,6 +62,60 @@ function winnable(): { plan: GamePlan; enemyId: string; itemId: string } {
   doc = link(doc, quest!.id, item!.id, "收集");
   return { plan: compileGame(doc), enemyId: enemy!.id, itemId: item!.id };
 }
+
+/**
+ * 那段驱动是"下面两条用例都通关"的地基，所以它只有一条：贴着敌人打完，再往回走捡物品
+ * （物品在玩家与敌人之间，全程不碰随机数）。改它等于同时改两条用例的红绿。
+ */
+function playUntilWon(plan: GamePlan): SimState {
+  const enemy = plan.enemies[0]!;
+  let state: SimState = { ...initialState(plan), px: enemy.x - 5, py: enemy.y };
+  for (let i = 0; i < 10 && state.status === "playing"; i += 1) {
+    state = run(plan, state, { dx: 0, dy: 0, attack: true }, 0.6);
+  }
+  return run(plan, state, { dx: -1, dy: 0, attack: false }, 3);
+}
+
+describe("推进的两种「没人可推」", () => {
+  it("计划里没有玩家：时间照走，但一个字段都不动——不凭空造一个玩家出来推", () => {
+    // `sim.ts:134` 那段 `return next` 从没走过，因为 `initialState` 在没有玩家时直接把状态标成
+    // "lost"，而 `step` 第一行就退了。会递进这一格的是**外面交进来的状态**（存档回放、别的驱动器
+    // 拿着旧档）：状态上写着"进行中"，计划里却没有玩家。那时候唯一不撒谎的走法是原样交回。
+    let doc = createGame("没有玩家但状态说进行中");
+    const [player] = entitiesOfKind(doc, "player");
+    doc = updateEntity(doc, player!.id, { kind: "npc", name: "路过的" });
+    const plan = compileGame(doc);
+    expect(plan.player).toBe(null); // 前提：这真是一份没有玩家的计划
+    const state: SimState = { ...initialState(plan), status: "playing" };
+    const next = step(plan, state, right, 1 / 60);
+    expect(next).not.toBe(state); // 确实走了那一步拷贝，不是原地退回
+    expect(next.t).toBeCloseTo(state.t + 1 / 60, 10); // 时间照走（它是"推进过"的一部分）
+    expect({ px: next.px, py: next.py }).toEqual({ px: state.px, py: state.py }); // 人没动
+    expect(next.events).toEqual(state.events);
+    expect(next.status).toBe("playing"); // 不许在这里偷偷改判成输
+    // 正向对照：同一份输入递进有玩家的计划，位置就真的动了——冻住的是那个玩家，不是 step
+    const { plan: withPlayer } = winnable();
+    const moved = step(withPlayer, initialState(withPlayer), right, 1 / 60);
+    expect(moved.px).not.toBe(initialState(withPlayer).px);
+  });
+
+  it("任务的目标在状态里找不到：那条任务判不成完成，也不算「差一点就完成」", () => {
+    // `sim.ts:215` 那个 `: false`（`sim ? !sim.active : false`）防的是**计划自己不一致**——
+    // 任务的 goal 还指着某个 actor，而状态里那一份已经没有它了（正常投影产不出这种计划，
+    // 所以这里照第十七条链的规矩反事实地改一份计划喂进去：删的是计划，不是断言）。
+    const { plan } = winnable();
+    const orphaned: GamePlan = { ...plan, enemies: [], items: [] };
+    const quest = orphaned.quests.find((q) => q.judgeable)!;
+    expect(quest.goals.length, "前提：这条任务确实带着判不出来的目标").toBeGreaterThan(0);
+    const end = run(orphaned, initialState(orphaned), idle, 5);
+    expect(Object.keys(end.questDone), "目标都不在状态里，凭什么算完成").toHaveLength(0);
+    expect(end.status).not.toBe("won");
+    // 正向对照：同一份"确实能通关"的驱动、同一份计划但目标还在——那条任务就完成了
+    // （红的是"目标不在状态里"，不是"没驱动够久"）
+    const intact = playUntilWon(plan);
+    expect(Object.keys(intact.questDone).length, "对照组里任务没完成，那这条断言什么都没钉住").toBeGreaterThan(0);
+  });
+});
 
 describe('模拟的可复现性', () => {
   it('同一份计划 + 同一段输入 = 完全相同的状态（Playtest 的前提）', () => {
@@ -155,14 +210,8 @@ describe('伤害与冷却', () => {
 
 describe('任务、胜负与超时', () => {
   it('打完敌人、捡到物品 → 任务完成 → 通关，且 outcome 指回任务数', () => {
-    const { plan, enemyId, itemId } = winnable();
-    const enemy = plan.enemies.find((e) => e.id === enemyId)!;
-    let state = { ...initialState(plan), px: enemy.x - 5, py: enemy.y };
-    for (let i = 0; i < 10 && state.status === 'playing'; i += 1) {
-      state = run(plan, state, { dx: 0, dy: 0, attack: true }, 0.6);
-    }
-    // 物品在玩家与敌人之间，往回走就能捡到
-    state = run(plan, state, { dx: -1, dy: 0, attack: false }, 3);
+    const { plan, itemId } = winnable();
+    const state = playUntilWon(plan);
     expect(state.items.find((i) => i.id === itemId)!.active).toBe(false);
     expect(state.status).toBe('won');
     expect(state.outcome).toContain('1 条可判定的任务全部完成');

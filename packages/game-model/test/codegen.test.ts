@@ -354,6 +354,22 @@ describe("§52 最后一格：把设计投影成一份拿得走的产物", () =>
     expect(file(output, "README.txt").contents).toContain("<i>坏</i>");
   });
 
+  it("摘要为空的那份：页面上那一格留空，而不是替作者编一句、也不是把整行删掉", () => {
+    // `codegen.ts:843` 那个 `|| ""` 上一片之前从没被走到——所有底稿都写了摘要。
+    // 而空摘要**是合法的**：`GameDocumentSchema.summary` 只有 max(2000)，没有 min，
+    // 空串是 falsy 所以那半段真会被执行（不是"类型不许"的那族防御）。
+    const blank = { ...levelDraft(), summary: "" };
+    expect(validateGame(blank), "前提：空摘要这份底稿结构上合法，不是绕过校验喂进来的").toEqual([]);
+    const html = file(generateGameCode(blank), "index.html").contents;
+    expect(html).toContain("<p></p>");
+    expect(html).toContain("<h1>摆好的战场</h1>");
+    expect(html, "作者没写摘要，页面就不许多说一句").not.toContain("暂无简介");
+    // 正向对照：同一份写了摘要 → 那一格是作者那句话。红的不是"页面里压根没有 <p>"
+    const written = file(generateGameCode(levelDraft()), "index.html").contents;
+    expect(written).toContain("<p>为产物这一格搭的关卡</p>");
+    expect(written).not.toContain("<p></p>");
+  });
+
   it("页面引用的每个文件都真的在产物里——少一个就是解压出来打不开", () => {
     const output = generateGameCode(levelDraft());
     const html = file(output, "index.html").contents;
