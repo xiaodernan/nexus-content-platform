@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { addTemplate, emptyTemplateCatalog, type TemplateCatalog, type TemplateListing } from './templateCatalog';
+import { addTemplate, emptyTemplateCatalog, retireTemplate, type TemplateCatalog, type TemplateListing } from './templateCatalog';
 import {
   CATALOG_STORAGE_KEY,
   deserializeCatalog,
@@ -141,5 +141,23 @@ describe('catalogStore: refusals on a stored record', () => {
     expect(parsed.ok).toBe(false);
     if (parsed.ok) return;
     expect(parsed.reason).toContain('not an object');
+  });
+});
+
+describe('catalogStore: a RETIRED shelf round-trips (v541)', () => {
+  it('saves the catalog a retire left behind and loads it back unchanged', () => {
+    const shelf = build(listing({ id: 't1' }), listing({ id: 't2', createdAt: 2_000 }));
+    const retired = retireTemplate(shelf, 't1');
+    if (!retired.ok) throw new Error(retired.reason);
+    const kv = kvOf();
+    const saved = saveCatalog(kv, retired.catalog);
+    expect(saved.ok).toBe(true);
+    const loaded = loadCatalog(kv);
+    expect(loaded.ok).toBe(true);
+    if (!loaded.ok) return;
+    expect(loaded.source).toBe('stored');
+    expect(loaded.catalog.listings.map((entry) => entry.id)).toEqual(['t2']);
+    // The shelf the page renders and the shelf it reads back are ONE fact, not two.
+    expect(loaded.catalog).toEqual(retired.catalog);
   });
 });

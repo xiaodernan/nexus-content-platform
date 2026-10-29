@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { buildCreatorDashboard, creatorDashboardLine } from '@/lib/creatorDashboard';
 import { heldRefsOf, type CreditLedger } from '@/lib/credits';
 import { buildDemoCreditsScene } from '@/lib/creditsDemo';
+import { loadCatalog, saveCatalog } from '@/lib/catalogStore';
 import { loadCredits, saveCredits } from '@/lib/creditsStore';
 import { purchaseTemplate } from '@/lib/marketplace';
 import { priceText, type PriceCents } from '@/lib/monetization';
@@ -16,6 +17,7 @@ import {
 } from '@/lib/refundPolicy';
 import { attributionByRef, attributionLine, statementFor, statementLine, statementReconciles, type SettlementWindow } from '@/lib/settlement';
 import {
+  emptyTemplateCatalog,
   retireTemplate,
   templateById,
   type TemplateCatalog,
@@ -39,12 +41,13 @@ import { buildWalletView, storeRows } from '@/lib/walletView';
 export default function CreditsPanel() {
   const scene = useMemo(() => buildDemoCreditsScene(), []);
   /**
-   * The SHELF this page renders (v540). It starts as the demo fixture's catalog and a RETIRE replaces
-   * it: a take-down is a window operation on what is FOR SALE, and this page is the host. The LEDGER is
+   * The SHELF this page renders (v540). It starts EMPTY — the local-first store's own answer for an
+   * absent key — and is read back from `catalogStore` on mount, saved after every change (v541): a
+   * take-down is a window operation on what is FOR SALE, and this page is the host. The LEDGER is
    * untouched by it, so retiring a listing a buyer paid for cannot hide their purchase — the store's
    * rows are the shelf PLUS what the record says the viewer still owns (`storeRows`).
    */
-  const [catalog, setCatalog] = useState<TemplateCatalog>(scene.catalog);
+  const [catalog, setCatalog] = useState<TemplateCatalog>(() => emptyTemplateCatalog());
   const [ledger, setLedger] = useState<CreditLedger | null>(null);
   const [source, setSource] = useState<'stored' | 'empty' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +99,10 @@ export default function CreditsPanel() {
       if (!loaded.ok) { setError(loaded.reason); return; }
       setLedger(loaded.ledger);
       setSource(loaded.source);
+      // The shelf is its OWN local-first record (v541): absence is an empty shelf, corruption is refused.
+      const shelf = loadCatalog(window.localStorage);
+      if (!shelf.ok) { setError(shelf.reason); return; }
+      setCatalog(shelf.catalog);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -103,9 +110,12 @@ export default function CreditsPanel() {
 
   const loadDemo = useCallback(() => {
     try {
+      const savedShelf = saveCatalog(window.localStorage, scene.catalog);
+      if (!savedShelf.ok) { setError(savedShelf.reason); return; }
       const saved = saveCredits(window.localStorage, scene.ledger);
       if (!saved.ok) { setError(saved.reason); return; }
       setLedger(scene.ledger);
+      setCatalog(scene.catalog);
       setSource('stored');
       setError(null);
     } catch (e) {
@@ -115,10 +125,14 @@ export default function CreditsPanel() {
 
   const clearLocal = useCallback(() => {
     try {
-      // An empty ledger is a VALID record, so clearing writes one rather than deleting the key.
+      // An empty ledger and an empty shelf are VALID records, so clearing WRITES them rather than
+      // deleting the keys — the same rule `catalogStore` states for an absent key.
+      const savedShelf = saveCatalog(window.localStorage, emptyTemplateCatalog());
+      if (!savedShelf.ok) { setError(savedShelf.reason); return; }
       const saved = saveCredits(window.localStorage, { entries: [] });
       if (!saved.ok) { setError(saved.reason); return; }
       setLedger({ entries: [] });
+      setCatalog(emptyTemplateCatalog());
       setSource('stored');
       setError(null);
     } catch (e) {
@@ -180,6 +194,10 @@ export default function CreditsPanel() {
   const onRetire = useCallback((ref: string) => {
     const decision = retireTemplate(catalog, ref);
     if (!decision.ok) { setError(decision.reason); return; }
+    // A take-down is PERSISTED before it is rendered (v541): the shelf the page shows is the one a
+    // reload reads back, so the store cannot disagree with itself after a refresh.
+    const saved = saveCatalog(window.localStorage, decision.catalog);
+    if (!saved.ok) { setError(saved.reason); return; }
     setCatalog(decision.catalog);
     setError(null);
   }, [catalog]);
@@ -221,10 +239,11 @@ export default function CreditsPanel() {
         </span>
       </div>
       <div style={{ color: 'var(--nexus-muted)', marginBottom: 12, maxWidth: 780 }}>
-        This page reads and writes the ledger through the same local-first store a real ledger would use
-        (<code>nexus.credits.v1</code> in this browser). Buying a template appends a real two-entry
-        transaction to that LOCAL ledger; refunding reverses the recorded purchase. Both spend demo
-        credits, not money.
+        This page reads and writes the ledger AND the shelf through the same local-first stores a real
+        ledger and catalog would use (<code>nexus.credits.v1</code> and <code>nexus.catalog.v1</code> in
+        this browser). Buying a template appends a real two-entry transaction to that LOCAL ledger;
+        refunding reverses the recorded purchase; retiring withdraws the listing from that LOCAL shelf.
+        All of it spends demo credits, not money.
       </div>
 
       {error && (
@@ -238,7 +257,7 @@ export default function CreditsPanel() {
           Load a demo ledger
         </button>
         <button type="button" className="btn" data-credits-clear onClick={clearLocal} style={{ opacity: 0.7 }}>
-          Clear the local ledger
+          Clear the local ledger and shelf
         </button>
       </div>
 

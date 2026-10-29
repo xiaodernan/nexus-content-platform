@@ -48,7 +48,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import { execFileSync } from '../lib/syncproc.mjs';
 
 const REPO = process.cwd();
-const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy'];
+const MODULES = ['credits', 'templateCatalog', 'catalogStore', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy'];
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 
@@ -72,6 +72,7 @@ try {
 
   const credits = await import(pathToFileURL(join(libDir, 'credits.mjs')).href);
   const catalogMod = await import(pathToFileURL(join(libDir, 'templateCatalog.mjs')).href);
+  const catalogStore = await import(pathToFileURL(join(libDir, 'catalogStore.mjs')).href);
   const market = await import(pathToFileURL(join(libDir, 'marketplace.mjs')).href);
   const dash = await import(pathToFileURL(join(libDir, 'creatorDashboard.mjs')).href);
   const settle = await import(pathToFileURL(join(libDir, 'settlement.mjs')).href);
@@ -549,6 +550,17 @@ try {
     'a retired listing nobody owns was shown as a row',
   );
 
+  // What a retire leaves is SAVABLE (v541): the page holds the shelf in `catalogStore`, so the store
+  // must round-trip the SAME catalog — the two surfaces cannot disagree about what is for sale.
+  const shelfKv = new Map();
+  const shelfKvSeam = { getItem: (key) => shelfKv.get(key) ?? null, setItem: (key, value) => shelfKv.set(key, value) };
+  const savedRetired = catalogStore.saveCatalog(shelfKvSeam, retired.catalog);
+  assert.equal(savedRetired.ok, true, `the retired shelf could not be saved: ${savedRetired.reason}`);
+  const loadedRetired = catalogStore.loadCatalog(shelfKvSeam);
+  assert.equal(loadedRetired.ok, true, `the saved shelf could not be read back: ${loadedRetired.reason}`);
+  assert.equal(loadedRetired.source, 'stored', 'the saved shelf did not read back as stored');
+  assert.deepEqual(loadedRetired.catalog.listings.map((listing) => listing.id), ['tpl-free'], 'the retired shelf did not round-trip');
+
   const reversedRetired = refund.refundPurchase(retired.catalog, shelfLedger, { templateId: 'tpl-paid', buyerId: 'buyerR', entryId: 'sr1', at: 30 });
   assert.equal(reversedRetired.ok, true, `a retired ref could not be reversed: ${reversedRetired.ok ? '' : reversedRetired.reason}`);
   assert.equal(credits.balanceOf(reversedRetired.ledger, 'buyerR'), 1000, 'the buyer was not made whole for a retired ref');
@@ -561,7 +573,7 @@ try {
   assert.equal(relisted.ok, true, `a retired id could not be listed again: ${relisted.reason}`);
   assert.equal(catalogMod.templateById(relisted.catalog, 'tpl-paid')?.authorId, 'authorB', 'the re-listing did not name its new author');
 
-  console.log(`  the listing withdrew cleanly (1 left, the input untouched, a second retire refused by name); the buyer still OWNS the retired ref and the wallet can tell it from a plan id; the refund made the buyer whole (${credits.balanceOf(reversedRetired.ledger, 'buyerR')}) and clawed back exactly the recorded seller (${credits.balanceOf(reversedRetired.ledger, 'authorA')}), naming "tpl-paid" (not in this catalog); the STORE's rows were the shelf plus the retired ref the record owns (and a stranger saw only the shelf); the retired id re-listed under a new author`);
+  console.log(`  the listing withdrew cleanly (1 left, the input untouched, a second retire refused by name); the buyer still OWNS the retired ref and the wallet can tell it from a plan id; the refund made the buyer whole (${credits.balanceOf(reversedRetired.ledger, 'buyerR')}) and clawed back exactly the recorded seller (${credits.balanceOf(reversedRetired.ledger, 'authorA')}), naming "tpl-paid" (not in this catalog); the STORE's rows were the shelf plus the retired ref the record owns (and a stranger saw only the shelf), and the retired shelf SAVED and READ BACK unchanged; the retired id re-listed under a new author`);
 
 } finally {
   rmSync(box, { recursive: true, force: true });

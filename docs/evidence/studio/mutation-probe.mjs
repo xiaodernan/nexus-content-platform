@@ -11,9 +11,9 @@
 //
 // sweep-budget-ms: 1200000
 // The budget above is the CI runner's and the agents sweep's to read (amendments 85 and 94), and it is
-// measured, not comfortable: 34 mutations, each a serial `vitest run` of the copied suite — the 28-arm run
+// measured, not comfortable: 35 mutations, each a serial `vitest run` of the copied suite — the 28-arm run
 // stood alone at 239 s on 2026-10-28 with all 28 KILLED, the 29-arm run (M29, v537) was ALL KILLED the same
-// day, the 30-arm run (M30, v538) was ALL KILLED too, and the 32-arm run (M31–M32, v539) is ALL KILLED and the 34-arm run (M33–M34, v540) is ALL KILLED; the
+// day, the 30-arm run (M30, v538) was ALL KILLED too, and the 32-arm run (M31–M32, v539) is ALL KILLED and the 34-arm run (M33–M34, v540) is ALL KILLED and the 35-arm run (M35, v541) is ALL KILLED; the
 // later three runs had no separately recorded wall
 // time. Readings move with host load, not with the arm count
 // alone: the 27-arm sweep read 241 s, the 25-arm 216 s and the 23-arm 166.2 s standing alone, and the 18-arm
@@ -40,7 +40,7 @@ const BOX_NAME = `.nexus-mut-probe-${process.pid}`;
 const BOX = join(STUDIO, BOX_NAME);
 const VITEST = join(REPO, 'node_modules', 'vitest', 'vitest.mjs');
 
-const MODULES = ['credits', 'templateCatalog', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy'];
+const MODULES = ['credits', 'templateCatalog', 'catalogStore', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy'];
 const TEST_FILES = [...MODULES.map((m) => `${m}.test.ts`), 'm8Invariants.test.ts'];
 
 /**
@@ -82,6 +82,7 @@ const MUTATIONS = [
   { id: 'M32', file: 'walletView', find: 'if (listed || refSoldIn(ledger, ref)) owned.add(ref);', replace: 'if (listed) owned.add(ref);', why: 'a RETIRED listing stops being owned — the shelf erases a purchase the record still holds' },
   { id: 'M33', file: 'walletView', find: '    rows.push({ ref, listed: false });', replace: '    // mutation: a retired ref never becomes a row', why: 'the STORE drops a purchase the shelf forgot — the buyer loses the row that carries their refund door' },
   { id: 'M34', file: 'walletView', find: 'catalog.listings.map((listing) => ({ ref: listing.id, listed: true }))', replace: 'catalog.listings.map((listing) => ({ ref: listing.id, listed: false }))', why: 'every shelf row reads as retired, so the store cannot tell what is still for sale' },
+  { id: 'M35', file: 'catalogStore', find: 'if (envelope.version !== CATALOG_FORMAT_VERSION) {', replace: 'if (false) {', why: 'the catalog loader accepts a format version it does not know (a stored shelf read as this build\'s)' },
 ];
 
 /**

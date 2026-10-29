@@ -382,6 +382,21 @@ try {
     JSON.stringify(refundedRetired),
   );
 
+  // 6f. THE SHELF IS LOCAL-FIRST TOO (v541). The page holds the catalog in `catalogStore`, so a
+  // RETIRE outlives the page that performed it: a full reload reads back the shelf the retire left
+  // (one listing), and the purchase the refund released is gone from the store — not just the DOM.
+  await page.navigate(`${URL_BASE}/credits`, { waitForSelector: '#nexus-credits' });
+  await page.waitForFunction("!!document.querySelector('[data-credits-wallet]')", { timeout: 20000 });
+  const shelfReload = await page.evaluate(
+    "(() => ({ wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, rows: document.querySelectorAll('[data-credits-listing]').length, retired: document.querySelectorAll('[data-credits-retired]').length, gone: !document.querySelector('[data-credits-listing=\"tpl-mobile\"]'), header: document.querySelector('[data-credits-store]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }))()",
+  );
+  check(
+    'a RETIRE survives a reload: the shelf read back from catalogStore has one listing and no retired row',
+    shelfReload.rows === 1 && shelfReload.retired === 0 && shelfReload.gone === true &&
+      /balance: 1000 credits/.test(shelfReload.wallet ?? '') && /1 listing\(s\)/.test(shelfReload.header ?? ''),
+    JSON.stringify(shelfReload),
+  );
+
   // 7. clearing writes a valid empty ledger and returns the page to its empty state.
   await page.evaluate("(() => { const b = document.querySelector('[data-credits-clear]'); if (!b) return false; b.click(); return true; })()");
   await sleep(300);
