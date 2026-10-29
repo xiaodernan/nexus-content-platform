@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { eq, sql } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { POST as postProjects } from '../src/app/api/projects/route';
 import { POST as postReport } from '../src/app/api/published/report/route';
 import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
 import { getRateLimiter } from '../src/server/security/rateLimit';
 import { getDb } from '../src/server/db/client';
-import { users } from '../src/server/db/schema';
+import { abuseReports, projects, sessions, users } from '../src/server/db/schema';
 
 /**
  * §137 的 guest 自动签发，把"按 user.id 限流"这一族变成了空转。
@@ -25,6 +26,10 @@ import { users } from '../src/server/db/schema';
  *      取最左端＝取客户端随手写的那一段，换一行头就换一个桶，①②③ 全部空转。
  *      现在取可信链的**右端**（`NEXUS_TRUSTED_PROXY_COUNT`），读不出的垃圾头归进一个
  *      共享桶而不是豁免。读法、限度与判决见 `docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`。
+ *   ⑤ 读数与清扫都只算自己：guest 的个数按**本次探针的 token** 关联会话来数，`afterAll` 也只删
+ *      这批 token 换到的身份。原来两处都是"全库 guest"——差量会读到同机另一条会话建的行
+ *      （2026-10-30 实测红在 `expected 23 to be 20`），那句 `delete ... where guest = true`
+ *      更会把她们的 guest 身份连着项目一起删掉。
  */
 
 const jar = vi.hoisted(() => new Map<string, string>());
@@ -42,9 +47,53 @@ function randomHex(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function guestCount(): Promise<number> {
-  const [row] = await getDb().select({ n: sql<number>`count(*)::int` }).from(users).where(eq(users.guest, true));
+/**
+ * 探针用的 token 全部登记下来：读数按 token 收，清扫也按 token 收。
+ *
+ * 原来这两处都是"全库 guest 行数"：`guestCount()` 的前后差量在别的会话同时建 guest 时会读到
+ * 别人的行（2026-10-30 实测红在 `expected 23 to be 20`），`afterAll` 那句 `delete from users
+ * where guest = true` 更糟——它把同机另一条会话正在用的 guest 身份连着它的项目一起删掉。
+ */
+const probeTokens = new Set<string>();
+
+function newProbeToken(): string {
+  const token = randomHex();
+  probeTokens.add(token);
+  return token;
+}
+
+/** 会话 token 在库里只存 sha256，读法与 `domain/session.ts` 保持一致。 */
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+function probeTokenHashes(): string[] {
+  return [...probeTokens].map(hashToken);
+}
+
+/** 这批 token 里有几个真的换到了一个 guest 身份——别人的行一条也算不进来。 */
+async function guestsForTokens(tokens: readonly string[]): Promise<number> {
+  if (tokens.length === 0) return 0;
+  const [row] = await getDb()
+    .select({ n: sql<number>`count(distinct ${users.id})::int` })
+    .from(users)
+    .innerJoin(sessions, eq(sessions.userId, users.id))
+    .where(and(inArray(sessions.tokenHash, tokens.map(hashToken)), eq(users.guest, true)));
   return row?.n ?? 0;
+}
+
+/** 只清自己造的：先取到本次探针换到的用户 id，再按 id 删引用、会话、用户。 */
+async function sweepProbeGuests(): Promise<void> {
+  const hashes = probeTokenHashes();
+  if (hashes.length === 0) return;
+  const db = getDb();
+  const rows = await db.select({ userId: sessions.userId }).from(sessions).where(inArray(sessions.tokenHash, hashes));
+  const ids = [...new Set(rows.map((r) => r.userId))];
+  if (ids.length === 0) return;
+  await db.delete(abuseReports).where(inArray(abuseReports.reporterId, ids));
+  await db.delete(projects).where(inArray(projects.ownerId, ids));
+  await db.delete(sessions).where(inArray(sessions.userId, ids));
+  await db.delete(users).where(inArray(users.id, ids));
 }
 
 /** `forwarded` 是这一行头**照原样**写进去的值——链条形状（一段 / 左端轮换右端固定 / 垃圾）就是被测的东西。 */
@@ -97,54 +146,50 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
-  const db = getDb();
-  await db.execute(sql`delete from abuse_reports where reporter_id in (select id from users where guest = true)`);
-  await db.execute(sql`delete from projects where owner_id in (select id from users where guest = true)`);
-  await db.execute(sql`delete from users where guest = true`);
+  await sweepProbeGuests();
 });
 
 describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
-  it('12 个不同 token 打 POST /api/projects——第 21 次起 429，且被挡的那些一个 guest 都没建', async () => {
+  it('25 个不同 token 打 POST /api/projects——第 21 次起 429，且被挡的那些一个 guest 都没建', async () => {
     getRateLimiter().reset();
-    const before = await guestCount();
+    const tokens = Array.from({ length: 25 }, newProbeToken);
     const statuses: number[] = [];
-    for (let i = 0; i < 25; i += 1) {
-      statuses.push((await createProject(randomHex(), IP)).status);
-    }
-    const created = (await guestCount()) - before;
+    for (const token of tokens) statuses.push((await createProject(token, IP)).status);
     // 20/h 的闸：前 20 放行，后 5 个 429
     expect(statuses.slice(0, 20).every((s) => s === 201)).toBe(true);
     expect(statuses.slice(20).every((s) => s === 429)).toBe(true);
-    // 关键判据：被挡住的请求没有付出"建一个 guest 用户"的代价
-    expect(created).toBe(20);
+    // 关键判据：被挡住的请求没有付出"建一个 guest 用户"的代价——只数自己这批 token
+    expect(await guestsForTokens(tokens)).toBe(20);
   });
 
   it('正对照：稳定身份照旧放行，第 N+1 次由原有那道按身份的闸去管', async () => {
     getRateLimiter().reset();
-    const before = await guestCount();
-    const stable = randomHex();
+    const stable = newProbeToken();
     const statuses: number[] = [];
     for (let i = 0; i < 3; i += 1) statuses.push((await createProject(stable, IP)).status);
     expect(statuses).toEqual([201, 201, 201]);
-    expect((await guestCount()) - before).toBe(1);
+    expect(await guestsForTokens([stable])).toBe(1);
   });
 
   it('公开举报入口同样被兜住：换 token 也绕不过', async () => {
     getRateLimiter().reset();
-    const before = await guestCount();
+    const tokens = Array.from({ length: 25 }, newProbeToken);
     const statuses: number[] = [];
-    for (let i = 0; i < 25; i += 1) statuses.push((await report(randomHex(), IP)).status);
+    for (const token of tokens) statuses.push((await report(token, IP)).status);
     // 前 20 个走到"没有这个公开页面"（404），后 5 个被闸挡下（429）
     expect(statuses.slice(0, 20).every((s) => s === 404)).toBe(true);
     expect(statuses.slice(20).every((s) => s === 429)).toBe(true);
-    expect((await guestCount()) - before).toBe(20);
+    expect(await guestsForTokens(tokens)).toBe(20);
   });
 
   it('标识不出 IP 时这道闸让路——不拿共享桶把正常用户一起挡掉', async () => {
     getRateLimiter().reset();
+    const tokens = Array.from({ length: 25 }, newProbeToken);
     const statuses: number[] = [];
-    for (let i = 0; i < 25; i += 1) statuses.push((await createProject(randomHex(), null)).status);
+    for (const token of tokens) statuses.push((await createProject(token, null)).status);
     expect(statuses.every((s) => s === 201)).toBe(true);
+    // 让路的样子是"每个 token 都走到签发身份那一步"：25 个都建了 guest
+    expect(await guestsForTokens(tokens)).toBe(25);
   });
 
   /**
@@ -161,15 +206,15 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
    */
   it('换着写链条左端（反代在右边补上真对端）也绕不过这道闸', async () => {
     getRateLimiter().reset();
-    const before = await guestCount();
+    const tokens = Array.from({ length: 25 }, newProbeToken);
     const statuses: number[] = [];
-    for (let i = 0; i < 25; i += 1) {
+    for (const [i, token] of tokens.entries()) {
       // 左端每请求换一个 `192.0.2.x`（TEST-NET-1），右端固定＝反代亲眼看到的对端
-      statuses.push((await createProject(randomHex(), `192.0.2.${(i % 250) + 1}, ${IP}`)).status);
+      statuses.push((await createProject(token, `192.0.2.${(i % 250) + 1}, ${IP}`)).status);
     }
     expect(statuses.slice(0, 20).every((s) => s === 201)).toBe(true);
     expect(statuses.slice(20).every((s) => s === 429)).toBe(true);
-    expect((await guestCount()) - before).toBe(20);
+    expect(await guestsForTokens(tokens)).toBe(20);
   });
 
   /**
@@ -179,9 +224,44 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
    */
   it('写一行读不出的垃圾头换不来免限流：25 次里第 21 次起 429', async () => {
     getRateLimiter().reset();
+    const tokens = Array.from({ length: 25 }, newProbeToken);
     const statuses: number[] = [];
-    for (let i = 0; i < 25; i += 1) statuses.push((await createProject(randomHex(), `evil-${i}`)).status);
+    for (const [i, token] of tokens.entries()) {
+      statuses.push((await createProject(token, `evil-${i}`)).status);
+    }
     expect(statuses.slice(0, 20).every((s) => s === 201)).toBe(true);
     expect(statuses.slice(20).every((s) => s === 429)).toBe(true);
+    // 归进共享桶的那批照样付出身份：放行的是前 20 个 token，不是"垃圾头免限流"
+    expect(await guestsForTokens(tokens)).toBe(20);
+  });
+
+  /**
+   * 这一条守的是**读数本身**。旧写法量的是"全库 guest 行数的差量"，同机另一条会话正在建 guest
+   * 时它会把别人的行算进我头上（2026-10-30 实测红在 `expected 23 to be 20`）。
+   * 这里当场埋一条不属于本文件的 guest，再数自己这批 token——数不进来才算对；
+   * 最后那句对照证明"没变"不是因为查不到那条行。
+   */
+  it('别人家的 guest 数不进来：并行会话共用同一个库时读数仍然只算自己这批 token', async () => {
+    getRateLimiter().reset();
+    const db = getDb();
+    const [foreign] = await db
+      .insert(users)
+      .values({ displayName: '并行会话的 guest', guest: true })
+      .returning({ id: users.id });
+    const foreignId = foreign!.id;
+    const foreignToken = randomHex();
+    try {
+      await db
+        .insert(sessions)
+        .values({ userId: foreignId, tokenHash: hashToken(foreignToken), expiresAt: new Date(Date.now() + 60_000) });
+
+      const tokens = Array.from({ length: 3 }, newProbeToken);
+      for (const token of tokens) expect((await createProject(token, IP)).status).toBe(201);
+      expect(await guestsForTokens(tokens)).toBe(3);
+      // 对照：那条外来的 guest 确实在库里且确实算 guest——读数没变是因为按 token 收，不是查不到行
+      expect(await guestsForTokens([foreignToken])).toBe(1);
+    } finally {
+      await db.delete(users).where(eq(users.id, foreignId));
+    }
   });
 });

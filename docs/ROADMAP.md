@@ -7750,6 +7750,81 @@ req.headers['x-forwarded-for'] ??= originalRequest?.socket?.remoteAddress
 3. 那 30 多处 `rateKey(route, clientIp(req), user.id)` 现在拿的是 `clientIp`（垃圾头＝`null`＝`no-ip`
    共享桶，不会被轮换绕过），但没换成 `gateIp` 那只带标签的桶——审计口径优先，行为是安全的，
    只是日志里看不出"这批请求写的是垃圾头"。
-4. `guest-write-gate` 的 `guestCount()` 差值不独占（见上面的污染读数），要改成只数自己造的标记。
+4. ~~`guest-write-gate` 的 `guestCount()` 差值不独占（见上面的污染读数），要改成只数自己造的标记。~~
+   **2026-10-30 第二十七片补上了**：读数与清扫都改成按本次探针的会话 token 收。
 5. 转发头只处理 `x-forwarded-for` / `x-real-ip` 两行；RFC 7239 的 `Forwarded: for=...` 与
    带端口的 IPv6 变体（`[::1]:5000` 认，裸 `::1:5000` 不认）没铺开。
+
+## §SEC 第二十七片：那道闸的读数与清扫都只算自己——上一片记下的"不独占"那一格补掉了（2026-10-30）
+
+**起点是上一片自己记下的一行账。** `guest-write-gate.integration.test.ts` 判"被挡下的请求一个 guest
+都没建"用的是**全库 guest 行数的前后差量**，`guestCount()` 那一句和 `afterAll` 里那句
+`delete from users where guest = true` 是同一个毛病的两面：前者在别的会话同时建 guest 时会把别人的行
+算到我头上（第二十六片实测红在 `expected 23 to be 20`），后者更糟——**它会把同机另一条会话正在用的
+guest 身份连着别人的项目一起删掉**。这一片不碰闸的语义，只把"量什么"与"扫什么"收成自己的。
+
+**落点**
+
+- 探针 token 全部登记（`probeTokens`），读数走 `guestsForTokens(tokens)`：
+  `count(distinct users.id)`，条件是该用户的某条会话行的 `token_hash` 落在这批 token 里且
+  `users.guest = true`。`sessions.token_hash` 存的是 sha256（`domain/session.ts:11`），
+  测试里用同一个 `hashToken` 算——不新增列、不动生产代码。
+- `afterAll` 改成 `sweepProbeGuests()`：先按这批 token 的会话行取出 user id，再依次删
+  `abuse_reports.reporter_id` → `projects.owner_id` → `sessions` → `users`。**只删自己造的**。
+- 新增一条常驻用例 ⑤：往库里埋一条**不属于本文件**的 guest（带一条自己的会话行），
+  再跑 3 个探针 token，断言 `guestsForTokens(我的 3 个) === 3`，并用
+  `guestsForTokens([那条外来的]) === 1` 当对照——证明"读数没变"不是因为查不到那条行。
+- 五处原差量读数全部替换（`25 次闸`／`正对照`／`举报入口`／`链条左端轮换`／`垃圾头`），
+  并给"标识不出 IP 时让路"那条补上 `25` 的读数：让路的样子＝每个 token 都真的走到签发身份那一步。
+- 文件头 docblock 从"钉四件事"扩成"钉五件事"，第 ⑤ 条写的就是这次的成因与做法。
+
+**凭证（逐字读数）**
+
+- 起点：`npx tsc --noEmit -p apps/web` 退出 0；改完全文件 **7 passed (7)**、`Duration 52.93s`
+  （进场时 6 条）。
+- 回归同族四份：`client-ip.test.ts` + `rateLimit.test.ts` + `guest-write-gate.integration.test.ts`
+  + `marketplace-content.integration.test.ts` → **4 files / 43 tests passed**，`Duration 28.73s`
+  （上一片同样这四份是 42 条 / 136.90s；这一片多一条用例、机器当时没那么忙）。
+- **臂 A2（闸挪到签发身份之后）**：`api/projects/route.ts` 在 `ipWriteGate` 之前先 `await requireUser()`，
+  闸照旧返回 429（状态码断言全过），但被挡下的那 5 个已经各建了一个 guest →
+  **3 failed | 3 passed**（73.61s），红在三处 `expected 25 to be 20`。这就是"闸必须在身份之前"
+  那句话现在的可核对形式。
+- **臂 A3（读数退回"全库 guest"）**：把 `guestsForTokens` 的 `inArray(token_hash)` 条件去掉 →
+  新用例 ⑤ 红在 **`expected 30 to be 3`**（8.40s）。那个 **30** 是臂跑那一刻库里带会话行的 guest 总数
+  （写下这几行时同一条 SQL 数出来是 **26**：`count(distinct u.id) from users u join sessions s on s.user_id=u.id where u.guest=true`）——
+  **这个数一直在被同机的别的会话涨落**，这正是"全库差量"不能当读数的原因，上一片的 `expected 23 to be 20` 是同一件事。
+- **第一次跑 A3 的读数作废，如实记**：当时那条用例还写着 21 次探针请求，红的方式是
+  `Test timed out in 30000ms` 而不是数值对不上——21 次串行路由调用贴着 `vitest.config.ts` 的
+  30 秒 `testTimeout` 边界，用 `-t` 单独筛出来跑就翻车（整文件跑时侥幸过）。
+  用例改成 3 次探针之后 A3 才以数值差的形式红。**教训**：新增路由级用例时先看它要打几次串行请求，
+  别把时长压在 testTimeout 那一格上。
+- 两条臂跑完都逐字节恢复：`grep -c MUT` 在 `guest-write-gate.integration.test.ts`、
+  `api/projects/route.ts`、`security/rateLimit.ts` 上都是 **0**，`git diff --stat -- api/projects/route.ts` 空。
+
+**没有牙的那几格，点名**
+
+- 把 `eq(users.guest, true)` 那半个条件去掉——**不会红**：这批 token 对应的用户本来就全是 guest，
+  这个条件在这份文件里是防御性的（挡住"token 撞上正式账号会话"那种不该被算成 guest 的情况），
+  不是当前任何一条用例的判据。
+- `sweepProbeGuests()` 的清扫本身**没有常驻见证**：它删干净与否不影响任何断言（下一个用例自己 `reset()`）。
+  它的正确性靠"只按本次 token 删"这个形状本身，而那形状与 A3 用的是同一处代码——A3 红过，
+  所以"按 token 收"这件事是有牙的；"按 token 扫"仍只是形状。
+
+**共用工作树的代价，再记一条**：臂 A2 的窗口约 74 秒，期间 `api/projects/route.ts` 是变异版本，
+另一条会话的 dev server 会热更新到它——那一版**每个被 429 挡下的请求都会白建一个 guest**。
+这次挑的是 `route.ts` 而不是 `rateLimit.ts`，改动只有一行、恢复后 `git diff` 为空。
+另外这一片修掉的那句 `delete ... where guest = true`，在修之前**每次跑这份文件都在删别人正在用的身份**，
+这是本次改动里最实际的一条收益。
+
+**仍欠**
+
+1. 库里现存的 guest 行（写这一段时数出来 26 条带会话的）属别的会话与历史轮次，本文件不再替它们清扫
+   ——**过期 guest 的回收**
+   是一个独立任务（谁来扫、留多久、怎么不误伤正在用的浏览器会话），今天没有答案。
+2. `sweepProbeGuests()` 只覆盖 `abuse_reports` / `projects` / `sessions` / `users` 四张表：
+   guest 一旦在别处留下引用（评论、点赞、上传物），删除顺序就会撞 FK。现在这份文件不产生那些行，
+   但"清扫范围"与"guest 能碰到的面"迟早会对不上。
+3. 臂 A2 只证明"闸放在身份之前"这一条；闸的**限额数字**（20/h）没有臂——它由第二十六片那批
+   `前 20 放行 / 第 21 次 429` 的读数守着，改小改大都会红在那里。
+4. 上一片仍欠的 1／2／3／5（直接暴露那档、Redis 驱动、审计里看不出垃圾头、RFC 7239）继续欠着。
+
