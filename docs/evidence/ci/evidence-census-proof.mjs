@@ -89,6 +89,12 @@
 // are DERIVED — the row from its verify:* script, the helper from the import closure — so this census did not
 // learn a filename, it re-read the tree.
 //
+// v543 (amendment 526) — this file's own README restated its numbers by hand, and two of them had drifted by
+// v542 (the arms roster still read 35 after v540 measured 40, and the "at this ref" sentence still carried
+// v533's 111 modules / 84 rows). The census now recomputes the table's five class counts, its run/residue
+// split, and the two prose numbers, and reddens when any of them disagrees. The shapes are graded exactly: a
+// table this reader cannot parse is a red asking for the edit, never a silent skip.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -99,6 +105,7 @@ import { derivePopulation, EXCLUDED, splitSet, unknownExclusions } from '../../.
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const HERE = 'docs/evidence/ci/evidence-census-proof.mjs';
+const README_FILE = 'docs/evidence/ci/README.md';
 const EVIDENCE = 'docs/evidence/';
 const SWEEP_DIR = 'docs/evidence/agents/';
 /** The extensions a checkout can RUN. A new one is admitted by this census the day it appears, as unclassified. */
@@ -204,10 +211,10 @@ export function helperClosure({ roots, tracked, read }) {
 
 /**
  * The census itself: a pure function over (tracked list, scripts, exclusions, roster, swept population, a
- * reader). Everything below the CLI is exercised by the fixture arms at the bottom, so the refusals are
- * measured on a synthetic plane rather than assumed from reading the code.
+ * reader, and the README that restates its counts). Everything below the CLI is exercised by the fixture arms
+ * at the bottom, so the refusals are measured on a synthetic plane rather than assumed from reading the code.
  */
-export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read }) {
+export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null }) {
   const rows = new Map(derivePopulation(scripts).map((r) => [r.file, r]));
   const trackedSet = new Set(tracked);
   const rosterByFile = new Map();
@@ -262,7 +269,57 @@ export function censusOf({ tracked, scripts, excluded = [], roster = [], swept =
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   if (total !== tracked.length) violations.push(`the census closes at ${total} over a population of ${tracked.length} — a module in no class is a module nobody decided about`);
 
+  const excludedSet = new Set(excluded.map((e) => e.file));
+  const running = [...rows.values()].filter((r) => !excludedSet.has(r.file));
+  const residue = [...rows.values()].filter((r) => excludedSet.has(r.file));
+  if (typeof readme !== 'string' || readme.trim() === '') {
+    violations.push('no README was supplied, so the table that restates these counts is unchecked — the census prints numbers a human copies by hand, and an unchecked copy is the rot this check exists for');
+  } else {
+    violations.push(...readmeDrift({ readme, counts, running, residue, tracked }));
+  }
+
   return { classes, rows, helpers, dangling, unclassified, counts, violations };
+}
+
+/**
+ * The README restates this census in a table and one "at this ref" sentence. Both had gone stale by hand by
+ * v542 — v533's "111 modules / 84 rows" survived three increments, and the arms roster still read 35 after
+ * v540 measured 40 — because nothing recomputed them. The shapes are graded EXACTLY: a class whose row is
+ * missing or reshaped is a red asking for the edit, not a silent skip (the absence-is-silent class).
+ */
+export function readmeDrift({ readme, counts, running, residue, tracked }) {
+  const violations = [];
+  const flat = String(readme).replace(/\s+/g, ' ');
+  const cell = (label) => {
+    const m = new RegExp(`\\| ${label} \\| \\*\\*(\\d+)\\*\\*(.*?)\\|`).exec(flat);
+    return m ? { n: Number(m[1]), rest: m[2] } : null;
+  };
+  const row = cell('ROW');
+  if (row === null) {
+    violations.push('the README has no readable ROW row — a table that cannot be read cannot be trusted to hold these numbers');
+  } else {
+    if (row.n !== counts.row) violations.push(`the README's ROW row says ${row.n} rows; this census derived ${counts.row}`);
+    const split = /\((\d+) run \+ (\d+) excluded\)/.exec(row.rest);
+    if (split === null) {
+      violations.push(`the README's ROW cell no longer states "(N run + M excluded)", so its split of ${row.n} cannot be checked`);
+    } else if (Number(split[1]) !== running.length || Number(split[2]) !== residue.length) {
+      violations.push(`the README's ROW row says ${split[1]} run + ${split[2]} excluded; this census derived ${running.length} run + ${residue.length} excluded`);
+    }
+  }
+  for (const [label, want] of [['HELPER', counts.helper], ['SWEPT', counts.swept], ['TOOL', counts.tool], ['DEFERRED', counts.deferred]]) {
+    const c = cell(label);
+    if (c === null) violations.push(`the README has no readable ${label} row — a class this census counts is one the table must state`);
+    else if (c.n !== want) violations.push(`the README says ${c.n} ${label} module(s); this census derived ${want}`);
+  }
+  const trackedM = /every one of the \*\*(\d+)\*\* tracked modules/.exec(flat);
+  if (trackedM === null) violations.push('the README\'s "tracked modules" sentence is missing or reshaped — the census cannot check the number it restates');
+  else if (Number(trackedM[1]) !== tracked.length) violations.push(`the README says ${trackedM[1]} tracked modules; this census read ${tracked.length} from the index`);
+  const atRef = /\*\*(\d+) running rows \+ (\d+) excluded by name\*\* at this ref/.exec(flat);
+  if (atRef === null) violations.push('the README\'s "running rows ... at this ref" sentence is missing or reshaped — the census cannot check the number it restates');
+  else if (Number(atRef[1]) !== running.length || Number(atRef[2]) !== residue.length) {
+    violations.push(`the README's "at this ref" sentence says ${atRef[1]} running + ${atRef[2]} excluded; this census derived ${running.length} + ${residue.length}`);
+  }
+  return violations;
 }
 
 // ── the fixture arms: every refusal above, measured on a synthetic plane ─────────────────────────────
@@ -276,6 +333,20 @@ const BASE = () => ({
     'docs/evidence/x/tool.mjs': "import { t } from './tool-helper.mjs';\n",
     'docs/evidence/x/tool-helper.mjs': '\n',
   },
+  // The README is part of the plane: it restates the counts above in the same shapes the real file uses,
+  // so the control arm proves the reader agrees with a correct table before any arm drifts one number.
+  readme: [
+    '| class | count at this ref | how it is decided |',
+    '| --- | --- | --- |',
+    '| ROW | **2** (1 run + 1 excluded) | a verify:* script, synthetic on this plane |',
+    '| HELPER | **3** | the import closure of the fixture bytes |',
+    '| SWEPT | **1** | the fixture sweep population |',
+    '| TOOL | **1** | the fixture declared tool |',
+    '| DEFERRED | **0** | none on this plane |',
+    '',
+    'The census below gives every one of the **7** tracked modules a disposition, and the derived population is',
+    '**1 running rows + 1 excluded by name** at this ref.',
+  ].join('\n'),
   scripts: {
     'verify:row': 'node docs/evidence/x/row-proof.mjs',
     'verify:excluded': 'node docs/evidence/x/excluded-proof.mjs',
@@ -359,6 +430,32 @@ const ARMS = [
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('docs/evidence/x/leaf.mjs') && v.includes('not a row')), r.violations.join(' | '));
   }],
+  ['R1 a README ROW total that drifted', (f) => { f.readme = f.readme.replace('| ROW | **2**', '| ROW | **3**'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes("the README's ROW row says 3 rows")), r.violations.join(' | '));
+  }],
+  ['R2 a README run/residue split that drifted', (f) => {
+    f.readme = f.readme.replace('(1 run + 1 excluded)', '(2 run + 0 excluded)');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('says 2 run + 0 excluded')), r.violations.join(' | '));
+  }],
+  ['R3 a README HELPER count that drifted', (f) => { f.readme = f.readme.replace('| HELPER | **3**', '| HELPER | **4**'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('says 4 HELPER')), r.violations.join(' | '));
+  }],
+  ['R4 a README class row that vanished', (f) => {
+    f.readme = f.readme.replace('| SWEPT | **1** | the fixture sweep population |', '');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('no readable SWEPT row')), r.violations.join(' | '));
+  }],
+  ['R5 a README tracked-prose count that drifted', (f) => {
+    f.readme = f.readme.replace('**7** tracked modules', '**8** tracked modules');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('says 8 tracked modules')), r.violations.join(' | '));
+  }],
+  ['R6 a README "at this ref" split that drifted', (f) => {
+    f.readme = f.readme.replace('**1 running rows + 1 excluded by name**', '**2 running rows + 0 excluded by name**');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('says 2 running + 0 excluded')), r.violations.join(' | '));
+  }],
 ];
 
 function runArms() {
@@ -367,7 +464,7 @@ function runArms() {
     patch(f);
     const tracked = (f.tracked ?? Object.keys(f.files)).slice().sort();
     const read = (p) => (Object.prototype.hasOwnProperty.call(f.files, p) ? f.files[p] : null);
-    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read });
+    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme });
     try {
       check(report);
       return { name, ok: true };
@@ -378,7 +475,7 @@ function runArms() {
   const bad = results.filter((r) => !r.ok);
   for (const b of bad) console.log(`  ARM FAILED ${b.name}: ${b.why}`);
   assert.deepEqual(bad.map((b) => b.name), [], `${bad.length} of ${results.length} arms did not reach the refusal they aimed at`);
-  console.log(`[arms] ${results.length}/${results.length} MATCHED — each refusal rises from the fixture the arm rewrites, and the prose-import arm proves the tokenizer is the sweep's`);
+  console.log(`[arms] ${results.length}/${results.length} MATCHED — each refusal rises from the fixture the arm rewrites, the prose-import arm proves the tokenizer is the sweep's, and the README arms drift one number at a time on the same plane`);
 }
 
 async function main() {
@@ -399,7 +496,9 @@ async function main() {
   );
 
   const read = (p) => (existsSync(join(ROOT, p)) ? readFileSync(join(ROOT, p), 'utf8') : null);
-  const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read });
+  assert.ok(existsSync(join(ROOT, README_FILE)), `${README_FILE} is missing — this census checks the table that restates its own counts, and a missing table is a red asking for the edit, not a skip`);
+  const readme = readFileSync(join(ROOT, README_FILE), 'utf8');
+  const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read, readme });
   assert.deepEqual(report.violations, [], `the census is RED:\n  ${report.violations.join('\n  ')}`);
   assert.deepEqual(report.unclassified, [], `the census found modules nobody has decided about: ${report.unclassified.join(', ')} — each must become a verify row, an EXCLUDED row, a reachable helper, or a ROSTER entry with a falsifiable reason`);
 
@@ -419,6 +518,7 @@ async function main() {
   console.log(`  TOOL       ${String(report.counts.tool).padStart(3)}  human-run, declared with a reason (printed below)`);
   console.log(`  DEFERRED   ${String(report.counts.deferred).padStart(3)}  runnable, blocked on a sandbox prerequisite (printed below)`);
   console.log(`  UNCLASSIFIED ${String(report.counts.unclassified).padStart(1)}`);
+  console.log(`\nREADME ${README_FILE}: ROW ${report.counts.row} = ${running.length} run + ${residue.length} excluded · HELPER ${report.counts.helper} · SWEPT ${report.counts.swept} · TOOL ${report.counts.tool} · DEFERRED ${report.counts.deferred} · ${tracked.length} tracked — the table and both prose numbers agree with this run`);
   console.log(`\nbuild rows (${running.length}): ${running.map((r) => r.name).join(', ')}`);
   for (const r of residue) console.log(`  EXCLUDED  ${r.name.padEnd(24)} ${r.file} — ${EXCLUDED.find((e) => e.file === r.file).needs}`);
   console.log('\nhelper modules:');
@@ -434,7 +534,7 @@ async function main() {
 
   runArms();
 
-  console.log(`\nevidence census: ${tracked.length} tracked modules close as ${report.counts.row} row + ${report.counts.helper} helper + ${report.counts.swept} swept + ${report.counts.tool} tool + ${report.counts.deferred} deferred · ${report.counts.unclassified} unclassified · rows ${running.length}+${residue.length} · every row file the commit owns`);
+  console.log(`\nevidence census: ${tracked.length} tracked modules close as ${report.counts.row} row + ${report.counts.helper} helper + ${report.counts.swept} swept + ${report.counts.tool} tool + ${report.counts.deferred} deferred · ${report.counts.unclassified} unclassified · rows ${running.length}+${residue.length} · every row file the commit owns · the README's table and prose restate these numbers and agree`);
 }
 
 if (sweep.isMainModule(import.meta.url)) await main();

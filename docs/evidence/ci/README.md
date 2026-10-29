@@ -129,6 +129,36 @@ runner's bytes, which is the EOL-canonicalisation working — and `verify:door-k
 ubuntu contact after the v542 repair. Job **10 m 01 s**, proofs step **8 m 02 s**, still far under the
 60-minute ceiling and the read-only token.
 
+### v543 — the table that restates these numbers is now checked by the census that derives them (ADR 0016 amendment 526)
+
+v542's own increment found this file quoting two numbers that had stopped being true — the v540 section still
+said the arms roster was 35 after v540 measured 40, and the "at this ref" sentence still carried v533's
+111 modules / 84 rows — and the repair was by hand. That is the same class of rot the receipt exists to catch
+one directory over. The census now reads this file and recomputes every derived number in it: the five class
+counts in the table below, the `(N run + M excluded)` split inside the ROW cell, the "every one of the **N**
+tracked modules" sentence, and the "**N running rows + M excluded by name** at this ref" sentence. A
+disagreement is a red naming the README's number beside the census's, and a table the reader cannot parse is
+a red asking for the edit — never a silent skip, because a check that skips is the same class as a clause
+that can never fire (v539's `drive-axis`).
+
+The numbers it compares against are derived at run time, never restated: the rows from
+`derivePopulation(pkg.scripts)` minus `EXCLUDED`, the classes from the census's own pass over
+`git ls-files`, the population from the index. Measured at this ref: `README docs/evidence/ci/README.md:
+ROW 102 = 99 run + 3 excluded · HELPER 4 · SWEPT 2 · TOOL 6 · DEFERRED 0 · 114 tracked — the table and both
+prose numbers agree with this run`, in 3.7 s on this box.
+
+Six fixture arms drift one number at a time on the synthetic plane — R1 the ROW total, R2 the run/residue
+split, R3 the HELPER count, R4 a vanished class row, R5 the tracked-prose count, R6 the "at this ref" split —
+and the census now runs **20/20 MATCHED**. Each arm replaces one literal on its plane; a needle that misses
+leaves the plane green and the arm reports ARM FAILED, so an arm cannot decay into a no-op the way one of the
+wiring arms did at v540.
+
+The reach is stated: the reader grades the table and the two sentences that claim to describe THIS ref, not
+the run-by-run paragraphs below them. Those are records of their day (v528's "32 witness arms" stays 32), and
+a count inside one of them is history, not a restatement. Where the table itself is reshaped, the census
+reddens until this reader learns the new shape; that is the intended cost of checking a document written for
+people.
+
 ### What this does NOT claim
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
@@ -143,7 +173,7 @@ runs — it ran red (`40603544099`, amendment 515's four exec-host cases on ubun
 again on the first run that carried all 84 rows (`40693312992`: 78/84 green, six platform reds, repaired at
 v534 — the row-by-row account is below), which is the evidence this section was waiting for.
 
-## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more; amendment 520 at v534 repaired the six ubuntu reds that population's first full run found; amendment 521 at v535 wired the last thirteen green swept proofs; amendment 522 at v539 repaired the one ubuntu red those thirteen's first contact exposed — a POSIX clause that could never fire; amendment 525 at v542 added the arms-receipt row and its helper)
+## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more; amendment 520 at v534 repaired the six ubuntu reds that population's first full run found; amendment 521 at v535 wired the last thirteen green swept proofs; amendment 522 at v539 repaired the one ubuntu red those thirteen's first contact exposed — a POSIX clause that could never fire; amendment 525 at v542 added the arms-receipt row and its helper; amendment 526 at v543 checks this table's five class counts, its run/residue split and both prose numbers against the census's own derivation, and reddens on drift)
 
 ```
 npm run verify:evidence-census   # a row inside the population it counts
@@ -161,9 +191,9 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
-the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **14
-fixture arms** prove each refusal on a synthetic plane; the prose-import arm proves the tokenizer is the sweep's,
-not a byte regex.
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **20
+fixture arms** prove each refusal on a synthetic plane — the fourteen above plus six that drift one README
+number each; the prose-import arm proves the tokenizer is the sweep's, not a byte regex.
 
 Four rows that needed nothing but Node walked through the door in the same increment:
 
