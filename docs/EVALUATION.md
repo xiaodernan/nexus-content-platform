@@ -1645,6 +1645,33 @@ verdict A_UNCHANGED_AFTER_EXPORT: PASS — 导出后又读了一遍 A：文档 7
    判据本身由种子输入框那条臂钉着（↑ 是数字 +1），这条缺口是语料的，不是判据的。
 3. **移动端/触摸没有量**：这一片全是桌面键盘。
 
+#### 第二十四片（2026-10-29）：选中响应——仪器一细分，旧结论就被自己的读数收窄了
+
+`docs/PERFORMANCE.md` 2026-10-10 那节写着"选中响应 57.0ms 里界面提交 ≈0ms ⇒ 地板在浏览器、不在界面代码"，
+并把这笔账留到"下一轮先补分段读数再决定动不动界面"。这一片还那笔账。
+
+**落点**
+
+- `apps/web/src/studio/CanvasStage.tsx`：选区变化时打 `nexus:sel:rendered`（`useLayoutEffect`，
+  所有 DOM 变更之后、绘制之前），开关与 `store.ts` 的两个标记同一道门。
+- `scripts/perf-browser.mts`：选中探针三段改四段（派发+命中 / 界面提交 / React 渲染 / 绘制到看见），
+  没有新标记时退回旧口径，不退化成 0。
+
+**凭证（同机两次，`dev-sel-split` / `dev-sel-profile`，8 与 100 两档各 3 次）**
+
+- 新读数：8 节点 派发+命中 0 / 界面提交 0 / **React 渲染 27–35ms** / **绘制 25–31ms**；
+  100 节点 0 / 0 / 13–45 / 20–33。**"界面提交 0ms"只覆盖 store 的 `select+commit`，React 渲染从未进账**。
+- CPU 采样把 dev 那半点名到 `exports.jsxDEV`（开发构建的 JSX 工厂；`completeWork` 3.3% / `setProp` 2.2%）。
+- 采样本身会把延迟放大：带采样那一跑同一次选择读到 203ms（8 节点）/ 373ms（100 节点），
+  而不带采样的三次是 59–60 / 33–44ms——归因窗口的总数不能当用户延迟读。
+
+**notMeasured（这一片）**
+
+1. **生产构建的四段**没量：工作区有另一会话 9 个在途文件，`next build` 会编译半成品、且与 dev server
+   共用 `.next`，所以这一片不做 prod build（仪器已备好，生产开 `NEXUS_PERF_SEGMENTS=1` 四段全打）。
+2. 4000 档分段、触摸/移动端的选中延迟。
+3. React 渲染那一格离散度 3 倍以上，只记"两半都在场"，不给具体值。
+
 ### Performance
 
 不在此复测：规模基准与热点路径的真数见 `docs/PERFORMANCE.md`（§146/§147 测量协议）。

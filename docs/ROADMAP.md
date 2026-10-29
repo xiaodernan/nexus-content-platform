@@ -134,7 +134,14 @@
       两层），臂从"设了 `NEXUS_TWO_INSTANCE_SKIP_ASSETS=1` 才跑、跑完就 exit(0)"变成默认五趟，
       另加三趟探针去证那三条臂红不到的判据自己有牙；探针当场抓到 `isSlugConflict` 在 cause 链走到头时
       自己抛 TypeError、把库里那句外键违例换成一句与病因无关的话（修复 + 真库见证见 `projects.integration.test.ts`）。
-- [ ] **之后**：`docs/PERFORMANCE.md` 剩余项。
+- [~] **之后**：`docs/PERFORMANCE.md` 剩余项。**2026-10-29 第二十四片把「选中响应」那笔旧账拆段了**：
+      `CanvasStage` 加 `nexus:sel:rendered`、探针三段改四段 —— 8 节点 React 渲染 27–35ms / 绘制 25–31ms，
+      **"界面提交 0ms"只覆盖 store 的 commit，React 渲染从来没进过账**；CPU 采样把 dev 那半点名到
+      `jsxDEV`（生产会剥掉）。读数与 notMeasured 见 `docs/PERFORMANCE.md` 2026-10-29 那节。
+      **仍欠**：生产构建下的四段读数（本次不做 prod build 的理由已记在该节）、4000 档分段；
+      以及同表里更早的「没有 worker」「健康层全量重算」（后者按该文件的判决留到真被量到卡顿再做）；
+      「画布侧没有虚拟化/增量重排」那一条**已被 ADR-0064（视口裁剪）与 ADR-0049（增量重解）取代**，
+      不再是开放项。
 
 并行会话边界（2026-10-28 实测）：observability 子系统由另一会话在途；上表前五项都在 UI 主题层，
 与它不重叠；提交只用临时索引/精确 `git add`，不碰它的 7 个在途文件。

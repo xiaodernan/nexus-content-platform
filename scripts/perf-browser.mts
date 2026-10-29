@@ -500,7 +500,7 @@ async function propToCanvasLatency(scope: string): Promise<void> {
       //    所以下面全部内联成匿名函数表达式。
       const segments = (await page.evaluate(() => {
         const t0 = performance.getEntriesByName('nexus:sel:t0', 'mark').at(-1)?.startTime;
-        if (t0 === undefined) return new Promise((r) => r({ total: NaN, dispatch: NaN, store: NaN, paint: NaN }));
+        if (t0 === undefined) return new Promise((r) => r({ total: NaN, dispatch: NaN, store: NaN, render: NaN, paint: NaN }));
         return new Promise((resolve) => {
           const timer = window.setInterval(() => {
             if (document.querySelectorAll('[data-resize-handle]').length > 0) {
@@ -508,26 +508,37 @@ async function propToCanvasLatency(scope: string): Promise<void> {
               const t1 = performance.now();
               const store0 = performance.getEntriesByName('nexus:sel:store', 'mark').at(-1)?.startTime;
               const commit = performance.getEntriesByName('nexus:sel:commit', 'mark').at(-1)?.startTime;
+              // 第三段：commit 之后到"画布 DOM 里已经有新选区"（CanvasStage 的 layout effect 打的）。
+              // 有了它，"渲染+绘制"才拆得开——以前那 40ms 里 React 自己占多少、浏览器占多少没数。
+              const rendered = performance.getEntriesByName('nexus:sel:rendered', 'mark').at(-1)?.startTime;
               resolve({
                 total: t1 - t0,
                 dispatch: store0 !== undefined ? store0 - t0 : NaN,
                 store: store0 !== undefined && commit !== undefined ? commit - store0 : NaN,
-                paint: commit !== undefined ? t1 - commit : NaN,
+                render: commit !== undefined && rendered !== undefined && rendered >= commit ? rendered - commit : NaN,
+                // 没有 rendered 标记时退回原口径（commit → 手柄），不退化成 0 假装量到了
+                paint:
+                  rendered !== undefined && rendered >= (commit ?? rendered)
+                    ? t1 - rendered
+                    : commit !== undefined
+                      ? t1 - commit
+                      : NaN,
               });
             }
           }, 2);
           window.setTimeout(() => {
             window.clearInterval(timer);
-            resolve({ total: NaN, dispatch: NaN, store: NaN, paint: NaN });
+            resolve({ total: NaN, dispatch: NaN, store: NaN, render: NaN, paint: NaN });
           }, 3000);
         });
-      })) as { total: number; dispatch: number; store: number; paint: number };
+      })) as { total: number; dispatch: number; store: number; render: number; paint: number };
       selInPage.push(segments.total);
       const seg = (v: number): string => (Number.isNaN(v) ? '量不到' : `${Math.round(v)}ms`);
       console.log(
         `  ${scope} 选中 第 ${attempt + 1} 次：驱动器全程 ${Math.round(sel.at(-1)!)}ms · ` +
           `页面内输入→手柄 ${seg(segments.total)}` +
-          `（派发+命中 ${seg(segments.dispatch)} · 界面提交 ${seg(segments.store)} · 渲染+绘制 ${seg(segments.paint)}）`,
+          `（派发+命中 ${seg(segments.dispatch)} · 界面提交 ${seg(segments.store)} · ` +
+          `React 渲染 ${seg(segments.render)} · 绘制到看见 ${seg(segments.paint)}）`,
       );
     }
     record(`选中响应${scope}`, 'ms', sel);

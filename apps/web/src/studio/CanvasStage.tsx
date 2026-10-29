@@ -187,6 +187,19 @@ export function CanvasStage() {
     return () => observer.disconnect();
   }, []);
 
+  // §147 选中响应的第三段：store 的 `nexus:sel:commit` 只到"提交完了"为止，
+  // 之后到"手柄出现在 DOM"那 40ms 上下一共拆成两半——React 渲染与提交、浏览器绘制。
+  // 这条布局副作用（跑在所有 DOM 变更之后、绘制之前）把前一半点名；
+  // 开关与 store 那两个标记同一道门：dev 常打，生产构建要 `NEXUS_PERF_SEGMENTS=1` 才打。
+  useLayoutEffect(() => {
+    if (
+      process.env.NODE_ENV !== 'production' ||
+      process.env.NEXT_PUBLIC_NEXUS_PERF_SEGMENTS === '1'
+    ) {
+      performance.mark('nexus:sel:rendered');
+    }
+  }, [state.selection]);
+
   // 滚轮：默认平移；Ctrl/⌘ + 滚轮以指针为锚点缩放（§8）
   useEffect(() => {
     const surface = surfaceRef.current;
