@@ -1,6 +1,7 @@
 import { and, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { APPROVAL_TTL_MS, AiRequestSchema, type AiRequest, type RealtimeEvent } from '@nexus/schemas';
 import { ttlLabel } from '@/lib/notify-plan';
+import { TaskUsageSchema, type TaskUsage } from '@/lib/tasksLedger';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { recordAudit } from './audit';
 import { chargeGeneration } from './credit-ledger';
@@ -60,6 +61,8 @@ export interface TaskView {
   approvedAt: string | null;
   /** 跑完用了多久；没跑完是 null，不拿"到现在为止"冒充时长 */
   durationMs: number | null;
+  /** §75：provider 报的用量；null = 这一行没记账（不是 0 token） */
+  usage: TaskUsage | null;
   /** 这一行是不是看的人自己建的；列表里只有自己的行才挂"重试/取消"按钮（别人的行点了也只会 404） */
   mine?: boolean;
 }
@@ -176,6 +179,32 @@ export async function finishTask(
     }
   }
   return { status, updated: rows.length > 0 };
+}
+
+/**
+ * §75：把 provider 报的用量落到这一行任务上。
+ *
+ * 三条边界：
+ * - **先校验再写**。库里的 jsonb 没有约束，写进去一个形状不对的用量，账本页读的时候只能整格作废
+ *   （"有字但读不懂"比"没记"更糟，§159）。
+ * - **一次任务只记一份**。CAS 是 `usage IS NULL`：同一个异步作业被两个观察者同时收尾、
+ *   或者挂起之后又在别处补记，都只会留下第一次那份——它是产生这次调用时真实拿到的那一份。
+ * - **不改任务状态**。用量不是终态，也不参与扣点；记账失败由调用方照常收尾，
+ *   不能因为账本少了一格就把一次成功的生成判死。
+ *
+ * 返回 false 的三种原因（形状不合契约 / 行不存在 / 已有值）对调用方是同一件事：没写进去。
+ * 测试拿它钉住"坏形状不进库"，业务代码不看它。
+ */
+export async function recordTaskUsage(taskId: string, usage: unknown): Promise<boolean> {
+  if (!isUuid(taskId)) return false;
+  const parsed = TaskUsageSchema.safeParse(usage);
+  if (!parsed.success) return false;
+  const rows = await getDb()
+    .update(agentTasks)
+    .set({ usage: parsed.data as never })
+    .where(and(eq(agentTasks.id, taskId), isNull(agentTasks.usage)))
+    .returning({ id: agentTasks.id });
+  return rows.length > 0;
 }
 
 /**
@@ -776,6 +805,15 @@ export async function readApprovalTask(taskId: string, actorId: string): Promise
   return approvalShape(expired ? { ...row.task, status: 'cancelled' as const } : row.task);
 }
 
+/**
+ * §75：读的时候把 jsonb 过一遍契约。坏形状 → null（照实说"没记"），
+ * 不把一个半截对象画成一份用量——那一格是要让人相信"这次真烧了多少"的数字。
+ */
+function usageOf(value: unknown): TaskUsage | null {
+  const parsed = TaskUsageSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
 function view(row: typeof agentTasks.$inferSelect & { projectName: string | null }, actorId?: string): TaskView {
   const started = row.startedAt?.getTime() ?? null;
   const finished = row.finishedAt?.getTime() ?? null;
@@ -794,6 +832,7 @@ function view(row: typeof agentTasks.$inferSelect & { projectName: string | null
     requiresApproval: row.requiresApproval,
     approvedAt: row.approvedAt?.toISOString() ?? null,
     durationMs: started !== null && finished !== null ? Math.max(0, finished - started) : null,
+    usage: usageOf(row.usage),
     ...(actorId ? { mine: row.createdById === actorId } : {}),
   };
 }

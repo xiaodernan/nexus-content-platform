@@ -12,6 +12,30 @@ import { z } from 'zod';
  * 浏览器"服务端说什么就画什么"，报文换了形状时那一手只会把错的东西画得很整齐。
  */
 
+/**
+ * §75：一次生成真正用掉了什么（provider 报的那一份）。
+ *
+ * 字段**全部必填、不给默认值**——0 token 与"没记"是两件事，默认值会把前者伪装成后者（§159）；
+ * 没记就是整格 `null`，由 `usage: … .nullable()` 那一栏说清。
+ *
+ * `modelClass` 用自由串而不是 `@nexus/schemas` 里那个枚举：这是 web 自己的读契约，
+ * 模型分类将来多一档时，账本要照实显示那一档，而不是整份报文判"不合契约"（§73）。
+ * 反过来，写入前 `recordTaskUsage` 也用这一份拷问一遍：库里的 jsonb 没有约束，
+ * 形状不对的用量写进去，读的时候只能整格作废（"有字但读不懂"比"没记"更糟）。
+ */
+export const TaskUsageSchema = z.object({
+  provider: z.string(),
+  model: z.string(),
+  modelClass: z.string(),
+  tokensIn: z.number().int().min(0),
+  tokensOut: z.number().int().min(0),
+  latencyMs: z.number().min(0),
+  costUsd: z.number().min(0),
+  toolCalls: z.number().int().min(0),
+  demoMode: z.boolean(),
+});
+export type TaskUsage = z.infer<typeof TaskUsageSchema>;
+
 export const TasksLedgerTaskSchema = z.object({
   id: z.string().min(1),
   projectId: z.string().nullable(),
@@ -35,6 +59,11 @@ export const TasksLedgerTaskSchema = z.object({
   approvedAt: z.string().nullable(),
   /** 跑完用了多久；没跑完是 null，不拿"到现在为止"冒充时长 */
   durationMs: z.number().nullable(),
+  /**
+   * §75：这一行跑的时候 provider 报的用量；`null` = 没记账（不是 0 token）。
+   * 必填而不是可选：服务端每一行都显式给这一格，"缺了"与"没记"不该在浏览器上长得一样。
+   */
+  usage: TaskUsageSchema.nullable(),
   /**
    * 这行是不是看的人自己建的。服务端只在带 actor 的读法里给（`listProjectTasks` 一直带），
    * 所以是可选的：缺了它客户端的处理是"不挂按钮"，而不是把整份报文判成不合契约。

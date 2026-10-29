@@ -2734,8 +2734,10 @@ test('@smoke §164 通知：别人真的动过，作者的收件箱里才有那�
   await expect(page.locator('[data-notification-unbacked="Agent task complete"]')).toHaveCount(0);
   await expect(page.locator('[data-notification-unbacked="Build complete"]')).toHaveCount(0);
   await expect(page.locator('[data-notification-unbacked-count="0"]')).toBeVisible();
-  // §164 的披露面：那一列逐类从注册表印出来，页面上就是登记的这十类，一个不多一个不少（任务 #94）
-  await expect(page.locator('[data-notification-backing]')).toHaveCount(10);
+  // §164 的披露面：那一列逐类从注册表印出来，页面上就是登记的这 N 类，一个不多一个不少（任务 #94）。
+  // N 从页面自己报的登记数取，不再硬编码：team 与 marketplace_report 两类加进来之后，这里原先的 10 已经过期过一次。
+  const backedCount = Number(await page.locator('[data-notification-backed-count]').getAttribute('data-notification-backed-count'));
+  await expect(page.locator('[data-notification-backing]')).toHaveCount(backedCount);
   await expect(page.locator('[data-notification-backing="publish"]')).toBeVisible();
   await expect(page.locator('[data-notification-backing="build"]')).toBeVisible();
 
@@ -2744,6 +2746,10 @@ test('@smoke §164 通知：别人真的动过，作者的收件箱里才有那�
   await expect(page.locator('[data-task-row]')).toHaveCount(1);
   await expect(page.locator('[data-task-status="succeeded"]')).toBeVisible();
   await expect(page.locator('[data-task-capability="demo"]')).toContainText('DEMO 模板');
+  // §75：用量那一格记的是 provider 真报的数——DEMO 规则版不经过模型，写 0 token 而不是编一份 token
+  await expect(page.locator('[data-task-row] [data-task-usage="demo"]')).toBeVisible();
+  await expect(page.locator('[data-task-row] [data-task-usage="demo"]')).toContainText('不经过模型');
+  await expect(page.locator('[data-tasks-usage-summary]')).toContainText('DEMO 规则版 1 行');
   await page.screenshot({ path: 'screenshots/agent-task-ledger.png' });
 
   await anonCtx.close();

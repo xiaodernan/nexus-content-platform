@@ -421,6 +421,12 @@ export const agentTasks = pgTable(
     plan: jsonb('plan'),
     input: jsonb('input'),
     result: jsonb('result'),
+    /**
+     * §75：provider 报的用量（provider / model / modelClass / tokens / latency / cost / toolCalls /
+     * demoMode）。NULL = 那一行没记账——**不是 0 token**（0045 迁移的注释写着这条口径）。
+     * 形状由 `lib/tasksLedger.ts` 的 `TaskUsageSchema` 定，写入前在 `recordTaskUsage` 里过一遍。
+     */
+    usage: jsonb('usage'),
     error: text('error'),
     /** §74/§177 高危动作需人工批准 */
     requiresApproval: boolean('requires_approval').notNull().default(false),

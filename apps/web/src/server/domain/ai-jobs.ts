@@ -5,7 +5,7 @@ import { cancelAiJob, fetchAiJobStatus, submitAiJob } from '../ai/client';
 import { cancelDemoJob, enqueueDemoJob, getDemoJob, startDemoWorker, type DemoJob } from '../ai/mock-jobs';
 import { gateResponse, heldRecord, nodeNamer, WEB_APPROVAL_POLICY, DESIGN_PATCH, type ApprovalAction, type GateResult, type HeldRecord, type NodeNamer } from '../ai/approvals';
 import { channels, getRealtimeBus } from '../realtime/bus';
-import { APPROVAL_EXPIRED_NOTE, attachJob, bumpActivityCursor, cancelTask, convergeExpiredApproval, finishTask, holdForApproval, recordCapabilityRefusal, startTask, taskByJobId, type TaskCapability } from './agent-tasks';
+import { APPROVAL_EXPIRED_NOTE, attachJob, bumpActivityCursor, cancelTask, convergeExpiredApproval, finishTask, holdForApproval, recordCapabilityRefusal, recordTaskUsage, startTask, taskByJobId, type TaskCapability } from './agent-tasks';
 import { agentLedgerFields, findAgent, loadRoster, mentionNote, type AgentRosterEntry, type ResolvedAgent } from './agents';
 import { recordAudit } from './audit';
 import { emit } from './notifications';
@@ -281,6 +281,12 @@ async function settle(
   projectName: string | null,
   status: AiJobStatusResponse,
 ): Promise<void> {
+  // §75：provider 已经跑完的话，用量先落账——它属于**那次调用**，不属于任务终态。
+  // 放在 `running` 这道预检之前，是因为被取消的行也可能对应一个真跑完的作业（token 已经烧掉）；
+  // 重复观察不会覆盖：`recordTaskUsage` 的 CAS 是 `usage IS NULL`，只会留下第一份。
+  if (status.status === 'completed' && status.result) {
+    await recordTaskUsage(task.id, status.result.usage);
+  }
   // 只写在跑的行：已经终态或已经挂起的行不再由这一路改写（同一份状态被问第二次是常态）
   if (task.status !== 'running') return;
   /** 交回客户端的那一份：过门之后可能已经不是 provider 原样给的那份（挂起走 return，拒收会抽走补丁） */

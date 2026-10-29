@@ -7,7 +7,7 @@ import { mockProvider } from '@/server/ai/mock';
 import { runAiService } from '@/server/ai/client';
 import { requireUser } from '@/server/domain/session';
 import { agentLedgerFields, mentionNote } from '@/server/domain/agents';
-import { finishTask, holdForApproval, recordCapabilityRefusal, startTask, type TaskCapability } from '@/server/domain/agent-tasks';
+import { finishTask, holdForApproval, recordCapabilityRefusal, recordTaskUsage, startTask, type TaskCapability } from '@/server/domain/agent-tasks';
 import { refusalForRun } from '@/server/domain/credit-ledger';
 import { clientIp, ipWriteGate } from '@/server/security/rateLimit';
 import { increment, observe } from '@/server/observability';
@@ -157,6 +157,10 @@ export async function POST(req: Request): Promise<NextResponse> {
      * 一条路管一条路，就等于两条路各有一套规矩。
      */
     const deliver = async (response: AiResponse, id: string): Promise<NextResponse> => {
+      // §75：provider 已经跑过，用量先落账——审批挂起与越权拒收只决定"补丁交不交回"，
+      // 不会退还已经烧掉的 token。记在门之前，是因为门之后的 `delivered` 是改写过的报文
+      //（挂起时补丁被抽走），而 usage 属于"那次调用本身"。
+      await recordTaskUsage(id, response.usage);
       const gate = gateResponse(response, WEB_APPROVAL_POLICY, nameOf, resolved.agent);
       if (gate.approvals.length > 0) {
         // 挂起：终态不写、§164 通知不发——"Generation complete"替一次还没人决定的事签字就是假事件

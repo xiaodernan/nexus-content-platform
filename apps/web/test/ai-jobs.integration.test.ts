@@ -404,6 +404,46 @@ describe('观察：web 只是镜像，写什么由观察到的东西决定', () 
   });
 });
 
+/**
+ * §75：用量属于**那次调用**，不属于任务的终态。
+ * 这一组之所以要真库，是因为它量的是"哪一列被写、什么时候被写、第二次会不会覆盖"——
+ * 这些都在 SQL 里（`update ... where usage is null`），用假库量到的只是"调用了几次"。
+ * 三态各一条，缺一条就会漏掉一类真会发生的行：跑完的、被扣下等审批的、以及用户已经取消但 provider 照旧烧完的。
+ */
+describe('§75 用量落账：跑过的那次调用留下读数，与终态怎么落无关', () => {
+  it('completed：那一行记着 provider 报的用量；再问一次仍是最初那一份', async () => {
+    const submitted = await submit();
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'completed', result: okResponse() });
+    expect((await observeJob(submitted.jobId, ownerId))?.taskStatus).toBe('succeeded');
+    expect((await taskRow(submitted.taskId)).usage).toEqual(okResponse().usage);
+    // 第二次观察走同一份 completed：任务行不重写，用量也不会被"第二份"顶掉（CAS 是 usage is null）
+    await observeJob(submitted.jobId, ownerId);
+    expect((await taskRow(submitted.taskId)).usage).toEqual(okResponse().usage);
+  });
+
+  it('挂起等审批：补丁被扣下，token 已经烧掉——用量照样落账', async () => {
+    const { submitted } = await heldJob();
+    const row = await taskRow(submitted.taskId);
+    // 终态是"还没决定"，但那次调用真的发生过：用量不能跟着补丁一起被扣下
+    expect(row.status).toBe('awaiting_approval');
+    expect(row.usage).toEqual(okResponse().usage);
+  });
+
+  it('取消之后队列才报 completed：行不改写，但烧掉的那次调用仍记上', async () => {
+    const submitted = await submit();
+    await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    // 取消那一刻还没观察到结果：没记就是没记（NULL 不是 0 token）
+    expect((await taskRow(submitted.taskId)).usage).toBeNull();
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'completed', result: okResponse() });
+    await observeJob(submitted.jobId, ownerId);
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('cancelled');
+    expect(row.usage).toEqual(okResponse().usage);
+    // 通知照旧不发：取消是用户自己点的，用量记账不会顺手多出一条"生成完成"
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+  });
+});
+
 describe('活动列表 → 实时事件：推过的不再推第二遍', () => {
   it('started/completed 走 agent.step，info 走 agent.activity；第二次观察同一批活动一条都不发', async () => {
     const submitted = await submit();

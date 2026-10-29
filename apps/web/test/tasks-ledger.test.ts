@@ -23,6 +23,8 @@ function taskRow(overrides: Record<string, unknown> = {}): Record<string, unknow
     requiresApproval: false,
     approvedAt: null,
     durationMs: null,
+    // 默认这一行"没记用量"：老行就是 null，不是 0 token（§75）
+    usage: null,
     ...overrides,
   };
 }
@@ -111,6 +113,63 @@ describe('TasksLedger 契约本身', () => {
   it('ok 不是 true 的报文过不了（这不是账本接口的回话）', () => {
     const parsed = TasksLedgerSchema.safeParse({ ok: false, projectName: 'x', tasks: [] });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe('§75 用量那一格：0 与"没记"是两件事', () => {
+  const realUsage = {
+    provider: 'openai-compatible',
+    model: 'gpt-x',
+    modelClass: 'balanced',
+    tokensIn: 1234,
+    tokensOut: 567,
+    latencyMs: 2345,
+    costUsd: 0,
+    toolCalls: 2,
+    demoMode: false,
+  };
+
+  it('没记就是 null：过得了契约，不会被当成一份"0 token 的用量"', () => {
+    const parsed = TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ usage: null })]));
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.tasks[0]!.usage).toBeNull();
+  });
+
+  it('真模型的一行：各字段原样读出（cost 为 0 也是真报的 0）', () => {
+    const parsed = TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ usage: realUsage })]));
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.tasks[0]!.usage).toEqual(realUsage);
+  });
+
+  it('DEMO 的一行：demoMode 与 0 token 是被记录下来的事实，不是缺字段', () => {
+    const demoUsage = { ...realUsage, provider: 'mock', model: 'nexus-deterministic-v1', tokensIn: 0, tokensOut: 0, demoMode: true };
+    const parsed = TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ usage: demoUsage })]));
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.tasks[0]!.usage).toMatchObject({ demoMode: true, tokensIn: 0, tokensOut: 0 });
+  });
+
+  it('少一个字段的用量过不了契约：不把缺腿的用量画成一格数字', () => {
+    const partial: Record<string, unknown> = { ...realUsage };
+    delete partial.costUsd;
+    const parsed = TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ usage: partial })]));
+    expect(parsed.success).toBe(false);
+  });
+
+  it('整格缺 usage 也过不了：服务端每行都得显式说"记了没有"', () => {
+    const withoutUsage = taskRow();
+    delete withoutUsage.usage;
+    const parsed = TasksLedgerSchema.safeParse(ledgerPayload([withoutUsage]));
+    expect(parsed.success).toBe(false);
+  });
+
+  it('modelClass 是自由串：库里多一档时照实显示，不让整份账本读不到', () => {
+    const parsed = TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ usage: { ...realUsage, modelClass: '某天新增的一档' } })]));
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.tasks[0]!.usage!.modelClass).toBe('某天新增的一档');
   });
 });
 

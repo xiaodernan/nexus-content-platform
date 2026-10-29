@@ -7422,3 +7422,53 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
 - **口径更正**：`docs/TESTING.md` / `docs/adr/0024-project-export-zip.md` 里"7 条判据全绿""22 条迁移""臂只在设 env 时"
   三处旧说法同片改口。仍然欠的那寸没变：这条脚本不在 `npm test` 里，也没有 CI 跑它。
 
+
+---
+
+## §75 AI Usage 第一切片：任务行记着那次调用真花掉了什么（2026-10-29）
+
+需求原文（§75）：记录 tokens / model / latency / cost / tool calls，用户能查看自己的 AI 用量。
+开工时的状态是"契约里有、账本里没有"：`AiResponse.usage` 早就由 mock 与真 provider 各填一份，
+同步与异步两条路却一次都没把它写进 `agent_tasks`，账本页只有"用时"一列——`latencyMs` 是 provider 自己报的，
+与那一列量的不是同一件事（那一列是任务从开始到收尾）。
+
+**落点**
+
+- **迁移 `0045_agent_task_usage.sql`**：`agent_tasks.usage jsonb`。历史行不回填：**0 token 与"没记"是两件事**，
+  给旧行补一个 0 就是在替那次调用编一个读数（§159）。
+- **读侧契约**（`apps/web/src/lib/tasksLedger.ts`）：`TaskUsageSchema` 严格校验九个字段（provider / model /
+  modelClass / tokensIn / tokensOut / latencyMs / costUsd / toolCalls / demoMode），`TasksLedgerTaskSchema.usage`
+  是"必填可空"——服务端每一行都显式给（NULL 走 `null`，缺字段整份报文不合契约）。`modelClass` 留成自由串：
+  库里将来多一档，不该让账本页整页读不出来。
+- **写侧**（`server/domain/agent-tasks.ts` 的 `recordTaskUsage`）：先过 schema，再
+  `update agent_tasks set usage = ... where id = ... and usage is null`。CAS 的用途不是"顺手加个锁"，
+  而是**同一次调用只留第一份读数**：重复观察、两个 web 实例同时收尾都不会出现第二份。
+- **两个记账点，同一个口径"用量属于那次调用，不属于终态"**：
+  - 同步（`api/ai/run/route.ts`）：`deliver()` 在 `gateResponse` 之前记账。挂起与越权拒收只决定补丁交不交回，
+    不会退还已经烧掉的 token；记在门之后还会拿到一份被抽掉补丁的报文，那不是 provider 报的东西。
+  - 异步（`server/domain/ai-jobs.ts`）：`settle()` 在 `running` 预检**之前**记账。被取消的行也可能对应一个
+    真跑完的作业——用户点了取消，token 照旧烧掉了，账本要留下这一笔；重复观察由那条 CAS 挡住。
+- **账本页**（`components/TasksLedgerLive.tsx`）：新增「用量」列与顶部三档汇总
+  （`data-tasks-usage-summary`：真模型 / DEMO 规则版 / 未记录）。DEMO 行写"DEMO 规则版不经过模型（0 token）"，
+  真模型行写模型、token、费用、工具调用数与模型侧延迟；`costUsd` 为 0 写「未计价」而不是"$0"——今天的适配器
+  没有价格表，0 与"免费"不是一回事（§159）。老行写「未记录」。
+
+**凭证**
+
+- 真库：`tasks-ledger.test.ts` + `tasks-ledger.integration.test.ts` + `ai-jobs.integration.test.ts` 共 **67/67**。
+  其中异步那条路新加三态各一条（跑完的、被扣下等审批的、取消之后队列才报完成的）；
+  集成侧 3 条（记账后原样读出、坏形状返回 false 且列仍 NULL、第二次不覆盖）。
+- eslint 0（10 个改动文件）；`tsc -p apps/web/tsconfig.json --noEmit` 0。
+- 真浏览器：`§164 通知` 一条通过，账本渲染出 `data-task-usage="demo"` 的
+  "DEMO 规则版不经过模型（0 token）"，汇总写「DEMO 规则版 1 行」，截图 `screenshots/agent-task-ledger.png`。
+- 顺带修掉一条**过期断言**：`e2e/studio.spec.ts` 原来硬编码 `[data-notification-backing]` 期望 10 条，
+  而 `NOTIFICATION_KINDS` 已由其它会话长到 12 类（marketplace_report / team）。改成从页面
+  `data-notification-backed-count` 现算——与收件箱页"会通知的"那一列从注册表现算（任务 #94）是同一课：
+  名单每长一次，手抄的期望值就过期一次。
+
+**仍欠**
+
+- 真 provider 的 `costUsd` 在 `apps/ai-service/src/ai_service/execution.py` 里硬编码 0（没有价格表），
+  所以真实调用的费用一栏只能写「未计价」；
+- 按模型 / 按项目的用量汇总页没有，账本页只按单次调用逐行显示；
+- 历史行不回填（那时确实没记）。

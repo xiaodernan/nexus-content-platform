@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TaskRetryButton } from '@/components/TaskRetryButton';
-import { readTasksLedger, type TasksLedgerPayload } from '@/lib/tasksLedger';
+import { readTasksLedger, type TasksLedgerPayload, type TaskUsage } from '@/lib/tasksLedger';
 import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
 
 const STATUS_TEXT: Record<string, string> = {
@@ -38,6 +38,28 @@ const STATUS_TEXT: Record<string, string> = {
  *   连接断开时状态标签自己写着"以刷新后的数据为准"。
  * - **不造第二份真值**：这张表不参与工作区状态，重试按钮走的还是那条 POST，行只能是库里真有的行。
  */
+
+/**
+ * §75：用量那一格的三档。`missing` 是"这一行没记账"，不是"用了 0 个 token"——
+ * 两者在库里一个 NULL 一个 0，在界面上也不许长得一样。
+ */
+function usageKind(usage: TaskUsage | null): 'missing' | 'demo' | 'real' {
+  return usage === null ? 'missing' : usage.demoMode ? 'demo' : 'real';
+}
+
+/**
+ * 一格用量的原文。只说 provider 真报了的数：
+ * - DEMO 规则版不经过模型 ⇒ 写 0 token，不写得像一次模型调用；
+ * - 费用为 0 时写「未计价」——今天的适配器还没有价格表，0 与「免费」不是一回事（§159）；
+ * - 模型侧延迟与「用时」列不是同一个数：那一列是任务从开始到收尾，这一格是 provider 自己报的。
+ */
+function usageText(usage: TaskUsage | null): string {
+  if (usage === null) return '未记录';
+  if (usage.demoMode) return 'DEMO 规则版不经过模型（0 token）';
+  const cost = usage.costUsd > 0 ? `$${usage.costUsd.toFixed(4)}` : '未计价';
+  const latency = `${Math.round(usage.latencyMs / 100) / 10} 秒`;
+  return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token · ${cost} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
+}
 
 export function TasksLedgerLive({ projectId, initial }: { projectId: string; initial: TasksLedgerPayload }) {
   const [payload, setPayload] = useState<TasksLedgerPayload>(initial);
@@ -93,6 +115,15 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
     acc[task.status] = (acc[task.status] ?? 0) + 1;
     return acc;
   }, {});
+  // §75 的三档汇总：真模型 / DEMO 规则版 / 没记账。按 usage 分而不是按 capability 分——
+  // 这一行说的是"用量是不是一次模型调用"，capability 那一列说的是"这次走的是哪条路"。
+  const usages = payload.tasks.reduce<Record<'real' | 'demo' | 'missing', number>>(
+    (acc, task) => {
+      acc[usageKind(task.usage)] += 1;
+      return acc;
+    },
+    { real: 0, demo: 0, missing: 0 },
+  );
 
   return (
     <main className="mx-auto flex max-w-[1080px] flex-col gap-4 px-6 py-10" data-tasks-root>
@@ -107,6 +138,11 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
               .map(([status, n]) => `${STATUS_TEXT[status] ?? status} ${n}`)
               .join(' · ') || '还没有跑过一次'}
           </p>
+          {payload.tasks.length > 0 ? (
+            <p className="text-11 text-fg-3" data-tasks-usage-summary>
+              用量：真模型 {usages.real} 行 · DEMO 规则版 {usages.demo} 行 · 未记录 {usages.missing} 行
+            </p>
+          ) : null}
         </div>
         <div className="flex items-baseline gap-3">
           <span className="text-11 text-fg-3" data-tasks-realtime={realtime.state}>
@@ -132,6 +168,9 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
         交回之后仍要走那一条可撤销的编辑事务，而这一页没有画布。
         重试（§162）开的是<strong>新行</strong>：失败的那一次留在表里不抹，「第几次」列写出这是第几回，
         <code>input.retryOf</code> 在库里把两行接起来——历史里看得见"第一次为什么失败"。
+        「用量」列（§75）记的是 provider 真报的数：模型、token、模型侧延迟、费用与工具调用；
+        DEMO 规则版不经过模型，写的就是 0 token，而不是拿 0 冒充一次模型调用；
+        老行没有记账，写「未记录」——0 与没记是两件事。费用 0 写「未计价」：今天的适配器还没有价格表（§159）。
         状态自己变是实时事件催的重读：事件只负责"该来读一次了"，表里的每个字都来自库里（ADR-0010/0029）。
       </p>
 
@@ -149,6 +188,7 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
               <th>能力</th>
               <th>状态</th>
               <th>用时</th>
+              <th>用量</th>
               <th>结果 / 原因</th>
               <th>操作</th>
             </tr>
@@ -171,6 +211,9 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
                 </td>
                 <td data-task-status={task.status}>{STATUS_TEXT[task.status] ?? task.status}</td>
                 <td>{task.durationMs === null ? '—' : `${Math.round(task.durationMs / 100) / 10} 秒`}</td>
+                <td data-task-usage={usageKind(task.usage)} className="text-fg-2">
+                  {usageText(task.usage)}
+                </td>
                 <td className="text-fg-2">{task.error ?? '—'}</td>
                 <td>
                   {/* 只有自己的失败/取消行才有按钮：别人行上的按钮点了也只会 404，
