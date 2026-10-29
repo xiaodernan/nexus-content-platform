@@ -77,6 +77,12 @@
 // because this census changed: another lane's verify:template-publish landed in fa53c57 and the ROW class
 // DERIVED it — a new verify:* script is a row the day the commit owns it.
 //
+// v540 (amendment 523) — the CI job gained its own envelope (a 60-minute ceiling strictly below the rows' own
+// worst case, and a read-only token), and the arms that grade the wiring were re-run for the first time since
+// v531: four had gone stale under the table that quoted them (one crashed at load, one aimed at a population
+// that had moved, one could be killed by box load, and the mixed-EOL guard refused every CRLF carrier). None
+// of it moves a census class; this note is here so the header's chronology keeps a record of the increment.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -116,7 +122,7 @@ export const ROSTER = [
     file: 'docs/evidence/ci/ci-wiring-arms.mjs',
     class: 'tool',
     run: 'node docs/evidence/ci/ci-wiring-arms.mjs',
-    why: '32 witness arms that rewrite one byte-range of the wiring gate per arm; deliberately not a verify:* script so the derivation can never schedule a file whose job is to break its own subject (amendment 514\'s README records the choice)',
+    why: '40 witness arms that rewrite one byte-range of the wiring gate per arm; deliberately not a verify:* script so the derivation can never schedule a file whose job is to break its own subject (amendment 514\'s README records the choice)',
   },
   {
     file: 'docs/evidence/agents/amendment129-probe.mjs',

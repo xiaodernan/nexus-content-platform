@@ -10,7 +10,7 @@ footnote to the evidence tree; it is the reason the evidence tree can rot.
 ```
 npm run verify:proofs      # the build's own row: run every derived proof row, exit 1 on any RED
 npm run verify:ci-wiring   # the gate over the wiring itself (and a row inside the set it enumerates)
-node docs/evidence/ci/ci-wiring-arms.mjs   # 32 witness arms, by hand — see below why it is not a row
+node docs/evidence/ci/ci-wiring-arms.mjs   # 40 witness arms, by hand — see below why it is not a row
 ```
 
 | § | what `ci-wiring-proof.mjs` refuses |
@@ -25,6 +25,7 @@ node docs/evidence/ci/ci-wiring-arms.mjs   # 32 witness arms, by hand — see be
 | 8 | `verify:ci-wiring` is absent from the running set it just enumerated |
 | 9 | the CI runner and the agents sweep disagree about the budget grammar, or a row's marker is REFUSED |
 | 10 | the build's Node cannot carry the type-stripper these proofs import |
+| 11 | the job declares no time ceiling, one that is not a whole number or under 5 minutes, one at or above the sum of the rows' own budgets (no outer bound at all), no `permissions:` block or an empty one, a write scope, or a token that lacks `contents: read` |
 
 ### What each piece is
 
@@ -59,7 +60,42 @@ silently running on the 240 000 ms fallback and reporting that nothing is declar
 slowest row `verify:mutation` at 272.7 s inside its declared 1 200 000 ms. `verify:ci-wiring` exits 0 with all
 ten clauses printing. **32 witness arms, 32 MATCHED** — 17 against the gate (a control that must reach all ten
 clauses, then one per refusal) and 15 against the runner on a synthetic plane of 6 stub rows plus the 3 shipped
-exclusions, where the stubs append to a log so "did anything execute" is measured rather than assumed.
+exclusions, where the stubs append to a log so "did anything execute" is measured rather than assumed. *(This
+is v528's roster, kept as the record of the day; v540 re-armed the tool, found three of these arms had gone
+stale in the clauses they were meant to guard, and the current number is 35 — see below.)*
+
+### v540 — the job's own envelope, and the arms that had stopped being runnable (ADR 0016 amendment 523)
+
+§11 charges what the ten clauses above it could not see: the per-row budgets bound the **proofs** step, and
+nothing bounds `npm ci`, typecheck, lint, test, build or `docker pull` — a stall there is bounded only by the
+platform's 6-hour default, and the row budgets cannot see it because they start counting later. The job now
+declares `timeout-minutes: 60` and `permissions: contents: read`. The clause refuses a missing ceiling, one that
+is not a whole number or under 5 minutes, one at or above the rows' own worst case (98 running rows: 92 ×
+240 000 ms + the six declared = 25 500 000 ms ≈ 425 min — a ceiling that high is not an outer bound, it is the
+rows' budgets in another unit), a missing or empty `permissions:` block, a write scope, and a token that lacks
+`contents: read`. Measured: `[§11] job ceiling 60 min is BELOW the rows' own worst case 425 min
+(98 rows) · token narrowed to [contents: read] · no write scope`.
+
+The first **re-run** of the arms since v531 is also this increment's evidence about itself, and it found that
+the instrument had rotted while the table kept quoting it. A8 crashed at load: its needle assumed the Build and
+Evidence proofs steps were adjacent, and v531's docker pre-pull has stood between them ever since — the arming
+script for §4 had been un-runnable while this section kept saying "32 MATCHED", a number measured at v528. A14
+exited 0: it deleted one `// sweep-budget-ms` marker by name, which armed "nobody declares a budget" when one
+row declared one (v528) and stopped arming it when six did (v540) — it now derives its edit set from the running
+population. R2b was a witness that could die of load: it passes `--budget 600` to the whole synthetic plane, and
+on a busy box a healthy stub took 0.7 s and was killed before the row under test spoke; every stub now declares
+its own budget, and the row under test carries 30 000 ms over a 1.5 s loop. The `splice()` guard that refuses a
+mixed-EOL carrier was written with a lookahead (`/\n(?!\r)/`) that flags every ordinary CRLF ending, so the first
+derived needle into a pure-CRLF proof (`table-recount-proof.mjs`) was refused as "mixed" — a one-character
+guard bug, never seen because every carrier the hand-written arms edit is LF. And A19 earned its §11 arm the
+hard way: widening the token reddened one assertion EARLIER than the sentence it names, because §11 checked
+`contents: read` before the write refusal — refusals now precede adequacy checks. The roster is closed in both
+directions (every printed clause has an arm; every arm aims at a printed clause), and it is **40** (25 against
+the gate — a control plus one arm per refusal, §11 carrying eight — and 15 against the runner): **40/40 MATCHED**.
+
+The bound this paragraph leaves standing is the honest one: the arms are still a human-run tool, and nothing
+schedules them. v540 measured them and repaired what their first run since v531 found; it did not make
+the next rot announce itself. A number in this file is only as fresh as its last run.
 
 ### What this does NOT claim
 

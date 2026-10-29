@@ -8,6 +8,16 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    # The proofs step has per-row budgets, but nothing ABOVE it does: `npm ci`, typecheck, lint, test, build
+    # and `docker pull` are bounded only by the platform's default. 60 minutes is generous against measured
+    # runs (98 rows in 7 m 27 s of proofs-step wall time, run 40723067246) and far below the rows' own worst
+    # case (92 default rows × 240 s plus the six declared ones ≈ 7.1 h), so this is the TIGHTER ceiling rather
+    # than a second copy of theirs.
+    timeout-minutes: 60
+    # Checkout, test, build, run proofs — nothing in this workflow writes back, so the token is narrowed to
+    # what actions/checkout needs instead of carrying the repository default.
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:

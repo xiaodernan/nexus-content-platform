@@ -20,7 +20,9 @@
 // §9 walks the same road for the milliseconds: a row declares its own budget in a first-column comment the
 // agents sweep named, and the CI reader must answer the SAME way that reader does on the same
 // bytes — obeyed, defaulted, refused, and above all blind to a marker quoted inside a string. §10 charges the
-// Node the build selects, because the proofs import a type-stripper that a lower Node does not have.
+// Node the build selects, because the proofs import a type-stripper that a lower Node does not have. §11
+// charges the job's own envelope: the row budgets bound the proofs step and nothing above it, so the job
+// declares a ceiling that is TIGHTER than their sum, and a token that can only read.
 //
 // §8 makes this file self-reference its own admission: the script `verify:ci-wiring` must exist and point
 // here, so the door that guards the wiring is itself walked by the wiring it guards.
@@ -270,4 +272,40 @@ let buildNodeMajor = 0;
   console.log(`[§10] build Node major ${buildNodeMajor} >= 22 · this box ${process.version} carries the type-stripper the proofs import`);
 }
 
-console.log(`\nci wiring: trigger covers master · proof step #${proofSteps[0].index} · no swallowed verdict in ${steps.length} steps · build precedes it · population ${population.length} closes as ${splitSet(population).running.length} + ${splitSet(population).residue.length} · budget grammar shared with the agents sweep · build Node ${buildNodeMajor}`);
+// ── §11 the job's own envelope: a ceiling above the per-row budgets, and a token that can only read ──
+// The per-row budgets of §9 bound the PROOFS step. Nothing bounds `npm ci`, typecheck, lint, test, build or
+// `docker pull`: a stalled network call there is bounded only by the platform default (6 h), and the row
+// budgets cannot see it because they start counting later. So the job declares its own ceiling, and this
+// clause refuses both ways it can rot: the ceiling disappearing, and the ceiling being raised past the rows'
+// own worst case — at which point it is not an outer bound at all, just the rows' budgets in another unit.
+// The token is the same shape one level down: the default is broader than this workflow's read-only uses.
+let jobTimeoutMinutes = 0;
+{
+  const jobHead = (wf.match(/^jobs:[\s\S]*?^ {4}steps:/m) || [])[0] || '';
+  const field = (k) => (jobHead.match(new RegExp(`^ {4}${k}:\\s*(.*)$`, 'm')) || [])[1]?.trim() ?? null;
+  const declaredTimeout = field('timeout-minutes');
+  assert.ok(declaredTimeout !== null, `${WORKFLOW}: the job declares no \`timeout-minutes\`, so a stalled \`npm ci\`, typecheck, lint, test, build or \`docker pull\` is bounded only by the platform default — the proofs' per-row budgets bound the proofs step, not the steps above it`);
+  assert.match(declaredTimeout, /^\d+$/, `the job's \`timeout-minutes\` is ${JSON.stringify(declaredTimeout)}, not a whole number of minutes`);
+  jobTimeoutMinutes = Number(declaredTimeout);
+  assert.ok(jobTimeoutMinutes >= 5, `the job ceiling is ${jobTimeoutMinutes} min — below 5 it cannot let this build finish, so it would redden every run rather than bound a hang`);
+  const { running } = splitSet(population);
+  const worstRowMs = running.reduce((s, r) => s + producer.rowBudgetOf(r.file).ms, 0);
+  assert.ok(jobTimeoutMinutes * 60_000 < worstRowMs, `the job ceiling is ${jobTimeoutMinutes} min (${jobTimeoutMinutes * 60_000}ms) and the ${running.length} rows' own worst case is ${worstRowMs}ms (${Math.ceil(worstRowMs / 60_000)} min) — a ceiling at or above the sum of the row budgets is not an outer bound; it is the rows' budgets wearing another unit, and the steps ABOVE the proofs stay unbounded`);
+  const permsAt = jobHead.split(/\r?\n/).findIndex((l) => /^ {4}permissions:\s*$/.test(l));
+  assert.ok(permsAt >= 0, `${WORKFLOW}: the job declares no \`permissions:\` block, so the token is whatever the repository default is — broader than this workflow's read-only uses`);
+  const perms = [];
+  for (const line of jobHead.split(/\r?\n/).slice(permsAt + 1)) {
+    if (!/^\s{6,}\S/.test(line)) break;
+    perms.push(line.trim());
+  }
+  assert.ok(perms.length, `${WORKFLOW}: the job's \`permissions:\` block is empty, so it narrows nothing`);
+  // The refusal before the adequacy check, for §9's reason: a write scope is the hazard, and the
+  // read-inclusion sentence ("cannot tell a narrowed token from an empty one") misnames it. A19 found this
+  // by widening the token to `contents: write` and landing one assertion EARLIER than the sentence it names.
+  const writes = perms.filter((p) => /\bwrite\b/.test(p));
+  assert.deepEqual(writes, [], `the job's token grants a WRITE scope: ${writes.join(', ')} — this workflow checks out, typechecks, lints, tests, builds and runs proofs; nothing it does writes back to the repository`);
+  assert.ok(perms.includes('contents: read'), `the job's token scopes are [${perms.join(', ')}] and do not include \`contents: read\`, which actions/checkout needs — this clause cannot tell a narrowed token from an empty one otherwise`);
+  console.log(`[§11] job ceiling ${jobTimeoutMinutes} min is BELOW the rows' own worst case ${Math.ceil(worstRowMs / 60_000)} min (${running.length} rows) · token narrowed to [${perms.join(', ')}] · no write scope`);
+}
+
+console.log(`\nci wiring: trigger covers master · proof step #${proofSteps[0].index} · no swallowed verdict in ${steps.length} steps · build precedes it · population ${population.length} closes as ${splitSet(population).running.length} + ${splitSet(population).residue.length} · budget grammar shared with the agents sweep · build Node ${buildNodeMajor} · job ceiling ${jobTimeoutMinutes} min with a read-only token`);
