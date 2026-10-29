@@ -10,7 +10,7 @@ import { keyboardWalk, type WalkOptions } from './support/keyboard-walk';
  * 而第四片已经把同一句话说成过教训：扫不到的面不许说它过。门本体抽进 `support/keyboard-walk.ts`
  * 之后，这一片只负责点名"每张界面里哪个控件绝不能退化成鼠标专用"。
  *
- * 纪律不变：不断言阈值，只钉六道结构不变式（非空转／点名在册／无陷阱／覆盖／顺序／焦点可见），
+ * 纪律不变：不断言阈值，只钉结构不变式（非空转／点名在册／无陷阱／覆盖／顺序／焦点可见／停留点有归属），
  * 读数打印进报告再抄 docs/EVALUATION.md。
  *
  * 会话与项目都用**同一个夹具账号**（`reusableMemberWithProject`）：注册按 IP 限流 10 次/小时、
@@ -93,6 +93,6 @@ test('§85 键盘可达性：只用键盘走完登录后那五张界面（WCAG 2
     );
   }
 
-  console.log(`\n== §85 第七片汇总（五张界面 · 只用键盘 · 六道结构门全过） ==`);
+  console.log(`\n== §85 第七片汇总（五张界面 · 只用键盘 · 七道结构门全过） ==`);
   for (const line of summary) console.log(`  ${line}`);
 });

@@ -51,7 +51,9 @@
 - [x] **浅色 / danger 与 warn 当文字** → 同形状的 `-ink`（132 处 / 56 文件，`4e64418` 之后的下一片；两主题 × 四级表面都过 AA）。
 - [ ] **浅色 / 其余语义色清点**：`text-success` / `text-info` / `text-brand` 当前为 0，出现即按同一道门收。
 - [x] **浅色入口**：主题切换（系统偏好 + 显式选择、持久化），并把第五片"入口一出现就变硬门"的自查门转成硬门（`acada56` 之后的主题片）。
-- [ ] **主题切换的浏览器见证**：暗/浅 × 首页 / Studio / 公开页，axe + 键盘双门；浅色读数进 `docs/EVALUATION.md`。
+- [x] **主题切换的浏览器见证**：暗/浅 × 首页 / Studio / 公开页，axe + 键盘双门；浅色读数进 `docs/EVALUATION.md`。
+      六组合各 0 违规 / 0 critical / 0 对比度节点，切换键 Enter 与 Space 都真的翻像素；登录后九张浅色 axe 0 违规；
+      顺带抓到两个真缺陷（Studio 的 Space 劫持、共用键盘门缺隐式停留点分类）。第二十二片。
 - [~] **移动端布局体检（公开页优先）**：第一片已量（`e2e/mobile-layout.spec.ts`，第十三片）——真发布语料
       五张 × 两栏，读数在 `docs/EVALUATION.md`：帧宽全 1440、390 下要平移 1082px、首屏可见 27%、
       `a[data-action-author]` 56×21。**还欠的是那两半**：① `resolveLayout` 没传 `breakpoint`，作者的
@@ -7472,3 +7474,38 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
   所以真实调用的费用一栏只能写「未计价」；
 - 按模型 / 按项目的用量汇总页没有，账本页只按单次调用逐行显示；
 - 历史行不回填（那时确实没记）。
+
+## §120 × §85 主题切换的浏览器见证：暗/浅 × 三张面（2026-10-29）
+
+需求原文（§120 主题入口 / §85 无障碍）：主题切换只有"首页点一下会换、刷新还记得"这一条见证；
+浅色的 axe 只扫过游客五张与登录后九张，**真实发布出来的公开作品页从没在浅色下被量过**。
+
+**落点**
+
+- `e2e/theme-toggle.spec.ts` 新用例：3 张面（首页 `/`、Studio `/studio/<id>`、公开作品页 `/n/<handle>/<slug>`）
+  × 两个主题 = 六组合。每组合：主题经产品自己的入口写进 `localStorage` → 重新进入 → 取样探针
+  （沿祖先链第一个不透明底色 + 取 60 个带文字元素算最低对比度）→ axe（WCAG 2.0/2.1 A+AA，排除
+  `nextjs-portal`）→ `keyboardWalk` 七道门 → Tab 到 `[data-theme-toggle]` → Enter 翻过去、Space 翻回来，
+  每次读 body 计算底色。公开页用真发布 + 匿名访客上下文；作者投影子树带 `author` 标记，不参与"残留暗底"判据。
+- `e2e/a11y-light.spec.ts` 新增登录后九张浅色 axe（夹具账号 + 真项目，不断言违规条数，只钉结构不变式）。
+- **真缺陷一**：`CanvasStage.tsx` 的 window keydown 对 Space 无条件 `preventDefault`（按住空格平移画布），
+  把落在按钮上的 Space 原生激活吞掉（WCAG 2.1.1）。修法：焦点在控件上时跳过（`onControl`）。
+- **真缺陷二**（门自己）：Chrome 给可滚动容器加隐式 tab 停留点，公开页的「顺序」门把它当产品错位。
+  `e2e/support/keyboard-walk.ts` 的 `Stop` 加 `pos` / `scrollable`，新增第七道门「停留点有归属」；
+  顺序门只比分母内停留点。
+
+**凭证**
+
+- 读数（六组合）：axe 通过 首页 25/25、Studio 23/23、公开页 24/24（暗/浅各一），违规 / critical /
+  对比度不合格节点全 0；取样最低 4.71 / 4.71 / 5.58–5.59。键盘 21/21、70/70、18/18；
+  Enter 与 Space 在三面两主题下都真的翻像素。逐行表见 `docs/EVALUATION.md` 第二十二片。
+- 登录后九张浅色：通过 25/23/21/22/21/22/21/21/22，违规全 0，最低对比度 4.64（市场）。
+- 新用例 **1 passed（21.3s）**；键盘回归 `keyboard-a11y` + `keyboard-surfaces` **2 passed（25.7s）**；
+  eslint 0（5 个改动文件）；`tsc -p e2e/tsconfig.json` 与 `-p apps/web/tsconfig.json` 各 0。
+
+**仍欠**
+
+- 浅色键盘走查只到三张面；其余六张登录后界面只有 axe。
+- `GamePlay.tsx` / `RpgPlay.tsx` / `WorldWalk.tsx` 三处 window keydown 对 Space 与方向键同样
+  无条件 `preventDefault`，同类 WCAG 2.1.1 风险没量也没改（夹具项目里没有游戏设计，没有语料）。
+- 运行中改系统主题不生效（只首帧读 `prefers-color-scheme`），没有浏览器见证。

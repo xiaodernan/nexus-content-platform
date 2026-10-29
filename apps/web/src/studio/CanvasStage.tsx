@@ -206,7 +206,13 @@ export function CanvasStage() {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const typing = Boolean(target?.isContentEditable) || Boolean(target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
-      if (event.code === 'Space' && !typing) {
+      // 空格在按钮/链接上是**原生激活键**（WCAG 2.1.1 的键盘那条腿），这里只是"按住空格平移画布"的
+      // 快捷键。焦在控件上时不许劫走它：`preventDefault` 会把按钮的 click 吞掉（本仓 2026-10-29
+      // 在 Studio 上量到主题切换键按 Space 不翻）。判据放在控件族上，而不是只判 button。
+      const onControl = Boolean(
+        target?.closest('button, a[href], summary, [role="button"], [role="checkbox"], [role="radio"], [role="switch"], [role="tab"], [role="menuitem"]'),
+      );
+      if (event.code === 'Space' && !typing && !onControl) {
         spaceRef.current = true;
         event.preventDefault();
         return;

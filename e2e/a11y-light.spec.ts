@@ -244,3 +244,75 @@ test('§90 浅色下登录错误的 danger-ink 真的过 AA（浏览器量）', 
   expect(measured.fg, '错误文案没有吃到浅色的 danger-ink').toBe(rgbFrom("[data-nexus-theme='light']", 'danger-ink'));
   expect(ratio, `danger-ink 压 ${measured.bg} 只有 ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
 });
+
+/**
+ * §85 登录后界面的浅色读数（首跑）。
+ *
+ * 之前的浅色门只覆盖游客五张；主题入口落地后，Studio／通知这些"登录后才看得到"的面也能切浅色了。
+ * 这一条先把读数拿出来——**不断言违规条数**，只钉结构不变式（浅色真落地 / 扫描不空转 / 没有 critical）。
+ * 首跑抓到什么就修什么，读数抄进 docs/EVALUATION.md。
+ *
+ * 会话与项目用 `reusableMemberWithProject`：注册 10 次/小时、建项目 20 次/小时，
+ * 读数不需要每次新账号，固定夹具邮箱有项目就直接用。
+ */
+test('§85 登录后界面的浅色 axe（首跑读数）', async ({ page }) => {
+  test.setTimeout(900_000);
+  const { reusableMemberWithProject } = await import('./support/auth-session');
+  const { projectId } = await reusableMemberWithProject(
+    page,
+    'a11y-light-fixture@nexus.test',
+    'e2e-secret-123',
+    '浅色内部样板',
+  );
+  const surfaces: Array<{ label: string; path: string; ready: string }> = [
+    { label: '首页', path: '/', ready: '[data-auth-identity]' },
+    { label: 'Studio', path: `/studio/${projectId}`, ready: '[data-canvas-frame]' },
+    { label: '发现', path: '/discover', ready: '[data-discover-root]' },
+    { label: '市场', path: '/marketplace', ready: '[data-marketplace-type-nav]' },
+    { label: '通知', path: '/notifications', ready: 'main' },
+    { label: '创作数据', path: '/analytics', ready: 'main' },
+    { label: '全平台搜索', path: '/search?q=e2e', ready: 'main' },
+    { label: '额度与消费', path: '/credits', ready: 'main' },
+    { label: 'API 凭据', path: '/api-tokens', ready: 'main' },
+  ];
+  const rows: Array<{ label: string; passes: number; violations: number; critical: number; contrastNodes: number }> = [];
+  const failures: string[] = [];
+
+  for (const surface of surfaces) {
+    await page.goto(surface.path);
+    const ready = await page
+      .waitForSelector(surface.ready, { timeout: 60_000 })
+      .then(() => true)
+      .catch(() => false);
+    expect(ready, `${surface.label} 没渲染出 ${surface.ready}——这一张根本没被扫到`).toBe(true);
+
+    const applied = await toLight(page);
+    const stale = applied.samples.filter((s) => s.bg === DARK_BG);
+    if (applied.attr !== 'light' || applied.bg !== LIGHT_BG || applied.color !== LIGHT_FG || applied.samples.length === 0 || stale.length > 0) {
+      failures.push(
+        `${surface.label}：浅色没有真的落到页面上（取样 ${applied.samples.length} · attr=${applied.attr} ` +
+          `body=${applied.bg} 期望 ${LIGHT_BG}${stale.length ? ` · ${stale.length} 个元素仍是暗底` : ''}）`,
+      );
+      continue;
+    }
+    const worst = applied.samples.reduce<Sampled>((min, s) => (s.ratio < min.ratio ? s : min), applied.samples[0]!);
+    const r = await scan(page);
+    const critical = r.violations.filter((v) => v.impact === 'critical').length;
+    const contrastNodes = r.violations.filter((v) => v.id === 'color-contrast').reduce((sum, v) => sum + v.nodes.length, 0);
+    rows.push({ label: surface.label, passes: r.passes.length, violations: r.violations.length, critical, contrastNodes });
+    console.log(
+      `\n  【${surface.label}（浅色·登录后）】最低 ${worst.ratio.toFixed(2)}:1（${worst.sel}）· 通过 ${r.passes.length} · 违规 ${r.violations.length} · 对比度不合格 ${contrastNodes}`,
+    );
+    for (const v of r.violations) {
+      console.log(`      - ${v.id}（${v.nodes.length}）：${v.help}`);
+      for (const n of v.nodes.slice(0, 6)) console.log(`          target: ${n.target.join(' ')}`);
+    }
+    if (r.passes.length === 0) failures.push(`${surface.label}：passes=0 ⇒ 扫描可能在空转`);
+    if (critical > 0) failures.push(`${surface.label}：critical ${critical} 类`);
+  }
+
+  console.log(`\n== §85 登录后界面的浅色 axe 读数 ==`);
+  console.log('  界面 | 通过 | 违规 | critical | 对比度不合格节点');
+  for (const row of rows) console.log(`  ${row.label} | ${row.passes} | ${row.violations} | ${row.critical} | ${row.contrastNodes}`);
+  expect(failures, `结构不变式红在：\n${failures.join('\n')}`).toEqual([]);
+});

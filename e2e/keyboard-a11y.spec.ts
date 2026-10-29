@@ -9,11 +9,12 @@ import { keyboardWalk, tabTo, type WalkOptions } from './support/keyboard-walk';
  * 唯一"必须按一下才走得通"的公开页——热点一旦不再是键盘可聚焦的（退化成 `div + onClick`、
  * 或被人加了 `tabindex="-1"`），鼠标那条链照旧通（§167 的用例仍绿），只有这里会红。
  *
- * 六道结构门本体在 `support/keyboard-walk.ts`（第七片抽过去，同一套门还要量 Studio／发现／
+ * 七道结构门本体在 `support/keyboard-walk.ts`（第七片抽过去，同一套门还要量 Studio／发现／
  * 市场／通知），这一片留下的只有公开页自己的那两件事：**热点点名在册**（走查前）与
  * **热点真被走到、Enter 按得响**（走查后）。
- * 读数一律打印进报告抄 docs/EVALUATION.md；六道门与「热点在册」都过了变异臂（正 tabindex／
- * 热点 tabindex=-1／摘掉 ring），还原后 md5 逐字节复核。
+ * 读数一律打印进报告抄 docs/EVALUATION.md；前六道门与「热点在册」都过了变异臂（正 tabindex／
+ * 热点 tabindex=-1／摘掉 ring），还原后 md5 逐字节复核。第七道「停留点有归属」是 2026-10-29
+ * 在主题那片补的，只在本文件的载体上跑过绿，**没有跑变异臂**——别读成它也被证伪过。
  */
 
 const RUN = Date.now().toString(36);
