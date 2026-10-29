@@ -28,6 +28,9 @@
  *      a listing the buyer PAID FOR keeps its row, states that it is retired, keeps naming the
  *      buyer as its owner, and keeps a Refund action that reads the RECORD — pressing it makes the
  *      buyer whole and the now-unowned row finally leaves;
+ *   6g. a take-down can be PUT BACK (v542): the shelf remembers WHAT it withdrew beside what is still
+ *      for sale, the record survives a reload, and a Put back action returns a listing to the shelf
+ *      (and out of the withdrawn record) — again across a reload;
  *   7. clearing writes a VALID empty ledger and the page returns to its empty state;
  *   8. no uncaught page errors, and a screenshot is written as evidence.
  *
@@ -395,6 +398,64 @@ try {
     shelfReload.rows === 1 && shelfReload.retired === 0 && shelfReload.gone === true &&
       /balance: 1000 credits/.test(shelfReload.wallet ?? '') && /1 listing\(s\)/.test(shelfReload.header ?? ''),
     JSON.stringify(shelfReload),
+  );
+
+  // 6g. A TAKE-DOWN CAN BE PUT BACK (v542). A retire used to be a plain removal; format 2 remembers
+  // WHAT was withdrawn beside what is still for sale, so the shelf can offer the move reversed. The
+  // claim is measured where a shelf alone cannot answer it: the record now, and the record after a
+  // reload — the same two facts a person would check before trusting the button.
+  const retireLast = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-retire=\"tpl-saas\"]'); if (!b) return false; b.click(); return true; })()",
+  );
+  await page.waitForFunction("(() => document.querySelectorAll('[data-credits-listing]').length === 0)()", { timeout: 10000 });
+  const withdrewLast = await page.evaluate(
+    "(() => ({ rows: document.querySelectorAll('[data-credits-listing]').length, withdrawn: document.querySelectorAll('[data-credits-withdrawn]').length, strip: document.querySelector('[data-credits-withdrawn-strip]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, header: document.querySelector('[data-credits-store]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }))()",
+  );
+  check(
+    'retiring the LAST listed template empties the shelf but RECORDS the take-down (3 withdrawn, the newest named)',
+    retireLast === true && withdrewLast.rows === 0 && withdrewLast.withdrawn === 3 &&
+      /0 listing\(s\)/.test(withdrewLast.header ?? '') &&
+      /WITHDRAWN · 3 listing\(s\)/.test(withdrewLast.strip ?? '') &&
+      /SaaS Dashboard/.test(withdrewLast.strip ?? ''),
+    JSON.stringify(withdrewLast),
+  );
+
+  await page.navigate(`${URL_BASE}/credits`, { waitForSelector: '#nexus-credits' });
+  await page.waitForFunction("!!document.querySelector('[data-credits-wallet]')", { timeout: 20000 });
+  const withdrawnReload = await page.evaluate(
+    "(() => ({ rows: document.querySelectorAll('[data-credits-listing]').length, withdrawn: document.querySelectorAll('[data-credits-withdrawn]').length, ids: [...document.querySelectorAll('[data-credits-withdrawn]')].map((el) => el.getAttribute('data-credits-withdrawn')), strip: document.querySelector('[data-credits-withdrawn-strip]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }))()",
+  );
+  check(
+    'the WITHDRAWN record survives a reload: the empty shelf reads back and all three take-downs are remembered',
+    withdrawnReload.rows === 0 && withdrawnReload.withdrawn === 3 &&
+      ['tpl-starter', 'tpl-mobile', 'tpl-saas'].every((id) => withdrawnReload.ids.includes(id)) &&
+      /WITHDRAWN · 3 listing\(s\)/.test(withdrawnReload.strip ?? ''),
+    JSON.stringify(withdrawnReload),
+  );
+
+  const putBack = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-relist=\"tpl-saas\"]'); if (!b) return false; b.click(); return true; })()",
+  );
+  await page.waitForFunction("(() => document.querySelectorAll('[data-credits-listing]').length === 1)()", { timeout: 10000 });
+  const relisted = await page.evaluate(
+    "(() => ({ rows: document.querySelectorAll('[data-credits-listing]').length, withdrawn: document.querySelectorAll('[data-credits-withdrawn]').length, relistGone: !document.querySelector('[data-credits-relist=\"tpl-saas\"]'), row: document.querySelector('[data-credits-listing=\"tpl-saas\"]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, header: document.querySelector('[data-credits-store]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }))()",
+  );
+  check(
+    'Put back returns a withdrawn listing to the shelf and takes it off the withdrawn record',
+    putBack === true && relisted.rows === 1 && relisted.withdrawn === 2 && relisted.relistGone === true &&
+      /SaaS Dashboard/.test(relisted.row ?? '') && /1 listing\(s\)/.test(relisted.header ?? ''),
+    JSON.stringify(relisted),
+  );
+
+  await page.navigate(`${URL_BASE}/credits`, { waitForSelector: '#nexus-credits' });
+  await page.waitForFunction("!!document.querySelector('[data-credits-wallet]')", { timeout: 20000 });
+  const relistReload = await page.evaluate(
+    "(() => ({ rows: document.querySelectorAll('[data-credits-listing]').length, withdrawn: document.querySelectorAll('[data-credits-withdrawn]').length, row: document.querySelector('[data-credits-listing=\"tpl-saas\"]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null }))()",
+  );
+  check(
+    'a PUT-BACK survives a reload too: the shelf reads back one listing and two withdrawals',
+    relistReload.rows === 1 && relistReload.withdrawn === 2 && /SaaS Dashboard/.test(relistReload.row ?? ''),
+    JSON.stringify(relistReload),
   );
 
   // 7. clearing writes a valid empty ledger and returns the page to its empty state.

@@ -35,7 +35,9 @@
 //      (`refundEligibility`) answers the same gate without writing anything;
 //   §11 a listing can be RETIRED, and a retire erases nothing the record says: the catalog is what is
 //      for sale NOW and the ledger is what was BOUGHT, so the buyer still owns a retired ref, can
-//      still be made whole for it by name, and the id can be listed again under another author;
+//      still be made whole for it by name, and the id can be listed again under another author; the
+//      SHELF REMEMBERS what it withdrew (v542), so the record survives a reload and a listing can be
+//      put back — and a version-1 shelf (written before take-downs were remembered) is migrated;
 //   §12 HEAD is byte-identical: everything ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/credits-proof.mjs
@@ -550,16 +552,31 @@ try {
     'a retired listing nobody owns was shown as a row',
   );
 
-  // What a retire leaves is SAVABLE (v541): the page holds the shelf in `catalogStore`, so the store
-  // must round-trip the SAME catalog — the two surfaces cannot disagree about what is for sale.
+  // What a retire leaves is SAVABLE (v541) and what it TOOK is remembered (v542): the page holds the
+  // shelf in `catalogStore`, so a take-down must round-trip BOTH lists — the shelf cannot disagree
+  // with itself about what is for sale OR about what it could put back.
   const shelfKv = new Map();
   const shelfKvSeam = { getItem: (key) => shelfKv.get(key) ?? null, setItem: (key, value) => shelfKv.set(key, value) };
-  const savedRetired = catalogStore.saveCatalog(shelfKvSeam, retired.catalog);
+  const savedRetired = catalogStore.saveCatalog(shelfKvSeam, retired.catalog, [retired.listing]);
   assert.equal(savedRetired.ok, true, `the retired shelf could not be saved: ${savedRetired.reason}`);
+  assert.equal(JSON.parse(shelfKv.get('nexus.catalog.v1')).version, 2, 'the saved shelf was not written in format 2');
   const loadedRetired = catalogStore.loadCatalog(shelfKvSeam);
   assert.equal(loadedRetired.ok, true, `the saved shelf could not be read back: ${loadedRetired.reason}`);
   assert.equal(loadedRetired.source, 'stored', 'the saved shelf did not read back as stored');
   assert.deepEqual(loadedRetired.catalog.listings.map((listing) => listing.id), ['tpl-free'], 'the retired shelf did not round-trip');
+  assert.deepEqual(loadedRetired.withdrawn.map((listing) => listing.id), ['tpl-paid'], 'the withdrawn record did not round-trip');
+  // What was withdrawn is kept WHOLE, so a PUT-BACK has something to put back — and putting it back is
+  // the same `addTemplate` the shelf uses for any listing, not a second path that skips validation.
+  const putBack = catalogMod.addTemplate(loadedRetired.catalog, loadedRetired.withdrawn[0]);
+  assert.equal(putBack.ok, true, `a withdrawn listing could not be put back: ${putBack.reason}`);
+  assert.equal(catalogMod.templateById(putBack.catalog, 'tpl-paid')?.id, 'tpl-paid', 'the put-back did not return the listing to the shelf');
+
+  // A version-1 document — written before take-downs were remembered — is MIGRATED, not refused: its
+  // shelf is the same shelf, and an empty withdrawal record is the truthful reading of it.
+  shelfKv.set('legacy', JSON.stringify({ version: 1, listings: [PAID] }));
+  const legacy = catalogStore.loadCatalog(shelfKvSeam, 'legacy');
+  assert.equal(legacy.ok, true, `a version-1 shelf was refused: ${legacy.reason}`);
+  assert.deepEqual(legacy.withdrawn, [], 'a version-1 shelf invented a withdrawal record');
 
   const reversedRetired = refund.refundPurchase(retired.catalog, shelfLedger, { templateId: 'tpl-paid', buyerId: 'buyerR', entryId: 'sr1', at: 30 });
   assert.equal(reversedRetired.ok, true, `a retired ref could not be reversed: ${reversedRetired.ok ? '' : reversedRetired.reason}`);
@@ -573,7 +590,7 @@ try {
   assert.equal(relisted.ok, true, `a retired id could not be listed again: ${relisted.reason}`);
   assert.equal(catalogMod.templateById(relisted.catalog, 'tpl-paid')?.authorId, 'authorB', 'the re-listing did not name its new author');
 
-  console.log(`  the listing withdrew cleanly (1 left, the input untouched, a second retire refused by name); the buyer still OWNS the retired ref and the wallet can tell it from a plan id; the refund made the buyer whole (${credits.balanceOf(reversedRetired.ledger, 'buyerR')}) and clawed back exactly the recorded seller (${credits.balanceOf(reversedRetired.ledger, 'authorA')}), naming "tpl-paid" (not in this catalog); the STORE's rows were the shelf plus the retired ref the record owns (and a stranger saw only the shelf), and the retired shelf SAVED and READ BACK unchanged; the retired id re-listed under a new author`);
+  console.log(`  the listing withdrew cleanly (1 left, the input untouched, a second retire refused by name); the buyer still OWNS the retired ref and the wallet can tell it from a plan id; the refund made the buyer whole (${credits.balanceOf(reversedRetired.ledger, 'buyerR')}) and clawed back exactly the recorded seller (${credits.balanceOf(reversedRetired.ledger, 'authorA')}), naming "tpl-paid" (not in this catalog); the STORE's rows were the shelf plus the retired ref the record owns (and a stranger saw only the shelf), and the retired shelf SAVED and READ BACK unchanged; the WITHDRAWN record round-tripped (format 2) and the listing could be put back; a version-1 shelf migrated with no withdrawals; the retired id re-listed under a new author`);
 
 } finally {
   rmSync(box, { recursive: true, force: true });

@@ -17,6 +17,7 @@ import {
 } from '@/lib/refundPolicy';
 import { attributionByRef, attributionLine, statementFor, statementLine, statementReconciles, type SettlementWindow } from '@/lib/settlement';
 import {
+  addTemplate,
   emptyTemplateCatalog,
   retireTemplate,
   templateById,
@@ -48,6 +49,12 @@ export default function CreditsPanel() {
    * rows are the shelf PLUS what the record says the viewer still owns (`storeRows`).
    */
   const [catalog, setCatalog] = useState<TemplateCatalog>(() => emptyTemplateCatalog());
+  /**
+   * What the shelf REMEMBERS withdrawing (v542). A take-down is a MOVE, not a delete: the listing
+   * leaves `catalog` and lands here, persisted beside it in the store's format 2. A put-back is the
+   * same move reversed, so the surface can offer it — and a reload has to read it back.
+   */
+  const [withdrawn, setWithdrawn] = useState<TemplateListing[]>([]);
   const [ledger, setLedger] = useState<CreditLedger | null>(null);
   const [source, setSource] = useState<'stored' | 'empty' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +110,7 @@ export default function CreditsPanel() {
       const shelf = loadCatalog(window.localStorage);
       if (!shelf.ok) { setError(shelf.reason); return; }
       setCatalog(shelf.catalog);
+      setWithdrawn(shelf.withdrawn);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -110,12 +118,13 @@ export default function CreditsPanel() {
 
   const loadDemo = useCallback(() => {
     try {
-      const savedShelf = saveCatalog(window.localStorage, scene.catalog);
+      const savedShelf = saveCatalog(window.localStorage, scene.catalog, []);
       if (!savedShelf.ok) { setError(savedShelf.reason); return; }
       const saved = saveCredits(window.localStorage, scene.ledger);
       if (!saved.ok) { setError(saved.reason); return; }
       setLedger(scene.ledger);
       setCatalog(scene.catalog);
+      setWithdrawn([]);
       setSource('stored');
       setError(null);
     } catch (e) {
@@ -127,12 +136,13 @@ export default function CreditsPanel() {
     try {
       // An empty ledger and an empty shelf are VALID records, so clearing WRITES them rather than
       // deleting the keys — the same rule `catalogStore` states for an absent key.
-      const savedShelf = saveCatalog(window.localStorage, emptyTemplateCatalog());
+      const savedShelf = saveCatalog(window.localStorage, emptyTemplateCatalog(), []);
       if (!savedShelf.ok) { setError(savedShelf.reason); return; }
       const saved = saveCredits(window.localStorage, { entries: [] });
       if (!saved.ok) { setError(saved.reason); return; }
       setLedger({ entries: [] });
       setCatalog(emptyTemplateCatalog());
+      setWithdrawn([]);
       setSource('stored');
       setError(null);
     } catch (e) {
@@ -196,11 +206,35 @@ export default function CreditsPanel() {
     if (!decision.ok) { setError(decision.reason); return; }
     // A take-down is PERSISTED before it is rendered (v541): the shelf the page shows is the one a
     // reload reads back, so the store cannot disagree with itself after a refresh.
-    const saved = saveCatalog(window.localStorage, decision.catalog);
+    // A take-down MOVES the listing to the withdrawn record (v542), so the shelf forgets what is for
+    // sale while the page keeps what it could put back. Both halves are PERSISTED before they are
+    // rendered, so the shelf a reload reads is the one this click wrote.
+    const nextWithdrawn = [...withdrawn, decision.listing];
+    const saved = saveCatalog(window.localStorage, decision.catalog, nextWithdrawn);
     if (!saved.ok) { setError(saved.reason); return; }
     setCatalog(decision.catalog);
+    setWithdrawn(nextWithdrawn);
     setError(null);
-  }, [catalog]);
+  }, [catalog, withdrawn]);
+
+  /**
+   * PUT BACK one withdrawn listing (v542): the move reversed. The listing kept in the withdrawn record
+   * is re-ADDED through `addTemplate`, so its fields and tags are validated exactly as a publish would
+   * be, and removed from the record in the same write. If the id were somehow listed again meanwhile,
+   * `addTemplate` refuses BY NAME and nothing is written.
+   */
+  const onPutBack = useCallback((ref: string) => {
+    const listing = withdrawn.find((entry) => entry.id === ref);
+    if (!listing) { setError(`the withdrawn record lists no template "${ref}" to put back`); return; }
+    const decision = addTemplate(catalog, listing);
+    if (!decision.ok) { setError(decision.reason); return; }
+    const nextWithdrawn = withdrawn.filter((entry) => entry.id !== ref);
+    const saved = saveCatalog(window.localStorage, decision.catalog, nextWithdrawn);
+    if (!saved.ok) { setError(saved.reason); return; }
+    setCatalog(decision.catalog);
+    setWithdrawn(nextWithdrawn);
+    setError(null);
+  }, [catalog, withdrawn]);
 
   const wallet = ledger ? buildWalletView(catalog, ledger, scene.viewerId) : null;
   // "Still to buy" = the marketplace's affordability gate MINUS what is already owned. The model
@@ -242,8 +276,9 @@ export default function CreditsPanel() {
         This page reads and writes the ledger AND the shelf through the same local-first stores a real
         ledger and catalog would use (<code>nexus.credits.v1</code> and <code>nexus.catalog.v1</code> in
         this browser). Buying a template appends a real two-entry transaction to that LOCAL ledger;
-        refunding reverses the recorded purchase; retiring withdraws the listing from that LOCAL shelf.
-        All of it spends demo credits, not money.
+        refunding reverses the recorded purchase; retiring withdraws the listing from that LOCAL shelf
+        and REMEMBERS it (v542), so it can be put back — even after a reload. All of it spends demo
+        credits, not money.
       </div>
 
       {error && (
@@ -482,6 +517,45 @@ export default function CreditsPanel() {
             </table>
           </section>
         </div>
+      )}
+
+      {/*
+        WHAT THE SHELF WITHDREW (v542). A take-down leaves a listing off the shelf but ON the shelf's
+        record, and this strip is that record said out loud: each withdrawn listing keeps its name, its
+        price and a Put back action. It is rendered OUTSIDE the STORE card so that card's own count
+        says what is FOR SALE without also counting what is not.
+      */}
+      {withdrawn.length > 0 && (
+        <section
+          data-credits-withdrawn-strip
+          style={{ border: '1px solid var(--nexus-border)', padding: 12, marginTop: 14, maxWidth: 980 }}
+        >
+          <strong>WITHDRAWN · {withdrawn.length} listing(s) this shelf took down</strong>
+          <div style={{ color: 'var(--nexus-muted)', marginTop: 4 }}>
+            A retire is a move, not a delete: these listings are off the shelf, recorded beside it, and can
+            be put back.
+          </div>
+          {withdrawn.map((entry) => (
+            <div
+              key={entry.id}
+              data-credits-withdrawn={entry.id}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}
+            >
+              <span>
+                {entry.title} · {priceText(entry.priceCents as PriceCents, 'CNY')}
+              </span>
+              <button
+                type="button"
+                className="btn"
+                data-credits-relist={entry.id}
+                onClick={() => onPutBack(entry.id)}
+                style={{ fontSize: 10, padding: '1px 6px' }}
+              >
+                Put back
+              </button>
+            </div>
+          ))}
+        </section>
       )}
     </div>
   );

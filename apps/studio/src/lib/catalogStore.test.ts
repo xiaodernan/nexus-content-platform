@@ -161,3 +161,65 @@ describe('catalogStore: a RETIRED shelf round-trips (v541)', () => {
     expect(loaded.catalog).toEqual(retired.catalog);
   });
 });
+
+describe('catalogStore: a take-down is remembered (v542)', () => {
+  it('round-trips the shelf AND what it withdrew, and writes format 2', () => {
+    const shelf = build(listing({ id: 't1' }), listing({ id: 't2', createdAt: 2_000 }));
+    const retired = retireTemplate(shelf, 't1');
+    if (!retired.ok) throw new Error(retired.reason);
+    const kv = kvOf();
+    const saved = saveCatalog(kv, retired.catalog, [retired.listing]);
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) return;
+
+    const written = JSON.parse(kv.getItem(CATALOG_STORAGE_KEY)!) as { version: number; listings: unknown[]; withdrawn: unknown[] };
+    expect(written.version).toBe(2);
+    expect(written.listings).toHaveLength(1);
+    expect(written.withdrawn).toHaveLength(1);
+
+    const loaded = loadCatalog(kv);
+    expect(loaded.ok).toBe(true);
+    if (!loaded.ok) return;
+    expect(loaded.source).toBe('stored');
+    expect(loaded.catalog.listings.map((entry) => entry.id)).toEqual(['t2']);
+    expect(loaded.withdrawn.map((entry) => entry.id)).toEqual(['t1']);
+    // What was withdrawn is kept WHOLE: a put-back must have the listing to put back.
+    expect(loaded.withdrawn[0]).toEqual(retired.listing);
+  });
+
+  it('MIGRATES a version-1 document: its shelf loads and it remembers no withdrawals', () => {
+    const legacy = JSON.stringify({ version: 1, listings: [listing({ id: 't1' })] });
+    const loaded = loadCatalog(kvOf({ [CATALOG_STORAGE_KEY]: legacy }));
+    expect(loaded.ok).toBe(true);
+    if (!loaded.ok) return;
+    expect(loaded.source).toBe('stored');
+    expect(loaded.catalog.listings.map((entry) => entry.id)).toEqual(['t1']);
+    expect(loaded.withdrawn).toEqual([]);
+  });
+
+  it('refuses a document that says one id is BOTH listed and withdrawn', () => {
+    const record = JSON.stringify({ version: 2, listings: [listing()], withdrawn: [listing()] });
+    const parsed = deserializeCatalog(record);
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) return;
+    expect(parsed.reason).toContain('both listed and withdrawn');
+  });
+
+  it('refuses two withdrawn records under one id, naming the list and the duplicate', () => {
+    const record = JSON.stringify({ version: 2, listings: [], withdrawn: [listing(), listing()] });
+    const parsed = deserializeCatalog(record);
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) return;
+    expect(parsed.reason).toContain('withdrawn listing t1');
+    expect(parsed.reason).toContain('already listed');
+  });
+
+  it('REFUSES to save a document its own loader would refuse, and writes nothing', () => {
+    const kv = kvOf();
+    const saved = saveCatalog(kv, build(listing()), [listing()]);
+    expect(saved.ok).toBe(false);
+    if (saved.ok) return;
+    expect(saved.reason).toContain('both listed and withdrawn');
+    expect(kv.map.has(CATALOG_STORAGE_KEY)).toBe(false);
+  });
+});
