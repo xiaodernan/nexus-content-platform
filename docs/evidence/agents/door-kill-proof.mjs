@@ -10,6 +10,19 @@
 // carries the same distinction into the record (v73's shape, one vocabulary). This proof verifies BOTH
 // directions with real git — a killed read never says "git REFUSED", and a read git genuinely refused
 // (v52's own 132-line usage page outside a repository) still says exactly that and carries no `killed`.
+//
+// M2 v544 (ADR 0016 amendment 527) — TWO findings, both measured, and they revise how this proof works.
+// (a) The 1 ms budget was a RACE with the machine, not a witness: on the ubuntu runner (run 40833035921)
+// `git.log` produced 3 records with `killed` beside `exit 0, signal null` — the timer fired after the child
+// had already finished and `kill()` was a no-op — and 1 record with no `killed` at all. Four attempts, zero
+// landed kills, so the section reddened for a reason that says nothing about the door. §1 now delivers the
+// budget callback as a microtask right after the spawn: the child CANNOT have finished, the signal is real,
+// and the witness no longer depends on how fast the box is.
+// (b) The record itself was over-claiming. `killedByBudget` was set by the timer alone, so a READ THAT HAD
+// FINISHED was reported as killed and every door answered a complete answer with `ok: false` and "the exec
+// host KILLED this read" — the exact false failure §2 replays deterministically through the host's own
+// `spawnLike` point. The host now reports `killedByBudget: false` when the process reported a clean exit
+// (code 0, no signal): nothing was killed, the answer is whole, and the door says so.
 // Everything happens under os.tmpdir; this repository's HEAD is compared byte-wise at the end.
 // Run after `npm run build`:  node docs/evidence/agents/door-kill-proof.mjs
 import assert from 'node:assert/strict';
@@ -68,47 +81,75 @@ const faces = [
   ['git.show', () => gitShowPolicy(root), registerGitShowTool, 'git.show', { path: 'src/m0/a-long-file-name-0.ts' }],
 ];
 
+// M2 v544 (amendment 527): the budget callback is delivered as a microtask right after the spawn
+// returns. Nothing about the kill is simulated — a real git child receives a real SIGTERM and the
+// record carries what the OS reported — but the DELIVERY no longer races the child's own completion,
+// which measured 0 of 4 witnesses on the ubuntu runner (run 40833035921).
+const withBudgetDelivered = async (fn) => {
+  const real = globalThis.setTimeout;
+  globalThis.setTimeout = (cb, ms, ...args) => {
+    if (ms === 1) {
+      const handle = real(() => {}, 1e9); // a real handle so the host's clearTimeout has something to cancel
+      queueMicrotask(() => cb(...args));
+      return handle;
+    }
+    return real(cb, ms, ...args);
+  };
+  try {
+    return await fn();
+  } finally {
+    globalThis.setTimeout = real;
+  }
+};
+
 console.log('§1 一次真超时：句子说对了动作是谁做的');
 for (const [label, makePolicy, register, tool, args] of faces) {
-  // v534: a 1 ms timer can fire AFTER the child finished on a loaded runner (measured: ubuntu red at
-  // `git.log: the signal the host used`). Then child.kill() is a no-op and the record honestly says
-  // `signal: null` beside exit 0 — the host DECIDED at its budget but stopped nothing. That attempt is
-  // not this section's case; retry until the kill actually lands (4 attempts make the stall improbable).
-  // v542, same class one door further: on a fast runner the whole read can FINISH before the 1 ms timer
-  // is ever delivered — measured at run 40825146593, where `git.log` answered `exit 0 · count 100` with
-  // NO `killed` key, and the old assert called a clean answer "neither killed nor finished". A read that
-  // finishes inside its budget says nothing about the kill path in either direction: it is not this
-  // section's witness, so it is retried too — and if four attempts all finish cleanly, the section says
-  // the witness could not be produced rather than passing on an untested contract.
-  let o = null;
-  let lateTimers = 0;
-  let outran = 0;
-  for (let attempt = 1; attempt <= 4 && o === null; attempt += 1) {
-    const r = await read(makePolicy(), register, tool, args, 1, `kill:${label}:${attempt}`);
-    if (r.killed && r.killed.signal !== null) {
-      o = r;
-      break;
-    }
-    if (!r.killed) {
-      assert.equal(r.exitCode, 0, `${label}: a read ended with no kill record AND a non-clean exit — that is unexplained: ${JSON.stringify(r)}`);
-      outran += 1;
-      continue;
-    }
-    assert.equal(r.exitCode, 0, `${label}: a null-signal kill on a non-clean exit is unexplained: ${JSON.stringify(r.killed)} exit ${r.exitCode}`);
-    lateTimers += 1;
-  }
-  assert.ok(o, `${label}: 4 attempts at a 1 ms budget and the record never carried a real kill (${lateTimers} late timer(s), ${outran} read(s) that finished inside the budget)`);
-  if (lateTimers + outran > 0) console.log(`  ${label.padEnd(11)} (${lateTimers + outran} attempt(s) were not this section's case: ${lateTimers} late timer(s) with signal null/exit 0, ${outran} read(s) that finished inside the 1 ms budget before the timer was delivered — the contract holds in each)`);
+  // v534/v542 tried to OUTRUN the old race with four attempts; v544 measured that on a fast runner the
+  // attempt count cannot fix it (run 40833035921: 3 late timers + 1 clean read = no witness at all).
+  // The timer is now delivered deterministically; a face that does not land a kill is a real red.
+  const o = await withBudgetDelivered(() => read(makePolicy(), register, tool, args, 1, `kill:${label}`));
   console.log(`  ${label.padEnd(11)} ok=${o.ok} exit=${o.exitCode} killed=${JSON.stringify(o.killed)} windowed=${'windowed' in o} · ${String(o.detail).slice(0, 96)}…`);
   assert.equal(o.ok, false, `${label}: a killed read is not an answer`);
   assert.ok(o.killed, `${label}: the record says a KILL happened, not merely that numbers are missing`);
   assert.equal(o.killed.signal, 'SIGTERM', `${label}: the signal the host used (record says ${JSON.stringify(o.killed)})`);
+  assert.equal(o.exitCode, null, `${label}: a signalled death has no exit code — v544 also pins the other half of the record`);
   assert.ok(o.detail.includes('the exec host KILLED this read at its own timeout budget'), `${label}: ${o.detail}`);
   assert.ok(!/git REFUSED/.test(o.detail), `${label}: the door must not credit git with the host's decision — it was still running: ${o.detail}`);
   assert.equal('windowed' in o, false, `${label}: a timeout trims no pipe, so v69's window key stays away (kill ≠ cut)`);
 }
 
-console.log('\n§2 反向：git 真的拒绝时，那句话仍然该由 git 来说');
+console.log('\n§2 预算晚于读本身：一个已经结束的进程不是一次击杀，完整的答案不能被判成失败');
+{
+  // The shape run 40833035921 measured on ubuntu, replayed deterministically through the host's own
+  // injection point: the timer fires at the budget, kill() is a no-op against a child that has already
+  // exited, and the exit event then says `code 0, signal null`. Before v544 the host called that a kill
+  // and the git.log door answered `ok: false` with the whole log in hand.
+  const [label, , register, tool, args] = faces[3]; // git.log — the face ubuntu measured
+  const listeners = { data: () => {}, end: () => {} };
+  let killAttempts = 0;
+  const host = createExecHost(gitLogPolicy(root, { timeoutMs: 1 }), {
+    spawnLike: () => ({
+      onData: (l) => { listeners.data = l; },
+      onEnd: (l) => { listeners.end = l; },
+      kill: () => { killAttempts += 1; }, // a no-op: the process is already gone
+      pid: 424242,
+    }),
+  });
+  setTimeout(() => {
+    listeners.data('stdout', 'abcdef0 a commit that finished on its own\n');
+    listeners.end({ code: 0, signal: null });
+  }, 30);
+  const out = (await register(new ToolRegistry(), host, { env: {} }).invoke({ callId: 'v544:late', tool, args }, { checkpoint: () => true })).output;
+  console.log(`  ${label}: ok=${out.ok} exit=${out.exitCode} killed=${'killed' in out} commits=${out.commits.length} · ${String(out.detail).slice(0, 140)}…`);
+  assert.equal(killAttempts, 1, 'the host still ISSUED the kill at its budget — what changed is the record, not the attempt');
+  assert.equal(out.ok, true, 'a read that reported a clean exit with no signal is an ANSWER — the budget expiring around it does not turn it into a failure');
+  assert.equal(out.exitCode, 0, 'the exit code the process itself gave');
+  assert.equal('killed' in out, false, 'no kill marker: no signal was reported');
+  assert.ok(!/the exec host KILLED/.test(out.detail), `the sentence must not claim a kill: ${out.detail}`);
+  assert.equal(out.commits.length, 1, 'the whole answer survived the late budget, parsed as usual');
+}
+
+console.log('\n§3 反向：git 真的拒绝时，那句话仍然该由 git 来说');
 {
   const elsewhere = tmpOf(mkTmp('nexus-v74-notarepo'));
   const o = await read(gitStagedPolicy(elsewhere), registerGitStagedTool, 'git.staged', {}, 20_000, 'refuse:outside');
@@ -118,7 +159,7 @@ console.log('\n§2 反向：git 真的拒绝时，那句话仍然该由 git 来�
   assert.equal('killed' in o, false, 'with no kill marker on a real refusal — the two branches are not synonyms');
 }
 
-console.log('\n§3 两个分支各说各话：由数据决定，不由措辞决定');
+console.log('\n§4 两个分支各说各话：由数据决定，不由措辞决定');
 const pure = killedField({ killedByBudget: true, signal: null, descendantsStopped: 'reaped' });
 assert.deepEqual(pure, { killed: { signal: null, descendantsStopped: 'reaped' } }, 'v73\u2019s vocabulary, one source');
 assert.deepEqual(killedField({ killedByBudget: false, signal: null }), {}, 'absent rather than empty (v55/v56 precedent)');
@@ -129,6 +170,6 @@ assert.equal('killed' in uncut, false, 'a whole read carries no kill marker');
 console.log(`  killed → {killed:{…}} · not killed → no key · refusal → “git REFUSED” · kill → “the exec host KILLED” · one door, three worlds apart`);
 
 assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, "the home repository's HEAD is byte-identical: every write here was under os.tmpdir");
-console.log(`\n[summary] faces driven to a real kill: ${faces.length} · sentences blaming git for the host's kill: 0 · records carrying the kill: ${faces.length}/${faces.length} · real refusal still attributed to git: yes · keys invented for this: 0 (one clause + one field, both derived) · door reads: ${doorReads} · home HEAD byte-identical: yes`);
+console.log(`\n[summary] faces driven to a real kill: ${faces.length} · sentences blaming git for the host's kill: 0 · records carrying the kill: ${faces.length}/${faces.length} · late budget over a FINISHED read answered whole with no kill marker: yes (run 40833035921's shape, replayed) · real refusal still attributed to git: yes · keys invented for this: 0 (one clause + one field, both derived) · door reads: ${doorReads} · home HEAD byte-identical: yes`);
 for (const dir of temps) execFileSync('node', ['-e', `require("fs").rmSync(${JSON.stringify(dir)},{recursive:true,force:true})`]);
 console.log('[cleanup] throwaway repositories removed');

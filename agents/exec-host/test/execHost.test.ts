@@ -236,6 +236,32 @@ describe('createExecHost (v30: only what planExec approved ever spawns)', () => 
     expect(h.lastChild().killed).toBe(true);
   });
 
+  it('v544: a budget delivered after the child FINISHED is not a kill — the whole answer stands', async () => {
+    // The shape run 40833035921 measured 3/4 times on ubuntu: the timer fires late, kill() is a no-op
+    // against a child that has already exited, and the exit event then says `code 0, signal null`.
+    // Before v544 the timer alone set killedByBudget, so every door failed a COMPLETE read and said
+    // "the exec host KILLED this read". The record now says what ended the process.
+    let child: FakeChild | undefined;
+    let killAttempts = 0;
+    const host = createExecHost(POLICY, {
+      spawnLike: () => {
+        child = new FakeChild();
+        child.kill = () => {
+          killAttempts += 1; // already gone: the OS makes this a no-op, and the fake must too
+        };
+        return child;
+      },
+    });
+    const pending = host.run({ argv: ['git', 'status', '--short'] }, OK_GATE); // rule timeoutMs = 20
+    await new Promise((r) => setTimeout(r, 80)); // the budget fired long ago; the child was already gone
+    child!.emitData('stdout', 'whole');
+    child!.emitEnd({ code: 0, signal: null });
+    const r = await pending;
+    expect(killAttempts).toBe(1); // the attempt happened; what changed is the record
+    expect(r).toMatchObject({ exitCode: 0, signal: null, killedByBudget: false, stdout: 'whole', truncated: false });
+    expect('descendantsStopped' in r).toBe(false); // the tree claim is tied to the kill that did not happen
+  });
+
   it('a spawn-layer failure (ENOENT) is structured data, not a crash', async () => {
     const spawnLike: SpawnLike = () => {
       const c = new FakeChild();

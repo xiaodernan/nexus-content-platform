@@ -87,7 +87,17 @@ export interface ExecRunResult {
    * the door parsed, and a cut on the OTHER stream must not trigger it.
    */
   truncatedStreams?: Array<'stdout' | 'stderr'>;
-  /** True when the host killed the process IT started because the plan's timeout expired. */
+  /**
+   * True when the host's timeout expired AND the process it started was still running — the host's
+   * kill is what ended it. M2 v544 (ADR 0016 amendment 527): the flag used to be set by the timer
+   * alone, so a timer delivered after the child had already finished produced `killedByBudget: true`
+   * beside `exitCode: 0, signal: null` and every door failed a COMPLETE read with "the exec host
+   * KILLED this read" — measured on the ubuntu runner, 3 of 4 `git.log` attempts at a 1 ms budget
+   * (run 40833035921). A clean exit with no signal is the OS saying the process ended itself; the
+   * host does not upgrade that into a kill. A process that TRAPS the signal and exits 0 is
+   * indistinguishable from one that finished — it chose the same record, and the host will not
+   * pretend to know which happened.
+   */
   killedByBudget: boolean;
   /**
    * M2 v55 (ADR 0016 amendment 55): whether anything the command SPAWNED is also stopped. Present
@@ -368,6 +378,15 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
         child.onEnd(async (e) => {
           clearTimeout(timer);
           if (reapSettled) await reapSettled;
+          // M2 v544 (ADR 0016 amendment 527): `killed` is the TIMER's decision; this is what ENDED
+          // the process. Measured on the ubuntu runner (run 40833035921): a timer delivered after a
+          // cheap child had already finished produced `killed` beside `exit 0, signal null` in 3 of
+          // 4 attempts, and the 4th finished before the timer — the witness proof could not produce
+          // a landed kill and reddened. Code 0 with no signal is a process that ended ITSELF (POSIX
+          // reports a signalled death as `code: null`; the win32 forced path reports `code: 1,
+          // signal: null` and stays a kill). So the record does not claim an action that did not
+          // happen, and the answer it carries is whole — on one condition, stated on the field.
+          const killedByBudget = killed && !(e.code === 0 && e.signal === null);
           const streams = (['stdout', 'stderr'] as const).filter((s) => cut[s]);
           const result: ExecRunResult = {
             ran: true,
@@ -381,8 +400,8 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
             stderr: textOf('stderr'),
             truncated,
             ...(streams.length > 0 ? { truncatedStreams: [...streams] } : {}),
-            killedByBudget: killed,
-            ...(descendants === undefined ? {} : { descendantsStopped: descendants }),
+            killedByBudget,
+            ...(killedByBudget && descendants !== undefined ? { descendantsStopped: descendants } : {}),
             spawnError: e.error ?? '',
           };
           try {
