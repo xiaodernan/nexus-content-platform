@@ -59,10 +59,6 @@ export const EXCLUDED = [
     needs: 'the live stack — it publishes through tools/harness/studio-publish.mjs against a service that answers',
   },
   {
-    file: 'docs/evidence/m7/leak-sweep-proof.mjs',
-    needs: 'a docker daemon that can pull and run pgvector/pgvector:pg16 — its §5 is a real container, not a stub',
-  },
-  {
     file: 'docs/evidence/m7/service-suite-proof.mjs',
     needs: 'maven and a real PostgreSQL — it grades the surefire XML written by `mvn -B test` on services/nexus-api',
   },

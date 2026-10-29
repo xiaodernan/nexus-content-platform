@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-10-29T05:52:58.870Z",
+  "ranAt": "2026-10-29T08:47:34.717Z",
   "arms": 40,
   "matched": 40,
   "armNames": [
@@ -47,10 +47,10 @@
     "R11-budget-flag-without-a-value"
   ],
   "subjects": {
-    "workflow": "593bc54c06f1b79fe7bd09b604156488c0009202140b78f51c4ef5b55ce90a17",
+    "workflow": "3d09c34620ccf958cd0824a6afb3c9ff34259c7e0513a65b29c9da73fd63fe8d",
     "gate": "c416b8832786ee8d67fc2c7af04559e33f737dd906cfe4f3dc911e0a3535f3cd",
-    "arms": "af86e893012e987b4ff94f52cddc1c9309bf6fd896e6fe666692cd06e455c4d2",
-    "runner": "ab79b43ecde6b00145f6fb46dd561d12b083155a0d75fd25c831c9c586344865",
+    "arms": "c304f24bd45f458b8210ca674ba0e3403983adb8ae039ea78298735eafe65f37",
+    "runner": "a9e7e139c69b920b3785f331a49711741e0c7add856f00587d5c9a5104b5ef3a",
     "sweep": "ead49485592dc696b99878ef19ba4802519f43746a55956dc9c22dd5fcdb84a9",
     "scripts": "4f13a845cd9e400b99e3de1617490e81e04721dcbdbead22b5458e555fe2bc7f",
     "rule": "d950d243b7678dda17d00f877e2a3cbdf94d7d70a1eafed0c2fb59aa06b437d1"

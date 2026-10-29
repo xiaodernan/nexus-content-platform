@@ -159,12 +159,21 @@ a count inside one of them is history, not a restatement. Where the table itself
 reddens until this reader learns the new shape; that is the intended cost of checking a document written for
 people.
 
+### v545 — an exclusion whose stated need was one pull step: the leak-sweep row is wired, and its image is in the runner's cache before the row is timed (ADR 0016 amendment 528)
+
+- **What the exclusion said, and what was true.** `EXCLUDED` carried three proofs; the leak-sweep entry named "a docker daemon that can pull and run pgvector/pgvector:pg16 — its §5 is a real container, not a stub". The workflow has pulled `node:22-alpine` on this runner since v531 and `ubuntu-latest` ships a docker daemon, so the only unmet part was the IMAGE. An exclusion whose whole blocker is one `docker pull` is a claim the build can satisfy — and a row kept out of the build by a satisfiable need is a proof nobody runs.
+- **Measured before wiring.** On the authoring box (docker server 29.9.2), `node docs/evidence/m7/leak-sweep-proof.mjs` exits 0 in **18.4 s**: §5 stages a real `nexus-publish-e2e-db-<stamp>-999999999` container, the sweep retires it as `owner-gone` (8 s old), and `docker ps` no longer lists it. The proof's own bytes are unchanged by this grant.
+- **The change.** The workflow's docker step pulls both images, and its comment states why the second pull sits OUTSIDE the row: a pull inside it would spend the row's 240 s budget on the registry. The `EXCLUDED` entry is deleted, not reworded — the rule v531 applied to the three lane proofs. The census's two derived cells moved from `99 run + 3 excluded` to **100 run + 2 excluded**.
+- **Red, then green, in the census's own sentences.** With the entry deleted and the table untouched, `verify:evidence-census` refused with exactly two: "the README's ROW row says 99 run + 3 excluded; this census derived 100 run + 2 excluded" and the same split in the "at this ref" sentence. After the cells moved it reads `114 tracked modules close as 102 row + 4 helper + 2 swept + 6 tool + 0 deferred · 0 unclassified · rows 100+2`. `verify:ci-wiring` reads the same split, and the rows' worst case moves 429 → **433 min** under the 60-minute ceiling.
+- **The arms had to follow.** A11's needle was the retired row's `needs` line, so the arm edited nothing and the tool refused to certify it ("the needle … occurs 0 times, and an arm that edits nothing — or two things — grades nothing"); R9 crashed on the same constant, and the synthetic plane still counted nine rows (it ran the leak-sweep stub as a live row and answered `7/7 green of a derived population of 9`). A11/R9 now aim at the live-stack row that remains, and the plane stays NINE rows — seven stubs plus the two exclusions — because R6 deletes one row and must still stand at eight, above the floor, or its own clause would be unreachable; `verify:arms-freshness` named `workflow, runner` the moment the subjects moved, and the re-armed receipt is a full **40/40**.
+- **Bounds.** NOT graded: the row's first ubuntu contact — its first CI run is that contact; if the runner's daemon or the pull fails, the row reddens with the command's own words. §5 sweeps the whole docker host, which on a hosted runner is empty apart from the orphan it just staged (one VM per job). The other two exclusions stay — the live stack and maven+PostgreSQL — and ci-wiring §6 still proves each excluded file reaches a real capability outside its comments.
+
 ### What this does NOT claim
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
 never turned into a `verify:*` script stays invisible to the build. Amendments 516–519 closed that half:
 the census below gives every one of the **114** tracked modules a disposition, and the derived population is
-**99 running rows + 3 excluded by name** at this ref (v532 triaged the swept population and wired sixteen
+**100 running rows + 2 excluded by name** at this ref (v532 triaged the swept population and wired sixteen
 Node-only proofs; v533 ran the sweep over all 81 and wired the forty-eight green dist+spawn proofs). And no
 gate here can make GitHub run: it reads bytes
 committed in this repository, and whether the workflow executes on `master` is knowable only from the real
@@ -183,7 +192,7 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 | class | count at this ref | how it is decided |
 | --- | --- | --- |
-| ROW | **102** (99 run + 3 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
+| ROW | **102** (100 run + 2 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **4** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs`, `ci/arms-receipt.mjs` |
 | SWEPT | **2** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — at this ref only `cwd-axis` and `tree-axis`, the tree-motion witnesses, which stay there by measurement (their verdict is about whether the walked tree moved during the run) |
 | TOOL | **6** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, two arms scripts, the isolated-build arms, the SVG generator) |

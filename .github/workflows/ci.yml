@@ -52,10 +52,16 @@ jobs:
         run: npm run test
       - name: Build
         run: npm run build
-      - name: Docker image (pre-pull for the lane proofs)
+      - name: Docker images (pre-pull for the lane proofs)
         # exec-host spawns containers with `--pull never` (its lanes must not depend on a registry at
         # run time), so the image the Studio lane proofs use has to exist BEFORE the proofs start. On a
         # fresh runner it does not, and the red would name the image cache rather than the lane.
-        run: docker pull node:22-alpine
+        # The second pull is the leak-sweep row's whole admission: its §5 stages a real orphan from this
+        # image and sweeps it, so the exclusion it used to carry ("a docker daemon that can pull and run
+        # pgvector/pgvector:pg16") is satisfied HERE, before the row is timed — a pull inside the row
+        # would spend the row's budget on the registry.
+        run: |
+          docker pull node:22-alpine
+          docker pull pgvector/pgvector:pg16
       - name: Evidence proofs
         run: npm run verify:proofs
