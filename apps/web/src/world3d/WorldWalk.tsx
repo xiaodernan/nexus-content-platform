@@ -18,6 +18,7 @@ import {
 } from '@nexus/world-model';
 import { CharacterChat } from '@/studio/CharacterChat';
 import { apiAssetUrl } from '@/studio/assets';
+import { isControlTarget, isEditableTarget } from '@/lib/keyboard';
 
 /**
  * §140 的"走进去"：Three.js + React Three Fiber 渲染 §140 那份场景计划，
@@ -105,8 +106,14 @@ function Controls({
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      keys.current[e.key.toLowerCase()] = true;
-      if ([' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(e.key.toLowerCase())) e.preventDefault();
+      // §90 / WCAG 2.1.1：和两张游戏页同一处修复（判据在 `@/lib/keyboard`）。
+      // 焦点在 `[data-world-talk-target]` 那个 select 上时箭头是"改选项"、Space 是"打开下拉"，
+      // 一个字都不该被走路吞掉；焦点在「跟角色说话」按钮上时 Space 是原生激活键。
+      if (isEditableTarget(e.target)) return;
+      const key = e.key.toLowerCase();
+      if (key === ' ' && isControlTarget(e.target)) return;
+      keys.current[key] = true;
+      if ([' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) e.preventDefault();
     };
     const up = (e: KeyboardEvent) => {
       keys.current[e.key.toLowerCase()] = false;

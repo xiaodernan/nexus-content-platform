@@ -7,6 +7,7 @@ import { ttlLabel } from '@/lib/notify-plan';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
+import { isEditableTarget } from '@/lib/keyboard';
 import { studio, toModelPatches, useStudioReady } from './store';
 
 const MODES: { id: ModelClass; label: string }[] = [
@@ -88,8 +89,8 @@ export function CommandBar() {
 
   useEffect(() => {
     const onSlash = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const typing = Boolean(target?.isContentEditable) || Boolean(target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+      // 判据只有一份（`@/lib/keyboard`）：焦点在输入控件里时 `/` 属于用户键入的字符
+      const typing = isEditableTarget(event.target);
       if (event.key === '/' && !typing) {
         event.preventDefault();
         inputRef.current?.focus();

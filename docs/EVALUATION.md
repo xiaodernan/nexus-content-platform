@@ -1606,6 +1606,45 @@ verdict A_UNCHANGED_AFTER_EXPORT: PASS — 导出后又读了一遍 A：文档 7
 6. **运行中改系统主题不生效**：入口只在首帧读一次 `prefers-color-scheme`（没有 `matchMedia` 监听），
    改系统设置要刷新才跟上。这是当前设计，不是缺陷，但没有浏览器见证。
 
+#### 第二十三片（2026-10-29）：游戏页的 Space 与方向键——三张页的同族缺陷，判据收成一份
+
+上一片的 notMeasured 第 2 条点了名：`GamePlay.tsx` / `RpgPlay.tsx` / `WorldWalk.tsx` 三个 window keydown
+对 Space（与方向键）无条件 `preventDefault`。这一片把它量掉，并且不再让同族修复各写一份判据。
+
+**落点**
+
+- 新建 `apps/web/src/lib/keyboard.ts`：`isEditableTarget`（input/textarea/select/contentEditable）与
+  `isControlTarget`（button/a[href]/summary + role 族，`closest` 从焦点往上找）。Studio 画布与 CommandBar
+  原先各写一份的 `typing` / `onControl` 一并换成它——同一族判据从四处收成一份。
+  判据里不写 `instanceof HTMLElement`：它的单测跑在 node 里（`vitest.config.ts` 的 environment 是 node），
+  只问 tagName / isContentEditable / closest 三件事。
+- `GamePlay.tsx` / `RpgPlay.tsx`：keydown 先判可编辑目标（输入框里一个字都不接），再判 `Space + 控件族`
+  （归原生激活）；WASD / 方向键照旧——点完按钮接着走路这条没变。
+- `WorldWalk.tsx`：同一处。`[data-world-talk-target]` 那个 select 上箭头是"改选项"、Space 是"打开下拉"，
+  都不再被走路吞掉。
+- `e2e/game-keyboard.spec.ts`（新）：11 类各一条空实体的骨架（`createGame` 同一形状，不填任何数值）走
+  Studio 同一个 PUT 存进设计、真发布、匿名访客到 `/play`，三臂各 reload：Space 激活 `[data-playtest-run]`、
+  Enter 基线、种子输入框 ↑ 7→8 且报告没跑；再把 `kind` 换成 `rpg-prototype` 重发一次，量 RPG 同一处。
+- `e2e/world-talk.spec.ts` 增两臂：点击后焦点仍在说话按钮上，Space 关掉再打开。
+
+**凭证（先红后绿，各一次）**
+
+- 红：把 `keyboard.ts` 两条判据临时退回 `return false`（等价旧行为）——
+  `game-keyboard` 红在臂一（`[data-playtest-run-row="beeline"]` 20s 不出现，`element(s) not found`），
+  `world-talk` 红在 `[data-world-talk]` 该隐藏却仍 visible。两条都是**旧代码真吞键**，不是用例坏。
+- 绿：还原后 `game-keyboard` **1 passed（11.7s）**、`world-talk` **1 passed（6.0s）**（首跑含新建项目 18.3s）；
+  判据单测 `keyboard-guards.test.ts` **7 passed**（与 `style-tokens` 合计 31 passed / 2 files）；
+  `theme-toggle` 三张面六组合复跑 **3 passed（25.8s）**——Studio 判据改写没有回归（Space 仍翻主题）；
+  9 个改动文件 eslint 0。
+
+**notMeasured（这一片）**
+
+1. **3D 画法没有画布内的键位读数**：`GameCanvas3D` 共用 `GamePlay` 的 keydown，所以修复覆盖它，
+   但 `view='3d'` 那一支本身没造语料（WebGL 场景 + 键位手感）。
+2. **世界页只量了 Space，没量 select 的箭头**：夹具里只有一个角色，下拉改不动。
+   判据本身由种子输入框那条臂钉着（↑ 是数字 +1），这条缺口是语料的，不是判据的。
+3. **移动端/触摸没有量**：这一片全是桌面键盘。
+
 ### Performance
 
 不在此复测：规模基准与热点路径的真数见 `docs/PERFORMANCE.md`（§146/§147 测量协议）。

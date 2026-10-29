@@ -38,6 +38,14 @@ test('@smoke 世界 talk：HUD 上跟 §46 角色档案说话，DEMO 下诚实 4
   const talk = page.locator('[data-world-talk]');
   await expect(talk).toBeVisible();
 
+  // §90 / WCAG 2.1.1：点击之后焦点仍在这个按钮上，Space 必须能把它**按回去**——
+  // 世界的 window keydown 曾对 Space 与四个方向键无条件 preventDefault，按钮的键盘激活就没了。
+  // 再按一次打开，后面照旧用鼠标/后续断言。
+  await page.keyboard.press('Space');
+  await expect(talk).toBeHidden();
+  await page.keyboard.press('Space');
+  await expect(talk).toBeVisible();
+
   // 名册来自 §46：下拉里是"守夜人"，不是世界骨架里那些同名的角色类条目
   await expect(page.locator('[data-world-talk-target]')).toContainText('守夜人');
 

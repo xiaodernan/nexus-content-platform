@@ -33,6 +33,7 @@ import {
 import { KIND_COLORS } from './palette';
 import { PLAY_PROVENANCE_FALLBACK_TEXT, PLAY_PROVENANCE_LABELS, PLAY_PROVENANCE_SLOTS, type PlayProvenanceSlot } from '@nexus/game-model';
 import { GameCanvas3D } from './GameCanvas3D';
+import { isControlTarget, isEditableTarget } from '@/lib/keyboard';
 
 /**
  * §50 的可玩投影：把 `compileGame` 排出来的关卡计划交给 `step` 跑，画在 2D 画布上。
@@ -365,7 +366,14 @@ export function GamePlay({
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
+      // §90 / WCAG 2.1.1：这里只是"玩法输入"，不许把浏览器本来就有的键吞掉。
+      // 焦点在输入控件（随机种子那个 number input）里时一个字都不接——那里 ↑ 是数字 +1、`w` 是字符；
+      // 焦点在按钮/链接上时 Space 是**原生激活键**：`[data-playtest-run]` 按 Space 必须能跑出报告，
+      // `[data-game-restart]` 按 Space 必须能重开。判据只有一份（`@/lib/keyboard`）。
+      // 其余玩法键照旧：点完按钮接着用 WASD / 方向键走路，这条没变。
+      if (isEditableTarget(event.target)) return;
       const key = event.key.toLowerCase();
+      if (key === ' ' && isControlTarget(event.target)) return;
       keys.current[key] = true;
       if (key in KEY_MAP || key === ' ') event.preventDefault();
     };

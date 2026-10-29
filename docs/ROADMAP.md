@@ -56,6 +56,9 @@
 - [x] **主题切换的浏览器见证**：暗/浅 × 首页 / Studio / 公开页，axe + 键盘双门；浅色读数进 `docs/EVALUATION.md`。
       六组合各 0 违规 / 0 critical / 0 对比度节点，切换键 Enter 与 Space 都真的翻像素；登录后九张浅色 axe 0 违规；
       顺带抓到两个真缺陷（Studio 的 Space 劫持、共用键盘门缺隐式停留点分类）。第二十二片。
+- [x] **游戏页的 Space / 方向键劫持**（第二十二片 notMeasured 第 2 条）：`GamePlay` / `RpgPlay` / `WorldWalk`
+      三处 window keydown 与 Studio 同一处修复，判据收成 `apps/web/src/lib/keyboard.ts` 一份；
+      真发布 `/play` 三臂 + 世界页两臂**先红后绿**，`theme-toggle` 六组合复跑无回归。第二十三片。
 - [~] **移动端布局体检（公开页优先）**：第一片已量（`e2e/mobile-layout.spec.ts`，第十三片）——真发布语料
       五张 × 两栏，读数在 `docs/EVALUATION.md`：帧宽全 1440、390 下要平移 1082px、首屏可见 27%、
       `a[data-action-author]` 56×21。**还欠的是那两半**：① `resolveLayout` 没传 `breakpoint`，作者的
@@ -7533,3 +7536,35 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
 
 - 这道门只扫 `apps/web/src`（平台界面）。`packages/design-model` 的 codegen 会生成用户设计稿的
   Tailwind 类名，那是用户的设计 token，不是平台 UI，不在这道门的账上。
+
+## §90 游戏页的 Space 与方向键：三张页的同族缺陷，判据收成一份（2026-10-29）
+
+需求原文（WCAG 2.1.1 Keyboard / 第二十二片 notMeasured 第 2 条）：游戏页的 window keydown 不许吞掉
+落在按钮/链接上的 Space，也不许吞掉落在输入控件里的方向键。
+
+**落点**
+
+- `apps/web/src/lib/keyboard.ts`（新）：`isEditableTarget` / `isControlTarget` 两条判据。
+  Studio 画布（`CanvasStage.tsx`）与命令栏（`CommandBar.tsx`）原先各抄一份的 `typing` / `onControl`
+  换成它——同族判据从四处收成一份（判据不写 `instanceof`，单测跑在 node）。
+- `GamePlay.tsx`（2D）/ `RpgPlay.tsx`：keydown 可编辑目标先放手，`Space + 控件族`归原生激活；
+  WASD / 方向键照旧（点完按钮能接着走）。
+- `WorldWalk.tsx`（3D 世界）：同一处；select 上的箭头/空格不再被走路吞掉。
+- `apps/web/test/keyboard-guards.test.ts`（新，7 条）：可编辑标签 / contentEditable / 控件族 / 拿不到形状的目标。
+- `e2e/game-keyboard.spec.ts`（新）：骨架游戏设计 → 真发布 → 匿名访客 `/play`，三臂各 reload；
+  `kind` 换 `rpg-prototype` 重发一次量 RPG。`e2e/world-talk.spec.ts` 增两臂（Space 关掉再打开）。
+
+**凭证**
+
+- 先红：判据临时 `return false`（等价旧行为）→ `game-keyboard` 红在臂一（报告行 20s 不出现）、
+  `world-talk` 红在 `[data-world-talk]` 该隐藏却 visible。
+- 后绿：`game-keyboard` **1 passed（11.7s）**、`world-talk` **1 passed（6.0s）**、
+  `keyboard-guards` + `style-tokens` **31 passed**、`theme-toggle` **3 passed（25.8s）**；9 个改动文件 eslint 0。
+- 逐条读数见 `docs/EVALUATION.md` 第二十三片。
+
+**仍欠**
+
+- `GameCanvas3D`（3D 画法）没有画布内键位语料；世界页只量了 Space（夹具只有一个角色，select 改不动）；
+  移动端/触摸没量。
+- 焦点在按钮上时 Space 归按钮：点完「重新开始」后焦点仍留在那里，这一下 Space 会再重开而不是攻击。
+  这是原生激活的必然代价，页面上没有额外提示（要不要在画布点击后把焦点收回游戏，另行决策）。

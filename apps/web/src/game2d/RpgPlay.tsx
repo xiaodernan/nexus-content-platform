@@ -17,6 +17,7 @@ import {
   type SimInput,
 } from '@nexus/game-model';
 import { KEY_MAP, drawTopdown } from './GamePlay';
+import { isControlTarget, isEditableTarget } from '@/lib/keyboard';
 
 /**
  * §51 最后一条管线的界面：RPG 原型 = 同一场战斗 + 成长读数。
@@ -55,7 +56,12 @@ export function RpgPlay({ plan, onComplete }: { plan: RpgPlan; onComplete?: () =
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
+      // §90 / WCAG 2.1.1：与 2D 那张同一处修复（判据在 `@/lib/keyboard`，不在这里抄第二份）。
+      // 焦点在输入控件里时不接；焦点在按钮/链接上时 Space 归原生激活（`[data-playtest-run]`、
+      // `[data-rpg-restart]` 都要能被键盘按下去）。WASD / 方向键照旧。
+      if (isEditableTarget(event.target)) return;
       const key = event.key.toLowerCase();
+      if (key === ' ' && isControlTarget(event.target)) return;
       keys.current[key] = true;
       if (key in KEY_MAP || key === ' ') event.preventDefault();
     };
