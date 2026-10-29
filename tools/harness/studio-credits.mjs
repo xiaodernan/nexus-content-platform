@@ -31,6 +31,8 @@
  *   6g. a take-down can be PUT BACK (v542): the shelf remembers WHAT it withdrew beside what is still
  *      for sale, the record survives a reload, and a Put back action returns a listing to the shelf
  *      (and out of the withdrawn record) — again across a reload;
+ *   6h. a take-down can be DISCARDED instead (v543): the withdrawal record only shrinks when a caller
+ *      asks for exactly that, the shelf does not move, and the smaller record survives a reload;
  *   7. clearing writes a VALID empty ledger and the page returns to its empty state;
  *   8. no uncaught page errors, and a screenshot is written as evidence.
  *
@@ -456,6 +458,34 @@ try {
     'a PUT-BACK survives a reload too: the shelf reads back one listing and two withdrawals',
     relistReload.rows === 1 && relistReload.withdrawn === 2 && /SaaS Dashboard/.test(relistReload.row ?? ''),
     JSON.stringify(relistReload),
+  );
+
+  // 6h. TWO EXITS (v543). A take-down can be undone (Put back) or accepted as gone for good
+  // (Discard); the withdrawal record must never shrink by accident, and a discard must not disturb
+  // what is for sale. After 6g the record holds [starter, mobile] and the shelf holds [saas].
+  const discard = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-discard=\"tpl-starter\"]'); if (!b) return false; b.click(); return true; })()",
+  );
+  await page.waitForFunction("(() => document.querySelectorAll('[data-credits-withdrawn]').length === 1)()", { timeout: 10000 });
+  const discarded = await page.evaluate(
+    "(() => ({ rows: document.querySelectorAll('[data-credits-listing]').length, withdrawn: document.querySelectorAll('[data-credits-withdrawn]').length, ids: [...document.querySelectorAll('[data-credits-withdrawn]')].map((el) => el.getAttribute('data-credits-withdrawn')), discardGone: !document.querySelector('[data-credits-relist=\"tpl-starter\"]'), row: document.querySelector('[data-credits-listing=\"tpl-saas\"]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, error: !!document.querySelector('[data-credits-error]') }))()",
+  );
+  check(
+    'Discard forgets a withdrawn listing without moving the shelf (record 2 -> 1)',
+    discard === true && discarded.rows === 1 && discarded.withdrawn === 1 && discarded.ids[0] === 'tpl-mobile' &&
+      discarded.discardGone === true && /SaaS Dashboard/.test(discarded.row ?? '') && discarded.error === false,
+    JSON.stringify(discarded),
+  );
+
+  await page.navigate(`${URL_BASE}/credits`, { waitForSelector: '#nexus-credits' });
+  await page.waitForFunction("!!document.querySelector('[data-credits-wallet]')", { timeout: 20000 });
+  const discardReload = await page.evaluate(
+    "(() => ({ rows: document.querySelectorAll('[data-credits-listing]').length, withdrawn: document.querySelectorAll('[data-credits-withdrawn]').length, ids: [...document.querySelectorAll('[data-credits-withdrawn]')].map((el) => el.getAttribute('data-credits-withdrawn')) }))()",
+  );
+  check(
+    'a DISCARD survives a reload: the record reads back with only the take-down that was kept',
+    discardReload.rows === 1 && discardReload.withdrawn === 1 && discardReload.ids[0] === 'tpl-mobile',
+    JSON.stringify(discardReload),
   );
 
   // 7. clearing writes a valid empty ledger and returns the page to its empty state.

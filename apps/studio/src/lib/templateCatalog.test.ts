@@ -9,12 +9,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   addTemplate,
+  discardWithdrawn,
   emptyTemplateCatalog,
   freeListings,
   listingsByAuthor,
   listingsByCategory,
   normalizeTags,
   queryTokens,
+  relistTemplate,
   retireTemplate,
   searchTemplates,
   sortByNewest,
@@ -198,5 +200,49 @@ describe('templateCatalog: retiring (v539)', () => {
     const again = addTemplate(gone.catalog, listing({ id: 'a', authorId: 'acc-2' }));
     if (!again.ok) throw new Error(`re-listing refused: ${again.reason}`);
     expect(templateById(again.catalog, 'a')?.authorId).toBe('acc-2');
+  });
+});
+describe('templateCatalog: a withdrawn listing has TWO exits (v543)', () => {
+  it('relist MOVES the listing back to the shelf and out of the record in one decision', () => {
+    const listed = build(listing({ id: 'a' }), listing({ id: 'b', createdAt: 2_000 }));
+    const gone = retireTemplate(listed, 'a');
+    if (!gone.ok) throw new Error(gone.reason);
+    const withdrawn = [gone.listing];
+    const back = relistTemplate(gone.catalog, withdrawn, 'a');
+    if (!back.ok) throw new Error(back.reason);
+    expect(back.catalog.listings.map((entry) => entry.id)).toEqual(['b', 'a']);
+    expect(back.withdrawn).toEqual([]);
+    // Purity: the inputs are untouched, and the listing returned is the one that left.
+    expect(gone.catalog.listings.map((entry) => entry.id)).toEqual(['b']);
+    expect(withdrawn.map((entry) => entry.id)).toEqual(['a']);
+    expect(back.listing).toEqual(gone.listing);
+  });
+
+  it('refuses a put-back BY NAME when the record does not hold the id, or the shelf already does', () => {
+    const listed = build(listing({ id: 'a' }));
+    const missing = relistTemplate(listed, [], 'a');
+    expect(missing.ok).toBe(false);
+    if (missing.ok) return;
+    expect(missing.reason).toContain('lists no template "a" to put back');
+
+    const gone = retireTemplate(listed, 'a');
+    if (!gone.ok) throw new Error(gone.reason);
+    const already = relistTemplate(listed, [gone.listing], 'a');
+    expect(already.ok).toBe(false);
+    if (already.ok) return;
+    expect(already.reason).toContain('already listed');
+  });
+
+  it('discard FORGETS a withdrawn listing deliberately, and refuses an id the record does not hold', () => {
+    const a = listing({ id: 'a' });
+    const kept = listing({ id: 'b', createdAt: 2_000 });
+    const dropped = discardWithdrawn([a, kept], 'a');
+    if (!dropped.ok) throw new Error(dropped.reason);
+    expect(dropped.withdrawn.map((entry) => entry.id)).toEqual(['b']);
+
+    const missing = discardWithdrawn([kept], 'a');
+    expect(missing.ok).toBe(false);
+    if (missing.ok) return;
+    expect(missing.reason).toContain('lists no template "a" to discard');
   });
 });

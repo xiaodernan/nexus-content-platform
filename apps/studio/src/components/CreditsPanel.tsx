@@ -17,8 +17,9 @@ import {
 } from '@/lib/refundPolicy';
 import { attributionByRef, attributionLine, statementFor, statementLine, statementReconciles, type SettlementWindow } from '@/lib/settlement';
 import {
-  addTemplate,
+  discardWithdrawn,
   emptyTemplateCatalog,
+  relistTemplate,
   retireTemplate,
   templateById,
   type TemplateCatalog,
@@ -218,21 +219,35 @@ export default function CreditsPanel() {
   }, [catalog, withdrawn]);
 
   /**
-   * PUT BACK one withdrawn listing (v542): the move reversed. The listing kept in the withdrawn record
-   * is re-ADDED through `addTemplate`, so its fields and tags are validated exactly as a publish would
-   * be, and removed from the record in the same write. If the id were somehow listed again meanwhile,
-   * `addTemplate` refuses BY NAME and nothing is written.
+   * PUT BACK one withdrawn listing (v543): the move reversed as ONE model decision. `relistTemplate`
+   * re-adds the remembered listing through `addTemplate` (so it is validated exactly as a publish
+   * would be) AND takes it out of the record, which is the only way to keep one id on one side of the
+   * shelf — doing the two halves by hand is what the store's overlap refusal catches. If the id were
+   * somehow listed again meanwhile, it refuses BY NAME and nothing is written.
    */
   const onPutBack = useCallback((ref: string) => {
-    const listing = withdrawn.find((entry) => entry.id === ref);
-    if (!listing) { setError(`the withdrawn record lists no template "${ref}" to put back`); return; }
-    const decision = addTemplate(catalog, listing);
+    const decision = relistTemplate(catalog, withdrawn, ref);
     if (!decision.ok) { setError(decision.reason); return; }
-    const nextWithdrawn = withdrawn.filter((entry) => entry.id !== ref);
-    const saved = saveCatalog(window.localStorage, decision.catalog, nextWithdrawn);
+    const saved = saveCatalog(window.localStorage, decision.catalog, decision.withdrawn);
     if (!saved.ok) { setError(saved.reason); return; }
     setCatalog(decision.catalog);
-    setWithdrawn(nextWithdrawn);
+    setWithdrawn(decision.withdrawn);
+    setError(null);
+  }, [catalog, withdrawn]);
+
+  /**
+   * DISCARD one withdrawn listing (v543): the record's OTHER exit. A take-down can be undone (put back)
+   * or accepted as gone for good, and only this deliberate call makes the memory shrink — a retire
+   * never quietly becomes a delete. It is also what frees an id for a NEW publish: while the listing
+   * sits in the record, adding a fresh one under that id and saving both would be refused as an
+   * overlap. The shelf itself does not move here; the record shrinks.
+   */
+  const onDiscard = useCallback((ref: string) => {
+    const decision = discardWithdrawn(withdrawn, ref);
+    if (!decision.ok) { setError(decision.reason); return; }
+    const saved = saveCatalog(window.localStorage, catalog, decision.withdrawn);
+    if (!saved.ok) { setError(saved.reason); return; }
+    setWithdrawn(decision.withdrawn);
     setError(null);
   }, [catalog, withdrawn]);
 
@@ -277,8 +292,8 @@ export default function CreditsPanel() {
         ledger and catalog would use (<code>nexus.credits.v1</code> and <code>nexus.catalog.v1</code> in
         this browser). Buying a template appends a real two-entry transaction to that LOCAL ledger;
         refunding reverses the recorded purchase; retiring withdraws the listing from that LOCAL shelf
-        and REMEMBERS it (v542), so it can be put back — even after a reload. All of it spends demo
-        credits, not money.
+        and REMEMBERS it (v542), so it can be put back or discarded — even after a reload. All of it
+        spends demo credits, not money.
       </div>
 
       {error && (
@@ -532,8 +547,8 @@ export default function CreditsPanel() {
         >
           <strong>WITHDRAWN · {withdrawn.length} listing(s) this shelf took down</strong>
           <div style={{ color: 'var(--nexus-muted)', marginTop: 4 }}>
-            A retire is a move, not a delete: these listings are off the shelf, recorded beside it, and can
-            be put back.
+            A retire is a move, not a delete: these listings are off the shelf, recorded beside it. Put one
+            back, or discard the memory that it was ever listed.
           </div>
           {withdrawn.map((entry) => (
             <div
@@ -552,6 +567,15 @@ export default function CreditsPanel() {
                 style={{ fontSize: 10, padding: '1px 6px' }}
               >
                 Put back
+              </button>
+              <button
+                type="button"
+                className="btn"
+                data-credits-discard={entry.id}
+                onClick={() => onDiscard(entry.id)}
+                style={{ fontSize: 10, padding: '1px 6px', opacity: 0.7 }}
+              >
+                Discard
               </button>
             </div>
           ))}

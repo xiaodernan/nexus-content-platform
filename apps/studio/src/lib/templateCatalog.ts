@@ -188,3 +188,48 @@ export function sortByPriceAsc(catalog: TemplateCatalog): TemplateListing[] {
 export function sortByNewest(catalog: TemplateCatalog): TemplateListing[] {
   return catalog.listings.map((l, i) => [l, i] as const).sort((a, b) => b[0].createdAt - a[0].createdAt || a[1] - b[1]).map(([l]) => l);
 }
+
+export type TemplateRelistDecision =
+  | { ok: true; catalog: TemplateCatalog; withdrawn: TemplateListing[]; listing: TemplateListing }
+  | { ok: false; reason: string };
+
+/**
+ * Put one withdrawn listing BACK on the shelf (v543), or refuse BY NAME.
+ *
+ * <p>v542 taught the shelf to REMEMBER a take-down, but it left the move back to the caller: adding
+ * the remembered listing and removing it from the record were two statements a page had to keep in
+ * step, and a page that did only the first produced a document `catalogStore` refuses (one id on both
+ * sides). This is the whole move as ONE pure decision — the listing returns to the catalog through
+ * `addTemplate`, so it is validated exactly as a publish would be, and leaves the withdrawal record in
+ * the same value. An id that is already listed is refused by `addTemplate`, which also means a
+ * put-back can never create the overlap the store refuses to save.
+ */
+export function relistTemplate(
+  catalog: TemplateCatalog,
+  withdrawn: readonly TemplateListing[],
+  id: string,
+): TemplateRelistDecision {
+  if (typeof id !== 'string' || id === '') return { ok: false, reason: 'a put-back needs the id of the listing to return' };
+  const listing = withdrawn.find((entry) => entry.id === id);
+  if (!listing) return { ok: false, reason: `the withdrawn record lists no template "${id}" to put back` };
+  const added = addTemplate(catalog, listing);
+  if (!added.ok) return { ok: false, reason: added.reason };
+  return { ok: true, catalog: added.catalog, withdrawn: withdrawn.filter((entry) => entry.id !== id), listing };
+}
+
+export type TemplateDiscardDecision = { ok: true; withdrawn: TemplateListing[] } | { ok: false; reason: string };
+
+/**
+ * FORGET one withdrawn listing (v543), or refuse BY NAME.
+ *
+ * <p>A take-down has two honest exits: put the listing back, or decide it is gone for good. This is
+ * the second, and it is DELIBERATE — the record only shrinks when a caller asks for exactly that, so a
+ * take-down cannot quietly become a delete. Discarding is also the way an id becomes free for a NEW
+ * publish: while a listing sits in the withdrawal record, adding a fresh listing under that id and
+ * saving both is refused (one id on both sides), so the record must release it first.
+ */
+export function discardWithdrawn(withdrawn: readonly TemplateListing[], id: string): TemplateDiscardDecision {
+  if (typeof id !== 'string' || id === '') return { ok: false, reason: 'a discard needs the id of the withdrawn listing' };
+  if (!withdrawn.some((entry) => entry.id === id)) return { ok: false, reason: `the withdrawn record lists no template "${id}" to discard` };
+  return { ok: true, withdrawn: withdrawn.filter((entry) => entry.id !== id) };
+}

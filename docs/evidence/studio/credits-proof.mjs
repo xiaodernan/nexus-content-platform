@@ -565,11 +565,19 @@ try {
   assert.equal(loadedRetired.source, 'stored', 'the saved shelf did not read back as stored');
   assert.deepEqual(loadedRetired.catalog.listings.map((listing) => listing.id), ['tpl-free'], 'the retired shelf did not round-trip');
   assert.deepEqual(loadedRetired.withdrawn.map((listing) => listing.id), ['tpl-paid'], 'the withdrawn record did not round-trip');
-  // What was withdrawn is kept WHOLE, so a PUT-BACK has something to put back — and putting it back is
-  // the same `addTemplate` the shelf uses for any listing, not a second path that skips validation.
-  const putBack = catalogMod.addTemplate(loadedRetired.catalog, loadedRetired.withdrawn[0]);
+  // What was withdrawn is kept WHOLE, so a PUT-BACK has something to put back — and v543 makes the
+  // move ONE decision that cannot leave the id on both sides: `relistTemplate` re-adds the listing
+  // through `addTemplate` and drops it from the record in the same value.
+  const putBack = catalogMod.relistTemplate(loadedRetired.catalog, loadedRetired.withdrawn, 'tpl-paid');
   assert.equal(putBack.ok, true, `a withdrawn listing could not be put back: ${putBack.reason}`);
   assert.equal(catalogMod.templateById(putBack.catalog, 'tpl-paid')?.id, 'tpl-paid', 'the put-back did not return the listing to the shelf');
+  assert.deepEqual(putBack.withdrawn, [], 'the put-back left the listing in the withdrawal record');
+  // The record's OTHER exit: a discard forgets the listing deliberately, and refuses an id it does
+  // not hold — the memory only shrinks when a caller asks for exactly that.
+  const discarded = catalogMod.discardWithdrawn([putBack.listing], 'tpl-paid');
+  assert.equal(discarded.ok, true, `a withdrawn listing could not be discarded: ${discarded.reason}`);
+  assert.deepEqual(discarded.withdrawn, [], 'the discard did not forget the listing');
+  assert.equal(catalogMod.discardWithdrawn([], 'tpl-paid').ok, false, 'a discard of an unknown id was accepted');
 
   // A version-1 document — written before take-downs were remembered — is MIGRATED, not refused: its
   // shelf is the same shelf, and an empty withdrawal record is the truthful reading of it.
