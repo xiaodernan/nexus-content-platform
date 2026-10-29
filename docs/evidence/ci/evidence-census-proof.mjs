@@ -95,6 +95,12 @@
 // split, and the two prose numbers, and reddens when any of them disagrees. The shapes are graded exactly: a
 // table this reader cannot parse is a red asking for the edit, never a silent skip.
 //
+// v547 (amendment 530) — the LAST EXCLUDED row retired, so the ROW class is 103 running rows and the residue
+// is empty; the print loop above had nothing to print for residue, and the two derived cells moved by one row
+// each (102 run + 1 excluded → 103 run + 0 excluded). No class count moved: 115 tracked = 103 row + 4 helper
+// + 2 swept + 6 tool. The 20 fixture arms never depended on the real set — they build their own plane with an
+// excluded row — so the proof that retires exclusions is not weakened by having none.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';

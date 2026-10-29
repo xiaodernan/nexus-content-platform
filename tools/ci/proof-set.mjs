@@ -51,14 +51,18 @@ export const PROOF_COMMAND = /^node +(docs\/evidence\/\S+\.mjs)$/;
 
 /**
  * Proofs the build machine cannot run, each naming the service it needs. Every reason below is a
- * measurement of that file, recorded in amendment 514's section; §3 refuses an exclusion that states nothing.
+ * measurement of that file, recorded in amendment 514's section; the wiring gate's §6 refuses an exclusion
+ * that states nothing, and refuses a reason whose external reach is only prose.
+ *
+ * v547 (ADR 0016 amendment 530) — EMPTY, and the last entry was wrong in the way this file exists to catch.
+ * It said service-suite-proof needed "maven and a real PostgreSQL"; measured, its tests are pure Mockito
+ * (no Spring context, no database), and the proof runs `mvn -o -B test` to exit 0 in 52.7 s on a warm
+ * repository — 400 tests in 20 classes, service digest unchanged. The real prerequisites were a JDK 25 +
+ * Maven, which the workflow pins, and a warm `~/.m2` for the offline flag, which the workflow buys online
+ * (a warm-up step) before the proofs run. The array is kept — not deleted — because the clause is "a proof
+ * the build cannot run must say what it needs", and an empty set is still a set the gates read.
  */
-export const EXCLUDED = [
-  {
-    file: 'docs/evidence/m7/service-suite-proof.mjs',
-    needs: 'maven and a real PostgreSQL — it grades the surefire XML written by `mvn -B test` on services/nexus-api',
-  },
-];
+export const EXCLUDED = [];
 
 export const readPkg = (root = ROOT) => JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
@@ -134,11 +138,28 @@ export const verdictOf = (s) => (s.killed ? 'TIMEOUT' : s.code === 0 ? 'OK' : 'R
  * The sentence that names the cause, not a window onto a stack: an `AssertionError` line IS the proof's own
  * verdict, and a runner that printed only the first three stderr lines made 32 broken imports look like 32
  * proof failures (amendment 88).
+ *
+ * v550 (amendment 531): the message is MULTI-LINE whenever the proof lists its findings, and the line that
+ * names the subject is usually NOT the first. `verify:package-counts` refused run 40920204170 with "the
+ * package table drifted from the suites it describes — regenerate it with …" and the log stopped there: the
+ * seven `pkg: the table says N; the suite answered M` sentences that said WHICH row drifted were the
+ * assertion's own continuation lines, and the old reader cut them off by keeping only the error line. So the
+ * cause is now the error line PLUS its indented continuation, stopping at the stack (`at …`), at the first
+ * unindented line, or at a blank one — bounded in both lines and bytes, because a cause is a verdict and not
+ * a log. The single-line answer is unchanged: an error with no continuation prints exactly as before.
  */
 export function causeOf(tail) {
-  const lines = String(tail).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  const named = lines.find((l) => /^AssertionError/.test(l)) || lines.find((l) => /Error:/.test(l));
-  return (named || lines[lines.length - 1] || '(the child printed nothing)').slice(0, 400);
+  const lines = String(tail).split(/\r?\n/).map((l) => l.replace(/\s+$/, ''));
+  const start = lines.findIndex((l) => /^\s*(AssertionError|[\w.]*Error:)/.test(l));
+  if (start < 0) return (lines.filter((l) => l.trim()).pop() || '(the child printed nothing)').slice(0, 400);
+  const out = [lines[start].trim()];
+  for (const raw of lines.slice(start + 1)) {
+    const t = raw.trim();
+    if (!t || out.length >= 24) break;
+    if (!/^\s/.test(raw) || /^at\s/.test(t)) break;
+    out.push(t);
+  }
+  return out.join('\n').slice(0, 2000);
 }
 
 async function main() {

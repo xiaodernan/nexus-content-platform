@@ -32,7 +32,7 @@ Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-paral
 | `@nexus/world-engine` | **109/109** | 4 | M4: world/lore/character/location + relationships + tick + save/load |
 | `@nexus/agent-runtime` | **658/658** | 46 | M2–M5 doors; see `docs/evidence/agents/README.md` |
 | `@nexus/exec-host` | **358/358** | 14 | the only `child_process` holder (ADR 0013 policy sandbox) |
-| `@nexus/studio` | **2840/2840** | 142 | the Studio slice: canvas, surfaces, lanes, and the `/credits` page |
+| `@nexus/studio` | **2832/2832** | 142 | the Studio slice: canvas, surfaces, lanes, and the `/credits` page |
 
 _Generated on 2026-10-29 by `npm run verify:package-counts` from seven `vitest run --root <pkg> --no-file-parallelism` arms — never hand-typed. A package whose counts move must regenerate this block; the gate refuses a table that differs from the suites it ran._
 <!-- package-counts:end -->
@@ -43,6 +43,12 @@ package rows were older still. Since v549 it is GENERATED: `npm run verify:packa
 seven `vitest run --root <pkg> --no-file-parallelism` arms, reads each count out of vitest's own
 JSON report, rewrites the marked block (`--write`) or refuses one that differs from the run it
 just measured. A number no command produces is a number nobody should quote.
+
+Since v550, `--write` measures only a COMMITTED package tree: it refuses by name when any of the
+seven package roots carries an uncommitted path, because the first block generated on this box was
+generated from a working tree carrying another lane's in-flight cases (the `studio` row claimed
+2840/2840 while HEAD answered 2832/2832) and the next build refused it. Check mode is unchanged —
+it grades the tree in front of it, which is what makes a local red useful before a commit.
 
 ## Reproducible browser verification (ADR 0017)
 

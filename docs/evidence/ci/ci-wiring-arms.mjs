@@ -19,7 +19,10 @@
 // an exit code: a stub that exits 3 must produce exit 1 and a named cause, a stub that hangs must produce
 // TIMEOUT and NOT red, `--list` must run nothing (proved by the absence of the file the stubs append to), a
 // `--only` typo must refuse to certify an empty set, and a missing `dist` must say the build is absent rather
-// than call the proof red — amendment 78's two colours, measured through the door that ships them.
+// than call the proof red — amendment 78's two colours, measured through the door that ships them. v550 adds the
+// pair that grades the CAUSE itself: an assertion whose subject sits on its second line must reach the log
+// (R12), and the stack under it must not (R13) — the runner's first hosted red, `verify:package-counts` on
+// 40920204170, was printed as a headline and nothing else, and the rows it named were invisible.
 //
 // Nothing an ARM writes survives: each one gets its own plane directory, built from pristine bytes read out of
 // `SRC` (derived from THIS file's own location, not from the caller's cwd), and is removed the moment the arm
@@ -119,17 +122,14 @@ const RUNNER = 'tools/ci/proof-set.mjs';
 const MUT = 'docs/evidence/studio/mutation-probe.mjs';
 const BUILD_STEP = '      - name: Build\n        run: npm run build\n';
 const PROOFS_STEP = '      - name: Evidence proofs\n        run: npm run verify:proofs\n';
-// These two needles are the `EXCLUDED` ROWS, not the sentences that describe them. The first draft of A10/A11
-// quoted `service-suite-proof.mjs',` and `needs: 'a docker daemon …'` bare, and BOTH also appear in this
-// runner's header prose — so the one-hit rule refused the arm, the gate never ran, and the arm reported its own
-// prose as a gate failure. An arm whose needle is ambiguous is a crash, not a red: that is the lesson, and the
-// `file: ` prefix is what makes each needle unique in the file that carries it. v545 retired the docker row
-// (its blocker — a pre-pulled pgvector image — is now satisfied by the workflow) and v546 retired the
-// live-stack row (the proof never touches `studio-publish.mjs`; that harness is `verify:publish-e2e`, outside
-// the derived population, and the runner pins JDK 25 and pulls the image). A11 now aims at the maven+PostgreSQL
-// row that remains: the arm grades the reason rule, and any surviving exclusion can carry it.
-const SERVICE_ROW = "    file: 'docs/evidence/m7/service-suite-proof.mjs',";
-const SERVICE_NEEDS_ROW = "    needs: 'maven and a real PostgreSQL — it grades the surefire XML written by `mvn -B test` on services/nexus-api',";
+// A10/A11's premise MOVED at v547: v545 retired the docker row, v546 the live-stack row, and v547 (amendment
+// 530) the LAST one, so the shipped `EXCLUDED` is empty and an arm that quoted an entry would be editing bytes
+// that do not exist — the needle-matched-nothing crash A10's first draft already hit in v540 for the opposite
+// reason (its needle was ambiguous with the runner's own prose). So both arms now PLANT their exclusion by
+// splicing one entry into the `EXCLUDED = []` DECLARATION: one for a proof that reaches nothing (§6's reach
+// rule) and one whose reason is shorter than the floor (§6's "states nothing" rule). The needle is the
+// declaration line, and the reason each planted row is unique is that the declaration occurs once.
+const EXCLUDED_DECL = 'export const EXCLUDED = [];\n';
 
 // A14's premise is the WHOLE population's declaration set, so its edits are DERIVED, not copied: at v528 one
 // row declared a budget and deleting that one armed §9; by v540 six did, and the hardcoded delete left five
@@ -171,12 +171,12 @@ const GATE_ARMS = [
     clause: '§6',
     edits: [{
       file: RUNNER,
-      from: SERVICE_ROW,
-      to: `    file: 'docs/evidence/studio/credits-proof.mjs',\n    needs: 'nothing at all — it is a pure node proof, so this exclusion is the rot the arm plants',\n  },\n  {\n${SERVICE_ROW}`,
+      from: EXCLUDED_DECL,
+      to: "export const EXCLUDED = [\n  {\n    file: 'docs/evidence/studio/credits-proof.mjs',\n    needs: 'nothing at all — it is a pure node proof, so this exclusion is the rot the arm plants',\n  },\n];\n",
     }],
     sig: /nothing OUTSIDE its comments reaches/,
   },
-  { tag: 'A11-exclusion-without-a-reason', clause: '§6', edits: [{ file: RUNNER, from: SERVICE_NEEDS_ROW, to: "    needs: 'docker'," }], sig: /without naming what it needs/ },
+  { tag: 'A11-exclusion-without-a-reason', clause: '§6', edits: [{ file: RUNNER, from: EXCLUDED_DECL, to: "export const EXCLUDED = [\n  {\n    file: 'docs/evidence/m7/service-suite-proof.mjs',\n    needs: 'docker',\n  },\n];\n" }], sig: /without naming what it needs/ },
   { tag: 'A12-runner-path-swapped', clause: '§7', edits: [{ file: PKG, from: '"verify:proofs": "node tools/ci/proof-set.mjs"', to: '"verify:proofs": "node tools/ci/proof-set-old.mjs"' }], sig: /must be the same door/ },
   { tag: 'A13-gate-not-in-its-own-set', clause: '§8', edits: [{ file: PKG, from: '    "verify:ci-wiring": "node docs/evidence/ci/ci-wiring-proof.mjs",\n', to: '' }], sig: /verify:ci-wiring is/ },
   { tag: 'A14-nobody-declares-a-budget', clause: '§9', edits: DECLARED_MARKERS, sig: /no row of the running set declares a budget/ },
@@ -204,20 +204,18 @@ const GATE_ARMS = [
 }
 
 // ── half 2: the runner ────────────────────────────────────────────────────────────────────────────────
-// A synthetic plane, because the claim is about EXIT CODES and nothing else: nine derived `verify:*` rows — eight
-// runnable stubs plus the one shipped EXCLUDED path. v545 retired the docker-daemon row and v546 the live-stack
-// row; the plane stayed at NINE by growing a stub each time, because two arms live on that size: R6 deletes the
-// excluded row and still stands at eight, above the >=8 floor, so `unknownExclusions` is the clause that fires;
-// R8 deletes two stubs and falls to seven, below it, so the floor is. At eight rows R6's own clause would be
-// unreachable — the floor would answer first — which is the "clause that can never fire" v539 named. Each stub
-// appends to `ran.log`, which makes "this run executed nothing" a fact about a file rather than a reading of a
-// sentence.
+// A synthetic plane, because the claim is about EXIT CODES and nothing else: NINE derived `verify:*` rows, all
+// runnable stubs — v547 retired the shipped set's last excluded row, so a plane that still carried one would
+// grade a shape the tree no longer has. R6 and R9 PLANT their exclusion by splicing it into the runner's
+// `EXCLUDED = []` declaration — a ghost file for the stale-record arm, stub-a with a six-character reason for
+// the reason-floor arm — so each fires on its own cause, and the floor (R8, two scripts deleted) can never
+// answer for the wrong clause. Each stub appends to `ran.log`, which makes "this run executed nothing" a fact
+// about a file rather than a reading of a sentence.
 // Every stub declares its own generous budget. The runner arms pass `--budget 600` to the whole synthetic
 // plane to prove a ROW's marker beats the fallback (R2b), and on a loaded box a healthy stub once took 0.7 s
 // and was killed before the row under test could speak — the arm's subject is `c`, so no other row may be
 // able to die first. A row with no marker is then only ever the arm's deliberate subject (R2c).
 const stub = (name) => `// sweep-budget-ms: 120000\nimport { appendFileSync } from 'node:fs';\nappendFileSync('ran.log', '${name}\\n');\nconsole.log('${name} green');\n`;
-const EXCLUDED_STUB = 'console.log(\'excluded stub — the runner must never start me\');\n';
 const BASE_BODIES = {
   'docs/evidence/stub/a.mjs': stub('a'),
   'docs/evidence/stub/b.mjs': stub('b'),
@@ -227,7 +225,7 @@ const BASE_BODIES = {
   'docs/evidence/stub/f.mjs': stub('f'),
   'docs/evidence/stub/g.mjs': stub('g'),
   'docs/evidence/stub/h.mjs': stub('h'),
-  'docs/evidence/m7/service-suite-proof.mjs': EXCLUDED_STUB,
+  'docs/evidence/stub/i.mjs': stub('i'),
 };
 const BASE_SCRIPTS = {
   'verify:stub-a': 'node docs/evidence/stub/a.mjs',
@@ -238,9 +236,9 @@ const BASE_SCRIPTS = {
   'verify:stub-f': 'node docs/evidence/stub/f.mjs',
   'verify:stub-g': 'node docs/evidence/stub/g.mjs',
   'verify:stub-h': 'node docs/evidence/stub/h.mjs',
-  'verify:service': 'node docs/evidence/m7/service-suite-proof.mjs',
+  'verify:stub-i': 'node docs/evidence/stub/i.mjs',
 };
-const ALL_GREEN = /8\/8 green of a derived population of 9/;
+const ALL_GREEN = /9\/9 green of a derived population of 9/;
 const HANG = "import { appendFileSync } from 'node:fs';\nappendFileSync('ran.log', 'c\\n');\nsetTimeout(() => {}, 30000);\n";
 // R2b's subject is row `c` and only row `c`: a computed budget of 30 s over a 1.5 s busy loop is the margin
 // the arm needs, because on a loaded box the loop plus node startup measured 4.8 s — the same run in which
@@ -281,14 +279,30 @@ const RUNNER_ARMS = [
   { tag: 'R2c-undeclared-slow-row-is-killed', bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': SLOW_WITHOUT_MARKER }, argv: ['--budget', '600'], code: 1, has: [/── verify:stub-c TIMEOUT ──/, /\[default 600ms\]/], lacks: [/\bRED\b/], ran: true },
   { tag: 'R3-only-typo-certifies-nothing', argv: ['--only', 'nosuchrow'], code: 1, has: [/NOTHING RAN/], lacks: [ALL_GREEN], ran: false },
   { tag: 'R3b-only-selects-one-row', argv: ['--only', 'stub-a'], code: 0, has: [/1\/1 green of a derived population of 9/], lacks: [/verify:stub-b/], ran: true, ranRows: 1 },
-  { tag: 'R4-list-runs-nothing', argv: ['--list'], code: 0, has: [/RUN      verify:stub-a/, /EXCLUDED verify:service/], lacks: [/OK \d/], ran: false },
+  { tag: 'R4-list-runs-nothing', argv: ['--list'], code: 0, has: [/RUN      verify:stub-a/, /derived population 9 = runs 9 \+ excluded 0/], lacks: [/EXCLUDED/, /OK \d/], ran: false },
   { tag: 'R5-dangling-script-is-red-not-skipped', remove: ['docs/evidence/stub/d.mjs'], argv: [], code: 1, has: [/points at a proof file that is not on disk/], lacks: [ALL_GREEN], ran: false },
-  { tag: 'R6-stale-exclusion-named', scripts: Object.fromEntries(Object.entries(BASE_SCRIPTS).filter(([k]) => k !== 'verify:service')), argv: [], code: 1, has: [/EXCLUDED names a file that is not in the derived population/], lacks: [ALL_GREEN], ran: false },
+  { tag: 'R6-stale-exclusion-named', edits: [{ file: RUNNER, from: EXCLUDED_DECL, to: "export const EXCLUDED = [\n  {\n    file: 'docs/evidence/stub/ghost.mjs',\n    needs: 'a daemon this synthetic plane never starts — the arm plants a record for a proof nobody wires',\n  },\n];\n" }], argv: [], code: 1, has: [/EXCLUDED names a file that is not in the derived population/], lacks: [ALL_GREEN], ran: false },
   { tag: 'R7-missing-build-is-named-not-red', bodies: { ...BASE_BODIES, 'docs/evidence/stub/e.mjs': `${stub('e')}const target = './packages/fake/dist/index.js';\nconsole.log(target);\n` }, argv: [], code: 1, has: [/the build these proofs grade is not there/], lacks: [/── verify:stub-e RED ──/], ran: false },
   { tag: 'R8-population-floor', scripts: Object.fromEntries(Object.entries(BASE_SCRIPTS).filter(([k]) => !['verify:stub-d', 'verify:stub-e'].includes(k))), argv: [], code: 1, has: [/admits almost nothing/], lacks: [ALL_GREEN], ran: false },
-  { tag: 'R9-exclusion-without-a-reason', edits: [{ file: RUNNER, from: SERVICE_NEEDS_ROW, to: "    needs: 'docker'," }], argv: [], code: 1, has: [/is excluded without naming what it needs/], lacks: [ALL_GREEN], ran: false },
-  { tag: 'R10-budget-must-be-a-number', argv: ['--budget', 'abc'], code: 1, has: [/a budget is a whole number of milliseconds/], lacks: [/running 6 derived/], ran: false },
-  { tag: 'R11-budget-flag-without-a-value', argv: ['--budget', ''], code: 1, has: [/given without a number/], lacks: [/running 6 derived/], ran: false },
+  { tag: 'R9-exclusion-without-a-reason', edits: [{ file: RUNNER, from: EXCLUDED_DECL, to: "export const EXCLUDED = [\n  {\n    file: 'docs/evidence/stub/a.mjs',\n    needs: 'docker',\n  },\n];\n" }], argv: [], code: 1, has: [/is excluded without naming what it needs/], lacks: [ALL_GREEN], ran: false },
+  { tag: 'R10-budget-must-be-a-number', argv: ['--budget', 'abc'], code: 1, has: [/a budget is a whole number of milliseconds/], lacks: [/running 9 derived/], ran: false },
+  { tag: 'R11-budget-flag-without-a-value', argv: ['--budget', ''], code: 1, has: [/given without a number/], lacks: [/running 9 derived/], ran: false },
+  // v550: an assertion's SUBJECT can sit on its second line, and the package-counts row's first ubuntu red was
+  // unreadable because the runner printed line one and stopped. This stub reproduces the shape that red had —
+  // a headline sentence followed by the per-row findings — and the arm is satisfied only when those findings
+  // reach the log a human reads.
+  {
+    tag: 'R12-multiline-cause-reaches-the-log',
+    bodies: { ...BASE_BODIES, 'docs/evidence/stub/b.mjs': "console.error('AssertionError [ERR_ASSERTION]: the package table drifted from the suites it describes:\\n  @nexus/stub-b: the table says 1/1; the suite answered 2/2\\n  @nexus/stub-c: the table says 3 files; the run produced 4');\nprocess.exit(3);\n" },
+    argv: [], code: 1, has: [/── verify:stub-b RED ──/, /@nexus\/stub-b: the table says 1\/1; the suite answered 2\/2/, /@nexus\/stub-c: the table says 3 files; the run produced 4/], lacks: [/NOTHING RAN/], ran: true,
+  },
+  // The boundary of the same rule: a cause is the MESSAGE, not the stack under it. This arm is why R12 is a
+  // narrowing rather than "print more" — the frames follow the message and must still be cut.
+  {
+    tag: 'R13-stack-frames-are-not-the-cause',
+    bodies: { ...BASE_BODIES, 'docs/evidence/stub/b.mjs': "console.error('AssertionError [ERR_ASSERTION]: the number is wrong\\n    at Object.<anonymous> (/tmp/stub.mjs:3:9)\\n    at Module._compile (node:internal/modules/cjs/loader:1454:14)');\nprocess.exit(3);\n" },
+    argv: [], code: 1, has: [/── verify:stub-b RED ──/, /the number is wrong/], lacks: [/at Object/, /Module\._compile/, /NOTHING RAN/], ran: true,
+  },
 ];
 
 const results = [];

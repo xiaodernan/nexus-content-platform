@@ -13,10 +13,18 @@
 // a block that differs from the run it just measured. A hand-typed number cannot survive a check.
 //
 // §0 the block and its markers exist, and the checker is witnessed on mutated copies BEFORE it grades
-//    the real one — a checker that cannot be red is decoration too · §1 seven suites run, each green
-//    and complete, and each count is printed with the wall-clock it took · §2 the README block equals
-//    that measurement, package by package and column by column · §3 the README is untouched in check
-//    mode · §4 the summary a human quotes.
+//    the real one — a checker that cannot be red is decoration too · §1a `--write` refuses a DIRTY package
+//    tree, because a table generated from uncommitted test bytes describes a tree nobody can check out ·
+//    §1 seven suites run, each green and complete, and each count is printed with the wall-clock it took ·
+//    §2 the README block equals that measurement, package by package and column by column · §3 the README is
+//    untouched in check mode · §4 the summary a human quotes.
+//
+// v550 (ADR 0016 amendment 531): this row's first hosted run (40920204170, sha 1b2a0e0) refused the block v549
+// had committed, and it was right to — the block had been generated on a working tree that carried another
+// lane's uncommitted cases, so the studio row claimed a count only that desktop could produce. A generated
+// number is still a lie when it is generated at the wrong moment, so `--write` now measures a COMMITTED tree
+// (§1a) and the block is regenerated from HEAD rather than from a dirty checkout. Check mode is unchanged: it
+// grades the tree in front of it, which is what makes a local red useful before a commit.
 //
 // Run: node docs/evidence/studio/package-counts-proof.mjs          (grades; exits 1 on drift)
 //      node docs/evidence/studio/package-counts-proof.mjs --write  (regenerates the block)
@@ -141,6 +149,22 @@ ${good}${END}\n`;
     assert.ok(hit, `MUTATION SURVIVED: ${mut.name} — this checker cannot see the defect it is claimed to catch`);
   }
   console.log(`[§0] the marked block is located and read · control clean · mutations caught: ${caught}/${muts.length}`);
+}
+
+// ---------------------------------------------------------------- §1a --write measures a committed tree
+if (WRITE) {
+  const dirty = PKGS.flatMap((p) =>
+    execFileSync('git', ['status', '--porcelain', '--', p.root], { encoding: 'utf8' })
+      .split('\n')
+      .filter(Boolean)
+      .map((l) => `${p.name}: ${l.trim()}`),
+  );
+  assert.deepEqual(
+    dirty,
+    [],
+    `--write measures the WORKING TREE, and ${dirty.length} uncommitted path(s) sit inside the packages it would stamp:\n  ${dirty.join('\n  ')}\nA table generated here would describe bytes nobody can check out — v549 did exactly that and the next build refused it. Commit or restore them, then run --write again.`,
+  );
+  console.log(`[§1a] --write on a committed measurement: all ${PKGS.length} package trees match their commits`);
 }
 
 // ---------------------------------------------------------------- §1 seven suites, seven measurements

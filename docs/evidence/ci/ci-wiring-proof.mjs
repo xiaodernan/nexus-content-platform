@@ -165,6 +165,12 @@ const population = derivePopulation(pkg.scripts);
 // comment-free view finds `createServer`, `tools/harness` and `mvn`, each of which is code the proof runs.
 // The bound that stays: a STRING in code may still name a service the proof never opens, so §6 refuses an
 // empty reason and prints every residue on every run rather than pretending a word is a witness.
+//
+// v547 (amendment 530): the residue is EMPTY — the last exclusion (service-suite) was retired after its stated
+// need was measured false. The clause prints that emptiness rather than falling silent, because a § that stops
+// printing is a sentence nobody can see; the arms that aim here (A10/A11) now PLANT an exclusion by splicing
+// one into the producer's `EXCLUDED = []` declaration, since a rule with no user in the tree is still a rule
+// somebody has to try to break.
 {
   const REACH = /docker|mvn|postgres|pgvector|tools\/harness|createServer|\.listen\(|localhost|127\.0\.0\.1|\bfetch\(/i;
   const outsideComments = (src) => {
@@ -178,6 +184,9 @@ const population = derivePopulation(pkg.scripts);
     }
     return kept.join('\n');
   };
+  if (EXCLUDED.length === 0) {
+    console.log(`[§6] the residue is EMPTY at this ref — every one of the ${population.length} derived rows runs; an exclusion added later must still name a reach this clause can read in CODE`);
+  }
   for (const e of EXCLUDED) {
     assert.ok((e.needs || '').length >= 20, `${e.file} is excluded without naming what it needs (reason ${JSON.stringify(e.needs)})`);
     const src = readFileSync(join(ROOT, e.file), 'utf8');

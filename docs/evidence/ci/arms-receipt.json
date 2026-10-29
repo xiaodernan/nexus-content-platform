@@ -1,9 +1,9 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-10-29T17:17:46.190Z",
-  "arms": 40,
-  "matched": 40,
+  "ranAt": "2026-10-29T18:11:41.513Z",
+  "arms": 42,
+  "matched": 42,
   "armNames": [
     "C0-control",
     "A1-trigger-loses-master",
@@ -44,13 +44,15 @@
     "R8-population-floor",
     "R9-exclusion-without-a-reason",
     "R10-budget-must-be-a-number",
-    "R11-budget-flag-without-a-value"
+    "R11-budget-flag-without-a-value",
+    "R12-multiline-cause-reaches-the-log",
+    "R13-stack-frames-are-not-the-cause"
   ],
   "subjects": {
-    "workflow": "c24f5ec1120d93f10674fb23b785d8376f26eba8852584c3fb75d4f24f4aa134",
-    "gate": "c416b8832786ee8d67fc2c7af04559e33f737dd906cfe4f3dc911e0a3535f3cd",
-    "arms": "c2cc3a0c6875faf7e0d001ec519679835410666ef89674dd59e2cbdf0bc13264",
-    "runner": "1ae0489083422422432633c0c1f1075d7c5bc305b0a172c2006556582372435d",
+    "workflow": "6e39ab2cb0bb78f2a2ed7e06f88085fc264ed638515708451a47415490983803",
+    "gate": "1f62fecd095bb6934d2f8968199054a9cdc96e14d973d7da324122280de62d87",
+    "arms": "f51e26993c4d6a0b4ba99db86ee7c3835901290453aec281a33cca76340c92f6",
+    "runner": "899504769fc865145abd89b4b62a4e5721587af8111920b7b5671b7d7f1b0819",
     "sweep": "ead49485592dc696b99878ef19ba4802519f43746a55956dc9c22dd5fcdb84a9",
     "scripts": "4f13a845cd9e400b99e3de1617490e81e04721dcbdbead22b5458e555fe2bc7f",
     "rule": "d950d243b7678dda17d00f877e2a3cbdf94d7d70a1eafed0c2fb59aa06b437d1"
@@ -484,7 +486,7 @@
     {
       "name": "verify:service",
       "file": "docs/evidence/m7/service-suite-proof.mjs",
-      "marker": null
+      "marker": "// sweep-budget-ms: 1200000"
     },
     {
       "name": "verify:show",

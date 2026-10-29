@@ -63,6 +63,15 @@ jobs:
         run: npm run test
       - name: Build
         run: npm run build
+      - name: Warm the Maven repository (the service-suite row runs offline)
+        # v547 (ADR 0016 amendment 530): the service-suite row runs `mvn -o -B test` — OFFLINE, on purpose,
+        # because a test that needs the network is not a test of this tree. Offline is only honest against a
+        # warm local repository, and setup-java's `cache: maven` restores only what a PREVIOUS job saved, so
+        # a fresh cache key (the first run after any pom change) starts empty. This step is the online half:
+        # it runs the exact lifecycle the row grades, so the row's `-o` answers with the tests' verdict rather
+        # than with a missing artifact. It grades nothing itself — the row re-runs and reads its OWN surefire
+        # XML, digesting the service sources before and after.
+        run: mvn -B -q -f services/nexus-api/pom.xml test
       - name: Docker images (pre-pull for the lane proofs)
         # exec-host spawns containers with `--pull never` (its lanes must not depend on a registry at
         # run time), so the image the Studio lane proofs use has to exist BEFORE the proofs start. On a
