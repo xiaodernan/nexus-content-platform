@@ -638,7 +638,8 @@ export function designLevel(document: GameDocument, options: DesignLevelOptions 
     } else {
       spent.add(lever.id);
     }
-    if (round === LEVEL_RULES.maxRounds) stopReason = current.goals.every((goal) => goal.achieved) ? "achieved" : "round-cap";
+    // 这里只写"跑到头了"；达标与否由循环后那一处统一判定，两处各判一次就会出现两份"这一格为什么停"
+    if (round === LEVEL_RULES.maxRounds) stopReason = "round-cap";
   }
 
   const achieved = current.goals.every((goal) => goal.achieved);
@@ -714,10 +715,14 @@ function designNotes(
         "半套坐标不构成一个作者摆过的位置，所以写进去的是投影算出来的那一份，而不是保留那半个数。",
     );
   }
-  const reverted = rounds.filter((round) => !round.kept);
+  // 保留的那几轮 revertedBecause 恒为 null、撤回的那几轮恒有理由（keep = 读数变好且没挤破，两者互为反面），
+  // 所以"撤回了哪几轮"按理由筛，而不是按 kept 筛完再补一个空字符串
+  const reverted = rounds.filter(
+    (round): round is LevelRound & { revertedBecause: string } => round.revertedBecause !== null,
+  );
   if (reverted.length) {
     out.push(
-      `撤回了 ${reverted.length} 轮：${reverted.map((round) => `第 ${round.round} 轮「${round.leverLabel}」${round.revertedBecause ?? ""}`).join("；")}。`,
+      `撤回了 ${reverted.length} 轮：${reverted.map((round) => `第 ${round.round} 轮「${round.leverLabel}」${round.revertedBecause}`).join("；")}。`,
     );
   }
   const metBefore = protectedCombat.length;
@@ -739,7 +744,8 @@ function designNotes(
     const unmet = current.goals.filter((goal) => !goal.achieved);
     out.push(
       `没达标的是：${unmet.map((goal) => `${goal.label}（${goal.reading}）`).join("；")}。` +
-        `停在${stopReason === "round-cap" ? `轮次上限 ${LEVEL_RULES.maxRounds}` : stopReason === "not-runnable" ? "这份设计跑不起来" : "这几条目标的杠杆已经全部用尽或在这块场地上挤不开"}` +
+        // 没有玩家那一份在进循环之前就带着自己的说明返回了，这里的 stopReason 只剩两种
+        `停在${stopReason === "round-cap" ? `轮次上限 ${LEVEL_RULES.maxRounds}` : "这几条目标的杠杆已经全部用尽或在这块场地上挤不开"}` +
         "——不是「没必要改」，也不是「改不出来」。",
     );
   }

@@ -6,6 +6,7 @@ import {
   COMBAT_LEVERS,
   COMBAT_RULES,
   combatGoals,
+  compileGame,
   compileRpg,
   findEntity,
   playtestRpg,
@@ -15,6 +16,7 @@ import {
   type CombatAdjustment,
   type CombatGoalReading,
   type CombatRound,
+  type CombatTuning,
   type GameDocument,
   type GameEntity,
   type GameEntityKind,
@@ -589,6 +591,229 @@ describe("上下界：到界的实体不再被推，杠杆因此算用尽", () =
     expect(sight).toBeDefined();
     expect(attemptedOf(sight!)).toEqual(["猎手.detectionRange 900→860"]);
     expect(sight!.kept).toBe(false);
+  });
+});
+
+/**
+ * 上一格那四条"到界就不再推"的说法，这里全部从**公共入口** `tuneCombat` 走一遍：
+ * 杠杆在到界时交回空改动、这一条就算用尽，这件事在分派层是怎么发生的，只有从入口才看得见
+ * （直接调 `lever.changes()` 的见证绕过了 `spent` 那一圈，说不上界面会读到什么）。
+ * 每一份底稿都配一个"只差一档"的对照组：少的不是实体，是那一档余量。
+ */
+describe("到界的那一侧从入口走：交回空改动、这条杠杆就算用尽", () => {
+  /** 一个敌人伤害已经压在地板上（0），另一个还有 5 可收 */
+  function damageAtFloor(): GameDocument {
+    return build("一个已在地板", [
+      { id: "p1", kind: "player", name: "主角", stats: { health: 30, speed: 210 } },
+      { id: "w1", kind: "weapon", name: "细剑", stats: { damage: 1, range: 40 }, refs: [{ to: "p1", role: "装备于" }] },
+      { id: "e1", kind: "enemy", name: "哑弹", stats: { health: 40, damage: 0, speed: 300, detectionRange: 400, xpReward: 0 } },
+      { id: "e2", kind: "enemy", name: "重锤", stats: { health: 40, damage: 5, speed: 300, detectionRange: 400, xpReward: 0 } },
+      {
+        id: "q1",
+        kind: "quest",
+        name: "讨伐",
+        stats: { xpReward: 0, requiredLevel: 0 },
+        refs: [
+          { to: "e1", role: "需要打倒" },
+          { to: "e2", role: "需要打倒" },
+        ],
+      },
+    ]);
+  }
+
+  /** 玩家生命给到多少就多少，敌人是一个打不动也死不了的石像 */
+  function immobileFoe(playerHealth: number): GameDocument {
+    return build("抬血到界", [
+      { id: "p1", kind: "player", name: "主角", stats: { health: playerHealth, speed: 210 } },
+      { id: "w1", kind: "weapon", name: "细剑", stats: { damage: 1, range: 40 }, refs: [{ to: "p1", role: "装备于" }] },
+      { id: "e1", kind: "enemy", name: "石像", stats: { health: 500, damage: 0, speed: 300, detectionRange: 200, xpReward: 0 } },
+      { id: "q1", kind: "quest", name: "讨伐", stats: { xpReward: 0, requiredLevel: 0 }, refs: [{ to: "e1", role: "需要打倒" }] },
+    ]);
+  }
+
+  /** 站着不动也能赢（任务只要踩下脚下那个机关），两个敌人的察觉半径一个已经拉到封顶 */
+  function sightRing(near: number, far: number): GameDocument {
+    return build("拉开到界", [
+      { id: "p1", kind: "player", name: "主角", stats: { health: 20, speed: 210 } },
+      { id: "e1", kind: "enemy", name: "瞎子", stats: { health: 5, damage: 0, speed: 300, detectionRange: near, xpReward: 0 } },
+      { id: "e2", kind: "enemy", name: "远处那个", stats: { health: 5, damage: 0, speed: 300, detectionRange: far, xpReward: 0 } },
+      { id: "t1", kind: "trigger", name: "脚下", stats: { radius: 80, delay: 1, cooldown: 2 }, refs: [{ to: "p1", role: "贴着" }] },
+      { id: "q1", kind: "quest", name: "踩一下", stats: { xpReward: 0, requiredLevel: 0 }, refs: [{ to: "t1", role: "需要激活" }] },
+    ]);
+  }
+
+  /** 躲着走也会死，其中一个敌人的察觉已经收到地板：再收就成负数了 */
+  function fleeDiesWithFloorBound(): GameDocument {
+    return build("收窄到界", [
+      { id: "p1", kind: "player", name: "主角", stats: { health: 2, speed: 100 } },
+      { id: "w1", kind: "weapon", name: "短刃", stats: { damage: 1, range: 40 }, refs: [{ to: "p1", role: "装备于" }] },
+      { id: "e1", kind: "enemy", name: "猎手", stats: { health: 50, damage: 9, speed: 300, detectionRange: 900, xpReward: 0 } },
+      { id: "e2", kind: "enemy", name: "守门的", stats: { health: 50, damage: 9, speed: 300, detectionRange: 20, xpReward: 0 } },
+      {
+        id: "q1",
+        kind: "quest",
+        name: "讨伐",
+        stats: { xpReward: 0, requiredLevel: 0 },
+        refs: [
+          { to: "e1", role: "需要打倒" },
+          { to: "e2", role: "需要打倒" },
+        ],
+      },
+    ]);
+  }
+
+  /** 玩家的伤害来源有两种写法：主角自己写了 attackPower，或者引用到主角的一把武器 */
+  function damageFromPlayer(): GameDocument {
+    return build("钝化主角", [
+      { id: "p1", kind: "player", name: "主角", stats: { health: 40, speed: 210, attackPower: 6 } },
+      { id: "e1", kind: "enemy", name: "靶子", stats: { health: 4, damage: 1, speed: 120, detectionRange: 150, xpReward: 0 } },
+      { id: "q1", kind: "quest", name: "讨伐", stats: { xpReward: 0, requiredLevel: 0 }, refs: [{ to: "e1", role: "需要打倒" }] },
+    ]);
+  }
+
+  function damageFromWeapon(): GameDocument {
+    return build("钝化武器", [
+      { id: "p1", kind: "player", name: "主角", stats: { health: 40, speed: 210 } },
+      { id: "w1", kind: "weapon", name: "重剑", stats: { damage: 6, range: 40 }, refs: [{ to: "p1", role: "装备于" }] },
+      { id: "e1", kind: "enemy", name: "靶子", stats: { health: 4, damage: 1, speed: 120, detectionRange: 150, xpReward: 0 } },
+      { id: "q1", kind: "quest", name: "讨伐", stats: { xpReward: 0, requiredLevel: 0 }, refs: [{ to: "e1", role: "需要打倒" }] },
+    ]);
+  }
+
+  /** 探针量出来的那一份：加厚到两个敌人都贴上限、玩家血也推高一档，16 轮仍然差那 2.2 秒 */
+  function longFight(): GameDocument {
+    return build("十六轮到顶", [
+      { id: "p1", kind: "player", name: "主角", stats: { health: 18, speed: 124 } },
+      { id: "w1", kind: "weapon", name: "短刃", stats: { damage: 4, range: 34 }, refs: [{ to: "p1", role: "装备于" }] },
+      { id: "e1", kind: "enemy", name: "巡逻兵", stats: { health: 2, damage: 3, speed: 87, detectionRange: 120, xpReward: 13 } },
+      { id: "e2", kind: "enemy", name: "洞口守卫", stats: { health: 3, damage: 5, speed: 126, detectionRange: 430, xpReward: 12 } },
+      {
+        id: "q1",
+        kind: "quest",
+        name: "清场",
+        stats: { xpReward: 0, requiredLevel: 0 },
+        refs: [
+          { to: "e1", role: "需要打倒" },
+          { to: "e2", role: "需要打倒" },
+        ],
+      },
+    ]);
+  }
+
+  function leverRound(tuning: CombatTuning, leverId: string): CombatRound {
+    const found = tuning.rounds.find((round) => round.leverId === leverId);
+    if (!found) throw new Error(`轮次里没有 ${leverId}：这份底稿没把那条杠杆分派出来`);
+    return found;
+  }
+
+  it("敌人伤害已经压在地板上：收伤那一轮只动还有一档可收的那一个", () => {
+    const tuning = tuneCombat(damageAtFloor(), { at: AT });
+    expect(attemptedOf(leverRound(tuning, "soft-enemy-hits"))).toEqual(["重锤.damage 5→4"]);
+    // 哑弹不是"场上没这个实体"：同一份跑动里它的伤害照样能往上加、生命照样能加厚
+    expect(attemptedOf(leverRound(tuning, "sharper-enemy-hits"))).toEqual(["哑弹.damage 0→1", "重锤.damage 5→6"]);
+    expect(attemptedOf(leverRound(tuning, "thicken-enemies-with-player"))).toContain("哑弹.health 40→44");
+  });
+
+  it("玩家生命已经顶到封顶：抬血这条连轮次都进不了——差一档的那一份就进", () => {
+    const capped = tuneCombat(immobileFoe(COMBAT_RULES.playerHealthCap), { at: AT });
+    const oneStepShort = tuneCombat(immobileFoe(COMBAT_RULES.playerHealthCap - 4), { at: AT });
+    expect(capped.rounds.map((round) => round.leverId)).not.toContain("tougher-player");
+    // 但它不是"什么都没能试"：敌人那一侧还能动一轮
+    expect(capped.rounds.map((round) => round.leverId)).toEqual(["sharper-enemy-hits"]);
+    expect(attemptedOf(leverRound(oneStepShort, "tougher-player"))).toEqual(["主角.health 116→120"]);
+  });
+
+  it("察觉半径已经拉到封顶：拉开那一轮只动没到界的那一个", () => {
+    const one = tuneCombat(sightRing(COMBAT_RULES.detectionCap, 300), { at: AT });
+    expect(attemptedOf(leverRound(one, "wider-enemy-sight"))).toEqual(["远处那个.detectionRange 300→340"]);
+    const both = tuneCombat(sightRing(300, 300), { at: AT });
+    expect(attemptedOf(leverRound(both, "wider-enemy-sight"))).toEqual([
+      "瞎子.detectionRange 300→340",
+      "远处那个.detectionRange 300→340",
+    ]);
+  });
+
+  it("察觉半径已经收到地板：收窄那一轮只动还有余量的那一个", () => {
+    const tuning = tuneCombat(fleeDiesWithFloorBound(), { at: AT });
+    expect(attemptedOf(leverRound(tuning, "narrower-enemy-sight"))).toEqual(["猎手.detectionRange 900→860"]);
+    // 守门的在这一份里不是影子：同一轮里它的伤害被收过一档
+    expect(attemptedOf(leverRound(tuning, "soft-enemy-hits"))).toEqual(["猎手.damage 9→8", "守门的.damage 9→8"]);
+  });
+
+  it("玩家的伤害是主角自己写的 attackPower 时：钝化那条动的就是那个键", () => {
+    const tuning = tuneCombat(damageFromPlayer(), { at: AT });
+    const dull = leverRound(tuning, "dull-player-weapon");
+    expect(dull.attempted.map((item) => `${item.entityName}.${item.statKey} ${item.from}→${item.to} 落在 ${item.entityId} 本来写了=${item.authored}`)).toEqual([
+      "主角.attackPower 6→5 落在 p1 本来写了=true",
+    ]);
+    // 对照组：同样是 6 点，写在引用到主角的武器上就钝化武器那一行
+    expect(attemptedOf(leverRound(tuneCombat(damageFromWeapon(), { at: AT }), "dull-player-weapon"))).toEqual(["重剑.damage 6→5"]);
+  });
+
+  it("跑满 16 轮仍然没达标：停因写的是轮次上限，不是「没必要改」", () => {
+    const tuning = tuneCombat(longFight(), { at: AT });
+    expect(tuning.rounds).toHaveLength(COMBAT_RULES.maxRounds);
+    expect(tuning.stopReason).toBe("round-cap");
+    expect(tuning.achieved).toBe(false);
+    expect(goal(tuning.goals, "fight-length").metric).toBe(15.8);
+    expect(goal(tuning.goals, "flee-survives").achieved).toBe(false);
+    expect(tuning.notes.join(" ")).toContain(`停在轮次上限 ${COMBAT_RULES.maxRounds}——不是「没必要改」，也不是「改不出来」`);
+    // 35 处保留；文档里的钝化停在 2，因为第 15 轮再钝一档就没赢家了（读数从 15.8 掉回 0）
+    expect(tuning.adjustments).toHaveLength(35);
+    const last = tuning.rounds[14]!;
+    expect(attemptedOf(last)).toEqual(["短刃.damage 2→1"]);
+    expect(last.metricBefore).toBe(15.8);
+    expect(last.metricAfter).toBe(0);
+    expect(last.revertedBecause).toBe("破了已达标的 winnable、winner-pays");
+    expect(findEntity(tuning.document, "w1")?.stats.damage).toBe(2);
+  });
+
+  it("每一轮的 kept 与「有没有撤回理由」严格互补：notes 那句按理由筛轮数就靠这个", () => {
+    for (const document of [battlefield(), freeWin(), hunterDies(), razorThin(), longFight(), damageAtFloor()]) {
+      const tuning = tuneCombat(document, { at: AT });
+      for (const round of tuning.rounds) {
+        expect([document.name, round.round, round.kept === (round.revertedBecause === null)]).toEqual([
+          document.name,
+          round.round,
+          true,
+        ]);
+      }
+      const reverted = tuning.rounds.filter((round) => round.revertedBecause !== null);
+      if (reverted.length) {
+        expect(tuning.notes.join(" ")).toContain(`撤回了 ${reverted.length} 轮：`);
+      }
+    }
+  });
+});
+
+/**
+ * `COMBAT_LEVERS` 是导出面：谁都可能在分派之外拿它做一次预览。
+ * 这一条**越过了 `tuneCombat` 的分派**（链上的界面不会这样调），钉的是这张表自己的契约：
+ * 递给它任何一份合法计划——哪怕既没有玩家也没有敌人——只交回空数组，不抛。
+ * 反向对照证明这不是"恒为空"：同一张表喂真设计，七条都给得出改动。
+ */
+describe("导出的杠杆表自己不倒：越过分派直接喂", () => {
+  function emptyField(): GameDocument {
+    return build("没人也没敌", [
+      { id: "n1", kind: "npc", name: "路过的旅人", stats: { health: 3 } },
+      { id: "i1", kind: "item", name: "药包", stats: { stackSize: 1 } },
+      { id: "q1", kind: "quest", name: "问问", stats: {}, refs: [{ to: "n1", role: "需要对话" }] },
+    ]);
+  }
+
+  it("没有玩家也没有敌人的那份计划：七条杠杆全部交回空数组", () => {
+    const document = emptyField();
+    const plan = compileGame(document);
+    expect(plan.player).toBeFalsy();
+    expect(plan.enemies).toHaveLength(0);
+    for (const lever of COMBAT_LEVERS) {
+      expect([lever.id, lever.changes({ document, plan, lever })]).toEqual([lever.id, []]);
+    }
+    const real = battlefield();
+    const realPlan = compileGame(real);
+    for (const lever of COMBAT_LEVERS) {
+      expect([lever.id, lever.changes({ document: real, plan: realPlan, lever }).length > 0]).toEqual([lever.id, true]);
+    }
   });
 });
 

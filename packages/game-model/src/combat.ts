@@ -624,7 +624,8 @@ export function tuneCombat(document: GameDocument, options: TuneCombatOptions = 
     } else {
       spent.add(lever.id);
     }
-    if (round === COMBAT_RULES.maxRounds) stopReason = current.goals.every((goal) => goal.achieved) ? "achieved" : "round-cap";
+    // 这里只写"跑到头了"；达标的判定交给循环后那一处，两处各判一次就会出现两份"这一格为什么停"
+    if (round === COMBAT_RULES.maxRounds) stopReason = "round-cap";
   }
 
   const achieved = current.goals.every((goal) => goal.achieved);
@@ -666,10 +667,14 @@ function tuningNotes(
   } else {
     out.push("没有保留任何改动：能试的杠杆要么把已达标的目标挤破了，要么没有把目标读数往对的方向推。");
   }
-  const reverted = rounds.filter((round) => !round.kept);
+  // 保留的那几轮 revertedBecause 恒为 null、撤回的那几轮恒有理由（keep = 读数变好且没挤破，两者互为反面），
+  // 所以"撤回了哪几轮"按理由筛，而不是按 kept 筛完再补一个空字符串
+  const reverted = rounds.filter(
+    (round): round is CombatRound & { revertedBecause: string } => round.revertedBecause !== null,
+  );
   if (reverted.length) {
     out.push(
-      `撤回了 ${reverted.length} 轮：${reverted.map((round) => `第 ${round.round} 轮「${round.leverLabel}」${round.revertedBecause ?? ""}`).join("；")}。`,
+      `撤回了 ${reverted.length} 轮：${reverted.map((round) => `第 ${round.round} 轮「${round.leverLabel}」${round.revertedBecause}`).join("；")}。`,
     );
   }
   const flipped = flippedToDesign(start.plan, current.plan);
@@ -688,7 +693,8 @@ function tuningNotes(
     const unmet = current.goals.filter((goal) => !goal.achieved);
     out.push(
       `没达标的是：${unmet.map((goal) => `${goal.label}（${goal.reading}）`).join("；")}。` +
-        `停在${stopReason === "round-cap" ? `轮次上限 ${COMBAT_RULES.maxRounds}` : stopReason === "not-runnable" ? "这份设计跑不起来" : "这几条目标的杠杆已经全部用尽或到界"}` +
+        // 没有玩家那一份在进循环之前就带着自己的说明返回了，这里的 stopReason 只剩两种
+        `停在${stopReason === "round-cap" ? `轮次上限 ${COMBAT_RULES.maxRounds}` : "这几条目标的杠杆已经全部用尽或到界"}` +
         "——不是「没必要改」，也不是「改不出来」。",
     );
   }

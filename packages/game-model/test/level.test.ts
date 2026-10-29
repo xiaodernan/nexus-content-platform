@@ -744,6 +744,184 @@ describe("停下时说实话：轮次用尽、没有杠杆、跑不起来", () =
   });
 });
 
+describe("场地边界那一侧从入口走：没有地方可挪就交回空改动", () => {
+  /** 场地右边界上第一个体心能待的位置：再往右就被钳回这里 */
+  const edge = ARENA.width - ACTOR_RADIUS;
+
+  function pairAt(x: number): GameDocument {
+    const stone = (id: string, name: string): Spec => ({ id, kind: "item", name, stats: { stackSize: 1, x, y: 400 } });
+    return build("贴边的一对", [
+      { id: "p1", kind: "player", name: "主角", stats: { health: 20, speed: 200, x: 100, y: 400 } },
+      stone("i1", "右上的甲"),
+      stone("i2", "右上的乙"),
+      {
+        id: "q1",
+        kind: "quest",
+        name: "捡两个",
+        stats: {},
+        refs: [
+          { to: "i1", role: "需要拾取" },
+          { to: "i2", role: "需要拾取" },
+        ],
+      },
+    ]);
+  }
+
+  /** 主角在 playerX、敌人贴右边：两者相距 1184-playerX，而"放到 320 处"算出来还是那面墙 */
+  function foePinnedAtEdge(playerX: number): GameDocument {
+    return build("贴边的敌人", [
+      { id: "p1", kind: "player", name: "主角", stats: { health: 60, speed: 200, x: playerX, y: 400 } },
+      { id: "w1", kind: "weapon", name: "短刃", stats: { damage: 2, range: 40 }, refs: [{ to: "p1", role: "装备于" }] },
+      { id: "e1", kind: "enemy", name: "贴边的敌人", stats: { health: 20, damage: 1, speed: 0, detectionRange: 200, xpReward: 0, x: edge, y: 400 } },
+      { id: "q1", kind: "quest", name: "讨伐", stats: {}, refs: [{ to: "e1", role: "需要打倒" }] },
+    ]);
+  }
+
+  /** 罩住出生点的那个机关：要么自己写了坐标，要么锚在主角身上——位置一模一样，来历不同 */
+  function triggerOnSpawn(withOwnCoords: boolean): GameDocument {
+    return build("脚下的机关", [
+      { id: "p1", kind: "player", name: "主角", stats: { health: 20, speed: 200, x: 600, y: 380 } },
+      { id: "w1", kind: "weapon", name: "短刃", stats: { damage: 2, range: 40 }, refs: [{ to: "p1", role: "装备于" }] },
+      { id: "e1", kind: "enemy", name: "远处的敌人", stats: { health: 30, damage: 1, speed: 0, detectionRange: 0, x: 900, y: 380 } },
+      {
+        id: "t1",
+        kind: "trigger",
+        name: "脚下的机关",
+        stats: withOwnCoords ? { radius: 80, delay: 1, cooldown: 2, x: 600, y: 380 } : { radius: 80, delay: 1, cooldown: 2 },
+        refs: [{ to: "p1", role: "贴着" }],
+      },
+      { id: "q1", kind: "quest", name: "踩一下", stats: {}, refs: [{ to: "t1", role: "需要激活" }] },
+    ]);
+  }
+
+  /** 十二对物品各挤一处：每轮只能分开一对，第 12 轮刚好分完 */
+  function twelvePairs(): GameDocument {
+    const specs: Spec[] = [
+      { id: "p1", kind: "player", name: "主角", stats: { health: 40, speed: 200, x: 100, y: 100 } },
+      { id: "w1", kind: "weapon", name: "短刃", stats: { damage: 2, range: 40 }, refs: [{ to: "p1", role: "装备于" }] },
+      { id: "e1", kind: "enemy", name: "远处的敌人", stats: { health: 30, damage: 1, speed: 0, detectionRange: 200, x: 400, y: 100 } },
+    ];
+    for (const k of Array.from({ length: LEVEL_RULES.maxRounds }, (_, index) => index)) {
+      const x = 160 + k * 90;
+      specs.push({ id: `i${k}a`, kind: "item", name: `甲${k}`, stats: { stackSize: 1, x, y: 600 } });
+      specs.push({ id: `i${k}b`, kind: "item", name: `乙${k}`, stats: { stackSize: 1, x: x + 20, y: 600 } });
+    }
+    specs.push({ id: "q1", kind: "quest", name: "捡完", stats: {}, refs: [] });
+    return build("十二对", specs);
+  }
+
+  function moved(round: LevelRound): string[] {
+    return round.attempted.map((item) => `${item.entityName}(${item.from.x},${item.from.y})→(${item.to.x},${item.to.y})`);
+  }
+
+  it("一对物品正贴在场内右边界：分开这条没有地方可挪，连一轮都进不了", () => {
+    const designed = run(pairAt(edge));
+    expect(designed.rounds).toHaveLength(0);
+    expect(designed.moves).toHaveLength(0);
+    expect(designed.stopReason).toBe("no-lever-left");
+    expect(goal(designed.goals, "not-piled").reading).toContain("相距 0 像素");
+    // 原样交回：一个坐标都没被写过
+    expect(designed.document.entities.map((entity) => entity.stats[POSITION_STAT_KEYS.x])).toEqual([100, edge, edge, undefined]);
+    // 对照组：同一对往回让四像素，那一档挪动就试得出来（虽然还是分不开）
+    const short = run(pairAt(edge - 4));
+    expect(moved(short.rounds[0]!)).toEqual([`右上的乙(${edge - 4},400)→(${edge},400)`]);
+    expect(short.rounds[0]!.kept).toBe(false);
+  });
+
+  it("敌人贴脸又贴边：放到 320 那一步被墙钳回原地，等于没有地方可挪", () => {
+    // 主角 1084（比 minApproachPixels 少 20）、敌人 1184：1084+320=1404 越界，钳回 1184 = 原地
+    const pinned = edge - (LEVEL_RULES.minApproachPixels - 20);
+    const designed = run(foePinnedAtEdge(pinned));
+    expect(designed.rounds).toHaveLength(0);
+    expect(designed.stopReason).toBe("no-lever-left");
+    expect(goal(designed.goals, "approach-band").reading).toContain("最近的敌人离出生点 100 像素：贴脸，没有反应时间");
+    // 对照组：把主角拉回 660，524 像素是「太远」，但那一档在场内有地方，于是真的挪了一轮
+    const far = run(foePinnedAtEdge(660));
+    expect(moved(far.rounds[0]!)).toEqual([`贴边的敌人(${edge},400)→(${660 + LEVEL_APPROACH_TARGET},400)`]);
+    expect(far.achieved).toBe(true);
+  });
+
+  it("机关本来就自己写了坐标：让路那一轮挪它，但不说「从此它不再跟着引用走」", () => {
+    const own = run(triggerOnSpawn(true));
+    expect(moved(own.rounds[0]!)).toEqual(["脚下的机关(600,380)→(720,380)"]);
+    expect(own.rounds[0]!.attempted[0]!.authoredBefore).toBe(true);
+    expect(own.notes.join(" ")).not.toContain("从此它不再跟着");
+    // 同一份场地、同一个位置，只是这个位置改由主角锚出来：那句话就必须出现
+    const anchored = run(triggerOnSpawn(false));
+    expect(moved(anchored.rounds[0]!)).toEqual(["脚下的机关(600,380)→(720,380)"]);
+    expect(anchored.rounds[0]!.attempted[0]!.authoredBefore).toBe(false);
+    expect(anchored.notes.join(" ")).toContain("从此它不再跟着它引用的那个东西（「主角」）走");
+  });
+
+  it("恰好第 12 轮才分开最后一对：停因说的是达标，不是轮次上限", () => {
+    const designed = run(twelvePairs());
+    expect(designed.rounds).toHaveLength(LEVEL_RULES.maxRounds);
+    expect(designed.rounds.every((round) => round.kept)).toBe(true);
+    expect(designed.achieved).toBe(true);
+    expect(designed.stopReason).toBe("achieved");
+    // 最后一对是被墙钳开的：1170 往右 40 像素越界，落在 1184 才刚过 minGapPixels
+    expect(moved(designed.rounds[LEVEL_RULES.maxRounds - 1]!)).toEqual([`乙11(1170,600)→(${edge},600)`]);
+    const text = designed.notes.join(" ");
+    expect(text).not.toContain("停在轮次上限");
+    expect(text).toContain(`${LEVEL_GOAL_ORDER.length} 条布局目标全部达标`);
+  });
+
+  it("场上没有一个可显示个体：这句话直说没有对象，不含「都写在文档里」", () => {
+    const designed = run(build("只有任务", [{ id: "q1", kind: "quest", name: "空的", stats: {} }]));
+    expect(designed.stopReason).toBe("not-runnable");
+    expect(goal(designed.goals, "layout-authored").achieved).toBe(false);
+    expect(goal(designed.goals, "layout-authored").reading).toBe("场上没有任何可显示个体，这一条没有对象");
+    // 有个体但一个坐标都没写的那一份，说的是另一句话
+    expect(goal(run(noPlayer()).goals, "layout-authored").reading).toContain("2 个可显示个体里有 2 个没写全坐标");
+  });
+
+  it("每一轮的 kept 与「有没有撤回理由」严格互补：notes 那句按理由筛轮数就靠这个", () => {
+    for (const document of [battlefield(), crowded(), farFight(), stackedFour(), keyOnSpawn(), twelvePairs()]) {
+      const designed = run(document);
+      for (const round of designed.rounds) {
+        expect([document.name, round.round, round.kept === (round.revertedBecause === null)]).toEqual([
+          document.name,
+          round.round,
+          true,
+        ]);
+      }
+      const reverted = designed.rounds.filter((round) => round.revertedBecause !== null);
+      if (reverted.length) expect(designed.notes.join(" ")).toContain(`撤回了 ${reverted.length} 轮：`);
+    }
+  });
+
+  /**
+   * `LEVEL_LEVERS` 是导出面：谁都可能在分派之外拿它做一次预览。
+   * 这一条**越过了 `designLevel` 的分派**（链上的界面不会这样调），钉的是这张表自己的契约：
+   * 递给它任何一份合法计划——哪怕没有玩家、也没有可分开的对——只交回空数组，不抛在 `piles[0]` 那一步。
+   */
+  it("越过分派直接喂这张表：没有玩家也没有可分开的对时，四条全部交回空", () => {
+    const placed = build("只站着一个旅人", [
+      { id: "n1", kind: "npc", name: "路过的旅人", stats: { health: 3, x: 300, y: 300 } },
+      { id: "q1", kind: "quest", name: "问问", stats: {}, refs: [{ to: "n1", role: "需要对话" }] },
+    ]);
+    const plan = compileGame(placed);
+    expect(plan.player).toBeFalsy();
+    for (const lever of LEVEL_LEVERS) {
+      expect([lever.id, lever.moves({ document: placed, plan, lever })]).toEqual([lever.id, []]);
+    }
+    // 反向对照：那个旅人没摆过位置时 author 那条就给得出一处——这张表不是恒为空
+    const bare = build("旅人没摆过", [
+      { id: "n1", kind: "npc", name: "路过的旅人", stats: { health: 3 } },
+      { id: "q1", kind: "quest", name: "问问", stats: {}, refs: [{ to: "n1", role: "需要对话" }] },
+    ]);
+    const barePlan = compileGame(bare);
+    const author = LEVEL_LEVERS.find((lever) => lever.id === "author-the-layout");
+    if (!author) throw new Error("杠杆表里没有 author-the-layout");
+    expect(author.moves({ document: bare, plan: barePlan, lever: author }).map((item) => `${item.entityName}[${item.kind}]`)).toEqual([
+      "路过的旅人[author]",
+    ]);
+    for (const lever of LEVEL_LEVERS.filter((item) => item.id !== "author-the-layout")) {
+      expect([lever.id, lever.moves({ document: bare, plan: barePlan, lever })]).toEqual([lever.id, []]);
+    }
+  });
+});
+
 describe("杠杆表：目标与杠杆互相认领，没有孤儿", () => {
   it("每条目标至少一条杠杆，每条杠杆的目标都在清单里", () => {
     for (const id of LEVEL_GOAL_ORDER) {
@@ -766,9 +944,12 @@ describe("杠杆表：目标与杠杆互相认领，没有孤儿", () => {
     expect(LEVEL_APPROACH_TARGET).toBeLessThan(LEVEL_RULES.maxApproachPixels);
   });
 
-  it("写不进去就抛，不静默留原值：坐标必须是有限数这条路走模型的入口", () => {
+  it("写值的门在模型入口：NaN 与被拒的键根本走不到这一格，所以『写不进去就抛』那句留成哨兵", () => {
     // 这一格用 setStat 写值；把 NaN 塞给同一条路（经由 plan 的位置）时它必须拒绝，
-    // 否则「钳位」「有限数」这些断言都只是我在测试里自己写的规则
+    // 否则「钳位」「有限数」这些断言都只是我在测试里自己写的规则。
+    // 口径要写清：下面两条证的是**入口会拒**，不是 designLevel 会抛——
+    // `writePositions` 里那句 throw（臂表记在 :520）是给"入口拒了却还被叫去写"这种矛盾留的哨兵，
+    // 这一格给不出能走到它的底稿：坐标来自 placeAlong 的钳位结果，永远是有限数。
     const document = bareRing();
     expect(setStat(document, "e1", POSITION_STAT_KEYS.x, Number.NaN).reason).toContain("有限数");
     expect(setStat(document, "没有这个实体", POSITION_STAT_KEYS.x, 10).reason).toContain("这个实体不在文档里");
