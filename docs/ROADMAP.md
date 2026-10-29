@@ -7655,3 +7655,101 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
 - 移动端体检那条 `[~]` 仍欠复跑：Studio／发现／市场／后台的窄视口没进读数。
 - 测量会污染读数：`recordView` 每次 SSR 加载给 `publishedProjects.views` +1 且不去重，夹具账号与项目固定，
   那些"浏览"不是真人。
+
+## §SEC 限流闸的 IP 取可信链的右端：一行 `x-forwarded-for` 换一只桶，这条路堵掉了（2026-10-30 第二十六片）
+
+**起点不是需求，是一个读代码读出来的洞。** `apps/web/src/server/security/rateLimit.ts` 的
+`clientIp()` 取 `x-forwarded-for.split(',')[0]`——链条**最左端**，也就是客户端随手写的那一段。
+配合 `node_modules/next/dist/server/base-server.js:612`：
+
+```js
+req.headers['x-forwarded-for'] ??= originalRequest?.socket?.remoteAddress
+```
+
+`??=` 只在**头缺席时**才拿 socket 地址填；头在场时原样透传，既不追加也不校验。于是任何客户端
+加一行 `x-forwarded-for: 随便写` 就换一个限流桶：13 处 `ipWriteGate`（建项目 20/h、发凭据 10/h、
+`ai/run` 与 `blocks` 与 `follow` 60/h、建商品 20/h、举报 20/h……）与 30 处
+`rateKey(route, clientIp(req), user.id)` 的按 IP 那半**当场空转**。ADR-0060 立的那道
+"身份之前先按 IP 挡"的闸，挡住的是不换 IP 的客户端，没挡住换 IP 的——而后者连 cookie 都不用碰。
+
+**为什么 `guest-write-gate.integration.test.ts` 那三条一直绿着**：它们都只写**一段**头。
+只有一段的链条里"取最左"与"取最右"给出同一个答案——见证的形状没有区分度，四条用例全绿而闸是空的。
+这一片的先红读数就是这条盲区的证据（见下）。
+
+**落点**
+
+- `security/rateLimit.ts`：`clientIp()` 改成**读可信链的右端**（`tokens[max(0, len-count)]`），
+  段先归一化（去空白、去 `[...]`、去 IPv4 的 `:端口`，八位组 >255 或字符集不对的**当它不存在**）；
+  新函数 `gateIp()` 把"两行头都不在场"（照旧让路，ADR-0060 的口径不动）与"头在场却读不出地址"
+  （归进 `INVALID_IP_BUCKET = 'invalid-xff'` 一只共享桶，**照常限**）分开——写一行垃圾换不来免限流。
+  `rateKey` 与审计那 30 多处继续用 `clientIp()`：垃圾头在它们那里是 `null`，
+  于是 `audit_events.has_ip` 不会把垃圾说成"有 IP"。
+- `NEXUS_TRUSTED_PROXY_COUNT`（默认 1）：从右往左数第几段。一级会追加的反代 = 1；
+  CDN → LB → 本机 = 2。非整数、`<1`、`>8` 一律退回 1——**任何解析失败都不会退回"取最左端"**。
+- 限额一个都没动：建项目仍是 20/小时、注册 10/小时、登录按邮箱 10/15 分钟。这一片改"闸按谁限"，不改"闸限多少"。
+- 判决与限度：`docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`（含四个被否掉的选项，
+  其中"只信 CIDR 白名单里那几跳"否在**处理器里拿不到 socket 对端**）。
+- `docs/SECURITY.md` 那条 bullet 原来写着"速率限制：Redis 滑动窗口"——**驱动现在是进程内内存**，
+  同文件下面的"实现现状"段落早就写对了，两处口径互相打架；按事实改成"滑动窗口 + 进程内驱动，
+  形状对齐有序集，多实例部署前必须接过去"，并补上 IP 取右端这一句。
+- `docs/ENVIRONMENT.md` 新增一条：本机没有反代 ⇒ 浏览器不写这一行头 ⇒ Next 填的是同一个 `::1` ⇒
+  **同一台机器上全部 e2e 用例共用一份名额**（这才是"跑一轮浏览器用例第二轮就 429"的机制，
+  不是某个文件的锅）。
+
+**凭证（逐字读数）**
+
+- 起点：`tsc --noEmit -p apps/web` 退出 0；`npx eslint` 覆盖本次四个改动路径退出 0；
+  旧实现下 `apps/web/test/rateLimit.test.ts` **7 passed (7)**——其中一条断言
+  `clientIp(... '1.1.1.1, 2.2.2.2') === '1.1.1.1'`，**这条断言当时就在给漏洞作证**。
+- 新见证先红（`client-ip.test.ts` 15 条打在旧实现上，`.scratch/s26-red-before-fix.txt`）：
+  **11 failed | 4 passed**。过去的那 4 条正是"只有一段"与"两行头都不在场"——
+  旧读法在这两种形状下与右端读法同解，所以它们不构成区分度。
+- 改完：`client-ip.test.ts` + `rateLimit.test.ts` **22 passed (22)**；
+  真库真路由 `guest-write-gate.integration.test.ts` **6 passed (6)**（74.84s）；
+  连带回归 `marketplace-content.integration.test.ts`（它按 IP 分桶拿不同身份）一起跑
+  **4 files / 42 tests passed**（136.90s）。
+- **一趟被并行会话污染的读数，如实记**：`guest-write-gate` 第一次整跑 **3 failed | 1 passed**，
+  红在 `expected 23 to be 20`（`guestCount()` 的差值）。那一句量的是**全库 guest 行数增量**，
+  而同一台机器上另一条会话正在跑浏览器用例、也在建 guest。串行复跑 6/6 绿。
+  → 这条断言天生不独占，写它的人（我）当时没把"同机并行"算进前提；要钉死得改成只数自己造的标记，
+  这一格记进下面的仍欠。
+- **活体 HTTP（不经手搓 Request，`.scratch/s26-forwarded-live-probe.mjs`）**：打真 dev server 的
+  `POST /api/published/report`（闸在 `requireUser()` 之前，被挡下的一个 guest 都不建）。
+  21 次"左端每请求换 `192.0.2.<i>` + 右端固定 `198.51.100.77`" →
+  **前 20 次 404、第 21 次 429**，`retryAfterMs=3579721`；随后两站把它变成双向判据：
+  P1 单段 `198.51.100.77` → **429**（`retryAfterMs=3504874`：这一行头确实原样走到处理器，
+  Next 没拿 socket 覆盖它；且"单段"与"链条右端"落进同一只满桶）；
+  P2 `198.51.100.77, 192.0.2.200` → **404**（左端那只桶是满的，右端全新所以放行。
+  **旧读法在这一站会 429**——它取到的正是那只满桶）。
+- 浏览器面（§158 的 Run→Screenshot→Inspect；本片没有界面改动，这一趟要证的是"正常路径没被限死"）：
+  `npx playwright test e2e/studio.spec.ts -g "只看当前分支"` → **1 passed (20.0s / 54.6s)**。
+  真浏览器不写转发头 ⇒ Next 填 `::1` ⇒ 走的是本机那一只共享桶，名额照旧够用。
+
+**臂表（每条都点名，跑完文件与进场逐字节一致，`grep -c "MUT" rateLimit.ts` = 0）**
+
+| 臂 | 改坏的那一处 | 红在谁身上 |
+| --- | --- | --- |
+| M1 | `pickTrusted` 取 `tokens[0]`（＝旧读法） | 单元 **8 failed / 14 passed**：右端两条、`count` 两条、归一化那条、闸那 25 次、`rateKey` 形状那条、`rateLimit.test.ts` 那条被改口的旧断言；集成层 **1 failed / 5 passed**，红在"换着写链条左端也绕不过"，`expected false to be true`（第 21 次没挡） |
+| M2 | `gateIp` 把"读不出的头"改成豁免（`return null`） | 单元 **1 failed / 21 passed**（`expected ['201','201','201','201']` 对不上 `['201','201','201','429']`）；集成 **1 failed / 5 passed**（垃圾头那条） |
+| M3 | `trustedProxyCount()` 恒返回默认（env 成装饰） | 单元 **1 failed / 21 passed**（"count 把右端往左挪"）。**"非法值退回 1"那一格恒绿**——它测的是退回值，不是"退回给谁"，这一臂对它没有牙 |
+| M4 | XFF 读不出时不回落 `x-real-ip` | 单元 **1 failed / 21 passed**（回落那条的第二句断言） |
+| M5 | `pickTrusted` 去掉 `max(0, …)` 夹住 | 单元 **1 failed / 21 passed**（"链条比声明的跳数短就取最左可用段"） |
+| M6 | 归一化失败的段也当身份 | 单元 **3 failed / 19 passed**（回落、"垃圾头不算有 IP"、"垃圾头进同一只桶"） |
+
+**共用工作树的代价，记一条**：跑臂期间 `rateLimit.ts` 是变异版本，另一条会话的 dev server 会
+**热更新到那个版本**（M1/M2 各占约 100 秒窗口）。本片没因此出错，但这条路不对——下一次跑臂
+要么把窗口压到几十秒，要么给臂跑单独起一个端口的 server，别共用。
+
+**仍欠**
+
+1. **直接暴露（前面没有会追加的反代）时右端仍是客户端写的**：Next 的 `??=` 让"客户端自带的头"
+   与"Next 填的头"在处理器里长得一模一样，代码分辨不出来。这一档只能靠部署补前置反代并把
+   `NEXUS_TRUSTED_PROXY_COUNT` 设对——ADR-0070 的后果 1 写死了这句话，不要在代码里假装解决。
+2. **内存驱动仍每实例一套桶、重启即失忆**：多实例下额度是"每实例 20"。换 Redis 有序集那一格照旧欠着，
+   代价是 `hit()` 要变 async（33 处调用点 / 30 个文件）。
+3. 那 30 多处 `rateKey(route, clientIp(req), user.id)` 现在拿的是 `clientIp`（垃圾头＝`null`＝`no-ip`
+   共享桶，不会被轮换绕过），但没换成 `gateIp` 那只带标签的桶——审计口径优先，行为是安全的，
+   只是日志里看不出"这批请求写的是垃圾头"。
+4. `guest-write-gate` 的 `guestCount()` 差值不独占（见上面的污染读数），要改成只数自己造的标记。
+5. 转发头只处理 `x-forwarded-for` / `x-real-ip` 两行；RFC 7239 的 `Forwarded: for=...` 与
+   带端口的 IPv6 变体（`[::1]:5000` 认，裸 `::1:5000` 不认）没铺开。

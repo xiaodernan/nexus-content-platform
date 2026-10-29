@@ -10,7 +10,10 @@
 - CSRF：状态变更走 SameSite + 同源校验 + 双提交 token（表单/AJAX）
 - RBAC：`role` × `permission`（§80）。项目级 owner/editor/viewer；平台级 admin/moderator
 - 每个 route handler 必须显式声明所需权限，默认拒绝（deny by default），不靠 UI 隐藏
-- 速率限制：Redis 滑动窗口，按用户 + IP + 路由；生成类接口按 credits 配额
+- 速率限制：滑动窗口，按 路由 + 身份 + IP（`apps/web/src/server/security/rateLimit.ts`）。驱动现在是**进程内内存**，
+  不是 Redis——形状对齐有序集，多实例部署前必须接过去（见下面"实现现状"）。IP 取的是转发链的**可信右端**，
+  不是客户端随手写的最左端：`x-forwarded-for` 是追加出来的链条，判决与限度见 `docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`；
+  生成类接口另外按 credits 配额挡（`domain/credit-ledger.ts` 的 `refusalForRun` → `429 credits_exhausted`）
 
 **实现现状（任务 #9d，认证竖向切片）**：口令哈希走本文件允许的 **bcrypt 回落分支**（`bcryptjs` 纯 JS，cost=10），
 算法封在 `apps/web/src/server/domain/password.ts` 一处，`verifyPassword` 按 `$2` 前缀分派——将来接 Argon2id 只改这一处，

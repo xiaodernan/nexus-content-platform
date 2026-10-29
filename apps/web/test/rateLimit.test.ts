@@ -64,8 +64,13 @@ describe('限流键与 IP 提取', () => {
     expect(rateKey('auth/register', null)).toBe('auth/register|anon|no-ip');
   });
 
-  it('clientIp 取 x-forwarded-for 第一段，回落 x-real-ip', () => {
-    expect(clientIp(new Request('http://x', { headers: { 'x-forwarded-for': '1.1.1.1, 2.2.2.2' } }))).toBe('1.1.1.1');
+  /**
+   * 取的是**右端**，不是第一段。这一条原来写着"取 x-forwarded-for 第一段"并且真的断到
+   * `1.1.1.1`——那是链条里客户端随手写的那一段，每请求换一个值就换一个限流桶。
+   * 读法与限度见 `client-ip.test.ts` 与 `docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`。
+   */
+  it('clientIp 取 x-forwarded-for 右端（反代追加的那一段），回落 x-real-ip', () => {
+    expect(clientIp(new Request('http://x', { headers: { 'x-forwarded-for': '1.1.1.1, 2.2.2.2' } }))).toBe('2.2.2.2');
     expect(clientIp(new Request('http://x', { headers: { 'x-real-ip': '3.3.3.3' } }))).toBe('3.3.3.3');
     expect(clientIp(new Request('http://x'))).toBeNull();
   });

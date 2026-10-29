@@ -121,6 +121,16 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
   `createProjectNamed` 现在把这次 POST 的答复接住了：非 2xx 当场带话收场，不再等满 60 秒导航超时，
   并且把服务端算好的 `retryAfterMs` 一起报出来（2026-10-28 实测："还要等 20 分钟"）——照这个数等，别猜。
   同样**不要为测试放宽它**；挑着跑，或等窗口（每 3 分钟出一个名额）。
+- **这两道按 IP 的闸在本机为什么是"一台机器一个桶"**（2026-10-30 第二十六片查实）：闸按谁的 IP 限，
+  读的是 `x-forwarded-for` 的**可信链右端**；而 Next 只在**这一行头缺席时**才拿 socket 地址填它
+  （`node_modules/next/dist/server/base-server.js:612` 是 `??=`）。本机没有反代，浏览器不写这一行头，
+  所以每个 e2e 请求填进去的都是同一个 `::1`——**同一台机器上的全部浏览器用例共用一份名额**，
+  两个会话并行跑 e2e 时尤其明显（不是互相抢 cookie，是同一个 IP 桶）。
+  前置了反代的部署要把 `NEXUS_TRUSTED_PROXY_COUNT` 按真实跳数写进 env（默认 1 = 一级会追加的反代；
+  CDN → LB → 本机就是 2）。取左端还是右端不是风格问题：旧读法取最左端，等于任何客户端加一行
+  `x-forwarded-for: 随便写` 就换一个新桶，这两道闸当场空转——判决见
+  `docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`，证据在 `apps/web/test/client-ip.test.ts`
+  与 `apps/web/test/guest-write-gate.integration.test.ts` 的后两条。
 - **"扫很多张界面"的用例改用夹具账号，别再消耗这两道闸**（同日第七片落地）：
   `e2e/support/auth-session.ts` 的 `reusableMemberWithProject(page, email, password, 首建项目名)`
   先登固定邮箱（登录那道是按**邮箱** 10 次/15 分钟，`login/route.ts`，不是按 IP），登不上才注册；
