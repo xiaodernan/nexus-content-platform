@@ -7,6 +7,7 @@ import { heldRefsOf, type CreditLedger } from '@/lib/credits';
 import { buildDemoCreditsScene } from '@/lib/creditsDemo';
 import { loadCatalog, saveCatalog } from '@/lib/catalogStore';
 import { loadCredits, saveCredits } from '@/lib/creditsStore';
+import { loadDesign, loadDesigns, saveDesign, saveDesigns } from '@/lib/designStore';
 import { purchaseTemplate } from '@/lib/marketplace';
 import { priceText, type PriceCents } from '@/lib/monetization';
 import { publishListing } from '@/lib/publish';
@@ -28,6 +29,7 @@ import {
   type TemplateCatalog,
   type TemplateListing,
 } from '@/lib/templateCatalog';
+import { remixRightFor, remixTemplateToProject } from '@/lib/templateRemix';
 import { buildWalletView, storeRows } from '@/lib/walletView';
 
 /**
@@ -59,6 +61,15 @@ export default function CreditsPanel() {
    * same move reversed, so the surface can offer it — and a reload has to read it back.
    */
   const [withdrawn, setWithdrawn] = useState<TemplateListing[]>([]);
+  /**
+   * The DESIGNS this browser stores (v547), by document id. A listing names a `documentId`, and until
+   * the design store existed that id pointed at NOTHING a page could open — so the remix handoff had no
+   * source to fork. Only the ids are held here; the bytes are read when a remix actually needs them, so
+   * the page cannot offer a remix of a design it would then fail to load.
+   */
+  const [designIds, setDesignIds] = useState<string[]>([]);
+  /** The last remix this page made, stated beside the store. Host state, not a record. */
+  const [remixNote, setRemixNote] = useState<string | null>(null);
   const [ledger, setLedger] = useState<CreditLedger | null>(null);
   const [source, setSource] = useState<'stored' | 'empty' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +126,12 @@ export default function CreditsPanel() {
       if (!shelf.ok) { setError(shelf.reason); return; }
       setCatalog(shelf.catalog);
       setWithdrawn(shelf.withdrawn);
+      // The DESIGNS are a third independent record (v547): absence is an empty store, corruption is
+      // refused by name. Corrupt bytes BLOCK the page rather than being silently read as "no designs",
+      // because a page that offered nothing to remix while holding unreadable work would be lying.
+      const designs = loadDesigns(window.localStorage);
+      if (!designs.ok) { setError(designs.reason); return; }
+      setDesignIds(designs.documents.map((document) => document.id));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -138,15 +155,19 @@ export default function CreditsPanel() {
 
   const clearLocal = useCallback(() => {
     try {
-      // An empty ledger and an empty shelf are VALID records, so clearing WRITES them rather than
-      // deleting the keys — the same rule `catalogStore` states for an absent key.
+      // An empty ledger, an empty shelf and an empty design store are VALID records, so clearing WRITES
+      // them rather than deleting the keys — the same rule `catalogStore` states for an absent key.
       const savedShelf = saveCatalog(window.localStorage, emptyTemplateCatalog(), []);
       if (!savedShelf.ok) { setError(savedShelf.reason); return; }
+      const savedDesigns = saveDesigns(window.localStorage, []);
+      if (!savedDesigns.ok) { setError(savedDesigns.reason); return; }
       const saved = saveCredits(window.localStorage, { entries: [] });
       if (!saved.ok) { setError(saved.reason); return; }
       setLedger({ entries: [] });
       setCatalog(emptyTemplateCatalog());
       setWithdrawn([]);
+      setDesignIds([]);
+      setRemixNote(null);
       setSource('stored');
       setError(null);
     } catch (e) {
@@ -269,7 +290,12 @@ export default function CreditsPanel() {
       withdrawn.some((entry) => entry.id === `tpl-local-${n}`)
     ) n += 1;
     const id = `tpl-local-${n}`;
-    const decision = publishListing(catalog, withdrawn, createEmptyDocument(`Local Draft ${n}`), {
+    // The design is the model's OWN document (v546) and it is WRITTEN FIRST (v547): a listing must never
+    // exist without the document its `documentId` names, so a refused design write leaves the shelf
+    // exactly as it was. An orphan design, if the shelf write then fails, is harmless — nothing
+    // references it, and it can be published again.
+    const draft = createEmptyDocument(`Local Draft ${n}`);
+    const decision = publishListing(catalog, withdrawn, draft, {
       id,
       title: `Local Draft ${n}`,
       description: 'A demo design published from this page.',
@@ -280,11 +306,36 @@ export default function CreditsPanel() {
       now: Date.now(),
     });
     if (!decision.ok) { setError(decision.reason); return; }
+    const savedDesign = saveDesign(window.localStorage, draft);
+    if (!savedDesign.ok) { setError(savedDesign.reason); return; }
     const saved = saveCatalog(window.localStorage, decision.catalog, withdrawn);
     if (!saved.ok) { setError(saved.reason); return; }
     setCatalog(decision.catalog);
+    setDesignIds((ids) => (ids.includes(draft.id) ? ids : [...ids, draft.id]));
+    setRemixNote(null);
     setError(null);
   }, [catalog, withdrawn, scene]);
+
+  /**
+   * REMIX a listing this viewer may fork (v547): the marketplace handoff's first producer. The SOURCE is
+   * the document the local design store keeps under the listing's `documentId`, and the fork is stamped
+   * with the template it came from. The fork is REPORTED, not stored: this page hosts no project library,
+   * and a project it cannot open would be storage pretending to be a feature (§60, ADR 0019).
+   */
+  const onRemix = useCallback((listing: TemplateListing) => {
+    if (!ledger) return;
+    const sourceDoc = loadDesign(window.localStorage, listing.documentId);
+    if (!sourceDoc.ok) { setError(sourceDoc.reason); return; }
+    const forked = remixTemplateToProject(sourceDoc.document, catalog, ledger, scene.viewerId, listing.id, {
+      // The HOST supplies the instant (ADR 0010); the model never reads a clock.
+      remixedAt: new Date().toISOString(),
+      name: `${listing.title} (remix)`,
+    });
+    if (!forked.ok) { setError(forked.reason); return; }
+    const nodes = Object.keys(forked.document.nodes).length;
+    setRemixNote(`remixed "${listing.title}" (${forked.basis}, from ${listing.id}) -> "${forked.document.name}" · doc ${forked.document.id} · ${nodes} node(s)`);
+    setError(null);
+  }, [catalog, ledger, scene]);
 
   const wallet = ledger ? buildWalletView(catalog, ledger, scene.viewerId) : null;
   // "Still to buy" = the marketplace's affordability gate MINUS what is already owned. The model
@@ -327,12 +378,13 @@ export default function CreditsPanel() {
         </span>
       </div>
       <div style={{ color: 'var(--nexus-muted)', marginBottom: 12, maxWidth: 780 }}>
-        This page reads and writes the ledger AND the shelf through the same local-first stores a real
-        ledger and catalog would use (<code>nexus.credits.v1</code> and <code>nexus.catalog.v1</code> in
-        this browser). Buying a template appends a real two-entry transaction to that LOCAL ledger;
-        refunding reverses the recorded purchase; retiring withdraws the listing from that LOCAL shelf
-        and REMEMBERS it (v542), so it can be put back or discarded — even after a reload. All of it
-        spends demo credits, not money.
+        This page reads and writes the ledger, the shelf AND the designs through the same local-first stores
+        a real ledger, catalog and project library would use (<code>nexus.credits.v1</code>,{' '}
+        <code>nexus.catalog.v1</code> and <code>nexus.designs.v1</code> in this browser). Buying a
+        template appends a real two-entry transaction to that LOCAL ledger; refunding reverses the
+        recorded purchase; retiring withdraws the listing from that LOCAL shelf and REMEMBERS it (v542),
+        so it can be put back or discarded — even after a reload; publishing keeps the design it built
+        (v547), so the buy-and-remix loop forks a real document. All of it spends demo credits, not money.
       </div>
 
       {error && (
@@ -476,6 +528,19 @@ export default function CreditsPanel() {
                 Publish draft
               </button>
             </div>
+            {/*
+              The design store's face (v547). A listing names a document; this says how many of those
+              documents this browser actually holds — the difference between "nothing to remix" and
+              "the source is here", stated rather than implied by which buttons happen to appear.
+            */}
+            <div data-credits-designs style={{ color: 'var(--nexus-muted)', marginTop: 4 }}>
+              designs stored in this browser: {designIds.length}
+            </div>
+            {remixNote && (
+              <div data-credits-remix-result style={{ marginTop: 4 }}>
+                {remixNote}
+              </div>
+            )}
             <table style={{ width: '100%', marginTop: 6, borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
@@ -498,6 +563,11 @@ export default function CreditsPanel() {
                   // and can afford. Offering "Buy" on something already owned would invite a second
                   // purchase of one item — the model allows it, but the panel should not suggest it.
                   const buyable = !!listing && !owned && affordable && listing.priceCents > 0;
+                  // The REMIX door (v547) exists only where BOTH facts hold: the ledger grants the right
+                  // (free, or held by a recorded purchase) AND this browser holds the source design. A
+                  // button that always answered "not stored" would be a lie about what the page can do.
+                  const canRemix = !!listing && !!ledger && designIds.includes(listing.documentId) &&
+                    remixRightFor(catalog, ledger, scene.viewerId, listing.id).ok;
                   // A retired row was BOUGHT by definition (that is why the record still shows it), so
                   // its price is no longer on the shelf to read; the refund door follows the HOLD, not a
                   // price the catalog forgot.
@@ -524,6 +594,22 @@ export default function CreditsPanel() {
                             style={{ fontSize: 10, padding: '1px 6px' }}
                           >
                             Buy
+                          </button>
+                        ) : null}
+                        {canRemix && listing ? (
+                          /*
+                            The REMIX door (v547). `remixTemplateToProject` has had a proof since the
+                            marketplace landed and no caller at all: a viewer who owns a template could
+                            not fork it. The fork leaves with the source's lineage stamped on it.
+                          */
+                          <button
+                            type="button"
+                            className="btn"
+                            data-credits-remix={listing.id}
+                            onClick={() => onRemix(listing)}
+                            style={{ fontSize: 10, padding: '1px 6px' }}
+                          >
+                            Remix
                           </button>
                         ) : null}
                         {listing ? (

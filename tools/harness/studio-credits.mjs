@@ -38,6 +38,10 @@
  *   6j. a creator can PUBLISH (v546): the button builds a real Design Document through `publishListing`
  *      and the shelf gains a listing it did not hold before — without touching the withdrawal record —
  *      and the published shelf survives a reload;
+ *   6k. a buyer can REMIX what they hold (v547): the design store keeps the document the listing's
+ *      `documentId` names, so after buying the published draft the row grows a Remix action, the fork
+ *      names its source and its node count, and a reload still holds the source — a second remix mints
+ *      a DIFFERENT document id;
  *   7. clearing writes a VALID empty ledger and the page returns to its empty state;
  *   8. no uncaught page errors, and a screenshot is written as evidence.
  *
@@ -552,6 +556,57 @@ try {
     publishedReload.rows === 1 && publishedReload.withdrawn === 2 &&
       /Local Draft 1/.test(publishedReload.row ?? '') && /1 listing\(s\)/.test(publishedReload.header ?? ''),
     JSON.stringify(publishedReload),
+  );
+
+  // 6k. THE REMIX DOOR (v547). A listing's `documentId` names a design, and until the design store
+  // existed that id pointed at NOTHING this browser could open — `remixTemplateToProject` had a proof
+  // and no caller. The page's own publish now WRITES the document before the listing, and `Remix`
+  // appears only where the ledger grants the right AND the source is here. buyer-1 does not hold the
+  // author's draft yet, so the loop is the real one: BUY it, then fork it.
+  const buyClick = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-buy=\"tpl-local-1\"]'); if (!b) return false; b.click(); return true; })()",
+  );
+  await page.waitForFunction("!!document.querySelector('[data-credits-remix=\"tpl-local-1\"]')", { timeout: 10000 });
+  const remixClick = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-remix=\"tpl-local-1\"]'); if (!b) return false; b.click(); return true; })()",
+  );
+  await page.waitForFunction("!!document.querySelector('[data-credits-remix-result]')", { timeout: 10000 });
+  const remixed = await page.evaluate(
+    "(() => ({ note: document.querySelector('[data-credits-remix-result]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, designs: document.querySelector('[data-credits-designs]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, error: !!document.querySelector('[data-credits-error]') }))()",
+  );
+  const firstForkId = /· doc (\S+) ·/.exec(remixed.note ?? '')?.[1] ?? null;
+  check(
+    'a REMIX forks the published design the buyer now holds: the note names the source, the fresh document and its node count',
+    buyClick === true && remixClick === true && firstForkId !== null &&
+      /remixed "Local Draft 1"/.test(remixed.note ?? '') &&
+      /\(owned, from tpl-local-1\)/.test(remixed.note ?? '') &&
+      /"Local Draft 1 \(remix\)"/.test(remixed.note ?? '') &&
+      /· 2 node\(s\)/.test(remixed.note ?? '') &&
+      /designs stored in this browser: 1/.test(remixed.designs ?? '') &&
+      /balance: 700 credits/.test(remixed.wallet ?? '') && remixed.error === false,
+    JSON.stringify(remixed),
+  );
+
+  // 6l. THE DESIGN IS LOCAL-FIRST TOO. A full reload must read the SAME document back — a remix that
+  // only worked because the source was still in React state would be a session trick, not a store. And
+  // because `forkDocument` mints a fresh id, a second remix of the same source must name a DIFFERENT
+  // document: a replayed string would mean no fork happened at all.
+  await page.navigate(`${URL_BASE}/credits`, { waitForSelector: '#nexus-credits' });
+  await page.waitForFunction("!!document.querySelector('[data-credits-remix=\"tpl-local-1\"]')", { timeout: 20000 });
+  const afterRemixReload = await page.evaluate(
+    "(() => ({ designs: document.querySelector('[data-credits-designs]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, rows: document.querySelectorAll('[data-credits-listing]').length }))()",
+  );
+  await page.evaluate("(() => { const b = document.querySelector('[data-credits-remix=\"tpl-local-1\"]'); if (!b) return false; b.click(); return true; })()");
+  await page.waitForFunction("!!document.querySelector('[data-credits-remix-result]')", { timeout: 10000 });
+  const remixedAgain = await page.evaluate(
+    "(() => document.querySelector('[data-credits-remix-result]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null)()",
+  );
+  const secondForkId = /· doc (\S+) ·/.exec(remixedAgain ?? '')?.[1] ?? null;
+  check(
+    'the SOURCE design survives a reload, and a second remix forks a DIFFERENT document — a fresh id, not a replayed string',
+    /designs stored in this browser: 1/.test(afterRemixReload.designs ?? '') && afterRemixReload.rows === 1 &&
+      firstForkId !== null && secondForkId !== null && secondForkId !== firstForkId,
+    JSON.stringify({ afterRemixReload, remixedAgain, firstForkId, secondForkId }),
   );
 
   // 7. clearing writes a valid empty ledger and returns the page to its empty state.

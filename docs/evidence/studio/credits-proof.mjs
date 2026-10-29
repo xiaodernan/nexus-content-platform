@@ -22,7 +22,9 @@
 //      and opening + earned − spent + refunded − clawedBack + after === the whole-ledger balance over
 //      a bounded window;
 //   §5 the remix handoff forks a NEW document (id changes, source untouched) and reports a malformed
-//      source by name instead of throwing;
+//      source by name instead of throwing; the fork CARRIES ITS LINEAGE (v547) — the template id and
+//      the host's instant — so the M7 reader answers the source, while the document it forked from
+//      carries none, and a remix with no instant is refused by name;
 //   §6 the wallet view is DERIVED: owned = authored + spent-ref; affordable = the marketplace's gate;
 //   §7 the wire format round-trips and refuses a bad record (a future version, a negative prefix);
 //   §8 the local-first store distinguishes an ABSENT key (empty) from a corrupt one (refused);
@@ -38,11 +40,16 @@
 //      still be made whole for it by name, and the id can be listed again under another author; the
 //      SHELF REMEMBERS what it withdrew (v542), so the record survives a reload and a listing can be
 //      put back — and a version-1 shelf (written before take-downs were remembered) is migrated;
-//   §12 HEAD is byte-identical: everything ran in memory.
+//   §12 the DESIGN store (v547) is the shelf's missing document half: a published design round-trips
+//      by id, a save replaces in place and appends a new one, an id it does not hold is refused by
+//      name, a hand-edited document the MODEL refuses is refused on read, and an unreadable store is
+//      never overwritten;
+//   §13 HEAD is byte-identical: everything ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/credits-proof.mjs
 
 import assert from 'node:assert/strict';
+import { createEmptyDocument } from '@nexus/design-model';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -50,7 +57,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import { execFileSync } from '../lib/syncproc.mjs';
 
 const REPO = process.cwd();
-const MODULES = ['credits', 'templateCatalog', 'catalogStore', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy'];
+const MODULES = ['credits', 'templateCatalog', 'catalogStore', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy', 'lineage', 'designStore'];
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 
@@ -84,6 +91,8 @@ try {
   const creditsStore = await import(pathToFileURL(join(libDir, 'creditsStore.mjs')).href);
   const refund = await import(pathToFileURL(join(libDir, 'refund.mjs')).href);
   const refundPolicy = await import(pathToFileURL(join(libDir, 'refundPolicy.mjs')).href);
+  const lineage = await import(pathToFileURL(join(libDir, 'lineage.mjs')).href);
+  const designStore = await import(pathToFileURL(join(libDir, 'designStore.mjs')).href);
 
   // Sanity: the real modules were imported, not re-implemented here.
   for (const [name, mod, fn] of [
@@ -99,6 +108,8 @@ try {
     ['refund', refund, 'refundPurchase'],
     ['refundPolicy', refundPolicy, 'refundPurchaseUnderPolicy'],
     ['refundPolicy', refundPolicy, 'refundEligibility'],
+    ['lineage', lineage, 'readRemixedFrom'],
+    ['designStore', designStore, 'loadDesigns'],
   ]) {
     assert.equal(typeof mod[fn], 'function', `${name}.${fn} was not imported — the module was not run`);
   }
@@ -264,17 +275,26 @@ try {
   assert.equal(remix.remixRightFor(catalog, real, 'stranger', 'tpl-paid').ok, false, 'a paid template was remixable by a stranger');
   assert.deepEqual(remix.remixRightFor(catalog, real, 'buyerB', 'tpl-paid'), { ok: true, basis: 'owned' }, 'the buyer does not own what they bought');
   assert.deepEqual(remix.remixRightFor(catalog, real, 'authorA', 'tpl-paid'), { ok: true, basis: 'owned' }, 'the author does not own their own listing');
-  const forked = remix.remixTemplateToProject(sourceDoc, catalog, real, 'buyerB', 'tpl-paid', 'My Remix');
+  const REMIX_AT = '2026-10-29T00:00:00.000Z';
+  const forked = remix.remixTemplateToProject(sourceDoc, catalog, real, 'buyerB', 'tpl-paid', { remixedAt: REMIX_AT, name: 'My Remix' });
   assert.equal(forked.ok, true, forked.reason);
   assert.notEqual(forked.document.id, sourceDoc.id, 'the fork kept the source document id');
   assert.equal(forked.document.name, 'My Remix', 'the explicit name was not honoured');
   assert.equal(sourceDoc.id, 'doc-source', 'the source document was mutated');
   assert.equal(forked.basis, 'owned');
+  // v547 — the fork NAMES its source through the ONE reservation the M7 lane owns, and the document it
+  // forked from carries none: a remix of a remix names its own source, never the inherited one.
+  assert.equal(lineage.readRemixedFrom(forked.document), 'tpl-paid', 'the fork did not name the template it came from');
+  assert.deepEqual(forked.document._lineage, { sourceProjectId: 'tpl-paid', remixedAt: REMIX_AT }, 'the lineage did not carry the host instant');
+  assert.equal(lineage.readRemixedFrom(sourceDoc), null, 'the SOURCE was stamped by its fork');
+  const undated = remix.remixTemplateToProject(sourceDoc, catalog, real, 'buyerB', 'tpl-paid', { remixedAt: '  ' });
+  assert.equal(undated.ok, false, 'a remix with no instant was accepted');
+  assert.match(undated.reason, /remixedAt/, 'the refusal did not name the missing instant');
   const malformed = { id: 'doc-bad', rootId: 'missing', name: 'Bad', nodes: {} };
-  const badRemix = remix.remixTemplateToProject(malformed, catalog, real, 'buyerB', 'tpl-paid');
+  const badRemix = remix.remixTemplateToProject(malformed, catalog, real, 'buyerB', 'tpl-paid', { remixedAt: REMIX_AT });
   assert.equal(badRemix.ok, false, 'a malformed source was forked');
   assert.match(badRemix.reason, /could not be forked/);
-  console.log(`  free -> anyone; paid -> owner only; fork id ${sourceDoc.id} -> ${forked.document.id}; malformed source refused by name`);
+  console.log(`  free -> anyone; paid -> owner only; fork id ${sourceDoc.id} -> ${forked.document.id}, remixed from ${lineage.readRemixedFrom(forked.document)}; an undated remix and a malformed source refused by name`);
 
   // ── §6 the wallet view is derived ───────────────────────────────────────────────────────────────
   console.log('§6 the wallet view is derived');
@@ -604,12 +624,63 @@ try {
 
   console.log(`  the listing withdrew cleanly (1 left, the input untouched, a second retire refused by name); the buyer still OWNS the retired ref and the wallet can tell it from a plan id; the refund made the buyer whole (${credits.balanceOf(reversedRetired.ledger, 'buyerR')}) and clawed back exactly the recorded seller (${credits.balanceOf(reversedRetired.ledger, 'authorA')}), naming "tpl-paid" (not in this catalog); the STORE's rows were the shelf plus the retired ref the record owns (and a stranger saw only the shelf), and the retired shelf SAVED and READ BACK unchanged; the WITHDRAWN record round-tripped (format 2) and the listing could be put back; a version-1 shelf migrated with no withdrawals; the retired id re-listed under a new author`);
 
+  // ── §12 the DESIGN store is the shelf's document half ────────────────────────────────────────────
+  console.log('§12 the design store keeps the documents a listing names');
+  const designKvStore = new Map();
+  const designSeam = {
+    getItem: (key) => designKvStore.get(key) ?? null,
+    setItem: (key, value) => { designKvStore.set(key, value); },
+  };
+  const noDesigns = designStore.loadDesigns(designSeam);
+  assert.equal(noDesigns.ok, true, `an absent design key was refused: ${noDesigns.reason}`);
+  assert.equal(noDesigns.source, 'empty', 'an absent design key did not read as empty');
+
+  const draftDoc = createEmptyDocument('Published Draft');
+  const savedDesign = designStore.saveDesign(designSeam, draftDoc);
+  assert.equal(savedDesign.ok, true, `the design could not be saved: ${savedDesign.reason}`);
+  const readDesign = designStore.loadDesign(designSeam, draftDoc.id);
+  assert.equal(readDesign.ok, true, `the saved design could not be read back: ${readDesign.reason}`);
+  assert.deepEqual(readDesign.document, draftDoc, 'the design did not round-trip unchanged');
+  assert.equal(JSON.parse(designKvStore.get('nexus.designs.v1')).version, 1, 'the saved design store was not written in format 1');
+
+  // A save REPLACES a design in place and APPENDS a new one — the order is the order designs arrived.
+  const secondDraft = createEmptyDocument('Second Draft');
+  assert.equal(designStore.saveDesign(designSeam, secondDraft).ok, true);
+  assert.equal(designStore.saveDesign(designSeam, { ...draftDoc, name: 'Renamed' }).ok, true);
+  const allDesigns = designStore.loadDesigns(designSeam);
+  assert.equal(allDesigns.ok, true);
+  assert.deepEqual(allDesigns.documents.map((doc) => doc.id), [draftDoc.id, secondDraft.id], 'a save replaced-and-appended in the wrong order');
+  assert.equal(allDesigns.documents[0].name, 'Renamed', 'the replacement did not take');
+
+  // An id the store does not hold is a NAMED refusal, never a blank document a remix would fork.
+  const ghostDesign = designStore.loadDesign(designSeam, 'doc-ghost');
+  assert.equal(ghostDesign.ok, false, 'an unknown design id was answered');
+  assert.match(ghostDesign.reason, /no design with id "doc-ghost" is stored/);
+
+  // The MODEL is the gate on the way in AND on the way out: bytes a text editor made inconsistent are
+  // refused by name rather than handed to `forkDocument`.
+  const brokenDraft = createEmptyDocument('Broken');
+  delete brokenDraft.nodes[brokenDraft.rootId];
+  assert.equal(designStore.saveDesign(designSeam, brokenDraft).ok, false, 'an invalid design was saved');
+  designKvStore.set('legacy-broken', JSON.stringify({ version: 1, documents: [brokenDraft] }));
+  const brokenRead = designStore.loadDesigns(designSeam, 'legacy-broken');
+  assert.equal(brokenRead.ok, false, 'a hand-edited invalid design was handed to a caller');
+  assert.match(brokenRead.reason, /not a valid Design Document/);
+
+  // And an unreadable store is never clobbered by the next save.
+  designKvStore.set('legacy-corrupt', '{"version":1,"documents":');
+  const clobber = designStore.saveDesign(designSeam, draftDoc, 'legacy-corrupt');
+  assert.equal(clobber.ok, false, 'an unreadable design store was overwritten');
+  assert.equal(designKvStore.get('legacy-corrupt'), '{"version":1,"documents":', 'the corrupt bytes were replaced');
+
+  console.log(`  an absent key read as EMPTY; one design round-tripped by id (${draftDoc.id}) and format 1 was written; a save replaced in place and appended (${allDesigns.documents.map((doc) => doc.id).join(', ')}); an unknown id, a hand-edited document and an unreadable store were all refused by name`);
+
 } finally {
   rmSync(box, { recursive: true, force: true });
 }
 
-// ── §12 HEAD is byte-identical ────────────────────────────────────────────────────────────────────
+// ── §13 HEAD is byte-identical ────────────────────────────────────────────────────────────────────
 const after = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(after, head, 'the repository HEAD moved while the proof ran');
-console.log(`§12 HEAD unchanged (${head.slice(0, 12)})`);
+console.log(`§13 HEAD unchanged (${head.slice(0, 12)})`);
 console.log('ALL SECTIONS PASSED');
