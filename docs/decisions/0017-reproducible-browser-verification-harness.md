@@ -109,3 +109,54 @@ model, exact undo/redo restoration, and a `localStorage` snapshot surviving a re
 - Perceptual screenshot diffing for §30 regression detection.
 - The same harness is the intended substrate for §29/§63 *agent-driven* browsing, once the
   ADR 0013 exec sandbox owns process spawning.
+
+## Amendment 1 (v549, evidence/studio) — the package table is a claim, and a claim nobody re-computes is decorative
+
+**The gap, where it stood.** This ADR decided how the studio directory *proves* things: a real
+browser, a read-only bridge, a runnable row per claim. Above that section sits a table that proves
+nothing, because no command produces it — `docs/evidence/studio/README.md` stated the case count and
+file count of all seven workspace packages in hand-typed digits, under a sentence calling them
+"authoritative". By v548 every one of those seven rows was wrong, and one was wrong by an order of
+magnitude: `@nexus/studio` claimed 369/369 over 29 files while the suite it describes answered
+2840/2840 over 142; `@nexus/ai-providers` claimed 20 where the run answers 95; `@nexus/three-runtime`
+453 vs 635; `@nexus/world-engine` 43 vs 109; `@nexus/agent-runtime` 540 vs 658;
+`@nexus/exec-host` 309 vs 358; `@nexus/design-model` 32 vs 169. A reader who quoted the table was
+quoting a measurement of a suite that no longer existed, and the README's own drift note ("RE-MEASURED
+at M5 v192") is what made the decay look maintained.
+
+**The verb.** The table became a GENERATED block between two markers:
+
+1. `docs/evidence/studio/package-counts-proof.mjs` boots each package with the invocation the README
+   already names — `vitest run --root <pkg> --no-file-parallelism --reporter=json` — and reads
+   `numPassedTests`, `numTotalTests` and `testResults.length` out of vitest's own report. `--no-file-parallelism`
+   is load-bearing here for the measured reason the agents lane recorded: a parallel pool silently drops
+   files on this host, and a dropped file would render as a drifted row rather than a missing one.
+2. `--write` re-renders the marked block from that run; the default mode is a CHECK, and it refuses a
+   block that differs in any column, in any row, in row order, or carries a package the gate never ran
+   (and names which). A hand-typed number cannot survive it.
+3. The checker is witnessed before it grades: §0 renders a sample block, calls the comparator clean on
+   it, then mutates a copy five ways that a hand-edit really produces — a count +1, a file count +1, a
+   deleted row, an invented `@nexus/ghost` row, and a reshuffle with every number right — and requires
+   each mutation to be caught by name. A checker that cannot be red is the same decoration in a new place.
+4. Check mode digests the README before and after and requires the digest unchanged: a gate that edits
+   its subject cannot report drift honestly.
+
+**Files.** `docs/evidence/studio/package-counts-proof.mjs` (new), `docs/evidence/studio/README.md`
+(the block plus the drift note rewritten to say the table is generated), root `package.json`
+(`verify:package-counts`).
+
+**Measured (2026-10-29, this host).** Seven arms, all exit 0, all cases passing: design-model
+169/169 in 16 files (7.9–12.7 s), ai-providers 95/95 in 9 (4.9–5.5 s), three-runtime 635/635 in 30
+(16.1–16.9 s), world-engine 109/109 in 4 (3.5–3.8 s), agent-runtime 658/658 in 46 (17.8–21.7 s),
+exec-host 358/358 in 14 (10.9–24.6 s), studio 2840/2840 in 142 (61.1–131.6 s) — 4864 cases in 261 files
+in total; write mode and check mode both run, the check-mode README digest `d6d2f2e70a7c6b7b` unchanged
+across the run, and 5/5 mutations caught.
+
+**Bounds, stated rather than implied.** The gate measures the seven packages hard-coded in `PKGS`; a new
+workspace package is invisible to it until someone adds a row, and the "a row for a package this gate
+never measured" refusal is what makes that omission loud rather than silent. `testResults.length` counts
+JSON result entries, not distinct test files, so a package that splits one source file into several result
+entries would report more "files" than a human would count by hand. `--write` is a manual act — nothing
+regenerates that block on its own, so a change that moves suite counts without anyone running the gate is
+still head-typed until CI runs it. The block grades counts only: `tsc --noEmit` and lint stay separate
+gates, and the timing above is a serial sum, not a wall-clock claim about a parallel machine.

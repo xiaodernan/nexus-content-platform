@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-10-29T08:47:34.717Z",
+  "ranAt": "2026-10-29T16:42:22.201Z",
   "arms": 40,
   "matched": 40,
   "armNames": [
@@ -325,6 +325,11 @@
       "name": "verify:mutation",
       "file": "docs/evidence/studio/mutation-probe.mjs",
       "marker": "// sweep-budget-ms: 1200000"
+    },
+    {
+      "name": "verify:package-counts",
+      "file": "docs/evidence/studio/package-counts-proof.mjs",
+      "marker": "// sweep-budget-ms: 600000"
     },
     {
       "name": "verify:pipeline",
