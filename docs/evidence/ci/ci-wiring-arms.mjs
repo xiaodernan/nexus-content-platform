@@ -21,16 +21,20 @@
 // `--only` typo must refuse to certify an empty set, and a missing `dist` must say the build is absent rather
 // than call the proof red — amendment 78's two colours, measured through the door that ships them.
 //
-// Nothing is written inside the repository. Each arm gets its own plane directory, built from pristine bytes
-// read out of `SRC` (derived from THIS file's own location, not from the caller's cwd), and is removed the
-// moment the arm ends, so an arm cannot leak a mutated copy into the next one.
+// Nothing an ARM writes survives: each one gets its own plane directory, built from pristine bytes read out of
+// `SRC` (derived from THIS file's own location, not from the caller's cwd), and is removed the moment the arm
+// ends, so an arm cannot leak a mutated copy into the next one. The ONE file this tool writes inside the
+// repository is the receipt (v542): after a run where every arm matched it stamps the sha256 of every subject it
+// graded, so a later change to any of those bytes has a way to be NOTICED — `verify:arms-freshness` reddens the
+// build until the arms are re-run. A red run writes nothing: a receipt may only come from a run that was whole.
 //
-// Run from the repository root:  node docs/evidence/ci/ci-wiring-arms.mjs     (~2 minutes on this box, both halves)
+// Run from the repository root:  node docs/evidence/ci/ci-wiring-arms.mjs     (~9 minutes on this box, both halves)
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { makeReceipt, markerLine, populationOf, RECEIPT_FILE, subjectsOf } from './arms-receipt.mjs';
 
 const SRC = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const PLANE_ROOT = resolve(SRC, '..', `nexus-ci-arms-plane-${process.pid}`);
@@ -38,6 +42,12 @@ const PLANE_ROOT = resolve(SRC, '..', `nexus-ci-arms-plane-${process.pid}`);
 const producer = await import(pathToFileURL(join(SRC, 'tools/ci/proof-set.mjs')).href);
 const pkg = JSON.parse(readFileSync(join(SRC, 'package.json'), 'utf8'));
 const population = producer.derivePopulation(pkg.scripts);
+// The bytes the arms are about to grade, captured before the first plane exists. At receipt time the tool
+// recomputes them and refuses to write if they moved: a shared checkout can change under a nine-minute run, and
+// a receipt stamping the LATER bytes would certify a wiring no arm ever touched — the same staleness it exists
+// to refuse, wearing the receipt's own signature.
+const gradedSubjects = subjectsOf(SRC);
+const gradedPopulation = populationOf(SRC);
 
 // ── the machinery ─────────────────────────────────────────────────────────────────────────────────────
 /**
@@ -120,13 +130,15 @@ const DOCKER_ROW = "    needs: 'a docker daemon that can pull and run pgvector/p
 // A14's premise is the WHOLE population's declaration set, so its edits are DERIVED, not copied: at v528 one
 // row declared a budget and deleting that one armed §9; by v540 six did, and the hardcoded delete left five
 // standing — the gate exited 0, the arm's "no row declares" sentence never printed, and only a re-run could
-// see it. An arm aimed at a moving population has to read the population at its own moment.
+// see it. An arm aimed at a moving population has to read the population at its own moment. The line itself is
+// read through the receipt's `markerLine`, so the arm deletes EXACTLY the marker the receipt stamps — one grammar,
+// two readers, and no way for the arm to grade a declaration the receipt would not notice changing.
 const RUNNING_FILES = new Set(producer.splitSet(population).running.map((r) => r.file));
 const DECLARED_MARKERS = population
   .filter((d) => RUNNING_FILES.has(d.file))
   .map((d) => {
-    const m = readSrc(d.file).match(/^\/\/ sweep-budget-ms: (\d+)\r?$/m);
-    return m ? { file: d.file, from: `// sweep-budget-ms: ${m[1]}\n`, to: '' } : null;
+    const line = markerLine(readSrc(d.file));
+    return line ? { file: d.file, from: `${line}\n`, to: '' } : null;
   })
   .filter(Boolean);
 assert.ok(DECLARED_MARKERS.length >= 2,
@@ -334,4 +346,21 @@ try {
 for (const r of results) console.log(`${r.ok ? 'MATCHED ' : 'MISMATCH'} ${r.tag.padEnd(44)} ${r.ok ? r.note : r.why}`);
 const reds = results.filter((r) => !r.ok);
 console.log(`\n${results.length - reds.length}/${results.length} arms matched (${GATE_ARMS.length} gate incl. the control, ${RUNNER_ARMS.length} runner) · planes under ${PLANE_ROOT} removed: ${!existsSync(PLANE_ROOT)}`);
-process.exitCode = reds.length ? 1 : 0;
+let ok = reds.length === 0;
+if (!ok) {
+  console.log(`receipt: ${RECEIPT_FILE} was NOT written — ${reds.length} arm(s) mismatched, and a receipt may only come from a run where every arm matched`);
+} else {
+  const nowSubjects = subjectsOf(SRC);
+  const nowPopulation = populationOf(SRC);
+  const moved = Object.keys(gradedSubjects).filter((k) => nowSubjects[k] !== gradedSubjects[k]);
+  const popMoved = JSON.stringify(nowPopulation) !== JSON.stringify(gradedPopulation);
+  if (moved.length || popMoved) {
+    ok = false;
+    console.log(`receipt: ${RECEIPT_FILE} was NOT written — the tree moved while the arms ran (${[...moved, ...(popMoved ? ['population'] : [])].join(', ')}); a receipt over bytes no arm graded is the staleness it exists to refuse`);
+  } else {
+    const receipt = makeReceipt({ root: SRC, armNames: results.map((r) => r.tag) });
+    writeFileSync(join(SRC, RECEIPT_FILE), `${JSON.stringify(receipt, null, 2)}\n`, 'utf8');
+    console.log(`receipt: ${RECEIPT_FILE} stamps ${receipt.arms} arm(s), ${Object.keys(receipt.subjects).length} subject hash(es) and ${receipt.population.length} derived row(s) — commit it with the bytes it graded`);
+  }
+}
+process.exitCode = ok ? 0 : 1;

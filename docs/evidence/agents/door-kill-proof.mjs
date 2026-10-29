@@ -74,20 +74,31 @@ for (const [label, makePolicy, register, tool, args] of faces) {
   // `git.log: the signal the host used`). Then child.kill() is a no-op and the record honestly says
   // `signal: null` beside exit 0 — the host DECIDED at its budget but stopped nothing. That attempt is
   // not this section's case; retry until the kill actually lands (4 attempts make the stall improbable).
+  // v542, same class one door further: on a fast runner the whole read can FINISH before the 1 ms timer
+  // is ever delivered — measured at run 40825146593, where `git.log` answered `exit 0 · count 100` with
+  // NO `killed` key, and the old assert called a clean answer "neither killed nor finished". A read that
+  // finishes inside its budget says nothing about the kill path in either direction: it is not this
+  // section's witness, so it is retried too — and if four attempts all finish cleanly, the section says
+  // the witness could not be produced rather than passing on an untested contract.
   let o = null;
-  let beats = 0;
+  let lateTimers = 0;
+  let outran = 0;
   for (let attempt = 1; attempt <= 4 && o === null; attempt += 1) {
     const r = await read(makePolicy(), register, tool, args, 1, `kill:${label}:${attempt}`);
     if (r.killed && r.killed.signal !== null) {
       o = r;
       break;
     }
-    assert.ok(r.killed, `${label}: the attempt neither killed nor finished: ${JSON.stringify(r)}`);
+    if (!r.killed) {
+      assert.equal(r.exitCode, 0, `${label}: a read ended with no kill record AND a non-clean exit — that is unexplained: ${JSON.stringify(r)}`);
+      outran += 1;
+      continue;
+    }
     assert.equal(r.exitCode, 0, `${label}: a null-signal kill on a non-clean exit is unexplained: ${JSON.stringify(r.killed)} exit ${r.exitCode}`);
-    beats += 1;
+    lateTimers += 1;
   }
-  assert.ok(o, `${label}: 4 attempts at a 1 ms budget and the record never carried a real kill (${beats} late timers)`);
-  if (beats > 0) console.log(`  ${label.padEnd(11)} (${beats} attempt(s) where the timer fired after the child was gone — signal null, exit 0, contract holds)`);
+  assert.ok(o, `${label}: 4 attempts at a 1 ms budget and the record never carried a real kill (${lateTimers} late timer(s), ${outran} read(s) that finished inside the budget)`);
+  if (lateTimers + outran > 0) console.log(`  ${label.padEnd(11)} (${lateTimers + outran} attempt(s) were not this section's case: ${lateTimers} late timer(s) with signal null/exit 0, ${outran} read(s) that finished inside the 1 ms budget before the timer was delivered — the contract holds in each)`);
   console.log(`  ${label.padEnd(11)} ok=${o.ok} exit=${o.exitCode} killed=${JSON.stringify(o.killed)} windowed=${'windowed' in o} · ${String(o.detail).slice(0, 96)}…`);
   assert.equal(o.ok, false, `${label}: a killed read is not an answer`);
   assert.ok(o.killed, `${label}: the record says a KILL happened, not merely that numbers are missing`);

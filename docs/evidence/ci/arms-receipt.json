@@ -1,0 +1,570 @@
+{
+  "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
+  "scope": "full",
+  "ranAt": "2026-10-29T05:52:58.870Z",
+  "arms": 40,
+  "matched": 40,
+  "armNames": [
+    "C0-control",
+    "A1-trigger-loses-master",
+    "A2-proof-step-deleted",
+    "A3-proof-step-run-twice",
+    "A4-pipe-true",
+    "A5-continue-on-error",
+    "A6-set-plus-e",
+    "A7-exemption-outlives-hazard",
+    "A8-proofs-before-build",
+    "A9-script-names-a-file-not-on-disk",
+    "A10-exclusion-for-a-proof-that-reaches-nothing",
+    "A11-exclusion-without-a-reason",
+    "A12-runner-path-swapped",
+    "A13-gate-not-in-its-own-set",
+    "A14-nobody-declares-a-budget",
+    "A15-budget-declared-twice",
+    "A16-build-node-too-old",
+    "A17-job-ceiling-deleted",
+    "A18-ceiling-above-the-rows-own-worst-case",
+    "A19-token-widened-to-write",
+    "A20-ceiling-below-the-floor",
+    "A21-ceiling-not-a-number",
+    "A22-permissions-block-deleted",
+    "A23-permissions-block-emptied",
+    "A24-read-scope-dropped",
+    "R0-control",
+    "R1-red-proof-fails-the-build",
+    "R2-hang-is-TIMEOUT-not-RED",
+    "R2b-declared-budget-beats-fallback",
+    "R2c-undeclared-slow-row-is-killed",
+    "R3-only-typo-certifies-nothing",
+    "R3b-only-selects-one-row",
+    "R4-list-runs-nothing",
+    "R5-dangling-script-is-red-not-skipped",
+    "R6-stale-exclusion-named",
+    "R7-missing-build-is-named-not-red",
+    "R8-population-floor",
+    "R9-exclusion-without-a-reason",
+    "R10-budget-must-be-a-number",
+    "R11-budget-flag-without-a-value"
+  ],
+  "subjects": {
+    "workflow": "593bc54c06f1b79fe7bd09b604156488c0009202140b78f51c4ef5b55ce90a17",
+    "gate": "c416b8832786ee8d67fc2c7af04559e33f737dd906cfe4f3dc911e0a3535f3cd",
+    "arms": "af86e893012e987b4ff94f52cddc1c9309bf6fd896e6fe666692cd06e455c4d2",
+    "runner": "ab79b43ecde6b00145f6fb46dd561d12b083155a0d75fd25c831c9c586344865",
+    "sweep": "ead49485592dc696b99878ef19ba4802519f43746a55956dc9c22dd5fcdb84a9",
+    "scripts": "4f13a845cd9e400b99e3de1617490e81e04721dcbdbead22b5458e555fe2bc7f",
+    "rule": "d950d243b7678dda17d00f877e2a3cbdf94d7d70a1eafed0c2fb59aa06b437d1"
+  },
+  "population": [
+    {
+      "name": "verify:agent",
+      "file": "docs/evidence/agents/agent-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:agent-pipeline",
+      "file": "docs/evidence/agents/pipeline-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:arms-freshness",
+      "file": "docs/evidence/ci/arms-freshness-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:asks-axis",
+      "file": "docs/evidence/agents/asks-axis-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:asset-tools",
+      "file": "docs/evidence/agents/asset-tools-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:assets-surface",
+      "file": "docs/evidence/studio/asset-surface-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:audit-contract",
+      "file": "docs/evidence/m9/audit-contract-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:bridge-report",
+      "file": "docs/evidence/agents/bridge-report-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:budgets",
+      "file": "docs/evidence/agents/budgets-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:build-arc",
+      "file": "docs/evidence/agents/build-arc-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:build-lane",
+      "file": "docs/evidence/studio/build-lane-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:changes",
+      "file": "docs/evidence/agents/changes-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:ci-wiring",
+      "file": "docs/evidence/ci/ci-wiring-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:closure",
+      "file": "docs/evidence/agents/closure-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:code-index",
+      "file": "docs/evidence/agents/code-index-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:color",
+      "file": "docs/evidence/agents/color-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:commit",
+      "file": "docs/evidence/agents/commit-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:commit-echo",
+      "file": "docs/evidence/agents/commit-echo-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:confession",
+      "file": "docs/evidence/agents/confession-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:config",
+      "file": "docs/evidence/agents/config-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:confirm",
+      "file": "docs/evidence/agents/confirm-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:conflict",
+      "file": "docs/evidence/agents/conflict-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:container",
+      "file": "docs/evidence/agents/container-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:container-lane",
+      "file": "docs/evidence/studio/container-lane-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:credits",
+      "file": "docs/evidence/studio/credits-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:cut-tally",
+      "file": "docs/evidence/agents/cut-tally-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:deploy-arc",
+      "file": "docs/evidence/agents/deploy-arc-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:deploy-lane",
+      "file": "docs/evidence/studio/deploy-lane-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:dom-ui",
+      "file": "docs/evidence/agents/dom-ui-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:door-kill",
+      "file": "docs/evidence/agents/door-kill-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:drive-axis",
+      "file": "docs/evidence/agents/drive-axis-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:durability",
+      "file": "docs/evidence/agents/durability-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:durable-arc",
+      "file": "docs/evidence/agents/durable-arc-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:ebusy",
+      "file": "docs/evidence/agents/ebusy-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:evidence-census",
+      "file": "docs/evidence/ci/evidence-census-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:exec-host",
+      "file": "docs/evidence/agents/exec-host-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:exec-sandbox",
+      "file": "docs/evidence/agents/exec-sandbox-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:execsuite",
+      "file": "docs/evidence/agents/execsuite-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:exectest",
+      "file": "docs/evidence/agents/exectest-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:explore",
+      "file": "docs/evidence/m7/explore-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:git-aware",
+      "file": "docs/evidence/agents/git-aware-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:gitlog",
+      "file": "docs/evidence/agents/gitlog-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:greencommit",
+      "file": "docs/evidence/agents/greencommit-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:hunk-shape",
+      "file": "docs/evidence/agents/hunk-shape-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:index-store",
+      "file": "docs/evidence/agents/index-store-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:index-vectors",
+      "file": "docs/evidence/agents/index-vectors-proof.mjs",
+      "marker": "// sweep-budget-ms: 300000"
+    },
+    {
+      "name": "verify:inspect",
+      "file": "docs/evidence/agents/inspect-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:intent",
+      "file": "docs/evidence/agents/intent-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:isolated",
+      "file": "docs/evidence/agents/isolated-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
+    },
+    {
+      "name": "verify:leak-sweep",
+      "file": "docs/evidence/m7/leak-sweep-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:log-window",
+      "file": "docs/evidence/agents/log-window-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:memory",
+      "file": "docs/evidence/agents/memory-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:memory-vectors",
+      "file": "docs/evidence/agents/memory-vectors-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:mutation",
+      "file": "docs/evidence/studio/mutation-probe.mjs",
+      "marker": "// sweep-budget-ms: 1200000"
+    },
+    {
+      "name": "verify:pipeline",
+      "file": "docs/evidence/studio/pipeline-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:pipes",
+      "file": "docs/evidence/agents/pipes-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:plane-axis",
+      "file": "docs/evidence/agents/plane-axis-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:planner",
+      "file": "docs/evidence/agents/planner-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:png",
+      "file": "docs/evidence/studio/png-baseline-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:policyaudit",
+      "file": "docs/evidence/agents/policyaudit-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:policygate",
+      "file": "docs/evidence/agents/policygate-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:porcelain-path",
+      "file": "docs/evidence/agents/porcelain-path-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:prefix",
+      "file": "docs/evidence/agents/prefix-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:provenance",
+      "file": "docs/evidence/agents/provenance-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:provider",
+      "file": "docs/evidence/agents/provider-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:publish",
+      "file": "docs/evidence/m7/publish-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:qa",
+      "file": "docs/evidence/agents/qa-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:reap",
+      "file": "docs/evidence/agents/reap-proof.mjs",
+      "marker": "// sweep-budget-ms: 600000"
+    },
+    {
+      "name": "verify:reaper-survivor",
+      "file": "docs/evidence/agents/reaper-survivor-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:recall",
+      "file": "docs/evidence/agents/recall-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:receipts",
+      "file": "docs/evidence/agents/receipts-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:record-encoding",
+      "file": "docs/evidence/agents/record-encoding-proof.mjs",
+      "marker": "// sweep-budget-ms: 120000"
+    },
+    {
+      "name": "verify:record-window",
+      "file": "docs/evidence/agents/record-window-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:remember",
+      "file": "docs/evidence/agents/remember-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:remix",
+      "file": "docs/evidence/m7/remix-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:repair",
+      "file": "docs/evidence/agents/repair-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:report-kill",
+      "file": "docs/evidence/agents/report-kill-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:report-window",
+      "file": "docs/evidence/agents/report-window-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:role-arc",
+      "file": "docs/evidence/agents/role-arc-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:rolechain",
+      "file": "docs/evidence/agents/rolechain-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:roles",
+      "file": "docs/evidence/agents/roles-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:runreceipts",
+      "file": "docs/evidence/agents/runreceipts-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:scene-surface",
+      "file": "docs/evidence/studio/scene-surface-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:scene-tools",
+      "file": "docs/evidence/agents/scene-tools-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:service",
+      "file": "docs/evidence/m7/service-suite-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:show",
+      "file": "docs/evidence/agents/show-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:social-contract",
+      "file": "docs/evidence/m9/social-contract-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:spawnlog",
+      "file": "docs/evidence/agents/spawnlog-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:staged",
+      "file": "docs/evidence/agents/staged-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:streams",
+      "file": "docs/evidence/agents/streams-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:table-recount",
+      "file": "docs/evidence/agents/table-recount-proof.mjs",
+      "marker": "// sweep-budget-ms: 300000"
+    },
+    {
+      "name": "verify:template-publish",
+      "file": "docs/evidence/studio/publish-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:testrunner",
+      "file": "docs/evidence/agents/testrunner-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:timeout-axis",
+      "file": "docs/evidence/agents/timeout-axis-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:trail-contract",
+      "file": "docs/evidence/m9/trail-contract-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:two-tree",
+      "file": "docs/evidence/agents/two-tree-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:validate",
+      "file": "docs/evidence/design-model/validate-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:vector-store",
+      "file": "docs/evidence/agents/vector-store-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:verdict",
+      "file": "docs/evidence/agents/verdict-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:window",
+      "file": "docs/evidence/agents/window-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:world-surface",
+      "file": "docs/evidence/studio/world-surface-proof.mjs",
+      "marker": null
+    },
+    {
+      "name": "verify:world-tools",
+      "file": "docs/evidence/agents/world-tools-proof.mjs",
+      "marker": null
+    }
+  ]
+}

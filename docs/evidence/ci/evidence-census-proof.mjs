@@ -83,6 +83,12 @@
 // that had moved, one could be killed by box load, and the mixed-EOL guard refused every CRLF carrier). None
 // of it moves a census class; this note is here so the header's chronology keeps a record of the increment.
 //
+// v542 (amendment 525) — the arming tool writes a receipt of the seven subjects and the derived population it
+// graded, and `verify:arms-freshness` is the row that refuses when any of them has moved. That ROW and its
+// import `ci/arms-receipt.mjs` are the count's only change (102 row + 4 helper + 2 swept + 6 tool = 114): both
+// are DERIVED — the row from its verify:* script, the helper from the import closure — so this census did not
+// learn a filename, it re-read the tree.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';

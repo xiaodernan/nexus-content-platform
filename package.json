@@ -44,6 +44,7 @@
     "verify:credits-surface": "node tools/harness/studio-credits.mjs",
     "verify:template-publish": "node docs/evidence/studio/publish-proof.mjs",
     "verify:ci-wiring": "node docs/evidence/ci/ci-wiring-proof.mjs",
+    "verify:arms-freshness": "node docs/evidence/ci/arms-freshness-proof.mjs",
     "verify:evidence-census": "node docs/evidence/ci/evidence-census-proof.mjs",
     "verify:audit-contract": "node docs/evidence/m9/audit-contract-proof.mjs",
     "verify:record-encoding": "node docs/evidence/agents/record-encoding-proof.mjs",

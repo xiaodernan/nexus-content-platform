@@ -62,7 +62,7 @@ ten clauses printing. **32 witness arms, 32 MATCHED** — 17 against the gate (a
 clauses, then one per refusal) and 15 against the runner on a synthetic plane of 6 stub rows plus the 3 shipped
 exclusions, where the stubs append to a log so "did anything execute" is measured rather than assumed. *(This
 is v528's roster, kept as the record of the day; v540 re-armed the tool, found three of these arms had gone
-stale in the clauses they were meant to guard, and the current number is 35 — see below.)*
+stale in the clauses they were meant to guard, and the current roster is 40 — see below.)*
 
 ### v540 — the job's own envelope, and the arms that had stopped being runnable (ADR 0016 amendment 523)
 
@@ -97,12 +97,38 @@ The bound this paragraph leaves standing is the honest one: the arms are still a
 schedules them. v540 measured them and repaired what their first run since v531 found; it did not make
 the next rot announce itself. A number in this file is only as fresh as its last run.
 
+### v542 — the arms' verdict gains an expiry date (ADR 0016 amendment 525)
+
+`ci-wiring-arms.mjs` is still human-run, but a run in which every arm matched now writes
+`docs/evidence/ci/arms-receipt.json`: the sha256 of every subject it graded — the workflow, the gate, the
+tool itself, the runner, the sweep whose budget grammar §9 borrows, the two `package.json` entries the gate
+names, and the rule module — plus the derived population as (row, file, budget marker). A red run writes
+nothing, and a run whose subjects move under it refuses to stamp bytes no arm graded.
+
+`verify:arms-freshness` is the build row that reads it: §1 the receipt exists and claims a full matched run
+(scope, counts and arm names all agreeing), §2 every subject on disk still hashes to what the receipt stamped
+(a vanished subject is named as the stronger change), §3 the derived population still closes as the receipt's
+rows, files and markers, §4 the receipt's own population lists this row (amendment 102). A mismatch prints the
+subjects and the command that refreshes the receipt. Hashes canonicalise line endings, because the receipt is
+written on Windows and read on the ubuntu runner — a raw-byte hash would stamp the platform, not the content.
+
+Measured on this ref: the tool's full run **40/40 MATCHED** (2 m 55 s), receipt 40 arms / 7 subjects / 102
+rows; `verify:arms-freshness` prints all four clauses and its **8/8 fixture arms** measure each refusal on a
+synthetic plane (F1 → §2, F2 → §3, F3/F4/F5 → §1, F6 → §4, F7 → §2, the control all four). The first fixture
+run matched 4/8 for a reason worth recording: a throwing judge never returns the clauses it already printed,
+so every post-§1 arm was misreported as "§1 did not print" — the harness now captures `pass()` lines as they
+are logged. A witness that misaims its own frontier is the same class of rot the receipt exists to catch.
+
+The expiry is honest about its reach: it says that a subject CHANGED, never that an unchanged arm still tests
+the right thing. A weakened arm that still reddens at its own clause is outside this row; the roster closure
+(every printed clause has an arm, every arm aims at a printed clause) and review are what stand there.
+
 ### What this does NOT claim
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
 never turned into a `verify:*` script stays invisible to the build. Amendments 516–519 closed that half:
-the census below gives every one of the **111** tracked modules a disposition, and the derived population is
-**84 running rows + 3 excluded by name** at this ref (v532 triaged the swept population and wired sixteen
+the census below gives every one of the **114** tracked modules a disposition, and the derived population is
+**99 running rows + 3 excluded by name** at this ref (v532 triaged the swept population and wired sixteen
 Node-only proofs; v533 ran the sweep over all 81 and wired the forty-eight green dist+spawn proofs). And no
 gate here can make GitHub run: it reads bytes
 committed in this repository, and whether the workflow executes on `master` is knowable only from the real
@@ -111,7 +137,7 @@ runs — it ran red (`40603544099`, amendment 515's four exec-host cases on ubun
 again on the first run that carried all 84 rows (`40693312992`: 78/84 green, six platform reds, repaired at
 v534 — the row-by-row account is below), which is the evidence this section was waiting for.
 
-## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more; amendment 520 at v534 repaired the six ubuntu reds that population's first full run found; amendment 521 at v535 wired the last thirteen green swept proofs; amendment 522 at v539 repaired the one ubuntu red those thirteen's first contact exposed — a POSIX clause that could never fire)
+## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more; amendment 520 at v534 repaired the six ubuntu reds that population's first full run found; amendment 521 at v535 wired the last thirteen green swept proofs; amendment 522 at v539 repaired the one ubuntu red those thirteen's first contact exposed — a POSIX clause that could never fire; amendment 525 at v542 added the arms-receipt row and its helper)
 
 ```
 npm run verify:evidence-census   # a row inside the population it counts
@@ -121,8 +147,8 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 | class | count at this ref | how it is decided |
 | --- | --- | --- |
-| ROW | **101** (98 run + 3 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
-| HELPER | **3** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs` |
+| ROW | **102** (99 run + 3 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
+| HELPER | **4** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs`, `ci/arms-receipt.mjs` |
 | SWEPT | **2** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — at this ref only `cwd-axis` and `tree-axis`, the tree-motion witnesses, which stay there by measurement (their verdict is about whether the walked tree moved during the run) |
 | TOOL | **6** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, two arms scripts, the isolated-build arms, the SVG generator) |
 | DEFERRED | **0** | none at this ref — the three Studio lane proofs v530 deferred are ROWS since v531 (the workflow pre-pulls `node:22-alpine`, their one blocker). The class and its refusals stay for the next proof a sandbox really blocks |
