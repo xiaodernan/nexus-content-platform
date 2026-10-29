@@ -64,6 +64,15 @@ export type ViewportMode = 'design' | BreakpointName;
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 /**
+ * 历史面板要看的范围（§27）。
+ *
+ * 只有这两个值，没有"某条指定分支"：筛选条件由服务端每次现算「当前分支」，
+ * 而不是客户端记住一个 uuid。客户端记 uuid 会在切分支后继续用旧 id 查——
+ * 面板上高亮的已经是新分支，列表却还是旧分支的那一份，两句互相打脸。
+ */
+export type SnapshotScope = 'all' | 'current';
+
+/**
  * §124 状态补丁的剪贴板（ADR-0062 part ⑤ 的续）：一条**视图态**，不落库、不进撤销栈。
  * 只存一份补丁 + 它来自哪个节点的哪个状态，粘贴时整通道覆盖（与面板逐通道写入同一语义）。
  */
@@ -110,6 +119,8 @@ export interface StudioSnapshot {
   snapshots: readonly SnapshotMeta[];
   snapshotBusy: boolean;
   snapshotError: string | null;
+  /** §27 列表范围：'current' 时服务端只回当前那条分支上的快照 */
+  snapshotScope: SnapshotScope;
   /** §27 Compare：某份快照与当前文档的字段级差异（方向是"从快照到现在"） */
   compare: CompareResult | null;
   /** §28 分支线；当前分支 = head 停在 currentSnapshotId 的那条，由服务端推导 */
@@ -246,6 +257,8 @@ export class StudioStore {
   private snapshotList: SnapshotMeta[] = [];
   private snapshotBusyValue = false;
   private snapshotErrorValue: string | null = null;
+  /** §27 历史面板的筛选：'current' 让服务端只回当前那条线上的快照 */
+  private snapshotScopeValue: SnapshotScope = 'all';
   private compareValue: CompareResult | null = null;
   private branchList: BranchMeta[] = [];
   private variantList: VariantEntry[] = [];
@@ -361,6 +374,7 @@ export class StudioStore {
       snapshots: this.snapshotList,
       snapshotBusy: this.snapshotBusyValue,
       snapshotError: this.snapshotErrorValue,
+      snapshotScope: this.snapshotScopeValue,
       compare: this.compareValue,
       branches: this.branchList,
       variants: this.variantList,
@@ -683,7 +697,10 @@ export class StudioStore {
   async refreshSnapshots(): Promise<void> {
     if (!this.projectId || !this.ready) return;
     try {
-      const res = await fetch(`/api/projects/${this.projectId}/snapshots`, { cache: 'no-store' });
+      // 筛选放在服务端做：listSnapshots 带着 200 行上限，客户端筛得到的是"最近 200 条里属于这一分支的"，
+      // 服务端筛到的才是"这一分支最近的 200 条"。分支切换越勤，这两句话越不是同一个列表。
+      const query = this.snapshotScopeValue === 'current' ? '?branch=current' : '';
+      const res = await fetch(`/api/projects/${this.projectId}/snapshots${query}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = (await res.json()) as { snapshots?: SnapshotMeta[]; branches?: BranchMeta[] };
       this.snapshotList = body.snapshots ?? [];
@@ -695,6 +712,22 @@ export class StudioStore {
       this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
     }
     this.commit();
+  }
+
+  /**
+   * 切换列表范围（全部 / 只看当前分支）。
+   * "当前"由服务端每次现算，客户端不记分支 id，所以切分支之后这一条勾选跟着的是新的那一条线。
+   * 换范围时清掉展开着的 Compare：它比的是上一份列表里那条快照，留着会把旧差异挂在新列表上。
+   */
+  async setSnapshotScope(scope: SnapshotScope): Promise<void> {
+    if (this.snapshotScopeValue === scope) return;
+    this.snapshotScopeValue = scope;
+    this.compareValue = null;
+    // 先把用户要的那个范围画上去，再去取列表：这一格是"你想看什么范围"的开关，
+    // 等一次 fetch 才让勾选亮起来，屏幕上那段空白看起来就是按钮坏了。
+    // 列表什么时候回来由 refreshSnapshots 说，失败照旧落进 snapshotError（§159 不静默失败）。
+    this.commit();
+    await this.refreshSnapshots();
   }
 
   /** 命名快照：先确保当前状态已落库，快照与保存状态不能分叉 */

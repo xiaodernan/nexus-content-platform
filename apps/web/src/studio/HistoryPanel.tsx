@@ -156,7 +156,16 @@ function SnapshotSection() {
   const state = useStudio();
   const [label, setLabel] = useState('');
   const [pending, setPending] = useState<string | null>(null);
+  const [scopeBusy, setScopeBusy] = useState(false);
   const branchNames = new Map(state.branches.map((branch) => [branch.id, branch.name]));
+  const currentBranch = state.branches.find((branch) => branch.current);
+  const onlyCurrent = state.snapshotScope === 'current';
+
+  const toggleScope = async (checked: boolean) => {
+    setScopeBusy(true);
+    await studio.setSnapshotScope(checked ? 'current' : 'all');
+    setScopeBusy(false);
+  };
 
   const create = async () => {
     const text = label.trim() || `快照 ${new Date().toLocaleString('zh-CN', { hour12: false })}`;
@@ -203,6 +212,25 @@ function SnapshotSection() {
           快照操作未完成：{state.snapshotError}
         </p>
       ) : null}
+      <div className="flex shrink-0 items-center gap-[var(--nexus-space-2)] border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-[var(--nexus-space-1)]">
+        <label className="flex min-w-0 cursor-pointer items-center gap-[var(--nexus-space-1)] text-11 text-fg-2">
+          <input
+            type="checkbox"
+            checked={onlyCurrent}
+            disabled={!currentBranch || scopeBusy || state.snapshotBusy}
+            onChange={(event) => void toggleScope(event.target.checked)}
+            className="h-3.5 w-3.5 shrink-0 accent-[var(--nexus-color-brand)]"
+            data-snapshot-filter-current
+          />
+          只看当前分支
+          {currentBranch ? (
+            <span className="truncate font-mono text-11 text-fg-3" data-snapshot-filter-branch-name>
+              {currentBranch.name}
+            </span>
+          ) : null}
+        </label>
+        {!currentBranch ? <span className="truncate text-11 text-fg-3">现在不在任何一条分支线上</span> : null}
+      </div>
       <ul className="min-h-0 flex-1 overflow-auto py-[var(--nexus-space-1)]">
         {state.snapshots.map((snapshot) => {
           const comparing = state.compare?.snapshotId === snapshot.id;
@@ -291,8 +319,10 @@ function SnapshotSection() {
           );
         })}
         {!state.snapshots.length && !state.snapshotError ? (
-          <li className="px-[var(--nexus-space-3)] py-[var(--nexus-space-2)] text-11 text-fg-3">
-            还没有服务端快照
+          <li className="px-[var(--nexus-space-3)] py-[var(--nexus-space-2)] text-11 text-fg-3" data-snapshot-empty>
+            {onlyCurrent
+              ? `「${currentBranch?.name ?? '当前分支'}」这条线上还没有快照；取消「只看当前分支」可以看全部。`
+              : '还没有服务端快照'}
           </li>
         ) : null}
       </ul>
@@ -312,7 +342,7 @@ export function HistoryPanel() {
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]">
         <p className="text-12 text-fg-3">
-          本地事务（Ctrl+Z / Ctrl+Shift+Z）。展开一条可以看变更；下方分支线可开可切，快照可比较、可恢复（切换与恢复都会清空本地撤销栈）。
+          本地事务（Ctrl+Z / Ctrl+Shift+Z）。展开一条可以看变更；下方分支线可开可切，快照可以只看当前那条线、可比较、可恢复（切换与恢复都会清空本地撤销栈）。
         </p>
       </div>
       <ol className="min-h-0 flex-[2] overflow-auto">

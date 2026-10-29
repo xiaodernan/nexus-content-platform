@@ -269,6 +269,68 @@ test('@smoke studio slice: branches keep each design direction and duplicate for
 });
 
 /**
+ * §27 历史面板的「只看当前分支」。
+ *
+ * 这一格要钉的是用户看得见的那句承诺：**列表跟着高亮那条线走**。
+ * 两件事因此必须分开断言，它们各自能抓到一种错法：
+ * - 勾选之后只剩当前分支的行 → 抓"筛了个寂寞"（服务端把参数当没看见）；
+ * - 切分支后不用重做勾选，看到的就换了线 → 抓"客户端记着旧分支 id"（那种实现切完还在筛旧那条，
+ *   而面板已经高亮新的了，两句互相打脸）。
+ */
+test('@smoke studio slice: 只看当前分支跟着当前那条线走', async ({ page }) => {
+  test.setTimeout(180_000);
+  const branchName = `筛选方向-${Date.now().toString(36)}`; // 分支名不接受空格（domain/branches.ts 的 BRANCH_NAME）
+  await createProject(page, `历史筛选 ${Date.now().toString(36)}`);
+
+  await page.click('[data-panel-tab="history"]');
+  await page.fill('[data-snapshot-input]', 'main 独有的一版');
+  await page.click('[data-snapshot-create]');
+  const mainRow = page.locator('[data-snapshot-item]:has-text("main 独有的一版")');
+  await expect(mainRow).toBeVisible();
+  await expect(page.locator('[data-snapshot-error]')).toHaveCount(0);
+
+  // 开分支 = checkout -b：带着现场切过去，此刻"当前"已经是新那条线
+  await page.fill('[data-branch-input]', branchName);
+  await page.click('[data-branch-create]');
+  await expect(page.locator(`[data-branch][data-branch-name="${branchName}"]`)).toHaveAttribute(
+    'data-branch-current',
+    'true',
+    { timeout: 30_000 },
+  );
+  // 不筛的时候两条线的快照都在同一份列表里
+  await expect(mainRow).toBeVisible();
+  const onBranchRow = page.locator(`[data-snapshot-item]:has-text("开分支「${branchName}」")`);
+  await expect(onBranchRow).toBeVisible();
+  const branchId = await page
+    .locator(`[data-branch][data-branch-name="${branchName}"]`)
+    .getAttribute('data-branch');
+
+  await page.check('[data-snapshot-filter-current]');
+  await expect(page.locator('[data-snapshot-filter-branch-name]')).toHaveText(branchName);
+  await expect(onBranchRow, '勾上之后连本线的快照都不见了').toBeVisible({ timeout: 30_000 });
+  await expect(mainRow, '勾选之后 main 那版还在列表里——筛选没生效').toHaveCount(0);
+  // 屏幕上留下的每一行都盖着当前那条线的章（写成"没有一行不盖章"，刷新中的中间态不会误判）
+  await expect(
+    page.locator(`[data-snapshot-item]:not(:has([data-snapshot-branch="${branchId}"]))`),
+    '列表里还有别的线盖着章的行',
+  ).toHaveCount(0);
+  await page.screenshot({ path: 'screenshots/history-only-current-branch.png' });
+
+  // 切回 main：勾选不需要重做，看到的就跟着换了线
+  const mainChip = page.locator('[data-branch][data-branch-name="main"]');
+  await expect(mainChip).toBeEnabled({ timeout: 30_000 });
+  await mainChip.click();
+  await expect(mainChip).toHaveAttribute('data-branch-current', 'true', { timeout: 30_000 });
+  await expect(mainRow, '切回 main 后这条勾选没跟着换线').toBeVisible({ timeout: 30_000 });
+  await expect(onBranchRow, '切回 main 后列表还停在那条分支上').toHaveCount(0);
+
+  // 取消勾选：两条线重新都在
+  await page.uncheck('[data-snapshot-filter-current]');
+  await expect(mainRow).toBeVisible({ timeout: 30_000 });
+  await expect(onBranchRow).toBeVisible();
+});
+
+/**
  * §29 多方案：一次生成几条方向、并排比较、再"取 A 的布局 + C 的视觉"合成一条。
  * 关键不变量用用户可见的结果断言：生成不能动画布，采纳才会动。
  */

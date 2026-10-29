@@ -7575,3 +7575,38 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
   移动端/触摸没量。
 - 焦点在按钮上时 Space 归按钮：点完「重新开始」后焦点仍留在那里，这一下 Space 会再重开而不是攻击。
   这是原生激活的必然代价，页面上没有额外提示（要不要在画布点击后把焦点收回游戏，另行决策）。
+
+## §27 历史面板「只看当前分支」：筛选在服务端，勾选跟着当前线走（2026-10-30）
+
+需求原文（§27 历史面板）。域层的 `listSnapshots(projectId, { branchId })` 早就支持按分支筛，
+缺的是路由与界面这一格：面板只能把几条线的快照混在一张列表里看。
+
+**落点**
+
+- `api/projects/[projectId]/snapshots/route.ts`：`?branch=current` 在**服务端**收窄列表——不是把最近 200 行发下去
+  再在浏览器里裁（客户端筛得到的是"最近 200 条里属于这条线的"，服务端筛到的才是"这条线最近的 200 条"）。
+  只认字面量 `current`，`?branch=<uuid>` 与空串一律 400：把它们当成"没带参数"悄悄回全量，面板上那句
+  「只看当前分支」当场就是谎话。取数顺序改成**先 `listBranches` 再 `listSnapshots`**——`ensureDefaultBranch`
+  会把没挂分支的快照认领进 main，反序会让 `currentBranchId()` 得到 null、筛的是 `branch_id IS NULL` 那一批，
+  而同一份响应里的 branchList 已把同一批算成 main 了（面板高亮 main，行上一个章都没盖）。
+- `studio/store.ts`：`snapshotScope: 'all' | 'current'`。客户端**不记分支 id**：切分支后这一格不用重做，
+  列表跟着服务端现算的"当前"换线；换范围时清掉展开着的 Compare（它比的是上一份列表里那条快照）。
+- `studio/HistoryPanel.tsx`：一行「只看当前分支 + 分支名」；空列表的说法跟着范围变（"这条线上还没有快照，
+  取消勾选可以看全部"），不是统一一句"还没有服务端快照"。
+
+**凭证**
+
+- `apps/web/test/snapshot-branch-filter.integration.test.ts`（真 Postgres）**4 passed**：筛出来的每一条都等于
+  同一份响应里标 current 的那条、切分支后列表换线、`?branch=<uuid>`/空串 400、仍是时间倒序且是不筛那份的子集。
+- `e2e/studio.spec.ts` 新增 `@smoke studio slice: 只看当前分支跟着当前那条线走`，**先红后绿**：
+  第一次跑红在"勾选之后 main 那版还在列表里"（`toHaveCount(0)` 得到 1）。原因不是实现错，是上一次跑臂时
+  把 `const query = ''; // MUT M5` 留在了工作树里；恢复成
+  `this.snapshotScopeValue === 'current' ? '?branch=current' : ''` 之后 **1 passed（14.9s）**。
+  这条红是一次真读数：残留的变异体被**用户看得见的断言**抓住，而不是被"参数读进来了"自证。
+- `snapshots.integration` + `branches.integration` + 三个 `studio-*` 单测 **31 passed**；`tsc`（web）与
+  改动面 eslint 都是 0。
+
+**仍欠**
+
+- 只有"当前"一档：不能指定某条分支看（`?branch=<uuid>` 明确 400，没做）。
+- 勾上时面板不提示"这条线之外还有多少条"，用户只能靠取消勾选确认自己漏看了什么。
