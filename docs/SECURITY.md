@@ -13,6 +13,11 @@
 - 速率限制：滑动窗口，按 路由 + 身份 + IP（`apps/web/src/server/security/rateLimit.ts`）。驱动现在是**进程内内存**，
   不是 Redis——形状对齐有序集，多实例部署前必须接过去（见下面"实现现状"）。IP 取的是转发链的**可信右端**，
   不是客户端随手写的最左端：`x-forwarded-for` 是追加出来的链条，判决与限度见 `docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`；
+  **三行转发头都读**——`x-forwarded-for` → RFC 7239 的 `Forwarded`（只认 `for=`，`by`/`proto`/`host` 永不进桶键）→ `x-real-ip`，
+  按优先级取一条链而不是叠加；三行都不在场那道闸才让路，在场却读不出地址归进 `invalid-xff` 一只共享桶照常限。
+  **部署要求（活体探针查实，别漏读）**：Next 会在 `x-forwarded-for` 缺席时填入 socket 对端，所以
+  **前置必须写 `x-forwarded-for`（追加）**——只写 `Forwarded` 的前置不会绕开闸，但会让自己后面的所有人共用
+  前置那一只桶。判决与限度见 `docs/adr/0071-forwarded-rfc7239-header-read-and-precedence.md`；
   生成类接口另外按 credits 配额挡（`domain/credit-ledger.ts` 的 `refusalForRun` → `429 credits_exhausted`）
 
 **实现现状（任务 #9d，认证竖向切片）**：口令哈希走本文件允许的 **bcrypt 回落分支**（`bcryptjs` 纯 JS，cost=10），

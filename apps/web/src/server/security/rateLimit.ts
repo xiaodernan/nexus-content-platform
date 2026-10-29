@@ -66,9 +66,10 @@ const MAX_TRUSTED_PROXY_COUNT = 8;
 
 /**
  * 头在场、但一个地址都解析不出来时，闸把这批请求归到这一个桶里。
- * 不是豁免：写一行 `x-forwarded-for: whatever` 若能换来免限流，那就是给所有 IP 闸留了
- * 一条"垃圾头绕过去"的公共出口。旧读法给每一串不同的垃圾各开一只桶，效果就是绕过去；
- * 归进同一只桶才是"限住"。
+ * 不是豁免：写一行 `x-forwarded-for: whatever`（或 `Forwarded: for=whatever`）若能换来免限流，
+ * 那就是给所有 IP 闸留了一条"垃圾头绕过去"的公共出口。旧读法给每一串不同的垃圾各开一只桶，
+ * 效果就是绕过去；归进同一只桶才是"限住"。
+ * 桶名的字面量仍是 `invalid-xff`——它是既有读数与日志里的形状，三行头共用这一格不必各起一名。
  */
 export const INVALID_IP_BUCKET = 'invalid-xff';
 
@@ -109,22 +110,64 @@ interface ForwardedChain {
   tokens: string[];
 }
 
+/**
+ * RFC 7239 的 `Forwarded`：一跳一段（逗号分隔），段内 `for=…;by=…;proto=…;host=…`。
+ *
+ * 只有 `for=` 是"这一跳亲眼看到的对端"；`by=` 说的是代理自己，`host=`/`proto=` 是被请求的
+ * 那一侧，把它们当地址会让整条链变成"谁的头写得花哨谁换桶"。`for=unknown` 与混淆值
+ * （`for="_gzz3"`，RFC 7239 §6.1 的例子）读不出地址——与垃圾的 XFF 同格：**归共享桶，不豁免**。
+ */
+function readRfc7239Tokens(value: string): string[] {
+  const tokens: string[] = [];
+  for (const hop of value.split(',')) {
+    for (const param of hop.split(';')) {
+      const eq = param.indexOf('=');
+      if (eq < 0) continue;
+      if (param.slice(0, eq).trim().toLowerCase() !== 'for') continue;
+      const raw = param.slice(eq + 1).trim();
+      const quoted = raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"');
+      const address = normalizeAddress(quoted ? raw.slice(1, -1) : raw);
+      if (address) tokens.push(address);
+    }
+  }
+  return tokens;
+}
+
+/**
+ * 三行头的读法与优先级：`x-forwarded-for` → `Forwarded`（RFC 7239）→ `x-real-ip`。
+ *
+ * 先读哪一行只取决于"哪一行给出了地址"，不改变链条语义：三行都是追加/覆盖写的同一族东西，
+ * 取的都是可信链右端第 `trustedProxyCount()` 段。同时在场时 XFF 说了算——两条链一起进桶键
+ * 会让同一个对端因写法不同落进两只桶，那正是"换一行头换一个桶"的另一种版本。
+ *
+ * `x-real-ip` 排在最后是有道理的：nginx 那类配置里它是**覆盖写**的（`X-Real-IP $remote_addr`），
+ * 客户端自带的那一份早被冲掉，所以它是三行里最不容易被伪造的一行；但它只有一段，
+ * 多跳拓扑下只有前面两行能给右端。
+ *
+ * **真 HTTP 路上这一支多半走不到**：`base-server.js:612` 的 `??=` 在 XFF 缺席时填入 socket 对端，
+ * 于是 `x-forwarded-for` 在处理器里几乎总在案（活体读数见 `.scratch/s28-forwarded-live-probe.mts`）。
+ * 一个只写 `Forwarded` 的前置因此不是"绕开闸"，而是**它的用户全落进前置那一只桶**——
+ * 部署要么让前置补写 XFF，要么按 ADR-0071 的后果 2 处理，别指望这段代码替拓扑做主。
+ */
 function readForwardedChain(request: Request): ForwardedChain {
   const realRaw = request.headers.get('x-real-ip');
   const real = realRaw === null ? null : normalizeAddress(realRaw);
   const xff = request.headers.get('x-forwarded-for');
+  const forwarded = request.headers.get('forwarded');
+  const headerPresent = xff !== null || forwarded !== null || realRaw !== null;
+
   if (xff !== null) {
     const tokens = xff
       .split(',')
       .map(normalizeAddress)
       .filter((token): token is string => token !== null);
-    if (tokens.length > 0) return { headerPresent: true, tokens };
-    // XFF 一整行都是垃圾时退回 x-real-ip：有反代时那是**覆盖写**的字段
-    // （nginx `X-Real-IP $remote_addr`），客户端写的那一份早被冲掉了。
-    return { headerPresent: true, tokens: real ? [real] : [] };
+    if (tokens.length > 0) return { headerPresent, tokens };
   }
-  if (real) return { headerPresent: true, tokens: [real] };
-  return { headerPresent: realRaw !== null, tokens: [] };
+  if (forwarded !== null) {
+    const forwardedTokens = readRfc7239Tokens(forwarded);
+    if (forwardedTokens.length > 0) return { headerPresent, tokens: forwardedTokens };
+  }
+  return { headerPresent, tokens: real ? [real] : [] };
 }
 
 /** 从右端往左数第 `trustedProxyCount()` 段；链条比声明的跳数短就取最左那一段。 */
@@ -185,7 +228,7 @@ export function gateIp(request: Request): string | null {
  * 与 `auth/register` 同一形状（那一格早就这么做了：`rateKey('auth/register', ip)`）。
  *
  * 两条限度，说清而不是绕过去：
- * 1. **头都不写的请求不进这个桶**（`x-forwarded-for` / `x-real-ip` 两行都不在场）。
+ * 1. **头都不写的请求不进这个桶**（`x-forwarded-for` / `Forwarded` / `x-real-ip` 三行都不在场）。
  *    限流只能限住能标识的对象；给标识不出的请求一个共享桶，会把同部署下的
  *    正常用户一起挡掉——那是用一种故障换另一种故障。真实 HTTP 路上走不到这一格：
  *    Next 在头缺席时就把 socket 地址填进去（`base-server.js:612`）。

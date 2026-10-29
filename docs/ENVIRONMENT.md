@@ -131,6 +131,17 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
   `x-forwarded-for: 随便写` 就换一个新桶，这两道闸当场空转——判决见
   `docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`，证据在 `apps/web/test/client-ip.test.ts`
   与 `apps/web/test/guest-write-gate.integration.test.ts` 的后两条。
+- **前置只写 RFC 7239 的 `Forwarded:` 时，闸是按"前置自己"限的**（同日第二十八片活体查实）：
+  读头的那段代码原来只认 `x-forwarded-for` 与 `x-real-ip` 两行，`Forwarded: for=...` 一行都不读——
+  处理器直接调用那种形状下这是免限流（臂 B4 的读数是五个 `'201'`）。但**真 HTTP 路上走不到那一支**：
+  Next 会先把 socket 对端填进缺席的 `x-forwarded-for`（`base-server.js:612` 是 `??=`），而 XFF 优先。
+  实测两站（`.scratch/s28-forwarded-live-probe2.mts`）：`198.51.100.92` 写进 `Forwarded` → **429**
+  （桶是已经被灌满的 `::1`）；同一个地址串改写进 `x-forwarded-for` → **404**（全新一只桶）。
+  **部署要求因此多一行：前置必须追加写 `x-forwarded-for`**（nginx 的
+  `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for`）——只给 `Forwarded` 的那台前置会把自己
+  变成一整群用户共用的一只桶。对本机浏览器用例的影响是零（本机没有前置，Next 填的仍是
+  `x-forwarded-for: ::1`，"同一台机器一个桶"那条口径照旧）。
+  判决与限度见 `docs/adr/0071-forwarded-rfc7239-header-read-and-precedence.md`。
 - **"扫很多张界面"的用例改用夹具账号，别再消耗这两道闸**（同日第七片落地）：
   `e2e/support/auth-session.ts` 的 `reusableMemberWithProject(page, email, password, 首建项目名)`
   先登固定邮箱（登录那道是按**邮箱** 10 次/15 分钟，`login/route.ts`，不是按 IP），登不上才注册；

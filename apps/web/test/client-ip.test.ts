@@ -132,3 +132,103 @@ describe('限流键形状没变（SECURITY.md：路由 + 身份 + IP）', () => 
     );
   });
 });
+
+/**
+ * RFC 7239 的 `Forwarded`（`for=…;by=…;proto=…;host=…`，一跳一段、逗号分隔）。
+ *
+ * 改之前 `readForwardedChain` 只认 `x-forwarded-for` 与 `x-real-ip` 两行，所以一个**只写
+ * `Forwarded` 的请求**在处理器这里读出来是"三行头都不在场"：`gateIp()` 返回 `null`，
+ * `ipWriteGate` 让路。"读不出地址"归进共享桶照样限，"这行头根本没人读"是免限流，两者差得很远。
+ *
+ * 但**真 HTTP 路上这一格被 Next 的一半遮住了**（`.scratch/s28-forwarded-live-probe.mts` 活体读到）：
+ * `base-server.js:612` 的 `??=` 会在 XFF 缺席时填入 socket 对端，于是只写 `Forwarded` 的请求
+ * 到达处理器时 XFF 是在场的——里面是**前置自己的地址**。闸于是照旧生效，只是按 POP 限：
+ * 那个前置后面的所有人共用一只桶。所以这一族用例钉的是"读得到读不到"的口径（处理器契约），
+ * 而"只写标准头的前置"在 Next 下的真正答案是**部署要让前置补 XFF**，见下面最后那一条用例。
+ */
+describe('RFC 7239 的 Forwarded：for= 才是那一跳亲眼看到的对端', () => {
+  it('只写 Forwarded、不写 XFF 时也要能标识出来', () => {
+    expect(clientIp(reqWith({ forwarded: 'for=192.0.2.43' }))).toBe('192.0.2.43');
+    expect(gateIp(reqWith({ forwarded: 'for=192.0.2.43' }))).toBe('192.0.2.43');
+  });
+
+  it('同样取右端：客户端在 for= 里自称的地址不成为桶', () => {
+    expect(clientIp(reqWith({ forwarded: 'for=192.0.2.1;by=10.0.0.1, for=198.51.100.9' }))).toBe('198.51.100.9');
+  });
+
+  it('带引号、带端口的 IPv6（RFC 7239 就是把这一整串括在引号里）', () => {
+    expect(clientIp(reqWith({ forwarded: 'for="[2001:db8:cafe::1]:47116"' }))).toBe('2001:db8:cafe::1');
+  });
+
+  it('for=unknown 与混淆值不是地址：读不出，但不豁免限流', () => {
+    expect(clientIp(reqWith({ forwarded: 'for=unknown' }))).toBeNull();
+    expect(clientIp(reqWith({ forwarded: 'for="_gzz3"' }))).toBeNull();
+    expect(gateIp(reqWith({ forwarded: 'for=unknown' }))).toBe(INVALID_IP_BUCKET);
+  });
+
+  it('by= / proto= / host= 都不许被当成对端地址', () => {
+    expect(clientIp(reqWith({ forwarded: 'by=203.0.113.60;proto=https;host=example.com;for=192.0.2.43' }))).toBe('192.0.2.43');
+    expect(clientIp(reqWith({ forwarded: 'by=203.0.113.60;proto=https;host=example.com' }))).toBeNull();
+  });
+
+  it('参数名大小写不敏感、等号两边允许空白', () => {
+    expect(clientIp(reqWith({ forwarded: 'FOR = 192.0.2.43' }))).toBe('192.0.2.43');
+  });
+
+  it('XFF 与 Forwarded 同时在场时 XFF 说了算（一个形状只有一条链进桶键）', () => {
+    expect(clientIp(reqWith({ 'x-forwarded-for': '203.0.113.7, 198.51.100.9', forwarded: 'for=192.0.2.43' }))).toBe(
+      '198.51.100.9',
+    );
+  });
+
+  it('上游那行是垃圾时依次退回：Forwarded，再 x-real-ip', () => {
+    expect(clientIp(reqWith({ 'x-forwarded-for': 'evil', forwarded: 'for=192.0.2.43' }))).toBe('192.0.2.43');
+    expect(clientIp(reqWith({ forwarded: 'for=unknown', 'x-real-ip': '198.51.100.9' }))).toBe('198.51.100.9');
+  });
+
+  it('闸：换着写左端那一跳绕不过去——25 次里第 21 次起挡', () => {
+    const statuses: string[] = [];
+    for (let n = 1; n <= 25; n += 1) {
+      const res = ipWriteGate('projects/create', reqWith({ forwarded: `for=192.0.2.${n % 251}, for=198.51.100.9` }), 20, 3_600_000);
+      statuses.push(res.limited ? '429' : '201');
+    }
+    expect(statuses.slice(0, 20)).toEqual(new Array(20).fill('201'));
+    expect(statuses.slice(20)).toEqual(new Array(5).fill('429'));
+  });
+
+  it('只写 Forwarded 的请求也在闸的视野里：同一对端 25 次里第 21 次起挡', () => {
+    const statuses: string[] = [];
+    for (let n = 1; n <= 25; n += 1) {
+      const res = ipWriteGate('projects/create', reqWith({ forwarded: 'for=198.51.100.9' }), 20, 3_600_000);
+      statuses.push(res.limited ? '429' : '201');
+    }
+    expect(statuses.slice(0, 20)).toEqual(new Array(20).fill('201'));
+    expect(statuses.slice(20)).toEqual(new Array(5).fill('429'));
+  });
+
+  /**
+   * 活体读到的形状（`.scratch/s28-forwarded-live-probe.mts` + `probe2.mts`，打真 dev server）：
+   * Next 那句 `req.headers['x-forwarded-for'] ??= socket.remoteAddress`（`base-server.js:612`）
+   * 意味着**真 HTTP 路上 XFF 永在场**——前置只写 `Forwarded` 时，Next 会把**前置自己的地址**填进 XFF，
+   * 而 XFF 优先。于是这一行头里的客户端链走不到，那个前置后面的**所有人共用一只桶**（＝前置的地址）。
+   *
+   * 实测：同一台机器上先灌满 `::1` 那一格，再发 `Forwarded: for=198.51.100.92` → **429**
+   * （`retryAfterMs` 接在灌满那批之后往下走，说明桶就是 `::1`）；把同一个地址串改写进
+   * `x-forwarded-for` → **404**（全新的一格）。地址一样、写法不一样 ⇒ 桶不一样。
+   *
+   * 这一条不是给"这样做对了"作证，是给**部署口径**作证：只写 `Forwarded` 的前置必须补 XFF，
+   * 否则这道闸会把整 POP 算成一个人。见 `docs/adr/0071-…` 的后果 2 与 `docs/ENVIRONMENT.md`。
+   */
+  it('Next 注入的那一段会盖住 Forwarded：只写标准头的前置把自己变成一只共享桶', () => {
+    const proxy = reqWith({ 'x-forwarded-for': '198.51.100.1', forwarded: 'for=192.0.2.50, for=192.0.2.51' });
+    // XFF 在场且读得出 ⇒ 就是它；`Forwarded` 里那两个客户端地址一个都不进桶键
+    expect(clientIp(proxy)).toBe('198.51.100.1');
+    expect(gateIp(proxy)).toBe('198.51.100.1');
+    // 换着写 `Forwarded` 的右端不换手：整 POP 落在前置那一只桶里
+    const buckets = new Set<string>();
+    for (let n = 1; n <= 8; n += 1) {
+      buckets.add(gateIp(reqWith({ 'x-forwarded-for': '198.51.100.1', forwarded: `for=192.0.2.${n}` }))!);
+    }
+    expect([...buckets]).toEqual(['198.51.100.1']);
+  });
+});

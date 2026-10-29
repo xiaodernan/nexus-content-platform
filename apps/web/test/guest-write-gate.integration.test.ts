@@ -16,12 +16,12 @@ import { abuseReports, projects, sessions, users } from '../src/server/db/schema
  * 客户端每次都是新键。修法是在 `requireUser()` **之前**加一道按 IP 的闸
  * （`ipWriteGate`），闸必须在身份之前——被挡住的请求一个 guest 都不该建。
  *
- * 这一份钉四件事：
+ * 这一份钉六件事：
  *   ① 换 token 绕不过去：第 N+1 个新 token 拿 429，且**一个 guest 都没多建**；
  *   ② 正对照：稳定身份（真浏览器存 cookie）照旧放行，第 N+1 次仍由原有那道
  *      按身份的闸去管——IP 闸是兜底，不是替代；
- *   ③ 闸只认**能标识出来**的 IP：两行头都不在场时这道闸让路
- *      （给标识不出的请求一个共享桶会把正常用户一起挡掉，那是用一种故障换另一种故障）；
+ *   ③ 闸只认**能标识出来**的 IP：`x-forwarded-for` / `Forwarded` / `x-real-ip` 三行都不在场时
+ *      这道闸让路（给标识不出的请求一个共享桶会把正常用户一起挡掉，那是用一种故障换另一种故障）；
  *   ④ 标识的方式不能是"谁写的头就信谁"：`x-forwarded-for` 是追加出来的链条，
  *      取最左端＝取客户端随手写的那一段，换一行头就换一个桶，①②③ 全部空转。
  *      现在取可信链的**右端**（`NEXUS_TRUSTED_PROXY_COUNT`），读不出的垃圾头归进一个
@@ -29,7 +29,10 @@ import { abuseReports, projects, sessions, users } from '../src/server/db/schema
  *   ⑤ 读数与清扫都只算自己：guest 的个数按**本次探针的 token** 关联会话来数，`afterAll` 也只删
  *      这批 token 换到的身份。原来两处都是"全库 guest"——差量会读到同机另一条会话建的行
  *      （2026-10-30 实测红在 `expected 23 to be 20`），那句 `delete ... where guest = true`
- *      更会把她们的 guest 身份连着项目一起删掉。
+ *      更会把别人正在用的 guest 身份连着项目一起删掉。
+ *   ⑥ 三行头都得真的去读：只写 RFC 7239 `Forwarded` 的请求（处理器直接调用那种形状）以前一行都
+ *      读不到，那不是"读错一段"，是"这一行没人读"＝免限流。真 HTTP 路上 Next 会先注入 XFF，
+ *      于是同一形状的后果变成"按前置的 IP 限整 POP"——两边都记在 ADR-0071 里。
  */
 
 const jar = vi.hoisted(() => new Map<string, string>());
@@ -41,6 +44,14 @@ vi.mock('next/headers', () => ({
 
 const CSRF_TOKEN = 'e5f7a9c1b3d52086';
 const IP = '203.0.113.7';
+
+/**
+ * 下面那批用例串行打 25 次真路由，实测一档 25~30 秒——正好贴 `testTimeout: 30000` 那条线，
+ * 同机另一条会话在跑时就翻成 `Test timed out in 30000ms`（2026-10-30 读到过一次，那一跑红的不是
+ * 数值而是含糊的超时，等于这一格没有证人）。闸的额度是 20/小时，见证要越过它就必须打满 21 次以上，
+ * 所以这里改的是**时间预算**，不是断言，更不是额度。
+ */
+const REAL_ROUTE_BATCH_TIMEOUT_MS = 120_000;
 
 function randomHex(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
@@ -96,16 +107,16 @@ async function sweepProbeGuests(): Promise<void> {
   await db.delete(users).where(inArray(users.id, ids));
 }
 
-/** `forwarded` 是这一行头**照原样**写进去的值——链条形状（一段 / 左端轮换右端固定 / 垃圾）就是被测的东西。 */
-function createProject(token: string, forwarded: string | null): Promise<Response> {
+/** 真路由 + CSRF 双提交 + 真库；`forwardedHeaders` 就是被测的那几行转发头。 */
+function postProject(token: string, forwardedHeaders: Record<string, string>): Promise<Response> {
   jar.clear();
   jar.set(CSRF_COOKIE, CSRF_TOKEN);
   const headers: Record<string, string> = {
     'content-type': 'application/json',
     cookie: `${CSRF_COOKIE}=${CSRF_TOKEN}`,
     [CSRF_HEADER]: CSRF_TOKEN,
+    ...forwardedHeaders,
   };
-  if (forwarded !== null) headers['x-forwarded-for'] = forwarded;
   if (token) {
     jar.set('nexus_session', token);
     headers.cookie += `; nexus_session=${token}`;
@@ -117,6 +128,11 @@ function createProject(token: string, forwarded: string | null): Promise<Respons
       body: JSON.stringify({ name: `闸门探针 ${randomHex().slice(0, 6)}`, kind: 'website' }),
     }),
   );
+}
+
+/** `forwarded` 是这一行头**照原样**写进去的值——链条形状（一段 / 左端轮换右端固定 / 垃圾）就是被测的东西。 */
+function createProject(token: string, forwarded: string | null): Promise<Response> {
+  return postProject(token, forwarded === null ? {} : { 'x-forwarded-for': forwarded });
 }
 
 function report(token: string, forwarded: string | null): Promise<Response> {
@@ -160,7 +176,7 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
     expect(statuses.slice(20).every((s) => s === 429)).toBe(true);
     // 关键判据：被挡住的请求没有付出"建一个 guest 用户"的代价——只数自己这批 token
     expect(await guestsForTokens(tokens)).toBe(20);
-  });
+  }, REAL_ROUTE_BATCH_TIMEOUT_MS);
 
   it('正对照：稳定身份照旧放行，第 N+1 次由原有那道按身份的闸去管', async () => {
     getRateLimiter().reset();
@@ -180,7 +196,7 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
     expect(statuses.slice(0, 20).every((s) => s === 404)).toBe(true);
     expect(statuses.slice(20).every((s) => s === 429)).toBe(true);
     expect(await guestsForTokens(tokens)).toBe(20);
-  });
+  }, REAL_ROUTE_BATCH_TIMEOUT_MS);
 
   it('标识不出 IP 时这道闸让路——不拿共享桶把正常用户一起挡掉', async () => {
     getRateLimiter().reset();
@@ -190,7 +206,7 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
     expect(statuses.every((s) => s === 201)).toBe(true);
     // 让路的样子是"每个 token 都走到签发身份那一步"：25 个都建了 guest
     expect(await guestsForTokens(tokens)).toBe(25);
-  });
+  }, REAL_ROUTE_BATCH_TIMEOUT_MS);
 
   /**
    * 下面两条是这一片的存在理由，也是上面那四条**前提**被推翻时的证人。
@@ -215,7 +231,7 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
     expect(statuses.slice(0, 20).every((s) => s === 201)).toBe(true);
     expect(statuses.slice(20).every((s) => s === 429)).toBe(true);
     expect(await guestsForTokens(tokens)).toBe(20);
-  });
+  }, REAL_ROUTE_BATCH_TIMEOUT_MS);
 
   /**
    * 头在场却读不出地址 ≠ 标识不出。旧读法把 `evil-n` 直接当身份拼进桶键，于是
@@ -233,7 +249,33 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
     expect(statuses.slice(20).every((s) => s === 429)).toBe(true);
     // 归进共享桶的那批照样付出身份：放行的是前 20 个 token，不是"垃圾头免限流"
     expect(await guestsForTokens(tokens)).toBe(20);
-  });
+  }, REAL_ROUTE_BATCH_TIMEOUT_MS);
+
+  /**
+   * 第二十八片的形状：前置**只写 RFC 7239 的 `Forwarded`**，`x-forwarded-for` 一个字都没有。
+   *
+   * 修之前这里不是"读错一段"，是**这一行头没人读**——`readForwardedChain` 只认两行头，于是
+   * `gateIp()` 返回 `null`，`ipWriteGate` 让路，25 次全放行（`client-ip.test.ts` 的臂 B4
+   * 量的就是这一格：红在五个 `'201'`）。同一形状现在与 XFF 同权：左端随便换，右端才是桶。
+   *
+   * **这一条打的是处理函数，不是真 HTTP**：活体探针（`.scratch/s28-forwarded-live-probe.mts`）
+   * 读到真路上 Next 会先把 socket 对端填进 `x-forwarded-for`，XFF 又在优先级里赢——所以
+   * "只写 `Forwarded` 的前置"在 Next 下的实际结果不是免限流，是**整个 POP 共用前置那一只桶**。
+   * 这里钉的是处理器的口径，部署那一半写在 ADR-0071 的后果 2 与 `docs/ENVIRONMENT.md`。
+   */
+  it('前置只写 Forwarded（RFC 7239）时闸照旧：25 次里第 21 次起 429，guest 只多 20 个', async () => {
+    getRateLimiter().reset();
+    const tokens = Array.from({ length: 25 }, newProbeToken);
+    const statuses: number[] = [];
+    for (const [i, token] of tokens.entries()) {
+      statuses.push(
+        (await postProject(token, { forwarded: `for=192.0.2.${(i % 250) + 1};by=10.0.0.1, for=198.51.100.77` })).status,
+      );
+    }
+    expect(statuses.slice(0, 20).every((s) => s === 201)).toBe(true);
+    expect(statuses.slice(20).every((s) => s === 429)).toBe(true);
+    expect(await guestsForTokens(tokens)).toBe(20);
+  }, REAL_ROUTE_BATCH_TIMEOUT_MS);
 
   /**
    * 这一条守的是**读数本身**。旧写法量的是"全库 guest 行数的差量"，同机另一条会话正在建 guest

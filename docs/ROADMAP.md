@@ -7752,8 +7752,11 @@ req.headers['x-forwarded-for'] ??= originalRequest?.socket?.remoteAddress
    只是日志里看不出"这批请求写的是垃圾头"。
 4. ~~`guest-write-gate` 的 `guestCount()` 差值不独占（见上面的污染读数），要改成只数自己造的标记。~~
    **2026-10-30 第二十七片补上了**：读数与清扫都改成按本次探针的会话 token 收。
-5. 转发头只处理 `x-forwarded-for` / `x-real-ip` 两行；RFC 7239 的 `Forwarded: for=...` 与
-   带端口的 IPv6 变体（`[::1]:5000` 认，裸 `::1:5000` 不认）没铺开。
+5. ~~转发头只处理 `x-forwarded-for` / `x-real-ip` 两行；RFC 7239 的 `Forwarded: for=...` 与
+   带端口的 IPv6 变体（`[::1]:5000` 认，裸 `::1:5000` 不认）没铺开。~~
+   **本条已在第二十八片还掉**（`Forwarded` 三行都读、`for=` 的引号与端口都归一化），判决见
+   `docs/adr/0071-forwarded-rfc7239-header-read-and-precedence.md`。裸 `::1:5000`（不带方括号的 IPv6 带端口）
+   仍然不认——那种形状本身有歧义，不是这一片的靶子。
 
 ## §SEC 第二十七片：那道闸的读数与清扫都只算自己——上一片记下的"不独占"那一格补掉了（2026-10-30）
 
@@ -7826,5 +7829,118 @@ guest 身份连着别人的项目一起删掉**。这一片不碰闸的语义，
    但"清扫范围"与"guest 能碰到的面"迟早会对不上。
 3. 臂 A2 只证明"闸放在身份之前"这一条；闸的**限额数字**（20/h）没有臂——它由第二十六片那批
    `前 20 放行 / 第 21 次 429` 的读数守着，改小改大都会红在那里。
-4. 上一片仍欠的 1／2／3／5（直接暴露那档、Redis 驱动、审计里看不出垃圾头、RFC 7239）继续欠着。
+4. ~~上一片仍欠的 1／2／3／5（直接暴露那档、Redis 驱动、审计里看不出垃圾头、RFC 7239）继续欠着。~~
+   第 5 项（RFC 7239）已在**第二十八片**还掉；1／2／3（直接暴露那一档、Redis 驱动、审计里看不出垃圾头）
+   继续欠着。
 
+
+## §SEC 第二十八片：`Forwarded` 这行头以前没人读；补上之后活体探针把结论改了一半（2026-10-30）
+
+**起点是上一片自己记的账**：ADR-0070 文末「仍欠」第 5 条——`readForwardedChain` 只认
+`x-forwarded-for` 与 `x-real-ip` 两行，RFC 7239 的 `Forwarded: for=...` 一行都不读。
+我带着一个明确假设开工：**前置只写 `Forwarded` 的部署整道按 IP 的闸不在场**（`gateIp()` 返回 `null`
+⇒ `ipWriteGate` 让路）。这一片的前半段证明这个假设在处理器层面成立，后半段的活体探针证明它
+**在真 HTTP 路上不成立**——真实后果是同族但方向相反的那一件（见下面的活体表）。
+
+**落点**
+
+- `apps/web/src/server/security/rateLimit.ts`：`readForwardedChain()` 读三行头，优先级
+  `x-forwarded-for` → `Forwarded` → `x-real-ip`，**取一条链不叠加**（两条链一起进桶键＝同一个对端两只桶，
+  那是"换一行头换一个桶"的另一种写法）；`headerPresent` 覆盖三行（三行都不在场才让路，
+  在场却读不出照旧归 `invalid-xff` 那只共享桶——这个桶名**不改**，改名会把日志与既有见证全卷进来）；
+  新增 `readRfc7239Tokens()`：一跳一段（逗号）、段内分号、**只认 `for=`**
+  （`by=` 是代理自己、`host=` 是请求 Host、`proto=` 是协议，三者永不进桶键），值可带引号、
+  引号里可带端口，地址归一化继续走 ADR-0070 那一个 `normalizeAddress()`（不新写解析）。
+  `for=unknown` 与混淆值 `for="_gzz3"` 读不出 ⇒ 丢段 ⇒ 落进共享桶，不豁免。
+- `NEXUS_TRUSTED_PROXY_COUNT` 对三条链同样生效（同一个 `pickTrusted()`）。限额一个都没动。
+- 判决与限度：`docs/adr/0071-forwarded-rfc7239-header-read-and-precedence.md`（含五个选项，
+  其中"以 `Forwarded` 为主"否在**任何客户端都能自己写这一行**，"长度启发"否在它能重开 ADR-0070 刚堵的洞）。
+- `docs/SECURITY.md` 那条 bullet 与 `docs/ENVIRONMENT.md` 各补一段：部署要求多一行——
+  **前置必须追加写 `x-forwarded-for`**，只给 `Forwarded` 的那台前置会把自己变成一整群用户共用的一只桶。
+
+**凭证（逐字读数）**
+
+- 起点：`npx tsc --noEmit -p apps/web` 退出 0；`npx eslint` 覆盖本次改动路径退出 0。
+- **界面面本片没有跑**（本片无 UI 改动，且 §158 那条"跑一遍界面"要换的项目/举报名额已经有一批被活体探针占掉）；
+  真浏览器不写转发头这件事沿用第二十六片的读数（`e2e/studio.spec.ts -g "只看当前分支"` 1 passed）——
+  那一趟证的"正常路径没被限死"这一片没有被推翻：改的只是"缺席的 XFF 从哪一行补"。
+- 新见证先红：`apps/web/test/client-ip.test.ts` 25 条打在旧实现上 → **9 failed | 16 passed (25)**，
+  `Duration 1.93s`（`.scratch/s28-red-before-fix.txt`）。那 16 条恒绿的是"只写 XFF"与"三行都不在场"
+  这两种形状——对本片的洞没有区分度，与第二十六片那 4 条恒绿的盲区同族。
+- 改完：`client-ip.test.ts` + `rateLimit.test.ts` → **32 passed (2 files)**（`Duration 2.45s`），
+  加上后面那条活体形状用例 → **33 passed (2 files)**（`Duration 1.87s`）。
+- 回归四档第一次**红了一条，且红的不是数值**：`1 failed | 53 passed (54)`，`Duration 128.53s`，
+  唯一那条红是 `Test timed out in 30000ms`，红在既有的"换着写链条左端"那一条 25 次串行路由用例上。
+  **这是第二十七片已经记过的教训在我手里复发**：我新加了一条同样要打 25 次真路由的用例，
+  把整文件时长推过 `vitest.config.ts` 的 `testTimeout: 30000` 边界，于是别人那条一直贴边的用例翻了。
+  修法改的是**时间预算不是断言**：文件里加 `REAL_ROUTE_BATCH_TIMEOUT_MS = 120_000`，
+  给那 6 条 25 次串行的用例逐个显式传第三参数（额度是 20/小时，见证要越过它就必须打满 21 次以上，
+  所以既不能减次数、更不能动闸）。复跑 → **4 files / 54 passed**，`Duration 56.64s / tests 46.04s`；
+  最后那一版（加上活体形状那条）→ **4 files / 55 passed**，`Duration 42.59s / tests 32.50s`
+  （`.scratch/s28-green-final.txt`）。同一条用例两次跑出的时长差到 2 倍以上（0.65s/次 vs 0.3s/次）——
+  这条边界本来就在飘。
+
+**活体两趟（`.scratch/s28-forwarded-live-probe.mts`、`.scratch/s28-forwarded-live-probe2.mts`，
+打真 dev server 的 `POST /api/published/report`，闸在 `requireUser()` 之前）**
+
+| 站 | 发出去的头 | 按"读 `Forwarded`"该出的 | 实测 |
+| --- | --- | --- | --- |
+| 灌桶 ×21 | `Forwarded: for=192.0.2.<轮换>;by=10.0.0.1, for=198.51.100.90` | 第 21 次 429 | 前 20 全 404、第 21 次 429（`retryAfterMs=3594578`）——但那只桶不是 `198.51.100.90` |
+| P1 | `Forwarded: for=198.51.100.90` | 429 | 429（`retryAfterMs=3594490`） |
+| P2 | `Forwarded: for=198.51.100.90, for=192.0.2.240` | **404**（右端全新） | **429**（`retryAfterMs=3594394`）**与预期相反** |
+| P3 | `x-forwarded-for: 198.51.100.90` + `Forwarded: for=192.0.2.241` | **429**（XFF 赢＝满桶） | **404****与预期相反** |
+| S1 | `Forwarded: for=198.51.100.92`（全新地址） | 404 | **429**，`retryAfterMs=3286152`——接在灌桶那批之后继续往下走，说明桶就是 `::1` |
+| S2 | `x-forwarded-for: 198.51.100.92`（同一个地址串换一行头） | 404 | **404** |
+
+P2 与 P3 一起反，S1/S2 用同一个地址串换一行头就换了一只桶——三条指向同一个解释，而它写在源码里：
+`node_modules/next/dist/server/base-server.js:612` 那句 `req.headers['x-forwarded-for'] ??= socket.remoteAddress`
+是**无条件**跑的（`BaseServer.run`，dev 与 `next start` 同一条路）。真 HTTP 路上 XFF 几乎总在案，
+XFF 又在优先级里赢 ⇒ **`Forwarded` 那一支在 Next 之路走不到**。于是这一洞的真面目是两件事：
+
+1. 处理器契约层面：只写 `Forwarded` 的请求＝那一行形同免限流（B4 的五个 `'201'` 就是它）。这一条修好了。
+2. Next 之路层面：只写 `Forwarded` 的前置不是"站在闸外面"，而是**它的用户全落进前置那一只桶**
+   （桶＝前置地址，20/小时给整 POP）。这一条代码修不了，只能靠部署让前置补写 XFF——
+   要在代码里真解决，需要 ADR-0070 选项 4 那一档（可信 CIDR 表 + 从右往左走到不信任的跳就停），
+   而它的前置条件是"处理器拿得到 socket 对端"，现在拿不到。
+
+**臂表（7 条，每条都点名；跑完文件逐字节恢复，`grep -c "MUT" rateLimit.ts` = 0）**
+
+| 臂 | 改坏的那一处 | 红在谁身上（逐字） |
+| --- | --- | --- |
+| B1 | `for=` 换成"段内任何参数都收" | 单元 **1 failed / 32 passed**：`by/proto/host` 那条，`expected '203.0.113.60' to be null` |
+| B2 | 不剥引号 | 单元 **1 failed**：`expected null to be '2001:db8:cafe::1'` |
+| B3 | `Forwarded` 抢在 XFF 前面 | 单元 **1 failed**：`expected '192.0.2.43' to be '198.51.100.9'` |
+| B4 | **根本不读 `Forwarded`（＝修之前的样子）** | 单元 **4 failed**，含两条闸层：`expected [ '201', '201', '201', '201', '201' ] to deeply equal [ '429', '429', '429', '429', '429' ]` |
+| B5 | `for=unknown` 当地址 | 单元 **2 failed**：`expected 'unknown' to be null` 与 `expected 'unknown' to be '198.51.100.9'` |
+| B6 | XFF 读不出时不再回落 | **第一版作废**：写成重复 `const` 让 vitest 报 `no tests`（那不是红，是没跑）；重写后单元 **2 failed** |
+| B7 | 两条链合并（选项 2 那版） | 单元 **2 failed / 31 passed**：`XFF 说了算` 那条 + 新那条活体形状 `expected '192.0.2.51' to be '198.51.100.1'` |
+
+**没有牙的那几格，点名**
+
+- **新那条"只写 Forwarded、不写 XFF 时也要能标识出来"在 Next 之路上不可达**——它是处理器契约层的门，
+  不是真路的门。这一片最有价值的产出恰好是把它按住了：活体两趟说明它今天不会在生产里发生。
+  B4 让它有牙，但牙咬的是单元测试里的形状，不是部署。
+- 活体形状那条用例（`Next 注入的那一段会盖住 Forwarded`）是**手跑探针的固化**：它的读数是编进断言的，
+  如果哪天 Next 不再注入 XFF（升到别的 host、或前面加了会写 XFF 的前置），它不会自动告警。
+  真正的常驻门需要一条带真 server 的 e2e/integration——记在下面仍欠第 4 条。
+- 引号未闭合（`for="192.0.2.43`）与"一跳里两个 `for=`"这两种畸形形状**没有用例**，也没有臂。
+
+**共用工作树的代价，减一条也加一条**：这一片的臂全部打在单元层（B7 从进场到恢复约 15 秒，
+比第二十六/二十七片那 100 s / 74 s 的窗口小一个量级）。但我**自己起了一个 dev server 占 3100** 跑活体探针，
+代价记两条：① 探针把 `::1` 那只 `published/report` 桶灌满了（`retryAfterMs` 从 3.59e6 递减到 3.29e6，
+约到本地时间 04:24 才空）——这一个小时内同机任何匿名浏览器用例打举报入口都会 429，
+② 放行那 22 次各建了一个 guest；探针没保留 cookie，所以**按 token 清扫那条路走不通**，
+这一批行留在库里（第二十七片那套 `sweepProbeGuests` 只覆盖测试文件自己的 token）。
+
+**仍欠**
+
+1. **可信 CIDR 表**（ADR-0070 选项 4）：这是唯一能真正解掉"只写 `Forwarded` 的前置 ⇒ 整 POP 一只桶"的路，
+   前提是先解决"处理器拿不到 socket 对端"（`next.config` 的 server 钩子或自定义 server 都可能给得到，没试过）。
+2. **内存驱动仍每实例一套桶、重启即失忆**：Redis 有序集那一格照旧欠着，代价是 `hit()` 要变 async（33 处调用点 / 30 个文件）。
+3. 那 30 多处 `rateKey(route, clientIp(req), user.id)` 仍拿 `clientIp`：垃圾头在它们那里是 `null`＝`no-ip`
+   共享桶（安全，但日志里看不出"这批请求写的是垃圾头"）。
+4. **活体形状没有常驻门**：这一片的结论有一半来自手跑的探针（§85 说"手跑的见证等于没有见证"）。
+   要钉死得起一个真 server 打两站（本片的 `.scratch/s28-forwarded-live-probe*.mts` 就是现成的脚本），
+   代价是它会消耗 `::1` 那一只桶——排期时和浏览器用例错开。
+5. `Forwarded` 的畸形形状（引号未闭合、一跳内多个 `for=`、`for=` 后面跟注释符）没有用例。
+6. 探针留下的 guest 行没有清扫路径（见上面那段）；过期 guest 的回收仍是独立任务。
