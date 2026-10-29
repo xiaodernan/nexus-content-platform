@@ -1,20 +1,15 @@
 import { notFound } from 'next/navigation';
-import { TokenStore, findPage, resolveLayout, type BreakpointName, type DesignDocument, type NodeState, type ResolvedNode } from '@nexus/design-model';
+import { TokenStore, findPage, resolveLayout, type DesignDocument, type NodeState, type ResolvedNode } from '@nexus/design-model';
 import { requireUser } from '@/server/domain/session';
 import { loadDocument } from '@/server/domain/projects';
 import { projectVisibleTo } from '@/server/domain/team';
 import { apiAssetUrl, assetContextFor } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
 import { stateStyleSheetFor } from '@/studio/state-styles';
+import { ViewerControls } from '@/studio/ViewerControls';
+import { breakpointFromParam, viewerHref, zoomFromParam, type ViewerQuery } from '@/studio/viewer-params';
 
 export const dynamic = 'force-dynamic';
-
-const VIEWPORTS: Record<string, BreakpointName> = {
-  mobile: 'mobile',
-  tablet: 'tablet',
-  desktop: 'desktop',
-  wide: 'wide',
-};
 
 /**
  * §124 / ADR-0063：只有这三种状态靠 `data-state` 属性兑现，所以只读页能演示它们。
@@ -25,7 +20,7 @@ const SIMULATED_STATES: NodeState[] = ['loading', 'error', 'success'];
 
 interface Props {
   params: Promise<{ projectId: string }>;
-  searchParams: Promise<{ page?: string; viewport?: string; zoom?: string; state?: string }>;
+  searchParams: Promise<ViewerQuery>;
 }
 
 /** §Preview：模型的只读投影 —— 没有选择框、没有编辑控件，与画布共用同一套几何求解 */
@@ -39,10 +34,12 @@ export default async function PreviewPage({ params, searchParams }: Props) {
 
   const page = (query.page ? findPage(document, query.page) : null) ?? findPage(document, document.activePageId) ?? document.pages[0];
   if (!page) notFound();
-  const breakpoint = VIEWPORTS[query.viewport ?? ''] ?? null;
+  // §14 / ADR-0069：预览与公开页吃同一套参数、走同一个断点解析，
+  // 这样作者在这里看到的换算就是访客在那里会看到的那个（不另起一条渲染路径）。
+  const breakpoint = breakpointFromParam(query.viewport);
+  const zoom = zoomFromParam(query.zoom);
   const tokens = new TokenStore(document.tokens);
-  const layout = resolveLayout(page, { tokens, mode: document.activeMode ?? null, breakpoint: breakpoint ?? undefined });
-  const zoom = Math.min(1, Math.max(0.25, Number(query.zoom ?? 1) || 1));
+  const layout = resolveLayout(page, { tokens, mode: document.activeMode ?? null, breakpoint });
   // 预览是同源的鉴权场景：图走作者自己的资产路由（§38）
   const assets = assetContextFor(document, apiAssetUrl);
   // §124 状态层只读投影（ADR-0062）：差量样式表，无状态节点时是空串
@@ -54,16 +51,9 @@ export default async function PreviewPage({ params, searchParams }: Props) {
     ? (query.state as NodeState)
     : null;
 
-  /** 切状态不该把当前取景框丢掉：page / viewport / zoom 原样带过去 */
-  const stateHref = (value: NodeState | null): string => {
-    const sp = new URLSearchParams();
-    if (query.page) sp.set('page', query.page);
-    if (query.viewport) sp.set('viewport', query.viewport);
-    if (query.zoom) sp.set('zoom', query.zoom);
-    if (value) sp.set('state', value);
-    const qs = sp.toString();
-    return `/preview/${projectId}${qs ? `?${qs}` : ''}`;
-  };
+  /** 切状态不该把当前取景框丢掉：page / viewport / zoom 原样带过去（viewerHref 的唯一键序保证 URL 稳定） */
+  const stateHref = (value: NodeState | null): string =>
+    viewerHref(`/preview/${projectId}`, query, { state: value ?? undefined });
 
   return (
     <main className="min-h-screen w-full overflow-auto bg-bg-0 pb-[var(--nexus-space-10)]" data-preview-root data-page={page.name}>
@@ -103,32 +93,41 @@ export default async function PreviewPage({ params, searchParams }: Props) {
           </span>
         </div>
       ) : null}
-      <div className="flex justify-center p-[var(--nexus-space-6)]">
+      {/* §14 / ADR-0069：与公开页同一排控件——作者在这里看到的断点/缩放就是访客那一份 */}
+      <ViewerControls base={`/preview/${projectId}`} query={query} page={page} breakpoint={breakpoint} zoom={zoom} width={layout.width} height={layout.height} />
+      <div className="w-full overflow-x-auto p-[var(--nexus-space-6)]">
+        {/* 缩放用 transform，版式盒不跟着缩：外面这层按缩后的尺寸占位，
+            否则画面"缩小看全"了，页面仍要横向平移一整屏（第十三片量到的就是这个） */}
         <div
-          data-preview-frame
-          style={{
-            position: 'relative',
-            width: layout.width,
-            height: layout.height,
-            transform: zoom === 1 ? undefined : `scale(${zoom})`,
-            transformOrigin: 'top center',
-            background: typeof page.backgroundColor === 'string' ? page.backgroundColor : 'transparent',
-            boxShadow: '0 0 0 1px var(--nexus-color-border-subtle)',
-          }}
+          data-preview-scale-box
+          style={{ width: layout.width * zoom, height: layout.height * zoom, margin: '0 auto' }}
         >
-          {stateSheet ? <style data-nexus-states>{stateSheet}</style> : null}
-          {layout.paintOrder.map((id) => {
-            const resolved = layout.nodes[id];
-            if (!resolved) return null;
-            // 只给真的定义了这个状态的节点挂 data-state：别的节点不该因为页面上多一个参数就"看起来变了"
-            const simulated =
-              previewState && resolved.node.states?.[previewState] ? previewState : undefined;
-            return (
-              <div key={id} data-node-id={id} data-node-type={resolved.node.type} data-state={simulated} style={nodeStyle(resolved, { tokens, mode: document.activeMode ?? null, assets })}>
-                {resolved.node.text ?? null}
-              </div>
-            );
-          })}
+          <div
+            data-preview-frame
+            style={{
+              position: 'relative',
+              width: layout.width,
+              height: layout.height,
+              transform: zoom === 1 ? undefined : `scale(${zoom})`,
+              transformOrigin: 'top left',
+              background: typeof page.backgroundColor === 'string' ? page.backgroundColor : 'transparent',
+              boxShadow: '0 0 0 1px var(--nexus-color-border-subtle)',
+            }}
+          >
+            {stateSheet ? <style data-nexus-states>{stateSheet}</style> : null}
+            {layout.paintOrder.map((id) => {
+              const resolved = layout.nodes[id];
+              if (!resolved) return null;
+              // 只给真的定义了这个状态的节点挂 data-state：别的节点不该因为页面上多一个参数就"看起来变了"
+              const simulated =
+                previewState && resolved.node.states?.[previewState] ? previewState : undefined;
+              return (
+                <div key={id} data-node-id={id} data-node-type={resolved.node.type} data-state={simulated} style={nodeStyle(resolved, { tokens, mode: document.activeMode ?? null, assets })}>
+                  {resolved.node.text ?? null}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </main>

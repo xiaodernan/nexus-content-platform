@@ -43,7 +43,16 @@ const outcomes = new Map<string, RecordState>();
  * 页面上有一句说明（`data-interactive-note`）——把它们也铺成按钮，
  * 等于让"点了没反应"冒充"功能没做好"（§159）。
  */
-export function InteractiveHotspots({ path, hotspots }: { path: string; hotspots: Hotspot[] }) {
+export function InteractiveHotspots({
+  path,
+  hotspots,
+  keepParams = {},
+}: {
+  path: string;
+  hotspots: Hotspot[];
+  /** 访客当前的查看器参数（viewport / zoom）。翻页是"换一页看"，不该把取景框重置掉（ADR-0063 同一条纪律） */
+  keepParams?: Record<string, string>;
+}) {
   const router = useRouter();
   if (!hotspots.length) return null;
   return (
@@ -61,7 +70,9 @@ export function InteractiveHotspots({ path, hotspots }: { path: string; hotspots
             } catch {
               // 标不上就走不远：到了终点页只会显示"没有从入口点过来"
             }
-            router.push(`${path}?page=${encodeURIComponent(spot.targetPageId)}`);
+            const sp = new URLSearchParams(keepParams);
+            sp.set('page', spot.targetPageId);
+            router.push(`${path}?${sp.toString()}`);
           }}
           style={{
             position: 'absolute',

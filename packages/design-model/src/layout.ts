@@ -1124,17 +1124,22 @@ function runLayout(
   // viewport 预览（§14）：根画框跟随断点宽度重新求解，模型本身不被改写。
   // 高度只在没有显式裁剪时撑到内容高度，否则预览会切掉响应式换行后的内容。
   const viewportWidth = breakpoint ? BREAKPOINT_WIDTH[breakpoint] : null;
+  // 根画框只认得下数字：`hug` 撑到内容尺寸，`fill` 撑到可用宽度——而在设计尺寸那一档
+  // 根本没有外部约束，可用宽度就是页面画布本身。关键字若穿过 `||` 链，会把它原样写进
+  // `ResolvedLayout.width`（声明是 number），外面 `width * zoom` 就成了 NaN 尺寸。
+  const rootAxis = (
+    value: number | "hug" | "fill",
+    measured: number,
+    fallback: number,
+  ): number =>
+    value === "fill"
+      ? fallback
+      : value === "hug"
+        ? (measured || fallback)
+        : (value || measured || fallback);
   const modelRoot: Box = {
-    width:
-      axisSize(root.size.width) === "hug"
-        ? rootBox.width
-        : (axisSize(root.size.width) as number) || rootBox.width || page.width,
-    height:
-      axisSize(root.size.height) === "hug"
-        ? rootBox.height
-        : (axisSize(root.size.height) as number) ||
-          rootBox.height ||
-          page.height,
+    width: rootAxis(axisSize(root.size.width), rootBox.width, page.width),
+    height: rootAxis(axisSize(root.size.height), rootBox.height, page.height),
   };
   const finalRoot: Box = {
     width: viewportWidth ?? modelRoot.width,

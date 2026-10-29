@@ -301,6 +301,56 @@ describe("resolveLayout — responsive breakpoints (§14)", () => {
     expect(breakpointForWidth(1280)).toBe("desktop");
     expect(breakpointForWidth(1920)).toBe("wide");
   });
+
+  it("a breakpoint equal to the authored root width, with no rules, re-solves byte-identically", () => {
+    // 界面拿这条当"那一档是空按钮"的依据（apps/web/src/studio/viewer-params.ts 的 liveBreakpoints）：
+    // 根画框已经写着 375，再按 mobile 重解 = 同一个数进同一个求解器，出来的树必须一字不差。
+    const mixed = fixedShape("fill 孩子", "fill", "hug");
+    const page = verticalFrame([fixedShape("数字孩子", 120, 40), mixed, fixedShape("hug 孩子", "hug", "hug")], {
+      size: { width: 375, height: "hug" },
+    });
+    const design = resolveLayout(page);
+    const mobile = resolveLayout(page, { breakpoint: "mobile" });
+    expect(JSON.stringify(mobile)).toBe(JSON.stringify(design));
+    // 反面对照：同一棵树按 tablet 重解就不是——证明上面那条相等不是"两边都没算"
+    const tablet = resolveLayout(page, { breakpoint: "tablet" });
+    expect(JSON.stringify(tablet)).not.toBe(JSON.stringify(design));
+    expect(tablet.width).toBe(768);
+  });
+});
+
+describe("resolveLayout — 根画框的关键字尺寸", () => {
+  // 界面要把 layout.width × zoom 写进缩放占位盒（apps/web/src/studio/ViewerControls.tsx 那条投影），
+  // 那里 `ResolvedLayout.width` 声明是 number。根上写 fill 时它曾是字符串 "fill"，乘法出来是 NaN。
+  const oneChild = () => fixedShape("c", 200, 40);
+
+  it("fill 根在设计尺寸那一档撑到页面画布，且两侧都是有限数字", () => {
+    const page = verticalFrame([oneChild()], { size: { width: "fill", height: "fill" } });
+    const layout = resolveLayout(page);
+    expect(layout.width).toBe(page.width);
+    expect(layout.height).toBe(page.height);
+    // 反面对照：这一条不只是"等于 page.width"——它排掉了字符串与 NaN 两种穿过 `||` 链的形状
+    expect(Number.isFinite(layout.width)).toBe(true);
+    expect(Number.isFinite(layout.height)).toBe(true);
+    expect(layout.nodes[page.rootId]!.width).toBe(page.width);
+  });
+
+  it("hug 根仍然贴内容宽度：fill 那条分支没有把所有关键字变成画布宽", () => {
+    const page = verticalFrame([oneChild()], { size: { width: "hug", height: "hug" } });
+    const layout = resolveLayout(page);
+    expect(layout.width).toBeLessThan(page.width);
+    expect(layout.height).toBeLessThan(page.height);
+  });
+
+  it("fill 根在断点那一档由视口宽度接管，高度仍是有限数字而不是关键字", () => {
+    const page = verticalFrame([oneChild()], { size: { width: "fill", height: "fill" } });
+    const layout = resolveLayout(page, { breakpoint: "mobile" });
+    // 视口宽度压过 modelRoot：这一档的根画框就是 375
+    expect(layout.width).toBe(375);
+    expect(layout.nodes[page.rootId]!.width).toBe(375);
+    expect(layout.height).toBe(page.height);
+    expect(Number.isFinite(layout.height)).toBe(true);
+  });
 });
 
 describe("hitTest", () => {

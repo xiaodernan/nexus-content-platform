@@ -9,6 +9,13 @@ import { currentUserOrNull } from '@/server/domain/session';
 import { assetContextFor, publicAssetUrl } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
 import { stateStyleSheetFor } from '@/studio/state-styles';
+import { ViewerControls } from '@/studio/ViewerControls';
+import {
+  breakpointFromParam,
+  keepViewerParams,
+  zoomFromParam,
+  type ViewerQuery,
+} from '@/studio/viewer-params';
 import { ReportControl } from './ReportControl';
 import { PublicationActions } from './PublicationActions';
 import { VisitMeter } from './VisitMeter';
@@ -18,7 +25,7 @@ export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ handle: string; slug: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<ViewerQuery>;
 }
 
 /** 公开的 path 由数据库里那一行给出，params 只用来拼查询串（不信任URL片段本身） */
@@ -64,7 +71,11 @@ export default async function PublishedPage({ params, searchParams }: Props) {
 
   const tokens = new TokenStore(document.tokens);
   const mode = document.activeMode ?? null;
-  const layout = resolveLayout(page, { tokens, mode });
+  // §14 / ADR-0069：访客可以按断点重解这一版。缺参数 = 设计尺寸，一个字节都不变；
+  // 传了 breakpoint 才走 applyResponsive，作者（或 AI）写的 mobile 变体这才第一次落到访客眼里。
+  const breakpoint = breakpointFromParam(query.viewport);
+  const zoom = zoomFromParam(query.zoom);
+  const layout = resolveLayout(page, { tokens, mode, breakpoint });
   // 匿名访客的图走公共资产路由：可见性由"这一版发布确实引用了它"决定（§57）
   const assets = assetContextFor(document, (assetId) => publicAssetUrl(decodeURIComponent(handle), assetId));
   // §124 状态层只读投影（ADR-0062）：发布页与预览页同一套差量样式表
@@ -125,30 +136,40 @@ export default async function PublishedPage({ params, searchParams }: Props) {
           <PublicationActions state={actions} />
         </div>
       ) : null}
+      {/* §14 查看器控件（ADR-0069）：与 /preview 同一排、同一套参数名 */}
+      <ViewerControls base={publication.path} query={query} page={page} breakpoint={breakpoint} zoom={zoom} width={layout.width} height={layout.height} />
       <div className="w-full overflow-x-auto p-[var(--nexus-space-4)]">
+        {/* 缩放用 transform，版式盒不会跟着缩：外面这一层按缩后的尺寸占位，
+            否则"缩小看全"了画面，页面还是照旧横向平移 1082px（第十三片量到的就是这个） */}
         <div
-          data-published-frame
-          style={{
-            position: 'relative',
-            width: layout.width,
-            height: layout.height,
-            margin: '0 auto',
-            background: typeof page.backgroundColor === 'string' ? page.backgroundColor : undefined,
-            boxShadow: '0 0 0 1px var(--nexus-color-border-subtle)',
-          }}
+          data-published-scale-box
+          style={{ width: layout.width * zoom, height: layout.height * zoom, margin: '0 auto' }}
         >
-          {stateSheet ? <style data-nexus-states>{stateSheet}</style> : null}
-          {layout.paintOrder.map((id) => {
-            const resolved = layout.nodes[id];
-            if (!resolved) return null;
-            return (
-              <div key={id} data-node-id={id} data-node-type={resolved.node.type} style={nodeStyle(resolved, { tokens, mode, assets })}>
-                {resolved.node.text ?? null}
-              </div>
-            );
-          })}
-          {/* 热点盖在画面最上层：命中区就是模型说那个节点在哪，不量 DOM、不猜形状 */}
-          <InteractiveHotspots path={publication.path} hotspots={hotspots} />
+          <div
+            data-published-frame
+            style={{
+              position: 'relative',
+              width: layout.width,
+              height: layout.height,
+              transform: zoom === 1 ? undefined : `scale(${zoom})`,
+              transformOrigin: 'top left',
+              background: typeof page.backgroundColor === 'string' ? page.backgroundColor : undefined,
+              boxShadow: '0 0 0 1px var(--nexus-color-border-subtle)',
+            }}
+          >
+            {stateSheet ? <style data-nexus-states>{stateSheet}</style> : null}
+            {layout.paintOrder.map((id) => {
+              const resolved = layout.nodes[id];
+              if (!resolved) return null;
+              return (
+                <div key={id} data-node-id={id} data-node-type={resolved.node.type} style={nodeStyle(resolved, { tokens, mode, assets })}>
+                  {resolved.node.text ?? null}
+                </div>
+              );
+            })}
+            {/* 热点盖在画面最上层：命中区就是模型说那个节点在哪，不量 DOM、不猜形状 */}
+            <InteractiveHotspots path={publication.path} hotspots={hotspots} keepParams={keepViewerParams(query)} />
+          </div>
         </div>
       </div>
       {/* §167：这一版跑的是哪一段互动，写在页面上而不是只留在注释里。

@@ -63,7 +63,9 @@
       五张 × 两栏，读数在 `docs/EVALUATION.md`：帧宽全 1440、390 下要平移 1082px、首屏可见 27%、
       `a[data-action-author]` 56×21。**还欠的是那两半**：① `resolveLayout` 没传 `breakpoint`，作者的
       mobile 变体在发布时被丢掉；② 投影要不要按访客视口缩放（`/preview` 已有 `?zoom=` 的先例）。
-      改完要复跑这一片，并把 Studio／发现／市场／后台的窄视口补进读数。
+      **①已还（ADR-0069，2026-10-30）**：公开页读 `?viewport=`，`resolveLayout` 第一次拿到 `breakpoint`；
+      **②的手动半边也接了** `?zoom=`（服务端 `<a>`，可收藏可分享）；**默认按访客视口自动选档仍欠**。
+      还欠：复跑这一片，并把 Studio／发现／市场／后台的窄视口补进读数。
 - [~] **对账门盖住了哪些规则**（第十五片 notMeasured 第 3 条）：**换了一种做法并已进门**——
       `sim-parity.test.ts` 里给逐帧对账配了规则清单（`SIM_RULES` 34 条 + `RPG_RULES` 10 条，
       谓词读 `ReplayTrace.history` 那段逐帧账本），任何一条没人踩过就红；配 24 + 4 串输入线，
@@ -7610,3 +7612,46 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
 
 - 只有"当前"一档：不能指定某条分支看（`?branch=<uuid>` 明确 400，没做）。
 - 勾上时面板不提示"这条线之外还有多少条"，用户只能靠取消勾选确认自己漏看了什么。
+
+## §14 × §85 第十六片：访客那一边的视口与缩放——公开页接上 ADR-0069（2026-10-30）
+
+需求原文（§14「用户可以在 Canvas 中切换 viewport」／§85 第十三片 notMeasured ①②）。第十三片量到的原始事实：
+公开页把发布快照按设计尺寸铺进 `overflow-x-auto`，390 宽下首屏只见 **27%**、要横向平移 **1082px**，
+而**访客自己没有任何办法改变这件事**——`?viewport=` / `?zoom=` 当时只有作者侧 `/preview` 有半条。
+决策与取舍写在 `docs/adr/0069-public-viewer-viewport-and-zoom.md`。
+
+**落点**
+
+- `apps/web/src/studio/viewer-params.ts`（新）：一套参数名 + 纯函数。断点宽度一律取模型的
+  `BREAKPOINT_WIDTH`（界面不再复制一份会过期的断点表）；`zoomFromParam` 把合法值夹进 `[0.25, 1]`、
+  读不出数字/0/负数回 1；`viewerHref` 改一项带其余（翻页、换断点、缩放互不重置）；
+  `liveBreakpoints` 回答"这一页上哪几档真的会改变投影"。
+- `apps/web/src/studio/ViewerControls.tsx`（新）：公开页与 `/preview` **共用**的服务端 `<a>` 控件行。
+  证明不了会变的空按钮不摆（§159），访客正在看的那一档例外；目标全部 ≥24×24（WCAG 2.5.8）。
+- `app/n/[handle]/[slug]/page.tsx`：`resolveLayout` 第一次拿到 `breakpoint`（作者的 mobile 变体这才第一次
+  落到访客眼里）；缩放走 `transform: scale()`，外面套一层按**缩后尺寸**占位的 `data-published-scale-box`
+  ——只有 transform 没有占位盒，画面缩了页面照样横向平移一整屏；翻页热点带 `keepParams`。
+- `app/preview/[projectId]/page.tsx`：改用同一排控件、同一套参数名。
+- `packages/design-model/src/layout.ts`：根画框写 `fill`/`hug` 时 `ResolvedLayout.width` 曾被写成关键字字符串，
+  `width * zoom` 得 NaN；`runLayout` 用 `rootAxis` 解成数字（`fill` → 可用宽、`hug` → 内容实测、数字 → 原值）。
+
+**凭证**
+
+- `viewer-params` + `layout` 单测 **42 passed**；`packages/design-model` 全量 **384 passed / 32 文件**。
+- `e2e/viewer-breakpoint.spec.ts`（390×844 手机仿真，腿 A–I）**2 passed（26.0s）**：缺参数一个字节不变、
+  mobile 真的重解到 375 且规则生效、非法值降级、缩放同时钉住**布局宽**与**视觉宽**、两参数叠加、翻页带取景框、
+  空按钮不摆、24px 下限；作者侧 `/preview` 同一排控件一并走通。
+- 类型三处（design-model / web / e2e）exit 0；改动面 14 文件 eslint 0。
+- 读数一则（同一次 e2e 打印）：设计宽 1440、不缩放需平移 1082px（视觉宽 1440）→ 0.25 倍时占位盒 360、
+  平移 **2px**（390 可视区里 gutter 16/16 占 2px）——残余那 2px 是容器内边距，不是画面露在外面，
+  见证按这条算术断言而不是 `toBe(0)`。
+
+**仍欠**
+
+- **自动那一半**：默认仍是设计尺寸 + 原大，首屏 27% 没有被这一片自动改掉；访客要自己点一次「手机 375」。
+  补它需要服务端"按访客视口解一次"，届时 ADR-0069 要改成"默认按视口、显式参数覆盖"。
+- **作者写规则的那一格**：Properties 面板只有"读取"（会显示「tablet 下为 W×H」），Studio 的 viewport 切换
+  不写规则。没有规则可写时，四档按钮对多数已发布作品仍是同一张画——下一寸该补这个入口，而不是自动适配。
+- 移动端体检那条 `[~]` 仍欠复跑：Studio／发现／市场／后台的窄视口没进读数。
+- 测量会污染读数：`recordView` 每次 SSR 加载给 `publishedProjects.views` +1 且不去重，夹具账号与项目固定，
+  那些"浏览"不是真人。
