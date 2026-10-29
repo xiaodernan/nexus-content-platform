@@ -44,7 +44,12 @@
 //      by id, a save replaces in place and appends a new one, an id it does not hold is refused by
 //      name, a hand-edited document the MODEL refuses is refused on read, and an unreadable store is
 //      never overwritten;
-//   §13 HEAD is byte-identical: everything ran in memory.
+//   §13 the REMIX LIBRARY (v548) reads forks back OUT of the documents a store holds: a document with no
+//      readable lineage is not a fork, a fork names its own id, its source and its instant, the store's
+//      order is kept (never re-sorted by an instant this model did not read), a source the shelf still
+//      lists resolves its title while a source it no longer lists is still reported — and a half-written
+//      lineage (a source with no instant, which no writer here can produce) is not a lineage at all;
+//   §14 HEAD is byte-identical: everything ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/credits-proof.mjs
 
@@ -57,7 +62,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import { execFileSync } from '../lib/syncproc.mjs';
 
 const REPO = process.cwd();
-const MODULES = ['credits', 'templateCatalog', 'catalogStore', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy', 'lineage', 'designStore'];
+const MODULES = ['credits', 'templateCatalog', 'catalogStore', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy', 'lineage', 'designStore', 'remixLibrary'];
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 
@@ -93,6 +98,7 @@ try {
   const refundPolicy = await import(pathToFileURL(join(libDir, 'refundPolicy.mjs')).href);
   const lineage = await import(pathToFileURL(join(libDir, 'lineage.mjs')).href);
   const designStore = await import(pathToFileURL(join(libDir, 'designStore.mjs')).href);
+  const remixLibrary = await import(pathToFileURL(join(libDir, 'remixLibrary.mjs')).href);
 
   // Sanity: the real modules were imported, not re-implemented here.
   for (const [name, mod, fn] of [
@@ -110,6 +116,7 @@ try {
     ['refundPolicy', refundPolicy, 'refundEligibility'],
     ['lineage', lineage, 'readRemixedFrom'],
     ['designStore', designStore, 'loadDesigns'],
+    ['remixLibrary', remixLibrary, 'forksOf'],
   ]) {
     assert.equal(typeof mod[fn], 'function', `${name}.${fn} was not imported — the module was not run`);
   }
@@ -675,12 +682,69 @@ try {
 
   console.log(`  an absent key read as EMPTY; one design round-tripped by id (${draftDoc.id}) and format 1 was written; a save replaced in place and appended (${allDesigns.documents.map((doc) => doc.id).join(', ')}); an unknown id, a hand-edited document and an unreadable store were all refused by name`);
 
+  // ── §13 the REMIX LIBRARY reads forks out of the documents a store holds ──────────────────────────
+  console.log('§13 the remix library reads forks out of the documents a store holds');
+  const libraryListing = { id: 'tpl-harbour', title: 'Harbour Landing', description: 'a landing page', authorId: 'authorA', priceCents: 500, category: 'landing', tags: ['landing'], documentId: 'doc-harbour', createdAt: 1 };
+  const libraryShelf = catalogMod.addTemplate(catalogMod.emptyTemplateCatalog(), libraryListing);
+  assert.equal(libraryShelf.ok, true, `the library shelf could not be built: ${libraryShelf.reason}`);
+
+  // A DOCUMENT WITH NO LINEAGE IS NOT A FORK. The library reads the documents themselves — there is no
+  // second list that could disagree — so a plain draft is simply absent from it.
+  assert.deepEqual(remixLibrary.forksOf([secondDraft], libraryShelf.catalog), [], 'a plain draft was counted as a fork');
+
+  // A fork is a stored document carrying BOTH halves of the reservation, and the shelf resolves its source.
+  const forkAt = '2026-10-29T00:00:00.000Z';
+  const forkDoc = lineage.stampLineage(createEmptyDocument('Harbour Landing (remix)'), 'tpl-harbour', forkAt);
+  const forkRows = remixLibrary.forksOf([secondDraft, forkDoc], libraryShelf.catalog);
+  assert.equal(forkRows.length, 1, 'the fork was not read as exactly one row');
+  assert.deepEqual(forkRows[0], {
+    documentId: forkDoc.id,
+    name: 'Harbour Landing (remix)',
+    sourceProjectId: 'tpl-harbour',
+    remixedAt: forkAt,
+    sourceTitle: 'Harbour Landing',
+  }, 'the fork row did not name its own document, its source, its instant and the shelf title');
+
+  // The STORE ORDER is kept: a later fork stamped EARLIER is still second, because this model does not
+  // read a clock and a sort by `remixedAt` would be a chronology it invented.
+  const laterFork = lineage.stampLineage(createEmptyDocument('Later fork'), 'tpl-harbour', '2026-10-28T00:00:00.000Z');
+  assert.deepEqual(
+    remixLibrary.forksOf([forkDoc, laterFork], libraryShelf.catalog).map((row) => row.name),
+    ['Harbour Landing (remix)', 'Later fork'],
+    'the library re-sorted the store instead of reading it in order',
+  );
+
+  // A source the shelf has STOPPED listing is still reported: a take-down decides what is for sale, not
+  // what was remixed — the row survives, and only its title goes away.
+  const sourceless = remixLibrary.forksOf([forkDoc], catalogMod.emptyTemplateCatalog());
+  assert.equal(sourceless.length, 1, 'a take-down erased the fork from the library');
+  assert.equal(sourceless[0].sourceTitle, null, 'a source that is no longer listed still reported a title');
+  assert.equal(sourceless[0].sourceProjectId, 'tpl-harbour', 'the fork stopped naming the source it came from');
+
+  // A HALF-WRITTEN lineage is not a lineage: the writer refuses to make one, so the reader does not
+  // believe one — the document reads as a draft, not as a fork with a blank instant.
+  const halfLineage = { ...forkDoc, _lineage: { sourceProjectId: 'tpl-harbour' } };
+  const blankInstant = { ...forkDoc, _lineage: { sourceProjectId: 'tpl-harbour', remixedAt: '' } };
+  assert.deepEqual(remixLibrary.forksOf([halfLineage, blankInstant], libraryShelf.catalog), [], 'a half-written lineage was read as a fork');
+  assert.equal(lineage.readLineage(halfLineage), null, 'the full record believed a source with no instant');
+  assert.deepEqual(lineage.readLineage(forkDoc), { sourceProjectId: 'tpl-harbour', remixedAt: forkAt }, 'the full record did not read both halves back');
+
+  // And the sentence a surface prints says WHICH of the two it is.
+  assert.equal(
+    remixLibrary.forkLine(forkRows[0]),
+    `"Harbour Landing (remix)" ← tpl-harbour ("Harbour Landing") · remixed ${forkAt} · doc ${forkDoc.id}`,
+    'the fork line did not name the resolved source',
+  );
+  assert.match(remixLibrary.forkLine(sourceless[0]), /tpl-harbour \(no longer listed\)/);
+
+  console.log(`  a draft was not a fork; the fork named its own document (${forkDoc.id}), its source and the shelf title; the store's order survived an earlier instant; a source the shelf no longer lists was still reported (${sourceless[0].sourceProjectId}) with no title; a half-written lineage was not believed`);
+
 } finally {
   rmSync(box, { recursive: true, force: true });
 }
 
-// ── §13 HEAD is byte-identical ────────────────────────────────────────────────────────────────────
+// ── §14 HEAD is byte-identical ────────────────────────────────────────────────────────────────────
 const after = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(after, head, 'the repository HEAD moved while the proof ran');
-console.log(`§13 HEAD unchanged (${head.slice(0, 12)})`);
+console.log(`§14 HEAD unchanged (${head.slice(0, 12)})`);
 console.log('ALL SECTIONS PASSED');

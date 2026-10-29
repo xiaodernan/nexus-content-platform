@@ -42,6 +42,9 @@
  *      `documentId` names, so after buying the published draft the row grows a Remix action, the fork
  *      names its source and its node count, and a reload still holds the source — a second remix mints
  *      a DIFFERENT document id;
+ *   6m. the forks are STORED (v548): the REMIXES strip lists the fork the store actually holds, it is
+ *      still there after a reload (two of them after the second remix), and taking the SOURCE down
+ *      leaves both rows in place — the one whose source is gone says "no longer listed";
  *   7. clearing writes a VALID empty ledger and the page returns to its empty state;
  *   8. no uncaught page errors, and a screenshot is written as evidence.
  *
@@ -570,9 +573,9 @@ try {
   const remixClick = await page.evaluate(
     "(() => { const b = document.querySelector('[data-credits-remix=\"tpl-local-1\"]'); if (!b) return false; b.click(); return true; })()",
   );
-  await page.waitForFunction("!!document.querySelector('[data-credits-remix-result]')", { timeout: 10000 });
+  await page.waitForFunction("!!document.querySelector('[data-credits-remix-result]') || !!document.querySelector('[data-credits-error]')", { timeout: 10000 });
   const remixed = await page.evaluate(
-    "(() => ({ note: document.querySelector('[data-credits-remix-result]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, designs: document.querySelector('[data-credits-designs]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, error: !!document.querySelector('[data-credits-error]') }))()",
+    "(() => ({ note: document.querySelector('[data-credits-remix-result]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, designs: document.querySelector('[data-credits-designs]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, forks: document.querySelectorAll('[data-credits-fork]').length, forkSource: document.querySelector('[data-credits-fork]')?.getAttribute('data-credits-fork-source') ?? null, forkText: document.querySelector('[data-credits-fork]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, wallet: document.querySelector('[data-credits-wallet]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, errorText: document.querySelector('[data-credits-error]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, error: !!document.querySelector('[data-credits-error]') }))()",
   );
   const firstForkId = /· doc (\S+) ·/.exec(remixed.note ?? '')?.[1] ?? null;
   check(
@@ -582,7 +585,12 @@ try {
       /\(owned, from tpl-local-1\)/.test(remixed.note ?? '') &&
       /"Local Draft 1 \(remix\)"/.test(remixed.note ?? '') &&
       /· 2 node\(s\)/.test(remixed.note ?? '') &&
-      /designs stored in this browser: 1/.test(remixed.designs ?? '') &&
+      /· stored$/.test(remixed.note ?? '') &&
+      // The draft AND the fork are in the design store now (v548): a fork the page reported but did not
+      // keep would leave the count at one and the REMIXES strip empty.
+      /designs stored in this browser: 2/.test(remixed.designs ?? '') &&
+      remixed.forks === 1 && remixed.forkSource === 'tpl-local-1' &&
+      /"Local Draft 1 \(remix\)" ← tpl-local-1 \("Local Draft 1"\) · remixed \S+ · doc \S+/.test(remixed.forkText ?? '') &&
       /balance: 700 credits/.test(remixed.wallet ?? '') && remixed.error === false,
     JSON.stringify(remixed),
   );
@@ -594,19 +602,45 @@ try {
   await page.navigate(`${URL_BASE}/credits`, { waitForSelector: '#nexus-credits' });
   await page.waitForFunction("!!document.querySelector('[data-credits-remix=\"tpl-local-1\"]')", { timeout: 20000 });
   const afterRemixReload = await page.evaluate(
-    "(() => ({ designs: document.querySelector('[data-credits-designs]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, rows: document.querySelectorAll('[data-credits-listing]').length }))()",
+    "(() => ({ designs: document.querySelector('[data-credits-designs]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null, forks: document.querySelectorAll('[data-credits-fork]').length, rows: document.querySelectorAll('[data-credits-listing]').length }))()",
   );
   await page.evaluate("(() => { const b = document.querySelector('[data-credits-remix=\"tpl-local-1\"]'); if (!b) return false; b.click(); return true; })()");
-  await page.waitForFunction("!!document.querySelector('[data-credits-remix-result]')", { timeout: 10000 });
+  await page.waitForFunction("!!document.querySelector('[data-credits-remix-result]') || !!document.querySelector('[data-credits-error]')", { timeout: 10000 });
   const remixedAgain = await page.evaluate(
     "(() => document.querySelector('[data-credits-remix-result]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null)()",
   );
   const secondForkId = /· doc (\S+) ·/.exec(remixedAgain ?? '')?.[1] ?? null;
   check(
     'the SOURCE design survives a reload, and a second remix forks a DIFFERENT document — a fresh id, not a replayed string',
-    /designs stored in this browser: 1/.test(afterRemixReload.designs ?? '') && afterRemixReload.rows === 1 &&
+    /designs stored in this browser: 2/.test(afterRemixReload.designs ?? '') && afterRemixReload.forks === 1 &&
+      afterRemixReload.rows === 1 &&
       firstForkId !== null && secondForkId !== null && secondForkId !== firstForkId,
     JSON.stringify({ afterRemixReload, remixedAgain, firstForkId, secondForkId }),
+  );
+
+  // 6m. THE FORK IS A PROJECT, NOT A NOTE (v548). v547 reported it in a line a reload forgot. The store
+  // now holds it, so the REMIXES strip lists it — and BOTH forks survive a reload. Then the source is
+  // taken down: the shelf forgets the listing, and the forks stay, the now-sourceless rows saying so.
+  const forksBeforeRetire = await page.evaluate(
+    "(() => ({ forks: document.querySelectorAll('[data-credits-fork]').length, ids: Array.from(document.querySelectorAll('[data-credits-fork]')).map((el) => el.getAttribute('data-credits-fork')), listed: Array.from(document.querySelectorAll('[data-credits-fork]')).map((el) => el.getAttribute('data-credits-fork-listed')) }))()",
+  );
+  const retireSource = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-credits-retire=\"tpl-local-1\"]'); if (!b) return false; b.click(); return true; })()",
+  );
+  await sleep(300);
+  const forksAfterRetire = await page.evaluate(
+    "(() => ({ forks: document.querySelectorAll('[data-credits-fork]').length, listed: Array.from(document.querySelectorAll('[data-credits-fork]')).map((el) => el.getAttribute('data-credits-fork-listed')), text: Array.from(document.querySelectorAll('[data-credits-fork]')).map((el) => el.innerText.replace(/\\s+/g, ' ').trim()), error: !!document.querySelector('[data-credits-error]') }))()",
+  );
+  check(
+    'the FORKS are stored, not reported (v548): both survive the reload, and taking the SOURCE down leaves the rows — now saying "no longer listed" — in place',
+    forksBeforeRetire.forks === 2 &&
+      forksBeforeRetire.ids.includes(firstForkId) && forksBeforeRetire.ids.includes(secondForkId) &&
+      forksBeforeRetire.listed.every((flag) => flag === 'true') &&
+      retireSource === true && forksAfterRetire.forks === 2 &&
+      forksAfterRetire.listed.every((flag) => flag === 'false') &&
+      forksAfterRetire.text.every((line) => /tpl-local-1 \(no longer listed\)/.test(line)) &&
+      forksAfterRetire.error === false,
+    JSON.stringify({ forksBeforeRetire, forksAfterRetire, retireSource, firstForkId, secondForkId }),
   );
 
   // 7. clearing writes a valid empty ledger and returns the page to its empty state.

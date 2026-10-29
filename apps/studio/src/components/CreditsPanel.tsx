@@ -1,5 +1,5 @@
 'use client';
-import { createEmptyDocument } from '@nexus/design-model';
+import { createEmptyDocument, type DesignDocument } from '@nexus/design-model';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { buildCreatorDashboard, creatorDashboardLine } from '@/lib/creatorDashboard';
@@ -7,10 +7,11 @@ import { heldRefsOf, type CreditLedger } from '@/lib/credits';
 import { buildDemoCreditsScene } from '@/lib/creditsDemo';
 import { loadCatalog, saveCatalog } from '@/lib/catalogStore';
 import { loadCredits, saveCredits } from '@/lib/creditsStore';
-import { loadDesign, loadDesigns, saveDesign, saveDesigns } from '@/lib/designStore';
+import { loadDesigns, saveDesign, saveDesigns } from '@/lib/designStore';
 import { purchaseTemplate } from '@/lib/marketplace';
 import { priceText, type PriceCents } from '@/lib/monetization';
 import { publishListing } from '@/lib/publish';
+import { forkLine, forksOf } from '@/lib/remixLibrary';
 import {
   describeRefundPolicy,
   NO_REFUND_DEADLINE,
@@ -62,12 +63,13 @@ export default function CreditsPanel() {
    */
   const [withdrawn, setWithdrawn] = useState<TemplateListing[]>([]);
   /**
-   * The DESIGNS this browser stores (v547), by document id. A listing names a `documentId`, and until
-   * the design store existed that id pointed at NOTHING a page could open — so the remix handoff had no
-   * source to fork. Only the ids are held here; the bytes are read when a remix actually needs them, so
-   * the page cannot offer a remix of a design it would then fail to load.
+   * The DESIGNS this browser stores (v547), by document. A listing names a `documentId`, and until the
+   * design store existed that id pointed at NOTHING a page could open — so the remix handoff had no
+   * source to fork. The DOCUMENTS are held here, not just their ids (v548): the remix library is a
+   * reading of the documents themselves, and a fork is appended to this state only after the store has
+   * accepted it, so the list can never show a fork a reload would forget.
    */
-  const [designIds, setDesignIds] = useState<string[]>([]);
+  const [designs, setDesigns] = useState<DesignDocument[]>([]);
   /** The last remix this page made, stated beside the store. Host state, not a record. */
   const [remixNote, setRemixNote] = useState<string | null>(null);
   const [ledger, setLedger] = useState<CreditLedger | null>(null);
@@ -131,7 +133,7 @@ export default function CreditsPanel() {
       // because a page that offered nothing to remix while holding unreadable work would be lying.
       const designs = loadDesigns(window.localStorage);
       if (!designs.ok) { setError(designs.reason); return; }
-      setDesignIds(designs.documents.map((document) => document.id));
+      setDesigns(designs.documents);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -166,7 +168,7 @@ export default function CreditsPanel() {
       setLedger({ entries: [] });
       setCatalog(emptyTemplateCatalog());
       setWithdrawn([]);
-      setDesignIds([]);
+      setDesigns([]);
       setRemixNote(null);
       setSource('stored');
       setError(null);
@@ -311,31 +313,35 @@ export default function CreditsPanel() {
     const saved = saveCatalog(window.localStorage, decision.catalog, withdrawn);
     if (!saved.ok) { setError(saved.reason); return; }
     setCatalog(decision.catalog);
-    setDesignIds((ids) => (ids.includes(draft.id) ? ids : [...ids, draft.id]));
+    setDesigns((docs) => [...docs, draft]);
     setRemixNote(null);
     setError(null);
   }, [catalog, withdrawn, scene]);
 
   /**
-   * REMIX a listing this viewer may fork (v547): the marketplace handoff's first producer. The SOURCE is
-   * the document the local design store keeps under the listing's `documentId`, and the fork is stamped
-   * with the template it came from. The fork is REPORTED, not stored: this page hosts no project library,
-   * and a project it cannot open would be storage pretending to be a feature (§60, ADR 0019).
+   * REMIX a listing this viewer may fork (v547/v548): the marketplace handoff's first producer. The SOURCE
+   * is the document the local design store keeps under the listing's `documentId`, and the fork is stamped
+   * with the template it came from. The fork is then STORED (v548): v547 reported it and let a reload forget
+   * it, which made the remix a demonstration rather than a project. It is written THROUGH `saveDesign`
+   * before it is rendered, so the REMIXES strip below the store lists exactly what a reload will read.
    */
   const onRemix = useCallback((listing: TemplateListing) => {
     if (!ledger) return;
-    const sourceDoc = loadDesign(window.localStorage, listing.documentId);
-    if (!sourceDoc.ok) { setError(sourceDoc.reason); return; }
-    const forked = remixTemplateToProject(sourceDoc.document, catalog, ledger, scene.viewerId, listing.id, {
+    const sourceDoc = designs.find((document) => document.id === listing.documentId);
+    if (!sourceDoc) { setError(`no design with id "${listing.documentId}" is stored in this browser`); return; }
+    const forked = remixTemplateToProject(sourceDoc, catalog, ledger, scene.viewerId, listing.id, {
       // The HOST supplies the instant (ADR 0010); the model never reads a clock.
       remixedAt: new Date().toISOString(),
       name: `${listing.title} (remix)`,
     });
     if (!forked.ok) { setError(forked.reason); return; }
+    const saved = saveDesign(window.localStorage, forked.document);
+    if (!saved.ok) { setError(saved.reason); return; }
+    setDesigns((docs) => [...docs, forked.document]);
     const nodes = Object.keys(forked.document.nodes).length;
-    setRemixNote(`remixed "${listing.title}" (${forked.basis}, from ${listing.id}) -> "${forked.document.name}" · doc ${forked.document.id} · ${nodes} node(s)`);
+    setRemixNote(`remixed "${listing.title}" (${forked.basis}, from ${listing.id}) -> "${forked.document.name}" · doc ${forked.document.id} · ${nodes} node(s) · stored`);
     setError(null);
-  }, [catalog, ledger, scene]);
+  }, [catalog, designs, ledger, scene]);
 
   const wallet = ledger ? buildWalletView(catalog, ledger, scene.viewerId) : null;
   // "Still to buy" = the marketplace's affordability gate MINUS what is already owned. The model
@@ -363,6 +369,9 @@ export default function CreditsPanel() {
   // shelf forgot it — so a retire can never hide a purchase, or the Refund door that reverses it.
   const rows = ledger ? storeRows(catalog, ledger, scene.viewerId) : [];
   const retiredRows = rows.filter((row) => !row.listed).length;
+  // The forks this browser's design store already HOLDS (v548): each one naming its source and whether
+  // the shelf still lists it. Derived from the documents, never from a second list that could drift.
+  const forks = forksOf(designs, catalog);
   const empty = !ledger || source === 'empty' || ledger.entries.length === 0;
 
   return (
@@ -384,7 +393,9 @@ export default function CreditsPanel() {
         template appends a real two-entry transaction to that LOCAL ledger; refunding reverses the
         recorded purchase; retiring withdraws the listing from that LOCAL shelf and REMEMBERS it (v542),
         so it can be put back or discarded — even after a reload; publishing keeps the design it built
-        (v547), so the buy-and-remix loop forks a real document. All of it spends demo credits, not money.
+        (v547), so the buy-and-remix loop forks a real document, and the fork itself is STORED in that same
+        design store (v548), so the REMIXES strip below lists projects a reload can still find. All of it
+        spends demo credits, not money.
       </div>
 
       {error && (
@@ -534,7 +545,7 @@ export default function CreditsPanel() {
               "the source is here", stated rather than implied by which buttons happen to appear.
             */}
             <div data-credits-designs style={{ color: 'var(--nexus-muted)', marginTop: 4 }}>
-              designs stored in this browser: {designIds.length}
+              designs stored in this browser: {designs.length}
             </div>
             {remixNote && (
               <div data-credits-remix-result style={{ marginTop: 4 }}>
@@ -566,7 +577,7 @@ export default function CreditsPanel() {
                   // The REMIX door (v547) exists only where BOTH facts hold: the ledger grants the right
                   // (free, or held by a recorded purchase) AND this browser holds the source design. A
                   // button that always answered "not stored" would be a lie about what the page can do.
-                  const canRemix = !!listing && !!ledger && designIds.includes(listing.documentId) &&
+                  const canRemix = !!listing && !!ledger && designs.some((document) => document.id === listing.documentId) &&
                     remixRightFor(catalog, ledger, scene.viewerId, listing.id).ok;
                   // A retired row was BOUGHT by definition (that is why the record still shows it), so
                   // its price is no longer on the shelf to read; the refund door follows the HOLD, not a
@@ -670,6 +681,33 @@ export default function CreditsPanel() {
               </tbody>
             </table>
           </section>
+
+          {/*
+            THE REMIX LIBRARY (v548). v547 stored the documents a listing names and stamped each fork with
+            its source, then reported the fork in a note a reload forgot. This strip is the forks those
+            documents ACTUALLY carry — read back out of the store through `forksOf`, not from the note — so
+            a remix survives a reload as a project the browser holds, and a take-down of the source is
+            stated ("no longer listed") instead of quietly taking the fork with it.
+          */}
+          {forks.length > 0 && (
+            <section data-credits-forks style={{ border: '1px solid var(--nexus-border)', padding: 12 }}>
+              <strong>REMIXES · {forks.length} fork(s) in this browser&apos;s design store</strong>
+              <div style={{ color: 'var(--nexus-muted)', marginTop: 4 }}>
+                Each row is a stored document carrying a lineage: what it is, where it came from, when.
+              </div>
+              {forks.map((row) => (
+                <div
+                  key={row.documentId}
+                  data-credits-fork={row.documentId}
+                  data-credits-fork-source={row.sourceProjectId}
+                  data-credits-fork-listed={row.sourceTitle === null ? 'false' : 'true'}
+                  style={{ marginTop: 6 }}
+                >
+                  {forkLine(row)}
+                </div>
+              ))}
+            </section>
+          )}
         </div>
       )}
 

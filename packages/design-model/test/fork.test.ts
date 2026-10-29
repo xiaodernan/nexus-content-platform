@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createEmptyDocument, forkDocument, rectNode, type DesignDocument } from '../src/index.js';
+import { createEmptyDocument, forkDocument, rectNode, validateDocument, type DesignDocument } from '../src/index.js';
 
 /** A document with one real child on its page, so "the graph is preserved" is a claim with content. */
 function withRect(): DesignDocument {
@@ -32,6 +32,30 @@ describe('forkDocument (M7 v233)', () => {
     forkDocument(src);
     expect(JSON.stringify(src)).toBe(before);
     expect(src.nodes[src.rootId]?.id).toBe(src.rootId);
+  });
+
+  /**
+   * v548 — the bug the first SAVED fork found: renaming the root alone left each page's `parentId` naming a
+   * node the fork no longer holds, so `validateDocument` refused every fork this function made. Nothing had
+   * written one to a store before, which is why four versions stayed green.
+   */
+  it('moves the ROOT\'S CHILDREN with it, so the fork is a document the model accepts', () => {
+    const src = withRect();
+    const fork = forkDocument(src);
+    const page = fork.nodes[fork.activePageId]!;
+    expect(page.parentId).toBe(fork.rootId);
+    expect(page.parentId).not.toBe(src.rootId);
+    // The deeper subtree is untouched: its parent is the PAGE, whose id did not change.
+    expect(fork.nodes['r1']?.parentId).toBe(fork.activePageId);
+    const verdict = validateDocument(fork);
+    expect(verdict.ok, verdict.ok ? '' : verdict.problems.map((problem) => problem.detail).join('; ')).toBe(true);
+  });
+
+  it('still accepts the SOURCE it forked from — re-parenting happens on a copy, never in place', () => {
+    const src = withRect();
+    forkDocument(src);
+    expect(src.nodes[src.activePageId]?.parentId).toBe(src.rootId);
+    expect(validateDocument(src).ok).toBe(true);
   });
 
   it('defaults the name to "<name> (remix)" and honours an explicit name', () => {

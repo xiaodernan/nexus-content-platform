@@ -194,6 +194,13 @@ export function createEmptyDocument(name = 'Untitled Project'): DesignDocument {
  * as they are — they are document-scoped, so reusing them across documents collides with nothing, and
  * rewriting every node id would rewrite every `parentId`/`childIds` reference for no gain.
  *
+ * **v548 — and the ROOT'S OWN CHILDREN move with it.** Renaming the root alone left every node whose
+ * `parentId` named the OLD root pointing at a node the fork does not hold — the page(s) themselves — so
+ * `validateDocument` refused EVERY fork this function produced ("names parentId …, which is not in
+ * nodes"). Nothing had saved one until v548 stored a remix, which is how a bug four versions old stayed
+ * green: the only caller reported the fork instead of writing it. The children that answered to the old
+ * root now answer to the new one, and no other node is touched (deeper nodes still share their objects).
+ *
  * Pure and total: it never mutates its input, and it THROWS (rather than inventing a root) when the document
  * names a `rootId` its own `nodes` do not hold — a document that cannot be forked is a fact, not a blank.
  */
@@ -201,8 +208,13 @@ export function forkDocument(doc: DesignDocument, name?: string): DesignDocument
   const root = doc.nodes[doc.rootId];
   if (!root) throw new Error(`forkDocument: the document names rootId ${doc.rootId}, which is not in its nodes`);
   const rootId = newId('doc');
-  const nodes: Record<NexusId, DesignNode> = { ...doc.nodes };
-  delete nodes[doc.rootId];
+  const nodes: Record<NexusId, DesignNode> = {};
+  for (const [id, node] of Object.entries(doc.nodes)) {
+    if (id === doc.rootId) continue;
+    // The root's direct children (a document's pages and masters) are re-parented to the new root. Every
+    // other node keeps its object, so a fork stays a shallow copy of the graph.
+    nodes[id as NexusId] = node.parentId === doc.rootId ? { ...node, parentId: rootId } : node;
+  }
   nodes[rootId] = { ...root, id: rootId };
   return { ...doc, id: rootId, rootId, nodes, name: name ?? `${doc.name} (remix)` };
 }

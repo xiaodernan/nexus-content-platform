@@ -20,12 +20,38 @@
  */
 import type { DesignDocument } from '@nexus/design-model';
 
+/** The reservation as a record: both halves, as `stampLineage` writes them. */
+export interface Lineage {
+  sourceProjectId: string;
+  remixedAt: string;
+}
+
+/**
+ * v252 — WHERE a publication came from. This is the M7 readers' contract (an EXPLORE card, the artifact
+ * page) and it answers a SOURCE alone: a publication remixed before anyone stored instants still knows
+ * what it descends from.
+ */
 export function readRemixedFrom(document: unknown): string | null {
   if (document === null || typeof document !== 'object') return null;
   const lineage = (document as Record<string, unknown>)._lineage;
   if (lineage === null || typeof lineage !== 'object') return null;
   const source = (lineage as Record<string, unknown>).sourceProjectId;
   return typeof source === 'string' && source.length > 0 ? source : null;
+}
+
+/**
+ * v548 — WHERE **and WHEN**, for the reader that lists the forks a store holds. It builds on
+ * `readRemixedFrom` rather than re-checking the source (one guard chain per field), and adds the instant
+ * the writer also demands: `stampLineage` refuses a blank source OR a blank instant, so bytes carrying a
+ * source and no date were written by nothing in this system. A source alone still reaches a card; it is
+ * not a FORK a library can date.
+ */
+export function readLineage(document: unknown): Lineage | null {
+  const sourceProjectId = readRemixedFrom(document);
+  if (sourceProjectId === null) return null;
+  const remixedAt = ((document as Record<string, unknown>)._lineage as Record<string, unknown>).remixedAt;
+  if (typeof remixedAt !== 'string' || remixedAt.length === 0) return null;
+  return { sourceProjectId, remixedAt };
 }
 
 /**
