@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { countAdmins, listAccounts } from '@/server/domain/roles';
 import { currentUserOrNull } from '@/server/domain/session';
+import { scanGuestReclaimCandidates } from '@/server/domain/guest-reclaim';
 import { PlanSelect } from './PlanSelect';
 import { RoleButton } from './RoleButton';
+import { GuestReclaimPanel } from './GuestReclaimPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +19,11 @@ export const dynamic = 'force-dynamic';
  * 因为它是够不着的——能改别人的只有审核员，而审核员改自己被第一条挡住，
  * 所以"一个审核员都不剩"从这条路径根本进不去。写下一条不执行的规则会让人
  * 以为它在工作（§159 的反面），页面上那段说明就是把这件事讲清楚而不是假装有保护。
+ *
+ * 过期访客回收那块面板（ADR-0072）挂在同一个页面上，但它的读数是**这次渲染算的快照**：
+ * 判据里全是时间，快照挂几分钟就可能是假话，所以面板自己带「重新数一遍」。
+ * 扫描放在那两条 return 之后——非审核员连"此刻有几个沉默 guest"都不该问出来，
+ * 那是一句能被人拿来反复探测的计数。
  */
 export default async function AdminUsersPage() {
   const user = await currentUserOrNull();
@@ -39,7 +46,7 @@ export default async function AdminUsersPage() {
     );
   }
 
-  const [accounts, admins] = await Promise.all([listAccounts(200), countAdmins()]);
+  const [accounts, admins, reclaim] = await Promise.all([listAccounts(200), countAdmins(), scanGuestReclaimCandidates()]);
   return (
     <main className="mx-auto flex max-w-[980px] flex-col gap-4 px-6 py-10" data-users-root>
       <header className="flex flex-wrap items-baseline justify-between gap-3">
@@ -76,6 +83,8 @@ export default async function AdminUsersPage() {
         这是运营兜底动作，不是购买流程：没有支付、页面上不标价，改完这一档每月发的额度与存储上限跟着变，
         已经在库里的东西一样都不动（§159）。
       </p>
+
+      <GuestReclaimPanel scan={reclaim} />
 
       <ul className="flex flex-col gap-2">
         {accounts.map((account) => (

@@ -63,6 +63,9 @@ export type AccountDeletionOutcome =
   | { ok: false; code: 'already_deleted' }
   | { ok: false; code: 'approval_required'; confirmField: ConfirmField };
 
+/** `getDb().transaction()` 回调里那个事务句柄（与 `domain/projects.ts` 同一写法，不另造一套类型） */
+type AccountTx = Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0];
+
 /** 并发下有人先把这个人注销了：整个事务回滚，这次调用改口说"已经注销过了" */
 class ConcurrentlyDeleted extends Error {}
 
@@ -139,6 +142,51 @@ export async function accountDeletionSummary(userId: string): Promise<DeletionPr
 }
 
 /**
+ * ADR-0025 那六件事的**执行体**：收起私有草稿、数清留下的已发布作品、吊销全部会话与 API 令牌、
+ * 最后给 `users.deletedAt` 打时间戳。它只执行，不判定——"凭什么做这件事"永远是调用方的事：
+ * 自助注销那条路先要逐字确认串（`deleteAccount`），平台代做的那条路（过期访客回收，ADR-0072）
+ * 要的是审核员身份加一条审计。抽出来而不是复制一份，是因为两边各自漏掉一件都会留下
+ * "会话没了、人还在"那种比整个不做更糟的半截；复制的第二份尤其容易只写四件。
+ *
+ * 事务由调用方开着：批量回收要把一批人放在一个事务里（回滚就一起回滚，
+ * 界面上那句"这一轮收走了 N 个"才与库里的样子对得上）。
+ */
+export async function runAccountDeletion(tx: AccountTx, userId: string, at: Date): Promise<DeletionCounts> {
+  // 先收起私有草稿：这一步与下面的"留在原地"共用同一句判定，写序不影响两个数的和
+  const softDeleted = await tx
+    .update(projects)
+    .set({ deletedAt: at })
+    .where(unpublishedLiveProjects(userId))
+    .returning({ id: projects.id });
+  const [kept] = await tx
+    .select({ n: sql<number>`count(distinct ${publishedProjects.projectId})::int` })
+    .from(publishedProjects)
+    .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
+    .where(and(eq(projects.ownerId, userId), isNull(projects.deletedAt)));
+  // 会话只存哈希（§80），删行就是吊销；这一档是"全部"，不是登出那一个
+  const revokedSessions = await tx.delete(sessions).where(eq(sessions.userId, userId)).returning({ id: sessions.id });
+  const revokedTokens = await tx
+    .update(apiTokens)
+    .set({ revokedAt: at })
+    .where(and(eq(apiTokens.userId, userId), isNull(apiTokens.revokedAt)))
+    .returning({ id: apiTokens.id });
+  // 最后一步才写用户行，且把"还没被人注销过"写在谓词里：并发点到两次时，
+  // 后一次在这里拿到 0 行并抛出去，整个事务回滚——而不是留下"会话没了、人还在"的半截
+  const claimed = await tx
+    .update(users)
+    .set({ deletedAt: at, updatedAt: at })
+    .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+    .returning({ id: users.id });
+  if (!claimed.length) throw new ConcurrentlyDeleted();
+  return {
+    privateProjectsSoftDeleted: softDeleted.length,
+    publishedWorksKept: kept?.n ?? 0,
+    sessionsRevoked: revokedSessions.length,
+    apiTokensRevoked: revokedTokens.length,
+  };
+}
+
+/**
  * 注销这件事本身。返回的四个计数就是审计 detail 里的那四个数——
  * 读审计的人不该再去翻当时的代码才知道"到底带走了几个、留下了几个"。
  */
@@ -163,40 +211,7 @@ export async function deleteAccount(userId: string, confirmWord: string): Promis
   const at = new Date();
   let counts: DeletionCounts;
   try {
-    counts = await getDb().transaction(async (tx) => {
-      // 先收起私有草稿：这一步与下面的"留在原地"共用同一句判定，写序不影响两个数的和
-      const softDeleted = await tx
-        .update(projects)
-        .set({ deletedAt: at })
-        .where(unpublishedLiveProjects(userId))
-        .returning({ id: projects.id });
-      const [kept] = await tx
-        .select({ n: sql<number>`count(distinct ${publishedProjects.projectId})::int` })
-        .from(publishedProjects)
-        .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
-        .where(and(eq(projects.ownerId, userId), isNull(projects.deletedAt)));
-      // 会话只存哈希（§80），删行就是吊销；这一档是"全部"，不是登出那一个
-      const revokedSessions = await tx.delete(sessions).where(eq(sessions.userId, userId)).returning({ id: sessions.id });
-      const revokedTokens = await tx
-        .update(apiTokens)
-        .set({ revokedAt: at })
-        .where(and(eq(apiTokens.userId, userId), isNull(apiTokens.revokedAt)))
-        .returning({ id: apiTokens.id });
-      // 最后一步才写用户行，且把"还没被人注销过"写在谓词里：并发点到两次时，
-      // 后一次在这里拿到 0 行并抛出去，整个事务回滚——而不是留下"会话没了、人还在"的半截
-      const claimed = await tx
-        .update(users)
-        .set({ deletedAt: at, updatedAt: at })
-        .where(and(eq(users.id, userId), isNull(users.deletedAt)))
-        .returning({ id: users.id });
-      if (!claimed.length) throw new ConcurrentlyDeleted();
-      return {
-        privateProjectsSoftDeleted: softDeleted.length,
-        publishedWorksKept: kept?.n ?? 0,
-        sessionsRevoked: revokedSessions.length,
-        apiTokensRevoked: revokedTokens.length,
-      };
-    });
+    counts = await getDb().transaction((tx) => runAccountDeletion(tx, userId, at));
   } catch (error) {
     if (error instanceof ConcurrentlyDeleted) return { ok: false, code: 'already_deleted' };
     throw error;
