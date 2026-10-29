@@ -123,6 +123,12 @@ The expiry is honest about its reach: it says that a subject CHANGED, never that
 the right thing. A weakened arm that still reddens at its own clause is outside this row; the roster closure
 (every printed clause has an arm, every arm aims at a printed clause) and review are what stand there.
 
+Run `40830721516` (sha `0c03476`) is the first green build with this row: **99/99 of a derived population of
+102**, `verify:arms-freshness` **OK 0.1 s** on ubuntu — the receipt written by a Windows checkout matched the
+runner's bytes, which is the EOL-canonicalisation working — and `verify:door-kill` **OK 0.8 s** on its first
+ubuntu contact after the v542 repair. Job **10 m 01 s**, proofs step **8 m 02 s**, still far under the
+60-minute ceiling and the read-only token.
+
 ### What this does NOT claim
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
