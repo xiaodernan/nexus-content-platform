@@ -26,9 +26,21 @@
  * see `openEconomyPanel`, `panelSays` and the comments in place. The measured verdict is in the m7
  * README's v552 section; a red here still names the check and, for the economy waits, what the panel said.
  *
- * Requires: Java 25, Maven, Docker, and the repo's node_modules (for `next`). Run:
- *   node tools/harness/studio-publish.mjs
+ * v553 (ADR 0016 amendment 534) — THE ADMISSION ANSWER. This file was `tools/harness/studio-publish.mjs`
+ * for 358 versions, and the build's population is derived from `docs/evidence` alone, so the most complete
+ * proof in the repository was enforced by nobody: a human ran it, or nothing did. The reason it lived under
+ * `tools/` was never an admission decision — v194 wrote it beside the other harness probes before the runner
+ * existed. It moves here with every assertion untouched, its two helpers still under `tools/harness/` (they
+ * are machinery, not proofs) and only the paths a deeper directory requires. Its own budget is declared in
+ * the first-column comment below, because
+ * the row that takes twelve minutes is the one that should say so. What it needs is now a fact of the build
+ * and not of somebody's laptop: Docker with the pgvector image, JDK 25 + Maven, a Chrome binary, and the
+ * repository's `node_modules` — all four already present in `.github/workflows/ci.yml` for other rows.
+ *
+ * Requires: Java 25, Maven, Docker, a Chrome binary, and the repo's node_modules (for `next`). Run:
+ *   node docs/evidence/m7/studio-publish.mjs
  */
+// sweep-budget-ms: 1800000
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -36,11 +48,11 @@ import { createConnection, createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { launch } from './cdp.mjs';
-import { sweepLeftoverDatabases } from './leakSweep.mjs';
+import { launch } from '../../../tools/harness/cdp.mjs';
+import { sweepLeftoverDatabases } from '../../../tools/harness/leakSweep.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, '../..');
+const REPO_ROOT = resolve(__dirname, '../../..');
 const SERVICE_DIR = join(REPO_ROOT, 'services/nexus-api');
 const STUDIO_DIR = join(REPO_ROOT, 'apps/studio');
 const DB_IMAGE = 'pgvector/pgvector:pg16';

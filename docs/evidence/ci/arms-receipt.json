@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-10-29T18:11:41.513Z",
+  "ranAt": "2026-10-30T03:43:43.028Z",
   "arms": 42,
   "matched": 42,
   "armNames": [
@@ -392,6 +392,11 @@
       "name": "verify:publish",
       "file": "docs/evidence/m7/publish-proof.mjs",
       "marker": "// sweep-budget-ms: 900000"
+    },
+    {
+      "name": "verify:publish-e2e",
+      "file": "docs/evidence/m7/studio-publish.mjs",
+      "marker": "// sweep-budget-ms: 1800000"
     },
     {
       "name": "verify:qa",

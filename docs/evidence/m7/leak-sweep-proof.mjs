@@ -20,7 +20,7 @@ import { containersToRetire, sweepLeftoverDatabases, pidIsAlive, LEFTOVER_PREFIX
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../../..');
-const PROOF = join(REPO_ROOT, 'tools/harness/studio-publish.mjs');
+const PROOF = join(REPO_ROOT, 'docs/evidence/m7/studio-publish.mjs');
 
 /** Async spawn: `execFileSync` answers EBUSY on this host (ADR 0016 amendment 152), so nothing here is sync. */
 function runAsync(cmd, args) {
@@ -73,7 +73,10 @@ console.log(`[§1] decision table: ${cases.length} cases, all as stated — owne
 // ── §3 the wiring: the proof calls the sweep BEFORE it takes a port ───────────────────────────────────
 {
   const src = readFileSync(PROOF, 'utf8');
-  assert.ok(src.includes("from './leakSweep.mjs'"), '§3 the proof does not import the sweep, so nothing is wired');
+  // v553 — the proof moved from tools/harness to the evidence tree and its import grew a relative path, so the
+  // needle names the BINDING rather than the specifier: what must be true is that the sweep is imported, not
+  // where the helper lives this year.
+  assert.match(src, /import \{[^}]*sweepLeftoverDatabases[^}]*\} from '[^']*leakSweep\.mjs';/, '§3 the proof does not import the sweep, so nothing is wired');
   assert.ok(src.includes('await sweepLeftoverDatabases('), '§3 the proof imports the sweep but never calls it');
 
   const sweepAt = src.indexOf('await sweepLeftoverDatabases(');
