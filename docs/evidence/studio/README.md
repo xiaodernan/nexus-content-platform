@@ -89,6 +89,13 @@ this block will go red by name until they regenerate it — the gate working, no
 The measuring worktree was deliberately not the working tree, because the working tree carries other
 lanes' uncommitted cases; check mode is unchanged and still grades the tree in front of it.
 
+The repair's own hosted contact, carried: run `41107874805` (sha `004316d`, 2026-10-30; quality job
+18:33:01Z → 18:51:04Z = **18 m 3 s**, proofs step 18:35:11Z → 18:51:01Z = 15 m 50 s) read `106/106
+green of a derived population of 106 · residue named: 0` — the first fully green 106-row run.
+`verify:package-counts ... OK 53.0s` and its gutter spoke `[summary] 7 packages: 4864/4864 cases in
+261 files ...`; row 106 `verify:webhooks ... OK 23.2s` carried its first hosted verdict; `verify:arms
+... OK 121.7s` at 44 arms.
+
 ## Reproducible browser verification (ADR 0017)
 
 `tools/harness/` drives a real Chrome over the DevTools pipe — zero dependencies — and

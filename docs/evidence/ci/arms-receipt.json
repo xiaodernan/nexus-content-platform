@@ -1,9 +1,9 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-10-30T17:48:53.577Z",
-  "arms": 44,
-  "matched": 44,
+  "ranAt": "2026-10-30T20:10:36.445Z",
+  "arms": 45,
+  "matched": 45,
   "armNames": [
     "C0-control",
     "A1-trigger-loses-master",
@@ -48,13 +48,14 @@
     "R12-multiline-cause-reaches-the-log",
     "R13-stack-frames-are-not-the-cause",
     "R14-green-row-speaks-its-last-line",
-    "R15-red-row-does-not-borrow-the-gutter"
+    "R15-red-row-does-not-borrow-the-gutter",
+    "R16-gutter-is-cut-at-300-bytes"
   ],
   "subjects": {
     "workflow": "6e39ab2cb0bb78f2a2ed7e06f88085fc264ed638515708451a47415490983803",
     "gate": "1f62fecd095bb6934d2f8968199054a9cdc96e14d973d7da324122280de62d87",
-    "arms": "8b08d55f63dbbdad6ee150f333fa65080e0e472c0ec4e7bbe674b3fb6a52e2b0",
-    "runner": "4da6b420390a9b286424158339a589d0151184146ed510b9a70e162118a4a7a9",
+    "arms": "0f1526da2b7d84e5c222d5ebe50decc0ac4aac690295620a873f10b8f38fafe3",
+    "runner": "320c447b8dab4af2ae43e4f0732029507e9314b2b09cb43718a7647e463784e2",
     "sweep": "ead49485592dc696b99878ef19ba4802519f43746a55956dc9c22dd5fcdb84a9",
     "scripts": "4f13a845cd9e400b99e3de1617490e81e04721dcbdbead22b5458e555fe2bc7f",
     "rule": "d950d243b7678dda17d00f877e2a3cbdf94d7d70a1eafed0c2fb59aa06b437d1"

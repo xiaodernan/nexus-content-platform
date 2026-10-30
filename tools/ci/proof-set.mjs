@@ -32,6 +32,11 @@
 // the combined stream, because a Node warning after a summary is not the summary — bounded to 300 bytes; a red
 // row's verdict is still `causeOf` alone, and a kill has no last word.
 //
+// v565 (amendment 540) — THE BOUND IS BYTES, NOT CODE UNITS. v563's sentence said "300 bytes" while the clip
+// was `.slice(0, 300)`, which counts UTF-16 code units: a 300-unit line of four-byte characters is 1200 UTF-8
+// bytes, and slicing at unit 300 can split a surrogate pair. The clip now walks code points and stops before
+// the prefix would exceed 300 UTF-8 bytes, so the named bound is the real one and a character is never cut.
+//
 // Run from the repository root after `npm run build`:
 //   npm run verify:proofs
 //   node tools/ci/proof-set.mjs --only remix        # one row, for iteration
@@ -155,7 +160,15 @@ export const verdictOf = (s) => (s.killed ? 'TIMEOUT' : s.code === 0 ? 'OK' : 'R
  * Node ExperimentalWarning, not its ALL SECTIONS PASSED summary.
  */
 export function lastLineOf(tail) {
-  return (String(tail).split(/\r?\n/).map((l) => l.trim()).filter(Boolean).pop() || '').slice(0, 300);
+  const line = String(tail).split(/\r?\n/).map((l) => l.trim()).filter(Boolean).pop() || '';
+  // v565 — the gutter's bound is 300 BYTES because it bounds log size, so the clip counts UTF-8 bytes and
+  // walks code points; slicing UTF-16 units could cut a surrogate pair in half and overshoot the named bound.
+  let out = '';
+  for (const ch of line) {
+    if (Buffer.byteLength(out + ch) > 300) break;
+    out += ch;
+  }
+  return out;
 }
 
 /**

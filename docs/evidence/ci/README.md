@@ -10,7 +10,7 @@ footnote to the evidence tree; it is the reason the evidence tree can rot.
 ```
 npm run verify:proofs      # the build's own row: run every derived proof row, exit 1 on any RED
 npm run verify:ci-wiring   # the gate over the wiring itself (and a row inside the set it enumerates)
-npm run verify:arms        # the 44 witness arms — a row since v555
+npm run verify:arms        # the 45 witness arms — a row since v555
 ```
 
 | § | what `ci-wiring-proof.mjs` refuses |
@@ -245,6 +245,13 @@ people.
 - **What this green does not say.** The gutter prints the row's own sentence, not its checks: a proof that prints a number without asserting it still lies. It is one line per row, at most 300 bytes; a row whose verdict lives on stderr gains nothing; `verify:arms-freshness` remains the fast check for partial runs, and no row's budget or verdict changed. The hosted log's gutter lines are the first reading of what each row says about itself.
 - **A moving ref, said out loud.** This increment was drafted at `ca7d71a` (105 rows); by the time it landed, another lane had claimed amendment 537 for v556 and the webhook lane had added `verify:webhooks`, moving the census to 117 tracked / 106 rows and the ledger to amendment 537. The row was measured before that row existed (`OK 385.5s`, population 105 at its start), the receipt was then re-stamped at 106 rows by a fresh full arm run over the bytes this commit ships, and the freshness row now compares 106.
 - **First hosted contact of the gutter.** Run `41102039245` (sha `9925537`, 2026-10-30) printed **105 gutters under 106 rows**: every green row spoke one line (e.g. `| [remix-proof] ALL SECTIONS PASSED`, `| 8/8 fixture arms matched`, the arms receipt line, the census line, the wiring line), and the one red row (`verify:package-counts`, the inherited studio-row drift repaired at v564 / amendment 539) printed its verdict and cause alone — the v550 channel working. One gutter is a lone `| }` (`verify:pipeline` ends its stdout on JSON's closing brace): honest, and the reason a row that wants a quotable gutter must end by saying something.
+
+### v565 — the gutter's bound is 300 BYTES, not 300 UTF-16 units: the clip walks code points, and R16 prints 80 four-byte characters and requires exactly 75 (ADR 0016 amendment 540)
+
+- **The defect in the bound v563 shipped.** v563's sentence said "bounded to 300 bytes" while `lastLineOf` was `.slice(0, 300)`, which counts UTF-16 code units: 300 units of four-byte characters is 1200 UTF-8 bytes, and a slice at unit 300 can cut a surrogate pair in half. No row on this box prints such a line, which is exactly why the bound was never measured.
+- **What changed.** The clip walks code points and stops before the prefix would exceed 300 bytes (`Buffer.byteLength`), so the sentence is now the code and a character is never cut. ASCII rows are unaffected (300 bytes = 300 ASCII characters); a row full of `·` (2 bytes) keeps 150; a four-byte row keeps 75.
+- **R16 grades it.** The stub's last line is 80 × `U+1F642` (320 bytes); the gutter must carry exactly 75 as whole characters and no replacement character — a 76th would be 304 bytes, and a split pair would break the 75-character match. The set is now **45 arms** (25 gate incl. the control, 20 runner), and `arms-receipt.json` re-stamps 45 arms / 7 subjects / 106 rows; `verify:arms-freshness` still matches its 8 fixtures.
+- **What this does not say.** The bound is about log size, not meaning: a 300-byte gutter can still be housekeeping (`| [cleanup] throwaway repos removed`) or a lone `| }` (`verify:pipeline`'s JSON close). v563's rule stands — the runner prints what the row said, and a row that wants a quotable gutter must end by saying something.
 
 
 ### What this does NOT claim

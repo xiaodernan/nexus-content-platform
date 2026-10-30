@@ -28,6 +28,9 @@
 // 40920204170, was printed as a headline and nothing else, and the rows it named were invisible. v563 adds the
 // pair that grades the GREEN channel (amendment 538): a green row's own last line must reach the log (R14), and
 // a red row's stdout must not borrow that gutter (R15) — the hole amendment 535 named in its own bounds.
+// v565 (amendment 540) adds the arm that grades the gutter's BOUND: R14's sentence said 300 bytes while the clip
+// counted UTF-16 code units, so a line of 80 four-byte characters reached the log as 320 bytes and a slice could
+// split a surrogate pair; R16 prints 80 of them and requires exactly 75 (300 bytes) as whole characters.
 //
 // Nothing an ARM writes survives: each one gets its own plane directory, built from pristine bytes read out of
 // `SRC` (derived from THIS file's own location, not from the caller's cwd), and is removed the moment the arm
@@ -331,6 +334,15 @@ const RUNNER_ARMS = [
     tag: 'R15-red-row-does-not-borrow-the-gutter',
     bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': "console.log('R15 tail');\nconsole.error('AssertionError [ERR_ASSERTION]: R15 the stub refused');\nprocess.exit(3);\n" },
     argv: [], code: 1, has: [/── verify:stub-c RED ──/, /R15 the stub refused/], lacks: [/R15 tail/], ran: true,
+  },
+  // v565 (amendment 540) — R16 is satisfied only when the gutter is cut at 300 UTF-8 BYTES on a character
+  // boundary: the stub's last line is 80 x U+1F642 (4 bytes each = 320 bytes), so exactly 75 code points fit.
+  // One more is 304 bytes; a clip that splits the 76th surrogate pair fails the 75-character match and shows a
+  // replacement character instead.
+  {
+    tag: 'R16-gutter-is-cut-at-300-bytes',
+    bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': "console.log(String.fromCodePoint(0x1F642).repeat(80));\n" },
+    argv: [], code: 0, has: [/verify:stub-c\s+\S+ .*OK/, /^ {6}\| (?:\u{1F642}){75}$/mu, ALL_GREEN], lacks: [/\uFFFD/], ran: true,
   },
 ];
 
