@@ -17,6 +17,26 @@ A **receipt** names what was recorded — id, title, version, instant, URL — a
 the document back: the caller just sent it, and a receipt that repeats a large payload grows with the
 document. A **read** does carry the document, because that is what reading a publication is for.
 
+The table above is the v193 PUBLISH slice only. Later slices have their own packages under
+`src/main/java/dev/nexus/api/` (`search`, `social`, `moderation`, `ops`, and `webhooks` below), each with
+doors of its own; this README names them by package rather than keeping a second, drifting table.
+
+## Webhooks — the first outbound contract (M10 v557, ADR 0021)
+
+| method | path | answer |
+| --- | --- | --- |
+| `POST` | `/webhooks` | `201` + the subscription, **and its secret** — the one answer that carries it |
+| `GET` | `/webhooks?subscriber=&limit=&offset=` | `200` + the subscriber's subscriptions; **no secret field at all** |
+| `DELETE` | `/webhooks/{webhookId}?subscriber=` | `200` + `{ removed }` — `false` when the id names nothing; `403` when it is another owner's |
+
+A subscription is a RECORD of an instruction: `{subscriberId, url, events[]}` in, and
+`{id, url, events[], createdAt, secret, note}` out. The secret is 32 `SecureRandom` bytes as lowercase hex,
+minted here and shown once; every future delivery will carry `Nexus-Signature: t=<epoch seconds>,v1=<hmac>`
+computed over `<timestamp>.<body>` (HMAC-SHA256), verified with a constant-time compare inside a bounded
+window (default 5 minutes). **Bounds:** nothing POSTs yet — the dispatcher is the next slice — and a DNS name
+that resolves to a private address is accepted at subscription time because that check belongs to the
+dispatcher.
+
 The `url` is built from the request that asked (`ServletUriComponentsBuilder`), so it names an address that
 actually serves the publication rather than a configured "public base" that could point at nothing.
 

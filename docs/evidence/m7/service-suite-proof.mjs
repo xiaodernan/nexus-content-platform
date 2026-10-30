@@ -21,8 +21,10 @@
 //
 // v547 (ADR 0016 amendment 530): this is a BUILD ROW now, and it declares its own budget. The Maven call
 // below is allowed 900 s; a 240 s default would kill the row INSIDE the build, which is a fact about the
-// repository's temperature rather than about the suite. Measured on a warm local repository: exit 0 in
-// 52.7 s, 400 tests in 20 classes; the workflow warms the offline repository online before the proofs run.
+// repository's temperature rather than about the suite. v547 measured exit 0 in 52.7 s on a warm offline
+// repository; the workflow warms it online before the proofs run. The TOTALS are DERIVED at §4 from the
+// surefire log (tests, classes and the per-class sum), never restated in this comment: a quoted count is the
+// next thing that goes stale — the rule v549 applied to the package table one directory over.
 // sweep-budget-ms: 1200000
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
