@@ -57,6 +57,9 @@ export default async function AdminAuditPage() {
           还没有记下来的事件。
         </p>
       ) : (
+        // 审计表六列、时间/动作/细节都不能截断；窄视口下让它自己横滚，
+        // 而不是把整页的布局视口撑宽（390 下曾量到 innerWidth 被撑成 1183）
+        <div className="overflow-x-auto" data-audit-table-scroll>
         <table className="w-full text-11">
           <thead className="text-left text-fg-3">
             <tr>
@@ -83,6 +86,7 @@ export default async function AdminAuditPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </main>
   );

@@ -86,7 +86,14 @@ export default async function AdminUsersPage() {
             <span className="flex min-w-0 flex-col">
               <span className="truncate text-13 text-fg-1" data-account-name>
                 {account.name}
-                {account.handle ? <a href={`/u/${account.handle}`} className="ml-2 text-11 text-accent-2-ink underline">@{account.handle}</a> : null}
+                {account.handle ? (
+                  <a
+                    href={`/u/${account.handle}`}
+                    className="ml-2 inline-flex min-h-6 items-center rounded px-1 text-11 text-accent-2-ink underline"
+                  >
+                    @{account.handle}
+                  </a>
+                ) : null}
                 {account.guest ? <span className="ml-2 text-11 text-fg-3">未认领的 guest</span> : null}
               </span>
               <span className="text-11 text-fg-3" data-account-role={account.role}>

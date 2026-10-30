@@ -67,6 +67,7 @@ export default async function AdminObservabilityPage() {
             跨重启的事实看下面那张库里的账。
           </p>
         ) : (
+          <div className="overflow-x-auto" data-metric-table-scroll>
           <table className="w-full text-11">
             <thead className="text-left text-fg-3">
               <tr>
@@ -101,6 +102,7 @@ export default async function AdminObservabilityPage() {
               )}
             </tbody>
           </table>
+          </div>
         )}
       </section>
 
@@ -144,6 +146,7 @@ function LedgerTable(props: { title: string; head: string[]; rows: string[][]; m
           这个窗口里没有行。
         </p>
       ) : (
+        <div className="overflow-x-auto">
         <table className="w-full text-11">
           <thead className="text-left text-fg-3">
             <tr>
@@ -164,6 +167,7 @@ function LedgerTable(props: { title: string; head: string[]; rows: string[][]; m
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

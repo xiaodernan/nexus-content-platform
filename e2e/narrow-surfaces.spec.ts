@@ -197,6 +197,20 @@ test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／
     smallTargetGate: true,
     fitCanvas: false,
   });
+  // §85 第三十片：管理台不是一张页。第二十六片只量了复核台，其余六页的导航虽然已经
+  // 收进 AdminNav（同一份下限），但页面本体（表格、筛选项、按钮）从没在窄视口下看过。
+  if (adminState) {
+    for (const page of [
+      { name: '管理台·账号', path: '/admin/users', landmark: '[data-users-root]' },
+      { name: '管理台·审计', path: '/admin/audit', landmark: '[data-audit-root]' },
+      { name: '管理台·实时', path: '/admin/realtime', landmark: '[data-realtime-admin-root]' },
+      { name: '管理台·访问账', path: '/admin/access', landmark: '[data-access-admin-root]' },
+      { name: '管理台·市场工单', path: '/admin/marketplace', landmark: '[data-admin-marketplace]' },
+      { name: '管理台·观测', path: '/admin/observability', landmark: '[data-observability-root]' },
+    ]) {
+      surfaces.push({ ...page, ready: page.landmark, as: 'admin', smallTargetGate: true, fitCanvas: false });
+    }
+  }
 
   const report: string[] = [];
   const rows: string[] = [];

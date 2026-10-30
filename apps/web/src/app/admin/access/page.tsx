@@ -164,7 +164,7 @@ export default async function AdminAccessPage({
       </section>
 
       <p className="text-11 text-fg-3" data-access-scope>
-        与 <Link href="/api-tokens" className="underline">/api-tokens</Link> 那一格是同一本账的两面：那边是"我自己名下最近读过什么"，
+        与 <Link href="/api-tokens" className="inline-flex min-h-6 items-center rounded px-1 underline">/api-tokens</Link> 那一格是同一本账的两面：那边是"我自己名下最近读过什么"，
         这边是全平台的"谁在扫库、哪一枚是热点"。计数按分钟合并、只留 30 天；
         一次 401 / 403 不在这里（那是裁决，记在审计里）。榜单显示前 {API_ACCESS_GLOBAL_TOP_N}，导出不截断。
       </p>

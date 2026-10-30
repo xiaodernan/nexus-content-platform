@@ -88,7 +88,7 @@ export default async function AdminMarketplacePage({
       <section className="rounded-[var(--nexus-radius-sm)] bg-bg-2 p-3" data-marketplace-scope>
         <p className="text-12 text-fg-2">
           结案 / 驳回落的是工单结论：<strong>不会</strong>下架物品，也不会撤下已发布的公开页。
-          要让内容不可访问，用 <Link href="/admin/moderation" className="text-accent-2-ink underline">人工复核台</Link>
+          要让内容不可访问，用 <Link href="/admin/moderation" className="inline-flex min-h-6 items-center rounded px-1 text-accent-2-ink underline">人工复核台</Link>
           的「拒绝并撤下」。
         </p>
         <p className="mt-1 text-11 text-fg-3">
