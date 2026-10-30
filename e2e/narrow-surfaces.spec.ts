@@ -32,6 +32,9 @@ const WIDTHS = [
   { label: '手机390', width: 390, height: 844, mobile: true },
   // 平板竖屏：<lg（1024）仍走浮层左栏，是"手机与桌面之间"那一档的真实读数
   { label: '平板768', width: 768, height: 1024, mobile: true },
+  // 横屏平板 / 小笔记本：1024 正好是 lg 的边界——左栏从浮层翻回内联的那一 px，
+  // 画布份额的 0.8 门不适用于这一档（它守的是浮层），但"适应窗口"仍要装得进去。
+  { label: '横屏1024', width: 1024, height: 768, mobile: false },
   { label: '桌面1280', width: 1280, height: 900, mobile: false },
 ] as const;
 
