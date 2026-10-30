@@ -1,6 +1,7 @@
 package dev.nexus.api.webhooks;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,7 +32,14 @@ class WebhookControllerTest {
     @Mock
     private WebhookService service;
 
+    @Mock
+    private WebhookDispatcher dispatcher;
+
     private final ObjectMapper mapper = new ObjectMapper();
+
+    private WebhookController controller() {
+        return new WebhookController(service, dispatcher);
+    }
 
     private static WebhookSubscription row(String id) {
         return new WebhookSubscription(id, SUBSCRIBER, ENDPOINT, "publish,like", "s".repeat(64), AT);
@@ -41,7 +49,7 @@ class WebhookControllerTest {
     void subscribingAnswersTwoHundredAndOneWithTheSecretAndTheRule() throws Exception {
         when(service.subscribe(SUBSCRIBER, ENDPOINT, List.of("like", "publish")))
                 .thenReturn(row("wh-1"));
-        ResponseEntity<WebhookDtos.WebhookSecret> answer = new WebhookController(service)
+        ResponseEntity<WebhookDtos.WebhookSecret> answer = controller()
                 .subscribe(new WebhookDtos.SubscribeRequest(SUBSCRIBER, ENDPOINT, List.of("like", "publish")));
 
         assertThat(answer.getStatusCode().value()).isEqualTo(201);
@@ -61,7 +69,7 @@ class WebhookControllerTest {
 
     @Test
     void aRequestThatBrokeARuleIsAFourHundredFromTheService() {
-        ResponseEntity<Map<String, String>> answer = new WebhookController(service).invalid(
+        ResponseEntity<Map<String, String>> answer = controller().invalid(
                 new InvalidWebhook("a webhook endpoint must be a public host"));
         assertThat(answer.getStatusCode().value()).isEqualTo(400);
         assertThat(answer.getBody()).containsEntry("error", "invalid-webhook");
@@ -73,7 +81,7 @@ class WebhookControllerTest {
         when(service.subscriptionsOf(SUBSCRIBER, 20, 0)).thenReturn(List.of(row("wh-1")));
         when(service.countOf(SUBSCRIBER)).thenReturn(1L);
 
-        ResponseEntity<?> answer = new WebhookController(service)
+        ResponseEntity<?> answer = controller()
                 .list(SUBSCRIBER, null, null);
         assertThat(answer.getStatusCode().value()).isEqualTo(200);
         JsonNode wire = mapper.valueToTree(answer.getBody());
@@ -91,7 +99,7 @@ class WebhookControllerTest {
         when(service.subscriptionsOf(SUBSCRIBER, 500, 0)).thenReturn(List.of());
         when(service.countOf(SUBSCRIBER)).thenReturn(0L);
 
-        ResponseEntity<?> answer = new WebhookController(service).list(SUBSCRIBER, 500, -10);
+        ResponseEntity<?> answer = controller().list(SUBSCRIBER, 500, -10);
         JsonNode wire = mapper.valueToTree(answer.getBody());
         assertThat(wire.get("limit").asInt()).isEqualTo(WebhookService.MAX_LIST_LIMIT);
         assertThat(wire.get("offset").asInt()).isZero();
@@ -99,7 +107,7 @@ class WebhookControllerTest {
 
     @Test
     void aListingWithoutASubscriberIsRefusedByName() {
-        ResponseEntity<?> answer = new WebhookController(service).list("  ", null, null);
+        ResponseEntity<?> answer = controller().list("  ", null, null);
         assertThat(answer.getStatusCode().value()).isEqualTo(400);
         JsonNode wire = mapper.valueToTree(answer.getBody());
         assertThat(wire.get("error").asText()).isEqualTo("invalid-webhook");
@@ -111,31 +119,73 @@ class WebhookControllerTest {
         when(service.unsubscribe("wh-1", SUBSCRIBER)).thenReturn(true);
         when(service.unsubscribe("wh-gone", SUBSCRIBER)).thenReturn(false);
 
-        ResponseEntity<Map<String, Object>> removed = new WebhookController(service).unsubscribe("wh-1", SUBSCRIBER);
+        ResponseEntity<Map<String, Object>> removed = controller().unsubscribe("wh-1", SUBSCRIBER);
         assertThat(removed.getStatusCode().value()).isEqualTo(200);
         assertThat(removed.getBody()).containsEntry("removed", true);
 
-        ResponseEntity<Map<String, Object>> absent = new WebhookController(service).unsubscribe("wh-gone", SUBSCRIBER);
+        ResponseEntity<Map<String, Object>> absent = controller().unsubscribe("wh-gone", SUBSCRIBER);
         assertThat(absent.getStatusCode().value()).isEqualTo(200);
         assertThat(absent.getBody()).containsEntry("removed", false);
     }
 
     @Test
     void removalWithoutAnOwnerIsRefusedByName() {
-        ResponseEntity<?> answer = new WebhookController(service).unsubscribe("wh-1", null);
+        ResponseEntity<?> answer = controller().unsubscribe("wh-1", null);
         assertThat(answer.getStatusCode().value()).isEqualTo(400);
     }
 
     @Test
     void aDuplicateEndpointIsAConflictAndSomebodyElsesWebhookIsForbidden() {
-        ResponseEntity<Map<String, String>> conflict = new WebhookController(service)
+        ResponseEntity<Map<String, String>> conflict = controller()
                 .duplicate(new WebhookAlreadySubscribed("subscriber \"acct-ada\" is already subscribed"));
         assertThat(conflict.getStatusCode().value()).isEqualTo(409);
         assertThat(conflict.getBody()).containsEntry("error", "webhook-already-subscribed");
 
-        ResponseEntity<Map<String, String>> forbidden = new WebhookController(service)
+        ResponseEntity<Map<String, String>> forbidden = controller()
                 .notYours(new NotYourWebhook("webhook \"wh-9\" belongs to another subscriber"));
         assertThat(forbidden.getStatusCode().value()).isEqualTo(403);
         assertThat(forbidden.getBody()).containsEntry("error", "not-your-webhook");
+    }
+
+    @Test
+    void aPingAnswersTwoHundredWithWhatTheEndpointDid() throws Exception {
+        WebhookDtos.PingAnswer refused = new WebhookDtos.PingAnswer(
+                "wh-1", ENDPOINT, false, WebhookDispatcher.OUTCOME_REFUSED, 500, "status", AT.toEpochMilli());
+        when(dispatcher.ping("wh-1", SUBSCRIBER)).thenReturn(refused);
+
+        ResponseEntity<WebhookDtos.PingAnswer> answer = controller().ping("wh-1", SUBSCRIBER);
+
+        // 200 in every outcome that has an answer: the endpoint refusing is a RESULT, not a door failure.
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        assertThat(answer.getBody()).isNotNull();
+        JsonNode wire = mapper.valueToTree(answer.getBody());
+        assertThat(wire.get("delivered").asBoolean()).isFalse();
+        assertThat(wire.get("outcome").asText()).isEqualTo("refused");
+        assertThat(wire.get("status").asInt()).isEqualTo(500);
+        assertThat(wire.get("webhookId").asText()).isEqualTo("wh-1");
+    }
+
+    @Test
+    void aPingWithoutAnOwnerIsAskedOfTheDispatcherAndComesBackAsAFourHundred() throws Exception {
+        when(dispatcher.ping("wh-1", null)).thenThrow(new InvalidWebhook("a ping needs a subscriber"));
+
+        // The door does not second-guess the dispatcher's ownership rule; it passes the missing owner through.
+        assertThatThrownBy(() -> controller().ping("wh-1", null)).isInstanceOf(InvalidWebhook.class);
+        org.mockito.Mockito.verify(dispatcher).ping("wh-1", null);
+
+        ResponseEntity<Map<String, String>> answer = controller()
+                .invalid(new InvalidWebhook("a ping needs a subscriber"));
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        assertThat(answer.getBody()).containsEntry("error", "invalid-webhook");
+    }
+
+    @Test
+    void anIdThatNamesNoSubscriptionIsAFourHundredAndFour() throws Exception {
+        ResponseEntity<Map<String, String>> answer = controller()
+                .absent(new NoSuchWebhook("webhook \"wh-gone\" does not exist"));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(404);
+        assertThat(answer.getBody()).containsEntry("error", "no-such-webhook");
+        assertThat(answer.getBody().get("message")).contains("does not exist");
     }
 }

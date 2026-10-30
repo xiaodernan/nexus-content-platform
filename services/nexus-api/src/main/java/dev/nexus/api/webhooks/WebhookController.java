@@ -1,5 +1,6 @@
 package dev.nexus.api.webhooks;
 
+import dev.nexus.api.webhooks.WebhookDtos.PingAnswer;
 import dev.nexus.api.webhooks.WebhookDtos.SubscribeRequest;
 import dev.nexus.api.webhooks.WebhookDtos.Webhook;
 import dev.nexus.api.webhooks.WebhookDtos.WebhookList;
@@ -18,18 +19,22 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v557 — the HTTP surface for webhook subscriptions. Three doors, and the differences between them are
- * the rules:
+ * M10 v557/v558 — the HTTP surface for webhook subscriptions. Four doors, and the differences between them
+ * are the rules:
  *
  * <ul>
  *   <li>{@code POST /webhooks} — register an endpoint. 201, and the answer carries the secret ONCE.
  *   <li>{@code GET /webhooks?subscriber=} — the subscriber's own subscriptions. No secret in any answer.
  *   <li>{@code DELETE /webhooks/{id}?subscriber=} — remove one. 200 either way: an id that names nothing is
  *       "already gone", not an error.
+ *   <li>{@code POST /webhooks/{id}/ping?subscriber=} — make this service POST one signed {@code ping} to the
+ *       endpoint, and answer what the endpoint did. The owner's id is required: a stranger must not be able
+ *       to aim this service at somebody else's URL.
  * </ul>
  *
- * <p>Nothing here delivers anything: a subscription is a record of an instruction, and the dispatcher that
- * POSTs it is the next slice. The surface says so rather than implying a delivery that never happened.
+ * <p>Nothing here produces EVENTS yet: a subscription is a record of an instruction, the ping is the only
+ * delivery this build makes, and event fan-out is the next slice. The surface says so rather than implying a
+ * broadcast that never happened.
  */
 @RestController
 @RequestMapping("/")
@@ -40,9 +45,11 @@ public class WebhookController {
             "this is the only time this secret is readable — a subscription that loses it must be replaced";
 
     private final WebhookService service;
+    private final WebhookDispatcher dispatcher;
 
-    public WebhookController(WebhookService service) {
+    public WebhookController(WebhookService service, WebhookDispatcher dispatcher) {
         this.service = service;
+        this.dispatcher = dispatcher;
     }
 
     /** Register an endpoint. 201 when the row was made. */
@@ -100,10 +107,29 @@ public class WebhookController {
         return ResponseEntity.ok(Map.of("ok", true, "webhookId", webhookId, "removed", removed));
     }
 
+    /**
+     * POST one signed {@code ping} to this subscription's endpoint and report what the endpoint did.
+     *
+     * <p>200 in every outcome that has an answer — a refusal or an unreachable endpoint is a RESULT, and the
+     * body names it. 404 and 403 are the two cases where nothing was attempted.
+     */
+    @PostMapping("/webhooks/{webhookId}/ping")
+    public ResponseEntity<PingAnswer> ping(
+            @PathVariable String webhookId,
+            @RequestParam(name = "subscriber", required = false) String subscriberId) {
+        return ResponseEntity.ok(dispatcher.ping(webhookId, subscriberId));
+    }
+
     /** A rule the caller broke is a 400 that NAMES it. */
     @ExceptionHandler(InvalidWebhook.class)
     public ResponseEntity<Map<String, String>> invalid(InvalidWebhook e) {
         return ResponseEntity.badRequest().body(Map.of("error", "invalid-webhook", "message", e.getMessage()));
+    }
+
+    /** An id that names no subscription is a 404 — "nothing to call", not "the endpoint refused". */
+    @ExceptionHandler(NoSuchWebhook.class)
+    public ResponseEntity<Map<String, String>> absent(NoSuchWebhook e) {
+        return ResponseEntity.status(404).body(Map.of("error", "no-such-webhook", "message", e.getMessage()));
     }
 
     /** A duplicate endpoint is a 409: the request was legal, the row already exists. */

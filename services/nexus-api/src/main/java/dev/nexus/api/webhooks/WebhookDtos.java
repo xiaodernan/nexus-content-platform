@@ -36,4 +36,21 @@ public final class WebhookDtos {
     /** One subscriber's subscriptions, and the WHOLE table's count for that subscriber. */
     public record WebhookList(String subscriberId, List<Webhook> webhooks, long total, int limit, int offset) {
     }
+
+    /**
+     * What one on-demand delivery did — the answer the ping door gives.
+     *
+     * <p>{@code delivered} is the summary of {@code outcome} rather than a second opinion: a 2xx is the only
+     * thing it is true of, and {@code outcome} names WHY when it is false ({@code refused} with a
+     * {@code status}, or {@code unreachable} with the exception's name in {@code detail}).
+     */
+    public record PingAnswer(
+            String webhookId,
+            String url,
+            boolean delivered,
+            String outcome,
+            Integer status,
+            String detail,
+            long at) {
+    }
 }

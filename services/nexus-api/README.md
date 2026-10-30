@@ -21,21 +21,25 @@ The table above is the v193 PUBLISH slice only. Later slices have their own pack
 `src/main/java/dev/nexus/api/` (`search`, `social`, `moderation`, `ops`, and `webhooks` below), each with
 doors of its own; this README names them by package rather than keeping a second, drifting table.
 
-## Webhooks — the first outbound contract (M10 v557, ADR 0021)
+## Webhooks — the first outbound contract (M10 v557/v558, ADR 0021)
 
 | method | path | answer |
 | --- | --- | --- |
 | `POST` | `/webhooks` | `201` + the subscription, **and its secret** — the one answer that carries it |
 | `GET` | `/webhooks?subscriber=&limit=&offset=` | `200` + the subscriber's subscriptions; **no secret field at all** |
 | `DELETE` | `/webhooks/{webhookId}?subscriber=` | `200` + `{ removed }` — `false` when the id names nothing; `403` when it is another owner's |
+| `POST` | `/webhooks/{webhookId}/ping?subscriber=` | `200` + one signed `ping`'s result — `delivered`, or `refused` with the endpoint's status, or `unreachable` with the exception's name; `404` when the id names nothing |
 
 A subscription is a RECORD of an instruction: `{subscriberId, url, events[]}` in, and
 `{id, url, events[], createdAt, secret, note}` out. The secret is 32 `SecureRandom` bytes as lowercase hex,
-minted here and shown once; every future delivery will carry `Nexus-Signature: t=<epoch seconds>,v1=<hmac>`
-computed over `<timestamp>.<body>` (HMAC-SHA256), verified with a constant-time compare inside a bounded
-window (default 5 minutes). **Bounds:** nothing POSTs yet — the dispatcher is the next slice — and a DNS name
-that resolves to a private address is accepted at subscription time because that check belongs to the
-dispatcher.
+minted here and shown once; every delivery carries `Nexus-Signature: t=<epoch seconds>,v1=<hmac>` computed
+over `<timestamp>.<body>` (HMAC-SHA256), verified with a constant-time compare inside a bounded window
+(default 5 minutes). **Bounds:** the `ping` is the only delivery this build makes — nothing produces EVENTS
+yet, so a subscription to `publish` is a promise rather than a stream, and there is no retry, no receipt and
+no idempotency key. The ping is the owner's to ask: a stranger cannot aim this service at somebody else's URL.
+At delivery time the endpoint's name is resolved and **every** address it answers must be public — the
+DNS-rebinding check v557 left to this half — and a non-2xx (a redirect included) is reported as `refused` with
+that status rather than followed or collapsed into "failed".
 
 The `url` is built from the request that asked (`ServletUriComponentsBuilder`), so it names an address that
 actually serves the publication rather than a configured "public base" that could point at nothing.
