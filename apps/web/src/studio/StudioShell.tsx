@@ -196,15 +196,21 @@ export function StudioShell({
 function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }) {
   const [tab, setTab] = useState<PanelTab>('layers');
   const [view, setView] = useState<WorkspaceView>('canvas');
-  const [railOpen, setRailOpen] = useState(true);
+  // §85 第二十七片：390 下 264px 的左栏把画布压到 82px——窄视口默认收起，
+  // 宽视口照旧展开。用 effect 而不是初值：服务端不知道窗口宽，写在初值里会水合不一致。
+  const [railOpen, setRailOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
+
+  useEffect(() => {
+    if (window.innerWidth >= 1024) setRailOpen(true);
+  }, []);
 
   return (
     <>
       <Profiler id="topbar" onRender={recordRender('topbar')}>
         <TopBar onOpenRail={() => setRailOpen((v) => !v)} />
       </Profiler>
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
         <nav className="flex w-[44px] shrink-0 flex-col items-center gap-1 border-r border-[var(--nexus-color-border-subtle)] bg-bg-1 py-[var(--nexus-space-2)]">
           {TABS.map((item) => (
             <button
@@ -230,7 +236,9 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
         <Profiler id="left" onRender={recordRender('left')}>
         <aside
           className={cn(
+            // 小屏浮层：面板盖在画布上而不是挤窄它（`left-[44px]` 让出图标栏）；lg 起回到内联三栏
             'min-h-0 w-[264px] shrink-0 border-r border-[var(--nexus-color-border-subtle)] bg-bg-1',
+            'absolute inset-y-0 left-[44px] z-30 shadow-2xl lg:static lg:z-auto lg:shadow-none',
             railOpen ? 'block' : 'hidden',
           )}
           data-left-panel

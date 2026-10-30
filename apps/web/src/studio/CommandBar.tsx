@@ -582,7 +582,13 @@ export function CommandBar() {
         </button>
         {/* 勾上它只是换"谁在等"：等同步返回，还是交给队列然后一次一次问。拦不拦高危动作由服务端那道门说（§74） */}
         <label className="flex h-[34px] shrink-0 items-center gap-1 text-11 text-fg-3" title="交给 AI Service 的队列执行：不挂住这次请求，状态与结果靠回来问">
-          <input type="checkbox" checked={asyncMode} onChange={(e) => setAsyncMode(e.target.checked)} data-ai-async />
+          <input
+            type="checkbox"
+            checked={asyncMode}
+            onChange={(e) => setAsyncMode(e.target.checked)}
+            className="h-6 w-6 shrink-0"
+            data-ai-async
+          />
           异步作业
         </label>
       </div>

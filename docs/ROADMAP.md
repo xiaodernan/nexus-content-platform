@@ -67,8 +67,12 @@
       **②的手动半边也接了** `?zoom=`（服务端 `<a>`，可收藏可分享）；**默认按访客视口自动选档仍欠**。
       **2026-10-30 第二十五片**：复跑完成——作品帧逐项与第十三片相同（1440 / 27% / 1082px），
       ADR-0069 只改了显式参数那条路；发现／市场／Studio／管理台四张面 × 390/1280 也补上了读数。
-      还欠：**默认按访客视口自动选档**；**Studio 画布在 390 下被 `overflow:hidden` 裁掉 678px**（1280 也裁 88px，界面上没有"适应窗口"）；
-      其余管理台页面（access/audit/realtime/marketplace/observability）与 iOS 真机。
+      **2026-10-30 第二十七片把 Studio 那一格还了**（ADR-0073）：390 下根因是左栏 44+264 内联、
+      画布只剩 82px（10% 也装不下 144 宽的帧）；现在 <lg 左栏改浮层且默认收起，画布归 346px，
+      「适应窗口」按钮 + Shift+1 让帧 298×186@21% 装进去（1280 是 624×390@43%）；外壳 <24px
+      从 23/24 收到 **0/0**。还欠：**默认按访客视口自动选档**；其余管理台页面（access/audit/
+      realtime/marketplace/observability）的逐一读数（24px 已由共享 `AdminNav` 收口但没量）；
+      平板/横屏与 iOS 真机。
 - [~] **对账门盖住了哪些规则**（第十五片 notMeasured 第 3 条）：**换了一种做法并已进门**——
       `sim-parity.test.ts` 里给逐帧对账配了规则清单（`SIM_RULES` 34 条 + `RPG_RULES` 10 条，
       谓词读 `ReplayTrace.history` 那段逐帧账本），任何一条没人踩过就红；配 24 + 4 串输入线，
@@ -173,6 +177,31 @@
       `tsc`（video-model + apps/web）与 `eslint`（7 个改动文件）各 exit 0。
       **有意不做**：`storyboard-to-video` 不额外要东西——它要的就是这份镜头表本身，而镜头表就在文档里；
       镜头级的引用仍然自由（`source` 说的是整条片子的出处，不是每一镜的出处）。
+- [x] **§40 的另一半：建完之后「改来源」没有入口**（2026-10-30 补上）：箭头与两个引用都在 `source` 里，
+      但 `planStoryboard` 只在建分镜那一刻读一次来源 ⇒ 一版切出来之后，作者想把「文字 → 视频」改成
+      「角色 → 场景」就只能重切一版（镜头、长度、撤销栈全丢），否则没有入口。
+      **做了什么**：① `packages/video-model/src/patch.ts` 加第六种 op `updateSource`（`before/after` 各收
+      `arrow` + 两个引用；`after` 里 `undefined` = 删键、键不存在 = 别动），逆补丁把两个引用**显式写出来**
+      （这次才加上的引用撤销后要真的从文档里消失，而不是留一个 `undefined` 值）；② `storyboardStore.changeSource`
+      按新箭头 `ARROW_SOURCE_NEEDS` 归一引用（无关那一格置 undefined）、缺来源先落 notice 返回 false、
+      无变化不进栈不 PUT——一次改动 = 一个可撤销事务（§150）；③ 面板抽出 `SourceFields` 组件，
+      建分镜的空态与头部「改来源」编辑器**同一份**，两处不会漂成两套规则；头部来源按箭头 needs 取引用
+      （旧引用残留不会把「角色 X」写在「文字 → 视频」旁）；④ 缺来源时应用键就是灰的、缺哪个字段写在明处；
+      应用成功才收起编辑器，并提示"换来源不重切一版：镜头、长度、撤销栈都留着"。服务端无需改：
+      `saveStoryboard` 早就读 `missingArrowSource` 拒收（上一片落的）。
+      **证据**：`packages/video-model/test/patch.test.ts` +5（只改来源几格且镜头字节不动 / 清引用是删键且正逆
+      逐字节回原样 / 逆补丁给"这次才加上"的引用写 `undefined` / 两步互切两次撤销各回上一步 / 镜头自己的引用
+      不跟来源走）；`apps/web/test/storyboard-store.test.ts` +3（改来源落库且可逆、同来源 0 PUT 不进栈、
+      缺来源 0 PUT 且 notice 点名 `source.referenceAssetId`）；两文件 29 用例全绿，`tsc` 9 个 tsconfig 与
+      `eslint` 6 个改动文件各 exit 0。`e2e/storyboard.spec.ts` 新走查 1 条（真 Chrome，单跑 4.8s 通过，
+      截图 `screenshots/storyboard-source-edit.png`）：建角色 → 建 text-to-video 分镜 → 记下镜头 id/时长 →
+      打开改来源（起点正确、缺角色时应用键灰）→ 切 character-to-scene、选角色、应用（服务端 arrow 变了、
+      镜头 id/时长逐格不变）→ 撤销（服务端回 text-to-video）→ 重读（文档里没有 `characterId` 这个键）。
+      **如实记**：全量 storyboard e2e 两次都没跑完——一次是 Playwright artifact 写入竞态
+      （`browserContext.close: ENOENT …-recording4.network`，单条复跑通过）；一次是建项目被服务端 429 拒
+      （本片连续建项目把每小时名额用完，界面提示"还要等 55 分钟"）——**没有放宽那道产品闸**，
+      两次跑到失败点之前的用例全部 pass。**有意不做**：镜头级的引用编辑本来就有（每镜自己的选择器），
+      这次只管整条片子的出处；改来源**不重算镜头**——重切是另一个按钮，两件事不混进一次提交。
 - [~] **之后**：`docs/PERFORMANCE.md` 剩余项。**2026-10-29 第二十四片把「选中响应」那笔旧账拆段了**：
       `CanvasStage` 加 `nexus:sel:rendered`、探针三段改四段 —— 8 节点 React 渲染 27–35ms / 绘制 25–31ms，
       **"界面提交 0ms"只覆盖 store 的 commit，React 渲染从来没进过账**；CPU 采样把 dev 那半点名到
@@ -8319,3 +8348,40 @@ Error: 回收端点回了 429，界面上那句话是「没做成：回收操作
 
 - Studio 的画布小按钮（390 下 23 个 <24px）与它被 `overflow:hidden` 裁掉 678px，是同一块欠账：先有"适应窗口"再谈尺寸。
 - 平板/横屏、标签变长时的换行、2.5.8 的 spacing 例外、登录态市场页都没量。
+
+## §85 第二十七片：Studio 在 390 下拿回画布——左栏浮层、默认收起与「适应窗口」（2026-10-30）
+
+第二十六片登记的那块欠账（"先有适应窗口再谈尺寸"）在这一片一起还。
+
+**先量根因，再动手**
+
+- 390 下画布只剩 **82px**：左栏图标 44px + 面板 264px 仍是内联的，`overflow:clip` 之外
+  根本没有可画的宽度；缩放下限 10% 时帧仍宽 144px——**"只给缩放"这条路在 82px 里不成立**。
+- 同页 23 个（390）／24 个（1280）<24px 的外壳目标：图层三连 21 个、顶栏回首页 47×20、
+  项目名 125×21、异步勾选 13×13。
+
+**落点**
+
+- `StudioShell.tsx`：< lg 左栏 `absolute inset-y-0 left-[44px] z-30` 浮在画布上，默认收起；
+  `innerWidth >= 1024` 时用 effect 展开（不在初值里读 `window`，避免水合不一致）。lg+ 三栏不变。
+- `CanvasStage.tsx`：`data-fit-canvas` 浮层按钮 + **Shift+1**（Ctrl+0 被浏览器缩放截走，留作别名）；
+  24px 边距、缩放 0.1–4、居中；只改视图态，不进撤销栈/不标脏/不落库（ADR-0073）。
+- `LayersPanel` 三连、`TopBar` 两处、`CommandBar` 勾选补到 24×24。
+- `e2e/narrow-surfaces.spec.ts`：Studio 挂 `smallTargetGate`，新增 `fitCanvas` 门——键盘与按钮
+  两条路各按一次，帧四边必须落进视口（看矩形，不看 `scrollWidth`）；`[data-canvas-frame]`
+  内是用户文档，不计入外壳的 24px 门。
+
+**凭证**
+
+- 390：画布 82 → **346×536**，适应窗口 **298×186（21%）**；1280：**624×390（43%）**。
+- 外壳 <24px：390 **23→0**、1280 **24→0**；两条按法都绿，`1 passed`。
+- 四条臂：A1（fit 空操作）红 414px；A2（图层去 min-h）红 1280；A3（只改浮层）**绿**——
+  默认收起时面板不占宽，单改不是栅栏；A3b（默认展开 + 内联）红 31px@10%。
+- 自然红两次：项目名 125×21 被 1280 点名；默认收起后图层树只剩 6 行（虚拟列表按
+  `clientHeight=0` 算过窗口且不重算），补 `ResizeObserver` 后回 7 行——既存缺陷，顺手修掉。
+- 回归：`studio.spec.ts` 三条（渲染/图层、选中改属性撤销保存、mobile 重排）3 passed；tsc 与 eslint 0。
+
+**仍欠**
+
+- iOS 真机、平板/横屏（768–1023）读数；画布**内容**目标尺寸不归外壳管。
+- "进入即自动适应"被否（ADR-0073 选项 1）；要不要作为偏好提供没裁决。

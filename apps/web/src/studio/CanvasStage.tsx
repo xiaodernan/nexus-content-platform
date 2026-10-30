@@ -167,6 +167,29 @@ export function CanvasStage() {
     };
   }, []);
 
+  /**
+   * §85 第二十七片：把整张画布放进当前视口。
+   *
+   * 390 下画布被 `overflow-clip` 裁掉 678px，而缩放此前只有 Ctrl+滚轮一条路——
+   * 窄视口上"第一眼看得见全貌"要靠一次显式动作。留 24px 边距，缩放仍受 0.1–4 的闸，
+   * 然后居中：`screen = pan + canvas * zoom`。
+   */
+  const fitToWindow = useCallback(() => {
+    const surface = surfaceRef.current;
+    const doc = studio.getSnapshot().layout;
+    if (!surface || !doc || doc.width <= 0 || doc.height <= 0) return;
+    const pad = 24;
+    const boxW = Math.max(1, surface.clientWidth - pad * 2);
+    const boxH = Math.max(1, surface.clientHeight - pad * 2);
+    const zoom = Math.min(4, Math.max(0.1, Math.min(boxW / doc.width, boxH / doc.height)));
+    // 先定缩放再定平移：setZoom 不带锚点时不动 pan，随后这一笔把它放到正中。
+    studio.setZoom(zoom);
+    studio.setPan({
+      x: (surface.clientWidth - doc.width * zoom) / 2,
+      y: (surface.clientHeight - doc.height * zoom) / 2,
+    });
+  }, []);
+
   // 首帧就要知道视口多大：只靠 ResizeObserver 的回调会先按"视口未知"把整页画一遍、
   // 再重画成裁剪后的那一遍，实测让 1000 节点档的首帧从 ~900ms 抖到 ~1150ms。
   // 所以先用一次同步测量定初值，observer 只负责后续变化。
@@ -250,6 +273,10 @@ export function CanvasStage() {
       } else if (meta && key === 'g') {
         event.preventDefault();
         studio.toggleGrid();
+      } else if ((event.shiftKey && event.code === 'Digit1') || (meta && key === '0')) {
+        // Figma 的 Shift+1（Ctrl+0 常被浏览器自己的"恢复 100%"截走，留作别名）
+        event.preventDefault();
+        fitToWindow();
       } else if (event.key === 'Escape') {
         studio.clearSelection();
       } else if (event.key === 'Delete' || event.key === 'Backspace') {
@@ -276,7 +303,7 @@ export function CanvasStage() {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, []);
+  }, [fitToWindow]);
 
   /** 吸附到邻居边缘/中心（±6px）与 8pt 基线（§8 snapping） */
   const snapDelta = useCallback((nodeId: string, dx: number, dy: number): Preview => {
@@ -494,6 +521,17 @@ export function CanvasStage() {
       onDoubleClick={onDoubleClick}
       onContextMenu={(e) => e.preventDefault()}
     >
+      {/* §85 第二十七片：窄视口下画布默认只露出一角——「适应窗口」把第一眼还给全貌 */}
+      <button
+        type="button"
+        data-fit-canvas
+        title="适应窗口（Shift+1）"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={fitToWindow}
+        className="absolute right-2 top-2 z-10 inline-flex min-h-6 items-center rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 px-2 font-mono text-11 text-fg-2 hover:text-fg-1"
+      >
+        适应窗口
+      </button>
       <div
         data-canvas-frame
         style={{

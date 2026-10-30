@@ -75,6 +75,16 @@ export function LayersPanel() {
     measure();
   }, [measure]);
 
+  // 面板从隐藏变可见（窄视口默认收起）或窗口/分栏尺寸变了，可视高度跟着变——
+  // 只靠 `rows.length` 的话，隐藏时按 clientHeight=0 算出的窗口会一直停在 6 行。
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [measure]);
+
   if (!page || !root) return null;
 
   const onDropNode = (targetId: string) => {
@@ -259,7 +269,7 @@ function LayerRow(props: {
             e.stopPropagation();
             if (isContainer) props.onToggleCollapse(node.id);
           }}
-          className="w-3 shrink-0 text-fg-3"
+          className="inline-flex min-h-6 w-6 shrink-0 items-center justify-center text-fg-3"
         >
           {isContainer ? (open ? '▾' : '▸') : '·'}
         </button>
@@ -288,7 +298,10 @@ function LayerRow(props: {
             e.stopPropagation();
             studio.setVisible(node.id, !node.visible);
           }}
-          className={cn('shrink-0 px-1', node.visible ? 'text-fg-3' : 'text-danger-ink')}
+          className={cn(
+            'inline-flex min-h-6 w-6 shrink-0 items-center justify-center rounded',
+            node.visible ? 'text-fg-3' : 'text-danger-ink',
+          )}
         >
           {node.visible ? '◉' : '◌'}
         </button>
@@ -299,7 +312,10 @@ function LayerRow(props: {
             e.stopPropagation();
             studio.setLocked(node.id, !node.locked);
           }}
-          className={cn('shrink-0 px-1', node.locked ? 'text-warn-ink' : 'text-fg-3')}
+          className={cn(
+            'inline-flex min-h-6 w-6 shrink-0 items-center justify-center rounded',
+            node.locked ? 'text-warn-ink' : 'text-fg-3',
+          )}
         >
           {node.locked ? '⊘' : '○'}
         </button>

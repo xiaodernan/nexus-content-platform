@@ -48,11 +48,17 @@ interface Surface {
   as: 'guest' | 'member' | 'admin';
   /**
    * 这一面是否把「0 个 <24px 点击目标」当门（WCAG 2.5.8）。
-   * 发现／市场／管理台：是——第二十五片量到的 1/1/7 个已在 2026-10-30 修掉。
-   * Studio：否——画布右上角那组 12–20px 的缩放/视图小按钮是**已登记的欠账**
-   * （第二十五片记的），门只会把已知缺陷重复报一遍；等它的控件重做后再挂门。
+   * 发现／市场／管理台：是——第二十五片量到的 1/1/7 个已在第二十六片修掉。
+   * Studio：是——第二十五片登记的 23 个（图层三连 21 + TopBar 回首页 1 + 异步勾选 1）
+   * 在第二十七片收口；画布里的节点是用户文档，不计入（见 measure）。
    */
   smallTargetGate: boolean;
+  /**
+   * 这一面是否有「适应窗口」这颗按钮（Studio 专属）。有的话，点它之后
+   * 画布帧必须整个落进画布视口里——这是"被裁掉 678px"那一格的正面读数：
+   * 不看 scrollWidth（transform 不改它），看 frame 与 surface 的两个矩形。
+   */
+  fitCanvas: boolean;
 }
 
 interface Reading {
@@ -101,6 +107,9 @@ async function measure(page: Page, landmark: string, targetMin: number): Promise
     const interactive = Array.from(
       document.querySelectorAll('a[href],button,input,select,textarea,[role="button"],[tabindex]:not([tabindex="-1"])'),
     ).filter((el) => {
+      // 画布里的节点是**用户文档**，不是应用外壳的控件：它们多大由作者决定，
+      // 平台能做的是让外壳自己的每个按钮够 24×24（WCAG 2.5.8 管的是界面）。
+      if (el.closest('[data-canvas-frame]')) return false;
       const r = el.getBoundingClientRect();
       const cs = getComputedStyle(el);
       return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none';
@@ -154,8 +163,8 @@ test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／
   test.setTimeout(900_000);
 
   const surfaces: Surface[] = [
-    { name: '发现', path: '/discover', landmark: '[data-discover-grid]', ready: '[data-discover-grid]', as: 'guest', smallTargetGate: true },
-    { name: '市场', path: '/marketplace', landmark: '[data-marketplace-list]', ready: '[data-marketplace-list]', as: 'guest', smallTargetGate: true },
+    { name: '发现', path: '/discover', landmark: '[data-discover-grid]', ready: '[data-discover-grid]', as: 'guest', smallTargetGate: true, fitCanvas: false },
+    { name: '市场', path: '/marketplace', landmark: '[data-marketplace-list]', ready: '[data-marketplace-list]', as: 'guest', smallTargetGate: true, fitCanvas: false },
   ];
 
   // member：Studio 要一个自己名下的项目
@@ -166,7 +175,8 @@ test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／
     landmark: '[data-studio-root]',
     ready: '[data-panel-tab]',
     as: 'member',
-    smallTargetGate: false,
+    smallTargetGate: true,
+    fitCanvas: true,
   });
   const memberState = await page.context().storageState();
 
@@ -182,6 +192,7 @@ test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／
     ready: '[data-admin-queue], [data-admin-denied]',
     as: 'admin',
     smallTargetGate: true,
+    fitCanvas: false,
   });
 
   const report: string[] = [];
@@ -206,6 +217,29 @@ test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／
             reading.smallTargets.map((t) => `${t.label} ${t.w}×${t.h}`),
             `${surface.name}/${w.label}：还有 <${TARGET_MIN}px 的点击目标（WCAG 2.5.8 的下限是 24×24）`,
           ).toHaveLength(0);
+        }
+        if (surface.fitCanvas) {
+          // 两条路都要通：键盘（Figma 同款 Shift+1）与浮层按钮。
+          for (const how of ['Shift+1', '按钮'] as const) {
+            if (how === 'Shift+1') await tab.keyboard.press('Shift+1');
+            else await tab.click('[data-fit-canvas]');
+            const fit = await tab.evaluate(() => {
+              const surface = document.querySelector('[data-canvas-surface]')!.getBoundingClientRect();
+              const frame = document.querySelector('[data-canvas-frame]')!.getBoundingClientRect();
+              return {
+                surface: { left: surface.left, top: surface.top, right: surface.right, bottom: surface.bottom, width: surface.width, height: surface.height },
+                frame: { left: frame.left, top: frame.top, right: frame.right, bottom: frame.bottom, width: frame.width, height: frame.height },
+                zoom: (document.querySelector('[data-zoom]')?.textContent ?? '').trim(),
+              };
+            });
+            const f = fit.frame;
+            const s = fit.surface;
+            expect(f.left, `${surface.name}/${w.label}（${how}）：适应窗口后画布左边越过视口 ${Math.round(s.left - f.left)}px（缩放 ${fit.zoom}）`).toBeGreaterThanOrEqual(s.left - 1);
+            expect(f.top, `${surface.name}/${w.label}（${how}）：适应窗口后画布上边越过视口 ${Math.round(s.top - f.top)}px（缩放 ${fit.zoom}）`).toBeGreaterThanOrEqual(s.top - 1);
+            expect(f.right, `${surface.name}/${w.label}（${how}）：适应窗口后画布右边溢出视口 ${Math.round(f.right - s.right)}px（缩放 ${fit.zoom}）`).toBeLessThanOrEqual(s.right + 1);
+            expect(f.bottom, `${surface.name}/${w.label}（${how}）：适应窗口后画布下边溢出视口 ${Math.round(f.bottom - s.bottom)}px（缩放 ${fit.zoom}）`).toBeLessThanOrEqual(s.bottom + 1);
+            if (how === '按钮') rows.push(`${surface.name} ${w.label}: 适应窗口 → ${Math.round(f.width)}×${Math.round(f.height)} 装进 ${Math.round(s.width)}×${Math.round(s.height)}（${fit.zoom}）`);
+          }
         }
         report.push(fmt(`${surface.name}/${w.label}`, reading));
         rows.push(

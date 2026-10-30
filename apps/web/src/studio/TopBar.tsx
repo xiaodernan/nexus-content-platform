@@ -53,7 +53,7 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
       >
         面板
       </button>
-      <a href="/" className="font-mono text-13 tracking-[.18em] text-fg-2">
+      <a href="/" className="inline-flex min-h-6 items-center font-mono text-13 tracking-[.18em] text-fg-2">
         NEXUS
       </a>
       <span className="h-4 w-px bg-[var(--nexus-color-border-subtle)]" />
@@ -75,7 +75,7 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
           type="button"
           onClick={() => setEditingName(true)}
           title="重命名项目"
-          className="max-w-[280px] truncate text-14 font-medium"
+          className="inline-flex min-h-6 max-w-[280px] items-center truncate text-14 font-medium"
           data-project-name
         >
           {state.document.name || '未命名项目'}
