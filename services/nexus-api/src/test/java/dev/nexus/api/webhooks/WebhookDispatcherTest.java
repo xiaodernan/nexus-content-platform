@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -60,6 +61,9 @@ class WebhookDispatcherTest {
     @Mock
     private WebhookTransport transport;
 
+    @Mock
+    private WebhookDeliveryLog deliveryLog;
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     private WebhookDispatcher dispatcher;
@@ -67,7 +71,7 @@ class WebhookDispatcherTest {
     @BeforeEach
     void setUp() {
         dispatcher = new WebhookDispatcher(
-                repository, resolver, transport, mapper, Clock.fixed(AT, ZoneOffset.UTC));
+                repository, resolver, transport, deliveryLog, mapper, Clock.fixed(AT, ZoneOffset.UTC));
     }
 
     private static WebhookSubscription row() {
@@ -352,6 +356,54 @@ class WebhookDispatcherTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("event");
         // Nothing is read: an empty answer would say "nobody asked", which is a different fact.
-        verifyNoInteractions(repository, resolver, transport);
+        verifyNoInteractions(repository, resolver, transport, deliveryLog);
+    }
+
+    // ── v560: every attempt leaves a RECEIPT ───────────────────────────────────────────────────────
+
+    @Test
+    void thePingWritesAReceiptWithWhatTheEndpointDid() throws Exception {
+        when(repository.findById(WEBHOOK_ID)).thenReturn(Optional.of(row()));
+        when(resolver.resolve("hooks.example.com")).thenReturn(List.of(address("93.184.216.34")));
+        when(transport.post(any(), any(), any(), any())).thenReturn(new WebhookTransport.WebhookResponse(200));
+
+        dispatcher.ping(WEBHOOK_ID, SUBSCRIBER);
+
+        // One row per ATTEMPT, whatever the outcome: the receipt is what the owner reads tomorrow.
+        verify(deliveryLog).record(
+                any(WebhookSubscription.class),
+                eq(WebhookDispatcher.PING_EVENT),
+                eq(WEBHOOK_ID),
+                eq(AT),
+                eq(WebhookDispatcher.OUTCOME_DELIVERED),
+                eq(200),
+                isNull());
+    }
+
+    @Test
+    void theFanOutWritesOneReceiptPerAttemptEvenWhenAnEndpointFails() throws Exception {
+        when(repository.findAll()).thenReturn(List.of(
+                row("wh-1", "publish", SECRET, AT),
+                row("wh-2", "publish", SECRET, AT.plusSeconds(1))));
+        when(resolver.resolve("hooks.example.com")).thenReturn(List.of(address("93.184.216.34")));
+        when(transport.post(any(), any(), any(), any())).thenReturn(new WebhookTransport.WebhookResponse(200));
+        when(transport.post(eq("https://hooks.example.com/wh-2"), any(), any(), any()))
+                .thenThrow(new java.io.IOException("connection reset"));
+
+        dispatcher.deliver("publish", "pub-1", AT);
+
+        ArgumentCaptor<String> outcomes = ArgumentCaptor.forClass(String.class);
+        verify(deliveryLog, times(2)).record(
+                any(WebhookSubscription.class),
+                eq("publish"),
+                eq("pub-1"),
+                eq(AT),
+                outcomes.capture(),
+                any(),
+                any());
+        // A failed attempt is recorded like any other: "we called and nothing answered" is a fact the
+        // subscriber is entitled to see, and the log is not a list of successes.
+        assertThat(outcomes.getAllValues()).containsExactly(
+                WebhookDispatcher.OUTCOME_DELIVERED, WebhookDispatcher.OUTCOME_UNREACHABLE);
     }
 }

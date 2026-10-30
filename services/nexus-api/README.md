@@ -21,12 +21,13 @@ The table above is the v193 PUBLISH slice only. Later slices have their own pack
 `src/main/java/dev/nexus/api/` (`search`, `social`, `moderation`, `ops`, and `webhooks` below), each with
 doors of its own; this README names them by package rather than keeping a second, drifting table.
 
-## Webhooks — the first outbound contract (M10 v557–v559, ADR 0021)
+## Webhooks — the first outbound contract (M10 v557–v560, ADR 0021)
 
 | method | path | answer |
 | --- | --- | --- |
 | `POST` | `/webhooks` | `201` + the subscription, **and its secret** — the one answer that carries it |
 | `GET` | `/webhooks?subscriber=&limit=&offset=` | `200` + the subscriber's subscriptions; **no secret field at all** |
+| `GET` | `/webhooks/deliveries?subscriber=&webhook=&limit=&offset=` | `200` + the subscriber's receipt log — one row per delivery ATTEMPT (event, target, outcome, status, detail, both instants), newest first; `webhook` narrows it to one subscription; **no secret field at all** |
 | `DELETE` | `/webhooks/{webhookId}?subscriber=` | `200` + `{ removed }` — `false` when the id names nothing; `403` when it is another owner's |
 | `POST` | `/webhooks/{webhookId}/ping?subscriber=` | `200` + one signed `ping`'s result — `delivered`, or `refused` with the endpoint's status, or `unreachable` with the exception's name; `404` when the id names nothing |
 
@@ -39,10 +40,17 @@ over `<timestamp>.<body>` (HMAC-SHA256), verified with a constant-time compare i
 subscription whose `events` contain the verb, oldest subscription first (the id breaks a tie), the body
 signed once per row with each row's OWN secret, one `DeliveryAnswer` per attempt, and one endpoint's failure
 never stops the next. The event carries no actor: a subscriber is told what happened and to what, not who.
-**Bounds:** delivery is SYNCHRONOUS on the committing thread — up to the 10 s timeout per subscription before
-the caller's answer — the subscription table is read whole per event, and no delivery is recorded, retried or
-replayed (no receipt, no schedule, no idempotency key); the `ping` remains the owner's on-demand call, and a
-stranger cannot aim this service at somebody else's URL. At delivery time the endpoint's name is resolved and
+**Receipts (v560):** every attempt — the ping's and the fan-out's alike — writes one `webhook_delivery` row
+carrying the subscriber, the webhook id, the event, the target, the outcome, the status, the detail and BOTH
+instants (when the fact happened, when this service knocked). The write is `REQUIRES_NEW`, because the fan-out
+runs after its caller's transaction has COMMITTED and a receipt saved in that finished transaction would never
+commit. The row keeps its own copy of what it was about, so it survives removal of the subscription that
+produced it. **Bounds:** delivery is SYNCHRONOUS on the committing thread — up to the 10 s timeout per
+subscription before the caller's answer — the subscription table is read whole per event, and although every
+attempt is RECORDED, none is retried, backed off or replayed (no schedule, no idempotency key), nothing prunes
+the log (a retention rule is a later decision), and a receipt exists only for an attempt that actually
+happened. The `ping` remains the owner's on-demand call, and a stranger cannot aim this service at somebody
+else's URL. At delivery time the endpoint's name is resolved and
 **every** address it answers must be public — the DNS-rebinding check v557 left to the dispatcher — and a
 non-2xx (a redirect included) is reported as `refused` with that status rather than followed or collapsed
 into "failed".

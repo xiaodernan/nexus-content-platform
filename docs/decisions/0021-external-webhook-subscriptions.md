@@ -1,7 +1,7 @@
 # 0021 — External webhook subscriptions: the first outbound contract
 
-- **Status:** Accepted (v557 the receiving half; v558 the on-demand `ping`; v559 the event fan-out — all
-  landed and gated)
+- **Status:** Accepted (v557 the receiving half; v558 the on-demand `ping`; v559 the event fan-out; v560 the
+  delivery receipts — all landed and gated)
 - **Date:** 2026-10-30
 - **Milestone:** M10 (External Agent Ecosystem)
 
@@ -39,14 +39,15 @@ Two §60 forces shape the design:
 | Delivery | Dispatch now, with retries | Needs a resolution-time SSRF check, idempotency keys and delivery receipts — each a decision this ADR would otherwise make silently |
 | Delivery | **Record + signature first (v557); then one ON-DEMAND delivery, the `ping` (v558)** | **Chosen** — the receiving half is the half that grades without a network, and the ping is the smallest door that makes the network path, the signature and the refusal rules gradeable before any event exists |
 | Delivery | **Fan out every recorded event as it happens (v559), from an AFTER_COMMIT listener** | **Chosen** — the trail is the producer, and after-commit is the first phase in which the fact is true; a delivery sent inside the transaction could announce what the rollback then un-does. Still no retry, receipt or idempotency key — the outbox those need is a later decision |
+| Delivery | **Write every attempt down (v560), in its OWN transaction, and read it back through a door of the owner's own** | **Chosen** — the fan-out otherwise answered a listener nobody was waiting on, so a failed delivery was a fact that existed for one microsecond. `REQUIRES_NEW` is not a preference: the fan-out runs after the caller's transaction has COMMITTED and its persistence context is still bound to the thread, so a receipt saved with the default propagation would join a finished transaction and never commit |
 
 ## Choice
 
 `dev.nexus.api.webhooks` — a `webhook_subscription` row (subscriber, endpoint, events, secret, createdAt),
-four doors (`POST /webhooks`, `GET /webhooks?subscriber=`, `DELETE /webhooks/{id}?subscriber=`,
-`POST /webhooks/{id}/ping?subscriber=`), a `WebhookSigner` whose header every delivery carries, and
-`WebhookDispatcher` — the one place that POSTs, behind two seams (`HostResolver`, `WebhookTransport`) so its
-decisions are graded without touching a stranger's server.
+five doors (`POST /webhooks`, `GET /webhooks?subscriber=`, `GET /webhooks/deliveries?subscriber=&webhook=`,
+`DELETE /webhooks/{id}?subscriber=`, `POST /webhooks/{id}/ping?subscriber=`), a `WebhookSigner` whose header
+every delivery carries, and `WebhookDispatcher` — the one place that POSTs, behind two seams (`HostResolver`,
+`WebhookTransport`) so its decisions are graded without touching a stranger's server.
 
 Rules, each refused by name:
 
@@ -68,6 +69,18 @@ keeps the rows whose event set contains the verb, orders them oldest first (the 
 each one through the SAME path the ping uses — same body, same signature, same resolution-time address rule,
 same three outcomes. The answer is one `DeliveryAnswer` per attempt, and one endpoint's failure never stops
 the next: a subscriber's outage is not another subscriber's silence.
+
+v560 gives the fan-out a memory. `WebhookDeliveryLog.record` writes one `webhook_delivery` row per ATTEMPT —
+the ping's and the fan-out's alike, because both paths go through the dispatcher's one `attempt` — carrying
+the subscriber, the webhook id, the event, the target, the outcome, the status, the detail and BOTH instants
+(when the fact happened, when this service knocked). The write is `REQUIRES_NEW` because the fan-out runs
+`AFTER_COMMIT`: the caller's transaction has committed and its persistence context is still bound to the
+thread, so a receipt saved with the default propagation would join a finished transaction and quietly never
+commit. `GET /webhooks/deliveries?subscriber=&webhook=` reads the log back newest first, capped and paged —
+scoped to the subscriber, narrowed to one subscription when one is named, and carrying the WHOLE count beside
+the window so a narrowed answer says what it is hiding. The row keeps its own copy of what it was about, so
+a receipt survives the removal of the subscription that produced it: a take-down must not erase the record
+of having called that endpoint.
 
 ## Reason
 
@@ -99,10 +112,17 @@ the next: a subscriber's outage is not another subscriber's silence.
   `events` column in memory, because a derived query over that text would be a query about SPELLING rather
   than a query about the set. A table that outgrows a scan needs a join table and a real query — stated here
   rather than implied.
-- **No delivery is recorded, retried or backed off.** The fan-out answers its caller with a
-  `DeliveryAnswer` per attempt, but nothing stores them and there is no schedule or backoff. A subscriber that
-  was down when an event happened cannot learn that it missed one, and the service cannot replay it: the
-  audit trail remains the only complete record.
+- **Every attempt is recorded; none is retried, backed off or replayed.** `webhook_delivery` holds one row per
+  attempt (`delivered`, `refused`, `unreachable`), so a subscriber that was down when an event happened can now
+  learn that it missed one — but the service still has no schedule and no replay, and the audit trail remains
+  the only complete record. A receipt is written only for an attempt that actually happened: a request refused
+  at subscription time or by a missing row leaves nothing to remember.
+- **The delivery log only grows.** Nothing prunes `webhook_delivery`: it gains a row per attempt per
+  subscription, forever, and a retention rule (how long a receipt is kept, and who may delete one) is a later
+  decision rather than an assumption here.
+- **One commit per attempt.** A `REQUIRES_NEW` receipt is its own transaction, so a fan-out to ten
+  subscriptions costs ten commits on top of the ten deliveries. The outbox that would batch them is the same
+  later decision the synchronous fan-out defers.
 - **No ordering guarantee across events.** Each event's fan-out is ordered, but two events committed
   back-to-back are delivered by whichever thread finishes first — a subscriber that needs causal order must
   read the trail.
@@ -123,27 +143,40 @@ the next: a subscriber's outage is not another subscriber's silence.
 
 ## Evidence
 
-- `npm run verify:api-tests` — `mvn -B test`, **471/471, 26 classes**, exit 0. v557/v558 contributed 61 cases
+- `npm run verify:api-tests` — `mvn -B test`, **481/481, 27 classes**, exit 0. v557/v558 contributed 61 cases
   (26 service, 10 signer, 11 controller, 10 dispatcher, 4 transport); v559 added 10 (6 dispatcher fan-out, 2
-  listener, 2 audit). The signer's expected HMAC is computed by a SECOND implementation (Node's
-  `crypto.createHmac`), so the vector is an independent witness rather than the class agreeing with itself.
-  The transport is graded against a socket the test owns (`ServerSocket` on loopback, one request): the bytes
-  and headers that reach it are asserted to be the bytes and headers that were handed over, a 302 is reported
-  rather than followed, and a port nobody listens on surfaces as an exception instead of a status. The v559
-  fan-out is graded for the five rules a reader would otherwise take on trust: only the rows that asked for
-  the verb are called, the order is oldest-first with an id tie-break whatever order the table answers in,
-  one unreachable endpoint does not stop the next, ONE body is signed with each row's OWN key, and the
-  resolution-time address rule is reused rather than re-implemented. The listener's `AFTER_COMMIT` phase is
-  read back off the annotation, because a regression to `@EventListener` would still pass a mapping test.
+  listener, 2 audit); v560 added 10 (6 delivery log, 2 dispatcher receipts, 2 controller). The signer's
+  expected HMAC is computed by a SECOND implementation (Node's `crypto.createHmac`), so the vector is an
+  independent witness rather than the class agreeing with itself. The transport is graded against a socket the
+  test owns (`ServerSocket` on loopback, one request): the bytes and headers that reach it are asserted to be
+  the bytes and headers that were handed over, a 302 is reported rather than followed, and a port nobody
+  listens on surfaces as an exception instead of a status. The v559 fan-out is graded for the five rules a
+  reader would otherwise take on trust: only the rows that asked for the verb are called, the order is
+  oldest-first with an id tie-break whatever order the table answers in, one unreachable endpoint does not
+  stop the next, ONE body is signed with each row's OWN key, and the resolution-time address rule is reused
+  rather than re-implemented. The listener's `AFTER_COMMIT` phase is read back off the annotation, because a
+  regression to `@EventListener` would still pass a mapping test.
+- The v560 receipt log is graded for what a reader would otherwise take on trust. A receipt carries the
+  subscriber, the event, the target and BOTH instants (the fact's, and this service's clock at the knock).
+  The write's `REQUIRES_NEW` propagation is read back off the annotation for the same reason the listener's
+  phase is: a receipt saved in the caller's finished transaction would still pass a save-and-read mapping
+  test and commit nothing, and no unit test can observe a committed transaction without a Spring context.
+  The window is pinned as capped (100), floored (offset ≥ 0), and translated into page rows the way the trail
+  is (v388) — 40 rows with a 20-row window is page 2 and skip 40; the narrowing to one subscription happens
+  IN the query, and the count is narrowed the same way, so a window can say what it is hiding. The dispatcher
+  is graded for writing exactly one receipt per attempt on both paths — the ping's three outcomes, and a
+  fan-out that writes a receipt even for the endpoint that failed — and the controller for the read door
+  carrying no secret and for refusing a subscriber-less request by name.
 - `docs/evidence/m7/service-suite-proof.mjs` derives its totals from the surefire report (§4) and digests the
   service tree (§1/§3), so it grades this slice without a literal count being typed anywhere.
 - **Not graded yet:** no proof against a live PostgreSQL exercises these rows, and no proof observes a
-  delivery to a REAL subscriber's server (the transport test's endpoint is the test's own). The table is
+  delivery to a REAL subscriber's server (the transport test's endpoint is the test's own). The tables are
   created by `ddl-auto` on first start; that a row round-trips is asserted only by the JPA mapping, not by a
   run. v559's WIRING — a real publish committing, the listener firing after that commit, and a fan-out over
-  rows read from a database — is graded by the annotation read-back and by mocked collaborators, not by an
-  end-to-end run: there is no Spring-context integration test in this build, and that is the gap a later
-  slice (or the compose stack's own proof) has to close.
+  rows read from a database — and v560's receipt WRITE — a row committed by `REQUIRES_NEW` on a thread whose
+  caller transaction is already finished — are graded by the annotation read-back and by mocked collaborators,
+  not by an end-to-end run: there is no Spring-context integration test in this build, and that is the gap a
+  later slice (or the compose stack's own proof) has to close.
 
 ## Date
 

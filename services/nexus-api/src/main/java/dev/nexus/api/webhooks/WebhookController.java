@@ -1,8 +1,10 @@
 package dev.nexus.api.webhooks;
 
 import dev.nexus.api.webhooks.WebhookDtos.DeliveryAnswer;
+import dev.nexus.api.webhooks.WebhookDtos.DeliveryRecord;
 import dev.nexus.api.webhooks.WebhookDtos.SubscribeRequest;
 import dev.nexus.api.webhooks.WebhookDtos.Webhook;
+import dev.nexus.api.webhooks.WebhookDtos.WebhookDeliveryList;
 import dev.nexus.api.webhooks.WebhookDtos.WebhookList;
 import dev.nexus.api.webhooks.WebhookDtos.WebhookSecret;
 import java.util.List;
@@ -19,12 +21,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v557/v558 — the HTTP surface for webhook subscriptions. Four doors, and the differences between them
+ * M10 v557–v560 — the HTTP surface for webhook subscriptions. Five doors, and the differences between them
  * are the rules:
  *
  * <ul>
  *   <li>{@code POST /webhooks} — register an endpoint. 201, and the answer carries the secret ONCE.
  *   <li>{@code GET /webhooks?subscriber=} — the subscriber's own subscriptions. No secret in any answer.
+ *   <li>{@code GET /webhooks/deliveries?subscriber=&webhook=} — the subscriber's RECEIPTS: every attempt to
+ *       its endpoints, newest first, optionally narrowed to one subscription.
  *   <li>{@code DELETE /webhooks/{id}?subscriber=} — remove one. 200 either way: an id that names nothing is
  *       "already gone", not an error.
  *   <li>{@code POST /webhooks/{id}/ping?subscriber=} — make this service POST one signed {@code ping} to the
@@ -47,10 +51,12 @@ public class WebhookController {
 
     private final WebhookService service;
     private final WebhookDispatcher dispatcher;
+    private final WebhookDeliveryLog deliveryLog;
 
-    public WebhookController(WebhookService service, WebhookDispatcher dispatcher) {
+    public WebhookController(WebhookService service, WebhookDispatcher dispatcher, WebhookDeliveryLog deliveryLog) {
         this.service = service;
         this.dispatcher = dispatcher;
+        this.deliveryLog = deliveryLog;
     }
 
     /** Register an endpoint. 201 when the row was made. */
@@ -92,6 +98,44 @@ public class WebhookController {
                 .toList();
         return ResponseEntity.ok(new WebhookList(
                 subscriberId.trim(), rows, service.countOf(subscriberId), effective, from));
+    }
+
+    /**
+     * v560 — the delivery log: every attempt to this subscriber's endpoints, newest first.
+     *
+     * <p>The subscriber is REQUIRED for the same reason the listing's is: a receipt is a fact about an
+     * account's endpoint, and a door that answered without the account would answer the whole table. The
+     * optional {@code webhook} narrows the window to one subscription, and the count travels beside it so a
+     * narrowed window can say what it is hiding.
+     */
+    @GetMapping("/webhooks/deliveries")
+    public ResponseEntity<?> deliveries(
+            @RequestParam(name = "subscriber", required = false) String subscriberId,
+            @RequestParam(name = "webhook", required = false) String webhookId,
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "offset", required = false) Integer offset) {
+        if (subscriberId == null || subscriberId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-webhook",
+                    "message", "the subscriber parameter is missing — a delivery log belongs to an account"));
+        }
+        int asked = limit == null ? WebhookDeliveryLog.DEFAULT_LIST_LIMIT : limit;
+        int effective = Math.min(Math.max(asked, 1), WebhookDeliveryLog.MAX_LIST_LIMIT);
+        int from = offset == null ? 0 : Math.max(offset, 0);
+        List<DeliveryRecord> rows = deliveryLog.deliveriesOf(subscriberId, webhookId, asked, from).stream()
+                .map(row -> new DeliveryRecord(
+                        row.getDeliveryId(),
+                        row.getWebhookId(),
+                        row.getEvent(),
+                        row.getTargetId(),
+                        row.getOutcome(),
+                        row.getStatus(),
+                        row.getDetail(),
+                        row.getEventAt().toEpochMilli(),
+                        row.getAttemptedAt().toEpochMilli()))
+                .toList();
+        return ResponseEntity.ok(new WebhookDeliveryList(
+                subscriberId.trim(), rows, deliveryLog.countOf(subscriberId, webhookId), effective, from));
     }
 
     /** Remove one subscription. 200 either way; 403 when it belongs to another subscriber. */

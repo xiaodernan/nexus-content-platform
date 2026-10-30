@@ -58,4 +58,29 @@ public final class WebhookDtos {
             String detail,
             long at) {
     }
+
+    /**
+     * One RECEIPT as the log door answers it: what was attempted, when it was attempted, and what happened.
+     *
+     * <p>Both instants travel — {@code eventAt} is when the fact happened (the trail's instant, or the ping's),
+     * and {@code attemptedAt} is when this service knocked. They are equal for a ping and can differ for a
+     * fan-out, which runs after the write commits. Times are epoch MILLISECONDS at the wire, the client's own
+     * unit, the same as every other instant this service answers with.
+     */
+    public record DeliveryRecord(
+            String id,
+            String webhookId,
+            String event,
+            String targetId,
+            String outcome,
+            Integer status,
+            String detail,
+            long eventAt,
+            long attemptedAt) {
+    }
+
+    /** The subscriber's receipt window, and the count of the WHOLE (narrowed) log beside it. */
+    public record WebhookDeliveryList(
+            String subscriberId, List<DeliveryRecord> deliveries, long total, int limit, int offset) {
+    }
 }

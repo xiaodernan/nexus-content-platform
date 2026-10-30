@@ -146,7 +146,7 @@ public class WebhookService {
     }
 
     /** The owning account, trimmed — an empty subscriber is a subscription nobody owns. */
-    private static String requireSubscriber(String raw) {
+    static String requireSubscriber(String raw) {
         if (raw == null || raw.isBlank()) {
             throw new InvalidWebhook("a webhook needs a subscriber — the account it belongs to");
         }

@@ -78,6 +78,7 @@ public class WebhookDispatcher {
     private final WebhookSubscriptionRepository repository;
     private final HostResolver resolver;
     private final WebhookTransport transport;
+    private final WebhookDeliveryLog deliveryLog;
     private final ObjectMapper mapper;
     private final Clock clock;
 
@@ -85,11 +86,13 @@ public class WebhookDispatcher {
             WebhookSubscriptionRepository repository,
             HostResolver resolver,
             WebhookTransport transport,
+            WebhookDeliveryLog deliveryLog,
             ObjectMapper mapper,
             Clock clock) {
         this.repository = repository;
         this.resolver = resolver;
         this.transport = transport;
+        this.deliveryLog = deliveryLog;
         this.mapper = mapper;
         this.clock = clock;
     }
@@ -124,7 +127,7 @@ public class WebhookDispatcher {
         return repository.findAll().stream()
                 .filter(row -> row.eventList().contains(wanted))
                 .sorted(OLDEST_FIRST)
-                .map(row -> attempt(row, body, at))
+                .map(row -> attempt(row, wanted, targetId, body, at))
                 .toList();
     }
 
@@ -152,7 +155,7 @@ public class WebhookDispatcher {
         }
         Instant at = clock.instant().truncatedTo(ChronoUnit.MICROS);
         String body = body(PING_EVENT, row.getWebhookId(), at);
-        return attempt(row, body, at);
+        return attempt(row, PING_EVENT, row.getWebhookId(), body, at);
     }
 
     /**
@@ -161,16 +164,17 @@ public class WebhookDispatcher {
      * <p>Nothing is sent when any resolved address is private: the request never reaches a network socket,
      * which is the difference between "refused" and "tried and hoped".
      */
-    private DeliveryAnswer attempt(WebhookSubscription row, String body, Instant at) {
+    private DeliveryAnswer attempt(
+            WebhookSubscription row, String event, String targetId, String body, Instant at) {
         List<InetAddress> addresses;
         try {
             addresses = resolver.resolve(hostOf(row.getEndpointUrl()));
         } catch (Exception e) {
-            return answer(row, at, OUTCOME_UNREACHABLE, null, simpleName(e));
+            return answer(row, event, targetId, at, OUTCOME_UNREACHABLE, null, simpleName(e));
         }
         for (InetAddress address : addresses) {
             if (isPrivateAddress(address)) {
-                return answer(row, at, OUTCOME_REFUSED, null, DETAIL_PRIVATE_ADDRESS);
+                return answer(row, event, targetId, at, OUTCOME_REFUSED, null, DETAIL_PRIVATE_ADDRESS);
             }
         }
         String signature = WebhookSigner.header(row.getSecret(), body, at);
@@ -182,11 +186,11 @@ public class WebhookDispatcher {
                     DELIVERY_TIMEOUT);
             int status = response.status();
             if (status >= 200 && status < 300) {
-                return answer(row, at, OUTCOME_DELIVERED, status, null);
+                return answer(row, event, targetId, at, OUTCOME_DELIVERED, status, null);
             }
-            return answer(row, at, OUTCOME_REFUSED, status, "status");
+            return answer(row, event, targetId, at, OUTCOME_REFUSED, status, "status");
         } catch (Exception e) {
-            return answer(row, at, OUTCOME_UNREACHABLE, null, simpleName(e));
+            return answer(row, event, targetId, at, OUTCOME_UNREACHABLE, null, simpleName(e));
         }
     }
 
@@ -229,8 +233,22 @@ public class WebhookDispatcher {
         }
     }
 
-    private static DeliveryAnswer answer(
-            WebhookSubscription row, Instant at, String outcome, Integer status, String detail) {
+    /**
+     * The answer, and the RECEIPT: one row per attempt, written before the answer is returned.
+     *
+     * <p>v560 — the recording lives HERE rather than at each call site so no path can return an outcome
+     * without writing it down. The write is {@link WebhookDeliveryLog}'s own transaction
+     * ({@code REQUIRES_NEW}), which is what makes it survive the after-commit fan-out.
+     */
+    private DeliveryAnswer answer(
+            WebhookSubscription row,
+            String event,
+            String targetId,
+            Instant at,
+            String outcome,
+            Integer status,
+            String detail) {
+        deliveryLog.record(row, event, targetId, at, outcome, status, detail);
         return new DeliveryAnswer(
                 row.getWebhookId(),
                 row.getEndpointUrl(),

@@ -35,10 +35,13 @@ class WebhookControllerTest {
     @Mock
     private WebhookDispatcher dispatcher;
 
+    @Mock
+    private WebhookDeliveryLog deliveryLog;
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     private WebhookController controller() {
-        return new WebhookController(service, dispatcher);
+        return new WebhookController(service, dispatcher, deliveryLog);
     }
 
     private static WebhookSubscription row(String id) {
@@ -187,5 +190,44 @@ class WebhookControllerTest {
         assertThat(answer.getStatusCode().value()).isEqualTo(404);
         assertThat(answer.getBody()).containsEntry("error", "no-such-webhook");
         assertThat(answer.getBody().get("message")).contains("does not exist");
+    }
+
+    // ── v560: the delivery log door ────────────────────────────────────────────────────────────────
+
+    @Test
+    void theDeliveryLogIsTheSubscribersOwnWindowAndCarriesNoSecret() throws Exception {
+        WebhookDelivery receipt = new WebhookDelivery(
+                "d-1", "wh-1", SUBSCRIBER, "publish", "pub-1",
+                WebhookDispatcher.OUTCOME_UNREACHABLE, null, "UnknownHostException", AT, AT.plusSeconds(2));
+        when(deliveryLog.deliveriesOf(SUBSCRIBER, "wh-1", 20, 0)).thenReturn(List.of(receipt));
+        when(deliveryLog.countOf(SUBSCRIBER, "wh-1")).thenReturn(1L);
+
+        ResponseEntity<?> answer = controller().deliveries(SUBSCRIBER, "wh-1", null, null);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        JsonNode wire = mapper.valueToTree(answer.getBody());
+        assertThat(wire.get("deliveries")).hasSize(1);
+        JsonNode row = wire.get("deliveries").get(0);
+        assertThat(row.get("event").asText()).isEqualTo("publish");
+        assertThat(row.get("targetId").asText()).isEqualTo("pub-1");
+        assertThat(row.get("outcome").asText()).isEqualTo("unreachable");
+        assertThat(row.get("detail").asText()).isEqualTo("UnknownHostException");
+        // Both instants travel: the fact's and the attempt's, in the client's own epoch milliseconds.
+        assertThat(row.get("eventAt").asLong()).isEqualTo(AT.toEpochMilli());
+        assertThat(row.get("attemptedAt").asLong()).isEqualTo(AT.plusSeconds(2).toEpochMilli());
+        assertThat(row.has("secret")).isFalse();
+        assertThat(wire.get("total").asLong()).isEqualTo(1L);
+        assertThat(wire.get("limit").asInt()).isEqualTo(20);
+        assertThat(wire.get("subscriberId").asText()).isEqualTo(SUBSCRIBER);
+    }
+
+    @Test
+    void aDeliveryLogWithoutASubscriberIsRefusedByName() {
+        ResponseEntity<?> answer = controller().deliveries("  ", null, null, null);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        JsonNode wire = mapper.valueToTree(answer.getBody());
+        assertThat(wire.get("error").asText()).isEqualTo("invalid-webhook");
+        assertThat(wire.get("message").asText()).contains("subscriber");
     }
 }
