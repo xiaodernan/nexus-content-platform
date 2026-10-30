@@ -30,7 +30,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
   const { path, visitorKey, open, visibleMs, completionPct, webdriver } = parsed.data;
 
-  const rl = getRateLimiter().hit(rateKey('published/visit', clientIp(req), visitorKey), 240, 60 * 60 * 1000);
+  const rl = await getRateLimiter().hit(rateKey('published/visit', clientIp(req), visitorKey), 240, 60 * 60 * 1000);
   if (!rl.allowed) return jsonError(429, 'rate_limited', { message: '上报太频繁', retryAfterMs: rl.retryAfterMs });
 
   const publication = await findPublicPath(path);

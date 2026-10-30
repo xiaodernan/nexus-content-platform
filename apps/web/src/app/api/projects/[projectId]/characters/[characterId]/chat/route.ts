@@ -46,7 +46,7 @@ export async function POST(
     if (writeAccess === 'not_found') return notFound();
     if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
 
-    const rl = getRateLimiter().hit(rateKey('character-chat', clientIp(req), user.id), 20, 10 * 60_000);
+    const rl = await getRateLimiter().hit(rateKey('character-chat', clientIp(req), user.id), 20, 10 * 60_000);
     if (!rl.allowed) {
       return jsonError(429, 'rate_limited', { message: '对话太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
     }

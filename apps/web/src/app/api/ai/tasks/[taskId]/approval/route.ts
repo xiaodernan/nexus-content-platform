@@ -33,7 +33,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   try {
     const user = await requireUser();
     // 30 / 10 分钟：审批不是高频操作，但"点错了一直重试"的人不该被锁死在一条已决定的任务上
-    const rl = getRateLimiter().hit(rateKey('ai/approval', clientIp(req), user.id), 30, 10 * 60_000);
+    const rl = await getRateLimiter().hit(rateKey('ai/approval', clientIp(req), user.id), 30, 10 * 60_000);
     if (!rl.allowed) {
       return jsonError(429, 'rate_limited', { message: '审批太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
     }

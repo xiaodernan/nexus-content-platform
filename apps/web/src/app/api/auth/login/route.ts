@@ -28,7 +28,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const ip = clientIp(req);
   // 登录按 IP + 邮箱限流：挡住对单个账号的口令爆破。
-  const rl = getRateLimiter().hit(rateKey('auth/login', ip, parsed.data.email.toLowerCase()), 10, 15 * 60 * 1000);
+  const rl = await getRateLimiter().hit(rateKey('auth/login', ip, parsed.data.email.toLowerCase()), 10, 15 * 60 * 1000);
   if (!rl.allowed) {
     const res = jsonError(429, 'rate_limited', { message: '尝试次数过多，请稍后再试' });
     res.headers.set('retry-after', String(Math.ceil(rl.retryAfterMs / 1000)));

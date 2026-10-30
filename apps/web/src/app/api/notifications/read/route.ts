@@ -16,7 +16,7 @@ import { badRequest, jsonError, readJson } from '@/server/http';
 export async function POST(req: Request): Promise<NextResponse> {
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const user = await requireUser();
-  const rl = getRateLimiter().hit(rateKey('notifications/read', clientIp(req), user.id), 120, 60_000);
+  const rl = await getRateLimiter().hit(rateKey('notifications/read', clientIp(req), user.id), 120, 60_000);
   if (!rl.allowed) return jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
 
   const body = await readJson(req);

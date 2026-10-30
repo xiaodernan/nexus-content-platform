@@ -323,7 +323,7 @@ describe('§127 失败路径一行都不写（把 +1 挪回建包之前，这两
 
 describe('§127 限流：按 条目 + IP，且门在授权与读库之前', () => {
   it(`一个 IP 对一个条目打满 ${MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR} 次后，第 ${MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR + 1} 次 429，数字停在上限`, async () => {
-    getRateLimiter().reset();
+    await getRateLimiter().reset();
     const statuses: number[] = [];
     for (let i = 0; i < MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR; i += 1) {
       statuses.push((await hit(floodItem, asUser(null))).status);
@@ -341,7 +341,7 @@ describe('§127 限流：按 条目 + IP，且门在授权与读库之前', () =
   }, 120_000);
 
   it('未登录的 401 也吃配额（门在授权之前）；换 IP 就换桶', async () => {
-    getRateLimiter().reset();
+    await getRateLimiter().reset();
     const seen: number[] = [];
     for (let i = 0; i < MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR; i += 1) {
       seen.push((await hit(gateItem, asUser(null, '198.51.100.7'))).status);

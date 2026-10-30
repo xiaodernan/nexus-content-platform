@@ -92,7 +92,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，按身份限流对它空转
   // （marketplace 那条注释早就点破过"换 cookie 就能无限造行"，但 user.id + IP 双键仍挡不住新身份）。
   // 所以这道按 IP 的闸必须放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。
-  const gate = ipWriteGate('marketplace/create', req, 20, 3600000);
+  const gate = await ipWriteGate('marketplace/create', req, 20, 3600000);
   if (gate.limited) return jsonError(429, 'rate_limited', { message: '上架太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
 
   const user = await requireUser();
@@ -100,7 +100,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   // 都会新建一个 guest 用户，不限流就等于"换 cookie 就能无限造行"——物品行 + 用户行
   // 一起涨。与 follow（30/分）/ 举报（10/小时）/ 草稿接受（20/10 分）同一口径。
   // 额度用 `user.id` + IP 双键：同一身份多个出口共享一份，同一出口多个身份各自计数。
-  const rl = getRateLimiter().hit(rateKey('marketplace/create', clientIp(req), user.id), 20, 10 * 60_000);
+  const rl = await getRateLimiter().hit(rateKey('marketplace/create', clientIp(req), user.id), 20, 10 * 60_000);
   if (!rl.allowed) {
     return jsonError(429, 'rate_limited', { message: '上架太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
   }

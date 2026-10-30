@@ -39,7 +39,7 @@ export async function GET(
   const { id } = await params;
 
   // 门放在读库之前：与那条被删掉的计数门同一口径（先挡人，再费劲查东西）
-  const rl = getRateLimiter().hit(
+  const rl = await getRateLimiter().hit(
     rateKey('marketplace/content', clientIp(req), id),
     MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR,
     60 * 60 * 1000,

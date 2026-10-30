@@ -42,7 +42,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   // 收的是身份与会话，不是改一个字段：一次误点就该被看见，所以按人限得比改角色更紧
-  const rl = getRateLimiter().hit(rateKey('admin/guests/reclaim', clientIp(req), user.id), 6, 10 * 60_000);
+  const rl = await getRateLimiter().hit(rateKey('admin/guests/reclaim', clientIp(req), user.id), 6, 10 * 60_000);
   if (!rl.allowed) {
     return jsonError(429, 'rate_limited', { message: '回收操作太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
   }

@@ -76,7 +76,7 @@ export async function DELETE(req: Request): Promise<NextResponse> {
   }
   try {
     const user = await requireUser();
-    const rl = getRateLimiter().hit(rateKey('account/delete', clientIp(req), user.id), 5, 10 * 60_000);
+    const rl = await getRateLimiter().hit(rateKey('account/delete', clientIp(req), user.id), 5, 10 * 60_000);
     if (!rl.allowed) {
       return jsonError(429, 'rate_limited', { message: '注销尝试太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
     }

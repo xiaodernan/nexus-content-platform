@@ -28,7 +28,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   // 提权是最不该被脚本刷的一类动作：按人限流，一次误点不会把一堆账号换来换去
-  const rl = getRateLimiter().hit(rateKey('admin/users', clientIp(req), user.id), 20, 10 * 60_000);
+  const rl = await getRateLimiter().hit(rateKey('admin/users', clientIp(req), user.id), 20, 10 * 60_000);
   if (!rl.allowed) {
     return jsonError(429, 'rate_limited', { message: '改角色太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
   }

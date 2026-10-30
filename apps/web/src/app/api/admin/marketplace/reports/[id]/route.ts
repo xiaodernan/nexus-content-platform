@@ -52,7 +52,7 @@ export async function PATCH(
   if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
 
   const ip = clientIp(req);
-  const rl = getRateLimiter().hit(rateKey('admin/marketplace/reports', ip, user.id), 30, 10 * 60_000);
+  const rl = await getRateLimiter().hit(rateKey('admin/marketplace/reports', ip, user.id), 30, 10 * 60_000);
   if (!rl.allowed) {
     return jsonError(429, 'rate_limited', { message: '处置太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
   }

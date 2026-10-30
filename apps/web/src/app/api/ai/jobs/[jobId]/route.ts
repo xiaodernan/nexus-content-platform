@@ -24,7 +24,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   const { jobId } = await ctx.params;
   try {
     const user = await requireUser();
-    const rl = getRateLimiter().hit(rateKey('ai/jobs/status', clientIp(req), user.id), 600, 10 * 60_000);
+    const rl = await getRateLimiter().hit(rateKey('ai/jobs/status', clientIp(req), user.id), 600, 10 * 60_000);
     if (!rl.allowed) {
       return jsonError(429, 'rate_limited', { message: '查询太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
     }

@@ -3,58 +3,58 @@ import { clientIp, getRateLimiter, rateKey } from '../src/server/security/rateLi
 
 /** 滑动窗口限流（SECURITY.md 认证节：按 用户 + IP + 路由）。 */
 describe('rateLimit（内存滑动窗口）', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-22T00:00:00Z'));
-    getRateLimiter().reset();
+    await getRateLimiter().reset();
   });
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it('窗口内放行到上限，之后挡住', () => {
+  it('窗口内放行到上限，之后挡住', async () => {
     const rl = getRateLimiter();
     const key = rateKey('auth/login', '1.2.3.4', 'a@b.c');
-    for (let i = 0; i < 5; i += 1) expect(rl.hit(key, 5, 60_000).allowed).toBe(true);
-    const blocked = rl.hit(key, 5, 60_000);
+    for (let i = 0; i < 5; i += 1) expect((await rl.hit(key, 5, 60_000)).allowed).toBe(true);
+    const blocked = await rl.hit(key, 5, 60_000);
     expect(blocked.allowed).toBe(false);
     expect(blocked.count).toBe(5);
     expect(blocked.retryAfterMs).toBeGreaterThan(0);
   });
 
-  it('被挡下的请求不计入窗口（否则限流形同加速自锁）', () => {
+  it('被挡下的请求不计入窗口（否则限流形同加速自锁）', async () => {
     const rl = getRateLimiter();
     const key = 'route|anon|ip';
-    rl.hit(key, 2, 60_000);
-    rl.hit(key, 2, 60_000);
-    expect(rl.hit(key, 2, 60_000).allowed).toBe(false);
-    expect(rl.hit(key, 2, 60_000).count).toBe(2); // 仍是 2，没被拒请求顶上去
+    await rl.hit(key, 2, 60_000);
+    await rl.hit(key, 2, 60_000);
+    expect((await rl.hit(key, 2, 60_000)).allowed).toBe(false);
+    expect((await rl.hit(key, 2, 60_000)).count).toBe(2); // 仍是 2，没被拒请求顶上去
   });
 
-  it('窗口滑过后名额重新放出', () => {
+  it('窗口滑过后名额重新放出', async () => {
     const rl = getRateLimiter();
     const key = 'route|user|ip';
-    rl.hit(key, 2, 60_000);
-    rl.hit(key, 2, 60_000);
-    expect(rl.hit(key, 2, 60_000).allowed).toBe(false);
+    await rl.hit(key, 2, 60_000);
+    await rl.hit(key, 2, 60_000);
+    expect((await rl.hit(key, 2, 60_000)).allowed).toBe(false);
     vi.advanceTimersByTime(60_001);
-    expect(rl.hit(key, 2, 60_000).allowed).toBe(true);
+    expect((await rl.hit(key, 2, 60_000)).allowed).toBe(true);
   });
 
-  it('不同键互不影响（按 用户+IP+路由 分桶）', () => {
+  it('不同键互不影响（按 用户+IP+路由 分桶）', async () => {
     const rl = getRateLimiter();
-    expect(rl.hit('a', 1, 60_000).allowed).toBe(true);
-    expect(rl.hit('a', 1, 60_000).allowed).toBe(false);
-    expect(rl.hit('b', 1, 60_000).allowed).toBe(true);
+    expect((await rl.hit('a', 1, 60_000)).allowed).toBe(true);
+    expect((await rl.hit('a', 1, 60_000)).allowed).toBe(false);
+    expect((await rl.hit('b', 1, 60_000)).allowed).toBe(true);
   });
 
-  it('reset(key) 只清一个桶', () => {
+  it('reset(key) 只清一个桶', async () => {
     const rl = getRateLimiter();
-    rl.hit('x', 1, 60_000);
-    rl.hit('y', 1, 60_000);
-    rl.reset('x');
-    expect(rl.hit('x', 1, 60_000).allowed).toBe(true);
-    expect(rl.hit('y', 1, 60_000).allowed).toBe(false);
+    await rl.hit('x', 1, 60_000);
+    await rl.hit('y', 1, 60_000);
+    await rl.reset('x');
+    expect((await rl.hit('x', 1, 60_000)).allowed).toBe(true);
+    expect((await rl.hit('y', 1, 60_000)).allowed).toBe(false);
   });
 });
 

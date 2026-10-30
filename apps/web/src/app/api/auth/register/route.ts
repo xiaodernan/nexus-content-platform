@@ -31,7 +31,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const ip = clientIp(req);
   // 注册按 IP 限流：挡住批量建号，正常用户几乎碰不到。
-  const rl = getRateLimiter().hit(rateKey('auth/register', ip), 10, 60 * 60 * 1000);
+  const rl = await getRateLimiter().hit(rateKey('auth/register', ip), 10, 60 * 60 * 1000);
   if (!rl.allowed) return jsonError(429, 'rate_limited', { message: '注册过于频繁，请稍后再试' });
 
   const body = await readJson(req);

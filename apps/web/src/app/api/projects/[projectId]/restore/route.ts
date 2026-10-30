@@ -22,7 +22,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    const rl = getRateLimiter().hit(rateKey('projects/restore', clientIp(req), user.id), 60, 10 * 60_000);
+    const rl = await getRateLimiter().hit(rateKey('projects/restore', clientIp(req), user.id), 60, 10 * 60_000);
     if (!rl.allowed) {
       return jsonError(429, 'rate_limited', { message: '恢复太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
     }

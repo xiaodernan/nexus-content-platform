@@ -22,7 +22,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   const { jobId } = await ctx.params;
   try {
     const user = await requireUser();
-    const rl = getRateLimiter().hit(rateKey('ai/jobs/cancel', clientIp(req), user.id), 30, 10 * 60_000);
+    const rl = await getRateLimiter().hit(rateKey('ai/jobs/cancel', clientIp(req), user.id), 30, 10 * 60_000);
     if (!rl.allowed) {
       return jsonError(429, 'rate_limited', { message: '取消太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
     }

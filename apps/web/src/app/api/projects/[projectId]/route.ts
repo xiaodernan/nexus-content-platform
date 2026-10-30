@@ -76,7 +76,7 @@ export async function PATCH(req: Request, ctx: RouteContext): Promise<NextRespon
   }
   try {
     const user = await requireUser();
-    const rl = getRateLimiter().hit(rateKey('projects/patch', clientIp(req), user.id), 120, 10 * 60_000);
+    const rl = await getRateLimiter().hit(rateKey('projects/patch', clientIp(req), user.id), 120, 10 * 60_000);
     if (!rl.allowed) {
       return jsonError(429, 'rate_limited', { message: '修改太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
     }
@@ -109,7 +109,7 @@ export async function DELETE(req: Request, ctx: RouteContext): Promise<NextRespo
   }
   try {
     const user = await requireUser();
-    const rl = getRateLimiter().hit(rateKey('projects/delete', clientIp(req), user.id), 20, 10 * 60_000);
+    const rl = await getRateLimiter().hit(rateKey('projects/delete', clientIp(req), user.id), 20, 10 * 60_000);
     if (!rl.allowed) {
       return jsonError(429, 'rate_limited', { message: '删除操作太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
     }

@@ -239,7 +239,7 @@ export async function authorizeApiRequest(req: Request, scope: ApiTokenScope): P
   }
   // 桶按 scope 分开：同一枚凭据读满 120 次不该把它写的那一格饿死，反之也一样
   const limit = isWriteScope(scope) ? API_WRITE_RATE_LIMIT_PER_MINUTE : API_RATE_LIMIT_PER_MINUTE;
-  const rl = getRateLimiter().hit(rateKey(`api/v1:${scope}`, clientIp(req), authed.token.id), limit, 60_000);
+  const rl = await getRateLimiter().hit(rateKey(`api/v1:${scope}`, clientIp(req), authed.token.id), limit, 60_000);
   if (!rl.allowed) {
     return {
       ok: false,

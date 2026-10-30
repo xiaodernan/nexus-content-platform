@@ -157,8 +157,8 @@ function report(token: string, forwarded: string | null): Promise<Response> {
   );
 }
 
-beforeAll(() => {
-  getRateLimiter().reset();
+beforeAll(async () => {
+  await getRateLimiter().reset();
 });
 
 afterAll(async () => {
@@ -167,7 +167,7 @@ afterAll(async () => {
 
 describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
   it('25 个不同 token 打 POST /api/projects——第 21 次起 429，且被挡的那些一个 guest 都没建', async () => {
-    getRateLimiter().reset();
+    await getRateLimiter().reset();
     const tokens = Array.from({ length: 25 }, newProbeToken);
     const statuses: number[] = [];
     for (const token of tokens) statuses.push((await createProject(token, IP)).status);
@@ -179,7 +179,7 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
   }, REAL_ROUTE_BATCH_TIMEOUT_MS);
 
   it('正对照：稳定身份照旧放行，第 N+1 次由原有那道按身份的闸去管', async () => {
-    getRateLimiter().reset();
+    await getRateLimiter().reset();
     const stable = newProbeToken();
     const statuses: number[] = [];
     for (let i = 0; i < 3; i += 1) statuses.push((await createProject(stable, IP)).status);
@@ -188,7 +188,7 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
   });
 
   it('公开举报入口同样被兜住：换 token 也绕不过', async () => {
-    getRateLimiter().reset();
+    await getRateLimiter().reset();
     const tokens = Array.from({ length: 25 }, newProbeToken);
     const statuses: number[] = [];
     for (const token of tokens) statuses.push((await report(token, IP)).status);
@@ -199,7 +199,7 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
   }, REAL_ROUTE_BATCH_TIMEOUT_MS);
 
   it('标识不出 IP 时这道闸让路——不拿共享桶把正常用户一起挡掉', async () => {
-    getRateLimiter().reset();
+    await getRateLimiter().reset();
     const tokens = Array.from({ length: 25 }, newProbeToken);
     const statuses: number[] = [];
     for (const token of tokens) statuses.push((await createProject(token, null)).status);
@@ -221,7 +221,7 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
    * 同一个桶——前 20 放行、后 5 个 429，且被挡住的那 5 个一个 guest 都没建。
    */
   it('换着写链条左端（反代在右边补上真对端）也绕不过这道闸', async () => {
-    getRateLimiter().reset();
+    await getRateLimiter().reset();
     const tokens = Array.from({ length: 25 }, newProbeToken);
     const statuses: number[] = [];
     for (const [i, token] of tokens.entries()) {
@@ -239,7 +239,7 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
    * 到 20 就挡。上面那句"标识不出时让路"继续成立——两件事的差别就在这儿。
    */
   it('写一行读不出的垃圾头换不来免限流：25 次里第 21 次起 429', async () => {
-    getRateLimiter().reset();
+    await getRateLimiter().reset();
     const tokens = Array.from({ length: 25 }, newProbeToken);
     const statuses: number[] = [];
     for (const [i, token] of tokens.entries()) {
@@ -264,7 +264,7 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
    * 这里钉的是处理器的口径，部署那一半写在 ADR-0071 的后果 2 与 `docs/ENVIRONMENT.md`。
    */
   it('前置只写 Forwarded（RFC 7239）时闸照旧：25 次里第 21 次起 429，guest 只多 20 个', async () => {
-    getRateLimiter().reset();
+    await getRateLimiter().reset();
     const tokens = Array.from({ length: 25 }, newProbeToken);
     const statuses: number[] = [];
     for (const [i, token] of tokens.entries()) {
@@ -284,7 +284,7 @@ describe('§137 guest 自动签发：换 cookie 绕不过按 IP 的闸', () => {
    * 最后那句对照证明"没变"不是因为查不到那条行。
    */
   it('别人家的 guest 数不进来：并行会话共用同一个库时读数仍然只算自己这批 token', async () => {
-    getRateLimiter().reset();
+    await getRateLimiter().reset();
     const db = getDb();
     const [foreign] = await db
       .insert(users)

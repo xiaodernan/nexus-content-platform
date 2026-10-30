@@ -37,7 +37,7 @@ export async function PUT(req: Request): Promise<NextResponse> {
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const user = await currentUserOrNull();
   if (!user) return jsonError(401, 'unauthenticated', { message: '需要登录' });
-  const rl = getRateLimiter().hit(rateKey('notifications/settings', clientIp(req), user.id), 60, 60_000);
+  const rl = await getRateLimiter().hit(rateKey('notifications/settings', clientIp(req), user.id), 60, 60_000);
   if (!rl.allowed) {
     return jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
   }

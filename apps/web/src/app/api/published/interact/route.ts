@@ -33,11 +33,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，下面那道按身份的限流
   // 对它空转（marketplace 那条注释早就点破过"换 cookie 就能无限造行"）。
   // 所以这道按 IP 的闸放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。
-  const gate = ipWriteGate('published/interact', req, 120, 60 * 60 * 1000);
+  const gate = await ipWriteGate('published/interact', req, 120, 60 * 60 * 1000);
   if (gate.limited) return jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
 
   const user = await requireUser();
-  const rl = getRateLimiter().hit(rateKey(`published/${action}`, clientIp(req), user.id), RATE_PER_MINUTE, 60_000);
+  const rl = await getRateLimiter().hit(rateKey(`published/${action}`, clientIp(req), user.id), RATE_PER_MINUTE, 60_000);
   if (!rl.allowed) {
     return jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
   }
@@ -72,7 +72,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   if (action === 'comment') {
-    const crl = getRateLimiter().hit(rateKey('published/comment', clientIp(req), user.id), COMMENT_PER_HOUR, 60 * 60_000);
+    const crl = await getRateLimiter().hit(rateKey('published/comment', clientIp(req), user.id), COMMENT_PER_HOUR, 60 * 60_000);
     if (!crl.allowed) {
       return jsonError(429, 'rate_limited', { message: '评论太频繁了，一小时后再试', retryAfterMs: crl.retryAfterMs });
     }

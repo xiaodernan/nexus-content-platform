@@ -10,16 +10,37 @@
 
 import { increment } from '../observability';
 
+export interface RateLimitDecision {
+  allowed: boolean;
+  count: number;
+  retryAfterMs: number;
+}
+
 export interface RateLimiter {
-  /** 记一次命中并返回是否放行；同时回带当前窗口计数供 Retry-After 参考。 */
-  hit(key: string, limit: number, windowMs: number): { allowed: boolean; count: number; retryAfterMs: number };
-  reset(key?: string): void;
+  /**
+   * 记一次命中并返回是否放行；同时回带当前计数供 Retry-After 参考。
+   *
+   * **异步**是这一片新还的债：接口原来是同步的，那就只有"进程内"这一种后端写得出来。
+   * 而一次 Redis 往返必须有地方等它——把 seam 做成同步，等于把多实例那条路堵死在类型上。
+   *
+   * 漏掉 `await` 谁抓得住，两半不一样，别当成一条：
+   * - **这一半（回决策）由 `tsc` 当场拦下**——`Promise` 上没有 `allowed`，读它就报错。
+   *   44 个调用点是靠这条网一次性点齐的（臂 A1：摘掉一个 `await`，编译立刻指到用它的那一行）。
+   * - **下面那个 `reset` 那一半类型检查是瞎的**：`Promise<void>` 不接住不报错，
+   *   靠的是 eslint `no-floating-promises`（臂 A2：摘掉 `await`，`tsc` 一句不说，lint 报 9:5）。
+   *   今天内存驱动下漏 `await` 恰好也能生效——`async` 方法体在第一个 await 之前是同步跑的。
+   *   所以这条**只有在换成 Redis 驱动之后才真正咬人**：那时漏掉的那个 await 变成"清桶这件事
+   *   也许在测试已经开始之后才发生"，而内存驱动永远测不出它。这也是这一片先把 15 个
+   *   `reset()` 调用点全部补上 await 的原因，而不是"反正内存版同步能用"。
+   */
+  hit(key: string, limit: number, windowMs: number): Promise<RateLimitDecision>;
+  reset(key?: string): Promise<void>;
 }
 
 class MemoryRateLimiter implements RateLimiter {
   private readonly hits = new Map<string, number[]>();
 
-  hit(key: string, limit: number, windowMs: number): { allowed: boolean; count: number; retryAfterMs: number } {
+  async hit(key: string, limit: number, windowMs: number): Promise<RateLimitDecision> {
     const now = Date.now();
     const cutoff = now - windowMs;
     const window = (this.hits.get(key) ?? []).filter((t) => t > cutoff);
@@ -39,7 +60,7 @@ class MemoryRateLimiter implements RateLimiter {
     return { allowed, count: window.length, retryAfterMs: allowed ? 0 : Math.max(0, oldest + windowMs - now) };
   }
 
-  reset(key?: string): void {
+  async reset(key?: string): Promise<void> {
     if (key === undefined) this.hits.clear();
     else this.hits.delete(key);
   }
@@ -237,15 +258,15 @@ export function gateIp(request: Request): string | null {
  * 2. IP 是粗粒度身份：同一 NAT 后的多人共用一个桶。所以限额取宽，
  *    真正的"这个人"仍由各路由原有的按身份闸去管——这里是兜底，不是替代。
  */
-export function ipWriteGate(
+export async function ipWriteGate(
   route: string,
   req: Request,
   limit: number,
   windowMs: number,
-): { limited: false } | { limited: true; retryAfterMs: number } {
+): Promise<{ limited: false } | { limited: true; retryAfterMs: number }> {
   const ip = gateIp(req);
   if (!ip) return { limited: false };
-  const rl = getRateLimiter().hit(rateKey(route, ip), limit, windowMs);
+  const rl = await getRateLimiter().hit(rateKey(route, ip), limit, windowMs);
   return rl.allowed ? { limited: false } : { limited: true, retryAfterMs: rl.retryAfterMs };
 }
 

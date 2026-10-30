@@ -27,7 +27,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   const { taskId } = await ctx.params;
   try {
     const user = await requireUser();
-    const rl = getRateLimiter().hit(rateKey('ai/tasks/retry', clientIp(req), user.id), 20, 10 * 60_000);
+    const rl = await getRateLimiter().hit(rateKey('ai/tasks/retry', clientIp(req), user.id), 20, 10 * 60_000);
     if (!rl.allowed) {
       return jsonError(429, 'rate_limited', { message: '重试太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
     }

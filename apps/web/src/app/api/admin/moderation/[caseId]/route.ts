@@ -28,7 +28,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ caseId: string
    * 而这条路是任何登录用户都能走的——不限流的话，一个非审核员的循环请求
    * 就能把审计表刷满，真出事时反而翻不到那几行。与 `/api/admin/users` 同一口径。
    */
-  const rl = getRateLimiter().hit(rateKey('admin/moderation', clientIp(req), user.id), 30, 10 * 60_000);
+  const rl = await getRateLimiter().hit(rateKey('admin/moderation', clientIp(req), user.id), 30, 10 * 60_000);
   if (!rl.allowed) {
     return jsonError(429, 'rate_limited', { message: '裁决太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
   }

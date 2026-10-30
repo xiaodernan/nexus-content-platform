@@ -23,13 +23,13 @@ function reqWith(headers: Record<string, string>): Request {
 const ENV_KEY = 'NEXUS_TRUSTED_PROXY_COUNT';
 const savedEnv = process.env[ENV_KEY];
 
-beforeEach(() => {
-  getRateLimiter().reset();
+beforeEach(async () => {
+  await getRateLimiter().reset();
   delete process.env[ENV_KEY];
 });
 
-afterEach(() => {
-  getRateLimiter().reset();
+afterEach(async () => {
+  await getRateLimiter().reset();
   if (savedEnv === undefined) delete process.env[ENV_KEY];
   else process.env[ENV_KEY] = savedEnv;
 });
@@ -90,35 +90,40 @@ describe('clientIp：取可信链的右端，不是客户端写的最左端', ()
 });
 
 describe('ipWriteGate：垃圾头不该换来免限流', () => {
-  it('头在场但读不出可用地址 → 进同一个 invalid-xff 桶，不是让路', () => {
+  it('头在场但读不出可用地址 → 进同一个 invalid-xff 桶，不是让路', async () => {
     const statuses: (string | null)[] = [];
     for (let n = 1; n <= 4; n += 1) {
       // 每请求换一串垃圾：旧读法下这是四个不同的桶，等于整道闸不生效
-      statuses.push(ipWriteGate('projects/create', reqWith({ 'x-forwarded-for': `evil-${n}` }), 3, 60_000).limited ? '429' : '201');
+      statuses.push(
+        (await ipWriteGate('projects/create', reqWith({ 'x-forwarded-for': `evil-${n}` }), 3, 60_000)).limited ? '429' : '201',
+      );
     }
     expect(statuses).toEqual(['201', '201', '201', '429']);
     expect(gateIp(reqWith({ 'x-forwarded-for': 'evil-1' }))).toBe(INVALID_IP_BUCKET);
   });
 
-  it('头缺席时这道闸让路（既有口径，不改）：换 25 次也不挡', () => {
+  it('头缺席时这道闸让路（既有口径，不改）：换 25 次也不挡', async () => {
     for (let n = 0; n < 25; n += 1) {
-      expect(ipWriteGate('projects/create', reqWith({ 'x-anything': String(n) }), 20, 3_600_000).limited).toBe(false);
+      expect((await ipWriteGate('projects/create', reqWith({ 'x-anything': String(n) }), 20, 3_600_000)).limited).toBe(false);
     }
   });
 
-  it('换着写最左端打不满限额：25 次里第 21 次起 429（右端才是桶）', () => {
+  it('换着写最左端打不满限额：25 次里第 21 次起 429（右端才是桶）', async () => {
     const statuses: string[] = [];
     for (let n = 1; n <= 25; n += 1) {
-      const res = ipWriteGate('projects/create', reqWith({ 'x-forwarded-for': `192.0.2.${n % 251}, 198.51.100.9` }), 20, 3_600_000);
+      const res = await ipWriteGate('projects/create', reqWith({ 'x-forwarded-for': `192.0.2.${n % 251}, 198.51.100.9` }), 20, 3_600_000);
       statuses.push(res.limited ? '429' : '201');
     }
     expect(statuses.slice(0, 20)).toEqual(new Array(20).fill('201'));
     expect(statuses.slice(20)).toEqual(new Array(5).fill('429'));
   });
 
-  it('右端不同才是真的换人：两批各自 20 次都放行（别把限流做成一台共享灭火器）', () => {
+  it('右端不同才是真的换人：两批各自 20 次都放行（别把限流做成一台共享灭火器）', async () => {
     for (let n = 0; n < 20; n += 1) {
-      expect(ipWriteGate('projects/create', reqWith({ 'x-forwarded-for': `203.0.113.7, 198.51.100.${n % 2}` }), 20, 3_600_000).limited).toBe(false);
+      expect(
+        (await ipWriteGate('projects/create', reqWith({ 'x-forwarded-for': `203.0.113.7, 198.51.100.${n % 2}` }), 20, 3_600_000))
+          .limited,
+      ).toBe(false);
     }
   });
 });
@@ -186,20 +191,20 @@ describe('RFC 7239 的 Forwarded：for= 才是那一跳亲眼看到的对端', (
     expect(clientIp(reqWith({ forwarded: 'for=unknown', 'x-real-ip': '198.51.100.9' }))).toBe('198.51.100.9');
   });
 
-  it('闸：换着写左端那一跳绕不过去——25 次里第 21 次起挡', () => {
+  it('闸：换着写左端那一跳绕不过去——25 次里第 21 次起挡', async () => {
     const statuses: string[] = [];
     for (let n = 1; n <= 25; n += 1) {
-      const res = ipWriteGate('projects/create', reqWith({ forwarded: `for=192.0.2.${n % 251}, for=198.51.100.9` }), 20, 3_600_000);
+      const res = await ipWriteGate('projects/create', reqWith({ forwarded: `for=192.0.2.${n % 251}, for=198.51.100.9` }), 20, 3_600_000);
       statuses.push(res.limited ? '429' : '201');
     }
     expect(statuses.slice(0, 20)).toEqual(new Array(20).fill('201'));
     expect(statuses.slice(20)).toEqual(new Array(5).fill('429'));
   });
 
-  it('只写 Forwarded 的请求也在闸的视野里：同一对端 25 次里第 21 次起挡', () => {
+  it('只写 Forwarded 的请求也在闸的视野里：同一对端 25 次里第 21 次起挡', async () => {
     const statuses: string[] = [];
     for (let n = 1; n <= 25; n += 1) {
-      const res = ipWriteGate('projects/create', reqWith({ forwarded: 'for=198.51.100.9' }), 20, 3_600_000);
+      const res = await ipWriteGate('projects/create', reqWith({ forwarded: 'for=198.51.100.9' }), 20, 3_600_000);
       statuses.push(res.limited ? '429' : '201');
     }
     expect(statuses.slice(0, 20)).toEqual(new Array(20).fill('201'));

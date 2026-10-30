@@ -167,14 +167,14 @@ function callArguments(text: string): string[] {
 }
 
 describe('写入方真的在动（不是编得过去的死代码）', () => {
-  it('走一次限流闸：放行与拒绝各计一次，标签只有闸名没有身份', () => {
+  it('走一次限流闸：放行与拒绝各计一次，标签只有闸名没有身份', async () => {
     resetMetrics();
     const limiter = getRateLimiter();
     // 独立窗口，避免与同文件其它测试抢同一个桶；键的形状是 路由|身份|IP
     const key = rateKey(`probe-gate-${process.pid}`, '203.0.113.9', 'user-under-test');
-    expect(limiter.hit(key, 2, 60_000).allowed).toBe(true);
-    expect(limiter.hit(key, 2, 60_000).allowed).toBe(true);
-    expect(limiter.hit(key, 2, 60_000).allowed).toBe(false);
+    expect((await limiter.hit(key, 2, 60_000)).allowed).toBe(true);
+    expect((await limiter.hit(key, 2, 60_000)).allowed).toBe(true);
+    expect((await limiter.hit(key, 2, 60_000)).allowed).toBe(false);
 
     const metric = snapshot().find((m) => m.name === 'nexus_rate_limit_decisions_total');
     if (metric?.kind !== 'counter') throw new Error('限流闸没记到账上');
