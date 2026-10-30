@@ -52,28 +52,24 @@ export async function POST(req: Request): Promise<NextResponse> {
   return NextResponse.json({ ok: true, ...payload(result, parsed.data.ids ?? null) });
 }
 
-/** 响应里放的是"这一轮看见了什么、做了什么"，逐条与 `docs/adr/0072-*.md` 的口径对得上 */
+/**
+ * 响应里放的是"这一轮看见了什么、做了什么"，逐条与 `docs/adr/0072-*.md` 的口径对得上。
+ *
+ * 读数那一份整个放在 `scan` 里，不把它摊平成十来个同名字段：面板要换的就是这一份快照，
+ * 摊平一次就多一处"改了那边忘了这边"的地方。第三十一片就是在查另一件事时撞见这一格的——
+ * 面板写的是 `body?.scan`，而这里从来没给过 `scan`，所以那颗「重新数一遍」在屏幕上什么都没换。
+ */
 function payload(result: GuestReclaimResult & { ok: true }, named: string[] | null) {
   const { scan } = result;
   return {
     dryRun: result.dryRun,
-    graceDays: scan.graceDays,
-    now: scan.now,
-    cutoff: scan.cutoff,
-    /** 沉默到线的 guest 总数（含下面两类被排除的） */
-    stale: scan.stale,
-    skippedPublished: scan.skippedPublished,
-    skippedLiveToken: scan.skippedLiveToken,
-    /** 这一轮点名要收的（dry run 时就是"真按会收这些"） */
-    found: scan.candidates.length,
-    candidates: scan.candidates,
-    moreThanBatch: scan.moreThanBatch,
-    scanTruncated: scan.scanTruncated,
     /** 这一次是不是按勾出来的那几行走的，以及那句"点名的 N 个里"的 N */
     named: named !== null,
     requested: result.requested,
     reclaimed: result.reclaimed,
     skippedUnderLock: result.skippedUnderLock,
+    /** 这一轮的整份读数：面板换 `live` 换的就是它 */
+    scan,
     // 那句数必须与库里少掉的行数同源：`requested` 只在点名时出现，不然"收走了 0 个"
     // 会让人以为整份清单被走了一遍，而实际上这一次只碰了勾着的那几行
     message: result.dryRun

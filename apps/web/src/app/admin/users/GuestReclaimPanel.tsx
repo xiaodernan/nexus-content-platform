@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
 import type { GuestReclaimCandidate, GuestReclaimScan } from '@/server/domain/guest-reclaim';
-import { adoptScan, allCheckedOf, selectionOf, toggleId } from './reclaim-state';
+import { adoptScan, allCheckedOf, clampPage, pageWindow, pageCount, scanCaveats, selectionOf, toggleId } from './reclaim-state';
 
 /**
  * 过期访客回收的后台入口（ADR-0072）。
@@ -12,10 +12,13 @@ import { adoptScan, allCheckedOf, selectionOf, toggleId } from './reclaim-state'
  * 页面上第一份数字是服务端算好的，但**按下去之前一定要再数一遍**：这条规则判的是时间，
  * 一份挂着不动的清单几分钟后就是假话（与 `AccountDeletionPanel` 同一个理由）。
  *
- * 三件刻意的写法：
+ * 四件刻意的写法：
  * - **勾选框是"范围"不是"确认"**。默认全勾，所以不动它 = 收这一屏列出来的这些；一个都不勾时按钮
  *   直接禁用。它不额外要求人"先证明自己想清楚了"（那种门槛只会让人以为点了没反应是页面的错），
  *   要的是另一件事：这一次动作碰的人必须是**这一屏上看得见**的，不是"此刻全库够格的"（决定八）。
+ * - **一屏列 8 行，一屏之外还有几屏**（决定九）。够格数说的是这份清单里一共几个，屏号说的是
+ *   人眼里此刻这一屏几个——两件事分开写，不然「全选（8/8）」读起来像"全部"，其实只是第一屏。
+ *   换屏时勾选回到"全勾这一屏"，带着上一屏的勾翻过来只会让按钮说一句没人点得动的"收走这 0 个"。
  * - **回执那句数由服务端算**（`点名的 N 个里收走了 M 个`），界面不自己数第二遍——两边各数一次
  *   迟早对不上，而对不上的时候人只能猜哪边是假的。
  * - **不显示"一共还有多少个 guest"**。这一片管的是沉默的那几个，不是总量；把总量放在一起，
@@ -33,8 +36,6 @@ interface Receipt {
   issues?: string[];
 }
 
-const PREVIEW_LIMIT = 8;
-
 function dayOf(iso: string): string {
   return new Date(iso).toLocaleDateString('zh-CN');
 }
@@ -44,6 +45,8 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
   const [live, setLive] = useState<GuestReclaimScan>(scan);
   /** `null` = 全勾（清单上列出来的这些）；给了数组就是只勾这几行 */
   const [picked, setPicked] = useState<string[] | null>(null);
+  /** 站在第几屏（0 起）。清单换了之后由 `clampPage` 决定它有效到哪一屏 */
+  const [page, setPage] = useState(0);
   const [busy, setBusy] = useState<'count' | 'apply' | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -56,13 +59,25 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
     setLive((prev) => adoptScan(prev, scan));
   }, [scan]);
 
-  const shown: GuestReclaimCandidate[] = live.candidates.slice(0, PREVIEW_LIMIT);
+  const totalEligible = live.candidates.length;
+  const pages = pageCount(totalEligible);
+  const current = clampPage(page, totalEligible);
+  const shown: GuestReclaimCandidate[] = pageWindow(live.candidates, current);
   const shownIds = shown.map((c) => c.id);
   /** 勾着的行：读数一换，不在新清单上的那些 id 自动作废（判据在 `reclaim-state.ts`，与单元门同一份） */
   const selected = selectionOf(picked, shownIds);
   const allChecked = allCheckedOf(picked, shownIds);
 
   const toggleOne = (id: string): void => setPicked((prev) => toggleId(prev, shownIds, id));
+
+  /**
+   * 翻屏。勾选一起回到"全勾这一屏"：勾着的范围从来都是**这一屏**，
+   * 把上一屏那些 id 带过来只会筛成空集，然后按钮说一句"收走这 0 个"——人以为页面坏了。
+   */
+  const goPage = (next: number): void => {
+    setPage(clampPage(next, totalEligible));
+    setPicked(null);
+  };
 
   const call = async (dryRun: boolean): Promise<void> => {
     setBusy(dryRun ? 'count' : 'apply');
@@ -108,10 +123,11 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
       </p>
 
       <p className="text-11 text-fg-2" data-reclaim-counts>
-        沉默到线 {live.stale} 个 · 够格 {live.candidates.length} 个 · 发布过不碰 {live.skippedPublished} 个 ·
+        沉默到线 {live.stale} 个 · 够格 {totalEligible} 个 · 发布过不碰 {live.skippedPublished} 个 ·
         带令牌不碰 {live.skippedLiveToken} 个 · 一次最多 {live.batch} 个
-        {live.moreThanBatch ? ' · 这一轮装不下，还有剩下的' : ''}
-        {live.scanTruncated ? ` · 只数了前 1000 个` : ''}
+        {scanCaveats(live).map((s) => (
+          <span key={s}> · {s}</span>
+        ))}
       </p>
 
       {shown.length > 0 ? (
@@ -131,6 +147,31 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
             />
             全选（{selected.length}/{shownIds.length}）
           </label>
+          {pages > 1 ? (
+            // 屏号单独一行，是因为「全选（8/8）」这句光看像"全部"：够格的一共几个、这一屏几个，
+            // 得并排说出来人才知道自己在第几屏上（ADR-0072 决定九）
+            <div className="flex flex-wrap items-center gap-2 text-11 text-fg-3" data-reclaim-page>
+              <button
+                type="button"
+                onClick={() => goPage(current - 1)}
+                disabled={busy !== null || current === 0}
+                className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-0.5 text-11 text-fg-2 hover:bg-bg-2 disabled:opacity-40"
+                data-reclaim-prev
+              >
+                ← 上一屏
+              </button>
+              第 {current + 1}/{pages} 屏 · 这一屏 {shownIds.length} 行 · 够格的一共 {totalEligible} 个
+              <button
+                type="button"
+                onClick={() => goPage(current + 1)}
+                disabled={busy !== null || current >= pages - 1}
+                className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-0.5 text-11 text-fg-2 hover:bg-bg-2 disabled:opacity-40"
+                data-reclaim-next
+              >
+                下一屏 →
+              </button>
+            </div>
+          ) : null}
           <ul className="flex flex-col gap-1" data-reclaim-list>
             {shown.map((c) => (
               <li key={c.id} className="flex flex-wrap items-center gap-2 text-11 text-fg-3" data-reclaim-row={c.id}>
@@ -147,10 +188,10 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
                 <span>{c.drafts > 0 ? `${c.drafts} 个草稿一起收起` : '没有草稿'}</span>
               </li>
             ))}
-            {live.candidates.length > shown.length ? (
+            {live.moreThanBatch ? (
               <li className="text-11 text-fg-3" data-reclaim-truncated>
-                只列了 {shown.length} 个，够格的有 {live.candidates.length} 个——这一屏没列出来的那些，
-                这一次收不到。
+                这份清单一次装 {live.batch} 个，够格的比这多——翻完这几屏也看不到剩下的那些，
+                它们这一轮进不了清单，也就点不到。
               </li>
             ) : null}
           </ul>

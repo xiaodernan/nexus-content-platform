@@ -43,7 +43,7 @@ export async function waitForAuthFormHydrated(page: Page): Promise<void> {
 }
 
 /** 提交登录／注册表单的结果，供断言与"登不上就换个法子"的探测两条路共用。 */
-interface AuthAttempt {
+export interface AuthAttempt {
   status: number;
   upgraded: boolean;
   shown: string | null;
@@ -118,7 +118,18 @@ export async function loginMember(page: Page, email: string, password: string): 
 
 /** 能不能登进去，登不进去不报错——给可复用的夹具账号用（账号还不存在时要去注册）。 */
 export async function loginMemberIfPossible(page: Page, email: string, password: string): Promise<boolean> {
-  return (await submitAuthForm(page, 'login', email, password)).upgraded;
+  return (await loginOutcome(page, email, password)).upgraded;
+}
+
+/**
+ * 同上，但把那一次答复原样交回去（`status` 与界面上那句话）。
+ *
+ * 单给"登不上要说清为什么"的夹具用：一个**本来就存在**的夹具账号登不上，十次里有九次是
+ * 那道「10 次/15 分钟/邮箱」的闸被自己反复跑喂满了，而调用方若只拿到一个布尔，
+ * 就会退回去注册，然后看见一句"该邮箱已被注册"——那句话是真的，但它把原因指错了地方。
+ */
+export async function loginOutcome(page: Page, email: string, password: string): Promise<AuthAttempt> {
+  return submitAuthForm(page, 'login', email, password);
 }
 
 /**

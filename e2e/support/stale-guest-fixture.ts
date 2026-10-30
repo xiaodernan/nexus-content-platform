@@ -50,8 +50,11 @@ export async function seedStaleGuests(marker: string, count: number): Promise<Se
     const out: SeededGuest[] = [];
     for (let n = 0; n < count; n += 1) {
       const name = `${marker}·${n}`;
+      // 账龄一个一个错开一分钟：候选按 `created_at` 升序排，同一个时间戳里谁先谁后是库说了算的，
+      // 而翻页那条用例要说的正是"第 9 个在第二屏"——次序得是可预期的，不能靠运气
+      const createdAt = new Date(ago(100).getTime() + n * 60_000);
       const rows = await sql`insert into users (display_name, guest, role, created_at, bio)
-        values (${name}, true, 'creator', ${ago(100).toISOString()}, ${marker}) returning id`;
+        values (${name}, true, 'creator', ${createdAt.toISOString()}, ${marker}) returning id`;
       const id = rows[0]?.id as string | undefined;
       if (!id) throw new Error(`建不出 ${name}`);
       await sql`insert into sessions (user_id, token_hash, expires_at, created_at)

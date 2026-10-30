@@ -168,7 +168,10 @@ describe('缺省值与两种答案', () => {
     const body = await res.json();
     expect(body.dryRun).toBe(true);
     expect(body.reclaimed).toEqual([]);
-    expect(body.candidates.map((c: { id: string }) => c.id)).toContain(staleGuest);
+    // 读数整个在 `scan` 里：面板换的就是这一份快照，第三十一片之前这里从来没给过 `scan`
+    expect(body.scan.candidates.map((c: { id: string }) => c.id)).toContain(staleGuest);
+    expect(body.scan.scanLimit).toBe(1000);
+    expect(body.scan.scanTruncated).toBe(false);
     const [row] = await getDb().select({ deletedAt: users.deletedAt }).from(users).where(eq(users.id, staleGuest)).limit(1);
     expect(row!.deletedAt).toBeNull();
   });
@@ -184,7 +187,7 @@ describe('缺省值与两种答案', () => {
     expect(body.dryRun).toBe(false);
     const taken = new Set<string>((body.reclaimed as { id: string }[]).map((r) => r.id));
     // 报上来的就是刚才数到的那批（可能少几个：锁上重判时有人回来了）
-    for (const id of taken) expect((dryBody.candidates as { id: string }[]).some((c) => c.id === id)).toBe(true);
+    for (const id of taken) expect((dryBody.scan.candidates as { id: string }[]).some((c) => c.id === id)).toBe(true);
     expect(taken.has(staleGuest)).toBe(true);
     expect(body.message).toContain(`收走了 ${taken.size} 个`);
 
@@ -251,7 +254,7 @@ describe('点名（ids）在报文层', () => {
     expect(body.message).toBe('点名的 1 个里收走了 1 个');
     // 响应里那份 scan 是**收之前**读的，所以没被点名的那个还挂在清单上——这正是面板要靠
     // `router.refresh()` 送下来的新快照清行的理由（第二十九片臂 A17 那一格）
-    expect((body.candidates as { id: string }[]).some((c) => c.id === untouched)).toBe(true);
+    expect((body.scan.candidates as { id: string }[]).some((c) => c.id === untouched)).toBe(true);
 
     const rows = await getDb()
       .select({ id: users.id, deletedAt: users.deletedAt })

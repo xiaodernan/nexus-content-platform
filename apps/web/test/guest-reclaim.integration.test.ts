@@ -605,3 +605,51 @@ describe('点名（ids）：爆炸半径收窄到勾着的几行', () => {
     expect((row!.detail as { named?: boolean } | null)?.named).toBe(true);
   });
 });
+
+/**
+ * 一趟看多少个（`scanLimit`，第三十一片）。这一格钉的是界面上那句"只数了前 N 个"有没有据：
+ * 上界撞着的时候，`stale` 与那两道排除的计数**只覆盖看过的那 N 行**，把它们当全量报出去就是假话。
+ *
+ * 原来那个 1000 是文件里的常量，这一格没法跑——共享开发库上造不出一千个沉默访客，也不该造。
+ * 做成参数（默认还是 1000）之后，"截断那一支到底说了什么"就有一条常驻门管着。
+ */
+describe('一趟看多少个：scanLimit 与那句"只数了前 N 个"', () => {
+  it('撞上界时那三分类加起来正好是这一界：读数说的是看过的那些，不是全库', async () => {
+    const crowd: string[] = [];
+    for (let n = 0; n < 3; n += 1) {
+      crowd.push(await makeGuest({ name: `限数访客${n}号${RUN}`, createdDaysAgo: 88 - n, expiresInDays: [-45] }));
+    }
+    mine(...crowd);
+
+    const cut = await scanGuestReclaimCandidates({ now: NOW, scanLimit: 2 });
+    expect(cut.scanLimit).toBe(2);
+    expect(cut.stale).toBe(2);
+    expect(cut.scanTruncated).toBe(true);
+    // 看过 2 行就该分成 2 行：够格的 + 发布过不碰的 + 带令牌不碰的，不重不漏
+    expect(cut.candidates.length + cut.skippedPublished + cut.skippedLiveToken).toBe(cut.stale);
+
+    // 对照：同一份库、不给上界时这一句不是截断，数也比那一界大
+    const whole = await scanGuestReclaimCandidates({ now: NOW });
+    expect(whole.scanLimit).toBe(1000);
+    expect(whole.scanTruncated).toBe(false);
+    expect(whole.stale).toBeGreaterThan(cut.stale);
+  });
+
+  it('上界收到 1 起步：0 与负数不许把这一趟变成"一个都没看"却报出个像结论的数', async () => {
+    for (const value of [0, -5, 0.4]) {
+      const s = await scanGuestReclaimCandidates({ now: NOW, scanLimit: value });
+      expect(s.scanLimit, `scanLimit=${value} 没有被收回 1 起步`).toBe(1);
+      expect(s.stale).toBeLessThanOrEqual(1);
+    }
+    expect((await scanGuestReclaimCandidates({ now: NOW, scanLimit: 2.9 })).scanLimit).toBe(2);
+  });
+
+  it('执行前数的那一遍与人眼里看得一样远：scanLimit 一路传到 dry run 那份读数', async () => {
+    const run = await reclaimExpiredGuests({ actorId: admin, now: NOW, dryRun: true, scanLimit: 3 });
+    expect(run.ok).toBe(true);
+    if (!run.ok) return;
+    expect(run.scan.scanLimit).toBe(3);
+    expect(run.scan.stale).toBe(3);
+    expect(run.requested).toBeLessThanOrEqual(run.scan.candidates.length);
+  });
+});

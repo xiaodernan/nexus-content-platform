@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { adoptScan, allCheckedOf, selectionOf, toggleId } from '@/app/admin/users/reclaim-state';
+import {
+  adoptScan,
+  allCheckedOf,
+  clampPage,
+  pageCount,
+  pageWindow,
+  scanCaveats,
+  selectionOf,
+  toggleId,
+} from '@/app/admin/users/reclaim-state';
 import type { GuestReclaimCandidate, GuestReclaimScan } from '@/server/domain/guest-reclaim';
 
 /**
@@ -32,6 +41,7 @@ function scan(overrides: Partial<GuestReclaimScan> & { now: string }): GuestRecl
     skippedLiveToken: 0,
     candidates: [],
     moreThanBatch: false,
+    scanLimit: 1000,
     scanTruncated: false,
     ...overrides,
   };
@@ -107,5 +117,84 @@ describe('selectionOf / allCheckedOf / toggleId（勾选的范围）', () => {
     // 屏幕外的 id 被点进来也不碍事：发出去之前 `selectionOf` 按这一筛掉，范围仍然只有这一屏
     expect(toggleId(null, screen, 'zzz')).toEqual(['a', 'b', 'c', 'zzz']);
     expect(selectionOf(toggleId(null, screen, 'zzz'), screen)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+/**
+ * 屏号那一句（第三十一片，ADR-0072 决定九）：**人眼里这一屏是哪几行**。
+ *
+ * 勾选的范围判的是"这一屏"，所以"这一屏"必须是个说得出口的东西。第三十片那一版它只能靠
+ * `slice(0, 8)` 硬写，于是「全选（8/8）」读起来像"全部"，其实只是第一屏——而够格的可能有 40 个。
+ * 这一组把屏数、屏号的有效边界与切出来的行钉住，特别是**收走一批之后清单变短**那一路：
+ * 那一步不做，人会站在一张已经不存在（或已经空了）的屏上，界面上那句"这一屏 0 行"看着像收完了。
+ */
+describe('pageCount / clampPage / pageWindow（一屏之外还有几屏）', () => {
+  const nine = Array.from({ length: 9 }, (_, i) => `c${i}`);
+  const ids = (page: number) => pageWindow(nine, page);
+
+  it('9 行分两屏：第一屏 8 行，第二屏剩 1 行', () => {
+    expect(pageCount(9)).toBe(2);
+    expect(ids(0)).toEqual(['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7']);
+    expect(ids(1)).toEqual(['c8']);
+    // 对照：一屏就装下了的清单，站在第 2 屏也不会切出一张空表——屏号先过 `clampPage`
+    expect(pageCount(8)).toBe(1);
+    expect(pageWindow(Array.from({ length: 8 }, (_, i) => `c${i}`), 1)).toHaveLength(8);
+  });
+
+  it('空清单也算一屏：界面上那句"第 1/1 屏"不该为 0 个特判', () => {
+    expect(pageCount(0)).toBe(1);
+    expect(clampPage(0, 0)).toBe(0);
+    expect(pageWindow([], 0)).toEqual([]);
+  });
+
+  it('收走一批之后清单变短，站着的屏号被拉回最后一屏，而不是停在一张空表上', () => {
+    // 本来两屏（9 个），站在第二屏；收走第一屏那 8 个之后只剩 1 个 → 只有一屏了
+    expect(clampPage(1, 9)).toBe(1);
+    expect(clampPage(1, 1)).toBe(0);
+    expect(pageWindow(['c8'], clampPage(1, 1))).toEqual(['c8']);
+    // 负数与小数同样收在有效区间里：URL 与键盘都能送出这种值
+    expect(clampPage(-3, 9)).toBe(0);
+    expect(clampPage(1.7, 9)).toBe(1);
+  });
+
+  it('屏与勾选合起来才是范围：翻到第二屏，勾着的只能是这一屏那一行', () => {
+    const shown = ids(1);
+    expect(shown).toEqual(['c8']);
+    expect(selectionOf(null, shown)).toEqual(['c8']);
+    // 上一屏勾着的 a…c7 到了这一屏一律作废——发出去的 ids 不能带着屏幕上看不见的人
+    expect(selectionOf(['c0', 'c1'], shown)).toEqual([]);
+    expect(allCheckedOf(['c0', 'c1'], shown)).toBe(false);
+  });
+
+  it('一屏几行是参数，不是写死在切片的数里', () => {
+    expect(pageCount(9, 4)).toBe(3);
+    expect(pageWindow(nine, 2, 4)).toEqual(['c8']);
+    expect(clampPage(2, 9, 4)).toBe(2);
+    // 每屏 9 行时 9 个就是一屏，没有第二屏
+    expect(pageCount(9, 9)).toBe(1);
+  });
+});
+
+describe('scanCaveats（那两句"这一次看不全"分开说）', () => {
+  it('两道墙都没撞上：一句都不说', () => {
+    expect(scanCaveats(scan({ now: '2026-10-30T00:00:00.000Z' }))).toEqual([]);
+  });
+
+  it('清单装不下（`batch` 的墙）：说这一轮装不下，不说扫描的事', () => {
+    const clauses = scanCaveats(scan({ now: '2026-10-30T00:00:00.000Z', moreThanBatch: true, batch: 50 }));
+    expect(clauses).toEqual(['这一轮装不下，还有剩下的']);
+  });
+
+  it('扫描触顶（`scanLimit` 的墙）：那句里的 N 从快照读，不是界面上硬写的数', () => {
+    expect(scanCaveats(scan({ now: '2026-10-30T00:00:00.000Z', scanTruncated: true, scanLimit: 1000 })))
+      .toEqual(['只数了前 1000 个']);
+    // 同一个界面、把扫描改小到 3：那句话必须跟着换成 3，否则它是一句假话
+    expect(scanCaveats(scan({ now: '2026-10-30T00:00:00.000Z', scanTruncated: true, scanLimit: 3 })))
+      .toEqual(['只数了前 3 个']);
+  });
+
+  it('两道墙同时撞上：两句都留下，各说各的距离', () => {
+    const clauses = scanCaveats(scan({ now: '2026-10-30T00:00:00.000Z', moreThanBatch: true, scanTruncated: true }));
+    expect(clauses).toEqual(['这一轮装不下，还有剩下的', '只数了前 1000 个']);
   });
 });

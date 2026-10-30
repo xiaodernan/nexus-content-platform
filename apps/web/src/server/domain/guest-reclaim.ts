@@ -28,7 +28,7 @@ export const GUEST_RECLAIM_GRACE_DAYS = 30;
 export const GUEST_RECLAIM_DEFAULT_BATCH = 50;
 export const GUEST_RECLAIM_MAX_BATCH = 200;
 /** 一趟最多看多少个沉默身份。撞到这个数时界面上要说"只数了前 N 个"，不能报全量 */
-const SCAN_LIMIT = 1000;
+const DEFAULT_SCAN_LIMIT = 1000;
 
 export type GuestStaleReason =
   /** 有过会话，最后一条已经过期到线 */
@@ -64,7 +64,9 @@ export interface GuestReclaimScan {
   candidates: GuestReclaimCandidate[];
   /** 够格的比 batch 多（下一轮再收剩下的） */
   moreThanBatch: boolean;
-  /** 够格的比 SCAN_LIMIT 多——那时上面几个数都只 covering 前 SCAN_LIMIT 个 */
+  /** 这一趟实际看了多少个沉默身份的上界（默认 1000）。界面上那句"只数了前 N 个"要读它，不硬写 */
+  scanLimit: number;
+  /** 够格的比 scanLimit 多——那时上面几个数都只 covering 前 scanLimit 个 */
   scanTruncated: boolean;
 }
 
@@ -156,10 +158,13 @@ export async function scanGuestReclaimCandidates(input?: {
   now?: Date;
   graceDays?: number;
   batch?: number;
+  /** 这一趟最多看几个沉默身份。默认 1000；做成参数是为了让"只数了前 N 个"那一格有可跑的用法 */
+  scanLimit?: number;
 }): Promise<GuestReclaimScan> {
   const now = input?.now ?? new Date();
   const graceDays = Math.max(1, Math.trunc(input?.graceDays ?? GUEST_RECLAIM_GRACE_DAYS));
   const batch = clampBatch(input?.batch);
+  const scanLimit = clampScanLimit(input?.scanLimit);
   const cutoff = guestReclaimCutoff(now, graceDays);
 
   const rows = await getDb()
@@ -180,7 +185,7 @@ export async function scanGuestReclaimCandidates(input?: {
     .from(users)
     .where(staleGuestWhere(now, cutoff))
     .orderBy(asc(users.createdAt))
-    .limit(SCAN_LIMIT);
+    .limit(scanLimit);
 
   const skippedPublished = rows.filter((r) => r.published).length;
   const skippedLiveToken = rows.filter((r) => !r.published && r.liveToken).length;
@@ -191,6 +196,7 @@ export async function scanGuestReclaimCandidates(input?: {
     cutoff: cutoff.toISOString(),
     graceDays,
     batch,
+    scanLimit,
     stale: rows.length,
     skippedPublished,
     skippedLiveToken,
@@ -204,7 +210,7 @@ export async function scanGuestReclaimCandidates(input?: {
       drafts: r.drafts,
     })),
     moreThanBatch: eligible.length > batch,
-    scanTruncated: rows.length >= SCAN_LIMIT,
+    scanTruncated: rows.length >= scanLimit,
   };
 }
 
@@ -212,6 +218,13 @@ function clampBatch(value: number | undefined): number {
   const n = Math.trunc(value ?? GUEST_RECLAIM_DEFAULT_BATCH);
   if (!Number.isFinite(n) || n < 1) return 1;
   return Math.min(n, GUEST_RECLAIM_MAX_BATCH);
+}
+
+/** 看的上界不给它 0 或负数：那会让这一趟一个都没看，读数看着却像"库里没有沉默的访客" */
+function clampScanLimit(value: number | undefined): number {
+  const n = Math.trunc(value ?? DEFAULT_SCAN_LIMIT);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return n;
 }
 
 /**
@@ -230,6 +243,8 @@ export async function reclaimExpiredGuests(input: {
   now?: Date;
   graceDays?: number;
   batch?: number;
+  /** 与 `scanGuestReclaimCandidates` 同一个上界：执行前数的那一遍要看得和人眼里一样远 */
+  scanLimit?: number;
   dryRun?: boolean;
   /**
    * 点名的那几个人（界面上勾了哪几行）。给了就**只碰这些 id**，清单上其余的一个不动——
@@ -256,7 +271,7 @@ export async function reclaimExpiredGuests(input: {
 
   const now = input.now ?? new Date();
   const graceDays = Math.max(1, Math.trunc(input.graceDays ?? GUEST_RECLAIM_GRACE_DAYS));
-  const scan = await scanGuestReclaimCandidates({ now, graceDays, batch: input.batch });
+  const scan = await scanGuestReclaimCandidates({ now, graceDays, batch: input.batch, scanLimit: input.scanLimit });
   // 点名先去重、再钳上界：一次事务别被一个手滑的 body 撑成两千条
   const named = input.ids ? Array.from(new Set(input.ids)).slice(0, GUEST_RECLAIM_MAX_BATCH) : null;
   const targets = named ?? scan.candidates.map((c) => c.id);
