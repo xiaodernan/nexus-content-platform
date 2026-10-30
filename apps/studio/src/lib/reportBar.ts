@@ -63,8 +63,15 @@ export interface ReportRow {
   detail: string;
 }
 
-/** The reasons a report may carry \u2014 the client's own four, and no others. */
-export const REPORT_REASONS = ['spam', 'harassment', 'illegal', 'other'] as const;
+/**
+ * The reasons a report may carry \u2014 v556: this file no longer declares them.
+ *
+ * It used to: `export const REPORT_REASONS = ['spam', 'harassment', 'illegal', 'other'] as const` lived here,
+ * and the composer the USER clicks was built from it. The proof that reconciles the reasons with the service
+ * read `ops.ts` instead, so the graded list and the lived list were two different facts \u2014 the copy the service
+ * was checked against had no reader, and the copy that fed the form could be edited to anything without a
+ * single gate going red. One owner now: `ops.ts` `REPORT_REASONS`, imported by `ReportComposer.tsx` directly.
+ */
 
 /**
  * The reason in a reader's words.

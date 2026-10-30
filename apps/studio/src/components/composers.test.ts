@@ -19,7 +19,7 @@
 import React from 'react';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { REPORT_REASONS } from '@/lib/reportBar';
+import { REPORT_REASONS } from '@/lib/ops';
 import type { ComponentType } from 'react';
 
 /**

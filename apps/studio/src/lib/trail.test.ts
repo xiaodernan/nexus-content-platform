@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { toTrailRow, toTrailRows, trailActionText, trailActorText, trailSummaryOf, trailSummaryText, trailTargetTypeText } from './trail';
+import { toTrailRow, toTrailRows, trailActionColorVar, trailActionText, trailActorText, trailFilterCaption, trailFilterHint, trailSummaryOf, trailSummaryText, trailTargetTypeText, TRAIL_FILTER_ACTIONS } from './trail';
+import { AUDIT_ACTIONS } from './ops';
 
 /**
  * M9 v272 — the AUDIT TRAIL's reading half.
@@ -262,6 +263,64 @@ describe('trail — the REPORT verbs in the tally (M7 v311)', () => {
     expect(text).toContain('1 reported');
     expect(text).toContain('1 withdrew the report');
     expect(text).toContain('1 acknowledged');
+  });
+});
+
+/**
+ * v556 — the panel's verbs come from the SERVICE's table, not from a list written here.
+ *
+ * The defect v541 left behind: `ops.ts` was reconciled with `AuditService.ACTIONS` field for field, and the
+ * audit trail kept its own nine-case switch, its own nine buttons and its own button words in `Toolbar.tsx` —
+ * 37 quoted verb literals, in an order that had already drifted from the service's. The gate certified a
+ * model that nothing in production imported; the words a reader actually saw could be edited to anything and
+ * no test would have gone red. These cases pin the wiring instead of the wording: the table, the order, and
+ * the fact that every verb in it reaches the reader through a shipped function.
+ */
+describe('trail — the verbs come from the audited table (M9 v556)', () => {
+  it('the filter bar offers exactly the service\'s verbs, in the service\'s order', () => {
+    expect([...TRAIL_FILTER_ACTIONS]).toEqual([...AUDIT_ACTIONS]);
+    // Order is a claim about the SERVICE, so it is pinned against the service's own list rather than a
+    // hand-copied array of nine strings — which is the spelling that drifted in the first place.
+    expect(TRAIL_FILTER_ACTIONS).toEqual(['publish', 'unpublish', 'like', 'unlike', 'comment', 'uncomment', 'report', 'withdraw-report', 'acknowledge']);
+  });
+
+  it('every verb the service records reaches the reader with words — none prints as its own identifier', () => {
+    for (const action of TRAIL_FILTER_ACTIONS) {
+      expect(trailActionText(action), action).not.toBe(action);
+      expect(trailFilterCaption(action), action).not.toBe(action);
+      expect(trailFilterHint(action), action).not.toBe(action);
+      expect(trailActionText(action).length, action).toBeGreaterThan(0);
+      // A caption is a button label, not a sentence: it starts capitals and carries no full stop.
+      expect(trailFilterCaption(action), action).toMatch(/^[A-Z][A-Za-z -]*$/);
+    }
+  });
+
+  it('a caption is not a hint is not a row word — three faces, three jobs', () => {
+    for (const action of TRAIL_FILTER_ACTIONS) {
+      const caption = trailFilterCaption(action);
+      const hint = trailFilterHint(action);
+      const row = trailActionText(action);
+      expect(caption).not.toBe(hint);
+      expect(caption).not.toBe(row);
+      expect(hint.startsWith('only the '), hint).toBe(true);
+    }
+  });
+
+  it('a verb this build has never heard of still reaches the reader as it arrived, in all three faces', () => {
+    // The service is a separate deployable: a verb added there must show up here as ITSELF, not as a gap,
+    // a crash or the nearest word this build happens to have.
+    expect(trailActionText('dance')).toBe('dance');
+    expect(trailFilterCaption('dance')).toBe('dance');
+    expect(trailFilterHint('dance')).toBe('dance');
+  });
+
+  it('only the take-down is printed muted — and an unknown verb is printed as a normal event, not silenced', () => {
+    expect(trailActionColorVar('unpublish')).toBe('var(--nexus-muted)');
+    for (const action of TRAIL_FILTER_ACTIONS) {
+      if (action === 'unpublish') continue;
+      expect(trailActionColorVar(action), action).toBe('var(--nexus-brand)');
+    }
+    expect(trailActionColorVar('dance')).toBe('var(--nexus-brand)');
   });
 });
 });

@@ -3,7 +3,14 @@ import { useEffect, useState } from 'react';
 import { renderPreviewHtml } from '@/lib/preview';
 import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
 import { readTrail, type TrailAnswer } from '@/lib/auditLane';
-import { trailSummaryOf, trailSummaryText } from '@/lib/trail';
+import {
+  trailActionColorVar,
+  trailFilterCaption,
+  trailFilterHint,
+  trailSummaryOf,
+  trailSummaryText,
+  TRAIL_FILTER_ACTIONS,
+} from '@/lib/trail';
 import { readMyTips, readMyTipsGiven } from '@/lib/tipLane';
 import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
 import { cancelSubscription, retirePlan } from '@/lib/planLane';
@@ -913,154 +920,32 @@ export default function Toolbar() {
                 >
                   All
                 </button>
-                <button
-                  className={`btn ${trailFilter === 'publish' ? 'tool-active' : ''}`}
-                  data-trail-filter="publish"
-                  onClick={() => {
-                    setTrailFilter('publish');
-                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
-                    // named, and the answer it gets back is that action's rows.
-                    // v388 — and the new question starts at its own first window (see 'All').
-                    setTrailOffset(0);
-                    void refreshTrail('publish', 0);
-                  }}
-                  title="only the publishes"
-                >
-                  Published
-                </button>
-                <button
-                  className={`btn ${trailFilter === 'unpublish' ? 'tool-active' : ''}`}
-                  data-trail-filter="unpublish"
-                  onClick={() => {
-                    setTrailFilter('unpublish');
-                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
-                    // named, and the answer it gets back is that action's rows.
-                    // v388 — and the new question starts at its own first window (see 'All').
-                    setTrailOffset(0);
-                    void refreshTrail('unpublish', 0);
-                  }}
-                  title="only the take-downs"
-                >
-                  Taken down
-                </button>
-                {/* v289 — the SOCIAL verbs have their own filters, because the service records them and
-                    a reader asking "what did people DO with this?" deserves the same narrowing the
-                    publication verbs have. */}
-                <button
-                  className={`btn ${trailFilter === 'like' ? 'tool-active' : ''}`}
-                  data-trail-filter="like"
-                  onClick={() => {
-                    setTrailFilter('like');
-                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
-                    // named, and the answer it gets back is that action's rows.
-                    // v388 — and the new question starts at its own first window (see 'All').
-                    setTrailOffset(0);
-                    void refreshTrail('like', 0);
-                  }}
-                  title="only the likes"
-                >
-                  Liked
-                </button>
-                <button
-                  className={`btn ${trailFilter === 'comment' ? 'tool-active' : ''}`}
-                  data-trail-filter="comment"
-                  onClick={() => {
-                    setTrailFilter('comment');
-                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
-                    // named, and the answer it gets back is that action's rows.
-                    // v388 — and the new question starts at its own first window (see 'All').
-                    setTrailOffset(0);
-                    void refreshTrail('comment', 0);
-                  }}
-                  title="only the comments"
-                >
-                  Commented
-                </button>
-                {/* v320 — the undoing of the like. The service has recorded it since v289, and since
-                    this increment the PRODUCT can do it — so a filter that cannot ask for it would leave
-                    a recorded fact in the "All" bucket with no way to name it. */}
-                <button
-                  className={`btn ${trailFilter === 'unlike' ? 'tool-active' : ''}`}
-                  data-trail-filter="unlike"
-                  onClick={() => {
-                    setTrailFilter('unlike');
-                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
-                    // named, and the answer it gets back is that action's rows.
-                    // v388 — and the new question starts at its own first window (see 'All').
-                    setTrailOffset(0);
-                    void refreshTrail('unlike', 0);
-                  }}
-                  title="only the likes that were taken back"
-                >
-                  Like taken back
-                </button>
-                {/* v322 — the undoing of the comment. The service has recorded it since v289, and since
-                    v321 the PRODUCT can do it — so a filter that cannot ask for it would leave a
-                    recorded fact in the "All" bucket with no way to name it. */}
-                <button
-                  className={`btn ${trailFilter === 'uncomment' ? 'tool-active' : ''}`}
-                  data-trail-filter="uncomment"
-                  onClick={() => {
-                    setTrailFilter('uncomment');
-                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
-                    // named, and the answer it gets back is that action's rows.
-                    // v388 — and the new question starts at its own first window (see 'All').
-                    setTrailOffset(0);
-                    void refreshTrail('uncomment', 0);
-                  }}
-                  title="only the comments that were taken back"
-                >
-                  Comment removed
-                </button>
-                {/* v319 — the REPORT verbs get their own filters too. Until now they were visible only
-                    under "All", so a reader asking "was my work complained about?" had to read the whole
-                    trail to find out. The filter asks in the service's own action, like every other
-                    button here. */}
-                <button
-                  className={`btn ${trailFilter === 'report' ? 'tool-active' : ''}`}
-                  data-trail-filter="report"
-                  onClick={() => {
-                    setTrailFilter('report');
-                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
-                    // named, and the answer it gets back is that action's rows.
-                    // v388 — and the new question starts at its own first window (see 'All').
-                    setTrailOffset(0);
-                    void refreshTrail('report', 0);
-                  }}
-                  title="only the reports that were filed"
-                >
-                  Reported
-                </button>
-                <button
-                  className={`btn ${trailFilter === 'withdraw-report' ? 'tool-active' : ''}`}
-                  data-trail-filter="withdraw-report"
-                  onClick={() => {
-                    setTrailFilter('withdraw-report');
-                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
-                    // named, and the answer it gets back is that action's rows.
-                    // v388 — and the new question starts at its own first window (see 'All').
-                    setTrailOffset(0);
-                    void refreshTrail('withdraw-report', 0);
-                  }}
-                  title="only the reports the reporter took back"
-                >
-                  Withdrew
-                </button>
-                <button
-                  className={`btn ${trailFilter === 'acknowledge' ? 'tool-active' : ''}`}
-                  data-trail-filter="acknowledge"
-                  onClick={() => {
-                    setTrailFilter('acknowledge');
-                    // v385 — the narrowing is the SERVICE's: the panel asks again with the action
-                    // named, and the answer it gets back is that action's rows.
-                    // v388 — and the new question starts at its own first window (see 'All').
-                    setTrailOffset(0);
-                    void refreshTrail('acknowledge', 0);
-                  }}
-                  title="only the reports the owner answered"
-                >
-                  Acknowledged
-                </button>
+                {/* v281 — one button per verb the SERVICE records, laid out over the client's table of them.
+                    v289, v320, v322 and v319 each added one of these as a hand-written block that spelled its
+                    verb three times (the active test, the click, the request); v556 replaced the nine blocks
+                    with this map, so a verb now arrives with a filter, a word, a tooltip and a colour in the
+                    same commit that gives it a label — and in the ORDER THE SERVICE DECLARES, which puts each
+                    un-verb beside the verb it undoes.
+                    v385 — the narrowing is the SERVICE's: the panel asks again with the action named, and the
+                    answer it gets back is that action's rows.
+                    v388 — and a new question starts at its own first window: the newest twenty of EVERY action
+                    and the newest twenty of THIS one are different sets with different beginnings, so a page
+                    carried over from the old question would be a page of nothing. */}
+                {TRAIL_FILTER_ACTIONS.map((action) => (
+                  <button
+                    key={action}
+                    className={`btn ${trailFilter === action ? 'tool-active' : ''}`}
+                    data-trail-filter={action}
+                    onClick={() => {
+                      setTrailFilter(action);
+                      setTrailOffset(0);
+                      void refreshTrail(action, 0);
+                    }}
+                    title={trailFilterHint(action)}
+                  >
+                    {trailFilterCaption(action)}
+                  </button>
+                ))}
                 {trailSummary && (
                   <span data-trail-summary style={{ marginLeft: 'auto', color: 'var(--nexus-muted)' }}>
                     {/* v379 — and the tally says WHICH rows it is counting: the trail is a window, and a
@@ -1080,7 +965,9 @@ export default function Toolbar() {
                     data-trail-action={row.action}
                     style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '3px 0' }}
                   >
-                    <strong style={{ color: row.action === 'unpublish' ? 'var(--nexus-muted)' : 'var(--nexus-brand)' }}>
+                    {/* v556 — the colour is the trail module's table to decide, not a verb comparison written
+                        into the component. A take-down is muted because the work it names is no longer there. */}
+                    <strong style={{ color: trailActionColorVar(row.action) }}>
                       {row.actionText}
                     </strong>
                     {/* The target is a LINK, because the thing the entry happened to is a publication a person

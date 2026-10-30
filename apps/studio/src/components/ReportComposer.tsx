@@ -3,20 +3,24 @@ import { useState } from 'react';
 import { fileReport } from '@/lib/reportLane';
 import { session } from '@/lib/accountSession';
 import { claimOf } from '@/lib/socialClaim';
-import { REPORT_REASONS } from '@/lib/reportBar';
+import { REPORT_REASONS, type ReportReason } from '@/lib/ops';
 
 /**
  * M7 v296 — the REPORT composer.
  *
  * A report is the one social act that asks somebody else to do something, and that is why this composer
- * asks for a REASON from a closed set of four: the reporter picks what kind of problem it is, and the
- * service counts by that reason.
+ * asks for a REASON from a CLOSED SET: the reporter picks what kind of problem it is, and the service
+ * counts by that reason.
+ *
+ * v556 — the set is not written here and not counted here. It is `ops.ts` `REPORT_REASONS`, the one list
+ * that `docs/evidence/m9/audit-contract-proof.mjs` §8 reconciles with the service's `ReportDtos`; this
+ * composer used to build its buttons from a second four living in `reportBar.ts`, which no gate read.
  *
  * The rule the component keeps: it never INVENTS an author. A device with no account has no claim, and
  * the composer says so by name rather than reporting on somebody's behalf.
  */
 export function ReportComposer({ projectId, onClose }: { projectId: string; onClose?: () => void }) {
-  const [reason, setReason] = useState<string>(REPORT_REASONS[0]);
+  const [reason, setReason] = useState<ReportReason>(REPORT_REASONS[0]);
   const [detail, setDetail] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);

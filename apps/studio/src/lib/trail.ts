@@ -20,6 +20,10 @@
  *   count next to what it rendered, so a drop is visible as a discrepancy rather than invisible.
  */
 
+// v556 — the verbs come from the module that OWNS them, the one the contract proof reconciles with
+// `AuditService.java`. Before this line the module below re-spelled all nine by hand.
+import { AUDIT_ACTIONS, type AuditedAction } from './ops';
+
 /** The wire shape `GET /audit` answers with — the client's own `AuditEntry`, field for field. */
 export interface TrailEntry {
   id?: unknown;
@@ -63,38 +67,109 @@ export interface TrailRow {
  * A KNOWN action is spelled the way a person would say it; an action this build has never seen is passed
  * through as it arrived, because a panel that cannot recognise an action must not invent one for it — a
  * trail that silently mislabelled `follow` as `published` would be worse than no trail.
+ *
+ * v556 — this was a nine-case switch whose cases were a HAND-COPY of the verbs the service records, so the
+ * copy could (and did, before v541) fall behind the wire. The words now live in a table keyed on
+ * `AuditedAction` — the service's own nine, read off `ops.ts`'s `AUDIT_ACTIONS` — so a verb that joins the
+ * table is a COMPILE ERROR until it has a word, and the pass-through below stays reserved for a verb this
+ * build genuinely has not heard of. `docs/evidence/m9/audit-contract-proof.mjs` §11 runs the function over
+ * the service's nine and refuses to print a bare wire token for any of them.
  */
+const TRAIL_ACTION_TEXT: Record<AuditedAction, string> = {
+  publish: 'published',
+  unpublish: 'took down',
+  // v289 — the SOCIAL verbs (the service records them since v289). Each has its own word, and the un-verbs
+  // are NOT folded into the verbs: "liked" and "took the like back" are different facts, and a trail that
+  // merged them would be losing one of them.
+  like: 'liked',
+  unlike: 'took the like back',
+  comment: 'commented',
+  uncomment: 'removed the comment',
+  // v311 — the REPORT verbs (the service records them since v311). A report is the one social act that
+  // asks somebody else to do something, so the trail says both halves of it: that a complaint was filed,
+  // and that the reporter no longer stands by it.
+  report: 'reported',
+  'withdraw-report': 'withdrew the report',
+  // v304 — the OWNER's answer to a report. It was recorded by the service from the start (v304); the
+  // panel had no word for it and showed the raw action, which is honest but reads like a machine.
+  acknowledge: 'acknowledged the report',
+};
+
+/**
+ * The word a FILTER button wears for a verb — the panel's short label, not the row's sentence.
+ *
+ * v556 — these words lived inside `Toolbar.tsx` as nine hand-written buttons, each spelling its verb three
+ * times (the active test, the click, the request). A verb the service records would need a tenth button
+ * written by hand, and the panel's ORDER had already drifted from the order the service declares.
+ */
+const TRAIL_FILTER_CAPTION: Record<AuditedAction, string> = {
+  publish: 'Published',
+  unpublish: 'Taken down',
+  like: 'Liked',
+  unlike: 'Like taken back',
+  comment: 'Commented',
+  uncomment: 'Comment removed',
+  report: 'Reported',
+  'withdraw-report': 'Withdrew',
+  acknowledge: 'Acknowledged',
+};
+
+/** What a filter button's tooltip promises — the same nine, in the same table. */
+const TRAIL_FILTER_HINT: Record<AuditedAction, string> = {
+  publish: 'only the publishes',
+  unpublish: 'only the take-downs',
+  like: 'only the likes',
+  unlike: 'only the likes that were taken back',
+  comment: 'only the comments',
+  uncomment: 'only the comments that were taken back',
+  report: 'only the reports that were filed',
+  'withdraw-report': 'only the reports the reporter took back',
+  acknowledge: 'only the reports the owner answered',
+};
+
+/**
+ * Whether a verb's row is printed MUTED.
+ *
+ * v556 — the decision is the table's, not the component's: `Toolbar.tsx` used to compare the row's action
+ * against the string `'unpublish'` inline, which is a third place the verb was spelled. A take-down is
+ * muted because the work is no longer there; everything else is printed in the brand colour.
+ */
+const TRAIL_ACTION_MUTED: Record<AuditedAction, boolean> = {
+  publish: false,
+  unpublish: true,
+  like: false,
+  unlike: false,
+  comment: false,
+  uncomment: false,
+  report: false,
+  'withdraw-report': false,
+  acknowledge: false,
+};
+
+/** The nine verbs, in the service's own declaration order — the order the panel lays its filters out in. */
+export const TRAIL_FILTER_ACTIONS: readonly AuditedAction[] = AUDIT_ACTIONS;
+
+/** The button word for a verb, or the verb itself when this build has never heard of it. */
+export function trailFilterCaption(action: string): string {
+  const words: string | undefined = (TRAIL_FILTER_CAPTION as Record<string, string | undefined>)[action];
+  return words ?? action;
+}
+
+/** The tooltip for a verb's filter, or the verb itself when this build has never heard of it. */
+export function trailFilterHint(action: string): string {
+  const words: string | undefined = (TRAIL_FILTER_HINT as Record<string, string | undefined>)[action];
+  return words ?? action;
+}
+
+/** The colour a verb's row is printed in — muted for a take-down, brand for everything else. */
+export function trailActionColorVar(action: string): string {
+  const muted: boolean | undefined = (TRAIL_ACTION_MUTED as Record<string, boolean | undefined>)[action];
+  return muted === true ? 'var(--nexus-muted)' : 'var(--nexus-brand)';
+}
+
 export function trailActionText(action: string): string {
-  switch (action) {
-    case 'publish':
-      return 'published';
-    case 'unpublish':
-      return 'took down';
-    // v289 — the SOCIAL verbs (the service records them since v289). Each has its own word, and the un-verbs
-    // are NOT folded into the verbs: "liked" and "took the like back" are different facts, and a trail that
-    // merged them would be losing one of them.
-    case 'like':
-      return 'liked';
-    case 'unlike':
-      return 'took the like back';
-    case 'comment':
-      return 'commented';
-    case 'uncomment':
-      return 'removed the comment';
-    // v311 — the REPORT verbs (the service records them since v311). A report is the one social act that
-    // asks somebody else to do something, so the trail says both halves of it: that a complaint was filed,
-    // and that the reporter no longer stands by it.
-    case 'report':
-      return 'reported';
-    case 'withdraw-report':
-      return 'withdrew the report';
-    // v304 — the OWNER's answer to a report. It was recorded by the service from the start (v304); the
-    // panel had no word for it and showed the raw action, which is honest but reads like a machine.
-    case 'acknowledge':
-      return 'acknowledged the report';
-    default:
-      return action;
-  }
+  const words: string | undefined = (TRAIL_ACTION_TEXT as Record<string, string | undefined>)[action];
+  return words ?? action;
 }
 
 /**

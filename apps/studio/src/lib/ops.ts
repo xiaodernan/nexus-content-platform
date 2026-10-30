@@ -4,12 +4,44 @@
  * 纯前端，不引入 fetch、localStorage、session。所有字段均由服务端下发，客户端只读、只展示，
  * 不自行判定状态，不生成审计记录。
  *
+ * v556 — **「预设计」这个词只对一半**：这个文件里的**词表**（`AUDIT_ACTIONS`/`REPORT_STATUSES`/
+ * `REPORT_REASONS`）已经被真面板读了——`trail.ts` 用动词表建标签与筛选按钮、`Toolbar.tsx` 用它铺出
+ * 审计轨迹的九个筛选、`reportBar.ts`/`ReportComposer.tsx` 用它铺出举报下拉的来由。v541 把词表对齐到
+ * 服务端，却没人发现这个文件在整棵树里**只有一个 import 者：它自己的测试**——一道门给一份没人渲染的
+ * 抄本发证书，用户在屏上看到的仍是别处手抄的词。行形状（`AuditEntry`/`Report`）仍按上面的规矩：只读、
+ * 只展示。
+ *
  * 与 ADR 0018 §60 一致：无 signedIn 徽章、无会话、无 cookie；消费者按 `assurance`
  * 自行判定数据价值，不凭客户端注释信任。
  */
 
 import type { AccountId } from './community';
 import type { Assurance } from './assurance';
+
+/**
+ * v556 — 服务端**已经记录**的九个动词，一张表，顺序就是 `AuditService.ACTIONS` 的声明顺序。
+ *
+ * 为什么写成数组而不是只写进类型：审计轨迹要把这些动词**铺成筛选按钮**（`Toolbar.tsx` 现在就是这么建的），
+ * 而 `.map()` 运行时也得读得到词表——类型会被擦除。与 `REPORT_STATUSES` 同一个理由（v541）。
+ *
+ * 词表 keyed 的标签表一律用 `(typeof AUDIT_ACTIONS)[number]`（下面的 `AuditedAction`）作键，**不带**
+ * `string` 臂：一旦带上，`Record<那个联合, X>` 就塌缩成字符串索引签名，缺一个标签照样编译通过——
+ * 这正是 v541 那道 `TypeError` 能活三个版本的原因。
+ */
+export const AUDIT_ACTIONS = [
+  'publish',
+  'unpublish',
+  'like',
+  'unlike',
+  'comment',
+  'uncomment',
+  'report',
+  'withdraw-report',
+  'acknowledge',
+] as const;
+
+/** 一个服务端已经记录的动词。所有按动词铺开的表都用它作键，于是缺词是**编译错误**而不是运行时漏出。 */
+export type AuditedAction = (typeof AUDIT_ACTIONS)[number];
 
 /**
  * What a verb can be.
@@ -25,17 +57,13 @@ import type { Assurance } from './assurance';
  * the short list was paid in the label table below, where five verbs the service records today had no words.
  * `docs/evidence/m9/audit-contract-proof.mjs` §8 now reads the nine out of `AuditService.java` and refuses a
  * client whose known set stops covering them.
+ *
+ * v556 — the nine上面那张表**是**这九个的来源：这里写 `(typeof AUDIT_ACTIONS)[number]`，不再是九个手抄的
+ * 字面量。门（§8）改读那张表；读一个类型联合只能证明「抄本此刻与 Java 相等」，读表才能证明面板铺出来的
+ * 就是这张表。
  */
 export type AuditAction =
-  | 'publish'
-  | 'unpublish'
-  | 'like'
-  | 'unlike'
-  | 'comment'
-  | 'uncomment'
-  | 'report'
-  | 'withdraw-report'
-  | 'acknowledge'
+  | AuditedAction
   // 下面三个是**客户端还在设计、服务端尚未记录**的动词（v541 按 `AuditService.ACTIONS` 实测区分）。
   | 'remix'
   | 'follow'
@@ -97,7 +125,13 @@ export interface AuditEntry {
  */
 export const REPORT_STATUSES = ['open', 'reviewed', 'resolved', 'rejected', 'acknowledged'] as const;
 
-/** 举报的"原因"闭集：服务端 `ReportDtos` 的 REASON_* 四个，与 `reportBar.ts` 的 `REPORT_REASONS` 同一套。 */
+/**
+ * 举报的"原因"闭集：服务端 `ReportDtos` 的 REASON_* 四个。
+ *
+ * v556 — 这里**只有一份**：`reportBar.ts` 以前自己也声明了一个同样四个词的 `REPORT_REASONS`，而用户点的那个
+ * 下拉是从**那一份**铺出来的（`ReportComposer.tsx`）。§8 与 Java 对账的是这一份，所以门给一份没人读的抄本发
+ * 证书，另一份随便改都不会红。现在 `ReportComposer.tsx` 与 `reportBar.ts` 都从这里读。
+ */
 export const REPORT_REASONS = ['spam', 'harassment', 'illegal', 'other'] as const;
 
 /**

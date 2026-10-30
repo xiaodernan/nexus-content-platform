@@ -12,7 +12,8 @@ import { renderHistoryHtml } from './history';
 import { renderLikeBar } from './likeBar';
 import { renderPlanBar } from './planBar';
 import { renderTipBar } from './tipBar';
-import { REPORT_BAR_STYLES, REPORT_REASONS, renderReportBar, reportReasonText } from './reportBar';
+import { REPORT_BAR_STYLES, renderReportBar, reportReasonText } from './reportBar';
+import { REPORT_REASONS } from './ops';
 
 /**
  * v457 — the six dock panels' style seams, graded as a FAMILY.
@@ -130,6 +131,9 @@ describe('the dock bars’ style seams — one family, six blocks (v457)', () =>
  * and no others — and until now the list itself had never been asked: WHAT a reader can report is a
  * decision, and it lived in a constant only the component read. `REPORT_BAR_STYLES` is the seventh
  * panel’s stylesheet, and the family guard above never met it.
+ *
+ * v556 — the list moved to `ops.ts`, the one copy the audit-contract proof reconciles with
+ * `ReportDtos`; this block keeps grading the VOCABULARY, and imports it from its owner.
  */
 describe('the report bar’s reason vocabulary (v458)', () => {
   it('the vocabulary is the client’s own four, in this order', () => {

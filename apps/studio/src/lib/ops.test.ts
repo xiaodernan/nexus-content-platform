@@ -5,6 +5,7 @@ import type { Assurance } from './assurance';
 import type { AuditEntry, Report } from './ops';
 import {
   ANONYMOUS_ACTOR,
+  AUDIT_ACTIONS,
   auditEntriesByActor,
   auditEntriesForTarget,
   auditEntriesSince,
@@ -235,19 +236,39 @@ describe('ops — auditEntryLabel', () => {
   });
 
   it('returns a word, not the raw token, for every verb it claims to know', () => {
-    for (const action of [
-      'publish',
-      'unpublish',
-      'like',
-      'unlike',
-      'comment',
-      'uncomment',
-      'report',
-      'withdraw-report',
-      'acknowledge',
-    ]) {
+    // v556 — the list is read off the exported table. This case used to spell the nine verbs itself, which
+    // is the same hand-copy that let the panel drift: a verb added to `AUDIT_ACTIONS` joined the trail
+    // without ever being asked whether it had a word.
+    for (const action of AUDIT_ACTIONS) {
       expect(auditEntryLabel(action)).not.toBe(action);
     }
+  });
+});
+
+/**
+ * v556 — the verb TABLE, not the verb union.
+ *
+ * `AuditAction` is a type, and a type cannot be mapped. The trail panel lays its filter buttons out with
+ * `.map()`, so the verbs the service records had to exist as a VALUE the shipped code reads. These cases
+ * grade that value — the thing that reaches the screen.
+ */
+describe('ops — the audited verb table (v556)', () => {
+  it('says each verb once — a bar would offer the same filter twice', () => {
+    expect(new Set(AUDIT_ACTIONS).size).toBe(AUDIT_ACTIONS.length);
+  });
+
+  it('spells every verb the way the service records it: lowercase, hyphenated, no spaces', () => {
+    for (const action of AUDIT_ACTIONS) expect(action, action).toMatch(/^[a-z][a-z-]*$/);
+  });
+
+  it('offers only verbs this build RECORDS — the three it merely designs for get no button', () => {
+    // `remix`/`follow`/`tip` are in the `AuditAction` union and are NOT in this table: nothing on the service
+    // side writes them, so a filter button for one would promise rows no trail can ever contain.
+    expect(AUDIT_ACTIONS).not.toContain('remix' as never);
+    expect(AUDIT_ACTIONS).not.toContain('follow' as never);
+    expect(AUDIT_ACTIONS).not.toContain('tip' as never);
+    // and the verb the service added LAST is here, because the table is the service's set, not a guess at it
+    expect(AUDIT_ACTIONS).toContain('acknowledge');
   });
 });
 

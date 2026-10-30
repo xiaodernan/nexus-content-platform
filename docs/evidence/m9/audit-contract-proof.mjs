@@ -1,5 +1,7 @@
-// NEXUS M9 v273/v541 — the client's ops model and the service's audit door must AGREE, field for field
-// AND word for word (ADR 0016 amendment 273; ADR 0016 amendment 524).
+// NEXUS M9 v273/v541/v556 — the client's ops model and the service's audit door must AGREE, field for
+// field, word for word, AND on the files that put those words on the screen (ADR 0016 amendment 273;
+// amendment 524 opened the vocabulary, and the newest `### Amendment` in that record closes it: §11 here
+// is the clause that grades the rendering files rather than a certificate over a copy nobody read).
 //
 // A wire contract is a PROMISE, and a promise nobody checks is a comment. v271 built the service's door
 // (`GET /audit`) and shipped a client model beside it that DISAGREED with it on the two fields that
@@ -25,7 +27,13 @@
 //   - `apps/studio/src/lib/ops.ts`                  — the client's own model, parsed as TypeScript;
 //   - `apps/studio/src/lib/community.ts` + `assurance.ts` — the two types `ops.ts` imports, which the
 //     compiler needs in order to check `ops.ts` at all (v291), so they are read as the modules they are;
-//   - `apps/studio/src/lib/auditLane.ts`            — the answer envelope the client actually asks with (§7).
+//   - `apps/studio/src/lib/auditLane.ts`            — the answer envelope the client actually asks with (§7);
+//   - `apps/studio/src/lib/trail.ts`, `apps/studio/src/components/Toolbar.tsx` and
+//     `apps/studio/src/components/ReportComposer.tsx` — the three files that carry the vocabularies to the
+//     SCREEN (§11). v541 certified `ops.ts` alone and the defect still reached the user: the panel beside it
+//     kept its own hand-copied words. A vocabulary is graded where it is rendered, so the rendering files
+//     are fixtures too — and the §11 census walks every shipped source under `apps/studio/src` rather than
+//     a list this comment could quietly outgrow.
 //
 // and then asserts, for EVERY field of the wire record, that the client can hold what the service sends —
 // and for EVERY word any of those fields can carry, that the client counts it, buckets it and names it.
@@ -54,11 +62,16 @@
 //      one it never has, gets its own bucket, its own count and a word that is not "Unknown" — measured by
 //      RUNNING the shipped functions, not by re-implementing them;
 //   §10 (v541) every verb the service RECORDS has words, and the residue that has words but is not yet
-//      recorded is printed instead of silently kept.
+//      recorded is printed instead of silently kept;
+//   §11 (v556) the vocabulary is graded on the files that RENDER it: one owner per table across the shipped
+//      sources, the graded model has a production reader, the trail panel spells no verb itself and lays its
+//      buttons by mapping the table, the report composer takes its reasons from the owner, and the shipped
+//      trail module is RUN over the service's verbs. §8's certificate used to cover a copy that nothing
+//      rendered while the panel kept its own words — this section is what makes that shape red.
 //
 // Requires nothing but Node:  node docs/evidence/m9/audit-contract-proof.mjs
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, mkdtempSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
@@ -75,9 +88,18 @@ const CLIENT_LANE = 'apps/studio/src/lib/auditLane.ts';
 // v541 — the two files that OWN the vocabularies the client only repeats.
 const AUDIT_SERVICE = 'services/nexus-api/src/main/java/dev/nexus/api/ops/AuditService.java';
 const REPORT_DTOS = 'services/nexus-api/src/main/java/dev/nexus/api/social/ReportDtos.java';
+// v556 — the three files that carry the vocabularies to the SCREEN: the reading module, the panel that
+// lays the filters out, and the composer that writes a report back. These were the gap: §8 certified
+// `ops.ts`, and none of these read it.
+const CLIENT_TRAIL = 'apps/studio/src/lib/trail.ts';
+const CLIENT_TOOLBAR = 'apps/studio/src/components/Toolbar.tsx';
+const CLIENT_COMPOSER = 'apps/studio/src/components/ReportComposer.tsx';
+// The §11 census walks the shipped client sources, so the graded files above must live inside it — a
+// clause whose population does not contain the file it repairs grades nothing.
+const CLIENT_SRC_ROOT = 'apps/studio/src';
 // The fixture IS the files that own the claims, so the closing line COUNTS them instead of restating a
 // number that rots the next time a vocabulary gains an owner.
-const SOURCES = [CONTROLLER, AUDIT_SERVICE, REPORT_DTOS, CLIENT_MODEL, CLIENT_ACCOUNT, CLIENT_ASSURANCE, CLIENT_LANE];
+const SOURCES = [CONTROLLER, AUDIT_SERVICE, REPORT_DTOS, CLIENT_MODEL, CLIENT_ACCOUNT, CLIENT_ASSURANCE, CLIENT_LANE, CLIENT_TRAIL, CLIENT_TOOLBAR, CLIENT_COMPOSER];
 
 // ── §1 the service's own wire record ────────────────────────────────────────────────────────────────
 // The wire shape is a Java `record` in the controller, so the field list and the field types are read
@@ -252,19 +274,31 @@ export const probe = [anonymous, named, future];
 }
 
 // ── the client model, RUNNING ────────────────────────────────────────────────────────────────────────
-// §6 and §9 both need to RUN the shipped module rather than read its text, so they share one loader:
+// §6, §9, §10 and §11 all need to RUN shipped modules rather than read their text, so they share loaders:
 // `strip` writes a module and IMPORTS it in the same step, so the model's own siblings must already be in
 // the box. That is the loader's ORDER lesson, the fourth time it has bitten a proof in this repo.
-async function loadShippedModel(box) {
+// Node strips the types but does not resolve an extensionless relative specifier, so every relative import
+// in a copied module is rewritten to its `.mjs` twin before it can be imported.
+const toMjs = (src) => src.replace(/from '(\.[^']+)'/g, "from '$1.mjs'");
+
+async function copyIntoBox(box, rel) {
   const { stripTypeScriptTypes } = await import('node:module');
-  const toMjs = (src) => src.replace(/from '(\.[^']+)'/g, "from '$1.mjs'");
-  for (const rel of [CLIENT_ACCOUNT, CLIENT_ASSURANCE]) {
-    const p = join(box, rel.split('/').pop().replace(/\.ts$/, '.mjs'));
-    writeFileSync(p, toMjs(stripTypeScriptTypes(readFileSync(rel, 'utf8'), { mode: 'strip' })), 'utf8');
-  }
-  const opsPath = join(box, 'ops.mjs');
-  writeFileSync(opsPath, toMjs(stripTypeScriptTypes(readFileSync(CLIENT_MODEL, 'utf8'), { mode: 'strip' })), 'utf8');
+  const dest = join(box, rel.split('/').pop().replace(/\.tsx?$/, '.mjs'));
+  writeFileSync(dest, toMjs(stripTypeScriptTypes(readFileSync(rel, 'utf8'), { mode: 'strip' })), 'utf8');
+  return dest;
+}
+
+async function loadShippedModel(box) {
+  for (const rel of [CLIENT_ACCOUNT, CLIENT_ASSURANCE]) await copyIntoBox(box, rel);
+  const opsPath = await copyIntoBox(box, CLIENT_MODEL);
   return import(pathToFileURL(opsPath).href);
+}
+
+/** The trail's reading module, RUNNING — which means `ops.mjs` is already in the box when it imports it. */
+async function loadShippedPanel(box) {
+  await loadShippedModel(box);
+  const trailPath = await copyIntoBox(box, CLIENT_TRAIL);
+  return import(pathToFileURL(trailPath).href);
 }
 
 // ── §6 an anonymous entry belongs to no account ──────────────────────────────────────────────────────
@@ -395,10 +429,12 @@ const vocab = (() => {
   const strip = (text) => text.replace(/^['"]|['"]$/g, '');
   const unions = new Map();
   const arrays = new Map();
+  const aliases = new Map();
   const cases = new Map();
   const returns = new Map();
   const bodies = new Map();
   const visit = (node) => {
+    if (ts.isTypeAliasDeclaration(node)) aliases.set(node.name.text, node.type.getText(file));
     if (ts.isTypeAliasDeclaration(node) && ts.isUnionTypeNode(node.type)) {
       // The `string & Record<never, never>` arm is parenthesized, so it is NOT a LiteralTypeNode and the
       // known set is exactly the quoted arms — which is the whole point of the arm.
@@ -429,21 +465,55 @@ const vocab = (() => {
   for (const name of ['AuditAction', 'ReportStatus', 'ReportReason']) {
     assert.ok(unions.has(name), `the client model no longer declares a ${name} union — the contract this proof grades has MOVED`);
   }
-  for (const name of ['REPORT_STATUSES', 'REPORT_REASONS']) {
-    assert.ok(arrays.has(name), `the client model no longer exports a ${name} table — the bucket functions would have to hand-copy the vocabulary`);
+  for (const name of ['AUDIT_ACTIONS', 'REPORT_STATUSES', 'REPORT_REASONS']) {
+    assert.ok(arrays.has(name), `the client model no longer exports a ${name} table — the bucket functions and the panels would have to hand-copy the vocabulary`);
   }
-  return { serverVerbs, serverStatuses, serverReasons, unions, arrays, cases, returns, bodies };
+  return { serverVerbs, serverStatuses, serverReasons, unions, arrays, aliases, cases, returns, bodies };
 })();
 
 {
-  // The verbs: every one the service RECORDS must be a name the client has heard of. The unknown-string
-  // arm means this is not a claim about the type checking — it is a claim about the label table below it.
-  const knownVerbs = vocab.unions.get('AuditAction');
-  const missingVerbs = vocab.serverVerbs.filter((v) => !knownVerbs.includes(v));
+  // The verbs.
+  //
+  // v541 read them out of the `AuditAction` UNION's quoted arms. v556 moved the vocabulary into the
+  // `AUDIT_ACTIONS` table that the panel maps, and made the union DERIVE from it — so the union's literal
+  // arms are now `remix`/`follow`/`tip` plus nothing, and a proof still reading them would report all nine
+  // recorded verbs as unheard of. That reading was always the weaker one anyway: it certified a type no
+  // rendered code imports, which is exactly how v541's certificate came to cover a copy while the panel
+  // kept its own words (§11). The TABLE is what reaches the screen, so the table is what gets reconciled.
+  const clientVerbs = vocab.arrays.get('AUDIT_ACTIONS');
+  const dropped = vocab.serverVerbs.filter((v) => !clientVerbs.includes(v));
+  const invented = clientVerbs.filter((v) => !vocab.serverVerbs.includes(v));
   assert.deepEqual(
-    missingVerbs,
+    dropped,
     [],
-    `the service records ${vocab.serverVerbs.length} verbs and the client's AuditAction has never heard of ${missingVerbs.length} of them: ${missingVerbs.join(', ')} — they pass the type check through the unknown-string arm and then fall out of the label table as raw wire tokens`,
+    `the service records ${vocab.serverVerbs.length} verbs and the client's AUDIT_ACTIONS table is missing ${dropped.length} of them: ${dropped.join(', ')} — a verb with no row in the table gets no filter button and no words, and the trail prints the wire token`,
+  );
+  assert.deepEqual(
+    invented,
+    [],
+    `the client's AUDIT_ACTIONS table offers ${invented.join(', ')} — the service records no such verb, so the panel would be laying out a filter for rows that can never exist`,
+  );
+  assert.deepEqual(
+    clientVerbs,
+    vocab.serverVerbs,
+    "the client's verb table must be in the order the service DECLARES its constants — the panel lays its filter buttons out in this order",
+  );
+  // The union still COVERS the table, but by derivation rather than by a second hand-written list:
+  // `AuditedAction` is `(typeof AUDIT_ACTIONS)[number]`, and `AuditAction` names `AuditedAction` as an arm.
+  // A proof that only checked the values would pass a client whose type had silently stopped accepting one
+  // of them, and one that only checked the type would pass a table no runtime reads.
+  assert.match(
+    vocab.aliases.get('AuditedAction') ?? '(no such alias)',
+    /^\(\s*typeof\s+AUDIT_ACTIONS\s*\)\[\s*number\s*\]$/,
+    "the client's AuditedAction is no longer `(typeof AUDIT_ACTIONS)[number]` — the verb type and the verb table are two lists again, which is the drift this section exists to stop",
+  );
+  assert.ok(
+    (vocab.aliases.get('AuditAction') ?? '').includes('AuditedAction'),
+    'the AuditAction union no longer names AuditedAction, so the exported verb type has stopped covering the table the panels read',
+  );
+  assert.ok(
+    (vocab.aliases.get('AuditAction') ?? '').includes('Record<never, never>'),
+    'the AuditAction union lost its unknown-string arm — a verb added by a newer service would stop the client compiling instead of passing through',
   );
 
   // The statuses and the reasons: the client's exported tables are the SERVICE's words, in the service's
@@ -578,7 +648,7 @@ const vocab = (() => {
   }
 }
 
-// ── §10 the label table covers the verbs the service RECORDS (v541) ───────────────────────────────────
+// ── §10 the label table covers the verbs the service RECORDS (v541) ───────────────────────────────
 // Five of the nine verbs the service has recorded since v385 fell through `auditEntryLabel`'s default and
 // were shown to a reader as raw wire tokens, while three verbs the service has never recorded had Chinese
 // labels. The type could not see this (the unknown-string arm accepts all nine), so the check is on the
@@ -595,10 +665,13 @@ const vocab = (() => {
     );
     const labels = vocab.serverVerbs.map((v) => `${v}→${ops.auditEntryLabel(v)}`);
     // A label for a verb nobody records is not a lie — it is a design that has not been paid for yet. It
-    // IS a claim the table might outgrow the type, so every label must at least be a name the union carries.
-    const known = vocab.unions.get('AuditAction');
+    // IS a claim the table might outgrow the type, so every label must at least be a name the client knows:
+    // either a quoted arm of the `AuditAction` union or a row of the verb TABLE (v556 — the nine live in the
+    // table and reach the union through `AuditedAction`, so reading only the union's arms would call all
+    // nine untypable, which is this proof's own v541 reading gone stale on the repair).
+    const known = [...new Set([...vocab.unions.get('AuditAction'), ...vocab.arrays.get('AUDIT_ACTIONS')])];
     const untypable = vocab.cases.get('auditEntryLabel').filter((v) => !known.includes(v));
-    assert.deepEqual(untypable, [], `the label table has cases for verbs the client's own AuditAction union does not declare: ${untypable.join(', ')}`);
+    assert.deepEqual(untypable, [], `the label table has cases for verbs the client's own verb vocabulary does not declare: ${untypable.join(', ')}`);
     const ahead = vocab.cases.get('auditEntryLabel').filter((v) => !vocab.serverVerbs.includes(v));
     assert.equal(ops.auditEntryLabel('stake'), 'stake', 'a verb neither side has heard of still passes through rather than being invented');
     console.log(`[§10] every recorded verb has words: ${labels.join(' · ')} — and the disclosed residue (labelled here, not yet recorded server-side) is ${ahead.length} verbs: ${ahead.join(', ')}`);
@@ -607,7 +680,215 @@ const vocab = (() => {
   }
 }
 
-console.log('\n[summary] M9 v273/v384/v385/v541: the service answers with 7 fields (id, action, actorId, targetId, targetType, createdAt, assurance) · the instant is a long, so epoch MILLISECONDS, the client\'s own unit · actorId and assurance are NULLABLE on the wire and NULLABLE in the client, and the other five are nullable in neither · the client\'s own type ACCEPTS a real anonymous entry, a named entry and an unknown verb, checked by the TypeScript compiler itself · an anonymous entry belongs to no account · the answer envelope carries the whole-trail count a service-side filter needs · and the WORDS inside the fields — the service\'s verbs, statuses and reasons — are the client\'s tables, in the service\'s order, with every one of them bucketed, counted and labelled rather than dropped');
+// ── §11 the vocabulary is graded WHERE IT IS RENDERED (v556) ─────────────────────────────────────────
+// §8 certified `ops.ts` and was RIGHT to, and the defect still reached the screen: `ops.ts` had exactly ONE
+// importer in the whole client tree, and that importer was its own test. Meanwhile `Toolbar.tsx` spelled the
+// verbs in nine hand-written filter buttons — 37 quoted verb literals, in an order that had already drifted
+// from `AuditService.ACTIONS` — `trail.ts` re-implemented the label table as a nine-case switch, and
+// `reportBar.ts` declared a SECOND `REPORT_REASONS` which is the one the report composer actually built its
+// chips from. So the gate was reconciling a copy with the service while the rendered copies went uncheckd:
+// edit the panel's words to anything and every section of this proof stays green. That is a different hole
+// from v541's (there the vocabulary was wrong; here the right vocabulary had no reader) and it needs a
+// different clause: the graded file must be the file the panels read, and the panels must not carry a copy.
+//
+// The population is the SHIPPED client sources — every `.ts`/`.tsx` under `apps/studio/src` that is not a
+// test — because a census over a population that excludes the offender proves nothing. Tests are out: a
+// test may spell a verb to check a panel, and charging it would push the vocabulary into the fixtures.
+{
+  const walk = (dir, out = []) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walk(p, out);
+      else if (/\.tsx?$/.test(e.name)) out.push(p.split('\\').join('/'));
+    }
+    return out;
+  };
+  const shipped = walk(CLIENT_SRC_ROOT).filter((p) => !/\.(test|spec)\.tsx?$/.test(p));
+  assert.ok(shipped.length >= 20, `the §11 census found ${shipped.length} shipped sources under ${CLIENT_SRC_ROOT} — a population read that thin is a walking bug, not a contract`);
+  const parse = (rel) =>
+    ts.createSourceFile(rel, readFileSync(rel, 'utf8'), ts.ScriptTarget.Latest, true, rel.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  // Every verb-shaped STRING in a file: a single quote, a double quote or a bare backtick. A census that
+  // matched only `'publish'` would miss the JSX attribute `data-trail-filter="publish"` it exists to catch.
+  const spellings = (rel, wanted) => {
+    const out = [];
+    const visit = (n) => {
+      if ((ts.isStringLiteral(n) || (ts.isNoSubstitutionTemplateLiteral && ts.isNoSubstitutionTemplateLiteral(n))) && wanted.includes(n.text)) {
+        out.push(n.text);
+      }
+      ts.forEachChild(n, visit);
+    };
+    visit(parse(rel));
+    return out;
+  };
+  const names = (rel, pred) => {
+    const out = [];
+    const visit = (n) => {
+      if (pred(n)) out.push(n);
+      ts.forEachChild(n, visit);
+    };
+    visit(parse(rel));
+    return out;
+  };
+  // A file that only NAMES a table in an import statement does not READ it. v556's own arm proved the
+  // difference: re-copy the nine buttons by hand, leave the import behind, and a name-census still reports
+  // a reader — the certificate would be green over a panel that had walked away from it, which is the
+  // precise hole this section was written to close. So a reader is a VALUE reference: an identifier that is
+  // not a binding inside an import or a re-export.
+  const usesIn = (root, name) => {
+    const out = [];
+    const visit = (n, bound) => {
+      const insideBinding = bound || ts.isImportDeclaration(n) || ts.isExportDeclaration(n);
+      if (!insideBinding && ts.isIdentifier(n) && n.text === name) out.push(n);
+      ts.forEachChild(n, (c) => visit(c, insideBinding));
+    };
+    visit(root, false);
+    return out;
+  };
+  const usesOf = (rel, name) => usesIn(parse(rel), name);
+  const tables = ['AUDIT_ACTIONS', 'REPORT_STATUSES', 'REPORT_REASONS'];
+
+  // 11.1 — ONE owner per vocabulary table, counted on the DECLARATION (an exported array literal whose name
+  // is one of the tables), not on occurrences of the name.
+  const declared = [];
+  for (const rel of shipped) {
+    for (const node of names(rel, (n) => ts.isVariableDeclaration(n) && n.initializer)) {
+      const arr = ts.isAsExpression(node.initializer) ? node.initializer.expression : node.initializer;
+      if (ts.isArrayLiteralExpression(arr) && tables.includes(node.name.getText())) declared.push({ rel, name: node.name.getText() });
+    }
+  }
+  // The carrier of every absence claim below: the three tables must be FOUND. A parse that read nothing
+  // would make "no file declares a second copy" true of an empty census.
+  for (const name of tables) {
+    assert.ok(declared.some((d) => d.name === name), `${CLIENT_MODEL} no longer declares ${name} as an array literal — §11 has lost the thing it is protecting, and the absence clauses below would pass on nothing`);
+  }
+  const copies = declared.filter((d) => d.rel !== CLIENT_MODEL);
+  assert.deepEqual(
+    copies,
+    [],
+    `these files declare a second copy of a vocabulary table the service is reconciled against: ${copies.map((c) => `${c.rel}:${c.name}`).join(', ')} — a gate that reads ${CLIENT_MODEL} cannot see a table that lives elsewhere, and the panel that reads the other copy is the one the user sees`,
+  );
+
+  // 11.2 — the graded tables have PRODUCTION READERS: shipped sources that USE them as values, `ops.ts`
+  // itself excluded. This is the clause v541's certificate could not have failed and should have.
+  const readersOf = (table) => shipped.filter((rel) => rel !== CLIENT_MODEL && usesOf(rel, table).length > 0);
+  const verbReaders = readersOf('AUDIT_ACTIONS');
+  const reasonReaders = readersOf('REPORT_REASONS');
+  assert.ok(verbReaders.length >= 1, `nothing outside ${CLIENT_MODEL} USES AUDIT_ACTIONS as a value — the verb table would again be a certificate with no reader, which is the shape that let the panel keep its own nine buttons (an import nobody reads does not count: v556's own arm left one behind and stayed green)`);
+  assert.ok(reasonReaders.length >= 1, `nothing outside ${CLIENT_MODEL} USES REPORT_REASONS as a value — the reason table would be graded while the composer builds its chips from whatever it has instead`);
+  assert.ok(verbReaders.includes(CLIENT_TRAIL), `the trail's reading module (${CLIENT_TRAIL}) does not use AUDIT_ACTIONS, so the filter bar is back to a hand-copied list`);
+
+  // 11.2b — and the list the panel maps must be DERIVED from the table, not merely matched to it today.
+  // An identical hand-copy passes 11.5 (same nine words, same order) and drifts the moment the service
+  // renames a verb, which is exactly the failure this increment was measured with.
+  const derivedDecl = names(CLIENT_TRAIL, (n) => ts.isVariableDeclaration(n) && n.name.getText() === 'TRAIL_FILTER_ACTIONS');
+  assert.equal(derivedDecl.length, 1, `${CLIENT_TRAIL} does not declare exactly one TRAIL_FILTER_ACTIONS — §11 has lost the derived list the panel maps, and the clause below would grade nothing`);
+  assert.ok(derivedDecl[0].initializer, `${CLIENT_TRAIL}'s TRAIL_FILTER_ACTIONS has no initializer — the filter list is declared and empty of meaning`);
+  assert.ok(
+    usesIn(derivedDecl[0].initializer, 'AUDIT_ACTIONS').length > 0,
+    `${CLIENT_TRAIL}'s TRAIL_FILTER_ACTIONS is not initialized from AUDIT_ACTIONS — the filter row is a copy that happens to agree with the table today, and a verb renamed server-side would leave it behind in silence`,
+  );
+
+  // 11.3 — the panel that renders the trail spells NO verb itself, and lays its buttons by MAPPING the table.
+  const panelVerbs = spellings(CLIENT_TOOLBAR, vocab.serverVerbs);
+  assert.deepEqual(
+    panelVerbs,
+    [],
+    `${CLIENT_TOOLBAR} spells ${panelVerbs.length} audit verb${panelVerbs.length === 1 ? '' : 's'} as a literal (${panelVerbs.join(', ')}): a button written by hand is a verb that can be renamed server-side, re-ordered or dropped with nothing in this proof going red — lay the buttons out of the trail's derived filter list instead`,
+  );
+  // The buttons must be DERIVED, not merely wordless: a panel that renders nothing would satisfy the clause
+  // above. The derivation point is the `.map()` over the list `trail.ts` exports FROM the table, which 11.5
+  // then pins to the service's own verbs — so a hand-copied list can neither return nor hide.
+  const mapsTable = names(CLIENT_TOOLBAR, (n) =>
+    ts.isCallExpression(n) &&
+    ts.isPropertyAccessExpression(n.expression) &&
+    n.expression.name.text === 'map' &&
+    ts.isIdentifier(n.expression.expression) &&
+    n.expression.expression.text === 'TRAIL_FILTER_ACTIONS',
+  );
+  assert.ok(
+    mapsTable.length >= 1,
+    `${CLIENT_TOOLBAR} does not call .map() on TRAIL_FILTER_ACTIONS — the filter row is not being derived from the verb table, whatever its imports say`,
+  );
+
+  // 11.4 — the composer's reasons come from the OWNER, by IMPORT SPECIFIER and not by name alone: a file
+  // could import the right name from the wrong copy (which is precisely what it did before v556).
+  const composerReasonImports = names(CLIENT_COMPOSER, (n) => {
+    if (!ts.isImportDeclaration(n) || !n.moduleSpecifier || !n.importClause) return false;
+    if (!/(^|\/)ops$/.test(n.moduleSpecifier.text)) return false;
+    const bindings = n.importClause.namedBindings;
+    return !!bindings && ts.isNamedImports(bindings) && bindings.elements.some((e) => e.name.text === 'REPORT_REASONS');
+  });
+  assert.ok(
+    composerReasonImports.length >= 1,
+    `${CLIENT_COMPOSER} does not import REPORT_REASONS from a module named ops — the reason menu the reporter clicks is built from some other list than the one §8 reconciles with ReportDtos`,
+  );
+
+  // 11.5–11.6 — the shipped reading module, RUNNING over the SERVICE's verbs.
+  const box = mkdtempSync(join(tmpdir(), 'nexus-audit-contract-'));
+  try {
+    const trail = await loadShippedPanel(box);
+    assert.deepEqual(
+      [...trail.TRAIL_FILTER_ACTIONS],
+      vocab.serverVerbs,
+      `the filter list the panel maps is not the service's verb list: ${[...trail.TRAIL_FILTER_ACTIONS].join(', ')} vs ${vocab.serverVerbs.join(', ')} — the buttons and the trail have diverged, which is the drift v556 was measured with`,
+    );
+    const faces = [['row', trail.trailActionText], ['button', trail.trailFilterCaption], ['tooltip', trail.trailFilterHint]];
+    for (const [face, fn] of faces) {
+      assert.equal(typeof fn, 'function', `${CLIENT_TRAIL} no longer exports a ${face} word function — the census below would throw instead of reporting, and a crash is not a verdict`);
+    }
+    const raw = [];
+    for (const verb of vocab.serverVerbs) {
+      for (const [face, fn] of faces) {
+        if (fn(verb) === verb) raw.push(`${verb} (${face})`);
+      }
+    }
+    assert.deepEqual(raw, [], `these recorded verbs reach a reader as bare wire tokens: ${raw.join(', ')}`);
+    assert.equal(trail.trailActionText('stake'), 'stake', 'a verb neither side has heard of still passes through rather than being invented');
+    assert.equal(trail.trailFilterCaption('stake'), 'stake', 'and a button for it wears its own name rather than a neighbour\'s');
+
+    // The tally is still a hand-copied chain — disclosed below, not pretended away. What IS pinned is that
+    // its verb set EQUALS the table: the chain cannot quietly lose a verb (v541's exact failure shape) or
+    // gain one the service never records.
+    const tallyLiterals = (() => {
+      const sf = parse(CLIENT_TRAIL);
+      let fn = null;
+      const visit = (n) => {
+        if (ts.isFunctionDeclaration(n) && n.name && n.name.text === 'trailSummaryOf') fn = n;
+        ts.forEachChild(n, visit);
+      };
+      visit(sf);
+      assert.ok(fn, `${CLIENT_TRAIL} no longer declares trailSummaryOf — §11 has lost the tally it is pinning`);
+      const out = [];
+      const collect = (n) => {
+        if (ts.isStringLiteral(n) && vocab.serverVerbs.includes(n.text)) out.push(n.text);
+        ts.forEachChild(n, collect);
+      };
+      collect(fn);
+      return out;
+    })();
+    const tallySeen = [...new Set(tallyLiterals)];
+    const tallyMissing = vocab.serverVerbs.filter((v) => !tallySeen.includes(v));
+    assert.deepEqual(
+      tallyMissing,
+      [],
+      `the trail's tally counts every verb except these: ${tallyMissing.join(', ')} — a recorded verb with no bucket is counted as "other", which is how v541 lost five of them`,
+    );
+    console.log(`[§11] the vocabulary is graded where it is rendered: ${shipped.length} shipped sources carry ${declared.length} vocabulary tables, all in ${CLIENT_MODEL} · AUDIT_ACTIONS has ${verbReaders.length} production reader(s) (${verbReaders.join(', ')}) and REPORT_REASONS has ${reasonReaders.length} (${reasonReaders.join(', ')}) · ${CLIENT_TOOLBAR} spells 0 of the ${vocab.serverVerbs.length} verbs and maps the table instead · ${CLIENT_COMPOSER} imports its reasons from the owner · the shipped trail module RUN gives all ${vocab.serverVerbs.length} recorded verbs a row word, a button word and a tooltip · and its hand-copied tally still tiles exactly the table's ${tallySeen.length} verbs`);
+    // Disclosed, not charged: the shipped sources left in this list spell a recorded verb for their OWN
+    // request or route — a `publish` in a lane's action field, not a word painted beside a trail row.
+    // v556's rule is about the labels the panels render, so the remainder is printed as measured residue
+    // and handed to the next increment, instead of living in a skip list no reader ever re-checks.
+    const spelled = shipped
+      .filter((rel) => rel !== CLIENT_MODEL && rel !== CLIENT_TOOLBAR && rel !== CLIENT_TRAIL)
+      .map((rel) => ({ rel, n: spellings(rel, vocab.serverVerbs).length }))
+      .filter((s) => s.n > 0);
+    console.log(`[§11] disclosed residue — ${spelled.length} shipped source(s) spell a recorded verb for their own request or route rather than for a label: ${spelled.map((s) => `${s.rel} (${s.n})`).join(', ') || 'none'}`);
+  } finally {
+    rmSync(box, { recursive: true, force: true });
+  }
+}
+
+console.log('\n[summary] M9 v273/v384/v385/v541/v556: the service answers with 7 fields (id, action, actorId, targetId, targetType, createdAt, assurance) · the instant is a long, so epoch MILLISECONDS, the client\'s own unit · actorId and assurance are NULLABLE on the wire and NULLABLE in the client, and the other five are nullable in neither · the client\'s own type ACCEPTS a real anonymous entry, a named entry and an unknown verb, checked by the TypeScript compiler itself · an anonymous entry belongs to no account · the answer envelope carries the whole-trail count a service-side filter needs · and the WORDS inside the fields — the service\'s verbs, statuses and reasons — are the client\'s tables, in the service\'s order, with every one of them bucketed, counted and labelled rather than dropped · and since v556 those tables have ONE owner across the shipped sources, that owner has a PRODUCTION reader, and the panel that paints the trail is RUN over the service\'s verbs instead of being re-described — a certificate over a copy nobody rendered is what let the panel keep its own words');
 const javaSources = SOURCES.filter((p) => p.endsWith('.java')).length;
 const tsSources = SOURCES.length - javaSources;
 console.log(
