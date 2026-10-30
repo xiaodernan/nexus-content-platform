@@ -12,6 +12,10 @@ interface Props {
   /** 这一版按当前参数解出来的画框尺寸，写在行上让读数可见 */
   width: number;
   height: number;
+  /** 公开页：没有显式 `?viewport=` 且这一页真有断点规则时，页面铺了四份投影、由媒体查询选一份 */
+  auto?: boolean;
+  /** 这一页有没有断点规则：没有规则时"自动"与"设计"是同一份投影，那颗按钮不摆（§159） */
+  autoAvailable?: boolean;
 }
 
 /** 选中/未选中两种画法，两处（缩放、断点）共用一份。
@@ -28,7 +32,17 @@ const idle = `${pill} text-fg-3 hover:bg-bg-2`;
  * `resolveLayout`，不存在"第二条渲染路径"（ADR-0063 那条纪律的延伸）。
  * 这里不改模型、不改发布快照——它只决定同一份快照这一次怎么投影（§16）。
  */
-export function ViewerControls({ base, query, page, breakpoint, zoom, width, height }: Props) {
+export function ViewerControls({
+  base,
+  query,
+  page,
+  breakpoint,
+  zoom,
+  width,
+  height,
+  auto = false,
+  autoAvailable = false,
+}: Props) {
   // 只摆真的会改变投影的那几个断点：证明不了会变的这颗按钮不摆（§159），判定见 liveBreakpoints
   const live = liveBreakpoints(page);
   const liveSet = new Set<BreakpointName>(live);
@@ -41,9 +55,12 @@ export function ViewerControls({ base, query, page, breakpoint, zoom, width, hei
       data-viewer-resolved-height={height}
       data-viewer-breakpoint={breakpoint ?? 'design'}
       data-viewer-zoom={zoom}
+      data-viewer-auto={auto ? 'on' : 'off'}
     >
       <span className="text-fg-3" data-viewer-reading>
-        按 {width}×{height} 求解{breakpoint ? `（${breakpoint} 断点）` : '（设计尺寸）'} · 以 {zoom} 倍呈现
+        {auto
+          ? `按访客视口自动选档（四档各解一份）· 以 ${zoom} 倍呈现`
+          : `按 ${width}×${height} 求解${breakpoint ? `（${breakpoint} 断点）` : '（设计尺寸）'} · 以 ${zoom} 倍呈现`}
       </span>
       <span className="flex items-center gap-1" data-viewer-zoom-options>
         {ZOOM_STEPS.map((step) => (
@@ -67,10 +84,19 @@ export function ViewerControls({ base, query, page, breakpoint, zoom, width, hei
             data-viewer-viewport-options
             data-viewer-live-breakpoints={live.join(',')}
           >
+            {autoAvailable ? (
+              <a
+                href={viewerHref(base, query, { viewport: undefined })}
+                data-viewer-viewport-option="auto"
+                className={auto ? active : idle}
+              >
+                自动
+              </a>
+            ) : null}
             <a
-              href={viewerHref(base, query, { viewport: undefined })}
+              href={viewerHref(base, query, { viewport: autoAvailable ? 'design' : undefined })}
               data-viewer-viewport-option="design"
-              className={breakpoint === undefined ? active : idle}
+              className={!auto && breakpoint === undefined ? active : idle}
             >
               设计
             </a>

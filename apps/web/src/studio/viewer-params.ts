@@ -23,7 +23,7 @@ const VIEWER_KEYS = ['page', 'viewport', 'zoom', 'state'] as const;
 const BREAKPOINT_NAMES: readonly BreakpointName[] = ['mobile', 'tablet', 'desktop', 'wide'];
 
 /** 中文说法在这里，宽度数字一律从模型取——界面不复制一份会过期的数 */
-const BREAKPOINT_LABELS: Record<BreakpointName, string> = {
+export const BREAKPOINT_LABELS: Record<BreakpointName, string> = {
   mobile: '手机',
   tablet: '平板',
   desktop: '桌面',

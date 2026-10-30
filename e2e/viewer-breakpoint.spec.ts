@@ -24,6 +24,10 @@ import { loginMemberIfPossible, reusableMemberWithProject } from './support/auth
  * 与第二、三、十三片一样，`zoom` 那两条读数同时记下**布局宽**（`offsetWidth`，模型算出来的那个数）
  * 和**视觉宽**（`getBoundingClientRect().width`，缩放后的那个数）：只有两个都钉住，才能说清
  * "缩小看全"改的是投影，不是发布快照（§16）。
+ *
+ * 第三十一片（ADR-0074）之后，**缺参数不再等于设计尺寸**：这一页有断点规则时，服务端把四档
+ * 各解一份铺进 DOM，由媒体查询选一份——访客不点任何东西也先看到适合自己视口的那一版。
+ * 于是"钉住设计尺寸"变成明写的 `?viewport=design`（腿 A2 才测它），腿 A 改测自动选档。
  */
 
 const RUN = Date.now().toString(36);
@@ -182,7 +186,10 @@ async function panReading(p: Page): Promise<{
   padRight: number;
 }> {
   return p.evaluate(() => {
-    const box = document.querySelector('[data-published-scale-box]') as HTMLElement;
+    const box = Array.from(document.querySelectorAll('[data-published-scale-box]')).find((el) => {
+      const variant = el.closest('[data-published-variant]');
+      return !variant || getComputedStyle(variant).display !== 'none';
+    }) as HTMLElement;
     const scroller = box.parentElement as HTMLElement;
     const cs = getComputedStyle(scroller);
     return {
@@ -198,8 +205,22 @@ async function panReading(p: Page): Promise<{
 /** 画面盒子：布局宽（模型算出来的那个数，transform 不改它）与视觉宽（缩放后的那个数） */
 async function frameReading(p: Page): Promise<{ layout: number; visual: number }> {
   return p.evaluate(() => {
-    const f = document.querySelector('[data-published-frame]') as HTMLElement;
+    // 自动选档下四份投影同时在 DOM 里，隐藏的几份量出来是 0 —— 读**可见**的那一份
+    const f = Array.from(document.querySelectorAll('[data-published-frame]')).find((el) => {
+      const variant = el.closest('[data-published-variant]');
+      return !variant || getComputedStyle(variant).display !== 'none';
+    }) as HTMLElement;
     return { layout: f.offsetWidth, visual: Math.round(f.getBoundingClientRect().width) };
+  });
+}
+
+/** 四份投影里现在真的可见的那一份（auto 档下由媒体查询选出来） */
+async function visibleVariant(p: Page): Promise<string | null> {
+  return p.evaluate(() => {
+    const el = Array.from(document.querySelectorAll('[data-published-variant]')).find(
+      (node) => getComputedStyle(node).display !== 'none',
+    );
+    return el?.getAttribute('data-published-variant') ?? null;
   });
 }
 
@@ -253,10 +274,23 @@ test.describe('@smoke §14/§85 第十六片：公开页的视口与缩放半边
       return reader(visitor);
     };
 
-    // ── 腿 A：缺参数 = 设计尺寸，一个字节都不改（第十三片那遍读数的原始形状）
-    const design = await open('');
+    // ── 腿 A：缺参数 = 按访客视口自动选档（§85 第三十一片 / ADR-0074）。
+    //    这一页有一条 mobile 规则 ⇒ 四份投影同时在 DOM，390 下媒体查询选 mobile：375、规则生效。
+    const auto = await open('');
+    expect(auto.viewerAuto, '有规则且没写参数时，控件行应当自报"自动"').toBe('on');
+    expect(auto.viewerBreakpoint, '自动选档不是"钉住某一档"').toBe('design');
+    expect(await visibleVariant(visitor), '390 宽应当选中 mobile 那一份').toBe('mobile');
+    expect((await frameReading(visitor)).layout, '选中的投影按 375 求解').toBe(375);
+    await expect(
+      visitor.locator(`[data-published-variant="mobile"] [data-node-id="${carriers.hideId}"]`),
+      '选中的 mobile 投影里那条规则必须已生效：节点不在',
+    ).toHaveCount(0);
+
+    // ── 腿 A2：?viewport=design 才是"钉住设计尺寸"（原先缺参数的语义，现在明写成一颗按钮）
+    const design = await open('viewport=design');
     const designW = Number(design.viewerResolvedWidth);
-    expect(design.viewerBreakpoint, '没有参数时应当按设计尺寸求解').toBe('design');
+    expect(design.viewerBreakpoint, '?viewport=design 应当按设计尺寸求解').toBe('design');
+    expect(design.viewerAuto, '钉住设计尺寸时不该自报自动').toBe('off');
     expect(Number(design.viewerDesignWidth), '控件行报的设计宽应与求解宽同源').toBe(designW);
     expect(design.viewerLiveBreakpoints, '页面上有断点规则 ⇒ 四档都该是可以点的').toBe('mobile,tablet,desktop,wide');
     await expect(visitor.locator(`[data-node-id="${carriers.hideId}"]`), '设计尺寸下那个节点本来是可见的').toHaveCount(1);
@@ -287,17 +321,18 @@ test.describe('@smoke §14/§85 第十六片：公开页的视口与缩放半边
       ).toHaveCount(0);
     }
 
-    // ── 腿 D：非法值降级而不是 404——写错一个字母不该让链接死掉
+    // ── 腿 D：非法值降级到"自动"而不是 404——写错一个字母不该让链接死掉
     const bogus = await open('viewport=phone');
-    expect(bogus.viewerBreakpoint, '认不出来的断点名应当回落到"按设计尺寸"').toBe('design');
-    expect(Number(bogus.viewerResolvedWidth)).toBe(designW);
-    await expect(visitor.locator(`[data-node-id="${carriers.hideId}"]`), '没有断点 ⇒ 规则不生效 ⇒ 节点还在').toHaveCount(1);
+    expect(bogus.viewerAuto, '认不出来的断点名应当回落到自动选档').toBe('on');
+    expect(await visibleVariant(visitor), '回落之后 390 下仍是 mobile 那一份').toBe('mobile');
+    expect((await frameReading(visitor)).layout).toBe(375);
 
     // ── 腿 E：?zoom=0.25 把"要平移多少"真的压掉了，而且改的是投影不是模型
-    const at1 = await open('');
+    //    （第三十一片之后缺参数会先自动选档，所以对照组与缩放组都明写 design，单看 zoom 这一维）
+    const at1 = await open('viewport=design');
     const pan1 = await panReading(visitor);
     const frameAt1 = await frameReading(visitor);
-    const atQuarter = await open('zoom=0.25');
+    const atQuarter = await open('viewport=design&zoom=0.25');
     const panR = await panReading(visitor);
     const frameAtQuarter = await frameReading(visitor);
     expect(Number(at1.viewerResolvedWidth), '对照组自己也得是设计宽').toBe(designW);
@@ -341,7 +376,12 @@ test.describe('@smoke §14/§85 第十六片：公开页的视口与缩放半边
 
     // ── 腿 G：翻一页不该把取景框丢掉（点了热点之后仍然按 mobile + 0.5 投影）
     await expect(visitor.locator('[data-interactive-hotspot]'), '跳页热点没铺出来：交互载体丢了').toHaveCount(1);
-    await visitor.click('[data-interactive-hotspot]');
+    // 热点是客户端组件：上面那两颗链接是整页重载，水合之前点下去不会有 onClick。
+    // 把"点一下 → 地址栏出现 page="当成一次原子重试（toPass），而不是睡一个猜出来的毫秒数。
+    await expect(async () => {
+      await visitor.locator('[data-interactive-hotspot]').click({ timeout: 5_000 });
+      await expect(visitor).toHaveURL(/[?&]page=/, { timeout: 5_000 });
+    }).toPass({ timeout: 30_000 });
     // 屏障必须等**地址栏**，不能等控件行：控件行在翻页前的那一页上本来就可见，`toBeVisible` 当场返回 true，
     // 于是读到的还是旧 URL（第一跑就是这么红的：`page` 是 null，而失败快照里的链接已经带着
     // `page=page-narrow-375&viewport=mobile&zoom=0.5`——翻页成功了，是我的读法快了）。
@@ -365,6 +405,11 @@ test.describe('@smoke §14/§85 第十六片：公开页的视口与缩放半边
     ).toBe('tablet,desktop,wide');
     expect(Number(narrow.viewerResolvedWidth), '窄页按自己的画布求解').toBe(375);
     await expect(visitor.locator('[data-viewer-viewport-option="mobile"]')).toHaveCount(0);
+    expect(narrow.viewerAuto, '没有规则的一页不铺四份，也不自报自动').toBe('off');
+    await expect(
+      visitor.locator('[data-viewer-viewport-option="auto"]'),
+      '没有规则时"自动"与"设计"是同一份投影：那颗按钮不摆（§159）',
+    ).toHaveCount(0);
     await expect(visitor.locator('[data-viewer-viewport-option="design"]'), '「设计」是回到默认的那一格，永远留着').toHaveCount(1);
     const here = await open(`page=${carriers.endId}&viewport=mobile`);
     expect(here.viewerBreakpoint).toBe('mobile');
@@ -407,6 +452,53 @@ test.describe('@smoke §14/§85 第十六片：公开页的视口与缩放半边
       author.locator(`[data-node-id="${carriers.hideId}"]`),
       'tablet ≥ mobile：那条规则在作者预览里同样生效',
     ).toHaveCount(0);
+    await context.close();
+  });
+
+  test('缺参数时同一份快照在四档视口下由媒体查询各选一份，零 JS 也成立', async ({ browser }) => {
+    test.setTimeout(420_000);
+    const { carriers, publicPath } = await buildFixture(browser, { width: 1280, height: 900 });
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const visitor = await context.newPage();
+    const path = new URL(publicPath, 'http://localhost:3100').pathname;
+
+    const bands = [
+      { width: 390, variant: 'mobile', layout: 375 },
+      { width: 768, variant: 'tablet', layout: 768 },
+      { width: 1280, variant: 'desktop', layout: 1280 },
+      { width: 1536, variant: 'wide', layout: 1536 },
+    ] as const;
+    for (const band of bands) {
+      await visitor.setViewportSize({ width: band.width, height: 900 });
+      await visitor.goto(path);
+      await expect(visitor.locator('[data-published-root]')).toBeVisible({ timeout: 30_000 });
+      // 四份投影真的同时在 DOM 里——不是"服务端只画了一份"的旧形状
+      await expect(visitor.locator('[data-published-variant]'), '自动选档应当同时铺四份投影').toHaveCount(4);
+      expect(await visibleVariant(visitor), `${band.width} 宽应当选中 ${band.variant}`).toBe(band.variant);
+      expect((await frameReading(visitor)).layout, `${band.variant} 这一份按 ${band.layout} 求解`).toBe(band.layout);
+      // 另外三份是 display:none：不占位，也不在可访问树里
+      const hidden = await visitor.evaluate(() =>
+        Array.from(document.querySelectorAll('[data-published-variant]'))
+          .filter((el) => getComputedStyle(el).display === 'none')
+          .map((el) => el.getAttribute('data-published-variant') ?? ''),
+      );
+      expect(hidden.sort(), `${band.variant} 之外的三份必须 display:none`).toEqual(
+        ['mobile', 'tablet', 'desktop', 'wide'].filter((id) => id !== band.variant).sort(),
+      );
+      // mobile 规则按 `<=` 级联，四份里它都该生效
+      await expect(
+        visitor.locator(`[data-published-variant="${band.variant}"] [data-node-id="${carriers.hideId}"]`),
+        `${band.variant} 这一份里那条 mobile 规则同样生效`,
+      ).toHaveCount(0);
+      console.log(`  自动选档：${band.width} 宽 → ${band.variant}（画框 ${band.layout}）`);
+    }
+
+    // 反向见证：没有规则的第二页还是只解一份（这一片不改那批页面的默认输出）
+    await visitor.setViewportSize({ width: 390, height: 844 });
+    await visitor.goto(`${path}?page=${carriers.endId}`);
+    await expect(visitor.locator('[data-published-root]')).toBeVisible({ timeout: 30_000 });
+    await expect(visitor.locator('[data-published-variant]'), '没有规则的一页只解一份').toHaveCount(1);
+    expect(await visitor.locator('[data-viewer-auto]').getAttribute('data-viewer-auto')).toBe('off');
     await context.close();
   });
 });

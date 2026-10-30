@@ -107,7 +107,16 @@ async function measure(page: Page): Promise<Reading> {
         .slice(0, 4)
         .map(({ el, over }) => toBox(el, over));
 
-    const frame = document.querySelector('[data-published-frame]');
+    // ADR-0074：有断点规则的页会同时铺四份投影，隐藏的几份 display:none（量出来是 0）。
+    // 这里读**可见**的那一份：否则量到的是 mobile 那份，在 1280 栏里报一个假的 0 宽。
+    const frames = Array.from(document.querySelectorAll('[data-published-frame]'));
+    const frame =
+      frames.find((el) => {
+        const variant = el.closest('[data-published-variant]');
+        return !variant || getComputedStyle(variant).display !== 'none';
+      }) ??
+      frames[0] ??
+      null;
     const all = overflowing();
     const pannable = all.filter(({ el }) => ['auto', 'scroll'].includes(getComputedStyle(el).overflowX));
     const clipped = all.filter(({ el }) => ['hidden', 'clip'].includes(getComputedStyle(el).overflowX));

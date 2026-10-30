@@ -1958,6 +1958,32 @@ Studio 那 9 处里最大的一处是**画布本体**：`div(NEXUS STUDIO…)` �
 2. 审计表在 1280 仍需横滚（1159 > 1128）；要不要减列/折行没裁决。
 3. 1024–1279 与真机没量；其余六页的"内容密度"没量。
 
+#### 第三十一片（2026-10-31）：公开页默认按访客视口自动选档（零 JS 四份投影）
+
+ADR-0069 只接了显式 `?viewport=`；不点参数时访客仍拿设计尺寸。这一片按 ADR-0074 把默认改成
+"有断点规则的页面铺四份投影、媒体查询选一份"，读数如下（`e2e/viewer-breakpoint.spec.ts`
+3 passed、`e2e/mobile-layout.spec.ts` 1 passed）。
+
+| 视口宽 | 选中变体 | 画框宽 | 另外三份 |
+| --- | --- | --- | --- |
+| 390 | mobile | 375 | display:none |
+| 768 | tablet | 768 | display:none |
+| 1280 | desktop | 1280 | display:none |
+| 1536 | wide | 1536 | display:none |
+
+- `?viewport=design` → 1 份、1440；`?viewport=mobile` → 1 份、375（属性写 `mobile` 不冒充 design）；
+  `?viewport=nope` → 自动（降级，不 404）。
+- sitemap 五张：有规则的夹具页在 390 下从 **1440 宽 / 要平移 1082px** 变成 **375 / 0px**；
+  其余四张无规则，读数不变（1440 / 1066px）。无规则页不出现「自动」按钮。
+- 三条臂：删媒体查询样式 → 红在"另外三份必须 display:none"；删 `hasResponsiveRules` 闸 →
+  红在"没有规则的一页只解一份"；区间上界少减 1 → 单元测试逐宽度求值红。
+
+**notMeasured（这一片）**
+
+1. 1024–1279 没有单独读数（媒体区间已覆盖，未量真机）；iOS Safari 与手势未量。
+2. 规则页 HTML 变四份的传输成本只按夹具页粗估（约 3KB → 12KB），没有真流量分布。
+3. 四份投影共用同一份热点几何算法，但只验证了 `click → navigate` 一种交互。
+
 ### Performance
 
 

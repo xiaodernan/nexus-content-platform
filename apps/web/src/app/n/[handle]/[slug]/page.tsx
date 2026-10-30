@@ -1,25 +1,29 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { TokenStore, findPage, hasClickNavigation, isTerminalInteractivePage, navigateTargetsOnPage, resolveLayout, type ResolvedNode } from '@nexus/design-model';
+import { TokenStore, findPage, hasClickNavigation, isTerminalInteractivePage, navigateTargetsOnPage, resolveLayout, type BreakpointName, type ResolvedLayout } from '@nexus/design-model';
 import { getPublishedPage, recordView } from '@/server/domain/publish';
 import { buildPublishedSeo } from '@/server/domain/seo';
 import { requestOrigin } from '@/lib/origin';
 import { publicationState } from '@/server/domain/social';
 import { currentUserOrNull } from '@/server/domain/session';
 import { assetContextFor, publicAssetUrl } from '@/studio/assets';
-import { nodeStyle } from '@/studio/render';
-import { stateStyleSheetFor } from '@/studio/state-styles';
 import { ViewerControls } from '@/studio/ViewerControls';
 import {
-  breakpointFromParam,
   keepViewerParams,
   zoomFromParam,
   type ViewerQuery,
 } from '@/studio/viewer-params';
+import {
+  PUBLISHED_VARIANT_ORDER,
+  hasResponsiveRules,
+  publishedVariantsStyle,
+  publishedViewportFromParam,
+} from '@/studio/published-variants';
 import { ReportControl } from './ReportControl';
 import { PublicationActions } from './PublicationActions';
 import { VisitMeter } from './VisitMeter';
-import { InteractiveEnd, InteractiveHotspots, type Hotspot } from './InteractiveSurface';
+import { InteractiveEnd, type Hotspot } from './InteractiveSurface';
+import { PublishedFrame } from './PublishedFrame';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,18 +75,21 @@ export default async function PublishedPage({ params, searchParams }: Props) {
 
   const tokens = new TokenStore(document.tokens);
   const mode = document.activeMode ?? null;
-  // §14 / ADR-0069：访客可以按断点重解这一版。缺参数 = 设计尺寸，一个字节都不变；
-  // 传了 breakpoint 才走 applyResponsive，作者（或 AI）写的 mobile 变体这才第一次落到访客眼里。
-  const breakpoint = breakpointFromParam(query.viewport);
+  // §14 / ADR-0069 / ADR-0074：`?viewport=` 三态——没写或 auto = 按访客视口自动选档
+  // （只在作者写过断点规则时铺四份投影，用媒体查询选一份）；design = 钉住设计尺寸；
+  // 四个断点名 = 钉住那一档。认不出来退回 auto，不 404。
+  const requested = publishedViewportFromParam(query.viewport);
+  const responsive = hasResponsiveRules(page);
+  const auto = requested === 'auto' && responsive;
+  const pinned: BreakpointName | undefined = requested === 'auto' || requested === 'design' ? undefined : requested;
   const zoom = zoomFromParam(query.zoom);
-  const layout = resolveLayout(page, { tokens, mode, breakpoint });
+  // `label` 只给证据看：自动时是档名，钉住时是 `mobile`/`desktop`/`design` —— 这样
+  // `?viewport=mobile` 的 DOM 不会自称 design（断点门靠属性读数，标签不能撒谎）
+  const variants: { label: string; layout: ResolvedLayout }[] = auto
+    ? PUBLISHED_VARIANT_ORDER.map((id) => ({ label: id, layout: resolveLayout(page, { tokens, mode, breakpoint: id }) }))
+    : [{ label: pinned ?? 'design', layout: resolveLayout(page, { tokens, mode, breakpoint: pinned }) }];
   // 匿名访客的图走公共资产路由：可见性由"这一版发布确实引用了它"决定（§57）
   const assets = assetContextFor(document, (assetId) => publicAssetUrl(decodeURIComponent(handle), assetId));
-  // §124 状态层只读投影（ADR-0062）：发布页与预览页同一套差量样式表
-  const stateSheet = stateStyleSheetFor(
-    layout.paintOrder.map((id) => layout.nodes[id]).filter((r): r is ResolvedNode => Boolean(r)),
-    { tokens, mode, assets },
-  );
   await recordView(publication.id).catch(() => undefined);
   // 访客身份只读不签发：这里用 currentUserOrNull 而不是 requireUser，
   // 否则每一个点开链接的人都会在库里造出一个 guest 用户
@@ -94,24 +101,28 @@ export default async function PublishedPage({ params, searchParams }: Props) {
   // 解析不出位置的节点不铺热点——铺一个量不到位置的按钮等于把点击交给运气。
   const flow = hasClickNavigation(document);
   const targets = flow ? navigateTargetsOnPage(document, page.id) : {};
-  const hotspots: Hotspot[] = flow
-    ? Object.entries(targets).flatMap(([nodeId, targetPageId]) => {
-        const resolved = layout.nodes[nodeId];
-        const target = findPage(document, targetPageId);
-        if (!resolved || !target) return [];
-        return [
-          {
-            nodeId,
-            targetPageId,
-            targetName: target.name,
-            x: resolved.x,
-            y: resolved.y,
-            width: resolved.width,
-            height: resolved.height,
-          },
-        ];
-      })
-    : [];
+  /** 热点跟着投影走：自动选档下四份 layout 的坐标不同，各自算各自的 */
+  const hotspotsFor = (layout: ResolvedLayout): Hotspot[] =>
+    flow
+      ? Object.entries(targets).flatMap(([nodeId, targetPageId]) => {
+          const resolved = layout.nodes[nodeId];
+          const target = findPage(document, targetPageId);
+          if (!resolved || !target) return [];
+          return [
+            {
+              nodeId,
+              targetPageId,
+              targetName: target.name,
+              x: resolved.x,
+              y: resolved.y,
+              width: resolved.width,
+              height: resolved.height,
+            },
+          ];
+        })
+      : [];
+  const hotspots = hotspotsFor(variants[0]!.layout);
+  const primary = variants[0]!.layout;
   const terminal = isTerminalInteractivePage(document, page.id);
 
   return (
@@ -137,40 +148,36 @@ export default async function PublishedPage({ params, searchParams }: Props) {
         </div>
       ) : null}
       {/* §14 查看器控件（ADR-0069）：与 /preview 同一排、同一套参数名 */}
-      <ViewerControls base={publication.path} query={query} page={page} breakpoint={breakpoint} zoom={zoom} width={layout.width} height={layout.height} />
+      <ViewerControls
+        base={publication.path}
+        query={query}
+        page={page}
+        breakpoint={pinned}
+        zoom={zoom}
+        width={primary.width}
+        height={primary.height}
+        auto={auto}
+        autoAvailable={responsive}
+      />
+      {/* §85 第三十一片 / ADR-0074：自动选档。四份投影同一时刻在 DOM 里，媒体查询选一份；
+          隐藏的几份 display:none（不进可访问树）。零 JS 也成立，且没有第二条渲染路径。 */}
+      {auto ? <style data-published-auto>{publishedVariantsStyle()}</style> : null}
       <div className="w-full overflow-x-auto p-[var(--nexus-space-4)]">
-        {/* 缩放用 transform，版式盒不会跟着缩：外面这一层按缩后的尺寸占位，
-            否则"缩小看全"了画面，页面还是照旧横向平移 1082px（第十三片量到的就是这个） */}
-        <div
-          data-published-scale-box
-          style={{ width: layout.width * zoom, height: layout.height * zoom, margin: '0 auto' }}
-        >
-          <div
-            data-published-frame
-            style={{
-              position: 'relative',
-              width: layout.width,
-              height: layout.height,
-              transform: zoom === 1 ? undefined : `scale(${zoom})`,
-              transformOrigin: 'top left',
-              background: typeof page.backgroundColor === 'string' ? page.backgroundColor : undefined,
-              boxShadow: '0 0 0 1px var(--nexus-color-border-subtle)',
-            }}
-          >
-            {stateSheet ? <style data-nexus-states>{stateSheet}</style> : null}
-            {layout.paintOrder.map((id) => {
-              const resolved = layout.nodes[id];
-              if (!resolved) return null;
-              return (
-                <div key={id} data-node-id={id} data-node-type={resolved.node.type} style={nodeStyle(resolved, { tokens, mode, assets })}>
-                  {resolved.node.text ?? null}
-                </div>
-              );
-            })}
-            {/* 热点盖在画面最上层：命中区就是模型说那个节点在哪，不量 DOM、不猜形状 */}
-            <InteractiveHotspots path={publication.path} hotspots={hotspots} keepParams={keepViewerParams(query)} />
+        {variants.map(({ label, layout }) => (
+          <div key={label} data-published-variant={label} data-published-variant-width={layout.width}>
+            <PublishedFrame
+              layout={layout}
+              page={page}
+              tokens={tokens}
+              mode={mode}
+              assets={assets}
+              zoom={zoom}
+              hotspots={hotspotsFor(layout)}
+              publicationPath={publication.path}
+              keepParams={keepViewerParams(query)}
+            />
           </div>
-        </div>
+        ))}
       </div>
       {/* §167：这一版跑的是哪一段互动，写在页面上而不是只留在注释里。
           没有热点也没有终点时不出现——静态设计稿不该被说成"能点的作品"。
