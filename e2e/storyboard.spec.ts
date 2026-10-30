@@ -676,3 +676,71 @@ test('@smoke §160 成片播放预览：DEMO 渲染出的 mp4 在面板里真的
   await page.locator('[data-storyboard-render-result]').scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'screenshots/storyboard-render-playback.png' });
 });
+
+/**
+ * §40 的四条箭头在界面上**真的存在**：`planStoryboard` 早就会收 arrow / referenceAssetId /
+ * characterId，但面板建分镜时只传句子，所以每一版都写成 text-to-video——三个常量在界面上是死的。
+ *
+ * 这一条走真浏览器要证的是三件事：
+ * ① 要参考的那两条箭头缺来源时**按钮就是灰的**，并且说清缺哪个字段（不是点了才吃一个 400）；
+ * ② 选上来源之后建出来的那一版，头部写明"来源：角色 → 场景｜角色 守夜人"，原句单独一行；
+ * ③ 来源不是只写在脸上——每一镜都被挂上了这位角色，而且重读服务端那一份还是它。
+ */
+test('@smoke §40 四条箭头：缺来源不许切，选上之后建出的那一版写明来源', async ({ page }) => {
+  test.setTimeout(180_000);
+  await openStudio(page, `箭头来源 ${Date.now().toString(36)}`);
+
+  // 先建一位角色：名册要有东西，"角色 → 场景"那条才有得挑
+  await page.click('[data-panel-tab="characters"]');
+  await expect(page.locator('[data-character-empty]')).toBeVisible({ timeout: 30_000 });
+  await page.fill('[data-character-new-name]', '守夜人');
+  await page.click('[data-character-create]');
+  await expect(page.locator('[data-character-count]')).toHaveText('1');
+
+  await openStoryboardPanel(page);
+  await expect(page.locator('[data-storyboard-empty]')).toContainText('还没有分镜', { timeout: 30_000 });
+
+  const arrow = page.locator('[data-storyboard-arrow]');
+  const create = page.locator('[data-storyboard-create]');
+  // 默认是那条只要一句话的箭头，两个来源选择器都不该出现
+  await expect(arrow).toHaveValue('text-to-video');
+  await expect(page.locator('[data-storyboard-source-asset]')).toHaveCount(0);
+  await expect(page.locator('[data-storyboard-source-character]')).toHaveCount(0);
+
+  await page.fill('[data-storyboard-prompt-input]', '守夜人站在雪地里，风吹动她的斗篷');
+  await expect(create, '一句话 + 默认箭头就能切').toBeEnabled();
+
+  // 换成要参考图的那条：多出一个选择器、按钮立刻禁用、缺什么写在明处
+  await arrow.selectOption('image-to-video');
+  await expect(page.locator('[data-storyboard-source-asset]')).toBeVisible();
+  await expect(page.locator('[data-storyboard-source-missing]')).toContainText('source.referenceAssetId');
+  await expect(create, '缺参考图还让点，就会先换掉界面再吃一个 400（§159）').toBeDisabled();
+
+  // 换成要角色的那条：选择器换成名册，仍然禁用
+  await arrow.selectOption('character-to-scene');
+  await expect(page.locator('[data-storyboard-source-asset]')).toHaveCount(0);
+  await expect(page.locator('[data-storyboard-source-character]')).toBeVisible();
+  await expect(page.locator('[data-storyboard-source-missing]')).toContainText('source.characterId');
+  await expect(create).toBeDisabled();
+
+  // 选上本项目的那位角色：才放行，缺什么那句同时消失
+  await page.locator('[data-storyboard-source-character]').selectOption({ label: '守夜人' });
+  await expect(page.locator('[data-storyboard-source-missing]')).toHaveCount(0);
+  await expect(create).toBeEnabled();
+  await page.click('[data-storyboard-create]');
+  await savedState(page);
+
+  // 建完写明来源：箭头与挂的角色都是人话，原句另起一行（"来源"不再只指那句话）
+  await expect(page.locator('[data-storyboard-summary]')).toContainText('来源：角色 → 场景｜角色 守夜人');
+  await expect(page.locator('[data-storyboard-source-prompt]')).toContainText('守夜人站在雪地里');
+
+  // 来源落到了镜头里：模型把 source 的引用带进每一镜
+  const shotId = (await page.locator('[data-storyboard-shot]').first().getAttribute('data-storyboard-shot'))!;
+  await expect(page.locator(`[data-storyboard-character="${shotId}"] option:checked`)).toHaveText('守夜人');
+
+  // 重读服务端那一份：箭头是存进去的，不是界面上临时渲染的
+  await page.click('[data-storyboard-reload]');
+  await expect(page.locator('[data-storyboard-summary]')).toContainText('来源：角色 → 场景｜角色 守夜人');
+
+  await page.screenshot({ path: 'screenshots/storyboard-arrow-source.png' });
+});

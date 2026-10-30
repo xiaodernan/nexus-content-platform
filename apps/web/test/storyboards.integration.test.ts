@@ -131,6 +131,41 @@ describe('分镜读写（真实数据库）', () => {
     expect(await rowCount(id)).toBe(0);
   });
 
+  it('§40 箭头要的来源没挂上：拒收并点名箭头与字段；挂上之后同一份就进得来（反向对照）', async () => {
+    const id = await newProject('SB Arrow Source');
+    const base = planStoryboard('角色在雪地里回头');
+
+    // image-to-video 要从一张参考图出发：没挂图就拒，报错里说得出是箭头与哪个字段
+    const imageNoRef = await saveStoryboard(id, ownerId, {
+      document: { ...base, source: { arrow: 'image-to-video', prompt: base.source.prompt } },
+    });
+    expect(imageNoRef.ok).toBe(false);
+    if (!imageNoRef.ok) {
+      expect(imageNoRef.reason).toContain('image-to-video');
+      expect(imageNoRef.reason, '报错要指出缺的是哪个字段，否则读者只能猜').toContain('source.referenceAssetId');
+    }
+
+    // character-to-scene 要从一位角色出发：同样拒
+    const characterNoId = await saveStoryboard(id, ownerId, {
+      document: { ...base, source: { arrow: 'character-to-scene', prompt: base.source.prompt } },
+    });
+    expect(characterNoId.ok).toBe(false);
+    if (!characterNoId.ok) {
+      expect(characterNoId.reason).toContain('character-to-scene');
+      expect(characterNoId.reason).toContain('source.characterId');
+    }
+    expect(await rowCount(id), '被拒的文档不该落库').toBe(0);
+
+    // 反向对照：挂上本项目真有的角色，同一条箭头就能存——规则不是"这两条箭头一律不许用"
+    const own = await createProjectCharacter(id, ownerId, { name: '雪地里的角色' });
+    if (!own.ok) throw new Error(own.reason);
+    const saved = await saveStoryboard(id, ownerId, {
+      document: planStoryboard('角色在雪地里回头', { arrow: 'character-to-scene', characterId: own.character.id }),
+    });
+    expect(saved.ok, saved.ok ? '' : saved.reason).toBe(true);
+    expect(await rowCount(id)).toBe(1);
+  });
+
   it('并发基准：带着更旧的 baseUpdatedAt 写会被拒，不带基准就是最后写入者赢', async () => {
     const id = await newProject('SB Stale');
     const sb = planStoryboard('一，二');

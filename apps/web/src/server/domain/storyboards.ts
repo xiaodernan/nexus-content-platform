@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { StoryboardSaveRequestSchema } from '@nexus/schemas';
-import type { Storyboard } from '@nexus/video-model';
+import { missingArrowSource, type Storyboard } from '@nexus/video-model';
 import { getDb } from '../db/client';
 import { storyboards } from '../db/schema';
 import { listCharacters } from './characters';
@@ -100,6 +100,16 @@ export async function saveStoryboard(projectId: string, ownerId: string, input: 
     };
   }
   const { document, baseUpdatedAt } = parsed.data;
+  /**
+   * §40 箭头与来源的一致性：`image-to-video` 要从一张参考图出发、`character-to-scene`
+   * 要从一位角色出发。缺了这条片子就出不来，而不校验的话库里会存下一份"声称走 image-to-video、
+   * 却没有任何图"的分镜——界面上写着来源，实际上什么也没挂（§159 那种假可用）。
+   *
+   * 规则本体在 `@nexus/video-model`（与界面禁用按钮读同一句），这里只负责拒收时把它原样说出来。
+   * 放在归属核对之前：缺来源是文档自身的矛盾，与库里有哪些资产无关，不用先走一次查询。
+   */
+  const sourceGaps = missingArrowSource(document.source);
+  if (sourceGaps.length) return { ok: false, reason: sourceGaps.join(' ') };
   const foreign = await firstForeignRef(projectId, document as Storyboard);
   if (foreign) return { ok: false, reason: `这份分镜引用了不属于本项目的东西：${foreign}。` };
 

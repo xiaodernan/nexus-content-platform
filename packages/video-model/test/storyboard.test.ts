@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ARROW_SOURCE_NEEDS,
   DEFAULT_SHOT_MS,
   MAX_SHOTS,
+  STORYBOARD_ARROWS,
   emptyStoryboard,
+  missingArrowSource,
   planStoryboard,
   timelineOf,
   type StoryboardShot,
@@ -104,6 +107,48 @@ describe('§40 planStoryboard：分镜是投影，不是编出来的', () => {
 
   it('诚实标签：这一版分镜来自本地断句，不是模型给的镜头语言', () => {
     expect(planStoryboard(SENTENCE).notes.join('\n')).toContain('不是模型给的镜头语言');
+  });
+});
+
+describe('§40 四条箭头各自要的来源', () => {
+  it('需求表与箭头清单一一对应（加一条箭头却没说它要什么，就是一条悄悄放行的路）', () => {
+    expect(Object.keys(ARROW_SOURCE_NEEDS)).toEqual([...STORYBOARD_ARROWS]);
+    // 只有两条箭头要外部引用：正文里"要参考的那两条"就是这两条，别的一律不额外要东西
+    expect(STORYBOARD_ARROWS.filter((a) => ARROW_SOURCE_NEEDS[a].referenceAssetId)).toEqual(['image-to-video']);
+    expect(STORYBOARD_ARROWS.filter((a) => ARROW_SOURCE_NEEDS[a].characterId)).toEqual(['character-to-scene']);
+  });
+
+  it('text-to-video 与 storyboard-to-video 不额外要什么：一句话就能切（空来源是合法的）', () => {
+    expect(missingArrowSource({ arrow: 'text-to-video' })).toEqual([]);
+    // storyboard-to-video 要的是这份镜头表本身，而镜头表就在文档里，所以它也不缺外部引用
+    expect(missingArrowSource({ arrow: 'storyboard-to-video' })).toEqual([]);
+  });
+
+  it('image-to-video 缺参考图、character-to-scene 缺角色：各说一句为什么，点名箭头与字段', () => {
+    const image = missingArrowSource({ arrow: 'image-to-video' });
+    expect(image).toHaveLength(1);
+    expect(image[0]).toContain('image-to-video');
+    expect(image[0], '报错要指出缺的是哪个字段，否则读者只能猜').toContain('source.referenceAssetId');
+
+    const character = missingArrowSource({ arrow: 'character-to-scene' });
+    expect(character).toHaveLength(1);
+    expect(character[0]).toContain('character-to-scene');
+    expect(character[0]).toContain('source.characterId');
+  });
+
+  it('挂上之后就不再缺（反向对照：规则不是"这两条箭头一律不许用"）', () => {
+    expect(missingArrowSource({ arrow: 'image-to-video', referenceAssetId: 'asset-1' })).toEqual([]);
+    expect(missingArrowSource({ arrow: 'character-to-scene', characterId: 'char-1' })).toEqual([]);
+    // 别的箭头的来源也不会被当成"多余"拒掉：挂什么是作者的自由，缺什么才是问题
+    expect(missingArrowSource({ arrow: 'character-to-scene', characterId: 'char-1', referenceAssetId: 'asset-1' })).toEqual([]);
+  });
+
+  it('planStoryboard 不会自己补一个来源：箭头与引用写什么就是什么', () => {
+    const sb = planStoryboard('一镜', { arrow: 'image-to-video' });
+    expect(sb.source.arrow).toBe('image-to-video');
+    // 缺参考图这件事由调用方（界面/服务端）用 missingArrowSource 拦，
+    // 模型不偷偷把箭头改回 text-to-video——那会让界面显示一个作者没选过的来源
+    expect(sb.source.referenceAssetId).toBeUndefined();
   });
 });
 

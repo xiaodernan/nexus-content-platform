@@ -1,5 +1,13 @@
 import { useSyncExternalStore } from 'react';
-import { planStoryboard, splitShotAt, storyboardTransaction, type Storyboard, type StoryboardOp } from '@nexus/video-model';
+import {
+  missingArrowSource,
+  planStoryboard,
+  splitShotAt,
+  storyboardTransaction,
+  type Storyboard,
+  type StoryboardArrow,
+  type StoryboardOp,
+} from '@nexus/video-model';
 import { csrfHeaders } from '@/lib/csrf';
 import { isStudioReadOnly } from './read-only';
 
@@ -141,13 +149,35 @@ class StoryboardStore {
   /**
    * 从一句话切一版分镜并立刻写库。切分本身是 `planStoryboard` 的**本地确定性断句**，
    * 界面上要把这句说清楚（notes 里已经带着"不是模型给的镜头语言"）。
+   *
+   * `source` 是 §40 那条来源箭头：`image-to-video` 要一张已定格的参考图、
+   * `character-to-scene` 要一位角色。缺了就不切——**同一句规则**服务端也读
+   * （`missingArrowSource`），所以这里不是"界面自己加的限制"，而是把会到来的 400
+   * 提前说成一句人话（§159：不许先换掉界面再让写库失败）。
    */
-  async planFrom(prompt: string): Promise<void> {
+  async planFrom(
+    prompt: string,
+    source: { arrow?: StoryboardArrow; referenceAssetId?: string; characterId?: string } = {},
+  ): Promise<void> {
     // 只读（viewer）：切出的一版分镜落不进库，也就不该先换掉界面（§159 不假装改成了）
     if (isStudioReadOnly()) return;
     const { projectId } = this.snapshotValue;
     if (!projectId) return;
-    const sb = planStoryboard(prompt);
+    const arrow: StoryboardArrow = source.arrow ?? 'text-to-video';
+    const missing = missingArrowSource({
+      arrow,
+      referenceAssetId: source.referenceAssetId,
+      characterId: source.characterId,
+    });
+    if (missing.length) {
+      this.commit_({ notice: missing.join(' ') });
+      return;
+    }
+    const sb = planStoryboard(prompt, {
+      arrow,
+      referenceAssetId: source.referenceAssetId,
+      characterId: source.characterId,
+    });
     if (!sb.shots.length) {
       // 切不出镜头就明说，不写一份 0 镜的文档进库冒充"生成好了"
       this.commit_({ notice: sb.notes.join(' ') });

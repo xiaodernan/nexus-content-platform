@@ -2,20 +2,24 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ARROW_SOURCE_NEEDS,
   clampShotDuration,
   DEFAULT_SHOT_MS,
   dropIndexFor,
   keyboardTrimDelta,
   MAX_SHOT_MS,
   MIN_SHOT_MS,
+  missingArrowSource,
   SHOT_CAMERAS,
   SHOT_MS_COARSE_STEP,
   SHOT_MS_STEP,
   SHOT_TRANSITIONS,
+  STORYBOARD_ARROWS,
   shotIndexAtX,
   timelineOf,
   type ShotCamera,
   type ShotTransition,
+  type StoryboardArrow,
   type StoryboardShot,
 } from '@nexus/video-model';
 import { cn } from '@/lib/cn';
@@ -91,6 +95,27 @@ const TRANSITION_LABELS: Record<ShotTransition, string> = {
 };
 
 /**
+ * §40 的四条箭头在界面上的名字。短名单（时间线头部那一行用），
+ * 选项后面那半句"要什么"从 `ARROW_SOURCE_NEEDS` 推——两层文案各写一份就会漂成
+ * "选项说要参考图、切的时候却不要"。
+ */
+const ARROW_LABELS: Record<StoryboardArrow, string> = {
+  'text-to-video': '文字 → 视频',
+  'image-to-video': '参考图 → 视频',
+  'storyboard-to-video': '分镜 → 视频',
+  'character-to-scene': '角色 → 场景',
+};
+
+/** 这条箭头要什么（选项标签的后半句）。读需求表，不另写一份规则 */
+function arrowNeedText(arrow: StoryboardArrow): string {
+  const needs = ARROW_SOURCE_NEEDS[arrow];
+  if (needs.referenceAssetId) return '要一张已定格的参考图';
+  if (needs.characterId) return '要一位本项目的角色';
+  if (arrow === 'storyboard-to-video') return '按这份镜头表出片';
+  return '只要那句话';
+}
+
+/**
  * §41 改长度/换位期间的状态。`preview*` 只是这一份本地预览：库里那一份在提交之前一动不动，
  * 所以"改到一半关掉页面"不会留下一个半截的长度，撤销栈也不会被 pointermove 塞满。
  *
@@ -118,6 +143,13 @@ export function StoryboardPanel() {
   const studio = useStudioReady();
   const snapshot = useStoryboard();
   const [prompt, setPrompt] = useState('');
+  /**
+   * §40 建分镜时的来源：四条箭头 + 要参考的那两条各自的引用。
+   * 默认 `text-to-video`：只要一句话就能切，这是唯一不需要额外东西的那条。
+   */
+  const [arrow, setArrow] = useState<StoryboardArrow>('text-to-video');
+  const [sourceAssetId, setSourceAssetId] = useState('');
+  const [sourceCharacterId, setSourceCharacterId] = useState('');
   /** 草稿：镜头文本与时长各自独立存，失焦才写成一个事务——打字过程中不该一次次 PUT */
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   /**
@@ -553,6 +585,16 @@ export function StoryboardPanel() {
     ]);
   };
 
+  /**
+   * 缺来源就不许切：`missingArrowSource` 与服务端拒收读的是**同一条规则**。
+   * 空字符串在这里折成 undefined——选择器里"还没挑"是一个空选项，不是一个空 id。
+   */
+  const sourceGaps = missingArrowSource({
+    arrow,
+    referenceAssetId: sourceAssetId || undefined,
+    characterId: sourceCharacterId || undefined,
+  });
+
   if (!sb) {
     return (
       <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto p-[var(--nexus-space-3)]" data-storyboard-panel>
@@ -577,10 +619,71 @@ export function StoryboardPanel() {
           data-storyboard-prompt-input
           className="w-full resize-y rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
         />
+        {/* §40 的四条箭头：它决定这一版分镜从什么出发，也是界面上唯一能表达这件事的地方 */}
+        <div className="flex flex-col gap-1">
+          <label className="text-11 text-fg-3" htmlFor="storyboard-arrow-select">
+            这条片子的来源
+          </label>
+          <select
+            id="storyboard-arrow-select"
+            value={arrow}
+            onChange={(e) => setArrow(e.target.value as StoryboardArrow)}
+            data-storyboard-arrow
+            className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
+          >
+            {STORYBOARD_ARROWS.map((option) => (
+              <option key={option} value={option}>
+                {ARROW_LABELS[option]}（{arrowNeedText(option)}）
+              </option>
+            ))}
+          </select>
+          {ARROW_SOURCE_NEEDS[arrow].referenceAssetId ? (
+            <select
+              value={sourceAssetId}
+              onChange={(e) => setSourceAssetId(e.target.value)}
+              data-storyboard-source-asset
+              className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
+            >
+              <option value="">挑一张已定格的参考图（资产库里的）…</option>
+              {roster.assets.map((asset) => (
+                <option key={asset.id} value={asset.id}>
+                  {asset.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          {ARROW_SOURCE_NEEDS[arrow].characterId ? (
+            <select
+              value={sourceCharacterId}
+              onChange={(e) => setSourceCharacterId(e.target.value)}
+              data-storyboard-source-character
+              className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
+            >
+              <option value="">挑一位本项目的角色…</option>
+              {roster.characters.map((character) => (
+                <option key={character.id} value={character.id}>
+                  {character.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          {sourceGaps.length ? (
+            <p className="text-11 text-fg-3" data-storyboard-source-missing>
+              {sourceGaps.join(' ')}
+            </p>
+          ) : null}
+          {rosterNote ? <p className="text-11 text-fg-3">{rosterNote}</p> : null}
+        </div>
         <button
           type="button"
-          disabled={!prompt.trim() || snapshot.saveState === 'saving'}
-          onClick={() => void storyboardStore.planFrom(prompt)}
+          disabled={!prompt.trim() || snapshot.saveState === 'saving' || sourceGaps.length > 0}
+          onClick={() =>
+            void storyboardStore.planFrom(prompt, {
+              arrow,
+              referenceAssetId: sourceAssetId || undefined,
+              characterId: sourceCharacterId || undefined,
+            })
+          }
           data-storyboard-create
           className="self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
         >
@@ -645,6 +748,17 @@ export function StoryboardPanel() {
 
   const total = sb.shots.length;
 
+  /**
+   * §40 建完之后的交代：这一版是从哪条箭头来的、挂的是哪张图/哪位角色。
+   * 名字从名册里现查（roster 是服务端那一份），查不到就显示 id——
+   * 显示一个查不到的名字比显示 id 更糟：那句话在告诉人"这是谁"。
+   */
+  const sourceRefName = sb.source.characterId
+    ? `角色 ${roster.characters.find((c) => c.id === sb.source.characterId)?.name ?? sb.source.characterId}`
+    : sb.source.referenceAssetId
+      ? `参考图 ${roster.assets.find((a) => a.id === sb.source.referenceAssetId)?.name ?? sb.source.referenceAssetId}`
+      : null;
+
   return (
     <div className="flex h-full min-h-0 flex-col" data-storyboard-panel>
       <header className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]">
@@ -661,7 +775,12 @@ export function StoryboardPanel() {
           </span>
         </div>
         <p className="mt-1 text-12 text-fg-2" data-storyboard-summary>
-          {total} 镜 · 共 {(timeline?.totalMs ?? 0) / 1000} 秒 · 来源：{sb.source.prompt || '（没有原句）'}
+          {`${total} 镜 · 共 ${(timeline?.totalMs ?? 0) / 1000} 秒 · 来源：${ARROW_LABELS[sb.source.arrow]}${
+            sourceRefName ? `｜${sourceRefName}` : ''
+          }`}
+        </p>
+        <p className="mt-1 text-11 text-fg-3" data-storyboard-source-prompt>
+          原句：{sb.source.prompt || '（没有原句）'}
         </p>
         <div className="mt-2 flex items-center gap-1">
           <button

@@ -190,4 +190,40 @@ describe('§40 分镜 store：写出去的那串字节', () => {
       stub.restore();
     }
   });
+
+  it('§40 建分镜时把来源箭头与引用写进文档（不传就还是默认的 text-to-video）', async () => {
+    const stub = installStub();
+    try {
+      await storyboardStore.load(PROJECT);
+      await storyboardStore.planFrom('一个人走进雨里', { arrow: 'character-to-scene', characterId: 'char-1' });
+      const put = stub.sent.find((s) => s.method === 'PUT');
+      const doc = put?.body?.document as { source?: { arrow?: string; characterId?: string } };
+      expect(doc.source?.arrow, '箭头没写进文档，界面上就永远显示 text-to-video').toBe('character-to-scene');
+      expect(doc.source?.characterId).toBe('char-1');
+
+      // 不传来源：默认那条只要一句话的箭头，别偷偷带上别的引用
+      await storyboardStore.load(PROJECT);
+      await storyboardStore.planFrom('一个人走进雨里');
+      const plain = stub.sent.filter((s) => s.method === 'PUT').at(-1);
+      const plainDoc = plain?.body?.document as { source?: { arrow?: string; characterId?: string; referenceAssetId?: string } };
+      expect(plainDoc.source).toEqual({ arrow: 'text-to-video', prompt: '一个人走进雨里' });
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('缺来源的箭头不切也不写库，并把"为什么"原样留在 notice 里（与服务端拒收同一句规则）', async () => {
+    const stub = installStub();
+    try {
+      await storyboardStore.load(PROJECT);
+      await storyboardStore.planFrom('一个人走进雨里', { arrow: 'image-to-video' });
+      expect(stub.sent.filter((s) => s.method === 'PUT'), '缺参考图还写库，库里就会留下一份"说走 reference 却没有图"的分镜').toHaveLength(0);
+      expect(storyboardStore.getSnapshot().storyboard).toBeNull();
+      const notice = storyboardStore.getSnapshot().notice ?? '';
+      expect(notice).toContain('image-to-video');
+      expect(notice).toContain('source.referenceAssetId');
+    } finally {
+      stub.restore();
+    }
+  });
 });

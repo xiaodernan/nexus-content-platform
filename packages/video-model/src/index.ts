@@ -34,6 +34,53 @@ export type ShotTransition = (typeof SHOT_TRANSITIONS)[number];
 export const STORYBOARD_ARROWS = ['text-to-video', 'image-to-video', 'storyboard-to-video', 'character-to-scene'] as const;
 export type StoryboardArrow = (typeof STORYBOARD_ARROWS)[number];
 
+/**
+ * §40 四条箭头各自要什么才成立。写成一张表而不是在界面与服务端各写一遍：
+ * 两处各写一遍，规则一漂就会出现"界面允许切、服务端拒收"，或者更糟的
+ * "界面说能切、服务端也收了，但这条片子根本出不来"（§159）。
+ *
+ * - `text-to-video`：只要那一句话
+ * - `image-to-video`：要一张已定格的参考图（`source.referenceAssetId`）
+ * - `storyboard-to-video`：要的是这份分镜本身（镜头表就是输入），不另要外部引用
+ * - `character-to-scene`：要一位本项目的角色（`source.characterId`）
+ *
+ * 写成 `Record<StoryboardArrow, …>` 而不是数组：往 `STORYBOARD_ARROWS` 加一条箭头时，
+ * 这里不补一格就编译不过——"新箭头没说要什么"不能是一条悄悄放行的路。
+ */
+export const ARROW_SOURCE_NEEDS: Record<StoryboardArrow, { referenceAssetId: boolean; characterId: boolean }> = {
+  'text-to-video': { referenceAssetId: false, characterId: false },
+  'image-to-video': { referenceAssetId: true, characterId: false },
+  'storyboard-to-video': { referenceAssetId: false, characterId: false },
+  'character-to-scene': { referenceAssetId: false, characterId: true },
+};
+
+/**
+ * 这条来源缺了什么（空数组 = 不缺）。服务端拒收与界面禁用按钮读的是**同一句规则**：
+ * 返回值是能直接摆在人面前的整句，不是错误码——界面把"为什么切不了"原样显示，
+ * 服务端把"这份文档为什么进不来"原样拒掉，两边说的是同一句话。
+ *
+ * 只看 `source` 那一格：镜头能不能各自带引用是作者的自由，箭头说的是整条片子的出处。
+ */
+export function missingArrowSource(source: {
+  arrow: StoryboardArrow;
+  referenceAssetId?: string;
+  characterId?: string;
+}): string[] {
+  const needs = ARROW_SOURCE_NEEDS[source.arrow];
+  const missing: string[] = [];
+  if (needs.referenceAssetId && !source.referenceAssetId) {
+    missing.push(
+      `${source.arrow} 这条箭头要从一张已定格的参考图出发（source.referenceAssetId），而它现在是空的——要么先挑一张图，要么换回 text-to-video。`,
+    );
+  }
+  if (needs.characterId && !source.characterId) {
+    missing.push(
+      `${source.arrow} 这条箭头要从一位角色出发（source.characterId），而它现在是空的——要么先挑一位角色，要么换回 text-to-video。`,
+    );
+  }
+  return missing;
+}
+
 export interface StoryboardShot {
   /** 稳定标识：重排不改它，所以 `moveShot` 之后引用仍然指得回同一镜 */
   id: string;
