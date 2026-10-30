@@ -149,11 +149,11 @@ class WebhookControllerTest {
 
     @Test
     void aPingAnswersTwoHundredWithWhatTheEndpointDid() throws Exception {
-        WebhookDtos.PingAnswer refused = new WebhookDtos.PingAnswer(
+        WebhookDtos.DeliveryAnswer refused = new WebhookDtos.DeliveryAnswer(
                 "wh-1", ENDPOINT, false, WebhookDispatcher.OUTCOME_REFUSED, 500, "status", AT.toEpochMilli());
         when(dispatcher.ping("wh-1", SUBSCRIBER)).thenReturn(refused);
 
-        ResponseEntity<WebhookDtos.PingAnswer> answer = controller().ping("wh-1", SUBSCRIBER);
+        ResponseEntity<WebhookDtos.DeliveryAnswer> answer = controller().ping("wh-1", SUBSCRIBER);
 
         // 200 in every outcome that has an answer: the endpoint refusing is a RESULT, not a door failure.
         assertThat(answer.getStatusCode().value()).isEqualTo(200);

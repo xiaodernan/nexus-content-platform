@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,10 +78,12 @@ public class AuditService {
 
     private final AuditEntryRepository repository;
     private final Clock clock;
+    private final ApplicationEventPublisher publisher;
 
-    public AuditService(AuditEntryRepository repository, Clock clock) {
+    public AuditService(AuditEntryRepository repository, Clock clock, ApplicationEventPublisher publisher) {
         this.repository = repository;
         this.clock = clock;
+        this.publisher = publisher;
     }
 
     /**
@@ -94,6 +97,13 @@ public class AuditService {
      * @param targetType what KIND of thing that id names — one of {@link #TARGET_ACCOUNT},
      *     {@link #TARGET_PLAN}, {@link #TARGET_PUBLICATION}; a refusal names the three rather than
      *     guessing, because a caller that is told only "no" has to guess
+     *
+     * <p>v559 — the write is also ANNOUNCED: {@link AuditRecorded} is published with the three facts a
+     * subscriber receives (verb, target id, instant). The announcement happens AFTER the save, so a
+     * repository that refused the row announces nothing, and INSIDE the transaction, so the listener — not
+     * this method — decides when the fact becomes outward-facing. The webhook fan-out is an
+     * {@code AFTER_COMMIT} listener; a delivery sent from here would announce a fact the rollback could
+     * still un-do.
      */
     @Transactional
     public void record(
@@ -112,6 +122,7 @@ public class AuditService {
         String kind = requireTargetType(targetType);
         Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
         repository.save(new AuditEntry(action, actorAccountId, actorHandle, actorAssurance, targetId, kind, now));
+        publisher.publishEvent(new AuditRecorded(action, targetId, now));
     }
 
     /**

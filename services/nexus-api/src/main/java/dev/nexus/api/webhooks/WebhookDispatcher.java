@@ -3,26 +3,25 @@ package dev.nexus.api.webhooks;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import dev.nexus.api.webhooks.WebhookDtos.PingAnswer;
+import dev.nexus.api.webhooks.WebhookDtos.DeliveryAnswer;
 import java.net.InetAddress;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 
 /**
- * M10 v558 — the DELIVERY half: one signed POST, and an answer that names what happened to it.
+ * M10 v558/v559 — the DELIVERY half: one signed POST, and an answer that names what happened to it.
  *
- * <p>v557 built the subscription and the signature; this is the first door that actually calls a stranger's
- * server, and it is deliberately the SMALLEST such door: a subscriber asks this service to POST one
- * {@code ping} to the endpoint it registered. A delivery that can be invoked on demand is a delivery whose
- * network path, signature header and refusal rules can be graded today, before anything in the system
- * produces events on its own. Event FAN-OUT (many subscriptions, many events) is the next slice, and the
- * sentence here says so rather than implying a broadcast that is not built.
+ * <p>v557 built the subscription and the signature; v558 the first door that actually calls a stranger's
+ * server — the smallest such door, a {@code ping} a subscriber asks for. v559 adds the FAN-OUT: {@link #deliver}
+ * takes one recorded event and POSTs it to every subscription that asked for that verb. Nothing else about the
+ * delivery changes: the same body, the same signature, the same address rule, and the same three outcomes.
  *
  * <p>Four rules, each with its reason:
  *
@@ -63,6 +62,17 @@ public class WebhookDispatcher {
     /** How long one delivery may take, connection included. */
     public static final Duration DELIVERY_TIMEOUT = Duration.ofSeconds(10);
 
+    /**
+     * v559 — the fan-out's order: the oldest subscription first, and the id breaks a tie.
+     *
+     * <p>Stated rather than inherited from the table's read order: two rows made in the same microsecond are
+     * still two rows, and an answer list whose order changed between runs would make a subscriber's log
+     * disagree with this service's about what happened first.
+     */
+    private static final Comparator<WebhookSubscription> OLDEST_FIRST =
+            Comparator.comparing(WebhookSubscription::getCreatedAt)
+                    .thenComparing(WebhookSubscription::getWebhookId);
+
     private static final String CONTENT_TYPE = "application/json; charset=utf-8";
 
     private final WebhookSubscriptionRepository repository;
@@ -85,13 +95,47 @@ public class WebhookDispatcher {
     }
 
     /**
+     * POST ONE recorded event to EVERY subscription that asked for its verb, oldest subscription first.
+     *
+     * <p>v559 — this is the fan-out ADR 0021 named as the next slice. {@link WebhookEventListener} calls it
+     * AFTER the writing transaction commits and never from inside it: a delivery that raced a rollback would
+     * announce a fact which did not survive, and the trail would then be contradicted by a stranger's inbox.
+     *
+     * <p>The answer is one {@link DeliveryAnswer} per endpoint that was ATTEMPTED, in the order attempted —
+     * including the ones that refused and the ones nothing answered, because "this endpoint did not take it"
+     * is a result rather than an error. A failure does not stop the loop: one subscriber's outage is not the
+     * other subscribers' silence.
+     *
+     * <p>Bound, stated: this reads the WHOLE subscription table per event ({@code findAll}), because the table
+     * is small and a derived query over a comma-joined column would be a query about SPELLING rather than a
+     * query about the set. A table that outgrows a scan needs a join table and a real query — a later
+     * decision, not a silent assumption here.
+     */
+    public List<DeliveryAnswer> deliver(String event, String targetId, Instant at) {
+        if (event == null || event.isBlank()) {
+            throw new IllegalArgumentException("a fan-out must name the event it announces — an empty verb "
+                    + "would be answered as \"nobody asked\", which is a different fact");
+        }
+        if (targetId == null || targetId.isBlank()) {
+            throw new IllegalArgumentException("a fan-out must name what the event happened to");
+        }
+        String wanted = event.trim();
+        String body = body(wanted, targetId, at);
+        return repository.findAll().stream()
+                .filter(row -> row.eventList().contains(wanted))
+                .sorted(OLDEST_FIRST)
+                .map(row -> attempt(row, body, at))
+                .toList();
+    }
+
+    /**
      * POST one signed {@code ping} to a subscription the caller owns.
      *
      * @throws InvalidWebhook when the subscriber is missing — the ownership question has no answer
      * @throws NoSuchWebhook when the id names no row — 404, not "the endpoint refused"
      * @throws NotYourWebhook when the row belongs to somebody else — 403
      */
-    public PingAnswer ping(String webhookId, String subscriberId) {
+    public DeliveryAnswer ping(String webhookId, String subscriberId) {
         if (webhookId == null || webhookId.isBlank()) {
             throw new InvalidWebhook("a ping needs the webhook id it is addressed to");
         }
@@ -117,7 +161,7 @@ public class WebhookDispatcher {
      * <p>Nothing is sent when any resolved address is private: the request never reaches a network socket,
      * which is the difference between "refused" and "tried and hoped".
      */
-    private PingAnswer attempt(WebhookSubscription row, String body, Instant at) {
+    private DeliveryAnswer attempt(WebhookSubscription row, String body, Instant at) {
         List<InetAddress> addresses;
         try {
             addresses = resolver.resolve(hostOf(row.getEndpointUrl()));
@@ -185,9 +229,9 @@ public class WebhookDispatcher {
         }
     }
 
-    private static PingAnswer answer(
+    private static DeliveryAnswer answer(
             WebhookSubscription row, Instant at, String outcome, Integer status, String detail) {
-        return new PingAnswer(
+        return new DeliveryAnswer(
                 row.getWebhookId(),
                 row.getEndpointUrl(),
                 OUTCOME_DELIVERED.equals(outcome),

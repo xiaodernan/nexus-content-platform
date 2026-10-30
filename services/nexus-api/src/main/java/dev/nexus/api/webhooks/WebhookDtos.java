@@ -38,13 +38,18 @@ public final class WebhookDtos {
     }
 
     /**
-     * What one on-demand delivery did — the answer the ping door gives.
+     * What one delivery did — the answer the ping door gives, and one entry of the list a fan-out reports.
      *
      * <p>{@code delivered} is the summary of {@code outcome} rather than a second opinion: a 2xx is the only
      * thing it is true of, and {@code outcome} names WHY when it is false ({@code refused} with a
      * {@code status}, or {@code unreachable} with the exception's name in {@code detail}).
+     *
+     * <p>v559 named it for the DELIVERY rather than for the ping, because a fan-out answers with one of these
+     * per subscription and the shape is the same fact either way: what happened when this service called this
+     * endpoint. The id and URL are carried so an answer stands alone in a list — a caller reading twenty
+     * answers can tell which endpoint each belongs to without counting positions.
      */
-    public record PingAnswer(
+    public record DeliveryAnswer(
             String webhookId,
             String url,
             boolean delivered,

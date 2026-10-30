@@ -21,7 +21,7 @@ The table above is the v193 PUBLISH slice only. Later slices have their own pack
 `src/main/java/dev/nexus/api/` (`search`, `social`, `moderation`, `ops`, and `webhooks` below), each with
 doors of its own; this README names them by package rather than keeping a second, drifting table.
 
-## Webhooks — the first outbound contract (M10 v557/v558, ADR 0021)
+## Webhooks — the first outbound contract (M10 v557–v559, ADR 0021)
 
 | method | path | answer |
 | --- | --- | --- |
@@ -34,12 +34,18 @@ A subscription is a RECORD of an instruction: `{subscriberId, url, events[]}` in
 `{id, url, events[], createdAt, secret, note}` out. The secret is 32 `SecureRandom` bytes as lowercase hex,
 minted here and shown once; every delivery carries `Nexus-Signature: t=<epoch seconds>,v1=<hmac>` computed
 over `<timestamp>.<body>` (HMAC-SHA256), verified with a constant-time compare inside a bounded window
-(default 5 minutes). **Bounds:** the `ping` is the only delivery this build makes — nothing produces EVENTS
-yet, so a subscription to `publish` is a promise rather than a stream, and there is no retry, no receipt and
-no idempotency key. The ping is the owner's to ask: a stranger cannot aim this service at somebody else's URL.
-At delivery time the endpoint's name is resolved and **every** address it answers must be public — the
-DNS-rebinding check v557 left to this half — and a non-2xx (a redirect included) is reported as `refused` with
-that status rather than followed or collapsed into "failed".
+(default 5 minutes). **Fan-out (v559):** every recorded audit entry is published as
+`AuditRecorded(action, targetId, at)` and delivered — after the writing transaction COMMITS — to each
+subscription whose `events` contain the verb, oldest subscription first (the id breaks a tie), the body
+signed once per row with each row's OWN secret, one `DeliveryAnswer` per attempt, and one endpoint's failure
+never stops the next. The event carries no actor: a subscriber is told what happened and to what, not who.
+**Bounds:** delivery is SYNCHRONOUS on the committing thread — up to the 10 s timeout per subscription before
+the caller's answer — the subscription table is read whole per event, and no delivery is recorded, retried or
+replayed (no receipt, no schedule, no idempotency key); the `ping` remains the owner's on-demand call, and a
+stranger cannot aim this service at somebody else's URL. At delivery time the endpoint's name is resolved and
+**every** address it answers must be public — the DNS-rebinding check v557 left to the dispatcher — and a
+non-2xx (a redirect included) is reported as `refused` with that status rather than followed or collapsed
+into "failed".
 
 The `url` is built from the request that asked (`ServletUriComponentsBuilder`), so it names an address that
 actually serves the publication rather than a configured "public base" that could point at nothing.

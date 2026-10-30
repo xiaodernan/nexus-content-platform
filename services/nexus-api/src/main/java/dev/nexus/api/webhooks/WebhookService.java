@@ -18,10 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * M10 v557 — the RECEIVING half of the external ecosystem: who may be called, and about what.
  *
- * <p>M10 names "API, MCP, tool registry, webhooks". This is webhooks' first slice, and it is deliberately the
- * half that needs no agent and no network: a subscriber registers an endpoint and the events it wants, the
- * service answers the secret it will be signed with, and the dispatcher that POSTs is the next slice. A
- * subscription in this build is a RECORD, not yet a caller — the bound is stated here rather than implied.
+ * <p>M10 names "API, MCP, tool registry, webhooks". This is webhooks' RECEIVING half: a subscriber registers
+ * an endpoint and the events it wants, the service answers the secret it will be signed with, and the
+ * dispatcher (v558) is the one that POSTs what this row instructs. v559 made the instruction live: every
+ * recorded audit entry is delivered to the rows that asked for its verb, after the write commits.
  *
  * <p>Four rules, each refused BY NAME:
  *

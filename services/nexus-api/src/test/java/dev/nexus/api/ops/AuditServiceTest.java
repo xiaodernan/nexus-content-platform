@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 
 /**
@@ -40,6 +42,11 @@ import org.springframework.data.domain.Pageable;
  *
  * <p>v388 gave it a PAGE: the offset is ROWS (the filed read's meaning), translated into the pages Spring
  * Data speaks, so a reader can reach the entries the cap used to hide.
+ *
+ * <p>v559 gave it an ANNOUNCEMENT: what is written is published as an {@link AuditRecorded} with the three
+ * facts a subscriber receives. These cases pin that the announced facts are the STORED ones (same verb, same
+ * target, same instant) and that a refused entry announces nothing — an event published before a refusal
+ * would be a claim about a row that does not exist.
  */
 @ExtendWith(MockitoExtension.class)
 class AuditServiceTest {
@@ -49,12 +56,15 @@ class AuditServiceTest {
     @Mock
     private AuditEntryRepository repository;
 
+    @Mock
+    private ApplicationEventPublisher publisher;
+
     private AuditService service;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(AT, ZoneOffset.UTC);
-        service = new AuditService(repository, clock);
+        service = new AuditService(repository, clock, publisher);
     }
 
     // ── what an entry must name ──────────────────────────────────────────────────────────────────────
@@ -123,6 +133,31 @@ class AuditServiceTest {
         assertThat(saved.getValue().getActorHandle()).isNull();
         assertThat(saved.getValue().getActorAssurance()).isNull();
         assertThat(saved.getValue().getOccurredAt()).isEqualTo(AT);
+    }
+
+    // ── v559: what is written is ANNOUNCED, and only what was written ───────────────────────────────
+
+    @Test
+    void whatIsRecordedIsANNOUNCEDwithTheSameVerbTargetAndInstant() {
+        when(repository.save(any(AuditEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.record("publish", "acct-ada", "ada", "unsigned-local", "pub-1", AuditService.TARGET_PUBLICATION);
+
+        ArgumentCaptor<Object> announced = ArgumentCaptor.forClass(Object.class);
+        verify(publisher).publishEvent(announced.capture());
+        // Equal to the record with three components is the assertion that the event carries NO actor:
+        // a subscriber receives what happened and to what, not who was holding the pen.
+        assertThat(announced.getValue()).isEqualTo(new AuditRecorded("publish", "pub-1", AT));
+    }
+
+    @Test
+    void anEntryThatIsREFUSEDAnnouncesNothing() {
+        assertThatThrownBy(() -> service.record(
+                        "", "acct-ada", null, null, "pub-1", AuditService.TARGET_PUBLICATION))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        // The refusal happens before a row exists, so there is no fact to announce.
+        verifyNoInteractions(publisher);
     }
 
     // ── the listing is capped ───────────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 package dev.nexus.api.webhooks;
 
-import dev.nexus.api.webhooks.WebhookDtos.PingAnswer;
+import dev.nexus.api.webhooks.WebhookDtos.DeliveryAnswer;
 import dev.nexus.api.webhooks.WebhookDtos.SubscribeRequest;
 import dev.nexus.api.webhooks.WebhookDtos.Webhook;
 import dev.nexus.api.webhooks.WebhookDtos.WebhookList;
@@ -32,9 +32,10 @@ import org.springframework.web.bind.annotation.RestController;
  *       to aim this service at somebody else's URL.
  * </ul>
  *
- * <p>Nothing here produces EVENTS yet: a subscription is a record of an instruction, the ping is the only
- * delivery this build makes, and event fan-out is the next slice. The surface says so rather than implying a
- * broadcast that never happened.
+ * <p>v559 — the service now also produces EVENTS: every recorded audit entry is delivered to the subscriptions
+ * that asked for its verb, after the writing transaction commits ({@link WebhookEventListener}). The fan-out
+ * has no door of its own: it is triggered by the fact, not by a caller, and an event an endpoint can also pull
+ * on demand would be a second way to make this service POST — the ping stays the one the owner asks for.
  */
 @RestController
 @RequestMapping("/")
@@ -114,7 +115,7 @@ public class WebhookController {
      * body names it. 404 and 403 are the two cases where nothing was attempted.
      */
     @PostMapping("/webhooks/{webhookId}/ping")
-    public ResponseEntity<PingAnswer> ping(
+    public ResponseEntity<DeliveryAnswer> ping(
             @PathVariable String webhookId,
             @RequestParam(name = "subscriber", required = false) String subscriberId) {
         return ResponseEntity.ok(dispatcher.ping(webhookId, subscriberId));

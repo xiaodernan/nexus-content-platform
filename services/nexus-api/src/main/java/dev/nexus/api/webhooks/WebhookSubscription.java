@@ -12,9 +12,9 @@ import java.util.List;
 /**
  * M10 v557 — ONE webhook subscription: an endpoint this service will call, and the events it asked for.
  *
- * <p>The row is an INSTRUCTION, not a delivery record: nothing in this build POSTs to it yet (the dispatcher
- * is the next slice), and a subscription that has never been delivered to is the honest state of a service
- * that has only the receiving half.
+ * <p>The row is an INSTRUCTION, not a delivery record: v559's fan-out POSTs each recorded event to the rows
+ * that asked for its verb, and nothing anywhere stores whether that POST arrived — a subscription says what
+ * this service should do, never that it did it.
  *
  * <p>Two facts are stored as text and read back as lists/instants — the EVENTS (comma-joined, always written
  * in the vocabulary's own order, so two subscriptions to the same events compare equal byte for byte) and the
