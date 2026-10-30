@@ -1,9 +1,10 @@
 /**
  * 过期访客回收面板的手跑见证（§158 的 Run → Screenshot → Inspect）。
  *
- * 常驻用例覆盖不到的那一格在这里：**真点一次「收走这 N 个」之后，界面会不会跟着换到新读数上**。
- * e2e 那一条刻意不点这颗按钮（那一下会收走此刻所有够格的访客，包括不属于它的身份），
- * 所以这一份自己造夹具、自己点、点完把夹具删干净。2026-10-30 第一次跑它抓到的正是那一格：
+ * 常驻用例已经能点真执行了（第三十片的点名回收：发出去的 `ids` 只有这一趟造的两个人），
+ * 这一份留着的理由不再是"e2e 不敢点"，而是**看得见**：它把首屏、勾选收窄、两次回执、
+ * 收完之后那半张界面一起截成图，人眼读一遍才知道那几句话说的是不是同一件事。
+ * 这一份自己造夹具、自己点、点完把夹具删干净。2026-10-30 第一次跑它抓到的正是那一格：
  * 回执写着"收走了 2 个"，列表还停在原来那 2 行（`useState(scan)` 不接 props 的后续变化）。
  *
  * 用法：
@@ -12,8 +13,8 @@
  *   npx tsx scripts/capture-guest-reclaim.mts
  *   npx tsx scripts/guest-reclaim-fixture.mts --rollback
  *
- * 端点那道桶是 6 次/10 分钟/审核员，这一份要按两次（dry run + 真执行）——反复跑会撞 429，
- * 撞了等窗口过去，不为了跑得快去放宽它。
+ * 端点那道桶是 6 次/10 分钟/审核员，这一份要按三次（dry run + 点名收甲 + 收完乙）——
+ * 反复跑会撞 429，撞了等窗口过去，**不为了跑得快去放宽它**。
  */
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -34,9 +35,9 @@ if (!url.includes('nexus_dev_only')) {
 }
 const sql = postgres(url, { max: 1 });
 
-const fail = (message: string): never => {
+function fail(message: string): never {
   throw new Error(message);
-};
+}
 
 const seeded = await sql`select count(*)::int as n from users where bio = ${MARKER}`;
 if (seeded[0]!.n !== 5) {
@@ -115,7 +116,64 @@ await page.screenshot({ path: `${outDir}guest-reclaim-dryrun.png` });
 if (!dryNotice.includes('只数了一遍') || !dryNotice.includes('一条都没写')) fail(`dry run 那句话不成立：${dryNotice}`);
 if (beforeDry[0]!.n !== afterDry[0]!.n) fail('dry run 写了库：那句"一条都没写"是假的');
 
-// —— 真执行：这一格就是 e2e 不敢点的那一下 ——
+// —— 勾选收窄：默认全勾这一屏，取消甲那一行之后范围就该只剩乙 ——
+const idOf = (name: string): string => {
+  const id = firstRows.find((r) => r.text.includes(name))?.id;
+  if (!id) fail(`首屏列表里没有「${name}」那一行：${firstRows.map((r) => r.text).join(' | ')}`);
+  return id;
+};
+const pickState = (id: string) => page.$eval(`[data-reclaim-pick="${id}"]`, (el) => (el as HTMLInputElement).checked);
+const pickAllLabel = () =>
+  page.$eval('[data-reclaim-pick-all]', (el) => (el.closest('label')?.textContent ?? '').replace(/\s+/g, ' ').trim());
+
+const jia = idOf('甲沉默两月');
+const yi = idOf('乙从来没有会话');
+// 取消勾选的那一行（甲）= 这一次**不该被动**的人；还勾着的那一行（乙）= 这一次要走的人
+const kept = jia;
+const taken = yi;
+console.log(`首屏勾选：${await pickAllLabel()} · 甲=${await pickState(jia)} 乙=${await pickState(yi)}`);
+if ((await pickAllLabel()) !== '全选（2/2）') fail(`默认范围不是"全勾这一屏"：${await pickAllLabel()}`);
+
+await page.click(`[data-reclaim-pick="${kept}"]`);
+const narrowedLabel = await applyLabel();
+console.log(`取消甲（${kept}）之后：${await pickAllLabel()} · 执行按钮=${narrowedLabel}`);
+if (narrowedLabel !== '收走这 1 个') fail(`取消一行之后按钮那句数没收窄：${narrowedLabel}`);
+if ((await pickState(taken)) !== true) fail('勾着的那一行被这次点击一起取消了');
+await page.screenshot({ path: `${outDir}guest-reclaim-named.png` });
+
+// —— 第一次真执行：只点名的那一个（乙）——
+await page.click('[data-reclaim-apply]');
+await page.waitForFunction(
+  () => (document.querySelector('[data-reclaim-notice]')?.textContent ?? '').includes('收走了'),
+  undefined,
+  { timeout: 60_000, polling: 300 },
+);
+const namedNotice = (await page.textContent('[data-reclaim-notice]'))?.trim() ?? '';
+// refresh 送下来的新快照接住了，乙那一行才会没；这条等不到就是 2026-10-30 那一格复发
+await page.waitForFunction(
+  (id) => !document.querySelector(`[data-reclaim-row="${id}"]`),
+  taken,
+  { timeout: 30_000, polling: 300 },
+);
+const afterNamedRows = await rows();
+const afterNamedCounts = await counts();
+const afterNamedLabel = await applyLabel();
+console.log(`点名执行回执：${namedNotice}`);
+console.log(`点名执行后读数：${afterNamedCounts}`);
+console.log(`点名执行后列表：${afterNamedRows.map((r) => r.text).join(' | ')} · 执行按钮=${afterNamedLabel}`);
+if (namedNotice !== '点名的 1 个里收走了 1 个') fail(`点名执行那句回执不成立：${namedNotice}`);
+if (!afterNamedCounts.includes('够格 1 个')) fail(`点名执行后界面还停在旧清单上：${afterNamedCounts}`);
+if (afterNamedRows.length !== 1 || !afterNamedRows[0]!.text.includes('甲沉默两月')) {
+  fail(`点名的乙收走了，屏幕上剩下的应该是没被点名的甲：${afterNamedRows.map((r) => r.text).join(' | ')}`);
+}
+if (afterNamedLabel !== '收走这 1 个') fail(`换过读数之后"全勾"应该指向新一屏：${afterNamedLabel}`);
+const takenState = await sql`select deleted_at is not null as deleted from users where id = ${taken}`;
+const keptState = await sql`select deleted_at is not null as deleted from users where id = ${kept}`;
+console.log(`库里核对：乙（点名）删=${takenState[0]!.deleted} 甲（没点名）删=${keptState[0]!.deleted}`);
+if (takenState[0]!.deleted !== true || keptState[0]!.deleted !== false) fail('点名执行碰了没被点名的那个人');
+await page.screenshot({ path: `${outDir}guest-reclaim-after-named.png` });
+
+// —— 第二次真执行：这一屏剩的那一个（refresh 之后默认又全勾了）——
 await page.click('[data-reclaim-apply]');
 await page.waitForFunction(
   () => (document.querySelector('[data-reclaim-notice]')?.textContent ?? '').includes('收走了'),
@@ -127,13 +185,15 @@ await page.waitForSelector('[data-reclaim-empty]', { timeout: 30_000 });
 const emptyText = (await page.textContent('[data-reclaim-empty]'))?.trim() ?? '';
 const finalCounts = await counts();
 const finalLabel = await applyLabel();
+const finalDisabled = await page.$eval('[data-reclaim-apply]', (el) => (el as HTMLButtonElement).disabled);
 console.log(`执行回执：${applyNotice}`);
 console.log(`执行后读数：${finalCounts}`);
 console.log(`执行后空态：${emptyText}`);
-console.log(`执行后按钮：${finalLabel}`);
-if (applyNotice !== '收走了 2 个') fail(`执行回执那句数不对：${applyNotice}`);
+console.log(`执行后按钮：${finalLabel} 禁用=${finalDisabled}`);
+if (applyNotice !== '点名的 1 个里收走了 1 个') fail(`第二次执行那句数不对：${applyNotice}`);
 if (!finalCounts.includes('够格 0 个')) fail(`刷新后界面还停在旧清单上：${finalCounts}`);
-if (finalLabel !== '收走这 0 个') fail(`刷新后按钮那句数没跟着走：${finalLabel}`);
+if (finalLabel !== '收走这 0 个' || finalDisabled !== true) fail(`刷新后按钮那句数没跟着走：${finalLabel} 禁用=${finalDisabled}`);
+if (!emptyText.includes('没有够格的访客')) fail(`空态那句话不见了：${emptyText}`);
 await page.screenshot({ path: `${outDir}guest-reclaim-applied.png` });
 
 // —— 库里核对：六件事与那两道护身符，逐个人一行 ——

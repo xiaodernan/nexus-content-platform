@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { raisePlan } from './support/test-plan';
 import { createProject } from '../src/server/domain/projects';
@@ -511,5 +511,97 @@ describe('一次点击的爆炸半径', () => {
     // 库里没动：被拒的那一次连一个候选都不该少
     const after = await scanGuestReclaimCandidates({ now: NOW });
     expect(after.candidates.map((c) => c.id).sort()).toEqual(before.candidates.map((c) => c.id).sort());
+  });
+});
+
+/**
+ * 第三十片：`ids`（点名）。这一格存在的理由是界面上那条限制——**这一次动作碰的人必须是这一屏
+ * 看得见的**，不是"此刻全库够格的"。有了它，e2e 才敢真点一次执行（只勾自己那两行），
+ * 第二十九片臂 A17 点名的那一格（面板接住 `router.refresh()` 的新快照）才拿得到常驻门。
+ */
+describe('点名（ids）：爆炸半径收窄到勾着的几行', () => {
+  it('只收点名的那一个：同批造的另一个候选这一轮不动', async () => {
+    const named = await makeGuest({ name: `点名甲${RUN}`, createdDaysAgo: 100, expiresInDays: [-45] });
+    const other = await makeGuest({ name: `点名乙${RUN}`, createdDaysAgo: 99, expiresInDays: [-45] });
+    mine(named, other);
+
+    const before = await scanGuestReclaimCandidates({ now: NOW });
+    expect(candidateIds(before).has(named)).toBe(true);
+    expect(candidateIds(before).has(other)).toBe(true);
+
+    const run = await reclaimExpiredGuests({ actorId: admin, now: NOW, ids: [named] });
+    expect(run.ok).toBe(true);
+    if (!run.ok) return;
+    expect(run.requested).toBe(1);
+    expect(run.reclaimed.map((r) => r.id)).toEqual([named]);
+    // 名字是从锁下那一行读回来的，不是拿扫描时的旧清单去查表——两者在并发里可以不一样
+    expect(run.reclaimed[0]!.name).toBe(`点名甲${RUN}`);
+    expect((await stateOf(named)).deletedAt).not.toBeNull();
+    // 关键的那一条：他**明明还在候选清单上**，却因为没被点名而没被收走
+    expect(run.scan.candidates.some((c) => c.id === other)).toBe(true);
+    expect((await stateOf(other)).deletedAt).toBeNull();
+  });
+
+  it('点名的 id 里混进一个"此刻不算了"的：不进 reclaimed，但那一句数要说出来', async () => {
+    const staleOne = await makeGuest({ name: `点名沉默的${RUN}`, createdDaysAgo: 100, expiresInDays: [-45] });
+    const cameBack = await makeGuest({ name: `点名刚回来的${RUN}`, createdDaysAgo: 100, expiresInDays: [5] });
+    mine(staleOne, cameBack);
+
+    const run = await reclaimExpiredGuests({ actorId: admin, now: NOW, ids: [staleOne, cameBack] });
+    expect(run.ok).toBe(true);
+    if (!run.ok) return;
+    expect(run.requested).toBe(2);
+    expect(run.reclaimed.map((r) => r.id)).toEqual([staleOne]);
+    expect(run.skippedUnderLock).toBe(1);
+    const s = await stateOf(cameBack);
+    expect(s.deletedAt).toBeNull();
+    expect(s.sessionRows.length).toBe(1);
+  });
+
+  it('点名不是钥匙：认领过的账号与库里不存在的 id 都收不走，一个字节都不写', async () => {
+    const claimed = await makeGuest({ name: `点名认领过的${RUN}`, createdDaysAgo: 120, expiresInDays: [-60], claimed: true });
+    const stranger = randomUUID();
+    mine(claimed);
+
+    const before = await scanGuestReclaimCandidates({ now: NOW });
+    const run = await reclaimExpiredGuests({ actorId: admin, now: NOW, ids: [claimed, stranger] });
+    expect(run.ok).toBe(true);
+    if (!run.ok) return;
+    expect(run.reclaimed.length).toBe(0);
+    expect(run.skippedUnderLock).toBe(2);
+    expect((await stateOf(claimed)).deletedAt).toBeNull();
+    const after = await scanGuestReclaimCandidates({ now: NOW });
+    expect(after.candidates.map((c) => c.id).sort()).toEqual(before.candidates.map((c) => c.id).sort());
+  });
+
+  it('点名的清单先去重再钳上界：一次事务不被一个手滑的 body 撑成两千条', async () => {
+    const [a, b] = [randomUUID(), randomUUID()];
+    const dup = await reclaimExpiredGuests({ actorId: admin, now: NOW, ids: [a, a, b, b, b] });
+    expect(dup.ok && dup.requested).toBe(2);
+    expect(dup.ok && dup.reclaimed.length).toBe(0);
+
+    const many = await reclaimExpiredGuests({ actorId: admin, now: NOW, ids: Array.from({ length: 201 }, () => randomUUID()) });
+    expect(many.ok && many.requested).toBe(200);
+    expect(many.ok && many.reclaimed.length).toBe(0);
+  });
+
+  it('不给 ids 时仍是整份清单：`requested` 与 dry run 数到的候选同一个数', async () => {
+    const dry = await reclaimExpiredGuests({ actorId: admin, now: NOW, dryRun: true });
+    expect(dry.ok).toBe(true);
+    if (!dry.ok) return;
+    expect(dry.requested).toBe(dry.scan.candidates.length);
+    expect(dry.reclaimed.length).toBe(0);
+  });
+
+  it('审计里看得出这一次是点名收的，还是整份清单收的', async () => {
+    const one = await makeGuest({ name: `点名审计甲${RUN}`, createdDaysAgo: 100, expiresInDays: [-45] });
+    mine(one);
+    await reclaimExpiredGuests({ actorId: admin, now: NOW, ids: [one] });
+    const [row] = await getDb()
+      .select({ detail: auditEvents.detail })
+      .from(auditEvents)
+      .where(and(eq(auditEvents.action, 'user.reclaim'), eq(auditEvents.targetId, one)))
+      .limit(1);
+    expect((row!.detail as { named?: boolean } | null)?.named).toBe(true);
   });
 });

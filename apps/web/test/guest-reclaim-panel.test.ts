@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adoptScan } from '@/app/admin/users/reclaim-state';
+import { adoptScan, allCheckedOf, selectionOf, toggleId } from '@/app/admin/users/reclaim-state';
 import type { GuestReclaimCandidate, GuestReclaimScan } from '@/server/domain/guest-reclaim';
 
 /**
@@ -65,5 +65,47 @@ describe('adoptScan（面板换读数的方向）', () => {
     const held = scan({ now: '2026-10-30T00:09:00.000Z', candidates: [candidate('a')] });
     const longerButOlder = scan({ now: '2026-10-30T00:01:00.000Z', candidates: [candidate('a'), candidate('b'), candidate('c')] });
     expect(adoptScan(held, longerButOlder).candidates).toHaveLength(1);
+  });
+});
+
+/**
+ * 勾选那一句（第三十片，ADR-0072 决定八）：**这一次要点名收走的是哪几行**。
+ *
+ * 面板上"收走这 N 个"那颗按钮发出去的 `ids` 就是这里的返回值，所以这一判直接决定爆炸半径：
+ * 收的必须是**这一屏列出来的**，既不能是"此刻全库够格的"（少筛一步就会多收屏幕外的人），
+ * 也不能是"这台浏览器历史上勾过的"（读数换了却不筛，就会把已经不在这屏上的 id 一起发出去）。
+ */
+describe('selectionOf / allCheckedOf / toggleId（勾选的范围）', () => {
+  const screen = ['a', 'b', 'c'];
+
+  it('没动过勾选 = 全勾这一屏；一行动过就只剩这一行', () => {
+    expect(selectionOf(null, screen)).toEqual(['a', 'b', 'c']);
+    expect(selectionOf(['b'], screen)).toEqual(['b']);
+    expect(allCheckedOf(null, screen)).toBe(true);
+    expect(allCheckedOf(['b'], screen)).toBe(false);
+  });
+
+  it('勾着的 id 里有已经不在新清单上的：那些自动作废，不许跟着请求一起发出去', () => {
+    // 上一轮勾了 a 与 z，这一轮 refresh 送下来的清单只剩 b、c、z 里的 b 与 c
+    expect(selectionOf(['a', 'z'], ['b', 'c'])).toEqual([]);
+    expect(selectionOf(['a', 'b'], ['b', 'c'])).toEqual(['b']);
+    // 对照：全都还在屏上时，一个都不该被筛掉——证明筛的是"在不在这一屏"，不是长度
+    expect(selectionOf(['a', 'b', 'c'], screen)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('空清单不算全选：按钮该是禁用的"收走这 0 个"，不是勾着的空范围', () => {
+    expect(selectionOf(null, [])).toEqual([]);
+    expect(allCheckedOf(null, [])).toBe(false);
+    expect(allCheckedOf([], [])).toBe(false);
+  });
+
+  it('第一次取消勾选是从"全勾"里去掉这一行，不是变成"只勾这一行"', () => {
+    expect(toggleId(null, screen, 'b')).toEqual(['a', 'c']);
+    // 再点一次点回来；从空清单起点点第一行才是只勾一行
+    expect(toggleId(['a', 'c'], screen, 'b')).toEqual(['a', 'c', 'b']);
+    expect(toggleId([], screen, 'b')).toEqual(['b']);
+    // 屏幕外的 id 被点进来也不碍事：发出去之前 `selectionOf` 按这一筛掉，范围仍然只有这一屏
+    expect(toggleId(null, screen, 'zzz')).toEqual(['a', 'b', 'c', 'zzz']);
+    expect(selectionOf(toggleId(null, screen, 'zzz'), screen)).toEqual(['a', 'b', 'c']);
   });
 });

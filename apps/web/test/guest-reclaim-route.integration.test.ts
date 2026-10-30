@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { POST } from '../src/app/api/admin/guests/reclaim/route';
 import { getDb } from '../src/server/db/client';
@@ -200,5 +200,75 @@ describe('缺省值与两种答案', () => {
       .where(and(eq(auditEvents.action, 'user.reclaim'), eq(auditEvents.targetId, staleGuest)));
     expect(audit.length).toBe(1);
     expect(audit[0]!.actorId).toBe(admin);
+  });
+});
+
+/**
+ * 第三十片：`ids` 在报文层的样子。域那一片钉的是"点名只收点名的"，这一片钉的是只有这一层才有的两件事：
+ * **畸形报文进不来**（非 UUID、超上界——都该 400 且不吃限流的额度），以及**回执那句数由服务端说**
+ * （`点名的 N 个里收走了 M 个`），界面只负责把它原样贴出来。
+ *
+ * 这一段自持两个审核员，不是随手多造的人：闸是 6 次/10 分钟**按人**算的，上面那两段已经吃掉 `admin`
+ * 三次额度，这里"两条 400 之后还能连点 6 次"的见证必须用没被用过的桶。
+ * 不为了让门好过而放宽它——要么换主语，要么等窗口过去，没有第三条。
+ */
+describe('点名（ids）在报文层', () => {
+  let adminMalformed: string;
+  let adminPicked: string;
+
+  beforeAll(async () => {
+    adminMalformed = await makeAccount({ name: `报文层审核员甲${RUN}`, role: 'admin', guest: false });
+    adminPicked = await makeAccount({ name: `报文层审核员乙${RUN}`, role: 'admin', guest: false });
+  });
+
+  it('ids 里混进非 UUID 或超过 200 个：400，而且连闸都不碰', async () => {
+    const before = await scanGuestReclaimCandidates({ now: NOW });
+    const bad = await as(adminMalformed, true, { dryRun: false, ids: ['not-a-uuid'] });
+    expect(bad.status).toBe(400);
+    expect((await bad.json()).error).toBe('validation_failed');
+
+    const tooMany = await as(adminMalformed, true, { dryRun: false, ids: Array.from({ length: 201 }, () => randomUUID()) });
+    expect(tooMany.status).toBe(400);
+    // 库里没动，而且那 6 次额度一次都没被吃掉——紧接着连点 6 次全 200 就是证据
+    const after = await scanGuestReclaimCandidates({ now: NOW });
+    expect(after.candidates.map((c) => c.id).sort()).toEqual(before.candidates.map((c) => c.id).sort());
+    for (let n = 0; n < 6; n += 1) expect((await as(adminMalformed, true, { dryRun: true })).status).toBe(200);
+    // 第 7 次才是被闸挡下的那一次：证明上面那 6 次确实走的是同一个桶，不是这条根本没接闸
+    expect((await as(adminMalformed, true, { dryRun: true })).status).toBe(429);
+  });
+
+  it('带 ids 的真执行：只收点名的那一个，回执那句数说的是"点名的几个里"', async () => {
+    const picked = await makeAccount({ name: `点名要收的访客${RUN}`, role: 'creator', guest: true, staleGuest: true });
+    const untouched = await makeAccount({ name: `没被点名的访客${RUN}`, role: 'creator', guest: true, staleGuest: true });
+
+    const res = await as(adminPicked, true, { dryRun: false, ids: [picked] });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.dryRun).toBe(false);
+    expect(body.named).toBe(true);
+    expect(body.requested).toBe(1);
+    expect((body.reclaimed as { id: string }[]).map((r) => r.id)).toEqual([picked]);
+    expect(body.message).toBe('点名的 1 个里收走了 1 个');
+    // 响应里那份 scan 是**收之前**读的，所以没被点名的那个还挂在清单上——这正是面板要靠
+    // `router.refresh()` 送下来的新快照清行的理由（第二十九片臂 A17 那一格）
+    expect((body.candidates as { id: string }[]).some((c) => c.id === untouched)).toBe(true);
+
+    const rows = await getDb()
+      .select({ id: users.id, deletedAt: users.deletedAt })
+      .from(users)
+      .where(inArray(users.id, [picked, untouched]));
+    expect(rows.length).toBe(2);
+    expect(rows.find((r) => r.id === picked)!.deletedAt).not.toBeNull();
+    expect(rows.find((r) => r.id === untouched)!.deletedAt).toBeNull();
+  });
+
+  it('ids 是空数组：一个都不收，但那一句要如实说"点名的 0 个里收走了 0 个"', async () => {
+    const res = await as(adminPicked, true, { dryRun: false, ids: [] });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.named).toBe(true);
+    expect(body.requested).toBe(0);
+    expect(body.reclaimed).toEqual([]);
+    expect(body.message).toBe('点名的 0 个里收走了 0 个');
   });
 });

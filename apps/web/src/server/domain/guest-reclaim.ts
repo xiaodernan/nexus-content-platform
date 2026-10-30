@@ -71,6 +71,8 @@ export interface GuestReclaimScan {
 export interface GuestReclaimOutcome {
   scan: GuestReclaimScan;
   dryRun: boolean;
+  /** 这一轮**要点名收走**的几个（不给 `ids` 时就是清单上够格的那几个）。回执那句数要用它 */
+  requested: number;
   /** 真的收走了的那些人，一个一个带计数 */
   reclaimed: { id: string; name: string; counts: DeletionCounts }[];
   /** 锁上再判一次之后发现不算了（并发里有人回来了 / 刚发布过东西）：这一轮跳过的人数 */
@@ -216,7 +218,7 @@ function clampBatch(value: number | undefined): number {
  * 执行。`dryRun` 为真时只数不写（与 `scanGuestReclaimCandidates` 同一份谓词，所以两次的数不会打架）。
  *
  * 一批一个事务：中途任何一次失败，这一批一条都不写，界面拿到的"收走了几个"就是库里真的少了几个。
- * 每个人在写之前都要**锁上自己那一行再判一次**（`stillReclaimable`）——扫描与执行之间隔着几毫秒到
+ * 每个人在写之前都要**锁上自己那一行再判一次**（`lockReclaimable`）——扫描与执行之间隔着几毫秒到
  * 几秒，那里面够一个浏览器回来了。
  *
  * 授权判在这里而不是判在路由里（与 `setUserRole` 同一口径）：下一个入口——CLI、批量导入、
@@ -229,6 +231,12 @@ export async function reclaimExpiredGuests(input: {
   graceDays?: number;
   batch?: number;
   dryRun?: boolean;
+  /**
+   * 点名的那几个人（界面上勾了哪几行）。给了就**只碰这些 id**，清单上其余的一个不动——
+   * 这一片把爆炸半径从"此刻所有够格的"收窄到"这一屏里勾着的"（ADR-0072 决定八）。
+   * 不给 = 沿用整份候选清单（`batch` 那一刀照旧）。
+   */
+  ids?: string[];
 }): Promise<GuestReclaimResult> {
   if (!(await isAdmin(input.actorId))) {
     // 被拒绝的那一次才最需要留下痕迹（audit.ts 第二条纪律）。没有身份就不记：
@@ -249,24 +257,27 @@ export async function reclaimExpiredGuests(input: {
   const now = input.now ?? new Date();
   const graceDays = Math.max(1, Math.trunc(input.graceDays ?? GUEST_RECLAIM_GRACE_DAYS));
   const scan = await scanGuestReclaimCandidates({ now, graceDays, batch: input.batch });
-  if (input.dryRun || !scan.candidates.length) {
-    return { ok: true, scan, dryRun: Boolean(input.dryRun), reclaimed: [], skippedUnderLock: 0 };
+  // 点名先去重、再钳上界：一次事务别被一个手滑的 body 撑成两千条
+  const named = input.ids ? Array.from(new Set(input.ids)).slice(0, GUEST_RECLAIM_MAX_BATCH) : null;
+  const targets = named ?? scan.candidates.map((c) => c.id);
+  if (input.dryRun || !targets.length) {
+    return { ok: true, scan, dryRun: Boolean(input.dryRun), requested: targets.length, reclaimed: [], skippedUnderLock: 0 };
   }
 
   const at = new Date();
   const cutoff = guestReclaimCutoff(now, graceDays);
-  const ids = scan.candidates.map((c) => c.id);
-  const nameOf = new Map(scan.candidates.map((c) => [c.id, c.name]));
 
   const written = await getDb().transaction(async (tx) => {
-    const done: { id: string; counts: DeletionCounts }[] = [];
+    const done: { id: string; name: string; counts: DeletionCounts }[] = [];
     let skippedUnderLock = 0;
-    for (const id of ids) {
-      if (!(await stillReclaimable(tx, id, now, cutoff))) {
+    for (const id of targets) {
+      // 点名的 id 也要过同一句判据（锁下再判）：这里**没有**"审核员点了就一定是"这条路
+      const row = await lockReclaimable(tx, id, now, cutoff);
+      if (!row) {
         skippedUnderLock += 1;
         continue;
       }
-      done.push({ id, counts: await runAccountDeletion(tx, id, at) });
+      done.push({ ...row, counts: await runAccountDeletion(tx, row.id, at) });
     }
     return { done, skippedUnderLock };
   });
@@ -279,7 +290,7 @@ export async function reclaimExpiredGuests(input: {
       targetType: 'user',
       targetId: row.id,
       allowed: true,
-      detail: { ...row.counts, graceDays, dryRun: false, sweep: true },
+      detail: { ...row.counts, graceDays, dryRun: false, sweep: true, named: named !== null },
     });
     getRealtimeBus().closeChannel(channels.user(row.id));
   }
@@ -288,28 +299,41 @@ export async function reclaimExpiredGuests(input: {
     ok: true,
     scan,
     dryRun: false,
-    reclaimed: written.done.map((row) => ({ id: row.id, name: nameOf.get(row.id) ?? '', counts: row.counts })),
+    requested: targets.length,
+    reclaimed: written.done.map((row) => ({ id: row.id, name: row.name, counts: row.counts })),
     skippedUnderLock: written.skippedUnderLock,
   };
 }
 
+/** 与 `getDb().transaction()` 回调同一个句柄类型，抄 `account.ts` 的写法 */
+type ReclaimTx = Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0];
+
 /**
- * 锁上再判一次。`for update` 锁的是 `users` 那一行：并发的会话写入要在这把锁后面排队，
+ * 锁上再判一次，并把名字一起带回来（回执要说"收走了谁"，而 `runAccountDeletion` 不管名字）。
+ *
+ * `for update` 锁的是 `users` 那一行：并发的会话写入要在这把锁后面排队，
  * 于是"扫描时没人、写的时候有人回来了"这个窗口是**关在库里**的，不是靠两边的时间戳对齐。
  *
  * 拿不到行 = 此刻不算了。这一轮跳过它，下一轮再判；不抛错，因为一个回来的浏览器不该让整批回滚。
  */
-async function stillReclaimable(
-  tx: Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0],
+async function lockReclaimable(
+  tx: ReclaimTx,
   id: string,
   now: Date,
   cutoff: Date,
-): Promise<boolean> {
+): Promise<{ id: string; name: string } | null> {
   const [row] = await tx
-    .select({ id: users.id })
+    .select({ id: users.id, name: users.displayName })
     .from(users)
-    .where(and(eq(users.id, id), staleGuestWhere(now, cutoff), sql`not ${ownsPublishedWork}`, sql`not ${holdsLiveToken(now)}`))
+    .where(
+      and(
+        eq(users.id, id),
+        staleGuestWhere(now, cutoff),
+        sql`not ${ownsPublishedWork}`,
+        sql`not ${holdsLiveToken(now)}`,
+      ),
+    )
     .limit(1)
     .for('update');
-  return Boolean(row);
+  return row ?? null;
 }
