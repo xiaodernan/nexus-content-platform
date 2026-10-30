@@ -26,6 +26,11 @@
 // (§1a) and the block is regenerated from HEAD rather than from a dirty checkout. Check mode is unchanged: it
 // grades the tree in front of it, which is what makes a local red useful before a commit.
 //
+// v551 (amendment 532): run 40928766201 then answered the win32-generated block EXACTLY on ubuntu — all seven
+// rows — so the counts travel, and the footer now says where they were made (`win32 x64, Node 24.15.0`): a
+// number that crosses a platform boundary should carry the name of the machine that answered it, or the next
+// "the table says N; the suite answered M" leaves its reader guessing whether N was wrong or merely elsewhere.
+//
 // Run: node docs/evidence/studio/package-counts-proof.mjs          (grades; exits 1 on drift)
 //      node docs/evidence/studio/package-counts-proof.mjs --write  (regenerates the block)
 // sweep-budget-ms: 600000
@@ -65,12 +70,17 @@ const scratch = (() => {
 
 /** The generated block: one row per package, counts and files from the RUN, prose from PKGS. */
 function render(rows, day) {
+  // v551: every count is a measurement made on SOME machine, and run 40928766201 proved these seven travel
+  // (ubuntu answered the win32-generated numbers exactly). The footer names the machine and Node that
+  // answered them, so a future red that says "the table says N; the suite answered M" carries the
+  // platform hypothesis with it instead of asking its reader to guess where N was measured.
+  const made = `${process.platform} ${process.arch}, Node ${process.versions.node}`;
   const lines = [
     '| Package | Tests | Files | The lane it grades |',
     '| --- | --- | --- | --- |',
     ...rows.map((r) => `| \`${r.name}\` | **${r.passed}/${r.total}** | ${r.files} | ${r.lane} |`),
     '',
-    `_Generated on ${day} by \`npm run verify:package-counts\` from seven \`vitest run --root <pkg> --no-file-parallelism\` arms — never hand-typed. A package whose counts move must regenerate this block; the gate refuses a table that differs from the suites it ran._`,
+    `_Generated on ${day} (${made}) by \`npm run verify:package-counts\` from seven \`vitest run --root <pkg> --no-file-parallelism\` arms — never hand-typed. A package whose counts move must regenerate this block; the gate refuses a table that differs from the suites it ran._`,
   ];
   return lines.join('\n') + '\n';
 }
