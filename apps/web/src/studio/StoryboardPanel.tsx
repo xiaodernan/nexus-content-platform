@@ -115,6 +115,95 @@ function arrowNeedText(arrow: StoryboardArrow): string {
   return '只要那句话';
 }
 
+/** 界面状态里的两个引用用空字符串表示"还没挑"；到规则里要折成 undefined（空 id 与没有 id 是两件事） */
+type ArrowSourceValue = { arrow: StoryboardArrow; referenceAssetId: string; characterId: string };
+
+function arrowSourceGaps(value: ArrowSourceValue): string[] {
+  return missingArrowSource({
+    arrow: value.arrow,
+    referenceAssetId: value.referenceAssetId || undefined,
+    characterId: value.characterId || undefined,
+  });
+}
+
+/**
+ * 箭头 + 它要的两个引用：建分镜的空态与建完之后的「改来源」用**同一个组件**。
+ * 两处各写一份的话，"这边说要参考图、那边却不要"就会漂成两套规则（§159）。
+ * `dataAttr` 把两处的测试抓手分开——页面上同一时刻只会出现一份，但名字不重样读起来不费解。
+ */
+function SourceFields({
+  idPrefix,
+  value,
+  onChange,
+  roster,
+  dataAttr,
+}: {
+  idPrefix: string;
+  value: ArrowSourceValue;
+  onChange: (next: ArrowSourceValue) => void;
+  roster: { characters: { id: string; name: string }[]; assets: { id: string; name: string }[] };
+  dataAttr: { arrow: string; asset: string; character: string; missing: string };
+}) {
+  const needs = ARROW_SOURCE_NEEDS[value.arrow];
+  const gaps = arrowSourceGaps(value);
+  const attr = (name: string): Record<string, string> => ({ [name]: 'true' });
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-11 text-fg-3" htmlFor={`${idPrefix}-arrow`}>
+        这条片子的来源
+      </label>
+      <select
+        id={`${idPrefix}-arrow`}
+        value={value.arrow}
+        onChange={(e) => onChange({ ...value, arrow: e.target.value as StoryboardArrow })}
+        {...attr(dataAttr.arrow)}
+        className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
+      >
+        {STORYBOARD_ARROWS.map((option) => (
+          <option key={option} value={option}>
+            {ARROW_LABELS[option]}（{arrowNeedText(option)}）
+          </option>
+        ))}
+      </select>
+      {needs.referenceAssetId ? (
+        <select
+          value={value.referenceAssetId}
+          onChange={(e) => onChange({ ...value, referenceAssetId: e.target.value })}
+          {...attr(dataAttr.asset)}
+          className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
+        >
+          <option value="">挑一张已定格的参考图（资产库里的）…</option>
+          {roster.assets.map((asset) => (
+            <option key={asset.id} value={asset.id}>
+              {asset.name}
+            </option>
+          ))}
+        </select>
+      ) : null}
+      {needs.characterId ? (
+        <select
+          value={value.characterId}
+          onChange={(e) => onChange({ ...value, characterId: e.target.value })}
+          {...attr(dataAttr.character)}
+          className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
+        >
+          <option value="">挑一位本项目的角色…</option>
+          {roster.characters.map((character) => (
+            <option key={character.id} value={character.id}>
+              {character.name}
+            </option>
+          ))}
+        </select>
+      ) : null}
+      {gaps.length ? (
+        <p className="text-11 text-fg-3" {...attr(dataAttr.missing)}>
+          {gaps.join(' ')}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * §41 改长度/换位期间的状态。`preview*` 只是这一份本地预览：库里那一份在提交之前一动不动，
  * 所以"改到一半关掉页面"不会留下一个半截的长度，撤销栈也不会被 pointermove 塞满。
@@ -150,6 +239,16 @@ export function StoryboardPanel() {
   const [arrow, setArrow] = useState<StoryboardArrow>('text-to-video');
   const [sourceAssetId, setSourceAssetId] = useState('');
   const [sourceCharacterId, setSourceCharacterId] = useState('');
+  /**
+   * 建完之后改来源（§40 的另一半）：编辑面板开着没有、草稿是什么。
+   * 打开的那一刻才从当前文档拷一份——常驻同步会让"撤销了来源"与草稿对不上。
+   */
+  const [sourceEditing, setSourceEditing] = useState(false);
+  const [sourceDraft, setSourceDraft] = useState<ArrowSourceValue>({
+    arrow: 'text-to-video',
+    referenceAssetId: '',
+    characterId: '',
+  });
   /** 草稿：镜头文本与时长各自独立存，失焦才写成一个事务——打字过程中不该一次次 PUT */
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   /**
@@ -589,11 +688,7 @@ export function StoryboardPanel() {
    * 缺来源就不许切：`missingArrowSource` 与服务端拒收读的是**同一条规则**。
    * 空字符串在这里折成 undefined——选择器里"还没挑"是一个空选项，不是一个空 id。
    */
-  const sourceGaps = missingArrowSource({
-    arrow,
-    referenceAssetId: sourceAssetId || undefined,
-    characterId: sourceCharacterId || undefined,
-  });
+  const sourceGaps = arrowSourceGaps({ arrow, referenceAssetId: sourceAssetId, characterId: sourceCharacterId });
 
   if (!sb) {
     return (
@@ -620,60 +715,23 @@ export function StoryboardPanel() {
           className="w-full resize-y rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
         />
         {/* §40 的四条箭头：它决定这一版分镜从什么出发，也是界面上唯一能表达这件事的地方 */}
-        <div className="flex flex-col gap-1">
-          <label className="text-11 text-fg-3" htmlFor="storyboard-arrow-select">
-            这条片子的来源
-          </label>
-          <select
-            id="storyboard-arrow-select"
-            value={arrow}
-            onChange={(e) => setArrow(e.target.value as StoryboardArrow)}
-            data-storyboard-arrow
-            className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
-          >
-            {STORYBOARD_ARROWS.map((option) => (
-              <option key={option} value={option}>
-                {ARROW_LABELS[option]}（{arrowNeedText(option)}）
-              </option>
-            ))}
-          </select>
-          {ARROW_SOURCE_NEEDS[arrow].referenceAssetId ? (
-            <select
-              value={sourceAssetId}
-              onChange={(e) => setSourceAssetId(e.target.value)}
-              data-storyboard-source-asset
-              className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
-            >
-              <option value="">挑一张已定格的参考图（资产库里的）…</option>
-              {roster.assets.map((asset) => (
-                <option key={asset.id} value={asset.id}>
-                  {asset.name}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          {ARROW_SOURCE_NEEDS[arrow].characterId ? (
-            <select
-              value={sourceCharacterId}
-              onChange={(e) => setSourceCharacterId(e.target.value)}
-              data-storyboard-source-character
-              className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
-            >
-              <option value="">挑一位本项目的角色…</option>
-              {roster.characters.map((character) => (
-                <option key={character.id} value={character.id}>
-                  {character.name}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          {sourceGaps.length ? (
-            <p className="text-11 text-fg-3" data-storyboard-source-missing>
-              {sourceGaps.join(' ')}
-            </p>
-          ) : null}
-          {rosterNote ? <p className="text-11 text-fg-3">{rosterNote}</p> : null}
-        </div>
+        <SourceFields
+          idPrefix="storyboard-create"
+          value={{ arrow, referenceAssetId: sourceAssetId, characterId: sourceCharacterId }}
+          onChange={(next) => {
+            setArrow(next.arrow);
+            setSourceAssetId(next.referenceAssetId);
+            setSourceCharacterId(next.characterId);
+          }}
+          roster={roster}
+          dataAttr={{
+            arrow: 'data-storyboard-arrow',
+            asset: 'data-storyboard-source-asset',
+            character: 'data-storyboard-source-character',
+            missing: 'data-storyboard-source-missing',
+          }}
+        />
+        {rosterNote ? <p className="text-11 text-fg-3">{rosterNote}</p> : null}
         <button
           type="button"
           disabled={!prompt.trim() || snapshot.saveState === 'saving' || sourceGaps.length > 0}
@@ -750,14 +808,36 @@ export function StoryboardPanel() {
 
   /**
    * §40 建完之后的交代：这一版是从哪条箭头来的、挂的是哪张图/哪位角色。
-   * 名字从名册里现查（roster 是服务端那一份），查不到就显示 id——
-   * 显示一个查不到的名字比显示 id 更糟：那句话在告诉人"这是谁"。
+   * 显示哪一格由**箭头要什么**决定：`source` 里可能还留着旧箭头的引用（一次编辑的中间态），
+   * 但这条片子实际从什么出发只有一个答案——两格都显示会把"角色 X"写进"文字 → 视频"旁边。
    */
-  const sourceRefName = sb.source.characterId
-    ? `角色 ${roster.characters.find((c) => c.id === sb.source.characterId)?.name ?? sb.source.characterId}`
-    : sb.source.referenceAssetId
-      ? `参考图 ${roster.assets.find((a) => a.id === sb.source.referenceAssetId)?.name ?? sb.source.referenceAssetId}`
+  const sourceNeeds = ARROW_SOURCE_NEEDS[sb.source.arrow];
+  const sourceRefName = sourceNeeds.characterId
+    ? sb.source.characterId
+      ? `角色 ${roster.characters.find((c) => c.id === sb.source.characterId)?.name ?? sb.source.characterId}`
+      : null
+    : sourceNeeds.referenceAssetId
+      ? sb.source.referenceAssetId
+        ? `参考图 ${roster.assets.find((a) => a.id === sb.source.referenceAssetId)?.name ?? sb.source.referenceAssetId}`
+        : null
       : null;
+
+  /**
+   * 改来源的草稿按**新箭头要什么**先归一：与箭头无关的那一格在应用时会被抹掉
+   * （store 的 `changeSource` 做同一件事），所以"改没改"也要按归一后的值比——
+   * 否则切一圈箭头回到原点，应用键还是亮的，按下去却什么都没变。
+   */
+  const draftNeeds = ARROW_SOURCE_NEEDS[sourceDraft.arrow];
+  const draftAfter = {
+    arrow: sourceDraft.arrow,
+    referenceAssetId: draftNeeds.referenceAssetId ? sourceDraft.referenceAssetId || undefined : undefined,
+    characterId: draftNeeds.characterId ? sourceDraft.characterId || undefined : undefined,
+  };
+  const draftGaps = missingArrowSource(draftAfter);
+  const sourceUnchanged =
+    sb.source.arrow === draftAfter.arrow &&
+    (sb.source.referenceAssetId || undefined) === draftAfter.referenceAssetId &&
+    (sb.source.characterId || undefined) === draftAfter.characterId;
 
   return (
     <div className="flex h-full min-h-0 flex-col" data-storyboard-panel>
@@ -783,6 +863,24 @@ export function StoryboardPanel() {
           原句：{sb.source.prompt || '（没有原句）'}
         </p>
         <div className="mt-2 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              // 打开时从当前文档拷一份：撤销过来源之后草稿不能还是旧的那一份
+              setSourceDraft({
+                arrow: sb.source.arrow,
+                referenceAssetId: sb.source.referenceAssetId ?? '',
+                characterId: sb.source.characterId ?? '',
+              });
+              setSourceEditing((open) => !open);
+            }}
+            title="换一条箭头（不会重切这一版：镜头、长度、撤销栈都留着）"
+            aria-expanded={sourceEditing}
+            data-storyboard-source-open
+            className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2"
+          >
+            改来源
+          </button>
           <button
             type="button"
             onClick={() => storyboardStore.undo()}
@@ -813,6 +911,56 @@ export function StoryboardPanel() {
             重读
           </button>
         </div>
+        {/* §40 建完之后改来源：镜头表不重切、长度不变、一次应用是一个可撤销事务（§150） */}
+        {sourceEditing ? (
+          <div
+            className="mt-2 flex flex-col gap-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] p-2"
+            data-storyboard-source-editor
+          >
+            <SourceFields
+              idPrefix="storyboard-source-edit"
+              value={sourceDraft}
+              onChange={setSourceDraft}
+              roster={roster}
+              dataAttr={{
+                arrow: 'data-storyboard-source-edit-arrow',
+                asset: 'data-storyboard-source-edit-asset',
+                character: 'data-storyboard-source-edit-character',
+                missing: 'data-storyboard-source-edit-missing',
+              }}
+            />
+            <p className="text-11 text-fg-3">换来源不重切一版：镜头、长度、撤销栈都留着。</p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={draftGaps.length > 0 || sourceUnchanged || snapshot.saveState === 'saving'}
+                onClick={() => {
+                  const changed = storyboardStore.changeSource({
+                    arrow: sourceDraft.arrow,
+                    referenceAssetId: sourceDraft.referenceAssetId || undefined,
+                    characterId: sourceDraft.characterId || undefined,
+                  });
+                  if (changed) {
+                    setSourceEditing(false);
+                    setAnnounce(`来源改成了${ARROW_LABELS[sourceDraft.arrow]}，已写库，可撤销`);
+                  }
+                }}
+                data-storyboard-source-apply
+                className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
+              >
+                应用来源
+              </button>
+              <button
+                type="button"
+                onClick={() => setSourceEditing(false)}
+                data-storyboard-source-cancel
+                className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-3"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        ) : null}
         {snapshot.error ? (
           <p className="mt-1 text-11 text-danger-ink" data-storyboard-error>
             {snapshot.error}

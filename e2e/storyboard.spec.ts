@@ -744,3 +744,105 @@ test('@smoke §40 四条箭头：缺来源不许切，选上之后建出的那�
 
   await page.screenshot({ path: 'screenshots/storyboard-arrow-source.png' });
 });
+
+/** 服务端那一份的 `source`：改来源那条腿的读数是它，不是界面上的摘要 */
+async function serverSource(page: Page): Promise<Record<string, string> | null> {
+  const projectId = page.url().split('/').pop() ?? '';
+  return page.evaluate(async (id) => {
+    const res = await fetch(`/api/projects/${id}/storyboard`, { cache: 'no-store' });
+    const body = (await res.json()) as { storyboard?: { source?: Record<string, string> } };
+    return body.storyboard?.source ?? null;
+  }, projectId);
+}
+
+/**
+ * §40 的第二半：建完之后**改来源**。`planStoryboard` 只在建的那一刻收箭头，
+ * 建完 `source` 就锁死了——作者换主意只有"重切一版"一条路，这一片给的是另一条：
+ * 一条 `updateSource` 补丁，镜头、长度、撤销栈都不动。
+ *
+ * 要证四件事：
+ * ① 缺来源时应用键是灰的、缺哪个字段写在明处（与服务端拒收同一句规则）；
+ * ② 应用之后摘要与**服务端那一份**都换了箭头，而镜头 id 与长度逐格不变（没有重切）；
+ * ③ 撤销一步回到原箭头，而且撤销也是一次真的写——重读拿的是库里那一份；
+ * ④ 打开编辑器时什么都没改，应用键本来就是灰的（撤销栈不该因此亮起来）。
+ */
+test('@smoke §40 改来源：建完之后换一条箭头走，撤销回原样，镜头一镜都没重切', async ({ page }) => {
+  test.setTimeout(240_000);
+  await openStudio(page, `改来源 ${Date.now().toString(36)}`);
+
+  // 角色名册要有东西，"角色 → 场景"那条才有得挑
+  await page.click('[data-panel-tab="characters"]');
+  await expect(page.locator('[data-character-empty]')).toBeVisible({ timeout: 30_000 });
+  await page.fill('[data-character-new-name]', '守夜人');
+  await page.click('[data-character-create]');
+  await expect(page.locator('[data-character-count]')).toHaveText('1');
+
+  await openStoryboardPanel(page);
+  await page.fill('[data-storyboard-prompt-input]', '灯塔的光扫过浮冰，她数着回来的每一条船');
+  await page.click('[data-storyboard-create]');
+  await savedState(page);
+
+  const shotIds = await page
+    .locator('[data-storyboard-shot]')
+    .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-storyboard-shot') ?? ''));
+  const durations = await page
+    .locator('[data-storyboard-duration]')
+    .evaluateAll((nodes) => nodes.map((node) => (node as HTMLInputElement).value));
+  await expect(page.locator('[data-storyboard-summary]')).toContainText('来源：文字 → 视频');
+
+  // ① 打开改来源：起点就是当前那一份，没改之前应用键是灰的
+  await page.click('[data-storyboard-source-open]');
+  const editor = page.locator('[data-storyboard-source-editor]');
+  await expect(editor).toBeVisible();
+  const editArrow = page.locator('[data-storyboard-source-edit-arrow]');
+  const apply = page.locator('[data-storyboard-source-apply]');
+  await expect(editArrow).toHaveValue('text-to-video');
+  await expect(page.locator('[data-storyboard-source-edit-asset]')).toHaveCount(0);
+  await expect(page.locator('[data-storyboard-source-edit-character]')).toHaveCount(0);
+  await expect(apply, '什么都没改就点应用，会白白占一步撤销').toBeDisabled();
+
+  // 切到要角色的那条：多出角色选择器、缺什么写在明处、应用键还是灰的
+  await editArrow.selectOption('character-to-scene');
+  await expect(page.locator('[data-storyboard-source-edit-character]')).toBeVisible();
+  await expect(page.locator('[data-storyboard-source-edit-missing]')).toContainText('source.characterId');
+  await expect(apply).toBeDisabled();
+
+  // ② 选上本项目那位角色之后才放行；应用之后摘要与库里都换了箭头
+  await page.locator('[data-storyboard-source-edit-character]').selectOption({ label: '守夜人' });
+  await expect(page.locator('[data-storyboard-source-edit-missing]')).toHaveCount(0);
+  await expect(apply).toBeEnabled();
+  await apply.click();
+  await expect(editor, '应用之后编辑器要收起来，不能还摆着一份已经生效的草稿').toHaveCount(0);
+  await expect(page.locator('[data-storyboard-summary]')).toContainText('来源：角色 → 场景｜角色 守夜人');
+  await savedState(page);
+  expect((await serverSource(page))?.arrow).toBe('character-to-scene');
+  // 换来源不是重切一版：镜头 id 与长度逐格对得上
+  expect(
+    await page
+      .locator('[data-storyboard-shot]')
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-storyboard-shot') ?? '')),
+  ).toEqual(shotIds);
+  expect(
+    await page
+      .locator('[data-storyboard-duration]')
+      .evaluateAll((nodes) => nodes.map((node) => (node as HTMLInputElement).value)),
+  ).toEqual(durations);
+
+  // ③ 撤销一步回到原箭头；库里那份也是原箭头（撤销是一次真的写，不是只把界面擦回去）
+  await page.click('[data-storyboard-undo]');
+  await expect(page.locator('[data-storyboard-summary]')).toContainText('来源：文字 → 视频');
+  await expect.poll(async () => (await serverSource(page))?.arrow).toBe('text-to-video');
+  await savedState(page);
+  // ④ 栈已经走空：撤销键不能再按（这一段前面没有别的待撤销编辑）
+  await expect(page.locator('[data-storyboard-undo]')).toBeDisabled();
+
+  // 重读：服务端那一份就是"文字 → 视频"，而且角色那一格已经被抹掉（不是留在 source 里看不见）
+  await page.click('[data-storyboard-reload]');
+  await expect(page.locator('[data-storyboard-summary]')).toContainText('来源：文字 → 视频');
+  await expect(page.locator('[data-storyboard-summary]')).not.toContainText('角色');
+  const restored = await serverSource(page);
+  expect(restored?.arrow).toBe('text-to-video');
+  expect(restored && 'characterId' in restored, '撤销把角色那一格留下了：这一格是这次才加上去的').toBe(false);
+
+  await page.screenshot({ path: 'screenshots/storyboard-source-edit.png' });
+});

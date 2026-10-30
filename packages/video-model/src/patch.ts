@@ -18,13 +18,24 @@ import type { Storyboard, StoryboardShot } from './index';
 /** 只改这些字段：`durationMs` 一类的数值、`prompt` 一类的文本、以及可选引用（`undefined` = 抹掉这一格） */
 export type ShotFields = Partial<Pick<StoryboardShot, 'prompt' | 'durationMs' | 'camera' | 'transition' | 'characterId' | 'referenceAssetId' | 'videoAssetId'>>;
 
+/**
+ * 来源那几格：箭头一定在（`text-to-video` 是唯一不需要额外东西的那条），两个引用按箭头可缺。
+ * `prompt` 不在里面：那是作者写的原句，投影可以切它，但**没有一个编辑动作该改它**。
+ */
+export type SourceFields = Pick<Storyboard['source'], 'arrow' | 'referenceAssetId' | 'characterId'>;
+
 export type StoryboardOp =
   | { op: 'addShot'; index: number; shot: StoryboardShot }
   | { op: 'removeShot'; id: string }
   /** 只作为 `removeShot` 的逆出现 */
   | { op: 'restoreShot'; index: number; shot: StoryboardShot }
   | { op: 'moveShot'; from: number; to: number }
-  | { op: 'updateShot'; id: string; before: ShotFields; after: ShotFields };
+  | { op: 'updateShot'; id: string; before: ShotFields; after: ShotFields }
+  /**
+   * §40 建完之后改来源：换一条箭头 / 换一张参考图 / 换一位角色。镜头表一个都不动——
+   * 来源说的是"这条片子从什么出发"，不是"重切一版"。
+   */
+  | { op: 'updateSource'; before: SourceFields; after: SourceFields };
 
 function clone(sb: Storyboard): Storyboard {
   return { ...sb, source: { ...sb.source }, shots: sb.shots.map((s) => ({ ...s })) };
@@ -64,6 +75,16 @@ export function applyStoryboardPatch(sb: Storyboard, ops: StoryboardOp[]): Story
       next = { ...next, shots };
       continue;
     }
+    if (op.op === 'updateSource') {
+      const source: Storyboard['source'] = { ...next.source, arrow: op.after.arrow };
+      for (const [key, value] of Object.entries(op.after) as [keyof SourceFields, unknown][]) {
+        if (key === 'arrow') continue;
+        if (value === undefined) delete (source as Record<string, unknown>)[key];
+        else (source as Record<string, unknown>)[key] = value;
+      }
+      next = { ...next, source };
+      continue;
+    }
     const at = indexOfShot(next, op.id);
     const shot = { ...next.shots[at]! };
     for (const [key, value] of Object.entries(op.after) as [keyof ShotFields, unknown][]) {
@@ -92,6 +113,20 @@ export function invertStoryboardPatch(before: Storyboard, ops: StoryboardOp[]): 
       inverses.push({ op: 'moveShot', from: op.to, to: op.from });
     } else if (op.op === 'updateShot') {
       inverses.push({ op: 'updateShot', id: op.id, before: op.after, after: op.before });
+    } else if (op.op === 'updateSource') {
+      // 逆的 `after` 把两个引用**显式写出来**（没有就写 undefined）：不写的话
+      // "以前没有这张图、这次加上去了"撤销回来会留下一张图——键不存在与键值为 undefined
+      // 在补丁语义里是两件事（前者"别动"，后者"抹掉"）。
+      const applied = applyStoryboardPatch(state, [op]).source;
+      inverses.push({
+        op: 'updateSource',
+        before: { arrow: applied.arrow, referenceAssetId: applied.referenceAssetId, characterId: applied.characterId },
+        after: {
+          arrow: op.before.arrow,
+          referenceAssetId: op.before.referenceAssetId,
+          characterId: op.before.characterId,
+        },
+      });
     }
     // restoreShot 只作为逆出现，自己没有逆 case：重做是重新应用 applied
     state = applyStoryboardPatch(state, [op]);

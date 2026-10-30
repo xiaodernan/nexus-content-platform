@@ -226,4 +226,73 @@ describe('§40 分镜 store：写出去的那串字节', () => {
       stub.restore();
     }
   });
+
+  it('§40 改来源：一条补丁进撤销栈，撤销一步回到原箭头，两次都真的写出去', async () => {
+    const initial = planStoryboard('夜色里的港口，一台旧起重机慢慢转身');
+    const stub = installStub({ initial });
+    try {
+      await storyboardStore.load(PROJECT);
+      const original = storyboardStore.getSnapshot().storyboard!.source;
+      expect(original.arrow).toBe('text-to-video');
+
+      expect(storyboardStore.changeSource({ arrow: 'character-to-scene', characterId: 'char-1' })).toBe(true);
+      expect(storyboardStore.getSnapshot().storyboard!.source).toMatchObject({
+        arrow: 'character-to-scene',
+        characterId: 'char-1',
+      });
+      expect(storyboardStore.getSnapshot().canUndo).toBe(true);
+      // 换来源不重切：镜头 id 与长度一个都没变
+      expect(JSON.stringify(storyboardStore.getSnapshot().storyboard!.shots)).toBe(JSON.stringify(initial.shots));
+      await vi.waitFor(() => expect(storyboardStore.getSnapshot().saveState).toBe('saved'));
+      const put = stub.sent.filter((s) => s.method === 'PUT').at(-1);
+      const doc = put?.body?.document as { source?: { arrow?: string; characterId?: string } } | null;
+      expect(doc?.source?.arrow, '改来源没写进库，界面上那句"来源"就只是投影').toBe('character-to-scene');
+
+      storyboardStore.undo();
+      expect(storyboardStore.getSnapshot().storyboard!.source).toEqual(original);
+      await vi.waitFor(() => expect(stub.sent.filter((s) => s.method === 'PUT')).toHaveLength(2));
+      await vi.waitFor(() => expect(storyboardStore.getSnapshot().saveState).toBe('saved'));
+      const last = stub.sent.filter((s) => s.method === 'PUT').at(-1);
+      expect(JSON.stringify(last?.body?.document)).toContain(`"arrow":"text-to-video"`);
+      expect(JSON.stringify(last?.body?.document)).not.toContain('"characterId"');
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('改来源时与箭头无关的引用被抹掉；一个字都没改时不进撤销栈、不发 PUT', async () => {
+    const initial = planStoryboard('夜色里的港口', { arrow: 'character-to-scene', characterId: 'char-1' });
+    const stub = installStub({ initial });
+    try {
+      await storyboardStore.load(PROJECT);
+      // 同一个来源：一次补丁都不该进（撤销键不能因为"什么都没改"的点击亮起来）
+      expect(storyboardStore.changeSource({ arrow: 'character-to-scene', characterId: 'char-1' })).toBe(false);
+      expect(stub.sent.filter((s) => s.method === 'PUT')).toHaveLength(0);
+      expect(storyboardStore.getSnapshot().canUndo).toBe(false);
+
+      // 换成只要一句话那条：角色那一格与箭头无关了，必须抹掉——否则头部会说"角色 X｜文字 → 视频"
+      expect(storyboardStore.changeSource({ arrow: 'text-to-video', characterId: 'char-1' })).toBe(true);
+      expect('characterId' in storyboardStore.getSnapshot().storyboard!.source).toBe(false);
+      const put = stub.sent.filter((s) => s.method === 'PUT').at(-1);
+      const source = (put?.body?.document as { source: Record<string, unknown> }).source;
+      expect(Object.keys(source)).not.toContain('characterId');
+      expect(source.arrow).toBe('text-to-video');
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('缺来源的改来源被拒：notice 点名缺什么，撤销栈与库都不动', async () => {
+    const stub = installStub({ initial: planStoryboard('夜色里的港口') });
+    try {
+      await storyboardStore.load(PROJECT);
+      expect(storyboardStore.changeSource({ arrow: 'image-to-video' })).toBe(false);
+      expect(stub.sent.filter((s) => s.method === 'PUT'), '缺参考图还发 PUT，服务端会拒、界面却已经换掉了').toHaveLength(0);
+      expect(storyboardStore.getSnapshot().canUndo).toBe(false);
+      expect(storyboardStore.getSnapshot().storyboard!.source.arrow).toBe('text-to-video');
+      expect(storyboardStore.getSnapshot().notice).toContain('source.referenceAssetId');
+    } finally {
+      stub.restore();
+    }
+  });
 });

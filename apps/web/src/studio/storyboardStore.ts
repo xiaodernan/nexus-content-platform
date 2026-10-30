@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import {
+  ARROW_SOURCE_NEEDS,
   missingArrowSource,
   planStoryboard,
   splitShotAt,
@@ -7,6 +8,7 @@ import {
   type Storyboard,
   type StoryboardArrow,
   type StoryboardOp,
+  type SourceFields,
 } from '@nexus/video-model';
 import { csrfHeaders } from '@/lib/csrf';
 import { isStudioReadOnly } from './read-only';
@@ -164,19 +166,20 @@ class StoryboardStore {
     const { projectId } = this.snapshotValue;
     if (!projectId) return;
     const arrow: StoryboardArrow = source.arrow ?? 'text-to-video';
-    const missing = missingArrowSource({
-      arrow,
-      referenceAssetId: source.referenceAssetId,
-      characterId: source.characterId,
-    });
+    // 与箭头无关的引用不进 source：留着它会让头部把"角色 X"写在"文字 → 视频"旁边。
+    // 与 `changeSource` 同一条整理规则，建与改建出来的文档才长一个样。
+    const needs = ARROW_SOURCE_NEEDS[arrow];
+    const referenceAssetId = needs.referenceAssetId ? source.referenceAssetId : undefined;
+    const characterId = needs.characterId ? source.characterId : undefined;
+    const missing = missingArrowSource({ arrow, referenceAssetId, characterId });
     if (missing.length) {
       this.commit_({ notice: missing.join(' ') });
       return;
     }
     const sb = planStoryboard(prompt, {
       arrow,
-      referenceAssetId: source.referenceAssetId,
-      characterId: source.characterId,
+      referenceAssetId,
+      characterId,
     });
     if (!sb.shots.length) {
       // 切不出镜头就明说，不写一份 0 镜的文档进库冒充"生成好了"
@@ -186,6 +189,48 @@ class StoryboardStore {
     this.pushTxn();
     this.setLocal(sb);
     await this.commit();
+  }
+
+  /**
+   * §40 建完之后换来源：一条 `updateSource` 补丁（§150），镜头表与已有撤销栈都不动。
+   *
+   * 两个引用按**新箭头要什么**整理：`text-to-video` / `storyboard-to-video` 两个都抹掉，
+   * `image-to-video` 只留图、`character-to-scene` 只留角色。与箭头无关的那一格留着，
+   * 头部就能把"角色 X"写在"文字 → 视频"旁边——两句话自相矛盾（§159）。
+   *
+   * 缺来源与建分镜时同一个判据：先落 notice、一条补丁都不进——不在界面上先换一份
+   * 会被服务端拒掉的本地真值。什么都没变时也不进撤销栈、不发 PUT：
+   * 撤销键不该因为一次"什么都没改"的点击亮起来。
+   */
+  changeSource(next: { arrow: StoryboardArrow; referenceAssetId?: string; characterId?: string }): boolean {
+    if (isStudioReadOnly()) return false;
+    const sb = this.snapshotValue.storyboard;
+    if (!sb) return false;
+    const needs = ARROW_SOURCE_NEEDS[next.arrow];
+    const after: SourceFields = {
+      arrow: next.arrow,
+      referenceAssetId: needs.referenceAssetId ? next.referenceAssetId : undefined,
+      characterId: needs.characterId ? next.characterId : undefined,
+    };
+    const gaps = missingArrowSource(after);
+    if (gaps.length) {
+      this.commit_({ notice: gaps.join(' ') });
+      return false;
+    }
+    const before: SourceFields = {
+      arrow: sb.source.arrow,
+      referenceAssetId: sb.source.referenceAssetId,
+      characterId: sb.source.characterId,
+    };
+    if (
+      before.arrow === after.arrow &&
+      before.referenceAssetId === after.referenceAssetId &&
+      before.characterId === after.characterId
+    ) {
+      return false;
+    }
+    this.applyOps([{ op: 'updateSource', before, after }]);
+    return true;
   }
 
   /**

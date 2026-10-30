@@ -193,3 +193,96 @@ describe('§149 storyboardTransaction：一次 AI 操作 = 一个可撤销事务
     expect(tx.redo).toEqual([]);
   });
 });
+
+/**
+ * §40 的第二半：建完之后换来源。这一组的判据与 `updateShot` 同一条——
+ * 纯函数、逆吃旧状态、点名的格才动——外加一条这里独有的：
+ * "键不存在"与"键值是 undefined"不能混（前者是别动，后者是抹掉）。
+ */
+describe('§150 updateSource：换来源不重切一版', () => {
+  it('只改来源那几格：镜头表、标题、原句一格不动', () => {
+    const before = doc();
+    const after = applyStoryboardPatch(before, [
+      {
+        op: 'updateSource',
+        before: { arrow: 'text-to-video' },
+        after: { arrow: 'character-to-scene', characterId: 'char-1' },
+      },
+    ]);
+    expect(after.source).toEqual({ arrow: 'character-to-scene', prompt: before.source.prompt, characterId: 'char-1' });
+    expect(JSON.stringify(after.shots), '换来源不是重切一版：镜头一格都不该动').toBe(JSON.stringify(before.shots));
+    expect(after.title).toBe(before.title);
+    expect(after.id).toBe(before.id);
+    expect(wire(before), '入参被原地改了，撤销栈里那份旧来源就没了').toBe(wire(doc()));
+  });
+
+  it('清掉引用是删键；正逆逐字节回原样（包括"原来那一格也在"）', () => {
+    const before: Storyboard = {
+      ...doc(),
+      source: { arrow: 'image-to-video', prompt: '港口', referenceAssetId: 'asset-1' },
+    };
+    const ops: StoryboardOp[] = [
+      {
+        op: 'updateSource',
+        before: { arrow: 'image-to-video', referenceAssetId: 'asset-1' },
+        after: { arrow: 'text-to-video', referenceAssetId: undefined, characterId: undefined },
+      },
+    ];
+    const after = applyStoryboardPatch(before, ops);
+    expect(after.source.arrow).toBe('text-to-video');
+    expect('referenceAssetId' in after.source, '清掉引用要真的删键，不能留一个 undefined').toBe(false);
+    const undo = invertStoryboardPatch(before, ops);
+    expect(undo).toHaveLength(1);
+    expect(undo[0]).toMatchObject({
+      op: 'updateSource',
+      after: { arrow: 'image-to-video', referenceAssetId: 'asset-1' },
+    });
+    expect(wire(applyStoryboardPatch(after, undo))).toBe(wire(before));
+  });
+
+  it('逆补丁会给"这次才加上去"的引用写 undefined：不写就撤不掉那一格', () => {
+    const before = doc();
+    expect('characterId' in before.source).toBe(false);
+    const ops: StoryboardOp[] = [
+      { op: 'updateSource', before: { arrow: 'text-to-video' }, after: { arrow: 'character-to-scene', characterId: 'char-7' } },
+    ];
+    const after = applyStoryboardPatch(before, ops);
+    const undo = invertStoryboardPatch(before, ops);
+    expect(undo[0]).toMatchObject({ op: 'updateSource', after: { arrow: 'text-to-video', characterId: undefined } });
+    const restored = applyStoryboardPatch(after, undo);
+    expect('characterId' in restored.source, '撤销把角色留下了：这一格是这次才加上去的').toBe(false);
+    expect(wire(restored)).toBe(wire(before));
+  });
+
+  it('两步互切：character → text，每一步的逆各回到上一步，镜头两波都没被碰', () => {
+    const base = doc();
+    const toChar: StoryboardOp[] = [
+      { op: 'updateSource', before: { arrow: 'text-to-video' }, after: { arrow: 'character-to-scene', characterId: 'char-1' } },
+    ];
+    const mid = applyStoryboardPatch(base, toChar);
+    const backOps: StoryboardOp[] = [
+      {
+        op: 'updateSource',
+        before: { arrow: 'character-to-scene', characterId: 'char-1' },
+        after: { arrow: 'text-to-video', characterId: undefined },
+      },
+    ];
+    const back = applyStoryboardPatch(mid, backOps);
+    expect(back.source.arrow).toBe('text-to-video');
+    expect('characterId' in back.source).toBe(false);
+    expect(wire(applyStoryboardPatch(back, invertStoryboardPatch(mid, backOps)))).toBe(wire(mid));
+    expect(wire(applyStoryboardPatch(mid, invertStoryboardPatch(base, toChar)))).toBe(wire(base));
+    expect(JSON.stringify(back.shots)).toBe(JSON.stringify(base.shots));
+  });
+
+  it('镜头自己的引用不跟着来源走：source 与 shots 是两件事', () => {
+    const before: Storyboard = {
+      ...doc(),
+      shots: doc().shots.map((s, i) => (i === 0 ? { ...s, referenceAssetId: 'asset-shot' } : s)),
+    };
+    const after = applyStoryboardPatch(before, [
+      { op: 'updateSource', before: { arrow: 'text-to-video' }, after: { arrow: 'character-to-scene', characterId: 'char-1' } },
+    ]);
+    expect(after.shots[0]!.referenceAssetId).toBe('asset-shot');
+  });
+});

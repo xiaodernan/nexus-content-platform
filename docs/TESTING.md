@@ -2100,3 +2100,31 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   notMeasured：真实浏览器里**只走了 `character-to-scene` 的建分镜路径**；`image-to-video` 在 e2e 里只走了
   "缺图禁用"那一半——上传一张真图再切需要资产上传链路，没在本片补；`storyboard-to-video` 在界面上
   没有单独的走查（它与 `text-to-video` 的需求完全相同，vitest 已钉）。
+
+- **2026-10-30：§40「改来源」的四本见证（补丁正逆 / store 归一 / 浏览器走查 / 服务端旧门）**——
+  这一片的规则只有一句：**改来源不是重切一版**。镜头、长度、撤销栈都必须留着；来源变了但镜头不动。
+  ① `packages/video-model/test/patch.test.ts` +5：`updateSource` 只改 `source` 那几格（镜头 id/标题/时长
+  `JSON.stringify` 逐字节相同，入参文档不被原地改）；清引用 = 删键（`'referenceAssetId' in source` 为 false），
+  正逆补丁逐字节回原样；逆补丁把"这次才加上去"的引用写成 `undefined`（撤销后 `'characterId' in restored.source`
+  为 false，而不是留一个值为 undefined 的键）；两步互切（character → text）每次撤销各回上一步、两波都没碰镜头；
+  镜头自己的引用不随来源变（`source` 说的是整条片子的出处）。
+  ② `apps/web/test/storyboard-store.test.ts` +3：改来源后 PUT 文档 `arrow=character-to-scene`、`canUndo=true`、
+  镜头 JSON 不变，`undo()` 后 source 回原样且第二次 PUT 里出现 `"arrow":"text-to-video"`、**不含** `"characterId"`
+  （归一真的把无关引用抹掉了）；同来源调用返回 false、0 次 PUT、不进撤销栈；缺来源调用返回 false、0 次 PUT、
+  `notice` 点名 `source.referenceAssetId`（本地拒绝，不发出去吃 400）。
+  ③ 服务端**没有新代码**，但仍是这本见证的一半：`saveStoryboard` 读 `missingArrowSource` 拒收在
+  `firstForeignRef` 之前（上一片的真库用例已在守），本片靠它保证"界面放行的每一份都能存"。
+  ④ `e2e/storyboard.spec.ts` 新走查 1 条（真 Chrome，单跑 4.8s 通过，截图 `screenshots/storyboard-source-edit.png`）：
+  建角色守夜人 → 建 `text-to-video` 分镜 → 记下镜头 id 与逐格时长 → 点「改来源」（起点是当前那一组、应用键灰）→
+  切 `character-to-scene`（提示缺 `source.characterId`、仍灰）→ 选角色（放行）→ 应用（编辑器收起、摘要变成
+  「来源：角色 → 场景｜角色 守夜人」、服务端 `GET /storyboard` 里 `source.arrow` 已变、镜头 id 与时长逐格不变）→
+  撤销（摘要回「文字 → 视频」、服务端 arrow 回 `text-to-video`、撤销键随后 disabled）→ 重读（摘要无"角色"、
+  服务端文档里**没有** `characterId` 这个键）。**"镜头一镜都没重切"是拿服务端读数比的**，不是看界面。
+  读数：`npx vitest run packages/video-model/test/patch.test.ts apps/web/test/storyboard-store.test.ts`
+  → 2 files / 29 tests、exit 0（两次）；`npx eslint` 6 个改动文件 exit 0；`npm run typecheck`（9 个 tsconfig）exit 0。
+  全量 storyboard e2e **没有跑完**，两种原因都照实记：一次 `browserContext.close: ENOENT …-recording4.network`
+  （Playwright artifact 写入竞态，该条单独重跑 6.4s 通过）；一次从第 3 条起全部 429——建项目接口的每小时
+  名额被本片连续建项目用尽（界面自己说"还要等 55/56 分钟…别放宽产品里那道闸"）。**没有为了跑绿放宽限流**。
+  notMeasured：`image-to-video` 的**改来源**没有单独走查（它需要资产库里有真图，建分镜那条也只有"缺图禁用"
+  那一半）；改来源**之前**渲过的成片没有被重新走查（今天渲染产物按 `storyboardId` 记录，改来源不动镜头，
+  所以也不该动已有成片——这句是读代码，不是验证）；撤销两格引用之外的"来源标签显示"只由 e2e 覆盖一次。
