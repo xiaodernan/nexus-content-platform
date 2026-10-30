@@ -7,6 +7,7 @@ import {
 import type { ReportStatus } from '@/server/domain/marketplace';
 import { currentUserOrNull } from '@/server/domain/session';
 import { TriageButtons } from './TriageButtons';
+import { AdminNav } from '@/components/AdminNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,23 +82,7 @@ export default async function AdminMarketplacePage({
             显示 {reports.length} 条工单（最多 100）· 其中待处理 {pending} 条 · 处置只对 role=admin 开放
           </p>
         </div>
-        <nav className="flex gap-3 text-11">
-          <Link href="/admin/moderation" className="text-accent-2-ink underline" data-marketplace-moderation>
-            复核台
-          </Link>
-          <Link href="/admin/users" className="text-accent-2-ink underline" data-marketplace-users>
-            账号与角色
-          </Link>
-          <Link href="/admin/audit" className="text-accent-2-ink underline" data-marketplace-audit>
-            审计事件
-          </Link>
-          <Link href="/admin/realtime" className="text-accent-2-ink underline" data-marketplace-realtime>
-            实时总线
-          </Link>
-          <Link href="/admin/access" className="text-accent-2-ink underline" data-marketplace-access>
-            访问账
-          </Link>
-        </nav>
+        <AdminNav current="marketplace" />
       </header>
 
       <section className="rounded-[var(--nexus-radius-sm)] bg-bg-2 p-3" data-marketplace-scope>

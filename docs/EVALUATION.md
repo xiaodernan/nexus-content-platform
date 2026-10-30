@@ -1729,6 +1729,61 @@ Studio 那 9 处里最大的一处是**画布本体**：`div(NEXUS STUDIO…)` �
 5. 管理台只有 `moderation` 一张，access/audit/realtime/marketplace/observability 没量。
 6. **触摸下的 Studio 画布**：手势缩放是否可用没量（这一格要修的话，先把"适应窗口"做出来再谈手势）。
 
+#### 第二十六片（2026-10-30）：24×24 的下限从"读数"变成"门"——七个 admin 页的导航收成一份
+
+第二十五片量到三张应用外壳上有 9 个低于 WCAG 2.5.8 下限（24×24）的点击目标：
+发现页「按关键词搜全平台」96×18、市场页「回首页」22×63（390 下折成两行）／42×21（1280）、
+管理台 7 个（导航 5 条各 21px 高 + 两条「打开这一版看看」316×21／906×21）。这一片把它们修掉，
+并把那一栏读数变成**门**。
+
+**落点**
+
+- `apps/web/src/components/AdminNav.tsx`（新）：管理台导航的**一份名单 + 一个下限**。
+  七个 `/admin/*` 页面原先各抄一份 `<nav>`——抄的不只是 CSS：`/admin/realtime` 那份只有 3 个入口、
+  `/admin/users` 那份没有「市场工单」，从哪一页进管理台看到的路不一样。现在名单只有 `LINKS` 一处，
+  下限只有 `ITEM`（`inline-flex min-h-6 items-center` = 24px 高）一处；当前页渲染成
+  `<span aria-current="page">`（一页不链自己，读屏靠它说"你在这"）。
+- 七个页面（access / audit / moderation / marketplace / realtime / observability / users）换成
+  `<AdminNav current="…" />`；`observability` 页那条"原始读数（Prometheus 文本）"不是页面导航，
+  留在旁边并同样补到 24px。
+- `discover/page.tsx`、`marketplace/page.tsx` 的文字链接补 `min-h-6`（市场那四条另加 `whitespace-nowrap`）。
+- `admin/moderation/page.tsx` 的 `data-case-open`（「打开这一版看看」）同样补 24px。
+- `e2e/narrow-surfaces.spec.ts`：`smallTargetGate` 开在发现／市场／管理台上——两栏都必须 **0 个 <24px**；
+  Studio 仍只记读数（画布那组 12–20px 的缩放小按钮是第二十五片登记的欠账，门只会重复报已知缺陷）。
+
+**凭证**
+
+- 同一张 spec，改前改后（`1 passed`，13.4s；读数来自它自己的汇总）：
+
+  | 面 | 390 <24px | 1280 <24px |
+  | --- | --- | --- |
+  | 发现 | 1 → **0** | 1 → **0** |
+  | 市场 | 1 → **0** | 1 → **0** |
+  | 管理台 | 7 → **0** | 7 → **0** |
+  | Studio | 23（不变，登记欠账） | 24（不变） |
+
+- 页面级横向溢出与"滚不动的裁切"在三张面上改前改后都是 0/0——这一片没有把布局撑出去。
+- 三张面的点击目标名册仍在（管理台 23 → 24：导航由 5 条变 6 条链接 + 1 个 `aria-current` 的 span）。
+- **五条臂**（每条都跑同一张 spec，改一处、跑一次、改回）：
+
+  | 臂 | 变异 | 结果 |
+  | --- | --- | --- |
+  | A1 | `AdminNav` 的 `ITEM` 去掉 `min-h-6` | **红**：管理台/手机390 |
+  | A2 | 发现页搜索链接退回纯文字 | **红**：发现/手机390 |
+  | A3 | 市场「回首页」去掉 `whitespace-nowrap` | **绿**——这一条不是栅栏（`inline-flex` 已经不折行了），记下来免得当成功劳 |
+  | A3b | 市场「回首页」去掉 `min-h-6` | **红**：市场/手机390 |
+  | A4 | 「打开这一版看看」退回纯文字 | **红**：管理台/手机390 |
+
+- 回归：`e2e/observability.spec.ts` **3 passed（12.3s）**——三个 admin 页面（含管理员真正读到观测那一格、
+  `data-observability-raw` 仍在）在换导航之后照旧；`tsc`（web / e2e）与改动面 eslint 0。
+
+**notMeasured（这一片）**
+
+1. 只量了 390 与 1280 两档；平板/横屏没量，标签变长时的换行没量。
+2. 键盘焦点环与"隔得够开"的另一条豁免路径（2.5.8 的 spacing 例外）没量——这一片走的是尺寸下限那条。
+3. Studio 的画布小按钮（23/24 个）与它 678px 的裁切仍是欠账，没在这一片动。
+4. 登录态的市场页（我的收入／购买／举报）没有读数：那一栏要 member 会话，spec 现在是游客。
+
 ### Performance
 
 

@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import { listAudit, DELETED_USER_LABEL } from '@/server/domain/audit';
 import { currentUserOrNull } from '@/server/domain/session';
+import { AdminNav } from '@/components/AdminNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,26 +44,7 @@ export default async function AdminAuditPage() {
             最近 {events.length} 条 · 其中被拒绝 {denied} 条
           </p>
         </div>
-        <nav className="flex gap-3 text-11">
-          <Link href="/admin/users" className="text-accent-2-ink underline" data-audit-users>
-            账号与角色
-          </Link>
-          <Link href="/admin/moderation" className="text-accent-2-ink underline" data-audit-moderation>
-            复核台
-          </Link>
-          <Link href="/admin/marketplace" className="text-accent-2-ink underline" data-audit-marketplace>
-            市场工单
-          </Link>
-          <Link href="/admin/realtime" className="text-accent-2-ink underline" data-audit-realtime>
-            实时总线
-          </Link>
-          <Link href="/admin/access" className="text-accent-2-ink underline" data-audit-access>
-            访问账
-          </Link>
-          <Link href="/admin/observability" className="text-accent-2-ink underline" data-audit-observability>
-            观测
-          </Link>
-        </nav>
+        <AdminNav current="audit" />
       </header>
 
       <p className="text-11 text-fg-3" data-audit-scope>

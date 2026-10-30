@@ -6,6 +6,7 @@ import {
   parseApiAccessWindowDays,
 } from '@/server/domain/api-tokens';
 import { currentUserOrNull } from '@/server/domain/session';
+import { AdminNav } from '@/components/AdminNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,20 +58,7 @@ export default async function AdminAccessPage({
             涉及主人 {summary.activeOwners} 人（分钟合并，只留 30 天；只有读成功才记）
           </p>
         </div>
-        <nav className="flex gap-3 text-11">
-          <Link href="/admin/users" className="text-accent-2-ink underline" data-access-users>
-            账号与角色
-          </Link>
-          <Link href="/admin/realtime" className="text-accent-2-ink underline" data-access-realtime>
-            实时总线
-          </Link>
-          <Link href="/admin/audit" className="text-accent-2-ink underline" data-access-audit>
-            审计事件
-          </Link>
-          <Link href="/admin/moderation" className="text-accent-2-ink underline" data-access-moderation>
-            复核台
-          </Link>
-        </nav>
+        <AdminNav current="access" />
       </header>
 
       <nav className="flex gap-2 text-11" aria-label="时间窗口">

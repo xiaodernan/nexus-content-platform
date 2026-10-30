@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { listReviewQueue, MODERATION_LIMITS, MODERATION_RULES_VERSION } from '@/server/domain/moderation';
 import { currentUserOrNull } from '@/server/domain/session';
 import { ResolveButtons } from './ResolveButtons';
+import { AdminNav } from '@/components/AdminNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,23 +51,7 @@ export default async function AdminModerationPage() {
             待看 {cases.length} 案 · 规则版本 {MODERATION_RULES_VERSION} · 裁决之后这案就离开队列（放行/拒绝都会）
           </p>
         </div>
-        <nav className="flex gap-3 text-11">
-          <Link href="/admin/users" className="text-accent-2-ink underline" data-queue-users>
-            账号与角色
-          </Link>
-          <Link href="/admin/audit" className="text-accent-2-ink underline" data-queue-audit>
-            审计事件
-          </Link>
-          <Link href="/admin/marketplace" className="text-accent-2-ink underline" data-queue-marketplace>
-            市场工单
-          </Link>
-          <Link href="/admin/realtime" className="text-accent-2-ink underline" data-queue-realtime>
-            实时总线
-          </Link>
-          <Link href="/admin/access" className="text-accent-2-ink underline" data-queue-access>
-            访问账
-          </Link>
-        </nav>
+        <AdminNav current="moderation" />
       </header>
 
       {/* 复核的人必须知道机检没看到什么，否则"队列里只剩这几案"会被读成"其余都是干净的" */}
@@ -121,7 +106,13 @@ export default async function AdminModerationPage() {
             ))}
           </ul>
           {entry.path ? (
-            <a href={entry.path} target="_blank" rel="noreferrer" className="text-11 text-accent-2-ink underline" data-case-open>
+            <a
+              href={entry.path}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-6 items-center rounded px-1 text-11 text-accent-2-ink underline"
+              data-case-open
+            >
               打开这一版看看
             </a>
           ) : (

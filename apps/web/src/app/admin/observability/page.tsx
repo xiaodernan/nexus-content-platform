@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { currentUserOrNull } from '@/server/domain/session';
 import { readLedger } from '@/server/domain/metrics';
 import { snapshot } from '@/server/observability';
+import { AdminNav } from '@/components/AdminNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,14 +49,12 @@ export default async function AdminObservabilityPage() {
             进程 {process.pid} · 本实例已运行 {Math.round(process.uptime())} 秒 · Node {process.version}
           </p>
         </div>
-        <nav className="flex gap-3 text-11">
-          <Link href="/admin/audit" className="text-accent-2-ink underline" data-observability-audit>
-            审计事件
-          </Link>
-          <Link href="/api/admin/metrics?format=text" className="text-accent-2-ink underline" data-observability-raw>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <AdminNav current="observability" />
+          <Link href="/api/admin/metrics?format=text" className="inline-flex min-h-6 items-center rounded px-1 text-11 text-accent-2-ink underline" data-observability-raw>
             原始读数（Prometheus 文本）
           </Link>
-        </nav>
+        </div>
       </header>
 
       <section className="flex flex-col gap-2">

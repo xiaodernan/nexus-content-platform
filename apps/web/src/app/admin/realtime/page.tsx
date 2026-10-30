@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import { currentUserOrNull } from '@/server/domain/session';
 import { RealtimeStatsPanel } from './StatsPanel';
+import { AdminNav } from '@/components/AdminNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,17 +43,7 @@ export default async function AdminRealtimePage() {
             驱动是谁、跨实例线路接上没有、这台实例断过几帧、本进程有几个人在听（§163 诊断入口）
           </p>
         </div>
-        <nav className="flex gap-3 text-11">
-          <Link href="/admin/users" className="text-accent-2-ink underline" data-realtime-users>
-            账号与角色
-          </Link>
-          <Link href="/admin/moderation" className="text-accent-2-ink underline" data-realtime-moderation>
-            复核台
-          </Link>
-          <Link href="/admin/audit" className="text-accent-2-ink underline" data-realtime-audit>
-            审计事件
-          </Link>
-        </nav>
+        <AdminNav current="realtime" />
       </header>
 
       <p className="text-11 text-fg-3" data-realtime-scope>

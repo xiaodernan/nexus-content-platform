@@ -46,6 +46,13 @@ interface Surface {
    */
   ready: string;
   as: 'guest' | 'member' | 'admin';
+  /**
+   * 这一面是否把「0 个 <24px 点击目标」当门（WCAG 2.5.8）。
+   * 发现／市场／管理台：是——第二十五片量到的 1/1/7 个已在 2026-10-30 修掉。
+   * Studio：否——画布右上角那组 12–20px 的缩放/视图小按钮是**已登记的欠账**
+   * （第二十五片记的），门只会把已知缺陷重复报一遍；等它的控件重做后再挂门。
+   */
+  smallTargetGate: boolean;
 }
 
 interface Reading {
@@ -147,8 +154,8 @@ test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／
   test.setTimeout(900_000);
 
   const surfaces: Surface[] = [
-    { name: '发现', path: '/discover', landmark: '[data-discover-grid]', ready: '[data-discover-grid]', as: 'guest' },
-    { name: '市场', path: '/marketplace', landmark: '[data-marketplace-list]', ready: '[data-marketplace-list]', as: 'guest' },
+    { name: '发现', path: '/discover', landmark: '[data-discover-grid]', ready: '[data-discover-grid]', as: 'guest', smallTargetGate: true },
+    { name: '市场', path: '/marketplace', landmark: '[data-marketplace-list]', ready: '[data-marketplace-list]', as: 'guest', smallTargetGate: true },
   ];
 
   // member：Studio 要一个自己名下的项目
@@ -159,6 +166,7 @@ test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／
     landmark: '[data-studio-root]',
     ready: '[data-panel-tab]',
     as: 'member',
+    smallTargetGate: false,
   });
   const memberState = await page.context().storageState();
 
@@ -173,6 +181,7 @@ test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／
     landmark: '[data-admin-queue], [data-admin-denied]',
     ready: '[data-admin-queue], [data-admin-denied]',
     as: 'admin',
+    smallTargetGate: true,
   });
 
   const report: string[] = [];
@@ -192,6 +201,12 @@ test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／
         expect(reading.innerWidth, `${surface.name}/${w.label}：仿真没落地（页面自报 ${reading.innerWidth}，请求 ${w.width}）`).toBe(w.width);
         expect(reading.landmark, `${surface.name}/${w.label}：地标 ${surface.landmark} 不在`).toBe(true);
         expect(reading.targetTotal, `${surface.name}/${w.label}：一个点击目标都没有，0 不等于 0 个缺陷`).toBeGreaterThan(0);
+        if (surface.smallTargetGate) {
+          expect(
+            reading.smallTargets.map((t) => `${t.label} ${t.w}×${t.h}`),
+            `${surface.name}/${w.label}：还有 <${TARGET_MIN}px 的点击目标（WCAG 2.5.8 的下限是 24×24）`,
+          ).toHaveLength(0);
+        }
         report.push(fmt(`${surface.name}/${w.label}`, reading));
         rows.push(
           `${surface.name} ${w.label}: 溢出 ${reading.overflowX}px · 横滚 ${reading.pannable.length} 处 · 裁切 ${reading.clipped.length} 处 · <24px ${reading.smallTargets.length} 个`,

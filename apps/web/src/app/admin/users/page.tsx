@@ -1,10 +1,10 @@
-import Link from 'next/link';
 import { countAdmins, listAccounts } from '@/server/domain/roles';
 import { currentUserOrNull } from '@/server/domain/session';
 import { scanGuestReclaimCandidates } from '@/server/domain/guest-reclaim';
 import { PlanSelect } from './PlanSelect';
 import { RoleButton } from './RoleButton';
 import { GuestReclaimPanel } from './GuestReclaimPanel';
+import { AdminNav } from '@/components/AdminNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,17 +57,7 @@ export default async function AdminUsersPage() {
             审核员 {admins} 人
           </p>
         </div>
-        <nav className="flex gap-3 text-11">
-          <Link href="/admin/audit" className="text-accent-2-ink underline" data-users-audit>
-            看审计事件
-          </Link>
-          <Link href="/admin/realtime" className="text-accent-2-ink underline" data-users-realtime>
-            实时总线
-          </Link>
-          <Link href="/admin/access" className="text-accent-2-ink underline" data-users-access>
-            访问账
-          </Link>
-        </nav>
+        <AdminNav current="users" />
       </header>
 
       <p className="text-11 text-fg-3" data-users-rules>
