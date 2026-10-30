@@ -228,6 +228,63 @@ export function hasResponsiveRule(node: DesignNode, breakpoint: BreakpointName):
   return (node.responsive ?? []).some((r) => r.breakpoint === breakpoint);
 }
 
+/** `ResponsiveRule.patch` 里按组 Object.assign 的那五组（`visible` 是标量，单独收） */
+const PATCH_GROUPS = ['layout', 'size', 'position', 'style', 'typography'] as const;
+
+/** 面板有四格输入口的那些投影路径；其余键只在模型里，看得见但这里改不了 */
+const PANEL_PATHS: ReadonlySet<string> = new Set(RESPONSIVE_CHANNELS.map((c) => c.readPath));
+
+export interface ResponsiveImpact {
+  /** 这一档真的在起作用的投影处数——含面板没有输入口的那些键 */
+  readonly total: number;
+  /** 其中面板那四格显示得出、也写得回去的 */
+  readonly panelChannels: number;
+  /** 面板没有输入口的那些键（`layout.gap`、`typography.fontSize`），按模型里的组次序排 */
+  readonly outsidePanel: readonly string[];
+}
+
+/**
+ * 这一档**可能**变了的投影路径：本档与更窄那几档的规则里出现过的每一个键。
+ * `applyResponsive` 只 Object.assign 规则里写过的键，没被任何规则碰过的路径不可能变——
+ * 所以这个候选集是完备的，不必把 DesignNode 的全字段扫一遍。
+ * 一组里的嵌套对象（`layout.padding`）算一处：它在 patch 里就是一个键，被整体换掉。
+ */
+function candidatePaths(node: DesignNode, breakpoint: BreakpointName): string[] {
+  const paths = new Set<string>();
+  for (const rule of node.responsive ?? []) {
+    if (orderOf(rule.breakpoint) > orderOf(breakpoint)) continue;
+    for (const group of PATCH_GROUPS) {
+      const patch = rule.patch[group] as Record<string, unknown> | undefined;
+      if (patch) for (const key of Object.keys(patch)) paths.add(`${group}.${key}`);
+    }
+    if (rule.patch.visible !== undefined) paths.add('visible');
+  }
+  return [...paths];
+}
+
+/** 徽标读数的全部真相：总数、面板那四格占几处、剩下是哪些键 */
+export function responsiveImpactDetailOf(node: DesignNode, breakpoint: BreakpointName): ResponsiveImpact {
+  const now = applyResponsive(node, breakpoint);
+  const withoutOwn = applyResponsive(
+    { ...node, responsive: withoutResponsiveRule(node, breakpoint) },
+    breakpoint,
+  );
+  const live = candidatePaths(node, breakpoint).filter((path) => {
+    const value = getByPath(now, path);
+    return !sameValue(value, getByPath(node, path)) || !sameValue(value, getByPath(withoutOwn, path));
+  });
+  const outsidePanel = live
+    .filter((path) => !PANEL_PATHS.has(path))
+    .sort((a, b) => groupRank(a) - groupRank(b) || (a < b ? -1 : a > b ? 1 : 0));
+  return { total: live.length, panelChannels: live.length - outsidePanel.length, outsidePanel };
+}
+
+/** 没进 `PATCH_GROUPS` 的路径（`visible`）排在所有组后面——只是显示次序，不影响计数 */
+function groupRank(path: string): number {
+  const index = PATCH_GROUPS.indexOf(path.split('.')[0] as (typeof PATCH_GROUPS)[number]);
+  return index < 0 ? PATCH_GROUPS.length : index;
+}
+
 /**
  * 这一档有几处**真的在起作用**的投影改动，两条判据并起来数：
  *  - 相对**设计值**变了：访客在这一档看见的和原画不一样（更窄那一档级联上来的也算）；
@@ -237,14 +294,10 @@ export function hasResponsiveRule(node: DesignNode, breakpoint: BreakpointName):
  * 各只用一条会把另一种"确实在起作用"标成 0，而画布与访客那边明明是变的（§159 不许这种谎）：
  * 只用自己那条规则 ⇒ 平板那格读 0，可画布正藏着手机那条的结果；只和设计值比 ⇒
  * 一条顶回设计值的规则读 0，可它不是废的。两条都不变的才是真 0。
+ *
+ * 数的是**模型里所有的组**（`responsiveImpactDetailOf`），不只面板那四格：AI 配方与代码视图会写
+ * `layout`/`typography`/`position`，那些改动画布和访客一样看得见，徽标不能因为它们没有输入口就读 0。
  */
 export function responsiveImpactOf(node: DesignNode, breakpoint: BreakpointName): number {
-  const withoutOwn: DesignNode = { ...node, responsive: withoutResponsiveRule(node, breakpoint) };
-  return RESPONSIVE_CHANNELS.filter((spec) => {
-    const now = getByPath(applyResponsive(node, breakpoint), spec.readPath);
-    return (
-      !sameValue(now, getByPath(node, spec.readPath)) ||
-      !sameValue(now, getByPath(applyResponsive(withoutOwn, breakpoint), spec.readPath))
-    );
-  }).length;
+  return responsiveImpactDetailOf(node, breakpoint).total;
 }

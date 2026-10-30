@@ -24,6 +24,7 @@ import {
   designValueOf,
   hasResponsiveRule,
   responsiveChannelsOf,
+  responsiveImpactDetailOf,
   responsiveImpactOf,
   projectedValueOf,
   type ResponsiveChannel,
@@ -298,6 +299,9 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
   };
   const impactOf = (breakpoint: BreakpointName) => mixedOf((n) => responsiveImpactOf(n, breakpoint));
   const impact = impactOf(bp);
+  /** 徽标数的是模型里所有组，面板只有四格输入口——差出来的那些键要说出来，不然"改 3 处"里
+   *  有 2 处对着空白的行，作者会以为面板坏了（§159：界面说的话要跟画布/访客看得见的对得上） */
+  const outsideOf = mixedOf((n) => responsiveImpactDetailOf(n, bp).outsidePanel);
   const hasAnyRule = nodes.some((n) => hasResponsiveRule(n, bp));
 
   const pickBreakpoint = (next: BreakpointName) => {
@@ -383,6 +387,17 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
               : '还没有规则'}
         · 画布按{state.viewport === 'design' ? '设计尺寸（不在预览这一档）' : ` ${state.viewport} 档`}呈现
       </p>
+
+      {outsideOf === MIXED ? (
+        <p className="text-11 text-fg-3" data-responsive-outside="mixed">
+          徽标里还有几个面板没有输入口的键，各元素不同——按下面那颗「清掉这一档」会连着它们一起删。
+        </p>
+      ) : outsideOf.length ? (
+        <p className="font-mono text-11 text-fg-3" data-responsive-outside={String(outsideOf.length)}>
+          其中 {outsideOf.length} 处面板没有输入口：{outsideOf.join(' · ')}——它们由「代码」那一节或 AI
+          配方写进来，「清掉这一档」会连着它们一起删。
+        </p>
+      ) : null}
 
       <div className="flex items-center gap-2">
         <span className="w-14 shrink-0 text-12 text-fg-2">显示</span>

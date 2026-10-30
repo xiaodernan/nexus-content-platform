@@ -16,6 +16,8 @@ import { reusableMemberWithProject } from './support/auth-session';
  *    所以"把显示写成它本来就在的值"这条腿必须留下零事务、零规则、撤销键仍然是灰的。
  * ③ 规则按 `<=` **向上级联**（applyResponsive），所以平板那一档看得见手机规则的投影、
  *    却没有自己的清除键；反过来手机档不沾平板的规则。这条语义在访客那半边同样量一遍。
+ * ④ 徽标数的是**模型里所有的键**，不只是面板那四格输入口（腿 H2）：`layout` 那组改的投影一样算数，
+ *    界面上单独说一句"这几处面板没有输入口"，并且「清掉这一档」连着它们一起删。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -51,6 +53,10 @@ interface Carriers {
   eyebrowId: string;
   ctaId: string;
   rootId: string;
+  /** 腿 H2 的载体：一个面板没有输入口的 `layout` 键住在它身上 */
+  actionsId: string;
+  /** 起手埋进去那条规则用的档，以及它把 `layout.mode` 改成的值（由设计值取反推出来，不是手抄的数） */
+  seeded: { breakpoint: 'tablet'; path: 'layout.mode'; value: string };
   /** 起手时根画框在设计尺寸里的那个宽（切视口之后必须还是它——投影不改模型，§16） */
   designRootWidth: unknown;
   /** 起手时页面画布的宽（「页面」那一节的注要把它和断点宽同时给出来） */
@@ -60,7 +66,7 @@ interface Carriers {
 }
 
 /**
- * 把这份稿子清成"一条断点规则都没有"，并交出三条腿的载体节点。
+ * 把这份稿子清成"除了一条埋给腿 H2 的 layout 规则，别的节点一条断点规则都没有"，并交出各条腿的载体节点。
  *
  * 必须在**进工作台之前**写：store 里留着旧副本的话，自动保存可能在卸载时把上一轮的规则盖回来
  * （§167 那条链撞过的事）。夹具项目反复用，起点不洗净的话"改 1 处投影"这类读数会莫名其妙多一格。
@@ -84,6 +90,13 @@ async function prepareRuleFreeDocument(page: Page, projectId: string): Promise<C
   const designPageWidth = Number((home as { width?: unknown }).width);
   if (!Number.isFinite(designPageWidth)) throw new Error(`起手页没有数字宽度：${JSON.stringify((home as { width?: unknown }).width)}`);
   for (const p of doc.pages) for (const n of Object.values(p.nodes)) n.responsive = undefined;
+  // 腿 H2 的载体：一条**面板没有输入口**的规则（layout 组）——AI 配方与代码视图写的就是这种形状。
+  // 值由这个节点自己的设计值取反推出来，所以"徽标该读到 1 处"是推出来的，不是我手抄的数；
+  // 埋在这里（进工作台之前）是因为面板那四格写不出 layout 键，客户端也就没法造出这个起点。
+  const actions = byName('Actions');
+  if (!actions) throw new Error('起手页里没有名为 Actions 的容器：徽标数模型里所有键那条腿（腿 H2）没有载体');
+  const seededMode = (actions.layout as { mode?: unknown }).mode === 'vertical' ? 'horizontal' : 'vertical';
+  actions.responsive = [{ breakpoint: 'tablet', patch: { layout: { mode: seededMode } } }];
   const put = await page.request.put(`/api/projects/${projectId}`, {
     headers: { 'x-csrf-token': csrf },
     data: doc,
@@ -93,6 +106,8 @@ async function prepareRuleFreeDocument(page: Page, projectId: string): Promise<C
     eyebrowId: eyebrow.id,
     ctaId: cta.id,
     rootId: home.rootId,
+    actionsId: actions.id,
+    seeded: { breakpoint: 'tablet', path: 'layout.mode', value: seededMode },
     designRootWidth: (root.size as { width?: unknown } | undefined)?.width,
     designPageWidth,
     eyebrowDesignWidth: (eyebrow.size as { width?: unknown } | undefined)?.width,
@@ -296,6 +311,38 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     await expect
       .poll(() => rulesOfNodeOnServer(author, projectId, carriers.ctaId), { timeout: 30_000 })
       .toEqual([{ breakpoint: 'tablet', patch: { style: { opacity: 0.4 } } }]);
+
+    // 腿 H2：徽标数的是**模型里所有的键**，不只面板那四格。起手埋在 Actions 上的那条 layout 规则
+    // 就是 AI 配方/代码视图的写入形状：面板给不了它输入口，但画布和访客真的在变（§159 不许读 0）。
+    await author.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await author.click('[data-breakpoint-tab="tablet"]');
+    await expect(editor).toHaveAttribute('data-responsive-breakpoint', 'tablet');
+    await expect(
+      tab(author, 'mobile'),
+      '更窄的那一档没有规则：layout 键埋在 tablet，mobile 档不该跟着涨',
+    ).toHaveAttribute('data-breakpoint-impact', '0');
+    await expect(tab(author, 'tablet'), `${carriers.seeded.path} 也进徽标`).toHaveAttribute(
+      'data-breakpoint-impact',
+      '1',
+    );
+    await expect(reading(author)).toContainText('改 1 处投影');
+    await expect(author.locator('[data-responsive-outside]')).toContainText(
+      `其中 1 处面板没有输入口：${carriers.seeded.path}`,
+    );
+    await expect(author.locator('[data-responsive-clear]'), '面板没有输入口的键不该长出清除键').toHaveCount(0);
+    await expect(
+      author.locator('[data-responsive-drop-rule="tablet"]'),
+      '只有 layout 键的规则也要按得动那颗「清掉这一档」',
+    ).toBeEnabled();
+    await author.click('[data-responsive-drop-rule="tablet"]');
+    await expect(tab(author, 'tablet')).toHaveAttribute('data-breakpoint-impact', '0');
+    await expect(author.locator('[data-responsive-outside]'), '整条规则没了，那句话该跟着没').toHaveCount(0);
+    await undoButton(author).click();
+    await expect(tab(author, 'tablet'), '撤销把埋着的那条 layout 规则原样放回来').toHaveAttribute(
+      'data-breakpoint-impact',
+      '1',
+    );
+    stamp('腿 H2：面板外的键进徽标 + 清掉这一档连着它们一起删');
 
     // ── 发布：走界面上那颗发布按钮，与 §16 那条链同一个入口
     const publicPath = await publishPublic(author, projectId);

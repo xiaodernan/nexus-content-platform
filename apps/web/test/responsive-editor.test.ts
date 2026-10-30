@@ -14,6 +14,7 @@ import {
   hasResponsiveRule,
   projectedValueOf,
   responsiveChannelsOf,
+  responsiveImpactDetailOf,
   responsiveImpactOf,
   responsiveOverrideOf,
   withResponsiveValue,
@@ -186,8 +187,95 @@ describe('§14 断点格上的徽标数：这一档"值得看一眼"的改动', 
     ]);
     expect(responsiveChannelsOf(typo, 'tablet')).toEqual([]); // 四个通道都没覆盖
     expect(hasResponsiveRule(typo, 'tablet')).toBe(true);
-    // 但徽标不能吹：面板数的是它能显示的那四个通道
+    // 而徽标仍读 0：frame 节点没有 typography 对象，`applyResponsive` 那一遍压根没处 assign
+    // （layout.ts:175 的 `rule.patch.typography && merged.typography`）——这条规则真的什么都不改。
     expect(responsiveImpactOf(typo, 'tablet')).toBe(0);
+  });
+
+  it('文字节点的 typography 覆盖面板没有输入口，但徽标必须数它：画布与访客真的在变', () => {
+    const node = withRules(createNode({ type: 'text', name: '标题', text: '标题' }), [
+      { breakpoint: 'tablet', patch: { typography: { fontSize: 14 } } },
+    ]);
+    expect(responsiveChannelsOf(node, 'tablet')).toEqual([]); // 面板四格里没有字号那一格
+    expect(responsiveImpactOf(node, 'tablet')).toBe(1);
+    const detail = responsiveImpactDetailOf(node, 'tablet');
+    expect(detail.panelChannels).toBe(0);
+    expect(detail.outsidePanel).toEqual(['typography.fontSize']);
+  });
+
+  it('总数拆开说：面板内外的键各归各，一条规则里两边都有时不混成一格', () => {
+    const node = withRules(mkNode(), [
+      { breakpoint: 'tablet', patch: { style: { opacity: 0.4 }, layout: { gap: 8 } } },
+    ]);
+    expect(responsiveImpactDetailOf(node, 'tablet')).toEqual({
+      total: 2,
+      panelChannels: 1,
+      outsidePanel: ['layout.gap'],
+    });
+  });
+
+  it('AI 配方那条移动档规则（layout 三个键 + size.width）在徽标里是 4 处，不是面板那一格', () => {
+    // 配方挑的就是这种容器：横排按钮行在手机档折成竖排、单列、宽度填满
+    const row = createNode({
+      type: 'frame',
+      name: '按钮行',
+      size: { width: 640, height: 120 },
+      layout: { mode: 'horizontal', gap: 16 },
+    });
+    const node = withRules(row, [
+      {
+        breakpoint: 'mobile',
+        patch: { layout: { mode: 'vertical', columns: 1, gap: 12 }, size: { width: 'fill' } },
+      },
+    ]);
+    const detail = responsiveImpactDetailOf(node, 'mobile');
+    expect(detail.total).toBe(4);
+    expect(detail.panelChannels).toBe(1); // 四键里只有 size.width 有那一格输入口
+    expect(detail.outsidePanel).toEqual(['layout.columns', 'layout.gap', 'layout.mode']);
+    // 级联同一口径：更宽的档一样看得见这些改动
+    expect(responsiveImpactOf(node, 'wide')).toBe(4);
+  });
+
+  it('配方写在设计值上的那个键不进徽标：mode 本来就是 vertical ⇒ 只剩 gap 一处', () => {
+    // 与上一条同一份补丁形状，只是起点是竖排的 frame：`layout.mode` 这一键真的什么都不改
+    const node = withRules(mkNode(), [
+      { breakpoint: 'mobile', patch: { layout: { mode: 'vertical', gap: 12 }, size: { width: 'fill' } } },
+    ]);
+    expect(responsiveImpactDetailOf(node, 'mobile')).toEqual({
+      total: 2,
+      panelChannels: 1,
+      outsidePanel: ['layout.gap'],
+    });
+  });
+
+  it('一组里的嵌套对象算一处：layout.padding 整个换掉，不拆成四格', () => {
+    const node = withRules(mkNode(), [
+      { breakpoint: 'mobile', patch: { layout: { padding: { top: 8, right: 8, bottom: 8, left: 8 } } } },
+    ]);
+    expect(responsiveImpactDetailOf(node, 'mobile')).toEqual({
+      total: 1,
+      panelChannels: 0,
+      outsidePanel: ['layout.padding'],
+    });
+  });
+
+  it('同一个键被两档各写一次只算一处：数的是投影，不是规则条数', () => {
+    const node = withRules(mkNode(), [
+      { breakpoint: 'mobile', patch: { style: { opacity: 0.5 } } },
+      { breakpoint: 'tablet', patch: { style: { opacity: 0.3 } } },
+    ]);
+    expect(responsiveImpactOf(node, 'tablet')).toBe(1);
+    // 但 tablet 那一档自己那条也在顶着：摘掉它 mobile 的 0.5 就漏上来
+    expect(responsiveImpactDetailOf(node, 'tablet').total).toBe(1);
+    expect(responsiveImpactOf(node, 'mobile')).toBe(1);
+  });
+
+  it('候选集只吃本档与更窄那几档的规则：更宽那一档的键不参与这一档的计数', () => {
+    const node = withRules(mkNode(), [
+      { breakpoint: 'wide', patch: { layout: { gap: 24 } } },
+    ]);
+    expect(responsiveImpactOf(node, 'tablet')).toBe(0);
+    expect(responsiveImpactOf(node, 'wide')).toBe(1);
   });
 });
 
