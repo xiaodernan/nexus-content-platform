@@ -1,11 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { analyzeHealth } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
+import type { HealthJob } from '@/lib/health-job';
 import { useRealtime } from '@/lib/useRealtime';
 import type { Visibility } from '@/server/domain/publish';
 import { HealthPanel } from './HealthPanel';
+import { useHealthReport } from './health-client';
 import { studio, useStudioReady } from './store';
 
 /**
@@ -40,15 +41,19 @@ export function PublishPanel() {
    * 而用户根本没在看它，是纯浪费。打开后的那次计算仍是全量（门禁不能读旧数），
    * 只是不再为闭合状态下的每一次 commit 付账。
    * 布局复用与 HealthRail 同一条纪律：只有 design 视口的几何才能喂给门禁。
+   * 2026-10-29 起这份计算交给 worker（`health-client.ts`）：弹层打开后先在后台算，
+   * 算完才画 `data-publish-gate`；这也意味着那一刻之前**没有**门禁读数可看，
+   * 所以中间那行"正在算"必须画出来，不能空着让人以为门禁是空的。
    */
-  const health = useMemo(() => {
-    if (!open || !state.document) return null;
+  const job = useMemo<HealthJob | null>(() => {
+    if (!open) return null;
     const layouts =
       state.viewport === 'design' && state.layout && state.page
         ? { [state.page.id]: state.layout }
         : undefined;
-    return analyzeHealth(state.document, layouts ? { layouts } : undefined);
+    return { document: state.document, layouts };
   }, [open, state.document, state.layout, state.page, state.viewport]);
+  const { reading: health, pending: healthPending } = useHealthReport(job, open);
   const [build, setBuild] = useState<{ status: keyof typeof BUILD_LABEL; log?: string } | null>(null);
   const [preview, setPreview] = useState<{ status: keyof typeof PREVIEW_LABEL; url?: string } | null>(null);
   const realtime = useRealtime({
@@ -103,13 +108,23 @@ export function PublishPanel() {
 
           {health ? (
             <div className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-publish-gate>
-              <HealthPanel report={health} />
+              <HealthPanel
+                report={health.report}
+                healthSource={health.source}
+                pending={healthPending}
+                seq={health.seq}
+                computeMs={health.computeMs}
+              />
               {visibility === 'private' ? (
                 <p className="mt-1 text-11 text-fg-3" data-publish-private-note>
                   切成私有是下架动作：即使门禁没过也允许，把链接收回来永远比挡住它安全。
                 </p>
               ) : null}
             </div>
+          ) : healthPending ? (
+            <p className="mb-[var(--nexus-space-3)] text-11 text-fg-3" data-publish-gate-pending>
+              正在后台算门禁…
+            </p>
           ) : null}
 
           {state.publishScan ? (

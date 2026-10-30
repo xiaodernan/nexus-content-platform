@@ -1290,3 +1290,68 @@ Video Studio 真 provider 仍在 §194 的暂停条件里。
 触摸/移动端的选中延迟。另：8 节点两次跑的 React 渲染是 27–35ms、100 节点是 13–45ms，
 离散度超过 3 倍，**这一格只记"两半各自在场"，不记具体值**。
 
+## 2026-10-29：体检（`analyzeHealth`）搬进 Web Worker——主线程上不再出现与报告时长同步的 56–114ms 同步块，但总延迟没有变短
+
+这一节还的是「没有 worker」那条账里**体检那一半**（排版求解 `resolveLayout` 仍在主线程，那条只还了一半）。
+背景是 §178/§179 的门禁只在「健康」页签与发布弹层打开时算，而 10k 节点全量是 438ms 的**一次同步调用**
+（读数见前面 2026-10-2x 的分解）——主线程上会出现一个与报告时长相同的块，这段时间里拖动画布、敲字都停着。
+
+**落点（不碰 `store.ts` / `layout.ts`，那是另一会话的在途文件）**：
+
+1. `apps/web/src/lib/health-job.ts`：worker 与同步回退**共用一份** `runHealthJob(job)`。
+   两处各自拼 `analyzeHealth(document, options)` 就会分家——一处传 layouts、一处忘传，
+   读数只会在一个臂里对，而界面上看不出来。
+2. `apps/web/src/studio/health-worker.ts`：只做 `message → runHealthJob → { report, computeMs }`；
+   异常回 `{ id, error }`，**不编空报告**（编了就等于把失败伪装成"这份文档没毛病"）。
+3. `apps/web/src/studio/health-client.ts`：`useHealthReport(job, enabled)` + 页面级单例 worker。
+   三条纪律写在文件头：① 来源必须可分辨（读数带 `source`，界面写进 `data-health-source`，
+   `worker` / `sync` 照实标，不许把主线程上算的说成后台算的）；② 只有最新的作业算数
+   （自增 id + 迟到答复丢弃，否则连续编辑时先发的可能后到，界面把旧文档的报告显示成"当前"）；
+   ③ 回到同步不算兜底成功——worker 崩了用同一份 `runHealthJob` 再算，但标 `sync`。
+4. `HealthPanel.tsx`（常驻健康栏）与 `PublishPanel.tsx`（发布门禁）改读 hook；
+   pending 时界面显式给「· 重算中…」/「正在后台算门禁…」，不拿上一份读数冒充当前。
+
+**测量方式**：`PERF_LABEL=dev-health-worker-20261029 npx tsx scripts/perf-browser.mts http://localhost:3100 4000`
+（起手 8 节点档也跑了，见 notMeasured）。`scripts/perf-browser.mts` 新增 `healthLatency`：
+**同一个构建**、运行期开关 `globalThis.__NEXUS_HEALTH_WORKER__` 量两臂（与 `__NEXUS_INCREMENTAL_LAYOUT__`
+同一条规矩，换构建就把负载也换掉了）；每臂 3 次、丢第一次（worker 臂的第一次还包含 worker 启动）；
+起点是字号输入框的 `input`，终点是 `data-health-seq` 前进**且** `pending=0`。
+
+| 4000 节点（dev、有头真 Chrome、3 次） | 输入 → 新报告 | 报告自计时 | 重算期间主线程长任务 |
+|---|---|---|---|
+| worker 臂（`data-health-source=worker`） | 571 / 499 / 610ms（后两次中位 **554.6**） | 301 / 215 / 182ms | **75 / 66 / 63ms**（各一次） |
+| 同步回退臂（`=sync`） | 200 / 169 / 167ms（后两次中位 **168.1**） | 114 / 98 / 93ms | **68+114 / 56+98 / 54+93ms** |
+
+三条读数，第一条就是这一片**不宣布**的那件事：
+
+1. **总延迟没有变快，反而变长**（554.6 vs 168.1ms）：两臂都在同一次 React deferred 提交之后才开始，
+   worker 臂多出两次结构化克隆（4000 节点文档进 worker、报告出 worker）与消息往返。
+   所以这一节只写"主线程不再被体检占住"，**不写"延迟降低"**。
+2. **变的是主线程**：同步臂每一跑都有一个与报告自计时**同步**的长任务（报告 93ms → 长任务 54+93，
+   报告 114ms → 长任务 68+114）；worker 臂的长任务只有 63–75ms 且**不跟报告时长走**——
+   它们是同一构建、同一时段本地图上本来就有的遗留块，不是体检算出来的。
+3. **同一个函数在两条线程上的自计时不能横向比**（worker 301–182ms、主线程 114–93ms）：
+   worker 线程是新起的、没被反复编辑烤热。这个差**只记"两臂各自的数"**，不解释成谁快谁慢。
+
+**等价见证**（不是"看起来一样"）：`apps/web/test/health-job.test.ts` 4 条——同一 job 带 / 不带 `layouts`
+的报告各自与同步路逐项相等；`structuredClone(report)` 与原件逐项相等且改克隆不动原件
+（证明 worker 那条路真的经过克隆，而不是两边共享了同一份对象）；低对比文档两路都 `passed=false` 且 blockers>0。
+`e2e/health-worker.spec.ts` 1 条两臂：worker 臂断言 `data-health-source=worker`、7 行读数、
+改字号后 seq 前进、Ctrl+Z 后读数**逐字**回到编辑前；把 `window.Worker` 置 `undefined` 再 reload 后
+来源 `sync`、读数与 worker 臂**逐字**相同。发布弹层打开时门禁面板同样报 `worker`。
+
+**notMeasured（这一片）**：
+
+- 起手 8 节点的体检重算：报告 < 50ms，整段落在长任务阈值以下，这一档不量（量了也只有"没有长任务"）。
+- 10000 节点档：这一轮没跑（脚本这一档的上限是 4000）。
+- 生产构建：工作区里有另一会话的在途文件（`rateLimit.ts` 等），`next build` 会把半成品编进去；
+  且 dev 的绝对延迟不能拿去判 <50ms 的门——**这一节只做同构建两臂的相对比较**，不判绝对门。
+- 机器不安静：同一时段另一会话也在跑 dev；本跑 4000 档首帧 15222.7ms（17636.6 / 12808.8），
+  与 2026-10-27 的 1392.4ms 差一个量级，**不与旧组比较**。
+- 只还了体检一半：排版求解仍在主线程，「没有 worker」那条账没还完。
+
+**4000 档连带读数（同一跑，dev 口径，只作上下文，不当读数用）**：画布 DOM 34 个；
+pan p95 36ms；属性写入 → 画布更新 139.6ms；选中响应（页面内）104.8ms；JS 堆 103MB；
+起手 8 节点的首帧 1282.8ms（同一时段并发负载所致，与 2026-10-27 的 268.2ms 不可比）。
+脚本仍提示压测项目 `13dd1b11-ce88-4907-b9f4-e01d0fd064a6` 留在库里（含压测节点，不是产品数据）。
+

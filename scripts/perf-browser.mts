@@ -177,6 +177,45 @@ const PROBE = `
   document.addEventListener('pointerdown', function () {
     performance.mark('nexus:sel:t0');
   }, { capture: true, passive: true });
+
+  /**
+   * §147 体检重算的一段：从字号输入框的 input 事件起，到健康栏出现一份**新的**报告（seq 前进且 pending=0）为止。
+   * 返回三个数：总延迟、报告自计时（data-health-compute-ms）、这段时间里的主线程长任务。
+   * worker 与同步回退两臂用同一个探针——差值不在 total 上（两条路都要算一遍），
+   * 在 longTasks 与 computeMs 上：后台算的那一臂，主线程不该出现一个 50ms 以上的同步块。
+   */
+  window.__healthRecompute = function () {
+    return new Promise(function (resolve, reject) {
+      var panel = document.querySelector('[data-health-rail] [data-health-panel]');
+      var input = document.querySelector('[data-prop="typography.fontSize"]');
+      if (!panel) return reject(new Error('健康栏没有读数（没打开这一页签？）'));
+      if (!input) return reject(new Error('属性面板里没有字号输入框'));
+      var seq0 = Number(panel.getAttribute('data-health-seq') || 0);
+      window.__longTasks.length = 0;
+      var started = 0;
+      input.addEventListener('input', function () { started = performance.now(); }, { once: true });
+      var timer = window.setInterval(function () {
+        if (!started) return;
+        var current = document.querySelector('[data-health-rail] [data-health-panel]');
+        if (!current) return;
+        var seq = Number(current.getAttribute('data-health-seq') || 0);
+        if (seq > seq0 && current.getAttribute('data-health-pending') === '0') {
+          window.clearInterval(timer);
+          resolve({
+            total: performance.now() - started,
+            computeMs: Number(current.getAttribute('data-health-compute-ms') || 0),
+            longTasks: window.__longTasks === null ? null : window.__longTasks.slice(),
+            seq: seq,
+            source: current.getAttribute('data-health-source'),
+          });
+        }
+      }, 2);
+      window.setTimeout(function () {
+        window.clearInterval(timer);
+        reject(new Error('30 秒内体检没有重算出新报告（seq 没前进）'));
+      }, 30000);
+    });
+  };
 `;
 
 // 无头 Chrome 的 rAF 不锁 vsync（实测帧距能到 6ms），所以那个数不能当"帧率"读。
@@ -663,6 +702,80 @@ console.log(
 }
 
 /**
+ * §147：体检重算的 A/B——**同一个构建**，只换运行期开关 `__NEXUS_HEALTH_WORKER__`
+ * （与增量布局那条 `__NEXUS_INCREMENTAL_LAYOUT__` 同一条规矩：换构建比较会把负载也换掉）。
+ *
+ * 每臂都走同一条用户路径：打开「健康」页签 → 选中标题节点 → 改字号 → 等健康栏出现新报告
+ * （`data-health-seq` 前进且 `pending=0`）。量的三件事：
+ * ① 输入→新报告落地多久（total，两条路都要算一遍，不该有数量级差别）；
+ * ② 报告自计时（面板 `data-health-compute-ms`，worker 是后台线程里量的，同步是主线程上量的）；
+ * ③ 这段时间里的主线程长任务——**这一格才是这一片要证明的东西**：
+ *    同步臂应该出现一个把主线程占住的 50ms+ 大块，worker 臂不该有。
+ */
+async function healthLatency(scope: string): Promise<void> {
+  for (const arm of ['worker', 'sync'] as const) {
+    await page.addInitScript((on: boolean) => {
+      (globalThis as { __NEXUS_HEALTH_WORKER__?: boolean }).__NEXUS_HEALTH_WORKER__ = on;
+    }, arm === 'worker');
+    await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'domcontentloaded', timeout: 300_000 });
+    await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 180_000 });
+    await page.click('[data-view="canvas"]');
+    await page.click('[data-panel-tab="health"]');
+    try {
+      await page.waitForFunction(
+        () => {
+          const panel = document.querySelector('[data-health-rail] [data-health-panel]');
+          return panel !== null && panel.getAttribute('data-health-pending') === '0';
+        },
+        undefined,
+        { timeout: 180_000 },
+      );
+    } catch (error) {
+      throw new Error(`健康栏首份报告没落地（${arm}）：${await pageState()}`, { cause: error });
+    }
+    const source = await page.locator('[data-health-rail] [data-health-panel]').getAttribute('data-health-source');
+    if (source !== arm) throw new Error(`来源标记对不上：这一臂设的是 ${arm}，页面上写的是 ${source}`);
+    const headline = await page.evaluate(() => {
+      const hit = [...document.querySelectorAll('[data-canvas-frame] [data-node-type="text"]')].find((el) =>
+        el.textContent?.includes('从一句话到一个可发布的产品'),
+      );
+      return hit?.getAttribute('data-node-id') ?? null;
+    });
+    if (!headline) throw new Error('找不到标题节点，无法触发一次真实编辑');
+    const runs: number[] = [];
+    for (let run = 0; run < RUNS; run += 1) {
+      await page.click(`[data-node-id="${headline}"]`);
+      await page.waitForSelector('[data-prop="typography.fontSize"]', { timeout: 30_000 });
+      const pending = page.evaluate(
+        () =>
+          (window as any).__healthRecompute() as Promise<{
+            total: number;
+            computeMs: number;
+            longTasks: number[] | null;
+            seq: number;
+            source: string | null;
+          }>,
+      );
+      await page.fill('[data-prop="typography.fontSize"]', String(run % 2 === 0 ? 48 : 52));
+      const split = await pending;
+      runs.push(split.total);
+      console.log(
+        `  ${scope} 体检重算 第 ${run + 1} 次（${arm}）：输入→新报告 ${Math.round(split.total)}ms · ` +
+          `报告自计时 ${Math.round(split.computeMs)}ms · 主线程长任务 ` +
+          `${split.longTasks === null ? '量不到' : split.longTasks.join('/') || '无'}`,
+      );
+      await page.keyboard.press('Control+z');
+      await page.waitForTimeout(150);
+    }
+    record(`体检重算${scope}（${arm === 'worker' ? 'worker' : '同步回退'}）`, 'ms', runs);
+  }
+  // 开关在**下一次导航**生效：恢复默认，别让后面的档继承同步回退
+  await page.addInitScript(() => {
+    delete (globalThis as { __NEXUS_HEALTH_WORKER__?: boolean }).__NEXUS_HEALTH_WORKER__;
+  });
+}
+
+/**
  * 造一份 N 节点的文档并 PUT 上去：走的是浏览器自己的会话与 CSRF，不另起一套凭据。
  *
  * 关键一步是**先离开 Studio 页面**再改：Studio 里有自动保存，
@@ -850,6 +963,15 @@ for (const scale of scales) {
   await propToCanvasLatency(`（${built} 节点）`).catch((error) => {
     console.log(`  属性写入延迟（${built} 节点）没测成：${error instanceof Error ? error.message : String(error)}`);
   });
+  // §147 体检：只有文档大到会把主线程占住（单次体检 >50ms 的长任务阈值）才值得量，
+  // 小文档上那一格只会是噪声——照实打印"这一档没量"，不留空当作 0。
+  if (active >= 4000) {
+    await healthLatency(`（${built} 节点）`).catch((error) => {
+      console.log(`  体检重算（${built} 节点）没测成：${error instanceof Error ? error.message : String(error)}`);
+    });
+  } else {
+    console.log(`  ${built} 节点这一档不量体检重算：文档没大到会把主线程占住（量了也只会是噪声）`);
+  }
 }
 
 await browser.close();

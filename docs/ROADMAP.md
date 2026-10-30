@@ -102,6 +102,15 @@
       combat / level / playtest 那 **45** 臂这一片没逐条判，照实写进 notMeasured。
       整套回归分两半跑完：**242 files / 3076 tests 全绿**（上一版整批跑在收尾处 `ERR_IPC_CHANNEL_CLOSED`、
       无 summary、零条真失败——分片没复现，为什么崩没查）。
+      **2026-10-30 补测：整批一次调用跑完了** —— `npx vitest run --reporter=verbose` 读出
+      **251 files / 3253 tests 全绿、exit 0、369.46s**（四个 include 分组逐一对上 66+183+2=251：
+      summary 不是截断读数）。**这一跑没有复现收尾处那次崩溃**；同机空闲 2.3–2.4GB，
+      与上次崩溃时的环境同级 ⇒ "内存不够"不是必要条件，旧猜想既没证实也没推翻。
+      崩溃栈的静态机制落在依赖里（tinypool 1.1.1 的 `ProcessWorker.send` 只有 `isTerminating` 一道守卫，
+      子进程先走、port 消息还在转发 → `ERR_IPC_CHANNEL_CLOSED` 抛在 MessagePort 回调里 → 变成
+      Unhandled Rejection，summary 打不出来）；机制与 notMeasured 记在 `docs/TESTING.md` 2026-10-30 那一节。
+      **记录纪律照旧**：遇到"没有 Test Files / Tests 那两行"的运行，先原样重跑一次——
+      那是崩溃（exit 1 + 零条真失败），不是红也不是绿；分片不再是唯一做法。
       **仍然欠的**：谓词是人写的、清单证明不了"列全了"（EVALUATION 第十七片 notMeasured 第 1、2 条原话适用），
       覆盖率读数也只回答"走过没有"，不回答"走对了没有"。补的时候照同一条纪律——**不许反过来为凑数字放宽断言**。
   — **2026-10-29 第十九片把"类型允许、真实会发生"那批臂的见证补完了**：死臂 **59 → 44**（消失 15 段、
@@ -135,16 +144,47 @@
       **6 段 throw 哨兵**（删了不会变绿，只会把说得出名字的错误换成下一行的 TypeError）、**4 段 codegen**（沿用上一片判读）。
       还欠的（写进 EVALUATION 第二十片 notMeasured）：`L1/L2` 两条臂红的是同一组测试，":831 由哪条单独钉"没答案；
       变异只查了这一片的新见证；throw 那 6 段是读代码 + 推理，没探针。
+      **2026-10-30 补测（`.scratch/s26-isolate.mjs` → `s26-isolate.txt`；对照 `total=34 failed=0`、每条臂逐字节还原 sha1 OK）**：
+      ":831 由哪条单独钉"**有答案了**——把钳位只从 `set-the-approach` 那条杠杆上摘掉 ⇒ **只红 :831**（L10）；
+      `:817` 同样有专属臂——只让分开那条不跳过"钳回原地" ⇒ **只红 :817**（L13）；`:856` 原本就有专属臂（L4）。
+      真正"分不开"的只是 **L1/L2 这两条"整份 `placeAlong` 去钳"的臂**（它们同时红 :817 :831 :856），
+      不是三条见证都没有专属臂。另两条：L11（钳位只从 `separate-pairs` 摘）红 :817+:856；
+      L12（重合兜底方向翻成 -x）一次红 7 条——"兜底方向"不是 :817 的专属探针。
+      EVALUATION 第二十片 notMeasured 第 1 条的文字待改（该文件由另一会话在途，本轮只落 ROADMAP 与 scratch）。
 - [x] **之后**：导出 → 空实例恢复演练。**2026-10-29 重跑并扩**（第二十一片）：判据 7 → 20 条（走满 storyboard / character
       两层），臂从"设了 `NEXUS_TWO_INSTANCE_SKIP_ASSETS=1` 才跑、跑完就 exit(0)"变成默认五趟，
       另加三趟探针去证那三条臂红不到的判据自己有牙；探针当场抓到 `isSlugConflict` 在 cause 链走到头时
       自己抛 TypeError、把库里那句外键违例换成一句与病因无关的话（修复 + 真库见证见 `projects.integration.test.ts`）。
+- [x] **§40 的四条箭头只有一条在界面上存在**（2026-10-30 补上）：`planStoryboard` 收 `arrow / referenceAssetId / characterId`，
+      而 `storyboardStore.planFrom` 只传句子 ⇒ 每一版分镜都写成 `text-to-video`，`image-to-video` /
+      `storyboard-to-video` / `character-to-scene` 三个常量在界面上是死的（`STORYBOARD_ARROWS` 在
+      `apps/web/src` 里 0 处引用）。
+      **做了什么**：① 模型包导出 `ARROW_SOURCE_NEEDS`（`Record<StoryboardArrow, …>`，往清单加一条箭头不补一格就编译不过）
+      与 `missingArrowSource`（返回能直接摆在人面前的整句，不是错误码）；② `planFrom(prompt, source?)` 透传来源，
+      缺来源时先落 `notice` 再返回——不在界面上先换一份本地真值、再吃服务端的 400；③ 空态多出箭头选择器，
+      要参考的那两条各自弹出名册选择器（图片从资产库、角色从角色册，不给手填 id），缺来源时按钮就是灰的、
+      且把缺哪个字段写在明处；④ 建完头部写「来源：角色 → 场景｜角色 守夜人」，作者原句另起一行（此前"来源"两个字只指原句）；
+      ⑤ 服务端 `saveStoryboard` 在归属核对**之前**读同一条规则拒收——缺来源是文档自身的矛盾，与库里有哪些资产无关。
+      **证据**：`packages/video-model/test/storyboard.test.ts` +5（表与清单一一对应 / text 与 storyboard 两条不缺 /
+      两条缺什么 / 反向对照 / `planStoryboard` 不自作主张改箭头）；`apps/web/test/storyboard-store.test.ts` +2
+      （来源真写进文档、缺来源一次 PUT 都不发）；`apps/web/test/storyboards.integration.test.ts` +1 真库用例
+      （两条箭头各拒一次、库里 0 行、挂上本项目角色后同一份能存）；`e2e/storyboard.spec.ts` 新走查 1 条
+      （真 Chrome 12.8s 通过，截图 `screenshots/storyboard-arrow-source.png`）。三个测试文件 35 用例全绿；
+      `tsc`（video-model + apps/web）与 `eslint`（7 个改动文件）各 exit 0。
+      **有意不做**：`storyboard-to-video` 不额外要东西——它要的就是这份镜头表本身，而镜头表就在文档里；
+      镜头级的引用仍然自由（`source` 说的是整条片子的出处，不是每一镜的出处）。
 - [~] **之后**：`docs/PERFORMANCE.md` 剩余项。**2026-10-29 第二十四片把「选中响应」那笔旧账拆段了**：
       `CanvasStage` 加 `nexus:sel:rendered`、探针三段改四段 —— 8 节点 React 渲染 27–35ms / 绘制 25–31ms，
       **"界面提交 0ms"只覆盖 store 的 commit，React 渲染从来没进过账**；CPU 采样把 dev 那半点名到
       `jsxDEV`（生产会剥掉）。读数与 notMeasured 见 `docs/PERFORMANCE.md` 2026-10-29 那节。
       **仍欠**：生产构建下的四段读数（本次不做 prod build 的理由已记在该节）、4000 档分段；
-      以及同表里更早的「没有 worker」「健康层全量重算」（后者按该文件的判决留到真被量到卡顿再做）；
+      以及「健康层全量重算」（按该文件的判决留到真被量到卡顿再做）。
+      **2026-10-29 第二十六片还了「没有 worker」的体检那一半**：`analyzeHealth` 搬进 Web Worker
+      （`lib/health-job.ts` 唯一作业入口 + `studio/health-worker.ts` + `studio/health-client.ts` 单例 hook），
+      4000 档同构建两臂：同步臂每跑出现 54–114ms 与报告时长同步的主线程长任务，worker 臂 63–75ms 且不同步；
+      **总延迟没变短（554.6 vs 168.1ms，克隆 + 往返），照实写**。见证：`health-job.test.ts` 4 条 +
+      `e2e/health-worker.spec.ts` 1 条两臂（读数逐字相同）。**排版求解仍在主线程**，这条只还了一半；
+      读数与 notMeasured 见 `docs/PERFORMANCE.md` 2026-10-29 那节。
       「画布侧没有虚拟化/增量重排」那一条**已被 ADR-0064（视口裁剪）与 ADR-0049（增量重解）取代**，
       不再是开放项。
 

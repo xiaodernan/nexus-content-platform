@@ -1,8 +1,10 @@
 'use client';
 
 import { useDeferredValue, useMemo, useState } from 'react';
-import { analyzeHealth, formatHealthValue, type HealthCheck, type HealthReport } from '@nexus/design-model';
+import { formatHealthValue, type HealthCheck, type HealthReport } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
+import type { HealthJob } from '@/lib/health-job';
+import { useHealthReport, type HealthSource } from './health-client';
 import { useStudioReady } from './store';
 
 /**
@@ -11,6 +13,10 @@ import { useStudioReady } from './store';
  *
  * 每一行都带"这项到底看了什么"（basis）：分数来历不明的话，用户只会当成装饰。
  * 没测的行显示"未评估"，不显示绿勾（§159）。
+ *
+ * §147：数字现在在 worker 里算（`health-client.ts`），面板据此多挂三个只读标记——
+ * `data-health-source`（worker / sync）、`data-health-pending`（正在重算）、
+ * `data-health-seq`（第几份报告）——探针与 e2e 靠它们分辨"后台算的"与"退回主线程算的"。
  */
 
 const STATE_MARK: Record<HealthCheck['state'], string> = {
@@ -19,12 +25,34 @@ const STATE_MARK: Record<HealthCheck['state'], string> = {
   'not-run': '—',
 };
 
-export function HealthPanel({ report, source }: { report: HealthReport; source?: string }) {
+export function HealthPanel({
+  report,
+  source,
+  healthSource,
+  pending,
+  seq,
+  computeMs,
+}: {
+  report: HealthReport;
+  source?: string;
+  healthSource?: HealthSource;
+  pending?: boolean;
+  seq?: number;
+  computeMs?: number;
+}) {
   return (
-    <div className="flex flex-col gap-[6px]" data-health-panel>
+    <div
+      className="flex flex-col gap-[6px]"
+      data-health-panel
+      data-health-source={healthSource}
+      data-health-pending={pending ? '1' : '0'}
+      data-health-seq={seq}
+      data-health-compute-ms={computeMs === undefined ? undefined : Math.round(computeMs)}
+    >
       <p className="text-11 text-fg-3" data-health-summary>
         门禁{report.passed ? '通过' : '未通过'}
         <span className="text-fg-3"> · {source ?? '实时按当前文档计算'}</span>
+        {pending ? <span className="text-fg-3" data-health-recomputing> · 重算中…</span> : null}
       </p>
       <ul className="flex flex-col gap-[6px]">
         {report.checks.map((check) => (
@@ -56,38 +84,53 @@ export function HealthPanel({ report, source }: { report: HealthReport; source?:
  * 重算只发生在停顿后（防抖）；已算好的当页布局直接复用，不再解第二遍。
  * 只有 design 视口的布局才能复用：断点视口的几何是按断点宽度裁过的，
  * 拿它喂门禁会把"响应式换行后的尺寸"当成设计尺寸判（off-canvas / tap-target 全错）。
+ * 2026-10-29 起这次重算整个搬进 worker（`health-client.ts`）：10k 节点 438ms 的全量体检
+ * 不再占主线程；算的时候旧读数照常在，但会挂"重算中…"，不把旧数当当前值。
  */
 export function HealthRail() {
   const state = useStudioReady();
   const deferred = useDeferredValue(state);
-  const report = useMemo(() => {
-    if (!deferred.document) return null;
+  const job = useMemo<HealthJob>(() => {
     const layouts =
       deferred.viewport === 'design' && deferred.layout && deferred.page
         ? { [deferred.page.id]: deferred.layout }
         : undefined;
-    return analyzeHealth(deferred.document, layouts ? { layouts } : undefined);
-  }, [deferred]);
+    return { document: deferred.document, layouts };
+  }, [deferred.document, deferred.viewport, deferred.layout, deferred.page]);
+  const { reading, pending } = useHealthReport(job);
   return (
-    <div className="flex h-full min-h-0 flex-col" data-health-rail>
+    <div className="flex h-full min-h-0 flex-col" data-health-rail data-health-seq={reading?.seq ?? 0}>
       <header className="flex shrink-0 items-center justify-between border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2">
         <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">项目健康</h2>
-        {report ? (
+        {reading ? (
           <span
             className="font-mono text-12"
-            data-health-rail-state={report.passed ? 'pass' : 'fail'}
+            data-health-rail-state={reading.report.passed ? 'pass' : 'fail'}
           >
-            <span className={report.passed ? 'text-fg-2' : 'text-danger-ink'}>
-              {report.passed ? '可发布' : '有阻塞'}
+            <span className={reading.report.passed ? 'text-fg-2' : 'text-danger-ink'}>
+              {reading.report.passed ? '可发布' : '有阻塞'}
             </span>
+          </span>
+        ) : pending ? (
+          <span className="font-mono text-12 text-fg-3" data-health-rail-pending>
+            计算中…
           </span>
         ) : null}
       </header>
       <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
-        {report ? (
-          <HealthPanel report={report} source="随改动更新" />
+        {reading ? (
+          <HealthPanel
+            report={reading.report}
+            source="随改动更新"
+            healthSource={reading.source}
+            pending={pending}
+            seq={reading.seq}
+            computeMs={reading.computeMs}
+          />
         ) : (
-          <p className="px-3 py-8 text-center text-12 text-fg-3">文档还没载入完，算不出健康度。</p>
+          <p className="px-3 py-8 text-center text-12 text-fg-3" data-health-rail-wait>
+            {pending ? '正在算健康度…' : '文档还没载入完，算不出健康度。'}
+          </p>
         )}
       </div>
     </div>

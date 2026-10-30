@@ -2036,3 +2036,67 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   摘配额 `gt` → `again.ok` 变 false；`expired` 恒 false → `listed.expired` 红；摘去重 `gt` → 再邀命中同一封；
   摘 accepted 幂等 → ⑦ 报"已兑现的邀请不该因为后来过期而报失败"（**顺序钉子**：accepted 幂等优先于过期检查）。
   team 7/7、team-routes + api-v1-team 11/11、credits 36/36；tsc 0 eslint 0。迁移已打 regress + `55100/nexus`。
+
+- **2026-10-29：§147 体检搬进 worker 的两本见证——worker 路与同步路必须读出同一份报告**——
+  `apps/web/src/lib/health-job.ts` 是唯一的作业入口（`runHealthJob`），worker 与同步回退都走它；
+  没有这两本见证，"worker 里算的和主线程算的不一样"就看不出来。
+  ① `apps/web/test/health-job.test.ts` 4 条：同一 job 带 / 不带 `layouts` 的报告各自与同步路逐项相等；
+  `structuredClone(report)` 与原件逐项相等且改克隆不动原件（证明 worker 那条路真的经过结构化克隆）；
+  低对比文档两路都 `passed=false` 且 blockers>0。
+  ② `e2e/health-worker.spec.ts` 1 条两臂（同一账号、同一项目）：先点 `[data-panel-tab="health"]`
+  （健康栏只在页签打开时挂载——第一次跑红在 `[data-health-rail] [data-health-panel]` 找不到就是这么来的），
+  等 `data-health-source=worker`、`pending=0`、7 行读数；改标题字号 → `data-health-seq` 前进；
+  Ctrl+Z → 再前进且读数与编辑前**逐字**相同；打开发布弹层断言门禁面板来源同为 `worker`；
+  臂 B 用 `page.addInitScript` 把 `window.Worker` 置 `undefined` 再 reload，
+  断言 `typeof Worker === 'undefined'`、来源 `sync`、读数与 worker 臂**逐字**相同。
+  读数（4000 档两臂的输入→新报告 / 报告自计时 / 长任务）见 `docs/PERFORMANCE.md` 2026-10-29 那一节。
+
+- **2026-10-30：整批一次跑完，251 文件 / 3253 条全绿——这次没有复现收尾处的 `ERR_IPC_CHANNEL_CLOSED`**——
+  `npx vitest run --reporter=verbose`（一次调用、不分片、`fileParallelism: false` 的配置原样），
+  读数是 `Test Files 251 passed (251)` / `Tests 3253 passed (3253)`、exit 0、369.46s
+  （collect 133.03s、tests 161.22s），日志 `.scratch/s32-fulltest.txt`。
+  四个 include 分组的文件数逐一对上（packages 66 / apps/web 183 / mcp-server 2 = 251），summary 不是截断读数。
+  机器同一时段空闲 2.3–2.4GB——与上次崩溃时的环境同级，**所以"内存不够"不是这一跑的必要条件**；
+  "内存是根因"这个旧猜想既没被证实，也没被推翻（一次绿不等于根因查清）。
+  **静态证据指向依赖里的收尾竞态（这是机制，不是结论）**：崩溃栈是
+  `target.send node:internal/child_process:777` → `ProcessWorker.send tinypool/dist/index.js:140`
+  ← `MessagePort.<anonymous> tinypool/dist/index.js:149`，即"worker 的 port 送来一条消息 →
+  主进程转发给子进程 → 子进程的 IPC 通道已经关了 → 抛 `ERR_IPC_CHANNEL_CLOSED`"。
+  那处 `send` 只有 `if (!this.isTerminating)` 一道守卫，而 `terminate()` 一开始就置真；
+  所以抛出意味着**子进程在外面先退出了、池还以为它活着**。抛在 MessagePort 回调里 → Unhandled Rejection
+  → vitest 在打 summary 之前就退了 1（`.scratch/s18-fulltest.txt` 的收尾形状）。
+  依赖修不了，但记录纪律能守住：**遇到"没有 Test Files / Tests 那两行"的运行，先原样重跑一次；
+  它是崩溃（`exit 1` + 零条真失败），不是红，也不是绿**——与上一版按 `--shard` 分两半的做法不冲突。
+  这次整批跑的是工作区（含另一会话的在途文件），所以它同时只说明"那些文件此刻没把套件弄红"，
+  不是对它们的背书。
+  notMeasured：**崩溃的触发条件仍然没有确定**；也没有仪器能点名"是哪一个 worker 先走的"。
+
+- **2026-10-30：§40 四条箭头补进界面的三本见证（模型规则 / 客户端字节 / 服务端拒收）**——
+  规则本体只有一处：`ARROW_SOURCE_NEEDS` + `missingArrowSource`（`packages/video-model`），
+  界面拿它决定按钮灰不灰，服务端拿它拒收——两处读同一句，所以不会有"界面允许切、服务端拒收"的漂移。
+  ① `packages/video-model/test/storyboard.test.ts` +5：`Object.keys(ARROW_SOURCE_NEEDS)` 与 `STORYBOARD_ARROWS`
+  顺序相等（往清单加箭头却不补一格，`Record` 在编译期就红）；只有 `image-to-video` 要参考图、只有
+  `character-to-scene` 要角色的两条筛选断言；`text-to-video` / `storyboard-to-video` 返回空数组；
+  缺的那两条各返回一句点名箭头与 `source.*` 字段的话；**反向对照**（挂上之后返回空）——
+  防的是"规则实现成这两条箭头一律不许用"；`planStoryboard` 收 `arrow: 'image-to-video'` 且不传图时
+  不偷偷改回默认箭头（否则界面上会显示一个作者没选过的来源）。
+  ② `apps/web/test/storyboard-store.test.ts` +2：`planFrom('…', { arrow: 'character-to-scene', characterId })`
+  发出去的 PUT 里 `document.source` 就是这两格；不传来源时 `source` 逐字段等于
+  `{ arrow: 'text-to-video', prompt }`（不偷偷带上引用）；缺参考图时 **0 次 PUT**、本地真值仍是 null、
+  `notice` 里带着 `image-to-video` 与 `source.referenceAssetId`。
+  ③ `apps/web/test/storyboards.integration.test.ts` +1 真库：`image-to-video` 无图、`character-to-scene` 无角色
+  各拒一次并点名（`missingArrowSource` 的那两句原样返回），库里 0 行；挂上本项目真有的角色后同一份文档
+  能存（反向对照，证明不是"一律拒"）。顺序钉子：这条规则在 `firstForeignRef` **之前**——
+  缺来源是文档自身的矛盾，与库里有谁无关，不用先查一次库。
+  ④ `e2e/storyboard.spec.ts` 新走查 1 条（真 Chrome，12.8s 通过，截图 `screenshots/storyboard-arrow-source.png`）：
+  默认 `text-to-video` 时两个来源选择器都不存在；切成 `image-to-video` 立刻出现资产选择器 +
+  `[data-storyboard-source-missing]` 说出 `source.referenceAssetId`、按钮 disabled；切成 `character-to-scene`
+  换成角色选择器、仍 disabled；选上本项目角色后提示消失、按钮才可点；建完头部写着
+  「来源：角色 → 场景｜角色 守夜人」、原句在 `[data-storyboard-source-prompt]` 另起一行；
+  第一镜的角色选择器选中「守夜人」（`source` 的引用真的落进了镜头）；点重读后仍是这一句（箭头进了库）。
+  读数：三个 vitest 文件 3/3 files、35/35 tests、exit 0、7.83s；`tsc`（video-model + apps/web）0；
+  `eslint`（7 个改动文件）0。整批回归**没有重跑**（本片只碰 storyboard 一族与模型包的加法式导出），
+  所以这一节的绿是"这一族"的，不是全仓的——全仓那一次读数是上一节 251/3253。
+  notMeasured：真实浏览器里**只走了 `character-to-scene` 的建分镜路径**；`image-to-video` 在 e2e 里只走了
+  "缺图禁用"那一半——上传一张真图再切需要资产上传链路，没在本片补；`storyboard-to-video` 在界面上
+  没有单独的走查（它与 `text-to-video` 的需求完全相同，vitest 已钉）。
