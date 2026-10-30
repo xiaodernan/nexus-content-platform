@@ -32,9 +32,9 @@ Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-paral
 | `@nexus/world-engine` | **109/109** | 4 | M4: world/lore/character/location + relationships + tick + save/load |
 | `@nexus/agent-runtime` | **658/658** | 46 | M2–M5 doors; see `docs/evidence/agents/README.md` |
 | `@nexus/exec-host` | **358/358** | 14 | the only `child_process` holder (ADR 0013 policy sandbox) |
-| `@nexus/studio` | **2832/2832** | 142 | the Studio slice: canvas, surfaces, lanes, and the `/credits` page |
+| `@nexus/studio` | **2840/2840** | 142 | the Studio slice: canvas, surfaces, lanes, and the `/credits` page |
 
-_Generated on 2026-10-29 (win32 x64, Node 24.15.0) by `npm run verify:package-counts` from seven `vitest run --root <pkg> --no-file-parallelism` arms — never hand-typed. A package whose counts move must regenerate this block; the gate refuses a table that differs from the suites it ran._
+_Generated on 2026-10-30 (win32 x64, Node 24.15.0) by `npm run verify:package-counts` from seven `vitest run --root <pkg> --no-file-parallelism` arms — never hand-typed. A package whose counts move must regenerate this block; the gate refuses a table that differs from the suites it ran._
 <!-- package-counts:end -->
 
 _The table above used to be hand-typed, and by v548 it had drifted into a lie: the `studio` row
@@ -49,6 +49,45 @@ seven package roots carries an uncommitted path, because the first block generat
 generated from a working tree carrying another lane's in-flight cases (the `studio` row claimed
 2840/2840 while HEAD answered 2832/2832) and the next build refused it. Check mode is unchanged —
 it grades the tree in front of it, which is what makes a local red useful before a commit.
+
+### v564 — the table's studio row said 2832 while the suite beneath it answered 2840: the block is regenerated from the commit it describes, and the first hosted gutter is recorded (ADR 0016 amendment 539)
+
+The commit `9925537` (v563) carried the studio lane's eight new cases (`9c1f9d0`, v556) but not
+their count, so hosted run `41102039245` (sha `9925537`, 2026-10-30) came back red at exactly one
+door: `verify:package-counts RED 66.4s`, `@nexus/studio: the table says 2832/2832; the suite
+answered 2840/2840`. Every other row stayed green; nothing else failed.
+
+The repair was measured where the gate can stand: a clean **detached worktree at `9925537`**, its
+`node_modules` linked to this checkout, and `packages/three-runtime/dist` built first. The first
+`--write` was refused at `4864 !== 4863` — three-runtime's `distSync.test.ts` skips without `dist/`,
+so the gate itself caught a tree that could not answer. With dist built the seven arms answered:
+
+| arm | cases | files | time |
+| --- | --- | --- | --- |
+| design-model | 169/169 | 16 | 39.9 s |
+| ai-providers | 95/95 | 9 | 21.7 s |
+| three-runtime | 635/635 | 30 | 64.8 s |
+| world-engine | 109/109 | 4 | 10.6 s |
+| agent-runtime | 658/658 | 46 | 81.6 s |
+| exec-host | 358/358 | 14 | 55.2 s |
+| studio | 2840/2840 | 142 | 407.1 s |
+
+`[summary] 7 packages: 4864/4864 cases in 261 files`, and `§1a` confirmed all seven package trees
+match their commits before any of it ran. The rewritten block differs from HEAD's in exactly two
+lines — the studio row and the footer date — and `§4` refuses a table whose cases do not all pass,
+so a skipped case cannot be written into it.
+
+The same hosted run is the v563 gutter convention's first contact: **105 gutters under 106 rows** —
+every green row printed one last-stdout line (e.g. `| [remix-proof] ALL SECTIONS PASSED`,
+`| 8/8 fixture arms matched`, the arms receipt line, the census line, the wiring line), and the red
+row printed its verdict and cause alone. One gutter is a lone `| }` (`verify:pipeline`'s last
+stdout line is the closing brace of its JSON) — the convention printing the row's own last line,
+which is honest but not useful; a row that wants a quotable gutter has to end by saying something.
+
+Bound: the studio lane's in-flight test edits will move these counts again the moment they land, and
+this block will go red by name until they regenerate it — the gate working, not the table drifting.
+The measuring worktree was deliberately not the working tree, because the working tree carries other
+lanes' uncommitted cases; check mode is unchanged and still grades the tree in front of it.
 
 ## Reproducible browser verification (ADR 0017)
 
