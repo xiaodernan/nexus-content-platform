@@ -190,7 +190,7 @@ export default async function PublishedPage({ params, searchParams }: Props) {
         <p className="px-[var(--nexus-space-4)] pt-[var(--nexus-space-3)] text-12" data-published-play>
           <a
             href={`${publication.path}/play`}
-            className="rounded bg-accent-2 px-3 py-1 text-accent-fg"
+            className="inline-flex min-h-6 items-center rounded bg-accent-2 px-3 py-1 text-accent-fg"
           >
             试玩这一版 →
           </a>

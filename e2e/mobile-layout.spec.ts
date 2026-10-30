@@ -113,7 +113,12 @@ async function measure(page: Page): Promise<Reading> {
     const clipped = all.filter(({ el }) => ['hidden', 'clip'].includes(getComputedStyle(el).overflowX));
     const targets = Array.from(
       document.querySelectorAll('a[href],button,input:not([type=hidden]),select,textarea,summary,[role=button]'),
-    ).filter(isVisible);
+    ).filter((el) => {
+      // 发布帧里是**作品内容**（作者自己的按钮/链接），平台外壳不为它们的尺寸担保；
+      // 与 Studio 的 `[data-canvas-frame]` 同一条口径（ADR-0073）。
+      if (el.closest('[data-published-frame]')) return false;
+      return isVisible(el);
+    });
     const small = targets
       .map((el) => {
         const r = el.getBoundingClientRect();
@@ -191,7 +196,7 @@ function fmt(reading: Reading, column: (typeof WIDTHS)[number]): string {
   );
 }
 
-test('§85 移动端体检：真发布语料在 390×844 下的布局读数（首跑，不断言阈值）', async ({ browser }) => {
+test('§85 移动端体检：真发布语料在 390×844 下的布局读数（外壳 24px 已升成门）', async ({ browser }) => {
   test.setTimeout(600_000);
 
   const scout = await browser.newPage();
@@ -233,6 +238,12 @@ test('§85 移动端体检：真发布语料在 390×844 下的布局读数（�
       ).toBe(column.width);
       // 门③：帧宽必须量得到，否则"可见比例"是拿 0 除出来的
       expect(reading.frame?.width ?? 0, `${path} · ${column.label}：量不到 data-published-frame 的宽度`).toBeGreaterThan(0);
+      // 门⑤：公开页**外壳**（动作栏等）的点击目标必须 ≥24×24（WCAG 2.5.8）；
+      // 发布帧里的作品内容不计入（上一行注释）。
+      expect(
+        reading.smallTargets.map((b) => `${b.label} ${b.w}×${b.h}`),
+        `${path} · ${column.label}：公开页外壳还有 <${TARGET_MIN}px 的点击目标`,
+      ).toHaveLength(0);
       rows.push(fmt(reading, column));
       if (column.mobile) mobile = reading;
       else desktop = reading;
