@@ -2,7 +2,8 @@ import { expect, test, type Browser, type BrowserContext, type Page } from '@pla
 import { loginMemberIfPossible, reusableMemberWithProject } from './support/auth-session';
 
 /**
- * §85 移动端体检的第二片：**应用外壳**在 390 下有没有读数。
+ * §85 移动端体检的第二片：**应用外壳**在 390 / 768 / 1280 下有没有读数。
+ * （第二十八片加了平板竖屏 768——它是 <lg 浮层左栏那一档的真实读数，也是"份额门"的抓手。）
  *
  * 第十三片只量了公开作品页，量到的是"设计稿按绝对像素铺进可平移容器"这件事
  * （帧宽 1440、首屏可见 27%、要平移 1082px）。那是**作品**的投影，本来就不该跟着视口变。
@@ -29,6 +30,8 @@ const ADMIN = 'obs-admin+fixture@nexus.test';
 
 const WIDTHS = [
   { label: '手机390', width: 390, height: 844, mobile: true },
+  // 平板竖屏：<lg（1024）仍走浮层左栏，是"手机与桌面之间"那一档的真实读数
+  { label: '平板768', width: 768, height: 1024, mobile: true },
   { label: '桌面1280', width: 1280, height: 900, mobile: false },
 ] as const;
 
@@ -159,7 +162,7 @@ function fmt(name: string, r: Reading): string {
   );
 }
 
-test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／管理台）在 390 下的读数', async ({ page, browser }) => {
+test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／管理台）在三档宽度下的读数', async ({ page, browser }) => {
   test.setTimeout(900_000);
 
   const surfaces: Surface[] = [
@@ -239,6 +242,16 @@ test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／
             expect(f.right, `${surface.name}/${w.label}（${how}）：适应窗口后画布右边溢出视口 ${Math.round(f.right - s.right)}px（缩放 ${fit.zoom}）`).toBeLessThanOrEqual(s.right + 1);
             expect(f.bottom, `${surface.name}/${w.label}（${how}）：适应窗口后画布下边溢出视口 ${Math.round(f.bottom - s.bottom)}px（缩放 ${fit.zoom}）`).toBeLessThanOrEqual(s.bottom + 1);
             if (how === '按钮') rows.push(`${surface.name} ${w.label}: 适应窗口 → ${Math.round(f.width)}×${Math.round(f.height)} 装进 ${Math.round(s.width)}×${Math.round(s.height)}（${fit.zoom}）`);
+          }
+          // 窄视口（<lg）左栏必须是浮层：图标栏 44px + 一点余量之外，画布不该再被面板吃掉。
+          // 0.8 的来历：390 实测 346/390=0.887、768 是 724/768=0.943；一旦左栏回到内联
+          // （390 时 82/390=0.21、768 时 460/768=0.6）这条会先红，比"帧装不进去"更早点名。
+          if (w.width < 1024) {
+            const share = await tab.evaluate(() => {
+              const s = document.querySelector('[data-canvas-surface]')!.getBoundingClientRect();
+              return s.width / window.innerWidth;
+            });
+            expect(share, `${surface.name}/${w.label}：画布只占视口 ${(share * 100).toFixed(1)}%（窄视口左栏应是浮层，不该挤窄画布）`).toBeGreaterThanOrEqual(0.8);
           }
         }
         report.push(fmt(`${surface.name}/${w.label}`, reading));
