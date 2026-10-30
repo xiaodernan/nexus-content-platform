@@ -1,7 +1,7 @@
 # 0021 — External webhook subscriptions: the first outbound contract
 
 - **Status:** Accepted (v557 the receiving half; v558 the on-demand `ping`; v559 the event fan-out; v560 the
-  delivery receipts — all landed and gated)
+  delivery receipts; v561 the live-PostgreSQL end-to-end run — all landed and gated)
 - **Date:** 2026-10-30
 - **Milestone:** M10 (External Agent Ecosystem)
 
@@ -169,14 +169,27 @@ of having called that endpoint.
   carrying no secret and for refusing a subscriber-less request by name.
 - `docs/evidence/m7/service-suite-proof.mjs` derives its totals from the surefire report (§4) and digests the
   service tree (§1/§3), so it grades this slice without a literal count being typed anywhere.
-- **Not graded yet:** no proof against a live PostgreSQL exercises these rows, and no proof observes a
-  delivery to a REAL subscriber's server (the transport test's endpoint is the test's own). The tables are
-  created by `ddl-auto` on first start; that a row round-trips is asserted only by the JPA mapping, not by a
-  run. v559's WIRING — a real publish committing, the listener firing after that commit, and a fan-out over
-  rows read from a database — and v560's receipt WRITE — a row committed by `REQUIRES_NEW` on a thread whose
-  caller transaction is already finished — are graded by the annotation read-back and by mocked collaborators,
-  not by an end-to-end run: there is no Spring-context integration test in this build, and that is the gap a
-  later slice (or the compose stack's own proof) has to close.
+- `docs/evidence/m10/webhook-proof.mjs` (`npm run verify:webhooks`) — v561, the LIVE run the slices above
+  ended by naming as missing. The service is built in an isolated copy, started against a throwaway
+  `pgvector/pgvector:pg16` container through command-line arguments, and graded over HTTP and `psql`: two
+  endpoints subscribed (the events SENT out of the vocabulary's order and stored in its own), the secret
+  64 hex characters and readable exactly once, a loopback literal and a duplicate endpoint refused BY NAME,
+  a real publish committing and the `AFTER_COMMIT` fan-out knocking on BOTH endpoints, two receipts carrying
+  the TRAIL's instant rather than their own clock, a real unpublish fanning out the same way while the trail
+  keeps one entry per verb, the owner's ping writing ONE receipt (and none for the endpoint it was not
+  addressed to), a refused ping (400/403/404) writing NOTHING, a stranger's account answered with an EMPTY
+  log, the window capped/narrowed/newest-first with the count beside it, `psql` counting five rows and
+  finding NO `secret` column while the stored key equals the one the one-time answer gave, a removal that
+  leaves its receipts byte-identical, and a NEW JVM answering the same five rows after a restart. That last
+  section is the one a unit gate could not make: a `REQUIRES_NEW` row that never committed is visible
+  before the restart and gone after it.
+- **Still not graded, stated:** no delivery reaches a REAL subscriber's server. RFC 6761 reserves
+  `hooks.invalid`, so the live run grades the fan-out, the ownership rule, the resolution step, the three
+  outcomes and the receipt, and fails at the network step by design; a local receiver is impossible because
+  the service refuses every loopback and private address at subscription time AND at delivery time (the
+  proof asserts the first refusal rather than working around it). The signature over delivered bytes
+  remains graded by the unit vector, and the transport by the test's own socket. The retry/outbox,
+  retention, rotation, auth and idempotency bounds above are unchanged.
 
 ## Date
 

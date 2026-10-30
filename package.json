@@ -48,6 +48,7 @@
     "verify:evidence-census": "node docs/evidence/ci/evidence-census-proof.mjs",
     "verify:arms": "node docs/evidence/ci/ci-wiring-arms.mjs",
     "verify:audit-contract": "node docs/evidence/m9/audit-contract-proof.mjs",
+    "verify:webhooks": "node docs/evidence/m10/webhook-proof.mjs",
     "verify:record-encoding": "node docs/evidence/agents/record-encoding-proof.mjs",
     "verify:pipeline": "node docs/evidence/studio/pipeline-proof.mjs",
     "verify:table-recount": "node docs/evidence/agents/table-recount-proof.mjs",

@@ -239,8 +239,8 @@ people.
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
 never turned into a `verify:*` script stays invisible to the build. Amendments 516–519 closed that half:
-the census below gives every one of the **116** tracked modules a disposition, and the derived population is
-**105 running rows + 0 excluded by name** at this ref (v532 triaged the swept population and wired sixteen
+the census below gives every one of the **117** tracked modules a disposition, and the derived population is
+**106 running rows + 0 excluded by name** at this ref (v532 triaged the swept population and wired sixteen
 Node-only proofs; v533 ran the sweep over all 81 and wired the forty-eight green dist+spawn proofs). And no
 gate here can make GitHub run: it reads bytes
 committed in this repository, and whether the workflow executes on `master` is knowable only from the real
@@ -259,7 +259,7 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 | class | count at this ref | how it is decided |
 | --- | --- | --- |
-| ROW | **105** (105 run + 0 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
+| ROW | **106** (106 run + 0 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **4** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs`, `ci/arms-receipt.mjs` |
 | SWEPT | **2** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — at this ref only `cwd-axis` and `tree-axis`, the tree-motion witnesses, which stay there by measurement (their verdict is about whether the walked tree moved during the run) |
 | TOOL | **5** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, one plane-arms script, the isolated-build arms, the SVG generator) |
