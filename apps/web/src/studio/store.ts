@@ -29,6 +29,7 @@ import {
   type Page,
   type PatchOp,
   type ResolvedLayout,
+  type ResponsiveRule,
   type VisualDna,
 } from '@nexus/design-model';
 import type { Annotation } from '@/server/domain/annotations';
@@ -49,6 +50,14 @@ import { apiAssetUrl, assetContextFor, type AssetUrlContext } from './assets';
 import { csrfHeaders } from '@/lib/csrf';
 import { STATE_LABELS } from './state-labels';
 import { isStudioReadOnly } from './read-only';
+import {
+  responsiveChannelLabel,
+  withResponsiveValue,
+  withoutResponsiveChannel,
+  withoutResponsiveRule,
+  type ResponsiveChannel,
+} from './responsive-editor';
+import { BREAKPOINT_LABELS } from './viewer-params';
 
 /**
  * Studio 客户端状态：唯一真值仍然是 DesignStore 里的 DesignDocument（§9/§16）。
@@ -1417,6 +1426,70 @@ export class StudioStore {
       ids.map((id) => ({ op: 'set', nodeId: id, path: `states.${clip.state}`, value: clip.patch })),
     );
     return ids.length;
+  }
+
+  /**
+   * §14：断点规则的人工写入。三种动作（写一个键 / 抹一个键 / 清掉整档）共用这一条路：
+   * **每个节点算自己那份新数组**，因为"这个值改了投影没有"要看它自己的投影，
+   * 多选广播不是把同一份值贴过去。
+   *
+   * 投影本来就是这个值的节点不进 ops（`responsive-editor` 会把它剪掉，这里再比一次 JSON）：
+   * 一条不改任何东西的事务不该占撤销栈，也不该把文档标脏（§150/§159）。
+   * 返回真正落到的节点数，界面据此说"改了 3 个"而不是"改了 5 个"。
+   */
+  private applyResponsive(
+    nodeIds: readonly NodeId[],
+    label: string,
+    nextFor: (node: DesignNode) => ResponsiveRule[],
+  ): number {
+    if (isStudioReadOnly()) return 0;
+    const ops: PatchOp[] = [];
+    for (const id of nodeIds) {
+      const node = this.snapshot.page?.nodes[id];
+      if (!node) continue;
+      const value = nextFor(node);
+      if (JSON.stringify(value) === JSON.stringify(node.responsive ?? [])) continue;
+      ops.push({ op: 'set', nodeId: id, path: 'responsive', value });
+    }
+    if (!ops.length) return 0;
+    this.execute(label, ops);
+    return ops.length;
+  }
+
+  /** 在 `breakpoint` 这一档覆盖一个通道（显示 / 宽 / 高 / 透明度），一次一条可撤销事务 */
+  setResponsiveValue(
+    nodeIds: readonly NodeId[],
+    breakpoint: BreakpointName,
+    channel: ResponsiveChannel,
+    value: unknown,
+  ): number {
+    return this.applyResponsive(
+      nodeIds,
+      `${BREAKPOINT_LABELS[breakpoint]}断点：改${responsiveChannelLabel(channel)}`,
+      (node) => withResponsiveValue(node, breakpoint, channel, value),
+    );
+  }
+
+  /** 抹掉这一档某一个通道的覆盖，别的档不动 */
+  clearResponsiveChannel(
+    nodeIds: readonly NodeId[],
+    breakpoint: BreakpointName,
+    channel: ResponsiveChannel,
+  ): number {
+    return this.applyResponsive(
+      nodeIds,
+      `${BREAKPOINT_LABELS[breakpoint]}断点：清除${responsiveChannelLabel(channel)}`,
+      (node) => withoutResponsiveChannel(node, breakpoint, channel),
+    );
+  }
+
+  /** 清掉整档的规则；这一档本来就没有规则的节点不产生事务 */
+  dropResponsiveRule(nodeIds: readonly NodeId[], breakpoint: BreakpointName): number {
+    return this.applyResponsive(
+      nodeIds,
+      `${BREAKPOINT_LABELS[breakpoint]}断点：清掉这一档`,
+      (node) => withoutResponsiveRule(node, breakpoint),
+    );
   }
 
   setPosition(nodeId: NodeId, x: number, y: number): void {

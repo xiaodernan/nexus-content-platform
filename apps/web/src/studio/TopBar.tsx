@@ -3,15 +3,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { studio, useStudioReady, type ViewportMode } from './store';
+import { BREAKPOINT_LABELS, VIEWPORT_OPTIONS } from './viewer-params';
 import { PublishPanel } from './PublishPanel';
 import { ExportPanel } from './ExportPanel';
 
+/**
+ * 顶栏那一排视口按钮。名字与宽度都取自 `viewer-params` 那一份表：
+ * 以前这里手抄了一份"移动 375 / 平板 768"，与访客页的"手机 375"两套叫法并存，
+ * 而数字抄的是模型里的常量——同一件事在两个界面里长得不一样，作者会以为它们不是一回事（§16）。
+ */
 const VIEWPORTS: { id: ViewportMode; label: string; hint: string }[] = [
   { id: 'design', label: '设计', hint: '模型原始画布宽度' },
-  { id: 'mobile', label: '移动 375', hint: '按 375px 重新求解布局' },
-  { id: 'tablet', label: '平板 768', hint: '按 768px 重新求解布局' },
-  { id: 'desktop', label: '桌面 1280', hint: '按 1280px 重新求解布局' },
-  { id: 'wide', label: '宽屏 1536', hint: '按 1536px 重新求解布局' },
+  ...VIEWPORT_OPTIONS.map((option) => ({
+    id: option.id as ViewportMode,
+    label: `${BREAKPOINT_LABELS[option.id]} ${option.width}`,
+    hint: `按 ${option.width}px 重新求解布局`,
+  })),
 ];
 
 /** §4 顶栏：Project · File · Preview · Share · Publish + 撤销/重做 + 保存状态 + viewport 切换 */

@@ -138,7 +138,9 @@ interface Box {
   height: number;
 }
 
-const BREAKPOINT_ORDER: BreakpointName[] = [
+/** 断点由窄到宽。`applyResponsive` 用它筛"哪些档的规则适用于这一档"，
+ *  人工编辑入口（§14 的面板）用同一份排序写入规则——两份秩序必须是同一个数组，不能各抄一份。 */
+export const BREAKPOINT_ORDER: readonly BreakpointName[] = [
   "mobile",
   "tablet",
   "desktop",

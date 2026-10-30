@@ -7,6 +7,7 @@ import {
   makeTokenRef,
   tokenRefKey,
   NODE_STATES,
+  type BreakpointName,
   type ColorValue,
   type DesignNode,
   type NodeState,
@@ -16,6 +17,17 @@ import {
 import { cn } from '@/lib/cn';
 import { resolveColor } from './render';
 import { STATE_LABELS } from './state-labels';
+import {
+  VIEWPORT_OPTIONS,
+} from './viewer-params';
+import {
+  designValueOf,
+  hasResponsiveRule,
+  responsiveChannelsOf,
+  responsiveImpactOf,
+  projectedValueOf,
+  type ResponsiveChannel,
+} from './responsive-editor';
 import { studio, useStudio, useStudioReady } from './store';
 
 const FITS: { value: NonNullable<Extract<Paint, { kind: 'image' }>['fit']>; label: string }[] = [
@@ -231,6 +243,10 @@ export function PropertiesPanel() {
         )}
       </Section>
 
+      <Section title="断点（§14）">
+        <ResponsiveSection nodes={nodes} />
+      </Section>
+
       <Section title="状态">
         <div className="grid grid-cols-2 gap-[var(--nexus-space-2)]">
           {nodes.length === 1 ? (
@@ -247,6 +263,264 @@ export function PropertiesPanel() {
           <AlignMenu onAlign={(edge) => studio.alignSelection(edge)} disabled={nodes.length < 2} />
         </div>
       </Section>
+    </div>
+  );
+}
+
+/**
+ * §14 断点规则的人工入口（ADR-0069 欠的那一寸）。
+ *
+ * 这条链以前只有两个写入方：AI 配方与代码视图的变体类，面板只读地显示"tablet 下为 W×H"。
+ * 这里让作者自己写：**一次一个通道、一条可撤销事务**（§150），写下去的每个键都会真的
+ * 改变那一档的投影（等于原值的写入被 `responsive-editor` 剪掉，不占撤销栈，§159）。
+ *
+ * 点断点那一格**同时把画布切到那一档**：`store.resolveFor` 的缓存键含 viewport（store.ts:403），
+ * 换档就重解布局，所以这里改的键在画布上当场可见——预览用的就是发布页那一份 `resolveLayout`，
+ * 不是第二套渲染（ADR-0063）。
+ *
+ * 根画框不在这张面板的管辖范围：图层列表面从根的**孩子**起（`flattenLayers` 的
+ * `pushChildren(root, 0)`，layers-flat.ts:45，且 Ctrl+A 也显式排掉根，CanvasStage.tsx:272），
+ * 画布上点根画框是取消选择（`hitNode.id === layout.rootId`），
+ * 所以这一节永远只拿到可编辑的元素。根那一档的宽由断点给出、不读模型，
+ * 那条事实由 `packages/design-model/test/layout.test.ts` 的「视口宽度压过 modelRoot」钉住，
+ * 界面上的披露在「页面」那一节（`PageProperties`）。
+ */
+function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
+  const state = useStudioReady();
+  const [bp, setBp] = useState<BreakpointName>(() => (state.viewport === 'design' ? 'tablet' : state.viewport));
+  // 数字输入走草稿+失焦提交：一路打字不该产生一路可撤销事务（与状态编辑器里的颜色同一口径）
+  const [drafts, setDrafts] = useState<Record<string, string | undefined>>({});
+  const ids = nodes.map((n) => n.id);
+
+  const mixedOf = <T,>(pick: (node: DesignNode) => T): T | typeof MIXED => {
+    const first = pick(nodes[0]!);
+    return nodes.every((n) => JSON.stringify(pick(n)) === JSON.stringify(first)) ? first : MIXED;
+  };
+  const impactOf = (breakpoint: BreakpointName) => mixedOf((n) => responsiveImpactOf(n, breakpoint));
+  const impact = impactOf(bp);
+  const hasAnyRule = nodes.some((n) => hasResponsiveRule(n, bp));
+
+  const pickBreakpoint = (next: BreakpointName) => {
+    setBp(next);
+    setDrafts({});
+    // 画布跟着编辑的那一档走：改完当场看得见，不必再去顶栏切一次
+    studio.setViewport(next);
+  };
+
+  const commitNumber = (channel: ResponsiveChannel, key: string) => {
+    const raw = drafts[key];
+    setDrafts({ ...drafts, [key]: undefined });
+    if (raw === undefined || raw.trim() === '') return;
+    const next = Number(raw);
+    if (Number.isFinite(next)) studio.setResponsiveValue(ids, bp, channel, next);
+  };
+
+  // 通道值可能是数字、关键字（hug/fill）、布尔，或**绑到 token 的引用对象**——
+  // 显示一律 JSON 化，不做"数字才算数"的假设（那会把 token 绑定的尺寸读成 undefined）
+  const rowValue = (channel: ResponsiveChannel): unknown =>
+    mixedOf((n) => projectedValueOf(n, bp, channel) as never);
+
+  const hasOverride = (channel: ResponsiveChannel) =>
+    nodes.some((n) => responsiveChannelsOf(n, bp).includes(channel));
+
+  const textOf = (value: unknown): string =>
+    value === undefined ? '默认' : typeof value === 'string' ? value : JSON.stringify(value);
+  /** 「设计」那一边的读数也要按多选算：两个节点的设计值不一样时说"混合"，
+   *  而不是拿 `nodes[0]` 那个数冒充整批（§159：界面不能说出模型里没有的值） */
+  const designOf = (channel: ResponsiveChannel): string => {
+    const value = mixedOf((n) => designValueOf(n, channel) as never);
+    return value === MIXED ? '混合' : textOf(value);
+  };
+
+  return (
+    <div className="flex flex-col gap-[var(--nexus-space-2)]" data-responsive-editor data-responsive-breakpoint={bp}>
+      <p className="text-11 text-fg-3">
+        窄一档的规则会带到更宽的档（手机→全部、平板→桌面与宽屏）。写下去的每一个键都会真的改变那一档的投影：
+        等于原值的写入会被剪掉，不占撤销栈。
+      </p>
+
+      <div className="flex flex-wrap gap-1" data-responsive-breakpoints>
+        {VIEWPORT_OPTIONS.map((option) => {
+          const optionImpact = impactOf(option.id);
+          const on = option.id === bp;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => pickBreakpoint(option.id)}
+              className={cn('rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11', on ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1')}
+              data-breakpoint-tab={option.id}
+              data-breakpoint-impact={optionImpact === MIXED ? 'mixed' : optionImpact}
+              aria-pressed={on}
+            >
+              {option.label}
+              {optionImpact === MIXED ? '（混合）' : optionImpact > 0 ? `（改 ${optionImpact} 处）` : ''}
+            </button>
+          );
+        })}
+        {state.viewport !== 'design' ? (
+          <button
+            type="button"
+            onClick={() => studio.setViewport('design')}
+            className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-3 hover:text-fg-1"
+            data-responsive-back-to-design
+          >
+            回设计尺寸
+          </button>
+        ) : null}
+      </div>
+
+      <p className="text-12 text-fg-2" data-responsive-reading>
+        {VIEWPORT_OPTIONS.find((o) => o.id === bp)?.label} 这一档：
+        {impact === MIXED
+          ? `选中的 ${nodes.length} 个元素改的通道数不一致`
+          : impact > 0
+            ? `改 ${impact} 处投影${
+                hasAnyRule ? '' : '（都来自更窄那一档的规则：这一档自己没有规则，清除键要等这一档写了才出现）'
+              }`
+            : hasAnyRule
+              ? '这一档的规则一处投影都没改——它跟设计值和更窄档的继承撞上了（AI 配方或代码视图写进来的空覆盖，按下面那颗清掉）'
+              : '还没有规则'}
+        · 画布按{state.viewport === 'design' ? '设计尺寸（不在预览这一档）' : ` ${state.viewport} 档`}呈现
+      </p>
+
+      <div className="flex items-center gap-2">
+        <span className="w-14 shrink-0 text-12 text-fg-2">显示</span>
+        {(['visible', 'hidden'] as const).map((kind) => {
+          const want = kind === 'visible';
+          const current = rowValue('visible');
+          return (
+            <button
+              key={kind}
+              type="button"
+              onClick={() => studio.setResponsiveValue(ids, bp, 'visible', want)}
+              className={cn(
+                'rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11',
+                current === want ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1',
+              )}
+              data-responsive-visible={kind}
+            >
+              {want ? '显示' : '隐藏'}
+            </button>
+          );
+        })}
+        <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3" data-responsive-channel="visible">
+          {rowValue('visible') === MIXED ? '混合' : `这一档 ${rowValue('visible') ? '显示' : '隐藏'} · 设计 ${designOf('visible')}`}
+        </span>
+        {hasOverride('visible') ? (
+          <button
+            type="button"
+            onClick={() => studio.clearResponsiveChannel(ids, bp, 'visible')}
+            className="px-1 text-12 text-fg-3 hover:text-danger-ink"
+            title="清除这一档的显示覆盖"
+            data-responsive-clear="visible"
+          >
+            ×
+          </button>
+        ) : null}
+      </div>
+
+      {(['size.width', 'size.height'] as const).map((channel) => {
+        const axis = channel === 'size.width' ? 'width' : 'height';
+        const current = rowValue(channel);
+        return (
+          <div key={channel} className="flex items-center gap-2">
+            <span className="w-14 shrink-0 text-12 text-fg-2">{channel === 'size.width' ? '宽' : '高'}</span>
+            <input
+              type="number"
+              min={0}
+              value={drafts[channel] ?? (typeof current === 'number' ? String(current) : '')}
+              placeholder={current === MIXED ? '混合' : typeof current === 'string' ? current : '跟随'}
+              onChange={(e) => setDrafts({ ...drafts, [channel]: e.target.value })}
+              onBlur={() => commitNumber(channel, channel)}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+              }}
+              className="w-20 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
+              data-responsive-input={channel}
+            />
+            {(['hug', 'fill'] as const).map((kind) => (
+              <button
+                key={kind}
+                type="button"
+                title={kind === 'hug' ? 'hug：贴合内容' : 'fill：填满父级'}
+                onClick={() => studio.setResponsiveValue(ids, bp, channel, kind)}
+                className={cn(
+                  'rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11',
+                  current === kind ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3',
+                )}
+                data-responsive-size-kind={`${channel}:${kind}`}
+              >
+                {kind === 'hug' ? 'H' : 'F'}
+              </button>
+            ))}
+            <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3" data-responsive-channel={channel}>
+              这一档 {current === MIXED ? '混合' : textOf(current)} · 设计 {designOf(channel)}
+              {` (${axis})`}
+            </span>
+            {hasOverride(channel) ? (
+              <button
+                type="button"
+                onClick={() => studio.clearResponsiveChannel(ids, bp, channel)}
+                className="px-1 text-12 text-fg-3 hover:text-danger-ink"
+                title={`清除这一档的${channel === 'size.width' ? '宽' : '高'}覆盖`}
+                data-responsive-clear={channel}
+              >
+                ×
+              </button>
+            ) : null}
+          </div>
+        );
+      })}
+
+      <div className="flex items-center gap-2">
+        <span className="w-14 shrink-0 text-12 text-fg-2">透明度</span>
+        <input
+          type="number"
+          min={0}
+          max={1}
+          step={0.05}
+          value={drafts.opacity ?? (typeof rowValue('style.opacity') === 'number' ? String(rowValue('style.opacity')) : '')}
+          placeholder={rowValue('style.opacity') === MIXED ? '混合' : '跟随'}
+          onChange={(e) => setDrafts({ ...drafts, opacity: e.target.value })}
+          onBlur={() => commitNumber('style.opacity', 'opacity')}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          }}
+          className="w-20 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
+          data-responsive-input="style.opacity"
+        />
+        <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3" data-responsive-channel="style.opacity">
+          这一档 {rowValue('style.opacity') === MIXED ? '混合' : textOf(rowValue('style.opacity'))} · 设计{' '}
+          {designOf('style.opacity')}
+        </span>
+        {hasOverride('style.opacity') ? (
+          <button
+            type="button"
+            onClick={() => studio.clearResponsiveChannel(ids, bp, 'style.opacity')}
+            className="px-1 text-12 text-fg-3 hover:text-danger-ink"
+            title="清除这一档的透明度覆盖"
+            data-responsive-clear="style.opacity"
+          >
+            ×
+          </button>
+        ) : null}
+      </div>
+
+      <button
+        type="button"
+        disabled={!hasAnyRule}
+        onClick={() => studio.dropResponsiveRule(ids, bp)}
+        className={cn(
+          'rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-12',
+          hasAnyRule ? 'text-danger-ink hover:bg-bg-2' : 'cursor-not-allowed text-fg-3 opacity-50',
+        )}
+        data-responsive-drop-rule={bp}
+      >
+        清掉{VIEWPORT_OPTIONS.find((o) => o.id === bp)?.label.split(' ')[0]}这一档的全部覆盖
+      </button>
     </div>
   );
 }
@@ -530,6 +804,12 @@ function PageProperties() {
         {responsive ? (
           <p className="mt-1 text-12 text-fg-3" data-page-resolved-size>
             {state.viewport} 下为 {rw} × {rh}
+          </p>
+        ) : null}
+        {state.viewport !== 'design' ? (
+          <p className="mt-1 text-12 text-fg-3" data-page-root-width-from-breakpoint>
+            这一档的根宽由断点给出（{rw}px），不是模型里的那个数——换视口只改投影，
+            模型仍是 {page.width} × {page.height}。所以断点面板编辑的是元素，根画框不在其中。
           </p>
         ) : null}
       </Section>
