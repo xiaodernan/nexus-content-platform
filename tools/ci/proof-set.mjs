@@ -26,6 +26,12 @@
 // `docs/evidence/agents/sweep.mjs`, so the agents sweep and the build read the same function, and a marker
 // quoted inside a string or a block comment buys nothing on either channel (amendment 94's tokenizer).
 //
+// v563 (amendment 538) — A GREEN ROW SPEAKS ONE LINE. Amendment 535's bounds named the hole: a hosted green
+// said only `OK Ns`, so a proof that exited 0 having graded nothing read exactly like one that asserted
+// `440/440`. Under each OK line the runner now prints the row's own last non-blank STDOUT line — stdout, not
+// the combined stream, because a Node warning after a summary is not the summary — bounded to 300 bytes; a red
+// row's verdict is still `causeOf` alone, and a kill has no last word.
+//
 // Run from the repository root after `npm run build`:
 //   npm run verify:proofs
 //   node tools/ci/proof-set.mjs --only remix        # one row, for iteration
@@ -119,7 +125,13 @@ const runOne = (r, budgetMs) =>
     const started = Date.now();
     const child = spawn(process.execPath, [join(ROOT, r.file)], { cwd: ROOT, windowsHide: true });
     let out = '';
-    child.stdout.on('data', (b) => (out += b));
+    // v563 — the row's own last word is its STDOUT, kept separately: stderr carries Node warnings, and a
+    // warning printed after a summary is not the summary (measured: remix's combined tail ended in one).
+    let said = '';
+    child.stdout.on('data', (b) => {
+      out += b;
+      said += b;
+    });
     child.stderr.on('data', (b) => (out += b));
     let killed = false;
     const timer = setTimeout(() => {
@@ -128,11 +140,23 @@ const runOne = (r, budgetMs) =>
     }, budgetMs);
     child.on('close', (code) => {
       clearTimeout(timer);
-      done({ ...r, ms: Date.now() - started, code, killed, tail: out });
+      done({ ...r, ms: Date.now() - started, code, killed, tail: out, said });
     });
   });
 
 export const verdictOf = (s) => (s.killed ? 'TIMEOUT' : s.code === 0 ? 'OK' : 'RED');
+
+/**
+ * v563 (amendment 538) — a green row used to say only `OK 284.7s`, so a hosted log could not tell a proof that
+ * asserted `440/440` from one that exited 0 having graded nothing; amendment 535's bounds named exactly that
+ * hole. The LAST non-blank line of the row's STDOUT is printed under its verdict (falling back to the combined
+ * tail only when stdout is silent): bounded in bytes, and only for OK — a red row's verdict is `causeOf`
+ * (v550), and a kill has no last word. Measured before shipping: the naive combined-tail rule printed remix's
+ * Node ExperimentalWarning, not its ALL SECTIONS PASSED summary.
+ */
+export function lastLineOf(tail) {
+  return (String(tail).split(/\r?\n/).map((l) => l.trim()).filter(Boolean).pop() || '').slice(0, 300);
+}
 
 /**
  * The sentence that names the cause, not a window onto a stack: an `AssertionError` line IS the proof's own
@@ -199,6 +223,10 @@ async function main() {
     process.stdout.write(`  ${r.name.padEnd(22)} ${r.file} [${r.budget.from} ${r.budget.ms}ms] ... `);
     const s = await runOne(r, r.budget.ms);
     console.log(`${verdictOf(s)} ${(s.ms / 1000).toFixed(1)}s`);
+    if (verdictOf(s) === 'OK') {
+      const line = lastLineOf(s.said) || lastLineOf(s.tail);
+      if (line) console.log(`      | ${line}`);
+    }
     rows.push(s);
   }
 

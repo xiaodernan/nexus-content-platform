@@ -4,7 +4,7 @@
 // found an exclusion's reason false: every arm rewrites a COPY of the gate or the runner inside a plane under
 // `../nexus-ci-arms-plane-<pid>`, and the only file this tool ever wrote inside the repository was the receipt.
 // With the receipt now written only when its content (not its date) would change, scheduling the arms cannot
-// rewrite a graded byte, so `verify:arms` is a derived row and the build re-earns the 42 arms on every run.
+// rewrite a graded byte, so `verify:arms` is a derived row and the build re-earns the whole arm set on every run.
 //
 // Why this exists, stated the way §60 requires: amendment 514 shipped `.github/workflows/ci.yml`'s first
 // `verify:*` step and `tools/ci/proof-set.mjs`, and a shipped gate is worth exactly as much as the day someone
@@ -25,7 +25,9 @@
 // than call the proof red — amendment 78's two colours, measured through the door that ships them. v550 adds the
 // pair that grades the CAUSE itself: an assertion whose subject sits on its second line must reach the log
 // (R12), and the stack under it must not (R13) — the runner's first hosted red, `verify:package-counts` on
-// 40920204170, was printed as a headline and nothing else, and the rows it named were invisible.
+// 40920204170, was printed as a headline and nothing else, and the rows it named were invisible. v563 adds the
+// pair that grades the GREEN channel (amendment 538): a green row's own last line must reach the log (R14), and
+// a red row's stdout must not borrow that gutter (R15) — the hole amendment 535 named in its own bounds.
 //
 // Nothing an ARM writes survives: each one gets its own plane directory, built from pristine bytes read out of
 // `SRC` (derived from THIS file's own location, not from the caller's cwd), and is removed the moment the arm
@@ -315,6 +317,20 @@ const RUNNER_ARMS = [
     tag: 'R13-stack-frames-are-not-the-cause',
     bodies: { ...BASE_BODIES, 'docs/evidence/stub/b.mjs': "console.error('AssertionError [ERR_ASSERTION]: the number is wrong\\n    at Object.<anonymous> (/tmp/stub.mjs:3:9)\\n    at Module._compile (node:internal/modules/cjs/loader:1454:14)');\nprocess.exit(3);\n" },
     argv: [], code: 1, has: [/── verify:stub-b RED ──/, /the number is wrong/], lacks: [/at Object/, /Module\._compile/, /NOTHING RAN/], ran: true,
+  },
+  // v563 (amendment 538) — a GREEN row must say what it did, and a red row must not borrow the same channel.
+  // R14 is satisfied only when the row's own LAST line reaches the log under the verdict and its earlier line
+  // does not; R15 is the boundary — a red row's stdout is not a verdict, so its last line does not appear at
+  // all and the cause (v550) is the only thing that speaks.
+  {
+    tag: 'R14-green-row-speaks-its-last-line',
+    bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': "console.log('first line, not the last');\nconsole.log(\"R14 the stub's last word\");\n" },
+    argv: [], code: 0, has: [/verify:stub-c\s+\S+ .*OK/, /^ {6}\| R14 the stub's last word$/m, ALL_GREEN], lacks: [/^ {6}\| first line/m], ran: true,
+  },
+  {
+    tag: 'R15-red-row-does-not-borrow-the-gutter',
+    bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': "console.log('R15 tail');\nconsole.error('AssertionError [ERR_ASSERTION]: R15 the stub refused');\nprocess.exit(3);\n" },
+    argv: [], code: 1, has: [/── verify:stub-c RED ──/, /R15 the stub refused/], lacks: [/R15 tail/], ran: true,
   },
 ];
 
