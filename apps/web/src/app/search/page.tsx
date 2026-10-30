@@ -1,5 +1,6 @@
 import { searchPlatform, SEARCH_NOT_COVERED, SEARCH_ORDER_METHOD, normalizeQuery } from '@/server/domain/search';
 import { currentUserOrNull } from '@/server/domain/session';
+import { SearchBox } from './SearchBox';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,19 +25,12 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         <span className="font-mono text-12 text-fg-3">{result.signedIn ? '九类目标 · 内容组只覆盖你自己的项目' : '未登录：只搜公开项目与公开主页'}</span>
       </header>
 
-      <form action="/search" method="get" className="flex items-center gap-2" data-search-form>
-        <input
-          name="q"
-          defaultValue={q}
-          aria-label="搜索内容"
-          data-search-input
-          placeholder="项目 / 用户 / 世界 / 游戏 / 角色 / 设计稿 / 组件 / 资产"
-          className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-3 py-2 text-14 text-fg-1 outline-none focus:bg-bg-2"
-        />
-        <button type="submit" data-search-submit className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-4 py-2 text-13 text-accent-fg">
-          搜
-        </button>
-      </form>
+      {/* §165：建议来自真实命中（同一份可见性判定），历史只存在这台设备上。
+          没有 JS 时仍是原生 GET 表单——建议与历史是增强，不是唯一入口。 */}
+      <SearchBox initialQuery={q} />
+      <p className="-mt-3 text-11 text-fg-3" data-search-suggest-note>
+        键入两个字符起给出建议——建议就是真实命中，点开即到；最近搜索只存在这台设备上，可逐条删或清空。
+      </p>
 
       {result.tooShort ? (
         <p className="text-13 text-fg-2" data-search-too-short>

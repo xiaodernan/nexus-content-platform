@@ -59,6 +59,12 @@
 - [x] **游戏页的 Space / 方向键劫持**（第二十二片 notMeasured 第 2 条）：`GamePlay` / `RpgPlay` / `WorldWalk`
       三处 window keydown 与 Studio 同一处修复，判据收成 `apps/web/src/lib/keyboard.ts` 一份；
       真发布 `/play` 三臂 + 世界页两臂**先红后绿**，`theme-toggle` 六组合复跑无回归。第二十三片。
+- [x] **发布链路补上分镜这一格（§40 × §56，2026-10-30）**：迁移 0046 给 `published_projects` 加
+      `storyboard_document`；发布时与 `game_document` 同一口径原样钉住（**插入分支漏列是 e2e 抓出来的真缺陷**，
+      先红后绿）；公开页新增只读 `/n/<handle>/<slug>/storyboard`（合同解析失败照实说"读不出来"，
+      不悄悄变成"没有分镜"；只说镜头表，不冒充视频），作品页加 `[data-published-storyboard]` 入口。
+      凭证：集成测 +2（真库，该文件 11 条全绿）；e2e 一条通过（截图 `screenshots/published-storyboard.png` /
+      `published-storyboard-entry.png`）；`npm run typecheck` 9 个 tsconfig 干净；eslint 0。
 - [~] **移动端布局体检（公开页优先）**：第一片已量（`e2e/mobile-layout.spec.ts`，第十三片）——真发布语料
       五张 × 两栏，读数在 `docs/EVALUATION.md`：帧宽全 1440、390 下要平移 1082px、首屏可见 27%、
       `a[data-action-author]` 56×21。**还欠的是那两半**：① `resolveLayout` 没传 `breakpoint`，作者的
@@ -1502,7 +1508,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   （本机 1 万行）上选中 trigram 索引，`projects`（1252 行）与两字中文查询规划器仍走 Seq Scan——
   这条迁移要等表长大才兑现，现在别拿"建了索引"当性能结论。
   仍欠：相关度排序（要真打分得先有 §49 的向量半）、文档正文检索（同上，不拿全局 LIKE 扫 jsonb 冒充）、
-  搜索建议与历史。
+  ~~搜索建议与历史~~ **2026-10-31 已还（ADR-0075）**：建议复用同一份查询与可见性判定（每组 2 条、
+  取前 6，键入 250ms 防抖 + 中止上一发，按 IP+用户 120 次/分限流）；历史只存本机 localStorage
+  （8 条，可逐条删/清空）。读数与臂见文末「§165 搜索建议与历史」。
 - [x] SEO（§166）— **2026-09-25 落地**：公开作品页的 head 全部服务端渲染（`/n/<handle>/<slug>` 的 SSR 本来就是真的），
   规则集中在 `apps/web/src/server/domain/seo.ts`——一份**纯投影**：吃 `PublishedPage` + origin，吐
   metadata / JSON-LD / 「省略了什么、为什么」，不碰数据库也不读请求头，所以每条规则都能在单测里单独钉住。
@@ -3465,7 +3473,8 @@ Studio 的「分镜」面板入口、镜头的 `referenceAssetId` 接上 §38/§
 
 **这一片欠的**：Studio 的「分镜」面板入口（现在只有 HTTP + 库，界面上点不出来）、
 分镜进 §49 知识索引（对 AI 不可见）、镜头参考图真的接上 §38/§39 那条生成链、
-§150 的补丁与库里的行怎么配（撤销栈在客户端，写库要过同一份 PUT）、发布链路里没有分镜这一格。
+§150 的补丁与库里的行怎么配（撤销栈在客户端，写库要过同一份 PUT）、发布链路里没有分镜这一格
+（2026-10-30 已还：迁移 0046 + 公开分镜页 + 作品页入口，凭证见 TESTING）。
 
 ## §40 的第四片：「分镜」面板进 Studio——每次改镜头都是一个补丁事务
 
@@ -3498,7 +3507,8 @@ Studio 的「分镜」面板入口、镜头的 `referenceAssetId` 接上 §38/§
 还原后 store md5 与探针前一致（`30d7b41c…`）。全量 `npx vitest run` 99 文件 / 1051 条绿，`npm run typecheck` 干净。
 
 **这一片欠的**：分镜进 §49 知识索引（AI 看不见它，**已由下一片补上**）、镜头的 `referenceAssetId` 真的接上 §38/§39 那条生成链、
-`videoAssetId` 要真 provider 才有值（时间线因此永远不可播）、发布链路里没有分镜这一格、
+`videoAssetId` 要真 provider 才有值（时间线因此永远不可播）、发布链路里没有分镜这一格
+（2026-10-30 已还，同上）、
 移动镜头（↑↓）与插镜（＋）只有 e2e 里那一条被点过。
 
 ## §49 × §40：分镜进知识索引——存得下但查不着，等于对 AI 不存在
@@ -8515,6 +8525,33 @@ ADR-0069 只接了**手动**那一半（`?viewport=`）；不点链接的访客�
 1024 起左栏内联是设计本身，用"适应窗口装得进去"守，不用份额守。
 
 **仍欠**：1025–1279 之间的具体断点没有逐档读数（同一布局区间）；iOS Safari 与手势未量。
+
+## §165 搜索建议与历史：建议就是真实命中，历史只留在设备上（2026-10-31）
+
+§165 落地时欠着"搜索建议与历史"。这一片按 ADR-0075 补上，且守住原来那条纪律——
+**没有假实时**：建议来自 `searchPlatform` 的同一份查询与可见性判定（`perGroup=2`、取前 6），
+所以"建议里有的，结果里一定有"；历史存本机 localStorage（8 条），平台看不到搜过什么。
+
+**落点**
+
+- `GET /api/search/suggest?q=`：`no-store`，按 `IP + 用户` 限流 120 次/分钟；两个字符起回结果。
+- `SearchBox`（客户端）：250ms 防抖 + 中止上一发请求；combobox 语义（`aria-expanded` /
+  `aria-controls` / `aria-activedescendant`），↓/↑/Enter/Esc 可用，**Esc 之后 ↓ 重新打开**。
+- `search-history.ts`：规整（去空白、压空格、80 字）、同串忽略大小写只留最近一次、上限 8、
+  坏 JSON 与配额满都静默降级；挂载后才读，避免水合不一致。
+- 没有 JS 也能搜：表单仍是原生 GET。
+
+**读数**
+
+- `/api/search/suggest?q=mvsj0rjc` 匿名返回 1 条公开项目（`查看器夹具mvsj0rjc` → `/n/...`）。
+- `apps/web/test/search-history.test.ts` 8 条；`e2e/search-suggest.spec.ts` 2 条全绿。
+
+**红过的两次**
+
+- 自然红：Esc 之后 ↓ 不再打开列表（组件只在 `open` 时处理方向键），门红在 `aria-activedescendant`。
+- 臂：把建议标题改成固定串 → e2e 红在"建议里应当有那条公开项目"——门验的是来源，不是渲染。
+
+**仍欠**：429 时界面只是不显示建议（没有"歇一秒"的可见提示）；点击率/命中质量没有真流量读数。
 
 ## §SEC 第三十一片：第二屏——翻页、屏号，以及那颗「重新数一遍」其实一直没接上电（2026-10-30）
 

@@ -2000,6 +2000,19 @@ ADR-0069 只接了显式 `?viewport=`；不点参数时访客仍拿设计尺寸�
 
 **notMeasured**：1025–1279 逐档读数（同一布局区间）、iOS Safari 与手势。
 
+#### 第三十三片（2026-10-31）：搜索建议与历史（§165 / ADR-0075）
+
+建议复用 `searchPlatform` 的同一份查询与可见性判定（`perGroup=2`、取前 6），历史只存本机
+localStorage。读数：
+
+- `GET /api/search/suggest?q=mvsj0rjc`（匿名）→ 1 条：`查看器夹具mvsj0rjc`，`/n/u77901fa3/...`。
+- `apps/web/test/search-history.test.ts` 8 条（规整/去重/上限/坏数据/配额满）。
+- `e2e/search-suggest.spec.ts` 2 条：键入 → 建议可见且 `aria-controls` 指向 listbox → Esc 收起 →
+  ↓ 重开 → Enter 打开；搜一次 → 刷新仍在 → 点芯片回到结果 → 清空后刷新不再出现。
+- 自然红一次（Esc 后 ↓ 不重开，门红在 `aria-activedescendant`）；臂一次（建议标题改成固定串 → 红）。
+
+**notMeasured**：429 时没有可见提示；建议的点击率与命中质量无真流量；跨设备历史明确不做。
+
 ### Performance
 
 
