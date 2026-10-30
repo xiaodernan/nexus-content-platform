@@ -1,7 +1,10 @@
 // NEXUS v528 (docs/evidence/ci) — THE CI WIRING IS ARMED AGAINST ITS OWN ROT, AND EACH ARM REDDENS AT THE CLAUSE IT NAMES (ADR 0016 amendment 514).
-// A HUMAN-RUN tool, not a proof: the CI population is DERIVED from `verify:*` scripts whose whole command is a
-// node call under docs/evidence, so this file is never scheduled as a row — it is the script that proves the
-// rows' gate cannot be quietly rewired.
+// v555 (amendment 536) — A ROW, NOT A HUMAN'S ERRAND. The sentence here used to say this file is "never
+// scheduled as a row" because its job is to break its own subject; measured, that was false in the way v546
+// found an exclusion's reason false: every arm rewrites a COPY of the gate or the runner inside a plane under
+// `../nexus-ci-arms-plane-<pid>`, and the only file this tool ever wrote inside the repository was the receipt.
+// With the receipt now written only when its content (not its date) would change, scheduling the arms cannot
+// rewrite a graded byte, so `verify:arms` is a derived row and the build re-earns the 42 arms on every run.
 //
 // Why this exists, stated the way §60 requires: amendment 514 shipped `.github/workflows/ci.yml`'s first
 // `verify:*` step and `tools/ci/proof-set.mjs`, and a shipped gate is worth exactly as much as the day someone
@@ -30,8 +33,14 @@
 // repository is the receipt (v542): after a run where every arm matched it stamps the sha256 of every subject it
 // graded, so a later change to any of those bytes has a way to be NOTICED — `verify:arms-freshness` reddens the
 // build until the arms are re-run. A red run writes nothing: a receipt may only come from a run that was whole.
+// v555: the write happens only when the receipt's CONTENT would change — a full run over unchanged bytes leaves
+// the file (and its `ranAt`) exactly as committed, which is what lets the build schedule this tool as a row
+// without a run re-stamping evidence bytes.
 //
-// Run from the repository root:  node docs/evidence/ci/ci-wiring-arms.mjs     (~9 minutes on this box, both halves)
+// sweep-budget-ms: 900000
+//
+// Run from the repository root:  node docs/evidence/ci/ci-wiring-arms.mjs     (~7 minutes on this box, both halves;
+// the row declares 15 minutes because four runner arms sleep between 0.6 s and 1.5 s by design)
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -282,7 +291,11 @@ const RUNNER_ARMS = [
   { tag: 'R4-list-runs-nothing', argv: ['--list'], code: 0, has: [/RUN      verify:stub-a/, /derived population 9 = runs 9 \+ excluded 0/], lacks: [/EXCLUDED/, /OK \d/], ran: false },
   { tag: 'R5-dangling-script-is-red-not-skipped', remove: ['docs/evidence/stub/d.mjs'], argv: [], code: 1, has: [/points at a proof file that is not on disk/], lacks: [ALL_GREEN], ran: false },
   { tag: 'R6-stale-exclusion-named', edits: [{ file: RUNNER, from: EXCLUDED_DECL, to: "export const EXCLUDED = [\n  {\n    file: 'docs/evidence/stub/ghost.mjs',\n    needs: 'a daemon this synthetic plane never starts — the arm plants a record for a proof nobody wires',\n  },\n];\n" }], argv: [], code: 1, has: [/EXCLUDED names a file that is not in the derived population/], lacks: [ALL_GREEN], ran: false },
-  { tag: 'R7-missing-build-is-named-not-red', bodies: { ...BASE_BODIES, 'docs/evidence/stub/e.mjs': `${stub('e')}const target = './packages/fake/dist/index.js';\nconsole.log(target);\n` }, argv: [], code: 1, has: [/the build these proofs grade is not there/], lacks: [/── verify:stub-e RED ──/], ran: false },
+  // v555 — the stub's target is ASSEMBLED, not written whole: the runner's `distNeeded` reads this row's own
+  // bytes for quoted `packages/…/dist` paths and would refuse to schedule the arms ("verify:arms needs
+  // packages/fake/dist") because of a path that only ever exists inside a synthetic plane. The evaluated stub
+  // still carries the whole literal, so R7 grades what it always graded.
+  { tag: 'R7-missing-build-is-named-not-red', bodies: { ...BASE_BODIES, 'docs/evidence/stub/e.mjs': `${stub('e')}const target = './${'packages'}/fake/dist/index.js';\nconsole.log(target);\n` }, argv: [], code: 1, has: [/the build these proofs grade is not there/], lacks: [/── verify:stub-e RED ──/], ran: false },
   { tag: 'R8-population-floor', scripts: Object.fromEntries(Object.entries(BASE_SCRIPTS).filter(([k]) => !['verify:stub-d', 'verify:stub-e'].includes(k))), argv: [], code: 1, has: [/admits almost nothing/], lacks: [ALL_GREEN], ran: false },
   { tag: 'R9-exclusion-without-a-reason', edits: [{ file: RUNNER, from: EXCLUDED_DECL, to: "export const EXCLUDED = [\n  {\n    file: 'docs/evidence/stub/a.mjs',\n    needs: 'docker',\n  },\n];\n" }], argv: [], code: 1, has: [/is excluded without naming what it needs/], lacks: [ALL_GREEN], ran: false },
   { tag: 'R10-budget-must-be-a-number', argv: ['--budget', 'abc'], code: 1, has: [/a budget is a whole number of milliseconds/], lacks: [/running 9 derived/], ran: false },
@@ -381,8 +394,19 @@ if (!ok) {
     console.log(`receipt: ${RECEIPT_FILE} was NOT written — the tree moved while the arms ran (${[...moved, ...(popMoved ? ['population'] : [])].join(', ')}); a receipt over bytes no arm graded is the staleness it exists to refuse`);
   } else {
     const receipt = makeReceipt({ root: SRC, armNames: results.map((r) => r.tag) });
-    writeFileSync(join(SRC, RECEIPT_FILE), `${JSON.stringify(receipt, null, 2)}\n`, 'utf8');
-    console.log(`receipt: ${RECEIPT_FILE} stamps ${receipt.arms} arm(s), ${Object.keys(receipt.subjects).length} subject hash(es) and ${receipt.population.length} derived row(s) — commit it with the bytes it graded`);
+    // v555 — the write is content-driven, not run-driven: a receipt that would differ from the committed one
+    // only in `ranAt` is left alone, so scheduling this tool as a build row never re-stamps evidence bytes.
+    // Content is compared field by field with the date dropped; `armNames` is in results order and `population`
+    // is sorted by name, so two runs over the same bytes build byte-identical content.
+    const stamp = (r) => JSON.stringify({ tool: r?.tool, scope: r?.scope, arms: r?.arms, matched: r?.matched, armNames: r?.armNames, subjects: r?.subjects, population: r?.population });
+    const path = join(SRC, RECEIPT_FILE);
+    const committed = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
+    if (stamp(committed) === stamp(receipt)) {
+      console.log(`receipt: ${RECEIPT_FILE} already stamps these bytes (${receipt.arms} arm(s), ${Object.keys(receipt.subjects).length} subject hash(es), ${receipt.population.length} derived row(s)) — left unchanged`);
+    } else {
+      writeFileSync(path, `${JSON.stringify(receipt, null, 2)}\n`, 'utf8');
+      console.log(`receipt: ${RECEIPT_FILE} stamps ${receipt.arms} arm(s), ${Object.keys(receipt.subjects).length} subject hash(es) and ${receipt.population.length} derived row(s) — commit it with the bytes it graded`);
+    }
   }
 }
 process.exitCode = ok ? 0 : 1;

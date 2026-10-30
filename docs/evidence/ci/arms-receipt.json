@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-10-30T03:43:43.028Z",
+  "ranAt": "2026-10-30T04:43:50.607Z",
   "arms": 42,
   "matched": 42,
   "armNames": [
@@ -51,7 +51,7 @@
   "subjects": {
     "workflow": "6e39ab2cb0bb78f2a2ed7e06f88085fc264ed638515708451a47415490983803",
     "gate": "1f62fecd095bb6934d2f8968199054a9cdc96e14d973d7da324122280de62d87",
-    "arms": "f51e26993c4d6a0b4ba99db86ee7c3835901290453aec281a33cca76340c92f6",
+    "arms": "c15e4d6a1d11e57d60a819e64dedb99b2c28e1d0a2ed9ffb2e979d5f7804fb71",
     "runner": "899504769fc865145abd89b4b62a4e5721587af8111920b7b5671b7d7f1b0819",
     "sweep": "ead49485592dc696b99878ef19ba4802519f43746a55956dc9c22dd5fcdb84a9",
     "scripts": "4f13a845cd9e400b99e3de1617490e81e04721dcbdbead22b5458e555fe2bc7f",
@@ -67,6 +67,11 @@
       "name": "verify:agent-pipeline",
       "file": "docs/evidence/agents/pipeline-proof.mjs",
       "marker": null
+    },
+    {
+      "name": "verify:arms",
+      "file": "docs/evidence/ci/ci-wiring-arms.mjs",
+      "marker": "// sweep-budget-ms: 900000"
     },
     {
       "name": "verify:arms-freshness",

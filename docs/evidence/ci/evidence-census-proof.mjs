@@ -138,12 +138,6 @@ export const ROSTER = [
     why: 'v529\'s 16-cell witness over the compiled tree-reaper rule, run against a FAKE plane in child processes; it deliberately skips the one cell that would issue a real `taskkill` against an invented pid, so it is a human-run measurement, never a build row',
   },
   {
-    file: 'docs/evidence/ci/ci-wiring-arms.mjs',
-    class: 'tool',
-    run: 'node docs/evidence/ci/ci-wiring-arms.mjs',
-    why: '40 witness arms that rewrite one byte-range of the wiring gate per arm; deliberately not a verify:* script so the derivation can never schedule a file whose job is to break its own subject (amendment 514\'s README records the choice)',
-  },
-  {
     file: 'docs/evidence/agents/amendment129-probe.mjs',
     class: 'tool',
     run: 'node docs/evidence/agents/amendment129-probe.mjs',

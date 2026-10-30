@@ -10,7 +10,7 @@ footnote to the evidence tree; it is the reason the evidence tree can rot.
 ```
 npm run verify:proofs      # the build's own row: run every derived proof row, exit 1 on any RED
 npm run verify:ci-wiring   # the gate over the wiring itself (and a row inside the set it enumerates)
-node docs/evidence/ci/ci-wiring-arms.mjs   # 40 witness arms, by hand — see below why it is not a row
+npm run verify:arms        # the 42 witness arms — a row since v555
 ```
 
 | § | what `ci-wiring-proof.mjs` refuses |
@@ -42,9 +42,11 @@ node docs/evidence/ci/ci-wiring-arms.mjs   # 40 witness arms, by hand — see be
   let "slow" and "wrong" share a word.
 - **`docs/evidence/ci/ci-wiring-proof.mjs`** is the gate, and it is `verify:ci-wiring`, i.e. **a row inside the
   set it enumerates** (amendment 102: a census that contains the counter must count it).
-- **`docs/evidence/ci/ci-wiring-arms.mjs`** is a human-run tool, deliberately **not** a `verify:*` script, so
-  the derivation can never schedule it. It rewrites one byte-range of one plane file per arm and accepts the
-  arm only when the gate reddens at exactly the clause the arm aimed at.
+- **`docs/evidence/ci/ci-wiring-arms.mjs`** is `verify:arms` — **a row since v555**, after the reason that kept it
+  human-run was measured and found false: every arm rewrites a COPY of the gate or the runner inside a plane
+  under `../nexus-ci-arms-plane-<pid>`, and the tool's only in-tree write (the receipt) now happens only when
+  its content would change. It rewrites one byte-range of one plane file per arm and accepts the arm only when
+  the gate reddens at exactly the clause the arm aimed at.
 
 ### Why §9 reads refusals first
 
@@ -220,13 +222,25 @@ people.
 - **What the row costs.** 363.1 s on the hosted runner against 672.6 s locally (a Windows box also running the arms) — 6 m 3 s of the proofs step, 33.7% of it, and the largest single row in the population (next: `verify:mutation OK 200.8s`, `verify:isolated OK 145.5s`, `verify:package-counts OK 67.6s`). Without it the step would have read ~11 m 56 s, within a minute of v552's 11 m 21 s at 103 rows. It is the first row whose proof starts four long-lived servers to grade one button.
 - **The ceiling's first real reading.** 20 m 32 s of 60 minutes is 2.9× headroom — the first measurement of what the population actually costs with a live-stack row inside it, rather than what it may cost. §11's rule (ceiling strictly below the rows' worst-case sum, now ~8.5 h at 104 rows) is unchanged; the ceiling remains the tighter bound.
 - **What this green does NOT say.** The runner prints a row's output only when it reddens, so the hosted verdict is exit-based: `OK` means the harness exited 0. The `440/440` count is the local measurement of the same bytes at amendment 533, not a number the hosted log printed. A verbose channel that surfaces a green row's own last line is not claimed here. One green contact is one sample, not a no-flake guarantee, and the 2.9× headroom is a fact about this runner, not a promise about a slower one.
+- **The record's own bytes.** Run `41002581846` (sha `9c858a7`, the commit that wrote this section) was green end to end: job 04:23:03Z → 04:43:15Z = 20 m 12 s, `verify:publish-e2e … OK 359.7s`, `104/104 green of a derived population of 104 · residue named: 0`.
+
+### v555 — the last human-run gate is scheduled: the 42 arms become a row, and their one in-tree write stops re-stamping unchanged bytes (ADR 0016 amendment 536)
+
+- **The ROSTER's reason was false, in the way v546 found an exclusion's reason false.** The census declared `ci-wiring-arms.mjs` a TOOL with "deliberately not a verify:* script so the derivation can never schedule a file whose job is to break its own subject". Measured: every arm rewrites a COPY of the gate or the runner inside `../nexus-ci-arms-plane-<pid>`, removed the moment the arm ends — nothing mutated survives. The only file the tool ever wrote inside the repository was the receipt, and v542's receipt re-stamped on every run; a re-stamp of evidence bytes is not a broken subject.
+- **What had to change for a schedule to be safe.** The receipt write is now content-driven: the tool rebuilds the receipt and compares it field by field — `tool`, `scope`, `arms`, `matched`, `armNames`, `subjects`, `population` — with the committed one, dropping `ranAt`; identical content leaves the file untouched and prints "already stamps these bytes — left unchanged". A scheduled run therefore cannot rewrite a graded byte, and the row's own run proves it: `arms-receipt.json` hashed the same before and after its 284.7 s.
+- **The first refusal the schedule met was a borrowed prerequisite.** The runner derives a row's dist prerequisites from quoted paths in the row's own bytes (an over-approximating safety net, kept as it is), and R7's synthetic stub body carried the literal `./packages/fake/dist/index.js` — so the runner refused to schedule the arms at all: `verify:arms needs packages/fake/dist`. The stub's target is now assembled (`'./${'packages'}/fake/dist/index.js'`): the plane's stub still carries the whole literal, R7 still grades what it graded (42/42 again), and `distNeeded('docs/evidence/ci/ci-wiring-arms.mjs')` now reads `[]`. The row author is the one who must not borrow prerequisites.
+- **The wiring.** `verify:arms` → `node docs/evidence/ci/ci-wiring-arms.mjs`, placed after `verify:evidence-census` so `verify:arms-freshness`, which runs earlier, grades the COMMITTED receipt before the arms row can refresh it. The tool declares `// sweep-budget-ms: 900000` in its first column; four runner arms sleep by design, and the row is now the second-largest in the population after the browser harness.
+- **Red, then green, in the census's own sentences.** With the script added and the ROSTER entry removed but the README untouched, the census refused four drifts verbatim: "the README's ROW row says 104 rows; this census derived 105" · "the README's ROW row says 104 run + 0 excluded; this census derived 105 run + 0 excluded" · "the README says 6 TOOL module(s); this census derived 5" · "the README's "at this ref" sentence says 104 running + 0 excluded; this census derived 105 + 0". Now it reads `116 tracked modules close as 105 row + 4 helper + 2 swept + 5 tool + 0 deferred · 0 unclassified · rows 105+0`. The wiring gate reads `[§5] derived population 105 = runs 105 + named residue 0` · `[§9] 11 row(s) of 105 declare their own: … verify:arms=900000ms …` · `[§11] job ceiling 60 min is BELOW the rows' own worst case 523 min (105 rows)`, and freshness stays 8/8.
+- **The measurement.** Through the real runner: `verify:arms     docs/evidence/ci/ci-wiring-arms.mjs [declared 900000ms] ... OK 284.7s`, `2/2 green of a derived population of 105 · residue named: 0` (the second row is `verify:arms-freshness`, selected by the same `--only arms`). Standalone on this box the tool read 438 s at v553's bytes under load and ~5.5 min again after the R7 change. The column's first hosted contact is the next CI run and is not claimed here.
+- **Bounds.** The row adds roughly 5-8 minutes to a proofs step that read 17 m 59 s at v554; the job read 20 m 12 s of its 60-minute ceiling at v554, so the headroom goes from 2.9× to about 2.3×. The row's green is exit-based — the runner prints a row's output only when it reddens. R2 and R2c kill a 1.5 s stub at a 600 ms budget; on a starved runner that margin is the likeliest flake, and the first hosted contact is where it will say so. `verify:arms-freshness` remains the fast check for partial runs and the receipt a human artifact in the common case, because a run over unchanged bytes does not rewrite it.
+
 
 ### What this does NOT claim
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
 never turned into a `verify:*` script stays invisible to the build. Amendments 516–519 closed that half:
 the census below gives every one of the **116** tracked modules a disposition, and the derived population is
-**104 running rows + 0 excluded by name** at this ref (v532 triaged the swept population and wired sixteen
+**105 running rows + 0 excluded by name** at this ref (v532 triaged the swept population and wired sixteen
 Node-only proofs; v533 ran the sweep over all 81 and wired the forty-eight green dist+spawn proofs). And no
 gate here can make GitHub run: it reads bytes
 committed in this repository, and whether the workflow executes on `master` is knowable only from the real
@@ -245,10 +259,10 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 | class | count at this ref | how it is decided |
 | --- | --- | --- |
-| ROW | **104** (104 run + 0 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
+| ROW | **105** (105 run + 0 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **4** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs`, `ci/arms-receipt.mjs` |
 | SWEPT | **2** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — at this ref only `cwd-axis` and `tree-axis`, the tree-motion witnesses, which stay there by measurement (their verdict is about whether the walked tree moved during the run) |
-| TOOL | **6** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, two arms scripts, the isolated-build arms, the SVG generator) |
+| TOOL | **5** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, one plane-arms script, the isolated-build arms, the SVG generator) |
 | DEFERRED | **0** | none at this ref — the three Studio lane proofs v530 deferred are ROWS since v531 (the workflow pre-pulls `node:22-alpine`, their one blocker). The class and its refusals stay for the next proof a sandbox really blocks |
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the

@@ -46,6 +46,7 @@
     "verify:ci-wiring": "node docs/evidence/ci/ci-wiring-proof.mjs",
     "verify:arms-freshness": "node docs/evidence/ci/arms-freshness-proof.mjs",
     "verify:evidence-census": "node docs/evidence/ci/evidence-census-proof.mjs",
+    "verify:arms": "node docs/evidence/ci/ci-wiring-arms.mjs",
     "verify:audit-contract": "node docs/evidence/m9/audit-contract-proof.mjs",
     "verify:record-encoding": "node docs/evidence/agents/record-encoding-proof.mjs",
     "verify:pipeline": "node docs/evidence/studio/pipeline-proof.mjs",
