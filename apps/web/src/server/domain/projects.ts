@@ -244,8 +244,11 @@ async function writeDocument(tx: Tx, projectId: string, document: DesignDocument
     sortIndex: index,
   }));
   const tokenDiff = diffByKey(Array.from(current.tokens.values()), incomingTokens, (token) => token.key);
-  for (const token of tokenDiff.removed) {
-    await tx.delete(designTokens).where(and(eq(designTokens.projectId, projectId), eq(designTokens.key, token.key)));
+  // 删除也批量：切分支 / 换主题时 tokenDiff.removed 可能有几十上百条，逐条 delete 是往返绑定的。
+  if (tokenDiff.removed.length > 0) {
+    for (const part of chunked(tokenDiff.removed.map((token) => token.key))) {
+      await tx.delete(designTokens).where(and(eq(designTokens.projectId, projectId), inArray(designTokens.key, part)));
+    }
   }
   // 一次多行 INSERT，而不是一行一条：500 条 token 逐条 INSERT 实测 2229ms，批量后 89ms
   // （同一事务、同一台机器；见 docs/PERFORMANCE.md 的 §147 写放大一格）。自动保存每改一次就跑，
@@ -286,8 +289,10 @@ async function writeDocument(tx: Tx, projectId: string, document: DesignDocument
   const pageDiff = diffByKey(Array.from(current.pages.values()), incomingPages, (page) => page.id);
   const removedPageIds = new Set(pageDiff.removed.map((page) => page.id));
   const addedPageIds = new Set(pageDiff.added.map((page) => page.id));
-  for (const page of pageDiff.removed) {
-    await tx.delete(pages).where(and(eq(pages.projectId, projectId), eq(pages.id, page.id)));
+  if (pageDiff.removed.length > 0) {
+    for (const part of chunked(pageDiff.removed.map((page) => page.id))) {
+      await tx.delete(pages).where(and(eq(pages.projectId, projectId), inArray(pages.id, part)));
+    }
   }
   for (const page of pageDiff.added) {
     await tx.insert(pages).values({ id: page.id, projectId, name: page.name, rootNodeId: page.rootNodeId, width: page.width, height: page.height, backgroundColor: page.backgroundColor });
@@ -308,8 +313,10 @@ async function writeDocument(tx: Tx, projectId: string, document: DesignDocument
     slots: component.slots ?? null,
   }));
   const componentDiff = diffByKey(Array.from(current.components.values()), incomingComponents, (component) => component.id);
-  for (const component of componentDiff.removed) {
-    await tx.delete(components).where(and(eq(components.projectId, projectId), eq(components.id, component.id)));
+  if (componentDiff.removed.length > 0) {
+    for (const part of chunked(componentDiff.removed.map((component) => component.id))) {
+      await tx.delete(components).where(and(eq(components.projectId, projectId), inArray(components.id, part)));
+    }
   }
   // 同 token：一次多行 INSERT 取代逐条（组件通常少，但同一个自动保存路径，没有理由再逐条付往返）
   if (componentDiff.added.length > 0) {
