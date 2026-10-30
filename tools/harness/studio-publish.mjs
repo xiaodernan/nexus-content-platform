@@ -17,6 +17,15 @@
  *   §6 the document that reached the database is the Studio's OWN document
  *   §7 teardown removes the container and both processes
  *
+ * v552 (ADR 0016 amendment 533) — the sections have grown far past the seven listed above, and the harness
+ * was RED at `1c21bbd` for reasons that were all its own: 421 of 440 assertions passed, and the 19 reds
+ * were five filter/pager waits that accepted the window their click had not replaced yet, two summaries
+ * that graded the sentence the panel said BEFORE v379 moved the tally to the screen, and twelve economy
+ * rows waited for inside a panel a second toggle click had CLOSED (or that a guard had left showing the
+ * previous account). The repairs are predicate-level and the panel is now opened only on a fresh page —
+ * see `openEconomyPanel`, `panelSays` and the comments in place. The measured verdict is in the m7
+ * README's v552 section; a red here still names the check and, for the economy waits, what the panel said.
+ *
  * Requires: Java 25, Maven, Docker, and the repo's node_modules (for `next`). Run:
  *   node tools/harness/studio-publish.mjs
  */
@@ -144,6 +153,36 @@ async function signInAs(page, handle, label) {
     { tries: 20, gapMs: 200, label: `${label}: the account to be set` },
   );
   assert.ok(set, `the account was not set (${label})`);
+}
+
+/**
+ * v552 — open the economy panel, for the account the device is NOW.
+ *
+ * The panel is a TOGGLE and it READS WHEN IT IS OPENED (§23 learned this and reloads after a sign-in).
+ * Two harness shapes had grown around that fact without honouring it: §78 clicked the toggle at a second
+ * sign-in and CLOSED the panel it had opened for the previous account, and §79's guard saw the panel open
+ * and skipped the click, leaving the subscriber's rows on screen under the creator's checks. Together they
+ * read as twelve 60-second waits for rows that were never rendered. The panel must be CLOSED before this opens it —
+ * a panel that survives an account change is showing the previous account's economy, which is the very
+ * sentence §23 wrote when it added its reload.
+ */
+async function openEconomyPanel(page, label) {
+  const open = await page.evaluate("document.querySelectorAll('[data-toolbar-economy]').length");
+  assert.equal(open, 0, `${label}: the economy panel was already open — it would answer for the previous account`);
+  await page.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+  const ready = await until(
+    async () => (await page.evaluate("document.querySelectorAll('[data-toolbar-economy]').length")) === 1,
+    { tries: 30, gapMs: 200, label: `${label}: the economy panel to open` },
+  );
+  assert.ok(ready, `the economy panel did not open (${label})`);
+}
+
+/** v552 — what the economy panel actually SAYS, so a wait that gives up names its subject. */
+async function panelSays(page, max = 240) {
+  const text = String(await page.evaluate("document.querySelector('[data-toolbar-economy]')?.textContent ?? ''"))
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text === '' ? '(the panel is not on the page)' : text.slice(0, max);
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -919,11 +958,14 @@ try {
           const actions = await page.evaluate(
             "Array.from(document.querySelectorAll('[data-trail-row]')).map(n => n.getAttribute('data-trail-action'))",
           );
-          return actions.length > 0 ? actions : false;
+          // v552 — the click is a FETCH, and until the answer lands the rows on screen are the PREVIOUS
+          // filter’s. "Non-empty" cannot tell a narrowed list from the stale one it replaced; the rows'
+          // own actions can, so this waits for a list that is wholly take-downs.
+          return actions.length > 0 && actions.every((a) => a === 'unpublish') ? actions : false;
         },
         { tries: 20, gapMs: 300, label: 'the take-down filter to narrow the rows' },
       );
-      const downActions = downOnly === false ? [] : downOnly;
+      const downActions = downOnly ?? [];
       check(
         'the take-down filter shows ONLY take-downs',
         downActions.length > 0 && downActions.every((a) => a === 'unpublish'),
@@ -942,11 +984,12 @@ try {
           const actions = await page.evaluate(
             "Array.from(document.querySelectorAll('[data-trail-row]')).map(n => n.getAttribute('data-trail-action'))",
           );
-          return actions.length > 0 ? actions : false;
+          // v552 — the same rule as the take-down filter above: wait for a list that is wholly publishes.
+          return actions.length > 0 && actions.every((a) => a === 'publish') ? actions : false;
         },
         { tries: 20, gapMs: 300, label: 'the publish filter to narrow the rows' },
       );
-      const pubActions = pubOnly === false ? [] : pubOnly;
+      const pubActions = pubOnly ?? [];
       check(
         'the publish filter shows ONLY publishes',
         pubActions.length > 0 && pubActions.every((a) => a === 'publish'),
@@ -1009,7 +1052,11 @@ try {
         async () => {
           const text = await page.evaluate("document.querySelector('[data-toolbar-trail]')?.textContent ?? ''");
           const m = /showing (\d+)–(\d+) of (\d+) · (\d+) on screen/.exec(text);
-          return m && Number(m[1]) === 1 ? m : false;
+          // v552 — "starts at row 1" is true of the PREVIOUS window too: after "All" is clicked the
+          // filtered footer still reads "showing 1–1 of N · 1 on screen" until the fetch lands, and the
+          // old predicate accepted it. The whole trail is back only when the rows ON SCREEN are the whole
+          // trail's rows — that number belongs to the answer, not to the click.
+          return m && Number(m[4]) === rows.length ? m : false;
         },
         { tries: 20, gapMs: 300, label: 'the whole trail back on the first window' },
       );
@@ -1465,11 +1512,12 @@ try {
     const likedOnly = await until(
       async () => {
         const actions = await page.evaluate("Array.from(document.querySelectorAll('[data-trail-row]')).map(n => n.getAttribute('data-trail-action'))");
-        return actions.length > 0 ? actions : false;
+        // v552 — the same stale-window race §9.6's filters had: wait for a list that is wholly likes.
+        return actions.length > 0 && actions.every((a) => a === 'like') ? actions : false;
       },
       { tries: 20, gapMs: 300, label: 'the like filter to narrow the rows' },
     );
-    const likeActions = likedOnly === null ? [] : likedOnly;
+    const likeActions = likedOnly ?? [];
     check(
       'the Liked filter shows ONLY likes',
       likeActions.length > 0 && likeActions.every((a) => a === 'like'),
@@ -2826,12 +2874,18 @@ try {
     );
     check('filtering by an action shows ONLY that action', narrowed !== null, `rows left: ${JSON.stringify(narrowed)}`);
 
-    // And the SUMMARY still counts the whole trail.
+    // And the SUMMARY counts the ROWS ON THE SCREEN — v379 moved the tally from "the whole trail" to the
+    // window, and this check went on grading a sentence the panel no longer says ("it should still say
+    // the whole trail" was true before v379 and false after, so the harness was red about its own date).
     const summaryAfter = await verbPage.evaluate("document.querySelector('[data-trail-summary]')?.textContent ?? ''");
+    const reportTally = /^of these (\d+) rows?: (.+)$/.exec(summaryAfter.trim());
     check(
-      'and the SUMMARY still counts the whole trail',
-      summaryAfter.includes('withdrew the report') && summaryAfter.includes('reported'),
-      `the summary says: ${JSON.stringify(summaryAfter)}`,
+      'and the SUMMARY counts the rows ON THE SCREEN — this window holds only the filings, and its verbs are theirs',
+      reportTally !== null
+        && Number(reportTally[1]) === narrowed
+        && reportTally[2].split(' · ').some((s) => /^\d+ reported$/.test(s))
+        && !reportTally[2].includes('withdrew the report'),
+      `the summary says: ${JSON.stringify(summaryAfter)} · the window holds ${JSON.stringify(narrowed)} row(s)`,
     );
 
     // And "All" puts everything back.
@@ -3023,12 +3077,18 @@ try {
     );
     check('and filtering by it shows ONLY the comment removals', removalRows !== null, `rows: ${JSON.stringify(removalRows)}`);
 
-    // And the SUMMARY still counts the whole trail.
+    // And the SUMMARY counts the ROWS ON THE SCREEN (v379) — this window holds only the removals, and
+    // "uncommented" must be the tally's word, not a substring of "commented" in a tally that counted a
+    // different trail. The old check graded the pre-v379 sentence and passed on the wrong reason.
     const removalSummary = await removalPage.evaluate("document.querySelector('[data-trail-summary]')?.textContent ?? ''");
+    const removalTally = /^of these (\d+) rows?: (.+)$/.exec(removalSummary.trim());
     check(
-      'and the SUMMARY still counts the whole trail',
-      removalSummary.includes('reported') && removalSummary.includes('commented'),
-      `the summary says: ${JSON.stringify(removalSummary)}`,
+      'and the SUMMARY counts the rows ON THE SCREEN — this window holds only the removals, and its verb is theirs',
+      removalTally !== null
+        && Number(removalTally[1]) === removalRows
+        && removalTally[2].split(' · ').some((s) => /^\d+ uncommented$/.test(s))
+        && !removalTally[2].split(' · ').some((s) => /^\d+ commented$/.test(s)),
+      `the summary says: ${JSON.stringify(removalSummary)} · the window holds ${JSON.stringify(removalRows)} row(s)`,
     );
     await removalPage.close();
   }
@@ -3198,7 +3258,11 @@ try {
       async () => (await backerPage.evaluate("!!document.querySelector('[data-economy-received]')")) === true,
       { tries: 120, gapMs: 500, label: 'the received subscriptions to show' },
     );
-    check('the creator’s received subscriptions are on screen', backerThere !== null, 'the rows are there');
+    check(
+      'the creator’s received subscriptions are on screen',
+      backerThere !== null,
+      backerThere !== null ? 'the rows are there' : `the panel says: ${JSON.stringify(await panelSays(backerPage))}`,
+    );
 
     const backers = await backerPage.evaluate(
       "Array.from(document.querySelectorAll('[data-economy-subscriber]')).map((s) => s.getAttribute('data-economy-subscriber'))",
@@ -3379,7 +3443,11 @@ try {
       async () => (await gavePage.evaluate("!!document.querySelector('[data-economy-given]')")) === true,
       { tries: 120, gapMs: 500, label: 'the given tips to show' },
     );
-    check('the tipper’s own side shows what they gave', gaveThere !== null, 'the rows are there');
+    check(
+      'the tipper’s own side shows what they gave',
+      gaveThere !== null,
+      gaveThere !== null ? 'the rows are there' : `the panel says: ${JSON.stringify(await panelSays(gavePage))}`,
+    );
 
     // And the SERVICE agrees, read independently of the browser.
     const gaveRaw = await gavePage.evaluate("localStorage.getItem('nexus-current-account')");
@@ -4515,14 +4583,22 @@ try {
     });
     check('the second tip is recorded', secondTip.status === 201 || secondTip.status === 200, `the service answered HTTP ${secondTip.status}`);
 
-    // The RECEIVED side — signed in as the recipient.
+    // The RECEIVED side — signed in as the recipient. The page is RELOADED after the sign-in, the rule
+    // §23 wrote down: the panel reads when it OPENS, and a panel opened before the account changed would
+    // answer for the previous one.
     await signInAs(tipPagerPage, 'ada', 'the recipient of the tips');
-    await tipPagerPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    await tipPagerPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(tipPagerPage, 'the tips pager page to hydrate as the recipient');
+    await openEconomyPanel(tipPagerPage, 'the tips pager page: the recipient');
     const receivedRows = await until(
       async () => (await tipPagerPage.evaluate("!!document.querySelector('[data-economy-payer]')")) === true,
       { tries: 120, gapMs: 500, label: 'the received tips to show' },
     );
-    check('the recipient’s tips are on screen', receivedRows !== null, 'the rows are there');
+    check(
+      'the recipient’s tips are on screen',
+      receivedRows !== null,
+      receivedRows !== null ? 'the rows are there' : `the panel says: ${JSON.stringify(await panelSays(tipPagerPage))}`,
+    );
 
     // The SERVICE counts the WHOLE table even when it carries one row — the difference the pager
     // is for, and the reason a window’s length could never be told as a total (v355).
@@ -4561,14 +4637,22 @@ try {
       `the panel says: ${JSON.stringify(receivedPanelText.slice(0, 160))} · the service says: ${JSON.stringify(oneReceivedBody.count)}`,
     );
 
-    // The GIVEN side — the same treatment for what this account gave.
+    // The GIVEN side — the same treatment for what this account gave. v552: this click used to land on
+    // the panel the recipient’s phase had OPENED, so it CLOSED it and the four waits below found no rows.
+    // A toggle needs to know which way it will flip, and a reload after the sign-in removes the question.
     await signInAs(tipPagerPage, 'bob', 'the tipper again');
-    await tipPagerPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    await tipPagerPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(tipPagerPage, 'the tips pager page to hydrate as the tipper');
+    await openEconomyPanel(tipPagerPage, 'the tips pager page: the tipper again');
     const givenRows = await until(
       async () => (await tipPagerPage.evaluate("!!document.querySelector('[data-economy-given]')")) === true,
       { tries: 120, gapMs: 500, label: 'the given tips to show' },
     );
-    check('the tipper’s own side shows what they gave', givenRows !== null, 'the rows are there');
+    check(
+      'the tipper’s own side shows what they gave',
+      givenRows !== null,
+      givenRows !== null ? 'the rows are there' : `the panel says: ${JSON.stringify(await panelSays(tipPagerPage))}`,
+    );
 
     const givenPager = await tipPagerPage.evaluate(`(() => {
       const newer = document.querySelector('[data-given-page="newer"]');
@@ -4631,12 +4715,16 @@ try {
 
     // The HELD side — signed in as the subscriber.
     await signInAs(econPagerPage, 'bob', 'the subscriber');
-    await econPagerPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    await openEconomyPanel(econPagerPage, 'the economy pager page: the subscriber');
     const heldRows = await until(
       async () => (await econPagerPage.evaluate("!!document.querySelector('[data-economy-subscription]')")) === true,
       { tries: 120, gapMs: 500, label: 'the held subscriptions to show' },
     );
-    check('the subscriber’s subscriptions are on screen', heldRows !== null, 'the rows are there');
+    check(
+      'the subscriber’s subscriptions are on screen',
+      heldRows !== null,
+      heldRows !== null ? 'the rows are there' : `the panel says: ${JSON.stringify(await panelSays(econPagerPage))}`,
+    );
 
     // The SERVICE counts the WHOLE table even when it carries one row — the difference the pager is
     // for, and the reason a window’s length could never be told as a total (v359).
@@ -4676,16 +4764,23 @@ try {
       `subscriptions: ${JSON.stringify(heldOffsetBody.subscriptions)}`,
     );
 
-    // The RECEIVED side and the PLANS — the creator’s two lists, on the same panel.
+    // The RECEIVED side and the PLANS — the creator’s two lists, on the same panel. v552: the old guard
+    // here skipped the click because the panel was still OPEN — showing the SUBSCRIBER's economy — and
+    // eight waits then spent their minute looking for the creator's rows inside the wrong account's
+    // panel. A reload after the sign-in makes "open" mean the account below.
     await signInAs(econPagerPage, 'ada', 'the creator');
-    await econPagerPage.evaluate(`(() => {
-      if (!document.querySelector('[data-toolbar-economy]')) document.querySelector('[data-toolbar-economy-toggle]').click();
-    })()`);
+    await econPagerPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(econPagerPage, 'the economy pager page to hydrate as the creator');
+    await openEconomyPanel(econPagerPage, 'the economy pager page: the creator');
     const receivedRows = await until(
       async () => (await econPagerPage.evaluate("!!document.querySelector('[data-economy-received]')")) === true,
       { tries: 120, gapMs: 500, label: 'the received subscriptions to show' },
     );
-    check('the creator’s received subscriptions are on screen', receivedRows !== null, 'the rows are there');
+    check(
+      'the creator’s received subscriptions are on screen',
+      receivedRows !== null,
+      receivedRows !== null ? 'the rows are there' : `the panel says: ${JSON.stringify(await panelSays(econPagerPage))}`,
+    );
 
     const creatorRaw = await econPagerPage.evaluate("localStorage.getItem('nexus-current-account')");
     const creatorId = JSON.parse(String(creatorRaw)).id;
@@ -4727,7 +4822,11 @@ try {
       async () => (await econPagerPage.evaluate("!!document.querySelector('[data-economy-plan]')")) === true,
       { tries: 120, gapMs: 500, label: 'the plans to show' },
     );
-    check('the creator’s plans are on screen', planRows !== null, 'the rows are there');
+    check(
+      'the creator’s plans are on screen',
+      planRows !== null,
+      planRows !== null ? 'the rows are there' : `the panel says: ${JSON.stringify(await panelSays(econPagerPage))}`,
+    );
 
     const onePlan = await fetch(`${apiBase}/plans?creator=${encodeURIComponent(creatorId)}&limit=1`);
     const onePlanBody = await onePlan.json();
