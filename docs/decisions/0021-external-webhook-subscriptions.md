@@ -1,7 +1,8 @@
 # 0021 — External webhook subscriptions: the first outbound contract
 
 - **Status:** Accepted (v557 the receiving half; v558 the on-demand `ping`; v559 the event fan-out; v560 the
-  delivery receipts; v561 the live-PostgreSQL end-to-end run — all landed and gated)
+  delivery receipts; v561 the live-PostgreSQL end-to-end run; v562 the owner's key rotation — all landed and
+  gated)
 - **Date:** 2026-10-30
 - **Milestone:** M10 (External Agent Ecosystem)
 
@@ -131,9 +132,12 @@ of having called that endpoint.
   would re-open the hole v558 closed. What the check cannot see is the address the CONNECTION actually uses
   (the transport resolves the name a second time): pinning the checked address into the request is a later
   decision, stated here rather than implied.
-- **No rotation.** A secret cannot be replaced in place; a subscriber that loses or suspects its secret
-  removes the subscription and makes a new one. A rotation door (two live secrets, one retiring) is a later
-  decision.
+- **Rotation is immediate, with no overlap.** Since v562 the owner may replace a subscription's signing key
+  (`POST /webhooks/{id}/rotate`), and the old key dies with the call: the row has ONE secret column and rotation
+  overwrites it, so the next attempt is signed with the new key and a receiver still holding the old one cannot
+  verify it. There is no grace window and no dual signature — an overlap would have to be modelled as two
+  secrets with an expiry, and that is a later decision. A subscriber that can accept neither an outage nor an
+  immediate switch must rotate in its own window; the service states this rather than hiding it.
 - **No auth.** The subscriber id is host-declared, like every other account id in this build, and anyone who
   can reach the service can list or remove a subscription by naming its owner. ADR 0018 is the reason.
 - **No idempotency key.** A retried delivery and a second event are the same bytes to a subscriber otherwise;
@@ -143,9 +147,10 @@ of having called that endpoint.
 
 ## Evidence
 
-- `npm run verify:api-tests` — `mvn -B test`, **481/481, 27 classes**, exit 0. v557/v558 contributed 61 cases
+- `npm run verify:api-tests` — `mvn -B test`, **487/487, 27 classes**, exit 0. v557/v558 contributed 61 cases
   (26 service, 10 signer, 11 controller, 10 dispatcher, 4 transport); v559 added 10 (6 dispatcher fan-out, 2
-  listener, 2 audit); v560 added 10 (6 delivery log, 2 dispatcher receipts, 2 controller). The signer's
+  listener, 2 audit); v560 added 10 (6 delivery log, 2 dispatcher receipts, 2 controller); v562 added 6 (4
+  service, 2 controller). The signer's
   expected HMAC is computed by a SECOND implementation (Node's `crypto.createHmac`), so the vector is an
   independent witness rather than the class agreeing with itself. The transport is graded against a socket the
   test owns (`ServerSocket` on loopback, one request): the bytes and headers that reach it are asserted to be
@@ -178,18 +183,22 @@ of having called that endpoint.
   the TRAIL's instant rather than their own clock, a real unpublish fanning out the same way while the trail
   keeps one entry per verb, the owner's ping writing ONE receipt (and none for the endpoint it was not
   addressed to), a refused ping (400/403/404) writing NOTHING, a stranger's account answered with an EMPTY
-  log, the window capped/narrowed/newest-first with the count beside it, `psql` counting five rows and
+  log, the window capped/narrowed/newest-first with the count beside it, `psql` counting four rows and
   finding NO `secret` column while the stored key equals the one the one-time answer gave, a removal that
-  leaves its receipts byte-identical, and a NEW JVM answering the same five rows after a restart. That last
-  section is the one a unit gate could not make: a `REQUIRES_NEW` row that never committed is visible
-  before the restart and gone after it.
+  leaves its receipts byte-identical, the owner ROTATING the remaining key (new 64-hex secret shown once,
+  endpoint/events/creation instant untouched, `psql` showing the old key is not retained, read doors still
+  printing none, 400/403/404 rotations leaving the stored key untouched, and no receipt written because a
+  rotation delivers nothing), and a NEW JVM answering the same four rows after a restart with the ROTATED
+  key still the stored one. The restart section is the one a unit gate could not make: a `REQUIRES_NEW` row
+  that never committed is visible before the restart and gone after it.
 - **Still not graded, stated:** no delivery reaches a REAL subscriber's server. RFC 6761 reserves
   `hooks.invalid`, so the live run grades the fan-out, the ownership rule, the resolution step, the three
   outcomes and the receipt, and fails at the network step by design; a local receiver is impossible because
   the service refuses every loopback and private address at subscription time AND at delivery time (the
   proof asserts the first refusal rather than working around it). The signature over delivered bytes
   remains graded by the unit vector, and the transport by the test's own socket. The retry/outbox,
-  retention, rotation, auth and idempotency bounds above are unchanged.
+  retention, auth and idempotency bounds above are unchanged; rotation is graded by the unit cases and
+  by the live run, and its no-overlap limit is stated above rather than hidden.
 
 ## Date
 

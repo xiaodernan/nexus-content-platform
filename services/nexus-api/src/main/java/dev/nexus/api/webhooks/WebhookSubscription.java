@@ -101,6 +101,15 @@ public class WebhookSubscription {
         return secret;
     }
 
+    /**
+     * v562 — replace the signing key. The old value is not retained anywhere: this row holds ONE secret
+     * column, so a call made after the rotation is signed with the new key and a receiver still holding the
+     * old one cannot verify it. There is no overlap window and no second signature; that is the boundary.
+     */
+    void rotateSecret(String newSecret) {
+        this.secret = newSecret;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

@@ -125,6 +125,30 @@ public class WebhookService {
     }
 
     /**
+     * v562 — mint a NEW signing key for an existing subscription, for the owner only.
+     *
+     * <p>The old key dies with this call: the row has one secret column and rotation overwrites it, so the
+     * next attempt is signed with the new key and a receiver still holding the old one cannot verify it.
+     * There is no grace window and no dual signature — an overlap would have to be modelled as two secrets
+     * with an expiry, and this milestone does not pretend to have built that.
+     *
+     * @throws NoSuchWebhook when the id names nothing — a rotation with no subject is a 404, not a create
+     * @throws NotYourWebhook when the row belongs to another subscriber — 403, the same ownership rule the
+     *     removal and ping doors apply
+     */
+    @Transactional
+    public WebhookSubscription rotateSecret(String webhookId, String subscriberId) {
+        String subscriber = requireSubscriber(subscriberId);
+        WebhookSubscription row = repository.findById(webhookId)
+                .orElseThrow(() -> new NoSuchWebhook("webhook \"" + webhookId + "\" does not exist"));
+        if (!row.getSubscriberAccountId().equals(subscriber)) {
+            throw new NotYourWebhook("webhook \"" + webhookId + "\" belongs to another subscriber");
+        }
+        row.rotateSecret(newSecret());
+        return repository.save(row);
+    }
+
+    /**
      * Remove an endpoint. {@code false} when the id names nothing — "already gone" is not an error, the same
      * rule the plan and subscription doors follow.
      *

@@ -192,6 +192,45 @@ class WebhookControllerTest {
         assertThat(answer.getBody().get("message")).contains("does not exist");
     }
 
+    // ── v562: rotation is the SECOND once-only answer ──────────────────────────────────────────────
+
+    @Test
+    void rotationAnswersTwoHundredWithTheNewSecretAndTheOnceOnlyRule() throws Exception {
+        WebhookSubscription rotated = new WebhookSubscription(
+                "wh-1", SUBSCRIBER, ENDPOINT, "publish,like", "r".repeat(64), AT);
+        when(service.rotateSecret("wh-1", SUBSCRIBER)).thenReturn(rotated);
+
+        ResponseEntity<WebhookDtos.WebhookSecret> answer = controller().rotate("wh-1", SUBSCRIBER);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        WebhookDtos.WebhookSecret body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.id()).isEqualTo("wh-1");
+        assertThat(body.url()).isEqualTo(ENDPOINT);
+        assertThat(body.events()).containsExactly("publish", "like");
+        assertThat(body.createdAt()).isEqualTo(AT.toEpochMilli());
+        assertThat(body.secret()).hasSize(64);
+        assertThat(body.note()).isEqualTo(WebhookController.SECRET_SHOWN_ONCE);
+
+        JsonNode wire = mapper.valueToTree(body);
+        assertThat(wire.get("secret").asText()).hasSize(64);
+        assertThat(wire.get("note").asText()).contains("only time");
+    }
+
+    @Test
+    void aRotationWithoutAnOwnerIsAskedOfTheServiceAndComesBackAsAFourHundred() throws Exception {
+        when(service.rotateSecret("wh-1", null)).thenThrow(new InvalidWebhook("a rotation needs a subscriber"));
+
+        // The door does not second-guess the service's ownership rule; it passes the missing owner through.
+        assertThatThrownBy(() -> controller().rotate("wh-1", null)).isInstanceOf(InvalidWebhook.class);
+        org.mockito.Mockito.verify(service).rotateSecret("wh-1", null);
+
+        ResponseEntity<Map<String, String>> answer = controller()
+                .invalid(new InvalidWebhook("a rotation needs a subscriber"));
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        assertThat(answer.getBody()).containsEntry("error", "invalid-webhook");
+    }
+
     // ── v560: the delivery log door ────────────────────────────────────────────────────────────────
 
     @Test

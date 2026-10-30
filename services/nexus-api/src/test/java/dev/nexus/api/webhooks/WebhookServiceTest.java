@@ -329,4 +329,49 @@ class WebhookServiceTest {
         assertThatThrownBy(() -> service.unsubscribe("wh-1", null)).isInstanceOf(InvalidWebhook.class);
         verify(repository, never()).findById("wh-1");
     }
+
+    // ── v562: rotation replaces the ONE key a row holds, and touches nothing else ─────────────────────
+
+    @Test
+    void theOwnerRotatesTheSecretAndEveryOtherFieldStays() {
+        WebhookSubscription own = row("wh-1", SUBSCRIBER, ENDPOINT);
+        when(repository.findById("wh-1")).thenReturn(Optional.of(own));
+        when(repository.save(any(WebhookSubscription.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        WebhookSubscription rotated = service.rotateSecret("wh-1", SUBSCRIBER);
+
+        assertThat(rotated.getSecret()).matches("[0-9a-f]{64}");
+        assertThat(rotated.getSecret()).isNotEqualTo("0".repeat(64));
+        assertThat(rotated.getWebhookId()).isEqualTo("wh-1");
+        assertThat(rotated.getSubscriberAccountId()).isEqualTo(SUBSCRIBER);
+        assertThat(rotated.getEndpointUrl()).isEqualTo(ENDPOINT);
+        // Rotation is about the KEY: the instruction (events and creation instant) is not rewritten.
+        assertThat(rotated.eventList()).containsExactly("publish");
+        assertThat(rotated.getCreatedAt()).isEqualTo(AT);
+        verify(repository).save(own);
+    }
+
+    @Test
+    void somebodyElsesWebhookCannotBeRotated() {
+        when(repository.findById("wh-1")).thenReturn(Optional.of(row("wh-1", "acct-bob", ENDPOINT)));
+        assertThatThrownBy(() -> service.rotateSecret("wh-1", SUBSCRIBER))
+                .isInstanceOf(NotYourWebhook.class)
+                .hasMessageContaining("another subscriber");
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void rotatingAnIdThatNamesNothingIsANotFoundRatherThanACreate() {
+        when(repository.findById("wh-gone")).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.rotateSecret("wh-gone", SUBSCRIBER))
+                .isInstanceOf(NoSuchWebhook.class)
+                .hasMessageContaining("does not exist");
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void rotationWithoutAnOwnerIsRefusedBeforeAnyRead() {
+        assertThatThrownBy(() -> service.rotateSecret("wh-1", null)).isInstanceOf(InvalidWebhook.class);
+        verify(repository, never()).findById("wh-1");
+    }
 }

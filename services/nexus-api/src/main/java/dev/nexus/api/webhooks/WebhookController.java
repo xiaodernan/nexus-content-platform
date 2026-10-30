@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v557–v560 — the HTTP surface for webhook subscriptions. Five doors, and the differences between them
+ * M10 v557–v562 — the HTTP surface for webhook subscriptions. Six doors, and the differences between them
  * are the rules:
  *
  * <ul>
@@ -31,6 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
  *       its endpoints, newest first, optionally narrowed to one subscription.
  *   <li>{@code DELETE /webhooks/{id}?subscriber=} — remove one. 200 either way: an id that names nothing is
  *       "already gone", not an error.
+ *   <li>{@code POST /webhooks/{id}/rotate?subscriber=} — mint a NEW signing key, owner only. 200 with the
+ *       same once-only answer the subscription door gave; the old key is not retained.
  *   <li>{@code POST /webhooks/{id}/ping?subscriber=} — make this service POST one signed {@code ping} to the
  *       endpoint, and answer what the endpoint did. The owner's id is required: a stranger must not be able
  *       to aim this service at somebody else's URL.
@@ -45,9 +47,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/")
 public class WebhookController {
 
-    /** The sentence a subscription's answer carries beside the secret. */
+    /**
+     * The sentence a subscription's OR rotation's answer carries beside the secret. v562 made the second
+     * half true: a lost secret is replaced by rotating this subscription, not by making a new one.
+     */
     public static final String SECRET_SHOWN_ONCE =
-            "this is the only time this secret is readable — a subscription that loses it must be replaced";
+            "this is the only time this secret is readable — a lost secret is rotated, not guessed, and this answer cannot be replayed";
 
     private final WebhookService service;
     private final WebhookDispatcher dispatcher;
@@ -150,6 +155,30 @@ public class WebhookController {
         }
         boolean removed = service.unsubscribe(webhookId, subscriberId);
         return ResponseEntity.ok(Map.of("ok", true, "webhookId", webhookId, "removed", removed));
+    }
+
+    /**
+     * v562 — rotate this subscription's signing key, for the owner only.
+     *
+     * <p>200 with the same once-only shape the subscription door answers: id, endpoint, events and creation
+     * instant unchanged; the NEW secret readable here and nowhere else; the rule restated beside it. The old
+     * key is gone the moment this commits — every later attempt is signed with the new one, and a receiver
+     * still holding the old key will fail its own verification. A stranger's id is 403, an id that names
+     * nothing is 404, and a missing subscriber is 400: no rotation is a delivery, so none of them writes a
+     * receipt.
+     */
+    @PostMapping("/webhooks/{webhookId}/rotate")
+    public ResponseEntity<WebhookSecret> rotate(
+            @PathVariable String webhookId,
+            @RequestParam(name = "subscriber", required = false) String subscriberId) {
+        WebhookSubscription row = service.rotateSecret(webhookId, subscriberId);
+        return ResponseEntity.ok(new WebhookSecret(
+                row.getWebhookId(),
+                row.getEndpointUrl(),
+                row.eventList(),
+                row.getCreatedAt().toEpochMilli(),
+                row.getSecret(),
+                SECRET_SHOWN_ONCE));
     }
 
     /**

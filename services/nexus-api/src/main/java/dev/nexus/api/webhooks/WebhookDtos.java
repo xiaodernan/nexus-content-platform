@@ -27,7 +27,8 @@ public final class WebhookDtos {
      * The answer to a subscription — the same row, and the secret it was signed with.
      *
      * <p>{@code note} states the rule in the answer itself rather than only in the documentation: a caller
-     * that keeps the secret has it, and a caller that loses it must make a new subscription.
+     * that keeps the secret has it, and a caller that loses it rotates this subscription (v562) rather than
+     * making a new one.
      */
     public record WebhookSecret(
             String id, String url, List<String> events, long createdAt, String secret, String note) {
