@@ -174,7 +174,7 @@ class ToolControllerTest {
         when(service.get("tool-1")).thenReturn(stored);
         when(service.schemaOf(stored)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.Tool> answer = controller().read("tool-1");
+        ResponseEntity<ToolDtos.Tool> answer = controller().read("tool-1", null);
 
         assertThat(answer.getStatusCode().value()).isEqualTo(200);
         assertThat(answer.getBody()).isNotNull();
@@ -272,12 +272,12 @@ class ToolControllerTest {
                 .isInstanceOf(UnknownTool.class);
     }
     @Test
-    void aDeclarationIsAnsweredByItsGlobalNameWithTheSameSixFields() throws Exception {
+    void aDeclarationIsAnsweredByItsGlobalNameWithTheSameSevenFields() throws Exception {
         ToolEntry mine = row("tool-1", OWNER, "a.tool");
         when(service.getByName("a.tool")).thenReturn(mine);
         when(service.schemaOf(mine)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.Tool> answer = controller().readByName("a.tool");
+        ResponseEntity<ToolDtos.Tool> answer = controller().readByName("a.tool", null);
 
         assertThat(answer.getStatusCode().value()).isEqualTo(200);
         ToolDtos.Tool body = answer.getBody();
@@ -285,7 +285,7 @@ class ToolControllerTest {
         assertThat(body.id()).isEqualTo("tool-1");
         assertThat(body.name()).isEqualTo("a.tool");
         assertThat(body.inputSchema().isObject()).isTrue();
-        assertThat(mapper.valueToTree(body).size()).isEqualTo(6);
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(7);
     }
     @Test
     void deprecatingAnswersTheSentenceAndHint() {
@@ -376,5 +376,103 @@ class ToolControllerTest {
         assertThat(refused).isInstanceOf(InvalidTool.class);
         assertThat(refused.getMessage()).contains("101");
         verifyNoInteractions(service);
+    }
+    // ── v578: the pin, and the conditional read it makes possible ─────────────────────────────────────
+    private static final String PIN = "61a98b7253feb4139f9e031f6bedc00f917353564cf627e5f3b603be5c9891a7";
+
+    @Test
+    void aWholeDeclarationCarriesItsPinAsAFieldAndAsAStrongETag() throws Exception {
+        ToolEntry stored = row("tool-1", OWNER, "a.tool");
+        when(service.get("tool-1")).thenReturn(stored);
+        when(service.contractSha256(stored)).thenReturn(PIN);
+        when(service.schemaOf(stored)).thenReturn(emptyObject());
+
+        ResponseEntity<ToolDtos.Tool> answer = controller().read("tool-1", null);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        assertThat(answer.getBody()).isNotNull();
+        assertThat(answer.getBody().contractSha256()).isEqualTo(PIN);
+        // Quoted, because an ETag is a quoted-string; strong, because the value is a digest of these bytes.
+        assertThat(answer.getHeaders().getETag()).isEqualTo("\"" + PIN + "\"");
+    }
+
+    @Test
+    void askingForThePinTheCallerAlreadyHoldsIsA304WithNoBody() {
+        ToolEntry stored = row("tool-1", OWNER, "a.tool");
+        when(service.get("tool-1")).thenReturn(stored);
+        when(service.contractSha256(stored)).thenReturn(PIN);
+
+        ResponseEntity<ToolDtos.Tool> answer = controller().read("tool-1", "\"" + PIN + "\"");
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(304);
+        assertThat(answer.getBody()).isNull();
+        assertThat(answer.getHeaders().getETag()).isEqualTo("\"" + PIN + "\"");
+        // The schema was never parsed: a 304 is cheaper than the answer it replaces, not a slower one.
+        verify(service, org.mockito.Mockito.never()).schemaOf(any(ToolEntry.class));
+    }
+
+    @Test
+    void aTagThatNamesAnotherContractStillAnswersTheDeclaration() throws Exception {
+        ToolEntry stored = row("tool-1", OWNER, "a.tool");
+        when(service.get("tool-1")).thenReturn(stored);
+        when(service.contractSha256(stored)).thenReturn(PIN);
+        when(service.schemaOf(stored)).thenReturn(emptyObject());
+
+        String stale = "\"" + "0".repeat(64) + "\"";
+        ResponseEntity<ToolDtos.Tool> answer = controller().read("tool-1", stale);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        assertThat(answer.getBody()).isNotNull();
+        assertThat(answer.getBody().contractSha256()).isEqualTo(PIN);
+    }
+
+    @Test
+    void aStarTagNamesAnyExistingDeclaration() throws Exception {
+        ToolEntry stored = row("tool-1", OWNER, "a.tool");
+        when(service.get("tool-1")).thenReturn(stored);
+        when(service.contractSha256(stored)).thenReturn(PIN);
+
+        assertThat(controller().read("tool-1", "*").getStatusCode().value()).isEqualTo(304);
+    }
+
+    @Test
+    void aTagIsMatchedHoweverAClientSpellsIt() {
+        assertThat(ToolController.matchesPin(null, PIN)).isFalse();
+        assertThat(ToolController.matchesPin("   ", PIN)).isFalse();
+        assertThat(ToolController.matchesPin(PIN, PIN)).isTrue();
+        assertThat(ToolController.matchesPin("\"" + PIN + "\"", PIN)).isTrue();
+        assertThat(ToolController.matchesPin("W/\"" + PIN + "\"", PIN)).isTrue();
+        assertThat(ToolController.matchesPin("\"deadbeef\", \"" + PIN + "\"", PIN)).isTrue();
+        assertThat(ToolController.matchesPin("\"deadbeef\"", PIN)).isFalse();
+        assertThat(ToolController.matchesPin("*", PIN)).isTrue();
+        // An empty pin cannot be matched by anything: a row whose contract could not be read is not "current".
+        assertThat(ToolController.matchesPin("*", null)).isFalse();
+    }
+
+    @Test
+    void anUnknownIdIsA404EvenWhenTheCallerSentATag() {
+        when(service.get("tool-missing"))
+                .thenThrow(new UnknownTool("tool \"tool-missing\" names nothing in this registry"));
+
+        Throwable refused = org.assertj.core.api.Assertions.catchThrowable(
+                () -> controller().read("tool-missing", "*"));
+
+        assertThat(refused).isInstanceOf(UnknownTool.class);
+    }
+
+    @Test
+    void aReadByNameAnswersTheSamePinAndHonoursTheSameTag() throws Exception {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(service.getByName("a.tool")).thenReturn(mine);
+        when(service.contractSha256(mine)).thenReturn(PIN);
+        when(service.schemaOf(mine)).thenReturn(emptyObject());
+
+        ResponseEntity<ToolDtos.Tool> fresh = controller().readByName("a.tool", null);
+        ResponseEntity<ToolDtos.Tool> notModified = controller().readByName("a.tool", "\"" + PIN + "\"");
+
+        assertThat(fresh.getBody()).isNotNull();
+        assertThat(fresh.getBody().contractSha256()).isEqualTo(PIN);
+        assertThat(notModified.getStatusCode().value()).isEqualTo(304);
+        assertThat(notModified.getBody()).isNull();
     }
 }

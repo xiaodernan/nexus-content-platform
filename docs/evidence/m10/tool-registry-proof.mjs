@@ -51,6 +51,7 @@
 // sweep-budget-ms: 900000
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { createConnection, createServer } from 'node:net';
 import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -168,7 +169,7 @@ async function stopService(child) {
 }
 
 /** The tool's wire shape, pinned: a field added here is a capability a read door would start printing. */
-const TOOL_FIELDS = ['createdAt', 'id', 'inputSchema', 'name', 'owner', 'summary'].sort();
+const TOOL_FIELDS = ['contractSha256', 'createdAt', 'id', 'inputSchema', 'name', 'owner', 'summary'].sort();
 const LIST_FIELDS = ['limit', 'offset', 'owner', 'query', 'tools', 'total'].sort();
 
 let serviceProcess = null;
@@ -273,7 +274,7 @@ try {
         body = text;
       }
     }
-    return { status: response.status, body, text };
+    return { status: response.status, body, text, headers: response.headers };
   }
 
   const asJson = { 'content-type': 'application/json' };
@@ -311,7 +312,7 @@ try {
   assert.equal(declared.body.name, 'weather.lookup', 'the name is stored trimmed');
   assert.equal(declared.body.summary, 'Looks up the weather for one city.', 'the summary is stored trimmed');
   assert.ok(Math.abs(Date.now() - declared.body.createdAt) < 60 * 60 * 1000, 'the created instant is a real instant, not zero or a duration');
-  assert.deepEqual(Object.keys(declared.body).sort(), TOOL_FIELDS, `a tool carries exactly its six fields: ${declared.text}`);
+  assert.deepEqual(Object.keys(declared.body).sort(), TOOL_FIELDS, `a tool carries exactly its seven fields: ${declared.text}`);
   assert.deepEqual(declared.body.inputSchema, schemaA, 'the schema is echoed as the object it was');
   const toolIdA = declared.body.id;
 
@@ -324,7 +325,7 @@ try {
   const byName = await call('/tools/by-name/weather.lookup');
   assert.equal(byName.status, 200, `a tool by name must answer 200, got ${byName.status}: ${byName.text}`);
   assert.equal(byName.body.id, toolIdA, 'the name resolves to the row that holds it');
-  assert.deepEqual(Object.keys(byName.body).sort(), TOOL_FIELDS, `a tool by name carries exactly its six fields: ${byName.text}`);
+  assert.deepEqual(Object.keys(byName.body).sort(), TOOL_FIELDS, `a tool by name carries exactly its seven fields: ${byName.text}`);
   const byBadName = await call('/tools/by-name/Weather.Lookup');
   assert.equal(byBadName.status, 400, `an uppercase name must be refused by rule, got ${byBadName.status}: ${byBadName.text}`);
   assert.equal(byBadName.body.error, 'invalid-tool');
@@ -409,7 +410,7 @@ try {
   assert.equal(whole.body.limit, 20, 'the default window is 20 and the answer says so');
   assert.equal(whole.body.offset, 0);
   for (const tool of whole.body.tools) {
-    assert.deepEqual(Object.keys(tool).sort(), TOOL_FIELDS, `a catalog row carries exactly its six fields: ${JSON.stringify(tool)}`);
+    assert.deepEqual(Object.keys(tool).sort(), TOOL_FIELDS, `a catalog row carries exactly its seven fields: ${JSON.stringify(tool)}`);
   }
   assert.ok(!whole.text.includes('endpointUrl') && !whole.text.includes('invocationCount'), 'the catalog prints no capability field');
 
@@ -512,11 +513,38 @@ try {
   assert.equal(readById.status, 200, `a tool by id must answer 200, got ${readById.status}: ${readById.text}`);
   assert.equal(readById.body.name, 'weather.lookup');
   assert.equal(readById.body.owner, other);
-  assert.deepEqual(Object.keys(readById.body).sort(), TOOL_FIELDS, `a tool carries exactly its six fields: ${readById.text}`);
+  assert.deepEqual(Object.keys(readById.body).sort(), TOOL_FIELDS, `a tool carries exactly its seven fields: ${readById.text}`);
+
+  // ── the PIN: what a consumer holds so it can be told when the contract changes ───────────────────
+  // 64 lowercase hex characters over the canonical {"summary":…,"inputSchema":…} object — and here it is
+  // RECOMPUTED from the fields the answer itself carries, so the claim is a measurement and not the
+  // service echoing a column. (A caller does not have to: it pins the value it was served.)
+  const birthPin = readById.body.contractSha256;
+  assert.match(birthPin, /^[0-9a-f]{64}$/, `a declaration must carry a 64-hex pin, got ${String(birthPin)}`);
+  const recompute = (tool) => createHash('sha256')
+      .update(JSON.stringify({ summary: tool.summary, inputSchema: tool.inputSchema }), 'utf8')
+      .digest('hex');
+  assert.equal(recompute(readById.body), birthPin,
+      'the pin must be the SHA-256 of the {summary, inputSchema} object a caller can rebuild from the answer');
+  assert.equal(readById.headers.get('etag'), `"${birthPin}"`, 'the read must carry the pin as its strong ETag');
+
+  // A caller that already holds this contract asks to be told only when it changes: 304, no body, and the tag
+  // it holds echoed back. That is the point of a pin — a polling agent stops re-downloading a schema it has.
+  const notModified = await call(`/tools/${q(reclaimed.body.id)}`, { headers: { 'if-none-match': `"${birthPin}"` } });
+  assert.equal(notModified.status, 304, `holding the current pin must be 304, got ${notModified.status}: ${notModified.text}`);
+  assert.equal(notModified.text, '', 'a 304 carries no body');
+  assert.equal(notModified.headers.get('etag'), `"${birthPin}"`, 'a 304 must still name the tag it matched');
+  const byNameNotModified = await call('/tools/by-name/weather.lookup', { headers: { 'if-none-match': `"${birthPin}"` } });
+  assert.equal(byNameNotModified.status, 304, `the read by NAME must honour the same pin, got ${byNameNotModified.status}`);
+  const anyTag = await call(`/tools/${q(reclaimed.body.id)}`, { headers: { 'if-none-match': '*' } });
+  assert.equal(anyTag.status, 304, `* names any existing declaration, got ${anyTag.status}`);
 
   const unknownRead = await call('/tools/tool-that-never-existed');
   assert.equal(unknownRead.status, 404, `an id that names nothing must be 404, got ${unknownRead.status}: ${unknownRead.text}`);
   assert.equal(unknownRead.body.error, 'unknown-tool');
+  // Existence is settled BEFORE the tag: a 304 would tell the caller its copy is current when there is no copy.
+  const unknownReadWithTag = await call('/tools/tool-that-never-existed', { headers: { 'if-none-match': '*' } });
+  assert.equal(unknownReadWithTag.status, 404, `an unknown id must be 404 even with a tag, got ${unknownReadWithTag.status}`);
 
   const updatedSchema = { type: 'object', properties: { unit: { type: 'string', enum: ['c', 'f'] } } };
   const putBody = (value) => ({ method: 'PUT', headers: asJson, body: JSON.stringify(value) });
@@ -575,7 +603,7 @@ try {
   assert.equal(history.body.limit, 20);
   assert.equal(history.body.offset, 0);
   assert.deepEqual(history.body.revisions.map((r) => r.revision), [2, 1], 'the history is newest first');
-  assert.deepEqual(Object.keys(history.body.revisions[0]).sort(), ['inputSchema', 'recordedAt', 'revision', 'summary'],
+  assert.deepEqual(Object.keys(history.body.revisions[0]).sort(), ['contractSha256', 'inputSchema', 'recordedAt', 'revision', 'summary'],
       `a revision carries exactly its four fields: ${history.text}`);
   assert.equal(history.body.revisions[0].summary, 'The same name, a better sentence.');
   assert.deepEqual(history.body.revisions[0].inputSchema, updatedSchema);
@@ -609,6 +637,25 @@ try {
   assert.equal(revisionsCount, '2', 'exactly two recorded writes, not one row and a counter');
   const auditAfterHistory = await sql('select count(*) from audit_entry');
   assert.equal(auditAfterHistory, '0', 'recording a revision is not a trail fact either');
+
+  // ── the pin through an update: the history is navigable by pin, and a held pin goes stale ────────
+  // Each revision carries ITS OWN pin, recomputed from its own stored bytes, so a consumer holding a pin can
+  // name the write that produced it — revision 1 is exactly the contract pinned before the update.
+  assert.equal(history.body.revisions[1].contractSha256, recompute(history.body.revisions[1]));
+  assert.equal(history.body.revisions[0].contractSha256, recompute(history.body.revisions[0]));
+  assert.equal(history.body.revisions[1].contractSha256, birthPin,
+      'revision 1 must pin the contract the consumer read before the update');
+  const afterUpdate = await call(`/tools/${q(reclaimed.body.id)}`);
+  assert.equal(afterUpdate.status, 200);
+  assert.notEqual(afterUpdate.body.contractSha256, birthPin, 'a rewording must change the pin — provenance is not mutation');
+  assert.equal(afterUpdate.body.contractSha256, recompute(afterUpdate.body));
+  assert.equal(history.body.revisions[0].contractSha256, afterUpdate.body.contractSha256,
+      'revision 2 must pin exactly what is served now');
+  // The pin that no longer names the current contract answers the new one with 200 — a stale pin is not a 304.
+  const staleAfterUpdate = await call(`/tools/${q(reclaimed.body.id)}`, { headers: { 'if-none-match': `"${birthPin}"` } });
+  assert.equal(staleAfterUpdate.status, 200,
+      `a pin naming the previous contract must answer 200, got ${staleAfterUpdate.status}`);
+  assert.equal(staleAfterUpdate.body.contractSha256, afterUpdate.body.contractSha256);
 
   // ── deprecation: a fact about the declaration, with its own door and its own public list ────────
   const deprecatedId = reclaimed.body.id;
@@ -663,7 +710,7 @@ try {
   // The DECLARATION read is unchanged: deprecation is its own resource, not a seventh field.
   const declarationAfterDeprecation = await call(`/tools/${q(deprecatedId)}`);
   assert.deepEqual(Object.keys(declarationAfterDeprecation.body).sort(), TOOL_FIELDS,
-      `deprecating a tool must not grow the declaration's six fields: ${declarationAfterDeprecation.text}`);
+      `deprecating a tool must not grow the declaration's seven fields: ${declarationAfterDeprecation.text}`);
   const deprecationRead = await call(`/tools/${q(deprecatedId)}/deprecation`);
   assert.equal(deprecationRead.status, 200);
   assert.deepEqual(deprecationRead.body, deprecation.body);
@@ -712,7 +759,7 @@ try {
   const keptForRestart = await postJson(`/tools/${q(deprecatedId)}/deprecation?owner=${q(other)}`,
       { message: 'Kept for the restart.', replacement: 'm.tool' });
   assert.equal(keptForRestart.status, 200);
-  console.log(`[§5] a tool was read by ID (six fields) and an unknown id was 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an 8193-byte schema 400, and psql read the untouched sentence after all four · the owner's update replaced the summary and stored the schema as ${storedUpdated.length} canonical bytes while the name, id, owner and creation instant stayed · the history answered TWO revisions newest first (revision 1 keeps the birth sentence and schema, revision 2 the replacement), its window reached revision 1 with total=2 beside it, limit=500 reported 100 and offset=-3 reported 0, an unknown id was 404, and psql read both rows with audit_entry still EMPTY · removal in §4 took its declaration's history with it · deprecation: a live tool's read was 404 not-deprecated, a stranger 403, a missing owner 400, an unknown id 404, and blank/281-byte messages, a malformed replacement and a self-replacement were all refused while writing nothing; the owner's deprecation stored the trimmed message and hint while the declaration's six fields stayed six, the public list carried the tool NAME beside it, re-deprecating replaced the one row, withdrawal answered removed:true then removed:false, and psql read zero · one deprecation was left on record for §6`);
+  console.log(`[§5] a tool was read by ID (seven fields) and an unknown id was 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an 8193-byte schema 400, and psql read the untouched sentence after all four · the owner's update replaced the summary and stored the schema as ${storedUpdated.length} canonical bytes while the name, id, owner and creation instant stayed · the history answered TWO revisions newest first (revision 1 keeps the birth sentence and schema, revision 2 the replacement), its window reached revision 1 with total=2 beside it, limit=500 reported 100 and offset=-3 reported 0, an unknown id was 404, and psql read both rows with audit_entry still EMPTY · every whole declaration carried a 64-hex PIN that the proof RECOMPUTED from the {summary, inputSchema} the answer itself carried, the same value arrived as a strong ETag, holding it was 304 with no body on BOTH read doors, * was 304 and an unknown id with a tag was still 404 · the owner's update changed the pin and left the old one on revision 1, so a held pin answered 200 while the history named the write it came from · removal in §4 took its declaration's history with it · deprecation: a live tool's read was 404 not-deprecated, a stranger 403, a missing owner 400, an unknown id 404, and blank/281-byte messages, a malformed replacement and a self-replacement were all refused while writing nothing; the owner's deprecation stored the trimmed message and hint while the declaration's seven fields stayed seven, the public list carried the tool NAME beside it, re-deprecating replaced the one row, withdrawal answered removed:true then removed:false, and psql read zero · one deprecation was left on record for §6`);
 
   // ── §6 the declarations and their canonical schemas survive a RESTART ──────────────────────────
   const beforeRestart = await call('/tools');
@@ -745,6 +792,14 @@ try {
   assert.deepEqual(historyAfterRestart.body.revisions.map((r) => r.revision), [2, 1]);
   assert.equal(historyAfterRestart.body.revisions[0].summary, 'The same name, a better sentence.');
   assert.equal(historyAfterRestart.body.revisions[1].summary, 'The same name, a new row.');
+  // The pin is derived from those bytes, so it is the SAME 64 characters in a process that never saw them
+  // written: a pin is a property of the contract, not of the JVM that answered it.
+  assert.deepEqual(
+      historyAfterRestart.body.revisions.map((r) => r.contractSha256),
+      history.body.revisions.map((r) => r.contractSha256),
+      'a second JVM must recompute both revision pins identically');
+  assert.equal(historyAfterRestart.body.revisions[1].contractSha256, birthPin,
+      'the pin a consumer recorded before the update still names revision 1 after a restart');
   const revisionColumns = (await sql("select column_name from information_schema.columns where table_name = 'tool_revision' order by column_name")).split('\n').filter(Boolean);
   assert.deepEqual(revisionColumns, ['input_schema', 'recorded_at', 'revision', 'summary', 'tool_id'],
       `tool_revision must have exactly the five recorded fields, got ${JSON.stringify(revisionColumns)}`);
@@ -767,7 +822,7 @@ try {
       `tool_entry must have exactly the six declaration columns, got ${JSON.stringify(columns)}`);
   const count = await sql('select count(*) from tool_entry');
   assert.equal(count, '4', 'psql counts the four rows the API answers');
-  console.log(`[§6] a second JVM served the same four rows, field for field, with the re-declared name carrying the schema its owner updated · its history still answered BOTH revisions newest first · information_schema shows tool_entry has exactly ${columns.length} columns (${columns.join(', ')}) and tool_revision exactly ${revisionColumns.length} (${revisionColumns.join(', ')}) and tool_deprecation exactly ${deprecationColumns.length} (${deprecationColumns.join(', ')}), with nowhere to store a URL, a command or an invocation — the registry declares and does not execute`);
+  console.log(`[§6] a second JVM served the same four rows, field for field, with the re-declared name carrying the schema its owner updated · its history still answered BOTH revisions newest first · information_schema shows tool_entry has exactly ${columns.length} columns (${columns.join(', ')}) and tool_revision exactly ${revisionColumns.length} (${revisionColumns.join(', ')}) and tool_deprecation exactly ${deprecationColumns.length} (${deprecationColumns.join(', ')}), with nowhere to store a URL, a command or an invocation — the pin added no column, because it is recomputed from the bytes those columns already hold — and both revision pins came back the SAME 64 characters, so the registry declares and does not execute`);
 
   // ── §7 teardown ────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
@@ -778,7 +833,7 @@ try {
   assert.equal(goneContainer.stdout.trim(), '', `the throwaway container is still listed: ${goneContainer.stdout.trim()}`);
   console.log(`[§7] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log(`\n[summary] M10 v571–v577: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, an unknown id was 404, and psql read both rows · the catalog search answered a name match and a summary match, ignored case, narrowed BOTH window and count alongside the owner filter, paged with total=3, treated % and _ literally (0 matches), echoed a blank term as null, and refused a 101-character term at 400 · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its six fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · and a second JVM served the same four rows and both revisions, field for field, while information_schema showed six declaration columns, five revision columns and four deprecation columns with nowhere to store an endpoint, a command or an invocation`);
+  console.log(`\n[summary] M10 v571–v578: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, an unknown id was 404, and psql read both rows · the catalog search answered a name match and a summary match, ignored case, narrowed BOTH window and count alongside the owner filter, paged with total=3, treated % and _ literally (0 matches), echoed a blank term as null, and refused a 101-character term at 400 · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its seven fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · and a second JVM served the same four rows and both revisions, field for field, the whole declaration carried a 64-hex PIN recomputed by the proof from the summary and schema the answer itself carried, delivered as a strong ETag and honoured as a 304 with no body on both read doors (with * matching and an unknown id still 404), the owner's update changed the pin while revision 1 kept the old one so a held pin answered 200, both revision pins were recomputed identically after the restart, and information_schema showed six declaration columns, five revision columns and four deprecation columns — no column for the pin — with nowhere to store an endpoint, a command or an invocation`);
   rmSync(BUILD_DIR, { recursive: true, force: true });
   console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s update and removal, a recorded revision history that an update cannot erase, a direct read by the name every agent shares, a deprecation that is its own resource with its own public list, a catalog search whose wildcards are literal, and no capability this build does not have)');
 } finally {

@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v577 (catalog search — landed and verified; v576/MCP belongs to a parallel lane)
+Project version: v578 (contract pin — landed and verified; v576/MCP belongs to a parallel lane)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is 8 commits ahead (v568–v575); v577 is in the working tree.
+Pushed to origin/master: no — master is ahead of origin/master; v578 is in the working tree.
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -21,13 +21,15 @@ Recent increments in this lineage (all real commits, all gated):
   v575: deprecation as its own resource, with a public list (ADR 0025)
   v576: MCP face (ADR 0026) — another lane's untracked work, not this lane's commit
   v577: catalog search by name/summary with literal wildcards (ADR 0027)
+  v578: a contract pin a consumer can hold, and the conditional read it enables (ADR 0028)
 
-Verification of v572–v575 and v577:
-  mvn -Dtest='dev.nexus.api.tools.*' test: 68/68 (45 service + 23 controller), exit 0
+Verification of v572–v575, v577 and v578:
+  mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 82/82 (52 service + 30 controller), exit 0
   (the whole suite includes another lane's untracked MCP tests; the tools package is this lane's number)
   Live proof `node docs/evidence/m10/tool-registry-proof.mjs` against a real PostgreSQL: ALL ASSERTIONS PASSED
-  (§4 removal leaves zero revisions; §5 two revisions newest first with the birth schema intact; §6 restart
-  serves both and information_schema shows tool_revision has exactly five columns).
+  (§4 removal leaves zero revisions; §5 the pin recomputed by the proof from the fields the answer carried,
+  same value as a strong ETag, bodiless 304 on both read doors, a held pin going 200 after the owner's update;
+  §6 restart serves both revisions and information_schema shows tool_revision has exactly five columns).
   Not run this pass: full studio regression (AGENTS.md: do not run full suites every increment).
 
 Working tree also holds ANOTHER lane's in-flight changes (do not commit them):
@@ -44,6 +46,8 @@ ADR 0016 compliance:
   Studio→service hop 15s via shared serviceCall.ts; timeout never reported as "unreachable"
 
 Next increments (planned, see docs/LONG_TERM_PLAN.md):
-  v578: a schema fingerprint a consumer can pin — the revision history shows what changed, but a caller
-        still cannot name EXACTLY the contract it built against without storing the whole schema
-  v579+: ownership transfer remains deliberately absent; do NOT touch the MCP face (v576, another lane).
+  v579: ownership transfer is still deliberately absent and needs a decision of its own — a declaration whose
+        owner cannot be changed cannot be handed over, and the registry's only answer today is "declare it
+        again under the new owner", which loses the id, the history and the pins
+  v580+: the registry lane continues (e.g. revision `since`/pruning, or a pin lookup that an index would make
+        honest). Do NOT touch the MCP face (v576, another lane).

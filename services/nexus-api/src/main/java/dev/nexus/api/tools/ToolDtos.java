@@ -35,9 +35,20 @@ public final class ToolDtos {
      * <p>There is no {@code url}, {@code command}, {@code invocationCount} or {@code lastCalledAt} field: this
      * build declares tools and does not run them, and an answer that carried such a field would describe a
      * capability nobody implemented.
+     *
+     * <p>{@code contractSha256} is the PIN: 64 lowercase hex characters over the summary and the schema, the
+     * two fields an update can change. It travels on every answer that carries a whole declaration — including
+     * the catalog, so equal contracts under different names are visible in one page — and it is the same value
+     * the read doors compare against {@code If-None-Match}. See {@link ContractFingerprint}.
      */
     public record Tool(
-            String id, String owner, String name, String summary, JsonNode inputSchema, long createdAt) {
+            String id,
+            String owner,
+            String name,
+            String summary,
+            JsonNode inputSchema,
+            String contractSha256,
+            long createdAt) {
     }
 
     /**
@@ -55,8 +66,12 @@ public final class ToolDtos {
      *
      * <p>{@code revision} is scoped to the tool: 1 is the declaration as registered (or the first state this
      * build recorded for a row that predates the history table), and every accepted update appends one more.
+     *
+     * <p>{@code contractSha256} is that revision's own pin, recomputed from its own stored bytes, so a consumer
+     * holding a pin can find the write that produced it without shipping or diffing whole schemas.
      */
-    public record ToolRevisionView(int revision, String summary, JsonNode inputSchema, long recordedAt) {
+    public record ToolRevisionView(
+            int revision, String summary, JsonNode inputSchema, String contractSha256, long recordedAt) {
     }
 
     /**

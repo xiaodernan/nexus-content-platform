@@ -413,6 +413,26 @@ public class ToolService {
         return parseSchema(revision.getInputSchema(), revision.getToolId());
     }
 
+    /**
+     * The PIN of a declaration's live contract: 64 lowercase hex characters over the summary it serves and the
+     * schema it accepts.
+     *
+     * <p>Computed from the stored bytes on every read rather than kept in a column — see
+     * {@link ContractFingerprint} for why the rows stay the only truth and what the digest is over.
+     */
+    public String contractSha256(ToolEntry row) {
+        return ContractFingerprint.of(mapper, row.getSummary(), parseSchema(row.getInputSchema(), row.getToolId()));
+    }
+
+    /**
+     * The same pin for one recorded revision: what THIS write's contract hashed to, recomputed from the bytes
+     * that write left behind.
+     */
+    public String contractSha256(ToolRevision revision) {
+        return ContractFingerprint.of(
+                mapper, revision.getSummary(), parseSchema(revision.getInputSchema(), revision.getToolId()));
+    }
+
     private JsonNode parseSchema(String stored, String toolId) {
         try {
             return mapper.readTree(stored);

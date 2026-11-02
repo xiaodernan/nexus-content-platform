@@ -570,4 +570,74 @@ class ToolServiceTest {
         assertThat(ToolService.likePattern("a_b")).isEqualTo("%a\\_b%");
         assertThat(ToolService.likePattern("c:\\temp")).isEqualTo("%c:\\\\temp%");
     }
+    // ── v578: the pin a consumer holds ────────────────────────────────────────────────────────────────
+    // The digest is over the canonical object {"summary":…,"inputSchema":…} written by the SAME mapper that
+    // stored the schema, so these two vectors fix the rule: a change to the wrapper, the key order or the
+    // separator would change them, and that is exactly what a consumer's pin must never do silently.
+    @Test
+    void aPinIsTheSha256OfTheSummaryAndTheSchemaInThatOrder() {
+        ToolEntry empty = row("tool-1", OWNER, "a.tool");
+        ToolEntry typed = new ToolEntry("tool-2", OWNER, "b.tool", "a tool", "{\"type\":\"object\"}", AT);
+
+        assertThat(service().contractSha256(empty))
+                .isEqualTo("61a98b7253feb4139f9e031f6bedc00f917353564cf627e5f3b603be5c9891a7");
+        assertThat(service().contractSha256(typed))
+                .isEqualTo("87882f0bd39f1e9d796ca58ffc9e52fb7658ad34f5724840bd0cd083f61e5ecc");
+    }
+
+    @Test
+    void aPinIsSixtyFourLowercaseHexCharacters() {
+        assertThat(service().contractSha256(row("tool-1", OWNER, "a.tool")))
+                .hasSize(ContractFingerprint.HEX_LENGTH)
+                .matches("[0-9a-f]{64}");
+    }
+
+    @Test
+    void twoSpellingsOfOneSchemaPinToTheSameContract() throws Exception {
+        when(repository.findByName("a.tool")).thenReturn(Optional.empty());
+        when(repository.findByName("b.tool")).thenReturn(Optional.empty());
+        when(repository.save(any(ToolEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ToolEntry pretty = service().register(
+                OWNER, "a.tool", "a tool", mapper.readTree("{\n  \"type\": \"object\"\n}"));
+        ToolEntry compact = service().register(
+                OWNER, "b.tool", "a tool", mapper.readTree("{\"type\":\"object\"}"));
+
+        assertThat(pretty.getInputSchema()).isEqualTo(compact.getInputSchema());
+        assertThat(service().contractSha256(pretty)).isEqualTo(service().contractSha256(compact));
+    }
+
+    @Test
+    void aChangedSummaryChangesThePinEvenWhenTheSchemaIsUntouched() {
+        ToolEntry born = row("tool-1", OWNER, "a.tool");
+        ToolEntry reworded = new ToolEntry("tool-1", OWNER, "a.tool", "a better tool", "{}", AT);
+
+        assertThat(service().contractSha256(reworded)).isNotEqualTo(service().contractSha256(born));
+    }
+
+    @Test
+    void aChangedSchemaChangesThePinEvenWhenTheSummaryIsUntouched() {
+        ToolEntry born = row("tool-1", OWNER, "a.tool");
+        ToolEntry respecified = new ToolEntry("tool-1", OWNER, "a.tool", "a tool", "{\"type\":\"object\"}", AT);
+
+        assertThat(service().contractSha256(respecified)).isNotEqualTo(service().contractSha256(born));
+    }
+
+    @Test
+    void aRevisionPinsWhatItSaidNotWhatIsServedNow() {
+        ToolEntry current = new ToolEntry("tool-1", OWNER, "a.tool", "a better tool", "{\"type\":\"object\"}", AT);
+        ToolRevision birth = new ToolRevision("tool-1", 1, "a tool", "{}", AT);
+
+        assertThat(service().contractSha256(birth)).isNotEqualTo(service().contractSha256(current));
+        assertThat(service().contractSha256(birth)).isEqualTo(service().contractSha256(row("tool-1", OWNER, "a.tool")));
+    }
+
+    @Test
+    void thePinIsRecomputedFromTheRowSoItCannotDriftFromTheTextItDescribes() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+
+        assertThat(service().contractSha256(mine)).isEqualTo(service().contractSha256(mine));
+        // Nothing was written to keep it: there is no column to read and none to update.
+        verify(repository, never()).save(any(ToolEntry.class));
+    }
 }

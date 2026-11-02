@@ -20,12 +20,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v571–v575 — the HTTP surface for the tool registry. Eleven doors, and the differences between them are the
+ * M10 v571–v578 — the HTTP surface for the tool registry. Eleven doors, and the differences between them are the
  * rules:
  *
  * <ul>
@@ -36,10 +37,12 @@ import org.springframework.web.bind.annotation.RestController;
  *       NAME or SUMMARY contains that text, case-insensitively and with LIKE wildcards treated literally.
  *       The count is the whole (narrowed) number, so a window can say what it is hiding.
  *   <li>{@code GET /tools/{id}} — one declaration by id. A public read, like the catalog; an id that names
- *       nothing is a 404 rather than an empty row.
+ *       nothing is a 404 rather than an empty row. The answer carries the contract's PIN as a field and as a
+ *       strong {@code ETag}, so an {@code If-None-Match} of the pin the caller holds is a 304 with no body.
  *   <li>{@code GET /tools/by-name/{name}} — one declaration by its GLOBAL name. The name is the key every
  *       agent shares, so it deserves a direct read rather than a paged catalog; a malformed name is a 400
- *       that names the rule, and a well-formed name that holds no row is a 404.
+ *       that names the rule, and a well-formed name that holds no row is a 404. Same pin, same conditional
+ *       read as the read by id.
  *   <li>{@code GET /tools/{id}/revisions?limit=&offset=} — the declaration's recorded history, newest first:
  *       what it SAID at each accepted write, with the whole count beside the window. A public read; an id
  *       that names nothing is a 404 rather than an empty history.
@@ -105,10 +108,17 @@ public class ToolController {
 
     /**
      * One declaration by id. A public read, like the catalog; an id that names nothing is a 404.
+     *
+     * <p>The answer carries the contract's PIN both as a field and as a strong {@code ETag}, so a caller that
+     * already holds this contract can ask to be told only when it changes: an {@code If-None-Match} of the pin
+     * it holds answers 304 with no body. Existence is settled FIRST — an unknown id is a 404 whether or not the
+     * caller sent a tag, because 304 would claim the caller's copy is current when there is no copy.
      */
     @GetMapping("/tools/{toolId}")
-    public ResponseEntity<Tool> read(@PathVariable String toolId) {
-        return ResponseEntity.ok(toWire(service.get(toolId)));
+    public ResponseEntity<Tool> read(
+            @PathVariable String toolId,
+            @RequestHeader(name = "If-None-Match", required = false) String ifNoneMatch) {
+        return answer(service.get(toolId), ifNoneMatch);
     }
 
     /**
@@ -119,8 +129,10 @@ public class ToolController {
      * the live proof rather than assumed.
      */
     @GetMapping("/tools/by-name/{name}")
-    public ResponseEntity<Tool> readByName(@PathVariable String name) {
-        return ResponseEntity.ok(toWire(service.getByName(name)));
+    public ResponseEntity<Tool> readByName(
+            @PathVariable String name,
+            @RequestHeader(name = "If-None-Match", required = false) String ifNoneMatch) {
+        return answer(service.getByName(name), ifNoneMatch);
     }
 
     /**
@@ -263,13 +275,61 @@ public class ToolController {
         return ResponseEntity.ok(Map.of("ok", true, "toolId", toolId, "removed", removed));
     }
 
+    /**
+     * The answer for a whole declaration, and the conditional read the pin makes possible.
+     *
+     * <p>A strong tag, not a weak one: the value is a digest of the exact contract served, so two answers that
+     * carry the same tag are the same declaration to the byte. {@code *} matches any existing representation
+     * (RFC 9110); anything else is compared with its {@code W/} prefix and surrounding quotes removed, because
+     * a caller echoing a tag back must not have to know how this door formats it. Matching is otherwise a
+     * plain string comparison, not a re-parse of every tag syntax — that bound is stated in ADR 0028.
+     */
+    private ResponseEntity<Tool> answer(ToolEntry row, String ifNoneMatch) {
+        String pin = service.contractSha256(row);
+        if (matchesPin(ifNoneMatch, pin)) {
+            return ResponseEntity.status(304).eTag(pin).build();
+        }
+        return ResponseEntity.ok().eTag(pin).body(toWire(row, pin));
+    }
+
+    /** Whether an {@code If-None-Match} header names the pin this declaration currently serves. */
+    static boolean matchesPin(String ifNoneMatch, String pin) {
+        if (ifNoneMatch == null || pin == null) {
+            return false;
+        }
+        for (String candidate : ifNoneMatch.split(",")) {
+            String tag = candidate.trim();
+            if (tag.isEmpty()) {
+                continue;
+            }
+            if ("*".equals(tag)) {
+                return true;
+            }
+            if (tag.startsWith("W/")) {
+                tag = tag.substring(2).trim();
+            }
+            if (tag.length() >= 2 && tag.startsWith("\"") && tag.endsWith("\"")) {
+                tag = tag.substring(1, tag.length() - 1);
+            }
+            if (tag.equals(pin)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private Tool toWire(ToolEntry row) {
+        return toWire(row, service.contractSha256(row));
+    }
+
+    private Tool toWire(ToolEntry row, String pin) {
         return new Tool(
                 row.getToolId(),
                 row.getOwner(),
                 row.getName(),
                 row.getSummary(),
                 service.schemaOf(row),
+                pin,
                 row.getCreatedAt().toEpochMilli());
     }
 
@@ -278,6 +338,7 @@ public class ToolController {
                 revision.getRevision(),
                 revision.getSummary(),
                 service.schemaOf(revision),
+                service.contractSha256(revision),
                 revision.getRecordedAt().toEpochMilli());
     }
 
