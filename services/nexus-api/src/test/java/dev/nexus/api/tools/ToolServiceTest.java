@@ -3,6 +3,8 @@ package dev.nexus.api.tools;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -910,12 +912,12 @@ class ToolServiceTest {
         verify(revisions, never()).deleteByToolIdAndRevisionLessThan(any(), any(Integer.class));
     }
 
-    // ── v582: the deprecation filter, and the fact that it never changes a row ───────────────────────
+    // ── v582/v589: the polarity filters, and the fact that they never change a row ────────────────────
     @Test
-    void theDeprecatedFilterAsksTheDeprecatedQueryAndTheCountFollows() {
-        when(repository.searchDeprecated(null, null, PageRequest.of(0, 20)))
+    void theDeprecatedFilterAsksTheDeprecatedPolarityAndTheCountFollows() {
+        when(repository.searchCatalog(null, null, 1, 0, 0, 0, PageRequest.of(0, 20)))
                 .thenReturn(List.of(row("tool-1", OWNER, "a.tool")));
-        when(repository.countDeprecated(null, null)).thenReturn(1L);
+        when(repository.countCatalog(null, null, 1, 0, 0, 0)).thenReturn(1L);
 
         assertThat(service().catalog(null, null, true, 20, 0)).hasSize(1);
         assertThat(service().countOf(null, null, true)).isEqualTo(1L);
@@ -924,21 +926,22 @@ class ToolServiceTest {
     }
 
     @Test
-    void theLiveFilterAsksTheLiveQueryAndNeverTheDeprecatedOne() {
-        when(repository.searchLive(null, null, PageRequest.of(0, 20))).thenReturn(List.of());
-        when(repository.countLive(null, null)).thenReturn(0L);
+    void theLiveFilterAsksTheOppositePolarity() {
+        when(repository.searchCatalog(null, null, 0, 1, 0, 0, PageRequest.of(0, 20))).thenReturn(List.of());
+        when(repository.countCatalog(null, null, 0, 1, 0, 0)).thenReturn(0L);
 
         service().catalog(null, null, false, 20, 0);
 
         assertThat(service().countOf(null, null, false)).isZero();
-        verify(repository, never()).searchDeprecated(any(), any(), any());
+        // The opposite side is the SAME statement with the other flag set — never the deprecated polarity.
+        verify(repository, never()).searchCatalog(any(), any(), eq(1), eq(0), anyInt(), anyInt(), any());
     }
 
     @Test
     void theDeprecationFilterComposesWithOwnerAndSearch() {
-        when(repository.searchDeprecated("acct-ada", "%weather%", PageRequest.of(0, 20)))
+        when(repository.searchCatalog("acct-ada", "%weather%", 1, 0, 0, 0, PageRequest.of(0, 20)))
                 .thenReturn(List.of(row("tool-1", OWNER, "weather.lookup")));
-        when(repository.countDeprecated("acct-ada", "%weather%")).thenReturn(1L);
+        when(repository.countCatalog("acct-ada", "%weather%", 1, 0, 0, 0)).thenReturn(1L);
 
         assertThat(service().catalog("  acct-ada  ", "  weather  ", true, 20, 0)).hasSize(1);
         assertThat(service().countOf("acct-ada", "weather", true)).isEqualTo(1L);
@@ -955,9 +958,55 @@ class ToolServiceTest {
         service().catalog(null, null, null, 20, 0);
 
         assertThat(service().countOf(null, null, null)).isZero();
-        verify(repository, never()).searchLive(any(), any(), any());
+        verify(repository, never()).searchCatalog(any(), any(), anyInt(), anyInt(), anyInt(), anyInt(), any());
     }
 
+    // ── v589: the tested filter names the CLAIM, and it composes with the other three ─────────────────
+    @Test
+    void theTestedFilterAsksForAnAttestationAndNarrowsTheCount() {
+        when(repository.searchCatalog(null, null, 0, 0, 1, 0, PageRequest.of(0, 20)))
+                .thenReturn(List.of(row("tool-1", OWNER, "a.tool")));
+        when(repository.countCatalog(null, null, 0, 0, 1, 0)).thenReturn(1L);
+
+        assertThat(service().catalog(null, null, null, true, 20, 0)).hasSize(1);
+        assertThat(service().countOf(null, null, null, true)).isEqualTo(1L);
+        verify(repository, never()).findAllByOrderByNameAsc(any());
+    }
+
+    @Test
+    void theUntestedFilterAsksForTheAbsenceOfOne() {
+        when(repository.searchCatalog(null, null, 0, 0, 0, 1, PageRequest.of(0, 20))).thenReturn(List.of());
+        when(repository.countCatalog(null, null, 0, 0, 0, 1)).thenReturn(0L);
+
+        service().catalog(null, null, null, false, 20, 0);
+
+        assertThat(service().countOf(null, null, null, false)).isZero();
+        verify(repository, never()).searchCatalog(any(), any(), anyInt(), anyInt(), eq(1), anyInt(), any());
+    }
+
+    @Test
+    void oneTestedAndOneLiveIsFourFlagsInONEStatement() {
+        when(repository.searchCatalog("acct-ada", null, 0, 1, 1, 0, PageRequest.of(0, 20)))
+                .thenReturn(List.of(row("tool-1", OWNER, "a.tool")));
+        when(repository.countCatalog("acct-ada", null, 0, 1, 1, 0)).thenReturn(1L);
+
+        assertThat(service().catalog("acct-ada", null, false, true, 20, 0)).hasSize(1);
+        assertThat(service().countOf("acct-ada", null, false, true)).isEqualTo(1L);
+        // Composed, not two passes: the plain owner derivation is never consulted.
+        verify(repository, never()).findByOwnerOrderByNameAsc(any(), any());
+    }
+
+    @Test
+    void anAbsentPairOfPolaritiesNeverReachesTheComposedQuery() {
+        when(repository.findAllByOrderByNameAsc(PageRequest.of(0, 20))).thenReturn(List.of());
+        when(repository.count()).thenReturn(0L);
+
+        service().catalog(null, null, null, null, 20, 0);
+
+        assertThat(service().countOf(null, null, null, null)).isZero();
+        verify(repository, never()).searchCatalog(any(), any(), anyInt(), anyInt(), anyInt(), anyInt(), any());
+        verify(repository, never()).countCatalog(any(), any(), anyInt(), anyInt(), anyInt(), anyInt());
+    }
     // ── v583: the journal — every accepted write, in one order, including the ones state cannot hold ───
     @Test
     void declaringAJournalsTheDeclaration() throws Exception {

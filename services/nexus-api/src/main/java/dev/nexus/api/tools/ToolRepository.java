@@ -70,44 +70,61 @@ public interface ToolRepository extends JpaRepository<ToolEntry, String> {
     long countSearchByOwner(@Param("owner") String owner, @Param("pattern") String pattern);
 
     /**
-     * M10 v582 — the catalog narrowed to declarations that ARE, or are NOT, deprecated.
+     * M10 v589 — the catalog's two POLARITY filters in ONE statement: deprecation and attestation.
      *
-     * <p>Deprecation lives in its own table (ADR 0025), so this filter is a correlated {@code exists} rather
-     * than a column test. Two queries rather than one with a nullable polarity: the polarity is a small closed
-     * set and each is a single statement, while a {@code (:deprecated = true) = exists(...)} would make the
-     * query say something different from what it does in either direction.
+     * <p>ADR 0033 chose two explicit statements for the deprecated flag because the polarity was "a small
+     * closed set". A SECOND tri-state filter makes that set four combinations, and four hand-written statements
+     * plus four counts would be eight places to keep in step with a rule that is one sentence long. The
+     * polarity is therefore passed as two 0/1 flags per axis, so "require it" and "require the opposite" are
+     * the same query read with different arguments, and every combination is the same statement.
      *
-     * <p>{@code owner} and {@code pattern} are null when they are ABSENT — named here as "no owner filter" and
-     * "no search filter", so a null cannot be read as the other one's value.
+     * <p>Each flag is 1 to REQUIRE the condition and 0 to impose nothing. All four are 0 only for a caller that
+     * asked for no polarity filter, and the service does not take that path — it uses the plain derivations
+     * above — so this query is never asked to be the unfiltered catalog.
      *
-     * @param owner the account, or null for every account
-     * @param pattern the escaped LIKE pattern, or null for no search
+     * <p>{@code tested} is a claim's EXISTENCE, not its currency. The pin is computed from the row and never
+     * stored (ADR 0028), so SQL cannot compare a claim's {@code contract_sha256} to the contract being served;
+     * a row can therefore match {@code wantTested = 1} while its claim is stale, which is why the attestation
+     * read reports {@code stillCurrent} separately (ADR 0037). The filter narrows; the verdict is one door away.
+     *
+     * <p>{@code owner} and {@code pattern} are null when ABSENT, named here as "no owner filter" and "no search
+     * filter", so a null cannot be read as the other one's value.
+     *
+     * @param wantDeprecated 1 to require a deprecation row
+     * @param wantLive 1 to require the absence of one
+     * @param wantTested 1 to require an attestation row
+     * @param wantUntested 1 to require the absence of one
      */
     @Query("select t from ToolEntry t where (:owner is null or t.owner = :owner)"
             + " and (:pattern is null or lower(t.name) like :pattern escape '\\'"
             + " or lower(t.summary) like :pattern escape '\\')"
-            + " and exists (select 1 from ToolDeprecation d where d.toolId = t.toolId) order by t.name asc")
-    List<ToolEntry> searchDeprecated(
-            @Param("owner") String owner, @Param("pattern") String pattern, Pageable page);
+            + " and (:wantDeprecated = 0 or exists (select 1 from ToolDeprecation d where d.toolId = t.toolId))"
+            + " and (:wantLive = 0 or not exists (select 1 from ToolDeprecation d where d.toolId = t.toolId))"
+            + " and (:wantTested = 0 or exists (select 1 from ToolAttestation a where a.toolId = t.toolId))"
+            + " and (:wantUntested = 0 or not exists (select 1 from ToolAttestation a where a.toolId = t.toolId))"
+            + " order by t.name asc")
+    List<ToolEntry> searchCatalog(
+            @Param("owner") String owner,
+            @Param("pattern") String pattern,
+            @Param("wantDeprecated") int wantDeprecated,
+            @Param("wantLive") int wantLive,
+            @Param("wantTested") int wantTested,
+            @Param("wantUntested") int wantUntested,
+            Pageable page);
 
-    /** The same, narrowed to declarations that are NOT deprecated. */
-    @Query("select t from ToolEntry t where (:owner is null or t.owner = :owner)"
-            + " and (:pattern is null or lower(t.name) like :pattern escape '\\'"
-            + " or lower(t.summary) like :pattern escape '\\')"
-            + " and not exists (select 1 from ToolDeprecation d where d.toolId = t.toolId) order by t.name asc")
-    List<ToolEntry> searchLive(@Param("owner") String owner, @Param("pattern") String pattern, Pageable page);
-
-    /** The WHOLE number of deprecated declarations the window above is a window of. */
+    /** The WHOLE number of rows the composed window above is a window of — the same four flags, no page. */
     @Query("select count(t) from ToolEntry t where (:owner is null or t.owner = :owner)"
             + " and (:pattern is null or lower(t.name) like :pattern escape '\\'"
             + " or lower(t.summary) like :pattern escape '\\')"
-            + " and exists (select 1 from ToolDeprecation d where d.toolId = t.toolId)")
-    long countDeprecated(@Param("owner") String owner, @Param("pattern") String pattern);
-
-    /** The same count for declarations that are NOT deprecated. */
-    @Query("select count(t) from ToolEntry t where (:owner is null or t.owner = :owner)"
-            + " and (:pattern is null or lower(t.name) like :pattern escape '\\'"
-            + " or lower(t.summary) like :pattern escape '\\')"
-            + " and not exists (select 1 from ToolDeprecation d where d.toolId = t.toolId)")
-    long countLive(@Param("owner") String owner, @Param("pattern") String pattern);
+            + " and (:wantDeprecated = 0 or exists (select 1 from ToolDeprecation d where d.toolId = t.toolId))"
+            + " and (:wantLive = 0 or not exists (select 1 from ToolDeprecation d where d.toolId = t.toolId))"
+            + " and (:wantTested = 0 or exists (select 1 from ToolAttestation a where a.toolId = t.toolId))"
+            + " and (:wantUntested = 0 or not exists (select 1 from ToolAttestation a where a.toolId = t.toolId))")
+    long countCatalog(
+            @Param("owner") String owner,
+            @Param("pattern") String pattern,
+            @Param("wantDeprecated") int wantDeprecated,
+            @Param("wantLive") int wantLive,
+            @Param("wantTested") int wantTested,
+            @Param("wantUntested") int wantUntested);
 }

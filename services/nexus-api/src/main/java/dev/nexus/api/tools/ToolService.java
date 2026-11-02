@@ -182,26 +182,60 @@ public class ToolService {
     @Transactional(readOnly = true)
     public List<ToolEntry> catalog(
             String ownerId, String query, Boolean deprecated, int limit, int offset) {
+        return catalog(ownerId, query, deprecated, null, limit, offset);
+    }
+
+    /**
+     * M10 v589 — the catalog with a SECOND tri-state filter, {@code tested}, beside the deprecated one.
+     *
+     * <p>An attestation is its own resource (ADR 0037): one claim, one tool, naming the contract that was
+     * claimed to be tested. Without this filter, "show me the tools somebody has tested" is the same client-side
+     * join the deprecated flag removed in v582 — read the catalog, read every declaration's attestation, and
+     * subtract. {@code tested=true} answers only declarations that carry a claim, {@code false} only those that
+     * do not, and absent leaves both in. All three filters compose and narrow the WINDOW and the COUNT together.
+     *
+     * <p><b>The flag names the claim, not the verdict.</b> A claim survives an update that moves the contract it
+     * named — that is the point of v588: it is about the contract it pinned, not about whatever is served
+     * later — and this service cannot compare the two in SQL because the pin is computed from the row and never
+     * stored (ADR 0028). A row answered by {@code tested=true} can therefore hold a STALE claim;
+     * {@code GET /tools/{id}/attestation} is where {@code stillCurrent} is recomputed. The filter is a
+     * narrowing, deliberately not a certificate.
+     *
+     * @param tested true for attested only, false for unattested only, null for both
+     */
+    @Transactional(readOnly = true)
+    public List<ToolEntry> catalog(
+            String ownerId, String query, Boolean deprecated, Boolean tested, int limit, int offset) {
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
         int from = Math.max(offset, 0);
         PageRequest page = PageRequest.of(from / effective, effective);
         String owner = normalizeOwner(ownerId);
         String search = normalizeQuery(query);
-        if (deprecated != null) {
-            String pattern = search == null ? null : likePattern(search);
-            return deprecated
-                    ? repository.searchDeprecated(owner, pattern, page)
-                    : repository.searchLive(owner, pattern, page);
-        }
-        if (search == null) {
+        if (deprecated == null && tested == null) {
+            if (search == null) {
+                return owner == null
+                        ? repository.findAllByOrderByNameAsc(page)
+                        : repository.findByOwnerOrderByNameAsc(owner, page);
+            }
+            String plain = likePattern(search);
             return owner == null
-                    ? repository.findAllByOrderByNameAsc(page)
-                    : repository.findByOwnerOrderByNameAsc(owner, page);
+                    ? repository.searchAll(plain, page)
+                    : repository.searchByOwner(owner, plain, page);
         }
-        String pattern = likePattern(search);
-        return owner == null
-                ? repository.searchAll(pattern, page)
-                : repository.searchByOwner(owner, pattern, page);
+        String pattern = search == null ? null : likePattern(search);
+        return repository.searchCatalog(owner, pattern,
+                polarity(deprecated, true), polarity(deprecated, false),
+                polarity(tested, true), polarity(tested, false), page);
+    }
+
+    /**
+     * The 0/1 pair a tri-state filter becomes: 1 on the side the caller asked for, 0 on the other.
+     *
+     * <p>Null (absent) is 0 on BOTH sides, which is "no constraint" rather than "require neither" — the
+     * difference matters, because the latter would answer nothing.
+     */
+    private static int polarity(Boolean flag, boolean wanted) {
+        return Boolean.valueOf(wanted).equals(flag) ? 1 : 0;
     }
 
     /** The WHOLE number of rows the window is a window of — narrowed the same way the window is. */
@@ -216,27 +250,33 @@ public class ToolService {
         return countOf(ownerId, query, null);
     }
 
-    /**
-     * The whole number of rows the (owner, query, deprecated) window is a window of — narrowed by the SAME
-     * three filters, so a window of departing tools never claims to be the registry.
-     */
+    /** The whole number of rows the (owner, query, deprecated) window is a window of. */
     @Transactional(readOnly = true)
     public long countOf(String ownerId, String query, Boolean deprecated) {
+        return countOf(ownerId, query, deprecated, null);
+    }
+
+    /**
+     * The whole number of rows the (owner, query, deprecated, tested) window is a window of — narrowed by the
+     * SAME four filters, so a window of tested tools never claims to be the registry.
+     */
+    @Transactional(readOnly = true)
+    public long countOf(String ownerId, String query, Boolean deprecated, Boolean tested) {
         String owner = normalizeOwner(ownerId);
         String search = normalizeQuery(query);
-        if (deprecated != null) {
-            String pattern = search == null ? null : likePattern(search);
-            return deprecated
-                    ? repository.countDeprecated(owner, pattern)
-                    : repository.countLive(owner, pattern);
+        if (deprecated == null && tested == null) {
+            if (search == null) {
+                return owner == null ? repository.count() : repository.countByOwner(owner);
+            }
+            String plain = likePattern(search);
+            return owner == null
+                    ? repository.countSearchAll(plain)
+                    : repository.countSearchByOwner(owner, plain);
         }
-        if (search == null) {
-            return owner == null ? repository.count() : repository.countByOwner(owner);
-        }
-        String pattern = likePattern(search);
-        return owner == null
-                ? repository.countSearchAll(pattern)
-                : repository.countSearchByOwner(owner, pattern);
+        String pattern = search == null ? null : likePattern(search);
+        return repository.countCatalog(owner, pattern,
+                polarity(deprecated, true), polarity(deprecated, false),
+                polarity(tested, true), polarity(tested, false));
     }
 
     /**

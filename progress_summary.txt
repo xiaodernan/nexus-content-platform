@@ -30,9 +30,16 @@ Recent increments in this lineage (all real commits, all gated):
   v584: the feed can be watched — `?kind=` / `?toolId=` narrow the window AND the count (ADR 0035)
   v587: a list of ids is one read — order kept, missing ids NAMED, 50-id bound (ADR 0036)
   v588: an owner's claim that ONE contract was tested, bound to its pin, stale-but-kept (ADR 0037)
+  v589: the catalog names the rows that CARRY A CLAIM — ?tested=, three-state like deprecated (ADR 0038)
   v581: retention — the owner names the bound it keeps, and the answer says what went (ADR 0032)
   v582: the catalog names the rows that are going away — a filter, not a column (ADR 0033)
 
+Verification of v583–v589:
+  mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 173/173 (109 service + 64 controller), exit 0
+  Full service suite at the v587 checkpoint: 710/710, 33 classes, exit 0
+  node docs/evidence/m10/tool-registry-proof.mjs against a real PostgreSQL: ALL ASSERTIONS PASSED
+  (§5e journal, §5f feed narrowings, §5g batch read, §5h attestation, §5i tested filter with the
+   stale-claim bound proved rather than hidden, §6 restart with the claim and every column count)
 Verification of v572–v575 and v577–v582:
   mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 122/122 (78 service + 44 controller), exit 0
   Full service suite at v581 (checkpoint, 5 increments in): 660/660, 33 classes, exit 0
@@ -65,10 +72,7 @@ Next increments (planned, see docs/LONG_TERM_PLAN.md):
         prefix-only prune that reports the oldest entry kept and answers 410 to a cursor below it, or an
         operator identity this build does not have. The audit trail sets the precedent: append-only, no
         truncate. Until that decision is made, growth is bounded by write volume and stated here.
-  v589: one claim per tool means a reader cannot tell "attested" from "attested recently" without reading
-        each declaration. A `?tested=` filter on the catalog is the same window question v582 asked of
-        deprecation: narrow the window AND the count, echo the flag, and never make the declaration row
-        say it.
+
   v591: "which declaration serves this pin" is a scan today, because the pin is COMPUTED from the row and never
         stored - so a lookup by pin cannot be indexed without a derived column that must be kept in step with
         every update. Decide whether that door is worth the column, or state that it stays a scan.

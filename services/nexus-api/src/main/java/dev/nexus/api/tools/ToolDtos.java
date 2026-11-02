@@ -54,14 +54,19 @@ public final class ToolDtos {
     /**
      * The catalog window, and the WHOLE (narrowed) count beside it.
      *
-     * <p>{@code owner}, {@code query} and {@code deprecated} are the filters the answer applied — each null when
-     * that filter was absent. They are echoed so a caller reading twenty rows can tell which catalog those twenty
-     * came from, and so a window never has to be mistaken for the whole.
+     * <p>{@code owner}, {@code query}, {@code deprecated} and {@code tested} are the filters the answer applied —
+     * each null when that filter was absent. They are echoed so a caller reading twenty rows can tell which
+     * catalog those twenty came from, and so a window never has to be mistaken for the whole.
+     *
+     * <p>{@code tested} echoes the CLAIM filter (v589): true means every row carries an attestation, not that
+     * every claim is still about the contract being served. That verdict is {@code stillCurrent}, on the
+     * attestation resource, and it is recomputed per read.
      */
     public record ToolList(
             String owner,
             String query,
             Boolean deprecated,
+            Boolean tested,
             List<Tool> tools,
             long total,
             int limit,

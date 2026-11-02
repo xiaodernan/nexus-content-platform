@@ -170,7 +170,7 @@ async function stopService(child) {
 
 /** The tool's wire shape, pinned: a field added here is a capability a read door would start printing. */
 const TOOL_FIELDS = ['contractSha256', 'createdAt', 'id', 'inputSchema', 'name', 'owner', 'summary'].sort();
-const LIST_FIELDS = ['deprecated', 'limit', 'offset', 'owner', 'query', 'tools', 'total'].sort();
+const LIST_FIELDS = ['deprecated', 'limit', 'offset', 'owner', 'query', 'tested', 'tools', 'total'].sort();
 const JOURNAL_FIELDS = ['changes', 'kind', 'limit', 'offset', 'since', 'toolId', 'total'].sort();
 const CHANGE_FIELDS = ['at', 'kind', 'name', 'revision', 'seq', 'toolId'].sort();
 const BATCH_FIELDS = ['found', 'missing', 'requested', 'tools'].sort();
@@ -302,7 +302,7 @@ try {
   assert.equal(emptyCatalog.body.tools.length, 0);
   assert.equal(emptyCatalog.body.owner, null, 'no filter is echoed as null, not as an empty account');
   assert.equal(emptyCatalog.body.query, null, 'no search is echoed as null, not as an empty term');
-  assert.deepEqual(Object.keys(emptyCatalog.body).sort(), LIST_FIELDS, `the catalog carries exactly its seven fields: ${emptyCatalog.text}`);
+  assert.deepEqual(Object.keys(emptyCatalog.body).sort(), LIST_FIELDS, `the catalog carries exactly its eight fields: ${emptyCatalog.text}`);
 
   const schemaA = { type: 'object', properties: { city: { type: 'string' } }, required: ['city'] };
   const declared = await postJson('/tools', {
@@ -953,7 +953,7 @@ try {
   const departingOnly = await call('/tools?deprecated=true');
   assert.equal(departingOnly.status, 200, `the deprecated filter must answer 200, got ${departingOnly.status}: ${departingOnly.text}`);
   assert.deepEqual(Object.keys(departingOnly.body).sort(), LIST_FIELDS,
-      `the catalog still carries exactly its seven fields: ${departingOnly.text}`);
+      `the catalog still carries exactly its eight fields: ${departingOnly.text}`);
   assert.equal(departingOnly.body.deprecated, true, 'the answer echoes the filter it applied');
   assert.equal(departingOnly.body.total, 1, `one declaration is going away, got ${departingOnly.body.total}`);
   assert.deepEqual(departingOnly.body.tools.map((x) => x.name), ['weather.lookup']);
@@ -1299,7 +1299,112 @@ try {
   assert.deepEqual(attestationColumns, ['attested_at', 'contract_sha256', 'note', 'tool_id'],
       `tool_attestation must have exactly the four claim columns, got ${JSON.stringify(attestationColumns)}`);
   console.log(`[§5h] an owner's claim was bound to ONE contract: six refusals left the table empty (no claim 404 not-attested, a foreign pin 409 naming the served pin, a three-character pin 400, no pin 400, no owner 400, a stranger 403, an unknown id 404) · the accepted claim was five fields with the note trimmed and stillCurrent true while the declaration stayed SEVEN fields · an update moved the contract and the claim did NOT follow: it still named the old pin with stillCurrent false and its note intact, the old pin was then a 409 naming the new one, and re-attesting the served pin REPLACED the one row with note null · the journal named both claims (kind=attested, psql agreeing) and the withdrawal (kind=unattested) that deleted the only row which could have said it · one claim was left on record and information_schema read exactly four columns (${attestationColumns.join(', ')})`);
-  // ── §6 the declarations and their canonical schemas survive a RESTART ──────────────────────────
+  // ── §5i the TESTED filter: a claim narrows the catalog, and a STALE claim still matches ─────────
+  // The question an agent asks is "which of these has somebody tested?" — the same client-side join the
+  // deprecated filter removed. The flag names the claim's EXISTENCE, not its currency: the pin is computed
+  // from the row and never stored, so SQL cannot compare it. This section proves that limit rather than
+  // hiding it, because a filter that quietly implied a certificate would be worse than no filter.
+  const testedNow = await call('/tools?tested=true');
+  assert.equal(testedNow.status, 200, `tested=true must answer 200, got ${testedNow.status}: ${testedNow.text}`);
+  assert.deepEqual(Object.keys(testedNow.body).sort(), LIST_FIELDS,
+      `the catalog envelope grew exactly one flag: ${testedNow.text}`);
+  assert.equal(testedNow.body.tested, true, 'the answer echoes the flag it applied');
+  assert.equal(testedNow.body.total, 1);
+  assert.deepEqual(testedNow.body.tools.map((t) => t.id), [attestedTool.id],
+      'only the declaration that carries a claim is in the window');
+  assert.deepEqual(Object.keys(testedNow.body.tools[0]).sort(), TOOL_FIELDS,
+      'and the row is still the seven-field declaration');
+
+  const untestedNow = await call('/tools?tested=false');
+  assert.equal(untestedNow.body.tested, false, 'false is echoed as false, not as absent');
+  assert.equal(untestedNow.body.total, 3);
+  assert.ok(!untestedNow.body.tools.some((t) => t.id === attestedTool.id),
+      'the claimed declaration is not in the unclaimed half');
+
+  const bothNow = await call('/tools');
+  assert.equal(bothNow.body.tested, null, 'an absent flag is echoed as null');
+  assert.equal(bothNow.body.total, 4, 'and it hides nothing');
+
+  // The two facts live on DIFFERENT declarations — weather.lookup is departing and unclaimed, z.tool is
+  // claimed and live — which is why the flags have to compose rather than each be a separate catalog. Its
+  // owner claims it, so the intersection is a real row instead of an empty answer that could mean anything.
+  const departingTool = await call('/tools/by-name/weather.lookup');
+  assert.equal(departingTool.status, 200, `the section needs weather.lookup, got ${departingTool.status}`);
+  assert.equal(departingTool.body.id, deprecatedId, 'the section claims the declaration that is going away');
+  const departingClaim = await postJson(
+      `/tools/${q(departingTool.body.id)}/attestation?owner=${q(departingTool.body.owner)}`,
+      { contractSha256: departingTool.body.contractSha256, note: 'claimed while departing' });
+  assert.equal(departingClaim.status, 200,
+      `claiming the departing row must be 200, got ${departingClaim.status}: ${departingClaim.text}`);
+  const twoClaims = await call('/tools?tested=true');
+  assert.equal(twoClaims.body.total, 2, 'two declarations now carry a claim');
+
+  // The four-way composition, on real state: the claimed set and the departing set intersect in ONE row.
+  const claimedAndDeparting = await call('/tools?tested=true&deprecated=true');
+  assert.equal(claimedAndDeparting.body.total, 1);
+  assert.deepEqual(claimedAndDeparting.body.tools.map((t) => t.name), ['weather.lookup']);
+  assert.equal(claimedAndDeparting.body.tested, true);
+  assert.equal(claimedAndDeparting.body.deprecated, true);
+  const claimedAndLive = await call('/tools?tested=true&deprecated=false');
+  assert.equal(claimedAndLive.body.total, 1, 'the claim that is still live is the other one');
+  assert.deepEqual(claimedAndLive.body.tools.map((t) => t.id), [attestedTool.id]);
+  const unclaimedAndDeparting = await call('/tools?tested=false&deprecated=true');
+  assert.equal(unclaimedAndDeparting.body.total, 0, 'the departing row now carries a claim, so it left this half');
+  const unclaimedAndLive = await call('/tools?tested=false&deprecated=false');
+  assert.equal(unclaimedAndLive.body.total, 2);
+
+  // Compose with the other two filters, and narrow the COUNT with them.
+  const testedByOther = await call(`/tools?tested=true&owner=${q(other)}`);
+  assert.equal(testedByOther.body.total, 1);
+  const testedByOwner = await call(`/tools?tested=true&owner=${q(owner)}`);
+  assert.equal(testedByOwner.body.total, 1);
+  const testedBySearch = await call('/tools?tested=true&q=weather');
+  assert.equal(testedBySearch.body.total, 1);
+  const testedSearchMiss = await call('/tools?tested=true&q=big');
+  assert.equal(testedSearchMiss.body.total, 0, 'the search narrows the SAME window the flag selected');
+
+  // And now the TRAP this flag deliberately does not solve: claim the contract m.tool serves, then MOVE
+  // that contract. The claim stays — it is about the bytes it named — so tested=true still names the row
+  // while stillCurrent is false, which is exactly what a declaration row cannot say.
+  const mTool = await call('/tools/by-name/m.tool');
+  assert.equal(mTool.status, 200, `the section needs m.tool, got ${mTool.status}: ${mTool.text}`);
+  const mPin = mTool.body.contractSha256;
+  const mClaim = await postJson(`/tools/${q(mTool.body.id)}/attestation?owner=${q(mTool.body.owner)}`,
+      { contractSha256: mPin, note: 'claims the contract as it stands' });
+  assert.equal(mClaim.status, 200, `the third claim must be accepted, got ${mClaim.status}: ${mClaim.text}`);
+  const threeClaims = await call('/tools?tested=true');
+  assert.equal(threeClaims.body.total, 3);
+
+  const mMoved = await call(`/tools/${q(mTool.body.id)}?owner=${q(mTool.body.owner)}`,
+      putBody({ summary: 'A later sentence, a later contract.', inputSchema: { type: 'object' } }));
+  assert.equal(mMoved.status, 200, `moving m.tool's contract must be 200, got ${mMoved.status}: ${mMoved.text}`);
+  const mNowStale = await call(`/tools/${q(mTool.body.id)}/attestation`);
+  assert.equal(mNowStale.body.contractSha256, mPin, 'the claim still names the pin it was made about');
+  assert.equal(mNowStale.body.stillCurrent, false, 'and the contract being served is no longer that one');
+  const afterMove = await call('/tools?tested=true');
+  assert.equal(afterMove.body.total, 3,
+      'the STALE claim still matches tested=true: the flag names the claim, not the verdict');
+  assert.ok(afterMove.body.tools.some((t) => t.id === mTool.body.id),
+      'and the row it names carries no field saying so');
+  const staleAndLive = await call('/tools?tested=true&deprecated=false');
+  assert.equal(staleAndLive.body.total, 2, 'the stale claim composes with the other filters like any other claim');
+
+  // Withdrawal takes a row out of the window, because the claim is the only thing the filter asks about.
+  // This section withdraws the two claims IT made, leaving the one it found, so the fixture is unchanged.
+  const mWithdrawn = await call(`/tools/${q(mTool.body.id)}/attestation?owner=${q(mTool.body.owner)}`,
+      { method: 'DELETE' });
+  assert.equal(mWithdrawn.status, 200);
+  assert.equal(mWithdrawn.body.removed, true);
+  const afterMWithdrawal = await call('/tools?tested=true');
+  assert.equal(afterMWithdrawal.body.total, 2, 'a withdrawn claim is no longer a tested row');
+  const departingWithdrawn = await call(
+      `/tools/${q(departingTool.body.id)}/attestation?owner=${q(departingTool.body.owner)}`, { method: 'DELETE' });
+  assert.equal(departingWithdrawn.body.removed, true);
+  const restored = await call('/tools?tested=true');
+  assert.equal(restored.body.total, 1, 'the claim this section found is the only one left');
+  assert.deepEqual(restored.body.tools.map((t) => t.id), [attestedTool.id]);
+  console.log(`[§5i] the catalog could be asked WHICH ROWS CARRY A CLAIM: tested=true was one row with total=1 and tested=false the other three (the claimed row absent from that half), an absent flag was null and all four, every answer echoed the flag and every row kept its seven fields · it COMPOSED with the other tri-state filter in all four directions on real state — the claimed set and the departing set intersected in exactly one row (claimed+departing 1, claimed+live 1, unclaimed+departing 0, unclaimed+live 2) — and with owner and q, each narrowing the window AND the count · the bound was PROVED rather than hidden: a claim on m.tool's contract survived an update that MOVED that contract, so tested=true still answered rows while the attestation read stillCurrent=false, and a withdrawal took the row back out — the filter names the CLAIM; the verdict stays one door away`);
+  // ── §6 — the declarations and their canonical schemas survive a RESTART ────────────────────────
   const beforeRestart = await call('/tools');
   assert.equal(beforeRestart.body.total, 4);
   const beforeById = new Map(beforeRestart.body.tools.map((t) => [t.id, t]));
@@ -1402,7 +1507,7 @@ try {
   assert.equal(goneContainer.stdout.trim(), '', `the throwaway container is still listed: ${goneContainer.stdout.trim()}`);
   console.log(`[§7] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log(`\n[summary] M10 v571–v588: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, a since asked only for what came after a revision the caller held (one row with total=1; empty with total=0 past the newest; both from 0; a page inside the narrowed set keeping the narrowed count; a negative since refused at 400 while a floored offset was not), an unknown id was 404, and psql read both rows · the catalog search answered a name match and a summary match, ignored case, narrowed BOTH window and count alongside the owner filter, paged with total=3, treated % and _ literally (0 matches), echoed a blank term as null, and refused a 101-character term at 400 · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its seven fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · the catalog named the rows that are GOING AWAY: deprecated=true was one row with total=1 while deprecated=false was the other three, an absent flag was null and all four, the flag composed with owner (1 and 0) and with the search (1 and 0 for the departing set), every answer echoed the flag and every row kept its seven fields · retention was the OWNER's and named its bound: six refusals (no owner, no bound, a bound of 0, a stranger, a bound past the newest revision, an unknown id) removed nothing, the prune of bound 2 answered before/pruned/remaining 2/1/2 and left a history starting AT revision 2 (psql read min(revision)=2), the same bound again answered 0, and a pin held across the prune still answered 304 because removing old revisions does not touch the contract · a declaration CHANGED HANDS and stayed the same declaration: a stranger's handover, a missing owner, an unknown id, a transfer to the CURRENT holder and one with no target were each refused while psql read the same holder and an EMPTY handover table; the owner's handover answered 200 with the same id, name, creation instant, schema and PIN (so a pin held across it still answered 304), the former owner's update, deprecation and removal were each 403 with the row and its deprecation untouched, the chain of holders named the current holder and appended the way back as transfer 2 with its window, cap, floor and count, an unknown id's chain was 404, and psql read both handovers in order beside a history still at TWO revisions and an empty audit trail — a handover is not a revision · the registry kept a JOURNAL of what HAPPENED beside what IS: GET /tools/changes answered every entry OLDEST first from a cursor the answer echoed, walked forward seven at a time across the WHOLE feed with a narrowing count on every page and no entry twice, six kinds appeared (declared, updated, transferred, deprecated, undeprecated, removed) and only the two that wrote a contract named a revision, a REMOVED declaration was still nameable with the name it had while its row was 404 and tool_entry held zero, a retention prune wrote no entry, an already-gone removal wrote nothing, and a negative cursor was a 400 naming "0 or more" while a limit of 500 was reported as 100 and an offset of -3 as 0 · the feed could be WATCHED rather than re-read: kind=removed answered exactly the removals the whole feed carried with their own count, toolId answered a removed tool's whole life in order, the two composed, a blank filter read as absent, an unknown kind was a 400 naming the whole eight-word vocabulary while a capitalised one was a 400 naming itself, an id the journal never saw was an empty feed rather than a 404, and pg_indexes showed kind+seq and tool_id+seq indexes behind the narrowings · a LIST of ids was ONE request that answered in the order asked (a duplicate collapsed, each row field for field what /tools serves), NAMED the id that held nothing, put a REMOVED declaration in missing rather than failing the request, and refused a batch of blanks (400 "at least one id") and of 51 ids (400 naming the cap of 50) · an owner's claim about a contract was its own resource, bound to the PIN it tested: seven refusals left the table empty (nothing claimed 404 not-attested, a foreign pin 409 naming the served one, a malformed pin 400, no pin 400, no owner 400, a stranger 403, an unknown id 404), the accepted claim was five fields with its note trimmed and stillCurrent true while the declaration stayed SEVEN, an update moved the contract and the claim did NOT follow (it still named the old pin, stillCurrent false, note intact), the old pin was then a 409 naming the new one, re-attesting the served pin REPLACED the one row, the journal named both claims and the withdrawal that deleted the only row which could have said it, and one claim survived the restart with the second JVM recomputing stillCurrent · and a second JVM served the same four rows and both revisions, field for field, the whole declaration carried a 64-hex PIN recomputed by the proof from the summary and schema the answer itself carried, delivered as a strong ETag and honoured as a 304 with no body on both read doors (with * matching and an unknown id still 404), the owner's update changed the pin while revision 1 kept the old one so a held pin answered 200, both revision pins were recomputed identically after the restart, the chain of two handovers read back field for field, and information_schema showed six declaration columns, five revision columns, four deprecation columns and five handover columns — no column for the pin — with nowhere to store an endpoint, a command or an invocation`);
+  console.log(`\n[summary] M10 v571–v588: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, a since asked only for what came after a revision the caller held (one row with total=1; empty with total=0 past the newest; both from 0; a page inside the narrowed set keeping the narrowed count; a negative since refused at 400 while a floored offset was not), an unknown id was 404, and psql read both rows · the catalog search answered a name match and a summary match, ignored case, narrowed BOTH window and count alongside the owner filter, paged with total=3, treated % and _ literally (0 matches), echoed a blank term as null, and refused a 101-character term at 400 · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its seven fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · the catalog named the rows that are GOING AWAY: deprecated=true was one row with total=1 while deprecated=false was the other three, an absent flag was null and all four, the flag composed with owner (1 and 0) and with the search (1 and 0 for the departing set), every answer echoed the flag and every row kept its seven fields · retention was the OWNER's and named its bound: six refusals (no owner, no bound, a bound of 0, a stranger, a bound past the newest revision, an unknown id) removed nothing, the prune of bound 2 answered before/pruned/remaining 2/1/2 and left a history starting AT revision 2 (psql read min(revision)=2), the same bound again answered 0, and a pin held across the prune still answered 304 because removing old revisions does not touch the contract · a declaration CHANGED HANDS and stayed the same declaration: a stranger's handover, a missing owner, an unknown id, a transfer to the CURRENT holder and one with no target were each refused while psql read the same holder and an EMPTY handover table; the owner's handover answered 200 with the same id, name, creation instant, schema and PIN (so a pin held across it still answered 304), the former owner's update, deprecation and removal were each 403 with the row and its deprecation untouched, the chain of holders named the current holder and appended the way back as transfer 2 with its window, cap, floor and count, an unknown id's chain was 404, and psql read both handovers in order beside a history still at TWO revisions and an empty audit trail — a handover is not a revision · the registry kept a JOURNAL of what HAPPENED beside what IS: GET /tools/changes answered every entry OLDEST first from a cursor the answer echoed, walked forward seven at a time across the WHOLE feed with a narrowing count on every page and no entry twice, six kinds appeared (declared, updated, transferred, deprecated, undeprecated, removed) and only the two that wrote a contract named a revision, a REMOVED declaration was still nameable with the name it had while its row was 404 and tool_entry held zero, a retention prune wrote no entry, an already-gone removal wrote nothing, and a negative cursor was a 400 naming "0 or more" while a limit of 500 was reported as 100 and an offset of -3 as 0 · the feed could be WATCHED rather than re-read: kind=removed answered exactly the removals the whole feed carried with their own count, toolId answered a removed tool's whole life in order, the two composed, a blank filter read as absent, an unknown kind was a 400 naming the whole eight-word vocabulary while a capitalised one was a 400 naming itself, an id the journal never saw was an empty feed rather than a 404, and pg_indexes showed kind+seq and tool_id+seq indexes behind the narrowings · a LIST of ids was ONE request that answered in the order asked (a duplicate collapsed, each row field for field what /tools serves), NAMED the id that held nothing, put a REMOVED declaration in missing rather than failing the request, and refused a batch of blanks (400 "at least one id") and of 51 ids (400 naming the cap of 50) · an owner's claim about a contract was its own resource, bound to the PIN it tested: seven refusals left the table empty (nothing claimed 404 not-attested, a foreign pin 409 naming the served one, a malformed pin 400, no pin 400, no owner 400, a stranger 403, an unknown id 404), the accepted claim was five fields with its note trimmed and stillCurrent true while the declaration stayed SEVEN, an update moved the contract and the claim did NOT follow (it still named the old pin, stillCurrent false, note intact), the old pin was then a 409 naming the new one, re-attesting the served pin REPLACED the one row, the journal named both claims and the withdrawal that deleted the only row which could have said it, and one claim survived the restart with the second JVM recomputing stillCurrent · the catalog could be asked WHICH ROWS CARRY A CLAIM: tested=true was the attested row and tested=false the other three, an absent flag was null and all four, the four directions composed with the deprecated flag answered 1/1/0/2 on real state, owner and q narrowed BOTH the window and the count, and the bound was proved rather than hidden — a claim survived an update that MOVED its contract, so tested=true still named the row while stillCurrent read false, and withdrawing the claim took it back out · and a second JVM served the same four rows and both revisions, field for field, the whole declaration carried a 64-hex PIN recomputed by the proof from the summary and schema the answer itself carried, delivered as a strong ETag and honoured as a 304 with no body on both read doors (with * matching and an unknown id still 404), the owner's update changed the pin while revision 1 kept the old one so a held pin answered 200, both revision pins were recomputed identically after the restart, the chain of two handovers read back field for field, and information_schema showed six declaration columns, five revision columns, four deprecation columns and five handover columns — no column for the pin — with nowhere to store an endpoint, a command or an invocation`);
   rmSync(BUILD_DIR, { recursive: true, force: true });
   console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s update and removal, a recorded revision history that an update cannot erase, a direct read by the name every agent shares, a deprecation that is its own resource with its own public list, a catalog search whose wildcards are literal, and no capability this build does not have)');
 } finally {
