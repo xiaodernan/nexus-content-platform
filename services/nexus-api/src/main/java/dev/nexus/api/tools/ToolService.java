@@ -71,12 +71,19 @@ public class ToolService {
 
     private final ToolRepository repository;
     private final ToolRevisionRepository revisions;
+    private final ToolDeprecationRepository deprecations;
     private final Clock clock;
     private final ObjectMapper mapper;
 
-    public ToolService(ToolRepository repository, ToolRevisionRepository revisions, Clock clock, ObjectMapper mapper) {
+    public ToolService(
+            ToolRepository repository,
+            ToolRevisionRepository revisions,
+            ToolDeprecationRepository deprecations,
+            Clock clock,
+            ObjectMapper mapper) {
         this.repository = repository;
         this.revisions = revisions;
+        this.deprecations = deprecations;
         this.clock = clock;
         this.mapper = mapper;
     }
@@ -151,6 +158,7 @@ public class ToolService {
                         throw new NotYourTool("tool \"" + toolId + "\" belongs to another account");
                     }
                     revisions.deleteByToolId(toolId);
+                    deprecations.deleteByToolId(toolId);
                     repository.delete(row);
                     return true;
                 })
@@ -242,6 +250,123 @@ public class ToolService {
     /** Append one revision row - the write both the registration and every accepted update go through. */
     private void record(ToolEntry row, int revision, java.time.Instant recordedAt) {
         revisions.save(new ToolRevision(row.getToolId(), revision, row.getSummary(), row.getInputSchema(), recordedAt));
+    }
+
+    /**
+     * Deprecate a declaration: say it is going away, and optionally name what replaces it.
+     *
+     * <p>The owner is required before any read and checked before either field, the same order an update uses:
+     * a stranger learns nothing about which sentence the owner would accept. The message is one trimmed
+     * sentence bounded like a summary. The replacement is a HINT - it must pass the same name rule, and it
+     * cannot name the tool itself, but it need not hold a row: a successor may be declared later.
+     *
+     * <p>One row per tool: deprecating again replaces the sentence, the hint and the instant.
+     *
+     * @throws InvalidTool when the owner is missing or the message/replacement breaks its rule
+     * @throws UnknownTool when the id names no row
+     * @throws NotYourTool when the row belongs to another account
+     */
+    @Transactional
+    public ToolDeprecation deprecate(String toolId, String ownerId, String message, String replacement) {
+        String owner = requireOwner(ownerId);
+        ToolEntry row = repository.lockById(toolId)
+                .orElseThrow(() -> new UnknownTool("tool \"" + toolId + "\" names nothing in this registry"));
+        if (!row.getOwner().equals(owner)) {
+            throw new NotYourTool("tool \"" + toolId + "\" belongs to another account");
+        }
+        String sentence = requireDeprecationMessage(message);
+        String target = requireReplacement(replacement, row.getName());
+        java.time.Instant at = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        return deprecations.findByToolId(toolId)
+                .map(existing -> {
+                    existing.replace(sentence, target, at);
+                    return deprecations.save(existing);
+                })
+                .orElseGet(() -> deprecations.save(new ToolDeprecation(toolId, sentence, target, at)));
+    }
+
+    /**
+     * Withdraw a deprecation. {@code false} when the tool was not deprecated - "already live" is not an error,
+     * the same rule the removal door follows for an id that names nothing.
+     *
+     * @throws UnknownTool when the id names no row
+     * @throws NotYourTool when the row belongs to another account
+     */
+    @Transactional
+    public boolean undeprecate(String toolId, String ownerId) {
+        String owner = requireOwner(ownerId);
+        ToolEntry row = repository.lockById(toolId)
+                .orElseThrow(() -> new UnknownTool("tool \"" + toolId + "\" names nothing in this registry"));
+        if (!row.getOwner().equals(owner)) {
+            throw new NotYourTool("tool \"" + toolId + "\" belongs to another account");
+        }
+        return deprecations.findByToolId(toolId)
+                .map(existing -> {
+                    deprecations.delete(existing);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    /**
+     * One declaration's deprecation. A 404 when the tool exists but is not deprecated, distinct by name from
+     * the 404 for an id that names nothing: "this tool is live" and "there is no such tool" are different
+     * facts, and a reader deciding whether to migrate needs to tell them apart.
+     */
+    @Transactional(readOnly = true)
+    public ToolDeprecation deprecationOf(String toolId) {
+        get(toolId);
+        return deprecations.findByToolId(toolId)
+                .orElseThrow(() -> new UnknownDeprecation("tool \"" + toolId + "\" is not deprecated"));
+    }
+
+    /** The public list of deprecated declarations, newest first - the window, not the whole table. */
+    @Transactional(readOnly = true)
+    public List<ToolDeprecation> deprecationPage(int limit, int offset) {
+        int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
+        int from = Math.max(offset, 0);
+        return deprecations.findAllByOrderByDeprecatedAtDesc(PageRequest.of(from / effective, effective));
+    }
+
+    /** The WHOLE number of deprecated declarations the window is a window of. */
+    @Transactional(readOnly = true)
+    public long deprecationCount() {
+        return deprecations.count();
+    }
+
+    /** The declarations behind a page of deprecations, in one read rather than one query per row. */
+    @Transactional(readOnly = true)
+    public java.util.Map<String, ToolEntry> byIds(List<String> ids) {
+        return repository.findAllById(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(ToolEntry::getToolId, tool -> tool));
+    }
+
+    /** The required one-sentence deprecation message, trimmed and bounded like a summary. */
+    static String requireDeprecationMessage(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new InvalidTool("a deprecation needs a message - one sentence about why the tool is going away");
+        }
+        String trimmed = raw.trim();
+        if (trimmed.length() > MAX_SUMMARY_LENGTH) {
+            throw new InvalidTool("a deprecation message is at most " + MAX_SUMMARY_LENGTH
+                    + " characters - this one is " + trimmed.length());
+        }
+        return trimmed;
+    }
+
+    /**
+     * The optional replacement name: absent when blank, otherwise a legal tool name that is not this tool.
+     * A blank hint and no hint are the same request, so the wire needs no third state.
+     */
+    static String requireReplacement(String raw, String toolName) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String replacement = requireName(raw);
+        if (replacement.equals(toolName)) {
+            throw new InvalidTool("a deprecation cannot name its own tool \"" + toolName + "\" as the replacement");
+        }
+        return replacement;
     }
 
     /** The stored canonical text as the tree the wire shape carries. Trusting internal storage here. */

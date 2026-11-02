@@ -41,10 +41,13 @@ class ToolServiceTest {
     @Mock
     private ToolRevisionRepository revisions;
 
+    @Mock
+    private ToolDeprecationRepository deprecations;
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     private ToolService service() {
-        return new ToolService(repository, revisions, Clock.fixed(AT, ZoneOffset.UTC), mapper);
+        return new ToolService(repository, revisions, deprecations, Clock.fixed(AT, ZoneOffset.UTC), mapper);
     }
 
     private static ToolEntry row(String id, String owner, String name) {
@@ -386,5 +389,136 @@ class ToolServiceTest {
                 .isInstanceOf(InvalidTool.class)
                 .hasMessageContaining("tool name");
         verify(repository, never()).findByName(any());
+    }
+    @Test
+    void deprecatingTrimsTheSentenceAndStoresTheHint() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+        when(deprecations.findByToolId("tool-1")).thenReturn(Optional.empty());
+        when(deprecations.save(any(ToolDeprecation.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ToolDeprecation stored = service().deprecate("tool-1", OWNER, "  Use b.tool instead.  ", "  b.tool  ");
+
+        assertThat(stored.getToolId()).isEqualTo("tool-1");
+        assertThat(stored.getMessage()).isEqualTo("Use b.tool instead.");
+        assertThat(stored.getReplacementName()).isEqualTo("b.tool");
+        assertThat(stored.getDeprecatedAt()).isEqualTo(AT);
+    }
+
+    @Test
+    void aDeprecationWithoutAReplacementStoresNoHint() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+        when(deprecations.findByToolId("tool-1")).thenReturn(Optional.empty());
+        when(deprecations.save(any(ToolDeprecation.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ToolDeprecation stored = service().deprecate("tool-1", OWNER, "Going away.", "   ");
+
+        assertThat(stored.getReplacementName()).isNull();
+    }
+
+    @Test
+    void deprecatingAgainReplacesTheOneRowRatherThanAppending() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        ToolDeprecation existing = new ToolDeprecation("tool-1", "Old reason.", "b.tool", AT.minusSeconds(60));
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+        when(deprecations.findByToolId("tool-1")).thenReturn(Optional.of(existing));
+        when(deprecations.save(existing)).thenReturn(existing);
+
+        ToolDeprecation stored = service().deprecate("tool-1", OWNER, "A new reason.", null);
+
+        assertThat(stored.getMessage()).isEqualTo("A new reason.");
+        assertThat(stored.getReplacementName()).isNull();
+        assertThat(stored.getDeprecatedAt()).isEqualTo(AT);
+        verify(deprecations).save(existing);
+    }
+
+    @Test
+    void aDeprecationRefusesItsOwnToolAsTheReplacement() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+
+        assertThatThrownBy(() -> service().deprecate("tool-1", OWNER, "Going away.", "a.tool"))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("its own tool");
+        verify(deprecations, never()).save(any(ToolDeprecation.class));
+    }
+
+    @Test
+    void aDeprecationRefusesAMalformedReplacementName() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+
+        assertThatThrownBy(() -> service().deprecate("tool-1", OWNER, "Going away.", "B.Tool"))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("tool name");
+        verify(deprecations, never()).save(any(ToolDeprecation.class));
+    }
+
+    @Test
+    void aDeprecationMessageIsRequiredAndBounded() {
+        assertThatThrownBy(() -> ToolService.requireDeprecationMessage("  "))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("message");
+        assertThatThrownBy(() -> ToolService.requireDeprecationMessage("x".repeat(281)))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("281");
+        assertThat(ToolService.requireDeprecationMessage("  Going away.  ")).isEqualTo("Going away.");
+    }
+
+    @Test
+    void aStrangerCannotDeprecateAndWritesNothing() {
+        ToolEntry somebodys = row("tool-1", "acct-bob", "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(somebodys));
+
+        assertThatThrownBy(() -> service().deprecate("tool-1", OWNER, "Mine now.", null))
+                .isInstanceOf(NotYourTool.class);
+        verify(deprecations, never()).save(any(ToolDeprecation.class));
+    }
+
+    @Test
+    void withdrawingADeprecationSaysWhetherOneExisted() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        ToolDeprecation existing = new ToolDeprecation("tool-1", "Going away.", null, AT);
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+        when(deprecations.findByToolId("tool-1")).thenReturn(Optional.of(existing), Optional.empty());
+
+        assertThat(service().undeprecate("tool-1", OWNER)).isTrue();
+        assertThat(service().undeprecate("tool-1", OWNER)).isFalse();
+
+        verify(deprecations).delete(existing);
+    }
+
+    @Test
+    void theDeprecationOfALiveToolIsA404UnderItsOwnName() {
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(deprecations.findByToolId("tool-1")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().deprecationOf("tool-1"))
+                .isInstanceOf(UnknownDeprecation.class)
+                .hasMessageContaining("not deprecated");
+    }
+
+    @Test
+    void removalTakesTheDeprecationWithTheDeclaration() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.findById("tool-1")).thenReturn(Optional.of(mine));
+
+        assertThat(service().remove("tool-1", OWNER)).isTrue();
+
+        verify(deprecations).deleteByToolId("tool-1");
+        verify(repository).delete(mine);
+    }
+
+    @Test
+    void aDeprecationPageIsANewestFirstWindowWithTheWholeCount() {
+        when(deprecations.findAllByOrderByDeprecatedAtDesc(PageRequest.of(0, 1)))
+                .thenReturn(List.of(new ToolDeprecation("tool-2", "Going away.", null, AT)));
+        when(deprecations.count()).thenReturn(1L);
+
+        List<ToolDeprecation> window = service().deprecationPage(1, 0);
+
+        assertThat(window).extracting(ToolDeprecation::getToolId).containsExactly("tool-2");
+        assertThat(service().deprecationCount()).isEqualTo(1);
     }
 }

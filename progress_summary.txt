@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v574 (read a declaration by its global name — landed and verified)
+Project version: v575 (deprecation as its own resource — landed and verified)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is 7 commits ahead (v568–v574).
+Pushed to origin/master: no — master is 8 commits ahead (v568–v575).
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -18,10 +18,11 @@ Recent increments in this lineage (all real commits, all gated):
   v572: details by id and the owner's update (ADR 0023)
   v573: a declaration's revision history (ADR 0024)
   v574: read a declaration by its global name in one request
+  v575: deprecation as its own resource, with a public list (ADR 0025)
 
-Verification of v572–v574:
-  mvn -B test -f services/nexus-api/pom.xml: 556/556 in 29 classes, exit 0
-  (v573 adds 25 ToolServiceTest + 15 ToolControllerTest = 40 targeted cases)
+Verification of v572–v575:
+  mvn -Dtest='dev.nexus.api.tools.*' test: 60/60 (39 service + 21 controller), exit 0
+  (the whole suite reads 596/596 in 31 classes at this tree, but 20 cases are another lane's untracked MCP tests)
   Live proof `node docs/evidence/m10/tool-registry-proof.mjs` against a real PostgreSQL: ALL ASSERTIONS PASSED
   (§4 removal leaves zero revisions; §5 two revisions newest first with the birth schema intact; §6 restart
   serves both and information_schema shows tool_revision has exactly five columns).
@@ -41,6 +42,7 @@ ADR 0016 compliance:
   Studio→service hop 15s via shared serviceCall.ts; timeout never reported as "unreachable"
 
 Next increments (planned, see docs/LONG_TERM_PLAN.md):
-  v575: deprecation as a separate door — an agent choosing between tools needs to be told a declaration is
-        going away, and by whom it is replaced; today the catalog cannot say either
-  v576+: a schema hash a consumer can pin; then M10's MCP face (the catalog in MCP tool-list shape)
+  v576: catalog search by name/summary with the whole count beside the window — an agent looking for a
+        capability, not knowing a name, can currently only page the catalog
+  v577+: a schema hash a consumer can pin; ownership transfer is still deliberately absent.
+        NOTE: another lane is building the MCP face (untracked dev.nexus.api.mcp), so do not duplicate it.

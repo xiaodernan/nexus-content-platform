@@ -66,4 +66,26 @@ public final class ToolDtos {
     public record ToolRevisionList(
             String toolId, List<ToolRevisionView> revisions, long total, int limit, int offset) {
     }
+
+    /** The body that deprecates a declaration. Both fields are the owner's words, never an id. */
+    public record DeprecateRequest(String message, String replacement) {
+    }
+
+    /**
+     * One deprecation: why this tool is going away, and the name of what replaces it (or null).
+     *
+     * <p>{@code replacement} is a HINT: it must be a legal tool name but it need not hold a row.
+     */
+    public record Deprecation(String toolId, String message, String replacement, long deprecatedAt) {
+    }
+
+    /** One row of the public list of deprecated tools: the declaration's name beside its deprecation. */
+    public record DeprecatedTool(
+            String toolId, String name, String message, String replacement, long deprecatedAt) {
+    }
+
+    /** The deprecation window, newest first, and the WHOLE number of deprecated declarations beside it. */
+    public record DeprecationList(
+            List<DeprecatedTool> deprecations, long total, int limit, int offset) {
+    }
 }

@@ -1,5 +1,9 @@
 package dev.nexus.api.tools;
 
+import dev.nexus.api.tools.ToolDtos.DeprecateRequest;
+import dev.nexus.api.tools.ToolDtos.Deprecation;
+import dev.nexus.api.tools.ToolDtos.DeprecationList;
+import dev.nexus.api.tools.ToolDtos.DeprecatedTool;
 import dev.nexus.api.tools.ToolDtos.RegisterRequest;
 import dev.nexus.api.tools.ToolDtos.Tool;
 import dev.nexus.api.tools.ToolDtos.ToolList;
@@ -21,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v571–v574 — the HTTP surface for the tool registry. Seven doors, and the differences between them are the
+ * M10 v571–v575 — the HTTP surface for the tool registry. Eleven doors, and the differences between them are the
  * rules:
  *
  * <ul>
@@ -43,6 +47,14 @@ import org.springframework.web.bind.annotation.RestController;
  *       which declaration it is.
  *   <li>{@code DELETE /tools/{id}?owner=} — remove a declaration, for its owner only. 200 either way: an id
  *       that names nothing is "already gone", not an error; another account's row is a 403.
+ *   <li>{@code POST /tools/{id}/deprecation?owner=} — say a declaration is going away, for its owner only,
+ *       with a message and an optional replacement NAME (a hint, not a reference).
+ *   <li>{@code GET /tools/{id}/deprecation} — one declaration's deprecation. 404 {@code unknown-tool} when
+ *       the id names nothing, and a DIFFERENT 404 {@code not-deprecated} when the tool is live.
+ *   <li>{@code DELETE /tools/{id}/deprecation?owner=} — withdraw the deprecation, for its owner only.
+ *       200 with {@code removed:false} when the tool was not deprecated.
+ *   <li>{@code GET /tools/deprecations?limit=&offset=} — every deprecated declaration, newest first, with
+ *       the tool's name beside its deprecation so an agent can read the whole warning list in one request.
  * </ul>
  *
  * <p>There is no door that EXECUTES a tool and no door that records an invocation. A tool is declared here so
@@ -105,6 +117,84 @@ public class ToolController {
     @GetMapping("/tools/by-name/{name}")
     public ResponseEntity<Tool> readByName(@PathVariable String name) {
         return ResponseEntity.ok(toWire(service.getByName(name)));
+    }
+
+    /**
+     * Deprecate a declaration: say it is going away, and optionally name what replaces it.
+     *
+     * <p>The owner is REQUIRED before anything is read and checked before either field. The message is one
+     * trimmed sentence; the replacement is a legal tool name that is not this tool, and it need not hold a
+     * row because a successor may be declared later.
+     */
+    @PostMapping("/tools/{toolId}/deprecation")
+    public ResponseEntity<?> deprecate(
+            @PathVariable String toolId,
+            @RequestParam(name = "owner", required = false) String owner,
+            @RequestBody(required = false) DeprecateRequest request) {
+        if (owner == null || owner.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-tool",
+                    "message", "the owner parameter is missing — only the owner may deprecate a tool"));
+        }
+        ToolDeprecation row = service.deprecate(
+                toolId,
+                owner,
+                request == null ? null : request.message(),
+                request == null ? null : request.replacement());
+        return ResponseEntity.ok(toWire(row));
+    }
+
+    /**
+     * One declaration's deprecation. A tool that is live is a 404 NOT-DEPRECATED, and the handler below
+     * answers it under that name rather than pretending the tool does not exist.
+     */
+    @GetMapping("/tools/{toolId}/deprecation")
+    public ResponseEntity<Deprecation> deprecation(@PathVariable String toolId) {
+        return ResponseEntity.ok(toWire(service.deprecationOf(toolId)));
+    }
+
+    /**
+     * Withdraw a deprecation. Owner required; 200 with {@code removed:false} when the tool was not deprecated,
+     * the same "already gone is not an error" shape the removal door uses.
+     */
+    @DeleteMapping("/tools/{toolId}/deprecation")
+    public ResponseEntity<Map<String, Object>> undeprecate(
+            @PathVariable String toolId,
+            @RequestParam(name = "owner", required = false) String owner) {
+        if (owner == null || owner.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-tool",
+                    "message", "the owner parameter is missing — only the owner may withdraw a deprecation"));
+        }
+        boolean removed = service.undeprecate(toolId, owner);
+        return ResponseEntity.ok(Map.of("toolId", toolId, "removed", removed));
+    }
+
+    /**
+     * The public list of deprecated declarations, newest first, each carrying its tool's NAME. One request
+     * answers "which tools are going away and what replaces them", which is the question a catalog reader has.
+     */
+    @GetMapping("/tools/deprecations")
+    public ResponseEntity<DeprecationList> deprecations(
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "offset", required = false) Integer offset) {
+        int asked = limit == null ? ToolService.DEFAULT_LIST_LIMIT : limit;
+        int effective = Math.min(Math.max(asked, 1), ToolService.MAX_LIST_LIMIT);
+        int from = offset == null ? 0 : Math.max(offset, 0);
+        List<ToolDeprecation> rows = service.deprecationPage(asked, from);
+        Map<String, ToolEntry> tools = service.byIds(rows.stream().map(ToolDeprecation::getToolId).toList());
+        List<DeprecatedTool> wire = rows.stream()
+                .map(row -> {
+                    ToolEntry tool = tools.get(row.getToolId());
+                    return new DeprecatedTool(
+                            row.getToolId(),
+                            tool == null ? null : tool.getName(),
+                            row.getMessage(),
+                            row.getReplacementName(),
+                            row.getDeprecatedAt().toEpochMilli());
+                })
+                .toList();
+        return ResponseEntity.ok(new DeprecationList(wire, service.deprecationCount(), effective, from));
     }
 
     /**
@@ -187,6 +277,14 @@ public class ToolController {
                 revision.getRecordedAt().toEpochMilli());
     }
 
+    private Deprecation toWire(ToolDeprecation row) {
+        return new Deprecation(
+                row.getToolId(),
+                row.getMessage(),
+                row.getReplacementName(),
+                row.getDeprecatedAt().toEpochMilli());
+    }
+
     /** A rule the caller broke is a 400 that NAMES it. */
     @ExceptionHandler(InvalidTool.class)
     public ResponseEntity<Map<String, String>> invalid(InvalidTool e) {
@@ -203,6 +301,12 @@ public class ToolController {
     @ExceptionHandler(NotYourTool.class)
     public ResponseEntity<Map<String, String>> notYours(NotYourTool e) {
         return ResponseEntity.status(403).body(Map.of("error", "not-your-tool", "message", e.getMessage()));
+    }
+
+    /** A tool that is live has no deprecation: 404 under its own name, distinct from an unknown id. */
+    @ExceptionHandler(UnknownDeprecation.class)
+    public ResponseEntity<Map<String, String>> notDeprecated(UnknownDeprecation e) {
+        return ResponseEntity.status(404).body(Map.of("error", "not-deprecated", "message", e.getMessage()));
     }
 
     /** An id that names nothing is a 404, not an empty row and not a 400. */

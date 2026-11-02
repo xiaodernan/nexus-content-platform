@@ -287,4 +287,69 @@ class ToolControllerTest {
         assertThat(body.inputSchema().isObject()).isTrue();
         assertThat(mapper.valueToTree(body).size()).isEqualTo(6);
     }
+    @Test
+    void deprecatingAnswersTheSentenceAndHint() {
+        ToolDeprecation stored = new ToolDeprecation("tool-1", "Use b.tool instead.", "b.tool", AT);
+        when(service.deprecate("tool-1", OWNER, "Use b.tool instead.", "b.tool")).thenReturn(stored);
+
+        ResponseEntity<?> answer = controller()
+                .deprecate("tool-1", OWNER, new ToolDtos.DeprecateRequest("Use b.tool instead.", "b.tool"));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        ToolDtos.Deprecation body = (ToolDtos.Deprecation) answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.toolId()).isEqualTo("tool-1");
+        assertThat(body.message()).isEqualTo("Use b.tool instead.");
+        assertThat(body.replacement()).isEqualTo("b.tool");
+        assertThat(body.deprecatedAt()).isEqualTo(AT.toEpochMilli());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void aDeprecationWithoutAnOwnerIsRefusedBeforeAnythingIsRead() {
+        ResponseEntity<?> answer = controller().deprecate("tool-1", "  ", new ToolDtos.DeprecateRequest("x", null));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        Map<String, Object> body = (Map<String, Object>) answer.getBody();
+        assertThat(body).containsEntry("error", "invalid-tool");
+        assertThat((String) body.get("message")).contains("owner");
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void withdrawingADeprecationAnswersRemoved() {
+        when(service.undeprecate("tool-1", OWNER)).thenReturn(true);
+
+        ResponseEntity<Map<String, Object>> answer = controller().undeprecate("tool-1", OWNER);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        assertThat(answer.getBody()).containsEntry("toolId", "tool-1").containsEntry("removed", true);
+    }
+
+    @Test
+    void theDeprecatedListCarriesEachToolsNameBesideItsDeprecation() throws Exception {
+        when(service.deprecationPage(20, 0))
+                .thenReturn(List.of(new ToolDeprecation("tool-1", "Use b.tool instead.", "b.tool", AT)));
+        when(service.deprecationCount()).thenReturn(1L);
+        when(service.byIds(List.of("tool-1"))).thenReturn(Map.of("tool-1", row("tool-1", OWNER, "a.tool")));
+
+        ResponseEntity<ToolDtos.DeprecationList> answer = controller().deprecations(null, null);
+
+        ToolDtos.DeprecationList body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.total()).isEqualTo(1);
+        assertThat(body.deprecations()).extracting(ToolDtos.DeprecatedTool::name).containsExactly("a.tool");
+        assertThat(body.deprecations().get(0).replacement()).isEqualTo("b.tool");
+        JsonNode wire = mapper.valueToTree(body);
+        assertThat(wire.toString()).doesNotContain("secret").doesNotContain("owner");
+    }
+
+    @Test
+    void aLiveToolIsAFourHundredAndFourUnderTheNameNotDeprecated() {
+        ResponseEntity<Map<String, String>> answer =
+                controller().notDeprecated(new UnknownDeprecation("tool \"tool-1\" is not deprecated"));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(404);
+        assertThat(answer.getBody()).containsEntry("error", "not-deprecated");
+    }
 }

@@ -31,7 +31,10 @@
 //      is a declaration edit rather than a trail fact; every accepted write is also RECORDED as a revision
 //      (revision 1 at registration, one more per update) and `GET /tools/{id}/revisions` answers what the
 //      declaration SAID at each one, newest first, with the whole count beside the window — so an update
-//      cannot erase the contract a consumer built against; removal takes the history with the declaration;
+//      cannot erase the contract a consumer built against; removal takes the history with the declaration.
+//      DEPRECATION is its own resource, not a seventh field: POST/GET/DELETE `/tools/{id}/deprecation`
+//      (owner only for the writes; a live tool is a distinct 404 `not-deprecated`), and the public
+//      `/tools/deprecations` list names every deprecated tool beside its message and replacement hint;
 //   §6 the rows, their canonical schemas and their recorded revisions SURVIVE A RESTART (a second JVM, the
 //      same database), and `information_schema` shows the declaration table has exactly six columns while
 //      the revision table has exactly five — neither has a place for a capability;
@@ -440,9 +443,19 @@ try {
   assert.equal(noOwnerRemoval.status, 400, `a removal without an owner must be 400, got ${noOwnerRemoval.status}`);
   assert.match(noOwnerRemoval.body.message, /owner/);
 
+  // A deprecation is a fact about the declaration, so removal must take it too: deprecate first, then delete,
+  // and psql reads no deprecation row for an id that no longer names anything.
+  const deprecateBeforeRemoval = await postJson(`/tools/${q(toolIdA)}/deprecation?owner=${q(owner)}`,
+      { message: 'Removed in this proof.', replacement: 'z.tool' });
+  assert.equal(deprecateBeforeRemoval.status, 200, `the owner may deprecate, got ${deprecateBeforeRemoval.status}: ${deprecateBeforeRemoval.text}`);
+  const deprecationsBeforeRemoval = await sql(`select count(*) from tool_deprecation where tool_id = '${toolIdA}'`);
+  assert.equal(deprecationsBeforeRemoval, '1', 'the deprecation was stored before the removal');
+
   const ownedRemoval = await call(`/tools/${q(toolIdA)}?owner=${q(owner)}`, { method: 'DELETE' });
   assert.equal(ownedRemoval.status, 200, `the owner's removal must be 200, got ${ownedRemoval.status}`);
   assert.equal(ownedRemoval.body.removed, true);
+  const deprecationGone = await sql(`select count(*) from tool_deprecation where tool_id = '${toolIdA}'`);
+  assert.equal(deprecationGone, '0', 'removal takes the deprecation with the declaration it described');
   const gone = await sql(`select count(*) from tool_entry where tool_id = '${toolIdA}'`);
   assert.equal(gone, '0', 'psql reads the row gone — removal is a delete, not a hidden window');
   const historyGone = await sql(`select count(*) from tool_revision where tool_id = '${toolIdA}'`);
@@ -455,7 +468,7 @@ try {
   const byNameAfterReclaim = await call('/tools/by-name/weather.lookup');
   assert.equal(byNameAfterReclaim.status, 200);
   assert.equal(byNameAfterReclaim.body.id, reclaimed.body.id, 'the name now resolves to the NEW row, not the removed one');
-  console.log(`[§4] a stranger's removal was 403 and the row stayed · an unknown id was 200 removed:false · a missing owner was 400 · the owner's removal was 200 removed:true and psql reads zero · the NAME weather.lookup was then declared again by another account as a NEW row — a name is not an id`);
+  console.log(`[§4] a stranger's removal was 403 and the row stayed · an unknown id was 200 removed:false · a missing owner was 400 · the owner's removal was 200 removed:true and psql reads zero · the NAME weather.lookup was then declared again by another account as a NEW row — a name is not an id · the owner's deprecation was stored before the removal and psql read it gone with the declaration`);
 
   // ── §5 details and the owner's update: read by id, and a declaration that can change what it SAYS ───
   const readById = await call(`/tools/${q(reclaimed.body.id)}`);
@@ -559,7 +572,110 @@ try {
   assert.equal(revisionsCount, '2', 'exactly two recorded writes, not one row and a counter');
   const auditAfterHistory = await sql('select count(*) from audit_entry');
   assert.equal(auditAfterHistory, '0', 'recording a revision is not a trail fact either');
-  console.log(`[§5] a tool was read by ID (six fields) and an unknown id was 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an 8193-byte schema 400, and psql read the untouched sentence after all four · the owner's update replaced the summary and stored the schema as ${storedUpdated.length} canonical bytes while the name, id, owner and creation instant stayed · the history answered TWO revisions newest first (revision 1 keeps the birth sentence and schema, revision 2 the replacement), its window reached revision 1 with total=2 beside it, limit=500 reported 100 and offset=-3 reported 0, an unknown id was 404, and psql read both rows with audit_entry still EMPTY · removal in §4 took its declaration's history with it`);
+
+  // ── deprecation: a fact about the declaration, with its own door and its own public list ────────
+  const deprecatedId = reclaimed.body.id;
+  const notDeprecatedYet = await call(`/tools/${q(deprecatedId)}/deprecation`);
+  assert.equal(notDeprecatedYet.status, 404, `a live tool's deprecation must be 404, got ${notDeprecatedYet.status}: ${notDeprecatedYet.text}`);
+  assert.equal(notDeprecatedYet.body.error, 'not-deprecated', 'a live tool is not an unknown tool');
+
+  const strangerDeprecation = await postJson(`/tools/${q(deprecatedId)}/deprecation?owner=${q(stranger)}`,
+      { message: 'Mine now.', replacement: 'm.tool' });
+  assert.equal(strangerDeprecation.status, 403, `a stranger's deprecation must be 403, got ${strangerDeprecation.status}: ${strangerDeprecation.text}`);
+  assert.equal(strangerDeprecation.body.error, 'not-your-tool');
+
+  const noOwnerDeprecation = await postJson(`/tools/${q(deprecatedId)}/deprecation`, { message: 'x' });
+  assert.equal(noOwnerDeprecation.status, 400, `a deprecation without an owner must be 400, got ${noOwnerDeprecation.status}`);
+  assert.match(noOwnerDeprecation.body.message, /owner/);
+
+  const unknownDeprecation = await postJson(`/tools/tool-that-never-existed/deprecation?owner=${q(other)}`,
+      { message: 'x' });
+  assert.equal(unknownDeprecation.status, 404, `a deprecation of an unknown id must be 404, got ${unknownDeprecation.status}`);
+  assert.equal(unknownDeprecation.body.error, 'unknown-tool');
+
+  const blankDeprecation = await postJson(`/tools/${q(deprecatedId)}/deprecation?owner=${q(other)}`, { message: '   ' });
+  assert.equal(blankDeprecation.status, 400);
+  assert.match(blankDeprecation.body.message, /message/);
+  const longDeprecation = await postJson(`/tools/${q(deprecatedId)}/deprecation?owner=${q(other)}`,
+      { message: 'x'.repeat(281) });
+  assert.equal(longDeprecation.status, 400);
+  assert.match(longDeprecation.body.message, /281/);
+  const malformedReplacement = await postJson(`/tools/${q(deprecatedId)}/deprecation?owner=${q(other)}`,
+      { message: 'Use the successor.', replacement: 'B.Tool' });
+  assert.equal(malformedReplacement.status, 400);
+  assert.match(malformedReplacement.body.message, /tool name/);
+  const selfReplacement = await postJson(`/tools/${q(deprecatedId)}/deprecation?owner=${q(other)}`,
+      { message: 'Use the successor.', replacement: 'weather.lookup' });
+  assert.equal(selfReplacement.status, 400, `a tool cannot replace itself, got ${selfReplacement.status}: ${selfReplacement.text}`);
+  assert.match(selfReplacement.body.message, /its own tool/);
+
+  // None of the refusals stored a row: psql still reads zero deprecations for this tool.
+  const deprecationsAfterRefusals = await sql(`select count(*) from tool_deprecation where tool_id = '${deprecatedId}'`);
+  assert.equal(deprecationsAfterRefusals, '0', 'a refused deprecation writes nothing');
+
+  const deprecation = await postJson(`/tools/${q(deprecatedId)}/deprecation?owner=${q(other)}`,
+      { message: '  Use m.tool instead.  ', replacement: '  m.tool  ' });
+  assert.equal(deprecation.status, 200, `the owner's deprecation must be 200, got ${deprecation.status}: ${deprecation.text}`);
+  assert.equal(deprecation.body.toolId, deprecatedId);
+  assert.equal(deprecation.body.message, 'Use m.tool instead.', 'the message is trimmed');
+  assert.equal(deprecation.body.replacement, 'm.tool', 'the replacement name is trimmed');
+  assert.ok(Math.abs(Date.now() - deprecation.body.deprecatedAt) < 60 * 60 * 1000);
+  assert.deepEqual(Object.keys(deprecation.body).sort(), ['deprecatedAt', 'message', 'replacement', 'toolId'],
+      `a deprecation carries exactly its four fields: ${deprecation.text}`);
+
+  // The DECLARATION read is unchanged: deprecation is its own resource, not a seventh field.
+  const declarationAfterDeprecation = await call(`/tools/${q(deprecatedId)}`);
+  assert.deepEqual(Object.keys(declarationAfterDeprecation.body).sort(), TOOL_FIELDS,
+      `deprecating a tool must not grow the declaration's six fields: ${declarationAfterDeprecation.text}`);
+  const deprecationRead = await call(`/tools/${q(deprecatedId)}/deprecation`);
+  assert.equal(deprecationRead.status, 200);
+  assert.deepEqual(deprecationRead.body, deprecation.body);
+
+  // One public list answers "which tools are going away, and what replaces them".
+  const deprecatedList = await call('/tools/deprecations');
+  assert.equal(deprecatedList.status, 200, `the deprecation list must be 200, got ${deprecatedList.status}: ${deprecatedList.text}`);
+  assert.equal(deprecatedList.body.total, 1);
+  assert.equal(deprecatedList.body.limit, 20);
+  assert.deepEqual(Object.keys(deprecatedList.body).sort(), ['deprecations', 'limit', 'offset', 'total']);
+  assert.deepEqual(Object.keys(deprecatedList.body.deprecations[0]).sort(),
+      ['deprecatedAt', 'message', 'name', 'replacement', 'toolId']);
+  assert.equal(deprecatedList.body.deprecations[0].name, 'weather.lookup', 'the list carries the tool NAME beside its deprecation');
+  assert.equal(deprecatedList.body.deprecations[0].replacement, 'm.tool');
+  const deprecatedRows = await sql(`select message from tool_deprecation where tool_id = '${deprecatedId}'`);
+  assert.equal(deprecatedRows, 'Use m.tool instead.');
+
+  // Re-deprecating REPLACES the one row: a deprecation is a state, not a history.
+  const reDeprecated = await postJson(`/tools/${q(deprecatedId)}/deprecation?owner=${q(other)}`,
+      { message: 'A newer reason.', replacement: null });
+  assert.equal(reDeprecated.status, 200);
+  assert.equal(reDeprecated.body.message, 'A newer reason.');
+  assert.equal(reDeprecated.body.replacement, null, 'an absent hint is stored as null, not as an empty name');
+  const afterReDeprecation = await sql(`select count(*) from tool_deprecation where tool_id = '${deprecatedId}'`);
+  assert.equal(afterReDeprecation, '1', 're-deprecating replaces the one row rather than appending');
+  const messageAfterReDeprecation = await sql(`select message from tool_deprecation where tool_id = '${deprecatedId}'`);
+  assert.equal(messageAfterReDeprecation, 'A newer reason.');
+
+  // Withdrawal, owner only, and "already live" is not an error.
+  const strangerUndeprecation = await call(`/tools/${q(deprecatedId)}/deprecation?owner=${q(stranger)}`, { method: 'DELETE' });
+  assert.equal(strangerUndeprecation.status, 403);
+  const noOwnerUndeprecation = await call(`/tools/${q(deprecatedId)}/deprecation`, { method: 'DELETE' });
+  assert.equal(noOwnerUndeprecation.status, 400);
+  assert.match(noOwnerUndeprecation.body.message, /owner/);
+  const undeprecated = await call(`/tools/${q(deprecatedId)}/deprecation?owner=${q(other)}`, { method: 'DELETE' });
+  assert.equal(undeprecated.status, 200, `the owner's withdrawal must be 200, got ${undeprecated.status}: ${undeprecated.text}`);
+  assert.equal(undeprecated.body.removed, true);
+  const undeprecatedAgain = await call(`/tools/${q(deprecatedId)}/deprecation?owner=${q(other)}`, { method: 'DELETE' });
+  assert.equal(undeprecatedAgain.body.removed, false, 'a tool that is already live is not an error');
+  const afterUndeprecation = await call(`/tools/${q(deprecatedId)}/deprecation`);
+  assert.equal(afterUndeprecation.status, 404);
+  assert.equal(afterUndeprecation.body.error, 'not-deprecated');
+  assert.equal(await sql(`select count(*) from tool_deprecation where tool_id = '${deprecatedId}'`), '0');
+
+  // Leave one deprecation on record: §6 must show that it survives the process.
+  const keptForRestart = await postJson(`/tools/${q(deprecatedId)}/deprecation?owner=${q(other)}`,
+      { message: 'Kept for the restart.', replacement: 'm.tool' });
+  assert.equal(keptForRestart.status, 200);
+  console.log(`[§5] a tool was read by ID (six fields) and an unknown id was 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an 8193-byte schema 400, and psql read the untouched sentence after all four · the owner's update replaced the summary and stored the schema as ${storedUpdated.length} canonical bytes while the name, id, owner and creation instant stayed · the history answered TWO revisions newest first (revision 1 keeps the birth sentence and schema, revision 2 the replacement), its window reached revision 1 with total=2 beside it, limit=500 reported 100 and offset=-3 reported 0, an unknown id was 404, and psql read both rows with audit_entry still EMPTY · removal in §4 took its declaration's history with it · deprecation: a live tool's read was 404 not-deprecated, a stranger 403, a missing owner 400, an unknown id 404, and blank/281-byte messages, a malformed replacement and a self-replacement were all refused while writing nothing; the owner's deprecation stored the trimmed message and hint while the declaration's six fields stayed six, the public list carried the tool NAME beside it, re-deprecating replaced the one row, withdrawal answered removed:true then removed:false, and psql read zero · one deprecation was left on record for §6`);
 
   // ── §6 the declarations and their canonical schemas survive a RESTART ──────────────────────────
   const beforeRestart = await call('/tools');
@@ -596,13 +712,25 @@ try {
   assert.deepEqual(revisionColumns, ['input_schema', 'recorded_at', 'revision', 'summary', 'tool_id'],
       `tool_revision must have exactly the five recorded fields, got ${JSON.stringify(revisionColumns)}`);
 
+  // A deprecation survives the process too, and the public list still names the tool.
+  const deprecationAfterRestart = await call(`/tools/${q(reclaimed.body.id)}/deprecation`);
+  assert.equal(deprecationAfterRestart.status, 200, `the deprecation must survive the restart, got ${deprecationAfterRestart.status}: ${deprecationAfterRestart.text}`);
+  assert.equal(deprecationAfterRestart.body.message, 'Kept for the restart.');
+  assert.equal(deprecationAfterRestart.body.replacement, 'm.tool');
+  const deprecatedAfterRestart = await call('/tools/deprecations');
+  assert.equal(deprecatedAfterRestart.body.total, 1);
+  assert.equal(deprecatedAfterRestart.body.deprecations[0].name, 'weather.lookup');
+  const deprecationColumns = (await sql("select column_name from information_schema.columns where table_name = 'tool_deprecation' order by column_name")).split('\n').filter(Boolean);
+  assert.deepEqual(deprecationColumns, ['deprecated_at', 'message', 'replacement_name', 'tool_id'],
+      `tool_deprecation must have exactly the four warning fields, got ${JSON.stringify(deprecationColumns)}`);
+
   // The DATABASE itself: six declaration columns, and NO place to put a capability.
   const columns = (await sql("select column_name from information_schema.columns where table_name = 'tool_entry' order by column_name")).split('\n').filter(Boolean);
   assert.deepEqual(columns, ['created_at', 'input_schema', 'name', 'owner_account_id', 'summary', 'tool_id'],
       `tool_entry must have exactly the six declaration columns, got ${JSON.stringify(columns)}`);
   const count = await sql('select count(*) from tool_entry');
   assert.equal(count, '4', 'psql counts the four rows the API answers');
-  console.log(`[§6] a second JVM served the same four rows, field for field, with the re-declared name carrying the schema its owner updated · its history still answered BOTH revisions newest first · information_schema shows tool_entry has exactly ${columns.length} columns (${columns.join(', ')}) and tool_revision exactly ${revisionColumns.length} (${revisionColumns.join(', ')}), with nowhere to store a URL, a command or an invocation — the registry declares and does not execute`);
+  console.log(`[§6] a second JVM served the same four rows, field for field, with the re-declared name carrying the schema its owner updated · its history still answered BOTH revisions newest first · information_schema shows tool_entry has exactly ${columns.length} columns (${columns.join(', ')}) and tool_revision exactly ${revisionColumns.length} (${revisionColumns.join(', ')}) and tool_deprecation exactly ${deprecationColumns.length} (${deprecationColumns.join(', ')}), with nowhere to store a URL, a command or an invocation — the registry declares and does not execute`);
 
   // ── §7 teardown ────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
@@ -613,9 +741,9 @@ try {
   assert.equal(goneContainer.stdout.trim(), '', `the throwaway container is still listed: ${goneContainer.stdout.trim()}`);
   console.log(`[§7] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log(`\n[summary] M10 v571–v574: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, an unknown id was 404, and psql read both rows · and a second JVM served the same four rows and both revisions, field for field, while information_schema showed six declaration columns and five revision columns with nowhere to store an endpoint, a command or an invocation`);
+  console.log(`\n[summary] M10 v571–v575: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, an unknown id was 404, and psql read both rows · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its six fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · and a second JVM served the same four rows and both revisions, field for field, while information_schema showed six declaration columns, five revision columns and four deprecation columns with nowhere to store an endpoint, a command or an invocation`);
   rmSync(BUILD_DIR, { recursive: true, force: true });
-  console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s update and removal, a recorded revision history that an update cannot erase, a direct read by the name every agent shares, and no capability this build does not have)');
+  console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s update and removal, a recorded revision history that an update cannot erase, a direct read by the name every agent shares, a deprecation that is its own resource with its own public list, and no capability this build does not have)');
 } finally {
   if (serviceProcess && serviceProcess.exitCode === null) {
     await stopService(serviceProcess);
