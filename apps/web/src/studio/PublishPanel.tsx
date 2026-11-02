@@ -208,7 +208,11 @@ export function PublishPanel() {
           ) : null}
 
           {publication && publication.visibility !== 'private' ? (
-            <div className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2" data-publish-result>
+            <div
+              className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2"
+              role="status"
+              data-publish-result
+            >
               <p className="text-11 text-fg-3">当前公开地址（第 {publication.version} 版）</p>
               <a
                 href={publication.path}

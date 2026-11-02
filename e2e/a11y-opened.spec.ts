@@ -520,3 +520,59 @@ test('§85 发布被机检挡下：硬红线裁决与限度说明进读数', asy
   expect(critical, `机检挡下态有 ${critical} 类 critical 违规，逐条见上面的读数`).toBe(0);
   await page.screenshot({ path: 'screenshots/a11y-opened-publish-scan-blocked.png' });
 });
+
+test('§85 发布成功后的结果块：地址、版本与审核状态进读数', async ({ page }) => {
+  test.setTimeout(360_000);
+  const { projectId } = await reusableMemberWithProject(page, EMAIL, PASSWORD, `无障碍发布结果夹具${RUN}`);
+  await page.goto(`/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 120_000 });
+
+  const trigger = page.locator('[data-publish-open]');
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-publish-panel]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-publish-gate]')).toBeVisible({ timeout: 120_000 });
+
+  // ---- 夹具项目可能已经被上一轮发布过：先收回来，保证"结果块是这次动作带出来的"
+  const resultBlock = page.locator('[data-publish-result]');
+  if (await resultBlock.count()) {
+    await page.locator('[data-publish-off]').click();
+    await expect(resultBlock).toHaveCount(0, { timeout: 60_000 });
+    await expect(trigger).toHaveText(/^发布$/, { timeout: 60_000 });
+  }
+  await expect(resultBlock, '还没发布就把结果块摆出来了').toHaveCount(0);
+
+  // ---- 真发布（不注入）：这一块的内容只能由服务端回执带出来
+  await page.locator('[data-publish-submit]').click();
+  await expect(resultBlock).toBeVisible({ timeout: 120_000 });
+  await expect(resultBlock).toHaveAttribute('role', 'status');
+
+  // 版本与地址都是回执里的数，不是界面自己编的（夹具项目被反复发布过，版本号不硬编码）
+  const blockText = ((await resultBlock.textContent()) ?? '').trim();
+  const versionMatch = blockText.match(/当前公开地址（第 (\d+) 版）/);
+  expect(versionMatch, `结果块里没有版本那一句：${blockText.slice(0, 80)}`).toBeTruthy();
+  const version = Number(versionMatch?.[1]);
+  expect(version, `版本号不是正数：${version}`).toBeGreaterThan(0);
+  const url = page.locator('[data-publish-url]');
+  await expect(url).toHaveCount(1);
+  const href = await url.getAttribute('href');
+  expect(href, '公开地址没进 DOM').toBeTruthy();
+  expect(href, `公开地址不是一个站内可打开的路由：${href}`).toMatch(/^\/n\/[a-z0-9]+\/.+/);
+  // 看得见的那串是绝对地址（由同一条 path 拼出来），它必须以 href 结尾：否则"看起来是它、点开是别的"
+  const shown = ((await url.textContent()) ?? '').trim();
+  expect(shown, `链接文字与 href 指的不是同一个地址：${shown} vs ${href}`).toBeTruthy();
+  expect(shown.startsWith('http://localhost:3101/'), `链接文字不是绝对地址：${shown}`).toBe(true);
+  expect(shown.endsWith(href ?? ''), `链接文字没落在 href 那条 path 上：${shown}`).toBe(true);
+  // 审核状态那句必须跟着结果块一起出现，不能只给一个地址
+  await expect(resultBlock).toContainText('人工审核');
+  await expect(page.locator('[data-publish-busy]')).toHaveCount(0);
+  await expect(page.locator('[data-publish-error]')).toHaveCount(0);
+  await expect(trigger).toHaveText(new RegExp(`已发布 v${version}`));
+
+  await resultBlock.scrollIntoViewIfNeeded();
+  const resultScan = await scan(page);
+  const critical = printSurface('Studio · 发布弹层（发布成功态）', resultScan);
+  expect(resultScan.passes.length, '发布成功态扫描为空转：结果块没渲染或 axe 没命中规则集').toBeGreaterThan(0);
+  expect(critical, `发布成功态有 ${critical} 类 critical 违规，逐条见上面的读数`).toBe(0);
+  await page.screenshot({ path: 'screenshots/a11y-opened-publish-result.png' });
+});

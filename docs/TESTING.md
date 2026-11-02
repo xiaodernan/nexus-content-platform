@@ -2228,3 +2228,12 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   notMeasured：review 态（需真发布回执，不用假 publication）、真服务端 5xx / 413、unpublish 失败态、
   390 下弹层、焦点陷阱。另：连跑多轮后登录限额（同一 IP 10 次/小时）会用光，夹具会以
   "注册…HTTP 409 该邮箱已被注册"的形式报错——那是限额不是产品，等窗口滚过去再跑。
+
+- **2026-11-02：§85 第四十一片 发布成功后的结果块（地址、版本与审核状态）**——`PublishPanel.tsx` 结果块
+  挂 `role="status"`。跑法同上，`-g "发布成功后的结果块"` 单跑。用例走真发布：先把夹具项目已有的发布
+  收回来，再点发布，断言版本句（从块里读 N，再对顶栏「已发布 vN」，不硬编码）、地址（`href` 是站内相对
+  路径，文字是绝对地址且以 href 结尾）、审核那句与地址同现。读数：结果块 **27 通过 / 35 不适用 / 0 违规**，
+  critical 全 0；截图 `screenshots/a11y-opened-publish-result.png` 人工看过。**三条臂**：M1 结果块去
+  `role="status"` → 红在 `toHaveAttribute`（Received null）；M2 版本句写死成"第 1 版" →
+  红在 `toHaveText(/已发布 v1/)`（收到"已发布 v5"）；M3 审核那句换成"审核未同步" → 红在 `toContainText('人工审核')`。
+  notMeasured：review 态（不注入假 publication）、unpublish 失败态、390 下弹层、焦点陷阱。
