@@ -7,6 +7,7 @@ import {
   generateTokenCss,
 } from "../src/codegen";
 import type { DesignNode, GeneratedFile } from "../src/index";
+import type { Layout } from "../src/types";
 
 /** §192：生成的代码必须真的能编译，而不是"看起来像 TSX" */
 function transpileDiagnostics(file: GeneratedFile): string[] {
@@ -179,7 +180,7 @@ describe("Design → Code（§17-19）", () => {
     });
     node.responsive = [
       { breakpoint: "tablet", patch: { layout: { mode: "horizontal", gap: 24 }, size: { height: 200 } } },
-      { breakpoint: "desktop", patch: { layout: { columns: 2 }, size: { width: 900 } } },
+      { breakpoint: "desktop", patch: { layout: { mode: "grid", columns: 2 }, size: { width: 900 } } },
       { breakpoint: "wide", patch: { visible: false } },
     ];
     node.parentId = root.id;
@@ -190,8 +191,83 @@ describe("Design → Code（§17-19）", () => {
     expect(line).toContain("md:gap-[24px]");
     expect(line).toContain("md:h-[200px]");
     expect(line).toContain("lg:w-[900px]");
+    // 排布类带着 display：基线是 `flex flex-col`，`md:flex-row` 不改 display 就翻不回横排
+    expect(line).toContain("md:flex");
+    expect(line).toContain("lg:grid");
     expect(line).toContain("lg:grid-cols-[repeat(2,minmax(0,1fr))]");
     expect(line).toContain("xl:hidden");
+  });
+
+  it("断点只写列数不改排布：网格类整条不发（§159 的\"不动的类\"）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({
+      type: "section",
+      name: "ColumnsOnly",
+      layout: { mode: "vertical", gap: 16 },
+      size: { width: 300, height: 200 },
+    });
+    node.responsive = [{ breakpoint: "tablet", patch: { layout: { columns: 3 } } }];
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const line = lineWith(generatePageComponent(page2, {}, "Home").contents, node.id);
+    // 这一档解出来的排布还是竖排：`grid-cols-[…]` 落在 flex 容器上浏览器什么都不做，
+    // 发出去就是代码视图在说"生效了"而画布没动。模型里那一条键留着（徽标会数到它）。
+    expect(line).not.toContain("grid-cols");
+    expect(line).not.toContain("md:grid");
+  });
+
+  it("断点的 padding 与透明度发得出来（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({
+      type: "section",
+      name: "PadOpacity",
+      layout: { mode: "vertical", gap: 16 },
+      size: { width: 300, height: 200 },
+    });
+    node.responsive = [
+      {
+        breakpoint: "tablet",
+        patch: { layout: { padding: { top: 24, right: 8, bottom: 24, left: 8 } }, style: { opacity: 0.6 } },
+      },
+      { breakpoint: "desktop", patch: { layout: { padding: { top: 32, right: 32, bottom: 32, left: 32 } } } },
+      // 只有 top 的 patch 是 `ResponsiveRule` 摆不出、库里却躺着的那种（`layout.ts:370` 同一句：
+      // 老行或绕过校验写进来的残缺节点）。补齐另外三条 = 把模型里没有的键写进代码，也读不回来。
+      { breakpoint: "wide", patch: { layout: { padding: { left: 4 } as Layout["padding"] } } },
+    ];
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const line = lineWith(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(line).toContain("md:pt-[24px]");
+    expect(line).toContain("md:pr-[8px]");
+    expect(line).toContain("md:opacity-[0.6]");
+    // 四边同值折成一条 p-，与基线同一个拼法
+    expect(line).toContain("lg:p-[32px]");
+    // patch 只写了一条边就只发那一条：凭空补齐另外三条会把模型里没有的东西写进代码
+    expect(line).toContain("xl:pl-[4px]");
+    expect(line).not.toContain("xl:pt-");
+  });
+
+  it("mobile 那一档不发断点类：空前缀与基线撞特异性（欠的那一寸见 ADR-0069）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({
+      type: "section",
+      name: "MobileRule",
+      layout: { mode: "vertical", gap: 16 },
+      size: { width: 300, height: 200 },
+    });
+    node.responsive = [{ breakpoint: "mobile", patch: { layout: { mode: "horizontal", gap: 8 } } }];
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const line = lineWith(generatePageComponent(page2, {}, "Home").contents, node.id);
+    // 基线照旧（`flex flex-col gap-[16px]`），没有裸的 `flex-row` / `gap-[8px]` 与它抢
+    expect(line).not.toContain("flex-row");
+    expect(line).not.toContain("gap-[8px]");
   });
 
   it("mode=none 的父级里子节点用绝对定位，跟画布同一份几何", () => {

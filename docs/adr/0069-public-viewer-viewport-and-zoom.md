@@ -134,9 +134,35 @@
   （内缩比 design 那份多 24——正是面板摆不出输入口、只有「清掉这一档」碰得到的那个键，到访客脸上照样生效）。
 - 读数：单元 `responsive-editor` 31 + `studio-responsive` 11 = **42 passed**；
   e2e 腿 A–M **1 passed（19.2s，暖服务，3101）**。
-- **仍欠**：codegen 那一侧的断点类还没吃完这些键——`responsiveClasses`
-  （`packages/design-model/src/codegen.ts:450`）不发 `style.opacity`，`layout.mode` 只发
-  `flex-col`/`flex-row`（网格/换行那一档没有 display 类，`grid-cols-[…]` 落在非网格容器上是不动的），
-  `layout.padding` 整组不发；`code-parse` 的 `decodeVariant` 白名单同样只认得现有那几样。
-  也就是说面板/画布/访客三处已经一致，**代码视图与导出的 ZIP 还少这几键**（§16 的"三处同一份模型"
-  在这一寸上仍有缺口）。下一片补发射与回写，并让发射的 display 类取该档**解出来**的排布。
+
+**第四片（2026-11-02）：这几键也进代码那一寸（codegen 发射 + code-parse 回写）**
+
+第三片留下的缺口是：面板/画布/访客三处一致，而代码视图与导出的 ZIP 少 `style.opacity`、少
+`layout.padding`，网格/换行那一档连 display 类都没有。这一片补的就是那一寸，两侧共用同一张表。
+
+- `codegen.ts` 把排布 → 工具类那张表提出来导出了：`DISPLAY_CLASSES`（`vertical`→`flex flex-col`、
+  `horizontal`→`flex flex-row`、`wrap`→`flex flex-wrap`、`grid`→`grid`，`stack`/`none` 空）、
+  `gridColsClass()` 与 `PADDING_SIDES`（四条边 ↔ `pt/pr/pb/pl`）。基线发射（`layoutClasses`）与
+  断点发射（`responsiveClasses`）都读它，回写侧也从它反推——**拼法只有一份**。
+- 断点的 display 类取**这一档解出来**的排布（`applyResponsive(node, bp).layout.mode`），不是 patch 里
+  `mode` 那一个键。两个理由：只写 `{columns:2}` 的规则不改排布，发一条 `grid-cols-[…]` 落在 flex
+  容器上是不动的类（§159 说的同一件事：不许发一个什么都不改的类）；而从网格翻回横排时只发
+  `md:flex-row` 不改 `display`，那份投影还是网格——所以 flex 系连 `flex` 一起发，把基线留下的
+  `grid` 顶掉。列数只在**这一档自己声明了** `columns` 时发：没声明就沿用基线那条无前缀的类，
+  凭空补一条 `grid-cols-[repeat(1,…)]` 会让回写读出一个模型里不存在的键。
+- `layout.padding` 按 patch 写了哪几条边发哪几条（`applyResponsive` 对 `layout` 组是整键
+  `Object.assign`，一条 `{padding:{top:24}}` 的意思就是"这一档的 padding 只有 top"）；四条边同值折成
+  一条 `md:p-[…]`。回写把 `p-[…]` 展成四边，再折回同一条 ⇒ 往返不动。
+- `style.opacity` 发 `md:opacity-[…]`，回写只收 `0..1` 的数字，其余进 `unmapped` 说清原因。
+- `code-parse.ts` 的 `MODE_OF_DISPLAY_CLASS` 从同一张表反推，**只收唯一属于一个排布的那些类**：
+  `flex` 竖/横/换行三档都发，认它等于猜，所以它被消费掉但不进 `checked`（否则一条手写的
+  `md:flex` 会把整个节点的回写顶掉）。`decodeVariant` 的白名单就此与发射侧对齐。
+- 读数：`packages/design-model/test` + `responsive-editor` + `studio-responsive` 三个文件集
+  **432 passed（34 files）**；e2e 腿 A–N **1 passed（22.8s，暖服务，3101）**，腿 N 那一段 5.1s。
+- **仍欠**：`mobile` 那一档的前缀是空串，覆盖与基类撞在同一特异性上（谁赢由框架产出顺序决定），
+  正确做法是把基线改成"设计 + mobile 规则"那份移动优先投影——那是单独一片，今天照实**不发**，
+  所以面板最常被点的那一档到代码这一寸仍然是断的。`layout` 的
+  `justify`/`items`/`reverse`/`rowGap`/`crossGap`/`scroll`/`clipContent`、`mode` 的 `stack`/`none`
+  两档，以及 `position`（x/y）在断点 patch 里都还发不出、读不回；`typography` 只有字号、
+  `style` 只有填充与透明度。这些键画布与访客都吃，代码视图与 ZIP 不吃（§16 在这一寸上仍有缺口）。
+

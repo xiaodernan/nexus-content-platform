@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { reusableMemberWithProject } from './support/auth-session';
+import { loginMember, reusableMemberWithProject } from './support/auth-session';
 
 /**
  * §14 断点规则的**人工入口**那一寸（ADR-0069 欠的半边）。
@@ -21,6 +21,8 @@ import { reusableMemberWithProject } from './support/auth-session';
  * ⑤ 面板的行是内核按 `appliesTo` 现推的（腿 G3）：`layout.mode`/`layout.gap`/`typography.fontSize`
  *    有了输入口，而列数那一格**只在投影出来是网格的那一档**出现；改回竖排后模型里那个
  *    `layout.columns` 键还在，于是它从"这一格能改"变成要点名的"面板没有输入口"。
+ * ⑥ 这几键在**代码那一寸**也在（腿 N）：同一份模型投影出来的断点类读得到方向类、padding
+ *    与透明度，而从代码视图把它们改回去，面板的读数与服务端那份文档跟着一起吃。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -675,5 +677,58 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
       '手机档的字号跟到 tablet（tablet 那条规则没碰 typography）',
     ).toBe(`${smallerFont}px`);
     await visitorContext.close();
+
+    // 腿 N：代码视图（§14 第四片）。面板点出来的这几键在画布与访客脸上都成立，但发射那一侧
+    // 只认得 mode 的方向类与 gap：`style.opacity` 与 `layout.padding` 到代码这一寸就断了，
+    // 于是代码视图与导出的 ZIP 里根本没有它们（§16「三处同一份模型」在这一寸上的缺口）。
+    // 这一腿读的是**同一份模型投影出来的那一行类**，然后从代码这一侧改回去，再读面板与数据库。
+    // 作者那个 context 在发布后就关了（访客必须是另一只没有会话的浏览器），所以这里重新登一次：
+    // `/studio/<id>` 认会话，第二只 context 没有那枚 cookie 服务端直接 404。
+    stamp('访客腿收尾，回到作者的代码视图');
+    const codeContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const coder = await codeContext.newPage();
+    await loginMember(coder, FIXTURE_EMAIL, FIXTURE_PASSWORD);
+    await coder.goto(`/studio/${projectId}`);
+    await expect(coder.locator('[data-canvas-frame]')).toBeVisible({ timeout: 120_000 });
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await coder.click('[data-view="code"]');
+    const codeView = coder.locator('[data-code-view]');
+    await expect(codeView, '代码视图没打开').toBeVisible({ timeout: 30_000 });
+    const actionsLine = coder.locator('[data-code-line="selected"]');
+    await expect(actionsLine, '选中 Actions 后代码视图该高亮它那一行').toContainText(carriers.actionsId);
+    // 排布：这一档解出来是 `seededMode`，display 类要跟着一起发（只发方向类不改 display，翻不回横排）
+    const dirClass = carriers.seeded.modeValue === 'vertical' ? 'md:flex-col' : 'md:flex-row';
+    await expect(actionsLine).toContainText(`md:flex ${dirClass}`);
+    // padding：四条边同值折成一条 `md:p-[…]`，不同值发四条边——两种拼法都由这个节点自己的数推出来
+    const pad = carriers.seeded.padding;
+    const uniformPad = pad.top === pad.right && pad.top === pad.bottom && pad.top === pad.left;
+    await expect(actionsLine, '面板/配方写的 layout.padding 没进代码视图').toContainText(
+      uniformPad ? `md:p-[${pad.top}px]` : `md:pt-[${pad.top}px]`,
+    );
+    await expect(actionsLine).not.toContainText(
+      uniformPad ? `md:pt-[${pad.top}px]` : `md:p-[${pad.top}px]`,
+    );
+    // 透明度在另一个节点（CTA）上：代码视图是整页那一份，所以同一片文本里读得到
+    await expect(codeView).toContainText('md:opacity-[0.4]');
+
+    // 反方向：在代码里把这条断点透明度改掉 ⇒ 回写进模型 ⇒ 面板与数据库都吃到
+    await coder.click('[data-code-edit]');
+    const codeEditor = coder.locator('[data-code-editor]');
+    await expect(codeEditor).toBeVisible();
+    const edited = (await codeEditor.inputValue()).replace('md:opacity-[0.4]', 'md:opacity-[0.75]');
+    expect(edited).toContain('md:opacity-[0.75]');
+    await codeEditor.fill(edited);
+    await coder.click('[data-code-apply]');
+    await expect(coder.locator('[data-code-report-applied]')).toContainText('responsive');
+    await expect(codeView).toContainText('md:opacity-[0.75]');
+    await coder.click('[data-view="canvas"]');
+    await coder.click(`[data-layer-id="${carriers.ctaId}"]`);
+    await coder.click('[data-breakpoint-tab="tablet"]');
+    await expect(coder.locator('[data-responsive-channel="style.opacity"]')).toContainText('这一档 0.75');
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.ctaId), { timeout: 30_000 })
+      .toEqual([{ breakpoint: 'tablet', patch: { style: { opacity: 0.75 } } }]);
+    stamp('腿 N：代码视图发得出这几键 + 从代码改回去落进模型');
+    await codeContext.close();
   });
 });

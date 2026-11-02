@@ -133,6 +133,10 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
   下面那行读数会说明改动是谁带来的：全部来自更窄那一档时
   明说"这一档自己没有规则"，这一档自己写的规则一处投影都没改时反过来提示那是空覆盖、可以清掉。
   规则按 `<=` 向上级联，所以平板那格会显示手机那条规则的改动，而清除键只在**这一档自己写过**的键上出现。
+  这几键同样进代码那一寸（§17-19，ADR-0069 第四片）：「代码」视图与导出的 ZIP 里，断点类发得出
+  该档**解出来的** display 组（`flex`/`flex-col`/`flex-row`/`flex-wrap`/`grid` + 自己声明了才发的列数）、
+  四边 padding（同值折成 `p-[…]`）、透明度、尺寸与字号，`code-parse` 认得回来；`mobile` 那一档的前缀是
+  空串、语义不定，照实不发（欠账写在 ADR-0069）。
   根画框不在这节的管辖内：图层列表从根的孩子起（layers-flat.ts:45），Ctrl+A 也排掉根（CanvasStage.tsx:272），
   根那一档的宽由断点给出——那条披露在「页面」那一节（`data-page-root-width-from-breakpoint`）。
 

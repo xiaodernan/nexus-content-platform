@@ -6,6 +6,7 @@
  * 本包禁止 import React / DOM / fs —— 只产出字符串。
  */
 
+import { applyResponsive } from "./layout";
 import { childrenOf } from "./nodes";
 import { NODE_STATES, STATE_VARIANT } from "./states";
 import { toHex, tokenRefKey } from "./tokens";
@@ -13,6 +14,7 @@ import type {
   BreakpointName,
   DesignDocument,
   DesignNode,
+  LayoutMode,
   Page,
   Paint,
   RGBA,
@@ -55,6 +57,35 @@ const BREAKPOINT_CLASS: Record<BreakpointName, string> = {
   desktop: "lg:",
   wide: "xl:",
 };
+
+/**
+ * 排布 → display 工具类（列数另说，见 `gridColsClass`）。基线与断点共用这一张表：
+ * 断点要顶掉基线留下的 `grid`，拼法差一个字符就顶不动（Tailwind 比的是类名集合，不是书写顺序）。
+ * `stack` / `none` 给空数组——那两档靠子节点自己的绝对坐标摆放，一条断点规则改不了那批坐标，
+ * 所以代码里没有对应的 display 类（面板也不摆那两个按钮，`responsive-editor.ts` 的 MODE_CHOICES）。
+ * 导出是给 `code-parse` 反推回写表用的：发射与回写必须共用一张表，各抄一份迟早会说谎。
+ */
+export const DISPLAY_CLASSES: Record<LayoutMode, string[]> = {
+  vertical: ["flex", "flex-col"],
+  horizontal: ["flex", "flex-row"],
+  wrap: ["flex", "flex-wrap"],
+  grid: ["grid"],
+  stack: [],
+  none: [],
+};
+
+/** 等分网格的列数类：基线与断点同一个拼法，回写才认得回来 */
+function gridColsClass(columns: number | undefined): string {
+  return `grid-cols-[repeat(${Math.max(1, columns ?? 1)},minmax(0,1fr))]`;
+}
+
+/** padding 四边 → 工具类（基线与断点共用，两边拼法不一致时回写会把一条边读成另一条） */
+export const PADDING_SIDES: readonly ["top" | "right" | "bottom" | "left", string][] = [
+  ["top", "pt"],
+  ["right", "pr"],
+  ["bottom", "pb"],
+  ["left", "pl"],
+];
 
 const WEIGHT_CLASS: Record<number, string> = {
   100: "font-thin",
@@ -241,25 +272,16 @@ function layoutClasses(
 ): string[] {
   const layout = node.layout;
   const out: string[] = [];
-  switch (layout.mode) {
-    case "vertical":
-      out.push("flex", "flex-col");
-      break;
-    case "horizontal":
-      out.push("flex", "flex-row");
-      break;
-    case "wrap":
-      out.push("flex", "flex-wrap");
-      break;
-    case "grid":
-      out.push("grid", `grid-cols-[repeat(${Math.max(1, layout.columns ?? 1)},minmax(0,1fr))]`);
-      break;
-    case "stack":
-    case "none":
-      // 子节点用 absolute 摆放时父级需要定位参照；absolute 元素自身已经是参照，重复写会和
-      // Tailwind 的 position 工具类互相覆盖
-      if (!placement.absolute && placement.hasChildren) out.push("relative");
-      break;
+  for (const cls of DISPLAY_CLASSES[layout.mode]) out.push(cls);
+  if (layout.mode === "grid") out.push(gridColsClass(layout.columns));
+  // 子节点用 absolute 摆放时父级需要定位参照；absolute 元素自身已经是参照，重复写会和
+  // Tailwind 的 position 工具类互相覆盖
+  if (
+    (layout.mode === "stack" || layout.mode === "none") &&
+    !placement.absolute &&
+    placement.hasChildren
+  ) {
+    out.push("relative");
   }
   if (layout.reverse && (layout.mode === "vertical" || layout.mode === "horizontal")) {
     out.push(layout.mode === "vertical" ? "flex-col-reverse" : "flex-row-reverse");
@@ -274,13 +296,7 @@ function layoutClasses(
       const cls = lengthClass(pad.top, prefix, (inner) => `p-[${inner}]`);
       if (cls) out.push(cls);
     } else {
-      const sides: ["top" | "right" | "bottom" | "left", string][] = [
-        ["top", "pt"],
-        ["right", "pr"],
-        ["bottom", "pb"],
-        ["left", "pl"],
-      ];
-      for (const [side, utility] of sides) {
+      for (const [side, utility] of PADDING_SIDES) {
         const cls = lengthClass(pad[side], prefix, (inner) => `${utility}-[${inner}]`);
         if (cls && pad[side]) out.push(cls);
       }
@@ -452,6 +468,10 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
   const out: string[] = [];
   for (const rule of node.responsive) {
     const variant = BREAKPOINT_CLASS[rule.breakpoint];
+    // `mobile` 的前缀是空串：那一档的覆盖与基础类撞在同一个特异性上（`flex-row` 与 `flex-col`
+    // 谁赢由框架的产出顺序决定，不由类名书写顺序决定）。正确地表达它要把基线改成
+    // "设计 + mobile 规则"那份投影（移动优先），那是单独一片的活；今天先照实**不发**，
+    // 而不是发一组语义不定的类（详见 docs/adr/0069 的"仍欠"）。
     if (!variant) continue;
     const { layout, size, typography, style, visible } = rule.patch;
     if (size?.width === "fill") out.push(`${variant}w-full`);
@@ -470,10 +490,39 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
     if (fontSize) out.push(fontSize);
     const gap = lengthClass(layout?.gap, prefix, (i) => `${variant}gap-[${i}]`);
     if (gap) out.push(gap);
-    if (layout?.mode === "vertical") out.push(`${variant}flex-col`);
-    else if (layout?.mode === "horizontal") out.push(`${variant}flex-row`);
-    if (layout?.columns) {
-      out.push(`${variant}grid-cols-[repeat(${layout.columns},minmax(0,1fr))]`);
+    // 排布：display 那一组类取**这一档解出来**的排布（`applyResponsive` 把本档与更窄几档
+    // 合起来的那一份），不是取 patch 里 `mode` 那一个键。两个理由：
+    // ① 只写 `{columns:2}` 的规则不改排布，发一条 `grid-cols-[…]` 落在 flex 容器上是不动的类，
+    //    代码视图里看着像生效、浏览器里什么都没发生（§159 说的是同一件事）；
+    // ② 从网格翻回横排时，光发 `md:flex-row` 不改 `display`，那份投影还是网格——所以 flex 系
+    //    要连 `flex` 一起发，把基线留下的 `grid` 顶掉。
+    // 列数只在**这一档自己声明了** `columns` 时发：没声明就沿用基线那一条（无前缀的类在所有档
+    // 都生效），凭空补一条 `grid-cols-[repeat(1,…)]` 会让回写读出一个模型里不存在的键。
+    const resolvedMode = applyResponsive(node, rule.breakpoint).layout.mode;
+    if (layout?.mode !== undefined) {
+      for (const cls of DISPLAY_CLASSES[resolvedMode]) out.push(`${variant}${cls}`);
+    }
+    if (resolvedMode === "grid" && layout?.columns !== undefined) {
+      out.push(`${variant}${gridColsClass(layout.columns)}`);
+    }
+    // padding：patch 写了哪几条边就发哪几条。`applyResponsive` 对 `layout` 组是整键
+    // `Object.assign`，所以一条 `{padding:{top:24}}` 的意思就是"这一档的 padding 只有 top"——
+    // 凭空补上另外三条边会把模型里不存在的东西写进代码（也读不回来）。
+    if (layout?.padding) {
+      const pad = layout.padding;
+      const present = PADDING_SIDES.filter(([side]) => pad[side] !== undefined);
+      const inner = present.map(([side]) => lengthClass(pad[side], prefix, (i) => i));
+      const uniform =
+        present.length === 4 && inner.every((value) => value !== null && value === inner[0])
+          ? inner[0]
+          : null;
+      if (uniform) out.push(`${variant}p-[${uniform}]`);
+      else {
+        present.forEach(([, utility], i) => {
+          const value = inner[i];
+          if (value) out.push(`${variant}${utility}-[${value}]`);
+        });
+      }
     }
     if (style?.fills && !isTextLabel(node)) {
       const solid = firstSolid(style.fills);
@@ -482,6 +531,7 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
         : null;
       if (bg) out.push(bg);
     }
+    if (style?.opacity !== undefined) out.push(`${variant}opacity-[${style.opacity}]`);
     if (visible === false) out.push(`${variant}hidden`);
   }
   return out;

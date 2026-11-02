@@ -10,7 +10,7 @@
  */
 
 import { childrenOf, clone, getByPath, sameValue, setOnObject } from "./nodes";
-import { generatePageComponent } from "./codegen";
+import { DISPLAY_CLASSES, generatePageComponent, PADDING_SIDES } from "./codegen";
 import { STATE_VARIANT } from "./states";
 import type { NodeState, NodeStates, NodeStateStyle } from "./states";
 import type { PatchOp } from "./patch";
@@ -21,6 +21,7 @@ import type {
   DesignNode,
   Effect,
   Layout,
+  LayoutMode,
   LengthValue,
   Page,
   Paint,
@@ -607,6 +608,29 @@ interface Decode {
   states: Map<NodeState, VariantDecode>;
 }
 
+/**
+ * display 类 → 排布：从 codegen 的 `DISPLAY_CLASSES` 反推，只收**唯一属于一个排布**的那几个。
+ * `flex` 竖/横/换行三档都发，认它等于猜，所以它不参与判定（下面照样消费掉，别掉进
+ * "不在回写白名单里"那条披露）。两边共用一张表，拼法各抄一份迟早会说谎。
+ */
+const MODE_OF_DISPLAY_CLASS: Record<string, LayoutMode> = (() => {
+  const tally = new Map<string, number>();
+  for (const classes of Object.values(DISPLAY_CLASSES)) {
+    for (const cls of classes) tally.set(cls, (tally.get(cls) ?? 0) + 1);
+  }
+  const out: Record<string, LayoutMode> = {};
+  for (const [mode, classes] of Object.entries(DISPLAY_CLASSES)) {
+    for (const cls of classes) if ((tally.get(cls) ?? 0) === 1) out[cls] = mode as LayoutMode;
+  }
+  return out;
+})();
+
+/** codegen 可能发出来的全部 display 类（含不表态的 `flex`） */
+const DISPLAY_CLASS_SET: readonly string[] = [...new Set(Object.values(DISPLAY_CLASSES).flat())];
+
+/** `md:p-[…]` 一条管四边，`md:pt-[…]` 一条管一边——边的名字取自 codegen 那张表 */
+const ALL_PADDING_SIDES = PADDING_SIDES.map(([side]) => side);
+
 /** 响应式覆盖：codegen 只产出这些字段，回写也只接受这些字段 */
 function decodeVariant(
   tokens: string[],
@@ -660,6 +684,26 @@ function decodeVariant(
       out.checked.push(hit.literal);
     } else note(hit.literal, "只有等分网格能映射回模型");
   }
+  // padding：`p-[…]` 一条管四边，`pt/pr/pb/pl-[…]` 一条管一边——边的名字取自 codegen 那张表，
+  // 所以一条规则里的 padding 是"这一档写了哪几条边"，未写的边沿用基线（applyResponsive 整键替换
+  // 的是 `padding` 这一个键，键里有什么就是什么）。
+  const pad: Record<string, LengthValue> = {};
+  const padHits: { hit: Hit; sides: readonly ("top" | "right" | "bottom" | "left")[] }[] = [];
+  for (const hit of takeUtility(list, "p").all) padHits.push({ hit, sides: ALL_PADDING_SIDES });
+  for (const [side, utility] of PADDING_SIDES) {
+    for (const hit of takeUtility(list, utility).all) padHits.push({ hit, sides: [side] });
+  }
+  for (const { hit, sides } of padHits) {
+    const n = lengthOrTokenOf(hit.value, ctx);
+    if (n === null) note(hit.literal, "padding 需要 px 数值或 space.* token");
+    else {
+      sides.forEach((side) => {
+        pad[side] = n;
+      });
+      out.checked.push(hit.literal);
+    }
+  }
+  if (Object.keys(pad).length) layout.padding = pad;
   const text = takeUtility(list, "text");
   for (const hit of text.arbitrary) {
     const parsed = classifyText(hit.value, ctx);
@@ -675,17 +719,19 @@ function decodeVariant(
       out.checked.push(hit.literal);
     } else note(hit.literal, "断点覆盖暂不支持该 text-* 写法");
   }
-  if (list.includes("flex-col")) {
-    list.splice(list.indexOf("flex-col"), 1);
-    layout.mode = "vertical";
-    out.checked.push("flex-col");
+  for (const [cls, mode] of Object.entries(MODE_OF_DISPLAY_CLASS)) {
+    const at = list.indexOf(cls);
+    if (at < 0) continue;
+    list.splice(at, 1);
+    layout.mode = mode;
+    out.checked.push(cls);
   }
-  if (list.includes("flex-row")) {
-    list.splice(list.indexOf("flex-row"), 1);
-    layout.mode = "horizontal";
-    out.checked.push("flex-row");
+  // `flex` 三种排布都发，本身不表态：跟着消费掉，但不写进 checked——写进去就要求重投影能再现它，
+  // 而单独一个 `md:flex`（有人手写的）什么排布都不说，重投影发不出方向类。
+  for (const cls of DISPLAY_CLASS_SET) {
+    const at = list.indexOf(cls);
+    if (at >= 0) list.splice(at, 1);
   }
-  if (list.includes("flex")) list.splice(list.indexOf("flex"), 1);
   const bg = takeUtility(list, "bg");
   for (const hit of bg.all) {
     if (node.type === "text") note(hit.literal, "text 节点的字色在模型里由 fills 表达，断点覆盖暂不支持");
@@ -702,6 +748,16 @@ function decodeVariant(
     list.splice(list.indexOf("hidden"), 1);
     out.patch.visible = false;
     out.checked.push("hidden");
+  }
+  // 透明度：这一档声明了就必须发得出来、也读得回来（`style.opacity` 与 fills 同组，
+  // 回写按组 Object.assign，所以只有这一条键进 patch 不会抹掉同组别的键）
+  for (const hit of takeUtility(list, "opacity").all) {
+    const n = Number(hit.value);
+    if (!Number.isFinite(n) || n < 0 || n > 1) note(hit.literal, "断点透明度需要 0..1 的数字");
+    else {
+      style.opacity = n;
+      out.checked.push(hit.literal);
+    }
   }
   if (Object.keys(size).length) out.patch.size = size;
   if (Object.keys(layout).length) out.patch.layout = layout;

@@ -8725,10 +8725,33 @@ responsive rules**。ADR-0069 与 ADR-0074 把访客那一侧接完之后，作�
   这次改动上。e2e 腿 A–L **1 passed（32.5s）**——比第一片那条 4.7m 快一个量级，因为这一遍同机没有另一条 e2e
   在抢开发服务；那 4.7m 里腿 F 的 104s 与发布段的 266s 是被挤出来的，不是这条链的固有成本。
 
+**第四片（2026-11-02）：这几键走到代码那一寸（codegen 发射 + code-parse 回写）**
+
+- `packages/design-model/src/codegen.ts`：排布 → 工具类那张表提出来导出（`DISPLAY_CLASSES` /
+  `gridColsClass` / `PADDING_SIDES`），基线与断点共用一份。`responsiveClasses` 现在发的是这一档
+  **解出来**（`applyResponsive`）的 display 组，不是 patch 里 `mode` 那一个键；列数只在**这一档自己声明**
+  时发（否则代码视图里那条 `grid-cols-[…]` 落在 flex 容器上什么都不改，§159）；`layout.padding` 按 patch
+  写了哪几条边发哪几条、四边同值折成 `md:p-[…]`；`style.opacity` 发 `md:opacity-[…]`。
+- `packages/design-model/src/code-parse.ts`：`decodeVariant` 的白名单跟着补齐，`MODE_OF_DISPLAY_CLASS`
+  从同一张表反推，只收唯一属于一个排布的那些类（`flex` 三档都发 ⇒ 消费但不 `checked`，不然一条手写的
+  `md:flex` 会把整个节点的回写顶掉）。`p-[…]` 展成四边再折回同一条 ⇒ 往返不丢键。
+- `e2e/responsive-authoring.spec.ts` 加腿 N：发布与访客那几段之后另开一只登录的 context（作者的
+  context 在发布后就关了，`/studio/<id>` 认会话），选中 Actions 读 `[data-code-line="selected"]` 里
+  那一行类——`md:flex` + 方向类成对、padding 那一条由这个节点自己的数推出该是折起来的还是四条边，
+  另一种拼法同时断言**不在**；再在代码里把 `md:opacity-[0.4]` 改成 `0.75` 点应用 ⇒ 面板读"这一档 0.75"、
+  服务端那份文档就是 `{breakpoint:'tablet',patch:{style:{opacity:0.75}}}`。
+- 读数：`packages/design-model/test` + `responsive-editor` + `studio-responsive` **432 passed（34 files）**；
+  e2e 腿 A–N **1 passed（22.8s，暖服务 3101）**。这一腿绑得住是因为那三处类名在 HEAD 的发射侧根本没有
+  （`git show HEAD:…/codegen.ts` 里 `responsiveClasses` 只有 `flex-col`/`flex-row`）。
+- 开发服务的端口这一跑踩了一次空：3100 被本机另一个项目（页面标题是 FOOTBALL OS）占着，NEXUS 在 **3101**。
+  这条链要用 `NEXUS_WEB_URL=http://localhost:3101` 跑，`curl` 回 200 不等于那是对的服务器——看页面标题。
+
 **仍欠**
 
 1. 面板仍然只有四个输入口：`layout`/`position`/`typography` 那些键现在**数得进来、改不出去**，界面只能说"去
    代码那一节"或"整档清掉"。下一片要么给它们补输入口，要么让那句点名直接跳进「代码」那一节并聚焦到对应类名。
+   （第三片已给 `layout.mode`/`gap`/`columns`/`typography.fontSize` 摆了格子，这条欠的是
+   `justify`/`items`/`reverse`/`scroll`/`clipContent` 与 `position` 那些；见 ADR-0069。）
 2. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
 3. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。
 4. 这条 e2e 链在开发模式里 4.7m，其中腿 F 那一段从 9.7s 涨到 104s、发布到 266s 是同机另一会话同时在跑

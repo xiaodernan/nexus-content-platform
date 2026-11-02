@@ -54,6 +54,13 @@ const nodeId = (page: Page, name: string): string => {
   return node.id;
 };
 
+/** 元素开标签那一行：className 全在那里 */
+const lineOf = (code: string, needle: string): string => {
+  const line = code.split("\n").find((l) => l.includes(needle));
+  if (!line) throw new Error(`源码里找不到 ${needle}`);
+  return line;
+};
+
 describe("受限 JSX 解析", () => {
   it("认出根元素与全部带 id 的元素，且没有解析问题", () => {
     const page = starterPage();
@@ -249,6 +256,98 @@ describe("类名 → 模型属性", () => {
     expect(op).toMatchObject({
       nodeId: hero,
       value: [{ breakpoint: "tablet", patch: { layout: { gap: 12, mode: "horizontal" } } }],
+    });
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+  });
+
+  it("断点发的排布/列数/padding/透明度往返：零补丁、零 unmapped（§14）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [
+            {
+              breakpoint: "tablet",
+              patch: {
+                layout: { mode: "grid", columns: 2, padding: { top: 24, right: 8, bottom: 24, left: 8 } },
+                style: { opacity: 0.6 },
+              },
+            },
+            {
+              breakpoint: "desktop",
+              patch: {
+                layout: { mode: "wrap", padding: { top: "{space.12}", right: "{space.12}", bottom: "{space.12}", left: "{space.12}" } },
+              },
+            },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    // 发射那一侧真的发出了这些类（否则下面的"零补丁"是空对空：没发的东西当然读不回）
+    const line = lineOf(code, hero);
+    expect(line).toContain("md:grid");
+    expect(line).toContain("md:grid-cols-[repeat(2,minmax(0,1fr))]");
+    expect(line).toContain("md:pt-[24px]");
+    expect(line).toContain("md:opacity-[0.6]");
+    expect(line).toContain("lg:flex lg:flex-wrap");
+    expect(line).toContain("lg:p-[var(--nx-space-12)]");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("代码视图改一条边：另外三条边留在模型里（padding 按边回写）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [
+            { breakpoint: "tablet", patch: { layout: { padding: { top: 24, right: 8, bottom: 24, left: 8 } } } },
+          ],
+        },
+      },
+    };
+    const code = replace(source(withRule), "md:pt-[24px]", "md:pt-[40px]");
+    const result = parse(withRule, code);
+    const op = result.ops.find((o) => "path" in o && o.path === "responsive");
+    expect(op).toMatchObject({
+      nodeId: hero,
+      value: [
+        { breakpoint: "tablet", patch: { layout: { padding: { top: 40, right: 8, bottom: 24, left: 8 } } } },
+      ],
+    });
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+  });
+
+  it("手写的 md:grid 读回排布，光一个 md:flex 不表态（三种排布都发它）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [{ breakpoint: "tablet", patch: { layout: { gap: 16 } } }],
+        },
+      },
+    };
+    const code = replace(source(withRule), "md:gap-[16px]", "md:flex md:grid md:gap-[16px]");
+    const result = parse(withRule, code);
+    const op = result.ops.find((o) => "path" in o && o.path === "responsive");
+    // `grid` 是唯一属于网格的那条 display 类，所以它说话算数；`flex` 跟着被消费掉但不改排布
+    expect(op).toMatchObject({
+      nodeId: hero,
+      value: [{ breakpoint: "tablet", patch: { layout: { gap: 16, mode: "grid" } } }],
     });
     expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
   });
