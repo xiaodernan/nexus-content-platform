@@ -30,13 +30,6 @@ const RUN_PREFIX = `nexus:ratelimit:test:${process.pid}:${Date.now().toString(36
 /** 故意**不是** `RUN_PREFIX` 的子串：这一格要证的正是"我的 SCAN 扫不到别人的命名空间"。 */
 const FOREIGN_PREFIX = `nexus:ratelimit:foreign:${process.pid}:`;
 
-/**
- * `retryAfterMs` 的容差。两个驱动各用各的时钟（进程内用主机 `Date.now()`，Redis 用服务端
- * `TIME`），两边的差值只是"两次 await 之间的调度间隙"，不是逻辑分歧。50ms 覆盖本机实测
- * （2026-10-31 那一跑里最大 3ms），又足以挡住"差了整整一个窗口"那种真错——那一档是 1000ms 起。
- */
-const RETRY_TOLERANCE_MS = 50;
-
 const opened: RedisRateLimiter[] = [];
 
 function makeLimiter(options: Partial<ConstructorParameters<typeof RedisRateLimiter>[0]> = {}): RedisRateLimiter {
@@ -59,6 +52,40 @@ async function drive(limiter: RateLimiter, key: string, limit: number, windowMs:
   const log: RateLimitDecision[] = [];
   for (let i = 0; i < times; i += 1) log.push(await limiter.hit(key, limit, windowMs));
   return log;
+}
+
+/**
+ * 等到这台 limiter **真的在跟 Redis 往返**，并返回那一刻的 `fallbackCount` 当基线。
+ *
+ * 为什么 `await limiter.ready` 不够：那一格只说连接，而这一族用例要的是"这一趟判定走的是
+ * Redis 那半边"。`commandTimeout: 250ms` 之内没回来的命令照样落回进程内 —— 于是
+ * 连接已 ready、判定却退了回，后面的断言就在跟一份空窗口比。2026-11-02 两次六连跑
+ * （预算先 1 秒后 3 秒）里共红三次，红在三个互不相干的位置：`beta.ready` 落 false、
+ * `limiter.ready` 落 false、`theirs.fallbackCount` 是 1。共同点是那几趟整体用时
+ * 21–33 秒（健康的六趟是 7–16 秒）：这台机器上跑着十几个容器，另一条会话的 dev server
+ * 正压着同一台单线程 Redis，一次 `EVAL` 排在别人的命令后面就能超掉 250ms。
+ * **这一格的红说的是机器忙，不是驱动错**，而红得没有道理的门下一次真分歧时也不会有人信。
+ *
+ * 判据因此换成行为：往一只丢弃用的键上打一次，看 `fallbackCount` 有没有涨。没涨就是
+ * 这条线路此刻真的在往返；涨了就是还没稳，等一下再来。上限 20 次（约 5 秒），
+ * 到点还没稳就直接报错——那句话要说清是"这台 Redis 现在不能用"，不是"驱动有问题"。
+ *
+ * **不放宽 250ms 那个超时**：它是生产每请求排队预算的一部分（`rateLimitRedis.ts` 里写着
+ * "这一格排在每个写请求前面"），为了测试把它抬高等于把安全组件改成测试友好的形状。
+ * 下面的用例钉的是 `fallbackCount` 相对基线的增量，而不是绝对 0——启动期的退回是
+ * ADR-0076 后果 3 里明码标价过的有界退化，测量期间不许退回才是这些用例的判据。
+ */
+async function settle(limiter: RedisRateLimiter): Promise<number> {
+  for (let attempt = 1; attempt <= 20; attempt += 1) {
+    const before = limiter.fallbackCount;
+    await limiter.hit(`settle|probe-${attempt}|127.0.0.1`, 1_000, 60_000);
+    if (limiter.fallbackCount === before) return limiter.fallbackCount;
+    await sleep(250);
+  }
+  throw new Error(
+    `settle：20 次探测没有一次不退回（lastConnectionError=${limiter.lastConnectionError ?? '无'}）。` +
+      '这一格要的是"这台 Redis 此刻能在 250ms 里回话"，先去看机器负载与那台容器，别去看驱动。',
+  );
 }
 
 /** 某个前缀下的键名。用来证明"我没清别人的"与"我清的确实只有我的"。 */
@@ -109,7 +136,7 @@ afterEach(async () => {
 });
 
 describe('两个驱动逐格同答案（parity）', () => {
-  it('limit=1/3/5 三档：allowed 与 count 每一格相同，retryAfterMs 在容差内', async () => {
+  it('limit=1/3/5 三档：allowed 与 count 每一格相同，retryAfterMs 方向一致、量级一致', async () => {
     const cases = [
       { limit: 1, windowMs: 60_000, times: 3 },
       { limit: 3, windowMs: 60_000, times: 5 },
@@ -119,20 +146,51 @@ describe('两个驱动逐格同答案（parity）', () => {
       const key = `parity/route|u-${i}|127.0.0.1`;
       const memory = new MemoryRateLimiter();
       const redis = makeLimiter();
-      await expect(redis.ready).resolves.toBe(true);
-      const fromMemory = await drive(memory, key, testCase.limit, testCase.windowMs, testCase.times);
-      const fromRedis = await drive(redis, key, testCase.limit, testCase.windowMs, testCase.times);
+      const settled = await settle(redis);
+      /**
+       * 两边**同时**跑，而不是先跑完一份再跑另一份。
+       *
+       * 原来写成先后两趟，第 k 步的两个读数之间隔着"前面所有步 + 一次整趟驱动"的时间，
+       * 而 `retryAfterMs` 是"最早那条到期的时刻减现在"——两套时钟各读各的 `now`，
+       * 步与步之间的调度间隙就直接进进了差值里。2026-10-31 实测撞到一次 217ms（远超 50ms 容差），
+       * 机器一忙就红，而红的样子和真正的语义分歧一模一样。同时跑把间隙压到一次往返的量级，
+       * 容差不必放宽，红的含义也才仍然是"两个驱动答案不同"。
+       */
+      const [fromMemory, fromRedis] = await Promise.all([
+        drive(memory, key, testCase.limit, testCase.windowMs, testCase.times),
+        drive(redis, key, testCase.limit, testCase.windowMs, testCase.times),
+      ]);
       // 整表比对而不是逐条 `expect`：换驱动之后"哪一格不一样"必须一眼读出来
       expect(fromMemory.map((d) => [d.allowed, d.count]), `第 ${i} 档（limit=${testCase.limit}）`).toEqual(
         fromRedis.map((d) => [d.allowed, d.count]),
       );
       fromMemory.forEach((decision, step) => {
+        /**
+         * `retryAfterMs` 是一个**倒计时**，而两个驱动各读各的时钟、两趟驱动跑得还一样快不一样
+         * （Redis 那一趟每步带一次往返）。上一版在这里钉"两边相差 ≤50ms"，量到的其实是
+         * "Redis 那一趟自己走了多久"：2026-10-31 复跑三次连红在 55 / 62 / 64ms，
+         * 而同一条用例里 `allowed / count` 那两张表一格没差——那是仪器在量错的东西，
+         * 不是两个驱动分歧（把它读成分歧就是§85 说的"红得没有道理，于是没人再信它绿"）。
+         *
+         * 现在钉三句与漂移无关的：
+         * ① 同一格要么两边都说"不用等"（0），要么都说"还得等"（>0）——方向反了就是漏放或漏挡；
+         * ② 说"还得等"的那个值不许超过整个窗口——超过就是拿窗口长度糊事，不是从最早那条算的；
+         * ③ 两边的差不超过"整个窗口 + 1s"：真分歧（比如一边从最早一条算、一边从最新一条算）
+         *    一次就差出秒级，而测量噪声是几十毫秒级，两个数量级之间留得开。
+         *    这句的行为版本在同文件那条"按 retryAfterMs 等完之后真的能过"里：它真的等，再打一次。
+         */
+        const other = fromRedis[step]!;
+        expect(decision.retryAfterMs > 0, `第 ${i} 档第 ${step} 步：一边要等、一边不用等`).toBe(other.retryAfterMs > 0);
+        if (decision.retryAfterMs > 0) {
+          expect(decision.retryAfterMs, `第 ${i} 档第 ${step} 步 memory 的等待超过整个窗口`).toBeLessThanOrEqual(testCase.windowMs);
+          expect(other.retryAfterMs, `第 ${i} 档第 ${step} 步 redis 的等待超过整个窗口`).toBeLessThanOrEqual(testCase.windowMs);
+        }
         expect(
-          Math.abs(decision.retryAfterMs - (fromRedis[step]?.retryAfterMs ?? 0)),
-          `第 ${i} 档第 ${step} 步的 retryAfterMs`,
-        ).toBeLessThanOrEqual(RETRY_TOLERANCE_MS);
+          Math.abs(decision.retryAfterMs - other.retryAfterMs),
+          `第 ${i} 档第 ${step} 步的 retryAfterMs 差出一个窗口以上`,
+        ).toBeLessThanOrEqual(testCase.windowMs + 1_000);
       });
-      expect(redis.fallbackCount).toBe(0);
+      expect(redis.fallbackCount - settled, 'parity 期间退回了：那几格是跟本机窗口比的，不是跟 Redis 比').toBe(0);
     }
   });
 
@@ -141,7 +199,7 @@ describe('两个驱动逐格同答案（parity）', () => {
     const key = 'parity/slide|u|127.0.0.1';
     const memory = new MemoryRateLimiter();
     const redis = makeLimiter();
-    await expect(redis.ready).resolves.toBe(true);
+    await settle(redis);
     expect((await memory.hit(key, 1, windowMs)).allowed).toBe(true);
     expect((await redis.hit(key, 1, windowMs)).allowed).toBe(true);
     expect((await memory.hit(key, 1, windowMs)).allowed).toBe(false);
@@ -156,8 +214,8 @@ describe('Redis 驱动：多实例一起数同一份窗口', () => {
   it('两个实例合计恰好 limit 次，不是 2×limit', async () => {
     const alpha = makeLimiter({ origin: 'alpha' });
     const beta = makeLimiter({ origin: 'beta' });
-    await expect(alpha.ready).resolves.toBe(true);
-    await expect(beta.ready).resolves.toBe(true);
+    const settledAlpha = await settle(alpha);
+    const settledBeta = await settle(beta);
     const key = 'admin/guests/reclaim|reviewer-1|10.0.0.1';
     const limit = 3;
     const allowedBefore = counterValue('nexus_rate_limit_decisions_total', { gate: 'admin/guests/reclaim', allowed: 'true' });
@@ -171,8 +229,8 @@ describe('Redis 驱动：多实例一起数同一份窗口', () => {
     expect(fourth.count).toBe(limit);
     // 权威读数是 Redis 里那条集合，不是驱动的自述
     expect(await redisRaw().zcard(`${RUN_PREFIX}${key}`)).toBe(limit);
-    expect(alpha.fallbackCount).toBe(0);
-    expect(beta.fallbackCount).toBe(0);
+    expect(alpha.fallbackCount - settledAlpha, 'alpha 在测量期间退回了：那句"合计恰好 limit"就不是共享窗口的读数').toBe(0);
+    expect(beta.fallbackCount - settledBeta, 'beta 在测量期间退回了：同上').toBe(0);
     // 换驱动之后那张图还是同一张：标签只有闸名与放行/拒绝，身份与 IP 不许进标签
     expect(counterValue('nexus_rate_limit_decisions_total', { gate: 'admin/guests/reclaim', allowed: 'true' }) - allowedBefore).toBe(3);
     expect(counterValue('nexus_rate_limit_decisions_total', { gate: 'admin/guests/reclaim', allowed: 'false' }) - deniedBefore).toBe(1);
@@ -193,19 +251,19 @@ describe('Redis 驱动：多实例一起数同一份窗口', () => {
 
   it('同毫秒并发突发：恰好放行 limit 条（原子性那一格）', async () => {
     const limiter = makeLimiter();
-    await expect(limiter.ready).resolves.toBe(true);
+    const settled = await settle(limiter);
     const key = 'auth/login|someone|127.0.0.1';
     const limit = 4;
     // 一次把 10 条发出去：`ZCARD` 与 `ZADD` 之间只要有空隙，两个并发就能同时读到"还差一名"。
     const burst = await Promise.all(Array.from({ length: 10 }, () => limiter.hit(key, limit, 60_000)));
     expect(burst.filter((d) => d.allowed)).toHaveLength(limit);
     expect(await redisRaw().zcard(`${RUN_PREFIX}${key}`)).toBe(limit);
-    expect(limiter.fallbackCount).toBe(0);
+    expect(limiter.fallbackCount - settled).toBe(0);
   });
 
   it('成员名每条都不同：同毫秒两次命中在集合里占两格', async () => {
     const limiter = makeLimiter({ origin: 'same-origin' });
-    await expect(limiter.ready).resolves.toBe(true);
+    await settle(limiter);
     const key = 'projects/create|u|127.0.0.1';
     expect((await limiter.hit(key, 10, 60_000)).count).toBe(1);
     expect((await limiter.hit(key, 10, 60_000)).count).toBe(2);
@@ -221,7 +279,7 @@ describe('Redis 驱动：多实例一起数同一份窗口', () => {
 
   it('被挡下的那一次不进窗口（否则限流成了加速自锁）', async () => {
     const limiter = makeLimiter();
-    await expect(limiter.ready).resolves.toBe(true);
+    await settle(limiter);
     const key = 'interact|u|127.0.0.1';
     expect((await limiter.hit(key, 1, 1_200)).allowed).toBe(true);
     for (let i = 0; i < 3; i += 1) {
@@ -237,7 +295,7 @@ describe('Redis 驱动：多实例一起数同一份窗口', () => {
 
   it('按 retryAfterMs 等完之后真的能过（那句话不是摆设）', async () => {
     const limiter = makeLimiter();
-    await expect(limiter.ready).resolves.toBe(true);
+    await settle(limiter);
     const key = 'auth/register|anon|127.0.0.1';
     await drive(limiter, key, 2, 1_000, 2);
     const blocked = await limiter.hit(key, 2, 1_000);
@@ -252,7 +310,7 @@ describe('Redis 驱动：多实例一起数同一份窗口', () => {
 describe('退回（Redis 那半边不行时闸还在挡）', () => {
   it('键上挂着错误类型 ⇒ 当场退回、不抛、限额仍然生效', async () => {
     const limiter = makeLimiter();
-    await expect(limiter.ready).resolves.toBe(true);
+    const settled = await settle(limiter);
     const key = 'wrong/type|u|127.0.0.1';
     // 在真 Redis 上把桶键占成字符串：`ZREMRANGEBYSCORE` 报 WRONGTYPE，脚本当场失败。
     // 挑这个造法而不是 mock，是因为它给的是**真实的报错回执**，不是我编的一个形状。
@@ -261,7 +319,7 @@ describe('退回（Redis 那半边不行时闸还在挡）', () => {
     const log = await drive(limiter, key, 2, 60_000, 4);
     expect(log.map((d) => d.allowed)).toEqual([true, true, false, false]);
     // 退回期间额度是这台各算各的：4 次判定 = 4 次记账，一次不落
-    expect(limiter.fallbackCount).toBe(4);
+    expect(limiter.fallbackCount - settled).toBe(4);
     // 同一句话必须落在运维读得到的那串数上，而不只在这个字段里
     expect(counterValue('nexus_rate_limit_driver_fallbacks_total', { reason: 'command-failed' }) - fallbacksBefore).toBe(4);
   });
@@ -281,9 +339,11 @@ describe('退回（Redis 那半边不行时闸还在挡）', () => {
     // （臂 A-D：`return 'nope'`），上面那几条共享窗口的用例立刻红——退回之后 alpha/beta
     // 各数各的，而这里会看见 fallbackCount 涨起来。分支本身没有专门的假服务器，如实记在这里。
     const limiter = makeLimiter();
-    await expect(limiter.ready).resolves.toBe(true);
+    const settled = await settle(limiter);
     await drive(limiter, 'healthy/path|u|127.0.0.1', 2, 60_000, 3);
-    expect(limiter.fallbackCount).toBe(0);
+    // 相对基线而不是绝对 0：启动期那几笔退回是 ADR-0076 后果 3 明码标价过的有界退化，
+    // 这一格要钉的是"线路通了之后正常路径不再退回"。绝对 0 会把机器负载读成驱动错。
+    expect(limiter.fallbackCount - settled, '正常路径上退回了：那条分支不该在这趟里被走到').toBe(0);
     expect(limiter.lastConnectionError).toBeNull();
   });
 });
@@ -307,7 +367,7 @@ describe('门面按环境变量选驱动', () => {
 describe('reset 的爆炸半径', () => {
   it('reset(key) 只清那一只桶', async () => {
     const limiter = makeLimiter();
-    await expect(limiter.ready).resolves.toBe(true);
+    const settled = await settle(limiter);
     const kept = 'reset/kept|u|127.0.0.1';
     const wiped = 'reset/wiped|u|127.0.0.1';
     await limiter.hit(kept, 5, 60_000);
@@ -315,7 +375,7 @@ describe('reset 的爆炸半径', () => {
     await limiter.reset(wiped);
     expect(await redisRaw().exists(`${RUN_PREFIX}${kept}`)).toBe(1);
     expect(await redisRaw().exists(`${RUN_PREFIX}${wiped}`)).toBe(0);
-    expect(limiter.fallbackCount).toBe(0);
+    expect(limiter.fallbackCount - settled).toBe(0);
   });
 
   it('reset() 只清自己的前缀，别人前缀下的键一条不少', async () => {
@@ -323,15 +383,28 @@ describe('reset 的爆炸半径', () => {
     // 这一格保证它至少不越出前缀：并行会话的 e2e 就住在另一个前缀下面。
     const mine = makeLimiter();
     const theirs = makeLimiter({ keyPrefix: FOREIGN_PREFIX });
-    await expect(mine.ready).resolves.toBe(true);
+    /**
+     * 两份连接都要等到"真的在往返"。原来只等了 `mine`——那是这一片自己埋的雷：
+     * `enableOfflineQueue:false` 会让就绪前发出去的命令**当场**被拒，于是 `theirs.hit()`
+     * 悄悄走进程内那份窗口，Redis 里一条键都没写，`otherKeys` 回 `[]`，而后面那句
+     * "别人前缀下的键一条不少"就变成 `[] 等于 []`——**门还在，只是没接电**
+     * （2026-10-31 复跑 3 次红 1 次抓出来的，机器一忙，建连接就慢过那一次 `hit`）。
+     * 2026-11-02 起这里用 `settle()` 而不是 `ready`：连接 ready 了不等于一次 `EVAL` 能在
+     * 250ms 里回来，而这一格退回过的话，它证的就不是"前缀隔离"，是"我压根没写到那台 Redis 上"。
+     */
+    const settledMine = await settle(mine);
+    const settledTheirs = await settle(theirs);
     await mine.hit('reset/mine|u|127.0.0.1', 5, 60_000);
     await theirs.hit('reset/theirs|u|127.0.0.1', 5, 60_000);
     const otherKeys = await keysUnder(FOREIGN_PREFIX);
-    expect(otherKeys).toEqual([`${FOREIGN_PREFIX}reset/theirs|u|127.0.0.1`]);
+    // `toContain` 而不是整表比对：`settle(theirs)` 的探测键也住在这个前缀下，
+    // 这一格要钉的是"我那一条确实在那儿"，不是"这个前缀里只有我那一条"。
+    expect(otherKeys, 'theirs 那条键没写进 Redis ⇒ 下面的比较是在跟空表自比').toContain(`${FOREIGN_PREFIX}reset/theirs|u|127.0.0.1`);
     await mine.reset();
     expect(await keysUnder(RUN_PREFIX)).toEqual([]);
     expect(await keysUnder(FOREIGN_PREFIX)).toEqual(otherKeys);
-    expect(mine.fallbackCount).toBe(0);
+    expect(mine.fallbackCount - settledMine).toBe(0);
+    expect(theirs.fallbackCount - settledTheirs).toBe(0);
   });
 
   it('Redis 断线时 reset 不抛，而进程内那一份照样被清', async () => {
@@ -350,7 +423,7 @@ describe('reset 的爆炸半径', () => {
 describe('键的寿命', () => {
   it('PEXPIRE 让长时间没人打的键自己消失（不赖在库里）', async () => {
     const limiter = makeLimiter();
-    await expect(limiter.ready).resolves.toBe(true);
+    await settle(limiter);
     const key = 'ttl/check|u|127.0.0.1';
     await limiter.hit(key, 5, 900);
     const ttl = await redisRaw().pttl(`${RUN_PREFIX}${key}`);

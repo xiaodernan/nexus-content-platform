@@ -108,6 +108,15 @@ export const METRICS = {
     help: '限流闸用 Redis 驱动却退回进程内的次数——这一格涨说明限额那句话退回成"每台各数各的"，不是闸没挡',
     labels: { reason: ['command-failed', 'bad-reply', 'reset'] },
   },
+  nexus_rate_limit_buckets_created_total: {
+    kind: 'counter',
+    help: '进程内限流桶的新建数（不带标签：桶键里装着邮箱与 IP，而这一格要的读数只是总量）',
+  },
+  nexus_rate_limit_buckets_pruned_total: {
+    kind: 'counter',
+    help: '进程内限流桶被回收数——expired 是整窗已过期（不动任何人的额度），cap 是到上界后淘汰（被淘汰身份那一档窗口重新变空），reset 是清桶',
+    labels: { reason: ['expired', 'cap', 'reset'] },
+  },
   nexus_ai_jobs_submitted_total: {
     kind: 'counter',
     help: '异步生成作业的提交尝试数（capability=demo 表示这台机器上没有真 provider，走本地确定性合成）',

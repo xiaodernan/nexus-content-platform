@@ -59,7 +59,7 @@ describe('每个声明的指标都有调用方', () => {
     // 两条都必须钉住——同一格计数器由两个驱动各写一遍，少一个就是"换了驱动之后那张图断档"。
     const anchors: Array<[string, string[]]> = [
       ['server/domain/audit.ts', ['increment(\'nexus_audit_decisions_total\'', 'increment(\'nexus_audit_write_failures_total\'']],
-      ['server/security/rateLimitMemory.ts', ['increment(\'nexus_rate_limit_decisions_total\'']],
+      ['server/security/rateLimitMemory.ts', ['increment(\'nexus_rate_limit_decisions_total\'', 'increment(\'nexus_rate_limit_buckets_created_total\'', 'increment(\'nexus_rate_limit_buckets_pruned_total\'']],
       [
         'server/security/rateLimitRedis.ts',
         ['increment(\'nexus_rate_limit_decisions_total\'', 'increment(\'nexus_rate_limit_driver_fallbacks_total\''],
@@ -194,6 +194,18 @@ describe('写入方真的在动（不是编得过去的死代码）', () => {
       expect(JSON.stringify(s.labels)).not.toContain('user-under-test');
       expect(JSON.stringify(s.labels)).not.toContain('203.0.113.9');
     }
+
+    /**
+     * 桶的记账同一次真跑里核对：这两条是"这张表涨了多少/收走了多少"唯一的对外读数，
+     * 只在声明里出现不算接上，只在测试能读到的 getter 里出现也不算（`bucketCount` 那条恒等式
+     * 钉的是驱动自己，这一格钉的是运维 `curl` 得到的那串文本）。
+     */
+    const created = snapshot().find((m) => m.name === 'nexus_rate_limit_buckets_created_total');
+    if (created?.kind !== 'counter') throw new Error('新建桶没记到账上');
+    expect(created.series.length, '这一格不该有标签：桶键里装着邮箱与 IP').toBe(1);
+    expect(created.series[0]!.value).toBe(1); // 三条命中同一个键＝一只桶
+    // 没到清扫节奏也没到上界：回收那一格不该有数。虚涨的账和漏记的账一样会骗人。
+    expect(snapshot().find((m) => m.name === 'nexus_rate_limit_buckets_pruned_total'), '没回收过却有 pruned 读数').toBeUndefined();
   });
 
   it('溢出账自己也算得动：顶到上限的那些次全折进一条', () => {

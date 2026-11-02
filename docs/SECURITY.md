@@ -15,6 +15,14 @@
   设 `NEXUS_REDIS_URL` 才换过来）。**不设它=每台各数各的**：`10 次/15 分钟/邮箱` 在多实例下实际是"每台 10 次"，
   所以多实例部署这一格是必设项，不是优化项（取舍与三条硬约束见 `docs/adr/0076-rate-limit-redis-sliding-window.md`；
   Redis 坏时退回进程内并且记账 `nexus_rate_limit_driver_fallbacks_total`，闸不停摆但口径降级）。
+  **闸自己的记账也有上界**（`docs/adr/0077-rate-limit-memory-bucket-ceiling.md`）：桶键里那段身份是
+  中间件给每个新访客现签的，"来一个人"就是"多一只桶"，所以进程内那张表原来单调涨、不收口——
+  现在它扫掉整窗过期的桶（每 256 次命中一趟全表，顶到上界时另外按每只桶自己的窗口放过名额），
+  把桶数钉在 `maxBuckets`（默认 50 000）以内并从最久没被碰的一头淘汰，
+  读数 `nexus_rate_limit_buckets_pruned_total{reason=expired|cap|reset}`；"到上界"那行日志最多一分钟一条，
+  逐笔的数只在 counter 里——洪水期间每请求一行日志就是这道闸自己开的一条写入口。
+  `cap` 在涨才是事故（说明这台进程被 distinct 身份压着打），`expired` 在涨是正常收尾；
+  被淘汰的那一格窗口重新变空，这一句是代价不是缺陷披露——真正的上界在 Redis 驱动与边缘层。
   IP 取的是转发链的**可信右端**，
   不是客户端随手写的最左端：`x-forwarded-for` 是追加出来的链条，判决与限度见 `docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`；
   **三行转发头都读**——`x-forwarded-for` → RFC 7239 的 `Forwarded`（只认 `for=`，`by`/`proto`/`host` 永不进桶键）→ `x-real-ip`，

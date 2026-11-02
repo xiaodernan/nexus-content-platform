@@ -71,8 +71,8 @@ function defaultOrigin(): string {
  *
  * 为什么自己删过期条目（`ZREMRANGEBYSCORE`）而不靠 TTL：TTL 只能给整个键设一个值，
  * 而滑动窗口需要"逐个成员按自己的时间淘汰"。`PEXPIRE` 在这里只负责一件事——
- * 长时间没人打的键别永久赖在库里（进程内驱动反而没有这一格：它的 `Map` 里那条空窗口
- * 会一直留着，这是进程内版本的漏，不是这一版的）。
+ * 长时间没人打的键别永久赖在库里。（进程内那一版原来连这一格都没有，桶只增不减；
+ * 现在它有自己的清扫与上界，见 `rateLimitMemory.ts` 的"这张表能有多少只桶"。）
  *
  * `PEXPIRE` 必须排在 `ZADD` **后面**：对一个还不存在的键，`PEXPIRE` 返回 0 什么都不做，
  * 而且不报错。放在 `ZCARD` 之前写的那一版，第一次命中建不出 TTL——而"只来过一次"的
@@ -143,19 +143,48 @@ function decodeScan(reply: unknown): [string, string[]] {
 }
 
 /**
+ * 就绪等待的预算。挑 3 秒的理由：`hit` 从来不等它（页眉那条纪律一个字没改），等它的人只有
+ * 测试与演练脚本，而那两样都宁可慢三秒，也别拿到一个假阴性。
+ *
+ * 2026-11-02 本机实测（`.scratch/s33-ready-probe.txt`，逐个新建 12 份 limiter）：
+ * 空载时就绪用时（毫秒，排序后）12 / 14 / 16 / 17 / 23 / 25 / 33 / 35 / 39 / 48 / 48 / 129，
+ * 八个一次 `new` 出来全部就绪。同一台机器上并行会话在跑构建时，一次 `beta.ready`
+ * 在 1 秒预算里落了 false——那一跑的 16 条判定里除了这一句一条没错。这一句量的是
+ * "这台机器现在多忙"，而它挂在"驱动对不对"的门上，所以预算按实测最坏值再放一个数量级，
+ * 不是按 Redis 应该多快。
+ */
+const CONNECT_READY_BUDGET_MS = 3_000;
+
+/**
  * ioredis 没有公开的 `ready()`，只有 `status` 与 `ready` 事件，所以就绪信号自己搭
  * （与 `realtime/redisBus.ts` 的同名函数同一形状）。
  *
- * `error` 也算"未就绪"落地：连不上的时候必须有东西结束这个 Promise，
- * 否则 await 它的人（测试、演练脚本）吊死在一次永远不来的 ready 上。
- * 常驻的 error 监听器在构造函数里，这里的 `once` 只负责叫醒等待者。
+ * **一次 `error` 不当场判死**：连不上的时候必须有东西结束这个 Promise，否则 await 它的人
+ * 吊死在一次永远不来的 ready 上——但结束它的应该是预算，不是第一跳抖动。原来这一版写的是
+ * `once('error') → resolve(false)`，于是"这台连接其实好好的"也能读成 false：ioredis 自己会重连，
+ * 一次连接抖动之后往往就是 ready。2026-11-02 连跑六次的第 6 次就红在
+ * `await expect(alpha.ready).resolves.toBe(true)`（`docs/adr/0077-rate-limit-memory-bucket-ceiling.md`
+ * 的"顺手修的上一片仪器"那一节记着读数），而同一趟里 16 条判定一条没错——
+ * 那种红说的是仪器，不是驱动。
+ *
+ * 构造函数里那条常驻 `on('error')` 监听器才是接住 error 事件的地方（没有监听者的 error 是
+ * uncaught exception），这里因此不必再挂一份。`end` 还是当场落地：那是有人主动断了，
+ * 等下去也不会有 ready。
  */
 function connectionReady(redis: Redis): Promise<boolean> {
   if (redis.status === 'ready') return Promise.resolve(true);
   return new Promise<boolean>((resolve) => {
-    redis.once('ready', () => resolve(true));
-    redis.once('error', () => resolve(false));
-    redis.once('end', () => resolve(false));
+    const finish = (ok: boolean): void => {
+      clearTimeout(timer);
+      redis.off('ready', onReady);
+      redis.off('end', onEnd);
+      resolve(ok);
+    };
+    const onReady = (): void => finish(true);
+    const onEnd = (): void => finish(false);
+    const timer = setTimeout(() => finish(false), CONNECT_READY_BUDGET_MS);
+    redis.once('ready', onReady);
+    redis.once('end', onEnd);
   });
 }
 
@@ -191,6 +220,7 @@ export class RedisRateLimiter implements RateLimiter {
    * 谁用它：集成测试与两进程演练用它代替"多打几次直到不红"那种把建连接竞态当成断言的写法。
    *
    * 永不 reject：连不上是这一格明确接受的状态，答案是 `false`，原因在 `lastConnectionError`。
+   * 有界：最多等 `CONNECT_READY_BUDGET_MS`，中间出过抖动但后来连上了答案是 `true`（见那里的注释）。
    */
   readonly ready: Promise<boolean>;
 
