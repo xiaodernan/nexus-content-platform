@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v571–v573 — the HTTP surface for the tool registry. Six doors, and the differences between them are the
+ * M10 v571–v574 — the HTTP surface for the tool registry. Seven doors, and the differences between them are the
  * rules:
  *
  * <ul>
@@ -32,6 +32,9 @@ import org.springframework.web.bind.annotation.RestController;
  *       the whole (narrowed) number, so a window can say what it is hiding.
  *   <li>{@code GET /tools/{id}} — one declaration by id. A public read, like the catalog; an id that names
  *       nothing is a 404 rather than an empty row.
+ *   <li>{@code GET /tools/by-name/{name}} — one declaration by its GLOBAL name. The name is the key every
+ *       agent shares, so it deserves a direct read rather than a paged catalog; a malformed name is a 400
+ *       that names the rule, and a well-formed name that holds no row is a 404.
  *   <li>{@code GET /tools/{id}/revisions?limit=&offset=} — the declaration's recorded history, newest first:
  *       what it SAID at each accepted write, with the whole count beside the window. A public read; an id
  *       that names nothing is a 404 rather than an empty history.
@@ -90,6 +93,18 @@ public class ToolController {
     @GetMapping("/tools/{toolId}")
     public ResponseEntity<Tool> read(@PathVariable String toolId) {
         return ResponseEntity.ok(toWire(service.get(toolId)));
+    }
+
+    /**
+     * One declaration by its global NAME, the key every agent shares.
+     *
+     * <p>This mapping is more specific than {@code /tools/{id}} and therefore wins for the literal segment
+     * {@code by-name}; an id can never be the string "by-name..." in practice, and the ordering is declared in
+     * the live proof rather than assumed.
+     */
+    @GetMapping("/tools/by-name/{name}")
+    public ResponseEntity<Tool> readByName(@PathVariable String name) {
+        return ResponseEntity.ok(toWire(service.getByName(name)));
     }
 
     /**

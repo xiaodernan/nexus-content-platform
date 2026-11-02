@@ -271,4 +271,20 @@ class ToolControllerTest {
         assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> controller().revisions("tool-missing", null, null)))
                 .isInstanceOf(UnknownTool.class);
     }
+    @Test
+    void aDeclarationIsAnsweredByItsGlobalNameWithTheSameSixFields() throws Exception {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(service.getByName("a.tool")).thenReturn(mine);
+        when(service.schemaOf(mine)).thenReturn(emptyObject());
+
+        ResponseEntity<ToolDtos.Tool> answer = controller().readByName("a.tool");
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        ToolDtos.Tool body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.id()).isEqualTo("tool-1");
+        assertThat(body.name()).isEqualTo("a.tool");
+        assertThat(body.inputSchema().isObject()).isTrue();
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(6);
+    }
 }

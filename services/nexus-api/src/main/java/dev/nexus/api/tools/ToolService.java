@@ -158,6 +158,24 @@ public class ToolService {
     }
 
     /**
+     * One declaration by its GLOBAL name - the key every agent shares.
+     *
+     * <p>ADR 0022 made the name globally unique because a caller holds names, not ids; until now the only
+     * name-addressed read was a paged catalog, so a caller holding a name could miss the row it meant behind
+     * a window. The name is validated by the SAME rule registration uses (a malformed name is a 400 that
+     * names the rule, not a 404), trimmed, and then looked up; a well-formed name that names nothing is a 404.
+     *
+     * @throws InvalidTool when the path is not a legal tool name
+     * @throws UnknownTool when the name holds no row
+     */
+    @Transactional(readOnly = true)
+    public ToolEntry getByName(String rawName) {
+        String name = requireName(rawName);
+        return repository.findByName(name)
+                .orElseThrow(() -> new UnknownTool("tool name \"" + name + "\" names nothing in this registry"));
+    }
+
+    /**
      * One declaration by id. This is a READ of a public catalog, so there is no ownership to check; an id that
      * names nothing is a 404 rather than an empty row, because "no such tool" and "a tool with no fields" are
      * different facts.

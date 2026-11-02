@@ -360,4 +360,31 @@ class ToolServiceTest {
                 .isInstanceOf(NotYourTool.class);
         verify(revisions, never()).save(any(ToolRevision.class));
     }
+    @Test
+    void aDeclarationIsReadableByItsGlobalNameAndTheNameIsTrimmed() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.findByName("a.tool")).thenReturn(Optional.of(mine));
+
+        assertThat(service().getByName("  a.tool  ")).isSameAs(mine);
+    }
+
+    @Test
+    void aNameThatHoldsNoRowIsA404() {
+        when(repository.findByName("no.such.tool")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().getByName("no.such.tool"))
+                .isInstanceOf(UnknownTool.class)
+                .hasMessageContaining("no.such.tool");
+    }
+
+    @Test
+    void aMalformedNameIsA400BeforeAnyLookup() {
+        assertThatThrownBy(() -> service().getByName("Weather.Lookup"))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("tool name");
+        assertThatThrownBy(() -> service().getByName("  "))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("tool name");
+        verify(repository, never()).findByName(any());
+    }
 }

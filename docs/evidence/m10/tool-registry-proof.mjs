@@ -16,7 +16,9 @@
 //      a duplicate name refused with the id that holds it (GLOBALLY, not per owner), uppercase / short /
 //      spaced names and blank or over-long summaries refused BY NAME, a non-object schema refused, a
 //      malformed JSON body refused before the service sees it, and the byte bound measured at 8192 (accepted)
-//      and 8193 (refused) — while `audit_entry` stays EMPTY, because a declaration is not a trail fact;
+//      and 8193 (refused); the same declaration is READ BY NAME in one request (an uppercase name refused by
+//      rule at 400, a well-formed name holding nothing at 404) — while `audit_entry` stays EMPTY, because a
+//      declaration is not a trail fact;
 //   §3 the catalog: name ASCENDING, the optional owner filter narrowing BOTH the window and the count, the
 //      limit capped / offset floored, and every answer carrying no url / command / invocation field;
 //   §4 removal: a stranger is 403 and the row remains, an unknown id is 200 `removed:false`, the owner's
@@ -311,6 +313,20 @@ try {
   const storedSchema = await sql(`select input_schema from tool_entry where name = 'weather.lookup'`);
   assert.equal(storedSchema, JSON.stringify(schemaA), `the stored schema must be canonical compact JSON, got ${storedSchema}`);
 
+  // The NAME is the key every agent shares, so it gets a direct read: one request, the same six fields,
+  // no paging. A malformed name is a 400 that names the rule; a well-formed name holding nothing is a 404.
+  const byName = await call('/tools/by-name/weather.lookup');
+  assert.equal(byName.status, 200, `a tool by name must answer 200, got ${byName.status}: ${byName.text}`);
+  assert.equal(byName.body.id, toolIdA, 'the name resolves to the row that holds it');
+  assert.deepEqual(Object.keys(byName.body).sort(), TOOL_FIELDS, `a tool by name carries exactly its six fields: ${byName.text}`);
+  const byBadName = await call('/tools/by-name/Weather.Lookup');
+  assert.equal(byBadName.status, 400, `an uppercase name must be refused by rule, got ${byBadName.status}: ${byBadName.text}`);
+  assert.equal(byBadName.body.error, 'invalid-tool');
+  assert.match(byBadName.body.message, /tool name/);
+  const byMissingName = await call('/tools/by-name/no.such.tool');
+  assert.equal(byMissingName.status, 404, `a name that holds no row must be 404, got ${byMissingName.status}: ${byMissingName.text}`);
+  assert.equal(byMissingName.body.error, 'unknown-tool');
+
   const declaredZ = await postJson('/tools', { owner, name: 'z.tool', summary: 'The last tool by name.', inputSchema: { type: 'object' } });
   assert.equal(declaredZ.status, 201, `a second declaration must be 201, got ${declaredZ.status}: ${declaredZ.text}`);
   const declaredM = await postJson('/tools', { owner: other, name: 'm.tool', summary: 'Another account declares this one.', inputSchema: { type: 'object' } });
@@ -377,7 +393,7 @@ try {
   assert.equal(auditRows, '0', 'registering tools must write no audit entry — a declaration is not an event');
   const deliveryRows = await sql('select count(*) from webhook_delivery');
   assert.equal(deliveryRows, '0', 'registering tools must knock on nothing');
-  console.log(`[§2] three tools declared (the fields trimmed, the schema stored as ${storedSchema.length} canonical bytes and read back from psql) · a GLOBAL duplicate refused by the id that holds it · uppercase / short / spaced / 65-character names, blank and 281-character summaries, a string schema and a missing schema all refused BY NAME · a malformed JSON body refused before the service saw it · the byte bound accepted at 8192 and refused at 8193 · audit_entry and webhook_delivery still EMPTY — a declaration is not a fact and calls nobody`);
+  console.log(`[§2] three tools declared (the fields trimmed, the schema stored as ${storedSchema.length} canonical bytes and read back from psql) · a GLOBAL duplicate refused by the id that holds it · uppercase / short / spaced / 65-character names, blank and 281-character summaries, a string schema and a missing schema all refused BY NAME · a malformed JSON body refused before the service saw it · the byte bound accepted at 8192 and refused at 8193 · the same declaration was READ BY NAME in one request (an uppercase name refused by rule at 400 and a well-formed name holding nothing refused at 404 unknown-tool) · audit_entry and webhook_delivery still EMPTY — a declaration is not a fact and calls nobody`);
 
   // ── §3 the catalog: name ascending, the filter narrows BOTH the window and the count ───────────
   const whole = await call('/tools');
@@ -436,6 +452,9 @@ try {
   const reclaimed = await postJson('/tools', { owner: other, name: 'weather.lookup', summary: 'The same name, a new row.', inputSchema: { type: 'object' } });
   assert.equal(reclaimed.status, 201, `a freed name can be declared again, got ${reclaimed.status}: ${reclaimed.text}`);
   assert.notEqual(reclaimed.body.id, toolIdA, 'the new declaration is a new row, not the removed one');
+  const byNameAfterReclaim = await call('/tools/by-name/weather.lookup');
+  assert.equal(byNameAfterReclaim.status, 200);
+  assert.equal(byNameAfterReclaim.body.id, reclaimed.body.id, 'the name now resolves to the NEW row, not the removed one');
   console.log(`[§4] a stranger's removal was 403 and the row stayed · an unknown id was 200 removed:false · a missing owner was 400 · the owner's removal was 200 removed:true and psql reads zero · the NAME weather.lookup was then declared again by another account as a NEW row — a name is not an id`);
 
   // ── §5 details and the owner's update: read by id, and a declaration that can change what it SAYS ───
@@ -594,9 +613,9 @@ try {
   assert.equal(goneContainer.stdout.trim(), '', `the throwaway container is still listed: ${goneContainer.stdout.trim()}`);
   console.log(`[§7] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log(`\n[summary] M10 v571–v573: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and an unknown id was 404 · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, an unknown id was 404, and psql read both rows · and a second JVM served the same four rows and both revisions, field for field, while information_schema showed six declaration columns and five revision columns with nowhere to store an endpoint, a command or an invocation`);
+  console.log(`\n[summary] M10 v571–v574: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, an unknown id was 404, and psql read both rows · and a second JVM served the same four rows and both revisions, field for field, while information_schema showed six declaration columns and five revision columns with nowhere to store an endpoint, a command or an invocation`);
   rmSync(BUILD_DIR, { recursive: true, force: true });
-  console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s update and removal, a recorded revision history that an update cannot erase, and no capability this build does not have)');
+  console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s update and removal, a recorded revision history that an update cannot erase, a direct read by the name every agent shares, and no capability this build does not have)');
 } finally {
   if (serviceProcess && serviceProcess.exitCode === null) {
     await stopService(serviceProcess);
