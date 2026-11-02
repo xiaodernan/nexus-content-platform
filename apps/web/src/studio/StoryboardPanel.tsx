@@ -131,6 +131,7 @@ function SourceFields({
       </select>
       {needs.referenceAssetId ? (
         <select
+          aria-label="这条片子的参考图"
           value={value.referenceAssetId}
           onChange={(e) => onChange({ ...value, referenceAssetId: e.target.value })}
           {...attr(dataAttr.asset)}
@@ -146,6 +147,7 @@ function SourceFields({
       ) : null}
       {needs.characterId ? (
         <select
+          aria-label="这条片子的角色"
           value={value.characterId}
           onChange={(e) => onChange({ ...value, characterId: e.target.value })}
           {...attr(dataAttr.character)}
