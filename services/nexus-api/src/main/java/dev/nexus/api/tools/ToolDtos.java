@@ -110,13 +110,22 @@ public final class ToolDtos {
     }
 
     /**
-     * One page of the journal, OLDEST first, with the whole count of entries newer than the cursor beside it.
+     * One page of the journal, OLDEST first, with the whole count of entries the same filters match.
      *
      * <p>{@code since} is echoed because it is the cursor the answer starts after: 0 means "from the beginning",
-     * which is a real cursor rather than an absent filter, so it is never null.
+     * which is a real cursor rather than an absent filter, so it is never null. {@code kind} and {@code toolId}
+     * are echoed the same way the catalog echoes its filters: the normalized word or id, and null for the absent
+     * filter - so "the whole feed" and "the feed narrowed to nothing that matched" can be told apart by looking at
+     * what the answer says it applied.
      */
     public record ToolChangeList(
-            long since, List<ToolChangeView> changes, long total, int limit, int offset) {
+            long since,
+            String kind,
+            String toolId,
+            List<ToolChangeView> changes,
+            long total,
+            int limit,
+            int offset) {
     }
 
     /**

@@ -3,6 +3,8 @@ package dev.nexus.api.tools;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * M10 v583 - the registry's journal, read FORWARD from a cursor.
@@ -11,12 +13,34 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * is read by a process moving a cursor forward, and ascending order lets it advance the cursor without ever
  * skipping an entry that was allocated before the page it is holding. The alternative - newest first - would
  * make a poller page backwards into the past while new writes pile up in front of it.
+ *
+ * <p>M10 v584 adds the two NARROWINGS a watcher needs: a kind (watch only the removals) and a tool id (watch
+ * one declaration's life). Both are nullable parameters on ONE statement rather than four derivations, the
+ * shape the catalog already uses: each predicate is "this filter or no filter", so the window and the count
+ * cannot disagree about which filters applied.
  */
 public interface ToolChangeRepository extends JpaRepository<ToolChange, Long> {
 
-    /** The entries a caller does not already have: everything with a seq greater than its cursor. */
-    List<ToolChange> findBySeqGreaterThanOrderBySeqAsc(long since, Pageable page);
+    /**
+     * The entries a caller does not already have, OLDEST first, optionally narrowed to one kind and one
+     * declaration. A null filter is the ABSENT filter - it never means "the empty string".
+     */
+    @Query("select c from ToolChange c where c.seq > :since"
+            + " and (:kind is null or c.kind = :kind)"
+            + " and (:toolId is null or c.toolId = :toolId)"
+            + " order by c.seq asc")
+    List<ToolChange> feed(
+            @Param("since") long since,
+            @Param("kind") String kind,
+            @Param("toolId") String toolId,
+            Pageable page);
 
-    /** The WHOLE number of entries newer than the cursor - what the page is a page of. */
-    long countBySeqGreaterThan(long since);
+    /** The WHOLE number of entries the window above is a window of - the SAME three predicates. */
+    @Query("select count(c) from ToolChange c where c.seq > :since"
+            + " and (:kind is null or c.kind = :kind)"
+            + " and (:toolId is null or c.toolId = :toolId)")
+    long feedCount(
+            @Param("since") long since,
+            @Param("kind") String kind,
+            @Param("toolId") String toolId);
 }

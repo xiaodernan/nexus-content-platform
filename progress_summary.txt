@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v583 (registry journal — landed and verified; v576/MCP belongs to a parallel lane)
+Project version: v584 (watchable journal feed — landed and verified; v576/MCP belongs to a parallel lane)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is ahead of origin/master; v583 is in the working tree.
+Pushed to origin/master: no — master is ahead of origin/master; v584 is in the working tree.
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -27,6 +27,7 @@ Recent increments in this lineage (all real commits, all gated):
   v581: retention is the owner's, and it names the bound it keeps (ADR 0032)
   v582: the catalog names the rows that are going away — `deprecated` filter (ADR 0033)
   v583: a journal of what HAPPENED, oldest first from a `seq` cursor (ADR 0034)
+  v584: the feed can be watched — `?kind=` / `?toolId=` narrow the window AND the count (ADR 0035)
   v581: retention — the owner names the bound it keeps, and the answer says what went (ADR 0032)
   v582: the catalog names the rows that are going away — a filter, not a column (ADR 0033)
 
@@ -56,12 +57,12 @@ ADR 0016 compliance:
   Studio→service hop 15s via shared serviceCall.ts; timeout never reported as "unreachable"
 
 Next increments (planned, see docs/LONG_TERM_PLAN.md):
-  v584: the journal now grows unbounded, exactly as revisions did before v581. The owner names a bound
-        (`DELETE /tools/changes?owner=&before=<seq>` or an instant) and the answer reports what it removed —
-        the same shape as the revision prune, with the honest difference that a cursor a poller still holds
-        may now point into a hole, so the answer must name the oldest entry it kept.
-  v585: a poller should not have to receive the whole registry to watch one kind: `?kind=` (and possibly
-        `?toolId=`) narrows the journal, with the same rule every window here follows — it narrows the
-        window AND the count.
+  v585: the journal still grows unbounded. A delete door over a PUBLIC cursor feed creates holes that the
+        cursor cannot describe honestly (a poller holding seq 40 may find that everything between 40 and the
+        oldest retained entry is gone), so the increment must either prune only as a PREFIX and report the
+        oldest entry kept, or wait for an operator identity this build does not have. Decide that explicitly
+        rather than shipping a delete that silently skips entries.
+  v586: a declaration has no way to be marked "tested" by its owner — a claim rather than a field, and the
+        registry's whole vocabulary (declare, never execute) is the reason it cannot be a boolean we invent.
   v586+: a pin lookup needs an index before it is honest; a declaration has no way to be marked "tested" by its
         owner, which is a claim rather than a field.

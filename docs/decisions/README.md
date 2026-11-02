@@ -44,3 +44,5 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0032  | Retention is the owner's, and it names the bound it keeps     | Accepted |
 | 0033  | The catalog names the rows that are going away              | Accepted |
 | 0034  | A journal of what happened, because two changes delete their own evidence | Accepted |
+| 0035  | Liveness is not readiness: two doors, two audiences           | Accepted |
+| 0035  | A feed you can watch: two narrowings that never lie about what they hid | Accepted |

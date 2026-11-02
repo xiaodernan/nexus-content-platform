@@ -1,6 +1,7 @@
 package dev.nexus.api.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -678,11 +679,11 @@ class ToolControllerTest {
     // ── v583: the journal door ────────────────────────────────────────────────────────────────────────
     @Test
     void theJournalEchoesTheCursorItStartedAfter() {
-        when(service.journal(7L, 20, 0))
+        when(service.journal(null, null, 7L, 20, 0))
                 .thenReturn(List.of(new ToolChange(8L, "tool-1", "a.tool", "updated", 2, AT)));
-        when(service.journalCount(7L)).thenReturn(1L);
+        when(service.journalCount(null, null, 7L)).thenReturn(1L);
 
-        ToolDtos.ToolChangeList body = controller().changes(7L, null, null).getBody();
+        ToolDtos.ToolChangeList body = controller().changes(null, null, 7L, null, null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.since()).isEqualTo(7L);
@@ -695,22 +696,22 @@ class ToolControllerTest {
 
     @Test
     void anAbsentCursorIsZeroRatherThanNull() {
-        when(service.journal(0L, 20, 0)).thenReturn(List.of());
-        when(service.journalCount(0L)).thenReturn(0L);
+        when(service.journal(null, null, 0L, 20, 0)).thenReturn(List.of());
+        when(service.journalCount(null, null, 0L)).thenReturn(0L);
 
-        ToolDtos.ToolChangeList body = controller().changes(null, null, null).getBody();
+        ToolDtos.ToolChangeList body = controller().changes(null, null, null, null, null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.since()).isZero();
-        assertThat(mapper.valueToTree(body).size()).isEqualTo(5);
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(7);
     }
 
     @Test
     void theJournalReportsTheCapAndFloorItApplied() {
-        when(service.journal(0L, 500, 0)).thenReturn(List.of());
-        when(service.journalCount(0L)).thenReturn(0L);
+        when(service.journal(null, null, 0L, 500, 0)).thenReturn(List.of());
+        when(service.journalCount(null, null, 0L)).thenReturn(0L);
 
-        ToolDtos.ToolChangeList body = controller().changes(null, 500, -3).getBody();
+        ToolDtos.ToolChangeList body = controller().changes(null, null, null, 500, -3).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.limit()).isEqualTo(ToolService.MAX_LIST_LIMIT);
@@ -720,15 +721,67 @@ class ToolControllerTest {
     @Test
     void aJournalEntryThatChangedNoContractCarriesNoRevision() throws Exception {
         ToolEntry gone = new ToolEntry("tool-1", OWNER, "a.tool", "a tool", "{}", AT);
-        when(service.journal(0L, 20, 0))
+        when(service.journal(null, null, 0L, 20, 0))
                 .thenReturn(List.of(new ToolChange(9L, "tool-1", "a.tool", "removed", null, AT)));
 
-        ToolDtos.ToolChangeView entry = controller().changes(null, null, null).getBody().changes().get(0);
+        ToolDtos.ToolChangeView entry = controller().changes(null, null, null, null, null).getBody().changes().get(0);
 
         assertThat(entry.kind()).isEqualTo("removed");
         assertThat(entry.revision()).isNull();
         // A removal's entry still names the tool: the row it describes is gone.
         assertThat(entry.name()).isEqualTo("a.tool");
         assertThat(mapper.valueToTree(entry).get("revision").isNull()).isTrue();
+    }
+
+    // ── v584: the journal's two narrowings ──────────────────────────────────────────────────────────
+    @Test
+    void theJournalEchoesTheKindAndDeclarationItWasNarrowedTo() {
+        when(service.journal("removed", "tool-1", 0L, 20, 0))
+                .thenReturn(List.of(new ToolChange(9L, "tool-1", "a.tool", "removed", null, AT)));
+        when(service.journalCount("removed", "tool-1", 0L)).thenReturn(1L);
+
+        ToolDtos.ToolChangeList body = controller().changes(" removed ", " tool-1 ", null, null, null).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.kind()).isEqualTo("removed");
+        assertThat(body.toolId()).isEqualTo("tool-1");
+        assertThat(body.total()).isEqualTo(1L);
+        assertThat(body.changes()).hasSize(1);
+    }
+
+    @Test
+    void anAbsentKindAndDeclarationAreEchoedAsNull() throws Exception {
+        when(service.journal(null, null, 0L, 20, 0)).thenReturn(List.of());
+        when(service.journalCount(null, null, 0L)).thenReturn(0L);
+
+        ToolDtos.ToolChangeList body = controller().changes("", "  ", null, null, null).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.kind()).isNull();
+        assertThat(body.toolId()).isNull();
+        assertThat(mapper.valueToTree(body).get("kind").isNull()).isTrue();
+        assertThat(mapper.valueToTree(body).get("toolId").isNull()).isTrue();
+    }
+
+    @Test
+    void anUnknownJournalKindIsRefusedBeforeTheServiceIsTouched() {
+        assertThatThrownBy(() -> controller().changes("pruned", null, null, null, null))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("declared, updated, transferred, deprecated, undeprecated, removed");
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void aToolIdThatHoldsNoEntryIsAnEmptyFeedRatherThanA404() {
+        when(service.journal(null, "tool-that-never-existed", 0L, 20, 0)).thenReturn(List.of());
+        when(service.journalCount(null, "tool-that-never-existed", 0L)).thenReturn(0L);
+
+        ToolDtos.ToolChangeList body =
+                controller().changes(null, "tool-that-never-existed", null, null, null).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.changes()).isEmpty();
+        assertThat(body.total()).isZero();
+        assertThat(body.toolId()).isEqualTo("tool-that-never-existed");
     }
 }

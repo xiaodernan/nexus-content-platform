@@ -115,9 +115,16 @@ public class ToolController {
      *
      * <p>{@code since} is 0 when absent, which is "from the beginning" rather than "no filter": the feed has no
      * two-state absence, because 0 is a real position before the first entry. A negative cursor is a 400.
+     *
+     * <p>v584 — two NARROWINGS for a watcher that does not want the whole registry: {@code kind} (one of the six
+     * words, refused BY NAME when it is not) and {@code toolId} (one declaration's entries). Both narrow the page
+     * AND the count. A {@code toolId} that names nothing is an EMPTY feed rather than a 404: the journal records
+     * what was, so an id whose row is gone is exactly what it may still hold.
      */
     @GetMapping("/tools/changes")
     public ResponseEntity<ToolChangeList> changes(
+            @RequestParam(name = "kind", required = false) String kind,
+            @RequestParam(name = "toolId", required = false) String toolId,
             @RequestParam(name = "since", required = false) Long since,
             @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "offset", required = false) Integer offset) {
@@ -125,10 +132,19 @@ public class ToolController {
         int asked = limit == null ? ToolService.DEFAULT_LIST_LIMIT : limit;
         int effective = Math.min(Math.max(asked, 1), ToolService.MAX_LIST_LIMIT);
         int from = offset == null ? 0 : Math.max(offset, 0);
-        List<ToolChangeView> rows =
-                service.journal(cursor, asked, from).stream().map(this::toWire).toList();
-        return ResponseEntity.ok(
-                new ToolChangeList(cursor, rows, service.journalCount(cursor), effective, from));
+        String changeKind = ToolService.normalizeChangeKind(kind);
+        String tool = ToolService.normalizeOwner(toolId);
+        List<ToolChangeView> rows = service.journal(changeKind, tool, cursor, asked, from).stream()
+                .map(this::toWire)
+                .toList();
+        return ResponseEntity.ok(new ToolChangeList(
+                cursor,
+                changeKind,
+                tool,
+                rows,
+                service.journalCount(changeKind, tool, cursor),
+                effective,
+                from));
     }
 
     /**

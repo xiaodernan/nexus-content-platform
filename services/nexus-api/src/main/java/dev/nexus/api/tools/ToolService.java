@@ -65,6 +65,14 @@ public class ToolService {
 
     /** The longest catalog search term — long enough for a sentence fragment, short enough to bound work. */
     public static final int MAX_QUERY_LENGTH = 100;
+    /**
+     * The six things that can happen to a declaration, in the order an entry can first appear for one: a birth,
+     * a new contract, a handover, a warning, its withdrawal, and the end. The list is the PROTOCOL, so the words
+     * are exact and case-sensitive: {@code Removed} is a typo, not a synonym, and a feed that answered it with an
+     * empty page would hide the typo.
+     */
+    public static final List<String> CHANGE_KINDS =
+            List.of("declared", "updated", "transferred", "deprecated", "undeprecated", "removed");
 
     /**
      * The name's shape. The first character is alphanumeric, so a name cannot begin with a dot or dash and
@@ -519,32 +527,40 @@ public class ToolService {
     }
 
     /**
-     * The registry's journal, OLDEST first, from a cursor: everything that happened after {@code since}.
+     * The registry's journal, OLDEST first, from a cursor: everything that happened after {@code since},
+     * optionally narrowed to one KIND and one declaration.
      *
      * <p>Facing forward, unlike the history and ownership windows, because the reader is a process moving a
      * cursor: ascending {@code seq} lets it advance without skipping an entry allocated before the page it holds.
-     * The count is the number of entries newer than the cursor, so a page never claims to be the whole journal.
+     * The count is the number of entries the same three predicates match, so a page never claims to be the whole
+     * journal - and a watcher that asks only for removals is told how many removals it is a page of.
      *
-     * @param since the last seq the caller processed; 0 (the default) is "from the beginning"
-     * @throws InvalidTool when {@code since} is negative
+     * @param kind   one of {@link #CHANGE_KINDS}, or null for every kind
+     * @param toolId one declaration's entries, or null for the whole registry
+     * @param since  the last seq the caller processed; 0 (the default) is "from the beginning"
+     * @throws InvalidTool when {@code since} is negative, or when {@code kind} is not one of the six
      */
     @Transactional(readOnly = true)
-    public List<ToolChange> journal(long since, int limit, int offset) {
+    public List<ToolChange> journal(String kind, String toolId, long since, int limit, int offset) {
+        String changeKind = normalizeChangeKind(kind);
+        String tool = normalizeOwner(toolId);
         if (since < 0) {
             throw new InvalidTool("a journal cursor is 0 or more — this one is " + since);
         }
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
         int from = Math.max(offset, 0);
-        return changes.findBySeqGreaterThanOrderBySeqAsc(since, PageRequest.of(from / effective, effective));
+        return changes.feed(since, changeKind, tool, PageRequest.of(from / effective, effective));
     }
 
-    /** The WHOLE number of journal entries newer than the cursor. */
+    /** The WHOLE number of journal entries the window is a window of - the SAME cursor and filters. */
     @Transactional(readOnly = true)
-    public long journalCount(long since) {
+    public long journalCount(String kind, String toolId, long since) {
+        String changeKind = normalizeChangeKind(kind);
+        String tool = normalizeOwner(toolId);
         if (since < 0) {
             throw new InvalidTool("a journal cursor is 0 or more — this one is " + since);
         }
-        return changes.countBySeqGreaterThan(since);
+        return changes.feedCount(since, changeKind, tool);
     }
 
     /** Append one revision row - the write both the registration and every accepted update go through. */
@@ -732,6 +748,24 @@ public class ToolService {
      * The optional owner FILTER: null when absent or blank, otherwise trimmed. A blank filter is not an
      * account, and treating it as one would answer an empty catalog instead of the whole one.
      */
+    /**
+     * The optional journal kind: null when absent or blank, otherwise one of {@link #CHANGE_KINDS}.
+     *
+     * <p>A closed vocabulary is validated HERE rather than left to answer an empty page, because an empty page
+     * is a true answer to "nothing matched" and a lie about "you spelled it wrong". The refusal names the six
+     * words so a caller can fix the call without reading this source.
+     */
+    static String normalizeChangeKind(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (!CHANGE_KINDS.contains(trimmed)) {
+            throw new InvalidTool("a journal kind is one of " + String.join(", ", CHANGE_KINDS)
+                    + " — this one is \"" + trimmed + "\"");
+        }
+        return trimmed;
+    }
     static String normalizeOwner(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;

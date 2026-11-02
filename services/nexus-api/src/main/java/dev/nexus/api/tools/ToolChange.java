@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
@@ -31,7 +32,10 @@ import java.time.Instant;
  * schema, so the journal says WHERE to look rather than duplicating what it said.
  */
 @Entity
-@Table(name = "tool_change")
+@Table(name = "tool_change", indexes = {
+        @Index(name = "idx_tool_change_kind_seq", columnList = "kind, seq"),
+        @Index(name = "idx_tool_change_tool_seq", columnList = "tool_id, seq")
+})
 public class ToolChange {
 
     /** The journal's own order. Assigned by the database at insert; never reused, never updated. */

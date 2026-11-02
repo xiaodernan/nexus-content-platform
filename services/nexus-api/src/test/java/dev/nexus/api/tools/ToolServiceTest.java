@@ -1049,19 +1049,68 @@ class ToolServiceTest {
     @Test
     void theJournalReadsForwardFromItsCursor() {
         ToolChange entry = new ToolChange(5L, "tool-1", "a.tool", "updated", 2, AT);
-        when(changes.findBySeqGreaterThanOrderBySeqAsc(4, PageRequest.of(0, 20)))
-                .thenReturn(List.of(entry));
-        when(changes.countBySeqGreaterThan(4)).thenReturn(1L);
+        when(changes.feed(4, null, null, PageRequest.of(0, 20))).thenReturn(List.of(entry));
+        when(changes.feedCount(4, null, null)).thenReturn(1L);
 
-        assertThat(service().journal(4, 20, 0)).containsExactly(entry);
-        assertThat(service().journalCount(4)).isEqualTo(1L);
+        assertThat(service().journal(null, null, 4, 20, 0)).containsExactly(entry);
+        assertThat(service().journalCount(null, null, 4)).isEqualTo(1L);
+    }
+
+    @Test
+    void theJournalCanBeNarrowedToOneKind() {
+        ToolChange entry = new ToolChange(9L, "tool-1", "a.tool", "removed", null, AT);
+        when(changes.feed(0, "removed", null, PageRequest.of(0, 20))).thenReturn(List.of(entry));
+        when(changes.feedCount(0, "removed", null)).thenReturn(1L);
+
+        assertThat(service().journal("removed", null, 0, 20, 0)).containsExactly(entry);
+        assertThat(service().journalCount("removed", null, 0)).isEqualTo(1L);
+    }
+
+    @Test
+    void theJournalCanBeNarrowedToOneDeclaration() {
+        ToolChange entry = new ToolChange(9L, "tool-1", "a.tool", "removed", null, AT);
+        when(changes.feed(0, null, "tool-1", PageRequest.of(0, 20))).thenReturn(List.of(entry));
+        when(changes.feedCount(0, null, "tool-1")).thenReturn(1L);
+
+        assertThat(service().journal(null, "tool-1", 0, 20, 0)).containsExactly(entry);
+        assertThat(service().journalCount(null, "tool-1", 0)).isEqualTo(1L);
+    }
+
+    @Test
+    void aKindAndADeclarationNarrowTogether() {
+        when(changes.feed(3, "deprecated", "tool-1", PageRequest.of(0, 20))).thenReturn(List.of());
+        when(changes.feedCount(3, "deprecated", "tool-1")).thenReturn(0L);
+
+        assertThat(service().journal(" deprecated ", " tool-1 ", 3, 20, 0)).isEmpty();
+        assertThat(service().journalCount("deprecated", "tool-1", 3)).isZero();
+    }
+
+    @Test
+    void aBlankKindAndABlankToolAreTheAbsentFilters() {
+        when(changes.feed(0, null, null, PageRequest.of(0, 20))).thenReturn(List.of());
+
+        assertThat(service().journal("   ", "", 0, 20, 0)).isEmpty();
+        verify(changes).feed(0, null, null, PageRequest.of(0, 20));
+    }
+
+    @Test
+    void anUnknownKindIsRefusedBeforeAnyQuery() {
+        assertThatThrownBy(() -> service().journal("pruned", null, 0, 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("declared, updated, transferred, deprecated, undeprecated, removed");
+        // The vocabulary is case-sensitive: a capitalised word is a typo, not a synonym.
+        assertThatThrownBy(() -> service().journal("Removed", null, 0, 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("Removed");
+        verify(changes, never()).feed(any(Long.class), any(), any(), any());
+        verify(changes, never()).feedCount(any(Long.class), any(), any());
     }
 
     @Test
     void aNegativeJournalCursorIsRefusedBeforeAnyQuery() {
-        assertThatThrownBy(() -> service().journal(-1, 20, 0))
+        assertThatThrownBy(() -> service().journal(null, null, -1, 20, 0))
                 .isInstanceOf(InvalidTool.class)
                 .hasMessageContaining("0 or more");
-        verify(changes, never()).findBySeqGreaterThanOrderBySeqAsc(any(Long.class), any());
+        verify(changes, never()).feed(any(Long.class), any(), any(), any());
     }
 }
