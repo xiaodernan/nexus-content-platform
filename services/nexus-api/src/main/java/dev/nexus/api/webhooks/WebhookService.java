@@ -108,6 +108,25 @@ public class WebhookService {
         return repository.save(row);
     }
 
+    /**
+     * v570 — the subscription a read door is about, for its OWNER only.
+     *
+     * <p>The two refusals are the difference between "nothing is there" and "it is not yours": an id that
+     * names nothing is {@link NoSuchWebhook} (404), and a row that belongs to another subscriber is
+     * {@link NotYourWebhook} (403). The subscriber is required BEFORE the lookup, so a request with no owner
+     * cannot read a row at all — the same rule the delivery log's doors apply.
+     */
+    @Transactional(readOnly = true)
+    public WebhookSubscription ownedBy(String webhookId, String subscriberId) {
+        String subscriber = requireSubscriber(subscriberId);
+        WebhookSubscription row = repository.findById(webhookId)
+                .orElseThrow(() -> new NoSuchWebhook("webhook \"" + webhookId + "\" does not exist"));
+        if (!row.getSubscriberAccountId().equals(subscriber)) {
+            throw new NotYourWebhook("webhook \"" + webhookId + "\" belongs to another subscriber");
+        }
+        return row;
+    }
+
     /** One subscriber's subscriptions, oldest first, capped and paged — the window, not the whole table. */
     @Transactional(readOnly = true)
     public List<WebhookSubscription> subscriptionsOf(String subscriberId, int limit, int offset) {

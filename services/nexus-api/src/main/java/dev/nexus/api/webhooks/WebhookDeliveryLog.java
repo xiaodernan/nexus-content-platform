@@ -1,9 +1,11 @@
 package dev.nexus.api.webhooks;
 
+import dev.nexus.api.webhooks.WebhookDtos.WebhookHealth;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -221,5 +223,64 @@ public class WebhookDeliveryLog {
         return narrowed == null
                 ? repository.countBySubscriberAccountId(subscriber)
                 : repository.countBySubscriberAccountIdAndWebhookId(subscriber, narrowed);
+    }
+
+    /**
+     * v570 — the owner's HEALTH door: one subscription's record, READ off its receipts rather than summarised
+     * by a field somebody would have to keep in step.
+     *
+     * <p>Four queries, and each answers a question the log actually holds:
+     *
+     * <ul>
+     *   <li>The three outcome counts (delivered / refused / unreachable) over the subscription's WHOLE log,
+     *       not a window — a health answer that counted only its newest page would call a failing endpoint
+     *       healthy once the failures older than one page.
+     *   <li>The newest attempt, and the newest DELIVERY. Both are one row: the id breaks an instant tie, so
+     *       "newest" is a total order rather than whichever row the table happened to answer.
+     *   <li>{@code attemptsSinceLastDelivery} — receipts attempted STRICTLY after the newest delivery's instant,
+     *       or every receipt when nothing ever delivered. Strictly, so an attempt sharing that microsecond is
+     *       not counted as a failure the delivery did not have.
+     * </ul>
+     *
+     * <p>No receipt means zeros and nulls, not a guessed instant or an invented outcome. The answer carries no
+     * score and no "healthy" flag: the log states its counts, and what they mean is the owner's to decide.
+     */
+    @Transactional(readOnly = true)
+    public WebhookHealth healthOf(WebhookSubscription row) {
+        String subscriber = row.getSubscriberAccountId();
+        String webhookId = row.getWebhookId();
+        long total = repository.countBySubscriberAccountIdAndWebhookId(subscriber, webhookId);
+        long delivered = repository.countBySubscriberAccountIdAndWebhookIdAndOutcome(
+                subscriber, webhookId, WebhookDispatcher.OUTCOME_DELIVERED);
+        long refused = repository.countBySubscriberAccountIdAndWebhookIdAndOutcome(
+                subscriber, webhookId, WebhookDispatcher.OUTCOME_REFUSED);
+        long unreachable = repository.countBySubscriberAccountIdAndWebhookIdAndOutcome(
+                subscriber, webhookId, WebhookDispatcher.OUTCOME_UNREACHABLE);
+        Optional<WebhookDelivery> lastAttempt = repository
+                .findFirstBySubscriberAccountIdAndWebhookIdOrderByAttemptedAtDescDeliveryIdDesc(
+                        subscriber, webhookId);
+        Optional<WebhookDelivery> lastDelivery = repository
+                .findFirstBySubscriberAccountIdAndWebhookIdAndOutcomeOrderByAttemptedAtDescDeliveryIdDesc(
+                        subscriber, webhookId, WebhookDispatcher.OUTCOME_DELIVERED);
+        long sinceLastDelivery = lastDelivery
+                .map(delivery -> repository.countBySubscriberAccountIdAndWebhookIdAndAttemptedAtGreaterThan(
+                        subscriber, webhookId, delivery.getAttemptedAt()))
+                .orElse(total);
+        return new WebhookHealth(
+                webhookId,
+                subscriber,
+                row.getEndpointUrl(),
+                row.eventList(),
+                row.getCreatedAt().toEpochMilli(),
+                total,
+                delivered,
+                refused,
+                unreachable,
+                sinceLastDelivery,
+                lastDelivery.map(delivery -> delivery.getAttemptedAt().toEpochMilli()).orElse(null),
+                lastAttempt.map(delivery -> delivery.getAttemptedAt().toEpochMilli()).orElse(null),
+                lastAttempt.map(WebhookDelivery::getOutcome).orElse(null),
+                lastAttempt.map(WebhookDelivery::getStatus).orElse(null),
+                lastAttempt.map(WebhookDelivery::getDetail).orElse(null));
     }
 }

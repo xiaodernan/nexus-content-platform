@@ -2,6 +2,7 @@ package dev.nexus.api.webhooks;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -32,6 +33,38 @@ public interface WebhookDeliveryRepository extends JpaRepository<WebhookDelivery
 
     /** The same count, narrowed to one subscription. */
     long countBySubscriberAccountIdAndWebhookId(String subscriberAccountId, String webhookId);
+
+    /**
+     * v570 — how many of one subscription's receipts ended in ONE outcome.
+     *
+     * <p>The outcome is a name the dispatcher wrote ({@code delivered} / {@code refused} /
+     * {@code unreachable}); the health door asks the table rather than filtering a window, because "how many
+     * attempts ever failed" is a question about the whole log and a window would answer about its edge.
+     */
+    long countBySubscriberAccountIdAndWebhookIdAndOutcome(
+            String subscriberAccountId, String webhookId, String outcome);
+
+    /**
+     * v570 — the NEWEST attempt of one subscription, or none when the log is empty.
+     *
+     * <p>The id is the second key for the same reason the window orders by it: two attempts can share a
+     * microsecond, and "the last attempt" must be ONE row rather than whichever the table answered first.
+     */
+    Optional<WebhookDelivery> findFirstBySubscriberAccountIdAndWebhookIdOrderByAttemptedAtDescDeliveryIdDesc(
+            String subscriberAccountId, String webhookId);
+
+    /** v570 — the newest attempt that actually DELIVERED, the health answer's only positive fact. */
+    Optional<WebhookDelivery> findFirstBySubscriberAccountIdAndWebhookIdAndOutcomeOrderByAttemptedAtDescDeliveryIdDesc(
+            String subscriberAccountId, String webhookId, String outcome);
+
+    /**
+     * v570 — attempts STRICTLY after an instant: the health door's "since the last delivery" count.
+     *
+     * <p>Strictly: an attempt at the same microsecond as the delivery is not after it. The count therefore
+     * never invents a failure that shares the delivery's instant.
+     */
+    long countBySubscriberAccountIdAndWebhookIdAndAttemptedAtGreaterThan(
+            String subscriberAccountId, String webhookId, Instant cutoff);
 
     /**
      * v569 — remove the subscriber's receipts STRICTLY older than the cutoff; the returned count is the answer.

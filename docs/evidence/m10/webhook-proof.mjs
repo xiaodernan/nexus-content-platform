@@ -1,4 +1,4 @@
-// NEXUS M10 v561–v563 — webhooks stop being a claim and start being a ROW IN A DATABASE (ADR 0021).
+// NEXUS M10 v561–v563, v569–v570 — webhooks stop being a claim and start being a ROW IN A DATABASE (ADR 0021).
 //
 // ADR 0021 shipped four slices (v557 subscribe + sign, v558 the owner's ping, v559 the after-commit fan-out,
 // v560 the delivery receipts). v561 added this live run, which closed the sentence those slices all ended
@@ -42,11 +42,14 @@
 //   §10 the receipts and the rotated key SURVIVE A RESTART: a new JVM, the same database, the same FIVE rows
 //      with the same instants — which is the whole difference between `REQUIRES_NEW` committing and merely
 //      being visible;
-//   §11 the owner's RETENTION: a prune removes every receipt attempted strictly BEFORE the instant it names,
+//   §11 the owner's HEALTH: one subscription's receipts answer its outcome counts, its newest attempt and the
+//      attempts since its newest delivery — derived, never stored; a removed subscription whose receipts
+//      remain is 404, and a missing owner / a stranger / an unknown id is refused by name;
+//   §12 the owner's RETENTION: a prune removes every receipt attempted strictly BEFORE the instant it names,
 //      optionally narrowed to one subscription, and its answer is the arithmetic it performed; a missing
 //      owner, a missing instant or a future instant is refused and deletes nothing; a stranger's prune is an
 //      honest zero; and taking the log to zero rows leaves the SUBSCRIPTION itself in place;
-//   §12 teardown.
+//   §13 teardown.
 //
 // Stated limit: no delivery in this run reaches a socket (see the `.invalid` note below), so the
 // `X-Nexus-Delivery-Id` header and the fresh signature of a redelivery are graded by the unit gates, not
@@ -681,7 +684,57 @@ try {
   assert.equal(storedKeyAfterRestart, rotated.body.secret, 'the rotated key survived the restart');
   console.log(`[§10] process ${pidBefore} was killed and a new JVM served the SAME five receipts from the same database, identical in id, instants, outcome, detail and the source id the repeat names, with the ROTATED key still the stored one — the delivery log is a system of record, not a cache, and REQUIRES_NEW really committed`);
 
-  // ── §11 the owner's RETENTION: a cutoff deletes what it EXCLUDES, and only that ─────────────────
+  // ── §11 the owner's HEALTH: the receipt log answers for its subscription, not a stored summary ─────
+  // Endpoint B is the remaining subscription: its log holds the publish knock and the repeat, both
+  // unreachable. The health door must count them over the subscription's WHOLE log — endpoint A's three
+  // receipts are not B's — and name the NEWEST attempt rather than a page's first row by luck.
+  const health = await call(`/webhooks/${q(webhookIdB)}/health?subscriber=${q(subscriber)}`);
+  assert.equal(health.status, 200, `the owner's health door must answer, got ${health.status}: ${health.text}`);
+  assert.equal(health.body.webhookId, webhookIdB);
+  assert.equal(health.body.subscriberId, subscriber);
+  assert.equal(health.body.url, endpointB);
+  assert.deepEqual(health.body.events, ['publish'], 'the health answer restates the instruction it is about');
+  const bRows = afterRestart.body.deliveries.filter((r) => r.webhookId === webhookIdB);
+  assert.equal(bRows.length, 2, `endpoint B must hold two receipts, got ${bRows.length}`);
+  assert.equal(health.body.totalAttempts, bRows.length, 'the count is endpoint B\'s OWN log, not the account\'s');
+  assert.equal(health.body.delivered, 0, 'nothing reached hooks.invalid: delivered is zero');
+  assert.equal(health.body.refused, 0, 'an unresolvable name is unreachable, not refused');
+  assert.equal(health.body.unreachable, bRows.length, 'every attempt of B was unreachable');
+  assert.equal(health.body.lastDeliveredAt, null, 'nothing delivered yet, so there is no delivery instant');
+  assert.equal(health.body.attemptsSinceLastDelivery, bRows.length,
+      'with no delivery ever, every attempt is "since the last delivery" — not an invented zero');
+  assert.equal(health.body.lastAttemptAt, bRows[0].attemptedAt, 'the newest attempt is the repeat, and the log\'s order says so');
+  assert.equal(health.body.lastOutcome, 'unreachable');
+  assert.equal(health.body.lastStatus, null);
+  assert.equal(typeof health.body.lastDetail, 'string');
+  assert.ok(!('secret' in health.body), 'a health answer must never print the secret');
+
+  // A's receipts survive A's subscription (§8), but HEALTH is about the INSTRUCTION: A is gone, so the
+  // door is a 404 that names absence rather than an empty "healthy" record built from orphan rows.
+  const healthGone = await call(`/webhooks/${q(webhookIdA)}/health?subscriber=${q(subscriber)}`);
+  assert.equal(healthGone.status, 404, `a removed subscription has no health record, got ${healthGone.status}`);
+  assert.equal(healthGone.body.error, 'no-such-webhook');
+
+  const healthNoSubscriber = await call(`/webhooks/${q(webhookIdB)}/health`);
+  assert.equal(healthNoSubscriber.status, 400, `a health check without an owner is refused, got ${healthNoSubscriber.status}`);
+  assert.equal(healthNoSubscriber.body.error, 'invalid-webhook');
+  assert.match(healthNoSubscriber.body.message, /subscriber/, 'the refusal must name the missing owner');
+
+  const healthStranger = await call(`/webhooks/${q(webhookIdB)}/health?subscriber=${q(stranger)}`);
+  assert.equal(healthStranger.status, 403, `a stranger must not read another subscriber's health, got ${healthStranger.status}`);
+  assert.equal(healthStranger.body.error, 'not-your-webhook');
+
+  const healthMissing = await call(`/webhooks/no-such-${STAMP}/health?subscriber=${q(subscriber)}`);
+  assert.equal(healthMissing.status, 404, `an id that names nothing is 404, got ${healthMissing.status}`);
+  assert.equal(healthMissing.body.error, 'no-such-webhook');
+
+  // A read is not an attempt: four health asks wrote no receipt, so the log stays at five.
+  const afterHealth = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}`);
+  assert.equal(afterHealth.body.total, 5, `a health check must write nothing, got ${afterHealth.body.total}`);
+
+  console.log(`[§11] the owner's health door answered endpoint B's OWN record: ${health.body.totalAttempts} attempts, 0 delivered / 0 refused / ${health.body.unreachable} unreachable, no delivery instant, all ${health.body.attemptsSinceLastDelivery} attempts since the last delivery, newest ${health.body.lastOutcome} at ${health.body.lastAttemptAt} — derived from the receipts, not stored · A's removed subscription is a 404 while its receipts remain · 400/403/404 for a missing owner, a stranger and an unknown id, and the four reads wrote NO receipt`);
+
+  // ── §12 the owner's RETENTION: a cutoff deletes what it EXCLUDES, and only that ─────────────────
   // The two newest receipts after the restart are the boundary: the ping (oldest of the two) is the instant
   // the prune names, and everything STRICTLY before it goes. The ping's own row survives because the cutoff
   // is exclusive — this is the difference between "delete through" and "delete before".
@@ -770,20 +823,20 @@ try {
   const subscriptionsLeft = await sql(`select count(*) from webhook_subscription where subscriber_account_id = '${subscriber}'`);
   assert.equal(subscriptionsLeft, '1', 'a prune removes RECEIPTS, not the instruction that produced them');
 
-  console.log(`[§11] the owner pruned endpoint A's ${aPrunable} receipts below the cutoff through the NARROWED door (its remaining count was A's own log, and endpoint B's receipts were untouched) · then pruned the WHOLE log at the same cutoff: ${expectedPruned} below it went, ${kept.length} at or above it stayed, and the answer was the arithmetic · 400 for a missing owner, a missing instant and a future instant — none removed a row · a stranger's prune was an honest 0/0 while the owner kept everything · a final prune at now took the log to ZERO rows in psql and left the SUBSCRIPTION itself in place — retention belongs to the owner, and a receipt is not an instruction`);
+  console.log(`[§12] the owner pruned endpoint A's ${aPrunable} receipts below the cutoff through the NARROWED door (its remaining count was A's own log, and endpoint B's receipts were untouched) · then pruned the WHOLE log at the same cutoff: ${expectedPruned} below it went, ${kept.length} at or above it stayed, and the answer was the arithmetic · 400 for a missing owner, a missing instant and a future instant — none removed a row · a stranger's prune was an honest 0/0 while the owner kept everything · a final prune at now took the log to ZERO rows in psql and left the SUBSCRIPTION itself in place — retention belongs to the owner, and a receipt is not an instruction`);
 
-  // ── §12 teardown ────────────────────────────────────────────────────────────────────────────────
+  // ── §13 teardown ────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
   const rm = await run('docker', ['rm', '-f', DB_CONTAINER]);
   assert.equal(rm.code, 0, `could not remove the throwaway database: ${rm.stderr}`);
   dbStarted = false;
   const gone = await run('docker', ['ps', '-a', '--filter', `name=^/${DB_CONTAINER}$`, '--format', '{{.Names}}']);
   assert.equal(gone.stdout.trim(), '', `the throwaway container is still listed: ${gone.stdout.trim()}`);
-  console.log(`[§12] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
+  console.log(`[§13] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log('\n[summary] M10 v561–v563, v569: services/nexus-api BUILT and RAN against a real PostgreSQL · two endpoints subscribed with the events canonicalized to the trail\'s order and a secret readable once · a real publish committed and the AFTER_COMMIT fan-out knocked on BOTH endpoints, each knock recorded with the TRAIL\'s instant · a real unpublish fanned out the same way while the trail kept one entry per verb · the owner\'s ping wrote one receipt and the other endpoint got none · a refused ping wrote nothing · a stranger\'s account answers an empty log · psql counted five receipts, found no secret column, and read back the 64-character key the subscription answer gave once · an unpublish knocked only on the endpoint that asked for that verb · removing the subscription left its receipts intact · the owner ROTATED the remaining key, the old one was not retained anywhere, and the listing kept printing no secret · the owner REDELIVERED one recorded attempt into a NEW row that repeats the same fact and names its source, with 400/403/404 refusals that knocked on nothing · and a NEW JVM served the SAME five rows WITH the rotated key — the delivery log outlives the process that wrote it · and the OWNER pruned it: a narrowed cutoff removed endpoint A\'s older rows and kept the boundary receipt, the whole-log cutoff answered exactly the arithmetic while the kept rows stayed, a missing owner / a missing instant / a future instant deleted nothing, a stranger\'s prune was 0/0, and a final prune took the log to zero rows in psql with the SUBSCRIPTION still in place');
+  console.log('\n[summary] M10 v561–v563, v569–v570: services/nexus-api BUILT and RAN against a real PostgreSQL · two endpoints subscribed with the events canonicalized to the trail\'s order and a secret readable once · a real publish committed and the AFTER_COMMIT fan-out knocked on BOTH endpoints, each knock recorded with the TRAIL\'s instant · a real unpublish fanned out the same way while the trail kept one entry per verb · the owner\'s ping wrote one receipt and the other endpoint got none · a refused ping wrote nothing · a stranger\'s account answers an empty log · psql counted five receipts, found no secret column, and read back the 64-character key the subscription answer gave once · an unpublish knocked only on the endpoint that asked for that verb · removing the subscription left its receipts intact · the owner ROTATED the remaining key, the old one was not retained anywhere, and the listing kept printing no secret · the owner REDELIVERED one recorded attempt into a NEW row that repeats the same fact and names its source, with 400/403/404 refusals that knocked on nothing · and a NEW JVM served the SAME five rows WITH the rotated key — the delivery log outlives the process that wrote it · and the OWNER read its HEALTH off those receipts: endpoint B\'s own two attempts, all unreachable, no delivery instant, every attempt since the last delivery, the newest outcome and instant named — derived, never stored — while A\'s removed subscription was a 404 and a missing owner / a stranger / an unknown id were refused without writing a receipt · and the OWNER pruned it: a narrowed cutoff removed endpoint A\'s older rows and kept the boundary receipt, the whole-log cutoff answered exactly the arithmetic while the kept rows stayed, a missing owner / a missing instant / a future instant deleted nothing, a stranger\'s prune was 0/0, and a final prune took the log to zero rows in psql with the SUBSCRIPTION still in place');
   rmSync(BUILD_DIR, { recursive: true, force: true });
-  console.log('[m10-webhook-proof] ALL ASSERTIONS PASSED (a real backend service, a real database, one committed fact, a key its owner can rotate, receipts that outlive their writer, and a log its owner can prune)');
+  console.log('[m10-webhook-proof] ALL ASSERTIONS PASSED (a real backend service, a real database, one committed fact, a key its owner can rotate, receipts that outlive their writer, a log its owner can prune, and a health read derived from those receipts)');
 } finally {
   if (serviceProcess && serviceProcess.exitCode === null) {
     await stopService(serviceProcess);

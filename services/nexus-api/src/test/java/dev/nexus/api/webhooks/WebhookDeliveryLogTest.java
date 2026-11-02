@@ -264,4 +264,109 @@ class WebhookDeliveryLogTest {
                 .hasMessageContaining("subscriber");
         verifyNoInteractions(repository);
     }
+
+    // ── v570: the owner's health door ──────────────────────────────────────────────────────────────
+
+    private static WebhookDelivery receipt(
+            String id, String outcome, Integer status, String detail, Instant attemptedAt) {
+        return new WebhookDelivery(id, "wh-1", SUBSCRIBER, "publish", "pub-1", outcome, status, detail,
+                attemptedAt.minusSeconds(1), attemptedAt, null);
+    }
+
+    @Test
+    void aHealthCheckCountsEveryOutcomeOverTheWHOLELogAndNamesTheNewestAttempt() {
+        when(repository.countBySubscriberAccountIdAndWebhookId(SUBSCRIBER, "wh-1")).thenReturn(5L);
+        when(repository.countBySubscriberAccountIdAndWebhookIdAndOutcome(
+                SUBSCRIBER, "wh-1", WebhookDispatcher.OUTCOME_DELIVERED)).thenReturn(0L);
+        when(repository.countBySubscriberAccountIdAndWebhookIdAndOutcome(
+                SUBSCRIBER, "wh-1", WebhookDispatcher.OUTCOME_REFUSED)).thenReturn(2L);
+        when(repository.countBySubscriberAccountIdAndWebhookIdAndOutcome(
+                SUBSCRIBER, "wh-1", WebhookDispatcher.OUTCOME_UNREACHABLE)).thenReturn(3L);
+        when(repository.findFirstBySubscriberAccountIdAndWebhookIdOrderByAttemptedAtDescDeliveryIdDesc(
+                SUBSCRIBER, "wh-1"))
+                .thenReturn(Optional.of(receipt("d-last", WebhookDispatcher.OUTCOME_REFUSED, 500, "status",
+                        AT.minusSeconds(1))));
+        when(repository.findFirstBySubscriberAccountIdAndWebhookIdAndOutcomeOrderByAttemptedAtDescDeliveryIdDesc(
+                SUBSCRIBER, "wh-1", WebhookDispatcher.OUTCOME_DELIVERED)).thenReturn(Optional.empty());
+
+        WebhookDtos.WebhookHealth health = log.healthOf(row());
+
+        assertThat(health.webhookId()).isEqualTo("wh-1");
+        assertThat(health.subscriberId()).isEqualTo(SUBSCRIBER);
+        assertThat(health.url()).isEqualTo("https://hooks.example.com/nexus");
+        assertThat(health.events()).containsExactly("publish");
+        assertThat(health.createdAt()).isEqualTo(AT.minusSeconds(5).toEpochMilli());
+        assertThat(health.totalAttempts()).isEqualTo(5L);
+        assertThat(health.delivered()).isZero();
+        assertThat(health.refused()).isEqualTo(2L);
+        assertThat(health.unreachable()).isEqualTo(3L);
+        // Nothing ever delivered: "since the last delivery" is the WHOLE log, not an invented zero.
+        assertThat(health.attemptsSinceLastDelivery()).isEqualTo(5L);
+        assertThat(health.lastDeliveredAt()).isNull();
+        assertThat(health.lastAttemptAt()).isEqualTo(AT.minusSeconds(1).toEpochMilli());
+        assertThat(health.lastOutcome()).isEqualTo(WebhookDispatcher.OUTCOME_REFUSED);
+        assertThat(health.lastStatus()).isEqualTo(500);
+        assertThat(health.lastDetail()).isEqualTo("status");
+        verify(repository, never())
+                .countBySubscriberAccountIdAndWebhookIdAndAttemptedAtGreaterThan(any(), any(), any());
+    }
+
+    @Test
+    void aHealthCheckThatHasDeliveredCountsOnlyTheAttemptsSTRICTLYAfterThatDelivery() {
+        Instant deliveredAt = AT.minusSeconds(30);
+        when(repository.countBySubscriberAccountIdAndWebhookId(SUBSCRIBER, "wh-1")).thenReturn(4L);
+        when(repository.countBySubscriberAccountIdAndWebhookIdAndOutcome(
+                SUBSCRIBER, "wh-1", WebhookDispatcher.OUTCOME_DELIVERED)).thenReturn(1L);
+        when(repository.countBySubscriberAccountIdAndWebhookIdAndOutcome(
+                SUBSCRIBER, "wh-1", WebhookDispatcher.OUTCOME_REFUSED)).thenReturn(1L);
+        when(repository.countBySubscriberAccountIdAndWebhookIdAndOutcome(
+                SUBSCRIBER, "wh-1", WebhookDispatcher.OUTCOME_UNREACHABLE)).thenReturn(2L);
+        when(repository.findFirstBySubscriberAccountIdAndWebhookIdOrderByAttemptedAtDescDeliveryIdDesc(
+                SUBSCRIBER, "wh-1"))
+                .thenReturn(Optional.of(receipt("d-last", WebhookDispatcher.OUTCOME_UNREACHABLE, null,
+                        "UnknownHostException", AT.minusSeconds(1))));
+        when(repository.findFirstBySubscriberAccountIdAndWebhookIdAndOutcomeOrderByAttemptedAtDescDeliveryIdDesc(
+                SUBSCRIBER, "wh-1", WebhookDispatcher.OUTCOME_DELIVERED))
+                .thenReturn(Optional.of(new WebhookDelivery(
+                        "d-ok", "wh-1", SUBSCRIBER, "publish", "pub-1",
+                        WebhookDispatcher.OUTCOME_DELIVERED, 200, null,
+                        AT.minusSeconds(31), deliveredAt, null)));
+        when(repository.countBySubscriberAccountIdAndWebhookIdAndAttemptedAtGreaterThan(
+                SUBSCRIBER, "wh-1", deliveredAt)).thenReturn(2L);
+
+        WebhookDtos.WebhookHealth health = log.healthOf(row());
+
+        assertThat(health.totalAttempts()).isEqualTo(4L);
+        assertThat(health.delivered()).isEqualTo(1L);
+        // The count starts at the newest DELIVERY: a delivery is not a failure since itself.
+        assertThat(health.attemptsSinceLastDelivery()).isEqualTo(2L);
+        assertThat(health.lastDeliveredAt()).isEqualTo(deliveredAt.toEpochMilli());
+        verify(repository).countBySubscriberAccountIdAndWebhookIdAndAttemptedAtGreaterThan(
+                SUBSCRIBER, "wh-1", deliveredAt);
+    }
+
+    @Test
+    void aHealthCheckOfALogWithNoReceiptsAnswersZerosAndNullsRatherThanAGuess() {
+        when(repository.countBySubscriberAccountIdAndWebhookId(SUBSCRIBER, "wh-1")).thenReturn(0L);
+        when(repository.countBySubscriberAccountIdAndWebhookIdAndOutcome(any(), any(), any())).thenReturn(0L);
+        when(repository.findFirstBySubscriberAccountIdAndWebhookIdOrderByAttemptedAtDescDeliveryIdDesc(
+                SUBSCRIBER, "wh-1")).thenReturn(Optional.empty());
+        when(repository.findFirstBySubscriberAccountIdAndWebhookIdAndOutcomeOrderByAttemptedAtDescDeliveryIdDesc(
+                SUBSCRIBER, "wh-1", WebhookDispatcher.OUTCOME_DELIVERED)).thenReturn(Optional.empty());
+
+        WebhookDtos.WebhookHealth health = log.healthOf(row());
+
+        assertThat(health.totalAttempts()).isZero();
+        assertThat(health.delivered()).isZero();
+        assertThat(health.refused()).isZero();
+        assertThat(health.unreachable()).isZero();
+        assertThat(health.attemptsSinceLastDelivery()).isZero();
+        assertThat(health.lastDeliveredAt()).isNull();
+        assertThat(health.lastAttemptAt()).isNull();
+        assertThat(health.lastOutcome()).isNull();
+        assertThat(health.lastStatus()).isNull();
+        assertThat(health.lastDetail()).isNull();
+        verify(repository, never())
+                .countBySubscriberAccountIdAndWebhookIdAndAttemptedAtGreaterThan(any(), any(), any());
+    }
 }

@@ -374,4 +374,38 @@ class WebhookServiceTest {
         assertThatThrownBy(() -> service.rotateSecret("wh-1", null)).isInstanceOf(InvalidWebhook.class);
         verify(repository, never()).findById("wh-1");
     }
+
+    // ── v570: a read door asks for the subscription its owner names ────────────────────────────────
+
+    @Test
+    void theOwnersSubscriptionIsAnsweredByTheRowItsAccountHolds() {
+        WebhookSubscription own = row("wh-1", SUBSCRIBER, ENDPOINT);
+        when(repository.findById("wh-1")).thenReturn(Optional.of(own));
+
+        assertThat(service.ownedBy("wh-1", SUBSCRIBER)).isSameAs(own);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void somebodyElsesSubscriptionCannotBeRead() {
+        when(repository.findById("wh-1")).thenReturn(Optional.of(row("wh-1", "acct-bob", ENDPOINT)));
+        assertThatThrownBy(() -> service.ownedBy("wh-1", SUBSCRIBER))
+                .isInstanceOf(NotYourWebhook.class)
+                .hasMessageContaining("another subscriber");
+    }
+
+    @Test
+    void aReadOfAnIdThatNamesNothingIsANotFound() {
+        when(repository.findById("wh-gone")).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.ownedBy("wh-gone", SUBSCRIBER))
+                .isInstanceOf(NoSuchWebhook.class)
+                .hasMessageContaining("does not exist");
+    }
+
+    @Test
+    void aReadWithoutAnOwnerIsRefusedBeforeTheLookup() {
+        assertThatThrownBy(() -> service.ownedBy("wh-1", "  ")).isInstanceOf(InvalidWebhook.class)
+                .hasMessageContaining("subscriber");
+        verify(repository, never()).findById(any());
+    }
 }

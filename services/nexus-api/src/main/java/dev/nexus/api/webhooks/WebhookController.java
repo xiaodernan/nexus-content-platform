@@ -6,6 +6,7 @@ import dev.nexus.api.webhooks.WebhookDtos.PruneAnswer;
 import dev.nexus.api.webhooks.WebhookDtos.SubscribeRequest;
 import dev.nexus.api.webhooks.WebhookDtos.Webhook;
 import dev.nexus.api.webhooks.WebhookDtos.WebhookDeliveryList;
+import dev.nexus.api.webhooks.WebhookDtos.WebhookHealth;
 import dev.nexus.api.webhooks.WebhookDtos.WebhookList;
 import dev.nexus.api.webhooks.WebhookDtos.WebhookSecret;
 import java.util.List;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v557–v569 — the HTTP surface for webhook subscriptions. Eight doors, and the differences between them
+ * M10 v557–v570 — the HTTP surface for webhook subscriptions. Nine doors, and the differences between them
  * are the rules:
  *
  * <ul>
@@ -35,8 +36,10 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>{@code DELETE /webhooks/deliveries?subscriber=&before=&webhook=} — the owner's RETENTION: remove every
  *       receipt attempted strictly before the instant named, optionally narrowed to one subscription. 200 with
  *       how many were removed and what remains; a missing or future instant deletes nothing.
+ *   <li>{@code GET /webhooks/{id}/health?subscriber=} — the owner's HEALTH: one subscription's outcome counts,
+ *       its newest attempt, and the attempts made since its newest delivery, all read off the receipt log.</li>
  *   <li>{@code DELETE /webhooks/{id}?subscriber=} — remove one. 200 either way: an id that names nothing is
- *       "already gone", not an error.
+ *       "already gone", not an error.</li>
  *   <li>{@code POST /webhooks/{id}/rotate?subscriber=} — mint a NEW signing key, owner only. 200 with the
  *       same once-only answer the subscription door gave; the old key is not retained.
  *   <li>{@code POST /webhooks/{id}/ping?subscriber=} — make this service POST one signed {@code ping} to the
@@ -197,6 +200,20 @@ public class WebhookController {
                 before,
                 pruned,
                 remaining));
+    }
+
+    /**
+     * v570 — the owner's HEALTH door: what this subscription's receipts say about it.
+     *
+     * <p>200 with {@link WebhookHealth}, every number computed from the receipt log rather than stored beside
+     * the subscription. 400 with no subscriber, 403 for somebody else's subscription, 404 for an id that names
+     * nothing — the same three refusals the rotate and ping doors make, applied to a READ.
+     */
+    @GetMapping("/webhooks/{webhookId}/health")
+    public ResponseEntity<WebhookHealth> health(
+            @PathVariable String webhookId,
+            @RequestParam(name = "subscriber", required = false) String subscriberId) {
+        return ResponseEntity.ok(deliveryLog.healthOf(service.ownedBy(webhookId, subscriberId)));
     }
 
     /** Remove one subscription. 200 either way; 403 when it belongs to another subscriber. */

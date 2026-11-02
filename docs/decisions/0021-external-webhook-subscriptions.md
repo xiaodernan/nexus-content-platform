@@ -2,8 +2,8 @@
 
 - **Status:** Accepted (v557 the receiving half; v558 the on-demand `ping`; v559 the event fan-out; v560 the
   delivery receipts; v561 the live-PostgreSQL end-to-end run; v562 the owner's key rotation; v563 the owner's
-  redelivery of one recorded attempt and the delivery id every knock carries; v569 the owner's retention prune
-  — all landed and gated)
+  redelivery of one recorded attempt and the delivery id every knock carries; v569 the owner's retention prune;
+  v570 the owner's health read — all landed and gated)
 - **Date:** 2026-10-30
 - **Milestone:** M10 (External Agent Ecosystem)
 
@@ -46,14 +46,18 @@ Two §60 forces shape the design:
 | Delivery | **Repeat ONE recorded attempt on the owner's word (v563), and give every knock its own delivery id** | **Chosen** — the smallest retry that is honest: the owner names which attempt to repeat, the bytes are the recorded fact's own (not re-typed), and the new receipt names the attempt it repeats. A delivery id separates "the same fact" from "the same knock", so a subscriber can deduplicate a repeat without guessing |
 | Retention | Keep every receipt forever | A log that only grows is a table its owner can never correct, and "how long a receipt is kept" is then answered implicitly by "forever" |
 | Retention | **The owner's prune at an instant the OWNER names (v569), excluded strictly, optionally narrowed to one subscription** | **Chosen** — the smallest retention that is honest: no scheduler and no policy this service invents; the cutoff is a fact the caller states, the delete is scoped to the account, and the answer is the arithmetic (`pruned`, `remaining`) so the owner can see what the log now holds |
+| Health | A probe of the endpoint at read time | A GET that knocks on a stranger's server is a delivery the owner did not ask for, and its answer would describe one instant rather than the log |
+| Health | A boolean or a score (`healthy: true`, 0–100) | A threshold this service invents: the numbers would be a grade with no rule behind it, and a subscriber could not tell which |
+| Health | **The receipt log's own arithmetic (v570): outcome counts, the newest attempt, and the attempts since the newest delivery** | **Chosen** — every number is derived from rows the service already wrote; no probe, no threshold and no grade, and a subscription with no receipts answers zero and `null` rather than a guess |
 
 ## Choice
 
 `dev.nexus.api.webhooks` — a `webhook_subscription` row (subscriber, endpoint, events, secret, createdAt),
-eight doors (`POST /webhooks`, `GET /webhooks?subscriber=`, `GET /webhooks/deliveries?subscriber=&webhook=`,
+nine doors (`POST /webhooks`, `GET /webhooks?subscriber=`, `GET /webhooks/deliveries?subscriber=&webhook=`,
 `POST /webhooks/deliveries/{id}/redeliver?subscriber=`,
-`DELETE /webhooks/deliveries?subscriber=&before=&webhook=`, `DELETE /webhooks/{id}?subscriber=`,
-`POST /webhooks/{id}/rotate?subscriber=`, `POST /webhooks/{id}/ping?subscriber=`), a `WebhookSigner` whose
+`DELETE /webhooks/deliveries?subscriber=&before=&webhook=`, `GET /webhooks/{id}/health?subscriber=`,
+`DELETE /webhooks/{id}?subscriber=`, `POST /webhooks/{id}/rotate?subscriber=`,
+`POST /webhooks/{id}/ping?subscriber=`), a `WebhookSigner` whose
 header every delivery carries, and `WebhookDispatcher` — the one place that POSTs, behind two seams
 (`HostResolver`, `WebhookTransport`) so its decisions are graded without touching a stranger's server.
 
@@ -74,7 +78,10 @@ Rules, each refused by name:
   nothing;
 - only the OWNER may PRUNE a log, the cutoff is a positive instant at or before this service's clock, every
   receipt attempted strictly before it is removed, and the answer is what went and what remains; a missing
-  instant or one in the future is a 400 that deletes nothing.
+  instant or one in the future is a 400 that deletes nothing;
+- only the OWNER may READ a subscription's health, and the answer is the receipt log's arithmetic: counts by
+  outcome, the newest attempt and the newest delivery, and the attempts made after that delivery — never a
+  probe of the endpoint, never a boolean, never a score.
 
 v559 completed the arc. `AuditService.record` publishes `AuditRecorded(action, targetId, at)` after the save
 and inside its own transaction; `WebhookEventListener` is the only listener, and its `AFTER_COMMIT` phase is
@@ -118,6 +125,17 @@ than it and stays, and the whole boundary question is decided in the database ra
 the `remaining` answer to that subscription's own log. There is no scheduler and no retention policy: the
 owner states the instant, the service performs the arithmetic and answers it, and a missing or future instant
 is a 400 that deletes nothing.
+
+v570 makes the log answer "how is this subscription doing" without inventing a grade. `GET
+/webhooks/{id}/health?subscriber=` reads the receipts the service ALREADY wrote for that owner's subscription
+and answers their arithmetic: `totalAttempts`, `delivered`, `refused`, `unreachable`, the newest attempt with
+its outcome/status/detail, the newest delivery and the attempts made SINCE it. The last number is strict — a
+receipt at the same instant as the newest delivery is not "since" it — and a subscription that has never
+delivered answers the total, because every attempt is then an attempt since the delivery that did not happen.
+A subscription with no receipts answers zeros and `null`s; the door does not guess, and it does not probe the
+endpoint: a GET that knocked would be a delivery the owner never asked for. Ownership is the same rule as
+every other per-subscription door, and a subscription that has been REMOVED is a 404 even though its receipts
+remain readable — health is a fact about the subscription, not about a log that outlives it.
 
 ## Reason
 
@@ -168,6 +186,11 @@ is a 400 that deletes nothing.
   service invents, and "forever" remains the default for a log nobody prunes. A prune cannot name the
   future: a cutoff after this service's clock would delete receipts that have not been written yet, so it is
   refused rather than clamped.
+- **Health is arithmetic over a log the owner may prune, not a monitoring system.** A health answer describes
+  exactly what the receipts hold when it is read: pruning older receipts can lower `delivered`/`refused`
+  without anything about the endpoint having changed, and a subscription pruned to zero reads as one that has
+  never been attempted. The door has no latency, no uptime, no rate and no threshold — those need a probe
+  schedule this service deliberately does not have, and a boolean would pick a cut-off nobody declared.
 - **One commit per attempt.** A `REQUIRES_NEW` receipt is its own transaction, so a fan-out to ten
   subscriptions costs ten commits on top of the ten deliveries. The outbox that would batch them is the same
   later decision the synchronous fan-out defers.
@@ -203,11 +226,12 @@ is a 400 that deletes nothing.
 
 ## Evidence
 
-- `npm run verify:api-tests` — `mvn -B test`, **507/507, 27 classes**, exit 0. v557/v558 contributed 61 cases
+- `npm run verify:api-tests` — `mvn -B test`, **516/516, 27 classes**, exit 0. v557/v558 contributed 61 cases
   (26 service, 10 signer, 11 controller, 10 dispatcher, 4 transport); v559 added 10 (6 dispatcher fan-out, 2
   listener, 2 audit); v560 added 10 (6 delivery log, 2 dispatcher receipts, 2 controller); v562 added 6 (4
   service, 2 controller); v563 added 12 (4 delivery log, 5 dispatcher, 3 controller); v569 added 8 (5 delivery
-  log, 3 controller). The signer's
+  log, 3 controller); v570 added 9 (4 service — the ownership read, 3 delivery log — the arithmetic, 2
+  controller — the door and its refusals). The signer's
   expected HMAC is computed by a SECOND implementation (Node's `crypto.createHmac`), so the vector is an
   independent witness rather than the class agreeing with itself. The transport is graded against a socket the
   test owns (`ServerSocket` on loopback, one request): the bytes and headers that reach it are asserted to be
@@ -246,6 +270,13 @@ is a 400 that deletes nothing.
   `verifyNoInteractions` is what makes "refused" different from "deleted zero rows". The controller's answer
   is pinned as the arithmetic it performed (`pruned`, `remaining`, the narrowed or whole scope), and its two
   400s (no subscriber, no instant) touch nothing.
+- The v570 health is graded for the numbers a reader would otherwise take on trust. The counts are derived
+  from the receipt rows (never a stored counter that could drift), the newest attempt is the row with the
+  greatest instant and the id breaking a tie, and `attemptsSinceLastDelivery` is STRICTLY after the newest
+  delivery — a receipt at that same instant is not "since". A subscription that never delivered answers the
+  total, which is what "since a delivery that did not happen" means. The subscription with no receipts at all
+  answers zeros and `null`s rather than a guess, a stranger's id is refused before the log is read, and a
+  removed subscription is a 404 even though its receipts survive.
 - `docs/evidence/m7/service-suite-proof.mjs` derives its totals from the surefire report (§4) and digests the
   service tree (§1/§3), so it grades this slice without a literal count being typed anywhere.
 - `docs/evidence/m10/webhook-proof.mjs` (`npm run verify:webhooks`) — v561, the LIVE run the slices above
@@ -271,7 +302,10 @@ is a 400 that deletes nothing.
   `remaining` for A's own log, and leaves endpoint B's rows untouched, the whole-log `DELETE` at the same
   cutoff answers exactly the arithmetic the read door then confirms, the three 400s (missing owner, missing
   instant, future instant) leave the log intact, a stranger's prune is an honest 0/0, and a final prune at
-  now leaves ZERO receipt rows in `psql` while the subscription itself remains. The restart section is the
+  now leaves ZERO receipt rows in `psql` while the subscription itself remains. The health section reads the
+  log BEFORE that prune: endpoint B's two unreachable attempts answer `sinceLastDelivery` equal to its total
+  with no delivery instant, a removed subscription's health is a 404 even though its receipts remain readable,
+  and 400/403/404 reads write no receipt. The restart section is the
   one a unit gate could not make: a `REQUIRES_NEW` row that never committed is visible before the restart and
   gone after it.
 - **Still not graded, stated:** no delivery reaches a REAL subscriber's server. RFC 6761 reserves

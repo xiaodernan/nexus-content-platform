@@ -105,4 +105,32 @@ public final class WebhookDtos {
     public record PruneAnswer(
             String subscriberId, String webhookId, long before, long pruned, long remaining) {
     }
+
+    /**
+     * v570 — what ONE subscription's receipt log says about its health, DERIVED and never invented.
+     *
+     * <p>Every number here is a query over the owner's own receipts: the three outcome counts, the newest
+     * attempt, and {@code attemptsSinceLastDelivery} — the attempts made strictly after the newest delivery,
+     * or the whole log when nothing has ever delivered. {@code lastDeliveredAt} is null until the first
+     * delivery, and {@code lastAttemptAt} / {@code lastOutcome} / {@code lastStatus} / {@code lastDetail} are
+     * null until the first attempt. There is no score and no invented "healthy" boolean: an owner reads the
+     * facts and decides, because this service has no policy about what a subscription's history means.
+     */
+    public record WebhookHealth(
+            String webhookId,
+            String subscriberId,
+            String url,
+            List<String> events,
+            long createdAt,
+            long totalAttempts,
+            long delivered,
+            long refused,
+            long unreachable,
+            long attemptsSinceLastDelivery,
+            Long lastDeliveredAt,
+            Long lastAttemptAt,
+            String lastOutcome,
+            Integer lastStatus,
+            String lastDetail) {
+    }
 }

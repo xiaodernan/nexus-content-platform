@@ -2,6 +2,7 @@ package dev.nexus.api.webhooks;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -354,6 +355,43 @@ class WebhookControllerTest {
         JsonNode wire = mapper.valueToTree(answer.getBody());
         assertThat(wire.get("error").asText()).isEqualTo("invalid-webhook");
         assertThat(wire.get("message").asText()).contains("subscriber");
+        org.mockito.Mockito.verifyNoInteractions(deliveryLog);
+    }
+
+    // ── v570: the owner's health door ───────────────────────────────────────────────────────────────
+
+    @Test
+    void aHealthCheckAnswersWhatTheOwnersReceiptsSayAboutThatONESubscription() throws Exception {
+        when(service.ownedBy("wh-1", SUBSCRIBER)).thenReturn(row("wh-1"));
+        when(deliveryLog.healthOf(any(WebhookSubscription.class))).thenReturn(new WebhookDtos.WebhookHealth(
+                "wh-1", SUBSCRIBER, ENDPOINT, List.of("publish", "like"), AT.toEpochMilli(),
+                5L, 0L, 2L, 3L, 5L, null, AT.toEpochMilli(), "refused", 500, "status"));
+
+        ResponseEntity<WebhookDtos.WebhookHealth> answer = controller().health("wh-1", SUBSCRIBER);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        WebhookDtos.WebhookHealth body = answer.getBody();
+        assertThat(body).isNotNull();
+        JsonNode wire = mapper.valueToTree(body);
+        assertThat(wire.get("webhookId").asText()).isEqualTo("wh-1");
+        assertThat(wire.get("subscriberId").asText()).isEqualTo(SUBSCRIBER);
+        assertThat(wire.get("totalAttempts").asLong()).isEqualTo(5L);
+        assertThat(wire.get("unreachable").asLong()).isEqualTo(3L);
+        assertThat(wire.has("lastDeliveredAt")).isTrue();
+        assertThat(wire.get("lastDeliveredAt").isNull()).isTrue();
+        assertThat(wire.get("lastOutcome").asText()).isEqualTo("refused");
+        assertThat(wire.has("secret")).isFalse();
+        org.mockito.Mockito.verify(deliveryLog).healthOf(any(WebhookSubscription.class));
+    }
+
+    @Test
+    void aHealthCheckOfSomebodyElsesSubscriptionCarriesTheServicesRefusalAndReadsNoLog() {
+        when(service.ownedBy("wh-1", SUBSCRIBER))
+                .thenThrow(new NotYourWebhook("webhook \"wh-1\" belongs to another subscriber"));
+
+        assertThatThrownBy(() -> controller().health("wh-1", SUBSCRIBER))
+                .isInstanceOf(NotYourWebhook.class)
+                .hasMessageContaining("another subscriber");
         org.mockito.Mockito.verifyNoInteractions(deliveryLog);
     }
 }
