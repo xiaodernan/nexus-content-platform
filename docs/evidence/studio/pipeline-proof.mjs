@@ -134,3 +134,7 @@ console.log(
     2,
   ),
 );
+
+// v566 — the hosted gutter prints the row's last stdout line, and this proof's JSON ends in a bare `}`; the
+// verdict sentence comes after every assertion above has passed, so the one line a reader sees is a sentence.
+console.log('[pipeline-proof] ALL SECTIONS PASSED (prompt -> editable ops, real layout, AI diff, undo/redo, deterministic edit, multi-page, persistence, instance projection; demo mode, $0)');

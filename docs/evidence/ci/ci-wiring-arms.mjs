@@ -31,6 +31,9 @@
 // v565 (amendment 540) adds the arm that grades the gutter's BOUND: R14's sentence said 300 bytes while the clip
 // counted UTF-16 code units, so a line of 80 four-byte characters reached the log as 320 bytes and a slice could
 // split a surrogate pair; R16 prints 80 of them and requires exactly 75 (300 bytes) as whole characters.
+// v566 (amendment 541) adds the arm that grades the SILENT green row: a stub that writes only its ran.log and
+// exits 0 must still produce one gutter line, `(the row printed nothing)`, so green rows and gutters can be
+// counted against each other instead of differing in silence.
 //
 // Nothing an ARM writes survives: each one gets its own plane directory, built from pristine bytes read out of
 // `SRC` (derived from THIS file's own location, not from the caller's cwd), and is removed the moment the arm
@@ -343,6 +346,13 @@ const RUNNER_ARMS = [
     tag: 'R16-gutter-is-cut-at-300-bytes',
     bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': "console.log(String.fromCodePoint(0x1F642).repeat(80));\n" },
     argv: [], code: 0, has: [/verify:stub-c\s+\S+ .*OK/, /^ {6}\| (?:\u{1F642}){75}$/mu, ALL_GREEN], lacks: [/\uFFFD/], ran: true,
+  },
+  // v566 (amendment 541) — R17 is satisfied only when the gutter is present for a row that printed nothing: the
+  // stub writes its ran.log and exits 0 with no output, and the runner must name that silence under the OK.
+  {
+    tag: 'R17-silent-green-row-is-named',
+    bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': "// sweep-budget-ms: 120000\nimport { appendFileSync } from 'node:fs';\nappendFileSync('ran.log', 'c\\n');\n" },
+    argv: [], code: 0, has: [/verify:stub-c\s+\S+ .*OK/, /^ {6}\| \(the row printed nothing\)$/m, ALL_GREEN], lacks: [], ran: true,
   },
 ];
 

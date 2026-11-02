@@ -134,6 +134,15 @@ Proven end-to-end with assertions:
    while the master stays untouched (purity), maps each clone back to its owning instance, and the
    off-page master never appears in page layout.
 
+**What the proof prints last (v566, ADR 0016 amendment 541).** The JSON object above is the readable
+evidence, and the build row's gutter (`tools/ci/proof-set.mjs` prints each green row's last stdout line)
+used to read `{ ok: true, … }`'s closing brace alone — a lone `| }`, honest but describing nothing. After
+every assertion has passed the proof now prints one verdict line —
+`[pipeline-proof] ALL SECTIONS PASSED (prompt -> editable ops, real layout, AI diff, undo/redo, deterministic
+edit, multi-page, persistence, instance projection; demo mode, $0)` — so the quotable one-line summary says
+what was graded. It sits on the passing path only: a red proof never reaches it, and a red row's log carries
+its cause instead.
+
 ## The 3D surface (M5 v142, interactive v161 — ADR 0016 amendments 142 and 161)
 
 The Studio's second surface, and the first PRODUCT consumer of `@nexus/three-runtime`. It is split the way

@@ -37,6 +37,11 @@
 // bytes, and slicing at unit 300 can split a surrogate pair. The clip now walks code points and stops before
 // the prefix would exceed 300 UTF-8 bytes, so the named bound is the real one and a character is never cut.
 //
+// v566 (amendment 541) — A SILENT GREEN ROW IS NAMED, NOT MISSING. A row that exited 0 having printed nothing
+// produced no gutter at all, so the log could not be counted: green rows and gutter lines differed with no
+// sentence saying why. Under every OK the runner now prints a line unconditionally, and a row with no stdout
+// and no stderr says `(the row printed nothing)`.
+//
 // Run from the repository root after `npm run build`:
 //   npm run verify:proofs
 //   node tools/ci/proof-set.mjs --only remix        # one row, for iteration
@@ -237,8 +242,10 @@ async function main() {
     const s = await runOne(r, r.budget.ms);
     console.log(`${verdictOf(s)} ${(s.ms / 1000).toFixed(1)}s`);
     if (verdictOf(s) === 'OK') {
-      const line = lastLineOf(s.said) || lastLineOf(s.tail);
-      if (line) console.log(`      | ${line}`);
+      // v566 — one gutter per green row, unconditionally: silence is a fact the log names rather than a line
+      // that is simply absent, so a reader can count gutters against OKs.
+      const line = lastLineOf(s.said) || lastLineOf(s.tail) || '(the row printed nothing)';
+      console.log(`      | ${line}`);
     }
     rows.push(s);
   }

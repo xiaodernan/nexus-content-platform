@@ -10,7 +10,7 @@ footnote to the evidence tree; it is the reason the evidence tree can rot.
 ```
 npm run verify:proofs      # the build's own row: run every derived proof row, exit 1 on any RED
 npm run verify:ci-wiring   # the gate over the wiring itself (and a row inside the set it enumerates)
-npm run verify:arms        # the 45 witness arms — a row since v555
+npm run verify:arms        # the 46 witness arms — a row since v555
 ```
 
 | § | what `ci-wiring-proof.mjs` refuses |
@@ -252,6 +252,15 @@ people.
 - **What changed.** The clip walks code points and stops before the prefix would exceed 300 bytes (`Buffer.byteLength`), so the sentence is now the code and a character is never cut. ASCII rows are unaffected (300 bytes = 300 ASCII characters); a row full of `·` (2 bytes) keeps 150; a four-byte row keeps 75.
 - **R16 grades it.** The stub's last line is 80 × `U+1F642` (320 bytes); the gutter must carry exactly 75 as whole characters and no replacement character — a 76th would be 304 bytes, and a split pair would break the 75-character match. The set is now **45 arms** (25 gate incl. the control, 20 runner), and `arms-receipt.json` re-stamps 45 arms / 7 subjects / 106 rows; `verify:arms-freshness` still matches its 8 fixtures.
 - **What this does not say.** The bound is about log size, not meaning: a 300-byte gutter can still be housekeeping (`| [cleanup] throwaway repos removed`) or a lone `| }` (`verify:pipeline`'s JSON close). v563's rule stands — the runner prints what the row said, and a row that wants a quotable gutter must end by saying something.
+
+### v566 — every green row contributes a gutter, silence is named `(the row printed nothing)`, and pipeline-proof ends on its verdict instead of a lone `}` (ADR 0016 amendment 541)
+
+- **The defect.** The gutter printed only when the row had a last line (`if (line) console.log`), so a green row that printed nothing produced no gutter and the OK and gutter counts could differ with no sentence saying why. On the one all-green run so far (`41107874805`, 106 rows) every row happened to print, so this half was structural — the mechanism permitted an uncountable green row. The observed half was `verify:pipeline`'s lone `| }`: a truthful gutter that described nothing.
+- **What changed.** One gutter under every OK, unconditionally; empty stdout and empty stderr say `(the row printed nothing)`. `pipeline-proof.mjs` now prints its verdict sentence after the JSON and after every assertion, so its gutter reads `[pipeline-proof] ALL SECTIONS PASSED (prompt -> editable ops, real layout, AI diff, undo/redo, deterministic edit, multi-page, persistence, instance projection; demo mode, $0)`.
+- **R17 grades it.** A stub that writes only its `ran.log` and exits 0 with no output must show its OK and exactly `      | (the row printed nothing)`. The set is now **46 arms** (25 gate incl. the control, 21 runner); `arms-receipt.json` re-stamps 46 arms / 7 subjects / 106 rows, and `verify:arms-freshness` still matches its 8 fixtures.
+- **A count corrected.** Re-reading `41107874805` with the same extraction found **seven** over-bound gutters — 305, 303, 303, 302, 302, 302 and 301 bytes (`isolated`, `table-recount`, `provenance`, `asks-axis`, `confession`, `timeout-axis`, `drive-axis`) — not the five amendment 540 stated; addendum 540 carries the correction and the reader that produced it.
+- **Amendment 540's hosted contact, read before this cycle wrote its own bytes.** Run `41123935905` (sha `be9d655`, 2026-10-30; job 20:31:51Z → 20:54:59Z ≈ 23 m 8 s) read `106/106 green of a derived population of 106 · residue named: 0`, and the same reader that found the seven over-bound gutters finds **106 gutters, none over 300 bytes** — the byte-true bound holding on hosted bytes (`verify:arms … OK 151.5s` with its 45-arm receipt gutter, `verify:package-counts … OK 66.7s`, `verify:webhooks … OK 27.1s`). `verify:pipeline`'s gutter in that run is still the lone `| }` this cycle closes at the row.
+- **What this does not say.** Naming silence is not meaning, and a housekeeping last line (eight `[cleanup] …` gutters on both the `004316d` and `be9d655` runs) still describes housekeeping. The next gap is each row's self-description.
 
 
 ### What this does NOT claim
