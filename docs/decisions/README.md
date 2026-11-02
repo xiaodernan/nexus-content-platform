@@ -31,3 +31,5 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0019  | Credits ledger & creator-economy model layer                | Accepted |
 | 0020  | The refund mechanism: reversing one purchase atomically     | Accepted |
 | 0021  | External webhook subscriptions: the first outbound contract | Accepted |
+| 0022  | The tool registry: declare, never execute                  | Accepted |
+| 0023  | Tool details and the owner's update                        | Accepted |
