@@ -2584,9 +2584,13 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
      界面是首页的「回收站」。**记这一笔的教训不是"软删没做"，而是"做过就要当场划掉"**：
      下一轮我照着这条过时口径把"补软删除链路"列成了本轮的活，白排一格。
      §166 的 sitemap 谓词从此不是防御性的空转——它挡的是真会发生的事。
-     **一处如实欠着**：`seo.integration.test.ts:99` 造"已删除的项目"仍是直接 `UPDATE projects SET deleted_at`，
-     没走 `softDeleteProject` 那条真路径（`project-delete.integration.test.ts` 那 20 条走的是真路径）。
-     后果具体可见：审批门与审计那一段坏了，SEO 这条腿不会红。
+     ~~**一处如实欠着**：`seo.integration.test.ts:99` 造"已删除的项目"仍是直接 `UPDATE projects SET deleted_at`，
+     没走 `softDeleteProject` 那条真路径~~ **已还（`ac9143f`，§85 第十二片 A）**：现在那句是
+     `softDeleteProject(ownerId, projectId, '名字打错了')` 先撞审批门、再用逐字正确的名字真删
+     （`seo.integration.test.ts:118/128`，文件顶部注释就写着"那句已经过期"）。
+     后果反过来说才准确：审批门与审计那一段现在**是** SEO 这条腿的断言之一，坏了会红。
+     ——这一条与上一条是同一条教训的第二遍：本文件里挂着 20 天的旧口径，照着排活就白排一格；
+     **改债之前先 `grep` 代码，不要相信本文件的话**。
 - 资产服务已落地（任务 #9c，§38/§80/§101/§182）：图片上传 → magic-bytes 判定 → 元数据剥离 → 对象存储 → 鉴权路由 →
   画布/预览/发布四条投影同源。仍欠的两笔如实记下：
   1. `stripImageMetadata` 只做**结构化剥离**（PNG/JPEG/WebP/GIF 的 EXIF/XMP/IPTC/注释段），没有重新编码/缩略图/有损统一化——
@@ -2613,8 +2617,10 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
      仍欠两格如实记下：Redis 侧的键基数没有上界（靠 TTL 收尾而不是靠上限）；"这台实例现在用的是哪个驱动"
      没有界面位（答案只有启动那一行日志与那个 fallback counter）。
 - 历史面板的 Ctrl+Z 只在浏览器会话内，刷新即失；服务端快照与 Branch / Duplicate（§27/§28）已经打通。
-  还缺的是 §29 的多方案 A-B-C 并排比较视图（分支线已经能承载多个方向），
-  以及快照列表的「只看当前分支」筛选——现在仍按时间全量展示、每行标出所属分支。
+  还缺的是 §29 的多方案 A-B-C 并排比较视图（分支线已经能承载多个方向）。
+  ~~以及快照列表的「只看当前分支」筛选——现在仍按时间全量展示~~ **已还（`35fbd4c`，第二十二片）**：
+  筛选在服务端做（`HistoryPanel.tsx:225` 那颗勾 + `store.ts:727` 的列表范围），
+  "当前分支"由服务端从 head/`currentSnapshotId` 现算，不是客户端裁掉前 200 条。
 - 主题 mode 的持久化债已还（迁移 `0001_theme_mode`：`projects.active_mode` / `modes` 两列，
   保存-重载与快照恢复都带得回 `document.activeMode`）。
 - ~~起手页的圆角、间距是写死在节点上的数字（`cornerRadius: 10`、`padding.top: 64`），没绑到 `radius.*` /
