@@ -10,7 +10,14 @@
  */
 
 import { childrenOf, clone, getByPath, sameValue, setOnObject } from "./nodes";
-import { DISPLAY_CLASSES, generatePageComponent, PADDING_SIDES } from "./codegen";
+import {
+  ALIGNABLE_MODES,
+  DISPLAY_CLASSES,
+  generatePageComponent,
+  ITEMS_CLASS as ITEMS_CLASS_BY_VALUE,
+  JUSTIFY_CLASS as JUSTIFY_CLASS_BY_VALUE,
+  PADDING_SIDES,
+} from "./codegen";
 import { applyResponsive } from "./layout";
 import { RESPONSIVE_PATCH_GROUPS } from "./types";
 import { STATE_VARIANT } from "./states";
@@ -393,22 +400,19 @@ const WEIGHT_CLASS: Record<string, number> = {
   "font-black": 900,
 };
 
-const JUSTIFY_CLASS: Record<string, Layout["justify"]> = {
-  "justify-start": "start",
-  "justify-center": "center",
-  "justify-end": "end",
-  "justify-between": "space-between",
-  "justify-around": "space-around",
-  "justify-evenly": "space-evenly",
-};
+/**
+ * 类名 → 模型值：从 codegen 那两张表（值 → 类名）反推，不手抄第二份。
+ * 手抄的逆表在发射侧改拼法时只会静默读不回来，而 `DISPLAY_CLASSES` 那边已经立过同一条规矩
+ * （docs/adr/0069 第四片：拼法只有一份）。
+ */
+function invert<V extends string>(table: Record<V, string>): Record<string, V> {
+  const out: Record<string, V> = {};
+  for (const value of Object.keys(table) as V[]) out[table[value]] = value;
+  return out;
+}
 
-const ITEMS_CLASS: Record<string, Layout["items"]> = {
-  "items-start": "start",
-  "items-center": "center",
-  "items-end": "end",
-  "items-stretch": "stretch",
-  "items-baseline": "baseline",
-};
+const JUSTIFY_CLASS = invert(JUSTIFY_CLASS_BY_VALUE);
+const ITEMS_CLASS = invert(ITEMS_CLASS_BY_VALUE);
 
 const ALIGN_CLASS: Record<string, Typography["align"]> = {
   "text-left": "left",
@@ -665,6 +669,7 @@ function decodeVariant(
   tokens: string[],
   node: DesignNode,
   ctx: Ctx,
+  breakpoint: BreakpointName,
 ): VariantDecode {
   const list = [...tokens];
   const out: VariantDecode = { patch: {}, checked: [], unmapped: [] };
@@ -760,6 +765,42 @@ function decodeVariant(
   for (const cls of DISPLAY_CLASS_SET) {
     const at = list.indexOf(cls);
     if (at >= 0) list.splice(at, 1);
+  }
+  // 对齐两键（§14 第六片）。发射侧只在**这一档解出来的排布真是自动布局**时发 `md:justify-*` /
+  // `md:items-*`：grid / wrap 下求解器不看这两个键，画布不动，而它们在 CSS 上真会挪东西——
+  // 那份模型不认的类读回来就是凭空多出一个模型里没有、画布也不认的键。
+  // 收侧必须用同一个判据（`ALIGNABLE_MODES` 那份表）：两边判据不一致时这里接受了、重投影发不出来，
+  // 自检认不出那个类名 ⇒ 整个节点的回写作废（§19），比拒绝这一条键严重得多。
+  const tierMode = layout.mode as LayoutMode | undefined;
+  const modeOfThisTier: LayoutMode = tierMode ?? applyResponsive(node, breakpoint).layout.mode;
+  const collectTokens = (table: Record<string, string>): string[] => {
+    const found: string[] = [];
+    for (const token of [...list]) {
+      if (table[token] === undefined) continue;
+      list.splice(list.indexOf(token), 1);
+      found.push(token);
+    }
+    return found;
+  };
+  for (const channel of [
+    { key: "justify", table: JUSTIFY_CLASS },
+    { key: "items", table: ITEMS_CLASS },
+  ] as const) {
+    const tokens = collectTokens(channel.table);
+    if (!tokens.length) continue;
+    if (!ALIGNABLE_MODES.includes(modeOfThisTier)) {
+      tokens.forEach((token) =>
+        note(
+          token,
+          `这一档解出来的排布是 ${modeOfThisTier}，画布不按 ${channel.key}-* 摆放：要把东西摆开，先把这一档排成横排或竖排`,
+        ),
+      );
+      continue;
+    }
+    const first = tokens[0]!;
+    layout[channel.key] = channel.table[first];
+    out.checked.push(first);
+    tokens.slice(1).forEach((token) => note(token, `同一档第二条 ${channel.key}-* 冲突，只取第一条`));
   }
   const bg = takeUtility(list, "bg");
   for (const hit of bg.all) {
@@ -1674,7 +1715,7 @@ function decodeClasses(
   else if (!node.visible) write(null, "visible", true);
 
   for (const [breakpoint, tokens] of variants) {
-    const nested = decodeVariant(tokens, node, ctx);
+    const nested = decodeVariant(tokens, node, ctx, breakpoint);
     nested.checked.forEach((token) => d.checked.push(`${VARIANT_PREFIX[breakpoint]}${token}`));
     nested.unmapped.forEach((entry) =>
       d.unmapped.push({ token: `${VARIANT_PREFIX[breakpoint]}${entry.token}`, reason: `断点 ${breakpoint}：${entry.reason}` }),

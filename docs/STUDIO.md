@@ -119,7 +119,10 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
   外加一颗「回设计尺寸」；点 tab 同时把画布切到那一档预览。每档摆得出哪些输入口**由内核现推**：
   `RESPONSIVE_CHANNELS` 里每条 `ChannelSpec.appliesTo(node, breakpoint)` 全过才上那一行——
   显示 / 宽 / 高 / 透明度 / 排布（`layout.mode`）/ 间距（`layout.gap`）/ 列数（`layout.columns`）/
-  字号（`typography.fontSize`）。所以列数那一格**只在投影出来是网格的那一档**出现，字号那一格
+  主轴对齐（`layout.justify`）/ 交叉轴（`layout.items`）/ 字号（`typography.fontSize`）。所以列数那一格
+  **只在投影出来是网格的那一档**出现，对齐那两格反过来**只在投影出来是横排或竖排的那一档**出现
+  （求解器的 grid / wrap 分支在用到 `justify`/`items` 之前就 return，那一档按下去什么都改不了；
+  判据是 `codegen.ts` 导出的那份 `ALIGNABLE_MODES`，发射、回写、面板三处共用一份），字号那一格
   只在节点真有 `typography` 对象时出现（frame 摆不出，按下去什么都改不了的对象不该出现在面板上）。
   **一次点击只写一个键、一条可撤销事务**（§150）；同档别的键不被抹掉，键写回这一档本来的投影就剪掉（不留一条不改任何东西的规则）。
   徽标取**两个判据的并**：与设计值不同，或与"去掉这一档自己那条规则后的投影"不同——只取后者会在
@@ -133,9 +136,10 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
   下面那行读数会说明改动是谁带来的：全部来自更窄那一档时
   明说"这一档自己没有规则"，这一档自己写的规则一处投影都没改时反过来提示那是空覆盖、可以清掉。
   规则按 `<=` 向上级联，所以平板那格会显示手机那条规则的改动，而清除键只在**这一档自己写过**的键上出现。
-  这几键同样进代码那一寸（§17-19，ADR-0069 第四、五片）：「代码」视图与导出的 ZIP 里，断点类发得出
+  这几键同样进代码那一寸（§17-19，ADR-0069 第四、五、六片）：「代码」视图与导出的 ZIP 里，断点类发得出
   该档**解出来的** display 组（`flex`/`flex-col`/`flex-row`/`flex-wrap`/`grid` + 自己声明了才发的列数）、
-  四边 padding（同值折成 `p-[…]`）、透明度、尺寸与字号，`code-parse` 认得回来。
+  四边 padding（同值折成 `p-[…]`）、透明度、尺寸、字号与对齐（`justify-*`/`items-*`，同样只在自动布局那两档发），
+  `code-parse` 认得回来。
   `mobile` 那一档走的是**无前缀基线**（第五片）：它没有 `mobile:` 这种前缀，所以那一档的覆盖不发断点类，
   而是**就在无前缀那组类里**——发射与回写读的都是"设计 + 手机规则"那份投影（`applyResponsive(node,'mobile')`），
   与 Tailwind 移动优先的级联同构。回写按**谁声明的**分流：手机那条规则声明过的键，代码里改的值写回那条规则；

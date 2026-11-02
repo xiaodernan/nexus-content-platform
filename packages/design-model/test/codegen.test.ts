@@ -314,6 +314,63 @@ describe("Design → Code（§17-19）", () => {
     expect(tokens).toContain("md:flex-row");
   });
 
+  it("对齐两键跟着这一档解出来的排布走：grid / wrap 那两档一条都不发（§14 第六片）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({
+      type: "section",
+      name: "Align",
+      layout: { mode: "vertical", gap: 16 },
+      size: { width: 300, height: 200 },
+    });
+    node.responsive = [
+      // 这一档没改排布，级联解出来还是竖排 → 求解器真会按这两键摆放，发
+      { breakpoint: "tablet", patch: { layout: { justify: "space-between", items: "center" } } },
+      // 这一档自己翻成网格：`layout.ts` 的 grid 分支在碰 justify/items 之前就 return，画布什么都不摆，
+      // 而 `justify-content` 在 CSS 的网格容器上真会挪东西——发出去等于两份投影互相矛盾（§16），
+      // 画布没动、预览与访客动了（§159 说的是同一件事）
+      { breakpoint: "desktop", patch: { layout: { mode: "grid", columns: 2, justify: "center" } } },
+      // wrap 同理。而且 tablet 那两条 `items: center` 会级联进来——一并压住，
+      // 不然宽档代码里挂着的是一条本档没声明、也没生效的类
+      { breakpoint: "wide", patch: { layout: { mode: "wrap", items: "end" } } },
+    ];
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:justify-between");
+    expect(tokens).toContain("md:items-center");
+    expect(tokens.filter((token) => token.startsWith("lg:justify"))).toEqual([]);
+    expect(tokens.filter((token) => token.startsWith("lg:items"))).toEqual([]);
+    expect(tokens.filter((token) => token.startsWith("xl:justify"))).toEqual([]);
+    expect(tokens.filter((token) => token.startsWith("xl:items"))).toEqual([]);
+    // 压住的是**类**，不是模型里那几条键：断点面板与徽标照样数得到它们（读的是 patch）
+    expect(node.responsive?.[1]?.patch.layout).toMatchObject({ mode: "grid", justify: "center" });
+  });
+
+  it("手机那一档的对齐发在无前缀基线上（§14 第五片 × 第六片）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({
+      type: "section",
+      name: "MobileAlign",
+      layout: { mode: "vertical", gap: 16, justify: "start", items: "start" },
+      size: { width: 300, height: 200 },
+    });
+    node.responsive = [{ breakpoint: "mobile", patch: { layout: { justify: "end" } } }];
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    // 基线读的是「设计 + mobile 规则」那份投影：那一条 `justify-end` 本来就一路生效到最宽档，
+    // 再补一条 `md:justify-end` 是同一特异性的重复
+    expect(tokens).toContain("justify-end");
+    expect(tokens).not.toContain("justify-start");
+    expect(tokens.filter((token) => token.endsWith("justify-end"))).toEqual(["justify-end"]);
+    // items 这一档没声明 → 基线沿用设计值那一条，不凭空发 `md:items-`
+    expect(tokens).toContain("items-start");
+  });
+
   it("mode=none 的父级里子节点用绝对定位，跟画布同一份几何", () => {
     const page2 = starterPage("Home");
     const root = page2.nodes[page2.rootId]!;

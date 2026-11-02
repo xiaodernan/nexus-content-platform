@@ -26,6 +26,9 @@ import { loginMember, reusableMemberWithProject } from './support/auth-session';
  * ⑦ `mobile` 那一档走的是**无前缀基线**（腿 O，§14 第五片）：面板在手机档写的键不发 `md:`，
  *    它们就在那组无前缀类里；反过来，代码里那条无前缀类改的值要落回**手机那条规则**——
  *    落进设计值的话那条规则照样盖着，画布不动而代码写着新数（作者以为改成功了，§159）。
+ * ⑧ 对齐那两格（主轴/交叉轴，腿 P，§14 第六片）只在**投影出来是自动布局**的那一档摆得出来：
+ *    求解器的 grid / wrap 分支不碰这两个键，面板也就不给输入口。这一寸走完"面板 → 画布 →
+ *    代码 → 落库 → 访客 → 再从代码改回来"，两个平面比的是同一把尺（相对盒子，不是各页面原点）。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -197,13 +200,29 @@ async function sizeWidthOnServer(page: Page, projectId: string, nodeId: string):
   return size?.width;
 }
 
-/** 发布（公开）并回公开路径。同一项目重复发布是换版本，路径不变，夹具可以长用 */
+/**
+ * 发布（公开）并回公开路径。同一项目重复发布是换版本，路径不变，夹具可以长用。
+ *
+ * 版本号是这条链的**同步点**：项目已经发布过时，`[data-publish-url]` 在点「重新发布」之前就已
+ * 经可见（面板本来就显示"当前公开地址（第 N 版）"），只等它可见等于没等——上一轮腿 P 就这样
+ * 读到过旧快照（访客看到的是发布前的几何）。等面板自己报出更高的那个 N，才是"这一版真的换出去了"，
+ * 顺带也证了面板那句版本号不是摆设。
+ */
 async function publishPublic(page: Page, _projectId: string): Promise<string> {
+  /** 面板此刻报出的那一版编号；面板没打开（或从没发布过）时读到 0 */
+  const liveVersion = async (): Promise<number> => {
+    const [text = ''] = await page.locator('[data-publish-result]').allTextContents();
+    const matched = /第\s*(\d+)\s*版/.exec(text);
+    return matched ? Number(matched[1]) : 0;
+  };
   await page.click('[data-publish-open]');
   await expect(page.locator('[data-publish-submit]')).toBeVisible({ timeout: 60_000 });
+  const before = await liveVersion();
   await page.click('[data-publish-choice="public"]');
   await page.click('[data-publish-submit]');
   await expect(page.locator('[data-publish-url]')).toBeVisible({ timeout: 60_000 });
+  await expect.poll(liveVersion, { timeout: 60_000 }).toBeGreaterThan(before);
+  expect(await page.locator('[data-publish-error]').count(), '发布不该带回错误').toBe(0);
   return (await page.locator('[data-publish-url]').getAttribute('href'))!;
 }
 
@@ -258,6 +277,17 @@ interface Box {
   width: number;
   height: number;
 }
+
+/**
+ * 相对父盒子的盒子。两份投影（画布与公开页）各自的原点不同（画布里有画框偏移、公开页里有页面留白），
+ * 绝对坐标没法直接比；这个函数把"这一档解出来的几何"缩成能跨面对齐的那几个数。
+ */
+const relBox = (child: Box, parent: Box): Box => ({
+  left: child.left - parent.left,
+  top: child.top - parent.top,
+  width: child.width,
+  height: child.height,
+});
 
 /** 每腿之间的时间戳：这条链在开发模式里跑得慢，没有读数就只能猜哪一段吃掉了预算 */
 const T0 = Date.now();
@@ -783,6 +813,162 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     await expect(coder.locator('[data-responsive-channel="size.width"]')).toContainText('这一档 240');
     await coder.screenshot({ path: 'screenshots/responsive-mobile-panel-readback.png', fullPage: true });
     stamp('腿 O：mobile 那一档发在基线上 + 代码里的无前缀类按声明方回写');
+
+    // 腿 P：对齐那两格（§14 第六片）。面板点出来 → 画布动 → 代码视图发得出 → 发布到访客 → 再从代码改回去落库。
+    // 载体仍是 Actions，但吃的是 **tablet 那一档解出来的排布**：seeded 那条规则把它翻成竖排，
+    // 求解器在竖排/横排下真按 justify/items 摆放——所以这两格在这一档摆得出来、也按得动（§159）。
+    await coder.click('[data-view="canvas"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await coder.click('[data-breakpoint-tab="tablet"]');
+    for (const channelId of ['layout.justify', 'layout.items']) {
+      await expect(
+        coder.locator(`[data-responsive-channel="${channelId}"]`),
+        `这一档解出来是自动布局：${channelId} 那一格该摆出来`,
+      ).toHaveCount(1);
+    }
+    // 先撑出富余：hug 容器的主轴与交叉轴就是内容尺寸，没有富余时对齐按下去什么都不动。
+    // 这两个数走的是面板另外两格（`size.*`），不是绕过界面直接写模型。
+    await coder.fill('[data-responsive-input="size.width"]', '600');
+    await coder.press('[data-responsive-input="size.width"]', 'Enter');
+    await coder.fill('[data-responsive-input="size.height"]', '400');
+    await coder.press('[data-responsive-input="size.height"]', 'Enter');
+    // `pad` 是腿 D 那一条 seeded 规则写进模型的那圈内边距（同一份真值，不再抄第二遍）
+    const canvasBox = (id: string) => boxIn(coder, id, '画布');
+    const actionsBefore = await canvasBox(carriers.actionsId);
+    expect([actionsBefore.width, actionsBefore.height], '这两档的数就是面板写下去的那两个').toEqual([600, 400]);
+    const beforeA = await canvasBox(carriers.ctaId);
+    expect(
+      beforeA.left + beforeA.width - (actionsBefore.left + actionsBefore.width - pad.right),
+      '还没写交叉轴：按钮的右沿离内容右沿该有一段（富余是真的，不是量出来的巧合）',
+    ).toBeLessThan(0);
+
+    await coder.click('[data-responsive-choice="layout.justify:space-between"]');
+    await coder.click('[data-responsive-choice="layout.items:end"]');
+    // 读数用面板自己的中文说法，与撤销栈那句话同源
+    await expect(coder.locator('[data-responsive-channel="layout.justify"]')).toContainText('这一档 两端');
+    await expect(coder.locator('[data-responsive-channel="layout.items"]')).toContainText('这一档 末尾');
+    const actions = await canvasBox(carriers.actionsId);
+    const a = await canvasBox(carriers.ctaId);
+    const b = await canvasBox(carriers.secondaryId);
+    // 主轴（竖排吃纵轴）：space-between 把整份富余分进两按钮之间——第一个仍贴内容上沿，最后一个贴下沿
+    expect(a.top - actions.top, '主轴对齐写下去，第一个按钮仍贴在内容上沿').toBe(pad.top);
+    expect(b.top + b.height, '最后一个的末沿顶到内容下沿：富余整份落进主轴').toBe(
+      actions.top + actions.height - pad.bottom,
+    );
+    // 交叉轴：items-end 把两个按钮都顶到内容右沿（与它们各自的宽无关）
+    const flushRight = actions.left + actions.width - pad.right;
+    expect(a.left + a.width, `交叉轴：第一个按钮贴到内容右沿（内容盒 ${JSON.stringify(actions)}，按钮 ${JSON.stringify(a)}）`).toBe(flushRight);
+    expect(b.left + b.width, `交叉轴：第二个按钮也贴到内容右沿（按钮 ${JSON.stringify(b)}，内容右沿 ${flushRight}）`).toBe(flushRight);
+    // 相对盒子（画框原点减掉）——后面访客那一寸要拿同一把尺比这两份投影
+    const relA = relBox(a, actions);
+    const relB = relBox(b, actions);
+    await coder.screenshot({ path: 'screenshots/responsive-align-panel-canvas.png', fullPage: true });
+
+    // 代码那一寸：这两格发得出前缀类（第四片把 mode/gap/padding/opacity 接上，第六片补上对齐两键）
+    await coder.click('[data-view="code"]');
+    const alignLine = coder.locator('[data-code-line="selected"]');
+    await expect(alignLine, '选中 Actions 后代码视图该高亮它那一行').toContainText(carriers.actionsId);
+    await expect(alignLine).toContainText('md:justify-between');
+    await expect(alignLine).toContainText('md:items-end');
+    await expect(alignLine).toContainText('md:h-[400px]');
+
+    // 落库的形状：对齐两键并进 tablet 那一条规则，同一条里的 mode/padding 一个都不掉
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual([
+        { breakpoint: 'mobile', patch: { layout: { gap: 40, mode: 'vertical', columns: 2 } } },
+        {
+          breakpoint: 'tablet',
+          patch: {
+            layout: {
+              mode: carriers.seeded.modeValue,
+              padding: carriers.seeded.padding,
+              justify: 'space-between',
+              items: 'end',
+            },
+            size: { width: 600, height: 400 },
+          },
+        },
+      ]);
+    stamp('腿 P：面板写对齐两格 + 画布摆放 + 代码视图发得出 + 落库');
+
+    // 访客那一寸：再发布一版，同一份模型按 tablet 解出来的几何就是画布上那一份
+    const republishedPath = await publishPublic(coder, projectId);
+    expect(republishedPath, '重复发布是换版本，路径不变（夹具可以长用）').toBe(publicPath);
+    const alignVisitorContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const alignVisitor = await alignVisitorContext.newPage();
+    await alignVisitor.goto(url('viewport=tablet'));
+    await expect(alignVisitor.locator('[data-published-root]')).toBeVisible({ timeout: 60_000 });
+    const pubBox = (id: string) => boxIn(alignVisitor.locator(`[data-published-variant="tablet"]`), id, '公开页 tablet 那一份');
+    const pubActions = await pubBox(carriers.actionsId);
+    const pubA = await pubBox(carriers.ctaId);
+    const pubB = await pubBox(carriers.secondaryId);
+    // 先钉容器盒子：这一档的宽/高是面板写下去的那两个数。旧快照（发布还没换出去）最早就在这里露出来——
+    // 上面那条 publishPublic 会等面板报出新的版本号，这条把"访客真的拿到那一版"也钉住。
+    expect([pubActions.width, pubActions.height], '访客 tablet 那一份的容器盒子就是面板写下去那两个数').toEqual([600, 400]);
+    // 两份投影同一把尺：绝对原点各页面不同（画布有画框偏移、公开页有页面留白），所以比的是相对盒子
+    expect(relBox(pubA, pubActions), '主按钮的相对几何：画布与公开页 tablet 那一份该同一寸').toEqual(relA);
+    expect(relBox(pubB, pubActions), '次按钮的相对几何：画布与公开页 tablet 那一份该同一寸').toEqual(relB);
+    // 再按访客这一侧自己的读数说清"对齐真的走到他脸上"：富余落进主轴、两个按钮贴内容右沿
+    const pubFlushRight = pubActions.left + pubActions.width - pad.right;
+    expect(pubA.top - pubActions.top, `主轴：第一个按钮贴内容上沿（内容盒 ${JSON.stringify(pubActions)}，按钮 ${JSON.stringify(pubA)}）`).toBe(pad.top);
+    expect(
+      pubB.top + pubB.height,
+      `主轴：最后一个的末沿顶到内容下沿（内容下沿 ${pubActions.top + pubActions.height - pad.bottom}，按钮 ${JSON.stringify(pubB)}）`,
+    ).toBe(pubActions.top + pubActions.height - pad.bottom);
+    expect(pubA.left + pubA.width, `交叉轴：第一个按钮贴内容右沿（右沿 ${pubFlushRight}，按钮 ${JSON.stringify(pubA)}）`).toBe(pubFlushRight);
+    expect(pubB.left + pubB.width, `交叉轴：第二个按钮也贴内容右沿（右沿 ${pubFlushRight}，按钮 ${JSON.stringify(pubB)}）`).toBe(pubFlushRight);
+    await alignVisitor.screenshot({ path: 'screenshots/responsive-align-visitor-tablet.png', fullPage: true });
+    await alignVisitorContext.close();
+    stamp('腿 P：对齐两格发布到访客（tablet 那一份的几何与画布同一份）');
+
+    // 反方向：在代码里把交叉轴那一格改成居中 ⇒ 回写进模型 ⇒ 面板与数据库都吃到
+    await coder.click('[data-view="code"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await coder.click('[data-code-edit]');
+    const alignEditor = coder.locator('[data-code-editor]');
+    await expect(alignEditor).toBeVisible();
+    const alignLines = (await alignEditor.inputValue()).split('\n');
+    const alignAt = alignLines.findIndex((l) => l.includes(`data-nexus-id="${carriers.actionsId}"`));
+    const actionsCodeLine = alignAt < 0 ? undefined : alignLines[alignAt];
+    if (actionsCodeLine === undefined) {
+      throw new Error(`代码里没有 Actions 那一行（${carriers.actionsId}）：回写这条腿没有对象`);
+    }
+    if (!actionsCodeLine.includes('md:items-end')) {
+      throw new Error(`Actions 那一行读不到 md:items-end：${actionsCodeLine}`);
+    }
+    if (alignLines.some((l, i) => i !== alignAt && l.includes('md:items-end'))) {
+      throw new Error('别的节点也带 md:items-end：这一改不能归给 Actions');
+    }
+    alignLines[alignAt] = actionsCodeLine.replace('md:items-end', 'md:items-center');
+    await alignEditor.fill(alignLines.join('\n'));
+    await coder.click('[data-code-apply]');
+    await expect(coder.locator('[data-code-report-applied]')).toContainText('responsive');
+    await expect(coder.locator('[data-code-view]')).toContainText('md:items-center');
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual([
+        { breakpoint: 'mobile', patch: { layout: { gap: 40, mode: 'vertical', columns: 2 } } },
+        {
+          breakpoint: 'tablet',
+          patch: {
+            layout: {
+              mode: carriers.seeded.modeValue,
+              padding: carriers.seeded.padding,
+              justify: 'space-between',
+              items: 'center',
+            },
+            size: { width: 600, height: 400 },
+          },
+        },
+      ]);
+    await coder.click('[data-view="canvas"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await coder.click('[data-breakpoint-tab="tablet"]');
+    await expect(coder.locator('[data-responsive-channel="layout.items"]')).toContainText('这一档 居中');
+    await coder.screenshot({ path: 'screenshots/responsive-align-code-readback.png', fullPage: true });
+    stamp('腿 P：代码里改一条 md:items-* → 回写进那一条规则 + 面板读数跟着走');
+
     await codeContext.close();
   });
 });

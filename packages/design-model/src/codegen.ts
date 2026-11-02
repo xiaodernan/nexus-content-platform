@@ -14,6 +14,7 @@ import type {
   BreakpointName,
   DesignDocument,
   DesignNode,
+  Layout,
   LayoutMode,
   Page,
   Paint,
@@ -99,7 +100,13 @@ const WEIGHT_CLASS: Record<number, string> = {
   900: "font-black",
 };
 
-const JUSTIFY_CLASS: Record<string, string> = {
+/**
+ * 排布 → 对齐工具类。发射与回写共用这两张表（与 `DISPLAY_CLASSES` 同一条理由：各抄一份迟早说谎）。
+ * 只对 `ALIGNABLE_MODES` 那两档发：求解器（layout.ts）的 grid 与 wrap 分支在用到 justify/items
+ * 之前就 return 了，画布上这两个键在那两档什么都不摆；而 CSS 的 `justify-content` / `align-items`
+ * 在网格容器上是真的生效——发出去就是画布不动、预览与访客动（两份投影互相矛盾，§16/§159）。
+ */
+export const JUSTIFY_CLASS: Record<Layout["justify"], string> = {
   start: "justify-start",
   center: "justify-center",
   end: "justify-end",
@@ -108,13 +115,19 @@ const JUSTIFY_CLASS: Record<string, string> = {
   "space-evenly": "justify-evenly",
 };
 
-const ITEMS_CLASS: Record<string, string> = {
+export const ITEMS_CLASS: Record<Layout["items"], string> = {
   start: "items-start",
   center: "items-center",
   end: "items-end",
   stretch: "items-stretch",
   baseline: "items-baseline",
 };
+
+/**
+ * 求解器真会按 justify/items 摆放的那两档排布。发射、回写、面板那三处判据都指向这一份：
+ * 三处不一致时最坏的走法不是少发一条类，而是回写读了、重投影发不出来 ⇒ 整个节点的回写作废（§19）。
+ */
+export const ALIGNABLE_MODES: readonly LayoutMode[] = ["vertical", "horizontal"];
 
 /** CSS 颜色对象 → hex；字面量里的空格换成 Tailwind 任意值要求的下划线 */
 function colorLiteral(value: unknown): string | null {
@@ -283,7 +296,7 @@ function layoutClasses(
   ) {
     out.push("relative");
   }
-  if (layout.reverse && (layout.mode === "vertical" || layout.mode === "horizontal")) {
+  if (layout.reverse && ALIGNABLE_MODES.includes(layout.mode)) {
     out.push(layout.mode === "vertical" ? "flex-col-reverse" : "flex-row-reverse");
   }
   if (layout.gap) {
@@ -302,9 +315,9 @@ function layoutClasses(
       }
     }
   }
-  if (layout.mode === "vertical" || layout.mode === "horizontal") {
+  if (ALIGNABLE_MODES.includes(layout.mode)) {
     // justify/items 一律显式写出：浏览器默认 align-items:stretch，与设计模型的 start 不一致，
-    // 省略就会让导出的代码和画布漂移（§16）。
+    // 省略就会让导出的代码和画布漂移（§16）。判据与断点那一寸共用同一份 `ALIGNABLE_MODES`。
     out.push(JUSTIFY_CLASS[layout.justify] ?? "justify-start");
     out.push(ITEMS_CLASS[layout.items] ?? "items-start");
   }
@@ -504,6 +517,15 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
     }
     if (resolvedMode === "grid" && layout?.columns !== undefined) {
       out.push(`${variant}${gridColsClass(layout.columns)}`);
+    }
+    // 对齐两键：这一档自己声明了才发，且只在解出来的排布真是自动布局时发。
+    // grid / wrap 那两档求解器（layout.ts 的 grid / wrap 分支）在碰 justify/items 之前就 return：画布不动，
+    // 而这两条工具类在网格容器上是 CSS 真生效的——发出去等于两份投影互相矛盾（§16）。
+    // 回写侧 `decodeVariant` 用同一个判据，所以"发得出来"与"读得回来"是同一寸，
+    // 不会出现接受了却重投影发不出的键（§19 整节点回写作废）。
+    if (ALIGNABLE_MODES.includes(resolvedMode)) {
+      if (layout?.justify !== undefined) out.push(`${variant}${JUSTIFY_CLASS[layout.justify]}`);
+      if (layout?.items !== undefined) out.push(`${variant}${ITEMS_CLASS[layout.items]}`);
     }
     // padding：patch 写了哪几条边就发哪几条。`applyResponsive` 对 `layout` 组是整键
     // `Object.assign`，所以一条 `{padding:{top:24}}` 的意思就是"这一档的 padding 只有 top"——

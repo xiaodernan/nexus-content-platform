@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createDocument, type DesignNode } from '@nexus/design-model';
+import { createDocument, generatePageComponent, type DesignNode } from '@nexus/design-model';
 import { StudioStore, type ViewportMode } from '../src/studio/store';
-import { hasResponsiveRule } from '../src/studio/responsive-editor';
+import { hasResponsiveRule, RESPONSIVE_CHANNELS } from '../src/studio/responsive-editor';
 import { setStudioReadOnly } from '../src/studio/read-only';
 
 /**
@@ -252,6 +252,90 @@ describe('§14 第三片：排布与字号也接进事务', () => {
     expect(studio.clearResponsiveChannel([actions.id], 'mobile', 'visible')).toBe(1);
     expect(rules(studio, actions.id)).toEqual([]);
     expect(hasResponsiveRule(nodeOf(studio, actions.id), 'mobile')).toBe(false);
+  });
+});
+
+describe('§14 第六片：对齐那两键接进事务与画布', () => {
+  it('主轴对齐把第二个按钮顶到那一行的右端、交叉轴把它压到下沿：一格一条事务，撤销各退各的', async () => {
+    const studio = await readyStudio();
+    const actions = nodeNamed(studio, 'Actions');
+    const primary = nodeNamed(studio, 'Primary CTA');
+    const secondary = nodeNamed(studio, 'Secondary CTA');
+
+    const box = (id: string) => {
+      studio.setViewport('mobile');
+      return studio.getSnapshot().layout!.nodes[id]!;
+    };
+    /** 下面几句"贴到容器边"只在容器没有内边距时成立——那是前提，不是我以为 */
+    const pad = (side: 'top' | 'right' | 'bottom' | 'left') =>
+      nodeOf(studio, actions.id).layout.padding?.[side] ?? 0;
+    expect([pad('top'), pad('right'), pad('bottom'), pad('left')]).toEqual([0, 0, 0, 0]);
+
+    // 先撑出富余：hug 容器的主轴就是内容尺寸，没有富余时 `space-between` 无处可摆，
+    // 那一格按下去什么都不动——面板会把这种档位摆出来吗？不会（`alignableAt` 只看排布），
+    // 所以这里用真富余来证"写下去的键确实移动画布"，而不是只落进模型。
+    expect(studio.setResponsiveValue([actions.id], 'mobile', 'size.width', 800)).toBe(1);
+    expect(studio.setResponsiveValue([actions.id], 'mobile', 'size.height', 400)).toBe(1);
+    const row = box(actions.id);
+    expect(row.width).toBe(800);
+    const tightGap = box(secondary.id).x - (box(primary.id).x + box(primary.id).width);
+
+    expect(studio.setResponsiveValue([actions.id], 'mobile', 'layout.justify', 'space-between')).toBe(1);
+    const spread = box(secondary.id).x - (box(primary.id).x + box(primary.id).width);
+    expect(spread, '整份富余都落进两个按钮之间').toBeGreaterThan(tightGap);
+    // 两端贴容器边（没有内边距）：第一个还在左沿，第二个的右沿顶到右端
+    expect(box(primary.id).x).toBe(row.x);
+    expect(box(secondary.id).x + box(secondary.id).width).toBe(row.x + row.width);
+
+    expect(studio.setResponsiveValue([actions.id], 'mobile', 'layout.items', 'end')).toBe(1);
+    const after = box(actions.id);
+    expect(box(secondary.id).y + box(secondary.id).height, '交叉轴：那一行压到下沿').toBe(after.y + after.height);
+
+    expect(rules(studio, actions.id)).toEqual([
+      {
+        breakpoint: 'mobile',
+        patch: { layout: { justify: 'space-between', items: 'end' }, size: { width: 800, height: 400 } },
+      },
+    ]);
+    // 撤销栈那句话与面板那一行同源（都读 `RESPONSIVE_CHANNELS` 的 label）
+    expect(studio.getSnapshot().history.map((h) => h.label).slice(-2)).toEqual([
+      '手机断点：改主轴对齐',
+      '手机断点：改交叉轴',
+    ]);
+
+    // 一格一条事务：退掉交叉轴那一条，那一行回到上沿；主轴对齐那条还在
+    studio.undo();
+    expect(box(secondary.id).y + box(secondary.id).height).toBeLessThan(box(actions.id).y + box(actions.id).height);
+    expect(box(secondary.id).x + box(secondary.id).width).toBe(box(actions.id).x + box(actions.id).width);
+
+    // 设计档一个像素都没动：这两键只写进手机那一档（§14）
+    studio.setViewport('design');
+    const design = studio.getSnapshot().layout!;
+    const designSecondary = design.nodes[secondary.id]!;
+    expect(designSecondary.x + designSecondary.width).toBeLessThan(800);
+  });
+
+  it('那一档解成网格时，面板与代码都不认这两格：按下去什么都不动的按钮不摆（§159）', async () => {
+    const studio = await readyStudio();
+    const actions = nodeNamed(studio, 'Actions');
+    // 把这一档翻成网格：`applyResponsive` 之后这一档的排布是 grid，求解器不看对齐
+    expect(studio.setResponsiveValue([actions.id], 'mobile', 'layout.mode', 'grid')).toBe(1);
+    const node = nodeOf(studio, actions.id);
+    const specs = RESPONSIVE_CHANNELS.filter(
+      (spec) => spec.id === 'layout.justify' || spec.id === 'layout.items',
+    );
+    expect(specs).toHaveLength(2);
+    specs.forEach((spec) => {
+      expect(spec.appliesTo(node, 'mobile'), `${spec.id} 在网格那一档不该摆出输入口`).toBe(false);
+    });
+    // 而代码那一寸也不发：发得出与读得回是同一判据（codegen / code-parse 共用 ALIGNABLE_MODES）
+    const code = generatePageComponent(studio.getSnapshot().page!, {}, 'Home').contents;
+    const line = code.split('\n').find((l) => l.includes(actions.id))!;
+    expect(line).not.toContain('justify-');
+    expect(line).not.toContain('items-');
+    // 竖排那一档仍然摆得出这两格：收回去的判据是排布，不是节点
+    studio.setResponsiveValue([actions.id], 'mobile', 'layout.mode', 'horizontal');
+    expect(specs.every((spec) => spec.appliesTo(nodeOf(studio, actions.id), 'mobile'))).toBe(true);
   });
 });
 

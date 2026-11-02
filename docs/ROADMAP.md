@@ -8780,15 +8780,56 @@ responsive rules**。ADR-0069 与 ADR-0074 把访客那一侧接完之后，作�
   腿 O 那一段 3.3s。六条变异臂逐条跑过并还原（A 5 红 / A2 1 红 / B1 2 红 / B2 4 红 / C 1 红，
   B3 反向臂红 27）——那条"没声明的键照旧写设计值"只有反向臂能红，红得太宽，所以记下它不是专用臂。
 
+**第六片（2026-11-02）：对齐那两格——`layout.justify` / `layout.items` 一次接满发射、回写、面板三处**
+
+第五片之后 `layout` 里最"看得见"的两个键是主轴对齐与交叉轴：画布上按下去东西真的会挪，代码那一寸
+发不出，面板上也没有格子。这一片一次接上三处，并把它们钉在**同一个判据**上；理由与两股相反的失败方向
+（发出去而画布不动 / 读了回来而发不出去 ⇒ §19 整节点回写作废）记在 ADR-0069 第六片。
+
+- `codegen.ts`：导出 `JUSTIFY_CLASS` / `ITEMS_CLASS` 两张正表与 `ALIGNABLE_MODES = ["vertical","horizontal"]`
+  一份判据；`responsiveClasses` 的档内发射、`layoutClasses` 的基线发射与 `reverse` 那条都改成读这一份。
+  求解器（`layout.ts`）的 grid / wrap 分支在碰 `justify`/`items` 之前就 `return`，而这两条工具类在网格容器上
+  CSS 是真生效的 ⇒ 那一档不发，否则代码/访客动、画布不动（§16 的反面）。
+- `code-parse.ts`：倒表由正表 `invert()` 派生（不手抄第二份映射）；`decodeVariant` 用**同一个** `ALIGNABLE_MODES`
+  判收不收，不收时在 `unmapped` 里说清"这一档解出来的排布是 grid，画布不按 justify-* 摆放：要把东西摆开，
+  先把这一档排成横排或竖排"，同档第二条冲突只取第一条并点名。
+- `responsive-editor.ts`：`RESPONSIVE_CHANNELS` 八格 → **十格**，新增 `layout.justify`（主轴对齐）与
+  `layout.items`（交叉轴）两颗 `choice`；`appliesTo` 复用同一份判据，所以那一档投影出来是网格/换行时
+  那两行**不摆出来**（按下去什么都不动的按钮不骗人，§159），取值与标签直接来自 `Layout["justify"]`/
+  `Layout["items"]` 的键（编译期穷尽）。面板读数、撤销栈那句话、徽标点名、`withResponsiveValue` 同源。
+- 新腿：`codegen.test.ts` 2 条（grid/wrap 那两档一条都不发而模型里的键还在；手机档的发在无前缀基线上）+
+  `code-parse.test.ts` 4 条（三档往返零补丁；手写 `md:justify-*` 落网格档如实不收而同档别的键照旧回写；
+  落自动布局档读进 patch 且同档第二条报冲突；改基线那条落进手机规则而不写设计值）+
+  `studio-responsive.test.ts` 2 条（两格进事务/撤销栈且画布当场按它们摆；那一档解成网格时面板不给格子）+
+  `responsive-editor.test.ts` 2 条（内核那两格随投影出现/收回、徽标从"能改"变成要点名的那一处；冗余判据吃
+  这一档的投影而不是设计值）——它的 `CHANNEL_CASES` 那张**编译期**穷尽表也从八格跟着涨到十格。
+- `e2e/responsive-authoring.spec.ts` 加腿 P：面板在 tablet 档点「主轴对齐 两端 / 交叉轴 末尾」→ 量画布上
+  两个按钮的真实盒子（富余整份落进主轴、两颗都贴内容右沿）→ 代码那一行有 `md:justify-between md:items-end`
+  → 落库形状（同一条规则里的 mode/padding/size 一个都不掉）→ 发布 → 访客 tablet 那一份的**相对盒子**与画布
+  同一寸（`relBox`：两页面的绝对原点不同，不比原点）→ 再从代码把 `md:items-end` 改成 `md:items-center`
+  点应用 → 面板读数变「这一档 居中」。截图三张：`responsive-align-panel-canvas.png`、
+  `responsive-align-visitor-tablet.png`、`responsive-align-code-readback.png`。
+- 腿 P 第一次跑红在访客那一段（差 1.5px），根因不在产品而在夹具：`publishPublic` 只等
+  `[data-publish-url]` 可见，而项目**已发布过**时那句"当前公开地址（第 N 版）"点之前就在面板上 ⇒
+  可能在 POST 落地前返回，访客读到上一版快照。现在它等面板报出**更高的那个 N** 才继续——
+  这条同步点顺带也成了"面板那句版本号不是摆设"的见证。
+- 读数：`packages/design-model` **32 files / 404 passed**；加 `apps/web` 那两个响应式文件
+  **34 files / 450 passed**；`tsc -p e2e/tsconfig.json --noEmit` 干净；e2e 腿 A–P **1 passed（35.9s，暖服务 3101）**。
+  五条变异臂逐条跑过并还原（A 2 红 / B 1 红 / C 2 红 / D 3 红 / E 1 红），预测红集与实际相符；
+  D 多出来的那一红正是 §19 那条"整节点回写作废"现形——回写收了而发射发不出时，丢的不是一条类名而是整个节点的补丁。
+
 **仍欠**
 
-1. 面板仍然只有四个输入口：`layout`/`position`/`typography` 那些键现在**数得进来、改不出去**，界面只能说"去
-   代码那一节"或"整档清掉"。下一片要么给它们补输入口，要么让那句点名直接跳进「代码」那一节并聚焦到对应类名。
-   （第三片已给 `layout.mode`/`gap`/`columns`/`typography.fontSize` 摆了格子，这条欠的是
-   `justify`/`items`/`reverse`/`scroll`/`clipContent` 与 `position` 那些；见 ADR-0069。）
-2. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
-3. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。
-4. 这条 e2e 链在开发模式里 4.7m，其中腿 F 那一段从 9.7s 涨到 104s、发布到 266s 是同机另一会话同时在跑
+1. 面板仍然只有部分输入口：`position`（x/y）、`layout.reverse`/`scroll`/`clipContent`/`rowGap`/`crossGap`
+   与 `typography` 除字号那几键现在**数得进来、改不出去**，界面只能说"去代码那一节"或"整档清掉"。
+   （第三片给了 `layout.mode`/`gap`/`columns`/`typography.fontSize`，第六片给了 `justify`/`items`；
+   见 ADR-0069。）
+2. `layout.reverse` 在代码那一寸是两份投影：`layoutClasses` 为它发 `flex-col` + `flex-col-reverse`
+   （同一个 CSS 属性的两种写法），而求解器完全不读 `reverse` ⇒ 画布不动、代码与访客动。要么教求解器，
+   要么像第六片那样把发射关掉。
+3. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
+4. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。
+5. 这条 e2e 链在开发模式里 4.7m，其中腿 F 那一段从 9.7s 涨到 104s、发布到 266s 是同机另一会话同时在跑
    e2e 挤出来的。没有独占库/独占端口之前，它不能当常驻快门。
-5. 徽标数的是投影，不预测渲染：`layout.columns` 这类键在 codegen 里怎么落成 Tailwind 类，与画布/访客是不是
+6. 徽标数的是投影，不预测渲染：`layout.columns` 这类键在 codegen 里怎么落成 Tailwind 类，与画布/访客是不是
    真的按它摆，是另一条链（§85 那套体检表量的就是这一层）。

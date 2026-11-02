@@ -302,6 +302,91 @@ describe("类名 → 模型属性", () => {
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
   });
 
+  it("断点对齐两键的往返：发得出、读得回、一个补丁都不发（§14 第六片）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [
+            { breakpoint: "tablet", patch: { layout: { justify: "space-between", items: "center" } } },
+            // 更宽那档翻成网格：这一档的 justify 求解器不看，代码里本来就没有它——
+            // 往返仍是零补丁（读侧不该凭一条没发的类编出键来）
+            { breakpoint: "desktop", patch: { layout: { mode: "grid", columns: 2, justify: "center" } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    expect(line).toContain("md:justify-between");
+    expect(line).toContain("md:items-center");
+    expect(line).toContain("lg:grid");
+    expect(line).not.toContain("lg:justify");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("手写 md:justify-* 落在网格那一档：如实不收，同档别的键照旧回写（§14 第六片 × §19）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [{ breakpoint: "tablet", patch: { layout: { mode: "grid", columns: 2, gap: 16 } } }],
+        },
+      },
+    };
+    const code = replace(source(withRule), "md:gap-[16px]", "md:justify-center md:gap-[24px]");
+    const result = parse(withRule, code);
+    const mapping = result.mappings.find((m) => m.nodeId === hero)!;
+    // 不收这一条**不能**把整个节点的回写作废：同档那条 gap 是真改动，照旧写回去
+    expect(result.ops.find((o) => "path" in o && o.path === "responsive")).toMatchObject({
+      nodeId: hero,
+      value: [{ breakpoint: "tablet", patch: { layout: { mode: "grid", columns: 2, gap: 24 } } }],
+    });
+    expect(mapping.applied).toContain("responsive");
+    expect(mapping.unmapped).toEqual([
+      { token: "md:justify-center", reason: expect.stringContaining("这一档解出来的排布是 grid") },
+    ]);
+  });
+
+  it("手写 md:justify- / md:items- 落在自动布局那一档：读进这一档的 patch，同档第二条报冲突", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [{ breakpoint: "tablet", patch: { layout: { gap: 16 } } }],
+        },
+      },
+    };
+    const code = replace(
+      source(withRule),
+      "md:gap-[16px]",
+      "md:items-end md:justify-center md:justify-end md:gap-[16px]",
+    );
+    const result = parse(withRule, code);
+    const mapping = result.mappings.find((m) => m.nodeId === hero)!;
+    expect(result.ops.find((o) => "path" in o && o.path === "responsive")).toMatchObject({
+      nodeId: hero,
+      value: [{ breakpoint: "tablet", patch: { layout: { gap: 16, items: "end", justify: "center" } } }],
+    });
+    expect(mapping.unmapped).toEqual([
+      { token: "md:justify-end", reason: expect.stringContaining("只取第一条") },
+    ]);
+  });
+
   it("手机那一档的覆盖往返：发在基线上、读得回来、一个补丁都不发（§14 第五片）", () => {
     const page = starterPage();
     const hero = nodeId(page, "Hero");
@@ -388,6 +473,33 @@ describe("类名 → 模型属性", () => {
     const paths = result.ops.filter((o) => "path" in o).map((o) => o.path);
     expect(paths).toContain("layout.justify");
     expect(paths).not.toContain("responsive");
+  });
+
+  it("手机那条规则声明了对齐键：改基线那一条落进那条规则，不写设计值（§14 第六片 × 第五片）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [{ breakpoint: "mobile", patch: { layout: { justify: "center" } } }],
+        },
+      },
+    };
+    const original = source(withRule);
+    const line = lineOf(original, hero);
+    // 这一档没改排布，Hero 的竖排基线照旧发对齐两键，只是值来自那条规则
+    expect(line).toContain("justify-center");
+    const edited = original.replace(line, line.replace(" justify-center", " justify-between"));
+    const result = parse(withRule, edited);
+    expect(result.ops.find((o) => "path" in o && o.path === "responsive")).toMatchObject({
+      nodeId: hero,
+      value: [{ breakpoint: "mobile", patch: { layout: { justify: "space-between" } } }],
+    });
+    expect(result.ops.some((o) => "path" in o && o.path === "layout.justify")).toBe(false);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
   });
 
   it("手机那一档藏起来的东西：基线上的 hidden 改回来落进那条规则", () => {

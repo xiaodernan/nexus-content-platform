@@ -213,3 +213,49 @@
   两档，`typography` 除字号那几键，`style` 除填充与透明度，代码这一寸照旧不吃。
   面板那半边也还没有 `position` 的输入口（`RESPONSIVE_CHANNELS` 八格里没有它）。
 
+**第六片（2026-11-02）：对齐那两格——`layout.justify` / `layout.items` 一次接满三处判据**
+
+第五片把 `mobile` 那一档接进基线之后，`layout` 里剩下最"看得见"的两个键是主轴对齐与交叉轴：
+画布上按下去东西真的会挪，但代码那一寸发不出、面板上也没有输入口。这一片一次把三处接上，
+并且把它们钉在**同一个判据**上。
+
+- 判据只有一份：`codegen.ts` 的 `ALIGNABLE_MODES = ["vertical", "horizontal"]`。求解器
+  （`layout.ts`）的 grid 与 wrap 两个分支在碰 `justify`/`items` 之前就 `return` 了，所以画布上
+  这两个键在那两档什么都不摆。发射（断点那一档 + 无前缀基线 + `reverse` 那一条）、回写
+  （`decodeVariant` 收不收这个类名）、面板（`appliesTo` 摆不摆得出那一格）五处都指向这一个常量。
+- 为什么"少发一条类"不是审美问题而是 §16 问题，有两股相反的方向：
+  ① **发出去而画布不动**：CSS 的 `justify-content`/`align-items` 在网格容器上是真生效的，
+  而求解器不吃它们——发出去等于代码/访客动、画布不动，两份投影互相矛盾。
+  ② **读了回来而发不出去**：回写若接受一个发射侧发不出的 token，重投影自检认不出它，
+  §19 那条作废规则丢掉的是**整个节点**的回写——作者那次编辑静默蒸发，界面还显示成功。
+  ②比①更贵，所以判据必须由发射与回写共用，而不是各抄一份"看起来一样"的条件。
+- 表也只有一份：`JUSTIFY_CLASS` / `ITEMS_CLASS` 是导出的正表，`code-parse.ts` 的倒表由它
+  `invert()` 派生（与 `DISPLAY_CLASSES` 同一条理由：手抄的映射迟早说谎）。
+- 面板那两格是 `choice` 控件，取值联合直接来自模型的 `Layout["justify"]` / `Layout["items"]`，
+  标签表就是那两个字段的键（编译期穷尽），所以撤销栈那句"手机断点：改主轴对齐"、徽标点名、
+  `withResponsiveValue` 与 e2e 的读数用的是同一份内核名单（`RESPONSIVE_CHANNELS`，十格）。
+- 见证（五条变异臂，每条改的是行为而不是删代码；预测红集与实际逐条相符）：
+  A 断点档的发射判据换成"这一档自己声明了 mode" → 红 2；
+  B 判据整个去掉（grid/wrap 也发）→ 红 1（那条"网格档一条都不发"）；
+  C 回写判据去掉 → 红 2（不收的那条 + 往返那条）；
+  D 回写接受、发射仍抑制 → 红 3。**这条是②的现形**：多出来的那一红不是"值差一点"，
+  而是那条手写入射的腿整节点回写作废（补丁没了、`applied` 里没有 `responsive`）；
+  E 基线（`mobile` 档）的判据去掉 → 红 1。
+- 界面那半边：e2e **腿 P**（`e2e/responsive-authoring.spec.ts`）走满"面板点两格 → 画布摆放 →
+  代码视图发得出 `md:justify-between md:items-end` → 落库形状 → 发布 → 访客 tablet 那一份的几何
+  → 再从代码改一条 `md:items-*` 回写落库 + 面板读数跟着走"。两个平面比的是**相对盒子**
+  （`relBox`：各页面的绝对原点不同，画布有画框偏移、公开页有页面留白），不是各算一遍求解器的算术。
+- 腿 P 顺带量出一处真缺陷并修在夹具里：`publishPublic` 原先只等 `[data-publish-url]` 可见，
+  而项目**已经发布过**时那句"当前公开地址（第 N 版）"在点「重新发布」之前就在面板上——
+  于是它可能在 POST 落地前就返回，访客读到的是上一版快照（第一次跑腿 P 就是这样：画布 600×400
+  贴右，访客那份还是旧的 hug 居中，差 1.5px）。现在它等面板自己报出**更高的那个 N**，
+  这条同步点同时也是"面板那句版本号不是摆设"的见证。
+- 读数：`packages/design-model` **32 files / 404 passed**（398 起手 + 6 新腿）；
+  加上 `apps/web` 那两个响应式文件共 **34 files / 450 passed**；
+  `tsc -p e2e/tsconfig.json --noEmit` 干净；e2e `@smoke §14/ADR-0069` 腿 A–**P** 一条链绿（35.9s）。
+- **仍欠**（第六片之后）：`layout.reverse` 在代码那一寸仍是两份投影——`layoutClasses` 为它发
+  `flex-col` + `flex-col-reverse`（同一个 CSS 属性的两种写法），而求解器**完全不读** `reverse`，
+  画布不动；要么教会求解器，要么像这一片一样把发射关掉。`position`（x/y）只有 `mobile` 那一档通。
+  `mode` 的 `stack`/`none` 两档、`rowGap`/`crossGap`/`scroll`/`clipContent`、`typography` 除字号、
+  `style` 除填充与透明度，代码这一寸照旧不吃。
+

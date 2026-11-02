@@ -1,9 +1,11 @@
 import {
+  ALIGNABLE_MODES,
   BREAKPOINT_ORDER,
   applyResponsive,
   getByPath,
   type BreakpointName,
   type DesignNode,
+  type Layout,
   type LayoutMode,
   type ResponsiveRule,
 } from '@nexus/design-model';
@@ -35,6 +37,8 @@ export type ResponsiveChannel =
   | 'layout.mode'
   | 'layout.gap'
   | 'layout.columns'
+  | 'layout.justify'
+  | 'layout.items'
   | 'typography.fontSize';
 
 export interface ResponsiveChoice {
@@ -60,6 +64,8 @@ export interface ChannelSpec {
   /**
    * 这一行对这个节点、这一档有没有意义。面板不摆一个按下去什么都改不了的输入口（§159）：
    * `layout.*` 要节点真有子节点可排，`layout.columns` 要投影出来的排布真是网格，
+   * `layout.justify` / `layout.items` 要投影出来的排布真是自动布局（求解器的 grid / wrap 分支
+   * 在用到它们之前就 return 了，codegen 也用同一份判据 `ALIGNABLE_MODES` 决定发不发），
    * `typography.fontSize` 要节点真有 typography 对象——`applyResponsive` 对没有 typography 的节点
    * 压根不合并那一组（layout.ts:175），写进去就是一条被冗余判据当场剪掉的键。
    */
@@ -98,9 +104,47 @@ const MODE_CHOICES: readonly ResponsiveChoice[] = [
 ];
 const MODE_VALUES = new Set<string>(MODE_CHOICES.map((c) => c.value));
 
+/**
+ * 对齐两键的取值就是模型那两个字段的联合（`Layout["justify"]` / `Layout["items"]`），
+ * 中文说法在这里给一份：发射侧（codegen 的 `JUSTIFY_CLASS` / `ITEMS_CLASS`）拿同一个值查类名，
+ * 面板不再手写第二份选项清单。`Record<…,…>` 让模型多一个取值而这里没跟上时编译不过。
+ */
+const JUSTIFY_LABELS: Record<Layout['justify'], string> = {
+  start: '起始',
+  center: '居中',
+  end: '末尾',
+  'space-between': '两端',
+  'space-around': '环绕',
+  'space-evenly': '均分',
+};
+const ITEMS_LABELS: Record<Layout['items'], string> = {
+  start: '起始',
+  center: '居中',
+  end: '末尾',
+  stretch: '撑满',
+  baseline: '基线',
+};
+const JUSTIFY_CHOICES: readonly ResponsiveChoice[] = (
+  Object.keys(JUSTIFY_LABELS) as Layout['justify'][]
+).map((value) => ({ value, label: JUSTIFY_LABELS[value] }));
+const ITEMS_CHOICES: readonly ResponsiveChoice[] = (
+  Object.keys(ITEMS_LABELS) as Layout['items'][]
+).map((value) => ({ value, label: ITEMS_LABELS[value] }));
+const JUSTIFY_VALUES = new Set<string>(JUSTIFY_CHOICES.map((c) => c.value));
+const ITEMS_VALUES = new Set<string>(ITEMS_CHOICES.map((c) => c.value));
+
+const cleanAlign =
+  (allowed: Set<string>) =>
+  (value: unknown): Cleaned =>
+    typeof value === 'string' && allowed.has(value) ? value : REJECT;
+
 const hasChildren = (node: DesignNode): boolean => node.children.length > 0;
 const projectedModeOf = (node: DesignNode, breakpoint: BreakpointName): LayoutMode =>
   applyResponsive(node, breakpoint).layout.mode;
+/** 求解器只在竖排/横排下用 justify/items 摆放（grid 与 wrap 那两个分支提前 return）——
+ *  那一档解出来不是自动布局时这一格按下去什么都不改，面板不摆（§159），代码也不发（codegen 同一判据） */
+const alignableAt = (node: DesignNode, breakpoint: BreakpointName): boolean =>
+  ALIGNABLE_MODES.includes(projectedModeOf(node, breakpoint));
 
 /** 这一档可编辑通道的顺序就是面板上行的顺序 */
 export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
@@ -183,6 +227,28 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     step: 1,
     appliesTo: (node, breakpoint) => hasChildren(node) && projectedModeOf(node, breakpoint) === 'grid',
     clean: cleanColumns,
+  },
+  {
+    id: 'layout.justify',
+    label: '主轴对齐',
+    group: 'layout',
+    key: 'justify',
+    readPath: 'layout.justify',
+    widget: 'choice',
+    choices: JUSTIFY_CHOICES,
+    appliesTo: (node, breakpoint) => hasChildren(node) && alignableAt(node, breakpoint),
+    clean: cleanAlign(JUSTIFY_VALUES),
+  },
+  {
+    id: 'layout.items',
+    label: '交叉轴',
+    group: 'layout',
+    key: 'items',
+    readPath: 'layout.items',
+    widget: 'choice',
+    choices: ITEMS_CHOICES,
+    appliesTo: (node, breakpoint) => hasChildren(node) && alignableAt(node, breakpoint),
+    clean: cleanAlign(ITEMS_VALUES),
   },
   {
     id: 'typography.fontSize',

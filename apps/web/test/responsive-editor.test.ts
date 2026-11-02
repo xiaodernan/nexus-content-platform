@@ -292,6 +292,69 @@ describe('§14 断点格上的徽标数：这一档"值得看一眼"的改动', 
     });
   });
 
+  it('对齐那两格跟着这一档解出来的排布走：翻成网格就收回去、那句点名接管', () => {
+    // 求解器的 grid / wrap 分支在用到 justify/items 之前就 return 了，所以那两档下
+    // 这一格按下去什么都改不了——面板不摆（§159），codegen 也不发（同一份 ALIGNABLE_MODES）
+    const row = withLayout(mkContainer(), { mode: 'horizontal', justify: 'start', items: 'center' });
+    expect(
+      responsiveChannelsFor(row, 'mobile').map((s) => s.id),
+      '横排的容器摆得出主轴对齐那一格'
+    ).toEqual(expect.arrayContaining(['layout.justify', 'layout.items']));
+
+    const justified = withResponsiveValue(row, 'mobile', 'layout.justify', 'space-between');
+    expect(rule(justified, 'mobile')!.patch).toEqual({ layout: { justify: 'space-between' } });
+    const atMobile = { ...row, responsive: justified };
+    expect(projectedValueOf(atMobile, 'mobile', 'layout.justify')).toBe('space-between');
+    expect(responsiveImpactDetailOf(atMobile, 'mobile')).toEqual({
+      total: 1,
+      panelChannels: 1,
+      outsidePanel: [],
+    });
+
+    // 同一档再翻成网格：那一格没了输入口，但键还在模型里 ⇒ 改成要点名的那一处
+    const toGrid = withResponsiveValue(atMobile, 'mobile', 'layout.mode', 'grid');
+    expect(rule(toGrid, 'mobile')!.patch).toEqual({ layout: { justify: 'space-between', mode: 'grid' } });
+    const gridTier = { ...row, responsive: toGrid };
+    expect(
+      responsiveChannelsFor(gridTier, 'mobile').map((s) => s.id),
+      '网格档摆不出对齐那一格（按下去什么都不改）'
+    ).not.toContain('layout.justify');
+    const detail = responsiveImpactDetailOf(gridTier, 'mobile');
+    expect(detail.total).toBe(2);
+    expect(detail.outsidePanel).toEqual(['layout.justify']);
+
+    // 翻回横排：网格那条键顶回设计值 ⇒ 剪掉，只剩 justify 一处，那一格又摆得出来了
+    const back = withResponsiveValue(gridTier, 'mobile', 'layout.mode', 'horizontal');
+    expect(rule(back, 'mobile')!.patch).toEqual({ layout: { justify: 'space-between' } });
+    const backTier = { ...row, responsive: back };
+    expect(responsiveChannelsFor(backTier, 'mobile').map((s) => s.id)).toContain('layout.justify');
+    expect(responsiveImpactDetailOf(backTier, 'mobile')).toEqual({
+      total: 1,
+      panelChannels: 1,
+      outsidePanel: [],
+    });
+  });
+
+  it('对齐的冗余判据吃这一档的投影：把更窄那档顶回设计值要存下，写成本来的值要剪掉', () => {
+    const row = withLayout(mkContainer(), { mode: 'vertical', justify: 'start', items: 'start' });
+    const withMobile = withRules(row, [
+      { breakpoint: 'mobile', patch: { layout: { justify: 'center' } } },
+    ]);
+    // tablet 写 start：投影本来是 center（手机那条级联上来），这一键真的顶掉了东西
+    const pushed = withResponsiveValue(withMobile, 'tablet', 'layout.justify', 'start');
+    expect(rule(pushed, 'tablet')!.patch).toEqual({ layout: { justify: 'start' } });
+    // tablet 再写 center 就是它本来的投影（手机那条级联上来的）⇒ 那条 tablet 规则整个长不出来
+    expect(json(withResponsiveValue({ ...withMobile, responsive: pushed }, 'tablet', 'layout.justify', 'center')))
+      .toBe(json(withMobile.responsive));
+    // 模型里没有的拼法不当"改成默认"处理：一条事务都不产生
+    expect(json(withResponsiveValue(withMobile, 'tablet', 'layout.justify', 'middle'))).toBe(
+      json(withMobile.responsive),
+    );
+    expect(json(withResponsiveValue(withMobile, 'tablet', 'layout.items', 'between'))).toBe(
+      json(withMobile.responsive),
+    );
+  });
+
   it('一组里的嵌套对象算一处：layout.padding 整个换掉，不拆成四格', () => {
     const node = withRules(mkNode(), [
       { breakpoint: 'mobile', patch: { layout: { padding: { top: 8, right: 8, bottom: 8, left: 8 } } } },
@@ -365,9 +428,10 @@ describe('§14 输入边界', () => {
   });
 
   it('未知的通道名报错而不是静默改错键', () => {
-    // `layout.mode`/`layout.gap` 这些现在是真通道，得拿一个**仍然没那一格**的键试
+    // `layout.justify`/`layout.items` 现在是真通道了，这一门要拿**仍然没那一格**的键试
+    // （`layout.rowGap` 是模型里的键，面板摆不出输入口、内核也不认这个名字）
     expect(() =>
-      withResponsiveValue(mkContainer(), 'mobile', 'layout.justify' as ResponsiveChannel, 'center'),
+      withResponsiveValue(mkContainer(), 'mobile', 'layout.rowGap' as ResponsiveChannel, 12),
     ).toThrow(/未知的断点通道/);
     expect(() =>
       withResponsiveValue(mkNode(), 'mobile', 'size.minWidth' as ResponsiveChannel, 100),
@@ -445,6 +509,14 @@ describe('§14 面板读数与投影同源', () => {
     'layout.mode': { carrier: () => withLayout(mkContainer(), { mode: 'grid', columns: 2 }), value: 'horizontal' },
     'layout.gap': { carrier: () => withLayout(mkContainer(), { mode: 'horizontal', gap: 16 }), value: 24 },
     'layout.columns': { carrier: () => withLayout(mkContainer(), { mode: 'grid', columns: 2 }), value: 3 },
+    'layout.justify': {
+      carrier: () => withLayout(mkContainer(), { mode: 'horizontal', justify: 'start' }),
+      value: 'space-between',
+    },
+    'layout.items': {
+      carrier: () => withLayout(mkContainer(), { mode: 'vertical', items: 'start' }),
+      value: 'center',
+    },
     'typography.fontSize': { carrier: mkText, value: 28 },
   };
 
