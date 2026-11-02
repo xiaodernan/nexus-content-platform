@@ -2237,3 +2237,32 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   `role="status"` → 红在 `toHaveAttribute`（Received null）；M2 版本句写死成"第 1 版" →
   红在 `toHaveText(/已发布 v1/)`（收到"已发布 v5"）；M3 审核那句换成"审核未同步" → 红在 `toContainText('人工审核')`。
   notMeasured：review 态（不注入假 publication）、unpublish 失败态、390 下弹层、焦点陷阱。
+
+- **2026-11-02：§85 第四十二片 取消发布的忙态与失败（失败不许假装地址已被收走）**——`PublishPanel.tsx`
+  忙态行补 `data-publish-busy-kind`，取消发布时播报"取消发布中：正在把公开地址收回来；请求没回来之前访客
+  仍能打开"；按钮 `onClick` 用 `finally` 复位局部标记。跑法同上，`-g "取消发布的忙态与失败"` 单跑。用例
+  走**真发布**造出 publication，再只扣 `DELETE /api/projects/*/publish`（POST 与保存照走），放行回 500。
+  断言：忙态口径与两颗键禁用（此时地址块仍在）、失败后 `role="alert"` 端服务端原话、忙态收掉、结果块 /
+  地址 / 顶栏「已发布 vN」三处都还在，并钉 `sawDelete` 证明那颗键真的发了 DELETE。读数：失败态
+  **27 通过 / 35 不适用 / 0 违规**，critical 全 0；**1 passed（12.2s）**，末次复跑 16.6s。截图
+  `screenshots/a11y-opened-publish-unpublish-busy.png` 与 `…-unpublish-error.png` 人工看过（错误那行是
+  注入的原话，地址块与顶栏版本号都还在）。**三条臂**：N1 `data-publish-busy-kind` 恒为 `publish` →
+  红在 `toHaveAttribute`（Received "publish"）；N2 store 失败分支清空 `publicationValue` → 红在失败后
+  `resultBlock` 仍可见（element not found）；N3 报错行换成"操作失败，请稍后再试。" → 红在 `toContainText`。
+  notMeasured：review 态、真服务端 5xx / 413、390 下弹层、焦点陷阱。
+
+- **2026-11-02：§85 第四十三片 健康栏的展开行（`aria-controls` 与零发现行的假开关）**——`HealthPanel.tsx`
+  给发现列表挂 `id="nexus-health-findings-<checkId>"`，展开键在展开时挂 `aria-controls`、收起时撤掉；
+  零发现的行（`findings + omitted === 0`）从 `<button aria-expanded="false">` 改成静态 `<div
+  data-health-static>`；顺带把 `expanded && check.findings.length` 改成 `expanded && total`，让"全被截断、
+  只剩 omitted"时那句"另有 N 条未列出"也能出现。夹具不造假：给起手文档一个文本节点写
+  `password: e2e-fixture-not-a-real-secret`，走 `PUT /api/projects/:id`，由 `analyzeHealth` 真产出
+  security 的一条凭据 error；**`finally` 里把原文写回**（先离开 Studio，避免 store 卸载时盖回旧稿），
+  否则同一夹具项目的真发布会一直被门禁挡住。跑法同上，`-g "健康栏的展开行"` 单跑。断言链：build 行
+  没有 `[data-health-toggle]` 而有 `[data-health-static]`；security 行收起时无 `aria-controls`、展开时
+  指向真存在的 `ul`（里面有 1 条"疑似明文凭据"）、再按一次后列表消失且引用撤掉。读数：展开态
+  **27 通过 / 35 不适用 / 0 违规**，critical 全 0；**1 passed（1.0m）**，末次复跑 49.1s。截图
+  `screenshots/a11y-opened-health-disclosure.png` 人工看过。**三条臂**：P1 展开键去 `aria-controls` →
+  红在 `expect(listId).toBe(...)`（Received null）；P2 零发现行也渲染成键 → 红在
+  `toHaveCount(0)`（Received 1）；P3 列表去 `id` → 红在 `[id="…"]` 的 `toHaveCount(1)`（Received 0）。
+  notMeasured：review 态、真服务端 5xx / 413、390 下弹层、焦点陷阱。

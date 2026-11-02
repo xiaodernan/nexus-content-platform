@@ -142,6 +142,37 @@ function HealthRow({ check }: { check: HealthCheck }) {
   // 分数旁边只放"这条线是怎么定的"：≥80 分数线、零错误 = 有 error 就挡、仅参考 = 不参与门禁
   const chip = !check.gating ? '仅参考' : check.threshold === null ? '零错误' : `≥${check.threshold}`;
   const total = check.findings.length + check.omitted;
+  /**
+   * §85（第四十三片）：展开键原来只有 `aria-expanded`，没有 `aria-controls`——
+   * 读屏用户听到"已折叠/已展开"，却不知道它管的是哪一块。展开列表保持同一条纪律：
+   * id 只在列表真的渲染时存在，收起时不留一个指向不存在 id 的引用。
+   *
+   * 另一件事：零发现的行走原来也是 `<button aria-expanded="false">`，按下去什么都不出现。
+   * 一颗说得出"可展开"却永远展不开的键，是给读屏用户的假控件（§159）——这种行改成静态读数。
+   */
+  const listId = `nexus-health-findings-${check.id}`;
+  const summary = (
+    <>
+      <span
+        className={cn(
+          'w-[12px] shrink-0 font-mono text-12',
+          check.state === 'pass' ? 'text-fg-2' : check.state === 'fail' ? 'text-danger-ink' : 'text-warn-ink',
+        )}
+      >
+        {STATE_MARK[check.state]}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-11 text-fg-1">{check.label}</span>
+      <span className="shrink-0 font-mono text-11 text-fg-2" data-health-score={check.id}>
+        {formatHealthValue(check)}
+      </span>
+      <span className="shrink-0 rounded-[3px] border border-[var(--nexus-color-border-subtle)] px-1 font-mono text-10 text-fg-3">
+        {chip}
+      </span>
+      <span className="shrink-0 whitespace-nowrap font-mono text-11 text-fg-3" data-health-findings={check.id}>
+        {total ? `${total} 项发现${check.omitted ? `（列 ${check.findings.length}）` : ''}` : '无发现'}
+      </span>
+    </>
+  );
   return (
     <li
       className={cn(
@@ -151,40 +182,30 @@ function HealthRow({ check }: { check: HealthCheck }) {
       data-health-row={check.id}
       data-health-state={check.state}
     >
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className="flex w-full items-center gap-[6px] text-left"
-        data-health-toggle={check.id}
-      >
-        <span
-          className={cn(
-            'w-[12px] shrink-0 font-mono text-12',
-            check.state === 'pass' ? 'text-fg-2' : check.state === 'fail' ? 'text-danger-ink' : 'text-warn-ink',
-          )}
+      {total ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-controls={expanded ? listId : undefined}
+          className="flex w-full items-center gap-[6px] text-left"
+          data-health-toggle={check.id}
         >
-          {STATE_MARK[check.state]}
-        </span>
-        <span className="min-w-0 flex-1 truncate text-11 text-fg-1">{check.label}</span>
-        <span className="shrink-0 font-mono text-11 text-fg-2" data-health-score={check.id}>
-          {formatHealthValue(check)}
-        </span>
-        <span className="shrink-0 rounded-[3px] border border-[var(--nexus-color-border-subtle)] px-1 font-mono text-10 text-fg-3">
-          {chip}
-        </span>
-        <span className="shrink-0 whitespace-nowrap font-mono text-11 text-fg-3" data-health-findings={check.id}>
-          {total ? `${total} 项发现${check.omitted ? `（列 ${check.findings.length}）` : ''}` : '无发现'}
-        </span>
-      </button>
+          {summary}
+        </button>
+      ) : (
+        <div className="flex w-full items-center gap-[6px]" data-health-static={check.id}>
+          {summary}
+        </div>
+      )}
       <p className="mt-[2px] text-11 text-fg-3">{check.basis}</p>
       {check.metrics.length ? (
         <p className="mt-[2px] font-mono text-11 text-fg-3">
           {check.metrics.map((metric) => `${metric.label} ${metric.value}`).join(' · ')}
         </p>
       ) : null}
-      {expanded && check.findings.length ? (
-        <ul className="mt-1 flex flex-col gap-[2px]" data-health-findings-list={check.id}>
+      {expanded && total ? (
+        <ul id={listId} className="mt-1 flex flex-col gap-[2px]" data-health-findings-list={check.id}>
           {check.findings.map((finding, i) => (
             <li key={`${finding.code}-${finding.nodeId ?? finding.path ?? ''}-${i}`} className="text-11 text-fg-2">
               <span

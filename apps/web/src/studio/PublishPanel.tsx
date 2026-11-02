@@ -66,6 +66,12 @@ export function PublishPanel() {
   const { reading: health, pending: healthPending } = useHealthReport(job, open);
   const [build, setBuild] = useState<{ status: keyof typeof BUILD_LABEL; log?: string } | null>(null);
   const [preview, setPreview] = useState<{ status: keyof typeof PREVIEW_LABEL; url?: string } | null>(null);
+  /**
+   * §85（第四十二片）：取消发布与发布共用同一个 `publishBusy`，但那行忙态原来只有发布口径
+   * （"存快照、过门禁、换公开地址"）——取消发布根本不存快照。照着发布那句话念，
+   * 读屏用户会把"正在撤下"听成"正在发出去"。这里只区分播报文案，不动状态机。
+   */
+  const [unpublishing, setUnpublishing] = useState(false);
   const realtime = useRealtime({
     projectId: state.projectId,
     enabled: Boolean(state.projectId),
@@ -238,8 +244,15 @@ export function PublishPanel() {
           ) : null}
 
           {state.publishBusy ? (
-            <p className="mb-2 text-11 text-fg-3" role="status" data-publish-busy>
-              发布中：先把这一版存成快照，再过门禁与机检，最后换公开地址。
+            <p
+              className="mb-2 text-11 text-fg-3"
+              role="status"
+              data-publish-busy
+              data-publish-busy-kind={unpublishing ? 'unpublish' : 'publish'}
+            >
+              {unpublishing
+                ? '取消发布中：正在把公开地址收回来；请求没回来之前访客仍能打开。'
+                : '发布中：先把这一版存成快照，再过门禁与机检，最后换公开地址。'}
             </p>
           ) : null}
 
@@ -257,7 +270,10 @@ export function PublishPanel() {
               <button
                 type="button"
                 disabled={state.publishBusy}
-                onClick={() => void studio.unpublish()}
+                onClick={() => {
+                  setUnpublishing(true);
+                  void studio.unpublish().finally(() => setUnpublishing(false));
+                }}
                 data-publish-off
                 className="rounded-[var(--nexus-radius-sm)] px-3 py-1 text-12 text-fg-3 hover:bg-bg-2"
               >

@@ -576,3 +576,202 @@ test('§85 发布成功后的结果块：地址、版本与审核状态进读数
   expect(critical, `发布成功态有 ${critical} 类 critical 违规，逐条见上面的读数`).toBe(0);
   await page.screenshot({ path: 'screenshots/a11y-opened-publish-result.png' });
 });
+
+/**
+ * 第四十二片：**取消发布**。它与发布共用同一个 `publishBusy` 与同一个 `publishError`，
+ * 但走另一条请求（DELETE）与另一个后果——失败时公开地址**必须还在**。
+ * 三条腿各自钉一件事：
+ * - 忙态那句话不能照着发布念：取消发布不存快照、不过门禁，"正在撤下"被念成"正在发出去"
+ *   是给读屏用户的假状态（§159）；
+ * - 失败后报错端服务端原话，"取消发布中"收掉，结果块、地址与顶栏版本号都不能被抹掉
+ *   （界面上先假装撤下了，访客其实还能打开）；
+ * - axe 沿用同一把尺子，读数与截图留档。
+ */
+test('§85 取消发布的忙态与失败：地址仍在、报错端原话', async ({ page }) => {
+  test.setTimeout(360_000);
+  const { projectId } = await reusableMemberWithProject(page, EMAIL, PASSWORD, `无障碍取消发布夹具${RUN}`);
+  await page.goto(`/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 120_000 });
+
+  const trigger = page.locator('[data-publish-open]');
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-publish-panel]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-publish-gate]')).toBeVisible({ timeout: 120_000 });
+
+  // ---- 造一份真 publication：夹具项目可能被上一轮发布过，先收回再发，保证地址是这次带出来的
+  const resultBlock = page.locator('[data-publish-result]');
+  if (await resultBlock.count()) {
+    await page.locator('[data-publish-off]').click();
+    await expect(resultBlock).toHaveCount(0, { timeout: 60_000 });
+    await expect(trigger).toHaveText(/^发布$/, { timeout: 60_000 });
+  }
+  await page.locator('[data-publish-submit]').click();
+  await expect(resultBlock).toBeVisible({ timeout: 120_000 });
+  const publishedLabel = ((await trigger.textContent()) ?? '').trim();
+  expect(publishedLabel, `顶栏没带出版本号：${publishedLabel}`).toMatch(/已发布 v\d+/);
+
+  // ---- 把 DELETE 扣住，让"取消发布中"停住可量：route 只拦 DELETE，保存照走
+  let releaseUnpublish: () => void = () => {};
+  const unpublishHeld = new Promise<void>((resolve) => {
+    releaseUnpublish = resolve;
+  });
+  let sawDelete = false;
+  await page.route('**/api/projects/*/publish', async (route) => {
+    if (route.request().method() !== 'DELETE') return route.continue();
+    sawDelete = true;
+    await unpublishHeld;
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: '下架队列不可用（注入）' }),
+    });
+  });
+
+  const busyLine = page.locator('[data-publish-busy]');
+  const errorLine = page.locator('[data-publish-error]');
+  await expect(busyLine, '还没点取消发布就把忙态摆出来了').toHaveCount(0);
+  await expect(errorLine, '还没点取消发布就先摆了一条报错').toHaveCount(0);
+
+  await page.locator('[data-publish-off]').click();
+  await expect(busyLine, '服务端还扣着，界面却没画取消发布的忙态').toBeVisible({ timeout: 60_000 });
+  await expect(busyLine).toHaveAttribute('role', 'status');
+  await expect(
+    busyLine,
+    '取消发布念的是发布口径：把"存快照、过门禁、换公开地址"当成正在发生的事',
+  ).toHaveAttribute('data-publish-busy-kind', 'unpublish');
+  await expect(busyLine).toContainText('取消发布中');
+  // 两颗键都进忙态：这个当口再点一下发布/取消发布都是对同一条链路叠请求
+  await expect(page.locator('[data-publish-off]')).toBeDisabled();
+  await expect(page.locator('[data-publish-submit]')).toBeDisabled();
+  // 请求没回来之前地址块就还在：不能先把地址从界面上抹掉再说"正在撤"
+  await expect(resultBlock, '取消发布还没回话，结果块先被清掉了').toBeVisible();
+
+  await busyLine.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'screenshots/a11y-opened-publish-unpublish-busy.png' });
+
+  // ---- 放行：服务端回 500。报错必须是服务端原话，且不能假装撤下成功
+  releaseUnpublish();
+  await expect(errorLine).toBeVisible({ timeout: 60_000 });
+  await expect(errorLine).toHaveAttribute('role', 'alert');
+  await expect(errorLine, '报错换了服务端那句话，界面自己编了一句').toContainText('下架队列不可用（注入）');
+  await expect(busyLine, '失败已经回来了，"取消发布中"那行还挂着').toHaveCount(0);
+  expect(sawDelete, '取消发布那颗键没有真的发 DELETE——这条腿量到的"失败"来自别处').toBe(true);
+
+  // 失败之后公开地址必须原样还在：结果块、地址与顶栏版本号三处都要对得上
+  await expect(resultBlock, '取消发布失败了，结果块却被清掉：界面先说撤下了，访客其实还能打开').toBeVisible();
+  await expect(page.locator('[data-publish-url]')).toHaveCount(1);
+  await expect(trigger).toHaveText(publishedLabel);
+
+  await errorLine.scrollIntoViewIfNeeded();
+  const errorScan = await scan(page);
+  const critical = printSurface('Studio · 发布弹层（取消发布失败态）', errorScan);
+  expect(errorScan.passes.length, '取消发布失败态扫描为空转：报错行没渲染或 axe 没命中规则集').toBeGreaterThan(0);
+  expect(critical, `取消发布失败态有 ${critical} 类 critical 违规，逐条见上面的读数`).toBe(0);
+  await page.screenshot({ path: 'screenshots/a11y-opened-publish-unpublish-error.png' });
+});
+
+/**
+ * 第四十三片：健康栏的**展开行**。每行一颗键、`aria-expanded` 早就有，但它管的是哪一块
+ * 从来没说出来（没有 `aria-controls`）；而零发现的行同样是 `<button aria-expanded="false">`，
+ * 按下去什么都不出现——一颗永远展不开的"展开键"是给读屏用户的假控件（§159）。
+ *
+ * 造发现的办法是真文档：给起手文档的一个文本节点写一行像凭据的文字（`password: …`），
+ * 走 `PUT /api/projects/:id`（用户能走的那条保存路由），让 `analyzeHealth` 的 security 行
+ * 真的产出一条 error。**跑完在 `finally` 里把原文写回去**：夹具项目会被同一文件的其他用例
+ * 真发布，留着一行"凭据"会让那边的门禁永远过不去。
+ */
+test('§85 健康栏的展开行：aria-controls 指到真列表，零发现的行不是假开关', async ({ page }) => {
+  test.setTimeout(360_000);
+  const { projectId } = await reusableMemberWithProject(page, EMAIL, PASSWORD, `无障碍健康栏夹具${RUN}`);
+
+  interface RawNode {
+    text?: string;
+    [key: string]: unknown;
+  }
+  await page.goto('/');
+  const csrf = (await page.context().cookies()).find((cookie) => cookie.name === 'nexus_csrf')?.value ?? '';
+  const current = await page.request.get(`/api/projects/${projectId}`);
+  expect(current.status(), `读取项目失败：${await current.text()}`).toBe(200);
+  const doc = (await current.json()) as {
+    document: { pages: { id: string; nodes: Record<string, RawNode> }[] };
+  };
+  const home = doc.document.pages[0]!;
+  const nodeId = Object.keys(home.nodes).find(
+    (id) => typeof home.nodes[id]?.text === 'string' && (home.nodes[id]?.text ?? '').length > 0,
+  );
+  expect(nodeId, '起手文档里没有带文字的节点，造不出安全类发现').toBeTruthy();
+  const originalText = home.nodes[nodeId!]!.text as string;
+  // 12 个字符以上才会命中凭据规则；这串明显是夹具，不是真密钥
+  home.nodes[nodeId!]!.text = 'password: e2e-fixture-not-a-real-secret';
+  const put = await page.request.put(`/api/projects/${projectId}`, {
+    headers: { 'x-csrf-token': csrf },
+    data: doc.document,
+  });
+  expect(put.status(), `写入夹具文档失败：${await put.text()}`).toBe(200);
+
+  try {
+    await page.goto(`/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 120_000 });
+    await page.click('[data-panel-tab="health"]');
+    const panel = page.locator('[data-health-rail] [data-health-panel]');
+    await expect(panel, '健康栏没等到一份算完的报告').toHaveAttribute('data-health-pending', '0', { timeout: 120_000 });
+
+    // ---- 有发现的行：security 真的因为那行凭据变成 fail
+    const securityRow = page.locator('[data-health-row="security"]');
+    await expect(securityRow, 'security 行没有因为写入的凭据变成 fail：夹具没造出发现').toHaveAttribute(
+      'data-health-state',
+      'fail',
+    );
+    const toggle = securityRow.locator('[data-health-toggle="security"]');
+    await expect(toggle).toHaveCount(1);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    // 合着的时候不许留一个指向不存在 id 的 aria-controls（引用空 id 是 axe 的 aria-valid-attr-value 违规）
+    await expect(toggle, '收起时 aria-controls 指向一个不存在的列表').not.toHaveAttribute('aria-controls', /./);
+
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+    await expect(toggle, '按下展开键之后 aria-expanded 没有翻').toHaveAttribute('aria-expanded', 'true');
+    const listId = await toggle.getAttribute('aria-controls');
+    expect(listId, '展开之后展开键仍然没说自己管哪一块').toBe('nexus-health-findings-security');
+    const list = page.locator(`[id="${listId}"]`);
+    await expect(list, 'aria-controls 指的那个 id 在 DOM 里没有对应的列表——那是一句指向不存在东西的承诺').toHaveCount(1);
+    await expect(list).toHaveAttribute('data-health-findings-list', 'security');
+    await expect(list.locator('li')).toHaveCount(1);
+    // 列表里是那条真发现，不是一句占位话
+    await expect(list).toContainText('疑似明文凭据');
+
+    // ---- 零发现的行：build 这一行没有东西可展开，就不许摆成一颗键
+    const buildRow = page.locator('[data-health-row="build"]');
+    await expect(buildRow.locator('[data-health-findings="build"]')).toHaveText('无发现');
+    await expect(
+      buildRow.locator('[data-health-toggle]'),
+      '零发现的行也摆了一颗"可展开"的键：按下去什么都不出现，读屏用户只会以为界面坏了',
+    ).toHaveCount(0);
+    await expect(buildRow.locator('[data-health-static="build"]')).toHaveCount(1);
+
+    // ---- 展开态留档：读数与截图都在列表还开着的时候取
+    await list.scrollIntoViewIfNeeded();
+    const r = await scan(page);
+    const critical = printSurface('Studio · 健康栏（展开行）', r);
+    expect(r.passes.length, '健康栏展开态扫描为空转：列表没渲染或 axe 没命中规则集').toBeGreaterThan(0);
+    expect(critical, `健康栏展开态有 ${critical} 类 critical 违规，逐条见上面的读数`).toBe(0);
+    await page.screenshot({ path: 'screenshots/a11y-opened-health-disclosure.png' });
+
+    // ---- 收回去：键还在、列表没了、aria-controls 也不留悬空引用
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(list, '收起之后列表还留在 DOM 里').toHaveCount(0);
+    await expect(toggle).not.toHaveAttribute('aria-controls', /./);
+  } finally {
+    // 写回原文：先离开 Studio（store 的旧稿会在卸载时盖回来），再走同一条保存路由
+    await page.goto('/').catch(() => undefined);
+    home.nodes[nodeId!]!.text = originalText;
+    const restored = await page.request.put(`/api/projects/${projectId}`, {
+      headers: { 'x-csrf-token': csrf },
+      data: doc.document,
+    });
+    expect(restored.status(), `还原夹具文档失败（留着凭据会挡住后续真发布）：${await restored.text()}`).toBe(200);
+  }
+});
