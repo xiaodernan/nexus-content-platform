@@ -517,6 +517,8 @@ describe('§14 面板读数与投影同源', () => {
       carrier: () => withLayout(mkContainer(), { mode: 'vertical', items: 'start' }),
       value: 'center',
     },
+    // 顺序这一格只在自动布局（横排 / 竖排）上摆得出来：网格与换行档读完什么都不改
+    'layout.reverse': { carrier: () => withLayout(mkContainer(), { mode: 'horizontal' }), value: true },
     'typography.fontSize': { carrier: mkText, value: 28 },
   };
 

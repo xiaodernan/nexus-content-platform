@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { cn } from '@/lib/cn';
 import type { HealthJob } from '@/lib/health-job';
 import { useRealtime } from '@/lib/useRealtime';
@@ -8,6 +8,7 @@ import type { Visibility } from '@/server/domain/publish';
 import { HealthPanel } from './HealthPanel';
 import { useHealthReport } from './health-client';
 import { studio, useStudioReady } from './store';
+import { usePopoverDismiss } from './use-popover-dismiss';
 
 /**
  * §57 Publish：选 Public / Unlisted / Private，然后如实报告门禁。
@@ -26,6 +27,11 @@ const BUILD_LABEL = { idle: '空闲', building: '构建中', ok: '成功', faile
 
 /** 弹层与它那颗触发键的绑定：`aria-controls` 指的必须是真存在的 id，所以两边共用这一个常量。 */
 const PANEL_ID = 'nexus-publish-panel';
+/**
+ * §85（第三十七片）：切成私有那句后果说明只在私下出现，读屏用户先读到的是选项本身。
+ * 用 `aria-describedby` 把说明挂到那颗单选上；id 只在说明真的渲染时存在，不能留一个悬空引用。
+ */
+const PRIVATE_NOTE_ID = 'nexus-publish-private-note';
 const PREVIEW_LABEL = { idle: '公开地址已收回', starting: '打开中', ready: '可达', failed: '解析不出来' } as const;
 
 const CHOICES: { id: Visibility; label: string; hint: string }[] = [
@@ -38,8 +44,7 @@ export function PublishPanel() {
   const state = useStudioReady();
   const [open, setOpen] = useState(false);
   const [visibility, setVisibility] = useState<Visibility>('public');
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const { rootRef, triggerRef } = usePopoverDismiss(open, setOpen);
   const publication = state.publication;
   /**
    * §147：弹层合着时不算——打开才需要门禁读数。每次按键都重算 10k 节点的全量体检，
@@ -70,35 +75,6 @@ export function PublishPanel() {
       if (event.type === 'preview.status') setPreview({ status: event.status, url: event.url });
     },
   });
-
-  /**
-   * §85：弹层开着的时候，键盘与指针两条路都要能把它收回去。
-   *
-   * - **Escape 必须在捕获阶段截住**：画布也听 `window` 的 Escape（清空选区）。两个监听都在
-   *   window 上，注册顺序决定谁先跑——弹层后挂，冒泡阶段轮不到它先说话，于是"关弹层"会变成
-   *   "顺手把作者选中的元素也丢了"。捕获阶段先处理并 `stopPropagation`，这一下只归弹层。
-   * - **点外部收起**只认 `pointerdown` 且排除弹层根节点（连触发键一起）：用 `click` 的话，
-   *   按下与抬起之间跨过边界的那次点击会把弹层关在抬起之前，看起来像"点了一下没反应"。
-   * - 收起后焦点回到触发键：键盘用户不该被留在 document.body 上，否则下一次 Tab 从页首开始。
-   */
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.stopPropagation();
-      setOpen(false);
-      triggerRef.current?.focus();
-    };
-    document.addEventListener('pointerdown', onPointerDown, true);
-    window.addEventListener('keydown', onKeyDown, true);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown, true);
-      window.removeEventListener('keydown', onKeyDown, true);
-    };
-  }, [open]);
 
   const statusLabel = publication
     ? `${publication.visibility === 'private' ? '已停' : '已发布'} v${publication.version}`
@@ -138,6 +114,7 @@ export function PublishPanel() {
                   name="publish-visibility"
                   checked={visibility === choice.id}
                   onChange={() => setVisibility(choice.id)}
+                  aria-describedby={visibility === 'private' && health && choice.id === 'private' ? PRIVATE_NOTE_ID : undefined}
                   className="mt-[3px]"
                 />
                 <span>
@@ -158,7 +135,7 @@ export function PublishPanel() {
                 computeMs={health.computeMs}
               />
               {visibility === 'private' ? (
-                <p className="mt-1 text-11 text-fg-3" data-publish-private-note>
+                <p id={PRIVATE_NOTE_ID} className="mt-1 text-11 text-fg-3" data-publish-private-note>
                   切成私有是下架动作：即使门禁没过也允许，把链接收回来永远比挡住它安全。
                 </p>
               ) : null}
@@ -170,7 +147,11 @@ export function PublishPanel() {
           ) : null}
 
           {state.publishScan ? (
-            <div className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-publish-scan>
+            <div
+              className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2"
+              role="status"
+              data-publish-scan
+            >
               <p className="text-11 text-fg-3" data-scan-decision={state.publishScan.decision}>
                 {state.publishScan.decision === 'clear'
                   ? `机检（${state.publishScan.rulesVersion}）：这次没命中规则。`
@@ -206,7 +187,7 @@ export function PublishPanel() {
           ) : null}
 
           {state.publishError ? (
-            <p className="mb-2 text-11 text-danger-ink" data-publish-error>
+            <p className="mb-2 text-11 text-danger-ink" role="alert" data-publish-error>
               {state.publishError}
             </p>
           ) : null}
@@ -252,7 +233,13 @@ export function PublishPanel() {
             </div>
           ) : null}
 
-          <div className="flex items-center gap-2">
+          {state.publishBusy ? (
+            <p className="mb-2 text-11 text-fg-3" role="status" data-publish-busy>
+              发布中：先把这一版存成快照，再过门禁与机检，最后换公开地址。
+            </p>
+          ) : null}
+
+          <div className="flex items-center gap-2" aria-busy={state.publishBusy}>
             <button
               type="button"
               disabled={state.publishBusy}

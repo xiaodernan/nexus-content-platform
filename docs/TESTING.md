@@ -2171,3 +2171,60 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   画布全局键对输入控件退让——补「焦点还在触发键上按 Esc」腿后才红。每次都逐字节还原，
   最后 `git diff` 只含本意改动；`tsc -p e2e` exit 0。notMeasured：弹层的发布中/失败/门禁未过三态、
   390 下的弹层、ExportPanel 同族弹层。
+
+- **2026-11-02：§85 第三十六片 同族弹层收口抽成一份 hook（导出弹层进表）**——发布与导出共用
+  `apps/web/src/studio/use-popover-dismiss.ts`（Escape 捕获阶段 + `stopPropagation`、`pointerdown`
+  判外部、收起后焦点回触发键）；导出弹层补 `id` / `role="region"` / `aria-label` / 打开时的
+  `aria-controls`。跑法同上，`-g "导出弹层"` 可单跑。读数：导出弹层打开态 axe **26 通过 / 36 不适用 /
+  0 违规**；两条用例 **2 passed（13.7s）**，发布弹层仍 27/35/0。截图
+  `screenshots/a11y-opened-export.png` 人工看过，**抓到一处真缺陷**：底部「导出 design+code+…」把
+  「收起」挤成竖排两字，`收起` 加 `shrink-0` 后同排并复跑绿。**四条臂**：H1 hook 无 keydown → 发布用例
+  红在弹层未收起（11.8s）；H2 去掉 `stopPropagation` → 发布用例红在选区被带走（11.3s）；H3 hook 无
+  `pointerdown` → 导出用例红在点外部不收起（10.4s）；H4 触发键无 `aria-controls` → 导出用例红在接线
+  断言（10.2s）。一遍无关的红照实记：`shrink-0` 后首次跑在用例体走完后抛 `browserContext.close:
+  ENOENT …recording1.trace`（Playwright artifact 写入竞态，同 2026-10-30 那族），原样重跑 4.6s 通过。
+  notMeasured：弹层动态态（发布中/失败/回执/门禁未过）、390 下的弹层、焦点陷阱（当前不承诺模态语义）。
+
+- **2026-11-02：§85 第三十七片 弹层的动态态第一次进读数（导出的回执与失败两态）**——产品改动只有两处
+  可播报语义：回执块 `role="status"`、错误行 `role="alert"`。跑法同上，`-g "导出弹层的动态态"` 可单跑。
+  读数：回执态 axe **26 通过 / 36 不适用 / 0 违规**、失败态 **26 / 36 / 0**，critical 全 0；三条用例
+  **3 passed（24.2s）**（发布 27/35/0 与导出打开态 26/36/0 照旧）。截图
+  `screenshots/a11y-opened-export-receipt.png` 与 `…-error.png` 人工看过。**失败态是注入的**：
+  `page.route` 只把 `/api/projects/*/export` 换成 500，注入的是网络那一层、不是产品语义；
+  断言服务端 `message` 原样出现、`role=alert` 在、上一轮回执被清掉。**三条臂**：I1 去 `role=status` →
+  红在 `toHaveAttribute`（Received null）；I2 失败时不 `setReceipt(null)` → 红在 `toHaveCount(0)`
+  （Received 1，失败旁边还摆着"已下载"）；I3 错误行丢掉服务端 `message` → 红在 `toHaveText`。
+  notMeasured：发布弹层的动态态（门禁算完/正在算/失败日志）、390 下弹层、真服务端 5xx 与 413 路径。
+
+- **2026-11-02：§85 第三十八片 发布弹层的动态态（门禁算完与私有提示）**——`PublishPanel.tsx` 给私有单选
+  挂 `aria-describedby`（说明的 id 只在说明真的渲染时存在）。跑法同上，`-g "发布弹层的动态态"` 单跑。
+  读数：门禁算完态 **27 通过 / 35 不适用 / 0 违规**、私有提示态 **27 / 35 / 0**，critical 全 0；同文件
+  四条用例 **4 passed（1.2m）**。截图 `screenshots/a11y-opened-publish-gate.png` 与
+  `…publish-private.png` 人工看过；后者弹层自带滚动条，截图前显式 `scrollIntoViewIfNeeded`，否则留档看不见
+  那句下架说明。**三条臂**：J1 私有单选去 `aria-describedby` → 红在 `toHaveAttribute`（Received null）；
+  J2 说明去 id → 红在 `getElementById` 那条（false）；J3 说明提前渲染 → 红在 `expect(note).toHaveCount(0)`。
+  notMeasured：发布动作的"发布中/失败日志"两态、390 下弹层、焦点陷阱。
+
+- **2026-11-02：§85 第三十九片 发布动作的进行与失败（发布中状态与报错）**——`PublishPanel.tsx` 忙态一行
+  加 `role="status"`、失败行加 `role="alert"`、按钮行加 `aria-busy`；报错仍端服务端原话。跑法同上，
+  `-g "发布动作的进行与失败"` 单跑。用例只扣 `POST /api/projects/*/publish`（保存照走），先断言动手前
+  两行都不在，再扣住量忙态、放行回 500 量失败态。读数：忙态 **27 通过 / 35 不适用 / 0 违规**、失败态
+  **27 / 35 / 0**，critical 全 0；同文件五条用例 **5 passed（1.9m）**。截图
+  `screenshots/a11y-opened-publish-busy.png` 与 `…publish-error.png` 人工看过。**三条臂**：K1 忙态行去
+  `role="status"` → 红在 `toHaveAttribute`（Received null）；K2 失败行去 `role="alert"` → 同一条断言；
+  K3 store 把服务端原话换成"发布失败" → 红在 `toContainText`（收到"发布失败"）。
+  首跑 6.5m 超时、面板整块消失（`已保存` 复位）是共享工作树里另一会话写文件触发 dev 全量重载，
+  原样重跑 13.5s 绿——同类超时先看页面是否被重置，别先怀疑产品。
+  notMeasured：真服务端 5xx / 413、机检 review / reject 两态、unpublish 失败态、390 下弹层、焦点陷阱。
+
+- **2026-11-02：§85 第四十片 机检挡下态（硬红线裁决与限度说明）**——`PublishPanel.tsx` 裁决块挂
+  `role="status"`。跑法同上，`-g "发布被机检挡下"` 单跑。用例把 `POST /api/projects/*/publish` 注入成
+  422 + 过契约的 `scan`（`decision: 'blocked'`），先断言没发布过时裁决块不在，再断言裁决口径、发现条目
+  （规则 / 位置 / 原文）、限度两行、报错行原话、忙态已收。读数：裁决块 **27 通过 / 35 不适用 / 0 违规**，
+  critical 全 0；截图 `screenshots/a11y-opened-publish-scan-blocked.png` 人工看过。**三条臂**：L1 裁决块去
+  `role="status"` → 红在 `toHaveAttribute`（Received null）；L2 发现列表不渲染 → 红在 `toHaveCount(1)`
+  （Received 0）；L3 `blocked` 措辞换成 `clear` 那句 → 红在 `toHaveText(/命中硬红线.*没有发出去/)`。
+  第一版注入漏了 `level` 被 store 的 zod 门当场拦下（"机检结果不符合契约"），照实记作契约有效性的凭证。
+  notMeasured：review 态（需真发布回执，不用假 publication）、真服务端 5xx / 413、unpublish 失败态、
+  390 下弹层、焦点陷阱。另：连跑多轮后登录限额（同一 IP 10 次/小时）会用光，夹具会以
+  "注册…HTTP 409 该邮箱已被注册"的形式报错——那是限额不是产品，等窗口滚过去再跑。
