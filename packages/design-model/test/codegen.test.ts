@@ -348,6 +348,70 @@ describe("Design → Code（§17-19）", () => {
     expect(node.responsive?.[1]?.patch.layout).toMatchObject({ mode: "grid", justify: "center" });
   });
 
+  it("反向那一格跟着这一档解出来的排布走：自动布局发方向类，grid 一档不发（§14 第七片）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({
+      type: "section",
+      name: "Reverse",
+      layout: { mode: "vertical", gap: 16 },
+      size: { width: 300, height: 200 },
+    });
+    node.responsive = [
+      // 这一档没改排布，级联解出来还是竖排 ⇒ 求解器真会镜像主轴，这条类发得出来
+      { breakpoint: "tablet", patch: { layout: { reverse: true } } },
+      // 这一档自己翻成网格：`layout.ts` 的 grid 分支在碰主轴分配之前就 return，reverse 在那里
+      // 什么都不摆；而 `lg:grid` 之后 `flex-direction` 也不管事——发出去等于凭空一条类（§16）
+      { breakpoint: "desktop", patch: { layout: { mode: "grid", columns: 2, reverse: true } } },
+    ];
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:flex-col-reverse");
+    expect(tokens.filter((token) => token.startsWith("lg:flex"))).toEqual([]);
+    // 设计值没写 reverse ⇒ 无前缀那一条也不该冒出来（那是手机档的基线，读的是解出来的那一份）
+    expect(tokens).not.toContain("flex-col-reverse");
+  });
+
+  it("设计值本来就是网格时，反向那条类一个字都不发（§14 第七片 × §16）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({
+      type: "section",
+      name: "GridReverse",
+      // 网格 + reverse：`layout.ts` 的 grid 分支在碰主轴分配之前就 return ⇒ 画布什么都不动，
+      // 而发出去的 `flex-col-reverse` 会把 display 从 grid 顶成 flex（访客动了、画布没动）。
+      layout: { mode: "grid", columns: 2, gap: 16, reverse: true },
+      size: { width: 300, height: 200 },
+    });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens.filter((token) => token.endsWith("-reverse"))).toEqual([]);
+    expect(tokens).toContain("grid");
+  });
+
+  it("设计值自己就是反向的：那条类发在无前缀基线上（第七片补的正向腿——上面只有\"不该发\"那半）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({
+      type: "section",
+      // 起手只有"不该发"那一条（`not.toContain`）：删掉基线那处的发射它照样绿。
+      // 这一条钉的是另一头——求解器认这个键之后，设计值反着的元素在代码里也得是反着的。
+      layout: { mode: "vertical", gap: 16, reverse: true },
+      size: { width: 300, height: 200 },
+    });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("flex-col-reverse");
+    // 正向那一条还在（`layout.mode` 自己声明的）：反向类靠框架产出顺序赢，量过的，见 ADR-0069 第七片
+    expect(tokens).toContain("flex-col");
+  });
+
   it("手机那一档的对齐发在无前缀基线上（§14 第五片 × 第六片）", () => {
     const page2 = starterPage("Home");
     const root = page2.nodes[page2.rootId]!;

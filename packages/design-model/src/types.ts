@@ -246,6 +246,17 @@ export type LayoutMode =
   "none" | "vertical" | "horizontal" | "grid" | "stack" | "wrap";
 
 /**
+ * 求解器真会按 `justify` / `items` / `reverse` 摆放的那两档排布（`layout.ts` 的 grid、wrap、
+ * stack、none 分支在用到这几个键之前就 return 了）。
+ *
+ * 这份名单住在这里而不是 codegen，因为**判据的消费者跨两个投影**：发射侧（codegen）、回写侧
+ * （code-parse）、面板（responsive-editor）用它决定发不发/摆不摆，求解器（layout.ts）用它决定
+ * 认不认 `reverse`。谁抄一份，谁就会在下一片加档时掉队。几处不一致时最坏的走法不是少发一条类，
+ * 而是回写读了、重投影发不出来 ⇒ 整个节点的回写作废（§19）。
+ */
+export const ALIGNABLE_MODES: readonly LayoutMode[] = ["vertical", "horizontal"];
+
+/**
  * 几何长度：字面 px 数值，或 `{space.*}` / `{radius.*}` 这类 token 引用。
  * 运行时统一经 TokenStore.resolveValue 解析（layout/render/codegen 都已支持），
  * 类型层如实反映这一点，别再谎报成纯 number（§16 设计模型即真值）。

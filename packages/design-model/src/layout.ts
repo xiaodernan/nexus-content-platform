@@ -5,7 +5,7 @@ import type {
   ResponsiveRule,
   Typography,
 } from "./types";
-import { BREAKPOINT_WIDTH } from "./types";
+import { ALIGNABLE_MODES, BREAKPOINT_WIDTH } from "./types";
 import type { TokenStore } from "./tokens";
 import { childrenOf, clone, requireNode } from "./nodes";
 
@@ -1030,6 +1030,12 @@ function runLayout(
     const horizontal = node.layout.mode === "horizontal";
     const mainTotal = horizontal ? innerW : innerH;
     const crossTotal = horizontal ? innerH : innerW;
+    // `reverse` 只在求解器真会沿主轴摆放的那两档生效——判据与发射侧同一份（`ALIGNABLE_MODES`）：
+    // grid / wrap / stack / none 的分支在上面就 return 了，codegen 在那几档也不发 `flex-*-reverse`。
+    // 两边各判一次，就会一边翻顺序、一边不翻 ⇒ 画布与代码两份投影互相矛盾（§16）。
+    const reverse =
+      node.layout.reverse === true &&
+      ALIGNABLE_MODES.includes(node.layout.mode);
 
     const items = children.map((child) => {
       const mainSize = child.size[horizontal ? "width" : "height"];
@@ -1100,12 +1106,16 @@ function runLayout(
             : node.layout.items === "baseline"
               ? Math.max(0, widestCross - intrinsicCross)
               : 0;
+      // 主轴镜像：CSS 的 `*-reverse` 只把**主轴起点**搬到另一端（交叉轴方向跟着 writing-mode，
+      // 不跟着翻）。溢出时照 CSS 一样越过 padding 边沿，所以不夹 0——非反向那一支溢出时
+      // cursor 也照样走出内容盒，两边对称。
+      const mainOffset = reverse ? mainTotal - cursor - mainLen : cursor;
       const childX = horizontal
-        ? x + pad.left + cursor
+        ? x + pad.left + mainOffset
         : x + pad.left + crossOffset;
       const childY = horizontal
         ? y + pad.top + crossOffset
-        : y + pad.top + cursor;
+        : y + pad.top + mainOffset;
       placeChild(
         item.child,
         childX,

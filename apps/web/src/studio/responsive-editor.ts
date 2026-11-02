@@ -65,7 +65,8 @@ export interface ChannelSpec {
    * 这一行对这个节点、这一档有没有意义。面板不摆一个按下去什么都改不了的输入口（§159）：
    * `layout.*` 要节点真有子节点可排，`layout.columns` 要投影出来的排布真是网格，
    * `layout.justify` / `layout.items` 要投影出来的排布真是自动布局（求解器的 grid / wrap 分支
-   * 在用到它们之前就 return 了，codegen 也用同一份判据 `ALIGNABLE_MODES` 决定发不发），
+   * 在用到它们之前就 return 了；`ALIGNABLE_MODES` 在 `types.ts`，发射、回写、求解器与这里四处读的是
+   * 同一条判据），
    * `typography.fontSize` 要节点真有 typography 对象——`applyResponsive` 对没有 typography 的节点
    * 压根不合并那一组（layout.ts:175），写进去就是一条被冗余判据当场剪掉的键。
    */

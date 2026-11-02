@@ -387,6 +387,87 @@ describe("类名 → 模型属性", () => {
     ]);
   });
 
+  it("手写 md:flex-col-reverse 落在横排那一档：方向与反向两个键一起读进来（§14 第七片）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const heroNode = page.nodes[hero]!;
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...heroNode,
+          // 设计值是横排，作者在这一档手写一条"竖着反过来"的类
+          layout: { ...heroNode.layout, mode: "horizontal" },
+          responsive: [{ breakpoint: "tablet", patch: { layout: { gap: 16 } } }],
+        },
+      },
+    };
+    const code = replace(source(withRule), "md:gap-[16px]", "md:flex-col-reverse md:gap-[24px]");
+    const result = parse(withRule, code);
+    const mapping = result.mappings.find((m) => m.nodeId === hero)!;
+    // 这一档本来解出来是横排 ⇒ 那条类说的方向与它不一致，`mode` 必须一起写：
+    // 只写 reverse 的话重投影发出的是 `md:flex-row-reverse`，自检认不出作者写的那条，
+    // 整个节点的回写作废（§19）——作者那次编辑在代码里看着成功了，画布没动。
+    expect(result.ops.find((o) => "path" in o && o.path === "responsive")).toMatchObject({
+      nodeId: hero,
+      value: [
+        { breakpoint: "tablet", patch: { layout: { gap: 24, mode: "vertical", reverse: true } } },
+      ],
+    });
+    expect(mapping.unmapped, "反向类不该在读侧被当成没映射的键").toEqual([]);
+    expect(mapping.applied).toContain("responsive");
+  });
+
+  it("手写 md:flex-col-reverse 落在本来就是竖排的那一档：只补 reverse，不凭空写 mode（§14 第七片）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [{ breakpoint: "tablet", patch: { layout: { gap: 16 } } }],
+        },
+      },
+    };
+    const code = replace(source(withRule), "md:gap-[16px]", "md:flex-col-reverse md:gap-[24px]");
+    const result = parse(withRule, code);
+    // 基线就是竖排，重投影照发 `md:flex-col-reverse` ⇒ mode 是多余的键，别写进模型（§16）
+    expect(result.ops.find((o) => "path" in o && o.path === "responsive")).toMatchObject({
+      nodeId: hero,
+      value: [{ breakpoint: "tablet", patch: { layout: { gap: 24, reverse: true } } }],
+    });
+  });
+
+  it("反向那一档的往返：md:flex-col-reverse 发得出也读得回，一个补丁都不发（§14 第七片）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [
+            { breakpoint: "tablet", patch: { layout: { reverse: true } } },
+            // 更宽那档翻成网格：求解器不看 reverse，代码里本来就没有它——
+            // 往返仍是零补丁（读侧不该凭一条没发的类编出键来）
+            { breakpoint: "desktop", patch: { layout: { mode: "grid", columns: 2, reverse: true } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    expect(line).toContain("md:flex-col-reverse");
+    expect(line).not.toContain("lg:flex");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
   it("手机那一档的覆盖往返：发在基线上、读得回来、一个补丁都不发（§14 第五片）", () => {
     const page = starterPage();
     const hero = nodeId(page, "Hero");

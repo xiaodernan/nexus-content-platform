@@ -328,7 +328,7 @@ describe('§14 第六片：对齐那两键接进事务与画布', () => {
     specs.forEach((spec) => {
       expect(spec.appliesTo(node, 'mobile'), `${spec.id} 在网格那一档不该摆出输入口`).toBe(false);
     });
-    // 而代码那一寸也不发：发得出与读得回是同一判据（codegen / code-parse 共用 ALIGNABLE_MODES）
+    // 而代码那一寸也不发：发得出与读得回是同一判据（codegen / code-parse / layout 共用 types.ts 的 ALIGNABLE_MODES）
     const code = generatePageComponent(studio.getSnapshot().page!, {}, 'Home').contents;
     const line = code.split('\n').find((l) => l.includes(actions.id))!;
     expect(line).not.toContain('justify-');

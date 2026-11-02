@@ -29,6 +29,12 @@ import { loginMember, reusableMemberWithProject } from './support/auth-session';
  * ⑧ 对齐那两格（主轴/交叉轴，腿 P，§14 第六片）只在**投影出来是自动布局**的那一档摆得出来：
  *    求解器的 grid / wrap 分支不碰这两个键，面板也就不给输入口。这一寸走完"面板 → 画布 →
  *    代码 → 落库 → 访客 → 再从代码改回来"，两个平面比的是同一把尺（相对盒子，不是各页面原点）。
+ * ⑨ `layout.reverse`（腿 Q，§14 第七片）此前只有代码那一寸认得它：codegen 发得出 `flex-col-reverse`、
+ *    code-parse 也读得回来，而**求解器不认这个键** ⇒ 画布按正序摆、访客按反序摆（§16 两份投影矛盾）。
+ *    这一片补的是求解器那半边，所以量的正是"画布动了没有"：主轴镜像、交叉轴一个字都不动，
+ *    画布与访客同一把尺。这一格面板还没有输入口 ⇒ 写入走代码视图，而徽标与那句"面板没有输入口"
+ *    照样数得到它（腿 H2 那条语义的延续）。撤掉这一格走**撤销**：回写是按档合并的（代码里没提的键
+ *    从模型留着），所以在代码里删掉那条类抹不掉那个键；重做要量出同一寸。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -968,6 +974,203 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     await expect(coder.locator('[data-responsive-channel="layout.items"]')).toContainText('这一档 居中');
     await coder.screenshot({ path: 'screenshots/responsive-align-code-readback.png', fullPage: true });
     stamp('腿 P：代码里改一条 md:items-* → 回写进那一条规则 + 面板读数跟着走');
+
+    // 腿 Q：`layout.reverse`（§14 第七片）。这一格在第七片之前**只有代码那一寸认得它**：
+    // codegen 发得出 `flex-col-reverse`、code-parse 也读得回来，而求解器（layout.ts）不认这个键
+    // ⇒ 画布按正序摆、发布页与导出的代码按反序摆（§16 两份投影互相矛盾，§159 同一件事）。
+    // 这一片补的是求解器那半边，所以这条腿量的是"画布动了没有"：主轴镜像、交叉轴一个字都不动。
+    // 面板还没有这一格（`RESPONSIVE_CHANNELS` 里没有 reverse 那条 spec）⇒ 写入只能走代码视图，
+    // 而徽标与那句"面板没有输入口"照样数得到它——腿 H2 那条语义在这一格上的延续。
+    const forwardActions = await canvasBox(carriers.actionsId);
+    const forwardA = await canvasBox(carriers.ctaId);
+    const forwardB = await canvasBox(carriers.secondaryId);
+    const contentTop = forwardActions.top + pad.top;
+    const contentBottom = forwardActions.top + forwardActions.height - pad.bottom;
+    expect(
+      forwardA.top < forwardB.top,
+      `起点该是正序：Primary ${JSON.stringify(forwardA)} 在 Secondary ${JSON.stringify(forwardB)} 之上`,
+    ).toBe(true);
+    const badgeBefore = Number(await tab(coder, 'tablet').getAttribute('data-breakpoint-impact'));
+
+    await coder.click('[data-view="code"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await coder.click('[data-code-edit]');
+    const reverseEditor = coder.locator('[data-code-editor]');
+    await expect(reverseEditor).toBeVisible();
+    const reverseLines = (await reverseEditor.inputValue()).split('\n');
+    const reverseAt = reverseLines.findIndex((l) => l.includes(`data-nexus-id="${carriers.actionsId}"`));
+    const reverseLine = reverseAt < 0 ? undefined : reverseLines[reverseAt];
+    if (reverseLine === undefined) {
+      throw new Error(`代码里没有 Actions 那一行（${carriers.actionsId}）：反向这条腿没有对象`);
+    }
+    // 锚点取这一档自己的方向类：这一档解出来是竖排（seeded 那条规则把横排翻成竖排），
+    // 所以发得出 `md:flex-col`，而反向类是同一条 CSS 属性上的另一个值——作者就是这么手写进去的。
+    if (!reverseLine.includes('md:flex-col')) {
+      throw new Error(`Actions 那一行读不到 md:flex-col（这一档解出来该是竖排）：${reverseLine}`);
+    }
+    if (reverseLines.some((l, i) => i !== reverseAt && l.includes('md:flex-col'))) {
+      throw new Error('别的节点也带 md:flex-col：这一改不能归给 Actions');
+    }
+    reverseLines[reverseAt] = reverseLine.replace('md:flex-col', 'md:flex-col md:flex-col-reverse');
+    await reverseEditor.fill(reverseLines.join('\n'));
+    await coder.click('[data-code-apply]');
+    await expect(coder.locator('[data-code-report-applied]')).toContainText('responsive');
+    const reverseViewLine = coder.locator('[data-code-line="selected"]');
+    await expect(reverseViewLine).toContainText('md:flex-col-reverse');
+    await coder.screenshot({ path: 'screenshots/responsive-reverse-code.png', fullPage: true });
+    // 落库：reverse 并进 tablet 那一条规则，同一条里的 mode/padding/justify/items/size 一个都不掉；
+    // 而设计值那一份 `layout` 不许多出 `reverse` 这个键（那是这一档的覆盖，不是元素本来就是反的）。
+    // 这份形状后面还要再对一次：重做放回的不是"一个带 reverse 的规则"，而是这一寸逐字相同的那一份文档。
+    const reverseAppliedRules = [
+      { breakpoint: 'mobile', patch: { layout: { gap: 40, mode: 'vertical', columns: 2 } } },
+      {
+        breakpoint: 'tablet',
+        patch: {
+          layout: {
+            mode: carriers.seeded.modeValue,
+            padding: carriers.seeded.padding,
+            justify: 'space-between',
+            items: 'center',
+            reverse: true,
+          },
+          size: { width: 600, height: 400 },
+        },
+      },
+    ];
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(reverseAppliedRules);
+    const designLayout = (await nodeOnServer(coder, projectId, carriers.actionsId)).layout as Record<
+      string,
+      unknown
+    >;
+    expect(designLayout, `设计值那一份 layout 不该被这一档的覆盖沾上：${JSON.stringify(designLayout)}`).not.toHaveProperty(
+      'reverse',
+    );
+    stamp('腿 Q：代码里写 md:flex-col-reverse → 回写进 tablet 那一条规则（设计值不动）');
+
+    await coder.click('[data-view="canvas"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await coder.click('[data-breakpoint-tab="tablet"]');
+    const reversedActions = await canvasBox(carriers.actionsId);
+    const reversedA = await canvasBox(carriers.ctaId);
+    const reversedB = await canvasBox(carriers.secondaryId);
+    expect(
+      [reversedActions.width, reversedActions.height],
+      '反向只挪孩子：容器这一档解出来的盒子还是面板写下去那两个数',
+    ).toEqual([forwardActions.width, forwardActions.height]);
+    // 镜像（不是"两个孩子换了位置"这么含糊）：每个孩子到内容下沿的距离 = 正序时它到内容上沿的距离
+    expect(
+      contentBottom - (reversedA.top + reversedA.height),
+      `主轴镜像：Primary 离内容下沿（${contentBottom}）的距离该等于正序时它离内容上沿（${contentTop}）的距离（正序 ${JSON.stringify(forwardA)}，反序 ${JSON.stringify(reversedA)}）`,
+    ).toBe(forwardA.top - contentTop);
+    expect(
+      contentBottom - (reversedB.top + reversedB.height),
+      `主轴镜像：Secondary 同上（正序 ${JSON.stringify(forwardB)}，反序 ${JSON.stringify(reversedB)}）`,
+    ).toBe(forwardB.top - contentTop);
+    expect(
+      reversedB.top < reversedA.top,
+      `顺序真的翻了：Secondary ${JSON.stringify(reversedB)} 该在 Primary ${JSON.stringify(reversedA)} 之上`,
+    ).toBe(true);
+    // 交叉轴一个字都不动（CSS 的 `*-reverse` 只挪主轴起点；这条是求解器最容易写歪的地方）
+    for (const [name, before, after] of [
+      ['Primary', forwardA, reversedA],
+      ['Secondary', forwardB, reversedB],
+    ] as const) {
+      expect([after.left, after.width, after.height], `反向不动交叉轴与尺寸：${name} 的 left/width/height 该照旧`).toEqual([
+        before.left,
+        before.width,
+        before.height,
+      ]);
+    }
+    const relReversedA = relBox(reversedA, reversedActions);
+    const relReversedB = relBox(reversedB, reversedActions);
+    await coder.screenshot({ path: 'screenshots/responsive-reverse-canvas.png', fullPage: true });
+    // 面板那一侧：徽标数得到这一格（键在模型里就数），而它自己没有输入口 ⇒ 那句话点名点得到它
+    await expect(tab(coder, 'tablet'), '模型里多了一个键，徽标就多一处').toHaveAttribute(
+      'data-breakpoint-impact',
+      String(badgeBefore + 1),
+    );
+    await expect(coder.locator('[data-responsive-outside]')).toContainText('layout.reverse');
+    stamp('腿 Q：反向的画布摆放（主轴镜像 + 交叉轴不动）+ 徽标数得到没有输入口的那一格');
+
+    // 访客那一寸：同一份模型按 tablet 解出来的几何就是画布上那一份（第七片要合的正是这两份投影）
+    const reversePublishedPath = await publishPublic(coder, projectId);
+    expect(reversePublishedPath, '重复发布是换版本，路径不变').toBe(publicPath);
+    const reverseVisitorContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const reverseVisitor = await reverseVisitorContext.newPage();
+    await reverseVisitor.goto(url('viewport=tablet'));
+    await expect(reverseVisitor.locator('[data-published-root]')).toBeVisible({ timeout: 60_000 });
+    const revPubBox = (id: string) => boxIn(reverseVisitor.locator(`[data-published-variant="tablet"]`), id, '公开页 tablet 那一份');
+    const revPubActions = await revPubBox(carriers.actionsId);
+    const revPubA = await revPubBox(carriers.ctaId);
+    const revPubB = await revPubBox(carriers.secondaryId);
+    expect(
+      relBox(revPubA, revPubActions),
+      `Primary 的相对几何：画布反序那份与公开页该同一寸（画布 ${JSON.stringify(relReversedA)}，公开页 ${JSON.stringify(relBox(revPubA, revPubActions))}）`,
+    ).toEqual(relReversedA);
+    expect(
+      relBox(revPubB, revPubActions),
+      `Secondary 同上（画布 ${JSON.stringify(relReversedB)}，公开页 ${JSON.stringify(relBox(revPubB, revPubActions))}）`,
+    ).toEqual(relReversedB);
+    expect(
+      revPubB.top < revPubA.top,
+      `访客脸上反序看得见：Secondary ${JSON.stringify(revPubB)} 在 Primary ${JSON.stringify(revPubA)} 之上`,
+    ).toBe(true);
+    await reverseVisitor.screenshot({ path: 'screenshots/responsive-reverse-visitor-tablet.png', fullPage: true });
+    await reverseVisitorContext.close();
+    stamp('腿 Q：反向发布到访客（与画布同一把尺）');
+
+    // 撤掉这一格：走**撤销**那一条（§150——`studio.execute('代码编辑', ops)` 与面板同源，一次应用 = 一条事务）。
+    // 不是在代码里把那条类删掉：`responsiveOps` 是**按档合并**的（代码里没提的键从模型留着，否则改一条
+    // `md:gap-*` 会顺带抹掉同档的 padding 与尺寸），所以删掉一条类抹不掉那个键——发射侧的
+    // `{reverse:false}` 又没有"取消反向"这条类（ADR-0069 第七片仍欠），人工出口只剩撤销与「清掉这一档」。
+    await coder.keyboard.press('Escape');
+    await coder.click('[data-view="canvas"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await coder.click('[data-breakpoint-tab="tablet"]');
+    await undoButton(coder).click();
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual([
+        { breakpoint: 'mobile', patch: { layout: { gap: 40, mode: 'vertical', columns: 2 } } },
+        {
+          breakpoint: 'tablet',
+          patch: {
+            layout: {
+              mode: carriers.seeded.modeValue,
+              padding: carriers.seeded.padding,
+              justify: 'space-between',
+              items: 'center',
+            },
+            size: { width: 600, height: 400 },
+          },
+        },
+      ]);
+    expect(await canvasBox(carriers.ctaId), '撤销一次就一格不差地回到正序（一次应用 = 一条事务）').toEqual(forwardA);
+    expect(await canvasBox(carriers.secondaryId), '第二个孩子也一样').toEqual(forwardB);
+    await expect(tab(coder, 'tablet'), '键没了，徽标跟着减一处').toHaveAttribute(
+      'data-breakpoint-impact',
+      String(badgeBefore),
+    );
+    await coder.screenshot({ path: 'screenshots/responsive-reverse-reverted.png', fullPage: true });
+    stamp('腿 Q：撤销那次代码应用 → 规则里键消失 + 画布回到正序');
+
+    // 重做：反向再回来，而且量的还是同一寸（撤销/重做不是两条不同的投影）
+    await redoButton(coder).click();
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(reverseAppliedRules);
+    const redoneActions = await canvasBox(carriers.actionsId);
+    const redoneA = await canvasBox(carriers.ctaId);
+    expect(
+      contentBottom - (redoneA.top + redoneA.height),
+      `重做后的镜像与撤销前同一寸（容器 ${JSON.stringify(redoneActions)}，Primary ${JSON.stringify(redoneA)}）`,
+    ).toBe(forwardA.top - contentTop);
+    expect(redoneA, '重做就是把那一条事务放回去：盒子与撤销前逐个数相同').toEqual(reversedA);
+    await undoButton(coder).click();
+    expect(await canvasBox(carriers.ctaId), '再撤一次，留一份干净的起点给下一次跑腿').toEqual(forwardA);
+    stamp('腿 Q：重做 → 镜像同一寸；再撤一次收尾');
 
     await codeContext.close();
   });

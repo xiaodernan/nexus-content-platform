@@ -160,6 +160,133 @@ describe("resolveLayout — distribution", () => {
   });
 });
 
+describe("resolveLayout — reverse（§14 第七片）", () => {
+  // CSS 的 `flex-direction: *-reverse` 只把**主轴起点**搬到另一端；这一组腿钉的就是"求解器
+  // 算出来的那份"与"浏览器按那条类算出来的那份"是同一寸。发射侧（codegen）用同一个判据
+  // `ALIGNABLE_MODES` 决定发不发这条类，所以第五、六条腿的"什么都不动"与代码里"一条类都不发"
+  // 是同一件事的两面（§16）。
+  it("竖排反向：第一个孩子落在最下面，往上依次排", () => {
+    const a = fixedShape("a", 100, 50);
+    const b = fixedShape("b", 100, 50);
+    const c = fixedShape("c", 100, 50);
+    const page = verticalFrame([a, b, c]);
+    page.nodes[page.rootId]!.layout.reverse = true;
+    const layout = resolveLayout(page);
+    // 正向那一份是 0 / 50 / 100（上面 vertical 那一组钉着）；反向把三个数镜像成 150 / 100 / 50
+    expect([layout.nodes[a.id]!.y, layout.nodes[b.id]!.y, layout.nodes[c.id]!.y]).toEqual([
+      150, 100, 50,
+    ]);
+    // 交叉轴一个字节不动：反向说的是主轴，不是"把孩子横着翻"
+    expect([layout.nodes[a.id]!.x, layout.nodes[b.id]!.x, layout.nodes[c.id]!.x]).toEqual([0, 0, 0]);
+  });
+
+  it("横排反向：第一个孩子落在最右边", () => {
+    const a = fixedShape("a", 100, 50);
+    const b = fixedShape("b", 100, 50);
+    const page = verticalFrame([a, b]);
+    page.nodes[page.rootId]!.layout.mode = "horizontal";
+    page.nodes[page.rootId]!.layout.reverse = true;
+    const layout = resolveLayout(page);
+    // 容器 400 宽、两个孩子各 100：正向 x = 0 / 100，反向 = 400-0-100 / 400-100-100
+    expect([layout.nodes[a.id]!.x, layout.nodes[b.id]!.x]).toEqual([300, 200]);
+    expect([layout.nodes[a.id]!.y, layout.nodes[b.id]!.y]).toEqual([0, 0]);
+  });
+
+  it("反向 × justify：主轴起点搬过去之后，justify 说的还是那一起点", () => {
+    const a = fixedShape("a", 100, 40);
+    const b = fixedShape("b", 100, 40);
+    const page = verticalFrame([a, b]);
+    page.nodes[page.rootId]!.layout.justify = "space-between";
+    page.nodes[page.rootId]!.layout.reverse = true;
+    const layout = resolveLayout(page);
+    // 正向 space-between 是 0 / 160；反向 = 镜像 ⇒ a 贴下沿、b 贴上沿
+    //（CSS：column-reverse 的 main-start 在下，justify-content:flex-start 就是把东西放最下面）
+    expect([layout.nodes[a.id]!.y, layout.nodes[b.id]!.y]).toEqual([160, 0]);
+  });
+
+  it("反向不动交叉轴：items=end 那一份的 x 与正向完全一样", () => {
+    const build = (reverse: boolean): number[] => {
+      const a = fixedShape("a", 100, 50);
+      const b = fixedShape("b", 100, 50);
+      const page = verticalFrame([a, b]);
+      page.nodes[page.rootId]!.layout.items = "end";
+      if (reverse) page.nodes[page.rootId]!.layout.reverse = true;
+      const layout = resolveLayout(page);
+      return [layout.nodes[a.id]!.x, layout.nodes[b.id]!.x, layout.nodes[a.id]!.y, layout.nodes[b.id]!.y];
+    };
+    expect(build(false)).toEqual([300, 300, 0, 50]);
+    expect(build(true)).toEqual([300, 300, 150, 100]);
+  });
+
+  it("判据之外的档位：grid / wrap / stack / none 摆 reverse 也一个像素都不动", () => {
+    const modes: ("grid" | "wrap" | "stack" | "none")[] = ["grid", "wrap", "stack", "none"];
+    modes.forEach((mode) => {
+      const solve = (reverse: boolean): string => {
+        const a = fixedShape("a", 100, 50);
+        const b = fixedShape("b", 100, 50);
+        const page = verticalFrame([a, b]);
+        const root = page.nodes[page.rootId]!;
+        root.layout.mode = mode;
+        if (mode === "grid") root.layout.columns = 2;
+        if (reverse) root.layout.reverse = true;
+        const layout = resolveLayout(page);
+        return [
+          layout.nodes[a.id]!.x,
+          layout.nodes[a.id]!.y,
+          layout.nodes[b.id]!.x,
+          layout.nodes[b.id]!.y,
+        ].join(",");
+      };
+      // 求解器在这些档位根本不碰主轴分配那一段——所以 codegen 也不在那里发反向类（同一判据）
+      expect(solve(true), `${mode} 那一档不该因为 reverse 移动任何东西`).toBe(solve(false));
+    });
+  });
+
+  it("溢出的反向容器照 CSS 一样越出上沿，而不是夹在 0 上重叠", () => {
+    const a = fixedShape("a", 100, 50);
+    const b = fixedShape("b", 100, 50);
+    const c = fixedShape("c", 100, 50);
+    const page = verticalFrame([a, b, c]);
+    page.nodes[page.rootId]!.size = { width: 400, height: 80 };
+    page.nodes[page.rootId]!.layout.reverse = true;
+    const layout = resolveLayout(page);
+    // 内容 150 > 容器 80：正向那一份 c 越出下沿（y=100），反向镜像 ⇒ b、c 越出上沿成负数。
+    // 夹 0 会让三个孩子叠在同一处，而 CSS 与正向那一支都不这么算（两边对称）。
+    expect([layout.nodes[a.id]!.y, layout.nodes[b.id]!.y, layout.nodes[c.id]!.y]).toEqual([
+      30, -20, -70,
+    ]);
+  });
+
+  it("反向不改容器自己的尺寸：hug 那一档量出来与正向同一个数", () => {
+    const build = (reverse: boolean): number => {
+      const page = verticalFrame(
+        [fixedShape("a", 100, 50), fixedShape("b", 100, 50), fixedShape("c", 100, 50)],
+        { size: { width: 400, height: "hug" } },
+      );
+      page.nodes[page.rootId]!.layout.gap = 10;
+      if (reverse) page.nodes[page.rootId]!.layout.reverse = true;
+      return resolveLayout(page).height;
+    };
+    expect(build(true)).toBe(build(false));
+    expect(build(false)).toBe(170); // 3*50 + 2*10
+  });
+
+  it("反向从断点规则里来：那一档的画布镜像，设计尺寸那一档不动，模型也没被改写", () => {
+    const a = fixedShape("a", 100, 50);
+    const b = fixedShape("b", 100, 50);
+    const page = verticalFrame([a, b]);
+    page.nodes[page.rootId]!.responsive = [
+      { breakpoint: "tablet", patch: { layout: { reverse: true } } },
+    ];
+    const design = resolveLayout(page);
+    const tablet = resolveLayout(page, { breakpoint: "tablet" });
+    expect([design.nodes[a.id]!.y, design.nodes[b.id]!.y]).toEqual([0, 50]);
+    expect([tablet.nodes[a.id]!.y, tablet.nodes[b.id]!.y]).toEqual([150, 100]);
+    // 预览只吃规则，不写模型（§16）
+    expect(page.nodes[page.rootId]!.layout.reverse, "设计值里不该多出 reverse").toBeUndefined();
+  });
+});
+
 describe("resolveLayout — grid and absolute", () => {
   it("lays out a 3 column grid with row wrapping", () => {
     const cells = Array.from({ length: 6 }, (_, i) =>

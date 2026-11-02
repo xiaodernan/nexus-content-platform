@@ -219,7 +219,8 @@
 画布上按下去东西真的会挪，但代码那一寸发不出、面板上也没有输入口。这一片一次把三处接上，
 并且把它们钉在**同一个判据**上。
 
-- 判据只有一份：`codegen.ts` 的 `ALIGNABLE_MODES = ["vertical", "horizontal"]`。求解器
+- 判据只有一份：`ALIGNABLE_MODES = ["vertical", "horizontal"]`（写在 `codegen.ts`，**第七片起搬到
+  `types.ts`**——多了一个会读它的模块 `layout.ts`，而 `codegen` 依赖 `layout`，留在原地是环）。求解器
   （`layout.ts`）的 grid 与 wrap 两个分支在碰 `justify`/`items` 之前就 `return` 了，所以画布上
   这两个键在那两档什么都不摆。发射（断点那一档 + 无前缀基线 + `reverse` 那一条）、回写
   （`decodeVariant` 收不收这个类名）、面板（`appliesTo` 摆不摆得出那一格）五处都指向这一个常量。
@@ -258,4 +259,66 @@
   画布不动；要么教会求解器，要么像这一片一样把发射关掉。`position`（x/y）只有 `mobile` 那一档通。
   `mode` 的 `stack`/`none` 两档、`rowGap`/`crossGap`/`scroll`/`clipContent`、`typography` 除字号、
   `style` 除填充与透明度，代码这一寸照旧不吃。
+
+**第七片（2026-11-02）：`layout.reverse`——教的是求解器那半边，不是发射那半边**
+
+上一片最后那句「仍欠」说的是同一件事的两半：`reverse` 在代码平面早就走得通了
+（`layoutClasses` 发 `flex-col-reverse`、`decodeVariant` 认得回来），但 `layout.ts` 从头到尾
+没有读过这个键。于是模型里写着"这一档反着排"的元素，画布按正序摆、公开页与导出的代码按反序摆
+——§16 说的"三处同一份模型"在这一格上是断的，而断的方向与第六片那条②相反：**不是代码写着而
+什么都没动，是代码与画布各说一套**。
+
+- 决定：**教求解器**，而不是把发射关掉。三条理由：模型 `Layout` 早就声明了 `reverse` 这个键；
+  代码平面两头（发射 + 回写）已经往返成立；`*-reverse` 是 CSS 里真实存在且语义没有歧义的一格。
+  反向的修法（照第六片那条①的路子抑制发射）要丢掉作者已经能写的东西，而这一格画布上按下去
+  本来就该动。
+- 改动面为零这件事是先量的，不是假设的：`grep -rn "reverse" apps/web/src` 只命中两处 SVG marker 的
+  `orient="auto-start-reverse"`（图视图的箭头方向，与这个键无关），**没有一处写 `layout.reverse`**——今天
+  没有任何界面能写这个键，可达的写入方只有代码视图与 AI 补丁。所以求解器学会它之后，存量页面一份投影
+  都不变（design-model 那 404 条当场全绿，之后才是新腿）。
+- CSS 语义照抄，不是自创：`flex-col-reverse` / `flex-row-reverse` **只把主轴起点换到另一头**，
+  交叉轴跟着 writing-mode 走、不翻。落进求解器是一行镜像 `mainOffset = mainTotal - cursor - mainLen`，
+  而且**故意不在 0 处夹住**——溢出的反向容器从内容盒的上沿/左沿探出去，正如正向容器从下沿/右沿探出去。
+  夹住的话两份投影在"内容比容器大"这一档上又分岔，而那一档在 hug 容器里天天出现。
+- 判据搬了家：`ALIGNABLE_MODES` 从 `codegen.ts` 移到 `types.ts`。不是整理癖——这一片的读者里
+  多了 `layout.ts`，而 `codegen.ts` 本来就 `import { applyResponsive } from "./layout"`，
+  留在原地要形成环。搬过去之后消费者仍是同一条链上的五处：发射（基线 + 断点档 + 反向类）、
+  回写（`decodeVariant` 收不收）、面板（`appliesTo` 摆不摆得出那一格）、求解器（摆不摆）。
+  `src/index.ts` 是 `export * from "./types"`，包外消费者（`responsive-editor.ts`）不用改。
+- 倒表还是派生的：`codegen.ts` 导出正表 `REVERSE_CLASS: Partial<Record<LayoutMode, string>>`
+  （只有那两档有反向类，所以是 `Partial`），`code-parse.ts` 的 `MODE_OF_REVERSE_CLASS` 由它反推。
+- 回写那侧多了一条归属规矩，是**被一条红逼出来的**：`md:flex-col-reverse` 同时说明"方向是纵排"
+  和"这档反过来"。若照直写 `layout.mode`，一条本来只有 `{reverse:true}` 的规则会多出
+  `{mode:"vertical"}` 这个模型里没有的键——往返那条腿（"发得出也读得回，一个补丁都不发"）当场红。
+  现在只在**与这一档解出来的排布不同**时才写 `mode`：作者手写 `md:flex-col md:flex-col-reverse`
+  落在本来就是纵排的档上 ⇒ 只补 `reverse`；落在横排档上 ⇒ `mode` 与 `reverse` 一起收（那确实是
+  一次改排布）。这一条与腿 O 的"无前缀类落进手机规则"是同一类事：**键归给真的说了这句话的那一层**。
+- 发射那一行同时带着 `md:flex-col` 与 `md:flex-col-reverse`（同一个 CSS 属性的两种写法）。
+  这不是没量的：用本仓库装的 **Tailwind v4.3.3** 现编一份含这两个类的样式，
+  `.flex-col` 在 `.flex-col-reverse` **之前**（`.flex-row` 同样在 `.flex-row-reverse` 之前），
+  后者赢。留正向类而不是"反向时不发正向"是有意的：正向那条是 `layout.mode` 自己声明的，
+  回写自检（每条 `checked` 类必须在重投影里再出现）要求它还在——抑制它会让作者那条无害的
+  手写覆盖整节点回写作废（§19 那种最贵的走法）。**依赖的是框架产出的顺序**，这一条记在这儿，
+  换框架或升大版本时要重新量一遍。
+- 撤掉这一格的人工出口只有两条，这是量出来的不是推的：第一版腿 Q 想在代码视图里把
+  `md:flex-col-reverse` 删掉，应用后报「没有可回写的改动」——`responsiveOps` 是**按档合并**的
+  （`mergePatch` 把解码出的那一档并进已有规则，代码里没提的键从模型留着；不这么合并的话改一条
+  `md:gap-*` 会顺带抹掉同档的 padding 与尺寸）。删一条类因此抹不掉一个键，而 `{reverse:false}`
+  又没有对应的类（下一条）。所以这条腿钉的是**撤销/重做**：一次代码应用走 `studio.execute('代码编辑', ops)`
+  与面板同源的 Command（§150），撤销后落库那份逐字回到合并前、画布回到正序、徽标退回 N；重做后
+  落库那份与撤销前逐字相同、镜像量出同一寸。
+- 读数：`packages/design-model` **32 files / 418 passed**；连 `apps/web` 那两个响应式文件
+  **34 files / 464 passed**；e2e 腿 A–Q **1 passed（1.4m，暖服务 3101）**。八条变异臂的预测红集与实际相符
+  （A 求解器不读 `reverse` → 6 红 / A2 顺手镜像交叉轴 → 2 红 / A3 镜像夹在 0 上 → 恰 1 红 /
+  C 回写无条件补 `mode` → 1 红 / D 从不补 → 1 红 / E 完全不认反向类 → 2 红 / F 断点档不发 → 4 红 /
+  G 基线不发 → 1 红），每条跑完按字节还原、`RESIDUE=false`、复跑全绿。
+  **发射侧那两处 `ALIGNABLE_MODES` 判据各删一项没有红腿可当载体**：`REVERSE_CLASS` 是 `Partial`，
+  grid / wrap 查不到条目就什么都不发，判据被表遮住——所以这条判据的证据在求解器（A）与面板
+  （`appliesTo` 那两格 + 腿 Q 画布那一段）两侧，不在发射侧。
+- **仍欠**（第七片之后）：这一档只声明 `{reverse:false}`、而更窄那档是反向的——CSS 里没有
+  "取消反向"这条类，得重发正向方向类；这一片没做发射，已在 `codegen.ts` 的注释里点名。
+  `reverse` 也还没有面板输入口（`RESPONSIVE_CHANNELS` 十格里没有它），作者的写入口只有代码视图，
+  界面上它只出现在徽标与那句"这几处面板没有输入口"里。往下还是那几笔：`position`（x/y）除
+  `mobile` 档、`mode` 的 `stack`/`none`、`rowGap`/`crossGap`/`scroll`/`clipContent`、
+  `typography` 除字号、`style` 除填充与透明度。
 

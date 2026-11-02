@@ -11,15 +11,15 @@
 
 import { childrenOf, clone, getByPath, sameValue, setOnObject } from "./nodes";
 import {
-  ALIGNABLE_MODES,
   DISPLAY_CLASSES,
   generatePageComponent,
   ITEMS_CLASS as ITEMS_CLASS_BY_VALUE,
   JUSTIFY_CLASS as JUSTIFY_CLASS_BY_VALUE,
   PADDING_SIDES,
+  REVERSE_CLASS,
 } from "./codegen";
 import { applyResponsive } from "./layout";
-import { RESPONSIVE_PATCH_GROUPS } from "./types";
+import { ALIGNABLE_MODES, RESPONSIVE_PATCH_GROUPS } from "./types";
 import { STATE_VARIANT } from "./states";
 import type { NodeState, NodeStates, NodeStateStyle } from "./states";
 import type { PatchOp } from "./patch";
@@ -634,6 +634,20 @@ const MODE_OF_DISPLAY_CLASS: Record<string, LayoutMode> = (() => {
 /** codegen 可能发出来的全部 display 类（含不表态的 `flex`） */
 const DISPLAY_CLASS_SET: readonly string[] = [...new Set(Object.values(DISPLAY_CLASSES).flat())];
 
+/**
+ * 反向类 → 排布：从发射侧那张 `REVERSE_CLASS` 反推（与 `MODE_OF_DISPLAY_CLASS` 同一条理由，
+ * 拼法不抄第二份）。一张表同时说了**方向**与**反向**两件事，所以读回来两个键都写：
+ * 只写 `reverse` 会把"作者说这一档是竖排"那一半丢掉，重投影就发不出这条类，
+ * 自检认不出 ⇒ 整个节点的回写作废（§19）。
+ */
+const MODE_OF_REVERSE_CLASS: Record<string, LayoutMode> = (() => {
+  const out: Record<string, LayoutMode> = {};
+  for (const [mode, cls] of Object.entries(REVERSE_CLASS)) {
+    if (cls) out[cls] = mode as LayoutMode;
+  }
+  return out;
+})();
+
 /** `md:p-[…]` 一条管四边，`md:pt-[…]` 一条管一边——边的名字取自 codegen 那张表 */
 const ALL_PADDING_SIDES = PADDING_SIDES.map(([side]) => side);
 
@@ -758,6 +772,21 @@ function decodeVariant(
     if (at < 0) continue;
     list.splice(at, 1);
     layout.mode = mode;
+    out.checked.push(cls);
+  }
+  // 反向那一格（§14 第七片）：`md:flex-col-reverse` 一条类同时说了**方向**与**反向**。
+  // `reverse` 一定写；`mode` 只在"这一档本来解出来的排布"与它不一致时才写——
+  // 一致时凭空多一个模型里没有的键（往返那条腿的标准是"一个补丁都不发"），
+  // 不一致时不写就会让重投影发出 `md:flex-row-reverse`，自检认不出作者写的这一条
+  // ⇒ 整个节点的回写作废（§19）。判据与发射侧同一份（`REVERSE_CLASS` 只列自动布局那两档）。
+  for (const [cls, mode] of Object.entries(MODE_OF_REVERSE_CLASS)) {
+    const at = list.indexOf(cls);
+    if (at < 0) continue;
+    list.splice(at, 1);
+    layout.reverse = true;
+    const modeOfTier =
+      (layout.mode as LayoutMode | undefined) ?? applyResponsive(node, breakpoint).layout.mode;
+    if (modeOfTier !== mode) layout.mode = mode;
     out.checked.push(cls);
   }
   // `flex` 三种排布都发，本身不表态：跟着消费掉，但不写进 checked——写进去就要求重投影能再现它，

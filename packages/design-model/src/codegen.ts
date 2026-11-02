@@ -10,6 +10,7 @@ import { applyResponsive } from "./layout";
 import { childrenOf } from "./nodes";
 import { NODE_STATES, STATE_VARIANT } from "./states";
 import { toHex, tokenRefKey } from "./tokens";
+import { ALIGNABLE_MODES } from "./types";
 import type {
   BreakpointName,
   DesignDocument,
@@ -75,6 +76,16 @@ export const DISPLAY_CLASSES: Record<LayoutMode, string[]> = {
   none: [],
 };
 
+/**
+ * `reverse` 那一格 → 方向类。**发射与回写共用这张表**（与 `JUSTIFY_CLASS` / `ITEMS_CLASS` 同一条
+ * 理由：各抄一份迟早说谎）。只有那两档自动布局有反向类（判据同样是 `ALIGNABLE_MODES`），
+ * 所以这张表是 `Partial`：回写读不到条目的档位就不该认这个 token。
+ */
+export const REVERSE_CLASS: Partial<Record<LayoutMode, string>> = {
+  vertical: "flex-col-reverse",
+  horizontal: "flex-row-reverse",
+};
+
 /** 等分网格的列数类：基线与断点同一个拼法，回写才认得回来 */
 function gridColsClass(columns: number | undefined): string {
   return `grid-cols-[repeat(${Math.max(1, columns ?? 1)},minmax(0,1fr))]`;
@@ -122,12 +133,6 @@ export const ITEMS_CLASS: Record<Layout["items"], string> = {
   stretch: "items-stretch",
   baseline: "items-baseline",
 };
-
-/**
- * 求解器真会按 justify/items 摆放的那两档排布。发射、回写、面板那三处判据都指向这一份：
- * 三处不一致时最坏的走法不是少发一条类，而是回写读了、重投影发不出来 ⇒ 整个节点的回写作废（§19）。
- */
-export const ALIGNABLE_MODES: readonly LayoutMode[] = ["vertical", "horizontal"];
 
 /** CSS 颜色对象 → hex；字面量里的空格换成 Tailwind 任意值要求的下划线 */
 function colorLiteral(value: unknown): string | null {
@@ -297,7 +302,8 @@ function layoutClasses(
     out.push("relative");
   }
   if (layout.reverse && ALIGNABLE_MODES.includes(layout.mode)) {
-    out.push(layout.mode === "vertical" ? "flex-col-reverse" : "flex-row-reverse");
+    const cls = REVERSE_CLASS[layout.mode];
+    if (cls) out.push(cls);
   }
   if (layout.gap) {
     const cls = lengthClass(layout.gap, prefix, (inner) => `gap-[${inner}]`);
@@ -526,6 +532,16 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
     if (ALIGNABLE_MODES.includes(resolvedMode)) {
       if (layout?.justify !== undefined) out.push(`${variant}${JUSTIFY_CLASS[layout.justify]}`);
       if (layout?.items !== undefined) out.push(`${variant}${ITEMS_CLASS[layout.items]}`);
+      // `reverse` 与上面两键走同一条判据、同一条"这一档自己声明了才发"。发出去的是**方向类**
+      // `md:flex-col-reverse`：它把窄档留下的 `md:flex-col` / 基线的 `flex-col` 顶掉（同一个 CSS
+      // 属性，后定义的 utility 赢，基线那一条也是这么发的）。求解器从这一片起认这个键，
+      // 所以画布与访客读的是同一份顺序（§16）。
+      // 反过来——这一档只声明 `{reverse:false}` 而窄档是反向的——CSS 里没有"取消反向"这条类，
+      // 得重发正向方向类；那一条发射不在这一片，缺的那寸写进 ADR-0069 的「仍欠」。
+      if (layout?.reverse === true) {
+        const cls = REVERSE_CLASS[resolvedMode];
+        if (cls) out.push(`${variant}${cls}`);
+      }
     }
     // padding：patch 写了哪几条边就发哪几条。`applyResponsive` 对 `layout` 组是整键
     // `Object.assign`，所以一条 `{padding:{top:24}}` 的意思就是"这一档的 padding 只有 top"——
