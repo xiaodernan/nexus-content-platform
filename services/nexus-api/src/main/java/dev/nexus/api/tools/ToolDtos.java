@@ -20,6 +20,16 @@ public final class ToolDtos {
     }
 
     /**
+     * The body a caller sends to REPLACE a declaration's summary and schema.
+     *
+     * <p>There is no {@code name}, {@code owner} or {@code id} here: the name is the registry's global lookup
+     * key and the owner and id identify the row, so an update changes only what a declaration SAYS, never
+     * which declaration it is.
+     */
+    public record UpdateRequest(String summary, JsonNode inputSchema) {
+    }
+
+    /**
      * One tool as every read door answers it.
      *
      * <p>There is no {@code url}, {@code command}, {@code invocationCount} or {@code lastCalledAt} field: this

@@ -186,4 +186,88 @@ class ToolServiceTest {
                 .hasMessageContaining("owner");
         verify(repository, never()).findById(any());
     }
+
+    @Test
+    void readingAToolThatNamesNothingIsA404() {
+        when(repository.findById("tool-missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().get("tool-missing"))
+                .isInstanceOf(UnknownTool.class)
+                .hasMessageContaining("tool-missing");
+    }
+
+    @Test
+    void readingAToolAnswersTheStoredRow() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.findById("tool-1")).thenReturn(Optional.of(mine));
+
+        assertThat(service().get("tool-1")).isSameAs(mine);
+        verify(repository, never()).save(any(ToolEntry.class));
+    }
+
+    @Test
+    void anUpdateWithoutAnOwnerIsRefusedBeforeAnyRead() {
+        assertThatThrownBy(() -> service().update("tool-1", "  ", "a tool", mapper.readTree("{}")))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("owner");
+        verify(repository, never()).findById(any());
+    }
+
+    @Test
+    void updatingAnUnknownIdIsA404AndSavesNothing() {
+        when(repository.findById("tool-missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().update("tool-missing", OWNER, "a tool", mapper.readTree("{}")))
+                .isInstanceOf(UnknownTool.class)
+                .hasMessageContaining("tool-missing");
+        verify(repository, never()).save(any(ToolEntry.class));
+    }
+
+    @Test
+    void aStrangerCannotUpdateAndTheRowIsUntouched() {
+        ToolEntry somebodys = row("tool-1", "acct-bob", "a.tool");
+        when(repository.findById("tool-1")).thenReturn(Optional.of(somebodys));
+
+        assertThatThrownBy(() -> service().update("tool-1", OWNER, "rewritten", mapper.readTree("{}")))
+                .isInstanceOf(NotYourTool.class)
+                .hasMessageContaining("another account");
+        assertThat(somebodys.getSummary()).isEqualTo("a tool");
+        verify(repository, never()).save(any(ToolEntry.class));
+    }
+
+    @Test
+    void theOwnerReplacesSummaryAndSchemaWhileTheNameAndInstantStay() throws Exception {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.findById("tool-1")).thenReturn(Optional.of(mine));
+        when(repository.save(mine)).thenAnswer(invocation -> invocation.getArgument(0));
+        JsonNode pretty = mapper.readTree("{\n  \"type\": \"object\"\n}");
+
+        ToolEntry updated = service().update("tool-1", "  acct-ada  ", "  A better sentence.  ", pretty);
+
+        assertThat(updated.getSummary()).isEqualTo("A better sentence.");
+        assertThat(updated.getInputSchema()).isEqualTo("{\"type\":\"object\"}");
+        assertThat(updated.getToolId()).isEqualTo("tool-1");
+        assertThat(updated.getName()).isEqualTo("a.tool");
+        assertThat(updated.getOwner()).isEqualTo(OWNER);
+        assertThat(updated.getCreatedAt()).isEqualTo(AT);
+        verify(repository).save(mine);
+    }
+
+    @Test
+    void anUpdateRefusesTheSameFieldBoundsBeforeSaving() throws Exception {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.findById("tool-1")).thenReturn(Optional.of(mine));
+
+        assertThatThrownBy(() -> service().update("tool-1", OWNER, "x".repeat(281), mapper.readTree("{}")))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("281");
+        assertThatThrownBy(() -> service().update("tool-1", OWNER, "a tool", mapper.readTree("\"not an object\"")))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("JSON OBJECT");
+        assertThatThrownBy(() -> service().update("tool-1", OWNER, "a tool",
+                        mapper.readTree("{\"pad\":\"" + "x".repeat(8183) + "\"}")))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("8193");
+        verify(repository, never()).save(any(ToolEntry.class));
+    }
 }

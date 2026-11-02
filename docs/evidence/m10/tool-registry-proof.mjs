@@ -22,9 +22,14 @@
 //   §4 removal: a stranger is 403 and the row remains, an unknown id is 200 `removed:false`, the owner's
 //      removal is 200 `removed:true`, the row is gone in `psql`, and the freed NAME can be declared AGAIN
 //      under a different owner — an id is not a name;
-//   §5 the rows and their canonical schemas SURVIVE A RESTART (a second JVM, the same database), and
+//   §5 details and the owner's update: a tool is readable BY ID (an id that names nothing is a 404), and the
+//      owner may REPLACE its summary and schema while the name, id, owner and creation instant do not move;
+//      a stranger's update is 403, a missing owner is 400, an unknown id is 404 and an over-bound schema is
+//      400, and every refusal leaves the row as it was — while `audit_entry` stays empty, because an update
+//      is a declaration edit rather than a trail fact;
+//   §6 the rows and their canonical schemas SURVIVE A RESTART (a second JVM, the same database), and
 //      `information_schema` shows the table has exactly the six declaration columns and no capability;
-//   §6 teardown.
+//   §7 teardown.
 //
 // Everything it creates is throwaway: a `pgvector/pgvector:pg16` container on a port nothing else is using,
 // removed by name at the end; the jar is built in an ISOLATED COPY under the OS temp dir (a running service
@@ -427,7 +432,64 @@ try {
   assert.notEqual(reclaimed.body.id, toolIdA, 'the new declaration is a new row, not the removed one');
   console.log(`[§4] a stranger's removal was 403 and the row stayed · an unknown id was 200 removed:false · a missing owner was 400 · the owner's removal was 200 removed:true and psql reads zero · the NAME weather.lookup was then declared again by another account as a NEW row — a name is not an id`);
 
-  // ── §5 the declarations and their canonical schemas survive a RESTART ──────────────────────────
+  // ── §5 details and the owner's update: read by id, and a declaration that can change what it SAYS ───
+  const readById = await call(`/tools/${q(reclaimed.body.id)}`);
+  assert.equal(readById.status, 200, `a tool by id must answer 200, got ${readById.status}: ${readById.text}`);
+  assert.equal(readById.body.name, 'weather.lookup');
+  assert.equal(readById.body.owner, other);
+  assert.deepEqual(Object.keys(readById.body).sort(), TOOL_FIELDS, `a tool carries exactly its six fields: ${readById.text}`);
+
+  const unknownRead = await call('/tools/tool-that-never-existed');
+  assert.equal(unknownRead.status, 404, `an id that names nothing must be 404, got ${unknownRead.status}: ${unknownRead.text}`);
+  assert.equal(unknownRead.body.error, 'unknown-tool');
+
+  const updatedSchema = { type: 'object', properties: { unit: { type: 'string', enum: ['c', 'f'] } } };
+  const putBody = (value) => ({ method: 'PUT', headers: asJson, body: JSON.stringify(value) });
+
+  // A stranger's update is refused BY NAME and the row keeps its sentence: ownership is checked before a
+  // single field is validated, so a stranger learns nothing about which summary the owner would accept.
+  const strangerUpdate = await call(`/tools/${q(reclaimed.body.id)}?owner=${q(stranger)}`,
+      putBody({ summary: 'Stolen summary.', inputSchema: {} }));
+  assert.equal(strangerUpdate.status, 403, `a stranger's update must be 403, got ${strangerUpdate.status}: ${strangerUpdate.text}`);
+  assert.equal(strangerUpdate.body.error, 'not-your-tool');
+
+  const noOwnerUpdate = await call(`/tools/${q(reclaimed.body.id)}`, putBody({ summary: 'x', inputSchema: {} }));
+  assert.equal(noOwnerUpdate.status, 400, `an update without an owner must be 400, got ${noOwnerUpdate.status}`);
+  assert.match(noOwnerUpdate.body.message, /owner/);
+
+  const unknownUpdate = await call(`/tools/tool-that-never-existed?owner=${q(other)}`, putBody({ summary: 'x', inputSchema: {} }));
+  assert.equal(unknownUpdate.status, 404, `an update of an id that names nothing must be 404, got ${unknownUpdate.status}`);
+  assert.equal(unknownUpdate.body.error, 'unknown-tool');
+
+  const overBoundUpdate = await call(`/tools/${q(reclaimed.body.id)}?owner=${q(other)}`,
+      putBody({ summary: 'One byte over.', inputSchema: { pad: 'x'.repeat(8183) } }));
+  assert.equal(overBoundUpdate.status, 400, `an update with an 8193-byte schema must be 400, got ${overBoundUpdate.status}`);
+  assert.match(overBoundUpdate.body.message, /8193/);
+
+  // None of the four refusals wrote anything: psql still reads the sentence the declaration was born with.
+  const unchangedSummary = await sql(`select summary from tool_entry where tool_id = '${reclaimed.body.id}'`);
+  assert.equal(unchangedSummary, 'The same name, a new row.', 'a refused update writes nothing');
+
+  const ownedUpdate = await call(`/tools/${q(reclaimed.body.id)}?owner=${q(other)}`,
+      putBody({ summary: '  The same name, a better sentence.  ', inputSchema: updatedSchema }));
+  assert.equal(ownedUpdate.status, 200, `the owner's update must be 200, got ${ownedUpdate.status}: ${ownedUpdate.text}`);
+  assert.equal(ownedUpdate.body.summary, 'The same name, a better sentence.', 'the summary is replaced and trimmed');
+  assert.deepEqual(ownedUpdate.body.inputSchema, updatedSchema, 'the schema is replaced as the object it was');
+  assert.equal(ownedUpdate.body.name, 'weather.lookup', 'an update cannot change the global lookup key');
+  assert.equal(ownedUpdate.body.id, reclaimed.body.id, 'an update cannot change which row it is');
+  assert.equal(ownedUpdate.body.owner, other, 'an update cannot hand a declaration to another account');
+  assert.equal(ownedUpdate.body.createdAt, reclaimed.body.createdAt, 'the creation instant is not rewritten');
+
+  // The DATABASE holds the canonical replacement, and the row count is unchanged: an update edits, never appends.
+  const storedUpdated = await sql(`select input_schema from tool_entry where name = 'weather.lookup'`);
+  assert.equal(storedUpdated, JSON.stringify(updatedSchema), `the update must store canonical compact JSON, got ${storedUpdated}`);
+  const rowsAfterUpdate = await sql('select count(*) from tool_entry');
+  assert.equal(rowsAfterUpdate, '4', 'an update replaces a row rather than appending one');
+  const auditAfterUpdate = await sql('select count(*) from audit_entry');
+  assert.equal(auditAfterUpdate, '0', 'an update is a declaration edit, not a trail fact');
+  console.log(`[§5] a tool was read by ID (six fields) and an unknown id was 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an 8193-byte schema 400, and psql read the untouched sentence after all four · the owner's update replaced the summary and stored the schema as ${storedUpdated.length} canonical bytes while the name, id, owner and creation instant stayed · four rows, and audit_entry still EMPTY`);
+
+  // ── §6 the declarations and their canonical schemas survive a RESTART ──────────────────────────
   const beforeRestart = await call('/tools');
   assert.equal(beforeRestart.body.total, 4);
   const beforeById = new Map(beforeRestart.body.tools.map((t) => [t.id, t]));
@@ -449,7 +511,7 @@ try {
     assert.deepEqual(tool, before, 'a declaration survives the process that wrote it, field for field');
   }
   const schemaAfterRestart = afterRestart.body.tools.find((t) => t.name === 'weather.lookup').inputSchema;
-  assert.deepEqual(schemaAfterRestart, { type: 'object' }, 'the re-declared weather.lookup carries ITS schema, not the removed row\'s');
+  assert.deepEqual(schemaAfterRestart, updatedSchema, 'the re-declared weather.lookup carries the UPDATED schema, not the removed row\'s');
 
   // The DATABASE itself: six declaration columns, and NO place to put a capability.
   const columns = (await sql("select column_name from information_schema.columns where table_name = 'tool_entry' order by column_name")).split('\n').filter(Boolean);
@@ -457,20 +519,20 @@ try {
       `tool_entry must have exactly the six declaration columns, got ${JSON.stringify(columns)}`);
   const count = await sql('select count(*) from tool_entry');
   assert.equal(count, '4', 'psql counts the four rows the API answers');
-  console.log(`[§5] a second JVM served the same four rows, field for field, with the re-declared name carrying its own schema · information_schema shows tool_entry has exactly ${columns.length} columns (${columns.join(', ')}) and nowhere to store a URL, a command or an invocation — the registry declares and does not execute`);
+  console.log(`[§6] a second JVM served the same four rows, field for field, with the re-declared name carrying the schema its owner updated · information_schema shows tool_entry has exactly ${columns.length} columns (${columns.join(', ')}) and nowhere to store a URL, a command or an invocation — the registry declares and does not execute`);
 
-  // ── §6 teardown ────────────────────────────────────────────────────────────────────────────────
+  // ── §7 teardown ────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
   const rm = await run('docker', ['rm', '-f', DB_CONTAINER]);
   assert.equal(rm.code, 0, `could not remove the throwaway database: ${rm.stderr}`);
   dbStarted = false;
   const goneContainer = await run('docker', ['ps', '-a', '--filter', `name=^/${DB_CONTAINER}$`, '--format', '{{.Names}}']);
   assert.equal(goneContainer.stdout.trim(), '', `the throwaway container is still listed: ${goneContainer.stdout.trim()}`);
-  console.log(`[§6] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
+  console.log(`[§7] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log('\n[summary] M10 v571: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger\'s removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner\'s removal deleted the row before psql read zero · the freed NAME was declared again as a NEW row under another owner · and a second JVM served the same four rows, field for field, while information_schema showed the table has six declaration columns and nowhere to store an endpoint, a command or an invocation');
+  console.log('\n[summary] M10 v571–v572: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger\'s removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner\'s removal deleted the row before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and an unknown id was 404 · a stranger\'s update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner\'s update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · and a second JVM served the same four rows, field for field, with the updated schema, while information_schema showed the table has six declaration columns and nowhere to store an endpoint, a command or an invocation');
   rmSync(BUILD_DIR, { recursive: true, force: true });
-  console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s removal, and no capability this build does not have)');
+  console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s update and removal, and no capability this build does not have)');
 } finally {
   if (serviceProcess && serviceProcess.exitCode === null) {
     await stopService(serviceProcess);

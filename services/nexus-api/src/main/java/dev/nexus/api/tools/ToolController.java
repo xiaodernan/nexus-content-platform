@@ -3,6 +3,7 @@ package dev.nexus.api.tools;
 import dev.nexus.api.tools.ToolDtos.RegisterRequest;
 import dev.nexus.api.tools.ToolDtos.Tool;
 import dev.nexus.api.tools.ToolDtos.ToolList;
+import dev.nexus.api.tools.ToolDtos.UpdateRequest;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
@@ -11,13 +12,14 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v571 — the HTTP surface for the tool registry. Three doors, and the differences between them are the
+ * M10 v571–v572 — the HTTP surface for the tool registry. Five doors, and the differences between them are the
  * rules:
  *
  * <ul>
@@ -26,6 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>{@code GET /tools?owner=&limit=&offset=} — the catalog, name ascending. The optional owner narrows
  *       the window to one account's declarations; without it the answer is the whole registry. The count is
  *       the whole (narrowed) number, so a window can say what it is hiding.
+ *   <li>{@code GET /tools/{id}} — one declaration by id. A public read, like the catalog; an id that names
+ *       nothing is a 404 rather than an empty row.
+ *   <li>{@code PUT /tools/{id}?owner=} — REPLACE a declaration's summary and schema, for its owner only. The
+ *       name, owner, id and creation instant cannot change: an update changes what a declaration SAYS, not
+ *       which declaration it is.
  *   <li>{@code DELETE /tools/{id}?owner=} — remove a declaration, for its owner only. 200 either way: an id
  *       that names nothing is "already gone", not an error; another account's row is a 403.
  * </ul>
@@ -70,6 +77,39 @@ public class ToolController {
         String filter = ToolService.normalizeOwner(owner);
         List<Tool> rows = service.catalog(owner, asked, from).stream().map(this::toWire).toList();
         return ResponseEntity.ok(new ToolList(filter, rows, service.countOf(owner), effective, from));
+    }
+
+    /**
+     * One declaration by id. A public read, like the catalog; an id that names nothing is a 404.
+     */
+    @GetMapping("/tools/{toolId}")
+    public ResponseEntity<Tool> read(@PathVariable String toolId) {
+        return ResponseEntity.ok(toWire(service.get(toolId)));
+    }
+
+    /**
+     * Replace a declaration's summary and schema, for its owner only.
+     *
+     * <p>The owner is REQUIRED before anything is read, and the name is not part of the body: an update
+     * changes what a declaration SAYS, not which declaration it is. A missing owner is a 400 that touches
+     * nothing; an unknown id is a 404; another account's row is a 403.
+     */
+    @PutMapping("/tools/{toolId}")
+    public ResponseEntity<?> update(
+            @PathVariable String toolId,
+            @RequestParam(name = "owner", required = false) String owner,
+            @RequestBody(required = false) UpdateRequest request) {
+        if (owner == null || owner.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-tool",
+                    "message", "the owner parameter is missing — only the owner may update a tool"));
+        }
+        ToolEntry row = service.update(
+                toolId,
+                owner,
+                request == null ? null : request.summary(),
+                request == null ? null : request.inputSchema());
+        return ResponseEntity.ok(toWire(row));
     }
 
     /**
@@ -119,5 +159,11 @@ public class ToolController {
     @ExceptionHandler(NotYourTool.class)
     public ResponseEntity<Map<String, String>> notYours(NotYourTool e) {
         return ResponseEntity.status(403).body(Map.of("error", "not-your-tool", "message", e.getMessage()));
+    }
+
+    /** An id that names nothing is a 404, not an empty row and not a 400. */
+    @ExceptionHandler(UnknownTool.class)
+    public ResponseEntity<Map<String, String>> unknown(UnknownTool e) {
+        return ResponseEntity.status(404).body(Map.of("error", "unknown-tool", "message", e.getMessage()));
     }
 }

@@ -167,4 +167,59 @@ class ToolControllerTest {
         assertThat(notYours.getStatusCode().value()).isEqualTo(403);
         assertThat(notYours.getBody()).containsEntry("error", "not-your-tool");
     }
+
+    @Test
+    void readingOneToolAnswersItsRow() throws Exception {
+        ToolEntry stored = row("tool-1", OWNER, "a.tool");
+        when(service.get("tool-1")).thenReturn(stored);
+        when(service.schemaOf(stored)).thenReturn(emptyObject());
+
+        ResponseEntity<ToolDtos.Tool> answer = controller().read("tool-1");
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        assertThat(answer.getBody()).isNotNull();
+        assertThat(answer.getBody().id()).isEqualTo("tool-1");
+        assertThat(answer.getBody().name()).isEqualTo("a.tool");
+        assertThat(answer.getBody().createdAt()).isEqualTo(AT.toEpochMilli());
+        assertThat(mapper.valueToTree(answer.getBody()).has("url")).isFalse();
+    }
+
+    @Test
+    void updatingAnswersTheReplacedRow() throws Exception {
+        ToolEntry replaced = new ToolEntry("tool-1", OWNER, "a.tool", "A better sentence.", "{\"type\":\"object\"}", AT);
+        when(service.update("tool-1", "  acct-ada  ", "A better sentence.", emptyObject())).thenReturn(replaced);
+        when(service.schemaOf(replaced)).thenReturn(emptyObject());
+
+        ResponseEntity<?> answer = controller()
+                .update("tool-1", "  acct-ada  ", new ToolDtos.UpdateRequest("A better sentence.", emptyObject()));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        ToolDtos.Tool body = (ToolDtos.Tool) answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.id()).isEqualTo("tool-1");
+        assertThat(body.summary()).isEqualTo("A better sentence.");
+        assertThat(body.name()).isEqualTo("a.tool");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void anUpdateWithoutAnOwnerIsRefusedBeforeAnythingIsRead() {
+        ResponseEntity<?> answer = controller().update("tool-1", "  ", new ToolDtos.UpdateRequest("a tool", null));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        Map<String, Object> body = (Map<String, Object>) answer.getBody();
+        assertThat(body).containsEntry("error", "invalid-tool");
+        assertThat((String) body.get("message")).contains("owner");
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void anUnknownToolIsAFourHundredAndFourFromTheService() {
+        ResponseEntity<Map<String, String>> answer =
+                controller().unknown(new UnknownTool("tool \"x\" names nothing in this registry"));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(404);
+        assertThat(answer.getBody()).containsEntry("error", "unknown-tool");
+        assertThat(answer.getBody().get("message")).contains("names nothing");
+    }
 }

@@ -152,6 +152,44 @@ public class ToolService {
                 .orElse(false);
     }
 
+    /**
+     * One declaration by id. This is a READ of a public catalog, so there is no ownership to check; an id that
+     * names nothing is a 404 rather than an empty row, because "no such tool" and "a tool with no fields" are
+     * different facts.
+     *
+     * @throws UnknownTool when the id names no row
+     */
+    @Transactional(readOnly = true)
+    public ToolEntry get(String toolId) {
+        return repository.findById(toolId)
+                .orElseThrow(() -> new UnknownTool("tool \"" + toolId + "\" names nothing in this registry"));
+    }
+
+    /**
+     * Replace a declaration's summary and schema.
+     *
+     * <p>The owner is required before any read, and the row's owner is checked before either field is
+     * validated — a stranger learns nothing about which summary or schema the owner would accept. The NAME is
+     * not updated: it is the registry's global lookup key, and a different name would be a different
+     * declaration.
+     *
+     * @throws InvalidTool when the owner is missing or a field breaks its rule
+     * @throws UnknownTool when the id names no row
+     * @throws NotYourTool when the row belongs to another account
+     */
+    @Transactional
+    public ToolEntry update(String toolId, String ownerId, String summary, JsonNode inputSchema) {
+        String owner = requireOwner(ownerId);
+        ToolEntry row = repository.findById(toolId)
+                .orElseThrow(() -> new UnknownTool("tool \"" + toolId + "\" names nothing in this registry"));
+        if (!row.getOwner().equals(owner)) {
+            throw new NotYourTool("tool \"" + toolId + "\" belongs to another account");
+        }
+        row.setSummary(requireSummary(summary));
+        row.setInputSchema(requireSchema(inputSchema));
+        return repository.save(row);
+    }
+
     /** The stored canonical text as the tree the wire shape carries. Trusting internal storage here. */
     public JsonNode schemaOf(ToolEntry row) {
         try {

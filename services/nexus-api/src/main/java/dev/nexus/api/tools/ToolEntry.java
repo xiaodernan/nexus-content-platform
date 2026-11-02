@@ -101,4 +101,17 @@ public class ToolEntry {
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+    /**
+     * Replace the sentence. The name, owner, id and instant are NOT settable: a declaration's identity and
+     * lookup key are not fields an update rewrites.
+     */
+    public void setSummary(String summary) {
+        this.summary = summary;
+    }
+
+    /** Replace the stored canonical schema text. The caller must canonicalize and bound it first. */
+    public void setInputSchema(String inputSchema) {
+        this.inputSchema = inputSchema;
+    }
 }
