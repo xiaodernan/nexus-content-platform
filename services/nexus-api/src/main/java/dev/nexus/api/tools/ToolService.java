@@ -143,11 +143,34 @@ public class ToolService {
      */
     @Transactional(readOnly = true)
     public List<ToolEntry> catalog(String ownerId, String query, int limit, int offset) {
+        return catalog(ownerId, query, null, limit, offset);
+    }
+
+    /**
+     * M10 v582 — the catalog narrowed by an owner, a search term and a DEPRECATED flag, each optional.
+     *
+     * <p>Deprecation is its own resource (ADR 0025), so today an agent that wants to know which rows are going
+     * away must fetch the catalog and the deprecation list and subtract them client-side — a second request and
+     * a join nobody should have to write. {@code deprecated=true} answers only the declarations that carry a
+     * deprecation, {@code false} only those that do not, and absent leaves both in. It composes with the owner
+     * and the search, and narrows the COUNT the same way, the rule every filter here follows.
+     *
+     * @param deprecated true for deprecated only, false for live only, null for both
+     */
+    @Transactional(readOnly = true)
+    public List<ToolEntry> catalog(
+            String ownerId, String query, Boolean deprecated, int limit, int offset) {
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
         int from = Math.max(offset, 0);
         PageRequest page = PageRequest.of(from / effective, effective);
         String owner = normalizeOwner(ownerId);
         String search = normalizeQuery(query);
+        if (deprecated != null) {
+            String pattern = search == null ? null : likePattern(search);
+            return deprecated
+                    ? repository.searchDeprecated(owner, pattern, page)
+                    : repository.searchLive(owner, pattern, page);
+        }
         if (search == null) {
             return owner == null
                     ? repository.findAllByOrderByNameAsc(page)
@@ -168,8 +191,23 @@ public class ToolService {
     /** The whole number of rows the (owner, query) window is a window of. */
     @Transactional(readOnly = true)
     public long countOf(String ownerId, String query) {
+        return countOf(ownerId, query, null);
+    }
+
+    /**
+     * The whole number of rows the (owner, query, deprecated) window is a window of — narrowed by the SAME
+     * three filters, so a window of departing tools never claims to be the registry.
+     */
+    @Transactional(readOnly = true)
+    public long countOf(String ownerId, String query, Boolean deprecated) {
         String owner = normalizeOwner(ownerId);
         String search = normalizeQuery(query);
+        if (deprecated != null) {
+            String pattern = search == null ? null : likePattern(search);
+            return deprecated
+                    ? repository.countDeprecated(owner, pattern)
+                    : repository.countLive(owner, pattern);
+        }
         if (search == null) {
             return owner == null ? repository.count() : repository.countByOwner(owner);
         }

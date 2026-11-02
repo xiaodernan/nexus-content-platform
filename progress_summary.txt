@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v581 (retention — landed and verified; v576/MCP belongs to a parallel lane)
+Project version: v582 (deprecated filter — landed and verified; v576/MCP belongs to a parallel lane)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is ahead of origin/master; v581 is in the working tree.
+Pushed to origin/master: no — master is ahead of origin/master; v582 is in the working tree.
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -25,9 +25,11 @@ Recent increments in this lineage (all real commits, all gated):
   v579: a declaration can be given away; ownership is its own append-only chain (ADR 0029)
   v580: a history narrowed to what the caller does not have — `since` (ADR 0031)
   v581: retention — the owner names the bound it keeps, and the answer says what went (ADR 0032)
+  v582: the catalog names the rows that are going away — a filter, not a column (ADR 0033)
 
-Verification of v572–v575 and v577–v581:
-  mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 115/115 (74 service + 41 controller), exit 0
+Verification of v572–v575 and v577–v582:
+  mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 122/122 (78 service + 44 controller), exit 0
+  Full service suite at v581 (checkpoint, 5 increments in): 660/660, 33 classes, exit 0
   (the whole suite includes another lane's MCP tests; the tools package is this lane's number)
   Live proof `node docs/evidence/m10/tool-registry-proof.mjs` against a real PostgreSQL: ALL ASSERTIONS PASSED
   (§4 removal leaves zero revisions; §5 the pin recomputed by the proof from the fields the answer carried,
@@ -51,10 +53,11 @@ ADR 0016 compliance:
   Studio→service hop 15s via shared serviceCall.ts; timeout never reported as "unreachable"
 
 Next increments (planned, see docs/LONG_TERM_PLAN.md):
-  v582: the three read doors that describe a declaration (details, history, ownership) each answer ONE tool, and
-        the catalog answers many — but nothing answers "which tools changed recently" across the registry, which
-        is the question an agent actually polls. A registry-wide change feed needs a global sequence and a rule
-        for deletions (a deleted row has nothing left to name), so the candidate is a measured, stated design
-        before any code: what a caller can learn about a tool that no longer exists
-  v583+: a pin lookup needs an index before it is honest; and a declaration has no way to be marked "tested" or
-        "verified by its owner", which is a claim, not a field. Do NOT touch the MCP face (v576, another lane).
+  v583: nothing answers "which tools changed recently" ACROSS the registry, which is what a polling agent
+        actually wants. A registry-wide change feed needs a global sequence and a story for deletions (a deleted
+        row has nothing left to name), so the next increment designs it against the rows that already exist
+        rather than adding a second truth: the candidate is a `seq` on the rows that already record change
+        (revision, ownership, deprecation) and one merged, ordered read over them, with removals stated as the
+        one thing the feed cannot report and the MCP face left alone
+  v584+: a pin lookup needs an index before it is honest; a declaration has no way to be marked "tested" by its
+        owner, which is a claim rather than a field.

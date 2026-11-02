@@ -68,4 +68,46 @@ public interface ToolRepository extends JpaRepository<ToolEntry, String> {
     @Query("select count(t) from ToolEntry t where t.owner = :owner"
             + " and (lower(t.name) like :pattern escape '\\' or lower(t.summary) like :pattern escape '\\')")
     long countSearchByOwner(@Param("owner") String owner, @Param("pattern") String pattern);
+
+    /**
+     * M10 v582 — the catalog narrowed to declarations that ARE, or are NOT, deprecated.
+     *
+     * <p>Deprecation lives in its own table (ADR 0025), so this filter is a correlated {@code exists} rather
+     * than a column test. Two queries rather than one with a nullable polarity: the polarity is a small closed
+     * set and each is a single statement, while a {@code (:deprecated = true) = exists(...)} would make the
+     * query say something different from what it does in either direction.
+     *
+     * <p>{@code owner} and {@code pattern} are null when they are ABSENT — named here as "no owner filter" and
+     * "no search filter", so a null cannot be read as the other one's value.
+     *
+     * @param owner the account, or null for every account
+     * @param pattern the escaped LIKE pattern, or null for no search
+     */
+    @Query("select t from ToolEntry t where (:owner is null or t.owner = :owner)"
+            + " and (:pattern is null or lower(t.name) like :pattern escape '\\'"
+            + " or lower(t.summary) like :pattern escape '\\')"
+            + " and exists (select 1 from ToolDeprecation d where d.toolId = t.toolId) order by t.name asc")
+    List<ToolEntry> searchDeprecated(
+            @Param("owner") String owner, @Param("pattern") String pattern, Pageable page);
+
+    /** The same, narrowed to declarations that are NOT deprecated. */
+    @Query("select t from ToolEntry t where (:owner is null or t.owner = :owner)"
+            + " and (:pattern is null or lower(t.name) like :pattern escape '\\'"
+            + " or lower(t.summary) like :pattern escape '\\')"
+            + " and not exists (select 1 from ToolDeprecation d where d.toolId = t.toolId) order by t.name asc")
+    List<ToolEntry> searchLive(@Param("owner") String owner, @Param("pattern") String pattern, Pageable page);
+
+    /** The WHOLE number of deprecated declarations the window above is a window of. */
+    @Query("select count(t) from ToolEntry t where (:owner is null or t.owner = :owner)"
+            + " and (:pattern is null or lower(t.name) like :pattern escape '\\'"
+            + " or lower(t.summary) like :pattern escape '\\')"
+            + " and exists (select 1 from ToolDeprecation d where d.toolId = t.toolId)")
+    long countDeprecated(@Param("owner") String owner, @Param("pattern") String pattern);
+
+    /** The same count for declarations that are NOT deprecated. */
+    @Query("select count(t) from ToolEntry t where (:owner is null or t.owner = :owner)"
+            + " and (:pattern is null or lower(t.name) like :pattern escape '\\'"
+            + " or lower(t.summary) like :pattern escape '\\')"
+            + " and not exists (select 1 from ToolDeprecation d where d.toolId = t.toolId)")
+    long countLive(@Param("owner") String owner, @Param("pattern") String pattern);
 }

@@ -42,3 +42,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0030  | The health door: two facts, one status code                  | Accepted |
 | 0031  | A history narrowed to what you do not have: `since`          | Accepted |
 | 0032  | Retention is the owner's, and it names the bound it keeps     | Accepted |
+| 0033  | The catalog names the rows that are going away              | Accepted |

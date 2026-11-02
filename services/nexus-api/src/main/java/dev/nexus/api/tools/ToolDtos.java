@@ -54,11 +54,18 @@ public final class ToolDtos {
     /**
      * The catalog window, and the WHOLE (narrowed) count beside it.
      *
-     * <p>{@code owner} is the filter the answer applied, or null when the answer is the whole catalog. It is
-     * echoed so a caller reading twenty rows can tell which catalog those twenty came from.
+     * <p>{@code owner}, {@code query} and {@code deprecated} are the filters the answer applied — each null when
+     * that filter was absent. They are echoed so a caller reading twenty rows can tell which catalog those twenty
+     * came from, and so a window never has to be mistaken for the whole.
      */
     public record ToolList(
-            String owner, String query, List<Tool> tools, long total, int limit, int offset) {
+            String owner,
+            String query,
+            Boolean deprecated,
+            List<Tool> tools,
+            long total,
+            int limit,
+            int offset) {
     }
 
     /**

@@ -77,11 +77,11 @@ class ToolControllerTest {
     @Test
     void theCatalogAnswersTheWindowTheCountAndTheFilterItApplied() throws Exception {
         ToolEntry stored = row("tool-1", OWNER, "a.tool");
-        when(service.catalog(null, null, 20, 0)).thenReturn(List.of(stored));
-        when(service.countOf(null, null)).thenReturn(1L);
+        when(service.catalog(null, null, null, 20, 0)).thenReturn(List.of(stored));
+        when(service.countOf(null, null, null)).thenReturn(1L);
         when(service.schemaOf(stored)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, null, null);
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, null, null, null);
 
         assertThat(answer.getStatusCode().value()).isEqualTo(200);
         ToolDtos.ToolList body = answer.getBody();
@@ -100,11 +100,11 @@ class ToolControllerTest {
     @Test
     void theListingClampsTheLimitItReportsAndFloorsTheOffset() throws Exception {
         ToolEntry stored = row("tool-1", OWNER, "a.tool");
-        when(service.catalog(null, null, 500, 0)).thenReturn(List.of(stored));
-        when(service.countOf(null, null)).thenReturn(1L);
+        when(service.catalog(null, null, null, 500, 0)).thenReturn(List.of(stored));
+        when(service.countOf(null, null, null)).thenReturn(1L);
         when(service.schemaOf(stored)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, 500, -10);
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, null, 500, -10);
 
         ToolDtos.ToolList body = answer.getBody();
         assertThat(body).isNotNull();
@@ -115,11 +115,11 @@ class ToolControllerTest {
     @Test
     void theOwnerFilterIsEchoedTrimmedWhileTheWindowSeesTheOriginal() throws Exception {
         ToolEntry stored = row("tool-1", OWNER, "a.tool");
-        when(service.catalog("  acct-ada  ", null, 20, 0)).thenReturn(List.of(stored));
-        when(service.countOf("  acct-ada  ", null)).thenReturn(1L);
+        when(service.catalog("  acct-ada  ", null, null, 20, 0)).thenReturn(List.of(stored));
+        when(service.countOf("  acct-ada  ", null, null)).thenReturn(1L);
         when(service.schemaOf(stored)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolList> answer = controller().list("  acct-ada  ", null, null, null);
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list("  acct-ada  ", null, null, null, null);
 
         assertThat(answer.getBody()).isNotNull();
         assertThat(answer.getBody().owner()).isEqualTo(OWNER);
@@ -355,11 +355,11 @@ class ToolControllerTest {
     @Test
     void theCatalogEchoesTheSearchItApplied() throws Exception {
         ToolEntry match = row("tool-1", OWNER, "weather.lookup");
-        when(service.catalog(null, "  weather  ", 20, 0)).thenReturn(List.of(match));
-        when(service.countOf(null, "  weather  ")).thenReturn(1L);
+        when(service.catalog(null, "  weather  ", null, 20, 0)).thenReturn(List.of(match));
+        when(service.countOf(null, "  weather  ", null)).thenReturn(1L);
         when(service.schemaOf(match)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, "  weather  ", null, null);
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, "  weather  ", null, null, null);
 
         ToolDtos.ToolList body = answer.getBody();
         assertThat(body).isNotNull();
@@ -371,7 +371,7 @@ class ToolControllerTest {
     @Test
     void aSearchLongerThanTheBoundIsRefusedBeforeTheServiceIsAsked() {
         Throwable refused = org.assertj.core.api.Assertions.catchThrowable(
-                () -> controller().list(null, "x".repeat(101), null, null));
+                () -> controller().list(null, "x".repeat(101), null, null, null));
 
         assertThat(refused).isInstanceOf(InvalidTool.class);
         assertThat(refused.getMessage()).contains("101");
@@ -630,5 +630,48 @@ class ToolControllerTest {
         assertThat(body.before()).isEqualTo(2);
         assertThat(body.pruned()).isEqualTo(1);
         assertThat(body.remaining()).isEqualTo(2L);
+    }
+
+    // ── v582: the catalog can name the rows that are going away ──────────────────────────────────────
+    @Test
+    void theDeprecatedFilterIsEchoedAndNarrowsTheWindow() throws Exception {
+        ToolEntry departing = row("tool-1", OWNER, "a.tool");
+        when(service.catalog(null, null, true, 20, 0)).thenReturn(List.of(departing));
+        when(service.countOf(null, null, true)).thenReturn(1L);
+        when(service.schemaOf(departing)).thenReturn(emptyObject());
+
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, true, null, null);
+
+        ToolDtos.ToolList body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.deprecated()).isTrue();
+        assertThat(body.tools()).hasSize(1);
+        assertThat(body.total()).isEqualTo(1L);
+        // The declaration's fields are unchanged: the filter decides WHICH rows, never what a row says.
+        assertThat(mapper.valueToTree(body.tools().get(0)).size()).isEqualTo(7);
+    }
+
+    @Test
+    void theLiveFilterIsEchoedAsFalseRatherThanAsAbsent() throws Exception {
+        when(service.catalog(null, null, false, 20, 0)).thenReturn(List.of());
+        when(service.countOf(null, null, false)).thenReturn(0L);
+
+        ToolDtos.ToolList body = controller().list(null, null, false, null, null).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.deprecated()).isFalse();
+        assertThat(body.total()).isZero();
+    }
+
+    @Test
+    void anAbsentDeprecatedFilterIsEchoedAsNullAndKeepsTheSevenFieldEnvelope() {
+        when(service.catalog(null, null, null, 20, 0)).thenReturn(List.of());
+        when(service.countOf(null, null, null)).thenReturn(0L);
+
+        ToolDtos.ToolList body = controller().list(null, null, null, null, null).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.deprecated()).isNull();
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(7);
     }
 }

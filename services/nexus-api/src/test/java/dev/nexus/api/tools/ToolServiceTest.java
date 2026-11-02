@@ -903,4 +903,52 @@ class ToolServiceTest {
         assertThat(service().pruneRevisions("tool-1", OWNER, 1)).isZero();
         verify(revisions, never()).deleteByToolIdAndRevisionLessThan(any(), any(Integer.class));
     }
+
+    // ── v582: the deprecation filter, and the fact that it never changes a row ───────────────────────
+    @Test
+    void theDeprecatedFilterAsksTheDeprecatedQueryAndTheCountFollows() {
+        when(repository.searchDeprecated(null, null, PageRequest.of(0, 20)))
+                .thenReturn(List.of(row("tool-1", OWNER, "a.tool")));
+        when(repository.countDeprecated(null, null)).thenReturn(1L);
+
+        assertThat(service().catalog(null, null, true, 20, 0)).hasSize(1);
+        assertThat(service().countOf(null, null, true)).isEqualTo(1L);
+        verify(repository, never()).findAllByOrderByNameAsc(any());
+        verify(repository, never()).count();
+    }
+
+    @Test
+    void theLiveFilterAsksTheLiveQueryAndNeverTheDeprecatedOne() {
+        when(repository.searchLive(null, null, PageRequest.of(0, 20))).thenReturn(List.of());
+        when(repository.countLive(null, null)).thenReturn(0L);
+
+        service().catalog(null, null, false, 20, 0);
+
+        assertThat(service().countOf(null, null, false)).isZero();
+        verify(repository, never()).searchDeprecated(any(), any(), any());
+    }
+
+    @Test
+    void theDeprecationFilterComposesWithOwnerAndSearch() {
+        when(repository.searchDeprecated("acct-ada", "%weather%", PageRequest.of(0, 20)))
+                .thenReturn(List.of(row("tool-1", OWNER, "weather.lookup")));
+        when(repository.countDeprecated("acct-ada", "%weather%")).thenReturn(1L);
+
+        assertThat(service().catalog("  acct-ada  ", "  weather  ", true, 20, 0)).hasSize(1);
+        assertThat(service().countOf("acct-ada", "weather", true)).isEqualTo(1L);
+        // The composed query is the ONE call: the unfiltered derivations are never consulted.
+        verify(repository, never()).searchByOwner(any(), any(), any());
+        verify(repository, never()).countSearchByOwner(any(), any());
+    }
+
+    @Test
+    void anAbsentDeprecationFilterIsTheUnfilteredCatalog() {
+        when(repository.findAllByOrderByNameAsc(PageRequest.of(0, 20))).thenReturn(List.of());
+        when(repository.count()).thenReturn(0L);
+
+        service().catalog(null, null, null, 20, 0);
+
+        assertThat(service().countOf(null, null, null)).isZero();
+        verify(repository, never()).searchLive(any(), any(), any());
+    }
 }

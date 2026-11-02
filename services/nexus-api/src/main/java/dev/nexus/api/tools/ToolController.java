@@ -36,10 +36,12 @@ import org.springframework.web.bind.annotation.RestController;
  * <ul>
  *   <li>{@code POST /tools} — declare a tool. 201, and the answer is the row: its id, owner, name, summary,
  *       canonical schema and creation instant.
- *   <li>{@code GET /tools?owner=&q=&limit=&offset=} — the catalog, name ascending. The optional owner narrows
- *       the window to one account's declarations; the optional {@code q} narrows it to declarations whose
- *       NAME or SUMMARY contains that text, case-insensitively and with LIKE wildcards treated literally.
- *       The count is the whole (narrowed) number, so a window can say what it is hiding.
+ *   <li>{@code GET /tools?owner=&q=&deprecated=&limit=&offset=} — the catalog, name ascending. The optional owner
+ *       narrows the window to one account's declarations; the optional {@code q} narrows it to declarations
+ *       whose NAME or SUMMARY contains that text, case-insensitively and with LIKE wildcards treated literally;
+ *       the optional {@code deprecated} answers only the declarations that carry a deprecation (true) or only
+ *       those that do not (false). All three compose, and the count is the whole (narrowed) number, so a window
+ *       can say what it is hiding.
  *   <li>{@code GET /tools/{id}} — one declaration by id. A public read, like the catalog; an id that names
  *       nothing is a 404 rather than an empty row. The answer carries the contract's PIN as a field and as a
  *       strong {@code ETag}, so an {@code If-None-Match} of the pin the caller holds is a 304 with no body.
@@ -107,6 +109,7 @@ public class ToolController {
     public ResponseEntity<ToolList> list(
             @RequestParam(name = "owner", required = false) String owner,
             @RequestParam(name = "q", required = false) String q,
+            @RequestParam(name = "deprecated", required = false) Boolean deprecated,
             @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "offset", required = false) Integer offset) {
         int asked = limit == null ? ToolService.DEFAULT_LIST_LIMIT : limit;
@@ -114,9 +117,9 @@ public class ToolController {
         int from = offset == null ? 0 : Math.max(offset, 0);
         String filter = ToolService.normalizeOwner(owner);
         String search = ToolService.normalizeQuery(q);
-        List<Tool> rows = service.catalog(owner, q, asked, from).stream().map(this::toWire).toList();
-        return ResponseEntity.ok(
-                new ToolList(filter, search, rows, service.countOf(owner, q), effective, from));
+        List<Tool> rows = service.catalog(owner, q, deprecated, asked, from).stream().map(this::toWire).toList();
+        return ResponseEntity.ok(new ToolList(
+                filter, search, deprecated, rows, service.countOf(owner, q, deprecated), effective, from));
     }
 
     /**
