@@ -46,7 +46,8 @@ public final class ToolDtos {
      * <p>{@code owner} is the filter the answer applied, or null when the answer is the whole catalog. It is
      * echoed so a caller reading twenty rows can tell which catalog those twenty came from.
      */
-    public record ToolList(String owner, List<Tool> tools, long total, int limit, int offset) {
+    public record ToolList(
+            String owner, String query, List<Tool> tools, long total, int limit, int offset) {
     }
 
     /**

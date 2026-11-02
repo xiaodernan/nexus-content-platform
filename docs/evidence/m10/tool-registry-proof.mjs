@@ -20,7 +20,9 @@
 //      rule at 400, a well-formed name holding nothing at 404) — while `audit_entry` stays EMPTY, because a
 //      declaration is not a trail fact;
 //   §3 the catalog: name ASCENDING, the optional owner filter narrowing BOTH the window and the count, the
-//      limit capped / offset floored, and every answer carrying no url / command / invocation field;
+//      optional search narrowing both by a case-insensitive substring of NAME or SUMMARY with LIKE wildcards
+//      treated literally (a % or _ in the term matches only itself), the limit capped / offset floored, and
+//      every answer carrying no url / command / invocation field;
 //   §4 removal: a stranger is 403 and the row remains, an unknown id is 200 `removed:false`, the owner's
 //      removal is 200 `removed:true`, the row is gone in `psql`, and the freed NAME can be declared AGAIN
 //      under a different owner — an id is not a name;
@@ -167,7 +169,7 @@ async function stopService(child) {
 
 /** The tool's wire shape, pinned: a field added here is a capability a read door would start printing. */
 const TOOL_FIELDS = ['createdAt', 'id', 'inputSchema', 'name', 'owner', 'summary'].sort();
-const LIST_FIELDS = ['limit', 'offset', 'owner', 'tools', 'total'].sort();
+const LIST_FIELDS = ['limit', 'offset', 'owner', 'query', 'tools', 'total'].sort();
 
 let serviceProcess = null;
 let dbStarted = false;
@@ -294,7 +296,8 @@ try {
   assert.equal(emptyCatalog.body.total, 0);
   assert.equal(emptyCatalog.body.tools.length, 0);
   assert.equal(emptyCatalog.body.owner, null, 'no filter is echoed as null, not as an empty account');
-  assert.deepEqual(Object.keys(emptyCatalog.body).sort(), LIST_FIELDS, `the catalog carries exactly its five fields: ${emptyCatalog.text}`);
+  assert.equal(emptyCatalog.body.query, null, 'no search is echoed as null, not as an empty term');
+  assert.deepEqual(Object.keys(emptyCatalog.body).sort(), LIST_FIELDS, `the catalog carries exactly its six fields: ${emptyCatalog.text}`);
 
   const schemaA = { type: 'object', properties: { city: { type: 'string' } }, required: ['city'] };
   const declared = await postJson('/tools', {
@@ -426,7 +429,41 @@ try {
   assert.equal(clamped.body.limit, 100, 'the answer reports the cap it applied');
   assert.equal(clamped.body.offset, 0, 'a negative offset is floored');
   assert.equal(clamped.body.tools.length, 4);
-  console.log(`[§3] the whole catalog answered four rows by NAME (big.tool < m.tool < weather.lookup < z.tool) · owner=${other} narrowed both the window and the count to its own two · limit=1&offset=1 answered exactly m.tool with total=4 beside it · limit=500&offset=-10 reported 100 and 0 · no row carried a url, command or invocation field`);
+  // The SEARCH narrows by NAME or SUMMARY, case-insensitively, and its wildcards are LITERAL. Each answer
+  // echoes the trimmed term it applied, and the whole count is narrowed by the same term as the window.
+  const lowSearch = await call('/tools?q=weather');
+  assert.equal(lowSearch.status, 200, `a search must answer 200, got ${lowSearch.status}: ${lowSearch.text}`);
+  assert.equal(lowSearch.body.query, 'weather', 'the answer echoes the trimmed search it applied');
+  assert.equal(lowSearch.body.total, 1);
+  assert.deepEqual(lowSearch.body.tools.map((t) => t.name), ['weather.lookup']);
+  const upperSearch = await call('/tools?q=WEATHER');
+  assert.equal(upperSearch.body.total, 1, 'the search is case-insensitive');
+  const summarySearch = await call('/tools?q=last');
+  assert.deepEqual(summarySearch.body.tools.map((t) => t.name), ['z.tool'], 'a SUMMARY match is a match');
+  const broadSearch = await call('/tools?q=tool');
+  assert.deepEqual(broadSearch.body.tools.map((t) => t.name), ['big.tool', 'm.tool', 'z.tool']);
+  assert.equal(broadSearch.body.total, 3);
+  const narrowedSearch = await call(`/tools?q=tool&owner=${q(other)}`);
+  assert.deepEqual(narrowedSearch.body.tools.map((t) => t.name), ['big.tool', 'm.tool'], 'owner and search narrow together');
+  assert.equal(narrowedSearch.body.total, 2, 'the count is narrowed by BOTH filters');
+  const pagedSearch = await call('/tools?q=tool&limit=1&offset=2');
+  assert.deepEqual(pagedSearch.body.tools.map((t) => t.name), ['z.tool']);
+  assert.equal(pagedSearch.body.total, 3, 'a search window still reports the whole number of matches');
+  assert.equal(pagedSearch.body.limit, 1);
+  assert.equal(pagedSearch.body.offset, 2);
+  // A percent sign is a percent sign: if the wildcard were passed through, this would answer all four rows.
+  const percentSearch = await call('/tools?q=%25');
+  assert.equal(percentSearch.body.total, 0, `a literal % must match nothing, got ${percentSearch.text}`);
+  const underscoreSearch = await call('/tools?q=_');
+  assert.equal(underscoreSearch.body.total, 0, `a literal _ must match nothing, got ${underscoreSearch.text}`);
+  const blankSearch = await call('/tools?q=%20%20');
+  assert.equal(blankSearch.body.query, null, 'a blank search is the absent filter');
+  assert.equal(blankSearch.body.total, 4);
+  const longSearch = await call(`/tools?q=${'x'.repeat(101)}`);
+  assert.equal(longSearch.status, 400, `a 101-character search must be 400, got ${longSearch.status}`);
+  assert.equal(longSearch.body.error, 'invalid-tool');
+  assert.match(longSearch.body.message, /101/);
+  console.log(`[§3] the whole catalog answered four rows by NAME (big.tool < m.tool < weather.lookup < z.tool) · owner=${other} narrowed both the window and the count to its own two · limit=1&offset=1 answered exactly m.tool with total=4 beside it · limit=500&offset=-10 reported 100 and 0 · search q=weather answered one row and echoed "weather" (q=WEATHER the same, q=last matched a SUMMARY), q=tool answered three and q=tool&owner narrowed BOTH to two, q=tool&limit=1&offset=2 answered z.tool with total=3, literal % and _ matched nothing, a blank q was the absent filter (echoed null, total 4), a 101-character q was refused at 400, and no row carried a url, command or invocation field`);
 
   // ── §4 removal: ownership, "already gone", and a NAME freed by deleting its row ─────────────────
   const strangerRemoval = await call(`/tools/${q(toolIdA)}?owner=${q(stranger)}`, { method: 'DELETE' });
@@ -741,9 +778,9 @@ try {
   assert.equal(goneContainer.stdout.trim(), '', `the throwaway container is still listed: ${goneContainer.stdout.trim()}`);
   console.log(`[§7] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log(`\n[summary] M10 v571–v575: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, an unknown id was 404, and psql read both rows · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its six fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · and a second JVM served the same four rows and both revisions, field for field, while information_schema showed six declaration columns, five revision columns and four deprecation columns with nowhere to store an endpoint, a command or an invocation`);
+  console.log(`\n[summary] M10 v571–v577: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, an unknown id was 404, and psql read both rows · the catalog search answered a name match and a summary match, ignored case, narrowed BOTH window and count alongside the owner filter, paged with total=3, treated % and _ literally (0 matches), echoed a blank term as null, and refused a 101-character term at 400 · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its six fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · and a second JVM served the same four rows and both revisions, field for field, while information_schema showed six declaration columns, five revision columns and four deprecation columns with nowhere to store an endpoint, a command or an invocation`);
   rmSync(BUILD_DIR, { recursive: true, force: true });
-  console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s update and removal, a recorded revision history that an update cannot erase, a direct read by the name every agent shares, a deprecation that is its own resource with its own public list, and no capability this build does not have)');
+  console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s update and removal, a recorded revision history that an update cannot erase, a direct read by the name every agent shares, a deprecation that is its own resource with its own public list, a catalog search whose wildcards are literal, and no capability this build does not have)');
 } finally {
   if (serviceProcess && serviceProcess.exitCode === null) {
     await stopService(serviceProcess);

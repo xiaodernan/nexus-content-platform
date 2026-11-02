@@ -521,4 +521,53 @@ class ToolServiceTest {
         assertThat(window).extracting(ToolDeprecation::getToolId).containsExactly("tool-2");
         assertThat(service().deprecationCount()).isEqualTo(1);
     }
+    @Test
+    void aSearchNarrowsToNameOrSummaryMatchesAndIsCaseInsensitive() {
+        ToolEntry mine = row("tool-1", OWNER, "weather.lookup");
+        when(repository.searchAll("%weather%", PageRequest.of(0, 20))).thenReturn(List.of(mine));
+
+        assertThat(service().catalog(null, "  WEATHER  ", 20, 0)).containsExactly(mine);
+    }
+
+    @Test
+    void aSearchNarrowsOneOwnersDeclarationsWithTheSamePattern() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.searchByOwner(OWNER, "%tool%", PageRequest.of(0, 20))).thenReturn(List.of(mine));
+
+        assertThat(service().catalog("  acct-ada  ", "tool", 20, 0)).containsExactly(mine);
+    }
+
+    @Test
+    void aSearchCountsTheSameMatchesItsWindowShows() {
+        when(repository.countSearchAll("%weather%")).thenReturn(1L);
+        when(repository.countSearchByOwner(OWNER, "%weather%")).thenReturn(1L);
+
+        assertThat(service().countOf(null, "weather")).isEqualTo(1);
+        assertThat(service().countOf(OWNER, "weather")).isEqualTo(1);
+    }
+
+    @Test
+    void aBlankSearchIsTheAbsentFilterNotEverything() {
+        when(repository.findAllByOrderByNameAsc(PageRequest.of(0, 20)))
+                .thenReturn(List.of(row("tool-1", OWNER, "a.tool")));
+
+        assertThat(service().catalog(null, "   ", 20, 0)).hasSize(1);
+        verify(repository, never()).searchAll(any(), any());
+    }
+
+    @Test
+    void aSearchLongerThanTheBoundIsRefusedBeforeAnyQuery() {
+        assertThatThrownBy(() -> service().catalog(null, "x".repeat(101), 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("101");
+        verify(repository, never()).searchAll(any(), any());
+    }
+
+    @Test
+    void likeWildcardsInASearchAreSearchedForLiterally() {
+        assertThat(ToolService.likePattern("weather")).isEqualTo("%weather%");
+        assertThat(ToolService.likePattern("100%")).isEqualTo("%100\\%%");
+        assertThat(ToolService.likePattern("a_b")).isEqualTo("%a\\_b%");
+        assertThat(ToolService.likePattern("c:\\temp")).isEqualTo("%c:\\\\temp%");
+    }
 }

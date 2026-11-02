@@ -35,3 +35,5 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0023  | Tool details and the owner's update                        | Accepted |
 | 0024  | A tool declaration's revision history                      | Accepted |
 | 0025  | Tool deprecation: its own fact, doors and public list        | Accepted |
+| 0026  | The MCP face: advertise the registry, refuse execution       | Accepted |
+| 0027  | Catalog search: literal wildcards, narrowed count            | Accepted |

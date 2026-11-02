@@ -63,6 +63,9 @@ public class ToolService {
     /** The most a caller may ask for. */
     public static final int MAX_LIST_LIMIT = 100;
 
+    /** The longest catalog search term — long enough for a sentence fragment, short enough to bound work. */
+    public static final int MAX_QUERY_LENGTH = 100;
+
     /**
      * The name's shape. The first character is alphanumeric, so a name cannot begin with a dot or dash and
      * collide with a relative path if a consumer ever maps names onto files.
@@ -124,22 +127,53 @@ public class ToolService {
      * when one is. The blank owner is the absent filter — a listing is a READ, and there is no ownership to
      * enforce on it.
      */
+    /** The catalog without a search term — the shape callers had before v576. */
     @Transactional(readOnly = true)
     public List<ToolEntry> catalog(String ownerId, int limit, int offset) {
+        return catalog(ownerId, null, limit, offset);
+    }
+
+    /**
+     * The catalog, optionally narrowed by an owner and by a search term. A search is a case-insensitive
+     * substring of the NAME or the SUMMARY; its wildcards are literal (v576), and the count is narrowed by
+     * the SAME two filters, so a window can still say what it is hiding.
+     */
+    @Transactional(readOnly = true)
+    public List<ToolEntry> catalog(String ownerId, String query, int limit, int offset) {
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
         int from = Math.max(offset, 0);
         PageRequest page = PageRequest.of(from / effective, effective);
         String owner = normalizeOwner(ownerId);
+        String search = normalizeQuery(query);
+        if (search == null) {
+            return owner == null
+                    ? repository.findAllByOrderByNameAsc(page)
+                    : repository.findByOwnerOrderByNameAsc(owner, page);
+        }
+        String pattern = likePattern(search);
         return owner == null
-                ? repository.findAllByOrderByNameAsc(page)
-                : repository.findByOwnerOrderByNameAsc(owner, page);
+                ? repository.searchAll(pattern, page)
+                : repository.searchByOwner(owner, pattern, page);
     }
 
     /** The WHOLE number of rows the window is a window of — narrowed the same way the window is. */
     @Transactional(readOnly = true)
     public long countOf(String ownerId) {
+        return countOf(ownerId, null);
+    }
+
+    /** The whole number of rows the (owner, query) window is a window of. */
+    @Transactional(readOnly = true)
+    public long countOf(String ownerId, String query) {
         String owner = normalizeOwner(ownerId);
-        return owner == null ? repository.count() : repository.countByOwner(owner);
+        String search = normalizeQuery(query);
+        if (search == null) {
+            return owner == null ? repository.count() : repository.countByOwner(owner);
+        }
+        String pattern = likePattern(search);
+        return owner == null
+                ? repository.countSearchAll(pattern)
+                : repository.countSearchByOwner(owner, pattern);
     }
 
     /**
@@ -412,6 +446,35 @@ public class ToolService {
             return null;
         }
         return raw.trim();
+    }
+
+    /**
+     * The optional catalog search: null when absent or blank, trimmed otherwise, bounded so a pattern cannot
+     * be arbitrarily long. Blank is the absent filter — searching for nothing is not searching for everything.
+     */
+    static String normalizeQuery(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (trimmed.length() > MAX_QUERY_LENGTH) {
+            throw new InvalidTool("a catalog search is at most " + MAX_QUERY_LENGTH
+                    + " characters — this one is " + trimmed.length());
+        }
+        return trimmed;
+    }
+
+    /**
+     * The LIKE pattern for a search, lowercased, with {@code \}, {@code %} and {@code _} escaped so the
+     * caller's text is searched for literally. Without this a query of "%" would answer the whole catalog
+     * while claiming to search for a percent sign.
+     */
+    static String likePattern(String query) {
+        String escaped = query.toLowerCase(java.util.Locale.ROOT)
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+        return "%" + escaped + "%";
     }
 
     /** The global name, validated and refused by name. Package-private so the rules are asserted directly. */

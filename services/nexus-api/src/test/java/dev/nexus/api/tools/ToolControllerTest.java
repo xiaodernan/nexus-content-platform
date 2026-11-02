@@ -77,11 +77,11 @@ class ToolControllerTest {
     @Test
     void theCatalogAnswersTheWindowTheCountAndTheFilterItApplied() throws Exception {
         ToolEntry stored = row("tool-1", OWNER, "a.tool");
-        when(service.catalog(null, 20, 0)).thenReturn(List.of(stored));
-        when(service.countOf(null)).thenReturn(1L);
+        when(service.catalog(null, null, 20, 0)).thenReturn(List.of(stored));
+        when(service.countOf(null, null)).thenReturn(1L);
         when(service.schemaOf(stored)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, null);
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, null, null);
 
         assertThat(answer.getStatusCode().value()).isEqualTo(200);
         ToolDtos.ToolList body = answer.getBody();
@@ -100,11 +100,11 @@ class ToolControllerTest {
     @Test
     void theListingClampsTheLimitItReportsAndFloorsTheOffset() throws Exception {
         ToolEntry stored = row("tool-1", OWNER, "a.tool");
-        when(service.catalog(null, 500, 0)).thenReturn(List.of(stored));
-        when(service.countOf(null)).thenReturn(1L);
+        when(service.catalog(null, null, 500, 0)).thenReturn(List.of(stored));
+        when(service.countOf(null, null)).thenReturn(1L);
         when(service.schemaOf(stored)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, 500, -10);
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, 500, -10);
 
         ToolDtos.ToolList body = answer.getBody();
         assertThat(body).isNotNull();
@@ -115,11 +115,11 @@ class ToolControllerTest {
     @Test
     void theOwnerFilterIsEchoedTrimmedWhileTheWindowSeesTheOriginal() throws Exception {
         ToolEntry stored = row("tool-1", OWNER, "a.tool");
-        when(service.catalog("  acct-ada  ", 20, 0)).thenReturn(List.of(stored));
-        when(service.countOf("  acct-ada  ")).thenReturn(1L);
+        when(service.catalog("  acct-ada  ", null, 20, 0)).thenReturn(List.of(stored));
+        when(service.countOf("  acct-ada  ", null)).thenReturn(1L);
         when(service.schemaOf(stored)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolList> answer = controller().list("  acct-ada  ", null, null);
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list("  acct-ada  ", null, null, null);
 
         assertThat(answer.getBody()).isNotNull();
         assertThat(answer.getBody().owner()).isEqualTo(OWNER);
@@ -351,5 +351,30 @@ class ToolControllerTest {
 
         assertThat(answer.getStatusCode().value()).isEqualTo(404);
         assertThat(answer.getBody()).containsEntry("error", "not-deprecated");
+    }
+    @Test
+    void theCatalogEchoesTheSearchItApplied() throws Exception {
+        ToolEntry match = row("tool-1", OWNER, "weather.lookup");
+        when(service.catalog(null, "  weather  ", 20, 0)).thenReturn(List.of(match));
+        when(service.countOf(null, "  weather  ")).thenReturn(1L);
+        when(service.schemaOf(match)).thenReturn(emptyObject());
+
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, "  weather  ", null, null);
+
+        ToolDtos.ToolList body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.query()).as("the answer echoes the trimmed search it applied").isEqualTo("weather");
+        assertThat(body.total()).isEqualTo(1);
+        assertThat(body.tools()).extracting(ToolDtos.Tool::name).containsExactly("weather.lookup");
+    }
+
+    @Test
+    void aSearchLongerThanTheBoundIsRefusedBeforeTheServiceIsAsked() {
+        Throwable refused = org.assertj.core.api.Assertions.catchThrowable(
+                () -> controller().list(null, "x".repeat(101), null, null));
+
+        assertThat(refused).isInstanceOf(InvalidTool.class);
+        assertThat(refused.getMessage()).contains("101");
+        verifyNoInteractions(service);
     }
 }
