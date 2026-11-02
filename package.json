@@ -50,6 +50,7 @@
     "verify:arms": "node docs/evidence/ci/ci-wiring-arms.mjs",
     "verify:audit-contract": "node docs/evidence/m9/audit-contract-proof.mjs",
     "verify:health": "node docs/evidence/m9/service-health-proof.mjs",
+    "verify:liveness": "node docs/evidence/m9/service-liveness-proof.mjs",
     "verify:webhooks": "node docs/evidence/m10/webhook-proof.mjs",
     "verify:tools": "node docs/evidence/m10/tool-registry-proof.mjs",
     "verify:mcp": "node docs/evidence/m10/mcp-face-proof.mjs",

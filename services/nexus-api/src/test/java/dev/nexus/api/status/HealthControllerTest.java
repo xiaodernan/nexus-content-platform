@@ -64,6 +64,59 @@ class HealthControllerTest {
     }
 
     @Test
+    void livenessAnswersTwoHundredWithOnlyTheProcessShapeAndNoStore() throws Exception {
+        when(health.liveness()).thenReturn(
+                new HealthDtos.Liveness("nexus-api", "0.1.0-SNAPSHOT", STARTED, 42L));
+
+        ResponseEntity<HealthDtos.Liveness> answer = controller().live();
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        assertThat(answer.getHeaders().getCacheControl()).contains("no-store");
+        HealthDtos.Liveness body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.service()).isEqualTo("nexus-api");
+        assertThat(body.version()).isEqualTo("0.1.0-SNAPSHOT");
+        assertThat(body.startedAt()).isEqualTo(STARTED);
+        assertThat(body.uptimeSeconds()).isEqualTo(42L);
+        // The door's claim is the ABSENT field: a liveness answer has no database fact to be down.
+        assertThat(mapper.valueToTree(body).has("database")).isFalse();
+        verify(health).liveness();
+    }
+
+    @Test
+    void readinessAnswersTwoHundredWhenTheDatabaseAnswers() {
+        when(health.readiness()).thenReturn(
+                new HealthDtos.Readiness(true, new HealthDtos.Database(true, 2L, null)));
+
+        ResponseEntity<HealthDtos.Readiness> answer = controller().ready();
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        assertThat(answer.getHeaders().getCacheControl()).contains("no-store");
+        HealthDtos.Readiness body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.ready()).isTrue();
+        assertThat(body.database().reachable()).isTrue();
+        assertThat(body.database().detail()).isNull();
+        verify(health).readiness();
+    }
+
+    @Test
+    void readinessAnswersFiveZeroThreeWithTheReasonWhenTheDatabaseDoesNot() {
+        when(health.readiness()).thenReturn(
+                new HealthDtos.Readiness(false, new HealthDtos.Database(false, 30001L, "invalid-connection")));
+
+        ResponseEntity<HealthDtos.Readiness> answer = controller().ready();
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(503);
+        assertThat(answer.getHeaders().getCacheControl()).contains("no-store");
+        HealthDtos.Readiness body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.ready()).isFalse();
+        assertThat(body.database().reachable()).isFalse();
+        assertThat(body.database().detail()).isEqualTo("invalid-connection");
+    }
+
+    @Test
     void anUnreachableDatabaseAnswersFiveZeroThreeAndStillSaysWhy() {
         when(health.report()).thenReturn(report(false, 30001L, "invalid-connection"));
 

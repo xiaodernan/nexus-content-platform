@@ -41,4 +41,30 @@ public final class HealthDtos {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Database(boolean reachable, long latencyMs, String detail) {
     }
+
+    /**
+     * The process fact ALONE, answered by {@code GET /health/live}.
+     *
+     * <p>There is no {@code database} field, and that absence is the claim: a liveness probe must answer
+     * while the pool is exhausted or the database is down, because restarting a healthy process does not
+     * repair either. The shape is identical to {@link Health} minus the measurement, so an operator reads
+     * the same names on both doors.
+     */
+    public record Liveness(
+            String service,
+            String version,
+            Instant startedAt,
+            long uptimeSeconds) {
+    }
+
+    /**
+     * The serving fact, answered by {@code GET /health/ready}: can traffic be sent to this process now?
+     *
+     * <p>{@code ready} repeats {@code database.reachable()} deliberately. Readiness is the operator's
+     * question and reachability is the measurement; collapsing them would make the status code the only
+     * place the answer exists, and a caller that reads a 503 body would have to infer it.
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record Readiness(boolean ready, Database database) {
+    }
 }

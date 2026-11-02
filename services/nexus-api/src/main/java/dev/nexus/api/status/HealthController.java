@@ -35,4 +35,29 @@ public class HealthController {
         int status = report.database().reachable() ? 200 : 503;
         return ResponseEntity.status(status).cacheControl(CacheControl.noStore()).body(report);
     }
+
+    /**
+     * {@code GET /health/live}: the process fact, and only that.
+     *
+     * <p>Always {@code 200} when this code runs. It does not borrow a connection, so it answers during an
+     * outage instead of waiting behind the pool; a supervisor must read THIS door to decide whether to
+     * restart the process, and {@code /health} or {@code /health/ready} to decide whether to send traffic.
+     */
+    @GetMapping(path = "/health/live", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<HealthDtos.Liveness> live() {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(health.liveness());
+    }
+
+    /**
+     * {@code GET /health/ready}: the serving fact. {@code 200} when the database answers, {@code 503}
+     * otherwise — the same measurement and the same status rule as {@code /health}, with the answer also
+     * stated as {@code ready} in the body. A process that fails readiness is healthy and must not be
+     * restarted; it must be taken out of rotation.
+     */
+    @GetMapping(path = "/health/ready", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<HealthDtos.Readiness> ready() {
+        HealthDtos.Readiness readiness = health.readiness();
+        int status = readiness.ready() ? 200 : 503;
+        return ResponseEntity.status(status).cacheControl(CacheControl.noStore()).body(readiness);
+    }
 }

@@ -137,6 +137,78 @@ class HealthServiceTest {
     }
 
     @Test
+    void livenessAnswersTheProcessFactAndNeverTouchesTheDatabase() throws Exception {
+        HealthDtos.Liveness live = serviceAt(STARTED).liveness();
+
+        assertThat(live.service()).isEqualTo("nexus-api");
+        assertThat(live.startedAt()).isEqualTo(STARTED);
+        assertThat(live.uptimeSeconds()).isZero();
+        assertThat(mapper.valueToTree(live).has("database")).isFalse();
+        // The absence of a field is enforced here, not just documented: no borrow, no validity check.
+        verifyNoInteractions(dataSource);
+        verifyNoInteractions(connection);
+    }
+
+    @Test
+    void livenessUptimeAdvancesWithTheSameClockThatStampedStartedAt() {
+        SteppingClock clock = new SteppingClock(STARTED);
+        HealthService service = service(clock);
+
+        clock.moveTo(STARTED.plusSeconds(7));
+        assertThat(service.liveness().uptimeSeconds()).isEqualTo(7L);
+
+        clock.moveTo(STARTED.minusSeconds(9));
+        assertThat(service.liveness().uptimeSeconds()).isZero();
+        assertThat(service.liveness().startedAt()).isEqualTo(STARTED);
+        verifyNoInteractions(dataSource);
+    }
+
+    @Test
+    void readinessIsTrueWhenTheDatabaseAnswersAndLeavesDetailOut() throws Exception {
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.isValid(1)).thenReturn(true);
+
+        HealthDtos.Readiness ready = serviceAt(STARTED).readiness();
+
+        assertThat(ready.ready()).isTrue();
+        assertThat(ready.database().reachable()).isTrue();
+        assertThat(ready.database().detail()).isNull();
+        assertThat(ready.database().latencyMs()).isGreaterThanOrEqualTo(0L);
+        assertThat(mapper.valueToTree(ready).get("database").has("detail")).isFalse();
+        verify(connection, times(1)).close();
+    }
+
+    @Test
+    void readinessIsFalseWithTheShortTokenWhenTheBorrowFails() throws Exception {
+        when(dataSource.getConnection()).thenThrow(new SQLException(
+                "connection refused at jdbc:postgresql://127.0.0.1:5432/nexus password=nexus"));
+
+        HealthDtos.Readiness ready = serviceAt(STARTED).readiness();
+
+        assertThat(ready.ready()).isFalse();
+        assertThat(ready.database().reachable()).isFalse();
+        assertThat(ready.database().detail()).isEqualTo("SQLException");
+        assertThat(mapper.writeValueAsString(ready))
+                .doesNotContain("jdbc:", "postgresql", "127.0.0.1", "password", "connection refused");
+        verifyNoInteractions(connection);
+    }
+
+    @Test
+    void readinessAndTheCombinedDoorNameTheSameMeasurement() throws Exception {
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.isValid(1)).thenReturn(true);
+        HealthService service = serviceAt(STARTED);
+
+        HealthDtos.Readiness ready = service.readiness();
+        HealthDtos.Health report = service.report();
+
+        assertThat(ready.ready()).isEqualTo(report.database().reachable());
+        assertThat(ready.database().detail()).isEqualTo(report.database().detail());
+        verify(dataSource, times(2)).getConnection();
+        verify(connection, times(2)).close();
+    }
+
+    @Test
     void anUnpackagedTreeReportsUnknownRatherThanADependencyOrAGuess() {
         // Surefire runs from target/classes: there is no jar manifest for this package, and the answer
         // must say so instead of borrowing a version from a manifest on the test classpath.

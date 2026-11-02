@@ -61,8 +61,32 @@ public class HealthService {
      * answered as a negative age.
      */
     public HealthDtos.Health report() {
-        long uptime = Math.max(0L, Duration.between(startedAt, clock.instant()).toSeconds());
-        return new HealthDtos.Health(service, version, startedAt, uptime, database());
+        return new HealthDtos.Health(service, version, startedAt, uptimeSeconds(), database());
+    }
+
+    /**
+     * The process fact alone. This method does not read the database, does not borrow a connection and does
+     * not start a timer: a liveness probe that walked into the pool would inherit the pool's 30 s
+     * {@code connectionTimeout} and turn "the process is up" into "the process is up, unless the database
+     * is down" — exactly the fact a liveness probe must not have.
+     */
+    public HealthDtos.Liveness liveness() {
+        return new HealthDtos.Liveness(service, version, startedAt, uptimeSeconds());
+    }
+
+    /**
+     * The serving fact: readiness IS the database measurement, named as the operator's question. The
+     * measurement itself is the same one {@link #report()} makes, so the two doors cannot disagree about
+     * what "reachable" means.
+     */
+    public HealthDtos.Readiness readiness() {
+        HealthDtos.Database database = database();
+        return new HealthDtos.Readiness(database.reachable(), database);
+    }
+
+    /** Uptime is measured against the same injected clock that stamped {@code startedAt}. */
+    private long uptimeSeconds() {
+        return Math.max(0L, Duration.between(startedAt, clock.instant()).toSeconds());
     }
 
     private HealthDtos.Database database() {
