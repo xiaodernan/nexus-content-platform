@@ -67,14 +67,19 @@ public class ToolService {
     public static final int MAX_QUERY_LENGTH = 100;
     /** The most declarations ONE batch read may name - a list, not a scan of the registry. */
     public static final int MAX_BATCH_IDS = 50;
+    /** How many characters an attestation's note may hold - the same sentence bound a deprecation carries. */
+    public static final int MAX_NOTE_LENGTH = 280;
+
+    /** What a contract pin looks like: 64 lowercase hex characters, the shape {@link ContractFingerprint} mints. */
+    private static final Pattern PIN_SHAPE = Pattern.compile("[0-9a-f]{64}");
     /**
-     * The six things that can happen to a declaration, in the order an entry can first appear for one: a birth,
-     * a new contract, a handover, a warning, its withdrawal, and the end. The list is the PROTOCOL, so the words
-     * are exact and case-sensitive: {@code Removed} is a typo, not a synonym, and a feed that answered it with an
-     * empty page would hide the typo.
+     * The eight things that can happen to a declaration, in an order that reads as a life: a birth, a new
+     * contract, a handover, a warning and its withdrawal, a claim that a contract was tested and its withdrawal,
+     * and the end. The list is the PROTOCOL, so the words are exact and case-sensitive: {@code Removed} is a typo,
+     * not a synonym, and a feed that answered it with an empty page would hide the typo.
      */
     public static final List<String> CHANGE_KINDS =
-            List.of("declared", "updated", "transferred", "deprecated", "undeprecated", "removed");
+            List.of("declared", "updated", "transferred", "deprecated", "undeprecated", "attested", "unattested", "removed");
 
     /**
      * The name's shape. The first character is alphanumeric, so a name cannot begin with a dot or dash and
@@ -87,6 +92,7 @@ public class ToolService {
     private final ToolDeprecationRepository deprecations;
     private final ToolOwnershipRepository ownership;
     private final ToolChangeRepository changes;
+    private final ToolAttestationRepository attestations;
     private final Clock clock;
     private final ObjectMapper mapper;
 
@@ -96,6 +102,7 @@ public class ToolService {
             ToolDeprecationRepository deprecations,
             ToolOwnershipRepository ownership,
             ToolChangeRepository changes,
+            ToolAttestationRepository attestations,
             Clock clock,
             ObjectMapper mapper) {
         this.repository = repository;
@@ -103,6 +110,7 @@ public class ToolService {
         this.deprecations = deprecations;
         this.ownership = ownership;
         this.changes = changes;
+        this.attestations = attestations;
         this.clock = clock;
         this.mapper = mapper;
     }
@@ -251,6 +259,7 @@ public class ToolService {
                     recordChange(row, "removed", null, clock.instant().truncatedTo(ChronoUnit.MICROS));
                     revisions.deleteByToolId(toolId);
                     deprecations.deleteByToolId(toolId);
+                    attestations.deleteByToolId(toolId);
                     ownership.deleteByToolId(toolId);
                     repository.delete(row);
                     return true;
@@ -643,6 +652,109 @@ public class ToolService {
                 .orElseThrow(() -> new UnknownDeprecation("tool \"" + toolId + "\" is not deprecated"));
     }
 
+    /**
+     * Record that a NAMED contract of this declaration was tested - the owner's claim, at the pin it tested.
+     *
+     * <p>The pin must be the one being served RIGHT NOW. A claim about an older contract is not wrong, but it is
+     * not a claim about what a consumer would install today, and accepting it silently would make the two
+     * indistinguishable. A mismatch is a 409 that names the pin now being served: the caller re-reads and says it
+     * again, which costs one round trip and keeps every stored claim true about the bytes it names.
+     *
+     * <p>One row per tool: re-attesting REPLACES the claim (pin, note, instant) rather than appending, because a
+     * claim is a current state and the revisions door already holds the contracts.
+     *
+     * @param toolId      the declaration
+     * @param ownerId     the holder; required before anything is read
+     * @param pin         the 64-hex contract pin the caller tested, required
+     * @param note        an optional sentence about how it was tested, trimmed and bounded
+     * @throws InvalidTool      when the owner or pin is missing or malformed, or the note is too long
+     * @throws UnknownTool      when the id names no row
+     * @throws NotYourTool      when the row belongs to another account
+     * @throws StaleContract    when the pin is not the one being served
+     */
+    @Transactional
+    public ToolAttestation attest(String toolId, String ownerId, String pin, String note) {
+        String owner = requireOwner(ownerId);
+        String claimed = requirePin(pin);
+        String sentence = normalizeNote(note);
+        ToolEntry row = repository.lockById(toolId)
+                .orElseThrow(() -> new UnknownTool("tool \"" + toolId + "\" names nothing in this registry"));
+        if (!row.getOwner().equals(owner)) {
+            throw new NotYourTool("tool \"" + toolId + "\" belongs to another account");
+        }
+        String current = contractSha256(row);
+        if (!current.equals(claimed)) {
+            throw new StaleContract("the pin \"" + claimed + "\" is not the contract being served — tool \""
+                    + toolId + "\" now serves \"" + current + "\"; read it again and attest that one");
+        }
+        java.time.Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        attestations.findByToolId(toolId).ifPresent(attestations::delete);
+        ToolAttestation saved = attestations.save(new ToolAttestation(toolId, claimed, sentence, now));
+        recordChange(row, "attested", null, now);
+        return saved;
+    }
+
+    /**
+     * One declaration's attestation. A claim is a 404 under its own name ({@code not-attested}) when there is
+     * none, so "nobody has claimed this" is never mistaken for "nothing is known about this tool".
+     *
+     * @throws UnknownTool        when the id names no row
+     * @throws UnknownAttestation when the tool has no claim
+     */
+    @Transactional(readOnly = true)
+    public ToolAttestation attestationOf(String toolId) {
+        get(toolId);
+        return attestations.findByToolId(toolId)
+                .orElseThrow(() -> new UnknownAttestation("tool \"" + toolId + "\" has no attestation"));
+    }
+
+    /**
+     * Withdraw the claim. {@code false} when there was none - "nothing to withdraw" is not an error, the same rule
+     * the removal and undeprecation doors follow. The entry it leaves is the ONLY record that a claim existed:
+     * the row it deletes cannot say it was withdrawn.
+     */
+    @Transactional
+    public boolean withdrawAttestation(String toolId, String ownerId) {
+        String owner = requireOwner(ownerId);
+        ToolEntry row = repository.lockById(toolId)
+                .orElseThrow(() -> new UnknownTool("tool \"" + toolId + "\" names nothing in this registry"));
+        if (!row.getOwner().equals(owner)) {
+            throw new NotYourTool("tool \"" + toolId + "\" belongs to another account");
+        }
+        return attestations.findByToolId(toolId)
+                .map(existing -> {
+                    attestations.delete(existing);
+                    recordChange(row, "unattested", null, clock.instant().truncatedTo(ChronoUnit.MICROS));
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    /** The required pin: trimmed, and refused by name when it is not 64 lowercase hex characters. */
+    static String requirePin(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new InvalidTool("an attestation must name the contract pin it tested");
+        }
+        String trimmed = raw.trim();
+        if (!PIN_SHAPE.matcher(trimmed).matches()) {
+            throw new InvalidTool("a contract pin is " + ContractFingerprint.HEX_LENGTH
+                    + " lowercase hex characters — this one is \"" + trimmed + "\"");
+        }
+        return trimmed;
+    }
+
+    /** The optional note: null when absent or blank, trimmed otherwise, bounded like a deprecation sentence. */
+    static String normalizeNote(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (trimmed.length() > MAX_NOTE_LENGTH) {
+            throw new InvalidTool("an attestation note is at most " + MAX_NOTE_LENGTH
+                    + " characters — this one is " + trimmed.length());
+        }
+        return trimmed;
+    }
     /** The public list of deprecated declarations, newest first - the window, not the whole table. */
     @Transactional(readOnly = true)
     public List<ToolDeprecation> deprecationPage(int limit, int offset) {
@@ -804,8 +916,8 @@ public class ToolService {
      * The optional journal kind: null when absent or blank, otherwise one of {@link #CHANGE_KINDS}.
      *
      * <p>A closed vocabulary is validated HERE rather than left to answer an empty page, because an empty page
-     * is a true answer to "nothing matched" and a lie about "you spelled it wrong". The refusal names the six
-     * words so a caller can fix the call without reading this source.
+     * is a true answer to "nothing matched" and a lie about "you spelled it wrong". The refusal names the whole
+     * vocabulary so a caller can fix the call without reading this source.
      */
     static String normalizeChangeKind(String raw) {
         if (raw == null || raw.isBlank()) {

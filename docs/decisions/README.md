@@ -46,5 +46,6 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0034  | A journal of what happened, because two changes delete their own evidence | Accepted |
 | 0035  | A feed you can watch: two narrowings that never lie about what they hid | Accepted |
 | 0036  | A list of ids is one read, and it names the ones that held nothing | Accepted |
+| 0037  | A claim about one contract: the attestation, bound to its pin | Accepted |
 | 0036  | Liveness is not readiness: two doors, two audiences           | Accepted |
 | 0037  | The process's own numbers: a sample, not a metrics system | Accepted |

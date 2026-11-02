@@ -1,5 +1,7 @@
 package dev.nexus.api.tools;
 
+import dev.nexus.api.tools.ToolDtos.AttestRequest;
+import dev.nexus.api.tools.ToolDtos.Attestation;
 import dev.nexus.api.tools.ToolDtos.DeprecateRequest;
 import dev.nexus.api.tools.ToolDtos.Deprecation;
 import dev.nexus.api.tools.ToolDtos.DeprecationList;
@@ -17,6 +19,7 @@ import dev.nexus.api.tools.ToolDtos.ToolList;
 import dev.nexus.api.tools.ToolDtos.ToolRevisionList;
 import dev.nexus.api.tools.ToolDtos.ToolRevisionView;
 import dev.nexus.api.tools.ToolDtos.UpdateRequest;
+import dev.nexus.api.tools.ToolDtos.WithdrawAttestationAnswer;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +36,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v571–v584 + v587 — the HTTP surface for the tool registry. Sixteen doors, and the differences between them are the
+ * M10 v571–v588 — the HTTP surface for the tool registry. Nineteen doors, and the differences between them are the
  * rules:
  *
  * <ul>
@@ -353,6 +356,45 @@ public class ToolController {
      * The public list of deprecated declarations, newest first, each carrying its tool's NAME. One request
      * answers "which tools are going away and what replaces them", which is the question a catalog reader has.
      */
+    /**
+     * v588 — record that a NAMED contract was tested, for the declaration's owner.
+     *
+     * <p>The pin is required, and it must be the one being served: a claim about an older contract answers 409
+     * {@code stale-contract} with the pin that IS being served, so the caller re-reads and says it again. That
+     * refusal is the point — it is what keeps every stored claim true about the bytes it names.
+     *
+     * <p>Re-attesting REPLACES the claim (pin, note, instant): an attestation is a current state, and the
+     * revisions door already holds every contract a tool has served.
+     */
+    @PostMapping("/tools/{toolId}/attestation")
+    public ResponseEntity<Attestation> attest(
+            @PathVariable String toolId,
+            @RequestParam(name = "owner", required = false) String owner,
+            @RequestBody AttestRequest request) {
+        ToolAttestation claim = service.attest(toolId, owner, request.contractSha256(), request.note());
+        return ResponseEntity.ok(toWire(claim, service.get(toolId)));
+    }
+
+    /**
+     * v588 — one declaration's attestation. Public, like the declaration it is about.
+     *
+     * <p>{@code stillCurrent} is recomputed on every read by comparing the pinned contract with the one being
+     * served now, so an update makes a claim stale WITHOUT erasing it: the claim stays true about the contract it
+     * names, and the answer says whether that is the contract a consumer would install today.
+     */
+    @GetMapping("/tools/{toolId}/attestation")
+    public ResponseEntity<Attestation> attestation(@PathVariable String toolId) {
+        ToolAttestation claim = service.attestationOf(toolId);
+        return ResponseEntity.ok(toWire(claim, service.get(toolId)));
+    }
+
+    /** v588 — withdraw the claim, for its owner only. 200 either way: "nothing to withdraw" is not an error. */
+    @DeleteMapping("/tools/{toolId}/attestation")
+    public ResponseEntity<WithdrawAttestationAnswer> withdrawAttestation(
+            @PathVariable String toolId,
+            @RequestParam(name = "owner", required = false) String owner) {
+        return ResponseEntity.ok(new WithdrawAttestationAnswer(toolId, service.withdrawAttestation(toolId, owner)));
+    }
     @GetMapping("/tools/deprecations")
     public ResponseEntity<DeprecationList> deprecations(
             @RequestParam(name = "limit", required = false) Integer limit,
@@ -483,6 +525,14 @@ public class ToolController {
         return false;
     }
 
+    private Attestation toWire(ToolAttestation claim, ToolEntry row) {
+        return new Attestation(
+                claim.getToolId(),
+                claim.getContractSha256(),
+                claim.getNote(),
+                claim.getAttestedAt().toEpochMilli(),
+                claim.getContractSha256().equals(service.contractSha256(row)));
+    }
     private Tool toWire(ToolEntry row) {
         return toWire(row, service.contractSha256(row));
     }
@@ -557,6 +607,17 @@ public class ToolController {
         return ResponseEntity.status(404).body(Map.of("error", "not-deprecated", "message", e.getMessage()));
     }
 
+    /** A claim about a contract that is no longer served is a 409: the request was legal, the world moved. */
+    @ExceptionHandler(StaleContract.class)
+    public ResponseEntity<Map<String, String>> stale(StaleContract e) {
+        return ResponseEntity.status(409).body(Map.of("error", "stale-contract", "message", e.getMessage()));
+    }
+
+    /** A declaration nobody has attested is a 404 under its own name, distinct from an unknown id. */
+    @ExceptionHandler(UnknownAttestation.class)
+    public ResponseEntity<Map<String, String>> notAttested(UnknownAttestation e) {
+        return ResponseEntity.status(404).body(Map.of("error", "not-attested", "message", e.getMessage()));
+    }
     /** An id that names nothing is a 404, not an empty row and not a 400. */
     @ExceptionHandler(UnknownTool.class)
     public ResponseEntity<Map<String, String>> unknown(UnknownTool e) {

@@ -767,7 +767,7 @@ class ToolControllerTest {
     void anUnknownJournalKindIsRefusedBeforeTheServiceIsTouched() {
         assertThatThrownBy(() -> controller().changes("pruned", null, null, null, null))
                 .isInstanceOf(InvalidTool.class)
-                .hasMessageContaining("declared, updated, transferred, deprecated, undeprecated, removed");
+                .hasMessageContaining("declared, updated, transferred, deprecated, undeprecated, attested, unattested, removed");
         verifyNoInteractions(service);
     }
 
@@ -832,5 +832,76 @@ class ToolControllerTest {
                 .isInstanceOf(InvalidTool.class)
                 .hasMessageContaining("at most " + ToolService.MAX_BATCH_IDS);
         verifyNoInteractions(service);
+    }
+
+    // ── v588: the attestation doors ────────────────────────────────────────────────────────────────
+    @Test
+    void anAttestationEchoesItsPinAndSaysWhetherItIsStillCurrent() {
+        String pin = "a".repeat(64);
+        ToolEntry row = row("tool-1", OWNER, "a.tool");
+        ToolAttestation claim = new ToolAttestation("tool-1", pin, "ran it", AT);
+        when(service.attest("tool-1", OWNER, pin, "ran it")).thenReturn(claim);
+        when(service.get("tool-1")).thenReturn(row);
+        when(service.contractSha256(row)).thenReturn(pin);
+
+        ToolDtos.Attestation body =
+                controller().attest("tool-1", OWNER, new ToolDtos.AttestRequest(pin, "ran it")).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.contractSha256()).isEqualTo(pin);
+        assertThat(body.note()).isEqualTo("ran it");
+        assertThat(body.attestedAt()).isEqualTo(AT.toEpochMilli());
+        assertThat(body.stillCurrent()).isTrue();
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(5);
+    }
+
+    @Test
+    void anAttestationStaysOnRecordWhenTheContractMovesAndSaysItIsNoLongerCurrent() {
+        String tested = "b".repeat(64);
+        String served = "c".repeat(64);
+        ToolEntry row = row("tool-1", OWNER, "a.tool");
+        when(service.attestationOf("tool-1"))
+                .thenReturn(new ToolAttestation("tool-1", tested, null, AT));
+        when(service.get("tool-1")).thenReturn(row);
+        when(service.contractSha256(row)).thenReturn(served);
+
+        ToolDtos.Attestation body = controller().attestation("tool-1").getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.contractSha256()).as("the claim still names the bytes it tested").isEqualTo(tested);
+        assertThat(body.stillCurrent()).as("the pinned bytes are not what is served now").isFalse();
+        assertThat(mapper.valueToTree(body).get("note").isNull()).isTrue();
+    }
+
+    @Test
+    void aStaleClaimIsA409NamingTheServedPin() {
+        ResponseEntity<Map<String, String>> answer =
+                controller().stale(new StaleContract("tool \"t\" now serves \"c\""));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(409);
+        assertThat(answer.getBody()).containsEntry("error", "stale-contract");
+        assertThat(answer.getBody().get("message")).contains("now serves");
+    }
+
+    @Test
+    void aToolNobodyAttestedIsA404NotAttested() {
+        ResponseEntity<Map<String, String>> answer =
+                controller().notAttested(new UnknownAttestation("tool \"t\" has no attestation"));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(404);
+        assertThat(answer.getBody()).containsEntry("error", "not-attested");
+    }
+
+    @Test
+    void aWithdrawalEchoesWhatItDid() throws Exception {
+        when(service.withdrawAttestation("tool-1", OWNER)).thenReturn(true);
+
+        ToolDtos.WithdrawAttestationAnswer body =
+                controller().withdrawAttestation("tool-1", OWNER).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.toolId()).isEqualTo("tool-1");
+        assertThat(body.removed()).isTrue();
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(2);
     }
 }

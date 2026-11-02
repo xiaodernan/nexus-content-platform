@@ -145,6 +145,35 @@ public final class ToolDtos {
     }
 
     /**
+     * v588 - the body of an attestation: the CONTRACT PIN the caller tested, and an optional sentence about how.
+     *
+     * <p>The pin is required and explicit rather than implied by "latest": a caller that has not read the contract
+     * has nothing to attest, and the service refuses a pin that is not the one being served (409) instead of
+     * quietly recording a claim about bytes nobody tested.
+     */
+    public record AttestRequest(String contractSha256, String note) {
+    }
+
+    /**
+     * v588 - one declaration's attestation.
+     *
+     * <p>{@code stillCurrent} is DERIVED, never stored: it compares the pinned contract with the one being served
+     * now. An update does not delete the claim (it is still true about the contract it names) and does not move
+     * it (that would be a claim about bytes nobody tested) - it makes {@code stillCurrent} false, which is the
+     * whole reason a pin travels beside the claim.
+     */
+    public record Attestation(
+            String toolId,
+            String contractSha256,
+            String note,
+            long attestedAt,
+            boolean stillCurrent) {
+    }
+
+    /** v588 - what a withdrawal did: {@code false} when there was no claim to withdraw. */
+    public record WithdrawAttestationAnswer(String toolId, boolean removed) {
+    }
+    /**
      * What a retention prune did: the boundary it applied, how many rows it removed, and what the history still
      * holds.
      *

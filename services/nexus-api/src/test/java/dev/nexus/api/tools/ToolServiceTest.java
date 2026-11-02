@@ -50,10 +50,13 @@ class ToolServiceTest {
     @Mock
     private ToolChangeRepository changes;
 
+    @Mock
+    private ToolAttestationRepository attestations;
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     private ToolService service() {
-        return new ToolService(repository, revisions, deprecations, ownership, changes, Clock.fixed(AT, ZoneOffset.UTC), mapper);
+        return new ToolService(repository, revisions, deprecations, ownership, changes, attestations, Clock.fixed(AT, ZoneOffset.UTC), mapper);
     }
 
     private static ToolEntry row(String id, String owner, String name) {
@@ -1097,7 +1100,7 @@ class ToolServiceTest {
     void anUnknownKindIsRefusedBeforeAnyQuery() {
         assertThatThrownBy(() -> service().journal("pruned", null, 0, 20, 0))
                 .isInstanceOf(InvalidTool.class)
-                .hasMessageContaining("declared, updated, transferred, deprecated, undeprecated, removed");
+                .hasMessageContaining("declared, updated, transferred, deprecated, undeprecated, attested, unattested, removed");
         // The vocabulary is case-sensitive: a capitalised word is a typo, not a synonym.
         assertThatThrownBy(() -> service().journal("Removed", null, 0, 20, 0))
                 .isInstanceOf(InvalidTool.class)
@@ -1163,5 +1166,119 @@ class ToolServiceTest {
         // The bound counts DISTINCT ids: a hundred copies of one id is still one id.
         assertThat(ToolService.normalizeIds(java.util.Collections.nCopies(100, "tool-1")))
                 .containsExactly("tool-1");
+    }
+
+    // ── v588: the attestation — a claim about ONE contract, made by its owner ──────────────────────
+    @Test
+    void anAttestationRecordsThePinItTestedAndTheNote() {
+        ToolEntry row = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row));
+        when(attestations.findByToolId("tool-1")).thenReturn(Optional.empty());
+        when(attestations.save(any(ToolAttestation.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        String pin = service().contractSha256(row);
+
+        ToolAttestation claim = service().attest("tool-1", OWNER, pin, "  ran the example suite  ");
+
+        assertThat(claim.getContractSha256()).isEqualTo(pin);
+        assertThat(claim.getNote()).isEqualTo("ran the example suite");
+        assertThat(claim.getAttestedAt()).isEqualTo(AT);
+        ArgumentCaptor<ToolChange> journal = ArgumentCaptor.forClass(ToolChange.class);
+        verify(changes).save(journal.capture());
+        assertThat(journal.getValue().getKind()).isEqualTo("attested");
+        assertThat(journal.getValue().getRevision()).isNull();
+    }
+
+    @Test
+    void anAttestationForAContractThatIsNoLongerServedIsRefusedWithTheServedPin() {
+        ToolEntry row = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row));
+        String stale = "0".repeat(64);
+
+        assertThatThrownBy(() -> service().attest("tool-1", OWNER, stale, null))
+                .isInstanceOf(StaleContract.class)
+                .hasMessageContaining(service().contractSha256(row))
+                .hasMessageContaining(stale);
+        verify(attestations, never()).save(any(ToolAttestation.class));
+        verify(changes, never()).save(any(ToolChange.class));
+    }
+
+    @Test
+    void aPinIsRequiredAndMustLookLikeOne() {
+        assertThatThrownBy(() -> ToolService.requirePin("  "))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("must name the contract pin");
+        assertThatThrownBy(() -> ToolService.requirePin("abc"))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("64 lowercase hex");
+        // A pin is lowercase: an uppercased copy of a real pin is a different string, not the same pin.
+        assertThatThrownBy(() -> ToolService.requirePin("a".repeat(64).toUpperCase()))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("lowercase");
+    }
+
+    @Test
+    void reAttestingReplacesTheOneRowRatherThanAppending() {
+        ToolEntry row = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row));
+        String pin = service().contractSha256(row);
+        ToolAttestation existing = new ToolAttestation("tool-1", pin, "older note", AT);
+        when(attestations.findByToolId("tool-1")).thenReturn(Optional.of(existing));
+        when(attestations.save(any(ToolAttestation.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service().attest("tool-1", OWNER, pin, "newer note");
+
+        verify(attestations).delete(existing);
+        verify(attestations).save(any(ToolAttestation.class));
+    }
+
+    @Test
+    void anAttestationNoteIsBoundedAndBlankIsNoNote() {
+        assertThat(ToolService.normalizeNote("   ")).isNull();
+        assertThat(ToolService.normalizeNote("  a sentence  ")).isEqualTo("a sentence");
+        assertThatThrownBy(() -> ToolService.normalizeNote("x".repeat(ToolService.MAX_NOTE_LENGTH + 1)))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("at most " + ToolService.MAX_NOTE_LENGTH);
+    }
+
+    @Test
+    void aStrangerCannotAttestSomebodyElsesTool() {
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row("tool-1", "acct-other", "a.tool")));
+
+        assertThatThrownBy(() -> service().attest("tool-1", OWNER, "0".repeat(64), null))
+                .isInstanceOf(NotYourTool.class);
+        verify(attestations, never()).save(any(ToolAttestation.class));
+    }
+
+    @Test
+    void withdrawingATestimonyThatIsNotThereAnswersFalseAndWritesNothing() {
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(attestations.findByToolId("tool-1")).thenReturn(Optional.empty());
+
+        assertThat(service().withdrawAttestation("tool-1", OWNER)).isFalse();
+        verify(changes, never()).save(any(ToolChange.class));
+    }
+
+    @Test
+    void withdrawingAnAttestationIsJournalledAsUnattested() {
+        ToolEntry row = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row));
+        when(attestations.findByToolId("tool-1"))
+                .thenReturn(Optional.of(new ToolAttestation("tool-1", "0".repeat(64), null, AT)));
+
+        assertThat(service().withdrawAttestation("tool-1", OWNER)).isTrue();
+        ArgumentCaptor<ToolChange> journal = ArgumentCaptor.forClass(ToolChange.class);
+        verify(changes).save(journal.capture());
+        assertThat(journal.getValue().getKind()).isEqualTo("unattested");
+        assertThat(journal.getValue().getRevision()).isNull();
+    }
+
+    @Test
+    void readingAnAttestationNobodyMadeIsNotAttestedRatherThanUnknown() {
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(attestations.findByToolId("tool-1")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().attestationOf("tool-1"))
+                .isInstanceOf(UnknownAttestation.class)
+                .hasMessageContaining("no attestation");
     }
 }
