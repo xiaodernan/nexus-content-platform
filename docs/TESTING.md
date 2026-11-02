@@ -2159,3 +2159,15 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   在同一交互点同样超时、本机 CPU 满载 100% ⇒ 环境问题（工作区 studio 客户端被当时的在途改动与负载冻住），
   不是本片代码。没有为跑绿放宽任何门。
   notMeasured：入口链接的 href 只断言了形状（`/\/storyboard$/`，中文 slug 不转义），绝对地址由后续点击证。
+
+- **2026-11-02：§85 第三十五片「点开才出现的界面」第一次进读数（发布弹层）**——跑法
+  `$env:NEXUS_WEB_URL='http://localhost:3101'; npx playwright test e2e/a11y-opened.spec.ts --reporter=list`
+  （3100 是 `D:\足球项目` 的 dev server；本仓暖服务在 3101）。一条用例：夹具账号 → Studio → 点标题节点
+  → 只用键盘开弹层 → 等 `[data-publish-gate]` → axe → 截图 → ARIA 接线 → Tab 首停 → Esc 两腿 → 点外部/内部。
+  读数 `1 passed（4.2s）`，`通过 27 / 不适用 35 / 违规 0`。**首跑红在两处真缺陷**：属性面板 7 个输入
+  缺 `label`（critical，选中节点后才渲染 ⇒ 此前的默认态扫描结构上看不见）；画布尺寸角标暗色 3.74:1
+  （color-contrast，serious）。修后复跑绿。**臂表**（A keydown 注册 / B stopPropagation / C aria-controls /
+  D pointerdown 收口）四条各自红在预测句；臂 B 第一版全绿是**等价变异**——Escape 时焦点在 `<select>`，
+  画布全局键对输入控件退让——补「焦点还在触发键上按 Esc」腿后才红。每次都逐字节还原，
+  最后 `git diff` 只含本意改动；`tsc -p e2e` exit 0。notMeasured：弹层的发布中/失败/门禁未过三态、
+  390 下的弹层、ExportPanel 同族弹层。

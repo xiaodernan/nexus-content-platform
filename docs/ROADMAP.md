@@ -227,6 +227,19 @@
       读数与 notMeasured 见 `docs/PERFORMANCE.md` 2026-10-29 那节。
       「画布侧没有虚拟化/增量重排」那一条**已被 ADR-0064（视口裁剪）与 ADR-0049（增量重解）取代**，
       不再是开放项。
+- [x] **§85「点开才出现的界面」第一次进读数——发布弹层**（第三十五片，2026-11-02）：发布弹层此前整块
+      从 axe 与键盘的分母里退出（收起的 DOM 不在、打开的那一态没人扫）。这一片在真浏览器里**只用键盘**
+      打开它再量：打开态 axe **通过 27 / 不适用 35 / 违规 0**、critical 0；`aria-expanded` / `aria-controls`
+      指到真存在的 `role="region"`；Tab 第一个停留点是可见性单选；Esc 两腿（焦点在触发键 / 在弹层控件里）
+      都收得回去、焦点回触发键、**画布选区不被同一带带走**；点外部收起、点弹层内部不收起。
+      **首跑就抓到两处真缺陷**：① 选中节点后才渲染的 7 个属性输入各缺可及名（axe `label` critical）——
+      补 8 个 `aria-label`；② 画布尺寸角标 11px `fg-1` 压 brand 在暗色下只有 3.74:1（axe `color-contrast`
+      serious）—— 改用 `accent-fg`（4.71:1）。e2e **1 passed（4.2s，暖服务 3101）**；四条变异臂各自红在
+      预测的那一句（A 去掉 keydown 注册 → Esc 后弹层还在；B 去掉 `stopPropagation` → 选区被带走；
+      C 去掉 `aria-controls` → 接线断言红；D 去掉 pointerdown 收口 → 点外部不收起）。
+      **臂 B 第一版是等价变异**：Escape 时焦点在 `<select>` 里，画布全局键对输入控件本就退让，
+      于是补了「焦点还在触发键上按 Esc」这一腿才踩到画布的同名键——这也说明"红过一次"要看清是
+      哪一条腿在红。
 
 并行会话边界（2026-10-28 实测）：observability 子系统由另一会话在途；上表前五项都在 UI 主题层，
 与它不重叠；提交只用临时索引/精确 `git add`，不碰它的 7 个在途文件。
@@ -2585,14 +2598,20 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
      在"零原生依赖 + ai-service 无 Pillow"的约束下自己写不划算；等 provider 层落地时由真视觉模型接管（同时补上
      §173 那些像素测不出来的形容词：Cinematic / Soft glass / Slow motion）。
 - 认证已落地（任务 #9d，§137/§80）：bcrypt 口令哈希、会话轮换/吊销、双提交 CSRF、内存滑动窗口限流、就地升级认领 guest 项目。
-  三笔债里 CSRF 已还清，另两笔如实记下，替换点各自单一（见 `docs/adr/0002-password-hashing-and-csrf.md`）：
+  三笔债里 CSRF 与限流两笔已还清，剩口令哈希那一笔如实记下，替换点各自单一（见 `docs/adr/0002-password-hashing-and-csrf.md`）：
   1. 口令用的是 SECURITY.md 允许的 **bcrypt 回落分支**，不是首选的 Argon2id（原生/wasm 包与"Windows 免编译 + 零原生依赖"冲突）。
      换 Argon2id 时改 `server/domain/password.ts` 两处函数即可，`verifyPassword` 已按前缀分派，旧 bcrypt 串仍可验证。
   2. ~~CSRF 双提交只在 auth 路由强制~~ **已还清**：`csrfOk` 现覆盖全部 mutation 路由（projects 建/存、snapshots、restore、
      branches、switch、duplicate、variants、merge、publish POST/DELETE、assets 上传/删除、ai/run）。客户端统一走 `src/lib/csrf.ts` 的
      `csrfHeaders()`（`AccountPanel` 内联实现已收敛）；`FormData` 上传只加头不设 `content-type`。15 条 @smoke 端到端 + 新增 `csrf-client.test.ts` 为回归证明。
-  3. 限流是**单实例内存驱动**，多实例部署下退化为每实例独立计数（不是不限量，但仍挡不住跨实例分摊的慢速爆破）。
-     生产接 Redis 有序集滑动窗口，保持 `RateLimiter` 接口不变即可替换。
+  3. ~~限流是**单实例内存驱动**，多实例部署下退化为每实例独立计数~~ **已还清**（§SEC 第三十二片，ADR-0076）：
+     `RateLimiter` 接口没变（先把它改成异步，同步接口写不出跨实例的数），设 `NEXUS_REDIS_URL` 换成 Redis
+     有序集滑动窗口，所有实例数同一份；不设则照旧进程内。**多实例部署这一格是必设项不是优化项**——
+     `10 次/15 分钟/邮箱` 在两台前端下实际是"每台 10 次"，而没有任何读数会说这句变了。Redis 坏时退回进程内
+     并且出声（`nexus_rate_limit_driver_fallbacks_total`）。进程内那版自己也有了收口（第三十三片，ADR-0077：
+     整窗过期的扫掉、桶数钉在 `maxBuckets`（默认 50 000）以内、`nexus_rate_limit_buckets_pruned_total{reason}` 三本账）。
+     仍欠两格如实记下：Redis 侧的键基数没有上界（靠 TTL 收尾而不是靠上限）；"这台实例现在用的是哪个驱动"
+     没有界面位（答案只有启动那一行日志与那个 fallback counter）。
 - 历史面板的 Ctrl+Z 只在浏览器会话内，刷新即失；服务端快照与 Branch / Duplicate（§27/§28）已经打通。
   还缺的是 §29 的多方案 A-B-C 并排比较视图（分支线已经能承载多个方向），
   以及快照列表的「只看当前分支」筛选——现在仍按时间全量展示、每行标出所属分支。
@@ -8818,18 +8837,187 @@ responsive rules**。ADR-0069 与 ADR-0074 把访客那一侧接完之后，作�
   五条变异臂逐条跑过并还原（A 2 红 / B 1 红 / C 2 红 / D 3 红 / E 1 红），预测红集与实际相符；
   D 多出来的那一红正是 §19 那条"整节点回写作废"现形——回写收了而发射发不出时，丢的不是一条类名而是整个节点的补丁。
 
+**第七片（2026-11-02）：`layout.reverse` 的画布那一半——教的是求解器，不是发射**
+
+第六片最后那条仍欠的第 2 句说的是同一个键的两半：代码那一寸两头早就通了（`layoutClasses` 为它发
+`flex-col-reverse`、`decodeVariant` 认得回来），而 `layout.ts` 一次都没有读过这个键。于是模型里写着
+"这一档反着排"的元素，**画布按正序摆、公开页与导出的代码按反序摆**——§16 的"三处同一份模型"断在这一格上，
+而且断的方向与第六片那条②相反：不是代码写着而什么都没动，是两份投影各说一套。这一片合的就是这道缝。
+
+- 改的是求解器：`ALIGNABLE_MODES` 那两档放孩子时按 `mainOffset = mainTotal - cursor - mainLen` **镜像主轴**，
+  交叉轴照旧（CSS 的 `*-reverse` 只把主轴起点挪到另一头，交叉轴跟 writing-mode 走）。**故意不在 0 处夹住**：
+  溢出的反向容器从内容盒的上沿/左沿探出去，正如正向容器从下沿/右沿探出去——夹住的话"hug 容器 + 内容更大"
+  这一天天出现的档上两份投影又分岔。grid / wrap / stack / none 四档不吃这个键（那些分支本来就在碰它之前 return）。
+- 动手前先量改动面：`grep -rn "reverse" apps/web/src` 只命中两处 SVG marker 的 `orient="auto-start-reverse"`
+  （图视图的箭头方向），没有一处写 `layout.reverse` ⇒ 今天没有任何界面写得进这个键，可达的写入方只有
+  代码视图与 AI 补丁，所以存量页面一份投影都不变（改完 design-model 那 404 条当场全绿，之后才加新腿）。
+- 判据搬了家：`ALIGNABLE_MODES` 从 `codegen.ts` → `types.ts`。不是整理癖——这一片的读者里多了 `layout.ts`，
+  而 `codegen.ts` 本来就 `import { applyResponsive } from "./layout"`，留在原地是环。消费者还是同一条链上的
+  四处：发射（基线 + 断点档 + 反向类）、回写（`decodeVariant` 收不收）、面板（`appliesTo` 摆不摆得出）、
+  求解器（认不认）。包外不受影响（`src/index.ts` 是 `export * from "./types"`）。
+- 发射与回写的表还是一份：新增导出的正表 `REVERSE_CLASS: Partial<Record<LayoutMode,string>>`（只有那两档
+  有反向类，所以 `Partial`：回写读不到条目就不该认这个 token），`code-parse.ts` 的 `MODE_OF_REVERSE_CLASS`
+  由它反推。断点档那一格与 `justify`/`items` 共用两条判据（这一档自己声明了才发 + `ALIGNABLE_MODES`）。
+- 那一行同时带着 `md:flex-col` 与 `md:flex-col-reverse`（同一个 CSS 属性的两种写法），**这是量过的**：
+  用本仓库装的 Tailwind v4.3.3 现编一份含这两个类的样式，`.flex-col` 排在 `.flex-col-reverse` 之前 ⇒ 后者赢。
+  保留正向类而不是"反向时不发正向"也是有意的：正向那条是 `layout.mode` 自己声明的，重投影自检要求每条
+  `checked` 类再出现一次，抑制它会让作者手写那条无害的 `md:flex-col md:flex-col-reverse` **整节点回写作废**
+  （§19 最贵的走法）。这条依赖记在 ADR-0069：换框架或升 Tailwind 大版本要重新量一遍。
+- 回写多了一条归属规矩，是被一条红逼出来的：`md:flex-col-reverse` 同时说"纵排"与"反向"。现在只在**与这一档
+  解出来的排布不同**时才写 `layout.mode`。无条件写的话，一条本来只有 `{reverse:true}` 的规则会多出模型里没有的
+  `mode` 键——"发得出也读得回、一个补丁都不发"那条腿当场红。落在本来就是纵排的档上只补 `reverse`；
+  落在横排档上 `mode` 与 `reverse` 一起收（那确实是改排布）。与腿 O 的"无前缀类落进手机规则"同源：**键归给真的说了这句话的那一层**。
+- 新腿：`layout.test.ts` 8 条（竖/横镜像、镜像 × `space-between`、交叉轴不动、grid/wrap/stack/none 四种排布
+  正反解出来的树一字不差、溢出不夹住、hug 高度两向相同、tablet 规则级联且设计值不多键）+
+  `codegen.test.ts` 2 条（断点档发得出而翻成网格那档一条不发、设计值本来就是网格时一个 `-reverse` 都不发）+
+  `code-parse.test.ts` 3 条（手写落横排档两键一起收、落竖排档只补 `reverse`、往返零补丁）。
+- `e2e/responsive-authoring.spec.ts` 加腿 Q：在**代码视图**给 Actions 那一行补 `md:flex-col-reverse`（这一格
+  面板还没有输入口，代码视图是唯一的人工写入口）→ 报告"已回写 responsive" → 落库形状（tablet 那条规则多出
+  `reverse:true`，同一条里的 mode/padding/justify/items/size 一个都不掉，**设计值那份 `layout` 不许有 `reverse`**）
+  → 画布上按镜像量：每个孩子到内容下沿的距离 = 正序时它到内容上沿的距离、顺序翻了、`left/width/height` 一个字都不动
+  → 徽标从 N 涨到 N+1 且那句"面板没有输入口"点名点到 `layout.reverse` → 发布 → 访客 tablet 那一份的**相对盒子**
+  与画布同一寸 → 撤掉这一格：走**撤销**（一次代码应用 = 一条事务，§150），规则里那个键消失、徽标退回 N、
+  画布一格不差地回到正序；再**重做**，落库那份与撤销前逐字相同、镜像量出同一寸。
+  这里第一版写的是"在代码里把那条类删掉"，跑出来报「没有可回写的改动」——`responsiveOps` 是**按档合并**的
+  （代码里没提的键从模型留着，否则改一条 `md:gap-*` 会顺带抹掉同档的 padding 与尺寸），删类抹不掉键；
+  而发射侧的 `{reverse:false}` 又没有对应的类（仍欠第 2 条），所以人工出口只有撤销与「清掉这一档」两条，
+  这条腿现在钉的是前者。
+- 读数：`packages/design-model` **32 files / 418 passed**；加 `apps/web` 那两个响应式文件
+  **34 files / 464 passed**；`tsc -p e2e/tsconfig.json --noEmit` 干净；e2e 腿 A–Q **1 passed（1.4m，暖服务 3101，
+  需 `NEXUS_WEB_URL=http://localhost:3101`——不设就打到同机另一个应用）**。八条变异臂逐条跑过并还原，
+  预测红集与实际相符（A 求解器不读 reverse → 6 红；A2 顺手镜像交叉轴 → 2 红；A3 镜像夹在 0 上 → 恰 1 红；
+  C 回写无条件补 `mode` → 1 红（往返零补丁）；D 从不补 → 1 红（手写落横排档）；E 完全不认反向类 → 2 红；
+  F 断点档不发 → 4 红；G 基线不发 → 1 红），还原后 `git diff` 无残留、418 条复绿。
+  一处如实记下：把两处发射里的 `ALIGNABLE_MODES` 判据各删掉一项**没有红腿可当载体**——`REVERSE_CLASS` 是
+  `Partial`，grid / wrap 那两档查不到条目就什么都不发，判据被表遮住。所以那条判据的证据在求解器与面板两侧
+  （A 与腿 Q 的画布那一段、`appliesTo` 那两格），不在发射侧。
+
 **仍欠**
 
 1. 面板仍然只有部分输入口：`position`（x/y）、`layout.reverse`/`scroll`/`clipContent`/`rowGap`/`crossGap`
    与 `typography` 除字号那几键现在**数得进来、改不出去**，界面只能说"去代码那一节"或"整档清掉"。
    （第三片给了 `layout.mode`/`gap`/`columns`/`typography.fontSize`，第六片给了 `justify`/`items`；
-   见 ADR-0069。）
-2. `layout.reverse` 在代码那一寸是两份投影：`layoutClasses` 为它发 `flex-col` + `flex-col-reverse`
-   （同一个 CSS 属性的两种写法），而求解器完全不读 `reverse` ⇒ 画布不动、代码与访客动。要么教求解器，
-   要么像第六片那样把发射关掉。
+   第七片把 `reverse` 接进了求解器，但没给它格子——写入口仍是「代码」视图与 AI 补丁。）
+2. ~~`layout.reverse` 在代码那一寸是两份投影~~——**第七片已还**（2026-11-02）：`layout.ts` 现在认这个键，
+   画布与代码/访客读的是同一份顺序。新的那一半欠在别处：某一档只声明 `{reverse:false}` 而更窄那档是反向的，
+   CSS 里没有"取消反向"这条类（要重发正向方向类），发射这一寸还没做，记在 `codegen.ts` 的注释与 ADR-0069。
 3. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
 4. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。
 5. 这条 e2e 链在开发模式里 4.7m，其中腿 F 那一段从 9.7s 涨到 104s、发布到 266s 是同机另一会话同时在跑
    e2e 挤出来的。没有独占库/独占端口之前，它不能当常驻快门。
 6. 徽标数的是投影，不预测渲染：`layout.columns` 这类键在 codegen 里怎么落成 Tailwind 类，与画布/访客是不是
    真的按它摆，是另一条链（§85 那套体检表量的就是这一层）。
+
+## §85 第三十五片：点开才出现的界面第一次进读数——发布弹层（2026-11-02）
+
+§85 的体检表一直有一块结构性空白：**默认收起的弹层与点开才出现的表单不在分母里**（axe 只看得见
+渲染出来的 DOM，键盘走查也只走默认态）。这一片挑 Studio 顶栏的「发布」弹层做主读，理由不是它最花哨，
+而是它同时踩着三条：① 弹层里是发布可见性与门禁读数，作者必须能走到；② 它挂在画布之上，而画布
+也听 `window` 的 Escape（清空选区），收口写不好就会"关弹层顺手把选中的元素丢了"；③ 它此前
+**没有 Escape、没有点外部收起、没有 `aria-controls`**。
+
+**落点**
+
+- `PublishPanel.tsx`：打开时在捕获阶段听 `window` 的 Escape（`stopPropagation` 后收面板、焦点回触发键），
+  `document` 的 `pointerdown` 捕获阶段判 `rootRef.contains`（点外部收、点内部不收，触发键算根的一节）；
+  弹层补 `id` / `role="region"` / `aria-label="发布与分享"`，触发键只在打开时挂 `aria-controls`
+  （合着时挂一个指向不存在 id 的引用是 axe 的 `aria-valid-attr-value` 违规）。
+- `e2e/a11y-opened.spec.ts`（新）：复用夹具账号与项目，选中标题后**只用键盘**（聚焦触发键 + Enter）
+  打开弹层，等门禁块算完再扫 axe；ARIA 接线、Tab 首停、Esc 两腿、点外部/点内部四条腿一起读。
+
+**首跑抓到两处真缺陷，都在这片之前看不见**
+
+1. 选中节点后才渲染的属性输入有 7 个没有可及名（axe `label`，critical）——左边的 `<span>` 读屏拿不到；
+   补 8 个 `aria-label`（断点通道数字、状态背景/描边/阴影/透明度、元素名称、第 N 层填充颜色）。
+2. 画布尺寸角标：11px、`fg-1` 压 `brand`，暗色下 3.74:1（axe `color-contrast`，serious；浅色那半没问题）
+   —— 底色是不随主题翻转的实色，前景只能用它自己那一档 `accent-fg`（4.71:1）。
+
+**读数**（`$env:NEXUS_WEB_URL='http://localhost:3101'; npx playwright test e2e/a11y-opened.spec.ts`）
+
+- **1 passed（4.2s）**，`通过 27 条 · 不适用 35 条 · 违规 0 条`；截图 `screenshots/a11y-opened-publish.png`
+  （gitignored，人工看过：弹层可读、角标改后是深字压蓝）。
+- 夹具账号复用：零注册、零建项目（第二遍起）；每条臂仍消耗 1 次登录，在 10 次/15 分钟之内。
+
+**四条臂**（每条改坏 → 跑 → 看红 → 立刻逐字节还原）
+
+| 臂 | 改坏的那一处 | 结果 |
+|---|---|---|
+| A | 不注册 `window` 的 keydown | 红在 Esc 后 `[data-publish-panel]`，Expected 0 / Received 1（9.8s） |
+| B | 只删 `event.stopPropagation()` | **第一版全绿**——Escape 时焦点在 `<select>`，画布的全局键对输入控件本就退让；补「焦点还在触发键上按 Esc」这一腿后红在属性面板那条（选区被带走，8.9s） |
+| C | 删 `aria-controls` | 红在 `toHaveAttribute('aria-controls', panelId)`，Received ""（8.1s） |
+| D | 删 `pointerdown` 收口 | 红在最后 `await expect(panel).toHaveCount(0)`，Expected 0 / Received 1（9.5s） |
+
+**仍欠**
+
+1. `ExportPanel` 是同族的顶栏弹层（有"收起"按钮，但没有 Escape / 点外部 / `region` / `aria-controls`），
+   下一片按同一张表量；两处收口重复，届时抽共用 hook 时要把"画布也听 Escape"这条注释一起带过去。
+2. 弹层其他状态（发布进行中 / 失败 / 门禁未过）没有各自读数；当前只量了"门禁算完"那一个稳定态。
+3. 移动端弹层（390 下顶栏收成图标时）不在本片；iOS 真机仍未量。
+4. 真 provider 的发布路径仍是 DEMO MODE（§160），本片只量界面可及性，不冒充发布语义。
+
+## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
+
+起点是 `rateLimit.ts` 顶部从 §64 那天起就写着的一句承诺："生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD
+的有序集滑动窗口），保持本接口形状不变即可"。它兑不了现的原因写在接口自己脸上：**它是同步的**，而同步接口只有
+"进程内"这一种后端写得出来——一次网络往返没有地方等它。所以先有 `3585dc8`（seam 改异步：44 个生产调用点补
+`await`、测试里 15 个 `reset()` 补 `await`，判定逻辑一个字没动），再有本片填驱动。分两个提交不是为好看，是让
+"新增驱动"的 diff 里没有"顺便改了语义"。
+
+- 形状：门面 `rateLimit.ts` 只剩接口、桶键形状与选驱动；两个驱动各在一个文件，与 `realtime/` 的
+  `bus.ts`/`localBus.ts`/`redisBus.ts` 一一对应。旋钮是 `NEXUS_REDIS_URL`（与实时总线同一个，不各设各的），
+  **不设它的部署逐行为照旧**——这一片是 opt-in。而多实例部署下它是必设项：`10 次/15 分钟/邮箱` 在两台前端下
+  实际是"每台 10 次"，没有任何一个读数会说这句变了；攻击者不必绕过任何代码，只要把请求分摊到两台。
+- 三条硬约束，每条是一类 bug 的形状：① 原子性在 Lua 脚本里（`ZREMRANGEBYSCORE`→`ZCARD`→`ZADD` 拆成三条命令时，
+  两个并发请求能同时读到"窗口里还差一名"，于是双双挤进去，上限被**并发本身**突破）；② 时钟来自
+  `redis.call('TIME')` 不是客户端 `Date.now()`（多台机器时钟不齐时，快那台写进去的成员分数比慢那台的 now 还大，
+  `ZREMRANGEBYSCORE` 删不掉它——它赖在窗口里冒充"未来的命中"）；③ 每条命中的成员名唯一＝实例身份 + 本机单调序号
+  （`ZADD` 对同名成员是"改分数"不是"加一条"，成员名若取 `Date.now()`，同毫秒 N 条在集合里永远只占一格，
+  `ZCARD` 恒等于 1，闸等于没装。**这一格单实例的顺序语义测不出来**，所以它有自己的用例：一次并发 `limit+6` 条，
+  放行的必须恰好 `limit` 条）。
+- 与 ADR-0028 取向相反的一处是故意的：Redis 坏了**退回进程内**而不是停摆——退回来仍挡得住单机暴力破解，业务照常跑，
+  不停摆的价值大于"看得见地坏"。代价换个地方付：退回一定要出声（`nexus_rate_limit_driver_fallbacks_total` +
+  一行日志 + `fallbackCount`，三个说的是同一句话）。`commandTimeout: 250ms` 的超时方向是"更严不是更松"。
+- 首跑抓出来的真 bug，不是设计时想到的：`PEXPIRE` 原来排在 `ZADD` 之前——对一个还不存在的键它返回 0、什么都不做、
+  也不报错，于是"只来过一次"的那批桶（恰恰是绝大多数）建不出 TTL，键空间随流量单调涨。
+- 读数：6 套 79 用例绿，含新的 `apps/web/test/rate-limit.redis.integration.test.ts` 16 条打真 Redis；
+  `npm run ratelimit:two-process` 12 个真实操作系统进程、11 条判据全绿（权威读数取父进程自己 `ZRANGE` 出来的那两条
+  有序集，不采信孩子进程的自述）。五条变异臂 A4 / A5 / A6 / A8 / A9 逐字进
+  `docs/adr/0076-rate-limit-redis-sliding-window.md` 的臂表，其中 A4（成员名撞车）红在突发那一格：10 条**全放行**。
+
+## §SEC 第三十三片：进程内那张表自己也要收口——闸不再比自己挡的东西先倒下（2026-11-02）
+
+**起点仍是读代码读出来的洞**，而这一回洞在闸自己身上：`rateLimitMemory.ts` 那张 `Map` 只加不减，桶键第三段那段
+身份是中间件给每个新访客现签的 guest 会话——"来一个人"就是"多一只桶"。限流闸挡的是免成本写入口，它自己却是一个
+免成本写入口：不设 `NEXUS_REDIS_URL` 的那台进程（也就是**默认**那台）内存随 distinct 身份单调涨，同样没有任何
+读数会说这件事。上一片管的是 Redis 那半的键空间（后果 7 那句 `PEXPIRE`），这一片补的是进程内这半。
+
+- 三腿：**清扫**（每只桶带上自己的 `windowMs`，每 256 次命中扫一趟全表——扫描不能挂在每次命中上，那是每请求
+  O(表长)）、**上界**（`maxBuckets` 默认 50 000 + 用 `Map` 的插入序当 LRU：命中先 `delete` 再 `set`，于是最近碰过的
+  永远在尾部；淘汰从头那头，代价是 O(要收走的数) 而不是每请求一次排序，后者等于把淘汰做成一条放大攻击）、
+  **出声**（`nexus_rate_limit_buckets_pruned_total{reason=expired|cap|reset}` 三本账分开，因为它们是三句话）。
+- **两个清扫节奏**是一条容易漏的形状：同一张表里同时住着 60 秒与 10 分钟的窗口，只靠周期性全表扫的话，短窗那批
+  过期了还占着名额、长窗那批被当成牺牲误报。所以顶到上界那一步另外按头部桶自己的窗口放过名额——整窗已过期的
+  不算牺牲、不喊。
+- **日志节奏本身是安全属性**：顶到上界之后每请求都淘汰一只，每请求一行 warn 就是这道闸自己开了一条写日志的入口。
+  所以只有 `cap` 补一行日志，而且最多一分钟一条，逐笔的数只进 counter。`cap` 在涨才是事故（这台进程正被 distinct
+  身份压着打），`expired` 在涨是正常收尾。
+- 方向与上一片相反的一处是明写的：被淘汰的那一格窗口重新变空，是**往更松错**（ADR-0076 后果 2 是往更严错）。
+  把它限制住的不是上界本身，是"正在挨挡的桶每被挡一次就碰一次、因此一直贴在 LRU 尾部"这条不变量——代价只出现在
+  洪水形状里。真正的上界在 Redis 驱动与边缘层，这一句 `docs/SECURITY.md` 里也写了，不是缺陷披露。
+- 顺手把上一片三处**仪器**从"赌一次运气"改成"看行为"：① parity 的 `retryAfterMs` 那句"50ms 容差"是本文件落地那天
+  单跑一次读到 3ms 就当成的上限，2026-10-31 连跑三次红在 55 / 62 / 64ms 而同一条用例里 `allowed / count` 一格没差
+  ——**红得没有道理的门，下一次真分歧也不会绿**，现在钉的是与漂移无关的三句加一条行为版本；② `connectionReady`
+  原来一次 `error` 就判死，而 `ready=true` 并不等于不退回（250ms 命令超时下慢命令照样退回），改成有界预算 3s
+  （依据 12 次探针读数 12..129ms）；③ 集成测试里 `await expect(ready).resolves.toBe(true)` 换成 `settle()`
+  （判据是"一次探测不退回"这个行为），退回数一律钉成相对基线的增量。**没有为了测试把那 250ms 抬高。**
+- 读数：`rateLimit.test.ts` 15/15、三文件 39/39；集成文件 settle 版连跑 6 趟 6/6 绿（12.48–14.04s）；
+  `npm run ratelimit:two-process` 12 条判据全 PASS，其中 `NO_FALLBACK_ON_REDIS_PHASE` 读数 `0/0/0/0/0/0`、
+  `REDIS_DOWN_STILL_GATES` = `ready=false`、5 次退回、判定 放放放挡挡。八条臂 B1–B8 逐字进
+  `docs/adr/0077-rate-limit-memory-bucket-ceiling.md`，其中 **B6 首跑 15 条全绿＝惰性臂**（判据写在循环结束之后，
+  中途错误自己好了就没有牙），把断言搬进循环内才红在"第 3 轮把正在挨挡的那一格挤掉了"。说法诚实：settle 版 6/6
+  是在健康负载下取的，那三次红没制造负载、无法复现，所以这一片改的是"仪器不再把一次运气当判据"，不是"偶发红已根治"。
+- **共用工作树的代价，再记一条**（第二十六片那一节记过同族的前一条）：这一片按隔离索引提交
+  （`GIT_INDEX_FILE=… git read-tree HEAD` + 只 `git add` 自己那 10 条路径）。提交成功之后**共享索引里那 10 条路径
+  还停在旧 blob**，于是 `git status` 读起来像"我还有 473 行没提交"，而下一个用共享索引提交的人会把这一片**静默
+  revert**。收尾因此是固定一步：提交完立刻 `git add -- <自己那几条路径>`——工作树内容此刻等于 HEAD，这一步不改
+  任何内容，只把共享索引对齐回来。

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import type { HealthJob } from '@/lib/health-job';
 import { useRealtime } from '@/lib/useRealtime';
@@ -23,6 +23,9 @@ import { studio, useStudioReady } from './store';
  */
 
 const BUILD_LABEL = { idle: '空闲', building: '构建中', ok: '成功', failed: '失败' } as const;
+
+/** 弹层与它那颗触发键的绑定：`aria-controls` 指的必须是真存在的 id，所以两边共用这一个常量。 */
+const PANEL_ID = 'nexus-publish-panel';
 const PREVIEW_LABEL = { idle: '公开地址已收回', starting: '打开中', ready: '可达', failed: '解析不出来' } as const;
 
 const CHOICES: { id: Visibility; label: string; hint: string }[] = [
@@ -35,6 +38,8 @@ export function PublishPanel() {
   const state = useStudioReady();
   const [open, setOpen] = useState(false);
   const [visibility, setVisibility] = useState<Visibility>('public');
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const publication = state.publication;
   /**
    * §147：弹层合着时不算——打开才需要门禁读数。每次按键都重算 10k 节点的全量体检，
@@ -66,16 +71,47 @@ export function PublishPanel() {
     },
   });
 
+  /**
+   * §85：弹层开着的时候，键盘与指针两条路都要能把它收回去。
+   *
+   * - **Escape 必须在捕获阶段截住**：画布也听 `window` 的 Escape（清空选区）。两个监听都在
+   *   window 上，注册顺序决定谁先跑——弹层后挂，冒泡阶段轮不到它先说话，于是"关弹层"会变成
+   *   "顺手把作者选中的元素也丢了"。捕获阶段先处理并 `stopPropagation`，这一下只归弹层。
+   * - **点外部收起**只认 `pointerdown` 且排除弹层根节点（连触发键一起）：用 `click` 的话，
+   *   按下与抬起之间跨过边界的那次点击会把弹层关在抬起之前，看起来像"点了一下没反应"。
+   * - 收起后焦点回到触发键：键盘用户不该被留在 document.body 上，否则下一次 Tab 从页首开始。
+   */
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      window.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [open]);
+
   const statusLabel = publication
     ? `${publication.visibility === 'private' ? '已停' : '已发布'} v${publication.version}`
     : '发布';
 
   return (
-    <div className="relative" data-publish-root>
+    <div ref={rootRef} className="relative" data-publish-root>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
+        aria-controls={open ? PANEL_ID : undefined}
         data-publish-open
         className={cn(
           'rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-3)] py-1 text-13',
@@ -86,7 +122,13 @@ export function PublishPanel() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-[70] max-h-[72vh] w-[440px] overflow-auto rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-strong)] bg-bg-1 p-[var(--nexus-space-3)] shadow-2xl">
+        <div
+          id={PANEL_ID}
+          role="region"
+          aria-label="发布与分享"
+          data-publish-panel
+          className="absolute right-0 top-[calc(100%+6px)] z-[70] max-h-[72vh] w-[440px] overflow-auto rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-strong)] bg-bg-1 p-[var(--nexus-space-3)] shadow-2xl"
+        >
           <p className="mb-2 font-mono text-12 text-fg-3">§56 / §57 发布与分享</p>
           <div className="mb-[var(--nexus-space-3)] flex flex-col gap-1">
             {CHOICES.map((choice) => (

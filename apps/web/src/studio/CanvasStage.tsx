@@ -745,7 +745,9 @@ function badgeStyle(box: Box): CSSProperties {
     top: box.y + box.height + 6,
     padding: '1px 6px',
     font: '500 11px var(--nexus-font-mono)',
-    color: 'var(--nexus-color-fg-1)',
+    // 底色是 brand（不随主题翻转的实色），前景只能用它自己那一档：
+    // fg-1 在暗色下压 #5b6cff 只有 3.74:1（本片 axe 量到的那 1 条 serious 就是这颗角标）。
+    color: 'var(--nexus-color-accent-fg)',
     background: 'var(--nexus-color-brand)',
     borderRadius: 3,
     whiteSpace: 'nowrap',

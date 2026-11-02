@@ -401,6 +401,8 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
             step={spec.step}
             value={draft ?? numeric}
             placeholder={value === MIXED ? '混合' : typeof value === 'string' ? value : '跟随'}
+            // 这一行左边有字（`spec.label`），但那是一颗 `<span>`，读屏拿不到它；名字必须写在控件上
+            aria-label={spec.label}
             onChange={(e) => setDrafts({ ...drafts, [spec.id]: e.target.value })}
             onBlur={() => commitNumber(spec.id, draft)}
             onKeyDown={(e) => {
@@ -663,6 +665,7 @@ function StateEditor({
             setDrafts({ ...drafts, fill: undefined });
           }}
           className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
+          aria-label={`${STATE_LABELS[active]}状态·背景颜色`}
           data-state-fill={active}
         />
         <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3">{fillColor === undefined ? '未设置' : typeof fillColor === 'string' ? fillColor : resolveColor(fillColor, tokens, mode)}</span>
@@ -684,6 +687,7 @@ function StateEditor({
           onChange={(e) => setStroke(Number(e.target.value), (strokeColor ?? '#ffffff') as ColorValue)}
           onKeyDown={(e) => e.stopPropagation()}
           className="w-16 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
+          aria-label={`${STATE_LABELS[active]}状态·描边宽度`}
           data-state-stroke-width={active}
         />
         <input
@@ -695,6 +699,7 @@ function StateEditor({
             setDrafts({ ...drafts, stroke: undefined });
           }}
           className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
+          aria-label={`${STATE_LABELS[active]}状态·描边颜色`}
           data-state-stroke-color={active}
         />
         <button type="button" onClick={() => write(`states.${active}.strokes`, [])} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="清除描边通道" data-state-stroke-clear={active}>
@@ -735,6 +740,7 @@ function StateEditor({
             setDrafts({ ...drafts, shadow: undefined });
           }}
           className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
+          aria-label={`${STATE_LABELS[active]}状态·阴影颜色`}
           data-state-shadow-color={active}
         />
         <button type="button" onClick={() => write(`states.${active}.effects`, [])} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="清除效果通道" data-state-effects-clear={active}>
@@ -756,6 +762,7 @@ function StateEditor({
           }}
           onKeyDown={(e) => e.stopPropagation()}
           className="w-20 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
+          aria-label={`${STATE_LABELS[active]}状态·透明度`}
           data-state-opacity={active}
         />
         <button type="button" onClick={clearOpacity} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="清除透明度覆盖" data-state-opacity-clear={active}>
@@ -787,6 +794,7 @@ function NodeNameField({ node }: { node: DesignNode }) {
         if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
       }}
       className="mt-1 w-full rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-13"
+      aria-label="元素名称"
       data-prop="name"
     />
   );
@@ -1088,6 +1096,7 @@ function FillList(props: {
               setDraft({ ...draft, [index]: '' });
             }}
             className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
+            aria-label={`第 ${index + 1} 层填充颜色`}
             data-prop={path}
           />
           <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3">{bound ? `{${bound}}` : value}</span>
