@@ -1,9 +1,9 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-02T10:16:37.470Z",
-  "arms": 46,
-  "matched": 46,
+  "ranAt": "2026-11-02T10:48:03.990Z",
+  "arms": 49,
+  "matched": 49,
   "armNames": [
     "C0-control",
     "A1-trigger-loses-master",
@@ -30,6 +30,9 @@
     "A22-permissions-block-deleted",
     "A23-permissions-block-emptied",
     "A24-read-scope-dropped",
+    "A25-housekeeping-print-after-the-summary",
+    "C1-trailing-print-that-is-not-housekeeping",
+    "C2-housekeeping-tail-on-a-file-that-is-not-a-row",
     "R0-control",
     "R1-red-proof-fails-the-build",
     "R2-hang-is-TIMEOUT-not-RED",
@@ -54,8 +57,8 @@
   ],
   "subjects": {
     "workflow": "6e39ab2cb0bb78f2a2ed7e06f88085fc264ed638515708451a47415490983803",
-    "gate": "1f62fecd095bb6934d2f8968199054a9cdc96e14d973d7da324122280de62d87",
-    "arms": "382176250e0fd2502d062e48d7cdc8168e21f9c4b734d39f1ca0e1c5812abc89",
+    "gate": "5bcd86c0d071051e1213fcc24d05c969d6800744e8531e370bb26eef2a42c8c3",
+    "arms": "f66c4f17d682afc533eb8ba713cddac9cfb9ba6fa3ee00ea4f9072e02d91d302",
     "runner": "43ac483c93dd127dac00d077422c1837e449ec30011b77be173f478f30c96b16",
     "sweep": "ead49485592dc696b99878ef19ba4802519f43746a55956dc9c22dd5fcdb84a9",
     "scripts": "4f13a845cd9e400b99e3de1617490e81e04721dcbdbead22b5458e555fe2bc7f",

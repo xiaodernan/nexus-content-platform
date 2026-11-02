@@ -208,6 +208,6 @@ console.log(`  diff notice: ${diff.slice(0, 70)}…\n  log  notice: ${log.slice(
 // --- §8 §9 holds, and the counters add up ---
 assert.equal(raw('.', 'rev-parse', 'HEAD').trim(), homeHead, "the home repository's HEAD is byte-identical: nothing here wrote outside os.tmpdir");
 assert.equal(spawns, doorReads, `${spawns} door-spawned processes over ${doorReads} door reads: every window above cost a real git, so the sweep measured the doors and not this file`);
-console.log(`\n[summary] commits in fixture: ${census} · git printed ${lines.length} lines / ${Buffer.byteLength(gitLog)} bytes · whole-line cut windows swept: ${cuts} · floored: ${floored} · census-shaped: ${censusShaped} · newest entry lost: ${newestLost} · survivors disagreeing with git: ${wrongSurvivors} · zero-line case still v48's: yes · door-spawned processes: ${spawns}`);
 execFileSync('node', ['-e', `require("fs").rmSync(${JSON.stringify(workRoot)},{recursive:true,force:true})`]);
 console.log('[cleanup] throwaway repos removed');
+console.log(`\n[summary] commits in fixture: ${census} · git printed ${lines.length} lines / ${Buffer.byteLength(gitLog)} bytes · whole-line cut windows swept: ${cuts} · floored: ${floored} · census-shaped: ${censusShaped} · newest entry lost: ${newestLost} · survivors disagreeing with git: ${wrongSurvivors} · zero-line case still v48's: yes · door-spawned processes: ${spawns}`);

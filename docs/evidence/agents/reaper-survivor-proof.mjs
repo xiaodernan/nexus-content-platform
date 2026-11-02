@@ -139,7 +139,6 @@ assert.ok(plain.rep.detail.includes('(descendants: not-attempted)'), `the un-ask
 assert.ok(!plain.rep.detail.includes('the reaper ran'), 'and never implies a reaper was called');
 
 assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, "the home repository's HEAD is byte-identical: every process here ran against os.tmpdir");
-console.log(`\n[summary] runs killed under a real suite-shaped program: ${reads} · reaper off → not-attempted with ${plain.after - plain.atReport} later beats · reaper on → "${reaped.rep.killed?.descendantsStopped}" with ${reaped.after - reaped.atReport} later beats · the label's meaning is now stated in the sentence, not inferred from one word · home HEAD byte-identical: yes`);
 try {
   rmSync(root, { recursive: true, force: true });
   console.log('[cleanup] throwaway programs and heartbeat file removed');
@@ -148,3 +147,4 @@ try {
   // still holding the directory, so the OS refuses the delete. The proof does not hide that — it says so.
   console.log(`[cleanup] the temp dir is still held by a live process (${e.code ?? e.message}) — v55's signature, and the same fact §2 measures in heartbeats`);
 }
+console.log(`\n[summary] runs killed under a real suite-shaped program: ${reads} · reaper off → not-attempted with ${plain.after - plain.atReport} later beats · reaper on → "${reaped.rep.killed?.descendantsStopped}" with ${reaped.after - reaped.atReport} later beats · the label's meaning is now stated in the sentence, not inferred from one word · home HEAD byte-identical: yes`);

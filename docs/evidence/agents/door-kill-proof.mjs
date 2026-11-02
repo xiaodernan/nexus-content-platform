@@ -170,6 +170,6 @@ assert.equal('killed' in uncut, false, 'a whole read carries no kill marker');
 console.log(`  killed → {killed:{…}} · not killed → no key · refusal → “git REFUSED” · kill → “the exec host KILLED” · one door, three worlds apart`);
 
 assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, "the home repository's HEAD is byte-identical: every write here was under os.tmpdir");
-console.log(`\n[summary] faces driven to a real kill: ${faces.length} · sentences blaming git for the host's kill: 0 · records carrying the kill: ${faces.length}/${faces.length} · late budget over a FINISHED read answered whole with no kill marker: yes (run 40833035921's shape, replayed) · real refusal still attributed to git: yes · keys invented for this: 0 (one clause + one field, both derived) · door reads: ${doorReads} · home HEAD byte-identical: yes`);
 for (const dir of temps) execFileSync('node', ['-e', `require("fs").rmSync(${JSON.stringify(dir)},{recursive:true,force:true})`]);
 console.log('[cleanup] throwaway repositories removed');
+console.log(`\n[summary] faces driven to a real kill: ${faces.length} · sentences blaming git for the host's kill: 0 · records carrying the kill: ${faces.length}/${faces.length} · late budget over a FINISHED read answered whole with no kill marker: yes (run 40833035921's shape, replayed) · real refusal still attributed to git: yes · keys invented for this: 0 (one clause + one field, both derived) · door reads: ${doorReads} · home HEAD byte-identical: yes`);

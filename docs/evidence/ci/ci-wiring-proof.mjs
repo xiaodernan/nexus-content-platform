@@ -24,6 +24,11 @@
 // charges the job's own envelope: the row budgets bound the proofs step and nothing above it, so the job
 // declares a ceiling that is TIGHTER than their sum, and a token that can only read.
 //
+// §12 charges the TAIL of each row's own source. The runner prints a green row's last line into its gutter, so
+// a row that deletes a temp directory after it reports its measurement is remembered for the deletion; the
+// hosted log of run 41421600776 showed eight rows in exactly that shape. Order is invisible to every other
+// clause here, and a reorder is one edit away from coming back.
+//
 // §8 makes this file self-reference its own admission: the script `verify:ci-wiring` must exist and point
 // here, so the door that guards the wiring is itself walked by the wiring it guards.
 //
@@ -317,4 +322,51 @@ let jobTimeoutMinutes = 0;
   console.log(`[§11] job ceiling ${jobTimeoutMinutes} min is BELOW the rows' own worst case ${Math.ceil(worstRowMs / 60_000)} min (${running.length} rows) · token narrowed to [${perms.join(', ')}] · no write scope`);
 }
 
-console.log(`\nci wiring: trigger covers master · proof step #${proofSteps[0].index} · no swallowed verdict in ${steps.length} steps · build precedes it · population ${population.length} closes as ${splitSet(population).running.length} + ${splitSet(population).residue.length} · budget grammar shared with the agents sweep · build Node ${buildNodeMajor} · job ceiling ${jobTimeoutMinutes} min with a read-only token`);
+// ── §12 a green row's LAST line says what it graded, not what it deleted ────────────────────────
+// v563 (amendment 538) made the runner print a green row's own last STDOUT line into that row's gutter, and
+// v566 (541) made that gutter unconditional, so for the rows that pass the gutter is the ONE sentence the
+// hosted log keeps. Run 41421600776 counted 106 OK lines against 106 gutters and named eight of them reading
+// `[cleanup] throwaway repos removed` and friends: rows that had measured something, remembered only for
+// deleting a temp directory. v568 moved the eight, and a move is the shape that rots silently — the next print
+// added BELOW a summary restores the defect for that row alone, and nothing between here and the hosted run
+// says so. So this clause refuses the source-order version of it for every running row.
+// It is a PROXY and is stated as one: what a row really prints last is knowable only from the run, because a
+// print can sit inside a branch and `console.log(fmt(x))` says nothing readable at the byte level. The proxy
+// stays honest three ways — it keys on the TAG a line opens with rather than on its subject, so a row may end
+// on any sentence it likes; it walks only the derived running set, so a helper or a human-run tool that ends
+// on cleanup is nobody's business; and a refusal quotes the file and the line, so the remedy comes with the
+// message. A row that prints nothing is not an offender either: v566's gutter says `(the row printed nothing)`,
+// which is the true sentence for that row, and R16/R17 arm the channel.
+{
+  const HOUSEKEEPING = /^\[(cleanup|teardown|finally|housekeeping)\]/i;
+  const { running } = splitSet(population);
+  const offenders = [];
+  let literal = 0;
+  let unreadable = 0;
+  for (const row of running) {
+    const path = join(ROOT, row.file);
+    if (!existsSync(path)) continue; // §5 owns a row whose file is not on disk
+    const lines = readFileSync(path, 'utf8').replace(/\r\n/g, '\n').split('\n');
+    let last = null;
+    for (let i = lines.length - 1; i >= 0 && !last; i--) {
+      const at = lines[i].lastIndexOf('console.log(');
+      if (at < 0) continue;
+      // A commented-out print is not a print. Checking the bytes BEFORE the call on its own line is the whole
+      // of the parsing this clause does — the same bound every clause here works under, since this gate reads
+      // bytes rather than an AST.
+      if (/\/\*|^\s*(\*|\/\/)/.test(lines[i].slice(0, at))) continue;
+      const open = /^console\.log\(\s*[`'"]([^`'"]{0,64})/.exec(lines[i].slice(at));
+      // The FIRST readable call from the end is the tail whether or not it can be read: walking further up
+      // would grade a line that is not last.
+      last = open ? { head: open[1].replace(/^(\s|\\[nrt])+/, ''), line: lines[i].trim() } : { line: lines[i].trim() };
+    }
+    if (!last) continue; // the row never calls console.log — its own silence, armed by the runner half
+    if (!('head' in last)) { unreadable++; continue; }
+    literal++;
+    if (HOUSEKEEPING.test(last.head)) offenders.push(`${row.name} (${row.file}) :: ${last.line.slice(0, 90)}`);
+  }
+  assert.deepEqual(offenders, [], `${offenders.length} running row(s) end their SOURCE on a housekeeping print, so the gutter a green row leaves in the hosted log describes deleting a temp directory instead of what the row graded: ${offenders.join(' | ')} — move that print ABOVE the row's own last sentence`);
+  console.log(`[§12] ${literal} of ${running.length} running rows end their source on a literal print, none of them a cleanup/teardown/finally/housekeeping tail · ${unreadable} row(s) end on a call whose argument is not an opening literal, where the source cannot say what prints last and only the hosted gutter can · 0 rows print no console.log at all`);
+}
+
+console.log(`\nci wiring: trigger covers master · proof step #${proofSteps[0].index} · no swallowed verdict in ${steps.length} steps · build precedes it · population ${population.length} closes as ${splitSet(population).running.length} + ${splitSet(population).residue.length} · budget grammar shared with the agents sweep · build Node ${buildNodeMajor} · job ceiling ${jobTimeoutMinutes} min with a read-only token · no row ends its source on a cleanup print`);

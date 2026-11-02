@@ -144,6 +144,6 @@ for (const budget of [1 << 20, HEADER + 1, HEADER - 20]) {
 console.log('\n§5 §9 守住，计数对得上');
 assert.equal(g('.', 'rev-parse', 'HEAD').trim(), homeHead, "the home repository's HEAD is byte-identical: every commit here landed in os.tmpdir");
 assert.equal(spawns, doorReads, `${spawns} processes over ${doorReads} granted commits — each shape above is one real git, not a fixture`);
-console.log(`\n[summary] budgets swept: ${doorReads} real commits of ${N} staged files each · record shapes: full / stat-null / record-absent · HEAD moved in every one: yes · windowed present exactly when the echo was cut: yes · refusals implied: 0 · JSONL round-trip keeps the key: yes · processes: ${spawns}`);
 execFileSync('node', ['-e', `for (const d of ${JSON.stringify(temps)}) require("fs").rmSync(d,{recursive:true,force:true})`]);
 console.log('[cleanup] throwaway repo removed');
+console.log(`\n[summary] budgets swept: ${doorReads} real commits of ${N} staged files each · record shapes: full / stat-null / record-absent · HEAD moved in every one: yes · windowed present exactly when the echo was cut: yes · refusals implied: 0 · JSONL round-trip keeps the key: yes · processes: ${spawns}`);

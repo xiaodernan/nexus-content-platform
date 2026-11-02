@@ -8,7 +8,7 @@
 //
 // Why this exists, stated the way §60 requires: amendment 514 shipped `.github/workflows/ci.yml`'s first
 // `verify:*` step and `tools/ci/proof-set.mjs`, and a shipped gate is worth exactly as much as the day someone
-// tries to make it stop. `ci-wiring-proof.mjs` reads a workflow and refuses eleven shapes; every one of those
+// tries to make it stop. `ci-wiring-proof.mjs` reads a workflow and refuses twelve shapes; every one of those
 // refusals is a sentence until an arm proves it is a DOOR. So each arm below rewrites one byte-range of one
 // plane file — the trigger losing `master`, the proof step vanishing or doubling, a `|| true` growing on it,
 // the proofs moving before the build, an exemption outliving its hazard, a dangling script, an exclusion for a
@@ -118,11 +118,23 @@ const GATE_CLOSURE = [...new Set([
   ...population.map((d) => d.file),
 ])];
 
-const CLAUSES = ['§1', '§2', '§3', '§4', '§5', '§6', '§7', '§8', '§9', '§10', '§11'];
+const CLAUSES = ['§1', '§2', '§3', '§4', '§5', '§6', '§7', '§8', '§9', '§10', '§11', '§12'];
 
 function gatePlane(tag, edits) {
   const files = new Map(GATE_CLOSURE.map((rel) => [rel, readSrc(rel)]));
-  for (const e of edits) files.set(e.file, splice(files.get(e.file), e.from, e.to, `${tag} ${e.file}`));
+  for (const e of edits) {
+    // An edit is either a needle pair or an APPEND. A tail planted at the end of a file has no usable needle:
+    // the closure's two non-row JS files both close on `}`, and `}\n` occurs 142 times in `agents/sweep.mjs`,
+    // so splice's "the needle occurs exactly once" guard would refuse the arm for saying WHICH brace it moved.
+    // Appending is what the arm means, so it is what the arm writes — and the carrier's EOL is still its own.
+    if (e.append) {
+      const text = files.get(e.file);
+      const eol = text.includes('\r\n') ? '\r\n' : '\n';
+      files.set(e.file, `${text.endsWith('\n') ? text : text + eol}${e.append.split('\n').join(eol)}${eol}`);
+      continue;
+    }
+    files.set(e.file, splice(files.get(e.file), e.from, e.to, `${tag} ${e.file}`));
+  }
   return makePlane(tag, files);
 }
 
@@ -164,6 +176,16 @@ const DECLARED_MARKERS = population
   .filter(Boolean);
 assert.ok(DECLARED_MARKERS.length >= 2,
   `only ${DECLARED_MARKERS.length} running row(s) declare a budget, so A14's "nobody declares" arm would be deleting a single marker — its premise is that the shared grammar has several users, and that premise no longer holds`);
+
+// §12's arms need one file the clause READS and one it must ignore. Both premises are checked at load, because
+// either one moving turns an arm into a sentence about a file it no longer touches: A25 and C1 grade a tail on
+// a RUNNING ROW, and C2 grades the same tail on a closure file that is NOT one (the agents sweep — a HELPER by
+// the census, and the module §9 imports). C2 is the arm that proves the clause's scope, so it is worth refusing
+// to run at all if the sweep ever becomes a row.
+const COLOR = 'docs/evidence/agents/color-proof.mjs';
+const SWEEP = 'docs/evidence/agents/sweep.mjs';
+assert.ok(RUNNING_FILES.has(COLOR), `${COLOR} is not a running row, so A25 and C1 would plant their tails where §12 never looks`);
+assert.ok(!RUNNING_FILES.has(SWEEP), `${SWEEP} is now a running row, so C2's "a non-row tail is nobody's business" arm would be arming the very refusal A25 predicts`);
 
 const GATE_ARMS = [
   { tag: 'C0-control', clause: null, edits: [], sig: null },
@@ -207,6 +229,14 @@ const GATE_ARMS = [
   { tag: 'A22-permissions-block-deleted', clause: '§11', edits: [{ file: WF, from: '    permissions:\n      contents: read\n', to: '' }], sig: /declares no `permissions:` block/ },
   { tag: 'A23-permissions-block-emptied', clause: '§11', edits: [{ file: WF, from: '    permissions:\n      contents: read\n', to: '    permissions:\n' }], sig: /`permissions:` block is empty/ },
   { tag: 'A24-read-scope-dropped', clause: '§11', edits: [{ file: WF, from: '      contents: read\n', to: '      contents: none\n' }], sig: /do not include `contents: read`/ },
+  // §12's premise is the ORDER at the tail of one real row, so the arms APPEND rather than quote: the shape
+  // v568 removed from `agents/color-proof.mjs` (and its seven siblings) is a print that survives below the
+  // row's own summary, and an arm that copied that summary line into a needle would be refused by its next
+  // edit. C1 and C2 are the two ways this clause could cry wolf — by reddening any trailing print, or by
+  // reddening a file that is not a row — and each is a control, so both must print all twelve tags and exit 0.
+  { tag: 'A25-housekeeping-print-after-the-summary', clause: '§12', edits: [{ file: COLOR, append: "console.log('[cleanup] an arm puts a housekeeping print back below the row summary');" }], sig: /end their SOURCE on a housekeeping print/ },
+  { tag: 'C1-trailing-print-that-is-not-housekeeping', clause: null, edits: [{ file: COLOR, append: "console.log('[measured] an arm plants a tail that is not cleanup');" }], sig: null },
+  { tag: 'C2-housekeeping-tail-on-a-file-that-is-not-a-row', clause: null, edits: [{ file: SWEEP, append: "console.log('[cleanup] an arm plants this below a HELPER, whose tail §12 has no business reading');" }], sig: null },
 ];
 
 // A clause with no arm is a sentence nobody has tried to break, and an arm aimed at a clause the gate no longer

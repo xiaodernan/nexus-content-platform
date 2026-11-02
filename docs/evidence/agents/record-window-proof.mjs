@@ -167,6 +167,6 @@ console.log(`  ${doors.length} 扇门：截断记录去掉 windowed 后与未截
 console.log('\n§5 §9 守住，计数对得上');
 assert.equal(g('.', 'rev-parse', 'HEAD').trim(), homeHead, "the home repository's HEAD is byte-identical: nothing here wrote outside os.tmpdir");
 assert.equal(spawns, doorReads + nonzeroStderr, `${spawns} processes = ${doorReads} door/host reads + ${nonzeroStderr} unexpected stderr states — every window above was a real git, not a replay`);
-console.log(`\n[summary] doors coupled sentence↔record: ${table.length} × 2 budgets · keys added to a record: 1 (windowed, absent when whole) · aggregate bit alone proven insufficient: exec.run with stdout whole and 9 000 B of stderr cut · git reads whose stderr was non-empty at exit 0: ${nonzeroStderr}/8 · door-spawned processes: ${spawns}`);
 execFileSync('node', ['-e', `for (const d of ${JSON.stringify(temps)}) require("fs").rmSync(d,{recursive:true,force:true})`]);
 console.log('[cleanup] throwaway repos removed');
+console.log(`\n[summary] doors coupled sentence↔record: ${table.length} × 2 budgets · keys added to a record: 1 (windowed, absent when whole) · aggregate bit alone proven insufficient: exec.run with stdout whole and 9 000 B of stderr cut · git reads whose stderr was non-empty at exit 0: ${nonzeroStderr}/8 · door-spawned processes: ${spawns}`);

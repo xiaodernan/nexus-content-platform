@@ -95,6 +95,6 @@ console.log('  v60 实测：唯一接线的命令(design-model vitest)在 2 000B
 
 const nowHead = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(nowHead, homeHead, "the home repository's HEAD is byte-identical: every write here was under os.tmpdir");
-console.log(`\n[summary] reports read: 6 shapes · carrying the pipe list: 3 (stdout / stderr / stdout+stderr) · carrying NO key: 3 (clean, vacuous only-miss, §28 refusal) · verdicts changed by a cut: 0 (exit code is the command's own) · JSONL round keeps the list AND its absence: yes · home HEAD byte-identical: yes`);
 execFileSync('node', ['-e', `for (const d of ${JSON.stringify(temps)}) require("fs").rmSync(d,{recursive:true,force:true})`]);
 console.log('[cleanup] throwaway programs and ledger removed');
+console.log(`\n[summary] reports read: 6 shapes · carrying the pipe list: 3 (stdout / stderr / stdout+stderr) · carrying NO key: 3 (clean, vacuous only-miss, §28 refusal) · verdicts changed by a cut: 0 (exit code is the command's own) · JSONL round keeps the list AND its absence: yes · home HEAD byte-identical: yes`);
