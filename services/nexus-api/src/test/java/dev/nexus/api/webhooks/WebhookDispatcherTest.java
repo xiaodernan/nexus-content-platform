@@ -186,6 +186,9 @@ class WebhookDispatcherTest {
 
         String header = headers.getValue().get(WebhookSigner.HEADER_NAME);
         assertThat(headers.getValue().get("Content-Type")).contains("application/json");
+        // v563 — the SAME id the answer names travels on the wire: one knock, one identity.
+        assertThat(headers.getValue().get(WebhookDispatcher.DELIVERY_ID_HEADER))
+                .isEqualTo(answer.deliveryId());
         // The header is the one a subscriber will actually compute a verdict with.
         assertThat(WebhookSigner.verify(SECRET, header, body.getValue(), AT, 300)).isTrue();
     }
@@ -367,11 +370,13 @@ class WebhookDispatcherTest {
         when(resolver.resolve("hooks.example.com")).thenReturn(List.of(address("93.184.216.34")));
         when(transport.post(any(), any(), any(), any())).thenReturn(new WebhookTransport.WebhookResponse(200));
 
-        dispatcher.ping(WEBHOOK_ID, SUBSCRIBER);
+        DeliveryAnswer answer = dispatcher.ping(WEBHOOK_ID, SUBSCRIBER);
 
-        // One row per ATTEMPT, whatever the outcome: the receipt is what the owner reads tomorrow.
+        // One row per ATTEMPT, whatever the outcome: the receipt is what the owner reads tomorrow, and it
+        // carries the id the answer gave (v563) so the owner can find the row they just made.
         verify(deliveryLog).record(
                 any(WebhookSubscription.class),
+                eq(answer.deliveryId()),
                 eq(WebhookDispatcher.PING_EVENT),
                 eq(WEBHOOK_ID),
                 eq(AT),
@@ -395,6 +400,7 @@ class WebhookDispatcherTest {
         ArgumentCaptor<String> outcomes = ArgumentCaptor.forClass(String.class);
         verify(deliveryLog, times(2)).record(
                 any(WebhookSubscription.class),
+                any(),
                 eq("publish"),
                 eq("pub-1"),
                 eq(AT),
@@ -405,5 +411,96 @@ class WebhookDispatcherTest {
         // subscriber is entitled to see, and the log is not a list of successes.
         assertThat(outcomes.getAllValues()).containsExactly(
                 WebhookDispatcher.OUTCOME_DELIVERED, WebhookDispatcher.OUTCOME_UNREACHABLE);
+    }
+
+    // ── v563: one recorded attempt can be REPEATED, and every knock names itself ─────────────────
+
+    /** A receipt the log already holds: the source a redelivery repeats. */
+    private static WebhookDelivery receipt(String id, String event, String targetId, Instant eventAt) {
+        return new WebhookDelivery(
+                id, WEBHOOK_ID, SUBSCRIBER, event, targetId,
+                WebhookDispatcher.OUTCOME_UNREACHABLE, null, "UnknownHostException",
+                eventAt, eventAt.plusSeconds(2), null);
+    }
+
+    @Test
+    void aRedeliveryRepeatsTheFactsBytesWithANewKnockAndTheCURRENTKey() throws Exception {
+        Instant factAt = AT.minusSeconds(30);
+        WebhookDelivery source = receipt("d-src", "publish", "pub-1", factAt);
+        // The subscription ROTATED since the source was written: the key on it now is not the one the
+        // original attempt used, and the redelivery must sign with the current one.
+        WebhookSubscription rotated = new WebhookSubscription(
+                WEBHOOK_ID, SUBSCRIBER, ENDPOINT, "publish", OTHER_SECRET, AT);
+        when(deliveryLog.find("d-src")).thenReturn(source);
+        when(repository.findById(WEBHOOK_ID)).thenReturn(Optional.of(rotated));
+        when(resolver.resolve("hooks.example.com")).thenReturn(List.of(address("93.184.216.34")));
+        when(transport.post(any(), any(), any(), any())).thenReturn(new WebhookTransport.WebhookResponse(200));
+
+        DeliveryAnswer answer = dispatcher.redeliver("d-src", SUBSCRIBER);
+
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, String>> headers = ArgumentCaptor.forClass(Map.class);
+        verify(transport).post(eq(ENDPOINT), body.capture(), headers.capture(),
+                eq(WebhookDispatcher.DELIVERY_TIMEOUT));
+
+        // The BODY is the fact: the event, the target and the ORIGINAL instant — not this clock.
+        assertThat(mapper.readTree(body.getValue())).isEqualTo(mapper.readTree(
+                "{\"event\":\"publish\",\"targetId\":\"pub-1\",\"at\":" + factAt.toEpochMilli() + "}"));
+        String header = headers.getValue().get(WebhookSigner.HEADER_NAME);
+        assertThat(WebhookSigner.verify(OTHER_SECRET, header, body.getValue(), AT, 300)).isTrue();
+        assertThat(WebhookSigner.verify(SECRET, header, body.getValue(), AT, 300)).isFalse();
+
+        // A NEW id, not the source's: the endpoint must be able to tell the knock from the one it repeats.
+        assertThat(answer.deliveryId()).isNotEqualTo("d-src");
+        assertThat(headers.getValue().get(WebhookDispatcher.DELIVERY_ID_HEADER))
+                .isEqualTo(answer.deliveryId());
+        assertThat(answer.at()).isEqualTo(factAt.toEpochMilli());
+        assertThat(answer.outcome()).isEqualTo(WebhookDispatcher.OUTCOME_DELIVERED);
+        // The receipt written REPEATS the source, under its own id and its own outcome.
+        verify(deliveryLog).recordRedelivery(
+                rotated, answer.deliveryId(), source, WebhookDispatcher.OUTCOME_DELIVERED, 200, null);
+    }
+
+    @Test
+    void aStrangersReceiptIsForbiddenBeforeAnyBytesExist() {
+        when(deliveryLog.find("d-src")).thenReturn(receipt("d-src", "publish", "pub-1", AT.minusSeconds(30)));
+
+        assertThatThrownBy(() -> dispatcher.redeliver("d-src", "acct-eve"))
+                .isInstanceOf(NotYourWebhook.class)
+                .hasMessageContaining("d-src");
+        // Nothing is read about the subscription's endpoint and nothing is sent.
+        verifyNoInteractions(repository, resolver, transport);
+    }
+
+    @Test
+    void aReceiptThatNamesNothingIsANotFoundRatherThanAnAttempt() {
+        when(deliveryLog.find("d-gone"))
+                .thenThrow(new NoSuchDelivery("receipt \"d-gone\" does not exist"));
+
+        assertThatThrownBy(() -> dispatcher.redeliver("d-gone", SUBSCRIBER))
+                .isInstanceOf(NoSuchDelivery.class)
+                .hasMessageContaining("d-gone");
+        verifyNoInteractions(repository, resolver, transport);
+    }
+
+    @Test
+    void aReceiptWhoseSubscriptionIsGoneCannotBeSigned() {
+        when(deliveryLog.find("d-src")).thenReturn(receipt("d-src", "publish", "pub-1", AT.minusSeconds(30)));
+        when(repository.findById(WEBHOOK_ID)).thenReturn(Optional.empty());
+
+        // The receipt outlives the subscription (v560), but a redelivery needs the endpoint AND a key.
+        assertThatThrownBy(() -> dispatcher.redeliver("d-src", SUBSCRIBER))
+                .isInstanceOf(NoSuchWebhook.class)
+                .hasMessageContaining("gone");
+        verifyNoInteractions(resolver, transport);
+    }
+
+    @Test
+    void aRedeliveryWithoutASubscriberIsRefusedBeforeAnyRead() {
+        assertThatThrownBy(() -> dispatcher.redeliver("d-src", "  "))
+                .isInstanceOf(InvalidWebhook.class)
+                .hasMessageContaining("subscriber");
+        verifyNoInteractions(repository, deliveryLog, resolver, transport);
     }
 }

@@ -28,6 +28,11 @@ import java.time.Instant;
  *       can differ by however long the endpoint took.
  * </ul>
  *
+ * <p>v563 adds ONE nullable column, {@code redelivery_of}: the receipt an owner-asked redelivery repeats. It is
+ * null for a first knock (a fan-out, a ping), and it is the SOURCE receipt's id for a redelivery — so the log
+ * can say "this attempt was made because a person asked again for that attempt", rather than leaving two
+ * indistinguishable rows about the same fact.
+ *
  * <p>Nothing here deletes a row: the table only grows (the same honest bound the audit trail states). A
  * retention rule — how long a subscriber's receipts are kept — is a later decision, and it is not implied by
  * this schema.
@@ -77,10 +82,24 @@ public class WebhookDelivery {
     @Column(name = "attempted_at", nullable = false)
     private Instant attemptedAt;
 
+    /**
+     * The receipt this attempt REPEATS (v563), or null for a first knock.
+     *
+     * <p>The source is named by id rather than joined: a receipt already carries its own copy of the fact, so
+     * the log can still read a redelivery after the receipt it repeats is pruned (when a retention rule
+     * exists), and the column never makes the owner's log depend on the table's own history.
+     */
+    @Column(name = "redelivery_of", length = 64)
+    private String redeliveryOf;
+
     protected WebhookDelivery() {
         // JPA needs it; the log never builds one without values.
     }
 
+    /**
+     * One attempt. The last parameter is the receipt this attempt REPEATS — null for a first knock, the source
+     * receipt's id for a redelivery (v563).
+     */
     public WebhookDelivery(
             String deliveryId,
             String webhookId,
@@ -91,7 +110,8 @@ public class WebhookDelivery {
             Integer status,
             String detail,
             Instant eventAt,
-            Instant attemptedAt) {
+            Instant attemptedAt,
+            String redeliveryOf) {
         this.deliveryId = deliveryId;
         this.webhookId = webhookId;
         this.subscriberAccountId = subscriberAccountId;
@@ -102,6 +122,7 @@ public class WebhookDelivery {
         this.detail = detail;
         this.eventAt = eventAt;
         this.attemptedAt = attemptedAt;
+        this.redeliveryOf = redeliveryOf;
     }
 
     public String getDeliveryId() {
@@ -142,5 +163,10 @@ public class WebhookDelivery {
 
     public Instant getAttemptedAt() {
         return attemptedAt;
+    }
+
+    /** The receipt this attempt repeats, or null when it was a first knock (v563). */
+    public String getRedeliveryOf() {
+        return redeliveryOf;
     }
 }

@@ -4,7 +4,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -57,23 +56,59 @@ public class WebhookDeliveryLog {
     }
 
     /**
-     * Write one attempt down.
+     * Write ONE first knock down: a fan-out's attempt or a ping's.
      *
      * <p>The two instants are passed rather than read here: {@code eventAt} is the fact's own instant (the
-     * trail's, or the ping's), and {@code attemptedAt} is this service's clock at the moment of the POST.
+     * trail's, or the ping's), and {@code attemptedAt} is this service's clock at the moment of the write.
+     * {@code deliveryId} is the id the dispatcher already put on the wire (v563): the receipt and the header a
+     * subscriber holds name the SAME knock, which is the whole point of minting it before the POST.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void record(
             WebhookSubscription row,
+            String deliveryId,
             String event,
             String targetId,
             Instant eventAt,
             String outcome,
             Integer status,
             String detail) {
+        write(deliveryId, row, event, targetId, eventAt, outcome, status, detail, null);
+    }
+
+    /**
+     * v563 — write a REDELIVERY down: the same fact, a new knock, and the receipt it repeats named.
+     *
+     * <p>The fact's three columns (event, target, {@code eventAt}) are taken from the SOURCE receipt rather
+     * than from arguments, so a redelivery cannot disagree with the receipt it repeats about what was said;
+     * only the outcome, the status and the detail are this attempt's own.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordRedelivery(
+            WebhookSubscription row,
+            String deliveryId,
+            WebhookDelivery source,
+            String outcome,
+            Integer status,
+            String detail) {
+        write(deliveryId, row, source.getEvent(), source.getTargetId(), source.getEventAt(), outcome, status,
+                detail, source.getDeliveryId());
+    }
+
+    /** The one persistence path both write doors share, so no caller can write a row with its own rules. */
+    private void write(
+            String deliveryId,
+            WebhookSubscription row,
+            String event,
+            String targetId,
+            Instant eventAt,
+            String outcome,
+            Integer status,
+            String detail,
+            String redeliveryOf) {
         Instant attemptedAt = clock.instant().truncatedTo(ChronoUnit.MICROS);
         repository.save(new WebhookDelivery(
-                UUID.randomUUID().toString(),
+                deliveryId,
                 row.getWebhookId(),
                 row.getSubscriberAccountId(),
                 event,
@@ -82,7 +117,27 @@ public class WebhookDeliveryLog {
                 status,
                 detail,
                 eventAt.truncatedTo(ChronoUnit.MICROS),
-                attemptedAt));
+                attemptedAt,
+                redeliveryOf));
+    }
+
+    /**
+     * v563 — ONE receipt by its id, for the redelivery door.
+     *
+     * <p>{@code readOnly}: the log is not changed by asking what it holds. The ownership question is the
+     * dispatcher's (it compares the receipt's subscriber with the one that asked), and the answer to "who does
+     * this belong to" travels ON the row — the reason the subscriber is carried here rather than joined.
+     *
+     * @throws InvalidWebhook when no id was named — a redelivery with no subject is a 400
+     * @throws NoSuchDelivery when the id names no receipt — 404, not "the endpoint refused"
+     */
+    @Transactional(readOnly = true)
+    public WebhookDelivery find(String deliveryId) {
+        if (deliveryId == null || deliveryId.isBlank()) {
+            throw new InvalidWebhook("a redelivery needs the receipt it repeats");
+        }
+        return repository.findById(deliveryId.trim())
+                .orElseThrow(() -> new NoSuchDelivery("receipt \"" + deliveryId.trim() + "\" does not exist"));
     }
 
     /**

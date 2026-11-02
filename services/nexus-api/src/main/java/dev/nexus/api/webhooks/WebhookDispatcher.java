@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 /**
@@ -39,6 +40,9 @@ import org.springframework.stereotype.Service;
  *   <li><b>The signature is computed over the bytes that are SENT.</b> The body is serialized once, handed to
  *       the signer, and handed to the transport — a subscriber that verifies the received bytes against the
  *       header must find them to be the same bytes, or the signature is theatre.
+ *   <li><b>Every knock names itself (v563).</b> A delivery id is minted before the POST and travels on the wire
+ *       ({@link #DELIVERY_ID_HEADER}) and on the receipt the answer writes, so a receiver and this service can
+ *       agree about which attempt they are talking about — the identity a retry needs and a schedule will use.
  * </ul>
  */
 @Service
@@ -58,6 +62,16 @@ public class WebhookDispatcher {
 
     /** The event a ping delivers. Not a trail verb: a ping says "this endpoint and this secret work". */
     public static final String PING_EVENT = "ping";
+
+    /**
+     * v563 — the header that names the KNOCK: the id of the receipt this attempt writes.
+     *
+     * <p>Minted before the POST rather than after the save, so the bytes a receiver holds and the row this
+     * service keeps name the same attempt. Stated bound: a crash between the POST and the receipt leaves the
+     * receiver holding an id this service never wrote down — which is why an outbox writes rows FIRST, and why
+     * that outbox is still a later decision rather than a claim made here.
+     */
+    public static final String DELIVERY_ID_HEADER = "X-Nexus-Delivery-Id";
 
     /** How long one delivery may take, connection included. */
     public static final Duration DELIVERY_TIMEOUT = Duration.ofSeconds(10);
@@ -127,7 +141,7 @@ public class WebhookDispatcher {
         return repository.findAll().stream()
                 .filter(row -> row.eventList().contains(wanted))
                 .sorted(OLDEST_FIRST)
-                .map(row -> attempt(row, wanted, targetId, body, at))
+                .map(row -> attempt(row, wanted, targetId, body, at, null))
                 .toList();
     }
 
@@ -155,7 +169,41 @@ public class WebhookDispatcher {
         }
         Instant at = clock.instant().truncatedTo(ChronoUnit.MICROS);
         String body = body(PING_EVENT, row.getWebhookId(), at);
-        return attempt(row, PING_EVENT, row.getWebhookId(), body, at);
+        return attempt(row, PING_EVENT, row.getWebhookId(), body, at, null);
+    }
+
+    /**
+     * v563 — POST one RECORDED fact again, because its owner asked for that attempt to be repeated.
+     *
+     * <p>The unit of a redelivery is a RECEIPT, not an event: the owner points at a row the log already holds
+     * and this service repeats exactly what that row said — same event, same target, the same {@code at} in the
+     * BODY, because the body is the fact and a receiver may store it. What changes is the knock: a NEW
+     * delivery id, a signature stamped NOW (with the subscription's CURRENT key, so a rotation applies to a
+     * redelivery exactly as it applies to a fan-out), and a NEW receipt naming the attempt it repeats.
+     *
+     * <p>Stated rather than implied: this is a MANUAL retry, not a schedule. Nothing here chooses a backoff,
+     * decides which outcomes are worth repeating, or tries again on its own; a person asks, once, for one row.
+     *
+     * @throws InvalidWebhook when the receipt id is missing — 400, the question has no subject
+     * @throws NoSuchDelivery when the id names no receipt — 404
+     * @throws NotYourWebhook when the receipt belongs to another subscriber — 403
+     * @throws NoSuchWebhook when the subscription the receipt came from is GONE — a receipt survives a
+     *     take-down, but there is no endpoint and no key left to sign a new knock with
+     */
+    public DeliveryAnswer redeliver(String deliveryId, String subscriberId) {
+        if (deliveryId == null || deliveryId.isBlank()) {
+            throw new InvalidWebhook("a redelivery needs the receipt it repeats");
+        }
+        String subscriber = WebhookService.requireSubscriber(subscriberId);
+        WebhookDelivery source = deliveryLog.find(deliveryId.trim());
+        if (!source.getSubscriberAccountId().equals(subscriber)) {
+            throw new NotYourWebhook("receipt \"" + deliveryId.trim() + "\" belongs to another subscriber");
+        }
+        WebhookSubscription row = repository.findById(source.getWebhookId()).orElseThrow(
+                () -> new NoSuchWebhook("the subscription receipt \"" + deliveryId.trim() + "\" came from is "
+                        + "gone — a redelivery has nothing left to sign with"));
+        String body = body(source.getEvent(), source.getTargetId(), source.getEventAt());
+        return attempt(row, source.getEvent(), source.getTargetId(), body, source.getEventAt(), source);
     }
 
     /**
@@ -163,34 +211,53 @@ public class WebhookDispatcher {
      *
      * <p>Nothing is sent when any resolved address is private: the request never reaches a network socket,
      * which is the difference between "refused" and "tried and hoped".
+     *
+     * <p>v563 — the delivery id is minted HERE, before the first byte is sent, and travels both on the wire
+     * ({@link #DELIVERY_ID_HEADER}) and on the receipt the answer writes. The signature's timestamp is the
+     * KNOCK's clock rather than the fact's instant, so a redelivery of a week-old receipt is verifiable by a
+     * receiver that enforces a tolerance window — while the BODY keeps the fact's own instant.
      */
     private DeliveryAnswer attempt(
-            WebhookSubscription row, String event, String targetId, String body, Instant at) {
+            WebhookSubscription row,
+            String event,
+            String targetId,
+            String body,
+            Instant eventAt,
+            WebhookDelivery redeliveryOf) {
+        String deliveryId = UUID.randomUUID().toString();
+        Instant signedAt = clock.instant().truncatedTo(ChronoUnit.MICROS);
         List<InetAddress> addresses;
         try {
             addresses = resolver.resolve(hostOf(row.getEndpointUrl()));
         } catch (Exception e) {
-            return answer(row, event, targetId, at, OUTCOME_UNREACHABLE, null, simpleName(e));
+            return answer(row, deliveryId, event, targetId, eventAt, OUTCOME_UNREACHABLE, null,
+                    simpleName(e), redeliveryOf);
         }
         for (InetAddress address : addresses) {
             if (isPrivateAddress(address)) {
-                return answer(row, event, targetId, at, OUTCOME_REFUSED, null, DETAIL_PRIVATE_ADDRESS);
+                return answer(row, deliveryId, event, targetId, eventAt, OUTCOME_REFUSED, null,
+                        DETAIL_PRIVATE_ADDRESS, redeliveryOf);
             }
         }
-        String signature = WebhookSigner.header(row.getSecret(), body, at);
+        String signature = WebhookSigner.header(row.getSecret(), body, signedAt);
         try {
             WebhookTransport.WebhookResponse response = transport.post(
                     row.getEndpointUrl(),
                     body,
-                    Map.of("Content-Type", CONTENT_TYPE, WebhookSigner.HEADER_NAME, signature),
+                    Map.of("Content-Type", CONTENT_TYPE,
+                            WebhookSigner.HEADER_NAME, signature,
+                            DELIVERY_ID_HEADER, deliveryId),
                     DELIVERY_TIMEOUT);
             int status = response.status();
             if (status >= 200 && status < 300) {
-                return answer(row, event, targetId, at, OUTCOME_DELIVERED, status, null);
+                return answer(row, deliveryId, event, targetId, eventAt, OUTCOME_DELIVERED, status, null,
+                        redeliveryOf);
             }
-            return answer(row, event, targetId, at, OUTCOME_REFUSED, status, "status");
+            return answer(row, deliveryId, event, targetId, eventAt, OUTCOME_REFUSED, status, "status",
+                    redeliveryOf);
         } catch (Exception e) {
-            return answer(row, event, targetId, at, OUTCOME_UNREACHABLE, null, simpleName(e));
+            return answer(row, deliveryId, event, targetId, eventAt, OUTCOME_UNREACHABLE, null,
+                    simpleName(e), redeliveryOf);
         }
     }
 
@@ -239,24 +306,35 @@ public class WebhookDispatcher {
      * <p>v560 — the recording lives HERE rather than at each call site so no path can return an outcome
      * without writing it down. The write is {@link WebhookDeliveryLog}'s own transaction
      * ({@code REQUIRES_NEW}), which is what makes it survive the after-commit fan-out.
+     *
+     * <p>v563 — {@code redeliveryOf} chooses the write door: a first knock records the fact the caller handed
+     * over, and a redelivery records the fact the SOURCE receipt carries, with its id named. The answer carries
+     * the delivery id either way, so the caller knows which receipt to look for.
      */
     private DeliveryAnswer answer(
             WebhookSubscription row,
+            String deliveryId,
             String event,
             String targetId,
-            Instant at,
+            Instant eventAt,
             String outcome,
             Integer status,
-            String detail) {
-        deliveryLog.record(row, event, targetId, at, outcome, status, detail);
+            String detail,
+            WebhookDelivery redeliveryOf) {
+        if (redeliveryOf == null) {
+            deliveryLog.record(row, deliveryId, event, targetId, eventAt, outcome, status, detail);
+        } else {
+            deliveryLog.recordRedelivery(row, deliveryId, redeliveryOf, outcome, status, detail);
+        }
         return new DeliveryAnswer(
+                deliveryId,
                 row.getWebhookId(),
                 row.getEndpointUrl(),
                 OUTCOME_DELIVERED.equals(outcome),
                 outcome,
                 status,
                 detail,
-                at.toEpochMilli());
+                eventAt.toEpochMilli());
     }
 
     /** The exception's own name, without a message that could carry a host or a port into an answer. */

@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,7 +59,7 @@ class WebhookDeliveryLogTest {
 
     @Test
     void aReceiptNamesTheSubscriberTheEventTheTargetAndBOTHInstants() {
-        log.record(row(), "publish", "pub-1", AT.minusSeconds(3),
+        log.record(row(), "d-1", "publish", "pub-1", AT.minusSeconds(3),
                 WebhookDispatcher.OUTCOME_REFUSED, 500, "status");
 
         ArgumentCaptor<WebhookDelivery> saved = ArgumentCaptor.forClass(WebhookDelivery.class);
@@ -75,18 +76,82 @@ class WebhookDeliveryLogTest {
         // TWO instants: when the fact happened, and when this service knocked. They are not the same field.
         assertThat(receipt.getEventAt()).isEqualTo(AT.minusSeconds(3));
         assertThat(receipt.getAttemptedAt()).isEqualTo(AT);
-        assertThat(receipt.getDeliveryId()).isNotBlank();
+        // v563: the id is the dispatcher's (the one the endpoint saw), and a first knock has no source.
+        assertThat(receipt.getDeliveryId()).isEqualTo("d-1");
+        assertThat(receipt.getRedeliveryOf()).isNull();
     }
 
     @Test
-    void theReceiptWriteRunsInItsOWNTransactionBecauseTheFanOutIsAFTERCOMMIT() throws Exception {
-        Transactional rule = WebhookDeliveryLog.class
-                .getMethod("record", WebhookSubscription.class, String.class, String.class, Instant.class,
-                        String.class, Integer.class, String.class)
-                .getAnnotation(Transactional.class);
+    void aRedeliveryReceiptRepeatsTheFactsColumnsAndNamesItsSource() {
+        WebhookDelivery source = new WebhookDelivery(
+                "d-source", "wh-1", SUBSCRIBER, "publish", "pub-1",
+                WebhookDispatcher.OUTCOME_UNREACHABLE, null, "UnknownHostException",
+                AT.minusSeconds(9), AT.minusSeconds(9), null);
 
-        assertThat(rule).isNotNull();
-        assertThat(rule.propagation()).isEqualTo(Propagation.REQUIRES_NEW);
+        log.recordRedelivery(row(), "d-new", source,
+                WebhookDispatcher.OUTCOME_REFUSED, 500, "status");
+
+        ArgumentCaptor<WebhookDelivery> saved = ArgumentCaptor.forClass(WebhookDelivery.class);
+        verify(repository).save(saved.capture());
+        WebhookDelivery receipt = saved.getValue();
+        // The FACT is the source's, column for column: a redelivery cannot drift from what it repeats.
+        assertThat(receipt.getEvent()).isEqualTo("publish");
+        assertThat(receipt.getTargetId()).isEqualTo("pub-1");
+        assertThat(receipt.getEventAt()).isEqualTo(AT.minusSeconds(9));
+        // What is this attempt's own: its id, its outcome, its clock — and the receipt it repeats.
+        assertThat(receipt.getDeliveryId()).isEqualTo("d-new");
+        assertThat(receipt.getOutcome()).isEqualTo(WebhookDispatcher.OUTCOME_REFUSED);
+        assertThat(receipt.getStatus()).isEqualTo(500);
+        assertThat(receipt.getAttemptedAt()).isEqualTo(AT);
+        assertThat(receipt.getRedeliveryOf()).isEqualTo("d-source");
+        assertThat(receipt.getSubscriberAccountId()).isEqualTo(SUBSCRIBER);
+    }
+
+    @Test
+    void bothWriteDoorsRunInTheirOWNTransactionBecauseTheFanOutIsAFTERCOMMIT() throws Exception {
+        for (String name : new String[] {"record", "recordRedelivery"}) {
+            Transactional rule = name.equals("record")
+                    ? WebhookDeliveryLog.class
+                            .getMethod("record", WebhookSubscription.class, String.class, String.class,
+                                    String.class, Instant.class, String.class, Integer.class, String.class)
+                            .getAnnotation(Transactional.class)
+                    : WebhookDeliveryLog.class
+                            .getMethod("recordRedelivery", WebhookSubscription.class, String.class,
+                                    WebhookDelivery.class, String.class, Integer.class, String.class)
+                            .getAnnotation(Transactional.class);
+            assertThat(rule).as("%s is a receipt write", name).isNotNull();
+            assertThat(rule.propagation()).as("%s propagation", name).isEqualTo(Propagation.REQUIRES_NEW);
+        }
+    }
+
+    // ── v563: one receipt by id, for the redelivery door ──────────────────────────────────────────
+
+    @Test
+    void aReceiptIsFoundByItsIdAndTrimsTheAsk() {
+        WebhookDelivery stored = new WebhookDelivery(
+                "d-1", "wh-1", SUBSCRIBER, "publish", "pub-1",
+                WebhookDispatcher.OUTCOME_UNREACHABLE, null, "UnknownHostException",
+                AT, AT, null);
+        when(repository.findById("d-1")).thenReturn(Optional.of(stored));
+
+        assertThat(log.find("  d-1  ")).isSameAs(stored);
+    }
+
+    @Test
+    void aReceiptIdThatNamesNothingIsANotFoundRatherThanAnEmptyAnswer() {
+        when(repository.findById("d-gone")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> log.find("d-gone"))
+                .isInstanceOf(NoSuchDelivery.class)
+                .hasMessageContaining("d-gone");
+    }
+
+    @Test
+    void aRedeliveryWithNoReceiptIdIsREFUSEDBeforeAnyRead() {
+        assertThatThrownBy(() -> log.find("   "))
+                .isInstanceOf(InvalidWebhook.class)
+                .hasMessageContaining("receipt");
+        verifyNoInteractions(repository);
     }
 
     // ── the read window ───────────────────────────────────────────────────────────────────────────

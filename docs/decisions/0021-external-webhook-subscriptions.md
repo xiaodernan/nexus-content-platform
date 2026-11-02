@@ -1,8 +1,8 @@
 # 0021 — External webhook subscriptions: the first outbound contract
 
 - **Status:** Accepted (v557 the receiving half; v558 the on-demand `ping`; v559 the event fan-out; v560 the
-  delivery receipts; v561 the live-PostgreSQL end-to-end run; v562 the owner's key rotation — all landed and
-  gated)
+  delivery receipts; v561 the live-PostgreSQL end-to-end run; v562 the owner's key rotation; v563 the owner's
+  redelivery of one recorded attempt and the delivery id every knock carries — all landed and gated)
 - **Date:** 2026-10-30
 - **Milestone:** M10 (External Agent Ecosystem)
 
@@ -41,14 +41,17 @@ Two §60 forces shape the design:
 | Delivery | **Record + signature first (v557); then one ON-DEMAND delivery, the `ping` (v558)** | **Chosen** — the receiving half is the half that grades without a network, and the ping is the smallest door that makes the network path, the signature and the refusal rules gradeable before any event exists |
 | Delivery | **Fan out every recorded event as it happens (v559), from an AFTER_COMMIT listener** | **Chosen** — the trail is the producer, and after-commit is the first phase in which the fact is true; a delivery sent inside the transaction could announce what the rollback then un-does. Still no retry, receipt or idempotency key — the outbox those need is a later decision |
 | Delivery | **Write every attempt down (v560), in its OWN transaction, and read it back through a door of the owner's own** | **Chosen** — the fan-out otherwise answered a listener nobody was waiting on, so a failed delivery was a fact that existed for one microsecond. `REQUIRES_NEW` is not a preference: the fan-out runs after the caller's transaction has COMMITTED and its persistence context is still bound to the thread, so a receipt saved with the default propagation would join a finished transaction and never commit |
+| Delivery | Retry on a schedule, with backoff and a give-up policy | A durable queue and a clock the service does not have; each is an outbox decision that would be made silently by a "retry" flag |
+| Delivery | **Repeat ONE recorded attempt on the owner's word (v563), and give every knock its own delivery id** | **Chosen** — the smallest retry that is honest: the owner names which attempt to repeat, the bytes are the recorded fact's own (not re-typed), and the new receipt names the attempt it repeats. A delivery id separates "the same fact" from "the same knock", so a subscriber can deduplicate a repeat without guessing |
 
 ## Choice
 
 `dev.nexus.api.webhooks` — a `webhook_subscription` row (subscriber, endpoint, events, secret, createdAt),
-five doors (`POST /webhooks`, `GET /webhooks?subscriber=`, `GET /webhooks/deliveries?subscriber=&webhook=`,
-`DELETE /webhooks/{id}?subscriber=`, `POST /webhooks/{id}/ping?subscriber=`), a `WebhookSigner` whose header
-every delivery carries, and `WebhookDispatcher` — the one place that POSTs, behind two seams (`HostResolver`,
-`WebhookTransport`) so its decisions are graded without touching a stranger's server.
+seven doors (`POST /webhooks`, `GET /webhooks?subscriber=`, `GET /webhooks/deliveries?subscriber=&webhook=`,
+`POST /webhooks/deliveries/{id}/redeliver?subscriber=`, `DELETE /webhooks/{id}?subscriber=`,
+`POST /webhooks/{id}/rotate?subscriber=`, `POST /webhooks/{id}/ping?subscriber=`), a `WebhookSigner` whose
+header every delivery carries, and `WebhookDispatcher` — the one place that POSTs, behind two seams
+(`HostResolver`, `WebhookTransport`) so its decisions are graded without touching a stranger's server.
 
 Rules, each refused by name:
 
@@ -61,7 +64,10 @@ Rules, each refused by name:
 - the secret is minted by the service, 64 lowercase hex characters, and appears in exactly one answer;
 - only the OWNER may ping a subscription (a stranger must not be able to aim this service at somebody else's
   URL), the endpoint's name is resolved at DELIVERY time and every address it answers must be public, and a
-  non-2xx is reported as `refused` with its status rather than collapsed into "failed".
+  non-2xx is reported as `refused` with its status rather than collapsed into "failed";
+- only the OWNER may rotate a subscription's key or repeat one of its receipts, and a redelivery of a receipt
+  whose subscription has since been removed is a 404 that NAMES the reason (`gone`) rather than a knock into
+  nothing.
 
 v559 completed the arc. `AuditService.record` publishes `AuditRecorded(action, targetId, at)` after the save
 and inside its own transaction; `WebhookEventListener` is the only listener, and its `AFTER_COMMIT` phase is
@@ -82,6 +88,20 @@ scoped to the subscriber, narrowed to one subscription when one is named, and ca
 the window so a narrowed answer says what it is hiding. The row keeps its own copy of what it was about, so
 a receipt survives the removal of the subscription that produced it: a take-down must not erase the record
 of having called that endpoint.
+
+v562 gives a subscriber a way out of a leaked key: `POST /webhooks/{id}/rotate` mints a new secret through
+the SAME one-time answer the subscription door gave, and the row's one secret column is OVERWRITTEN — the old
+key is not retained and there is no grace window.
+
+v563 gives a recorded attempt a way to be repeated. `POST /webhooks/deliveries/{id}/redeliver` is the owner's
+door: the receipt is read, its OWNERSHIP is checked, its subscription must still exist (a removed one is a
+404 whose message says `gone`), and the knock is made through the SAME `attempt` path as every other. What
+travels is the recorded fact byte for byte — `event`, `targetId` and the ORIGINAL `eventAt` — with a FRESH
+signature timestamp and the subscription's CURRENT key, because a verifier's tolerance is about when the
+knock arrived, not when the fact happened. The new receipt copies the fact columns from the source rather
+than re-typing them and names the attempt it repeats in `redelivery_of`. Every knock — first or repeat —
+is minted a `deliveryId` BEFORE the POST, written in the `X-Nexus-Delivery-Id` header, stored in its receipt
+and answered to the caller: one identity that the answer, the row and the headers all agree on.
 
 ## Reason
 
@@ -113,11 +133,18 @@ of having called that endpoint.
   `events` column in memory, because a derived query over that text would be a query about SPELLING rather
   than a query about the set. A table that outgrows a scan needs a join table and a real query — stated here
   rather than implied.
-- **Every attempt is recorded; none is retried, backed off or replayed.** `webhook_delivery` holds one row per
-  attempt (`delivered`, `refused`, `unreachable`), so a subscriber that was down when an event happened can now
-  learn that it missed one — but the service still has no schedule and no replay, and the audit trail remains
-  the only complete record. A receipt is written only for an attempt that actually happened: a request refused
-  at subscription time or by a missing row leaves nothing to remember.
+- **Every attempt is recorded; none is retried on a schedule.** `webhook_delivery` holds one row per
+  attempt (`delivered`, `refused`, `unreachable`), so a subscriber that was down when an event happened can
+  learn that it missed one — and since v563 its owner can REPEAT one recorded attempt by hand, which is a
+  retry with a human as its clock. The service still has no scheduler, no backoff and no give-up policy, and
+  the audit trail remains the only complete record. A receipt is written only for an attempt that actually
+  happened: a request refused at subscription time or by a missing row leaves nothing to remember.
+- **A redelivery is a NEW knock of the SAME fact, and the id says which.** Repeating an attempt does not
+  rewrite history: the source receipt keeps its id, its instant and its outcome, and the repeat is a second
+  row naming it. The signature timestamp is the KNOCK's clock (the subscription's current key), not the
+  fact's — otherwise a repeat of an old receipt would fall outside every verifier's tolerance. A receiver
+  deduplicating on the body alone will see the same bytes as the original; the `X-Nexus-Delivery-Id` header
+  and the receipt's `redelivery_of` are how "same event" and "same attempt" stay distinguishable.
 - **The delivery log only grows.** Nothing prunes `webhook_delivery`: it gains a row per attempt per
   subscription, forever, and a retention rule (how long a receipt is kept, and who may delete one) is a later
   decision rather than an assumption here.
@@ -138,19 +165,28 @@ of having called that endpoint.
   verify it. There is no grace window and no dual signature — an overlap would have to be modelled as two
   secrets with an expiry, and that is a later decision. A subscriber that can accept neither an outage nor an
   immediate switch must rotate in its own window; the service states this rather than hiding it.
+- **The delivery id is minted before the POST, so a crash can leave an id this service never wrote down.**
+  The id must be in the header BEFORE the request leaves, or the receiver and the receipt could disagree;
+  minting it earlier means a process that dies between the POST and the receipt leaves an id the endpoint saw
+  and the log does not hold. The receipt is written on the next line, in its own transaction, and the
+  alternative — minting after the answer — would make the header and the row two different stories. Stated,
+  not hidden.
 - **No auth.** The subscriber id is host-declared, like every other account id in this build, and anyone who
   can reach the service can list or remove a subscription by naming its owner. ADR 0018 is the reason.
-- **No idempotency key.** A retried delivery and a second event are the same bytes to a subscriber otherwise;
-  the key arrives with the retry schedule, and it is deliberately not invented here.
+- **No idempotency KEY; the facts are the key.** The delivery id names one KNOCK, and a redelivery deliberately
+  repeats the source's body, so the body itself is the subscriber's deduplication key: `(event, targetId,
+  eventAt)` identifies the fact, and two receipts sharing it are two attempts at one fact. A caller-supplied
+  idempotency header would be a third spelling of that key, and the retry scheduler that would need one is
+  still not built.
 - **`ddl-auto: update`.** The table joins the same no-migrations regime as the rest of the service (README
   bound, unchanged by this ADR).
 
 ## Evidence
 
-- `npm run verify:api-tests` — `mvn -B test`, **487/487, 27 classes**, exit 0. v557/v558 contributed 61 cases
+- `npm run verify:api-tests` — `mvn -B test`, **499/499, 27 classes**, exit 0. v557/v558 contributed 61 cases
   (26 service, 10 signer, 11 controller, 10 dispatcher, 4 transport); v559 added 10 (6 dispatcher fan-out, 2
   listener, 2 audit); v560 added 10 (6 delivery log, 2 dispatcher receipts, 2 controller); v562 added 6 (4
-  service, 2 controller). The signer's
+  service, 2 controller); v563 added 12 (4 delivery log, 5 dispatcher, 3 controller). The signer's
   expected HMAC is computed by a SECOND implementation (Node's `crypto.createHmac`), so the vector is an
   independent witness rather than the class agreeing with itself. The transport is graded against a socket the
   test owns (`ServerSocket` on loopback, one request): the bytes and headers that reach it are asserted to be
@@ -172,6 +208,16 @@ of having called that endpoint.
   is graded for writing exactly one receipt per attempt on both paths — the ping's three outcomes, and a
   fan-out that writes a receipt even for the endpoint that failed — and the controller for the read door
   carrying no secret and for refusing a subscriber-less request by name.
+- The v563 redelivery is graded for the rules a reader would otherwise take on trust. The body is the SOURCE
+  receipt's fact byte for byte — parsed back and compared as a JSON tree, the source's instant in millis — and
+  the signature beside it is verified by a second key holder: the subscription's CURRENT key verifies it and
+  the previous key does not, which is what makes "fresh knock, current key" a fact rather than a comment. The
+  new receipt is written through `recordRedelivery` naming its source, with the fact columns copied from the
+  row rather than re-typed by the caller. A stranger's receipt is refused BEFORE any bytes exist (the
+  transport is never asked), a receipt id that names nothing is a `NoSuchDelivery` rather than an attempt, and
+  a receipt whose subscription was removed cannot be signed at all. The delivery id is asserted in the three
+  places it must agree — the `X-Nexus-Delivery-Id` header, the receipt row and the answer — and the log is
+  shown to write the id it was HANDED, not mint one after the POST.
 - `docs/evidence/m7/service-suite-proof.mjs` derives its totals from the surefire report (§4) and digests the
   service tree (§1/§3), so it grades this slice without a literal count being typed anywhere.
 - `docs/evidence/m10/webhook-proof.mjs` (`npm run verify:webhooks`) — v561, the LIVE run the slices above
@@ -183,22 +229,30 @@ of having called that endpoint.
   the TRAIL's instant rather than their own clock, a real unpublish fanning out the same way while the trail
   keeps one entry per verb, the owner's ping writing ONE receipt (and none for the endpoint it was not
   addressed to), a refused ping (400/403/404) writing NOTHING, a stranger's account answered with an EMPTY
-  log, the window capped/narrowed/newest-first with the count beside it, `psql` counting four rows and
+  log, the window capped/narrowed/newest-first with the count beside it, `psql` counting five rows and
   finding NO `secret` column while the stored key equals the one the one-time answer gave, a removal that
   leaves its receipts byte-identical, the owner ROTATING the remaining key (new 64-hex secret shown once,
   endpoint/events/creation instant untouched, `psql` showing the old key is not retained, read doors still
   printing none, 400/403/404 rotations leaving the stored key untouched, and no receipt written because a
-  rotation delivers nothing), and a NEW JVM answering the same four rows after a restart with the ROTATED
-  key still the stored one. The restart section is the one a unit gate could not make: a `REQUIRES_NEW` row
-  that never committed is visible before the restart and gone after it.
+  rotation delivers nothing), the owner REDELIVERING one recorded attempt (a 200 whose new receipt repeats
+  the source's `event`/`targetId`/`eventAt`, names it in `redelivery_of`, and is a NEW id with a later
+  `attemptedAt`; `psql` shows the column and the one non-NULL value, the source row's NULL, and the four
+  refusals — 400/403/404/no-such-webhook-with-`gone` — writing nothing), and a NEW JVM answering the same
+  five rows after a restart with the ROTATED key still the stored one. The restart section is the one a unit
+  gate could not make: a `REQUIRES_NEW` row that never committed is visible before the restart and gone after
+  it.
 - **Still not graded, stated:** no delivery reaches a REAL subscriber's server. RFC 6761 reserves
   `hooks.invalid`, so the live run grades the fan-out, the ownership rule, the resolution step, the three
   outcomes and the receipt, and fails at the network step by design; a local receiver is impossible because
   the service refuses every loopback and private address at subscription time AND at delivery time (the
   proof asserts the first refusal rather than working around it). The signature over delivered bytes
-  remains graded by the unit vector, and the transport by the test's own socket. The retry/outbox,
-  retention, auth and idempotency bounds above are unchanged; rotation is graded by the unit cases and
-  by the live run, and its no-overlap limit is stated above rather than hidden.
+  remains graded by the unit vector, and the transport by the test's own socket. Because no delivery reaches
+  a socket, the live run also cannot observe the `X-Nexus-Delivery-Id` header or the fresh signature a
+  redelivery carries — it grades the repeat's ROW, the id the answer named and the source id it names; the
+  header and the signature are graded by the unit cases. The retry/outbox,
+  retention, auth and idempotency bounds above are unchanged; rotation and redelivery are graded by the unit
+  cases and by the live run, and their limits (no overlap, no scheduler, a pre-minted id that can outlive a
+  crash) are stated above rather than hidden.
 
 ## Date
 

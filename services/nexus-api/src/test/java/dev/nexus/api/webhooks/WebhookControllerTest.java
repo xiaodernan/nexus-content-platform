@@ -153,7 +153,8 @@ class WebhookControllerTest {
     @Test
     void aPingAnswersTwoHundredWithWhatTheEndpointDid() throws Exception {
         WebhookDtos.DeliveryAnswer refused = new WebhookDtos.DeliveryAnswer(
-                "wh-1", ENDPOINT, false, WebhookDispatcher.OUTCOME_REFUSED, 500, "status", AT.toEpochMilli());
+                "d-1", "wh-1", ENDPOINT, false, WebhookDispatcher.OUTCOME_REFUSED, 500, "status",
+                AT.toEpochMilli());
         when(dispatcher.ping("wh-1", SUBSCRIBER)).thenReturn(refused);
 
         ResponseEntity<WebhookDtos.DeliveryAnswer> answer = controller().ping("wh-1", SUBSCRIBER);
@@ -237,7 +238,8 @@ class WebhookControllerTest {
     void theDeliveryLogIsTheSubscribersOwnWindowAndCarriesNoSecret() throws Exception {
         WebhookDelivery receipt = new WebhookDelivery(
                 "d-1", "wh-1", SUBSCRIBER, "publish", "pub-1",
-                WebhookDispatcher.OUTCOME_UNREACHABLE, null, "UnknownHostException", AT, AT.plusSeconds(2));
+                WebhookDispatcher.OUTCOME_UNREACHABLE, null, "UnknownHostException", AT, AT.plusSeconds(2),
+                null);
         when(deliveryLog.deliveriesOf(SUBSCRIBER, "wh-1", 20, 0)).thenReturn(List.of(receipt));
         when(deliveryLog.countOf(SUBSCRIBER, "wh-1")).thenReturn(1L);
 
@@ -254,6 +256,8 @@ class WebhookControllerTest {
         // Both instants travel: the fact's and the attempt's, in the client's own epoch milliseconds.
         assertThat(row.get("eventAt").asLong()).isEqualTo(AT.toEpochMilli());
         assertThat(row.get("attemptedAt").asLong()).isEqualTo(AT.plusSeconds(2).toEpochMilli());
+        // v563: the field is ON the wire, null for a first knock — a reader can tell a repeat from an original.
+        assertThat(row.get("redeliveryOf").isNull()).isTrue();
         assertThat(row.has("secret")).isFalse();
         assertThat(wire.get("total").asLong()).isEqualTo(1L);
         assertThat(wire.get("limit").asInt()).isEqualTo(20);
@@ -268,5 +272,47 @@ class WebhookControllerTest {
         JsonNode wire = mapper.valueToTree(answer.getBody());
         assertThat(wire.get("error").asText()).isEqualTo("invalid-webhook");
         assertThat(wire.get("message").asText()).contains("subscriber");
+    }
+
+    // ── v563: one recorded attempt can be repeated ────────────────────────────────────────────────
+
+    @Test
+    void aRedeliveryAnswersTwoHundredWithTheReceiptItWrote() throws Exception {
+        WebhookDtos.DeliveryAnswer repeated = new WebhookDtos.DeliveryAnswer(
+                "d-new", "wh-1", ENDPOINT, false, WebhookDispatcher.OUTCOME_UNREACHABLE, null,
+                "UnknownHostException", AT.minusSeconds(30).toEpochMilli());
+        when(dispatcher.redeliver("d-src", SUBSCRIBER)).thenReturn(repeated);
+
+        ResponseEntity<WebhookDtos.DeliveryAnswer> answer = controller().redeliver("d-src", SUBSCRIBER);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        JsonNode wire = mapper.valueToTree(answer.getBody());
+        // The answer names the NEW knock (its receipt), not the one it repeats.
+        assertThat(wire.get("deliveryId").asText()).isEqualTo("d-new");
+        assertThat(wire.get("webhookId").asText()).isEqualTo("wh-1");
+        assertThat(wire.get("outcome").asText()).isEqualTo("unreachable");
+        assertThat(wire.get("at").asLong()).isEqualTo(AT.minusSeconds(30).toEpochMilli());
+    }
+
+    @Test
+    void aRedeliveryWithoutAnOwnerIsAskedOfTheDispatcherAndComesBackAsAFourHundred() throws Exception {
+        when(dispatcher.redeliver("d-src", null)).thenThrow(new InvalidWebhook("a redelivery needs a subscriber"));
+
+        assertThatThrownBy(() -> controller().redeliver("d-src", null)).isInstanceOf(InvalidWebhook.class);
+        org.mockito.Mockito.verify(dispatcher).redeliver("d-src", null);
+
+        ResponseEntity<Map<String, String>> answer = controller()
+                .invalid(new InvalidWebhook("a redelivery needs a subscriber"));
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+    }
+
+    @Test
+    void aReceiptIdThatNamesNothingIsAFourHundredAndFour() throws Exception {
+        ResponseEntity<Map<String, String>> answer = controller()
+                .noSuchDelivery(new NoSuchDelivery("receipt \"d-gone\" does not exist"));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(404);
+        assertThat(answer.getBody()).containsEntry("error", "no-such-delivery");
+        assertThat(answer.getBody().get("message")).contains("d-gone");
     }
 }

@@ -49,8 +49,13 @@ public final class WebhookDtos {
      * per subscription and the shape is the same fact either way: what happened when this service called this
      * endpoint. The id and URL are carried so an answer stands alone in a list — a caller reading twenty
      * answers can tell which endpoint each belongs to without counting positions.
+     *
+     * <p>v563 adds {@code deliveryId}: the receipt this attempt wrote, and the value the endpoint saw in
+     * {@code X-Nexus-Delivery-Id}. An answer that named only the endpoint would leave an owner guessing which
+     * row of the log was the knock they just asked for.
      */
     public record DeliveryAnswer(
+            String deliveryId,
             String webhookId,
             String url,
             boolean delivered,
@@ -67,6 +72,10 @@ public final class WebhookDtos {
      * and {@code attemptedAt} is when this service knocked. They are equal for a ping and can differ for a
      * fan-out, which runs after the write commits. Times are epoch MILLISECONDS at the wire, the client's own
      * unit, the same as every other instant this service answers with.
+     *
+     * <p>v563 adds {@code redeliveryOf}: null for a first knock, and the receipt this attempt repeats when its
+     * owner asked for a redelivery. A subscriber that stores a fact can still dedupe on {@code event} +
+     * {@code targetId} + {@code eventAt}; this field says WHY the same fact arrived twice.
      */
     public record DeliveryRecord(
             String id,
@@ -77,7 +86,8 @@ public final class WebhookDtos {
             Integer status,
             String detail,
             long eventAt,
-            long attemptedAt) {
+            long attemptedAt,
+            String redeliveryOf) {
     }
 
     /** The subscriber's receipt window, and the count of the WHOLE (narrowed) log beside it. */

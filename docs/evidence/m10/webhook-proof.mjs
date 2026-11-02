@@ -1,11 +1,12 @@
-// NEXUS M10 v561–v562 — webhooks stop being a claim and start being a ROW IN A DATABASE (ADR 0021).
+// NEXUS M10 v561–v563 — webhooks stop being a claim and start being a ROW IN A DATABASE (ADR 0021).
 //
 // ADR 0021 shipped four slices (v557 subscribe + sign, v558 the owner's ping, v559 the after-commit fan-out,
 // v560 the delivery receipts). v561 added this live run, which closed the sentence those slices all ended
 // with: *"Not graded yet: no proof against a live PostgreSQL exercises these rows, and no proof observes a
-// delivery"*; v562 added the owner's key rotation to the same run. Every gate that shipped was a UNIT gate —
-// Mockito collaborators, annotations read back off the class, a socket the test itself owned. Those are real
-// checks; none of them can say the thing this milestone is about:
+// delivery"*; v562 added the owner's key rotation; v563 the owner's REDELIVERY of one recorded attempt and the
+// delivery id every knock now carries. Every gate that shipped was a UNIT gate — Mockito collaborators,
+// annotations read back off the class, a socket the test itself owned. Those are real checks; none of them can
+// say the thing this milestone is about:
 //
 //   a recorded fact, committed to a real database, causes this service to CALL OUT, and the attempt is written
 //   down in a row that outlives the process that wrote it.
@@ -13,7 +14,8 @@
 // That is what only THIS file answers. It builds the service, starts a throwaway PostgreSQL, starts the real
 // jar against it, subscribes two endpoints, publishes a real project, takes it down, pings one endpoint, reads
 // the receipt log back over HTTP, counts the rows with psql, removes a subscription, ROTATES the remaining
-// subscription's signing key, and restarts the service against the same database. Sections:
+// subscription's signing key, REDELIVERS one of its receipts, and restarts the service against the same
+// database. Sections:
 //
 //   §1 the service BUILDS and STARTS against a real PostgreSQL and answers on the port it announced;
 //   §2 two endpoints are subscribed, the events are CANONICALIZED to the trail's order, the secret is 64 hex
@@ -23,21 +25,29 @@
 //      and the receipt's `eventAt` is the AUDIT ENTRY's instant — one fact, two knocks;
 //   §4 a real unpublish fans out to the endpoints that ASKED for that verb — one more receipt, because the
 //      second endpoint subscribed to publish only — and the trail still holds exactly one entry per verb;
-//   §5 the owner's ping writes ONE receipt (and no receipt for the endpoint it was not addressed to), and a
-//      ping refused for ownership, absence or a missing subscriber writes NOTHING;
+//   §5 the owner's ping writes ONE receipt (and no receipt for the endpoint it was not addressed to), the
+//      answer names that receipt's id, and a ping refused for ownership, absence or a missing subscriber
+//      writes NOTHING;
 //   §6 the log's rules over HTTP: subscriber required, narrowing IN the query, the cap, the window, newest
 //      first, and a stranger's account answers an EMPTY log rather than somebody else's receipts;
 //   §7 the DATABASE itself: four rows in `webhook_delivery`, no `secret` column in it, the secret the one-time
 //      answer gave is the 64-character value `webhook_subscription` stores, and no read door prints it;
 //   §8 removing the subscription does NOT erase its receipts — a take-down removes the instruction, not the
 //      record of having called it;
-//   §9 the owner ROTATES the remaining subscription's signing key: the new secret is 64 hex and readable once,
-//      the row's other fields are untouched, the listing still prints no secret, psql shows the OLD key is not
-//      retained anywhere, and a rotation — refused or not — writes no receipt because it delivers nothing;
-//   §10 the receipts and the rotated key SURVIVE A RESTART: a new JVM, the same database, the same four rows
+//   §9 the owner ROTATES the remaining subscription's signing key (the new secret is 64 hex and readable once,
+//      the row's other fields are untouched, psql shows the OLD key is not retained, and a rotation — refused
+//      or not — writes no receipt because it delivers nothing), then REDELIVERS one recorded attempt: a NEW
+//      receipt repeating the SAME fact (event, target, eventAt) under a NEW id that names the attempt it
+//      repeats, with 400/403/404 refusals of their own that write nothing;
+//   §10 the receipts and the rotated key SURVIVE A RESTART: a new JVM, the same database, the same FIVE rows
 //      with the same instants — which is the whole difference between `REQUIRES_NEW` committing and merely
 //      being visible;
 //   §11 teardown.
+//
+// Stated limit: no delivery in this run reaches a socket (see the `.invalid` note below), so the
+// `X-Nexus-Delivery-Id` header and the fresh signature of a redelivery are graded by the unit gates, not
+// here; this run grades the REDELIVERY'S ROW — the id the answer named, the source id it repeats, and the
+// fact columns that are copied rather than re-typed.
 //
 // The endpoint is `https://hooks.invalid/...`: RFC 6761 reserves `.invalid` and a resolver must not answer it,
 // so the delivery path runs ALL of its rules — ownership, resolution, receipt — and fails at the last step
@@ -171,7 +181,7 @@ async function stopService(child) {
 }
 
 /** The receipt's wire shape, pinned: a field added here is a field a read door would start printing. */
-const RECEIPT_FIELDS = ['attemptedAt', 'detail', 'event', 'eventAt', 'id', 'outcome', 'status', 'targetId', 'webhookId'].sort();
+const RECEIPT_FIELDS = ['attemptedAt', 'detail', 'event', 'eventAt', 'id', 'outcome', 'redeliveryOf', 'status', 'targetId', 'webhookId'].sort();
 
 let serviceProcess = null;
 let dbStarted = false;
@@ -356,9 +366,11 @@ try {
     [webhookIdA, webhookIdB].sort(),
     `the two knocks must name the two subscriptions, got ${JSON.stringify(publishReceipts.map((r) => r.webhookId))}`);
   for (const receipt of publishReceipts) {
-    assert.deepEqual(Object.keys(receipt).sort(), RECEIPT_FIELDS, `a receipt carries exactly its nine fields: ${JSON.stringify(receipt)}`);
+    assert.deepEqual(Object.keys(receipt).sort(), RECEIPT_FIELDS, `a receipt carries exactly its ten fields: ${JSON.stringify(receipt)}`);
     assert.equal(receipt.event, 'publish', `the fan-out delivers the trail's verb, got ${receipt.event}`);
     assert.equal(receipt.targetId, projectId, `the fan-out names what the event happened to, got ${receipt.targetId}`);
+    // v563: a FIRST knock repeats nothing, and the field says so instead of being absent.
+    assert.equal(receipt.redeliveryOf, null, `a fan-out knock is not a repeat of anything, got ${JSON.stringify(receipt.redeliveryOf)}`);
     // `hooks.invalid` is RFC 6761: a resolver must not answer it. Nothing was sent, so there is no status,
     // and the outcome is `unreachable` with the failure's own name rather than a bare `false`.
     assert.equal(receipt.outcome, 'unreachable', `an unresolvable endpoint is unreachable, got ${JSON.stringify(receipt)}`);
@@ -423,6 +435,9 @@ try {
   assert.equal(ping.body.status, null);
   assert.equal(typeof ping.body.detail, 'string');
   assert.equal(typeof ping.body.at, 'number');
+  // v563 — the answer names the receipt it just wrote, so an owner can point at that row without guessing.
+  assert.equal(typeof ping.body.deliveryId, 'string', `the ping answer must name its receipt, got ${JSON.stringify(ping.body)}`);
+  assert.ok(ping.body.deliveryId.length > 0);
 
   const afterPing = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}`);
   assert.equal(afterPing.body.total, 4, `the ping adds exactly ONE receipt, got ${afterPing.body.total}`);
@@ -431,6 +446,7 @@ try {
   assert.equal(pingReceipts[0].webhookId, webhookIdA, 'the receipt names the endpoint the ping was ADDRESSED to');
   assert.equal(pingReceipts[0].targetId, webhookIdA, "a ping's target is the subscription it proves");
   assert.equal(pingReceipts[0].eventAt, ping.body.at, "the receipt's eventAt is the instant the ping answer named");
+  assert.equal(pingReceipts[0].id, ping.body.deliveryId, 'the receipt the answer named IS the row the log holds — one knock, one identity');
   assert.equal(afterPing.body.deliveries.filter((r) => r.webhookId === webhookIdB && r.event === 'ping').length, 0, 'the endpoint that was NOT addressed got no ping receipt');
 
   // Three ways a ping can be refused, and NONE of them is an attempt: nothing may be written down.
@@ -560,11 +576,79 @@ try {
 
   const storedAfterRefusals = await sql(`select secret from webhook_subscription where webhook_id = '${webhookIdB}'`);
   assert.equal(storedAfterRefusals, rotated.body.secret, 'a refused rotation must not have minted a key');
-  console.log(`[§9] rotated endpoint B's key → a NEW 64-hex secret shown once (the old one is gone from the row, psql agrees), url/events/createdAt unchanged · the listing still prints no secret · the log still holds 4 rows because a rotation delivers nothing · 400/403/404 rotations left the stored key untouched`);
+
+  // ── v563: ONE recorded attempt can be REPEATED, and the new row names the one it repeats ────────
+  // Endpoint B's publish knock is the source: B still exists (rotated above), so the door has an endpoint and
+  // the CURRENT key to sign a new knock with.
+  const sourceReceipt = afterRotationLog.body.deliveries.find(
+    (r) => r.webhookId === webhookIdB && r.event === 'publish');
+  assert.ok(sourceReceipt, `endpoint B's publish receipt must exist to redeliver, got ${JSON.stringify(afterRotationLog.body.deliveries.map((r) => r.event))}`);
+
+  const redelivered = await call(`/webhooks/deliveries/${q(sourceReceipt.id)}/redeliver?subscriber=${q(subscriber)}`, { method: 'POST' });
+  assert.equal(redelivered.status, 200, `an owner's redelivery answers 200, got ${redelivered.status}: ${redelivered.text}`);
+  assert.equal(redelivered.body.webhookId, webhookIdB, 'the redelivery knocks on the subscription the receipt came from');
+  assert.equal(redelivered.body.url, endpointB, 'and on the same endpoint');
+  assert.equal(redelivered.body.delivered, false, 'nothing was reached, so delivered is false');
+  assert.equal(redelivered.body.outcome, 'unreachable');
+  assert.equal(redelivered.body.status, null);
+  assert.equal(typeof redelivered.body.detail, 'string');
+  // The FACT is the source's: the body carries the original instant (the answer repeats it), not this clock.
+  assert.equal(redelivered.body.at, sourceReceipt.eventAt, 'a redelivery repeats the fact instant, it does not invent a new one');
+  assert.equal(typeof redelivered.body.deliveryId, 'string');
+  assert.notEqual(redelivered.body.deliveryId, sourceReceipt.id, 'a redelivery is a NEW knock, not a re-print of the receipt it repeats');
+
+  const afterRedelivery = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}`);
+  assert.equal(afterRedelivery.body.total, 5, `the redelivery adds exactly ONE receipt, got ${afterRedelivery.body.total}`);
+  const repeated = afterRedelivery.body.deliveries.find((r) => r.id === redelivered.body.deliveryId);
+  assert.ok(repeated, `the answer's deliveryId must name a row the log holds, got ${JSON.stringify(afterRedelivery.body.deliveries.map((r) => r.id))}`);
+  assert.equal(repeated.redeliveryOf, sourceReceipt.id, 'the new receipt NAMES the attempt it repeats');
+  assert.equal(repeated.event, 'publish', 'the fact is copied from the source, not re-typed');
+  assert.equal(repeated.targetId, projectId);
+  assert.equal(repeated.eventAt, sourceReceipt.eventAt);
+  assert.ok(repeated.attemptedAt >= sourceReceipt.attemptedAt, 'the repeat cannot predate the attempt it repeats');
+  assert.equal(repeated.outcome, 'unreachable');
+  assert.equal(repeated.status, null);
+  assert.equal(afterRedelivery.body.deliveries.filter((r) => r.redeliveryOf !== null).length, 1, 'exactly ONE row is a repeat — the other four are first knocks');
+
+  // Four refusals, and NONE of them may knock: the log stays at five rows.
+  const redeliverNoSubscriber = await call(`/webhooks/deliveries/${q(sourceReceipt.id)}/redeliver`, { method: 'POST' });
+  assert.equal(redeliverNoSubscriber.status, 400, `a redelivery with no subscriber is refused, got ${redeliverNoSubscriber.status}`);
+  assert.equal(redeliverNoSubscriber.body.error, 'invalid-webhook');
+
+  const redeliverByStranger = await call(`/webhooks/deliveries/${q(sourceReceipt.id)}/redeliver?subscriber=${q(stranger)}`, { method: 'POST' });
+  assert.equal(redeliverByStranger.status, 403, `a stranger must not repeat another subscriber's attempt, got ${redeliverByStranger.status}`);
+  assert.equal(redeliverByStranger.body.error, 'not-your-webhook');
+
+  const redeliverMissing = await call(`/webhooks/deliveries/no-such-${STAMP}/redeliver?subscriber=${q(subscriber)}`, { method: 'POST' });
+  assert.equal(redeliverMissing.status, 404, `a receipt id that names nothing is 404, got ${redeliverMissing.status}`);
+  assert.equal(redeliverMissing.body.error, 'no-such-delivery');
+
+  // The receipt outlives the subscription it was addressed to (§8), but a redelivery needs the endpoint AND a
+  // key. A is gone, so its receipt is a 404 that NAMES the reason rather than a knock into nothing.
+  const removedReceiptId = aReceiptsAfterRemoval.body.deliveries[0].id;
+  const redeliverRemoved = await call(`/webhooks/deliveries/${q(removedReceiptId)}/redeliver?subscriber=${q(subscriber)}`, { method: 'POST' });
+  assert.equal(redeliverRemoved.status, 404, `a receipt whose subscription was removed is 404, got ${redeliverRemoved.status}`);
+  assert.equal(redeliverRemoved.body.error, 'no-such-webhook');
+  assert.match(redeliverRemoved.body.message, /gone/, `the refusal must NAME why: ${JSON.stringify(redeliverRemoved.body.message)}`);
+
+  const afterRedeliveryRefusals = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}`);
+  assert.equal(afterRedeliveryRefusals.body.total, 5, `a refused redelivery is not an attempt — still five rows, got ${afterRedeliveryRefusals.body.total}`);
+
+  // The DATABASE agrees with the wire: the column exists, ONE row names its source, and the first knocks do not.
+  const redeliveryColumn = await sql("select count(*) from information_schema.columns where table_name = 'webhook_delivery' and column_name = 'redelivery_of'");
+  assert.equal(redeliveryColumn, '1', 'webhook_delivery must carry the redelivery_of column');
+  const storedRedeliveryOf = await sql(`select redelivery_of from webhook_delivery where delivery_id = '${redelivered.body.deliveryId}'`);
+  assert.equal(storedRedeliveryOf, sourceReceipt.id, 'psql reads back the source id the answer and the log named');
+  const repeatsInDb = await sql(`select count(*) from webhook_delivery where subscriber_account_id = '${subscriber}' and redelivery_of is not null`);
+  assert.equal(repeatsInDb, '1', 'exactly one stored row is a repeat');
+  const sourceIsFirstKnock = await sql(`select redelivery_of from webhook_delivery where delivery_id = '${sourceReceipt.id}'`);
+  assert.equal(sourceIsFirstKnock, '', 'the source row itself repeats nothing — redelivery_of is NULL there');
+
+  console.log(`[§9] rotated endpoint B's key → a NEW 64-hex secret shown once (the old one is gone from the row, psql agrees), url/events/createdAt unchanged · the listing still prints no secret · the log still held 4 rows because a rotation delivers nothing · 400/403/404 rotations left the stored key untouched · REDELIVERED B's publish receipt → a 5th row with a NEW id naming ${sourceReceipt.id} as the attempt it repeats, the SAME event/target/eventAt and a later attemptedAt (psql agrees: redelivery_of is set on one row and NULL on the source) · 400/403/404 redeliveries — including A's receipt whose subscription is gone — wrote NOTHING`);
 
   // ── §10 the receipts and the rotated key SURVIVE A RESTART ─────────────────────────────────────
   const beforeRestart = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}`);
-  assert.equal(beforeRestart.body.total, 4);
+  assert.equal(beforeRestart.body.total, 5);
   const snapshot = beforeRestart.body.deliveries.map((r) => JSON.stringify(r));
   const pidBefore = serviceProcess.pid;
 
@@ -577,7 +661,7 @@ try {
 
   const afterRestart = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}`);
   assert.equal(afterRestart.status, 200, `the log must answer after a restart, got ${afterRestart.status}`);
-  assert.equal(afterRestart.body.total, 4, `four receipts must survive, got ${afterRestart.body.total}`);
+  assert.equal(afterRestart.body.total, 5, `five receipts must survive, got ${afterRestart.body.total}`);
   assert.deepEqual(
     afterRestart.body.deliveries.map((r) => JSON.stringify(r)),
     snapshot,
@@ -591,7 +675,7 @@ try {
   // database, must answer the secret the rotation gave once.
   const storedKeyAfterRestart = await sql(`select secret from webhook_subscription where webhook_id = '${webhookIdB}'`);
   assert.equal(storedKeyAfterRestart, rotated.body.secret, 'the rotated key survived the restart');
-  console.log(`[§10] process ${pidBefore} was killed and a new JVM served the SAME four receipts from the same database, identical in id, instants, outcome and detail, with the ROTATED key still the stored one — the delivery log is a system of record, not a cache, and REQUIRES_NEW really committed`);
+  console.log(`[§10] process ${pidBefore} was killed and a new JVM served the SAME five receipts from the same database, identical in id, instants, outcome, detail and the source id the repeat names, with the ROTATED key still the stored one — the delivery log is a system of record, not a cache, and REQUIRES_NEW really committed`);
 
   // ── §11 teardown ───────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
@@ -602,7 +686,7 @@ try {
   assert.equal(gone.stdout.trim(), '', `the throwaway container is still listed: ${gone.stdout.trim()}`);
   console.log(`[§11] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log('\n[summary] M10 v561–v562: services/nexus-api BUILT and RAN against a real PostgreSQL · two endpoints subscribed with the events canonicalized to the trail\'s order and a secret readable once · a real publish committed and the AFTER_COMMIT fan-out knocked on BOTH endpoints, each knock recorded with the TRAIL\'s instant · a real unpublish fanned out the same way while the trail kept one entry per verb · the owner\'s ping wrote one receipt and the other endpoint got none · a refused ping wrote nothing · a stranger\'s account answers an empty log · psql counted four receipts, found no secret column, and read back the 64-character key the subscription answer gave once · an unpublish knocked only on the endpoint that asked for that verb · removing the subscription left its receipts intact · the owner ROTATED the remaining key, the old one was not retained anywhere, and the listing kept printing no secret · and a NEW JVM served the SAME four rows WITH the rotated key — the delivery log outlives the process that wrote it');
+  console.log('\n[summary] M10 v561–v563: services/nexus-api BUILT and RAN against a real PostgreSQL · two endpoints subscribed with the events canonicalized to the trail\'s order and a secret readable once · a real publish committed and the AFTER_COMMIT fan-out knocked on BOTH endpoints, each knock recorded with the TRAIL\'s instant · a real unpublish fanned out the same way while the trail kept one entry per verb · the owner\'s ping wrote one receipt and the other endpoint got none · a refused ping wrote nothing · a stranger\'s account answers an empty log · psql counted five receipts, found no secret column, and read back the 64-character key the subscription answer gave once · an unpublish knocked only on the endpoint that asked for that verb · removing the subscription left its receipts intact · the owner ROTATED the remaining key, the old one was not retained anywhere, and the listing kept printing no secret · the owner REDELIVERED one recorded attempt into a NEW row that repeats the same fact and names its source, with 400/403/404 refusals that knocked on nothing · and a NEW JVM served the SAME five rows WITH the rotated key — the delivery log outlives the process that wrote it');
   rmSync(BUILD_DIR, { recursive: true, force: true });
   console.log('[m10-webhook-proof] ALL ASSERTIONS PASSED (a real backend service, a real database, one committed fact, a key its owner can rotate, and receipts that outlive their writer)');
 } finally {

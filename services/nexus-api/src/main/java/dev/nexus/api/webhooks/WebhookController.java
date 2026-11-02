@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v557–v562 — the HTTP surface for webhook subscriptions. Six doors, and the differences between them
+ * M10 v557–v563 — the HTTP surface for webhook subscriptions. Seven doors, and the differences between them
  * are the rules:
  *
  * <ul>
@@ -29,6 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>{@code GET /webhooks?subscriber=} — the subscriber's own subscriptions. No secret in any answer.
  *   <li>{@code GET /webhooks/deliveries?subscriber=&webhook=} — the subscriber's RECEIPTS: every attempt to
  *       its endpoints, newest first, optionally narrowed to one subscription.
+ *   <li>{@code POST /webhooks/deliveries/{id}/redeliver?subscriber=} — repeat ONE recorded attempt, owner only:
+ *       the same fact, a NEW knock with a fresh signature, and a receipt naming the attempt it repeats.
  *   <li>{@code DELETE /webhooks/{id}?subscriber=} — remove one. 200 either way: an id that names nothing is
  *       "already gone", not an error.
  *   <li>{@code POST /webhooks/{id}/rotate?subscriber=} — mint a NEW signing key, owner only. 200 with the
@@ -137,10 +139,27 @@ public class WebhookController {
                         row.getStatus(),
                         row.getDetail(),
                         row.getEventAt().toEpochMilli(),
-                        row.getAttemptedAt().toEpochMilli()))
+                        row.getAttemptedAt().toEpochMilli(),
+                        row.getRedeliveryOf()))
                 .toList();
         return ResponseEntity.ok(new WebhookDeliveryList(
                 subscriberId.trim(), rows, deliveryLog.countOf(subscriberId, webhookId), effective, from));
+    }
+
+    /**
+     * v563 — repeat ONE recorded attempt, for the owner of the receipt.
+     *
+     * <p>200 with the same {@link DeliveryAnswer} the ping answers: what this NEW knock did. The body is the
+     * receipt's fact byte for byte (event, target, instant), the signature is fresh and made with the
+     * subscription's CURRENT key, and the new receipt names the attempt it repeats in {@code redeliveryOf}.
+     * A receipt id that names nothing is 404, somebody else's receipt is 403, the subscription being gone is
+     * 404, and a missing subscriber is 400 — the same four refusals the ping door names, one hop further out.
+     */
+    @PostMapping("/webhooks/deliveries/{deliveryId}/redeliver")
+    public ResponseEntity<DeliveryAnswer> redeliver(
+            @PathVariable String deliveryId,
+            @RequestParam(name = "subscriber", required = false) String subscriberId) {
+        return ResponseEntity.ok(dispatcher.redeliver(deliveryId, subscriberId));
     }
 
     /** Remove one subscription. 200 either way; 403 when it belongs to another subscriber. */
@@ -204,6 +223,12 @@ public class WebhookController {
     @ExceptionHandler(NoSuchWebhook.class)
     public ResponseEntity<Map<String, String>> absent(NoSuchWebhook e) {
         return ResponseEntity.status(404).body(Map.of("error", "no-such-webhook", "message", e.getMessage()));
+    }
+
+    /** v563 — an id that names no receipt is a 404: the redelivery was asked of a row the log does not hold. */
+    @ExceptionHandler(NoSuchDelivery.class)
+    public ResponseEntity<Map<String, String>> noSuchDelivery(NoSuchDelivery e) {
+        return ResponseEntity.status(404).body(Map.of("error", "no-such-delivery", "message", e.getMessage()));
     }
 
     /** A duplicate endpoint is a 409: the request was legal, the row already exists. */
