@@ -90,6 +90,16 @@ public final class ToolDtos {
             int offset) {
     }
 
+    /**
+     * What a retention prune did: the boundary it applied, how many rows it removed, and what the history still
+     * holds.
+     *
+     * <p>The same three numbers the receipt prune answers with. {@code remaining} is the WHOLE count after the
+     * delete, so an owner can see the cost of the bound it named in the same breath as the bound itself.
+     */
+    public record PruneRevisionsAnswer(String toolId, int before, int pruned, long remaining) {
+    }
+
     /** The body that deprecates a declaration. Both fields are the owner's words, never an id. */
     public record DeprecateRequest(String message, String replacement) {
     }

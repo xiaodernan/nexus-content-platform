@@ -408,6 +408,56 @@ public class ToolService {
         return raw;
     }
 
+    /**
+     * RETENTION: the owner removes the revisions strictly older than {@code before}, and is told how many went.
+     *
+     * <p>The history grows by one row per accepted update and nothing pruned it. A silent cap was never an
+     * option — a pruned revision is a PIN that can no longer be explained — so the door exists, it is the
+     * owner's, and the answer names its boundary and its cost. The bound is EXCLUSIVE ("keep everything from
+     * this revision on"), the same sentence the receipt prune uses for its instant.
+     *
+     * <p>Two refusals carry the whole safety of the door: a prune without a {@code before} has no boundary to
+     * check, and one whose bound is past the NEWEST revision would leave a declaration whose history explains
+     * nothing about the contract it serves. Both are 400s that remove nothing. Pruning the same bound twice is
+     * not an error — the second answer is {@code pruned: 0}, the same "already gone is not a failure" rule the
+     * removal door follows.
+     *
+     * @param before keep every revision with a number this or higher
+     * @return how many revision rows this call removed
+     * @throws InvalidTool when the owner is missing, the bound is missing or not a revision number, or the bound
+     *     would remove the newest revision
+     * @throws UnknownTool when the id names no row
+     * @throws NotYourTool when the row belongs to another account
+     */
+    @Transactional
+    public int pruneRevisions(String toolId, String ownerId, Integer before) {
+        String owner = requireOwner(ownerId);
+        ToolEntry row = repository.lockById(toolId)
+                .orElseThrow(() -> new UnknownTool("tool \"" + toolId + "\" names nothing in this registry"));
+        if (!row.getOwner().equals(owner)) {
+            throw new NotYourTool("tool \"" + toolId + "\" belongs to another account");
+        }
+        if (before == null) {
+            throw new InvalidTool("the before parameter is missing — a prune must name the revision it keeps");
+        }
+        if (before < 1) {
+            throw new InvalidTool("a revision number is 1 or more — this one is " + before);
+        }
+        int newest = revisions.findTopByToolIdOrderByRevisionDesc(toolId)
+                .map(ToolRevision::getRevision)
+                .orElse(0);
+        if (newest == 0) {
+            // A declaration with no recorded history (a row written before this build kept one) has nothing to
+            // prune. Answering 0 is truthful; refusing a bound would be refusing a delete of nothing.
+            return 0;
+        }
+        if (before > newest) {
+            throw new InvalidTool("a prune keeps the newest revision (" + newest + ") — before is at most that, "
+                    + "not " + before);
+        }
+        return revisions.deleteByToolIdAndRevisionLessThan(toolId, before);
+    }
+
     /** Append one revision row - the write both the registration and every accepted update go through. */
     private void record(ToolEntry row, int revision, java.time.Instant recordedAt) {
         revisions.save(new ToolRevision(row.getToolId(), revision, row.getSummary(), row.getInputSchema(), recordedAt));

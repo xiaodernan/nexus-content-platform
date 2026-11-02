@@ -821,4 +821,86 @@ class ToolServiceTest {
                 .hasMessageContaining("0 or more");
         verify(revisions, never()).findByToolIdAndRevisionGreaterThanOrderByRevisionDesc(any(), any(Integer.class), any());
     }
+
+    // ── v581: retention — the owner removes the revisions older than a bound it names ─────────────────
+    @Test
+    void aPruneRemovesOnlyTheRevisionsOlderThanItsBound() {
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findTopByToolIdOrderByRevisionDesc("tool-1"))
+                .thenReturn(Optional.of(new ToolRevision("tool-1", 3, "third", "{}", AT)));
+        when(revisions.deleteByToolIdAndRevisionLessThan("tool-1", 2)).thenReturn(1);
+
+        assertThat(service().pruneRevisions("tool-1", OWNER, 2)).isEqualTo(1);
+        verify(revisions).deleteByToolIdAndRevisionLessThan("tool-1", 2);
+    }
+
+    @Test
+    void aPruneThatNamesTheNewestRevisionKeepsIt() {
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findTopByToolIdOrderByRevisionDesc("tool-1"))
+                .thenReturn(Optional.of(new ToolRevision("tool-1", 3, "third", "{}", AT)));
+        when(revisions.deleteByToolIdAndRevisionLessThan("tool-1", 3)).thenReturn(2);
+
+        assertThat(service().pruneRevisions("tool-1", OWNER, 3)).isEqualTo(2);
+    }
+
+    @Test
+    void aPrunePastTheNewestRevisionIsRefusedAndDeletesNothing() {
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findTopByToolIdOrderByRevisionDesc("tool-1"))
+                .thenReturn(Optional.of(new ToolRevision("tool-1", 3, "third", "{}", AT)));
+
+        assertThatThrownBy(() -> service().pruneRevisions("tool-1", OWNER, 4))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("keeps the newest");
+        verify(revisions, never()).deleteByToolIdAndRevisionLessThan(any(), any(Integer.class));
+    }
+
+    @Test
+    void aPruneWithoutABoundHasNoBoundaryToCheck() {
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+
+        assertThatThrownBy(() -> service().pruneRevisions("tool-1", OWNER, null))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("before");
+        verify(revisions, never()).deleteByToolIdAndRevisionLessThan(any(), any(Integer.class));
+    }
+
+    @Test
+    void aPruneOfANonPositiveBoundIsRefused() {
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+
+        assertThatThrownBy(() -> service().pruneRevisions("tool-1", OWNER, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("1 or more");
+        verify(revisions, never()).deleteByToolIdAndRevisionLessThan(any(), any(Integer.class));
+    }
+
+    @Test
+    void aStrangersPruneIsRefusedBeforeAnyCountIsRead() {
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row("tool-1", "acct-bob", "a.tool")));
+
+        assertThatThrownBy(() -> service().pruneRevisions("tool-1", OWNER, 2))
+                .isInstanceOf(NotYourTool.class);
+        verify(revisions, never()).deleteByToolIdAndRevisionLessThan(any(), any(Integer.class));
+        verify(revisions, never()).findTopByToolIdOrderByRevisionDesc(any());
+    }
+
+    @Test
+    void anUnknownToolCannotBePruned() {
+        when(repository.lockById("tool-missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().pruneRevisions("tool-missing", OWNER, 2))
+                .isInstanceOf(UnknownTool.class);
+        verify(revisions, never()).deleteByToolIdAndRevisionLessThan(any(), any(Integer.class));
+    }
+
+    @Test
+    void aDeclarationWithNoRecordedHistoryHasNothingToPrune() {
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findTopByToolIdOrderByRevisionDesc("tool-1")).thenReturn(Optional.empty());
+
+        assertThat(service().pruneRevisions("tool-1", OWNER, 1)).isZero();
+        verify(revisions, never()).deleteByToolIdAndRevisionLessThan(any(), any(Integer.class));
+    }
 }

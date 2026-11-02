@@ -591,4 +591,44 @@ class ToolControllerTest {
         assertThat(refused).isInstanceOf(InvalidTool.class);
         assertThat(refused.getMessage()).contains("0 or more");
     }
+
+    // ── v581: the retention door ──────────────────────────────────────────────────────────────────────
+    @Test
+    @SuppressWarnings("unchecked")
+    void aPruneWithoutAnOwnerIsRefusedBeforeAnythingIsRead() {
+        ResponseEntity<?> answer = controller().pruneRevisions("tool-1", "  ", 2);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        Map<String, Object> body = (Map<String, Object>) answer.getBody();
+        assertThat(body).containsEntry("error", "invalid-tool");
+        assertThat((String) body.get("message")).contains("owner");
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void aPruneWithoutABoundIsRefusedBeforeAnythingIsRead() {
+        ResponseEntity<?> answer = controller().pruneRevisions("tool-1", OWNER, null);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        Map<String, Object> body = (Map<String, Object>) answer.getBody();
+        assertThat((String) body.get("message")).contains("before");
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void aPruneAnswersTheBoundWhatWentAndWhatRemains() {
+        when(service.pruneRevisions("tool-1", OWNER, 2)).thenReturn(1);
+        when(service.revisionCount("tool-1", null)).thenReturn(2L);
+
+        ResponseEntity<?> answer = controller().pruneRevisions("tool-1", OWNER, 2);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        ToolDtos.PruneRevisionsAnswer body = (ToolDtos.PruneRevisionsAnswer) answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.toolId()).isEqualTo("tool-1");
+        assertThat(body.before()).isEqualTo(2);
+        assertThat(body.pruned()).isEqualTo(1);
+        assertThat(body.remaining()).isEqualTo(2L);
+    }
 }

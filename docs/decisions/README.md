@@ -41,3 +41,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0029  | A declaration can be given away: its chain of holders        | Accepted |
 | 0030  | The health door: two facts, one status code                  | Accepted |
 | 0031  | A history narrowed to what you do not have: `since`          | Accepted |
+| 0032  | Retention is the owner's, and it names the bound it keeps     | Accepted |

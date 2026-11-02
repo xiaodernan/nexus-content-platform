@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * M10 v573 - one declaration's history, newest first.
@@ -38,4 +41,18 @@ public interface ToolRevisionRepository extends JpaRepository<ToolRevision, Tool
 
     /** Remove a declaration's history with the declaration itself. */
     void deleteByToolId(String toolId);
+
+    /**
+     * M10 v581 - the owner's RETENTION: remove the revisions STRICTLY older than {@code before}.
+     *
+     * <p>The bound is exclusive for the same reason the receipt prune's instant is: "keep everything from this
+     * revision on" is the sentence an owner can check against the answer. The newest revision is never removable
+     * (the service refuses a bound past it), because a declaration with a history that explains nothing would be
+     * a contract with no record of itself.
+     *
+     * @return how many rows this statement removed
+     */
+    @Modifying
+    @Query("delete from ToolRevision r where r.toolId = :toolId and r.revision < :before")
+    int deleteByToolIdAndRevisionLessThan(@Param("toolId") String toolId, @Param("before") int before);
 }

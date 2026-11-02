@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v580 (history delta — landed and verified; v576/MCP belongs to a parallel lane)
+Project version: v581 (retention — landed and verified; v576/MCP belongs to a parallel lane)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is ahead of origin/master; v580 is in the working tree.
+Pushed to origin/master: no — master is ahead of origin/master; v581 is in the working tree.
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -24,9 +24,10 @@ Recent increments in this lineage (all real commits, all gated):
   v578: a contract pin a consumer can hold, and the conditional read it enables (ADR 0028)
   v579: a declaration can be given away; ownership is its own append-only chain (ADR 0029)
   v580: a history narrowed to what the caller does not have — `since` (ADR 0031)
+  v581: retention — the owner names the bound it keeps, and the answer says what went (ADR 0032)
 
-Verification of v572–v575 and v577–v580:
-  mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 104/104 (66 service + 38 controller), exit 0
+Verification of v572–v575 and v577–v581:
+  mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 115/115 (74 service + 41 controller), exit 0
   (the whole suite includes another lane's MCP tests; the tools package is this lane's number)
   Live proof `node docs/evidence/m10/tool-registry-proof.mjs` against a real PostgreSQL: ALL ASSERTIONS PASSED
   (§4 removal leaves zero revisions; §5 the pin recomputed by the proof from the fields the answer carried,
@@ -50,10 +51,10 @@ ADR 0016 compliance:
   Studio→service hop 15s via shared serviceCall.ts; timeout never reported as "unreachable"
 
 Next increments (planned, see docs/LONG_TERM_PLAN.md):
-  v581: the history is now cheap to READ but unbounded to KEEP — ten thousand updates leave ten thousand rows
-        and `since` only makes them cheap to skip. Retention needs its own decision (a pruned revision is a pin
-        that can no longer be explained), so the candidate is a stated, owner-driven prune with the loss named
-        in the answer, not a silent cap
-  v582+: a registry-wide change feed (a global sequence plus a rule for deletions) remains the larger,
-        unbuilt question; a pin lookup needs an index before it is honest. Do NOT touch the MCP face (v576,
-        another lane).
+  v582: the three read doors that describe a declaration (details, history, ownership) each answer ONE tool, and
+        the catalog answers many — but nothing answers "which tools changed recently" across the registry, which
+        is the question an agent actually polls. A registry-wide change feed needs a global sequence and a rule
+        for deletions (a deleted row has nothing left to name), so the candidate is a measured, stated design
+        before any code: what a caller can learn about a tool that no longer exists
+  v583+: a pin lookup needs an index before it is honest; and a declaration has no way to be marked "tested" or
+        "verified by its owner", which is a claim, not a field. Do NOT touch the MCP face (v576, another lane).

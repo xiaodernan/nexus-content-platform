@@ -5,6 +5,7 @@ import dev.nexus.api.tools.ToolDtos.Deprecation;
 import dev.nexus.api.tools.ToolDtos.DeprecationList;
 import dev.nexus.api.tools.ToolDtos.DeprecatedTool;
 import dev.nexus.api.tools.ToolDtos.OwnershipChain;
+import dev.nexus.api.tools.ToolDtos.PruneRevisionsAnswer;
 import dev.nexus.api.tools.ToolDtos.OwnershipTransfer;
 import dev.nexus.api.tools.ToolDtos.RegisterRequest;
 import dev.nexus.api.tools.ToolDtos.TransferRequest;
@@ -29,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v571–v579 — the HTTP surface for the tool registry. Thirteen doors, and the differences between them are the
+ * M10 v571–v579 — the HTTP surface for the tool registry. Fourteen doors, and the differences between them are the
  * rules:
  *
  * <ul>
@@ -63,6 +64,9 @@ import org.springframework.web.bind.annotation.RestController;
  *       200 with {@code removed:false} when the tool was not deprecated.
  *   <li>{@code GET /tools/deprecations?limit=&offset=} — every deprecated declaration, newest first, with
  *       the tool's name beside its deprecation so an agent can read the whole warning list in one request.
+ *   <li>{@code DELETE /tools/{id}/revisions?owner=&before=} — the owner's RETENTION: remove the revisions strictly
+ *       older than {@code before}, and answer the bound, what went and what remains. A bound past the newest
+ *       revision is a 400, because a declaration whose history explains nothing is not a state this door creates.
  *   <li>{@code POST /tools/{id}/transfer?owner=} — HAND THE DECLARATION OVER, for its current owner only, to
  *       the account named in the body. Same id, same name, same history, same pin; the handover is recorded in
  *       the declaration's chain of holders instead of a revision, because nothing it says changed.
@@ -193,6 +197,35 @@ public class ToolController {
         }
         boolean removed = service.undeprecate(toolId, owner);
         return ResponseEntity.ok(Map.of("toolId", toolId, "removed", removed));
+    }
+
+    /**
+     * v581 — the owner's RETENTION door: remove every revision STRICTLY older than {@code before}.
+     *
+     * <p>200 with {@link PruneRevisionsAnswer}: the bound applied, how many rows went and what the history still
+     * holds. A missing owner, a missing bound, a non-positive bound and a bound past the newest revision are
+     * 400s that remove nothing — a delete that cannot name its boundary has no business running, and one that
+     * would leave a declaration with no record of itself has even less. Pruning the same bound twice answers
+     * {@code pruned: 0}: already gone is not a failure.
+     */
+    @DeleteMapping("/tools/{toolId}/revisions")
+    public ResponseEntity<?> pruneRevisions(
+            @PathVariable String toolId,
+            @RequestParam(name = "owner", required = false) String owner,
+            @RequestParam(name = "before", required = false) Integer before) {
+        if (owner == null || owner.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-tool",
+                    "message", "the owner parameter is missing — a prune belongs to the account that holds the tool"));
+        }
+        if (before == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-tool",
+                    "message", "the before parameter is missing — a prune must name the revision it keeps"));
+        }
+        int pruned = service.pruneRevisions(toolId, owner, before);
+        return ResponseEntity.ok(
+                new PruneRevisionsAnswer(toolId, before, pruned, service.revisionCount(toolId, null)));
     }
 
     /**

@@ -871,6 +871,78 @@ try {
   assert.equal(await sql('select count(*) from audit_entry'), '0', 'a handover is not a trail fact either');
   console.log(`[§5b] a stranger's handover was 403, a missing owner 400, an unknown id 404, a transfer to the CURRENT holder 400 and one with no target 400, and psql read the same holder and zero handover rows after all five · the owner's handover was 200 with the SAME id, name, creation instant, schema and PIN (a held pin still answered 304), while the former owner's update, deprecation and removal were each 403 and the deprecation on record was untouched · the chain named the current holder, the second handover appended as transfer 2 with the chain newest first, its window reached transfer 1 with total=2 beside it, the cap and floor were reported, an unknown id was 404, and psql read both handovers with tool_revision still at TWO and audit_entry EMPTY — a handover is not a revision`);
 
+  // ── §5c retention: the owner removes the revisions older than a bound it names ──────────────────
+  // The history grows one row per accepted update and nothing pruned it. A silent cap was never an option — a
+  // pruned revision is a PIN that can no longer be explained — so the bound is the owner's, named in the
+  // request and echoed in the answer, and a bound that would remove the NEWEST revision is refused.
+  const prunedName = 'pruned.tool';
+  const prunedTool = await postJson('/tools',
+      { owner, name: prunedName, summary: 'A tool whose history is about to be pruned.', inputSchema: {} });
+  assert.equal(prunedTool.status, 201, `the tool to prune must be declared, got ${prunedTool.status}: ${prunedTool.text}`);
+  const prunedId = prunedTool.body.id;
+  for (const [index, sentence] of ['Second sentence.', 'Third sentence.'].entries()) {
+    const put = await call(`/tools/${q(prunedId)}?owner=${q(owner)}`,
+        putBody({ summary: sentence, inputSchema: { step: index + 2 } }));
+    assert.equal(put.status, 200, `an update before the prune must be accepted, got ${put.status}: ${put.text}`);
+  }
+  const pinBeforePrune = (await call(`/tools/${q(prunedId)}`)).body.contractSha256;
+  const beforePrune = await call(`/tools/${q(prunedId)}/revisions`);
+  assert.equal(beforePrune.body.total, 3, `three accepted writes must make three revisions, got ${beforePrune.body.total}`);
+
+  // Every refusal removes nothing: no owner, no bound, a non-positive bound, a stranger, a bound past the
+  // newest revision, and an unknown id.
+  const noOwnerPrune = await call(`/tools/${q(prunedId)}/revisions?before=2`, { method: 'DELETE' });
+  assert.equal(noOwnerPrune.status, 400, `a prune without an owner must be 400, got ${noOwnerPrune.status}`);
+  assert.match(noOwnerPrune.body.message, /owner/);
+  const noBoundPrune = await call(`/tools/${q(prunedId)}/revisions?owner=${q(owner)}`, { method: 'DELETE' });
+  assert.equal(noBoundPrune.status, 400, `a prune without a bound must be 400, got ${noBoundPrune.status}`);
+  assert.match(noBoundPrune.body.message, /before/);
+  const zeroBoundPrune = await call(`/tools/${q(prunedId)}/revisions?owner=${q(owner)}&before=0`, { method: 'DELETE' });
+  assert.equal(zeroBoundPrune.status, 400, `a prune of revision 0 must be 400, got ${zeroBoundPrune.status}`);
+  assert.match(zeroBoundPrune.body.message, /1 or more/);
+  const strangerPrune = await call(`/tools/${q(prunedId)}/revisions?owner=${q(stranger)}&before=2`, { method: 'DELETE' });
+  assert.equal(strangerPrune.status, 403, `a stranger's prune must be 403, got ${strangerPrune.status}`);
+  assert.equal(strangerPrune.body.error, 'not-your-tool');
+  const pastNewestPrune = await call(`/tools/${q(prunedId)}/revisions?owner=${q(owner)}&before=4`, { method: 'DELETE' });
+  assert.equal(pastNewestPrune.status, 400, `a prune past the newest revision must be 400, got ${pastNewestPrune.status}`);
+  assert.match(pastNewestPrune.body.message, /newest/);
+  const unknownPrune = await call(`/tools/tool-that-never-existed/revisions?owner=${q(owner)}&before=1`, { method: 'DELETE' });
+  assert.equal(unknownPrune.status, 404, `a prune of an unknown id must be 404, got ${unknownPrune.status}`);
+  assert.equal(await sql(`select count(*) from tool_revision where tool_id = '${prunedId}'`), '3',
+      'all six refusals must leave the history whole');
+
+  const pruned = await call(`/tools/${q(prunedId)}/revisions?owner=${q(owner)}&before=2`, { method: 'DELETE' });
+  assert.equal(pruned.status, 200, `the owner's prune must be 200, got ${pruned.status}: ${pruned.text}`);
+  assert.deepEqual(Object.keys(pruned.body).sort(), ['before', 'pruned', 'remaining', 'toolId'],
+      `a prune answer carries exactly its four fields: ${pruned.text}`);
+  assert.equal(pruned.body.before, 2, 'the answer echoes the bound it applied');
+  assert.equal(pruned.body.pruned, 1, `strictly before revision 2 is ONE row, got ${pruned.body.pruned}`);
+  assert.equal(pruned.body.remaining, 2, 'the answer says what the history still holds');
+  const afterPrune = await call(`/tools/${q(prunedId)}/revisions`);
+  assert.equal(afterPrune.body.total, 2);
+  assert.deepEqual(afterPrune.body.revisions.map((r) => r.revision), [3, 2],
+      'the kept revisions start AT the bound, newest first');
+  assert.equal(await sql(`select count(*) from tool_revision where tool_id = '${prunedId}'`), '2');
+  assert.equal(await sql(`select min(revision) from tool_revision where tool_id = '${prunedId}'`), '2',
+      'psql reads the pruned row gone and the kept ones in place');
+  // Pruning the same bound twice is not an error: already gone is not a failure.
+  const prunedAgain = await call(`/tools/${q(prunedId)}/revisions?owner=${q(owner)}&before=2`, { method: 'DELETE' });
+  assert.equal(prunedAgain.status, 200);
+  assert.equal(prunedAgain.body.pruned, 0, 'a second prune of the same bound removes nothing');
+  assert.equal(prunedAgain.body.remaining, 2);
+  // Pruning old revisions does NOT touch the contract: the pin a consumer holds still answers 304.
+  const pinnedAfterPrune = await call(`/tools/${q(prunedId)}`,
+      { headers: { 'if-none-match': `"${pinBeforePrune}"` } });
+  assert.equal(pinnedAfterPrune.status, 304, 'a prune of old revisions must not invalidate the current pin');
+  assert.equal(await sql('select count(*) from audit_entry'), '0', 'a prune is a catalog fact, not a trail fact');
+
+  // The tool is removed again so §6 counts the same four rows it counted before this section existed.
+  const prunedRemoved = await call(`/tools/${q(prunedId)}?owner=${q(owner)}`, { method: 'DELETE' });
+  assert.equal(prunedRemoved.body.removed, true, 'the tool the section declared is removed again');
+  assert.equal(await sql(`select count(*) from tool_revision where tool_id = '${prunedId}'`), '0',
+      'removal still takes whatever history the prune left');
+  console.log(`[§5c] three accepted writes made three revisions · six refusals removed nothing (no owner 400, no bound 400, a bound of 0 400, a stranger 403, a bound past the newest revision 400 naming it, an unknown id 404) · the owner's prune of bound 2 answered before/pruned/remaining = 2/1/2, the history then started AT revision 2 with total=2, psql read min(revision)=2, the same bound pruned again answered 0, and the pin held across the prune still answered 304 — removing old revisions does not touch the contract · the tool was removed again and took its remaining history with it`);
+
   // ── §6 the declarations and their canonical schemas survive a RESTART ──────────────────────────
   const beforeRestart = await call('/tools');
   assert.equal(beforeRestart.body.total, 4);
@@ -955,7 +1027,7 @@ try {
   assert.equal(goneContainer.stdout.trim(), '', `the throwaway container is still listed: ${goneContainer.stdout.trim()}`);
   console.log(`[§7] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log(`\n[summary] M10 v571–v580: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, a since asked only for what came after a revision the caller held (one row with total=1; empty with total=0 past the newest; both from 0; a page inside the narrowed set keeping the narrowed count; a negative since refused at 400 while a floored offset was not), an unknown id was 404, and psql read both rows · the catalog search answered a name match and a summary match, ignored case, narrowed BOTH window and count alongside the owner filter, paged with total=3, treated % and _ literally (0 matches), echoed a blank term as null, and refused a 101-character term at 400 · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its seven fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · a declaration CHANGED HANDS and stayed the same declaration: a stranger's handover, a missing owner, an unknown id, a transfer to the CURRENT holder and one with no target were each refused while psql read the same holder and an EMPTY handover table; the owner's handover answered 200 with the same id, name, creation instant, schema and PIN (so a pin held across it still answered 304), the former owner's update, deprecation and removal were each 403 with the row and its deprecation untouched, the chain of holders named the current holder and appended the way back as transfer 2 with its window, cap, floor and count, an unknown id's chain was 404, and psql read both handovers in order beside a history still at TWO revisions and an empty audit trail — a handover is not a revision · and a second JVM served the same four rows and both revisions, field for field, the whole declaration carried a 64-hex PIN recomputed by the proof from the summary and schema the answer itself carried, delivered as a strong ETag and honoured as a 304 with no body on both read doors (with * matching and an unknown id still 404), the owner's update changed the pin while revision 1 kept the old one so a held pin answered 200, both revision pins were recomputed identically after the restart, the chain of two handovers read back field for field, and information_schema showed six declaration columns, five revision columns, four deprecation columns and five handover columns — no column for the pin — with nowhere to store an endpoint, a command or an invocation`);
+  console.log(`\n[summary] M10 v571–v581: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, a since asked only for what came after a revision the caller held (one row with total=1; empty with total=0 past the newest; both from 0; a page inside the narrowed set keeping the narrowed count; a negative since refused at 400 while a floored offset was not), an unknown id was 404, and psql read both rows · the catalog search answered a name match and a summary match, ignored case, narrowed BOTH window and count alongside the owner filter, paged with total=3, treated % and _ literally (0 matches), echoed a blank term as null, and refused a 101-character term at 400 · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its seven fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · retention was the OWNER's and named its bound: six refusals (no owner, no bound, a bound of 0, a stranger, a bound past the newest revision, an unknown id) removed nothing, the prune of bound 2 answered before/pruned/remaining 2/1/2 and left a history starting AT revision 2 (psql read min(revision)=2), the same bound again answered 0, and a pin held across the prune still answered 304 because removing old revisions does not touch the contract · a declaration CHANGED HANDS and stayed the same declaration: a stranger's handover, a missing owner, an unknown id, a transfer to the CURRENT holder and one with no target were each refused while psql read the same holder and an EMPTY handover table; the owner's handover answered 200 with the same id, name, creation instant, schema and PIN (so a pin held across it still answered 304), the former owner's update, deprecation and removal were each 403 with the row and its deprecation untouched, the chain of holders named the current holder and appended the way back as transfer 2 with its window, cap, floor and count, an unknown id's chain was 404, and psql read both handovers in order beside a history still at TWO revisions and an empty audit trail — a handover is not a revision · and a second JVM served the same four rows and both revisions, field for field, the whole declaration carried a 64-hex PIN recomputed by the proof from the summary and schema the answer itself carried, delivered as a strong ETag and honoured as a 304 with no body on both read doors (with * matching and an unknown id still 404), the owner's update changed the pin while revision 1 kept the old one so a held pin answered 200, both revision pins were recomputed identically after the restart, the chain of two handovers read back field for field, and information_schema showed six declaration columns, five revision columns, four deprecation columns and five handover columns — no column for the pin — with nowhere to store an endpoint, a command or an invocation`);
   rmSync(BUILD_DIR, { recursive: true, force: true });
   console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s update and removal, a recorded revision history that an update cannot erase, a direct read by the name every agent shares, a deprecation that is its own resource with its own public list, a catalog search whose wildcards are literal, and no capability this build does not have)');
 } finally {
