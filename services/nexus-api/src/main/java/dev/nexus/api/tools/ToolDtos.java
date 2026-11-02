@@ -67,6 +67,22 @@ public final class ToolDtos {
             int limit,
             int offset) {
     }
+    /**
+     * v587 - the answer to a BATCH read: several declarations named by id in ONE request, in the order the caller
+     * named them.
+     *
+     * <p>{@code requested} counts the DISTINCT ids the answer looked for (blanks dropped, duplicates collapsed), so
+     * {@code found + missing.size() == requested} is a property a caller can check. {@code missing} names the ids
+     * that hold nothing, in the order they were asked for: a batch read of a list is not a read of one row, so an
+     * id that names nothing is not a 404 - it is one absent row among the ones that were found, and saying WHICH
+     * is the whole point of the list being beside the count.
+     */
+    public record ToolBatch(
+            int requested,
+            int found,
+            List<Tool> tools,
+            List<String> missing) {
+    }
 
     /**
      * One recorded revision of a declaration: what it SAID, and when this service recorded that writing.

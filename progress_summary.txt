@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v584 (watchable journal feed — landed and verified; v576/MCP belongs to a parallel lane)
+Project version: v587 (batch read by id — landed and verified; v576/MCP belongs to a parallel lane)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is ahead of origin/master; v584 is in the working tree.
+Pushed to origin/master: no — master is ahead of origin/master; v587 is in the working tree.
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -28,6 +28,7 @@ Recent increments in this lineage (all real commits, all gated):
   v582: the catalog names the rows that are going away — `deprecated` filter (ADR 0033)
   v583: a journal of what HAPPENED, oldest first from a `seq` cursor (ADR 0034)
   v584: the feed can be watched — `?kind=` / `?toolId=` narrow the window AND the count (ADR 0035)
+  v587: a list of ids is one read — order kept, missing ids NAMED, 50-id bound (ADR 0036)
   v581: retention — the owner names the bound it keeps, and the answer says what went (ADR 0032)
   v582: the catalog names the rows that are going away — a filter, not a column (ADR 0033)
 
@@ -57,12 +58,14 @@ ADR 0016 compliance:
   Studio→service hop 15s via shared serviceCall.ts; timeout never reported as "unreachable"
 
 Next increments (planned, see docs/LONG_TERM_PLAN.md):
-  v585: the journal still grows unbounded. A delete door over a PUBLIC cursor feed creates holes that the
-        cursor cannot describe honestly (a poller holding seq 40 may find that everything between 40 and the
-        oldest retained entry is gone), so the increment must either prune only as a PREFIX and report the
-        oldest entry kept, or wait for an operator identity this build does not have. Decide that explicitly
-        rather than shipping a delete that silently skips entries.
-  v586: a declaration has no way to be marked "tested" by its owner — a claim rather than a field, and the
-        registry's whole vocabulary (declare, never execute) is the reason it cannot be a boolean we invent.
-  v586+: a pin lookup needs an index before it is honest; a declaration has no way to be marked "tested" by its
-        owner, which is a claim rather than a field.
+  v588: the journal still grows unbounded. It was examined for a prune door and deliberately NOT built: a
+        delete over a public cursor feed leaves holes that the cursor cannot describe (a poller holding seq 40
+        may find everything between 40 and the oldest retained entry gone), and the only honest shapes are a
+        prefix-only prune that reports the oldest entry kept and answers 410 to a cursor below it, or an
+        operator identity this build does not have. The audit trail sets the precedent: append-only, no
+        truncate. Until that decision is made, growth is bounded by write volume and stated here.
+  v589: a declaration has no way to be marked "tested" by its owner — a claim rather than a field, and the
+        registry's whole vocabulary (declare, never execute) is why it cannot be a boolean we invent.
+  v590: "which declaration serves this pin" is a scan today, because the pin is COMPUTED from the row and never
+        stored - so a lookup by pin cannot be indexed without a derived column that must be kept in step with
+        every update. Decide whether that door is worth the column, or state that it stays a scan.

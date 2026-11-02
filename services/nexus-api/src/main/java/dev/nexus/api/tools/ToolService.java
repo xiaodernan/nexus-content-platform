@@ -65,6 +65,8 @@ public class ToolService {
 
     /** The longest catalog search term — long enough for a sentence fragment, short enough to bound work. */
     public static final int MAX_QUERY_LENGTH = 100;
+    /** The most declarations ONE batch read may name - a list, not a scan of the registry. */
+    public static final int MAX_BATCH_IDS = 50;
     /**
      * The six things that can happen to a declaration, in the order an entry can first appear for one: a birth,
      * a new contract, a handover, a warning, its withdrawal, and the end. The list is the PROTOCOL, so the words
@@ -655,6 +657,56 @@ public class ToolService {
         return deprecations.count();
     }
 
+    /**
+     * Several declarations by id, in ONE read, answered in the order the caller named them.
+     *
+     * <p>A batch is the shape a caller has after reading the feed: the journal names what changed, and the next
+     * question is what those declarations ARE now. Asking one at a time makes a poller's cost proportional to the
+     * number of changes; this read makes it one request.
+     *
+     * <p>The ids are normalized first (trimmed, blanks dropped, duplicates collapsed) so the answer's count and
+     * order describe what was actually asked. An id that holds nothing is simply absent from the answer - the
+     * controller reports it in {@code missing} rather than turning a member of a list into a failed request.
+     *
+     * @throws InvalidTool when no id remains, or when more than {@link #MAX_BATCH_IDS} distinct ids are named
+     */
+    @Transactional(readOnly = true)
+    public List<ToolEntry> batch(List<String> rawIds) {
+        List<String> wanted = normalizeIds(rawIds);
+        java.util.Map<String, ToolEntry> held = byIds(wanted);
+        return wanted.stream().map(held::get).filter(java.util.Objects::nonNull).toList();
+    }
+
+    /**
+     * The ids a batch read will look for: trimmed, blanks dropped, duplicates collapsed in FIRST-SEEN order.
+     *
+     * <p>The order is kept because it is the caller's - a batch answer is a list the caller can zip with the list
+     * it sent, which a catalog's name order would destroy. A blank is not an id (the same rule the filters
+     * follow), and naming an id twice is asking for one row twice.
+     */
+    static List<String> normalizeIds(List<String> rawIds) {
+        if (rawIds == null || rawIds.isEmpty()) {
+            throw new InvalidTool("a batch read names at least one id");
+        }
+        List<String> wanted = new java.util.ArrayList<>();
+        for (String raw : rawIds) {
+            if (raw == null || raw.isBlank()) {
+                continue;
+            }
+            String id = raw.trim();
+            if (!wanted.contains(id)) {
+                wanted.add(id);
+            }
+        }
+        if (wanted.isEmpty()) {
+            throw new InvalidTool("a batch read names at least one id");
+        }
+        if (wanted.size() > MAX_BATCH_IDS) {
+            throw new InvalidTool("a batch read names at most " + MAX_BATCH_IDS
+                    + " ids — this one names " + wanted.size());
+        }
+        return wanted;
+    }
     /** The declarations behind a page of deprecations, in one read rather than one query per row. */
     @Transactional(readOnly = true)
     public java.util.Map<String, ToolEntry> byIds(List<String> ids) {

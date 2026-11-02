@@ -784,4 +784,53 @@ class ToolControllerTest {
         assertThat(body.total()).isZero();
         assertThat(body.toolId()).isEqualTo("tool-that-never-existed");
     }
+
+    // ── v587: the batch door ───────────────────────────────────────────────────────────────────────
+    @Test
+    void aBatchAnswersInRequestOrderAndNamesWhatIsMissing() {
+        when(service.batch(List.of("b", "a", "gone")))
+                .thenReturn(List.of(row("b", OWNER, "b.tool"), row("a", OWNER, "a.tool")));
+
+        ToolDtos.ToolBatch body =
+                controller().batch(List.of(" b ", "a", "gone", "b", "  ")).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.requested()).isEqualTo(3);
+        assertThat(body.found()).isEqualTo(2);
+        assertThat(body.tools()).extracting(ToolDtos.Tool::name).containsExactly("b.tool", "a.tool");
+        assertThat(body.missing()).containsExactly("gone");
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(4);
+    }
+
+    @Test
+    void everyRowInABatchIsTheSameSevenFieldDeclaration() {
+        when(service.batch(List.of("a"))).thenReturn(List.of(row("a", OWNER, "a.tool")));
+        when(service.contractSha256(any(ToolEntry.class))).thenReturn("0".repeat(64));
+
+        ToolDtos.ToolBatch body = controller().batch(List.of("a")).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(mapper.valueToTree(body.tools().get(0)).size()).isEqualTo(7);
+        assertThat(body.tools().get(0).contractSha256()).hasSize(64);
+    }
+
+    @Test
+    void aBatchWithNoIdIsRefusedBeforeTheServiceIsTouched() {
+        assertThatThrownBy(() -> controller().batch(List.of(" ", "")))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("at least one id");
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void aBatchOverTheBoundIsRefusedBeforeTheServiceIsTouched() {
+        List<String> tooMany = java.util.stream.IntStream.range(0, ToolService.MAX_BATCH_IDS + 1)
+                .mapToObj(i -> "tool-" + i)
+                .toList();
+
+        assertThatThrownBy(() -> controller().batch(tooMany))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("at most " + ToolService.MAX_BATCH_IDS);
+        verifyNoInteractions(service);
+    }
 }

@@ -1113,4 +1113,55 @@ class ToolServiceTest {
                 .hasMessageContaining("0 or more");
         verify(changes, never()).feed(any(Long.class), any(), any(), any());
     }
+
+    // ── v587: the batch read ───────────────────────────────────────────────────────────────────────
+    @Test
+    void batchIdsAreTrimmedDedupedAndKeptInFirstSeenOrder() {
+        assertThat(ToolService.normalizeIds(List.of(" b ", "a", "b", "  ", "a", "c")))
+                .containsExactly("b", "a", "c");
+    }
+
+    @Test
+    void aBatchAnswersInTheOrderTheCallerNamed() {
+        // The repository answers in its own order; the batch must not inherit it.
+        when(repository.findAllById(List.of("b", "a")))
+                .thenReturn(List.of(row("a", OWNER, "a.tool"), row("b", OWNER, "b.tool")));
+
+        assertThat(service().batch(List.of("b", "a"))).extracting(ToolEntry::getToolId)
+                .containsExactly("b", "a");
+    }
+
+    @Test
+    void aBatchOmitsAnIdThatHoldsNothing() {
+        when(repository.findAllById(List.of("a", "gone")))
+                .thenReturn(List.of(row("a", OWNER, "a.tool")));
+
+        assertThat(service().batch(List.of("a", "gone"))).extracting(ToolEntry::getToolId)
+                .containsExactly("a");
+    }
+
+    @Test
+    void aBatchWithNoIdIsRefusedBeforeAnyQuery() {
+        assertThatThrownBy(() -> ToolService.normalizeIds(List.of()))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("at least one id");
+        assertThatThrownBy(() -> ToolService.normalizeIds(List.of("  ", "")))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("at least one id");
+        verify(repository, never()).findAllById(any());
+    }
+
+    @Test
+    void aBatchOverTheBoundIsRefusedByName() {
+        List<String> tooMany = java.util.stream.IntStream.range(0, ToolService.MAX_BATCH_IDS + 1)
+                .mapToObj(i -> "tool-" + i)
+                .toList();
+
+        assertThatThrownBy(() -> ToolService.normalizeIds(tooMany))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("at most " + ToolService.MAX_BATCH_IDS);
+        // The bound counts DISTINCT ids: a hundred copies of one id is still one id.
+        assertThat(ToolService.normalizeIds(java.util.Collections.nCopies(100, "tool-1")))
+                .containsExactly("tool-1");
+    }
 }

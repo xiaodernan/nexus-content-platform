@@ -10,6 +10,7 @@ import dev.nexus.api.tools.ToolDtos.OwnershipTransfer;
 import dev.nexus.api.tools.ToolDtos.RegisterRequest;
 import dev.nexus.api.tools.ToolDtos.TransferRequest;
 import dev.nexus.api.tools.ToolDtos.Tool;
+import dev.nexus.api.tools.ToolDtos.ToolBatch;
 import dev.nexus.api.tools.ToolDtos.ToolChangeList;
 import dev.nexus.api.tools.ToolDtos.ToolChangeView;
 import dev.nexus.api.tools.ToolDtos.ToolList;
@@ -32,7 +33,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v571–v579 — the HTTP surface for the tool registry. Fifteen doors, and the differences between them are the
+ * M10 v571–v584 + v587 — the HTTP surface for the tool registry. Sixteen doors, and the differences between them are the
  * rules:
  *
  * <ul>
@@ -147,6 +148,34 @@ public class ToolController {
                 from));
     }
 
+    /**
+     * v587 — several declarations by id in ONE request: the shape a caller has after reading the feed.
+     *
+     * <p>The ids travel as REPEATED {@code id} parameters rather than one comma-separated string, because an id is
+     * an opaque string and a separator would invent an escaping rule the id space does not have. Blanks are
+     * dropped, duplicates collapse, and the answer keeps the order the caller named — a batch answer is a list the
+     * caller can zip with the list it sent.
+     *
+     * <p>An id that holds nothing is NOT a 404: this is a read of a list, not of one row. The answer says how many
+     * distinct ids it looked for, how many it found, and names the ones it did not, so a caller can tell a gap in
+     * its own list from an empty registry.
+     */
+    @GetMapping("/tools/batch")
+    public ResponseEntity<ToolBatch> batch(
+            @RequestParam(name = "id", required = false) List<String> ids) {
+        List<String> wanted = ToolService.normalizeIds(ids);
+        Map<String, ToolEntry> held = new java.util.HashMap<>();
+        for (ToolEntry row : service.batch(wanted)) {
+            held.put(row.getToolId(), row);
+        }
+        List<Tool> tools = wanted.stream()
+                .filter(held::containsKey)
+                .map(held::get)
+                .map(this::toWire)
+                .toList();
+        List<String> missing = wanted.stream().filter(id -> !held.containsKey(id)).toList();
+        return ResponseEntity.ok(new ToolBatch(wanted.size(), tools.size(), tools, missing));
+    }
     /**
      * The catalog. A missing or blank {@code owner} is the WHOLE registry rather than a refusal: this is a
      * read of a public catalog, and there is no ownership to enforce on it.
