@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { reusableMemberWithProject } from './support/auth-session';
 
 /**
@@ -16,8 +16,11 @@ import { reusableMemberWithProject } from './support/auth-session';
  *    所以"把显示写成它本来就在的值"这条腿必须留下零事务、零规则、撤销键仍然是灰的。
  * ③ 规则按 `<=` **向上级联**（applyResponsive），所以平板那一档看得见手机规则的投影、
  *    却没有自己的清除键；反过来手机档不沾平板的规则。这条语义在访客那半边同样量一遍。
- * ④ 徽标数的是**模型里所有的键**，不只是面板那四格输入口（腿 H2）：`layout` 那组改的投影一样算数，
- *    界面上单独说一句"这几处面板没有输入口"，并且「清掉这一档」连着它们一起删。
+ * ④ 徽标数的是**模型里所有的键**，面板摆不摆得出输入口都算数（腿 H2）：`layout.padding` 这种
+ *    没有那一格的键，界面上单独点名"这几处面板没有输入口"，而「清掉这一档」连着它们一起删。
+ * ⑤ 面板的行是内核按 `appliesTo` 现推的（腿 G3）：`layout.mode`/`layout.gap`/`typography.fontSize`
+ *    有了输入口，而列数那一格**只在投影出来是网格的那一档**出现；改回竖排后模型里那个
+ *    `layout.columns` 键还在，于是它从"这一格能改"变成要点名的"面板没有输入口"。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -52,17 +55,33 @@ interface RawDoc {
 interface Carriers {
   eyebrowId: string;
   ctaId: string;
+  /** 腿 G3 要在画布上量两个按钮的相对位置：这是 Primary 旁边那一个 */
+  secondaryId: string;
+  /** 字号那一格的载体：一个真有 `typography` 对象的文字节点（frame 没有，那一格摆不出来） */
+  headlineId: string;
   rootId: string;
-  /** 腿 H2 的载体：一个面板没有输入口的 `layout` 键住在它身上 */
+  /** 腿 H2/G3 的载体：一个容器，`layout.*` 那几格只对**有子节点**的元素摆得出输入口 */
   actionsId: string;
-  /** 起手埋进去那条规则用的档，以及它把 `layout.mode` 改成的值（由设计值取反推出来，不是手抄的数） */
-  seeded: { breakpoint: 'tablet'; path: 'layout.mode'; value: string };
+  /**
+   * 起手埋进 Actions 的那条 tablet 规则。`layout.mode` 现在面板有输入口了，所以这条腿
+   * 同时带着**能改的键**和**不能改的键**（`layout.padding`）——点名那句必须只说后者。
+   * 两个值都由这个节点自己的设计值推出来（取反 / +24），不是手抄的数。
+   */
+  seeded: {
+    breakpoint: 'tablet';
+    editableKey: 'layout.mode';
+    outsideKey: 'layout.padding';
+    modeValue: string;
+    padding: { top: number; right: number; bottom: number; left: number };
+  };
   /** 起手时根画框在设计尺寸里的那个宽（切视口之后必须还是它——投影不改模型，§16） */
   designRootWidth: unknown;
   /** 起手时页面画布的宽（「页面」那一节的注要把它和断点宽同时给出来） */
   designPageWidth: number;
   /** 起手时 eyebrow 在设计尺寸里的宽：写第二条键之前先记下，用来判"这一档真的改了投影" */
   eyebrowDesignWidth: unknown;
+  /** 起手时 Headline 在设计档的字号（面板那格的「设计」读数，也是访客腿 design 那份的读数） */
+  headlineDesignFontSize: number;
 }
 
 /**
@@ -83,20 +102,47 @@ async function prepareRuleFreeDocument(page: Page, projectId: string): Promise<C
   const byName = (name: string): RawNode | undefined => Object.values(home.nodes).find((n) => n.name === name);
   const eyebrow = byName('Eyebrow');
   const cta = byName('Primary CTA');
+  const secondary = byName('Secondary CTA');
+  const headline = byName('Headline');
   const root = home.nodes[home.rootId];
   if (!eyebrow) throw new Error(`起手页（${home.name} / ${home.id}）里没有名为 Eyebrow 的节点：隐藏那条腿的载体不存在`);
   if (!cta) throw new Error('起手页里没有名为 Primary CTA 的节点：透明度那条腿的载体不存在');
+  if (!secondary) throw new Error('起手页里没有名为 Secondary CTA 的节点：量画布几何那条腿只有半个对象');
+  if (!headline) throw new Error('起手页里没有名为 Headline 的文字节点：字号那一格的载体不存在');
   if (!root) throw new Error(`起手页的根画框 ${home.rootId} 不在 nodes 里：切视口不改模型那条腿没有读数对象`);
+  const headlineDesignFontSize = (headline.typography as { fontSize?: unknown } | undefined)?.fontSize;
+  if (typeof headlineDesignFontSize !== 'number') {
+    throw new Error(`Headline 的设计字号不是数字（${JSON.stringify(headlineDesignFontSize)}）：访客腿推不出"改小之后的那个数"`);
+  }
   const designPageWidth = Number((home as { width?: unknown }).width);
   if (!Number.isFinite(designPageWidth)) throw new Error(`起手页没有数字宽度：${JSON.stringify((home as { width?: unknown }).width)}`);
   for (const p of doc.pages) for (const n of Object.values(p.nodes)) n.responsive = undefined;
-  // 腿 H2 的载体：一条**面板没有输入口**的规则（layout 组）——AI 配方与代码视图写的就是这种形状。
-  // 值由这个节点自己的设计值取反推出来，所以"徽标该读到 1 处"是推出来的，不是我手抄的数；
-  // 埋在这里（进工作台之前）是因为面板那四格写不出 layout 键，客户端也就没法造出这个起点。
+  // 埋在进工作台**之前**：起点得是干净的（上一轮留下的规则会把"改 1 处"这类读数顶歪），
+  // 而且这条规则里的 `layout.padding` 是面板摆不出输入口的那种键——客户端写不出这个起点。
   const actions = byName('Actions');
   if (!actions) throw new Error('起手页里没有名为 Actions 的容器：徽标数模型里所有键那条腿（腿 H2）没有载体');
+  if ((actions.children as string[] | undefined)?.length !== 2) {
+    throw new Error(`Actions 的孩子数不是 2（${JSON.stringify(actions.children)}）：量两个按钮几何那条腿的前提没了`);
+  }
   const seededMode = (actions.layout as { mode?: unknown }).mode === 'vertical' ? 'horizontal' : 'vertical';
-  actions.responsive = [{ breakpoint: 'tablet', patch: { layout: { mode: seededMode } } }];
+  // 设计 padding 每个边 +24：改动量由这个节点自己的数推出来，徽标该读到几处也就是推出来的
+  const designPadding = (actions.layout as { padding?: Record<string, unknown> }).padding ?? {};
+  const seedSide = (side: 'top' | 'right' | 'bottom' | 'left'): number => {
+    const value = designPadding[side];
+    if (typeof value !== 'number') {
+      throw new Error(`Actions 的设计 padding.${side} 不是数字（${JSON.stringify(value)}）：+24 推不出来`);
+    }
+    return value + 24;
+  };
+  const seededPadding = {
+    top: seedSide('top'),
+    right: seedSide('right'),
+    bottom: seedSide('bottom'),
+    left: seedSide('left'),
+  };
+  actions.responsive = [
+    { breakpoint: 'tablet', patch: { layout: { mode: seededMode, padding: seededPadding } } },
+  ];
   const put = await page.request.put(`/api/projects/${projectId}`, {
     headers: { 'x-csrf-token': csrf },
     data: doc,
@@ -105,12 +151,21 @@ async function prepareRuleFreeDocument(page: Page, projectId: string): Promise<C
   return {
     eyebrowId: eyebrow.id,
     ctaId: cta.id,
+    secondaryId: secondary.id,
+    headlineId: headline.id,
     rootId: home.rootId,
     actionsId: actions.id,
-    seeded: { breakpoint: 'tablet', path: 'layout.mode', value: seededMode },
+    seeded: {
+      breakpoint: 'tablet',
+      editableKey: 'layout.mode',
+      outsideKey: 'layout.padding',
+      modeValue: seededMode,
+      padding: seededPadding,
+    },
     designRootWidth: (root.size as { width?: unknown } | undefined)?.width,
     designPageWidth,
     eyebrowDesignWidth: (eyebrow.size as { width?: unknown } | undefined)?.width,
+    headlineDesignFontSize,
   };
 }
 
@@ -160,6 +215,43 @@ async function canvasOpacity(p: Page, nodeId: string): Promise<string> {
   const el = p.locator(`[data-node-id="${nodeId}"]`);
   await expect(el, `画布上找不到节点 ${nodeId}：透明度的载体丢了`).toHaveCount(1);
   return el.evaluate((node) => getComputedStyle(node).opacity);
+}
+
+/** 画布或公开页的某一份投影：两者都靠 `[data-node-id]` 认节点 */
+type BoxHost = { locator: (selector: string) => Locator };
+
+/**
+ * 这个节点此刻摆放出来的那一方盒子。读的是 `nodeStyle` 写进 inline style 的那几个数
+ * （render.ts 把求解器的绝对坐标直接落成 `left/top/width/height`），**不是** boundingClientRect：
+ * 画布整帧与公开页的画框都被 `transform: scale(zoom)` 缩放（PublishedFrame.tsx:50），
+ * 客户端矩形里掺着缩放，而"面板写下去的那个数改了投影没有"这件事在模型坐标里。
+ */
+async function boxIn(root: BoxHost, nodeId: string, where: string): Promise<Box> {
+  const el = root.locator(`[data-node-id="${nodeId}"]`);
+  await expect(el, `${where}里找不到节点 ${nodeId}：几何读数的载体丢了`).toHaveCount(1);
+  return el.evaluate((node) => {
+    const style = (node as HTMLElement).style;
+    const px = (value: string, key: string): number => {
+      const parsed = Number.parseFloat(value);
+      if (!Number.isFinite(parsed)) throw new Error(`inline style 的 ${key} 读不到像素数：${JSON.stringify(value)}`);
+      return parsed;
+    };
+    return { left: px(style.left, 'left'), top: px(style.top, 'top'), width: px(style.width, 'width'), height: px(style.height, 'height') };
+  });
+}
+
+/** 这个节点此刻的字有多大（计算样式，`transform: scale()` 不动它） */
+async function fontSizeIn(root: BoxHost, nodeId: string, where: string): Promise<string> {
+  const el = root.locator(`[data-node-id="${nodeId}"]`);
+  await expect(el, `${where}里找不到节点 ${nodeId}：字号读数的载体丢了`).toHaveCount(1);
+  return el.evaluate((node) => getComputedStyle(node as HTMLElement).fontSize);
+}
+
+interface Box {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 }
 
 /** 每腿之间的时间戳：这条链在开发模式里跑得慢，没有读数就只能猜哪一段吃掉了预算 */
@@ -312,8 +404,9 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
       .poll(() => rulesOfNodeOnServer(author, projectId, carriers.ctaId), { timeout: 30_000 })
       .toEqual([{ breakpoint: 'tablet', patch: { style: { opacity: 0.4 } } }]);
 
-    // 腿 H2：徽标数的是**模型里所有的键**，不只面板那四格。起手埋在 Actions 上的那条 layout 规则
-    // 就是 AI 配方/代码视图的写入形状：面板给不了它输入口，但画布和访客真的在变（§159 不许读 0）。
+    // 腿 H2：徽标数的是**模型里所有的键**。起手埋在 Actions 上的那条 tablet 规则带着两个键：
+    // `layout.mode`（面板现在摆得出这一格）和 `layout.padding`（摆不出，只有点名与「清掉这一档」碰得到它）。
+    // 两个键画布与访客都真的在变 ⇒ 两个都进徽标，而那句点名只说得出没有输入口的那一个（§159）。
     await author.click(`[data-layer-id="${carriers.actionsId}"]`);
     await author.click('[data-breakpoint-tab="tablet"]');
     await expect(editor).toHaveAttribute('data-responsive-breakpoint', 'tablet');
@@ -321,28 +414,122 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
       tab(author, 'mobile'),
       '更窄的那一档没有规则：layout 键埋在 tablet，mobile 档不该跟着涨',
     ).toHaveAttribute('data-breakpoint-impact', '0');
-    await expect(tab(author, 'tablet'), `${carriers.seeded.path} 也进徽标`).toHaveAttribute(
-      'data-breakpoint-impact',
-      '1',
+    await expect(tab(author, 'tablet'), '能改的键和改不了的键都进徽标').toHaveAttribute('data-breakpoint-impact', '2');
+    await expect(reading(author)).toContainText('改 2 处投影');
+    await expect(author.locator('[data-responsive-outside="1"]')).toContainText(
+      `其中 1 处面板没有输入口：${carriers.seeded.outsideKey}`,
     );
-    await expect(reading(author)).toContainText('改 1 处投影');
-    await expect(author.locator('[data-responsive-outside]')).toContainText(
-      `其中 1 处面板没有输入口：${carriers.seeded.path}`,
-    );
-    await expect(author.locator('[data-responsive-clear]'), '面板没有输入口的键不该长出清除键').toHaveCount(0);
+    // 有输入口的那个键该长出这一格。读数里那个中文说法不手抄：从面板自己那颗按钮上取
+    const seededLabel = (await author
+      .locator(`[data-responsive-choice="${carriers.seeded.editableKey}:${carriers.seeded.modeValue}"]`)
+      .innerText()).trim();
+    await expect(author.locator('[data-responsive-channel="layout.mode"]')).toContainText(`这一档 ${seededLabel}`);
+    await expect(
+      author.locator('[data-responsive-clear="layout.mode"]'),
+      '这一档自己有排布覆盖：清除键该出现',
+    ).toHaveCount(1);
+    await expect(
+      author.locator('[data-responsive-clear="layout.padding"]'),
+      '面板没有输入口的键不该长出清除键',
+    ).toHaveCount(0);
     await expect(
       author.locator('[data-responsive-drop-rule="tablet"]'),
-      '只有 layout 键的规则也要按得动那颗「清掉这一档」',
+      '带着面板改不了的键也要按得动那颗「清掉这一档」',
     ).toBeEnabled();
     await author.click('[data-responsive-drop-rule="tablet"]');
-    await expect(tab(author, 'tablet')).toHaveAttribute('data-breakpoint-impact', '0');
+    await expect(tab(author, 'tablet'), '两个键一起清掉').toHaveAttribute('data-breakpoint-impact', '0');
     await expect(author.locator('[data-responsive-outside]'), '整条规则没了，那句话该跟着没').toHaveCount(0);
+    await expect(author.locator('[data-responsive-clear="layout.mode"]'), '清档把有输入口的那一格也抹了').toHaveCount(0);
     await undoButton(author).click();
-    await expect(tab(author, 'tablet'), '撤销把埋着的那条 layout 规则原样放回来').toHaveAttribute(
-      'data-breakpoint-impact',
-      '1',
+    await expect(tab(author, 'tablet'), '撤销把埋着的那两个键原样放回来').toHaveAttribute('data-breakpoint-impact', '2');
+    stamp('腿 H2：面板内外的键都进徽标 + 清掉这一档连着它们一起删');
+
+    // 腿 G3：面板自己写 `layout` 那几格——间距、排布，以及只在网格档出现的那一格列数。
+    // 每一步都量画布上两个按钮的真实坐标，不只读徽标：要证的是"人点得出来、点完画面真的动"。
+    await author.click('[data-breakpoint-tab="mobile"]');
+    await expect(tab(author, 'mobile'), '这一档现在还没有规则').toHaveAttribute('data-breakpoint-impact', '0');
+    await expect(
+      author.locator('[data-responsive-input="layout.columns"]'),
+      '这一档投影出来的排布不是网格：列数那一格不该摆出来',
+    ).toHaveCount(0);
+    const buttons = async (where: BoxHost, label: string) => ({
+      a: await boxIn(where, carriers.ctaId, label),
+      b: await boxIn(where, carriers.secondaryId, label),
+    });
+    const flatRow = await buttons(author, '画布');
+    expect(flatRow.b.top, '横排：两个按钮在同一行').toBe(flatRow.a.top);
+    expect(flatRow.b.left, '横排：第二个落在第一个右边').toBeGreaterThan(flatRow.a.left + flatRow.a.width);
+
+    await author.fill('[data-responsive-input="layout.gap"]', '40');
+    await author.press('[data-responsive-input="layout.gap"]', 'Enter');
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
+    await expect(author.locator('[data-responsive-channel="layout.gap"]')).toContainText('这一档 40');
+    const widerGap = await buttons(author, '画布');
+    expect(widerGap.b.left - (widerGap.a.left + widerGap.a.width), '面板写的间距就是画布上那一段空').toBe(40);
+    expect(widerGap.b.top).toBe(widerGap.a.top);
+
+    await author.click('[data-responsive-choice="layout.mode:vertical"]');
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '2');
+    const stacked = await buttons(author, '画布');
+    expect(stacked.b.top - (stacked.a.top + stacked.a.height), '翻成竖排后同一份间距改吃纵轴').toBe(40);
+
+    // 换成网格 ⇒ 列数那一格跟着出现：`appliesTo` 读的是**这一档投影出来**的排布，不是设计值
+    await author.click('[data-responsive-choice="layout.mode:grid"]');
+    await expect(author.locator('[data-responsive-input="layout.columns"]')).toHaveCount(1);
+    await author.fill('[data-responsive-input="layout.columns"]', '2');
+    await author.press('[data-responsive-input="layout.columns"]', 'Enter');
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '3');
+    await expect(author.locator('[data-responsive-clear="layout.columns"]')).toHaveCount(1);
+
+    // 再翻回竖排：那一格按 `appliesTo` 收回去了，可模型里的键还在起作用 ⇒ 它变成要点名的那一处
+    await author.click('[data-responsive-choice="layout.mode:vertical"]');
+    await expect(
+      author.locator('[data-responsive-input="layout.columns"]'),
+      '这一档的排布不是网格了，列数那一格该收回去',
+    ).toHaveCount(0);
+    await expect(tab(author, 'mobile'), '键还在模型里：徽标仍然数着它').toHaveAttribute('data-breakpoint-impact', '3');
+    await expect(author.locator('[data-responsive-outside="1"]')).toContainText(
+      '其中 1 处面板没有输入口：layout.columns',
     );
-    stamp('腿 H2：面板外的键进徽标 + 清掉这一档连着它们一起删');
+    stamp('腿 G3：面板写 layout 三个键 + 列数那一格随投影出现/收回去');
+
+    // 腿 G4：文字节点的字号那一格。同时钉住这格的存在前提——容器没有 `typography` 对象，摆不出来；
+    // 按下去什么都改不了的对象不该出现在面板上（§159），而写下去的那个数当场改画布。
+    await expect(
+      author.locator('[data-responsive-input="typography.fontSize"]'),
+      '容器没有 typography 对象：字号那一格不该摆出来',
+    ).toHaveCount(0);
+    await author.click(`[data-layer-id="${carriers.headlineId}"]`);
+    await author.click('[data-breakpoint-tab="mobile"]');
+    await expect(tab(author, 'mobile'), '换节点：Headline 在这一档还没有规则').toHaveAttribute(
+      'data-breakpoint-impact',
+      '0',
+    );
+    expect(await fontSizeIn(author, carriers.headlineId, '画布'), '起手读数就是设计字号').toBe(
+      `${carriers.headlineDesignFontSize}px`,
+    );
+    const smallerFont = carriers.headlineDesignFontSize - 16;
+    await author.fill('[data-responsive-input="typography.fontSize"]', String(smallerFont));
+    await author.press('[data-responsive-input="typography.fontSize"]', 'Enter');
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
+    await expect(author.locator('[data-responsive-channel="typography.fontSize"]')).toContainText(
+      `这一档 ${smallerFont}`,
+    );
+    expect(await fontSizeIn(author, carriers.headlineId, '画布'), '字号那一格写下去当场改了画布').toBe(
+      `${smallerFont}px`,
+    );
+    stamp('腿 G4：字号那一格 + 容器摆不出这一格');
+
+    // 腿 H3：这几格也落进服务端那份文档——形状就是 AI 配方写的那种 layout/typography 组，
+    // 区别只是这一次是人在面板上点出来的（顶栏"已保存"那行字不算证据）
+    await expect.poll(() => rulesOfNodeOnServer(author, projectId, carriers.actionsId), { timeout: 30_000 }).toEqual([
+      { breakpoint: 'mobile', patch: { layout: { gap: 40, mode: 'vertical', columns: 2 } } },
+      { breakpoint: 'tablet', patch: { layout: { mode: carriers.seeded.modeValue, padding: carriers.seeded.padding } } },
+    ]);
+    await expect
+      .poll(() => rulesOfNodeOnServer(author, projectId, carriers.headlineId), { timeout: 30_000 })
+      .toEqual([{ breakpoint: 'mobile', patch: { typography: { fontSize: smallerFont } } }]);
+    stamp('腿 H3：layout/typography 规则落库');
 
     // ── 发布：走界面上那颗发布按钮，与 §16 那条链同一个入口
     const publicPath = await publishPublic(author, projectId);
@@ -435,6 +622,58 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     expect(await visibleVariant()).toBe('design');
     expect(await eyebrowIn('design')).toBe(1);
     expect(await ctaOpacityIn('design')).toBe('1');
+
+    // 腿 M：面板写的 `layout` / `typography` 那几格也走到访客那一份投影里，量的还是盒子本身。
+    // 之前的访客腿只量过 `visible`（少一个节点）和 `style.opacity`（一个数字）；排布与字号是
+    // "整个坐标系跟着动"的键，只在画布上量过等于没证到访客那边（§158 要看的是那张真画面）。
+    // 这一条就着上面已经打开的 design 那一份读，不必再走一次网络。
+    const designFrame = await buttons(variantIn('design'), '公开页 design 那一份');
+    const designActions = await boxIn(variantIn('design'), carriers.actionsId, '公开页 design 那一份');
+    expect(designFrame.b.top, 'design 那一份不吃任何规则：两个按钮还是模型说的同一行').toBe(designFrame.a.top);
+    const designGap = designFrame.b.left - (designFrame.a.left + designFrame.a.width);
+    expect(designGap, '面板写的 40 没渗进 design；撞上 40 说明模型本来就用 40，这条腿得换个数').not.toBe(40);
+    const designInset = designFrame.a.top - designActions.top;
+    expect(
+      await fontSizeIn(variantIn('design'), carriers.headlineId, '公开页 design 那一份'),
+      '字号那条同理：design 那份还是模型那份',
+    ).toBe(`${carriers.headlineDesignFontSize}px`);
+
+    // 腿 M2：钉住 mobile ⇒ 竖排 + 那一段间距 + 那个字号，三件事一起在这份投影里成立
+    await openVisitor('viewport=mobile');
+    const mobileFrame = await buttons(variantIn('mobile'), '公开页 mobile 那一份');
+    const mobileActions = await boxIn(variantIn('mobile'), carriers.actionsId, '公开页 mobile 那一份');
+    expect(mobileFrame.b.top, '面板把横排翻成竖排：第二个不在旁边了').toBeGreaterThan(mobileFrame.a.top);
+    expect(
+      mobileFrame.b.top - (mobileFrame.a.top + mobileFrame.a.height),
+      '面板写的间距就是访客这一档量出来的那一段空',
+    ).toBe(40);
+    expect(mobileFrame.a.top - mobileActions.top, '这一档没有 padding 覆盖：还是模型那份内缩').toBe(designInset);
+    expect(
+      await fontSizeIn(variantIn('mobile'), carriers.headlineId, '公开页 mobile 那一份'),
+      '字号那一格写下去，访客这边的字真的变小了',
+    ).toBe(`${smallerFont}px`);
+
+    // 腿 M3：tablet ≥ mobile ⇒ 手机那三条键一直跟着上来，再叠上这一档自己的那条；
+    // 而 `layout.padding` 正是面板摆不出输入口、只有「清掉这一档」碰得到的那个键——它照样到访客脸上。
+    await openVisitor('viewport=tablet');
+    const tabletFrame = await buttons(variantIn('tablet'), '公开页 tablet 那一份');
+    const tabletActions = await boxIn(variantIn('tablet'), carriers.actionsId, '公开页 tablet 那一份');
+    expect(
+      tabletFrame.b.top - (tabletFrame.a.top + tabletFrame.a.height),
+      '级联只向上：手机档那份间距在 tablet 同样生效',
+    ).toBe(40);
+    expect(
+      tabletFrame.a.top - tabletActions.top,
+      '摆不出输入口的那个键不是摆设：这一档的内缩就是模型那份 +24',
+    ).toBe(carriers.seeded.padding.top);
+    expect(tabletFrame.a.top - tabletActions.top, '读数与 design 那份的差就是埋进去的那 24').toBe(designInset + 24);
+    expect(tabletFrame.a.left - tabletActions.left, 'padding 是四条边：左边同样吃到').toBe(
+      carriers.seeded.padding.left,
+    );
+    expect(
+      await fontSizeIn(variantIn('tablet'), carriers.headlineId, '公开页 tablet 那一份'),
+      '手机档的字号跟到 tablet（tablet 那条规则没碰 typography）',
+    ).toBe(`${smallerFont}px`);
     await visitorContext.close();
   });
 });

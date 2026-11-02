@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDocument, type DesignNode } from '@nexus/design-model';
-import { StudioStore } from '../src/studio/store';
+import { StudioStore, type ViewportMode } from '../src/studio/store';
+import { hasResponsiveRule } from '../src/studio/responsive-editor';
 import { setStudioReadOnly } from '../src/studio/read-only';
 
 /**
@@ -43,6 +44,10 @@ function nodeNamed(studio: StudioStore, name: string): DesignNode {
 
 function rules(studio: StudioStore, id: string): unknown {
   return studio.getSnapshot().page!.nodes[id]!.responsive;
+}
+
+function nodeOf(studio: StudioStore, id: string): DesignNode {
+  return studio.getSnapshot().page!.nodes[id]!;
 }
 
 function historyLength(studio: StudioStore): number {
@@ -160,6 +165,93 @@ describe('§14 清除的两层粒度', () => {
     const before = historyLength(studio);
     expect(studio.dropResponsiveRule([cta.id], 'mobile')).toBe(0);
     expect(historyLength(studio)).toBe(before);
+  });
+});
+
+describe('§14 第三片：排布与字号也接进事务', () => {
+  it('容器写间距/排布、文字写字号：一格一条可撤销事务，撤销栈那句话和面板同源', async () => {
+    const studio = await readyStudio();
+    const actions = nodeNamed(studio, 'Actions');
+    const headline = nodeNamed(studio, 'Headline');
+
+    expect(studio.setResponsiveValue([actions.id], 'mobile', 'layout.gap', 64)).toBe(1);
+    expect(rules(studio, actions.id)).toEqual([{ breakpoint: 'mobile', patch: { layout: { gap: 64 } } }]);
+    expect(studio.setResponsiveValue([actions.id], 'mobile', 'layout.mode', 'vertical')).toBe(1);
+    expect(studio.setResponsiveValue([headline.id], 'mobile', 'typography.fontSize', 32)).toBe(1);
+
+    // 同档同组第二次写入是**加一个键**，不是把那一组换掉
+    expect(rules(studio, actions.id)).toEqual([
+      { breakpoint: 'mobile', patch: { layout: { gap: 64, mode: 'vertical' } } },
+    ]);
+    // 标签由 `responsiveChannelLabel` 拼：面板上那行的字与撤销栈里那句是同一份来源
+    expect(studio.getSnapshot().history.map((h) => h.label).slice(-3)).toEqual([
+      '手机断点：改间距',
+      '手机断点：改排布',
+      '手机断点：改字号',
+    ]);
+
+    // 三次写入 = 三条事务：一次撤销只退一格
+    studio.undo();
+    expect(rules(studio, headline.id)).toBeUndefined();
+    studio.undo();
+    expect(rules(studio, actions.id)).toEqual([{ breakpoint: 'mobile', patch: { layout: { gap: 64 } } }]);
+    studio.undo();
+    expect(rules(studio, actions.id)).toBeUndefined();
+  });
+
+  it('这些键真的移动画布：间距把第二个按钮推开 64，排布把那一行翻成上下', async () => {
+    const studio = await readyStudio();
+    const actions = nodeNamed(studio, 'Actions');
+    const primary = nodeNamed(studio, 'Primary CTA');
+    const secondary = nodeNamed(studio, 'Secondary CTA');
+
+    const pair = (viewport: ViewportMode) => {
+      studio.setViewport(viewport);
+      const layout = studio.getSnapshot().layout!;
+      return { a: layout.nodes[primary.id]!, b: layout.nodes[secondary.id]! };
+    };
+    /** 第二个按钮相对第一个的下沿/右沿间距（横排读 x，竖排读 y） */
+    const gapX = (p: { a: { x: number; width: number }; b: { x: number } }) => p.b.x - (p.a.x + p.a.width);
+
+    // 设计档：横排、gap 是 `{space.3}` token 解出来的那个数
+    const design = pair('design');
+    expect(design.b.y, '横排同一行：上沿齐平').toBe(design.a.y);
+    expect(gapX(design)).toBeGreaterThan(0);
+    const designGap = gapX(design);
+
+    studio.setResponsiveValue([actions.id], 'mobile', 'layout.gap', 64);
+    const gapped = pair('mobile');
+    expect(gapX(gapped), '这一档的间距就是写下去的那个数').toBe(64);
+    expect(gapped.b.y).toBe(gapped.a.y);
+
+    studio.setResponsiveValue([actions.id], 'mobile', 'layout.mode', 'vertical');
+    const stacked = pair('mobile');
+    // 翻成竖排后第二个落在第一个**下面**，同一份间距改吃纵轴
+    expect(stacked.b.y - (stacked.a.y + stacked.a.height)).toBe(64);
+    // 设计档一个像素都没动：断点规则只在这几档生效（ADR-0069）
+    expect(gapX(pair('design'))).toBe(designGap);
+  });
+
+  it('抹掉一组里最后一个键，那一组跟着走：模型里不留 `{layout:{}}` 那种空壳', async () => {
+    const studio = await readyStudio();
+    const actions = nodeNamed(studio, 'Actions');
+    studio.setResponsiveValue([actions.id], 'mobile', 'layout.gap', 64);
+    studio.setResponsiveValue([actions.id], 'mobile', 'layout.mode', 'vertical');
+    studio.setResponsiveValue([actions.id], 'mobile', 'visible', false);
+
+    expect(studio.clearResponsiveChannel([actions.id], 'mobile', 'layout.mode')).toBe(1);
+    expect(rules(studio, actions.id)).toEqual([
+      { breakpoint: 'mobile', patch: { visible: false, layout: { gap: 64 } } },
+    ]);
+
+    // 只剩 layout.gap 这一键：抹掉它那一组就空了，规则整条消失，而不是留下一条什么都不改的
+    expect(studio.clearResponsiveChannel([actions.id], 'mobile', 'layout.gap')).toBe(1);
+    expect(rules(studio, actions.id)).toEqual([{ breakpoint: 'mobile', patch: { visible: false } }]);
+    // 最后一条也没了 → 数组空。store 写回的是数组本身，而所有读者（投影/codegen/徽标/发布闸门）
+    // 读的都是 `responsive?.length`，空数组与"没有这个键"在这些读者眼里同一件事
+    expect(studio.clearResponsiveChannel([actions.id], 'mobile', 'visible')).toBe(1);
+    expect(rules(studio, actions.id)).toEqual([]);
+    expect(hasResponsiveRule(nodeOf(studio, actions.id), 'mobile')).toBe(false);
   });
 });
 

@@ -21,12 +21,14 @@ import {
   VIEWPORT_OPTIONS,
 } from './viewer-params';
 import {
+  RESPONSIVE_CHANNELS,
   designValueOf,
   hasResponsiveRule,
+  projectedValueOf,
   responsiveChannelsOf,
   responsiveImpactDetailOf,
   responsiveImpactOf,
-  projectedValueOf,
+  type ChannelSpec,
   type ResponsiveChannel,
 } from './responsive-editor';
 import { studio, useStudio, useStudioReady } from './store';
@@ -299,7 +301,7 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
   };
   const impactOf = (breakpoint: BreakpointName) => mixedOf((n) => responsiveImpactOf(n, breakpoint));
   const impact = impactOf(bp);
-  /** 徽标数的是模型里所有组，面板只有四格输入口——差出来的那些键要说出来，不然"改 3 处"里
+  /** 徽标数的是模型里所有组，面板只摆得出真能改的那几格——差出来的那些键要说出来，不然"改 3 处"里
    *  有 2 处对着空白的行，作者会以为面板坏了（§159：界面说的话要跟画布/访客看得见的对得上） */
   const outsideOf = mixedOf((n) => responsiveImpactDetailOf(n, bp).outsidePanel);
   const hasAnyRule = nodes.some((n) => hasResponsiveRule(n, bp));
@@ -311,15 +313,14 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
     studio.setViewport(next);
   };
 
-  const commitNumber = (channel: ResponsiveChannel, key: string) => {
-    const raw = drafts[key];
-    setDrafts({ ...drafts, [key]: undefined });
+  const commitNumber = (channel: ResponsiveChannel, raw: string | undefined) => {
+    setDrafts({ ...drafts, [channel]: undefined });
     if (raw === undefined || raw.trim() === '') return;
     const next = Number(raw);
     if (Number.isFinite(next)) studio.setResponsiveValue(ids, bp, channel, next);
   };
 
-  // 通道值可能是数字、关键字（hug/fill）、布尔，或**绑到 token 的引用对象**——
+  // 通道值可能是数字、关键字（hug/fill）、布尔、排布名，或**绑到 token 的引用对象**——
   // 显示一律 JSON 化，不做"数字才算数"的假设（那会把 token 绑定的尺寸读成 undefined）
   const rowValue = (channel: ResponsiveChannel): unknown =>
     mixedOf((n) => projectedValueOf(n, bp, channel) as never);
@@ -329,11 +330,124 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
 
   const textOf = (value: unknown): string =>
     value === undefined ? '默认' : typeof value === 'string' ? value : JSON.stringify(value);
+  /** 读数用中文说法（显示/隐藏、竖排/横排），模型里的原值仍是 `visible` / `vertical` */
+  const labelOf = (spec: ChannelSpec, value: unknown): string => {
+    if (value === MIXED) return '混合';
+    if (typeof value === 'boolean') return value ? '显示' : '隐藏';
+    return spec.choices?.find((choice) => choice.value === value)?.label ?? textOf(value);
+  };
   /** 「设计」那一边的读数也要按多选算：两个节点的设计值不一样时说"混合"，
    *  而不是拿 `nodes[0]` 那个数冒充整批（§159：界面不能说出模型里没有的值） */
-  const designOf = (channel: ResponsiveChannel): string => {
-    const value = mixedOf((n) => designValueOf(n, channel) as never);
-    return value === MIXED ? '混合' : textOf(value);
+  const designOf = (spec: ChannelSpec): string => {
+    const value = mixedOf((n) => designValueOf(n, spec.id) as never);
+    return labelOf(spec, value);
+  };
+
+  /**
+   * 行的名册由内核定：只摆**这个节点、这一档真能改**的那几格（`appliesTo`）。
+   * 摆一个按下去什么都改不了的输入口，作者只会以为面板坏了（§159）。
+   * 多选取交集——不能对着一个不认这格的元素写这一格。
+   */
+  const specs = RESPONSIVE_CHANNELS.filter((spec) => nodes.every((n) => spec.appliesTo(n, bp)));
+
+  const renderChannelRow = (spec: ChannelSpec) => {
+    const value = rowValue(spec.id);
+    const draft = drafts[spec.id];
+    const numeric = typeof value === 'number' ? String(value) : '';
+    return (
+      <div key={spec.id} className="flex items-center gap-2">
+        <span className="w-14 shrink-0 text-12 text-fg-2">{spec.label}</span>
+
+        {spec.widget === 'choice'
+          ? spec.choices?.map((choice) => (
+              <button
+                key={choice.value}
+                type="button"
+                title={`这一档排成${choice.label}`}
+                onClick={() => studio.setResponsiveValue(ids, bp, spec.id, choice.value)}
+                className={cn(
+                  'rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11',
+                  value === choice.value ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1',
+                )}
+                data-responsive-choice={`${spec.id}:${choice.value}`}
+              >
+                {choice.label}
+              </button>
+            ))
+          : null}
+
+        {spec.widget === 'toggle'
+          ? [true, false].map((want) => (
+              <button
+                key={String(want)}
+                type="button"
+                onClick={() => studio.setResponsiveValue(ids, bp, spec.id, want)}
+                className={cn(
+                  'rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11',
+                  value === want ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1',
+                )}
+                data-responsive-visible={want ? 'visible' : 'hidden'}
+              >
+                {want ? '显示' : '隐藏'}
+              </button>
+            ))
+          : null}
+
+        {spec.widget === 'size' || spec.widget === 'number' ? (
+          <input
+            type="number"
+            min={spec.min}
+            max={spec.max}
+            step={spec.step}
+            value={draft ?? numeric}
+            placeholder={value === MIXED ? '混合' : typeof value === 'string' ? value : '跟随'}
+            onChange={(e) => setDrafts({ ...drafts, [spec.id]: e.target.value })}
+            onBlur={() => commitNumber(spec.id, draft)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+            }}
+            className="w-20 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
+            data-responsive-input={spec.id}
+          />
+        ) : null}
+
+        {spec.widget === 'size'
+          ? (['hug', 'fill'] as const).map((kind) => (
+              <button
+                key={kind}
+                type="button"
+                title={kind === 'hug' ? 'hug：贴合内容' : 'fill：填满父级'}
+                onClick={() => studio.setResponsiveValue(ids, bp, spec.id, kind)}
+                className={cn(
+                  'rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11',
+                  value === kind ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3',
+                )}
+                data-responsive-size-kind={`${spec.id}:${kind}`}
+              >
+                {kind === 'hug' ? 'H' : 'F'}
+              </button>
+            ))
+          : null}
+
+        <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3" data-responsive-channel={spec.id}>
+          这一档 {labelOf(spec, value)} · 设计 {designOf(spec)}
+          {spec.group === 'size' ? ` (${spec.key})` : ''}
+        </span>
+
+        {hasOverride(spec.id) ? (
+          <button
+            type="button"
+            onClick={() => studio.clearResponsiveChannel(ids, bp, spec.id)}
+            className="px-1 text-12 text-fg-3 hover:text-danger-ink"
+            title={`清除这一档的${spec.label}覆盖`}
+            data-responsive-clear={spec.id}
+          >
+            ×
+          </button>
+        ) : null}
+      </div>
+    );
   };
 
   return (
@@ -390,139 +504,17 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
 
       {outsideOf === MIXED ? (
         <p className="text-11 text-fg-3" data-responsive-outside="mixed">
-          徽标里还有几个面板没有输入口的键，各元素不同——按下面那颗「清掉这一档」会连着它们一起删。
+          徽标里还有几个键在这一格摆不出输入口（代码视图或 AI 配方写进来的，或者这个元素改不了它），各元素不同——
+          按下面那颗「清掉这一档」会连着它们一起删。
         </p>
       ) : outsideOf.length ? (
         <p className="font-mono text-11 text-fg-3" data-responsive-outside={String(outsideOf.length)}>
           其中 {outsideOf.length} 处面板没有输入口：{outsideOf.join(' · ')}——它们由「代码」那一节或 AI
-          配方写进来，「清掉这一档」会连着它们一起删。
+          配方写进来（或这个元素改不了它），「清掉这一档」会连着它们一起删。
         </p>
       ) : null}
 
-      <div className="flex items-center gap-2">
-        <span className="w-14 shrink-0 text-12 text-fg-2">显示</span>
-        {(['visible', 'hidden'] as const).map((kind) => {
-          const want = kind === 'visible';
-          const current = rowValue('visible');
-          return (
-            <button
-              key={kind}
-              type="button"
-              onClick={() => studio.setResponsiveValue(ids, bp, 'visible', want)}
-              className={cn(
-                'rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11',
-                current === want ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1',
-              )}
-              data-responsive-visible={kind}
-            >
-              {want ? '显示' : '隐藏'}
-            </button>
-          );
-        })}
-        <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3" data-responsive-channel="visible">
-          {rowValue('visible') === MIXED ? '混合' : `这一档 ${rowValue('visible') ? '显示' : '隐藏'} · 设计 ${designOf('visible')}`}
-        </span>
-        {hasOverride('visible') ? (
-          <button
-            type="button"
-            onClick={() => studio.clearResponsiveChannel(ids, bp, 'visible')}
-            className="px-1 text-12 text-fg-3 hover:text-danger-ink"
-            title="清除这一档的显示覆盖"
-            data-responsive-clear="visible"
-          >
-            ×
-          </button>
-        ) : null}
-      </div>
-
-      {(['size.width', 'size.height'] as const).map((channel) => {
-        const axis = channel === 'size.width' ? 'width' : 'height';
-        const current = rowValue(channel);
-        return (
-          <div key={channel} className="flex items-center gap-2">
-            <span className="w-14 shrink-0 text-12 text-fg-2">{channel === 'size.width' ? '宽' : '高'}</span>
-            <input
-              type="number"
-              min={0}
-              value={drafts[channel] ?? (typeof current === 'number' ? String(current) : '')}
-              placeholder={current === MIXED ? '混合' : typeof current === 'string' ? current : '跟随'}
-              onChange={(e) => setDrafts({ ...drafts, [channel]: e.target.value })}
-              onBlur={() => commitNumber(channel, channel)}
-              onKeyDown={(e) => {
-                e.stopPropagation();
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-              }}
-              className="w-20 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
-              data-responsive-input={channel}
-            />
-            {(['hug', 'fill'] as const).map((kind) => (
-              <button
-                key={kind}
-                type="button"
-                title={kind === 'hug' ? 'hug：贴合内容' : 'fill：填满父级'}
-                onClick={() => studio.setResponsiveValue(ids, bp, channel, kind)}
-                className={cn(
-                  'rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11',
-                  current === kind ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3',
-                )}
-                data-responsive-size-kind={`${channel}:${kind}`}
-              >
-                {kind === 'hug' ? 'H' : 'F'}
-              </button>
-            ))}
-            <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3" data-responsive-channel={channel}>
-              这一档 {current === MIXED ? '混合' : textOf(current)} · 设计 {designOf(channel)}
-              {` (${axis})`}
-            </span>
-            {hasOverride(channel) ? (
-              <button
-                type="button"
-                onClick={() => studio.clearResponsiveChannel(ids, bp, channel)}
-                className="px-1 text-12 text-fg-3 hover:text-danger-ink"
-                title={`清除这一档的${channel === 'size.width' ? '宽' : '高'}覆盖`}
-                data-responsive-clear={channel}
-              >
-                ×
-              </button>
-            ) : null}
-          </div>
-        );
-      })}
-
-      <div className="flex items-center gap-2">
-        <span className="w-14 shrink-0 text-12 text-fg-2">透明度</span>
-        <input
-          type="number"
-          min={0}
-          max={1}
-          step={0.05}
-          value={drafts.opacity ?? (typeof rowValue('style.opacity') === 'number' ? String(rowValue('style.opacity')) : '')}
-          placeholder={rowValue('style.opacity') === MIXED ? '混合' : '跟随'}
-          onChange={(e) => setDrafts({ ...drafts, opacity: e.target.value })}
-          onBlur={() => commitNumber('style.opacity', 'opacity')}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-          }}
-          className="w-20 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
-          data-responsive-input="style.opacity"
-        />
-        <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3" data-responsive-channel="style.opacity">
-          这一档 {rowValue('style.opacity') === MIXED ? '混合' : textOf(rowValue('style.opacity'))} · 设计{' '}
-          {designOf('style.opacity')}
-        </span>
-        {hasOverride('style.opacity') ? (
-          <button
-            type="button"
-            onClick={() => studio.clearResponsiveChannel(ids, bp, 'style.opacity')}
-            className="px-1 text-12 text-fg-3 hover:text-danger-ink"
-            title="清除这一档的透明度覆盖"
-            data-responsive-clear="style.opacity"
-          >
-            ×
-          </button>
-        ) : null}
-      </div>
+      {specs.map(renderChannelRow)}
 
       <button
         type="button"

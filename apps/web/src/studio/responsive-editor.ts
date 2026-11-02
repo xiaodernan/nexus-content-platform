@@ -4,8 +4,8 @@ import {
   getByPath,
   type BreakpointName,
   type DesignNode,
+  type LayoutMode,
   type ResponsiveRule,
-  type SizeValue,
 } from '@nexus/design-model';
 
 /**
@@ -22,29 +22,181 @@ import {
  * 而访客切视口时看见"我明明改了，页面没变"。
  */
 
-/** 面板能直接编辑的通道：每个都是 patch 里的**一个键**，不是一整组 */
-export type ResponsiveChannel = 'visible' | 'size.width' | 'size.height' | 'style.opacity';
+/** `ResponsiveRule.patch` 里按组 Object.assign 的那五组（`visible` 是标量，单独收） */
+const PATCH_GROUPS = ['layout', 'size', 'position', 'style', 'typography'] as const;
+type PatchGroup = (typeof PATCH_GROUPS)[number];
 
-interface ChannelSpec {
+/** 面板能直接编辑的通道：每个都是 patch 里的**一个键**，不是一整组 */
+export type ResponsiveChannel =
+  | 'visible'
+  | 'size.width'
+  | 'size.height'
+  | 'style.opacity'
+  | 'layout.mode'
+  | 'layout.gap'
+  | 'layout.columns'
+  | 'typography.fontSize';
+
+export interface ResponsiveChoice {
+  readonly value: string;
+  readonly label: string;
+}
+
+export interface ChannelSpec {
   readonly id: ResponsiveChannel;
   readonly label: string;
   /** 写进 patch 的那一组：`applyResponsive` 按组 Object.assign，所以组名就是"抹掉谁"的边界 */
-  readonly group: 'visible' | 'size' | 'style';
-  readonly key: 'width' | 'height' | 'opacity' | null;
+  readonly group: PatchGroup | 'visible';
+  /** 那一组里的键名；`visible` 是标量，没有键 */
+  readonly key: string | null;
   /** 从投影后的节点上读回来的点路径 */
   readonly readPath: string;
+  /** 面板那一行的控件形状：加一格通道就是加一条 spec，面板不再逐行手写 JSX */
+  readonly widget: 'toggle' | 'size' | 'number' | 'choice';
+  readonly min?: number;
+  readonly max?: number;
+  readonly step?: number;
+  readonly choices?: readonly ResponsiveChoice[];
+  /**
+   * 这一行对这个节点、这一档有没有意义。面板不摆一个按下去什么都改不了的输入口（§159）：
+   * `layout.*` 要节点真有子节点可排，`layout.columns` 要投影出来的排布真是网格，
+   * `typography.fontSize` 要节点真有 typography 对象——`applyResponsive` 对没有 typography 的节点
+   * 压根不合并那一组（layout.ts:175），写进去就是一条被冗余判据当场剪掉的键。
+   */
+  readonly appliesTo: (node: DesignNode, breakpoint: BreakpointName) => boolean;
+  /** 面板发来的原始值 → 能写进 patch 的值；认不出的给 REJECT，一条事务都不产生 */
+  readonly clean: (value: unknown) => Cleaned;
 }
+
+type Cleaned = number | string | boolean | typeof REJECT;
+
+/** 认不出的值（NaN、负宽、非布尔、拼错的排布名）不当"改成 0"处理：原样回去，一条事务都不产生 */
+const REJECT = Symbol('reject');
+
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+
+/** 尺寸：非负整数 px，或 hug / fill 这两个关键字（token 引用是字符串，不是面板能拼出来的值） */
+function cleanSize(value: unknown): Cleaned {
+  if (isFiniteNumber(value)) return value >= 0 ? Math.round(value) : REJECT;
+  return value === 'hug' || value === 'fill' ? value : REJECT;
+}
+const cleanOpacity = (value: unknown): Cleaned => (isFiniteNumber(value) ? Math.min(1, Math.max(0, value)) : REJECT);
+const cleanGap = (value: unknown): Cleaned => (isFiniteNumber(value) && value >= 0 ? Math.round(value) : REJECT);
+const cleanColumns = (value: unknown): Cleaned => (isFiniteNumber(value) && value >= 1 ? Math.floor(value) : REJECT);
+const cleanFontSize = (value: unknown): Cleaned => (isFiniteNumber(value) && value > 0 ? Math.round(value) : REJECT);
+
+/**
+ * 排布只给这四样：求解器（layout.ts）与导出代码（codegen.ts 的 `layoutClasses`）都认它们。
+ * `stack` / `none` 靠子节点自己的绝对坐标摆放，一条断点规则改不了那批坐标，所以这一格不摆那两个
+ * 按钮——点了没效果的选项不该出现在面板上（§159）。
+ */
+const MODE_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'vertical', label: '竖排' },
+  { value: 'horizontal', label: '横排' },
+  { value: 'grid', label: '网格' },
+  { value: 'wrap', label: '换行' },
+];
+const MODE_VALUES = new Set<string>(MODE_CHOICES.map((c) => c.value));
+
+const hasChildren = (node: DesignNode): boolean => node.children.length > 0;
+const projectedModeOf = (node: DesignNode, breakpoint: BreakpointName): LayoutMode =>
+  applyResponsive(node, breakpoint).layout.mode;
 
 /** 这一档可编辑通道的顺序就是面板上行的顺序 */
 export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
-  { id: 'visible', label: '显示', group: 'visible', key: null, readPath: 'visible' },
-  { id: 'size.width', label: '宽', group: 'size', key: 'width', readPath: 'size.width' },
-  { id: 'size.height', label: '高', group: 'size', key: 'height', readPath: 'size.height' },
-  { id: 'style.opacity', label: '透明度', group: 'style', key: 'opacity', readPath: 'style.opacity' },
+  {
+    id: 'visible',
+    label: '显示',
+    group: 'visible',
+    key: null,
+    readPath: 'visible',
+    widget: 'toggle',
+    appliesTo: () => true,
+    clean: (value) => (typeof value === 'boolean' ? value : REJECT),
+  },
+  {
+    id: 'size.width',
+    label: '宽',
+    group: 'size',
+    key: 'width',
+    readPath: 'size.width',
+    widget: 'size',
+    min: 0,
+    appliesTo: () => true,
+    clean: cleanSize,
+  },
+  {
+    id: 'size.height',
+    label: '高',
+    group: 'size',
+    key: 'height',
+    readPath: 'size.height',
+    widget: 'size',
+    min: 0,
+    appliesTo: () => true,
+    clean: cleanSize,
+  },
+  {
+    id: 'style.opacity',
+    label: '透明度',
+    group: 'style',
+    key: 'opacity',
+    readPath: 'style.opacity',
+    widget: 'number',
+    min: 0,
+    max: 1,
+    step: 0.05,
+    appliesTo: () => true,
+    clean: cleanOpacity,
+  },
+  {
+    id: 'layout.mode',
+    label: '排布',
+    group: 'layout',
+    key: 'mode',
+    readPath: 'layout.mode',
+    widget: 'choice',
+    choices: MODE_CHOICES,
+    appliesTo: hasChildren,
+    clean: (value) => (typeof value === 'string' && MODE_VALUES.has(value) ? value : REJECT),
+  },
+  {
+    id: 'layout.gap',
+    label: '间距',
+    group: 'layout',
+    key: 'gap',
+    readPath: 'layout.gap',
+    widget: 'number',
+    min: 0,
+    step: 1,
+    appliesTo: hasChildren,
+    clean: cleanGap,
+  },
+  {
+    id: 'layout.columns',
+    label: '列数',
+    group: 'layout',
+    key: 'columns',
+    readPath: 'layout.columns',
+    widget: 'number',
+    min: 1,
+    step: 1,
+    appliesTo: (node, breakpoint) => hasChildren(node) && projectedModeOf(node, breakpoint) === 'grid',
+    clean: cleanColumns,
+  },
+  {
+    id: 'typography.fontSize',
+    label: '字号',
+    group: 'typography',
+    key: 'fontSize',
+    readPath: 'typography.fontSize',
+    widget: 'number',
+    min: 1,
+    step: 1,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanFontSize,
+  },
 ];
-
-/** 垃圾输入（NaN、负宽、非布尔）不当"改成 0"处理：原样回去，一条事务都不产生 */
-const REJECT = Symbol('reject');
 
 type Patch = ResponsiveRule['patch'];
 
@@ -52,15 +204,6 @@ function specOf(channel: ResponsiveChannel): ChannelSpec {
   const spec = RESPONSIVE_CHANNELS.find((c) => c.id === channel);
   if (!spec) throw new Error(`未知的断点通道：${channel}`);
   return spec;
-}
-
-/** 只认面板发来的那几种值；尺寸取非负整数，透明度夹进 [0,1]（与属性面板其余字段同一口径） */
-function sanitize(spec: ChannelSpec, value: unknown): number | string | boolean | typeof REJECT {
-  if (spec.group === 'visible') return typeof value === 'boolean' ? value : REJECT;
-  if (spec.key === 'opacity')
-    return typeof value === 'number' && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : REJECT;
-  if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? Math.round(value) : REJECT;
-  return value === 'hug' || value === 'fill' ? value : REJECT;
 }
 
 const sameValue = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
@@ -76,10 +219,14 @@ function ruleOf(node: DesignNode, breakpoint: BreakpointName): ResponsiveRule | 
   return node.responsive?.find((r) => r.breakpoint === breakpoint);
 }
 
+/** patch 里那一组摊平成键值表：读写都按 spec 的 (group, key) 走，不再一格通道一段分支 */
+function groupOf(patch: Patch, group: PatchGroup): Record<string, unknown> {
+  return (patch[group] ?? {}) as Record<string, unknown>;
+}
+
 function channelRaw(patch: Patch, spec: ChannelSpec): unknown {
   if (spec.group === 'visible') return patch.visible;
-  if (spec.group === 'size') return spec.key === 'width' ? patch.size?.width : patch.size?.height;
-  return patch.style?.opacity;
+  return groupOf(patch, spec.group)[spec.key as string];
 }
 
 function setChannel(patch: Patch, spec: ChannelSpec, value: number | string | boolean): void {
@@ -87,9 +234,8 @@ function setChannel(patch: Patch, spec: ChannelSpec, value: number | string | bo
     patch.visible = value as boolean;
     return;
   }
-  if (spec.key === 'width') patch.size = { ...patch.size, width: value as SizeValue };
-  else if (spec.key === 'height') patch.size = { ...patch.size, height: value as SizeValue };
-  else if (spec.key === 'opacity') patch.style = { ...patch.style, opacity: value as number };
+  const group = spec.group;
+  patch[group] = { ...groupOf(patch, group), [spec.key as string]: value } as never;
 }
 
 function dropChannel(patch: Patch, spec: ChannelSpec): void {
@@ -97,22 +243,11 @@ function dropChannel(patch: Patch, spec: ChannelSpec): void {
     delete patch.visible;
     return;
   }
-  if (spec.key === 'width') {
-    if (!patch.size) return;
-    const next = { ...patch.size };
-    delete next.width;
-    patch.size = next;
-  } else if (spec.key === 'height') {
-    if (!patch.size) return;
-    const next = { ...patch.size };
-    delete next.height;
-    patch.size = next;
-  } else if (spec.key === 'opacity') {
-    if (!patch.style) return;
-    const next = { ...patch.style };
-    delete next.opacity;
-    patch.style = next;
-  }
+  const group = spec.group;
+  if (!patch[group]) return;
+  const next = { ...groupOf(patch, group) };
+  delete next[spec.key as string];
+  patch[group] = next as never;
 }
 
 /**
@@ -136,14 +271,18 @@ function rebuild(node: DesignNode, breakpoint: BreakpointName, edit: (patch: Pat
   for (const rule of node.responsive ?? []) {
     if (rule.breakpoint !== breakpoint) continue;
     if (rule.patch.visible !== undefined) patch.visible = rule.patch.visible;
-    for (const group of ['layout', 'size', 'position', 'style', 'typography'] as const) {
+    for (const group of PATCH_GROUPS) {
       const incoming = rule.patch[group];
       if (incoming) patch[group] = { ...patch[group], ...incoming } as never;
     }
   }
   edit(patch);
-  if (patch.size && !Object.keys(patch.size).length) delete patch.size;
-  if (patch.style && !Object.keys(patch.style).length) delete patch.style;
+  // 空的组不留：抹掉 `layout` 里最后一个键，那一组就该跟着走，
+  // 否则规则里躺着一个 `{layout:{}}`，读者会以为这一档改了排布
+  for (const group of PATCH_GROUPS) {
+    const incoming = patch[group];
+    if (incoming && !Object.keys(incoming).length) delete patch[group];
+  }
   if (patch.visible === undefined) delete patch.visible;
   if (!Object.keys(patch).length) return sortRules(others);
   return sortRules([...others, { breakpoint, patch }]);
@@ -161,7 +300,7 @@ export function withResponsiveValue(
   value: unknown,
 ): ResponsiveRule[] {
   const spec = specOf(channel);
-  const cleaned = sanitize(spec, value);
+  const cleaned = spec.clean(value);
   if (cleaned === REJECT) return structuredClone(node.responsive ?? []);
   const redundant = sameValue(projectionWithout(node, breakpoint, spec.readPath), cleaned);
   return rebuild(node, breakpoint, (patch) =>
@@ -221,25 +360,31 @@ export function projectedValueOf(
 }
 
 /**
- * 这一档**有没有**规则——看的是模型里那一条，不是面板能编辑的那四个通道。
- * AI 配方与代码视图会写 `layout`/`typography`，那些组面板不显示，但"清掉这一档"照样得能按下去。
+ * 这一档**有没有**规则——看的是模型里那一条，不是面板摆不摆得出输入口。
+ * AI 配方与代码视图会写 `layout`/`typography`/`position`，那些组里有些键这一格根本摆不出
+ * 输入口（比如没有子节点的元素的 `layout.gap`），但"清掉这一档"照样得能按下去。
  */
 export function hasResponsiveRule(node: DesignNode, breakpoint: BreakpointName): boolean {
   return (node.responsive ?? []).some((r) => r.breakpoint === breakpoint);
 }
 
-/** `ResponsiveRule.patch` 里按组 Object.assign 的那五组（`visible` 是标量，单独收） */
-const PATCH_GROUPS = ['layout', 'size', 'position', 'style', 'typography'] as const;
-
-/** 面板有四格输入口的那些投影路径；其余键只在模型里，看得见但这里改不了 */
-const PANEL_PATHS: ReadonlySet<string> = new Set(RESPONSIVE_CHANNELS.map((c) => c.readPath));
+/**
+ * 这一档、这个节点，面板真的摆得出输入口的那些通道。
+ * 行的可见性由它决定，徽标那句"这几处面板没有输入口"也由它派生——两处用同一份判据，
+ * 免得面板上一格而徽标说没有，或者反过来（§159：界面说的话要和画布对得上）。
+ * 多选取**交集**：STUDIO.md 定的"多选时显示交集属性"，不能对着一个不认这格的元素写这一格。
+ */
+export function responsiveChannelsFor(node: DesignNode, breakpoint: BreakpointName): ChannelSpec[] {
+  return RESPONSIVE_CHANNELS.filter((spec) => spec.appliesTo(node, breakpoint));
+}
 
 export interface ResponsiveImpact {
   /** 这一档真的在起作用的投影处数——含面板没有输入口的那些键 */
   readonly total: number;
-  /** 其中面板那四格显示得出、也写得回去的 */
+  /** 其中面板这一格摆得出输入口、显示得出也写得回去的 */
   readonly panelChannels: number;
-  /** 面板没有输入口的那些键（`layout.gap`、`typography.fontSize`），按模型里的组次序排 */
+  /** 面板没有输入口的那些键（`layout.padding`、`position.x`、没有子节点的元素上的 `layout.gap`），
+   *  按模型里的组次序排 */
   readonly outsidePanel: readonly string[];
 }
 
@@ -262,7 +407,7 @@ function candidatePaths(node: DesignNode, breakpoint: BreakpointName): string[] 
   return [...paths];
 }
 
-/** 徽标读数的全部真相：总数、面板那四格占几处、剩下是哪些键 */
+/** 徽标读数的全部真相：总数、面板摆得出输入口的那些占几处、剩下是哪些键 */
 export function responsiveImpactDetailOf(node: DesignNode, breakpoint: BreakpointName): ResponsiveImpact {
   const now = applyResponsive(node, breakpoint);
   const withoutOwn = applyResponsive(
@@ -273,8 +418,9 @@ export function responsiveImpactDetailOf(node: DesignNode, breakpoint: Breakpoin
     const value = getByPath(now, path);
     return !sameValue(value, getByPath(node, path)) || !sameValue(value, getByPath(withoutOwn, path));
   });
+  const editable = new Set(responsiveChannelsFor(node, breakpoint).map((spec) => spec.readPath));
   const outsidePanel = live
-    .filter((path) => !PANEL_PATHS.has(path))
+    .filter((path) => !editable.has(path))
     .sort((a, b) => groupRank(a) - groupRank(b) || (a < b ? -1 : a > b ? 1 : 0));
   return { total: live.length, panelChannels: live.length - outsidePanel.length, outsidePanel };
 }
@@ -295,8 +441,9 @@ function groupRank(path: string): number {
  * 只用自己那条规则 ⇒ 平板那格读 0，可画布正藏着手机那条的结果；只和设计值比 ⇒
  * 一条顶回设计值的规则读 0，可它不是废的。两条都不变的才是真 0。
  *
- * 数的是**模型里所有的组**（`responsiveImpactDetailOf`），不只面板那四格：AI 配方与代码视图会写
- * `layout`/`typography`/`position`，那些改动画布和访客一样看得见，徽标不能因为它们没有输入口就读 0。
+ * 数的是**模型里所有的组**（`responsiveImpactDetailOf`），不只面板摆得出输入口的那些格：AI 配方与
+ * 代码视图会写 `layout.padding`/`position.x`，那些改动画布和访客一样看得见，徽标不能因为它们没有
+ * 输入口就读 0。
  */
 export function responsiveImpactOf(node: DesignNode, breakpoint: BreakpointName): number {
   return responsiveImpactDetailOf(node, breakpoint).total;

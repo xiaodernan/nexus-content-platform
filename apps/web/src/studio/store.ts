@@ -1456,7 +1456,7 @@ export class StudioStore {
     return ops.length;
   }
 
-  /** 在 `breakpoint` 这一档覆盖一个通道（显示 / 宽 / 高 / 透明度），一次一条可撤销事务 */
+  /** 在 `breakpoint` 这一档覆盖一个通道（清单只有一份：`RESPONSIVE_CHANNELS`），一次一条可撤销事务 */
   setResponsiveValue(
     nodeIds: readonly NodeId[],
     breakpoint: BreakpointName,

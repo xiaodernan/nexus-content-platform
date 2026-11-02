@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   applyResponsive,
   createNode,
-  getByPath,
   makeTokenRef,
   type BreakpointName,
   type DesignNode,
+  type Layout,
   type ResponsiveRule,
 } from '@nexus/design-model';
 import {
@@ -13,6 +13,7 @@ import {
   designValueOf,
   hasResponsiveRule,
   projectedValueOf,
+  responsiveChannelsFor,
   responsiveChannelsOf,
   responsiveImpactDetailOf,
   responsiveImpactOf,
@@ -22,7 +23,6 @@ import {
   withoutResponsiveRule,
   type ResponsiveChannel,
 } from '../src/studio/responsive-editor';
-
 /**
  * §14 断点规则编辑内核的单测。
  *
@@ -39,6 +39,20 @@ function mkNode(patch: Partial<DesignNode> = {}): DesignNode {
     style: { opacity: 1 },
   });
   return { ...node, ...patch };
+}
+
+/** 一个真能排布的容器：`layout.*` 那几格只对**有子节点**的元素摆得出输入口 */
+function mkContainer(patch: Partial<DesignNode> = {}): DesignNode {
+  return mkNode({ name: '容器', children: ['child-a', 'child-b'], ...patch });
+}
+
+function mkText(): DesignNode {
+  return createNode({ type: 'text', name: '标题', text: '标题' });
+}
+
+/** 只换排布里点名的那几个键，`padding`/`justify`/`items` 仍用模型给的默认值 */
+function withLayout(node: DesignNode, layout: Partial<Layout>): DesignNode {
+  return { ...node, layout: { ...node.layout, ...layout } };
 }
 
 const json = (value: unknown): string => JSON.stringify(value);
@@ -181,40 +195,48 @@ describe('§14 断点格上的徽标数：这一档"值得看一眼"的改动', 
     expect(responsiveImpactOf(dead, 'tablet')).toBe(0);
   });
 
-  it('面板不能编辑的组（layout/typography）也算"这一档有规则"——清档那颗不该灰', () => {
-    const typo = withRules(mkNode(), [
-      { breakpoint: 'tablet', patch: { typography: { fontSize: 14 } } },
-    ]);
-    expect(responsiveChannelsOf(typo, 'tablet')).toEqual([]); // 四个通道都没覆盖
+  it('模型里有这个键、但这一格摆不出输入口：清档那颗仍要按得动，徽标也不该假装看不见', () => {
+    // frame 没有 typography 对象，`applyResponsive` 那一遍压根没处 assign（layout.ts:175 的
+    // `rule.patch.typography && merged.typography`）——这条规则真的什么都不改，所以徽标读 0。
+    // 而"这一档有没有规则"看的是模型里那一条，不是面板摆不摆得出格子。
+    const typo = withRules(mkNode(), [{ breakpoint: 'tablet', patch: { typography: { fontSize: 14 } } }]);
+    expect(responsiveChannelsOf(typo, 'tablet'), '字号这个键确实在模型里').toEqual(['typography.fontSize']);
+    expect(
+      responsiveChannelsFor(typo, 'tablet').map((s) => s.id),
+      '这个元素摆不出字号那一格'
+    ).not.toContain('typography.fontSize');
     expect(hasResponsiveRule(typo, 'tablet')).toBe(true);
-    // 而徽标仍读 0：frame 节点没有 typography 对象，`applyResponsive` 那一遍压根没处 assign
-    // （layout.ts:175 的 `rule.patch.typography && merged.typography`）——这条规则真的什么都不改。
     expect(responsiveImpactOf(typo, 'tablet')).toBe(0);
+    // 一处投影都没改，也就用不着那句"面板没有输入口"的点名
+    expect(responsiveImpactDetailOf(typo, 'tablet').outsidePanel).toEqual([]);
   });
 
-  it('文字节点的 typography 覆盖面板没有输入口，但徽标必须数它：画布与访客真的在变', () => {
-    const node = withRules(createNode({ type: 'text', name: '标题', text: '标题' }), [
-      { breakpoint: 'tablet', patch: { typography: { fontSize: 14 } } },
-    ]);
-    expect(responsiveChannelsOf(node, 'tablet')).toEqual([]); // 面板四格里没有字号那一格
+  it('文字节点的字号：画布与访客真的在变，而这一格现在摆得出输入口', () => {
+    const node = withRules(mkText(), [{ breakpoint: 'tablet', patch: { typography: { fontSize: 14 } } }]);
+    expect(responsiveChannelsOf(node, 'tablet')).toEqual(['typography.fontSize']);
+    expect(responsiveChannelsFor(node, 'tablet').map((s) => s.id)).toContain('typography.fontSize');
     expect(responsiveImpactOf(node, 'tablet')).toBe(1);
     const detail = responsiveImpactDetailOf(node, 'tablet');
-    expect(detail.panelChannels).toBe(0);
-    expect(detail.outsidePanel).toEqual(['typography.fontSize']);
+    expect(detail.panelChannels).toBe(1);
+    expect(detail.outsidePanel).toEqual([]);
   });
 
   it('总数拆开说：面板内外的键各归各，一条规则里两边都有时不混成一格', () => {
-    const node = withRules(mkNode(), [
-      { breakpoint: 'tablet', patch: { style: { opacity: 0.4 }, layout: { gap: 8 } } },
+    // 容器有子节点 ⇒ 排布/间距这两格摆得出；`layout.padding` 在面板上没有那一格，单独点名
+    const node = withRules(mkContainer(), [
+      {
+        breakpoint: 'tablet',
+        patch: { style: { opacity: 0.4 }, layout: { gap: 8, padding: { top: 4, right: 4, bottom: 4, left: 4 } } },
+      },
     ]);
     expect(responsiveImpactDetailOf(node, 'tablet')).toEqual({
-      total: 2,
-      panelChannels: 1,
-      outsidePanel: ['layout.gap'],
+      total: 3,
+      panelChannels: 2,
+      outsidePanel: ['layout.padding'],
     });
   });
 
-  it('AI 配方那条移动档规则（layout 三个键 + size.width）在徽标里是 4 处，不是面板那一格', () => {
+  it('AI 配方那条移动档规则（layout 三个键 + size.width）在徽标里是 4 处，其中三处有了输入口', () => {
     // 配方挑的就是这种容器：横排按钮行在手机档折成竖排、单列、宽度填满
     const row = createNode({
       type: 'frame',
@@ -222,7 +244,7 @@ describe('§14 断点格上的徽标数：这一档"值得看一眼"的改动', 
       size: { width: 640, height: 120 },
       layout: { mode: 'horizontal', gap: 16 },
     });
-    const node = withRules(row, [
+    const node = withRules({ ...row, children: ['a', 'b'] }, [
       {
         breakpoint: 'mobile',
         patch: { layout: { mode: 'vertical', columns: 1, gap: 12 }, size: { width: 'fill' } },
@@ -230,21 +252,43 @@ describe('§14 断点格上的徽标数：这一档"值得看一眼"的改动', 
     ]);
     const detail = responsiveImpactDetailOf(node, 'mobile');
     expect(detail.total).toBe(4);
-    expect(detail.panelChannels).toBe(1); // 四键里只有 size.width 有那一格输入口
-    expect(detail.outsidePanel).toEqual(['layout.columns', 'layout.gap', 'layout.mode']);
-    // 级联同一口径：更宽的档一样看得见这些改动
+    expect(detail.panelChannels).toBe(3); // 排布 / 间距 / 宽
+    // 只有 `layout.columns` 摆不出格子：这一档投影出来的排布是竖排，不是网格
+    expect(detail.outsidePanel).toEqual(['layout.columns']);
     expect(responsiveImpactOf(node, 'wide')).toBe(4);
   });
 
   it('配方写在设计值上的那个键不进徽标：mode 本来就是 vertical ⇒ 只剩 gap 一处', () => {
-    // 与上一条同一份补丁形状，只是起点是竖排的 frame：`layout.mode` 这一键真的什么都不改
-    const node = withRules(mkNode(), [
+    // 与上一条同一份补丁形状，只是起点是竖排的容器：`layout.mode` 这一键真的什么都不改
+    const node = withRules(mkContainer(), [
       { breakpoint: 'mobile', patch: { layout: { mode: 'vertical', gap: 12 }, size: { width: 'fill' } } },
     ]);
     expect(responsiveImpactDetailOf(node, 'mobile')).toEqual({
       total: 2,
-      panelChannels: 1,
-      outsidePanel: ['layout.gap'],
+      panelChannels: 2,
+      outsidePanel: [],
+    });
+  });
+
+  it('排布改成网格，列数那一格跟着出现——那一格只在网格档摆出来', () => {
+    const row = withLayout(mkContainer(), { mode: 'horizontal', gap: 16 });
+    expect(
+      responsiveChannelsFor(row, 'mobile').map((s) => s.id),
+      '横排的元素摆不出列数那一格'
+    ).not.toContain('layout.columns');
+    const toGrid = withResponsiveValue(row, 'mobile', 'layout.mode', 'grid');
+    expect(rule(toGrid, 'mobile')!.patch).toEqual({ layout: { mode: 'grid' } });
+    const atMobile = { ...row, responsive: toGrid };
+    expect(projectedValueOf(atMobile, 'mobile', 'layout.mode')).toBe('grid');
+    expect(responsiveChannelsFor(atMobile, 'mobile').map((s) => s.id)).toContain('layout.columns');
+    const authored = withResponsiveValue(atMobile, 'mobile', 'layout.columns', 2);
+    expect(rule(authored, 'mobile')!.patch).toEqual({ layout: { mode: 'grid', columns: 2 } });
+    // 设计档没有 columns 这个键，所以"写 2 就是改投影"，两档各数各的
+    expect(designValueOf({ ...row, responsive: authored }, 'layout.columns')).toBeUndefined();
+    expect(responsiveImpactDetailOf({ ...row, responsive: authored }, 'mobile')).toEqual({
+      total: 2,
+      panelChannels: 2,
+      outsidePanel: [],
     });
   });
 
@@ -321,8 +365,12 @@ describe('§14 输入边界', () => {
   });
 
   it('未知的通道名报错而不是静默改错键', () => {
+    // `layout.mode`/`layout.gap` 这些现在是真通道，得拿一个**仍然没那一格**的键试
     expect(() =>
-      withResponsiveValue(mkNode(), 'mobile', 'layout.mode' as ResponsiveChannel, 'grid'),
+      withResponsiveValue(mkContainer(), 'mobile', 'layout.justify' as ResponsiveChannel, 'center'),
+    ).toThrow(/未知的断点通道/);
+    expect(() =>
+      withResponsiveValue(mkNode(), 'mobile', 'size.minWidth' as ResponsiveChannel, 100),
     ).toThrow(/未知的断点通道/);
   });
 });
@@ -381,15 +429,38 @@ describe('§14 面板读数与投影同源', () => {
     expect(projectedValueOf(node, 'tablet', 'visible')).toBe(false);
   });
 
+  /**
+   * 每一格通道配一个"摆得出这一行"的载体和一个非冗余值。
+   * 载体不是随便挑的：没有子节点的元素摆不出 `layout.*`，非网格排布摆不出列数，
+   * 没有 typography 对象的元素摆不出字号——对着这种节点写不进去，不能算那一格是废的。
+   * `Record<ResponsiveChannel, …>` 让漏掉任何一格都编译不过。
+   */
+  const CHANNEL_CASES: Readonly<
+    Record<ResponsiveChannel, { readonly carrier: () => DesignNode; readonly value: unknown }>
+  > = {
+    visible: { carrier: mkText, value: false },
+    'size.width': { carrier: mkText, value: 420 },
+    'size.height': { carrier: mkText, value: 420 },
+    'style.opacity': { carrier: mkText, value: 0.3 },
+    'layout.mode': { carrier: () => withLayout(mkContainer(), { mode: 'grid', columns: 2 }), value: 'horizontal' },
+    'layout.gap': { carrier: () => withLayout(mkContainer(), { mode: 'horizontal', gap: 16 }), value: 24 },
+    'layout.columns': { carrier: () => withLayout(mkContainer(), { mode: 'grid', columns: 2 }), value: 3 },
+    'typography.fontSize': { carrier: mkText, value: 28 },
+  };
+
   it('每一个通道写一个非冗余值，impact 至少 1：不留"有规则但什么都没改"的那种规则', () => {
     for (const spec of RESPONSIVE_CHANNELS) {
-      const design = getByPath(mkNode(), spec.readPath);
-      const value =
-        spec.group === 'visible' ? !(design as boolean) : spec.key === 'opacity' ? 0.3 : 420;
-      const next = withResponsiveValue(mkNode(), 'tablet', spec.id, value);
-      const shaped = { ...mkNode(), responsive: next };
-      expect(responsiveImpactOf(shaped, 'tablet'), `${spec.id} 写进去没改任何投影`).toBeGreaterThanOrEqual(1);
+      const { carrier, value } = CHANNEL_CASES[spec.id];
+      const node = carrier();
+      expect(spec.appliesTo(node, 'tablet'), `${spec.id} 的载体摆不出这一行`).toBe(true);
+
+      const next = withResponsiveValue(node, 'tablet', spec.id, value);
+      const shaped = { ...node, responsive: next };
+
       expect(responsiveChannelsOf(shaped, 'tablet'), spec.id).toContain(spec.id);
+      expect(responsiveImpactOf(shaped, 'tablet'), `${spec.id} 写进去没改任何投影`).toBeGreaterThanOrEqual(1);
+      // 写得进去的那一格不该同时出现在"面板没有输入口"的点名里
+      expect(responsiveImpactDetailOf(shaped, 'tablet').outsidePanel, spec.id).not.toContain(spec.readPath);
     }
   });
 

@@ -92,7 +92,7 @@
   翻页带取景框、空按钮不摆、24px 下限）＋ 作者侧 `/preview` 同一排控件；
   纯函数层 `apps/web/test/viewer-params.test.ts`。
 - 作者侧的人工入口（§14 那条"能写规则"的兑现，见 `docs/adr/` 之外还落在 `docs/STUDIO.md` 右面板一节）：
-  `e2e/responsive-authoring.spec.ts` 腿 A–L 在真浏览器里走一遍——面板写入前画布上有这个节点、
+  `e2e/responsive-authoring.spec.ts` 腿 A–M 在真浏览器里走一遍——面板写入前画布上有这个节点、
   点「隐藏」当场没了、只藏被点名的那个、撤销恢复、重做再藏、级联在编辑面上同样生效、
   **切视口不写模型**（服务端根宽仍是设计值，且根节点一条规则都没多）、同一条规则里第二个键
   不顶掉第一个键（撤销回到只剩一个键、重做又回到两个）、第二节点第二通道（透明度）走的是
@@ -109,6 +109,34 @@
   在"这一档把值改回设计值"时读 0（级联带来的改动看不见），只取前一半会在"继承来的改动被这一档
   自己抹平"时读 0；两种都是界面在说"这一档没变化"而画布和访客都变了（§159）。
   数的是**模型里所有的键**（六组 patch 里出现过的每一个键，候选只吃本档与更窄那几档的规则），
-  面板没有输入口的那些由界面上单独一句点名——e2e 腿 H2 用一条埋在起手文档里的 `layout.mode`
-  规则钉住这一寸：徽标读 1、那句话点名 `layout.mode`、四行清除键一颗不长、「清掉这一档」按得下去。
+  面板没有输入口的那些由界面上单独一句点名。
   写入侧 `apps/web/test/studio-responsive.test.ts` 钉的是事务粒度与那条"等于原值的写入不占撤销栈"。
+
+**第三片（2026-11-02）：`layout` / `typography` 也接进面板，输入口的名单由内核现推**
+
+- 面板那一节的行不再是一份手抄的四通道清单：`RESPONSIVE_CHANNELS` 里每条 `ChannelSpec` 带一个
+  `appliesTo(node, breakpoint)`，全过才上那一行。这一条同时决定三件事——那一格摆不摆得出来、
+  徽标点名时说它"面板没有输入口"、以及 `withResponsiveValue` 认不认那个通道名（不认就抛，
+  不静默写到一个错键上）。同源的理由是 §159：行的名单和"哪些没口"的名单若是两份抄本，下一片加了
+  输入口，那句点名还在点名已经能改的键。
+- 于是 `layout.mode`（竖排/横排/网格/换行四个说法，`stack`/`none` 不给——一条 patch 挪不动绝对定位的
+  孩子，给了输入口就是允许写出一条什么都不改的规则）、`layout.gap`、`layout.columns`、
+  `typography.fontSize` 有了输入口；`columns` 那一格**只在投影出来是网格的那一档**出现（读的是
+  `applyResponsive` 解出来的 mode，不是设计值），字号那一格只在节点真有 `typography` 对象时出现。
+- 徽标点名的口径跟着同一判别式走，所以"改成网格 → 列数那一格出现"和"改回竖排 → 那一格收回去、
+  模型里那个键还在 ⇒ 它变成要点名的那一处"是同一条规则的两侧，界面上都读得出来。
+- 见证换了量法：几何量的是 `nodeStyle` 落进 inline style 的 `left/top/width/height`，
+  **不是 `getBoundingClientRect`**——画布整帧与公开页画框都被 `transform: scale(zoom)` 缩放
+  （`PublishedFrame.tsx:50`），客户端矩形里掺着缩放，而"面板写下去的那个数改了投影没有"在模型坐标里。
+  腿 G3 在画布上量两个按钮的相对位置（间距 40 在横排吃 `b.left-(a.left+a.width)`、翻成竖排后同一份
+  间距改吃纵轴），腿 M/M2/M3 在公开页上按档量同一对盒子：design 那份仍是横排且字号仍是模型那份、
+  mobile 那份竖排 + 那 40 + 小字号、tablet 那份继续吃手机的三条键**再叠上自己那条 `layout.padding`**
+  （内缩比 design 那份多 24——正是面板摆不出输入口、只有「清掉这一档」碰得到的那个键，到访客脸上照样生效）。
+- 读数：单元 `responsive-editor` 31 + `studio-responsive` 11 = **42 passed**；
+  e2e 腿 A–M **1 passed（19.2s，暖服务，3101）**。
+- **仍欠**：codegen 那一侧的断点类还没吃完这些键——`responsiveClasses`
+  （`packages/design-model/src/codegen.ts:450`）不发 `style.opacity`，`layout.mode` 只发
+  `flex-col`/`flex-row`（网格/换行那一档没有 display 类，`grid-cols-[…]` 落在非网格容器上是不动的），
+  `layout.padding` 整组不发；`code-parse` 的 `decodeVariant` 白名单同样只认得现有那几样。
+  也就是说面板/画布/访客三处已经一致，**代码视图与导出的 ZIP 还少这几键**（§16 的"三处同一份模型"
+  在这一寸上仍有缺口）。下一片补发射与回写，并让发射的 display 类取该档**解出来**的排布。
