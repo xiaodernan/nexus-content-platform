@@ -77,10 +77,17 @@ public final class ToolDtos {
     /**
      * One declaration's history window, newest revision first, and the WHOLE count beside it.
      *
-     * <p>{@code toolId} is echoed so a reader of a window can tell which contract's history it is looking at.
+     * <p>{@code toolId} is echoed so a reader of a window can tell which contract's history it is looking at,
+     * and {@code since} is echoed for the same reason as the catalog's {@code owner}: an answer must say which
+     * slice of the history it is a slice of — null when the answer is the whole history.
      */
     public record ToolRevisionList(
-            String toolId, List<ToolRevisionView> revisions, long total, int limit, int offset) {
+            String toolId,
+            Integer since,
+            List<ToolRevisionView> revisions,
+            long total,
+            int limit,
+            int offset) {
     }
 
     /** The body that deprecates a declaration. Both fields are the owner's words, never an id. */

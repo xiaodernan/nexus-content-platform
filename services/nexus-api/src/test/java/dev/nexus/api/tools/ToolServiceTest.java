@@ -328,19 +328,19 @@ class ToolServiceTest {
                 .thenReturn(List.of(new ToolRevision("tool-1", 1, "first", "{}", AT)));
         when(revisions.countByToolId("tool-1")).thenReturn(3L);
 
-        List<ToolRevision> newest = service().history("tool-1", 1, 0);
-        List<ToolRevision> older = service().history("tool-1", 1, 3);
+        List<ToolRevision> newest = service().history("tool-1", null, 1, 0);
+        List<ToolRevision> older = service().history("tool-1", null, 1, 3);
 
         assertThat(newest).extracting(ToolRevision::getRevision).containsExactly(3);
         assertThat(older).extracting(ToolRevision::getRevision).containsExactly(1);
-        assertThat(service().revisionCount("tool-1")).isEqualTo(3);
+        assertThat(service().revisionCount("tool-1", null)).isEqualTo(3);
     }
 
     @Test
     void aHistoryOfAnUnknownToolIsA404AndNoWindowIsRead() {
         when(repository.findById("tool-missing")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service().history("tool-missing", 20, 0))
+        assertThatThrownBy(() -> service().history("tool-missing", null, 20, 0))
                 .isInstanceOf(UnknownTool.class)
                 .hasMessageContaining("tool-missing");
         verify(revisions, never()).findByToolIdOrderByRevisionDesc(any(), any());
@@ -770,5 +770,55 @@ class ToolServiceTest {
 
         verify(ownership).deleteByToolId("tool-1");
         verify(repository).delete(mine);
+    }
+
+    // ── v580: a consumer asks for what came AFTER the revision it already has ─────────────────────────
+    @Test
+    void aHistorySinceIsOnlyTheRevisionsTheCallerDoesNotHave() {
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findByToolIdAndRevisionGreaterThanOrderByRevisionDesc("tool-1", 1, PageRequest.of(0, 20)))
+                .thenReturn(List.of(new ToolRevision("tool-1", 2, "second", "{}", AT)));
+        when(revisions.countByToolIdAndRevisionGreaterThan("tool-1", 1)).thenReturn(1L);
+
+        List<ToolRevision> newer = service().history("tool-1", 1, 20, 0);
+
+        assertThat(newer).extracting(ToolRevision::getRevision).containsExactly(2);
+        assertThat(service().revisionCount("tool-1", 1)).isEqualTo(1L);
+        // The narrowed window must not be counted with the whole history's query.
+        verify(revisions, never()).countByToolId("tool-1");
+    }
+
+    @Test
+    void aHistoryWithoutASinceIsTheWholeHistoryAndUsesTheWholeCount() {
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findByToolIdOrderByRevisionDesc("tool-1", PageRequest.of(0, 20))).thenReturn(List.of());
+        when(revisions.countByToolId("tool-1")).thenReturn(4L);
+
+        service().history("tool-1", null, 20, 0);
+
+        assertThat(service().revisionCount("tool-1", null)).isEqualTo(4L);
+        verify(revisions, never()).countByToolIdAndRevisionGreaterThan("tool-1", 0);
+    }
+
+    @Test
+    void aSinceBoundsTheWindowAndTheCountTheSameWay() {
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findByToolIdAndRevisionGreaterThanOrderByRevisionDesc("tool-1", 3, PageRequest.of(1, 1)))
+                .thenReturn(List.of());
+        when(revisions.countByToolIdAndRevisionGreaterThan("tool-1", 3)).thenReturn(0L);
+
+        service().history("tool-1", 3, 1, 1);
+
+        assertThat(service().revisionCount("tool-1", 3)).isZero();
+    }
+
+    @Test
+    void aNegativeSinceIsRefusedBeforeAnyQuery() {
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+
+        assertThatThrownBy(() -> service().history("tool-1", -1, 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("0 or more");
+        verify(revisions, never()).findByToolIdAndRevisionGreaterThanOrderByRevisionDesc(any(), any(Integer.class), any());
     }
 }

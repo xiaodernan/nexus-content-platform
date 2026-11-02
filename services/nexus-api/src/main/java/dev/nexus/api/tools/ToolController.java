@@ -46,9 +46,10 @@ import org.springframework.web.bind.annotation.RestController;
  *       agent shares, so it deserves a direct read rather than a paged catalog; a malformed name is a 400
  *       that names the rule, and a well-formed name that holds no row is a 404. Same pin, same conditional
  *       read as the read by id.
- *   <li>{@code GET /tools/{id}/revisions?limit=&offset=} — the declaration's recorded history, newest first:
- *       what it SAID at each accepted write, with the whole count beside the window. A public read; an id
- *       that names nothing is a 404 rather than an empty history.
+ *   <li>{@code GET /tools/{id}/revisions?since=&limit=&offset=} — the declaration's recorded history, newest first:
+ *       what it SAID at each accepted write, with the whole count beside the window. The optional
+ *       {@code since} asks only for what came AFTER a revision the caller already has, and narrows the count
+ *       with it. A public read; an id that names nothing is a 404 rather than an empty history.
  *   <li>{@code PUT /tools/{id}?owner=} — REPLACE a declaration's summary and schema, for its owner only. The
  *       name, owner, id and creation instant cannot change: an update changes what a declaration SAYS, not
  *       which declaration it is.
@@ -271,13 +272,15 @@ public class ToolController {
     @GetMapping("/tools/{toolId}/revisions")
     public ResponseEntity<ToolRevisionList> revisions(
             @PathVariable String toolId,
+            @RequestParam(name = "since", required = false) Integer since,
             @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "offset", required = false) Integer offset) {
         int asked = limit == null ? ToolService.DEFAULT_LIST_LIMIT : limit;
         int effective = Math.min(Math.max(asked, 1), ToolService.MAX_LIST_LIMIT);
         int from = offset == null ? 0 : Math.max(offset, 0);
-        List<ToolRevisionView> rows = service.history(toolId, asked, from).stream().map(this::toWire).toList();
-        return ResponseEntity.ok(new ToolRevisionList(toolId, rows, service.revisionCount(toolId), effective, from));
+        List<ToolRevisionView> rows = service.history(toolId, since, asked, from).stream().map(this::toWire).toList();
+        return ResponseEntity.ok(new ToolRevisionList(
+                toolId, ToolService.requireSince(since), rows, service.revisionCount(toolId, since), effective, from));
     }
 
     /**

@@ -226,12 +226,12 @@ class ToolControllerTest {
     void aHistoryAnswersTheWindowAndTheWholeCountWithNoCapabilityField() throws Exception {
         ToolRevision newest = new ToolRevision("tool-1", 2, "A better sentence.", "{\"type\":\"object\"}", AT);
         ToolRevision first = new ToolRevision("tool-1", 1, "a tool", "{}", AT.minusSeconds(60));
-        when(service.history("tool-1", 20, 0)).thenReturn(List.of(newest, first));
-        when(service.revisionCount("tool-1")).thenReturn(2L);
+        when(service.history("tool-1", null, 20, 0)).thenReturn(List.of(newest, first));
+        when(service.revisionCount("tool-1", null)).thenReturn(2L);
         when(service.schemaOf(newest)).thenReturn(emptyObject());
         when(service.schemaOf(first)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolRevisionList> answer = controller().revisions("tool-1", null, null);
+        ResponseEntity<ToolDtos.ToolRevisionList> answer = controller().revisions("tool-1", null, null, null);
 
         assertThat(answer.getStatusCode().value()).isEqualTo(200);
         ToolDtos.ToolRevisionList body = answer.getBody();
@@ -251,10 +251,10 @@ class ToolControllerTest {
 
     @Test
     void aHistoryReportsTheLimitItActuallyApplied() throws Exception {
-        when(service.history("tool-1", 500, 7)).thenReturn(List.of());
-        when(service.revisionCount("tool-1")).thenReturn(0L);
+        when(service.history("tool-1", null, 500, 7)).thenReturn(List.of());
+        when(service.revisionCount("tool-1", null)).thenReturn(0L);
 
-        ResponseEntity<ToolDtos.ToolRevisionList> answer = controller().revisions("tool-1", 500, 7);
+        ResponseEntity<ToolDtos.ToolRevisionList> answer = controller().revisions("tool-1", null, 500, 7);
 
         ToolDtos.ToolRevisionList body = answer.getBody();
         assertThat(body).isNotNull();
@@ -265,10 +265,10 @@ class ToolControllerTest {
 
     @Test
     void aHistoryOfAnUnknownToolReachesTheSameFourHundredAndFour() {
-        when(service.history("tool-missing", 20, 0))
+        when(service.history("tool-missing", null, 20, 0))
                 .thenThrow(new UnknownTool("tool \"tool-missing\" names nothing in this registry"));
 
-        assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> controller().revisions("tool-missing", null, null)))
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> controller().revisions("tool-missing", null, null, null)))
                 .isInstanceOf(UnknownTool.class);
     }
     @Test
@@ -551,5 +551,44 @@ class ToolControllerTest {
                 () -> controller().ownership("tool-missing", null, null));
 
         assertThat(refused).isInstanceOf(UnknownTool.class);
+    }
+
+    // ── v580: the history narrowed to what came after a revision the caller holds ────────────────────
+    @Test
+    void theHistoryEchoesTheSinceItApplied() {
+        when(service.history("tool-1", 4, 20, 0))
+                .thenReturn(List.of(new ToolRevision("tool-1", 5, "fifth", "{}", AT)));
+        when(service.revisionCount("tool-1", 4)).thenReturn(1L);
+
+        ResponseEntity<ToolDtos.ToolRevisionList> answer = controller().revisions("tool-1", 4, null, null);
+
+        ToolDtos.ToolRevisionList body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.since()).isEqualTo(4);
+        assertThat(body.total()).isEqualTo(1L);
+        assertThat(body.revisions()).hasSize(1);
+    }
+
+    @Test
+    void aHistoryWithoutASinceEchoesNullRatherThanZero() {
+        when(service.history("tool-1", null, 20, 0)).thenReturn(List.of());
+        when(service.revisionCount("tool-1", null)).thenReturn(0L);
+
+        ToolDtos.ToolRevisionList body = controller().revisions("tool-1", null, null, null).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.since()).isNull();
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(6);
+    }
+
+    @Test
+    void aNegativeSinceIsRefusedBeforeTheWindowIsReported() {
+        when(service.history("tool-1", -2, 20, 0)).thenReturn(List.of());
+
+        Throwable refused = org.assertj.core.api.Assertions.catchThrowable(
+                () -> controller().revisions("tool-1", -2, null, null));
+
+        assertThat(refused).isInstanceOf(InvalidTool.class);
+        assertThat(refused.getMessage()).contains("0 or more");
     }
 }

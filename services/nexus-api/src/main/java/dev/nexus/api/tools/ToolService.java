@@ -357,20 +357,55 @@ public class ToolService {
      * names nothing is a 404, not an empty history, because "no such tool" and "a tool nobody ever wrote" are
      * different facts.
      *
+     * <p>M10 v580: {@code since} narrows the history to what a caller does not already have — everything newer
+     * than that revision number. A consumer holding revision 5 asks for what came after it instead of walking
+     * pages to find out whether anything did. Both the window AND the count are narrowed, the same rule the
+     * catalog search follows.
+     *
+     * @param since the last revision the caller already has, or null for the whole history
      * @throws UnknownTool when the id names no current declaration
+     * @throws InvalidTool when {@code since} is not a revision number (0 or more)
      */
     @Transactional(readOnly = true)
-    public List<ToolRevision> history(String toolId, int limit, int offset) {
+    public List<ToolRevision> history(String toolId, Integer since, int limit, int offset) {
         get(toolId);
+        Integer after = requireSince(since);
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
         int from = Math.max(offset, 0);
-        return revisions.findByToolIdOrderByRevisionDesc(toolId, PageRequest.of(from / effective, effective));
+        PageRequest page = PageRequest.of(from / effective, effective);
+        return after == null
+                ? revisions.findByToolIdOrderByRevisionDesc(toolId, page)
+                : revisions.findByToolIdAndRevisionGreaterThanOrderByRevisionDesc(toolId, after, page);
     }
 
-    /** The WHOLE number of recorded revisions of one declaration. */
+    /**
+     * The WHOLE number of recorded revisions of one declaration — of the NARROWED history when {@code since}
+     * is given, because a window must not claim to be the whole when it is not.
+     */
     @Transactional(readOnly = true)
-    public long revisionCount(String toolId) {
-        return revisions.countByToolId(toolId);
+    public long revisionCount(String toolId, Integer since) {
+        Integer after = requireSince(since);
+        return after == null
+                ? revisions.countByToolId(toolId)
+                : revisions.countByToolIdAndRevisionGreaterThan(toolId, after);
+    }
+
+    /**
+     * A revision number a caller may ask to start AFTER: null when absent, otherwise 0 or more.
+     *
+     * <p>A negative value is REFUSED rather than floored to 0, unlike a paging offset: {@code limit} and
+     * {@code offset} describe the SHAPE of an answer, so clamping them and echoing the clamp keeps the answer
+     * honest; {@code since} describes WHICH FACTS are being asked for, and guessing there would answer a
+     * different question than the one asked. There is no revision -3 to start after.
+     */
+    static Integer requireSince(Integer raw) {
+        if (raw == null) {
+            return null;
+        }
+        if (raw < 0) {
+            throw new InvalidTool("a revision 'since' is 0 or more — this one is " + raw);
+        }
+        return raw;
     }
 
     /** Append one revision row - the write both the registration and every accepted update go through. */

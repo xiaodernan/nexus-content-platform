@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v579 (ownership transfer — landed and verified; v576/MCP belongs to a parallel lane)
+Project version: v580 (history delta — landed and verified; v576/MCP belongs to a parallel lane)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is ahead of origin/master; v579 is in the working tree.
+Pushed to origin/master: no — master is ahead of origin/master; v580 is in the working tree.
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -23,9 +23,10 @@ Recent increments in this lineage (all real commits, all gated):
   v577: catalog search by name/summary with literal wildcards (ADR 0027)
   v578: a contract pin a consumer can hold, and the conditional read it enables (ADR 0028)
   v579: a declaration can be given away; ownership is its own append-only chain (ADR 0029)
+  v580: a history narrowed to what the caller does not have — `since` (ADR 0031)
 
-Verification of v572–v575 and v577–v579:
-  mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 97/97 (62 service + 35 controller), exit 0
+Verification of v572–v575 and v577–v580:
+  mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 104/104 (66 service + 38 controller), exit 0
   (the whole suite includes another lane's MCP tests; the tools package is this lane's number)
   Live proof `node docs/evidence/m10/tool-registry-proof.mjs` against a real PostgreSQL: ALL ASSERTIONS PASSED
   (§4 removal leaves zero revisions; §5 the pin recomputed by the proof from the fields the answer carried,
@@ -49,10 +50,10 @@ ADR 0016 compliance:
   Studio→service hop 15s via shared serviceCall.ts; timeout never reported as "unreachable"
 
 Next increments (planned, see docs/LONG_TERM_PLAN.md):
-  v580: a consumer can hold a pin, but it cannot ask "who holds the name I pinned" without re-reading the whole
-        catalog — and the catalog's owner filter now answers a question whose answer can change under a
-        handover. Candidate: a name-addressed identity read (name → id, owner, pin, revision) that is cheap
-        because it is one row, or an `If-Modified-Since`-free "changed since" door over the catalog
-  v581+: revision `since`/pruning (a declaration's history grows without bound and there is no way to ask for
-        "what changed after X"), and a pin lookup only if an index makes it honest. Do NOT touch the MCP face
-        (v576, another lane).
+  v581: the history is now cheap to READ but unbounded to KEEP — ten thousand updates leave ten thousand rows
+        and `since` only makes them cheap to skip. Retention needs its own decision (a pruned revision is a pin
+        that can no longer be explained), so the candidate is a stated, owner-driven prune with the loss named
+        in the answer, not a silent cap
+  v582+: a registry-wide change feed (a global sequence plus a rule for deletions) remains the larger,
+        unbuilt question; a pin lookup needs an index before it is honest. Do NOT touch the MCP face (v576,
+        another lane).
