@@ -55,14 +55,21 @@
 > 表现是"数据库全线红"）。所以判断服务在不在，先用 `docker version` 确认引擎活着，再打一条真命令
 > （`redis-cli ping` / `psql -Atc "select 1"`）；只 `netstat` 看端口会读到假绿。
 
-### `NEXUS_REDIS_URL`（§162 队列与 §163 实时扇出共用这一串）
+### `NEXUS_REDIS_URL`（§162 队列、§163 实时扇出与 §64 限流窗口共用这一串）
 
-- **不设**：实时总线用进程内驱动（本机开发、vitest、e2e 都只有一个 web 进程，这样少一个依赖也少一套失败模式）；
-- **设为非空**：换成 Redis pub/sub 扇出驱动，装载那一刻打一行 `[realtime] 驱动=Redis 扇出（线路 nexus:realtime:v1）`。
-  空格串算"没设"（`bus.ts` 读的是 `.trim()` 后的值）。连接失败**不会**退回进程内，只让日志、
-  `wireErrorCount` 与 `ready=false` 出声——详见 `docs/adr/0028-realtime-redis-fanout.md`。
+- **不设**：实时总线用进程内驱动，限流闸用进程内滑动窗口（本机开发、vitest、e2e 都只有一个 web 进程，
+  这样少一个依赖也少一套失败模式）。**但多实例部署下不设它等于把限额那句话改成"每台各数各的"**——
+  `10 次/15 分钟/邮箱` 在两台前端下是 20 次，而且没有读数会说这句变了；
+- **设为非空**：实时总线换成 Redis pub/sub 扇出驱动，限流闸换成 Redis 有序集滑动窗口，
+  装载那一刻各打一行日志说清装的是哪个（`[realtime] 驱动=…` / `[rateLimit] 驱动=…`）。
+  空格串算"没设"（两边读的都是 `.trim()` 后的值）。
+  **两边的失败取向是相反的**，这是刻意的：总线连接失败**不会**退回进程内，只让日志、
+  `wireErrorCount` 与 `ready=false` 出声（`docs/adr/0028-realtime-redis-fanout.md`）；
+  限流闸**会**退回进程内并且记账 `nexus_rate_limit_driver_fallbacks_total`——退回之后仍在挡单机暴力破解，
+  代价是退回期间那一台的额度是它自己看到的次数（`docs/adr/0076-rate-limit-redis-sliding-window.md`）。
 - 本机跑法：`NEXUS_REDIS_URL=redis://127.0.0.1:56379`；跨实例那层用 `npm run realtime:two-process` 验，
   它只要 Redis、不要数据库，起不来时会先打一句"线路不通"而不是等 25 秒超时。
+  限流那一层的跨实例同样有一条：`npm run ratelimit:two-process`（12 个真进程、判据读 Redis 里那条集合）。
 
 ### ⚠️ 两个库：集成测试打 `nexus_regress`，**e2e 的 dev server 打 `nexus`**（2026-10-22 实测）
 

@@ -103,6 +103,11 @@ export const METRICS = {
     help: '限流闸的判定次数（按闸与放行/拒绝）',
     labels: { allowed: ['true', 'false'], gate: null },
   },
+  nexus_rate_limit_driver_fallbacks_total: {
+    kind: 'counter',
+    help: '限流闸用 Redis 驱动却退回进程内的次数——这一格涨说明限额那句话退回成"每台各数各的"，不是闸没挡',
+    labels: { reason: ['command-failed', 'bad-reply', 'reset'] },
+  },
   nexus_ai_jobs_submitted_total: {
     kind: 'counter',
     help: '异步生成作业的提交尝试数（capability=demo 表示这台机器上没有真 provider，走本地确定性合成）',

@@ -55,9 +55,15 @@ describe('每个声明的指标都有调用方', () => {
   });
 
   it('具名锚点：写入方在预期的那几个窄口上', () => {
+    // 限流那一格从 `rateLimit.ts` 挪到两个驱动文件里：门面只选驱动，不数东西。
+    // 两条都必须钉住——同一格计数器由两个驱动各写一遍，少一个就是"换了驱动之后那张图断档"。
     const anchors: Array<[string, string[]]> = [
       ['server/domain/audit.ts', ['increment(\'nexus_audit_decisions_total\'', 'increment(\'nexus_audit_write_failures_total\'']],
-      ['server/security/rateLimit.ts', ['increment(\'nexus_rate_limit_decisions_total\'']],
+      ['server/security/rateLimitMemory.ts', ['increment(\'nexus_rate_limit_decisions_total\'']],
+      [
+        'server/security/rateLimitRedis.ts',
+        ['increment(\'nexus_rate_limit_decisions_total\'', 'increment(\'nexus_rate_limit_driver_fallbacks_total\''],
+      ],
       ['server/ai/submit.ts', ['increment(\'nexus_ai_jobs_submitted_total\'']],
       ['app/api/ai/run/route.ts', ['increment(\'nexus_ai_runs_total\'', 'observe(\'nexus_ai_run_duration_ms\'']],
       ['instrumentation.ts', ['increment(\'nexus_http_errors_total\'', 'export const onRequestError']],

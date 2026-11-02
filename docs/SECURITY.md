@@ -10,8 +10,12 @@
 - CSRF：状态变更走 SameSite + 同源校验 + 双提交 token（表单/AJAX）
 - RBAC：`role` × `permission`（§80）。项目级 owner/editor/viewer；平台级 admin/moderator
 - 每个 route handler 必须显式声明所需权限，默认拒绝（deny by default），不靠 UI 隐藏
-- 速率限制：滑动窗口，按 路由 + 身份 + IP（`apps/web/src/server/security/rateLimit.ts`）。驱动现在是**进程内内存**，
-  不是 Redis——形状对齐有序集，多实例部署前必须接过去（见下面"实现现状"）。IP 取的是转发链的**可信右端**，
+- 速率限制：滑动窗口，按 路由 + 身份 + IP（`apps/web/src/server/security/rateLimit.ts` 是门面，窗口住在驱动里）。
+  两个驱动同一形状：`rateLimitMemory.ts`（进程内，**默认**）与 `rateLimitRedis.ts`（Redis 有序集，
+  设 `NEXUS_REDIS_URL` 才换过来）。**不设它=每台各数各的**：`10 次/15 分钟/邮箱` 在多实例下实际是"每台 10 次"，
+  所以多实例部署这一格是必设项，不是优化项（取舍与三条硬约束见 `docs/adr/0076-rate-limit-redis-sliding-window.md`；
+  Redis 坏时退回进程内并且记账 `nexus_rate_limit_driver_fallbacks_total`，闸不停摆但口径降级）。
+  IP 取的是转发链的**可信右端**，
   不是客户端随手写的最左端：`x-forwarded-for` 是追加出来的链条，判决与限度见 `docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`；
   **三行转发头都读**——`x-forwarded-for` → RFC 7239 的 `Forwarded`（只认 `for=`，`by`/`proto`/`host` 永不进桶键）→ `x-real-ip`，
   按优先级取一条链而不是叠加；三行都不在场那道闸才让路，在场却读不出地址归进 `invalid-xff` 一只共享桶照常限。
@@ -26,8 +30,8 @@
 （register/login 删旧 token 会话行、发新随机 token，防会话固定；guest 会话由 middleware 用客户端可见 cookie 签发，
 所以轮换不是可选项）。CSRF 双提交（`nexus_csrf` 非 HttpOnly cookie + `x-csrf-token` 头比对）**覆盖全部 mutation 路由**——
 auth 之外的 projects/snapshots/restore/branches/switch/duplicate/variants/merge/publish/assets/ai-run 一律先过 `csrfOk` 再动作，
-不过即 `403 csrf_failed`；客户端统一由 `src/lib/csrf.ts` 的 `csrfHeaders()` 带该头。会话 cookie 的 SameSite=Lax 仍是第一道防线。限流是 `RateLimiter` 接口 + **内存滑动窗口**（单实例正确，
-形状对齐 Redis 有序集，多实例部署前需接 Redis）。登录对"邮箱不存在"也跑 dummy-hash 比较以对齐时序，防账号枚举。
+不过即 `403 csrf_failed`；客户端统一由 `src/lib/csrf.ts` 的 `csrfHeaders()` 带该头。会话 cookie 的 SameSite=Lax 仍是第一道防线。限流是 `RateLimiter` 接口 + 两个同形状的驱动（进程内滑动窗口 / Redis 有序集滑动窗口，
+后者要设 `NEXUS_REDIS_URL`，见上面"认证与授权"那一条与 `docs/adr/0076-…`）。登录对"邮箱不存在"也跑 dummy-hash 比较以对齐时序，防账号枚举。
 详见 `docs/adr/0002-password-hashing-and-csrf.md`。
 
 **`/api/ai/run` 的归属校验（§68 带来的新面）**：这条路由从"只转发客户端上传的文档"改成"服务端按 `projectId` 读库装配上下文"

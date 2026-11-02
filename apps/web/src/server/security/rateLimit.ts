@@ -1,14 +1,25 @@
 /**
  * 速率限制：滑动窗口（SECURITY.md「认证与授权」——按 用户 + IP + 路由）。
  *
- * 后端可替换（§64）：默认用进程内内存驱动，够用且单进程 dev 正确。
- * 生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD 的有序集滑动窗口），
- * 保持本接口形状不变即可——和 storage 的 resolveStorage 一个套路。
- * 内存驱动在多实例下退化为「每实例独立限流」，这是要接 Redis 的原因，
- * 但绝不是「不限量」：单实例仍能挡住暴力破解。
+ * 这一层是**门面**：接口、桶键的形状、以及"从哪一行头取 IP"住在这里，窗口住在驱动里。
+ * 两个驱动、同一形状（与 `realtime/` 的 `bus.ts` / `localBus.ts` / `redisBus.ts` 三件套一一对应）：
+ *
+ * - `rateLimitMemory.ts`——窗口在这台进程的 `Map` 里。**默认**，单进程 dev / vitest / e2e 正确。
+ *   多实例下退化为「每实例独立限流」：`10 次/15 分钟/邮箱` 变成"每台 10 次"。
+ *   绝不是「不限量」，但限额那句话已经和文档写的不是同一句了——这是要接 Redis 的原因。
+ * - `rateLimitRedis.ts`——窗口在 Redis 的一条有序集上，所有实例看同一份数。
+ *   设了 `NEXUS_REDIS_URL` 才换过来（与实时总线同一个旋钮，不各设各的）。
+ *   三条硬约束（脚本内原子、服务端时钟、成员名唯一）与"坏了退回进程内"的取向见
+ *   `docs/adr/0076-rate-limit-redis-sliding-window.md`。
+ *
+ * §64 当年在这段注释里写的"生产多实例时换成 Redis 驱动，保持本接口形状不变即可"，
+ * 兑现方式是两个提交：先把 `hit` / `reset` 改成异步（同步接口只写得出进程内那版，
+ * 一次网络往返没有地方等它），再往这个缝里填驱动。判定逻辑在那两步里一个字没改，
+ * 而"两个驱动同答案"不是靠说的——收据是 `rate-limit.redis.integration.test.ts` 的 parity 一组。
  */
 
-import { increment } from '../observability';
+import { MemoryRateLimiter } from './rateLimitMemory';
+import { DEFAULT_KEY_PREFIX, REDIS_URL_ENV, RedisRateLimiter } from './rateLimitRedis';
 
 export interface RateLimitDecision {
   allowed: boolean;
@@ -37,40 +48,48 @@ export interface RateLimiter {
   reset(key?: string): Promise<void>;
 }
 
-class MemoryRateLimiter implements RateLimiter {
-  private readonly hits = new Map<string, number[]>();
+/**
+ * 单例挂在 `globalThis` 上，不是模块变量——理由与 `realtime/bus.ts` 那一份一模一样，
+ * 但从这一片起多了一层要紧：Next 会为不同的 route 各编译一份模块图，挂在模块变量上
+ * 就等于每台进程里有 N 份限流器。进程内驱动下这无所谓（桶键第一段就是路由名，
+ * 跨路由本来就不共用窗口），但 Redis 驱动下每一份都自带一条连接、
+ * 一份"退回时用"的进程内窗口——那台机器上的"每实例独立限流"就会退化成"每模块图独立限流"。
+ */
+const GLOBAL_KEY = '__nexus_rate_limiter__';
+type GlobalStore = typeof globalThis & { [GLOBAL_KEY]?: RateLimiter };
 
-  async hit(key: string, limit: number, windowMs: number): Promise<RateLimitDecision> {
-    const now = Date.now();
-    const cutoff = now - windowMs;
-    const window = (this.hits.get(key) ?? []).filter((t) => t > cutoff);
-    const allowed = window.length < limit;
-    if (allowed) window.push(now);
-    this.hits.set(key, window);
-    /**
-     * 只取键的第一段（路由字面量）当标签，不看后面两段。
-     * 限流键的形状是 `路由|身份|IP`，而 `auth/login` 那一格的"身份"传的是**邮箱**
-     * （`rateKey('auth/login', ip, parsed.data.email.toLowerCase())`）——整串键进指标标签，
-     * 等于把账号名单与 IP 抄进一个内存里长住、访问面还可能更宽的地方。
-     * 闸的判定次数不需要知道是谁；要查具体人时去审计表，那张表有访问门与保留期。
-     */
-    increment('nexus_rate_limit_decisions_total', { gate: key.split('|')[0] ?? 'unknown', allowed: String(allowed) });
-    // 窗口里最早那条到期的时间 = 再过多久能腾出一个名额。
-    const oldest = window[0] ?? now;
-    return { allowed, count: window.length, retryAfterMs: allowed ? 0 : Math.max(0, oldest + windowMs - now) };
-  }
+const store = globalThis as GlobalStore;
 
-  async reset(key?: string): Promise<void> {
-    if (key === undefined) this.hits.clear();
-    else this.hits.delete(key);
+/**
+ * 选驱动：只看 `NEXUS_REDIS_URL`，非空即用 Redis 那份共享窗口，否则进程内。
+ * 与实时总线同一个旋钮，不各设各的——一台机器上"跨实例的那半边"要么都接上，要么都没接上，
+ * 设两个变量只会多出一种"改了一个忘了另一个"的部署。
+ *
+ * 与 `createDefaultBus()` 唯一的不同：这里在连接坏的时候**退回**进程内并且记账，
+ * 那里明确不退回。取向相反是故意的，理由写在 ADR-0076 的后果 1。
+ */
+function createDefaultLimiter(): RateLimiter {
+  const url = process.env[REDIS_URL_ENV]?.trim();
+  if (!url) {
+    console.log(`[rateLimit] 驱动=进程内（多实例部署设 ${REDIS_URL_ENV} 换成共享窗口）`);
+    return new MemoryRateLimiter();
   }
+  console.log(`[rateLimit] 驱动=Redis 有序集滑动窗口（键前缀 ${DEFAULT_KEY_PREFIX}）`);
+  return new RedisRateLimiter({ url });
 }
 
-let singleton: RateLimiter | undefined;
-
 export function getRateLimiter(): RateLimiter {
-  if (!singleton) singleton = new MemoryRateLimiter();
-  return singleton;
+  if (!store[GLOBAL_KEY]) store[GLOBAL_KEY] = createDefaultLimiter();
+  return store[GLOBAL_KEY];
+}
+
+/**
+ * 测试用：换掉单例，或清空（传 `undefined` = 恢复按环境变量重新选驱动）。
+ * 换掉之前手上那份 Redis 驱动请自己 `dispose()`——接口里没有这一格，漏掉就是漏掉一条连接。
+ */
+export function setRateLimiter(limiter: RateLimiter | undefined): void {
+  if (limiter) store[GLOBAL_KEY] = limiter;
+  else delete store[GLOBAL_KEY];
 }
 
 /**
