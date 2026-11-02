@@ -67,4 +67,20 @@ public final class HealthDtos {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Readiness(boolean ready, Database database) {
     }
+
+    /**
+     * The process's own JVM numbers, answered by {@code GET /health/vitals}.
+     *
+     * <p>{@code heapMaxBytes} is {@code -1} when the JVM defines no maximum; every other byte field is
+     * non-negative, {@code peakThreads} is at least {@code liveThreads}, and {@code processors} is at least
+     * one. The record is a SAMPLE: two calls are two measurements, not a history.
+     */
+    public record Vitals(
+            long heapUsedBytes,
+            long heapCommittedBytes,
+            long heapMaxBytes,
+            int liveThreads,
+            int peakThreads,
+            int processors) {
+    }
 }
