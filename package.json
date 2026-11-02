@@ -51,6 +51,7 @@
     "verify:audit-contract": "node docs/evidence/m9/audit-contract-proof.mjs",
     "verify:webhooks": "node docs/evidence/m10/webhook-proof.mjs",
     "verify:tools": "node docs/evidence/m10/tool-registry-proof.mjs",
+    "verify:mcp": "node docs/evidence/m10/mcp-face-proof.mjs",
     "verify:record-encoding": "node docs/evidence/agents/record-encoding-proof.mjs",
     "verify:pipeline": "node docs/evidence/studio/pipeline-proof.mjs",
     "verify:table-recount": "node docs/evidence/agents/table-recount-proof.mjs",
