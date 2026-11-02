@@ -1,0 +1,170 @@
+package dev.nexus.api.tools;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
+
+/**
+ * M10 v571 — the registry's HTTP surface, graded directly (no Spring context, no database).
+ *
+ * <p>The load-bearing cases are the wire shape's bounds: a read answer carries NO execution field (no url,
+ * no invocation count), the listing's echoed limit is the limit the answer actually applied, and a removal
+ * without an owner touches nothing.
+ */
+@ExtendWith(MockitoExtension.class)
+class ToolControllerTest {
+
+    private static final Instant AT = Instant.parse("2026-11-02T08:00:00Z");
+    private static final String OWNER = "acct-ada";
+
+    @Mock
+    private ToolService service;
+
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    private ToolController controller() {
+        return new ToolController(service);
+    }
+
+    private ToolEntry row(String id, String owner, String name) {
+        return new ToolEntry(id, owner, name, "a tool", "{}", AT);
+    }
+
+    private JsonNode emptyObject() throws Exception {
+        return mapper.readTree("{}");
+    }
+
+    @Test
+    void declaringAToolAnswersTwoHundredAndOneWithTheRow() throws Exception {
+        ToolEntry stored = row("tool-1", OWNER, "a.tool");
+        when(service.register(OWNER, "a.tool", "a tool", emptyObject()))
+                .thenReturn(stored);
+        when(service.schemaOf(stored)).thenReturn(emptyObject());
+
+        ResponseEntity<ToolDtos.Tool> answer = controller()
+                .register(new ToolDtos.RegisterRequest(OWNER, "a.tool", "a tool", emptyObject()));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(201);
+        ToolDtos.Tool body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.id()).isEqualTo("tool-1");
+        assertThat(body.owner()).isEqualTo(OWNER);
+        assertThat(body.name()).isEqualTo("a.tool");
+        assertThat(body.summary()).isEqualTo("a tool");
+        assertThat(body.inputSchema().isObject()).isTrue();
+        assertThat(body.createdAt()).isEqualTo(AT.toEpochMilli());
+
+        JsonNode wire = mapper.valueToTree(body);
+        // The registry declares, it does not execute: an answer must carry no capability field.
+        for (String forbidden : new String[] {"url", "endpoint", "command", "invocationCount", "lastCalledAt"}) {
+            assertThat(wire.has(forbidden)).as("wire field %s", forbidden).isFalse();
+        }
+    }
+
+    @Test
+    void theCatalogAnswersTheWindowTheCountAndTheFilterItApplied() throws Exception {
+        ToolEntry stored = row("tool-1", OWNER, "a.tool");
+        when(service.catalog(null, 20, 0)).thenReturn(List.of(stored));
+        when(service.countOf(null)).thenReturn(1L);
+        when(service.schemaOf(stored)).thenReturn(emptyObject());
+
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, null);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        ToolDtos.ToolList body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.owner()).isNull();
+        assertThat(body.tools()).hasSize(1);
+        assertThat(body.total()).isEqualTo(1L);
+        assertThat(body.limit()).isEqualTo(ToolService.DEFAULT_LIST_LIMIT);
+        assertThat(body.offset()).isZero();
+
+        JsonNode wire = mapper.valueToTree(body);
+        assertThat(wire.get("tools").get(0).has("url")).isFalse();
+        assertThat(wire.get("tools").get(0).get("inputSchema").isObject()).isTrue();
+    }
+
+    @Test
+    void theListingClampsTheLimitItReportsAndFloorsTheOffset() throws Exception {
+        ToolEntry stored = row("tool-1", OWNER, "a.tool");
+        when(service.catalog(null, 500, 0)).thenReturn(List.of(stored));
+        when(service.countOf(null)).thenReturn(1L);
+        when(service.schemaOf(stored)).thenReturn(emptyObject());
+
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, 500, -10);
+
+        ToolDtos.ToolList body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.limit()).isEqualTo(ToolService.MAX_LIST_LIMIT);
+        assertThat(body.offset()).isZero();
+    }
+
+    @Test
+    void theOwnerFilterIsEchoedTrimmedWhileTheWindowSeesTheOriginal() throws Exception {
+        ToolEntry stored = row("tool-1", OWNER, "a.tool");
+        when(service.catalog("  acct-ada  ", 20, 0)).thenReturn(List.of(stored));
+        when(service.countOf("  acct-ada  ")).thenReturn(1L);
+        when(service.schemaOf(stored)).thenReturn(emptyObject());
+
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list("  acct-ada  ", null, null);
+
+        assertThat(answer.getBody()).isNotNull();
+        assertThat(answer.getBody().owner()).isEqualTo(OWNER);
+        assertThat(answer.getBody().tools()).hasSize(1);
+    }
+
+    @Test
+    void removingAnswersTwoHundredEitherWay() {
+        when(service.remove("tool-1", OWNER)).thenReturn(true);
+        ResponseEntity<Map<String, Object>> removed = controller().remove("tool-1", OWNER);
+        assertThat(removed.getStatusCode().value()).isEqualTo(200);
+        assertThat(removed.getBody()).containsEntry("ok", true).containsEntry("removed", true);
+
+        when(service.remove("tool-missing", OWNER)).thenReturn(false);
+        ResponseEntity<Map<String, Object>> alreadyGone = controller().remove("tool-missing", OWNER);
+        assertThat(alreadyGone.getStatusCode().value()).isEqualTo(200);
+        assertThat(alreadyGone.getBody()).containsEntry("removed", false);
+    }
+
+    @Test
+    void aRemovalWithoutAnOwnerIsRefusedBeforeAnythingIsRead() {
+        ResponseEntity<Map<String, Object>> answer = controller().remove("tool-1", "  ");
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        assertThat(answer.getBody()).containsEntry("error", "invalid-tool");
+        assertThat((String) answer.getBody().get("message")).contains("owner");
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void aRuleTheCallerBrokeIsAFourHundredFromTheService() {
+        ResponseEntity<Map<String, String>> answer = controller().invalid(
+                new InvalidTool("a tool's inputSchema must be a JSON OBJECT — this one is array"));
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        assertThat(answer.getBody()).containsEntry("error", "invalid-tool");
+        assertThat(answer.getBody().get("message")).contains("JSON OBJECT");
+    }
+
+    @Test
+    void aTakenNameIsAConflictAndSomebodyElsesRowIsForbidden() {
+        ResponseEntity<Map<String, String>> taken = controller().taken(new ToolNameTaken("held by tool tool-1"));
+        assertThat(taken.getStatusCode().value()).isEqualTo(409);
+        assertThat(taken.getBody()).containsEntry("error", "tool-name-taken");
+
+        ResponseEntity<Map<String, String>> notYours = controller().notYours(new NotYourTool("belongs to another account"));
+        assertThat(notYours.getStatusCode().value()).isEqualTo(403);
+        assertThat(notYours.getBody()).containsEntry("error", "not-your-tool");
+    }
+}

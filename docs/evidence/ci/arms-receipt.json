@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-02T10:48:03.990Z",
+  "ranAt": "2026-11-02T13:44:29.332Z",
   "arms": 49,
   "matched": 49,
   "armNames": [
@@ -549,6 +549,11 @@
       "name": "verify:timeout-axis",
       "file": "docs/evidence/agents/timeout-axis-proof.mjs",
       "marker": null
+    },
+    {
+      "name": "verify:tools",
+      "file": "docs/evidence/m10/tool-registry-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
     },
     {
       "name": "verify:trail-contract",
