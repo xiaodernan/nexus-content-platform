@@ -674,4 +674,61 @@ class ToolControllerTest {
         assertThat(body.deprecated()).isNull();
         assertThat(mapper.valueToTree(body).size()).isEqualTo(7);
     }
+
+    // ── v583: the journal door ────────────────────────────────────────────────────────────────────────
+    @Test
+    void theJournalEchoesTheCursorItStartedAfter() {
+        when(service.journal(7L, 20, 0))
+                .thenReturn(List.of(new ToolChange(8L, "tool-1", "a.tool", "updated", 2, AT)));
+        when(service.journalCount(7L)).thenReturn(1L);
+
+        ToolDtos.ToolChangeList body = controller().changes(7L, null, null).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.since()).isEqualTo(7L);
+        assertThat(body.total()).isEqualTo(1L);
+        assertThat(body.changes()).hasSize(1);
+        assertThat(body.changes().get(0).name()).isEqualTo("a.tool");
+        assertThat(body.changes().get(0).kind()).isEqualTo("updated");
+        assertThat(body.changes().get(0).revision()).isEqualTo(2);
+    }
+
+    @Test
+    void anAbsentCursorIsZeroRatherThanNull() {
+        when(service.journal(0L, 20, 0)).thenReturn(List.of());
+        when(service.journalCount(0L)).thenReturn(0L);
+
+        ToolDtos.ToolChangeList body = controller().changes(null, null, null).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.since()).isZero();
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(5);
+    }
+
+    @Test
+    void theJournalReportsTheCapAndFloorItApplied() {
+        when(service.journal(0L, 500, 0)).thenReturn(List.of());
+        when(service.journalCount(0L)).thenReturn(0L);
+
+        ToolDtos.ToolChangeList body = controller().changes(null, 500, -3).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.limit()).isEqualTo(ToolService.MAX_LIST_LIMIT);
+        assertThat(body.offset()).isZero();
+    }
+
+    @Test
+    void aJournalEntryThatChangedNoContractCarriesNoRevision() throws Exception {
+        ToolEntry gone = new ToolEntry("tool-1", OWNER, "a.tool", "a tool", "{}", AT);
+        when(service.journal(0L, 20, 0))
+                .thenReturn(List.of(new ToolChange(9L, "tool-1", "a.tool", "removed", null, AT)));
+
+        ToolDtos.ToolChangeView entry = controller().changes(null, null, null).getBody().changes().get(0);
+
+        assertThat(entry.kind()).isEqualTo("removed");
+        assertThat(entry.revision()).isNull();
+        // A removal's entry still names the tool: the row it describes is gone.
+        assertThat(entry.name()).isEqualTo("a.tool");
+        assertThat(mapper.valueToTree(entry).get("revision").isNull()).isTrue();
+    }
 }

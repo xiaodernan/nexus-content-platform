@@ -76,6 +76,7 @@ public class ToolService {
     private final ToolRevisionRepository revisions;
     private final ToolDeprecationRepository deprecations;
     private final ToolOwnershipRepository ownership;
+    private final ToolChangeRepository changes;
     private final Clock clock;
     private final ObjectMapper mapper;
 
@@ -84,12 +85,14 @@ public class ToolService {
             ToolRevisionRepository revisions,
             ToolDeprecationRepository deprecations,
             ToolOwnershipRepository ownership,
+            ToolChangeRepository changes,
             Clock clock,
             ObjectMapper mapper) {
         this.repository = repository;
         this.revisions = revisions;
         this.deprecations = deprecations;
         this.ownership = ownership;
+        this.changes = changes;
         this.clock = clock;
         this.mapper = mapper;
     }
@@ -122,6 +125,7 @@ public class ToolService {
                 clock.instant().truncatedTo(ChronoUnit.MICROS));
         ToolEntry saved = repository.save(row);
         record(saved, 1, saved.getCreatedAt());
+        recordChange(saved, "declared", 1, saved.getCreatedAt());
         return saved;
     }
 
@@ -232,6 +236,9 @@ public class ToolService {
                     if (!row.getOwner().equals(owner)) {
                         throw new NotYourTool("tool \"" + toolId + "\" belongs to another account");
                     }
+                    // The journal entry is written BEFORE the rows go: it is the only thing that can still say a
+                    // declaration was removed, because a deletion takes every row a reader could have asked.
+                    recordChange(row, "removed", null, clock.instant().truncatedTo(ChronoUnit.MICROS));
                     revisions.deleteByToolId(toolId);
                     deprecations.deleteByToolId(toolId);
                     ownership.deleteByToolId(toolId);
@@ -286,6 +293,7 @@ public class ToolService {
         row.setOwner(to);
         ToolEntry saved = repository.save(row);
         ownership.save(new ToolOwnership(toolId, next, from, to, at));
+        recordChange(saved, "transferred", null, at);
         return saved;
     }
 
@@ -386,7 +394,9 @@ public class ToolService {
         int next = revisions.findTopByToolIdOrderByRevisionDesc(toolId)
                 .map(newest -> newest.getRevision() + 1)
                 .orElse(1);
-        record(saved, next, clock.instant().truncatedTo(ChronoUnit.MICROS));
+        java.time.Instant at = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        record(saved, next, at);
+        recordChange(saved, "updated", next, at);
         return saved;
     }
 
@@ -496,6 +506,47 @@ public class ToolService {
         return revisions.deleteByToolIdAndRevisionLessThan(toolId, before);
     }
 
+    /**
+     * Append one entry to the registry's JOURNAL - the ordered record of writes that happened (v583).
+     *
+     * <p>Called inside the writing transaction, so a rolled-back write leaves no claim that it happened. It
+     * duplicates no state: it exists for the two changes state cannot hold at all (a removal and an
+     * undeprecation delete the rows that would have said so) and to put every change on ONE order, which three
+     * tables with three clocks cannot do.
+     */
+    private void recordChange(ToolEntry row, String kind, Integer revision, java.time.Instant at) {
+        changes.save(new ToolChange(row.getToolId(), row.getName(), kind, revision, at));
+    }
+
+    /**
+     * The registry's journal, OLDEST first, from a cursor: everything that happened after {@code since}.
+     *
+     * <p>Facing forward, unlike the history and ownership windows, because the reader is a process moving a
+     * cursor: ascending {@code seq} lets it advance without skipping an entry allocated before the page it holds.
+     * The count is the number of entries newer than the cursor, so a page never claims to be the whole journal.
+     *
+     * @param since the last seq the caller processed; 0 (the default) is "from the beginning"
+     * @throws InvalidTool when {@code since} is negative
+     */
+    @Transactional(readOnly = true)
+    public List<ToolChange> journal(long since, int limit, int offset) {
+        if (since < 0) {
+            throw new InvalidTool("a journal cursor is 0 or more — this one is " + since);
+        }
+        int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
+        int from = Math.max(offset, 0);
+        return changes.findBySeqGreaterThanOrderBySeqAsc(since, PageRequest.of(from / effective, effective));
+    }
+
+    /** The WHOLE number of journal entries newer than the cursor. */
+    @Transactional(readOnly = true)
+    public long journalCount(long since) {
+        if (since < 0) {
+            throw new InvalidTool("a journal cursor is 0 or more — this one is " + since);
+        }
+        return changes.countBySeqGreaterThan(since);
+    }
+
     /** Append one revision row - the write both the registration and every accepted update go through. */
     private void record(ToolEntry row, int revision, java.time.Instant recordedAt) {
         revisions.save(new ToolRevision(row.getToolId(), revision, row.getSummary(), row.getInputSchema(), recordedAt));
@@ -526,12 +577,14 @@ public class ToolService {
         String sentence = requireDeprecationMessage(message);
         String target = requireReplacement(replacement, row.getName());
         java.time.Instant at = clock.instant().truncatedTo(ChronoUnit.MICROS);
-        return deprecations.findByToolId(toolId)
+        ToolDeprecation stored = deprecations.findByToolId(toolId)
                 .map(existing -> {
                     existing.replace(sentence, target, at);
                     return deprecations.save(existing);
                 })
                 .orElseGet(() -> deprecations.save(new ToolDeprecation(toolId, sentence, target, at)));
+        recordChange(row, "deprecated", null, at);
+        return stored;
     }
 
     /**
@@ -552,6 +605,9 @@ public class ToolService {
         return deprecations.findByToolId(toolId)
                 .map(existing -> {
                     deprecations.delete(existing);
+                    // A withdrawal deletes the row that said the tool was going away, so the journal entry is the
+                    // only remaining record that it happened at all.
+                    recordChange(row, "undeprecated", null, clock.instant().truncatedTo(ChronoUnit.MICROS));
                     return true;
                 })
                 .orElse(false);

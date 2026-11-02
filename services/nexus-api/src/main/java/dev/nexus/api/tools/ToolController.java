@@ -10,6 +10,8 @@ import dev.nexus.api.tools.ToolDtos.OwnershipTransfer;
 import dev.nexus.api.tools.ToolDtos.RegisterRequest;
 import dev.nexus.api.tools.ToolDtos.TransferRequest;
 import dev.nexus.api.tools.ToolDtos.Tool;
+import dev.nexus.api.tools.ToolDtos.ToolChangeList;
+import dev.nexus.api.tools.ToolDtos.ToolChangeView;
 import dev.nexus.api.tools.ToolDtos.ToolList;
 import dev.nexus.api.tools.ToolDtos.ToolRevisionList;
 import dev.nexus.api.tools.ToolDtos.ToolRevisionView;
@@ -30,7 +32,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v571–v579 — the HTTP surface for the tool registry. Fourteen doors, and the differences between them are the
+ * M10 v571–v579 — the HTTP surface for the tool registry. Fifteen doors, and the differences between them are the
  * rules:
  *
  * <ul>
@@ -42,6 +44,9 @@ import org.springframework.web.bind.annotation.RestController;
  *       the optional {@code deprecated} answers only the declarations that carry a deprecation (true) or only
  *       those that do not (false). All three compose, and the count is the whole (narrowed) number, so a window
  *       can say what it is hiding.
+ *   <li>{@code GET /tools/changes?since=&limit=&offset=} — the registry's JOURNAL, oldest first from a cursor: one
+ *       entry per accepted write (declared, updated, transferred, deprecated, undeprecated, removed). It is the
+ *       only read that can name a declaration whose row is gone, and the only one that faces forward.
  *   <li>{@code GET /tools/{id}} — one declaration by id. A public read, like the catalog; an id that names
  *       nothing is a 404 rather than an empty row. The answer carries the contract's PIN as a field and as a
  *       strong {@code ETag}, so an {@code If-None-Match} of the pin the caller holds is a 304 with no body.
@@ -99,6 +104,31 @@ public class ToolController {
                 request == null ? null : request.summary(),
                 request == null ? null : request.inputSchema());
         return ResponseEntity.status(201).body(toWire(row));
+    }
+
+    /**
+     * v583 — the registry's JOURNAL, oldest first, from a cursor: everything that happened after {@code since}.
+     *
+     * <p>This is the only read here that can name a declaration WHOSE ROW IS GONE: a removal deletes every table
+     * a reader could have asked, so the journal keeps the id, the name and the fact. It is also the only read
+     * that faces FORWARD — a cursor-moving poller must not have new writes appear behind it.
+     *
+     * <p>{@code since} is 0 when absent, which is "from the beginning" rather than "no filter": the feed has no
+     * two-state absence, because 0 is a real position before the first entry. A negative cursor is a 400.
+     */
+    @GetMapping("/tools/changes")
+    public ResponseEntity<ToolChangeList> changes(
+            @RequestParam(name = "since", required = false) Long since,
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "offset", required = false) Integer offset) {
+        long cursor = since == null ? 0L : since;
+        int asked = limit == null ? ToolService.DEFAULT_LIST_LIMIT : limit;
+        int effective = Math.min(Math.max(asked, 1), ToolService.MAX_LIST_LIMIT);
+        int from = offset == null ? 0 : Math.max(offset, 0);
+        List<ToolChangeView> rows =
+                service.journal(cursor, asked, from).stream().map(this::toWire).toList();
+        return ResponseEntity.ok(
+                new ToolChangeList(cursor, rows, service.journalCount(cursor), effective, from));
     }
 
     /**
@@ -430,6 +460,16 @@ public class ToolController {
                 service.schemaOf(revision),
                 service.contractSha256(revision),
                 revision.getRecordedAt().toEpochMilli());
+    }
+
+    private ToolChangeView toWire(ToolChange row) {
+        return new ToolChangeView(
+                row.getSeq(),
+                row.getToolId(),
+                row.getName(),
+                row.getKind(),
+                row.getRevision(),
+                row.getChangedAt().toEpochMilli());
     }
 
     private OwnershipTransfer toWire(ToolOwnership row) {

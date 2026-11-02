@@ -98,6 +98,28 @@ public final class ToolDtos {
     }
 
     /**
+     * One entry in the registry's journal: what happened, to which declaration, in what order.
+     *
+     * <p>{@code seq} is the cursor a caller advances. {@code name} is the declaration's name AT the time of the
+     * write, which is why a {@code removed} entry can still name the tool it describes. {@code revision} is present
+     * only for changes that wrote a contract ({@code declared}, {@code updated}) and points at the revision a
+     * caller can then read — the journal says WHERE to look, not what it said.
+     */
+    public record ToolChangeView(
+            long seq, String toolId, String name, String kind, Integer revision, long at) {
+    }
+
+    /**
+     * One page of the journal, OLDEST first, with the whole count of entries newer than the cursor beside it.
+     *
+     * <p>{@code since} is echoed because it is the cursor the answer starts after: 0 means "from the beginning",
+     * which is a real cursor rather than an absent filter, so it is never null.
+     */
+    public record ToolChangeList(
+            long since, List<ToolChangeView> changes, long total, int limit, int offset) {
+    }
+
+    /**
      * What a retention prune did: the boundary it applied, how many rows it removed, and what the history still
      * holds.
      *

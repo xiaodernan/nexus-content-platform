@@ -47,10 +47,13 @@ class ToolServiceTest {
     @Mock
     private ToolOwnershipRepository ownership;
 
+    @Mock
+    private ToolChangeRepository changes;
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     private ToolService service() {
-        return new ToolService(repository, revisions, deprecations, ownership, Clock.fixed(AT, ZoneOffset.UTC), mapper);
+        return new ToolService(repository, revisions, deprecations, ownership, changes, Clock.fixed(AT, ZoneOffset.UTC), mapper);
     }
 
     private static ToolEntry row(String id, String owner, String name) {
@@ -950,5 +953,115 @@ class ToolServiceTest {
 
         assertThat(service().countOf(null, null, null)).isZero();
         verify(repository, never()).searchLive(any(), any(), any());
+    }
+
+    // ── v583: the journal — every accepted write, in one order, including the ones state cannot hold ───
+    @Test
+    void declaringAJournalsTheDeclaration() throws Exception {
+        when(repository.findByName("weather.lookup")).thenReturn(Optional.empty());
+        when(repository.save(any(ToolEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ToolEntry stored = service().register(OWNER, "weather.lookup", "Looks up weather.", mapper.readTree("{}"));
+
+        ArgumentCaptor<ToolChange> journal = ArgumentCaptor.forClass(ToolChange.class);
+        verify(changes).save(journal.capture());
+        ToolChange entry = journal.getValue();
+        assertThat(entry.getToolId()).isEqualTo(stored.getToolId());
+        assertThat(entry.getName()).isEqualTo("weather.lookup");
+        assertThat(entry.getKind()).isEqualTo("declared");
+        assertThat(entry.getRevision()).isEqualTo(1);
+        assertThat(entry.getChangedAt()).isEqualTo(AT);
+    }
+
+    @Test
+    void anUpdateJournalsTheRevisionItWrote() throws Exception {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+        when(revisions.findTopByToolIdOrderByRevisionDesc("tool-1"))
+                .thenReturn(Optional.of(new ToolRevision("tool-1", 1, "a tool", "{}", AT)));
+        when(repository.save(mine)).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service().update("tool-1", OWNER, "A better sentence.", mapper.readTree("{}"));
+
+        ArgumentCaptor<ToolChange> journal = ArgumentCaptor.forClass(ToolChange.class);
+        verify(changes).save(journal.capture());
+        assertThat(journal.getValue().getKind()).isEqualTo("updated");
+        assertThat(journal.getValue().getRevision()).isEqualTo(2);
+    }
+
+    @Test
+    void aRemovalJournalsTheNameBeforeTheRowsGo() {
+        ToolEntry mine = new ToolEntry("tool-1", OWNER, "a.tool", "a tool", "{}", AT);
+        when(repository.findById("tool-1")).thenReturn(Optional.of(mine));
+
+        assertThat(service().remove("tool-1", OWNER)).isTrue();
+
+        ArgumentCaptor<ToolChange> journal = ArgumentCaptor.forClass(ToolChange.class);
+        verify(changes).save(journal.capture());
+        assertThat(journal.getValue().getKind()).isEqualTo("removed");
+        assertThat(journal.getValue().getName()).isEqualTo("a.tool", "a removed tool must still be nameable");
+        assertThat(journal.getValue().getRevision()).isNull();
+        // The entry is written BEFORE the deletion: a deletion takes every row a later reader could ask.
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(changes, repository);
+        order.verify(changes).save(any(ToolChange.class));
+        order.verify(repository).delete(mine);
+    }
+
+    @Test
+    void aTransferJournalsTheHandover() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+        when(repository.save(mine)).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service().transfer("tool-1", OWNER, "acct-bob");
+
+        ArgumentCaptor<ToolChange> journal = ArgumentCaptor.forClass(ToolChange.class);
+        verify(changes).save(journal.capture());
+        assertThat(journal.getValue().getKind()).isEqualTo("transferred");
+        assertThat(journal.getValue().getName()).isEqualTo("a.tool");
+    }
+
+    @Test
+    void aDeprecationAndItsWithdrawalAreBothJournalled() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+        when(deprecations.findByToolId("tool-1")).thenReturn(Optional.empty())
+                .thenReturn(Optional.of(new ToolDeprecation("tool-1", "Going.", "b.tool", AT)));
+
+        service().deprecate("tool-1", OWNER, "Going.", "b.tool");
+        service().undeprecate("tool-1", OWNER);
+
+        ArgumentCaptor<ToolChange> journal = ArgumentCaptor.forClass(ToolChange.class);
+        verify(changes, times(2)).save(journal.capture());
+        assertThat(journal.getAllValues()).extracting(ToolChange::getKind)
+                .containsExactly("deprecated", "undeprecated");
+    }
+
+    @Test
+    void aWithdrawalThatRemovedNothingJournalsNothing() {
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(deprecations.findByToolId("tool-1")).thenReturn(Optional.empty());
+
+        assertThat(service().undeprecate("tool-1", OWNER)).isFalse();
+        verify(changes, never()).save(any(ToolChange.class));
+    }
+
+    @Test
+    void theJournalReadsForwardFromItsCursor() {
+        ToolChange entry = new ToolChange(5L, "tool-1", "a.tool", "updated", 2, AT);
+        when(changes.findBySeqGreaterThanOrderBySeqAsc(4, PageRequest.of(0, 20)))
+                .thenReturn(List.of(entry));
+        when(changes.countBySeqGreaterThan(4)).thenReturn(1L);
+
+        assertThat(service().journal(4, 20, 0)).containsExactly(entry);
+        assertThat(service().journalCount(4)).isEqualTo(1L);
+    }
+
+    @Test
+    void aNegativeJournalCursorIsRefusedBeforeAnyQuery() {
+        assertThatThrownBy(() -> service().journal(-1, 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("0 or more");
+        verify(changes, never()).findBySeqGreaterThanOrderBySeqAsc(any(Long.class), any());
     }
 }

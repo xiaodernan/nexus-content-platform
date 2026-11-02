@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v582 (deprecated filter — landed and verified; v576/MCP belongs to a parallel lane)
+Project version: v583 (registry journal — landed and verified; v576/MCP belongs to a parallel lane)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is ahead of origin/master; v582 is in the working tree.
+Pushed to origin/master: no — master is ahead of origin/master; v583 is in the working tree.
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -24,6 +24,9 @@ Recent increments in this lineage (all real commits, all gated):
   v578: a contract pin a consumer can hold, and the conditional read it enables (ADR 0028)
   v579: a declaration can be given away; ownership is its own append-only chain (ADR 0029)
   v580: a history narrowed to what the caller does not have — `since` (ADR 0031)
+  v581: retention is the owner's, and it names the bound it keeps (ADR 0032)
+  v582: the catalog names the rows that are going away — `deprecated` filter (ADR 0033)
+  v583: a journal of what HAPPENED, oldest first from a `seq` cursor (ADR 0034)
   v581: retention — the owner names the bound it keeps, and the answer says what went (ADR 0032)
   v582: the catalog names the rows that are going away — a filter, not a column (ADR 0033)
 
@@ -53,11 +56,12 @@ ADR 0016 compliance:
   Studio→service hop 15s via shared serviceCall.ts; timeout never reported as "unreachable"
 
 Next increments (planned, see docs/LONG_TERM_PLAN.md):
-  v583: nothing answers "which tools changed recently" ACROSS the registry, which is what a polling agent
-        actually wants. A registry-wide change feed needs a global sequence and a story for deletions (a deleted
-        row has nothing left to name), so the next increment designs it against the rows that already exist
-        rather than adding a second truth: the candidate is a `seq` on the rows that already record change
-        (revision, ownership, deprecation) and one merged, ordered read over them, with removals stated as the
-        one thing the feed cannot report and the MCP face left alone
-  v584+: a pin lookup needs an index before it is honest; a declaration has no way to be marked "tested" by its
+  v584: the journal now grows unbounded, exactly as revisions did before v581. The owner names a bound
+        (`DELETE /tools/changes?owner=&before=<seq>` or an instant) and the answer reports what it removed —
+        the same shape as the revision prune, with the honest difference that a cursor a poller still holds
+        may now point into a hole, so the answer must name the oldest entry it kept.
+  v585: a poller should not have to receive the whole registry to watch one kind: `?kind=` (and possibly
+        `?toolId=`) narrows the journal, with the same rule every window here follows — it narrows the
+        window AND the count.
+  v586+: a pin lookup needs an index before it is honest; a declaration has no way to be marked "tested" by its
         owner, which is a claim rather than a field.

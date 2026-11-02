@@ -171,6 +171,8 @@ async function stopService(child) {
 /** The tool's wire shape, pinned: a field added here is a capability a read door would start printing. */
 const TOOL_FIELDS = ['contractSha256', 'createdAt', 'id', 'inputSchema', 'name', 'owner', 'summary'].sort();
 const LIST_FIELDS = ['deprecated', 'limit', 'offset', 'owner', 'query', 'tools', 'total'].sort();
+const JOURNAL_FIELDS = ['changes', 'limit', 'offset', 'since', 'total'].sort();
+const CHANGE_FIELDS = ['at', 'kind', 'name', 'revision', 'seq', 'toolId'].sort();
 
 let serviceProcess = null;
 let dbStarted = false;
@@ -982,6 +984,103 @@ try {
   assert.equal(deprecationRowCount, '1', 'psql agrees: exactly one declaration carries a deprecation');
   console.log(`[§5d] the catalog answered the rows that are going away: deprecated=true was ONE row (weather.lookup) with total=1, deprecated=false was the other THREE, an absent flag was null and all four, the flag composed with owner (1 and 0) and with the search (1 and 0 for the departing set, 3 for the live one), every answer echoed the flag it applied and every row kept its seven declaration fields · psql read one deprecation row`);
 
+  // ── §5e the journal names every change, including the ones the state tables deleted ─────────────
+  // A catalog answers what IS. A removal deletes the row that could say it was removed, and a withdrawal
+  // deletes the row that said the tool was going away, so neither fact is derivable from state. The journal
+  // is the ONE read that can name them - and it faces FORWARD from a cursor, because its reader is a poller
+  // that already knows everything up to where it stopped.
+  const journalHead = await call('/tools/changes?limit=100');
+  assert.equal(journalHead.status, 200, `the journal must answer 200, got ${journalHead.status}: ${journalHead.text}`);
+  assert.deepEqual(Object.keys(journalHead.body).sort(), JOURNAL_FIELDS,
+      `the journal carries exactly its five fields: ${journalHead.text}`);
+  assert.equal(journalHead.body.since, 0, 'an absent cursor reads as 0 and is echoed as a real cursor');
+  assert.equal(journalHead.body.total, Number(await sql('select count(*) from tool_change')),
+      'the journal total is the table count');
+  const openingEntry = journalHead.body.changes[0];
+  assert.deepEqual(Object.keys(openingEntry).sort(), CHANGE_FIELDS, 'an entry carries exactly its six fields');
+  assert.equal(openingEntry.kind, 'declared');
+  assert.equal(openingEntry.revision, 1, 'the first accepted write was a birth, and it names revision 1');
+  assert.ok(journalHead.body.total >= 15,
+      `this section accepted at least fifteen writes, but the journal holds ${journalHead.body.total}`);
+
+  // Walk the whole journal forward seven at a time: a poller's path, not a page a person clicked.
+  const walked = [];
+  let cursor = 0;
+  let pages = 0;
+  for (;;) {
+    const page = await call(`/tools/changes?since=${cursor}&limit=7`);
+    assert.equal(page.status, 200, `a journal page must answer 200, got ${page.status}: ${page.text}`);
+    assert.equal(page.body.since, cursor, 'every page echoes the cursor it started after');
+    assert.equal(page.body.limit, 7, 'every page echoes the cap it applied');
+    assert.equal(page.body.total, journalHead.body.total - walked.length,
+        'the narrowed count is the whole number of entries newer than the cursor');
+    if (page.body.changes.length === 0) {
+      break;
+    }
+    const seqs = page.body.changes.map((c) => c.seq);
+    assert.ok(seqs.every((s) => s > cursor), `a page holds only entries after the cursor ${cursor}: ${seqs}`);
+    assert.deepEqual(seqs, [...seqs].sort((a, b) => a - b), 'a page is oldest first');
+    walked.push(...page.body.changes);
+    cursor = seqs[seqs.length - 1];
+    pages += 1;
+  }
+  assert.equal(walked.length, journalHead.body.total, 'walking forward visited every entry');
+  assert.equal(pages, Math.ceil(journalHead.body.total / 7), 'the walk took as many pages as the count implies');
+  assert.deepEqual(walked.slice(0, journalHead.body.changes.length), journalHead.body.changes,
+      'the walk sees the same entries the first page showed');
+  assert.equal(new Set(walked.map((c) => c.seq)).size, walked.length, 'no entry was visited twice');
+
+  // Six kinds, and only the two that WRITE A CONTRACT carry a revision: the journal says where to look.
+  const kinds = [...new Set(walked.map((c) => c.kind))].sort();
+  assert.deepEqual(kinds, ['declared', 'deprecated', 'removed', 'transferred', 'undeprecated', 'updated'],
+      `every accepted write names its kind, got ${kinds}`);
+  for (const entry of walked) {
+    assert.equal(typeof entry.at, 'number', `every entry carries the instant it happened: ${JSON.stringify(entry)}`);
+    assert.equal(entry.revision === null, !(entry.kind === 'declared' || entry.kind === 'updated'),
+        `only a contract write names a revision: ${JSON.stringify(entry)}`);
+    assert.ok(typeof entry.name === 'string' && entry.name.length > 0, 'every entry carries a name');
+  }
+
+  // The removal here names a row that no longer exists - and its name went with it.
+  const prunedEntries = walked.filter((c) => c.toolId === prunedId);
+  assert.deepEqual(prunedEntries.map((c) => c.kind), ['declared', 'updated', 'updated', 'removed'],
+      `the pruned tool's whole life, in order: ${JSON.stringify(prunedEntries)}`);
+  assert.deepEqual(prunedEntries.map((c) => c.revision), [1, 2, 3, null],
+      'the journal points at each revision the updates wrote, and at nothing for the removal');
+  assert.equal(prunedEntries[3].name, prunedName, 'the removal still carries the name the row had');
+  assert.equal((await call(`/tools/${q(prunedId)}`)).status, 404, 'the declaration the entry names is gone');
+  assert.equal(await sql(`select count(*) from tool_entry where tool_id = '${prunedId}'`), '0');
+  // A retention prune is NOT a journal entry: it removes old revisions, and the registry still declares the
+  // same contract. The journal answers "what happened to the registry", not "what happened to one history".
+  assert.equal(prunedEntries.filter((c) => c.kind === 'removed').length, 1);
+
+  // A withdrawal is the other fact that deletes its own evidence: the deprecation row is gone, the entry stays.
+  const withdrawals = walked.filter((c) => c.kind === 'undeprecated');
+  assert.equal(withdrawals.length, 1, `the section withdrew exactly one deprecation, got ${withdrawals.length}`);
+  assert.equal(withdrawals[0].revision, null, 'a withdrawal writes no contract');
+  assert.ok(walked.some((c) => c.toolId === withdrawals[0].toolId && c.kind === 'deprecated' && c.seq < withdrawals[0].seq),
+      'the withdrawal is preceded by the deprecation it withdrew');
+  assert.ok(walked.some((c) => c.toolId === withdrawals[0].toolId && c.kind === 'deprecated' && c.seq > withdrawals[0].seq),
+      'and followed by the new deprecation the section left on record');
+
+  // A write that removes nothing writes no entry: "already gone" is not a change.
+  const beforeNoop = (await call('/tools/changes?limit=1')).body.total;
+  const noopRemoval = await call(`/tools/${q(prunedId)}?owner=${q(owner)}`, { method: 'DELETE' });
+  assert.equal(noopRemoval.body.removed, false);
+  assert.equal((await call('/tools/changes?limit=1')).body.total, beforeNoop,
+      'a removal that removes nothing journals nothing');
+
+  // The cursor is a real cursor, not a filter with a special spelling.
+  const negativeCursor = await call('/tools/changes?since=-1');
+  assert.equal(negativeCursor.status, 400, `a negative cursor must be 400, got ${negativeCursor.status}`);
+  assert.match(negativeCursor.body.message, /0 or more/);
+  const flooredPage = await call('/tools/changes?limit=500&offset=-3');
+  assert.equal(flooredPage.body.limit, 100, 'the cap is reported');
+  assert.equal(flooredPage.body.offset, 0, 'a negative offset is floored, not refused');
+  const pastTheEnd = await call(`/tools/changes?since=${cursor}`);
+  assert.deepEqual(pastTheEnd.body.changes, [], 'a cursor at the newest entry answers nothing');
+  assert.equal(pastTheEnd.body.total, 0, 'and says the narrowed set is empty');
+  console.log(`[§5e] the registry kept a JOURNAL of what HAPPENED: ${journalHead.body.total} entries, OLDEST first, walked forward seven at a time in ${pages} pages that each echoed the cursor they started after and the narrowing count beside them, with no entry seen twice · six kinds appeared (declared, updated, transferred, deprecated, undeprecated, removed) and ONLY the two that write a contract named a revision · the removed pruned.tool read back as declared/updated/updated/removed with revisions 1, 2, 3 and null while its declaration was a 404 and tool_entry held zero rows — the journal is the only read that can name a row that is gone, and it still carried the NAME · a retention prune wrote no entry, and the one withdrawal sat between the deprecation it withdrew and the new one left on record · an already-gone removal wrote nothing · a negative cursor was a 400 naming "0 or more", a limit of 500 was reported as 100 and an offset of -3 as 0, and a cursor at the newest entry answered an empty set with total=0 · psql read the same count the answer claimed`);
   // ── §6 the declarations and their canonical schemas survive a RESTART ──────────────────────────
   const beforeRestart = await call('/tools');
   assert.equal(beforeRestart.body.total, 4);
@@ -1007,6 +1106,13 @@ try {
   assert.deepEqual(schemaAfterRestart, updatedSchema, 'the re-declared weather.lookup carries the UPDATED schema, not the removed row\'s');
 
   // The HISTORY survives the process too: a revision recorded by the first JVM is readable from the second.
+  // The JOURNAL survives the process too: it is rows, and a poller's cursor means nothing if a restart
+  // forgets where the entries were.
+  const journalAfterRestart = await call('/tools/changes?limit=3');
+  assert.deepEqual(journalAfterRestart.body.changes, journalHead.body.changes.slice(0, 3),
+      'the journal survives the process that wrote it, entry for entry');
+  assert.equal(journalAfterRestart.body.total, journalHead.body.total,
+      'and the second JVM counts the same entries the first one wrote');
   const historyAfterRestart = await call(`/tools/${q(reclaimed.body.id)}/revisions`);
   assert.equal(historyAfterRestart.status, 200);
   assert.equal(historyAfterRestart.body.total, 2, 'both recorded revisions survive the restart');
@@ -1050,12 +1156,14 @@ try {
       `tool_deprecation must have exactly the four warning fields, got ${JSON.stringify(deprecationColumns)}`);
 
   // The DATABASE itself: six declaration columns, and NO place to put a capability.
-  const columns = (await sql("select column_name from information_schema.columns where table_name = 'tool_entry' order by column_name")).split('\n').filter(Boolean);
+  const changeColumns = (await sql("select column_name from information_schema.columns where table_name = 'tool_change' order by column_name")).split('\n').filter(Boolean);
+  assert.deepEqual(changeColumns, ['changed_at', 'kind', 'name', 'revision', 'seq', 'tool_id'],
+      `tool_change must have exactly the six journal columns, got ${JSON.stringify(changeColumns)}`);  const columns = (await sql("select column_name from information_schema.columns where table_name = 'tool_entry' order by column_name")).split('\n').filter(Boolean);
   assert.deepEqual(columns, ['created_at', 'input_schema', 'name', 'owner_account_id', 'summary', 'tool_id'],
       `tool_entry must have exactly the six declaration columns, got ${JSON.stringify(columns)}`);
   const count = await sql('select count(*) from tool_entry');
   assert.equal(count, '4', 'psql counts the four rows the API answers');
-  console.log(`[§6] a second JVM served the same four rows, field for field, with the re-declared name carrying the schema its owner updated · its history still answered BOTH revisions newest first · information_schema shows tool_entry has exactly ${columns.length} columns (${columns.join(', ')}) and tool_revision exactly ${revisionColumns.length} (${revisionColumns.join(', ')}) and tool_deprecation exactly ${deprecationColumns.length} (${deprecationColumns.join(', ')}) and tool_ownership exactly ${ownershipColumns.length} (${ownershipColumns.join(', ')}), and the two handovers read back field for field, with nowhere to store a URL, a command or an invocation — the pin added no column, because it is recomputed from the bytes those columns already hold — and both revision pins came back the SAME 64 characters, so the registry declares and does not execute`);
+  console.log(`[§6] a second JVM served the same four rows, field for field, with the re-declared name carrying the schema its owner updated · its history still answered BOTH revisions newest first · information_schema shows tool_entry has exactly ${columns.length} columns (${columns.join(', ')}) and tool_revision exactly ${revisionColumns.length} (${revisionColumns.join(', ')}) and tool_deprecation exactly ${deprecationColumns.length} (${deprecationColumns.join(', ')}) and tool_ownership exactly ${ownershipColumns.length} (${ownershipColumns.join(', ')}) and tool_change exactly ${changeColumns.length} (${changeColumns.join(', ')}), and the two handovers read back field for field, with nowhere to store a URL, a command or an invocation — the pin added no column, because it is recomputed from the bytes those columns already hold — and both revision pins came back the SAME 64 characters, so the registry declares and does not execute`);
 
   // ── §7 teardown ────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
@@ -1066,7 +1174,7 @@ try {
   assert.equal(goneContainer.stdout.trim(), '', `the throwaway container is still listed: ${goneContainer.stdout.trim()}`);
   console.log(`[§7] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log(`\n[summary] M10 v571–v582: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, a since asked only for what came after a revision the caller held (one row with total=1; empty with total=0 past the newest; both from 0; a page inside the narrowed set keeping the narrowed count; a negative since refused at 400 while a floored offset was not), an unknown id was 404, and psql read both rows · the catalog search answered a name match and a summary match, ignored case, narrowed BOTH window and count alongside the owner filter, paged with total=3, treated % and _ literally (0 matches), echoed a blank term as null, and refused a 101-character term at 400 · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its seven fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · the catalog named the rows that are GOING AWAY: deprecated=true was one row with total=1 while deprecated=false was the other three, an absent flag was null and all four, the flag composed with owner (1 and 0) and with the search (1 and 0 for the departing set), every answer echoed the flag and every row kept its seven fields · retention was the OWNER's and named its bound: six refusals (no owner, no bound, a bound of 0, a stranger, a bound past the newest revision, an unknown id) removed nothing, the prune of bound 2 answered before/pruned/remaining 2/1/2 and left a history starting AT revision 2 (psql read min(revision)=2), the same bound again answered 0, and a pin held across the prune still answered 304 because removing old revisions does not touch the contract · a declaration CHANGED HANDS and stayed the same declaration: a stranger's handover, a missing owner, an unknown id, a transfer to the CURRENT holder and one with no target were each refused while psql read the same holder and an EMPTY handover table; the owner's handover answered 200 with the same id, name, creation instant, schema and PIN (so a pin held across it still answered 304), the former owner's update, deprecation and removal were each 403 with the row and its deprecation untouched, the chain of holders named the current holder and appended the way back as transfer 2 with its window, cap, floor and count, an unknown id's chain was 404, and psql read both handovers in order beside a history still at TWO revisions and an empty audit trail — a handover is not a revision · and a second JVM served the same four rows and both revisions, field for field, the whole declaration carried a 64-hex PIN recomputed by the proof from the summary and schema the answer itself carried, delivered as a strong ETag and honoured as a 304 with no body on both read doors (with * matching and an unknown id still 404), the owner's update changed the pin while revision 1 kept the old one so a held pin answered 200, both revision pins were recomputed identically after the restart, the chain of two handovers read back field for field, and information_schema showed six declaration columns, five revision columns, four deprecation columns and five handover columns — no column for the pin — with nowhere to store an endpoint, a command or an invocation`);
+  console.log(`\n[summary] M10 v571–v583: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, a since asked only for what came after a revision the caller held (one row with total=1; empty with total=0 past the newest; both from 0; a page inside the narrowed set keeping the narrowed count; a negative since refused at 400 while a floored offset was not), an unknown id was 404, and psql read both rows · the catalog search answered a name match and a summary match, ignored case, narrowed BOTH window and count alongside the owner filter, paged with total=3, treated % and _ literally (0 matches), echoed a blank term as null, and refused a 101-character term at 400 · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its seven fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · the catalog named the rows that are GOING AWAY: deprecated=true was one row with total=1 while deprecated=false was the other three, an absent flag was null and all four, the flag composed with owner (1 and 0) and with the search (1 and 0 for the departing set), every answer echoed the flag and every row kept its seven fields · retention was the OWNER's and named its bound: six refusals (no owner, no bound, a bound of 0, a stranger, a bound past the newest revision, an unknown id) removed nothing, the prune of bound 2 answered before/pruned/remaining 2/1/2 and left a history starting AT revision 2 (psql read min(revision)=2), the same bound again answered 0, and a pin held across the prune still answered 304 because removing old revisions does not touch the contract · a declaration CHANGED HANDS and stayed the same declaration: a stranger's handover, a missing owner, an unknown id, a transfer to the CURRENT holder and one with no target were each refused while psql read the same holder and an EMPTY handover table; the owner's handover answered 200 with the same id, name, creation instant, schema and PIN (so a pin held across it still answered 304), the former owner's update, deprecation and removal were each 403 with the row and its deprecation untouched, the chain of holders named the current holder and appended the way back as transfer 2 with its window, cap, floor and count, an unknown id's chain was 404, and psql read both handovers in order beside a history still at TWO revisions and an empty audit trail — a handover is not a revision · the registry kept a JOURNAL of what HAPPENED beside what IS: GET /tools/changes answered every entry OLDEST first from a cursor the answer echoed, walked forward seven at a time across the WHOLE feed with a narrowing count on every page and no entry twice, six kinds appeared (declared, updated, transferred, deprecated, undeprecated, removed) and only the two that wrote a contract named a revision, a REMOVED declaration was still nameable with the name it had while its row was 404 and tool_entry held zero, a retention prune wrote no entry, an already-gone removal wrote nothing, and a negative cursor was a 400 naming "0 or more" while a limit of 500 was reported as 100 and an offset of -3 as 0 · and a second JVM served the same four rows and both revisions, field for field, the whole declaration carried a 64-hex PIN recomputed by the proof from the summary and schema the answer itself carried, delivered as a strong ETag and honoured as a 304 with no body on both read doors (with * matching and an unknown id still 404), the owner's update changed the pin while revision 1 kept the old one so a held pin answered 200, both revision pins were recomputed identically after the restart, the chain of two handovers read back field for field, and information_schema showed six declaration columns, five revision columns, four deprecation columns and five handover columns — no column for the pin — with nowhere to store an endpoint, a command or an invocation`);
   rmSync(BUILD_DIR, { recursive: true, force: true });
   console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s update and removal, a recorded revision history that an update cannot erase, a direct read by the name every agent shares, a deprecation that is its own resource with its own public list, a catalog search whose wildcards are literal, and no capability this build does not have)');
 } finally {
