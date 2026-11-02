@@ -5,7 +5,7 @@ import type { RealtimeEvent } from '@nexus/schemas';
 import { getDb } from '../db/client';
 import { recordAudit } from './audit';
 import { publishSlotRefusalFor } from './credit-ledger';
-import { assets, games, projects, publishedProjects, users } from '../db/schema';
+import { assets, games, projects, publishedProjects, storyboards, users } from '../db/schema';
 import { recordScan, scanPublication, type AssetProvenance, type ModerationScan } from './moderation';
 import { loadDocument, lockProjectWrites } from './projects';
 import { currentBranchId } from './branches';
@@ -46,6 +46,8 @@ export interface Publication {
   snapshotId: string | null;
   /** §50 / ADR-0009：这一版有没有钉住游戏设计——决定公开页要不要出现「可玩」入口 */
   hasGame: boolean;
+  /** §40 × §56：这一版有没有钉住分镜稿——决定公开页要不要出现「分镜稿」入口 */
+  hasStoryboard: boolean;
   /** §167/§168：这一版钉住的设计稿有没有可走通的点击跳页——分析页据此决定「互动完成」是否适用 */
   interactive: boolean;
   views: number;
@@ -67,6 +69,7 @@ function toPublication(row: typeof publishedProjects.$inferSelect): Publication 
     moderation: row.moderation,
     snapshotId: row.snapshotId,
     hasGame: row.gameDocument !== null && row.gameDocument !== undefined,
+    hasStoryboard: row.storyboardDocument !== null && row.storyboardDocument !== undefined,
     interactive: row.interactive,
     views: row.views,
     publishedAt: row.publishedAt.toISOString(),
@@ -206,6 +209,13 @@ export async function publishProject(
     .from(games)
     .where(eq(games.projectId, projectId))
     .limit(1);
+  // §40 × §56：分镜稿与游戏设计同一条口径——原样钉住，不在发布时做"能解析才存"的筛选。
+  // 读不出来要在公开的分镜页上明说，而不是悄悄变成"这个作品没有分镜"（§159）。
+  const [storyboardRow] = await db
+    .select({ document: storyboards.document })
+    .from(storyboards)
+    .where(eq(storyboards.projectId, projectId))
+    .limit(1);
 
   // 读—改—写整段串行（ADR-0016 的 advisory lock，与 saveDocument 同一把）：两个标签页同时点
   // 发布时，锁外两次都会读到"还没有这一行"，然后双双 insert 同一条 path——撞
@@ -238,6 +248,7 @@ export async function publishProject(
           .set({
             snapshotId: snapshot.id,
             gameDocument: gameRow?.document ?? null,
+            storyboardDocument: storyboardRow?.document ?? null,
             // 结论存进这一行（快照不变 ⇒ 结论不变）：分析页读一格，不去翻每份快照文档
             interactive: hasClickNavigation(document),
             visibility: input.visibility,
@@ -256,6 +267,7 @@ export async function publishProject(
           projectId,
           snapshotId: snapshot.id,
           gameDocument: gameRow?.document ?? null,
+          storyboardDocument: storyboardRow?.document ?? null,
           interactive: hasClickNavigation(document),
           path,
           visibility: input.visibility,
@@ -372,6 +384,8 @@ export interface PublishedPage {
   description: string | null;
   /** 发布时钉住的那份 §54 游戏文档（原样 jsonb，可能解析不了）；没有就是 null */
   gameDocument: unknown;
+  /** 发布时钉住的那份 §40 分镜稿（原样 jsonb，可能解析不了）；没有就是 null */
+  storyboardDocument: unknown;
 }
 
 /**
@@ -406,6 +420,7 @@ export async function resolvePublishedPath(path: string): Promise<PublishedPage 
     projectName: row.project.name,
     description: row.project.description,
     gameDocument: row.pub.gameDocument ?? null,
+    storyboardDocument: row.pub.storyboardDocument ?? null,
   };
 }
 

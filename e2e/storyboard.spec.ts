@@ -846,3 +846,113 @@ test('@smoke §40 改来源：建完之后换一条箭头走，撤销回原样�
 
   await page.screenshot({ path: 'screenshots/storyboard-source-edit.png' });
 });
+
+/**
+ * §40 × §56：发布链路里补上分镜这一格。
+ *
+ * 分镜与游戏设计同一条口径（ADR-0009）：公开的分镜页读**发布那一刻钉住**的那份，
+ * 不是作者的工作稿。这条只在"发布之后又改了"那个时刻才分得清对错，所以整条按那个顺序走：
+ * ① 发布 → 匿名访客读到的就是这三镜；
+ * ② 作者把首镜机位改成航拍、不重新发布 → 公开链接仍是宽景；
+ * ③ 重新发布 → 公开链接才换成航拍。
+ * 顺带证一句实话：这一页没有播放器（本机没有真视频 provider，也不把镜头表说成视频）。
+ */
+
+/** 首镜机位直接从服务端读：界面上的下拉值是本地预览，库里的才算"写进去了" */
+async function serverFirstCamera(page: Page): Promise<string | undefined> {
+  const projectId = page.url().split('/').pop() ?? '';
+  return page.evaluate(async (id) => {
+    const res = await fetch(`/api/projects/${id}/storyboard`, { cache: 'no-store' });
+    const body = (await res.json()) as { storyboard?: { shots?: { camera: string }[] } };
+    return body.storyboard?.shots?.[0]?.camera;
+  }, projectId);
+}
+
+test('@smoke §40 × §56 公开分镜稿：发布钉住镜头表，作者改镜头不改已分享的链接', async ({ page }) => {
+  test.setTimeout(360_000);
+  const prompt = '夜色里的港口，一台旧起重机慢慢转身，猫跳上缆绳';
+  const projectId = await createProjectNamed(page, `公开分镜 ${Date.now().toString(36)}`);
+  await openStoryboardPanel(page);
+  await page.fill('[data-storyboard-prompt-input]', prompt);
+  await page.click('[data-storyboard-create]');
+  await savedState(page);
+  await expect(page.locator('[data-storyboard-shot]')).toHaveCount(3);
+
+  /** 打开发布面板 → 选公开 → 发布；等的是那次 POST 的 200，不是"URL 那一格又出现了" */
+  const publishNow = async (): Promise<string> => {
+    const submit = page.locator('[data-publish-submit]');
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      if (await submit.isVisible().catch(() => false)) break;
+      await page.click('[data-publish-open]');
+      await page.waitForTimeout(500);
+    }
+    await expect(submit, '发布面板没打开：点 10 次 [data-publish-open] 都没等到它').toBeVisible({ timeout: 15_000 });
+    await page.click('[data-publish-choice="public"]');
+    const posted = page.waitForResponse(
+      (r) => /\/api\/projects\/[^/]+\/publish$/.test(new URL(r.url()).pathname) && r.request().method() === 'POST',
+      { timeout: 60_000 },
+    );
+    await page.click('[data-publish-submit]');
+    const res = await posted;
+    expect(res.status(), `发布被拒了（HTTP ${res.status()}）：${await res.text()}`).toBe(200);
+    await expect(page.locator('[data-publish-url]')).toBeVisible({ timeout: 30_000 });
+    return new URL((await page.locator('[data-publish-url]').getAttribute('href'))!, page.url()).href;
+  };
+
+  const publishedHref = await publishNow();
+
+  /**
+   * ② 之后要"重新发布"一次。这一步走 HTTP 而不是再点一遍面板：发布面板成功之后
+   * 收成了"已发布"状态，再点提交的语义随面板状态而变（展开/收起也各是一态）；
+   * 这里要证的是服务端"重新发布才换钉住的那一份"，用同一条 POST 更直。
+   */
+  const republish = async (): Promise<void> => {
+    const csrf = (await page.context().cookies()).find((cookie) => cookie.name === 'nexus_csrf')?.value ?? '';
+    const res = await page.request.post(`/api/projects/${projectId}/publish`, {
+      headers: { 'x-csrf-token': csrf },
+      data: { visibility: 'public' },
+    });
+    expect(res.status(), `重新发布被拒了（HTTP ${res.status()}）：${await res.text()}`).toBe(200);
+  };
+
+  const browser = page.context().browser();
+  if (!browser) throw new Error('这条用例需要一个可派生上下文的浏览器');
+  const visitorCtx = await browser.newContext();
+  const visitor = await visitorCtx.newPage();
+  // 作品页上要有入口：这一版钉住了分镜才出现，href 指向这一版自己的分镜页
+  await visitor.goto(publishedHref);
+  await expect(visitor.locator('[data-published-frame]').first()).toBeVisible({ timeout: 60_000 });
+  // href 是服务端拼的相对路径（slug 里的中文不转义），只断言形状；真的去哪一页由下面那次点击证
+  await expect(visitor.locator('[data-published-storyboard] a')).toHaveAttribute('href', /\/storyboard$/);
+  await visitor.screenshot({ path: 'screenshots/published-storyboard-entry.png' });
+  await visitor.click('[data-published-storyboard] a');
+  await expect(visitor.locator('[data-storyboard="live"]')).toBeVisible({ timeout: 60_000 });
+  await expect(visitor.locator('[data-storyboard-title]')).toContainText('夜色里的港口');
+  await expect(visitor.locator('[data-storyboard-source]')).toContainText('文字 → 视频');
+  await expect(visitor.locator('[data-storyboard-pinned]')).toContainText('第 1 版');
+  await expect(visitor.locator('[data-storyboard-shot]')).toHaveCount(3);
+  await expect(visitor.locator('[data-storyboard-shot]').first()).toContainText('宽景');
+  await expect(visitor.locator('[data-storyboard-total]')).toContainText('共 3 镜');
+  await expect(visitor.locator('[data-storyboard-notice]')).toContainText('不是视频');
+  // 只说镜头表，就不该出现任何播放器
+  await expect(visitor.locator('video')).toHaveCount(0);
+  await visitor.screenshot({ path: 'screenshots/published-storyboard.png' });
+
+  // ② 作者把首镜改成航拍（工作稿变了），不重新发布 ⇒ 公开链接仍是发布那一刻的宽景
+  const firstId = (await page.locator('[data-storyboard-shot]').first().getAttribute('data-storyboard-shot'))!;
+  await page.locator(`[data-storyboard-camera="${firstId}"]`).selectOption('aerial');
+  await expect.poll(() => serverFirstCamera(page), { timeout: 40_000 }).toBe('aerial');
+  await visitor.reload();
+  await expect(visitor.locator('[data-storyboard="live"]')).toBeVisible({ timeout: 60_000 });
+  await expect(visitor.locator('[data-storyboard-shot]').first()).toContainText('宽景');
+  await expect(visitor.locator('[data-storyboard-pinned]')).toContainText('第 1 版');
+
+  // ③ 重新发布 ⇒ 公开链接换成第 2 版，首镜变成航拍
+  await republish();
+  await visitor.reload();
+  await expect(visitor.locator('[data-storyboard="live"]')).toBeVisible({ timeout: 60_000 });
+  await expect(visitor.locator('[data-storyboard-pinned]')).toContainText('第 2 版');
+  await expect(visitor.locator('[data-storyboard-shot]').first()).toContainText('航拍');
+
+  await visitorCtx.close();
+});

@@ -32,6 +32,9 @@ export default tseslint.config(
       // Agent 的临时实验区：里面是变异探针与跑批脚本，不属于任何 tsconfig，
       // 类型感知的规则集对它会直接报"文件不在 project service 里"（见 .gitignore 同名条目）
       '.scratch/**',
+      // 根目录的同类临时脚本（scratch-shot.mjs 一类）：同样不属于任何 tsconfig，
+      // 留在根目录时整仓 eslint 会被它一个人卡住
+      'scratch-*.mjs',
     ],
   },
 

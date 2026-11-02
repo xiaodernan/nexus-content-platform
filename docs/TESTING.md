@@ -2128,3 +2128,34 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   notMeasured：`image-to-video` 的**改来源**没有单独走查（它需要资产库里有真图，建分镜那条也只有"缺图禁用"
   那一半）；改来源**之前**渲过的成片没有被重新走查（今天渲染产物按 `storyboardId` 记录，改来源不动镜头，
   所以也不该动已有成片——这句是读代码，不是验证）；撤销两格引用之外的"来源标签显示"只由 e2e 覆盖一次。
+
+
+- **2026-10-30：§40 × §56 发布链路补上分镜这一格（迁移 0046 + 公开只读分镜页 + 作品页入口）**——
+  规则一句话：分镜与游戏设计同一条口径（ADR-0009）——发布那一刻把 `storyboards.document` 原样钉进
+  `published_projects.storyboard_document`，公开页读钉住的那一份；作者之后重切镜头，不改已分享的链接。
+  迁移读数：`npm run db:migrate` → `apply 0046_published_storyboard (1 statements)` / `done: 1 migration(s) applied`。
+  **真缺陷（e2e 先红后绿）**：`publishProject` 的**插入分支漏写 `storyboardDocument`**——首次发布（insert 路径）
+  的公开页显示「这一版没有分镜稿」，只有换版本（update 路径）才钉；DB 查询 `storyboard_document is null` 证实。
+  补 `.values({ … storyboardDocument … })` 后 e2e 通过；集成测第一条用例改成"先存分镜再首次发布"，专盖插入分支。
+  集成测：`publish.integration.test.ts` +2 ⇒ 该文件 **11/11 绿**（fresh 复跑 118.73s，机器满载；早先一次 19.90s）。
+  第二条用例守的是诚实：没有分镜 ⇒ `hasStoryboard=false`；钉住的字节解析不出契约时 `storyboardDocument`
+  原样返回、`hasStoryboard=true`——不把"读不出来"悄悄变成"没有分镜"。
+  公开页 `/n/<handle>/<slug>/storyboard` 三态：`none`（这一版没有分镜稿）/ `live`（标题、来源箭头、
+  第 N 版、逐镜机位/转场/时长、notes、合计、`[data-storyboard-notice]` 明说"不是视频"、`<video>` 计数 0）/
+  `broken`（合同解析失败时列出前 5 条 issue）。显示名与 Studio 面板共用 `apps/web/src/studio/storyboard-labels.ts`。
+  截图人工检查过（`screenshots/published-storyboard.png`：标题/来源「文字 → 视频」/「第 1 版」/三镜/
+  「共 3 镜 · 合计 10.5 秒」/notes/「不是视频」全部可读；`screenshots/published-storyboard-entry.png`：作品页入口）。
+  读数：`npm run typecheck` 9 个 tsconfig 干净（早先跑）；eslint 改动文件 0；全仓 `npm run lint` **全绿**（9 个 tsconfig + `eslint .`，exit 0，2026-11-02 19:36 跑）。
+  e2e `§40 × §56 公开分镜稿`：**2026-11-02 通过（20.4s）**——跑在 `NEXUS_WEB_URL=http://localhost:3101`
+  （3100 已被另一个项目的 dev server 占用：`D:\足球项目`，`next dev -p 3100`；本仓 dev 脚本也钉死 3100，
+  所以用 `npx next dev -p 3101` 起本仓的）。覆盖：入口 `[data-published-storyboard]` 出现且 href 以
+  `/storyboard` 结尾 → 匿名访客点进去读到「第 1 版」、三镜、首镜宽景、「共 3 镜」、
+  `[data-storyboard-notice]` 含「不是视频」、0 个 `<video>` → 作者把首镜改航拍（服务端 GET 读到 aerial）
+  但不重新发布 ⇒ 访客刷新仍是宽景 / 第 1 版 → 重新发布（直接 POST，带 csrf）⇒ 刷新换成第 2 版 / 航拍。
+  截图两张同轮重写（19:27）。
+  之前两次卡住的复跑照实留着（2026-10-31，当时 3100 还是本仓）：一次 8.0m 超时在
+  `page.fill('[data-storyboard-prompt-input]')`（waiting for element to be visible, enabled and editable）、
+  一次 3m 超时在 `page.click('[data-storyboard-create]')`（performing click action 后无响应）；同文件的旧用例
+  在同一交互点同样超时、本机 CPU 满载 100% ⇒ 环境问题（工作区 studio 客户端被当时的在途改动与负载冻住），
+  不是本片代码。没有为跑绿放宽任何门。
+  notMeasured：入口链接的 href 只断言了形状（`/\/storyboard$/`，中文 slug 不转义），绝对地址由后续点击证。

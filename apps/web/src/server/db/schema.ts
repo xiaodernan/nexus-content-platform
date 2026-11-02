@@ -527,6 +527,12 @@ export const publishedProjects = pgTable(
      */
     gameDocument: jsonb('game_document'),
     /**
+     * §40 × §56：发布那一刻从 `storyboards.document` 原样钉下的分镜稿。
+     * 公开的分镜页只读这一列——分镜是"这一版"的一部分，作者之后重切镜头不该改已分享的链接。
+     * NULL 有两种来源（这一版没有分镜 / 这行早于迁移 0046），都不回填。
+     */
+    storyboardDocument: jsonb('storyboard_document'),
+    /**
      * §167/§168：这一版钉住的设计稿里有没有**可走通的点击跳页**。
      *
      * 存的是发布那一刻的结论（快照不会变 ⇒ 结论也不会变），分析页靠它决定

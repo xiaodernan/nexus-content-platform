@@ -27,6 +27,7 @@ import { csrfHeaders } from '@/lib/csrf';
 import { apiAssetUrl } from '@/studio/assets';
 import { useStudioReady } from './store';
 import { storyboardStore, useStoryboard } from './storyboardStore';
+import { ARROW_LABELS, CAMERA_LABELS, TRANSITION_LABELS, arrowNeedText } from './storyboard-labels';
 
 /**
  * §40-42 分镜面板：Prompt → Storyboard → Shot list → Timeline 的界面入口。
@@ -77,43 +78,6 @@ const STATE_TEXT: Record<string, string> = {
   saved: '已保存',
   error: '保存失败',
 };
-
-const CAMERA_LABELS: Record<ShotCamera, string> = {
-  wide: '宽景',
-  medium: '中景',
-  close: '特写',
-  detail: '细部',
-  tracking: '跟移',
-  aerial: '航拍',
-};
-
-const TRANSITION_LABELS: Record<ShotTransition, string> = {
-  cut: '硬切',
-  fade: '淡入',
-  dissolve: '叠化',
-  wipe: '划像',
-};
-
-/**
- * §40 的四条箭头在界面上的名字。短名单（时间线头部那一行用），
- * 选项后面那半句"要什么"从 `ARROW_SOURCE_NEEDS` 推——两层文案各写一份就会漂成
- * "选项说要参考图、切的时候却不要"。
- */
-const ARROW_LABELS: Record<StoryboardArrow, string> = {
-  'text-to-video': '文字 → 视频',
-  'image-to-video': '参考图 → 视频',
-  'storyboard-to-video': '分镜 → 视频',
-  'character-to-scene': '角色 → 场景',
-};
-
-/** 这条箭头要什么（选项标签的后半句）。读需求表，不另写一份规则 */
-function arrowNeedText(arrow: StoryboardArrow): string {
-  const needs = ARROW_SOURCE_NEEDS[arrow];
-  if (needs.referenceAssetId) return '要一张已定格的参考图';
-  if (needs.characterId) return '要一位本项目的角色';
-  if (arrow === 'storyboard-to-video') return '按这份镜头表出片';
-  return '只要那句话';
-}
 
 /** 界面状态里的两个引用用空字符串表示"还没挑"；到规则里要折成 undefined（空 id 与没有 id 是两件事） */
 type ArrowSourceValue = { arrow: StoryboardArrow; referenceAssetId: string; characterId: string };

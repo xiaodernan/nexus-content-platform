@@ -11,6 +11,7 @@ import {
 } from '../src/server/domain/publish';
 import { createProject, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { listSnapshots } from '../src/server/domain/snapshots';
+import { saveStoryboard } from '../src/server/domain/storyboards';
 import { getDb } from '../src/server/db/client';
 import { auditEvents, pages, projects, publishedProjects, users } from '../src/server/db/schema';
 import { listAudit } from '../src/server/domain/audit';
@@ -267,6 +268,64 @@ describe('发布与分享（真实数据库）', () => {
     expect(again!.views).toBe(2);
     const found = await resolvePublishedPath(published.publication.path);
     expect(found!.publication.views).toBeGreaterThanOrEqual(2);
+  });
+
+  it('§40 × §56：发布时钉住分镜稿，公开解析读的是钉住的那一份（不是工作稿）', async () => {
+    const id = await newProject('Publish Storyboard');
+
+    const save = (title: string, prompt: string) =>
+      saveStoryboard(id, ownerId, {
+        document: {
+          id: 'storyboard-1',
+          title,
+          source: { arrow: 'text-to-video', prompt: '雨夜的车站' },
+          shots: [
+            { id: 'shot-1', prompt, durationMs: 3000, camera: 'wide', transition: 'cut' },
+            { id: 'shot-2', prompt: '特写：握紧票根', durationMs: 1500, camera: 'close', transition: 'fade' },
+          ],
+          notes: ['这一版只发布镜头表'],
+        },
+      });
+
+    // 先存分镜再**第一次发布**：走的是插入那一支（曾经漏了 storyboard_document，e2e 抓到）
+    const first = await save('第一版分镜', '远景：站台灯');
+    if (!first.ok) throw new Error(`存分镜失败：${first.reason}`);
+    const withSb = await publishProject(id, { visibility: 'public', createdById: ownerId });
+    if (!withSb || !withSb.ok) throw new Error('发布失败');
+    expect(withSb.publication.hasStoryboard).toBe(true);
+    const pinned = await resolvePublishedPath(withSb.publication.path);
+    expect((pinned!.storyboardDocument as { title: string }).title).toBe('第一版分镜');
+
+    // 作者改工作稿但不重新发布：公开链接读的还是钉住的那一份
+    const second = await save('第二版分镜', '中景：车门滑开');
+    if (!second.ok) throw new Error(`改分镜失败：${second.reason}`);
+    const stale = await resolvePublishedPath(withSb.publication.path);
+    expect((stale!.storyboardDocument as { title: string }).title).toBe('第一版分镜');
+
+    // 重新发布才换：钉住新版，旧解析不回溯
+    const republished = await publishProject(id, { visibility: 'public', createdById: ownerId });
+    if (!republished || !republished.ok) throw new Error('重新发布失败');
+    const fresh = await resolvePublishedPath(republished.publication.path);
+    expect((fresh!.storyboardDocument as { title: string }).title).toBe('第二版分镜');
+  });
+
+  it('§40 × §56：没有分镜时 hasStoryboard 为假；钉住的字节读不出契约时不被悄悄变成"没有分镜"', async () => {
+    const id = await newProject('Publish Broken Storyboard');
+    const published = await publishProject(id, { visibility: 'public', createdById: ownerId });
+    if (!published || !published.ok) throw new Error('发布失败');
+    expect(published.publication.hasStoryboard).toBe(false);
+    const none = await resolvePublishedPath(published.publication.path);
+    expect(none!.storyboardDocument).toBeNull();
+    // 直接往钉住的那一列写一份不符合契约的字节（模拟"发布后合同收紧了"这类历史数据）
+    const garbage = { title: '', shots: [], notes: [] };
+    await getDb()
+      .update(publishedProjects)
+      .set({ storyboardDocument: garbage })
+      .where(eq(publishedProjects.id, published.publication.id));
+    const found = await resolvePublishedPath(published.publication.path);
+    // 原样交出来，公开页据此说"读不出来"；变成 null 的话页面会说"这一版没有分镜"——那是假话
+    expect(found!.storyboardDocument).toEqual(garbage);
+    expect(found!.publication.hasStoryboard).toBe(true);
   });
 });
 
