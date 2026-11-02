@@ -42,7 +42,11 @@
 //   §10 the receipts and the rotated key SURVIVE A RESTART: a new JVM, the same database, the same FIVE rows
 //      with the same instants — which is the whole difference between `REQUIRES_NEW` committing and merely
 //      being visible;
-//   §11 teardown.
+//   §11 the owner's RETENTION: a prune removes every receipt attempted strictly BEFORE the instant it names,
+//      optionally narrowed to one subscription, and its answer is the arithmetic it performed; a missing
+//      owner, a missing instant or a future instant is refused and deletes nothing; a stranger's prune is an
+//      honest zero; and taking the log to zero rows leaves the SUBSCRIPTION itself in place;
+//   §12 teardown.
 //
 // Stated limit: no delivery in this run reaches a socket (see the `.invalid` note below), so the
 // `X-Nexus-Delivery-Id` header and the fresh signature of a redelivery are graded by the unit gates, not
@@ -677,18 +681,109 @@ try {
   assert.equal(storedKeyAfterRestart, rotated.body.secret, 'the rotated key survived the restart');
   console.log(`[§10] process ${pidBefore} was killed and a new JVM served the SAME five receipts from the same database, identical in id, instants, outcome, detail and the source id the repeat names, with the ROTATED key still the stored one — the delivery log is a system of record, not a cache, and REQUIRES_NEW really committed`);
 
-  // ── §11 teardown ───────────────────────────────────────────────────────────────────────────────
+  // ── §11 the owner's RETENTION: a cutoff deletes what it EXCLUDES, and only that ─────────────────
+  // The two newest receipts after the restart are the boundary: the ping (oldest of the two) is the instant
+  // the prune names, and everything STRICTLY before it goes. The ping's own row survives because the cutoff
+  // is exclusive — this is the difference between "delete through" and "delete before".
+  const [survivor, boundary] = afterRestart.body.deliveries;
+  assert.ok(survivor && boundary, 'the log must hold at least two receipts for a cutoff to divide them');
+  const cutoff = boundary.attemptedAt;
+  assert.ok(cutoff > 0, 'the boundary receipt must name an instant a prune can use');
+
+  // A NARROWED prune reaches only the subscription it names — even after that subscription is gone (§8):
+  // endpoint A's three receipts are on file, its two OLDER ones are below the cutoff, and its ping IS the
+  // boundary. Endpoint B's two receipts must not move.
+  const aLogBeforePrune = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}&webhook=${q(webhookIdA)}`);
+  const aPrunable = aLogBeforePrune.body.deliveries.filter((r) => r.attemptedAt < cutoff).length;
+  const narrowed = await call(
+      `/webhooks/deliveries?subscriber=${q(subscriber)}&webhook=${q(webhookIdA)}&before=${cutoff}`,
+      { method: 'DELETE' });
+  assert.equal(narrowed.status, 200, `the owner's narrowed prune must answer, got ${narrowed.status}`);
+  assert.equal(narrowed.body.subscriberId, subscriber, 'the answer names the account the prune belonged to');
+  assert.equal(narrowed.body.webhookId, webhookIdA, 'and the ONE subscription it was narrowed to');
+  assert.equal(narrowed.body.before, cutoff, 'and the instant it kept');
+  assert.equal(narrowed.body.pruned, aPrunable, 'the narrowed prune removes endpoint A\'s receipts below the cutoff');
+  assert.equal(narrowed.body.remaining, aLogBeforePrune.body.total - aPrunable,
+      'the remaining count is endpoint A\'s OWN log, not the account\'s');
+  const wholeAfterNarrowed = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}`);
+  assert.equal(wholeAfterNarrowed.body.total, afterRestart.body.total - aPrunable,
+      'the narrowed prune must not touch endpoint B\'s receipts');
+
+  // The WHOLE log, same cutoff: the rows below it go, the rows at or above it stay, and the answer is the
+  // arithmetic — pruned + remaining = the log that existed before the knock.
+  const kept = wholeAfterNarrowed.body.deliveries.filter((r) => r.attemptedAt >= cutoff);
+  const expectedPruned = wholeAfterNarrowed.body.total - kept.length;
+  const pruned = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}&before=${cutoff}`, { method: 'DELETE' });
+  assert.equal(pruned.status, 200, `the owner's prune must answer, got ${pruned.status}`);
+  assert.equal(pruned.body.webhookId, null, 'a prune with no webhook named is the whole log, and it says so');
+  assert.equal(pruned.body.pruned, expectedPruned, 'the prune removes every receipt attempted strictly before the cutoff');
+  assert.equal(pruned.body.remaining, kept.length, 'and it answers what the log still holds');
+  assert.equal(pruned.body.pruned + pruned.body.remaining, wholeAfterNarrowed.body.total,
+      'the answer accounts for every row that existed before the prune');
+
+  const afterPrune = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}`);
+  assert.equal(afterPrune.body.total, kept.length, 'the read door agrees with the prune\'s answer');
+  assert.deepEqual(afterPrune.body.deliveries.map((r) => r.id), kept.map((r) => r.id),
+      'what remains is exactly the receipts the cutoff kept, newest first — not a guess, not a window');
+
+  // A prune must NAME what it keeps. Three asks cannot: no owner, no instant, an instant in the future.
+  const pruneNoSubscriber = await call(`/webhooks/deliveries?before=${cutoff}`, { method: 'DELETE' });
+  assert.equal(pruneNoSubscriber.status, 400, `a prune without an owner must be refused, got ${pruneNoSubscriber.status}`);
+  assert.equal(pruneNoSubscriber.body.error, 'invalid-webhook');
+  assert.match(pruneNoSubscriber.body.message, /subscriber/, 'the refusal must name the missing owner');
+
+  const noInstant = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}`, { method: 'DELETE' });
+  assert.equal(noInstant.status, 400, `a prune without an instant must be refused, got ${noInstant.status}`);
+  assert.equal(noInstant.body.error, 'invalid-webhook');
+  assert.match(noInstant.body.message, /before/, 'the refusal must name the missing instant');
+
+  const future = await call(
+      `/webhooks/deliveries?subscriber=${q(subscriber)}&before=${Date.now() + 60_000}`, { method: 'DELETE' });
+  assert.equal(future.status, 400, `a prune naming a future instant must be refused, got ${future.status}`);
+  assert.equal(future.body.error, 'invalid-webhook');
+  assert.match(future.body.message, /future/, 'the refusal must say why — it would delete rows that do not exist yet');
+
+  const afterPruneRefusals = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}`);
+  assert.equal(afterPruneRefusals.body.total, kept.length, 'none of the three refusals removed a row');
+
+  // A stranger's prune is an honest ZERO rather than a refusal: there is nothing of theirs to remove, and
+  // the owner's log cannot be named by somebody else's account.
+  const strangerPrune = await call(
+      `/webhooks/deliveries?subscriber=${q(stranger)}&before=${Date.now()}`, { method: 'DELETE' });
+  assert.equal(strangerPrune.status, 200, `a stranger's prune is an empty result, not a refusal, got ${strangerPrune.status}`);
+  assert.equal(strangerPrune.body.subscriberId, stranger);
+  assert.equal(strangerPrune.body.pruned, 0, 'a stranger removes nothing');
+  assert.equal(strangerPrune.body.remaining, 0, 'and their own log is empty');
+  const ownerAfterStranger = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}`);
+  assert.equal(ownerAfterStranger.body.total, kept.length, 'the owner still holds every receipt the cutoff kept');
+
+  // Take the log to ZERO through the same door: the receipts go, the SUBSCRIPTION stays, and psql agrees —
+  // the prune is a delete, not a window that hides rows.
+  const all = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}&before=${Date.now()}`, { method: 'DELETE' });
+  assert.equal(all.status, 200, `the owner's final prune must answer, got ${all.status}`);
+  assert.equal(all.body.pruned, kept.length, 'every receipt the cutoff kept is older than now');
+  assert.equal(all.body.remaining, 0, 'the log is empty');
+  const emptied = await call(`/webhooks/deliveries?subscriber=${q(subscriber)}`);
+  assert.equal(emptied.body.total, 0, 'the read door answers an empty log');
+  const rowsLeft = await sql(`select count(*) from webhook_delivery where subscriber_account_id = '${subscriber}'`);
+  assert.equal(rowsLeft, '0', 'psql reads zero rows — the prune deleted them, it did not hide them');
+  const subscriptionsLeft = await sql(`select count(*) from webhook_subscription where subscriber_account_id = '${subscriber}'`);
+  assert.equal(subscriptionsLeft, '1', 'a prune removes RECEIPTS, not the instruction that produced them');
+
+  console.log(`[§11] the owner pruned endpoint A's ${aPrunable} receipts below the cutoff through the NARROWED door (its remaining count was A's own log, and endpoint B's receipts were untouched) · then pruned the WHOLE log at the same cutoff: ${expectedPruned} below it went, ${kept.length} at or above it stayed, and the answer was the arithmetic · 400 for a missing owner, a missing instant and a future instant — none removed a row · a stranger's prune was an honest 0/0 while the owner kept everything · a final prune at now took the log to ZERO rows in psql and left the SUBSCRIPTION itself in place — retention belongs to the owner, and a receipt is not an instruction`);
+
+  // ── §12 teardown ────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
   const rm = await run('docker', ['rm', '-f', DB_CONTAINER]);
   assert.equal(rm.code, 0, `could not remove the throwaway database: ${rm.stderr}`);
   dbStarted = false;
   const gone = await run('docker', ['ps', '-a', '--filter', `name=^/${DB_CONTAINER}$`, '--format', '{{.Names}}']);
   assert.equal(gone.stdout.trim(), '', `the throwaway container is still listed: ${gone.stdout.trim()}`);
-  console.log(`[§11] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
+  console.log(`[§12] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log('\n[summary] M10 v561–v563: services/nexus-api BUILT and RAN against a real PostgreSQL · two endpoints subscribed with the events canonicalized to the trail\'s order and a secret readable once · a real publish committed and the AFTER_COMMIT fan-out knocked on BOTH endpoints, each knock recorded with the TRAIL\'s instant · a real unpublish fanned out the same way while the trail kept one entry per verb · the owner\'s ping wrote one receipt and the other endpoint got none · a refused ping wrote nothing · a stranger\'s account answers an empty log · psql counted five receipts, found no secret column, and read back the 64-character key the subscription answer gave once · an unpublish knocked only on the endpoint that asked for that verb · removing the subscription left its receipts intact · the owner ROTATED the remaining key, the old one was not retained anywhere, and the listing kept printing no secret · the owner REDELIVERED one recorded attempt into a NEW row that repeats the same fact and names its source, with 400/403/404 refusals that knocked on nothing · and a NEW JVM served the SAME five rows WITH the rotated key — the delivery log outlives the process that wrote it');
+  console.log('\n[summary] M10 v561–v563, v569: services/nexus-api BUILT and RAN against a real PostgreSQL · two endpoints subscribed with the events canonicalized to the trail\'s order and a secret readable once · a real publish committed and the AFTER_COMMIT fan-out knocked on BOTH endpoints, each knock recorded with the TRAIL\'s instant · a real unpublish fanned out the same way while the trail kept one entry per verb · the owner\'s ping wrote one receipt and the other endpoint got none · a refused ping wrote nothing · a stranger\'s account answers an empty log · psql counted five receipts, found no secret column, and read back the 64-character key the subscription answer gave once · an unpublish knocked only on the endpoint that asked for that verb · removing the subscription left its receipts intact · the owner ROTATED the remaining key, the old one was not retained anywhere, and the listing kept printing no secret · the owner REDELIVERED one recorded attempt into a NEW row that repeats the same fact and names its source, with 400/403/404 refusals that knocked on nothing · and a NEW JVM served the SAME five rows WITH the rotated key — the delivery log outlives the process that wrote it · and the OWNER pruned it: a narrowed cutoff removed endpoint A\'s older rows and kept the boundary receipt, the whole-log cutoff answered exactly the arithmetic while the kept rows stayed, a missing owner / a missing instant / a future instant deleted nothing, a stranger\'s prune was 0/0, and a final prune took the log to zero rows in psql with the SUBSCRIPTION still in place');
   rmSync(BUILD_DIR, { recursive: true, force: true });
-  console.log('[m10-webhook-proof] ALL ASSERTIONS PASSED (a real backend service, a real database, one committed fact, a key its owner can rotate, and receipts that outlive their writer)');
+  console.log('[m10-webhook-proof] ALL ASSERTIONS PASSED (a real backend service, a real database, one committed fact, a key its owner can rotate, receipts that outlive their writer, and a log its owner can prune)');
 } finally {
   if (serviceProcess && serviceProcess.exitCode === null) {
     await stopService(serviceProcess);

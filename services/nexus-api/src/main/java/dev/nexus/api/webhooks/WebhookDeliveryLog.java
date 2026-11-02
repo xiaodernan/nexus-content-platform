@@ -31,9 +31,10 @@ import org.springframework.transaction.annotation.Transactional;
  *       subscription that produced it — a take-down must not erase the record of having called that endpoint.
  * </ul>
  *
- * <p>Bound, stated: nothing prunes this table. It grows with every attempt of every subscriber, and a
- * retention rule (how long a receipt is kept, and who may delete one) is a later decision rather than an
- * assumption here.
+ * <p>Bound, stated: the table grows with every attempt of every subscriber, and since v569 its OWNER may prune
+ * it by naming an instant — every receipt attempted strictly before that instant is removed, and everything at
+ * or after it survives. There is still no automatic retention: nothing is deleted without an owner's request,
+ * so a subscriber that never prunes keeps every receipt it ever earned.
  */
 @Component
 public class WebhookDeliveryLog {
@@ -138,6 +139,53 @@ public class WebhookDeliveryLog {
         }
         return repository.findById(deliveryId.trim())
                 .orElseThrow(() -> new NoSuchDelivery("receipt \"" + deliveryId.trim() + "\" does not exist"));
+    }
+
+    /**
+     * v569 — the owner's RETENTION door: remove every receipt attempted STRICTLY before {@code beforeMillis}.
+     *
+     * <p>This is the one write that REMOVES rows, so its rules are the answer's shape:
+     *
+     * <ul>
+     *   <li>The subscriber is required and scopes the delete IN the query: a prune can only ever reach receipts
+     *       that carry the asking account's id, so "delete somebody else's log" is not a refusal this door has
+     *       to make — it is a statement it cannot express.
+     *   <li>The instant is required, positive and not in the future. A missing instant would mean "delete
+     *       everything as of now" with no cutoff to read back, and a future one would mean the same while
+     *       claiming a boundary that does not exist yet; both are refused BEFORE any delete runs.
+     *   <li>{@code beforeMillis} is exclusive: a receipt attempted at the cutoff instant survives. Times are
+     *       epoch MILLISECONDS on the wire while receipts keep microseconds, so a row from the cutoff's
+     *       millisecond is after the cutoff and stays.
+     * </ul>
+     *
+     * <p>The delete joins ONE transaction (unlike the per-attempt writes, there is no finished transaction to
+     * escape): a prune is all-or-nothing, and the count it answers is the number it actually removed.
+     */
+    @Transactional
+    public long prune(String subscriberId, String webhookId, long beforeMillis) {
+        String subscriber = WebhookService.requireSubscriber(subscriberId);
+        Instant cutoff = cutoff(beforeMillis);
+        String narrowed = webhookId == null || webhookId.isBlank() ? null : webhookId.trim();
+        return narrowed == null
+                ? repository.deleteBySubscriberAccountIdAndAttemptedAtBefore(subscriber, cutoff)
+                : repository.deleteBySubscriberAccountIdAndWebhookIdAndAttemptedAtBefore(
+                        subscriber, narrowed, cutoff);
+    }
+
+    /** One place decides what a cutoff may be, so the two delete doors cannot disagree about it. */
+    private Instant cutoff(long beforeMillis) {
+        if (beforeMillis <= 0) {
+            throw new InvalidWebhook(
+                    "a prune must name the instant it keeps — every receipt older than it is removed, and there is "
+                            + "no epoch-zero prune");
+        }
+        Instant cutoff = Instant.ofEpochMilli(beforeMillis);
+        if (cutoff.isAfter(clock.instant())) {
+            throw new InvalidWebhook(
+                    "a prune cannot name an instant in the future — it would delete receipts that have not been "
+                            + "written yet");
+        }
+        return cutoff;
     }
 
     /**

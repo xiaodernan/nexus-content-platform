@@ -315,4 +315,45 @@ class WebhookControllerTest {
         assertThat(answer.getBody()).containsEntry("error", "no-such-delivery");
         assertThat(answer.getBody().get("message")).contains("d-gone");
     }
+
+    // ── v569: the owner's retention door ────────────────────────────────────────────────────────────
+
+    @Test
+    void aPruneAnswersHowManyItRemovedAndWhatTheLogStillHolds() throws Exception {
+        when(deliveryLog.prune(SUBSCRIBER, null, 123L)).thenReturn(2L);
+        when(deliveryLog.countOf(SUBSCRIBER, null)).thenReturn(3L);
+
+        ResponseEntity<?> answer = controller().prune(SUBSCRIBER, null, 123L);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        WebhookDtos.PruneAnswer body = (WebhookDtos.PruneAnswer) answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.subscriberId()).isEqualTo(SUBSCRIBER);
+        assertThat(body.webhookId()).isNull();
+        assertThat(body.before()).isEqualTo(123L);
+        assertThat(body.pruned()).isEqualTo(2L);
+        assertThat(body.remaining()).isEqualTo(3L);
+    }
+
+    @Test
+    void aPruneWithoutAnInstantIsAFourHundredThatTouchesNothing() throws Exception {
+        ResponseEntity<?> answer = controller().prune(SUBSCRIBER, null, null);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        JsonNode wire = mapper.valueToTree(answer.getBody());
+        assertThat(wire.get("error").asText()).isEqualTo("invalid-webhook");
+        assertThat(wire.get("message").asText()).contains("before");
+        org.mockito.Mockito.verifyNoInteractions(deliveryLog);
+    }
+
+    @Test
+    void aPruneWithoutASubscriberIsAFourHundredThatTouchesNothing() throws Exception {
+        ResponseEntity<?> answer = controller().prune("  ", "wh-1", 123L);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        JsonNode wire = mapper.valueToTree(answer.getBody());
+        assertThat(wire.get("error").asText()).isEqualTo("invalid-webhook");
+        assertThat(wire.get("message").asText()).contains("subscriber");
+        org.mockito.Mockito.verifyNoInteractions(deliveryLog);
+    }
 }

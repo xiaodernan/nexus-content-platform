@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (v557 the receiving half; v558 the on-demand `ping`; v559 the event fan-out; v560 the
   delivery receipts; v561 the live-PostgreSQL end-to-end run; v562 the owner's key rotation; v563 the owner's
-  redelivery of one recorded attempt and the delivery id every knock carries — all landed and gated)
+  redelivery of one recorded attempt and the delivery id every knock carries; v569 the owner's retention prune
+  — all landed and gated)
 - **Date:** 2026-10-30
 - **Milestone:** M10 (External Agent Ecosystem)
 
@@ -43,12 +44,15 @@ Two §60 forces shape the design:
 | Delivery | **Write every attempt down (v560), in its OWN transaction, and read it back through a door of the owner's own** | **Chosen** — the fan-out otherwise answered a listener nobody was waiting on, so a failed delivery was a fact that existed for one microsecond. `REQUIRES_NEW` is not a preference: the fan-out runs after the caller's transaction has COMMITTED and its persistence context is still bound to the thread, so a receipt saved with the default propagation would join a finished transaction and never commit |
 | Delivery | Retry on a schedule, with backoff and a give-up policy | A durable queue and a clock the service does not have; each is an outbox decision that would be made silently by a "retry" flag |
 | Delivery | **Repeat ONE recorded attempt on the owner's word (v563), and give every knock its own delivery id** | **Chosen** — the smallest retry that is honest: the owner names which attempt to repeat, the bytes are the recorded fact's own (not re-typed), and the new receipt names the attempt it repeats. A delivery id separates "the same fact" from "the same knock", so a subscriber can deduplicate a repeat without guessing |
+| Retention | Keep every receipt forever | A log that only grows is a table its owner can never correct, and "how long a receipt is kept" is then answered implicitly by "forever" |
+| Retention | **The owner's prune at an instant the OWNER names (v569), excluded strictly, optionally narrowed to one subscription** | **Chosen** — the smallest retention that is honest: no scheduler and no policy this service invents; the cutoff is a fact the caller states, the delete is scoped to the account, and the answer is the arithmetic (`pruned`, `remaining`) so the owner can see what the log now holds |
 
 ## Choice
 
 `dev.nexus.api.webhooks` — a `webhook_subscription` row (subscriber, endpoint, events, secret, createdAt),
-seven doors (`POST /webhooks`, `GET /webhooks?subscriber=`, `GET /webhooks/deliveries?subscriber=&webhook=`,
-`POST /webhooks/deliveries/{id}/redeliver?subscriber=`, `DELETE /webhooks/{id}?subscriber=`,
+eight doors (`POST /webhooks`, `GET /webhooks?subscriber=`, `GET /webhooks/deliveries?subscriber=&webhook=`,
+`POST /webhooks/deliveries/{id}/redeliver?subscriber=`,
+`DELETE /webhooks/deliveries?subscriber=&before=&webhook=`, `DELETE /webhooks/{id}?subscriber=`,
 `POST /webhooks/{id}/rotate?subscriber=`, `POST /webhooks/{id}/ping?subscriber=`), a `WebhookSigner` whose
 header every delivery carries, and `WebhookDispatcher` — the one place that POSTs, behind two seams
 (`HostResolver`, `WebhookTransport`) so its decisions are graded without touching a stranger's server.
@@ -67,7 +71,10 @@ Rules, each refused by name:
   non-2xx is reported as `refused` with its status rather than collapsed into "failed";
 - only the OWNER may rotate a subscription's key or repeat one of its receipts, and a redelivery of a receipt
   whose subscription has since been removed is a 404 that NAMES the reason (`gone`) rather than a knock into
-  nothing.
+  nothing;
+- only the OWNER may PRUNE a log, the cutoff is a positive instant at or before this service's clock, every
+  receipt attempted strictly before it is removed, and the answer is what went and what remains; a missing
+  instant or one in the future is a 400 that deletes nothing.
 
 v559 completed the arc. `AuditService.record` publishes `AuditRecorded(action, targetId, at)` after the save
 and inside its own transaction; `WebhookEventListener` is the only listener, and its `AFTER_COMMIT` phase is
@@ -102,6 +109,15 @@ knock arrived, not when the fact happened. The new receipt copies the fact colum
 than re-typing them and names the attempt it repeats in `redelivery_of`. Every knock — first or repeat —
 is minted a `deliveryId` BEFORE the POST, written in the `X-Nexus-Delivery-Id` header, stored in its receipt
 and answered to the caller: one identity that the answer, the row and the headers all agree on.
+
+v569 makes the log its owner's to keep. `DELETE /webhooks/deliveries?subscriber=&before=&webhook=` removes
+every receipt attempted strictly BEFORE the instant named. The cutoff is EXCLUSIVE because a stored receipt
+carries microseconds and the caller names milliseconds: a row at the very millisecond of the cutoff is newer
+than it and stays, and the whole boundary question is decided in the database rather than in a
+"through-or-before" argument. The account is the scope; naming a subscription narrows both the delete and
+the `remaining` answer to that subscription's own log. There is no scheduler and no retention policy: the
+owner states the instant, the service performs the arithmetic and answers it, and a missing or future instant
+is a 400 that deletes nothing.
 
 ## Reason
 
@@ -145,9 +161,13 @@ and answered to the caller: one identity that the answer, the row and the header
   fact's — otherwise a repeat of an old receipt would fall outside every verifier's tolerance. A receiver
   deduplicating on the body alone will see the same bytes as the original; the `X-Nexus-Delivery-Id` header
   and the receipt's `redelivery_of` are how "same event" and "same attempt" stay distinguishable.
-- **The delivery log only grows.** Nothing prunes `webhook_delivery`: it gains a row per attempt per
-  subscription, forever, and a retention rule (how long a receipt is kept, and who may delete one) is a later
-  decision rather than an assumption here.
+- **The delivery log does not age itself out.** A receipt stays until its owner prunes it: `DELETE
+  /webhooks/deliveries` removes everything strictly older than an instant the OWNER names, narrowed to one
+  subscription if asked, and answers how many went and how many remain. There is still no scheduler, no
+  default TTL and no give-up policy — the cutoff is a fact the caller states rather than a policy this
+  service invents, and "forever" remains the default for a log nobody prunes. A prune cannot name the
+  future: a cutoff after this service's clock would delete receipts that have not been written yet, so it is
+  refused rather than clamped.
 - **One commit per attempt.** A `REQUIRES_NEW` receipt is its own transaction, so a fan-out to ten
   subscriptions costs ten commits on top of the ten deliveries. The outbox that would batch them is the same
   later decision the synchronous fan-out defers.
@@ -183,10 +203,11 @@ and answered to the caller: one identity that the answer, the row and the header
 
 ## Evidence
 
-- `npm run verify:api-tests` — `mvn -B test`, **499/499, 27 classes**, exit 0. v557/v558 contributed 61 cases
+- `npm run verify:api-tests` — `mvn -B test`, **507/507, 27 classes**, exit 0. v557/v558 contributed 61 cases
   (26 service, 10 signer, 11 controller, 10 dispatcher, 4 transport); v559 added 10 (6 dispatcher fan-out, 2
   listener, 2 audit); v560 added 10 (6 delivery log, 2 dispatcher receipts, 2 controller); v562 added 6 (4
-  service, 2 controller); v563 added 12 (4 delivery log, 5 dispatcher, 3 controller). The signer's
+  service, 2 controller); v563 added 12 (4 delivery log, 5 dispatcher, 3 controller); v569 added 8 (5 delivery
+  log, 3 controller). The signer's
   expected HMAC is computed by a SECOND implementation (Node's `crypto.createHmac`), so the vector is an
   independent witness rather than the class agreeing with itself. The transport is graded against a socket the
   test owns (`ServerSocket` on loopback, one request): the bytes and headers that reach it are asserted to be
@@ -218,6 +239,13 @@ and answered to the caller: one identity that the answer, the row and the header
   a receipt whose subscription was removed cannot be signed at all. The delivery id is asserted in the three
   places it must agree — the `X-Nexus-Delivery-Id` header, the receipt row and the answer — and the log is
   shown to write the id it was HANDED, not mint one after the POST.
+- The v569 prune is graded for the boundaries a delete must not cross. The cutoff is strict and the scope is
+  the account: the repository doors are asserted to be the ones called (the whole log versus one subscription,
+  with both names trimmed), and the narrowed delete does not fall back to the whole log. Three refusals are
+  asserted BEFORE any delete — no cutoff, an instant in the future and a missing subscriber — and
+  `verifyNoInteractions` is what makes "refused" different from "deleted zero rows". The controller's answer
+  is pinned as the arithmetic it performed (`pruned`, `remaining`, the narrowed or whole scope), and its two
+  400s (no subscriber, no instant) touch nothing.
 - `docs/evidence/m7/service-suite-proof.mjs` derives its totals from the surefire report (§4) and digests the
   service tree (§1/§3), so it grades this slice without a literal count being typed anywhere.
 - `docs/evidence/m10/webhook-proof.mjs` (`npm run verify:webhooks`) — v561, the LIVE run the slices above
@@ -237,10 +265,15 @@ and answered to the caller: one identity that the answer, the row and the header
   rotation delivers nothing), the owner REDELIVERING one recorded attempt (a 200 whose new receipt repeats
   the source's `event`/`targetId`/`eventAt`, names it in `redelivery_of`, and is a NEW id with a later
   `attemptedAt`; `psql` shows the column and the one non-NULL value, the source row's NULL, and the four
-  refusals — 400/403/404/no-such-webhook-with-`gone` — writing nothing), and a NEW JVM answering the same
-  five rows after a restart with the ROTATED key still the stored one. The restart section is the one a unit
-  gate could not make: a `REQUIRES_NEW` row that never committed is visible before the restart and gone after
-  it.
+  refusals — 400/403/404/no-such-webhook-with-`gone` — writing nothing), a NEW JVM answering the same
+  five rows after a restart with the ROTATED key still the stored one, and the owner PRUNING the log at a
+  cutoff the second-newest receipt names: the narrowed `DELETE` removes endpoint A's older rows, reports
+  `remaining` for A's own log, and leaves endpoint B's rows untouched, the whole-log `DELETE` at the same
+  cutoff answers exactly the arithmetic the read door then confirms, the three 400s (missing owner, missing
+  instant, future instant) leave the log intact, a stranger's prune is an honest 0/0, and a final prune at
+  now leaves ZERO receipt rows in `psql` while the subscription itself remains. The restart section is the
+  one a unit gate could not make: a `REQUIRES_NEW` row that never committed is visible before the restart and
+  gone after it.
 - **Still not graded, stated:** no delivery reaches a REAL subscriber's server. RFC 6761 reserves
   `hooks.invalid`, so the live run grades the fan-out, the ownership rule, the resolution step, the three
   outcomes and the receipt, and fails at the network step by design; a local receiver is impossible because
@@ -249,10 +282,10 @@ and answered to the caller: one identity that the answer, the row and the header
   remains graded by the unit vector, and the transport by the test's own socket. Because no delivery reaches
   a socket, the live run also cannot observe the `X-Nexus-Delivery-Id` header or the fresh signature a
   redelivery carries — it grades the repeat's ROW, the id the answer named and the source id it names; the
-  header and the signature are graded by the unit cases. The retry/outbox,
-  retention, auth and idempotency bounds above are unchanged; rotation and redelivery are graded by the unit
-  cases and by the live run, and their limits (no overlap, no scheduler, a pre-minted id that can outlive a
-  crash) are stated above rather than hidden.
+  header and the signature are graded by the unit cases. The retry/outbox, automatic-retention, auth and
+  idempotency bounds above are unchanged; rotation, redelivery and the manual prune are graded by the unit
+  cases and by the live run, and their limits (no overlap, no scheduler, no default TTL, a pre-minted id that
+  can outlive a crash) are stated above rather than hidden.
 
 ## Date
 

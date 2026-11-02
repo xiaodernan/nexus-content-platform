@@ -210,4 +210,58 @@ class WebhookDeliveryLogTest {
                 .hasMessageContaining("subscriber");
         verifyNoInteractions(repository);
     }
+
+    // ── v569: the owner's retention door ────────────────────────────────────────────────────────────
+
+    @Test
+    void aPruneDeletesOnlyTheSubscribersReceiptsStrictlyOlderThanTheCutoff() {
+        Instant cutoff = AT.minusSeconds(60);
+        when(repository.deleteBySubscriberAccountIdAndAttemptedAtBefore(SUBSCRIBER, cutoff)).thenReturn(3L);
+
+        assertThat(log.prune(SUBSCRIBER, null, cutoff.toEpochMilli())).isEqualTo(3L);
+
+        verify(repository).deleteBySubscriberAccountIdAndAttemptedAtBefore(SUBSCRIBER, cutoff);
+        verify(repository, never())
+                .deleteBySubscriberAccountIdAndWebhookIdAndAttemptedAtBefore(any(), any(), any());
+    }
+
+    @Test
+    void aNarrowedPruneUsesTheSubscriptionsOwnDeleteDoorAndTrimsBothNames() {
+        Instant cutoff = AT.minusSeconds(30);
+        when(repository.deleteBySubscriberAccountIdAndWebhookIdAndAttemptedAtBefore(SUBSCRIBER, "wh-1", cutoff))
+                .thenReturn(1L);
+
+        assertThat(log.prune("  acct-ada  ", "  wh-1  ", cutoff.toEpochMilli())).isEqualTo(1L);
+
+        verify(repository).deleteBySubscriberAccountIdAndWebhookIdAndAttemptedAtBefore(SUBSCRIBER, "wh-1",
+                cutoff);
+        verify(repository, never()).deleteBySubscriberAccountIdAndAttemptedAtBefore(any(), any());
+    }
+
+    @Test
+    void aPruneWithNoPositiveInstantIsREFUSEDBeforeAnyDelete() {
+        assertThatThrownBy(() -> log.prune(SUBSCRIBER, null, 0))
+                .isInstanceOf(InvalidWebhook.class)
+                .hasMessageContaining("instant");
+        assertThatThrownBy(() -> log.prune(SUBSCRIBER, null, -1))
+                .isInstanceOf(InvalidWebhook.class)
+                .hasMessageContaining("instant");
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void aPruneThatNamesAFutureInstantIsREFUSEDBecauseItWouldDeleteWhatHasNotBeenWrittenYet() {
+        assertThatThrownBy(() -> log.prune(SUBSCRIBER, null, AT.plusSeconds(1).toEpochMilli()))
+                .isInstanceOf(InvalidWebhook.class)
+                .hasMessageContaining("future");
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void aPruneWithoutASubscriberIsREFUSEDBeforeAnyDelete() {
+        assertThatThrownBy(() -> log.prune("  ", null, AT.minusSeconds(1).toEpochMilli()))
+                .isInstanceOf(InvalidWebhook.class)
+                .hasMessageContaining("subscriber");
+        verifyNoInteractions(repository);
+    }
 }

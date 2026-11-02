@@ -94,4 +94,15 @@ public final class WebhookDtos {
     public record WebhookDeliveryList(
             String subscriberId, List<DeliveryRecord> deliveries, long total, int limit, int offset) {
     }
+
+    /**
+     * v569 — what one PRUNE did: the cutoff it applied, how many receipts it removed, and what still remains.
+     *
+     * <p>The cutoff and the remaining count travel beside the count removed so a caller can tell a prune that
+     * was a no-op from one that emptied the log by reading the answer rather than by asking again. {@code
+     * webhookId} is null when the prune covered the whole log and names the one subscription when it did not.
+     */
+    public record PruneAnswer(
+            String subscriberId, String webhookId, long before, long pruned, long remaining) {
+    }
 }

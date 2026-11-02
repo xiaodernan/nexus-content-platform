@@ -1,5 +1,6 @@
 package dev.nexus.api.webhooks;
 
+import java.time.Instant;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -31,4 +32,17 @@ public interface WebhookDeliveryRepository extends JpaRepository<WebhookDelivery
 
     /** The same count, narrowed to one subscription. */
     long countBySubscriberAccountIdAndWebhookId(String subscriberAccountId, String webhookId);
+
+    /**
+     * v569 — remove the subscriber's receipts STRICTLY older than the cutoff; the returned count is the answer.
+     *
+     * <p>Strictly: a receipt attempted AT the cutoff survives. The cutoff arrives in the caller's epoch
+     * MILLISECONDS while a receipt keeps microseconds, so a row written in the cutoff's millisecond is after it
+     * and stays — the boundary is stated as "older than", not "as old as or older than".
+     */
+    long deleteBySubscriberAccountIdAndAttemptedAtBefore(String subscriberAccountId, Instant cutoff);
+
+    /** The same prune, narrowed to ONE subscription's receipts. */
+    long deleteBySubscriberAccountIdAndWebhookIdAndAttemptedAtBefore(
+            String subscriberAccountId, String webhookId, Instant cutoff);
 }

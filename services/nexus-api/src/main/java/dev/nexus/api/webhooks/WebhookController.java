@@ -2,6 +2,7 @@ package dev.nexus.api.webhooks;
 
 import dev.nexus.api.webhooks.WebhookDtos.DeliveryAnswer;
 import dev.nexus.api.webhooks.WebhookDtos.DeliveryRecord;
+import dev.nexus.api.webhooks.WebhookDtos.PruneAnswer;
 import dev.nexus.api.webhooks.WebhookDtos.SubscribeRequest;
 import dev.nexus.api.webhooks.WebhookDtos.Webhook;
 import dev.nexus.api.webhooks.WebhookDtos.WebhookDeliveryList;
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v557–v563 — the HTTP surface for webhook subscriptions. Seven doors, and the differences between them
+ * M10 v557–v569 — the HTTP surface for webhook subscriptions. Eight doors, and the differences between them
  * are the rules:
  *
  * <ul>
@@ -31,6 +32,9 @@ import org.springframework.web.bind.annotation.RestController;
  *       its endpoints, newest first, optionally narrowed to one subscription.
  *   <li>{@code POST /webhooks/deliveries/{id}/redeliver?subscriber=} — repeat ONE recorded attempt, owner only:
  *       the same fact, a NEW knock with a fresh signature, and a receipt naming the attempt it repeats.
+ *   <li>{@code DELETE /webhooks/deliveries?subscriber=&before=&webhook=} — the owner's RETENTION: remove every
+ *       receipt attempted strictly before the instant named, optionally narrowed to one subscription. 200 with
+ *       how many were removed and what remains; a missing or future instant deletes nothing.
  *   <li>{@code DELETE /webhooks/{id}?subscriber=} — remove one. 200 either way: an id that names nothing is
  *       "already gone", not an error.
  *   <li>{@code POST /webhooks/{id}/rotate?subscriber=} — mint a NEW signing key, owner only. 200 with the
@@ -160,6 +164,39 @@ public class WebhookController {
             @PathVariable String deliveryId,
             @RequestParam(name = "subscriber", required = false) String subscriberId) {
         return ResponseEntity.ok(dispatcher.redeliver(deliveryId, subscriberId));
+    }
+
+    /**
+     * v569 — the owner's RETENTION door: remove every receipt attempted strictly before {@code before}.
+     *
+     * <p>200 with {@link PruneAnswer}: the cutoff applied, how many rows were removed and what the log still
+     * holds (narrowed exactly as the request narrowed). The optional {@code webhook} prunes one subscription.
+     * A missing subscriber, a missing instant, a non-positive instant and a future one are 400s that remove
+     * nothing — a delete that cannot name its boundary has no business running.
+     */
+    @DeleteMapping("/webhooks/deliveries")
+    public ResponseEntity<?> prune(
+            @RequestParam(name = "subscriber", required = false) String subscriberId,
+            @RequestParam(name = "webhook", required = false) String webhookId,
+            @RequestParam(name = "before", required = false) Long before) {
+        if (subscriberId == null || subscriberId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-webhook",
+                    "message", "the subscriber parameter is missing — a prune belongs to an account"));
+        }
+        if (before == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-webhook",
+                    "message", "the before parameter is missing — a prune must name the instant it keeps"));
+        }
+        long pruned = deliveryLog.prune(subscriberId, webhookId, before);
+        long remaining = deliveryLog.countOf(subscriberId, webhookId);
+        return ResponseEntity.ok(new PruneAnswer(
+                subscriberId.trim(),
+                webhookId == null || webhookId.isBlank() ? null : webhookId.trim(),
+                before,
+                pruned,
+                remaining));
     }
 
     /** Remove one subscription. 200 either way; 403 when it belongs to another subscriber. */
