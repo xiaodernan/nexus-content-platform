@@ -38,3 +38,5 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0026  | The MCP face: advertise the registry, refuse execution       | Accepted |
 | 0027  | Catalog search: literal wildcards, narrowed count            | Accepted |
 | 0028  | A contract you can pin: a computed fingerprint               | Accepted |
+| 0029  | The health door: two facts, one status code                  | Accepted |
+| 0029  | A declaration can be given away: its chain of holders        | Accepted |

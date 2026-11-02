@@ -104,4 +104,32 @@ public final class ToolDtos {
     public record DeprecationList(
             List<DeprecatedTool> deprecations, long total, int limit, int offset) {
     }
+
+    /**
+     * The body that hands a declaration over: the account that will hold it.
+     *
+     * <p>One field, and no name/owner/id: the row is named in the path and the CURRENT holder is the required
+     * {@code owner} query parameter, so a body cannot quietly supply either.
+     */
+    public record TransferRequest(String to) {
+    }
+
+    /**
+     * One recorded handover: who held the declaration, who holds it, and when this service recorded the change.
+     *
+     * <p>{@code transfer} is scoped to the tool exactly as a revision is: 1 is the first time that declaration
+     * changed hands.
+     */
+    public record OwnershipTransfer(int transfer, String from, String to, long transferredAt) {
+    }
+
+    /**
+     * One declaration's chain of holders, newest first, with the CURRENT holder named beside the window.
+     *
+     * <p>{@code owner} is the declaration's holder now — the same account the transfer door would check against
+     * — so a reader of a window does not have to walk the chain to learn who holds the tool today.
+     */
+    public record OwnershipChain(
+            String toolId, String owner, List<OwnershipTransfer> transfers, long total, int limit, int offset) {
+    }
 }

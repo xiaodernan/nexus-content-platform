@@ -291,6 +291,7 @@ try {
   const owner = `acct-tool-owner-${STAMP}`;
   const other = `acct-tool-other-${STAMP}`;
   const stranger = `acct-tool-stranger-${STAMP}`;
+  const heir = `acct-tool-heir-${STAMP}`;
 
   const emptyCatalog = await call('/tools');
   assert.equal(emptyCatalog.status, 200, `an empty registry is still a catalog, got ${emptyCatalog.status}`);
@@ -761,6 +762,114 @@ try {
   assert.equal(keptForRestart.status, 200);
   console.log(`[§5] a tool was read by ID (seven fields) and an unknown id was 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an 8193-byte schema 400, and psql read the untouched sentence after all four · the owner's update replaced the summary and stored the schema as ${storedUpdated.length} canonical bytes while the name, id, owner and creation instant stayed · the history answered TWO revisions newest first (revision 1 keeps the birth sentence and schema, revision 2 the replacement), its window reached revision 1 with total=2 beside it, limit=500 reported 100 and offset=-3 reported 0, an unknown id was 404, and psql read both rows with audit_entry still EMPTY · every whole declaration carried a 64-hex PIN that the proof RECOMPUTED from the {summary, inputSchema} the answer itself carried, the same value arrived as a strong ETag, holding it was 304 with no body on BOTH read doors, * was 304 and an unknown id with a tag was still 404 · the owner's update changed the pin and left the old one on revision 1, so a held pin answered 200 while the history named the write it came from · removal in §4 took its declaration's history with it · deprecation: a live tool's read was 404 not-deprecated, a stranger 403, a missing owner 400, an unknown id 404, and blank/281-byte messages, a malformed replacement and a self-replacement were all refused while writing nothing; the owner's deprecation stored the trimmed message and hint while the declaration's seven fields stayed seven, the public list carried the tool NAME beside it, re-deprecating replaced the one row, withdrawal answered removed:true then removed:false, and psql read zero · one deprecation was left on record for §6`);
 
+  // ── §5b a declaration CHANGES HANDS without becoming a different declaration ────────────────────
+  // Until v579 the registry had no handover door at all: the only way to "give" a tool was to declare it
+  // again under the new account, which mints a new id, restarts the history at revision 1 and invalidates
+  // every pin a consumer holds. What follows measures the difference.
+  const handedOverId = deprecatedId;
+  const beforeHandover = await call(`/tools/${q(handedOverId)}`);
+  assert.equal(beforeHandover.status, 200);
+  assert.equal(beforeHandover.body.owner, other);
+
+  const strangerTransfer = await postJson(`/tools/${q(handedOverId)}/transfer?owner=${q(stranger)}`, { to: heir });
+  assert.equal(strangerTransfer.status, 403, `a stranger's transfer must be 403, got ${strangerTransfer.status}: ${strangerTransfer.text}`);
+  assert.equal(strangerTransfer.body.error, 'not-your-tool');
+
+  const noOwnerTransfer = await postJson(`/tools/${q(handedOverId)}/transfer`, { to: heir });
+  assert.equal(noOwnerTransfer.status, 400, `a transfer without an owner must be 400, got ${noOwnerTransfer.status}`);
+  assert.match(noOwnerTransfer.body.message, /owner/);
+
+  const unknownTransfer = await postJson(`/tools/tool-that-never-existed/transfer?owner=${q(other)}`, { to: heir });
+  assert.equal(unknownTransfer.status, 404, `a transfer of an unknown id must be 404, got ${unknownTransfer.status}`);
+  assert.equal(unknownTransfer.body.error, 'unknown-tool');
+
+  const selfTransfer = await postJson(`/tools/${q(handedOverId)}/transfer?owner=${q(other)}`, { to: other });
+  assert.equal(selfTransfer.status, 400, `a transfer to the current holder must be 400, got ${selfTransfer.status}`);
+  assert.match(selfTransfer.body.message, /different account/);
+
+  const noTargetTransfer = await postJson(`/tools/${q(handedOverId)}/transfer?owner=${q(other)}`, {});
+  assert.equal(noTargetTransfer.status, 400, `a transfer with no target must be 400, got ${noTargetTransfer.status}`);
+  assert.match(noTargetTransfer.body.message, /receives the tool/);
+
+  // None of the four refusals wrote anything: same holder, and no handover row.
+  assert.equal(await sql(`select owner_account_id from tool_entry where tool_id = '${handedOverId}'`), other,
+      'a refused transfer writes nothing');
+  assert.equal(await sql(`select count(*) from tool_ownership where tool_id = '${handedOverId}'`), '0');
+
+  const handover = await postJson(`/tools/${q(handedOverId)}/transfer?owner=${q(other)}`, { to: heir });
+  assert.equal(handover.status, 200, `the owner's transfer must be 200, got ${handover.status}: ${handover.text}`);
+  assert.equal(handover.body.owner, heir, 'the answer names the new holder');
+  // The SAME declaration: id, name, creation instant, schema — and the same PIN, because handing a tool over
+  // changes nothing it SAYS. A consumer's build is still valid after the handover.
+  assert.equal(handover.body.id, beforeHandover.body.id);
+  assert.equal(handover.body.name, beforeHandover.body.name);
+  assert.equal(handover.body.createdAt, beforeHandover.body.createdAt);
+  assert.deepEqual(handover.body.inputSchema, beforeHandover.body.inputSchema);
+  assert.equal(handover.body.contractSha256, beforeHandover.body.contractSha256,
+      'a handover must not change the contract pin');
+  const pinnedThroughHandover = await call(`/tools/${q(handedOverId)}`,
+      { headers: { 'if-none-match': `"${beforeHandover.body.contractSha256}"` } });
+  assert.equal(pinnedThroughHandover.status, 304, 'a handover must not invalidate a pin a consumer holds');
+
+  // The former owner has no authority left; the new one holds every door.
+  const formerOwnerUpdate = await call(`/tools/${q(handedOverId)}?owner=${q(other)}`,
+      putBody({ summary: 'Mine again.', inputSchema: {} }));
+  assert.equal(formerOwnerUpdate.status, 403, `a former owner's update must be 403, got ${formerOwnerUpdate.status}`);
+  assert.equal(formerOwnerUpdate.body.error, 'not-your-tool');
+  const formerOwnerDeprecation = await postJson(`/tools/${q(handedOverId)}/deprecation?owner=${q(other)}`,
+      { message: 'Still mine.', replacement: null });
+  assert.equal(formerOwnerDeprecation.status, 403, `a former owner's deprecation must be 403, got ${formerOwnerDeprecation.status}`);
+  const formerOwnerRemoval = await call(`/tools/${q(handedOverId)}?owner=${q(other)}`, { method: 'DELETE' });
+  assert.equal(formerOwnerRemoval.status, 403, `a former owner's removal must be 403, got ${formerOwnerRemoval.status}`);
+  assert.equal(await sql(`select count(*) from tool_entry where tool_id = '${handedOverId}'`), '1',
+      'all three refusals left the declaration in place');
+  // The deprecation §5 left on record is untouched by the handover: it describes the TOOL, not its holder.
+  const deprecationThroughHandover = await call(`/tools/${q(handedOverId)}/deprecation`);
+  assert.equal(deprecationThroughHandover.body.message, 'Kept for the restart.');
+
+  const chain = await call(`/tools/${q(handedOverId)}/ownership`);
+  assert.equal(chain.status, 200, `a chain of holders must answer 200, got ${chain.status}: ${chain.text}`);
+  assert.deepEqual(Object.keys(chain.body).sort(), ['limit', 'offset', 'owner', 'toolId', 'total', 'transfers'],
+      `a chain window carries exactly its six fields: ${chain.text}`);
+  assert.equal(chain.body.owner, heir, 'the enquiry names the CURRENT holder');
+  assert.equal(chain.body.total, 1, `one handover so far, got ${chain.body.total}`);
+  assert.equal(chain.body.transfers[0].transfer, 1);
+  assert.equal(chain.body.transfers[0].from, other);
+  assert.equal(chain.body.transfers[0].to, heir);
+
+  // And back again: a chain, not a flag. The second handover is appended, never a replacement.
+  const handoverBack = await postJson(`/tools/${q(handedOverId)}/transfer?owner=${q(heir)}`, { to: other });
+  assert.equal(handoverBack.status, 200, `the new holder's transfer must be 200, got ${handoverBack.status}: ${handoverBack.text}`);
+  assert.equal(handoverBack.body.owner, other);
+  assert.equal(handoverBack.body.contractSha256, beforeHandover.body.contractSha256,
+      'two handovers later the contract is still the one the consumer pinned');
+  const chainAfter = await call(`/tools/${q(handedOverId)}/ownership`);
+  assert.equal(chainAfter.body.total, 2);
+  assert.deepEqual(chainAfter.body.transfers.map((t) => t.transfer), [2, 1], 'the chain is newest first');
+  assert.equal(chainAfter.body.transfers[0].from, heir);
+  assert.equal(chainAfter.body.transfers[0].to, other);
+  assert.equal(chainAfter.body.owner, other, 'the current holder follows the last handover');
+  const chainWindow = await call(`/tools/${q(handedOverId)}/ownership?limit=1&offset=1`);
+  assert.equal(chainWindow.body.transfers.length, 1);
+  assert.equal(chainWindow.body.transfers[0].transfer, 1, 'the older handover is still reachable');
+  assert.equal(chainWindow.body.total, 2, 'the window still reports the whole chain');
+  const clampedChain = await call(`/tools/${q(handedOverId)}/ownership?limit=500&offset=-3`);
+  assert.equal(clampedChain.body.limit, 100, 'the chain reports the cap it applied');
+  assert.equal(clampedChain.body.offset, 0, 'a negative chain offset is floored');
+  const unknownChain = await call('/tools/tool-that-never-existed/ownership');
+  assert.equal(unknownChain.status, 404, `an unknown id's chain must be 404, got ${unknownChain.status}`);
+  assert.equal(unknownChain.body.error, 'unknown-tool');
+
+  // psql reads the chain itself, and reads that neither handover wrote a revision or a trail entry.
+  assert.equal(
+      await sql(`select from_owner || '>' || to_owner from tool_ownership where tool_id = '${handedOverId}' order by transfer`),
+      `${other}>${heir}\n${heir}>${other}`,
+      'psql must read both handovers in order');
+  assert.equal(await sql(`select count(*) from tool_revision where tool_id = '${handedOverId}'`), '2',
+      'a handover is not a revision: a revision number means the CONTRACT changed');
+  assert.equal(await sql('select count(*) from audit_entry'), '0', 'a handover is not a trail fact either');
+  console.log(`[§5b] a stranger's handover was 403, a missing owner 400, an unknown id 404, a transfer to the CURRENT holder 400 and one with no target 400, and psql read the same holder and zero handover rows after all five · the owner's handover was 200 with the SAME id, name, creation instant, schema and PIN (a held pin still answered 304), while the former owner's update, deprecation and removal were each 403 and the deprecation on record was untouched · the chain named the current holder, the second handover appended as transfer 2 with the chain newest first, its window reached transfer 1 with total=2 beside it, the cap and floor were reported, an unknown id was 404, and psql read both handovers with tool_revision still at TWO and audit_entry EMPTY — a handover is not a revision`);
+
   // ── §6 the declarations and their canonical schemas survive a RESTART ──────────────────────────
   const beforeRestart = await call('/tools');
   assert.equal(beforeRestart.body.total, 4);
@@ -804,6 +913,18 @@ try {
   assert.deepEqual(revisionColumns, ['input_schema', 'recorded_at', 'revision', 'summary', 'tool_id'],
       `tool_revision must have exactly the five recorded fields, got ${JSON.stringify(revisionColumns)}`);
 
+  // The CHAIN of holders survives the process too, and still names the holder the last handover left.
+  const chainAfterRestart = await call(`/tools/${q(handedOverId)}/ownership`);
+  assert.equal(chainAfterRestart.status, 200);
+  assert.equal(chainAfterRestart.body.total, 2, 'both handovers survive the restart');
+  assert.deepEqual(chainAfterRestart.body.transfers.map((t) => t.transfer), [2, 1]);
+  assert.equal(chainAfterRestart.body.owner, other, 'the restarted service still names the current holder');
+  assert.deepEqual(chainAfterRestart.body.transfers, chainAfter.body.transfers,
+      'the chain reads back field for field');
+  const ownershipColumns = (await sql("select column_name from information_schema.columns where table_name = 'tool_ownership' order by column_name")).split('\n').filter(Boolean);
+  assert.deepEqual(ownershipColumns, ['from_owner', 'to_owner', 'tool_id', 'transfer', 'transferred_at'],
+      `tool_ownership must have exactly the five handover columns, got ${JSON.stringify(ownershipColumns)}`);
+
   // A deprecation survives the process too, and the public list still names the tool.
   const deprecationAfterRestart = await call(`/tools/${q(reclaimed.body.id)}/deprecation`);
   assert.equal(deprecationAfterRestart.status, 200, `the deprecation must survive the restart, got ${deprecationAfterRestart.status}: ${deprecationAfterRestart.text}`);
@@ -822,7 +943,7 @@ try {
       `tool_entry must have exactly the six declaration columns, got ${JSON.stringify(columns)}`);
   const count = await sql('select count(*) from tool_entry');
   assert.equal(count, '4', 'psql counts the four rows the API answers');
-  console.log(`[§6] a second JVM served the same four rows, field for field, with the re-declared name carrying the schema its owner updated · its history still answered BOTH revisions newest first · information_schema shows tool_entry has exactly ${columns.length} columns (${columns.join(', ')}) and tool_revision exactly ${revisionColumns.length} (${revisionColumns.join(', ')}) and tool_deprecation exactly ${deprecationColumns.length} (${deprecationColumns.join(', ')}), with nowhere to store a URL, a command or an invocation — the pin added no column, because it is recomputed from the bytes those columns already hold — and both revision pins came back the SAME 64 characters, so the registry declares and does not execute`);
+  console.log(`[§6] a second JVM served the same four rows, field for field, with the re-declared name carrying the schema its owner updated · its history still answered BOTH revisions newest first · information_schema shows tool_entry has exactly ${columns.length} columns (${columns.join(', ')}) and tool_revision exactly ${revisionColumns.length} (${revisionColumns.join(', ')}) and tool_deprecation exactly ${deprecationColumns.length} (${deprecationColumns.join(', ')}) and tool_ownership exactly ${ownershipColumns.length} (${ownershipColumns.join(', ')}), and the two handovers read back field for field, with nowhere to store a URL, a command or an invocation — the pin added no column, because it is recomputed from the bytes those columns already hold — and both revision pins came back the SAME 64 characters, so the registry declares and does not execute`);
 
   // ── §7 teardown ────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
@@ -833,7 +954,7 @@ try {
   assert.equal(goneContainer.stdout.trim(), '', `the throwaway container is still listed: ${goneContainer.stdout.trim()}`);
   console.log(`[§7] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log(`\n[summary] M10 v571–v578: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, an unknown id was 404, and psql read both rows · the catalog search answered a name match and a summary match, ignored case, narrowed BOTH window and count alongside the owner filter, paged with total=3, treated % and _ literally (0 matches), echoed a blank term as null, and refused a 101-character term at 400 · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its seven fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · and a second JVM served the same four rows and both revisions, field for field, the whole declaration carried a 64-hex PIN recomputed by the proof from the summary and schema the answer itself carried, delivered as a strong ETag and honoured as a 304 with no body on both read doors (with * matching and an unknown id still 404), the owner's update changed the pin while revision 1 kept the old one so a held pin answered 200, both revision pins were recomputed identically after the restart, and information_schema showed six declaration columns, five revision columns and four deprecation columns — no column for the pin — with nowhere to store an endpoint, a command or an invocation`);
+  console.log(`\n[summary] M10 v571–v579: services/nexus-api BUILT and RAN against a real PostgreSQL · three tools declared with owners, names and summaries trimmed and the schema stored as canonical compact JSON read back with psql · a GLOBAL duplicate name refused with the id that holds it · uppercase, one-character, spaced and 65-character names, a blank and a 281-character summary, a string schema, a missing schema and a malformed body all refused BY NAME · the byte bound accepted at exactly 8192 and refused at 8193 · a declaration wrote NO audit entry and knocked on nothing · the catalog answered by NAME with the owner filter narrowing both the window and the whole count, the cap and floor reported in the answer, and no capability field in any row · a stranger's removal was 403 with the row intact, an unknown id was 200 removed:false, and the owner's removal deleted the row and its history before psql read zero · the freed NAME was declared again as a NEW row under another owner · a tool was READ BY ID and BY ITS GLOBAL NAME in one request, with an uppercase name refused at 400 and a well-formed name holding nothing refused at 404 unknown-tool · a stranger's update was 403, a missing owner 400, an unknown id 404 and an over-bound schema 400, all four writing nothing, while the owner's update replaced the summary and the canonical schema and left the name, id, owner and creation instant in place · the history answered TWO revisions newest first with the birth sentence and schema intact, its window reached revision 1 with total=2 beside it, its cap and floor were reported, an unknown id was 404, and psql read both rows · the catalog search answered a name match and a summary match, ignored case, narrowed BOTH window and count alongside the owner filter, paged with total=3, treated % and _ literally (0 matches), echoed a blank term as null, and refused a 101-character term at 400 · deprecation was a separate resource: its reads and writes were owner-gated, a live tool answered 404 not-deprecated, the declaration kept its seven fields, the public list named the tool beside its message and hint, re-deprecating replaced one row, withdrawal removed it, and one deprecation survived the restart · a declaration CHANGED HANDS and stayed the same declaration: a stranger's handover, a missing owner, an unknown id, a transfer to the CURRENT holder and one with no target were each refused while psql read the same holder and an EMPTY handover table; the owner's handover answered 200 with the same id, name, creation instant, schema and PIN (so a pin held across it still answered 304), the former owner's update, deprecation and removal were each 403 with the row and its deprecation untouched, the chain of holders named the current holder and appended the way back as transfer 2 with its window, cap, floor and count, an unknown id's chain was 404, and psql read both handovers in order beside a history still at TWO revisions and an empty audit trail — a handover is not a revision · and a second JVM served the same four rows and both revisions, field for field, the whole declaration carried a 64-hex PIN recomputed by the proof from the summary and schema the answer itself carried, delivered as a strong ETag and honoured as a 304 with no body on both read doors (with * matching and an unknown id still 404), the owner's update changed the pin while revision 1 kept the old one so a held pin answered 200, both revision pins were recomputed identically after the restart, the chain of two handovers read back field for field, and information_schema showed six declaration columns, five revision columns, four deprecation columns and five handover columns — no column for the pin — with nowhere to store an endpoint, a command or an invocation`);
   rmSync(BUILD_DIR, { recursive: true, force: true });
   console.log('[m10-tool-proof] ALL ASSERTIONS PASSED (a real registry: declared rows, canonical schemas, a global name, an owner\'s update and removal, a recorded revision history that an update cannot erase, a direct read by the name every agent shares, a deprecation that is its own resource with its own public list, a catalog search whose wildcards are literal, and no capability this build does not have)');
 } finally {

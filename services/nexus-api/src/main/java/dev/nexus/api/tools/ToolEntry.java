@@ -103,11 +103,24 @@ public class ToolEntry {
     }
 
     /**
-     * Replace the sentence. The name, owner, id and instant are NOT settable: a declaration's identity and
-     * lookup key are not fields an update rewrites.
+     * Replace the sentence. The name, id and instant are NOT settable: a declaration's identity and lookup key
+     * are not fields an update rewrites. The owner is settable, but only through
+     * {@link ToolService#transfer} - see {@link #setOwner}.
      */
     public void setSummary(String summary) {
         this.summary = summary;
+    }
+
+    /**
+     * Hand the declaration to another account. Called by the transfer door and nowhere else.
+     *
+     * <p>The owner is settable where the name and id are not, because a declaration is a thing that can be
+     * GIVEN AWAY while still being the same declaration: its id, name, history and pin all survive. Every call
+     * must be paired with a {@link ToolOwnership} row by the service, or the previous holder would vanish from
+     * the record.
+     */
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
 
     /** Replace the stored canonical schema text. The caller must canonicalize and bound it first. */

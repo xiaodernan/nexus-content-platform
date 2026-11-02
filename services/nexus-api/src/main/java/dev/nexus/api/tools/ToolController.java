@@ -4,7 +4,10 @@ import dev.nexus.api.tools.ToolDtos.DeprecateRequest;
 import dev.nexus.api.tools.ToolDtos.Deprecation;
 import dev.nexus.api.tools.ToolDtos.DeprecationList;
 import dev.nexus.api.tools.ToolDtos.DeprecatedTool;
+import dev.nexus.api.tools.ToolDtos.OwnershipChain;
+import dev.nexus.api.tools.ToolDtos.OwnershipTransfer;
 import dev.nexus.api.tools.ToolDtos.RegisterRequest;
+import dev.nexus.api.tools.ToolDtos.TransferRequest;
 import dev.nexus.api.tools.ToolDtos.Tool;
 import dev.nexus.api.tools.ToolDtos.ToolList;
 import dev.nexus.api.tools.ToolDtos.ToolRevisionList;
@@ -26,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v571–v578 — the HTTP surface for the tool registry. Eleven doors, and the differences between them are the
+ * M10 v571–v579 — the HTTP surface for the tool registry. Thirteen doors, and the differences between them are the
  * rules:
  *
  * <ul>
@@ -59,6 +62,11 @@ import org.springframework.web.bind.annotation.RestController;
  *       200 with {@code removed:false} when the tool was not deprecated.
  *   <li>{@code GET /tools/deprecations?limit=&offset=} — every deprecated declaration, newest first, with
  *       the tool's name beside its deprecation so an agent can read the whole warning list in one request.
+ *   <li>{@code POST /tools/{id}/transfer?owner=} — HAND THE DECLARATION OVER, for its current owner only, to
+ *       the account named in the body. Same id, same name, same history, same pin; the handover is recorded in
+ *       the declaration's chain of holders instead of a revision, because nothing it says changed.
+ *   <li>{@code GET /tools/{id}/ownership?limit=&offset=} — that chain, newest first, with the CURRENT holder
+ *       named beside the window. A public read; an id that names nothing is a 404.
  * </ul>
  *
  * <p>There is no door that EXECUTES a tool and no door that records an invocation. A tool is declared here so
@@ -184,6 +192,49 @@ public class ToolController {
         }
         boolean removed = service.undeprecate(toolId, owner);
         return ResponseEntity.ok(Map.of("toolId", toolId, "removed", removed));
+    }
+
+    /**
+     * HAND THE DECLARATION OVER, for its current owner only.
+     *
+     * <p>Before this door a tool could not change hands: the registry's only answer was "declare it again under
+     * the new account", which mints a new id, restarts the history at revision 1 and invalidates every pin a
+     * consumer holds. The answer here is the SAME declaration with its new owner — same id, same name, same
+     * schema, same pin — and the handover itself is recorded in the declaration's chain of holders.
+     */
+    @PostMapping("/tools/{toolId}/transfer")
+    public ResponseEntity<?> transfer(
+            @PathVariable String toolId,
+            @RequestParam(name = "owner", required = false) String owner,
+            @RequestBody(required = false) TransferRequest request) {
+        if (owner == null || owner.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-tool",
+                    "message", "the owner parameter is missing — only the current owner may transfer a tool"));
+        }
+        ToolEntry row = service.transfer(toolId, owner, request == null ? null : request.to());
+        return ResponseEntity.ok(toWire(row));
+    }
+
+    /**
+     * One declaration's chain of holders, newest first, with the current holder named beside the window.
+     *
+     * <p>A public read like the declaration itself; an id that names nothing is a 404 rather than an empty
+     * chain, because "no such tool" and "a tool that never changed hands" are different facts.
+     */
+    @GetMapping("/tools/{toolId}/ownership")
+    public ResponseEntity<OwnershipChain> ownership(
+            @PathVariable String toolId,
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "offset", required = false) Integer offset) {
+        int asked = limit == null ? ToolService.DEFAULT_LIST_LIMIT : limit;
+        int effective = Math.min(Math.max(asked, 1), ToolService.MAX_LIST_LIMIT);
+        int from = offset == null ? 0 : Math.max(offset, 0);
+        ToolEntry row = service.get(toolId);
+        List<OwnershipTransfer> rows =
+                service.ownershipHistory(toolId, asked, from).stream().map(this::toWire).toList();
+        return ResponseEntity.ok(new OwnershipChain(
+                toolId, row.getOwner(), rows, service.ownershipCount(toolId), effective, from));
     }
 
     /**
@@ -340,6 +391,14 @@ public class ToolController {
                 service.schemaOf(revision),
                 service.contractSha256(revision),
                 revision.getRecordedAt().toEpochMilli());
+    }
+
+    private OwnershipTransfer toWire(ToolOwnership row) {
+        return new OwnershipTransfer(
+                row.getTransfer(),
+                row.getFromOwner(),
+                row.getToOwner(),
+                row.getTransferredAt().toEpochMilli());
     }
 
     private Deprecation toWire(ToolDeprecation row) {

@@ -44,10 +44,13 @@ class ToolServiceTest {
     @Mock
     private ToolDeprecationRepository deprecations;
 
+    @Mock
+    private ToolOwnershipRepository ownership;
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     private ToolService service() {
-        return new ToolService(repository, revisions, deprecations, Clock.fixed(AT, ZoneOffset.UTC), mapper);
+        return new ToolService(repository, revisions, deprecations, ownership, Clock.fixed(AT, ZoneOffset.UTC), mapper);
     }
 
     private static ToolEntry row(String id, String owner, String name) {
@@ -639,5 +642,133 @@ class ToolServiceTest {
         assertThat(service().contractSha256(mine)).isEqualTo(service().contractSha256(mine));
         // Nothing was written to keep it: there is no column to read and none to update.
         verify(repository, never()).save(any(ToolEntry.class));
+    }
+    // ── v579: a declaration can change hands, and the chain keeps both holders ───────────────────────
+    @Test
+    void aTransferHandsTheDeclarationOverAndRecordsTheHandover() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+        when(repository.save(mine)).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ToolEntry handedOver = service().transfer("tool-1", OWNER, "  acct-bob  ");
+
+        // Same declaration: the id and the name are the ones it was born with.
+        assertThat(handedOver.getToolId()).isEqualTo("tool-1");
+        assertThat(handedOver.getName()).isEqualTo("a.tool");
+        assertThat(handedOver.getOwner()).isEqualTo("acct-bob");
+
+        ArgumentCaptor<ToolOwnership> chain = ArgumentCaptor.forClass(ToolOwnership.class);
+        verify(ownership).save(chain.capture());
+        ToolOwnership first = chain.getValue();
+        assertThat(first.getToolId()).isEqualTo("tool-1");
+        assertThat(first.getTransfer()).isEqualTo(1);
+        assertThat(first.getFromOwner()).isEqualTo(OWNER);
+        assertThat(first.getToOwner()).isEqualTo("acct-bob");
+        assertThat(first.getTransferredAt()).isEqualTo(AT);
+
+        // A handover changes nothing the declaration SAYS, so it is not a revision: a revision number means
+        // "the contract changed", and this contract did not.
+        verify(revisions, never()).save(any(ToolRevision.class));
+    }
+
+    @Test
+    void aHandoverDoesNotChangeTheContractPin() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        ToolEntry theirs = new ToolEntry("tool-1", "acct-bob", "a.tool", "a tool", "{}", AT);
+
+        // A consumer built against this contract; the account holding the row is not part of what it built.
+        assertThat(service().contractSha256(theirs)).isEqualTo(service().contractSha256(mine));
+    }
+
+    @Test
+    void aStrangersTransferIsRefusedAndWritesNothing() {
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row("tool-1", "acct-bob", "a.tool")));
+
+        assertThatThrownBy(() -> service().transfer("tool-1", OWNER, "acct-eve"))
+                .isInstanceOf(NotYourTool.class);
+        verify(ownership, never()).save(any(ToolOwnership.class));
+        verify(repository, never()).save(any(ToolEntry.class));
+    }
+
+    @Test
+    void aTransferToTheCurrentHolderIsRefusedRatherThanRecorded() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+
+        assertThatThrownBy(() -> service().transfer("tool-1", OWNER, OWNER))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("different account");
+        // A no-op handover row would put a holder change in the chain that never happened.
+        verify(ownership, never()).save(any(ToolOwnership.class));
+    }
+
+    @Test
+    void aTransferWithoutATargetIsRefused() {
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+
+        assertThatThrownBy(() -> service().transfer("tool-1", OWNER, "   "))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("to");
+        verify(ownership, never()).save(any(ToolOwnership.class));
+    }
+
+    @Test
+    void aSecondTransferAppendsToTheChainInsteadOfReplacingIt() {
+        ToolEntry mine = row("tool-1", "acct-bob", "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+        when(repository.save(mine)).thenAnswer(invocation -> invocation.getArgument(0));
+        when(ownership.findTopByToolIdOrderByTransferDesc("tool-1"))
+                .thenReturn(Optional.of(new ToolOwnership("tool-1", 1, OWNER, "acct-bob", AT)));
+
+        service().transfer("tool-1", "acct-bob", "acct-cy");
+
+        ArgumentCaptor<ToolOwnership> chain = ArgumentCaptor.forClass(ToolOwnership.class);
+        verify(ownership).save(chain.capture());
+        assertThat(chain.getValue().getTransfer()).isEqualTo(2);
+        assertThat(chain.getValue().getFromOwner()).isEqualTo("acct-bob");
+        assertThat(chain.getValue().getToOwner()).isEqualTo("acct-cy");
+    }
+
+    @Test
+    void anUnknownToolCannotBeTransferred() {
+        when(repository.lockById("tool-missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().transfer("tool-missing", OWNER, "acct-bob"))
+                .isInstanceOf(UnknownTool.class)
+                .hasMessageContaining("tool-missing");
+        verify(ownership, never()).save(any(ToolOwnership.class));
+    }
+
+    @Test
+    void aChainOfHoldersIsANewestFirstWindowWithTheWholeCount() {
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", "acct-cy", "a.tool")));
+        when(ownership.findByToolIdOrderByTransferDesc("tool-1", PageRequest.of(0, 1)))
+                .thenReturn(List.of(new ToolOwnership("tool-1", 2, "acct-bob", "acct-cy", AT)));
+        when(ownership.countByToolId("tool-1")).thenReturn(2L);
+
+        assertThat(service().ownershipHistory("tool-1", 1, 0))
+                .extracting(ToolOwnership::getTransfer)
+                .containsExactly(2);
+        assertThat(service().ownershipCount("tool-1")).isEqualTo(2L);
+    }
+
+    @Test
+    void aChainOfAnUnknownToolIsA404RatherThanAnEmptyChain() {
+        when(repository.findById("tool-missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().ownershipHistory("tool-missing", 20, 0))
+                .isInstanceOf(UnknownTool.class);
+        verify(ownership, never()).findByToolIdOrderByTransferDesc(any(), any());
+    }
+
+    @Test
+    void removalTakesTheChainOfHoldersWithTheDeclaration() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.findById("tool-1")).thenReturn(Optional.of(mine));
+
+        assertThat(service().remove("tool-1", OWNER)).isTrue();
+
+        verify(ownership).deleteByToolId("tool-1");
+        verify(repository).delete(mine);
     }
 }

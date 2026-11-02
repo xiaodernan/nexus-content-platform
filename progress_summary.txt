@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v578 (contract pin — landed and verified; v576/MCP belongs to a parallel lane)
+Project version: v579 (ownership transfer — landed and verified; v576/MCP belongs to a parallel lane)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is ahead of origin/master; v578 is in the working tree.
+Pushed to origin/master: no — master is ahead of origin/master; v579 is in the working tree.
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -19,17 +19,20 @@ Recent increments in this lineage (all real commits, all gated):
   v573: a declaration's revision history (ADR 0024)
   v574: read a declaration by its global name in one request
   v575: deprecation as its own resource, with a public list (ADR 0025)
-  v576: MCP face (ADR 0026) — another lane's untracked work, not this lane's commit
+  v576: MCP face (ADR 0026) — another lane's work, landed by that lane
   v577: catalog search by name/summary with literal wildcards (ADR 0027)
   v578: a contract pin a consumer can hold, and the conditional read it enables (ADR 0028)
+  v579: a declaration can be given away; ownership is its own append-only chain (ADR 0029)
 
-Verification of v572–v575, v577 and v578:
-  mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 82/82 (52 service + 30 controller), exit 0
-  (the whole suite includes another lane's untracked MCP tests; the tools package is this lane's number)
+Verification of v572–v575 and v577–v579:
+  mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 97/97 (62 service + 35 controller), exit 0
+  (the whole suite includes another lane's MCP tests; the tools package is this lane's number)
   Live proof `node docs/evidence/m10/tool-registry-proof.mjs` against a real PostgreSQL: ALL ASSERTIONS PASSED
   (§4 removal leaves zero revisions; §5 the pin recomputed by the proof from the fields the answer carried,
   same value as a strong ETag, bodiless 304 on both read doors, a held pin going 200 after the owner's update;
-  §6 restart serves both revisions and information_schema shows tool_revision has exactly five columns).
+  §5b five handover refusals, the handover answering the same id/name/schema/pin (a held pin still 304), the
+  former owner refused at all three doors, and the chain appending the way back; §6 restart serves both
+  revisions and both handovers, and information_schema shows six/five/four/five columns with none for the pin).
   Not run this pass: full studio regression (AGENTS.md: do not run full suites every increment).
 
 Working tree also holds ANOTHER lane's in-flight changes (do not commit them):
@@ -46,8 +49,10 @@ ADR 0016 compliance:
   Studio→service hop 15s via shared serviceCall.ts; timeout never reported as "unreachable"
 
 Next increments (planned, see docs/LONG_TERM_PLAN.md):
-  v579: ownership transfer is still deliberately absent and needs a decision of its own — a declaration whose
-        owner cannot be changed cannot be handed over, and the registry's only answer today is "declare it
-        again under the new owner", which loses the id, the history and the pins
-  v580+: the registry lane continues (e.g. revision `since`/pruning, or a pin lookup that an index would make
-        honest). Do NOT touch the MCP face (v576, another lane).
+  v580: a consumer can hold a pin, but it cannot ask "who holds the name I pinned" without re-reading the whole
+        catalog — and the catalog's owner filter now answers a question whose answer can change under a
+        handover. Candidate: a name-addressed identity read (name → id, owner, pin, revision) that is cheap
+        because it is one row, or an `If-Modified-Since`-free "changed since" door over the catalog
+  v581+: revision `since`/pruning (a declaration's history grows without bound and there is no way to ask for
+        "what changed after X"), and a pin lookup only if an index makes it honest. Do NOT touch the MCP face
+        (v576, another lane).

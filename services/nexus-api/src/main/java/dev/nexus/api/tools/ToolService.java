@@ -75,6 +75,7 @@ public class ToolService {
     private final ToolRepository repository;
     private final ToolRevisionRepository revisions;
     private final ToolDeprecationRepository deprecations;
+    private final ToolOwnershipRepository ownership;
     private final Clock clock;
     private final ObjectMapper mapper;
 
@@ -82,11 +83,13 @@ public class ToolService {
             ToolRepository repository,
             ToolRevisionRepository revisions,
             ToolDeprecationRepository deprecations,
+            ToolOwnershipRepository ownership,
             Clock clock,
             ObjectMapper mapper) {
         this.repository = repository;
         this.revisions = revisions;
         this.deprecations = deprecations;
+        this.ownership = ownership;
         this.clock = clock;
         this.mapper = mapper;
     }
@@ -193,10 +196,99 @@ public class ToolService {
                     }
                     revisions.deleteByToolId(toolId);
                     deprecations.deleteByToolId(toolId);
+                    ownership.deleteByToolId(toolId);
                     repository.delete(row);
                     return true;
                 })
                 .orElse(false);
+    }
+
+    /**
+     * HAND THE DECLARATION OVER: the current owner names the account that holds it from now on.
+     *
+     * <p>Until this door existed a declaration could not change hands at all, and the registry's only answer
+     * was "declare it again under the new owner" — which mints a new id, starts the history at revision 1 and
+     * invalidates every pin a consumer holds. A handover keeps all three: the row stays, its name stays, its
+     * history stays, and its contract pin does NOT change, because handing a tool over does not change one word
+     * of what it says.
+     *
+     * <p>What it records is the thing a silent column flip would lose: an append-only {@link ToolOwnership}
+     * row, so the registry can still answer who held the declaration before. It is deliberately NOT a revision:
+     * a revision number means "the contract changed", and a handover leaves the contract exactly as it was.
+     *
+     * <p>The order is the one every owner-gated write uses — the id is resolved, the caller is checked against
+     * the row's CURRENT holder, and only then is the target validated, so a stranger learns nothing about which
+     * accounts would be accepted.
+     *
+     * <p>This is not an authorization boundary and does not pretend to be one: in this build an account id is
+     * host-declared and unauthenticated (ADR 0018), so a handover records intent between the two accounts named.
+     * It is a provenance boundary — the trail keeps both holders.
+     *
+     * @param toolId the declaration's id
+     * @param ownerId the account that holds it NOW
+     * @param toOwnerId the account that will hold it
+     * @return the same declaration, with its new owner
+     * @throws InvalidTool when the current owner is missing or the target breaks its rule
+     * @throws UnknownTool when the id names no row
+     * @throws NotYourTool when the row belongs to another account
+     */
+    @Transactional
+    public ToolEntry transfer(String toolId, String ownerId, String toOwnerId) {
+        String from = requireOwner(ownerId);
+        ToolEntry row = repository.lockById(toolId)
+                .orElseThrow(() -> new UnknownTool("tool \"" + toolId + "\" names nothing in this registry"));
+        if (!row.getOwner().equals(from)) {
+            throw new NotYourTool("tool \"" + toolId + "\" belongs to another account");
+        }
+        String to = requireTransferTarget(toOwnerId, row);
+        int next = ownership.findTopByToolIdOrderByTransferDesc(toolId)
+                .map(newest -> newest.getTransfer() + 1)
+                .orElse(1);
+        java.time.Instant at = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        row.setOwner(to);
+        ToolEntry saved = repository.save(row);
+        ownership.save(new ToolOwnership(toolId, next, from, to, at));
+        return saved;
+    }
+
+    /**
+     * One declaration's chain of holders, newest first. A public read like the declaration itself; an id that
+     * names nothing is a 404 rather than an empty chain.
+     *
+     * @throws UnknownTool when the id names no current declaration
+     */
+    @Transactional(readOnly = true)
+    public List<ToolOwnership> ownershipHistory(String toolId, int limit, int offset) {
+        get(toolId);
+        int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
+        int from = Math.max(offset, 0);
+        return ownership.findByToolIdOrderByTransferDesc(toolId, PageRequest.of(from / effective, effective));
+    }
+
+    /** The WHOLE number of recorded handovers of one declaration. */
+    @Transactional(readOnly = true)
+    public long ownershipCount(String toolId) {
+        return ownership.countByToolId(toolId);
+    }
+
+    /**
+     * The account a handover names: trimmed, bounded like every owner id, and refused when it already holds the
+     * declaration. A transfer to the current holder is a mistake rather than a no-op, and writing a handover row
+     * for it would put a holder change in the chain that never happened.
+     */
+    static String requireTransferTarget(String raw, ToolEntry row) {
+        String to = normalizeOwner(raw);
+        if (to == null) {
+            throw new InvalidTool("a transfer needs the account that receives the tool — the body field \"to\" is empty");
+        }
+        if (to.length() > MAX_OWNER_LENGTH) {
+            throw new InvalidTool("an owner id is at most " + MAX_OWNER_LENGTH
+                    + " characters — this one is " + to.length());
+        }
+        if (to.equals(row.getOwner())) {
+            throw new InvalidTool("a transfer must name a different account — " + to + " already holds tool " + row.getName());
+        }
+        return to;
     }
 
     /**

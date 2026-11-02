@@ -475,4 +475,81 @@ class ToolControllerTest {
         assertThat(notModified.getStatusCode().value()).isEqualTo(304);
         assertThat(notModified.getBody()).isNull();
     }
+
+    // ── v579: the handover door and the chain of holders ─────────────────────────────────────────────
+    @Test
+    @SuppressWarnings("unchecked")
+    void aTransferWithoutAnOwnerIsRefusedBeforeAnythingIsRead() {
+        ResponseEntity<?> answer = controller().transfer("tool-1", "  ", new ToolDtos.TransferRequest("acct-bob"));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        Map<String, Object> body = (Map<String, Object>) answer.getBody();
+        assertThat(body).containsEntry("error", "invalid-tool");
+        assertThat((String) body.get("message")).contains("owner");
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void aTransferAnswersTheSameDeclarationWithItsNewOwner() throws Exception {
+        ToolEntry handedOver = new ToolEntry("tool-1", "acct-bob", "a.tool", "a tool", "{}", AT);
+        when(service.transfer("tool-1", OWNER, "acct-bob")).thenReturn(handedOver);
+        when(service.schemaOf(handedOver)).thenReturn(emptyObject());
+
+        ResponseEntity<?> answer = controller()
+                .transfer("tool-1", OWNER, new ToolDtos.TransferRequest("acct-bob"));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        ToolDtos.Tool body = (ToolDtos.Tool) answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.id()).isEqualTo("tool-1");
+        assertThat(body.name()).isEqualTo("a.tool");
+        assertThat(body.owner()).isEqualTo("acct-bob");
+        // The pin travels on this answer too: a handover does not invalidate what a consumer pinned.
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(7);
+    }
+
+    @Test
+    void aTransferWithoutABodyStillReachesTheServiceWithNoTargetSoTheRuleNamesIt() {
+        when(service.transfer("tool-1", OWNER, null)).thenThrow(new InvalidTool("a transfer needs the account that receives the tool"));
+
+        Throwable refused = org.assertj.core.api.Assertions.catchThrowable(
+                () -> controller().transfer("tool-1", OWNER, null));
+
+        assertThat(refused).isInstanceOf(InvalidTool.class);
+    }
+
+    @Test
+    void theChainOfHoldersNamesTheCurrentHolderAndTheWindowItApplied() {
+        ToolEntry mine = new ToolEntry("tool-1", "acct-cy", "a.tool", "a tool", "{}", AT);
+        when(service.get("tool-1")).thenReturn(mine);
+        when(service.ownershipHistory("tool-1", 500, 0))
+                .thenReturn(List.of(new ToolOwnership("tool-1", 2, "acct-bob", "acct-cy", AT)));
+        when(service.ownershipCount("tool-1")).thenReturn(2L);
+
+        ResponseEntity<ToolDtos.OwnershipChain> answer = controller().ownership("tool-1", 500, -3);
+
+        ToolDtos.OwnershipChain body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.toolId()).isEqualTo("tool-1");
+        assertThat(body.owner()).isEqualTo("acct-cy");
+        assertThat(body.total()).isEqualTo(2L);
+        assertThat(body.limit()).isEqualTo(ToolService.MAX_LIST_LIMIT);
+        assertThat(body.offset()).isZero();
+        assertThat(body.transfers()).hasSize(1);
+        assertThat(body.transfers().get(0).transfer()).isEqualTo(2);
+        assertThat(body.transfers().get(0).from()).isEqualTo("acct-bob");
+        assertThat(body.transfers().get(0).to()).isEqualTo("acct-cy");
+        assertThat(body.transfers().get(0).transferredAt()).isEqualTo(AT.toEpochMilli());
+    }
+
+    @Test
+    void aChainOfAnUnknownToolIsA404RatherThanAnEmptyChain() {
+        when(service.get("tool-missing"))
+                .thenThrow(new UnknownTool("tool \"tool-missing\" names nothing in this registry"));
+
+        Throwable refused = org.assertj.core.api.Assertions.catchThrowable(
+                () -> controller().ownership("tool-missing", null, null));
+
+        assertThat(refused).isInstanceOf(UnknownTool.class);
+    }
 }
