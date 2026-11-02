@@ -24,6 +24,16 @@ public interface ToolRevisionRepository extends JpaRepository<ToolRevision, Tool
     List<ToolRevision> findByToolIdOrderByRevisionDesc(String toolId, Pageable page);
 
     /**
+     * M10 v590 - the WHOLE history, newest first, for a read that must scan it.
+     *
+     * <p>A pin is computed from a revision's stored bytes and never indexed (ADR 0028), so "which revision
+     * carries this pin" is a scan BY DESIGN. It is bounded because it is scoped to ONE declaration and
+     * retention is the owner's (ADR 0032): the door that owns an unbounded scan over the whole registry does
+     * not exist, and this query is not it.
+     */
+    List<ToolRevision> findByToolIdOrderByRevisionDesc(String toolId);
+
+    /**
      * M10 v580 - the revisions a caller does not already have: everything newer than {@code since}.
      *
      * <p>A consumer that recorded revision 5 asks "what changed after 5" and pays only for the answer. The

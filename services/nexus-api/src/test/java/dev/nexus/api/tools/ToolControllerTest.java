@@ -677,6 +677,34 @@ class ToolControllerTest {
         assertThat(mapper.valueToTree(body).size()).isEqualTo(8);
     }
 
+    // ── v590: the declaration at one pin ─────────────────────────────────────────────────────────────
+    @Test
+    void readingAtAPinAnswersTheRevisionAndWhetherItIsStillCurrent() throws Exception {
+        ToolEntry current = row("tool-1", OWNER, "a.tool");
+        when(service.atPin("tool-1", PIN)).thenReturn(new ToolRevision("tool-1", 1, "old sentence", "{}", AT));
+        when(service.get("tool-1")).thenReturn(current);
+        when(service.contractSha256(any(ToolRevision.class))).thenReturn(PIN);
+        when(service.contractSha256(current)).thenReturn(PIN);
+        when(service.schemaOf(any(ToolRevision.class))).thenReturn(emptyObject());
+
+        ToolDtos.RevisionAtPin body = controller().atPin("tool-1", PIN).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.revision()).isEqualTo(1);
+        assertThat(body.current()).isTrue();
+        assertThat(body.contractSha256()).isEqualTo(PIN);
+        // Seven fields: the revision's own five plus the id it belongs to and the derived currency flag.
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(7);
+    }
+
+    @Test
+    void aPinThatNamesNoRecordedRevisionIs404UnderItsOwnName() {
+        ResponseEntity<Map<String, String>> answer =
+                controller().unknownPin(new UnknownPin("tool \"tool-1\" has no revision carrying the pin \"x\""));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(404);
+        assertThat(answer.getBody()).containsEntry("error", "unknown-pin");
+    }
     // ── v589: the tested filter names a claim, never a verdict ───────────────────────────────────────
     @Test
     void theTestedFilterIsEchoedAndNarrowsTheWindow() throws Exception {

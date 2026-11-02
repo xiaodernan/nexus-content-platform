@@ -912,6 +912,47 @@ class ToolServiceTest {
         verify(revisions, never()).deleteByToolIdAndRevisionLessThan(any(), any(Integer.class));
     }
 
+    // ── v590: the declaration at ONE pin, and the fact that the pin is not a column ────────────────
+    @Test
+    void thePinAPinnedConsumerHoldsFindsTheRevisionThatCarriesIt() {
+        ToolRevision birth = new ToolRevision("tool-1", 1, "a tool", "{}", AT);
+        ToolRevision later = new ToolRevision("tool-1", 2, "a better tool", "{}", AT);
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findByToolIdOrderByRevisionDesc("tool-1")).thenReturn(List.of(later, birth));
+
+        String birthPin = service().contractSha256(birth);
+
+        assertThat(service().atPin("tool-1", birthPin).getRevision()).isEqualTo(1);
+    }
+
+    @Test
+    void aPinThisDeclarationNeverRecordedIs404UnderItsOwnName() {
+        ToolRevision birth = new ToolRevision("tool-1", 1, "a tool", "{}", AT);
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findByToolIdOrderByRevisionDesc("tool-1")).thenReturn(List.of(birth));
+
+        assertThatThrownBy(() -> service().atPin("tool-1", "0".repeat(64)))
+                .isInstanceOf(UnknownPin.class)
+                .hasMessageContaining("no revision");
+    }
+
+    @Test
+    void aMalformedPinIs400AndTheHistoryIsNeverScanned() {
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+
+        assertThatThrownBy(() -> service().atPin("tool-1", "ABC"))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("64");
+        verify(revisions, never()).findByToolIdOrderByRevisionDesc(any(String.class));
+    }
+
+    @Test
+    void theIdIsSettledBeforeThePinIsJudged() {
+        when(repository.findById("tool-missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().atPin("tool-missing", "nonsense"))
+                .isInstanceOf(UnknownTool.class);
+    }
     // ── v582/v589: the polarity filters, and the fact that they never change a row ────────────────────
     @Test
     void theDeprecatedFilterAsksTheDeprecatedPolarityAndTheCountFollows() {

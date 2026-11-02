@@ -119,6 +119,24 @@ public final class ToolDtos {
     }
 
     /**
+     * M10 v590 - the declaration AS IT WAS at one pin: one recorded revision, chosen by the 64-hex pin the
+     * caller holds rather than by a revision number it never chose.
+     *
+     * <p>{@code current} is recomputed on every read: true when this pin is ALSO the contract being served
+     * now. It is the one fact a consumer needs after fetching old bytes - "is this what I would install today,
+     * or is there a newer one?" - and it is derived rather than stored, like the attestation's
+     * {@code stillCurrent}, because a stored flag would drift from the row it describes.
+     */
+    public record RevisionAtPin(
+            String toolId,
+            int revision,
+            String summary,
+            JsonNode inputSchema,
+            String contractSha256,
+            long recordedAt,
+            boolean current) {
+    }
+    /**
      * One entry in the registry's journal: what happened, to which declaration, in what order.
      *
      * <p>{@code seq} is the cursor a caller advances. {@code name} is the declaration's name AT the time of the

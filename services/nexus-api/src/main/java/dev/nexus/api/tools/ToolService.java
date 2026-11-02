@@ -486,6 +486,37 @@ public class ToolService {
     }
 
     /**
+     * M10 v590 — the declaration AS IT WAS at one pin: the recorded revision whose own bytes hash to the
+     * 64-hex pin the caller holds.
+     *
+     * <p>A consumer that pinned a contract knows the pin, not the revision number, and the number is the
+     * server's bookkeeping rather than something the caller ever chose. This door answers "give me exactly the
+     * bytes I pinned" from the history the registry already keeps, so a caller that was told its pin went
+     * stale can read the old contract and diff it against the new one without having stored the schema.
+     *
+     * <p>The lookup is a SCAN of one declaration's history: the pin is computed from each revision's stored
+     * bytes and is never a column (ADR 0028), so there is nothing to index. That is bounded by the two facts
+     * that make it acceptable — it never leaves one tool's rows, and retention is the owner's (ADR 0032) — and
+     * a pruned revision is simply no longer here, which is why an unknown pin is a 404 rather than a 500.
+     *
+     * @throws UnknownTool when the id names no current declaration
+     * @throws InvalidTool when the pin is absent or not 64 lowercase hex characters
+     * @throws UnknownPin when the declaration has no revision carrying that pin
+     */
+    @Transactional(readOnly = true)
+    public ToolRevision atPin(String toolId, String pin) {
+        get(toolId);
+        if (pin == null || pin.isBlank()) {
+            throw new InvalidTool("a read by pin must name the contract pin it wants");
+        }
+        String wanted = requirePin(pin);
+        return revisions.findByToolIdOrderByRevisionDesc(toolId).stream()
+                .filter(revision -> wanted.equals(contractSha256(revision)))
+                .findFirst()
+                .orElseThrow(() -> new UnknownPin("tool \"" + toolId + "\" has no revision carrying the pin \""
+                        + wanted + "\" — it may never have been written here, or retention may have removed it"));
+    }
+    /**
      * The WHOLE number of recorded revisions of one declaration — of the NARROWED history when {@code since}
      * is given, because a window must not claim to be the whole when it is not.
      */

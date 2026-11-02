@@ -8,6 +8,7 @@ import dev.nexus.api.tools.ToolDtos.DeprecationList;
 import dev.nexus.api.tools.ToolDtos.DeprecatedTool;
 import dev.nexus.api.tools.ToolDtos.OwnershipChain;
 import dev.nexus.api.tools.ToolDtos.PruneRevisionsAnswer;
+import dev.nexus.api.tools.ToolDtos.RevisionAtPin;
 import dev.nexus.api.tools.ToolDtos.OwnershipTransfer;
 import dev.nexus.api.tools.ToolDtos.RegisterRequest;
 import dev.nexus.api.tools.ToolDtos.TransferRequest;
@@ -63,6 +64,10 @@ import org.springframework.web.bind.annotation.RestController;
  *       what it SAID at each accepted write, with the whole count beside the window. The optional
  *       {@code since} asks only for what came AFTER a revision the caller already has, and narrows the count
  *       with it. A public read; an id that names nothing is a 404 rather than an empty history.
+ *   <li>{@code GET /tools/{id}/at?pin=} — the declaration AS IT WAS at one pin: the recorded revision whose own
+ *       bytes hash to the 64-hex pin the caller holds, with {@code current} saying whether that is still the
+ *       contract served today. An absent or malformed pin is a 400; a well-formed pin this declaration never
+ *       recorded (or retention removed) is a 404 under its own name, {@code unknown-pin}.
  *   <li>{@code PUT /tools/{id}?owner=} — REPLACE a declaration's summary and schema, for its owner only. The
  *       name, owner, id and creation instant cannot change: an update changes what a declaration SAYS, not
  *       which declaration it is.
@@ -440,6 +445,24 @@ public class ToolController {
     }
 
     /**
+     * v590 — the declaration at ONE pin: the recorded revision whose own bytes hash to the pin the caller holds.
+     *
+     * <p>The pin is the caller's handle on a contract; the revision number is this service's bookkeeping. A
+     * consumer that was told its pin went stale can fetch exactly the bytes it pinned, and {@code current} says
+     * in the same answer whether those bytes are still what would be installed today.
+     *
+     * <p>Existence is settled before the pin is judged for shape, the same order the attestation door follows:
+     * an unknown id is a 404 whether or not the pin is well formed, because 400 would blame the caller's
+     * parameter for a missing row.
+     */
+    @GetMapping("/tools/{toolId}/at")
+    public ResponseEntity<RevisionAtPin> atPin(
+            @PathVariable String toolId,
+            @RequestParam(name = "pin", required = false) String pin) {
+        ToolRevision revision = service.atPin(toolId, pin);
+        return ResponseEntity.ok(toWire(revision, service.get(toolId)));
+    }
+    /**
      * Replace a declaration's summary and schema, for its owner only.
      *
      * <p>The owner is REQUIRED before anything is read, and the name is not part of the body: an update
@@ -614,6 +637,19 @@ public class ToolController {
     @ExceptionHandler(StaleContract.class)
     public ResponseEntity<Map<String, String>> stale(StaleContract e) {
         return ResponseEntity.status(409).body(Map.of("error", "stale-contract", "message", e.getMessage()));
+    }
+
+    /** A pin this declaration never recorded is a 404 under its own name, distinct from an unknown id. */
+    @ExceptionHandler(UnknownPin.class)
+    public ResponseEntity<Map<String, String>> unknownPin(UnknownPin e) {
+        return ResponseEntity.status(404).body(Map.of("error", "unknown-pin", "message", e.getMessage()));
+    }
+
+    private RevisionAtPin toWire(ToolRevision revision, ToolEntry current) {
+        String pin = service.contractSha256(revision);
+        return new RevisionAtPin(revision.getToolId(), revision.getRevision(), revision.getSummary(),
+                service.schemaOf(revision), pin, revision.getRecordedAt().toEpochMilli(),
+                pin.equals(service.contractSha256(current)));
     }
 
     /** A declaration nobody has attested is a 404 under its own name, distinct from an unknown id. */

@@ -50,3 +50,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0036  | Liveness is not readiness: two doors, two audiences           | Accepted |
 | 0037  | The process's own numbers: a sample, not a metrics system | Accepted |
 | 0038  | The catalog can name the rows that carry a claim: a `tested` filter | Accepted |
+| 0040  | The contract you pinned can be read back: a lookup by pin, scoped to one declaration | Accepted |
