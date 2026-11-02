@@ -2,8 +2,12 @@ package dev.nexus.api.tools;
 
 import java.util.List;
 import java.util.Optional;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * M10 v571 — the tool registry's doors.
@@ -19,6 +23,16 @@ public interface ToolRepository extends JpaRepository<ToolEntry, String> {
     /** The row that holds this name, when the name is taken — the lookup that makes a duplicate a 409. */
     Optional<ToolEntry> findByName(String name);
 
+    /**
+     * The declaration, locked for the duration of the caller's transaction.
+     *
+     * <p>M10 v573: an update appends the next revision, and two concurrent updates that both read "the newest
+     * is 2" would both try to write 3. The parent row is the thing they share, so locking it serializes the
+     * numbering without a second counter column that could drift from the history it describes.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select t from ToolEntry t where t.toolId = :toolId")
+    Optional<ToolEntry> lockById(@Param("toolId") String toolId);
     /** The whole catalog, name ascending — the window, not the whole table. */
     List<ToolEntry> findAllByOrderByNameAsc(Pageable page);
 

@@ -71,7 +71,10 @@ The update stores the canonical compact schema, measured against the same 8192-b
 ## Tradeoffs (stated, not implied)
 
 - **No `updated_at`.** Reads cannot say when a declaration last changed; only `createdAt` exists. A caller
-  that needs the edit history would need a trail fact, and ADR 0022 chose not to write one.
+  that needs the edit history would need a trail fact, and ADR 0022 chose not to write one. **The history
+  half of this tradeoff is closed by ADR 0024 (v573):** every accepted write is recorded as a revision and
+  `GET /tools/{id}/revisions` answers what the declaration said at each one. The row still gains no
+  `updated_at`.
 - **No rename.** Freeing a name still means removing the row and declaring again, with a new id — the one
   operation ADR 0022 described as "a name is not an id". A rename door would need the duplicate rule again.
 - **No transfer of ownership.** The owner field cannot be updated. Handing a declaration to another account

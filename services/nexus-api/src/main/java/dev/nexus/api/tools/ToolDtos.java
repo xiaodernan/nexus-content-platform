@@ -48,4 +48,22 @@ public final class ToolDtos {
      */
     public record ToolList(String owner, List<Tool> tools, long total, int limit, int offset) {
     }
+
+    /**
+     * One recorded revision of a declaration: what it SAID, and when this service recorded that writing.
+     *
+     * <p>{@code revision} is scoped to the tool: 1 is the declaration as registered (or the first state this
+     * build recorded for a row that predates the history table), and every accepted update appends one more.
+     */
+    public record ToolRevisionView(int revision, String summary, JsonNode inputSchema, long recordedAt) {
+    }
+
+    /**
+     * One declaration's history window, newest revision first, and the WHOLE count beside it.
+     *
+     * <p>{@code toolId} is echoed so a reader of a window can tell which contract's history it is looking at.
+     */
+    public record ToolRevisionList(
+            String toolId, List<ToolRevisionView> revisions, long total, int limit, int offset) {
+    }
 }

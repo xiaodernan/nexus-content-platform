@@ -222,4 +222,53 @@ class ToolControllerTest {
         assertThat(answer.getBody()).containsEntry("error", "unknown-tool");
         assertThat(answer.getBody().get("message")).contains("names nothing");
     }
+    @Test
+    void aHistoryAnswersTheWindowAndTheWholeCountWithNoCapabilityField() throws Exception {
+        ToolRevision newest = new ToolRevision("tool-1", 2, "A better sentence.", "{\"type\":\"object\"}", AT);
+        ToolRevision first = new ToolRevision("tool-1", 1, "a tool", "{}", AT.minusSeconds(60));
+        when(service.history("tool-1", 20, 0)).thenReturn(List.of(newest, first));
+        when(service.revisionCount("tool-1")).thenReturn(2L);
+        when(service.schemaOf(newest)).thenReturn(emptyObject());
+        when(service.schemaOf(first)).thenReturn(emptyObject());
+
+        ResponseEntity<ToolDtos.ToolRevisionList> answer = controller().revisions("tool-1", null, null);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        ToolDtos.ToolRevisionList body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.toolId()).isEqualTo("tool-1");
+        assertThat(body.total()).isEqualTo(2);
+        assertThat(body.limit()).isEqualTo(20);
+        assertThat(body.offset()).isZero();
+        assertThat(body.revisions()).extracting(ToolDtos.ToolRevisionView::revision).containsExactly(2, 1);
+        assertThat(body.revisions().get(0).recordedAt()).isEqualTo(AT.toEpochMilli());
+        assertThat(body.revisions().get(1).summary()).isEqualTo("a tool");
+
+        JsonNode wire = mapper.valueToTree(body);
+        assertThat(wire.has("revisions")).isTrue();
+        assertThat(wire.toString()).doesNotContain("url").doesNotContain("invocation").doesNotContain("secret");
+    }
+
+    @Test
+    void aHistoryReportsTheLimitItActuallyApplied() throws Exception {
+        when(service.history("tool-1", 500, 7)).thenReturn(List.of());
+        when(service.revisionCount("tool-1")).thenReturn(0L);
+
+        ResponseEntity<ToolDtos.ToolRevisionList> answer = controller().revisions("tool-1", 500, 7);
+
+        ToolDtos.ToolRevisionList body = answer.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.limit()).isEqualTo(100);
+        assertThat(body.offset()).isEqualTo(7);
+        assertThat(body.revisions()).isEmpty();
+    }
+
+    @Test
+    void aHistoryOfAnUnknownToolReachesTheSameFourHundredAndFour() {
+        when(service.history("tool-missing", 20, 0))
+                .thenThrow(new UnknownTool("tool \"tool-missing\" names nothing in this registry"));
+
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> controller().revisions("tool-missing", null, null)))
+                .isInstanceOf(UnknownTool.class);
+    }
 }

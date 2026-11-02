@@ -3,6 +3,8 @@ package dev.nexus.api.tools;
 import dev.nexus.api.tools.ToolDtos.RegisterRequest;
 import dev.nexus.api.tools.ToolDtos.Tool;
 import dev.nexus.api.tools.ToolDtos.ToolList;
+import dev.nexus.api.tools.ToolDtos.ToolRevisionList;
+import dev.nexus.api.tools.ToolDtos.ToolRevisionView;
 import dev.nexus.api.tools.ToolDtos.UpdateRequest;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * M10 v571–v572 — the HTTP surface for the tool registry. Five doors, and the differences between them are the
+ * M10 v571–v573 — the HTTP surface for the tool registry. Six doors, and the differences between them are the
  * rules:
  *
  * <ul>
@@ -30,6 +32,9 @@ import org.springframework.web.bind.annotation.RestController;
  *       the whole (narrowed) number, so a window can say what it is hiding.
  *   <li>{@code GET /tools/{id}} — one declaration by id. A public read, like the catalog; an id that names
  *       nothing is a 404 rather than an empty row.
+ *   <li>{@code GET /tools/{id}/revisions?limit=&offset=} — the declaration's recorded history, newest first:
+ *       what it SAID at each accepted write, with the whole count beside the window. A public read; an id
+ *       that names nothing is a 404 rather than an empty history.
  *   <li>{@code PUT /tools/{id}?owner=} — REPLACE a declaration's summary and schema, for its owner only. The
  *       name, owner, id and creation instant cannot change: an update changes what a declaration SAYS, not
  *       which declaration it is.
@@ -88,6 +93,22 @@ public class ToolController {
     }
 
     /**
+     * One declaration's recorded history, newest first. A public read, and a 404 when the id names nothing:
+     * "no such tool" is not "a tool with no history".
+     */
+    @GetMapping("/tools/{toolId}/revisions")
+    public ResponseEntity<ToolRevisionList> revisions(
+            @PathVariable String toolId,
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "offset", required = false) Integer offset) {
+        int asked = limit == null ? ToolService.DEFAULT_LIST_LIMIT : limit;
+        int effective = Math.min(Math.max(asked, 1), ToolService.MAX_LIST_LIMIT);
+        int from = offset == null ? 0 : Math.max(offset, 0);
+        List<ToolRevisionView> rows = service.history(toolId, asked, from).stream().map(this::toWire).toList();
+        return ResponseEntity.ok(new ToolRevisionList(toolId, rows, service.revisionCount(toolId), effective, from));
+    }
+
+    /**
      * Replace a declaration's summary and schema, for its owner only.
      *
      * <p>The owner is REQUIRED before anything is read, and the name is not part of the body: an update
@@ -141,6 +162,14 @@ public class ToolController {
                 row.getSummary(),
                 service.schemaOf(row),
                 row.getCreatedAt().toEpochMilli());
+    }
+
+    private ToolRevisionView toWire(ToolRevision revision) {
+        return new ToolRevisionView(
+                revision.getRevision(),
+                revision.getSummary(),
+                service.schemaOf(revision),
+                revision.getRecordedAt().toEpochMilli());
     }
 
     /** A rule the caller broke is a 400 that NAMES it. */

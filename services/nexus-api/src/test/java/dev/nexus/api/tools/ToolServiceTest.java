@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
@@ -37,10 +38,13 @@ class ToolServiceTest {
     @Mock
     private ToolRepository repository;
 
+    @Mock
+    private ToolRevisionRepository revisions;
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     private ToolService service() {
-        return new ToolService(repository, Clock.fixed(AT, ZoneOffset.UTC), mapper);
+        return new ToolService(repository, revisions, Clock.fixed(AT, ZoneOffset.UTC), mapper);
     }
 
     private static ToolEntry row(String id, String owner, String name) {
@@ -210,12 +214,12 @@ class ToolServiceTest {
         assertThatThrownBy(() -> service().update("tool-1", "  ", "a tool", mapper.readTree("{}")))
                 .isInstanceOf(InvalidTool.class)
                 .hasMessageContaining("owner");
-        verify(repository, never()).findById(any());
+        verify(repository, never()).lockById(any());
     }
 
     @Test
     void updatingAnUnknownIdIsA404AndSavesNothing() {
-        when(repository.findById("tool-missing")).thenReturn(Optional.empty());
+        when(repository.lockById("tool-missing")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service().update("tool-missing", OWNER, "a tool", mapper.readTree("{}")))
                 .isInstanceOf(UnknownTool.class)
@@ -226,7 +230,7 @@ class ToolServiceTest {
     @Test
     void aStrangerCannotUpdateAndTheRowIsUntouched() {
         ToolEntry somebodys = row("tool-1", "acct-bob", "a.tool");
-        when(repository.findById("tool-1")).thenReturn(Optional.of(somebodys));
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(somebodys));
 
         assertThatThrownBy(() -> service().update("tool-1", OWNER, "rewritten", mapper.readTree("{}")))
                 .isInstanceOf(NotYourTool.class)
@@ -238,7 +242,7 @@ class ToolServiceTest {
     @Test
     void theOwnerReplacesSummaryAndSchemaWhileTheNameAndInstantStay() throws Exception {
         ToolEntry mine = row("tool-1", OWNER, "a.tool");
-        when(repository.findById("tool-1")).thenReturn(Optional.of(mine));
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
         when(repository.save(mine)).thenAnswer(invocation -> invocation.getArgument(0));
         JsonNode pretty = mapper.readTree("{\n  \"type\": \"object\"\n}");
 
@@ -256,7 +260,7 @@ class ToolServiceTest {
     @Test
     void anUpdateRefusesTheSameFieldBoundsBeforeSaving() throws Exception {
         ToolEntry mine = row("tool-1", OWNER, "a.tool");
-        when(repository.findById("tool-1")).thenReturn(Optional.of(mine));
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
 
         assertThatThrownBy(() -> service().update("tool-1", OWNER, "x".repeat(281), mapper.readTree("{}")))
                 .isInstanceOf(InvalidTool.class)
@@ -269,5 +273,91 @@ class ToolServiceTest {
                 .isInstanceOf(InvalidTool.class)
                 .hasMessageContaining("8193");
         verify(repository, never()).save(any(ToolEntry.class));
+    }
+    @Test
+    void registeringRecordsRevisionOneOfTheDeclarationAsBorn() throws Exception {
+        when(repository.findByName("weather.lookup")).thenReturn(Optional.empty());
+        when(repository.save(any(ToolEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ToolEntry stored = service().register(OWNER, "weather.lookup", "Looks up weather.", mapper.readTree("{}"));
+
+        ArgumentCaptor<ToolRevision> written = ArgumentCaptor.forClass(ToolRevision.class);
+        verify(revisions).save(written.capture());
+        ToolRevision first = written.getValue();
+        assertThat(first.getToolId()).isEqualTo(stored.getToolId());
+        assertThat(first.getRevision()).isEqualTo(1);
+        assertThat(first.getSummary()).isEqualTo(stored.getSummary());
+        assertThat(first.getInputSchema()).isEqualTo(stored.getInputSchema());
+        assertThat(first.getRecordedAt()).isEqualTo(AT);
+    }
+
+    @Test
+    void anUpdateAppendsTheNextRevisionAndLeavesTheEarlierOneAlone() throws Exception {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(mine));
+        when(revisions.findTopByToolIdOrderByRevisionDesc("tool-1"))
+                .thenReturn(Optional.of(new ToolRevision("tool-1", 1, "a tool", "{}", AT)));
+        when(repository.save(mine)).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service().update("tool-1", OWNER, "A better sentence.", mapper.readTree("{\n  \"type\": \"object\"\n}"));
+
+        ArgumentCaptor<ToolRevision> written = ArgumentCaptor.forClass(ToolRevision.class);
+        verify(revisions).save(written.capture());
+        ToolRevision second = written.getValue();
+        assertThat(second.getToolId()).isEqualTo("tool-1");
+        assertThat(second.getRevision()).isEqualTo(2);
+        assertThat(second.getSummary()).isEqualTo("A better sentence.");
+        assertThat(second.getInputSchema()).isEqualTo("{\"type\":\"object\"}");
+        assertThat(second.getRecordedAt()).isEqualTo(AT);
+        // The parent row is locked so two updates cannot both read "the newest is 1" and both write 2.
+        verify(repository).lockById("tool-1");
+    }
+
+    @Test
+    void aHistoryIsANewestFirstWindowWithTheWholeCount() {
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findByToolIdOrderByRevisionDesc("tool-1", PageRequest.of(0, 1)))
+                .thenReturn(List.of(new ToolRevision("tool-1", 3, "third", "{}", AT)));
+        when(revisions.findByToolIdOrderByRevisionDesc("tool-1", PageRequest.of(3, 1)))
+                .thenReturn(List.of(new ToolRevision("tool-1", 1, "first", "{}", AT)));
+        when(revisions.countByToolId("tool-1")).thenReturn(3L);
+
+        List<ToolRevision> newest = service().history("tool-1", 1, 0);
+        List<ToolRevision> older = service().history("tool-1", 1, 3);
+
+        assertThat(newest).extracting(ToolRevision::getRevision).containsExactly(3);
+        assertThat(older).extracting(ToolRevision::getRevision).containsExactly(1);
+        assertThat(service().revisionCount("tool-1")).isEqualTo(3);
+    }
+
+    @Test
+    void aHistoryOfAnUnknownToolIsA404AndNoWindowIsRead() {
+        when(repository.findById("tool-missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().history("tool-missing", 20, 0))
+                .isInstanceOf(UnknownTool.class)
+                .hasMessageContaining("tool-missing");
+        verify(revisions, never()).findByToolIdOrderByRevisionDesc(any(), any());
+    }
+
+    @Test
+    void removalTakesTheHistoryWithTheDeclaration() {
+        ToolEntry mine = row("tool-1", OWNER, "a.tool");
+        when(repository.findById("tool-1")).thenReturn(Optional.of(mine));
+
+        assertThat(service().remove("tool-1", OWNER)).isTrue();
+
+        verify(revisions).deleteByToolId("tool-1");
+        verify(repository).delete(mine);
+    }
+
+    @Test
+    void aStrangersUpdateWritesNoRevision() throws Exception {
+        ToolEntry somebodys = row("tool-1", "acct-bob", "a.tool");
+        when(repository.lockById("tool-1")).thenReturn(Optional.of(somebodys));
+
+        assertThatThrownBy(() -> service().update("tool-1", OWNER, "rewritten", mapper.readTree("{}")))
+                .isInstanceOf(NotYourTool.class);
+        verify(revisions, never()).save(any(ToolRevision.class));
     }
 }

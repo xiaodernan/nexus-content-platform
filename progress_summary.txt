@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v572 (details and the owner's update — landed, gated, committing now)
+Project version: v573 (a declaration's revision history — landed and verified)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is 4 commits ahead (v568–v571); v572 is in the working tree.
+Pushed to origin/master: no — master is 6 commits ahead (v568–v573).
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -16,12 +16,14 @@ Recent increments in this lineage (all real commits, all gated):
   v570: a subscription's health read off its own receipts
   v571: the tool registry DECLARES tools and never executes them
   v572: details by id and the owner's update (ADR 0023)
+  v573: a declaration's revision history (ADR 0024)
 
-Verification of v572:
-  services/nexus-api targeted tests: ToolServiceTest 19/19, ToolControllerTest 12/12
-  (mvn -o -Dtest=ToolServiceTest,ToolControllerTest test)
-  Live proof docs/evidence/m10/tool-registry-proof.mjs updated (§5 details/update, §6 restart, §7 teardown);
-  it needs Docker + PostgreSQL and is run by `npm run verify:tools`.
+Verification of v572–v573:
+  mvn -B test -f services/nexus-api/pom.xml: 556/556 in 29 classes, exit 0
+  (v573 adds 25 ToolServiceTest + 15 ToolControllerTest = 40 targeted cases)
+  Live proof `node docs/evidence/m10/tool-registry-proof.mjs` against a real PostgreSQL: ALL ASSERTIONS PASSED
+  (§4 removal leaves zero revisions; §5 two revisions newest first with the birth schema intact; §6 restart
+  serves both and information_schema shows tool_revision has exactly five columns).
   Not run this pass: full studio regression (AGENTS.md: do not run full suites every increment).
 
 Working tree also holds ANOTHER lane's in-flight changes (do not commit them):
@@ -38,6 +40,6 @@ ADR 0016 compliance:
   Studio→service hop 15s via shared serviceCall.ts; timeout never reported as "unreachable"
 
 Next increments (planned, see docs/LONG_TERM_PLAN.md):
-  v573: a declaration's revision history — PUT appends what the declaration SAID, so a consumer can see
-        the contract it built against and every later change (ADR 0024)
-  v574+: resolve a tool by its global NAME in one read; deprecation as a separate door; then M10's MCP face
+  v574: resolve a tool by its global NAME in one read — a name is the key every agent shares, yet the only
+        name-addressed read is a paged catalog (ADR 0022's own rationale)
+  v575+: deprecation as a separate door; a schema hash a consumer can pin; then M10's MCP face

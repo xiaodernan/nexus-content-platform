@@ -70,11 +70,13 @@ public class ToolService {
     private static final Pattern NAME_SHAPE = Pattern.compile("[a-z0-9][a-z0-9._-]*");
 
     private final ToolRepository repository;
+    private final ToolRevisionRepository revisions;
     private final Clock clock;
     private final ObjectMapper mapper;
 
-    public ToolService(ToolRepository repository, Clock clock, ObjectMapper mapper) {
+    public ToolService(ToolRepository repository, ToolRevisionRepository revisions, Clock clock, ObjectMapper mapper) {
         this.repository = repository;
+        this.revisions = revisions;
         this.clock = clock;
         this.mapper = mapper;
     }
@@ -105,7 +107,9 @@ public class ToolService {
                 description,
                 schema,
                 clock.instant().truncatedTo(ChronoUnit.MICROS));
-        return repository.save(row);
+        ToolEntry saved = repository.save(row);
+        record(saved, 1, saved.getCreatedAt());
+        return saved;
     }
 
     /**
@@ -146,6 +150,7 @@ public class ToolService {
                     if (!row.getOwner().equals(owner)) {
                         throw new NotYourTool("tool \"" + toolId + "\" belongs to another account");
                     }
+                    revisions.deleteByToolId(toolId);
                     repository.delete(row);
                     return true;
                 })
@@ -180,22 +185,62 @@ public class ToolService {
     @Transactional
     public ToolEntry update(String toolId, String ownerId, String summary, JsonNode inputSchema) {
         String owner = requireOwner(ownerId);
-        ToolEntry row = repository.findById(toolId)
+        ToolEntry row = repository.lockById(toolId)
                 .orElseThrow(() -> new UnknownTool("tool \"" + toolId + "\" names nothing in this registry"));
         if (!row.getOwner().equals(owner)) {
             throw new NotYourTool("tool \"" + toolId + "\" belongs to another account");
         }
         row.setSummary(requireSummary(summary));
         row.setInputSchema(requireSchema(inputSchema));
-        return repository.save(row);
+        ToolEntry saved = repository.save(row);
+        int next = revisions.findTopByToolIdOrderByRevisionDesc(toolId)
+                .map(newest -> newest.getRevision() + 1)
+                .orElse(1);
+        record(saved, next, clock.instant().truncatedTo(ChronoUnit.MICROS));
+        return saved;
+    }
+
+    /**
+     * One declaration's recorded history, newest first. A public read like the declaration itself; an id that
+     * names nothing is a 404, not an empty history, because "no such tool" and "a tool nobody ever wrote" are
+     * different facts.
+     *
+     * @throws UnknownTool when the id names no current declaration
+     */
+    @Transactional(readOnly = true)
+    public List<ToolRevision> history(String toolId, int limit, int offset) {
+        get(toolId);
+        int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
+        int from = Math.max(offset, 0);
+        return revisions.findByToolIdOrderByRevisionDesc(toolId, PageRequest.of(from / effective, effective));
+    }
+
+    /** The WHOLE number of recorded revisions of one declaration. */
+    @Transactional(readOnly = true)
+    public long revisionCount(String toolId) {
+        return revisions.countByToolId(toolId);
+    }
+
+    /** Append one revision row - the write both the registration and every accepted update go through. */
+    private void record(ToolEntry row, int revision, java.time.Instant recordedAt) {
+        revisions.save(new ToolRevision(row.getToolId(), revision, row.getSummary(), row.getInputSchema(), recordedAt));
     }
 
     /** The stored canonical text as the tree the wire shape carries. Trusting internal storage here. */
     public JsonNode schemaOf(ToolEntry row) {
+        return parseSchema(row.getInputSchema(), row.getToolId());
+    }
+
+    /** The same read for a recorded revision, whose schema is the one it SAID at that instant. */
+    public JsonNode schemaOf(ToolRevision revision) {
+        return parseSchema(revision.getInputSchema(), revision.getToolId());
+    }
+
+    private JsonNode parseSchema(String stored, String toolId) {
         try {
-            return mapper.readTree(row.getInputSchema());
+            return mapper.readTree(stored);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("stored input schema of tool " + row.getToolId() + " is not JSON", e);
+            throw new IllegalStateException("stored input schema of tool " + toolId + " is not JSON", e);
         }
     }
 

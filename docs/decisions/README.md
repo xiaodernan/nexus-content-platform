@@ -33,3 +33,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0021  | External webhook subscriptions: the first outbound contract | Accepted |
 | 0022  | The tool registry: declare, never execute                  | Accepted |
 | 0023  | Tool details and the owner's update                        | Accepted |
+| 0024  | A tool declaration's revision history                      | Accepted |
