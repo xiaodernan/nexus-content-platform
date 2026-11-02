@@ -74,10 +74,13 @@ export function createNexusMcpServer(config: NexusApiConfig): McpServer {
       title: '给 NEXUS 设计文档打补丁',
       description:
         '向一份设计文档提交可撤销的补丁（一次调用 = Studio 历史里的一条记录）。' +
-        'ops 是补丁操作数组：set / unset / merge / insert / remove / reparent / reorder / setToken / addToken / removeToken / ' +
+        'ops 是补丁操作数组：set / unset / merge / insert / remove / reparent / reorder / instantiate / ' +
+        'setToken / addToken / removeToken / setVisualDna / ' +
         'addComponent / removeComponent / restoreComponent / addAsset / removeAsset / restoreAsset / addPage / removePage，' +
         '每次 1-200 条。注意：删除类 op（removePage / removeComponent / removeAsset）会被 approval_required 拒——' +
-        '公网这一侧没有人能批准破坏性操作；引用了不存在节点的 op 会被 ops_skipped 整体拒绝，不会写一半。',
+        '公网这一侧没有人能批准破坏性操作；引用了不存在节点的 op 会被 ops_skipped 整体拒绝，不会写一半。' +
+        'instantiate 的 instanceId 由调用方自己起一个全新的：撤销那条 op 是在应用**之前**算的，' +
+        '不带着 id 就写不出"把这一颗连同复制体一起收走"。',
       inputSchema: {
         projectId: z.string().min(1).describe('项目 id'),
         summary: z.string().min(1).max(200).describe('这次补丁的一句话摘要（进项目历史）'),

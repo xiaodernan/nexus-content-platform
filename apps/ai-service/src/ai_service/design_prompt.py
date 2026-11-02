@@ -22,6 +22,7 @@ ops 只允许以下形状（字段名与取值必须严格一致）：
 - {"op":"set","nodeId":"...","path":"size.width","value":123}
 - {"op":"merge","nodeId":"...","path":"style","value":{...}}
 - {"op":"insert","parentId":"...","index":0,"node":{...}}
+- {"op":"instantiate","componentId":"...","instanceId":"一个全新 id","parentId":"...","index":0}
 - {"op":"remove","nodeId":"..."}
 - {"op":"reparent","nodeId":"...","parentId":"...","index":0}
 - {"op":"reorder","parentId":"...","from":0,"to":1}

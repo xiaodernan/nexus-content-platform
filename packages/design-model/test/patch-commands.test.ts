@@ -111,6 +111,35 @@ describe("applyPatch", () => {
     expect(removed.document.pages[0]!.nodes[button.id]).toBeUndefined();
   });
 
+  /**
+   * `insert` 的撞 id 过去只查当前页，抄的是同族里最松的那一档。库里 `design_nodes` 的主键是
+   * `(page_id, id)`——跨页重号数据库挡不住，而按 id 找节点的读路径写的是
+   * `pages.find(p => p.nodes[id])`：第一个命中就算真值（`components.ts` 找实例页与主组件页）。
+   * 前提先钉住：那颗 id **不在**当前页上。不写这一句，把门退回"只查当前页"会静默通过。
+   */
+  it("撞 id 查整份文档：id 只在另一页上，也不许在这一页再插一份", () => {
+    const { doc, page } = seed();
+    const other = createPage("第二页");
+    const ghost = createNode({ type: "text", name: "Ghost", text: "另一页那份" });
+    ghost.id = "tex_ghost";
+    other.nodes[ghost.id] = ghost;
+    other.nodes[other.rootId]!.children = [ghost.id];
+    doc.pages.push(other);
+    expect(findPage(doc, page.id)!.nodes["tex_ghost"]).toBeUndefined();
+
+    const dup = createNode({ type: "text", name: "Copy", text: "这一页这份" });
+    dup.id = "tex_ghost";
+    const result = applyPatch(doc, {
+      pageId: page.id,
+      ops: [{ op: "insert", node: dup, parentId: page.rootId, index: 0 }],
+    });
+    expect(result.skipped).toHaveLength(1);
+    expect(result.skipped[0]!.reason).toContain("duplicate node id tex_ghost");
+    // 被挡下的那一刀不在页面上留下半个节点（与 instantiate 那四道校验同一规矩）
+    expect(findPage(result.document, page.id)!.nodes["tex_ghost"]).toBeUndefined();
+    expect(findPage(result.document, other.id)!.nodes["tex_ghost"]).toBe(ghost);
+  });
+
   it("refuses reparenting into own descendant", () => {
     const { doc, hero, title } = seed();
     const result = applyPatch(doc, {

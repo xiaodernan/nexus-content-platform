@@ -787,13 +787,27 @@ export function walkDocument(
     walk(page, (node, depth) => visit(node, page, depth));
 }
 
-/** 组件实例化：复制主组件子树为 instance 的 children，记录 componentId（§13） */
+/**
+ * 组件实例化：复制主组件子树为 instance 的 children，记录 componentId（§13）。
+ *
+ * `pageId` 指的是**主组件根所在的那一页**（组件可以住在任何页，实例要放到另一页），
+ * 不是目标页——函数只负责造出这一份复制，插进哪一页由调用方（`instantiate` op）决定。
+ *
+ * `instanceId` 让调用方点名新实例的 id。这不是为了好看：`invertPatch` 拿的是**改动前**那份
+ * 文档，那时这个实例还不存在，op 里若不带 id，撤销就写不出"把它连同子树一起收走"的那一条
+ * （§150 说所有编辑都可撤销，而撤销要能指名道姓）。
+ */
 export function instantiateComponent(
   doc: DesignDocument,
   component: ComponentDefinition,
   parentId: string,
   pageId?: string,
-): { instance: DesignNode; copiedIds: string[] } {
+  instanceId?: string,
+): {
+  instance: DesignNode;
+  copiedIds: string[];
+  nodes: Record<string, DesignNode>;
+} {
   const page = findPage(doc, pageId) ?? doc.pages[0];
   if (!page) throw new Error("document has no page");
   const sourceRoot = page.nodes[component.rootId];
@@ -806,7 +820,16 @@ export function instantiateComponent(
     newParentId: string | null,
   ): DesignNode => {
     const next = clone(node);
-    next.id = uid(node.type.slice(0, 3));
+    // 复制体的 id 是**推出来的**（实例 id + 源节点 id），不是现场摇的随机数。
+    // 摇随机数会犯 §16 的忌：同一条 `instantiate` op 在客户端和服务端**各 apply 一次**
+    // （客户端改内存里那份，自动保存把同一条 op 送去服务端在库里那份上重放，
+    // `patchProjectDocument`）。两边各得一套 id，两份文档就只是"看起来一样"——
+    // 之后任何点名复制体内部节点的 op（"更新实例"第一条就是 remove 旧复制体）在服务端那份上
+    // `node ... not found`，整批 409，客户端换整份 PUT 兜底，界面照样好看、缺陷看不见
+    // （2026-11-03 e2e 的 PATCH 计数抓到，`components-panel.spec.ts` 那条同步见证）。
+    // 推出来的 id 让两次重放产出**同一份文档**；壳子 id 已由 `instantiate` 的撞 id 门保证全库唯一，
+    // 后缀是同一棵子树里各不相同的源 id，所以复制体之间也不会撞。
+    next.id = `${node.type.slice(0, 3)}_${instance.id}_${node.id}`;
     next.parentId = newParentId;
     next.children = [];
     copied.push(next);
@@ -829,8 +852,18 @@ export function instantiateComponent(
     ),
     size: { width: sourceRoot.size.width, height: sourceRoot.size.height },
   });
+  if (instanceId) instance.id = instanceId;
+  // 复制体的类型照抄主组件根，只有 `component` 要降成 container：那是"我是主组件"的目录标记，
+  // 画布上不该因为放了一个实例就多出第二个标记。
+  // 过去这里无条件写 container，于是把一行文字存成组件再放实例，复制体会丢掉文字类型——
+  // 容器不排版文字，量出来 8px 高，文字压在原文上（2026-11-02 看截图抓到的）。
   const body = copyTree(
-    { ...sourceRoot, id: "tmp", parentId: instance.id, type: "container" },
+    {
+      ...sourceRoot,
+      // 源 id 要留着：复制体的 id 是它推出来的（上面那段），写成临时 id 会把主组件自己的那一份抹掉
+      parentId: instance.id,
+      type: sourceRoot.type === "component" ? "container" : sourceRoot.type,
+    },
     instance.id,
   );
   instance.children = [body.id];
@@ -839,5 +872,5 @@ export function instantiateComponent(
     [body.id]: body,
   };
   for (const c of copied) if (c.id !== body.id) nodes[c.id] = c;
-  return { instance, copiedIds: Object.keys(nodes) };
+  return { instance, copiedIds: Object.keys(nodes), nodes };
 }

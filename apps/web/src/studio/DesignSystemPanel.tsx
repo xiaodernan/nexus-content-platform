@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { DEFAULT_TOKENS, type Token } from '@nexus/design-model';
+import { DEFAULT_TOKENS, syncInstanceOps, uid, type Token } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
 import { tokenUsage } from './token-usage';
 import { studio, useStudioReady } from './store';
@@ -78,6 +78,15 @@ export function DesignSystemPanel() {
     }
     return n;
   };
+  /**
+   * 当前这一页上接着这份主组件的实例。
+   * 只数这一页不是偷懒：`studio.execute` 的补丁一律打在 activePageId 上，
+   * 按钮承诺"这一页的 N 颗"，别的工作簿切过去再点——在按钮上写"全部"是假话。
+   */
+  const pageInstancesOf = (componentId: string): string[] =>
+    Object.values(state.page.nodes)
+      .filter((node) => node.type === 'instance' && node.componentId === componentId)
+      .map((node) => node.id);
 
   /**
    * 引用计数：整棵页面树里引用过某个 token 的节点数（一个节点多次引用只算一次）。
@@ -198,25 +207,84 @@ export function DesignSystemPanel() {
           <ul className="mt-1 flex flex-col gap-1">
             {document.components.map((component) => {
               const refs = instanceCount(component.id);
+              const onThisPage = pageInstancesOf(component.id);
+              // 能不能同步以**产出的 op** 为准，不以"这一页有没有实例"为准：
+              // 复制体缺了的那颗会返回空串，那时按下只会得一条被 skip 的记账（§159）
+              const syncOps = onThisPage.flatMap((id) => syncInstanceOps(document, component, id));
               return (
                 <li
                   key={component.id}
-                  className="flex items-center gap-2 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1"
+                  className="flex flex-col gap-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1"
                   data-component-card={component.id}
                 >
-                  <span className="truncate text-12 text-fg-1" title={component.name}>
-                    {component.name}
-                  </span>
-                  <span className="ml-auto shrink-0 font-mono text-11 text-fg-3">引用 {refs}</span>
-                  <button
-                    type="button"
-                    onClick={() => studio.execute(`删除组件 ${component.name}`, [{ op: 'removeComponent', componentId: component.id }])}
-                    data-component-delete={component.id}
-                    title="从组件目录里移出，并解开所有页面上引用它的实例（可撤销）"
-                    className="shrink-0 rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3"
-                  >
-                    删除
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-12 text-fg-1" title={component.name}>
+                      {component.name}
+                    </span>
+                    <span className="ml-auto shrink-0 font-mono text-11 text-fg-3">引用 {refs}</span>
+                  </div>
+                  {/* 动作换一行摆：这一栏宽约 280px，三个按钮加名字排不进同一行，
+                      排不进去的那一个会被画布盖住——e2e 点它时不是失败而是干等到超时
+                      （2026-11-03 加「更新实例」的下一格就踩到了，见 §13 第三十五片） */}
+                  <div className="flex flex-wrap items-center gap-1">
+                    <button
+                      type="button"
+                      // 主组件的根节点不在任何页面上了（老数据 / 那一页被删过）就造不出复制体：
+                      // 按下去只会得一条 skipped 记账，不如直接不让点（§159 不假装能用）
+                      disabled={!rootOf(component.rootId)}
+                      onClick={() => {
+                        // id 在客户端点名下：`instantiate` 的撤销条目要能指名道姓，
+                        // 而 invertPatch 跑在 apply 之前，那时这颗实例还不存在（§150）
+                        const instanceId = uid('ins');
+                        studio.execute(`放入 ${component.name} 实例`, [
+                          { op: 'instantiate', componentId: component.id, instanceId },
+                        ]);
+                        // 落成了才选上：viewer 只读模式下 execute 会被按下，那时不该把选区指向不存在的节点
+                        if (studio.getSnapshot().page?.nodes[instanceId]) studio.select([instanceId]);
+                      }}
+                      data-component-instantiate={component.id}
+                      title={
+                        rootOf(component.rootId)
+                          ? '把这份组件复制一个实例放到当前页末尾（可撤销）'
+                          : '主组件的根节点已经不在任何页面上了，放不出实例'
+                      }
+                      className="rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3 disabled:opacity-50"
+                    >
+                      放到当前页
+                    </button>
+                    <button
+                      type="button"
+                      disabled={syncOps.length === 0}
+                      onClick={() =>
+                        studio.execute(`更新 ${component.name} 的 ${onThisPage.length} 个实例`, syncOps)
+                      }
+                      data-component-sync={component.id}
+                      data-component-sync-count={onThisPage.length}
+                      title={
+                        syncOps.length > 0
+                          ? `把这一页上 ${onThisPage.length} 个实例的复制体换成主组件现在的样子（可撤销）`
+                          : refs === 0
+                            ? '还没有实例引用这份组件'
+                            : `引用都在别的页面上（共 ${refs} 个）；切过去才能更新那一页`
+                      }
+                      className="rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3 disabled:opacity-50"
+                    >
+                      更新实例{onThisPage.length > 0 ? ` ${onThisPage.length}` : ''}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        studio.execute(`删除组件 ${component.name}`, [
+                          { op: 'removeComponent', componentId: component.id },
+                        ])
+                      }
+                      data-component-delete={component.id}
+                      title="从组件目录里移出，并解开所有页面上引用它的实例（可撤销）"
+                      className="rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3"
+                    >
+                      删除
+                    </button>
+                  </div>
                 </li>
               );
             })}

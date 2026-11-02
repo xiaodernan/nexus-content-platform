@@ -260,6 +260,35 @@
                   "properties": {
                     "op": {
                       "type": "string",
+                      "const": "instantiate"
+                    },
+                    "componentId": {
+                      "type": "string"
+                    },
+                    "instanceId": {
+                      "type": "string"
+                    },
+                    "parentId": {
+                      "type": "string"
+                    },
+                    "index": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "op",
+                    "componentId",
+                    "instanceId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "op": {
+                      "type": "string",
                       "const": "remove"
                     },
                     "nodeId": {

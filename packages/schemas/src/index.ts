@@ -25,6 +25,9 @@ export const PatchOpSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('unset'), nodeId: z.string(), path: z.string() }),
   z.object({ op: z.literal('merge'), nodeId: z.string(), path: z.string().optional().default(''), value: z.record(z.string(), z.unknown()) }),
   z.object({ op: z.literal('insert'), node: z.record(z.string(), z.unknown()), parentId: z.string(), index: z.number().int().min(0).optional() }),
+  // §13 实例化：instanceId 必填而不是可选。撤销那条 op 是在 apply **之前**算的，
+  // 那时新节点还不存在——op 不带着 id，undo 就写不出"把这一颗连同子树收走"（§150）
+  z.object({ op: z.literal('instantiate'), componentId: z.string(), instanceId: z.string(), parentId: z.string().optional(), index: z.number().int().min(0).optional() }),
   z.object({ op: z.literal('remove'), nodeId: z.string() }),
   z.object({ op: z.literal('reparent'), nodeId: z.string(), parentId: z.string(), index: z.number().int().min(0).optional() }),
   z.object({ op: z.literal('reorder'), parentId: z.string(), from: z.number().int().min(0), to: z.number().int().min(0) }),

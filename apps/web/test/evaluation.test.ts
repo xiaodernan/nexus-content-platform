@@ -84,6 +84,24 @@ describe('missingPatchReferences（Hallucination 的确定性代理）', () => {
     ]), doc)).toEqual(['父-不存在']);
   });
 
+  it('instantiate 查组件与父节点，op 点名的实例 id 进本批 created', () => {
+    expect(missingPatchReferences(patch([
+      { op: 'instantiate', componentId: 'cmp-不存在', instanceId: 'ins_1', parentId: '父-不存在' },
+    ]), doc)).toEqual(['cmp-不存在', '父-不存在']);
+    // parentId 省略 = 当前页根，那条引用不该凭空报出来
+    expect(missingPatchReferences(patch([
+      { op: 'instantiate', componentId: 'cmp-不存在', instanceId: 'ins_1' },
+    ]), doc)).toEqual(['cmp-不存在']);
+    const withCmp = {
+      ...doc,
+      components: [{ id: 'cmp-1', name: '按钮', rootId: node.id, props: [], variants: [], slots: [] }],
+    };
+    expect(missingPatchReferences(patch([
+      { op: 'instantiate', componentId: 'cmp-1', instanceId: 'ins_1' },
+      { op: 'set', nodeId: 'ins_1', path: 'size.width', value: 240 },
+    ]), withCmp)).toEqual([]);
+  });
+
   it('本批先建后引（链式插入）：是编排不是幻觉', () => {
     expect(missingPatchReferences(patch([
       { op: 'insert', node: withId('区块', 'container'), parentId: page.rootId },

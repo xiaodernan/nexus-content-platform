@@ -68,6 +68,15 @@ export function missingPatchReferences(
           check(op.parentId);
           created.add(op.node.id);
           break;
+        case 'instantiate':
+          // 主组件必须真的在目录里，目标父节点必须真的可达（省略就是当前页根）
+          check(op.componentId);
+          check(op.parentId);
+          // 只登记 op 点名的这一个 id：复制出来的子节点 id 是 apply 时才造的，op 里没有，
+          // 所以指向实例内部的后续 op 会被判成悬空。这是保守方向——宁可多报一条让 AI 改，
+          // 也不要放过去一条"引用了不存在节点"的补丁。
+          created.add(op.instanceId);
+          break;
         case 'reparent':
           check(op.nodeId);
           check(op.parentId);

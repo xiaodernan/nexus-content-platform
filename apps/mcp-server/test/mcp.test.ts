@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createNexusMcpServer } from '../src/server';
@@ -195,6 +197,41 @@ describe('MCP 工具面（§188）', () => {
     const pub = tools.tools.find((tool) => tool.name === 'nexus_publish')!;
     expect(pub.description).toContain('unlisted');
     expect(pub.description).toContain('界面');
+    await client.close();
+  });
+
+  /**
+   * 词表写在外层就是"外部 Agent 照着旧清单发非法补丁"。op 名单不在这里手抄——从
+   * `contracts/design-patch.schema.json` 里读出来（那份文件由 `npm run contract:export` 从 zod 生成，
+   * 与模型的 `PatchOp` 同批维护）。加 `instantiate` 那一片就漏了这条描述，同一次核对还翻出
+   * 一个更早就漏的 `setVisualDna`，所以这道门常驻。
+   */
+  it('nexus_patch_design 的描述点名契约里的每一条 op（模型加了 op 忘了写这里 → 红在这里）', async () => {
+    const contract = JSON.parse(
+      readFileSync(
+        fileURLToPath(new URL('../../../contracts/design-patch.schema.json', import.meta.url)),
+        'utf8',
+      ),
+    ) as unknown;
+    const ops = new Set<string>();
+    const walk = (node: unknown): void => {
+      if (!node || typeof node !== 'object') return;
+      const rec = node as Record<string, unknown>;
+      if (typeof rec.op === 'object' && rec.op !== null && typeof (rec.op as { const?: unknown }).const === 'string') {
+        ops.add((rec.op as { const: string }).const);
+      }
+      for (const value of Object.values(rec)) walk(value);
+    };
+    walk(contract);
+    // 契约读空了也要红：那样下面的断言会全绿，等于没有门
+    expect(ops.size).toBeGreaterThanOrEqual(20);
+
+    const client = await connect(config);
+    const tools = await client.listTools();
+    const description =
+      tools.tools.find((tool) => tool.name === 'nexus_patch_design')?.description ?? '';
+    const missing = [...ops].filter((op) => !description.includes(op));
+    expect(missing, `MCP 描述里没点名的 op：${missing.join(' / ')}`).toEqual([]);
     await client.close();
   });
 

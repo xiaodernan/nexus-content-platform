@@ -3163,7 +3163,10 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
 - 两次红都不是被测代码的错，记下来免得下次再踩：① 断言按钮 disabled 之前先切了面板——元素还没渲染；
   ② 图层行只在"图层"那一栏里存在，切到设计系统栏之后再查 `[data-layer-id]` 必然为空。
   **跨面板取句柄的顺序必须是：先拿 id，再换栏。**
-- 仍未做：把实例"重置为主组件""变体切换"接进界面（§13 的 override 那半），以及从组件目录一键实例化到当前页。
+- 仍未做：把实例"重置为主组件""变体切换"接进界面（§13 的 override 那半）。
+  ~~以及从组件目录一键实例化到当前页~~ **已做**（§13 第三十四片，见文末那一节）。
+  ~~改主组件，实例不跟上~~ **手动那半已做**（§13 第三十五片：`syncInstanceOps()` + 面板「更新实例」，
+  自动跟随仍欠，那要转向 ADR-0078 的选项 1）。
 
 **再补：§39 / §40 的 Character → Scene（同日第四格）**
 - 需求 §39 要的是"用户建一个角色，系统存 identity/appearance/style/clothing/traits，后续生成**同一个角色在不同场景里**，
@@ -9021,3 +9024,242 @@ responsive rules**。ADR-0069 与 ADR-0074 把访客那一侧接完之后，作�
   还停在旧 blob**，于是 `git status` 读起来像"我还有 473 行没提交"，而下一个用共享索引提交的人会把这一片**静默
   revert**。收尾因此是固定一步：提交完立刻 `git add -- <自己那几条路径>`——工作树内容此刻等于 HEAD，这一步不改
   任何内容，只把共享索引对齐回来。
+
+## §13 第三十四片：组件目录里点一下就放得进画布——`instantiate` 这条 op 之前根本不存在（2026-11-02）
+
+- 起点是上一片那句"仍未做"。查下去发现比"缺个按钮"更糟：`instantiateComponent()`（模型层，§13 早期写的）
+  **返回形状不足以落库**——它只回 `{instance, copiedIds}`，那份 `Record<id, node>` 没带出来，
+  所以任何调用方拿到结果都写不进页面；而补丁词汇表里也没有一条 op 会去调它。
+  合起来就是：模型 API 有实现、没入口，画布上想放一个组件实例只能让 AI 手写 `insert` 一颗一颗堆。
+  现在补的是 `PatchOp` 的 `instantiate`（`{componentId, instanceId, parentId?, index?}`）+ 设计系统面板
+  每张组件卡上的「放到当前页」。
+- **`instanceId` 是必填的，而且不是洁癖**：`invertPatch` 拿的是**改动前**那份文档，那时这颗实例还不存在，
+  op 里不带着 id 就写不出"把它连同子树一起收走"的撤销条目（§150 说所有编辑都可撤销，撤销要能指名道姓）。
+  复制体内部的节点 id 是 apply 时才造的，所以逆操作只写一条 `remove`——它自己在**应用后**的文档上收集子树。
+- 四道校验全部写在"还没往页面上落一个字"的位置：组件不在目录 / 主组件根不在任何页 / 父节点不存在 /
+  `instanceId` 撞已有节点。跳过的那一刀不留半个实例——"壳子在、子树缺一半"那种节点既不是主组件也不是实例，
+  渲染与 AI Diff 只能各自猜（§16 / §159）。源页按"哪一页真的有那个根节点"找，不信任 `component.pageId`
+  那份可能过期的登记，所以**主组件住在别的页、实例放到当前页**这一格是通的（有用例）。
+- **撞 id 那道门后来查宽了一档**：初版只查当前页（`page.nodes[op.instanceId]`），抄的是 `insert` 的写法。
+  但 `insert` 的 node.id 也来自调用方，这一族本来就有个空档：那时 `validate.ts` 的 `duplicate-id` **只管页面 id**，
+  节点 id 跨页重复没有任何门会拦，之后按 id 找节点的（写的是 `pages.find(p => p.nodes[id])`，
+  第一个命中就算真值）只能任选一页当真值。——这一格已在第三十六片补上（门扩到节点 id + `insert` 一起查宽）。
+  `instantiate` 的 id 是调用方必填的，所以这一条由我兜：改成 `cow.document.pages.some(...)` 全文档查
+  （`cow.page()` 已经把可写页换进 `document.pages`，当前页自然被覆盖，不必再查两遍）。
+  用例先钉前提再钉结果：`expect(findPage(doc, home.id)!.nodes[root.id]).toBeUndefined()`——
+  不把"只在另一页"写成断言，退回只查当前页的写法就会静默通过。
+  **同一个空档在 `insert` 那里还开着**（改它会让今天能过的补丁变成整批 409，不该夹在这片里顺手做），记进下面仍欠。
+- 顺带接上同族的五处门，缺一个就是半条路：`packages/schemas` 的 `PatchOpSchema`（自动保存发的是 ops，
+  这条 op 过不了报文门就只能退回整份 PUT——见下面 A5 那一格，界面一样说"已保存"，但把合并语义换成了"缺失即删"的整份替换）、
+  `npm run contract:export` 的
+  三份 `contracts/*.json`（ai-service 按文件校验，改了 zod 不重导就是 Python 侧拒收）、
+  `missingPatchReferences` 的 `case 'instantiate'`（查 componentId 与 parentId，把 instanceId 记进本批 created，
+  否则"先实例化再改它"会被判成幻觉）。AI 侧的 op 清单也加了这一条（`design_prompt.py`）。
+- **数词表时才发现第五处**：MCP 工具 `nexus_patch_design` 的 description 里手抄着一份 op 清单
+  （`apps/mcp-server/src/server.ts:77`），它既没有 `instantiate`，也早就没有 `setVisualDna`——
+  外部 Agent 只会照着这份清单发补丁，漏一条就等于那条 op 对 MCP 不存在。补齐后把门常驻：
+  `apps/mcp-server/test/mcp.test.ts` 从 `contracts/design-patch.schema.json` 里读出全部 op 名
+  （不手抄第二份清单），逐条要求描述点名，并且先要求契约至少列出 20 条——
+  契约要是读空了，下面的断言会全绿，那正是"没有门"。
+- **看图抓到的一处真错**：`instantiateComponent` 过去无条件把复制体扭成 `container`。把一行文字存成组件
+  再放实例，复制体就丢了文字类型——容器不排版文字，量出来 **1440 × 8**，文字压在原文上（第一张截图就是这样）。
+  现在只有 `component`（"我是主组件"的目录标记）降成 container，其余类型照抄。改完同一份用例量到 1440 × 62，
+  两份文字各站各处。
+- 读数：`packages/design-model` 439/439（其中新增 `patch-instantiate.test.ts` 15 条）、
+  `packages/schemas` 358/358（新增 `patch-instantiate.test.ts` 3 条：合法 op / 可选字段与负 index / 缺 instanceId 被拒）、
+  `apps/mcp-server` 21/21（`mcp.test.ts` 14 条，含新的词表门；`mcp-http.test.ts` 7 条）、
+  `apps/web/test/evaluation.test.ts` 13/13、`e2e/components-panel.spec.ts` **2 passed（15.9 秒）**
+  （第二条这次多钉两层：撤销/重做之后等自动保存、刷新再读一次目录，外加下面 A5 那两条 PATCH 计数）。
+  这三套合跑一次是 `Test Files 41 passed / Tests 809 passed`（438+358+13 对得上），
+  ai-service 那侧 `77 passed`（`design_prompt.py` 动了一行清单，Python 的门仍然认这份提示词）。
+  全仓单测整跑一次：`Tests 3383 passed | 2 failed (3385)`——**两条红都不在本片**：
+  `apps/web/test/responsive-editor.test.ts` 的 `CHANNEL_CASES[spec.id]` 解构不到 `layout.reverse`
+  与它的 tsc 报错同源，是并行会话那半片还没写完的通道表（本片提交闸被同一句挡住，见文末"共享 worktree"那条纪律）。
+  这一跑还教了一条仪器常识：整跑开始**之后**才写的两处改动，可能被已经 import 过那份模块的 worker 用旧版跑——
+  `patch.ts` 在整跑早期就被别的用例载入，所以我随后查宽的那道门没进那次运行，新用例红在
+  `skipped[0]` 是 undefined。那不是缺陷，是读数过期：单独重跑 `patch-instantiate.test.ts`（15/15）
+  与 `apps/mcp-server`（21/21）全绿，那才是本片代码的读数。
+  截图 `screenshots/components-instantiate.png` 人眼看过：目录卡片写着引用 1、画布上多一份 Headline、
+  右侧属性面板是 `instance · Headline`（放完自动选中，用户不用去树里找）。
+- 臂表（每臂一次改动、跑完立刻恢复，`grep -c "MUT "` 归零）：
+  **A1** 只挂壳子不挂复制体 → 单测 5/14 红 **且** e2e 红在 `data-layer-total` 期望 9 实得 8；
+  **A2** 摘掉 `instanceId` 撞车 guard → 正好红那一条（skipped 没记账）；
+  **A3** 逆操作改成"把壳子设可见" → 单测 2 红（形状 + 节点数 15≠11），e2e 红在撤销后仍写"引用 1"；
+  **A4** 复制体退回 container → 红在新那条类型用例（`expected 'container' to be 'text'`）；
+  **A6** `created.add(op.instanceId)` 换成别的串 → 红在 evaluation 的新用例（`['ins_1']` 被判捏造）。
+  **A7**（查宽之后补的）把那道门退回只查当前页 → `1 failed | 14 passed`，
+  红在点名它的那一条（`instanceId 撞在别的面上的节点`）——前提断言 `findPage(doc, home.id)!.nodes[root.id]`
+  是 undefined 让这条臂有牙：那颗 id 只在另一页，只看当前页就放过去了。
+  **A8** 把 `instantiate` 从 MCP 描述里摘掉（清单那句与末尾那句都摘，只摘一处会因为另一句仍然提到而绿）
+  → `1 failed | 13 passed`，红在 `MCP 描述里没点名的 op：instantiate`。
+  **A5** 摘掉 `packages/schemas` 里 `instantiate` 那条 zod → **第一跑是绿的，这就是一条惰性臂**，
+  而它当时看着完全合理：那条 e2e 末尾已经写了"等自动保存 → 刷新 → 目录仍写引用 1"。
+  查下去才知道这句见证根本证不到报文门——`store.save()` 里有
+  `if (res && (res.status === 409 || res.status === 400)) res = await putBody()`（`apps/web/src/studio/store.ts:638`）：
+  补丁被门拒掉，客户端**当场换整份 PUT 再送一次**，PUT 发的是同一个人内存里的同一份状态，实例于是照样落库。
+  界面说"已保存"、刷新后照样看得见，两条都对——只是走的是另一条路。
+  仪器因此补了一层网络侧读数（`page.on('response')` 记 `PATCH …/design` 的成/拒），
+  断言"送出过补丁且一次也没被拒"。**重跑同一臂：1 failed**，红在
+  `自动保存里有 1 次 PATCH 被报文门拒掉`，前面 12 步（含刷新后 `引用 1`）全过。恢复后 2 passed。
+  **记这条的通用教训：一个"刷新后还在"的见证对存储路径是盲的——只要客户端有整份兜底，
+  它能证明数据落库，但证明不了某个 op 过得了 ops 契约。要钉契约就得读网络，不能只读界面。**
+  没有一条是惰性臂：每条都点名了它红在哪一句。
+- 尺子换过一次，记下来免得下次再当 bug 查：图层列表是**虚拟化**的（只铺看得见那几十行），数 `[data-layer-id]`
+  数量其实是数滚动窗口；`data-layer-total` 才是文档侧的真数，而它只在"图层"那一栏里存在——跨面板取值先拿 id
+  再换栏（上一片就踩过同一条），读它要切回图层栏、读完切回设计系统栏。
+- 仍欠，如实记下：① **实例不跟随主组件**——`instantiate` 是一次性复制，之后改主组件不会传到已有实例，
+  §13 那句"实例跟随主组件"这一半还没做（override / 重置为主组件 / 变体切换同族，都在下一格）；
+  ② 入口只到"当前页末尾"，选中某个元素再"放进去"（指定 parentId）在模型层通、界面上没有；
+  ③ variantProps 只按 props 默认值填，`slots` 与 `variants` 复制时不参与；
+  ④ AI 那一路只加了提示词一行，没有端到端见证真 provider 会发这条 op（没配真 provider 时仍是 DEMO MODE）。
+  ⑤ A5 顺带点出的那条**不是本片造成的**欠账：补丁被拒时客户端悄悄换整份 PUT，界面仍是"已保存"，
+  用户与面板都不知道这一次走的是"缺失即删"的整份替换（并行会话正在改这一段就不动它）；
+  要补的是把"这一存是补丁还是整份"投影到 `[data-save-state]` 上，另加一条把 `putBody` 兜底本身测到的用例。
+  ⑥ ~~`insert` 的 `node.id` 仍是**只查当前页**（`patch.ts:275`），跨页撞 id 还是写得进去~~ **已做**
+  （§13 第三十六片：查宽到整份文档 + `validate.ts` 的 `duplicate-id` 扩到节点 id，见文末那一节）。
+  `instantiate` 那次查宽了，同一族的这条当时没跟着改（会让原本能过的补丁变成整批 409，属于对外行为变更，
+  所以单独立一片做）。
+
+## §13 第三十五片：主组件改了，实例能跟上——顺带把"补丁必须确定"钉进门（2026-11-03）
+
+- 起点是上一片"仍欠"的第一格：`instantiate` 落的是**物化复制体**，之后改主组件不会传到已有实例，
+  而界面上连一条换掉它的路径都没有（只能删了重放，重放还会把位置与手动改动一起丢掉）。
+- **不新增 op**：`syncInstanceOps(doc, component, instanceId)`（`packages/design-model/src/components.ts`）
+  产出的是标准串 `[{op:'remove', 旧复制体根}, {op:'insert', …}…]`，父排在子前面。
+  两个理由各自都够：① 撤销是免费的——`invertPatch` 遇到 `remove` 本来就把整棵旧子树捕成 insert 序列，
+  所以"旧的收走、新的插回"的逆就是"新的收走、旧的回来"，不必为同步另写一份逆操作（§150）；
+  ② 报文词汇表不动，`packages/schemas` / `contracts/*.json` / MCP 描述 / `missingPatchReferences`
+  那四道同族门就不会出现"模型有、外面没有"的漂移（上一片刚查出漏了 MCP 那一处）。
+  新复制体借 `instantiateComponent()` 造，不抄第二份复制逻辑（类型照抄、`component` 降级那些规矩只写在一处）。
+- **摆不出来就说摆不出来**：三道守卫一律回 `[]`（实例不在了 / 旧复制体不在了 / 主组件根不在了），
+  调用方据此决定按钮点不点得动。面板那颗按钮的 disabled 判据用的是**产出的 op**而不是"这一页有没有实例"——
+  引用计数 >0 但复制体缺了一颗的那种节点，发出去只会得一条被 skip 的记账（§159）。
+- **只承诺当前页**，并且界面上就这么说：`studio.execute` 一律打在 `document.activePageId`
+  （`apps/web/src/studio/store.ts:1364`），所以「更新实例」的计数是**这一页**的实例数（`data-component-sync-count`），
+  引用都在别的页面时按钮不可点，title 里写"共 N 个，切过去才能更新那一页"。
+  在按钮上写"全部"是假话，就不写。
+- **e2e 首跑抓到一条界面永远看不见的缺陷**。同步那条见证第一次跑就红在自动保存的 PATCH 计数上：
+  ```
+  409 {"error":"ops_skipped","skipped":[{"index":0,"reason":"node tex_mvzht9zj6o1cpd not found"}]}
+  ```
+  根因不在同步，在 `instantiate`：复制体每个节点的 id 是 `uid()` 现场摇的，而一条 op 天生被 apply 两次
+  （客户端改内存里那份、服务端在库里那份上重放，`patchProjectDocument`），两边各得一套 id ⇒ 两份文档永久分叉。
+  之前没暴露，是因为**没有任何 op 点名过复制体内部的节点**；同步第一条就是 `remove` 旧复制体，才第一次踩到这条缝。
+  界面照样说"已保存"，因为 `store.save()` 在 409/400 时当场换整份 PUT 兜底（`store.ts:638`）——
+  这是上一片 A5 那条教训的**第二次应验**，而且这一次它挡住的是一条架构级缺陷（§16"唯一真值"按进程各说各话）。
+  修法与选型见 `docs/adr/0079-instance-copy-ids-derived-not-random.md`：复制体 id 改成
+  `<类型前缀>_<instanceId>_<源节点 id>` 推出来，同时去掉那次调用里的临时 `id: "tmp"`。
+  **通用纪律（写进 ADR-0079）：任何会自己造 id 的 op 都必须让 id 从 op 自带的参数推得**，
+  否则"客户端算一遍、服务端重放一遍"这条路必然分叉。
+- 门补了三道，从快到慢各管一段：
+  1. **模型层·双文档**（`patch-instantiate.test.ts` 末尾那个 describe，2 条）：同一串 op 在两份一模一样的
+     文档上各打一次，① 节点 id 集合相同；② 从客户端那份算出的同步 op 串，在服务端那份上 `skipped` 为空。
+     不看浏览器就钉住这条路。
+  2. **模型层·词汇表级**（新文件 `packages/design-model/test/patch-determinism.test.ts`，22 条）：
+     20 条 op 各一条"两份文档各打一次 → 结果全等"的用例（比较前抹掉 `metadata.updatedAt` 那个钟，
+     `applyPatch` 每次都写它）。清单**由契约反钉**：op 名从 `contracts/design-patch.schema.json` 的
+     `op.const` 里读出来（不手抄第二份清单），先要求契约至少列 20 条（读空了就是一条惰性门），
+     再双向要求"契约 ⇔ 用例清单"互相覆盖——**加一条 op 不写确定性用例，这一句就点名它**。
+  3. **界面层**（`e2e/components-panel.spec.ts` 第 3 条 + 抽出的 `trackDesignSaves()`）：
+     PATCH 成/拒分开数，被拒时把服务端正文前 500 字摊进断言消息；另数 `putOk`，
+     因为 `patchRejected===0 && patchOk===0` 与"补丁被拒后换了整份"是两回事（前者压根没走补丁这条路）。
+- **看图抓到第二条真错，这一条是界面自己长出来的**：卡片一行排不下"名字 + 引用数 + 三个按钮"，
+  「删除」被挤到画布底下——DOM 里查得到、`toBeVisible()` 也过，只有命中测试能发现。
+  后果不是失败而是**干等**：Playwright 的重试把那条 e2e 拖到 150 秒超时（243 次 `intercepts pointer events`）。
+  修法：组件卡改成两行（名字+引用 / 动作排 `flex-wrap`）。
+- 读数（逐字）：`packages/design-model` `Test Files 35 passed (35)` / `Tests 470 passed (470)`；
+  `e2e/components-panel.spec.ts` `3 passed (1.8m)`（18.9s / 28.0s / 18.8s，第一条含仪器自证）；
+  `npx tsc -p e2e/tsconfig.json` 与 `npx eslint DesignSystemPanel.tsx components-panel.spec.ts` 均 rc=0。
+  改完卡片布局后重跑一次是 `3 passed (1.4m)`（14.7s / 26.6s / 18.0s）。
+- 臂表（每臂一次改动、跑完立刻恢复，收尾 `grep -rn "MUT "` 归零）：
+  **D1** 复制体 id 退回现场摇随机数 → `5 failed | 41 passed (46)`，红在
+  `复制体的 id 一模一样` / `从客户端那份算出来的「更新实例」那一串，在服务端那份上一条都不落空` /
+  determinism 的 `instantiate`、`restoreComponent`、`实例化以后从客户端那份算出的 id…` 三条
+  （`restoreComponent` 内部重放 instantiate，所以它也跟着红——这一格是白捡的）。
+  **D2** 从用例清单里摘掉 `remove` 那一条 → `1 failed | 20 passed (21)`，红在
+  `契约里有、这里没有确定性用例的 op：remove`，正是反钉那句要说的话。
+  **S1** 同步不先收走旧复制体 → `6 failed | 18 passed (24)`，关键读数是
+  `expected [ '立即购买', '提交' ] to deeply equal [ '立即购买' ]`（旧的那份还挂在实例上，两份并存）。
+  **S2** insert 排成子在父前 → `6 failed | 18 passed (24)`，红在
+  `insert 标签 的父 con_ins_…_com_… 还没插进来` 与各条 `skipped` 非空。
+  **S3** 摘掉"旧复制体不在这份文档里"那一半守卫 → `1 failed | 6 passed (7)`，
+  正好红在点名它的那一条（悬空那颗本该回空串，却吐出 4 条 op）。
+  **U1 / U1b 两条是惰性臂，如实记**：改 `li` 为单行、再改成 `min-w-max` 撑宽动作排，两次都**没**造成溢出
+  （按钮自己换行了），门对着没坏的东西当然绿。所以命中测试那句的牙**不靠产品布局来证**：
+  改成仪器自证（`expectDoorHasTeeth`）——盖一层全屏透明遮罩，同一句必须报 `covered-by-*`，撤掉必须回 `ok`。
+  臂不碰产品代码，且这条自证常驻在 test 1 里。
+- 仍欠，如实记下：① **不自动跟随**——这一片做的是手动那半，"改完自己传过去"要转向 ADR-0078 的选项 1，
+  把 `applyInstanceOverrides()` 接进 layout / render / codegen 三条链（就是任务 #32 那一格）；
+  ② 同步**覆盖实例上的手动改动**：复制体是物化的，用户在实例里改过的那一处和"旧版主组件"分不清，
+  现在一律按主组件覆盖掉。没有 override 之前，这一条是这一片的功能边界，不是 bug，但界面上也没说；
+  ③ 一次事务同步当前页全部实例，跨页要逐页切过去点；④ ~~`insert` 跨页撞 id 的空档仍在~~ **已做**（第三十六片）。
+
+## §13 第三十六片：节点 id 的"全局唯一"到底全局到哪一层——`insert` 查宽 + 保存门点名跨页重号（2026-11-03）
+
+- 起点是上一片仍欠的 ④（再上一片记的 ⑥）。`instantiate` 的壳子在第三十四片就查整份文档，
+  而同一族的 `insert` 只查当前页（`page.nodes[op.node.id]`）：同一颗 id 在这一页没有、在另一页有，
+  这一刀照样写得进去。当时没顺手改，因为**它把今天能过的补丁变成整批 409**，属于对外行为变更。
+- **先量存量，再改行为**（这条改动的全部风险就是"锁死既有文档"，所以顺序不能倒）：
+  真库 `nexus-postgres` / `nexus`（55433）上，按"同一份文档内跨页重号"的口径
+  ```sql
+  select count(*) from (
+    select p.project_id, dn.id, count(distinct dn.page_id) c
+    from design_nodes dn join pages p on p.id = dn.page_id
+    group by p.project_id, dn.id having count(distinct dn.page_id) > 1) t;
+  ```
+  读数：`8537` 个节点 / `578` 页 → **0** 个跨页重号；快照侧
+  ```sql
+  with page_nodes as (select s.id snap, nk.key node_id from snapshots s
+    cross join lateral jsonb_array_elements(s.document->'pages') pg(val)
+    cross join lateral jsonb_object_keys(pg.val->'nodes') nk(key))
+  select count(*) from (select snap, node_id from page_nodes group by 1,2 having count(*)>1) t;
+  ```
+  读数：`761` 份带节点的快照 → **0** 份里有跨页重号。所以这一刀不改变任何既有文档。
+- **一条反面读数，记下来是给下一次量的人省命**：不带项目口径直接
+  `select id from design_nodes group by id having count(distinct page_id) > 1` 数出来是 **98** 颗，
+  形如 `but_mvss5k6aofmhwl`（各占 5 页 / 5 个项目）。逐颗核对是
+  `select dn.id, count(distinct p.project_id), count(distinct dn.page_id) …` → 每颗在**五个不同项目**里各有一份，
+  也就是同一个演示种子被播了五次、每个项目自己那份文档里它并不重号（上面那条按 `project_id` 归堆的查询回 0 就是这件事的证明）。
+  门的范围是"这一份文档"（`cow.document.pages` / `validateDocument(document)`），不是"全库"——
+  量错了口径会把一条没牙的门当成有牙，或反过来以为门把整个库挡死了。
+- **两处改动**：
+  1. `packages/design-model/src/patch.ts` 的 `insert`：`page.nodes[...]` → `cow.document.pages.some(...)`，
+     被挡下仍走 `skipped`（reason `duplicate node id <id>`），并且**在往页面上写一个字之前**判完，
+     不落"半个节点"（与 `instantiate` 那四道校验同一规矩）。
+  2. `packages/design-model/src/validate.ts`：`duplicate-id` 从"只管页面 id"扩到节点 id——
+     按 `nodeId → pageId[]` 归堆，堆里 ≥2 就报 **error**，正文点名"哪一颗、在哪几页上各有一份"。
+- **为什么是 error 而不是 warning**：重号以后按 id 找节点的那几条读路径写的是
+  `pages.find(p => p.nodes[id])`——第一个命中就算真值（`components.ts` 找实例所在页与主组件所在页、
+  `patch.ts` 的 `instantiate` 找源页），读到哪一页取决于页面顺序。§16 说设计模型是唯一真值，
+  两份同名节点就是两个真值。
+  而 warning 级在保存门上等于放行（`parseDocument` 只把 error 当拒绝），放行的后果是让坏数据继续被各处
+  任选一份当真值，这正是 §159 说的"不静默修数据"要拦的那类。
+- **为什么两道门都要有，不是一道**：`insert` 那一刀是当场拦新增，但它的可见性取决于调用方有没有读
+  `skipped`；`validateDocument` 这一条管两件新增管不到的事——**门装上之前的存量**，以及不是新增路径带进来的
+  重号（快照恢复、导入、整份 PUT）。两条写路径共用同一个结构门：PATCH 打完补丁以后
+  `apps/web/src/server/domain/projects.ts:817` 也过 `parseDocument`，所以"补丁能过、整份被拒"这种口径差
+  不会出现在这一条上（新加的那条 web 用例就是钉这一点）。
+- 见证 4 条：`patch-commands.test.ts` 1 条（id 只在另一页上也不许在这一页再插；先钉前提"这一页确实没有"，
+  否则那条用例测的是同页重号）；`serialize-validate.test.ts` 2 条（跨页重号 → error 且报出颗与两页；
+  以及"两页各一颗正常节点不报重号"，防止它退化成"只要多页就红"）；
+  `apps/web/test/validation.test.ts` 1 条（同一形状过保存门必须被拒，issue 正文含 `duplicate-id` 与那颗 id）。
+- 读数（逐字）：`packages/design-model` `Test Files 35 passed (35)` / `Tests 473 passed (473)`（本片前 470）；
+  design-model + `apps/web/test/validation.test.ts` 一起跑 `Test Files 36 passed (36)` / `Tests 488 passed (488)`；
+  `npx eslint` 那五个改动文件 rc=0；收尾 `grep` 源码零 `MUT ` 标记。
+- 臂表（一臂一改动，跑完立刻恢复）：
+  **G1** `insert` 的撞 id 退回只查当前页 → `1 failed | 36 passed (37)`，红在
+  `expected [] to have a length of 1 but got +0`（`patch-commands.test.ts:136`，正是预测那一句）。
+  **G2** 摘掉 `validate.ts` 的跨页扫描（`pageIds.length < 2` 改成 `< 99`）→ `2 failed | 39 passed (41)`，
+  模型侧红在 `expected [] to have a length of 1 but got +0`（`serialize-validate.test.ts:160`），
+  web 侧红在 `expected true to be false`（`validation.test.ts:148`）——**保存门真的放行了那份文档**，
+  这条 web 见证不是惰性臂。
+  **G3** 把那条 issue 从 `error` 降级成 `warning` → 同样 `2 failed | 39 passed (41)`，web 侧仍红在
+  `expected true to be false`（门只滤 error，降级＝放行），模型侧红在
+  `expected 'warning' to be 'error'`（`serialize-validate.test.ts:161`）。
+  G2 与 G3 打在 web 那一句上是同一个红：**要么报出来、要么是 error 级**，中间没有第三种活路。
+- 仍欠，如实记下：① 这条 error 会让"历史上带跨页重号的文档"一改就存不进去（实测存量为 0，
+  所以今天没人被挡）；真出现时该给的不是放行，而是一条**把两份重号节点改名并保住引用**的迁移，
+  现在没有；② 库侧没有约束兜底——`design_nodes` 主键是 `(page_id, id)`，跨页重号数据库不拦，
+  要不要加一条按 `(project_id, id)` 的唯一索引（或触发器）留给以后真被绕过一次再说；
+  ③ `duplicate-id` 这个 code 现在同时表达"页面重号"和"节点重号"两种事，靠正文区分，
+  界面若要分开显示得拆 code。

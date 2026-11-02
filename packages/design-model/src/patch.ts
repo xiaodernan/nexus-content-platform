@@ -1,5 +1,5 @@
 import type { AssetRef, DesignDocument, DesignNode, Page, Paint, VisualDna } from "./types";
-import { clone, findPage, requireNode } from "./nodes";
+import { clone, findPage, instantiateComponent, requireNode } from "./nodes";
 
 /**
  * 设计补丁：AI 与手工编辑的统一表达（§20 / §149-151）。
@@ -20,6 +20,21 @@ export type PatchOp =
       value: Record<string, unknown>;
     }
   | { op: "insert"; node: DesignNode; parentId: string; index?: number }
+  /**
+   * §13 组件实例化：按 componentId 把主组件子树复制一份挂到目标父节点下。
+   *
+   * `instanceId` 由调用方点名，而且不是可选的：`invertPatch` 拿的是**改动前**那份文档，
+   * 那时这颗实例还不存在，op 里不带 id 就写不出"把它连同子树一起收走"的撤销条目（§150）。
+   * 复制出来的子节点 id 由 `instantiateComponent` 现造，撤销时靠 `remove` 在**应用后**
+   * 的文档上收集子树，所以那一份不需要预先指名。
+   */
+  | {
+      op: "instantiate";
+      componentId: string;
+      instanceId: string;
+      parentId?: string;
+      index?: number;
+    }
   | { op: "remove"; nodeId: string }
   | { op: "reparent"; nodeId: string; parentId: string; index?: number }
   | { op: "reorder"; parentId: string; from: number; to: number }
@@ -257,7 +272,16 @@ function applyToPage(
           skipped.push({ index, reason: `parent ${op.parentId} not found` });
           break;
         }
-        if (page.nodes[op.node.id]) {
+        // 撞 id 查**整份文档**，不只这一页——与 `instantiate` 的壳子同一族（下面那条 case 有同样的注释）。
+        // 库里 `design_nodes` 的主键是 `(page_id, id)`，跨页重号数据库挡不住；而按 id 找节点的
+        // 读路径写的是 `pages.find(p => p.nodes[id])`——第一个命中就算真值
+        // （`components.ts` 里找实例页与主组件页、本文件 `instantiate` 那一刀找源页），
+        // 重号时读到哪一页取决于页面顺序。2026-11-03 实测存量：同一份文档内跨页重号为 0
+        // （8537 节点 / 578 页 / 761 份快照），所以这一刀不改变任何既有文档。范围口径见 ADR-0080。
+        const idTaken = cow.document.pages.some(
+          (p) => p.nodes[op.node.id] !== undefined,
+        );
+        if (idTaken) {
           skipped.push({ index, reason: `duplicate node id ${op.node.id}` });
           break;
         }
@@ -275,6 +299,78 @@ function applyToPage(
         ];
         touched.add(node.id);
         touched.add(parent.id);
+        break;
+      }
+      case "instantiate": {
+        const component = cow.document.components.find(
+          (c) => c.id === op.componentId,
+        );
+        if (!component) {
+          skipped.push({
+            index,
+            reason: `component ${op.componentId} not found`,
+          });
+          break;
+        }
+        // 主组件可以住在任何一页，实例要落到 patch.pageId 这一页，所以源页按
+        // "哪一页真的有那个根节点"来找——definition.pageId 只是登记时写下的，可能过期
+        const sourcePage =
+          cow.document.pages.find((p) => p.nodes[component.rootId]) ??
+          cow.document.pages.find((p) => p.id === component.pageId);
+        if (!sourcePage?.nodes[component.rootId]) {
+          skipped.push({
+            index,
+            reason: `component root ${component.rootId} not found`,
+          });
+          break;
+        }
+        const parentId = op.parentId ?? page.rootId;
+        const parent = page.nodes[parentId];
+        if (!parent) {
+          skipped.push({ index, reason: `parent ${parentId} not found` });
+          break;
+        }
+        // 撞 id 查的是**整份文档**而不是这一页（`cow.page()` 已经把可写页换进 document.pages）：
+        // instanceId 是调用方（人或 AI）自己起的，而 `applyPatch` 跳过的那一刀只记账、不报错，
+        // 界面会不会真看见这条全凭调用方有没有读 `skipped`。所以 `validate.ts` 的 `duplicate-id`
+        // 在第三十六片也扩到节点 id——两份规矩叠着，一份管当场、一份管落库那一刻。
+        // 复制体那些 id 从 `instanceId` + 源节点 id 推出来（ADR-0079），
+        // 不同实例之间天然错开，所以只有壳子需要现场查这一道。
+        const idTaken = cow.document.pages.some(
+          (p) => p.nodes[op.instanceId] !== undefined,
+        );
+        if (idTaken) {
+          skipped.push({
+            index,
+            reason: `duplicate node id ${op.instanceId}`,
+          });
+          break;
+        }
+        // 上面四道校验全在"还没有往页面上写一个字"的位置做完：被跳过的那一刀不能在页面上
+        // 留下半个实例（壳子在、子树缺一半），那种节点既不是主组件也不是实例，
+        // 渲染和 AI Diff 只能各自猜（§16/§159）。
+        const made = instantiateComponent(
+          cow.document,
+          component,
+          parent.id,
+          sourcePage.id,
+          op.instanceId,
+        );
+        for (const [id, node] of Object.entries(made.nodes)) {
+          page.nodes[id] = node;
+        }
+        const mutableParent = cow.node(page, parent.id)!;
+        const at =
+          op.index === undefined
+            ? mutableParent.children.length
+            : Math.max(0, Math.min(mutableParent.children.length, op.index));
+        mutableParent.children = [
+          ...mutableParent.children.slice(0, at),
+          made.instance.id,
+          ...mutableParent.children.slice(at),
+        ];
+        touched.add(made.instance.id);
+        touched.add(mutableParent.id);
         break;
       }
       case "remove": {
@@ -698,6 +794,13 @@ export function invertPatch(
         void index;
         break;
       }
+      case "instantiate": {
+        // 一条 remove 就够：`remove` 会收集子树，而那些复制出来的子节点此时已经在页上了。
+        // 这里不能"顺手"把子节点 id 也列出来——invertPatch 跑在 apply 之前，那份文档里
+        // 它们还不存在，一个都写不出来。
+        ops.push({ op: "remove", nodeId: op.instanceId });
+        break;
+      }
       case "remove": {
         if (!page) break;
         const subtree = collectSubtree(page, op.nodeId);
@@ -954,6 +1057,22 @@ export function diffPatch(
           kind: "added",
         });
         break;
+      case "instantiate": {
+        const component = document.components.find(
+          (c) => c.id === op.componentId,
+        );
+        // 说清是"哪颗组件的一次实例化"，而不是只报一个 instance 节点名——
+        // AI Diff（§151）给人看的是意图，不是节点类型
+        entries.push({
+          nodeId: op.instanceId,
+          nodeName: component?.name ?? op.componentId,
+          path: `children[${op.parentId ?? "root"}]`,
+          before: undefined,
+          after: `实例：${component?.name ?? op.componentId}`,
+          kind: "added",
+        });
+        break;
+      }
       case "remove":
         entries.push({
           nodeId: op.nodeId,

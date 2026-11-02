@@ -131,6 +131,56 @@ describe("validateDocument", () => {
       true,
     );
   });
+
+  /**
+   * 库里 `design_nodes` 的主键是 `(page_id, id)`——跨页重号数据库挡不住，而按 id 找节点的
+   * 读路径写的是 `pages.find(p => p.nodes[id])`：第一个命中就算真值（`components.ts` 找实例页
+   * 与主组件页就是这一句）。`insert` / `instantiate` 那两道门管新增，这一条管存量：
+   * 重号要点名到"哪一颗、在哪几页上"，而不是只说文档坏了。范围是一份文档，不是整个库（ADR-0080）。
+   */
+  it("节点 id 跨页重复 → duplicate-id（error），并报出是哪一颗、在哪两页", () => {
+    const doc = createDocument("Dup");
+    const first = doc.pages[0]!;
+    const second = createPage("第二页");
+    const placeTwin = (page: typeof second, label: string) => {
+      const twin = createNode({
+        type: "text",
+        name: label,
+        parentId: page.rootId,
+        text: label,
+      });
+      twin.id = "tex_twin";
+      page.nodes[twin.id] = twin;
+      page.nodes[page.rootId]!.children.push(twin.id);
+    };
+    placeTwin(first, "第一页那份");
+    placeTwin(second, "第二页那份");
+    doc.pages.push(second);
+
+    const found = validateDocument(doc).filter((i) => i.code === "duplicate-id");
+    expect(found).toHaveLength(1);
+    expect(found[0]!.severity).toBe("error");
+    expect(found[0]!.message).toContain("tex_twin");
+    expect(found[0]!.message).toContain(first.id);
+    expect(found[0]!.message).toContain(second.id);
+  });
+
+  it("两页各一颗正常节点不报跨页重号（这一条不是'只要多页就红'）", () => {
+    const doc = createDocument("Clean");
+    const second = createPage("第二页");
+    const child = createNode({
+      type: "text",
+      name: "Only here",
+      parentId: second.rootId,
+      text: "只有这一份",
+    });
+    second.nodes[child.id] = child;
+    second.nodes[second.rootId]!.children.push(child.id);
+    doc.pages.push(second);
+    expect(
+      validateDocument(doc).filter((i) => i.code === "duplicate-id"),
+    ).toEqual([]);
+  });
 });
 
 describe("lintDesign (§32 / §121)", () => {

@@ -92,6 +92,31 @@ export function validateDocument(document: DesignDocument): Issue[] {
     seenPages.add(page.id);
     issues.push(...validatePage(page));
   }
+  // 节点 id 跨页重复：库里 `design_nodes` 的主键是 `(page_id, id)`，数据库挡不住这种重号，
+  // 而按 id 找节点的读路径是 `pages.find(p => p.nodes[id])`——第一个命中就算真值，
+  // 读到哪一页取决于页面顺序（§16 的"唯一真值"就变成了两个真值）。
+  // 写入那一刀（`insert` / `instantiate`）已经各自查整份文档，这一条管的是**门装上之前**的存量：
+  // 重号要在保存那一刻被点名，而不是让某一份文档带着两份同名节点继续被各处任选当真值。
+  // 范围是一份文档，不是整个库：同名 id 在不同项目里各有一份是合法的（ADR-0080）。
+  const nodeOwners = new Map<string, string[]>();
+  for (const page of document.pages) {
+    for (const nodeId of Object.keys(page.nodes)) {
+      const owners = nodeOwners.get(nodeId);
+      if (owners) owners.push(page.id);
+      else nodeOwners.set(nodeId, [page.id]);
+    }
+  }
+  for (const [nodeId, pageIds] of nodeOwners) {
+    if (pageIds.length < 2) continue;
+    issues.push({
+      code: "duplicate-id",
+      severity: "error",
+      message: `节点 id 跨页重复：${nodeId}（${pageIds.join(" / ")} 上各有一份）`,
+      pageId: pageIds[0],
+      nodeId,
+      suggestion: "给其中一份换 id：重号时按 id 找节点的那几条读路径只能任选一页当真值",
+    });
+  }
   if (!document.pages.some((p) => p.id === document.activePageId)) {
     issues.push({
       code: "missing-child",

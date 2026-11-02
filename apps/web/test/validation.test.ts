@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createDocument, createNode, findPage } from '@nexus/design-model';
+import { createDocument, createNode, createPage, findPage } from '@nexus/design-model';
 import type { DesignDocument } from '@nexus/design-model';
 import { MAX_NODES_PER_DOCUMENT, parseDocument } from '@/server/validation';
 
@@ -126,6 +126,31 @@ describe('parseDocument · 结构门（不静默修数据）', () => {
     const parsed = parseDocument(doc);
     expect(parsed.ok).toBe(false);
     if (!parsed.ok) expect(parsed.issues.join('；')).toContain('duplicate-id');
+  });
+
+  it('节点 id 跨页重复 → 拒（duplicate-id），与 PATCH 那道门口径一致', () => {
+    // 库里 design_nodes 的主键是 (page_id, id)：跨页重号数据库挡不住。
+    // 整份 PUT 的结构门必须和 applyPatch 的 insert 查得一样宽，
+    // 否则同一份文档走两条写路径会一个过、一个 409（第三十六片）。
+    const doc = baseDocument();
+    const second = createPage('第二页');
+    const placeTwin = (page: typeof second, label: string) => {
+      const twin = createNode({ type: 'text', name: label, parentId: page.rootId, text: label });
+      twin.id = 'tex_shared';
+      page.nodes[twin.id] = twin;
+      page.nodes[page.rootId]!.children.push(twin.id);
+    };
+    placeTwin(doc.pages[0]!, '第一页那份');
+    placeTwin(second, '第二页那份');
+    doc.pages.push(second);
+
+    const parsed = parseDocument(JSON.parse(JSON.stringify(doc)));
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) {
+      const joined = parsed.issues.join('；');
+      expect(joined).toContain('duplicate-id');
+      expect(joined).toContain('tex_shared');
+    }
   });
 
   it('节点挂在不存在的父节点下 → 拒（结构不自洽就不许落库）', () => {
