@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-10-30T21:32:12.518Z",
+  "ranAt": "2026-11-02T10:16:37.470Z",
   "arms": 46,
   "matched": 46,
   "armNames": [
@@ -551,6 +551,11 @@
       "name": "verify:trail-contract",
       "file": "docs/evidence/m9/trail-contract-proof.mjs",
       "marker": null
+    },
+    {
+      "name": "verify:tree-guard",
+      "file": "docs/evidence/ci/tree-guard-proof.mjs",
+      "marker": "// sweep-budget-ms: 120000"
     },
     {
       "name": "verify:two-tree",
