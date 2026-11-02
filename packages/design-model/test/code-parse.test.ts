@@ -8,7 +8,8 @@ import {
   summarizeCodeEdit,
   type ParseIssue,
 } from "../src/code-parse";
-import type { Page } from "../src/types";
+import { RESPONSIVE_PATCH_GROUPS } from "../src/types";
+import type { Page, ResponsivePatchGroup } from "../src/types";
 
 /**
  * Code → Design（§17-19）。核心验收：`parse(generate(page))` 必须零补丁、零 unmapped——
@@ -299,6 +300,190 @@ describe("类名 → 模型属性", () => {
     const result = parse(withRule, code);
     expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("手机那一档的覆盖往返：发在基线上、读得回来、一个补丁都不发（§14 第五片）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [
+            {
+              breakpoint: "mobile",
+              patch: {
+                layout: { mode: "horizontal", gap: 8 },
+                size: { width: 280 },
+                style: { opacity: 0.5 },
+              },
+            },
+            { breakpoint: "tablet", patch: { layout: { mode: "vertical" } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    // 手机那四条在**没有前缀**的位置上：窄档的覆盖向上一直有效，与 CSS 级联同一条序
+    expect(line).toContain("flex flex-row");
+    expect(line).toContain("gap-[8px]");
+    expect(line).toContain("w-[280px]");
+    expect(line).toContain("opacity-[0.5]");
+    expect(line).toContain("md:flex md:flex-col");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops).toEqual([]);
+  });
+
+  it("从代码改一条基线类：值落进手机那条规则，不写设计值（§14 第五片）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [{ breakpoint: "mobile", patch: { layout: { mode: "horizontal" } } }],
+        },
+      },
+    };
+    const original = source(withRule);
+    const line = lineOf(original, hero);
+    expect(line).toContain("flex flex-row");
+    const edited = original.replace(line, line.replace(" flex-row", " flex-col"));
+    const result = parse(withRule, edited);
+    const op = result.ops.find((o) => "path" in o && o.path === "responsive");
+    expect(op).toMatchObject({
+      nodeId: hero,
+      value: [{ breakpoint: "mobile", patch: { layout: { mode: "vertical" } } }],
+    });
+    // 设计值那一寸没被碰。写进去的话那条规则照样盖着它，重投影自检会放弃整个节点——
+    // 界面上一句"已回写"，模型里什么都没变（§19 说的是同一件事）。
+    expect(result.ops.some((o) => "path" in o && o.path === "layout.mode")).toBe(false);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+  });
+
+  it("手机那条规则没声明的键照旧写设计值——归属分流只认声明过的那几个", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [{ breakpoint: "mobile", patch: { layout: { gap: 8 } } }],
+        },
+      },
+    };
+    const original = source(withRule);
+    const line = lineOf(original, hero);
+    expect(line).toContain("gap-[8px]");
+    const edited = original.replace(line, line.replace(" justify-start", " justify-center"));
+    const result = parse(withRule, edited);
+    const paths = result.ops.filter((o) => "path" in o).map((o) => o.path);
+    expect(paths).toContain("layout.justify");
+    expect(paths).not.toContain("responsive");
+  });
+
+  it("手机那一档藏起来的东西：基线上的 hidden 改回来落进那条规则", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [{ breakpoint: "mobile", patch: { visible: false } }],
+        },
+      },
+    };
+    const original = source(withRule);
+    const line = lineOf(original, hero);
+    expect(line).toContain("hidden");
+    expect(parse(withRule, original).ops).toEqual([]);
+    const edited = original.replace(line, line.replace(" hidden", ""));
+    const op = parse(withRule, edited).ops.find((o) => "path" in o && o.path === "responsive");
+    expect(op).toMatchObject({
+      nodeId: hero,
+      value: [{ breakpoint: "mobile", patch: { visible: true } }],
+    });
+  });
+
+  it("父级手机那一档改了排布，孩子的尺寸类按解出来的父级读（§14 第五片）", () => {
+    const page = starterPage();
+    const root = page.nodes[page.rootId]!;
+    const hero = nodeId(page, "Hero");
+    // 根节点设计值是竖排，Hero 的 `width: fill` 在竖排里是交叉轴（self-stretch）；
+    // 手机那一档把根节点改成横排，同一条 fill 变成主轴（flex-1）。
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [page.rootId]: {
+          ...root,
+          responsive: [{ breakpoint: "mobile", patch: { layout: { mode: "horizontal" } } }],
+        },
+      },
+    };
+    const code = source(withRule);
+    expect(lineOf(code, hero)).toContain("flex-1");
+    const result = parse(withRule, code);
+    // 按设计值那份父级读会把 flex-1 解释成 height: fill——重投影对不上，整节点的回写被放弃
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops).toEqual([]);
+  });
+
+  it("手机那一档的位置覆盖也按归属分流：分组名单少一组的话这次编辑静默丢掉", () => {
+    const page = starterPage();
+    const root = page.nodes[page.rootId]!;
+    const hero = nodeId(page, "Hero");
+    // 根节点手机那一档换成 stack，Hero 才谈得上自由定位；Hero 自己的位置覆盖也在 mobile 那一档。
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [page.rootId]: {
+          ...root,
+          responsive: [{ breakpoint: "mobile", patch: { layout: { mode: "stack" } } }],
+        },
+        [hero]: {
+          ...page.nodes[hero]!,
+          position: { x: 10, y: 10 },
+          responsive: [{ breakpoint: "mobile", patch: { position: { x: 60, y: 30 } } }],
+        },
+      },
+    };
+    const original = source(withRule);
+    const line = lineOf(original, hero);
+    // 基线发的是解出来的那份位置，不是设计值那份
+    expect(line).toContain("left-[60px] top-[30px]");
+    expect(parse(withRule, original).ops).toEqual([]);
+
+    const edited = original.replace(line, line.replace("left-[60px]", "left-[72px]"));
+    const result = parse(withRule, edited);
+    expect(result.ops.find((o) => "path" in o && o.path === "position.x")).toBeUndefined();
+    expect(result.ops.find((o) => "path" in o && o.path === "responsive")).toMatchObject({
+      nodeId: hero,
+      value: [{ breakpoint: "mobile", patch: { position: { x: 72, y: 30 } } }],
+    });
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+  });
+
+  it("分组白名单与 `ResponsiveRule.patch` 同源——模型里多一组而表没跟上的话这里编译不过", () => {
+    const EVERY_GROUP: Record<ResponsivePatchGroup, true> = {
+      layout: true,
+      size: true,
+      position: true,
+      style: true,
+      typography: true,
+    };
+    expect([...RESPONSIVE_PATCH_GROUPS].sort()).toEqual(Object.keys(EVERY_GROUP).sort());
   });
 
   it("代码视图改一条边：另外三条边留在模型里（padding 按边回写）", () => {

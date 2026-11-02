@@ -23,6 +23,9 @@ import { loginMember, reusableMemberWithProject } from './support/auth-session';
  *    `layout.columns` 键还在，于是它从"这一格能改"变成要点名的"面板没有输入口"。
  * ⑥ 这几键在**代码那一寸**也在（腿 N）：同一份模型投影出来的断点类读得到方向类、padding
  *    与透明度，而从代码视图把它们改回去，面板的读数与服务端那份文档跟着一起吃。
+ * ⑦ `mobile` 那一档走的是**无前缀基线**（腿 O，§14 第五片）：面板在手机档写的键不发 `md:`，
+ *    它们就在那组无前缀类里；反过来，代码里那条无前缀类改的值要落回**手机那条规则**——
+ *    落进设计值的话那条规则照样盖着，画布不动而代码写着新数（作者以为改成功了，§159）。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -729,6 +732,57 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
       .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.ctaId), { timeout: 30_000 })
       .toEqual([{ breakpoint: 'tablet', patch: { style: { opacity: 0.75 } } }]);
     stamp('腿 N：代码视图发得出这几键 + 从代码改回去落进模型');
+
+    // 腿 O：mobile 那一档在代码这一寸走的是**基线**（§14 第五片）。腿 C/F2 在面板上给 Eyebrow 写的那
+    // 两条键（隐藏 + 宽 200）不发 `md:`——它们就是无前缀那组类里的 `hidden` 与 `w-[200px]`。
+    // 第五片之前这一寸是断的：手机档在代码视图里一个字节都不出，作者看不见也改不了（§16 的缺口）。
+    // 反方向更要紧：在代码里改这条无前缀的宽，值要落回**手机那条规则**而不是设计值——落错地方
+    // 那条规则照样盖在上面，画布上什么都不会变，而代码里写着新数（作者以为改成功了，§159）。
+    await coder.click('[data-view="code"]');
+    await coder.click(`[data-layer-id="${carriers.eyebrowId}"]`);
+    const eyebrowLine = coder.locator('[data-code-line="selected"]');
+    await expect(eyebrowLine, '选中 Eyebrow 后代码视图该高亮它那一行').toContainText(carriers.eyebrowId);
+    await expect(eyebrowLine, '手机档的隐藏没走到代码视图').toContainText('hidden');
+    await expect(eyebrowLine, '手机档的宽没走到代码视图').toContainText('w-[200px]');
+    // 这两句是"基线"与"断点前缀"的分界：发了 `md:` 就不再是移动优先那一份投影
+    await expect(eyebrowLine).not.toContainText('md:hidden');
+    await expect(eyebrowLine).not.toContainText('md:w-[200px]');
+
+    await coder.click('[data-code-edit]');
+    const mobileEditor = coder.locator('[data-code-editor]');
+    await expect(mobileEditor).toBeVisible();
+    const lines = (await mobileEditor.inputValue()).split('\n');
+    const at = lines.findIndex((l) => l.includes(`data-nexus-id="${carriers.eyebrowId}"`));
+    const eyebrowCodeLine = at < 0 ? undefined : lines[at];
+    if (eyebrowCodeLine === undefined) {
+      throw new Error(`代码里没有 Eyebrow 那一行（${carriers.eyebrowId}）：回写这条腿没有对象`);
+    }
+    if (!eyebrowCodeLine.includes('w-[200px]')) {
+      throw new Error(`Eyebrow 那一行读不到 w-[200px]：${eyebrowCodeLine}`);
+    }
+    if (lines.some((l, i) => i !== at && l.includes('w-[200px]'))) {
+      throw new Error('别的节点也带 w-[200px]：这一改不能归给 Eyebrow');
+    }
+    lines[at] = eyebrowCodeLine.replace('w-[200px]', 'w-[240px]');
+    await mobileEditor.fill(lines.join('\n'));
+    await coder.click('[data-code-apply]');
+    await expect(coder.locator('[data-code-report-applied]')).toContainText('responsive');
+    await expect(coder.locator('[data-code-view]')).toContainText('w-[240px]');
+    // 落库的形状：宽进了 mobile 那条规则，而且同一条规则里的 visible 还留着（一次编辑只动一个键）
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.eyebrowId), { timeout: 30_000 })
+      .toEqual([{ breakpoint: 'mobile', patch: { size: { width: 240 }, visible: false } }]);
+    expect(
+      await sizeWidthOnServer(coder, projectId, carriers.eyebrowId),
+      '代码里那条无前缀的宽属于手机规则，不该动设计值',
+    ).toBe(carriers.eyebrowDesignWidth);
+    await coder.screenshot({ path: 'screenshots/responsive-mobile-code-baseline.png', fullPage: true });
+    await coder.click('[data-view="canvas"]');
+    await coder.click(`[data-layer-id="${carriers.eyebrowId}"]`);
+    await coder.click('[data-breakpoint-tab="mobile"]');
+    await expect(coder.locator('[data-responsive-channel="size.width"]')).toContainText('这一档 240');
+    await coder.screenshot({ path: 'screenshots/responsive-mobile-panel-readback.png', fullPage: true });
+    stamp('腿 O：mobile 那一档发在基线上 + 代码里的无前缀类按声明方回写');
     await codeContext.close();
   });
 });

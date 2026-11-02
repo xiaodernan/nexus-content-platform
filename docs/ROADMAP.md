@@ -8746,6 +8746,40 @@ responsive rules**。ADR-0069 与 ADR-0074 把访客那一侧接完之后，作�
 - 开发服务的端口这一跑踩了一次空：3100 被本机另一个项目（页面标题是 FOOTBALL OS）占着，NEXUS 在 **3101**。
   这条链要用 `NEXUS_WEB_URL=http://localhost:3101` 跑，`curl` 回 200 不等于那是对的服务器——看页面标题。
 
+**第五片（2026-11-02）：`mobile` 那一档走到代码那一寸——发射读基线，回写认得回来**
+
+第四片接通的是 `md:`/`lg:`/`xl:` 三档，`mobile` 照实不发：它的断点前缀是空串，覆盖类与基类撞在同一
+特异性上。这一片把它接成**移动优先基线**——不是 `max-md:`，那一套说的是"窄屏才生效"，而
+`applyResponsive` 的级联是"本档与更窄几档合起来生效"；无前缀 → `md:` → `lg:` → `xl:` 的顺序与后者同构。
+理由与取舍在 ADR-0069 第五片。
+
+- `codegen.ts`：`classOf` 读的是 `baselineOf(node)`/`baselineOf(parent)`（`applyResponsive(node,"mobile")`，
+  按节点 id memo 在 `RenderCtx.baselines`），尺寸/位置/排布/背景/样式/字型与 `hidden` 全按基线解；
+  `responsiveClasses` 继续读**原始节点**（宽档要整条级联，基线只是窄的那一半），对空前缀那条 `continue` 不变。
+  没有 mobile 规则的节点 `applyResponsive` 返回同一个对象引用 ⇒ 既有页导出的代码逐字节不变。
+- `code-parse.ts`：`decodeClasses` 也喂基线那份节点，无前缀类的值**按声明方分流**——
+  `mobileOwnedPaths` 列出手机那条规则声明过的路径（`layout.padding` 连它下面四条边），命中的写回那条规则，
+  没命中的照旧写设计值。落错地方不是差一点：那条规则还盖着 ⇒ 重投影自检认不出这个类名 ⇒ 整节点回写被放弃
+  （§19），作者以为改成功了而画布不动（§159）。
+- 顺带修掉一处静默丢键：`responsiveOps` 原先手抄 `size|layout|style|typography` 四组合并 patch，
+  `position` 被丢在门外 ⇒ 代码里改 `left-*/top-*` 落地的是"什么都不改"。名单现在来自
+  `types.ts` 的 `RESPONSIVE_PATCH_GROUPS`，另有一条**编译期**穷尽门（接口多一组而表没跟上 ⇒ 测试文件编译不过）。
+- 新腿：`codegen.test.ts` 2 条（移动优先基线发无前缀类 / 没有手机规则时一个字节不让路）+
+  `code-parse.test.ts` 6 条（手机档覆盖往返零补丁、改基线类落进那条规则、非归属键照旧写设计值、
+  `hidden` 改回来落进 `patch.visible`、父级手机档改排布后孩子按解出来的父级读、分组白名单同源门）+
+  1 条 position 回写腿。类级断言一律先 `tokensOf()` 把 `className="…"` 切成 token——`md:flex-col`
+  里含着 `flex-col`，`toContain` 那种写法会把"不该在"的那句读成"在"。
+- `e2e/responsive-authoring.spec.ts` 加腿 O：面板在腿 C/F2 给 Eyebrow 写的手机规则（隐藏 + 宽 200）
+  在代码视图里是**无前缀**的 `hidden` 与 `w-[200px]`（同时断言 `md:hidden`/`md:w-[200px]` 不在），
+  在代码里把宽改成 240 点应用 ⇒ 报告"已回写 1 处：Eyebrow → responsive"、服务端那份文档是
+  `{breakpoint:'mobile',patch:{size:{width:240},visible:false}}`（同一条规则里的另一个键没被顶掉）、
+  设计值 `size.width` 仍是起手那一份、面板手机那格读"这一档 240"。截图两张：
+  `screenshots/responsive-mobile-code-baseline.png`（代码那一行）与
+  `screenshots/responsive-mobile-panel-readback.png`（面板读数 + 画布按 mobile 档呈现）。
+- 读数：`packages/design-model` **32 files / 398 passed**；e2e 腿 A–O **1 passed（35.0s，暖服务 3101）**，
+  腿 O 那一段 3.3s。六条变异臂逐条跑过并还原（A 5 红 / A2 1 红 / B1 2 红 / B2 4 红 / C 1 红，
+  B3 反向臂红 27）——那条"没声明的键照旧写设计值"只有反向臂能红，红得太宽，所以记下它不是专用臂。
+
 **仍欠**
 
 1. 面板仍然只有四个输入口：`layout`/`position`/`typography` 那些键现在**数得进来、改不出去**，界面只能说"去

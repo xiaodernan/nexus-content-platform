@@ -49,6 +49,15 @@ const lineWith = (source: string, needle: string): string => {
   return line;
 };
 
+/**
+ * 那一行的类名清单。整行 `toContain` 在断点这一寸上会说谎：`md:flex-col` 里含着
+ * `flex-col` 这三个连字符，"基线没有 flex-col" 用子串永远证不出来。
+ */
+const tokensOf = (source: string, needle: string): string[] => {
+  const value = /className="([^"]*)"/.exec(lineWith(source, needle))?.[1] ?? "";
+  return value.split(" ").filter(Boolean);
+};
+
 describe("Design → Code（§17-19）", () => {
   const doc = createDocument("Demo");
   const files = generateProject(doc, {});
@@ -251,7 +260,7 @@ describe("Design → Code（§17-19）", () => {
     expect(line).not.toContain("xl:pt-");
   });
 
-  it("mobile 那一档不发断点类：空前缀与基线撞特异性（欠的那一寸见 ADR-0069）", () => {
+  it("mobile 那一档走基线：无前缀那组类就是「设计 + 手机规则」那份投影（§14 第五片）", () => {
     const page2 = starterPage("Home");
     const root = page2.nodes[page2.rootId]!;
     const node = createNode({
@@ -260,14 +269,49 @@ describe("Design → Code（§17-19）", () => {
       layout: { mode: "vertical", gap: 16 },
       size: { width: 300, height: 200 },
     });
-    node.responsive = [{ breakpoint: "mobile", patch: { layout: { mode: "horizontal", gap: 8 } } }];
+    node.responsive = [
+      { breakpoint: "mobile", patch: { layout: { mode: "horizontal", gap: 8 } } },
+      { breakpoint: "tablet", patch: { layout: { mode: "vertical" } } },
+    ];
     node.parentId = root.id;
     root.children = [node.id];
     page2.nodes[node.id] = node;
-    const line = lineWith(generatePageComponent(page2, {}, "Home").contents, node.id);
-    // 基线照旧（`flex flex-col gap-[16px]`），没有裸的 `flex-row` / `gap-[8px]` 与它抢
-    expect(line).not.toContain("flex-row");
-    expect(line).not.toContain("gap-[8px]");
+    const source = generatePageComponent(page2, {}, "Home").contents;
+    const tokens = tokensOf(source, node.id);
+    // 手机那两条覆盖进了基线，设计值留下的那两条**一个都不剩**——留着就是两组同特异性互相抢，
+    // 谁赢由框架的产出顺序决定（这正是旧口径"照实不发"的理由，见 ADR-0069）。
+    expect(tokens).toContain("flex");
+    expect(tokens).toContain("flex-row");
+    expect(tokens).toContain("gap-[8px]");
+    expect(tokens).not.toContain("flex-col");
+    expect(tokens).not.toContain("gap-[16px]");
+    // 更宽那档从整条级联解：tablet 自己改回竖排，`md:` 那组顶掉基线；
+    // 它没声明 gap，所以没有 `md:gap-`——基线那条 8px 本来就一直生效到这一档。
+    expect(tokens).toContain("md:flex");
+    expect(tokens).toContain("md:flex-col");
+    expect(tokens.filter((token) => token.startsWith("md:gap-"))).toEqual([]);
+  });
+
+  it("没有手机那一档的覆盖时，基线一个字节都不为这条链让路（§14 第五片的反面）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({
+      type: "section",
+      name: "NoMobileRule",
+      layout: { mode: "vertical", gap: 16 },
+      size: { width: 300, height: 200 },
+    });
+    // 只有 tablet 及更宽的规则：基线仍读设计值，`applyResponsive(node,"mobile")` 在这里返回同一个引用
+    node.responsive = [{ breakpoint: "tablet", patch: { layout: { mode: "horizontal" } } }];
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("flex-col");
+    expect(tokens).toContain("gap-[16px]");
+    expect(tokens).not.toContain("flex-row");
+    expect(tokens).toContain("md:flex");
+    expect(tokens).toContain("md:flex-row");
   });
 
   it("mode=none 的父级里子节点用绝对定位，跟画布同一份几何", () => {

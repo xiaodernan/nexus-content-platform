@@ -11,6 +11,8 @@
 
 import { childrenOf, clone, getByPath, sameValue, setOnObject } from "./nodes";
 import { DISPLAY_CLASSES, generatePageComponent, PADDING_SIDES } from "./codegen";
+import { applyResponsive } from "./layout";
+import { RESPONSIVE_PATCH_GROUPS } from "./types";
 import { STATE_VARIANT } from "./states";
 import type { NodeState, NodeStates, NodeStateStyle } from "./states";
 import type { PatchOp } from "./patch";
@@ -631,6 +633,33 @@ const DISPLAY_CLASS_SET: readonly string[] = [...new Set(Object.values(DISPLAY_C
 /** `md:p-[…]` 一条管四边，`md:pt-[…]` 一条管一边——边的名字取自 codegen 那张表 */
 const ALL_PADDING_SIDES = PADDING_SIDES.map(([side]) => side);
 
+/**
+ * 无前缀那组类的基线是「设计 + `mobile` 规则」那份投影（生成侧 `codegen.baselineOf`，§14 第五片）。
+ * 回写因此按**声明方**分流：那条规则声明过的键，读出来的值写回那条规则；没声明的键才动设计值。
+ * 不分流会怎样：把基线读出的值写进设计值，那条 mobile 规则照样盖在上面——重投影自检认不出
+ * 这个类名，整个节点的回写被放弃（§19），作者那次编辑静默消失。
+ */
+function mobileBaselineOf(node: DesignNode): DesignNode {
+  return applyResponsive(node, "mobile");
+}
+
+/** `mobile` 那条规则声明过的路径（`layout.padding` 连它下面的四条边一起算） */
+function mobileOwnedPaths(responsive: DesignNode["responsive"]): string[] {
+  const out: string[] = [];
+  for (const rule of responsive ?? []) {
+    if (rule.breakpoint !== "mobile") continue;
+    for (const [group, value] of Object.entries(rule.patch)) {
+      if (group === "visible") {
+        out.push("visible");
+        continue;
+      }
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      for (const key of Object.keys(value)) out.push(`${group}.${key}`);
+    }
+  }
+  return out;
+}
+
 /** 响应式覆盖：codegen 只产出这些字段，回写也只接受这些字段 */
 function decodeVariant(
   tokens: string[],
@@ -1010,8 +1039,46 @@ function decodeClasses(
   const note = (token: string, reason: string): void => {
     d.unmapped.push({ token, reason });
   };
+  // 基线类的归属：`mobile` 那条规则声明过的键，值属于那条规则，不属于设计值（`mobileBaselineOf`）。
+  const owned = mobileOwnedPaths(node.responsive);
+  const ownedByMobile = (path: string): boolean =>
+    owned.some((prefix) => path === prefix || path.startsWith(`${prefix}.`));
+  const mobileBucket = (): VariantDecode => {
+    const existing = d.responsive.get("mobile");
+    if (existing) return existing;
+    const created: VariantDecode = { patch: {}, checked: [], unmapped: [] };
+    d.responsive.set("mobile", created);
+    return created;
+  };
+  /** 把 `layout.padding.top` 这类路径落到那条规则的 patch 里，深度合并，别的键一个都不碰 */
+  const writeMobile = (token: string | null, path: string, value: unknown): void => {
+    const nested = mobileBucket();
+    const segments = path.split(".");
+    let cursor = nested.patch as Record<string, unknown>;
+    for (const key of segments.slice(0, -1)) {
+      const at = cursor[key];
+      if (at === undefined) {
+        cursor[key] = {};
+      } else if (!at || typeof at !== "object" || Array.isArray(at)) {
+        note(token ?? path, `${path} 在本次类名里有冲突值，保留先前的解释`);
+        return;
+      }
+      cursor = cursor[key] as Record<string, unknown>;
+    }
+    const leaf = segments[segments.length - 1]!;
+    const before = cursor[leaf];
+    if (before !== undefined && JSON.stringify(before) !== JSON.stringify(value)) {
+      note(token ?? path, `${path} 在本次类名里有冲突值，保留先前的解释`);
+      return;
+    }
+    cursor[leaf] = value;
+  };
   const write = (token: string | null, path: string, value: unknown): void => {
     if (value === undefined) return;
+    if (ownedByMobile(path)) {
+      writeMobile(token, path, value);
+      return;
+    }
     if (d.props.has(path)) {
       if (JSON.stringify(d.props.get(path)) !== JSON.stringify(value)) {
         note(token ?? path, `${path} 在本次类名里有冲突值，保留先前的解释`);
@@ -1602,8 +1669,9 @@ function decodeClasses(
     if (emits) write(null, "style.fills", node.style.fills.filter((paint) => paint.kind === "image"));
   }
 
-  if (consume("hidden")) d.props.set("visible", false);
-  else if (!node.visible) d.props.set("visible", true);
+  // `hidden` 现在可能来自 `mobile` 那条规则（基线是它的投影），所以走 `write` 让归属分流生效
+  if (consume("hidden")) write("hidden", "visible", false);
+  else if (!node.visible) write(null, "visible", true);
 
   for (const [breakpoint, tokens] of variants) {
     const nested = decodeVariant(tokens, node, ctx);
@@ -1784,9 +1852,9 @@ function responsiveOps(
       continue;
     }
     const overlay: Record<string, unknown> = {};
-    for (const key of ["size", "layout", "style", "typography"] as const) {
-      const value = nested.patch[key];
-      if (value) overlay[key] = value;
+    for (const group of RESPONSIVE_PATCH_GROUPS) {
+      const value = nested.patch[group];
+      if (value) overlay[group] = value;
     }
     if (nested.patch.visible !== undefined) overlay.visible = nested.patch.visible;
     if (!Object.keys(overlay).length) continue;
@@ -1924,8 +1992,10 @@ export function codeToPageOps(
 
     const decoded = decodeClasses(
       (el.attrs["className"] ?? "").split(/\s+/).filter(Boolean),
-      node,
-      parent,
+      // 解码比的是**基线那一寸**：`mobile` 档的覆盖已经并进无前缀那组类（生成侧 `baselineOf`），
+      // 拿原始设计值去读会把"手机档改过的值"当成作者这次新写的值。值落到哪一边由归属分流决定。
+      mobileBaselineOf(node),
+      parent ? mobileBaselineOf(parent) : null,
       ctx,
     );
     decoded.unmapped.forEach((entry) => mapping.unmapped.push(entry));

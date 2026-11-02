@@ -306,6 +306,22 @@ export interface ResponsiveRule {
   };
 }
 
+/** `patch` 里的分组键（`visible` 是布尔，不算一组） */
+export type ResponsivePatchGroup = Exclude<keyof ResponsiveRule["patch"], "visible">;
+
+/**
+ * 分组键的**运行时**名单：回写要把解码出来的分组并进对应那条规则，白名单必须存在但不能是手抄第二份。
+ * `code-parse.test.ts` 里有一条门用 `Record<ResponsivePatchGroup, true>` 的字面量核对这张表——
+ * 接口里多一组而这张表没跟上，那条门编译不过。少一组的后果是作者从代码写进去的那一寸静默丢掉（§159）。
+ */
+export const RESPONSIVE_PATCH_GROUPS: readonly ResponsivePatchGroup[] = [
+  "layout",
+  "size",
+  "position",
+  "style",
+  "typography",
+];
+
 export interface Style {
   fills: Paint[];
   strokes: Stroke[];

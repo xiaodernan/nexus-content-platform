@@ -468,10 +468,10 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
   const out: string[] = [];
   for (const rule of node.responsive) {
     const variant = BREAKPOINT_CLASS[rule.breakpoint];
-    // `mobile` 的前缀是空串：那一档的覆盖与基础类撞在同一个特异性上（`flex-row` 与 `flex-col`
-    // 谁赢由框架的产出顺序决定，不由类名书写顺序决定）。正确地表达它要把基线改成
-    // "设计 + mobile 规则"那份投影（移动优先），那是单独一片的活；今天先照实**不发**，
-    // 而不是发一组语义不定的类（详见 docs/adr/0069 的"仍欠"）。
+    // `mobile` 的前缀是空串：那一档的覆盖**已经在基线里了**——`classOf` 发无前缀那组类时读的是
+    // 「设计 + mobile 规则」那份投影（见 `baselineOf`）。这里再发一遍会撞在同一个特异性上
+    // （`flex-row` 与 `flex-col` 谁赢由框架的产出顺序决定，不由类名书写顺序决定）。
+    // 移动优先的序与 `applyResponsive` 的级联同构，详见 docs/adr/0069。
     if (!variant) continue;
     const { layout, size, typography, style, visible } = rule.patch;
     if (size?.width === "fill") out.push(`${variant}w-full`);
@@ -589,21 +589,41 @@ interface RenderCtx {
   page: Page;
   prefix: string;
   mode: string | null;
+  /** `mobile` 档的基线投影，按节点 id 存一次：容器有很多孩子时不重复克隆 */
+  baselines: Map<string, DesignNode>;
+}
+
+/**
+ * 无前缀那组类取的是「设计 + `mobile` 规则」那份投影（§14 第五片）。
+ * CSS 的级联本来就是窄档向上一直有效：无前缀的类在任何宽度都吃得到，`md:` 那组只在更宽
+ * 那档顶掉它——这与 `applyResponsive(node, bp)`「本档与更窄几档合起来」是同一条序。
+ * 反过来表达（比如 `max-md:`）会让手机那条规则在平板以上失效，模型说的不是这件事。
+ * `applyResponsive` 在本档没有规则时返回**同一个引用**，所以没有 mobile 规则的节点一个字节都不变。
+ */
+function baselineOf(node: DesignNode, ctx: RenderCtx): DesignNode {
+  const cached = ctx.baselines.get(node.id);
+  if (cached) return cached;
+  const view = applyResponsive(node, "mobile");
+  ctx.baselines.set(node.id, view);
+  return view;
 }
 
 function classOf(node: DesignNode, parent: DesignNode | null, ctx: RenderCtx): string {
-  const absolute = isAbsoluteChild(node, parent);
+  const view = baselineOf(node, ctx);
+  const parentView = parent ? baselineOf(parent, ctx) : null;
+  const absolute = isAbsoluteChild(view, parentView);
   return [
-    ...sizeClasses(node, parent, ctx.prefix),
-    ...positionClasses(node, parent),
-    ...layoutClasses(node, ctx.prefix, {
+    ...sizeClasses(view, parentView, ctx.prefix),
+    ...positionClasses(view, parentView),
+    ...layoutClasses(view, ctx.prefix, {
       absolute,
-      hasChildren: childrenOf(ctx.page, node).length > 0,
+      hasChildren: childrenOf(ctx.page, view).length > 0,
     }),
-    ...backgroundClasses(node, ctx.prefix),
-    ...styleClasses(node, ctx.prefix),
-    ...stateClasses(node, ctx.prefix),
-    ...typographyClasses(node, ctx.prefix),
+    ...backgroundClasses(view, ctx.prefix),
+    ...styleClasses(view, ctx.prefix),
+    ...stateClasses(view, ctx.prefix),
+    ...typographyClasses(view, ctx.prefix),
+    // 更宽那几档从**原始节点**解：它们要的是「本档与更窄几档」整条级联，基线只是窄的那一半
     ...responsiveClasses(node, ctx.prefix),
   ].join(" ");
 }
@@ -615,7 +635,7 @@ function renderTree(node: DesignNode, parent: DesignNode | null, ctx: RenderCtx,
   const isRoot = !parent;
   const { tag, leaf, runtimeOnly } = elementFor(node, isRoot);
   const classes: string[] = [classOf(node, parent, ctx)];
-  if (!node.visible) classes.push("hidden");
+  if (!baselineOf(node, ctx).visible) classes.push("hidden");
 
   const attrs: string[] = [`className="${classes.filter(Boolean).join(" ")}"`];
   if (isRoot && ctx.mode) attrs.push(`data-theme="${attr(ctx.mode)}"`);
@@ -745,6 +765,7 @@ export function generatePageComponent(
     page,
     prefix: options.cssVarPrefix ?? "nx",
     mode: options.mode ?? null,
+    baselines: new Map(),
   };
   const body = renderTree(root, null, ctx, 0);
   const source = `${HEADER}export function ${name}() {\n  return (\n${body}\n  );\n}\n`;

@@ -165,4 +165,51 @@
   `justify`/`items`/`reverse`/`rowGap`/`crossGap`/`scroll`/`clipContent`、`mode` 的 `stack`/`none`
   两档，以及 `position`（x/y）在断点 patch 里都还发不出、读不回；`typography` 只有字号、
   `style` 只有填充与透明度。这些键画布与访客都吃，代码视图与 ZIP 不吃（§16 在这一寸上仍有缺口）。
+  ——这一条的第一句由同日的**第五片**接上，第二句里的 `position` 也只在 `mobile` 那一档通了；
+  此刻的真实缺口看本文件最后那个「仍欠」。
+
+**第五片（2026-11-02）：`mobile` 那一档走基线——无前缀那组类就是「设计 + 手机规则」那份投影**
+
+第四片把 `md:`/`lg:`/`xl:` 三档接通了，`mobile` 那一档照实不发：它的断点前缀是空串，
+覆盖类和基类撞在同一个特异性上，`flex-row` 与 `flex-col` 谁赢由框架的产出顺序决定，不由类名书写顺序决定。
+这一片选的是**移动优先基线**，不是 `max-md:` 那一类写法。
+
+- 为什么不是 `max-md:`：那一套的语义是"窄屏才生效"，而 `applyResponsive` 的级联是
+  "本档**与更窄几档**合起来生效"（`<=`，ADR-0069 第一片起就没换过）。一条手机规则在平板档照样生效，
+  `max-md:` 到了平板就没了——发出去的那份代码和画布/访客读的是两份语义，那是 §16 的反面。
+  反过来，无前缀 → `md:` → `lg:` → `xl:` 这个顺序和 `applyResponsive` 的级联**同构**：窄那一档的值
+  一直跟着往上走，直到宽一档自己改写它。所以基线换成"设计 + mobile 规则"之后，`mobile` 那条规则
+  就不该再发一遍（`responsiveClasses` 对空前缀 `continue`），发了会撞自己。
+- 发射侧（`codegen.ts`）：`classOf` 拿的是 `baselineOf(node)` 与 `baselineOf(parent)` 那两份投影，
+  尺寸/位置/排布/背景/样式/字型全部按基线解，只有 `responsiveClasses` 继续读**原始节点**
+  ——宽档要的是"本档与更窄几档"整条级联，基线只是窄的那一半。`hidden` 同理落在基线里。
+  `RenderCtx.baselines` 那张表按节点 id memo 一次，容器带很多孩子时不重复克隆。
+- 反面也钉住了：节点**没有** mobile 规则时 `applyResponsive` 返回同一个对象引用，基线一个字节都不为
+  这条链让路——所以既有页的导出代码逐字节不变，这一片的爆炸半径是"只有手机规则的节点"。
+- 回写侧（`code-parse.ts`）：解码无前缀类时喂给 `decodeClasses` 的也是那份基线，读出来的值归谁由
+  **谁声明的**决定：`mobileOwnedPaths` 把手机那条规则声明过的路径（`layout.padding` 连它下面四条边）
+  列出来，命中的写回那条规则，没命中的照旧写设计值。落错地方不是"值差一点"而是**整条链断掉**：
+  设计值写了、那条规则还盖在上面，重投影自检认不出那个类名 ⇒ 整个节点的回写被放弃（§19），
+  作者那次编辑在代码里看着改成功了，画布上什么都没发生（§159）。
+- 顺带修掉一处静默丢键：`responsiveOps` 原先手抄 `size|layout|style|typography` 四组来合并 patch，
+  `position` 那一组被丢在门外 ⇒ 代码里改 `left-*/top-*` 落地的是"什么都不改"。名单现在来自
+  `types.ts` 的 `RESPONSIVE_PATCH_GROUPS`，而 `code-parse.test.ts` 里有一条**编译期**的穷尽门：
+  接口里多一组而这张表没跟上，那个 `Record<ResponsivePatchGroup, true>` 字面量编译不过。
+  手抄的名单不会因为多一个键而报错，这一条会。
+- 见证（六条变异臂，每条都是行为改动而不是删代码）：
+  A 发射侧基线换成原始节点 → 红 5（codegen 那条移动优先 + 回写的往返/改值/非归属键/父级四腿）；
+  A2 `hidden` 发射不读基线 → 红 1（手机档藏起来那条）；
+  B1 回写侧基线换成原始节点 → 红 2（`hidden` 那条 + 父级那条，正是 A 照不到的两个接缝）；
+  B2 归属分流整个关掉 → 红 4；
+  B3 反向（一切无前缀类都归手机规则）→ 红 27，包括那条"没声明的键照旧写设计值"——
+  这条腿只有反向臂能红，所以留下它，同时也记下它是个大锤（B3 不是那条腿的专用臂）；
+  C `responsiveOps` 退回手抄四组 → 只红新增那条 position 回写腿。
+  臂跑完逐个还原，`git diff` 里不留 `MUTATION-PROBE` 字样。
+- 读数：`packages/design-model` **32 files / 398 passed**（390 起手 + 8 新腿，净 +8）；
+  界面那半边 e2e 腿 A–**O** 见 `docs/ROADMAP.md` §14 那一节。
+- **仍欠**：`position`（x/y）到这一片只在 `mobile` 那一档走得通——`responsiveClasses` 没有 position
+  那一支，所以 `md:`/`lg:`/`xl:` 三档的位置覆盖仍然发不出、读不回。`layout` 的
+  `justify`/`items`/`reverse`/`rowGap`/`crossGap`/`scroll`/`clipContent`、`mode` 的 `stack`/`none`
+  两档，`typography` 除字号那几键，`style` 除填充与透明度，代码这一寸照旧不吃。
+  面板那半边也还没有 `position` 的输入口（`RESPONSIVE_CHANNELS` 八格里没有它）。
 
