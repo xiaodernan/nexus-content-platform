@@ -69,7 +69,29 @@
   代价是退回期间那一台的额度是它自己看到的次数（`docs/adr/0076-rate-limit-redis-sliding-window.md`）。
 - 本机跑法：`NEXUS_REDIS_URL=redis://127.0.0.1:56379`；跨实例那层用 `npm run realtime:two-process` 验，
   它只要 Redis、不要数据库，起不来时会先打一句"线路不通"而不是等 25 秒超时。
-  限流那一层的跨实例同样有一条：`npm run ratelimit:two-process`（12 个真进程、判据读 Redis 里那条集合）。
+  限流那一层的跨实例同样有一条：`npm run ratelimit:two-process`（2026-11-03 起 **18 个真进程、16 条判据**，
+  判据读的是父进程自己 `ZRANGE`/`SCAN` 出来的那两条集合与那个前缀下的键数，不采信孩子进程的自述）。
+
+### ⚠️ 这台 `nexus-redis` 实测没有容量上限，所以上界写在应用里（2026-11-03 实测）
+
+```
+docker exec nexus-redis redis-cli config get maxmemory maxmemory-policy
+→ maxmemory 0 / maxmemory-policy noeviction
+docker exec nexus-redis redis-cli info stats → evicted_keys 0、expired_keys 247
+docker inspect nexus-redis --format '{{.HostConfig.Memory}}' → 0（容器也没设内存上限）
+```
+
+这三行合起来是本节最要紧的一条运维事实：**Redis 侧一个字节都没被限住**。所以限流闸的键空间
+只能由闸自己钉住（`maxBucketKeys` 默认 50 000，`docs/adr/0081-…`），指望那台机器兜底是不成立的——
+`noeviction` 之下写不进去的是**所有共用它的子系统**（总线发布、审计游标、并行会话的 e2e 窗口），
+而涨的是限流的键。反过来若哪天给它设了 `maxmemory` + `allkeys-lru`，被逐出的就是限流窗口本身，
+**方向是更松**，且读数在 Redis 的 `evicted_keys` 里、不在应用日志里——换策略时要连带把这句话重读一遍。
+
+- 部署口径（ADR-0077 仍欠 5 那一格，现在写在这里）：**不设 `NEXUS_REDIS_URL`** 的那台进程
+  （dev / vitest / e2e / 小规模生产都是）最多留 50 000 只桶，顶满后从最久没被碰的一头淘汰，
+  被淘汰的那个身份下一次命中重新变空（`nexus_rate_limit_buckets_pruned_total{reason="cap"}` 在涨）；
+  **设了**的那台把窗口挪进 Redis，键数由这条驱动自己钉住（`{reason="over-cap"}` 在涨说的是名额用完，
+  不是 Redis 坏了）。两种形状都不等于"没有上界"，也都不等于"做了容量规划"。
 
 ### ⚠️ 两个库：集成测试打 `nexus_regress`，**e2e 的 dev server 打 `nexus`**（2026-10-22 实测）
 

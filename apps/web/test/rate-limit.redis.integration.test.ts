@@ -1,10 +1,16 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Redis } from 'ioredis';
 import { snapshot } from '@/server/observability';
 import type { RateLimitDecision, RateLimiter } from '@/server/security/rateLimit';
 import { getRateLimiter, setRateLimiter } from '@/server/security/rateLimit';
 import { MemoryRateLimiter } from '@/server/security/rateLimitMemory';
-import { DEFAULT_KEY_PREFIX, REDIS_URL_ENV, RedisRateLimiter } from '@/server/security/rateLimitRedis';
+import {
+  BUCKET_INDEX_SUFFIX,
+  DEFAULT_KEY_PREFIX,
+  INDEX_TTL_MS,
+  REDIS_URL_ENV,
+  RedisRateLimiter,
+} from '@/server/security/rateLimitRedis';
 
 /**
  * §SEC 第三十二片的收据（`docs/adr/0076-rate-limit-redis-sliding-window.md`）：限流闸换成
@@ -21,6 +27,10 @@ import { DEFAULT_KEY_PREFIX, REDIS_URL_ENV, RedisRateLimiter } from '@/server/se
  * 前缀每次跑换一个（`nexus:ratelimit:test:<pid>:<启动时刻>:`），理由写在驱动 `reset()` 的注释里：
  * 同一台 Redis 上还挂着并行会话的 e2e 窗口，把它们 20 次/小时的额度抹掉，
  * 会让**那一轮**的"闸挡住了"变成"闸没挡"——读数看着一样，原因完全不同。
+ *
+ * `桶键的上界` 那一组（第三十四片）住在它自己的子前缀 `${RUN_PREFIX}cap:` 下：
+ * 名册按前缀各一份，小上界只挡自己。每一份都先 `reset()` 再数名额，那一句的凭证写在
+ * `emptiedLimiter` 里（它顺手把 `settle()` 留下的探测桶也清掉，否则"名册里有几条"要倒推）。
  */
 
 const REDIS_URL = process.env[REDIS_URL_ENV]?.trim() || 'redis://127.0.0.1:56379';
@@ -335,9 +345,9 @@ describe('退回（Redis 那半边不行时闸还在挡）', () => {
   });
 
   it('正常路径下 fallbackCount 一直是 0（陌生回执不许被读成放行）', async () => {
-    // 这一格是 `bad-reply` 那条分支的门：把 Lua 的回执改成不是 `[0|1, n, n]` 那个形状
-    // （臂 A-D：`return 'nope'`），上面那几条共享窗口的用例立刻红——退回之后 alpha/beta
-    // 各数各的，而这里会看见 fallbackCount 涨起来。分支本身没有专门的假服务器，如实记在这里。
+    // 这一格是 `bad-reply` 那条分支的门：把 Lua 的回执改成不是 `[判决 0|1|2, 条数, 等待, 扫掉几条, 名册几条]`
+    // 那个形状（臂 A-D：`return 'nope'`，以及少给一位），上面那几条共享窗口的用例立刻红——
+    // 退回之后 alpha/beta 各数各的，而这里会看见 fallbackCount 涨起来。分支本身没有专门的假服务器，如实记在这里。
     const limiter = makeLimiter();
     const settled = await settle(limiter);
     await drive(limiter, 'healthy/path|u|127.0.0.1', 2, 60_000, 3);
@@ -417,6 +427,152 @@ describe('reset 的爆炸半径', () => {
     const afterReset = await limiter.hit(key, 1, 60_000);
     expect(afterReset.allowed).toBe(true);
     expect(afterReset.count).toBe(1);
+  });
+});
+
+describe('桶键的上界', () => {
+  /**
+   * 这一组都用 `${RUN_PREFIX}cap:` 这个子前缀：名册是**按前缀**各有一份的
+   * （`${keyPrefix}__bucket_index__`），所以一个很小的 `maxBucketKeys` 只会挡到自己头上，
+   * 不会把并行会话的键算进名额，也不会被它们的键挤出名额。
+   *
+   * 每一份都用完就把这个命名空间整个抹掉（`reset()`），于是"名册里有几条"是从 0 开始数的——
+   * 不抹的话 `settle()` 那只探测桶也占一格，用例就得靠"当前有几条"倒推，那种断言一改就废。
+   */
+  const CAP_PREFIX = `${RUN_PREFIX}cap:`;
+
+  async function emptiedLimiter(maxBucketKeys: number): Promise<RedisRateLimiter> {
+    const limiter = makeLimiter({ keyPrefix: CAP_PREFIX, maxBucketKeys });
+    await settle(limiter);
+    await limiter.reset();
+    // 抹干净这句要自己作证：后面所有"名额从 0 数起"的断言都站在它上面。
+    expect(await keysUnder(CAP_PREFIX)).toEqual([]);
+    return limiter;
+  }
+
+  /** 这个前缀下的**桶**键（把名册那条剔掉——它不是桶）。 */
+  async function bucketKeys(): Promise<string[]> {
+    return (await keysUnder(CAP_PREFIX)).filter((k) => !k.endsWith(BUCKET_INDEX_SUFFIX));
+  }
+
+  it('名额用完时新桶建不出来，但那条请求仍被本机窗口挡住（不是免检）', async () => {
+    const limiter = await emptiedLimiter(2);
+    const baseline = limiter.fallbackCount;
+    const refusedBefore = counterValue('nexus_rate_limit_driver_fallbacks_total', { reason: 'over-cap' });
+    const a = 'cap/a|u|127.0.0.1';
+    const b = 'cap/b|u|127.0.0.1';
+    const c = 'cap/c|u|127.0.0.1';
+    expect((await limiter.hit(a, 5, 60_000)).allowed).toBe(true);
+    expect((await limiter.hit(b, 5, 60_000)).allowed).toBe(true);
+    expect(limiter.bucketKeysTracked).toBe(2);
+
+    // 第三只新桶的第一笔当然放行（本机窗口里它是第一条）——这一句不是"上界没挡住"，
+    // 它挡的是**键**，不是请求；下一句才是这一格真正的话：额度还在生效。
+    expect((await limiter.hit(c, 2, 60_000)).count).toBe(1);
+    expect(await bucketKeys()).toEqual([`${CAP_PREFIX}${a}`, `${CAP_PREFIX}${b}`]);
+    expect(limiter.bucketKeysTracked, '被拒的新桶不该占名额').toBe(2);
+    expect((await limiter.hit(c, 2, 60_000)).allowed).toBe(true);
+    expect((await limiter.hit(c, 2, 60_000)).allowed).toBe(false);
+    expect((await limiter.hit(c, 2, 60_000)).allowed).toBe(false);
+    // 而且它没在那台 Redis 上留下任何东西：那一档的窗口自始至终是本机的
+    expect(await bucketKeys()).toEqual([`${CAP_PREFIX}${a}`, `${CAP_PREFIX}${b}`]);
+    expect(limiter.fallbackCount - baseline).toBe(4);
+    expect(counterValue('nexus_rate_limit_driver_fallbacks_total', { reason: 'over-cap' }) - refusedBefore).toBe(4);
+  });
+
+  it('上界只管新建：已经在数东西的那只桶照样往 Redis 的窗口里记，也照样被它挡住', async () => {
+    // 这一条钉的是"满了之后拿谁开刀"。做错的另一种写法是淘汰旧桶腾位子——那等于
+    // 每次洪水都白送某个身份一次窗口，而这里明写了不这么换（页眉第 3 条）。
+    const limiter = await emptiedLimiter(1);
+    const baseline = limiter.fallbackCount;
+    const a = 'cap-existing/a|u|127.0.0.1';
+    expect((await limiter.hit(a, 2, 60_000)).allowed).toBe(true);
+    // 名额此刻已满（live=1），但 a 已存在 ⇒ 走原来的判定，不进拒绝那一支
+    expect((await limiter.hit(a, 2, 60_000)).allowed).toBe(true);
+    // 第三笔被挡，而且挡它的是 Redis 那份共享窗口，不是本机退回来的那份
+    expect((await limiter.hit(a, 2, 60_000)).allowed).toBe(false);
+    expect(await redisRaw().zcard(`${CAP_PREFIX}${a}`)).toBe(2);
+    expect(limiter.fallbackCount - baseline, '已有的桶被当成新桶拒了：那句话就变成"满了就降级"').toBe(0);
+    // 对照：同一时刻一只新桶确实被拒
+    expect((await limiter.hit('cap-existing/b|u|127.0.0.1', 2, 60_000)).allowed).toBe(true);
+    expect(limiter.fallbackCount - baseline).toBe(1);
+  });
+
+  it('整窗过期的条目腾出位子：等一等，新桶又能建了', async () => {
+    // 上界不是"先到先得，后来的人永远进不来"。这一格是那条 `ZREMRANGEBYSCORE 名册` 的门：
+    // 摘掉它，过期的两条还占着名额，第三条就会退回——红的正是下面那句"没退回"。
+    const limiter = await emptiedLimiter(2);
+    const windowMs = 700;
+    await limiter.hit('cap-freeze/a|u|127.0.0.1', 5, windowMs);
+    await limiter.hit('cap-freeze/b|u|127.0.0.1', 5, windowMs);
+    expect(limiter.bucketKeysTracked).toBe(2);
+    const prunedBefore = counterValue('nexus_rate_limit_buckets_pruned_total', { reason: 'expired' });
+    await sleep(windowMs + 150);
+    const baseline = limiter.fallbackCount;
+    const third = 'cap-freeze/c|u|127.0.0.1';
+    expect((await limiter.hit(third, 5, windowMs)).allowed).toBe(true);
+    expect(limiter.fallbackCount - baseline, '位子没腾出来：这条退回本机了，那它就没经过上界').toBe(0);
+    expect(await redisRaw().exists(`${CAP_PREFIX}${third}`)).toBe(1);
+    // 腾位子这件事自己也得出声：两条过期条目记进同一本 `expired` 账
+    expect(counterValue('nexus_rate_limit_buckets_pruned_total', { reason: 'expired' }) - prunedBefore).toBe(2);
+  });
+
+  it('名册说的条数＝那台 Redis 上真的有的桶数', async () => {
+    // 上界的权威是名册，名册的权威是键本身。这一格钉两边不脱节：判定、拒绝、腾位子
+    // 全都建立在"名册里一条对应一只真实桶"上面，脱了节就是拿一份假名册做真决定。
+    const limiter = await emptiedLimiter(10);
+    for (const name of ['i/a', 'i/b', 'i/c']) await limiter.hit(`cap|${name}|127.0.0.1`, 5, 60_000);
+    // 打满上限那一档（limit=5）之后再挡一次：被挡下的那次不许给名册续命
+    await drive(limiter, 'cap|i/a|127.0.0.1', 5, 60_000, 5);
+    const blocked = await limiter.hit('cap|i/a|127.0.0.1', 5, 60_000);
+    expect(blocked.allowed).toBe(false);
+    expect(await bucketKeys()).toHaveLength(3);
+    expect(await redisRaw().zcard(`${CAP_PREFIX}${BUCKET_INDEX_SUFFIX}`)).toBe(3);
+    expect(limiter.bucketKeysTracked).toBe(3);
+  });
+
+  it('名册自己也有寿命（它不能变成一只永久的键）', async () => {
+    // 与桶键上同一条纪律：`PEXPIRE` 排在 `ZADD` 之后。写反了的话第一次建不出 TTL，
+    // 于是这道闸在"防键空间无界"的路上留下一只无界的键——那条用例是 `键的寿命` 那组抓的，这一格是它的名册版。
+    const limiter = await emptiedLimiter(5);
+    await limiter.hit('cap-ttl/a|u|127.0.0.1', 5, 60_000);
+    const ttl = await redisRaw().pttl(`${CAP_PREFIX}${BUCKET_INDEX_SUFFIX}`);
+    expect(ttl).toBeGreaterThan(0);
+    expect(ttl).toBeLessThanOrEqual(INDEX_TTL_MS);
+  });
+
+  it('reset(key) 把名册里那条一起摘掉：名额立刻还给新桶', async () => {
+    const limiter = await emptiedLimiter(1);
+    const a = 'cap-reset/a|u|127.0.0.1';
+    await limiter.hit(a, 5, 60_000);
+    expect(limiter.bucketKeysTracked).toBe(1);
+    await limiter.reset(a);
+    expect(await redisRaw().zcard(`${CAP_PREFIX}${BUCKET_INDEX_SUFFIX}`)).toBe(0);
+    const baseline = limiter.fallbackCount;
+    const b = 'cap-reset/b|u|127.0.0.1';
+    await limiter.hit(b, 5, 60_000);
+    expect(limiter.fallbackCount - baseline, '名额没还给新桶：那只已清掉的桶还占着位').toBe(0);
+    expect(await redisRaw().exists(`${CAP_PREFIX}${b}`)).toBe(1);
+  });
+
+  it('退回按原因各一分钟一行，而逐笔的账一条不落', async () => {
+    // 这一格钉的是"出声的方式"，不是"出不出声"：洪水 + Redis 没了这个组合下，
+    // 每请求一行 `console.error` 就是每请求一次磁盘写——一道挡免成本写入口的闸自己开了一条。
+    // 臂：去掉 `countFallback` 里的节奏判断 ⇒ 红在这一句（行数 5）；
+    // 臂：节奏判断写成不看 reason ⇒ 第一条 command-failed 会把后来的 over-cap 那行也压掉（这一格看不出，
+    // 所以按原因分开这一句写在了实现注释里，代价是它只由实现保证，不谎称有用例）。
+    const limiter = makeLimiter({ url: DEAD_URL, keyPrefix: `${RUN_PREFIX}log-throttle:` });
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const before = counterValue('nexus_rate_limit_driver_fallbacks_total', { reason: 'command-failed' });
+      await drive(limiter, 'log/flood|u|127.0.0.1', 3, 60_000, 5);
+      expect(limiter.fallbackCount).toBe(5);
+      expect(counterValue('nexus_rate_limit_driver_fallbacks_total', { reason: 'command-failed' }) - before).toBe(5);
+      expect(spy.mock.calls).toHaveLength(1);
+      expect(String(spy.mock.calls[0]?.[0])).toContain('原因=command-failed');
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

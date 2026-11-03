@@ -105,8 +105,8 @@ export const METRICS = {
   },
   nexus_rate_limit_driver_fallbacks_total: {
     kind: 'counter',
-    help: '限流闸用 Redis 驱动却退回进程内的次数——这一格涨说明限额那句话退回成"每台各数各的"，不是闸没挡',
-    labels: { reason: ['command-failed', 'bad-reply', 'reset'] },
+    help: '限流闸本该用 Redis 驱动、这一条判定却由进程内给的次数——这一格涨说明限额那句话退回成"每台各数各的"，不是闸没挡（over-cap 是桶键名额用完，不是 Redis 坏了）',
+    labels: { reason: ['command-failed', 'bad-reply', 'reset', 'over-cap'] },
   },
   nexus_rate_limit_buckets_created_total: {
     kind: 'counter',
@@ -114,7 +114,7 @@ export const METRICS = {
   },
   nexus_rate_limit_buckets_pruned_total: {
     kind: 'counter',
-    help: '进程内限流桶被回收数——expired 是整窗已过期（不动任何人的额度），cap 是到上界后淘汰（被淘汰身份那一档窗口重新变空），reset 是清桶',
+    help: '限流桶被回收数（两个驱动同一格：进程内那张表与 Redis 那份桶键名册）——expired 是整窗已过期（不动任何人的额度），cap 是到上界后淘汰（被淘汰身份那一档窗口重新变空），reset 是清桶',
     labels: { reason: ['expired', 'cap', 'reset'] },
   },
   nexus_ai_jobs_submitted_total: {

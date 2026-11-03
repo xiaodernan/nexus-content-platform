@@ -156,6 +156,9 @@ Next 按 route 各编译一份模块图，挂在模块变量上等于每台进�
 
 1. Redis 侧的键基数没有上界保护。进程内那版有指标序列折叠（`nexus_metric_cardinality_overflow_total`），
    这里没有对应物：活跃 (路由,身份,IP) 组合的数由真实流量决定，靠 TTL 收尾而不是靠上限。
+   —— **这一格已还**（ADR-0081，2026-11-03）：桶键名册 + `maxBucketKeys`（默认 50 000），
+   到上界**不再新建桶键**，那条请求交给进程内窗口判并记 `{reason="over-cap"}`。
+   "靠 TTL 收尾"从今天起是两条腿而不是一条：单只桶的寿命仍是 `PEXPIRE`，条数另有名册钉住。
 2. "这台实例现在用的是哪个驱动"没有界面位。`RealtimeBus` 有 `stats()`，`RateLimiter` 没有——
    加它要动接口，两个驱动都得实现，留给下一个真的要看这个数的人。今天的答案只有启动那一行日志
    （`[rateLimit] 驱动=…`）与 `nexus_rate_limit_driver_fallbacks_total` 有没有数。

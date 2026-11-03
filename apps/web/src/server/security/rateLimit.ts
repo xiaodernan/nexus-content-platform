@@ -20,8 +20,8 @@
  * 而"两个驱动同答案"不是靠说的——收据是 `rate-limit.redis.integration.test.ts` 的 parity 一组。
  */
 
-import { MemoryRateLimiter } from './rateLimitMemory';
-import { DEFAULT_KEY_PREFIX, REDIS_URL_ENV, RedisRateLimiter } from './rateLimitRedis';
+import { DEFAULT_MAX_BUCKETS, MemoryRateLimiter } from './rateLimitMemory';
+import { DEFAULT_KEY_PREFIX, DEFAULT_MAX_BUCKET_KEYS, REDIS_URL_ENV, RedisRateLimiter } from './rateLimitRedis';
 
 export interface RateLimitDecision {
   allowed: boolean;
@@ -73,10 +73,12 @@ const store = globalThis as GlobalStore;
 function createDefaultLimiter(): RateLimiter {
   const url = process.env[REDIS_URL_ENV]?.trim();
   if (!url) {
-    console.log(`[rateLimit] 驱动=进程内（多实例部署设 ${REDIS_URL_ENV} 换成共享窗口）`);
+    console.log(`[rateLimit] 驱动=进程内（桶上界 ${DEFAULT_MAX_BUCKETS} 只；多实例部署设 ${REDIS_URL_ENV} 换成共享窗口）`);
     return new MemoryRateLimiter();
   }
-  console.log(`[rateLimit] 驱动=Redis 有序集滑动窗口（键前缀 ${DEFAULT_KEY_PREFIX}）`);
+  // 上界写在启动这一行是因为它是**部署参数**而不是运行时旋钮：那台 Redis 若被键空间压住，
+  // 复盘第一眼要看的就是"这台写键的人自己钉了多少"。
+  console.log(`[rateLimit] 驱动=Redis 有序集滑动窗口（键前缀 ${DEFAULT_KEY_PREFIX}，桶键上界 ${DEFAULT_MAX_BUCKET_KEYS} 只）`);
   return new RedisRateLimiter({ url });
 }
 

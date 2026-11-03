@@ -23,6 +23,16 @@
   逐笔的数只在 counter 里——洪水期间每请求一行日志就是这道闸自己开的一条写入口。
   `cap` 在涨才是事故（说明这台进程被 distinct 身份压着打），`expired` 在涨是正常收尾；
   被淘汰的那一格窗口重新变空，这一句是代价不是缺陷披露——真正的上界在 Redis 驱动与边缘层。
+  **Redis 那半的键基数同样收了口**（`docs/adr/0081-rate-limit-redis-bucket-key-ceiling.md`）：`PEXPIRE` 收的
+  是**单只桶的寿命**，从来不管**桶的条数**，而那台 Redis 实测 `maxmemory 0` + `noeviction`（逐出计数 0）——
+  也就是说键空间在 Redis 侧一点都没被限住。现在这条驱动按前缀记一名桶键名册
+  （`${keyPrefix}__bucket_index__`，成员是键名、分数是那只桶自己的到期时刻），每次命中先扫掉已过期的条目再判名额，
+  到 `maxBucketKeys`（默认 50 000，与进程内同一个数，换驱动时"这张表能有多少只桶"不必改口）就**不再新建桶键**：
+  那条请求交给本机窗口判，记 `nexus_rate_limit_driver_fallbacks_total{reason="over-cap"}`。
+  取向与进程内那一版相反并且是故意的——那里没有别处可以挪窗口，只能淘汰别人的桶（白送一次额度）；
+  这里有一个地方可以挪，所以**不动任何人的既有窗口**。因此 `over-cap` 在涨说的是
+  "Redis 这一侧的桶名额用完了"，正解是给那台 Redis 做容量规划或分片，**不是把这个数调大**。
+  退回日志按原因各一分钟一条（Redis 坏着 + 有人在刷时，每请求一行 `console.error` 就是这道闸自己开的磁盘写）。
   IP 取的是转发链的**可信右端**，
   不是客户端随手写的最左端：`x-forwarded-for` 是追加出来的链条，判决与限度见 `docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`；
   **三行转发头都读**——`x-forwarded-for` → RFC 7239 的 `Forwarded`（只认 `for=`，`by`/`proto`/`host` 永不进桶键）→ `x-real-ip`，

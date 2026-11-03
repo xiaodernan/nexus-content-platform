@@ -2614,7 +2614,10 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
      `10 次/15 分钟/邮箱` 在两台前端下实际是"每台 10 次"，而没有任何读数会说这句变了。Redis 坏时退回进程内
      并且出声（`nexus_rate_limit_driver_fallbacks_total`）。进程内那版自己也有了收口（第三十三片，ADR-0077：
      整窗过期的扫掉、桶数钉在 `maxBuckets`（默认 50 000）以内、`nexus_rate_limit_buckets_pruned_total{reason}` 三本账）。
-     仍欠两格如实记下：Redis 侧的键基数没有上界（靠 TTL 收尾而不是靠上限）；"这台实例现在用的是哪个驱动"
+     ~~仍欠两格如实记下：Redis 侧的键基数没有上界（靠 TTL 收尾而不是靠上限）~~ **这一格已还**
+     （§SEC 第三十四片，ADR-0081：桶键名册 + `maxBucketKeys` 默认 50 000，到上界**不再新建桶键**、
+     那条请求交给本机窗口判并记 `{reason="over-cap"}`；取向与进程内那一版相反并且是故意的）。
+     剩一格如实记下："这台实例现在用的是哪个驱动"
      没有界面位（答案只有启动那一行日志与那个 fallback counter）。
 - 历史面板的 Ctrl+Z 只在浏览器会话内，刷新即失；服务端快照与 Branch / Duplicate（§27/§28）已经打通。
   还缺的是 §29 的多方案 A-B-C 并排比较视图（分支线已经能承载多个方向）。
@@ -9269,3 +9272,69 @@ responsive rules**。ADR-0069 与 ADR-0074 把访客那一侧接完之后，作�
   要不要加一条按 `(project_id, id)` 的唯一索引（或触发器）留给以后真被绕过一次再说；
   ③ `duplicate-id` 这个 code 现在同时表达"页面重号"和"节点重号"两种事，靠正文区分，
   界面若要分开显示得拆 code。
+
+## §SEC 第三十四片：Redis 那半的键基数也要有上界——名额用完交给本机窗口判，不是免检（2026-11-03）
+
+起点是第三十二片自己写下的一句"仍欠"：「Redis 侧的键基数没有上界（靠 TTL 收尾而不是靠上限）」。这一回洞不在闸
+的语义上，在**这台 Redis 根本不会替谁设上限**：实测 `maxmemory 0`、`maxmemory-policy noeviction`、
+`evicted_keys 0`、`expired_keys 247`、`used_memory 1.65M`、容器 `HostConfig.Memory 0`（`4.746MiB / 7.66GiB`）
+——所以"靠 TTL 收尾"那条腿踩不上，容量只能钉在应用侧。而桶键第三段那段身份仍是中间件给每个新访客现签的 guest：
+"来一个人"就是"多一只键"，与第三十三片在进程内那张 `Map` 上看到的是同一个形状，只是这回写在一台**所有实例共用**
+的机器上，谁都不数总数。
+
+- 机制三条：① 名册 `${keyPrefix}__bucket_index__`（成员＝桶键名，分数＝`now + windowMs`，**与那一步 `ZADD` 用同一个数**
+  ——两处各取一次 `TIME` 会让"占名额"和"进窗口"落在不同时刻，名额就能比窗口先空）；② 每次命中先
+  `ZREMRANGEBYSCORE 名册 -inf now` 腾位子，所以名额不是"先到先得、后来的人永远进不来"；③ `EXISTS 桶 == 0` 且
+  `live >= maxBucketKeys` 时 Lua 判决 `2`，JS 记成原因 `over-cap`，**这一笔交给进程内窗口判**。
+- 判决 `2` 那一支是这一片唯一容易读反的地方：**"拒绝新建"不等于"免检"**。名额满挡住的是**键的数目**，不是请求；
+  请求照样被本机窗口挡住，额度是这台自己数的那份（与 ADR-0076 断线退回同一句代价）。另一种做法——淘汰最旧的桶
+  腾位子——等于每次洪水都白送某个身份一次空窗口，所以明写不换；这一格正是 N2 与 C1 两臂的分界。
+- 与第三十三片（进程内）**三条故意分歧**：扫每次命中而不是攒 256 次（Redis 侧扫的是 O(过期数)，进程内侧扫的是
+  O(表长)，挂每请求就是一条放大攻击）；满时**不动别人的窗口**而不是 LRU 淘汰；上界数字**相同**
+  （`DEFAULT_MAX_BUCKET_KEYS = 50_000`，一格 ≈ 键串 + 至多 `limit` 个时间戳 + 一条索引成员，与进程内同一档）。
+  名册自己也得有寿命（`INDEX_TTL_MS = 90 分钟`）——它不能变成一只永久的键。`reset(key)` 顺手 `ZREM`，名额当场还回来。
+- 出声：`nexus_rate_limit_driver_fallbacks_total` 新增标签值 `over-cap`（**新枚举先进 `METRICS`**，否则这条线在
+  面板上根本不存在），退回日志按原因各一分钟一行（`FALLBACK_LOG_INTERVAL_MS = 60_000`），逐笔的数只进 counter；
+  门面那两行启动日志带上上界数字（"桶上界 50 000 只"），因为"哪个驱动 + 上限多少"是排查时的第一句话。
+- 读数（逐字）：`rate-limit.redis.integration.test.ts` 新增 `describe('桶键的上界')` 7 条打真 Redis，每份用
+  `${RUN_PREFIX}cap:` 这个**子前缀**（名册按前缀各有一份，小上界才只挡自己头上），且 `emptiedLimiter()` 里
+  `reset()` 之后自己作证"Redis 里真的空了"——不然"名额从 0 数起"就靠一条看不见的前提。三文件合跑首跑
+  `Test Files 1 failed | 2 passed (3)` / `Tests 1 failed | 45 passed (46)`，红在
+  `alpha 在测量期间退回了：那句"合计恰好 limit"就不是共享窗口的读数: expected 1 to be +0`——同一时刻 slowlog 记着
+  10–48ms 的普通命令，判为负载造成的一次 250ms 超时；**没有为此放宽那个超时，也没有改断言**（它是生产每请求排队
+  预算的一部分）。收尾复跑 `Test Files 3 passed (3)` / `Tests 46 passed (46)`（`Duration 16.45s`）。
+  `npm run ratelimit:two-process` 从 12 个进程 / 11 条判据涨到 **18 个真进程、16 条判据全 PASS**（第三十三片那句
+  "12 条判据"按仓库惯例加了 dated 更正，不静默改数）。
+- 演练新增五格里最要紧的是那对**必须合起来读**的：`CEILING_IS_SHARED_ACROSS_PROCESSES: PASS — 三个进程各要一只新桶、
+  上界 2：Redis 里实际 2 只桶键…；前两只的退回增量 +0 / +0（非 0 就是它们没写在 Redis 上，那"只有两只"是线路坏了
+  不是名额满了）`、`OVER_CAP_REFUSAL_IS_A_CEILING_NOT_A_BROKEN_LINE: PASS — 第三只键 3 次判定：ready=true、键没建=true、
+  退回原因 {"over-cap":3}`、`OVER_CAP_STILL_GATES: PASS — …给出「放放挡」——放行数恰好是它自己的限额`、
+  `CEILING_INDEX_MATCHES_BUCKET_KEYS: PASS — 名册 2 条、真实桶键 2 只、被拒那台自己读到的名册 2 条`、
+  `CEILING_NOT_TRIGGERED_WITH_ROOMY: PASS — …换成上界 10 ⇒ 3 只桶键、退回 +0/+0/+0、判定 放放放`。
+  `over-cap` 与 `command-failed` **行为同形**，只有原因标签分得开，所以演练加了 `fallbackReasons()`（读 `snapshot()`
+  的 counter，不读孩子进程的自述）。判据全由父进程自己 `SCAN` / `ZCARD`，线路探测用**同级前缀**（子段会被数进判据），
+  且紧上界下不许用被测 limiter 探测（over-cap 也算退回，永远等不稳）。
+- 延迟：`ZREMRANGEBYSCORE` 挂在每次命中上是这一片新加的一条往返。第一版探针分别跑 60 次再比 p50，在 5000 条那档
+  得出方向相反的结论，判为负载污染后改成**配对交错**（每对之后 `ZREM` 掉名册条目，防止"名册=0"那一档自己涨）：
+  `名册=0 配对差(新−老) p50 0.05 p90 1.20` / `名册=500 p50 -0.05 p90 1.00` / `名册=5000 p50 0.05 p90 5.41`（各 n=200）。
+  **能钉的是"p50 读不出来"，不能钉的是 p90**——两句都写进 ADR，不拿前者冒充后者。
+- 臂表 N1–N7（改驱动源码、跑那一个文件）+ C1（改演练读的那份驱动、跑演练），逐字进
+  `docs/adr/0081-rate-limit-redis-bucket-key-ceiling.md`：N1 `位子没腾出来…: expected 1 to be +0`、
+  N2 `expected [ …(3) ] to deeply equal [ …(2) ]`、N3 两处 `expected +0 to be 1`（没退回＝压根没交给本机判）、
+  **N4 六红**（去掉 `ZADD 名册`，凡依赖"名额被谁占着"的格子一起塌）、N5 `expected -1 to be greater than 0`、
+  N6 `expected 1 to be +0`、N7 `…to have a length of 1 but got 5`；C1 两红并**点名两格对这个臂是盲的**
+  （`OVER_CAP_STILL_GATES` 与 `CEILING_INDEX_MATCHES_BUCKET_KEYS` 照旧绿，各自钉的是取向与一致性，不钉名额数）。
+  C1 第一写把 Lua 写成非法的 `MUT_MAX(...)`，那会红成"线路坏了"而不是"上界失效"，改成 `maxKeys + 999999` 才打得对。
+- 没牙的格子，点名：`50_000` 这个具体数没有门（测试与演练全用 2 与 10，改成 500 或 5 000 照样绿）；`INDEX_TTL_MS`
+  只钉"有上界"不钉"为什么 90 分钟"；`FALLBACK_LOG_INTERVAL_MS` 只钉"5 笔只喊一行"不钉那一分钟；满额时
+  "两台同时各放 `limit` 次"的跨进程形状没有专门用例（只有断线那组的 `FALLBACK_SCOPE_IS_PER_PROCESS` 覆盖同一条
+  降级路径）。
+- 旧账翻面：ADR-0076 仍欠 1（"靠 TTL 收尾"现在是两条腿）、ADR-0077 仍欠 2（进程内是"顶到上界淘汰别人"，Redis
+  这半是"顶到上界不动别人"，取向相反的理由写进 ADR-0081 的后果）、`docs/SECURITY.md` 的限流条目补 Redis 侧收口整段、
+  `docs/ENVIRONMENT.md` 新增「⚠️ 这台 `nexus-redis` 实测没有容量上限，所以上界写在应用里（2026-11-03 实测）」＋部署口径。
+  已知技术债第 3 条那句"Redis 侧的键基数没有上界"划掉。
+- 仍欠，如实记下：① "这台实例现在用的是哪个驱动"仍然**没有界面位**（这一片给的是启动那行日志，不是界面）；
+  ② `realtime/redisBus.ts` 里同一形状的 `connectionReady` 还是"一次 error 判死"（ADR-0077 仍欠 4，原样没还）；
+  ③ 上界钉的是"闸自己写多少键"，没钉"这台机器上一共多少键"——正解是分片或把闸挪到边缘层；
+  ④ 若将来给它设了 `maxmemory` + `allkeys-*`，我的窗口会被逐出，而"闸的记忆丢了"的读数在 Redis 的 `evicted_keys` 里、
+  不在这个进程里；⑤ 单次命令抖过 250ms 照样让测量期间退回——`settle()` 钉的是"这一趟往返不退回"，不承诺"没有运气"。
