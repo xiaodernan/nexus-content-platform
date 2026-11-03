@@ -54,6 +54,7 @@
     "verify:vitals": "node docs/evidence/m9/service-vitals-proof.mjs",
     "verify:traffic": "node docs/evidence/m9/service-traffic-proof.mjs",
     "verify:incidents": "node docs/evidence/m9/incident-proof.mjs",
+    "verify:patches": "node docs/evidence/m9/patch-proof.mjs",
     "verify:webhooks": "node docs/evidence/m10/webhook-proof.mjs",
     "verify:tools": "node docs/evidence/m10/tool-registry-proof.mjs",
     "verify:mcp": "node docs/evidence/m10/mcp-face-proof.mjs",
