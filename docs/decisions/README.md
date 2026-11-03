@@ -52,3 +52,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0038  | The catalog can name the rows that carry a claim: a `tested` filter | Accepted |
 | 0039  | Traffic counted where it crosses: a bounded ledger, not a metrics system | Accepted |
 | 0040  | The contract you pinned can be read back: a lookup by pin, scoped to one declaration | Accepted |
+| 0041  | An incident is a record with a life, not a status page | Accepted |
