@@ -73,7 +73,7 @@ export const PROOF_COMMAND = /^node +(docs\/evidence\/\S+\.mjs)$/;
  * v547 (ADR 0016 amendment 530) — EMPTY, and the last entry was wrong in the way this file exists to catch.
  * It said service-suite-proof needed "maven and a real PostgreSQL"; measured, its tests are pure Mockito
  * (no Spring context, no database), and the proof runs `mvn -o -B test` to exit 0 in 52.7 s on a warm
- * repository. Its size is NOT restated here any more: v547 wrote "400 tests in 20 classes" and by v570 the
+ * repository. Its size is NOT restated here any more: v547 wrote "400 tests in 20 classes" and by v591 the
  * tree held 536 `@Test` methods in 29 classes — a number quoted from a run is a number that rots, and the row
  * prints its own tally on every build. The real prerequisites were a JDK 25 + Maven, which the workflow pins,
  * and a warm `~/.m2` for the offline flag, which the workflow buys online (a warm-up step) before the proofs

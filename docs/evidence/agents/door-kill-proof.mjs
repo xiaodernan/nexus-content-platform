@@ -173,3 +173,4 @@ assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).tr
 for (const dir of temps) execFileSync('node', ['-e', `require("fs").rmSync(${JSON.stringify(dir)},{recursive:true,force:true})`]);
 console.log('[cleanup] throwaway repositories removed');
 console.log(`\n[summary] faces driven to a real kill: ${faces.length} · sentences blaming git for the host's kill: 0 · records carrying the kill: ${faces.length}/${faces.length} · late budget over a FINISHED read answered whole with no kill marker: yes (run 40833035921's shape, replayed) · real refusal still attributed to git: yes · keys invented for this: 0 (one clause + one field, both derived) · door reads: ${doorReads} · home HEAD byte-identical: yes`);
+console.log(`[verdict] ${faces.length} faces driven to a real kill · 0 sentences blamed git for the host's kill · every kill carried its record · ${doorReads} door reads · home HEAD byte-identical`);

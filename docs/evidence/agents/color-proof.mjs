@@ -345,3 +345,4 @@ assert.equal(spawns, doorReads, `${spawns} door-spawned processes went through t
 rmSync(workRoot, { recursive: true, force: true });
 console.log('[cleanup] throwaway repos removed');
 console.log(`\n[summary] faces measured: ${faces.length} · door reads: ${doorReads} over 5 distinct doors · commits whose subject matched git's own %s: ${realSubjects.length}/${realSubjects.length} · unpinned ANSI sequences replayed through the shipped parsers: ${Object.values(unpinnedBytes).reduce((n, s) => n + esc(s), 0)} · false answers those bytes produced: index EMPTY + empty log + 2 unclassifiable paths + a content door reading nothing added · face paint did NOT break: the --stat tally · door-spawned processes: ${spawns}`);
+console.log(`[verdict] ${faces.length} faces measured · ${doorReads} door reads over 5 distinct doors · ${spawns} door-spawned processes, one per read · home HEAD byte-identical`);

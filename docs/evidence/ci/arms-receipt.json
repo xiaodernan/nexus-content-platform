@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-03T10:29:04.523Z",
+  "ranAt": "2026-11-03T19:38:14.276Z",
   "arms": 54,
   "matched": 54,
   "armNames": [
@@ -64,7 +64,7 @@
     "workflow": "6e39ab2cb0bb78f2a2ed7e06f88085fc264ed638515708451a47415490983803",
     "gate": "d9ef4e999f2deaefc27bf56726927f1beb3055fa4ebfceb2025009bcb5a41509",
     "arms": "a89ecc1219ed777495ba1f44fb36ce4d6cb43d28715fe1d176ed87188d345a7f",
-    "runner": "75ee57474cc93e324281348ef1eacafbecb02ef444e3f41b31a53efcecfe123b",
+    "runner": "5fdc49c0f79ae155ee6f8e392d51a5e7dda44709ac706804d9b40441eb4d72e6",
     "sweep": "ead49485592dc696b99878ef19ba4802519f43746a55956dc9c22dd5fcdb84a9",
     "scripts": "4f13a845cd9e400b99e3de1617490e81e04721dcbdbead22b5458e555fe2bc7f",
     "rule": "d950d243b7678dda17d00f877e2a3cbdf94d7d70a1eafed0c2fb59aa06b437d1"
@@ -301,6 +301,11 @@
       "marker": null
     },
     {
+      "name": "verify:incidents",
+      "file": "docs/evidence/m9/incident-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
+    },
+    {
       "name": "verify:index-store",
       "file": "docs/evidence/agents/index-store-proof.mjs",
       "marker": null
@@ -364,6 +369,11 @@
       "name": "verify:package-counts",
       "file": "docs/evidence/studio/package-counts-proof.mjs",
       "marker": "// sweep-budget-ms: 600000"
+    },
+    {
+      "name": "verify:patches",
+      "file": "docs/evidence/m9/patch-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
     },
     {
       "name": "verify:pipeline",

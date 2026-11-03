@@ -112,3 +112,4 @@ assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).tr
 for (const dir of temps) { try { rmSync(dir, { recursive: true, force: true }); } catch { /* a still-running detached child holds it; v55 measured exactly this */ } }
 console.log('[cleanup] throwaway programs removed (a detached child holding the dir is v55\u2019s finding, not a surprise)');
 console.log(`\n[summary] real kills examined: 2 (reaper off / on) · kill facts in the record: signal + descendantsStopped + exitCode(null) · fields substituted for each other: 0 (cut ≠ kill, verified both ways) · detached child beats after “killed”: ${beats} · JSONL round trip keeps the nested object: yes · home HEAD byte-identical: yes`);
+console.log(`[verdict] 2 real kills examined (reaper off / on) · ${beats} detached child beats after "killed" · cut and kill are never substituted for each other · home HEAD byte-identical`);
