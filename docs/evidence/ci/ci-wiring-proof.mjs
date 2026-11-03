@@ -29,6 +29,12 @@
 // hosted log of run 41421600776 showed eight rows in exactly that shape. Order is invisible to every other
 // clause here, and a reorder is one edit away from coming back.
 //
+// §13 charges the LENGTH of that same tail. A gutter is bounded, so a sentence longer than the bound is
+// severed; run 41433663171 counted eleven of 107 gutters sitting at exactly the bound, and nine rows whose
+// static text alone exceeds it — those nine can never print whole. §13 asks the runner's own clip what would
+// happen to each row's last line and refuses the guaranteed cut, leaving the length that depends on numbers
+// the row interpolates to the marker v591 added.
+//
 // §8 makes this file self-reference its own admission: the script `verify:ci-wiring` must exist and point
 // here, so the door that guards the wiring is itself walked by the wiring it guards.
 //
@@ -48,6 +54,8 @@ const producer = await import(new URL('../../../tools/ci/proof-set.mjs', import.
 const { PROOF_COMMAND, EXCLUDED, derivePopulation, danglingTargets, unknownExclusions, splitSet } = producer;
 assert.ok(PROOF_COMMAND instanceof RegExp && typeof derivePopulation === 'function' && Array.isArray(EXCLUDED),
   'the runner exports its own rule — a gate that had to COPY the regex would be grading a copy, not the wiring');
+assert.ok(typeof producer.lastLineOf === 'function' && Number.isInteger(producer.GUTTER_BOUND_BYTES),
+  '§13 measures a row against the clip the runner actually uses; if the runner stopped exporting it, this clause would be quoting a number the producer no longer obeys');
 
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 
@@ -337,36 +345,133 @@ let jobTimeoutMinutes = 0;
 // on cleanup is nobody's business; and a refusal quotes the file and the line, so the remedy comes with the
 // message. A row that prints nothing is not an offender either: v566's gutter says `(the row printed nothing)`,
 // which is the true sentence for that row, and R16/R17 arm the channel.
+const { running } = splitSet(population);
+
+/**
+ * The last readable `console.log(` call in a row's SOURCE, as `{ line, literal }`: `literal` is the argument's
+ * own text between its opening and closing quote on that line, and is `null` when the call cannot be read that
+ * way (no opening quote, a template that continues on the next line, a call whose argument is an expression).
+ * §12 and §13 share this one scan so the two clauses cannot disagree about which line is the tail — and both
+ * are proxies for the same unknowable thing, since a print inside a branch is invisible to any reader of bytes.
+ */
+function lastPrintCall(path) {
+  const lines = readFileSync(path, 'utf8').replace(/\r\n/g, '\n').split('\n');
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const at = lines[i].lastIndexOf('console.log(');
+    if (at < 0) continue;
+    // A commented-out print is not a print. Checking the bytes BEFORE the call on its own line is the whole
+    // of the parsing this gate does — the same bound every clause here works under, since it reads bytes,
+    // not an AST.
+    if (/\/\*|^\s*(\*|\/\/)/.test(lines[i].slice(0, at))) continue;
+    const rest = lines[i].slice(at + 'console.log('.length);
+    const open = /^[`'"]/.exec(rest.replace(/^\s+/, ''));
+    if (!open) return { line: lines[i].trim(), literal: null };
+    const quoted = rest.slice(rest.search(/\S/));
+    const q = quoted[0];
+    let end = -1;
+    for (let k = 1; k < quoted.length; k++) {
+      if (quoted[k] === '\\') k++;
+      else if (quoted[k] === q) { end = k; break; }
+    }
+    // The FIRST readable call from the end is the tail whether or not it can be read: walking further up
+    // would grade a line that is not last.
+    return { line: lines[i].trim(), literal: end < 0 ? null : quoted.slice(1, end) };
+  }
+  return null;
+}
+
+/**
+ * The text a literal WOULD print, with its holes punched: `${…}` regions are skipped on balanced braces (an
+ * interpolation containing a ternary with its own template is still one hole), backslash escapes are resolved
+ * so a typed `\n` splits the line the way the runner splits it, and a doubled backslash counts once. What is
+ * left is the part of the sentence the row typed itself — the only part this gate can measure.
+ */
+function staticText(lit) {
+  let out = '';
+  for (let k = 0; k < lit.length; k++) {
+    if (lit[k] === '\\' && k + 1 < lit.length) {
+      const nx = lit[k + 1];
+      if (nx === 'n') { out += '\n'; k++; }
+      else if (nx === 'r') { out += '\r'; k++; }
+      else if (nx === 't') { out += '\t'; k++; }
+      else if (nx === '\\') { out += '\\'; k++; }
+      else out += lit[k];
+      continue;
+    }
+    if (lit[k] === '$' && lit[k + 1] === '{') {
+      let depth = 1;
+      k += 2;
+      while (k < lit.length && depth > 0) {
+        if (lit[k] === '{') depth++;
+        else if (lit[k] === '}') depth--;
+        k++;
+      }
+      k--;
+      continue;
+    }
+    out += lit[k];
+  }
+  return out;
+}
+
+const tails = new Map();
+for (const row of running) {
+  const path = join(ROOT, row.file);
+  if (existsSync(path)) { const t = lastPrintCall(path); if (t) tails.set(row.name, t); }
+}
+const noCall = running.length - tails.size;
+
 {
   const HOUSEKEEPING = /^\[(cleanup|teardown|finally|housekeeping)\]/i;
-  const { running } = splitSet(population);
   const offenders = [];
   let literal = 0;
   let unreadable = 0;
-  for (const row of running) {
-    const path = join(ROOT, row.file);
-    if (!existsSync(path)) continue; // §5 owns a row whose file is not on disk
-    const lines = readFileSync(path, 'utf8').replace(/\r\n/g, '\n').split('\n');
-    let last = null;
-    for (let i = lines.length - 1; i >= 0 && !last; i--) {
-      const at = lines[i].lastIndexOf('console.log(');
-      if (at < 0) continue;
-      // A commented-out print is not a print. Checking the bytes BEFORE the call on its own line is the whole
-      // of the parsing this clause does — the same bound every clause here works under, since this gate reads
-      // bytes rather than an AST.
-      if (/\/\*|^\s*(\*|\/\/)/.test(lines[i].slice(0, at))) continue;
-      const open = /^console\.log\(\s*[`'"]([^`'"]{0,64})/.exec(lines[i].slice(at));
-      // The FIRST readable call from the end is the tail whether or not it can be read: walking further up
-      // would grade a line that is not last.
-      last = open ? { head: open[1].replace(/^(\s|\\[nrt])+/, ''), line: lines[i].trim() } : { line: lines[i].trim() };
-    }
-    if (!last) continue; // the row never calls console.log — its own silence, armed by the runner half
-    if (!('head' in last)) { unreadable++; continue; }
+  for (const [name, last] of tails) {
+    if (last.literal === null) { unreadable++; continue; }
     literal++;
-    if (HOUSEKEEPING.test(last.head)) offenders.push(`${row.name} (${row.file}) :: ${last.line.slice(0, 90)}`);
+    const head = last.literal.slice(0, 64).replace(/^(\s|\\[nrt])+/, '');
+    if (HOUSEKEEPING.test(head)) offenders.push(`${name} (${running.find((r) => r.name === name).file}) :: ${last.line.slice(0, 90)}`);
   }
   assert.deepEqual(offenders, [], `${offenders.length} running row(s) end their SOURCE on a housekeeping print, so the gutter a green row leaves in the hosted log describes deleting a temp directory instead of what the row graded: ${offenders.join(' | ')} — move that print ABOVE the row's own last sentence`);
-  console.log(`[§12] ${literal} of ${running.length} running rows end their source on a literal print, none of them a cleanup/teardown/finally/housekeeping tail · ${unreadable} row(s) end on a call whose argument is not an opening literal, where the source cannot say what prints last and only the hosted gutter can · 0 rows print no console.log at all`);
+  console.log(`[§12] ${literal} of ${running.length} running rows end their source on a literal print, none of them a cleanup/teardown/finally/housekeeping tail · ${unreadable} row(s) end on a call whose argument is not an opening literal, where the source cannot say what prints last and only the hosted gutter can · ${noCall} row(s) print no console.log at all`);
 }
 
-console.log(`\nci wiring: trigger covers master · proof step #${proofSteps[0].index} · no swallowed verdict in ${steps.length} steps · build precedes it · population ${population.length} closes as ${splitSet(population).running.length} + ${splitSet(population).residue.length} · budget grammar shared with the agents sweep · build Node ${buildNodeMajor} · job ceiling ${jobTimeoutMinutes} min with a read-only token · no row ends its source on a cleanup print`);
+// ── §13 a green row's LAST line must fit the gutter it is printed into ───────────────────────────
+// Run 41433663171 (v568, sha e97cc05) printed 107 OK lines and 107 gutters, and ELEVEN of those gutters were
+// exactly 300 bytes long: severed mid-sentence, with no mark saying a sentence had been severed. Four of them
+// were rows v568 had just reordered — moving the cleanup print above the summary made the summary the gutter,
+// and a long summary is a long sentence. Nine of the eleven were worse than that: their last printed line
+// carries more than 300 bytes of STATIC text, before a single interpolated number, so no run of that row can
+// ever print a whole gutter. v591 gave the runner a marker so a cut is visible in the log; this clause refuses
+// the shape that guarantees one, because a row whose self-description is always truncated has been asked to
+// say something it can never say.
+// The door ASKS THE PRODUCER. `lastLineOf` and `GUTTER_BOUND_BYTES` are imported, not restated: the clip that
+// decides the outcome is the same function that grades it, so a bound changed in the runner moves this clause
+// on the same bytes instead of leaving a gate that quotes an old number.
+// The refusal covers the guaranteed half only, and says so: interpolated text is invisible here, and two of the
+// eleven hosted cuts (`verify:drive-axis`, `verify:provenance`) are exactly that kind — long sentences whose
+// length depends on the numbers they carry. Those rows are not offenders; they are what the marker is for.
+{
+  const offenders = [];
+  let measured = 0;
+  let unreadable = 0;
+  let atTheBound = 0;
+  let closest = { name: '', bytes: 0 };
+  for (const [name, last] of tails) {
+    if (last.literal === null) { unreadable++; continue; }
+    measured++;
+    const printed = staticText(last.literal).split('\n').map((l) => l.trim()).filter(Boolean).pop() || '';
+    const clipped = producer.lastLineOf(printed);
+    if (clipped !== printed) {
+      offenders.push(`${name} (${running.find((r) => r.name === name).file}) :: its last line holds ${Buffer.byteLength(printed)} bytes of text the row typed against a ${producer.GUTTER_BOUND_BYTES}-byte bound, so EVERY run of it ends mid-sentence`);
+    } else {
+      const bytes = Buffer.byteLength(printed);
+      if (bytes === producer.GUTTER_BOUND_BYTES) atTheBound++;
+      if (bytes > closest.bytes) closest = { name, bytes };
+    }
+  }
+  assert.deepEqual(offenders, [], `${offenders.length} running row(s) end their source on a print too long for the gutter it lands in, so the one sentence the hosted log keeps for them is always cut: ${offenders.join(' | ')} — print a final line that fits the bound, and the long sentence above it stays available in a red tail`);
+  console.log(`[§13] ${measured} row(s) measured against the runner's own ${producer.GUTTER_BOUND_BYTES}-byte clip, 0 guaranteed to be cut · ${atTheBound} land exactly on the bound and print whole · the longest whole one is ${closest.name} at ${closest.bytes} bytes · ${unreadable} row(s) end on a call this gate cannot read`);
+}
+
+console.log(`\nci wiring: trigger covers master · proof step #${proofSteps[0].index} · ${steps.length} steps swallow nothing · build precedes it · population ${population.length} closes as ${splitSet(population).running.length} + ${splitSet(population).residue.length} · build Node ${buildNodeMajor} · ceiling ${jobTimeoutMinutes} min, read-only token · no row ends its source on a cleanup print · no row's tail is guaranteed to overrun the gutter`);

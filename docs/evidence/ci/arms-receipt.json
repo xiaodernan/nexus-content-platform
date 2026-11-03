@@ -1,9 +1,9 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-02T13:44:29.332Z",
-  "arms": 49,
-  "matched": 49,
+  "ranAt": "2026-11-03T10:29:04.523Z",
+  "arms": 54,
+  "matched": 54,
   "armNames": [
     "C0-control",
     "A1-trigger-loses-master",
@@ -33,6 +33,9 @@
     "A25-housekeeping-print-after-the-summary",
     "C1-trailing-print-that-is-not-housekeeping",
     "C2-housekeeping-tail-on-a-file-that-is-not-a-row",
+    "A26-tail-whose-own-text-overruns-the-gutter",
+    "C3-long-tail-on-a-file-that-is-not-a-row",
+    "C4-tail-long-only-because-of-what-it-interpolates",
     "R0-control",
     "R1-red-proof-fails-the-build",
     "R2-hang-is-TIMEOUT-not-RED",
@@ -53,13 +56,15 @@
     "R14-green-row-speaks-its-last-line",
     "R15-red-row-does-not-borrow-the-gutter",
     "R16-gutter-is-cut-at-300-bytes",
-    "R17-silent-green-row-is-named"
+    "R17-silent-green-row-is-named",
+    "R18-gutter-names-its-cut",
+    "R19-a-line-at-the-bound-is-not-marked"
   ],
   "subjects": {
     "workflow": "6e39ab2cb0bb78f2a2ed7e06f88085fc264ed638515708451a47415490983803",
-    "gate": "5bcd86c0d071051e1213fcc24d05c969d6800744e8531e370bb26eef2a42c8c3",
-    "arms": "f66c4f17d682afc533eb8ba713cddac9cfb9ba6fa3ee00ea4f9072e02d91d302",
-    "runner": "43ac483c93dd127dac00d077422c1837e449ec30011b77be173f478f30c96b16",
+    "gate": "d9ef4e999f2deaefc27bf56726927f1beb3055fa4ebfceb2025009bcb5a41509",
+    "arms": "a89ecc1219ed777495ba1f44fb36ce4d6cb43d28715fe1d176ed87188d345a7f",
+    "runner": "75ee57474cc93e324281348ef1eacafbecb02ef444e3f41b31a53efcecfe123b",
     "sweep": "ead49485592dc696b99878ef19ba4802519f43746a55956dc9c22dd5fcdb84a9",
     "scripts": "4f13a845cd9e400b99e3de1617490e81e04721dcbdbead22b5458e555fe2bc7f",
     "rule": "d950d243b7678dda17d00f877e2a3cbdf94d7d70a1eafed0c2fb59aa06b437d1"
@@ -286,6 +291,11 @@
       "marker": null
     },
     {
+      "name": "verify:health",
+      "file": "docs/evidence/m9/service-health-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
+    },
+    {
       "name": "verify:hunk-shape",
       "file": "docs/evidence/agents/hunk-shape-proof.mjs",
       "marker": null
@@ -321,9 +331,19 @@
       "marker": null
     },
     {
+      "name": "verify:liveness",
+      "file": "docs/evidence/m9/service-liveness-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
+    },
+    {
       "name": "verify:log-window",
       "file": "docs/evidence/agents/log-window-proof.mjs",
       "marker": null
+    },
+    {
+      "name": "verify:mcp",
+      "file": "docs/evidence/m10/mcp-face-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
     },
     {
       "name": "verify:memory",
@@ -556,6 +576,11 @@
       "marker": "// sweep-budget-ms: 900000"
     },
     {
+      "name": "verify:traffic",
+      "file": "docs/evidence/m9/service-traffic-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
+    },
+    {
       "name": "verify:trail-contract",
       "file": "docs/evidence/m9/trail-contract-proof.mjs",
       "marker": null
@@ -584,6 +609,11 @@
       "name": "verify:verdict",
       "file": "docs/evidence/agents/verdict-proof.mjs",
       "marker": null
+    },
+    {
+      "name": "verify:vitals",
+      "file": "docs/evidence/m9/service-vitals-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
     },
     {
       "name": "verify:webhooks",

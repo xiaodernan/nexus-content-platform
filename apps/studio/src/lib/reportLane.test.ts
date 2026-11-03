@@ -34,7 +34,11 @@ describe('reportLane — readMyReports (client half)', () => {
     expect(answer.reports).toHaveLength(1);
     expect(answer.reports[0]?.id).toBe('rep-1');
     expect(answer.reports[0]?.status).toBe('acknowledged');
-    expect(answer.reports[0]?.statusText).toBe('acknowledged');
+    // v586 — this line pinned `acknowledged` for BOTH fields, which was the second face passing a declared
+    // status straight through while `ops.ts` had a word for it. The wire token stays in `status`; the word
+    // the reporter reads comes from the one owner, so a declared status never reaches a screen as its own
+    // identifier — §9 of `docs/evidence/m9/audit-contract-proof.mjs` has charged that since v541.
+    expect(answer.reports[0]?.statusText).toBe('the owner has seen it');
     expect(answer.reports[0]?.targetId).toBe('pub-1');
   });
 

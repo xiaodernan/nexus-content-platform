@@ -158,26 +158,132 @@ export interface Report {
   createdAt: number;
 }
 
-/** 举报状态展示文本，供客户端卡片/详情页直接使用。 */
-export function reportStatusText(status: ReportStatus): string {
-  switch (status) {
-    case 'open':
-      return 'Open';
-    case 'reviewed':
-      return 'Reviewed';
-    case 'resolved':
-      return 'Resolved';
-    case 'rejected':
-      return 'Rejected';
-    // v541 — 服务端 v304 就在写这个状态（`ReportEntry.markAcknowledged`），客户端却回答 "Unknown"：
-    // 一个自己对接的服务端已经命名的词被说成不认识，是把线格式的事实读丢了。
-    case 'acknowledged':
-      return 'Acknowledged';
-    // v541 — 未知的词**原样传出**，与已发布的同类函数 `reportBar.ts` 的 `reportStatusText` 同规则：
-    // 把它折进任何一个已知标签，都是在替服务端宣布它没宣布过的处置结果。
-    default:
-      return status;
+/**
+ * v586 — 「线上没有给状态」是第六种情况，它**不是**服务端那五个词里的任何一个。
+ *
+ * 修之前 `reportBar.ts` 与 `moderation.ts` 各写了一份 `typeof r.status === 'string' && r.status.length > 0 ? r.status : 'open'`：
+ * 一条状态字段缺失的举报被折进服务端**声明过**的 `open`。在 HEAD 字节上跑真的行构造函数（`v586-prefix.out`），
+ * 三个读者同时说错话——`statusText` 打印 "not acknowledged yet"（替属主宣布他还没看过），`open: true` 让属主的桌上
+ * **长出一个 Acknowledge 按钮**（`ModerationService.acknowledge` 对非 `open` 的行返回 `moved=false`，客户端却邀请
+ * 读者去按），`Toolbar.tsx` 的撤回按钮以 `status === 'open'` 为条件，而 `data-desk-status=""` 变成了 `="open"`。
+ *
+ * 它必须是**空串**而不是任何一个词：`REPORT_STATUSES` 里没有值等于它，所以任何「按声明状态统计」的桶都不会替服务端
+ * 认领这条行；`reportStatusText` 对它另有一句话。
+ */
+export const REPORT_STATUS_NOT_GIVEN = '';
+
+/**
+ * v586 — 每个声明状态在读者嘴里的说法，**整个客户端只有这一份**。
+ *
+ * 键是 `(typeof REPORT_STATUSES)[number]`，**不带**未知字符串臂——与 `reportsByStatus` 的返回类型故意相反：
+ * 这里要的是「少一个词就编译不过」，那里要的是「线上来了个新词也不崩」（v541 的教训是同一枚硬币的两面）。
+ *
+ * `reviewed`/`resolved` 的措辞点名了「moderator」，因为 `ReportDtos` 自己就是这么定义它们的（"a MODERATOR's
+ * vocabulary, and this build has no moderator"）：这两个词今天不可达，而一个不可达的状态被读到的时候，读者
+ * 应当看到服务端赋予它的动作方，而不是 `reviewed` 这个标识符本身——§9 早就按这条判过 ops 屏（"an ops screen
+ * shows an identifier where it means a word"），只是那条判据一直只评到没人渲染的那一份。
+ */
+const REPORT_STATUS_WORDS: Record<(typeof REPORT_STATUSES)[number], string> = {
+  open: 'not acknowledged yet',
+  reviewed: 'a moderator has looked at it',
+  resolved: 'a moderator settled it',
+  rejected: 'withdrawn by the reporter',
+  acknowledged: 'the owner has seen it',
+};
+
+/**
+ * 服务端**还肯对它动手**的状态。修之前这里是**两份客户端口味**：`reportOpenCount` 数 `open`+`reviewed`，
+ * 属主桌的 `open` 只数 `open`——同一个字面词在同一个客户端里有两个意思，而其中一个直接和线上的数字冲突
+ * （`ModerationService.tallyOf` 的 `open` 是 `byStatus.getOrDefault(ReportDtos.STATUS_OPEN, 0L)`）。
+ *
+ * 现在按服务端定：`acknowledge` 和 `withdraw` 都写 `if (!ReportDtos.STATUS_OPEN.equals(row.getStatus()))` 就
+ * 不动手，所以「还站着」恰好是 `open` 一个。`docs/evidence/m9/audit-contract-proof.mjs` §11.11 把这三处 Java
+ * 读出来、RUN 下面的谓词，要求真值集合恰好等于 Java 里出现过的那些 `STATUS_*`——加一个词上去、或者少一个，
+ * 都会红，而不是等下一次面板长错按钮。
+ */
+export const REPORT_STATUSES_STANDING: readonly string[] = ['open'];
+
+/** 这条举报**还站着**：服务端仍然肯按它动手。属主桌上的 Acknowledge、reporter 的撤回入口都以它为前提。 */
+export function reportStanding(status: string): boolean {
+  return REPORT_STATUSES_STANDING.includes(status);
+}
+
+/** 这条举报是被**举报人自己收回**的——`ReportEntry.markRejected` 是唯一走到这里的写者。 */
+export function reportWithdrawn(status: string): boolean {
+  return status === 'rejected';
+}
+
+/**
+ * v586 — 一窗行里**读不出立场**的那些，被数出来、被点名。
+ *
+ * <p>拒绝把缺状态折进 `open`（`REPORT_STATUS_NOT_GIVEN`）之后，多出一个客户端以前没法说的事实：读者眼前
+ * 有几行**没有可读的立场**。把它们算进 `open` 是原来那个谎；把它们**悄悄不算**是同一个谎的反面——一个
+ * 摘要数字如果既不数它也不说它，读者就被告知「其余都可读」。所以缺口要**数**，也要**说**。
+ *
+ * <p>`unknown` 是这一窗里出现过的、本客户端词表没有声明过的状态词（去重、按到达顺序）：一个更新的线上
+ * 发了一个这个词表没听过的词时，读者要能看到**那个词本身**，而不是一个邻居的名字——§9 对未知值的
+ * 「原样透出、不认领」规则在同一次读数里的披露版本。
+ */
+export interface StatusGaps {
+  /** 这一窗里 `status` 完全没给的行数（即 `REPORT_STATUS_NOT_GIVEN`）。 */
+  notGiven: number;
+  /** 这一窗里出现的、本客户端词表没声明的状态词（去重，按到达顺序）。 */
+  unknown: string[];
+  /** 这一窗一共几行——句子要说的是「这些行里」的缺口。 */
+  shown: number;
+}
+
+/** 数出一窗行里读不出立场的那些。词表取自**本模块自己**的 `REPORT_STATUSES`，读者不必抄第二份。 */
+export function statusGaps(rows: ReadonlyArray<{ status: string }>): StatusGaps {
+  let notGiven = 0;
+  const unknown: string[] = [];
+  for (const row of rows) {
+    if (row.status === REPORT_STATUS_NOT_GIVEN) {
+      notGiven += 1;
+      continue;
+    }
+    if ((REPORT_STATUSES as readonly string[]).includes(row.status)) continue;
+    if (!unknown.includes(row.status)) unknown.push(row.status);
   }
+  return { notGiven, unknown, shown: rows.length };
+}
+
+/**
+ * 缺口的读者措辞；**没有缺口时返回空串**，那时面板可以什么都不印。
+ *
+ * <p>措辞按**窗口**限定（v377 的教训）：「1 report has no status」是关于整张桌子的主张，而这份计数只看得见
+ * 屏幕上这些行。空答案不是「关于缺口的沉默」——它是「没有缺口」这句陈述，也是面板唯一可以完全不说任何话的情形。
+ */
+export function statusGapText(gaps: StatusGaps): string {
+  if (gaps.notGiven === 0 && gaps.unknown.length === 0) return '';
+  const parts: string[] = [];
+  if (gaps.notGiven > 0) parts.push(`${gaps.notGiven} arrived with no status at all`);
+  if (gaps.unknown.length > 0) {
+    parts.push(`${gaps.unknown.length} carry a status this build does not know (${gaps.unknown.join(', ')})`);
+  }
+  return `of these ${gaps.shown} rows: ${parts.join(' · ')}`;
+}
+
+/**
+ * 举报状态的读者措辞，供客户端卡片/详情页直接使用。**这个客户端唯一的词面**（v586）。
+ *
+ * <p>修之前有两个同名导出：这里，和 `reportBar.ts` 的 `reportStatusText`。§8/§9 逐字对账的是**这一份**——
+ * 而这一份在整棵树里只有一个读者（它自己的测试），面板真正画出去的那一份没人评分：在 HEAD 字节上两面对
+ * 五个声明状态**全部不一致**（"Open" 对 "not acknowledged yet"）。v586 把词面收成一份，`reportBar.ts` 与
+ * `moderation.ts` 都改成 import 这里，§11.7 再按「每个词面只有一个声明位」评分。
+ *
+ * <p>三条回答，各有各的依据：
+ * <ul>
+ *   <li><b>声明过的词</b>：读者措辞，绝不把 wire token 原样吐回去（§9 的规则，现在评到渲染面）。</li>
+ *   <li><b>没听见的词</b>：原样传出，不折进任何邻居——折进去就是替服务端宣布它没宣布过的处置结果。</li>
+ *   <li><b>线上没给的</b>（`REPORT_STATUS_NOT_GIVEN`）：说「没给」，不替服务端认领任何一个状态。</li>
+ * </ul>
+ */
+export function reportStatusText(status: string): string {
+  if (status === REPORT_STATUS_NOT_GIVEN) return 'the service gave no status';
+  // 类型 `ReportStatus` 带未知字符串臂，编译器据此认为任何字符串都可能是声明过的词；运行时按词表判。
+  if (!(REPORT_STATUSES as readonly string[]).includes(status)) return status;
+  return REPORT_STATUS_WORDS[status as (typeof REPORT_STATUSES)[number]];
 }
 
 /**
@@ -233,14 +339,19 @@ export function reportStatsText(reports: ReadonlyArray<Report>): string {
 }
 
 /**
- * 还在等人处理的举报数量（open/reviewed），供客户端摘要栏展示。
+ * 还在等人处理的举报数量——按**服务端的**「还站着」数（`reportStanding`），供客户端摘要栏展示。
+ *
+ * <p>v586 — 修之前这里是 `open`+`reviewed`，而属主桌的同一个词只数 `open`，线上 `ModerationService.tallyOf`
+ * 的 `open` 也只数 `ReportDtos.STATUS_OPEN`：客户端的摘要栏因此比它对接的服务端多算一个词，两面屏
+ * 并排放着就是两个「还有多少要处理」的数字。`reviewed` 是 moderator 的词、这个构建没有 moderator，
+ * 而且即便出现了也不是「没人动过」——有人已经看过了。
  *
  * v541 — `acknowledged` **两个计数都不算**，这是有意的：`reportOpenCount` 说“还没人动过”，
  * `reportResolvedCount` 说“已经处置完”，而属主确认看到既不是前者也不是后者（服务端原话：那是一个比
  * resolution 小得多的主张）。要让摘要栏一行都不丢，读 `reportStatsText`——它对整张词表是全覆盖的。
  */
 export function reportOpenCount(reports: ReadonlyArray<Report>): number {
-  return reports.filter((r) => r.status === 'open' || r.status === 'reviewed').length;
+  return reports.filter((r) => reportStanding(String(r.status))).length;
 }
 
 /** 已处置举报数量（resolved/rejected），供客户端摘要栏展示。理由见 `reportOpenCount`。 */

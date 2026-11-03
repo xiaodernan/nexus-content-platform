@@ -94,12 +94,20 @@ const REPORT_DTOS = 'services/nexus-api/src/main/java/dev/nexus/api/social/Repor
 const CLIENT_TRAIL = 'apps/studio/src/lib/trail.ts';
 const CLIENT_TOOLBAR = 'apps/studio/src/components/Toolbar.tsx';
 const CLIENT_COMPOSER = 'apps/studio/src/components/ReportComposer.tsx';
+// v586 — the two files that rendered the REPORT STATUS WORDS from their own copies, and the two service
+// files whose `if (!ReportDtos.STATUS_OPEN.equals(…))` guards decide whether a reporter may still take a
+// report back. The words have one owner now; the STANDING does not belong to the client at all, so the
+// set is read from the guards that act on it rather than asserted from a word the client likes.
+const CLIENT_REPORTBAR = 'apps/studio/src/lib/reportBar.ts';
+const CLIENT_MODERATION = 'apps/studio/src/lib/moderation.ts';
+const REPORT_SERVICE = 'services/nexus-api/src/main/java/dev/nexus/api/social/ReportService.java';
+const MODERATION_SERVICE = 'services/nexus-api/src/main/java/dev/nexus/api/moderation/ModerationService.java';
 // The §11 census walks the shipped client sources, so the graded files above must live inside it — a
 // clause whose population does not contain the file it repairs grades nothing.
 const CLIENT_SRC_ROOT = 'apps/studio/src';
 // The fixture IS the files that own the claims, so the closing line COUNTS them instead of restating a
 // number that rots the next time a vocabulary gains an owner.
-const SOURCES = [CONTROLLER, AUDIT_SERVICE, REPORT_DTOS, CLIENT_MODEL, CLIENT_ACCOUNT, CLIENT_ASSURANCE, CLIENT_LANE, CLIENT_TRAIL, CLIENT_TOOLBAR, CLIENT_COMPOSER];
+const SOURCES = [CONTROLLER, AUDIT_SERVICE, REPORT_DTOS, REPORT_SERVICE, MODERATION_SERVICE, CLIENT_MODEL, CLIENT_ACCOUNT, CLIENT_ASSURANCE, CLIENT_LANE, CLIENT_TRAIL, CLIENT_TOOLBAR, CLIENT_COMPOSER, CLIENT_REPORTBAR, CLIENT_MODERATION];
 
 // ── §1 the service's own wire record ────────────────────────────────────────────────────────────────
 // The wire shape is a Java `record` in the controller, so the field list and the field types are read
@@ -301,6 +309,19 @@ async function loadShippedPanel(box) {
   return import(pathToFileURL(trailPath).href);
 }
 
+// v586 — the REPORT's two rendering faces, RUNNING, in the order their imports require. `pageShell.ts`
+// comes along because `reportBar.ts` imports `escapeHtml` from it and the box resolves siblings only:
+// the same loader-ORDER lesson §6 learned, fifth time.
+const CLIENT_PAGE_SHELL = 'apps/studio/src/lib/pageShell.ts';
+
+async function loadShippedReportFaces(box) {
+  const model = await loadShippedModel(box);
+  await copyIntoBox(box, CLIENT_PAGE_SHELL);
+  const barPath = await copyIntoBox(box, CLIENT_REPORTBAR);
+  const deskPath = await copyIntoBox(box, CLIENT_MODERATION);
+  return { model, bar: await import(pathToFileURL(barPath).href), desk: await import(pathToFileURL(deskPath).href) };
+}
+
 // ── §6 an anonymous entry belongs to no account ──────────────────────────────────────────────────────
 // The type can now say "nobody", but a type alone does not keep a nobody out of somebody's bucket. The
 // client's own grouping helper does, and the bucket key it uses for "nobody" must be a key no real
@@ -417,8 +438,10 @@ const vocab = (() => {
     });
   assert.ok(serverVerbs.length >= 2, `the verb list resolved to ${serverVerbs.length} names — a vocabulary read that thin is a reading bug, not a contract`);
 
-  const serverStatuses = [...javaStringConstants(reportSrc, 'STATUS_').values()];
-  const serverReasons = [...javaStringConstants(reportSrc, 'REASON_').values()];
+  const statusConstants = javaStringConstants(reportSrc, 'STATUS_');
+  const reasonConstants = javaStringConstants(reportSrc, 'REASON_');
+  const serverStatuses = [...statusConstants.values()];
+  const serverReasons = [...reasonConstants.values()];
   assert.ok(serverStatuses.length >= 2, `the status table read ${serverStatuses.length} values out of ${REPORT_DTOS}`);
   assert.ok(serverReasons.length >= 2, `the reason table read ${serverReasons.length} values out of ${REPORT_DTOS}`);
 
@@ -468,7 +491,7 @@ const vocab = (() => {
   for (const name of ['AUDIT_ACTIONS', 'REPORT_STATUSES', 'REPORT_REASONS']) {
     assert.ok(arrays.has(name), `the client model no longer exports a ${name} table — the bucket functions and the panels would have to hand-copy the vocabulary`);
   }
-  return { serverVerbs, serverStatuses, serverReasons, unions, arrays, aliases, cases, returns, bodies };
+  return { serverVerbs, serverStatuses, serverReasons, statusConstants, reasonConstants, unions, arrays, aliases, cases, returns, bodies };
 })();
 
 {
@@ -610,7 +633,7 @@ const vocab = (() => {
           `reportStatusText answers "${words}" — the wire token itself — for a status the service declares: the label table has no row for it, so an ops screen shows an identifier where it means a word`,
         );
       } else {
-        assert.equal(words, status, `reportStatusText turned a status it has never heard of into "${words}" — passing it through unchanged is the only answer that claims nothing (the shipped sibling reportBar.ts already does this)`);
+        assert.equal(words, status, `reportStatusText turned a status it has never heard of into "${words}" — passing it through unchanged is the only answer that claims nothing, and since v586 it is the answer the WHOLE client gives: §11.7 grades that exactly one shipped file declares this face, so there is no sibling left to disagree with`);
       }
     }
 
@@ -694,6 +717,14 @@ const vocab = (() => {
 // The population is the SHIPPED client sources — every `.ts`/`.tsx` under `apps/studio/src` that is not a
 // test — because a census over a population that excludes the offender proves nothing. Tests are out: a
 // test may spell a verb to check a panel, and charging it would push the vocabulary into the fixtures.
+//
+// v586 extended the same rule from the LISTS to the SENTENCES. §8 had reconciled `ops.ts`'s status words
+// with ReportDtos, and `reportBar.ts` was rendering a different sentence over the same row — five
+// statuses, two faces, no gate between them — while the missing `status` on a wire was folded into the
+// literal 'open', which is a word the service only says about reports nobody has looked at. So the
+// clauses below count DECLARATION SITES of each word face, charge every shipped file that spells a
+// declared status, RUN both report faces over a row whose status never arrived, and read the STANDING
+// set off the two service guards that act on it rather than from the client's preference.
 {
   const walk = (dir, out = []) => {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -873,6 +904,131 @@ const vocab = (() => {
       [],
       `the trail's tally counts every verb except these: ${tallyMissing.join(', ')} — a recorded verb with no bucket is counted as "other", which is how v541 lost five of them`,
     );
+    // 11.7 — the WORD FACES have one declaration site each, and the files that use them take the words
+    // FROM that site. v556 closed the second TABLE; v586 found the second SENTENCE. `reportBar.ts` held
+    // its own `reportStatusText` switch while `ops.ts` held another, and the two disagreed on all five
+    // statuses the service declares — §8 reconciled the copy in `ops.ts` against ReportDtos and every
+    // clause stayed green while the bar the reporter sees was saying something else. A vocabulary with
+    // two faces is a contract with no owner, so this census counts DECLARATIONS over the shipped
+    // population, in either syntax a face can be written in.
+    const faceOwnerOf = (face) => {
+      const sites = [];
+      for (const rel of shipped) {
+        const declaredHere = names(rel, (n) =>
+          (ts.isFunctionDeclaration(n) && !!n.name && n.name.text === face) || (ts.isVariableDeclaration(n) && n.name.getText() === face));
+        if (declaredHere.length > 0) sites.push(rel);
+      }
+      return sites;
+    };
+    const faceOwners = {};
+    for (const face of ['reportStatusText', 'reportReasonText', 'trailActionText']) {
+      const sites = faceOwnerOf(face);
+      assert.equal(
+        sites.length,
+        1,
+        `the word face "${face}" is declared by ${sites.length} shipped files (${sites.join(', ')}): two faces are two answers to the same wire token, and the one the reader sees belongs to whichever file the panel imports — which is the hole v586 measured on reportStatusText`,
+      );
+      faceOwners[face] = sites[0];
+    }
+    assert.equal(faceOwners.reportStatusText, CLIENT_MODEL, `the status words are now owned by ${faceOwners.reportStatusText}, not ${CLIENT_MODEL} — §8 reconciles ${CLIENT_MODEL} with ${REPORT_DTOS}, so a face declared anywhere else is a face no service-side rename is checked against`);
+    // The readers must reach the owner BY IMPORT SPECIFIER, 11.4's rule for the reason table. An import
+    // of the right name from a different file is how the bar got its own words back.
+    const statusReaders = shipped.filter((rel) => rel !== CLIENT_MODEL && usesOf(rel, 'reportStatusText').length > 0);
+    assert.ok(statusReaders.length >= 1, `nothing outside ${CLIENT_MODEL} USES reportStatusText as a value — the status words would be a certificate with no reader again, which is the shape v556 was written about and v586 found still open on the status face`);
+    for (const rel of statusReaders) {
+      const fromOwner = names(rel, (n) => {
+        if (!ts.isImportDeclaration(n) || !n.moduleSpecifier || !n.importClause) return false;
+        if (!/(^|\/)ops$/.test(n.moduleSpecifier.text)) return false;
+        const bindings = n.importClause.namedBindings;
+        return !!bindings && ts.isNamedImports(bindings) && bindings.elements.some((e) => e.name.text === 'reportStatusText');
+      });
+      assert.ok(
+        fromOwner.length >= 1,
+        `${rel} uses reportStatusText as a value but does not import that name from a module named ops — it is reading some other file's copy of the status words`,
+      );
+    }
+
+    // 11.8 — the STATUS TABLE's production readers, MEASURED and printed rather than claimed. v556 left
+    // this bound disclosed (REPORT_STATUSES had one importer, its own test) and v586 did not close it:
+    // the panels needed the status WORDS and the standing PREDICATE, neither of which is the list. The
+    // list still has no shipped reader outside its owner, so the honest move is to say so on every run
+    // instead of asserting a reader that no screen asked for.
+    const statusTableReaders = readersOf('REPORT_STATUSES');
+
+    // 11.9 — and NO shipped file outside the owner spells a declared status at all. The verb census (11.3)
+    // has no reason analogue because the composer's chips are derived from the table; the STATUS field had
+    // the hole v586 measured — `reportBar.ts` folded a missing status into the literal 'open', and the
+    // panel compared `report.status === 'open'` — so a screen could not tell "the service said open" from
+    // "the service said nothing", and armed a button the service then refused.
+    const foldSites = shipped
+      .filter((rel) => rel !== CLIENT_MODEL)
+      .map((rel) => ({ rel, words: spellings(rel, vocab.serverStatuses) }))
+      .filter((s) => s.words.length > 0);
+    assert.deepEqual(
+      foldSites,
+      [],
+      `these shipped files spell a status the service declares as their own literal: ${foldSites.map((f) => `${f.rel} (${f.words.join(', ')})`).join('; ')} — a word written by hand beside a row is a word that survives the service renaming it, and in v586's exact shape it survives the service SAYING NOTHING`,
+    );
+    // The carrier of that absence: the same reader must find every declared status inside the owner, so a
+    // census that parsed nothing could not report a clean population.
+    const ownerSpelled = [...new Set(spellings(CLIENT_MODEL, vocab.serverStatuses))].sort();
+    assert.deepEqual(
+      ownerSpelled,
+      [...vocab.serverStatuses].sort(),
+      `${CLIENT_MODEL} spells ${ownerSpelled.length} of the ${vocab.serverStatuses.length} declared statuses as string literals (${ownerSpelled.join(', ')}) — §11.9's clean census would be vacuous if the parser could not see the words in the one file that is ALLOWED to spell them`,
+    );
+
+    // 11.10 — the two faces RUN over a report whose status never arrived. The defect was not a wrong word
+    // but an invented one: no `status` on the wire became 'open', which is the service saying "nobody has
+    // looked at this yet", from a response that did not say it.
+    const reportFaces = await loadShippedReportFaces(box);
+    const NEVER_SENT_BAR = { id: 'r-ns', reporterId: 'acct-ada', targetId: 'pub-1', reason: 'spam', detail: '', createdAt: 1 };
+    const NEVER_SENT_DESK = { reportId: 'r-ns', targetProjectId: 'pub-1', reason: 'spam', detail: '', createdAt: 1 };
+    for (const [face, fn, key] of [['reportBar', reportFaces.bar.toReportRow, NEVER_SENT_BAR], ['moderation', reportFaces.desk.toDeskRow, NEVER_SENT_DESK]]) {
+      assert.equal(typeof fn, 'function', `${face === 'reportBar' ? CLIENT_REPORTBAR : CLIENT_MODERATION} no longer exports its row builder — §11.10 has lost the face it grades, and the clauses above would be grading names`);
+    }
+    {
+      const row = reportFaces.bar.toReportRow(NEVER_SENT_BAR);
+      assert.ok(row, `${CLIENT_REPORTBAR} refused to build a row for a report that has an id and a reason but no status — the report is real, only its state is unread, and a bar that drops it tells the reader nobody complained`);
+      assert.equal(row.status, '', `a report with no status on the wire became "${row.status}" in the bar — the client is inventing a state the service never sent`);
+      assert.equal(row.statusText, 'the service gave no status', `the bar tells the reader "${row.statusText}" about a status it did not receive — v586 measured "not acknowledged yet", which is the service's own meaning for "open"`);
+      assert.equal(row.withdrawable, false, 'and a report whose state is unknown is not one the reporter may still take back');
+      assert.equal(row.withdrawn, false, 'nor is it one that HAS been taken back');
+      const drow = reportFaces.desk.toDeskRow(NEVER_SENT_DESK);
+      assert.ok(drow, `${CLIENT_MODERATION} refused to build a desk row for the same report`);
+      assert.equal(drow.status, '', `the moderator's desk became "${drow.status}" where the wire said nothing`);
+      assert.equal(drow.statusText, 'the service gave no status', `and the desk tells the moderator "${drow.statusText}"`);
+      assert.equal(drow.open, false, 'the desk does not count it as waiting — which is the fold that made an unread row look like work nobody had started');
+      assert.deepEqual(reportFaces.desk.deskSummary([drow]), { total: 1, open: 0 }, `deskSummary over one unread report answered ${JSON.stringify(reportFaces.desk.deskSummary([drow]))} — the desk's own tally may not be the fold`);
+    }
+
+    // 11.11 — WHICH statuses stand is not the client's opinion. Two service files refuse a write on a
+    // report that is not standing — the reporter's withdraw and the owner's disposition — and both spell
+    // the same guard. `reportStanding` must be true of exactly the statuses those guards name, and the
+    // row flags the panels arm must follow it, status by status, on RUN bytes.
+    const guardNames = [REPORT_SERVICE, MODERATION_SERVICE].flatMap((rel) => [...readFileSync(rel, 'utf8').matchAll(/ReportDtos\.(STATUS_[A-Z_0-9]+)\.equals\(/g)].map((m) => m[1]));
+    assert.ok(
+      guardNames.length >= 1,
+      `neither ${REPORT_SERVICE} nor ${MODERATION_SERVICE} contains a \`ReportDtos.STATUS_X.equals(…)\` guard — §11.11 has lost the service's own standing test, and the client predicate below would be certified against nothing`,
+    );
+    const javaStanding = [...new Set(guardNames.map((name) => {
+      const value = vocab.statusConstants.get(name);
+      assert.ok(value !== undefined, `the service guards on ${name} but ${REPORT_DTOS} never declares it — the proof cannot read a status it cannot resolve`);
+      return value;
+    }))].sort();
+    const clientStanding = reportFaces.model.REPORT_STATUSES.filter((s) => reportFaces.model.reportStanding(s)).sort();
+    assert.deepEqual(
+      clientStanding,
+      javaStanding,
+      `the client calls ${clientStanding.join(', ') || 'nothing'} standing and the service's own guards refuse ${javaStanding.join(', ')} — the panel arms Acknowledge and Withdraw for the client's set and gets a refusal for the service's`,
+    );
+    for (const status of vocab.serverStatuses) {
+      const mayWithdraw = reportFaces.bar.toReportRow({ ...NEVER_SENT_BAR, status }).withdrawable;
+      const deskOpen = reportFaces.desk.toDeskRow({ ...NEVER_SENT_DESK, status }).open;
+      assert.equal(mayWithdraw, javaStanding.includes(status), `${CLIENT_REPORTBAR} lets the reporter take back a "${status}" report (${mayWithdraw}) while the service's guards name ${javaStanding.join(', ')} as standing`);
+      assert.equal(deskOpen, javaStanding.includes(status), `${CLIENT_MODERATION} counts a "${status}" report as waiting (${deskOpen}) while the service's guards name ${javaStanding.join(', ')} as standing`);
+    }
+    console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText}, trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')})`);
     console.log(`[§11] the vocabulary is graded where it is rendered: ${shipped.length} shipped sources carry ${declared.length} vocabulary tables, all in ${CLIENT_MODEL} · AUDIT_ACTIONS has ${verbReaders.length} production reader(s) (${verbReaders.join(', ')}) and REPORT_REASONS has ${reasonReaders.length} (${reasonReaders.join(', ')}) · ${CLIENT_TOOLBAR} spells 0 of the ${vocab.serverVerbs.length} verbs and maps the table instead · ${CLIENT_COMPOSER} imports its reasons from the owner · the shipped trail module RUN gives all ${vocab.serverVerbs.length} recorded verbs a row word, a button word and a tooltip · and its hand-copied tally still tiles exactly the table's ${tallySeen.length} verbs`);
     // Disclosed, not charged: the shipped sources left in this list spell a recorded verb for their OWN
     // request or route — a `publish` in a lane's action field, not a word painted beside a trail row.
@@ -888,7 +1044,7 @@ const vocab = (() => {
   }
 }
 
-console.log('\n[summary] M9 v273/v384/v385/v541/v556: the service answers with 7 fields (id, action, actorId, targetId, targetType, createdAt, assurance) · the instant is a long, so epoch MILLISECONDS, the client\'s own unit · actorId and assurance are NULLABLE on the wire and NULLABLE in the client, and the other five are nullable in neither · the client\'s own type ACCEPTS a real anonymous entry, a named entry and an unknown verb, checked by the TypeScript compiler itself · an anonymous entry belongs to no account · the answer envelope carries the whole-trail count a service-side filter needs · and the WORDS inside the fields — the service\'s verbs, statuses and reasons — are the client\'s tables, in the service\'s order, with every one of them bucketed, counted and labelled rather than dropped · and since v556 those tables have ONE owner across the shipped sources, that owner has a PRODUCTION reader, and the panel that paints the trail is RUN over the service\'s verbs instead of being re-described — a certificate over a copy nobody rendered is what let the panel keep its own words');
+console.log('\n[summary] M9 v273/v384/v385/v541/v556/v586: the service answers with 7 fields (id, action, actorId, targetId, targetType, createdAt, assurance) · the instant is a long, so epoch MILLISECONDS, the client\'s own unit · actorId and assurance are NULLABLE on the wire and NULLABLE in the client, and the other five are nullable in neither · the client\'s own type ACCEPTS a real anonymous entry, a named entry and an unknown verb, checked by the TypeScript compiler itself · an anonymous entry belongs to no account · the answer envelope carries the whole-trail count a service-side filter needs · and the WORDS inside the fields — the service\'s verbs, statuses and reasons — are the client\'s tables, in the service\'s order, with every one of them bucketed, counted and labelled rather than dropped · and since v556 those tables have ONE owner across the shipped sources, that owner has a PRODUCTION reader, and the panel that paints the trail is RUN over the service\'s verbs instead of being re-described — a certificate over a copy nobody rendered is what let the panel keep its own words · and since v586 the same holds of the SENTENCES rather than the lists: one declaration site per word face, which the readers import from the owner, no shipped file outside the owner spells a declared status, a status the wire never sent reaches the reader as "the service gave no status" instead of the service\'s own "open", and which reports may still be moved is read off the service\'s `ReportDtos.STATUS_*.equals(…)` guards instead of the client\'s opinion');
 const javaSources = SOURCES.filter((p) => p.endsWith('.java')).length;
 const tsSources = SOURCES.length - javaSources;
 console.log(

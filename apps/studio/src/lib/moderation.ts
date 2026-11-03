@@ -15,11 +15,13 @@
  *   facts, and a panel that showed the first when it knew the second would tell an owner that nobody had
  *   complained — which is the one thing an owner must not be misled about.
  */
-import { reportReasonText, reportStatusText } from './reportBar';
+import { reportReasonText } from './reportBar';
+import { REPORT_STATUS_NOT_GIVEN, reportStanding, reportStatusText, statusGaps, statusGapText } from './ops';
 
-// The vocabulary is the REPORT's, and the desk speaks the report's language — re-exported so a caller of
-// the desk does not have to know where the word came from.
-export { reportStatusText };
+// The vocabulary is the REPORT's, and the desk speaks the report's language — re-exported from the ONE owner
+// (`ops.ts`, v586) so a caller of the desk does not have to know where the word came from. It used to come
+// from `reportBar.ts`, which held its own copy of the status words: two files, two answers, one fact.
+export { reportStatusText, statusGaps, statusGapText };
 
 /** One report, in the service's desk shape. */
 export interface DeskEntry {
@@ -46,11 +48,22 @@ export interface DeskRow {
   reasonText: string;
   /** The reporter's own words, verbatim. */
   detail: string;
-  /** The status, as the service's own word. */
+  /**
+   * The status, as the service's own word — or `''` (`REPORT_STATUS_NOT_GIVEN`) when the wire gave none.
+   *
+   * v586 — it used to be `'open'`, the service's word for "nobody has acknowledged this yet". A status the
+   * desk did not have was therefore shown as a status it DOES have: the row counted into `tally.open`, armed
+   * the Acknowledge button, and wrote `data-desk-status="open"` into the DOM for a report whose standing
+   * nobody can state. `''` is the honest answer — it names nothing, and so arms nothing (§11.10 runs this
+   * face over an entry with no status and grades what the desk says).
+   */
   status: string;
   /** The status in a reader's words. */
   statusText: string;
-  /** Whether the report is still waiting to be acknowledged. */
+  /**
+   * Whether the report is still waiting to be acknowledged — the service's own standing predicate
+   * (`reportStanding`), so this number and the desk's `tally.open` cannot be two different answers.
+   */
   open: boolean;
   /**
    * v349 — WHEN the report was made, in a reader's words — or null when the wire did not say.
@@ -92,7 +105,7 @@ export function toDeskRow(entry: unknown): DeskRow | null {
   if (typeof r.reportId !== 'string' || r.reportId.length === 0) return null;
   if (typeof r.targetProjectId !== 'string' || r.targetProjectId.length === 0) return null;
   if (typeof r.reason !== 'string' || r.reason.length === 0) return null;
-  const status = typeof r.status === 'string' && r.status.length > 0 ? r.status : 'open';
+  const status = typeof r.status === 'string' && r.status.length > 0 ? r.status : REPORT_STATUS_NOT_GIVEN;
   return {
     reportId: r.reportId,
     targetProjectId: r.targetProjectId,
@@ -102,7 +115,7 @@ export function toDeskRow(entry: unknown): DeskRow | null {
     detail: typeof r.detail === 'string' ? r.detail : '',
     status,
     statusText: reportStatusText(status),
-    open: status === 'open',
+    open: reportStanding(status),
     // v349 — and when it was made: the instant is the service's own, in UTC, in the same style as every
     // other date in the product (v341-v343, v333). A wire with no instant says nothing.
     filedText: reportFiledTextOf(r.createdAt),

@@ -199,8 +199,8 @@ describe('the report bar’s style block — the seventh panel joins the family 
       projectId: 'proj-1',
       count: 2,
       reports: [
-        { id: 'r1', reason: 'spam', reasonText: 'spam', withdrawn: false, status: 'open', statusText: 'not acknowledged yet', targetId: 'proj-1', filedAt: 1700000000000, detail: 'buy followers' },
-        { id: 'r2', reason: 'other', reasonText: 'something else', withdrawn: true, status: 'rejected', statusText: 'withdrawn by the reporter', targetId: 'proj-1', detail: '' },
+        { id: 'r1', reason: 'spam', reasonText: 'spam', withdrawn: false, withdrawable: true, status: 'open', statusText: 'not acknowledged yet', targetId: 'proj-1', filedAt: 1700000000000, detail: 'buy followers' },
+        { id: 'r2', reason: 'other', reasonText: 'something else', withdrawn: true, withdrawable: false, status: 'rejected', statusText: 'withdrawn by the reporter', targetId: 'proj-1', detail: '' },
       ],
     });
     const declared = declaredClasses(REPORT_BAR_STYLES);

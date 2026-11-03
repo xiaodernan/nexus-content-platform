@@ -73,10 +73,12 @@ export const PROOF_COMMAND = /^node +(docs\/evidence\/\S+\.mjs)$/;
  * v547 (ADR 0016 amendment 530) — EMPTY, and the last entry was wrong in the way this file exists to catch.
  * It said service-suite-proof needed "maven and a real PostgreSQL"; measured, its tests are pure Mockito
  * (no Spring context, no database), and the proof runs `mvn -o -B test` to exit 0 in 52.7 s on a warm
- * repository — 400 tests in 20 classes, service digest unchanged. The real prerequisites were a JDK 25 +
- * Maven, which the workflow pins, and a warm `~/.m2` for the offline flag, which the workflow buys online
- * (a warm-up step) before the proofs run. The array is kept — not deleted — because the clause is "a proof
- * the build cannot run must say what it needs", and an empty set is still a set the gates read.
+ * repository. Its size is NOT restated here any more: v547 wrote "400 tests in 20 classes" and by v570 the
+ * tree held 536 `@Test` methods in 29 classes — a number quoted from a run is a number that rots, and the row
+ * prints its own tally on every build. The real prerequisites were a JDK 25 + Maven, which the workflow pins,
+ * and a warm `~/.m2` for the offline flag, which the workflow buys online (a warm-up step) before the proofs
+ * run. The array is kept — not deleted — because the clause is "a proof the build cannot run must say what it
+ * needs", and an empty set is still a set the gates read.
  */
 export const EXCLUDED = [];
 
@@ -157,23 +159,32 @@ const runOne = (r, budgetMs) =>
 export const verdictOf = (s) => (s.killed ? 'TIMEOUT' : s.code === 0 ? 'OK' : 'RED');
 
 /**
- * v563 (amendment 538) — a green row used to say only `OK 284.7s`, so a hosted log could not tell a proof that
- * asserted `440/440` from one that exited 0 having graded nothing; amendment 535's bounds named exactly that
- * hole. The LAST non-blank line of the row's STDOUT is printed under its verdict (falling back to the combined
- * tail only when stdout is silent): bounded in bytes, and only for OK — a red row's verdict is `causeOf`
- * (v550), and a kill has no last word. Measured before shipping: the naive combined-tail rule printed remix's
- * Node ExperimentalWarning, not its ALL SECTIONS PASSED summary.
+ * v563 (amendment 538) made a green row speak: the runner prints the row's own last STDOUT line under its
+ * verdict (falling back to the combined tail only when stdout is silent), and v565 (540) fixed the bound as
+ * UTF-8 BYTES because what it bounds is log size — slicing UTF-16 units could cut a surrogate pair in half
+ * and overshoot the named number, so the clip walks code points. v566 (541) made the gutter unconditional and
+ * named silence `(the row printed nothing)`. Measured before shipping: the naive combined-tail rule printed
+ * remix's Node ExperimentalWarning, not its ALL SECTIONS PASSED summary.
  */
+export const GUTTER_BOUND_BYTES = 300;
+
 export function lastLineOf(tail) {
   const line = String(tail).split(/\r?\n/).map((l) => l.trim()).filter(Boolean).pop() || '';
-  // v565 — the gutter's bound is 300 BYTES because it bounds log size, so the clip counts UTF-8 bytes and
-  // walks code points; slicing UTF-16 units could cut a surrogate pair in half and overshoot the named bound.
+  const bytes = Buffer.byteLength(line);
+  if (bytes <= GUTTER_BOUND_BYTES) return line;
+  // v591 — the cut is NAMED. Run 41433663171 (v568, 107 rows) carried 11 gutters of exactly 300 bytes and the
+  // log said nothing: a reader could not tell a row that ended its sentence from one severed mid-word, and
+  // several of those eleven ended on `…reading n` — a truncated word that reads as a claim of its own. The
+  // marker sits INSIDE the bound (the bound bounds log size, so a note about breaking it cannot exceed it),
+  // so the clip reserves its bytes first and then walks code points within what is left.
+  const marker = ` [cut: ${bytes}B]`;
+  const room = GUTTER_BOUND_BYTES - Buffer.byteLength(marker);
   let out = '';
   for (const ch of line) {
-    if (Buffer.byteLength(out + ch) > 300) break;
+    if (Buffer.byteLength(out + ch) > room) break;
     out += ch;
   }
-  return out;
+  return out + marker;
 }
 
 /**

@@ -8,7 +8,7 @@
 //
 // Why this exists, stated the way §60 requires: amendment 514 shipped `.github/workflows/ci.yml`'s first
 // `verify:*` step and `tools/ci/proof-set.mjs`, and a shipped gate is worth exactly as much as the day someone
-// tries to make it stop. `ci-wiring-proof.mjs` reads a workflow and refuses twelve shapes; every one of those
+// tries to make it stop. `ci-wiring-proof.mjs` reads a workflow and refuses thirteen shapes; every one of those
 // refusals is a sentence until an arm proves it is a DOOR. So each arm below rewrites one byte-range of one
 // plane file — the trigger losing `master`, the proof step vanishing or doubling, a `|| true` growing on it,
 // the proofs moving before the build, an exemption outliving its hazard, a dangling script, an exclusion for a
@@ -30,10 +30,20 @@
 // a red row's stdout must not borrow that gutter (R15) — the hole amendment 535 named in its own bounds.
 // v565 (amendment 540) adds the arm that grades the gutter's BOUND: R14's sentence said 300 bytes while the clip
 // counted UTF-16 code units, so a line of 80 four-byte characters reached the log as 320 bytes and a slice could
-// split a surrogate pair; R16 prints 80 of them and requires exactly 75 (300 bytes) as whole characters.
+// split a surrogate pair; R16 prints 80 of them and requires whole characters at the bound.
 // v566 (amendment 541) adds the arm that grades the SILENT green row: a stub that writes only its ran.log and
 // exits 0 must still produce one gutter line, `(the row printed nothing)`, so green rows and gutters can be
 // counted against each other instead of differing in silence.
+// v591 (amendment 545) moves R16's arithmetic and adds two more, because the hosted log of run 41433663171 said
+// 107 gutters and eleven of them were EXACTLY 300 bytes: severed mid-sentence with no mark. A cut that is not
+// named cannot be told from a row that ended its sentence, and four of those eleven were rows v568 had just
+// reordered — the repair that made a summary the gutter made the summary's LENGTH the problem. So the clip now
+// reserves room for ` [cut: <bytes>B]` INSIDE the bound (a note about breaking a bound may not break it), which
+// is why R16 wants 72 characters rather than 75; R18 wants the marker on a 400-byte line and refuses 286
+// characters; R19 wants a line of exactly the bound to print UNMARKED, which is the half that keeps the marker
+// from becoming a stamp. On the gate side A26 plants a tail the row cannot print whole, C3 plants the same
+// sentence in a helper that has no gutter, and C4 plants a line that is long only because of what it
+// interpolates — the shape this clause cannot see and therefore must not refuse.
 //
 // Nothing an ARM writes survives: each one gets its own plane directory, built from pristine bytes read out of
 // `SRC` (derived from THIS file's own location, not from the caller's cwd), and is removed the moment the arm
@@ -118,7 +128,7 @@ const GATE_CLOSURE = [...new Set([
   ...population.map((d) => d.file),
 ])];
 
-const CLAUSES = ['§1', '§2', '§3', '§4', '§5', '§6', '§7', '§8', '§9', '§10', '§11', '§12'];
+const CLAUSES = ['§1', '§2', '§3', '§4', '§5', '§6', '§7', '§8', '§9', '§10', '§11', '§12', '§13'];
 
 function gatePlane(tag, edits) {
   const files = new Map(GATE_CLOSURE.map((rel) => [rel, readSrc(rel)]));
@@ -187,6 +197,15 @@ const SWEEP = 'docs/evidence/agents/sweep.mjs';
 assert.ok(RUNNING_FILES.has(COLOR), `${COLOR} is not a running row, so A25 and C1 would plant their tails where §12 never looks`);
 assert.ok(!RUNNING_FILES.has(SWEEP), `${SWEEP} is now a running row, so C2's "a non-row tail is nobody's business" arm would be arming the very refusal A25 predicts`);
 
+// A18's premise is a SUM the population owns, so it is derived like A14's markers. The arm raises the job
+// ceiling above the rows' own worst case; that worst case was 51 minutes at v540 (the arm hardcoded 600) and
+// is 630 minutes now, because every lane that wires a heavy proof adds its budget to the sum. At 630 the
+// hardcoded 600 no longer exceeds it, the gate exited 0, and the arm silently stopped arming §11 — found here
+// only because the set is re-run on every build. An arm aimed at a moving population reads the population.
+const WORST_ROW_MS = producer.splitSet(population).running.reduce((s, r) => s + producer.rowBudgetOf(r.file).ms, 0);
+const CEILING_ABOVE = Math.ceil(WORST_ROW_MS / 60_000) + 1;
+assert.ok(CEILING_ABOVE > 60, `the rows' own worst case is ${Math.ceil(WORST_ROW_MS / 60_000)} min, so a ceiling of ${CEILING_ABOVE} min would not be ABOVE it and A18 would arm nothing — the shipped ceiling is 60 and the arm must still overshoot the sum`);
+
 const GATE_ARMS = [
   { tag: 'C0-control', clause: null, edits: [], sig: null },
   { tag: 'A1-trigger-loses-master', clause: '§1', edits: [{ file: WF, from: 'branches: [main, master]', to: 'branches: [main]' }], sig: /does not include `master`/ },
@@ -222,7 +241,7 @@ const GATE_ARMS = [
   { tag: 'A15-budget-declared-twice', clause: '§9', edits: [{ file: MUT, from: '// sweep-budget-ms: 1200000\n', to: '// sweep-budget-ms: 1200000\n// sweep-budget-ms: 300000\n' }], sig: /budget is REFUSED/ },
   { tag: 'A16-build-node-too-old', clause: '§10', edits: [{ file: WF, from: 'node-version: 24', to: 'node-version: 20' }], sig: /below 22\.13/ },
   { tag: 'A17-job-ceiling-deleted', clause: '§11', edits: [{ file: WF, from: '    timeout-minutes: 60\n', to: '' }], sig: /declares no `timeout-minutes`/ },
-  { tag: 'A18-ceiling-above-the-rows-own-worst-case', clause: '§11', edits: [{ file: WF, from: '    timeout-minutes: 60\n', to: '    timeout-minutes: 600\n' }], sig: /a ceiling at or above the sum of the row budgets/ },
+  { tag: 'A18-ceiling-above-the-rows-own-worst-case', clause: '§11', edits: [{ file: WF, from: '    timeout-minutes: 60\n', to: `    timeout-minutes: ${CEILING_ABOVE}\n` }], sig: /a ceiling at or above the sum of the row budgets/ },
   { tag: 'A19-token-widened-to-write', clause: '§11', edits: [{ file: WF, from: '      contents: read\n', to: '      contents: write\n' }], sig: /grants a WRITE scope/ },
   { tag: 'A20-ceiling-below-the-floor', clause: '§11', edits: [{ file: WF, from: '    timeout-minutes: 60\n', to: '    timeout-minutes: 4\n' }], sig: /below 5 it cannot let this build finish/ },
   { tag: 'A21-ceiling-not-a-number', clause: '§11', edits: [{ file: WF, from: '    timeout-minutes: 60\n', to: '    timeout-minutes: sixty\n' }], sig: /not a whole number of minutes/ },
@@ -233,10 +252,18 @@ const GATE_ARMS = [
   // v568 removed from `agents/color-proof.mjs` (and its seven siblings) is a print that survives below the
   // row's own summary, and an arm that copied that summary line into a needle would be refused by its next
   // edit. C1 and C2 are the two ways this clause could cry wolf — by reddening any trailing print, or by
-  // reddening a file that is not a row — and each is a control, so both must print all twelve tags and exit 0.
+  // reddening a file that is not a row — and each is a control, so both must print all thirteen tags and
+  // exit 0. §13 is the LENGTH of that same tail, and it inherits the append machinery: A26 plants a print
+  // whose OWN text exceeds the gutter's bound, C3 plants it in a helper, and C4 plants a line that is long
+  // only because of what it interpolates — the half of the cut this clause cannot see, and must not pretend
+  // to grade, because `verify:drive-axis` and `verify:provenance` were cut on the hosted run by numbers, not
+  // by sentences. C1 doubles as §13's under-bound control: 49 bytes of text cannot be refused by a 300 door.
   { tag: 'A25-housekeeping-print-after-the-summary', clause: '§12', edits: [{ file: COLOR, append: "console.log('[cleanup] an arm puts a housekeeping print back below the row summary');" }], sig: /end their SOURCE on a housekeeping print/ },
   { tag: 'C1-trailing-print-that-is-not-housekeeping', clause: null, edits: [{ file: COLOR, append: "console.log('[measured] an arm plants a tail that is not cleanup');" }], sig: null },
   { tag: 'C2-housekeeping-tail-on-a-file-that-is-not-a-row', clause: null, edits: [{ file: SWEEP, append: "console.log('[cleanup] an arm plants this below a HELPER, whose tail §12 has no business reading');" }], sig: null },
+  { tag: 'A26-tail-whose-own-text-overruns-the-gutter', clause: '§13', edits: [{ file: COLOR, append: `console.log('[verdict] ${'z'.repeat(320)}');` }], sig: /end their source on a print too long for the gutter/ },
+  { tag: 'C3-long-tail-on-a-file-that-is-not-a-row', clause: null, edits: [{ file: SWEEP, append: `console.log('[verdict] ${'z'.repeat(320)} a helper has no gutter, so §13 has no business measuring it');` }], sig: null },
+  { tag: 'C4-tail-long-only-because-of-what-it-interpolates', clause: null, edits: [{ file: COLOR, append: "console.log('[verdict] ${'a'.repeat(400)} is long at run time and unknowable at the byte level, which is what the marker is for');" }], sig: null },
 ];
 
 // A clause with no arm is a sentence nobody has tried to break, and an arm aimed at a clause the gate no longer
@@ -361,7 +388,7 @@ const RUNNER_ARMS = [
   {
     tag: 'R14-green-row-speaks-its-last-line',
     bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': "console.log('first line, not the last');\nconsole.log(\"R14 the stub's last word\");\n" },
-    argv: [], code: 0, has: [/verify:stub-c\s+\S+ .*OK/, /^ {6}\| R14 the stub's last word$/m, ALL_GREEN], lacks: [/^ {6}\| first line/m], ran: true,
+    argv: [], code: 0, has: [/verify:stub-c\s+\S+ .*OK/, /^ {6}\| R14 the stub's last word$/m, ALL_GREEN], lacks: [/^ {6}\| first line/m, /\[cut: /], ran: true,
   },
   {
     tag: 'R15-red-row-does-not-borrow-the-gutter',
@@ -369,13 +396,14 @@ const RUNNER_ARMS = [
     argv: [], code: 1, has: [/── verify:stub-c RED ──/, /R15 the stub refused/], lacks: [/R15 tail/], ran: true,
   },
   // v565 (amendment 540) — R16 is satisfied only when the gutter is cut at 300 UTF-8 BYTES on a character
-  // boundary: the stub's last line is 80 x U+1F642 (4 bytes each = 320 bytes), so exactly 75 code points fit.
-  // One more is 304 bytes; a clip that splits the 76th surrogate pair fails the 75-character match and shows a
-  // replacement character instead.
+  // boundary: the stub's last line is 80 x U+1F642 (4 bytes each = 320 bytes). v591 moved the arithmetic it
+  // requires, because a cut that is NAMED reserves the room for its own name INSIDE the bound: the marker
+  // ` [cut: 320B]` is 12 bytes, so 288 bytes = 72 code points fit and the gutter is still exactly 300. A clip
+  // that split the 73rd surrogate pair fails the 72-character match and shows a replacement character.
   {
     tag: 'R16-gutter-is-cut-at-300-bytes',
     bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': "console.log(String.fromCodePoint(0x1F642).repeat(80));\n" },
-    argv: [], code: 0, has: [/verify:stub-c\s+\S+ .*OK/, /^ {6}\| (?:\u{1F642}){75}$/mu, ALL_GREEN], lacks: [/\uFFFD/], ran: true,
+    argv: [], code: 0, has: [/verify:stub-c\s+\S+ .*OK/, /^ {6}\| (?:\u{1F642}){72} \[cut: 320B\]$/mu, ALL_GREEN], lacks: [/\uFFFD/], ran: true,
   },
   // v566 (amendment 541) — R17 is satisfied only when the gutter is present for a row that printed nothing: the
   // stub writes its ran.log and exits 0 with no output, and the runner must name that silence under the OK.
@@ -383,6 +411,23 @@ const RUNNER_ARMS = [
     tag: 'R17-silent-green-row-is-named',
     bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': "// sweep-budget-ms: 120000\nimport { appendFileSync } from 'node:fs';\nappendFileSync('ran.log', 'c\\n');\n" },
     argv: [], code: 0, has: [/verify:stub-c\s+\S+ .*OK/, /^ {6}\| \(the row printed nothing\)$/m, ALL_GREEN], lacks: [], ran: true,
+  },
+  // v591 (amendment 545) — R18 is satisfied only when a SEVERED sentence says it was severed. The stub's last
+  // line is 400 ASCII characters (400 bytes); the marker ` [cut: 400B]` is 12 bytes, so the room the clip gets
+  // is 288 and the gutter must carry exactly 288 `a`s and then the marker — 300 bytes, the bound honored by
+  // the note that names breaking it. R14's lacks[/\[cut: /] grades the other half — a row that ended its
+  // sentence is not accused of cutting one.
+  {
+    tag: 'R18-gutter-names-its-cut',
+    bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': "console.log('a'.repeat(400));\n" },
+    argv: [], code: 0, has: [/verify:stub-c\s+\S+ .*OK/, /^ {6}\| a{288} \[cut: 400B\]$/m, ALL_GREEN], lacks: [/a{289}/, /\uFFFD/], ran: true,
+  },
+  // R19 is the boundary: a line of EXACTLY the bound is whole, so it must print unmarked. One byte more and
+  // R18's marker appears; a clip that marked every line at or under the bound would pass R18 and die here.
+  {
+    tag: 'R19-a-line-at-the-bound-is-not-marked',
+    bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': "console.log('b'.repeat(300));\n" },
+    argv: [], code: 0, has: [/verify:stub-c\s+\S+ .*OK/, /^ {6}\| b{300}$/m, ALL_GREEN], lacks: [/\[cut: /], ran: true,
   },
 ];
 

@@ -18,6 +18,7 @@
  *   no moderation behind it. The count is the fact; the identity is the moderator's business.
  */
 import { escapeHtml } from './pageShell';
+import { REPORT_STATUS_NOT_GIVEN, reportStanding, reportStatusText, reportWithdrawn } from './ops';
 
 /** One report, in the service's own wire shape. */
 export interface ReportEntry {
@@ -36,13 +37,36 @@ export interface ReportRow {
   reason: string;
   /** The reason in a reader's words. */
   reasonText: string;
-  /** Whether the reporter withdrew the report. */
+  /**
+   * Whether the reporter withdrew the report.
+   *
+   * v586 — read off the owner module's predicate, not a word spelled here: the same reason `REPORT_REASONS`
+   * moved to `ops.ts` in v556 is the reason this boolean does. A word copied into two files is two facts.
+   */
   withdrawn: boolean;
+  /**
+   * v586 — whether the reporter may STILL take the report back: the service's own standing predicate, not a
+   * word spelled here.
+   *
+   * <p>The reporter's panel used to gate the Withdraw button on `report.status === 'open'` — the component
+   * holding the service's token. That is a small thing to copy and a large thing to get wrong: `ReportService
+   * .withdraw` refuses anything that is not its own `STATUS_OPEN`, so a client that arms the button on a word
+   * of its own choosing offers a control the service would refuse, and a reader clicks a button that cannot
+   * work. The predicate now lives once, in `ops.ts`, next to the vocabulary it is derived from; §11.11 of
+   * `audit-contract-proof.mjs` grades it against the Java.
+   */
+  withdrawable: boolean;
   /**
    * v305 — the report's STATUS, as the service's own word.
    *
    * <p>The bar on the artifact page only ever needed "withdrawn or not". The REPORTER's view needs the
    * whole vocabulary, because the thing a reporter wants to know is where their complaint stands now.
+   *
+   * <p>v586 — `''` (`REPORT_STATUS_NOT_GIVEN`) when the wire carried none. It used to be `'open'`, which is
+   * the service's own word for "not acknowledged yet" and therefore a claim: an absent status was rendered as
+   * a standing one, armed the Acknowledge and Withdraw controls, and wrote `data-desk-status="open"` into the
+   * DOM. The service's word is only spoken by the service; `ReportService.withdraw` returns false for
+   * anything but its own `STATUS_OPEN`, and `ModerationService.acknowledge` refuses what is not standing.
    */
   status: string;
   /** The status in a reader's words. */
@@ -94,29 +118,18 @@ export function reportReasonText(reason: string): string {
   }
 }
 
-/**
- * The report's STATUS in a reader's words.
- *
- * A KNOWN status is spelled the way a person would say it; an unknown one is passed through as it arrived
- * — a row that labelled an unknown status as "acknowledged" would be claiming a disposition the service
- * never made.
- *
- * `reviewed` and `resolved` are a MODERATOR's vocabulary: this build has no moderator, so the service
- * never sets them. They are spelled in the service's own word rather than translated, because a panel that
- * turned them into "not acknowledged yet" would be quietly rewriting a status it does not have.
- */
-export function reportStatusText(status: string): string {
-  switch (status) {
-    case 'open':
-      return 'not acknowledged yet';
-    case 'acknowledged':
-      return 'acknowledged';
-    case 'rejected':
-      return 'withdrawn by the reporter';
-    default:
-      return status;
-  }
-}
+// The report's STATUS in a reader's words — v586: this file no longer declares it.
+//
+// It used to: a `switch` over the five service words lived here, and `moderation.ts` (the owner's desk) kept
+// its OWN switch over the same vocabulary, so the two faces of one fact answered the same status
+// differently. `audit-contract-proof.mjs` §8 graded a file that no reader reads, and §11 counted the
+// declarations rather than the disagreements. Measured before the fix (`v586-prefix.out`): five declared
+// statuses, two answers each, and every one of the five diverging. One owner now: `ops.ts`
+// `reportStatusText`, imported here and there.
+//
+// The reason it moved to `ops.ts` rather than staying here is the same as the reason `REPORT_REASONS` moved
+// in v556: `ops.ts` already owns `REPORT_STATUSES`, the vocabulary the service declares, and a word table
+// that is not keyed off that vocabulary can drift without any gate noticing.
 
 /**
  * One report, or `null` when it cannot be shown honestly.
@@ -129,12 +142,13 @@ export function toReportRow(entry: unknown): ReportRow | null {
   const r = entry as ReportEntry;
   if (typeof r.id !== 'string' || r.id.length === 0) return null;
   if (typeof r.reason !== 'string' || r.reason.length === 0) return null;
-  const status = typeof r.status === 'string' && r.status.length > 0 ? r.status : 'open';
+  const status = typeof r.status === 'string' && r.status.length > 0 ? r.status : REPORT_STATUS_NOT_GIVEN;
   return {
     id: r.id,
     reason: r.reason,
     reasonText: reportReasonText(r.reason),
-    withdrawn: status === 'rejected',
+    withdrawn: reportWithdrawn(status),
+    withdrawable: reportStanding(status),
     status,
     statusText: reportStatusText(status),
     targetId: typeof r.targetId === 'string' ? r.targetId : '',

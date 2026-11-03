@@ -20,7 +20,12 @@ import {
   REPORT_REASONS,
   reportsByReason,
   REPORT_STATUSES,
+  REPORT_STATUS_NOT_GIVEN,
   reportsByStatus,
+  reportStanding,
+  reportWithdrawn,
+  statusGaps,
+  statusGapText,
 } from './ops';
 const entry: AuditEntry = {
   id: 'audit-1',
@@ -43,18 +48,22 @@ const report: Report = {
 };
 
 describe('ops — reportStatusText', () => {
-  it('maps each status to a label', () => {
-    expect(reportStatusText('open')).toBe('Open');
-    expect(reportStatusText('reviewed')).toBe('Reviewed');
-    expect(reportStatusText('resolved')).toBe('Resolved');
-    expect(reportStatusText('rejected')).toBe('Rejected');
+  // v586 — the words are SENTENCES about who has acted, not capitalised copies of the service's tokens.
+  // The same face is what the reporter's list and the owner's desk render, so this table IS the product's
+  // answer; before v586 there were two of them and the panels read the one no gate graded.
+  it('says each declared status in a reader\'s words', () => {
+    expect(reportStatusText('open')).toBe('not acknowledged yet');
+    expect(reportStatusText('reviewed')).toBe('a moderator has looked at it');
+    expect(reportStatusText('resolved')).toBe('a moderator settled it');
+    expect(reportStatusText('rejected')).toBe('withdrawn by the reporter');
+    expect(reportStatusText('acknowledged')).toBe('the owner has seen it');
   });
 
   // v541 — the service's `ReportDtos` has five statuses, not four. `acknowledged` was the one this client
   // had never heard of, and a status with no word rendered as the literal string "Unknown" — an empty
   // label is not the same as an honest "I do not know this one".
   it('has a word for the status the service sends and this build forgot', () => {
-    expect(reportStatusText('acknowledged')).toBe('Acknowledged');
+    expect(reportStatusText('acknowledged')).toBe('the owner has seen it');
   });
 
   it('names every declared status with something other than "Unknown"', () => {
@@ -66,9 +75,95 @@ describe('ops — reportStatusText', () => {
     }
   });
 
+  it('never answers a declared status with the wire token itself', () => {
+    // The pass-through below is honest ONLY for a value nobody declared. For a declared one, printing the
+    // token means the table lost a row — §9 of the audit-contract proof already graded the ops face on this
+    // rule while the face the panels paint did the opposite.
+    for (const status of REPORT_STATUSES) {
+      expect(reportStatusText(status)).not.toBe(status);
+    }
+  });
+
   it('passes an undeclared status through instead of inventing a verdict', () => {
     const fromANewerService = 'quarantined-by-a-service-this-build-does-not-have';
     expect(reportStatusText(fromANewerService)).toBe(fromANewerService);
+  });
+
+  // v586 — the case that used to be a lie: a wire with no status was folded into `'open'`, so the panel
+  // announced that the owner had not looked at a report whose standing nobody stated. `''` is a sixth
+  // value that is deliberately not one of the five, and it gets a sentence about the WIRE, not about
+  // anyone's behaviour.
+  it('says the service gave no status when the wire gave none', () => {
+    expect(REPORT_STATUS_NOT_GIVEN).toBe('');
+    expect(REPORT_STATUSES).not.toContain(REPORT_STATUS_NOT_GIVEN);
+    expect(reportStatusText(REPORT_STATUS_NOT_GIVEN)).toBe('the service gave no status');
+  });
+});
+
+// v586 — the STANDING predicates. `audit-contract-proof.mjs` §11.11 reads these against the Java sites that
+// compare a row to `ReportDtos.STATUS_OPEN`; these cases say the same thing in the client's own terms, so
+// the rule is not only a regex over another language.
+describe('ops — reportStanding / reportWithdrawn', () => {
+  it('calls exactly the status the service still acts on "standing"', () => {
+    expect(REPORT_STATUSES.filter((s) => reportStanding(s))).toEqual(['open']);
+  });
+
+  it('does not call the statuses the service refuses to act on "standing"', () => {
+    for (const status of REPORT_STATUSES.filter((s) => s !== 'open')) {
+      expect(reportStanding(status)).toBe(false);
+    }
+    // including the two the client used to invent answers for: an absent status, and a word from a newer service
+    expect(reportStanding(REPORT_STATUS_NOT_GIVEN)).toBe(false);
+    expect(reportStanding('quarantined-by-a-service-this-build-does-not-have')).toBe(false);
+  });
+
+  it('calls only rejected "withdrawn"', () => {
+    expect(reportWithdrawn('rejected')).toBe(true);
+    for (const status of REPORT_STATUSES.filter((s) => s !== 'rejected')) {
+      expect(reportWithdrawn(status)).toBe(false);
+    }
+    expect(reportWithdrawn(REPORT_STATUS_NOT_GIVEN)).toBe(false);
+  });
+});
+
+describe('ops — statusGaps / statusGapText', () => {
+  it('says nothing when every row in the window declares where it stands', () => {
+    const gaps = statusGaps(REPORT_STATUSES.map((status) => ({ status })));
+    expect(gaps).toEqual({ notGiven: 0, unknown: [], shown: REPORT_STATUSES.length });
+    expect(statusGapText(gaps)).toBe('');
+  });
+
+  it('counts a row whose status the wire never sent', () => {
+    const gaps = statusGaps([{ status: 'open' }, { status: REPORT_STATUS_NOT_GIVEN }]);
+    expect(gaps).toEqual({ notGiven: 1, unknown: [], shown: 2 });
+    expect(statusGapText(gaps)).toBe('of these 2 rows: 1 arrived with no status at all');
+  });
+
+  it('names a status word this build does not know, and does not fold it into a neighbour', () => {
+    const gaps = statusGaps([
+      { status: 'quarantined' },
+      { status: 'quarantined' },
+      { status: 'archived' },
+      { status: 'open' },
+    ]);
+    expect(gaps.unknown).toEqual(['quarantined', 'archived']);
+    expect(gaps.shown).toBe(4);
+    expect(statusGapText(gaps)).toBe(
+      'of these 4 rows: 2 carry a status this build does not know (quarantined, archived)',
+    );
+  });
+
+  it('says both kinds when both happened', () => {
+    const gaps = statusGaps([{ status: REPORT_STATUS_NOT_GIVEN }, { status: 'quarantined' }]);
+    expect(statusGapText(gaps)).toBe(
+      'of these 2 rows: 1 arrived with no status at all · 1 carry a status this build does not know (quarantined)',
+    );
+  });
+
+  // The sentence is about the WINDOW it counted (the v377 rule): the desk shows twenty rows of a larger
+  // desk, and a gap line that dropped the denominator would read as a fact about every report there is.
+  it('speaks of the rows it counted, not of the desk', () => {
+    expect(statusGapText(statusGaps([{ status: REPORT_STATUS_NOT_GIVEN }]))).toContain('of these 1 rows');
   });
 });
 
@@ -191,9 +286,21 @@ describe('ops — reportOpenCount / reportResolvedCount', () => {
     { ...report, id: 'r-4', status: 'rejected' },
   ];
 
-  it('counts open + reviewed as open', () => {
-    expect(reportOpenCount(reports)).toBe(2);
+  // v586 — the boundary is the SERVICE's, not the client's. `ModerationService.tallyOf` builds `open` from
+  // `STATUS_OPEN` alone; this counted `open` PLUS `reviewed`, so the summary line a creator reads said one
+  // number and the desk's own tally said a smaller one. `reviewed` is a moderator's word — v541 already
+  // recorded that this build's service never sets it — so counting it here was counting a state that cannot
+  // arrive, and could not be told apart from a real one.
+  it('counts standing reports only — the same predicate the service uses for its own tally', () => {
+    expect(reportOpenCount(reports)).toBe(1);
     expect(reportResolvedCount(reports)).toBe(2);
+  });
+
+  it('a report whose status the wire never sent is not standing, and so is not counted open', () => {
+    // The fold this increment removes: an absent status used to become `'open'` in the row, and every
+    // count built on the row inherited the invented standing.
+    expect(reportOpenCount([{ ...report, id: 'r-9', status: REPORT_STATUS_NOT_GIVEN }])).toBe(0);
+    expect(reportOpenCount([{ ...report, id: 'r-10', status: 'quarantined' }])).toBe(0);
   });
 
   it('zero for empty list', () => {

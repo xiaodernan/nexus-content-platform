@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { reportIdFromSearch } from './reportIntent';
-import { injectReportBar, renderReportBar, reportReasonText, reportStatusText, toReportRow, toReportRows } from './reportBar';
+import { injectReportBar, renderReportBar, reportReasonText, toReportRow, toReportRows } from './reportBar';
+// v586 — the status words come from the ONE owner now. This file used to import them from `./reportBar`,
+// which is where the bar kept its own copy; grading the bar's copy is what let `moderation.ts` drift.
+import { reportStatusText } from './ops';
 
 /**
  * M7 v296 — the REPORTS bar on the artifact page.
@@ -144,15 +147,18 @@ describe('reportBar — the report’s STATUS and its TARGET (M7 v305)', () => {
   it('the row carries the status the service gave and the work it is about', () => {
     const row = toReportRow(entry({ status: 'acknowledged', targetId: 'pub-9' }));
     expect(row?.status).toBe('acknowledged');
-    expect(row?.statusText).toBe('acknowledged');
+    expect(row?.statusText).toBe('the owner has seen it');
     expect(row?.targetId).toBe('pub-9');
     expect(row?.withdrawn).toBe(false);
+    // v586 — an acknowledged complaint is not one the reporter can still take back.
+    expect(row?.withdrawable).toBe(false);
   });
 
   it('a withdrawn report says so in the status too', () => {
     const row = toReportRow(entry({ status: 'rejected' }));
     expect(row?.withdrawn).toBe(true);
     expect(row?.statusText).toBe('withdrawn by the reporter');
+    expect(row?.withdrawable).toBe(false);
   });
 
   it('an UNKNOWN status is passed through, not translated into a claim the service never made', () => {
@@ -160,12 +166,50 @@ describe('reportBar — the report’s STATUS and its TARGET (M7 v305)', () => {
     const row = toReportRow(entry({ status: 'escalated' }));
     expect(row?.status).toBe('escalated');
     expect(row?.statusText).toBe('escalated');
+    // v586 — and a word this build does not know arms nothing: only the service's own standing does.
+    expect(row?.withdrawable).toBe(false);
+    expect(row?.withdrawn).toBe(false);
   });
 
-  it('a report with NO status is treated as open — the service’s own first state', () => {
+  it('v586 — a report with NO status is NOT the service’s first state: the bar says it was not given', () => {
+    // Measured before the fix (`v586-prefix.out`): this row came back `status:'open'`,
+    // `statusText:'not acknowledged yet'`, `withdrawn:false` — an invented standing, shown as the
+    // service's own word, in a reporter's view where the Withdraw button hangs off exactly that word.
     const row = toReportRow(entry({ status: '' }));
-    expect(row?.status).toBe('open');
-    expect(row?.statusText).toBe('not acknowledged yet');
+    expect(row?.status).toBe('');
+    expect(row?.statusText).toBe('the service gave no status');
+    expect(row?.withdrawn).toBe(false);
+    expect(row?.withdrawable).toBe(false);
+  });
+
+  it('v586 — a status field the wire never sent is the same honest answer as an empty one', () => {
+    // `entry()` carries a status, so the never-sent shape is built by TAKING the key away — that is what a
+    // wire row with no `status` in it looks like, and a spread of `{}` would have kept 'open'.
+    const noKey = (() => {
+      const e = entry() as Record<string, unknown>;
+      delete e.status;
+      return e;
+    })();
+    const shapes: Array<[string, Record<string, unknown>]> = [
+      ['key absent', noKey],
+      ['key present, undefined', { ...entry(), status: undefined }],
+      ['key present, null', { ...entry(), status: null }],
+      ['key present, not a string', { ...entry(), status: 7 }],
+    ];
+    for (const [label, shape] of shapes) {
+      const row = toReportRow(shape);
+      expect(row, label).not.toBeNull();
+      expect(row?.status, label).toBe('');
+      expect(row?.statusText, label).toBe('the service gave no status');
+      expect(row?.withdrawable, label).toBe(false);
+    }
+  });
+
+  it('v586 — only the standing report may be taken back, and the row is the one that says so', () => {
+    expect(toReportRow(entry({ status: 'open' }))?.withdrawable).toBe(true);
+    for (const status of ['reviewed', 'resolved', 'rejected', 'acknowledged', 'escalated', '']) {
+      expect(toReportRow(entry({ status }))?.withdrawable, status).toBe(false);
+    }
   });
 });
 });

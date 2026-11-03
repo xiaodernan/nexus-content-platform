@@ -15,7 +15,7 @@ import { readMyTips, readMyTipsGiven } from '@/lib/tipLane';
 import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
 import { cancelSubscription, retirePlan } from '@/lib/planLane';
 import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
-import { deskWindowText, tallyText } from '@/lib/moderation';
+import { deskWindowText, statusGaps, statusGapText, tallyText } from '@/lib/moderation';
 import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { readMyFollowing, unfollowAccount, type FollowingLaneAnswer } from '@/lib/followLane';
 import {
@@ -1628,6 +1628,21 @@ export default function Toolbar() {
               {tallyText(desk.tally)}
             </div>
           )}
+          {/* v586 — the WINDOW says what it could not read. The tally above counts by the statuses the
+              service declared; a row whose status never arrived is now `''` rather than `'open'`, so it
+              sits in NO bucket, and a reader who sees "5 report(s) · 2 still waiting" would count two
+              missing rows into the four standing ones. This names them — window-scoped, exactly like
+              v377's tally line: the desk is a window, and a gap in a window is a fact about that window. */}
+          {desk &&
+            desk.ok &&
+            (() => {
+              const gaps = statusGapText(statusGaps(desk.reports));
+              return gaps ? (
+                <div data-desk-gaps style={{ color: 'var(--nexus-muted)', marginBottom: 6 }}>
+                  {gaps}
+                </div>
+              ) : null;
+            })()}
           {desk === null ? (
             <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
           ) : !desk.ok ? (
@@ -1842,6 +1857,17 @@ export default function Toolbar() {
                   return window ? <> · {window}</> : null;
                 })()}
               </div>
+              {/* v586 — the same window-scoped gap sentence the desk got: a reporter with several
+                  complaints needs to know that the row they are looking at is one whose standing the
+                  service did not state, and not guess it from a bucket the row never entered. */}
+              {(() => {
+                const gaps = statusGapText(statusGaps(filed.reports));
+                return gaps ? (
+                  <div data-filed-gaps style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
+                    {gaps}
+                  </div>
+                ) : null;
+              })()}
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {filed.reports.map((report) => (
                   <li
@@ -1882,8 +1908,16 @@ export default function Toolbar() {
                       </div>
                     )}
                     {/* v306 — a reporter can take a complaint back while it is still open. The row STAYS: a
-                        report that was withdrawn is a fact that happened. */}
-                    {report.status === 'open' && (
+                        report that was withdrawn is a fact that happened.
+
+                        v586 — gated on the ROW's predicate, not a status word spelled here. `status ===
+                        'open'` was the component holding the service's own token, and it did two things
+                        wrong at once: it armed the button for a report whose status never arrived (that
+                        fold is what this increment removes), and it would keep working if `ReportService
+                        .withdraw` changed its mind about which standing allows a withdrawal — with nothing
+                        in the client's vocabulary table to notice. `reportBar.toReportRow` now asks
+                        `ops.reportStanding`, the one predicate §11.11 grades against the Java. */}
+                    {report.withdrawable && (
                       <button
                         className="btn"
                         data-filed-withdraw={report.id}

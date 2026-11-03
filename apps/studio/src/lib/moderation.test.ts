@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { deskSummary, deskWindowText, reportStatusText, tallyText, toDeskRow, toDeskRows } from './moderation';
+import { deskSummary, deskWindowText, reportStatusText, statusGaps, statusGapText, tallyText, toDeskRow, toDeskRows } from './moderation';
 import { acknowledgeReport, readDesk } from './moderationLane';
 
 /**
@@ -108,8 +108,13 @@ it('a row carries the reason, the reporter\u2019s WORDS and the status', () => {
   });
 
   it('the status is spelled the way a person would say it', () => {
+    // v586 — and spelled ONCE. `reportStatusText` used to be this module's own re-export of a second
+    // `switch` in `reportBar.ts`; the desk's copy and the reporter's copy disagreed on all five
+    // declared statuses (`v586-prefix.out`), so the same report read as two different facts.
     expect(reportStatusText('open')).toBe('not acknowledged yet');
-    expect(reportStatusText('acknowledged')).toBe('acknowledged');
+    expect(reportStatusText('reviewed')).toBe('a moderator has looked at it');
+    expect(reportStatusText('resolved')).toBe('a moderator settled it');
+    expect(reportStatusText('acknowledged')).toBe('the owner has seen it');
     expect(reportStatusText('rejected')).toBe('withdrawn by the reporter');
   });
 
@@ -119,6 +124,68 @@ it('a row carries the reason, the reporter\u2019s WORDS and the status', () => {
     expect(row?.status).toBe('escalated');
     expect(row?.statusText).toBe('escalated');
     expect(row?.open).toBe(false);
+  });
+
+  // v586 — the row this desk could not read used to be shown as the service's FIRST state, which is a
+  // positive claim: it armed the Acknowledge button, moved the row into `tally.open`, and put
+  // `data-desk-status="open"` in the DOM for a report whose standing nobody can state.
+  it('a report whose status never arrived is shown as not given, and arms nothing', () => {
+    // `A_REPORT` carries a status, so the never-sent shape is built by TAKING the key away: that is what
+    // a wire row with no `status` in it looks like — a spread of `{}` would have kept 'open'.
+    const noKey = (() => {
+      const e = { ...A_REPORT } as Record<string, unknown>;
+      delete e.status;
+      return e;
+    })();
+    const shapes: Array<[string, Record<string, unknown>]> = [
+      ['key absent', noKey],
+      ['key present, undefined', { ...A_REPORT, status: undefined }],
+      ['key present, empty', { ...A_REPORT, status: '' }],
+      ['key present, null', { ...A_REPORT, status: null }],
+      ['key present, not a string', { ...A_REPORT, status: 7 }],
+    ];
+    for (const [label, shape] of shapes) {
+      const row = toDeskRow(shape);
+      expect(row, label).not.toBeNull();
+      expect(row?.status, label).toBe('');
+      expect(row?.statusText, label).toBe('the service gave no status');
+      expect(row?.open, label).toBe(false);
+    }
+  });
+
+  it('a reviewed row is not standing — the desk counts the service’s answer, not a wider one', () => {
+    // `reportOpenCount` (the summary bar's path in `ops.ts`) and `deskSummary.open` are the same number
+    // because both ask `ops.reportStanding`; this pins the desk half of that on the two statuses a
+    // reader can actually tell apart.
+    const rows = toDeskRows([A_REPORT, { ...A_REPORT, reportId: 'rep-2', status: 'reviewed' }]);
+    expect(deskSummary(rows)).toEqual({ total: 2, open: 1 });
+  });
+
+  it('the gaps sentence says which rows in this window could not be read', () => {
+    // Nothing to disclose, nothing said — a clean window is not asked to apologise.
+    expect(statusGapText(statusGaps(toDeskRows([A_REPORT])))).toBe('');
+    expect(statusGapText(statusGaps([]))).toBe('');
+
+    const noStatus = toDeskRows([{ ...A_REPORT, reportId: 'rep-9', status: '' }]);
+    expect(statusGapText(statusGaps(noStatus))).toBe('of these 1 rows: 1 arrived with no status at all');
+
+    const unknown = toDeskRows([
+      A_REPORT,
+      { ...A_REPORT, reportId: 'rep-2', status: 'quarantined' },
+      { ...A_REPORT, reportId: 'rep-3', status: 'quarantined' },
+      { ...A_REPORT, reportId: 'rep-4', status: 'archived' },
+    ]);
+    expect(statusGapText(statusGaps(unknown))).toBe(
+      'of these 4 rows: 2 carry a status this build does not know (quarantined, archived)',
+    );
+
+    const both = toDeskRows([
+      { ...A_REPORT, reportId: 'rep-2', status: '' },
+      { ...A_REPORT, reportId: 'rep-3', status: 'quarantined' },
+    ]);
+    expect(statusGapText(statusGaps(both))).toBe(
+      'of these 2 rows: 1 arrived with no status at all · 1 carry a status this build does not know (quarantined)',
+    );
   });
 
   it('the tally counts what is waiting, out of what the answer carried', () => {
