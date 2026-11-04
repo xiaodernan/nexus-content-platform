@@ -124,6 +124,39 @@
 // workflow step vanished and a deferral whose reach sits only in comments all redden too; eleven fixture arms aim
 // at exactly those, on a synthetic plane, so the refusals are measured rather than read off this paragraph.
 //
+// v608 (this increment; the ADR 0016 section is still owed for v606-v608 and the ledger files sit in another lane's
+// uncommitted set, so this header keeps the record) - THE REVERSE BLIND SIDE. v607 asked which NAMES exist. It said
+// nothing about which RUNNABLE MODULES the build walks, and that question has a different population: `git ls-files
+// -- tools` holds 16 runnable modules at this ref. One is the runner the proofs step calls; four are imported by a
+// module the live closure reaches (125 modules are live, and the closure walks them through the sweep's tokenizer);
+// seven are the node targets of the seven deferred harness doors; and FOUR were in no class at all —
+// tools/ci/record-encoding-repair.mjs, the 367-line repairer that fixed the record corpus, and the three dock
+// drivers tools/harness/studio-build.mjs (106 lines, amendment 174), studio-container.mjs (94, amendment 172) and
+// studio-deploy.mjs (130, amendment 177). No script names those four, no module IMPORTS them, and nothing in this
+// repository mentions them outside their own headers: 697 lines of working code with no decision recorded against
+// them, which is amendment 516's founding complaint one directory over. So TOOLS_STANDBY below disposes each with
+// the fact, the blocker and the next repair, and any fifth module that rises into no derived class reddens the
+// build exactly as an undispositioned script name does:
+//   RUNNER   the node target of the manifest entry the workflow's run lines call — this census stands behind that door.
+//   REACHED  a live module imports it: the closure starts at the derived rows, the runner target and the declared
+//            tools, so a helper of a helper of a row is reached and nothing about it has to be written down.
+//   NAMED    the node target of a `verify:*` NAME that MANIFEST disposes — its reason lives in that entry, so the
+//            two censuses interlock instead of each keeping its own excuse.
+//   BEHIND   a deferred door imports it and nothing the build walks does. A real state (a door v607 deferred keeps
+//            its own helpers) and a DERIVED one: printed every run, never declared, so a deferral cannot grow by
+//            prose — and an island of dead modules that import one another stays UNREACHED, because nothing anchors it.
+//   STANDBY  declared, and only valid when nothing derives it: the entry must name either a module whose bytes hold
+//            its path as a CODE-POSITION STRING (the dynamic-import case — a grader reaches its tool through
+//            `await import(pathToFileURL(join(root, TOOL)))`, which no specifier reader can see), or a derived ROW
+//            that replaced it. A comment quoting the path buys nothing; a replacement that is not a row buys nothing.
+// Anything else is UNREACHED and this census exits 1 naming the module. Twelve fixture arms aim at exactly those, on
+// the same synthetic plane as the thirty-one that came before, and the bounds are named rather than hidden: the
+// closure reads
+// only `from '…'` and `import('…')` specifiers, so a row that SPAWNS `node tools/x.mjs` is invisible to it (which is
+// why the repairer is a STANDBY with a reachedBy rather than an accusation), a bare side-effect `import './x.mjs'`
+// is still not read, and a live module that imports an UNtracked path outside docs/evidence is not reddened here —
+// `helperClosure` grades the dangling edges the census can see, and ci-wiring grades the workflow.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -137,6 +170,7 @@ const HERE = 'docs/evidence/ci/evidence-census-proof.mjs';
 const README_FILE = 'docs/evidence/ci/README.md';
 const EVIDENCE = 'docs/evidence/';
 const SWEEP_DIR = 'docs/evidence/agents/';
+const TOOLS_DIR = 'tools/';
 /** The extensions a checkout can RUN. A new one is admitted by this census the day it appears, as unclassified. */
 export const MODULE_RE = /\.(mjs|cjs|js|mts|cts|ts)$/;
 const RUN_RE = /^node +(\S+\.(?:mjs|cjs|js|mts|cts|ts))$/;
@@ -456,13 +490,274 @@ export function helperClosure({ roots, tracked, read }) {
   return { helpers, dangling };
 }
 
+/** The five dispositions a runnable module under tools/ may hold; everything else is UNREACHED and red. */
+export const TOOLS_CLASSES = ['runner', 'reached', 'named', 'behind', 'standby'];
+
+/**
+ * The modules nothing reaches, each with the fact a reader can re-measure, the prerequisite that keeps it out of
+ * the build, the repair that retires the entry, and the WITNESS the refusal checks: either a module whose code
+ * really holds this path as a string value, or a derived row that grades the same face. v608's own claim is that
+ * these four are the whole list — a fifth module in no derived class reddens the build rather than being added
+ * here quietly.
+ */
+export const TOOLS_STANDBY = [
+  {
+    path: 'tools/ci/record-encoding-repair.mjs',
+    reachedBy: 'docs/evidence/agents/record-repair-proof.mjs',
+    measured: '367 lines read off the index at this ref; its grader holds the path in `const TOOL = ...`, reaches it with `await import(pathToFileURL(join(root, TOOL)))` and spawns it three times (two --write, one --plan)',
+    blocker: 'the grader is SWEPT, not a row: no verify:* script names docs/evidence/agents/record-repair-proof.mjs, so nothing the build walks reaches this tool through it and the repair runs only when a person runs the agents sweep',
+    next: 'name the grader a row — verify:record-repair = node docs/evidence/agents/record-repair-proof.mjs, in the package.json the m9 lane holds uncommitted — and give the grader a relative import of this path, which DERIVES the tool as reached and deletes this entry',
+    why: 'this repairer is the derived machinery for a whole defect class (a writer channel that mangles records), so an unreached file here is a fix nobody can prove still runs',
+  },
+  {
+    path: 'tools/harness/studio-build.mjs',
+    replacedBy: 'docs/evidence/studio/build-lane-proof.mjs',
+    measured: '106 lines; its own code imports ./cdp.mjs, navigates the URL_BASE default 127.0.0.1:3211 and drives five checks of the dock BUILD face (probe lands, Allow-once walks the arc, per-step lines, ledger entry, console silence)',
+    blocker: 'a real Chrome plus a Studio served on 127.0.0.1:3211 and a real docker daemon — the same prerequisites the seven deferred harness doors name, and no workflow step installs a browser or starts a dev server',
+    next: 'the amendment-534 route: a proof under docs/evidence that stands up its own Studio and spawns this driver, which DERIVES it as reached and deletes this entry — or delete the driver once build-lane-proof is shown to cover every face it drove',
+    why: 'a driver no script names and no module imports is either the next real-browser row or dead weight, and this census refuses to guess which one it is',
+  },
+  {
+    path: 'tools/harness/studio-container.mjs',
+    replacedBy: 'docs/evidence/studio/container-lane-proof.mjs',
+    measured: '94 lines; its own code imports ./cdp.mjs, navigates the URL_BASE default 127.0.0.1:3211 and drives four checks of the dock CONTAINER face (daemon version with the pinned image, the self-check ask, the container.exec ledger entry, console silence)',
+    blocker: 'a real Chrome, a Studio served on 127.0.0.1:3211 and a docker daemon the runner does not have: the workflow pre-pulls node:22-alpine for the build rows but starts no browser and no dev server',
+    next: 'the amendment-534 route: stand up its own Studio and docker the way docs/evidence/m7/studio-publish.mjs does and spawn this driver from that proof, which DERIVES it as reached and deletes this entry',
+    why: 'the container face is the one the shipped dock asks a human to allow, and a driver that grades it from outside the build is a measurement nobody re-runs',
+  },
+  {
+    path: 'tools/harness/studio-deploy.mjs',
+    replacedBy: 'docs/evidence/studio/deploy-lane-proof.mjs',
+    measured: '130 lines; its own code imports ./cdp.mjs, navigates the URL_BASE default 127.0.0.1:3211 and drives six checks of the dock DEPLOY face, including the records read back newest-first after the walk',
+    blocker: 'a real Chrome, a Studio served on 127.0.0.1:3211 and a docker daemon, plus the deployment records file the walk writes — none of which a workflow step stands up before the proofs step runs',
+    next: 'the amendment-534 route: a proof under docs/evidence that owns its own Studio, daemon and records path and spawns this driver, which DERIVES it as reached and deletes this entry',
+    why: 'deploy is the arc that writes product state, so its real-browser witness is exactly the kind of door a census must not leave undecided',
+  },
+];
+
+/**
+ * Every string body a module holds at CODE position — comments skipped, template `${ … }` re-entered as code,
+ * and a `/` treated as a regex literal only where one can syntactically open. Used for ONE claim: that a grader
+ * carries a tool's path as a VALUE rather than in a sentence. A mis-read pattern can only ever lose a literal or
+ * invent a token that is not the exact path, and the check demands an exact match, so the direction of failure is
+ * a red that asks for the edit rather than a green that was never earned.
+ */
+export function codeLiterals(text) {
+  const src = String(text ?? '');
+  const out = [];
+  let lastSig = '';
+  let i = 0;
+  while (i < src.length) {
+    const c = src[i];
+    const d = src[i + 1];
+    if (c === '/' && d === '/') {
+      while (i < src.length && src[i] !== '\n') i++;
+      continue;
+    }
+    if (c === '/' && d === '*') {
+      i += 2;
+      while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) i++;
+      i += 2;
+      continue;
+    }
+    if (c === '/' && '[({,;:=!?&|+-*%^~<>'.includes(lastSig)) {
+      const end = regexEnd(src, i);
+      if (end > 0) {
+        lastSig = '/';
+        i = end;
+        continue;
+      }
+    }
+    if (c === "'" || c === '"' || c === '`') {
+      const quote = c;
+      i++;
+      let body = '';
+      let interp = '';
+      while (i < src.length) {
+        if (src[i] === '\\') {
+          if (src[i + 1] !== '\n') body += src[i + 1];
+          i += 2;
+          continue;
+        }
+        if (src[i] === quote) {
+          i++;
+          break;
+        }
+        if (quote === '`' && src[i] === '$' && src[i + 1] === '{') {
+          let depth = 1;
+          i += 2;
+          while (i < src.length && depth > 0) {
+            if (src[i] === '{') depth++;
+            else if (src[i] === '}') depth--;
+            else interp += src[i];
+            i++;
+          }
+          continue;
+        }
+        body += src[i];
+        i++;
+      }
+      out.push(body);
+      for (const nested of codeLiterals(interp)) out.push(nested);
+      lastSig = quote;
+      continue;
+    }
+    if (!/\s/.test(c)) lastSig = c;
+    i++;
+  }
+  return out;
+}
+
+/** One regex literal, from its opening `/` past its flags; -1 when no pattern closes on the same line. */
+function regexEnd(src, at) {
+  let i = at + 1;
+  let cls = false;
+  while (i < src.length) {
+    const c = src[i];
+    if (c === '\\') { i += 2; continue; }
+    if (c === '\n') return -1;
+    if (c === '[') cls = true;
+    else if (c === ']') cls = false;
+    else if (c === '/' && !cls) return i + 1;
+    i++;
+  }
+  return -1;
+}
+
+/**
+ * The tools reach census — the mirror of the manifest over RUNNABLE MODULES instead of script NAMES. Population
+ * is derived from the whole index (`git ls-files`), filtered to runnable modules under tools/, so a file that
+ * exists only on the authoring box is not counted and a file the commit owns cannot be forgotten. Liveness is a
+ * closure, not a lookup: it starts at the derived rows, the runner door and the declared tools and walks every
+ * import a module's code really makes, so nothing below this line has to be written down to be trusted.
+ */
+export function toolsCensusOf({ index, scripts, read, manifestReport, standby = [], extraRoots = [] }) {
+  const violations = [];
+  const indexList = index ?? [];
+  if (indexList.length === 0) violations.push('no index was supplied to the tools census, so its population is empty by construction — a census of nothing is a green nobody earned');
+  const population = indexList.filter((p) => p.startsWith(TOOLS_DIR) && MODULE_RE.test(p)).sort();
+
+  const memo = new Map();
+  const readOnce = (p) => {
+    if (!memo.has(p)) memo.set(p, read(p));
+    return memo.get(p);
+  };
+  const t0 = Date.now();
+  const importsBy = new Map();
+  const importersBy = new Map();
+  for (const f of indexList) {
+    if (!MODULE_RE.test(f)) continue;
+    const targets = importsOf(f, readOnce);
+    importsBy.set(f, targets);
+    for (const t of targets) {
+      if (!importersBy.has(t)) importersBy.set(t, []);
+      importersBy.get(t).push(f);
+    }
+  }
+  const scan = { files: importsBy.size, ms: Date.now() - t0 };
+
+  const rowFiles = derivePopulation(scripts).map((r) => r.file);
+  const rowSet = new Set(rowFiles);
+  const dispositions = new Map((manifestReport?.dispositions ?? []).map((d) => [d.name, d.class]));
+  const runnerTargets = new Set();
+  const namedBy = new Map();
+  for (const [name, klass] of dispositions) {
+    const target = RUN_RE.exec(String(scripts?.[name] ?? '').trim())?.[1];
+    if (!target) continue;
+    if (klass === 'runner') runnerTargets.add(target);
+    else namedBy.set(target, { name, class: klass });
+  }
+
+  const walk = (seeds, into) => {
+    const q = [];
+    for (const s of seeds) {
+      if (into.has(s)) continue;
+      into.add(s);
+      q.push(s);
+    }
+    while (q.length) {
+      for (const target of importsBy.get(q.shift()) ?? []) {
+        if (into.has(target)) continue;
+        into.add(target);
+        q.push(target);
+      }
+    }
+    return into;
+  };
+  const live = walk(new Set([...rowFiles, ...runnerTargets, ...extraRoots]), new Set());
+  // A second closure, anchored ALSO at the doors the build defers: what only those reach is BEHIND — a state the
+  // census derives rather than a favour it grants. An island of dead modules that import one another stays
+  // UNREACHED, because its anchors are not doors and a reach inherited from nothing is nothing.
+  const deferred = walk(new Set([...live, ...namedBy.keys()]), new Set());
+
+  const classes = new Map();
+  for (const f of population) {
+    if (runnerTargets.has(f)) classes.set(f, 'runner');
+    else if (live.has(f)) classes.set(f, 'reached');
+    else if (namedBy.has(f)) classes.set(f, 'named');
+    else if (deferred.has(f)) classes.set(f, 'behind');
+    else classes.set(f, 'unreached');
+  }
+
+  const declared = new Map();
+  for (const e of standby) {
+    if (declared.has(e.path)) violations.push(`TOOLS_STANDBY disposes ${e.path} twice — two declarations for one module is two answers to one question`);
+    declared.set(e.path, e);
+  }
+  for (const [path, e] of declared) {
+    if (!path.startsWith(TOOLS_DIR) || !MODULE_RE.test(path)) violations.push(`TOOLS_STANDBY declares ${path}, which is not a runnable module under ${TOOLS_DIR} — this census grades ${TOOLS_DIR}, and docs/evidence has its own classes`);
+    else if (!indexList.includes(path)) violations.push(`TOOLS_STANDBY declares ${path}, which the commit does not own — a declaration outlives its file exactly as long as nobody checks`);
+    const derived = classes.get(path);
+    if (derived && derived !== 'unreached') violations.push(`TOOLS_STANDBY declares ${path} as standby, but the census DERIVES it as ${derived} — a declaration cannot shadow a derived class`);
+    else if (derived === 'unreached') classes.set(path, 'standby');
+    for (const field of ['measured', 'blocker', 'next', 'why']) {
+      if (String(e[field] ?? '').length < 40) violations.push(`${path} is declared standby without a ${field} a reader can falsify (${JSON.stringify(e[field])}) — a deferral with no next repair is a permanent exclusion wearing a new word`);
+    }
+    const reachedBy = String(e.reachedBy ?? '');
+    const replacedBy = String(e.replacedBy ?? '');
+    if (reachedBy === '' && replacedBy === '') violations.push(`${path} is declared standby without naming either a module whose bytes carry its path or a derived row that grades the same face — a standby with no witness is a sentence, not a disposition`);
+    if (reachedBy !== '') {
+      if (!indexList.includes(reachedBy)) violations.push(`${path} blames ${reachedBy}, which the commit does not own — a witness no clone holds proves nothing`);
+      else {
+        const bytes = readOnce(reachedBy);
+        const holds = bytes !== null && codeLiterals(bytes).some((lit) => lit === path);
+        if (!holds) {
+          const inProse = String(bytes ?? '').includes(path);
+          violations.push(`${reachedBy} does not hold ${path} as a code-position string${inProse ? ' — the only place the path stands is prose, and prose is not a reach' : ''} — a standby that blames a grader has to prove the grader names it`);
+        }
+      }
+    }
+    if (replacedBy !== '') {
+      if (!indexList.includes(replacedBy)) violations.push(`${path} claims ${replacedBy} grades the same face, and the commit does not own that file`);
+      else if (!rowSet.has(replacedBy)) violations.push(`${path} claims ${replacedBy} grades the same face, but PROOF_COMMAND derives no row from it — naming a swept proof as the replacement names a door the build does not walk`);
+    }
+  }
+
+  const unreached = population.filter((f) => classes.get(f) === 'unreached');
+  for (const f of unreached) {
+    const doors = Object.entries(scripts ?? {})
+      .filter(([name, cmd]) => name.startsWith('verify:') && RUN_RE.exec(String(cmd).trim())?.[1] === f)
+      .map(([name]) => name);
+    violations.push(`the ${TOOLS_DIR} module ${f} is UNREACHED: no derived row, the runner door or a declared tool imports it or anything they import, and TOOLS_STANDBY says nothing about it${doors.length ? ` — it IS the target of ${doors.join(', ')}, none of which MANIFEST disposes; dispose the NAME and this module is NAMED` : ''}. Say one of ${TOOLS_CLASSES.join(' | ')} — reached (import it from a row), named (wire the door and dispose the NAME), behind (nothing to write: only a deferred door reaches it), standby (measured, blocker, next and a witness) — or delete it`);
+  }
+
+  const counts = { total: population.length, runner: 0, reached: 0, named: 0, behind: 0, standby: 0, unreached: 0 };
+  for (const c of classes.values()) if (c in counts) counts[c]++;
+  const closed = counts.runner + counts.reached + counts.named + counts.behind + counts.standby + counts.unreached;
+  if (closed !== counts.total) violations.push(`the tools census closes at ${closed} over ${counts.total} modules under ${TOOLS_DIR} — a module in no class is a module nobody decided about`);
+
+  const behind = population.filter((f) => classes.get(f) === 'behind').map((f) => ({ path: f, importers: importersBy.get(f) ?? [] }));
+  return { classes, counts, population, unreached, behind, namedBy, live: live.size, scan, violations };
+}
+
 /**
  * The census itself: a pure function over (tracked list, scripts, exclusions, roster, swept population, a
- * reader, the README that restates its counts, the whole index, the workflow text and the MANIFEST dispositions).
+ * reader, the README that restates its counts, the whole index, the workflow text, the MANIFEST dispositions and
+ * the TOOLS_STANDBY declarations).
  * Everything below the CLI is exercised by the fixture arms at the bottom, so the refusals are measured on a
  * synthetic plane rather than assumed from reading the code.
  */
-export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null, index = [], workflow = null, manifest = [] }) {
+export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null, index = [], workflow = null, manifest = [], standby = [] }) {
   const rows = new Map(derivePopulation(scripts).map((r) => [r.file, r]));
   const trackedSet = new Set(tracked);
   const rosterByFile = new Map();
@@ -531,7 +826,15 @@ export function censusOf({ tracked, scripts, excluded = [], roster = [], swept =
   const manifestReport = manifestOf({ scripts, index, read, workflow, manifest });
   violations.push(...manifestReport.violations);
 
-  return { classes, rows, helpers, dangling, unclassified, counts, manifest: manifestReport, violations };
+  // And the third: the tools corpus the manifest's doors point at, which no class above grades because it is not
+  // under docs/evidence. Liveness means THE BUILD WALKS IT, so the roots are the derived rows, the runner door
+  // and this census's own declared tools — deliberately not every `verify:*` node target, because a door v607
+  // deferred does not run, and treating it as live would relabel its helpers `reached` and lose `named` and
+  // `behind` both.
+  const toolsReport = toolsCensusOf({ index, scripts, read, manifestReport, standby, extraRoots: toolRoots.map((r) => r.file) });
+  violations.push(...toolsReport.violations);
+
+  return { classes, rows, helpers, dangling, unclassified, counts, manifest: manifestReport, tools: toolsReport, violations };
 }
 
 /**
@@ -578,16 +881,21 @@ export function readmeDrift({ readme, counts, running, residue, tracked }) {
 // ── the fixture arms: every refusal above, measured on a synthetic plane ─────────────────────────────
 const BASE = () => ({
   files: {
-    'docs/evidence/x/row-proof.mjs': "import { h } from './helper.mjs';\n",
+    'docs/evidence/x/row-proof.mjs': "import { h } from './helper.mjs';\nimport { f } from '../../../tools/ci/fx-lib.mjs';\n",
     'docs/evidence/x/excluded-proof.mjs': '// the service this proof needs is not on this plane\n',
     'docs/evidence/x/helper.mjs': "import { l } from './leaf.mjs';\n",
     'docs/evidence/x/leaf.mjs': '\n',
     'docs/evidence/x/swept-proof.mjs': '\n',
-    'docs/evidence/x/tool.mjs': "import { t } from './tool-helper.mjs';\n",
+    'docs/evidence/x/tool.mjs': "const TOOL = 'tools/ci/fx-dormant.mjs';\nimport { t } from './tool-helper.mjs';\n",
     'docs/evidence/x/tool-helper.mjs': '\n',
     // Outside docs/evidence: the manifest names doors here too, and the module census deliberately does not
-    // follow edges out of the evidence tree. The fixture plane carries them so the manifest arms have a tree.
+    // follow edges out of the evidence tree. The fixture plane carries them so the manifest arms have a tree,
+    // and so the tools census has one witness per derived class (fx-lib reached by the row, fx-inner reached
+    // through it, cdp behind the deferred browser door, fx-browser named by it, runner the runner itself).
     'tools/ci/runner.mjs': '// the fixture runner the proofs step walks\n',
+    'tools/ci/fx-lib.mjs': "import { i } from './fx-inner.mjs';\n",
+    'tools/ci/fx-inner.mjs': '\n',
+    'tools/ci/fx-dormant.mjs': '// the fixture repairer nothing imports\n',
     'tools/harness/cdp.mjs': 'export const launch = async () => ({});\n',
     'tools/harness/fx-browser.mjs': "import { launch } from './cdp.mjs';\n",
     'services/nexus-api/pom.xml': '<project/>\n',
@@ -640,6 +948,17 @@ const BASE = () => ({
       why: 'a real-browser walk with an unstalled prerequisite is a human-run measurement, and the fixture plane needs one to arm against',
     },
   ],
+  // One standby witness, so every refusal the tools census raises is aimed at a fixture rather than at a sentence.
+  toolsStandby: [
+    {
+      path: 'tools/ci/fx-dormant.mjs',
+      reachedBy: 'docs/evidence/x/tool.mjs',
+      measured: 'the fixture repairer, named as a string value by the fixture tool and imported by nothing on this plane',
+      blocker: 'a fixture prerequisite the fixture workflow does not install, stated so the arms have something to refuse',
+      next: 'wire the fixture row that imports it, which derives it as reached and deletes this fixture entry',
+      why: 'the fixture plane needs a standby witness for the four refusals this class answers',
+    },
+  ],
   // The README is part of the plane: it restates the counts above in the same shapes the real file uses,
   // so the control arm proves the reader agrees with a correct table before any arm drifts one number.
   readme: [
@@ -681,6 +1000,9 @@ const ARMS = [
     assert.ok(r.helpers.has('docs/evidence/x/leaf.mjs'), 'a helper of a helper is a helper');
     assert.deepEqual(r.manifest.counts, { names: 5, row: 2, runner: 1, covered: 1, deferred: 1, undispositioned: 0 }, `manifest counts: ${JSON.stringify(r.manifest.counts)}`);
     assert.equal(r.manifest.coverage.get('verify:svc').length, 1, 'the coverage claim resolves to exactly one workflow command line');
+    assert.deepEqual(r.tools.counts, { total: 6, runner: 1, reached: 2, named: 1, behind: 1, standby: 1, unreached: 0 }, `tools counts: ${JSON.stringify(r.tools.counts)}`);
+    assert.equal(r.tools.classes.get('tools/ci/fx-inner.mjs'), 'reached', 'reach is a closure, not a one-hop lookup');
+    assert.equal(r.tools.classes.get('tools/harness/cdp.mjs'), 'behind', 'a helper of a deferred door is derived, never declared');
   }],
   ['A1 an unclassified module', (f) => { f.files['docs/evidence/x/stray.mjs'] = ''; }, (r) => {
     assert.ok(r.unclassified.includes('docs/evidence/x/stray.mjs'), `stray: ${JSON.stringify(r.unclassified)}`);
@@ -820,6 +1142,77 @@ const ARMS = [
   ['M11 one script disposed twice', (f) => { f.manifest.push({ ...f.manifest[0] }); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('verify:runner') && v.includes('twice')), `duplicate: ${r.violations.join(' | ')}`);
   }],
+  ['T1 a tools module nobody reaches', (f) => { f.files['tools/ci/fx-stray.mjs'] = '\n'; }, (r) => {
+    assert.ok(r.tools.unreached.includes('tools/ci/fx-stray.mjs'), `stray: ${JSON.stringify(r.tools.unreached)}`);
+    assert.ok(r.violations.some((v) => v.includes('fx-stray.mjs') && v.includes('UNREACHED')), `stray refusal: ${r.violations.join(' | ')}`);
+  }],
+  ['T2 a standby witness whose path sits only in prose', (f) => {
+    f.files['docs/evidence/x/tool.mjs'] = "// tools/ci/fx-dormant.mjs is the repairer\nimport { t } from './tool-helper.mjs';\n";
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('fx-dormant.mjs') && v.includes('prose is not a reach')), `prose witness: ${r.violations.join(' | ')}`);
+  }],
+  ['T3 a standby shadowing a derived class', (f) => {
+    f.files['docs/evidence/x/tool.mjs'] = "const TOOL = 'tools/ci/fx-dormant.mjs';\nconst LIB = 'tools/ci/fx-lib.mjs';\nimport { t } from './tool-helper.mjs';\n";
+    f.toolsStandby.push({
+      path: 'tools/ci/fx-lib.mjs',
+      reachedBy: 'docs/evidence/x/tool.mjs',
+      measured: 'a fixture module the fixture row already imports, declared standby here only to aim at the shadow refusal',
+      blocker: 'none — the whole point of this fixture entry is that a derived class cannot be re-declared away',
+      next: 'delete this entry, which is what the refusal asks for the day the door really stops running',
+      why: 'the shadow arm needs a well-formed declaration so that only the shadowing itself is red',
+    });
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('fx-lib.mjs') && v.includes('DERIVES it as reached')), `shadow: ${r.violations.join(' | ')}`);
+  }],
+  ['T4 a standby whose module the commit does not own', (f) => { f.toolsStandby[0].path = 'tools/ci/fx-ghost.mjs'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('fx-ghost.mjs') && v.includes('does not own')), `stale standby: ${r.violations.join(' | ')}`);
+  }],
+  ['T5 a standby with no next repair', (f) => { f.toolsStandby[0].next = 'later'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('fx-dormant.mjs') && v.includes('without a next')), `open-ended standby: ${r.violations.join(' | ')}`);
+  }],
+  ['T6 an edge that points away from the rows', (f) => {
+    f.files['docs/evidence/x/row-proof.mjs'] = "import { h } from './helper.mjs';\n";
+    f.files['tools/ci/fx-inner.mjs'] = "import { l } from './fx-lib.mjs';\n";
+  }, (r) => {
+    assert.ok(r.tools.unreached.includes('tools/ci/fx-inner.mjs') && r.tools.unreached.includes('tools/ci/fx-lib.mjs'), `reversed: ${JSON.stringify(r.tools.unreached)}`);
+    assert.equal(r.tools.counts.reached, 0, `a reverse edge must lift nothing: ${JSON.stringify(r.tools.counts)}`);
+  }],
+  ['T7 an undispositioned door reddens both censuses', (f) => { f.manifest = f.manifest.filter((e) => e.name !== 'verify:browser'); }, (r) => {
+    assert.ok(r.manifest.undispositioned.includes('verify:browser'), `manifest: ${JSON.stringify(r.manifest.undispositioned)}`);
+    assert.ok(r.tools.unreached.includes('tools/harness/fx-browser.mjs'), `tools: ${JSON.stringify(r.tools.unreached)}`);
+  }],
+  ['T8 a live import moves a module from behind to reached', (f) => {
+    f.files['docs/evidence/x/row-proof.mjs'] = "import { h } from './helper.mjs';\nimport { f } from '../../../tools/ci/fx-lib.mjs';\nimport { launch } from '../../../tools/harness/cdp.mjs';\n";
+  }, (r) => {
+    assert.equal(r.tools.classes.get('tools/harness/cdp.mjs'), 'reached', `cdp: ${r.tools.classes.get('tools/harness/cdp.mjs')}`);
+    assert.deepEqual(r.tools.behind, [], `behind should be empty: ${JSON.stringify(r.tools.behind)}`);
+    assert.equal(r.tools.counts.reached, 3, `three tools modules are now live: ${JSON.stringify(r.tools.counts)}`);
+  }],
+  ['T9 one module declared standby twice', (f) => { f.toolsStandby.push({ ...f.toolsStandby[0] }); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('fx-dormant.mjs') && v.includes('twice')), `duplicate: ${r.violations.join(' | ')}`);
+  }],
+  ['T10 a commented import buys no reach', (f) => {
+    f.files['tools/ci/fx-comment.mjs'] = '\n';
+    f.files['docs/evidence/x/row-proof.mjs'] = "import { h } from './helper.mjs';\n// import { c } from '../../../tools/ci/fx-comment.mjs';\n";
+  }, (r) => {
+    assert.ok(r.tools.unreached.includes('tools/ci/fx-comment.mjs'), `commented edge: ${JSON.stringify(r.tools.unreached)}`);
+  }],
+  ['T11 a replacement that is not a row', (f) => {
+    f.files['tools/ci/fx-old.mjs'] = '\n';
+    f.toolsStandby.push({
+      path: 'tools/ci/fx-old.mjs',
+      replacedBy: 'docs/evidence/x/swept-proof.mjs',
+      measured: 'a fixture driver replaced, it claims, by a proof the build never walks — the claim this refusal exists to test',
+      blocker: 'a prerequisite this fixture plane does not have, named so the entry looks complete except for its witness',
+      next: 'name the row that really grades the face, or wire this driver, which is what the refusal asks for',
+      why: 'a replacement nobody runs is not a replacement, and this fixture proves the census says so',
+    });
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('fx-old.mjs') && v.includes('derives no row')), `false replacement: ${r.violations.join(' | ')}`);
+  }],
+  ['T12 a standby with no witness at all', (f) => { delete f.toolsStandby[0].reachedBy; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('fx-dormant.mjs') && v.includes('no witness')), `unwitnessed: ${r.violations.join(' | ')}`);
+  }],
 ];
 
 function runArms() {
@@ -829,7 +1222,7 @@ function runArms() {
     const tracked = (f.tracked ?? Object.keys(f.files).filter((p) => p.startsWith('docs/evidence/'))).slice().sort();
     const index = (f.index ?? Object.keys(f.files)).slice().sort();
     const read = (p) => (Object.prototype.hasOwnProperty.call(f.files, p) ? f.files[p] : null);
-    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme, index, workflow: f.workflow, manifest: f.manifest });
+    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme, index, workflow: f.workflow, manifest: f.manifest, standby: f.toolsStandby });
     try {
       check(report);
       return { name, ok: true };
@@ -870,10 +1263,11 @@ async function main() {
   const read = (p) => (existsSync(join(ROOT, p)) ? readFileSync(join(ROOT, p), 'utf8') : null);
   assert.ok(existsSync(join(ROOT, README_FILE)), `${README_FILE} is missing — this census checks the table that restates its own counts, and a missing table is a red asking for the edit, not a skip`);
   const readme = readFileSync(join(ROOT, README_FILE), 'utf8');
-  const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read, readme, index, workflow, manifest: MANIFEST });
+  const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read, readme, index, workflow, manifest: MANIFEST, standby: TOOLS_STANDBY });
   assert.deepEqual(report.violations, [], `the census is RED:\n  ${report.violations.join('\n  ')}`);
   assert.deepEqual(report.unclassified, [], `the census found modules nobody has decided about: ${report.unclassified.join(', ')} — each must become a verify row, an EXCLUDED row, a reachable helper, or a ROSTER entry with a falsifiable reason`);
   assert.deepEqual(report.manifest.undispositioned, [], `the manifest holds verify:* names nobody has disposed: ${report.manifest.undispositioned.join(', ')} — declare each in MANIFEST as a runner, a covered claim the workflow answers, or a deferred door with its reach, measurement, blocker and next repair`);
+  assert.deepEqual(report.tools.unreached, [], `the tools census found modules nobody has decided about: ${report.tools.unreached.join(', ')} — reach one from a row, wire and dispose the door that targets it, or declare it in TOOLS_STANDBY with its measurement, blocker, next repair and witness`);
 
   const rows = derivePopulation(pkg.scripts);
   assert.ok(rows.length >= 15, `the derived row population is ${rows.length} — the build's own census must not shrink without a record saying why`);
@@ -914,9 +1308,18 @@ async function main() {
     else console.log(`  DEFERRED   ${e.name.padEnd(22)} ${cmd} -- code-reach ${e.reach}; blocker: ${e.blocker.slice(0, 72)}...; next: ${e.next.slice(0, 72)}...`);
   }
 
+  const tc = report.tools;
+  assert.ok(tc.population.length >= 10, `the tools population is ${tc.population.length} runnable modules — a census whose population shrinks past a floor it states is a reader that stopped reading`);
+  console.log(`\ntools reach census (every runnable module under ${TOOLS_DIR}, read from git ls-files rather than declared): ${tc.counts.total} modules close as ${tc.counts.runner} runner + ${tc.counts.reached} reached + ${tc.counts.named} named + ${tc.counts.behind} behind + ${tc.counts.standby} standby + ${tc.counts.unreached} unreached, over a live closure of ${tc.live} modules reached from ${report.counts.row} rows, the runner door and ${report.counts.tool} declared tools (specifier scan: ${tc.scan.files} modules in ${tc.scan.ms} ms)`);
+  for (const e of TOOLS_STANDBY) {
+    console.log(`  STANDBY   ${e.path}\n            witness: ${e.reachedBy ? `reachedBy ${e.reachedBy}` : `replacedBy ${e.replacedBy}`}\n            measured: ${e.measured}\n            blocker: ${e.blocker}\n            next: ${e.next}`);
+  }
+  for (const b of tc.behind) console.log(`  BEHIND    ${b.path} — imported only by ${b.importers.join(', ')}, none of which the build walks`);
+
   runArms();
 
   console.log(`\nevidence census: ${tracked.length} tracked modules close as ${report.counts.row} row + ${report.counts.helper} helper + ${report.counts.swept} swept + ${report.counts.tool} tool + ${report.counts.deferred} deferred · ${report.counts.unclassified} unclassified · rows ${running.length}+${residue.length} · every row file the commit owns · the README's table and prose restate these numbers and agree`);
+  console.log(`tools census: ${report.tools.counts.total} runnable modules under ${TOOLS_DIR} close as ${report.tools.counts.runner} runner + ${report.tools.counts.reached} reached + ${report.tools.counts.named} named + ${report.tools.counts.behind} behind + ${report.tools.counts.standby} standby · ${report.tools.counts.unreached} unreached · both censuses read the same index, scripts and workflow in one call`);
 }
 
 if (sweep.isMainModule(import.meta.url)) await main();

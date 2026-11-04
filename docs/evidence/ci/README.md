@@ -328,10 +328,10 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
-the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **31
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **43
 fixture arms** prove each refusal on a synthetic plane — the fourteen above, six that drift one README number
-each, and eleven that dispose the manifest's blind side (the next block); the prose-import arm proves the
-tokenizer is the sweep's, not a byte regex.
+each, eleven that dispose the manifest's blind side and twelve that dispose the tools corpus behind it (the next
+two blocks); the prose-import arm proves the tokenizer is the sweep's, not a byte regex.
 
 **The manifest's other half.** The population above is `git ls-files -- docs/evidence`, which answers "does every
 evidence module have a channel?" and says nothing about the mirror question: does every `verify:*` NAME have one?
@@ -348,6 +348,22 @@ script is gone, a duplicate, one shadowing a derived row, a target the index doe
 moved and a reach that lives only in a comment. The census prints the closure — names, derived rows, one runner,
 the covered claim resolved to the exact workflow command, every deferral with its reach — on every build, so the
 counts live in the row's own output rather than in this paragraph.
+
+**The third population: the modules the doors point at.** Two censuses over names still say nothing about the
+runnable modules under `tools/`, and that corpus is where the deferred doors actually live, so the same proof reads
+`git ls-files` a third time and gives every runnable module under `tools/` a disposition. Liveness is a closure, not
+a lookup: it starts at the derived rows, the runner door and the declared tools and follows only the imports a
+module's code really makes, so `RUNNER`, `REACHED` (a row, or anything a row reaches, imports it), `NAMED` (a
+`verify:*` name `MANIFEST` disposes targets it — its reason lives in that entry, which is what makes the two
+censuses interlock rather than duplicate) and `BEHIND` (only a door the build defers reaches it, so it is derived
+and printed rather than declared) all cost no prose. The fifth class, `STANDBY`, is declared, and it is only legal
+when nothing derives it: the entry states the measurement, the blocker, the next repair and a WITNESS — either a
+module whose code-position bytes hold its path as a string value (the dynamic-import case, where a grader reaches
+its tool through `await import(pathToFileURL(join(root, TOOL)))` and no specifier reader can see the edge) or a
+derived row that grades the same face. A comment quoting the path buys nothing, a replacement that is not a row
+buys nothing, and a module no class reaches reddens the build by name. The bound is stated rather than hidden: the
+closure sees `from '…'` and `import('…')` only, so a row that *spawns* `node tools/x.mjs` is invisible to it, and a
+standby is the honest record of that case rather than an accusation.
 
 Four rows that needed nothing but Node walked through the door in the same increment:
 
