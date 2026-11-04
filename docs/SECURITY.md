@@ -52,6 +52,16 @@ auth 之外的 projects/snapshots/restore/branches/switch/duplicate/variants/mer
 后者要设 `NEXUS_REDIS_URL`，见上面"认证与授权"那一条与 `docs/adr/0076-…`）。登录对"邮箱不存在"也跑 dummy-hash 比较以对齐时序，防账号枚举。
 详见 `docs/adr/0002-password-hashing-and-csrf.md`。
 
+**限流闸自己的诊断入口（§SEC 第三十五片，2026-11-05）**：`GET /api/admin/rate-limit` + `/admin/rate-limit` 那一页
+回答的是"**这台实例**现在装的哪个驱动、桶键上界钉在几、数到了几只、有没有判定正由本机窗口代判"。
+门与复核台、实时总线同一句口径：默认拒绝，`role!=='admin'` 一律 403 且**一个字段都不给**（回执里含键前缀与
+上界数字，不是每个人的机密，但也不是每个人的事）。两条口径要记住：
+① **这一页只回答这台实例**——多实例部署下每台各算各的，回答这次请求的那台会说话，别台不会（页脚写着同一句）；
+② `over-cap` 与 `command-failed` 对调用方同形（都是本机窗口给的判定），但在两本按原因的账里是**两句不同的话**：
+前者是"桶键名额用完"（正解是换上界或挪 Redis），后者是"Redis 没答上"（正解是去看那台 Redis）。
+把两者合成一本账就等于亲手抹掉运维唯一能分辨的那条线索，所以按原因的读数**只从 metrics 现读**，
+不让驱动自报第二份（同一句话只允许一个写入方）。详见 `docs/adr/0082-rate-limit-driver-readout-ui.md`。
+
 **`/api/ai/run` 的归属校验（§68 带来的新面）**：这条路由从"只转发客户端上传的文档"改成"服务端按 `projectId` 读库装配上下文"
 之后，它第一次成了**读取他人项目内容的入口**——所以 `assembleAiRequest` 在装配前先 `projectBelongsTo(projectId, userId)`，
 不属于你就 404（不区分"不存在"与"不是你的"，避免探测），软删除的项目同样读不到。顺序很要紧：先鉴权再读文档，

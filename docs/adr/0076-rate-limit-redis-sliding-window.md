@@ -162,6 +162,12 @@ Next 按 route 各编译一份模块图，挂在模块变量上等于每台进�
 2. "这台实例现在用的是哪个驱动"没有界面位。`RealtimeBus` 有 `stats()`，`RateLimiter` 没有——
    加它要动接口，两个驱动都得实现，留给下一个真的要看这个数的人。今天的答案只有启动那一行日志
    （`[rateLimit] 驱动=…`）与 `nexus_rate_limit_driver_fallbacks_total` 有没有数。
+   —— **这一格已还**（ADR-0082，2026-11-05）：接口上多了 `describe(): RateLimiterReadout`（同步，
+   绝不为读数打网络），`GET /api/admin/rate-limit` 原样端出，`/admin/rate-limit` 每 4 秒问一次。
+   按原因的两本账**没有**让驱动自报，仍从 `snapshot()` 现读——同一句话只允许一个写入方。
+   这一片还顺手抓到一个新事实记在 ADR-0082 仍欠 1：**启动后第一笔判定有实打实的概率退回本机窗口**
+   （两种形状都见过：`Stream isn't writeable…` 与 `Command timed out`）。本文件那句"退回不是可选实现，
+   是这一片成立的前提"仍然成立，但它现在多了一个时间点上的限度：**每次进程启动都可能白送一次本机窗口判定**。
 3. 多库 / 集群部署下 `SCAN` 的 `MATCH` 只覆盖所连的那个 db。
 4. 演练脚本不是常驻门（和 `realtime:two-process` 一样是手跑的）。回收路径的跨实例演练也还欠着。
 5. 退回用的 `MemoryRateLimiter` 与 Redis 那一份是两套数：退回期间一台机器的额度是**它自己看到的

@@ -221,6 +221,12 @@ C1 里有两格**对这个臂是盲的**，点名而不是蒙过去：
 
 1. **"这台实例现在用的是哪个驱动"没有界面位**（ADR-0076 仍欠 2 / ADR-0077 仍欠 1，原样没还）。
    这一片把上界数字加进了**启动那一行日志**（两条都写"桶上界 50000 只"），但那是日志不是界面。
+   —— **这一格已还**（ADR-0082，2026-11-05）：`describe()` 把 `bucketCeiling` / `bucketsTracked` /
+   `keyPrefix` / `wire` 交给 `GET /api/admin/rate-limit`，`/admin/rate-limit` 每 4 秒问一次。
+   本文件那句"拒的是键的数目，不是请求"第一次有了界面落点：`over-cap` 与 `command-failed`
+   在两本按原因的账里分开写（"桶键名额用完（不是 Redis 坏了）"vs"命令失败（Redis 没答上）"）。
+   限度也照实写进页面：Redis 那份的 `bucketsTracked` 是**这台最近一次判定带回的数**，
+   权威是那台 Redis 的 `ZCARD`（臂 R9 钉的就是"把它当成权威键数"这个错）。
 2. **`realtime/redisBus.ts` 里同一形状的 `connectionReady` 还是"一次 error 判死"**（ADR-0077 仍欠 4）。
 3. **一台 Redis 该住多少个子系统**：这一片钉住了"闸自己写多少键"，没钉"别人写多少"。
    正解是分片或把闸挪到边缘层（选项 5）。

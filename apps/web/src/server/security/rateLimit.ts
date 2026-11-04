@@ -29,6 +29,31 @@ export interface RateLimitDecision {
   retryAfterMs: number;
 }
 
+/**
+ * 驱动自报的现场读数（`/admin/rate-limit` 与 `/api/admin/rate-limit` 端的就是这份）。
+ *
+ * 三个字段的"不适用"必须是 `null` 而不是 0 或 `'na'` 了事，因为它们各自都能被读反：
+ * - `keyPrefix`：进程内没有键空间，`''` 会被读成"前缀是空的 Redis"；
+ * - `fallbackCount`：进程内驱动没有"本该共享却退回本机"这回事，写 0 会被读成"没退过"；
+ * - `wire`：进程内是 `'na'`，那是"没有线路"，不是"线路断了"——后者意味着共享窗口没生效。
+ *
+ * `bucketsTracked` 两边同名单但**权威不同**：进程内就是那张表的条数（唯一权威），
+ * Redis 那份是这台进程最近一次判定带回的名册条数（权威是那台 `ZCARD`，见 ADR-0081 的观测一节）。
+ * 界面上这一格必须带那句限度，不然"长时间没流量"会被读成"键没被收掉"。
+ */
+export interface RateLimiterReadout {
+  driver: 'in-process' | 'redis';
+  /** 那份窗口住在谁的内存里；与 `driver` 成对，写反过一次就是"每台各数各的"被说成共享。 */
+  windowScope: 'this-process' | 'shared-across-instances';
+  bucketCeiling: number;
+  bucketsTracked: number;
+  keyPrefix: string | null;
+  wire: 'up' | 'pending' | 'down' | 'na';
+  fallbackCount: number | null;
+  /** 连接层最近一次真实报错（不代表"这一条请求退回了"，那由 `fallbackCount` 说）。 */
+  lastConnectionError: string | null;
+}
+
 export interface RateLimiter {
   /**
    * 记一次命中并返回是否放行；同时回带当前计数供 Retry-After 参考。
@@ -48,6 +73,13 @@ export interface RateLimiter {
    */
   hit(key: string, limit: number, windowMs: number): Promise<RateLimitDecision>;
   reset(key?: string): Promise<void>;
+  /**
+   * 同步自报现场。**同步是有意的**：诊断读数不该为了被看见而打一次网络往返，
+   * 也不该在 Redis 连着的时候把闸的调用方拖成等一次 `PING`。
+   * 所以 `wire` 读的是连接层的当前状态（ioredis 的 `status`），不是那次性的 `ready` promise——
+   * 后者一旦落定就不再变，用它回答"现在接上没有"会在重连之后继续说真话之前先说一段时间隔的假话。
+   */
+  describe(): RateLimiterReadout;
 }
 
 /**

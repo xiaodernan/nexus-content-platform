@@ -1,6 +1,6 @@
 import { Redis } from 'ioredis';
 import { increment } from '../observability';
-import type { RateLimitDecision, RateLimiter } from './rateLimit';
+import type { RateLimitDecision, RateLimiter, RateLimiterReadout } from './rateLimit';
 import { MemoryRateLimiter } from './rateLimitMemory';
 
 /**
@@ -395,6 +395,28 @@ export class RedisRateLimiter implements RateLimiter {
 
   private key(bucketKey: string): string {
     return `${this.keyPrefix}${bucketKey}`;
+  }
+
+  /**
+   * 现场自报。`wire` 读的是 `client.status`（连接层的**当下**），不是那个 `ready` promise——
+   * 后者在构造时落定一次就不再改，用它回答"现在接上没有"会在断线之后继续说"接上了"，
+   * 而那正是这一格唯一要防的读法（`ready` 留给测试与演练当"起点稳定了"的信号，用途不同）。
+   *
+   * `windowScope` 说这句的是**驱动的设计**：退回期间（`fallbackCount` 在涨）这台实际数的是
+   * 本机窗口，那句"共享"要连着 `wire` 与那三个字的 counter 一起读才完整——界面把这句写在页面上。
+   */
+  describe(): RateLimiterReadout {
+    const status = this.client.status;
+    return {
+      driver: 'redis',
+      windowScope: 'shared-across-instances',
+      bucketCeiling: this.maxBucketKeys,
+      bucketsTracked: this.bucketKeysTracked,
+      keyPrefix: this.keyPrefix,
+      wire: status === 'ready' ? 'up' : status === 'close' || status === 'end' ? 'down' : 'pending',
+      fallbackCount: this.fallbackCount,
+      lastConnectionError: this.lastConnectionError,
+    };
   }
 
   async hit(key: string, limit: number, windowMs: number): Promise<RateLimitDecision> {

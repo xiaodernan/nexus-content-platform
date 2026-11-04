@@ -93,6 +93,27 @@ docker inspect nexus-redis --format '{{.HostConfig.Memory}}' → 0（容器也�
   **设了**的那台把窗口挪进 Redis，键数由这条驱动自己钉住（`{reason="over-cap"}` 在涨说的是名额用完，
   不是 Redis 坏了）。两种形状都不等于"没有上界"，也都不等于"做了容量规划"。
 
+- **限流闸诊断页的 e2e 有两种形状，一轮只测一种**（§SEC 第三十五片，2026-11-05）：
+  `e2e/ratelimit-admin.spec.ts` 里 `driver` 由 **dev server 的环境**决定，不由 spec 决定——所以
+  "两种驱动各跑一轮"才是完整覆盖，任何一轮单独绿都不算测了两台。两轮的确切跑法：
+  ```
+  # 第一轮：Redis 驱动（页面应读 driver=redis / wire=up / 键前缀 nexus:ratelimit:v1:）
+  cd apps/web && NEXUS_REDIS_URL=redis://127.0.0.1:56379 npx next dev -p 3101
+  NEXUS_WEB_URL=http://localhost:3101 npx playwright test e2e/ratelimit-admin.spec.ts
+
+  # 第二轮：进程内驱动（三格"不适用"要长成 —（…）那句话，而不是 0）
+  cd apps/web && npx next dev -p 3101        # 同一个 shell 里先 unset，别带着上一轮的变量
+  NEXUS_WEB_URL=http://localhost:3101 npx playwright test e2e/ratelimit-admin.spec.ts
+  ```
+  两张截图按驱动分别落盘（`60-admin-rate-limit-redis.png` / `-in-process.png`），后跑的不会盖掉前一轮的凭证。
+  两条本机才有的坑：
+  ① **3100 今天被外部项目的进程占着**，本仓库的 dev server 要显式换端口（`-p 3101`）并同步给
+  `NEXUS_WEB_URL`；Next 16.3.5 端口被占**不会**自动 +1，直接 `EADDRINUSE` 退出。
+  ② `playwright.config.ts` 的 `webServer` 是 `reuseExistingServer: true`，但它把 **5xx 当成"还没起来"**：
+  如果 dev server 活着而 Postgres 容器停了（页面 500），Playwright 会另起一个 `next dev` 并撞上
+  "Another next dev server is already running" 而整轮失败。先 `docker ps` 看 `nexus-postgres` / `nexus-redis`
+  再怀疑测试本身。
+
 ### ⚠️ 两个库：集成测试打 `nexus_regress`，**e2e 的 dev server 打 `nexus`**（2026-10-22 实测）
 
 本机 Postgres 容器**同时**转发 `55100` 与 `55433`（`infra/docker-compose.yml` 双映射，同一实例）：`55100` 是既有集成测试脚本使用的别名，`55433` 是代码里的默认值。两个端口指向同一个库实例，别只改其中一个。

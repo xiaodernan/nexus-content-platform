@@ -1,5 +1,5 @@
 import { increment } from '../observability';
-import type { RateLimitDecision, RateLimiter } from './rateLimit';
+import type { RateLimitDecision, RateLimiter, RateLimiterReadout } from './rateLimit';
 
 /**
  * 进程内驱动：滑动窗口存在**这台进程**的内存里。
@@ -138,6 +138,24 @@ export class MemoryRateLimiter implements RateLimiter {
    */
   get bucketCount(): number {
     return this.buckets.size;
+  }
+
+  /**
+   * 这一份的 `windowScope` 永远是 `'this-process'`——包括 Redis 那半好好的时候，因为换驱动
+   * 是门面的事，装上来的是哪一个就只可能是这一个。它同时也是 Redis 驱动退回时那半的现场：
+   * 那一档的额度是这台自己数的（ADR-0076 后果 1）。
+   */
+  describe(): RateLimiterReadout {
+    return {
+      driver: 'in-process',
+      windowScope: 'this-process',
+      bucketCeiling: this.maxBuckets,
+      bucketsTracked: this.buckets.size,
+      keyPrefix: null,
+      wire: 'na',
+      fallbackCount: null,
+      lastConnectionError: null,
+    };
   }
 
   async hit(key: string, limit: number, windowMs: number): Promise<RateLimitDecision> {

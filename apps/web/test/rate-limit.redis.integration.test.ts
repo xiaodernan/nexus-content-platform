@@ -589,3 +589,56 @@ describe('键的寿命', () => {
     expect(await redisRaw().exists(`${RUN_PREFIX}${key}`)).toBe(0);
   });
 });
+
+describe('驱动自报现场的线路那几格（第三十五片的集成侧）', () => {
+  /**
+   * 单测那一族（`rate-limit-readout.test.ts`）钉的是形状与"不适用不被抹平"，
+   * 这里钉的三句**必须有真线路**：接上时报 `up`、`bucketsTracked` 与那台的名册同源、
+   * 断开之后不再报 `up`。少了这一族，`'down'` 那一档在测试里从来没被走通过。
+   */
+  it('线路在时报 up，且 bucketsTracked 就是那台名册的条数（不是另算的一份）', async () => {
+    const limiter = makeLimiter();
+    await settle(limiter);
+    expect(limiter.describe().wire).toBe('up');
+    expect(limiter.describe().driver).toBe('redis');
+    expect(limiter.describe().windowScope).toBe('shared-across-instances');
+
+    await limiter.hit('readout-live/a|u|127.0.0.1', 5, 60_000);
+    await limiter.hit('readout-live/b|u|127.0.0.1', 5, 60_000);
+    const index = `${RUN_PREFIX}${BUCKET_INDEX_SUFFIX}`;
+    // 权威读数是那台的 ZCARD；驱动报的必须与它相等，否则界面那一格就是账面上虚增/虚减的数。
+    expect(limiter.describe().bucketsTracked).toBe(await redisRaw().zcard(index));
+    expect(limiter.describe().bucketsTracked).toBeGreaterThan(0);
+  });
+
+  it('没流量时 bucketsTracked 停在最后一次往来看到的数——界面那句"它是旧的"的凭证', async () => {
+    const limiter = makeLimiter();
+    await settle(limiter);
+    await limiter.hit('readout-stale/a|u|127.0.0.1', 5, 60_000);
+    expect(limiter.describe().bucketsTracked).toBeGreaterThan(0);
+    // 把命名空间整个抹掉：那台的名册当场归 0，而驱动不会为了读数去打一次网络，
+    // 所以它保持旧值。这一格钉的就是"这个数字的含义是最近一次判定带回的数"，
+    // 不是"现在 Redis 里有几只键"——那句限度写在 StatsPanel 的数字旁边，不是写在注释里。
+    await limiter.reset();
+    expect(await redisRaw().zcard(`${RUN_PREFIX}${BUCKET_INDEX_SUFFIX}`)).toBe(0);
+    expect(limiter.describe().bucketsTracked).toBeGreaterThan(0);
+    // 下一次命中把它带回真实值：旧的是缓存，不是坏掉的读数
+    await limiter.hit('readout-stale/b|u|127.0.0.1', 5, 60_000);
+    expect(limiter.describe().bucketsTracked).toBe(await redisRaw().zcard(`${RUN_PREFIX}${BUCKET_INDEX_SUFFIX}`));
+  });
+
+  it('连上过再断开时报 down（有界轮询，断线的落定本来就是异步的）', async () => {
+    const limiter = makeLimiter();
+    await settle(limiter);
+    expect(limiter.describe().wire).toBe('up');
+    limiter.dispose();
+    let wire = limiter.describe().wire;
+    for (let attempt = 0; attempt < 40 && wire === 'up'; attempt += 1) {
+      await sleep(50);
+      wire = limiter.describe().wire;
+    }
+    expect(wire, '2 秒之内线路状态没离开 up：这一格要说"断开之后不谎报接上了"').not.toBe('up');
+    expect(['down', 'pending']).toContain(wire);
+  });
+});
+

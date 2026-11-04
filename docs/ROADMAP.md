@@ -2617,8 +2617,10 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
      ~~仍欠两格如实记下：Redis 侧的键基数没有上界（靠 TTL 收尾而不是靠上限）~~ **这一格已还**
      （§SEC 第三十四片，ADR-0081：桶键名册 + `maxBucketKeys` 默认 50 000，到上界**不再新建桶键**、
      那条请求交给本机窗口判并记 `{reason="over-cap"}`；取向与进程内那一版相反并且是故意的）。
-     剩一格如实记下："这台实例现在用的是哪个驱动"
-     没有界面位（答案只有启动那一行日志与那个 fallback counter）。
+     ~~剩一格如实记下："这台实例现在用的是哪个驱动"没有界面位（答案只有启动那一行日志与那个 fallback counter）~~
+     **这一格已还**（§SEC 第三十五片，ADR-0082：`RateLimiter.describe()` 由两个驱动各自实现，
+     `GET /api/admin/rate-limit` 原样端出，`/admin/rate-limit` 每 4 秒问一次单例那份现场；
+     按原因的两本账仍从 metrics 现读，不让驱动自报第二份）。
 - 历史面板的 Ctrl+Z 只在浏览器会话内，刷新即失；服务端快照与 Branch / Duplicate（§27/§28）已经打通。
   还缺的是 §29 的多方案 A-B-C 并排比较视图（分支线已经能承载多个方向）。
   ~~以及快照列表的「只看当前分支」筛选——现在仍按时间全量展示~~ **已还（`35fbd4c`，第二十二片）**：
@@ -9338,3 +9340,77 @@ responsive rules**。ADR-0069 与 ADR-0074 把访客那一侧接完之后，作�
   ③ 上界钉的是"闸自己写多少键"，没钉"这台机器上一共多少键"——正解是分片或把闸挪到边缘层；
   ④ 若将来给它设了 `maxmemory` + `allkeys-*`，我的窗口会被逐出，而"闸的记忆丢了"的读数在 Redis 的 `evicted_keys` 里、
   不在这个进程里；⑤ 单次命令抖过 250ms 照样让测量期间退回——`settle()` 钉的是"这一趟往返不退回"，不承诺"没有运气"。
+  —— 上面这句 ① **已还**（第三十五片，ADR-0082，2026-11-05）；⑤ 那条在本片被抓成了看得见的读数，
+  并多出一个新事实（启动后第一笔判定），记进本片仍欠 ①。
+
+## §SEC 第三十五片：限流闸"装的哪个驱动、名额钉在几、有没有正在退回"进界面——读数由驱动自报，两本按原因的账仍从 counters 读（2026-11-05）
+
+起点是同一句欠账挂在三份文件上：ADR-0076 仍欠 2（2026-10-31 写的）、ADR-0077 仍欠 1、ADR-0081 仍欠 1。
+原话是"今天的答案只有启动那一行日志与那个 fallback counter"，而 0076 那句"留给下一个真的要看这个数的人"
+被后面两片各抄了一遍。这一片就是那个人。它不是锦上添花，有两条实的：
+
+1. **不设 `NEXUS_REDIS_URL` 时限额那句话逐字换主语**——`10 次/15 分钟/邮箱` 变成"每台各 10 次"。
+   看得见部署的人没有一个会去 grep 那台进程的 stdout，而第三十四片之后又多了一格同样只有日志会说的话：
+   `{reason="over-cap"}` 说的是**名额用完**，不是 **Redis 坏了**。对调用方两者同形（都是本机窗口给的判定），
+   差别只在运维要不要去动那台机器。
+2. **这一片在开发期间就用界面抓到了两次只有 counters 里才看得见的退回**（见下面"新事实"）。
+   那两次如果是我 `curl /api/metrics` 手跑的就不算见证——手跑的见证等于没有见证。
+
+- 机制（决定七条，逐条写进 ADR-0082）：① `RateLimiter` 接口加 `describe(): RateLimiterReadout`
+  （`rateLimit.ts:82`），两个驱动各实现（`rateLimitMemory.ts:148` / `rateLimitRedis.ts:408`）；**同步**是刻意的，
+  一个诊断读数不许为了"数得更准"去打网络，也不该把 250ms 那套每请求预算搬到页面上。
+  ② 三个"不适用"用 `null` / `'na'`，不许抹成 0 / `'up'`——每一格都是一句"这个驱动没有这个东西"。
+  ③ `wire` 读 `client.status`（live），不读那个一次性的 `ready` promise（后者断开、重连、`disconnect()` 都不改主意，
+  用它做线路格子会永远说"通着"）。④ `bucketsTracked` 两个驱动**同名不同权威**：进程内＝那张表自己；
+  Redis＝这台最近一次判定带回的名册条数，权威是那台 Redis 的 `ZCARD`，长时间没流量时它是旧的——
+  这句限度印在页面文案里，不只写在注释里。⑤ `deployment.redisUrlConfigured`（该装哪个）与 `driver`（现在在跑哪个）
+  分开交。⑥ 两本按原因的账（`fallbackByReason` / `bucketsPrunedByReason`）从 `snapshot()` 现读，**不让驱动自报**——
+  同一句话只允许一个写入方。⑦ 门与复核台、实时总线同一句口径：默认拒绝，`role!=='admin'` 403 且一个字段都不给。
+- 落点：`GET /api/admin/rate-limit`（`route.ts:35`）＋ `/admin/rate-limit` 那一页（`page.tsx` 服务端拒绝两分支、
+  `StatsPanel.tsx` 每 4 秒问一次单例那份现场）＋ `AdminNav` 的「限流闸」一项（排在实时总线之后）。
+- 见证逐字：单测 12 ＋ Redis 集成 26 ＋ 接口集成 6 合跑 `Test Files 3 passed (3)` / `Tests 44 passed (44)` /
+  `Duration 29.39s`；`npx tsc -p apps/web/tsconfig.json --noEmit` 与 `npx eslint`（本片 11 个文件）均 rc=0。
+  e2e **两种驱动各跑一轮**（`e2e/ratelimit-admin.spec.ts`，`NEXUS_WEB_URL=http://localhost:3101`）：
+  ```
+  进程内那轮（dev server 不设 NEXUS_REDIS_URL，pid 33900）— 2 passed (52.8s)
+    驱动=in-process 窗口=this-process 线路=na 上界=50000 部署=unset
+    键前缀=—（这个驱动没有键空间）
+    数到的桶=1 只（这张表里的条数，就是权威）
+    交给本机窗口判=—（进程内驱动没有"本该共享却退回"这回事）
+  Redis 那轮（NEXUS_REDIS_URL=redis://127.0.0.1:56379，pid 33652）— 2 passed (57.2s)
+    驱动=redis 窗口=shared-across-instances 线路=up 上界=50000 部署=configured
+    键前缀=nexus:ratelimit:v1:
+    数到的桶=2 只（这台最近一次判定带回的名册条数；权威是那台 Redis 的 ZCARD，长时间没流量时它是旧的）
+    交给本机窗口判=1 次：命令失败（Redis 没答上） 1
+  ```
+  两张截图按驱动分别落盘，后跑的不再盖掉前一轮的凭证：`.scratch/shots/60-admin-rate-limit-in-process.png` /
+  `-redis.png`。中途两次红都不是靠放宽闸修的：① Redis 那轮首跑 `1 failed | 1 passed`——`游客与 member` 撞了
+  Playwright 默认 30 秒超时，而 dev 冷编译一次 `POST /api/auth/login` 就 9.9s、一次 `/admin/rate-limit` 11.8s
+  （日志里两次 login 都是 **200**，不是 429），改的是**这条用例自己的** `test.setTimeout(120_000)`；
+  ② Redis 那轮的截图只有"正在问这台实例…"——从导航点过来会重新挂载表盘，于是补一条再等
+  `data-ratelimit-stats="ready"`，图里才有读数。
+- 臂表 R1–R11（每条＝改坏一处 → 哪条用例红，逐字在 ADR-0082）：R1 进程内说成共享窗口、R2 `wire` 恒为 `up`、
+  R3 上界从常量抄不读构造参数（`expected 50000 to be 11`）、R4 进程内 `bucketsTracked` 报 0、R5 少了 `.trim()`
+  （`expected true to be false`）、R6 两本原因账并成一本（`expected 0 to be greater than 0`）、R7 门放宽到非 admin
+  （`expected 200 to be 403`）、R8 `getRateLimiter()` 每次现造（三条同时红）、R9 `bucketsTracked` 报上界（四条同时红，
+  含集成侧 `expected 50000 to be 3`）、R10 `reset()` 顺手归零自报数（抹掉"它是旧的"那句）、R11 界面把
+  `—（这个驱动没有键空间）` 缩成 `—`（只有浏览器层抓得到）。**一条惰性臂如实记下**：R7 第一版写成
+  `role !== 'member'` 全绿——`UserRole` 只有 `creator｜admin`，那个臂根本没被走到；换成 `creator` 才红。
+  "臂没红"与"门没牙"是两件事，得先排除前者。收尾 `grep -rn "MUT "` = 0。
+- 没牙的格子，点名：4 秒轮询周期本身没有门（改 40 秒照样绿）；`deployment.pid` 只钉 `typeof number`；
+  **界面这一层的 `over-cap` 文案没有真事件喂过**（要满 50 000 只键才出，两轮 dev 都没造出），它由第三十四片的
+  集成测与演练覆盖，界面这层没覆盖；`AdminNav` 里这一项的**位置**没有门，只有"点得到 + `aria-current='page'"`。
+- 新事实（界面抓到的，之前只有 counter 知道）：**启动后第一笔判定有实打实的概率落进本机窗口**，两轮 dev 各有
+  1 次 `command-failed` 且形状不同——一轮是 `Stream isn't writeable and enableOfflineQueue options is false`
+  （连接还没 ready 就发第一笔），另一轮页面"最近一次连接报错"那格是 `Command timed out`（第一笔 Lua 往返过了
+  250ms）。这一片**没有**改它：改法要么第一笔有界等 `ready`（动的是每请求排队预算），要么接受它并写进部署文档。
+- 旧账翻面：ADR-0076 仍欠 2、ADR-0077 仍欠 1、ADR-0081 仍欠 1 三处各标 **已还**；`docs/SECURITY.md`
+  「认证与授权」新增限流闸诊断入口一整段（含"只回答这台实例"与"两种退回两句不同的话"）；
+  `docs/ENVIRONMENT.md` 部署口径下新增**两种驱动各跑一轮**的确切跑法＋两条本机坑（3100 被外部进程占，
+  Next 16.3.5 不自动 +1；`webServer.reuseExistingServer` 把 5xx 当成"还没起来"，Postgres 容器停了会让
+  Playwright 另起一个 dev server 而整轮失败）；已知技术债第 3 条最后那格"没有界面位"划掉。
+- 仍欠，如实记下：① 启动后第一笔判定那次退回（上面"新事实"）；② `realtime/redisBus.ts` 里同一形状的
+  `connectionReady` 还是"一次 error 判死"（本片给它加的是读数，不是修复）；③ 演练脚本
+  `rate-limit-two-process.mts` 没读 `describe()`，跨进程形状仍靠它自己那 16 条判据，两份东西各自成立；
+  ④ 界面上 `over-cap` 那一格没有真事件（要补就在演练里加"两进程同时撞满额"，与第三十四片仍欠 ④ 同一格）。
+

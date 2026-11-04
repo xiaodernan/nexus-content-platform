@@ -19,6 +19,7 @@ const LINKS = [
   { key: 'marketplace', href: '/admin/marketplace', label: '市场工单' },
   { key: 'audit', href: '/admin/audit', label: '审计事件' },
   { key: 'realtime', href: '/admin/realtime', label: '实时总线' },
+  { key: 'rate-limit', href: '/admin/rate-limit', label: '限流闸' },
   { key: 'access', href: '/admin/access', label: '访问账' },
   { key: 'observability', href: '/admin/observability', label: '观测' },
 ] as const;
