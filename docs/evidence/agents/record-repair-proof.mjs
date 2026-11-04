@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// NEXUS M2 v596 (docs/evidence) -- RECORD REPAIR GRADED, ADR 0016 amendment 549: the repairer that points
+// NEXUS M2 v596 (docs/evidence) -- RECORD REPAIR GRADED: the repairer that points
 // docs/evidence/agents/record-encoding-proof.mjs's writer model the other way, graded against the grader it
 // must agree with rather than against a second hand-written copy of its rules.
 // Run from the repository root, after nothing in particular (no build, no daemon, no network):
@@ -22,21 +22,43 @@
 // calls clean, which is a repairer editing text nobody flagged. S1's arms below re-inflict those shapes on
 // purpose and require the door to fire.
 //
+// WHY A 0 IN THE CENSUS NEEDS A WITNESS. A clean S2 buys two different stories: the record really is clean,
+// or the graded names quietly stopped including the directory that holds the damage. `ee96711` (subject
+// "'v602'") proves the second story happens. One broad add tracked 110 `.nexus-tmp/` files plus three root
+// console captures, and every push since has been RED on the shipped encoding gate -- 2545 chargeable lines
+// / 34999 sites, which this tool reads in full and declines 30074 of, because a capture whose bytes ARE the
+// damage has no honest glyph to restore. The repair was to stop tracking them. So S2b requires that
+// exclusion to be something `git check-ignore` answers with rather than a sentence in a commit message, then
+// writes a damaged plant INTO that very directory and requires the census to charge it: the untracking moved
+// those bytes out of the record, and must not have moved the scan's reach with them.
+//
 // WHY A REFUSAL IS A RESULT AND NOT A WARNING. The image a writer channel leaves does not name its
 // producer: a three-byte punctuation char renders the SAME two characters as an em dash, an en dash, an
 // ellipsis or one of four quotes, and it eats whichever ASCII byte followed it (all 96, measured by the
 // shipped row's S1). The tool decides from the record's own habits through a ladder -- UNIQUE, then a
-// 20x-attested space around the glyph, then the follower census -- and below the floor it declines the site
+// 20x-attested ' GLYPH ' habit, then the follower census -- and below the floor it declines the site
 // and writes NOTHING for the file. S4 arms both halves: an ambiguous file is refused, declined by the CLI
 // with exit 1 and left BYTE-IDENTICAL; the same file with an attested habit is repaired. A tool that
 // guessed would be worse than the damage it removed, because a guessed glyph is a second defect a plain
 // diff cannot see.
 //
+// AND A CENSUS IS A WITNESS ONLY ABOUT THE SITES THAT MATCH IT. The first S3 run over real records caught
+// this tool over-repairing: docs/KNOWN_ISSUES.md holds "Amendments 2<en dash>3", the image its dash leaves is
+// one of the eight producers can spell, and that file's 48 em-dash attestations decided the site into
+// "2<em dash> 3" -- the wrong glyph on top of a space the record never had. The spaced habit predicts a space
+// on the glyph's LEFT, and that space is still in the damaged bytes, so the site's own left character is
+// evidence a file-level count may not overrule. S4 arms that exact shape: the site must be declined, the
+// refusal must print the character it found, and the line must come back unchanged. Measured while landing
+// this: the guard fires on 16 of the 409 declines taken across every plantable line of the tracked records,
+// so it is precise rather than a way to make the tool refuse its job, and S3 prints the same tally on the
+// eight files it plants so a reader sees which channel is declining, not only that something declined.
+//
 // WHY THE LOOP IS GRADED, NOT ASSUMED. The flank rule spares a render whose tight neighbour is CJK, so a
 // damaged dash sitting in front of a damaged section sign is invisible until the sign behind it is put back.
 // The real record needed 79 sites, then 1, then 0 -- three passes over the same file -- which is why the
-// repair runs to a fixed point. S5 builds that shelter on purpose and requires that ONE pass leaves a
-// charged site behind while the loop reaches zero in at least two.
+// repair runs to a fixed point. S5 builds that shelter on purpose from two damages side by side and requires
+// the scan to SEE both forms while charging one, and then requires the loop to make MORE edits than there
+// were chargeable sites when it started: a tool that stopped after pass one would have called the file clean.
 //
 // WHY THE ROUND-TRIP IS OVER REAL RECORDS. S3 damages lines taken from the repository's own records by
 // running them through the forward model, repairs the whole file, and requires the bytes that come back to
@@ -44,15 +66,18 @@
 // repair, and that is the failure this row exists to catch; a plant that comes back untouched with a
 // refusal is the tool declining honestly, and is counted, not punished.
 // sweep-budget-ms: 240000
-// (measured on this box: S2 reads the graded tree twice, once per reader, and S3 repairs eight whole record
-// files a few passes each -- together about 35 s -- so the declared budget is roughly 7x the run, and
-// amendment 85's rule holds that a kill is a different verdict from a failure.)
+// (re-measured on this box at the landing of S2b and the witness arm: 17.9 s wall, so the declared budget is
+// ~13x the run -- S2 reads the graded tree twice, once per reader, S3 repairs eight whole record files a few
+// passes each, and S2b/S4 each spawn a handful of git and node processes. amendment 85's rule holds that a
+// kill is a different verdict from a failure, which is why the number is generous rather than tight.)
 // sweep-asks-repository: git ls-files -z -- the population is read the way the shipped row reads it, through
 // spawnSync below, whose program position is a literal this row's own scanner cannot see past; the bytes
-// under test are read off disk and never written: every file this row writes lands in a fresh mkdtemp
-// directory OUTSIDE the repository, so no tracked path is touched and no lane's work is swept.
+// under test are read off disk and never written: every file this row writes for the CLI arms lands in a
+// fresh mkdtemp directory OUTSIDE the repository, plus ONE plant written inside the repository's ignored
+// scratch namespace (S2b), which the row deletes before it exits -- and S2b is the clause that proves that
+// namespace is ignored by a rule git can read, so the plant can never be swept into a lane's commit.
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, rmSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -65,6 +90,7 @@ const SELF = 'docs/evidence/agents/record-repair-proof.mjs';
 const TOOL = 'tools/ci/record-encoding-repair.mjs';
 const cps = (s) => [...s];
 const str = (a) => String.fromCodePoint(...a);
+const DASH = str([0x2014]), ENDASH = str([0x2013]), SECT = str([0x00a7]);
 const sha = (b) => createHash('sha256').update(b).digest('hex').slice(0, 16);
 const key = (sites) => sites.map((s) => `${s.at}|${s.len}|${s.kind}|${s.why}`).join(',');
 
@@ -235,6 +261,57 @@ assert.equal(chargedLines, 0, `${chargedLines} line(s) still carry chargeable da
 assert.ok(rejectedSites > 20, `the flank rule must still be SEEING look-alikes in the tree (${rejectedSites} rejected sites) -- a 0 here means the registry stopped matching and the green above is vacuous`);
 console.log(`[2] tree: ${graded}/${names.length} files graded by both readers, ${formHits} form-bearing lines, ${rejectedSites} flank-rejected sites, ${chargedLines} charged lines, 0 reader disagreements`);
 
+// -- S2b the population is excluded by a RULE, and the scan still REACHES the directory it skips ---------
+// A 0 above can be bought two ways: the record really is clean, or the graded names quietly stopped
+// including the directory that holds the damage. Only the first is a repair, so the second is measured
+// away here. `ee96711` (subject "'v602'") is not a hypothetical: it swept 110 `.nexus-tmp/` files plus three
+// root console captures into the tracked record, and every push since has been RED on the shipped encoding
+// gate -- 2545 chargeable lines / 34999 sites, of which this landing's own repairer reads all 34999 and
+// DECLINES 30074, because a console capture whose bytes ARE the damage has no honest glyph to restore. The
+// only true repair was to stop tracking them. And a stop that no one can read is one `git add -A` away from
+// undoing itself, so the exclusion must be a rule `git check-ignore` answers with -- while the reader is
+// made to fire inside the very directory it now skips, so a future green cannot be bought by going blind.
+const SCRATCH_NS = '.nexus-tmp';
+const SWEPT_LOGS = ['run-result.txt', 'test_output.txt', 'test-output.txt'];
+const sweptIn = names.filter((n) => n === SCRATCH_NS || n.startsWith(`${SCRATCH_NS}/`) || SWEPT_LOGS.includes(n));
+assert.deepEqual(sweptIn, [], `${sweptIn.length} scratch path(s) (${sweptIn.slice(0, 3).join(', ')}) are still in the graded population -- the record-encoding gate is red for bytes that are not evidence, and no repair channel can clear a console capture`);
+const ignoreRules = readFileSync(join(root, '.gitignore'), 'utf8').replace(/\r\n/g, '\n').split('\n').map((l) => l.trim());
+for (const rule of [`${SCRATCH_NS}/`, ...SWEPT_LOGS])
+  assert.ok(ignoreRules.includes(rule), `.gitignore does not name ${rule} -- an exclusion that lives only in a commit message is a memory, not a rule, and the next broad add sweeps the bytes back into the record`);
+const ignoredBy = (p) => { const r = spawnSync('git', ['check-ignore', '-v', p], { cwd: root, encoding: 'utf8' }); return r.status === 0 ? r.stdout.trim() : null; };
+assert.equal(ignoredBy('docs/evidence/agents/sweep.mjs'), null, 'git check-ignore claims a graded row is ignored -- every exclusion above would then be worthless, because the reader reports everything and nothing');
+for (const p of SWEPT_LOGS) {
+  const v = ignoredBy(p);
+  assert.ok(v && v.includes('.gitignore:'), `git check-ignore does not attribute ${p} to .gitignore (${JSON.stringify(v)}) -- the file is untracked by accident, not by a rule a later reader can see`);
+}
+const plantRel = `${SCRATCH_NS}/reach-plant-v596.txt`;
+const plantDir = join(root, SCRATCH_NS);
+const madePlantDir = !existsSync(plantDir);
+mkdirSync(plantDir, { recursive: true });
+const plantAbs = join(root, plantRel);
+let plantLines = 0, plantSites = 0, plantDisagree = 0;
+const nsRule = ignoredBy(plantRel);
+try {
+  writeFileSync(plantAbs, `# a plant this row owns and deletes: ${tool.m1whole(`Studio 474 ${DASH} 483 files`)}\nand a clean tail line\n`, 'utf8');
+  assert.ok(nsRule && /^\.gitignore:\d+:\.nexus-tmp\/\t/.test(nsRule), `the plant written into ${SCRATCH_NS}/ is not ignored there (${JSON.stringify(nsRule)}) -- if it is not ignored, this row has just handed a scratch file to whichever lane commits next`);
+  for (const l of readFileSync(plantAbs, 'utf8').replace(/\r\n/g, '\n').split('\n')) {
+    const b = tool.chargeable(l);
+    if (key(grader.model.chargeable(cps(l))) !== key(b)) plantDisagree++;
+    const c = b.filter(tool.isCharged);
+    if (c.length) { plantLines++; plantSites += c.length; }
+  }
+  assert.equal(plantDisagree, 0, `${plantDisagree} line(s) of the plant charged differently by the two readers -- the agreement measured on the record must hold on the scratch too`);
+  assert.ok(plantSites > 0, `the census read a damage plant it had written itself and charged 0 sites -- that is not a clean record, that is a blind scan, and the 0 in S2 above would mean nothing`);
+} finally {
+  rmSync(plantAbs, { force: true });
+  if (madePlantDir) rmSync(plantDir, { recursive: true, force: true });
+}
+const incidentPaths = [`${SCRATCH_NS}/mojibake-hits.txt`, `${SCRATCH_NS}/chargeable.txt`, ...SWEPT_LOGS];
+const onDisk = incidentPaths.filter((p) => existsSync(join(root, p)));
+let onDiskCharged = 0;
+for (const p of onDisk) for (const l of readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n').split('\n')) if (tool.chargedSites(l).length) onDiskCharged++;
+console.log(`[2b] scratch kept out by a rule git can read (${nsRule}): the same reader charges ${plantLines} planted line(s) / ${plantSites} site(s) inside ${SCRATCH_NS}/, and ${onDiskCharged} damage line(s) still sit on disk in ${onDisk.length}/${incidentPaths.length} of the 'v602' bytes without entering the population`);
+
 // -- S3 planted into real records: the bytes that come back are the bytes that went in ------------------
 const ALPHA = new Set(tool.ALPHA);
 const candidates = [];
@@ -255,6 +332,7 @@ assert.ok(candidates.length >= 3, `the round-trip needs real records to plant in
 candidates.sort((a, b) => (a[0].rel < b[0].rel ? -1 : 1));
 const picked = candidates.slice(0, 8);
 let attempted = 0, recovered = 0, declined = 0, maxPass = 1;
+const declineKinds = {};
 const channels = new Set();
 const silent = [];
 for (const hits of picked) {
@@ -273,6 +351,7 @@ for (const hits of picked) {
   if (!planted.length) continue;
   attempted += planted.length;
   const out = tool.repairToFixedPoint(lines.join('\n'));
+  for (const r of out.refused) { const k = (r.split(' -- ')[1] || r).slice(0, 24).trim(); declineKinds[k] = (declineKinds[k] || 0) + 1; }
   maxPass = Math.max(maxPass, out.passes);
   const back = out.text.split('\n');
   let lost = 0;
@@ -292,11 +371,11 @@ for (const hits of picked) {
 assert.deepEqual(silent, [], silent.join(' | '));
 assert.ok(recovered >= 20, `the round-trip must carry weight (${recovered} of ${attempted} planted lines came back byte-exactly) -- a handful of recoveries would grade the sample, not the repair`);
 assert.ok(channels.size >= 2, `at least two channels must be exercised over the real records (saw ${[...channels].join(', ') || 'none'}) -- one channel means the ladder was never walked`);
-console.log(`[3] round-trip: ${attempted} real record line(s) damaged by the forward model over ${picked.length} files, ${recovered} back byte-exactly, ${declined} declined with a named refusal, channels ${[...channels].sort().join('/')}`);
+console.log(`[3] round-trip: ${attempted} real record line(s) damaged by the forward model over ${picked.length} files, ${recovered} back byte-exactly, ${declined} declined with a named refusal, channels ${[...channels].sort().join('/')}, declines ${Object.entries(declineKinds).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k}=${n}`).join(' ')}`);
+const witnessDeclined = Object.entries(declineKinds).filter(([k]) => /cannot witness/.test(k)).reduce((n, [, v]) => n + v, 0);
 
 // -- S4 a site the evidence does not decide is DECLINED, and nothing is written ------------------------
 const AMBIG = 5, ATTESTED = 30;
-const DASH = str([0x2014]), ENDASH = str([0x2013]), SECT = str([0x00a7]);
 const plant = `the gate holds ${tool.m1whole(`a ${DASH} b`)} c`;
 assert.equal(tool.chargedSites(plant).length, 1, 'the plant must be one charged site before the ladder is asked about it');
 const habit = (glyph, n) => Array.from({ length: n }, (_, i) => `note ${i}: word ${glyph} word`).join('\n');
@@ -311,6 +390,20 @@ const decided = tool.repairToFixedPoint(attested);
 assert.equal(decided.refused.length, 0, `the same site with an attested habit must be decided (${decided.refused.join(' | ')})`);
 assert.ok(decided.text.includes(`${DASH} b`), 'the attested habit restores the glyph AND the follower the writer ate');
 assert.equal(decided.edits[0].channel.split('+')[0], 'SPACED', 'a site decided by the space census names SPACED');
+// The site's own bytes outrank the file's habit. This is the defect the first S3 run found on REAL records:
+// docs/KNOWN_ISSUES.md carried "Amendments 2<en dash>3", M1 ate the digit, and the file's dominant
+// "em dash + space" census repaired it to a space-flanked em dash -- a plausible character that no byte in
+// the record supports, invisible to a diff. A census witnesses the sites that match it, so a site whose own
+// left neighbour is not that space must be DECLINED with the reason named.
+const rangedLine = `ADR 0005 Amendments 2${ENDASH}3):** the renderer`;
+assert.equal(tool.chargedSites(tool.m1whole(rangedLine)).length, 1, 'the range plant must charge exactly one site before the ladder is asked about it');
+const ranged = `# file\n${habit(DASH, ATTESTED)}\n${tool.m1whole(rangedLine)}\ntail\n`;
+const rPlan = tool.planText(ranged);
+assert.equal(rPlan.edits.length, 0, `the dominant spaced habit must not repair a site it cannot witness (${JSON.stringify(rPlan.edits.map((e) => `${e.line}:${e.to}`))}) -- this is the over-repair, and it is the reason this arm exists`);
+assert.ok(rPlan.refused.some((r) => /SPACED cannot witness this site/.test(r) && /"2"/.test(r)), `the refusal must name the failed witness and print the character sitting on the site's left: ${rPlan.refused.join(' | ')}`);
+const rFixed = tool.repairToFixedPoint(ranged);
+assert.equal(rFixed.text.split('\n')[ATTESTED + 1], tool.m1whole(rangedLine), 'a declined range site stays exactly as damaged as it was found -- the record keeps saying it does not know');
+assert.equal(rFixed.text, ranged, 'a plan that refuses must not move a single byte elsewhere in the file');
 // two further classes the ladder must decline rather than invent: a control written over a character, and a
 // run of replacement characters longer than any single producer can spell.
 const ctrl = `a word${str([0x0d])}easured here\n`;
@@ -327,35 +420,48 @@ try {
   writeFileSync(join(dir, 'ambiguity.md'), ambiguous, 'utf8');
   const before = sha(readFileSync(join(dir, 'ambiguity.md')));
   const w = spawnSync(process.execPath, [join(root, TOOL), '--write', 'ambiguity.md'], { cwd: dir, encoding: 'utf8' });
-  assert.equal(w.status, 1, `a --write that declined the only site must exit 1, not 0 (${w.status}) -- "no traceback" is not "the record is clean": ${w.out}`);
-  assert.ok(/REFUSED to write/.test(w.out), `the CLI must name the file it declined: ${w.out}`);
+  assert.equal(w.status, 1, `a --write that declined the only site must exit 1, not 0 (${w.status}) -- "no traceback" is not "the record is clean": ${w.stdout}`);
+  assert.ok(/REFUSED to write/.test(w.stdout), `the CLI must name the file it declined: ${w.stdout}`);
   assert.equal(sha(readFileSync(join(dir, 'ambiguity.md'))), before, 'a declined write must leave the file byte-identical');
   writeFileSync(join(dir, 'attested.md'), attested, 'utf8');
   const w2 = spawnSync(process.execPath, [join(root, TOOL), '--write', 'attested.md'], { cwd: dir, encoding: 'utf8' });
-  assert.equal(w2.status, 0, `the attested file must be repaired (exit ${w2.status}): ${w2.out}`);
+  assert.equal(w2.status, 0, `the attested file must be repaired (exit ${w2.status}): ${w2.stdout}`);
   assert.ok(readFileSync(join(dir, 'attested.md'), 'utf8').includes(`${DASH} b`), 'the repaired bytes on disk carry the glyph and the follower');
   const w3 = spawnSync(process.execPath, [join(root, TOOL), '--plan', 'attested.md'], { cwd: dir, encoding: 'utf8' });
   assert.equal(w3.status, 0, `--plan on a clean file exits 0 (${w3.status})`);
-  assert.ok(/\[done\] 0 charged site\(s\) read/.test(w3.out), `a repaired file must present nothing left to charge: ${w3.out}`);
+  assert.ok(/\[done\] 0 charged site\(s\) read/.test(w3.stdout), `a repaired file must present nothing left to charge: ${w3.stdout}`);
 } finally { rmSync(dir, { recursive: true, force: true }); }
-console.log(`[4] declined, not guessed: ${AMBIG}/${AMBIG} attestations refuse the site, the CLI exits 1 and the file stays byte-identical; ${ATTESTED} attestations decide it (SPACED); a control and a 4-long U+FFFD run are refused on kind`);
+console.log(`[4] declined, not guessed: ${AMBIG}/${AMBIG} attestations refuse the site, the CLI exits 1 and the file stays byte-identical; ${ATTESTED} attestations decide it (SPACED); a digit-flanked range refuses the dominant habit; a control and a 4-long U+FFFD run are refused on kind`);
 
 // -- S5 the flank shelter: one pass is NOT the repair, and the loop is ---------------------------------
-const shelterPlant = tool.m1whole(`set a ${DASH} ${SECT} b`);
+// The plant is two damages side by side. The dash's image sits IN FRONT of the section sign's image, and the
+// flank rule spares a render whose tight neighbour is CJK -- so the first scan sees both forms and charges
+// one. Measured, not narrated: 2 forms, 1 charged, pass 1 puts the sign back, and only then does the dash
+// become chargeable. That is why the ladder loops, and it is why a tool that stopped after one pass would
+// leave the record red by stealth -- so the loop must end up making MORE edits than there were chargeable
+// sites when it started.
+const shelterSource = `set a ${DASH} ${SECT} b`;
+const shelterPlant = tool.m1whole(shelterSource);
+const plantForms = tool.chargeable(shelterPlant);
+const hidden = plantForms.filter((s) => s.why.startsWith('REJECTED'));
+assert.equal(plantForms.length, 2, `the plant must carry two render forms (${plantForms.length}) -- one form is a site, not a shelter`);
+assert.equal(hidden.length, 1, `exactly one form must be sheltered by the flank rule (${plantForms.map((s) => s.why).join(', ')}) -- with nothing hidden this section grades a loop that never had to turn`);
+assert.ok(/cjk/.test(hidden[0].why), `the shelter must come from a CJK flank, which is the reason the rule exists: ${hidden[0].why}`);
 const shelter = `# shelter\n${habit(DASH, ATTESTED)}\n${habit(SECT, ATTESTED)}\n${shelterPlant}\ntail\n`;
 const charged0 = tool.chargedSitesOf(shelter);
-assert.ok(charged0 >= 2, `the plant must carry the sheltered pair (${charged0} charged site(s))`);
+assert.equal(charged0, 1, `the first scan charges ${charged0} of the ${plantForms.length} forms it can see -- the sheltered dash invisible at scan time is the object of this section`);
 const onePass = tool.planText(shelter);
 const charged1 = tool.chargedSitesOf(onePass.text);
-assert.ok(charged1 >= 1, `the FIRST pass leaves ${charged1} charged site(s) -- if one pass already clears the plant, the shelter this section grades is a story and the fixed point below is unmeasured`);
-assert.ok(onePass.edits.length < charged0, `pass 1 made ${onePass.edits.length} edit(s) of ${charged0} sites: it repaired something, not everything`);
+assert.equal(onePass.edits.length, 1, `pass 1 made ${onePass.edits.length} edit(s); it can only reach the site the flank rule leaves visible: ${JSON.stringify(onePass.edits.map((e) => e.channel))}`);
+assert.equal(charged1, 1, `after pass 1 the site behind the repair is ${charged1} charged site(s) -- putting the sign back must EXPOSE the dash, which is the shelter becoming measurable`);
 const fp = tool.repairToFixedPoint(shelter);
 assert.equal(fp.refused.length, 0, `the shelter must be decidable by the ladder (${fp.refused.join(' | ')})`);
 assert.ok(fp.passes >= 2, `the loop took ${fp.passes} pass(es) -- the sheltered site is only revealed once its neighbour is put back, which is what proves a single pass is incomplete`);
+assert.equal(fp.edits.length, plantForms.length, `${fp.edits.length} edit(s) for ${plantForms.length} forms: the loop repairs every site it can EVENTUALLY see`);
+assert.ok(fp.edits.length > charged0, `${fp.edits.length} edits against ${charged0} chargeable sites at the start -- a one-pass tool would have stopped at ${charged0} and called the file clean`);
 assert.equal(tool.chargedSitesOf(fp.text), 0, 'the loop must settle at zero charged sites');
-assert.equal(fp.edits.length, charged0, `${fp.edits.length} edits against ${charged0} sites: the loop repairs every site it can eventually see`);
-assert.ok(fp.text.includes(`${DASH} ${SECT}`), `both glyphs are back with the space between them: ${JSON.stringify(fp.text.split('\n').find((l) => l.startsWith('set a')))}`);
-console.log(`[5] flank shelter: ${charged0} charged sites, pass 1 leaves ${charged1}, the loop settles at 0 in ${fp.passes} passes with ${fp.edits.length} edits`);
+assert.equal(fp.text.split('\n').find((l) => l.startsWith('set a')), shelterSource, 'both glyphs come back with the space the writer ate between them, byte-exact');
+console.log(`[5] flank shelter: ${plantForms.length} forms seen / ${charged0} charged at the first scan, pass 1 edits ${onePass.edits.length} and exposes ${charged1}, the loop settles at 0 in ${fp.passes} passes with ${fp.edits.length} edits`);
 
 // -- S6 no file in this landing is a hiding place: ASCII bytes, uncharged, declared budget --------------
 for (const rel of [TOOL, ROW, SELF]) {
@@ -372,4 +478,4 @@ const budget = sw.rowBudget(self);
 assert.equal(budget.budgetSource, 'declared', 'this row declares its own budget rather than inheriting a default it will exceed');
 console.log(`[6] self: ${Buffer.byteLength(self)} bytes ASCII, budget ${budget.budgetMs} ms declared from this file's own first-column comment, tool, grader and row all ASCII and uncharged`);
 
-console.log(`OK record-repair: ${BLOCKS.length} blocks identical, ${graded} files read twice, ${chargedLines} charged, ${recovered}/${attempted} plants byte-exact, ${declined} declined, ${maxPass}-pass max`);
+console.log(`OK record-repair: ${BLOCKS.length} blocks identical, ${graded} files read twice, ${chargedLines} charged, ${recovered}/${attempted} plants byte-exact, ${declined} declined (${witnessDeclined} refused a census that could not witness them), ${maxPass}-pass max`);
