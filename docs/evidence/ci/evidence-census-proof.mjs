@@ -181,7 +181,7 @@
 //
 // v610 (this increment; the ADR 0016 section is still owed for v606-v610 and the ledger files sit in another lane's
 // uncommitted set, so this header keeps the record) - THE COPY OF THIS FILE'S OWN PRINTOUT IS GRADED TOO. The README
-// restates the arms roster in prose — "**58 fixture arms**", then one number per family — and v543 established that
+// restates the arms roster in prose — a headline of the shape `**N fixture arms**`, then one number per family — and v543 established that
 // a number a human copies off a console line drifts, yet that repair stopped at the census's class table and left
 // this sentence unchecked. armsRoster counts the roster from the arm NAMES (one family per name prefix, in the order
 // the arms first appear, so adding an arm without saying so moves a number by itself) and readmeArmsDrift reads the
@@ -194,6 +194,23 @@
 // and a breakdown whose closing bound has moved. Eight arms aim at them, X1 through X8. The bound is named rather
 // than hidden: any other "<word> that" inside the region is taken for a family claim and refused as an unparseable
 // number, because the reader cannot tell a count from a sentence — the red asks for the edit rather than guessing.
+//
+// v611 (this increment; the ADR 0016 section is still owed for v606-v611 and the ledger files sit in another lane's
+// uncommitted set, so this header keeps the record) - THE COPY INSIDE THIS FILE IS GRADED LIKE THE ONE OUTSIDE IT.
+// v610 gave the README's arms sentence a reader, and the header above is the same kind of text: paragraphs quoting
+// "thirty-one that came before" and "50/50 MATCHED" that were true the day they were written. History keeps its
+// numbers — v533's eighty-one is a fact about v533 — so the claim that must not drift gets a MARKED line rather
+// than a sentence, and sourceRosterDrift parses only that shape:
+//   ROSTER <n> arms in <k> families — <label><count> · …      (one line, the roster in full)
+// Six refusals: the line absent, the line reshaped, a headline the list no longer matches, a family count that is
+// not what the list says, pairs whose sum is not the headline, and a pair that is not a label plus a count. Four
+// arms aim at them, S1 → S4, on the same synthetic plane, where the fixture header states the SAME list the real
+// one does — the arms are one list, so a marker here and a marker there are read by the same function. The bound is
+// named: this line keys on this file's own arm names and nothing else. The census's other counts — tracked modules,
+// rows, the tools population — move under a shared working tree the moment another lane wires a script, and a
+// marker keyed to them would redden this row for work nobody asked it to review; the README already carries those
+// numbers, and they are the repository's to update.
+// ROSTER 62 arms in 7 families — A14 · R6 · M11 · T12 · N7 · X8 · S4
 //
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
@@ -850,7 +867,7 @@ export function toolsCensusOf({ index, scripts, read, manifestReport, standby = 
  * Everything below the CLI is exercised by the fixture arms at the bottom, so the refusals are measured on a
  * synthetic plane rather than assumed from reading the code.
  */
-export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null, index = [], workflow = null, manifest = [], standby = [] }) {
+export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null, index = [], workflow = null, manifest = [], standby = [], source = null }) {
   const rows = new Map(derivePopulation(scripts).map((r) => [r.file, r]));
   const trackedSet = new Set(tracked);
   const rosterByFile = new Map();
@@ -909,12 +926,16 @@ export function censusOf({ tracked, scripts, excluded = [], roster = [], swept =
   const excludedSet = new Set(excluded.map((e) => e.file));
   const running = [...rows.values()].filter((r) => !excludedSet.has(r.file));
   const residue = [...rows.values()].filter((r) => excludedSet.has(r.file));
+  const armRoster = armsRoster(ARMS.map((a) => a[0]));
   if (typeof readme !== 'string' || readme.trim() === '') {
     violations.push('no README was supplied, so the table that restates these counts is unchecked — the census prints numbers a human copies by hand, and an unchecked copy is the rot this check exists for');
   } else {
     violations.push(...readmeDrift({ readme, counts, running, residue, tracked }));
-    violations.push(...readmeArmsDrift({ readme, roster: armsRoster(ARMS.map((a) => a[0])) }));
+    violations.push(...readmeArmsDrift({ readme, roster: armRoster }));
   }
+  // And the copy inside this file: the header quotes the roster in one marked line, so the number that moves most
+  // often here has a reader even while the ADR sections sit in another lane's held files.
+  violations.push(...sourceRosterDrift({ source, roster: armRoster }));
 
   // The mirror question: not "does every module have a channel" but "does every verify:* NAME have one". Same
   // plane, same call, so one verdict covers both directions and neither can be answered without the other.
@@ -1057,6 +1078,47 @@ export function readmeArmsDrift({ readme, roster }) {
   return violations;
 }
 
+/**
+ * Grade the roster line this file carries in its own header (v611).
+ *
+ * The header is where the record lives while the ADR sections sit in another lane's held files, and a roster
+ * quoted there is the same kind of copy the README sentence is — one number short of the list it describes, said
+ * in a voice that reads like history. So the claim gets a MARKED line rather than prose: one shape, `// ROSTER <n>
+ * arms in <k> families — <label><count> · …`, parsed or refused, while the paragraphs around it stay free to keep
+ * the numbers they held the day they were written (v533's "eighty-one" is a fact about v533, and a reader who
+ * cannot tell the two apart should refuse the marker, not the history). The line names only this file's own list,
+ * which no other lane can move: the README's class cells are the repository's numbers and they do move under a
+ * shared tree, and a marker keyed to them would redden the census for work nobody asked it to review.
+ */
+export function sourceRosterDrift({ source, roster }) {
+  const violations = [];
+  const line = /^\/\/ ROSTER (.+)$/m.exec(String(source ?? ''));
+  if (line === null) {
+    violations.push('this file states no "// ROSTER …" line, so the roster its header quotes is a sentence with nothing behind it — state the marked count or drop the number');
+    return violations;
+  }
+  const m = /^(\d+) arms in (\d+) families — (.+)$/.exec(line[1].trim());
+  if (m === null) {
+    violations.push(`the ROSTER line is reshaped (${JSON.stringify(line[1].trim())}) — the reader takes "<n> arms in <k> families — <label><count> · …", and a marker nothing parses is a comment`);
+    return violations;
+  }
+  const stated = m[3].split(' · ');
+  if (Number(m[1]) !== roster.total) violations.push(`the ROSTER line says ${m[1]} arms; the arms list defines ${roster.total} — the marker restates a roster that moved inside this file`);
+  if (Number(m[2]) !== roster.families.length) violations.push(`the ROSTER line says ${m[2]} families; the arms list defines ${roster.families.length} (${roster.families.map((f) => `${f.label}${f.count}`).join(' ')})`);
+  if (stated.length !== roster.families.length) {
+    violations.push(`the ROSTER line lists ${stated.length} family pair(s); the arms list defines ${roster.families.length} — the marker and its own count disagree about how many families it names`);
+    return violations;
+  }
+  const sum = stated.reduce((a, s) => a + (Number(/(\d+)$/.exec(s)?.[1]) ?? NaN), 0);
+  if (Number.isNaN(sum)) violations.push(`the ROSTER line states a family as ${JSON.stringify(stated.find((s) => !/\D+\d+$/.test(s)))} — a pair is a letter prefix and a count, in that order`);
+  else if (Number(m[1]) !== sum) violations.push(`the ROSTER line's families add to ${sum} against its own headline of ${m[1]} arms — the marker answers its question twice`);
+  stated.forEach((pair, i) => {
+    const want = roster.families[i];
+    if (pair !== `${want.label}${want.count}`) violations.push(`the ROSTER line's family ${i + 1} says ${JSON.stringify(pair)}; this census counts ${want.count} arms named ${want.label}* (${want.label}${want.count})`);
+  });
+  return violations;
+}
+
 // ── the fixture arms: every refusal above, measured on a synthetic plane ─────────────────────────────
 const BASE = () => ({
   files: {
@@ -1138,6 +1200,13 @@ const BASE = () => ({
       why: 'the fixture plane needs a standby witness for the four refusals this class answers',
     },
   ],
+  // The proof's own header, on this plane: one marked ROSTER line and the prose around it. The numbers are the same
+  // list the real header states, because the arms ARE this list — so S1→S4 drift the marker, not a copy of it.
+  source: [
+    '// fixture header — the record this file keeps while the ledger files sit in another lane',
+    '// ROSTER 62 arms in 7 families — A14 · R6 · M11 · T12 · N7 · X8 · S4',
+    '// end fixture header',
+  ].join('\n'),
   // The README is part of the plane: it restates the counts above in the same shapes the real file uses,
   // so the control arm proves the reader agrees with a correct table before any arm drifts one number.
   readme: [
@@ -1152,10 +1221,11 @@ const BASE = () => ({
     'The census below gives every one of the **7** tracked modules a disposition, and the derived population is',
     '**1 running rows + 1 excluded by name** at this ref.',
     '',
-    '**58 fixture arms** prove each refusal on a synthetic plane — the fourteen above, six that drift one README',
-    "each, eleven that dispose the manifest's blind side, twelve that dispose the tools corpus behind it,",
-    'seven that grade the numbers those deferrals state and eight that recompute the roster this sentence lives in;',
-    "the prose-import arm proves the tokenizer is the sweep's, not a byte regex.",
+    '**62 fixture arms** prove each refusal on a synthetic plane — the fourteen above, six that drift one README',
+    "each, eleven that dispose the manifest's blind side, twelve that dispose the tools corpus behind it, seven",
+    'that grade the numbers those deferrals state, eight that recompute the roster this sentence lives in and four',
+    "that grade the marker this file carries in its own header; the prose-import arm proves the tokenizer is the",
+    "sweep's, not a byte regex.",
   ].join('\n'),
   scripts: {
     'verify:row': 'node docs/evidence/x/row-proof.mjs',
@@ -1446,17 +1516,19 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('no line count and no served address')), `unre-readable: ${r.violations.join(' | ')}`);
   }],
   // ── the roster arms: the README's own count of these arms is recomputed from the list, not copied (v610) ──
-  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**58 fixture arms**', '**54 fixture arms**'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('says 54 fixture arms; this census runs 58')), `stale total: ${r.violations.join(' | ')}`);
-    assert.ok(r.violations.some((v) => v.includes("add to 58 against its own total of 54")), `arithmetic: ${r.violations.join(' | ')}`);
+  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**62 fixture arms**', '**54 fixture arms**'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('says 54 fixture arms; this census runs 62')), `stale total: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("add to 62 against its own total of 54")), `arithmetic: ${r.violations.join(' | ')}`);
   }],
   ['X2 one family number in the breakdown has drifted', (f) => { f.readme = f.readme.replace('eleven that dispose', 'ten that dispose'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('arm family 3 (M)') && v.includes('i.e. 10') && v.includes('counts 11 arms named M*')), `drifted family: ${r.violations.join(' | ')}`);
   }],
   ['X3 a family the breakdown dropped', (f) => {
-    f.readme = f.readme.replace(", eleven that dispose the manifest's blind side", '');
+    // \\s+ rather than a space: the sentence is wrapped, and an anchor that only matches one wrapping is an arm
+    // that goes quietly red when a reader asks for a shorter line.
+    f.readme = f.readme.replace(/, eleven\s+that\s+dispose\s+the\s+manifest's\s+blind\s+side/, '');
   }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes("names 5 families; the arms list defines 6")), `dropped family: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("names 6 families; the arms list defines 7")), `dropped family: ${r.violations.join(' | ')}`);
   }],
   ['X4 a breakdown with no end the reader can take on trust', (f) => {
     f.readme = f.readme.replace('the prose-import arm proves', 'and the tokenizer is the sweep\'s, which proves');
@@ -1464,12 +1536,12 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('no bound this reader can take on trust')), `unbounded breakdown: ${r.violations.join(' | ')}`);
   }],
   ['X5 a family stated as a word this reader cannot parse', (f) => {
-    f.readme = f.readme.replace('seven that grade', 'eleventy that grade');
+    f.readme = f.readme.replace(/seven\s+that\s+grade/, 'eleventy that grade');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('eleventy') && v.includes('not a number this reader parses')), `unparseable: ${r.violations.join(' | ')}`);
   }],
   ['X6 the headline number written so no shape reads it', (f) => {
-    f.readme = f.readme.replace('**58 fixture arms** prove', 'about fifty-odd fixture arms, proved');
+    f.readme = f.readme.replace('**62 fixture arms** prove', 'about fifty-odd fixture arms, proved');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('states no "**N fixture arms**" total')), `missing headline: ${r.violations.join(' | ')}`);
   }],
@@ -1484,6 +1556,26 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('arm family 2 (R)') && v.includes('two families were swapped')), `swapped: ${r.violations.join(' | ')}`);
     assert.ok(r.violations.some((v) => v.includes('arm family 3 (M)') && v.includes('two families were swapped')), `swapped back: ${r.violations.join(' | ')}`);
   }],
+  // ── the marker arms: the roster this file quotes in its own header is graded too (v611) ─────────────────
+  ['S1 the header marker states an out-of-date total', (f) => { f.source = f.source.replace('// ROSTER 62 arms', '// ROSTER 60 arms'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 60 arms; the arms list defines 62')), `stale marker total: ${r.violations.join(' | ')}`);
+  }],
+  ['S2 the header marker gone', (f) => {
+    f.source = f.source.replace('// ROSTER 62 arms in 7 families — A14 · R6 · M11 · T12 · N7 · X8 · S4', '// the marker moved into prose, where nothing reads it');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('states no "// ROSTER') && v.includes('a sentence with nothing behind it')), `missing marker: ${r.violations.join(' | ')}`);
+  }],
+  ['S3 a family pair in the marker that the list does not count', (f) => { f.source = f.source.replace('· X8 ·', '· X7 ·'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes("family 6 says \"X7\"") && v.includes('counts 8 arms named X*')), `wrong pair: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("families add to 61 against its own headline of 62")), `marker arithmetic: ${r.violations.join(' | ')}`);
+  }],
+  ['S4 a marker reshaped out of its grammar', (f) => {
+    // Kept behind the "// ROSTER " the reader looks for: an arm that drops the prefix aims at S2's refusal, and
+    // two arms hitting one message is one arm fewer than the roster says.
+    f.source = f.source.replace('// ROSTER 62 arms in 7 families — A14 · R6 · M11 · T12 · N7 · X8 · S4', '// ROSTER sixty-two arms, seven families');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('ROSTER line is reshaped') && v.includes('a marker nothing parses is a comment')), `reshaped marker: ${r.violations.join(' | ')}`);
+  }],
 ];
 
 function runArms() {
@@ -1493,7 +1585,7 @@ function runArms() {
     const tracked = (f.tracked ?? Object.keys(f.files).filter((p) => p.startsWith('docs/evidence/'))).slice().sort();
     const index = (f.index ?? Object.keys(f.files)).slice().sort();
     const read = (p) => (Object.prototype.hasOwnProperty.call(f.files, p) ? f.files[p] : null);
-    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme, index, workflow: f.workflow, manifest: f.manifest, standby: f.toolsStandby });
+    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme, index, workflow: f.workflow, manifest: f.manifest, standby: f.toolsStandby, source: f.source });
     try {
       check(report);
       return { name, ok: true };
@@ -1534,7 +1626,10 @@ async function main() {
   const read = (p) => (existsSync(join(ROOT, p)) ? readFileSync(join(ROOT, p), 'utf8') : null);
   assert.ok(existsSync(join(ROOT, README_FILE)), `${README_FILE} is missing — this census checks the table that restates its own counts, and a missing table is a red asking for the edit, not a skip`);
   const readme = readFileSync(join(ROOT, README_FILE), 'utf8');
-  const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read, readme, index, workflow, manifest: MANIFEST, standby: TOOLS_STANDBY });
+  // This census reads its own bytes. The alternative is a marker that outlives the roster it describes, and
+  // the whole point of the marker is that a reader who cannot run the arms list can still check it by eye.
+  const source = readFileSync(join(ROOT, HERE), 'utf8');
+  const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read, readme, index, workflow, manifest: MANIFEST, standby: TOOLS_STANDBY, source });
   assert.deepEqual(report.violations, [], `the census is RED:\n  ${report.violations.join('\n  ')}`);
   assert.deepEqual(report.unclassified, [], `the census found modules nobody has decided about: ${report.unclassified.join(', ')} — each must become a verify row, an EXCLUDED row, a reachable helper, or a ROSTER entry with a falsifiable reason`);
   assert.deepEqual(report.manifest.undispositioned, [], `the manifest holds verify:* names nobody has disposed: ${report.manifest.undispositioned.join(', ')} — declare each in MANIFEST as a runner, a covered claim the workflow answers, or a deferred door with its reach, measurement, blocker and next repair`);
@@ -1558,7 +1653,7 @@ async function main() {
   console.log(`  UNCLASSIFIED ${String(report.counts.unclassified).padStart(1)}`);
   console.log(`\nREADME ${README_FILE}: ROW ${report.counts.row} = ${running.length} run + ${residue.length} excluded · HELPER ${report.counts.helper} · SWEPT ${report.counts.swept} · TOOL ${report.counts.tool} · DEFERRED ${report.counts.deferred} · ${tracked.length} tracked — the table and both prose numbers agree with this run`);
   const roster = armsRoster(ARMS.map((a) => a[0]));
-  console.log(`arms roster (counted from the names in ARMS itself, not copied from the printout): ${roster.total} arms in ${roster.families.length} families — ${roster.families.map((f) => `${f.label}${f.count}`).join(' · ')} · the README's sentence restates every one of these numbers`);
+  console.log(`arms roster (counted from the names in ARMS itself, not copied from the printout): ${roster.total} arms in ${roster.families.length} families — ${roster.families.map((f) => `${f.label}${f.count}`).join(' · ')} · the README's sentence and the \`// ROSTER\` line in this file's own header restate every one of these numbers`);
   console.log(`\nbuild rows (${running.length}): ${running.map((r) => r.name).join(', ')}`);
   for (const r of residue) console.log(`  EXCLUDED  ${r.name.padEnd(24)} ${r.file} — ${EXCLUDED.find((e) => e.file === r.file).needs}`);
   console.log('\nhelper modules:');

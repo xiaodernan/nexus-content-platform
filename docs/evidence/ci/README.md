@@ -328,11 +328,12 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
-the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **58
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **62
 fixture arms** prove each refusal on a synthetic plane — the fourteen above, six that drift one README number
 each, eleven that dispose the manifest's blind side, twelve that dispose the tools corpus behind it (the next
-three blocks), seven that grade the numbers those deferrals state and eight that recompute the roster this
-sentence lives in; the prose-import arm proves the tokenizer is the sweep's, not a byte regex.
+three blocks), seven that grade the numbers those deferrals state, eight that recompute the roster this sentence
+lives in and four that grade the marker the proof carries in its own header; the prose-import arm
+proves the tokenizer is the sweep's, not a byte regex.
 
 **The manifest's other half.** The population above is `git ls-files -- docs/evidence`, which answers "does every
 evidence module have a channel?" and says nothing about the mirror question: does every `verify:*` NAME have one?
@@ -380,8 +381,8 @@ stays prose ABOUT a measurement rather than a re-derivation of one, and the clau
 grade it; the next drift a reader spots in one of these eleven entries is a red the build raises, not a correction
 someone owes.
 
-**The roster number in the sentence above is recomputed, not trusted (v610).** `[arms] 58/58 MATCHED` is the fact and
-the prose that restates it is a copy — which is the exact failure v543 caught in the class table two sections up,
+**The roster number in the sentence above is recomputed, not trusted (v610).** The row prints its own tally
+(`[arms] N/N MATCHED`, N counted from the list) and that is the fact; the prose that restates it is a copy — which is the exact failure v543 caught in the class table two sections up,
 left out of that repair. So `armsRoster` counts the list from the arm NAMES (one family per prefix, in the order the
 arms first appear: adding an arm moves a number by itself) and `readmeArmsDrift` grades this file's sentence against
 it. The headline `**N fixture arms**` must equal the length of the list; the breakdown must state every family as
@@ -393,6 +394,18 @@ family dropped or claimed twice, a state that is not a number word this reader p
 nothing reads, a breakdown reshaped away or with its closing bound moved. The cost of that grammar is stated rather
 than hidden: any other "<word> that" inside the region is taken for a family claim and refused as an unparseable
 number, so the sentence keeps one shape or the row goes red and asks for the edit.
+
+**And the copy inside this file is graded like the one outside it (v611).** The proof's header quotes the same
+roster in one marked line (— // ROSTER 62 arms in 7 families — A14 · R6 · M11 · T12 · N7 · X8 · S4 — and the census reads its own bytes every run) and grades it
+against the same roster the README sentence above answers to: the total, the family count, the count in every
+pair, the pairs' sum against their own headline, and the shape of the line itself. Four arms S1→S4 aim at
+those refusals — a stale total, a marker deleted, one pair the list does not count, a marker rewritten out of
+its grammar. What the clause refuses to grade is stated as plainly as what it grades: the header's historical
+prose keeps its numbers, because a count written about a roster at one commit is a record while the marker is a
+claim about the roster now, and the marker keys only on this file's own arm names, never on the tracked-module
+counts — those move under a shared working tree, and a clause that reddened the build for work another lane
+has in flight would be a hazard, not a gate.
+
 
 Four rows that needed nothing but Node walked through the door in the same increment:
 
