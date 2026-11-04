@@ -1168,7 +1168,7 @@ const vocab = (() => {
       ownLabels.set(m[1], (ownLabels.get(m[1]) ?? 0) + 1);
     }
     const ownDuplicated = [...ownLabels].filter(([, n]) => n > 1).map(([label, n]) => `${label} (${n} blocks)`).sort();
-    // Three carriers, because "no label is claimed twice" is an absence claim over a population this clause
+    // Four carriers, because "no label is claimed twice" is an absence claim over a population this clause
     // builds with its own regex. First: the census must find the label OF THE CLAUSE RUNNING IT — a grammar
     // blind to its own heading grades an empty population and prints a clean census of any file at all.
     // Second and third: the range tag this block prints names two endpoints, and both must be declared, so a
@@ -1196,9 +1196,17 @@ const vocab = (() => {
       [],
       `${ownDuplicated.length} clause label(s) declared more than once in this file (${ownDuplicated.join(', ')}) — told "§11.10 failed", a reader cannot tell which block's verdict they were handed, and the ledger record a duplicated label cites need not be the one that granted the clause`,
     );
-    console.log(`[§11.12] ${ownLabels.size} clause labels declared in this file · ${ownDuplicated.length} claimed twice · the range tag ${rangeTag} names ${rangeEndpoints.join(' and ')} and both are declared · a mention inside a message is not a declaration, so the citations this file prints are not counted here`);
-    console.log(`[§11.13] service call signal enforcement — every service fetch carries an active AbortSignal fresh at call time; calls without signal budget violation → gate red, supplementing the 45-second budget enforcement established in v294`);
-    console.log(`[§11.14] incremental audit contract continuation — each verified increment adds a gate clause, maintains path-scoped commits, doc gate exit 0 with unique amendment numbers, and the "of these N rows" pattern across economic panels; this incremental approach ensures sustainable long-term development without pausing`);
+    // Fourth: a tag PRINTED as a verdict must be a label DECLARED here. `6625992` added two console.log lines
+    // tagged [§11.13] and [§11.14] with no assertion between the braces, so the build log told the reader two
+    // clauses had run while this file held nothing under those numbers to show what they measured.
+    const printedTags = [...ownSource.matchAll(/^[ \t]*console\.log\(`\[§(11\.[0-9]+[a-z]?)\]/gm)].map((m) => m[1]);
+    const undeclaredPrints = [...new Set(printedTags)].filter((label) => !ownLabels.has(label)).sort();
+    assert.deepEqual(
+      undeclaredPrints,
+      [],
+      `the build log prints ${printedTags.length} §11 clause tag(s) and ${undeclaredPrints.length} of them are undeclared (${undeclaredPrints.join(', ')}) — a line that prints "[§11.13] did its thing" is a verdict the reader cannot find the assertion for, which is a citation wearing a verdict's clothes`,
+    );
+    console.log(`[§11.12] ${ownLabels.size} clause labels declared in this file · ${ownDuplicated.length} claimed twice · the range tag ${rangeTag} names ${rangeEndpoints.join(' and ')} and both are declared · ${printedTags.length} verdict line(s) print a §11 tag and every one is a declared label · a mention inside a message is not a declaration, so the citations this file prints are not counted here`);
     console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText} and imported from the owner by ${faceReadersOf.reportReasonText.length} reader(s) (${faceReadersOf.reportReasonText.join(', ')}), trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')}) · 11.9b charges ${reasonUseSites.length} file(s) that USE a reason word in a position (${reasonUseSites.map((s) => s.rel).join(', ') || 'nobody'}) while ${naiveReasonSites.length} file(s) spell one of the ${vocab.serverReasons.length} words in a different vocabulary and are NOT charged (${naiveReasonSites.map((s) => `${s.rel}(${s.words.join('+')})`).join(', ') || 'none'}), over a domain of ${reasonFieldReads.sites} \`.reason\` reads in ${reasonFieldReads.files} shipped files`);
     console.log(`[§11] the vocabulary is graded where it is rendered: ${shipped.length} shipped sources carry ${declared.length} vocabulary tables, all in ${CLIENT_MODEL} · AUDIT_ACTIONS has ${verbReaders.length} production reader(s) (${verbReaders.join(', ')}) and REPORT_REASONS has ${reasonReaders.length} (${reasonReaders.join(', ')}) · ${CLIENT_TOOLBAR} spells 0 of the ${vocab.serverVerbs.length} verbs and maps the table instead · ${CLIENT_COMPOSER} imports its reasons from the owner · the shipped trail module RUN gives all ${vocab.serverVerbs.length} recorded verbs a row word, a button word and a tooltip · and its hand-copied tally still tiles exactly the table's ${tallySeen.length} verbs`);
     // Disclosed, not charged: the shipped sources left in this list spell a recorded verb for their OWN
