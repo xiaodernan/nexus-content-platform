@@ -32,6 +32,13 @@
  * 控制项是同一串请求换成一个大上界：那时三只键都建得出来、一次退回都没有——
  * 少了它，"第三只被拒"就分不清是上界生效还是"第三个进程天生被拒"。
  *
+ * 第三十六片在那一组后面补了 `④″`：满额时**两台同时**撞同一只建不出来的键。`④′` 那三台是先后跑的
+ * （那一组问的是"名额按什么顺序发给谁"），而"上界是共享的还是每台的"这句话只有在同时撞的时候
+ * 才露出全部后果——单看任何一台，把上界做成"每台各一份"也给出同样的「放 放 挡」，
+ * 能分开那两种实现的只有合计：正确的合计是 2×限额，错的合计是 1×限额。
+ * 紧跟的对照只换名额、不换形状（同一对进程、同一只键、同样的打法，换成宽上界 ⇒ 合计回到限额本身），
+ * 于是"合计翻倍"不再是"两个进程天生不共享任何东西"的另一种写法。
+ *
  * 用法：`npm run ratelimit:two-process`（只要 Redis 在 56379，不需要数据库）。
  * 每条判据打一行 `verdict <名>: <值>`，任何一条不对就非零退出。
  */
@@ -126,6 +133,15 @@ const CAP_SETTLE_PREFIX = 'nexus:ratelimit:capdrill-settle:';
 const KEY_CAP_A = 'two-process-cap/a|ops-cap-a|192.0.2.20';
 const KEY_CAP_B = 'two-process-cap/b|ops-cap-b|192.0.2.21';
 const KEY_CAP_C = 'two-process-cap/c|ops-cap-c|192.0.2.22';
+/**
+ * ④″ 那一组用的键：两个进程**同时**打同一只建不出来的新键。
+ * 它必须不同于 A/B/C——A/B 占满了名额，C 是④′ 那台单机连打三次的角色；
+ * 这一组要的是"同一只键、两台、名额已满"，所以换新身份，让它的桶注定建不出来。
+ */
+const KEY_CAP_D = 'two-process-cap/d|ops-cap-d|192.0.2.23';
+/** ④″ 每台的限额与打法：限额 2、每台顺序打 3 次 ⇒ 单机理想的形状是「放 放 挡」。 */
+const CAP_PAIR_LIMIT = 2;
+const CAP_PAIR_TIMES = 3;
 
 type Phase = 'redis' | 'memory' | 'dead';
 
@@ -311,7 +327,7 @@ if (ROLE === 'cap') {
 // —— 以下是父进程 ——
 
 mkdirSync(WORK, { recursive: true });
-for (const name of ['seq-1.json', 'seq-2.json', 'seq-3.json', 'seq-4.json', 'mem-1.json', 'mem-2.json', 'mem-3.json', 'mem-4.json', 'burst-a.json', 'burst-b.json', 'dead-1.json', 'dead-2.json', 'dead-3.json', 'cap-1.json', 'cap-2.json', 'cap-3.json', 'cap-4.json', 'cap-5.json', 'cap-6.json']) {
+for (const name of ['seq-1.json', 'seq-2.json', 'seq-3.json', 'seq-4.json', 'mem-1.json', 'mem-2.json', 'mem-3.json', 'mem-4.json', 'burst-a.json', 'burst-b.json', 'dead-1.json', 'dead-2.json', 'dead-3.json', 'cap-1.json', 'cap-2.json', 'cap-3.json', 'cap-4.json', 'cap-5.json', 'cap-6.json', 'cap-7.json', 'cap-8.json', 'cap-9.json', 'cap-10.json']) {
   rmSync(resolve(WORK, name), { force: true });
 }
 
@@ -436,6 +452,41 @@ function runCap(label: string, maxKeys: number, key: string, limit: number, time
   return report;
 }
 
+/**
+ * ④″ 那一组的孩子进程（异步版）：与 `runCap` 同一串参数，只是用 `spawn` 而不是 `spawnSync`，
+ * 于是两个进程能真的同时在跑。为什么这一组必须并发：这一格问的是"名额已满时那台 Redis 不在
+ * 的地方，谁给谁放行"，先后跑的话两台各自的窗口即使互不相干也照样各放 `limit` 次，
+ * 那句话就跟"同时"没关系了——而生产上撞满额的恰恰是同时。
+ */
+function spawnCapChild(label: string, maxKeys: number, key: string, limit: number, times: number): Promise<ProbeReport> {
+  return new Promise((resolveSpawn, rejectSpawn) => {
+    const fd = openSync(resolve(WORK, `log-${label}`), 'w');
+    const child = spawn(
+      process.execPath,
+      ['--import', 'tsx', import.meta.filename, 'cap', CAP_PREFIX, String(maxKeys), key, String(limit), String(times), label],
+      { cwd: resolve(ROOT, 'apps/web'), env: childEnv(REDIS_URL), stdio: ['ignore', fd, fd] },
+    );
+    child.once('error', rejectSpawn);
+    child.once('exit', (code) => {
+      const report = read<ProbeReport>(label);
+      const log = readFileSync(resolve(WORK, `log-${label}`), 'utf8');
+      if (code !== 0) return rejectSpawn(new Error(`${label} 非零退出（status=${code}）：\n${log.slice(-1500)}`));
+      if (!report) return rejectSpawn(new Error(`${label} 零退出却没写出报告`));
+      console.log(
+        `[${label} pid=${report.pid} 上界=${maxKeys} 名册=${report.tracked} 退回+${report.fallbackCount - (report.fallbackBaseline ?? 0)}] ${report.decisions.map((d) => (d.allowed ? '放行' : '挡')).join(' ')}`,
+      );
+      resolveSpawn(report);
+    });
+  });
+}
+
+/** 两个进程**同时**各打同一只键 `times` 次（同一上界、同一限额）。 */
+async function runCapPair(labelA: string, labelB: string, maxKeys: number, key: string, limit: number, times: number): Promise<[ProbeReport, ProbeReport]> {
+  const pair = await Promise.all([spawnCapChild(labelA, maxKeys, key, limit, times), spawnCapChild(labelB, maxKeys, key, limit, times)]);
+  console.log(`[满额对] ${labelA}(pid=${pair[0].pid}) + ${labelB}(pid=${pair[1].pid}) 同一只键 ${key}`);
+  return pair;
+}
+
 // ① 跨进程共享窗口：三个进程各打一次都放行，第四个进程被挡。
 await wipe(KEY_SEQ);
 const seq = [1, 2, 3, 4].map((n) => runProbe(`seq-${n}.json`, 'redis', REDIS_URL, KEY_SEQ, SEQ_LIMIT, 1, false));
@@ -472,6 +523,21 @@ const capBuckets = await keysUnderPrefix(CAP_PREFIX);
 const capIndexSize = await wire.zcard(CAP_INDEX);
 // 被拒的那只键必须**不在** Redis 里（它在的是那台进程的窗口）
 const capThirdBuilt = capBuckets.includes(`${CAP_PREFIX}${KEY_CAP_C}`);
+
+// ④″ 满额时**两台同时**撞同一只建不出来的键（第三十六片，还 ADR-0081 仍欠 4 / ADR-0082 仍欠 4）。
+//     此刻 A/B 已占满名额，所以 D 在两台手里都建不出来 ⇒ 两台各走本机窗口 ⇒ 各放 `CAP_PAIR_LIMIT` 次、
+//     合计 2×限额。这一句的分量全在"合计"：把上界错当成"每台各一份"时，单看任何一台的行为
+//     与正确的实现一模一样，只有两台合计能分开那两种读法——所以这一组必须并发，也必须有两台。
+//     紧跟的对照只换名额不换形状：同一对进程、同一只键、同样的打法，换成宽上界 ⇒ D 建得出来、
+//     两台落到同一条共享窗口 ⇒ 合计恰好放 `CAP_PAIR_LIMIT` 次。少了这一句，上面那句"合计 2×限额"
+//     分不清是"名额用完各数各的"还是"两个进程本来就不共享任何东西"。
+const capPairTight = await runCapPair('cap-7.json', 'cap-8.json', CAP_MAX_KEYS_TIGHT, KEY_CAP_D, CAP_PAIR_LIMIT, CAP_PAIR_TIMES);
+const capPairTightBuckets = await keysUnderPrefix(CAP_PREFIX);
+const capPairRoomy = await runCapPair('cap-9.json', 'cap-10.json', CAP_MAX_KEYS_ROOMY, KEY_CAP_D, CAP_PAIR_LIMIT, CAP_PAIR_TIMES);
+const capPairRoomyBuckets = await keysUnderPrefix(CAP_PREFIX);
+const capPairKeyD = `${CAP_PREFIX}${KEY_CAP_D}`;
+const capPairTightBuilt = capPairTightBuckets.includes(capPairKeyD);
+const capPairRoomyBuilt = capPairRoomyBuckets.includes(capPairKeyD);
 
 // ⑤′ 控制：同一串请求换成宽上界 ⇒ 三只键都建得出来、一次退回都没有。
 //     少了这一句，④′ 那句"第三只被拒"就分不清是上界生效，还是"第三个进程天生被拒"。
@@ -569,6 +635,26 @@ const verdicts: [string, boolean, string][] = [
     `被拒新建的那只键连打 ${capThird.decisions.length} 次（限额 ${capThird.limit}）给出「${capAllowedSeq(capThird)}」——放行数恰好是它自己的限额，说明本机窗口接住了判定；这句才是"拒绝新建"的取向（不是免检）`,
   ],
   [
+    'OVER_CAP_SCOPE_IS_PER_PROCESS',
+    capPairTight.every((r) => r.ready === true)
+      && new Set(capPairTight.map((r) => r.pid)).size === 2
+      && capPairTight.every((r) => r.decisions.filter((d) => d.allowed).length === CAP_PAIR_LIMIT && r.decisions[r.decisions.length - 1]?.allowed === false)
+      && allowedOf(...capPairTight) === CAP_PAIR_LIMIT * 2,
+    `两台同时各打同一只建不出来的键 ${CAP_PAIR_TIMES} 次（限额 ${CAP_PAIR_LIMIT}）：${capPairTight.map((r) => `${r.pid}→${capAllowedSeq(r)}`).join(' / ')}，合计放行 ${allowedOf(...capPairTight)}（应为 2×限额=${CAP_PAIR_LIMIT * 2}）——退回期间那份额度是这台各算各的。与断线那组的 FALLBACK_SCOPE_IS_PER_PROCESS 同一条降级路径、不同的触发原因，这一格才是"跨进程"那句话的见证`,
+  ],
+  [
+    'OVER_CAP_PAIR_REFUSES_TO_BUILD',
+    !capPairTightBuilt
+      && capPairTightBuckets.length === CAP_MAX_KEYS_TIGHT
+      && capPairTight.every((r) => (r.fallbackByReason?.['over-cap'] ?? 0) === CAP_PAIR_TIMES && capDelta(r) === CAP_PAIR_TIMES && !('command-failed' in (r.fallbackByReason ?? {})) && !('bad-reply' in (r.fallbackByReason ?? {}))),
+    `同时满额那两台之后：D 这只键没建起来=${!capPairTightBuilt}、前缀里仍只有 ${capPairTightBuckets.length} 只桶键（上界 ${CAP_MAX_KEYS_TIGHT}：${capPairTightBuckets.map((k) => k.slice(CAP_PREFIX.length)).join(' | ')}）、两台各自的退回原因 ${capPairTight.map(capReasons).join(' / ')}（只有 over-cap 才算数；出现 command-failed 就是线路坏了，不是名额满了）`,
+  ],
+  [
+    'PAIR_WITH_ROOM_SHARES_ONE_WINDOW',
+    capPairRoomy.every((r) => r.ready === true && capDelta(r) === 0) && capPairRoomyBuilt && allowedOf(...capPairRoomy) === CAP_PAIR_LIMIT,
+    `对照：同一对进程、同一只键、同样各打 ${CAP_PAIR_TIMES} 次，只把名额换成 ${CAP_MAX_KEYS_ROOMY} ⇒ 键建出来了=${capPairRoomyBuilt}（应为 true）、退回 ${capPairRoomy.map((r) => `+${capDelta(r)}`).join('/')}（应为 +0/+0）、合计放行 ${allowedOf(...capPairRoomy)}（应为限额本身=${CAP_PAIR_LIMIT}）。两句合起来才把上面那个"合计 2×限额"钉成"名额用完各数各的"，而不是"两个进程天生不共享"`,
+  ],
+  [
     'CEILING_INDEX_MATCHES_BUCKET_KEYS',
     capIndexSize === capBuckets.length && capThird.tracked === capIndexSize,
     `名册 ${capIndexSize} 条、真实桶键 ${capBuckets.length} 只、被拒那台自己读到的名册 ${capThird.tracked} 条——三个数必须是一个数：名额数的是这条驱动真写下的键，不是账面上虚增的条目`,
@@ -583,5 +669,5 @@ for (const [name, ok, detail] of verdicts) console.log(`verdict ${name}: ${ok ? 
 const failed = verdicts.filter(([, ok]) => !ok).map(([name]) => name);
 if (failed.length) throw new Error(`判据没过：${failed.join(', ')}｜产物在 ${WORK}`);
 console.log(
-  `跨进程限流通过：${seq.length + mem.length + 2 + deadPair.length + capFull.length + capRoomy.length} 个进程、线路 ${REDIS_URL}。`,
+  `跨进程限流通过：${seq.length + mem.length + 2 + deadPair.length + capFull.length + capRoomy.length + capPairTight.length + capPairRoomy.length} 个进程、线路 ${REDIS_URL}。`,
 );

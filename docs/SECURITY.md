@@ -33,6 +33,11 @@
   这里有一个地方可以挪，所以**不动任何人的既有窗口**。因此 `over-cap` 在涨说的是
   "Redis 这一侧的桶名额用完了"，正解是给那台 Redis 做容量规划或分片，**不是把这个数调大**。
   退回日志按原因各一分钟一条（Redis 坏着 + 有人在刷时，每请求一行 `console.error` 就是这道闸自己开的磁盘写）。
+  **这笔代价在多实例部署下是每台各一份**：名额用完时两台各自放行到自己的限额、合计约 `实例数 × 限额`
+  （与断线退回同一格、不同触发原因）。它不是注释里的推理，而是有门的——
+  `npm run ratelimit:two-process` 里 `OVER_CAP_SCOPE_IS_PER_PROCESS` 用**两个真进程同时撞同一只建不出来的键**，
+  判据读的是两台**合计**（单看任何一台，"上界每台各一份"那版错实现给得出同样的形状），
+  对照 `PAIR_WITH_ROOM_SHARES_ONE_WINDOW` 在有名额时把合计钉回限额本身（ADR-0081「第三十六片补的那一组」）。
   IP 取的是转发链的**可信右端**，
   不是客户端随手写的最左端：`x-forwarded-for` 是追加出来的链条，判决与限度见 `docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`；
   **三行转发头都读**——`x-forwarded-for` → RFC 7239 的 `Forwarded`（只认 `for=`，`by`/`proto`/`host` 永不进桶键）→ `x-real-ip`，

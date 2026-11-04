@@ -69,7 +69,8 @@
   代价是退回期间那一台的额度是它自己看到的次数（`docs/adr/0076-rate-limit-redis-sliding-window.md`）。
 - 本机跑法：`NEXUS_REDIS_URL=redis://127.0.0.1:56379`；跨实例那层用 `npm run realtime:two-process` 验，
   它只要 Redis、不要数据库，起不来时会先打一句"线路不通"而不是等 25 秒超时。
-  限流那一层的跨实例同样有一条：`npm run ratelimit:two-process`（2026-11-03 起 **18 个真进程、16 条判据**，
+  限流那一层的跨实例同样有一条：`npm run ratelimit:two-process`（2026-11-03 起 **18 个真进程、16 条判据**；
+  2026-11-05 第三十六片加满额那两台后是 **22 个真进程、19 条判据**，
   判据读的是父进程自己 `ZRANGE`/`SCAN` 出来的那两条集合与那个前缀下的键数，不采信孩子进程的自述）。
 
 ### ⚠️ 这台 `nexus-redis` 实测没有容量上限，所以上界写在应用里（2026-11-03 实测）
@@ -92,6 +93,13 @@ docker inspect nexus-redis --format '{{.HostConfig.Memory}}' → 0（容器也�
   被淘汰的那个身份下一次命中重新变空（`nexus_rate_limit_buckets_pruned_total{reason="cap"}` 在涨）；
   **设了**的那台把窗口挪进 Redis，键数由这条驱动自己钉住（`{reason="over-cap"}` 在涨说的是名额用完，
   不是 Redis 坏了）。两种形状都不等于"没有上界"，也都不等于"做了容量规划"。
+- **设了 `NEXUS_REDIS_URL` 的那台，启动后第一笔判定可能是本机窗口给的**（§SEC 第三十五片实测到的，
+  ADR-0082 仍欠 1 走的是这里这条"写进部署口径"，不是"第一笔去等 `ready`"——后者要动每请求排队预算）：
+  连接是异步建的，而 `hit` 从来不等它（`rateLimitRedis.ts` 里 `ready` 那一段明写这是有界的退化，
+  不是免检），所以刚起来那几笔走进程内窗口，最多多放 `limit` 次。读数在哪：`/admin/rate-limit` 的
+  `fallbackByReason` 里 `command-failed` 那一格（启动期那笔的形状是 `Stream isn't writeable and
+  enableOfflineQueue options is false` 或一次 `Command timed out`），以及"线路"那格在刚起来时可能是
+  `pending`。**这不是 bug 的口径，是部署要知道的事**：一台冷启动实例在头几笔上等同"不设变量的那台"。
 
 - **限流闸诊断页的 e2e 有两种形状，一轮只测一种**（§SEC 第三十五片，2026-11-05）：
   `e2e/ratelimit-admin.spec.ts` 里 `driver` 由 **dev server 的环境**决定，不由 spec 决定——所以
