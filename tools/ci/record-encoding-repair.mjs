@@ -21,7 +21,12 @@
 // damage cannot say whether the follower was a space, a digit or a letter. Three channels decide, and
 // the site is REFUSED when none agrees:
 //   UNIQUE    the render registry carries one producer              -- exact, nothing to decide
-//   SPACED    the file's own attested ' GLYPH ' habit              -- decides the glyph AND the space
+//   SPACED    the file's own attested ' GLYPH ' habit              -- decides the glyph AND the space,
+//             but only at a site whose own left neighbour IS that space. A census is a witness about the
+//             sites that match the habit, and a digit-flanked range is not one of them (measured at v596:
+//             docs/KNOWN_ISSUES.md's "Amendments 2<en dash>3" damaged its follower byte and the old SPACED
+//             channel restored the file's dominant "em dash + space" there -- a plausible character that
+//             no byte in the record supports, which is a second defect a plain diff cannot see)
 //   FOLLOWER  the distribution of what this file follows the glyph with, when the spaced habit is thin
 // Below the agreement floor (0.8) or below 20 attestations, the tool declines the site, reports why,
 // and writes NOTHING for the whole file: a half-repaired record is the worst of the three outcomes.
@@ -237,6 +242,11 @@ export function planText(text, { floor = FLOOR, attestations = ATTESTATIONS } = 
       let glyph, channel, spacedAttestations = null;
       if (glyphs.length === 1) { glyph = glyphs[0]; channel = 'UNIQUE'; }
       else {
+        const left = s.at > 0 ? chars[s.at - 1] : '';
+        if (left !== ' ') {
+          refused.push(`${tag} -- SPACED cannot witness this site: the attested habit is a space-flanked glyph, and the character the bytes put on its left is ${JSON.stringify(left)}, not a space -- the census is counting other sites than this one`);
+          continue;
+        }
         const ranked = glyphs.map((g) => ({ g, n: countIn(text, ` ${g} `) })).sort((a, b) => b.n - a.n);
         const sum = ranked.reduce((t, r) => t + r.n, 0);
         const share = sum ? ranked[0].n / sum : 0;

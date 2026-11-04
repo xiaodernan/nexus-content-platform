@@ -76,3 +76,15 @@ commit_msg.txt
 # the mutation probe's per-process scratch box (v531). A crashed run leaves one behind, and an
 # untracked box in apps/studio is one broad `git add` away from an unrelated commit.
 .nexus-mut-probe*/
+
+# the lanes' scratch directory and the console captures a test run leaves at the root (v606).
+# Measured 2026-11-05: `ee96711` (subject "'v602'") swept a broad add that TRACKED 110 `.nexus-tmp/`
+# files plus `run-result.txt`, `test_output.txt` and `test-output.txt`, and `verify:record-encoding`
+# has been RED on every push since: those captures hold M1/M2 mojibake and raw ESC bytes -- 2545
+# chargeable lines / 34999 sites -- and the repo's own repairer reads all 34999 of them and declines
+# 30074, so no repair channel can clear the gate while the names sit in the graded population. They are
+# console output, not evidence, so the repair is to stop tracking them; every byte stays on disk.
+.nexus-tmp/
+run-result.txt
+test_output.txt
+test-output.txt

@@ -1,8 +1,0 @@
-[§1] validator: well-formed passes · service-down and no-document are distinct · 4 malformed fields each refused by name
-[§2] lane: read request is `{action:"read"}` · document passed through · down service and throwing transport both answer ok:false
-[§3] fork: fresh document id · same node graph · source unmutated · name suffixed "(remix)"
-[§3b] lineage: the stamp names the source and the instant · the source document is unmutated · a remix of a remix names its OWN source · a blank source or instant is refused by name
-[§4] wiring: remix control per row · panel imports the lane · store forks before load AND stamps the lineage · the caller names the instant
-[§5] visitor loop: artifact carries an encoded remix link · no id → no bar · route names the project · Studio reads the intent, forks, and drops it
-[§6] audit: lane holds no service address and no server import · the DesignDocument TYPE is type-only · the panel speaks only to the lane
-[remix-proof] ALL SECTIONS PASSED

@@ -1,8 +1,0 @@
-GATE record-encoding exit=record-encoding OK
-GATE evidence-census exit=evidence-census OK
-GATE ci-wiring exit=ci-wiring OK
-GATE record-window exit=record-window OK
-GATE table-recount FAILED rc=1
-GATE package-counts exit=package-counts OK
-GATE audit-contract exit=audit-contract OK
-ALL DONE

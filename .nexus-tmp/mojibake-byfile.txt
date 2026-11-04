@@ -1,9 +1,0 @@
-files with hits: 8
-{"FFFD":58998,"invalidUtf8Bytes":true}  docs/evidence/studio/harness/studio-assets.png
-{"FFFD":53866,"invalidUtf8Bytes":true}  docs/evidence/studio/harness/studio-scene3d.png
-{"FFFD":44855,"invalidUtf8Bytes":true}  docs/evidence/m7/harness/studio-publish.png
-{"FFFD":43600,"invalidUtf8Bytes":true}  docs/evidence/studio/harness/studio-world.png
-{"FFFD":40888,"invalidUtf8Bytes":true}  docs/evidence/studio/harness/studio-after-compose.png
-{"FFFD":24851,"invalidUtf8Bytes":true}  docs/evidence/studio/credits-surface/credits-surface.png
-{"EMDASH_MOJIBAKE":35,"invalidUtf8Bytes":false}  docs/decisions/0016-agent-runtime-hermetic-demo-loop.md
-{"EMDASH_MOJIBAKE":14,"invalidUtf8Bytes":false}  docs/evidence/m9/README.md
