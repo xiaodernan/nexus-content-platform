@@ -157,6 +157,28 @@
 // is still not read, and a live module that imports an UNtracked path outside docs/evidence is not reddened here —
 // `helperClosure` grades the dangling edges the census can see, and ci-wiring grades the workflow.
 //
+// v609 (this increment; the ADR 0016 section is still owed for v606-v609 and the ledger files sit in another lane's
+// uncommitted set, so this header keeps the record) - A MEASUREMENT NOBODY CAN RE-READ IS A SENTENCE. v607 and v608
+// together wrote eleven deferrals, and each states its evidence as prose with numbers in it: "684 lines", "a Studio
+// served on 127.0.0.1:3210". Nothing re-read those numbers, which is exactly the rot v543 killed in the README by
+// recomputing its cells — and the grade found one already stale as this line was written: the container driver
+// reads 95 lines to a reader that counts its unterminated last line, and v608's own entry said 94. So gradeMeasured
+// below runs on every declarable deferral in the file — MANIFEST's deferred entries against the module their script
+// calls, TOOLS_STANDBY against the module it stands down, and the evidence ROSTER's deferred entries against their
+// own file — and grades two families of claim against those bytes:
+//   N LINES     must equal the census's own count of the module the entry NAMES (not of any module it mentions: the
+//               arm that claims the launcher's line count instead of its door's is red), counting the last line even
+//               when it carries no terminating newline, because that is the line a reader sees.
+//   127.0.0.1:P must appear in those bytes, because the address is the prerequisite the deferral is blaming; a
+//               comment that mentions it counts, and a module that never says it does not.
+// A measured field with NEITHER kind of claim is refused too — "it is slow" cannot be re-derived, so it cannot be
+// re-checked either — and a module the entry blames that the commit owns but this box cannot read is named rather
+// than skipped, because a claim nobody can open is the silence this file exists to break. Seven fixture arms aim at
+// these refusals, one per declaration site and one per family, and what the rule still cannot see is named: a
+// duration, a count of checks or a hosted run number is prose ABOUT a measurement rather than a re-derivation of
+// one, so only the two families above are graded. The bytes graded are the ones `read` returns — the worktree here,
+// a fresh checkout in CI — which is what makes a drift a red for the person who caused it rather than a note later.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -350,6 +372,53 @@ export function runCommandsOf(workflow) {
 /** The three dispositions a non-row `verify:*` script may hold, plus the refusal for everything else. */
 export const MANIFEST_CLASSES = ['runner', 'covered', 'deferred'];
 
+/** How many lines a reader sees when they open the file. */
+export const lineCount = (text) => String(text ?? '').replace(/\n$/, '').split('\n').length;
+
+/** The two families of claim a `measured` field can state in a form another run can re-derive from bytes. */
+export function measuredClaims(measured) {
+  const src = String(measured ?? '');
+  return {
+    lines: [...src.matchAll(/(\d+)\s+lines?\b/g)].map((m) => Number(m[1])),
+    ports: [...src.matchAll(/127\.0\.0\.1:(\d+)/g)].map((m) => m[0]),
+  };
+}
+
+/**
+ * Grade the numbers a declared deferral states against the bytes of the module that entry NAMES (v609).
+ *
+ * `wc -l` counts terminators, so a file whose last line carries none reads one shorter than the eye; this counts
+ * the line a reader sees, which is the number a person can reproduce by opening the file. Both families are
+ * graded against the SAME module the entry blames, and that is the whole point: a true count of some module the
+ * entry merely mentions is a sentence about a different file. A field stating neither kind of claim is refused —
+ * "it is slow" cannot be re-derived, so nothing can ever prove it stopped being true — and a blamed module the
+ * commit owns but this box cannot read is named rather than skipped, because a claim nobody can open is the
+ * silence this file exists to break. An UNtracked path is skipped on purpose: the caller already reddens it, and
+ * a second red for the same missing file is noise that drowns the refusal a reader would act on.
+ */
+export function gradeMeasured({ who, modulePath, measured, isTracked, read }) {
+  const violations = [];
+  if (!isTracked) return violations;
+  const bytes = read?.(modulePath);
+  if (typeof bytes !== 'string') {
+    violations.push(`${who} states numbers about ${modulePath}, which the commit owns but this box cannot read — the claim is unfalsifiable here, so it is refused here`);
+    return violations;
+  }
+  const claims = measuredClaims(measured);
+  if (claims.lines.length === 0 && claims.ports.length === 0) {
+    violations.push(`${who}'s measured field states no line count and no served address (${JSON.stringify(measured)}) — a measurement nobody can re-read from the bytes is a sentence, not a disposition`);
+    return violations;
+  }
+  const own = lineCount(bytes);
+  for (const n of claims.lines) {
+    if (n !== own) violations.push(`${who} claims ${modulePath} reads ${n} line(s); this census counts ${own} in its bytes — the number graded is the one for the module this entry blames, not one it mentions (if ${n} is true of another file, say which in prose)`);
+  }
+  for (const a of claims.ports) {
+    if (!bytes.includes(a)) violations.push(`${who} claims ${modulePath} asks for ${a}; that address is not in its bytes — the prerequisite a deferral blames has to be the one the module really reaches for`);
+  }
+  return violations;
+}
+
 /**
  * The manifest census: a pure function over (all scripts, the whole index, a reader, the workflow text and the
  * MANIFEST declarations), returning the dispositions and the violations. Like `censusOf`, it decides nothing about
@@ -425,6 +494,13 @@ export function manifestOf({ scripts, index, read, workflow, manifest = [] }) {
       for (const [field, bound] of [['measured', 40], ['blocker', 40], ['next', 40]]) {
         if (String(e[field] ?? '').length < bound) violations.push(`${name} is deferred without a ${field} of at least ${bound} characters (${JSON.stringify(e[field])}) — a deferral that stops being measured is a permanent exclusion wearing a new word`);
       }
+      violations.push(...gradeMeasured({
+        who: `${name} (deferred)`,
+        modulePath: target,
+        measured: e.measured,
+        isTracked: target !== undefined && indexSet.has(target),
+        read,
+      }));
     }
   }
 
@@ -520,7 +596,7 @@ export const TOOLS_STANDBY = [
   {
     path: 'tools/harness/studio-container.mjs',
     replacedBy: 'docs/evidence/studio/container-lane-proof.mjs',
-    measured: '94 lines; its own code imports ./cdp.mjs, navigates the URL_BASE default 127.0.0.1:3211 and drives four checks of the dock CONTAINER face (daemon version with the pinned image, the self-check ask, the container.exec ledger entry, console silence)',
+    measured: '95 lines (its last carries no terminating newline, and this count is the one a reader sees); its own code imports ./cdp.mjs, navigates the URL_BASE default 127.0.0.1:3211 and drives four checks of the dock CONTAINER face (daemon version with the pinned image, the self-check ask, the container.exec ledger entry, console silence)',
     blocker: 'a real Chrome, a Studio served on 127.0.0.1:3211 and a docker daemon the runner does not have: the workflow pre-pulls node:22-alpine for the build rows but starts no browser and no dev server',
     next: 'the amendment-534 route: stand up its own Studio and docker the way docs/evidence/m7/studio-publish.mjs does and spawn this driver from that proof, which DERIVES it as reached and deletes this entry',
     why: 'the container face is the one the shipped dock asks a human to allow, and a driver that grades it from outside the build is a measurement nobody re-runs',
@@ -731,6 +807,7 @@ export function toolsCensusOf({ index, scripts, read, manifestReport, standby = 
       if (!indexList.includes(replacedBy)) violations.push(`${path} claims ${replacedBy} grades the same face, and the commit does not own that file`);
       else if (!rowSet.has(replacedBy)) violations.push(`${path} claims ${replacedBy} grades the same face, but PROOF_COMMAND derives no row from it — naming a swept proof as the replacement names a door the build does not walk`);
     }
+    violations.push(...gradeMeasured({ who: `${path} (standby)`, modulePath: path, measured: e.measured, isTracked: indexList.includes(path), read: readOnce }));
   }
 
   const unreached = population.filter((f) => classes.get(f) === 'unreached');
@@ -803,6 +880,7 @@ export function censusOf({ tracked, scripts, excluded = [], roster = [], swept =
       if (String(e.measured ?? '').length < 20) violations.push(`${e.file} is deferred without a measurement (${JSON.stringify(e.measured)}) — a deferral needs a number from a named plane`);
       if (String(e.blocker ?? '').length < 40) violations.push(`${e.file} is deferred without naming the sandbox prerequisite (${JSON.stringify(e.blocker)})`);
       if (String(e.next ?? '').length < 40) violations.push(`${e.file} is deferred without naming the repair that wires it (${JSON.stringify(e.next)}) — a blocker with no next repair is a permanent exclusion wearing a new word`);
+      violations.push(...gradeMeasured({ who: `${e.file} (roster deferral)`, modulePath: e.file, measured: e.measured, isTracked: trackedSet.has(e.file), read }));
     }
   }
 
@@ -897,7 +975,7 @@ const BASE = () => ({
     'tools/ci/fx-inner.mjs': '\n',
     'tools/ci/fx-dormant.mjs': '// the fixture repairer nothing imports\n',
     'tools/harness/cdp.mjs': 'export const launch = async () => ({});\n',
-    'tools/harness/fx-browser.mjs': "import { launch } from './cdp.mjs';\n",
+    'tools/harness/fx-browser.mjs': "import { launch } from './cdp.mjs';\nconst url = 'http://127.0.0.1:3210';\n",
     'services/nexus-api/pom.xml': '<project/>\n',
   },
   // The workflow as CI would check it out: run lines inline and as a block scalar, one comment that quotes the
@@ -942,7 +1020,7 @@ const BASE = () => ({
       class: 'deferred',
       run: 'npm run verify:browser',
       reach: 'tools/harness/cdp.mjs',
-      measured: 'a fixture proof that imports the CDP launcher and navigates a URL it never starts, counted off its own bytes on this plane',
+      measured: '2 lines; navigates 127.0.0.1:3210, a URL this plane never starts, counted off the bytes of the module the entry names',
       blocker: 'a browser binary and a served app, neither of which the fixture workflow installs or starts before the proofs step runs',
       next: 'start its own app the way the shipped publish proof does and move under docs/evidence, which makes PROOF_COMMAND derive it as a row',
       why: 'a real-browser walk with an unstalled prerequisite is a human-run measurement, and the fixture plane needs one to arm against',
@@ -953,7 +1031,7 @@ const BASE = () => ({
     {
       path: 'tools/ci/fx-dormant.mjs',
       reachedBy: 'docs/evidence/x/tool.mjs',
-      measured: 'the fixture repairer, named as a string value by the fixture tool and imported by nothing on this plane',
+      measured: '1 line; the fixture repairer, named as a string value by the fixture tool and imported by nothing on this plane',
       blocker: 'a fixture prerequisite the fixture workflow does not install, stated so the arms have something to refuse',
       next: 'wire the fixture row that imports it, which derives it as reached and deletes this fixture entry',
       why: 'the fixture plane needs a standby witness for the four refusals this class answers',
@@ -1035,7 +1113,7 @@ const ARMS = [
       class: 'deferred',
       run: 'node docs/evidence/x/swept-proof.mjs',
       why: 'a deferred entry exists to name what would wire it, and this arm removes exactly that sentence',
-      measured: '1.0 s on a synthetic plane, 2026-10-28',
+      measured: '1 line of bytes; 1.0 s on a synthetic plane, 2026-10-28',
       blocker: 'the sandbox prerequisite is named so the arm reaches the next-repair refusal instead',
       next: '',
     });
@@ -1103,7 +1181,7 @@ const ARMS = [
       class: 'deferred',
       run: 'npm run verify:row',
       reach: 'tools/harness/cdp.mjs',
-      measured: 'a row dressed as a deferral, which would take a build door out of the build with a sentence',
+      measured: '2 lines; a row dressed as a deferral, which would take a build door out of the build with a sentence',
       blocker: 'nothing: this fixture entry exists to be refused, because the class it claims is DERIVED from the manifest command',
       next: 'delete the entry, and the census reads the row off package.json the way the runner does',
       why: 'a declaration cannot retire a derived row, and this arm is the witness that the census says so',
@@ -1123,7 +1201,7 @@ const ARMS = [
     assert.ok(!r.manifest.coverage.has('verify:svc'), 'the coverage map must not hold a claim the workflow cannot answer');
   }],
   ['M6 a deferral whose reach is only prose', (f) => {
-    f.files['tools/harness/fx-browser.mjs'] = "// import { launch } from './cdp.mjs';\nconst url = \"./cdp.mjs\";\n";
+    f.files['tools/harness/fx-browser.mjs'] = "// import { launch } from './cdp.mjs';\nconst url = \"./cdp.mjs\"; // the address it asks for is 127.0.0.1:3210\n";
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('does not IMPORT it outside its comments')), `prose reach: ${r.violations.join(' | ')}`);
   }],
@@ -1156,7 +1234,7 @@ const ARMS = [
     f.toolsStandby.push({
       path: 'tools/ci/fx-lib.mjs',
       reachedBy: 'docs/evidence/x/tool.mjs',
-      measured: 'a fixture module the fixture row already imports, declared standby here only to aim at the shadow refusal',
+      measured: '1 line; a fixture module the fixture row already imports, declared standby here only to aim at the shadow refusal',
       blocker: 'none — the whole point of this fixture entry is that a derived class cannot be re-declared away',
       next: 'delete this entry, which is what the refusal asks for the day the door really stops running',
       why: 'the shadow arm needs a well-formed declaration so that only the shadowing itself is red',
@@ -1202,7 +1280,7 @@ const ARMS = [
     f.toolsStandby.push({
       path: 'tools/ci/fx-old.mjs',
       replacedBy: 'docs/evidence/x/swept-proof.mjs',
-      measured: 'a fixture driver replaced, it claims, by a proof the build never walks — the claim this refusal exists to test',
+      measured: '1 line; a fixture driver replaced, it claims, by a proof the build never walks — the claim this refusal exists to test',
       blocker: 'a prerequisite this fixture plane does not have, named so the entry looks complete except for its witness',
       next: 'name the row that really grades the face, or wire this driver, which is what the refusal asks for',
       why: 'a replacement nobody runs is not a replacement, and this fixture proves the census says so',
@@ -1212,6 +1290,54 @@ const ARMS = [
   }],
   ['T12 a standby with no witness at all', (f) => { delete f.toolsStandby[0].reachedBy; }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('fx-dormant.mjs') && v.includes('no witness')), `unwitnessed: ${r.violations.join(' | ')}`);
+  }],
+  // ── the measurement arms: a deferral's numbers are graded against the bytes it blames (v609) ──────────
+  ['N1 a manifest deferral whose line count drifted', (f) => {
+    f.manifest[2].measured = '3 lines; navigates 127.0.0.1:3210, a URL this plane never starts, counted off the bytes of the module the entry names';
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('reads 3 line(s); this census counts 2')), `stale line count: ${r.violations.join(' | ')}`);
+  }],
+  ['N2 a manifest deferral that blames an address the module never asks for', (f) => {
+    f.manifest[2].measured = '2 lines; navigates 127.0.0.1:9999, a port no app on this plane binds, counted off the bytes of the module the entry names';
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('127.0.0.1:9999') && v.includes('is not in its bytes')), `false address: ${r.violations.join(' | ')}`);
+  }],
+  ['N3 a standby whose line count drifted', (f) => {
+    f.toolsStandby[0].measured = '2 lines; the fixture repairer, named as a string value by the fixture tool and imported by nothing on this plane';
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('fx-dormant.mjs (standby)') && v.includes('reads 2 line(s); this census counts 1')), `stale standby: ${r.violations.join(' | ')}`);
+  }],
+  ['N4 a deferral that states numbers about a module this box cannot read', (f) => {
+    delete f.files['tools/ci/fx-dormant.mjs'];
+    f.index = Object.keys(f.files).concat('tools/ci/fx-dormant.mjs');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('fx-dormant.mjs') && v.includes('owns but this box cannot read')), `unreadable blame: ${r.violations.join(' | ')}`);
+  }],
+  ['N5 a roster deferral whose line count drifted', (f) => {
+    f.roster.push({
+      file: 'docs/evidence/x/swept-proof.mjs',
+      class: 'deferred',
+      run: 'node docs/evidence/x/swept-proof.mjs',
+      why: 'a deferral whose own measurement is one line out of date, which is the rot this arm exists to refuse',
+      measured: '9 lines; 1.0 s on a synthetic plane, 2026-10-28',
+      blocker: 'a sandbox prerequisite named in full so that only the stale number in its measurement is red',
+      next: 're-read the count off the bytes and correct this field, which is what the refusal asks the writer to do',
+    });
+    f.swept = []; // keep the entry a deferral rather than a derived swept row
+    f.readme = f.readme.replace('| SWEPT | **1**', '| SWEPT | **0**').replace('| DEFERRED | **0**', '| DEFERRED | **1**');
+  }, (r) => {
+    assert.deepEqual(r.violations.filter((v) => !v.includes('reads 9 line(s)')), [], `N5 was meant to raise one refusal, not ${JSON.stringify(r.violations)}`);
+    assert.ok(r.violations.some((v) => v.includes('swept-proof.mjs (roster deferral)') && v.includes('reads 9 line(s); this census counts 1')), `stale roster: ${r.violations.join(' | ')}`);
+  }],
+  ['N6 a count that is true of the launcher rather than the door', (f) => {
+    f.manifest[2].measured = '1 line; navigates 127.0.0.1:3210, a URL this plane never starts — the count read off the launcher this door imports, not off the door itself';
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('reads 1 line(s); this census counts 2') && v.includes('not one it mentions')), `wrong module: ${r.violations.join(' | ')}`);
+  }],
+  ['N7 a measured field that states nothing a reader can re-read', (f) => {
+    f.manifest[2].measured = 'it is slow on a real browser and needs a served app, which is the whole reason this door is not a row on this plane';
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('no line count and no served address')), `unre-readable: ${r.violations.join(' | ')}`);
   }],
 ];
 

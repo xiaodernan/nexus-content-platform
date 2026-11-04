@@ -328,10 +328,11 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
-the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **43
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **50
 fixture arms** prove each refusal on a synthetic plane — the fourteen above, six that drift one README number
-each, eleven that dispose the manifest's blind side and twelve that dispose the tools corpus behind it (the next
-two blocks); the prose-import arm proves the tokenizer is the sweep's, not a byte regex.
+each, eleven that dispose the manifest's blind side, twelve that dispose the tools corpus behind it (the next two
+blocks) and seven that grade the numbers those deferrals state (the block after); the prose-import arm proves the
+tokenizer is the sweep's, not a byte regex.
 
 **The manifest's other half.** The population above is `git ls-files -- docs/evidence`, which answers "does every
 evidence module have a channel?" and says nothing about the mirror question: does every `verify:*` NAME have one?
@@ -364,6 +365,20 @@ derived row that grades the same face. A comment quoting the path buys nothing, 
 buys nothing, and a module no class reaches reddens the build by name. The bound is stated rather than hidden: the
 closure sees `from '…'` and `import('…')` only, so a row that *spawns* `node tools/x.mjs` is invisible to it, and a
 standby is the honest record of that case rather than an accusation.
+
+**A deferral's numbers are graded against the bytes it blames (v609).** Eleven deferrals between them state
+"684 lines" and "a Studio served on 127.0.0.1:3210", and until this clause nothing re-read either — the same rot
+v543 killed in this file's own table by recomputing its cells, found live again the day it was written: the container
+driver reads **95** lines to a reader who counts its last line even when it carries no terminating newline, and v608
+wrote 94. `gradeMeasured` runs on every declarable deferral the census holds — a `MANIFEST` deferral against the
+module its own script calls, a `STANDBY` entry against the module it stands down, a deferred `ROSTER` entry against
+its own file — and refuses four things: a `N lines` claim that is not the count of THAT module (a number true of a
+file the entry merely mentions is red — the entry's evidence is about one file, and grading it against another is
+how a stale claim survives), an address the blamed bytes never ask for, a measured field stating NEITHER kind of
+claim, and a module the commit owns but this box cannot read. A duration, a count of checks or a hosted run number
+stays prose ABOUT a measurement rather than a re-derivation of one, and the clause says so instead of pretending to
+grade it; the next drift a reader spots in one of these eleven entries is a red the build raises, not a correction
+someone owes.
 
 Four rows that needed nothing but Node walked through the door in the same increment:
 
