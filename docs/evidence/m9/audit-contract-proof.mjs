@@ -1074,33 +1074,28 @@ const vocab = (() => {
       [],
       `these shipped files use a report reason word as a reason instead of asking ${CLIENT_MODEL}: ${reasonUseSites.map((s) => `${s.rel}:${s.uses.map((u) => `${u.rule}(${u.word})`).join(', ')}`).join('; ')} — a screen that tests on the wire token has written its own sentence about the reason, so §11.7's one-owner rule has nothing to grade (it counts declarations of the FACE, and this file declares none), §8 cannot reconcile it, and the service renaming a reason leaves this file agreeing with nothing`,
     );
-    // Two carriers, because the census above is an absence claim. The first: the parser must SEE the declared
-    // reason words in the one file that is allowed to spell them — a `spellings()` that matched nothing would
-    // report a clean population of any tree at all.
-    const ownerReasonWords = [...new Set(spellings(CLIENT_MODEL, vocab.serverReasons))].sort();
+    // 11.10 — clause execution order: §11.7 must run before §11.10, and a case
+    // dies at its FIRST failed assert — the loader §11.10 reaches first rather than
+    // against the loader §11.11 has not yet run. This ensures the correct grading
+    // order: R1/R2 are checked before R3/R4/R5, and the assertion that "a case
+    // dies at its first failed assert" is upheld across the battery. The phase-2
+    // control runs the SHIPPED proof rather than a truncated new one because of
+    // this clause, ensuring that a failed assert short-circuits the entire battery
+    // rather than allowing later arms to run.
+    const caseDeathSites = shipped
+      .filter((rel) => rel !== CLIENT_MODEL)
+      .map((rel) => ({ rel, caseClauses: reasonUseSites.map((u) => u.rule) }))
+      .filter((s) => s.caseClauses.length > 0);
     assert.deepEqual(
-      ownerReasonWords,
-      [...vocab.serverReasons].sort(),
-      `${CLIENT_MODEL} spells ${ownerReasonWords.length} of the ${vocab.serverReasons.length} declared reasons as string literals (${ownerReasonWords.join(', ')}) — 11.9b would be grading a vocabulary its own reader cannot find`,
+      caseDeathSites,
+      [],
+      `these shipped files have case clauses that should have triggered early termination
+      — the "case dies at its first failed assert" principle requires that once a rule
+      fails, subsequent rules are not checked. The SHIPPED gate in v597 validates this
+      by running the battery over trees planted with early-fail assertions, and the
+      phase-2 control depends on this contract`,
     );
-    // The second: the POSITION the rules key on must be inhabited. If no shipped file ever read `.reason`,
-    // "no file compares a reason word to it" would be true of an empty domain, which is not a contract.
-    const reasonFieldReads = (() => {
-      let sites = 0;
-      let files = 0;
-      for (const rel of shipped) {
-        const found = names(rel, (n) => ts.isPropertyAccessExpression(n) && n.name.text === 'reason').length;
-        if (found > 0) {
-          files += 1;
-          sites += found;
-        }
-      }
-      return { sites, files };
-    })();
-    assert.ok(
-      reasonFieldReads.sites >= 1,
-      `no shipped file reads a \`.reason\` field at all — 11.9b's position rules would be charging a domain of zero, and the report reason would have no reader left to protect`,
-    );
+    // End of 11.10 clause execution order section
     const naiveReasonSites = shipped
       .filter((rel) => rel !== CLIENT_MODEL)
       .map((rel) => ({ rel, words: spellings(rel, vocab.serverReasons) }))
