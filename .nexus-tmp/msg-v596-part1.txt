@@ -1,0 +1,29 @@
+v596 (part 1): 80 double-encoded punctuation sites are put back, the row that caught them goes green
+
+verify:record-encoding was RED on master since f07c318: 26 chargeable lines, 80 sites, all in
+docs/decisions/0016-*.md (amendments 545-548) and docs/evidence/m9/README.md. The sweep that
+landed those amendments wrote them through the channel the row's writer model calls M1/M2: the
+bytes were encoded UTF-8 and decoded as GBK, so an em dash became two characters and ate the
+space behind it, and a section sign became one CJK character.
+
+The repair is derived, not retyped, and every site names the channel that decided it:
+- 15 section-sign and 4 middle-dot sites: one registered producer, and a 2-byte glyph consumes
+  no follower, so the glyph alone goes back (byte delta -1 each)
+- 49 em-dash and 11 arrow sites: seven and two candidate producers respectively, so the file's
+  own spaced habit decides ( ' — ' attested thousands of times against a runner-up under 100 ),
+  and because M1 CONSUMES the follower, the restore is glyph + space, not the glyph alone -
+  the mistake the row's header calls the shape of 17 of its 24 ledger fixes
+- 1 site whose follower survived as a wrong character ( red-cjk-green ) restored from the
+  registry pair rather than the census
+- 0 sites refused: no channel disagreed with itself
+
+One pass is not enough and this is the reason worth keeping: the flank rule rescues a render
+whose tight neighbour is CJK, so a dash sitting in front of a damaged section sign looked
+sheltered and was NOT charged until the section sign behind it was repaired. The repair had to
+iterate to a fixed point (79 sites, then 1, then 0).
+
+Measured: verify:record-encoding green - chargeable lines 0 over 944 graded files, 191
+flank-rejected look-alikes still seen, the ledger's 116 lines paired one-for-one, both planted
+ends of the rule charging. Line counts and codepoint lengths are unchanged on all 27 lines;
+no CR, file still valid UTF-8, no U+FFFD. The tracked repair machinery and ADR amendment 549
+follow in the next commit; the ad-hoc scanner that produced this one is not being kept.

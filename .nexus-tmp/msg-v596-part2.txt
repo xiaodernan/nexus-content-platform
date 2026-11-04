@@ -1,0 +1,29 @@
+v596 (part 2): the two health rows stop refusing the token shape their own message names
+
+Run 41706610786 (sha 66eb1a6, 2026-11-03) read 112/115 green. Two of the three reds were
+verify:health and verify:liveness, both on the same line, both introduced by the m9 rows' first
+contact with ubuntu rather than by anything in this push:
+
+  AssertionError: the reason must be a short token (an exception's simple name or
+  invalid-connection), got "invalid-connection"
+
+The producer declares exactly the two shapes that sentence names - HealthService.java:36 is
+`public static final String INVALID_CONNECTION = "invalid-connection";` and its javadoc says the
+reason is "invalid-connection or an exception's simple name" - while the reader's class
+[A-Za-z_$][A-Za-z0-9_$.]* admits no hyphen. So the row was green on the box whose driver raised a
+PSQLException and red on the runner whose driver returned the constant: a reader refusing a value
+its own refusal message calls legal, which is the defect class this lane exists to catch.
+
+- the class carries the hyphen; measured here that it still refuses every shape that would be a
+  leak ("connection refused", "jdbc:postgresql://127.0.0.1/db", an exception's toString with its
+  colon and host, a leading space, a space inside) and accepts both declared tokens
+- a `detail.length <= 64` bound is added next to it, because "short" was in the sentence and in
+  no assertion
+- both rows carry the same defect in the same line, so both are repaired together
+
+NOT papered over: the third red is this lane's own door. verify:table-recount refuses because the
+newest grant, amendment 548, is named by no record TITLE - amendments 547 and 548 (v594 incidents,
+v595 patches) entered ADR 0016 with their proofs and no README section or proof header carrying
+them, and the door's refusal says to write the record rather than delete the assertion. The record
+belongs to the lane that made the grant, and its README is in that lane's in-flight worktree, so
+the row stays red until its author titles it; nothing here relaxes the door.

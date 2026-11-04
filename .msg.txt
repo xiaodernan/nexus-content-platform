@@ -1,0 +1,24 @@
+v590: the pin a consumer holds reads back the bytes it named - and says if they are still served
+
+`GET /tools/{id}/at?pin=<64 lowercase hex>` answers the recorded revision whose own bytes hash
+to that pin: {toolId, revision, summary, inputSchema, contractSha256, recordedAt, current}.
+A pin was a way to be TOLD a contract changed; this is the way back to what it was, which is
+the half a reconciliation needs.
+
+The id is settled FIRST: an unknown id is 404 unknown-tool whether or not the pin is well
+formed. Then the pin: absent 400 "must name", `abc` 400 naming 64, the same pin in UPPERCASE
+400 (a pin is a value, not a spelling). A well-formed pin this declaration never recorded is
+404 unknown-pin, and the message names both ways that happens: never written here, or removed
+by retention. `current` is derived on every read from the row being served, like the
+attestation's stillCurrent - a stored flag would drift.
+
+No column, no index, no migration. The lookup scans ONE declaration's history because the pin
+is still computed and never stored (ADR 0028); the scope plus the owner's retention (ADR 0032)
+are what make the scan bounded, and the global by-pin door is deliberately not built. ADR 0040
+states the trade, and §5j proves the bound: after the owner pruned revision 1, its pin answers
+404 while the current contract still answers 200/current=true.
+
+Verification: mvn -Dtest='ToolServiceTest,ToolControllerTest' test 179/179 (113 service,
+66 controller; +4/+2 here). Live proof against PostgreSQL: ALL ASSERTIONS PASSED - §5j reads
+the newest and older revisions field for field, exercises all four refusals, and prunes the
+old pin out of existence.

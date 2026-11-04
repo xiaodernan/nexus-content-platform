@@ -1,0 +1,1 @@
+v553: the build's most complete proof was outside it because its directory said so - the 440-assertion browser harness moves into docs/evidence, declares 1800000 ms, and the derived population counts it as row 104 (amendment 534, carrying 533's hosted verdict)

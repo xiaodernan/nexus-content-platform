@@ -1,0 +1,17 @@
+v552: the real-browser harness's 19 reds were all its own - five waits accepted the window their click had not replaced, two summaries outlived v379's tally, and twelve economy rows were hunted in a panel a second click had CLOSED (amendment 533, carrying 532's hosted verdict)
+
+tools/harness/studio-publish.mjs: the filter and pager waits now require what each check means
+(every row carries the action asked for; the rows on screen are the whole trail's rows), the
+`=== false ? [] : x` fallbacks became `?? []` because until() answers null, the two summary checks
+grade v379's on-screen tally (`of these N rows: ...`, exact verbs), both economy phases reload after
+the sign-in and open the panel through openEconomyPanel() (which asserts it is CLOSED first), and
+panelSays() prints the panel's own text when a row wait gives up. Measured in the clean worktree at
+1c21bbd: 421/440 before (every red the harness's), 440/440 twice after.
+
+docs/evidence/m7/README.md: the v552 section - three classes of red in a table, the repairs, the two
+green runs, and the bounds (the script stays under tools/, outside the runner's derived population).
+
+docs/decisions/0016-agent-runtime-hermetic-demo-loop.md: amendment 533, plus the uncommitted verdict
+bullet closing amendment 532's hosted contact (run 40992959343 green).
+
+docs/LONG_TERM_PLAN.md: item 159.

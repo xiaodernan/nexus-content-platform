@@ -1,0 +1,28 @@
+{
+  "adr": "docs/decisions/0016-agent-runtime-hermetic-demo-loop.md",
+  "readme": "docs/evidence/m9/README.md",
+  "roadmap": "docs/ROADMAP.md",
+  "plan": "docs/LONG_TERM_PLAN.md",
+  "splices": [
+    {
+      "file": "adr",
+      "needle": "never undertakes to make them **right**.",
+      "replacement": "never undertakes to make them **right**. **[the inlining file itself is CLOSED by amendment 550 / version v597]** §11.9b now charges exactly that shape: a declared reason compared against something that reads `.reason`, used as a `case`, used as the KEY of a second word table, re-declared wholesale, or worn as a `data-reason` value outside `ops.ts` is a red gate — so what 549 could only disclose, 550 refuses. **The other half of this sentence is still true of the current tree**: no §11 clause reads a word's VALUE, `other` answered with `spam`'s words still passes, and amendment 550's bounds name that as open rather than folding it into the closure."
+    },
+    {
+      "file": "readme",
+      "needle": "cases and not by the gate.",
+      "replacement": "cases and not by the gate. **[the \"spell it wholesale / inline it\" half is CLOSED by amendment 550 / version v597]** §11.9b charges a file that USES a declared reason outside `ops.ts` — compare, `case`, table KEY, wholesale re-declaration, `data-reason` attribute — see the v597 section below; **the word VALUES sentence above still holds of this tree**, and v597 records it open instead of claiming it."
+    },
+    {
+      "file": "roadmap",
+      "needle": " The ledger (`docs/decisions/0016-…`) is the authority for each increment |",
+      "replacement": " **v597 (ADR 0016 amendment 550)** makes a reason word chargeable where it is USED, not only where it is declared: §11.9b keys the reason census on POSITION (compared against a `.reason` read, used as a `case`, as the KEY of a second word table, re-declared wholesale, or worn as a `data-reason` attribute) because a word-only census would have charged 2 shipped files that spell `other` in a different vocabulary; two carriers pin the clause (the owner spells all 4 reasons; 224 `.reason` reads over 60 shipped files make the position inhabited); the SHIPPED gate is measured BLIND on both planted shapes before the fix, and 8/8 arms each name the rule that caught them — `verify:audit-contract` exit 0, suite 142 files / 2856 tests as a live recount (68812 ms). The ledger (`docs/decisions/0016-…`) is the authority for each increment |"
+    },
+    {
+      "file": "plan",
+      "needle": "\n31. ~~**v411",
+      "replacement": "\n@@PLAN188@@\n31. ~~**v411"
+    }
+  ]
+}
