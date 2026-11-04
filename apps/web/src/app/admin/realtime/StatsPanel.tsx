@@ -1,37 +1,31 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import {
+  BOOT_LABEL,
+  LIVE_LABEL,
+  bootTag,
+  errorCountText,
+  isKnownStats,
+  liveTag,
+  type RealtimeStatsReadout,
+} from './stats-readout';
 
 /**
  * §163 诊断入口的表盘（`/admin/realtime` 里轮询这块）。每 4 秒问一次
  * `/api/admin/realtime`——问的是**回答这次请求的那台实例**：多实例部署下
  * 每台各算各的计数，页脚那句话写死这个口径，别让人把它读成全平台的数。
  *
- * 两处诚实与 api-tokens 那本账同一口径：
+ * 三处诚实，与 api-tokens 那本账同一口径：
  * - 拉取失败写"拉取失败（HTTP 500…）"，不写成 0——一次失败的读不能被画成"线路很好"；
- * - 进程内驱动的 `wireReady` / `wireErrorCount` 是 `null`（不适用），渲染成"—"而不是 0。
+ * - 进程内驱动的 `wireReady` / `wireErrorCount` 是 `null`（不适用），渲染成"—"而不是 0；
+ * - **此刻通不通**与**启动那一次接上没有**是两行，不是一行：`wireReady` 是一次性的闩，
+ *   Redis 比这台晚起来的那台会合法地读出"没接上 + 在"。把两格并成一句，
+ *   要么把已经通了的这台说成死的，要么把启动失败这件事洗掉。
+ *
+ * 措辞与分档都在 `stats-readout.ts`（那边才是能逐档判定的地方，见那里的文件头）。
  */
-type Stats = {
-  driver: 'in-process' | 'redis';
-  instance: string;
-  subscriberCount: number;
-  wireReady: boolean | null;
-  wireErrorCount: number | null;
-};
-
-const WIRE_LABEL: Record<string, string> = {
-  na: '—（这个驱动没有线路）',
-  up: '已接上（构造那一次；后来断了由连接层自动重连）',
-  down: '没接上——这台实例收不到别机的事件',
-  pending: '还没落定（刚启动或正在重试）',
-};
-
-function wireTag(stats: Stats): 'na' | 'up' | 'down' | 'pending' {
-  if (stats.driver === 'in-process') return 'na';
-  if (stats.wireReady === true) return 'up';
-  if (stats.wireReady === false) return 'down';
-  return 'pending';
-}
+type Stats = RealtimeStatsReadout;
 
 export function RealtimeStatsPanel() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -50,11 +44,11 @@ export function RealtimeStatsPanel() {
           setError(`拉取失败（HTTP ${res.status}${body?.message ? `·${body.message}` : ''}）`);
           return;
         }
-        if (!body || typeof body.driver !== 'string' || typeof body.subscriberCount !== 'number') {
+        if (!isKnownStats(body)) {
           setError('拉取失败（回执形状不认识）');
           return;
         }
-        setStats(body as Stats);
+        setStats(body);
         setError(null);
         setUpdatedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }));
       } catch {
@@ -84,8 +78,10 @@ export function RealtimeStatsPanel() {
     );
   }
 
-  const wire = wireTag(stats);
-  const errorsText = stats.wireErrorCount === null ? '—（没有线路，不适用）' : String(stats.wireErrorCount);
+  const boot = bootTag(stats);
+  // 上面那行读的是服务端的现读值，这里不做二次推断：把不认识的 `wire` 当成 `down` 或 `up`
+  // 都会让"这台现在通不通"这一格说得出一句没根据的话，所以只认四档、其余归 `na`
+  const live = liveTag(stats.wire);
 
   return (
     <div className="flex flex-col gap-2 text-13" data-realtime-stats="ready">
@@ -96,10 +92,12 @@ export function RealtimeStatsPanel() {
         </dd>
         <dt className="text-fg-3">实例身份</dt>
         <dd data-realtime-instance>{stats.instance}</dd>
-        <dt className="text-fg-3">跨实例线路</dt>
-        <dd data-realtime-wire={wire}>{WIRE_LABEL[wire]}</dd>
+        <dt className="text-fg-3">跨实例线路（此刻）</dt>
+        <dd data-realtime-wire={live}>{LIVE_LABEL[live]}</dd>
+        <dt className="text-fg-3">跨实例线路（启动那次）</dt>
+        <dd data-realtime-wire-boot={boot}>{BOOT_LABEL[boot]}</dd>
         <dt className="text-fg-3">线路失败累计</dt>
-        <dd data-realtime-errors>{errorsText}</dd>
+        <dd data-realtime-errors>{errorCountText(stats.wireErrorCount)}</dd>
         <dt className="text-fg-3">本进程订阅者</dt>
         <dd data-realtime-subscribers>
           {stats.subscriberCount} 人（不是全平台的数——线路查不到远端有谁在订）

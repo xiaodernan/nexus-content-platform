@@ -67,6 +67,7 @@ export class MemoryRealtimeBus implements RealtimeBus {
   /**
    * 诊断自报（§163）：这个驱动没有线路，所以 `wireReady` / `wireErrorCount` 都是 `null`
    * ——不是 0。报 0 会被读成"跑着一台从没断过帧的 Redis"，而它根本没有帧可断。
+   * `wire` 同理是 `'na'` 而不是 `'down'`：没有这回事与坏了是两句话。
    */
   stats(): RealtimeBusStats {
     return {
@@ -74,6 +75,7 @@ export class MemoryRealtimeBus implements RealtimeBus {
       instance: `pid:${process.pid}`,
       subscriberCount: this.subscriberCount(),
       wireReady: null,
+      wire: 'na',
       wireErrorCount: null,
     };
   }

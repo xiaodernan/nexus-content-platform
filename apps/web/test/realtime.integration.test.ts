@@ -37,7 +37,7 @@ const bus: RealtimeBus = {
   subscribe: () => () => undefined,
   closeChannel: () => undefined,
   subscriberCount: () => 0,
-  stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 0, wireReady: null, wireErrorCount: null }),
+  stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 0, wireReady: null, wire: 'na', wireErrorCount: null }),
 };
 
 let owner: string;
@@ -153,7 +153,7 @@ describe('通知 → 实时事件（§163/§164）', () => {
 
   it('写通知的那次调用不因为实时通道而改变结果', async () => {
     // 总线上没有任何订阅者时，emit 仍然要如实返回 created（实时是加速器，不是前提）
-    setRealtimeBus({ publish: () => undefined, subscribe: () => () => undefined, closeChannel: () => undefined, subscriberCount: () => 0, stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 0, wireReady: null, wireErrorCount: null }) });
+    setRealtimeBus({ publish: () => undefined, subscribe: () => () => undefined, closeChannel: () => undefined, subscriberCount: () => 0, stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 0, wireReady: null, wire: 'na', wireErrorCount: null }) });
     const projectId = await newProject('实时无人听');
     const result = await emit(generationEvent(projectId, crypto.randomUUID()));
     expect(result).toBe('created');

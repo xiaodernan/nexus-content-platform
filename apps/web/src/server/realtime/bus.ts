@@ -43,13 +43,18 @@ export interface RealtimeBus {
    * 给 `/admin/realtime` 的自报家门（§163 诊断入口）：驱动是谁、线路接上没有、
    * 断过几帧、本进程有几个人在听。同步返回——`wireReady` 是**已落定的答案或"还没落定"**，
    * 不现场 await：诊断页不该被一次吊死的连接拖住（`ready` 永不 reject，但可能永不落定）。
+   *
+   * 两句不同的话，别合成一句：`wireReady` 回答的是"**构造那一次**线建起来了没有"，
+   * 落定后不再变；`wire` 回答的是"**此刻**两条连接在不在"，每次问都现读。
+   * Redis 起来得晚的那台机器上，前者是 `false` 而后者是 `up`——那不是矛盾，
+   * 是连接层自愈与一次性闩的分工（见 `redisBus.ts` 里 `ready` 字段那段）。
    */
   stats(): RealtimeBusStats;
 }
 
 /**
  * 诊断报文（web 自己的 admin 端点，不跨进程——所以与 `RealtimeWireFrameSchema` 同理，
- * 不进 `CONTRACT_EXPORTS`）。两个 `null` 各是一句诚实话，不是"0"的别名：
+ * 不进 `CONTRACT_EXPORTS`）。两处 `null` 各是一句诚实话，不是"0"的别名：
  * 进程内驱动**没有线路**，`wireReady` / `wireErrorCount` 不适用（报 0 会被读成
  * "没断过帧的 Redis"，而它根本没有帧可断）。
  */
@@ -60,8 +65,20 @@ export interface RealtimeBusStats {
   instance: string;
   /** 本进程的订阅者总数——不是全平台的数（线路查不到远端有谁在订） */
   subscriberCount: number;
-  /** 跨实例那半边接上没有；还没落定或没有这半边都是 null（含义由 driver 分） */
+  /**
+   * **构造那一次**跨实例那半边接上没有；还没落定或没有这半边都是 `null`（含义由 `driver` 分）。
+   * 它不是一次健康检查：后来的断与复都不归它管（这是 `ready` 那个闩的语义，刻意保留——
+   * 集成测试与"等头几帧"的调用方要的是"曾经接过"，不是"这一刻恰好在"）。
+   */
   wireReady: boolean | null;
+  /**
+   * **此刻**这条线在不在（每次问都现读两条连接的 `status`，不 await、不缓存）。
+   * 进程内驱动是 `'na'`——不是 `down`，"没有这回事"与"坏了"是两句话（与限流闸 `describe()` 同一套四档）。
+   *
+   * 限度，别读多：它读的是 ioredis 的连接状态，**不是**"订阅还在服务器那边登记着"的证明；
+   * 后者由 `realtime.redis.integration.test.ts` 那条真投递用例负责。
+   */
+  wire: 'up' | 'pending' | 'down' | 'na';
   /** 线路失败累计（投递不出去 / 坏帧 / 订阅建不起来）；进程内驱动为 null */
   wireErrorCount: number | null;
 }

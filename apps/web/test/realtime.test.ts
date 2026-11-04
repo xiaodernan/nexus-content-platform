@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { RealtimeEvent } from '@nexus/schemas';
 import { channels, getRealtimeBus, setRealtimeBus, type RealtimeBus } from '@/server/realtime/bus';
 import { MemoryRealtimeBus } from '@/server/realtime/localBus';
+import { wireFromStatuses } from '@/server/realtime/redisBus';
 import {
   activeConnections,
   acquireConnection,
@@ -170,20 +171,22 @@ describe('RealtimeBus', () => {
       subscribe: () => () => undefined,
       closeChannel: () => undefined,
       subscriberCount: () => 0,
-      stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 0, wireReady: null, wireErrorCount: null }),
+      stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 0, wireReady: null, wire: 'na', wireErrorCount: null }),
     };
     setRealtimeBus(fake);
     getRealtimeBus().publish(channels.project('p1'), note('走的是替换后的驱动'));
     expect(seen).toHaveLength(1);
   });
 
-  it('stats() 自报家门：进程内驱动的线路两格是 null 不是 0（没帧可断）', () => {
+  it('stats() 自报家门：进程内驱动的线路两格是 null 不是 0（没帧可断），活读数报 na 不是 down', () => {
     const bus = new MemoryRealtimeBus();
     expect(bus.stats()).toEqual({
       driver: 'in-process',
       instance: `pid:${process.pid}`,
       subscriberCount: 0,
       wireReady: null,
+      // 'na' 与 'down' 是两句话：这一台没有跨实例这回事，不是有一根断了的线
+      wire: 'na',
       wireErrorCount: null,
     });
     bus.subscribe(channels.project('p1'), () => undefined);
@@ -197,10 +200,37 @@ describe('RealtimeBus', () => {
       subscribe: () => () => undefined,
       closeChannel: () => undefined,
       subscriberCount: () => 3,
-      stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 3, wireReady: null, wireErrorCount: null }),
+      stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 3, wireReady: null, wire: 'na', wireErrorCount: null }),
     });
     expect(getRealtimeBus().stats().instance).toBe('test-double');
     expect(getRealtimeBus().stats().subscriberCount).toBe(3);
+  });
+});
+
+describe('wireFromStatuses（此刻通不通那条规则）', () => {
+  /**
+   * 这一对打真 Redis 造不出来：两侧连的是同一个端点，要么一起就绪要么一起没就绪。
+   * 而"两个都要 ready 才算 up"恰恰是这条规则里唯一有内容的一句——
+   * 只看发布侧的实现（`pub.status === 'ready'`）在集成测试里全绿，
+   * 但它会对着一台还没订上线的实例说"这台收得到别机的事件"。所以规则单列成纯函数在这里判。
+   */
+  it('半开不算 up：发布侧 ready 而订阅侧还在重连＝还没订上，答案是不能收', () => {
+    expect(wireFromStatuses('ready', 'reconnecting')).toBe('pending');
+    expect(wireFromStatuses('reconnecting', 'ready')).toBe('pending');
+    // 对照：两条都 ready 才是 up——红的是那一条规则，不是这条门本身
+    expect(wireFromStatuses('ready', 'ready')).toBe('up');
+  });
+
+  it('任何一侧 end / close 都是 down，另一边 ready 也救不回来', () => {
+    expect(wireFromStatuses('ready', 'end')).toBe('down');
+    expect(wireFromStatuses('close', 'ready')).toBe('down');
+    expect(wireFromStatuses('end', 'end')).toBe('down');
+  });
+
+  it('还在路上的四种与不认识的一种一律 pending：重连不是故障', () => {
+    for (const status of ['wait', 'preparing', 'connecting', 'reconnecting', '未知将来值']) {
+      expect(wireFromStatuses(status, status)).toBe('pending');
+    }
   });
 });
 

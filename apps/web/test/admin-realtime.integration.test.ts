@@ -89,7 +89,7 @@ describe('§163 诊断入口的门', () => {
     expect(body.driver).toBeUndefined();
   });
 
-  it('admin → 200，回执形状就是总线自报的那份（null 不被改成 0）', async () => {
+  it('admin → 200，回执形状就是总线自报的那份（null 不被改成 0、na 不被改成 down）', async () => {
     asUser(adminToken);
     const res = await getRealtimeStats();
     expect(res.status).toBe(200);
@@ -100,19 +100,25 @@ describe('§163 诊断入口的门', () => {
     // 进程内驱动这两格是 null（不适用），0 是"跑着没断过帧的 Redis"——形状门钉死别被抹平
     expect(body.wireReady === null || typeof body.wireReady === 'boolean').toBe(true);
     expect(body.wireErrorCount === null || typeof body.wireErrorCount === 'number').toBe(true);
+    // 活读数那一格只认四档，且 'na'（没有这回事）与 'down'（有但断了）不许互相冒充
+    expect(['up', 'pending', 'down', 'na']).toContain(body.wire);
     if (body.driver === 'in-process') {
       expect(body.wireReady).toBeNull();
       expect(body.wireErrorCount).toBeNull();
+      expect(body.wire).toBe('na');
     }
   });
 
   it('读的是单例：换掉总线，回执跟着换（诊断不是某个类的静态属性）', async () => {
+    // 这一份双报的是本片存在的那个现场：Redis 比这台晚起来 ⇒ 启动那一次的闩是 false，
+    // 而此刻线路是通的。端点必须把两格原样交出，不许合成一句、也不许用闩覆盖活读数
+    //（那样界面就永远停在"没接上"，而功能早就好了）。
     const fake: RealtimeBus = {
       publish: () => undefined,
       subscribe: () => () => undefined,
       closeChannel: () => undefined,
       subscriberCount: () => 7,
-      stats: () => ({ driver: 'redis', instance: '被换上的那台', subscriberCount: 7, wireReady: true, wireErrorCount: 2 }),
+      stats: () => ({ driver: 'redis', instance: '被换上的那台', subscriberCount: 7, wireReady: false, wire: 'up', wireErrorCount: 2 }),
     };
     setRealtimeBus(fake);
     asUser(adminToken);
@@ -122,6 +128,8 @@ describe('§163 诊断入口的门', () => {
     expect(body.instance).toBe('被换上的那台');
     expect(body.wireErrorCount).toBe(2);
     expect(body.subscriberCount).toBe(7);
+    expect(body.wireReady).toBe(false);
+    expect(body.wire).toBe('up');
     // 反向对照：页面上那份现场真的是它，而不是碰巧同形的默认驱动
     expect(getRealtimeBus()).toBe(fake);
   });

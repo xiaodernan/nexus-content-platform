@@ -60,6 +60,23 @@ function defaultOrigin(): string {
 const PUBLISH_OPTIONS = { enableOfflineQueue: false, maxRetriesPerRequest: 1 } as const;
 const SUBSCRIBE_OPTIONS = { enableOfflineQueue: true, maxRetriesPerRequest: null } as const;
 
+/**
+ * 两条连接的 `status` 换成 `stats().wire` 那一格的那条规则（`liveWire()` 只是拿现值调它）。
+ *
+ * 单列成函数是为了能逐对判：**`pub` ready 而 `sub` 还在重连**这种半开状态，
+ * 打真 Redis 造不出来（两侧连的是同一个端点，要么一起要么不一起），
+ * 而"两个都要 ready 才算 up"恰恰是这条规则里唯一有内容的一句——不拆出来它就没牙。
+ * 导出只为测试，生产路径上没人绕过 `liveWire()`。
+ */
+export function wireFromStatuses(pubStatus: string, subStatus: string): 'up' | 'pending' | 'down' {
+  // end / close 是终局：这台现在收不到别机的事件，直到有人重新建连接。
+  // 把它算进 pending 会让一个已经关掉的驱动说"还在路上"——那是另一种谎
+  if (pubStatus === 'end' || pubStatus === 'close' || subStatus === 'end' || subStatus === 'close') return 'down';
+  // 认识与不认识的一律先落在"还在路上"：wait / preparing / connecting / reconnecting
+  // 都是自愈中，把它们读成 down 就是把一次正常重连报成故障
+  return pubStatus === 'ready' && subStatus === 'ready' ? 'up' : 'pending';
+}
+
 /** ioredis 没有公开的 `ready()`，只有 `status` 和 `ready` 事件；就绪信号自己搭（见 `ready` 字段） */
 function connectionReady(redis: Redis): Promise<true> {
   if (redis.status === 'ready') return Promise.resolve(true);
@@ -108,7 +125,10 @@ export class RedisRealtimeBus implements RealtimeBus {
    * 有人 await 才不会变成 unhandled rejection——线路坏了的时候不该再多砸一次进程。
    *
    * 它回答的是"构造那一次线建起来了没有"，落定之后不再变；不是健康检查，别轮询它。
-   * 线路后来断了又恢复不归这里管，归 ioredis 的自动重订（见上面的连接参数）。
+   * 线路后来断了又恢复不归这里管，归 ioredis 的自动重订（见上面的连接参数）——
+   * **所以"这台机器现在收不收得到别机的事件"是另一格**：`stats().wire`，它每次问都现读状态。
+   * 这两格分开是有意的，合起来会变成一句错话：Redis 比这台进程晚起来的那台，
+   * 这里落定成 `false`，而连接层随后把线订上了，`wire` 是 `up`。
    */
   readonly ready: Promise<boolean>;
 
@@ -195,8 +215,26 @@ export class RedisRealtimeBus implements RealtimeBus {
   }
 
   /**
+   * **此刻**这条线在不在：两条连接的 `status` 现读，不 await、不缓存、不打网络。
+   *
+   * 为什么需要它而 `ready` 不够：`ready` 是一次性的闩（那语义是对的，测试与"等头几帧"的人要的就是它），
+   * 而 `stats()` 曾经只有它——于是 Redis 比这台进程晚起来的那台，界面上永远写着
+   * "没接上——这台实例收不到别机的事件"，可连接层早就自动重连并订上线了（上面那段连接参数
+   * 说的正是自愈在连接层）。**功能一直是对的，坏的是读数**，这一格修的是读数。
+   *
+   * 规则本体在 `wireFromStatuses`（那里能逐对判半开状态），这里只负责拿**现值**去调它。
+   *
+   * 限度：`status` 是这一进程里 ioredis 对那条 TCP 的看法，不是"订阅仍在服务器那边登记着"的证明；
+   * 那句由真投递用例负责（`realtime.redis.integration.test.ts`），不靠这里充数。
+   */
+  private liveWire(): 'up' | 'pending' | 'down' {
+    return wireFromStatuses(this.pub.status, this.sub.status);
+  }
+
+  /**
    * 诊断自报（§163）：`wireErrorCount` 就是"这台实例断过几帧"那句话的全部依据——
-   * 在这之前它只进 stderr 与测试，界面上看不见。`wireReady` 见字段注释（同步读，不 await）。
+   * 在这之前它只进 stderr 与测试，界面上看不见。`wireReady` 见字段注释（同步读，不 await），
+   * `wire` 是现读的那一格，两者可以合法地不一致，界面上分成两行而不是并成一句。
    */
   stats(): RealtimeBusStats {
     return {
@@ -204,6 +242,7 @@ export class RedisRealtimeBus implements RealtimeBus {
       instance: this.origin,
       subscriberCount: this.local.subscriberCount(),
       wireReady: this.wireReadyValue,
+      wire: this.liveWire(),
       wireErrorCount: this.wireErrorCount,
     };
   }

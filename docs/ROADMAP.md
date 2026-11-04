@@ -9337,7 +9337,8 @@ responsive rules**。ADR-0069 与 ADR-0074 把访客那一侧接完之后，作�
   `docs/ENVIRONMENT.md` 新增「⚠️ 这台 `nexus-redis` 实测没有容量上限，所以上界写在应用里（2026-11-03 实测）」＋部署口径。
   已知技术债第 3 条那句"Redis 侧的键基数没有上界"划掉。
 - 仍欠，如实记下：① "这台实例现在用的是哪个驱动"仍然**没有界面位**（这一片给的是启动那行日志，不是界面）；
-  ② `realtime/redisBus.ts` 里同一形状的 `connectionReady` 还是"一次 error 判死"（ADR-0077 仍欠 4，原样没还）；
+  ② ~~`realtime/redisBus.ts` 里同一形状的 `connectionReady` 还是"一次 error 判死"（ADR-0077 仍欠 4，原样没还）~~
+  **已还**（§SEC 第三十七片，闩的语义按决定不改，坏的是拿它读"现在通不通"；见 `docs/adr/0083-…`）；
   ③ 上界钉的是"闸自己写多少键"，没钉"这台机器上一共多少键"——正解是分片或把闸挪到边缘层；
   ④ 若将来给它设了 `maxmemory` + `allkeys-*`，我的窗口会被逐出，而"闸的记忆丢了"的读数在 Redis 的 `evicted_keys` 里、
   不在这个进程里；⑤ 单次命令抖过 250ms 照样让测量期间退回——`settle()` 钉的是"这一趟往返不退回"，不承诺"没有运气"。
@@ -9412,8 +9413,9 @@ responsive rules**。ADR-0069 与 ADR-0074 把访客那一侧接完之后，作�
   Playwright 另起一个 dev server 而整轮失败）；已知技术债第 3 条最后那格"没有界面位"划掉。
 - 仍欠，如实记下：① 启动后第一笔判定那次退回（上面"新事实"）—— **已还**（第三十六片顺带走"写进部署口径"
   那一支，`docs/ENVIRONMENT.md` 新增整段；"第一笔去等 `ready`"那一支仍不做，且这一片的新东西是**可见**，
-  `hit` 不等它的决定在 `rateLimitRedis.ts:360-372` 早就写下了）；② `realtime/redisBus.ts` 里同一形状的
-  `connectionReady` 还是"一次 error 判死"（本片给它加的是读数，不是修复）；③ 演练脚本
+  `hit` 不等它的决定在 `rateLimitRedis.ts:360-372` 早就写下了）；② ~~`realtime/redisBus.ts` 里同一形状的
+  `connectionReady` 还是"一次 error 判死"（本片给它加的是读数，不是修复）~~ **已还**（第三十七片：
+  查下来没有需要修的功能，要修的正是"读数"那一格——界面现在分两行，闩保持原语义）；③ 演练脚本
   `rate-limit-two-process.mts` 没读 `describe()`，跨进程形状仍靠它自己那 16 条判据（第三十六片起是 **19** 条），
   两份东西各自成立；
   ④ 界面上 `over-cap` 那一格没有真事件（要补就在演练里加"两进程同时撞满额"，与第三十四片仍欠 ④ 同一格）。
@@ -9466,5 +9468,70 @@ responsive rules**。ADR-0069 与 ADR-0074 把访客那一侧接完之后，作�
   跨进程形状靠它自己那 19 条判据，界面是**一台**的现场，两份东西各自成立；③ 两台同时撞满额这一格
   对**紧上界的时效**敏感——它靠 `④′` 留下的那两只桶还在 60 秒窗口里来保证"名额已满"，
   机器卡到那一组之间超过窗口时，D 会被建出来、合计变成 2，红的是"名额又空了"而不是驱动坏了
-  （读数会写 `键没建=false`，认得出是谁）；④ `realtime/redisBus.ts` 同款 `connectionReady` 仍是一次 error 判死。
+  （读数会写 `键没建=false`，认得出是谁）；④ ~~`realtime/redisBus.ts` 同款 `connectionReady` 仍是一次 error 判死~~
+  **已还**（§SEC 第三十七片，2026-11-05：闩按决定保持原样，新增**活的** `stats().wire` 与界面上第二行——
+  见 `docs/adr/0083-realtime-wire-live-readout-two-rows.md`）。
+
+## §SEC 第三十七片：实时总线那格线路读数改成活的——「启动那一次的闩」与「此刻两条连接」分成两行各说各话（2026-11-05）
+
+- 起点是挂了四处的同一句欠账（ADR-0077 仍欠 4 / ADR-0081 仍欠 2 / ADR-0082 仍欠 2 / 上一片 仍欠 ④：
+  "`realtime/redisBus.ts` 同款 `connectionReady` 仍是一次 error 判死"）。去查这句话，结论跟写下它时不一样：
+  **功能一直是对的，坏的是读数**。Redis 比这台进程晚起来时，`ready` 落定成 `false`，而 ioredis 按默认策略
+  继续重试、订阅侧 `enableOfflineQueue: true` ⇒ 线路恢复后已登记的订阅自动重建，跨实例投递随后**真的通**
+  （真投递验过）。可 `stats()` 以前只有那份闩，于是界面上永远写着
+  "没接上——这台实例收不到别机的事件"——运维对着这台会去重启一台本来就好的进程。
+- 于是问句从"要不要修 `connectionReady`"换成"**为什么一格里塞了两句不同的话**"。
+  先 grep 了生产路径：`await bus.ready` 只出现在测试与演练里，运行时无人等待 ⇒ 把闩改成活的不会修好任何东西，
+  只会把一份"起点稳定了"的信号换成另一份已经存在的信号（现读 `status`）。决定：**闩一字不改**，
+  新增**活的**一格。隔壁子系统几个小时前（第三十五片，`rateLimitRedis.ts:401`）已经把同一条教训写成注释了，
+  只是那里怕的方向相反——闩卡在 `true`（断线了还说接上了），这里坏在闩卡在 `false`（通了还说没接上）。
+- 做了什么：① `RealtimeBusStats` 加 `wire: 'up' | 'pending' | 'down' | 'na'`（与限流闸那份 `RateLimiterReadout.wire`
+  同一套词表）；② 规则本体抽成导出的纯函数 `wireFromStatuses(pub, sub)`，`liveWire()` 只拿现值调它——
+  **半开状态（发布侧 ready 而订阅侧还在重连）打真 Redis 造不出来**（两侧连同一端点），
+  而"两个都 ready 才算 up"恰是这条规则里唯一有内容的一句，不拆出来它就没牙；
+  ③ `end` / `close` 算 `down`（终局），`wait / preparing / connecting / reconnecting` 一律 `pending`
+  （重连是正常自愈，报成故障会让人做一次没必要的重启）；④ 进程内驱动交 `wire: 'na'`，
+  与 `wireReady: null` / `wireErrorCount: null` 同一族"不适用"（`na` ≠ `down`、`null` ≠ `0`）；
+  ⑤ 界面**分成两行**（`data-realtime-wire` 此刻 / `data-realtime-wire-boot` 启动那次），措辞从
+  `StatsPanel.tsx` 挪进 `stats-readout.ts` 成纯函数（`liveTag` / `bootTag` / `errorCountText` / `isKnownStats`），
+  加一条形状门：认不出的回执明说"回执形状不认识"，不拿半截数据画一个看起来正常的表盘。
+- "晚起来"的现场怎么造的：`node:net` 一个**纯字节转发器**听在 56998，不认识 RESP，只把两条 socket 对接，
+  上游那半等客户端连上来才现连真 Redis（56379）。总线构造时那端没人听 ⇒ 闩落定 `false`；随后打开转发器，
+  握手 / `subscribe` / 自动重订**全走真 ioredis 与真 Redis**，仪器只负责让端点"晚一点出现"。
+  这条用例不止验读数：翻成 `up` 之后当场发一帧真事件、本机订阅者收到 1 条——"读数说 up"与"事件真过来"
+  在同一条用例里对上，否则这一格只是第二个自报家门。配套的反方向见证是 `dispose`（闩 `true` 而 `wire` 变 `down`）。
+  **两个方向都在**，任何"从另一格推导这一格"的实现同时红一片。
+- 读数与界面措辞（`e2e/realtime-admin.spec.ts`，三段共用一次登录，逐字）：
+  ```
+  == §SEC 第三十七片 浏览器读数（真驱动那一台，3101 未设 NEXUS_REDIS_URL）==
+    驱动=in-process 此刻=na 启动那次=na 失败累计=—（没有线路，不适用）
+
+  == 晚起来那份回执 ==
+    此刻=在（发布与订阅两条连接都 ready）
+    启动那次=没接上（此后归连接层自动重连——"现在通不通"看上面那一行）
+  ```
+  对照改之前**同一台**的那一行：`跨实例线路 = 没接上——这台实例收不到别机的事件`（旧面板只有一行，
+  `data-realtime-wire` 挂的就是闩）。截图 `.scratch/shots/61-admin-realtime-two-rows-in-process.png` 与
+  `62-admin-realtime-two-rows-late-redis.png`（两行各说各话 + `失败累计 3` 下面那句"失败的帧不补发"）。
+- 门与绿度：`realtime.test.ts` + `realtime-stats-readout.test.ts` **31 passed**；
+  `realtime.redis.integration.test.ts` **9 passed**；`admin-realtime.integration.test.ts` +
+  `realtime.integration.test.ts` **18 passed**；`tsc -p apps/web` 与 `tsc -p e2e` 无输出；
+  `eslint` 对本片 10 个文件无输出。
+- 臂（W1–W9，逐字红项见 `docs/adr/0083-realtime-wire-live-readout-two-rows.md` 的臂表；
+  收尾 `grep -rn "MUT " apps/web/src apps/web/test e2e` = **0**）：最值的两条是
+  **W3b**（`liveWire()` 从闩推导 ⇒ `dispose` 与"晚起来"**两条同时红**，这是"两格独立"的正反两面）与
+  **W1**（只看发布侧 ⇒ 纯函数那条红而**集成全绿**——半开在真 Redis 上造不出来，这条限度本身被记进文档）。
+  W8 顺带修了一条仪器缺陷：摘掉一行后 e2e **卡 180 秒才红**（取值 `getAttribute` 会等到用例超时），
+  改成取值前两条有界 `toBeVisible` + "少了哪一行"的消息——**慢红也算没牙**。
+- 顺带把 e2e 改成"一次登录、三段共用 `storageState`"：这个文件原本三条用例各自登录，
+  跑到第二轮就把 `10 次/15 分钟/邮箱` 吃光（撞过一次 429）。**闸不放宽，改的是仪器**。
+- 仍欠，如实记下：① `rateLimitRedis.ts:416` 那份单连接映射与 `wireFromStatuses` 是同一条规则的**两处写法**
+  （现在同词表不同实现，两处各有门：R2 与 W1/W2），合并与否留给下一个真的改这条规则的人；
+  ② 实时这半边**没有按原因的计数**进读数——`countWireError` 把原因打进 stderr，界面上只有总数，
+  而限流那半边有 `fallbackByReason`；③ 转发器那条用例的端口钉死 56998，同一台机器并行跑两份会撞，
+  今天靠测试串行盖住；④ `wire` 的限度：它是本进程 ioredis 对那条 TCP 的看法，
+  **不是**"订阅仍在服务器那边登记着"的证明，那句由真投递用例负责，不靠读数充数（写进注释与 ADR）；
+  ⑤ `e2e/realtime-admin.spec.ts` 后两段是 `page.route` 喂的形状，证的是**界面拿到这种形状怎么说人话**，
+  不证那台真处于那个现场（真实现场归集成测试；不为一张图去改共享 dev server 的 `NEXUS_REDIS_URL`——
+  那个旋钮同时管着限流闸）。
 

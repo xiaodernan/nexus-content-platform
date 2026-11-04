@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { createServer, connect, type Server } from 'node:net';
 import { Redis } from 'ioredis';
 import type { RealtimeEvent, RealtimeWireFrame } from '@nexus/schemas';
 import { channels, getRealtimeBus, setRealtimeBus } from '@/server/realtime/bus';
@@ -180,6 +181,9 @@ describe('RedisRealtimeBus 跨实例投递', () => {
     expect(stats.driver).toBe('redis');
     expect(stats.instance).toBe(dead.origin);
     expect(stats.wireReady).toBe(false);
+    // 端点连不上 ≠ 已关：连接层还在按 retryStrategy 自动重试，这一格必须是 pending。
+    // 报成 down 是对着一台仍在自愈的实例宣布它放弃了——那才真的会引人去重启它
+    expect(stats.wire).toBe('pending');
     expect(stats.wireErrorCount).toBeGreaterThanOrEqual(1);
     // 上一步刚 closeChannel 过：本机那份订阅已按 ADR-0025 摘掉，stats 如实报 0——
     // 不是把关门前的旧数留在表盘上
@@ -195,6 +199,8 @@ describe('RedisRealtimeBus 跨实例投递', () => {
       instance: 'stats-origin',
       subscriberCount: 0,
       wireReady: null,
+      // 活读数这一格此刻读到的就是"还在路上"：它不借用闩的值，也不等闩落定
+      wire: 'pending',
       wireErrorCount: 0,
     });
     await wireIsUp(bus);
@@ -203,10 +209,87 @@ describe('RedisRealtimeBus 跨实例投递', () => {
       instance: 'stats-origin',
       subscriberCount: 0,
       wireReady: true,
+      wire: 'up',
       wireErrorCount: 0,
     });
     bus.subscribe(channels.project('stats-view'), () => undefined);
     expect(bus.stats().subscriberCount).toBe(1);
+  });
+
+  it('stats()：闩与活读数是两格——dispose 之后 wire 变 down，而 wireReady 仍是 true', async () => {
+    // 这一对是本片存在的理由，也是"两格没被合成一句"的唯一反证：
+    // 若实现把活读数做成 `wireReady ? 'up' : 'down'`（或反过来把闩改成现读），
+    // 上面两条 toEqual 都会红，而这里这一对不会同时成立。
+    const bus = makeBus(REDIS_URL, 'closed-origin');
+    await wireIsUp(bus);
+    expect(bus.stats().wire).toBe('up');
+
+    bus.dispose();
+    // 收尾不是同步落定的：ioredis 在 disconnect 之后才把 status 换成 end
+    await expect.poll(() => bus.stats().wire, { timeout: 5_000, interval: 50 }).toBe('down');
+    // 闩不改口："构造那一次到底建起来没有"是历史事实，连接层后来的死活不许回头改它——
+    // 那正是这一片要修的反面：一次 error 判死一格，从此界面再也读不出这台已经活了
+    expect(bus.stats().wireReady).toBe(true);
+  });
+});
+
+describe('线路比这台晚起来（第三十七片的主现场）', () => {
+  /**
+   * 生产上是这么坏的：web 先起、Redis 后起（重启窗口、编排没等就绪探针）。
+   * 那时 `ready` 落定成 false 后再也不改口，而连接层在 Redis 起来那一刻就把线订上了——
+   * **功能一直是好的，只有读数停在"没接上"**，改之前界面上就是这么写的。
+   *
+   * 这里不另起一个 Redis 容器，也不 mock 线路：用一个**纯字节转发器**扮演"这个端口后来才被占住"。
+   * 转发器不认识 RESP，只把两条 socket 对接，握手与自动重订全部走真 Redis 与本进程的 ioredis——
+   * 所以这一格证的是连接层自己的恢复，不是我们替它编的故事。
+   */
+  const LATE_PORT = 56998;
+
+  function openLateEndpoint(): Promise<Server> {
+    const target = new URL(REDIS_URL);
+    const upstreamPort = Number(target.port || 6379);
+    const host = target.hostname;
+    const server = createServer((client) => {
+      const upstream = connect(upstreamPort, host, () => {
+        client.pipe(upstream);
+        upstream.pipe(client);
+      });
+      // 任何一侧没了就收掉另一侧：留着半条线会让人以为还连着
+      client.on('error', () => upstream.destroy());
+      upstream.on('error', () => client.destroy());
+      client.on('close', () => upstream.destroy());
+      upstream.on('close', () => client.destroy());
+    });
+    return new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(LATE_PORT, '127.0.0.1', () => resolve(server));
+    });
+  }
+
+  it('端点后来通了：wire 从 pending 翻成 up，而闩落定成 false 就不改口', async () => {
+    const bus = makeBus(`redis://127.0.0.1:${LATE_PORT}`, 'late-origin');
+    // 此刻端口上没人监听 ⇒ 闩落定为 false（发布侧连不上就当场回答，不去等那条排队的订阅）
+    await expect(bus.ready).resolves.toBe(false);
+    expect(bus.stats()).toMatchObject({ wireReady: false, wire: 'pending' });
+
+    const late = await openLateEndpoint();
+    try {
+      // 等 ioredis 自己的重试把两条连接带回来：默认 retryStrategy 隔到 2 秒封顶，不必久等
+      await expect.poll(() => bus.stats().wire, { timeout: 20_000, interval: 200 }).toBe('up');
+      // 这一句就是本片要修的那格：改之前这里读出来的是"没接上"，而且会一直停在那里
+      expect(bus.stats().wireReady).toBe(false);
+
+      // 读数说 up 的时候事件真过来——表盘不是装饰，它承诺的那件事当场兑现
+      const channel = channels.project('late-view');
+      const seen: RealtimeEvent[] = [];
+      bus.subscribe(channel, (event) => seen.push(event));
+      const theirs: RealtimeWireFrame = { kind: 'event', origin: '另一台', channel, event: note('晚起来的线送到的') };
+      await wireConnection().publish(WIRE_CHANNEL, JSON.stringify(theirs));
+      await expect.poll(() => seen.length, { timeout: 15_000, interval: 100 }).toBe(1);
+      expect(seen[0]).toEqual({ type: 'notification', level: 'info', title: '晚起来的线送到的' });
+    } finally {
+      late.close();
+    }
   });
 });
 
