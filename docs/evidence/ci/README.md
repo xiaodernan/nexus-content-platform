@@ -328,11 +328,11 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
-the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **50
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **58
 fixture arms** prove each refusal on a synthetic plane — the fourteen above, six that drift one README number
-each, eleven that dispose the manifest's blind side, twelve that dispose the tools corpus behind it (the next two
-blocks) and seven that grade the numbers those deferrals state (the block after); the prose-import arm proves the
-tokenizer is the sweep's, not a byte regex.
+each, eleven that dispose the manifest's blind side, twelve that dispose the tools corpus behind it (the next
+three blocks), seven that grade the numbers those deferrals state and eight that recompute the roster this
+sentence lives in; the prose-import arm proves the tokenizer is the sweep's, not a byte regex.
 
 **The manifest's other half.** The population above is `git ls-files -- docs/evidence`, which answers "does every
 evidence module have a channel?" and says nothing about the mirror question: does every `verify:*` NAME have one?
@@ -379,6 +379,20 @@ claim, and a module the commit owns but this box cannot read. A duration, a coun
 stays prose ABOUT a measurement rather than a re-derivation of one, and the clause says so instead of pretending to
 grade it; the next drift a reader spots in one of these eleven entries is a red the build raises, not a correction
 someone owes.
+
+**The roster number in the sentence above is recomputed, not trusted (v610).** `[arms] 58/58 MATCHED` is the fact and
+the prose that restates it is a copy — which is the exact failure v543 caught in the class table two sections up,
+left out of that repair. So `armsRoster` counts the list from the arm NAMES (one family per prefix, in the order the
+arms first appear: adding an arm moves a number by itself) and `readmeArmsDrift` grades this file's sentence against
+it. The headline `**N fixture arms**` must equal the length of the list; the breakdown must state every family as
+"<number word> above" or "<number word> that …" in that same order, bounded by the prose-import clause that closes
+the sentence. Seven refusals follow, armed by eight arms X1→X8 — X1 raises two of them and X8 aims at the family
+refusal from the other side: a headline the list no longer matches, a breakdown that no longer adds up to its own
+headline, a family whose count is out of date (named by family, and saying plainly when two were merely swapped), a
+family dropped or claimed twice, a state that is not a number word this reader parses, a headline written in a shape
+nothing reads, a breakdown reshaped away or with its closing bound moved. The cost of that grammar is stated rather
+than hidden: any other "<word> that" inside the region is taken for a family claim and refused as an unparseable
+number, so the sentence keeps one shape or the row goes red and asks for the edit.
 
 Four rows that needed nothing but Node walked through the door in the same increment:
 

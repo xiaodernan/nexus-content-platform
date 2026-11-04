@@ -179,6 +179,22 @@
 // one, so only the two families above are graded. The bytes graded are the ones `read` returns — the worktree here,
 // a fresh checkout in CI — which is what makes a drift a red for the person who caused it rather than a note later.
 //
+// v610 (this increment; the ADR 0016 section is still owed for v606-v610 and the ledger files sit in another lane's
+// uncommitted set, so this header keeps the record) - THE COPY OF THIS FILE'S OWN PRINTOUT IS GRADED TOO. The README
+// restates the arms roster in prose — "**58 fixture arms**", then one number per family — and v543 established that
+// a number a human copies off a console line drifts, yet that repair stopped at the census's class table and left
+// this sentence unchecked. armsRoster counts the roster from the arm NAMES (one family per name prefix, in the order
+// the arms first appear, so adding an arm without saying so moves a number by itself) and readmeArmsDrift reads the
+// sentence by grammar rather than by position: the headline shape `**N fixture arms**`, then the breakdown in which
+// every family must appear as "<number word> above" or "<number word> that …" in the order the list defines, bounded
+// by the prose-import clause that closes the sentence. Eight refusals follow it: a headline the list no longer
+// matches, a breakdown that no longer adds up to its own headline, a family number out of date (named by family, and
+// saying plainly when two were merely swapped), a family dropped or a family claimed twice, a state that is not a
+// number word this reader parses, a headline written in a shape nothing reads, a breakdown sentence reshaped away,
+// and a breakdown whose closing bound has moved. Eight arms aim at them, X1 through X8. The bound is named rather
+// than hidden: any other "<word> that" inside the region is taken for a family claim and refused as an unparseable
+// number, because the reader cannot tell a count from a sentence — the red asks for the edit rather than guessing.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -897,6 +913,7 @@ export function censusOf({ tracked, scripts, excluded = [], roster = [], swept =
     violations.push('no README was supplied, so the table that restates these counts is unchecked — the census prints numbers a human copies by hand, and an unchecked copy is the rot this check exists for');
   } else {
     violations.push(...readmeDrift({ readme, counts, running, residue, tracked }));
+    violations.push(...readmeArmsDrift({ readme, roster: armsRoster(ARMS.map((a) => a[0])) }));
   }
 
   // The mirror question: not "does every module have a channel" but "does every verify:* NAME have one". Same
@@ -953,6 +970,90 @@ export function readmeDrift({ readme, counts, running, residue, tracked }) {
   else if (Number(atRef[1]) !== running.length || Number(atRef[2]) !== residue.length) {
     violations.push(`the README's "at this ref" sentence says ${atRef[1]} running + ${atRef[2]} excluded; this census derived ${running.length} + ${residue.length}`);
   }
+  return violations;
+}
+
+/** The number words this reader knows; anything else in the arms sentence is refused by name. */
+const NUMBER_WORDS = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
+  nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+};
+
+/**
+ * The fixture-arms roster, DERIVED from the arm names rather than copied out of them: one entry per name prefix,
+ * in the order the arms first appear. This is the fact the README's sentence is measured against (v610).
+ */
+export function armsRoster(names) {
+  const order = [];
+  const byLabel = new Map();
+  for (const name of names) {
+    const label = /^([A-Za-z]+)\d+/.exec(String(name))?.[1] ?? '';
+    if (label === '') continue;
+    if (!byLabel.has(label)) {
+      byLabel.set(label, 0);
+      order.push(label);
+    }
+    byLabel.set(label, byLabel.get(label) + 1);
+  }
+  return { total: names.length, families: order.map((label) => ({ label, count: byLabel.get(label) })) };
+}
+
+/**
+ * Grade the README's arms sentence against that roster (v610).
+ *
+ * The sentence is the same kind of claim v543 caught in the class table — a number a human copies from the
+ * console line — and it had already drifted once by hand. Two shapes are read, both by grammar rather than by
+ * position: `**N fixture arms**` for the total, and the breakdown in which every family must be stated as
+ * `<number-word> above` or `<number-word> that …`, in the order the arms list defines. That grammar is why
+ * "six that drift one README number each" does not read as two families: only a number followed by `above` or
+ * `that` is a claim about a family. A word outside NUMBER_WORDS is refused rather than skipped, and a family the
+ * sentence dropped is a length mismatch — an absent claim is the silence this file keeps being asked to break.
+ */
+export function readmeArmsDrift({ readme, roster }) {
+  const violations = [];
+  const flat = String(readme).replace(/\s+/g, ' ');
+  const totalM = /\*\*(\d+) fixture arms\*\*/.exec(flat);
+  if (totalM === null) {
+    violations.push('the README states no "**N fixture arms**" total — the census prints the roster every run, so the copy of it in prose is unchecked');
+  } else if (Number(totalM[1]) !== roster.total) {
+    violations.push(`the README says ${totalM[1]} fixture arms; this census runs ${roster.total} (${roster.families.map((f) => `${f.label}${f.count}`).join(' ')}) — the sentence restates a roster that moved, and the printout is the copy's source`);
+  }
+  const start = flat.indexOf('fixture arms** prove each refusal on a synthetic plane');
+  if (start === -1) {
+    violations.push('the README\'s fixture-arms sentence is missing or reshaped — the census cannot check the per-family numbers it restates');
+    return violations;
+  }
+  const body = flat.slice(start);
+  const end = body.indexOf('the prose-import arm');
+  if (end === -1) {
+    violations.push('the README\'s fixture-arms breakdown no longer ends at the prose-import clause, so its family sequence has no bound this reader can take on trust');
+    return violations;
+  }
+  const stated = [];
+  for (const m of body.slice(0, end).matchAll(/\b([A-Za-z][\w-]*)\s+(?:above|that)\b/g)) {
+    const word = m[1];
+    if (NUMBER_WORDS[word] === undefined) {
+      violations.push(`the README's arms breakdown states a family as "${m[0]}" — ${JSON.stringify(word)} is not a number this reader parses (one…twenty, thirty…ninety), so the claim cannot be checked and is refused rather than skipped`);
+      return violations;
+    }
+    stated.push({ word, n: NUMBER_WORDS[word], phrase: m[0] });
+  }
+  if (stated.length !== roster.families.length) {
+    violations.push(`the README's arms breakdown names ${stated.length} families; the arms list defines ${roster.families.length} (${roster.families.map((f) => `${f.label}${f.count}`).join(' ')}) — state each family's count or the sentence rests on a copy`);
+    return violations;
+  }
+  const sum = stated.reduce((a, s) => a + s.n, 0);
+  if (totalM !== null && sum !== Number(totalM[1])) {
+    violations.push(`the README's family numbers add to ${sum} against its own total of ${totalM[1]} fixture arms — the breakdown and the headline are two answers to one question`);
+  }
+  stated.forEach((s, i) => {
+    const want = roster.families[i];
+    if (s.n !== want.count) {
+      const other = roster.families.findIndex((f) => f.count === s.n);
+      violations.push(`the README's arm family ${i + 1} (${want.label}) says "${s.phrase}", i.e. ${s.n}; this census counts ${want.count} arms named ${want.label}* — ${other === -1 ? 'no family holds that number, so the sentence is out of date' : `it is the count of family ${roster.families[other].label}, so two families were swapped`}`);
+    }
+  });
   return violations;
 }
 
@@ -1050,6 +1151,11 @@ const BASE = () => ({
     '',
     'The census below gives every one of the **7** tracked modules a disposition, and the derived population is',
     '**1 running rows + 1 excluded by name** at this ref.',
+    '',
+    '**58 fixture arms** prove each refusal on a synthetic plane — the fourteen above, six that drift one README',
+    "each, eleven that dispose the manifest's blind side, twelve that dispose the tools corpus behind it,",
+    'seven that grade the numbers those deferrals state and eight that recompute the roster this sentence lives in;',
+    "the prose-import arm proves the tokenizer is the sweep's, not a byte regex.",
   ].join('\n'),
   scripts: {
     'verify:row': 'node docs/evidence/x/row-proof.mjs',
@@ -1339,6 +1445,45 @@ const ARMS = [
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('no line count and no served address')), `unre-readable: ${r.violations.join(' | ')}`);
   }],
+  // ── the roster arms: the README's own count of these arms is recomputed from the list, not copied (v610) ──
+  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**58 fixture arms**', '**54 fixture arms**'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('says 54 fixture arms; this census runs 58')), `stale total: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("add to 58 against its own total of 54")), `arithmetic: ${r.violations.join(' | ')}`);
+  }],
+  ['X2 one family number in the breakdown has drifted', (f) => { f.readme = f.readme.replace('eleven that dispose', 'ten that dispose'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('arm family 3 (M)') && v.includes('i.e. 10') && v.includes('counts 11 arms named M*')), `drifted family: ${r.violations.join(' | ')}`);
+  }],
+  ['X3 a family the breakdown dropped', (f) => {
+    f.readme = f.readme.replace(", eleven that dispose the manifest's blind side", '');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes("names 5 families; the arms list defines 6")), `dropped family: ${r.violations.join(' | ')}`);
+  }],
+  ['X4 a breakdown with no end the reader can take on trust', (f) => {
+    f.readme = f.readme.replace('the prose-import arm proves', 'and the tokenizer is the sweep\'s, which proves');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('no bound this reader can take on trust')), `unbounded breakdown: ${r.violations.join(' | ')}`);
+  }],
+  ['X5 a family stated as a word this reader cannot parse', (f) => {
+    f.readme = f.readme.replace('seven that grade', 'eleventy that grade');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('eleventy') && v.includes('not a number this reader parses')), `unparseable: ${r.violations.join(' | ')}`);
+  }],
+  ['X6 the headline number written so no shape reads it', (f) => {
+    f.readme = f.readme.replace('**58 fixture arms** prove', 'about fifty-odd fixture arms, proved');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('states no "**N fixture arms**" total')), `missing headline: ${r.violations.join(' | ')}`);
+  }],
+  ['X7 the breakdown sentence reshaped out of existence', (f) => {
+    f.readme = f.readme.replace('prove each refusal on a synthetic plane', 'are the arms, and they prove refusals somewhere');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('arms sentence is missing or reshaped')), `reshaped sentence: ${r.violations.join(' | ')}`);
+  }],
+  ['X8 two families whose numbers were swapped', (f) => {
+    f.readme = f.readme.replace('six that drift', '__swap__ that drift').replace('eleven that dispose', 'six that dispose').replace('__swap__ that drift', 'eleven that drift');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('arm family 2 (R)') && v.includes('two families were swapped')), `swapped: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes('arm family 3 (M)') && v.includes('two families were swapped')), `swapped back: ${r.violations.join(' | ')}`);
+  }],
 ];
 
 function runArms() {
@@ -1412,6 +1557,8 @@ async function main() {
   console.log(`  DEFERRED   ${String(report.counts.deferred).padStart(3)}  runnable, blocked on a sandbox prerequisite (printed below)`);
   console.log(`  UNCLASSIFIED ${String(report.counts.unclassified).padStart(1)}`);
   console.log(`\nREADME ${README_FILE}: ROW ${report.counts.row} = ${running.length} run + ${residue.length} excluded · HELPER ${report.counts.helper} · SWEPT ${report.counts.swept} · TOOL ${report.counts.tool} · DEFERRED ${report.counts.deferred} · ${tracked.length} tracked — the table and both prose numbers agree with this run`);
+  const roster = armsRoster(ARMS.map((a) => a[0]));
+  console.log(`arms roster (counted from the names in ARMS itself, not copied from the printout): ${roster.total} arms in ${roster.families.length} families — ${roster.families.map((f) => `${f.label}${f.count}`).join(' · ')} · the README's sentence restates every one of these numbers`);
   console.log(`\nbuild rows (${running.length}): ${running.map((r) => r.name).join(', ')}`);
   for (const r of residue) console.log(`  EXCLUDED  ${r.name.padEnd(24)} ${r.file} — ${EXCLUDED.find((e) => e.file === r.file).needs}`);
   console.log('\nhelper modules:');
