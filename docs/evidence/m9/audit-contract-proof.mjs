@@ -910,7 +910,8 @@ const vocab = (() => {
     // statuses the service declares — §8 reconciled the copy in `ops.ts` against ReportDtos and every
     // clause stayed green while the bar the reporter sees was saying something else. A vocabulary with
     // two faces is a contract with no owner, so this census counts DECLARATIONS over the shipped
-    // population, in either syntax a face can be written in.
+    // population, in either syntax a face can be written in. v593 folds the reason sentence in too —
+    // before it, `reportBar.ts` declared `reportReasonText` while the reason list lived in `ops.ts`.
     const faceOwnerOf = (face) => {
       const sites = [];
       for (const rel of shipped) {
@@ -931,22 +932,39 @@ const vocab = (() => {
       faceOwners[face] = sites[0];
     }
     assert.equal(faceOwners.reportStatusText, CLIENT_MODEL, `the status words are now owned by ${faceOwners.reportStatusText}, not ${CLIENT_MODEL} — §8 reconciles ${CLIENT_MODEL} with ${REPORT_DTOS}, so a face declared anywhere else is a face no service-side rename is checked against`);
+    // v593 — the reason sentence moved into the owner's module with the reason list it names, the same
+    // move v586 made for the status sentence: ONE file owns the words the panel paints. The gate pins it
+    // to that file too, so a second declaration cannot creep back in under a different name-free fold.
+    assert.equal(faceOwners.reportReasonText, CLIENT_MODEL, `the reason words are now owned by ${faceOwners.reportReasonText}, not ${CLIENT_MODEL} — the reason list lives in ${CLIENT_MODEL}, and the sentence refusing to live with it is the split v593 closes`);
     // The readers must reach the owner BY IMPORT SPECIFIER, 11.4's rule for the reason table. An import
-    // of the right name from a different file is how the bar got its own words back.
-    const statusReaders = shipped.filter((rel) => rel !== CLIENT_MODEL && usesOf(rel, 'reportStatusText').length > 0);
-    assert.ok(statusReaders.length >= 1, `nothing outside ${CLIENT_MODEL} USES reportStatusText as a value — the status words would be a certificate with no reader again, which is the shape v556 was written about and v586 found still open on the status face`);
-    for (const rel of statusReaders) {
-      const fromOwner = names(rel, (n) => {
+    // of the right name from a different file is how the bar got its own words back. v593 applies the SAME
+    // rule to the reason face: `reportBar.ts` still re-exports it for its own callers, and a re-export is a
+    // shelf, not an owner — a reader that takes the word off the shelf instead of the file that declares it
+    // is one `git mv` away from reading a copy.
+    const faceReadersOf = {};
+    const importsFaceFromOwner = (rel, face) =>
+      names(rel, (n) => {
         if (!ts.isImportDeclaration(n) || !n.moduleSpecifier || !n.importClause) return false;
         if (!/(^|\/)ops$/.test(n.moduleSpecifier.text)) return false;
         const bindings = n.importClause.namedBindings;
-        return !!bindings && ts.isNamedImports(bindings) && bindings.elements.some((e) => e.name.text === 'reportStatusText');
-      });
+        return !!bindings && ts.isNamedImports(bindings) && bindings.elements.some((e) => e.name.text === face);
+      }).length >= 1;
+    const faceReaders = (face) => shipped.filter((rel) => rel !== CLIENT_MODEL && usesOf(rel, face).length > 0);
+    for (const face of ['reportStatusText', 'reportReasonText']) {
+      const readers = faceReaders(face);
       assert.ok(
-        fromOwner.length >= 1,
-        `${rel} uses reportStatusText as a value but does not import that name from a module named ops — it is reading some other file's copy of the status words`,
+        readers.length >= 1,
+        `nothing outside ${CLIENT_MODEL} USES ${face} as a value — the ${face === 'reportStatusText' ? 'status' : 'reason'} words would be a certificate with no reader again, which is the shape v556 was written about and v586 found still open on the status face`,
       );
+      for (const rel of readers) {
+        assert.ok(
+          importsFaceFromOwner(rel, face),
+          `${rel} uses ${face} as a value but does not import that name from a module named ops — it is reading some other file's copy of the ${face === 'reportStatusText' ? 'status' : 'reason'} words`,
+        );
+      }
+      faceReadersOf[face] = readers;
     }
+    const statusReaders = faceReadersOf.reportStatusText;
 
     // 11.8 — the STATUS TABLE's production readers, MEASURED and printed rather than claimed. v556 left
     // this bound disclosed (REPORT_STATUSES had one importer, its own test) and v586 did not close it:
@@ -1028,7 +1046,7 @@ const vocab = (() => {
       assert.equal(mayWithdraw, javaStanding.includes(status), `${CLIENT_REPORTBAR} lets the reporter take back a "${status}" report (${mayWithdraw}) while the service's guards name ${javaStanding.join(', ')} as standing`);
       assert.equal(deskOpen, javaStanding.includes(status), `${CLIENT_MODERATION} counts a "${status}" report as waiting (${deskOpen}) while the service's guards name ${javaStanding.join(', ')} as standing`);
     }
-    console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText}, trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')})`);
+    console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText} and imported from the owner by ${faceReadersOf.reportReasonText.length} reader(s) (${faceReadersOf.reportReasonText.join(', ')}), trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')})`);
     console.log(`[§11] the vocabulary is graded where it is rendered: ${shipped.length} shipped sources carry ${declared.length} vocabulary tables, all in ${CLIENT_MODEL} · AUDIT_ACTIONS has ${verbReaders.length} production reader(s) (${verbReaders.join(', ')}) and REPORT_REASONS has ${reasonReaders.length} (${reasonReaders.join(', ')}) · ${CLIENT_TOOLBAR} spells 0 of the ${vocab.serverVerbs.length} verbs and maps the table instead · ${CLIENT_COMPOSER} imports its reasons from the owner · the shipped trail module RUN gives all ${vocab.serverVerbs.length} recorded verbs a row word, a button word and a tooltip · and its hand-copied tally still tiles exactly the table's ${tallySeen.length} verbs`);
     // Disclosed, not charged: the shipped sources left in this list spell a recorded verb for their OWN
     // request or route — a `publish` in a lane's action field, not a word painted beside a trail row.

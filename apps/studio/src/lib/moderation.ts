@@ -15,13 +15,12 @@
  *   facts, and a panel that showed the first when it knew the second would tell an owner that nobody had
  *   complained — which is the one thing an owner must not be misled about.
  */
-import { reportReasonText } from './reportBar';
-import { REPORT_STATUS_NOT_GIVEN, reportStanding, reportStatusText, statusGaps, statusGapText } from './ops';
+import { REPORT_STATUS_NOT_GIVEN, reportReasonText, reportStanding, reportStatusText, statusGaps, statusGapText } from './ops';
 
 // The vocabulary is the REPORT's, and the desk speaks the report's language — re-exported from the ONE owner
-// (`ops.ts`, v586) so a caller of the desk does not have to know where the word came from. It used to come
+// (`ops.ts`, v586 and v593) so a caller of the desk does not have to know where the word came from. It used to come
 // from `reportBar.ts`, which held its own copy of the status words: two files, two answers, one fact.
-export { reportStatusText, statusGaps, statusGapText };
+export { reportReasonText, reportStatusText, statusGaps, statusGapText };
 
 /** One report, in the service's desk shape. */
 export interface DeskEntry {

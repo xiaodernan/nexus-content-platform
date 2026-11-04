@@ -12,8 +12,8 @@ import { renderHistoryHtml } from './history';
 import { renderLikeBar } from './likeBar';
 import { renderPlanBar } from './planBar';
 import { renderTipBar } from './tipBar';
-import { REPORT_BAR_STYLES, renderReportBar, reportReasonText } from './reportBar';
-import { REPORT_REASONS } from './ops';
+import { REPORT_BAR_STYLES, renderReportBar } from './reportBar';
+import { REPORT_REASONS, reportReasonText } from './ops';
 
 /**
  * v457 — the six dock panels' style seams, graded as a FAMILY.

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { reportIdFromSearch } from './reportIntent';
-import { injectReportBar, renderReportBar, reportReasonText, toReportRow, toReportRows } from './reportBar';
-// v586 — the status words come from the ONE owner now. This file used to import them from `./reportBar`,
-// which is where the bar kept its own copy; grading the bar's copy is what let `moderation.ts` drift.
-import { reportStatusText } from './ops';
+import { injectReportBar, renderReportBar, toReportRow, toReportRows } from './reportBar';
+// v593 — the reason words come from the ONE owner now, like the status words since v586: `ops.ts` owns
+// the list and the sentence, and this bar re-exports the face for its callers.
+import { reportReasonText, reportStatusText } from './ops';
 
 /**
  * M7 v296 — the REPORTS bar on the artifact page.

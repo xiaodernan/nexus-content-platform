@@ -18,7 +18,7 @@
  *   no moderation behind it. The count is the fact; the identity is the moderator's business.
  */
 import { escapeHtml } from './pageShell';
-import { REPORT_STATUS_NOT_GIVEN, reportStanding, reportStatusText, reportWithdrawn } from './ops';
+import { REPORT_STATUS_NOT_GIVEN, reportReasonText, reportStanding, reportStatusText, reportWithdrawn } from './ops';
 
 /** One report, in the service's own wire shape. */
 export interface ReportEntry {
@@ -98,25 +98,15 @@ export interface ReportRow {
  */
 
 /**
- * The reason in a reader's words.
+ * The reason in a reader's words — v593: this file no longer declares it.
  *
- * A KNOWN reason is spelled the way a person would say it; an unknown one is passed through as it
- * arrived \u2014 a bar that labelled an unknown reason as "spam" would be making a claim the service never made.
+ * It used to: `reportReasonText` lived here, beside nothing — the reason **list** has been in `ops.ts`
+ * since v556, and v586 pinned the status sentence to that same owner, leaving the reason sentence behind.
+ * v593 closes it: the face is declared by `ops.ts` (with the list), and this file re-exports it for the
+ * caller that only knows this bar. §11.7 counts declarations across the shipped population, so there is
+ * exactly one now.
  */
-export function reportReasonText(reason: string): string {
-  switch (reason) {
-    case 'spam':
-      return 'spam';
-    case 'harassment':
-      return 'harassment';
-    case 'illegal':
-      return 'illegal';
-    case 'other':
-      return 'something else';
-    default:
-      return reason;
-  }
-}
+export { reportReasonText };
 
 // The report's STATUS in a reader's words — v586: this file no longer declares it.
 //

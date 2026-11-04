@@ -147,6 +147,34 @@ export type ReportStatus = (typeof REPORT_STATUSES)[number] | (string & Record<n
 /** 原因：与服务端同名的四个，加上同一个未知臂。今天四个都是可达的（`ReportController` 按闭集拒绝第四个之外的）。 */
 export type ReportReason = (typeof REPORT_REASONS)[number] | (string & Record<never, never>);
 
+/**
+ * 举报原因：服务端四个声明词，如何读给用户看的完整表。
+ *
+ * key 按 `REPORT_REASONS` —— 未知臂有意不进（同 `REPORT_STATUS_WORDS` 的决定，见 11.7/11.11 那一带）：
+ * 线上发来一个这个词表没听过的词时，按规则**透传原词**而不是借用邻居的词——一张标着 "spam" 的举报、
+ * 理由栏却没见过 "spam" 以外的词，那是替线上认领了一个它没说过的结论。
+ */
+const REPORT_REASON_WORDS: Record<(typeof REPORT_REASONS)[number], string> = {
+  spam: 'spam',
+  harassment: 'harassment',
+  illegal: 'illegal',
+  other: 'something else',
+};
+
+/**
+ * v593 — 一个词面只有一个主人，原因的词面也搬到了列表主人这里。
+ *
+ * 修之前 `reportBar.ts` 声明了 `reportReasonText`，而原因**表**一直住在本模块（`ReportComposer.tsx`
+ * 也从这里铺下拉），于是理由有两处答案——v556 解决了「一份没人读的抄本」的表侧，v586 审过句子侧
+ * 后仍然留着原因的：§11.7 只拒绝两个说话者、并把状态词钉给本文件，它会印出原因词面落在
+ * `reportBar.ts`，而没有人规定它必须和表同住一个屋檐下。这条把那个「披露的分裂」收拢：原因词面现在
+ * 与原因表同一份文件、同一套计数，未知词的透传规则不变（`'stake'` → `'stake'`），行为逐词不变。
+ */
+export function reportReasonText(reason: string): string {
+  if (!(REPORT_REASONS as readonly string[]).includes(reason)) return reason;
+  return REPORT_REASON_WORDS[reason as (typeof REPORT_REASONS)[number]];
+}
+
 /** 举报：reporterId/targetId/createdAt 由客户端填写并发给服务端；status 由服务端更新下发。 */
 export interface Report {
   id: string;
