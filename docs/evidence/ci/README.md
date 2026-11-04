@@ -328,9 +328,26 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
-the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **20
-fixture arms** prove each refusal on a synthetic plane — the fourteen above plus six that drift one README
-number each; the prose-import arm proves the tokenizer is the sweep's, not a byte regex.
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **31
+fixture arms** prove each refusal on a synthetic plane — the fourteen above, six that drift one README number
+each, and eleven that dispose the manifest's blind side (the next block); the prose-import arm proves the
+tokenizer is the sweep's, not a byte regex.
+
+**The manifest's other half.** The population above is `git ls-files -- docs/evidence`, which answers "does every
+evidence module have a channel?" and says nothing about the mirror question: does every `verify:*` NAME have one?
+The admission rule `PROOF_COMMAND` admits only the scripts whose whole command is one `node` call into the
+evidence tree, and every script it drops used to fall out of the census in silence — the same hole amendment 514
+named for modules, one level earlier. `MANIFEST` in that same proof disposes them in three classes, each read off
+bytes rather than off the entry's own prose: RUNNER (the workflow's run lines contain `npm run <name>`, so the
+door is the one CI walks), COVERED (a workflow run line names the same tool against the same tracked subject path,
+with comment lines dropped, because `cache-dependency-path: services/nexus-api/pom.xml` is prose about a pom and
+not a test run), and DEFERRED (nothing in CI runs it; the script's own code must import the module it blames, and
+it states the measurement, the blocker and the next repair — the three fields a deferred evidence module already
+answers to). A `verify:*` name in none of those classes reddens the row by name, and so does a disposition whose
+script is gone, a duplicate, one shadowing a derived row, a target the index does not own, a runner whose step
+moved and a reach that lives only in a comment. The census prints the closure — names, derived rows, one runner,
+the covered claim resolved to the exact workflow command, every deferral with its reach — on every build, so the
+counts live in the row's own output rather than in this paragraph.
 
 Four rows that needed nothing but Node walked through the door in the same increment:
 

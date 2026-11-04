@@ -101,6 +101,29 @@
 // + 2 swept + 6 tool. The 20 fixture arms never depended on the real set — they build their own plane with an
 // excluded row — so the proof that retires exclusions is not weakened by having none.
 //
+// v607 (this increment; the ADR 0016 section is owed, and the ledger files sit in another lane's uncommitted set,
+// so this header carries the record until that section exists) - THE MANIFEST'S BLIND SIDE. This census answers
+// "does every evidence module have a channel?" and its population was `git ls-files -- docs/evidence`, which says
+// nothing about the mirror question: does every `verify:*` NAME have one? Measured at this ref: the manifest holds
+// 125 verify:* scripts, PROOF_COMMAND admits 116, and the 9 it drops are doors the build never walks - seven
+// real-browser proofs under tools/harness (each one imports the CDP launcher and six of them navigate a Studio on
+// 127.0.0.1:3210 that no workflow step starts), the maven suite (the workflow runs its own `mvn ... test` line
+// rather than the script), and `verify:proofs` itself (the runner the proofs step calls). Nothing DECIDED those
+// nine, and an author who adds a tenth undispositioned `verify:*` script today adds a promise no census grades. So
+// MANIFEST below gives every non-row `verify:*` script one of three dispositions, each read out of bytes rather
+// than out of the entry's own prose:
+//   RUNNER     the workflow's run lines contain `npm run <name>` - the door CI actually walks.
+//   COVERED    the manifest command and one workflow run line name the same tool AND the same tracked subject path,
+//              read after comment lines are dropped: `cache-dependency-path: services/nexus-api/pom.xml` and a
+//              comment that quotes the mvn line are both prose about a pom, not a test run.
+//   DEFERRED   nothing in CI runs it. It must name a module its OWN CODE imports - through the sweep's tokenizer,
+//              so a path quoted in a header comment buys nothing - plus the measurement, the blocker and the next
+//              repair, the same three-field discipline a deferred evidence MODULE already answers to.
+// Anything else is UNDISPOSITIONED and this census exits 1 naming the script. A stale entry (a disposition whose
+// script is gone), a duplicate, an entry shadowing a derived row, a target the index does not own, a runner whose
+// workflow step vanished and a deferral whose reach sits only in comments all redden too; eleven fixture arms aim
+// at exactly those, on a synthetic plane, so the refusals are measured rather than read off this paragraph.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -161,6 +184,230 @@ export const ROSTER = [
   // deferral that outlives its blocker is the stale record this census refuses in the other direction.
 ];
 
+const WORKFLOW_FILE = '.github/workflows/ci.yml';
+
+/**
+ * The manifest's other half: every `verify:*` script the admission rule does NOT turn into a row, disposed by
+ * class. A disposition may not shadow a derived class (a script that IS a row must not be declared here), and a
+ * class may not be a feeling: `runner` and `covered` are checked against the workflow's own run lines, `deferred`
+ * against an import the blamed file really makes. The three fields a deferral owes are the module census's own
+ * discipline, so one grammar covers both directions of the same question.
+ */
+export const MANIFEST = [
+  {
+    name: 'verify:proofs',
+    class: 'runner',
+    run: 'npm run verify:proofs',
+    why: 'the door the proofs step walks: its command is the derived runner, whose population this census reads, so the workflow calling this name is checkable in the workflow bytes rather than quoted from here',
+  },
+  {
+    name: 'verify:api-tests',
+    class: 'covered',
+    run: 'npm run verify:api-tests',
+    tool: 'mvn',
+    subject: 'services/nexus-api/pom.xml',
+    why: 'the service suite DOES run in CI, just not through this name: the workflow owns its own mvn line, so the disposition is a coverage claim the gate can falsify by reading both command strings',
+  },
+  {
+    name: 'verify:harness',
+    class: 'deferred',
+    run: 'npm run verify:harness',
+    reach: 'tools/harness/cdp.mjs',
+    measured: '87 lines; the only one of the seven harness doors that navigates no served URL - it launches Chrome through the CDP pipe and asks the page what it can really see',
+    blocker: 'a Chrome binary the workflow never installs: cdp.mjs resolves one from Windows paths and a `google-chrome` PATH lookup, and no step in ci.yml pins or installs a browser the way it pins Node 24 and JDK 25',
+    next: 'import it from a proof under docs/evidence the way docs/evidence/studio/png-baseline-proof.mjs imports tools/harness/png.mjs, and pin a browser step in the workflow; the day both exist PROOF_COMMAND derives the row with no edit to this census',
+    why: 'the harness self-test is a claim about the harness, and a build that cannot launch the browser it grades cannot hear the claim',
+  },
+  {
+    name: 'verify:studio',
+    class: 'deferred',
+    run: 'npm run verify:studio',
+    reach: 'tools/harness/cdp.mjs',
+    measured: '270 lines; navigates 127.0.0.1:3210 and compares a PNG baseline through tools/harness/png.mjs; starts nothing itself (no createServer, no spawn in its own bytes)',
+    blocker: 'a Studio served on 127.0.0.1:3210 by a person who ran `npm run dev` first - the proofs step owns no long-lived dev server, and one would hold the 60-minute job ceiling for every row behind it',
+    next: 'stand up its own Studio the way docs/evidence/m7/studio-publish.mjs does (amendment 534 moved that proof into docs/evidence for exactly this reason), then it becomes a derived row',
+    why: 'the golden-path walk is real-browser evidence, and real-browser evidence with an unstalled prerequisite is a script a person runs, not a door the build walks',
+  },
+  {
+    name: 'verify:scene',
+    class: 'deferred',
+    run: 'npm run verify:scene',
+    reach: 'tools/harness/cdp.mjs',
+    measured: '684 lines; navigates 127.0.0.1:3210; the largest of the seven and the one whose WebGL question a headless runner cannot answer without a pinned browser',
+    blocker: 'a served Studio on 127.0.0.1:3210 and a Chrome that can paint a 3D scene; the workflow installs neither the server nor the browser',
+    next: 'stand up its own Studio the way docs/evidence/m7/studio-publish.mjs does (amendment 534), then move it under docs/evidence so PROOF_COMMAND derives it',
+    why: 'a 3D surface proof that assumes somebody else started the app is a verdict about the authoring box, and this census refuses to call that a channel',
+  },
+  {
+    name: 'verify:world',
+    class: 'deferred',
+    run: 'npm run verify:world',
+    reach: 'tools/harness/cdp.mjs',
+    measured: '350 lines; navigates 127.0.0.1:3210 and writes its own screenshots beside the run',
+    blocker: 'a served Studio on 127.0.0.1:3210 plus a Chrome binary; no workflow step provides either',
+    next: 'stand up its own Studio the way docs/evidence/m7/studio-publish.mjs does (amendment 534), then move it under docs/evidence so PROOF_COMMAND derives it',
+    why: 'the world surface is graded in a viewport, and a viewport nobody launches is not a build prerequisite - it is a person at a desk',
+  },
+  {
+    name: 'verify:assets',
+    class: 'deferred',
+    run: 'npm run verify:assets',
+    reach: 'tools/harness/cdp.mjs',
+    measured: '473 lines; navigates 127.0.0.1:3210; the asset panel it grades is built by `npm run build`, which the proofs step does run, so its only missing prerequisite is the served app',
+    blocker: 'a served Studio on 127.0.0.1:3210 and a Chrome binary, neither of which the workflow provides for the proofs step',
+    next: 'stand up its own Studio the way docs/evidence/m7/studio-publish.mjs does (amendment 534), then move it under docs/evidence so PROOF_COMMAND derives it',
+    why: 'an asset-surface walk that reads a URL it never started is a claim about a machine the build does not own',
+  },
+  {
+    name: 'verify:account',
+    class: 'deferred',
+    run: 'npm run verify:account',
+    reach: 'tools/harness/cdp.mjs',
+    measured: '159 lines; navigates 127.0.0.1:3210 and waits on the #nexus-canvas selector',
+    blocker: 'a served Studio on 127.0.0.1:3210 plus a Chrome binary; the account face also needs the service it reads credits from, which this probe assumes rather than starts',
+    next: 'stand up its own Studio and service the way docs/evidence/m7/studio-publish.mjs does (amendment 534), then move it under docs/evidence so PROOF_COMMAND derives it',
+    why: 'the M7 account face was written as a probe beside the others, and a probe that assumes a server is a human-run measurement until it owns one',
+  },
+  {
+    name: 'verify:credits-surface',
+    class: 'deferred',
+    run: 'npm run verify:credits-surface',
+    reach: 'tools/harness/cdp.mjs',
+    measured: '664 lines; navigates 127.0.0.1:3210; the largest surface proof of the M8 credits lane',
+    blocker: 'a served Studio on 127.0.0.1:3210 and a Chrome binary; its screenshots land in docs/evidence/studio/, so a build run would rewrite evidence bytes it is also grading',
+    next: 'stand up its own Studio the way docs/evidence/m7/studio-publish.mjs does (amendment 534), write its captures to a scratch plane instead of the graded tree, then move it under docs/evidence so PROOF_COMMAND derives it',
+    why: 'a proof that writes into the tree it grades is the rot this census names elsewhere, so its capture path is part of the repair, not a footnote to it',
+  },
+];
+
+/**
+ * The commands the workflow really runs, as strings. Deliberately narrower than ci-wiring's step reader: this
+ * census asks one question - does some command CI executes name this subject - so it takes run lines (inline and
+ * block scalar) and drops comment lines, and claims nothing about ordering, swallow-checking or step names, all
+ * of which docs/evidence/ci/ci-wiring-proof.mjs grades. A shape this reader cannot parse yields NO command, which
+ * reddens a coverage claim rather than quietly satisfying it.
+ */
+export function runCommandsOf(workflow) {
+  const out = [];
+  let inBlock = false;
+  let keyIndent = 0;
+  for (const raw of String(workflow).split(/\r?\n/)) {
+    if (/^\s*#/.test(raw)) continue;
+    const indent = (raw.match(/^\s*/) || [''])[0].length;
+    if (inBlock) {
+      if (raw.trim() === '') continue;
+      if (indent <= keyIndent) inBlock = false;
+      else {
+        out.push(raw.trim());
+        continue;
+      }
+    }
+    const m = /^(\s*)run:\s*(.*)$/.exec(raw);
+    if (!m) continue;
+    const value = m[2].trim();
+    if (value === '|' || value === '>' || value === '|-' || value === '>-') {
+      inBlock = true;
+      keyIndent = m[1].length;
+    } else if (value !== '') out.push(value);
+  }
+  return out;
+}
+
+/** The three dispositions a non-row `verify:*` script may hold, plus the refusal for everything else. */
+export const MANIFEST_CLASSES = ['runner', 'covered', 'deferred'];
+
+/**
+ * The manifest census: a pure function over (all scripts, the whole index, a reader, the workflow text and the
+ * MANIFEST declarations), returning the dispositions and the violations. Like `censusOf`, it decides nothing about
+ * the evidence tree's classes - it reads the same `derivePopulation` the build runs, so a script the runner would
+ * walk is a row here too and never a disposition.
+ */
+export function manifestOf({ scripts, index, read, workflow, manifest = [] }) {
+  const violations = [];
+  const names = Object.keys(scripts ?? {}).filter((n) => n.startsWith('verify:'));
+  const rows = new Set(derivePopulation(scripts).map((r) => r.name));
+  const indexSet = new Set(index ?? []);
+  const commands = typeof workflow === 'string' ? runCommandsOf(workflow) : null;
+  if (commands === null) {
+    violations.push('no workflow text was supplied, so not one `verify:*` disposition can be checked against what CI really runs - an unchecked claim is the silence this census exists to break');
+  } else if (commands.length === 0) {
+    violations.push(`the workflow reader found 0 run commands in ${WORKFLOW_FILE} - a reader that sees no commands cannot certify that any script is covered`);
+  }
+
+  const byName = new Map();
+  const coverage = new Map();
+  for (const e of manifest) {
+    if (byName.has(e.name)) violations.push(`MANIFEST disposes ${e.name} twice - two dispositions for one script name is two answers to one question`);
+    byName.set(e.name, e);
+  }
+  for (const [name, e] of byName) {
+    const cmd = String(scripts?.[name] ?? '');
+    if (cmd === '') violations.push(`MANIFEST disposes ${name}, which the manifest no longer holds - a disposition outlives its script exactly as long as nobody checks`);
+    if (rows.has(name)) violations.push(`MANIFEST disposes ${name} as ${e.class}, but PROOF_COMMAND DERIVES it as a row - a declaration cannot shadow a derived class`);
+    if (!MANIFEST_CLASSES.includes(e.class)) violations.push(`${name} is disposed with the class ${JSON.stringify(e.class)} — only ${MANIFEST_CLASSES.join(', ')} are declarable; row is DERIVED`);
+    if (String(e.run ?? '') !== `npm run ${name}`) violations.push(`${name}'s run line is ${JSON.stringify(e.run)}, not \`npm run ${name}\` — a disposition must name the door a reader can actually walk`);
+    if (String(e.why ?? '').length < 40) violations.push(`${name} is disposed without a reason a reader can falsify (${JSON.stringify(e.why)})`);
+    if (!cmd) continue;
+
+    if (e.class === 'runner') {
+      const target = RUN_RE.exec(cmd.trim())?.[1];
+      if (!target) violations.push(`${name} is disposed as the runner, yet its command ${JSON.stringify(cmd)} is not one node call — a door the workflow walks must be one command`);
+      else {
+        if (!indexSet.has(target)) violations.push(`${name} is the runner the proofs step calls, but the commit does not own ${target} — CI would check out a manifest naming a file no clone holds`);
+        if (target.startsWith(EVIDENCE)) violations.push(`${name} is disposed as the runner while its target ${target} sits under ${EVIDENCE} — that command is a derived row, not a door`);
+      }
+      if (commands && !commands.includes(`npm run ${name}`)) violations.push(`${name} is disposed as the runner, but no run line in ${WORKFLOW_FILE} calls \`npm run ${name}\` — the workflow stopped walking the door this census is standing in`);
+    }
+
+    if (e.class === 'covered') {
+      const subject = String(e.subject ?? '');
+      const tool = String(e.tool ?? '');
+      if (!subject) violations.push(`${name} is disposed as covered without naming the subject path the workflow must also name`);
+      if (!tool) violations.push(`${name} is disposed as covered without naming the tool the workflow must also run`);
+      if (subject && !indexSet.has(subject)) violations.push(`${name} claims coverage of ${subject}, which the commit does not own — a path no clone holds cannot be a test CI runs`);
+      if (subject && !cmd.includes(subject)) violations.push(`${name}'s own command ${JSON.stringify(cmd)} does not name the subject ${subject} it claims to share with the workflow`);
+      if (commands && subject && tool) {
+        const hit = commands.filter((c) => c.includes(subject)).filter((c) => new RegExp(`(^|\\s)${tool}(\\s|$)`).test(c));
+        if (hit.length === 0) violations.push(`${name} is disposed as covered by a workflow command that runs \`${tool}\` against ${subject}, and no run line in ${WORKFLOW_FILE} does — a comment or a \`cache-dependency-path:\` key quoting that path is prose about a file, not a test run`);
+        else coverage.set(name, hit);
+      }
+    }
+
+    if (e.class === 'deferred') {
+      const target = RUN_RE.exec(cmd.trim())?.[1];
+      if (!target) violations.push(`${name} is disposed as deferred, yet its command ${JSON.stringify(cmd)} is not one node call — a deferral blames a prerequisite of a file, so it must name one`);
+      else {
+        if (!indexSet.has(target)) violations.push(`${name} defers on ${target}, which the commit does not own — a door that exists only on the authoring box is not a disposition, it is a rumour`);
+        const reach = String(e.reach ?? '');
+        if (!reach) violations.push(`${name} is deferred without naming the module its own code imports as the prerequisite — a deferral needs a dependency, not a sentence`);
+        else {
+          const edges = importsOf(target, read).map((p) => p.replace(/\\/g, '/'));
+          if (!edges.includes(reach)) {
+            const inProse = String(read?.(target) ?? '').includes(reach);
+            violations.push(`${name} is deferred on the reach ${reach}, but ${target} does not IMPORT it outside its comments${inProse ? ' — the only place the path appears is prose, and prose is not a dependency' : ''} — so this deferral excuses a script the build could run`);
+          }
+        }
+      }
+      for (const [field, bound] of [['measured', 40], ['blocker', 40], ['next', 40]]) {
+        if (String(e[field] ?? '').length < bound) violations.push(`${name} is deferred without a ${field} of at least ${bound} characters (${JSON.stringify(e[field])}) — a deferral that stops being measured is a permanent exclusion wearing a new word`);
+      }
+    }
+  }
+
+  const undispositioned = names.filter((n) => !rows.has(n) && !byName.has(n));
+  for (const n of undispositioned) {
+    violations.push(`the manifest script ${n} (${JSON.stringify(String(scripts[n]))}) is UNDISPOSITIONED: PROOF_COMMAND does not admit it as a row and MANIFEST says nothing about it. Say one of ${MANIFEST_CLASSES.join(' | ')} — RUNNER (the workflow calls \`npm run ${n}\`), COVERED (a workflow run line names the same tool and subject path), DEFERRED (its code really imports the module it blames, and it states measured, blocker and next) — or wire it so the rule admits it`);
+  }
+
+  const tally = { runner: 0, covered: 0, deferred: 0 };
+  for (const [n, e] of byName) if (!rows.has(n) && names.includes(n) && MANIFEST_CLASSES.includes(e.class)) tally[e.class]++;
+  const counts = { names: names.length, row: rows.size, runner: tally.runner, covered: tally.covered, deferred: tally.deferred, undispositioned: undispositioned.length };
+  const closed = counts.row + counts.runner + counts.covered + counts.deferred + counts.undispositioned;
+  if (closed !== counts.names) violations.push(`the manifest closes at ${closed} over ${counts.names} verify:* names — a script in no class is a promise nobody decided how to keep`);
+
+  return { counts, dispositions: [...byName.entries()].map(([n, e]) => ({ name: n, ...e })), undispositioned, commands, coverage, violations };
+}
+
 /** Every `verify:*` command that is one `node` call, whatever it targets — import-closure roots, not rows. */
 export function rootsOf(scripts) {
   return Object.entries(scripts)
@@ -211,10 +458,11 @@ export function helperClosure({ roots, tracked, read }) {
 
 /**
  * The census itself: a pure function over (tracked list, scripts, exclusions, roster, swept population, a
- * reader, and the README that restates its counts). Everything below the CLI is exercised by the fixture arms
- * at the bottom, so the refusals are measured on a synthetic plane rather than assumed from reading the code.
+ * reader, the README that restates its counts, the whole index, the workflow text and the MANIFEST dispositions).
+ * Everything below the CLI is exercised by the fixture arms at the bottom, so the refusals are measured on a
+ * synthetic plane rather than assumed from reading the code.
  */
-export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null }) {
+export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null, index = [], workflow = null, manifest = [] }) {
   const rows = new Map(derivePopulation(scripts).map((r) => [r.file, r]));
   const trackedSet = new Set(tracked);
   const rosterByFile = new Map();
@@ -278,7 +526,12 @@ export function censusOf({ tracked, scripts, excluded = [], roster = [], swept =
     violations.push(...readmeDrift({ readme, counts, running, residue, tracked }));
   }
 
-  return { classes, rows, helpers, dangling, unclassified, counts, violations };
+  // The mirror question: not "does every module have a channel" but "does every verify:* NAME have one". Same
+  // plane, same call, so one verdict covers both directions and neither can be answered without the other.
+  const manifestReport = manifestOf({ scripts, index, read, workflow, manifest });
+  violations.push(...manifestReport.violations);
+
+  return { classes, rows, helpers, dangling, unclassified, counts, manifest: manifestReport, violations };
 }
 
 /**
@@ -332,7 +585,61 @@ const BASE = () => ({
     'docs/evidence/x/swept-proof.mjs': '\n',
     'docs/evidence/x/tool.mjs': "import { t } from './tool-helper.mjs';\n",
     'docs/evidence/x/tool-helper.mjs': '\n',
+    // Outside docs/evidence: the manifest names doors here too, and the module census deliberately does not
+    // follow edges out of the evidence tree. The fixture plane carries them so the manifest arms have a tree.
+    'tools/ci/runner.mjs': '// the fixture runner the proofs step walks\n',
+    'tools/harness/cdp.mjs': 'export const launch = async () => ({});\n',
+    'tools/harness/fx-browser.mjs': "import { launch } from './cdp.mjs';\n",
+    'services/nexus-api/pom.xml': '<project/>\n',
   },
+  // The workflow as CI would check it out: run lines inline and as a block scalar, one comment that quotes the
+  // maven line so the M6 arm can prove a quote is not a test run.
+  workflow: [
+    'jobs:',
+    '  quality:',
+    '    steps:',
+    '      - uses: actions/checkout@v4',
+    '      - name: Install',
+    '        run: npm ci || npm install',
+    '      - name: Warm the Maven repository',
+    '        # mvn -B -q -f services/nexus-api/pom.xml test is prose about a lifecycle, not the lifecycle',
+    '        run: mvn -B -q -f services/nexus-api/pom.xml test',
+    '      - name: ADR index integrity',
+    '        run: |',
+    '          shopt -s nullglob',
+    '          for f in docs/decisions/[0-9]*.md; do',
+    '            echo "$f"',
+    '          done',
+    '      - name: Evidence proofs',
+    '        run: npm run verify:runner',
+    '',
+  ].join('\n'),
+  manifest: [
+    {
+      name: 'verify:runner',
+      class: 'runner',
+      run: 'npm run verify:runner',
+      why: 'the fixture door the proofs step calls, declared so the control plane has a witness for the runner class',
+    },
+    {
+      name: 'verify:svc',
+      class: 'covered',
+      run: 'npm run verify:svc',
+      tool: 'mvn',
+      subject: 'services/nexus-api/pom.xml',
+      why: 'the fixture coverage claim: the workflow runs the same pom through its own mvn line, so this name is a person\'s door with a build behind it',
+    },
+    {
+      name: 'verify:browser',
+      class: 'deferred',
+      run: 'npm run verify:browser',
+      reach: 'tools/harness/cdp.mjs',
+      measured: 'a fixture proof that imports the CDP launcher and navigates a URL it never starts, counted off its own bytes on this plane',
+      blocker: 'a browser binary and a served app, neither of which the fixture workflow installs or starts before the proofs step runs',
+      next: 'start its own app the way the shipped publish proof does and move under docs/evidence, which makes PROOF_COMMAND derive it as a row',
+      why: 'a real-browser walk with an unstalled prerequisite is a human-run measurement, and the fixture plane needs one to arm against',
+    },
+  ],
   // The README is part of the plane: it restates the counts above in the same shapes the real file uses,
   // so the control arm proves the reader agrees with a correct table before any arm drifts one number.
   readme: [
@@ -351,6 +658,8 @@ const BASE = () => ({
     'verify:row': 'node docs/evidence/x/row-proof.mjs',
     'verify:excluded': 'node docs/evidence/x/excluded-proof.mjs',
     'verify:runner': 'node tools/ci/runner.mjs',
+    'verify:svc': 'mvn -B test -f services/nexus-api/pom.xml',
+    'verify:browser': 'node tools/harness/fx-browser.mjs',
   },
   excluded: [{ file: 'docs/evidence/x/excluded-proof.mjs', needs: 'a service this synthetic plane does not have' }],
   roster: [
@@ -370,6 +679,8 @@ const ARMS = [
     assert.deepEqual(r.unclassified, []);
     assert.deepEqual(r.counts, { row: 2, helper: 3, swept: 1, tool: 1, deferred: 0, unclassified: 0 }, `counts: ${JSON.stringify(r.counts)}`);
     assert.ok(r.helpers.has('docs/evidence/x/leaf.mjs'), 'a helper of a helper is a helper');
+    assert.deepEqual(r.manifest.counts, { names: 5, row: 2, runner: 1, covered: 1, deferred: 1, undispositioned: 0 }, `manifest counts: ${JSON.stringify(r.manifest.counts)}`);
+    assert.equal(r.manifest.coverage.get('verify:svc').length, 1, 'the coverage claim resolves to exactly one workflow command line');
   }],
   ['A1 an unclassified module', (f) => { f.files['docs/evidence/x/stray.mjs'] = ''; }, (r) => {
     assert.ok(r.unclassified.includes('docs/evidence/x/stray.mjs'), `stray: ${JSON.stringify(r.unclassified)}`);
@@ -456,15 +767,69 @@ const ARMS = [
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('says 2 running + 0 excluded')), r.violations.join(' | '));
   }],
+  // ── the manifest arms: every `verify:*` name owes a disposition ──────────────────────────────────────
+  ['M1 a new verify:* script nobody disposed', (f) => { f.scripts['verify:ghost'] = 'node tools/harness/fx-browser.mjs'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:ghost') && v.includes('UNDISPOSITIONED')), `ghost: ${r.violations.join(' | ')}`);
+    assert.equal(r.manifest.counts.undispositioned, 1, `undispositioned: ${JSON.stringify(r.manifest.counts)}`);
+  }],
+  ['M2 a disposition whose script is gone', (f) => { delete f.scripts['verify:svc']; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:svc') && v.includes('the manifest no longer holds')), `stale: ${r.violations.join(' | ')}`);
+  }],
+  ['M3 a disposition shadowing a derived row', (f) => {
+    f.manifest.push({
+      name: 'verify:row',
+      class: 'deferred',
+      run: 'npm run verify:row',
+      reach: 'tools/harness/cdp.mjs',
+      measured: 'a row dressed as a deferral, which would take a build door out of the build with a sentence',
+      blocker: 'nothing: this fixture entry exists to be refused, because the class it claims is DERIVED from the manifest command',
+      next: 'delete the entry, and the census reads the row off package.json the way the runner does',
+      why: 'a declaration cannot retire a derived row, and this arm is the witness that the census says so',
+    });
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:row') && v.includes('DERIVES it as a row')), `shadow: ${r.violations.join(' | ')}`);
+  }],
+  ['M4 the runner the workflow stopped calling', (f) => {
+    f.workflow = f.workflow.replace('        run: npm run verify:runner', '        run: echo the proofs step moved');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:runner') && v.includes('no run line')), `runner gone: ${r.violations.join(' | ')}`);
+  }],
+  ['M5 coverage claimed from a comment', (f) => {
+    f.workflow = f.workflow.replace('        run: mvn -B -q -f services/nexus-api/pom.xml test', '        echo "a step that grades nothing here"');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:svc') && v.includes('no run line in')), `prose coverage: ${r.violations.join(' | ')}`);
+    assert.ok(!r.manifest.coverage.has('verify:svc'), 'the coverage map must not hold a claim the workflow cannot answer');
+  }],
+  ['M6 a deferral whose reach is only prose', (f) => {
+    f.files['tools/harness/fx-browser.mjs'] = "// import { launch } from './cdp.mjs';\nconst url = \"./cdp.mjs\";\n";
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('does not IMPORT it outside its comments')), `prose reach: ${r.violations.join(' | ')}`);
+  }],
+  ['M7 a deferral with no next repair', (f) => { f.manifest[2].next = ''; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('without a next')), `open-ended deferral: ${r.violations.join(' | ')}`);
+  }],
+  ['M8 a manifest target the commit does not own', (f) => { delete f.files['tools/ci/runner.mjs']; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:runner') && v.includes('the commit does not own')), `dangling door: ${r.violations.join(' | ')}`);
+  }],
+  ['M9 a run line that is not the door', (f) => { f.manifest[0].run = 'npm run verify:runners'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:runner') && v.includes('npm run verify:runner`')), `wrong run line: ${r.violations.join(' | ')}`);
+  }],
+  ['M10 a workflow with no commands at all', (f) => { f.workflow = ''; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('found 0 run commands')), `empty reader: ${r.violations.join(' | ')}`);
+  }],
+  ['M11 one script disposed twice', (f) => { f.manifest.push({ ...f.manifest[0] }); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:runner') && v.includes('twice')), `duplicate: ${r.violations.join(' | ')}`);
+  }],
 ];
 
 function runArms() {
   const results = ARMS.map(([name, patch, check]) => {
     const f = BASE();
     patch(f);
-    const tracked = (f.tracked ?? Object.keys(f.files)).slice().sort();
+    const tracked = (f.tracked ?? Object.keys(f.files).filter((p) => p.startsWith('docs/evidence/'))).slice().sort();
+    const index = (f.index ?? Object.keys(f.files)).slice().sort();
     const read = (p) => (Object.prototype.hasOwnProperty.call(f.files, p) ? f.files[p] : null);
-    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme });
+    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme, index, workflow: f.workflow, manifest: f.manifest });
     try {
       check(report);
       return { name, ok: true };
@@ -486,6 +851,13 @@ async function main() {
     .filter((s) => MODULE_RE.test(s))
     .sort();
   assert.ok(tracked.length >= 40, `git ls-files returned ${tracked.length} evidence modules — a population that small is a broken filter, not a repository`);
+  // The manifest census needs the WHOLE index, not the evidence half: the doors it disposes open onto
+  // tools/harness and services/nexus-api, and a script naming a file no clone holds is the same dangling door
+  // one of the derived rows naming a deleted proof would be.
+  const index = (await sweep.gitText(['ls-files'], ROOT)).split(/\r?\n/).map((s) => s.trim()).filter(Boolean).sort();
+  assert.ok(index.length >= tracked.length, `the whole index (${index.length}) is smaller than the evidence half (${tracked.length}) — a listing that cannot hold its own subset is a broken git call, not a tree`);
+  assert.ok(existsSync(join(ROOT, WORKFLOW_FILE)), `${WORKFLOW_FILE} is missing — no disposition can be checked against a workflow that is not in the tree`);
+  const workflow = readFileSync(join(ROOT, WORKFLOW_FILE), 'utf8');
 
   const indexSwept = tracked.filter((f) => f.startsWith(SWEEP_DIR) && f.endsWith('-proof.mjs')).sort();
   const headSwept = (await sweep.trackedProofs('HEAD', ROOT)).slice().sort();
@@ -498,9 +870,10 @@ async function main() {
   const read = (p) => (existsSync(join(ROOT, p)) ? readFileSync(join(ROOT, p), 'utf8') : null);
   assert.ok(existsSync(join(ROOT, README_FILE)), `${README_FILE} is missing — this census checks the table that restates its own counts, and a missing table is a red asking for the edit, not a skip`);
   const readme = readFileSync(join(ROOT, README_FILE), 'utf8');
-  const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read, readme });
+  const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read, readme, index, workflow, manifest: MANIFEST });
   assert.deepEqual(report.violations, [], `the census is RED:\n  ${report.violations.join('\n  ')}`);
   assert.deepEqual(report.unclassified, [], `the census found modules nobody has decided about: ${report.unclassified.join(', ')} — each must become a verify row, an EXCLUDED row, a reachable helper, or a ROSTER entry with a falsifiable reason`);
+  assert.deepEqual(report.manifest.undispositioned, [], `the manifest holds verify:* names nobody has disposed: ${report.manifest.undispositioned.join(', ')} — declare each in MANIFEST as a runner, a covered claim the workflow answers, or a deferred door with its reach, measurement, blocker and next repair`);
 
   const rows = derivePopulation(pkg.scripts);
   assert.ok(rows.length >= 15, `the derived row population is ${rows.length} — the build's own census must not shrink without a record saying why`);
@@ -531,6 +904,15 @@ async function main() {
   }
   const alsoSwept = rows.filter((r) => headSwept.includes(r.file)).map((r) => r.name);
   if (alsoSwept.length) console.log(`\nrows that are ALSO in the agents sweep's population (double coverage, not a conflict): ${alsoSwept.join(', ')}`);
+
+  const mf = report.manifest;
+  console.log(`\nmanifest (every verify:* NAME, not only the commands PROOF_COMMAND admits): ${mf.counts.names} names close as ${mf.counts.row} derived rows + ${mf.counts.runner} runner + ${mf.counts.covered} covered + ${mf.counts.deferred} deferred + ${mf.counts.undispositioned} undispositioned, over ${mf.commands.length} run commands the workflow actually executes`);
+  for (const e of MANIFEST) {
+    const cmd = String(pkg.scripts[e.name] ?? '');
+    if (e.class === 'runner') console.log(`  RUNNER     ${e.name.padEnd(22)} ${cmd} -- the workflow's proofs step calls \`npm run ${e.name}\``);
+    else if (e.class === 'covered') console.log(`  COVERED    ${e.name.padEnd(22)} ${cmd} -- the workflow runs ${JSON.stringify(mf.coverage.get(e.name) ?? [])}`);
+    else console.log(`  DEFERRED   ${e.name.padEnd(22)} ${cmd} -- code-reach ${e.reach}; blocker: ${e.blocker.slice(0, 72)}...; next: ${e.next.slice(0, 72)}...`);
+  }
 
   runArms();
 
