@@ -74,7 +74,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, mkdtempSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -1074,28 +1074,33 @@ const vocab = (() => {
       [],
       `these shipped files use a report reason word as a reason instead of asking ${CLIENT_MODEL}: ${reasonUseSites.map((s) => `${s.rel}:${s.uses.map((u) => `${u.rule}(${u.word})`).join(', ')}`).join('; ')} — a screen that tests on the wire token has written its own sentence about the reason, so §11.7's one-owner rule has nothing to grade (it counts declarations of the FACE, and this file declares none), §8 cannot reconcile it, and the service renaming a reason leaves this file agreeing with nothing`,
     );
-    // 11.10 — clause execution order: §11.7 must run before §11.10, and a case
-    // dies at its FIRST failed assert — the loader §11.10 reaches first rather than
-    // against the loader §11.11 has not yet run. This ensures the correct grading
-    // order: R1/R2 are checked before R3/R4/R5, and the assertion that "a case
-    // dies at its first failed assert" is upheld across the battery. The phase-2
-    // control runs the SHIPPED proof rather than a truncated new one because of
-    // this clause, ensuring that a failed assert short-circuits the entire battery
-    // rather than allowing later arms to run.
-    const caseDeathSites = shipped
-      .filter((rel) => rel !== CLIENT_MODEL)
-      .map((rel) => ({ rel, caseClauses: reasonUseSites.map((u) => u.rule) }))
-      .filter((s) => s.caseClauses.length > 0);
+    // Two carriers, because the census above is an absence claim. The first: the parser must SEE the declared
+    // reason words in the one file that is allowed to spell them — a `spellings()` that matched nothing would
+    // report a clean population of any tree at all.
+    const ownerReasonWords = [...new Set(spellings(CLIENT_MODEL, vocab.serverReasons))].sort();
     assert.deepEqual(
-      caseDeathSites,
-      [],
-      `these shipped files have case clauses that should have triggered early termination
-      — the "case dies at its first failed assert" principle requires that once a rule
-      fails, subsequent rules are not checked. The SHIPPED gate in v597 validates this
-      by running the battery over trees planted with early-fail assertions, and the
-      phase-2 control depends on this contract`,
+      ownerReasonWords,
+      [...vocab.serverReasons].sort(),
+      `${CLIENT_MODEL} spells ${ownerReasonWords.length} of the ${vocab.serverReasons.length} declared reasons as string literals (${ownerReasonWords.join(', ')}) — 11.9b would be grading a vocabulary its own reader cannot find`,
     );
-    // End of 11.10 clause execution order section
+    // The second: the POSITION the rules key on must be inhabited. If no shipped file ever read `.reason`,
+    // "no file compares a reason word to it" would be true of an empty domain, which is not a contract.
+    const reasonFieldReads = (() => {
+      let sites = 0;
+      let files = 0;
+      for (const rel of shipped) {
+        const found = names(rel, (n) => ts.isPropertyAccessExpression(n) && n.name.text === 'reason').length;
+        if (found > 0) {
+          files += 1;
+          sites += found;
+        }
+      }
+      return { sites, files };
+    })();
+    assert.ok(
+      reasonFieldReads.sites >= 1,
+      `no shipped file reads a \`.reason\` field at all — 11.9b's position rules would be charging a domain of zero, and the report reason would have no reader left to protect`,
+    );
     const naiveReasonSites = shipped
       .filter((rel) => rel !== CLIENT_MODEL)
       .map((rel) => ({ rel, words: spellings(rel, vocab.serverReasons) }))
@@ -1151,6 +1156,47 @@ const vocab = (() => {
       assert.equal(mayWithdraw, javaStanding.includes(status), `${CLIENT_REPORTBAR} lets the reporter take back a "${status}" report (${mayWithdraw}) while the service's guards name ${javaStanding.join(', ')} as standing`);
       assert.equal(deskOpen, javaStanding.includes(status), `${CLIENT_MODERATION} counts a "${status}" report as waiting (${deskOpen}) while the service's guards name ${javaStanding.join(', ')} as standing`);
     }
+    // 11.12 — a clause LABEL is claimed ONCE in this file. `5a3a841` opened a block titled `11.10` four lines
+    // above the §11.10 that v586 already owns: two blocks, one number, so either assertion firing sends the
+    // reader to the same record — and the record that block cites, amendment 551, was never granted. The
+    // census keys on the DECLARATION spelling: a comment line whose first token is `11.<n>` and whose next
+    // token is the em-dash. It does NOT key on a MENTION, because every clause here names its neighbours
+    // inside its own failure message; charging a citation would make this file impossible to quote.
+    const ownSource = readFileSync(fileURLToPath(import.meta.url), 'utf8');
+    const ownLabels = new Map();
+    for (const m of ownSource.matchAll(/^[ \t]*\/\/+[ \t]*(11\.[0-9]+[a-z]?)[ \t]+—[ \t]/gm)) {
+      ownLabels.set(m[1], (ownLabels.get(m[1]) ?? 0) + 1);
+    }
+    const ownDuplicated = [...ownLabels].filter(([, n]) => n > 1).map(([label, n]) => `${label} (${n} blocks)`).sort();
+    // Three carriers, because "no label is claimed twice" is an absence claim over a population this clause
+    // builds with its own regex. First: the census must find the label OF THE CLAUSE RUNNING IT — a grammar
+    // blind to its own heading grades an empty population and prints a clean census of any file at all.
+    // Second and third: the range tag this block prints names two endpoints, and both must be declared, so a
+    // tag that outlives its clauses and a clause that outlives the grammar are both charged here.
+    assert.ok(
+      ownLabels.has('11.12'),
+      `§11.12 does not find its OWN label among the ${ownLabels.size} it counts (${[...ownLabels.keys()].sort().join(', ')}) — the declaration spelling this census keys on no longer matches the spelling this file is written in, so the uniqueness claim below would be grading an empty population`,
+    );
+    const rangeTags = [...ownSource.matchAll(/\[§(11\.[0-9]+)-([0-9]+)\]/g)];
+    assert.equal(
+      rangeTags.length,
+      1,
+      `this file carries ${rangeTags.length} clause-range tags of the shape [§11.N-M] (${rangeTags.map((t) => t[0]).join(', ') || 'none'}) instead of the one this census reads — with no single range there is no pair of endpoints to certify, and the run would be claiming a coverage it cannot name`,
+    );
+    const rangeTag = rangeTags[0][0];
+    const rangeEndpoints = [rangeTags[0][1], `11.${rangeTags[0][2]}`];
+    const missingEndpoints = rangeEndpoints.filter((label) => !ownLabels.has(label));
+    assert.deepEqual(
+      missingEndpoints,
+      [],
+      `the run's own range tag ${rangeTag} names ${missingEndpoints.join(' and ')} as an endpoint, but no comment declares that label in the spelling this census reads — the tag is certifying coverage of clauses the census cannot see, which is what a silent grammar looks like`,
+    );
+    assert.deepEqual(
+      ownDuplicated,
+      [],
+      `${ownDuplicated.length} clause label(s) declared more than once in this file (${ownDuplicated.join(', ')}) — told "§11.10 failed", a reader cannot tell which block's verdict they were handed, and the ledger record a duplicated label cites need not be the one that granted the clause`,
+    );
+    console.log(`[§11.12] ${ownLabels.size} clause labels declared in this file · ${ownDuplicated.length} claimed twice · the range tag ${rangeTag} names ${rangeEndpoints.join(' and ')} and both are declared · a mention inside a message is not a declaration, so the citations this file prints are not counted here`);
     console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText} and imported from the owner by ${faceReadersOf.reportReasonText.length} reader(s) (${faceReadersOf.reportReasonText.join(', ')}), trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')}) · 11.9b charges ${reasonUseSites.length} file(s) that USE a reason word in a position (${reasonUseSites.map((s) => s.rel).join(', ') || 'nobody'}) while ${naiveReasonSites.length} file(s) spell one of the ${vocab.serverReasons.length} words in a different vocabulary and are NOT charged (${naiveReasonSites.map((s) => `${s.rel}(${s.words.join('+')})`).join(', ') || 'none'}), over a domain of ${reasonFieldReads.sites} \`.reason\` reads in ${reasonFieldReads.files} shipped files`);
     console.log(`[§11] the vocabulary is graded where it is rendered: ${shipped.length} shipped sources carry ${declared.length} vocabulary tables, all in ${CLIENT_MODEL} · AUDIT_ACTIONS has ${verbReaders.length} production reader(s) (${verbReaders.join(', ')}) and REPORT_REASONS has ${reasonReaders.length} (${reasonReaders.join(', ')}) · ${CLIENT_TOOLBAR} spells 0 of the ${vocab.serverVerbs.length} verbs and maps the table instead · ${CLIENT_COMPOSER} imports its reasons from the owner · the shipped trail module RUN gives all ${vocab.serverVerbs.length} recorded verbs a row word, a button word and a tooltip · and its hand-copied tally still tiles exactly the table's ${tallySeen.length} verbs`);
     // Disclosed, not charged: the shipped sources left in this list spell a recorded verb for their OWN
