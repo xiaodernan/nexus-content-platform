@@ -996,6 +996,116 @@ const vocab = (() => {
       `${CLIENT_MODEL} spells ${ownerSpelled.length} of the ${vocab.serverStatuses.length} declared statuses as string literals (${ownerSpelled.join(', ')}) — §11.9's clean census would be vacuous if the parser could not see the words in the one file that is ALLOWED to spell them`,
     );
 
+    // 11.9b — the REASON analogue of 11.9, which cannot be a copy of it. The five status words are
+    // distinctive enough that spelling one outside the owner is itself the finding. The reason words are
+    // not: `other` is an ordinary English word, and the census below counts the shipped files that spell a
+    // declared reason while meaning something else entirely (the run prints the number beside their names —
+    // today `templateCatalog.ts` keeps `other` in its own six-member category list, and
+    // `DesignSystemPanel.tsx` defaults an unknown path prefix to it). Charging those would teach the next
+    // reader to ignore this gate, so the reason census is keyed on POSITION rather than on the word: a
+    // declared reason is charged where code USES it as a report reason.
+    // R1 compares one against an expression that reads `.reason`, R2 makes one a `case` of such a switch,
+    // R3 finds two or more reason words as the KEYS of one object literal (a second word table, which is the
+    // shape §11.7 cannot see because it declares no face), R4 re-declares the WHOLE vocabulary as an array or
+    // a union outside the owner (§11.1 is keyed on the three table NAMES, so `const ALL_REASONS = [...]` walks
+    // straight past it), and R5 binds one to a JSX attribute whose own name ends in `reason` — the
+    // `data-trail-filter="publish"` shape 11.3's comment already names for verbs.
+    // What this does NOT charge is deliberately said out loud: a row WRITTEN with a reason word
+    // (`{ reason: 'spam' }`) is data the service accepts, not a second speaker, and a local named `reason`
+    // that holds an ops ROUTE's refusal sentence is a different field with the same name — so R1 can in
+    // principle charge a refusal keyed on a word that collides with the report vocabulary. Every finding
+    // prints its file and line for exactly that reason.
+    const eqKinds = [
+      ts.SyntaxKind.EqualsEqualsEqualsToken,
+      ts.SyntaxKind.ExclamationEqualsEqualsToken,
+      ts.SyntaxKind.EqualsEqualsToken,
+      ts.SyntaxKind.ExclamationEqualsToken,
+    ];
+    const reasonWord = (n) => ((ts.isStringLiteral(n) || (ts.isNoSubstitutionTemplateLiteral && ts.isNoSubstitutionTemplateLiteral(n))) && vocab.serverReasons.includes(n.text) ? n.text : null);
+    const readsReasonField = (n) => {
+      const t = n.getText().trim();
+      return t === 'reason' || /\.reason$/.test(t);
+    };
+    const memberKey = (n) => {
+      if (!(ts.isPropertyAssignment(n) || ts.isPropertySignature(n))) return null;
+      if (ts.isIdentifier(n.name)) return n.name.text;
+      if (ts.isStringLiteral(n.name)) return n.name.text;
+      return null;
+    };
+    const reasonUsesIn = (rel) => {
+      const root = parse(rel);
+      const out = [];
+      const charge = (rule, word, node) => out.push({ rule, word, line: root.getLineAndCharacterOfPosition(node.getStart()).line + 1 });
+      const visit = (n) => {
+        if (ts.isBinaryExpression(n) && eqKinds.includes(n.operatorToken.kind)) {
+          if (reasonWord(n.left) && readsReasonField(n.right)) charge('R1-compare', n.left.text, n.left);
+          if (reasonWord(n.right) && readsReasonField(n.left)) charge('R1-compare', n.right.text, n.right);
+        }
+        if (ts.isCaseClause(n) && n.expression && reasonWord(n.expression)) {
+          const subject = n.parent && n.parent.parent;
+          if (subject && ts.isSwitchStatement(subject) && readsReasonField(subject.expression)) charge('R2-case', n.expression.text, n.expression);
+        }
+        // An object LITERAL keeps `properties`; a type LITERAL keeps `members`. Reading the wrong one of the
+        // two is silent — the rule simply never fires — and arm A3 of the v597 battery is what caught it.
+        const literalParts = ts.isObjectLiteralExpression(n) ? n.properties : ts.isTypeLiteralNode(n) ? n.members : null;
+        if (literalParts) {
+          const keys = [...new Set(literalParts.map(memberKey).filter((k) => k && vocab.serverReasons.includes(k)))];
+          if (keys.length >= 2) for (const m of literalParts) if (keys.includes(memberKey(m))) charge('R3-table', memberKey(m), m.name);
+        }
+        let roster = null;
+        if (ts.isArrayLiteralExpression(n)) roster = n.elements.map(reasonWord).filter(Boolean);
+        if (ts.isUnionTypeNode(n)) roster = n.types.map((t) => (ts.isLiteralTypeNode(t) ? reasonWord(t.literal) : null)).filter(Boolean);
+        if (roster && new Set(roster).size >= 2 && vocab.serverReasons.every((r) => roster.includes(r))) charge('R4-wholesale', [...new Set(roster)].join('+'), n);
+        if (ts.isJsxAttribute(n) && /reason$/i.test(n.name.getText()) && n.initializer) {
+          const value = ts.isJsxExpression(n.initializer) ? n.initializer.expression : n.initializer;
+          if (value && reasonWord(value)) charge('R5-attribute', value.text, value);
+        }
+        ts.forEachChild(n, visit);
+      };
+      visit(root);
+      return out;
+    };
+    const reasonUseSites = shipped
+      .filter((rel) => rel !== CLIENT_MODEL)
+      .map((rel) => ({ rel, uses: reasonUsesIn(rel) }))
+      .filter((s) => s.uses.length > 0);
+    assert.deepEqual(
+      reasonUseSites,
+      [],
+      `these shipped files use a report reason word as a reason instead of asking ${CLIENT_MODEL}: ${reasonUseSites.map((s) => `${s.rel}:${s.uses.map((u) => `${u.rule}(${u.word})`).join(', ')}`).join('; ')} — a screen that tests on the wire token has written its own sentence about the reason, so §11.7's one-owner rule has nothing to grade (it counts declarations of the FACE, and this file declares none), §8 cannot reconcile it, and the service renaming a reason leaves this file agreeing with nothing`,
+    );
+    // Two carriers, because the census above is an absence claim. The first: the parser must SEE the declared
+    // reason words in the one file that is allowed to spell them — a `spellings()` that matched nothing would
+    // report a clean population of any tree at all.
+    const ownerReasonWords = [...new Set(spellings(CLIENT_MODEL, vocab.serverReasons))].sort();
+    assert.deepEqual(
+      ownerReasonWords,
+      [...vocab.serverReasons].sort(),
+      `${CLIENT_MODEL} spells ${ownerReasonWords.length} of the ${vocab.serverReasons.length} declared reasons as string literals (${ownerReasonWords.join(', ')}) — 11.9b would be grading a vocabulary its own reader cannot find`,
+    );
+    // The second: the POSITION the rules key on must be inhabited. If no shipped file ever read `.reason`,
+    // "no file compares a reason word to it" would be true of an empty domain, which is not a contract.
+    const reasonFieldReads = (() => {
+      let sites = 0;
+      let files = 0;
+      for (const rel of shipped) {
+        const found = names(rel, (n) => ts.isPropertyAccessExpression(n) && n.name.text === 'reason').length;
+        if (found > 0) {
+          files += 1;
+          sites += found;
+        }
+      }
+      return { sites, files };
+    })();
+    assert.ok(
+      reasonFieldReads.sites >= 1,
+      `no shipped file reads a \`.reason\` field at all — 11.9b's position rules would be charging a domain of zero, and the report reason would have no reader left to protect`,
+    );
+    const naiveReasonSites = shipped
+      .filter((rel) => rel !== CLIENT_MODEL)
+      .map((rel) => ({ rel, words: spellings(rel, vocab.serverReasons) }))
+      .filter((s) => s.words.length > 0);
+
     // 11.10 — the two faces RUN over a report whose status never arrived. The defect was not a wrong word
     // but an invented one: no `status` on the wire became 'open', which is the service saying "nobody has
     // looked at this yet", from a response that did not say it.
@@ -1046,7 +1156,7 @@ const vocab = (() => {
       assert.equal(mayWithdraw, javaStanding.includes(status), `${CLIENT_REPORTBAR} lets the reporter take back a "${status}" report (${mayWithdraw}) while the service's guards name ${javaStanding.join(', ')} as standing`);
       assert.equal(deskOpen, javaStanding.includes(status), `${CLIENT_MODERATION} counts a "${status}" report as waiting (${deskOpen}) while the service's guards name ${javaStanding.join(', ')} as standing`);
     }
-    console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText} and imported from the owner by ${faceReadersOf.reportReasonText.length} reader(s) (${faceReadersOf.reportReasonText.join(', ')}), trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')})`);
+    console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText} and imported from the owner by ${faceReadersOf.reportReasonText.length} reader(s) (${faceReadersOf.reportReasonText.join(', ')}), trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')}) · 11.9b charges ${reasonUseSites.length} file(s) that USE a reason word in a position (${reasonUseSites.map((s) => s.rel).join(', ') || 'nobody'}) while ${naiveReasonSites.length} file(s) spell one of the ${vocab.serverReasons.length} words in a different vocabulary and are NOT charged (${naiveReasonSites.map((s) => `${s.rel}(${s.words.join('+')})`).join(', ') || 'none'}), over a domain of ${reasonFieldReads.sites} \`.reason\` reads in ${reasonFieldReads.files} shipped files`);
     console.log(`[§11] the vocabulary is graded where it is rendered: ${shipped.length} shipped sources carry ${declared.length} vocabulary tables, all in ${CLIENT_MODEL} · AUDIT_ACTIONS has ${verbReaders.length} production reader(s) (${verbReaders.join(', ')}) and REPORT_REASONS has ${reasonReaders.length} (${reasonReaders.join(', ')}) · ${CLIENT_TOOLBAR} spells 0 of the ${vocab.serverVerbs.length} verbs and maps the table instead · ${CLIENT_COMPOSER} imports its reasons from the owner · the shipped trail module RUN gives all ${vocab.serverVerbs.length} recorded verbs a row word, a button word and a tooltip · and its hand-copied tally still tiles exactly the table's ${tallySeen.length} verbs`);
     // Disclosed, not charged: the shipped sources left in this list spell a recorded verb for their OWN
     // request or route — a `publish` in a lane's action field, not a word painted beside a trail row.
