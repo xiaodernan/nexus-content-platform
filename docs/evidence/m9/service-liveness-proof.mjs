@@ -343,8 +343,13 @@ try {
       `an unreachable database must NAME its reason, got ${JSON.stringify(Object.keys(outage.body.database))}`);
   const detail = outage.body.database.detail;
   assert.ok(typeof detail === 'string' && detail.length > 0, `a failure must name a reason, got ${JSON.stringify(detail)}`);
-  assert.match(detail, /^[A-Za-z_$][A-Za-z0-9_$.]*$/,
+  // Same reader defect as service-health-proof: the producer declares two token shapes ("invalid-connection",
+  // or an exception's simple name) and only the second was admitted, so this row passed on the box that saw a
+  // PSQLException and reddened on the runner that saw the constant. ASCII-only comment, because the writer
+  // channel this repository's records damage through is the one verify:record-encoding grades.
+  assert.match(detail, /^[A-Za-z_$][A-Za-z0-9_$.-]*$/,
       `the reason must be a short token (an exception's simple name or invalid-connection), got ${JSON.stringify(detail)}`);
+  assert.ok(detail.length <= 64, `the reason is ${detail.length} characters, not a short token: ${JSON.stringify(detail)}`);
   for (const forbidden of ['jdbc:', 'postgresql', '127.0.0.1', 'password', 'connection refused', 'message', 'stack', ' at ']) {
     assert.equal(outage.text.includes(forbidden), false,
         `the unauthenticated body must not carry ${JSON.stringify(forbidden)}: ${outage.text}`);

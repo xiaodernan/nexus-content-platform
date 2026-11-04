@@ -312,8 +312,14 @@ try {
       `a failure is still a measurement, got ${outage.body.database.latencyMs}`);
   const detail = outage.body.database.detail;
   assert.ok(typeof detail === 'string' && detail.length > 0, `a failure must name a reason, got ${JSON.stringify(detail)}`);
-  assert.match(detail, /^[A-Za-z_$][A-Za-z0-9_$.]*$/,
+  // The producer declares TWO shapes for this token (HealthService.INVALID_CONNECTION = "invalid-connection",
+  // or an exception's simple name) and the refusal sentence below says so; the class this row shipped
+  // admitted only the second, so it was green on the box that saw a PSQLException and RED on the runner that
+  // saw the constant. A reader that refuses a value its own message names is the defect this lane exists to
+  // catch, so the class now carries the hyphen, and the length bound makes "short" a measurement too.
+  assert.match(detail, /^[A-Za-z_$][A-Za-z0-9_$.-]*$/,
       `the reason must be a short token (an exception's simple name or invalid-connection), got ${JSON.stringify(detail)}`);
+  assert.ok(detail.length <= 64, `the reason is ${detail.length} characters, not a short token: ${JSON.stringify(detail)}`);
   for (const forbidden of ['jdbc:', 'postgresql', '127.0.0.1', 'password', 'connection refused', 'message', 'stack', ' at ']) {
     assert.equal(outage.text.includes(forbidden), false,
         `the unauthenticated body must not carry ${JSON.stringify(forbidden)}: ${outage.text}`);
