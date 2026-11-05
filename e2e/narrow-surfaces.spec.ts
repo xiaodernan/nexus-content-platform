@@ -35,6 +35,9 @@ const WIDTHS = [
   // 横屏平板 / 小笔记本：1024 正好是 lg 的边界——左栏从浮层翻回内联的那一 px，
   // 画布份额的 0.8 门不适用于这一档（它守的是浮层），但"适应窗口"仍要装得进去。
   { label: '横屏1024', width: 1024, height: 768, mobile: false },
+  // 桌面窄边：1279 是 xl（1280）前面那一 px——1025–1279 这一段的上界。
+  // 它和 1280 只差 1px，所以这两档一起看才能说"xl 切换本身有没有把外壳挤坏"。
+  { label: '桌面1279', width: 1279, height: 900, mobile: false },
   { label: '桌面1280', width: 1280, height: 900, mobile: false },
 ] as const;
 
@@ -170,7 +173,7 @@ function fmt(name: string, r: Reading): string {
   );
 }
 
-test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／管理台）在三档宽度下的读数', async ({ page, browser }) => {
+test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／管理台）在五档宽度下的读数', async ({ page, browser }) => {
   test.setTimeout(900_000);
 
   const surfaces: Surface[] = [
