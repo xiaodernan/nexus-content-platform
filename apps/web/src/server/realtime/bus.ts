@@ -81,6 +81,12 @@ export interface RealtimeBusStats {
   wire: 'up' | 'pending' | 'down' | 'na';
   /** 线路失败累计（投递不出去 / 坏帧 / 订阅建不起来）；进程内驱动为 null */
   wireErrorCount: number | null;
+  /**
+   * 同上，按**原因**拆开的账。限流闸那半边早就有 `fallbackByReason`；实时这半边只有总数，
+   * 于是一句"断过帧"没法说是投递不出去还是收到的帧不合契约——两件事该做的反应不一样。
+   * 进程内驱动为 `null`（不是 `{}`）："没有线路"与"线上没断过"是两句话。
+   */
+  wireErrorByReason?: Record<string, number> | null;
 }
 
 /**

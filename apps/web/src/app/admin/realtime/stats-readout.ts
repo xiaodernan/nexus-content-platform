@@ -18,6 +18,8 @@ export type RealtimeStatsReadout = {
   /** **此刻**通不通：服务端每次现读两条连接的 status */
   wire: WireLive;
   wireErrorCount: number | null;
+  /** 同上，按原因拆开的账。驱动决定它存在不存在（in-process 是 null） */
+  wireErrorByReason?: Record<string, number> | null;
 };
 
 /**
@@ -66,6 +68,22 @@ export function bootTag(stats: Pick<RealtimeStatsReadout, 'driver' | 'wireReady'
  */
 export function errorCountText(wireErrorCount: number | null): string {
   return wireErrorCount === null ? '—（没有线路，不适用）' : String(wireErrorCount);
+}
+
+/**
+ * 按原因拆开那账的话。限流闸那半边早就有 `fallbackByReason`，实时这半边只有总数——
+ * 于是一句"断过帧"没法分辨是投递不出去还是收到的帧不合契约，而这两件事的第一反应不一样。
+ * 固定顺序：次数从多到少，再按名字，免得同一台的账每次轮询跳来跳去。
+ */
+export function errorReasonList(byReason: Record<string, number> | null | undefined): string {
+  if (byReason === null || byReason === undefined) return '—（没有线路，不适用）';
+  const entries = Object.entries(byReason).filter(
+    ([reason, count]) =>
+      reason.trim().length > 0 && typeof count === 'number' && Number.isFinite(count) && count > 0,
+  );
+  if (entries.length === 0) return '—（这台还没出过一帧失败）';
+  entries.sort(([a, an], [b, bn]) => bn - an || (a < b ? -1 : a > b ? 1 : 0));
+  return entries.map(([reason, count]) => `${reason} ${count}`).join(' · ');
 }
 
 /**

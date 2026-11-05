@@ -188,6 +188,7 @@ describe('RealtimeBus', () => {
       // 'na' 与 'down' 是两句话：这一台没有跨实例这回事，不是有一根断了的线
       wire: 'na',
       wireErrorCount: null,
+      wireErrorByReason: null,
     });
     bus.subscribe(channels.project('p1'), () => undefined);
     bus.subscribe(channels.user('u1'), () => undefined);

@@ -98,6 +98,12 @@ export class RedisRealtimeBus implements RealtimeBus {
    * 没有这个数，一次断线只会变成一行日志，跑测试的人看不见"到底丢了几帧"。
    */
   wireErrorCount = 0;
+  /**
+   * 与 `wireErrorCount` 同一套账，但**按原因拆开**（限流闸 `fallbackByReason` 的同形状）。
+   * key 就是 `countWireError` 的第一个参数（'投递' / '收到的帧不合契约' / …）——
+   * 它们本来就是给人看的话，不是错误码。全空 = 这台还没出过一帧失败。
+   */
+  wireErrorByReason: Record<string, number> = {};
 
   private readonly local = new MemoryRealtimeBus();
   private readonly pub: Redis;
@@ -244,6 +250,8 @@ export class RedisRealtimeBus implements RealtimeBus {
       wireReady: this.wireReadyValue,
       wire: this.liveWire(),
       wireErrorCount: this.wireErrorCount,
+      // 副本而不是原对象：调用方（诊断端点）不该能改到这台总线的账本
+      wireErrorByReason: { ...this.wireErrorByReason },
     };
   }
 
@@ -300,6 +308,7 @@ export class RedisRealtimeBus implements RealtimeBus {
 
   private countWireError(context: string, error: unknown): void {
     this.wireErrorCount += 1;
+    this.wireErrorByReason[context] = (this.wireErrorByReason[context] ?? 0) + 1;
     console.error(
       `[realtime] redis 驱动 ${context} 失败（第 ${this.wireErrorCount} 次，事件不补发；权威状态在库里）：`,
       error instanceof Error ? error.message : String(error),

@@ -77,6 +77,7 @@ export class MemoryRealtimeBus implements RealtimeBus {
       wireReady: null,
       wire: 'na',
       wireErrorCount: null,
+      wireErrorByReason: null,
     };
   }
 }

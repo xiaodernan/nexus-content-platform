@@ -6,6 +6,7 @@ import {
   LIVE_LABEL,
   bootTag,
   errorCountText,
+  errorReasonList,
   isKnownStats,
   liveTag,
   type RealtimeStatsReadout,
@@ -98,6 +99,8 @@ export function RealtimeStatsPanel() {
         <dd data-realtime-wire-boot={boot}>{BOOT_LABEL[boot]}</dd>
         <dt className="text-fg-3">线路失败累计</dt>
         <dd data-realtime-errors>{errorCountText(stats.wireErrorCount)}</dd>
+        <dt className="text-fg-3">失败按原因</dt>
+        <dd data-realtime-errors-by-reason>{errorReasonList(stats.wireErrorByReason)}</dd>
         <dt className="text-fg-3">本进程订阅者</dt>
         <dd data-realtime-subscribers>
           {stats.subscriberCount} 人（不是全平台的数——线路查不到远端有谁在订）

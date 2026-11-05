@@ -4,6 +4,7 @@ import {
   LIVE_LABEL,
   bootTag,
   errorCountText,
+  errorReasonList,
   isKnownStats,
   liveTag,
   type RealtimeStatsReadout,
@@ -88,6 +89,27 @@ describe('两行各说各话：本片要修的就是这个', () => {
     // 这一档写错方向会让人去重启一台正在自己恢复的实例
     expect(LIVE_LABEL.pending).toContain('不是故障');
     expect(LIVE_LABEL.down).toContain('收不到');
+  });
+});
+
+describe('errorReasonList（按原因拆账）', () => {
+  it('null 说没有线路；空账说本进程还没出过失败', () => {
+    expect(errorReasonList(null)).toContain('没有线路');
+    expect(errorReasonList(undefined)).toContain('没有线路');
+    expect(errorReasonList({})).toContain('还没出过一帧失败');
+  });
+
+  it('按次数从多到少排，同次数按名字，顺序稳定', () => {
+    const text = errorReasonList({
+      投递: 2,
+      收到的帧不合契约: 5,
+      帧序列化: 2,
+    });
+    expect(text).toBe('收到的帧不合契约 5 · 帧序列化 2 · 投递 2');
+  });
+
+  it('零次或空白原因不画进去', () => {
+    expect(errorReasonList({ 投递: 0, '   ': 3 })).toContain('还没出过一帧失败');
   });
 });
 
