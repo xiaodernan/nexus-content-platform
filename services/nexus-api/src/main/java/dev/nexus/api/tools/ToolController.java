@@ -13,6 +13,7 @@ import dev.nexus.api.tools.ToolDtos.OwnershipChain;
 import dev.nexus.api.tools.ToolDtos.PinBatch;
 import dev.nexus.api.tools.ToolDtos.PinMatch;
 import dev.nexus.api.tools.ToolDtos.PinMatches;
+import dev.nexus.api.tools.ToolDtos.PruneJournalAnswer;
 import dev.nexus.api.tools.ToolDtos.PruneRevisionsAnswer;
 import dev.nexus.api.tools.ToolDtos.RevisionAtPin;
 import dev.nexus.api.tools.ToolDtos.OwnershipTransfer;
@@ -64,6 +65,9 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>{@code GET /tools/changes?since=&limit=&offset=} — the registry's JOURNAL, oldest first from a cursor: one
  *       entry per accepted write (declared, updated, transferred, deprecated, undeprecated, removed). It is the
  *       only read that can name a declaration whose row is gone, and the only one that faces forward.
+ *   <li>{@code DELETE /tools/changes?before=} — the journal's RETENTION door: remove only the prefix BELOW a
+ *       named seq, answer the oldest entry still retained, and refuse a cursor below it with 410. A middle
+ *       range is never deletable, because a forward cursor cannot describe the hole (v621).
  *   <li>{@code GET /tools/{id}} — one declaration by id. A public read, like the catalog; an id that names
  *       nothing is a 404 rather than an empty row. The answer carries the contract's PIN as a field and as a
  *       strong {@code ETag}, so an {@code If-None-Match} of the pin the caller holds is a 304 with no body.
@@ -153,6 +157,8 @@ public class ToolController {
      *
      * <p>{@code since} is 0 when absent, which is "from the beginning" rather than "no filter": the feed has no
      * two-state absence, because 0 is a real position before the first entry. A negative cursor is a 400.
+     * After a retention prune, 0 reads the oldest entry still held; only a POSITIVE cursor below the retained
+     * boundary is 410 (v621), because no poller can hold 0 - the journal's seqs start at 1.
      *
      * <p>v584 — two NARROWINGS for a watcher that does not want the whole registry: {@code kind} (one of the six
      * words, refused BY NAME when it is not) and {@code toolId} (one declaration's entries). Both narrow the page
@@ -183,6 +189,29 @@ public class ToolController {
                 service.journalCount(changeKind, tool, cursor),
                 effective,
                 from));
+    }
+
+    /**
+     * v621 — the registry's JOURNAL RETENTION door: remove every entry strictly BELOW {@code before}.
+     *
+     * <p>The journal grows by one row per accepted write and had no prune. A cursor moving forward cannot
+     * describe a hole in the middle of the feed, so the only shape this door accepts is a PREFIX: entries at
+     * or above the bound stay, and the oldest one that stays is the boundary every later read names. A missing
+     * or non-positive bound is a 400 that removes nothing; so is a bound above the newest entry, which would
+     * leave a feed with no boundary to describe. A bound that removes nothing answers {@code pruned: 0}: the
+     * "already gone is not a failure" rule the revision prune follows.
+     */
+    @DeleteMapping("/tools/changes")
+    public ResponseEntity<?> pruneJournal(
+            @RequestParam(name = "before", required = false) Long before) {
+        if (before == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-tool",
+                    "message", "the before parameter is missing — a prune must name the entry it keeps"));
+        }
+        JournalPrune pruned = service.pruneJournal(before);
+        return ResponseEntity.ok(new PruneJournalAnswer(
+                pruned.before(), pruned.pruned(), pruned.oldest(), pruned.remaining()));
     }
 
     /**
@@ -753,6 +782,15 @@ public class ToolController {
     @ExceptionHandler(StaleContract.class)
     public ResponseEntity<Map<String, String>> stale(StaleContract e) {
         return ResponseEntity.status(409).body(Map.of("error", "stale-contract", "message", e.getMessage()));
+    }
+
+    /**
+     * A cursor below the retained journal is a 410: the request was legal, retention moved the beginning of
+     * the feed past the caller. The body names the oldest entry still here, not just the refusal.
+     */
+    @ExceptionHandler(JournalPruned.class)
+    public ResponseEntity<Map<String, String>> pruned(JournalPruned e) {
+        return ResponseEntity.status(410).body(Map.of("error", "journal-pruned", "message", e.getMessage()));
     }
 
     /** A pin this declaration never recorded is a 404 under its own name, distinct from an unknown id. */

@@ -62,3 +62,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0048  | A deprecation page can name whose warnings it wants            | Accepted |
 | 0049  | A replacement hint is resolved on every read                   | Accepted |
 | 0050  | A warning list can be selected by replacement state            | Accepted |
+| 0051  | A journal is pruned only from the front                        | Accepted |

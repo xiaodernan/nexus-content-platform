@@ -3,6 +3,7 @@ package dev.nexus.api.tools;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,6 +19,10 @@ import org.springframework.data.repository.query.Param;
  * one declaration's life). Both are nullable parameters on ONE statement rather than four derivations, the
  * shape the catalog already uses: each predicate is "this filter or no filter", so the window and the count
  * cannot disagree about which filters applied.
+ *
+ * <p>M10 v621 adds the RETENTION pair: the oldest seq still held (the boundary a pruned cursor is measured
+ * against) and a prefix delete that can only remove entries BELOW a named bound. The delete is one statement
+ * with no filter, because a prefix is the only shape a forward cursor can describe.
  */
 public interface ToolChangeRepository extends JpaRepository<ToolChange, Long> {
 
@@ -43,4 +48,21 @@ public interface ToolChangeRepository extends JpaRepository<ToolChange, Long> {
             @Param("since") long since,
             @Param("kind") String kind,
             @Param("toolId") String toolId);
+
+    /** The oldest seq the journal still holds, or null when it holds nothing. Never narrowed by a filter. */
+    @Query("select min(c.seq) from ToolChange c")
+    Long oldestSeq();
+
+    /** The newest seq the journal holds, or null when it holds nothing. Read without a lock, deliberately. */
+    @Query("select max(c.seq) from ToolChange c")
+    Long newestSeq();
+
+    /**
+     * Remove every entry BELOW {@code before} - one prefix, never a middle range. The caller has already
+     * refused a bound above the newest entry, so at least one entry (and therefore a describable boundary)
+     * survives every prune.
+     */
+    @Modifying
+    @Query("delete from ToolChange c where c.seq < :before")
+    int pruneBefore(@Param("before") long before);
 }

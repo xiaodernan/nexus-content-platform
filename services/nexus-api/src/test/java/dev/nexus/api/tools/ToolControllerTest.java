@@ -1006,6 +1006,38 @@ class ToolControllerTest {
         assertThat(body.toolId()).isEqualTo("tool-that-never-existed");
     }
 
+    // ── v621: journal retention ───────────────────────────────────────────────────────────────────
+    @Test
+    void pruningTheJournalAnswersTheBoundAndTheOldestEntryKept() {
+        when(service.pruneJournal(7L)).thenReturn(new JournalPrune(7, 6, 7L, 3L));
+
+        ResponseEntity<?> answer = controller().pruneJournal(7L);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(200);
+        assertThat(answer.getBody()).isEqualTo(new ToolDtos.PruneJournalAnswer(7, 6, 7L, 3L));
+    }
+
+    @Test
+    void aPruneWithoutABoundIsRefusedBeforeTheServiceIsTouched() {
+        ResponseEntity<?> answer = controller().pruneJournal(null);
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        assertThat(answer.getBody()).isEqualTo(Map.of(
+                "error", "invalid-tool",
+                "message", "the before parameter is missing — a prune must name the entry it keeps"));
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void aCursorBelowTheRetainedJournalIsA410NamingTheBoundary() {
+        ResponseEntity<Map<String, String>> answer = controller()
+                .pruned(new JournalPruned("the journal retains entries from seq 101 — resume at 100 or later"));
+
+        assertThat(answer.getStatusCode().value()).isEqualTo(410);
+        assertThat(answer.getBody()).containsEntry("error", "journal-pruned");
+        assertThat(answer.getBody().get("message")).contains("seq 101");
+    }
+
     // ── v587: the batch door ───────────────────────────────────────────────────────────────────────
     @Test
     void aBatchAnswersInRequestOrderAndNamesWhatIsMissing() {

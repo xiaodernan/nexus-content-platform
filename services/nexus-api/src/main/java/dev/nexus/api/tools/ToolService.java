@@ -877,6 +877,7 @@ public class ToolService {
         if (since < 0) {
             throw new InvalidTool("a journal cursor is 0 or more — this one is " + since);
         }
+        requireRetainedCursor(since);
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
         int from = Math.max(offset, 0);
         return changes.feed(since, changeKind, tool, PageRequest.of(from / effective, effective));
@@ -890,7 +891,62 @@ public class ToolService {
         if (since < 0) {
             throw new InvalidTool("a journal cursor is 0 or more — this one is " + since);
         }
+        requireRetainedCursor(since);
         return changes.feedCount(since, changeKind, tool);
+    }
+
+    /**
+     * v621 — refuse a cursor that sits BELOW the journal's retained prefix, naming the oldest entry still here.
+     *
+     * <p>Retention removes entries strictly below a named bound, so the only gap it can open is at the front.
+     * The oldest seq the table still holds is therefore the whole description of that gap: a cursor one below
+     * it has seen everything that survives, and a cursor below that was entitled to entries which are gone.
+     * An empty journal has no boundary to be below, so it stays an empty feed rather than a refusal.
+     *
+     * <p>Cursor 0 is the one position that is never "behind": seqs start at 1, so no poller can hold 0, and
+     * 0 means "from the beginning" - which after retention is the oldest entry still held. Only a POSITIVE
+     * cursor can name an entry that was pruned.
+     *
+     * <p>Read without a lock: a prune that commits between this check and the page can still strand one page,
+     * and the NEXT read answers 410 rather than silently resuming in the middle of the prefix. That bound is
+     * stated in ADR 0051 rather than papered over with a table lock on every poll.
+     */
+    private void requireRetainedCursor(long since) {
+        Long oldest = changes.oldestSeq();
+        if (since > 0 && oldest != null && since < oldest - 1) {
+            throw new JournalPruned("the journal retains entries from seq " + oldest + " — the cursor " + since
+                    + " is older than that and entries after it were pruned; resume at " + (oldest - 1)
+                    + " or later");
+        }
+    }
+
+    /**
+     * v621 — the registry's RETENTION door: remove every journal entry strictly BELOW {@code before}.
+     *
+     * <p>A journal grows by one row per accepted write and nothing pruned it. Deleting a middle range would
+     * leave holes a forward cursor cannot describe, so the only shape this door allows is a prefix: entries at
+     * or above the bound stay, and the oldest one that stays is the boundary every read can name.
+     *
+     * <p>Two refusals carry the door. A bound below 1 has no prefix to remove; a bound above the newest entry
+     * would empty the journal and leave no boundary to describe, the same "a prune keeps the newest" rule the
+     * revision prune follows. Pruning a bound that removes nothing answers {@code pruned: 0} — already gone is
+     * not a failure — and the answer always names the oldest entry still retained.
+     *
+     * @throws InvalidTool when {@code before} is below 1 or above the newest retained entry
+     */
+    @Transactional
+    public JournalPrune pruneJournal(long before) {
+        if (before < 1) {
+            throw new InvalidTool("a prune keeps at least the first entry — before must be 1 or more, not "
+                    + before);
+        }
+        Long newest = changes.newestSeq();
+        if (newest != null && before > newest) {
+            throw new InvalidTool("a prune keeps the newest entry (" + newest + ") — before is at most that, "
+                    + "not " + before);
+        }
+        int pruned = changes.pruneBefore(before);
+        return new JournalPrune(before, pruned, changes.oldestSeq(), changes.count());
     }
 
     /** Append one revision row - the write both the registration and every accepted update go through. */

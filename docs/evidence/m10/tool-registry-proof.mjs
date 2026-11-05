@@ -2056,6 +2056,69 @@ try {
   assert.equal(await sql('select count(*) from tool_deprecation'), '1');
   console.log(`[§5r] the warning list could be SELECTED BY REPLACEMENT STATE: one warning in each of none, unresolved, live and deprecated answered its own filter with total=1 and the other three states answered nothing, the state was echoed and a blank was the absent filter returning all four · owner and state narrowed together, and after m.tool's warning was withdrawn two live warnings were walked one pair-cursor page at a time with total=2 and no repeat · an unknown state was 400 invalid-tool naming the closed vocabulary, and the fixtures were withdrawn so §6 still counts one`);
 
+  // ── §5s the journal can be PRUNED from the front only, and a cursor behind it is 410 ────────────
+  // Retention must not leave a hole a forward cursor cannot describe, so the door removes a PREFIX and
+  // answers the oldest entry that survives. The fixture's own entries are the thing being pruned.
+  let everyEntry = [];
+  let walkCursor = 0;
+  for (;;) {
+    const page = await call(`/tools/changes?since=${walkCursor}&limit=100`);
+    assert.equal(page.status, 200, `the journal walk must be 200, got ${page.status}: ${page.text}`);
+    everyEntry = everyEntry.concat(page.body.changes);
+    if (page.body.changes.length === 0) break;
+    walkCursor = page.body.changes[page.body.changes.length - 1].seq;
+  }
+  assert.ok(everyEntry.length >= 6, `the journal must hold several entries, got ${everyEntry.length}`);
+  const seqs = everyEntry.map((c) => c.seq);
+  assert.deepEqual(seqs, [...seqs].sort((a, b) => a - b), 'the journal is oldest first');
+  assert.equal(new Set(seqs).size, seqs.length, 'no entry is read twice by the forward walk');
+  const newestSeq = seqs[seqs.length - 1];
+  const bound = seqs[3];
+  const expectedPruned = seqs.filter((s) => s < bound).length;
+  const oldestKept = seqs.find((s) => s >= bound);
+
+  const journalPrune = await call(`/tools/changes?before=${bound}`, { method: 'DELETE' });
+  assert.equal(journalPrune.status, 200, `a prefix prune must be 200, got ${journalPrune.status}: ${journalPrune.text}`);
+  assert.deepEqual(Object.keys(journalPrune.body).sort(), ['before', 'oldest', 'pruned', 'remaining']);
+  assert.equal(journalPrune.body.before, bound, 'the prune echoes the boundary it applied');
+  assert.equal(journalPrune.body.pruned, expectedPruned, 'exactly the entries below the bound went');
+  assert.equal(journalPrune.body.oldest, oldestKept, 'the answer names the oldest entry still retained');
+  assert.equal(journalPrune.body.remaining, seqs.length - expectedPruned);
+  const afterJournalPrune = await call('/tools/changes?limit=100');
+  assert.equal(afterJournalPrune.body.total, journalPrune.body.remaining);
+  assert.equal(afterJournalPrune.body.changes[0].seq, oldestKept, 'the surviving feed starts at the named boundary');
+  assert.equal(afterJournalPrune.body.changes.every((c) => c.seq >= bound), true, 'nothing below the bound survived');
+  assert.equal(await sql('select count(*) from tool_change'), String(journalPrune.body.remaining));
+  assert.equal(await sql('select min(seq) from tool_change'), String(oldestKept));
+
+  const caughtUp = await call(`/tools/changes?since=${oldestKept - 1}`);
+  assert.equal(caughtUp.status, 200, 'a cursor one below the boundary has seen everything that survives');
+  assert.equal(caughtUp.body.total, journalPrune.body.remaining);
+  const behind = await call(`/tools/changes?since=${oldestKept - 2}`);
+  assert.equal(behind.status, 410, `a cursor below the boundary must be 410, got ${behind.status}: ${behind.text}`);
+  assert.equal(behind.body.error, 'journal-pruned');
+  assert.match(behind.body.message, new RegExp(`seq ${oldestKept}\\b`), 'the 410 names the oldest retained seq');
+  assert.match(behind.body.message, new RegExp(`resume at ${oldestKept - 1}\\b`), 'and the cursor that resumes');
+  const behindNarrowed = await call(`/tools/changes?since=${oldestKept - 2}&kind=removed&toolId=nobody`);
+  assert.equal(behindNarrowed.status, 410, 'a filter cannot hide a cursor that is behind the retained prefix');
+
+  const aboveNewest = await call(`/tools/changes?before=${newestSeq + 1}`, { method: 'DELETE' });
+  assert.equal(aboveNewest.status, 400, `a bound past the newest entry must be 400, got ${aboveNewest.status}: ${aboveNewest.text}`);
+  assert.equal(aboveNewest.body.error, 'invalid-tool');
+  assert.match(aboveNewest.body.message, new RegExp(`newest entry \\(${newestSeq}\\)`));
+  const zero = await call('/tools/changes?before=0', { method: 'DELETE' });
+  assert.equal(zero.status, 400, 'a prune keeps at least the first entry');
+  assert.match(zero.body.message, /1 or more/);
+  const noBound = await call('/tools/changes', { method: 'DELETE' });
+  assert.equal(noBound.status, 400, 'a prune without a bound has no boundary to name');
+  assert.match(noBound.body.message, /before parameter is missing/);
+  const again = await call(`/tools/changes?before=${bound}`, { method: 'DELETE' });
+  assert.equal(again.status, 200);
+  assert.equal(again.body.pruned, 0, 'pruning the same prefix twice removes nothing');
+  assert.equal(again.body.oldest, oldestKept, 'and the boundary does not move backward');
+  assert.equal(await sql('select count(*) from tool_change'), String(journalPrune.body.remaining));
+  console.log(`[§5s] the journal could be PRUNED FROM THE FRONT ONLY: ${everyEntry.length} entries were walked forward without a repeat, a prefix of ${journalPrune.body.pruned} was removed below seq ${bound}, the answer named the ${journalPrune.body.remaining} that survived and their oldest seq ${oldestKept}, psql counted the same rows and the same minimum · a cursor at ${oldestKept - 1} was caught up while ${oldestKept - 2} was 410 journal-pruned NAMING the boundary and the cursor that resumes, even with a kind and a toolId filter · a bound past the newest entry (${newestSeq}) was 400 naming it, before=0 was 400 "1 or more", no before was 400 "the before parameter is missing", and re-pruning the same prefix answered pruned=0 with the boundary unchanged`);
+
   // ── §6 — the declarations and their canonical schemas survive a RESTART ────────────────────────
   const beforeRestart = await call('/tools');
   assert.equal(beforeRestart.body.total, 4);

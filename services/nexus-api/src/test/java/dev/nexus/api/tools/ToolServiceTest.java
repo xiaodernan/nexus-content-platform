@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -1442,6 +1443,98 @@ class ToolServiceTest {
                 .isInstanceOf(InvalidTool.class)
                 .hasMessageContaining("0 or more");
         verify(changes, never()).feed(any(Long.class), any(), any(), any());
+    }
+
+    // ── v621: journal retention ───────────────────────────────────────────────────────────────────
+    @Test
+    void aPruneRemovesOnlyThePrefixBelowTheBound() {
+        when(changes.newestSeq()).thenReturn(9L);
+        when(changes.pruneBefore(7)).thenReturn(6);
+        when(changes.oldestSeq()).thenReturn(7L);
+        when(changes.count()).thenReturn(3L);
+
+        assertThat(service().pruneJournal(7)).isEqualTo(new JournalPrune(7, 6, 7L, 3L));
+        verify(changes).pruneBefore(7);
+    }
+
+    @Test
+    void aPruneMayKeepOnlyTheNewestEntry() {
+        when(changes.newestSeq()).thenReturn(9L);
+        when(changes.pruneBefore(9)).thenReturn(8);
+        when(changes.oldestSeq()).thenReturn(9L);
+        when(changes.count()).thenReturn(1L);
+
+        assertThat(service().pruneJournal(9).oldest()).isEqualTo(9L);
+    }
+
+    @Test
+    void aPruneAboveTheNewestEntryIsRefusedByName() {
+        when(changes.newestSeq()).thenReturn(9L);
+
+        assertThatThrownBy(() -> service().pruneJournal(10))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("newest entry (9)")
+                .hasMessageContaining("10");
+        verify(changes, never()).pruneBefore(anyLong());
+    }
+
+    @Test
+    void aPruneBelowOneIsRefusedByName() {
+        assertThatThrownBy(() -> service().pruneJournal(0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("1 or more");
+        verify(changes, never()).pruneBefore(anyLong());
+    }
+
+    @Test
+    void aPruneOnAnEmptyJournalRemovesNothingAndNamesNoBoundary() {
+        when(changes.newestSeq()).thenReturn(null);
+        when(changes.pruneBefore(5)).thenReturn(0);
+        when(changes.oldestSeq()).thenReturn(null);
+        when(changes.count()).thenReturn(0L);
+
+        assertThat(service().pruneJournal(5)).isEqualTo(new JournalPrune(5, 0, null, 0L));
+    }
+
+    @Test
+    void aCursorBelowTheRetainedBoundaryIsA410NamingTheOldestEntry() {
+        when(changes.oldestSeq()).thenReturn(101L);
+
+        assertThatThrownBy(() -> service().journal(null, null, 50, 20, 0))
+                .isInstanceOf(JournalPruned.class)
+                .hasMessageContaining("seq 101")
+                .hasMessageContaining("cursor 50")
+                .hasMessageContaining("resume at 100");
+        assertThatThrownBy(() -> service().journalCount(null, null, 50))
+                .isInstanceOf(JournalPruned.class);
+        verify(changes, never()).feed(any(Long.class), any(), any(), any());
+        verify(changes, never()).feedCount(any(Long.class), any(), any());
+    }
+
+    @Test
+    void aCursorOneBelowTheRetainedBoundaryIsCaughtUp() {
+        when(changes.oldestSeq()).thenReturn(101L);
+        when(changes.feed(100, null, null, PageRequest.of(0, 20))).thenReturn(List.of());
+        when(changes.feedCount(100, null, null)).thenReturn(0L);
+
+        assertThat(service().journal(null, null, 100, 20, 0)).isEmpty();
+        assertThat(service().journalCount(null, null, 100)).isZero();
+    }
+
+    @Test
+    void anEmptyJournalHasNoBoundaryToBeBelow() {
+        when(changes.oldestSeq()).thenReturn(null);
+        when(changes.feed(0, null, null, PageRequest.of(0, 20))).thenReturn(List.of());
+
+        assertThat(service().journal(null, null, 0, 20, 0)).isEmpty();
+    }
+
+    @Test
+    void cursorZeroReadsTheRetainedPrefixRatherThanFailing() {
+        when(changes.oldestSeq()).thenReturn(101L);
+        when(changes.feed(0, null, null, PageRequest.of(0, 20))).thenReturn(List.of());
+
+        assertThat(service().journal(null, null, 0, 20, 0)).isEmpty();
     }
 
     // ── v587: the batch read ───────────────────────────────────────────────────────────────────────

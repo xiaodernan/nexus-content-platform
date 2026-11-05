@@ -298,6 +298,18 @@ public final class ToolDtos {
     public record PruneRevisionsAnswer(String toolId, int before, int pruned, long remaining) {
     }
 
+    /**
+     * M10 v621 - what a JOURNAL prune did: the bound it applied, how many entries it removed, the oldest entry
+     * still retained and the whole count that survives.
+     *
+     * <p>{@code oldest} is the value every later read is measured against: a cursor below {@code oldest - 1}
+     * is refused with 410 because entries after it were pruned. It is null only when the journal was already
+     * empty, which a prune cannot cause - a bound above the newest entry is refused rather than allowed to
+     * leave a feed with no boundary to name.
+     */
+    public record PruneJournalAnswer(long before, int pruned, Long oldest, long remaining) {
+    }
+
     /** The body that deprecates a declaration. Both fields are the owner's words, never an id. */
     public record DeprecateRequest(String message, String replacement) {
     }
