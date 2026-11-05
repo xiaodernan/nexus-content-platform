@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { loginMemberIfPossible, reusableMemberWithProject } from './support/auth-session';
 
@@ -31,6 +32,15 @@ import { loginMemberIfPossible, reusableMemberWithProject } from './support/auth
  */
 
 const RUN = Date.now().toString(36);
+
+const require = createRequire(process.cwd() + '/package.json');
+const AXE_PATH = require.resolve('axe-core/axe.min.js');
+
+interface AxeResults {
+  violations: Array<{ id: string; impact: string | null; help: string; nodes: Array<{ target: string[] }> }>;
+  passes: Array<{ id: string }>;
+  inapplicable: Array<{ id: string }>;
+}
 
 /** 夹具账号与项目复用：注册限流 10/小时、建项目 20/小时，这一片每跑一次都不该再吃这两道额度 */
 const FIXTURE_EMAIL = 'viewer+fixture@nexus.test';
@@ -499,6 +509,43 @@ test.describe('@smoke §14/§85 第十六片：公开页的视口与缩放半边
     await expect(visitor.locator('[data-published-root]')).toBeVisible({ timeout: 30_000 });
     await expect(visitor.locator('[data-published-variant]'), '没有规则的一页只解一份').toHaveCount(1);
     expect(await visitor.locator('[data-viewer-auto]').getAttribute('data-viewer-auto')).toBe('off');
+    await context.close();
+  });
+
+  test('自动选档页面的 axe：三份隐藏投影不进可访问树，390 与 1280 各自只扫一份', async ({ browser }) => {
+    test.setTimeout(300_000);
+    const { publicPath } = await buildFixture(browser, { width: 1280, height: 900 });
+    const path = new URL(publicPath, 'http://localhost:3100').pathname;
+    const context = await browser.newContext();
+    const visitor = await context.newPage();
+    const readings: string[] = [];
+    for (const width of [390, 1280]) {
+      await visitor.setViewportSize({ width, height: 900 });
+      await visitor.goto(path);
+      await expect(visitor.locator('[data-published-root]')).toBeVisible({ timeout: 30_000 });
+      await visitor.addScriptTag({ path: AXE_PATH });
+      const results = await visitor.evaluate(async (): Promise<AxeResults> => {
+        const axe = (window as unknown as { axe: { run(...args: unknown[]): Promise<AxeResults> } }).axe;
+        if (!axe) throw new Error('axe 没有加载进页面');
+        return await axe.run(document, {
+          runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+        });
+      });
+      // 结构不变式：扫描真的发生过（白页也全绿，那种绿不算证据）
+      expect(results.passes.length, `axe 在 ${width} 下一条规则都没通过：扫描可能是空转`).toBeGreaterThan(0);
+      const critical = results.violations.filter((v) => v.impact === 'critical');
+      expect(critical.map((v) => `${v.id}×${v.nodes.length}`), `${width} 宽下有 critical 违规`).toEqual([]);
+      // 三份 display:none 的投影不该把同名热点带进可访问树：可见的只该有一份
+      const hotspots = await visitor
+        .locator('[data-interactive-hotspot]')
+        .evaluateAll((nodes) => nodes.filter((node) => (node as HTMLElement).offsetParent !== null).length);
+      expect(hotspots, `${width} 宽下可见热点应当只有一份投影里的那个`).toBe(1);
+      readings.push(
+        `${width}: 通过 ${results.passes.length} · 不适用 ${results.inapplicable.length} · 违规 ${results.violations.length}（critical ${critical.length}）`,
+      );
+    }
+    console.log(`\n== 自动选档页面的 axe（同一页，两个视口） ==`);
+    for (const line of readings) console.log(`  ${line}`);
     await context.close();
   });
 });
