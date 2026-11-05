@@ -2131,6 +2131,24 @@ localStorage。读数：
 
 **notMeasured**：折叠状态不记忆。
 
+#### 第四十一片（2026-11-06）：发布机检 review 态——挂人工也照发，公开地址真能开（§85）
+
+`review` 是机检四种结论里唯一没上过表的一格（clear / blocked 见第四十片所用的同一份用例）。
+它的语义最容易被写成假话：页面**照样发出去**，只是进人工队列。照 clear 念会让作者以为没人看，
+照 blocked 念会让作者以为链接不可用。
+
+- 造法（真文档、真回执，不注入假 publication）：给起手文档一个文本节点写入 `官方客服`
+  ⇒ `risk.impersonation`（只挂人工不自动挡），`PUT /api/projects/:id` 保存后从界面真点发布。
+- 读数：`[data-scan-decision="review"]`；文案含「挂人工复核」与「页面已发出去」；发现项
+  `位置 <nodeId>`、引文「官方客服」对得上写入；`[data-scan-limit]` **5 条**；
+  `[data-publish-result]` 在且写「人工审核还没看过这一版」；公开 `href` GET **200** 且 HTML
+  含「官方客服」；发布弹层横向溢出 **0**。
+- `e2e/publish-review.spec.ts` 1 passed（10.4s）；截图 `screenshots/publish-review-decision.png`。
+- 臂：把 review 分支的文案换成 clear 那句 ⇒ 红在「review 的文案没说要人看」；恢复 1 passed。
+
+**notMeasured**：iOS 真机与软键盘；复核之后 admin 裁决改变公开页那一腿由
+`apps/web/test/admin-moderation.integration.test.ts` 守着，本片未重跑。
+
 ### Performance
 
 
