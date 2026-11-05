@@ -38,8 +38,9 @@ ADR-0069 给公开页接了 `?viewport=`，但它只是**手动**那一半：访
 ## 后果
 
 - **规则页**：390 → mobile（375，0 平移）、768 → tablet、1280 → desktop、1536 → wide；
-  隐藏三份 `display:none`。HTML 里因此有四份帧（夹具页约 3KB → 12KB 量级），这是零 JS 的代价，
-  只落在真有规则的页面上。
+  隐藏三份 `display:none`。HTML 里因此有四份帧，这是零 JS 的代价，只落在真有规则的页面上。
+  **2026-11-05 量过了**（`docs/PERFORMANCE.md` 同日那节）：raw 39,929 → 65,514 B（+64%），
+  **gzip 8,552 → 11,003 B（+2.4KB）**——四份是同一份标记的复制，压缩后几乎重合。
 - **无规则页**：单份、1440、无 `data-published-auto`，与这一片之前逐字节一致。
 - **读数**（`e2e/viewer-breakpoint.spec.ts` 3 tests / `e2e/mobile-layout.spec.ts` 1 test 全绿）：
   sitemap 五张里那张有规则的夹具页在 390 下从 **1440 宽 / 要平移 1082px** 变成 **375 宽 / 0 px**；
