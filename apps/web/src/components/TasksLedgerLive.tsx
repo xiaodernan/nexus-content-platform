@@ -148,7 +148,13 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
           <span className="text-11 text-fg-3" data-tasks-realtime={realtime.state}>
             实时：{REALTIME_TEXT[realtime.state]}
           </span>
-          <Link href={`/studio/${projectId}`} className="text-11 text-accent-2-ink underline" data-tasks-back>
+          {/* 第四十九片：这一颗是页面上唯一的返回口，原来 61×21——高度比 24 少 3px 也是低于下限。
+              文字不换行也不该靠行高凑尺寸，直接给盒高（WCAG 2.5.8）。 */}
+          <Link
+            href={`/studio/${projectId}`}
+            className="inline-flex min-h-6 items-center text-11 text-accent-2-ink underline"
+            data-tasks-back
+          >
             回 Studio
           </Link>
         </div>
@@ -179,7 +185,19 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
           这个项目还没有跑过任何一次 AI 请求。
         </p>
       ) : (
-        <table className="w-full text-11">
+        // 第四十九片：390 下九列被压成一列一个字（截图里「第 / 几 / 次」竖着排）。
+        // 宽度不该靠压缩列来换：给表格一个可读的下限，让它自己横滚，
+        // 而不是把每一列挤成只剩一个字符宽（表格不承担"把布局视口撑宽"的后果）。
+        <div
+          className="overflow-x-auto"
+          data-tasks-table-scroll
+          // 横滚区自己必须是键盘停得下来的（axe: scrollable-region-focusable）。
+          // 没有这一颗 tabindex，键盘用户看得到表格却滚不到右边那几列。
+          role="region"
+          aria-label="任务账本表格（可横向滚动）"
+          tabIndex={0}
+        >
+        <table className="w-full min-w-[880px] text-11">
           <thead className="text-left text-fg-3">
             <tr>
               <th>时间</th>
@@ -198,6 +216,7 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
               <tr key={task.id} data-task-row={task.id}>
                 <td
                   data-task-time={new Date(task.createdAt).toLocaleString('zh-CN', { hour12: false })}
+                  className="whitespace-nowrap"
                   // 时间戳两套 ICU（Node 渲染 vs 浏览器）逐字节可能差一个字符，
                   // 这一格本来就随重读更新，不值得为它报一次 hydration 警告
                   suppressHydrationWarning
@@ -226,6 +245,7 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </main>
   );

@@ -2149,6 +2149,28 @@ localStorage。读数：
 **notMeasured**：iOS 真机与软键盘；复核之后 admin 裁决改变公开页那一腿由
 `apps/web/test/admin-moderation.integration.test.ts` 守着，本片未重跑。
 
+#### 第四十二片（2026-11-06）：创作者主页与任务账本——两张没进过读数的界面（§85）
+
+两张都"有功能用例"但没被 axe 扫过、也没在 390 下量过布局：`/u/<handle>`（公开页，陌生人第一次
+认识作者的地方）与 `/tasks/<项目>`（跑过多少次 AI 请求的凭证页）。首跑抓到三件：
+
+- 账本唯一的返回口「回 Studio」**61×21**（<24，WCAG 2.5.8）→ `inline-flex min-h-6 items-center`；
+- 有行时 390 下九列被压成**一列一个字**（「第 / 几 / 次」竖排），页面级溢出却是 0——截图才看得见
+  → 表格包 `overflow-x-auto` + `min-w-[880px]` + 时间列 `whitespace-nowrap`；
+- 补上横滚容器后 axe 报 **serious `scrollable-region-focusable`** → `role="region"` +
+  `aria-label` + `tabIndex={0}`，键盘停得下来才滚得动。
+
+- 读数：主页（游客）1280/390 各 **通过 21 · 违规 0 · critical 0 · serious 0 · 溢出 0 · 目标 5 · <24 0**；
+  账本 1280/390 各 **0 违规**，390 表格 **880 / 342**（时间列 203px）、页面溢出 **0**、<24 **0**。
+- `e2e/profile-tasks.spec.ts` 2 passed（10.5s）；截图 `screenshots/profile-{1280,390}.png`、
+  `screenshots/tasks-ledger-{1280,390}.png`。主页用**游客**身份量（成员看自己是 `isSelf` 分支，
+  没有关注/拉黑），handle 从发现页真公开作品的地址里取。
+- 臂：摘 `min-w` ⇒ 红在「表格只剩 368px」；摘 `tabIndex` ⇒ 红在 serious `scrollable-region-focusable`；
+  返回口改回只给字号 ⇒ 红在「<24 目标 61×21」。
+
+**notMeasured**：`/admin/audit`、`/admin/observability`、`/analytics` 的宽表同一形状（无 `min-w`、
+无 `tabIndex`）未在本片收；行内长错误原因在 390 的滚动手感无真机读数。
+
 ### Performance
 
 
