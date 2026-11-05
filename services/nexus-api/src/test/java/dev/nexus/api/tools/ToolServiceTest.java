@@ -1546,4 +1546,100 @@ class ToolServiceTest {
         assertThatThrownBy(() -> service().diff("tool-missing", "nonsense", "also nonsense"))
                 .isInstanceOf(UnknownTool.class);
     }
+
+    // ── v615: a pin names CONTENT, so the global lookup answers every declaration that carries it ────
+    private static ToolEntry declared(String id, String owner, String name, String summary) {
+        return new ToolEntry(id, owner, name, summary, "{}", AT);
+    }
+
+    @Test
+    void aPinIsContentSoEveryDeclarationThatCarriesItAnswers() {
+        ToolRevision first = new ToolRevision("tool-1", 1, "shared sentence", "{}", AT);
+        ToolRevision second = new ToolRevision("tool-2", 1, "shared sentence", "{}", AT);
+        when(revisions.findAll()).thenReturn(List.of(second, first));
+        when(repository.findAllById(any())).thenReturn(List.of(
+                declared("tool-2", "acct-b", "b.tool", "shared sentence"),
+                declared("tool-1", OWNER, "a.tool", "shared sentence")));
+
+        ToolService service = service();
+        PinLookup lookup = service.byPin(service.contractSha256(first));
+
+        assertThat(lookup.pin()).isEqualTo(service.contractSha256(first));
+        assertThat(lookup.matches()).extracting(PinLookup.Match::name)
+                .containsExactly("a.tool", "b.tool");
+        assertThat(lookup.matches()).allMatch(PinLookup.Match::current);
+        assertThat(lookup.matches().get(0).revision()).isEqualTo(1);
+        assertThat(lookup.matches().get(0).owner()).isEqualTo(OWNER);
+    }
+
+    @Test
+    void theNewestRevisionCarryingThePinIsAnsweredAndCurrencyIsDerived() {
+        ToolRevision sharedBirth = new ToolRevision("tool-1", 1, "shared sentence", "{}", AT);
+        ToolRevision moved = new ToolRevision("tool-1", 2, "a later sentence", "{}", AT);
+        ToolRevision otherBirth = new ToolRevision("tool-2", 1, "shared sentence", "{}", AT);
+        when(revisions.findAll()).thenReturn(List.of(moved, sharedBirth, otherBirth));
+        when(repository.findAllById(any())).thenReturn(List.of(
+                declared("tool-1", OWNER, "a.tool", "a later sentence"),
+                declared("tool-2", "acct-b", "b.tool", "shared sentence")));
+
+        ToolService service = service();
+        PinLookup lookup = service.byPin(service.contractSha256(sharedBirth));
+
+        assertThat(lookup.matches()).hasSize(2);
+        assertThat(lookup.matches()).extracting(PinLookup.Match::name)
+                .containsExactly("a.tool", "b.tool");
+        assertThat(lookup.matches().get(0).revision()).isEqualTo(1);
+        assertThat(lookup.matches().get(0).current())
+                .as("a.tool has moved away from these bytes")
+                .isFalse();
+        assertThat(lookup.matches().get(1).current()).isTrue();
+    }
+
+    @Test
+    void movingAwayAndBackAnswersTheNewestRevisionOnce() {
+        ToolRevision birth = new ToolRevision("tool-1", 1, "shared sentence", "{}", AT);
+        ToolRevision moved = new ToolRevision("tool-1", 2, "a later sentence", "{}", AT);
+        ToolRevision back = new ToolRevision("tool-1", 3, "shared sentence", "{}", AT);
+        when(revisions.findAll()).thenReturn(List.of(back, moved, birth));
+        when(repository.findAllById(any())).thenReturn(List.of(
+                declared("tool-1", OWNER, "a.tool", "shared sentence")));
+
+        ToolService service = service();
+        PinLookup lookup = service.byPin(service.contractSha256(birth));
+
+        assertThat(lookup.matches()).hasSize(1);
+        assertThat(lookup.matches().get(0).revision()).isEqualTo(3);
+        assertThat(lookup.matches().get(0).current()).isTrue();
+    }
+
+    @Test
+    void aRevisionWhoseDeclarationIsGoneIsNotAnswered() {
+        ToolRevision live = new ToolRevision("tool-1", 1, "shared sentence", "{}", AT);
+        ToolRevision orphan = new ToolRevision("tool-gone", 1, "shared sentence", "{}", AT);
+        when(revisions.findAll()).thenReturn(List.of(orphan, live));
+        when(repository.findAllById(any())).thenReturn(List.of(
+                declared("tool-1", OWNER, "a.tool", "shared sentence")));
+
+        PinLookup lookup = service().byPin(service().contractSha256(live));
+
+        assertThat(lookup.matches()).extracting(PinLookup.Match::toolId).containsExactly("tool-1");
+    }
+
+    @Test
+    void aPinNobodyRecordedIs404UnderItsOwnName() {
+        ToolRevision birth = new ToolRevision("tool-1", 1, "a sentence", "{}", AT);
+        when(revisions.findAll()).thenReturn(List.of(birth));
+
+        assertThatThrownBy(() -> service().byPin("0".repeat(64)))
+                .isInstanceOf(UnknownPin.class)
+                .hasMessageContaining("ever recorded");
+    }
+
+    @Test
+    void aMalformedPinIsRefusedBeforeAnyRevisionIsRead() {
+        assertThatThrownBy(() -> service().byPin("ABC"))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("64");
+        verify(revisions, never()).findAll();
+    }
 }

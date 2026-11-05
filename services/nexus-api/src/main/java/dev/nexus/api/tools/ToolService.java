@@ -6,7 +6,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.springframework.data.domain.PageRequest;
@@ -607,6 +611,50 @@ public class ToolService {
     private static ContractComparison.Side side(ToolRevision revision, String pin) {
         return new ContractComparison.Side(revision.getRevision(), revision.getSummary(), pin,
                 revision.getRecordedAt().toEpochMilli());
+    }
+    /**
+     * M10 v615 — the GLOBAL question a pin can be asked: which declarations carry these bytes?
+     *
+     * <p>The pin names CONTENT, not a row (ADR 0028), so the answer is a list: two declarations with the same
+     * summary and schema share a pin, and one declaration can carry the same pin twice (A → B → A). One entry
+     * per declaration, naming the NEWEST revision that carries it, ordered by NAME; {@code current} says
+     * whether those bytes are what the declaration serves today.
+     *
+     * <p>Finding them is a scan of the revision table in this process, because the pin is computed and never
+     * stored. That cost is O(revisions in the registry) per call and is stated rather than hidden: an indexed
+     * derived column would be a second source of truth to maintain and backfill, which ADR 0028 refused and
+     * this door does not reopen. A pin nobody recorded is a 404 under its own name, distinct from 400 for a
+     * value that is not a pin at all.
+     */
+    @Transactional(readOnly = true)
+    public PinLookup byPin(String pin) {
+        String wanted = requirePin(pin);
+        Map<String, ToolRevision> newest = new LinkedHashMap<>();
+        for (ToolRevision revision : revisions.findAll()) {
+            if (wanted.equals(contractSha256(revision))) {
+                newest.merge(revision.getToolId(), revision,
+                        (held, candidate) -> candidate.getRevision() > held.getRevision() ? candidate : held);
+            }
+        }
+        if (newest.isEmpty()) {
+            throw new UnknownPin("no declaration has ever recorded the contract pin \"" + wanted
+                    + "\" — it may never have been written here, or retention may have removed every revision"
+                    + " that carried it");
+        }
+        Map<String, ToolEntry> rows = new HashMap<>();
+        repository.findAllById(newest.keySet()).forEach(row -> rows.put(row.getToolId(), row));
+        List<PinLookup.Match> matches = newest.values().stream()
+                .filter(revision -> rows.containsKey(revision.getToolId()))
+                .map(revision -> match(revision, rows.get(revision.getToolId()), wanted))
+                .sorted(Comparator.comparing(PinLookup.Match::name))
+                .toList();
+        return new PinLookup(wanted, matches);
+    }
+
+    private PinLookup.Match match(ToolRevision revision, ToolEntry row, String pin) {
+        return new PinLookup.Match(row.getToolId(), row.getName(), row.getOwner(), revision.getRevision(),
+                revision.getSummary(), pin, revision.getRecordedAt().toEpochMilli(),
+                pin.equals(contractSha256(row)));
     }
 
     /** The recorded revision whose own bytes hash to this pin, under the label of the end that named it. */

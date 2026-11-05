@@ -27,9 +27,10 @@ public interface ToolRevisionRepository extends JpaRepository<ToolRevision, Tool
      * M10 v590 - the WHOLE history, newest first, for a read that must scan it.
      *
      * <p>A pin is computed from a revision's stored bytes and never indexed (ADR 0028), so "which revision
-     * carries this pin" is a scan BY DESIGN. It is bounded because it is scoped to ONE declaration and
-     * retention is the owner's (ADR 0032): the door that owns an unbounded scan over the whole registry does
-     * not exist, and this query is not it.
+     * carries this pin" is a scan BY DESIGN. Here it is bounded because it is scoped to ONE declaration and
+     * retention is the owner's (ADR 0032). v615 adds the registry-WIDE version of the same question
+     * ({@code GET /tools/by-pin/{pin}}); it scans the whole table through {@link #findAll()} and says so in
+     * its ADR rather than adding a derived column to make it a seek.
      */
     List<ToolRevision> findByToolIdOrderByRevisionDesc(String toolId);
 

@@ -1085,4 +1085,40 @@ class ToolControllerTest {
         assertThat(answer.getStatusCode().value()).isEqualTo(404);
         assertThat(answer.getBody()).containsEntry("error", "unknown-pin");
     }
+
+    // ── v615: the global pin lookup is a LIST, because a pin names content ───────────────────────────
+    @Test
+    void theGlobalPinLookupMapsEveryMatchFieldForField() {
+        PinLookup lookup = new PinLookup(PIN, List.of(
+                new PinLookup.Match("tool-1", "a.tool", OWNER, 2, "shared sentence", PIN, AT.toEpochMilli(), true),
+                new PinLookup.Match("tool-2", "b.tool", "acct-b", 1, "shared sentence", PIN, AT.toEpochMilli(), false)));
+        when(service.byPin(PIN)).thenReturn(lookup);
+
+        ToolDtos.PinMatches body = controller().byPin(PIN).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.pin()).isEqualTo(PIN);
+        assertThat(body.total()).isEqualTo(2);
+        assertThat(body.tools()).extracting(ToolDtos.PinMatch::name).containsExactly("a.tool", "b.tool");
+        assertThat(body.tools().get(0).toolId()).isEqualTo("tool-1");
+        assertThat(body.tools().get(0).revision()).isEqualTo(2);
+        assertThat(body.tools().get(0).current()).isTrue();
+        assertThat(body.tools().get(1).current()).isFalse();
+        // Three top-level fields, eight in a match: a field added here is a capability the door starts
+        // printing, so both shapes are pinned rather than assumed.
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(3);
+        assertThat(mapper.valueToTree(body).get("tools").get(0).size()).isEqualTo(8);
+    }
+
+    @Test
+    void aGlobalPinNobodyRecordedKeepsItsOwnName() {
+        when(service.byPin(PIN)).thenThrow(new UnknownPin("no declaration has ever recorded the contract pin"));
+
+        Throwable refused = org.assertj.core.api.Assertions.catchThrowable(() -> controller().byPin(PIN));
+
+        assertThat(refused).isInstanceOf(UnknownPin.class);
+        ResponseEntity<Map<String, String>> answer = controller().unknownPin((UnknownPin) refused);
+        assertThat(answer.getStatusCode().value()).isEqualTo(404);
+        assertThat(answer.getBody()).containsEntry("error", "unknown-pin");
+    }
 }

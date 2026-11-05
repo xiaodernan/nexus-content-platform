@@ -10,6 +10,8 @@ import dev.nexus.api.tools.ToolDtos.Deprecation;
 import dev.nexus.api.tools.ToolDtos.DeprecationList;
 import dev.nexus.api.tools.ToolDtos.DeprecatedTool;
 import dev.nexus.api.tools.ToolDtos.OwnershipChain;
+import dev.nexus.api.tools.ToolDtos.PinMatch;
+import dev.nexus.api.tools.ToolDtos.PinMatches;
 import dev.nexus.api.tools.ToolDtos.PruneRevisionsAnswer;
 import dev.nexus.api.tools.ToolDtos.RevisionAtPin;
 import dev.nexus.api.tools.ToolDtos.OwnershipTransfer;
@@ -76,6 +78,9 @@ import org.springframework.web.bind.annotation.RestController;
  *       bytes hash to the 64-hex pin the caller holds, with {@code current} saying whether that is still the
  *       contract served today. An absent or malformed pin is a 400; a well-formed pin this declaration never
  *       recorded (or retention removed) is a 404 under its own name, {@code unknown-pin}.
+ *   <li>{@code GET /tools/by-pin/{pin}} — the GLOBAL question a pin can be asked: every declaration whose
+ *       recorded history carries those bytes, newest carrying revision per declaration, {@code current}
+ *       derived. A pin names CONTENT, so identical declarations all answer (v615).
  *   <li>{@code GET /tools/{id}/diff?from=&to=} — what changed between two contracts of ONE declaration,
  *       named by the pins the caller holds: both sides' revision/summary/pin/instant, whether the sentence
  *       changed, and the SCHEMA paths that differ as RFC 6901 pointers. An absent {@code to} means the
@@ -488,6 +493,25 @@ public class ToolController {
      * <p>Existence is settled before either pin, the same order the other pin doors follow: an unknown id is
      * 404 {@code unknown-tool} even when both pins are malformed.
      */
+    /**
+     * v615 — which declarations carry this pin, across the whole registry.
+     *
+     * <p>A pin hashes the summary and the canonical schema, so it names CONTENT rather than a row: two
+     * declarations with the same bytes share a pin, and one declaration can carry the same pin twice. The
+     * answer is therefore a LIST ordered by name, with each entry's {@code current} derived from the row it
+     * serves today. Empty is 404 {@code unknown-pin}: the pin was never recorded here, or retention removed
+     * every revision that carried it.
+     *
+     * <p>The pin is computed and never stored (ADR 0028), so this door scans the revision table. The cost is
+     * stated in its ADR rather than hidden behind a derived column that every write would have to maintain.
+     */
+    @GetMapping("/tools/by-pin/{pin}")
+    public ResponseEntity<PinMatches> byPin(@PathVariable String pin) {
+        PinLookup lookup = service.byPin(pin);
+        return ResponseEntity.ok(new PinMatches(lookup.pin(), lookup.matches().size(),
+                lookup.matches().stream().map(ToolController::match).toList()));
+    }
+
     @GetMapping("/tools/{toolId}/diff")
     public ResponseEntity<ContractDiff> diff(
             @PathVariable String toolId,
@@ -684,6 +708,11 @@ public class ToolController {
     @ExceptionHandler(UnknownPin.class)
     public ResponseEntity<Map<String, String>> unknownPin(UnknownPin e) {
         return ResponseEntity.status(404).body(Map.of("error", "unknown-pin", "message", e.getMessage()));
+    }
+
+    private static PinMatch match(PinLookup.Match match) {
+        return new PinMatch(match.toolId(), match.name(), match.owner(), match.revision(), match.summary(),
+                match.contractSha256(), match.recordedAt(), match.current());
     }
 
     private static ContractSide side(ContractComparison.Side side) {

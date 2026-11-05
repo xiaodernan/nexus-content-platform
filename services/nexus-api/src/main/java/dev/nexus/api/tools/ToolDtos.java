@@ -184,6 +184,37 @@ public final class ToolDtos {
             SchemaDiff schema) {
     }
     /**
+     * M10 v615 - one declaration that ever recorded a pin, as the GLOBAL lookup answers it.
+     *
+     * <p>{@code revision} is the NEWEST revision of that declaration carrying the pin: a contract can be moved
+     * away and back (A → B → A), so one declaration can carry the same pin twice, and a pin names CONTENT rather
+     * than a row. {@code current} is derived on every read, like every other currency flag here: true when the
+     * bytes this revision carries are the ones the declaration serves today.
+     */
+    public record PinMatch(
+            String toolId,
+            String name,
+            String owner,
+            int revision,
+            String summary,
+            String contractSha256,
+            long recordedAt,
+            boolean current) {
+    }
+
+    /**
+     * M10 v615 - the answer to "which declarations carry this pin": a pin is content, so the answer is a LIST.
+     *
+     * <p>Two declarations with the same summary and schema hash to the same pin; both are answers, ordered by
+     * NAME. There is no window: the size of this list is the size of the duplication, not a page, and every
+     * entry is something the caller asked for by value.
+     */
+    public record PinMatches(
+            String pin,
+            long total,
+            List<PinMatch> tools) {
+    }
+    /**
      * One entry in the registry's journal: what happened, to which declaration, in what order.
      *
      * <p>{@code seq} is the cursor a caller advances. {@code name} is the declaration's name AT the time of the
