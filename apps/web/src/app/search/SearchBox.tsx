@@ -7,6 +7,7 @@ import {
   removeSearchHistory,
   writeSearchHistory,
 } from './search-history';
+import { pauseMsFromResponse, remainingSeconds } from './suggest-pause';
 
 /**
  * §165 搜索框：建议 + 历史。
@@ -37,12 +38,27 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const [history, setHistory] = useState<string[]>([]);
+  /** 429 之后的静默期（epoch ms）；`0` = 不在暂停中 */
+  const [pausedUntil, setPausedUntil] = useState(0);
+  /** 只为倒计时重渲染：暂停中每 500ms 走一格 */
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const abortRef = useRef<AbortController | null>(null);
 
   // 历史只能在挂载后读：服务端渲染时没有 localStorage，先渲染空列表才不会水合不一致
   useEffect(() => {
     setHistory(readSearchHistory(window.localStorage));
   }, []);
+
+  // 暂停到期自己收尾：不要求用户"再敲一个键"才知道可以继续
+  useEffect(() => {
+    if (!pausedUntil) return;
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      setNowTick(now);
+      if (now >= pausedUntil) setPausedUntil(0);
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [pausedUntil]);
 
   // 输入防抖 250ms；上一发请求在下一发开始时中止，慢响应不会盖掉新输入
   useEffect(() => {
@@ -54,12 +70,30 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
       setActive(-1);
       return;
     }
+    if (Date.now() < pausedUntil) {
+      setSuggestions([]);
+      setOpen(false);
+      return;
+    }
     const controller = new AbortController();
     abortRef.current = controller;
     const run = async (): Promise<void> => {
       try {
         const res = await fetch(`/api/search/suggest?q=${encodeURIComponent(q)}`, { signal: controller.signal });
-        if (!res.ok) throw new Error(String(res.status));
+        if (!res.ok) {
+          // 429 是"歇一下"，不是"没有建议"：读 retryAfterMs，进暂停期，界面把这句话显示出来
+          const body: unknown = await res.json().catch(() => null);
+          const pause = pauseMsFromResponse(res.status, body);
+          if (pause !== null) {
+            if (controller.signal.aborted) return;
+            setPausedUntil(Date.now() + pause);
+            setSuggestions([]);
+            setOpen(false);
+            setActive(-1);
+            return;
+          }
+          throw new Error(String(res.status));
+        }
         const body = (await res.json()) as { suggestions?: Suggestion[] };
         if (controller.signal.aborted) return;
         setSuggestions(body.suggestions ?? []);
@@ -78,7 +112,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [value]);
+  }, [value, pausedUntil]);
 
   const remember = (query: string): void => {
     const next = addSearchHistory(readSearchHistory(window.localStorage), query);
@@ -121,6 +155,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
   };
 
   const showHistory = !value.trim() && history.length > 0;
+  const pauseSeconds = remainingSeconds(pausedUntil, nowTick);
 
   return (
     <div className="flex flex-col gap-2">
@@ -152,6 +187,12 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
           搜
         </button>
       </form>
+
+      {pauseSeconds > 0 ? (
+        <p data-search-suggest-pause role="status" className="text-12 text-fg-3">
+          建议暂停 {pauseSeconds} 秒——打字太快被限流；结果页照常能搜。
+        </p>
+      ) : null}
 
       {open && suggestions.length ? (
         <ul
