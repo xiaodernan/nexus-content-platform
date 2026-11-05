@@ -470,6 +470,28 @@ class ToolControllerTest {
     }
 
     @Test
+    void aSelectionOfStatesIsEchoedAsACanonicalList() {
+        when(service.deprecationPage(null, "none,unresolved", null, 20, 0)).thenReturn(List.of());
+        when(service.deprecationCount(null, "none,unresolved")).thenReturn(0L);
+
+        ToolDtos.DeprecationList body = controller()
+                .deprecations(null, null, null, null, " none , unresolved,none ").getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.replacementStatus()).isEqualTo("none,unresolved");
+        assertThat(body.total()).isZero();
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(7);
+    }
+
+    @Test
+    void anUnknownWordInsideASelectionIsRefusedByName() {
+        assertThatThrownBy(() -> controller().deprecations(null, null, null, null, "none,Gone"))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("Gone");
+        verifyNoInteractions(service);
+    }
+
+    @Test
     void aSingleDeprecationSaysWhenItsSuccessorIsItselfDeparting() {
         ToolDeprecation row = new ToolDeprecation("tool-1", "Use b.tool.", "b.tool", AT);
         when(service.deprecationOf("tool-1")).thenReturn(row);

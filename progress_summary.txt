@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v622 (a replacement chain names where it ends — `GET /tools/{id}/replacement-chain`, five outcomes, a named cycle and a 20-step bound; v591–v612 were landed by parallel lanes)
+Project version: v623 (a warning list can select several replacement states at once — canonical comma list, one CASE predicate, seven-field envelope; v591–v612 were landed by parallel lanes)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is ahead of origin/master; v622 is in the working tree.
+Pushed to origin/master: no — master is ahead of origin/master; v623 is in the working tree.
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -42,14 +42,15 @@ Recent increments in this lineage (all real commits, all gated):
   v620: the warning list can be SELECTED by replacement state — `replacementStatus=` narrows window AND count, composes with owner and the pair cursor, seventh envelope field (ADR 0050)
   v621: the JOURNAL can be pruned from the FRONT only — `DELETE /tools/changes?before=` keeps the newest entry, answers the oldest retained seq, and a positive cursor behind it is 410 `journal-pruned` naming the boundary (ADR 0051)
   v622: a replacement CHAIN names where it ENDS — live/none/unresolved/cycle/depth (cycle named, depth bounded at 20), each step five fields, a live tool still 404 not-deprecated (ADR 0052)
+  v623: the warning list can select SEVERAL states in one request — `replacementStatus=none,unresolved` canonicalises (blanks dropped, duplicates collapsed, first-seen order), narrows window AND count through one CASE, composes with owner and the pair cursor (ADR 0053)
 
-Verification of v591–v622 (this lane; v591–v612 are parallel-lane commits, v613–v622 are ours):
-  mvn -Dtest='ToolServiceTest,ToolControllerTest,JsonPointersTest' test: 261/261 (170 service + 88 controller + 3 pointer-walk), exit 0
+Verification of v591–v623 (this lane; v591–v612 are parallel-lane commits, v613–v623 are ours):
+  mvn -Dtest='ToolServiceTest,ToolControllerTest,JsonPointersTest' test: 265/265 (172 service + 90 controller + 3 pointer-walk), exit 0
   Full service suite after v620 (last checkpoint): 877/877, 43 classes, 0 failures, exit 0 (not run every increment; v621 is the first increment after it)
   node docs/evidence/m10/tool-registry-proof.mjs against a real PostgreSQL: ALL ASSERTIONS PASSED
   (§5e journal, §5f feed narrowings, §5g batch read, §5h attestation, §5i tested filter with the
    stale-claim bound proved rather than hidden, §5j read-at-pin with the pruned-pin 404, §5k keyset paging
-   with the offset-repeat proved on real state, §5l the two-pin diff naming three paths and refusing each bad pin by name, §5m the global pin lookup where two twins shared one pin and a move split their currency, §5n the one-scan manifest naming an unrecorded pin, §5o deprecation paging over three rows tied to one millisecond with an empty tail and every refusal by name, §5p the owner-narrowed deprecation list with total following the filtered set and a foreign cursor acting as a bound rather than a filter, §5q replacement resolution in all four states including a successor that is itself departing, §5r the state filter selecting one warning in each of the four states, owner and state narrowing together, the pair cursor walking two live rows, and the temporary live target removed after use, §5s the journal prefix prune removing 3 of 60 entries below seq 4 and naming 57/4 in the answer, since=3 caught up while since=2 was 410 naming the boundary, the other refusals by name, and re-pruning answering 0, §5t the replacement chain ending live at a third declaration, then cycle/unresolved/none after re-deprecations, with a live tool 404 not-deprecated and an unknown id 404 unknown-tool, §6 restart with the claim and every column count)
+   with the offset-repeat proved on real state, §5l the two-pin diff naming three paths and refusing each bad pin by name, §5m the global pin lookup where two twins shared one pin and a move split their currency, §5n the one-scan manifest naming an unrecorded pin, §5o deprecation paging over three rows tied to one millisecond with an empty tail and every refusal by name, §5p the owner-narrowed deprecation list with total following the filtered set and a foreign cursor acting as a bound rather than a filter, §5q replacement resolution in all four states including a successor that is itself departing, §5r the state filter selecting one warning in each of the four states, owner and state narrowing together, the pair cursor walking two live rows, and the temporary live target removed after use, §5s the journal prefix prune removing 3 of 60 entries below seq 4 and naming 57/4 in the answer, since=3 caught up while since=2 was 410 naming the boundary, the other refusals by name, and re-pruning answering 0, §5t the replacement chain ending live at a third declaration, then cycle/unresolved/none after re-deprecations, with a live tool 404 not-deprecated and an unknown id 404 unknown-tool, §5u the multi-state selection answering two warnings with total=2, echoing canonically, collapsing duplicates, treating blanks as absent, composing with owner (2 and 0), walking the pair cursor over the selected set, and naming an unknown word in the list, §6 restart with the claim and every column count)
 Verification of v572–v575 and v577–v582:
   mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 122/122 (78 service + 44 controller), exit 0
   Full service suite at v581 (checkpoint, 5 increments in): 660/660, 33 classes, exit 0
@@ -76,15 +77,15 @@ ADR 0016 compliance:
   Studio→service hop 15s via shared serviceCall.ts; timeout never reported as "unreachable"
 
 Next increments (planned, see docs/LONG_TERM_PLAN.md):
-  journal retention: DONE at v621 — a prefix-only prune door, the oldest retained seq on every answer, and a
-        named 410 for a positive cursor behind it (ADR 0051).
-  replacement chains: DONE at v622 — a bounded walk of the stored hints, five outcomes, a named cycle and a
-        stated depth bound; a live tool stays the existing 404 not-deprecated (ADR 0052).
+  journal retention: DONE at v621 (ADR 0051).
+  replacement chains: DONE at v622 (ADR 0052).
+  multi-state warning selection: DONE at v623 (ADR 0053).
 
-  next (v623 candidates): multi-state selection on the warning list (one request for, say, unresolved+deprecated),
-        a hint-text filter, or the same chain answer for the WHOLE warning list in one read (one walk per row
-        would be N+1, so a list form needs a different bound). Pick one and keep it to one count rule.
+  next (v624 candidates): a hint-TEXT filter on the warning list (`replacement=`? — careful: the row field is
+        already `replacement`, so the query parameter needs a distinct name), or a chain answer for the WHOLE
+        warning list in one read (N walks would be N+1, so a list form needs a different bound and shape), or
+        the same multi-state selection on the catalog's deprecated/tested filters. Pick one, one count rule.
   open elsewhere (see docs/LONG_TERM_PLAN.md): the Studio lanes and the M9/CI lanes are parallel work; this lane
         stays in services/nexus-api + docs/evidence/m10.
-  v620 checkpoint: full suite 877/877 across 43 classes, exit 0. v621 and v622 stayed targeted (253, then 261
+  v620 checkpoint: full suite 877/877 across 43 classes, exit 0. v621–v623 stayed targeted (253, 261, 265
         tools cases) plus the live proof, per AGENTS.md.

@@ -115,8 +115,9 @@ import org.springframework.web.bind.annotation.RestController;
  *       request. {@code owner} narrows the window and the count; {@code before} is the last row of the previous
  *       page as {@code <epochMillis>:<toolId>}, because instants can tie (v617). The two compose (v618), and
  *       each row resolves its replacement hint in one batch so a migration list is actionable in one read.
- *       {@code replacementStatus} selects none, unresolved, live or deprecated (v620), narrowing the window and
- *       the count alongside the other two.
+ *       {@code replacementStatus} selects one or more of none, unresolved, live or deprecated as a
+ *       comma-separated list (v623), narrowing the window and the count alongside the other two; the echoed
+ *       value is canonical — blanks dropped, duplicates collapsed, first-seen order kept.
  *   <li>{@code DELETE /tools/{id}/revisions?owner=&before=} — the owner's RETENTION: remove the revisions strictly
  *       older than {@code before}, and answer the bound, what went and what remains. A bound past the newest
  *       revision is a 400, because a declaration whose history explains nothing is not a state this door creates.
@@ -498,7 +499,7 @@ public class ToolController {
         int effective = Math.min(Math.max(asked, 1), ToolService.MAX_LIST_LIMIT);
         int from = offset == null ? 0 : Math.max(offset, 0);
         String owner = ToolService.normalizeOwner(ownerId);
-        String status = ToolService.normalizeReplacementStatus(replacementStatus);
+        String status = ToolService.normalizeReplacementStatuses(replacementStatus);
         DeprecationCursor cursor = DeprecationCursor.parse(before);
         String key = cursor == null ? null : cursor.text();
         List<ToolDeprecation> rows = service.deprecationPage(owner, status, key, asked, from);

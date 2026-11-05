@@ -626,6 +626,29 @@ class ToolServiceTest {
     }
 
     @Test
+    void aSelectionOfStatesIsCanonicalisedAndNarrowsBothWindowAndCount() {
+        when(deprecations.firstPageFiltered(null, "none,unresolved", PageRequest.of(0, 20)))
+                .thenReturn(List.of());
+        when(deprecations.countFiltered(null, "none,unresolved")).thenReturn(0L);
+
+        assertThat(service().deprecationPage(null, " none , unresolved,none ", null, 20, 0)).isEmpty();
+        assertThat(service().deprecationCount(null, "none,unresolved,none")).isZero();
+
+        verify(deprecations).firstPageFiltered(null, "none,unresolved", PageRequest.of(0, 20));
+        verify(deprecations).countFiltered(null, "none,unresolved");
+        verify(deprecations, never()).firstPage(any());
+    }
+
+    @Test
+    void anUnknownWordInsideASelectionIsRefusedByItsOwnName() {
+        assertThatThrownBy(() -> service().deprecationPage(null, "none,Gone", null, 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("\"Gone\"");
+
+        verify(deprecations, never()).firstPageFiltered(any(), any(), any());
+    }
+
+    @Test
     void anOwnerAndAReplacementStatusComposeWithThePairCursor() {
         String key = AT.toEpochMilli() + ":tool-2";
         when(deprecations.pageAfterFiltered(OWNER, "deprecated", AT, "tool-2", PageRequest.of(0, 20)))

@@ -19,17 +19,22 @@ public interface ToolDeprecationRepository extends JpaRepository<ToolDeprecation
      * <p>The status is not stored on the row: it is computed from the current declaration and deprecation rows.
      * {@code cast} gives PostgreSQL a type for an absent filter, so a null owner or status is the ABSENT filter
      * rather than an untyped parameter the database cannot compare.
+     *
+     * <p>M10 v623 - the filter is a SELECTION: {@code :status} holds one word or a comma-separated list, and
+     * membership is a string-array test over ONE {@code case} expression. That expression is the SQL copy of the
+     * rule the row's own state follows, so a row can never be selected as a state it does not report. A null
+     * (absent) selection is every state, exactly as before.
      */
     String STATUS_PREDICATE = "(cast(:status as varchar) is null"
-            + " or (cast(:status as varchar) = 'none' and d.replacement_name is null)"
-            + " or (cast(:status as varchar) = 'unresolved' and d.replacement_name is not null"
-            + " and not exists (select 1 from tool_entry target where target.name = d.replacement_name))"
-            + " or (cast(:status as varchar) = 'live' and exists (select 1 from tool_entry target"
-            + " where target.name = d.replacement_name and not exists"
-            + " (select 1 from tool_deprecation warning where warning.tool_id = target.tool_id)))"
-            + " or (cast(:status as varchar) = 'deprecated' and exists (select 1 from tool_entry target"
-            + " join tool_deprecation warning on warning.tool_id = target.tool_id"
-            + " where target.name = d.replacement_name)))";
+            + " or case"
+            + " when d.replacement_name is null then 'none'"
+            + " when not exists (select 1 from tool_entry target where target.name = d.replacement_name)"
+            + " then 'unresolved'"
+            + " when exists (select 1 from tool_entry target where target.name = d.replacement_name"
+            + " and not exists (select 1 from tool_deprecation warning where warning.tool_id = target.tool_id))"
+            + " then 'live'"
+            + " else 'deprecated' end"
+            + " = any(string_to_array(cast(:status as varchar), ',')))";
 
     /** The deprecation of one tool, when it has one. */
     Optional<ToolDeprecation> findByToolId(String toolId);

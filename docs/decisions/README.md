@@ -64,3 +64,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0050  | A warning list can be selected by replacement state            | Accepted |
 | 0051  | A journal is pruned only from the front                        | Accepted |
 | 0052  | A replacement chain names where it ends                        | Accepted |
+| 0053  | A warning list can select several states at once                | Accepted |

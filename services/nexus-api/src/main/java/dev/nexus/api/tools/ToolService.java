@@ -1186,7 +1186,7 @@ public class ToolService {
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
         int from = Math.max(offset, 0);
         String owner = normalizeOwner(ownerId);
-        String status = normalizeReplacementStatus(replacementStatus);
+        String status = normalizeReplacementStatuses(replacementStatus);
         DeprecationCursor cursor = DeprecationCursor.parse(before);
         if (cursor != null && from > 0) {
             throw new InvalidTool("a keyset read carries before=, not offset= — mixing the two is how a page"
@@ -1224,7 +1224,7 @@ public class ToolService {
     @Transactional(readOnly = true)
     public long deprecationCount(String ownerId, String replacementStatus) {
         String owner = normalizeOwner(ownerId);
-        String status = normalizeReplacementStatus(replacementStatus);
+        String status = normalizeReplacementStatuses(replacementStatus);
         if (status != null) {
             return deprecations.countFiltered(owner, status);
         }
@@ -1542,20 +1542,34 @@ public class ToolService {
     }
 
     /**
-     * The optional replacement-state filter: null when absent or blank, otherwise one of
-     * {@link #REPLACEMENT_STATES}. Case-sensitive like the journal's kind, because the four words are a closed
-     * vocabulary and an answer with no rows would hide a misspelling.
+     * The optional replacement-state SELECTION: null when absent or blank, otherwise one or more of
+     * {@link #REPLACEMENT_STATES}, comma-separated, canonicalised to the words in first-seen order.
+     *
+     * <p>M10 v623 widened v620's single word to a selection because one state at a time made "everything I
+     * could migrate to" two requests whose counts could not be added without reading both. Blank segments are
+     * dropped (a trailing comma is punctuation, not a filter), duplicates collapse, and every surviving word is
+     * validated. Case-sensitive like the journal's kind, because the four words are a closed vocabulary and an
+     * answer with no rows would hide a misspelling.
      */
-    static String normalizeReplacementStatus(String raw) {
+    static String normalizeReplacementStatuses(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
         }
-        String trimmed = raw.trim();
-        if (!REPLACEMENT_STATES.contains(trimmed)) {
-            throw new InvalidTool("a replacement status is one of " + String.join(", ", REPLACEMENT_STATES)
-                    + " — this one is \"" + trimmed + "\"");
+        List<String> chosen = new java.util.ArrayList<>();
+        for (String part : raw.split(",")) {
+            String word = part.trim();
+            if (word.isEmpty()) {
+                continue;
+            }
+            if (!REPLACEMENT_STATES.contains(word)) {
+                throw new InvalidTool("a replacement status is one of "
+                        + String.join(", ", REPLACEMENT_STATES) + " — this one is \"" + word + "\"");
+            }
+            if (!chosen.contains(word)) {
+                chosen.add(word);
+            }
         }
-        return trimmed;
+        return chosen.isEmpty() ? null : String.join(",", chosen);
     }
     static String normalizeOwner(String raw) {
         if (raw == null || raw.isBlank()) {
