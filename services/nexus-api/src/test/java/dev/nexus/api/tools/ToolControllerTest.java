@@ -1121,4 +1121,46 @@ class ToolControllerTest {
         assertThat(answer.getStatusCode().value()).isEqualTo(404);
         assertThat(answer.getBody()).containsEntry("error", "unknown-pin");
     }
+
+    // ── v616: a manifest of pins is ONE read, and an unrecorded pin is NAMED not thrown ─────────────
+    @Test
+    void aManifestEchoesWhatWasAskedAndWhatWasMissing() {
+        when(service.byPins(List.of(PIN, OTHER_PIN))).thenReturn(new PinBatchLookup(2, 1,
+                List.of(new PinLookup.Match("tool-1", "a.tool", OWNER, 1, "shared sentence", PIN,
+                        AT.toEpochMilli(), true)),
+                List.of(OTHER_PIN)));
+
+        ToolDtos.PinBatch body = controller().pins(List.of(PIN, OTHER_PIN)).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.requested()).isEqualTo(2);
+        assertThat(body.found()).isEqualTo(1);
+        assertThat(body.missing()).containsExactly(OTHER_PIN);
+        assertThat(body.tools()).extracting(ToolDtos.PinMatch::name).containsExactly("a.tool");
+        assertThat(body.tools().get(0).contractSha256()).isEqualTo(PIN);
+        assertThat(body.tools().get(0).current()).isTrue();
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(4);
+        assertThat(mapper.valueToTree(body).get("tools").get(0).size()).isEqualTo(8);
+    }
+
+    @Test
+    void anAbsentManifestIsPassedThroughAsAbsent() {
+        when(service.byPins(null)).thenReturn(new PinBatchLookup(0, 0, List.of(), List.of()));
+
+        controller().pins(null);
+
+        verify(service).byPins(null);
+    }
+
+    @Test
+    void aManifestRefusalKeepsItsOwnName() {
+        when(service.byPins(null)).thenThrow(new InvalidTool("a batch pin read names at least one pin"));
+
+        Throwable refused = org.assertj.core.api.Assertions.catchThrowable(() -> controller().pins(null));
+
+        assertThat(refused).isInstanceOf(InvalidTool.class);
+        ResponseEntity<Map<String, String>> answer = controller().invalid((InvalidTool) refused);
+        assertThat(answer.getStatusCode().value()).isEqualTo(400);
+        assertThat(answer.getBody()).containsEntry("error", "invalid-tool");
+    }
 }

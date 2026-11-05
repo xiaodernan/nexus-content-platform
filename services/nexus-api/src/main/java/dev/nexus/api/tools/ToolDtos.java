@@ -215,6 +215,20 @@ public final class ToolDtos {
             List<PinMatch> tools) {
     }
     /**
+     * M10 v616 - a MANIFEST of pins answered in one read.
+     *
+     * <p>{@code requested} counts the DISTINCT pins (blanks dropped, duplicates collapsed), and {@code found}
+     * counts the pins that resolved, so {@code found + missing.size() == requested} is a property a caller can
+     * check even though one pin can name several declarations. {@code missing} names the unrecorded pins in the
+     * order asked for; {@code tools} keeps (request order, NAME), the order a manifest can be zipped with.
+     */
+    public record PinBatch(
+            int requested,
+            int found,
+            List<PinMatch> tools,
+            List<String> missing) {
+    }
+    /**
      * One entry in the registry's journal: what happened, to which declaration, in what order.
      *
      * <p>{@code seq} is the cursor a caller advances. {@code name} is the declaration's name AT the time of the

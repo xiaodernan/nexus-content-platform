@@ -10,6 +10,7 @@ import dev.nexus.api.tools.ToolDtos.Deprecation;
 import dev.nexus.api.tools.ToolDtos.DeprecationList;
 import dev.nexus.api.tools.ToolDtos.DeprecatedTool;
 import dev.nexus.api.tools.ToolDtos.OwnershipChain;
+import dev.nexus.api.tools.ToolDtos.PinBatch;
 import dev.nexus.api.tools.ToolDtos.PinMatch;
 import dev.nexus.api.tools.ToolDtos.PinMatches;
 import dev.nexus.api.tools.ToolDtos.PruneRevisionsAnswer;
@@ -78,6 +79,8 @@ import org.springframework.web.bind.annotation.RestController;
  *       bytes hash to the 64-hex pin the caller holds, with {@code current} saying whether that is still the
  *       contract served today. An absent or malformed pin is a 400; a well-formed pin this declaration never
  *       recorded (or retention removed) is a 404 under its own name, {@code unknown-pin}.
+ *   <li>{@code GET /tools/pins?pin=&pin=…} — a MANIFEST of pins in ONE read: the declarations behind every
+ *       pin the caller named, with the unrecorded pins NAMED rather than the whole request failing (v616).
  *   <li>{@code GET /tools/by-pin/{pin}} — the GLOBAL question a pin can be asked: every declaration whose
  *       recorded history carries those bytes, newest carrying revision per declaration, {@code current}
  *       derived. A pin names CONTENT, so identical declarations all answer (v615).
@@ -505,6 +508,21 @@ public class ToolController {
      * <p>The pin is computed and never stored (ADR 0028), so this door scans the revision table. The cost is
      * stated in its ADR rather than hidden behind a derived column that every write would have to maintain.
      */
+    /**
+     * v616 — a manifest of pins in ONE read.
+     *
+     * <p>A lockfile is a list of questions, so one unrecorded pin must not turn the whole answer into a 404:
+     * it is NAMED in {@code missing} while every other pin is answered. The scan is one pass for every pin
+     * (the single-pin door would scan once per line), which is the reason this door exists at all.
+     */
+    @GetMapping("/tools/pins")
+    public ResponseEntity<PinBatch> pins(
+            @RequestParam(name = "pin", required = false) List<String> pins) {
+        PinBatchLookup lookup = service.byPins(pins);
+        return ResponseEntity.ok(new PinBatch(lookup.requested(), lookup.found(),
+                lookup.matches().stream().map(ToolController::match).toList(), lookup.missing()));
+    }
+
     @GetMapping("/tools/by-pin/{pin}")
     public ResponseEntity<PinMatches> byPin(@PathVariable String pin) {
         PinLookup lookup = service.byPin(pin);

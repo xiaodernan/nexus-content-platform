@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v615 (a pin names CONTENT — global `by-pin` lookup; v591–v612 were landed by parallel lanes)
+Project version: v616 (a manifest of pins is ONE read — `pins?pin=`; v591–v612 were landed by parallel lanes)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is ahead of origin/master; v615 is in the working tree.
+Pushed to origin/master: no — master is ahead of origin/master; v616 is in the working tree.
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -35,16 +35,17 @@ Recent increments in this lineage (all real commits, all gated):
   v613: the catalog pages by NAME, because an offset is a position writes can change — `after=`, ninth field (ADR 0043)
   v614: two contracts compared by the pins a caller holds — `diff`, RFC 6901 paths, absent `to` = now (ADR 0044)
   v615: a pin names CONTENT — `by-pin` answers every declaration that carried it, `current` derived (ADR 0045)
+  v616: a manifest of pins is ONE scan, caller order kept, unrecorded pins NAMED (ADR 0046)
   v581: retention — the owner names the bound it keeps, and the answer says what went (ADR 0032)
   v582: the catalog names the rows that are going away — a filter, not a column (ADR 0033)
 
 Verification of v591–v613 (this lane; v591–v612 are parallel-lane commits, v613 is ours):
-  mvn -Dtest='ToolServiceTest,ToolControllerTest,JsonPointersTest' test: 209/209 (132 service + 74 controller + 3 pointer-walk), exit 0
+  mvn -Dtest='ToolServiceTest,ToolControllerTest,JsonPointersTest' test: 218/218 (138 service + 77 controller + 3 pointer-walk), exit 0
   Full service suite after v613: 821/821, 0 failures, exit 0 (a checkpoint after 26 increments, not run every increment)
   node docs/evidence/m10/tool-registry-proof.mjs against a real PostgreSQL: ALL ASSERTIONS PASSED
   (§5e journal, §5f feed narrowings, §5g batch read, §5h attestation, §5i tested filter with the
    stale-claim bound proved rather than hidden, §5j read-at-pin with the pruned-pin 404, §5k keyset paging
-   with the offset-repeat proved on real state, §5l the two-pin diff naming three paths and refusing each bad pin by name, §5m the global pin lookup where two twins shared one pin and a move split their currency, §6 restart with the claim and every column count)
+   with the offset-repeat proved on real state, §5l the two-pin diff naming three paths and refusing each bad pin by name, §5m the global pin lookup where two twins shared one pin and a move split their currency, §5n the one-scan manifest naming an unrecorded pin, §6 restart with the claim and every column count)
 Verification of v572–v575 and v577–v582:
   mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 122/122 (78 service + 44 controller), exit 0
   Full service suite at v581 (checkpoint, 5 increments in): 660/660, 33 classes, exit 0

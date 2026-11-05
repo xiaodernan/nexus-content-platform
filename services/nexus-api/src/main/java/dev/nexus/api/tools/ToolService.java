@@ -6,12 +6,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -71,6 +75,8 @@ public class ToolService {
     public static final int MAX_QUERY_LENGTH = 100;
     /** The most declarations ONE batch read may name - a list, not a scan of the registry. */
     public static final int MAX_BATCH_IDS = 50;
+    /** The most PINS one manifest read may name - the same bound a batch of ids carries. */
+    public static final int MAX_BATCH_PINS = 50;
     /** How many characters an attestation's note may hold - the same sentence bound a deprecation carries. */
     public static final int MAX_NOTE_LENGTH = 280;
 
@@ -629,26 +635,105 @@ public class ToolService {
     @Transactional(readOnly = true)
     public PinLookup byPin(String pin) {
         String wanted = requirePin(pin);
-        Map<String, ToolRevision> newest = new LinkedHashMap<>();
-        for (ToolRevision revision : revisions.findAll()) {
-            if (wanted.equals(contractSha256(revision))) {
-                newest.merge(revision.getToolId(), revision,
-                        (held, candidate) -> candidate.getRevision() > held.getRevision() ? candidate : held);
-            }
-        }
-        if (newest.isEmpty()) {
+        PinBatchLookup lookup = scan(List.of(wanted));
+        if (lookup.matches().isEmpty()) {
             throw new UnknownPin("no declaration has ever recorded the contract pin \"" + wanted
                     + "\" — it may never have been written here, or retention may have removed every revision"
                     + " that carried it");
         }
+        return new PinLookup(wanted, lookup.matches());
+    }
+
+    /**
+     * M10 v616 — a MANIFEST of pins in ONE read: every requested pin against one scan of the history.
+     *
+     * <p>Asking the single-pin door once per line of a lockfile would scan the revision table once per line.
+     * This door scans it once and answers every pin from the same pass, then loads the declarations behind the
+     * hits in one query — the same rule the batch-of-ids door follows, applied to the handle a consumer
+     * actually stores.
+     *
+     * <p>{@code found} counts the PINS that resolved, so {@code found + missing.size() == requested} holds even
+     * though one pin can name several declarations. A pin that resolved to nothing is NAMED in {@code missing}
+     * rather than turned into a 404: a manifest is a list of questions, and one unrecorded pin must not hide
+     * the answers to the others.
+     *
+     * <p>Blanks are dropped, duplicates collapse in first-seen order, a malformed pin is a 400 naming the
+     * 64-hex rule before any row is read, and at most {@value #MAX_BATCH_PINS} DISTINCT pins may be named.
+     */
+    @Transactional(readOnly = true)
+    public PinBatchLookup byPins(List<String> rawPins) {
+        return scan(normalizePins(rawPins));
+    }
+
+    /**
+     * The one pass both pin doors share: {@code wanted} is validated, distinct and in the caller's order, so
+     * the answer can be zipped with the manifest that produced it.
+     */
+    private PinBatchLookup scan(List<String> wanted) {
+        Set<String> asked = new HashSet<>(wanted);
+        Map<String, Map<String, ToolRevision>> newest = new LinkedHashMap<>();
+        for (ToolRevision revision : revisions.findAll()) {
+            String pin = contractSha256(revision);
+            if (!asked.contains(pin)) {
+                continue;
+            }
+            newest.computeIfAbsent(pin, ignored -> new LinkedHashMap<>())
+                    .merge(revision.getToolId(), revision,
+                            (held, candidate) -> candidate.getRevision() > held.getRevision() ? candidate : held);
+        }
+        Set<String> toolIds = newest.values().stream()
+                .flatMap(byTool -> byTool.keySet().stream())
+                .collect(Collectors.toSet());
         Map<String, ToolEntry> rows = new HashMap<>();
-        repository.findAllById(newest.keySet()).forEach(row -> rows.put(row.getToolId(), row));
-        List<PinLookup.Match> matches = newest.values().stream()
-                .filter(revision -> rows.containsKey(revision.getToolId()))
-                .map(revision -> match(revision, rows.get(revision.getToolId()), wanted))
-                .sorted(Comparator.comparing(PinLookup.Match::name))
-                .toList();
-        return new PinLookup(wanted, matches);
+        if (!toolIds.isEmpty()) {
+            repository.findAllById(toolIds).forEach(row -> rows.put(row.getToolId(), row));
+        }
+        List<PinLookup.Match> matches = new ArrayList<>();
+        List<String> missing = new ArrayList<>();
+        int found = 0;
+        for (String pin : wanted) {
+            List<PinLookup.Match> forPin = newest.getOrDefault(pin, Map.of()).values().stream()
+                    .filter(revision -> rows.containsKey(revision.getToolId()))
+                    .map(revision -> match(revision, rows.get(revision.getToolId()), pin))
+                    .sorted(Comparator.comparing(PinLookup.Match::name))
+                    .toList();
+            if (forPin.isEmpty()) {
+                missing.add(pin);
+            } else {
+                found++;
+                matches.addAll(forPin);
+            }
+        }
+        return new PinBatchLookup(wanted.size(), found, List.copyOf(matches), List.copyOf(missing));
+    }
+
+    /**
+     * The pins a manifest read will look for: trimmed and validated, blanks dropped, duplicates collapsed in
+     * FIRST-SEEN order, bounded like the batch of ids. A malformed pin is refused here, so the scan is never
+     * asked to compare against a value no stored pin could equal.
+     */
+    static List<String> normalizePins(List<String> rawPins) {
+        if (rawPins == null || rawPins.isEmpty()) {
+            throw new InvalidTool("a batch pin read names at least one pin");
+        }
+        List<String> wanted = new ArrayList<>();
+        for (String raw : rawPins) {
+            if (raw == null || raw.isBlank()) {
+                continue;
+            }
+            String pin = requirePin(raw);
+            if (!wanted.contains(pin)) {
+                wanted.add(pin);
+            }
+        }
+        if (wanted.isEmpty()) {
+            throw new InvalidTool("a batch pin read names at least one pin");
+        }
+        if (wanted.size() > MAX_BATCH_PINS) {
+            throw new InvalidTool("a batch pin read names at most " + MAX_BATCH_PINS
+                    + " pins — this one names " + wanted.size());
+        }
+        return wanted;
     }
 
     private PinLookup.Match match(ToolRevision revision, ToolEntry row, String pin) {

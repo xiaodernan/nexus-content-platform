@@ -57,3 +57,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0043  | A keyset page is a name, not an offset                         | Accepted |
 | 0044  | A diff names where, not what: two pins in one pointer vocabulary | Accepted |
 | 0045  | A pin names content, not a row: the registry-wide lookup | Accepted |
+| 0046  | A manifest of pins is one read, and an unrecorded pin is named | Accepted |

@@ -1642,4 +1642,98 @@ class ToolServiceTest {
                 .hasMessageContaining("64");
         verify(revisions, never()).findAll();
     }
+
+    // ── v616: a manifest of pins is ONE scan and answers in the order it was asked ──────────────────
+    @Test
+    void aManifestOfPinsIsAnsweredFromOneScanInRequestOrder() {
+        ToolRevision first = new ToolRevision("tool-1", 1, "sentence one", "{}", AT);
+        ToolRevision second = new ToolRevision("tool-2", 1, "sentence two", "{}", AT);
+        ToolRevision twin = new ToolRevision("tool-3", 1, "sentence two", "{}", AT);
+        when(revisions.findAll()).thenReturn(List.of(twin, second, first));
+        when(repository.findAllById(any())).thenReturn(List.of(
+                declared("tool-1", OWNER, "a.tool", "sentence one"),
+                declared("tool-2", OWNER, "b.tool", "sentence two"),
+                declared("tool-3", OWNER, "c.tool", "sentence two")));
+
+        ToolService service = service();
+        String one = service.contractSha256(first);
+        String two = service.contractSha256(second);
+        String absent = "0".repeat(64);
+        PinBatchLookup batch = service.byPins(List.of(one, two, absent));
+
+        assertThat(batch.requested()).isEqualTo(3);
+        assertThat(batch.found()).isEqualTo(2);
+        assertThat(batch.missing()).containsExactly(absent);
+        assertThat(batch.matches()).extracting(PinLookup.Match::name)
+                .containsExactly("a.tool", "b.tool", "c.tool");
+        assertThat(batch.matches()).extracting(PinLookup.Match::contractSha256)
+                .containsExactly(one, two, two);
+        verify(revisions, times(1)).findAll();
+    }
+
+    @Test
+    void aRepeatedPinIsOneQuestionAndABlankIsNotAQuestion() {
+        ToolRevision first = new ToolRevision("tool-1", 1, "sentence one", "{}", AT);
+        when(revisions.findAll()).thenReturn(List.of(first));
+        when(repository.findAllById(any())).thenReturn(List.of(
+                declared("tool-1", OWNER, "a.tool", "sentence one")));
+
+        ToolService service = service();
+        String pin = service.contractSha256(first);
+        PinBatchLookup batch = service.byPins(List.of("  " + pin + "  ", pin, "   "));
+
+        assertThat(batch.requested()).isEqualTo(1);
+        assertThat(batch.found()).isEqualTo(1);
+        assertThat(batch.matches()).hasSize(1);
+    }
+
+    @Test
+    void aManifestWithNoPinIsRefusedBeforeTheScan() {
+        assertThatThrownBy(() -> service().byPins(null))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("at least one pin");
+        assertThatThrownBy(() -> service().byPins(List.of()))
+                .isInstanceOf(InvalidTool.class);
+        assertThatThrownBy(() -> service().byPins(List.of("  ", " ")))
+                .isInstanceOf(InvalidTool.class);
+        verify(revisions, never()).findAll();
+    }
+
+    @Test
+    void aMalformedPinInAManifestIsRefusedBeforeTheScan() {
+        assertThatThrownBy(() -> service().byPins(List.of("0".repeat(64), "ABC")))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("64");
+        verify(revisions, never()).findAll();
+    }
+
+    @Test
+    void aManifestOverTheCapIsRefusedByName() {
+        List<String> many = java.util.stream.IntStream.range(0, 51)
+                .mapToObj(i -> String.format("%064x", i))
+                .toList();
+
+        assertThatThrownBy(() -> service().byPins(many))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("50")
+                .hasMessageContaining("51");
+        verify(revisions, never()).findAll();
+    }
+
+    @Test
+    void aStalePinInAManifestResolvesWithCurrencyDerived() {
+        ToolRevision birth = new ToolRevision("tool-1", 1, "shared sentence", "{}", AT);
+        ToolRevision moved = new ToolRevision("tool-1", 2, "a later sentence", "{}", AT);
+        when(revisions.findAll()).thenReturn(List.of(moved, birth));
+        when(repository.findAllById(any())).thenReturn(List.of(
+                declared("tool-1", OWNER, "a.tool", "a later sentence")));
+
+        ToolService service = service();
+        PinBatchLookup batch = service.byPins(List.of(service.contractSha256(birth)));
+
+        assertThat(batch.found()).isEqualTo(1);
+        assertThat(batch.matches()).hasSize(1);
+        assertThat(batch.matches().get(0).revision()).isEqualTo(1);
+        assertThat(batch.matches().get(0).current()).isFalse();
+    }
 }
