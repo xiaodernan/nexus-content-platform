@@ -182,13 +182,17 @@ apps/web/test/admin-realtime.integration.test.ts + apps/web/test/realtime.integr
    现在两份用同一套词表但各有实现：限流闸只有一条命令侧连接，它的 `status==='ready'?'up':(close|end)?'down':'pending'`
    等价于 `wireFromStatuses(s, s)`。要不要合并成一处（`wire` 的词汇抽到共享模块），
    留给下一个真的改这条规则的人——今天两处都有门（R2 与 W1/W2），先不为了整洁制造一次跨子系统的改动。
-2. **`ready` 落定成 `false` 这件事现在只有界面上那一句"启动那次"**，`wireErrorCount` 会把
+2. ~~**`ready` 落定成 `false` 这件事现在只有界面上那一句"启动那次"**，`wireErrorCount` 会把
    原因（`发布连接未就绪` / `订阅线路`）打进 stderr，但**没有按原因的计数**进读数。
    限流闸那半边有 `fallbackByReason`，这半边没有对应物。要补就是给 `countWireError` 加一本按原因的账，
-   与 `wireErrorCount` 那个总数并存。
+   与 `wireErrorCount` 那个总数并存。~~
+   **已于 2026-11-06 第三十九片还清**：`WIRE_ERROR_REASONS` 闭合词表 + `wireErrorByReason` 完整账 +
+   `Σ 分账 === 总数` + 形状门"两本账同口供"，见 `docs/adr/0087-realtime-wire-error-ledger-by-reason.md`。
+   顺带把当时沉默的那格（订阅连接收到别的线路名）变成有数的。
 3. **转发器那条用例的端口是钉死的（`56998`）**：同一台机器上并行跑两份这个文件会撞端口。
    今天靠测试串行（`--no-file-parallelism`）盖住；要真并行得换成 0 端口 + 读实际端口，
    而那样一来"构造时那端没人听"要靠时序而不是端口号，得重新设计。
 4. **`e2e/realtime-admin.spec.ts` 后两段是 `page.route` 喂的形状**：它们证的是**界面拿到这种形状怎么说人话**，
    不证那台真处于那个现场。为什么不换真驱动跑：`NEXUS_REDIS_URL` 同时管着限流闸，
    不为一张图去改共享 dev server 的环境（真实现场由集成测试负责，两边不互相冒充）。
+   （2026-11-06 更新：第三十九片把这条扩成**后三段**，新增那段喂的是"半截回执"。）

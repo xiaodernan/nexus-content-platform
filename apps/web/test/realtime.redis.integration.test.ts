@@ -5,6 +5,7 @@ import type { RealtimeEvent, RealtimeWireFrame } from '@nexus/schemas';
 import { channels, getRealtimeBus, setRealtimeBus } from '@/server/realtime/bus';
 import { MemoryRealtimeBus } from '@/server/realtime/localBus';
 import { REDIS_URL_ENV, RedisRealtimeBus, WIRE_CHANNEL } from '@/server/realtime/redisBus';
+import { WIRE_ERROR_REASONS } from '@/server/realtime/wireErrors';
 
 /**
  * §163 欠的那一格：跨实例扇出。打**真 Redis**（本机 `nexus-redis` 容器，56379），
@@ -21,6 +22,14 @@ const REDIS_URL = process.env[REDIS_URL_ENV]?.trim() || 'redis://127.0.0.1:56379
 const DEAD_URL = 'redis://127.0.0.1:56399';
 
 const note = (title: string): RealtimeEvent => ({ type: 'notification', level: 'info', title });
+
+/**
+ * 一本**闭合的零账**：词表里每一格都在、都是 0。
+ * 这里从词表自己造，不 import 驱动用的那个 `emptyWireErrorLedger`——借来的话这条断言就变成
+ * "驱动用它自己的初始化检查它自己的初始化"，永远绿。
+ */
+const zeroLedger = (): Record<string, number> =>
+  Object.fromEntries(WIRE_ERROR_REASONS.map((reason) => [reason, 0]));
 
 const opened: RedisRealtimeBus[] = [];
 function makeBus(url = REDIS_URL, origin?: string): RedisRealtimeBus {
@@ -131,6 +140,7 @@ describe('RedisRealtimeBus 跨实例投递', () => {
     await expect.poll(() => seen.length, { timeout: 15_000, interval: 100 }).toBe(1);
 
     const errorsBefore = alpha.wireErrorCount;
+    const ledgerBefore = { ...alpha.wireErrorByReason };
     // 两种坏法都要试：根本不是 JSON 的字节，以及结构合但 event 少了必填字段的帧
     const badEvent: unknown = { kind: 'event', origin: '别的实例', channel, event: { type: 'notification', level: 'info' } };
     await wireConnection().publish(WIRE_CHANNEL, '这不是 JSON');
@@ -139,6 +149,52 @@ describe('RedisRealtimeBus 跨实例投递', () => {
     await expect.poll(() => alpha.wireErrorCount - errorsBefore, { timeout: 15_000, interval: 100 }).toBeGreaterThanOrEqual(2);
     // 两帧都没到（还是 1 条，就是合法那一条）：线路上的字节不能因为"是我们自己发的"就直接对象化
     expect(seen).toHaveLength(1);
+
+    // 按原因分账：这两帧各自记在**自己那一格**上，各 +1。
+    // 只断言总数（上面那句）的话，"所有失败都记到同一个 key"这种实现照样全绿——
+    // 而那正是这本账唯一要防的错：总数对、分账全是假的。
+    expect(alpha.wireErrorByReason['收到的帧不是 JSON'] - ledgerBefore['收到的帧不是 JSON']).toBe(1);
+    expect(alpha.wireErrorByReason['收到的帧不合契约'] - ledgerBefore['收到的帧不合契约']).toBe(1);
+    // 别的格一格没动（串号就红在这里）
+    for (const reason of WIRE_ERROR_REASONS) {
+      if (reason === '收到的帧不是 JSON' || reason === '收到的帧不合契约') continue;
+      expect(alpha.wireErrorByReason[reason], `这不该记到 ${reason} 上`).toBe(ledgerBefore[reason]);
+    }
+    // 不变量：两本账是同一本——总数 = 各原因之和
+    expect(Object.values(alpha.wireErrorByReason).reduce((sum, n) => sum + n, 0)).toBe(alpha.wireErrorCount);
+  });
+
+  /**
+   * `线路名不认识` 这一格以前是界面上唯一"非 0 就说明有人改错了配置、却永远读不出非 0"的格子：
+   * 订阅连接上收到别的线路名的帧，实现是一个光秃秃的 `return`。
+   * 这一条不修它也不坏功能（那一帧本来就该丢），修的是**它有没有账**。
+   */
+  it('线路名不认识的帧：丢掉、记在自己那一格、不落本机订阅者', async () => {
+    const bus = makeBus(REDIS_URL, 'wrong-wire-origin');
+    const channel = channels.user('wrong-wire-name');
+    const seen: RealtimeEvent[] = [];
+    bus.subscribe(channel, (event) => seen.push(event));
+    await wireIsUp(bus);
+
+    // 扮演"有人改错了订阅"：生产配置下这条连接只订 WIRE_CHANNEL，所以只能亲自动它一下。
+    // 拿 `sub.emit('message', …)` 造这一帧不算数——那是绕过线路自己演给自己看。
+    const sub = (bus as unknown as { sub: Redis }).sub;
+    await sub.subscribe('nexus:realtime:v0');
+    const frame: RealtimeWireFrame = { kind: 'event', origin: '别的实例', channel, event: note('走错线路名的帧') };
+    const before = bus.wireErrorByReason['线路名不认识'];
+
+    await wireConnection().publish('nexus:realtime:v0', JSON.stringify(frame));
+    await expect
+      .poll(() => bus.wireErrorByReason['线路名不认识'] - before, { timeout: 15_000, interval: 100 })
+      .toBeGreaterThanOrEqual(1);
+    // 帧仍然丢掉：不在契约线路上的字节，不能因为"这台恰好订过那个名字"就交给本机订阅者。
+    // 记账与丢弃发生在同一个回调里，所以上面那句 poll 一绿，这里就已经是最终状态。
+    expect(seen).toHaveLength(0);
+    // 对照：同一台、同一频道，走**对**线路名的那一帧真的送达——"没送达"因此不是白断言
+    await wireConnection().publish(WIRE_CHANNEL, JSON.stringify(frame));
+    await expect.poll(() => seen.length, { timeout: 15_000, interval: 100 }).toBe(1);
+    // 总数与分账仍然同口供
+    expect(Object.values(bus.wireErrorByReason).reduce((sum, n) => sum + n, 0)).toBe(bus.wireErrorCount);
   });
 
   it('自己的 origin 不处理：同一台机器发的帧不会二次送达', async () => {
@@ -185,6 +241,10 @@ describe('RedisRealtimeBus 跨实例投递', () => {
     // 报成 down 是对着一台仍在自愈的实例宣布它放弃了——那才真的会引人去重启它
     expect(stats.wire).toBe('pending');
     expect(stats.wireErrorCount).toBeGreaterThanOrEqual(1);
+    // 分账要说得出**是哪一类**：`ready` 落定成 false 这件事必须记在"发布连接未就绪"那一格，
+    // 而不是只留一个总数——运维对着"断过 3 帧"能做的选择有三个，指向端点的那一个才对的上是这台
+    expect(dead.wireErrorByReason['发布连接未就绪']).toBeGreaterThanOrEqual(1);
+    expect(Object.values(dead.wireErrorByReason).reduce((sum, n) => sum + n, 0)).toBe(dead.wireErrorCount);
     // 上一步刚 closeChannel 过：本机那份订阅已按 ADR-0025 摘掉，stats 如实报 0——
     // 不是把关门前的旧数留在表盘上
     expect(stats.subscriberCount).toBe(0);
@@ -202,6 +262,7 @@ describe('RedisRealtimeBus 跨实例投递', () => {
       // 活读数这一格此刻读到的就是"还在路上"：它不借用闩的值，也不等闩落定
       wire: 'pending',
       wireErrorCount: 0,
+      wireErrorByReason: zeroLedger(),
     });
     await wireIsUp(bus);
     expect(bus.stats()).toEqual({
@@ -211,6 +272,9 @@ describe('RedisRealtimeBus 跨实例投递', () => {
       wireReady: true,
       wire: 'up',
       wireErrorCount: 0,
+      // 分账与总数同口供，而且**每一格都在**：一个空对象在这里等价于"没带账"，
+      // 而界面那句"—（这台还没出过一帧失败）"要的是前者，不是后者
+      wireErrorByReason: zeroLedger(),
     });
     bus.subscribe(channels.project('stats-view'), () => undefined);
     expect(bus.stats().subscriberCount).toBe(1);

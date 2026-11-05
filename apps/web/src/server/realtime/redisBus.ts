@@ -2,6 +2,7 @@ import { Redis } from 'ioredis';
 import { RealtimeWireFrameSchema, type RealtimeEvent, type RealtimeWireFrame } from '@nexus/schemas';
 import { MemoryRealtimeBus } from './localBus';
 import type { RealtimeBus, RealtimeBusStats } from './bus';
+import { emptyWireErrorLedger, type WireErrorReason } from './wireErrors';
 
 /**
  * 跨实例驱动（§163 欠的那一格）。取舍见 `docs/adr/0028-realtime-redis-fanout.md`。
@@ -100,10 +101,12 @@ export class RedisRealtimeBus implements RealtimeBus {
   wireErrorCount = 0;
   /**
    * 与 `wireErrorCount` 同一套账，但**按原因拆开**（限流闸 `fallbackByReason` 的同形状）。
-   * key 就是 `countWireError` 的第一个参数（'投递' / '收到的帧不合契约' / …）——
-   * 它们本来就是给人看的话，不是错误码。全空 = 这台还没出过一帧失败。
+   * key 只能是 `wireErrors.ts` 词表里的那几个字——它们本来就是给人看的话，不是错误码，
+   * 但漂一个写法就等于把一次故障记到两行各说一半（总数还活着，所以只有类型能拦）。
+   * 开局是一本**每格都是 0** 的完整账，不是空对象：界面上"这台还没出过一帧失败"与
+   * "这台没带分账"是两件事，前者要能由数据本身说出来。
    */
-  wireErrorByReason: Record<string, number> = {};
+  wireErrorByReason: Record<WireErrorReason, number> = emptyWireErrorLedger();
 
   private readonly local = new MemoryRealtimeBus();
   private readonly pub: Redis;
@@ -148,8 +151,17 @@ export class RedisRealtimeBus implements RealtimeBus {
     this.pub.on('error', (error: Error) => this.countWireError('发布连接', error));
     this.sub.on('error', (error: Error) => this.countWireError('订阅连接', error));
     this.sub.on('message', (wireChannel: string, payload: string) => {
-      if (wireChannel !== WIRE_CHANNEL) return; // 这条连接只订一个线路名，收到别的说明有人改错了
-      this.receive(payload);
+      if (wireChannel === WIRE_CHANNEL) {
+        this.receive(payload);
+        return;
+      }
+      // 这条连接只订一个线路名，收到别的说明**有人改错了订阅**。以前这里是一个光秃秃的 `return`：
+      // 一句"配置错了"的信号既不记账也不出声，于是这一类里最难发现的错恰好是唯一没有读数的格子。
+      // 帧仍然丢掉（别的名字上的字节不是这台总线的契约），但这一格从此有数。
+      this.countWireError(
+        '线路名不认识',
+        new Error(`这条连接只该订 ${WIRE_CHANNEL}，却收到了 ${wireChannel} 上的帧：订阅集合被动过`),
+      );
     });
 
     // 订上线路这件事发生在构造的那一刻（不等第一个订阅者）：总线是进程级单例，
@@ -306,7 +318,7 @@ export class RedisRealtimeBus implements RealtimeBus {
     this.local.publish(frame.data.channel, frame.data.event);
   }
 
-  private countWireError(context: string, error: unknown): void {
+  private countWireError(context: WireErrorReason, error: unknown): void {
     this.wireErrorCount += 1;
     this.wireErrorByReason[context] = (this.wireErrorByReason[context] ?? 0) + 1;
     console.error(

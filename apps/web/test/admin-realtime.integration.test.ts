@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { GET as getRealtimeStats } from '../src/app/api/admin/realtime/route';
 import { SESSION_COOKIE } from '../src/server/domain/session';
 import { getRealtimeBus, setRealtimeBus, type RealtimeBus } from '../src/server/realtime/bus';
+import { emptyWireErrorLedger } from '../src/server/realtime/wireErrors';
 import { getDb } from '../src/server/db/client';
 import { sessions, users } from '../src/server/db/schema';
 
@@ -100,6 +101,10 @@ describe('§163 诊断入口的门', () => {
     // 进程内驱动这两格是 null（不适用），0 是"跑着没断过帧的 Redis"——形状门钉死别被抹平
     expect(body.wireReady === null || typeof body.wireReady === 'boolean').toBe(true);
     expect(body.wireErrorCount === null || typeof body.wireErrorCount === 'number').toBe(true);
+    // 分账与总数同口供：`wireErrorCount === null` 与 `wireErrorByReason === null` 必须同真同假。
+    // 这句在服务端回执上先钉一次，界面上那道形状门（`stats-readout.ts`）才不是唯一防线
+    expect(body.wireErrorByReason === null || typeof body.wireErrorByReason === 'object').toBe(true);
+    expect((body.wireErrorCount === null) === (body.wireErrorByReason === null)).toBe(true);
     // 活读数那一格只认四档，且 'na'（没有这回事）与 'down'（有但断了）不许互相冒充
     expect(['up', 'pending', 'down', 'na']).toContain(body.wire);
     if (body.driver === 'in-process') {
@@ -118,7 +123,16 @@ describe('§163 诊断入口的门', () => {
       subscribe: () => () => undefined,
       closeChannel: () => undefined,
       subscriberCount: () => 7,
-      stats: () => ({ driver: 'redis', instance: '被换上的那台', subscriberCount: 7, wireReady: false, wire: 'up', wireErrorCount: 2 }),
+      stats: () => ({
+        driver: 'redis',
+        instance: '被换上的那台',
+        subscriberCount: 7,
+        wireReady: false,
+        wire: 'up',
+        wireErrorCount: 2,
+        // 分账与总数同口供（界面那道形状门认的就是这一对）：这 2 帧全记在"投递"上
+        wireErrorByReason: { ...emptyWireErrorLedger(), 投递: 2 },
+      }),
     };
     setRealtimeBus(fake);
     asUser(adminToken);
@@ -127,6 +141,9 @@ describe('§163 诊断入口的门', () => {
     const body = await res.json();
     expect(body.instance).toBe('被换上的那台');
     expect(body.wireErrorCount).toBe(2);
+    // "报文形状由总线自报，这个端点不做二次加工"那句话的证据：分账**逐格**原样交出。
+    // 只断言"有这一格"是不够的——少交一格、或者把 0 抹成 undefined，界面照样渲染得出来。
+    expect(body.wireErrorByReason).toEqual({ ...emptyWireErrorLedger(), 投递: 2 });
     expect(body.subscriberCount).toBe(7);
     expect(body.wireReady).toBe(false);
     expect(body.wire).toBe('up');

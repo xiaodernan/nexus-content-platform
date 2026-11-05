@@ -9,6 +9,7 @@ import {
   liveTag,
   type RealtimeStatsReadout,
 } from '@/app/admin/realtime/stats-readout';
+import { WIRE_ERROR_REASONS } from '@/server/realtime/wireErrors';
 
 /**
  * §163 表盘的两行措辞（第三十七片）。
@@ -26,6 +27,8 @@ const stats = (overrides: Partial<RealtimeStatsReadout>): RealtimeStatsReadout =
   wireReady: true,
   wire: 'up',
   wireErrorCount: 0,
+  // 默认给一份"有线路、一帧没断过"的空账：缺这一格不再是合法形状（见下面那道形状门）
+  wireErrorByReason: {},
   ...overrides,
 });
 
@@ -94,8 +97,8 @@ describe('两行各说各话：本片要修的就是这个', () => {
 
 describe('errorReasonList（按原因拆账）', () => {
   it('null 说没有线路；空账说本进程还没出过失败', () => {
+    // 这两句不许混成一句：前者是"这台没有跨实例这回事"，后者是"有线路且一帧没断过"
     expect(errorReasonList(null)).toContain('没有线路');
-    expect(errorReasonList(undefined)).toContain('没有线路');
     expect(errorReasonList({})).toContain('还没出过一帧失败');
   });
 
@@ -110,6 +113,18 @@ describe('errorReasonList（按原因拆账）', () => {
 
   it('零次或空白原因不画进去', () => {
     expect(errorReasonList({ 投递: 0, '   ': 3 })).toContain('还没出过一帧失败');
+  });
+
+  it('词表里每一格都印得出来：界面不认字，只照读', () => {
+    // 这一条钉的是"加一格原因要不要改界面"这个分工：不该要。
+    // 界面若自己维护一份白名单（或反过来把某个词过滤掉），新加的那格就会静默消失，
+    // 而总数照样涨——那是最难发现的一种"账对不上"。
+    const full = Object.fromEntries(WIRE_ERROR_REASONS.map((reason) => [reason, 1])) as Record<string, number>;
+    const text = errorReasonList(full);
+    for (const reason of WIRE_ERROR_REASONS) {
+      expect(text).toContain(reason);
+    }
+    expect(text.split(' · ')).toHaveLength(WIRE_ERROR_REASONS.length);
   });
 });
 
@@ -143,7 +158,34 @@ describe('isKnownStats：面板只画它认得的自报家门', () => {
     expect(isKnownStats(noDriver)).toBe(false);
     expect(isKnownStats({ ...stats({}), subscriberCount: '3' as unknown as number })).toBe(false);
     expect(isKnownStats(null)).toBe(false);
-    // 对照：把缺的那格补回去就通过——红的是缺字段，不是这条门本身
-    expect(isKnownStats({ ...oldReceipt, wire: 'up' })).toBe(true);
+    // 对照：把缺的两格都补回去才通过——这一行本身就是证据：`94d7cfe` 只加了分账没改这里，
+    // 于是"补一份旧回执就绿"这个控制项从此要求分账在场
+    expect(isKnownStats({ ...oldReceipt, wire: 'up', wireErrorByReason: {} })).toBe(true);
+  });
+
+  it('两本线路账同口供：总数有数而分账缺席，就是半截回执', () => {
+    // 这一条拦的是 94d7cfe 留下的那个洞：那一版把分账加进了 stats() 与界面，
+    // 却没拦"总数是数字而分账没带"。喂这样一份回执，界面同屏写出
+    // 「失败累计 3」与「—（没有线路，不适用）」，而没有任何门响。
+    const noLedger: Partial<RealtimeStatsReadout> = { ...stats({}), wireErrorCount: 3, wireErrorByReason: undefined };
+    const ledgerWithoutCount: Partial<RealtimeStatsReadout> = {
+      ...stats({}),
+      wireErrorCount: null,
+      wireErrorByReason: { 投递: 1 },
+    };
+    expect(isKnownStats(noLedger)).toBe(false);
+    expect(isKnownStats(ledgerWithoutCount)).toBe(false);
+    // 进程内那台两格都是 null：这才是合法的"没有线路"，不是半截
+    expect(isKnownStats({ ...stats({}), wireErrorCount: null, wireErrorByReason: null })).toBe(true);
+    // 分账得是账：数组/字符串都不算（`Object.entries` 对数组照样出得来东西，界面会安静地画错）
+    expect(isKnownStats({ ...stats({}), wireErrorByReason: [] as unknown as Record<string, number> })).toBe(false);
+    expect(isKnownStats({ ...stats({}), wireErrorByReason: '投递 2' as unknown as Record<string, number> })).toBe(false);
+  });
+
+  it('驱动只认两个词：第三个词会被面板那句三元画成"进程内（单实例默认）"', () => {
+    // `StatsPanel` 那句 `driver === 'redis' ? 'Redis 跨实例扇出' : '进程内…'` 是二分的：
+    // 陌生驱动名不拦的话，对着一台真有线路的机器宣布它没有线路——是最难看出来的一种读反
+    expect(isKnownStats({ ...stats({}), driver: 'kafka' as unknown as RealtimeStatsReadout['driver'] })).toBe(false);
+    expect(isKnownStats({ ...stats({}), driver: 'Redis' as unknown as RealtimeStatsReadout['driver'] })).toBe(false);
   });
 });

@@ -171,7 +171,7 @@ describe('RealtimeBus', () => {
       subscribe: () => () => undefined,
       closeChannel: () => undefined,
       subscriberCount: () => 0,
-      stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 0, wireReady: null, wire: 'na', wireErrorCount: null }),
+      stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 0, wireReady: null, wire: 'na', wireErrorCount: null, wireErrorByReason: null }),
     };
     setRealtimeBus(fake);
     getRealtimeBus().publish(channels.project('p1'), note('走的是替换后的驱动'));
@@ -201,7 +201,7 @@ describe('RealtimeBus', () => {
       subscribe: () => () => undefined,
       closeChannel: () => undefined,
       subscriberCount: () => 3,
-      stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 3, wireReady: null, wire: 'na', wireErrorCount: null }),
+      stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 3, wireReady: null, wire: 'na', wireErrorCount: null, wireErrorByReason: null }),
     });
     expect(getRealtimeBus().stats().instance).toBe('test-double');
     expect(getRealtimeBus().stats().subscriberCount).toBe(3);

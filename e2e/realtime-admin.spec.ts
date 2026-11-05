@@ -10,12 +10,12 @@ import { loginOutcome } from './support/auth-session';
  *    纯函数测全是绿的：它判的是措辞，不是 DOM；
  * 3. 进程内那台的两行都长成"这个驱动没有线路"，而不是"断了"或"还在路上"。
  *
- * 后两段用 `page.route` 喂手工回执。它们证的是**界面拿到这种形状怎么说人话**，
+ * 后三段用 `page.route` 喂手工回执。它们证的是**界面拿到这种形状怎么说人话**，
  * 不证那台真处于那个现场——后者由 `apps/web/test/realtime.redis.integration.test.ts`
  * 的「线路比这台晚起来」负责（真 ioredis、真 Redis、真投递）。
  * 这里为什么不换真驱动跑：`NEXUS_REDIS_URL` 同时管着限流闸，不为一张图去改共享 dev server 的环境。
  *
- * 三段共用**一次登录**（`storageState` 传下去）：登录那道闸是 10 次/15 分钟/邮箱，
+ * 四段共用**一次登录**（`storageState` 传下去）：登录那道闸是 10 次/15 分钟/邮箱，
  * 一个文件三个各自登录的用例，跑到第三轮就会自己把名额吃光——那不是这一片要测的东西，
  * 而它会把真正的红挤成"登不上"。闸不放宽，改的是仪器。
  *
@@ -35,6 +35,9 @@ function receipt(overrides: Record<string, unknown>) {
     wireReady: true,
     wire: 'up',
     wireErrorCount: 0,
+    // 分账必填（`isKnownStats` 认的就是这一对）。JSON.stringify 会把 `undefined` 整格抹掉，
+    // 所以下面"缺这一格"那一段是 `{ ...receipt(...), wireErrorByReason: undefined }` 而不是 `null`
+    wireErrorByReason: {},
     ...overrides,
   };
 }
@@ -91,13 +94,14 @@ test('§163 表盘两行：真驱动那台 + 两份只有界面才知道的形�
   expect(api.wireReady === null ? 'na' : api.wireReady ? 'up' : 'down').toBe(boot);
   console.log(
     `\n== §SEC 第三十七片 浏览器读数（真驱动那一台）==\n` +
-      `  驱动=${driver} 此刻=${wire} 启动那次=${boot} 失败累计=${errors.trim()}`
+      `  驱动=${driver} 此刻=${wire} 启动那次=${boot} 失败累计=${errors.trim()} ` +
+      `失败按原因=${(await page.locator('[data-realtime-errors-by-reason]').innerText()).trim()}`
   );
   await page.screenshot({ path: `.scratch/shots/61-admin-realtime-two-rows-${driver}.png`, fullPage: true });
 
   // ── 第二段：Redis 比这台晚起来。启动那次落定成"没接上"，而此刻两条连接都 ready
   const late = await browser.newPage({ storageState: state });
-  await stub(late, receipt({ wireReady: false, wire: 'up', wireErrorCount: 3 }));
+  await stub(late, receipt({ wireReady: false, wire: 'up', wireErrorCount: 3, wireErrorByReason: { 投递: 2, 收到的帧不合契约: 1 } }));
   await late.goto('/admin/realtime');
   await expect(late.locator('[data-realtime-wire="up"]')).toBeVisible({ timeout: 20_000 });
   await expect(late.locator('[data-realtime-wire-boot="down"]')).toBeVisible();
@@ -110,9 +114,27 @@ test('§163 表盘两行：真驱动那台 + 两份只有界面才知道的形�
   expect(bootText, '并成一句的写法会把"现在通不通"这半句丢掉').toContain('现在通不通');
   // 失败累计有数时那句"不补发"要跟着出来：3 这个数字本身不解释自己
   await expect(late.locator('[data-realtime-error-note]')).toContainText('不补发');
-  console.log(`\n== 晚起来那份回执 ==\n  此刻=${liveText}\n  启动那次=${bootText}`);
+  // 分账那一行才是"该去看哪一段代码"的依据：总数 3 只说断过，这一行说断在哪。
+  // 顺序由 `errorReasonList` 定（次数多在前），这里逐字比而不是"包含"——包含会让"两行各说一半"那种实现也过
+  const reasonText = (await late.locator('[data-realtime-errors-by-reason]').innerText()).trim();
+  expect(reasonText).toBe('投递 2 · 收到的帧不合契约 1');
+  expect(reasonText, '这台明明有线路，分账那行不许说"没有线路"').not.toContain('没有线路');
+  console.log(`\n== 晚起来那份回执 ==\n  此刻=${liveText}\n  启动那次=${bootText}\n  失败按原因=${reasonText}`);
   await late.screenshot({ path: '.scratch/shots/62-admin-realtime-two-rows-late-redis.png', fullPage: true });
   await late.close();
+
+  // ── 第四段：总数有数而分账整格没带。这就是 `94d7cfe` 之后界面**画得出来**的那张表盘——
+  //    「失败累计 3」与「—（没有线路，不适用）」同屏，而没有任何一处出声。
+  //    现在它不画数，改说回执形状不认识：半截回执不能渲染成一个看起来正常的表盘。
+  const half = await browser.newPage({ storageState: state });
+  await stub(half, { ...receipt({ wireErrorCount: 3 }), wireErrorByReason: undefined });
+  await half.goto('/admin/realtime');
+  await expect(half.locator('[data-realtime-error]')).toContainText('回执形状不认识', { timeout: 20_000 });
+  // 那一整张表都不许在场：留下任何一格数字，就等于承认半截回执也能读
+  await expect(half.locator('[data-realtime-errors]')).toHaveCount(0);
+  await expect(half.locator('[data-realtime-wire]')).toHaveCount(0);
+  await half.screenshot({ path: '.scratch/shots/63-admin-realtime-half-receipt.png', fullPage: true });
+  await half.close();
 
   // ── 第三段：回执里那一档不认识时不许猜。'READY' 不在四档里：猜 up 是把没证据的这台画成健康，
   //    猜 down 是给它判死

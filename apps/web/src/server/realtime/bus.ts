@@ -1,4 +1,5 @@
 import type { RealtimeEvent } from '@nexus/schemas';
+import type { WireErrorReason } from './wireErrors';
 import { MemoryRealtimeBus } from './localBus';
 import { REDIS_URL_ENV, RedisRealtimeBus, WIRE_CHANNEL } from './redisBus';
 
@@ -82,11 +83,16 @@ export interface RealtimeBusStats {
   /** 线路失败累计（投递不出去 / 坏帧 / 订阅建不起来）；进程内驱动为 null */
   wireErrorCount: number | null;
   /**
-   * 同上，按**原因**拆开的账。限流闸那半边早就有 `fallbackByReason`；实时这半边只有总数，
-   * 于是一句"断过帧"没法说是投递不出去还是收到的帧不合契约——两件事该做的反应不一样。
+   * 同一本账，按**原因**拆开。key 只能是 `wireErrors.ts` 词表里的那几个字，由驱动自己写
+   * （`redisBus.ts` 的 `countWireError`），界面只照读不加工。
    * 进程内驱动为 `null`（不是 `{}`）："没有线路"与"线上没断过"是两句话。
+   *
+   * 类型是**闭合词表的完整账**（每一格都在，没出过事的是 0）而不是 `Partial`：
+   * 少一格就是有人往词表里加了字却没让驱动记账——那件事要在这里红，而不是在界面上少一行。
+   * 这一格也是**必填**：一个说得出总账却说不出分账的驱动，界面上就会出现
+   * "断过 3 帧 + 这台还没出过一帧失败"同屏的自相矛盾（`stats-readout.ts` 的形状门拦的就是它）。
    */
-  wireErrorByReason?: Record<string, number> | null;
+  wireErrorByReason: Record<WireErrorReason, number> | null;
 }
 
 /**

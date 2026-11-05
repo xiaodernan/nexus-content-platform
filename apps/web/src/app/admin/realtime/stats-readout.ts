@@ -18,8 +18,13 @@ export type RealtimeStatsReadout = {
   /** **此刻**通不通：服务端每次现读两条连接的 status */
   wire: WireLive;
   wireErrorCount: number | null;
-  /** 同上，按原因拆开的账。驱动决定它存在不存在（in-process 是 null） */
-  wireErrorByReason?: Record<string, number> | null;
+  /**
+   * 同一本账按原因拆开。驱动决定它存在不存在（in-process 是 `null`），
+   * **但"有没有线路"这件事必须与上面那格同口供**——见 `isKnownStats`。
+   * 这里不收 `WireErrorReason` 那个类型：界面照原样印驱动写下的字，
+   * 词表一旦改动界面不该跟着改（改了就会漂），所以这一格对 UI 只是 `Record<string, number>`。
+   */
+  wireErrorByReason: Record<string, number> | null;
 };
 
 /**
@@ -71,12 +76,14 @@ export function errorCountText(wireErrorCount: number | null): string {
 }
 
 /**
- * 按原因拆开那账的话。限流闸那半边早就有 `fallbackByReason`，实时这半边只有总数——
- * 于是一句"断过帧"没法分辨是投递不出去还是收到的帧不合契约，而这两件事的第一反应不一样。
+ * 按原因拆开那账的话。限流闸那半边的同形状叫 `fallbackByReason`。
+ * 有了它，"断过 3 帧"才分得清是投递不出去、收到的帧不合契约，还是有人改错了订阅——
+ * 这三件事的第一反应不一样，所以只给总数等于不给建议。
  * 固定顺序：次数从多到少，再按名字，免得同一台的账每次轮询跳来跳去。
+ * 词表（那几个字具体是什么）在服务端 `WIRE_ERROR_REASONS`，这里只照读，不认得也不改写。
  */
-export function errorReasonList(byReason: Record<string, number> | null | undefined): string {
-  if (byReason === null || byReason === undefined) return '—（没有线路，不适用）';
+export function errorReasonList(byReason: Record<string, number> | null): string {
+  if (byReason === null) return '—（没有线路，不适用）';
   const entries = Object.entries(byReason).filter(
     ([reason, count]) =>
       reason.trim().length > 0 && typeof count === 'number' && Number.isFinite(count) && count > 0,
@@ -90,13 +97,25 @@ export function errorReasonList(byReason: Record<string, number> | null | undefi
  * 回执形状门：面板只画它认得的自报家门。
  * 认不出来就明说"回执形状不认识"，不能拿半截数据渲染一个看起来正常的表盘——
  * 一次失败的读什么都没证明，画成 0 或画成"在"都是凭空造出来的读数。
+ *
+ * 这一片加了两条，各自拦一种"看着正常"的半截回执：
+ * - **驱动只有两个词**。第三个词会被 `StatsPanel` 那句 `driver === 'redis' ? … : '进程内…'`
+ *   画成"进程内（单实例默认）"——对着一台真有线路的机器宣布它没有线路，是最难看出来的一种读反；
+ * - **两本线路账必须同口供**。`wireErrorCount` 是数字而分账缺席/为 null，界面上就会同屏出现
+ *   "失败累计 3"与"—（没有线路，不适用）"；反过来分账有数而总数 null 也一样。
+ *   这一条不是防御性洁癖：`94d7cfe` 那次就是只加了分账、没加这条，
+ *   于是喂一份缺 key 的回执能渲染出一张自相矛盾的表盘而没有任何门响。
  */
 export function isKnownStats(body: unknown): body is RealtimeStatsReadout {
   const value = body as (Partial<RealtimeStatsReadout> & { message?: string }) | null;
-  return (
-    !!value &&
-    typeof value.driver === 'string' &&
-    typeof value.subscriberCount === 'number' &&
-    typeof value.wire === 'string'
-  );
+  if (!value) return false;
+  if (value.driver !== 'in-process' && value.driver !== 'redis') return false;
+  if (typeof value.subscriberCount !== 'number') return false;
+  if (typeof value.wire !== 'string') return false;
+  if (!(value.wireErrorCount === null || typeof value.wireErrorCount === 'number')) return false;
+  // 分账**必填**：`undefined`（整格没带）不等于 `null`（这台没有线路）
+  if (value.wireErrorByReason === undefined) return false;
+  const ledger = value.wireErrorByReason;
+  if (!(ledger === null || (typeof ledger === 'object' && !Array.isArray(ledger)))) return false;
+  return (value.wireErrorCount === null) === (ledger === null);
 }

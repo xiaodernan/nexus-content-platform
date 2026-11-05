@@ -2305,6 +2305,11 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   GET 在连接"可见地 open"之前 ~300ms 就发出，注册晚了会漏掉首连——第一次跑就是这么红的）；
   `/api/notifications` 的下一次请求（没有访客互动也没有事件进来，它只能来自 onReconnect 的重读）。
   截图 `realtime-reconnect.png`。
+  **诊断入口那一格 2026-11-05/06 结清**（第三十七、三十九片，`docs/adr/0083`、`docs/adr/0087`）：
+  `/api/admin/realtime` 交出「启动那一次的闩」与「此刻两条连接」两格（可以合法不一致，两行两个 `data-` 属性），
+  失败那本账从此**按原因拆开且闭合**（十个原因的词表钉在 `server/realtime/wireErrors.ts`，
+  每一格都在、没出过事的是 `0`；`Σ 分账 === 总数` 由集成用例常驻检查；以前沉默的「线路名不认识」那一格现在有数）。
+  形状门认不得的半截回执（总数有数而分账缺席、驱动第三个词）不画表盘，只说"回执形状不认识"。
 - [x] 通知中心（§164）— 收件箱与真事件已在上面 M6 那条落地；原文点名的**四类到今天全部有来源**。
   Generation complete 2026-09-25 落地，Agent task complete **2026-09-29 落地**
   （§112 的多步编排有了执行方，见文件末尾那一节），
@@ -10231,7 +10236,7 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 - 仍欠，如实记下：① `rateLimitRedis.ts:416` 那份单连接映射与 `wireFromStatuses` 是同一条规则的**两处写法**
   （现在同词表不同实现，两处各有门：R2 与 W1/W2），合并与否留给下一个真的改这条规则的人；
   ② 实时这半边**没有按原因的计数**进读数——`countWireError` 把原因打进 stderr，界面上只有总数，
-  而限流那半边有 `fallbackByReason`；③ 转发器那条用例的端口钉死 56998，同一台机器并行跑两份会撞，
+  而限流那半边有 `fallbackByReason`（**下一片还掉了**：见文末「§SEC 第三十九片」与 `docs/adr/0087`）；③ 转发器那条用例的端口钉死 56998，同一台机器并行跑两份会撞，
   今天靠测试串行盖住；④ `wire` 的限度：它是本进程 ioredis 对那条 TCP 的看法，
   **不是**"订阅仍在服务器那边登记着"的证明，那句由真投递用例负责，不靠读数充数（写进注释与 ADR）；
   ⑤ `e2e/realtime-admin.spec.ts` 后两段是 `page.route` 喂的形状，证的是**界面拿到这种形状怎么说人话**，
@@ -10306,3 +10311,88 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   ④ 优先级没有作者可改的入口（"每镜优先"是写死的规则）；⑤ 参考帧读取没有并发上界
   （12 镜 12 张不同的图 = 12 次顺序存储读 + 12 份临时文件，全在 ffmpeg 起跑前串行做完）。
   取舍与逐字段规则见 `docs/adr/0086-storyboard-arrow-into-pixels.md`。
+
+
+## §SEC 第三十九片：线路失败按原因分账——一本闭合的账、两本账必须同口供、界面不认字只照读（2026-11-06）
+
+- 起点是挂了两处的一句欠账（ADR-0083 仍欠 ② 与上一片文末 仍欠 ②：
+  "`wireErrorCount` 把原因打进 stderr，但**没有按原因的计数**进读数，
+  限流那半边有 `fallbackByReason`，这半边没有对应物"）。去查这句话，先撞上的不是欠账，是**一条已经红着的门**：
+  `94d7cfe`（一条英文单行提交，没跑门就把工作区状态收进去）已经给 `stats()` 加了 `wireErrorByReason`，
+  却没改 `realtime.redis.integration.test.ts` 里那两条严格 `toEqual`，于是这个文件从那次起一直红着——
+  `AssertionError: expected { driver: 'redis', …(6) } to deeply equal { driver: 'redis', …(5) }` /
+  `+ "wireErrorByReason": {}`。**这条红只说"形状变了"，没说"这本账有没有牙"**，而那才是这一片要的东西。
+- 再查那本已经存在的账，五处都是软的：① 类型是 `Partial<Record<string, number>>`，
+  于是"这一格没出过事"与"这一格没人数"同形；② 原因是一句随手写的中文，没有任何地方钉词表——
+  同一个意思写成两种说法，账就碎成两行各说一半而**总数还是对的**；③ 有一格**根本不记账**：
+  订阅连接上收到别的线路名的帧（正常配置下永远为 0，非 0 就等于有人改错了订阅集合），
+  那里以前是一个光秃秃的 `return`——最难发现的一类错恰好是唯一没有读数的格子；④ 界面只有总数，
+  运维看到"断过 3 帧"分辨不出该去看 Redis、去看发帧那段代码还是去看订阅配置，三件事第一反应不一样，
+  **只给总数等于不给建议**；⑤ `isKnownStats` 不认这本账，喂一份缺 key 的回执照样通过——
+  那正是 `94d7cfe` 能悄悄进来的门缝。
+- 做了什么：① 新增 `server/realtime/wireErrors.ts`，**不 import 任何东西**，钉一份闭合词表
+  `WIRE_ERROR_REASONS`（10 格）+ `WireErrorReason` 类型 + `emptyWireErrorLedger()`；
+  放任何一处（驱动 / 类型 / 测试）另外两处就得反向依赖它，而依赖一绕圈，"新增一格"就变成"改一个文件顺带改三个 import 顺序"。
+  **写错一个原因名编译不过**，这是"词不漂"最便宜的一道牙。② 账改成**闭合完整**且**必填**：
+  `RealtimeBusStats.wireErrorByReason: Record<WireErrorReason, number> | null`——必填那一刀当场产生 9 处编译错
+  （7 个测试替身 + 2 处类型），那些就是它要的牙：没有哪个驱动能只报总数、不报分账。
+  ③ `stats()` 交出副本、端点原样转交不二次加工。④ 形状门加两条：**两本线路账同口供**
+  （`(wireErrorCount === null) === (ledger === null)`，且 `undefined`（缺格）直接算不认识，缺格 ≠ 不适用）与
+  **驱动只认两个词**（第三个词会被面板那句 `driver === 'redis' ? … : '进程内（单实例默认）'` 画成"这台没有线路"，
+  对着一台真有线路的机器宣布它没有线路是最难看出来的读反）。⑤ 界面加一行「失败按原因」，
+  `errorReasonList` 收的是 `Record<string, number>` 而不是那个联合类型——**界面不认字，只照读**，
+  配套一条门：喂整个词表各 1 次，断言每一格都印得出来且 `split(' · ')` 长度等于词表长度。
+  ⑥ `线路名不认识` 从沉默变成有数：帧照旧丢掉，但记账并出声。
+- `Σ 分账 === 总数` 是**常驻不变量**，写进三条集成用例（坏帧、线路名不认识、端点连不上），不是只在新加那格上查一次。
+- 「线路名不认识」的见证用**真 Redis** 复现，不是 `emit` 模拟：把总线自己那条 `sub` 连接再订一个线路名
+  （订阅模式下一条连接可订多个频道），从另一侧往那个名字发帧；**同一条用例里另有对照**——同一时刻往正确的
+  `WIRE_CHANNEL` 发一帧，本机订阅者收到 1 条，所以"没送达"不是一句空断言。
+- 修 `94d7cfe` 那条红的方式**不是把 `toEqual` 放宽**：两条严格比较现在逐字段写着 `wireErrorByReason: zeroLedger()`，
+  而 `zeroLedger()` 在测试里**由词表就地构造**，故意不 import `emptyWireErrorLedger()`——
+  否则实现与断言读同一份函数，账变了两边一起变，门就成了自证。
+- 读数（逐字）。集成层起点 **1 failed | 8 passed** → 收尾 **10 passed**。浏览器（`e2e/realtime-admin.spec.ts` 四段共用一次登录，3100 那台）：
+  ```
+  == §SEC 第三十七片 浏览器读数（真驱动那一台）==
+    驱动=in-process 此刻=na 启动那次=na 失败累计=—（没有线路，不适用） 失败按原因=—（没有线路，不适用）
+
+  == 晚起来那份回执 ==
+    此刻=在（发布与订阅两条连接都 ready）
+    启动那次=没接上（此后归连接层自动重连——"现在通不通"看上面那一行）
+    失败按原因=投递 2 · 收到的帧不合契约 1
+
+    1 passed (2.7m)
+  ```
+  第四段喂的是 `{…receipt({wireErrorCount: 3}), wireErrorByReason: undefined}`（`JSON.stringify` 会丢 `undefined`，
+  那正是真实世界里"驱动没带这一格"的形状）：界面上只有"拉取失败（回执形状不认识）"，
+  `[data-realtime-errors]` 与 `[data-realtime-wire]` 都 `toHaveCount(0)`——**表盘一个字段都没画**。
+  截图 `61-…in-process.png` / `62-…late-redis.png`（新那一行就在"线路失败累计 3"下面）/ `63-admin-realtime-half-receipt.png`。
+- 门与绿度：`realtime.test.ts` + `realtime-stats-readout.test.ts` **37 passed**（起点 31）、
+  `realtime.redis.integration.test.ts` **10 passed**（起点 1 failed | 8 passed）、`admin-realtime.integration.test.ts` **4 passed**、
+  本片五个文件合跑 **5 files / 65 passed**、三个替身文件 **3 files / 32 passed**；
+  `tsc -p apps/web` 与 `tsc -p e2e` 无输出，`eslint` 对本片文件无输出，收尾 `grep -rn "MUT "` = **0**。
+- 臂（W1–W8，逐字红项见 `docs/adr/0087-realtime-wire-error-ledger-by-reason.md` 的臂表）：
+  W1 那一格不记账 → **1 failed**（`expected 0 to be greater than or equal to 1`）；
+  W2 不分原因全记在 `投递` / W3 只涨总数分账不动 → 各 **3 failed**（`expected +0 to be 1` ×2 + 新格那条）；
+  W6 开局空账而不是闭合零账 → **3 failed**，逐字 `expected NaN to be 1`（`1 - undefined`）——
+  **账不闭合时增量算得出 NaN 而不是 0，读数会骗人**；
+  W4 同口供不钉 / W5 驱动词不钉 / W7 界面自己维护白名单 → 各 **1 failed**
+  （W7 逐字 `expected '发布连接 1 · 发布连接未就绪 1 · 帧序列化 1 · 投递 1 · …' to contain '线路名不认识'`）；
+  W8 端点二次加工把分账丢掉 → **2 failed**（`expected undefined to deeply equal { '发布连接': +0, …(8) }`）。
+  W4→W5 换臂时我自己在一次 Edit 里多摘掉了账本那一段（`isKnownStats` 一度没有 `return`），读回函数才发现——
+  **臂的恢复也要验，不然红项会留下永久伤疤**。
+- 仪器的一次自伤，记进纪律：第一次跑 e2e 用了 `--no-file-parallelism`（那是 node:test 的旗标，Playwright 不认）
+  立刻 `error: unknown option`；换 `--workers=1` 后又让后台一份、前台一份同时跑，两份共用同一个 `test-results/`，
+  后台那份在 `browserContext.close` 报 `ENOENT … traces/….trace` 判红，而**四条断言其实全过了**（读数逐字都在输出里）。
+  ⇒ e2e 一次只跑一份；别把并行的仪器红当产品的红；退出码不能代替读数。这条值得进 `docs/TESTING.md`（那个文件归并行会话）。
+- 没牙的格子，点名：① 界面上**不查** `Σ 分账 === 总数`（只有集成层查）——要补得先定措辞，
+  或者把总数改成由分账现算（后者会推翻"驱动自报"的 ADR-0082 决定 3）；② 编译期的词表牙只覆盖服务端，
+  测试替身与 e2e 喂字面量，写错原因名只会在逐格增量那条红；而 UI 侧 `Record<string, number>` 是**有意的**，
+  所以"界面拿到一个词表里没有的名字"是合法形状（照读并印出来）不是错；③ 那条见证靠定向访问
+  `(bus as unknown as { sub: Redis }).sub`，能红（W1）但不是生产里"订阅集合被谁改错了"的路径；
+  ④ 进程内驱动没有这本账，同口供那条门对它只验到 `null/null` 那一支；⑤ 轮询周期与 `/api/admin/realtime` 的门照旧（ADR-0083 点名过）。
+- 仍欠，如实记下：① 界面上不查分账加得对不对（上面没牙 ①）；②
+  `rateLimitRedis.ts` 那份单连接 `wire` 映射与
+  `wireFromStatuses` 仍是同一条规则的两处写法（ADR-0083 仍欠 1），但词表这一族给了个现成的样子：共享一个谁都不 import 的小模块；
+  ③ 端点交出的 key 若不在词表里今天照印，要不要在形状门里拒绝取决于"宁可生词不可吞数"，与决定⑤相冲，留给下一次；
+  ④ 转发器端口钉死 56998、e2e 后三段是 `page.route` 喂的形状（照旧）。
+  取舍与逐字段规则见 `docs/adr/0087-realtime-wire-error-ledger-by-reason.md`。
