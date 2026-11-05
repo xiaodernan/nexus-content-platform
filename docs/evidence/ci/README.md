@@ -328,13 +328,13 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
-the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **100
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **114
 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README number
 each, twenty-four that dispose the manifest's blind side, seventeen that dispose the tools corpus behind it (the
 next three blocks), seven that grade the numbers those deferrals state, eight that recompute the roster this
 sentence lives in, seven that grade the marker the proof carries in its own header and eight that grade the arms
-list itself; the prose-import arm
-proves the tokenizer is the sweep's, not a byte regex.
+list itself, fourteen that date the durations published further down this file; the prose-import
+arm proves the tokenizer is the sweep's, not a byte regex.
 
 **The manifest's other half.** The population above is `git ls-files -- docs/evidence`, which answers "does every
 evidence module have a channel?" and says nothing about the mirror question: does every `verify:*` NAME have one?
@@ -439,14 +439,34 @@ and lands as v624 — amendment 555 took v612, and v613 to v623 went with it, in
 being written — so the label a reader should cite for this clause is the commit whose subject says v624.
 
 
-Four rows that needed nothing but Node walked through the door in the same increment:
+**A published duration is a measurement, so it ages exactly like a count (v625).** The census has read this
+file's class table since v543, a deferral's line counts since v609, the arms roster in two copies since v610
+and v611, and the arms list itself since v624. The set of numbers it had never read was its OWN table of
+durations: four rows under one headline date, 2026-10-28, while three of the four files the rows named had been
+committed since. A timing describes bytes, so it goes stale the way a count does, and the headline was the shape
+that hid it — one day for four files is a day nobody is ever asked to move. `authoringTableDrift` now
+walks the table: the header must state the three columns and carry no date, every row must name a row this census
+runs and THE file that row runs (the short `m9/audit-contract-proof.mjs` form named a path no `verify:*` command
+contains), state a duration the reader parses and an ISO day, and that day may neither postdate the day the
+census runs nor precede the last commit touching that file — read from `git log -1 --format='%ct %h' --
+<path>`, so a row that outran its own bytes is named with the ref that overtook it. Fourteen refusals, armed by
+fourteen arms D1—D14 on the fixture plane, where D2 rewrites the header into the exact headline shape that
+went stale here. Two bounds, named: the table is a CLAIM SET, not a census of times — a row absent from it
+is nobody's lie, and this box holds a measured duration for four rows, not for the rest of the build; and the
+comparison is by local calendar DAY rather than by instant, so a commit landing the same day a human measured
+passes, because the run may have started before the sentence was written. The day is spelled from
+getFullYear/getMonth/getDate rather than `toLocaleDateString('en-CA')`: an ICU-less Node renders that as
+`en-US`, and a M/D/YYYY string cannot be ordered against a YYYY-MM-DD one.
 
-| row | proof | measured on the authoring box (2026-10-28) |
+Four rows that needed nothing but Node walked through the door in the same increment; the four days below are
+per row, because one headline dated a table whose files had each moved on their own schedule:
+
+| row | proof | measured on the authoring box |
 | --- | --- | --- |
-| `verify:audit-contract` | `m9/audit-contract-proof.mjs` | 4.2 s — reads the service's Java record and the client model, then asks the TypeScript compiler |
-| `verify:record-encoding` | `agents/record-encoding-proof.mjs` | 4.4 s — the record corpus's encoding census (120 000 ms own budget) |
-| `verify:pipeline` | `studio/pipeline-proof.mjs` | 0.7 s — prompt → design-model ops → layout → undo/redo → AI diff |
-| `verify:table-recount` | `agents/table-recount-proof.mjs` | 38.2 s — boots vitest and reconciles this directory's README table (300 000 ms own budget) |
+| `verify:audit-contract` | `docs/evidence/m9/audit-contract-proof.mjs` | 40.1 s on 2026-11-06 — reads the service's Java record and the client model, then asks the TypeScript compiler; timed on HEAD's bytes, because this box holds another lane's uncommitted edit to this file |
+| `verify:record-encoding` | `docs/evidence/agents/record-encoding-proof.mjs` | 8.0 s on 2026-11-06 — the record corpus's encoding census (120 000 ms own budget) |
+| `verify:pipeline` | `docs/evidence/studio/pipeline-proof.mjs` | 0.3 s on 2026-11-06 — prompt, design-model ops, layout, undo/redo, AI diff |
+| `verify:table-recount` | `docs/evidence/agents/table-recount-proof.mjs` | 95.1 s on 2026-11-06 — boots vitest and reconciles this directory's README table (300 000 ms own budget) |
 
 Two of them (`record-encoding`, `table-recount`) are ALSO in the agents sweep's population; the census prints
 that overlap every run — double coverage, not a conflict.

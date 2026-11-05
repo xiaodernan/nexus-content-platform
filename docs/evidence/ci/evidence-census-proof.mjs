@@ -235,7 +235,28 @@
 // A roster this long writes its family counts as compounds, so the README's number reader learned them: twenty-four
 // parses, and fifty-odd is still refused rather than skipped. The count prints every run — refusations authored,
 // reached, declared, unaccounted — and the assert refuses the last.
-// ROSTER 100 arms in 8 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8
+//
+// v625 (this increment; the ADR 0016 section is still owed for this lane's v606-v611, for v624 and for this one,
+// and the ledger files sit in another lane's uncommitted set, so this header keeps the record) - THE DURATIONS
+// THIS FILE PUBLISHES ARE DATED AGAINST THE BYTES THEY BLAME. v543 put a reader on the README's class table, v609
+// on a deferral's numbers, v610 and v611 on the roster in its two copies and v624 on the arms list itself; the
+// number-set left unpublished to any reader was this file's OWN table of durations — four rows under one headline
+// date, 2026-10-28, over three files the repository had committed since. A timing is a measurement of bytes, so it
+// ages exactly the way a count does, and the headline was the shape that hid the aging: one day over four files is
+// a day nobody is ever asked to move. `authoringTableDrift` walks the table by grammar. The header states three
+// columns and carries no date; every row names a row this census runs and THE file that row runs (the short
+// `m9/audit-contract-proof.mjs` form names a path no `verify:*` command contains), states a duration the reader
+// parses and an ISO day; that day may not postdate the day this census runs on, and may not precede the last
+// commit touching that file — read from `git log -1 --format='%ct %h' -- <path>`, so a row that outran its own
+// bytes is named with the ref that overtook it. Fourteen refusals, armed by fourteen arms D1 to D14 on the same
+// synthetic plane, where D2 rewrites the fixture header into the exact shape that went stale here. Two bounds,
+// named: the table is a CLAIM SET, not a census of times — a row absent from it is nobody's lie, and this box
+// holds a measured duration for four rows, not for the rest of the build; and the comparison is by local calendar
+// DAY rather than by instant, so a commit landing the same day a human measured passes, because the run may have
+// started before the sentence was written. The day is spelled from getFullYear/getMonth/getDate rather than
+// `toLocaleDateString('en-CA')`: an ICU-less Node renders that as `en-US`, and a M/D/YYYY string cannot be ordered
+// against a YYYY-MM-DD one.
+// ROSTER 114 arms in 9 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14
 //
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
@@ -892,7 +913,7 @@ export function toolsCensusOf({ index, scripts, read, manifestReport, standby = 
  * Everything below the CLI is exercised by the fixture arms at the bottom, so the refusals are measured on a
  * synthetic plane rather than assumed from reading the code.
  */
-export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null, index = [], workflow = null, manifest = [], standby = [], source = null, coverage = null }) {
+export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null, index = [], workflow = null, manifest = [], standby = [], source = null, coverage = null, committedAt = null, now = null }) {
   const rows = new Map(derivePopulation(scripts).map((r) => [r.file, r]));
   const trackedSet = new Set(tracked);
   const rosterByFile = new Map();
@@ -957,6 +978,7 @@ export function censusOf({ tracked, scripts, excluded = [], roster = [], swept =
   } else {
     violations.push(...readmeDrift({ readme, counts, running, residue, tracked }));
     violations.push(...readmeArmsDrift({ readme, roster: armRoster }));
+    violations.push(...authoringTableDrift({ readme, running, committedAt, now }));
   }
   // And the copy inside this file: the header quotes the roster in one marked line, so the number that moves most
   // often here has a reader even while the ADR sections sit in another lane's held files.
@@ -1160,6 +1182,140 @@ export function sourceRosterDrift({ source, roster }) {
 }
 
 /**
+ * The calendar day the box that runs this sees, spelled without a locale: an ICU-less Node renders `en-CA` as
+ * `en-US`, and a date read out of a M/D/YYYY string would compare against a YYYY-MM-DD one and refuse honest
+ * measurements. Both sides of every comparison below are local calendar days, so no timezone enters the arithmetic.
+ */
+function localDay(epochSec) {
+  const d = new Date(Number(epochSec) * 1000);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const dayNumber = (day) => (DAY_RE.test(String(day)) ? Math.floor(Date.parse(`${day}T00:00:00Z`) / 86_400_000) : NaN);
+const cellsOf = (line) => {
+  const t = String(line).trim();
+  if (!t.startsWith('|') || !t.endsWith('|')) return null;
+  return t.slice(1, -1).split('|').map((c) => c.trim());
+};
+
+export const AUTHORING_HEADER_PREFIX = '| row | proof |';
+export const AUTHORING_HEADER = '| row | proof | measured on the authoring box |';
+const DURATION_RE = /\d[\d.,]*\s*(?:ms|s\b|m\b)/;
+const cellPath = (cell) => String(cell ?? '').replace(/`/g, '').trim();
+
+/** The files the table claims to have timed, so main() can fetch their commit dates by path instead of guessing them. */
+export function authoringTablePaths(readme) {
+  const lines = String(readme ?? '').split(/\r?\n/);
+  const at = lines.findIndex((l) => l.trim().startsWith(AUTHORING_HEADER_PREFIX));
+  if (at === -1) return [];
+  return tableRows(lines.slice(at + 1)).map((r) => cellPath(r.cells[1])).filter(Boolean);
+}
+
+/** The table's data rows, with the separator left out: a row is a line of three cells that is not `---`. */
+function tableRows(body) {
+  const rows = [];
+  for (const line of body) {
+    const cells = cellsOf(line);
+    if (cells === null) break;
+    if (cells.every((c) => /^:?-{3,}:?$/.test(c))) continue;
+    rows.push({ line: line.trim(), cells });
+  }
+  return rows;
+}
+
+/**
+ * Date the authoring-box table against the commits it blames (v625).
+ *
+ * This file has readers for the counts the README restates (v543), for the numbers a deferral quotes (v609), for
+ * the arms roster in two copies (v610, v611) and for the arms list itself (v624). The one number-set it published
+ * and never read was the table of DURATIONS — four rows under one headline date, 2026-10-28, while three of the
+ * four files it names have been committed since (v605 on 11-04, v566 on 11-02, v591-follow-up on 11-04). A timing
+ * is a measurement, so it ages exactly the way a count does, and one headline over four files is the shape that
+ * hid the aging: the day never moved because nobody had to move it. The table now carries one date per row, and
+ * every row's date is checked against the last commit that touched the file that row runs.
+ *
+ * Two bounds, said rather than left to guesswork. The table is a CLAIM SET, not a census of times: a row that
+ * appears here is checked, and a row that does not is nobody's lie — the census has no measured duration for 112
+ * rows and refuses to pretend otherwise. And the comparison is by CALENDAR DAY, not by instant: a commit that
+ * lands on the measured day passes, because a human writes "today" and the run may have started before it.
+ */
+export function authoringTableDrift({ readme, running, committedAt, now }) {
+  const violations = [];
+  const lines = String(readme ?? '').split(/\r?\n/);
+  const at = lines.findIndex((l) => l.trim().startsWith(AUTHORING_HEADER_PREFIX));
+  if (at === -1) {
+    violations.push('the README states no "| row | proof | …" table — the durations this file publishes are its own claim about the rows it runs, and a table no reader walks is a claim nobody checks');
+    return violations;
+  }
+  const header = lines[at].trim();
+  if (header !== AUTHORING_HEADER) {
+    violations.push(`the authoring-box table's header is ${JSON.stringify(header)} — the reader takes ${JSON.stringify(AUTHORING_HEADER)}, and a date carried in the headline times every row with one day, which is how this table fell behind three of its four files while its headline never moved`);
+    return violations;
+  }
+  if (committedAt === null || committedAt === undefined || typeof now !== 'number') {
+    violations.push('no commit dates or run-day were supplied, so the measurements this table states cannot be dated against the bytes they blame — a timing read before a commit is a timing about different code');
+    return violations;
+  }
+  const rows = tableRows(lines.slice(at + 1));
+  if (rows.length === 0) {
+    violations.push('the authoring-box table has a header and no rows — an empty table reads as a claim nobody makes, which is the silence this reader exists to break');
+    return violations;
+  }
+  const byName = new Map(running.map((r) => [r.name, r.file]));
+  const seen = new Set();
+  for (const { line, cells } of rows) {
+    if (cells.length !== 3) {
+      violations.push(`the authoring-box row ${JSON.stringify(line)} has ${cells.length} cell(s), not the three the reader takes (row, proof, measured) — a claim this reader cannot split is a claim it cannot check`);
+      continue;
+    }
+    const [rawName, rawPath, claim] = [cellPath(cells[0]), cellPath(cells[1]), String(cells[2])];
+    if (!byName.has(rawName)) {
+      violations.push(`the authoring-box table times ${rawName}, which is not a row this census runs — a measurement of a door the build does not walk measures nothing the build can rely on`);
+      continue;
+    }
+    if (seen.has(rawName)) {
+      violations.push(`the authoring-box table names ${rawName} twice — two durations for one row is one number that is not the row's`);
+      continue;
+    }
+    seen.add(rawName);
+    const want = byName.get(rawName);
+    if (rawPath !== want) {
+      violations.push(`the authoring-box row for ${rawName} names ${rawPath}, but that row runs ${want} — the claim times a module the build does not run under that name`);
+      continue;
+    }
+    if (!DURATION_RE.test(claim)) {
+      violations.push(`the authoring-box row for ${rawName} states no duration this reader parses (${JSON.stringify(claim)}) — "fast", "a few seconds" and a prose aside are not measurements`);
+    }
+    const dateM = /(\d{4}-\d{2}-\d{2})/.exec(claim);
+    if (dateM === null) {
+      violations.push(`the authoring-box row for ${rawName} states a duration with no date (${JSON.stringify(claim)}) — a measurement that does not say when is a measurement that cannot go stale, which is the wrong kind of permanent`);
+      continue;
+    }
+    const measured = dayNumber(dateM[1]);
+    if (Number.isNaN(measured)) {
+      violations.push(`the authoring-box row for ${rawName} dates its measurement ${JSON.stringify(dateM[1])}, which is not a calendar day this reader can order — write it as YYYY-MM-DD`);
+      continue;
+    }
+    if (measured > dayNumber(localDay(now))) {
+      violations.push(`the authoring-box row for ${rawName} is dated ${dateM[1]}, after the ${localDay(now)} this census runs on — a measurement cannot be taken from a day that has not arrived`);
+      continue;
+    }
+    const landed = committedAt[rawPath];
+    if (!landed || typeof landed.at !== 'number') {
+      violations.push(`the authoring-box row for ${rawName} times ${rawPath}, which has no commit date this census can read — a duration about bytes the repository does not hold is about nothing the build runs`);
+      continue;
+    }
+    const commitDay = localDay(landed.at);
+    if (dayNumber(commitDay) > measured) {
+      violations.push(`the authoring-box row for ${rawName} was measured on ${dateM[1]}, but ${rawPath} last changed in ${landed.ref ?? '?'}, committed ${commitDay} — the table times bytes that no longer exist, so re-run the row and move its date, or drop the claim`);
+    }
+  }
+  return violations;
+}
+
+/**
  * A refusal this file AUTHORS, keyed by the function that says it and the order it says it in. The key is
  * stable across edits elsewhere; a line number would rot the day someone asks for a shorter message.
  */
@@ -1322,6 +1478,10 @@ const FX_PUSH = 'violations' + '.push(';
 const fxOpened = (coverage) => ({ ...coverage, source: String(coverage.source).replaceAll('PUSH(', FX_PUSH) });
 
 // ── the fixture arms: every refusal above, measured on a synthetic plane ─────────────────────────────
+// The duration table, spelled once: the D arms rewrite this line rather than re-typing it, so a claim that moves
+// moves in one place and every arm that aims at it follows.
+const FX_HEADER = '| row | proof | measured on the authoring box |';
+const FX_ROW = '| `verify:row` | `docs/evidence/x/row-proof.mjs` | 0.9 s on 2026-11-01 — the fixture row, timed on the plane the arms rewrite |';
 const BASE = () => ({
   files: {
     'docs/evidence/x/row-proof.mjs': "import { h } from './helper.mjs';\nimport { f } from '../../../tools/ci/fx-lib.mjs';\n",
@@ -1406,7 +1566,7 @@ const BASE = () => ({
   // list the real header states, because the arms ARE this list — so S1→S7 drift the marker, not a copy of it.
   source: [
     '// fixture header — the record this file keeps while the ledger files sit in another lane',
-    '// ROSTER 100 arms in 8 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8',
+    '// ROSTER 114 arms in 9 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14',
     '// end fixture header',
   ].join('\n'),
   // A synthetic proof for the coverage grader: three refusations, two reached by a named arm, one declared.
@@ -1444,12 +1604,23 @@ const BASE = () => ({
     'The census below gives every one of the **7** tracked modules a disposition, and the derived population is',
     '**1 running rows + 1 excluded by name** at this ref.',
     '',
-    '**100 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README',
+    '**114 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README',
     "number each, twenty-four that dispose the manifest's blind side, seventeen that dispose the tools corpus",
     "behind it, seven that grade the numbers those deferrals state, eight that recompute the roster this sentence",
-    'lives in, seven that grade the marker this file carries in its own header and eight that grade the arms list',
-    "itself; the prose-import arm proves the tokenizer is the sweep's, not a byte regex.",
+    'lives in, seven that grade the marker this file carries in its own header, eight that grade the arms list',
+    'itself, fourteen that date the measurements the authoring box left behind; the prose-import arm proves',
+    "the tokenizer is the sweep's, not a byte regex.",
+    '',
+    // The duration table, dated per row (v625): the fixture plane needs one honest claim so every refusal this
+    // reader raises rises from a patch rather than from a table that was never there.
+    FX_HEADER,
+    '| --- | --- | --- |',
+    FX_ROW,
   ].join('\n'),
+  // When the fixture bytes last landed, and when this census runs: mid-day epochs, so the local calendar day
+  // a reader compares is the same day on every box the arms run on.
+  committedAt: { 'docs/evidence/x/row-proof.mjs': { at: 1793361600, ref: 'cafe123' } },
+  now: 1793926800,
   scripts: {
     'verify:row': 'node docs/evidence/x/row-proof.mjs',
     'verify:excluded': 'node docs/evidence/x/excluded-proof.mjs',
@@ -1871,9 +2042,9 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('no line count and no served address')), `unre-readable: ${r.violations.join(' | ')}`);
   }],
   // ── the roster arms: the README's own count of these arms is recomputed from the list, not copied (v610) ──
-  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**100 fixture arms**', '**92 fixture arms**'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('says 92 fixture arms; this census runs 100')), `stale total: ${r.violations.join(' | ')}`);
-    assert.ok(r.violations.some((v) => v.includes("add to 100 against its own total of 92")), `arithmetic: ${r.violations.join(' | ')}`);
+  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**114 fixture arms**', '**92 fixture arms**'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('says 92 fixture arms; this census runs 114')), `stale total: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("add to 114 against its own total of 92")), `arithmetic: ${r.violations.join(' | ')}`);
   }],
   ['X2 one family number in the breakdown has drifted', (f) => { f.readme = f.readme.replace('twenty-four that dispose', 'twenty-three that dispose'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('arm family 3 (M)') && v.includes('i.e. 23') && v.includes('counts 24 arms named M*')), `drifted family: ${r.violations.join(' | ')}`);
@@ -1883,7 +2054,7 @@ const ARMS = [
     // that goes quietly red when a reader asks for a shorter line.
     f.readme = f.readme.replace(/, twenty-four\s+that\s+dispose\s+the\s+manifest's\s+blind\s+side/, '');
   }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes("names 7 families; the arms list defines 8")), `dropped family: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("names 8 families; the arms list defines 9")), `dropped family: ${r.violations.join(' | ')}`);
   }],
   ['X4 a breakdown with no end the reader can take on trust', (f) => {
     f.readme = f.readme.replace('the prose-import arm proves', 'and the tokenizer is the sweep\'s, which proves');
@@ -1901,7 +2072,7 @@ const ARMS = [
     assert.ok(!r.violations.some((v) => v.includes('a family as "twenty-four"')), `compound failed to parse: ${r.violations.join(' | ')}`);
   }],
   ['X6 the headline number written so no shape reads it', (f) => {
-    f.readme = f.readme.replace('**100 fixture arms** prove', 'about fifty-odd fixture arms, proved');
+    f.readme = f.readme.replace('**114 fixture arms** prove', 'about fifty-odd fixture arms, proved');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('states no "**N fixture arms**" total')), `missing headline: ${r.violations.join(' | ')}`);
   }],
@@ -1917,33 +2088,33 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('arm family 5 (N)') && v.includes('two families were swapped')), `swapped back: ${r.violations.join(' | ')}`);
   }],
   // ── the marker arms: the roster this file quotes in its own header is graded too (v611) ─────────────────
-  ['S1 the header marker states an out-of-date total', (f) => { f.source = f.source.replace('// ROSTER 100 arms', '// ROSTER 96 arms'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 96 arms; the arms list defines 100')), `stale marker total: ${r.violations.join(' | ')}`);
+  ['S1 the header marker states an out-of-date total', (f) => { f.source = f.source.replace('// ROSTER 114 arms', '// ROSTER 96 arms'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 96 arms; the arms list defines 114')), `stale marker total: ${r.violations.join(' | ')}`);
   }],
   ['S2 the header marker gone', (f) => {
-    f.source = f.source.replace('// ROSTER 100 arms in 8 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8', '// the marker moved into prose, where nothing reads it');
+    f.source = f.source.replace('// ROSTER 114 arms in 9 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14', '// the marker moved into prose, where nothing reads it');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('states no "// ROSTER') && v.includes('a sentence with nothing behind it')), `missing marker: ${r.violations.join(' | ')}`);
   }],
   ['S3 a family pair in the marker that the list does not count', (f) => { f.source = f.source.replace('· X8 ·', '· X7 ·'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes("family 6 says \"X7\"") && v.includes('counts 8 arms named X*')), `wrong pair: ${r.violations.join(' | ')}`);
-    assert.ok(r.violations.some((v) => v.includes("families add to 99 against its own headline of 100")), `marker arithmetic: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("families add to 113 against its own headline of 114")), `marker arithmetic: ${r.violations.join(' | ')}`);
   }],
   ['S4 a marker reshaped out of its grammar', (f) => {
     // Kept behind the "// ROSTER " the reader looks for: an arm that drops the prefix aims at S2's refusal, and
     // two arms hitting one message is one arm fewer than the roster says.
-    f.source = f.source.replace('// ROSTER 100 arms in 8 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8', '// ROSTER ninety-eight arms, eight families');
+    f.source = f.source.replace('// ROSTER 114 arms in 9 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14', '// ROSTER ninety-eight arms, eight families');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('ROSTER line is reshaped') && v.includes('a marker nothing parses is a comment')), `reshaped marker: ${r.violations.join(' | ')}`);
   }],
   ['S5 a family pair the marker writes in words', (f) => { f.source = f.source.replace('· N7 ·', '· Nseven ·'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('a pair is a letter prefix and a count, in that order')), `pair in words: ${r.violations.join(' | ')}`);
   }],
-  ['S6 a marker whose own family count is out of date', (f) => { f.source = f.source.replace('in 8 families', 'in 7 families'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 7 families; the arms list defines 8')), `stale family count: ${r.violations.join(' | ')}`);
+  ['S6 a marker whose own family count is out of date', (f) => { f.source = f.source.replace('in 9 families', 'in 8 families'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 8 families; the arms list defines 9')), `stale family count: ${r.violations.join(' | ')}`);
   }],
   ['S7 a marker that dropped one family pair', (f) => { f.source = f.source.replace(' · C8', ''); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('lists 7 family pair(s); the arms list defines 8')), `dropped pair: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes('lists 8 family pair(s); the arms list defines 9')), `dropped pair: ${r.violations.join(' | ')}`);
   }],
   // ── the coverage arms: the arms list is asked what it proved (v624) ─────────────────────────────────────
   ['C1 a refusal no arm reaches and nobody declares', (f) => { f.coverage.declared = []; }, (r) => {
@@ -1978,6 +2149,67 @@ const ARMS = [
   ['C8 an excuse no reader can falsify', (f) => { f.coverage.declared[0].why = 'because'; }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('fxRows#3 is declared unarmed without a reason a reader can falsify') && v.includes('an excuse is not a disposition')), `unfalsifiable excuse: ${r.violations.join(' | ')}`);
   }],
+  // ── the authoring-box arms: a published duration ages exactly like a count (v625) ────────────────────────
+  ['D1 the duration table gone from the README', (f) => { f.readme = f.readme.split('\n').slice(0, -3).join('\n'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('the README states no') && v.includes('a table no reader walks is a claim nobody checks')), `no table: ${r.violations.join(' | ')}`);
+  }],
+  ['D2 the headline carrying the date for every row', (f) => {
+    f.readme = f.readme.replace(FX_HEADER, '| row | proof | measured on the authoring box (2026-10-28) |');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes("table's header is") && v.includes('a date carried in the headline times every row')), `headline date: ${r.violations.join(' | ')}`);
+  }],
+  ['D3 a census that runs with no commit dates to compare against', (f) => { f.committedAt = null; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('no commit dates or run-day were supplied')), `no dates supplied: ${r.violations.join(' | ')}`);
+  }],
+  ['D4 a table of header and separator and no claims', (f) => { f.readme = f.readme.split('\n').slice(0, -1).join('\n'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('a header and no rows')), `empty table: ${r.violations.join(' | ')}`);
+  }],
+  ['D5 a row the reader cannot split', (f) => {
+    f.readme = f.readme.replace(FX_ROW, '| `verify:row` | `docs/evidence/x/row-proof.mjs` | 0.9 s on 2026-11-01 | extra note |');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('has 4 cell(s), not the three') && v.includes('is a claim it cannot check')), `wrong cells: ${r.violations.join(' | ')}`);
+  }],
+  ['D6 a duration for a door the build does not walk', (f) => {
+    f.readme = f.readme.replace(FX_ROW, FX_ROW.replace('verify:row', 'verify:ghost'));
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('times verify:ghost, which is not a row this census runs')), `ghost row: ${r.violations.join(' | ')}`);
+  }],
+  ['D7 the same row timed twice', (f) => { f.readme = `${f.readme}\n${FX_ROW}`; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('names verify:row twice') && v.includes('one number that is not the row')), `duplicate row: ${r.violations.join(' | ')}`);
+  }],
+  ['D8 a row that names a file other than the one it runs', (f) => {
+    f.readme = f.readme.replace(FX_ROW, FX_ROW.replace('row-proof.mjs', 'leaf.mjs'));
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('names docs/evidence/x/leaf.mjs') && v.includes('but that row runs docs/evidence/x/row-proof.mjs')), `wrong subject: ${r.violations.join(' | ')}`);
+  }],
+  ['D9 a row that says the row was quick', (f) => {
+    f.readme = f.readme.replace(FX_ROW, '| `verify:row` | `docs/evidence/x/row-proof.mjs` | quick, on 2026-11-01 — the fixture row |');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('states no duration this reader parses') && v.includes('are not measurements')), `no duration: ${r.violations.join(' | ')}`);
+  }],
+  ['D10 a duration that never says when', (f) => {
+    f.readme = f.readme.replace(FX_ROW, FX_ROW.replace(' on 2026-11-01', ''));
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('states a duration with no date') && v.includes('the wrong kind of permanent')), `no date: ${r.violations.join(' | ')}`);
+  }],
+  ['D11 a date in a shape no reader can order', (f) => {
+    f.readme = f.readme.replace(FX_ROW, FX_ROW.replace('2026-11-01', '2026-13-45'));
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('is not a calendar day this reader can order')), `bad day: ${r.violations.join(' | ')}`);
+  }],
+  ['D12 a measurement taken from a day that has not arrived', (f) => {
+    f.readme = f.readme.replace(FX_ROW, FX_ROW.replace('2026-11-01', '2099-01-01'));
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('is dated 2099-01-01, after the') && v.includes('a day that has not arrived')), `future date: ${r.violations.join(' | ')}`);
+  }],
+  ['D13 a row that times bytes no commit holds', (f) => { delete f.committedAt['docs/evidence/x/row-proof.mjs']; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('which has no commit date this census can read')), `no commit date: ${r.violations.join(' | ')}`);
+  }],
+  ['D14 a duration that blames bytes the table predates', (f) => {
+    f.committedAt['docs/evidence/x/row-proof.mjs'] = { at: f.now, ref: 'beef456' };
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('was measured on 2026-11-01, but') && v.includes('the table times bytes that no longer exist')), `stale measurement: ${r.violations.join(' | ')}`);
+  }],
 ];
 
 /**
@@ -1997,7 +2229,7 @@ function runArms() {
     const tracked = (f.tracked ?? Object.keys(f.files).filter((p) => p.startsWith('docs/evidence/'))).slice().sort();
     const index = (f.index ?? Object.keys(f.files)).slice().sort();
     const read = (p) => (Object.prototype.hasOwnProperty.call(f.files, p) ? f.files[p] : null);
-    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme, index, workflow: f.workflow, manifest: f.manifest, standby: f.toolsStandby, source: f.source, coverage: f.coverage });
+    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme, index, workflow: f.workflow, manifest: f.manifest, standby: f.toolsStandby, source: f.source, coverage: f.coverage, committedAt: f.committedAt, now: f.now });
     try {
       check(report);
       return { name, ok: true, violations: report.violations };
@@ -2042,7 +2274,16 @@ async function main() {
   // This census reads its own bytes. The alternative is a marker that outlives the roster it describes, and
   // the whole point of the marker is that a reader who cannot run the arms list can still check it by eye.
   const source = readFileSync(join(ROOT, HERE), 'utf8');
-  const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read, readme, index, workflow, manifest: MANIFEST, standby: TOOLS_STANDBY, source });
+  // The table's own rows say which files they timed, so the dates are fetched by PATH and nothing is guessed: a
+  // duration is only a claim about code that has a commit behind it.
+  const committedAt = {};
+  for (const p of [...new Set(authoringTablePaths(readme))]) {
+    const line = (await sweep.gitText(['log', '--format=%ct %h', '-1', '--', p], ROOT)).trim().split(/\r?\n/).pop();
+    const m = /^(\d+) (\S+)$/.exec(String(line));
+    if (m !== null) committedAt[p] = { at: Number(m[1]), ref: m[2] };
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read, readme, index, workflow, manifest: MANIFEST, standby: TOOLS_STANDBY, source, committedAt, now });
   assert.deepEqual(report.violations, [], `the census is RED:\n  ${report.violations.join('\n  ')}`);
   assert.deepEqual(report.unclassified, [], `the census found modules nobody has decided about: ${report.unclassified.join(', ')} — each must become a verify row, an EXCLUDED row, a reachable helper, or a ROSTER entry with a falsifiable reason`);
   assert.deepEqual(report.manifest.undispositioned, [], `the manifest holds verify:* names nobody has disposed: ${report.manifest.undispositioned.join(', ')} — declare each in MANIFEST as a runner, a covered claim the workflow answers, or a deferred door with its reach, measurement, blocker and next repair`);
@@ -2069,6 +2310,8 @@ async function main() {
   console.log(`arms roster (counted from the names in ARMS itself, not copied from the printout): ${roster.total} arms in ${roster.families.length} families — ${roster.families.map((f) => `${f.label}${f.count}`).join(' · ')} · the README's sentence and the \`// ROSTER\` line in this file's own header restate every one of these numbers`);
   console.log(`\nbuild rows (${running.length}): ${running.map((r) => r.name).join(', ')}`);
   for (const r of residue) console.log(`  EXCLUDED  ${r.name.padEnd(24)} ${r.file} — ${EXCLUDED.find((e) => e.file === r.file).needs}`);
+  const timed = [...new Set(authoringTablePaths(readme))];
+  console.log(`\nauthoring-box table (${README_FILE}): ${timed.length} file(s) timed, each dated against the commit that last touched THAT file — ${timed.map((p) => `${p} ${committedAt[p] ? localDay(committedAt[p].at) : '(no commit)'}`).join(' · ') || '(none)'}; this census runs on ${localDay(now)}`);
   console.log('\nhelper modules:');
   for (const h of [...report.helpers].sort()) console.log(`  HELPER    ${h}`);
   console.log('\nhuman-run tools:');
