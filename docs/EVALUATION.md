@@ -2115,6 +2115,21 @@ localStorage。读数：
 
 **notMeasured**：`world-model` / `game-model` 各自的 `duplicate-id` 未统一（不在本片范围）。
 
+#### 第四十片（2026-11-05）：1280 属性栏可折起——画布 672 → 972，焦点跟着走（§85 / ADR-0085）
+
+第四十五片量到的 1280 悬崖（画布 971→672）有了作者侧的开关：默认常驻不变，点「折起」把
+300px 拿回来。1280×900 实测：
+
+- `[data-canvas-surface]` **672.0 → 972.0（+300.0）→ 672.0**；折起后页面级横向溢出 **0**。
+- 两个入口（面板里的「折起」、右缘竖排「属性」）都 ≥24×24；`aria-controls="nexus-inspector"`。
+- 焦点：折起后落在「属性」，展开后落在「折起」——两端都用 `requestAnimationFrame` 等渲染落地。
+- `e2e/studio-inspector-fold.spec.ts` 1 passed（4.5s）；截图
+  `screenshots/studio-1280-inspector-expanded.png` / `studio-1280-inspector-folded.png`。
+- 目视抓到一处并改掉：第一版「属性」标签 `top-[52px]` 压住 DEMO MODE 徽标，改垂直居中后不压。
+- 臂：摘掉 `xl:hidden`（折起不隐藏面板）⇒ 红在「折起后属性栏应当从布局里退出」；恢复 1 passed。
+
+**notMeasured**：折叠状态不记忆；1440 以上没有单独读数。
+
 ### Performance
 
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Profiler, Suspense, use, useEffect, useState, type ProfilerOnRenderCallback } from 'react';
+import { Profiler, Suspense, use, useEffect, useRef, useState, type ProfilerOnRenderCallback } from 'react';
 import type { DesignDocument } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
 import { studio, useStudio } from './store';
@@ -200,6 +200,14 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
   // 宽视口照旧展开。用 effect 而不是初值：服务端不知道窗口宽，写在初值里会水合不一致。
   const [railOpen, setRailOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  /**
+   * §85 第四十七片：xl 起右侧属性栏是常驻 300px 内联列——1279→1280 只差 1px，
+   * 画布从 971 掉到 672（第四十五片量到的悬崖）。常驻属性栏是设计本身，但作者该有
+   * 一次"把它折起来、把画布拿回来"的选择。默认不折：既有行为一个字不变。
+   */
+  const [inspectorFolded, setInspectorFolded] = useState(false);
+  const unfoldRef = useRef<HTMLButtonElement | null>(null);
+  const foldRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (window.innerWidth >= 1024) setRailOpen(true);
@@ -340,16 +348,50 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             className="fixed inset-0 z-40 bg-black/40 xl:hidden"
           />
         ) : null}
+        {inspectorFolded ? (
+          <button
+            ref={unfoldRef}
+            type="button"
+            aria-label="展开属性面板"
+            aria-expanded={false}
+            aria-controls="nexus-inspector"
+            onClick={() => {
+              setInspectorFolded(false);
+              window.requestAnimationFrame(() => foldRef.current?.focus());
+            }}
+            data-inspector-unfold
+            className="fixed right-0 top-1/2 z-40 inline-flex min-h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-l-[var(--nexus-radius-sm)] border border-r-0 border-[var(--nexus-color-border-strong)] bg-bg-2 px-2 py-3 text-12 text-fg-2 hover:bg-bg-3 [writing-mode:vertical-rl]"
+          >
+            属性
+          </button>
+        ) : null}
         <Profiler id="properties" onRender={recordRender('properties')}>
         <aside
           className={cn(
             'z-50 min-h-0 w-[300px] shrink-0 border-l border-[var(--nexus-color-border-subtle)] bg-bg-1',
-            inspectorOpen ? 'fixed bottom-0 left-0 right-0 top-auto h-[52vh] max-xl:block' : 'hidden',
-            'xl:static xl:block xl:h-auto',
+            inspectorOpen ? 'fixed bottom-0 left-0 right-0 top-auto h-[52vh] max-xl:block' : 'max-xl:hidden',
+            'xl:static xl:h-auto',
+            inspectorFolded ? 'xl:hidden' : 'xl:block',
           )}
+          id="nexus-inspector"
           data-right-panel
         >
           <div className="relative flex h-full min-h-0 flex-col">
+            <button
+              ref={foldRef}
+              type="button"
+              aria-label="收起属性面板"
+              aria-expanded
+              aria-controls="nexus-inspector"
+              onClick={() => {
+                setInspectorFolded(true);
+                window.requestAnimationFrame(() => unfoldRef.current?.focus());
+              }}
+              data-inspector-fold
+              className="absolute right-2 top-2 z-50 hidden h-6 min-w-6 items-center justify-center rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 text-11 text-fg-3 hover:bg-bg-3 xl:inline-flex"
+            >
+              折起
+            </button>
             <button
               type="button"
               onClick={() => setInspectorOpen((v) => !v)}
