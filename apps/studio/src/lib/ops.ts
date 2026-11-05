@@ -228,12 +228,17 @@ const REPORT_STATUS_WORDS: Record<(typeof REPORT_STATUSES)[number], string> = {
  * 不动手，所以「还站着」恰好是 `open` 一个。`docs/evidence/m9/audit-contract-proof.mjs` §11.11 把这三处 Java
  * 读出来、RUN 下面的谓词，要求真值集合恰好等于 Java 里出现过的那些 `STATUS_*`——加一个词上去、或者少一个，
  * 都会红，而不是等下一次面板长错按钮。
+ *
+ * v612 — 类型现在钉在声明上：`readonly (typeof REPORT_STATUSES)[number][]`。在这之前它是 `readonly string[]`，
+ * 于是一个**声明集之外**的词可以悄悄住进这张集合（§11.11 只遍历 `REPORT_STATUSES`，那个词永远不会被它看见），
+ * 而上面那段注释说"加一个词上去或者少一个都会红"只对声明集之内的词成立。现在声明集之外的词是**编译错误**，
+ * 运行时那一条由 `ops.test.ts` 的 `names only statuses the service declares` 来扛。
  */
-export const REPORT_STATUSES_STANDING: readonly string[] = ['open'];
+export const REPORT_STATUSES_STANDING: readonly (typeof REPORT_STATUSES)[number][] = ['open'];
 
 /** 这条举报**还站着**：服务端仍然肯按它动手。属主桌上的 Acknowledge、reporter 的撤回入口都以它为前提。 */
 export function reportStanding(status: string): boolean {
-  return REPORT_STATUSES_STANDING.includes(status);
+  return (REPORT_STATUSES_STANDING as readonly string[]).includes(status);
 }
 
 /** 这条举报是被**举报人自己收回**的——`ReportEntry.markRejected` 是唯一走到这里的写者。 */

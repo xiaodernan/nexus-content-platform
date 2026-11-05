@@ -21,6 +21,7 @@ import {
   reportsByReason,
   REPORT_STATUSES,
   REPORT_STATUS_NOT_GIVEN,
+  REPORT_STATUSES_STANDING,
   reportsByStatus,
   reportStanding,
   reportWithdrawn,
@@ -106,6 +107,15 @@ describe('ops — reportStatusText', () => {
 describe('ops — reportStanding / reportWithdrawn', () => {
   it('calls exactly the status the service still acts on "standing"', () => {
     expect(REPORT_STATUSES.filter((s) => reportStanding(s))).toEqual(['open']);
+  });
+
+  it('names only statuses the service declares', () => {
+    // v612 — the standing set is typed against `REPORT_STATUSES`, so a word outside the declared vocabulary is
+    // a compile error. This is its runtime carrier: every word the set names is a word the service declares,
+    // which is what §11.11's filter-over-REPORT_STATUSES can see. Before this case, a standing word outside
+    // the declaration was invisible to that clause and to every test in this file.
+    expect(REPORT_STATUSES_STANDING.length).toBeGreaterThan(0);
+    for (const status of REPORT_STATUSES_STANDING) expect(REPORT_STATUSES).toContain(status);
   });
 
   it('does not call the statuses the service refuses to act on "standing"', () => {
