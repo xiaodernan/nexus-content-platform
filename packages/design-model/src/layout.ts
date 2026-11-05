@@ -179,6 +179,38 @@ export function applyResponsive(
   return merged;
 }
 
+/**
+ * **比这一档更窄**的那几层合起来投影成什么——把这一档自己那条规则摘掉，别的都不动
+ * （同一档挤进两条以上时全摘，因为 `applyResponsive` 按数组次序把它们并成一层）。
+ *
+ * 「这一档说的话是不是新信息」只能跟这个基准比：跟设计值比不准（更窄的档早就改过了），
+ * 连着本档一起比更不准（那正是被判断的那一句）。三处读它，所以只有一份：
+ * 面板写不写这条键（`responsive-editor` 的冗余判据）、发射发不发这条类
+ * （`codegen`：`{reverse:false}` 只有顶掉窄档的反向才有所谓）、回写收不收这个键
+ * （`code-parse`：一条正向方向类是不是在说「这一档不反向」）。各抄一份迟早说谎（§16）。
+ */
+export function applyResponsiveBelow(node: DesignNode, breakpoint: BreakpointName): DesignNode {
+  if (!node.responsive?.length) return node;
+  return applyResponsive(
+    { ...node, responsive: node.responsive.filter((r) => r.breakpoint !== breakpoint) },
+    breakpoint,
+  );
+}
+
+/**
+ * 这一档自己那几条规则**声明过**的 `layout` 键。发射侧按声明发类（`layout.mode !== undefined`
+ * 才发 display 那一组），回写也要按声明收回去：不然一条只为「取消反向」而重发的正向方向类
+ * 会替这一档凭空写出一个模型里没有的 `mode`（§14 第五、八片）。
+ */
+export function declaredLayoutKeys(node: DesignNode, breakpoint: BreakpointName): string[] {
+  const out = new Set<string>();
+  for (const rule of node.responsive ?? []) {
+    if (rule.breakpoint !== breakpoint) continue;
+    for (const key of Object.keys(rule.patch.layout ?? {})) out.add(key);
+  }
+  return [...out];
+}
+
 export function breakpointForWidth(width: number): BreakpointName {
   if (width < BREAKPOINT_WIDTH.tablet) return "mobile";
   if (width < BREAKPOINT_WIDTH.desktop) return "tablet";

@@ -18,7 +18,7 @@ import {
   PADDING_SIDES,
   REVERSE_CLASS,
 } from "./codegen";
-import { applyResponsive } from "./layout";
+import { applyResponsive, applyResponsiveBelow, declaredLayoutKeys } from "./layout";
 import { ALIGNABLE_MODES, RESPONSIVE_PATCH_GROUPS } from "./types";
 import { STATE_VARIANT } from "./states";
 import type { NodeState, NodeStates, NodeStateStyle } from "./states";
@@ -767,11 +767,31 @@ function decodeVariant(
       out.checked.push(hit.literal);
     } else note(hit.literal, "断点覆盖暂不支持该 text-* 写法");
   }
+  // 正向方向类（`md:flex-col`）在第八片之后可能说两件事：这一档的**排布**，以及「这一档不反向」。
+  // 两件事各按自己的归属规矩收，判据与发射侧同一份（§14 第五/七/八片是同一条纪律的四次落地）：
+  //  · `mode`：这一档自己声明过排布时收——发射侧就是按 `layout.mode !== undefined` 发这一组类的，
+  //    读回来按同一判据收回去，冗余但确实存着的 `{mode:…}` 才不会被这次编辑抹掉；
+  //    或者它说的排布与**更窄那档**解出来的不同，那确实是作者在这条类里改了排布。
+  //  · `reverse:false`：只有更窄那档真是反向的，这条类才顶掉点什么（CSS 里没有"取消反向"这条类，
+  //    靠的是重说一遍方向）。窄档没反向时它不改任何东西，凭空写一条 `{reverse:false}` 就成了
+  //    模型里一条没有投影的键——发射侧同一条判据，那边不发，这边不收。
+  // 两条都不收时这条类留在 list 里，由下面 `DISPLAY_CLASS_SET` 那一段静默消费、**不进 checked**：
+  // 进了就要求重投影原样再现它，而这一档什么都没写时重投影发不出 ⇒ 整节点回写作废（§19，最贵的走法）。
+  const narrower = applyResponsiveBelow(node, breakpoint);
+  const narrowerReversed =
+    ALIGNABLE_MODES.includes(narrower.layout.mode) && narrower.layout.reverse === true;
+  const declaresMode = declaredLayoutKeys(node, breakpoint).includes("mode");
   for (const [cls, mode] of Object.entries(MODE_OF_DISPLAY_CLASS)) {
     const at = list.indexOf(cls);
     if (at < 0) continue;
+    // 同一档还写着这个排布的反向类时，作者说的是"反向"，正向那条只是陪着写的（下面那一段收它）
+    const assertsReverse = list.includes(REVERSE_CLASS[mode] ?? "");
+    const saysMode = declaresMode || mode !== narrower.layout.mode;
+    const saysForward = !assertsReverse && narrowerReversed && ALIGNABLE_MODES.includes(mode);
+    if (!saysMode && !saysForward) continue;
     list.splice(at, 1);
-    layout.mode = mode;
+    if (saysMode) layout.mode = mode;
+    if (saysForward) layout.reverse = false;
     out.checked.push(cls);
   }
   // 反向那一格（§14 第七片）：`md:flex-col-reverse` 一条类同时说了**方向**与**反向**。

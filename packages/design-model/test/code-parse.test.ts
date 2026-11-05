@@ -468,6 +468,124 @@ describe("类名 → 模型属性", () => {
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
   });
 
+  /** 设计值本身就是反向的：第八片那一寸的载体（更窄那档反向、更宽那档要取消） */
+  const reversedHero = (page: Page): Page => {
+    const hero = nodeId(page, "Hero");
+    return {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          layout: { ...page.nodes[hero]!.layout, reverse: true },
+        },
+      },
+    };
+  };
+
+  it("这一档取消更窄那档的反向：重发正向方向类，发得出也读得回，一个补丁都不发（§14 第八片）", () => {
+    const page = reversedHero(starterPage());
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: { ...page.nodes[hero]!, responsive: [{ breakpoint: "tablet", patch: { layout: { reverse: false } } }] },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    // 基线那条反向类留着（<48rem 它还得赢），取消靠的是排在它后面的那条 md:flex-col
+    expect(line).toContain("flex-col-reverse");
+    expect(line).toContain("md:flex-col");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("更宽那档取消 md 的反向：lg 那一条重发正向方向类，往返零补丁（§14 第八片）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [
+            { breakpoint: "tablet", patch: { layout: { reverse: true } } },
+            { breakpoint: "desktop", patch: { layout: { reverse: false } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    expect(line).toContain("md:flex-col-reverse");
+    expect(line).toContain("lg:flex-col");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("手写 md:flex-col 落在本来反向的那一档：只补 reverse:false，不凭空写 mode（§14 第八片）", () => {
+    const page = reversedHero(starterPage());
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: { ...page.nodes[hero]!, responsive: [{ breakpoint: "tablet", patch: { layout: { gap: 16 } } }] },
+      },
+    };
+    // 这条类说的排布就是这一档本来的排布（竖排），它真正新说的只有「这一档不反向」
+    const code = replace(source(withRule), "md:gap-[16px]", "md:flex-col md:gap-[24px]");
+    const result = parse(withRule, code);
+    expect(result.ops.find((o) => "path" in o && o.path === "responsive")).toMatchObject({
+      value: [{ breakpoint: "tablet", patch: { layout: { gap: 24, reverse: false } } }],
+    });
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+  });
+
+  it("这一档声明的 reverse:false 没顶掉任何东西：什么都不发，往返也零补丁（§14 第八片）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: { ...page.nodes[hero]!, responsive: [{ breakpoint: "tablet", patch: { layout: { reverse: false } } }] },
+      },
+    };
+    const line = lineOf(source(withRule), hero);
+    // 没反向可取消时这条键不改任何东西：发一条读者不会认的类，等于代码里有个模型不认的表态（§16）
+    expect(line).not.toContain("md:flex-col");
+    expect(line).not.toContain("md:flex-row");
+    const result = parse(withRule);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("同一档既改排布又取消反向：md:flex-col 只发一条，读回来 mode 与 reverse 都在（§14 第八片）", () => {
+    const page = reversedHero(starterPage());
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [{ breakpoint: "tablet", patch: { layout: { mode: "vertical", reverse: false } } }],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    // 排布那一条已经发过 md:flex-col 了，取消反向那一支不能再发第二遍
+    expect(line.match(/md:flex-col(?!-)/g)).toHaveLength(1);
+    const result = parse(withRule, code);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
   it("手机那一档的覆盖往返：发在基线上、读得回来、一个补丁都不发（§14 第五片）", () => {
     const page = starterPage();
     const hero = nodeId(page, "Hero");

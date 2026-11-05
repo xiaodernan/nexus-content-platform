@@ -330,10 +330,12 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
 
   const textOf = (value: unknown): string =>
     value === undefined ? '默认' : typeof value === 'string' ? value : JSON.stringify(value);
+  /** 布尔那一格两端的中文说法由通道自己给（`visible` 是显示/隐藏，`layout.reverse` 是正序/反向） */
+  const boolLabels = (spec: ChannelSpec): readonly [string, string] => spec.toggleLabels ?? ['隐藏', '显示'];
   /** 读数用中文说法（显示/隐藏、竖排/横排），模型里的原值仍是 `visible` / `vertical` */
   const labelOf = (spec: ChannelSpec, value: unknown): string => {
     if (value === MIXED) return '混合';
-    if (typeof value === 'boolean') return value ? '显示' : '隐藏';
+    if (typeof value === 'boolean') return boolLabels(spec)[value ? 1 : 0];
     return spec.choices?.find((choice) => choice.value === value)?.label ?? textOf(value);
   };
   /** 「设计」那一边的读数也要按多选算：两个节点的设计值不一样时说"混合"，
@@ -386,9 +388,9 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
                   'rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11',
                   value === want ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1',
                 )}
-                data-responsive-visible={want ? 'visible' : 'hidden'}
+                data-responsive-toggle={`${spec.id}:${want}`}
               >
-                {want ? '显示' : '隐藏'}
+                {boolLabels(spec)[want ? 1 : 0]}
               </button>
             ))
           : null}

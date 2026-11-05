@@ -335,7 +335,7 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     await author.click('[data-breakpoint-tab="mobile"]');
     await expect(editor).toHaveAttribute('data-responsive-breakpoint', 'mobile');
     await expect(reading(author), '点断点那一格要同时把画布切到那一档，改完当场看得见').toContainText('画布按 mobile 档呈现');
-    await author.click('[data-responsive-visible="visible"]');
+    await author.click('[data-responsive-toggle="visible:true"]');
     await expect(tab(author, 'mobile'), '把显示写成它本来的值：一处投影都没改').toHaveAttribute('data-breakpoint-impact', '0');
     await expect(reading(author)).toContainText('还没有规则');
     await expect(author.locator('[data-responsive-clear="visible"]'), '没有覆盖就不该给清除键').toHaveCount(0);
@@ -343,7 +343,7 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
 
     // 腿 C：点「隐藏」⇒ 一条事务、画布当场重解（同一个 DOM、只改了规则这一件事）
     await expect(author.locator(`[data-node-id="${carriers.eyebrowId}"]`), '写规则之前这个节点在画布上').toHaveCount(1);
-    await author.click('[data-responsive-visible="hidden"]');
+    await author.click('[data-responsive-toggle="visible:false"]');
     await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
     await expect(tab(author, 'mobile')).toContainText('改 1 处');
     await expect(reading(author)).toContainText('手机 375 这一档：改 1 处投影');

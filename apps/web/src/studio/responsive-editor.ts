@@ -39,6 +39,7 @@ export type ResponsiveChannel =
   | 'layout.columns'
   | 'layout.justify'
   | 'layout.items'
+  | 'layout.reverse'
   | 'typography.fontSize';
 
 export interface ResponsiveChoice {
@@ -57,6 +58,11 @@ export interface ChannelSpec {
   readonly readPath: string;
   /** 面板那一行的控件形状：加一格通道就是加一条 spec，面板不再逐行手写 JSX */
   readonly widget: 'toggle' | 'size' | 'number' | 'choice';
+  /**
+   * 布尔那一格两端的中文说法（模型里存的是 `true` / `false`，界面上说人话）。
+   * 只有 `toggle` 那一档用得到；不给就是「隐藏 / 显示」——那是 `visible` 那一格的既有读法。
+   */
+  readonly toggleLabels?: readonly [off: string, on: string];
   readonly min?: number;
   readonly max?: number;
   readonly step?: number;
@@ -156,6 +162,7 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     key: null,
     readPath: 'visible',
     widget: 'toggle',
+    toggleLabels: ['隐藏', '显示'],
     appliesTo: () => true,
     clean: (value) => (typeof value === 'boolean' ? value : REJECT),
   },
@@ -250,6 +257,20 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     choices: ITEMS_CHOICES,
     appliesTo: (node, breakpoint) => hasChildren(node) && alignableAt(node, breakpoint),
     clean: cleanAlign(ITEMS_VALUES),
+  },
+  {
+    id: 'layout.reverse',
+    label: '顺序',
+    group: 'layout',
+    key: 'reverse',
+    readPath: 'layout.reverse',
+    widget: 'toggle',
+    toggleLabels: ['正序', '反向'],
+    // 与主轴/交叉轴那两格同一判据、同一份 `ALIGNABLE_MODES`：求解器（layout.ts）只在竖排/横排
+    // 读这个键，网格与换行档按下去什么都改不了。代码那一侧同一条判据（codegen 只在自动布局发
+    // 方向类），所以"面板摆得出"与"发得出来、读得回来"是同一寸。
+    appliesTo: (node, breakpoint) => hasChildren(node) && alignableAt(node, breakpoint),
+    clean: (value) => (typeof value === 'boolean' ? value : REJECT),
   },
   {
     id: 'typography.fontSize',

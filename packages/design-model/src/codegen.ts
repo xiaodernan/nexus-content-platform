@@ -6,7 +6,7 @@
  * 本包禁止 import React / DOM / fs —— 只产出字符串。
  */
 
-import { applyResponsive } from "./layout";
+import { applyResponsive, applyResponsiveBelow } from "./layout";
 import { childrenOf } from "./nodes";
 import { NODE_STATES, STATE_VARIANT } from "./states";
 import { toHex, tokenRefKey } from "./tokens";
@@ -85,6 +85,27 @@ export const REVERSE_CLASS: Partial<Record<LayoutMode, string>> = {
   vertical: "flex-col-reverse",
   horizontal: "flex-row-reverse",
 };
+
+/**
+ * 排布 → **正向**方向类（`{reverse:false}` 那一寸要重发的就是它，见 `responsiveClasses`）。
+ * 不抄第二份拼法：从 `DISPLAY_CLASSES` 里挑"只属于这一档"的那一条——与 `code-parse` 反推
+ * `MODE_OF_DISPLAY_CLASS` 用的是同一条唯一性判据。`flex` 竖/横/换行三档都发，顶不动反向那条
+ * 也不能用来表态，所以它不在这里。只填自动布局那两档：其余档位发一条方向类，画布那边根本不看
+ * （求解器的 grid / wrap 分支在碰 `reverse` 之前就 return），代码里多一条模型不认的表态（§16）。
+ */
+export const DIRECTION_CLASS: Partial<Record<LayoutMode, string>> = (() => {
+  const tally = new Map<string, number>();
+  for (const classes of Object.values(DISPLAY_CLASSES)) {
+    for (const cls of classes) tally.set(cls, (tally.get(cls) ?? 0) + 1);
+  }
+  const out: Partial<Record<LayoutMode, string>> = {};
+  for (const mode of ALIGNABLE_MODES) {
+    const unique = DISPLAY_CLASSES[mode].filter((cls) => (tally.get(cls) ?? 0) === 1);
+    // 挑不出唯一一条就不填：`Partial` 的语义是"这一档没有能用来取消反向的类"，别猜
+    if (unique.length === 1) out[mode] = unique[0];
+  }
+  return out;
+})();
 
 /** 等分网格的列数类：基线与断点同一个拼法，回写才认得回来 */
 function gridColsClass(columns: number | undefined): string {
@@ -536,11 +557,21 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
       // `md:flex-col-reverse`：它把窄档留下的 `md:flex-col` / 基线的 `flex-col` 顶掉（同一个 CSS
       // 属性，后定义的 utility 赢，基线那一条也是这么发的）。求解器从这一片起认这个键，
       // 所以画布与访客读的是同一份顺序（§16）。
-      // 反过来——这一档只声明 `{reverse:false}` 而窄档是反向的——CSS 里没有"取消反向"这条类，
-      // 得重发正向方向类；那一条发射不在这一片，缺的那寸写进 ADR-0069 的「仍欠」。
+      // 反过来——这一档只声明 `{reverse:false}` 而更窄那档是反向的——CSS 里没有"取消反向"这条类，
+      // 只能重发**正向**方向类（`md:flex-col` 排在基线那条 `flex-col-reverse` 之后才顶得动，
+      // 这一条不是推理：Tailwind v4.3.3 现编 + 真 Chromium 量 computed `flex-direction`，
+      // 48rem 以上是 `column`，见 docs/adr/0069）。窄档没反向时这条键什么都不改，因此**不发**：
+      // 发一条回写侧不认的类，等于代码里多一个模型不认的表态（§16），而回写那侧用同一个判据。
       if (layout?.reverse === true) {
         const cls = REVERSE_CLASS[resolvedMode];
         if (cls) out.push(`${variant}${cls}`);
+      } else if (
+        layout?.reverse === false &&
+        applyResponsiveBelow(node, rule.breakpoint).layout.reverse === true
+      ) {
+        const cls = DIRECTION_CLASS[resolvedMode];
+        // 同一档还声明了 `mode` 时上面那条已经发过一遍了，别在 className 里写两遍
+        if (cls && !out.includes(`${variant}${cls}`)) out.push(`${variant}${cls}`);
       }
     }
     // padding：patch 写了哪几条边就发哪几条。`applyResponsive` 对 `layout` 组是整键

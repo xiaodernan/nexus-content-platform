@@ -412,6 +412,38 @@ describe("Design → Code（§17-19）", () => {
     expect(tokens).toContain("flex-col");
   });
 
+  it("这一档取消更窄那档的反向：重发正向方向类，没得取消时一个字都不发（§14 第八片）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({
+      type: "section",
+      name: "ReverseCancel",
+      layout: { mode: "vertical", gap: 16, reverse: true },
+      size: { width: 300, height: 200 },
+    });
+    node.responsive = [
+      // 基线（设计 + mobile 档）是反着的 ⇒ tablet 这一句真顶掉了什么：CSS 没有"取消反向"的类，
+      // 靠的是重说一遍方向，`md:flex-col` 排在基线那条之后才赢（量的过程见 ADR-0069）
+      { breakpoint: "tablet", patch: { layout: { reverse: false } } },
+      // desktop 这一句面对的是已经不反着的 tablet ⇒ 什么都不改，也就不发：
+      // 发一条回写侧不认的类，等于代码里多一个模型不认的表态（§16）
+      { breakpoint: "desktop", patch: { layout: { reverse: false } } },
+      // 排布是网格时更窄那档的 reverse 本来就没被求解器读过（第七片），这一句顶不掉东西
+      { breakpoint: "wide", patch: { layout: { mode: "grid", columns: 2, reverse: false } } },
+    ];
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("flex-col-reverse");
+    expect(tokens).toContain("md:flex-col");
+    expect(tokens.filter((token) => token.startsWith("lg:flex"))).toEqual([]);
+    // 全页只有基线那一条反向类：这一片的三句 `reverse:false` 里只有 tablet 那句顶掉东西，
+    // desktop 与 wide 那句都被判据挡下（发射侧与回写侧读的是同一寸）
+    expect(tokens.filter((token) => token.includes("reverse"))).toEqual(["flex-col-reverse"]);
+    expect(tokens).toContain("xl:grid");
+  });
+
   it("手机那一档的对齐发在无前缀基线上（§14 第五片 × 第六片）", () => {
     const page2 = starterPage("Home");
     const root = page2.nodes[page2.rootId]!;
