@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v613 (the catalog pages by NAME — `after=` keyset cursor; v591–v612 were landed by parallel lanes)
+Project version: v614 (two pins compared by PATH — `diff?from=&to=`; v591–v612 were landed by parallel lanes)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is ahead of origin/master; v613 is in the working tree.
+Pushed to origin/master: no — master is ahead of origin/master; v614 is in the working tree.
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -33,16 +33,17 @@ Recent increments in this lineage (all real commits, all gated):
   v589: the catalog names the rows that CARRY A CLAIM — ?tested=, three-state like deprecated (ADR 0038)
   v590: the pin a consumer holds reads back the bytes it named — `at?pin=`, `current` derived, pruned pins 404 (ADR 0040)
   v613: the catalog pages by NAME, because an offset is a position writes can change — `after=`, ninth field (ADR 0043)
+  v614: two contracts compared by the pins a caller holds — `diff`, RFC 6901 paths, absent `to` = now (ADR 0044)
   v581: retention — the owner names the bound it keeps, and the answer says what went (ADR 0032)
   v582: the catalog names the rows that are going away — a filter, not a column (ADR 0033)
 
 Verification of v591–v613 (this lane; v591–v612 are parallel-lane commits, v613 is ours):
-  mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 185/185 (117 service + 68 controller), exit 0
-  Full service suite at the v587 checkpoint: 710/710, 33 classes, exit 0
+  mvn -Dtest='ToolServiceTest,ToolControllerTest,JsonPointersTest' test: 201/201 (126 service + 72 controller + 3 pointer-walk), exit 0
+  Full service suite after v613: 821/821, 0 failures, exit 0 (a checkpoint after 26 increments, not run every increment)
   node docs/evidence/m10/tool-registry-proof.mjs against a real PostgreSQL: ALL ASSERTIONS PASSED
   (§5e journal, §5f feed narrowings, §5g batch read, §5h attestation, §5i tested filter with the
    stale-claim bound proved rather than hidden, §5j read-at-pin with the pruned-pin 404, §5k keyset paging
-   with the offset-repeat proved on real state, §6 restart with the claim and every column count)
+   with the offset-repeat proved on real state, §5l the two-pin diff naming three paths and refusing each bad pin by name, §6 restart with the claim and every column count)
 Verification of v572–v575 and v577–v582:
   mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 122/122 (78 service + 44 controller), exit 0
   Full service suite at v581 (checkpoint, 5 increments in): 660/660, 33 classes, exit 0

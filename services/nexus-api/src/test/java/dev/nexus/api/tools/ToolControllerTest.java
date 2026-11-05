@@ -1006,4 +1006,83 @@ class ToolControllerTest {
         assertThat(body.removed()).isTrue();
         assertThat(mapper.valueToTree(body).size()).isEqualTo(2);
     }
+
+    // ── v614: a diff says WHERE the two contracts differ, and both pins are echoed ──────────────────
+    private static final String OTHER_PIN = "b".repeat(64);
+
+    private static ContractComparison comparisonOf(boolean identical, boolean summaryChanged,
+            ContractComparison.SchemaDiff schema) {
+        return new ContractComparison("tool-1",
+                new ContractComparison.Side(1, "a tool", PIN, AT.toEpochMilli()),
+                new ContractComparison.Side(2, "a better tool", OTHER_PIN, AT.toEpochMilli()),
+                identical, summaryChanged, schema);
+    }
+
+    @Test
+    void theDiffEchoesBothSidesAndTheSchemaPaths() {
+        when(service.diff("tool-1", PIN, OTHER_PIN)).thenReturn(comparisonOf(false, true,
+                new ContractComparison.SchemaDiff(
+                        List.of("/properties/city", "/required/1"),
+                        List.of("/properties/note"),
+                        List.of())));
+
+        ToolDtos.ContractDiff body = controller().diff("tool-1", PIN, OTHER_PIN).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.toolId()).isEqualTo("tool-1");
+        assertThat(body.from().revision()).isEqualTo(1);
+        assertThat(body.from().summary()).isEqualTo("a tool");
+        assertThat(body.to().revision()).isEqualTo(2);
+        assertThat(body.to().contractSha256()).isEqualTo(OTHER_PIN);
+        assertThat(body.identical()).isFalse();
+        assertThat(body.summaryChanged()).isTrue();
+        assertThat(body.schema().added()).containsExactly("/properties/city", "/required/1");
+        assertThat(body.schema().removed()).containsExactly("/properties/note");
+        assertThat(body.schema().changed()).isEmpty();
+        // Six top-level fields, four in a side, three in the path answer: an added field is a capability
+        // the door would start printing, so the shapes are pinned rather than assumed.
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(6);
+        assertThat(mapper.valueToTree(body).get("from").size()).isEqualTo(4);
+        assertThat(mapper.valueToTree(body).get("schema").size()).isEqualTo(3);
+    }
+
+    @Test
+    void aDiffOfOnePinSaysIdenticalWithThreeEmptyLists() {
+        when(service.diff("tool-1", PIN, PIN)).thenReturn(comparisonOf(true, false,
+                new ContractComparison.SchemaDiff(List.of(), List.of(), List.of())));
+
+        ToolDtos.ContractDiff body = controller().diff("tool-1", PIN, PIN).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.identical()).isTrue();
+        assertThat(body.summaryChanged()).isFalse();
+        assertThat(body.schema().added()).isEmpty();
+        assertThat(body.schema().removed()).isEmpty();
+        assertThat(body.schema().changed()).isEmpty();
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(6);
+    }
+
+    @Test
+    void anAbsentToPinIsPassedThroughAsAbsentRatherThanInvented() {
+        when(service.diff("tool-1", PIN, null)).thenReturn(comparisonOf(false, false,
+                new ContractComparison.SchemaDiff(List.of(), List.of(), List.of())));
+
+        controller().diff("tool-1", PIN, null);
+
+        verify(service).diff("tool-1", PIN, null);
+    }
+
+    @Test
+    void aPinRefusalFromTheDiffKeepsItsOwnName() {
+        when(service.diff("tool-1", PIN, null))
+                .thenThrow(new UnknownPin("tool \"tool-1\" has no revision carrying the from pin"));
+
+        Throwable refused = org.assertj.core.api.Assertions.catchThrowable(
+                () -> controller().diff("tool-1", PIN, null));
+
+        assertThat(refused).isInstanceOf(UnknownPin.class);
+        ResponseEntity<Map<String, String>> answer = controller().unknownPin((UnknownPin) refused);
+        assertThat(answer.getStatusCode().value()).isEqualTo(404);
+        assertThat(answer.getBody()).containsEntry("error", "unknown-pin");
+    }
 }

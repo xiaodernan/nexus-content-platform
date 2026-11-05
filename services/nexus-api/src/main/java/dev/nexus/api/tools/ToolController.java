@@ -2,6 +2,9 @@ package dev.nexus.api.tools;
 
 import dev.nexus.api.tools.ToolDtos.AttestRequest;
 import dev.nexus.api.tools.ToolDtos.Attestation;
+import dev.nexus.api.tools.ToolDtos.ContractDiff;
+import dev.nexus.api.tools.ToolDtos.ContractSide;
+import dev.nexus.api.tools.ToolDtos.SchemaDiff;
 import dev.nexus.api.tools.ToolDtos.DeprecateRequest;
 import dev.nexus.api.tools.ToolDtos.Deprecation;
 import dev.nexus.api.tools.ToolDtos.DeprecationList;
@@ -73,6 +76,11 @@ import org.springframework.web.bind.annotation.RestController;
  *       bytes hash to the 64-hex pin the caller holds, with {@code current} saying whether that is still the
  *       contract served today. An absent or malformed pin is a 400; a well-formed pin this declaration never
  *       recorded (or retention removed) is a 404 under its own name, {@code unknown-pin}.
+ *   <li>{@code GET /tools/{id}/diff?from=&to=} — what changed between two contracts of ONE declaration,
+ *       named by the pins the caller holds: both sides' revision/summary/pin/instant, whether the sentence
+ *       changed, and the SCHEMA paths that differ as RFC 6901 pointers. An absent {@code to} means the
+ *       contract served now; a diff names WHERE, and {@code /tools/{id}/at} turns either pin back into the
+ *       bytes (v614).
  *   <li>{@code PUT /tools/{id}?owner=} — REPLACE a declaration's summary and schema, for its owner only. The
  *       name, owner, id and creation instant cannot change: an update changes what a declaration SAYS, not
  *       which declaration it is.
@@ -470,6 +478,32 @@ public class ToolController {
         return ResponseEntity.ok(toWire(revision, service.get(toolId)));
     }
     /**
+     * v614 — what changed between two contracts of one declaration, named by the pins the caller holds.
+     *
+     * <p>The question is the one a consumer with a stale pin actually asks ("what is different from the bytes
+     * I have?"), so an absent {@code to} compares against the contract served now rather than being a required
+     * parameter. The answer names the differing SCHEMA paths as RFC 6901 pointers and leaves the values to
+     * {@code /tools/{id}/at}, which the two pins it echoes are enough to read.
+     *
+     * <p>Existence is settled before either pin, the same order the other pin doors follow: an unknown id is
+     * 404 {@code unknown-tool} even when both pins are malformed.
+     */
+    @GetMapping("/tools/{toolId}/diff")
+    public ResponseEntity<ContractDiff> diff(
+            @PathVariable String toolId,
+            @RequestParam(name = "from", required = false) String from,
+            @RequestParam(name = "to", required = false) String to) {
+        ContractComparison comparison = service.diff(toolId, from, to);
+        return ResponseEntity.ok(new ContractDiff(
+                comparison.toolId(),
+                side(comparison.from()),
+                side(comparison.to()),
+                comparison.identical(),
+                comparison.summaryChanged(),
+                new SchemaDiff(comparison.schema().added(), comparison.schema().removed(),
+                        comparison.schema().changed())));
+    }
+    /**
      * Replace a declaration's summary and schema, for its owner only.
      *
      * <p>The owner is REQUIRED before anything is read, and the name is not part of the body: an update
@@ -650,6 +684,10 @@ public class ToolController {
     @ExceptionHandler(UnknownPin.class)
     public ResponseEntity<Map<String, String>> unknownPin(UnknownPin e) {
         return ResponseEntity.status(404).body(Map.of("error", "unknown-pin", "message", e.getMessage()));
+    }
+
+    private static ContractSide side(ContractComparison.Side side) {
+        return new ContractSide(side.revision(), side.summary(), side.contractSha256(), side.recordedAt());
     }
 
     private RevisionAtPin toWire(ToolRevision revision, ToolEntry current) {

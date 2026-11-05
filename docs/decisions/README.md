@@ -55,3 +55,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0041  | An incident is a record with a life, not a status page | Accepted |
 | 0042  | A patch is the bytes an author wrote, and the service does not run it | Accepted |
 | 0043  | A keyset page is a name, not an offset                         | Accepted |
+| 0044  | A diff names where, not what: two pins in one pointer vocabulary | Accepted |

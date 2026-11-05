@@ -1409,4 +1409,141 @@ class ToolServiceTest {
                 .isInstanceOf(UnknownAttestation.class)
                 .hasMessageContaining("no attestation");
     }
+
+    // ── v614: a diff names WHERE two contracts differ, and the pins name WHAT they said ─────────────
+    private static final String CITY_SCHEMA_V1 =
+            "{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"note\":{\"type\":\"string\"}},\"required\":[\"city\"]}";
+    private static final String CITY_SCHEMA_V2 =
+            "{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\",\"maxLength\":40}},\"required\":[\"city\",\"note\"]}";
+
+    @Test
+    void aDiffNamesTheSchemaPathsAddedRemovedAndChanged() {
+        ToolRevision birth = new ToolRevision("tool-1", 1, "a tool", CITY_SCHEMA_V1, AT);
+        ToolRevision later = new ToolRevision("tool-1", 2, "a tool", CITY_SCHEMA_V2, AT);
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findByToolIdOrderByRevisionDesc("tool-1")).thenReturn(List.of(later, birth));
+
+        ToolService service = service();
+        ContractComparison diff = service.diff("tool-1",
+                service.contractSha256(birth), service.contractSha256(later));
+
+        assertThat(diff.toolId()).isEqualTo("tool-1");
+        assertThat(diff.from().revision()).isEqualTo(1);
+        assertThat(diff.to().revision()).isEqualTo(2);
+        assertThat(diff.identical()).isFalse();
+        assertThat(diff.summaryChanged()).isFalse();
+        assertThat(diff.schema().added())
+                .containsExactly("/properties/city/maxLength", "/required/1");
+        assertThat(diff.schema().removed()).containsExactly("/properties/note");
+        assertThat(diff.schema().changed()).isEmpty();
+    }
+
+    @Test
+    void aSummaryChangeIsNamedBesideAnEmptySchemaDiff() {
+        ToolRevision birth = new ToolRevision("tool-1", 1, "a tool", "{\"type\":\"object\"}", AT);
+        ToolRevision later = new ToolRevision("tool-1", 2, "a better tool", "{\"type\":\"object\"}", AT);
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findByToolIdOrderByRevisionDesc("tool-1")).thenReturn(List.of(later, birth));
+
+        ToolService service = service();
+        ContractComparison diff = service.diff("tool-1",
+                service.contractSha256(birth), service.contractSha256(later));
+
+        assertThat(diff.summaryChanged()).isTrue();
+        assertThat(diff.from().summary()).isEqualTo("a tool");
+        assertThat(diff.to().summary()).isEqualTo("a better tool");
+        assertThat(diff.schema().added()).isEmpty();
+        assertThat(diff.schema().removed()).isEmpty();
+        assertThat(diff.schema().changed()).isEmpty();
+    }
+
+    @Test
+    void theSamePinOnBothEndsIsIdenticalAndWalksNothing() {
+        ToolRevision birth = new ToolRevision("tool-1", 1, "a tool", CITY_SCHEMA_V1, AT);
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findByToolIdOrderByRevisionDesc("tool-1")).thenReturn(List.of(birth));
+
+        ToolService service = service();
+        String pin = service.contractSha256(birth);
+        ContractComparison diff = service.diff("tool-1", pin, pin);
+
+        assertThat(diff.identical()).isTrue();
+        assertThat(diff.summaryChanged()).isFalse();
+        assertThat(diff.from().contractSha256()).isEqualTo(pin);
+        assertThat(diff.to().contractSha256()).isEqualTo(pin);
+        assertThat(diff.schema().added()).isEmpty();
+        assertThat(diff.schema().removed()).isEmpty();
+        assertThat(diff.schema().changed()).isEmpty();
+    }
+
+    @Test
+    void aDiffMustNameThePinItStartsFrom() {
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+
+        assertThatThrownBy(() -> service().diff("tool-1", null, null))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("starts from");
+        assertThatThrownBy(() -> service().diff("tool-1", "  ", null))
+                .isInstanceOf(InvalidTool.class);
+        verify(revisions, never()).findByToolIdOrderByRevisionDesc(any());
+    }
+
+    @Test
+    void aMalformedFromPinIsRefusedBeforeTheHistoryIsScanned() {
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+
+        assertThatThrownBy(() -> service().diff("tool-1", "abc", null))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("64");
+        verify(revisions, never()).findByToolIdOrderByRevisionDesc(any());
+    }
+
+    @Test
+    void aPinTheHistoryNeverHeldIs404NamingTheEndThatNamedIt() {
+        ToolRevision birth = new ToolRevision("tool-1", 1, "a tool", CITY_SCHEMA_V1, AT);
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findByToolIdOrderByRevisionDesc("tool-1")).thenReturn(List.of(birth));
+
+        assertThatThrownBy(() -> service().diff("tool-1", "0".repeat(64), null))
+                .isInstanceOf(UnknownPin.class)
+                .hasMessageContaining("from pin");
+    }
+
+    @Test
+    void aPresentButBlankToPinIsRefusedRatherThanReadAsCurrent() {
+        ToolRevision birth = new ToolRevision("tool-1", 1, "a tool", CITY_SCHEMA_V1, AT);
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findByToolIdOrderByRevisionDesc("tool-1")).thenReturn(List.of(birth));
+
+        ToolService service = service();
+        String pin = service.contractSha256(birth);
+        assertThatThrownBy(() -> service.diff("tool-1", pin, "   "))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("to");
+    }
+
+    @Test
+    void anAbsentToPinComparesAgainstTheContractServedNow() {
+        ToolRevision birth = new ToolRevision("tool-1", 1, "a tool", "{\"type\":\"object\"}", AT);
+        ToolRevision later = new ToolRevision("tool-1", 2, "a better tool", "{\"type\":\"object\"}", AT);
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(revisions.findByToolIdOrderByRevisionDesc("tool-1")).thenReturn(List.of(later, birth));
+        when(revisions.findTopByToolIdOrderByRevisionDesc("tool-1")).thenReturn(Optional.of(later));
+
+        ToolService service = service();
+        ContractComparison diff = service.diff("tool-1", service.contractSha256(birth), null);
+
+        assertThat(diff.to().revision()).isEqualTo(2);
+        assertThat(diff.to().contractSha256()).isEqualTo(service.contractSha256(later));
+        assertThat(diff.to().summary()).isEqualTo("a better tool");
+        assertThat(diff.identical()).isFalse();
+    }
+
+    @Test
+    void theIdIsSettledBeforeEitherPinIsJudged() {
+        when(repository.findById("tool-missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().diff("tool-missing", "nonsense", "also nonsense"))
+                .isInstanceOf(UnknownTool.class);
+    }
 }

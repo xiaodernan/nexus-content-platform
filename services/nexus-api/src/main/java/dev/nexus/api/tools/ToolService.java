@@ -556,12 +556,76 @@ public class ToolService {
         if (pin == null || pin.isBlank()) {
             throw new InvalidTool("a read by pin must name the contract pin it wants");
         }
-        String wanted = requirePin(pin);
+        return revisionCarrying(toolId, requirePin(pin));
+    }
+
+    /**
+     * M10 v614 — what changed between two recorded contracts of ONE declaration, named by pins rather than by
+     * revision numbers the caller never chose.
+     *
+     * <p>An absent {@code to} means "the contract served now", which is the question a consumer holding a stale
+     * pin actually asks: what is different from the bytes I have? A present but blank {@code to} is refused
+     * instead of read as absent, because a caller that wrote the parameter down meant to name one.
+     *
+     * <p>The answer NAMES the differing schema paths and does not repeat the values: {@code /tools/{id}/at}
+     * turns each pin back into its bytes, so a diff and a read together answer "what did I have, what would I
+     * install, and where do they differ" without this door carrying two schemas.
+     *
+     * <p>The id is settled first (404 {@code unknown-tool}), then each pin: absent or malformed is 400, one
+     * this declaration never recorded (or retention removed) is 404 {@code unknown-pin} naming which end.
+     */
+    @Transactional(readOnly = true)
+    public ContractComparison diff(String toolId, String fromPin, String toPin) {
+        get(toolId);
+        if (fromPin == null || fromPin.isBlank()) {
+            throw new InvalidTool("a diff must name the contract pin it starts from (from=) — an absent to="
+                    + " means the contract served now");
+        }
+        ToolRevision left = revisionCarrying(toolId, requirePin(fromPin), "from");
+        ToolRevision right;
+        if (toPin == null) {
+            right = revisions.findTopByToolIdOrderByRevisionDesc(toolId)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "tool \"" + toolId + "\" has a row but no recorded revision"));
+        } else if (toPin.isBlank()) {
+            throw new InvalidTool("to names the contract pin the diff ends at — omit the parameter entirely to"
+                    + " compare against the contract served now");
+        } else {
+            right = revisionCarrying(toolId, requirePin(toPin), "to");
+        }
+        String leftPin = contractSha256(left);
+        String rightPin = contractSha256(right);
+        boolean identical = leftPin.equals(rightPin);
+        return new ContractComparison(toolId,
+                side(left, leftPin), side(right, rightPin),
+                identical,
+                !left.getSummary().equals(right.getSummary()),
+                identical ? ContractComparison.SchemaDiff.none()
+                        : JsonPointers.diff(schemaOf(left), schemaOf(right)));
+    }
+
+    private static ContractComparison.Side side(ToolRevision revision, String pin) {
+        return new ContractComparison.Side(revision.getRevision(), revision.getSummary(), pin,
+                revision.getRecordedAt().toEpochMilli());
+    }
+
+    /** The recorded revision whose own bytes hash to this pin, under the label of the end that named it. */
+    private ToolRevision revisionCarrying(String toolId, String pin, String end) {
         return revisions.findByToolIdOrderByRevisionDesc(toolId).stream()
-                .filter(revision -> wanted.equals(contractSha256(revision)))
+                .filter(revision -> pin.equals(contractSha256(revision)))
+                .findFirst()
+                .orElseThrow(() -> new UnknownPin("tool \"" + toolId + "\" has no revision carrying the "
+                        + end + " pin \"" + pin + "\" — it may never have been written here, or retention may"
+                        + " have removed it"));
+    }
+
+    /** The same scan for a read that names no end: the pin in the message is simply "the pin". */
+    private ToolRevision revisionCarrying(String toolId, String pin) {
+        return revisions.findByToolIdOrderByRevisionDesc(toolId).stream()
+                .filter(revision -> pin.equals(contractSha256(revision)))
                 .findFirst()
                 .orElseThrow(() -> new UnknownPin("tool \"" + toolId + "\" has no revision carrying the pin \""
-                        + wanted + "\" — it may never have been written here, or retention may have removed it"));
+                        + pin + "\" — it may never have been written here, or retention may have removed it"));
     }
     /**
      * The WHOLE number of recorded revisions of one declaration — of the NARROWED history when {@code since}

@@ -143,6 +143,47 @@ public final class ToolDtos {
             boolean current) {
     }
     /**
+     * M10 v614 - one end of a DIFF between two recorded contracts: which revision, the sentence it carried,
+     * and the pin it hashes to. The schema is deliberately absent - the pin beside it is the way to the bytes,
+     * and repeating up to 8192 canonical bytes on both sides of a comparison would hide the answer.
+     */
+    public record ContractSide(
+            int revision,
+            String summary,
+            String contractSha256,
+            long recordedAt) {
+    }
+
+    /**
+     * M10 v614 - the SCHEMA paths that differ between two contracts, as RFC 6901 JSON Pointers.
+     *
+     * <p>A path appears in exactly one list: {@code added} exists only on the {@code to} side, {@code removed}
+     * only on the {@code from} side, {@code changed} on both with a different value. An array is compared by
+     * INDEX, so an insertion near the front reads as changes at every later index rather than as a move.
+     */
+    public record SchemaDiff(
+            List<String> added,
+            List<String> removed,
+            List<String> changed) {
+    }
+
+    /**
+     * M10 v614 - what changed between two contracts of ONE declaration, named by the pins the caller holds.
+     *
+     * <p>{@code identical} is decided by the pins (a pin hashes the summary and the canonical schema), so equal
+     * pins mean equal contracts and the three path lists are empty. {@code summaryChanged} is stated beside the
+     * paths because the summary is part of the contract but not part of the schema, and a caller deciding
+     * whether to re-read a tool's sentence should not have to compare the two sides itself.
+     */
+    public record ContractDiff(
+            String toolId,
+            ContractSide from,
+            ContractSide to,
+            boolean identical,
+            boolean summaryChanged,
+            SchemaDiff schema) {
+    }
+    /**
      * One entry in the registry's journal: what happened, to which declaration, in what order.
      *
      * <p>{@code seq} is the cursor a caller advances. {@code name} is the declaration's name AT the time of the
