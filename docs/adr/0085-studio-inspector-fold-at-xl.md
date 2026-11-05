@@ -32,11 +32,11 @@
 
 ## 后果
 
-- 1280×900 实测（`e2e/studio-inspector-fold.spec.ts`，1 passed / 4.5s）：
-  `[data-canvas-surface]` **672.0 → 972.0（+300.0）→ 672.0**；折起后页面级横向溢出 **0**。
+- 1280×900 与 1440×900 实测（`e2e/studio-inspector-fold.spec.ts`，1 passed / 17.6s）：
+  `[data-canvas-surface]` 1280 **672.0 → 972.0（+300.0）→ 672.0**，1440 **832.0 → 1132.0 → 832.0**；
+  常驻时的宽度钉 `视口 - 608`（44 + 264 + 300），差超过 8px 就红；折起后页面级横向溢出 **0**。
 - 两个入口都 ≥24×24；`aria-controls="nexus-inspector"` 指到真面板，`aria-expanded` 在「属性」上为 false。
 - 臂：把 `xl:hidden` 摘掉（折起不隐藏面板）⇒ 红在「折起后属性栏应当从布局里退出」；恢复后 1 passed。
 - 截图 `screenshots/studio-1280-inspector-expanded.png` / `studio-1280-inspector-folded.png`：
   折起后画布明显变宽，右缘竖排「属性」标签不压 DEMO MODE 徽标（第一版 `top-[52px]` 会压住，已改垂直居中）。
-- 仍欠：属性栏折起后不记忆（见上）；<xl 的底部浮层没有"折起"概念（它本来就是浮层）；
-  1440 以上的常驻属性栏没有单独的折叠读数（同一套类在 xl 生效，逻辑上一致，但没量）。
+- 仍欠：属性栏折起后不记忆（见上）；<xl 的底部浮层没有"折起"概念（它本来就是浮层）。
