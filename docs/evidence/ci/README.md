@@ -328,11 +328,12 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
-the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **62
-fixture arms** prove each refusal on a synthetic plane — the fourteen above, six that drift one README number
-each, eleven that dispose the manifest's blind side, twelve that dispose the tools corpus behind it (the next
-three blocks), seven that grade the numbers those deferrals state, eight that recompute the roster this sentence
-lives in and four that grade the marker the proof carries in its own header; the prose-import arm
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **100
+fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README number
+each, twenty-four that dispose the manifest's blind side, seventeen that dispose the tools corpus behind it (the
+next three blocks), seven that grade the numbers those deferrals state, eight that recompute the roster this
+sentence lives in, seven that grade the marker the proof carries in its own header and eight that grade the arms
+list itself; the prose-import arm
 proves the tokenizer is the sweep's, not a byte regex.
 
 **The manifest's other half.** The population above is `git ls-files -- docs/evidence`, which answers "does every
@@ -396,15 +397,46 @@ than hidden: any other "<word> that" inside the region is taken for a family cla
 number, so the sentence keeps one shape or the row goes red and asks for the edit.
 
 **And the copy inside this file is graded like the one outside it (v611).** The proof's header quotes the same
-roster in one marked line (— // ROSTER 62 arms in 7 families — A14 · R6 · M11 · T12 · N7 · X8 · S4 — and the census reads its own bytes every run) and grades it
-against the same roster the README sentence above answers to: the total, the family count, the count in every
-pair, the pairs' sum against their own headline, and the shape of the line itself. Four arms S1→S4 aim at
-those refusals — a stale total, a marker deleted, one pair the list does not count, a marker rewritten out of
-its grammar. What the clause refuses to grade is stated as plainly as what it grades: the header's historical
+roster in one marked line — the shape is `// ROSTER <n> arms in <k> families — <label><count> · …`, and this
+paragraph quotes the shape rather than the bytes because nothing grades prose here, so a number copied into it
+would be a fourth copy of a list that moves every time an arm lands. The census reads its own bytes every run, and
+grades that line against the same roster the README sentence above answers to: the total, the family count, the
+count in every pair, the pairs' sum against their own headline, and the shape of the line itself. Four arms S1→S4
+aimed at those refusals at v611 — a stale total, a marker deleted, one pair the list does not count, a marker
+rewritten out of its grammar — and S5→S7 aim at the pairs' arithmetic, landing with the increment below. What the
+clause refuses to grade is stated as plainly as what it grades: the header's historical
 prose keeps its numbers, because a count written about a roster at one commit is a record while the marker is a
 claim about the roster now, and the marker keys only on this file's own arm names, never on the tracked-module
 counts — those move under a shared working tree, and a clause that reddened the build for work another lane
 has in flight would be a hazard, not a gate.
+
+**The arms list is asked what it proved (v624).** An arm is a name, a patch and a check, and until this clause
+nothing said what the check had to catch: `[arms] N/N MATCHED` measures that each arm's check FOUND a refusal, not
+that the refusal it found is one this file authors, so an arm asserting a sentence nobody wrote passes on a plane
+where nothing was proved. `refusalSites` therefore indexes every refusal the proof writes, keyed by the function
+that says it and the order it says it in, taking the message's literal text with its `${…}` holes cut out — at this
+ref **93** refusations, plus **7** pushes that forward a list another function wrote, counted and not indexed
+because their text belongs to the function that authors it. `armCoverage` asks one question per refusal: which
+arm's own run produced a violation that text matches? Seven refusals follow, armed by C1→C8 on a fixture plane of
+their own — a synthetic proof with three refusations, two sets that reach them and one declaration, because the
+real list cannot witness itself: a push this reader cannot close, a refusal no arm reaches that no row declares, a
+declaration naming a site this file does not author, one site excused twice, a declaration without a falsifiable
+reason or without the arm it owes, a declaration whose refusal an arm now reaches, and an arm that produced a
+refusal no site authors. `UNARMED` is the debt table for a refusal no arm reaches; it held eighteen rows when this
+increment started and holds none now, because each of them turned out to be armable with the cheapest patch that
+raises the sentence it names. Thirty-eight arms landed here — eight that grade the coverage grader, eighteen that
+pay the debt those rows carried, twelve for refusations no row had ever claimed — and the two closure refusals,
+which ask whether the classes add up to the listing they were read from, turned out to be reachable through that
+listing: a path arriving twice from `git ls-files` collapses in the class map, the sum comes up one short of the
+population, and nothing else would ever have noticed. The cost of the index is stated rather than hidden: a doc
+comment that quotes the call WITH its opening bracket is taken for a site and reddens the row, because a refusal this
+reader cannot find is a refusal this reader cannot count. A roster this long writes its family counts as compounds, so
+the reader of the sentence above learned them — `twenty-four` parses, `fifty-odd` is still refused. Two bounds, named:
+the index grades this file's refusals only (another proof's arm list is that proof's own tally), and it asks the
+weaker, re-runnable question — that the sentence an arm raises exists here — rather than proving the arm's patch
+caused it. One record-keeping note, because a shared history rations its numbers: this increment was written as v612
+and lands as v624 — amendment 555 took v612, and v613 to v623 went with it, in other lanes while these arms were
+being written — so the label a reader should cite for this clause is the commit whose subject says v624.
 
 
 Four rows that needed nothing but Node walked through the door in the same increment:

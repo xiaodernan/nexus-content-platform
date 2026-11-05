@@ -202,15 +202,40 @@
 // numbers — v533's eighty-one is a fact about v533 — so the claim that must not drift gets a MARKED line rather
 // than a sentence, and sourceRosterDrift parses only that shape:
 //   ROSTER <n> arms in <k> families — <label><count> · …      (one line, the roster in full)
-// Six refusals: the line absent, the line reshaped, a headline the list no longer matches, a family count that is
-// not what the list says, pairs whose sum is not the headline, and a pair that is not a label plus a count. Four
-// arms aim at them, S1 → S4, on the same synthetic plane, where the fixture header states the SAME list the real
-// one does — the arms are one list, so a marker here and a marker there are read by the same function. The bound is
-// named: this line keys on this file's own arm names and nothing else. The census's other counts — tracked modules,
-// rows, the tools population — move under a shared working tree the moment another lane wires a script, and a
-// marker keyed to them would redden this row for work nobody asked it to review; the README already carries those
-// numbers, and they are the repository's to update.
-// ROSTER 62 arms in 7 families — A14 · R6 · M11 · T12 · N7 · X8 · S4
+// Six refusals became eight as the marker's own arithmetic got readers: the line absent, the line reshaped, a
+// headline the list no longer matches, a family count that is not what the list says, a pair list whose length is
+// not the family count, a pair that is not a label plus a count, pairs whose sum is not the headline, and a family
+// whose pair names the wrong number. Seven arms aim at them, S1 → S7, on the same synthetic plane, where the fixture
+// header states the SAME list the real one does — the arms are one list, so a marker here and a marker there are
+// read by the same function. The bound is named: this line keys on this file's own arm names and nothing else. The
+// census's other counts — tracked modules, rows, the tools population — move under a shared working tree the moment
+// another lane wires a script, and a marker keyed to them would redden this row for work nobody asked it to review;
+// the README already carries those numbers, and they are the repository's to update.
+//
+// v624 (this increment; the label was v612 until this lane read its own history — amendment 555 is v612, written
+// by another lane while this one was in flight, and v613 to v623 went the same way, so a second v612 would have
+// been two records answering to one name. The ADR 0016 section is still owed for this lane's v606-v611 and for
+// this increment, and the ledger files sit in another lane's uncommitted set, so this header keeps the record) -
+// THE ARMS LIST IS GRADED BY THE CENSUS IT ARMS. v610 and v611
+// put readers on the two COPIES of the roster; the list itself still answered for nothing. An arm is a name, a patch
+// and a check, and until now nothing said what the check must catch: an arm whose check asserts a sentence no
+// refusal authors is an arm that passes on a plane where nothing was proved. So refusalSites indexes every
+// `violations.push` in this file by the function that says it and the order it says it in, taking the literal text
+// of the message with its `${…}` holes cut out, and armCoverage asks one question per refusal: which arm's own run
+// produced a violation that text matches? Seven answers follow — a push this reader cannot close, a refusal no arm
+// reaches that no row declares, a declaration naming a site this file does not author, a duplicate declaration, a
+// declaration without a falsifiable reason or without the arm it owes, a declaration whose site an arm now reaches,
+// and an arm whose produced text no site authors. The grader runs on a fixture plane of its own (a synthetic proof
+// with three refusations, two arms that reach them and one declaration), because the arms are on the plane they
+// grade: pointing the real list at the real file would make every arm a witness for itself. UNARMED is the debt
+// table for a refusal no arm reaches, and v624 emptied it. Thirty-eight arms landed with this paragraph: eight that
+// grade the coverage grader itself, eighteen that pay the debt each declared row carried, and twelve for refusations
+// the index found that no row had ever claimed — and the closure refusals turn out to be reachable after all,
+// because the census counts a LISTING, so a path arriving twice from git closes at seven over a population of eight.
+// A roster this long writes its family counts as compounds, so the README's number reader learned them: twenty-four
+// parses, and fifty-odd is still refused rather than skipped. The count prints every run — refusations authored,
+// reached, declared, unaccounted — and the assert refuses the last.
+// ROSTER 100 arms in 8 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8
 //
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
@@ -867,7 +892,7 @@ export function toolsCensusOf({ index, scripts, read, manifestReport, standby = 
  * Everything below the CLI is exercised by the fixture arms at the bottom, so the refusals are measured on a
  * synthetic plane rather than assumed from reading the code.
  */
-export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null, index = [], workflow = null, manifest = [], standby = [], source = null }) {
+export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null, index = [], workflow = null, manifest = [], standby = [], source = null, coverage = null }) {
   const rows = new Map(derivePopulation(scripts).map((r) => [r.file, r]));
   const trackedSet = new Set(tracked);
   const rosterByFile = new Map();
@@ -936,6 +961,9 @@ export function censusOf({ tracked, scripts, excluded = [], roster = [], swept =
   // And the copy inside this file: the header quotes the roster in one marked line, so the number that moves most
   // often here has a reader even while the ADR sections sit in another lane's held files.
   violations.push(...sourceRosterDrift({ source, roster: armRoster }));
+  // The arms themselves are on the plane: the fixture carries a small synthetic proof whose refusations are
+  // reached, declared or missing, so the grader of the arms list is measured like every other refusal here.
+  if (coverage !== null) violations.push(...armCoverage(coverage));
 
   // The mirror question: not "does every module have a channel" but "does every verify:* NAME have one". Same
   // plane, same call, so one verdict covers both directions and neither can be answered without the other.
@@ -1001,6 +1029,17 @@ const NUMBER_WORDS = {
   nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
 };
 
+/** A family count written in words, compound included: an arms list past ninety says twenty-four, not 24. */
+function numberWord(word) {
+  const parts = String(word).split('-');
+  const tens = NUMBER_WORDS[parts[0]];
+  if (tens === undefined) return undefined;
+  if (parts.length === 1) return tens;
+  const unit = parts.length === 2 ? NUMBER_WORDS[parts[1]] : undefined;
+  if (tens < 20 || tens % 10 !== 0 || unit === undefined || unit > 9) return undefined;
+  return tens + unit;
+}
+
 /**
  * The fixture-arms roster, DERIVED from the arm names rather than copied out of them: one entry per name prefix,
  * in the order the arms first appear. This is the fact the README's sentence is measured against (v610).
@@ -1054,11 +1093,12 @@ export function readmeArmsDrift({ readme, roster }) {
   const stated = [];
   for (const m of body.slice(0, end).matchAll(/\b([A-Za-z][\w-]*)\s+(?:above|that)\b/g)) {
     const word = m[1];
-    if (NUMBER_WORDS[word] === undefined) {
-      violations.push(`the README's arms breakdown states a family as "${m[0]}" — ${JSON.stringify(word)} is not a number this reader parses (one…twenty, thirty…ninety), so the claim cannot be checked and is refused rather than skipped`);
+    const n = numberWord(word);
+    if (n === undefined) {
+      violations.push(`the README's arms breakdown states a family as "${m[0]}" — ${JSON.stringify(word)} is not a number this reader parses (one…twenty, thirty…ninety, and a compound such as twenty-four), so the claim cannot be checked and is refused rather than skipped`);
       return violations;
     }
-    stated.push({ word, n: NUMBER_WORDS[word], phrase: m[0] });
+    stated.push({ word, n, phrase: m[0] });
   }
   if (stated.length !== roster.families.length) {
     violations.push(`the README's arms breakdown names ${stated.length} families; the arms list defines ${roster.families.length} (${roster.families.map((f) => `${f.label}${f.count}`).join(' ')}) — state each family's count or the sentence rests on a copy`);
@@ -1118,6 +1158,168 @@ export function sourceRosterDrift({ source, roster }) {
   });
   return violations;
 }
+
+/**
+ * A refusal this file AUTHORS, keyed by the function that says it and the order it says it in. The key is
+ * stable across edits elsewhere; a line number would rot the day someone asks for a shorter message.
+ */
+const FRAME_CLOSE = { ')': '(', ']': '[', '}': '{' };
+/**
+ * Where a bracketed expression ends, with the frames it opens on a stack. Parens, braces and template
+ * interpolations counted in one depth variable is how a first draft ran one push into the six refusals after
+ * it and read the whole file as a single message. A doc comment that quotes the call with its opening bracket
+ * trips the same reader, which is why this one does not: the index below takes a closed push as an authored
+ * refusal, and prose that mimics one is prose the census would count twice.
+ */
+function scanFrame(text, open) {
+  const st = [{ c: text[open], outer: true }];
+  for (let i = open + 1; i < text.length; i += 1) {
+    const top = st.at(-1);
+    const c = text[i];
+    if (top.c === "'" || top.c === '"') {
+      if (c === '\\') { i += 1; continue; }
+      if (c === top.c) st.pop();
+      continue;
+    }
+    if (top.c === '`') {
+      if (c === '\\') { i += 1; continue; }
+      if (c === '$' && text[i + 1] === '{') { st.push({ c: '{' }); i += 1; continue; }
+      if (c === '`') st.pop();
+      continue;
+    }
+    if (c === "'" || c === '"' || c === '`' || c === '(' || c === '[' || c === '{') { st.push({ c }); continue; }
+    if (c === ')' || c === ']' || c === '}') {
+      const want = FRAME_CLOSE[c];
+      let at = -1;
+      for (let j = st.length - 1; j >= 0; j -= 1) if (st[j].c === want) { at = j; break; }
+      if (at === -1) return -1;
+      const popped = st.splice(at);
+      if (popped[0].outer) return i;
+    }
+  }
+  return -1;
+}
+
+const flatText = (s) => String(s).replace(/\s+/g, ' ').trim();
+const unescapeText = (b) => b.replace(/\\n|\\t/g, ' ').replace(/\\(['"`\\])/g, '$1');
+
+/** The literal text a message expression authors, with every `${…}` hole cut out of it. */
+function literalSegments(expr) {
+  const out = [];
+  let i = 0;
+  while (i < expr.length) {
+    const c = expr[i];
+    if (c === "'" || c === '"') {
+      let j = i + 1;
+      let buf = '';
+      while (j < expr.length && expr[j] !== c) {
+        if (expr[j] === '\\') { buf += expr.slice(j, j + 2); j += 2; continue; }
+        buf += expr[j];
+        j += 1;
+      }
+      const text = flatText(unescapeText(buf));
+      if (text.length >= 8) out.push(text);
+      i = j + 1;
+    } else if (c === '`') {
+      let j = i + 1;
+      let buf = '';
+      const flush = () => {
+        const t = flatText(unescapeText(buf));
+        if (t.length >= 8) out.push(t);
+        buf = '';
+      };
+      while (j < expr.length && expr[j] !== '`') {
+        if (expr[j] === '\\') { buf += expr.slice(j, j + 2); j += 2; continue; }
+        if (expr[j] === '$' && expr[j + 1] === '{') {
+          flush();
+          const close = scanFrame(expr, j + 1);
+          if (close === -1) return out;
+          j = close + 1;
+          continue;
+        }
+        buf += expr[j];
+        j += 1;
+      }
+      flush();
+      i = j + 1;
+    } else i += 1;
+  }
+  return out;
+}
+
+/** A produced message matches an authored site when every literal the site authors appears in it, in order. */
+export function segmentsMatch(message, segs) {
+  const flat = flatText(message);
+  let from = 0;
+  for (const seg of segs) {
+    const at = flat.indexOf(seg, from);
+    if (at === -1) return false;
+    from = at + seg.length;
+  }
+  return true;
+}
+
+export function refusalSites(source) {
+  const src = String(source ?? '');
+  const names = [];
+  for (const m of src.matchAll(/^(?:export )?(?:async )?function (\w+)|^const (\w+) = (?:async )?\(/gm)) names.push({ name: m[1] ?? m[2], at: m.index });
+  const sites = [];
+  const forwards = [];
+  const unreadable = [];
+  const counts = {};
+  for (const m of src.matchAll(/violations\.push\(/g)) {
+    const open = m.index + 'violations.push'.length;
+    const close = scanFrame(src, open);
+    const line = src.slice(0, m.index).split('\n').length;
+    if (close === -1) {
+      unreadable.push(`L${line}`);
+      continue;
+    }
+    const fn = names.filter((n) => n.at < m.index).at(-1)?.name ?? '(top level)';
+    const segs = literalSegments(src.slice(open + 1, close));
+    if (segs.length === 0) {
+      forwards.push(`${fn}#L${line}`);
+      continue;
+    }
+    counts[fn] = (counts[fn] ?? 0) + 1;
+    sites.push({ key: `${fn}#${counts[fn]}`, fn, line, segs });
+  }
+  return { sites, forwards, unreadable };
+}
+
+/**
+ * The arms are asked what they proved. Every refusal this file authors is either reached by an arm's own run
+ * or declared in UNARMED with the arm it owes; a declaration whose site an arm now reaches is refused, so the
+ * table can only ever shrink, and an arm whose produced text no site authors says the reader and the writer
+ * have come apart.
+ */
+export function armCoverage({ source, sets = [], declared = [] }) {
+  const violations = [];
+  const { sites, forwards, unreadable } = refusalSites(source);
+  if (unreadable.length > 0) violations.push(`${unreadable.length} violations.push() call(s) in this file cannot be closed by this reader (${unreadable.join(', ')}) — a refusal it cannot find is a refusal it cannot count, and the index below is short by that much`);
+  const reachedBy = (site) => sets.filter((s) => (s.violations ?? []).some((v) => segmentsMatch(v, site.segs))).map((s) => String(s.name).split(' ')[0]);
+  const keys = new Map();
+  for (const d of declared) {
+    if (keys.has(d.key)) violations.push(`the unarmed table declares ${d.key} twice — two excuses for one refusal are two answers to one question`);
+    keys.set(d.key, d);
+    if (!sites.some((s) => s.key === d.key)) violations.push(`the unarmed table declares ${d.key}, which this file does not author — a record of a refusal that has gone outlives the refusal and miscounts the census`);
+    if (typeof d.why !== 'string' || d.why.trim().length < 24) violations.push(`${d.key} is declared unarmed without a reason a reader can falsify (${JSON.stringify(String(d.why ?? '').slice(0, 40))}) — an excuse is not a disposition`);
+    if (typeof d.next !== 'string' || d.next.trim().length < 12 || !/^arm [A-Za-z]+\d+/.test(d.next.trim())) violations.push(`${d.key} is declared unarmed without naming the arm that owes it (${JSON.stringify(String(d.next ?? '').slice(0, 40))}) — "later" is a permanent exclusion wearing a new word`);
+  }
+  const unaimed = sites.filter((s) => reachedBy(s).length === 0 && !keys.has(s.key));
+  if (unaimed.length > 0) violations.push(`${unaimed.length} refusal(s) in this file rise on no plane and are declared by nobody: ${unaimed.map((s) => s.key).join(', ')} — an untested refusal is a sentence about what the census WOULD say, not a measurement that it does`);
+  for (const site of sites) {
+    const reached = reachedBy(site);
+    if (reached.length > 0 && keys.has(site.key)) violations.push(`${site.key} is declared unarmed, but ${[...new Set(reached)].join(', ')} reaches it — the excuse no longer excuses; delete the row`);
+  }
+  const stranded = sets.filter((s) => (s.violations ?? []).length > 0 && !sites.some((site) => (s.violations ?? []).some((v) => segmentsMatch(v, site.segs)))).map((s) => String(s.name).split(' ')[0]);
+  if (stranded.length > 0) violations.push(`arm(s) ${[...new Set(stranded)].join(', ')} produced a refusal this file does not author — the scanner and the writer disagree about what a red looks like, so neither index nor arm can be trusted`);
+  return violations;
+}
+
+// The fixture plane quotes pushes as PUSH(; opening them here keeps the quote out of this file's own index.
+const FX_PUSH = 'violations' + '.push(';
+const fxOpened = (coverage) => ({ ...coverage, source: String(coverage.source).replaceAll('PUSH(', FX_PUSH) });
 
 // ── the fixture arms: every refusal above, measured on a synthetic plane ─────────────────────────────
 const BASE = () => ({
@@ -1201,12 +1403,33 @@ const BASE = () => ({
     },
   ],
   // The proof's own header, on this plane: one marked ROSTER line and the prose around it. The numbers are the same
-  // list the real header states, because the arms ARE this list — so S1→S4 drift the marker, not a copy of it.
+  // list the real header states, because the arms ARE this list — so S1→S7 drift the marker, not a copy of it.
   source: [
     '// fixture header — the record this file keeps while the ledger files sit in another lane',
-    '// ROSTER 62 arms in 7 families — A14 · R6 · M11 · T12 · N7 · X8 · S4',
+    '// ROSTER 100 arms in 8 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8',
     '// end fixture header',
   ].join('\n'),
+  // A synthetic proof for the coverage grader: three refusations, two reached by a named arm, one declared.
+  // The pushes are written PUSH( and opened by fxOpened() because an index that read a QUOTED push in this
+  // file as an authored refusal would count the census twice — once for the code and once for the fixture.
+  coverage: fxOpened({
+    source: [
+      'function fxRows({ rows, late }) {',
+      '  const violations = [];',
+      "  if (!rows) PUSH('no rows were supplied, so the fixture grader measured nothing at all');",
+      '  if (late) PUSH(`the fixture row ${late} arrived after the census closed and no reader can re-walk it`);',
+      '  if (rows === "many") PUSH(`the fixture census closed at ${rows} over nothing anyone can re-run`);',
+      '  return violations;',
+      '}',
+    ].join('\n'),
+    sets: [
+      { name: 'K1 the missing rows', violations: ['no rows were supplied, so the fixture grader measured nothing at all'] },
+      { name: 'K2 a row after the close', violations: ['the fixture row late arrived after the census closed and no reader can re-walk it'] },
+    ],
+    declared: [
+      { key: 'fxRows#3', why: 'the synthetic plane closes over nothing until an arm gives it a row to close on', next: 'arm K3 the fixture census that closes over nothing' },
+    ],
+  }),
   // The README is part of the plane: it restates the counts above in the same shapes the real file uses,
   // so the control arm proves the reader agrees with a correct table before any arm drifts one number.
   readme: [
@@ -1221,11 +1444,11 @@ const BASE = () => ({
     'The census below gives every one of the **7** tracked modules a disposition, and the derived population is',
     '**1 running rows + 1 excluded by name** at this ref.',
     '',
-    '**62 fixture arms** prove each refusal on a synthetic plane — the fourteen above, six that drift one README',
-    "each, eleven that dispose the manifest's blind side, twelve that dispose the tools corpus behind it, seven",
-    'that grade the numbers those deferrals state, eight that recompute the roster this sentence lives in and four',
-    "that grade the marker this file carries in its own header; the prose-import arm proves the tokenizer is the",
-    "sweep's, not a byte regex.",
+    '**100 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README',
+    "number each, twenty-four that dispose the manifest's blind side, seventeen that dispose the tools corpus",
+    "behind it, seven that grade the numbers those deferrals state, eight that recompute the roster this sentence",
+    'lives in, seven that grade the marker this file carries in its own header and eight that grade the arms list',
+    "itself; the prose-import arm proves the tokenizer is the sweep's, not a byte regex.",
   ].join('\n'),
   scripts: {
     'verify:row': 'node docs/evidence/x/row-proof.mjs',
@@ -1317,6 +1540,49 @@ const ARMS = [
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('docs/evidence/x/leaf.mjs') && v.includes('not a row')), r.violations.join(' | '));
   }],
+  ['A14 a declaration of a class the census derives', (f) => { f.roster[0].class = 'swept'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('the roster gives docs/evidence/x/tool.mjs the class "swept"') && v.includes('are DERIVED')), `declarable class: ${r.violations.join(' | ')}`);
+  }],
+  ['A15 a deferral that states no measurement', (f) => {
+    f.roster.push({
+      file: 'docs/evidence/x/swept-proof.mjs',
+      class: 'deferred',
+      run: 'node docs/evidence/x/swept-proof.mjs',
+      why: 'a deferral is a measurement, a blocker and a next; this arm takes the first of the three away',
+      measured: '',
+      blocker: 'the prerequisite is named in full, so the refusal rises on the missing measurement alone',
+      next: 're-read the count off the bytes and correct this field, which is what the refusal asks for',
+    });
+    f.swept = []; // keep the entry a deferral rather than a derived swept row
+    f.readme = f.readme.replace('| SWEPT | **1**', '| SWEPT | **0**').replace('| DEFERRED | **0**', '| DEFERRED | **1**');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('is deferred without a measurement')), `no measurement: ${r.violations.join(' | ')}`);
+  }],
+  ['A16 a deferral that names no sandbox prerequisite', (f) => {
+    f.roster.push({
+      file: 'docs/evidence/x/swept-proof.mjs',
+      class: 'deferred',
+      run: 'node docs/evidence/x/swept-proof.mjs',
+      why: 'a deferral is a measurement, a blocker and a next; this arm takes the blocker away',
+      measured: '1 line; 1.0 s on a synthetic plane, 2026-10-28',
+      blocker: '',
+      next: 'name the prerequisite the sandbox does not stand up, which is what the refusal asks for',
+    });
+    f.swept = [];
+    f.readme = f.readme.replace('| SWEPT | **1**', '| SWEPT | **0**').replace('| DEFERRED | **0**', '| DEFERRED | **1**');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('is deferred without naming the sandbox prerequisite')), `no blocker: ${r.violations.join(' | ')}`);
+  }],
+  ['A17 a population that lists one module twice', (f) => {
+    // The census reads the listing, not a set, so a path arriving twice from git is this reader's own bug — and
+    // the closure arithmetic is the only place that bug can surface.
+    f.tracked = [...Object.keys(f.files).filter((p) => p.startsWith('docs/evidence/')), 'docs/evidence/x/leaf.mjs'];
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('the census closes at 7 over a population of 8')), `closure arithmetic: ${r.violations.join(' | ')}`);
+  }],
+  ['A18 a census with no README to check its counts against', (f) => { f.readme = ''; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('no README was supplied')), `missing README: ${r.violations.join(' | ')}`);
+  }],
   ['R1 a README ROW total that drifted', (f) => { f.readme = f.readme.replace('| ROW | **2**', '| ROW | **3**'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes("the README's ROW row says 3 rows")), r.violations.join(' | '));
   }],
@@ -1342,6 +1608,26 @@ const ARMS = [
     f.readme = f.readme.replace('**1 running rows + 1 excluded by name**', '**2 running rows + 0 excluded by name**');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('says 2 running + 0 excluded')), r.violations.join(' | '));
+  }],
+  ['R7 a README whose ROW row is written so nothing reads it', (f) => {
+    f.readme = f.readme.replace('| ROW | **2** (1 run + 1 excluded) | a verify:* script, synthetic on this plane |', '| ROW | rows, as they always were | the census prints them |');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('the README has no readable ROW row')), `unreadable ROW row: ${r.violations.join(' | ')}`);
+  }],
+  ['R8 a README ROW cell that stopped stating its split', (f) => {
+    f.readme = f.readme.replace('(1 run + 1 excluded)', '(one run, one excluded)');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('ROW cell no longer states "(N run + M excluded)"')), `missing split: ${r.violations.join(' | ')}`);
+  }],
+  ['R9 a README tracked-modules sentence reshaped', (f) => {
+    f.readme = f.readme.replace('every one of the **7** tracked modules', 'all seven of the tracked modules');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('"tracked modules" sentence is missing or reshaped')), `reshaped tracked sentence: ${r.violations.join(' | ')}`);
+  }],
+  ['R10 a README "at this ref" sentence reshaped', (f) => {
+    f.readme = f.readme.replace('**1 running rows + 1 excluded by name** at this ref', 'one running row and one excluded by name here');
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('"running rows ... at this ref" sentence is missing or reshaped')), `reshaped at-ref sentence: ${r.violations.join(' | ')}`);
   }],
   // ── the manifest arms: every `verify:*` name owes a disposition ──────────────────────────────────────
   ['M1 a new verify:* script nobody disposed', (f) => { f.scripts['verify:ghost'] = 'node tools/harness/fx-browser.mjs'; }, (r) => {
@@ -1395,6 +1681,58 @@ const ARMS = [
   }],
   ['M11 one script disposed twice', (f) => { f.manifest.push({ ...f.manifest[0] }); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('verify:runner') && v.includes('twice')), `duplicate: ${r.violations.join(' | ')}`);
+  }],
+  ['M12 the manifest census with no workflow to read', (f) => { f.workflow = null; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('no workflow text was supplied')), `no workflow: ${r.violations.join(' | ')}`);
+  }],
+  ['M13 a disposition that declares the class the census derives', (f) => { f.manifest[0].class = 'row'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:runner is disposed with the class "row"') && v.includes('row is DERIVED')), `undeclarable class: ${r.violations.join(' | ')}`);
+  }],
+  ['M14 a disposition whose reason cannot be re-read', (f) => { f.manifest[0].why = 'because'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:runner is disposed without a reason a reader can falsify')), `unfalsifiable why: ${r.violations.join(' | ')}`);
+  }],
+  ['M15 a runner whose command is a shell line rather than a door', (f) => {
+    f.scripts['verify:runner'] = 'npm ci && node tools/ci/runner.mjs';
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:runner is disposed as the runner, yet its command') && v.includes('is not one node call')), `runner that is not one call: ${r.violations.join(' | ')}`);
+  }],
+  ['M16 a runner that duplicates a derived row', (f) => {
+    f.files['docs/evidence/x/door-proof.mjs'] = '// the fixture door that is already a row\n';
+    f.scripts['verify:runner'] = 'node docs/evidence/x/door-proof.mjs';
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('while its target docs/evidence/x/door-proof.mjs sits under docs/evidence/') && v.includes('not a door')), `runner duplicating a row: ${r.violations.join(' | ')}`);
+  }],
+  ['M17 a coverage claim without a subject', (f) => { f.manifest[1].subject = ''; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('disposed as covered without naming the subject path')), `no subject: ${r.violations.join(' | ')}`);
+  }],
+  ['M18 a coverage claim without a tool', (f) => { f.manifest[1].tool = ''; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('disposed as covered without naming the tool')), `no tool: ${r.violations.join(' | ')}`);
+  }],
+  ['M19 a coverage claim about a path no clone holds', (f) => {
+    f.manifest[1].subject = 'services/nexus-api/ghost.xml';
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:svc claims coverage of services/nexus-api/ghost.xml, which the commit does not own')), `subject outside the commit: ${r.violations.join(' | ')}`);
+  }],
+  ['M20 a coverage claim its own command does not make', (f) => {
+    f.scripts['verify:svc'] = 'mvn -B test';
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes("verify:svc's own command \"mvn -B test\" does not name the subject services/nexus-api/pom.xml")), `command that does not name its subject: ${r.violations.join(' | ')}`);
+  }],
+  ['M21 a deferral that blames a prerequisite of a command rather than a file', (f) => {
+    f.scripts['verify:browser'] = 'bash tools/harness/start.sh';
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:browser is disposed as deferred, yet its command') && v.includes('it must name one')), `deferral on a command: ${r.violations.join(' | ')}`);
+  }],
+  ['M22 a deferral on a door that exists only on the authoring box', (f) => {
+    f.scripts['verify:browser'] = 'node tools/harness/fx-ghost.mjs';
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:browser defers on tools/harness/fx-ghost.mjs, which the commit does not own')), `deferral on an unowned door: ${r.violations.join(' | ')}`);
+  }],
+  ['M23 a deferral with a sentence where its dependency belongs', (f) => { delete f.manifest[2].reach; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('verify:browser is deferred without naming the module its own code imports')), `deferral with no reach: ${r.violations.join(' | ')}`);
+  }],
+  ['M24 a manifest that closes at a number it did not reach', (f) => { f.manifest[0].class = 'observed'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('the manifest closes at 4 over 5 verify:* names')), `manifest closure: ${r.violations.join(' | ')}`);
   }],
   ['T1 a tools module nobody reaches', (f) => { f.files['tools/ci/fx-stray.mjs'] = '\n'; }, (r) => {
     assert.ok(r.tools.unreached.includes('tools/ci/fx-stray.mjs'), `stray: ${JSON.stringify(r.tools.unreached)}`);
@@ -1467,6 +1805,23 @@ const ARMS = [
   ['T12 a standby with no witness at all', (f) => { delete f.toolsStandby[0].reachedBy; }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('fx-dormant.mjs') && v.includes('no witness')), `unwitnessed: ${r.violations.join(' | ')}`);
   }],
+  ['T13 the tools census with no index to read', (f) => { f.index = []; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('no index was supplied to the tools census')), `empty index: ${r.violations.join(' | ')}`);
+  }],
+  ['T14 a standby that stands down an evidence module', (f) => { f.toolsStandby[0].path = 'docs/evidence/x/tool.mjs'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('TOOLS_STANDBY declares docs/evidence/x/tool.mjs, which is not a runnable module under tools/')), `standby outside the corpus: ${r.violations.join(' | ')}`);
+  }],
+  ['T15 a standby blaming a witness no clone holds', (f) => { f.toolsStandby[0].reachedBy = 'docs/evidence/x/ghost.mjs'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('blames docs/evidence/x/ghost.mjs, which the commit does not own')), `witness outside the commit: ${r.violations.join(' | ')}`);
+  }],
+  ['T16 a replacement the commit never owned', (f) => { f.toolsStandby[0].replacedBy = 'tools/ci/fx-ghost.mjs'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('claims tools/ci/fx-ghost.mjs grades the same face, and the commit does not own that file')), `replacement outside the commit: ${r.violations.join(' | ')}`);
+  }],
+  ['T17 a tools census that closes at a number it did not reach', (f) => {
+    f.index = [...Object.keys(f.files), 'tools/ci/fx-inner.mjs'];
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('the tools census closes at 6 over 7 modules under tools/')), `tools closure: ${r.violations.join(' | ')}`);
+  }],
   // ── the measurement arms: a deferral's numbers are graded against the bytes it blames (v609) ──────────
   ['N1 a manifest deferral whose line count drifted', (f) => {
     f.manifest[2].measured = '3 lines; navigates 127.0.0.1:3210, a URL this plane never starts, counted off the bytes of the module the entry names';
@@ -1516,19 +1871,19 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('no line count and no served address')), `unre-readable: ${r.violations.join(' | ')}`);
   }],
   // ── the roster arms: the README's own count of these arms is recomputed from the list, not copied (v610) ──
-  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**62 fixture arms**', '**54 fixture arms**'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('says 54 fixture arms; this census runs 62')), `stale total: ${r.violations.join(' | ')}`);
-    assert.ok(r.violations.some((v) => v.includes("add to 62 against its own total of 54")), `arithmetic: ${r.violations.join(' | ')}`);
+  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**100 fixture arms**', '**92 fixture arms**'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('says 92 fixture arms; this census runs 100')), `stale total: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("add to 100 against its own total of 92")), `arithmetic: ${r.violations.join(' | ')}`);
   }],
-  ['X2 one family number in the breakdown has drifted', (f) => { f.readme = f.readme.replace('eleven that dispose', 'ten that dispose'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('arm family 3 (M)') && v.includes('i.e. 10') && v.includes('counts 11 arms named M*')), `drifted family: ${r.violations.join(' | ')}`);
+  ['X2 one family number in the breakdown has drifted', (f) => { f.readme = f.readme.replace('twenty-four that dispose', 'twenty-three that dispose'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('arm family 3 (M)') && v.includes('i.e. 23') && v.includes('counts 24 arms named M*')), `drifted family: ${r.violations.join(' | ')}`);
   }],
   ['X3 a family the breakdown dropped', (f) => {
     // \\s+ rather than a space: the sentence is wrapped, and an anchor that only matches one wrapping is an arm
     // that goes quietly red when a reader asks for a shorter line.
-    f.readme = f.readme.replace(/, eleven\s+that\s+dispose\s+the\s+manifest's\s+blind\s+side/, '');
+    f.readme = f.readme.replace(/, twenty-four\s+that\s+dispose\s+the\s+manifest's\s+blind\s+side/, '');
   }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes("names 6 families; the arms list defines 7")), `dropped family: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("names 7 families; the arms list defines 8")), `dropped family: ${r.violations.join(' | ')}`);
   }],
   ['X4 a breakdown with no end the reader can take on trust', (f) => {
     f.readme = f.readme.replace('the prose-import arm proves', 'and the tokenizer is the sweep\'s, which proves');
@@ -1539,9 +1894,14 @@ const ARMS = [
     f.readme = f.readme.replace(/seven\s+that\s+grade/, 'eleventy that grade');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('eleventy') && v.includes('not a number this reader parses')), `unparseable: ${r.violations.join(' | ')}`);
+    // The compound in the same sentence is the reader's other half: a refusal raised because twenty-four could
+    // not be read would look exactly like this one, so the arm that proves words are read proves compounds too.
+    // Quoted as the reader quotes it — the refusal's own text names the shape it knows, so a bare word test
+    // would refuse the arm for the message it was written to raise.
+    assert.ok(!r.violations.some((v) => v.includes('a family as "twenty-four"')), `compound failed to parse: ${r.violations.join(' | ')}`);
   }],
   ['X6 the headline number written so no shape reads it', (f) => {
-    f.readme = f.readme.replace('**62 fixture arms** prove', 'about fifty-odd fixture arms, proved');
+    f.readme = f.readme.replace('**100 fixture arms** prove', 'about fifty-odd fixture arms, proved');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('states no "**N fixture arms**" total')), `missing headline: ${r.violations.join(' | ')}`);
   }],
@@ -1551,32 +1911,84 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('arms sentence is missing or reshaped')), `reshaped sentence: ${r.violations.join(' | ')}`);
   }],
   ['X8 two families whose numbers were swapped', (f) => {
-    f.readme = f.readme.replace('six that drift', '__swap__ that drift').replace('eleven that dispose', 'six that dispose').replace('__swap__ that drift', 'eleven that drift');
+    f.readme = f.readme.replace('ten that drift', '__swap__ that drift').replace('seven that grade the numbers', 'ten that grade the numbers').replace('__swap__ that drift', 'seven that drift');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('arm family 2 (R)') && v.includes('two families were swapped')), `swapped: ${r.violations.join(' | ')}`);
-    assert.ok(r.violations.some((v) => v.includes('arm family 3 (M)') && v.includes('two families were swapped')), `swapped back: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes('arm family 5 (N)') && v.includes('two families were swapped')), `swapped back: ${r.violations.join(' | ')}`);
   }],
   // ── the marker arms: the roster this file quotes in its own header is graded too (v611) ─────────────────
-  ['S1 the header marker states an out-of-date total', (f) => { f.source = f.source.replace('// ROSTER 62 arms', '// ROSTER 60 arms'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 60 arms; the arms list defines 62')), `stale marker total: ${r.violations.join(' | ')}`);
+  ['S1 the header marker states an out-of-date total', (f) => { f.source = f.source.replace('// ROSTER 100 arms', '// ROSTER 96 arms'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 96 arms; the arms list defines 100')), `stale marker total: ${r.violations.join(' | ')}`);
   }],
   ['S2 the header marker gone', (f) => {
-    f.source = f.source.replace('// ROSTER 62 arms in 7 families — A14 · R6 · M11 · T12 · N7 · X8 · S4', '// the marker moved into prose, where nothing reads it');
+    f.source = f.source.replace('// ROSTER 100 arms in 8 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8', '// the marker moved into prose, where nothing reads it');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('states no "// ROSTER') && v.includes('a sentence with nothing behind it')), `missing marker: ${r.violations.join(' | ')}`);
   }],
   ['S3 a family pair in the marker that the list does not count', (f) => { f.source = f.source.replace('· X8 ·', '· X7 ·'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes("family 6 says \"X7\"") && v.includes('counts 8 arms named X*')), `wrong pair: ${r.violations.join(' | ')}`);
-    assert.ok(r.violations.some((v) => v.includes("families add to 61 against its own headline of 62")), `marker arithmetic: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("families add to 99 against its own headline of 100")), `marker arithmetic: ${r.violations.join(' | ')}`);
   }],
   ['S4 a marker reshaped out of its grammar', (f) => {
     // Kept behind the "// ROSTER " the reader looks for: an arm that drops the prefix aims at S2's refusal, and
     // two arms hitting one message is one arm fewer than the roster says.
-    f.source = f.source.replace('// ROSTER 62 arms in 7 families — A14 · R6 · M11 · T12 · N7 · X8 · S4', '// ROSTER sixty-two arms, seven families');
+    f.source = f.source.replace('// ROSTER 100 arms in 8 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8', '// ROSTER ninety-eight arms, eight families');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('ROSTER line is reshaped') && v.includes('a marker nothing parses is a comment')), `reshaped marker: ${r.violations.join(' | ')}`);
   }],
+  ['S5 a family pair the marker writes in words', (f) => { f.source = f.source.replace('· N7 ·', '· Nseven ·'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('a pair is a letter prefix and a count, in that order')), `pair in words: ${r.violations.join(' | ')}`);
+  }],
+  ['S6 a marker whose own family count is out of date', (f) => { f.source = f.source.replace('in 8 families', 'in 7 families'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 7 families; the arms list defines 8')), `stale family count: ${r.violations.join(' | ')}`);
+  }],
+  ['S7 a marker that dropped one family pair', (f) => { f.source = f.source.replace(' · C8', ''); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('lists 7 family pair(s); the arms list defines 8')), `dropped pair: ${r.violations.join(' | ')}`);
+  }],
+  // ── the coverage arms: the arms list is asked what it proved (v624) ─────────────────────────────────────
+  ['C1 a refusal no arm reaches and nobody declares', (f) => { f.coverage.declared = []; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('rise on no plane and are declared by nobody') && v.includes('fxRows#3')), `undeclared unaimed: ${r.violations.join(' | ')}`);
+  }],
+  ['C2 a declaration whose refusal an arm now reaches', (f) => {
+    f.coverage.sets.push({ name: 'K3 the census that closes over nothing', violations: ['the fixture census closed at 3 over nothing anyone can re-run'] });
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('fxRows#3 is declared unarmed, but K3 reaches it') && v.includes('the excuse no longer excuses')), `excuse that no longer excuses: ${r.violations.join(' | ')}`);
+  }],
+  ['C3 a declaration of a refusal this file does not author', (f) => {
+    f.coverage.declared.push({ key: 'fxRows#9', why: 'the synthetic plane has no ninth refusation, which is the point of the arm', next: 'arm K4 the refusal that has gone' });
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('declares fxRows#9, which this file does not author')), `dangling declaration: ${r.violations.join(' | ')}`);
+  }],
+  ['C4 an arm that says a sentence no refusal authors', (f) => {
+    f.coverage.sets.push({ name: 'K9 an arm asserting text nobody wrote', violations: ['the fixture row never existed and the census is a rumour'] });
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('K9 produced a refusal this file does not author')), `stranded arm: ${r.violations.join(' | ')}`);
+  }],
+  ['C5 a declaration with no arm it owes', (f) => { f.coverage.declared[0].next = 'later, when someone has time'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('without naming the arm that owes it') && v.includes('permanent exclusion wearing a new word')), `no next: ${r.violations.join(' | ')}`);
+  }],
+  ['C6 the same refusal excused twice', (f) => { f.coverage.declared.push({ ...f.coverage.declared[0] }); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('declares fxRows#3 twice') && v.includes('two answers to one question')), `duplicate excuse: ${r.violations.join(' | ')}`);
+  }],
+  ['C7 a push this reader cannot close', (f) => {
+    f.coverage = fxOpened({ ...f.coverage, source: `${f.coverage.source}\nfunction fxBroken() {\n  const violations = [];\n  PUSH('an unclosed refusal` });
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('cannot be closed by this reader')), `unclosable push: ${r.violations.join(' | ')}`);
+  }],
+  ['C8 an excuse no reader can falsify', (f) => { f.coverage.declared[0].why = 'because'; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('fxRows#3 is declared unarmed without a reason a reader can falsify') && v.includes('an excuse is not a disposition')), `unfalsifiable excuse: ${r.violations.join(' | ')}`);
+  }],
 ];
+
+/**
+ * The refusations this file authors that no fixture arm reaches, each with what it refuses and the arm it
+ * owes. The table can only shrink: an arm that reaches a declared site reddens the declaration, and a
+ * declaration whose site has gone reddens too — and in v624 it emptied, because every refusal the census can
+ * state turned out to be one the synthetic plane can raise. It stays as the SHAPE a future refusal falls back
+ * into: a row is a debt that names the arm owing it, never an excuse, and armCoverage refuses a row whose site
+ * an arm now reaches, a row for a site this file does not author, and a site that has neither arm nor row.
+ */
+export const UNARMED = [];
 
 function runArms() {
   const results = ARMS.map(([name, patch, check]) => {
@@ -1585,18 +1997,19 @@ function runArms() {
     const tracked = (f.tracked ?? Object.keys(f.files).filter((p) => p.startsWith('docs/evidence/'))).slice().sort();
     const index = (f.index ?? Object.keys(f.files)).slice().sort();
     const read = (p) => (Object.prototype.hasOwnProperty.call(f.files, p) ? f.files[p] : null);
-    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme, index, workflow: f.workflow, manifest: f.manifest, standby: f.toolsStandby, source: f.source });
+    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme, index, workflow: f.workflow, manifest: f.manifest, standby: f.toolsStandby, source: f.source, coverage: f.coverage });
     try {
       check(report);
-      return { name, ok: true };
+      return { name, ok: true, violations: report.violations };
     } catch (e) {
-      return { name, ok: false, why: e.message };
+      return { name, ok: false, why: e.message, violations: report.violations };
     }
   });
   const bad = results.filter((r) => !r.ok);
   for (const b of bad) console.log(`  ARM FAILED ${b.name}: ${b.why}`);
   assert.deepEqual(bad.map((b) => b.name), [], `${bad.length} of ${results.length} arms did not reach the refusal they aimed at`);
   console.log(`[arms] ${results.length}/${results.length} MATCHED — each refusal rises from the fixture the arm rewrites, the prose-import arm proves the tokenizer is the sweep's, and the README arms drift one number at a time on the same plane`);
+  return results.map(({ name, violations }) => ({ name, violations }));
 }
 
 async function main() {
@@ -1684,7 +2097,16 @@ async function main() {
   }
   for (const b of tc.behind) console.log(`  BEHIND    ${b.path} — imported only by ${b.importers.join(', ')}, none of which the build walks`);
 
-  runArms();
+  const sets = runArms();
+  // The arms list is graded by the same census it arms: every refusation this file authors is either reached by
+  // an arm's own run or declared in UNARMED with the arm it owes. This runs after the arms because it reads what
+  // they produced, and it reads THIS file's bytes, so the index and the plane are the same bytes the build runs.
+  const coverage = armCoverage({ source, sets, declared: UNARMED });
+  assert.deepEqual(coverage, [], `the arms coverage is RED:\n  ${coverage.join('\n  ')}`);
+  const { sites, forwards } = refusalSites(source);
+  const reached = sites.filter((s) => sets.some((x) => (x.violations ?? []).some((v) => segmentsMatch(v, s.segs))));
+  const excused = sites.filter((s) => !reached.some((r) => r.key === s.key) && UNARMED.some((d) => d.key === s.key));
+  console.log(`arms coverage: ${sites.length} refusations authored in this file (${forwards.length} more push a list another function wrote) — ${reached.length} reached by an arm's own run, ${excused.length} declared in UNARMED with the arm they owe, ${sites.length - reached.length - excused.length} unaccounted`);
 
   console.log(`\nevidence census: ${tracked.length} tracked modules close as ${report.counts.row} row + ${report.counts.helper} helper + ${report.counts.swept} swept + ${report.counts.tool} tool + ${report.counts.deferred} deferred · ${report.counts.unclassified} unclassified · rows ${running.length}+${residue.length} · every row file the commit owns · the README's table and prose restate these numbers and agree`);
   console.log(`tools census: ${report.tools.counts.total} runnable modules under ${TOOLS_DIR} close as ${report.tools.counts.runner} runner + ${report.tools.counts.reached} reached + ${report.tools.counts.named} named + ${report.tools.counts.behind} behind + ${report.tools.counts.standby} standby · ${report.tools.counts.unreached} unreached · both censuses read the same index, scripts and workflow in one call`);
