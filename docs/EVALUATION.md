@@ -2186,6 +2186,23 @@ localStorage。读数：
 **notMeasured**：`/admin/audit`、`/admin/observability` 两张宽表还差"有行时"的 390 读数；
 390 下"右边还有列"没有视觉提示。
 
+#### 第四十四片（2026-11-06）：管理台两张宽表——审计表 1280 就要横滚、首列 69px（§85）
+
+最后两张"同一形状"的宽表：`/admin/audit`（六列 + 长句 JSON）与 `/admin/observability` 的进程指标表。
+
+- 首跑：审计表横滚区没有可聚焦内容 ⇒ axe 在 1280 与 390 都报 serious
+  `scrollable-region-focusable`（且 1280 已是 1069/1032，本来就要滚）；390 首列仅 **69px**；
+  指标表 390 下 532/342 要滚但没有 `tabindex`。
+- 改法：两张表横滚区 `role="region"` + `aria-label` + `tabIndex={0}`；审计表时间/谁/动作/结果
+  与表头 `whitespace-nowrap`，细节列 `min-w-[16rem] max-w-[24rem] break-all`；指标表 `min-w-[520px]`。
+- 读数：审计 1280 **1032/1032 · 首列 149px**、390 **700/342 · 首列 130px**；指标表 1280
+  **1032/1032 · 首列 436px**、390 **532/342 · 首列 293px**；四组 axe **违规 0 · serious 0**、页面溢出 0。
+- `e2e/admin-tables.spec.ts` 1 passed（9.3s）；截图 `screenshots/admin-{audit,observability}-{1280,390}.png`。
+- 臂：摘 `tabIndex` ⇒ serious；摘细节列 `min-w` ⇒ 33px；摘时间列 `nowrap` ⇒ 69px。
+
+**notMeasured**：审计表 1280 是"刚好装满"，更长 detail 会回到横滚（有上限，无读数）；
+三张表都没有"右边还有列"的视觉提示；390 滚动手感无真机读数。
+
 ### Performance
 
 

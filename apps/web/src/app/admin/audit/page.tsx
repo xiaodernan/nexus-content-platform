@@ -59,29 +59,40 @@ export default async function AdminAuditPage() {
       ) : (
         // 审计表六列、时间/动作/细节都不能截断；窄视口下让它自己横滚，
         // 而不是把整页的布局视口撑宽（390 下曾量到 innerWidth 被撑成 1183）
-        <div className="overflow-x-auto" data-audit-table-scroll>
+        // 第五十一片：390 下表格只剩 342 宽里的 69px 首列（时间被拆字），而横滚区没有 tabindex
+        // ——键盘用户看得到「细节」那一列却滚不过去（axe: scrollable-region-focusable）。
+        <div
+          className="overflow-x-auto"
+          data-audit-table-scroll
+          role="region"
+          aria-label="审计事件表（可横向滚动）"
+          tabIndex={0}
+        >
         <table className="w-full text-11">
           <thead className="text-left text-fg-3">
             <tr>
-              <th>时间</th>
-              <th>谁</th>
-              <th>动作</th>
-              <th>对象</th>
-              <th>结果</th>
-              <th>细节</th>
+              <th className="whitespace-nowrap">时间</th>
+              <th className="whitespace-nowrap">谁</th>
+              <th className="whitespace-nowrap">动作</th>
+              <th className="whitespace-nowrap">对象</th>
+              <th className="whitespace-nowrap">结果</th>
+              <th className="whitespace-nowrap">细节</th>
             </tr>
           </thead>
           <tbody>
             {events.map((event) => (
               <tr key={event.id} data-audit-row={event.action}>
-                <td>{new Date(event.createdAt).toLocaleString('zh-CN', { hour12: false })}</td>
-                <td data-audit-actor={event.actorId ? 'known' : 'none'}>
+                <td className="whitespace-nowrap">{new Date(event.createdAt).toLocaleString('zh-CN', { hour12: false })}</td>
+                <td className="whitespace-nowrap" data-audit-actor={event.actorId ? 'known' : 'none'}>
                   {event.actorName ?? (event.actorId ? DELETED_USER_LABEL : '没有身份')}
                 </td>
-                <td>{event.action}</td>
+                <td className="whitespace-nowrap">{event.action}</td>
                 <td>{event.targetType ? `${event.targetType}${event.targetId ? ` ${String(event.targetId).slice(0, 8)}` : ''}` : '—'}</td>
-                <td data-audit-allowed={event.allowed ? 'yes' : 'no'}>{event.allowed ? '放行' : '拒绝'}</td>
-                <td className="text-fg-3">{event.detail ? JSON.stringify(event.detail) : '—'}</td>
+                <td className="whitespace-nowrap" data-audit-allowed={event.allowed ? 'yes' : 'no'}>{event.allowed ? '放行' : '拒绝'}</td>
+                {/* 细节是长串 JSON；允许在任意位置断开，宽屏才不必为它横滚 */}
+                <td className="min-w-[16rem] max-w-[24rem] break-all text-fg-3">
+                  {event.detail ? JSON.stringify(event.detail) : '—'}
+                </td>
               </tr>
             ))}
           </tbody>

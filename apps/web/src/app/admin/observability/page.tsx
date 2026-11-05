@@ -67,8 +67,15 @@ export default async function AdminObservabilityPage() {
             跨重启的事实看下面那张库里的账。
           </p>
         ) : (
-          <div className="overflow-x-auto" data-metric-table-scroll>
-          <table className="w-full text-11">
+          // 第五十一片：与审计表同一形状——横滚区没有 tabindex（axe: scrollable-region-focusable）
+          <div
+            className="overflow-x-auto"
+            data-metric-table-scroll
+            role="region"
+            aria-label="进程内计数器表（可横向滚动）"
+            tabIndex={0}
+          >
+          <table className="w-full min-w-[520px] text-11">
             <thead className="text-left text-fg-3">
               <tr>
                 <th>指标</th>
