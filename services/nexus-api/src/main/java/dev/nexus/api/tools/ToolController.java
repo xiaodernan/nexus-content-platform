@@ -95,7 +95,8 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>{@code DELETE /tools/{id}?owner=} — remove a declaration, for its owner only. 200 either way: an id
  *       that names nothing is "already gone", not an error; another account's row is a 403.
  *   <li>{@code POST /tools/{id}/deprecation?owner=} — say a declaration is going away, for its owner only,
- *       with a message and an optional replacement NAME (a hint, not a reference).
+ *       with a message and an optional replacement NAME (a hint, not a reference). Every deprecation answer
+ *       also carries the DERIVED replacement state: none, unresolved, live or deprecated.
  *   <li>{@code GET /tools/{id}/deprecation} — one declaration's deprecation. 404 {@code unknown-tool} when
  *       the id names nothing, and a DIFFERENT 404 {@code not-deprecated} when the tool is live.
  *   <li>{@code DELETE /tools/{id}/deprecation?owner=} — withdraw the deprecation, for its owner only.
@@ -103,7 +104,8 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>{@code GET /tools/deprecations?owner=&limit=&offset=&before=} — every deprecated declaration, newest
  *       first, with the tool's name beside its deprecation so an agent can read the whole warning list in one
  *       request. {@code owner} narrows the window and the count; {@code before} is the last row of the previous
- *       page as {@code <epochMillis>:<toolId>}, because instants can tie (v617). The two compose (v618).
+ *       page as {@code <epochMillis>:<toolId>}, because instants can tie (v617). The two compose (v618), and
+ *       each row resolves its replacement hint in one batch so a migration list is actionable in one read.
  *   <li>{@code DELETE /tools/{id}/revisions?owner=&before=} — the owner's RETENTION: remove the revisions strictly
  *       older than {@code before}, and answer the bound, what went and what remains. A bound past the newest
  *       revision is a 400, because a declaration whose history explains nothing is not a state this door creates.
@@ -442,14 +444,19 @@ public class ToolController {
         String key = cursor == null ? null : cursor.text();
         List<ToolDeprecation> rows = service.deprecationPage(owner, key, asked, from);
         Map<String, ToolEntry> tools = service.byIds(rows.stream().map(ToolDeprecation::getToolId).toList());
+        Map<String, ToolService.ReplacementResolution> replacements = service.resolveReplacements(
+                rows.stream().map(ToolDeprecation::getReplacementName).filter(name -> name != null).toList());
         List<DeprecatedTool> wire = rows.stream()
                 .map(row -> {
                     ToolEntry tool = tools.get(row.getToolId());
+                    ToolService.ReplacementResolution replacement = resolutionOf(row, replacements);
                     return new DeprecatedTool(
                             row.getToolId(),
                             tool == null ? null : tool.getName(),
                             row.getMessage(),
                             row.getReplacementName(),
+                            replacement.status(),
+                            replacement.toolId(),
                             row.getDeprecatedAt().toEpochMilli());
                 })
                 .toList();
@@ -693,11 +700,23 @@ public class ToolController {
     }
 
     private Deprecation toWire(ToolDeprecation row) {
+        ToolService.ReplacementResolution replacement = service.resolveReplacement(row.getReplacementName());
         return new Deprecation(
                 row.getToolId(),
                 row.getMessage(),
                 row.getReplacementName(),
+                replacement.status(),
+                replacement.toolId(),
                 row.getDeprecatedAt().toEpochMilli());
+    }
+
+    /** A row's replacement verdict, from the page's batch map; an absent hint reads nothing. */
+    private static ToolService.ReplacementResolution resolutionOf(
+            ToolDeprecation row, Map<String, ToolService.ReplacementResolution> resolved) {
+        if (row.getReplacementName() == null) {
+            return ToolService.ReplacementResolution.NONE;
+        }
+        return resolved.getOrDefault(row.getReplacementName(), ToolService.ReplacementResolution.UNRESOLVED);
     }
 
     /** A rule the caller broke is a 400 that NAMES it. */

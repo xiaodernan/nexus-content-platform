@@ -1,8 +1,8 @@
 NEXUS Long-Term Development Status
 ================================
-Project version: v618 (a deprecation page can name whose warnings it wants — `deprecations?owner=`; v591–v612 were landed by parallel lanes)
+Project version: v619 (a replacement hint is resolved on every read — `replacementStatus`/`replacementToolId`; v591–v612 were landed by parallel lanes)
 Lineage: master (this checkout). origin/main is a separate lineage; do not merge it blindly.
-Pushed to origin/master: no — master is ahead of origin/master; v618 is in the working tree.
+Pushed to origin/master: no — master is ahead of origin/master; v619 is in the working tree.
 
 Recent increments in this lineage (all real commits, all gated):
   v557: a subscriber can register a webhook endpoint and be told the signature it will carry
@@ -37,16 +37,16 @@ Recent increments in this lineage (all real commits, all gated):
   v615: a pin names CONTENT — `by-pin` answers every declaration that carried it, `current` derived (ADR 0045)
   v616: a manifest of pins is ONE scan, caller order kept, unrecorded pins NAMED (ADR 0046)
   v617: the deprecation list resumes by `(deprecatedAt, toolId)` — `before=`, ties by id, fifth envelope field (ADR 0047)
-  v581: retention — the owner names the bound it keeps, and the answer says what went (ADR 0032)
-  v582: the catalog names the rows that are going away — a filter, not a column (ADR 0033)
+  v618: the deprecation list narrows to one owner — `owner=` filters BOTH window and count, composes with the pair cursor, sixth envelope field (ADR 0048)
+  v619: a replacement HINT is resolved on EVERY read — none/unresolved/live/deprecated plus the target id, batched per page, nothing stored (ADR 0049)
 
-Verification of v591–v618 (this lane; v591–v612 are parallel-lane commits, v613–v618 are ours):
-  mvn -Dtest='ToolServiceTest,ToolControllerTest,JsonPointersTest' test: 228/228 (145 service + 80 controller + 3 pointer-walk), exit 0
+Verification of v591–v619 (this lane; v591–v612 are parallel-lane commits, v613–v619 are ours):
+  mvn -Dtest='ToolServiceTest,ToolControllerTest,JsonPointersTest' test: 235/235 (150 service + 82 controller + 3 pointer-walk), exit 0
   Full service suite after v613 (last checkpoint): 821/821, 0 failures, exit 0 (not run every increment)
   node docs/evidence/m10/tool-registry-proof.mjs against a real PostgreSQL: ALL ASSERTIONS PASSED
   (§5e journal, §5f feed narrowings, §5g batch read, §5h attestation, §5i tested filter with the
    stale-claim bound proved rather than hidden, §5j read-at-pin with the pruned-pin 404, §5k keyset paging
-   with the offset-repeat proved on real state, §5l the two-pin diff naming three paths and refusing each bad pin by name, §5m the global pin lookup where two twins shared one pin and a move split their currency, §5n the one-scan manifest naming an unrecorded pin, §5o deprecation paging over three rows tied to one millisecond with an empty tail and every refusal by name, §5p the owner-narrowed deprecation list with total following the filtered set and a foreign cursor acting as a bound rather than a filter, §6 restart with the claim and every column count)
+   with the offset-repeat proved on real state, §5l the two-pin diff naming three paths and refusing each bad pin by name, §5m the global pin lookup where two twins shared one pin and a move split their currency, §5n the one-scan manifest naming an unrecorded pin, §5o deprecation paging over three rows tied to one millisecond with an empty tail and every refusal by name, §5p the owner-narrowed deprecation list with total following the filtered set and a foreign cursor acting as a bound rather than a filter, §5q replacement resolution in all four states including a successor that is itself departing, §6 restart with the claim and every column count)
 Verification of v572–v575 and v577–v582:
   mvn -Dtest='ToolServiceTest,ToolControllerTest' test: 122/122 (78 service + 44 controller), exit 0
   Full service suite at v581 (checkpoint, 5 increments in): 660/660, 33 classes, exit 0
@@ -80,7 +80,8 @@ Next increments (planned, see docs/LONG_TERM_PLAN.md):
         operator identity this build does not have. The audit trail sets the precedent: append-only, no
         truncate. Until that decision is made, growth is bounded by write volume and stated here.
 
-  next (replacement resolution): `replacement` is a HINT, not a reference (ADR 0025). Decide whether a read
-        should resolve a named replacement to the live row (and what a missing hint means) or keep the list
-        as labels the caller resolves itself. This is the next registry question after the owner filter.
+  next (journal retention): still open, with the two honest shapes recorded above. Decide before adding a prune
+        door rather than deleting rows a forward cursor cannot describe.
+  v620 checkpoint: run the full service suite again and refresh this file; v619 is the sixth increment after v613,
+        so the checkpoint is due next.
   v620 checkpoint: run the full service suite again and refresh this file; v618 is the fifth increment after v613, so the checkpoint is due within the next two increments.

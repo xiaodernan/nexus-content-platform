@@ -2,6 +2,7 @@ package dev.nexus.api.tools;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,6 +23,12 @@ public interface ToolRepository extends JpaRepository<ToolEntry, String> {
 
     /** The row that holds this name, when the name is taken — the lookup that makes a duplicate a 409. */
     Optional<ToolEntry> findByName(String name);
+
+    /**
+     * The live rows behind a page of replacement hints, in ONE read. A hint may name nothing, so the answer is
+     * a list rather than a row per name; the caller pairs it back by NAME.
+     */
+    List<ToolEntry> findByNameIn(Collection<String> names);
 
     /**
      * The declaration, locked for the duration of the caller's transaction.

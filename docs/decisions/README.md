@@ -60,3 +60,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0046  | A manifest of pins is one read, and an unrecorded pin is named | Accepted |
 | 0047  | A deprecation page is ordered by a pair                       | Accepted |
 | 0048  | A deprecation page can name whose warnings it wants            | Accepted |
+| 0049  | A replacement hint is resolved on every read                   | Accepted |

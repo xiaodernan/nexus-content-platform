@@ -1138,6 +1138,69 @@ public class ToolService {
     }
 
     /**
+     * M10 v619 — the derived verdict on one replacement hint.
+     *
+     * <p>A hint is not a reference (ADR 0025), so this state is computed on every read rather than stored: the
+     * successor may be declared after the warning, removed later, or itself become deprecated. {@code none}
+     * is the absent hint; {@code unresolved} is a legal name that holds no row yet; {@code live} and
+     * {@code deprecated} name a resolved row and say whether that row currently carries its own warning.
+     */
+    public record ReplacementResolution(String status, String toolId) {
+
+        static final ReplacementResolution NONE = new ReplacementResolution("none", null);
+        static final ReplacementResolution UNRESOLVED = new ReplacementResolution("unresolved", null);
+    }
+
+    /** Resolve one hint. A null or blank hint is {@code none} and reads nothing. */
+    @Transactional(readOnly = true)
+    public ReplacementResolution resolveReplacement(String hint) {
+        if (hint == null || hint.isBlank()) {
+            return ReplacementResolution.NONE;
+        }
+        String name = hint.trim();
+        return resolveReplacements(List.of(name)).get(name);
+    }
+
+    /**
+     * Resolve a page's replacement hints in TWO reads rather than one per row: the live declarations behind the
+     * names, then which of those declarations are themselves deprecated. Duplicate hints collapse; a hint with
+     * no row is {@code unresolved}; a row with no deprecation is {@code live}; a row with one is
+     * {@code deprecated}. The answer is keyed by the hint a reader can see on the row.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, ReplacementResolution> resolveReplacements(List<String> hints) {
+        if (hints == null || hints.isEmpty()) {
+            return Map.of();
+        }
+        List<String> names = hints.stream()
+                .filter(hint -> hint != null && !hint.isBlank())
+                .map(String::trim)
+                .distinct()
+                .toList();
+        if (names.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, ToolEntry> byName = repository.findByNameIn(names).stream()
+                .collect(Collectors.toMap(ToolEntry::getName, tool -> tool));
+        Set<String> deprecatedIds = byName.isEmpty()
+                ? Set.of()
+                : deprecations.findAllById(byName.values().stream().map(ToolEntry::getToolId).toList())
+                        .stream().map(ToolDeprecation::getToolId).collect(Collectors.toSet());
+        Map<String, ReplacementResolution> answer = new HashMap<>();
+        for (String name : names) {
+            ToolEntry target = byName.get(name);
+            if (target == null) {
+                answer.put(name, ReplacementResolution.UNRESOLVED);
+            } else {
+                answer.put(name, new ReplacementResolution(
+                        deprecatedIds.contains(target.getToolId()) ? "deprecated" : "live",
+                        target.getToolId()));
+            }
+        }
+        return answer;
+    }
+
+    /**
      * Several declarations by id, in ONE read, answered in the order the caller named them.
      *
      * <p>A batch is the shape a caller has after reading the feed: the journal names what changed, and the next

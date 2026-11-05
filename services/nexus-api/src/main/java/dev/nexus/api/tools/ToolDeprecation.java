@@ -16,8 +16,9 @@ import java.time.Instant;
  *
  * <p>{@code replacementName} is a HINT, not a foreign key. The successor may be declared after this row says
  * its name, and coupling the two would force an owner to publish the replacement first. The name is validated
- * as a legal tool name (so a typo cannot be stored as a plausible address) but no door checks that it holds a
- * row - a replacement that names nothing is a fact the reader can see for itself.
+ * as a legal tool name (so a typo cannot be stored as a plausible address) but no WRITE door checks that it
+ * holds a row. A read resolves it on every request instead: the hint may be unresolved when written, and may
+ * start resolving later without rewriting this row.
  */
 @Entity
 @Table(name = "tool_deprecation")

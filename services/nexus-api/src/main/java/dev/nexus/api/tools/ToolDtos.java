@@ -306,13 +306,32 @@ public final class ToolDtos {
      * One deprecation: why this tool is going away, and the name of what replaces it (or null).
      *
      * <p>{@code replacement} is a HINT: it must be a legal tool name but it need not hold a row.
+     * {@code replacementStatus} is DERIVED on every read, never stored: {@code none} when no hint was given,
+     * {@code unresolved} when the hint names no live declaration yet, and {@code live} or {@code deprecated}
+     * when it does. {@code replacementToolId} is the resolved row's id, or null in the first two states.
      */
-    public record Deprecation(String toolId, String message, String replacement, long deprecatedAt) {
+    public record Deprecation(
+            String toolId,
+            String message,
+            String replacement,
+            String replacementStatus,
+            String replacementToolId,
+            long deprecatedAt) {
     }
 
-    /** One row of the public list of deprecated tools: the declaration's name beside its deprecation. */
+    /**
+     * One row of the public list of deprecated tools: the declaration's name beside its deprecation and the
+     * derived verdict on its replacement hint. The status is computed in one batch for the page, so a reader
+     * does not need a second request per row merely to learn whether the successor exists.
+     */
     public record DeprecatedTool(
-            String toolId, String name, String message, String replacement, long deprecatedAt) {
+            String toolId,
+            String name,
+            String message,
+            String replacement,
+            String replacementStatus,
+            String replacementToolId,
+            long deprecatedAt) {
     }
 
     /**

@@ -16,6 +16,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -619,6 +620,67 @@ class ToolServiceTest {
 
         verify(deprecations, never()).firstPageByOwner(any(), any());
         verify(deprecations, never()).countByOwner(any());
+    }
+
+    @Test
+    void anAbsentReplacementHintIsNoneAndReadsNothing() {
+        assertThat(service().resolveReplacement(null).status()).isEqualTo("none");
+        assertThat(service().resolveReplacement("   ").status()).isEqualTo("none");
+        assertThat(service().resolveReplacement(null).toolId()).isNull();
+
+        verify(repository, never()).findByNameIn(any());
+    }
+
+    @Test
+    void aReplacementHintThatNamesNothingIsUnresolved() {
+        when(repository.findByNameIn(List.of("b.tool"))).thenReturn(List.of());
+
+        ToolService.ReplacementResolution resolved = service().resolveReplacement("  b.tool  ");
+
+        assertThat(resolved.status()).isEqualTo("unresolved");
+        assertThat(resolved.toolId()).isNull();
+        verify(deprecations, never()).findAllById(any());
+    }
+
+    @Test
+    void aReplacementHintResolvesToTheLiveRowAndItsId() {
+        when(repository.findByNameIn(List.of("b.tool")))
+                .thenReturn(List.of(row("tool-2", OWNER, "b.tool")));
+        when(deprecations.findAllById(List.of("tool-2"))).thenReturn(List.of());
+
+        ToolService.ReplacementResolution resolved = service().resolveReplacement("b.tool");
+
+        assertThat(resolved.status()).isEqualTo("live");
+        assertThat(resolved.toolId()).isEqualTo("tool-2");
+    }
+
+    @Test
+    void aReplacementHintThatNamesADeprecatedRowSaysSo() {
+        when(repository.findByNameIn(List.of("b.tool")))
+                .thenReturn(List.of(row("tool-2", OWNER, "b.tool")));
+        when(deprecations.findAllById(List.of("tool-2")))
+                .thenReturn(List.of(new ToolDeprecation("tool-2", "Also going away.", null, AT)));
+
+        ToolService.ReplacementResolution resolved = service().resolveReplacement("b.tool");
+
+        assertThat(resolved.status()).isEqualTo("deprecated");
+        assertThat(resolved.toolId()).isEqualTo("tool-2");
+    }
+
+    @Test
+    void aPageOfHintsResolvesInOneBatchWithDuplicatesCollapsed() {
+        when(repository.findByNameIn(List.of("b.tool", "c.tool")))
+                .thenReturn(List.of(row("tool-2", OWNER, "b.tool")));
+        when(deprecations.findAllById(List.of("tool-2"))).thenReturn(List.of());
+
+        Map<String, ToolService.ReplacementResolution> resolved =
+                service().resolveReplacements(java.util.Arrays.asList("b.tool", null, "  b.tool  ", "c.tool"));
+
+        assertThat(resolved).hasSize(2);
+        assertThat(resolved.get("b.tool").status()).isEqualTo("live");
+        assertThat(resolved.get("c.tool").status()).isEqualTo("unresolved");
+        verify(repository, times(1)).findByNameIn(List.of("b.tool", "c.tool"));
+        verify(deprecations, times(1)).findAllById(List.of("tool-2"));
     }
     @Test
     void aSearchNarrowsToNameOrSummaryMatchesAndIsCaseInsensitive() {

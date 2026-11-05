@@ -292,6 +292,8 @@ class ToolControllerTest {
     void deprecatingAnswersTheSentenceAndHint() {
         ToolDeprecation stored = new ToolDeprecation("tool-1", "Use b.tool instead.", "b.tool", AT);
         when(service.deprecate("tool-1", OWNER, "Use b.tool instead.", "b.tool")).thenReturn(stored);
+        when(service.resolveReplacement("b.tool"))
+                .thenReturn(new ToolService.ReplacementResolution("live", "tool-2"));
 
         ResponseEntity<?> answer = controller()
                 .deprecate("tool-1", OWNER, new ToolDtos.DeprecateRequest("Use b.tool instead.", "b.tool"));
@@ -302,7 +304,10 @@ class ToolControllerTest {
         assertThat(body.toolId()).isEqualTo("tool-1");
         assertThat(body.message()).isEqualTo("Use b.tool instead.");
         assertThat(body.replacement()).isEqualTo("b.tool");
+        assertThat(body.replacementStatus()).isEqualTo("live");
+        assertThat(body.replacementToolId()).isEqualTo("tool-2");
         assertThat(body.deprecatedAt()).isEqualTo(AT.toEpochMilli());
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(6);
     }
 
     @Test
@@ -333,6 +338,8 @@ class ToolControllerTest {
                 .thenReturn(List.of(new ToolDeprecation("tool-1", "Use b.tool instead.", "b.tool", AT)));
         when(service.deprecationCount((String) null)).thenReturn(1L);
         when(service.byIds(List.of("tool-1"))).thenReturn(Map.of("tool-1", row("tool-1", OWNER, "a.tool")));
+        when(service.resolveReplacements(List.of("b.tool")))
+                .thenReturn(Map.of("b.tool", new ToolService.ReplacementResolution("live", "tool-2")));
 
         ResponseEntity<ToolDtos.DeprecationList> answer = controller().deprecations(null, null, null, null);
 
@@ -341,8 +348,11 @@ class ToolControllerTest {
         assertThat(body.total()).isEqualTo(1);
         assertThat(body.deprecations()).extracting(ToolDtos.DeprecatedTool::name).containsExactly("a.tool");
         assertThat(body.deprecations().get(0).replacement()).isEqualTo("b.tool");
+        assertThat(body.deprecations().get(0).replacementStatus()).isEqualTo("live");
+        assertThat(body.deprecations().get(0).replacementToolId()).isEqualTo("tool-2");
         assertThat(body.before()).isNull();
         assertThat(body.owner()).isNull();
+        assertThat(mapper.valueToTree(body.deprecations().get(0)).size()).isEqualTo(7);
         JsonNode wire = mapper.valueToTree(body);
         assertThat(wire.size()).isEqualTo(6);
         assertThat(wire.toString()).doesNotContain("secret").doesNotContain(OWNER);
@@ -389,7 +399,40 @@ class ToolControllerTest {
         assertThat(body.owner()).as("the owner filter is echoed trimmed").isEqualTo(OWNER);
         assertThat(body.total()).isEqualTo(1);
         assertThat(body.before()).isNull();
+        assertThat(body.deprecations().get(0).replacementStatus()).isEqualTo("none");
+        assertThat(body.deprecations().get(0).replacementToolId()).isNull();
         assertThat(mapper.valueToTree(body).size()).isEqualTo(6);
+    }
+
+    @Test
+    void aListRowSaysWhenItsReplacementNamesNothingYet() {
+        when(service.deprecationPage(null, null, 20, 0))
+                .thenReturn(List.of(new ToolDeprecation("tool-1", "Use the successor.", "later.tool", AT)));
+        when(service.deprecationCount((String) null)).thenReturn(1L);
+        when(service.byIds(List.of("tool-1"))).thenReturn(Map.of("tool-1", row("tool-1", OWNER, "a.tool")));
+        when(service.resolveReplacements(List.of("later.tool")))
+                .thenReturn(Map.of("later.tool", new ToolService.ReplacementResolution("unresolved", null)));
+
+        ToolDtos.DeprecationList body = controller().deprecations(null, null, null, null).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.deprecations().get(0).replacement()).isEqualTo("later.tool");
+        assertThat(body.deprecations().get(0).replacementStatus()).isEqualTo("unresolved");
+        assertThat(body.deprecations().get(0).replacementToolId()).isNull();
+    }
+
+    @Test
+    void aSingleDeprecationSaysWhenItsSuccessorIsItselfDeparting() {
+        ToolDeprecation row = new ToolDeprecation("tool-1", "Use b.tool.", "b.tool", AT);
+        when(service.deprecationOf("tool-1")).thenReturn(row);
+        when(service.resolveReplacement("b.tool"))
+                .thenReturn(new ToolService.ReplacementResolution("deprecated", "tool-2"));
+
+        ToolDtos.Deprecation body = controller().deprecation("tool-1").getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.replacementStatus()).isEqualTo("deprecated");
+        assertThat(body.replacementToolId()).isEqualTo("tool-2");
     }
 
     @Test
