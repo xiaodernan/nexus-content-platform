@@ -1425,8 +1425,8 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   （"引擎类型选择"本身已经在 2026-09-26 接上：类型是文档字段，两个试玩页共用 `compileForKind` 分派。）
 
 ## M5 — 视频（§185）
-- [ ] Video Studio（text/image/storyboard→video）
-- [~] Storyboard → Shot list → 参考图 → 生成 → Timeline（§40-42）— 存储、分镜面板入口（切句成镜、机位/转场/时长/上下移/删除，全部走 §150 的可撤销补丁）、Timeline 条与总时长、镜头进语料库（§49 × §40）、镜头挂本项目的角色（§40 × §46，见文末）都已落地。**这一条原来写着"还欠两半：参考图只做到能选本项目资产，没把 §38 的生成按钮接到镜头上；`videoAssetId` 要真 provider"——前半句 2026-10-08 核对时已经不成立了**：`StoryboardPanel.tsx` 里那颗 `data-storyboard-image-gen`（"DEMO 参考图"）调 `makeReference()`，POST `/api/projects/<id>/images`，挂了角色就走 Character → Scene 那条；成功后把新资产补进名册（不补上 select 会渲染成空白，用户看到"刚挂上的东西不见了"），再落一个只改 `referenceAssetId` 的 §150 补丁；按钮的 `title` 上写着"本地确定性合成（DEMO），不是 AI 出图；撤销只断开引用，不删除已生成的资产"。**所以这一条现在只剩一半欠着**：`videoAssetId` 要真视频 provider，本机不做假生成（`packages/video-model/src/index.ts` 头部写着同一句）。逐条凭证见文末各片。
+- [~] Video Studio（text/image/storyboard→video）— **2026-11-06 第三十八片把这条从 `[ ]` 推到 `[~]`**，推的是"四条箭头里有没有人真的读它"那一格，**不是**"多了一个叫 Video Studio 的页面"：视频入口至今就是分镜面板那颗渲染钮（`data-storyboard-render`）+ 它下面的回执与历史，加上任务账本，没有独立的 `/video` 路由。这一片之前 `planVideoRender` 只看 `shot.referenceAssetId`，`storyboard.source` 那一格在整条渲染链里零命中——于是"来源：参考图 → 视频｜参考图 …"写在画面上方，而画面里一张参考图都没有，全是色卡。现在：`image-to-video` 带的整片那张图补进**自己没挂图**的那些镜（每镜自己的参考帧照样赢，更具体的决定优先），`RenderSource.from`（`shot` / `source`）记下画面出处，`sourceReferenceCount` 与 `cardCount` 两个数分开数并一起进任务行，三种形状各有一句 `notes` 原样显示在面板上。**四条箭头今天都有渲染层的话可说**：`text-to-video` 与 `storyboard-to-video` 本就不许画面输入（`ARROW_SOURCE_NEEDS` 里它们的 `referenceAssetId` 是 false，渲成色卡是兑现承诺不是缺件），`image-to-video` 那张图真的进像素了，`character-to-scene` 还不进。**还欠三样，前两样不是本机能让它成立的**：① `character-to-scene` 进像素——角色不是一张图，认肖像要靠查库（`assets.character_id` + `genMeta.characterPortrait`），而 `packages/video-model` 的第一条纪律是纯函数不查库；它今天的可见出口是 notes 里那句限度 + 下一步动作，账在 `docs/adr/0086` 仍欠 ①；② 真 provider 出的帧（`videoAssetId`、regenerate shot 与它是同一道门）——本机只有确定性合成器，成片带 `demo: true`、界面常驻 DEMO MODE（§159/§160）；③ 一个真正的 Video Studio 工作台（素材挑选、逐镜可指认画面出处、时间线可播），今天时间线仍"可读不可播"。逐条凭证见文末「M5 第三十八片」。
+- [~] Storyboard → Shot list → 参考图 → 生成 → Timeline（§40-42）— 存储、分镜面板入口（切句成镜、机位/转场/时长/上下移/删除，全部走 §150 的可撤销补丁）、Timeline 条与总时长、镜头进语料库（§49 × §40）、镜头挂本项目的角色（§40 × §46，见文末）都已落地。**这一条原来写着"还欠两半：参考图只做到能选本项目资产，没把 §38 的生成按钮接到镜头上；`videoAssetId` 要真 provider"——前半句 2026-10-08 核对时已经不成立了**：`StoryboardPanel.tsx` 里那颗 `data-storyboard-image-gen`（"DEMO 参考图"）调 `makeReference()`，POST `/api/projects/<id>/images`，挂了角色就走 Character → Scene 那条；成功后把新资产补进名册（不补上 select 会渲染成空白，用户看到"刚挂上的东西不见了"），再落一个只改 `referenceAssetId` 的 §150 补丁；按钮的 `title` 上写着"本地确定性合成（DEMO），不是 AI 出图；撤销只断开引用，不删除已生成的资产"。**所以这一条现在只剩一半欠着**：`videoAssetId` 要真视频 provider，本机不做假生成（`packages/video-model/src/index.ts` 头部写着同一句）。**2026-11-06 第三十八片又补上一格**：`storyboard.source` 那条箭头从此被渲染层真的读——`image-to-video` 带的整片参考图补进"自己没挂图"的那些镜，计划里带画面出处 `from` 与 `sourceReferenceCount`，`notes` 把"这一版的画面从哪来"原话端在界面上（见文末「M5 第三十八片」）。逐条凭证见文末各片。
 - [~] Timeline 编辑：trim / reorder / regenerate shot / extend / transition（§41）— **2026-09-28 第一片落地**：
   时间线从"一条只读的读数"变成编辑面——一格一镜、宽度即时长，拖右边缘 trim/extend（吸附 100ms、下限 100ms），
   拖整块 reorder（按**其余镜头的中点**分界，返回最终下标），点左上角的转场标记换衔接；拖动期间只在本地预览，
@@ -10238,3 +10238,71 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   不证那台真处于那个现场（真实现场归集成测试；不为一张图去改共享 dev server 的 `NEXUS_REDIS_URL`——
   那个旋钮同时管着限流闸）。
 
+
+## M5 第三十八片：分镜的箭头进像素——整片那一张参考图补进没挂图的镜头，画面出处写进计划（2026-11-06）
+
+- 起点是逐字核对 ROADMAP 上 M5 唯一那条 `[ ]`（"Video Studio（text/image/storyboard→video）"）时 grep 出来的事实：
+  四条箭头在**保存时验归属**（`missingArrowSource` 按 `ARROW_SOURCE_NEEDS` 逐条查缺哪一格）、在**界面上写明出处**
+  （摘要写着"来源：参考图 → 视频｜参考图 …"，还能用"改来源"那条腿换箭头），
+  而**渲染层一个字都不读**——`planVideoRender` 只看 `shot.referenceAssetId`，`storyboard.source` 那一格
+  在 `render.ts` / `storyboard-render.ts` 及其测试里零命中。
+- 于是有一份真实可造的形态：来源选了"参考图 → 视频"、挑了一张已定格的图、但一镜都没单独挂图
+  （镜头那列的参考图默认就是"不用参考图"）。这时计划里每镜都是色卡，成片是几张确定性色卡轮流闪过，
+  而界面上方写着"来源：参考图 → 视频｜参考图 …"。这不是界面说谎（`source` 里真存着那张图），
+  是**一句关于画面的话，被一个不读画面的人写在了画面上方**。
+- 做了什么：① `planVideoRender` 读 `storyboard.source`，**只认 `image-to-video`** 那一条箭头，
+  它带的那张图补进**自己没挂图**的那些镜；② 每一镜自己的参考帧优先（更具体的决定赢）；
+  ③ `RenderSource.reference` 加 `from: 'shot' | 'source'`——这一格不是装饰：没有它，
+  "整片一张图补满各镜"与"每镜各挂了一张一样的图"在计划里**同形**，而那是两句不同的话；
+  ④ 新增 `sourceReferenceCount`，与 `cardCount` **两个数分开数**（一个是"没有可看的，渲成色卡"，
+  一个是"画面来自整片那张图"），任务行的 `input` 里两个并排记；⑤ 三种形状三句话进 `notes`
+  （补上了 N/total 镜 / 整片那张被每镜盖住 / `character-to-scene` 今天还不进像素以及为什么），
+  面板原样显示 `plan.notes`，所以这三句就是界面上的话，不需要新入口；
+  ⑥ web 层**按 assetId 去重**取字节（一张图补 12 镜 = 读一次存储、写一份临时文件），
+  归属门（`openAssetForOwner`）与 mime 门只在第一次读时走——同一个 id 的判定不可能两次不同。
+- 顺带查清并**没有**顺手做的一件事：`character-to-scene` 进不了像素不是忘了。角色不是一张图，肖像是一件资产
+  （`characters` 表只有 `profile` jsonb，认肖像要靠 `assets.character_id` + `genMeta.characterPortrait`），
+  而"查这位角色的肖像"是 IO，`packages/video-model` 的第一条纪律是纯函数不查库。
+  所以这一片让它**从沉默变成一句 note**（说明限度 + 作者现在能做的动作），兑现的形状落在 ADR-0086 仍欠 ①。
+- 否掉的形状：web 层渲染前把 `source.referenceAssetId` **复制进每一镜**再投影。像素立刻对，
+  但计划里"这一镜照哪张图演"变成"每镜各挂了一张一样的图"（出处消失），
+  整片的决定被写进镜头（撤销栈里多出 N 个作者没做过的改动，§150），
+  而库里那份分镜从此不是作者写进去的那一份（§16 的唯一真值被渲染层反向污染）。
+- 见证：`npx vitest run --no-file-parallelism packages/video-model/test` → **6 files / 100 passed**
+  （起点基线 93 passed，+7 条新用例）；三个渲染集成套件 → **3 files / 28 passed**，
+  其中 `storyboard-render.integration.test.ts` **1 file / 15 passed**（起点 13，+2）。
+  集成层新增那条量的是**画面平均色**：参考帧是 ffmpeg 现造的纯色 `0x406080` PNG，
+  两镜中段（第 0.6 / 1.8 秒）都该量到 rgb(64,96,128)±10；对照组是同一份两镜、箭头换成
+  `text-to-video`——同样渲成功、同样 2.4 秒，但读不出那个色。**没有对照组，色读数就只是"渲出来了"**。
+  `tsc`（video-model / web / e2e 三份 tsconfig）与 `npx eslint` 对本片四个文件都静默。
+- 臂（逐字抄回、当场恢复、`grep -rn "MUT "` 归零）：
+  A7 箭头完全不进像素（＝改动前）→ **3 红**；A1 不分箭头都用整片那张 → **1 红**
+  （`整片那张只属于 image-to-video：别的箭头就算带了图也不进像素`）；A3 整片那张盖过每镜自己的 → **2 红**
+  （第二项红得对：顺序一反，"没有进画面"那句就成了假话）；A4 出处不区分（`from: 'source'` 写成 `'shot'`）→ **2 红**；
+  A5 被盖住时沉默 → **1 红**；A6 `character-to-scene` 的限度沉默 → **1 红**；
+  A2 不去重（`cached` 恒为 `undefined`）→ 集成层 **1 红**，逐字
+  `AssertionError: expected [ …(2) ] to deeply equal [ Array(1) ]`，多出来那一项与前一项是**同一个 assetId**。
+  A2 是这一片唯一"结果对不对"抓不到的臂——不去重照样渲出逐字节相同的正确成片，所以门必须是"读了几次"，
+  那个 `vi.mock` 包的是**转发不是替换**（真实现照跑，两道门行为与生产逐字相同）。
+- 界面：`e2e/storyboard.spec.ts` 新增 `@smoke 整片参考图进画面…`，全程真点击（切一版两镜 → 按镜头生成一颗
+  DEMO 参考图让名册里有图 → **把它从镜头上摘下来** → 改来源选"参考图 → 视频"挑那张 → 应用 → DEMO 渲染）。
+  摘要逐字读数 `2 镜 · 共 6 秒 · 来源：参考图 → 视频｜参考图 灯塔的光扫过浮冰.png`；
+  回执里有 `2/2 镜自己没挂参考帧` 与 `image-to-video 带的那张整片参考图`，整块 `[data-storyboard-render-result]`
+  不含"色卡"，另加一条"确实渲成了"的证据（播放器 `src` 是 `/api/assets/<id>/file` 那个鉴权 URL）。
+  这条**连红两次才绿**，两次都是仪器错、不是产品错：第一次我把箭头中文标签写成"图片 → 视频"
+  （`ARROW_LABELS['image-to-video']` 是"参考图 → 视频"），第二次 `[data-storyboard-render-video]` 撞到严格模式
+  （结果区与历史清单各有一个播放器）→ 收成 `result.locator(...)`。截图 `screenshots/storyboard-whole-piece-reference.png`。
+- 没牙的格子，点名：① 只证了"这张图进了画面"，**没证"每一镜拿的是它自己那一张"**（两镜同源正是本片的行为，
+  色读数区分不了串号；要证得逐镜取样 + 每镜不同图）；② 别的箭头**残留**一张图时界面上看不到
+  "这张图没进画面"那句——`missingArrowSource` 只管缺不管多带，那一格现在没人出声；
+  ③ 去重只数了"存储读几次"，没数"临时文件写几份"（命中缓存就 `continue`，所以不会多写，但没独立断言）；
+  ④ e2e 那条**没有对照**：`PLAN_MONTHLY_GRANTS.free.video` = 5 点而一次渲染扣 5 点，
+  同一访客只渲得了一版，换箭头再渲会被额度门挡下——那红的就不是界面话术而是额度，所以对照留在集成层；
+  ⑤ `sourceReferenceCount` 进了任务行 `input`，还没有界面读它（面板看得见的是 notes 那句话）。
+- 仍欠，如实记下：① `character-to-scene` 进像素（web 层查肖像，形状要先定：给 `planVideoRender` 加"整片备选图"
+  入参，还是 web 层装配一份补好 `source` 的文档再投影——后者容易滑回上面否掉的复制形状）；
+  ② 逐镜可指认（"第 3 镜的画面来自哪一张图"，`from` 已进计划，面板还没读它）；
+  ③ 接上真 provider 后 `image-to-video` 应由 provider 读整片那张图，`from: 'source'` 就是那时的路由依据；
+  ④ 优先级没有作者可改的入口（"每镜优先"是写死的规则）；⑤ 参考帧读取没有并发上界
+  （12 镜 12 张不同的图 = 12 次顺序存储读 + 12 份临时文件，全在 ffmpeg 起跑前串行做完）。
+  取舍与逐字段规则见 `docs/adr/0086-storyboard-arrow-into-pixels.md`。

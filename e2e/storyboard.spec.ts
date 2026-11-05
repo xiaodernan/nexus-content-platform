@@ -745,6 +745,80 @@ test('@smoke §40 四条箭头：缺来源不许切，选上之后建出的那�
   await page.screenshot({ path: 'screenshots/storyboard-arrow-source.png' });
 });
 
+/**
+ * M5 第三十八片：整片那一张参考图**进像素**。
+ *
+ * 这一片的起点是一条对不上的话：`image-to-video` 这条箭头在界面上写明"从一张已定格的图出发"，
+ * 保存时也真验了归属，但 `planVideoRender` 只看每一镜自己的 `referenceAssetId`——
+ * 于是一份每镜都没挂图的 `image-to-video` 分镜渲出来全是确定性色卡，而界面那句话看起来像被兑现了。
+ *
+ * 走真浏览器要证的三件事，都不在单元/集成层的断言里：
+ * ① 界面上"来源"那一格与"每一镜挂的图"是**两回事**：这里刻意让每一镜都不挂图，
+ *    只有 `source` 那一张——集成层已经用画面平均色证过那张图真进了像素，这里不重复量色；
+ * ② 渲染回执里那句 notes 说的是"这两镜的画面来自整片那张图"，而**不是**"在用色卡"
+ *    （面板原样显示 `plan.notes`，所以这句话的正确性直接就是界面话术的正确性）；
+ * ③ 渲染确实发生了：回执里有鉴权 URL 的播放器，服务端那一份字节流回来过。
+ *    没有 ③，"notes 里没有色卡那句"可能只是因为根本没渲。
+ */
+test('@smoke 整片参考图进画面：每镜都不挂图时，notes 说画面来自那张图而不是色卡', async ({ page }) => {
+  test.setTimeout(300_000);
+  await openStudio(page, `整片参考图进画面 ${Date.now().toString(36)}`);
+  await openStoryboardPanel(page);
+  // 两段、都没有运动词 → 两镜（与「片段级裁切」那条同一句，镜数好口算）
+  await page.fill('[data-storyboard-prompt-input]', '灯塔的光扫过浮冰，她数着回来的每一条船');
+  await page.click('[data-storyboard-create]');
+  await savedState(page);
+  const shotIds = await page
+    .locator('[data-storyboard-shot]')
+    .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-storyboard-shot') ?? ''));
+  expect(shotIds).toHaveLength(2);
+
+  // ① 先让名册里有一张"已定格的图"：按镜头走 Text → Image 那条箭头生成一颗 DEMO 参考图
+  const firstId = shotIds[0]!;
+  const refPicker = page.locator(`[data-storyboard-reference="${firstId}"]`);
+  await expect(refPicker.locator('option:checked')).toHaveText('不用参考图');
+  await page.click(`[data-storyboard-image-gen="${firstId}"]`);
+  await savedState(page);
+  await expect(refPicker.locator('option')).toHaveCount(2);
+  const assetName = (await refPicker.locator('option:checked').textContent())?.trim() ?? '';
+  expect(assetName).not.toBe('');
+
+  // 把它从镜头上摘下来：这一片要的是"整片那一张"，不是"某一镜自己挂的那一张"
+  await refPicker.selectOption('');
+  await savedState(page);
+  await expect(refPicker.locator('option:checked')).toHaveText('不用参考图');
+  for (const id of shotIds) {
+    await expect(page.locator(`[data-storyboard-reference="${id}"] option:checked`)).toHaveText('不用参考图');
+  }
+
+  // ② 改来源：箭头换成 图片 → 视频，挑那张图，应用
+  await page.click('[data-storyboard-source-open]');
+  await page.locator('[data-storyboard-source-edit-arrow]').selectOption('image-to-video');
+  const sourceAsset = page.locator('[data-storyboard-source-edit-asset]');
+  await sourceAsset.selectOption({ label: assetName });
+  await expect(page.locator('[data-storyboard-source-edit-missing]')).toHaveCount(0);
+  await page.click('[data-storyboard-source-apply]');
+  await savedState(page);
+  await expect(page.locator('[data-storyboard-summary]')).toContainText(`来源：参考图 → 视频｜参考图 ${assetName}`);
+
+  // ③ 渲染：notes 说这两镜的画面来自整片那张图，并且不出现"色卡"那一句。
+  //    对照组（换成 text-to-video 就必须改口说色卡）不在这里做，而在集成层做：
+  //    `PLAN_MONTHLY_GRANTS.free.video` = 5 而一次渲染扣 5，同一个访客只渲得了一版，
+  //    第二版会被额度门挡下——那会让这一条红的不是"界面话术"而是"额度"。
+  //    集成层的对照组量的是画面平均色，比这里的话术更硬
+  await page.click('[data-storyboard-render]');
+  const result = page.locator('[data-storyboard-render-result]');
+  await expect(result).toBeVisible({ timeout: 120_000 });
+  await expect(result).toContainText('2/2 镜自己没挂参考帧');
+  await expect(result).toContainText('image-to-video 带的那张整片参考图');
+  await expect(result).not.toContainText('色卡');
+  await result.scrollIntoViewIfNeeded();
+  await expect(result).toBeInViewport();
+  // 渲染真的发生了（不是"没渲所以没有色卡那句"）：成片播放器带着从服务端回来的字节
+  await expect(result.locator('[data-storyboard-render-video]')).toHaveAttribute('src', /^\/api\/assets\/[0-9a-f-]+\/file$/);
+  await page.screenshot({ path: 'screenshots/storyboard-whole-piece-reference.png' });
+});
+
 /** 服务端那一份的 `source`：改来源那条腿的读数是它，不是界面上的摘要 */
 async function serverSource(page: Page): Promise<Record<string, string> | null> {
   const projectId = page.url().split('/').pop() ?? '';
