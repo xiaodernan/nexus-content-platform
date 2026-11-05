@@ -211,10 +211,12 @@ export function ExportPanel() {
               onClick={() => void run()}
               data-export-run
               className={cn(
-                'rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50',
+                'min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-left text-12 leading-tight text-accent-fg disabled:opacity-50',
               )}
             >
-              {busy ? '打包中…' : `导出 ${chosen.join('+') || '（没勾东西）'}`}
+              {busy
+                ? '打包中…'
+                : `导出 ${chosen.map((id) => PARTS.find((p) => p.id === id)!.label).join('+') || '（没勾东西）'}`}
             </button>
             <button type="button" onClick={() => setOpen(false)} className="ml-auto inline-flex h-6 min-w-6 shrink-0 items-center justify-center px-1 text-11 text-fg-3 hover:text-fg-1">
               收起
