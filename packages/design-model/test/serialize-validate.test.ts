@@ -138,7 +138,7 @@ describe("validateDocument", () => {
    * 与主组件页就是这一句）。`insert` / `instantiate` 那两道门管新增，这一条管存量：
    * 重号要点名到"哪一颗、在哪几页上"，而不是只说文档坏了。范围是一份文档，不是整个库（ADR-0080）。
    */
-  it("节点 id 跨页重复 → duplicate-id（error），并报出是哪一颗、在哪两页", () => {
+  it("节点 id 跨页重复 → duplicate-node-id（error），并报出是哪一颗、在哪两页", () => {
     const doc = createDocument("Dup");
     const first = doc.pages[0]!;
     const second = createPage("第二页");
@@ -157,7 +157,7 @@ describe("validateDocument", () => {
     placeTwin(second, "第二页那份");
     doc.pages.push(second);
 
-    const found = validateDocument(doc).filter((i) => i.code === "duplicate-id");
+    const found = validateDocument(doc).filter((i) => i.code === "duplicate-node-id");
     expect(found).toHaveLength(1);
     expect(found[0]!.severity).toBe("error");
     expect(found[0]!.message).toContain("tex_twin");
@@ -178,8 +178,18 @@ describe("validateDocument", () => {
     second.nodes[second.rootId]!.children.push(child.id);
     doc.pages.push(second);
     expect(
-      validateDocument(doc).filter((i) => i.code === "duplicate-id"),
+      validateDocument(doc).filter((i) => i.code === "duplicate-node-id"),
     ).toEqual([]);
+  });
+
+  it("页面 id 重复 → duplicate-page-id，且不冒充节点重号", () => {
+    const doc = createDocument("DupPage");
+    const second = createPage("第二份");
+    second.id = doc.pages[0]!.id;
+    doc.pages.push(second);
+    const issues = validateDocument(doc);
+    expect(issues.filter((i) => i.code === "duplicate-page-id")).toHaveLength(1);
+    expect(issues.filter((i) => i.code === "duplicate-node-id")).toHaveLength(0);
   });
 });
 

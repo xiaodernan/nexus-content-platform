@@ -7,7 +7,10 @@ export type IssueCode =
   | "orphan-node"
   | "missing-child"
   | "cycle"
-  | "duplicate-id"
+  // 页面重号与节点重号是两件事：前者是"同一份文档里两页同名"，后者是"同一颗节点 id
+  // 跨页各有一份"。修法不同（改页 id / 改节点 id），所以 code 也分开（§13 第三十七片）。
+  | "duplicate-page-id"
+  | "duplicate-node-id"
   | "empty-page"
   | "missing-token"
   | "unused-token"
@@ -84,7 +87,7 @@ export function validateDocument(document: DesignDocument): Issue[] {
   for (const page of document.pages) {
     if (seenPages.has(page.id))
       issues.push({
-        code: "duplicate-id",
+        code: "duplicate-page-id",
         severity: "error",
         message: `页面 id 重复：${page.id}`,
         pageId: page.id,
@@ -109,7 +112,7 @@ export function validateDocument(document: DesignDocument): Issue[] {
   for (const [nodeId, pageIds] of nodeOwners) {
     if (pageIds.length < 2) continue;
     issues.push({
-      code: "duplicate-id",
+      code: "duplicate-node-id",
       severity: "error",
       message: `节点 id 跨页重复：${nodeId}（${pageIds.join(" / ")} 上各有一份）`,
       pageId: pageIds[0],

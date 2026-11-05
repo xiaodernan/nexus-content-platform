@@ -332,8 +332,9 @@ function applyToPage(
         }
         // 撞 id 查的是**整份文档**而不是这一页（`cow.page()` 已经把可写页换进 document.pages）：
         // instanceId 是调用方（人或 AI）自己起的，而 `applyPatch` 跳过的那一刀只记账、不报错，
-        // 界面会不会真看见这条全凭调用方有没有读 `skipped`。所以 `validate.ts` 的 `duplicate-id`
-        // 在第三十六片也扩到节点 id——两份规矩叠着，一份管当场、一份管落库那一刻。
+        // 界面会不会真看见这条全凭调用方有没有读 `skipped`。所以 `validate.ts` 的
+        // `duplicate-node-id`（第三十六片扩到节点 id，第三十七片把页/节点两档拆开）——
+        // 两份规矩叠着，一份管当场、一份管落库那一刻。
         // 复制体那些 id 从 `instanceId` + 源节点 id 推出来（ADR-0079），
         // 不同实例之间天然错开，所以只有壳子需要现场查这一道。
         const idTaken = cow.document.pages.some(

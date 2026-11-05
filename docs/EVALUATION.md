@@ -2100,6 +2100,21 @@ localStorage。读数：
 
 **notMeasured**：320 下滚动的触屏手感；iOS Safari 的 `dvh`/`vh` 差别。
 
+#### 第三十九片（2026-11-05）：`duplicate-id` 拆成两个 code——页重号与节点重号各有名字（§13）
+
+第三十六片把结构门扩到节点 id 时两类重号共用一个 code；健康层与公开页只打印 code，
+于是"改页 id"和"改节点 id"在界面上一样。本片只拆 code，行为不变。
+
+- `validate.ts`：`duplicate-page-id` / `duplicate-node-id`；`health.ts` 的 `BUILD_CODES` 两档都收。
+- 新见证 1 条：两页同 id（第二页是干净新页，不共享节点）⇒ `duplicate-page-id` 恰 1 条、
+  `duplicate-node-id` **0** 条；原有跨页节点用例改读新 code；保存门两条用例各读自己的 code。
+- 读数：`packages/design-model` **35 files / 474 tests passed**（本片前 473）；
+  `apps/web/test/validation.test.ts` + model 一起 **42 passed**。
+- 臂：把页面那一处改回 `duplicate-node-id` ⇒ 新用例红在 `expected [] to have a length of 1`；
+  把节点那一处改回 `duplicate-page-id` ⇒ 跨页用例红在同一条断言。
+
+**notMeasured**：`world-model` / `game-model` 各自的 `duplicate-id` 未统一（不在本片范围）。
+
 ### Performance
 
 

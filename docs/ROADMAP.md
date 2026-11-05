@@ -9761,8 +9761,26 @@ iOS 真机仍没有读数。
   所以今天没人被挡）；真出现时该给的不是放行，而是一条**把两份重号节点改名并保住引用**的迁移，
   现在没有；② 库侧没有约束兜底——`design_nodes` 主键是 `(page_id, id)`，跨页重号数据库不拦，
   要不要加一条按 `(project_id, id)` 的唯一索引（或触发器）留给以后真被绕过一次再说；
-  ③ `duplicate-id` 这个 code 现在同时表达"页面重号"和"节点重号"两种事，靠正文区分，
-  界面若要分开显示得拆 code。
+  ③ ~~`duplicate-id` 同时表达"页面重号"和"节点重号"~~ **2026-11-05 已拆（第三十七片）**：
+  现在是 `duplicate-page-id` / `duplicate-node-id` 两个 code。
+
+## §13 第三十七片：`duplicate-id` 拆成页/节点两个 code——两种重号的修法不同（2026-11-05）
+
+第三十六片把结构门从"只管页面 id"扩到节点 id 时，两类重号共用了同一个 code，靠正文区分。
+但健康层与公开页都只打印 `issue.code`，于是"改页 id"与"改节点 id"在界面上长得一模一样。
+这一片只拆 code，行为（error 级、拒保存）一个字不变。
+
+- `validate.ts`：`duplicate-page-id`（两页同 id）、`duplicate-node-id`（同一颗节点 id 跨页各一份）。
+- `health.ts` 的 `BUILD_CODES` 两档都收——换 code 不该让健康行掉档。
+- 见证：`serialize-validate.test.ts` 新增 1 条——伪造两页同 id（第二页是干净新页，不共享节点）⇒
+  `duplicate-page-id` 恰好 1 条、`duplicate-node-id` **0** 条（防它退化成"重号就报两种"）；
+  原有跨页节点用例改读新 code；`validation.test.ts` 两条保存门用例各读自己的 code。
+- 读数：`packages/design-model` **35 files / 474 tests passed**（本片前 473）；
+  `validation.test.ts` + model 一起 42 passed。
+- 臂：把页面那一处改回 `duplicate-node-id` ⇒ 新用例红在"页重号 1 条"（两种混回一种）；
+  把节点那一处改回 page ⇒ 跨页用例红。
+- 仍欠：`world-model` / `game-model` 里各有自己的 `duplicate-id`，与本片无关；若将来统一三套
+  校验的输出形状，再一起对齐。
 
 ## §SEC 第三十四片：Redis 那半的键基数也要有上界——名额用完交给本机窗口判，不是免检（2026-11-03）
 

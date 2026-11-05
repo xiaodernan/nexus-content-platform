@@ -119,16 +119,16 @@ describe('parseDocument · 结构门（不静默修数据）', () => {
     if (!parsed.ok) expect(parsed.issues.join('；')).toContain('missing-child');
   });
 
-  it('两个页面同 id → 拒（duplicate-id）', () => {
+  it('两个页面同 id → 拒（duplicate-page-id）', () => {
     const doc = baseDocument();
     const page = doc.pages[0]!;
     doc.pages = [page, { ...page, name: '第二页' }];
     const parsed = parseDocument(doc);
     expect(parsed.ok).toBe(false);
-    if (!parsed.ok) expect(parsed.issues.join('；')).toContain('duplicate-id');
+    if (!parsed.ok) expect(parsed.issues.join('；')).toContain('duplicate-page-id');
   });
 
-  it('节点 id 跨页重复 → 拒（duplicate-id），与 PATCH 那道门口径一致', () => {
+  it('节点 id 跨页重复 → 拒（duplicate-node-id），与 PATCH 那道门口径一致', () => {
     // 库里 design_nodes 的主键是 (page_id, id)：跨页重号数据库挡不住。
     // 整份 PUT 的结构门必须和 applyPatch 的 insert 查得一样宽，
     // 否则同一份文档走两条写路径会一个过、一个 409（第三十六片）。
@@ -148,7 +148,7 @@ describe('parseDocument · 结构门（不静默修数据）', () => {
     expect(parsed.ok).toBe(false);
     if (!parsed.ok) {
       const joined = parsed.issues.join('；');
-      expect(joined).toContain('duplicate-id');
+      expect(joined).toContain('duplicate-node-id');
       expect(joined).toContain('tex_shared');
     }
   });
