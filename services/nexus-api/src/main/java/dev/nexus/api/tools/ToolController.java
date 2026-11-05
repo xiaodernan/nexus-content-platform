@@ -100,8 +100,10 @@ import org.springframework.web.bind.annotation.RestController;
  *       the id names nothing, and a DIFFERENT 404 {@code not-deprecated} when the tool is live.
  *   <li>{@code DELETE /tools/{id}/deprecation?owner=} — withdraw the deprecation, for its owner only.
  *       200 with {@code removed:false} when the tool was not deprecated.
- *   <li>{@code GET /tools/deprecations?limit=&offset=} — every deprecated declaration, newest first, with
- *       the tool's name beside its deprecation so an agent can read the whole warning list in one request.
+ *   <li>{@code GET /tools/deprecations?limit=&offset=&before=} — every deprecated declaration, newest first,
+ *       with the tool's name beside its deprecation so an agent can read the whole warning list in one request.
+ *       {@code before} is the last row of the previous page as {@code <epochMillis>:<toolId>}: instants can tie,
+ *       so a position alone is not a stable cursor (v617).
  *   <li>{@code DELETE /tools/{id}/revisions?owner=&before=} — the owner's RETENTION: remove the revisions strictly
  *       older than {@code before}, and answer the bound, what went and what remains. A bound past the newest
  *       revision is a 400, because a declaration whose history explains nothing is not a state this door creates.
@@ -429,11 +431,14 @@ public class ToolController {
     @GetMapping("/tools/deprecations")
     public ResponseEntity<DeprecationList> deprecations(
             @RequestParam(name = "limit", required = false) Integer limit,
-            @RequestParam(name = "offset", required = false) Integer offset) {
+            @RequestParam(name = "offset", required = false) Integer offset,
+            @RequestParam(name = "before", required = false) String before) {
         int asked = limit == null ? ToolService.DEFAULT_LIST_LIMIT : limit;
         int effective = Math.min(Math.max(asked, 1), ToolService.MAX_LIST_LIMIT);
         int from = offset == null ? 0 : Math.max(offset, 0);
-        List<ToolDeprecation> rows = service.deprecationPage(asked, from);
+        DeprecationCursor cursor = DeprecationCursor.parse(before);
+        String key = cursor == null ? null : cursor.text();
+        List<ToolDeprecation> rows = service.deprecationPage(key, asked, from);
         Map<String, ToolEntry> tools = service.byIds(rows.stream().map(ToolDeprecation::getToolId).toList());
         List<DeprecatedTool> wire = rows.stream()
                 .map(row -> {
@@ -446,7 +451,7 @@ public class ToolController {
                             row.getDeprecatedAt().toEpochMilli());
                 })
                 .toList();
-        return ResponseEntity.ok(new DeprecationList(wire, service.deprecationCount(), effective, from));
+        return ResponseEntity.ok(new DeprecationList(wire, service.deprecationCount(), effective, from, key));
     }
 
     /**

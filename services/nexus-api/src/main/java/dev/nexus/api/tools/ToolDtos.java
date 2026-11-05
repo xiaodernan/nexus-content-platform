@@ -317,7 +317,7 @@ public final class ToolDtos {
 
     /** The deprecation window, newest first, and the WHOLE number of deprecated declarations beside it. */
     public record DeprecationList(
-            List<DeprecatedTool> deprecations, long total, int limit, int offset) {
+            List<DeprecatedTool> deprecations, long total, int limit, int offset, String before) {
     }
 
     /**

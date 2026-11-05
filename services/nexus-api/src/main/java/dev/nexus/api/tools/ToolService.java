@@ -1073,9 +1073,36 @@ public class ToolService {
     /** The public list of deprecated declarations, newest first - the window, not the whole table. */
     @Transactional(readOnly = true)
     public List<ToolDeprecation> deprecationPage(int limit, int offset) {
+        return deprecationPage(null, limit, offset);
+    }
+
+    /**
+     * M10 v617 — the same list, addressable by a KEYSET cursor instead of an offset.
+     *
+     * <p>An instant is not unique: two owners can deprecate in the same millisecond. An offset over such a tie
+     * is a position the database is free to renumber when a row is removed or added, so the next page can repeat
+     * one row and skip another. {@code before} names the LAST ROW of the previous page by its WHOLE sort key —
+     * {@code (deprecatedAt at millisecond precision, toolId)} — and asks for the rows strictly after that pair.
+     *
+     * <p>{@code before} and a non-zero {@code offset} are REFUSED together, for the same reason the catalog's
+     * name cursor refuses them: two cursors over one window is how a page skips a row while looking correct.
+     *
+     * @param before the previous page's last {@code <epochMillis>:<toolId>}, or null to start at the beginning
+     * @throws InvalidTool when {@code before} is malformed, or is combined with a non-zero offset
+     */
+    @Transactional(readOnly = true)
+    public List<ToolDeprecation> deprecationPage(String before, int limit, int offset) {
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
         int from = Math.max(offset, 0);
-        return deprecations.findAllByOrderByDeprecatedAtDesc(PageRequest.of(from / effective, effective));
+        DeprecationCursor cursor = DeprecationCursor.parse(before);
+        if (cursor != null && from > 0) {
+            throw new InvalidTool("a keyset read carries before=, not offset= — mixing the two is how a page"
+                    + " skips a row; use before=\"" + cursor.text() + "\" with no offset");
+        }
+        if (cursor != null) {
+            return deprecations.pageAfter(cursor.at(), cursor.toolId(), PageRequest.of(0, effective));
+        }
+        return deprecations.firstPage(PageRequest.of(from / effective, effective));
     }
 
     /** The WHOLE number of deprecated declarations the window is a window of. */

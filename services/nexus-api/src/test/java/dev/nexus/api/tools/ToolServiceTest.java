@@ -523,7 +523,7 @@ class ToolServiceTest {
 
     @Test
     void aDeprecationPageIsANewestFirstWindowWithTheWholeCount() {
-        when(deprecations.findAllByOrderByDeprecatedAtDesc(PageRequest.of(0, 1)))
+        when(deprecations.firstPage(PageRequest.of(0, 1)))
                 .thenReturn(List.of(new ToolDeprecation("tool-2", "Going away.", null, AT)));
         when(deprecations.count()).thenReturn(1L);
 
@@ -531,6 +531,58 @@ class ToolServiceTest {
 
         assertThat(window).extracting(ToolDeprecation::getToolId).containsExactly("tool-2");
         assertThat(service().deprecationCount()).isEqualTo(1);
+    }
+
+    @Test
+    void aDeprecationCursorAsksForThePairAfterItAndTheTotalStaysWhole() {
+        String key = AT.toEpochMilli() + ":tool-2";
+        when(deprecations.pageAfter(AT, "tool-2", PageRequest.of(0, 20)))
+                .thenReturn(List.of(new ToolDeprecation("tool-3", "Also going away.", null, AT.minusSeconds(1))));
+
+        List<ToolDeprecation> window = service().deprecationPage("  " + key + "  ", 20, 0);
+
+        assertThat(window).extracting(ToolDeprecation::getToolId).containsExactly("tool-3");
+        verify(deprecations, never()).firstPage(any());
+    }
+
+    @Test
+    void aDeprecationCursorAndANonZeroOffsetAreRefusedTogether() {
+        assertThatThrownBy(() -> service().deprecationPage("100:tool-2", 20, 1))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("offset");
+        verify(deprecations, never()).pageAfter(any(), any(), any());
+        verify(deprecations, never()).firstPage(any());
+    }
+
+    @Test
+    void aDeprecationCursorThatIsNotAPairIsRefusedByItsShape() {
+        assertThatThrownBy(() -> service().deprecationPage("tool-2", 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("<epochMillis>:<toolId>");
+        assertThatThrownBy(() -> service().deprecationPage("abc:tool-2", 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("<epochMillis>:<toolId>");
+        assertThatThrownBy(() -> service().deprecationPage("100:", 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("<epochMillis>:<toolId>");
+        assertThatThrownBy(() -> service().deprecationPage("9".repeat(30) + ":tool-2", 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("<epochMillis>:<toolId>");
+        assertThatThrownBy(() -> service().deprecationPage("100:" + "t".repeat(65), 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("<epochMillis>:<toolId>");
+        verify(deprecations, never()).pageAfter(any(), any(), any());
+        verify(deprecations, never()).firstPage(any());
+    }
+
+    @Test
+    void aBlankDeprecationCursorIsTheOffsetPath() {
+        when(deprecations.firstPage(PageRequest.of(0, 20)))
+                .thenReturn(List.of());
+
+        service().deprecationPage("   ", 20, 0);
+
+        verify(deprecations, never()).pageAfter(any(), any(), any());
     }
     @Test
     void aSearchNarrowsToNameOrSummaryMatchesAndIsCaseInsensitive() {
