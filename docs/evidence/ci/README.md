@@ -328,13 +328,13 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
-the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **114
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **124
 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README number
 each, twenty-four that dispose the manifest's blind side, seventeen that dispose the tools corpus behind it (the
 next three blocks), seven that grade the numbers those deferrals state, eight that recompute the roster this
 sentence lives in, seven that grade the marker the proof carries in its own header and eight that grade the arms
-list itself, fourteen that date the durations published further down this file; the prose-import
-arm proves the tokenizer is the sweep's, not a byte regex.
+list itself, fourteen that date the durations published further down this file, ten that re-derive the commits a hosted claim
+names; the prose-import arm proves the tokenizer is the sweep's, not a byte regex.
 
 **The manifest's other half.** The population above is `git ls-files -- docs/evidence`, which answers "does every
 evidence module have a channel?" and says nothing about the mirror question: does every `verify:*` NAME have one?
@@ -470,6 +470,27 @@ per row, because one headline dated a table whose files had each moved on their 
 
 Two of them (`record-encoding`, `table-recount`) are ALSO in the agents sweep's population; the census prints
 that overlap every run — double coverage, not a conflict.
+
+**A hosted claim names a commit, and a commit is something this clone can answer for (v626).** v609
+bounded a run number as prose ABOUT a measurement, and the bound held for the log: no checkout can replay a
+runner's stdout. It can answer what the commit that stdout tested held, so where a hosted sentence names the commit
+its run tested, that half of the bound lifts and the reader below grades it. `hostedClaimDrift` reads each
+claim out of its PARAGRAPH — the file wraps, so an address and the population the same run printed sit lines
+apart — resolves the address it names against HEAD's own history, re-derives the population from the
+`package.json` committed AT that ref, and dates the run written in the parentheses around the address against
+that commit's own UTC day. What the census prints on every run, rather than what this sentence copies, is the
+count: how many addresses the file holds, how many distinct commits they resolve to, how many populations were
+re-derived and how many claims stated no address before them. A run number written with NO address in its
+paragraph stays prose, out of this reader's reach, until someone anchors it. Ten refusals, armed by ten arms E1
+to E10 on the fixture plane: no ref facts handed to the census, an address that is not an address, an address no
+commit answers, an abbreviation two commits share, a commit off this history, a population the commit does not
+derive, a date in no readable shape, a date before the commit landed and one a push cannot account for, and one
+run claimed against two commits. Three bounds, named rather than left to the reader: the green FRACTION is not
+graded, because a selection run answers one row green out of the population it counted, and the one counts the
+rows a person asked for; a claim at a ref where `derivePopulation` itself has since changed is DECLINED and
+printed, because it was true of the rules of its own time and no number read today can call it a lie; and the
+clock is UTC on both sides here, unlike the table above, which this box's own calendar dates — the runner stamps
+its start in UTC, and so does a commit.
 
 **v531 — the deferral that named its blocker was repaired first.** The three Studio lane proofs are build rows:
 `verify:build-lane` (5.5 s), `verify:container-lane` (1.5 s) and `verify:deploy-lane` (6.1 s) on the authoring

@@ -237,7 +237,7 @@
 // reached, declared, unaccounted — and the assert refuses the last.
 //
 // v625 (this increment; the ADR 0016 section is still owed for this lane's v606-v611, for v624 and for this one,
-// and the ledger files sit in another lane's uncommitted set, so this header keeps the record) - THE DURATIONS
+// and the ledger files sit in another lane's uncommitted set, so this header keeps the record) — THE DURATIONS
 // THIS FILE PUBLISHES ARE DATED AGAINST THE BYTES THEY BLAME. v543 put a reader on the README's class table, v609
 // on a deferral's numbers, v610 and v611 on the roster in its two copies and v624 on the arms list itself; the
 // number-set left unpublished to any reader was this file's OWN table of durations — four rows under one headline
@@ -256,7 +256,28 @@
 // started before the sentence was written. The day is spelled from getFullYear/getMonth/getDate rather than
 // `toLocaleDateString('en-CA')`: an ICU-less Node renders that as `en-US`, and a M/D/YYYY string cannot be ordered
 // against a YYYY-MM-DD one.
-// ROSTER 114 arms in 9 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14
+// v626 (this increment; the ADR 0016 section is still owed for this lane's v606-v611, for v624, for v625 and for
+// this one, and the ledger files sit in another lane's uncommitted set, so this header keeps the record) - THE
+// COMMITS A HOSTED CLAIM NAMES ARE RE-DERIVED, NOT RESTATED. v609 bounded a hosted run number as prose ABOUT a
+// measurement and the bound held for the log: a clone cannot replay a runner's stdout. It can answer for the
+// commit that stdout ran on, so where a hosted sentence names the commit its run tested, that half of the bound lifts
+// and the reader grades it; a run number with no address in its paragraph stays prose, out of reach. The counts are
+// PRINTED on every run rather than copied into a sentence: addresses held, distinct commits they resolve to,
+// populations re-derived and claims that stated no address before them. `hostedClaimDrift` reads each claim out of its PARAGRAPH (the file wraps, so an
+// address and the population the same run printed sit lines apart, and a line-reader would grade one and skip the
+// other), resolves `sha `x`` against HEAD's history, re-derives the population from the package.json committed AT
+// that ref, and dates the run written in the parentheses around the address against that commit's own UTC day.
+// Measured as this landed: sixteen addresses over fourteen distinct commits, every one resolving to exactly one
+// commit on this history; eight of them dated and every one dated the day its commit landed; nine population
+// claims stated after an address, all nine agreeing; six more stating no address before them, which are this box's
+// own `--only` selections and are printed rather than guessed at. Ten refusals, armed by ten arms E1 to E10 on the
+// same synthetic plane. Three bounds, named rather than left to the reader: the green FRACTION is not graded,
+// because a selection run answers `1/1 green of a derived population of 103` and the one counts the rows a person
+// asked for, not the population; a claim at a ref where derivePopulation itself has since changed is DECLINED and
+// printed, because it was true of the rules of its own time and no number read today can call it a lie; and the
+// clock here is UTC on both sides, unlike the authoring-box table above, which the box's own calendar dates —
+// the runner stamps its start in UTC, and so does a commit.
+// ROSTER 124 arms in 10 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10
 //
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
@@ -913,7 +934,7 @@ export function toolsCensusOf({ index, scripts, read, manifestReport, standby = 
  * Everything below the CLI is exercised by the fixture arms at the bottom, so the refusals are measured on a
  * synthetic plane rather than assumed from reading the code.
  */
-export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null, index = [], workflow = null, manifest = [], standby = [], source = null, coverage = null, committedAt = null, now = null }) {
+export function censusOf({ tracked, scripts, excluded = [], roster = [], swept = [], read, readme = null, index = [], workflow = null, manifest = [], standby = [], source = null, coverage = null, committedAt = null, now = null, refs = null }) {
   const rows = new Map(derivePopulation(scripts).map((r) => [r.file, r]));
   const trackedSet = new Set(tracked);
   const rosterByFile = new Map();
@@ -979,6 +1000,7 @@ export function censusOf({ tracked, scripts, excluded = [], roster = [], swept =
     violations.push(...readmeDrift({ readme, counts, running, residue, tracked }));
     violations.push(...readmeArmsDrift({ readme, roster: armRoster }));
     violations.push(...authoringTableDrift({ readme, running, committedAt, now }));
+    violations.push(...hostedClaimDrift({ readme, refs }));
   }
   // And the copy inside this file: the header quotes the roster in one marked line, so the number that moves most
   // often here has a reader even while the ADR sections sit in another lane's held files.
@@ -1316,6 +1338,187 @@ export function authoringTableDrift({ readme, running, committedAt, now }) {
 }
 
 /**
+ * The three tokens a hosted claim is written from, each read out of its PARAGRAPH rather than its line: the README
+ * wraps, so the address a run tested and the population that same run printed can sit three lines apart, and a
+ * reader that walked lines would grade the first and silently skip the second. The address is matched PERMISSIVELY
+ * — anything between the backticks after `sha` is taken — so a wrong shape is refused by name instead of
+ * passing for the absence of a claim. A run id is nine to twelve digits inside backticks, which is the shape this
+ * file has always written them in.
+ */
+const SHA_CLAIM_RE = /sha\s*`([^`\n]{1,80})`/g;
+const SHA_GOOD_RE = /^[0-9a-f]{7,40}$/;
+const RUN_CLAIM_RE = /`(\d{9,12})`/g;
+const POP_CLAIM_RE = /derived population of (\d+)/g;
+const DAY_TEXT_RE = /\d{4}-\d{2}-\d{2}/;
+
+/** The hosted clock is UTC on both sides: a runner stamps its own start in UTC, and so does a commit. */
+const utcDay = (epochSec) => new Date(Number(epochSec) * 1000).toISOString().slice(0, 10);
+const nextUtcDay = (day) => new Date((dayNumber(day) + 1) * 86_400_000).toISOString().slice(0, 10);
+
+/**
+ * The bracketed group an address sits in, because that is where a claim writes the date of its run:
+ * `(sha `604d14e`, 2026-10-30)`. A group with a nested paren is not taken — the day inside it may belong to the
+ * nested clause rather than to the address — and a date outside any group is not a claim about this ref.
+ */
+function groupAround(text, at) {
+  const open = text.lastIndexOf('(', at);
+  const close = text.indexOf(')', at);
+  if (open === -1 || close === -1 || close < open) return null;
+  const inner = text.slice(open + 1, close);
+  return inner.includes('(') ? null : inner;
+}
+
+/**
+ * One paragraph of README, read for what it claims about a commit: an entry per address, carrying the run id
+ * written before it (the id RESETS at each address, so a second address in one paragraph must name its own run
+ * rather than inherit the first), the day inside the parentheses around it, and every population stated after it.
+ * A population that precedes any address is returned separately: those are this box's own `--only` selections,
+ * where the number counts the rows a person asked the runner for and no ref is named to check it against, so the
+ * census prints them instead of guessing which ref they meant.
+ */
+function parseParagraph(parts) {
+  const joined = parts.map((p) => p.text).join('\n');
+  const lineAt = (idx) => {
+    let acc = 0;
+    for (const p of parts) {
+      acc += p.text.length + 1;
+      if (idx < acc) return p.line;
+    }
+    return parts.at(-1).line;
+  };
+  const events = [];
+  for (const m of joined.matchAll(RUN_CLAIM_RE)) events.push({ i: m.index, run: m[1] });
+  for (const m of joined.matchAll(SHA_CLAIM_RE)) events.push({ i: m.index, sha: m[1] });
+  for (const m of joined.matchAll(POP_CLAIM_RE)) events.push({ i: m.index, pop: Number(m[1]) });
+  events.sort((a, b) => a.i - b.i);
+  const claims = [];
+  const unowned = [];
+  let run = null;
+  let open = null;
+  for (const e of events) {
+    if (e.run !== undefined) { run = e.run; continue; }
+    if (e.sha !== undefined) {
+      const group = groupAround(joined, e.i);
+      const day = group === null ? null : (DAY_TEXT_RE.exec(group) ?? [])[0] ?? null;
+      open = { line: lineAt(e.i), shaText: e.sha, run, day, pops: [] };
+      claims.push(open);
+      run = null;
+      continue;
+    }
+    if (open === null) unowned.push({ line: lineAt(e.i), p: e.pop });
+    else open.pops.push(e.pop);
+  }
+  return { claims, unowned };
+}
+
+/** The whole README, paragraph by paragraph: blank lines close a claim, because a hosted verdict is one paragraph. */
+export function hostedClaims(readme) {
+  const claims = [];
+  const unowned = [];
+  let parts = [];
+  const flush = () => {
+    if (parts.length === 0) return;
+    const parsed = parseParagraph(parts);
+    claims.push(...parsed.claims);
+    unowned.push(...parsed.unowned);
+    parts = [];
+  };
+  String(readme ?? '').split(/\r?\n/).forEach((text, i) => {
+    if (text.trim() === '') { flush(); return; }
+    parts.push({ text, line: i + 1 });
+  });
+  flush();
+  return { claims, unowned };
+}
+
+/**
+ * The derivation a hosted population depends on, taken as the FUNCTION's own bytes rather than the file's:
+ * proof-set.mjs changes for reasons that never touch derivePopulation, and a claim only becomes ungradeable when
+ * the rule it was counted with has moved.
+ */
+export function derivationText(src) {
+  const s = String(src ?? '').replace(/\r\n/g, '\n');
+  const at = s.indexOf('function derivePopulation');
+  if (at === -1) return null;
+  const end = s.indexOf('\n}', at);
+  return end === -1 ? null : s.slice(at, end + 2);
+}
+
+/**
+ * Re-derive the hosted claims from the commits they name (v626).
+ *
+ * v609 bounded a hosted run number as prose ABOUT a measurement, and the bound was right about the log and wrong
+ * about the rest: this clone cannot replay a runner's stdout, but it can answer what the commit that runner tested
+ * held. So every `sha `x`` in this file is resolved against HEAD's history, every population stated after it is
+ * re-derived from the package.json committed AT it, and every date written in the parentheses around it is compared
+ * with that commit's own UTC day. Measured as this landed: sixteen addresses over fourteen distinct commits, each
+ * resolving to exactly one commit on this history; eight of them dated, and every one dated the day its commit
+ * landed; nine population claims stated after an address, all nine agreeing; and six more that name no address
+ * before them — the box's own `--only` runs — which are printed, not graded.
+ *
+ * What stays prose, said rather than left to be discovered: the green FRACTION, because a selection run answers
+ * `1/1 green of a derived population of 103` and the one counts the rows a person asked for, not the population;
+ * every duration, byte count and gutter read out of a hosted log, because the log is not in this clone; and a
+ * claim at a ref where derivePopulation itself has since changed, which is DECLINED and printed, because it was
+ * true of the rules of its own time and no number read today can call it a lie.
+ */
+export function hostedClaimDrift({ readme, refs }) {
+  const violations = [];
+  const { claims } = hostedClaims(readme);
+  if (claims.length === 0) return violations;
+  if (refs === null || refs === undefined) {
+    violations.push(`the census was handed no ref facts, so all ${claims.length} hosted claim(s) here are unchecked — a verdict re-derived from nothing is a promise the build cannot keep`);
+    return violations;
+  }
+  const anchored = new Map();
+  for (const c of claims) {
+    if (c.run === null) continue;
+    const seen = anchored.get(c.run);
+    if (seen === undefined) anchored.set(c.run, c.shaText);
+    else if (seen !== c.shaText) violations.push(`run ${c.run} is claimed against two commits here — ${seen} and ${c.shaText}: one run tests one ref, so one of these sentences describes a build that did not happen`);
+  }
+  for (const c of claims) {
+    const where = `line ${c.line}`;
+    if (!SHA_GOOD_RE.test(c.shaText)) {
+      violations.push(`the hosted claim on ${where} writes sha ${JSON.stringify(c.shaText)}, which is not a commit address (7 to 40 hex characters) — an address this census cannot resolve is a verdict it cannot check`);
+      continue;
+    }
+    const ref = refs[c.shaText];
+    if (ref === undefined || ref.count === 0) {
+      violations.push(`the hosted claim on ${where} names ${c.shaText}, which no commit in this clone answers — the claim is graded against history, so either the address is wrong or the checkout is shallow (the proofs step declares fetch-depth 0 for exactly this)`);
+      continue;
+    }
+    if (ref.count > 1) {
+      violations.push(`the hosted claim on ${where} names ${c.shaText}, which ${ref.count} commits in this clone share — an abbreviation that resolves twice resolves to nothing, so write the address out`);
+      continue;
+    }
+    if (ref.ancestor === false) {
+      violations.push(`the hosted claim on ${where} names ${c.shaText}, a commit that is not on this history — the verdict is about bytes the build does not carry, so name the branch that ran them or move the claim`);
+      continue;
+    }
+    for (const p of c.pops) {
+      if (ref.rows === null || ref.rows === undefined) continue;
+      if (p !== ref.rows) violations.push(`the hosted claim on ${where} says a derived population of ${p} at ${c.shaText}; the scripts committed there derive ${ref.rows} — a green count is a fact about the ref it tested, and this ref does not add up`);
+    }
+    if (c.day === null) continue;
+    const stated = dayNumber(c.day);
+    if (Number.isNaN(stated)) {
+      violations.push(`the hosted claim on ${where} dates its run ${JSON.stringify(c.day)}, which is not a calendar day this reader can order — write YYYY-MM-DD, the form the hosted timestamps are kept in`);
+      continue;
+    }
+    const landed = utcDay(ref.at);
+    if (stated < dayNumber(landed)) {
+      violations.push(`the hosted claim on ${where} dates its run ${c.day}, before ${c.shaText} landed on ${landed} UTC — a run cannot test bytes that do not exist yet, and both sides of this comparison are UTC, so no timezone explains it`);
+      continue;
+    }
+    if (stated > dayNumber(nextUtcDay(landed))) {
+      violations.push(`the hosted claim on ${where} dates its run ${c.day}, more than a UTC day after ${c.shaText} landed on ${landed} — a push starts its run in minutes, so a gap that wide is a date copied off the wrong line`);
+    }
+  }
+  return violations;
+}
+
+/**
  * A refusal this file AUTHORS, keyed by the function that says it and the order it says it in. The key is
  * stable across edits elsewhere; a line number would rot the day someone asks for a shorter message.
  */
@@ -1482,6 +1685,13 @@ const fxOpened = (coverage) => ({ ...coverage, source: String(coverage.source).r
 // moves in one place and every arm that aims at it follows.
 const FX_HEADER = '| row | proof | measured on the authoring box |';
 const FX_ROW = '| `verify:row` | `docs/evidence/x/row-proof.mjs` | 0.9 s on 2026-11-01 — the fixture row, timed on the plane the arms rewrite |';
+// The hosted claim, spelled once: an address the plane resolves, the run that tested it, the day the runner
+// stamped and the population it printed, so the E arms rewrite this line rather than re-typing it.
+const FX_SHA = 'cafe001';
+const FX_SHA2 = 'cafe002';
+const FX_RUN = '40000000123';
+const FX_DAY = '2026-10-30';
+const FX_HOSTED = ['- Run `', FX_RUN, '` (sha `', FX_SHA, '`, ', FX_DAY, ') is the fixture host verdict: 2/2 green of a derived population of 2 · residue named: 0.'].join('');
 const BASE = () => ({
   files: {
     'docs/evidence/x/row-proof.mjs': "import { h } from './helper.mjs';\nimport { f } from '../../../tools/ci/fx-lib.mjs';\n",
@@ -1566,7 +1776,7 @@ const BASE = () => ({
   // list the real header states, because the arms ARE this list — so S1→S7 drift the marker, not a copy of it.
   source: [
     '// fixture header — the record this file keeps while the ledger files sit in another lane',
-    '// ROSTER 114 arms in 9 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14',
+    '// ROSTER 124 arms in 10 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10',
     '// end fixture header',
   ].join('\n'),
   // A synthetic proof for the coverage grader: three refusations, two reached by a named arm, one declared.
@@ -1604,12 +1814,15 @@ const BASE = () => ({
     'The census below gives every one of the **7** tracked modules a disposition, and the derived population is',
     '**1 running rows + 1 excluded by name** at this ref.',
     '',
-    '**114 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README',
+    '**124 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README',
     "number each, twenty-four that dispose the manifest's blind side, seventeen that dispose the tools corpus",
     "behind it, seven that grade the numbers those deferrals state, eight that recompute the roster this sentence",
     'lives in, seven that grade the marker this file carries in its own header, eight that grade the arms list',
-    'itself, fourteen that date the measurements the authoring box left behind; the prose-import arm proves',
+    'itself, fourteen that date the measurements the authoring box left behind, ten that re-derive the commits a',
+    'hosted claim names; the prose-import arm proves',
     "the tokenizer is the sweep's, not a byte regex.",
+    '',
+    FX_HOSTED,
     '',
     // The duration table, dated per row (v625): the fixture plane needs one honest claim so every refusal this
     // reader raises rises from a patch rather than from a table that was never there.
@@ -1621,6 +1834,12 @@ const BASE = () => ({
   // a reader compares is the same day on every box the arms run on.
   committedAt: { 'docs/evidence/x/row-proof.mjs': { at: 1793361600, ref: 'cafe123' } },
   now: 1793926800,
+  // The addresses the fixture README resolves: the claim names the first, and the second is held so the arm
+  // that aims at a run anchored to two commits has an address that answers on its own.
+  refs: {
+    cafe001: { at: Math.floor(Date.parse('2026-10-30T12:00:00Z') / 1000), count: 1, ancestor: true, rows: 2 },
+    cafe002: { at: Math.floor(Date.parse('2026-10-30T12:00:00Z') / 1000), count: 1, ancestor: true, rows: 2 },
+  },
   scripts: {
     'verify:row': 'node docs/evidence/x/row-proof.mjs',
     'verify:excluded': 'node docs/evidence/x/excluded-proof.mjs',
@@ -2042,9 +2261,9 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('no line count and no served address')), `unre-readable: ${r.violations.join(' | ')}`);
   }],
   // ── the roster arms: the README's own count of these arms is recomputed from the list, not copied (v610) ──
-  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**114 fixture arms**', '**92 fixture arms**'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('says 92 fixture arms; this census runs 114')), `stale total: ${r.violations.join(' | ')}`);
-    assert.ok(r.violations.some((v) => v.includes("add to 114 against its own total of 92")), `arithmetic: ${r.violations.join(' | ')}`);
+  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**124 fixture arms**', '**92 fixture arms**'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('says 92 fixture arms; this census runs 124')), `stale total: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("add to 124 against its own total of 92")), `arithmetic: ${r.violations.join(' | ')}`);
   }],
   ['X2 one family number in the breakdown has drifted', (f) => { f.readme = f.readme.replace('twenty-four that dispose', 'twenty-three that dispose'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('arm family 3 (M)') && v.includes('i.e. 23') && v.includes('counts 24 arms named M*')), `drifted family: ${r.violations.join(' | ')}`);
@@ -2054,7 +2273,7 @@ const ARMS = [
     // that goes quietly red when a reader asks for a shorter line.
     f.readme = f.readme.replace(/, twenty-four\s+that\s+dispose\s+the\s+manifest's\s+blind\s+side/, '');
   }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes("names 8 families; the arms list defines 9")), `dropped family: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("names 9 families; the arms list defines 10")), `dropped family: ${r.violations.join(' | ')}`);
   }],
   ['X4 a breakdown with no end the reader can take on trust', (f) => {
     f.readme = f.readme.replace('the prose-import arm proves', 'and the tokenizer is the sweep\'s, which proves');
@@ -2072,7 +2291,7 @@ const ARMS = [
     assert.ok(!r.violations.some((v) => v.includes('a family as "twenty-four"')), `compound failed to parse: ${r.violations.join(' | ')}`);
   }],
   ['X6 the headline number written so no shape reads it', (f) => {
-    f.readme = f.readme.replace('**114 fixture arms** prove', 'about fifty-odd fixture arms, proved');
+    f.readme = f.readme.replace('**124 fixture arms** prove', 'about fifty-odd fixture arms, proved');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('states no "**N fixture arms**" total')), `missing headline: ${r.violations.join(' | ')}`);
   }],
@@ -2088,33 +2307,33 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('arm family 5 (N)') && v.includes('two families were swapped')), `swapped back: ${r.violations.join(' | ')}`);
   }],
   // ── the marker arms: the roster this file quotes in its own header is graded too (v611) ─────────────────
-  ['S1 the header marker states an out-of-date total', (f) => { f.source = f.source.replace('// ROSTER 114 arms', '// ROSTER 96 arms'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 96 arms; the arms list defines 114')), `stale marker total: ${r.violations.join(' | ')}`);
+  ['S1 the header marker states an out-of-date total', (f) => { f.source = f.source.replace('// ROSTER 124 arms', '// ROSTER 96 arms'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 96 arms; the arms list defines 124')), `stale marker total: ${r.violations.join(' | ')}`);
   }],
   ['S2 the header marker gone', (f) => {
-    f.source = f.source.replace('// ROSTER 114 arms in 9 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14', '// the marker moved into prose, where nothing reads it');
+    f.source = f.source.replace('// ROSTER 124 arms in 10 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10', '// the marker moved into prose, where nothing reads it');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('states no "// ROSTER') && v.includes('a sentence with nothing behind it')), `missing marker: ${r.violations.join(' | ')}`);
   }],
   ['S3 a family pair in the marker that the list does not count', (f) => { f.source = f.source.replace('· X8 ·', '· X7 ·'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes("family 6 says \"X7\"") && v.includes('counts 8 arms named X*')), `wrong pair: ${r.violations.join(' | ')}`);
-    assert.ok(r.violations.some((v) => v.includes("families add to 113 against its own headline of 114")), `marker arithmetic: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("families add to 123 against its own headline of 124")), `marker arithmetic: ${r.violations.join(' | ')}`);
   }],
   ['S4 a marker reshaped out of its grammar', (f) => {
     // Kept behind the "// ROSTER " the reader looks for: an arm that drops the prefix aims at S2's refusal, and
     // two arms hitting one message is one arm fewer than the roster says.
-    f.source = f.source.replace('// ROSTER 114 arms in 9 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14', '// ROSTER ninety-eight arms, eight families');
+    f.source = f.source.replace('// ROSTER 124 arms in 10 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10', '// ROSTER ninety-eight arms, eight families');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('ROSTER line is reshaped') && v.includes('a marker nothing parses is a comment')), `reshaped marker: ${r.violations.join(' | ')}`);
   }],
   ['S5 a family pair the marker writes in words', (f) => { f.source = f.source.replace('· N7 ·', '· Nseven ·'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('a pair is a letter prefix and a count, in that order')), `pair in words: ${r.violations.join(' | ')}`);
   }],
-  ['S6 a marker whose own family count is out of date', (f) => { f.source = f.source.replace('in 9 families', 'in 8 families'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 8 families; the arms list defines 9')), `stale family count: ${r.violations.join(' | ')}`);
+  ['S6 a marker whose own family count is out of date', (f) => { f.source = f.source.replace('in 10 families', 'in 9 families'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 9 families; the arms list defines 10')), `stale family count: ${r.violations.join(' | ')}`);
   }],
   ['S7 a marker that dropped one family pair', (f) => { f.source = f.source.replace(' · C8', ''); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('lists 8 family pair(s); the arms list defines 9')), `dropped pair: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes('lists 9 family pair(s); the arms list defines 10')), `dropped pair: ${r.violations.join(' | ')}`);
   }],
   // ── the coverage arms: the arms list is asked what it proved (v624) ─────────────────────────────────────
   ['C1 a refusal no arm reaches and nobody declares', (f) => { f.coverage.declared = []; }, (r) => {
@@ -2210,6 +2429,47 @@ const ARMS = [
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('was measured on 2026-11-01, but') && v.includes('the table times bytes that no longer exist')), `stale measurement: ${r.violations.join(' | ')}`);
   }],
+  // ── the hosted-claim arms: a run's verdict is re-derived from the commit it names (v626) ─────────────────
+  ['E1 a census handed no ref facts to re-derive the hosted claims against', (f) => { f.refs = null; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('was handed no ref facts')), `no ref facts: ${r.violations.join(' | ')}`);
+  }],
+  ['E2 an address that is not a commit address', (f) => {
+    f.readme = f.readme.replace(FX_HOSTED, FX_HOSTED.replace(FX_SHA, 'cafeO01'));
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('cafeO01') && v.includes('is not a commit address')), `bad address: ${r.violations.join(' | ')}`);
+  }],
+  ['E3 an address no commit in this clone answers', (f) => { delete f.refs[FX_SHA]; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('no commit in this clone answers')), `unresolvable: ${r.violations.join(' | ')}`);
+  }],
+  ['E4 an address two commits share', (f) => { f.refs[FX_SHA].count = 2; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('resolves twice resolves to nothing')), `ambiguous: ${r.violations.join(' | ')}`);
+  }],
+  ['E5 an address that is not on this history', (f) => { f.refs[FX_SHA].ancestor = false; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('not on this history')), `off history: ${r.violations.join(' | ')}`);
+  }],
+  ['E6 a population the commit it names does not derive', (f) => { f.refs[FX_SHA].rows = 3; }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('says a derived population of 2 at cafe001; the scripts committed there derive 3')), `population: ${r.violations.join(' | ')}`);
+  }],
+  ['E7 a run dated in a shape no reader can order', (f) => {
+    f.readme = f.readme.replace(FX_HOSTED, FX_HOSTED.replace(FX_DAY, '2026-13-45'));
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('2026-13-45') && v.includes('not a calendar day this reader can order')), `bad day: ${r.violations.join(' | ')}`);
+  }],
+  ['E8 a run dated before the commit it claims to have tested', (f) => {
+    f.refs[FX_SHA].at = Math.floor(Date.parse('2026-10-31T12:00:00Z') / 1000);
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('before cafe001 landed on 2026-10-31 UTC') && v.includes('no timezone explains it')), `dated before: ${r.violations.join(' | ')}`);
+  }],
+  ['E9 a run dated a day the push cannot account for', (f) => {
+    f.refs[FX_SHA].at = Math.floor(Date.parse('2026-10-27T12:00:00Z') / 1000);
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('more than a UTC day after cafe001 landed on 2026-10-27')), `dated after: ${r.violations.join(' | ')}`);
+  }],
+  ['E10 one run claimed against two different commits', (f) => {
+    f.readme = `${f.readme}\n\n- Run \`${FX_RUN}\` (sha \`${FX_SHA2}\`) says the same build ran on another commit.`;
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('is claimed against two commits here') && v.includes('one run tests one ref')), `double anchor: ${r.violations.join(' | ')}`);
+  }],
 ];
 
 /**
@@ -2229,7 +2489,7 @@ function runArms() {
     const tracked = (f.tracked ?? Object.keys(f.files).filter((p) => p.startsWith('docs/evidence/'))).slice().sort();
     const index = (f.index ?? Object.keys(f.files)).slice().sort();
     const read = (p) => (Object.prototype.hasOwnProperty.call(f.files, p) ? f.files[p] : null);
-    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme, index, workflow: f.workflow, manifest: f.manifest, standby: f.toolsStandby, source: f.source, coverage: f.coverage, committedAt: f.committedAt, now: f.now });
+    const report = censusOf({ tracked, scripts: f.scripts, excluded: f.excluded, roster: f.roster, swept: f.swept, read, readme: f.readme, index, workflow: f.workflow, manifest: f.manifest, standby: f.toolsStandby, source: f.source, coverage: f.coverage, committedAt: f.committedAt, now: f.now, refs: f.refs });
     try {
       check(report);
       return { name, ok: true, violations: report.violations };
@@ -2242,6 +2502,18 @@ function runArms() {
   assert.deepEqual(bad.map((b) => b.name), [], `${bad.length} of ${results.length} arms did not reach the refusal they aimed at`);
   console.log(`[arms] ${results.length}/${results.length} MATCHED — each refusal rises from the fixture the arm rewrites, the prose-import arm proves the tokenizer is the sweep's, and the README arms drift one number at a time on the same plane`);
   return results.map(({ name, violations }) => ({ name, violations }));
+}
+
+/**
+ * A git answer that may honestly come back empty: an address the clone does not hold has nothing to show,
+ * and the reader refuses that claim by name rather than a throw hiding the fifteen behind it.
+ */
+async function gitOrNone(argv, cwd) {
+  try {
+    return (await sweep.gitText(argv, cwd)).trim();
+  } catch {
+    return null;
+  }
 }
 
 async function main() {
@@ -2282,8 +2554,51 @@ async function main() {
     const m = /^(\d+) (\S+)$/.exec(String(line));
     if (m !== null) committedAt[p] = { at: Number(m[1]), ref: m[2] };
   }
+  // A hosted claim names a commit, and a commit is something this clone can answer for. The history is read once
+  // and every address resolved against it; the population is re-derived from the package.json committed AT that
+  // ref, and only where the derivation is the same code this census runs, because a claim counted with a rule that
+  // has since moved was true of the rules of its own time. gitOrNone is the one tolerated failure here: an address
+  // the clone does not hold has no package.json to show, and the reader refuses that claim by name rather than a
+  // throw hiding the fifteen behind it.
+  const hosted = hostedClaims(readme);
+  const history = (await sweep.gitText(['log', '--format=%H %ct', 'HEAD'], ROOT))
+    .split(/\r?\n/)
+    .map((l) => /^([0-9a-f]{40}) (\d+)$/.exec(l.trim()))
+    .filter(Boolean)
+    .map((m) => ({ full: m[1], at: Number(m[2]) }));
+  assert.ok(history.length >= 50, `HEAD holds ${history.length} commits — a history that short is a shallow clone, and a hosted claim cannot be re-derived from one`);
+  const derivation = derivationText(readFileSync(join(ROOT, 'tools/ci/proof-set.mjs'), 'utf8'));
+  const refs = {};
+  const declined = [];
+  for (const { shaText } of hosted.claims) {
+    if (!SHA_GOOD_RE.test(shaText) || refs[shaText] !== undefined) continue;
+    const hits = history.filter((h) => h.full.startsWith(shaText));
+    if (hits.length > 1) { refs[shaText] = { at: null, count: hits.length, ancestor: false, rows: null }; continue; }
+    if (hits.length === 0) {
+      const kind = await gitOrNone(['cat-file', '-t', `${shaText}^{commit}`], ROOT);
+      const stamp = kind === 'commit' ? await gitOrNone(['log', '-1', '--format=%ct', shaText], ROOT) : null;
+      refs[shaText] = stamp === null
+        ? { at: null, count: 0, ancestor: false, rows: null }
+        : { at: Number(stamp), count: 1, ancestor: false, rows: null };
+      continue;
+    }
+    const full = hits[0].full;
+    const atRef = await gitOrNone(['show', `${full}:tools/ci/proof-set.mjs`], ROOT);
+    const pkgText = await gitOrNone(['show', `${full}:package.json`], ROOT);
+    let why = atRef === null
+      ? 'no tools/ci/proof-set.mjs at that ref'
+      : pkgText === null ? 'no package.json at that ref' : derivationText(atRef) !== derivation ? 'the derivation itself differs there' : null;
+    let rows = null;
+    if (why === null) {
+      try { rows = derivePopulation(JSON.parse(pkgText).scripts ?? {}).length; } catch { rows = null; }
+      if (rows === null) why = 'its package.json is not readable as JSON';
+    }
+    if (why !== null) declined.push(`${shaText} (${why})`);
+    refs[shaText] = { at: hits[0].at, count: 1, ancestor: true, rows };
+  }
+  const gradedRefs = Object.values(refs).filter((x) => typeof x.rows === 'number').length;
   const now = Math.floor(Date.now() / 1000);
-  const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read, readme, index, workflow, manifest: MANIFEST, standby: TOOLS_STANDBY, source, committedAt, now });
+  const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read, readme, index, workflow, manifest: MANIFEST, standby: TOOLS_STANDBY, source, committedAt, now, refs });
   assert.deepEqual(report.violations, [], `the census is RED:\n  ${report.violations.join('\n  ')}`);
   assert.deepEqual(report.unclassified, [], `the census found modules nobody has decided about: ${report.unclassified.join(', ')} — each must become a verify row, an EXCLUDED row, a reachable helper, or a ROSTER entry with a falsifiable reason`);
   assert.deepEqual(report.manifest.undispositioned, [], `the manifest holds verify:* names nobody has disposed: ${report.manifest.undispositioned.join(', ')} — declare each in MANIFEST as a runner, a covered claim the workflow answers, or a deferred door with its reach, measurement, blocker and next repair`);
@@ -2312,6 +2627,15 @@ async function main() {
   for (const r of residue) console.log(`  EXCLUDED  ${r.name.padEnd(24)} ${r.file} — ${EXCLUDED.find((e) => e.file === r.file).needs}`);
   const timed = [...new Set(authoringTablePaths(readme))];
   console.log(`\nauthoring-box table (${README_FILE}): ${timed.length} file(s) timed, each dated against the commit that last touched THAT file — ${timed.map((p) => `${p} ${committedAt[p] ? localDay(committedAt[p].at) : '(no commit)'}`).join(' · ') || '(none)'}; this census runs on ${localDay(now)}`);
+  const hostedSet = new Set(hosted.claims.map((c) => c.shaText));
+  const statedPops = (s) => hosted.claims.filter((c) => c.shaText === s).map((c) => c.pops.join('/') || '-').join(' ');
+  console.log(`\nhosted claims (${README_FILE}): ${hosted.claims.length} address(es) over ${hostedSet.size} distinct commit(s), resolved against HEAD's ${history.length}-commit history and re-derived there: ${gradedRefs} population(s) graded, ${declined.length} declined${declined.length === 0 ? '' : ` (${declined.join(', ')})`}; dates compare in UTC on both sides because the runner stamps its own start in UTC, unlike the authoring-box table above, which this box's own calendar dates`);
+  for (const [s, r] of Object.entries(refs)) {
+    console.log(`    REF         ${s} ${String(r.count).padStart(2)} commit(s) ${r.ancestor ? 'on this history' : 'NOT on it'} ${r.at === null ? 'no stamp' : `landed ${utcDay(r.at)} UTC`} ${typeof r.rows === 'number' ? `derives ${r.rows} rows` : 'population declined'} ${statedPops(s) || '-'} stated`);
+  }
+  if (hosted.unowned.length > 0) {
+    console.log(`    UNOWNED     ${hosted.unowned.length} population claim(s) state no address before them in their own paragraph and are printed, not guessed: ${hosted.unowned.map((u) => `L${u.line} says ${u.p}`).join(' · ')}`);
+  }
   console.log('\nhelper modules:');
   for (const h of [...report.helpers].sort()) console.log(`  HELPER    ${h}`);
   console.log('\nhuman-run tools:');
