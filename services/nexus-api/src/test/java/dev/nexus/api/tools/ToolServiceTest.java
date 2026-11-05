@@ -611,6 +611,55 @@ class ToolServiceTest {
     }
 
     @Test
+    void aReplacementStatusNarrowsTheDeprecationWindowAndItsWholeCount() {
+        when(deprecations.firstPageFiltered(null, "none", PageRequest.of(0, 1)))
+                .thenReturn(List.of(new ToolDeprecation("tool-2", "No successor.", null, AT)));
+        when(deprecations.countFiltered(null, "none")).thenReturn(1L);
+
+        assertThat(service().deprecationPage(null, "none", null, 1, 0))
+                .extracting(ToolDeprecation::getToolId).containsExactly("tool-2");
+        assertThat(service().deprecationCount(null, "none")).isEqualTo(1);
+
+        verify(deprecations, never()).firstPage(any());
+        verify(deprecations, never()).count();
+    }
+
+    @Test
+    void anOwnerAndAReplacementStatusComposeWithThePairCursor() {
+        String key = AT.toEpochMilli() + ":tool-2";
+        when(deprecations.pageAfterFiltered(OWNER, "deprecated", AT, "tool-2", PageRequest.of(0, 20)))
+                .thenReturn(List.of(new ToolDeprecation("tool-3", "Its successor goes too.", "b.tool", AT.minusSeconds(1))));
+
+        assertThat(service().deprecationPage(OWNER, "deprecated", key, 20, 0))
+                .extracting(ToolDeprecation::getToolId).containsExactly("tool-3");
+
+        verify(deprecations, never()).pageAfterByOwner(any(), any(), any(), any());
+    }
+
+    @Test
+    void aBlankReplacementStatusIsTheAbsentFilter() {
+        when(deprecations.firstPage(PageRequest.of(0, 20))).thenReturn(List.of());
+        when(deprecations.count()).thenReturn(0L);
+
+        service().deprecationPage(null, "   ", null, 20, 0);
+        assertThat(service().deprecationCount(null, "   ")).isZero();
+
+        verify(deprecations, never()).firstPageFiltered(any(), any(), any());
+        verify(deprecations, never()).countFiltered(any(), any());
+    }
+
+    @Test
+    void aReplacementStatusOutsideTheClosedVocabularyIsRefusedBeforeAnyQuery() {
+        assertThatThrownBy(() -> service().deprecationPage(null, "LIVE", null, 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("none")
+                .hasMessageContaining("deprecated");
+
+        verify(deprecations, never()).firstPage(any());
+        verify(deprecations, never()).firstPageFiltered(any(), any(), any());
+    }
+
+    @Test
     void aBlankOwnerIsTheAbsentFilterNotAnEmptyDeprecationList() {
         when(deprecations.firstPage(PageRequest.of(0, 20))).thenReturn(List.of());
         when(deprecations.count()).thenReturn(0L);

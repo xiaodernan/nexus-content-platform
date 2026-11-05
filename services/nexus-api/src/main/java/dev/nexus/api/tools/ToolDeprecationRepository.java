@@ -13,6 +13,24 @@ import org.springframework.data.repository.query.Param;
  */
 public interface ToolDeprecationRepository extends JpaRepository<ToolDeprecation, String> {
 
+    /**
+     * The DERIVED replacement-state predicate, shared by the window and its count.
+     *
+     * <p>The status is not stored on the row: it is computed from the current declaration and deprecation rows.
+     * {@code cast} gives PostgreSQL a type for an absent filter, so a null owner or status is the ABSENT filter
+     * rather than an untyped parameter the database cannot compare.
+     */
+    String STATUS_PREDICATE = "(cast(:status as varchar) is null"
+            + " or (cast(:status as varchar) = 'none' and d.replacement_name is null)"
+            + " or (cast(:status as varchar) = 'unresolved' and d.replacement_name is not null"
+            + " and not exists (select 1 from tool_entry target where target.name = d.replacement_name))"
+            + " or (cast(:status as varchar) = 'live' and exists (select 1 from tool_entry target"
+            + " where target.name = d.replacement_name and not exists"
+            + " (select 1 from tool_deprecation warning where warning.tool_id = target.tool_id)))"
+            + " or (cast(:status as varchar) = 'deprecated' and exists (select 1 from tool_entry target"
+            + " join tool_deprecation warning on warning.tool_id = target.tool_id"
+            + " where target.name = d.replacement_name)))";
+
     /** The deprecation of one tool, when it has one. */
     Optional<ToolDeprecation> findByToolId(String toolId);
 
@@ -33,6 +51,16 @@ public interface ToolDeprecationRepository extends JpaRepository<ToolDeprecation
             + " order by date_trunc('milliseconds', d.deprecated_at) desc, d.tool_id asc",
             nativeQuery = true)
     List<ToolDeprecation> firstPageByOwner(@Param("owner") String owner, Pageable page);
+
+    /** The same window with the derived replacement state as a second, composable filter. */
+    @Query(value = "select d.* from tool_deprecation d"
+            + " join tool_entry e on e.tool_id = d.tool_id"
+            + " where (cast(:owner as varchar) is null or e.owner_account_id = cast(:owner as varchar))"
+            + " and " + STATUS_PREDICATE
+            + " order by date_trunc('milliseconds', d.deprecated_at) desc, d.tool_id asc",
+            nativeQuery = true)
+    List<ToolDeprecation> firstPageFiltered(
+            @Param("owner") String owner, @Param("status") String status, Pageable page);
 
     /**
      * M10 v617 - the list AFTER a cursor that names its whole sort key, so a tie on the instant cannot be
@@ -59,12 +87,33 @@ public interface ToolDeprecationRepository extends JpaRepository<ToolDeprecation
             @Param("owner") String owner, @Param("at") Instant at,
             @Param("id") String id, Pageable page);
 
+    /** The cursor page inside the same owner and replacement-state filters. */
+    @Query(value = "select d.* from tool_deprecation d"
+            + " join tool_entry e on e.tool_id = d.tool_id"
+            + " where (cast(:owner as varchar) is null or e.owner_account_id = cast(:owner as varchar))"
+            + " and " + STATUS_PREDICATE
+            + " and (date_trunc('milliseconds', d.deprecated_at) < :at"
+            + " or (date_trunc('milliseconds', d.deprecated_at) = :at and d.tool_id > :id))"
+            + " order by date_trunc('milliseconds', d.deprecated_at) desc, d.tool_id asc",
+            nativeQuery = true)
+    List<ToolDeprecation> pageAfterFiltered(
+            @Param("owner") String owner, @Param("status") String status, @Param("at") Instant at,
+            @Param("id") String id, Pageable page);
+
     /** The WHOLE number of deprecations one account's declarations carry. */
     @Query(value = "select count(*) from tool_deprecation d"
             + " join tool_entry e on e.tool_id = d.tool_id"
             + " where e.owner_account_id = :owner",
             nativeQuery = true)
     long countByOwner(@Param("owner") String owner);
+
+    /** The WHOLE number of deprecations the owner and replacement-state filters select. */
+    @Query(value = "select count(*) from tool_deprecation d"
+            + " join tool_entry e on e.tool_id = d.tool_id"
+            + " where (cast(:owner as varchar) is null or e.owner_account_id = cast(:owner as varchar))"
+            + " and " + STATUS_PREDICATE,
+            nativeQuery = true)
+    long countFiltered(@Param("owner") String owner, @Param("status") String status);
 
     /** Remove a declaration's deprecation with the declaration itself. */
     void deleteByToolId(String toolId);

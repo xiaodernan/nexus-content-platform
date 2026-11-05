@@ -101,11 +101,14 @@ import org.springframework.web.bind.annotation.RestController;
  *       the id names nothing, and a DIFFERENT 404 {@code not-deprecated} when the tool is live.
  *   <li>{@code DELETE /tools/{id}/deprecation?owner=} — withdraw the deprecation, for its owner only.
  *       200 with {@code removed:false} when the tool was not deprecated.
- *   <li>{@code GET /tools/deprecations?owner=&limit=&offset=&before=} — every deprecated declaration, newest
+ *   <li>{@code GET /tools/deprecations?owner=&replacementStatus=&limit=&offset=&before=} — every deprecated
+ *       declaration, newest
  *       first, with the tool's name beside its deprecation so an agent can read the whole warning list in one
  *       request. {@code owner} narrows the window and the count; {@code before} is the last row of the previous
  *       page as {@code <epochMillis>:<toolId>}, because instants can tie (v617). The two compose (v618), and
  *       each row resolves its replacement hint in one batch so a migration list is actionable in one read.
+ *       {@code replacementStatus} selects none, unresolved, live or deprecated (v620), narrowing the window and
+ *       the count alongside the other two.
  *   <li>{@code DELETE /tools/{id}/revisions?owner=&before=} — the owner's RETENTION: remove the revisions strictly
  *       older than {@code before}, and answer the bound, what went and what remains. A bound past the newest
  *       revision is a 400, because a declaration whose history explains nothing is not a state this door creates.
@@ -435,14 +438,16 @@ public class ToolController {
             @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "offset", required = false) Integer offset,
             @RequestParam(name = "before", required = false) String before,
-            @RequestParam(name = "owner", required = false) String ownerId) {
+            @RequestParam(name = "owner", required = false) String ownerId,
+            @RequestParam(name = "replacementStatus", required = false) String replacementStatus) {
         int asked = limit == null ? ToolService.DEFAULT_LIST_LIMIT : limit;
         int effective = Math.min(Math.max(asked, 1), ToolService.MAX_LIST_LIMIT);
         int from = offset == null ? 0 : Math.max(offset, 0);
         String owner = ToolService.normalizeOwner(ownerId);
+        String status = ToolService.normalizeReplacementStatus(replacementStatus);
         DeprecationCursor cursor = DeprecationCursor.parse(before);
         String key = cursor == null ? null : cursor.text();
-        List<ToolDeprecation> rows = service.deprecationPage(owner, key, asked, from);
+        List<ToolDeprecation> rows = service.deprecationPage(owner, status, key, asked, from);
         Map<String, ToolEntry> tools = service.byIds(rows.stream().map(ToolDeprecation::getToolId).toList());
         Map<String, ToolService.ReplacementResolution> replacements = service.resolveReplacements(
                 rows.stream().map(ToolDeprecation::getReplacementName).filter(name -> name != null).toList());
@@ -461,7 +466,8 @@ public class ToolController {
                 })
                 .toList();
         return ResponseEntity.ok(
-                new DeprecationList(owner, wire, service.deprecationCount(owner), effective, from, key));
+                new DeprecationList(
+                        owner, status, wire, service.deprecationCount(owner, status), effective, from, key));
     }
 
     /**

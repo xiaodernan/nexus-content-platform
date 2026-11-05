@@ -91,6 +91,10 @@ public class ToolService {
     public static final List<String> CHANGE_KINDS =
             List.of("declared", "updated", "transferred", "deprecated", "undeprecated", "attested", "unattested", "removed");
 
+    /** The four derived replacement states a deprecation page can select. The words are the protocol. */
+    public static final List<String> REPLACEMENT_STATES =
+            List.of("none", "unresolved", "live", "deprecated");
+
     /**
      * The name's shape. The first character is alphanumeric, so a name cannot begin with a dot or dash and
      * collide with a relative path if a consumer ever maps names onto files.
@@ -1106,9 +1110,27 @@ public class ToolService {
      */
     @Transactional(readOnly = true)
     public List<ToolDeprecation> deprecationPage(String ownerId, String before, int limit, int offset) {
+        return deprecationPage(ownerId, null, before, limit, offset);
+    }
+
+    /**
+     * M10 v620 — the same list narrowed by the DERIVED replacement state.
+     *
+     * <p>The state is not a column (ADR 0049): it is computed from the current declaration and deprecation rows,
+     * so the filter is one statement over the same rows the answer resolves. It composes with the owner and the
+     * pair cursor: every filter narrows both the window and the whole count, and none of them changes the order.
+     *
+     * @param ownerId            the holder to narrow to, or null/blank for every deprecation
+     * @param replacementStatus  none, unresolved, live or deprecated; null/blank for every state
+     * @throws InvalidTool when the state is not one of {@link #REPLACEMENT_STATES}
+     */
+    @Transactional(readOnly = true)
+    public List<ToolDeprecation> deprecationPage(
+            String ownerId, String replacementStatus, String before, int limit, int offset) {
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
         int from = Math.max(offset, 0);
         String owner = normalizeOwner(ownerId);
+        String status = normalizeReplacementStatus(replacementStatus);
         DeprecationCursor cursor = DeprecationCursor.parse(before);
         if (cursor != null && from > 0) {
             throw new InvalidTool("a keyset read carries before=, not offset= — mixing the two is how a page"
@@ -1116,11 +1138,17 @@ public class ToolService {
         }
         if (cursor != null) {
             PageRequest page = PageRequest.of(0, effective);
+            if (status != null) {
+                return deprecations.pageAfterFiltered(owner, status, cursor.at(), cursor.toolId(), page);
+            }
             return owner == null
                     ? deprecations.pageAfter(cursor.at(), cursor.toolId(), page)
                     : deprecations.pageAfterByOwner(owner, cursor.at(), cursor.toolId(), page);
         }
         PageRequest page = PageRequest.of(from / effective, effective);
+        if (status != null) {
+            return deprecations.firstPageFiltered(owner, status, page);
+        }
         return owner == null ? deprecations.firstPage(page) : deprecations.firstPageByOwner(owner, page);
     }
 
@@ -1133,7 +1161,17 @@ public class ToolService {
     /** The WHOLE number of deprecated declarations one owner filter selects. */
     @Transactional(readOnly = true)
     public long deprecationCount(String ownerId) {
+        return deprecationCount(ownerId, null);
+    }
+
+    /** The WHOLE number of deprecations the owner and replacement-state filters select. */
+    @Transactional(readOnly = true)
+    public long deprecationCount(String ownerId, String replacementStatus) {
         String owner = normalizeOwner(ownerId);
+        String status = normalizeReplacementStatus(replacementStatus);
+        if (status != null) {
+            return deprecations.countFiltered(owner, status);
+        }
         return owner == null ? deprecations.count() : deprecations.countByOwner(owner);
     }
 
@@ -1357,6 +1395,23 @@ public class ToolService {
         String trimmed = raw.trim();
         if (!CHANGE_KINDS.contains(trimmed)) {
             throw new InvalidTool("a journal kind is one of " + String.join(", ", CHANGE_KINDS)
+                    + " — this one is \"" + trimmed + "\"");
+        }
+        return trimmed;
+    }
+
+    /**
+     * The optional replacement-state filter: null when absent or blank, otherwise one of
+     * {@link #REPLACEMENT_STATES}. Case-sensitive like the journal's kind, because the four words are a closed
+     * vocabulary and an answer with no rows would hide a misspelling.
+     */
+    static String normalizeReplacementStatus(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (!REPLACEMENT_STATES.contains(trimmed)) {
+            throw new InvalidTool("a replacement status is one of " + String.join(", ", REPLACEMENT_STATES)
                     + " — this one is \"" + trimmed + "\"");
         }
         return trimmed;
