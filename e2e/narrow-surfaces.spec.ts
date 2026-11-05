@@ -65,6 +65,11 @@ interface Surface {
    * 不看 scrollWidth（transform 不改它），看 frame 与 surface 的两个矩形。
    */
   fitCanvas: boolean;
+  /**
+   * 额外的载体断言：这一面有一块"登录态才出现"的东西（例如市场页的上架表单）。
+   * 没有它，会员会话没生效时量到的是游客那张脸——两次都干净，但那一次不算读数。
+   */
+  requires?: string;
 }
 
 interface Reading {
@@ -186,10 +191,30 @@ test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／
   });
   const memberState = await page.context().storageState();
 
+  // §85 第三十四片：游客那张市场页量过，登录态的这张从来没进过表——它多出「上架」表单
+  // （输入框、下拉、提交）与「我的物品」那一列（改可见性、下架）。同一张脸、两套控件。
+  surfaces.push({
+    name: '市场·登录态',
+    path: '/marketplace',
+    landmark: '[data-marketplace-list]',
+    ready: '[data-marketplace-list]',
+    as: 'member',
+    smallTargetGate: true,
+    fitCanvas: false,
+    requires: '[data-marketplace-create]',
+  });
+
   // admin：本机没有夹具就记"未测"，不去量拒绝页冒充管理台
   const adminPage = await browser.newPage({ storageState: undefined });
-  const adminOk = await loginMemberIfPossible(adminPage, ADMIN, SECRET);
-  const adminState = adminOk ? await adminPage.context().storageState() : null;
+  // 登录本身也可能在 dev server 编译时慢过 5 秒的水合屏障；那种失败与"没有夹具"是同一件事
+  // （这一格记未测），不该把整张表打断——所以接住，并照实打一行原因。
+  let adminState: Awaited<ReturnType<BrowserContext['storageState']>> | null = null;
+  try {
+    const adminOk = await loginMemberIfPossible(adminPage, ADMIN, SECRET);
+    if (adminOk) adminState = await adminPage.context().storageState();
+  } catch (error) {
+    console.warn(`admin 夹具登录没走完，这一轮把管理台记未测：${error instanceof Error ? error.message : String(error)}`);
+  }
   await adminPage.close();
   if (adminState) surfaces.push({
     name: '管理台',
@@ -228,6 +253,9 @@ test('§85 移动端体检第二片：应用外壳（发现／市场／Studio／
         expect(res, `${surface.name} 没返回响应`).not.toBeNull();
         await tab.waitForSelector(surface.landmark, { timeout: 60_000 });
         await tab.waitForSelector(surface.ready, { timeout: 90_000 });
+        if (surface.requires) {
+          await tab.waitForSelector(surface.requires, { timeout: 30_000 });
+        }
         const reading = await measure(tab, surface.landmark, TARGET_MIN);
         expect(reading.innerWidth, `${surface.name}/${w.label}：仿真没落地（页面自报 ${reading.innerWidth}，请求 ${w.width}）`).toBe(w.width);
         expect(reading.landmark, `${surface.name}/${w.label}：地标 ${surface.landmark} 不在`).toBe(true);

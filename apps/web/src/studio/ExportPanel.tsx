@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/cn';
 import { saveBlob } from '@/lib/download';
 import { useStudioReady } from './store';
+import { usePopoverDismiss } from './use-popover-dismiss';
 
 /**
  * §144 NO LOCK-IN：把项目**交回作者手里**的那个按钮。
@@ -28,6 +29,9 @@ const PARTS = [
 ] as const;
 
 type Part = (typeof PARTS)[number]['id'];
+
+/** 弹层与触发键的绑定：`aria-controls` 指的必须是真存在的 id，两边共用这一个常量。 */
+const EXPORT_PANEL_ID = 'nexus-export-panel';
 
 interface Receipt {
   bytes: number;
@@ -78,6 +82,7 @@ export function ExportPanel() {
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { rootRef, triggerRef } = usePopoverDismiss(open, setOpen);
 
   const chosen = PARTS.filter((p) => picked[p.id]).map((p) => p.id);
 
@@ -116,11 +121,13 @@ export function ExportPanel() {
   };
 
   return (
-    <div className="relative" data-export-root>
+    <div ref={rootRef} className="relative" data-export-root>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
+        aria-controls={open ? EXPORT_PANEL_ID : undefined}
         data-export-open
         className="rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-3)] py-1 text-13 text-fg-2 hover:bg-bg-2"
       >
@@ -128,7 +135,13 @@ export function ExportPanel() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-[70] w-[360px] rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-strong)] bg-bg-1 p-[var(--nexus-space-3)] shadow-2xl">
+        <div
+          id={EXPORT_PANEL_ID}
+          role="region"
+          aria-label="导出与下载"
+          data-export-panel
+          className="absolute right-0 top-[calc(100%+6px)] z-[70] w-[360px] rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-strong)] bg-bg-1 p-[var(--nexus-space-3)] shadow-2xl"
+        >
           <p className="mb-2 font-mono text-12 text-fg-3">§144 导出这个项目</p>
           <div className="mb-[var(--nexus-space-3)] flex flex-col gap-1">
             {PARTS.map((part) => (
@@ -147,8 +160,14 @@ export function ExportPanel() {
             ))}
           </div>
 
+          {/* §85（第三十七片）：回执是"点完之后才出现"的一整块，键盘用户看不见它出现。
+              `role="status"` 让它被读屏播报一次（不是 `alert`：打包成功不该抢当前朗读）。 */}
           {receipt ? (
-            <div className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-export-receipt>
+            <div
+              role="status"
+              className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2"
+              data-export-receipt
+            >
               <p className="text-11 text-fg-1">
                 已下载 {receipt.filename}（{kilobytes(receipt.bytes)}）
               </p>
@@ -169,8 +188,9 @@ export function ExportPanel() {
             </div>
           ) : null}
 
+          {/* 失败是"动作没成"：`alert` 会打断当前朗读，这正是这条消息该有的重量 */}
           {error ? (
-            <p className="mb-2 text-11 text-danger-ink" data-export-error>
+            <p role="alert" className="mb-2 text-11 text-danger-ink" data-export-error>
               {error}
             </p>
           ) : null}
@@ -196,7 +216,7 @@ export function ExportPanel() {
             >
               {busy ? '打包中…' : `导出 ${chosen.join('+') || '（没勾东西）'}`}
             </button>
-            <button type="button" onClick={() => setOpen(false)} className="ml-auto text-11 text-fg-3 hover:text-fg-1">
+            <button type="button" onClick={() => setOpen(false)} className="ml-auto shrink-0 text-11 text-fg-3 hover:text-fg-1">
               收起
             </button>
           </div>
