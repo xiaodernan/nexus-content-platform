@@ -953,10 +953,48 @@ class ToolServiceTest {
         assertThatThrownBy(() -> service().atPin("tool-missing", "nonsense"))
                 .isInstanceOf(UnknownTool.class);
     }
+    // ── v613: a keyset page is a position in a set, not a filter on it ──────────────────────────────
+    @Test
+    void theCursorAsksForWhatSortsAfterItAndTheTotalStaysTheWholeSet() {
+        when(repository.searchCatalog(null, null, 0, 0, 0, 0, "m.tool", PageRequest.of(0, 20)))
+                .thenReturn(List.of(row("tool-3", OWNER, "weather.lookup"), row("tool-4", OWNER, "z.tool")));
+        when(repository.count()).thenReturn(4L);
+
+        assertThat(service().catalog(null, null, null, null, "m.tool", 20, 0)).hasSize(2);
+        assertThat(service().countOf(null, null, null, null)).isEqualTo(4L);
+        // The plain derivation is never consulted when a cursor is present: the composed query carries it.
+        verify(repository, never()).findAllByOrderByNameAsc(any());
+    }
+
+    @Test
+    void aCursorAndANonZeroOffsetAreRefusedTogether() {
+        assertThatThrownBy(() -> service().catalog(null, null, null, null, "m.tool", 20, 1))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("offset");
+        verify(repository, never()).searchCatalog(any(), any(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any());
+    }
+
+    @Test
+    void aCursorThatIsNotANameIsRefused() {
+        assertThatThrownBy(() -> service().catalog(null, null, null, null, "M.TOOL", 20, 0))
+                .isInstanceOf(InvalidTool.class)
+                .hasMessageContaining("not a tool name");
+        assertThatThrownBy(() -> service().catalog(null, null, null, null, "a".repeat(65), 20, 0))
+                .isInstanceOf(InvalidTool.class);
+    }
+
+    @Test
+    void aBlankCursorIsTheAbsentOne() {
+        when(repository.findAllByOrderByNameAsc(PageRequest.of(0, 20))).thenReturn(List.of());
+
+        service().catalog(null, null, null, null, "   ", 20, 0);
+
+        verify(repository, never()).searchCatalog(any(), any(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any());
+    }
     // ── v582/v589: the polarity filters, and the fact that they never change a row ────────────────────
     @Test
     void theDeprecatedFilterAsksTheDeprecatedPolarityAndTheCountFollows() {
-        when(repository.searchCatalog(null, null, 1, 0, 0, 0, PageRequest.of(0, 20)))
+        when(repository.searchCatalog(null, null, 1, 0, 0, 0, null, PageRequest.of(0, 20)))
                 .thenReturn(List.of(row("tool-1", OWNER, "a.tool")));
         when(repository.countCatalog(null, null, 1, 0, 0, 0)).thenReturn(1L);
 
@@ -968,19 +1006,19 @@ class ToolServiceTest {
 
     @Test
     void theLiveFilterAsksTheOppositePolarity() {
-        when(repository.searchCatalog(null, null, 0, 1, 0, 0, PageRequest.of(0, 20))).thenReturn(List.of());
+        when(repository.searchCatalog(null, null, 0, 1, 0, 0, null, PageRequest.of(0, 20))).thenReturn(List.of());
         when(repository.countCatalog(null, null, 0, 1, 0, 0)).thenReturn(0L);
 
         service().catalog(null, null, false, 20, 0);
 
         assertThat(service().countOf(null, null, false)).isZero();
         // The opposite side is the SAME statement with the other flag set — never the deprecated polarity.
-        verify(repository, never()).searchCatalog(any(), any(), eq(1), eq(0), anyInt(), anyInt(), any());
+        verify(repository, never()).searchCatalog(any(), any(), eq(1), eq(0), anyInt(), anyInt(), any(), any());
     }
 
     @Test
     void theDeprecationFilterComposesWithOwnerAndSearch() {
-        when(repository.searchCatalog("acct-ada", "%weather%", 1, 0, 0, 0, PageRequest.of(0, 20)))
+        when(repository.searchCatalog("acct-ada", "%weather%", 1, 0, 0, 0, null, PageRequest.of(0, 20)))
                 .thenReturn(List.of(row("tool-1", OWNER, "weather.lookup")));
         when(repository.countCatalog("acct-ada", "%weather%", 1, 0, 0, 0)).thenReturn(1L);
 
@@ -999,13 +1037,13 @@ class ToolServiceTest {
         service().catalog(null, null, null, 20, 0);
 
         assertThat(service().countOf(null, null, null)).isZero();
-        verify(repository, never()).searchCatalog(any(), any(), anyInt(), anyInt(), anyInt(), anyInt(), any());
+        verify(repository, never()).searchCatalog(any(), any(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any());
     }
 
     // ── v589: the tested filter names the CLAIM, and it composes with the other three ─────────────────
     @Test
     void theTestedFilterAsksForAnAttestationAndNarrowsTheCount() {
-        when(repository.searchCatalog(null, null, 0, 0, 1, 0, PageRequest.of(0, 20)))
+        when(repository.searchCatalog(null, null, 0, 0, 1, 0, null, PageRequest.of(0, 20)))
                 .thenReturn(List.of(row("tool-1", OWNER, "a.tool")));
         when(repository.countCatalog(null, null, 0, 0, 1, 0)).thenReturn(1L);
 
@@ -1016,18 +1054,18 @@ class ToolServiceTest {
 
     @Test
     void theUntestedFilterAsksForTheAbsenceOfOne() {
-        when(repository.searchCatalog(null, null, 0, 0, 0, 1, PageRequest.of(0, 20))).thenReturn(List.of());
+        when(repository.searchCatalog(null, null, 0, 0, 0, 1, null, PageRequest.of(0, 20))).thenReturn(List.of());
         when(repository.countCatalog(null, null, 0, 0, 0, 1)).thenReturn(0L);
 
         service().catalog(null, null, null, false, 20, 0);
 
         assertThat(service().countOf(null, null, null, false)).isZero();
-        verify(repository, never()).searchCatalog(any(), any(), anyInt(), anyInt(), eq(1), anyInt(), any());
+        verify(repository, never()).searchCatalog(any(), any(), anyInt(), anyInt(), eq(1), anyInt(), any(), any());
     }
 
     @Test
     void oneTestedAndOneLiveIsFourFlagsInONEStatement() {
-        when(repository.searchCatalog("acct-ada", null, 0, 1, 1, 0, PageRequest.of(0, 20)))
+        when(repository.searchCatalog("acct-ada", null, 0, 1, 1, 0, null, PageRequest.of(0, 20)))
                 .thenReturn(List.of(row("tool-1", OWNER, "a.tool")));
         when(repository.countCatalog("acct-ada", null, 0, 1, 1, 0)).thenReturn(1L);
 
@@ -1045,7 +1083,7 @@ class ToolServiceTest {
         service().catalog(null, null, null, null, 20, 0);
 
         assertThat(service().countOf(null, null, null, null)).isZero();
-        verify(repository, never()).searchCatalog(any(), any(), anyInt(), anyInt(), anyInt(), anyInt(), any());
+        verify(repository, never()).searchCatalog(any(), any(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any());
         verify(repository, never()).countCatalog(any(), any(), anyInt(), anyInt(), anyInt(), anyInt());
     }
     // ── v583: the journal — every accepted write, in one order, including the ones state cannot hold ───

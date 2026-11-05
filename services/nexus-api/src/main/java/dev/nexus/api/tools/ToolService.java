@@ -206,12 +206,38 @@ public class ToolService {
     @Transactional(readOnly = true)
     public List<ToolEntry> catalog(
             String ownerId, String query, Boolean deprecated, Boolean tested, int limit, int offset) {
+        return catalog(ownerId, query, deprecated, tested, null, limit, offset);
+    }
+
+    /**
+     * M10 v613 — the same catalog, addressable by a KEYSET cursor instead of an offset.
+     *
+     * <p>Offset paging is a position in a list that writes are allowed to change: register a name that sorts
+     * before the page you just read and the next offset serves a row twice; remove one and it serves a row
+     * never. The alternative is to remember the last NAME the caller saw and ask for what sorts after it —
+     * {@code after} is that value, not a row id, so it does not need the row to still exist.
+     *
+     * <p>{@code after} and a non-zero {@code offset} are REFUSED together. Two cursors over one window is how a
+     * page skips a row while looking correct, and the error names both parameters rather than picking one.
+     * Order stays NAME ascending, which is the order the comparison uses.
+     *
+     * @param after the last name of the previous page, or null to start at the beginning
+     * @throws InvalidTool when {@code after} is not a tool name, or is combined with a non-zero offset
+     */
+    @Transactional(readOnly = true)
+    public List<ToolEntry> catalog(String ownerId, String query, Boolean deprecated, Boolean tested,
+            String after, int limit, int offset) {
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
         int from = Math.max(offset, 0);
-        PageRequest page = PageRequest.of(from / effective, effective);
         String owner = normalizeOwner(ownerId);
         String search = normalizeQuery(query);
-        if (deprecated == null && tested == null) {
+        String key = normalizeAfter(after);
+        if (key != null && from > 0) {
+            throw new InvalidTool("a keyset read carries after=, not offset= — mixing the two is how a page"
+                    + " skips a row; use after=\"" + key + "\" with no offset");
+        }
+        PageRequest page = PageRequest.of(key == null ? from / effective : 0, effective);
+        if (deprecated == null && tested == null && key == null) {
             if (search == null) {
                 return owner == null
                         ? repository.findAllByOrderByNameAsc(page)
@@ -225,7 +251,28 @@ public class ToolService {
         String pattern = search == null ? null : likePattern(search);
         return repository.searchCatalog(owner, pattern,
                 polarity(deprecated, true), polarity(deprecated, false),
-                polarity(tested, true), polarity(tested, false), page);
+                polarity(tested, true), polarity(tested, false), key, page);
+    }
+
+    /**
+     * M10 v613 — the name a keyset page starts after: null when absent or blank, otherwise a tool NAME.
+     *
+     * <p>It is validated as a NAME rather than accepted as arbitrary text because the comparison happens in the
+     * database's collation: an uppercase or spaced string would still order consistently, but it would slice the
+     * catalog at a point no name can occupy, and a caller that mistyped the last name would page into a window
+     * whose edges it cannot see. A 400 names the rule instead of answering a slice nobody asked for.
+     */
+    static String normalizeAfter(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (trimmed.length() < MIN_NAME_LENGTH || trimmed.length() > MAX_NAME_LENGTH
+                || !NAME_SHAPE.matcher(trimmed).matches()) {
+            throw new InvalidTool("after names the last tool name of the previous page — \"" + trimmed
+                    + "\" is not a tool name");
+        }
+        return trimmed;
     }
 
     /**

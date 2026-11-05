@@ -78,11 +78,11 @@ class ToolControllerTest {
     @Test
     void theCatalogAnswersTheWindowTheCountAndTheFilterItApplied() throws Exception {
         ToolEntry stored = row("tool-1", OWNER, "a.tool");
-        when(service.catalog(null, null, null, null, 20, 0)).thenReturn(List.of(stored));
+        when(service.catalog(null, null, null, null, null, 20, 0)).thenReturn(List.of(stored));
         when(service.countOf(null, null, null, null)).thenReturn(1L);
         when(service.schemaOf(stored)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, null, null, null, null);
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, null, null, null, null, null);
 
         assertThat(answer.getStatusCode().value()).isEqualTo(200);
         ToolDtos.ToolList body = answer.getBody();
@@ -101,11 +101,11 @@ class ToolControllerTest {
     @Test
     void theListingClampsTheLimitItReportsAndFloorsTheOffset() throws Exception {
         ToolEntry stored = row("tool-1", OWNER, "a.tool");
-        when(service.catalog(null, null, null, null, 500, 0)).thenReturn(List.of(stored));
+        when(service.catalog(null, null, null, null, null, 500, 0)).thenReturn(List.of(stored));
         when(service.countOf(null, null, null, null)).thenReturn(1L);
         when(service.schemaOf(stored)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, null, null, 500, -10);
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, null, null, null, 500, -10);
 
         ToolDtos.ToolList body = answer.getBody();
         assertThat(body).isNotNull();
@@ -116,11 +116,11 @@ class ToolControllerTest {
     @Test
     void theOwnerFilterIsEchoedTrimmedWhileTheWindowSeesTheOriginal() throws Exception {
         ToolEntry stored = row("tool-1", OWNER, "a.tool");
-        when(service.catalog("  acct-ada  ", null, null, null, 20, 0)).thenReturn(List.of(stored));
+        when(service.catalog("  acct-ada  ", null, null, null, null, 20, 0)).thenReturn(List.of(stored));
         when(service.countOf("  acct-ada  ", null, null, null)).thenReturn(1L);
         when(service.schemaOf(stored)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolList> answer = controller().list("  acct-ada  ", null, null, null, null, null);
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list("  acct-ada  ", null, null, null, null, null, null);
 
         assertThat(answer.getBody()).isNotNull();
         assertThat(answer.getBody().owner()).isEqualTo(OWNER);
@@ -356,11 +356,11 @@ class ToolControllerTest {
     @Test
     void theCatalogEchoesTheSearchItApplied() throws Exception {
         ToolEntry match = row("tool-1", OWNER, "weather.lookup");
-        when(service.catalog(null, "  weather  ", null, null, 20, 0)).thenReturn(List.of(match));
+        when(service.catalog(null, "  weather  ", null, null, null, 20, 0)).thenReturn(List.of(match));
         when(service.countOf(null, "  weather  ", null, null)).thenReturn(1L);
         when(service.schemaOf(match)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, "  weather  ", null, null, null, null);
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, "  weather  ", null, null, null, null, null);
 
         ToolDtos.ToolList body = answer.getBody();
         assertThat(body).isNotNull();
@@ -372,7 +372,7 @@ class ToolControllerTest {
     @Test
     void aSearchLongerThanTheBoundIsRefusedBeforeTheServiceIsAsked() {
         Throwable refused = org.assertj.core.api.Assertions.catchThrowable(
-                () -> controller().list(null, "x".repeat(101), null, null, null, null));
+                () -> controller().list(null, "x".repeat(101), null, null, null, null, null));
 
         assertThat(refused).isInstanceOf(InvalidTool.class);
         assertThat(refused.getMessage()).contains("101");
@@ -637,11 +637,11 @@ class ToolControllerTest {
     @Test
     void theDeprecatedFilterIsEchoedAndNarrowsTheWindow() throws Exception {
         ToolEntry departing = row("tool-1", OWNER, "a.tool");
-        when(service.catalog(null, null, true, null, 20, 0)).thenReturn(List.of(departing));
+        when(service.catalog(null, null, true, null, null, 20, 0)).thenReturn(List.of(departing));
         when(service.countOf(null, null, true, null)).thenReturn(1L);
         when(service.schemaOf(departing)).thenReturn(emptyObject());
 
-        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, true, null, null, null);
+        ResponseEntity<ToolDtos.ToolList> answer = controller().list(null, null, true, null, null, null, null);
 
         ToolDtos.ToolList body = answer.getBody();
         assertThat(body).isNotNull();
@@ -654,10 +654,10 @@ class ToolControllerTest {
 
     @Test
     void theLiveFilterIsEchoedAsFalseRatherThanAsAbsent() throws Exception {
-        when(service.catalog(null, null, false, null, 20, 0)).thenReturn(List.of());
+        when(service.catalog(null, null, false, null, null, 20, 0)).thenReturn(List.of());
         when(service.countOf(null, null, false, null)).thenReturn(0L);
 
-        ToolDtos.ToolList body = controller().list(null, null, false, null, null, null).getBody();
+        ToolDtos.ToolList body = controller().list(null, null, false, null, null, null, null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.deprecated()).isFalse();
@@ -665,16 +665,43 @@ class ToolControllerTest {
     }
 
     @Test
-    void anAbsentDeprecatedFilterIsEchoedAsNullAndKeepsTheEightFieldEnvelope() {
-        when(service.catalog(null, null, null, null, 20, 0)).thenReturn(List.of());
+    void anAbsentDeprecatedFilterIsEchoedAsNullAndKeepsTheNineFieldEnvelope() {
+        when(service.catalog(null, null, null, null, null, 20, 0)).thenReturn(List.of());
         when(service.countOf(null, null, null, null)).thenReturn(0L);
 
-        ToolDtos.ToolList body = controller().list(null, null, null, null, null, null).getBody();
+        ToolDtos.ToolList body = controller().list(null, null, null, null, null, null, null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.deprecated()).isNull();
         assertThat(body.tested()).isNull();
-        assertThat(mapper.valueToTree(body).size()).isEqualTo(8);
+        assertThat(body.after()).isNull();
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(9);
+    }
+
+    // ── v613: a keyset page names where it starts, and the total stays the whole set ────────────────
+    @Test
+    void theKeysetCursorIsEchoedAndDoesNotNarrowTheTotal() throws Exception {
+        ToolEntry later = row("tool-3", OWNER, "z.tool");
+        when(service.catalog(null, null, null, null, " m.tool ", 20, 0)).thenReturn(List.of(later));
+        when(service.countOf(null, null, null, null)).thenReturn(4L);
+        when(service.schemaOf(later)).thenReturn(emptyObject());
+
+        ToolDtos.ToolList body = controller().list(null, null, null, null, " m.tool ", null, null).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.after()).as("the cursor is echoed trimmed").isEqualTo("m.tool");
+        assertThat(body.total()).as("a cursor is a position, not a filter").isEqualTo(4L);
+        assertThat(body.tools()).extracting(ToolDtos.Tool::name).containsExactly("z.tool");
+    }
+
+    @Test
+    void aCursorThatIsNotANameIsRefusedBeforeTheServiceIsAsked() {
+        Throwable refused = org.assertj.core.api.Assertions.catchThrowable(
+                () -> controller().list(null, null, null, null, "M.TOOL", null, null));
+
+        assertThat(refused).isInstanceOf(InvalidTool.class);
+        assertThat(refused.getMessage()).contains("not a tool name");
+        verifyNoInteractions(service);
     }
 
     // ── v590: the declaration at one pin ─────────────────────────────────────────────────────────────
@@ -709,11 +736,11 @@ class ToolControllerTest {
     @Test
     void theTestedFilterIsEchoedAndNarrowsTheWindow() throws Exception {
         ToolEntry claimed = row("tool-1", OWNER, "a.tool");
-        when(service.catalog(null, null, null, true, 20, 0)).thenReturn(List.of(claimed));
+        when(service.catalog(null, null, null, true, null, 20, 0)).thenReturn(List.of(claimed));
         when(service.countOf(null, null, null, true)).thenReturn(1L);
         when(service.schemaOf(claimed)).thenReturn(emptyObject());
 
-        ToolDtos.ToolList body = controller().list(null, null, null, true, null, null).getBody();
+        ToolDtos.ToolList body = controller().list(null, null, null, true, null, null, null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.tested()).isTrue();
@@ -721,15 +748,15 @@ class ToolControllerTest {
         assertThat(body.total()).isEqualTo(1L);
         // Same seven declaration fields: the claim is a filter, never a column on the row.
         assertThat(mapper.valueToTree(body.tools().get(0)).size()).isEqualTo(7);
-        assertThat(mapper.valueToTree(body).size()).isEqualTo(8);
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(9);
     }
 
     @Test
     void anUntestedFilterIsEchoedAsFalseRatherThanAsAbsent() {
-        when(service.catalog(null, null, null, false, 20, 0)).thenReturn(List.of());
+        when(service.catalog(null, null, null, false, null, 20, 0)).thenReturn(List.of());
         when(service.countOf(null, null, null, false)).thenReturn(0L);
 
-        ToolDtos.ToolList body = controller().list(null, null, null, false, null, null).getBody();
+        ToolDtos.ToolList body = controller().list(null, null, null, false, null, null, null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.tested()).isFalse();
@@ -739,11 +766,11 @@ class ToolControllerTest {
     @Test
     void oneTestedAndOneLiveAreBothEchoedInTheSameAnswer() throws Exception {
         ToolEntry liveAndClaimed = row("tool-1", OWNER, "a.tool");
-        when(service.catalog(null, null, false, true, 20, 0)).thenReturn(List.of(liveAndClaimed));
+        when(service.catalog(null, null, false, true, null, 20, 0)).thenReturn(List.of(liveAndClaimed));
         when(service.countOf(null, null, false, true)).thenReturn(1L);
         when(service.schemaOf(liveAndClaimed)).thenReturn(emptyObject());
 
-        ToolDtos.ToolList body = controller().list(null, null, false, true, null, null).getBody();
+        ToolDtos.ToolList body = controller().list(null, null, false, true, null, null, null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.deprecated()).isFalse();

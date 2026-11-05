@@ -90,6 +90,12 @@ public interface ToolRepository extends JpaRepository<ToolEntry, String> {
      * <p>{@code owner} and {@code pattern} are null when ABSENT, named here as "no owner filter" and "no search
      * filter", so a null cannot be read as the other one's value.
      *
+     * <p>M10 v613 - {@code afterKey} is the NAME a keyset page starts after, NOT a row id: the window is
+     * {@code name > afterKey} in the same collation as the ORDER BY, so an insert or a removal between two
+     * pages cannot shift a row from one page into another (which is exactly what an offset does). It is null
+     * when the caller starts at the beginning. Because it is a VALUE rather than a lookup, a name that holds
+     * no row still bounds the window - and that is stated here rather than made into a 404.
+     *
      * @param wantDeprecated 1 to require a deprecation row
      * @param wantLive 1 to require the absence of one
      * @param wantTested 1 to require an attestation row
@@ -102,6 +108,7 @@ public interface ToolRepository extends JpaRepository<ToolEntry, String> {
             + " and (:wantLive = 0 or not exists (select 1 from ToolDeprecation d where d.toolId = t.toolId))"
             + " and (:wantTested = 0 or exists (select 1 from ToolAttestation a where a.toolId = t.toolId))"
             + " and (:wantUntested = 0 or not exists (select 1 from ToolAttestation a where a.toolId = t.toolId))"
+            + " and (:afterKey is null or t.name > :afterKey)"
             + " order by t.name asc")
     List<ToolEntry> searchCatalog(
             @Param("owner") String owner,
@@ -110,6 +117,7 @@ public interface ToolRepository extends JpaRepository<ToolEntry, String> {
             @Param("wantLive") int wantLive,
             @Param("wantTested") int wantTested,
             @Param("wantUntested") int wantUntested,
+            @Param("afterKey") String afterKey,
             Pageable page);
 
     /** The WHOLE number of rows the composed window above is a window of — the same four flags, no page. */

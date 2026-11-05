@@ -61,12 +61,18 @@ public final class ToolDtos {
      * <p>{@code tested} echoes the CLAIM filter (v589): true means every row carries an attestation, not that
      * every claim is still about the contract being served. That verdict is {@code stillCurrent}, on the
      * attestation resource, and it is recomputed per read.
+     *
+     * <p>{@code after} echoes the keyset cursor (v613): the last NAME of the previous page, or null when this
+     * window starts at the beginning. It is a POSITION in the filtered set rather than a filter on it, which is
+     * why {@code total} is the size of the whole filtered set on every page - and why a page shorter than
+     * {@code limit} is how a caller learns it has reached the end.
      */
     public record ToolList(
             String owner,
             String query,
             Boolean deprecated,
             Boolean tested,
+            String after,
             List<Tool> tools,
             long total,
             int limit,

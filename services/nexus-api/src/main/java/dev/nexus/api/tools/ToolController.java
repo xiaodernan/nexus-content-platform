@@ -43,13 +43,18 @@ import org.springframework.web.bind.annotation.RestController;
  * <ul>
  *   <li>{@code POST /tools} — declare a tool. 201, and the answer is the row: its id, owner, name, summary,
  *       canonical schema and creation instant.
- *   <li>{@code GET /tools?owner=&q=&deprecated=&tested=&limit=&offset=} — the catalog, name ascending. The
- *       optional owner narrows the window to one account's declarations; the optional {@code q} narrows it to
- *       declarations whose NAME or SUMMARY contains that text, case-insensitively and with LIKE wildcards
+ *   <li>{@code GET /tools?owner=&q=&deprecated=&tested=&after=&limit=&offset=} — the catalog, name ascending.
+ *       The optional owner narrows the window to one account's declarations; the optional {@code q} narrows it
+ *       to declarations whose NAME or SUMMARY contains that text, case-insensitively and with LIKE wildcards
  *       treated literally; the optional {@code deprecated} answers only the declarations that carry a
  *       deprecation (true) or only those that do not (false); the optional {@code tested} does the same for an
  *       owner's attestation, with the bound that it names the CLAIM and not its currency (v589). All four
  *       compose, and the count is the whole (narrowed) number, so a window can say what it is hiding.
+ *   <li>{@code GET /tools?after=} — a KEYSET page: the rows whose NAME sorts after the name the caller last
+ *       saw. Offset paging is a position in a list writes can change, so a registration or a removal between
+ *       two pages can repeat a row or skip one; a name cursor cannot. {@code after} is a VALUE, not an id - a
+ *       name that holds nothing still bounds the window - and it is refused together with a non-zero offset,
+ *       because two cursors over one window is how a page skips a row while looking correct (v613).
  *   <li>{@code GET /tools/changes?since=&limit=&offset=} — the registry's JOURNAL, oldest first from a cursor: one
  *       entry per accepted write (declared, updated, transferred, deprecated, undeprecated, removed). It is the
  *       only read that can name a declaration whose row is gone, and the only one that faces forward.
@@ -195,6 +200,7 @@ public class ToolController {
             @RequestParam(name = "q", required = false) String q,
             @RequestParam(name = "deprecated", required = false) Boolean deprecated,
             @RequestParam(name = "tested", required = false) Boolean tested,
+            @RequestParam(name = "after", required = false) String after,
             @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "offset", required = false) Integer offset) {
         int asked = limit == null ? ToolService.DEFAULT_LIST_LIMIT : limit;
@@ -202,9 +208,10 @@ public class ToolController {
         int from = offset == null ? 0 : Math.max(offset, 0);
         String filter = ToolService.normalizeOwner(owner);
         String search = ToolService.normalizeQuery(q);
-        List<Tool> rows =
-                service.catalog(owner, q, deprecated, tested, asked, from).stream().map(this::toWire).toList();
-        return ResponseEntity.ok(new ToolList(filter, search, deprecated, tested, rows,
+        String key = ToolService.normalizeAfter(after);
+        List<Tool> rows = service.catalog(owner, q, deprecated, tested, after, asked, from).stream()
+                .map(this::toWire).toList();
+        return ResponseEntity.ok(new ToolList(filter, search, deprecated, tested, key, rows,
                 service.countOf(owner, q, deprecated, tested), effective, from));
     }
 
