@@ -205,11 +205,22 @@ export async function renderStoryboardDemo(input: RenderStoryboardInput): Promis
   // 参考帧按 id 取字节，走归属校验——与生成链路同一道门。音频之类别挂：
   // 参考帧只能是画面（图片或视频），音频挂上去 ffmpeg 只会报"没有视频流"，
   // 那句话要到跑起来才说，而这里现在就能说清
+  //
+  // 按 assetId 去重：`image-to-video` 那张整片参考图现在能补满所有没挂图的镜头（第三十八片），
+  // 12 镜的分镜就是 12 个 segment 指向同一个 id。不去重就是读 12 次存储、写 12 份同样的字节，
+  // 而 ffmpeg 那边无所谓——同一个文件可以作为多个 `-i` 输入，各自有自己的输入索引。
+  // 归属与 mime 那道门只在第一次读时走一遍，同一个 id 的判定结果不可能两次不同。
   const dir = mkdtempSync(join(tmpdir(), 'nexus-render-'));
   try {
     const files: RenderInputFile[] = [];
+    const localByAsset = new Map<string, string>();
     for (const segment of plan.segments) {
       if (segment.source.kind !== 'reference') continue;
+      const cached = localByAsset.get(segment.source.assetId);
+      if (cached) {
+        files.push({ shotId: segment.shotId, path: cached });
+        continue;
+      }
       const file = await openAssetForOwner(segment.source.assetId, input.userId);
       if (!file) {
         return {
@@ -228,6 +239,7 @@ export async function renderStoryboardDemo(input: RenderStoryboardInput): Promis
       // 存储驱动可能是 S3，而 ffmpeg 只认本地路径：字节先落临时文件，跑完即焚
       const local = join(dir, `ref-${segment.index}${extensionForMime(file.mime)}`);
       await writeFile(local, Buffer.from(file.bytes));
+      localByAsset.set(segment.source.assetId, local);
       files.push({ shotId: segment.shotId, path: local });
     }
 
@@ -249,6 +261,9 @@ export async function renderStoryboardDemo(input: RenderStoryboardInput): Promis
         shots: plan.segments.length,
         totalMs: plan.totalMs,
         cardCount: plan.cardCount,
+        // 与 cardCount 并排记，不合成一个数：这一格说的是"多少镜的画面来自整片那张图"，
+        // 任务行里只有前者时，"12 镜全渲成同一张图"与"12 镜里 8 镜是色卡"看不出区别
+        sourceReferenceCount: plan.sourceReferenceCount,
       },
     });
     const startedAt = Date.now();

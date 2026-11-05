@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { execFile } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -15,6 +15,27 @@ import { agentTasks, assets, creditLedger, projects, users } from '../src/server
 import { listStoryboardRenders, renderStoryboardDemo } from '../src/server/domain/storyboard-render';
 import { loadStoryboard, saveStoryboard } from '../src/server/domain/storyboards';
 import { resetStorageForTests } from '../src/server/storage/config';
+
+/**
+ * 数 `openAssetForOwner` 被谁调了几次——只为第三十八片那格"按 assetId 去重"服务。
+ *
+ * 为什么非要是它：那张整片参考图现在一次补满所有没挂图的镜头，12 镜就是 12 个 segment
+ * 指向同一个 id。不去重的话成片**照样对**（读 12 遍同一个文件、写 12 份同样的字节，
+ * ffmpeg 看不出区别），所以没有任何一条"结果对不对"的断言能抓住它——只有"读了几次"能。
+ *
+ * 这里包的是转发，不是替换：真实现照跑，归属门与 mime 门的行为与生产逐字相同。
+ */
+const refReads = vi.hoisted(() => [] as string[]);
+vi.mock('../src/server/domain/assets', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/server/domain/assets')>();
+  return {
+    ...actual,
+    openAssetForOwner: async (assetId: string, userId: string) => {
+      refReads.push(assetId);
+      return actual.openAssetForOwner(assetId, userId);
+    },
+  };
+});
 
 /**
  * §40 最后一格：分镜**真的渲染出来**，产物走视频摄入链落成资产。
@@ -101,6 +122,51 @@ function boardWithReference(assetId: string): Storyboard {
     notes: [],
   };
 }
+
+/**
+ * 两镜都不挂图，画面全靠 `source.referenceAssetId` 那一张（第三十八片的新路径）。
+ * 同一个 board 换个箭头就是对照组：`text-to-video` 时这两镜只能拿到色卡。
+ */
+function boardFromSource(id: string, arrow: 'image-to-video' | 'text-to-video', assetId?: string): Storyboard {
+  return {
+    id,
+    title: '整片一张参考图的分镜',
+    source: assetId ? { arrow, prompt: '一张图从头演到尾', referenceAssetId: assetId } : { arrow, prompt: '一张图从头演到尾' },
+    shots: [
+      { id: 'shot-src-a', prompt: '猫走进画面', durationMs: 1200, camera: 'medium', transition: 'cut' },
+      { id: 'shot-src-b', prompt: '猫抬头看灯', durationMs: 1200, camera: 'wide', transition: 'cut' },
+    ],
+    notes: [],
+  };
+}
+
+/**
+ * 成片第 `atSec` 秒那一帧的平均色（缩到 1x1 像素，直接读 rgb 三字节）。
+ *
+ * 为什么要在乎这个数：参考帧那颗 PNG 是**纯色** 0x406080，所以"画面来自那张图"
+ * 是一个可以量出来的事实。只看"渲成功了 / 时长对"抓不到箭头进没进像素——
+ * 色卡版同样成功、同样 2.4 秒。
+ */
+async function sampleFrameColor(assetId: string, atSec: number): Promise<[number, number, number]> {
+  const stored = await openAssetFile(assetId);
+  if (!stored) throw new Error('成片从存储里读不回来');
+  const film = join(dir, `film-${Date.now()}-${atSec}.mp4`);
+  await writeFile(film, stored.bytes);
+  return await new Promise((resolve, reject) => {
+    execFile(
+      'ffmpeg',
+      ['-v', 'quiet', '-ss', atSec.toFixed(3), '-i', film, '-frames:v', '1', '-vf', 'scale=1:1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'],
+      { encoding: 'buffer', timeout: 60_000, maxBuffer: 1_000_000 },
+      (error, stdout) => {
+        if (error) reject(new Error(`取帧失败：${error.message}`));
+        else resolve([stdout[0] ?? 0, stdout[1] ?? 0, stdout[2] ?? 0]);
+      },
+    );
+  });
+}
+
+const closeTo = (rgb: [number, number, number], target: [number, number, number]): boolean =>
+  rgb.every((channel, i) => Math.abs(channel - target[i]!) <= 10);
 
 /** 直接插一行音频资产：参考帧只能是画面，音频之类别挂（存储里有真文件，读得出字节） */
 async function insertAudioAsset(projectId: string): Promise<string> {
@@ -339,6 +405,68 @@ describe('renderStoryboardDemo —— §40 最后一格：分镜真的渲出来�
     if (result.ok) return;
     expect(result.code).toBe('reference_unreadable');
     expect(await countTasks(strangerId), '读不到参考帧就不该落任务行').toBe(0);
+  });
+
+  it('image-to-video 的整片参考图进像素：两镜都没挂图也渲出那张图，且那张图只读一次', async () => {
+    const projectId = await newProject('Render Whole-piece Ref');
+    const refAssetId = await uploadReference(projectId);
+    const saved = await saveStoryboard(projectId, ownerId, { document: boardFromSource('sb-src-ref', 'image-to-video', refAssetId) });
+    if (!saved.ok) throw new Error(saved.reason);
+
+    await ensureVideoCredits(ownerId, 20);
+    refReads.length = 0;
+    const result = await renderStoryboardDemo({ projectId, userId: ownerId, fontFile: FONT });
+    expect(result.ok, result.ok ? '' : result.message).toBe(true);
+    if (!result.ok) return;
+
+    // ① 计划说的是"这两镜的画面来自整片那张图"，不是"它们在用色卡"
+    const notes = result.notes.join('');
+    expect(notes).toContain('2/2 镜自己没挂参考帧');
+    expect(notes).not.toContain('色卡');
+
+    // ② 任务行里两个数分开记（只有 cardCount 时"全片同一张图"与"多数是色卡"看不出区别）
+    const [taskRow] = await getDb().select().from(agentTasks).where(eq(agentTasks.id, result.taskId));
+    const taskInput = taskRow!.input as Record<string, unknown>;
+    expect(taskInput.cardCount).toBe(0);
+    expect(taskInput.sourceReferenceCount).toBe(2);
+
+    // ③ 去重：同一个 assetId 出现两次，存储只读一次。
+    //    这一条没有任何"结果对不对"的断言能替代——不去重也渲得出正确的片子，只是读两遍
+    expect(refReads).toEqual([refAssetId]);
+
+    // ④ 画面真的来自那张图：参考帧是纯色 0x406080，两镜中段都该读出它。
+    //    色卡版的平均色是 shotId 哈希出来的深色加一行白字，落不进这个窗口
+    for (const atSec of [0.6, 1.8]) {
+      const rgb = await sampleFrameColor(result.asset.id, atSec);
+      expect(closeTo(rgb, [64, 96, 128]), `第 ${atSec}s 帧应≈参考帧的 0x406080，实读 rgb(${rgb.join(',')})`).toBe(true);
+    }
+
+    // ⑤ 对照组：同一份两镜、同一个项目里另存一份，只把箭头换成 text-to-video——
+    //    渲得成功、时长一样，但读不出参考帧那个色。这一条才让上面那个色读数归因于箭头
+    const controlSaved = await saveStoryboard(projectId, ownerId, { document: boardFromSource('sb-src-card', 'text-to-video') });
+    if (!controlSaved.ok) throw new Error(controlSaved.reason);
+    const control = await renderStoryboardDemo({ projectId, userId: ownerId, fontFile: FONT });
+    expect(control.ok, control.ok ? '' : control.message).toBe(true);
+    if (!control.ok) return;
+    expect(control.asset.id, '两组画面不该是同一颗字节').not.toBe(result.asset.id);
+    const controlRgb = await sampleFrameColor(control.asset.id, 1.8);
+    expect(closeTo(controlRgb, [64, 96, 128]), `对照组不该读到参考帧的色，实读 rgb(${controlRgb.join(',')})`).toBe(false);
+  });
+
+  it('image-to-video 那张图是别人的资产：换人来渲照样撞归属门，且不读第二次', async () => {
+    const projectId = await newProject('Render Foreign Whole-piece');
+    const refAssetId = await uploadReference(projectId);
+    const saved = await saveStoryboard(projectId, ownerId, { document: boardFromSource('sb-src-foreign', 'image-to-video', refAssetId) });
+    if (!saved.ok) throw new Error(saved.reason);
+
+    refReads.length = 0;
+    const result = await renderStoryboardDemo({ projectId, userId: strangerId, fontFile: FONT });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.code).toBe('reference_unreadable');
+    expect(result.message).toContain(refAssetId);
+    // 归属门第一次就没过，不该因为"后面还有 11 镜也指向它"就多撞几遍
+    expect(refReads).toEqual([refAssetId]);
   });
 });
 

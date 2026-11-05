@@ -6,6 +6,7 @@ import {
   RENDER_WIDTH,
   TRANSITION_MS,
   type Storyboard,
+  type StoryboardArrow,
   type StoryboardShot,
 } from '../src/index';
 
@@ -23,8 +24,8 @@ function shot(over: Partial<StoryboardShot> = {}): StoryboardShot {
   return { id: 'shot-1-abc', prompt: '一只猫跳上窗台', durationMs: 3000, camera: 'medium', transition: 'cut', ...over };
 }
 
-function board(shots: StoryboardShot[]): Storyboard {
-  return { id: 'sb-1', title: 't', source: { arrow: 'text-to-video', prompt: 'x' }, shots, notes: [] };
+function board(shots: StoryboardShot[], source: Storyboard['source'] = { arrow: 'text-to-video', prompt: 'x' }): Storyboard {
+  return { id: 'sb-1', title: 't', source, shots, notes: [] };
 }
 
 describe('planVideoRender —— 总时长与段落边界', () => {
@@ -60,7 +61,7 @@ describe('planVideoRender —— 画面来源：参考帧与色卡', () => {
   it('有参考帧就推演它，机位决定怎么动', () => {
     const plan = planVideoRender(board([shot({ referenceAssetId: 'asset-1', camera: 'tracking' })]));
     const segment = plan.segments[0]!;
-    expect(segment.source).toEqual({ kind: 'reference', assetId: 'asset-1' });
+    expect(segment.source).toEqual({ kind: 'reference', assetId: 'asset-1', from: 'shot' });
     expect(segment.motion).toBeDefined();
     // 跟移只摇不缩放：两端的缩放必须相等，否则它就是在推拉了
     expect(segment.motion!.fromScale).toBe(segment.motion!.toScale);
@@ -105,6 +106,96 @@ describe('planVideoRender —— 画面来源：参考帧与色卡', () => {
     expect(aerial.fromScale).toBe(aerial.toScale);
     expect(aerial.toY).toBeGreaterThan(aerial.fromY);
     expect(aerial.toX).toBe(aerial.fromX);
+  });
+});
+
+describe('planVideoRender —— 箭头进像素（M5 第三十八片）', () => {
+  it('image-to-video 的那张整片参考图补进自己没挂图的镜头，并说清画面从哪来', () => {
+    const plan = planVideoRender(
+      board(
+        [shot({ id: 'a' }), shot({ id: 'b' })],
+        { arrow: 'image-to-video', prompt: 'x', referenceAssetId: 'whole-1' },
+      ),
+    );
+    expect(plan.segments.map((s) => s.source)).toEqual([
+      { kind: 'reference', assetId: 'whole-1', from: 'source' },
+      { kind: 'reference', assetId: 'whole-1', from: 'source' },
+    ]);
+    expect(plan.cardCount).toBe(0);
+    expect(plan.sourceReferenceCount).toBe(2);
+    expect(plan.notes.join('')).toContain('2/2 镜自己没挂参考帧');
+    expect(plan.notes.join('')).not.toContain('色卡');
+    // 整片那张图也是画面，所以它照样有机位推演——否则两镜就是两张静止色卡换了个来源
+    expect(plan.segments[0]!.motion).toBeDefined();
+  });
+
+  it('每一镜自己的参考帧优先：更具体的那个决定赢', () => {
+    const plan = planVideoRender(
+      board(
+        [shot({ id: 'a', referenceAssetId: 'own-a' }), shot({ id: 'b' })],
+        { arrow: 'image-to-video', prompt: 'x', referenceAssetId: 'whole-1' },
+      ),
+    );
+    expect(plan.segments[0]!.source).toEqual({ kind: 'reference', assetId: 'own-a', from: 'shot' });
+    expect(plan.segments[1]!.source).toEqual({ kind: 'reference', assetId: 'whole-1', from: 'source' });
+    expect(plan.sourceReferenceCount).toBe(1);
+  });
+
+  it('全片都自己挂了图时说明整片那张没进画面，而不是不提它', () => {
+    const plan = planVideoRender(
+      board(
+        [shot({ id: 'a', referenceAssetId: 'own-a' }), shot({ id: 'b', referenceAssetId: 'own-b' })],
+        { arrow: 'image-to-video', prompt: 'x', referenceAssetId: 'whole-1' },
+      ),
+    );
+    expect(plan.sourceReferenceCount).toBe(0);
+    expect(plan.cardCount).toBe(0);
+    expect(plan.notes.join('')).toContain('那张整片参考图这次没有进画面');
+  });
+
+  it('整片那张只属于 image-to-video：别的箭头就算带了图也不进像素', () => {
+    const otherArrows: StoryboardArrow[] = ['text-to-video', 'storyboard-to-video', 'character-to-scene'];
+    for (const arrow of otherArrows) {
+      const plan = planVideoRender(board([shot({ id: 'a' })], { arrow, prompt: 'x', referenceAssetId: 'whole-1' }));
+      expect(plan.segments[0]!.source.kind, `${arrow} 不该用整片那张图`).toBe('card');
+      expect(plan.sourceReferenceCount).toBe(0);
+      expect(plan.cardCount).toBe(1);
+      expect(plan.notes.join('')).not.toContain('整片参考图');
+    }
+  });
+
+  it('image-to-video 但那张图是空的（旧行/未挑图）：退回色卡，不报天错', () => {
+    const plan = planVideoRender(board([shot({ id: 'a' })], { arrow: 'image-to-video', prompt: 'x' }));
+    expect(plan.segments[0]!.source.kind).toBe('card');
+    expect(plan.sourceReferenceCount).toBe(0);
+    expect(plan.cardCount).toBe(1);
+  });
+
+  it('character-to-scene 渲成色卡时把限度说出来；每镜都挂了图就不虚构这个缺口', () => {
+    const withCards = planVideoRender(
+      board([shot({ id: 'a' }), shot({ id: 'b', referenceAssetId: 'own-b' })], {
+        arrow: 'character-to-scene',
+        prompt: 'x',
+        characterId: 'c-1',
+      }),
+    );
+    expect(withCards.notes.join('')).toContain('character-to-scene 这条箭头今天还不进像素');
+    expect(withCards.sourceReferenceCount).toBe(0);
+
+    const allReferenced = planVideoRender(
+      board([shot({ id: 'a', referenceAssetId: 'own-a' })], { arrow: 'character-to-scene', prompt: 'x', characterId: 'c-1' }),
+    );
+    expect(allReferenced.notes.join('')).not.toContain('还不进像素');
+  });
+
+  it('色卡与整片参考图是两个数：合成一个就分不清"全片同一张图"与"多数是色卡"', () => {
+    const plan = planVideoRender(
+      board(
+        [shot({ id: 'a' }), shot({ id: 'b' }), shot({ id: 'c', referenceAssetId: 'own-c' })],
+        { arrow: 'text-to-video', prompt: 'x' },
+      ),
+    );
+    expect([plan.cardCount, plan.sourceReferenceCount]).toEqual([2, 0]);
   });
 });
 

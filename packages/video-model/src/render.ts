@@ -47,10 +47,15 @@ export const XFADE_NAMES: Record<Exclude<ShotTransition, 'cut'>, string> = {
 /**
  * 一镜的画面从哪来。
  * - `reference`：推演这一镜的参考帧（资产 id，不是字节）
+ *   `from` 说这张图是**谁挂的**：`'shot'` 是这一镜自己的 `referenceAssetId`，
+ *   `'source'` 是整片那条箭头带的那张（`source.referenceAssetId`，只 `image-to-video` 有）。
+ *   这一格不是装饰：渲染器读的是字节，而"这一镜照哪张图演"是界面上要能指认的事——
+ *   没有 `from`，一份每镜都没挂图的分镜渲出来全是同一张图，与"每镜各挂了一张一样的图"
+ *   在计划里同形，而那是两句不同的话。
  * - `card`：没有参考帧时的确定性色卡。它**是**这一镜的画面，不是"加载失败"的占位图
  */
 export type RenderSource =
-  | { kind: 'reference'; assetId: string }
+  | { kind: 'reference'; assetId: string; from: 'shot' | 'source' }
   | { kind: 'card'; color: string; caption: string };
 
 /**
@@ -101,6 +106,14 @@ export interface VideoRenderPlan {
   renderable: boolean;
   /** 有多少镜在用色卡占位：DEMO 标识的依据，界面上要显示这个数 */
   cardCount: number;
+  /**
+   * 有多少镜的画面来自整片那条箭头带的那张图。
+   *
+   * 与 `cardCount` 分开数，因为它们是两句不同的话：一个是"这一镜没有可看的，用色卡"，
+   * 另一个是"这一镜自己没挂图，但整片那张图顶上了"。合成一个数就分不清
+   * "12 镜全渲成了同一张图"与"12 镜里 8 镜是色卡"。
+   */
+  sourceReferenceCount: number;
   /** 固定为 true：这一份计划产出的像素来自本地推演，不是 provider 生成 */
   demo: true;
   notes: string[];
@@ -171,18 +184,37 @@ export function hslToHex(h: number, s: number, l: number): string {
  *
  * 一镜有没有参考帧，决定它这一段的画面从哪来；这不改变时长与顺序——
  * 分镜仍是唯一真值（§16），这一层只解释"怎么演出来"。
+ *
+ * **箭头也进这里**（M5 第三十八片）。以前 `planVideoRender` 只看 `shot.referenceAssetId`，
+ * 于是 `storyboard.source` 那一格（箭头 + 整片的出处）在保存时验归属、在界面上显示，
+ * 到了渲染这一步**一个字都不读**：一份 `image-to-video` 的分镜如果每镜都没单独挂图，
+ * 渲出来全是确定性色卡，而界面上"参考图 → 视频"那句话看起来像是被兑现了。
+ * 现在规则是：`image-to-video` 带的那张图补进**自己没挂图**的那些镜（每镜自己的优先，
+ * 那是作者更具体的决定），补了几镜写进 `notes`。
+ *
+ * `character-to-scene` 不在这里兑现：角色不是一张图，肖像是一件资产，
+ * 而"查这位角色的肖像"是 IO——模型不许查库（这个包的三条纪律之一）。
+ * 所以它今天仍然渲成色卡，但**这句限度从沉默变成一句 note**，下一片再由 web 层把肖像递进来。
  */
 export function planVideoRender(storyboard: Storyboard): VideoRenderPlan {
   const notes: string[] = [];
   const segments: RenderSegment[] = [];
   let cursor = 0;
   let cardCount = 0;
+  let sourceReferenceCount = 0;
+
+  // 整片那一张：只有 `image-to-video` 这条箭头要它，也只有那条箭头该用它
+  const wholePiece =
+    storyboard.source.arrow === 'image-to-video' ? storyboard.source.referenceAssetId : undefined;
 
   storyboard.shots.forEach((shot, index) => {
     const source: RenderSource = shot.referenceAssetId
-      ? { kind: 'reference', assetId: shot.referenceAssetId }
-      : { kind: 'card', color: cardColor(shot.id), caption: shot.prompt.slice(0, CARD_CAPTION_MAX) };
+      ? { kind: 'reference', assetId: shot.referenceAssetId, from: 'shot' }
+      : wholePiece
+        ? { kind: 'reference', assetId: wholePiece, from: 'source' }
+        : { kind: 'card', color: cardColor(shot.id), caption: shot.prompt.slice(0, CARD_CAPTION_MAX) };
     if (source.kind === 'card') cardCount += 1;
+    if (source.kind === 'reference' && source.from === 'source') sourceReferenceCount += 1;
     const previous = storyboard.shots[index - 1];
     segments.push({
       shotId: shot.id,
@@ -209,6 +241,22 @@ export function planVideoRender(storyboard: Storyboard): VideoRenderPlan {
     if (cardCount > 0) {
       notes.push(
         `${cardCount}/${total} 镜没有参考帧，用确定性色卡占位：色卡就是这一镜的画面，不是"素材加载失败"。`,
+      );
+    }
+    // 箭头那一格进没进像素，必须逐句说出来。三种形状是三句话，不是一条 note 管两种情况：
+    // 补上了、整片那张被每镜自己的图盖住、以及这条箭头压根没有可进的东西。
+    if (sourceReferenceCount > 0) {
+      notes.push(
+        `${sourceReferenceCount}/${total} 镜自己没挂参考帧，画面来自 image-to-video 带的那张整片参考图（source.referenceAssetId）：整片从同一张图出发，与每镜各挂一张是两件事。`,
+      );
+    } else if (wholePiece) {
+      notes.push(
+        'image-to-video 带的那张整片参考图这次没有进画面：每一镜都有自己的参考帧，更具体的那个决定赢。',
+      );
+    }
+    if (storyboard.source.arrow === 'character-to-scene' && cardCount > 0) {
+      notes.push(
+        'character-to-scene 这条箭头今天还不进像素：渲染读的是每一镜自己的参考帧，而模型不查库、拿不到这位角色的肖像。先给角色生成肖像、把那张图挂到镜头上，否则这些镜渲出来是色卡。',
       );
     }
     const transitions = storyboard.shots.filter((s) => s.transition !== 'cut').length;
@@ -239,6 +287,7 @@ export function planVideoRender(storyboard: Storyboard): VideoRenderPlan {
     segments,
     renderable: segments.length > 0 && cursor > 0,
     cardCount,
+    sourceReferenceCount,
     demo: true,
     notes,
   };
