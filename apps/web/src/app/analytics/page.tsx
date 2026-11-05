@@ -327,8 +327,16 @@ export default async function AnalyticsPage(props: {
           这一页才会开始有"打开次数"以外的东西。
         </p>
       ) : (
-        <div className="mt-5 overflow-x-auto">
-          <table className="w-full border-collapse text-12">
+        // 第五十片：十二列在 390 会被压成一列一个字。表格保一个可读下限、自己横滚；
+        // 横滚区必须键盘停得下来（axe: scrollable-region-focusable）。
+        <div
+          className="mt-5 overflow-x-auto"
+          data-analytics-table-scroll
+          role="region"
+          aria-label="作品数据表（可横向滚动）"
+          tabIndex={0}
+        >
+          <table className="w-full min-w-[1000px] border-collapse text-12">
             <thead>
               <tr className="border-b border-[var(--nexus-color-border-subtle)] text-left text-11 text-fg-3">
                 <th className="px-2 py-1 font-normal">作品</th>

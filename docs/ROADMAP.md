@@ -9568,9 +9568,46 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 | R2 | 摘掉横滚容器的 `tabIndex` | 红在 serious `scrollable-region-focusable`（1 个节点） |
 | R3 | 「回 Studio」改回只给字号 | 红在「<24 目标：回 Studio 61×21」 |
 
-**仍欠**：`/admin/audit`、`/admin/observability`、`/analytics` 的宽表也是"只有 `overflow-x-auto`、
-没有 `min-w` 也没有 `tabIndex`"的同一形状（本片只量到账本这一张，下一片一起收）；
+**仍欠**：`/admin/audit`、`/admin/observability` 的宽表也是"只有 `overflow-x-auto`、
+没有 `min-w` 也没有 `tabIndex`"的同一形状（`/analytics` 已在第五十片收掉）；
 行内 120 字的错误原因在 390 的滚动手感没有真机读数。
+
+## §85 第五十片：作品数据页那张十二列表——390 下被压到 379px，首列只剩 63px（2026-11-06）
+
+第四十九片收尾时把三张宽表记成"同一形状"（只有 `overflow-x-auto`，没有 `min-w`、没有 `tabIndex`）。
+这一片收 `/analytics`：它比任务账本更宽（12 列），而且"作品"那一格还挂着版本、入口链接与几条角标。
+
+**首跑量到的**（`e2e/analytics-narrow.spec.ts`，先在 390 下红出来）：
+
+- 页面级溢出 **0**——外壳没被撑宽，所以这条腿看起来"没事"；
+- 但表格自己只剩 **379px**，首列 **63px**：作品名、版本、「为什么没人看？」与角标全被拆成竖排字；
+- 表格里**有链接**，所以 axe 的 `scrollable-region-focusable` 不报（键盘"进得去"）；
+  可右侧那些纯数字列没有链接，键盘用户只有让横滚容器自己可聚焦才滚得到——这条 axe 管不到，得单独钉。
+
+**改法**：`data-analytics-table-scroll` + `min-w-[1000px]` + `role="region"` + `aria-label` + `tabIndex={0}`。
+表格保可读下限、自己横滚；页面布局视口不动。
+
+**读数**（`npx playwright test e2e/analytics-narrow.spec.ts`，1 passed / 8.0s）
+
+```
+游客访问 /n/<handle>/<slug> 上报 HTTP 200 → 首行打开数 197（累计）
+作品数据 1280  通过 25 · 违规 0 · serious 0 · 页面溢出 0 · 表格 1052 / 1052 · 首列 573px
+作品数据 390   通过 26 · 违规 0 · serious 0 · 页面溢出 0 · 表格 1000 / 342 · 首列 533px
+```
+
+游客那一次访问用**普通 Chrome UA**：Playwright 默认的 `HeadlessChrome` 会被"疑似爬虫"挑出去，
+那一行还在但"打开"是 0——量到的就不是真人访问。截图 `screenshots/analytics-{1280,390}.png`
+（滚到表格再拍）人工看过：390 下首列完整可读，其余列在表格内横滚。
+
+**两条臂**
+
+| 臂 | 改坏的那一处 | 结果 |
+|---|---|---|
+| Q1 | 摘掉 `min-w-[1000px]` | 红在「表格只剩 379px 宽」「首列只剩 63px」 |
+| Q2 | 摘掉横滚容器的 `tabIndex` | 红在「tabindex=null，键盘滚不到右边的列」（axe 不报，结构门报） |
+
+**仍欠**：`/admin/audit` 与 `/admin/observability` 两张宽表同一形状，还差一份"有行时"的 390 读数；
+390 下"右边还有列"没有视觉提示（要不要加渐变/提示，等有真机读数再定）。
 
 ## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
 

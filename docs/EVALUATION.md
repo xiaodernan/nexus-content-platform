@@ -2168,8 +2168,23 @@ localStorage。读数：
 - 臂：摘 `min-w` ⇒ 红在「表格只剩 368px」；摘 `tabIndex` ⇒ 红在 serious `scrollable-region-focusable`；
   返回口改回只给字号 ⇒ 红在「<24 目标 61×21」。
 
-**notMeasured**：`/admin/audit`、`/admin/observability`、`/analytics` 的宽表同一形状（无 `min-w`、
-无 `tabIndex`）未在本片收；行内长错误原因在 390 的滚动手感无真机读数。
+**notMeasured**：`/admin/audit`、`/admin/observability` 的宽表同一形状（无 `min-w`、无 `tabIndex`）
+未在本片收（`/analytics` 已在第四十三片收掉）；行内长错误原因在 390 的滚动手感无真机读数。
+
+#### 第四十三片（2026-11-06）：作品数据页那张十二列表——390 下 379px，首列 63px（§85）
+
+第四十九片把三张宽表记成"同一形状"；这一片收 `/analytics`（12 列，且作品格里有版本/入口/角标）。
+
+- 首跑读数：页面级溢出 **0**，但表格只剩 **379px**、首列 **63px**（作品名与角标被拆成竖排字）；
+  表格里有链接，axe `scrollable-region-focusable` 不报——但右侧纯数字列键盘滚不到，单独钉结构门。
+- 改法：`data-analytics-table-scroll` + `min-w-[1000px]` + `role="region"` + `aria-label` + `tabIndex={0}`。
+- 读数：1280 **表格 1052/1052 · 首列 573px**；390 **1000/342 · 首列 533px**；两档 axe **违规 0 ·
+  serious 0**、页面溢出 **0**；游客访问（普通 Chrome UA）后首行打开数 **197**（累计）。
+- `e2e/analytics-narrow.spec.ts` 1 passed（8.0s）；截图 `screenshots/analytics-{1280,390}.png`。
+- 臂：摘 `min-w` ⇒ 红在「379px / 63px」；摘 `tabIndex` ⇒ 红在结构门（axe 不报）。
+
+**notMeasured**：`/admin/audit`、`/admin/observability` 两张宽表还差"有行时"的 390 读数；
+390 下"右边还有列"没有视觉提示。
 
 ### Performance
 
