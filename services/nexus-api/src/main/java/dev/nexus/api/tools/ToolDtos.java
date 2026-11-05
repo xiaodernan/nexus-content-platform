@@ -315,9 +315,13 @@ public final class ToolDtos {
             String toolId, String name, String message, String replacement, long deprecatedAt) {
     }
 
-    /** The deprecation window, newest first, and the WHOLE number of deprecated declarations beside it. */
+    /**
+     * The deprecation window, newest first, and the WHOLE number of declarations the same filters select.
+     * {@code owner} is the narrowed account (or null), and {@code before} the pair cursor the window starts
+     * after (or null) — both echoed so a page never has to be mistaken for the whole list.
+     */
     public record DeprecationList(
-            List<DeprecatedTool> deprecations, long total, int limit, int offset, String before) {
+            String owner, List<DeprecatedTool> deprecations, long total, int limit, int offset, String before) {
     }
 
     /**

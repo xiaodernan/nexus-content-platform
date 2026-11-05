@@ -584,6 +584,42 @@ class ToolServiceTest {
 
         verify(deprecations, never()).pageAfter(any(), any(), any());
     }
+
+    @Test
+    void anOwnerNarrowsTheDeprecationWindowAndItsWholeCount() {
+        when(deprecations.firstPageByOwner(OWNER, PageRequest.of(0, 1)))
+                .thenReturn(List.of(new ToolDeprecation("tool-2", "Going away.", null, AT)));
+        when(deprecations.countByOwner(OWNER)).thenReturn(1L);
+
+        assertThat(service().deprecationPage(OWNER, null, 1, 0))
+                .extracting(ToolDeprecation::getToolId).containsExactly("tool-2");
+        assertThat(service().deprecationCount(OWNER)).isEqualTo(1);
+        verify(deprecations, never()).firstPage(any());
+        verify(deprecations, never()).count();
+    }
+
+    @Test
+    void anOwnerComposesWithTheDeprecationPairCursor() {
+        String key = AT.toEpochMilli() + ":tool-2";
+        when(deprecations.pageAfterByOwner(OWNER, AT, "tool-2", PageRequest.of(0, 20)))
+                .thenReturn(List.of(new ToolDeprecation("tool-3", "Also going away.", null, AT.minusSeconds(1))));
+
+        assertThat(service().deprecationPage(OWNER, key, 20, 0))
+                .extracting(ToolDeprecation::getToolId).containsExactly("tool-3");
+        verify(deprecations, never()).pageAfter(any(), any(), any());
+    }
+
+    @Test
+    void aBlankOwnerIsTheAbsentFilterNotAnEmptyDeprecationList() {
+        when(deprecations.firstPage(PageRequest.of(0, 20))).thenReturn(List.of());
+        when(deprecations.count()).thenReturn(0L);
+
+        service().deprecationPage("   ", null, 20, 0);
+        assertThat(service().deprecationCount("   ")).isZero();
+
+        verify(deprecations, never()).firstPageByOwner(any(), any());
+        verify(deprecations, never()).countByOwner(any());
+    }
     @Test
     void aSearchNarrowsToNameOrSummaryMatchesAndIsCaseInsensitive() {
         ToolEntry mine = row("tool-1", OWNER, "weather.lookup");

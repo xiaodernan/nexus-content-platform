@@ -59,3 +59,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0045  | A pin names content, not a row: the registry-wide lookup | Accepted |
 | 0046  | A manifest of pins is one read, and an unrecorded pin is named | Accepted |
 | 0047  | A deprecation page is ordered by a pair                       | Accepted |
+| 0048  | A deprecation page can name whose warnings it wants            | Accepted |

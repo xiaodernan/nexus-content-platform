@@ -1073,7 +1073,7 @@ public class ToolService {
     /** The public list of deprecated declarations, newest first - the window, not the whole table. */
     @Transactional(readOnly = true)
     public List<ToolDeprecation> deprecationPage(int limit, int offset) {
-        return deprecationPage(null, limit, offset);
+        return deprecationPage(null, null, limit, offset);
     }
 
     /**
@@ -1092,23 +1092,49 @@ public class ToolService {
      */
     @Transactional(readOnly = true)
     public List<ToolDeprecation> deprecationPage(String before, int limit, int offset) {
+        return deprecationPage(null, before, limit, offset);
+    }
+
+    /**
+     * M10 v618 — the same list narrowed to the declarations one account holds.
+     *
+     * <p>The owner is a FILTER: it narrows both the window and the WHOLE count, exactly like the catalog's
+     * owner filter. It composes with the pair cursor rather than replacing it, so an owner can still walk a
+     * stable tie without an offset. A blank owner is the absent filter, not an account that holds nothing.
+     *
+     * @param ownerId the holder to narrow to, or null/blank for every deprecation
+     */
+    @Transactional(readOnly = true)
+    public List<ToolDeprecation> deprecationPage(String ownerId, String before, int limit, int offset) {
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
         int from = Math.max(offset, 0);
+        String owner = normalizeOwner(ownerId);
         DeprecationCursor cursor = DeprecationCursor.parse(before);
         if (cursor != null && from > 0) {
             throw new InvalidTool("a keyset read carries before=, not offset= — mixing the two is how a page"
                     + " skips a row; use before=\"" + cursor.text() + "\" with no offset");
         }
         if (cursor != null) {
-            return deprecations.pageAfter(cursor.at(), cursor.toolId(), PageRequest.of(0, effective));
+            PageRequest page = PageRequest.of(0, effective);
+            return owner == null
+                    ? deprecations.pageAfter(cursor.at(), cursor.toolId(), page)
+                    : deprecations.pageAfterByOwner(owner, cursor.at(), cursor.toolId(), page);
         }
-        return deprecations.firstPage(PageRequest.of(from / effective, effective));
+        PageRequest page = PageRequest.of(from / effective, effective);
+        return owner == null ? deprecations.firstPage(page) : deprecations.firstPageByOwner(owner, page);
     }
 
     /** The WHOLE number of deprecated declarations the window is a window of. */
     @Transactional(readOnly = true)
     public long deprecationCount() {
-        return deprecations.count();
+        return deprecationCount(null);
+    }
+
+    /** The WHOLE number of deprecated declarations one owner filter selects. */
+    @Transactional(readOnly = true)
+    public long deprecationCount(String ownerId) {
+        String owner = normalizeOwner(ownerId);
+        return owner == null ? deprecations.count() : deprecations.countByOwner(owner);
     }
 
     /**

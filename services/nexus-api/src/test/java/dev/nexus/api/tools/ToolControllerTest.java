@@ -329,12 +329,12 @@ class ToolControllerTest {
 
     @Test
     void theDeprecatedListCarriesEachToolsNameBesideItsDeprecation() throws Exception {
-        when(service.deprecationPage(null, 20, 0))
+        when(service.deprecationPage(null, null, 20, 0))
                 .thenReturn(List.of(new ToolDeprecation("tool-1", "Use b.tool instead.", "b.tool", AT)));
-        when(service.deprecationCount()).thenReturn(1L);
+        when(service.deprecationCount((String) null)).thenReturn(1L);
         when(service.byIds(List.of("tool-1"))).thenReturn(Map.of("tool-1", row("tool-1", OWNER, "a.tool")));
 
-        ResponseEntity<ToolDtos.DeprecationList> answer = controller().deprecations(null, null, null);
+        ResponseEntity<ToolDtos.DeprecationList> answer = controller().deprecations(null, null, null, null);
 
         ToolDtos.DeprecationList body = answer.getBody();
         assertThat(body).isNotNull();
@@ -342,36 +342,54 @@ class ToolControllerTest {
         assertThat(body.deprecations()).extracting(ToolDtos.DeprecatedTool::name).containsExactly("a.tool");
         assertThat(body.deprecations().get(0).replacement()).isEqualTo("b.tool");
         assertThat(body.before()).isNull();
+        assertThat(body.owner()).isNull();
         JsonNode wire = mapper.valueToTree(body);
-        assertThat(wire.size()).isEqualTo(5);
-        assertThat(wire.toString()).doesNotContain("secret").doesNotContain("owner");
+        assertThat(wire.size()).isEqualTo(6);
+        assertThat(wire.toString()).doesNotContain("secret").doesNotContain(OWNER);
     }
 
     @Test
     void theDeprecationCursorIsEchoedTrimmedAndDoesNotNarrowTheTotal() throws Exception {
         String key = AT.toEpochMilli() + ":tool-1";
-        when(service.deprecationPage(key, 20, 0))
+        when(service.deprecationPage(null, key, 20, 0))
                 .thenReturn(List.of(new ToolDeprecation("tool-2", "Going away.", null, AT.minusSeconds(1))));
-        when(service.deprecationCount()).thenReturn(3L);
+        when(service.deprecationCount((String) null)).thenReturn(3L);
         when(service.byIds(List.of("tool-2"))).thenReturn(Map.of("tool-2", row("tool-2", OWNER, "b.tool")));
 
         ToolDtos.DeprecationList body =
-                controller().deprecations(null, null, "  " + AT.toEpochMilli() + ": tool-1  ").getBody();
+                controller().deprecations(null, null, "  " + AT.toEpochMilli() + ": tool-1  ", null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.before()).as("the cursor is echoed in the canonical <epochMillis>:<toolId> shape")
                 .isEqualTo(key);
         assertThat(body.total()).as("a cursor is a position, not a filter").isEqualTo(3L);
         assertThat(body.deprecations()).extracting(ToolDtos.DeprecatedTool::name).containsExactly("b.tool");
-        assertThat(mapper.valueToTree(body).size()).isEqualTo(5);
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(6);
     }
 
     @Test
     void aDeprecationCursorThatIsNotAPairIsRefusedBeforeTheServiceIsAsked() {
-        assertThatThrownBy(() -> controller().deprecations(null, null, "tool-1"))
+        assertThatThrownBy(() -> controller().deprecations(null, null, "tool-1", null))
                 .isInstanceOf(InvalidTool.class)
                 .hasMessageContaining("<epochMillis>:<toolId>");
         verifyNoInteractions(service);
+    }
+
+    @Test
+    void theOwnerFilterIsEchoedAndTheCountIsTheNarrowedWhole() throws Exception {
+        when(service.deprecationPage(OWNER, null, 20, 0))
+                .thenReturn(List.of(new ToolDeprecation("tool-1", "Going away.", null, AT)));
+        when(service.deprecationCount(OWNER)).thenReturn(1L);
+        when(service.byIds(List.of("tool-1"))).thenReturn(Map.of("tool-1", row("tool-1", OWNER, "a.tool")));
+
+        ToolDtos.DeprecationList body =
+                controller().deprecations(null, null, null, "  " + OWNER + "  ").getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.owner()).as("the owner filter is echoed trimmed").isEqualTo(OWNER);
+        assertThat(body.total()).isEqualTo(1);
+        assertThat(body.before()).isNull();
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(6);
     }
 
     @Test
