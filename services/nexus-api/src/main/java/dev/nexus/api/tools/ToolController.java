@@ -15,6 +15,8 @@ import dev.nexus.api.tools.ToolDtos.PinMatch;
 import dev.nexus.api.tools.ToolDtos.PinMatches;
 import dev.nexus.api.tools.ToolDtos.PruneJournalAnswer;
 import dev.nexus.api.tools.ToolDtos.PruneRevisionsAnswer;
+import dev.nexus.api.tools.ToolDtos.ReplacementChainAnswer;
+import dev.nexus.api.tools.ToolDtos.ReplacementChainStep;
 import dev.nexus.api.tools.ToolDtos.RevisionAtPin;
 import dev.nexus.api.tools.ToolDtos.OwnershipTransfer;
 import dev.nexus.api.tools.ToolDtos.RegisterRequest;
@@ -105,6 +107,8 @@ import org.springframework.web.bind.annotation.RestController;
  *       the id names nothing, and a DIFFERENT 404 {@code not-deprecated} when the tool is live.
  *   <li>{@code DELETE /tools/{id}/deprecation?owner=} — withdraw the deprecation, for its owner only.
  *       200 with {@code removed:false} when the tool was not deprecated.
+ *   <li>{@code GET /tools/{id}/replacement-chain} — follow the warning's replacement hints to their END: every
+ *       declaration reached, and one outcome — live, none, unresolved, cycle (named) or depth (v622).
  *   <li>{@code GET /tools/deprecations?owner=&replacementStatus=&limit=&offset=&before=} — every deprecated
  *       declaration, newest
  *       first, with the tool's name beside its deprecation so an agent can read the whole warning list in one
@@ -328,6 +332,27 @@ public class ToolController {
     @GetMapping("/tools/{toolId}/deprecation")
     public ResponseEntity<Deprecation> deprecation(@PathVariable String toolId) {
         return ResponseEntity.ok(toWire(service.deprecationOf(toolId)));
+    }
+
+    /**
+     * v622 — follow this declaration's replacement hints to the END of the chain.
+     *
+     * <p>A single warning says only what the NEXT successor is; a consumer deciding whether to migrate needs
+     * to know where the walk stops. The answer names every declaration it reached and one outcome:
+     * {@code live} (a declaration with no warning), {@code none} (a warning with no successor), {@code
+     * unresolved} (a hint nobody declared), {@code cycle} (a name already walked, also named in
+     * {@code cycleTo}) or {@code depth} (the walk reached its bound). A tool with no warning is the existing
+     * 404 not-deprecated, not an empty chain.
+     */
+    @GetMapping("/tools/{toolId}/replacement-chain")
+    public ResponseEntity<ReplacementChainAnswer> replacementChain(@PathVariable String toolId) {
+        ReplacementChain chain = service.replacementChain(toolId);
+        return ResponseEntity.ok(new ReplacementChainAnswer(chain.toolId(), chain.name(), chain.outcome(),
+                chain.cycleTo(),
+                chain.steps().stream()
+                        .map(step -> new ReplacementChainStep(step.toolId(), step.name(), step.deprecated(),
+                                step.replacement(), step.replacementStatus()))
+                        .toList()));
     }
 
     /**

@@ -1537,6 +1537,121 @@ class ToolServiceTest {
         assertThat(service().journal(null, null, 0, 20, 0)).isEmpty();
     }
 
+    // ── v622: where a replacement chain ends ─────────────────────────────────────────────────────
+    @Test
+    void aChainEndsAtALiveDeclaration() {
+        ToolEntry start = row("tool-1", OWNER, "a.tool");
+        ToolEntry end = row("tool-2", OWNER, "b.tool");
+        when(repository.findById("tool-1")).thenReturn(Optional.of(start));
+        when(deprecations.findByToolId("tool-1"))
+                .thenReturn(Optional.of(new ToolDeprecation("tool-1", "Going.", "b.tool", AT)));
+        when(repository.findByName("b.tool")).thenReturn(Optional.of(end));
+        when(deprecations.findByToolId("tool-2")).thenReturn(Optional.empty());
+
+        ReplacementChain chain = service().replacementChain("tool-1");
+
+        assertThat(chain.outcome()).isEqualTo("live");
+        assertThat(chain.cycleTo()).isNull();
+        assertThat(chain.steps()).containsExactly(
+                new ReplacementChain.Step("tool-1", "a.tool", true, "b.tool", "live"),
+                new ReplacementChain.Step("tool-2", "b.tool", false, null, null));
+    }
+
+    @Test
+    void aChainEndsAtAWarningWithNoSuccessor() {
+        ToolEntry start = row("tool-1", OWNER, "a.tool");
+        when(repository.findById("tool-1")).thenReturn(Optional.of(start));
+        when(deprecations.findByToolId("tool-1"))
+                .thenReturn(Optional.of(new ToolDeprecation("tool-1", "Going.", null, AT)));
+
+        ReplacementChain chain = service().replacementChain("tool-1");
+
+        assertThat(chain.outcome()).isEqualTo("none");
+        assertThat(chain.steps()).containsExactly(
+                new ReplacementChain.Step("tool-1", "a.tool", true, null, "none"));
+    }
+
+    @Test
+    void aChainEndsAtAHintNobodyDeclared() {
+        ToolEntry start = row("tool-1", OWNER, "a.tool");
+        when(repository.findById("tool-1")).thenReturn(Optional.of(start));
+        when(deprecations.findByToolId("tool-1"))
+                .thenReturn(Optional.of(new ToolDeprecation("tool-1", "Going.", "ghost.tool", AT)));
+        when(repository.findByName("ghost.tool")).thenReturn(Optional.empty());
+
+        ReplacementChain chain = service().replacementChain("tool-1");
+
+        assertThat(chain.outcome()).isEqualTo("unresolved");
+        assertThat(chain.steps()).containsExactly(
+                new ReplacementChain.Step("tool-1", "a.tool", true, "ghost.tool", "unresolved"));
+    }
+
+    @Test
+    void aChainThatLoopsNamesTheStepItRepeats() {
+        ToolEntry a = row("tool-1", OWNER, "a.tool");
+        ToolEntry b = row("tool-2", OWNER, "b.tool");
+        when(repository.findById("tool-1")).thenReturn(Optional.of(a));
+        when(deprecations.findByToolId("tool-1"))
+                .thenReturn(Optional.of(new ToolDeprecation("tool-1", "Going.", "b.tool", AT)));
+        when(repository.findByName("b.tool")).thenReturn(Optional.of(b));
+        when(deprecations.findByToolId("tool-2"))
+                .thenReturn(Optional.of(new ToolDeprecation("tool-2", "Back.", "a.tool", AT)));
+        when(repository.findByName("a.tool")).thenReturn(Optional.of(a));
+
+        ReplacementChain chain = service().replacementChain("tool-1");
+
+        assertThat(chain.outcome()).isEqualTo("cycle");
+        assertThat(chain.cycleTo()).isEqualTo("a.tool");
+        assertThat(chain.steps()).extracting(ReplacementChain.Step::name).containsExactly("a.tool", "b.tool");
+        assertThat(chain.steps().get(1).replacementStatus()).isEqualTo("deprecated");
+    }
+
+    @Test
+    void aWarningThatNamesItselfIsACycleOfOne() {
+        ToolEntry start = row("tool-1", OWNER, "a.tool");
+        when(repository.findById("tool-1")).thenReturn(Optional.of(start));
+        when(deprecations.findByToolId("tool-1"))
+                .thenReturn(Optional.of(new ToolDeprecation("tool-1", "Going.", "a.tool", AT)));
+        when(repository.findByName("a.tool")).thenReturn(Optional.of(start));
+
+        ReplacementChain chain = service().replacementChain("tool-1");
+
+        assertThat(chain.outcome()).isEqualTo("cycle");
+        assertThat(chain.cycleTo()).isEqualTo("a.tool");
+        assertThat(chain.steps()).hasSize(1);
+    }
+
+    @Test
+    void aChainStopsAtTheDepthBoundAndSaysSo() {
+        ToolEntry start = row("id-0", OWNER, "n.0");
+        when(repository.findById("id-0")).thenReturn(Optional.of(start));
+        for (int i = 0; i <= ToolService.MAX_REPLACEMENT_CHAIN; i++) {
+            when(deprecations.findByToolId("id-" + i)).thenReturn(Optional.of(
+                    new ToolDeprecation("id-" + i, "Going.", "n." + (i + 1), AT)));
+            if (i < ToolService.MAX_REPLACEMENT_CHAIN) {
+                when(repository.findByName("n." + (i + 1)))
+                        .thenReturn(Optional.of(row("id-" + (i + 1), OWNER, "n." + (i + 1))));
+            }
+        }
+
+        ReplacementChain chain = service().replacementChain("id-0");
+
+        assertThat(chain.outcome()).isEqualTo("depth");
+        assertThat(chain.steps()).hasSize(ToolService.MAX_REPLACEMENT_CHAIN);
+        assertThat(chain.steps().get(ToolService.MAX_REPLACEMENT_CHAIN - 1).replacementStatus())
+                .isEqualTo("deprecated");
+    }
+
+    @Test
+    void aToolWithNoWarningHasNoChainToFollow() {
+        when(repository.findById("tool-1")).thenReturn(Optional.of(row("tool-1", OWNER, "a.tool")));
+        when(deprecations.findByToolId("tool-1")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().replacementChain("tool-1"))
+                .isInstanceOf(UnknownDeprecation.class)
+                .hasMessageContaining("no replacement to follow");
+    }
+
     // ── v587: the batch read ───────────────────────────────────────────────────────────────────────
     @Test
     void batchIdsAreTrimmedDedupedAndKeptInFirstSeenOrder() {

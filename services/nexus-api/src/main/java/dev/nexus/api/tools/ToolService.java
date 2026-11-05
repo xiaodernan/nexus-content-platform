@@ -1294,6 +1294,91 @@ public class ToolService {
         return answer;
     }
 
+    /** The longest replacement chain this read follows before it stops and says {@code depth}. */
+    public static final int MAX_REPLACEMENT_CHAIN = 20;
+
+    /**
+     * v622 — follow a deprecation's replacement hints until the walk ENDS, and say where that is.
+     *
+     * <p>{@code replacementStatus=deprecated} (v619) says the immediate successor carries its own warning; it
+     * does not say whether following the hints reaches a live tool, dangles at a name nobody declared, stops at
+     * a warning with no successor, or loops. This read answers the question the consumer is actually asking:
+     * "if I migrate, where do I end up?"
+     *
+     * <p>Each hop resolves the hint by NAME — the registry's global key — and reads that declaration's warning
+     * once, using it both for this step's status and for the next hop. The walk is bounded at
+     * {@link #MAX_REPLACEMENT_CHAIN} steps; a longer chain answers {@code depth} rather than running forever.
+     * A name already walked is a {@code cycle} and is named, not re-entered: the registry can create this shape
+     * because two owners can point at each other, so the read has to describe it rather than assume it away.
+     *
+     * <p>A tool with no warning has no chain to follow: that is the existing 404 {@code not-deprecated}, the
+     * same answer the deprecation read gives, because "this tool is live" and "there is no such tool" are
+     * different facts and the caller must be able to tell them apart.
+     *
+     * @throws UnknownTool when the id names no declaration
+     * @throws UnknownDeprecation when the declaration carries no warning
+     */
+    @Transactional(readOnly = true)
+    public ReplacementChain replacementChain(String toolId) {
+        ToolEntry start = get(toolId);
+        ToolDeprecation first = deprecations.findByToolId(toolId)
+                .orElseThrow(() -> new UnknownDeprecation("tool \"" + toolId
+                        + "\" is not deprecated — there is no replacement to follow"));
+        List<ReplacementChain.Step> steps = new java.util.ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        ToolEntry node = start;
+        ToolDeprecation warning = first;
+        String outcome;
+        String cycleTo = null;
+        while (true) {
+            seen.add(node.getName());
+            String hint = warning == null ? null : trimmedReplacement(warning.getReplacementName());
+            String status = null;
+            ToolEntry next = null;
+            ToolDeprecation nextWarning = null;
+            if (warning == null) {
+                status = null;
+            } else if (hint == null) {
+                status = "none";
+            } else {
+                next = repository.findByName(hint).orElse(null);
+                if (next == null) {
+                    status = "unresolved";
+                } else {
+                    nextWarning = deprecations.findByToolId(next.getToolId()).orElse(null);
+                    status = nextWarning == null ? "live" : "deprecated";
+                }
+            }
+            steps.add(new ReplacementChain.Step(node.getToolId(), node.getName(),
+                    warning != null, warning == null ? null : warning.getReplacementName(), status));
+            if (warning == null) {
+                outcome = "live";
+                break;
+            }
+            if ("none".equals(status) || "unresolved".equals(status)) {
+                outcome = status;
+                break;
+            }
+            if (seen.contains(next.getName())) {
+                outcome = "cycle";
+                cycleTo = next.getName();
+                break;
+            }
+            if (steps.size() >= MAX_REPLACEMENT_CHAIN) {
+                outcome = "depth";
+                break;
+            }
+            node = next;
+            warning = nextWarning;
+        }
+        return new ReplacementChain(start.getToolId(), start.getName(), outcome, cycleTo, steps);
+    }
+
+    /** The hint a warning holds, trimmed, or null when it names nothing. */
+    private static String trimmedReplacement(String replacement) {
+        return replacement == null || replacement.isBlank() ? null : replacement.trim();
+    }
+
     /**
      * Several declarations by id, in ONE read, answered in the order the caller named them.
      *

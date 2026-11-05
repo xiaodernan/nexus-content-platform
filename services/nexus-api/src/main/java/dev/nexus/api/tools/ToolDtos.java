@@ -363,6 +363,33 @@ public final class ToolDtos {
     }
 
     /**
+     * M10 v622 - one declaration on a replacement walk. {@code deprecated} says whether it carries a warning,
+     * {@code replacement} is that warning's hint, and {@code replacementStatus} is the same derived vocabulary
+     * the warning list uses - null for a live declaration, which has no hint state to name.
+     */
+    public record ReplacementChainStep(
+            String toolId,
+            String name,
+            boolean deprecated,
+            String replacement,
+            String replacementStatus) {
+    }
+
+    /**
+     * M10 v622 - where a deprecation's replacement hints end. {@code outcome} is one of {@code live},
+     * {@code none}, {@code unresolved}, {@code cycle} or {@code depth}; {@code cycleTo} names the step the walk
+     * repeated and is null for every other outcome. The steps are in walk order, starting at the tool asked
+     * about, and their length is the distance to the outcome.
+     */
+    public record ReplacementChainAnswer(
+            String toolId,
+            String name,
+            String outcome,
+            String cycleTo,
+            List<ReplacementChainStep> steps) {
+    }
+
+    /**
      * The body that hands a declaration over: the account that will hold it.
      *
      * <p>One field, and no name/owner/id: the row is named in the path and the CURRENT holder is the required

@@ -333,6 +333,25 @@ class ToolControllerTest {
     }
 
     @Test
+    void aReplacementChainAnswersEveryStepAndItsOutcome() throws Exception {
+        when(service.replacementChain("tool-1")).thenReturn(new ReplacementChain(
+                "tool-1", "a.tool", "cycle", "a.tool",
+                List.of(
+                        new ReplacementChain.Step("tool-1", "a.tool", true, "b.tool", "deprecated"),
+                        new ReplacementChain.Step("tool-2", "b.tool", true, "a.tool", "deprecated"))));
+
+        ToolDtos.ReplacementChainAnswer body = controller().replacementChain("tool-1").getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.outcome()).isEqualTo("cycle");
+        assertThat(body.cycleTo()).isEqualTo("a.tool");
+        assertThat(body.steps()).hasSize(2);
+        JsonNode wire = mapper.valueToTree(body);
+        assertThat(wire.size()).isEqualTo(5);
+        assertThat(wire.get("steps").get(0).size()).isEqualTo(5);
+    }
+
+    @Test
     void theDeprecatedListCarriesEachToolsNameBesideItsDeprecation() throws Exception {
         when(service.deprecationPage(null, null, null, 20, 0))
                 .thenReturn(List.of(new ToolDeprecation("tool-1", "Use b.tool instead.", "b.tool", AT)));
