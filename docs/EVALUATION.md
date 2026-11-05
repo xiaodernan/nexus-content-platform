@@ -2047,6 +2047,23 @@ localStorage。读数：
 **notMeasured**：真实限流窗口下的用户感受（本片用 route 喂 429，不占限流名额）；提示在
 窄屏换行后的观感（文案 26 字，390 宽下占两行）。
 
+#### 第三十六片（2026-11-05）：390 的两块弹层落进视口——目标 ≥24，Tab 离开即收起（§85 / ADR-0084）
+
+八片「仍欠」指向的同一格第一次有了读数。390×844、真 member 夹具项目、真 Studio：
+
+- 改之前：发布弹层 `w-[440px]`，触发键右边缘 343.3 ⇒ 左边缘 **-96.7px**；`收起` **28×21**；
+  Tab 从最后一颗控件离开后焦点在面板背后、面板仍开着。
+- 改之后：发布 `x=12.0 y=52.0 w=366.0 h=239.0`，导出 `x=12.0 y=52.0 w=366.0 h=462.0`；
+  两块 `<24px` 目标 **[]**；Tab 之后 `{"inPanel":false,"onTrigger":true,"panelStillOpen":false}`。
+- `e2e/popover-mobile.spec.ts` 1 条（4.5s）把三件事都钉住：整块进视口（四边）、目标 ≥24、
+  Tab/Shift+Tab 两个方向的离开行为。截图 `screenshots/popover-390-publish.png` /
+  `popover-390-export.png`。
+- 回归：`a11y-opened.spec.ts` 的发布 / 导出 axe 用例 2 passed (8.6s)——Tab 进入面板的第一停没变。
+- 臂：Tab 分支改成 `return` ⇒ 红在「收起后焦点应当回到触发键」；恢复 1 passed (4.1s)。
+
+**notMeasured**：320px 宽；iOS Safari 与软键盘弹出时的可视高度；面板内容超长时 390 下的滚动；
+焦点陷阱明确不做（非模态，不声明 `aria-modal`）。
+
 ### Performance
 
 

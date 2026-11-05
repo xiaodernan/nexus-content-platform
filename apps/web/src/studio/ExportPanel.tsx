@@ -140,7 +140,7 @@ export function ExportPanel() {
           role="region"
           aria-label="导出与下载"
           data-export-panel
-          className="absolute right-0 top-[calc(100%+6px)] z-[70] w-[360px] rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-strong)] bg-bg-1 p-[var(--nexus-space-3)] shadow-2xl"
+          className="absolute right-0 top-[calc(100%+6px)] z-[70] max-h-[72vh] w-[min(360px,calc(100vw_-_24px))] overflow-auto rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-strong)] bg-bg-1 p-[var(--nexus-space-3)] shadow-2xl max-[520px]:fixed max-[520px]:left-3 max-[520px]:right-3 max-[520px]:top-[52px] max-[520px]:w-auto"
         >
           <p className="mb-2 font-mono text-12 text-fg-3">§144 导出这个项目</p>
           <div className="mb-[var(--nexus-space-3)] flex flex-col gap-1">
@@ -216,7 +216,7 @@ export function ExportPanel() {
             >
               {busy ? '打包中…' : `导出 ${chosen.join('+') || '（没勾东西）'}`}
             </button>
-            <button type="button" onClick={() => setOpen(false)} className="ml-auto shrink-0 text-11 text-fg-3 hover:text-fg-1">
+            <button type="button" onClick={() => setOpen(false)} className="ml-auto inline-flex h-6 min-w-6 shrink-0 items-center justify-center px-1 text-11 text-fg-3 hover:text-fg-1">
               收起
             </button>
           </div>

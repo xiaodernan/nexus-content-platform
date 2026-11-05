@@ -109,7 +109,7 @@ export function PublishPanel() {
           role="region"
           aria-label="发布与分享"
           data-publish-panel
-          className="absolute right-0 top-[calc(100%+6px)] z-[70] max-h-[72vh] w-[440px] overflow-auto rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-strong)] bg-bg-1 p-[var(--nexus-space-3)] shadow-2xl"
+          className="absolute right-0 top-[calc(100%+6px)] z-[70] max-h-[72vh] w-[min(440px,calc(100vw_-_24px))] overflow-auto rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-strong)] bg-bg-1 p-[var(--nexus-space-3)] shadow-2xl max-[520px]:fixed max-[520px]:left-3 max-[520px]:right-3 max-[520px]:top-[52px] max-[520px]:w-auto"
         >
           <p className="mb-2 font-mono text-12 text-fg-3">§56 / §57 发布与分享</p>
           <div className="mb-[var(--nexus-space-3)] flex flex-col gap-1">
@@ -283,7 +283,7 @@ export function PublishPanel() {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="ml-auto text-11 text-fg-3 hover:text-fg-1"
+              className="ml-auto inline-flex h-6 min-w-6 items-center justify-center px-1 text-11 text-fg-3 hover:text-fg-1"
             >
               收起
             </button>
