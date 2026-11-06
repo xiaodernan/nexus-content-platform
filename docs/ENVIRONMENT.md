@@ -195,6 +195,27 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
   负载下产生假红（冷编译 + Postgres 在 Docker bind mount 上），而假红的代价是让人去查一个不存在的故障。
   **性能不靠这个旋钮说话**，那是 `npm run perf:browser` 与 `scripts/*-cost.mts` 的账。
   取舍、臂表与逐字读数见 `docs/adr/0088-paced-e2e-line-filter-sharding.md`。
+- **其余 e2e 文件要不要 paced：核对了 `e2e/*.spec.ts` 全部 44 个（2026-11-06，§SEC 第四十片顺手的欠账）**。
+  口径：`rg -c 'createProject\(page,|createProjectNamed\(page,' e2e --glob "*.spec.ts"`
+  （辅助函数的**定义**写的是 `page:`，不会计入）。结果 **21 个文件共 97 处**建项目
+  （`studio` 58 处 ⇒ 必须 paced；其余同属一只 IP 桶，连跑也会互相吃名额，单次全目录跑同样要 5 个窗口分批）：
+  `a11y-internal 1 · a11y 2 · account-deletion 3 · agent 4 · analytics 2 · api-tokens 1 · auth 1 ·
+  character-chat 1 · character-fields 1 · character-scene 1 · components-panel 1 · game-completion 2 ·
+  image-studio 3 · import 4 · interactive-work 2 · keyboard-a11y 1 · search-relevance 4 · storyboard 2 ·
+  studio 58 · team 1 · world-talk 2`。
+  其中 `agent/api-tokens/auth/character-*`、`search-relevance` 等很多用例其实只走一次，
+  但**一次也占一个桶位**，所以口径是"建了几次就是几次"，不看用例长短。
+  **另外 23 个文件零建项目——不吃这道闸，可在任意窗口跑**：
+  `a11y-light · a11y-opened · admin-tables · analytics-narrow · game-keyboard · guest-reclaim ·
+  health-worker · keyboard-surfaces · mobile-layout · narrow-surfaces · observability · popover-mobile ·
+  profile-tasks · publish-review · ratelimit-admin · realtime-admin · responsive-authoring ·
+  search-suggest · search-suggest-pause · smoke · studio-inspector-fold · theme-toggle · viewer-breakpoint`。
+  它们多数走的是公共页 / 游客或登录后的只读读数（`reusableMemberWithProject` 建一次后复用，
+  见 `e2e/support/auth-session.ts`），所以一栉无关活动也不吃名额。
+  注：`/api/projects/import` 不经过 `ipWriteGate('projects/create')`——那道闸只挂在
+  `POST /api/projects` 上；导入端点走 CSRF + 登录 + 413/415 这几道门，包里字节落地时还过资产摄入门
+  （`uploadImageAsset` / `uploadVideoAsset` → `refusalForStorage`，storage 配额），
+  所以 import.spec 里对它的调用**不占** 20 次/小时的建项目桶。
 - **这两道按 IP 的闸在本机为什么是"一台机器一个桶"**（2026-10-30 第二十六片查实）：闸按谁的 IP 限，
   读的是 `x-forwarded-for` 的**可信链右端**；而 Next 只在**这一行头缺席时**才拿 socket 地址填它
   （`node_modules/next/dist/server/base-server.js:612` 是 `??=`）。本机没有反代，浏览器不写这一行头，
