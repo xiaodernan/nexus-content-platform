@@ -2369,6 +2369,10 @@ test('@smoke 全平台搜索：命中的都打得开，搜不到的要说清为�
   // 项目名命中，结果链接指向这个项目自己的编辑器
   await page.goto(`/search?q=${encodeURIComponent(suffix)}`);
   await expect(page.locator('[data-search-group="projects"]')).toContainText(`搜索切片${suffix}`);
+  // 排序口径写在结果上方（`9e97534` 之后相关度是真的在排，不只是"没做"）：
+  // 一个藏起来的序会被读成"平台公认最相关"，写出来它才只是"这套六档排出来的"。
+  await expect(page.locator('[data-search-method]')).toContainText('组内按相关度排');
+  await expect(page.locator('[data-search-method]')).toContainText('同分时按更新时间新→旧');
   await page.click(`[data-search-hit="${projectId}"]`);
   await page.waitForURL(/\/studio\/[^/]+$/, { timeout: 30_000 });
   await waitForCanvas(page);
@@ -2402,8 +2406,11 @@ test('@smoke 全平台搜索：命中的都打得开，搜不到的要说清为�
   await page.goto('/search?q=搜');
   await expect(page.locator('[data-search-too-short]')).toBeVisible();
   await expect(page.locator('[data-search-results]')).toHaveCount(0);
-  // 范围写在页面上：正文与相关度排序没做，就直说
-  await expect(page.locator('[data-search-scope]')).toContainText('相关度排序');
+  // 范围与限度也写在页面上：`SEARCH_NOT_COVERED` 那六行要真在，其中相关度那一行必须带着它的口径
+  // （六档 + 不看词频/位置/热度）。原来钉的是"相关度排序"四个字——那是排序还没做时那句限度说明，
+  // `9e97534` 把排序补上之后文案换了，这条就一直红着（同样只在真跑到时才看得见）。
+  await expect(page.locator('[data-search-scope]')).toContainText('相关度只分六档');
+  await expect(page.locator('[data-search-scope]')).toContainText('不看词频');
 
   // 换一个没有登录态的访客搜同一个关键词：内容组只认所有权，必须一无所获。
   // 用新 context 而不是新 page——同一个 context 会带着这个 guest 的会话 cookie
@@ -4074,11 +4081,18 @@ test('@smoke §134 跑一次生成 → 额度页少 1 点，且那一行指着�
   await expect(row).toContainText('DEMO 模板');
   await page.screenshot({ path: 'screenshots/credits-after-generation.png' });
 
-  // 这一页必须自己说清哪些限制今天真的生效：两格有拦截方（额度、存储），另外三格只是表上的数字。
-  // 断言要把 storage 与"已用"都钉住——只钉"只有"的话，把 storage 从这一格拿掉用例照样绿。
-  await expect(page.locator('[data-credits-enforced]')).toContainText('只有');
-  await expect(page.locator('[data-credits-enforced]')).toContainText('aiUsage');
-  await expect(page.locator('[data-credits-enforced]')).toContainText('storage');
+  // 这一页必须自己说清哪些限制今天真的生效。§133 那五格（#196 generation、#199 publishing、#201
+  // teamCollaboration 之后）今天全有拦截方，所以这一条钉的是**逐格点名**：
+  // 从 `ENFORCED_PLAN_AXES` 里删掉任何一格，这里就红。
+  // 原来那句 `toContainText('只有')` 已经在说谎——它断言的是"只有两格有拦截方"那个旧文案，
+  // 而这句话在 `69d76ed` 之后就不再成立了（用例能绿的唯一原因：那 40 多条从没真跑过，全撞在 429 上）。
+  for (const axis of ['aiUsage', 'storage', 'generation', 'publishing', 'teamCollaboration']) {
+    await expect(page.locator('[data-credits-enforced]')).toContainText(axis);
+  }
+  await expect(page.locator('[data-credits-enforced]')).toContainText('全都有真的拦截方');
+  // 反向那一格也钉住：真加了第六件事而没有拦截方时，页面必须写出"只是这张表上的数字"，
+  // 那时这条会红着提醒人去补，而不是让限度静默消失在文案里。
+  await expect(page.locator('[data-credits-enforced]')).not.toContainText('只是这张表上的数字');
   await expect(page.locator('[data-credits-storage]')).toContainText('已用');
   await expect(page.locator('[data-credits-limits]')).toContainText('没有充值入口');
   await expect(page.locator('[data-plan-row="enterprise"]')).toBeVisible();
@@ -4088,11 +4102,35 @@ test('@smoke §144 导出：顶栏点一下就下载，回执说的和包里的�
   test.setTimeout(150_000);
   const _projectId = await createProject(page, `导出 ${Date.now().toString(36)}`);
 
-  // ① 三样默认全勾：下载到的那份 zip 里真的有 README、设计文档与投出来的代码
+  // ① 默认全勾。**这一格的清单从界面读出来，不在用例里另抄一份**。
+  // 为什么值得为它写一段：v3 加分镜、v4 加角色那两次提交都没动过这一条用例，
+  // 于是 ③ 那句"三个都不勾"实际是"三个不勾、另外两格还勾着"——按钮照样能点，用例照样绿，
+  // 而"什么都不导"这个形状从来没被验过（第一次真跑到它，是 §SEC 第四十片的分片复跑）。
   await page.click('[data-export-open]');
-  for (const part of ['design', 'code', 'assets']) {
+  const partIds = (await page.locator('[data-export-part]').evaluateAll((els) =>
+    els.map((el) => el.getAttribute('data-export-part') ?? ''),
+  ))
+    .filter((id) => id !== '')
+    .sort();
+  // 钉成相等而不是"包含"：多一格 → 这条红，逼加 part 的人同时改这里与包内容断言；
+  // 少一格 → 也红（界面上悄悄撤掉一个导出项，比多加一个更难被发现）。
+  expect(partIds, `导出面板的勾选项与用例认识的那五格不一致，收到的是 ${partIds.join('、')}`).toEqual([
+    'assets',
+    'character',
+    'code',
+    'design',
+    'storyboard',
+  ]);
+  for (const part of partIds) {
     await expect(page.locator(`[data-export-part="${part}"] input`)).toBeChecked();
   }
+  // 勾选项要真的走到服务端：这一格以前只验"包里有东西"，五格里有两格连进没进请求都不知道。
+  // `[^&]*`（不是 `+`）：`?parts=` 空着也算一次导出尝试——什么都没勾却发得出请求，正是要抓的那种行为。
+  const askedParts: string[] = [];
+  page.on('request', (req) => {
+    const m = /\/api\/projects\/[^/]+\/export\?parts=([^&]*)/.exec(req.url());
+    if (m) askedParts.push(decodeURIComponent(m[1]!));
+  });
   const firstDownload = page.waitForEvent('download');
   await page.click('[data-export-run]');
   const download = await firstDownload;
@@ -4117,10 +4155,18 @@ test('@smoke §144 导出：顶栏点一下就下载，回执说的和包里的�
   // 界面上那句回执是服务端数出来的，不是界面自己数一遍包
   await expect(page.locator('[data-export-composition]')).toContainText('设计文档 1');
   await expect(page.locator('[data-export-composition]')).toContainText('代码');
+  // 五格全勾 ⇒ 请求带着五格（比排序后的集合，不绑面板上的先后）；
+  // 空项目没有分镜与角色，回执就不写它们（写了"分镜 0"反而是假账）。
+  expect(
+    askedParts.at(-1)?.split(',').sort().join(','),
+    `第一次导出带的 parts 不对：${askedParts.at(-1)}`,
+  ).toBe('assets,character,code,design,storyboard');
+  await expect(page.locator('[data-export-composition]')).not.toContainText('分镜');
 
   // ② 只勾代码：包里没有设计文档，回执也不写它（"0 个文档"这种话不该出现在界面上）
-  await page.uncheck('[data-export-part="design"] input');
-  await page.uncheck('[data-export-part="assets"] input');
+  for (const part of partIds.filter((p) => p !== 'code')) {
+    await page.uncheck(`[data-export-part="${part}"] input`);
+  }
   const secondDownload = page.waitForEvent('download');
   await page.click('[data-export-run]');
   const secondPath = await (await secondDownload).path();
@@ -4129,9 +4175,20 @@ test('@smoke §144 导出：顶栏点一下就下载，回执说的和包里的�
   expect(secondListing).toContain('code/');
   expect(secondListing, "没勾 design 却还在包里").not.toContain('design/document.json');
   await expect(page.locator('[data-export-composition]')).not.toContainText('设计文档');
+  expect(askedParts.at(-1), `只勾代码却把别的格也带上了：${askedParts.at(-1)}`).toBe('code');
 
-  // ③ 三个都不勾：那颗按钮点不动，而不是点出一个"完成"
+  // ③ 一格都不勾：什么都不该导出去。
+  // 顺序是**先数行为、再看那颗按钮灰没灰**：`expect` 一红就中止整条用例，
+  // 把 `toBeDisabled` 放在前面的话，"按钮其实还能点出去一次"这一格永远轮不到说话——
+  // 而界面灰了但点下去仍发请求，用户吃到的是一张假回执，比按钮没灰更贵。
   await page.uncheck('[data-export-part="code"] input');
+  const requestsBefore = askedParts.length;
+  const downloads: string[] = [];
+  page.on('download', (d) => downloads.push(d.suggestedFilename()));
+  await page.click('[data-export-run]', { force: true });
+  await page.waitForTimeout(1_500);
+  expect(askedParts.length, `一格都没勾还是发了 ${askedParts.length - requestsBefore} 次导出请求`).toBe(requestsBefore);
+  expect(downloads, `一格都没勾却下载到了东西：${downloads.join('、')}`).toEqual([]);
   await expect(page.locator('[data-export-run]')).toBeDisabled();
 
   // ④ §164 的第四类：这两次导出在收件箱里各留一条（第二次也出声，因为键挂在每次导出自己的 id 上）

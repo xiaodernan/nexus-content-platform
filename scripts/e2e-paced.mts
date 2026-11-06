@@ -202,18 +202,21 @@ async function main(): Promise<void> {
       console.log(`片 ${idx + 1}/${groups.length}（${g.length} 条）：`);
       g.forEach((c) => console.log(`  :${c.line}  ${c.title}`));
     });
-    const dupes = duplicateLines(groups);
+    const dupes = duplicateLines(groups.flat());
     const covered = groups.reduce((n, g) => n + g.length, 0);
-    // 重复与漏掉要分开说：前者是"同一条用例占两个名额"，后者是"有一条从未被任何一片发起"。
+    // 重复与漏掉要分开说：前者是"同一条用例被两片各发起一次"（名额多算），后者是"有一条从未被任何一片发起"。
     // 只报"合计 N 条"的话，57 条里漏 1 条又重 1 条会正好抵成 57，看起来一句话都没错。
-    const short = cases.length - new Set(groups.flat().map((c) => c.line)).size;
+    const missing = cases.length - covered;
+    // 行号相同的两条（用例写在循环里时就是这样）没法用行号 filter 各自点出来：
+    // 它们会同时被两条 filter 命中，于是"发起 1 条、Playwright 报 2 条"——那不是回归，是分片器点不准。
+    // 与其让两片的对账各自红一次，不如在这里就停：这条今天不响（全目录 148 条里没有重号行）。
+    const sharedLines = duplicateLines(cases);
     console.log(
-      `合计 ${covered} 条（列出 ${cases.length} 条），` +
-        `${dupes.length === 0 ? '行号互不重复' : `行号重复：${dupes.join(' ')}`}` +
-        `${short === 0 ? '、无漏' : `、**漏掉 ${short} 条**`}` +
-        `（切法按下标连续分段，一条用例只会被一条行号 filter 发起）`,
+      `合计 ${covered} 条（列出 ${cases.length} 条），${dupes.length === 0 ? '行号互不重复' : `行号重复：${dupes.join(' ')}`}` +
+        `${missing === 0 ? '、无漏' : `、**漏掉 ${missing} 条**`}` +
+        `${sharedLines.length === 0 ? '' : `、**同一行号声明了多条用例：${sharedLines.join(' ')}**（行号 filter 分不开它们）`}`,
     );
-    process.exit(dupes.length === 0 && short === 0 ? 0 : 1);
+    process.exit(dupes.length === 0 && missing === 0 && sharedLines.length === 0 ? 0 : 1);
   }
 
   // 锁在 `--list` **之前**拿：那一步本身也是一次 Playwright 启动。

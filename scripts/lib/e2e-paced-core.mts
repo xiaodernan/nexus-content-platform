@@ -56,9 +56,9 @@ export function partition(cases: TestCase[], shards: number): TestCase[][] {
   return groups;
 }
 
-/** 这一片里行号有没有被重复发起（重复 ⇒ 同一条用例占了两个名额，窗口账就对不上了） */
-export function duplicateLines(groups: TestCase[][]): number[] {
-  const lines = groups.flat().map((c) => c.line);
+/** 行号重复（同一条用例被两片各发起一次，或同一个行号上声明着多条用例）——两种都要当场看得见 */
+export function duplicateLines(cases: TestCase[]): number[] {
+  const lines = cases.map((c) => c.line);
   return lines.filter((l, i) => lines.indexOf(l) !== i);
 }
 
