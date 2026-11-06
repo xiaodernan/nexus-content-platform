@@ -23,6 +23,38 @@
 import { DEFAULT_MAX_BUCKETS, MemoryRateLimiter } from './rateLimitMemory';
 import { DEFAULT_KEY_PREFIX, DEFAULT_MAX_BUCKET_KEYS, REDIS_URL_ENV, RedisRateLimiter } from './rateLimitRedis';
 
+/**
+ * **全部 IP 窗口闸的限额与窗口，只有这一份。**
+ *
+ * 这些数字以前散在 13 处调用点里（同路由还出现两处），
+ * `/api/admin/rate-limit` 也端不出"闸是怎么装的"，只能端驱动——于是两件事只能靠记忆：
+ * ① 限额改没改（e2e 的节奏、ENVIRONMENT.md 那句"20 次/小时"全是手抄）；
+ * ② 哪些闸共用一只桶（`projects/create` 与 `marketplace/create` 是两个键、各自 20）。
+ * 现在这里是唯一真值：调用点不再传数字、诊断页照抄这一份、`rate-limit-rules.test.ts` 把
+ * 关键几格钉住。改动这里就是产品决策本身，改动任何一处调用点都只是把这份真值读出来。
+ *
+ * `auth/register` 用的不是 `ipWriteGate`（它当年直接走 `hit`），但它同属"身份之前的 IP 窗口闸"，
+ * 纳入这同一张表——e2e 连跑撞的就是这两道，漏掉它等于表里报的是半张图。
+ * `published/interact` 的 120/h 也在：同一族。
+ */
+export const IP_RATE_RULES = {
+  'projects/create': { limit: 20, windowMs: 3_600_000 },
+  'marketplace/create': { limit: 20, windowMs: 3_600_000 },
+  'published/report': { limit: 20, windowMs: 3_600_000 },
+  'published/interact': { limit: 120, windowMs: 3_600_000 },
+  'ai/run': { limit: 60, windowMs: 3_600_000 },
+  'ai/jobs': { limit: 60, windowMs: 3_600_000 },
+  'account/avatar': { limit: 60, windowMs: 3_600_000 },
+  'account/api-tokens': { limit: 10, windowMs: 3_600_000 },
+  'blocks': { limit: 60, windowMs: 3_600_000 },
+  'follow': { limit: 60, windowMs: 3_600_000 },
+  'auth/register': { limit: 10, windowMs: 3_600_000 },
+} as const;
+
+export type IpRateRoute = keyof typeof IP_RATE_RULES;
+/** 走 `ipWriteGate` 的那一族——`auth/register` 直接读 `IP_RATE_RULES['auth/register']`。 */
+export type IpGateRoute = Exclude<IpRateRoute, 'auth/register'>;
+
 export interface RateLimitDecision {
   allowed: boolean;
   count: number;
@@ -314,13 +346,12 @@ export function gateIp(request: Request): string | null {
  *    真正的"这个人"仍由各路由原有的按身份闸去管——这里是兜底，不是替代。
  */
 export async function ipWriteGate(
-  route: string,
+  route: IpGateRoute,
   req: Request,
-  limit: number,
-  windowMs: number,
 ): Promise<{ limited: false } | { limited: true; retryAfterMs: number }> {
   const ip = gateIp(req);
   if (!ip) return { limited: false };
+  const { limit, windowMs } = IP_RATE_RULES[route];
   const rl = await getRateLimiter().hit(rateKey(route, ip), limit, windowMs);
   return rl.allowed ? { limited: false } : { limited: true, retryAfterMs: rl.retryAfterMs };
 }

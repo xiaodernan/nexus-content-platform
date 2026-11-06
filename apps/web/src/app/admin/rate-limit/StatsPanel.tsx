@@ -27,6 +27,8 @@ type Stats = {
   deployment: { envVar: string; redisUrlConfigured: boolean; pid: number };
   fallbackByReason: Record<string, number>;
   bucketsPrunedByReason: Record<string, number>;
+  /** 每条 IP 窗口闸怎么装的（唯一真值 `IP_RATE_RULES`，服务端原样端出；只读） */
+  rules: Record<string, { limit: number; windowMs: number }>;
 };
 
 const WIRE_LABEL: Record<Stats['wire'], string> = {
@@ -49,6 +51,12 @@ function reasonList(map: Record<string, number>): string {
   const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
   if (!entries.length) return '还没有过';
   return entries.map(([reason, value]) => `${REASON_LABEL[reason] ?? reason} ${value}`).join('、');
+}
+
+/** 毫秒 → "N 分钟"。这张表里窗口都是整分钟（60 分钟），不是拿来测不准的 */
+function windowText(windowMs: number): string {
+  const minutes = Math.round(windowMs / 60_000);
+  return Number.isFinite(minutes) && minutes >= 1 ? `${minutes} 分钟` : `${windowMs} ms`;
 }
 
 export function RateLimitStatsPanel() {
@@ -152,6 +160,22 @@ export function RateLimitStatsPanel() {
           </>
         ) : null}
       </dl>
+      {/* 静态装法：唯一真值端上来，不重新算、不抄第二遍 */}
+      <section className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] p-2 flex flex-col gap-1" aria-label="IP 窗口闸怎么装的">
+        <p className="text-11 text-fg-3">IP 窗口闸怎么装的（改动 IP_RATE_RULES 才算改数）</p>
+        <ul className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 text-11" data-ratelimit-rules>
+          {Object.entries(stats.rules)
+            .sort(([a], [b]) => a.localeCompare(b, 'zh-CN'))
+            .map(([route, rule]) => (
+              <li key={route} className="contents">
+                <span className="font-mono text-fg-2">{route}</span>
+                <span className="tabular-nums text-fg-1">
+                  {rule.limit} 次 / {windowText(rule.windowMs)}
+                </span>
+              </li>
+            ))}
+        </ul>
+      </section>
       {stats.driver === 'redis' && !sharedWindowIsLive ? (
         <p className="text-11 text-warn-ink" data-ratelimit-scope-warning>
           这台装的是共享窗口，但此刻线路不在：这期间这一台的额度是它自己看到的次数。

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentUserOrNull } from '@/server/domain/session';
 import { jsonError } from '@/server/http';
 import { snapshot, type MetricName } from '@/server/observability';
-import { getRateLimiter } from '@/server/security/rateLimit';
+import { getRateLimiter, IP_RATE_RULES } from '@/server/security/rateLimit';
 import { REDIS_URL_ENV } from '@/server/security/rateLimitRedis';
 
 /**
@@ -19,6 +19,9 @@ import { REDIS_URL_ENV } from '@/server/security/rateLimitRedis';
  * 回执**不做二次加工**：驱动自报那份原样端出，因为加工一层就多一处把 `null` 抹成 0 的机会
  * （那三个 `null` 各是一句"不适用"，见 `RateLimiterReadout` 的注释）。
  * 两个按原因的账从 metrics 现读，而不是让驱动再自报一份——同一句话有两个写入方就会有两个答案。
+ *
+ * `rules` 是静态的那一半：每条 IP 窗口闸的 `limit/windowMs` 从 `IP_RATE_RULES` 原样整表端出，
+ * 不做挑挑选选——改动那张表就是产品决策本身；任何调用点都不再各抄一份数字。
  */
 function counterByReason(name: MetricName): Record<string, number> {
   const metric = snapshot().find((entry) => entry.name === name);
@@ -51,5 +54,7 @@ export async function GET(): Promise<NextResponse> {
     },
     fallbackByReason: counterByReason('nexus_rate_limit_driver_fallbacks_total'),
     bucketsPrunedByReason: counterByReason('nexus_rate_limit_buckets_pruned_total'),
+    /** 每条 IP 窗口闸怎么装的（唯一真值，见 `IP_RATE_RULES` 那份注释）；e2e/paced 照它画节奏 */
+    rules: IP_RATE_RULES,
   });
 }

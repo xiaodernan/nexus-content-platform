@@ -122,6 +122,12 @@ describe('§SEC 第三十五片 诊断入口的门', () => {
     expect(typeof (body.deployment as { pid: number }).pid).toBe('number');
     expect(typeof body.fallbackByReason).toBe('object');
     expect(typeof body.bucketsPrunedByReason).toBe('object');
+    // 每条 IP 窗口闸怎么装的原样端出（唯一真值，见 rateLimit.ts 的 IP_RATE_RULES）；
+    // e2e 的 paced 按这一格读——改限额会先碰这条用例，不会悄悄挪走。
+    expect(body.rules).toMatchObject({
+      'projects/create': { limit: 20, windowMs: 3_600_000 },
+      'auth/register': { limit: 10, windowMs: 3_600_000 },
+    });
   });
 
   it('部署那句与现场那句分开交：变量没设 + 单例被换成 Redis 驱动时，两格都得看得见', async () => {

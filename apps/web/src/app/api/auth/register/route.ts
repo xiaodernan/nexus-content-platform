@@ -5,7 +5,7 @@ import { register, type AuthError } from '@/server/domain/auth';
 import { csrfOk } from '@/server/security/csrf';
 import { recordAudit } from '@/server/domain/audit';
 import { applySessionCookie } from '@/server/security/authCookies';
-import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
+import { getRateLimiter, rateKey, clientIp, IP_RATE_RULES } from '@/server/security/rateLimit';
 import { badRequest, jsonError, readJson, failure } from '@/server/http';
 
 const Schema = z.object({
@@ -31,7 +31,9 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const ip = clientIp(req);
   // 注册按 IP 限流：挡住批量建号，正常用户几乎碰不到。
-  const rl = await getRateLimiter().hit(rateKey('auth/register', ip), 10, 60 * 60 * 1000);
+  // 限流匹配同一张规则表：`auth/register` 的 limit/window 只有 registry 一份（`IP_RATE_RULES`）
+  const { limit, windowMs } = IP_RATE_RULES['auth/register'];
+  const rl = await getRateLimiter().hit(rateKey('auth/register', ip), limit, windowMs);
   if (!rl.allowed) return jsonError(429, 'rate_limited', { message: '注册过于频繁，请稍后再试' });
 
   const body = await readJson(req);
