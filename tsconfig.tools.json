@@ -6,6 +6,9 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "allowJs": true,
     "checkJs": false,
+    // tsx 项目按完整文件名 import 同级 .mts（Node ESM 要扩展名、tsx 也这么认）；
+    // 没有这条，`import './lib/x.mts'` 会被 tsc 以 TS5097 拒掉——类型检查是 noEmit，符合这个开关的前提。
+    "allowImportingTsExtensions": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./apps/web/src/*"],

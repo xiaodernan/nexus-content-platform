@@ -163,8 +163,11 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
   `npm run test:ai-service` 里的 venv 可执行文件路径写成反斜杠：npm 在 Windows 上用 cmd.exe 执行脚本，
   而 cmd 会把 `apps/ai-service/...python.exe` 当成命令 `apps` 加一堆参数（报"'apps' 不是内部或外部命令"）。
   这条曾经让 26 项契约测试**根本没人跑得动**，只能靠手敲 venv 路径——文档写着"能跑"而实际跑不了，比报错更糟。
-- web 通过 `NEXUS_AI_SERVICE_URL`（本地写在 `apps/web/.env.local`）访问；未设置时首页显示"未配置"，
-  设置但连不上显示"不可达"，绝不显示成可用。
+- web 通过 `NEXUS_AI_SERVICE_URL` 访问 AI Service。**2026-11-06 核对：本机现在没有这个文件**
+  （`ls apps/web/.env.local` ⇒ No such file；它被 `.gitignore:18` 的 `.env.local` 挡着，所以不在版本库里，
+  原来这一行写的"本地写在 `apps/web/.env.local`"是过期话）。同一时刻 `netstat` 里 **8000 端口没有 LISTENING**，
+  即 ai-service 也没起。两者一致 ⇒ 界面上"未配置"那一档是**当前真实形状**，产品各处常驻 DEMO MODE（§160）。
+  要接真 provider 时才需要新建这个文件；不设它也能跑全部现有门，只是走的是 DEMO 合成器那条路。
 - 内存约束：`next dev` + `uvicorn` + Postgres 已接近 2.5GB 空闲上限，Playwright 跑 e2e 时不要另开浏览器。
 - **注册限流给 e2e 的节奏设了上限**（2026-10-28 实测）：`POST /api/auth/register` 按 IP 滑动窗口
   限 **10 次/小时**（`apps/web/src/app/api/auth/register/route.ts`），而 e2e 里 10 个文件各自注册一个新账号。
@@ -179,6 +182,19 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
   `createProjectNamed` 现在把这次 POST 的答复接住了：非 2xx 当场带话收场，不再等满 60 秒导航超时，
   并且把服务端算好的 `retryAfterMs` 一起报出来（2026-10-28 实测："还要等 20 分钟"）——照这个数等，别猜。
   同样**不要为测试放宽它**；挑着跑，或等窗口（每 3 分钟出一个名额）。
+- **跑整份 studio 用 `npm run e2e:paced`，不是 `npx playwright test e2e/studio.spec.ts`**（§SEC 第四十片，2026-11-06）。
+  上面的算术写清了为什么：57 条用例、57 处建项目，20 次/小时 ⇒ **一次跑到底必然中途撞闸**，
+  而撞了闸的那一次读回来是 `18 passed / 37 failed`，37 条同一成因是 429，**不是回归**。
+  这个跑法把"一次发起多少条"与"等多久"分开管：每片只发几条，片间睡的是**服务端自己算的那个数**
+  （报错里那句"还要等 X 分钟"），不是我估的分钟数。
+  两件顺手记下来的事实：
+  ① **Playwright 的 `--shard` 按文件分配，单文件拆不开**——`--shard=1/5` 对 `e2e/studio.spec.ts` 是
+  第一片 57 条、2–5 片各 0 条（`--list` 逐字读回），所以"分五片慢慢跑"这种想法在它上面会得到
+  四行空绿；脚本改成自己按**行号 filter** 点名（`e2e/studio.spec.ts:85 …:100`，多个 filter 是并集）。
+  ② `expect.timeout` 在这台机器上是 **20 秒**（`playwright.config.ts` 里有整段理由）：默认 5 秒会在这个
+  负载下产生假红（冷编译 + Postgres 在 Docker bind mount 上），而假红的代价是让人去查一个不存在的故障。
+  **性能不靠这个旋钮说话**，那是 `npm run perf:browser` 与 `scripts/*-cost.mts` 的账。
+  取舍、臂表与逐字读数见 `docs/adr/0088-paced-e2e-line-filter-sharding.md`。
 - **这两道按 IP 的闸在本机为什么是"一台机器一个桶"**（2026-10-30 第二十六片查实）：闸按谁的 IP 限，
   读的是 `x-forwarded-for` 的**可信链右端**；而 Next 只在**这一行头缺席时**才拿 socket 地址填它
   （`node_modules/next/dist/server/base-server.js:612` 是 `??=`）。本机没有反代，浏览器不写这一行头，
@@ -277,9 +293,9 @@ bind: An attempt was made to access a socket in a way forbidden by its access pe
 移走（不是删）lint 就跳过它，下一次 dev/build 会重新生成。看到"源码一行没改，lint 突然红在
 `.next/` 里"，先按这一条查。
 
-## Playwright e2e 在本机跑不起来：沙箱的批量删除守卫挡住它清 `test-results/`
+## Playwright e2e 与沙箱的批量删除守卫：会挡住的是"清 `test-results/`"那一步，不是 e2e 本身
 
-**现象**：`npx playwright test ...` 一条用例都还没跑就退出，日志里是
+**现象**（2026-10 中旬实录）：`npx playwright test ...` 一条用例都还没跑就退出，日志里是
 
 ```text
 Error: [safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED] {"count":105,"threshold":50,"scope":"turn","targets":["...\test-results"],"targetCount":1}
@@ -292,13 +308,32 @@ Error: [safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED] {"count":105,"threshold"
 **手动腾空也没用**：把 `test-results/` 清空之后再跑，守卫照样报同一个数
 （它数的是 Playwright 想删的那一整棵，不是当前实际有多少）。
 
-**结论**：这台机器上 e2e 这一路**暂时不可用**。需要真 HTTP 的验证改走脚本：
+**当时写下的结论是"这台机器上 e2e 这一路暂时不可用"——那句现在与事实相反，改掉**。
+2026-11-06 本机逐字读数：
 
-- 起 `npm run dev`（用工具的 `run_in_background`，`nohup ... &` 会随会话被杀）；
-- 再跑 `scripts/` 下对应的探针（如 `npm run probe:413`），或 `curl` / 一段 `node:http`。
+```text
+$ NEXUS_WEB_URL=http://localhost:3100 npx playwright test e2e/health-worker.spec.ts --workers=1
+Running 1 test using 1 worker
+  ok 1 [chrome] › e2e\health-worker.spec.ts:46:5 › §147 体检在 worker 里算… (8.0s)
+  1 passed (12.6s)
 
-已有的先例：`realtime-two-process.mts`、`two-instance-roundtrip.mts`、`import-413-probe.mts`。
-e2e 用例仍然要写、要维护（能跑 Playwright 的环境靠它守），只是**不能把"我跑过 e2e"写进本机的凭证**。
+$ … node node_modules/tsx/dist/cli.mjs scripts/e2e-paced.mts --shards 5 --only 1 --out .scratch/pw-paced-studio
+Running 12 tests using 1 worker
+  12 passed (3.9m)
+```
+
+守卫描述的机制没变（它确实会在"清一棵超阈值的 `test-results/`"时下手），**变的是绕法**：
+
+1. **`--output` 指到别处**（本机现行做法）。Playwright 清的是它自己那次的 output 目录，
+   指到 `.scratch/…` 下就不会去碰工作区根上那棵。`scripts/e2e-paced.mts` 每一片都带
+   `--output <out>/artifacts-i`，连 `--list` 那一步也带（见 `docs/adr/0088`）。
+2. **`test-results/` 保持空**。上面那次单条跑没带 `--output` 也过了，因为工作区根上那棵是空的
+   （`ls test-results | wc -l` ⇒ `0`）——条目数没超阈值，守卫不动手。
+   这一条**不要依赖**：跑过带 trace/screenshot 的失败用例以后那棵就胖了，所以 1 才是常规做法。
+
+**结论**：e2e 在本机可用，凭证照写。真 HTTP 的验证也仍可走 `scripts/` 下的探针
+（`realtime-two-process.mts`、`two-instance-roundtrip.mts`、`import-413-probe.mts` 是先例），
+但那是**分工**，不再是"e2e 跑不了"的替代品。
 
 同一个守卫还挡过 `next build`（清理 `.next` 时条目数超阈值）——看到
 `SAFE_DELETE_BULK_CONFIRM_REQUIRED` 就先想这条，不要先去改代码。
