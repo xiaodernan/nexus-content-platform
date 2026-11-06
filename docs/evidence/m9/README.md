@@ -337,3 +337,15 @@ Measured: `apps/studio` **140 files / 2793 tests passed**, `ops.test.ts` **45**,
 **Bounds, stated not implied.** Distinctness is not correctness: four different sentences can still all be wrong, and the gate cannot read English. The clause does not pin the exact sentences — a legitimate rewording must not redden it — only their number and their being non-empty and mutually distinct. The undeclared-word arm pins pass-through, not a vocabulary check: `'stake'` is not validated against the service, it is simply not claimed. No hosted contact is claimed for these bytes.
 
 **Files.** `docs/evidence/m9/audit-contract-proof.mjs` (§11.15) and this section. No `apps/studio` source changed; the suite count is unchanged by this batch.
+
+## v629 (ADR 0016 amendment 558) — the moderation face RUN over its four declared words: distinct sentences, no empty answer, and an undeclared word passes through
+
+**The gap, named by 549's own Bounds.** 549 said it in the present tense: "no clause here requires them to be *right* … the word VALUES are held by `reportBar.test.ts`'s four cases and not by the gate." That was true of this proof: §11.7 pinned the face's declaration site, §11.9b pinned where reasons are USED, §11.14 pinned the composer's derivation — but no clause RAN the moderation face over its own declaration and read the answer. A copy-paste giving two declared reasons the same sentence would pass every clause above: each reason still had a sender, a reader, and a derivation, and a reader saw two identical lines where the service declared two different complaints.
+
+**The repair, shaped like §11.10's RUN.** §11.17 calls `reportReasonText` — the shipped face, imported from `ops.ts` by the proof's own loader, not re-implemented — over the four reasons `ReportDtos` declares, and asserts: every answer is a non-empty string; the four sentences are pairwise DISTINCT; and an undeclared word passes through unchanged (`'stake'` → `'stake'`). It reads the VALUES 549 said no clause read; it does not claim the sentences are RIGHT — §60's permanent bound stands, and "something else" may or may not be the clearest English for `other`.
+
+**Measured (this box, 2026-11-06).** `node docs/evidence/m9/audit-contract-proof.mjs` — **exit 0**, **16 clause labels declared**, range endpoints still `[§11.7-11]`, §11.17's three assertions green. `npx vitest run` — **142 files / 2857 passed**. `npx tsc --noEmit` — **exit 0**. `npm run lint` — **7/7 packages passed**.
+
+**Bounds, stated not implied.** Distinctness is not correctness: four different sentences can still all be wrong, and the gate cannot read English. The clause does not pin the exact sentences — a legitimate rewording must not redden it — only their number and their being non-empty and mutually distinct. The undeclared-word arm pins pass-through, not a vocabulary check: `'stake'` is not validated against the service, it is simply not claimed. No hosted contact is claimed for these bytes.
+
+**Files.** `docs/evidence/m9/audit-contract-proof.mjs` (§11.17) and this section. No `apps/studio` source changed; the suite count is unchanged by this batch.

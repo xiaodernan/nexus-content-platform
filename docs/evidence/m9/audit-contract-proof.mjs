@@ -1269,6 +1269,61 @@ const vocab = (() => {
       'stake',
       'an undeclared reason word no longer passes through unchanged — the face is inventing a sentence for a word the service never declared',
     );
+    // 11.16 — the STATUS face RUN over its declared words: each declared status answers a
+    // non-empty sentence, the sentences are pairwise DISTINCT, and an undeclared status word
+    // passes through unchanged. §11.15 is the reason-table analogue; this is the status-table
+    // counterpart. The VALUES are held by the RUN here — which sentences the declared statuses
+    // answer with — which is the half 549's Bounds left open for the audit words; it does not
+    // claim the sentences are RIGHT (§60's permanent bound), only singular, non-empty and
+    // undeclared-free.
+    const statusFaceFn = reportFaces.model.reportStatusText;
+    assert.equal(typeof statusFaceFn, 'function', `${CLIENT_MODEL} no longer exports reportStatusText — §11.16 has lost the face it grades, and the clauses above would be grading names`);
+    const statusSentences = vocab.serverStatuses.map((status) => ({ status, sentence: statusFaceFn(status) }));
+    for (const { status, sentence } of statusSentences) {
+      assert.ok(
+        typeof sentence === 'string' && sentence.length > 0,
+        `reportStatusText answered "${sentence}" for the declared status "${status}" — an empty or non-string sentence is a status the reader cannot see`,
+      );
+    }
+    const statusDuplicateSentences = statusSentences
+      .filter((entry, i) => statusSentences.findIndex((other) => other.sentence === entry.sentence) !== i)
+      .map((entry) => `${entry.status}→"${entry.sentence}"`);
+    assert.deepEqual(
+      statusDuplicateSentences,
+      [],
+      `the status face gives ${statusDuplicateSentences.length} declared status(s) a sentence another declared status already has (${statusDuplicateSentences.join(', ')}) — two dispositions a reader cannot tell apart, which is the copy-paste shape no declaration census can see`,
+    );
+    assert.equal(
+      statusFaceFn('stake'),
+      'stake',
+      'an undeclared status word no longer passes through unchanged — the face is inventing a sentence for a word the service never declared',
+    );
+    // 11.17 — the MODERATION face RUN over its four declared words: each declared status
+    // answers a non-empty sentence, the sentences are pairwise DISTINCT, and an undeclared
+    // status word passes through unchanged. Exact analogue of §11.15 (reason) and §11.16 (status),
+    // applied to the moderation/desk face instead of the report bar/ reason/status faces.
+    const moderationFaceFn = reportFaces.model.moderationFace;
+    assert.equal(typeof moderationFaceFn, 'function', `${CLIENT_MODEL} no longer exports moderationFace — §11.17 has lost the face it grades, and the clauses above would be grading names`);
+    const moderationSentences = vocab.serverReasons.map((reason) => ({ reason, sentence: moderationFaceFn(reason) }));
+    for (const { reason, sentence } of moderationSentences) {
+      assert.ok(
+        typeof sentence === 'string' && sentence.length > 0,
+        `moderationFace answered "${sentence}" for the declared reason "${reason}" — an empty or non-string sentence is a reason the reader cannot see`,
+      );
+    }
+    const moderationDuplicateSentences = moderationSentences
+      .filter((entry, i) => moderationSentences.findIndex((other) => other.sentence === entry.sentence) !== i)
+      .map((entry) => `${entry.reason}→"${entry.sentence}"`);
+    assert.deepEqual(
+      moderationDuplicateSentences,
+      [],
+      `the moderation face gives ${moderationDuplicateSentences.length} declared reason(s) a sentence another declared reason already has (${moderationDuplicateSentences.join(', ')}) — two complaints a reader cannot tell apart, which is the copy-paste shape no declaration census can see`,
+    );
+    assert.equal(
+      moderationFaceFn('stake'),
+      'stake',
+      'an undeclared reason word no longer passes through unchanged — the face is inventing a sentence for a word the service never declared',
+    );
     console.log(`[§11.12] ${ownLabels.size} clause labels declared in this file · ${ownDuplicated.length} claimed twice · the range tag ${rangeTag} names ${rangeEndpoints.join(' and ')} and both are declared · ${printedTags.length} verdict line(s) print a §11 tag and every one is a declared label · a mention inside a message is not a declaration, so the citations this file prints are not counted here`);
     console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText} and imported from the owner by ${faceReadersOf.reportReasonText.length} reader(s) (${faceReadersOf.reportReasonText.join(', ')}), trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')}) · 11.9b charges ${reasonUseSites.length} file(s) that USE a reason word in a position (${reasonUseSites.map((s) => s.rel).join(', ') || 'nobody'}) while ${naiveReasonSites.length} file(s) spell one of the ${vocab.serverReasons.length} words in a different vocabulary and are NOT charged (${naiveReasonSites.map((s) => `${s.rel}(${s.words.join('+')})`).join(', ') || 'none'}), over a domain of ${reasonFieldReads.sites} \`.reason\` reads in ${reasonFieldReads.files} shipped files · ${reasonTableReaders.length} shipped reader(s) outside the owner USE the REPORT_REASONS list itself, each importing it from the owner`);
     console.log(`[§11] the vocabulary is graded where it is rendered: ${shipped.length} shipped sources carry ${declared.length} vocabulary tables, all in ${CLIENT_MODEL} · AUDIT_ACTIONS has ${verbReaders.length} production reader(s) (${verbReaders.join(', ')}) and REPORT_REASONS has ${reasonReaders.length} (${reasonReaders.join(', ')}) · ${CLIENT_TOOLBAR} spells 0 of the ${vocab.serverVerbs.length} verbs and maps the table instead · ${CLIENT_COMPOSER} imports its reasons from the owner · the shipped trail module RUN gives all ${vocab.serverVerbs.length} recorded verbs a row word, a button word and a tooltip · and its hand-copied tally still tiles exactly the table's ${tallySeen.length} verbs`);
