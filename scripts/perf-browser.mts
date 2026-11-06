@@ -226,7 +226,9 @@ const browser = await chromium.launch({
   headless: !headed,
   // 不带这个开关，Chrome 返回的 usedJSHeapSize 是被量化过的（几十 MB 一档），
   // 拿它报"峰值多少 MB"就是在报一个假的精确数。日志里那句说明也依赖这个前提。
-  args: ['--enable-precise-memory-info'],
+  // `--no-sandbox` + `--disable-gpu`：本机是 root/沙箱环境，无头 Chrome 缺 `--no-sandbox` 会
+  // 在 launch 阶段挂死（2026-11 实测 2m31s 零输出）。有头模式（PERF_HEADED=1）下无害。
+  args: ['--no-sandbox', '--disable-gpu', '--enable-precise-memory-info'],
 });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 await context.addInitScript(PROBE);
