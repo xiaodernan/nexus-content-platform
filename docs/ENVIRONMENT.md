@@ -176,14 +176,16 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
   要么等窗口腾名额（每 6 分钟出一个），要么一轮里只挑相关的那几条跑。
 - **建项目也有限流，而且比注册那一道更早撞**（同日实测）：`POST /api/projects` 按 IP 限
   **20 次/小时**（`apps/web/src/app/api/projects/route.ts` 的 `ipWriteGate('projects/create', …)`）。
-  一条 studio 用例动辄建一个项目，`e2e/studio.spec.ts` 单文件就有 57 处调用，所以**跑这一支的
-  中途就会把名额用光**——2026-10-28 实测：storyboard（8 条）+ team + account-deletion 之后，
+  一条 studio 用例动辄建一个项目，`e2e/studio.spec.ts` 单文件就有 **58 处**建项目调用（口径同下：
+  `createProject(page,` 57 + `createProjectNamed(page,` 1；把第一实参不是 `page` 的那处也算上——
+  `e2e/studio.spec.ts:2854` 的 `createProject(visitor, …)`——就是 **59 处**，57 条用例里有一条建两次），
+  所以**跑这一支的中途就会把名额用光**——2026-10-28 实测：storyboard（8 条）+ team + account-deletion 之后，
   studio 那批只剩 4 条能过。界面上只写一句"建项目太频繁了，稍后再试"。
   `createProjectNamed` 现在把这次 POST 的答复接住了：非 2xx 当场带话收场，不再等满 60 秒导航超时，
   并且把服务端算好的 `retryAfterMs` 一起报出来（2026-10-28 实测："还要等 20 分钟"）——照这个数等，别猜。
   同样**不要为测试放宽它**；挑着跑，或等窗口（每 3 分钟出一个名额）。
 - **跑整份 studio 用 `npm run e2e:paced`，不是 `npx playwright test e2e/studio.spec.ts`**（§SEC 第四十片，2026-11-06）。
-  上面的算术写清了为什么：57 条用例、57 处建项目，20 次/小时 ⇒ **一次跑到底必然中途撞闸**，
+  上面的算术写清了为什么：57 条用例、58 处建项目，20 次/小时 ⇒ **一次跑到底必然中途撞闸**，
   而撞了闸的那一次读回来是 `18 passed / 37 failed`，37 条同一成因是 429，**不是回归**。
   这个跑法把"一次发起多少条"与"等多久"分开管：每片只发几条，片间睡的是**服务端自己算的那个数**
   （报错里那句"还要等 X 分钟"），不是我估的分钟数。
@@ -195,6 +197,9 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
   负载下产生假红（冷编译 + Postgres 在 Docker bind mount 上），而假红的代价是让人去查一个不存在的故障。
   **性能不靠这个旋钮说话**，那是 `npm run perf:browser` 与 `scripts/*-cost.mts` 的账。
   取舍、臂表与逐字读数见 `docs/adr/0088-paced-e2e-line-filter-sharding.md`。
+  **数字不再手抄（2026-11-06，§SEC 第四十一片）**：每条 IP 窗口闸的 `limit/windowMs` 收进
+  `IP_RATE_RULES`（`apps/web/src/server/security/rateLimit.ts`，唯一真值）；`/api/admin/rate-limit` 端出
+  `rules`，`/admin/rate-limit` 表盘直接列这张装法表。
 - **其余 e2e 文件要不要 paced：核对了 `e2e/*.spec.ts` 全部 44 个（2026-11-06，§SEC 第四十片顺手的欠账）**。
   口径：`rg -c 'createProject\(page,|createProjectNamed\(page,' e2e --glob "*.spec.ts"`
   （辅助函数的**定义**写的是 `page:`，不会计入）。结果 **21 个文件共 97 处**建项目
@@ -205,6 +210,10 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
   studio 58 · team 1 · world-talk 2`。
   其中 `agent/api-tokens/auth/character-*`、`search-relevance` 等很多用例其实只走一次，
   但**一次也占一个桶位**，所以口径是"建了几次就是几次"，不看用例长短。
+  **这条口径自己有个洞（2026-11-07 补记查实）**：它只认第一实参写 `page` 的调用，
+  而 `e2e/studio.spec.ts:2854` 写的是 `createProject(visitor, …)`（访客那条 ctx 自己建的桶），
+  换成别的变量名的调用今天一律数不到。把这条洞补上重新数（`grep -rnoE 'createProject(Named)?\([A-Za-z_$][A-Za-z0-9_$]*,'`）：
+  **21 个文件共 98 处**、`studio` 59 处 ⇒ 上面那句"97 / 58"是这条口径下的下限，不是实况。
   **另外 23 个文件零建项目——不吃这道闸，可在任意窗口跑**：
   `a11y-light · a11y-opened · admin-tables · analytics-narrow · game-keyboard · guest-reclaim ·
   health-worker · keyboard-surfaces · mobile-layout · narrow-surfaces · observability · popover-mobile ·

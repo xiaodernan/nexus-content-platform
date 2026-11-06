@@ -13,8 +13,11 @@
 这不是回归，是**名额**：
 
 - `POST /api/projects` 按 IP 限 **20 次/小时**（`apps/web/src/app/api/projects/route.ts` 的 `ipWriteGate('projects/create', …)`）；
-- 这一份文件有 **57 条用例、57 处 `createProject(page, …)` + 1 处 `createProjectNamed`**（`grep -c` 逐字：57 / 57 / 1）；
-- 整个 `e2e/` 目录合计 **84 处** `createProject(page` 调用；
+- 这一份文件有 **57 条用例、59 处建项目调用**（逐字：`createProject(page,` 57 + `createProjectNamed(page,` 1 +
+  `createProject(visitor,` 1；`:2828 §132 拉黑与屏蔽`那一条建两次 ⇒ 59 > 57）；
+- 整个 `e2e/` 目录 **21 个文件共 98 处**建项目（`docs/ENVIRONMENT.md` 逐文件列表）。
+  本片初稿写的"84 处"是 `grep -c` 按**行**数的（一行两次就少算一次），ENVIRONMENT 那次核对的口径又只认
+  第一实参写 `page` 的调用——**两个都是下限，不是实况**；补记按 occurrence 口径重新量过（98）。
 - 本机 `docs/ENVIRONMENT.md` 早写着这两个桶是**一台机器一个**：Next 在 `x-forwarded-for` 缺席时拿 socket 地址填，
   本机没有反代，所以浏览器用例全部落在同一个 `::1` 上（并行会话也在这个桶里）。
 
@@ -86,6 +89,9 @@
 6. **`--plan`：先把切法打出来再跑**。分片器本身要能被单独验一次，否则第一次知道切错的代价是整晚的窗口。
    它同时报"合计 N 条、行号互不重复"——重复行号意味着一条用例被两片各跑一次，
    而那正是"57 条全绿"里最容易被数字掩盖的形状。
+   （补记 2026-11-07：这里原来只在**每组内部**查重复，所以"同一条用例被相邻两片各点一次"报不出来——
+   `duplicateLines` 改成对**整表**查，`--plan` 现在三个数一起报：`合计 57 条（列出 57 条）` / `漏 0 条` /
+   `同行号 0 个`，任一不为 0 就 `exit=1`。）
 7. **输出边跑边落盘**（`spawnSync` → `spawn`）。一片跑 4–20 分钟，而 `spawnSync` 只在结束时一次性写文件：
    期间日志是空的，"这一片是慢还是已经死了"只能靠猜。汇总口径一字未变（仍从完整文本现读）。
 8. **`expect.timeout` 从 5 秒抬到 20 秒**（`playwright.config.ts`）。这是**仪器的节拍**，不是产品的性能承诺：
@@ -107,8 +113,9 @@
 - 行号 filter 有一个真实代价：**改过 `e2e/studio.spec.ts` 之后行号会漂**。
   脚本每次跑前重新 `--list`，所以同一次调用内不会错；跨调用（今天记的 `:85`、明天去查）只是可读性下降，
   因为日志里同时写了标题。
-- 84 处建项目在整个 e2e 目录里 ⇒ **整目录一次跑全绿需要 ≥4 个窗口**。
-  本片只把 studio 那一份跑到底；其余文件按同样算法待排（见"仍欠"）。
+- **98 处**建项目在整个 e2e 目录里（补记按 occurrence 口径重新量过；初稿那个"84"与 ENVIRONMENT 那个"97"都是下限）
+  ⇒ **整目录一次跑全绿需要 ≥5 个窗口**。
+  补记后 studio 那一份已经跑到底（57 条每条有读数），其余 20 个建项目的文件按同样算法待排（见"仍欠"）。
 
 ## 见证（逐字读数）
 
@@ -151,6 +158,26 @@ Running 12 tests using 1 worker
 20:32:55 … 服务端自己算的：还要等 **15 分钟** ⇒ 这一片至少 16 分钟后重发   → 同一个 20:48
 ```
 
+滴跑到底（补记 2026-11-07；`--shards 57 --from 1 --cooldown-min 3`，`.scratch/pw-paced-drip/paced-summary.md` 共 57 行）。
+时间戳是 UTC（那一份跑在旧 `stamp()` 下、没带 `Z`；补记后 `stamp()` 补上了 `Z`——本机 UTC+8，读错的代价是 8 小时）：
+
+```
+- 2026-11-05 20:49:27 片 1/57（发起 1 条，Playwright 报 1 条）：exit=0，passed=1 failed=0 skipped=0｜1 passed (6.2s)
+…
+- 2026-11-05 22:37:18 片 34/57（发起 1 条，Playwright 报 1 条）：exit=1，passed=0 failed=1 skipped=0｜1 failed
+- 2026-11-05 23:04:19 片 42/57（发起 1 条，Playwright 报 1 条）：exit=0，passed=0 failed=0 skipped=1｜1 skipped
+- 2026-11-05 23:31:31 片 50/57（发起 1 条，Playwright 报 1 条）：exit=1，passed=0 failed=1 skipped=0｜1 failed
+- 2026-11-05 23:35:02 片 51/57（发起 1 条，Playwright 报 1 条）：exit=1，passed=0 failed=1 skipped=0｜1 failed
+- 2026-11-05 23:54:27 片 57/57（发起 1 条，Playwright 报 1 条）：exit=0，passed=1 failed=0 skipped=0｜1 passed (9.1s)
+```
+
+**53 绿 + 1 跳 + 3 红，57 行两本账全对上，全程零 429**。那 1 跳是 `studio.spec.ts:3226 §163 断线重开`，
+它自己写着 `test.skip(!process.env.NEXUS_REALTIME_MAX_LIFETIME_MS, …)`，与 §163 实时通道那支互斥——
+不是滴跑漏了它，是那一格要的是**一个运行前提**。
+三条红的都是"用例认旧说法"（`:2364 相关度排序` / `:4029 只有` / `:4087 toBeDisabled`），
+逐字红文、根因提交与修法见 `docs/ROADMAP.md`「第四十片补记」——**这一族红此前从未被看见过**，
+因为每次整份跑都死在 429 上、走不到那三行。滴跑的价值就在这句：名额算对了，红才只是红。
+
 ## 臂表（每条都验过"能红"，也验过恢复后能绿）
 
 | 臂 | 摘掉什么 | 逐字红 |
@@ -165,6 +192,34 @@ Running 12 tests using 1 worker
 A3/A4 是**变异臂**：改完跑一次看它红，改回来再跑一次看它绿，两次读数都抄在上面。
 `grep -c "MUT " scripts/e2e-paced.mts` ⇒ `0`（变异没留在树里）。
 
+### 补记的臂（2026-11-07）：修好的断言凭什么说它有牙
+
+滴跑抓到的那三条红改完以后，"是不是把断言改成迁就现状"只有臂能回答。**产品侧**各摘一次（P＝product）：
+
+| 臂 | 摘掉什么 | 逐字红 |
+| --- | --- | --- |
+| P1 | `ENFORCED_PLAN_AXES` 去掉最后一格 `teamCollaboration` | `Expected substring: "teamCollaboration"`（额度页那条逐格念名字的用例叫） |
+| P2 | `SEARCH_ORDER_METHOD` 删"不看词频"那半句 | `Expected substring: "不看词频"` |
+| P3 | 删掉搜索结果页 `[data-search-method]` 那一行 | `[data-search-method] … Expected substring: "组内按相关度排"` |
+| P4 | `ExportPanel` 去掉 `!chosen.length` 那个禁用条件 | `Error: 一格都没勾还是发了 1 次导出请求 / Expected: 2, Received: 3` |
+
+四条都在恢复后绿（`md5` 复原 + 三条各 `1 passed`：`17:35:22Z 片 34/57`、`17:35:51Z 片 50/57`、`17:36:09Z 片 51/57`）。
+P4 那条同时是"先数行为、再看按钮灰没灰"这个顺序的证据：**行为断言红了，说明它真的在数请求**；
+若只留 `toBeDisabled()`，P4 那种改动会让用例先撞在按钮上，请求发了几次永远没人问。
+
+**单测侧**（U，`scripts/test/e2e-paced-core.test.mts` 16 条，喂逐字 `--list` 原文）：
+
+| 臂 | 摘掉什么 | 逐字红 |
+| --- | --- | --- |
+| U1 | `partition` 改成按行号倒序切段 | `1 failed`：`expected [ { line: 4759, …(1) }, …(56) ] to deeply equal [ { line: 85, …(1) }, …(56) ]` ——**段的长短那几格全绿**，只有"连续分段"这一格叫 |
+| U2 | 摘掉"一条都没列出来就抛" | `2 failed`：`expected [Function] to throw an error` ×2（空枚举 + 带 exit 码那两格） |
+| U3 | `claimedTally` 取第一行而不是最后一行 | `1 failed`：`expected 4 to be 8`（多 project 各报一行的形状） |
+| U4 | `tallyMismatch` 回到 `claimed !== null && …` | `1 failed`：`expected false to be true`（"读不到那句"这一格静默失明） |
+| U5 | 摘掉 `Math.max(cooldownMin, …)` | `1 failed`：`expected 24 to be 61`（下界那一格） |
+
+每臂跑完立刻从备份还原：`grep -c "MUT " scripts/lib/e2e-paced-core.mts` ⇒ `0`，
+`md5sum` 回到 `e3f0dc524efb9112dbb2dea72402a060`，还原后重跑 ⇒ **16 passed**。
+
 ## 没牙的格子
 
 1. **按下标连续分段不管用例长短**：段与段的"建项目次数"均匀（这正是分段要保证的），
@@ -177,19 +232,41 @@ A3/A4 是**变异臂**：改完跑一次看它红，改回来再跑一次看它�
    所以她那一轮的建项目会吃掉同一个 `::1` 桶的名额；签名就是这一片里冒出 429，脚本会把那句原样端出来。
 4. **`--cooldown-min` 与 limit 数字都是手抄的**。产品里那道闸是 `ipWriteGate('projects/create', 20, 3_600_000)`，
    脚本注释写"20 次/小时/IP"；哪天 limit 改了，脚本不会跟着改，只会表现为"撞闸更频繁"或"等得没必要"。
-   没有一条门把两处钉在一起（要钉得让服务端把那两处数字端进 `/api/admin/rate-limit`，见"仍欠"）。
-5. **脚本没有单测**。`listTests` / `partition` 是纯函数，本可以进 vitest；
-   本仓库对 `scripts/*.mts` 的既有惯例是"自见证运行器"（`--plan` + 上面的臂表就是它的见证），本片随惯例。
+   ~~没有一条门把两处钉在一起（要钉得让服务端把那两处数字端进 `/api/admin/rate-limit`，见"仍欠"）。~~
+   **已还（2026-11-06，§SEC 第四十一片）**：数字收进 `IP_RATE_RULES`（唯一真值），
+   `rate-limit-rules.test.ts` 钉住 `projects/create = 20 / 3_600_000`；admin 端点与表盘端出这张表。
+   **还没还的那半**：脚本读的仍是自己那个 `--cooldown-min` 数字，没有去端点现取——
+   表与脚本之间那条线今天靠人（下一片决定"读哪一格、什么时候读"）。
+5. ~~**脚本没有单测**。`listTests` / `partition` 是纯函数，本可以进 vitest；~~
+   ~~本仓库对 `scripts/*.mts` 的既有惯例是"自见证运行器"（`--plan` + 上面的臂表就是它的见证），本片随惯例。~~
+   **已还（2026-11-07 补记）**：纯函数拆进 `scripts/lib/e2e-paced-core.mts`（不许 import `node:fs`/`child_process`），
+   `scripts/test/e2e-paced-core.test.mts` **16 passed**，喂的是逐字落盘的 `--list` 原文而不是手造样例——
+   这一条改的是"措辞漂移要等到第二天早上才知道"那一格：现在 Playwright 换含法，`npx vitest run` 几毫秒就叫。
+   臂见上面 U1–U5。
+6. **额度页那五格的名字是数组、后面那句解释是手写的**。补记里的用例逐格念 `ENFORCED_PLAN_AXES` 的名字，
+   念的是数组本身；而 `[data-credits-enforced]` 那句"§133 点名的五件事今天全都有真的拦截方"里的
+   **数字"五"和整句解释都不由数组拼出来**。今天这五格确实全有拦截方，所以话是真的；
+   但摘掉一格时页面不会跟着改口（P1 臂红的是**用例**，不是页面）——要钉死得让那句话也由数组生成，
+   并给"格子数 ≠ 句子里的数字"留一条门。本片只把它写明，没做。
 
 ## 仍欠
 
-1. **本片只把 studio 一份跑到底**。整个 `e2e/` 有 84 处建项目 ⇒ 全站一次全绿需要 ≥4 个窗口，
+1. ~~**本片只把 studio 一份跑到底**。~~ **studio 这一份已经跑到底（2026-11-07 补记）**：57 条用例每一条都有自己的
+   读数（53 绿 + 1 条要运行前提的跳 + 3 条红→修→绿）。**但"一次调用 57 条全绿"这个读数今天还没有**——
+   三条红的复跑是那三次单独调用（`--only 34/50/51`），把它们并回一条命令要再滴一遍（≈3 小时墙钟）。
+   整个 `e2e/` 有 98 处建项目 ⇒ 全站一次全绿仍需 ≥5 个窗口，
    而且各文件的用例数不同（`e2e/a11y-opened.spec.ts` 9 条、`e2e/storyboard.spec.ts` 12 条但只建 2 个项目）。
-   下一步照同一把尺子过一遍其余文件，把"哪些文件根本不需要 paced"记进 `docs/ENVIRONMENT.md`。
+   "哪些文件根本不需要 paced"那半**已还**（23 个文件零建项目，列表在 `docs/ENVIRONMENT.md`）；
+   还欠的是照同一把尺子把其余 20 个建项目的文件滴一遍。
 2. **红片的自动重发**。现在 `--only i` 是人来重发的；撞闸的片可以在同一次调用里按服务端那句自己重排队。
    没做的原因不是难，是要先把"重发几次"这条定下来——自动重发会把"这一片真的红了"混进"等名额"里。
 3. **让形状门认服务端那两个数字**（没牙 4）：`/api/admin/rate-limit` 现在端的是驱动、键前缀、上界与 `bucketsTracked`，
-   不含每条规则的 `limit/window`。补上以后，脚本可以现读 limit 自己算该切几片，`--shards` 那格就不再是手抄的。
+   不含每条规则的 `limit/window`。~~补上以后，脚本可以现读 limit 自己算该切几片，`--shards` 那格就不再是手抄的。~~
+   **已还（2026-11-06，§SEC 第四十一片）**：全部 IP 窗口闸的 `limit/windowMs` 收进 `IP_RATE_RULES`
+   （`apps/web/src/server/security/rateLimit.ts`，唯一真值；13 处调用点不再传数字）；
+   `/api/admin/rate-limit` 现在整表端出 `rules`，admin 表盘直接渲染这张装法表，
+   `rate-limit-rules.test.ts` 把 11 条钉住。paced 脚本还没接它自算切法——这一步留给下一片，
+   决定它读哪一格、什么时候读。
 4. **`docs/ENVIRONMENT.md` 那节"Playwright e2e 在本机跑不起来"已经过期**：它结论写着"这台机器上 e2e 这一路
    暂时不可用"，而本片（以及此前多片）在同一台机器上跑通了 Playwright——守卫只挡"清那棵超阈值的 `test-results/`"，
    带自己的 `--output` 就绕开了。该片随本片改写，别再留一句与事实相反的话。

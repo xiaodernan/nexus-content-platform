@@ -10396,3 +10396,122 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   ③ 端点交出的 key 若不在词表里今天照印，要不要在形状门里拒绝取决于"宁可生词不可吞数"，与决定⑤相冲，留给下一次；
   ④ 转发器端口钉死 56998、e2e 后三段是 `page.route` 喂的形状（照旧）。
   取舍与逐字段规则见 `docs/adr/0087-realtime-wire-error-ledger-by-reason.md`。
+
+
+## §SEC 第四十片：studio e2e 按行号 filter 切分片的 paced 跑法（2026-11-06）
+
+- 起点是一条被证明跑不动的门：2026-11-05 那次后台整份 `npx playwright test e2e/studio.spec.ts` =
+  **18 passed / 37 failed**，37 条同一成因是 429（`POST /api/projects` 按 IP **20 次/小时**，
+  `studio.spec.ts` 57 处建项目 ⇒ 一次跑到底必然中途撞闸）。**Admin** 侧根因给得准：`createProjectNamed`
+  把 POST 答复原样接住，带回"还要等 N 分钟"——那不是回归，是**名额**。
+- 做了什么（`scripts/e2e-paced.mts` + `scripts/lib/e2e-paced-core.mts`，核心逻辑抽成纯函数、主文件只做 IO 编排）：
+  ① 不开闸、不造身份、不改 timing 常量——三条红线一条不越；
+  ② **分片不用 `--shard`**（它是**按文件分**：`--shard=1/5` 对单文件是 57/0/0/0/0，后四片各报空绿）——
+  改成 `--list` 解析行号、连续下标切段、位置参数点名（`e2e/studio.spec.ts:85 …`，多 filter 是并集，`--list` 上验过）；
+  ③ 等多久由**服务端自己那句**算（报错里的"还要等 X 分钟"，`max(cooldownMin, X+1)`），不再固定猜 61 分钟；
+  ④ 一片一次一片（`--only i`）、或从 k 片连跑到底（`--from k`）；片越小、一次仪器故障影响的用例越少
+  （2026-11-06 实测 `code=3221225794` 把 Chromium worker 打断了）；
+  ⑤ 锁（`paced.lock`，pid，被挡住不删别人的锁）、`--list` 也带 `--output`（绕开沙箱批量删除守卫）、
+  **两本账对口供**（脚本以为的条数 == Playwright 那句 `Running N tests`，读不到那句也算红）——
+  这一条是防"exit=0、看起来全绿、实际有用例根本没被发起"的假绿。
+- 见证（逐字）：`--plan --shards 5` ⇒ `片 1/5（12 条）…片 5/5（9 条）`、`合计 57 条（列出 57 条），行号互不重复、无漏`；
+  第 1 片实跑 **12 passed (3.9m)**；撞闸那片照服务端自己报的数等（20:25:10 要等 23 分钟 → 20:48 到期；
+  20:32:55 自己算到 20:48——两次独立读数互相咬合）。臂 A1–A6 全部验过红与恢复后绿（逐项见 ADR-0088 臂表）。
+- 顺手查清并记入 `docs/ENVIRONMENT.md`（§SEC 第四十片顺手的欠账，2026-11-06）：
+  全目录 44 个 spec，21 个建项目共 **97 处**（`studio` 58）；**其余 23 个文件零建项目**
+  （`a11y-opened · smoke · …`，列表见该节），可在任意窗口跑。import 端点不走 `projects/create` 桶
+  （包里字节过 `refusalForStorage`），不计入这笔账。
+  **这两个数在下面的补记里被推翻过一次**：那次核对的口径只认第一实参写 `page` 的调用，
+  漏了 `e2e/studio.spec.ts:2854` 的 `createProject(visitor, …)` ⇒ 实况是 **98 处 / studio 59 处**。
+- 仍欠，如实记：① 整目录一次全绿仍需 ≥5 个窗口，本片只把 studio 一份跑到底——**studio 那份已跑到底（见下面补记），
+  其余 20 个建项目的文件还欠**；
+  ② 红片的自动重发（要先定"重发几次算等名额、几次算真红"，没定就不做半成品）；
+  ③ `limit/window` 当年靠手抄——**已还（§SEC 第四十一片）**；④ 其余文件照尺子量过了，纸面账有了。
+  取舍与臂表见 `docs/adr/0088-paced-e2e-line-filter-sharding.md`。
+
+### 第四十片补记（2026-11-07）：57 条逐条滴跑跑完了，抓到三条一直在说谎的断言
+
+- 滴跑形状 `--shards 57 --from 1 --cooldown-min 3`（一条一片，片间睡的是闸自己的补名额速率
+  20 次/小时 ⇒ 3 分钟一个）。逐字读数 `.scratch/pw-paced-drip/paced-summary.md` 共 57 行，
+  时间戳 2026-11-05 20:49:27 → 23:54:27（**那是 UTC**，旧 `stamp()` 没带时区；本机墙钟是 11-06 04:49 → 07:54），
+  合计 **53 绿 + 1 跳 + 3 红**，每一行都是 `（发起 1 条，Playwright 报 1 条）`——两本账 57/57 对上，
+  **全程零 429**。这就是"照服务端自己那句等"要换来的那件事：名额算对了，红就只能是红。
+  - 那 1 跳是 `e2e/studio.spec.ts:3226 §163 断线重开`，它自己写着
+    `test.skip(!process.env.NEXUS_REALTIME_MAX_LIFETIME_MS, '需要 web server 带 …')`，
+    与 §163 实时通道那支互斥（那支不能有这个变量，否则服务端 1.5 秒就把流掐了）。
+    不是本片漏跑，是**有前提的那一格没给前提**——覆盖在，谁设谁跑。
+- 三条红**都不是限流、都不是仪器**，是三条从 2026-10 起一直在说谎的断言。此前每次整份跑都死在 429 上，
+  没有一次走到过这三行，所以"产品改了、用例没改"这件事没人看见：
+  - `:2364 全平台搜索`——红 `Expected substring: "相关度排序"`，Received 那句已经是
+    "相关度只分六档：标题与查询完全一样 > …不看词频、不看词在标题里的位置、不看点击与热度，同分时按更新时间新→旧排"。
+    口径是 `9e97534`（2026-10-22 搜索按相关度排，ADR-0056）改的。
+    改法：断 `[data-search-method]` 含"组内按相关度排""同分时按更新时间新→旧"，
+    `[data-search-scope]` 含"相关度只分六档""不看词频"——认页面自己那句原话，不再认一个旧说法。
+  - `:4029 §134 额度页`——红 `Expected substring: "只有"`，Received 是"§133 点名的五件事今天全都有真的拦截方
+    （aiUsage、storage、generation、publishing、teamCollaboration）…真加了第六件事，先在这两列里放明，再落拦截方"。
+    `69d76ed`（2026-10-24 #201，五格至此全有拦截方）之后，旧断言等于**要求页面承认还缺一格**。
+    改法：逐格断那五个名字都在，外加 `toContainText('全都有真的拦截方')` 与
+    `not.toContainText('只是这张表上的数字')`（后者是这张表哪天悄悄退回"数字没有拦截方"时的绊线）。
+  - `:4087 §144 导出`——红 `expect(locator).toBeDisabled() failed / Expected: disabled / Received: enabled`。
+    `2450679`＋`838f324`（2026-10-24，分镜随包走 / 角色随包走，格式版本 v3→v4）把 parts 从 3 格加到 5 格，
+    用例只勾它认识的那三格 ⇒ 还剩两格勾着 ⇒ 按钮当然不灰。
+    改法：**从 DOM 现读** `[data-export-part]` 的 id 集合再钉成那五格（写死五格是另一种手抄，
+    红的时候还带 `收到的是 …` 把实况端出来）；"一格都没勾"那段改成**先数行为、再看按钮灰没灰**——
+    数 `?parts=` 请求次数与 `download` 事件，最后才断 `toBeDisabled()`：原来那句灰按钮挡在行为断言前面，
+    等于让这一族里最弱的一句守门（`expect` 一红就中止整条用例）。
+- 三条不是"改断言迁就现状"：产品侧各摘一次，用例必红；恢复后各绿。逐字：
+  P1 从 `ENFORCED_PLAN_AXES` 摘掉最后一格 ⇒ `Expected substring: "teamCollaboration"`；
+  P2 从 `SEARCH_ORDER_METHOD` 删"不看词频"那半句 ⇒ `Expected substring: "不看词频"`；
+  P3 删掉页面上 `[data-search-method]` 那一行 ⇒ `[data-search-method] … Expected substring: "组内按相关度排"`；
+  P4 去掉 `ExportPanel` 的 `!chosen.length` 禁用 ⇒ `Error: 一格都没勾还是发了 1 次导出请求 / Expected: 2, Received: 3`。
+  恢复后三条各绿（`.scratch/pw-paced-fix3/paced-summary.md`，带 `Z` 的新格式）：
+  `17:35:22Z 片 34/57 … 1 passed (19.0s)`、`17:35:51Z 片 50/57 … 1 passed (18.9s)`、`17:36:09Z 片 51/57 … 1 passed (8.4s)`。
+  ⇒ studio 这 57 条第一次**每一条都有自己的读数**：56 条绿（含 1 条按前提跳过）＋ 3 条修好后各跑一次绿。
+  如实记一句：**"单次调用 57 条全绿"这个读数今天还没有**——三条红的复跑是那三次单独调用（`--only 34/50/51`，
+  同一个 `--output` 目录所以汇总接在一份里），把它们并回一条命令要再滴一遍（≈3 小时墙钟）。
+- 仪器这半的三处补强（同一个下午被这次滴跑逼出来的）：
+  ① `duplicateLines` 从"每组内部查重复"改成"整表查重复"，`--plan` 同时报**覆盖几条 / 漏几条 / 同行号几条**，
+  任一不为 0 就 `exit=1`；原来只在组内查，"一条用例被两片各点一次"这种形状报不出来。
+  见证（逐字）：`--plan --shards 5` ⇒ `合计 57 条（列出 57 条），行号互不重复、无漏`。
+  ② `stamp()` 补 `Z`——本机时钟 UTC+8、`toISOString()` 是 UTC，summary 里那串时间不带时区就会被读成本地时间
+  （滴跑那 57 行正是旧格式，与 fix3 那份差 8 小时，读的是同一台钟）。
+  ③ 核心模块**有单测了**：`scripts/test/e2e-paced-core.test.mts` **16 passed**（`vitest.config.ts` 的 include
+  加 `scripts/test/**/*.test.mts`），喂的是逐字落盘的 `--list` 原文（`scripts/test/fixtures/studio-list.sample.txt`，
+  59 行），不是自己造的样例——Playwright 换措辞时这里先叫，而不是第二天早上。
+  臂表（每条改完跑一次、恢复后再跑一次，`grep -c "MUT " scripts/lib/e2e-paced-core.mts` ⇒ `0`、`md5` 复原、`16 passed`）：
+  U1 `partition` 按行号倒序切 ⇒ `1 failed`（`expected [ { line: 4759, …(1) }, …(56) ] to deeply equal [ { line: 85, …(1) }, …(56) ]`），
+  段的**长短**那几格全绿、只有"连续分段"这一格叫——正是它该拦的形状；
+  U2 摘掉空枚举的当场抛 ⇒ `2 failed`（`expected [Function] to throw an error` ×2）；
+  U3 `claimedTally` 取第一行 ⇒ `1 failed`（`expected 4 to be 8`，多 project 那格）；
+  U4 `tallyMismatch` 回到"读不到就当对得上" ⇒ `1 failed`（`expected false to be true`）；
+  U5 摘掉 `Math.max(cooldownMin, …)` ⇒ `1 failed`（`expected 24 to be 61`，下界那格）。
+- 顺手量到的新的一格没牙（记进 ADR-0088）：`credits.ts` 那五个名字是数组，页面上**后面那句解释是手写的**——
+  用例逐格念名字、念的是数组本身，第五格真被摘掉时页面那句"五件事全都有真的拦截方"不会跟着改口，
+  要钉死得让那句话也由数组拼出来。本片没做，只把它写明。
+
+## §SEC 第四十一片：IP 窗口闸的唯一真值——limit/window 只有一份（2026-11-06）
+
+- 起点是 ADR-0088 自己点名的一格（没牙 4 / 仍欠 3）：产品里每条 IP 窗口闸的限额和窗口
+  **散在 13 处调用点**（同路由 `account/avatar`、`blocks` 各两处），谁改了哪一边只有手抄能对；
+  `/api/admin/rate-limit` 端得出驱动、端不出"闸怎么装的"。
+- 做了什么：① 新增 `IP_RATE_RULES`（`apps/web/src/server/security/rateLimit.ts`，**唯一真值**；
+  11 条：10 条 `ipWriteGate` + `auth/register`——它当年直接走 `hit`，同属"身份之前的 IP 窗口闸"，
+  漏掉它等于表里只有半张图）。② `ipWriteGate` 改成 `(route, req)`，**调用点不再传数字**
+  （13 处全部改完，`grep` 确认 0 处残留字面量）；`auth/register` 也接同一张表。
+  ③ `/api/admin/rate-limit` GET 端出 `rules`（整表、原样、不挑选）；④ `/admin/rate-limit` 表盘直接渲染
+  这张装法表（`data-ratelimit-rules`，只读；改动 registry 才算改数）。
+  ⑤ 测试：**新文件 `rate-limit-rules.test.ts`**（恰好 11 条、每格正数、`projects/create=20/3600000` 与
+  `auth/register=10/3600000` 两格钉死）；`client-ip.test.ts` 第一条改为照 registry 断言
+  （invalid-xff 桶 20 次/小时：前 20 次放行、第 21 次起 429；`beforeEach` 已重置 limiter，不互污染）；
+  其余 5 处掉字面量、断言语义不变；`admin-rate-limit.integration.test.ts` 加 `rules` 断言（**6/6** 绿，真 Postgres）。
+- 验证（2026-11-07 复跑，逐字）：`rate-limit-rules + client-ip + rate-limit-readout` ⇒ **41 passed (3 files)**；
+  `admin-rate-limit.integration` ⇒ **6 passed**（真 Postgres）；`tsc -p apps/web` 无输出、`eslint` 0；
+  收尾 `grep -c "^  '[a-z]" apps/web/src/server/security/rateLimit.ts`（`IP_RATE_RULES` 表体）= **11 条**；
+  `grep -rn "ipWriteGate('" apps/web/src` = **12 处调用**、每一处的实参只有路由名字符串加 `req`，没有一处再传数字
+  （那 12 处覆盖上面 11 格里除 `auth/register` 之外的 10 格——同路由 `account/avatar`、`blocks` 各两处）。
+  （本节初稿写的"rate-limit 相关 44 passed"是按当时那一次的文件组合数出来的，换了这个口径就复现不出来——
+  留一句在这里，别让下一个人以为自己少跑了 3 条。）
+- 文档：ADR-0088「没牙 4」「仍欠 3」均记**已还**；ENVIRONMENT.md studio 那节加「数字不再手抄」；
+  本片改动只落在闸的"配置层"，**闸本身的行为、键形状、驱动一个字没动**（parity 那组没有动，仍是那组见证）。
+- 至此 IP 窗口闸的账：产品端（registry）、端点（rules）、表盘（渲染）、测试（钉住）、文档（ENVIRONMENT/ADR）
+  五处说同一句话。脚本自算切法（paced 读 `rules`）留给下一片——它要定"读哪一格、什么时候读"，不先做。
