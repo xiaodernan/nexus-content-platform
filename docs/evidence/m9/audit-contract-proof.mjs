@@ -1158,7 +1158,8 @@ const vocab = (() => {
     }
     // 11.12 — a clause LABEL is claimed ONCE in this file. `5a3a841` opened a block titled `11.10` four lines
     // above the §11.10 that v586 already owns: two blocks, one number, so either assertion firing sends the
-    // reader to the same record — and the record that block cites, amendment 551, was never granted. The
+    // reader to the same record — and the record that block cites, amendment 551, was still unwritten when
+    // this clause landed (amendment 553 writes it, and says what those four deleted lines were guarding). The
     // census keys on the DECLARATION spelling: a comment line whose first token is `11.<n>` and whose next
     // token is the em-dash. It does NOT key on a MENTION, because every clause here names its neighbours
     // inside its own failure message; charging a citation would make this file impossible to quote.
@@ -1206,8 +1207,25 @@ const vocab = (() => {
       [],
       `the build log prints ${printedTags.length} §11 clause tag(s) and ${undeclaredPrints.length} of them are undeclared (${undeclaredPrints.join(', ')}) — a line that prints "[§11.13] did its thing" is a verdict the reader cannot find the assertion for, which is a citation wearing a verdict's clothes`,
     );
+    // 11.13 — the REASON TABLE's production readers, MEASURED like 11.8. REPORT_REASONS has one
+    // shipped reader outside its owner (the composer), and it imports from the owner. The reason
+    // table's reader count is printed beside the status table's, so a reader count that drifts
+    // from one to zero is noticed rather than silently accepted — a reason table with no reader
+    // is a certificate no screen acts on, which is the shape v541's certificate could not have
+    // failed and should have.
+    const reasonTableReaders = readersOf('REPORT_REASONS');
+    assert.ok(
+      reasonTableReaders.length >= 1,
+      `REPORT_REASONS has no shipped reader outside its owner — the reason menu the reporter clicks is built from some other list than the one §8 reconciles with ReportDtos`
+    );
+    for (const rel of reasonTableReaders) {
+      assert.ok(
+        importsFaceFromOwner(rel, 'REPORT_REASONS'),
+        `${rel} reads REPORT_REASONS as a value but does not import that name from a module named ops — it is reading some other file's copy of the reason table`
+      );
+    }
     console.log(`[§11.12] ${ownLabels.size} clause labels declared in this file · ${ownDuplicated.length} claimed twice · the range tag ${rangeTag} names ${rangeEndpoints.join(' and ')} and both are declared · ${printedTags.length} verdict line(s) print a §11 tag and every one is a declared label · a mention inside a message is not a declaration, so the citations this file prints are not counted here`);
-    console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText} and imported from the owner by ${faceReadersOf.reportReasonText.length} reader(s) (${faceReadersOf.reportReasonText.join(', ')}), trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')}) · 11.9b charges ${reasonUseSites.length} file(s) that USE a reason word in a position (${reasonUseSites.map((s) => s.rel).join(', ') || 'nobody'}) while ${naiveReasonSites.length} file(s) spell one of the ${vocab.serverReasons.length} words in a different vocabulary and are NOT charged (${naiveReasonSites.map((s) => `${s.rel}(${s.words.join('+')})`).join(', ') || 'none'}), over a domain of ${reasonFieldReads.sites} \`.reason\` reads in ${reasonFieldReads.files} shipped files`);
+    console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText} and imported from the owner by ${faceReadersOf.reportReasonText.length} reader(s) (${faceReadersOf.reportReasonText.join(', ')}), trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')}) · 11.9b charges ${reasonUseSites.length} file(s) that USE a reason word in a position (${reasonUseSites.map((s) => s.rel).join(', ') || 'nobody'}) while ${naiveReasonSites.length} file(s) spell one of the ${vocab.serverReasons.length} words in a different vocabulary and are NOT charged (${naiveReasonSites.map((s) => `${s.rel}(${s.words.join('+')})`).join(', ') || 'none'}), over a domain of ${reasonFieldReads.sites} \`.reason\` reads in ${reasonFieldReads.files} shipped files · ${reasonTableReaders.length} shipped reader(s) outside the owner USE the REPORT_REASONS list itself, each importing it from the owner`);
     console.log(`[§11] the vocabulary is graded where it is rendered: ${shipped.length} shipped sources carry ${declared.length} vocabulary tables, all in ${CLIENT_MODEL} · AUDIT_ACTIONS has ${verbReaders.length} production reader(s) (${verbReaders.join(', ')}) and REPORT_REASONS has ${reasonReaders.length} (${reasonReaders.join(', ')}) · ${CLIENT_TOOLBAR} spells 0 of the ${vocab.serverVerbs.length} verbs and maps the table instead · ${CLIENT_COMPOSER} imports its reasons from the owner · the shipped trail module RUN gives all ${vocab.serverVerbs.length} recorded verbs a row word, a button word and a tooltip · and its hand-copied tally still tiles exactly the table's ${tallySeen.length} verbs`);
     // Disclosed, not charged: the shipped sources left in this list spell a recorded verb for their OWN
     // request or route — a `publish` in a lane's action field, not a word painted beside a trail row.
