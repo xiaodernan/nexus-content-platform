@@ -6,25 +6,58 @@
  * 而它是纯函数——不碰库、不碰 DOM，量出来就是模型层自己的成本，不受本机并发干扰，
  * 也不依赖 Playwright 能不能在这台机器上起 Chromium（dev server 在 dev 模式下数字还虚高 5×）。
  *
- * 用法：`npx tsx scripts/perf-resolvelayout.mts [节点数,...]`（默认 1000,4000,10000）。
- * 不连库、不起浏览器，跑完直接打印每档的 full / incremental 中位数与两者输出是否逐项相等。
+ * 用法：`npx tsx scripts/perf-resolvelayout.mts [场景]` —— 场景省略时跑 flat + deep 两组。
+ *   场景可填 `flat` / `deep`，或 `flat,deep`。
  *
- * 这份基线给下一刀用：增量布局今天只保证"相等"（`runLayout` 收到 prevLayout/changed 仍走全量），
- * 真正的复用（"没碰到的分支不重算"）是下一片。那一刀落地后，这里 incremental 应当明显低于 full，
- * 且两者输出仍逐项相等——"相等"是红线，"更快"是证据。
+ * 这一份基准刻意**复刻 store 的真实调用方式**（apps/web/src/studio/store.ts 的 getLayout）：
+ * 全量路用**冷**测量缓存（每次重新量），增量路复用**上一帧的解 + 常驻测量缓存**（store 里
+ * `layoutMeasureCache` 跨帧持有）。只有这样增量才会真正"省下计算"——否则全量路也白嫖缓存，
+ * 两者就一样快了，benchmark 量不出 §147 的收益。
+ *
+ * 红线是数：同一口径重跑，incremental 应当明显低于 full，且两者输出仍逐项 equal。
+ * "相等"由构造保证（两路共用同一份 measure/place），"更快"是这一刀的证据。
  */
 import { performance } from 'node:perf_hooks';
 import { starterPage, createNode } from '../packages/design-model/src/nodes';
-import { resolveLayout, resolveLayoutIncremental, type ResolvedLayout } from '../packages/design-model/src/layout';
+import {
+  resolveLayout,
+  resolveLayoutIncremental,
+  type ResolvedLayout,
+  type MeasureCache,
+} from '../packages/design-model/src/layout';
 import type { Page } from '../packages/design-model/src/types';
 
-function buildPage(nodeCount: number): Page {
+function freshCache(): MeasureCache {
+  return { signature: '', entries: new Map() };
+}
+
+function buildFlat(nodeCount: number): Page {
   const page = starterPage('Bench');
   const root = page.nodes[page.rootId]!;
   for (let i = 0; i < nodeCount; i += 1) {
     const node = createNode({ type: 'container', parentId: root.id, name: `n${i}` });
     page.nodes[node.id] = node;
     root.children.push(node.id);
+  }
+  return page;
+}
+
+function buildDeep(branching: number, depth: number): Page {
+  const page = starterPage('Deep');
+  const root = page.nodes[page.rootId]!;
+  let frontier: string[] = [root.id];
+  for (let d = 0; d < depth; d += 1) {
+    const next: string[] = [];
+    for (const pid of frontier) {
+      const parent = page.nodes[pid]!;
+      for (let i = 0; i < branching; i += 1) {
+        const node = createNode({ type: 'container', parentId: pid, name: `d${d}_${pid}_${i}` });
+        page.nodes[node.id] = node;
+        parent.children.push(node.id);
+        next.push(node.id);
+      }
+    }
+    frontier = next;
   }
   return page;
 }
@@ -44,35 +77,85 @@ function layoutsEqual(a: ResolvedLayout, b: ResolvedLayout): boolean {
     const na = a.nodes[id]!;
     const nb = b.nodes[id];
     if (!nb) return false;
-    if (na.x !== nb.x || na.y !== nb.y || na.width !== nb.width || na.height !== nb.height || na.depth !== nb.depth) {
+    if (
+      na.x !== nb.x ||
+      na.y !== nb.y ||
+      na.width !== nb.width ||
+      na.height !== nb.height ||
+      na.depth !== nb.depth
+    ) {
       return false;
     }
   }
   return true;
 }
 
-const scales = (process.argv[2] ?? '1000,4000,10000')
-  .split(',')
-  .map((n) => Number.parseInt(n, 10))
-  .filter((n) => Number.isFinite(n) && n > 0);
+/** 复用率：incremental 里与 prev 同一对象（reuseSubtree 直接沿用）的节点占比 */
+function reuseStats(inc: ResolvedLayout, prev: ResolvedLayout): { reused: number; total: number } {
+  let reused = 0;
+  let total = 0;
+  for (const id of Object.keys(inc.nodes)) {
+    total += 1;
+    if (inc.nodes[id] === prev.nodes[id]) reused += 1;
+  }
+  return { reused, total };
+}
+
 const RUNS = 20;
 
-console.log(`# §147 resolveLayout 模型层基线（runs=${RUNS}，去掉 1 次预热取中位数）`);
-for (const n of scales) {
-  const page = buildPage(n);
-  const full = timeIt(() => resolveLayout(page), RUNS);
+function runScenario(label: string, page: Page, changedId: string): void {
+  // 全量路：冷缓存（每次重新量，模拟"没有上一帧可复用"）
+  const full = timeIt(() => resolveLayout(page, { measureCache: freshCache() }), RUNS);
 
-  // 增量：以全量结果为 prevLayout，改一个子节点（root 的第 0 个孩子）——今天应当等价于全量
-  const prev = resolveLayout(page);
-  const changedId = page.nodes[page.rootId]!.children[0]!;
-  const inc = timeIt(() => resolveLayoutIncremental(page, { prevLayout: prev, changedNodeIds: new Set([changedId]) }), RUNS);
+  // 增量路：常驻缓存（warm）+ 上一帧的解。store 里 `layoutMeasureCache` 正是这么跨帧持有的。
+  const warm = freshCache();
+  const prev = resolveLayout(page, { measureCache: warm });
+  const inc = timeIt(
+    () =>
+      resolveLayoutIncremental(page, {
+        prevLayout: prev,
+        changedNodeIds: new Set([changedId]),
+        measureCache: warm,
+      }),
+    RUNS,
+  );
 
-  const fullResult = resolveLayout(page);
-  const incResult = resolveLayoutIncremental(page, { prevLayout: prev, changedNodeIds: new Set([changedId]) });
-  const equal = layoutsEqual(fullResult, incResult);
+  const incResult = resolveLayoutIncremental(page, {
+    prevLayout: prev,
+    changedNodeIds: new Set([changedId]),
+    measureCache: warm,
+  });
+  const equal = layoutsEqual(prev, incResult);
+  const { reused, total } = reuseStats(incResult, prev);
 
   console.log(
-    `nodes=${n.toString().padStart(5)}  full=${full.toFixed(2).padStart(8)}ms  incremental=${inc.toFixed(2).padStart(8)}ms  ` +
-      `speedup=${(full / inc).toFixed(2)}x  equal=${equal}`,
+    `${label.padEnd(22)}  full=${full.toFixed(2).padStart(8)}ms  ` +
+      `inc=${inc.toFixed(2).padStart(8)}ms  speedup=${(full / inc).toFixed(2)}x  ` +
+      `equal=${equal}  reused=${reused}/${total}`,
   );
+}
+
+const arg = process.argv[2] ?? 'flat,deep';
+const scenarios = arg.split(',').map((s) => s.trim());
+console.log(`# §147 resolveLayout 模型层基线（runs=${RUNS}，去掉 1 次预热取中位数）`);
+console.log('# 全量=冷缓存重量；增量=常驻缓存+上一帧解（复刻 store.getLayout 真实用法）');
+for (const s of scenarios) {
+  if (s === 'flat') {
+    for (const n of [1000, 4000, 10000]) {
+      const page = buildFlat(n);
+      const changed = page.nodes[page.rootId]!.children[0]!;
+      runScenario(`flat nodes=${n}`, page, changed);
+    }
+  } else if (s === 'deep') {
+    for (const [b, d] of [
+      [4, 6],
+      [5, 6],
+      [4, 7],
+    ] as const) {
+      const page = buildDeep(b, d);
+      const n = Object.keys(page.nodes).length;
+      const changed = page.nodes[page.rootId]!.children[0]!;
+      runScenario(`deep b=${b} d=${d} (${n})`, page, changed);
+    }
+  }
 }
