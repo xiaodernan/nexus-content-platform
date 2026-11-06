@@ -196,7 +196,7 @@ people.
 - **The change, in two doors.** (1) `--write` now runs **§1a** before the first suite: `git status --porcelain -- <each of the seven package roots>`, and any path refuses the write BY NAME (thirteen paths in this checkout's studio package today) — a table generated from uncommitted test bytes describes a tree nobody can check out. Check mode is unchanged: it grades the tree in front of it, which is what makes a local red useful before a commit. (2) `causeOf` prints the error line **plus its indented continuation**, stopping at the stack (`at …`), at the first unindented line, or at a blank one, bounded at 24 lines / 2000 bytes; a single-line error prints exactly as before.
 - **Regenerated from HEAD, not from a desktop.** The block in `docs/evidence/studio/README.md` is the output of `--write` in the clean worktree — `@nexus/studio` reads **2832/2832**, the other six rows are unchanged, and `--write`'s own self-check (`compare(rewritten, rows) === []`) passed before the block was copied back. The dirty-tree refusal is witnessed, not asserted: `--write` in the shared tree printed the thirteen paths and exited 1 in under a second, before measuring anything.
 - **The arms grew by the pair that grades the cause.** R12 plants an assertion whose subject sits on its SECOND line (the exact shape of the package-counts red) and is satisfied only when both findings reach the log; R13 plants an error followed by two stack frames and is satisfied only when the frames do **not** — the rule is a narrowing, not "print more". The runner now matches **42/42** (`verify:arms-freshness` named `runner` the moment `causeOf` moved), and the re-armed receipt is a full **42/42** over **103 derived rows**.
-- **Bounds.** The regenerated numbers are Windows counts from this box, and the platform witness is now measured: run `40928766201` reads `verify:package-counts docs/evidence/studio/package-counts-proof.mjs [declared 600000ms] ... OK 69.0s` — ubuntu answered the win32-generated block exactly on all seven rows. Before the run, the scan had found no test in the seven packages branching on `process.platform` for its COUNT (the only conditional is three-runtime's `distSync` skip, which needs a missing `dist/` and CI builds one); the run is the measurement, the scan is only why it was expected. §1a reads tracked changes **plus untracked files** under the package roots; ignored build output (`dist/`, `node_modules/`) does not refuse, which is why the clean worktree could generate the block it did. And a table regenerated at HEAD goes stale the moment another lane commits test cases — that is the row's design: the next build refuses, now names the package, and asks for `--write`.
+- **Bounds.** The regenerated numbers are Windows counts from this box, and the platform witness is now measured: run `40928766201` (sha `1c21bbd`) reads `verify:package-counts docs/evidence/studio/package-counts-proof.mjs [declared 600000ms] ... OK 69.0s` — ubuntu answered the win32-generated block exactly on all seven rows. Before the run, the scan had found no test in the seven packages branching on `process.platform` for its COUNT (the only conditional is three-runtime's `distSync` skip, which needs a missing `dist/` and CI builds one); the run is the measurement, the scan is only why it was expected. §1a reads tracked changes **plus untracked files** under the package roots; ignored build output (`dist/`, `node_modules/`) does not refuse, which is why the clean worktree could generate the block it did. And a table regenerated at HEAD goes stale the moment another lane commits test cases — that is the row's design: the next build refuses, now names the package, and asks for `--write`.
 
 ### v551 — a number should carry the machine that answered it, now that two machines have answered the same numbers: the block stamps its platform, and the hosted verdicts are recorded (ADR 0016 amendment 532)
 
@@ -213,7 +213,7 @@ people.
 - **Red, then green, in the gates' own sentences.** With the file moved and the README untouched, `verify:evidence-census` refused with its four drifts — "the README's ROW row says 103 rows; this census derived 104", the same split twice, and "the README says 115 tracked modules; this census read 116 from the index". After the cells moved: `116 tracked modules close as 104 row + 4 helper + 2 swept + 6 tool + 0 deferred · 0 unclassified · rows 104+0 · every row file the commit owns · the README's table and prose restate these numbers and agree`. `verify:ci-wiring` reads `[§5] derived population 104 = runs 104 + named residue 0`, names `verify:publish-e2e=1800000ms` among **10** declaring rows of 104, and the worst case moves 478 → **508 min** under the unchanged 60-minute ceiling.
 - **The arms had to follow.** The receipt's `scripts` subject is `package.json`, whose bytes moved when the script's target did; `verify:arms-freshness` refused with the stale population row `verify:publish-e2e docs/evidence/m7/studio-publish.mjs // sweep-budget-ms: 1800000`, and the re-armed receipt is a full **42/42** (25 gate incl. the control, 17 runner), stamping 7 subject hashes and **104 derived rows**; freshness then reads **8/8 fixture arms**.
 - **Measured before wiring.** Through the real runner in the clean worktree (`D:/nexus-pkgcounts-wt` at `03279a2` plus this change, `node_modules` junctioned): `verify:publish-e2e docs/evidence/m7/studio-publish.mjs [declared 1800000ms] ... OK 672.6s` — **1/1 green of a derived population of 104 · residue named: 0**. The same bytes read 440/440 twice at v552; this measurement is about the row: the marker is read as declared, the runner finds the file, and the harness's own exit is the verdict.
-- **Bounds.** The row's first hosted contact is the next CI run and is not claimed here: it needs a Chrome the candidate list can find (the list ends at `google-chrome`), a Docker daemon holding the pre-pulled `pgvector/pgvector:pg16`, and a JDK 25 + Maven on `PATH`. The row adds ~11-12 minutes to the proofs step here; the previous full job was 13 m 49 s (`40997877121`), and the job's 60-minute ceiling is unchanged. A TIMEOUT kill is a SIGKILL, so the harness's `finally` cannot run and its container survives — but leak-sweep's owner-gone rule retires it at the next run's §1a, and that rule is a row of this same build. The two helpers stay under `tools/harness/` because the census claims modules under `docs/evidence`, and machinery is not a proof. The harness starts a DEV server by design (v194: the route reads `NEXUS_API_URL` at request time), so this row grades the source the Studio serves, not the production build `npm run build` produced.
+- **Bounds.** The row's first hosted contact is the next CI run and is not claimed here: it needs a Chrome the candidate list can find (the list ends at `google-chrome`), a Docker daemon holding the pre-pulled `pgvector/pgvector:pg16`, and a JDK 25 + Maven on `PATH`. The row adds ~11-12 minutes to the proofs step here; the previous full job was 13 m 49 s (`40997877121`, sha `03279a2`, 2026-10-30), and the job's 60-minute ceiling is unchanged. A TIMEOUT kill is a SIGKILL, so the harness's `finally` cannot run and its container survives — but leak-sweep's owner-gone rule retires it at the next run's §1a, and that rule is a row of this same build. The two helpers stay under `tools/harness/` because the census claims modules under `docs/evidence`, and machinery is not a proof. The harness starts a DEV server by design (v194: the route reads `NEXUS_API_URL` at request time), so this row grades the source the Studio serves, not the production build `npm run build` produced.
 
 ### v554 — the row's first ubuntu contact answered green: `OK 363.1s` inside its 1 800 000 ms declaration, `104/104`, and a job that read 20 m 32 s of the 60-minute ceiling (ADR 0016 amendment 535)
 
@@ -255,7 +255,7 @@ people.
 
 ### v566 — every green row contributes a gutter, silence is named `(the row printed nothing)`, and pipeline-proof ends on its verdict instead of a lone `}` (ADR 0016 amendment 541)
 
-- **The defect.** The gutter printed only when the row had a last line (`if (line) console.log`), so a green row that printed nothing produced no gutter and the OK and gutter counts could differ with no sentence saying why. On the one all-green run so far (`41107874805`, 106 rows) every row happened to print, so this half was structural — the mechanism permitted an uncountable green row. The observed half was `verify:pipeline`'s lone `| }`: a truthful gutter that described nothing.
+- **The defect.** The gutter printed only when the row had a last line (`if (line) console.log`), so a green row that printed nothing produced no gutter and the OK and gutter counts could differ with no sentence saying why. On the one all-green run so far (`41107874805`, sha `004316d`, 2026-10-30, 106 rows) every row happened to print, so this half was structural — the mechanism permitted an uncountable green row. The observed half was `verify:pipeline`'s lone `| }`: a truthful gutter that described nothing.
 - **What changed.** One gutter under every OK, unconditionally; empty stdout and empty stderr say `(the row printed nothing)`. `pipeline-proof.mjs` now prints its verdict sentence after the JSON and after every assertion, so its gutter reads `[pipeline-proof] ALL SECTIONS PASSED (prompt -> editable ops, real layout, AI diff, undo/redo, deterministic edit, multi-page, persistence, instance projection; demo mode, $0)`.
 - **R17 grades it.** A stub that writes only its `ran.log` and exits 0 with no output must show its OK and exactly `      | (the row printed nothing)`. The set is now **46 arms** (25 gate incl. the control, 21 runner); `arms-receipt.json` re-stamps 46 arms / 7 subjects / 106 rows, and `verify:arms-freshness` still matches its 8 fixtures.
 - **A count corrected.** Re-reading `41107874805` with the same extraction found **seven** over-bound gutters — 305, 303, 303, 302, 302, 302 and 301 bytes (`isolated`, `table-recount`, `provenance`, `asks-axis`, `confession`, `timeout-axis`, `drive-axis`) — not the five amendment 540 stated; addendum 540 carries the correction and the reader that produced it.
@@ -276,7 +276,7 @@ people.
 
 ### v568 — a green row's last line is what it graded, not what it deleted: the eight `[cleanup]` tails the hosted log named move above their row's summary, and gate clause §12 refuses the shape (ADR 0016 amendment 543)
 
-- **The eight, named by a run rather than by a scan.** `41421600776` (amendment 542's reading) carried 106 gutters and eight of them said `[cleanup] …`: `verify:color`, `verify:commit-echo`, `verify:door-kill`, `verify:log-window`, `verify:reaper-survivor`, `verify:record-window`, `verify:report-kill`, `verify:report-window`. Every one of those rows measured something; the build kept the sentence about deleting a temp directory. v566's own closing line had named exactly this as "the next gap, unmoved".
+- **The eight, named by a run rather than by a scan.** `41421600776` (sha `ba346a4`, 2026-11-02; amendment 542's reading) carried 106 gutters and eight of them said `[cleanup] …`: `verify:color`, `verify:commit-echo`, `verify:door-kill`, `verify:log-window`, `verify:reaper-survivor`, `verify:record-window`, `verify:report-kill`, `verify:report-window`. Every one of those rows measured something; the build kept the sentence about deleting a temp directory. v566's own closing line had named exactly this as "the next gap, unmoved".
 - **What moved.** In each row the `console.log('[cleanup] …')` statement now sits ABOVE the row's `[summary]` print, so the summary is the last statement executed — the edit `pipeline-proof.mjs` got at v566. Re-run: 8/8 exit 0 (2 s–19 s), each ending on its measurement (`[summary] faces measured: 5 · door reads: 9 over 5 distinct doors …`). A rescan over the derived set finds **0** rows whose last source print opens on a housekeeping tag, which is why the eight are the whole set and not a sample.
 - **The door is §12.** For every running row the gate reads the last `console.log(` that is not commented out and refuses one whose literal opens `[cleanup]`/`[teardown]`/`[finally]`/`[housekeeping]` (leading whitespace and `\n`/`\t` escapes stripped first). It prints `106 of 107 … none of them a housekeeping tail · 1 row(s) end on a call whose argument is not an opening literal · 0 rows print no console.log at all`; the unreadable one is `verify:audit-contract`, whose tail is a multi-line `console.log(` — named, and not edited here, because that file is the audit lane's.
 - **Stated as a proxy.** A row's executed last line is knowable only from the run (prints can sit in branches), so the clause keys on the TAG rather than the subject, walks only the running set (a helper ending on cleanup is nobody's business), and quotes file + line in the refusal. The first readable call from the end is the tail whether or not it can be read: walking further up would grade a line that is not last.
@@ -288,7 +288,7 @@ people.
 
 ### v591 — a cut is NAMED: the runner's gutter reserves the room for its own marker INSIDE the 300-byte bound, and gate clause §13 refuses a row whose final print literal is too long to print whole (ADR 0016 amendment 545)
 
-- **The defect the hosted log named, not a hypothesis.** Run `41433663171` (sha at v568, 107 rows) carried **11 gutters of exactly 300 bytes**: severed mid-word with no mark, indistinguishable in the log from a row that had ended its sentence. Four of the eleven were rows v568 had just reordered — the repair that made a row end on its summary is what made the summary's LENGTH the problem.
+- **The defect the hosted log named, not a hypothesis.** Run `41433663171` (sha `e97cc05`, 2026-11-02, 107 rows) carried **11 gutters of exactly 300 bytes**: severed mid-word with no mark, indistinguishable in the log from a row that had ended its sentence. Four of the eleven were rows v568 had just reordered — the repair that made a row end on its summary is what made the summary's LENGTH the problem.
 - **The repair, one arithmetic decision.** The gutter stays **300 UTF-8 bytes** (amendment 540's bound is log size, not character count), but the clip reserves the marker's bytes INSIDE that bound: ` [cut: <n>B]`. A 400-byte line is cut at 288 bytes and carries ` [cut: 400B]` — exactly 300 bytes; a line of exactly 300 bytes prints unmarked (the boundary that keeps the marker from becoming a stamp). The clip still walks code points (amendment 540), so no surrogate pair is split.
 - **§13 is sized, not tagged.** For every row of the derived running set the gate reads the LAST `console.log(` that is not commented out and refuses a final literal whose bytes exceed the gutter's room. At this ref it prints `112 row(s) measured against the runner's own 300-byte clip · 0 guaranteed to be cut · 0 land exactly on the bound · the longest whole one is verify:record-window at 293 bytes · 1 row(s) end on a call this gate cannot read`. The one unreadable tail is unchanged from v568: `verify:audit-contract`'s multi-line `console.log(`, named and NOT edited — that file belongs to the audit lane.
 - **Five arms, and the stale hardcode they retired.** `A26` plants a 320-z final print in a row and must redden at exactly §13; `C3` plants it in a helper and stays green (scope is the running set); `C4` plants a line long only at interpolation time — unrefused by construction, because the clause refuses what it can measure; `R18` demands 400 ASCII → `| ` + 288 `a`s + ` [cut: 400B]`; `R19` is the boundary witness — `'b'.repeat(300)` prints whole, unmarked. `R14` gains `lacks: /\[cut: /`; `R16` re-derives to **72 code points + ` [cut: 320B]`**. The gate set moves **49 → 54 (31 gate incl. one control, 23 runner)** and the receipt re-stamps **54 arms / 7 subjects / 113 derived rows**. **A18 now derives its escalation from the population itself** (`CEILING_ABOVE = ceil(WORST_ROW_MS / 60000) + 1`, asserted `> 60`): the hardcoded 600 no longer exceeded the rows' own 630-minute sum, so the arm had silently stopped arming §11 — found only because the set is re-run on every build.
@@ -305,10 +305,11 @@ the census below gives every one of the **126** tracked modules a disposition, a
 Node-only proofs; v533 ran the sweep over all 81 and wired the forty-eight green dist+spawn proofs). And no
 gate here can make GitHub run: it reads bytes
 committed in this repository, and whether the workflow executes on `master` is knowable only from the real
-runs — it ran red (`40603544099`, amendment 515's four exec-host cases on ubuntu), then green four times
-(`40659064493` with 12 rows, `40662063095` with 17, `40664659344` with 20, `40682580110` with 36), then red
-again on the first run that carried all 84 rows (`40693312992`: 78/84 green, six platform reds, repaired at
-v534 — the row-by-row account is below), which is the evidence this section was waiting for.
+runs — it ran red (`40603544099`, sha `3026dad`, amendment 515's four exec-host cases on ubuntu), then green
+four times (`40659064493` (sha `5790b3f`) with 12 rows, `40662063095` (sha `c4db552`) with 17, `40664659344`
+(sha `49fe29f`) with 20, `40682580110` (sha `28a8930`) with 36), then red again on the first run that carried
+all 84 rows (`40693312992` (sha `ea3cabb`): 78/84 green, six platform reds, repaired at v534 — the row-by-row
+account is below), which is the evidence this section was waiting for.
 
 ## The evidence census — every tracked module is a row, a helper, a swept proof, a tool, or a deferral (amendment 516 at M0/v530; amendment 517 at v531 wired the three lane proofs; amendment 518 at v532 wired sixteen swept proofs; amendment 519 at v533 wired forty-eight more; amendment 520 at v534 repaired the six ubuntu reds that population's first full run found; amendment 521 at v535 wired the last thirteen green swept proofs; amendment 522 at v539 repaired the one ubuntu red those thirteen's first contact exposed — a POSIX clause that could never fire; amendment 525 at v542 added the arms-receipt row and its helper; amendment 526 at v543 checks this table's five class counts, its run/residue split and both prose numbers against the census's own derivation, and reddens on drift)
 
@@ -328,13 +329,14 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
-the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **124
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **126
 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README number
 each, twenty-four that dispose the manifest's blind side, seventeen that dispose the tools corpus behind it (the
 next three blocks), seven that grade the numbers those deferrals state, eight that recompute the roster this
 sentence lives in, seven that grade the marker the proof carries in its own header and eight that grade the arms
 list itself, fourteen that date the durations published further down this file, ten that re-derive the commits a hosted claim
-names; the prose-import arm proves the tokenizer is the sweep's, not a byte regex.
+names, two that refuse a run number the paragraph writing it leaves without an address; the prose-import arm
+proves the tokenizer is the sweep's, not a byte regex.
 
 **The manifest's other half.** The population above is `git ls-files -- docs/evidence`, which answers "does every
 evidence module have a channel?" and says nothing about the mirror question: does every `verify:*` NAME have one?
@@ -377,10 +379,11 @@ module its own script calls, a `STANDBY` entry against the module it stands down
 its own file — and refuses four things: a `N lines` claim that is not the count of THAT module (a number true of a
 file the entry merely mentions is red — the entry's evidence is about one file, and grading it against another is
 how a stale claim survives), an address the blamed bytes never ask for, a measured field stating NEITHER kind of
-claim, and a module the commit owns but this box cannot read. A duration, a count of checks or a hosted run number
-stays prose ABOUT a measurement rather than a re-derivation of one, and the clause says so instead of pretending to
-grade it; the next drift a reader spots in one of these eleven entries is a red the build raises, not a correction
-someone owes.
+claim, and a module the commit owns but this box cannot read. A duration or a count of checks stays prose ABOUT a
+measurement rather than a re-derivation of one, and the clause says so instead of pretending to grade it; a hosted
+run number left that class at v626, where the commit beside it is re-derived, and at v630, where a paragraph that
+writes the number without one is refused. The next drift a reader spots in an entry this clause grades is a red the
+build raises, not a correction someone owes.
 
 **The roster number in the sentence above is recomputed, not trusted (v610).** The row prints its own tally
 (`[arms] N/N MATCHED`, N counted from the list) and that is the fact; the prose that restates it is a copy — which is the exact failure v543 caught in the class table two sections up,
@@ -481,8 +484,10 @@ apart — resolves the address it names against HEAD's own history, re-derives t
 that commit's own UTC day. What the census prints on every run, rather than what this sentence copies, is the
 count: how many addresses the file holds, how many distinct commits they resolve to, how many populations were
 re-derived and how many claims stated no address before them. A run number written with NO address in its
-paragraph stays prose, out of this reader's reach, until someone anchors it. Ten refusals, armed by ten arms E1
-to E10 on the fixture plane: no ref facts handed to the census, an address that is not an address, an address no
+paragraph was prose in this telling — v626 left it out of reach on purpose, and v630 closed that half, so
+the record of the anchoring is its own paragraph below rather than a bound here. Ten refusals, armed by ten
+arms E1 to E10 on the fixture plane: no ref facts handed to the census, an address that is not an address, an
+address no
 commit answers, an abbreviation two commits share, a commit off this history, a population the commit does not
 derive, a date in no readable shape, a date before the commit landed and one a push cannot account for, and one
 run claimed against two commits. Three bounds, named rather than left to the reader: the green FRACTION is not
@@ -491,6 +496,26 @@ rows a person asked for; a claim at a ref where `derivePopulation` itself has si
 printed, because it was true of the rules of its own time and no number read today can call it a lie; and the
 clock is UTC on both sides here, unlike the table above, which this box's own calendar dates — the runner stamps
 its start in UTC, and so does a commit.
+
+**A run number names the commit its run tested (v630).** v609 bounded a hosted run number as prose ABOUT a
+measurement, v626 graded the half a clone can answer for, and the bound v626 left standing was that a number
+with no address in its own paragraph stayed out of reach. Measured against HEAD before this line was written,
+the file held twenty-three distinct run numbers and fourteen of those mentions sat in a paragraph naming no
+ref: nine named no commit anywhere in the file, and the other two carried an address three sections away,
+which is a copy rather than a claim about the sentence that printed the number. Both were read off the host
+with `gh run view <id> --json headSha,createdAt`, read-only, and every one answered with a commit on this
+history landing the same UTC day its run was stamped, so the bound lifts where this file can meet it: eleven
+edits now carry thirty addresses over twenty-three distinct commits, and `hostedClaimDrift` refuses a
+number whose paragraph names no ref. Two arms raise the roster to 126 in 11 families: F1 appends a bare
+number, F2 strikes the address off a number that already had one. Four bounds, named rather than left to the
+reader: an address with no number beside it stays legal, because a verdict may be recorded by ref alone; a
+date is graded only when the paragraph states one, and seven of the fourteen new anchors carry none, because
+a dense run list reads as a list and a date on every entry would be noise; what is graded is a claim's
+CONSISTENCY with the ref, not the host's identity, since "this run tested this commit" is read off the host
+by a person and what this clone can answer is that the commit's own bytes do not contradict it; and a
+nine-to-twelve-digit number inside backticks is taken for a run id whether or not it is one, because every
+number in that shape this file writes is a run, and the day a different one lands the red asks for a word
+beside it rather than guessing which numbers are evidence.
 
 **v531 — the deferral that named its blocker was repaired first.** The three Studio lane proofs are build rows:
 `verify:build-lane` (5.5 s), `verify:container-lane` (1.5 s) and `verify:deploy-lane` (6.1 s) on the authoring
@@ -503,7 +528,7 @@ planes `verify:proofs` now reddens on these three with "no such image", which is
 
 **Measured, on the day the census shipped (2026-10-28).** `npm run verify:evidence-census` prints **111 tracked
 modules = 20 row + 3 helper + 79 swept + 6 tool + 3 deferred · 0 unclassified · rows 17+3**, with **14/14 arms
-MATCHED**. The four new rows' ubuntu verdict arrived with run `40662063095` (the 17-row population's first
+MATCHED**. The four new rows' ubuntu verdict arrived with run `40662063095` (sha `c4db552`, 2026-10-28; the 17-row population's first
 run, fully green): **17/17 rows green**, `audit-contract` 1.5 s, `record-encoding` 1.0 s, `pipeline` 0.1 s,
 `table-recount` 16.9 s, `mutation` 55.4 s, job 3 m 19 s. At v531 the census prints **111 = 23 row + 3 helper +
 79 swept + 6 tool + 0 deferred · 0 unclassified · rows 20+3**, arms still 14/14, and the wired workflow reads
@@ -562,7 +587,7 @@ swept + 6 tool + 0 deferred · 0 unclassified · rows 84+3**, arms 14/14; `verif
 increment's final bytes printed **84/84 green · residue named 3** on the authoring box (2026-10-28), every
 new row far inside the 240 000 ms fallback.
 
-**v534 — the forty-eight rows met ubuntu, and six were red.** Run `40693312992` was the first to carry the
+**v534 — the forty-eight rows met ubuntu, and six were red.** Run `40693312992` (sha `ea3cabb`, 2026-10-28) was the first to carry the
 whole 84-row population onto a Linux runner: **78/84 green**, six reds, each naming a platform fact the proof
 had been taking from Windows. `config` and `streams` wrote a helper script without the executable bit — on
 POSIX git EXECUTES `diff.external`/`fsmonitor`/hooks, so the shell refused and git exited 128 (Windows ignores
@@ -637,7 +662,7 @@ moved 100→101 with no census edit because the m8 row is DERIVED, not declared.
 — the agents sweep stays the human-run channel, with its own budgets (240 000 ms default, 3 600 000 ms
 ceiling). The 2, named: `cwd-axis` and `tree-axis`, the tree-motion witnesses, whose verdict is about the
 tree the run stood on rather than about the code they grade. v533's forty-eight rows ran on ubuntu for the
-first time in `40693312992` — **78/84 green, six
+first time in `40693312992` (sha `ea3cabb`, 2026-10-28) — **78/84 green, six
 platform reds** (`config`, `streams`, `hunk-shape`, `pipes`, `door-kill`, `reap`), each caused by a POSIX fact
 the proof had been taking from Windows; v534 repaired all six and verified each on both planes, and the
 post-fix verdict arrived as run `40697674971` (sha `604d14e`): **84/84 green of a derived population of 87 ·
