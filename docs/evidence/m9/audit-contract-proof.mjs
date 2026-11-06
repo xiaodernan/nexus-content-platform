@@ -1224,6 +1224,23 @@ const vocab = (() => {
         `${rel} reads REPORT_REASONS as a value but does not import that name from a module named ops — it is reading some other file's copy of the reason table`
       );
     }
+    // 11.14 — the composer's reason list is DERIVED from REPORT_REASONS, not hand-copied.
+    // §11.2b does this for AUDIT_ACTIONS/TRAIL_FILTER_ACTIONS; this is the reason analogue.
+    // ReportComposer.tsx maps REPORT_REASONS to build its buttons — this clause confirms
+    // the composer declares no second reason list and reads the table from its owner.
+    const composerReasonDecl = names(CLIENT_COMPOSER, (n) =>
+      ts.isVariableDeclaration(n) && /REASONS/i.test(n.name.getText())
+    );
+    assert.deepEqual(
+      composerReasonDecl,
+      [],
+      `${CLIENT_COMPOSER} declares its own ${composerReasonDecl.map((d) => d.name.getText()).join(', ')} — a second reason list that §8 never sees, which is the shape v556 retired for reportBar.ts and must not re-enter through the composer`,
+    );
+    const composerReasonUses = usesOf(CLIENT_COMPOSER, 'REPORT_REASONS');
+    assert.ok(
+      composerReasonUses.length >= 1,
+      `${CLIENT_COMPOSER} does not reference REPORT_REASONS — its buttons are built from a list the gate cannot see, which is the certificate-without-reader shape v541 proved fatal`,
+    );
     console.log(`[§11.12] ${ownLabels.size} clause labels declared in this file · ${ownDuplicated.length} claimed twice · the range tag ${rangeTag} names ${rangeEndpoints.join(' and ')} and both are declared · ${printedTags.length} verdict line(s) print a §11 tag and every one is a declared label · a mention inside a message is not a declaration, so the citations this file prints are not counted here`);
     console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText} and imported from the owner by ${faceReadersOf.reportReasonText.length} reader(s) (${faceReadersOf.reportReasonText.join(', ')}), trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')}) · 11.9b charges ${reasonUseSites.length} file(s) that USE a reason word in a position (${reasonUseSites.map((s) => s.rel).join(', ') || 'nobody'}) while ${naiveReasonSites.length} file(s) spell one of the ${vocab.serverReasons.length} words in a different vocabulary and are NOT charged (${naiveReasonSites.map((s) => `${s.rel}(${s.words.join('+')})`).join(', ') || 'none'}), over a domain of ${reasonFieldReads.sites} \`.reason\` reads in ${reasonFieldReads.files} shipped files · ${reasonTableReaders.length} shipped reader(s) outside the owner USE the REPORT_REASONS list itself, each importing it from the owner`);
     console.log(`[§11] the vocabulary is graded where it is rendered: ${shipped.length} shipped sources carry ${declared.length} vocabulary tables, all in ${CLIENT_MODEL} · AUDIT_ACTIONS has ${verbReaders.length} production reader(s) (${verbReaders.join(', ')}) and REPORT_REASONS has ${reasonReaders.length} (${reasonReaders.join(', ')}) · ${CLIENT_TOOLBAR} spells 0 of the ${vocab.serverVerbs.length} verbs and maps the table instead · ${CLIENT_COMPOSER} imports its reasons from the owner · the shipped trail module RUN gives all ${vocab.serverVerbs.length} recorded verbs a row word, a button word and a tooltip · and its hand-copied tally still tiles exactly the table's ${tallySeen.length} verbs`);
