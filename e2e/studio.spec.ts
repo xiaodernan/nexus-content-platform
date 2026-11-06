@@ -4090,9 +4090,25 @@ test('@smoke §134 跑一次生成 → 额度页少 1 点，且那一行指着�
     await expect(page.locator('[data-credits-enforced]')).toContainText(axis);
   }
   await expect(page.locator('[data-credits-enforced]')).toContainText('全都有真的拦截方');
+  // 句子里的**件数**与它自己点名的名单要自洽——这一格从界面文本现读，不在用例里再抄一份数组。
+  // 钉的是 ADR-0088「没牙 6」那个形状：有人把件数写回"五"而名单已经是六格时，这里红。
+  const enforcedText = (await page.locator('[data-credits-enforced]').textContent()) ?? '';
+  const countClaimed = /点名的\s*(\d+)\s*件事/.exec(enforcedText)?.[1];
+  const namesListed = (/(?:（|\()([^）)]+)(?:）|\))/.exec(enforcedText)?.[1] ?? '')
+    .split('、')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  expect(countClaimed, `句子里没有出现"点名的 N 件事"那句：${enforcedText}`).toBeTruthy();
+  expect(namesListed.length, `括号里一格名字都没点到：${enforcedText}`).toBeGreaterThan(0);
+  expect(
+    Number(countClaimed),
+    `句子里写的是 ${countClaimed} 件事，括号里点名了 ${namesListed.length} 格（${namesListed.join('、')}）`,
+  ).toBe(namesListed.length);
   // 反向那一格也钉住：真加了第六件事而没有拦截方时，页面必须写出"只是这张表上的数字"，
   // 那时这条会红着提醒人去补，而不是让限度静默消失在文案里。
   await expect(page.locator('[data-credits-enforced]')).not.toContainText('只是这张表上的数字');
+  // 那句话是这一页最容易说谎的一格，所以单独给它留一张图（整段元素截图，不是整页）
+  await page.locator('[data-credits-enforced]').screenshot({ path: 'screenshots/credits-enforced-copy.png' });
   await expect(page.locator('[data-credits-storage]')).toContainText('已用');
   await expect(page.locator('[data-credits-limits]')).toContainText('没有充值入口');
   await expect(page.locator('[data-plan-row="enterprise"]')).toBeVisible();

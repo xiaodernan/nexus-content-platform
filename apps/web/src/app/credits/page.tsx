@@ -5,7 +5,6 @@ import { activePublicationCount, readCredits, storageUsageBytes, type LedgerEntr
 import {
   CREDIT_KINDS,
   CREDIT_KIND_LABELS,
-  ENFORCED_PLAN_AXES,
   GENERATION_COST,
   PLAN_KEYS,
   PLAN_LABELS,
@@ -13,7 +12,7 @@ import {
   PLAN_MONTHLY_GRANTS,
   concurrentPublishLimit,
   humanBytes,
-  UNENFORCED_PLAN_AXES,
+  planEnforcementReadout,
   type PlanKey,
 } from '@/server/domain/credits';
 import type { CreditLedgerKind } from '@/server/db/schema';
@@ -176,18 +175,7 @@ export default async function CreditsPage(): Promise<ReactElement> {
           </tbody>
         </table>
         <p className="text-12 text-warn-ink" data-credits-enforced>
-          §133 点名的五件事今天全都有真的拦截方（{ENFORCED_PLAN_AXES.join('、')}）：额度为 0 时生成会被挡下
-          （AI 任务与成片渲染各有一道门），存储写满时新的素材会被拒绝（库里已有的不会被自动删掉），
-          公开发布数达到档位上限时新的发布会被挡下（换版本不占名额，收回发布即释放），
-          协作者数达到档位上限时新的邀请会被挡下（pending 邀请也占名额，撤回/移除即释放）。
-          {UNENFORCED_PLAN_AXES.length ? (
-            <>
-              另外 {UNENFORCED_PLAN_AXES.length} 格（{UNENFORCED_PLAN_AXES.join('、')}）目前只是这张表上的数字，
-              还没有代码按它拒绝任何请求——把表上的上限当成已生效的限制，是这一页最容易说谎的方式。
-            </>
-          ) : (
-            <>真加了第六件事，先在这两列里放明，再落拦截方。</>
-          )}
+          {planEnforcementReadout()}
         </p>
         <p className="text-12 text-fg-2" data-credits-storage>
           你的存储：已用 {humanBytes(storageBytes)} / {PLAN_LIMITS[view.plan].storageMb} MB

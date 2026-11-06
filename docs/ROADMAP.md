@@ -10514,4 +10514,33 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 - 文档：ADR-0088「没牙 4」「仍欠 3」均记**已还**；ENVIRONMENT.md studio 那节加「数字不再手抄」；
   本片改动只落在闸的"配置层"，**闸本身的行为、键形状、驱动一个字没动**（parity 那组没有动，仍是那组见证）。
 - 至此 IP 窗口闸的账：产品端（registry）、端点（rules）、表盘（渲染）、测试（钉住）、文档（ENVIRONMENT/ADR）
-  五处说同一句话。脚本自算切法（paced 读 `rules`）留给下一片——它要定"读哪一格、什么时候读"，不先做。
+  五处说同一句话。脚本自算切法（paced 读 `rules`）仍欠——它要定"读哪一格、什么时候读"，不先做
+  （§SEC 第四十二片先还了 ADR-0088「没牙 6」那格，见下面一节）。
+
+## §SEC 第四十二片：额度页那句"数出来的话"由表拼出来——件数、名单、解释不许各有一份（2026-11-07）
+
+- 起点是第四十片补记量到的那格没牙（ADR-0088 没牙 6）：`/credits` 上 `[data-credits-enforced]` 那句
+  **整句手写在页面上**，只有括号里的名单是 `{ENFORCED_PLAN_AXES.join('、')}`。于是同一件事有三份写法——
+  件数（"五"）手抄、名单是数组、逐格解释又是手抄。臂 P1 证明数组那半有牙，但**摘掉一格，页面那句
+  "五件事"不会跟着改口**，而这一页偏偏是靠这句话让人相信"表上的上限真会拦人"。
+- 做了什么（决定与取舍见 `docs/adr/0089-ui-counted-copy-generated-from-one-table.md`）：
+  ① `ENFORCED_PLAN_AXE_WHY: Record<EnforcedPlanAxis, string>`——键类型取自数组，
+  **加一格忘了写解释是编译错误**（比运行时门更早响）；
+  ② `planEnforcementReadout(enforced = ENFORCED_PLAN_AXES, unenforced = UNENFORCED_PLAN_AXES)`
+  成为那句话的唯一写法，**入参故意可以换**（写死件数的实现在"摘一格要说 4 件事"那条上红）；
+  ③ 页面只留 `{planEnforcementReadout()}`，另加两条静态门读 `page.tsx`：那段落不许出现 `§133`，
+  整个文件不许出现"点名的 N 件事"这种写死的件数或任何一条旧解释的原话；
+  ④ e2e 那层改成**从界面文本自洽**：同时读"件数"与"括号里点名的格子数"并要求相等——用例里不抄数组；
+  ⑤ 数字用阿拉伯数字（"5 件事"），与同一句里本来就是 `{length}` 拼出来的"另外 N 格"保持一致。
+- 见证（逐字）：`credits-enforced-copy.test.ts` **8 passed**；连同 `credits.test.ts` + `credits.integration.test.ts`
+  ⇒ **44 passed (3 files)**；`@smoke §134 跑一次生成…` **1 passed (4.5s)**（本机 3100、`--workers=1`），
+  新增元素截图 `screenshots/credits-enforced-copy.png`（界面端出的是"§133 点名的 5 件事…（aiUsage、storage、
+  generation、publishing、teamCollaboration）：aiUsage：额度为 0 时新的 AI 任务会被挡下；…"，逐字看过）。
+- 臂表（四条都验过红与恢复后绿）：V1 写死件数 ⇒ 2 failed（`to contain '§133 点名的 4 件事'`）；
+  V2 加一格不写解释 ⇒ `error TS2741: Property 'apiRateLimit' is missing…` + 5 failed（连"两列合起来
+  一格不多一格不少"那条已有的门一起叫），而句子自己改口成"6 件事"；V3 页面再抄一遍 ⇒ 静态门 2 failed；
+  V4 名单只点前四格 ⇒ e2e `Error: 句子里写的是 5 件事，括号里点名了 4 格（aiUsage、storage、generation、publishing）`。
+  收尾 `grep -rn "MUT " apps/web/src` = 0，两个文件的 `md5sum` 回到臂前基线。
+- 仍欠，如实记：① **每格那句解释本身对不对没有门能验**——真值在 `refusalFor*` 那几道门里，
+  今天靠 `credits-enforcement.integration.test.ts` 验行为、不验措辞；要钉死得让解释带上"拦截方是哪个函数"
+  并由测试真的 import 它；② `UNENFORCED_PLAN_AXES` 非空那句尾今天只有单测覆盖（界面没有真读数，因为它是空数组）。

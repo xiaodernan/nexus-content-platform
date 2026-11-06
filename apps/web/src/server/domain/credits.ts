@@ -87,6 +87,42 @@ export const ENFORCED_PLAN_AXES = ['aiUsage', 'storage', 'generation', 'publishi
 /** #201 之后五格全有拦截方。空数组不是漏了一格，是「没有还没拦截方的格子」 */
 export const UNENFORCED_PLAN_AXES = [] as const;
 
+/** 已生效那几格的名字；解释表按它键住——加了格子忘了写解释，是编译错误而不是某天页面上少一句 */
+export type EnforcedPlanAxis = (typeof ENFORCED_PLAN_AXES)[number];
+
+/**
+ * 每一格"拦截方长什么样"。
+ *
+ * 为什么要连解释一起搬进域里（ADR-0088 没牙 6）：`/credits` 那句话原来整句手写在页面上，
+ * 里面那个"五"和四句解释都不由数组拼出来。数组哪天变成六格，页面不会跟着改口，而这一页偏偏是
+ * 靠这句话让人相信"表上的上限是真会拦人的"——名单与句子不同源，正是这一页最容易说谎的方式。
+ */
+export const ENFORCED_PLAN_AXE_WHY: Record<EnforcedPlanAxis, string> = {
+  aiUsage: '额度为 0 时新的 AI 任务会被挡下',
+  storage: '存储写满时新的素材会被拒绝（库里已有的不会被自动删掉）',
+  generation: '渲染额度为 0 时成片渲染被挡下（AI 任务与成片渲染各有一道门）',
+  publishing: '公开发布数达到档位上限时新的发布会被挡下（换版本不占名额，收回发布即释放）',
+  teamCollaboration: '协作者数达到档位上限时新的邀请会被挡下（pending 邀请也占名额，撤回/移除即释放）',
+};
+
+/**
+ * 额度页 `[data-credits-enforced]` 那一句的唯一写法：数字、名单、逐格解释都由入参拼。
+ *
+ * 入参故意可以换：测试拿它验"摘掉一格 ⇒ 句子改口说四件事，且那一格的名字与解释都不再出现"。
+ * 一个忽略入参、把件数写死的实现会在那条上红——这正是这一片要补的那格牙。
+ */
+export function planEnforcementReadout(
+  enforced: readonly EnforcedPlanAxis[] = ENFORCED_PLAN_AXES,
+  unenforced: readonly string[] = UNENFORCED_PLAN_AXES,
+): string {
+  const clauses = enforced.map((axis) => `${axis}：${ENFORCED_PLAN_AXE_WHY[axis]}`).join('；');
+  const tail = unenforced.length
+    ? `另外 ${unenforced.length} 格（${unenforced.join('、')}）目前只是这张表上的数字，还没有代码按它拒绝任何请求——` +
+      '把表上的上限当成已生效的限制，是这一页最容易说谎的方式。'
+    : '真加了第六件事，先在这两列里放明，再落拦截方。';
+  return `§133 点名的 ${enforced.length} 件事今天全都有真的拦截方（${enforced.join('、')}）：${clauses}。${tail}`;
+}
+
 /**
  * 一次成功的生成扣几点。
  *
