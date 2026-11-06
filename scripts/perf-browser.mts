@@ -239,6 +239,9 @@ await context.addInitScript(PROBE);
 // `PERF_INCREMENTAL=0` 量全量那一档；不设（默认）量增量那一档。
 const incrementalOn = (process.env.PERF_INCREMENTAL ?? '1') !== '0';
 await context.addInitScript(`globalThis.__NEXUS_INCREMENTAL_LAYOUT__ = ${incrementalOn ? 'true' : 'false'};`);
+// §147 选中响应的分步计时标记（nexus:sel:*）在生产构建里默认剪掉；同一道门、同一个理由，
+// 用运行期全局量按需打开——这样"同一份生产构建"既能量选中延迟、又能拆出派发/提交/渲染/绘制四段。
+await context.addInitScript('globalThis.__NEXUS_PERF_SEGMENTS__ = true;');
 const page = await context.newPage();
 
 // 建一个起手项目（8 个节点），后面的规模档在它之上改文档

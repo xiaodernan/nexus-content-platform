@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useCallback, useRef, useSyncExternalStore } from 'react';
 import {
   BREAKPOINT_WIDTH,
   CONTAINER_TYPES,
@@ -345,8 +345,7 @@ export class StudioStore {
     // （next.config.ts 的 env 把它内联成 NEXT_PUBLIC_NEXUS_PERF_SEGMENTS），
     // 平时（dev 与未设变量的生产）照旧只在开发模式打。成本是 4 次 performance.now 与 4 个加法。
     if (
-      process.env.NODE_ENV !== 'production' ||
-      process.env.NEXT_PUBLIC_NEXUS_PERF_SEGMENTS === '1'
+      perfSegmentsOn()
     ) {
       const bucket = (globalThis as unknown as { __studioPerf?: Record<string, number> }).__studioPerf ??= {};
       const add = (key: string, ms: number) => { bucket[key] = (bucket[key] ?? 0) + ms; };
@@ -498,8 +497,7 @@ export class StudioStore {
     this.layoutForceFull = false;
     // 诊断：解算次数与命中次数分开记。一次编辑该解一次；两次说明复用没兜住
     if (
-      process.env.NODE_ENV !== 'production' ||
-      process.env.NEXT_PUBLIC_NEXUS_PERF_SEGMENTS === '1'
+      perfSegmentsOn()
     ) {
       const bucket = (globalThis as unknown as { __studioPerf?: Record<string, number> }).__studioPerf ??= {};
       bucket.layoutSolves = (bucket.layoutSolves ?? 0) + 1;
@@ -1302,14 +1300,12 @@ export class StudioStore {
     // 原来只 dev 打，而选中响应恰恰要量生产构建（界面在生产里才 6ms 上下）——
     // 照快照分段同款改成 opt-in：`NEXUS_PERF_SEGMENTS=1` 的生产构建也打。
     if (
-      process.env.NODE_ENV !== 'production' ||
-      process.env.NEXT_PUBLIC_NEXUS_PERF_SEGMENTS === '1'
+      perfSegmentsOn()
     ) performance.mark('nexus:sel:store');
     this.selection = [...new Set(ids)];
     this.commit();
     if (
-      process.env.NODE_ENV !== 'production' ||
-      process.env.NEXT_PUBLIC_NEXUS_PERF_SEGMENTS === '1'
+      perfSegmentsOn()
     ) performance.mark('nexus:sel:commit');
   }
 
@@ -2092,6 +2088,86 @@ export function toModelPatches(patches: readonly DesignPatchPayload[]): DesignPa
 }
 export function useStudio(): StudioSnapshot {
   return useSyncExternalStore(studio.subscribe, studio.getSnapshot, studio.getSnapshot);
+}
+
+/**
+ * §147 归因用的分步计时标记开关。dev 下常开；生产构建里要"同一份构建、按需开关"，
+ * 所以走运行期全局量（与增量布局的 `__NEXUS_INCREMENTAL_LAYOUT__` 同一条规矩：
+ * 构建期内联的 `NEXT_PUBLIC_*` 常量会被 Turbopack 在常量折叠后当死代码剪掉，运行期全局量不会）。
+ * 页内探针 `perf-browser.mts` 通过 `addInitScript` 把它置 true，于是生产构建也能打出
+ * `nexus:sel:*` 三段标记来拆"派发 / 界面提交 / React 渲染 / 绘制"。
+ */
+export function perfSegmentsOn(): boolean {
+  return (
+    process.env.NODE_ENV !== 'production' ||
+    (globalThis as unknown as { __NEXUS_PERF_SEGMENTS__?: boolean }).__NEXUS_PERF_SEGMENTS__ === true
+  );
+}
+
+/**
+ * 选式子订阅：只取快照里需要的那一小片，且那一小片没变就**不**重渲染。
+ *
+ * 为什么需要它：`commit()` 每次都 `this.snapshot = this.buildSnapshot()`（store.ts），
+ * 即每次提交都返回一个**全新的快照对象**。于是 `useStudio()` 的 `useSyncExternalStore` 把
+ * "快照对象变了"当成"我关心的东西变了"，让**所有**订阅者都重渲染——哪怕某次提交只改了选区，
+ * 而 `TopBar` / `StudioShell` / `PropertiesPanel` 里那几处只读 `document / saveState / viewport`
+ * 之类与选区无关的字读，也被一次选中拖着重渲染（§147 选中响应：那 50ms 里有相当一部分是这笔冤枉账）。
+ *
+ * 这个 hook 把"重渲染的判据"从"快照对象变了"收窄到"我选的那片变了"：
+ * - 快照对象没换（这次 commit 没跑过）→ 直接复用上次选出来的引用，连 selector 都不重跑；
+ * - 快照换了但选出来的片用 `isEqual` 比下来一样 → 复用上次引用，`useSyncExternalStore` 据此跳过本次重渲染。
+ *
+ * 默认 `Object.is`。要选"多个字段打包成一个对象"的话，传 `shallowEqual` 作 `isEqual`
+ * （见下方 `useStudioFields`），否则每次都 new 一个对象 → 引用永远不等 → 退化回全量重渲染。
+ */
+export function useStudioSelector<T>(
+  selector: (s: StudioSnapshot) => T,
+  isEqual: (a: T, b: T) => boolean = Object.is,
+): T {
+  const lastSnap = useRef<StudioSnapshot | null>(null);
+  const lastSel = useRef<T | null>(null);
+  const get = useCallback(() => {
+    const snap = studio.getSnapshot();
+    // 快照没变（没有新的 commit）→ 选出来的也一定没变，直接复用上次的引用
+    if (lastSnap.current === snap && lastSel.current !== null) return lastSel.current;
+    const next = selector(snap);
+    if (lastSel.current !== null && isEqual(lastSel.current, next)) {
+      lastSnap.current = snap;
+      return lastSel.current;
+    }
+    lastSnap.current = snap;
+    lastSel.current = next;
+    return next;
+  }, [selector, isEqual]);
+  return useSyncExternalStore(studio.subscribe, get, get);
+}
+
+/** 扁平对象按字段浅比：原始值用 `Object.is`，数组/对象比引用。够覆盖"选若干原始字段打包"的场景 */
+export function shallowEqual<T extends Record<string, unknown>>(a: T, b: T): boolean {
+  if (Object.is(a, b)) return true;
+  const ka = Object.keys(a);
+  const kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  for (const k of ka) {
+    if (!Object.is(a[k], b[k])) return false;
+  }
+  return true;
+}
+
+/**
+ * 批量选若干原始字段（打包成对象、用 `shallowEqual` 比对）——给"只读 document / saveState /
+ * viewport 这类与选区无关的展示"用的省心版 `useStudioSelector`，避免每个字段写一个 hook。
+ *
+ * 注意：只放**与本次交互无关就不该重渲染**的字段。选了 `selection` 之类每次都变的字段，
+ * 这个 hook 就没意义了（每次都 re-render，正是它本来想要的）。
+ */
+export function useStudioFields<T extends Record<string, unknown>>(selector: (s: StudioSnapshot) => T): T {
+  return useStudioSelector(selector, shallowEqual);
+}
+
+/** 只取选区：命中测试后画手柄的组件才需要它；其余面板不该订阅整快照只为读选区 */
+export function useSelection(): readonly NodeId[] {
+  return useStudioSelector((s) => s.selection);
 }
 
 /** 载入完成后 document / page / layout 必然存在（StudioShell 以此为挂载门） */

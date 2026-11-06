@@ -3,7 +3,7 @@
 import { Profiler, Suspense, use, useEffect, useRef, useState, type ProfilerOnRenderCallback } from 'react';
 import type { DesignDocument } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
-import { studio, useStudio } from './store';
+import { studio, useStudioFields } from './store';
 import { setStudioReadOnly } from './read-only';
 import { TopBar } from './TopBar';
 import { LayersPanel } from './LayersPanel';
@@ -137,7 +137,13 @@ export function StudioShell({
    */
   documentPromise?: Promise<DesignDocument | null>;
 }) {
-  const state = useStudio();
+  // §147 选中响应：外壳只关心 ready / loadError / zoom，这些在选中时不变。
+  // 用选式子订阅，选中（整快照对象被换掉）不再把整个工作区子树拖着重渲染。
+  const { ready, loadError, zoom } = useStudioFields((s) => ({
+    ready: s.ready,
+    loadError: s.loadError,
+    zoom: s.zoom,
+  }));
 
   useEffect(() => {
     setStudioReadOnly(readOnly);
@@ -179,13 +185,13 @@ export function StudioShell({
           要改内容，让所有者把角色改成可编辑。
         </p>
       ) : null}
-      {state.ready ? (
+      {ready ? (
         <Profiler id="workspace" onRender={recordWorkspaceRender}>
-          <StudioWorkspace zoom={state.zoom} demoMode={demoMode} />
+          <StudioWorkspace zoom={zoom} demoMode={demoMode} />
         </Profiler>
       ) : (
         <p className="m-auto font-mono text-13 text-fg-3" data-studio-status>
-          {state.loadError ?? '载入项目…'}
+          {loadError ?? '载入项目…'}
         </p>
       )}
     </div>

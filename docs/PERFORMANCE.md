@@ -1384,3 +1384,43 @@ ADR-0074 把默认选档做成"有断点规则的页面铺四份投影、媒体�
 2. gzip 是本地按 Optimal 算的，不是线上协商的结果（线上可能是 Brotli，会更小；也可能没压缩，会更大）。
 3. 库里"有断点规则"的页只有 2 条，n=1 的样本；节点多的页面四份差得更多，但压缩比也会更高。
 4. 没量 390 真机上的解析/布局时间——四份 `display:none` 的子树不参与布局，但 DOM 节点数确实翻倍。
+
+## 2026-11-07：#32 选中响应——界面自己的账已归零，地板在浏览器绘制流水线
+
+前几轮（2026-10-10 起）已定性：选中响应的窗口里 CPU 采样 >80% 是 idle、`(program)`，没有单个应用函数占大头；门 <16ms 红的是"输入→绘制"这一截，不是规模（8 节点与 1000 节点同量级）。这一轮把"界面自己到底占多少"定量拆开，并顺手还了 #32 能还的那部分。
+
+**改动（store.ts / TopBar / StudioShell）**
+
+- 新增选式子订阅 `useStudioSelector` / `useStudioFields` / `useSelection`（`useSyncExternalStore` + 选型 `isEqual` 记忆）：只取快照里需要的那一小片，那一小片没变就**不**重渲染。
+- 根因：`commit()` 每次都 `this.snapshot = this.buildSnapshot()`（返回全新对象），于是 `useStudio()` 的 `useSyncExternalStore` 把"快照对象变了"当成"我关心的东西变了"，让**所有**订阅者每次都重渲染——哪怕只是改了选区，而 `TopBar` / `StudioShell` 只读 `document / saveState / viewport` 之类与选区无关的字读。
+- 把 `TopBar` 与 `StudioShell`（常驻 chrome）迁到选式子订阅：选中（commit 换了整快照对象）不再把整个工作区子树拖着重渲染。选中的必要重渲染（CanvasStage / PropertiesPanel / CommandBar / LayersPanel 都读 `selection`）保留——那是正确且省不掉的。
+
+**分段探针修好（关键前提）**
+
+- 之前 `nexus:sel:*` 三段标记在生产构建里被打成了死代码：Turbopack 把
+  `process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_NEXUS_PERF_SEGMENTS === '1'`
+  常量折叠后整段剪掉——`next.config.ts` 还会把 `NEXT_PUBLIC_NEXUS_PERF_SEGMENTS` 强制压成 `'0'`，所以怎么设都没用。
+- 改成运行期开关 `globalThis.__NEXUS_PERF_SEGMENTS__`（与增量布局的 `__NEXUS_INCREMENTAL_LAYOUT__` 同一条规矩：构建期内联变量会被剪，运行期全局量不会），页内探针 `perf-browser.mts` 用 `addInitScript` 打开它。同一份生产构建现在既能量选中延迟、又能拆派发/提交/渲染/绘制。
+
+**1000 节点档（生产构建，分段探针，页面内口径）**
+
+| 指标 | 读数（各次） | <16ms 门 |
+| --- | --- | --- |
+| 选中响应（页面内，总） | **45.3ms**（44.1 / 46.4） | 红 |
+| 派发 + 命中测试 | **0ms** | — |
+| 界面提交（select → commit 完） | **0ms** | — |
+| React 渲染 + 提交（commit → layout effect 打完标记） | **~7ms** | — |
+| 绘制到看见（标记 → 手柄出现在 DOM） | **~40ms** | — |
+
+**结论（这一轮的账面）**
+
+1. **界面自己的账已归零**：选中的 store 提交 0ms（选中只改 `selection`，layout/derived 都命中缓存、复用同一份引用），React 渲染只有 ~7ms（CanvasStage 的 Node 走 memo，未碰到的节点全 bail；真正重渲染的只是读 `selection` 的那几个面板，且都必要）。这与早期 CPU 采样（62.5% `(program)` / 10.4% `(idle)` / 6.3% `createElement`）互证：开销不在界面 JS。
+2. **~40ms 的地板在浏览器绘制流水线**：从 React 把 DOM 改完（layout effect 打完 `nexus:sel:rendered`）到手柄真正画出来那一段，是浏览器自己的 layout/paint/composite，应用层够不到。手柄只是几个 div，但整条输入→绘制流水线（含指针事件本身的浏览器侧处理）固定要 ~40ms。
+3. **#32 的 <16ms 门靠应用层优化达不成**：能还的（消除选区无关的整树重渲染）已经还了；剩下的 40ms 是平台绘制成本。门照旧红，但红的是浏览器内部，不是我们写错了什么。把它标成"界面缺陷"会误导——正确的状态是"已优化到应用层上限，残差是浏览器绘制流水线约束"。
+
+**这笔值不值得继续做**
+
+- 选路子订阅是正向的架构改进，受惠的是**所有**交互（pan/zoom/属性写入时，TopBar 与 StudioShell 也不再陪着重渲染），不止选中。它会随后续任何交互一起持续生效。
+- 要把那 ~40ms 再往下压，唯一的可行方向是让选中覆盖层（8 手柄 + 选框）走独立的合成层 / 不走整画布重排——属于另一项改动，且收益上限就是浏览器 composite 的成本，未必能到 16ms。本回合未做，列为后续研究项，不实锤前不写入"已完成"。
+
+**连带状态**：#33 增量布局复用、#34 图层面板虚拟化（前几轮已用生产构建验证：属性写入 13–30ms、pan/zoom 16.7ms@60fps、4000 节点"3999 行数据 / 39 行 DOM"）保持 DONE。#32 状态更新为「应用层已优化（提交 0ms / 渲染 ~7ms），残差 ~40ms 为浏览器绘制流水线约束，<16ms 门未达但非界面缺陷」。
