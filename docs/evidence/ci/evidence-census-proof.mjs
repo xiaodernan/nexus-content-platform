@@ -277,8 +277,9 @@
 // printed, because it was true of the rules of its own time and no number read today can call it a lie; and the
 // clock here is UTC on both sides, unlike the authoring-box table above, which the box's own calendar dates —
 // the runner stamps its start in UTC, and so does a commit.
-// v630 (this increment; the ADR 0016 section is still owed for this lane's v606-v611, for v624, v625, v626 and
-// this one, and the ledger files sit in another lane's uncommitted set, so this header keeps the record) — EVERY
+// v630 (landed as 4c9a022; the ADR 0016 section is still owed for this lane's v606-v611, for v624, v625, v626,
+// v630 and this one, and the ledger files sit in another lane's uncommitted set, so this header keeps the record)
+// — EVERY
 // RUN NUMBER THIS FILE WRITES NAMES THE COMMIT ITS RUN TESTED. v626 wrote, in its own bounds, that a run number
 // with no address in its paragraph stays prose. Measured against HEAD before this line was written, the file held
 // twenty-three distinct run numbers: nine of them named no commit anywhere in the file, and two more
@@ -306,13 +307,43 @@
 // Two facts the block owes the record, both measured rather than remembered. The label this cycle was written
 // under was taken while these bytes were in progress (`9ed6194` claims v627), so the increment landed as v630;
 // the four derived cells the worktree README carries are the m9 lane's re-pin, and — checked in a clean
-// worktree at HEAD with this file and a README holding those cells handed back to HEAD ${D} this commit reddens
+// worktree at HEAD with this file and a README holding those cells handed back to HEAD — this commit reddens
 // on exactly the two drifts HEAD already reddens on (`the README says 2 SWEPT module(s); this census derived 3`;
 // `the README says 126 tracked modules; this census read 128 from the index`) and on the one module nobody has
 // decided about (`docs/evidence/m9/audit-contract-arms.mjs`), which no cell of this file can decide. Carrying
 // the cells would have added a third red this commit cannot answer for, because the row wiring they describe
 // is not in it.
-// ROSTER 126 arms in 11 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2
+// v631 (this increment) — AN ADDRESS IS WHAT THIS CLONE RESOLVES, NOT THE WORD IN FRONT OF IT. v630's bound was
+// that a paragraph naming no ref keeps its run number out of reach, and the file it grades had been naming refs
+// anyway in the one shape a reader cannot mistake: a hex token between backticks with the word sha left off.
+// Measured against HEAD before this line was written, the graded file held nine distinct tokens of that shape;
+// eight resolve to exactly one commit on this history and one — `b4fa34d49cd20e2e`, the Maven digest v547's row
+// prints — resolves to nothing, so no cat-file is spent on it and no sentence is refused for it. None resolves
+// to two or more here, and none does across the eight other evidence READMEs the sight reads. Reading the eight
+// as addresses took HEAD's file from thirty spelled claims over twenty-three commits to thirty-nine over the same
+// twenty-three: the shape named commits this record already had, not new ones. What the bytes shipped here print
+// is forty addresses over twenty-three commits, nine of them bare, twenty-three populations re-derived with none
+// declined, fifteen dated claims, six UNOWNED population prints, and twenty-three run numbers over eighteen
+// paragraphs with none bare.
+// The rule is narrower than the sight, and a false red drew the line. The v553 bullet measured a worktree cut
+// from sha `03279a2` plus the change it was wiring: that build reported 104 rows while the commit itself derives
+// 103. A base is not a build, and grading a bare token's population refused a sentence for a thing the sentence
+// never claimed, so the rule splits — a bare address ANCHORS (it satisfies v630's requirement that the
+// paragraph name a commit, and it enters the run-vs-two-commits identity map) and it receives NEITHER population
+// NOR date grading, which stay attached to the last spelled address in their paragraph or print as UNOWNED. One
+// refusal is new, and it is the failure mode the bare shape invites: a token two commits in this clone share,
+// written beside a run number or a population, is red. Five arms carry it — G1 strikes the word sha off a
+// hosted claim and asserts it stays anchored with its numbers ungraded, G2 anchors a run on a bare address this
+// history does not carry and asserts the census still calls it unanchored, G3 writes the shared abbreviation,
+// G4 writes a token that resolves to nothing and asserts the refusal names the missing address rather than the
+// token, G5 spells one commit and cites another for the same run — taking the roster to 131 arms in 12
+// families. Three bounds, named rather than left to the reader: a bare token counts as an address only where
+// exactly one commit resolves AND that commit is on this history, so a shallow clone declines it the way v626
+// declines a moved derivation; the shape test asks for a letter, because this file writes its twenty-three run
+// ids as backticked digits and a token with no letter in it cannot be told from one of those; and the sight
+// over the other eight READMEs prints instead of refusing, because those bytes belong to the lanes
+// that wrote them — the counts stand as what a lane owes if it asks for its own README to be graded.
+// ROSTER 131 arms in 12 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5
 //
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
@@ -1385,6 +1416,14 @@ const SHA_GOOD_RE = /^[0-9a-f]{7,40}$/;
 const RUN_CLAIM_RE = /`(\d{9,12})`/g;
 const POP_CLAIM_RE = /derived population of (\d+)/g;
 const DAY_TEXT_RE = /\d{4}-\d{2}-\d{2}/;
+/**
+ * The same address with no word in front of it (v631). A commit abbreviation and a content digest have the same
+ * shape, so this shape alone decides nothing: the census takes a bare token as an address only where its own
+ * history resolves it to exactly one commit, and reads every other one as what a digest most likely is. The
+ * letters tell the two claim shapes apart: a token of digits only is a run, never a ref.
+ */
+const BARE_SHA_RE = /`([0-9a-f]{7,40})`/g;
+const isAddressShape = (t) => SHA_GOOD_RE.test(t) && /[a-f]/.test(t);
 
 /** The hosted clock is UTC on both sides: a runner stamps its own start in UTC, and so does a commit. */
 const utcDay = (epochSec) => new Date(Number(epochSec) * 1000).toISOString().slice(0, 10);
@@ -1411,7 +1450,7 @@ function groupAround(text, at) {
  * where the number counts the rows a person asked the runner for and no ref is named to check it against, so the
  * census prints them instead of guessing which ref they meant.
  */
-function parseParagraph(parts) {
+function parseParagraph(parts, isAddress = null) {
   const joined = parts.map((p) => p.text).join('\n');
   const lineAt = (idx) => {
     let acc = 0;
@@ -1423,28 +1462,48 @@ function parseParagraph(parts) {
   };
   const events = [];
   for (const m of joined.matchAll(RUN_CLAIM_RE)) events.push({ i: m.index, run: m[1] });
-  for (const m of joined.matchAll(SHA_CLAIM_RE)) events.push({ i: m.index, sha: m[1] });
+  const spelledAt = new Set();
+  for (const m of joined.matchAll(SHA_CLAIM_RE)) {
+    const at = m.index + m[0].indexOf(m[1]);
+    spelledAt.add(at);
+    events.push({ i: at, sha: m[1], spelled: true });
+  }
+  // Every bare commit-shaped token in the paragraph is a candidate, on both passes: pass one hands the census the
+  // list it must resolve, and the ambiguity refusal below aims at the candidates it resolved to more than one
+  // commit. Pass two turns a candidate into an address, and only where isAddress says this clone resolves one.
+  const cands = [];
+  for (const m of joined.matchAll(BARE_SHA_RE)) {
+    const at = m.index + 1;
+    if (spelledAt.has(at) || !isAddressShape(m[1])) continue;
+    cands.push({ at, line: lineAt(at), token: m[1] });
+    if (isAddress !== null && isAddress(m[1])) events.push({ i: at, sha: m[1], spelled: false });
+  }
   for (const m of joined.matchAll(POP_CLAIM_RE)) events.push({ i: m.index, pop: Number(m[1]) });
   events.sort((a, b) => a.i - b.i);
   const claims = [];
   const unowned = [];
   const ids = [...new Set([...joined.matchAll(RUN_CLAIM_RE)].map((m) => m[1]))];
   let run = null;
-  let open = null;
+  let lastSpelled = null;
   for (const e of events) {
     if (e.run !== undefined) { run = e.run; continue; }
     if (e.sha !== undefined) {
       const group = groupAround(joined, e.i);
       const day = group === null ? null : (DAY_TEXT_RE.exec(group) ?? [])[0] ?? null;
-      open = { line: lineAt(e.i), shaText: e.sha, run, day, pops: [] };
-      claims.push(open);
+      // A bare address answers WHICH commit a run tested, and nothing about what that commit held: the day and the
+      // population are graded only against an address the writer spelled with the word sha. Measured the day this
+      // landed, the graded README wrote a worktree base between backticks (`03279a2` plus this change) and quoted
+      // the candidate tree's row count after it: graded against the base, a true number read as a lie.
+      const claim = { line: lineAt(e.i), shaText: e.sha, spelled: e.spelled, run, day: e.spelled ? day : null, pops: [] };
+      claims.push(claim);
       run = null;
+      if (e.spelled) lastSpelled = claim;
       continue;
     }
-    if (open === null) unowned.push({ line: lineAt(e.i), p: e.pop });
-    else open.pops.push(e.pop);
+    if (lastSpelled === null) unowned.push({ line: lineAt(e.i), p: e.pop });
+    else lastSpelled.pops.push(e.pop);
   }
-  return { claims, unowned, ids };
+  return { claims, unowned, ids, cands, pops: [...joined.matchAll(POP_CLAIM_RE)].length };
 }
 
 /**
@@ -1453,17 +1512,23 @@ function parseParagraph(parts) {
  * distinct ids in it, and the ids an address in this same paragraph carries — because v630 asks whether
  * the number and the ref that answers for it were written together, which is a question about a paragraph
  * rather than about the file. */
-export function hostedClaims(readme) {
+export function hostedClaims(readme, isAddress = null) {
   const claims = [];
   const unowned = [];
   const paragraphs = [];
   let parts = [];
   const flush = () => {
     if (parts.length === 0) return;
-    const parsed = parseParagraph(parts);
+    const parsed = parseParagraph(parts, isAddress);
     claims.push(...parsed.claims);
     unowned.push(...parsed.unowned);
-    paragraphs.push({ line: parts[0].line, ids: parsed.ids, runs: parsed.claims.map((c) => c.run).filter((r) => r !== null) });
+    paragraphs.push({
+      line: parts[0].line,
+      ids: parsed.ids,
+      runs: parsed.claims.map((c) => c.run).filter((r) => r !== null),
+      pops: parsed.pops,
+      cands: parsed.cands.filter((c) => !(isAddress !== null && isAddress(c.token))),
+    });
     parts = [];
   };
   String(readme ?? '').split(/\r?\n/).forEach((text, i) => {
@@ -1472,6 +1537,29 @@ export function hostedClaims(readme) {
   });
   flush();
   return { claims, unowned, paragraphs };
+}
+
+/**
+ * The same sight turned outward (v631): what the reader would find in the evidence READMEs this census does NOT
+ * grade. Their bytes belong to the lanes that wrote them, so the answer is printed and not refused, and the count
+ * that moves is the record of how much of this class is still out there. `history` is HEAD's own log, so the
+ * resolution here needs no git call and grades nothing.
+ */
+export function corpusAddressSight({ texts, history }) {
+  const hits = (t) => history.filter((h) => h.full.startsWith(t)).length;
+  return Object.entries(texts ?? {}).map(([file, text]) => {
+    const { claims, paragraphs } = hostedClaims(text);
+    const spelled = new Set(claims.map((c) => c.shaText));
+    const bare = [...new Set(paragraphs.flatMap((p) => p.cands.map((c) => c.token)))].filter((t) => !spelled.has(t));
+    return {
+      file,
+      resolving: bare.filter((t) => hits(t) === 1).length,
+      ambiguous: bare.filter((t) => hits(t) > 1).length,
+      digests: bare.filter((t) => hits(t) === 0).length,
+      runIds: paragraphs.flatMap((p) => p.ids).length,
+      bareRuns: paragraphs.filter((p) => p.ids.length > 0 && p.runs.length === 0).length,
+    };
+  });
 }
 
 /**
@@ -1512,7 +1600,14 @@ export function derivationText(src) {
  */
 export function hostedClaimDrift({ readme, refs }) {
   const violations = [];
-  const { claims, paragraphs } = hostedClaims(readme);
+  // An address is what this clone resolves, not the word written in front of it (v631): the claim list is read
+  // with the ref facts in hand, so a bare token that resolves to exactly one commit here is graded the way the
+  // spelled address beside it is, and one that resolves to nothing stays what a digest most likely is.
+  const isAddress = (t) => {
+    const r = refs === null || refs === undefined ? undefined : refs[t];
+    return r !== undefined && r.count === 1 && r.ancestor === true;
+  };
+  const { claims, paragraphs } = hostedClaims(readme, isAddress);
   // A run number is only answerable beside the ref its run tested, so the paragraph that writes one must name it
   // (v630). v626 left this as prose on purpose, because a bare number had nothing to be graded against — and the
   // nine this file itself wrote were then read off the host, resolved and anchored, so the bound lifts where the
@@ -1522,6 +1617,18 @@ export function hostedClaimDrift({ readme, refs }) {
     for (const id of p.ids) {
       if (p.runs.includes(id)) continue;
       violations.push(`the paragraph at line ${p.line} writes run ${id} with no commit address in the same paragraph — a hosted verdict is re-derived from the ref its run tested, so name that ref beside the number or leave the number out`);
+    }
+  }
+  // A bare token that resolves to two or more commits is the one case where the shape and the reading disagree:
+  // it may be an abbreviation this clone cannot pin, or a content digest that happens to look like one. The census
+  // refuses it only where the same paragraph stakes a verdict a ref is supposed to answer for (v631). Measured
+  // before this shipped: zero such tokens in the graded README, and zero in the other eight evidence READMEs.
+  for (const p of paragraphs) {
+    if (p.ids.length === 0 && p.pops === 0) continue;
+    for (const c of p.cands) {
+      const r = refs === null || refs === undefined ? undefined : refs[c.token];
+      if (r === undefined || r.count <= 1) continue;
+      violations.push(`the paragraph at line ${p.line} writes ${c.token} between backticks and stakes a run or a population on it, but ${r.count} commits in this clone share that abbreviation, and a bare token is read as an address only where exactly one commit answers for it — name it with the word sha and enough characters to pin it, or move the verdict onto a ref this census can resolve`);
     }
   }
   if (claims.length === 0) return violations;
@@ -1835,7 +1942,7 @@ const BASE = () => ({
   // list the real header states, because the arms ARE this list — so S1→S7 drift the marker, not a copy of it.
   source: [
     '// fixture header — the record this file keeps while the ledger files sit in another lane',
-    '// ROSTER 126 arms in 11 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2',
+    '// ROSTER 131 arms in 12 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5',
     '// end fixture header',
   ].join('\n'),
   // A synthetic proof for the coverage grader: three refusations, two reached by a named arm, one declared.
@@ -1873,12 +1980,13 @@ const BASE = () => ({
     'The census below gives every one of the **7** tracked modules a disposition, and the derived population is',
     '**1 running rows + 1 excluded by name** at this ref.',
     '',
-    '**126 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README',
+    '**131 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README',
     "number each, twenty-four that dispose the manifest's blind side, seventeen that dispose the tools corpus",
     "behind it, seven that grade the numbers those deferrals state, eight that recompute the roster this sentence",
     'lives in, seven that grade the marker this file carries in its own header, eight that grade the arms list',
     'itself, fourteen that date the measurements the authoring box left behind, ten that re-derive the commits a',
-    'hosted claim names, two that refuse a run number the paragraph writing it leaves without an address;',
+    'hosted claim names, two that refuse a run number the paragraph writing it leaves without an address, five',
+    'that grade an address the word sha never names;',
     'the prose-import arm proves',
     "the tokenizer is the sweep's, not a byte regex.",
     '',
@@ -2321,9 +2429,9 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('no line count and no served address')), `unre-readable: ${r.violations.join(' | ')}`);
   }],
   // ── the roster arms: the README's own count of these arms is recomputed from the list, not copied (v610) ──
-  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**126 fixture arms**', '**92 fixture arms**'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('says 92 fixture arms; this census runs 126')), `stale total: ${r.violations.join(' | ')}`);
-    assert.ok(r.violations.some((v) => v.includes("add to 126 against its own total of 92")), `arithmetic: ${r.violations.join(' | ')}`);
+  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**131 fixture arms**', '**92 fixture arms**'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('says 92 fixture arms; this census runs 131')), `stale total: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("add to 131 against its own total of 92")), `arithmetic: ${r.violations.join(' | ')}`);
   }],
   ['X2 one family number in the breakdown has drifted', (f) => { f.readme = f.readme.replace('twenty-four that dispose', 'twenty-three that dispose'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('arm family 3 (M)') && v.includes('i.e. 23') && v.includes('counts 24 arms named M*')), `drifted family: ${r.violations.join(' | ')}`);
@@ -2333,7 +2441,7 @@ const ARMS = [
     // that goes quietly red when a reader asks for a shorter line.
     f.readme = f.readme.replace(/, twenty-four\s+that\s+dispose\s+the\s+manifest's\s+blind\s+side/, '');
   }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes("names 10 families; the arms list defines 11")), `dropped family: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("names 11 families; the arms list defines 12")), `dropped family: ${r.violations.join(' | ')}`);
   }],
   ['X4 a breakdown with no end the reader can take on trust', (f) => {
     f.readme = f.readme.replace('the prose-import arm proves', 'and the tokenizer is the sweep\'s, which proves');
@@ -2351,7 +2459,7 @@ const ARMS = [
     assert.ok(!r.violations.some((v) => v.includes('a family as "twenty-four"')), `compound failed to parse: ${r.violations.join(' | ')}`);
   }],
   ['X6 the headline number written so no shape reads it', (f) => {
-    f.readme = f.readme.replace('**126 fixture arms** prove', 'about fifty-odd fixture arms, proved');
+    f.readme = f.readme.replace('**131 fixture arms** prove', 'about fifty-odd fixture arms, proved');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('states no "**N fixture arms**" total')), `missing headline: ${r.violations.join(' | ')}`);
   }],
@@ -2367,33 +2475,33 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('arm family 5 (N)') && v.includes('two families were swapped')), `swapped back: ${r.violations.join(' | ')}`);
   }],
   // ── the marker arms: the roster this file quotes in its own header is graded too (v611) ─────────────────
-  ['S1 the header marker states an out-of-date total', (f) => { f.source = f.source.replace('// ROSTER 126 arms', '// ROSTER 96 arms'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 96 arms; the arms list defines 126')), `stale marker total: ${r.violations.join(' | ')}`);
+  ['S1 the header marker states an out-of-date total', (f) => { f.source = f.source.replace('// ROSTER 131 arms', '// ROSTER 96 arms'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 96 arms; the arms list defines 131')), `stale marker total: ${r.violations.join(' | ')}`);
   }],
   ['S2 the header marker gone', (f) => {
-    f.source = f.source.replace('// ROSTER 126 arms in 11 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2', '// the marker moved into prose, where nothing reads it');
+    f.source = f.source.replace('// ROSTER 131 arms in 12 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5', '// the marker moved into prose, where nothing reads it');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('states no "// ROSTER') && v.includes('a sentence with nothing behind it')), `missing marker: ${r.violations.join(' | ')}`);
   }],
   ['S3 a family pair in the marker that the list does not count', (f) => { f.source = f.source.replace('· X8 ·', '· X7 ·'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes("family 6 says \"X7\"") && v.includes('counts 8 arms named X*')), `wrong pair: ${r.violations.join(' | ')}`);
-    assert.ok(r.violations.some((v) => v.includes("families add to 125 against its own headline of 126")), `marker arithmetic: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("families add to 130 against its own headline of 131")), `marker arithmetic: ${r.violations.join(' | ')}`);
   }],
   ['S4 a marker reshaped out of its grammar', (f) => {
     // Kept behind the "// ROSTER " the reader looks for: an arm that drops the prefix aims at S2's refusal, and
     // two arms hitting one message is one arm fewer than the roster says.
-    f.source = f.source.replace('// ROSTER 126 arms in 11 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2', '// ROSTER ninety-eight arms, eight families');
+    f.source = f.source.replace('// ROSTER 131 arms in 12 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5', '// ROSTER ninety-eight arms, eight families');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('ROSTER line is reshaped') && v.includes('a marker nothing parses is a comment')), `reshaped marker: ${r.violations.join(' | ')}`);
   }],
   ['S5 a family pair the marker writes in words', (f) => { f.source = f.source.replace('· N7 ·', '· Nseven ·'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('a pair is a letter prefix and a count, in that order')), `pair in words: ${r.violations.join(' | ')}`);
   }],
-  ['S6 a marker whose own family count is out of date', (f) => { f.source = f.source.replace('in 11 families', 'in 10 families'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 10 families; the arms list defines 11')), `stale family count: ${r.violations.join(' | ')}`);
+  ['S6 a marker whose own family count is out of date', (f) => { f.source = f.source.replace('in 12 families', 'in 11 families'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 11 families; the arms list defines 12')), `stale family count: ${r.violations.join(' | ')}`);
   }],
   ['S7 a marker that dropped one family pair', (f) => { f.source = f.source.replace(' · C8', ''); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('lists 10 family pair(s); the arms list defines 11')), `dropped pair: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes('lists 11 family pair(s); the arms list defines 12')), `dropped pair: ${r.violations.join(' | ')}`);
   }],
   // ── the coverage arms: the arms list is asked what it proved (v624) ─────────────────────────────────────
   ['C1 a refusal no arm reaches and nobody declares', (f) => { f.coverage.declared = []; }, (r) => {
@@ -2540,6 +2648,36 @@ const ARMS = [
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes(FX_RUN) && v.includes('no commit address in the same paragraph')), `address struck: ${r.violations.join(' | ')}`);
   }],
+  // —— the bare-address arms: an address is what this clone resolves, not the word beside it (v631)──────────
+  ['G1 the word sha struck off a hosted claim leaves it anchored and its numbers ungraded', (f) => {
+    f.readme = f.readme.replace(FX_HOSTED, FX_HOSTED.replace('sha `' + FX_SHA + '`', '`' + FX_SHA + '`'));
+  }, (r) => {
+    assert.deepEqual(r.violations, [], `the bare spelling over-reached: ${r.violations.join(' | ')}`);
+  }],
+  ['G2 a run anchored only on a bare address this history does not carry', (f) => {
+    f.refs.cafe004 = { at: Math.floor(Date.parse('2026-10-30T12:00:00Z') / 1000), count: 1, ancestor: false, rows: 2 };
+    f.readme = `${f.readme}\n\n- Run \`40000000666\` (\`cafe004\`) is the fixture verdict on a commit this history does not carry.`;
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('40000000666') && v.includes('no commit address in the same paragraph')), `off-history bare anchor: ${r.violations.join(' | ')}`);
+    assert.ok(!r.violations.some((v) => v.includes('not on this history')), `a bare off-history ref refused as an address: ${r.violations.join(' | ')}`);
+  }],
+  ['G3 a bare abbreviation two commits share, written beside a run number', (f) => {
+    f.refs.cafe003 = { at: null, count: 2, ancestor: false, rows: null };
+    f.readme = `${f.readme}\n\n- Run \`40000000777\` (\`cafe003\`) is the fixture verdict whose abbreviation two commits share.`;
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('cafe003') && v.includes('share that abbreviation')), `ambiguous bare address: ${r.violations.join(' | ')}`);
+  }],
+  ['G4 a bare token that resolves to nothing is a digest, not an anchor', (f) => {
+    f.readme = `${f.readme}\n\n- Run \`40000000888\` (\`cafe009\`) is the fixture verdict anchored on a content digest.`;
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('40000000888') && v.includes('no commit address in the same paragraph')), `digest not an anchor: ${r.violations.join(' | ')}`);
+    assert.ok(!r.violations.some((v) => v.includes('cafe009')), `digest refused as an address: ${r.violations.join(' | ')}`);
+  }],
+  ['G5 a run spelled at one commit and cited bare at another', (f) => {
+    f.readme = `${f.readme}\n\n- Run \`${FX_RUN}\` is also claimed at \`${FX_SHA2}\`.`;
+  }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('is claimed against two commits here') && v.includes(FX_SHA2)), `bare second anchor: ${r.violations.join(' | ')}`);
+  }],
 ];
 
 /**
@@ -2630,7 +2768,7 @@ async function main() {
   // has since moved was true of the rules of its own time. gitOrNone is the one tolerated failure here: an address
   // the clone does not hold has no package.json to show, and the reader refuses that claim by name rather than a
   // throw hiding the fifteen behind it.
-  const hosted = hostedClaims(readme);
+  const scanned = hostedClaims(readme);
   const history = (await sweep.gitText(['log', '--format=%H %ct', 'HEAD'], ROOT))
     .split(/\r?\n/)
     .map((l) => /^([0-9a-f]{40}) (\d+)$/.exec(l.trim()))
@@ -2638,9 +2776,17 @@ async function main() {
     .map((m) => ({ full: m[1], at: Number(m[2]) }));
   assert.ok(history.length >= 50, `HEAD holds ${history.length} commits — a history that short is a shallow clone, and a hosted claim cannot be re-derived from one`);
   const derivation = derivationText(readFileSync(join(ROOT, 'tools/ci/proof-set.mjs'), 'utf8'));
+  // Pass one (v631) hands the census the spelled addresses and every bare commit-shaped token the file writes.
+  // A bare token is carried to resolution only where this clone's own history answers it: one that answers
+  // nothing is a content digest, and the cat-file the spelled form spends would be spent on bytes that are not a
+  // ref at all. The tokens that resolve are then read a second time AS addresses, so the paragraph that wrote one
+  // is graded exactly like the paragraph that wrote the word sha.
+  const spelledTokens = new Set(scanned.claims.map((c) => c.shaText));
+  const bareCands = [...new Set(scanned.paragraphs.flatMap((p) => p.cands.map((c) => c.token)))].filter((t) => !spelledTokens.has(t));
+  const toResolve = [...new Set([...scanned.claims.map((c) => c.shaText), ...bareCands.filter((t) => history.some((x) => x.full.startsWith(t)))])];
   const refs = {};
   const declined = [];
-  for (const { shaText } of hosted.claims) {
+  for (const shaText of toResolve) {
     if (!SHA_GOOD_RE.test(shaText) || refs[shaText] !== undefined) continue;
     const hits = history.filter((h) => h.full.startsWith(shaText));
     if (hits.length > 1) { refs[shaText] = { at: null, count: hits.length, ancestor: false, rows: null }; continue; }
@@ -2666,6 +2812,14 @@ async function main() {
     if (why !== null) declined.push(`${shaText} (${why})`);
     refs[shaText] = { at: hits[0].at, count: 1, ancestor: true, rows };
   }
+  const isAddress = (t) => { const r = refs[t]; return r !== undefined && r.count === 1 && r.ancestor === true; };
+  const hosted = hostedClaims(readme, isAddress);
+  // The same question asked of the READMEs this census has no claim on: the sight is opened on the whole evidence
+  // tree, and only the one file it grades is refused.
+  const sightFiles = index
+    .filter((f) => f.startsWith(EVIDENCE) && /(^|\/)README\.md$/.test(f) && f !== README_FILE)
+    .sort();
+  const sightRows = corpusAddressSight({ texts: Object.fromEntries(sightFiles.map((f) => [f, read(f) ?? ''])), history });
   const gradedRefs = Object.values(refs).filter((x) => typeof x.rows === 'number').length;
   const now = Math.floor(Date.now() / 1000);
   const report = censusOf({ tracked, scripts: pkg.scripts, excluded: EXCLUDED, roster: ROSTER, swept: headSwept, read, readme, index, workflow, manifest: MANIFEST, standby: TOOLS_STANDBY, source, committedAt, now, refs });
@@ -2698,9 +2852,13 @@ async function main() {
   const timed = [...new Set(authoringTablePaths(readme))];
   console.log(`\nauthoring-box table (${README_FILE}): ${timed.length} file(s) timed, each dated against the commit that last touched THAT file — ${timed.map((p) => `${p} ${committedAt[p] ? localDay(committedAt[p].at) : '(no commit)'}`).join(' · ') || '(none)'}; this census runs on ${localDay(now)}`);
   const hostedSet = new Set(hosted.claims.map((c) => c.shaText));
+  const claimTokens = [...hostedSet];
+  const bareTaken = hosted.claims.filter((c) => c.spelled === false);
   const statedPops = (s) => hosted.claims.filter((c) => c.shaText === s).map((c) => c.pops.join('/') || '-').join(' ');
-  console.log(`\nhosted claims (${README_FILE}): ${hosted.claims.length} address(es) over ${hostedSet.size} distinct commit(s), resolved against HEAD's ${history.length}-commit history and re-derived there: ${gradedRefs} population(s) graded, ${declined.length} declined${declined.length === 0 ? '' : ` (${declined.join(', ')})`}; dates compare in UTC on both sides because the runner stamps its own start in UTC, unlike the authoring-box table above, which this box's own calendar dates`);
-  for (const [s, r] of Object.entries(refs)) {
+  console.log(`\nhosted claims (${README_FILE}): ${hosted.claims.length} address(es) over ${hostedSet.size} distinct commit(s), ${bareTaken.length} of them written between backticks with no word sha in front of them and resolved anyway, resolved against HEAD's ${history.length}-commit history and re-derived there: ${gradedRefs} population(s) graded, ${declined.length} declined${declined.length === 0 ? '' : ` (${declined.join(', ')})`}; dates compare in UTC on both sides because the runner stamps its own start in UTC, unlike the authoring-box table above, which this box's own calendar dates`);
+  for (const s of claimTokens) {
+    const r = refs[s];
+    if (r === undefined) continue;
     console.log(`    REF         ${s} ${String(r.count).padStart(2)} commit(s) ${r.ancestor ? 'on this history' : 'NOT on it'} ${r.at === null ? 'no stamp' : `landed ${utcDay(r.at)} UTC`} ${typeof r.rows === 'number' ? `derives ${r.rows} rows` : 'population declined'} ${statedPops(s) || '-'} stated`);
   }
   if (hosted.unowned.length > 0) {
@@ -2710,6 +2868,15 @@ async function main() {
   const runIds = [...new Set(hosted.paragraphs.flatMap((p) => p.ids))];
   const runParas = hosted.paragraphs.filter((p) => p.ids.length > 0).length;
   console.log(`    RUN NUMBERS ${runIds.length} distinct over ${runParas} paragraph(s): ${bareRuns.length} written with no address in the paragraph that names them${bareRuns.length === 0 ? '' : ` (${bareRuns.join(', ')})`} — a bare number is a verdict this clone has no ref to answer for`);
+  const bareGraded = claimTokens.filter((t) => hosted.claims.some((c) => c.shaText === t && c.spelled === false) && !scanned.claims.some((c) => c.shaText === t));
+  const bareRejected = bareCands.filter((t) => !isAddress(t));
+  const tot = (k) => sightRows.reduce((a, x) => a + x[k], 0);
+  const seen = sightRows.filter((x) => x.resolving + x.ambiguous + x.digests + x.bareRuns > 0);
+  console.log(`    BARE ADDRESSES ${bareTaken.length} of ${hosted.claims.length} graded address(es) carry no word sha, over ${bareGraded.length} distinct commit(s) only the bare spelling names: ${bareGraded.join(', ') || '(none)'} · ${bareRejected.length} bare commit-shaped token(s) resolve to no single commit on this history and are read as digests, not addresses: ${bareRejected.join(', ') || '(none)'}`);
+  console.log(`\naddress sight in the ${sightRows.length} evidence README${sightRows.length === 1 ? '' : 's'} this census does not grade, ${seen.length} of which write at least one bare commit-shaped token or a run id (printed, not refused: another lane's bytes are another lane's edit) — ${tot('resolving')} bare token(s) resolve to one commit here, ${tot('ambiguous')} to two or more, ${tot('digests')} to none; ${tot('runIds')} run id(s) written, ${tot('bareRuns')} of them in a paragraph that names no address at all`);
+  for (const row of seen) {
+    console.log(`    SIGHT       ${row.file} resolving=${row.resolving} ambiguous=${row.ambiguous} digest=${row.digests} runIds=${row.runIds} bareRuns=${row.bareRuns}`);
+  }
   console.log('\nhelper modules:');
   for (const h of [...report.helpers].sort()) console.log(`  HELPER    ${h}`);
   console.log('\nhuman-run tools:');

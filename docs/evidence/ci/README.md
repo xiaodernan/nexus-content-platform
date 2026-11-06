@@ -329,13 +329,14 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
-the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **126
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **131
 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README number
 each, twenty-four that dispose the manifest's blind side, seventeen that dispose the tools corpus behind it (the
 next three blocks), seven that grade the numbers those deferrals state, eight that recompute the roster this
 sentence lives in, seven that grade the marker the proof carries in its own header and eight that grade the arms
 list itself, fourteen that date the durations published further down this file, ten that re-derive the commits a hosted claim
-names, two that refuse a run number the paragraph writing it leaves without an address; the prose-import arm
+names, two that refuse a run number the paragraph writing it leaves without an address, and five
+that grade an address the word sha never names; the prose-import arm
 proves the tokenizer is the sweep's, not a byte regex.
 
 **The manifest's other half.** The population above is `git ls-files -- docs/evidence`, which answers "does every
@@ -516,6 +517,38 @@ by a person and what this clone can answer is that the commit's own bytes do not
 nine-to-twelve-digit number inside backticks is taken for a run id whether or not it is one, because every
 number in that shape this file writes is a run, and the day a different one lands the red asks for a word
 beside it rather than guessing which numbers are evidence.
+
+**A bare address is an address, and what it buys is narrower (v631).** v630 refused a run number whose
+paragraph named no ref, and the file it grades had been naming refs all along in the one shape a reader
+cannot mistake: a hex token between backticks with the word `sha` left off. Measured against HEAD before
+this line was written, the graded file held nine distinct tokens of that shape: eight resolve to exactly one
+commit on this history, and one — `b4fa34d49cd20e2e`, the Maven digest v547's row prints, resolves to
+nothing, so the census reads it as a digest and spends no git call on it. Reading the eight as addresses takes
+that file from thirty spelled claims over twenty-three commits to thirty-nine over the same twenty-three: the
+shape was already in use for commits this record names in prose, not for new ones. Then the sight went
+outward, because a class found in one file is rarely in one: eight other tracked evidence READMEs, six of
+them writing at least one token of the shape, seventy-eight resolving to a commit here, none ambiguous,
+twenty-seven resolving to nothing, eight run ids and one of them in a paragraph naming no address. Those
+bytes belong to the lanes that wrote them, so this census prints the answer and refuses nothing — another
+lane's bytes are another lane's edit — and the count stands as the record of how much of the class is still
+out there, and how much a lane has to do if it wants its own README graded.
+
+What a bare token BUYS is drawn where a measurement drew it. The v553 bullet measured a worktree cut from sha
+`03279a2` plus the change it was wiring: that build reported 104 rows, while the commit itself, re-derived by
+this census, gives a derived population of 103 — a base is not a build. Grading a bare token's numbers
+would have refused that sentence for a thing the sentence never claimed, so the rule splits: a bare address
+ANCHORS — it satisfies v630's "the paragraph names the commit", and it enters the identity map, where the
+lie worth catching is one run spelled against one commit and cited bare at another — and it receives
+neither population nor date grading, which stay attached to the last spelled address in their paragraph or
+print as UNOWNED, six at this ref and the same six v630 printed. One refusal is new, and it is the failure
+mode the bare shape invites: a token two commits in this clone share, written beside a run number or a
+population, is red, because an abbreviation with two answers is not an address. Measured zero such tokens in
+this file and zero in the eight. Five arms carry the rule — G1 strikes the word `sha` off a hosted claim
+and asserts it stays anchored with its numbers ungraded, G2 anchors a run on a bare address this history does
+not carry and asserts the census still calls it unanchored, G3 writes the shared abbreviation, G4 writes a
+token that resolves to nothing and asserts the refusal is about the missing address rather than a token the
+census declined to call an address, G5 spells one commit and cites another for the same run. The roster is
+131 arms in 12 families.
 
 **v531 — the deferral that named its blocker was repaired first.** The three Studio lane proofs are build rows:
 `verify:build-lane` (5.5 s), `verify:container-lane` (1.5 s) and `verify:deploy-lane` (6.1 s) on the authoring
