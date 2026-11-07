@@ -661,4 +661,37 @@ describe("Design → Code（§17-19）", () => {
     expect(tokens).toContain("md:font-semibold");
     expect(tokens).toContain("md:leading-[1.8]");
   });
+
+  it("断点位置发射：绝对定位父级里的位置覆盖发 md:left-*/md:top-* 类（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const parent = createNode({
+      type: "section",
+      name: "AbsParent",
+      layout: { mode: "none", gap: 0 },
+      size: { width: 400, height: 300 },
+    });
+    parent.parentId = root.id;
+    root.children = [parent.id];
+    page2.nodes[parent.id] = parent;
+    const child = createNode({
+      type: "section",
+      name: "AbsChild",
+      layout: { mode: "vertical", gap: 0 },
+      size: { width: 80, height: 60 },
+      position: { x: 12, y: 14 },
+    });
+    child.parentId = parent.id;
+    parent.children = [child.id];
+    page2.nodes[child.id] = child;
+    page2.nodes[child.id] = {
+      ...child,
+      responsive: [{ breakpoint: "tablet", patch: { position: { x: 44, y: 52 } } }],
+    };
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, child.id);
+    expect(tokens).toContain("absolute");
+    expect(tokens).toContain("md:left-[44px]");
+    expect(tokens).toContain("md:top-[52px]");
+    expect(tokens).not.toContain("md:absolute");
+  });
 });

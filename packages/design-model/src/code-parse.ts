@@ -684,6 +684,7 @@ function decodeVariant(
   node: DesignNode,
   ctx: Ctx,
   breakpoint: BreakpointName,
+  tierParentMode?: string | null,
 ): VariantDecode {
   const list = [...tokens];
   const out: VariantDecode = { patch: {}, checked: [], unmapped: [] };
@@ -939,6 +940,40 @@ function decodeVariant(
       // 更窄那档本来就没有 overflow 约束：这条类不改变投影，静默消费但不进 checked
       //（进 checked 会要求重投影原样再现它，而这一档未声明时不会发 overflow-visible）
     }
+  }
+  // 绝对定位（§14 第九片）：`md:left-*` / `md:top-*` / `md:absolute` 只在这一档投影后的父级
+  // 是自由定位逃生口（none / stack）时才收——与基线 `positionClasses` 同一判据，只是父级模式
+  // 按这一档投影读。父级不是时如实披露：这一档的 left/top 不会移动画布上的东西，只是在骗读者。
+  const leftsV = takeUtility(list, "left");
+  const topsV = takeUtility(list, "top");
+  const absoluteV = consumeToken("absolute");
+  const tierAbsolutelyPlaced = tierParentMode === "none" || tierParentMode === "stack";
+  if (tierAbsolutelyPlaced) {
+    const position: { x?: number; y?: number } = {};
+    const x = leftsV.all[0];
+    const y = topsV.all[0];
+    if (x) {
+      const n = numberOf(x.value);
+      if (n === null) note(x.literal, "断点 left 需要 px 数值");
+      else position.x = n;
+    }
+    if (y) {
+      const n = numberOf(y.value);
+      if (n === null) note(y.literal, "断点 top 需要 px 数值");
+      else position.y = n;
+    }
+    if (Object.keys(position).length) {
+      out.patch.position = position;
+      if (position.x !== undefined) out.checked.push(x!.literal);
+      if (position.y !== undefined) out.checked.push(y!.literal);
+    }
+    if (absoluteV) out.checked.push("absolute");
+  } else if (absoluteV || leftsV.all.length || topsV.all.length) {
+    // 父级不是自由定位的容器：这些类在这一档不会改变画布上的位置（§16），如实披露
+    note(
+      absoluteV ? "absolute" : leftsV.all[0]?.literal ?? topsV.all[0]?.literal ?? "left/top",
+      `这一档的父级（${tierParentMode ?? "未知/无父级"}）不是自由定位容器，不回写`,
+    );
   }
   if (Object.keys(size).length) out.patch.size = size;
   if (Object.keys(layout).length) out.patch.layout = layout;
@@ -1832,7 +1867,7 @@ function decodeClasses(
   else if (!node.visible) write(null, "visible", true);
 
   for (const [breakpoint, tokens] of variants) {
-    const nested = decodeVariant(tokens, node, ctx, breakpoint);
+    const nested = decodeVariant(tokens, node, ctx, breakpoint, parent ? applyResponsive(parent, breakpoint).layout.mode : null);
     nested.checked.forEach((token) => d.checked.push(`${VARIANT_PREFIX[breakpoint]}${token}`));
     nested.unmapped.forEach((entry) =>
       d.unmapped.push({ token: `${VARIANT_PREFIX[breakpoint]}${entry.token}`, reason: `断点 ${breakpoint}：${entry.reason}` }),

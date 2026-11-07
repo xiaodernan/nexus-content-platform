@@ -9064,10 +9064,20 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
   e2e 腿 A–R **1 passed（4.9m）**，腿 R 三段 172.3s / 215.1s / 224.8s；CSS 那一寸的九格读数与行号
   现量在 `.scratch/tw-cancel.log`；`npm run lint`（九份 tsc 项目 + eslint 全树）**退出 0**。
 
+**第九片（2026-11-08）：断点位置（x/y）`md:`/`lg:`/`xl:` 三档发得出也读得回——父级仍是自由定位逃生口的判据**
+
+- 画布与访客此前就吃这一组键：mobile 靠基线投影生效，更宽那几档没有任何途径出类。现在
+  `responsiveClasses` 接下父级那一份投影（`applyResponsive(parent, breakpoint)`），只有父级在这一档
+  `none`/`stack` 时才发 `md:left-[…]`/`md:top-[…]`；基线不 absolute 而这一档要 position 时补发 `md:absolute`。
+- 回写侧 `decodeVariant` 第三入参（`tierParentMode`，调用方把这一档投影后的父级模式传进去）接上同一条
+  判据，`absolute`/`left`/`top` 都能进 `decodeVariant` 的清单里；父级不是自由定位逃生口时如实落 unmapped，
+  不静默当位置读（§16）。见证：`codegen.test.ts`「断点位置发射……」、`code-parse.test.ts`「断点绝对定位往返……」，
+  共 83 条全绿（含字重/行高那一轮）。
 
 **仍欠**
 
-1. 面板仍然只有部分输入口：`position`（x/y）、`rowGap`/`crossGap`
+1. 面板仍然只有部分输入口：`position`（x/y）——这一格的**代码行**现在也通了（md:/lg:/xl: 三档、父级自由定位时，ADR-0069 第九片），
+   但面板还没有输入口；`rowGap`/`crossGap`
    与 `typography` 其余键现在**数得进来、改不出去**，界面只能说"去代码那一节"或"整档清掉"。
    （第三片给了 `layout.mode`/`gap`/`columns`/`typography.fontSize`，第六片给了 `justify`/`items`；
    第七片把 `reverse` 接进了求解器，第八片给它那一格；`layout.clipContent`/`layout.scroll` 与 `typography.fontWeight`/`typography.lineHeight` 已接入响应式面板、代码发射/回写与测试——`RESPONSIVE_CHANNELS` 现在十五格，
@@ -9075,7 +9085,7 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
 2. ~~某一档只声明 `{reverse:false}` 而更窄那档反向时发不出东西~~——**第八片已还**（2026-11-08）：
    发射侧在这种情况下重发一条正向方向类（`md:flex-col`），回写侧按同一条判据认领它，CSS 那一寸
    的跨档胜负与档内胜负都用真 Tailwind v4.3.3 + Chromium 量过（ADR-0069 第八片那节）。
-   还欠的换成下一层：`position`（x/y）除 `mobile` 档、`mode` 的 `stack`/`none`、
+   还欠的换成下一层：`position`（x/y）面板输入口、`mode` 的 `stack`/`none`、
    `rowGap`/`crossGap`、`typography` 的字族/字距/对齐/下划线、`style` 除填充与透明度。
 3. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
 4. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。

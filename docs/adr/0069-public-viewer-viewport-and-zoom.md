@@ -399,7 +399,28 @@
   字节交换探针原地还原过，sha 未变、mtime 变了）；`npm run lint`（九份 tsc 项目 + eslint 全树，与 pre-commit
   同一套）退出 0。
 - **仍欠**（第八片之后）：`{reverse:false}` 这一寸现在发射、回写、面板、求解器四处同一判据；
-  还欠的是键的覆盖面而不是档的覆盖面：`position`（x/y）除 `mobile` 档、`mode` 的 `stack`/`none`、
-  `rowGap`/`crossGap`/`scroll`/`clipContent`、`typography` 除字号、`style` 除填充与透明度。
-  AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方（真 provider 要授权，见 §105）。
+  还欠的是键的覆盖面而不是档的覆盖面：`position`（x/y）除 `mobile` 档（第九片已还，见下）、`mode` 的 `stack`/`none`、
+  `rowGap`/`crossGap`、`typography` 的字族/字距/下划线/对齐、`style` 除填充与透明度、`layout` 的
+  `stack`/`none` 两档。AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方（真 provider 要授权，见 §105）。
+
+**第九片（2026-11-08）：断点位置（x/y）接进 `md:`/`lg:`/`xl:`，与字重/行高一并给出可回写的代码半边**
+
+上一片（clipContent / scroll 那一刀）之后，这一片按同一条三处判据（发射、回写、面板）推进：
+
+- **位置（x/y）**：画布与访客此前就吃这一组键（手机档靠基线投影生效——移动优先基线本就是「设计+mobile 规则」那份）。
+  现在这一档的覆盖也能发、也能读：`responsiveClasses` 需要**父级**那一份投影（`applyResponsive(parent, breakpoint)`），
+  只有父级在这一档投影后是 `none`/`stack`（`nodes.ts` 的自由定位逃生口）时才发 `md:left-[x]`/`md:top-[y]`——
+  与基线 `positionClasses` 同一判据。基线不 absolute 而这一档要 position 时，补发 `md:absolute`。
+  回写侧 `decodeVariant` 现在也吃 `tierParentMode`（调用方把这一档投影后的父级模式传进），`absolute` 进 `checked`；
+  父级不是自由定位逃生口时，这些类如实落在 unmapped，不静默当成位置回写（§16）。
+  见证：`codegen.test.ts`「断点位置发射……」、`code-parse.test.ts`「断点绝对定位往返……」（83 条绿，回归面含 reverse 往返与 overflow 往返）。
+- **字重 / 行高**：同一条判据，`md:font-*`/`md:leading-*` 的发射与回写。面板同步加了两行
+  （`typography.fontWeight`/`typography.lineHeight`），`RESPONSIVE_CHANNELS` **十五格**。
+- **顺带**（上一片同属于这一档的收尾）：`layout.clipContent`/`layout.scroll` 两格也并入同一轮——
+  `md:overflow-hidden`/`overflow-*-auto`/`overflow-visible`（取消更窄档 overflow 约束的那一刀：更窄那档没 overflow 约束时不发，更窄那档有时发 `md:overflow-visible` 并回写
+  `{clipContent:false, scroll:"none"}`）。
+- 这轮之后，§14 的「键覆盖面」仍然欠：`position` 的面板输入口、`mode` 的 `stack`/`none`、
+  `rowGap`/`crossGap`、`typography` 的字族/字距/下划线/对齐、`style` 除填充与透明度——
+  这些键《画布与访客》和《代码视图与 ZIP》仍然不同（§16）。
+
 

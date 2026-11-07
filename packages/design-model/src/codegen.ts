@@ -503,7 +503,7 @@ function typographyClasses(node: DesignNode, prefix: string): string[] {
 }
 
 /** 响应式覆盖 → Tailwind 断点前缀（§14） */
-function responsiveClasses(node: DesignNode, prefix: string): string[] {
+function responsiveClasses(node: DesignNode, prefix: string, parent: DesignNode | null): string[] {
   if (!node.responsive?.length) return [];
   const out: string[] = [];
   for (const rule of node.responsive) {
@@ -513,7 +513,7 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
     // （`flex-row` 与 `flex-col` 谁赢由框架的产出顺序决定，不由类名书写顺序决定）。
     // 移动优先的序与 `applyResponsive` 的级联同构，详见 docs/adr/0069。
     if (!variant) continue;
-    const { layout, size, typography, style, visible } = rule.patch;
+    const { layout, size, typography, style, visible, position } = rule.patch;
     if (size?.width === "fill") out.push(`${variant}w-full`);
     else if (size?.width === "hug") out.push(`${variant}w-fit`);
     else if (size?.width !== undefined) {
@@ -583,6 +583,25 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
         const cls = DIRECTION_CLASS[resolvedMode];
         // 同一档还声明了 `mode` 时上面那条已经发过一遍了，别在 className 里写两遍
         if (cls && !out.includes(`${variant}${cls}`)) out.push(`${variant}${cls}`);
+      }
+    }
+    // 位置（§14）：这一档只在**投影后父级是绝对定位的容器**（父级 merged 进这一档是 none /
+    // stack，nodes.ts 的自由定位逃生口）时才发——left-/top- 在 absolute 之外是无效类，
+    // 发一条模型不摆的表态是 §16。差别在于窄档：窄档的 absolute / left / top 由基线类承担，
+    // 这里发带变体的那组；窄档基线不 absolute 而这一档要 position 时，必须同时发
+    // `{variant}absolute`，否则窄档是 in-flow、本档也无法发生位移。
+    if (position?.x !== undefined || position?.y !== undefined) {
+      const tierNode = applyResponsive(node, rule.breakpoint);
+      const tierParent = parent ? applyResponsive(parent, rule.breakpoint) : null;
+      const tierAbsolute = isAbsoluteChild(tierNode, tierParent);
+      if (tierAbsolute) {
+        const baseParent = parent ? applyResponsive(parent, "mobile") : null;
+        const baseNode = applyResponsive(node, "mobile");
+        const baseAbsolute = isAbsoluteChild(baseNode, baseParent);
+        if (!baseAbsolute) out.push(`${variant}absolute`);
+        const round = (v: number): string => `${Math.round(v * 100) / 100}px`;
+        if (position?.x !== undefined) out.push(`${variant}left-[${round(position.x)}]`);
+        if (position?.y !== undefined) out.push(`${variant}top-[${round(position.y)}]`);
       }
     }
     // padding：patch 写了哪几条边就发哪几条。`applyResponsive` 对 `layout` 组是整键
@@ -721,7 +740,7 @@ function classOf(node: DesignNode, parent: DesignNode | null, ctx: RenderCtx): s
     ...stateClasses(view, ctx.prefix),
     ...typographyClasses(view, ctx.prefix),
     // 更宽那几档从**原始节点**解：它们要的是「本档与更窄几档」整条级联，基线只是窄的那一半
-    ...responsiveClasses(node, ctx.prefix),
+    ...responsiveClasses(node, ctx.prefix, parent),
   ].join(" ");
 }
 

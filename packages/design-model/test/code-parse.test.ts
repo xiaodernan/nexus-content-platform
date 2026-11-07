@@ -658,6 +658,41 @@ describe("类名 → 模型属性", () => {
     expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
   });
+  it("断点绝对定位往返：父级自由定位时 md:left/top 发得出也读得回，零补丁（§14）", () => {
+    const page = starterPage();
+    const root = nodeId(page, "Home");
+    // 父级自己写出 free 定位逃生口（mode=none），子节点的位置覆盖才能在 md 档生效
+    const parent = createNode({
+      type: "section",
+      name: "AbsParent",
+      layout: { mode: "none", gap: 0 },
+      size: { width: 400, height: 300 },
+    });
+    parent.parentId = root;
+    const rootNode = page.nodes[root]!;
+    rootNode.children = [parent.id];
+    page.nodes[parent.id] = parent;
+    const child = createNode({
+      type: "section",
+      name: "AbsChild",
+      layout: { mode: "vertical", gap: 0 },
+      size: { width: 80, height: 60 },
+      position: { x: 12, y: 14 },
+    });
+    parent.children = [child.id];
+    child.parentId = parent.id;
+    page.nodes[child.id] = {
+      ...child,
+      responsive: [{ breakpoint: "tablet", patch: { position: { x: 44, y: 52 } } }],
+    };
+    const code = source(page);
+    const line = lineOf(code, child.id);
+    expect(line).toContain("md:left-[44px]");
+    expect(line).toContain("md:top-[52px]");
+    const result = parse(page, code);
+    expect(result.mappings.find((m) => m.nodeId === child.id)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === child.id)).toEqual([]);
+  });
 
   it("手机那一档的覆盖往返：发在基线上、读得回来、一个补丁都不发（§14 第五片）", () => {
     const page = starterPage();

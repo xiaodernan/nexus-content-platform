@@ -157,7 +157,8 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
   与 Tailwind 移动优先的级联同构。回写按**谁声明的**分流：手机那条规则声明过的键，代码里改的值写回那条规则；
   没声明的键才动设计值。这一寸上落错地方不是差一点而是整条断掉——那条规则还盖着，重投影自检认不出那个类名，
   整个节点的回写被放弃（§19），代码里写着新数而画布不动。手机档的隐藏也走同一份基线：`hidden` 无前缀发出去，
-  改回来落进 `patch.visible`。`position`（x/y）目前只在手机档走得通，`md:`/`lg:`/`xl:` 三档仍发不出（ADR-0069 仍欠）。
+  改回来落进 `patch.visible`。`position`（x/y）在断点那几档也接通了：`md:`/`lg:`/`xl:` 三档的绝对定位
+  在父级投影为自由定位（`none`/`stack`）时发得出、也读得回（ADR-0069 第九片），但还没有自己的面板输入口。
   根画框不在这节的管辖内：图层列表从根的孩子起（layers-flat.ts:45），Ctrl+A 也排掉根（CanvasStage.tsx:272），
   根那一档的宽由断点给出——那条披露在「页面」那一节（`data-page-root-width-from-breakpoint`）。
 
