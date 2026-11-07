@@ -13696,3 +13696,15 @@ This addendum GRANTS nothing and CORRECTS the record; the repair is amendment 51
 - **Bounds, stated not implied.** Distinctness is not correctness. The clause does not pin exact sentences. The undeclared-word arm pins pass-through, not vocabulary validation. No hosted contact is claimed.
 
 - **CITES** amendments 549, 550, 537, 88 and §60; **GRANTS** amendment 562 / version v635 (re-checked free at this ref). Version label **v634** is the only label this landing mints.
+
+### Amendment 562 (v635, m9) — the reportBar status face RUN over its five declared statuses: distinct sentences, no empty answer, and an undeclared status passes through
+
+- **The gap, named by 549's own Bounds.** 549 said it in the present tense: "no clause here requires them to be *right* … the status VALUES are held by test cases and not by the gate." §11.16/§11.21 ran the model's and desk's status faces — but no clause RAN the reportBar's status face over its own declaration and read the answer.
+
+- **The repair, shaped like §11.10's RUN.** §11.22 calls `reportStatusText` — the shipped face, imported from `reportBar.ts` by the proof's own loader (via `loadShippedReportFaces`), not re-implemented — over the five statuses `ReportDtos` declares, and asserts: every answer is a non-empty string; the five sentences are pairwise DISTINCT; and an undeclared status passes through unchanged (`'stake'` → `'stake'`). It reads the VALUES 549 said no clause read; it does not claim the sentences are RIGHT — §60's permanent bound stands.
+
+- **Instrument readings at this ref (this box, 2026-11-08).** `node docs/evidence/m9/audit-contract-proof.mjs` — **exit 0**, **20 clause labels declared**, §11.22's three assertions green. `npm run verify:table-recount` — **exit 0**, 998 tracked cases matched.
+
+- **Bounds, stated not implied.** Distinctness is not correctness. The clause does not pin exact sentences. The undeclared-word arm pins pass-through. No hosted contact is claimed.
+
+- **CITES** amendments 549, 550, 537, 88 and §60; **GRANTS** amendment 563 / version v636 (re-checked free at this ref). Version label **v635** is the only label this landing mints.
