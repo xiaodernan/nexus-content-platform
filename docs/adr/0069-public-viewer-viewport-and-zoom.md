@@ -322,3 +322,84 @@
   `mobile` 档、`mode` 的 `stack`/`none`、`rowGap`/`crossGap`/`scroll`/`clipContent`、
   `typography` 除字号、`style` 除填充与透明度。
 
+**第八片（2026-11-08）：`{reverse:false}`——代码里唯一一种"写下去的是否定"的值**
+
+上一片那句「仍欠」欠的是两寸，一处比一处刁：发射侧发不出"取消反向"（CSS 里没有这条类），
+而面板里根本没有那一格，作者只能进代码视图。两寸都在这一片还掉，但先说清为什么这一寸
+比 `gap`/`justify` 那些键绕：别的键发的**那条类自己就是那句话**（`md:gap-[24px]` 说间距），
+`{reverse:false}` 说的是一件**没有对应类**的事——它顶掉的是更窄那一档留下的反向类，
+而顶的方式是**把正向方向重说一遍**。于是一个值同时决定三件事：发哪条类、发在哪一档、
+以及回写时这条类归给哪一层。三件事各处口径不一致就是 §16。
+
+- CSS 那一寸是量的，不是推的。`.scratch/tw-cancel-browser.mjs` 用本仓库装的 **Tailwind v4.3.3**
+  现编一份样式、在 Chromium 里读三组类名 × 三个宽度的 `getComputedStyle().flexDirection`：
+
+  | className | 400px | 900px | 1300px |
+  | --- | --- | --- | --- |
+  | `flex flex-col flex-col-reverse` | column-reverse | column-reverse | column-reverse |
+  | `flex flex-col flex-col-reverse md:flex-col` | column-reverse | **column** | **column** |
+  | `flex flex-col md:flex-col md:flex-col-reverse lg:flex-col` | column | **column-reverse** | **column** |
+
+  有用的读数不是"变体赢基线"这么笼统一句，而是**产出顺序**（同一份 `out.css` 里的行号，本轮重跑并把输出
+  留在 `.scratch/tw-cancel.log`）：
+  `.flex-col`:962 在 `.flex-col-reverse`:965 之前（两条都在顶层）⇒ 同档反向赢；`@media (width >= 48rem)` 从 2179 起，
+  里面 `.md:flex-col`:2207 又在 `.md:flex-col-reverse`:2210 之前 ⇒ **同一档内正向顶不动反向**；
+  `@media (width >= 64rem)` 从 2271 起、`.lg:flex-col`:2296 整块排在 md 之后 ⇒ 跨档才顶得动。
+  这三行合起来就是发射的形状：**取消类只在更窄那一档真的反着时才发**，发的是这一档解出来的
+  排布的正向类；而"这一档自己同时写反向与正向"是白写（第三行中间那一格就是它），所以回写侧
+  `assertsReverse`（同档有反向类时那条正向类只是陪着写的，不表态）与发射侧那条判据是同一寸。
+  这条依赖的是框架产出顺序——升 Tailwind 大版本或换框架要重量一遍（与第七片那条同级）。
+- 表还是只有一份，但多了一条**唯一性判据**：`DIRECTION_CLASS`（`codegen.ts:96`）从 `DISPLAY_CLASSES`
+  派生，只挑"在这一档只出现过一次的类名"。`flex` 竖/横/换行三档都发（计数 3），它顶不动反向类、
+  也不能用来表态 ⇒ 排除；剩下 `vertical → flex-col`、`horizontal → flex-row`。挑不出唯一一条就**不填**
+  （`Partial` 的语义是"这一档没有能用来取消反向的类"，别猜）。这条判据今天永远成立，所以把它放宽
+  （`=== 1` → `>= 1`）是一次**等价变异**：臂 H9 红集 0，与重推后的预测相符——第一轮我按标题
+  预测了 2 红，那是预测错，不是机制没牙齿。牙齿在"以后有人给同一档加第二条类名时挡得住"，
+  于是新钉一条前提用例（`codegen.test.ts`：两档各等于 `flex-col`/`flex-row`、其余四档都是 `undefined`），
+  臂 H11（`=== 1` → `=== 2`，条目整个丢）证的正是这条前提而不是那句放宽。
+- 面板那一格跟着同一份判据：`appliesTo = hasChildren && alignableAt(node, breakpoint)`——网格 / 换行
+  那一档按下去什么都不动的按钮不摆（§159，与第六片那两格同一条理由），`RESPONSIVE_CHANNELS`
+  **十格 → 十一格**。
+- 这一片真正新增的机制是**归一那一层**：`ChannelSpec.absentAs`。`reverse` 这一格"模型里没有这个键"
+  读成**正序**（`false`）而不是 `undefined`，四处一起吃这层归一（`projectionWithout` 的冗余判据、
+  `designValueOf` / `projectedValueOf` 的读数、徽标那条 live 过滤）。少了它会怎样：本来正序时点「正序」
+  存下一条什么都不改的规则、徽标跟着数它一处、清除键也冒出来——界面在说"这一档改了投影"而
+  画布、代码、访客三份都没变（§159 那个形状）。臂 H4（摘掉声明）与 H5（`effectiveAt` 变恒等＝摘掉消费）
+  红的是同两条腿：一侧一条，声明与消费都得有牙齿。
+- 撤掉这一格的人工出口从第七片的一条变成**两条**：面板点回「正序」（此时它真的顶掉了东西，
+  键与规则都留得下来）、「清掉这一档」；撤销同源（一次点击 = 一个键 = 一条事务，§150）。
+  在代码里删掉那条类仍然抹不掉这个键——按档合并那条没动。
+- 界面那半边：e2e **腿 R**（`e2e/responsive-authoring.spec.ts`，两段）。第一段证的是"两个写入方、
+  一份真值"：面板点「反向」之后落库那份与腿 Q 从代码视图写进去的那份**逐字相同**、画布三个盒子的
+  坐标**逐个相同**，而前提门那条（本来正序时点「正序」）钉住"什么都不改的点击不写键、不涨徽标、
+  不给清除键"；第二段走取消那一寸：手机档「反向」→ 平板档「正序」→ 落库两条规则、代码那一行的
+  `md:flex-col*` 名册恰为 `['md:flex-col']`、发布后访客在 1280 上下文里按 `data-published-variant`
+  读三档顺序（手机反 / 平板正 / 桌面正）——这一段把上面那张量表里"跨档才顶得动"那一格放进了
+  真浏览器，而不是留在 `.scratch` 的探针里。
+- 见证（`.scratch/arms-reverse8.mjs`，十臂，BASE **37 files / 526 全绿**起手，两轮跑完 `RESIDUE=false`；
+  逐臂红集见 `docs/ROADMAP.md` 第八片那张表）。这里只记三条不进表就会丢的结论：
+  ① H7 / H8 第一轮 MISMATCH 的根因是**腿的判据太宽**，不是机制没牙齿——修的是测试（P3 把 `toMatchObject`
+  换成 `toEqual`，多出来的 `mode` 键从此看得见；P5 补半条真回读：把模型那一档的 `reverse` 键抽掉再读同一份
+  代码），改完红集才等于预测（H7 1→2 红、H8 2→3 红）；② H9（`=== 1` → `>= 1`）是**等价变异**，红集 0 才是
+  对的读数，第一轮按标题预测 2 红是我的预测错；③ 「往返零补丁」那类腿对**读者侧**的 mutation 天然盲——
+  读者不认领一条类时既不写键也不记 `unmapped`，同样是零补丁，所以回写侧的认领只能由 P3 / P5 那两条真读数见证；
+  而它对**发射侧**不盲，因为发射多发了东西会过不了回写自检（§19 整节点作废），H6 与 H11 各带上 P3 就是这条。
+- 读数：**这一片落地之前 HEAD 自己是红的**，红在哪两条腿是量出来的，不是推的
+  （`.scratch/headplane-full.mjs`：把本次会改动单测结果的三个文件换成 HEAD 字节，跑同一范围，再按字节还原，
+  `RESTORE OK OK OK`）——在 `2ff7ba4` 那一档上 **37 files / 523 通过 / 525**，红的正是面板那两条
+  （「取消更窄那档的反向：这一档真顶掉了东西，存下来并算一处投影」与「这一档本来正序：写「正序」一条规则都不存」），
+  与臂 H4（摘掉 `absentAs` 声明）的红集**逐字相同**。原因不是巧合：`f0aca77` 把第八片的模型半边与那几条面板腿
+  一起提交，而 `6c60fe7`（标题写着 "fix no-base-to-string lint in responsive-editor test"）把测试文件扫进了
+  HEAD、`responsive-editor.ts` 没跟着进去 ⇒ HEAD 停在"腿有、归一没有"那半个第八片。**提交切面能把一串
+  绿色改动切成一个红色状态**，这一条记在这儿是为了下次看到面板红时先问"是不是切面"而不是"是不是回归"。
+  量完之后（同日 01:36）并行会话把那 30 行按**单独一条路径**提成 `65b16e3`，blob 与本会话工作树逐字节相同
+  （`absentAs` 四处都在），所以这一片的代码半边现在是两笔：`65b16e3` 面板那一层 + 这一笔（文档与两条收紧的腿）。
+  落地之后：同一范围 **37 files / 526 全绿**（design-model 35 files / 475）；e2e 腿 A–R **1 passed（4.9m）**，
+  腿 R 三段落在 172.3s / 215.1s / 224.8s（那一次跑的就是现在这份 `responsive-editor.ts` 字节——之后它只被
+  字节交换探针原地还原过，sha 未变、mtime 变了）；`npm run lint`（九份 tsc 项目 + eslint 全树，与 pre-commit
+  同一套）退出 0。
+- **仍欠**（第八片之后）：`{reverse:false}` 这一寸现在发射、回写、面板、求解器四处同一判据；
+  还欠的是键的覆盖面而不是档的覆盖面：`position`（x/y）除 `mobile` 档、`mode` 的 `stack`/`none`、
+  `rowGap`/`crossGap`/`scroll`/`clipContent`、`typography` 除字号、`style` 除填充与透明度。
+  AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方（真 provider 要授权，见 §105）。
+

@@ -8985,15 +8985,98 @@ responsive rules**。ADR-0069 与 ADR-0074 把访客那一侧接完之后，作�
   `Partial`，grid / wrap 那两档查不到条目就什么都不发，判据被表遮住。所以那条判据的证据在求解器与面板两侧
   （A 与腿 Q 的画布那一段、`appliesTo` 那两格），不在发射侧。
 
+**第八片（2026-11-08）：`{reverse:false}` 走进代码与面板——唯一一种"写下去的是否定"的值**
+
+第七片那句仍欠欠的是两寸：发射侧发不出"取消反向"（CSS 里没有这条类，靠重说一遍正向方向），
+而面板里连「顺序」那一格都没有，作者只能进代码视图。模型那一寸（发射 + 回写 + 求解器 + 面板
+那一行）在 2026-11-05 的 `f0aca77` 落地；这一片收尾的是剩下的三样：面板**归一**那一层、
+e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重推、并把两条说得太宽的判据收紧。
+
+- 为什么这一寸比 `gap` / `justify` 那些键绕：别的键发的**那条类自己就是那句话**，
+  `{reverse:false}` 说的是一件没有对应类的事——它顶掉的是**更窄那一档**留下的反向类。
+  于是一个值同时决定发哪条类、发在**哪一档**、以及回写时这条类**归给哪一层**，三处口径不一致就是 §16。
+- CSS 那一寸是量的（`.scratch/tw-cancel-browser.mjs`：本仓库 Tailwind v4.3.3 现编样式 + Chromium
+  读 `getComputedStyle().flexDirection`，三组类名 × 400/900/1300 三个宽度）。有用的不是"变体赢基线"
+  而是**产出顺序**：同一份 `out.css` 里 `.flex-col`:962 在 `.flex-col-reverse`:965 之前（同档反向赢）、
+  `@media (width >= 48rem)` 里 `.md:flex-col`:2207 在 `.md:flex-col-reverse`:2210 之前
+  （**同一档内正向顶不动反向**），而 `@media (width >= 64rem)` 整块排在 md 之后、`.lg:flex-col`:2296
+  顶得动 `md:flex-col-reverse`。发射侧那句"只在更窄那档真的反着时才发正向类"就是从这三行来的；
+  回写侧 `assertsReverse`（同档同时有反向类时那条正向类只是陪着写的）是同一寸的另一个方向。
+- 表还是只有一份，多了一条**唯一性判据**：`DIRECTION_CLASS`（`codegen.ts:96`）从 `DISPLAY_CLASSES`
+  派生，只挑"在这一档只出现过一次的类名"——`flex` 竖/横/换行三档都发（计数 3），它顶不动反向类也
+  不能用来表态，所以排除；挑不出唯一一条就**不填**（`Partial` 的语义是"这一档没有能用来取消反向的类"）。
+  今天这条判据永远成立，所以把 `=== 1` 放宽成 `>= 1` 是**等价变异**（臂 H9：红集 0，第二轮才把预测
+  归对——第一轮按标题写了 2 红）。牙齿在"以后有人给同一档加第二条类名时挡得住"，于是新钉一条前提用例
+  `codegen.test.ts`「正向方向类那张表在两档自动布局各挑得出唯一一条」，臂 H11（`=== 1` → `=== 2`，
+  条目整个丢）证的正是这条前提。
+- 面板真正新增的是**归一那一层**（`responsive-editor.ts`，本片唯一的生产代码改动）：
+  `ChannelSpec.absentAs` + `effectiveAt()`。`reverse` 这一格"模型里没写"读成**正序**（`false`）而不是
+  `undefined`，四处一起吃这层归一——`projectionWithout` 的冗余判据、`designValueOf` / `projectedValueOf`
+  的读数、徽标那条 live 过滤。少了它会怎样：本来正序时点「正序」存下一条什么都不改的规则、徽标跟着数
+  它一处、清除键也冒出来，界面在说"这一档改了投影"而画布/代码/访客三份都没变（§159 的形状）。
+  这一格的 `appliesTo` 与 `justify`/`items` 共用同一份 `ALIGNABLE_MODES`（网格档按下去不动 ⇒ 不摆），
+  `RESPONSIVE_CHANNELS` **十格 → 十一格**。
+- 新腿与收紧（`packages/design-model/test`）：`code-parse.test.ts` 加 `reversedHero` 夹具与 5 条腿
+  （取消类往返零补丁 ×2、手写 `md:flex-col` 只补 `reverse:false`、没得取消时一个字都不发、
+  同档既改排布又取消反向时只发一条）；`codegen.test.ts` 加发射与前提各一条。
+  **两条判据这一片被电池逼着收紧**：① 「只补 `reverse:false`，不凭空写 mode」原先用 `toMatchObject`
+  比整个 `value`，多出来的 `mode` 键看不见 ⇒ 那句标题当时没人管（臂 H8 第一轮把它放过去了），
+  改 `toEqual` 之后同一条臂从 2 红涨到 3 红，多出来的那一红就是它；② 「md:flex-col 只发一条，
+  读回来 mode 与 reverse 都在」原先只断"零补丁"，而**读者不认领这条类时同样零补丁、同样不进
+  `unmapped`**（那条类被这一档继承来的排布静默消费）——臂 H7 因此只有 1 红而不是 4 红。给它补了
+  半条真读数：把模型那一档的 `reverse` 键抽掉再读同一份代码，认领与不认领只差在这一条补丁上。
+  这两处不是"测试松一点点"的美学问题：它们正是唯一能挡住"回写悄悄不写键 / 悄悄多写键"的那道判据。
+- `e2e/responsive-authoring.spec.ts` 加腿 R（两段，都在真浏览器里点）：
+  ① 面板那一格——前提门（这一档读「正序 · 设计 正序」、Headline 没孩子那一格不摆、点「正序」一个键
+  都不写也不涨徽标）→ 点「反向」后落库那份与腿 Q 从代码写进去的**逐字相同**、画布三个盒子的坐标
+  与代码那一路**逐个相同**（两个写入方、一份真值）→ 代码视图那条行的 reverse 类名册恰为
+  `['md:flex-col-reverse']` → 点回「正序」键整个退出去；
+  ② 取消那一寸——手机档点「反向」→ 平板档点「正序」，落库变成两条规则（`mobile reverse:true` +
+  `tablet reverse:false`）、平板徽标仍数这一处、清除键在；代码那一行 `md:flex-col*` 名册恰为
+  `['md:flex-col']`；发布后访客在 1280 上下文里按 `data-published-variant` 读三档的**顺序**
+  （手机反、平板正、桌面正）；撤销那条否定 → 画布回到反着那一寸 → 再撤一次回到没有覆盖那一份。
+  顺手修掉一条一直在说谎的定位器：那句点名用的是 `[data-responsive-outside="1"]`，而平板那一档
+  真的有两处没有输入口（`layout.columns` · `layout.padding`）——把计数钉进选择器等于让界面替我
+  押注名册，改成认属性存在 + 认里面点名谁。
+- 见证（`.scratch/arms-reverse8.mjs`，十臂；BASE **37 files / 526 全绿**起手；两轮跑完 `RESIDUE=false`，
+  每条臂按字节还原）。红集第一轮有三臂对不上（H7 / H8 / H9），全部按磁盘上的断言重推、并把
+  **测试**补到能见证那条臂，而不是松任何判据；第二轮只重跑对不上的那几条：
+
+  | 臂 | 动的那一寸 | 实测红集（都在 `packages/design-model/test` 与 `apps/web/test`） | 裁决 |
+  | --- | --- | --- | --- |
+  | H6 | 发射侧"这一档取消更窄那档的反向"整条短路（`else if` 前塞 `false &&`） | 4：回写 3（一个补丁都不发 / lg 往返零补丁 / 只补 `reverse:false`）+ 发射 1（没得取消时一个字都不发） | MATCH |
+  | H7 | 回写不认领"这条正向类在取消反向"（`saysForward = false`） | 2：只补 `reverse:false` + 只发一条读回来都在 | MATCH（第一轮 1 红，第二条腿当时见证不了，见上一条②） |
+  | H8 | 回写无条件补 `mode`（`saysMode = true`） | 3：一个补丁都不发 / lg 往返零补丁 / 只补 `reverse:false` | MATCH（第一轮 2 红，`toMatchObject` 遮住了多出来的键，见上一条①） |
+  | H9 | 唯一性判据放宽 `=== 1` → `>= 1` | **0** | 等价变异：`flex` 计数 3 被排除，两种比较符挑出的东西一模一样（第一轮按标题预测 2 红，那是预测错） |
+  | H11 | 唯一性判据改成永不成立的 `=== 2`（条目整个丢） | 5：H6 那四条 + 前提用例（表空了发不出取消类 ⇒ 那条手写的 `md:flex-col` 过不了回写自检，§19） | MATCH |
+  | H4 | 面板摘掉 `absentAs` 声明 | 2：顶掉东西那条 + 本来正序写正序那条 | MATCH |
+  | H5 | `effectiveAt` 变恒等（摘掉消费，声明留着） | 同上 2 条 | MATCH |
+  | H10 | 那一格的 `appliesTo` 退回只看有没有孩子 | 1：「这一格跟着这一档解出来的排布走」 | MATCH |
+
+- 读数（两件事分开量）：**这一片落地之前 HEAD 就是红的**。`.scratch/headplane-full.mjs` 把本次会改动单测
+  结果的三个文件换成 HEAD 字节、跑同一范围、再按字节还原（`RESTORE OK OK OK`）：在 `2ff7ba4` 那一档上
+  **37 files / 523 通过 / 525**，红的正是面板那两条腿，与臂 H4 的红集逐字相同——`f0aca77` 把模型半边与那几条
+  面板腿一起提交，而 `6c60fe7`（标题只说 "fix no-base-to-string lint in responsive-editor test"）把测试扫进了
+  HEAD、`responsive-editor.ts` 没进去，于是 HEAD 停在"腿有、归一没有"那半个第八片。这条记进 ROADMAP 是为了
+  下一次面板红时先问"是不是切面"。量完之后（01:36）并行会话把 `responsive-editor.ts` 那 30 行按**单独一条
+  路径**提成了 `65b16e3`（内容与本会话工作树逐字节相同），所以这一片现在是两笔：`65b16e3`（面板那一层）+
+  这一笔（文档与两条收紧的腿）。落地之后：同一范围 **37 files / 526 全绿**（design-model 35 files / 475）；
+  e2e 腿 A–R **1 passed（4.9m）**，腿 R 三段 172.3s / 215.1s / 224.8s；CSS 那一寸的九格读数与行号
+  现量在 `.scratch/tw-cancel.log`；`npm run lint`（九份 tsc 项目 + eslint 全树）**退出 0**。
+
+
 **仍欠**
 
-1. 面板仍然只有部分输入口：`position`（x/y）、`layout.reverse`/`scroll`/`clipContent`/`rowGap`/`crossGap`
+1. 面板仍然只有部分输入口：`position`（x/y）、`layout.scroll`/`clipContent`/`rowGap`/`crossGap`
    与 `typography` 除字号那几键现在**数得进来、改不出去**，界面只能说"去代码那一节"或"整档清掉"。
    （第三片给了 `layout.mode`/`gap`/`columns`/`typography.fontSize`，第六片给了 `justify`/`items`；
-   第七片把 `reverse` 接进了求解器，但没给它格子——写入口仍是「代码」视图与 AI 补丁。）
-2. ~~`layout.reverse` 在代码那一寸是两份投影~~——**第七片已还**（2026-11-02）：`layout.ts` 现在认这个键，
-   画布与代码/访客读的是同一份顺序。新的那一半欠在别处：某一档只声明 `{reverse:false}` 而更窄那档是反向的，
-   CSS 里没有"取消反向"这条类（要重发正向方向类），发射这一寸还没做，记在 `codegen.ts` 的注释与 ADR-0069。
+   第七片把 `reverse` 接进了求解器，第八片给它那一格——`RESPONSIVE_CHANNELS` 现在十一格，
+   写入口不再是「代码」视图独家。）
+2. ~~某一档只声明 `{reverse:false}` 而更窄那档反向时发不出东西~~——**第八片已还**（2026-11-08）：
+   发射侧在这种情况下重发一条正向方向类（`md:flex-col`），回写侧按同一条判据认领它，CSS 那一寸
+   的跨档胜负与档内胜负都用真 Tailwind v4.3.3 + Chromium 量过（ADR-0069 第八片那节）。
+   还欠的换成下一层：`position`（x/y）除 `mobile` 档、`mode` 的 `stack`/`none`、
+   `rowGap`/`crossGap`/`scroll`/`clipContent`、`typography` 除字号、`style` 除填充与透明度。
 3. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
 4. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。
 5. 这条 e2e 链在开发模式里 4.7m，其中腿 F 那一段从 9.7s 涨到 104s、发布到 266s 是同机另一会话同时在跑

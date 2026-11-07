@@ -32,9 +32,12 @@ import { loginMember, reusableMemberWithProject } from './support/auth-session';
  * ⑨ `layout.reverse`（腿 Q，§14 第七片）此前只有代码那一寸认得它：codegen 发得出 `flex-col-reverse`、
  *    code-parse 也读得回来，而**求解器不认这个键** ⇒ 画布按正序摆、访客按反序摆（§16 两份投影矛盾）。
  *    这一片补的是求解器那半边，所以量的正是"画布动了没有"：主轴镜像、交叉轴一个字都不动，
- *    画布与访客同一把尺。这一格面板还没有输入口 ⇒ 写入走代码视图，而徽标与那句"面板没有输入口"
- *    照样数得到它（腿 H2 那条语义的延续）。撤掉这一格走**撤销**：回写是按档合并的（代码里没提的键
- *    从模型留着），所以在代码里删掉那条类抹不掉那个键；重做要量出同一寸。
+ *    画布与访客同一把尺。撤掉这一格走**撤销**：回写是按档合并的（代码里没提的键从模型留着），
+ *    所以在代码里删掉那条类抹不掉那个键；重做要量出同一寸。
+ * ⑩ `reverse:false`（腿 R，§14 第八片）是这条链上唯一"写下去的是否定"的那种值：它自己什么都不摆，
+ *    顶掉的是**更窄那一档**的反向。三处口径必须同时认它——面板那一格（`{reverse:false}` 不是"没有规则"，
+ *    而"本来正序时点正序"必须一个键都不写）、codegen（重发一条正向方向类，CSS 才会真的回头）、
+ *    求解器（画布回到正序）。所以这条腿从面板点下去，一路量到代码那一行的类名与访客那一份几何。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -979,8 +982,9 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     // codegen 发得出 `flex-col-reverse`、code-parse 也读得回来，而求解器（layout.ts）不认这个键
     // ⇒ 画布按正序摆、发布页与导出的代码按反序摆（§16 两份投影互相矛盾，§159 同一件事）。
     // 这一片补的是求解器那半边，所以这条腿量的是"画布动了没有"：主轴镜像、交叉轴一个字都不动。
-    // 面板还没有这一格（`RESPONSIVE_CHANNELS` 里没有 reverse 那条 spec）⇒ 写入只能走代码视图，
-    // 而徽标与那句"面板没有输入口"照样数得到它——腿 H2 那条语义在这一格上的延续。
+    // 第七片时这一格只有代码视图一个写入方（面板摆不出输入口），所以这条腿的写入走代码；第八片给
+    // 它补了面板那一格之后，"键在模型里就进徽标、有了输入口就不再出现在点名那句里"这半截照样在这里量
+    // ——那是腿 H2 那条语义在这一格上的延续，改一行代码就塌，不值得挪到腿 R 重跑一遍。
     const forwardActions = await canvasBox(carriers.actionsId);
     const forwardA = await canvasBox(carriers.ctaId);
     const forwardB = await canvasBox(carriers.secondaryId);
@@ -1018,25 +1022,24 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     const reverseViewLine = coder.locator('[data-code-line="selected"]');
     await expect(reverseViewLine).toContainText('md:flex-col-reverse');
     await coder.screenshot({ path: 'screenshots/responsive-reverse-code.png', fullPage: true });
+    // 这一格之前那份规则的骨架。腿 Q 撤销的落点、腿 R 的起点以及腿 R 每一步的落库形状，都从这两个
+    // base 现推：同一份真值抄第二遍，改动就只会改到一处，那条腿于是自己证自己（读不出任何约定）。
+    const baseMobileLayout = { gap: 40, mode: 'vertical', columns: 2 };
+    const baseTabletLayout = {
+      mode: carriers.seeded.modeValue,
+      padding: carriers.seeded.padding,
+      justify: 'space-between',
+      items: 'center',
+    };
+    const rulesWith = (mobileLayout: object, tabletLayout: object): unknown[] => [
+      { breakpoint: 'mobile', patch: { layout: mobileLayout } },
+      { breakpoint: 'tablet', patch: { layout: tabletLayout, size: { width: 600, height: 400 } } },
+    ];
+    const forwardRules = rulesWith(baseMobileLayout, baseTabletLayout);
     // 落库：reverse 并进 tablet 那一条规则，同一条里的 mode/padding/justify/items/size 一个都不掉；
     // 而设计值那一份 `layout` 不许多出 `reverse` 这个键（那是这一档的覆盖，不是元素本来就是反的）。
     // 这份形状后面还要再对一次：重做放回的不是"一个带 reverse 的规则"，而是这一寸逐字相同的那一份文档。
-    const reverseAppliedRules = [
-      { breakpoint: 'mobile', patch: { layout: { gap: 40, mode: 'vertical', columns: 2 } } },
-      {
-        breakpoint: 'tablet',
-        patch: {
-          layout: {
-            mode: carriers.seeded.modeValue,
-            padding: carriers.seeded.padding,
-            justify: 'space-between',
-            items: 'center',
-            reverse: true,
-          },
-          size: { width: 600, height: 400 },
-        },
-      },
-    ];
+    const reverseAppliedRules = rulesWith(baseMobileLayout, { ...baseTabletLayout, reverse: true });
     await expect
       .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
       .toEqual(reverseAppliedRules);
@@ -1086,12 +1089,18 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     const relReversedA = relBox(reversedA, reversedActions);
     const relReversedB = relBox(reversedB, reversedActions);
     await coder.screenshot({ path: 'screenshots/responsive-reverse-canvas.png', fullPage: true });
-    // 面板那一侧：徽标数得到这一格（键在模型里就数），而它自己没有输入口 ⇒ 那句话点名点得到它
+    // 面板那一侧：徽标数得到这一格（键在模型里就数，第八片之后它有了输入口也一样在总数里），
+    // 而那句"面板没有输入口"的点名**不再列它**——点名列的是摆不出输入口的那些键，腿 R 从那格点下去。
     await expect(tab(coder, 'tablet'), '模型里多了一个键，徽标就多一处').toHaveAttribute(
       'data-breakpoint-impact',
       String(badgeBefore + 1),
     );
-    await expect(coder.locator('[data-responsive-outside]')).toContainText('layout.reverse');
+    const outsideRoster = coder.locator('[data-responsive-outside]');
+    await expect(outsideRoster, '点名那句还在数没有输入口的那些键').toContainText('layout.padding');
+    await expect(outsideRoster, '第八片之后这一格摆得出输入口：它该从"面板没有输入口"那份点名里走出去').not.toContainText(
+      'layout.reverse',
+    );
+    await expect(coder.locator('[data-responsive-channel="layout.reverse"]')).toContainText('这一档 反向');
     stamp('腿 Q：反向的画布摆放（主轴镜像 + 交叉轴不动）+ 徽标数得到没有输入口的那一格');
 
     // 访客那一寸：同一份模型按 tablet 解出来的几何就是画布上那一份（第七片要合的正是这两份投影）
@@ -1123,8 +1132,8 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
 
     // 撤掉这一格：走**撤销**那一条（§150——`studio.execute('代码编辑', ops)` 与面板同源，一次应用 = 一条事务）。
     // 不是在代码里把那条类删掉：`responsiveOps` 是**按档合并**的（代码里没提的键从模型留着，否则改一条
-    // `md:gap-*` 会顺带抹掉同档的 padding 与尺寸），所以删掉一条类抹不掉那个键——发射侧的
-    // `{reverse:false}` 又没有"取消反向"这条类（ADR-0069 第七片仍欠），人工出口只剩撤销与「清掉这一档」。
+    // `md:gap-*` 会顺带抹掉同档的 padding 与尺寸），所以删掉一条类抹不掉那个键。第八片之后人工出口
+    // 多了面板那一格（腿 R），撤销这条照样要量：它证的是"一次应用 = 一条事务"，不是"没有别的按钮"。
     await coder.keyboard.press('Escape');
     await coder.click('[data-view="canvas"]');
     await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
@@ -1132,21 +1141,7 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     await undoButton(coder).click();
     await expect
       .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
-      .toEqual([
-        { breakpoint: 'mobile', patch: { layout: { gap: 40, mode: 'vertical', columns: 2 } } },
-        {
-          breakpoint: 'tablet',
-          patch: {
-            layout: {
-              mode: carriers.seeded.modeValue,
-              padding: carriers.seeded.padding,
-              justify: 'space-between',
-              items: 'center',
-            },
-            size: { width: 600, height: 400 },
-          },
-        },
-      ]);
+      .toEqual(forwardRules);
     expect(await canvasBox(carriers.ctaId), '撤销一次就一格不差地回到正序（一次应用 = 一条事务）').toEqual(forwardA);
     expect(await canvasBox(carriers.secondaryId), '第二个孩子也一样').toEqual(forwardB);
     await expect(tab(coder, 'tablet'), '键没了，徽标跟着减一处').toHaveAttribute(
@@ -1171,6 +1166,194 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     await undoButton(coder).click();
     expect(await canvasBox(carriers.ctaId), '再撤一次，留一份干净的起点给下一次跑腿').toEqual(forwardA);
     stamp('腿 Q：重做 → 镜像同一寸；再撤一次收尾');
+
+    // ── 腿 R：面板那一格「顺序」与 `{reverse:false}` 这一种"写下去的是否定"的值（§14 第八片）。
+    // 第七片让求解器认了这个键、代码那一寸发得出反向类；这一片补的是另外两处口径，都得在真浏览器里点：
+    //  ① 面板摆出这一格（有子节点 + 这一档解出来是自动布局）。作者不必进代码视图也能翻顺序，
+    //     而且它写下去的那一份与腿 Q 从代码写进去的那一份**逐字相同**，摆出来的盒子也逐个坐标相同
+    //     （两个写入方、一份真值，§16）。
+    //  ② `reverse:false` 自己什么都不摆，顶掉的是**更窄那一档**的反向。于是它有两种脸，都得量：
+    //     本来正序时点「正序」＝一个键都不写（腿 B 那条判据在这一格上的形状），
+    //     手机档写着反向时点「正序」＝存得下这条否定，而代码那一寸必须重发一条正向方向类——
+    //     发不出来就是"面板说改了、导出的代码里 CSS 并不会回头"（ADR-0069 实测过那条顺序）。
+    const reverseRow = coder.locator('[data-responsive-channel="layout.reverse"]');
+    const classTokens = async (): Promise<string[]> => {
+      const line = await coder.locator('[data-code-line="selected"]').innerText();
+      const matched = /className="([^"]*)"/.exec(line);
+      if (!matched) throw new Error(`代码里那一行读不出 className 属性：${line}`);
+      return matched[1]!.trim().split(/\s+/);
+    };
+    /** 这一档的两个按钮谁在上：正序=Primary 在上，反向=Secondary 在上（间距都不为 0，不会出现平局） */
+    const orderOnCanvas = async (): Promise<'forward' | 'reversed'> => {
+      const a = await canvasBox(carriers.ctaId);
+      const b = await canvasBox(carriers.secondaryId);
+      if (a.top === b.top) throw new Error(`画布上两个按钮同一行（${JSON.stringify(a)} / ${JSON.stringify(b)}）：竖排前提没了`);
+      return a.top < b.top ? 'forward' : 'reversed';
+    };
+
+    // 前提门：腿 Q 那一路撤销/重做之后，模型确实回到了"没有 reverse 这个键"的那一份
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(forwardRules);
+    await expect(reverseRow, '第八片之后面板该摆出「顺序」这一格').toHaveCount(1);
+    await expect(reverseRow).toContainText('这一档 正序 · 设计 正序');
+    // 行的名册由 `appliesTo` 现推：没有子节点的元素，"顺序"无所指 ⇒ 不给一个按下去什么都不动的按钮
+    await coder.click(`[data-layer-id="${carriers.headlineId}"]`);
+    await expect(
+      coder.locator('[data-responsive-channel="layout.reverse"]'),
+      'Headline 没有孩子：这一格该收回去',
+    ).toHaveCount(0);
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+
+    // ① 本来正序：点「正序」是一个键都不写，也不占撤销栈、不给清除键
+    await coder.click('[data-responsive-toggle="layout.reverse:false"]');
+    expect(
+      await rulesOfNodeOnServer(coder, projectId, carriers.actionsId),
+      '写一个本来就成立的否定：不该留下规则',
+    ).toEqual(forwardRules);
+    await expect(tab(coder, 'tablet')).toHaveAttribute('data-breakpoint-impact', String(badgeBefore));
+    await expect(
+      coder.locator('[data-responsive-clear="layout.reverse"]'),
+      '没有覆盖就不该给清除键',
+    ).toHaveCount(0);
+
+    // ② 点「反向」：落库的形状与腿 Q 从代码写的那一份逐字相同，画布摆出的盒子也逐个坐标相同
+    await coder.click('[data-responsive-toggle="layout.reverse:true"]');
+    await expect(reverseRow).toContainText('这一档 反向');
+    await expect(coder.locator('[data-responsive-clear="layout.reverse"]'), '这一档有了自己的覆盖').toHaveCount(1);
+    await expect(tab(coder, 'tablet'), '面板点出来的这一个键同样进徽标').toHaveAttribute(
+      'data-breakpoint-impact',
+      String(badgeBefore + 1),
+    );
+    expect(await canvasBox(carriers.actionsId), '容器这一档解出来的盒子不因翻顺序而变').toEqual(reversedActions);
+    expect(await canvasBox(carriers.ctaId), '面板写下去的 Primary 盒子＝代码写下去那一份').toEqual(reversedA);
+    expect(await canvasBox(carriers.secondaryId), '第二个孩子同一寸').toEqual(reversedB);
+    await coder.screenshot({ path: 'screenshots/responsive-reverse-panel.png', fullPage: true });
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(reverseAppliedRules);
+
+    // ③ 代码那一寸读得到它（发得出与读得回是同一判据）
+    await coder.click('[data-view="code"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    const panelTokens = await classTokens();
+    expect(
+      panelTokens.filter((t) => t.includes('reverse')),
+      `面板点出来的反向该发成 md:flex-col-reverse：${JSON.stringify(panelTokens)}`,
+    ).toEqual(['md:flex-col-reverse']);
+
+    // ④ 回到面板点「正序」：这一档的更窄档没有反向可顶 ⇒ 这个否定等于"没有覆盖"，键退出去而不是存下来
+    await coder.click('[data-view="canvas"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await coder.click('[data-responsive-toggle="layout.reverse:false"]');
+    await expect(reverseRow).toContainText('这一档 正序');
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(forwardRules);
+    expect(await orderOnCanvas(), '键退出去了：画布回到正序').toBe('forward');
+
+    // ⑤ 把反向写到**更窄那一档**（手机），这一档自己什么都不声明——它此刻解出来是反的（继承）
+    await coder.click('[data-breakpoint-tab="mobile"]');
+    const mobileBadgeBefore = Number(await tab(coder, 'mobile').getAttribute('data-breakpoint-impact'));
+    await expect(coder.locator('[data-responsive-channel="layout.reverse"]')).toContainText('这一档 正序');
+    await coder.click('[data-responsive-toggle="layout.reverse:true"]');
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(rulesWith({ ...baseMobileLayout, reverse: true }, baseTabletLayout));
+    expect(await orderOnCanvas(), '手机档自己写了反向').toBe('reversed');
+    await expect(tab(coder, 'mobile')).toHaveAttribute('data-breakpoint-impact', String(mobileBadgeBefore + 1));
+    await coder.click('[data-breakpoint-tab="tablet"]');
+    await expect(
+      coder.locator('[data-responsive-channel="layout.reverse"]'),
+      '平板档自己没有规则，读出来是继承的那一份',
+    ).toContainText('这一档 反向 · 设计 正序');
+    await expect(tab(coder, 'tablet'), '顶掉继承之前：这一档的徽标数得到更窄档那一条').toHaveAttribute(
+      'data-breakpoint-impact',
+      String(badgeBefore + 1),
+    );
+
+    // ⑥ 在平板档点「正序」——这一次它顶掉的是继承来的 true，`{reverse:false}` 存得下来
+    await coder.click('[data-responsive-toggle="layout.reverse:false"]');
+    const cancelRules = rulesWith(
+      { ...baseMobileLayout, reverse: true },
+      { ...baseTabletLayout, reverse: false },
+    );
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(cancelRules);
+    await expect(coder.locator('[data-responsive-channel="layout.reverse"]')).toContainText('这一档 正序');
+    await expect(coder.locator('[data-responsive-clear="layout.reverse"]'), '这条否定是这一档自己的覆盖').toHaveCount(1);
+    await expect(tab(coder, 'tablet'), '这一档的规则正在顶着什么：徽标照样数它一处').toHaveAttribute(
+      'data-breakpoint-impact',
+      String(badgeBefore + 1),
+    );
+    expect(await orderOnCanvas(), '画布按 tablet 那一份解出来：顶掉之后回到正序').toBe('forward');
+    expect(await canvasBox(carriers.ctaId), '顶回来的那一寸与起点那一寸逐个坐标相同').toEqual(forwardA);
+    await coder.screenshot({ path: 'screenshots/responsive-cancel-panel-canvas.png', fullPage: true });
+
+    // ⑦ 代码那一寸：基线（手机那一档）反着，`md:` 那一条必须重发正向方向类把 CSS 拽回来，
+    //    且这一档自己不许再带一条反向类（两条互相矛盾就是"哪条赢由样式表次序决定"，§19 重投影自检会红）
+    await coder.click('[data-view="code"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    const cancelTokens = await classTokens();
+    expect(
+      cancelTokens.filter((t) => t.includes('reverse')),
+      `反向只该在基线那一份里：${JSON.stringify(cancelTokens)}`,
+    ).toEqual(['flex-col-reverse']);
+    expect(
+      cancelTokens.filter((t) => t.startsWith('md:flex-col')),
+      `平板那一档该重发一条正向方向类来顶掉继承：${JSON.stringify(cancelTokens)}`,
+    ).toEqual(['md:flex-col']);
+    await coder.screenshot({ path: 'screenshots/responsive-cancel-code.png', fullPage: true });
+    stamp('腿 R：面板「顺序」那一格 + {reverse:false} 存得下来、发得出去、画布顶得回来');
+
+    // ⑧ 访客那一寸：四份投影同时铺在文档里，媒体查询选哪一份由窗口决定；这一条量的是"档与档不同"
+    const cancelPublishedPath = await publishPublic(coder, projectId);
+    expect(cancelPublishedPath, '重复发布是换版本，路径不变').toBe(publicPath);
+    const cancelContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const cancelVisitor = await cancelContext.newPage();
+    await cancelVisitor.goto(url(''));
+    await expect(cancelVisitor.locator('[data-published-root]')).toBeVisible({ timeout: 60_000 });
+    const orderIn = async (bp: string): Promise<'forward' | 'reversed'> => {
+      const host = cancelVisitor.locator(`[data-published-variant="${bp}"]`);
+      const a = await boxIn(host, carriers.ctaId, `公开页 ${bp} 那一份`);
+      const b = await boxIn(host, carriers.secondaryId, `公开页 ${bp} 那一份`);
+      if (a.top === b.top) throw new Error(`公开页 ${bp} 那一份里两个按钮同一行：竖排前提没了`);
+      return a.top < b.top ? 'forward' : 'reversed';
+    };
+    expect(await orderIn('mobile'), '手机档那条 reverse:true 走到访客脸上').toBe('reversed');
+    expect(await orderIn('tablet'), '平板档那条 reverse:false 顶住了它：访客这里是正序').toBe('forward');
+    expect(await orderIn('desktop'), '更宽的档吃平板那一份的顶回（级联）').toBe('forward');
+    await cancelVisitor.screenshot({ path: 'screenshots/responsive-cancel-visitor.png', fullPage: true });
+    await cancelContext.close();
+    stamp('腿 R：访客那一份——手机反、平板正（两条规则各管各的档）');
+
+    // ⑨ 撤掉那条否定：这一档重新吃手机档的反向，而且摆出来的盒子与②逐个坐标相同——
+    //    "这一档自己声明 true"与"这一档继承 true"是两份不同的规则、同一份投影（§16）
+    await coder.click('[data-view="canvas"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await coder.click('[data-breakpoint-tab="tablet"]');
+    await undoButton(coder).click();
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(rulesWith({ ...baseMobileLayout, reverse: true }, baseTabletLayout));
+    expect(await canvasBox(carriers.ctaId), '撤掉否定=换一份投影，摆出来的还是②那一寸').toEqual(reversedA);
+    expect(
+      await canvasBox(carriers.secondaryId),
+      '第二个孩子也是：继承的反向与自己声明的反向摆出同一寸',
+    ).toEqual(reversedB);
+    // 收尾：撤掉手机档那一条，回到腿 R 起点的 forwardRules，下一次跑腿不必先猜残留
+    await undoButton(coder).click();
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(forwardRules);
+    await coder.click('[data-breakpoint-tab="tablet"]');
+    expect(await canvasBox(carriers.ctaId), '留一份干净的起点给下一次跑腿').toEqual(forwardA);
+    await expect(tab(coder, 'tablet'), '两条撤销都落回徽标').toHaveAttribute(
+      'data-breakpoint-impact',
+      String(badgeBefore),
+    );
+    stamp('腿 R：撤销那条否定→换回同一寸的投影；再撤一次收尾');
 
     await codeContext.close();
   });
