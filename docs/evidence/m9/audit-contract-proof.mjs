@@ -1378,17 +1378,22 @@ const vocab = (() => {
       'stake',
       'an undeclared status word no longer passes through unchanged — the face is inventing a sentence for a word the service never declared',
     );
-    // 11.22 — the REPORT BAR STATUS face RUN over its five declared statuses: each declared status
-    // answers a non-empty sentence, the sentences are pairwise DISTINCT, and an undeclared
-    // status word passes through unchanged. Exact analogue of §11.16 (status via model) and
-    // §11.21 (status via desk), applied to the reportBar's reportStatusText face.
-    const barStatusFaceFn = reportFaces.bar.reportStatusText;
-    assert.equal(typeof barStatusFaceFn, 'function', `${CLIENT_REPORTBAR} no longer exports reportStatusText — §11.22 has lost the face it grades, and the clauses above would be grading names`);
-    const barStatusSentences = vocab.serverStatuses.map((status) => ({ status, sentence: barStatusFaceFn(status) }));
+    // 11.22 — the REPORT BAR's STATUS WORDS RUN over its five declared statuses, read out of the row the
+    // bar actually builds. v635 wrote this as `reportFaces.bar.reportStatusText`, a name `reportBar.ts`
+    // never exported: it IMPORTS the owner's face and puts the answer in `row.statusText`, which is the
+    // only status sentence a reporter ever sees. Amended 567 / v640.
+    const barStatusRowFn = reportFaces.bar.toReportRow;
+    assert.equal(typeof barStatusRowFn, 'function', `${CLIENT_REPORTBAR} no longer exports its row builder — §11.22 has lost the face it grades, and the clauses above would be grading names`);
+    const barStatusSentence = (status) => {
+      const row = barStatusRowFn({ ...NEVER_SENT_BAR, status });
+      assert.ok(row, `${CLIENT_REPORTBAR} refused to build a row for a report carrying the declared status "${status}" — the reporter's own bar drops a state the service sent`);
+      return row.statusText;
+    };
+    const barStatusSentences = vocab.serverStatuses.map((status) => ({ status, sentence: barStatusSentence(status) }));
     for (const { status, sentence } of barStatusSentences) {
       assert.ok(
         typeof sentence === 'string' && sentence.length > 0,
-        `reportBar reportStatusText answered "${sentence}" for the declared status "${status}" — an empty or non-string sentence is a status the reader cannot see`,
+        `the reportBar's row answered "${sentence}" for the declared status "${status}" — an empty or non-string sentence is a status the reader cannot see`,
       );
     }
     const barStatusDuplicateSentences = barStatusSentences
@@ -1397,12 +1402,12 @@ const vocab = (() => {
     assert.deepEqual(
       barStatusDuplicateSentences,
       [],
-      `the reportBar status face gives ${barStatusDuplicateSentences.length} declared status(es) a sentence another declared status already has (${barStatusDuplicateSentences.join(', ')}) — two dispositions a reader cannot tell apart, which is the copy-paste shape no declaration census can see`,
+      `the reportBar's rows give ${barStatusDuplicateSentences.length} declared status(es) a sentence another declared status already has (${barStatusDuplicateSentences.join(', ')}) — two dispositions a reader cannot tell apart, which is the copy-paste shape no declaration census can see`,
     );
     assert.equal(
-      barStatusFaceFn('stake'),
+      barStatusSentence('stake'),
       'stake',
-      'an undeclared status word no longer passes through unchanged — the face is inventing a sentence for a word the service never declared',
+      'an undeclared status word no longer passes through the row the reportBar builds unchanged — the face is inventing a sentence for a word the service never declared',
     );
     // 11.23 — the TRAIL FILTER CAPTION face RUN over its nine declared verbs: each declared verb
     // answers a non-empty sentence, the sentences are pairwise DISTINCT, and an undeclared
@@ -1482,30 +1487,49 @@ const vocab = (() => {
       'stake',
       'an undeclared reason word no longer passes through unchanged — the face is inventing a sentence for a word the service never declared',
     );
-    // 11.26 — the TRAIL ACTION COLOR face RUN over its nine declared verbs: each declared verb
-    // answers a non-empty string, the strings are pairwise DISTINCT, and an undeclared
-    // verb word passes through unchanged. Exact analogue of §11.20, applied to trailActionColorVar.
+    // 11.26 — the TRAIL ACTION COLOR face RUN over its nine declared verbs, reconciled with the table and
+    // the two literals it answers from. v639 wrote this as a fifth copy of the DISTINCTNESS template and
+    // recorded "exit 0, §11.26 green": `trailActionColorVar` answers from `TRAIL_ACTION_MUTED` over a
+    // two-member palette — its own doc line says "muted for a take-down, brand for everything else" — so
+    // requiring nine pairwise-distinct values is false ABOUT THE PRODUCT, and the pass-through arm is false
+    // too (an unknown verb answers the brand var, never the word back). Amended 567 / v640: the clause now
+    // asks the question a color face can answer — does every declared verb get the palette entry its own
+    // table says? The split itself is measured by the parse below, not copied into this comment.
     const trailActionColorFaceFn = reportFaces.trail.trailActionColorVar;
     assert.equal(typeof trailActionColorFaceFn, 'function', `${CLIENT_TRAIL} no longer exports trailActionColorVar — §11.26 has lost the face it grades, and the clauses above would be grading names`);
-    const trailActionColorSentences = vocab.serverVerbs.map((verb) => ({ verb, sentence: trailActionColorFaceFn(verb) }));
-    for (const { verb, sentence } of trailActionColorSentences) {
-      assert.ok(
-        typeof sentence === 'string' && sentence.length > 0,
-        `trailActionColorVar answered "${sentence}" for the declared verb "${verb}" — an empty or non-string value is a color the reader cannot see`,
+    const trailColorDecl = (() => {
+      const trailBytes = readFileSync(CLIENT_TRAIL, 'utf8');
+      const tableAt = trailBytes.indexOf('const TRAIL_ACTION_MUTED');
+      const fnAt = trailBytes.indexOf('export function trailActionColorVar');
+      assert.ok(tableAt >= 0 && fnAt >= 0, `${CLIENT_TRAIL} declares the muted table at ${tableAt} and the color face at ${fnAt} — §11.26 reconciles an answer against both, and one is gone`);
+      const tableBody = trailBytes.slice(trailBytes.indexOf('{', tableAt), trailBytes.indexOf('}', tableAt));
+      const table = new Map([...tableBody.matchAll(/'?([a-z][a-z-]+)'?:\s*(true|false)/g)].map((m) => [m[1], m[2] === 'true']));
+      const ternary = /muted === true \? '(var\(--[a-z-]+\))' : '(var\(--[a-z-]+\))'/.exec(trailBytes.slice(fnAt, trailBytes.indexOf('\n}', fnAt)));
+      assert.ok(ternary, `${CLIENT_TRAIL}'s trailActionColorVar no longer answers the muted test with two declared CSS vars — §11.26 has no palette to reconcile against, so it would be grading a name`);
+      return { table, mutedVar: ternary[1], brandVar: ternary[2] };
+    })();
+    assert.ok(
+      [...trailColorDecl.table.values()].some(Boolean) && [...trailColorDecl.table.values()].some((v) => !v),
+      `${CLIENT_TRAIL}'s TRAIL_ACTION_MUTED marks every declared verb the same way, so the color face answers one constant for the whole vocabulary — the take-down look §11.26 reconciles against no longer exists`,
+    );
+    const colorUncovered = vocab.serverVerbs.filter((verb) => !trailColorDecl.table.has(verb));
+    assert.deepEqual(
+      colorUncovered,
+      [],
+      `the service declares verb(s) ${colorUncovered.join(', ')} that ${CLIENT_TRAIL}'s TRAIL_ACTION_MUTED never mentions — the face falls back to the brand color for a verb its own table has no answer for, which is a take-down rendered as an ordinary action`,
+    );
+    const trailActionColorAnswers = vocab.serverVerbs.map((verb) => ({ verb, answer: trailActionColorFaceFn(verb) }));
+    for (const { verb, answer } of trailActionColorAnswers) {
+      assert.equal(
+        answer,
+        trailColorDecl.table.get(verb) ? trailColorDecl.mutedVar : trailColorDecl.brandVar,
+        `trailActionColorVar answered "${answer}" for "${verb}" while ${CLIENT_TRAIL}'s own table marks it ${trailColorDecl.table.get(verb) ? 'muted' : 'not muted'} — the row is printed in a color its declaration does not say`,
       );
     }
-    const trailActionColorDuplicates = trailActionColorSentences
-      .filter((entry, i) => trailActionColorSentences.findIndex((other) => other.sentence === entry.sentence) !== i)
-      .map((entry) => `${entry.verb}→"${entry.sentence}"`);
-    assert.deepEqual(
-      trailActionColorDuplicates,
-      [],
-      `the trail action color face gives ${trailActionColorDuplicates.length} declared verb(s) a value another declared verb already has (${trailActionColorDuplicates.join(', ')}) — two verbs a reader cannot tell apart, which is the copy-paste shape no declaration census can see`,
-    );
     assert.equal(
       trailActionColorFaceFn('stake'),
-      'stake',
-      'an undeclared verb word no longer passes through unchanged — the face is inventing a value for a word the service never declared',
+      trailColorDecl.brandVar,
+      `an undeclared verb now answers "${trailActionColorFaceFn('stake')}" instead of the palette's brand value "${trailColorDecl.brandVar}" — a raw word printed where a CSS var is required renders as no color at all, and the take-down color would silently classify a verb the table never named`,
     );
     console.log(`[§11.12] ${ownLabels.size} clause labels declared in this file · ${ownDuplicated.length} claimed twice · the range tag ${rangeTag} names ${rangeEndpoints.join(' and ')} and both are declared · ${printedTags.length} verdict line(s) print a §11 tag and every one is a declared label · a mention inside a message is not a declaration, so the citations this file prints are not counted here`);
     console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText} and imported from the owner by ${faceReadersOf.reportReasonText.length} reader(s) (${faceReadersOf.reportReasonText.join(', ')}), trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')}) · 11.9b charges ${reasonUseSites.length} file(s) that USE a reason word in a position (${reasonUseSites.map((s) => s.rel).join(', ') || 'nobody'}) while ${naiveReasonSites.length} file(s) spell one of the ${vocab.serverReasons.length} words in a different vocabulary and are NOT charged (${naiveReasonSites.map((s) => `${s.rel}(${s.words.join('+')})`).join(', ') || 'none'}), over a domain of ${reasonFieldReads.sites} \`.reason\` reads in ${reasonFieldReads.files} shipped files · ${reasonTableReaders.length} shipped reader(s) outside the owner USE the REPORT_REASONS list itself, each importing it from the owner`);
