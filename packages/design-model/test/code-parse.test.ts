@@ -538,12 +538,15 @@ describe("类名 → 模型属性", () => {
         [hero]: { ...page.nodes[hero]!, responsive: [{ breakpoint: "tablet", patch: { layout: { gap: 16 } } }] },
       },
     };
-    // 这条类说的排布就是这一档本来的排布（竖排），它真正新说的只有「这一档不反向」
+    // 这条类说的排布就是这一档本来的排布（竖排），它真正新说的只有「这一档不反向」。
+    // 用 toEqual 而不是 toMatchObject：这一条说的就是"只补 reverse，不凭空写 mode"，
+    // toMatchObject 认不出多出来的 `mode` 键，那句标题就没人管（臂 H8 实测把它放过去了）。
     const code = replace(source(withRule), "md:gap-[16px]", "md:flex-col md:gap-[24px]");
     const result = parse(withRule, code);
-    expect(result.ops.find((o) => "path" in o && o.path === "responsive")).toMatchObject({
-      value: [{ breakpoint: "tablet", patch: { layout: { gap: 24, reverse: false } } }],
-    });
+    const responsiveOp = result.ops.find((o) => "path" in o && o.path === "responsive");
+    expect(responsiveOp && "value" in responsiveOp ? responsiveOp.value : undefined).toEqual([
+      { breakpoint: "tablet", patch: { layout: { gap: 24, reverse: false } } },
+    ]);
     expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
   });
 
@@ -584,6 +587,25 @@ describe("类名 → 模型属性", () => {
     expect(line.match(/md:flex-col(?!-)/g)).toHaveLength(1);
     const result = parse(withRule, code);
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+    // 「读回来 mode 与 reverse 都在」不能只靠"一个补丁都不发"来评：读者干脆不认领这条类时
+    // 也是零补丁（臂 H7 实测把往返那几条全放过去了）。把模型这一档的 reverse 键抽掉再读同一份
+    // 代码，认领与不认领就差在这一条补丁上——这一寸才是"读得回来"本身。
+    const withoutKey: Page = {
+      ...withRule,
+      nodes: {
+        ...withRule.nodes,
+        [hero]: {
+          ...withRule.nodes[hero]!,
+          responsive: [{ breakpoint: "tablet", patch: { layout: { mode: "vertical" } } }],
+        },
+      },
+    };
+    const reread = parse(withoutKey, code);
+    const rereadResponsiveOp = reread.ops.find((o) => "path" in o && o.path === "responsive");
+    expect(rereadResponsiveOp && "value" in rereadResponsiveOp ? rereadResponsiveOp.value : undefined).toEqual([
+      { breakpoint: "tablet", patch: { layout: { mode: "vertical", reverse: false } } },
+    ]);
+    expect(reread.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
   });
 
   it("手机那一档的覆盖往返：发在基线上、读得回来、一个补丁都不发（§14 第五片）", () => {

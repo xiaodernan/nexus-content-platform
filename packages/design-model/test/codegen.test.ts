@@ -5,9 +5,11 @@ import {
   generatePageComponent,
   generateProject,
   generateTokenCss,
+  DIRECTION_CLASS,
+  DISPLAY_CLASSES,
 } from "../src/codegen";
 import type { DesignNode, GeneratedFile } from "../src/index";
-import type { Layout } from "../src/types";
+import { ALIGNABLE_MODES, type Layout, type LayoutMode } from "../src/types";
 
 /** §192：生成的代码必须真的能编译，而不是"看起来像 TSX" */
 function transpileDiagnostics(file: GeneratedFile): string[] {
@@ -442,6 +444,28 @@ describe("Design → Code（§17-19）", () => {
     // desktop 与 wide 那句都被判据挡下（发射侧与回写侧读的是同一寸）
     expect(tokens.filter((token) => token.includes("reverse"))).toEqual(["flex-col-reverse"]);
     expect(tokens).toContain("xl:grid");
+  });
+
+  it("正向方向类那张表在两档自动布局各挑得出唯一一条（§14 第八片的前提）", () => {
+    // `DIRECTION_CLASS` 从 `DISPLAY_CLASSES` 派生，判据是"在这一档只出现过一次的类名"，
+    // 挑不出唯一一条就不填。今天这条判据永远吃得着（`flex` 竖/横/换行共用被排除，各剩一条），
+    // 所以把 `=== 1` 改成别的比较符是一次等价变异，臂测不出东西——真正会悄悄失灵的是以后有人
+    // 往表里给同一档加第二条类名：那时这一档挑不出唯一一条，取消反向那一支一个字都不发，
+    // 画布与模型都动了而代码不动（§16）。这一条钉的就是那个前提，让改表的人在发射失灵之前先红。
+    expect(DIRECTION_CLASS.vertical).toBe("flex-col");
+    expect(DIRECTION_CLASS.horizontal).toBe("flex-row");
+    expect(ALIGNABLE_MODES.every((mode) => DIRECTION_CLASS[mode] !== undefined)).toBe(true);
+    // 非自动布局那几档不能有条目：发了方向类而求解器不看，代码里就多一条模型不认的表态
+    const nonAlignable = (Object.keys(DISPLAY_CLASSES) as LayoutMode[]).filter(
+      (mode) => !ALIGNABLE_MODES.includes(mode),
+    );
+    expect(nonAlignable.length).toBe(4);
+    expect(nonAlignable.map((mode) => DIRECTION_CLASS[mode])).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
   });
 
   it("手机那一档的对齐发在无前缀基线上（§14 第五片 × 第六片）", () => {
