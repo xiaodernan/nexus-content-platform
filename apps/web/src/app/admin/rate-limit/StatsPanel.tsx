@@ -184,7 +184,7 @@ export function RateLimitStatsPanel() {
       ) : null}
       <p className="text-11 text-fg-3" data-ratelimit-updated>
         {updatedAt ? `更新于 ${updatedAt}` : '还没更新过'} · 每 4 秒问一次 ·
-        这只回答**这台实例**（多实例部署下每台各算各的，回答这次请求的那台会说话，别台不会）
+        这只回答<strong>这台实例</strong>（多实例部署下每台各算各的，回答这次请求的那台会说话，别台不会）
       </p>
     </div>
   );
