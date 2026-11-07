@@ -222,4 +222,24 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
   console.log('[§9] trail.ts does not declare a local AUDIT_ACTIONS copy (it imports from the owner)');
 }
 
-console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — the reader was shown to catch a rename, the trail's filter list is derived from AUDIT_ACTIONS, AUDIT_ACTIONS is imported from the ops owner, the key face functions are exported, and trail.ts has no local verb-table copy");
+// ── §10 createdAt is required in the server lane's shape (matches wire's non-nullable long) ───────
+// TrailEntry is the trail's loose parsing input (fields may be unknown/optional during validation);
+// AuditEntry in auditServer.ts is the typed wire shape and must require createdAt like the service.
+{
+  const src = readFileSync(SERVER_LANE, 'utf8');
+  const sf = ts.createSourceFile(SERVER_LANE, src, ts.ScriptTarget.Latest, true);
+  let optional = null;
+  const visit = (node) => {
+    if (ts.isInterfaceDeclaration(node) && node.name.text === 'AuditEntry') {
+      for (const m of node.members) {
+        if (ts.isPropertySignature(m) && m.name && m.name.getText(sf) === 'createdAt') optional = !!m.questionToken;
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  assert.equal(optional, false, `${SERVER_LANE} AuditEntry.createdAt must be required (the wire sends it as a non-nullable long)`);
+  console.log('[§10] createdAt is required in auditServer.ts AuditEntry (matches the wire instant)');
+}
+
+console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — the reader was shown to catch a rename, the trail's filter list is derived from AUDIT_ACTIONS, AUDIT_ACTIONS is imported from the ops owner, the key face functions are exported, trail.ts has no local verb-table copy, and createdAt is required in the server lane shape");
