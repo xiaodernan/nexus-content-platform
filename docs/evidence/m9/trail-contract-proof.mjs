@@ -28,7 +28,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, assertSameFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, assertSameFields } from './wire-fields.mjs';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
@@ -36,6 +36,13 @@ const ts = require('typescript');
 const CONTROLLER = 'services/nexus-api/src/main/java/dev/nexus/api/ops/AuditController.java';
 const TRAIL_MODEL = 'apps/studio/src/lib/trail.ts';
 const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
+
+// ── §0 the trail model and lane parse cleanly ──────────────────────────────────────────────────────
+for (const label of [['trail model', TRAIL_MODEL], ['server lane', SERVER_LANE]]) {
+  const errs = tsParseErrors(label[1]);
+  assert.equal(errs.length, 0, `${label[0]} has ${errs.length} parse error(s) — ${errs.slice(0, 2).map((e) => `${e.code}:${e.message}`).join(' · ')}`);
+}
+console.log('[§0] trail model and server lane parse with zero errors (sanity gate for the contract below)');
 
 // ── §1 the service's wire record ────────────────────────────────────────────────────────────────────
 {

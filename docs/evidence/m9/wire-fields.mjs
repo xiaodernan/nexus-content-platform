@@ -19,6 +19,16 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
 
+export function tsParseErrors(file) {
+  const src = readFileSync(file, 'utf8');
+  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true);
+  return (sf.parseDiagnostics ?? []).map((d) => ({
+    code: d.code,
+    message: String(d.messageText),
+    start: d.start ?? 0,
+  }));
+}
+
 export function tsExportedFunctionNames(file) {
   const src = readFileSync(file, 'utf8');
   const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true);

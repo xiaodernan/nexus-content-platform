@@ -16,7 +16,7 @@
 //
 // Requires nothing but Node:  node docs/evidence/m9/social-contract-proof.mjs
 import assert from 'node:assert/strict';
-import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, assertSameFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsParseErrors, assertSameFields } from './wire-fields.mjs';
 
 const SOCIAL = 'services/nexus-api/src/main/java/dev/nexus/api/social';
 
@@ -59,6 +59,12 @@ for (const c of CONTRACTS) {
 // a client that read milliseconds as seconds would answer with instants in 1970 — so the unit is
 // checked, not assumed.
 const JAVA_PRIMITIVES = new Set(['long', 'int', 'boolean', 'double', 'float', 'short', 'byte', 'char']);
+// ── §0 the client sources parse cleanly ────────────────────────────────────────────────────────────
+for (const c of CONTRACTS) {
+  const errs = tsParseErrors(c.client);
+  assert.equal(errs.length, 0, `the ${c.verb} client source has ${errs.length} parse error(s) — ${errs.slice(0, 2).map((e) => `${e.code}:${e.message}`).join(' · ')}`);
+}
+console.log('[§0] the three client sources parse with zero errors (sanity gate for the contract below)');
 for (const c of CONTRACTS) {
   const wireFields = javaRecordFields(c.service, c.record);
   const createdAt = wireFields.find((f) => f.name === 'createdAt');
