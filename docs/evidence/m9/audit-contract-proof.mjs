@@ -1430,6 +1430,32 @@ const vocab = (() => {
       'stake',
       'an undeclared verb word no longer passes through unchanged — the face is inventing a sentence for a word the service never declared',
     );
+    // 11.24 — the TRAIL FILTER HINT face RUN over its nine declared verbs: each declared verb
+    // answers a non-empty sentence, the sentences are pairwise DISTINCT, and an undeclared
+    // verb word passes through unchanged. Exact analogue of §11.20/§11.23, applied to
+    // the trailFilterHint face.
+    const trailFilterHintFaceFn = reportFaces.trail.trailFilterHint;
+    assert.equal(typeof trailFilterHintFaceFn, 'function', `${CLIENT_TRAIL} no longer exports trailFilterHint — §11.24 has lost the face it grades, and the clauses above would be grading names`);
+    const trailFilterHintSentences = vocab.serverVerbs.map((verb) => ({ verb, sentence: trailFilterHintFaceFn(verb) }));
+    for (const { verb, sentence } of trailFilterHintSentences) {
+      assert.ok(
+        typeof sentence === 'string' && sentence.length > 0,
+        `trailFilterHint answered "${sentence}" for the declared verb "${verb}" — an empty or non-string sentence is a verb the reader cannot see`,
+      );
+    }
+    const trailFilterHintDuplicates = trailFilterHintSentences
+      .filter((entry, i) => trailFilterHintSentences.findIndex((other) => other.sentence === entry.sentence) !== i)
+      .map((entry) => `${entry.verb}→"${entry.sentence}"`);
+    assert.deepEqual(
+      trailFilterHintDuplicates,
+      [],
+      `the trail filter hint face gives ${trailFilterHintDuplicates.length} declared verb(s) a sentence another declared verb already has (${trailFilterHintDuplicates.join(', ')}) — two verbs a reader cannot tell apart, which is the copy-paste shape no declaration census can see`,
+    );
+    assert.equal(
+      trailFilterHintFaceFn('stake'),
+      'stake',
+      'an undeclared verb word no longer passes through unchanged — the face is inventing a sentence for a word the service never declared',
+    );
     console.log(`[§11.12] ${ownLabels.size} clause labels declared in this file · ${ownDuplicated.length} claimed twice · the range tag ${rangeTag} names ${rangeEndpoints.join(' and ')} and both are declared · ${printedTags.length} verdict line(s) print a §11 tag and every one is a declared label · a mention inside a message is not a declaration, so the citations this file prints are not counted here`);
     console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText} and imported from the owner by ${faceReadersOf.reportReasonText.length} reader(s) (${faceReadersOf.reportReasonText.join(', ')}), trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')}) · 11.9b charges ${reasonUseSites.length} file(s) that USE a reason word in a position (${reasonUseSites.map((s) => s.rel).join(', ') || 'nobody'}) while ${naiveReasonSites.length} file(s) spell one of the ${vocab.serverReasons.length} words in a different vocabulary and are NOT charged (${naiveReasonSites.map((s) => `${s.rel}(${s.words.join('+')})`).join(', ') || 'none'}), over a domain of ${reasonFieldReads.sites} \`.reason\` reads in ${reasonFieldReads.files} shipped files · ${reasonTableReaders.length} shipped reader(s) outside the owner USE the REPORT_REASONS list itself, each importing it from the owner`);
     console.log(`[§11] the vocabulary is graded where it is rendered: ${shipped.length} shipped sources carry ${declared.length} vocabulary tables, all in ${CLIENT_MODEL} · AUDIT_ACTIONS has ${verbReaders.length} production reader(s) (${verbReaders.join(', ')}) and REPORT_REASONS has ${reasonReaders.length} (${reasonReaders.join(', ')}) · ${CLIENT_TOOLBAR} spells 0 of the ${vocab.serverVerbs.length} verbs and maps the table instead · ${CLIENT_COMPOSER} imports its reasons from the owner · the shipped trail module RUN gives all ${vocab.serverVerbs.length} recorded verbs a row word, a button word and a tooltip · and its hand-copied tally still tiles exactly the table's ${tallySeen.length} verbs`);
