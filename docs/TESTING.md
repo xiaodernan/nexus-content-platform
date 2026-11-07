@@ -288,6 +288,10 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   旧过滤器（只认 file）0 红、新过滤器（file/glob/dir 一起认）1 红——这一对就是那个洞的 X 光片；
   E8 让 `walkFiles` 恒交空数组→1 红，红在第 2 腿新加的 `paths.length>0`：
   目录分支如果退化成交空清单，第 4 腿会拿着空数组遍历、对着一整目录没入册的证据白给绿。
+  主树里跑绿只证工作树＋索引，"跟仓库一起走"这半截要到干净平面上才量得出来：
+  `git worktree add --detach <sibling> HEAD` 之后跑 `.scratch/check-plane-doc-evidence.mjs <那个平面>`，
+  它把同一套判据在原样重放一遍（那里没有 node_modules，跑得了 vitest 也证明不了提交本身）；
+  2026-11-08 那一跑的读数是 docs=100 / 点名出现=100 / tracked=115 / 查不到=0 / 未入库=0。
 - 生成的代码要用真实编译器验证：`codegen.test.ts` 用 `ts.transpileModule` 断言零语法诊断；
   e2e 断言代码视图与画布同源（选中节点 → 高亮它对应的那一行）
 - Code → Design 的双向不变量：`code-parse.test.ts` 断言 `parse(generate(page))` 零补丁零 unmapped（往返恒等），
