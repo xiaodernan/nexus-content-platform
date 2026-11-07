@@ -91,7 +91,7 @@ test('§105 状态码：401 / 403 / 400 / 415 / 201 在真 HTTP 上各说各的�
   expect((await noCsrf.json()).error).toBe('csrf_failed');
 
   // ② 带了 CSRF 但没登录 → 401。用一个新的 request 上下文：它有自己的空 cookie jar，
-  //    middleware 会临时签一个没人认识的会话 token，库里查不到就是 null
+  //    proxy 会临时签一个没人认识的会话 token，库里查不到就是 null
   const anon = await browser.newContext({ baseURL: process.env.NEXUS_WEB_URL ?? 'http://localhost:3100' });
   const anonRes = await anon.request.post('/api/projects/import', {
     multipart: { file: junk },
@@ -278,7 +278,7 @@ test('@smoke §144 413：声明超过上限的包在服务端读正文之前就�
   // **这一格真正的判据**：正文**没被读完**就拒了。
   // （服务端那一挡必须在读正文之前：路由处理器是等正文到齐才运行的，
   //  2026-10-21 实测出来的那一版会把 2GB 整个读进内存才回 413 →
-  //  所以那一挡搬到了中间件，见 apps/web/src/middleware.ts。）
+  //  所以那一挡搬到了 proxy，见 apps/web/src/proxy.ts。）
   expect(result.sent, '正文被读完了才拒 → 那一大截内存已经用掉了').toBeLessThan(declared);
   // 上限由服务端自己报出来——测试不重抄那个数，所以上限改了这条不会说谎
   expect(result.body.reason).toMatch(/超过导入上限 \d+MB/);

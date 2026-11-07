@@ -3696,7 +3696,7 @@ test('@smoke #10 账本实时：另一个标签页提交，任务列表不刷新
   if (!browser) throw new Error('这条用例需要一个可派生上下文的浏览器');
   const visitorCtx = await browser.newContext();
   const visitor = await visitorCtx.newPage();
-  await visitor.goto('/'); // 先有一份会话 cookie（middleware 签发），否则 requireUser 会 500 而不是 404
+  await visitor.goto('/'); // 先有一份会话 cookie（proxy 签发），否则 requireUser 会 500 而不是 404
   const stranger = await visitorCtx.request.get(`/api/projects/${projectId}/tasks`);
   expect(stranger.status()).toBe(404);
   await visitorCtx.close();
