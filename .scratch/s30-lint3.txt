@@ -1,0 +1,9 @@
+
+> nexus@0.0.0 lint
+> npm run typecheck && npm run eslint
+
+
+> nexus@0.0.0 typecheck
+> tsc -p packages/design-model/tsconfig.json --noEmit && tsc -p packages/world-model/tsconfig.json --noEmit && tsc -p packages/game-model/tsconfig.json --noEmit && tsc -p packages/video-model/tsconfig.json --noEmit && tsc -p packages/schemas/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p apps/mcp-server/tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit && tsc -p tsconfig.tools.json --noEmit
+
+scripts/capture-guest-reclaim.mts(123,10): error TS18048: 'hit' is possibly 'undefined'.

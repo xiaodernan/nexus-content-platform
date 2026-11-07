@@ -1,0 +1,67 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m门的顺序[2m > [22m没有 CSRF：403，而且库里一个候选都没少[32m 27[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m门的顺序[2m > [22m没有会话：401，且不替探测的人白造一个 guest 身份[32m 6[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m门的顺序[2m > [22m报文形状不对：400，而且连闸都不碰（限流的桶不该被畸形请求吃掉）[32m 19[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m门的顺序[2m > [22m不是审核员：403、一条不写、被拒的那一次进审计[32m 27[2mms[22m[39m
+[90mstdout[2m | apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m[2m缺省值与两种答案[2m > [22m[2m真执行那一次：说的是同一批人，库里也真的少了他们
+[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m门的顺序[2m > [22m同一个审核员连点第七次：429（额度按现成的 6 次/10 分钟跑满，没有为测试放宽）[32m 72[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m缺省值与两种答案[2m > [22m不带 body 的 POST 是"只数一遍"：200、dryRun 为真、那个访客还在[32m 13[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m缺省值与两种答案[2m > [22m真执行那一次：说的是同一批人，库里也真的少了他们[32m 69[2mms[22m[39m
+ [31m×[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m点名（ids）在报文层[2m > [22mids 里混进非 UUID 或超过 200 个：400，而且连闸都不碰[32m 30[2mms[22m[39m
+[31m   → Failed query: select "id", "display_name" from "users" where ("users"."id" = $1 and ("users"."guest" = $2 and "users"."deleted_at" is null and "users"."role" = $3 and "users"."created_at" < $4 and not exists (select 1 from "sessions" s where s.user_id = "users"."id" and s.expires_at > $5) and ((select max(s.expires_at) from "sessions" s where s.user_id = "users"."id") is null or (select max(s.expires_at) from "sessions" s where s.user_id = "users"."id") < $6)) and not exists (
+  select 1 from "published_projects" pp join "projects" p on p.id = pp.project_id where p.owner_id = "users"."id"
+) and not exists (
+  select 1 from "api_tokens" t
+  where t.user_id = "users"."id" and t.revoked_at is null and (t.expires_at is null or t.expires_at > $7)
+)) limit $8 for update
+params: not-a-uuid,true,creator,2026-09-30T01:44:58.685Z,2026-10-30T01:44:58.685Z,2026-09-30T01:44:58.685Z,2026-10-30T01:44:58.685Z,1[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m点名（ids）在报文层[2m > [22m带 ids 的真执行：只收点名的那一个，回执那句数说的是"点名的几个里"[32m 50[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m点名（ids）在报文层[2m > [22mids 是空数组：一个都不收，但那一句要如实说"点名的 0 个里收走了 0 个"[32m 10[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m点名（ids）在报文层[2m > [22mids 里混进非 UUID 或超过 200 个：400，而且连闸都不碰
+[31m[1mError[22m: Failed query: select "id", "display_name" from "users" where ("users"."id" = $1 and ("users"."guest" = $2 and "users"."deleted_at" is null and "users"."role" = $3 and "users"."created_at" < $4 and not exists (select 1 from "sessions" s where s.user_id = "users"."id" and s.expires_at > $5) and ((select max(s.expires_at) from "sessions" s where s.user_id = "users"."id") is null or (select max(s.expires_at) from "sessions" s where s.user_id = "users"."id") < $6)) and not exists (
+  select 1 from "published_projects" pp join "projects" p on p.id = pp.project_id where p.owner_id = "users"."id"
+) and not exists (
+  select 1 from "api_tokens" t
+  where t.user_id = "users"."id" and t.revoked_at is null and (t.expires_at is null or t.expires_at > $7)
+)) limit $8 for update
+params: not-a-uuid,true,creator,2026-09-30T01:44:58.685Z,2026-10-30T01:44:58.685Z,2026-09-30T01:44:58.685Z,2026-10-30T01:44:58.685Z,1[39m
+[90m [2m❯[22m PostgresJsPreparedQuery.queryWithCache ../%E5%86%85%E5%AE%B9%E5%88%9B%E4%BD%9C%E5%B9%B3%E5%8F%B0/node_modules/drizzle-orm/pg-core/session.js:[2m41:15[22m[39m
+[90m [2m❯[22m ../%E5%86%85%E5%AE%B9%E5%88%9B%E4%BD%9C%E5%B9%B3%E5%8F%B0/node_modules/drizzle-orm/postgres-js/session.js:[2m37:20[22m[39m
+[36m [2m❯[22m lockReclaimable apps/web/src/server/domain/guest-reclaim.ts:[2m325:17[22m[39m
+    [90m323| [39m  cutoff[33m:[39m [33mDate[39m[33m,[39m
+    [90m324| [39m)[33m:[39m [33mPromise[39m[33m<[39m{ id[33m:[39m string[33m;[39m name[33m:[39m string } [33m|[39m [35mnull[39m[33m>[39m {
+    [90m325| [39m  [35mconst[39m [row] [33m=[39m [35mawait[39m tx
+    [90m   | [39m                [31m^[39m
+    [90m326| [39m    [33m.[39m[34mselect[39m({ id[33m:[39m users[33m.[39mid[33m,[39m name[33m:[39m users[33m.[39mdisplayName })
+    [90m327| [39m    [33m.[39m[35mfrom[39m(users)
+[90m [2m❯[22m apps/web/src/server/domain/guest-reclaim.ts:[2m275:19[22m[39m
+[90m [2m❯[22m scope ../%E5%86%85%E5%AE%B9%E5%88%9B%E4%BD%9C%E5%B9%B3%E5%8F%B0/node_modules/postgres/src/index.js:[2m260:18[22m[39m
+[90m [2m❯[22m sql.begin ../%E5%86%85%E5%AE%B9%E5%88%9B%E4%BD%9C%E5%B9%B3%E5%8F%B0/node_modules/postgres/src/index.js:[2m243:14[22m[39m
+[90m [2m❯[22m reclaimExpiredGuests apps/web/src/server/domain/guest-reclaim.ts:[2m270:19[22m[39m
+[90m [2m❯[22m Module.POST apps/web/src/app/api/admin/guests/reclaim/route.ts:[2m50:18[22m[39m
+[90m [2m❯[22m apps/web/test/guest-reclaim-route.integration.test.ts:[2m226:17[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22m[39m
+[31m[1mSerialized Error:[22m[39m [90m{ query: 'select "id", "display_name" from "users" where ("users"."id" = $1 and ("users"."guest" = $2 and "users"."deleted_at" is null and "users"."role" = $3 and "users"."created_at" < $4 and not exists (select 1 from "sessions" s where s.user_id = "users"."id" and s.expires_at > $5) and ((select max(s.expires_at) from "sessions" s where s.user_id = "users"."id") is null or (select max(s.expires_at) from "sessions" s where s.user_id = "users"."id") < $6)) and not exists (\n  select 1 from "published_projects" pp join "projects" p on p.id = pp.project_id where p.owner_id = "users"."id"\n) and not exists (\n  select 1 from "api_tokens" t\n  where t.user_id = "users"."id" and t.revoked_at is null and (t.expires_at is null or t.expires_at > $7)\n)) limit $8 for update', params: [ 'not-a-uuid', true, 'creator', '2026-09-30T01:44:58.685Z', '2026-10-30T01:44:58.685Z', '2026-09-30T01:44:58.685Z', '2026-10-30T01:44:58.685Z', 1 ] }[39m
+[31m[1mCaused by: PostgresError[22m: invalid input syntax for type uuid: "not-a-uuid"[39m
+[90m [2m❯[22m ErrorResponse ../%E5%86%85%E5%AE%B9%E5%88%9B%E4%BD%9C%E5%B9%B3%E5%8F%B0/node_modules/postgres/src/connection.js:[2m815:30[22m[39m
+[90m [2m❯[22m handle ../%E5%86%85%E5%AE%B9%E5%88%9B%E4%BD%9C%E5%B9%B3%E5%8F%B0/node_modules/postgres/src/connection.js:[2m489:6[22m[39m
+[90m [2m❯[22m Socket.data ../%E5%86%85%E5%AE%B9%E5%88%9B%E4%BD%9C%E5%B9%B3%E5%8F%B0/node_modules/postgres/src/connection.js:[2m324:9[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22m[39m
+[31m[1mSerialized Error:[22m[39m [90m{ severity_local: 'ERROR', severity: 'ERROR', code: '22P02', where: 'unnamed portal parameter $1 = \'...\'', file: 'uuid.c', routine: 'string_to_uuid', query: 'select "id", "display_name" from "users" where ("users"."id" = $1 and ("users"."guest" = $2 and "users"."deleted_at" is null and "users"."role" = $3 and "users"."created_at" < $4 and not exists (select 1 from "sessions" s where s.user_id = "users"."id" and s.expires_at > $5) and ((select max(s.expires_at) from "sessions" s where s.user_id = "users"."id") is null or (select max(s.expires_at) from "sessions" s where s.user_id = "users"."id") < $6)) and not exists (\n  select 1 from "published_projects" pp join "projects" p on p.id = pp.project_id where p.owner_id = "users"."id"\n) and not exists (\n  select 1 from "api_tokens" t\n  where t.user_id = "users"."id" and t.revoked_at is null and (t.expires_at is null or t.expires_at > $7)\n)) limit $8 for update', parameters: [ 'not-a-uuid', 't', 'creator', '2026-09-30T01:44:58.685Z', '2026-10-30T01:44:58.685Z', '2026-09-30T01:44:58.685Z', '2026-10-30T01:44:58.685Z', '1' ], args: [ 'not-a-uuid', true, 'creator', '2026-09-30T01:44:58.685Z', '2026-10-30T01:44:58.685Z', '2026-09-30T01:44:58.685Z', '2026-10-30T01:44:58.685Z', 1 ], types: [ 2950, 16, 21582, 1184, 1184, 1184, 1184, 20 ] }[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m9 passed[39m[22m[90m (10)[39m
+[2m   Start at [22m 09:44:56
+[2m   Duration [22m 2.46s[2m (transform 382ms, setup 0ms, collect 1.43s, tests 512ms, environment 0ms, prepare 216ms)[22m
+

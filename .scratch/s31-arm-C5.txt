@@ -1,0 +1,9 @@
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mscanCaveats（那两句"这一次看不全"分开说）[2m > [22m扫描触顶（`scanLimit` 的墙）：那句里的 N 从快照读，不是界面上硬写的数
+[31m[1mAssertionError[22m: expected [ '只数了前 1000 个' ] to deeply equal [ '只数了前 3 个' ][39m
+[32m- Expected[39m
+[31m+ Received[39m
+[32m-   "只数了前 3 个",[39m
+[31m+   "只数了前 1000 个",[39m
+    [90m193| [39m      [33m.[39m[34mtoEqual[39m([[32m'只数了前 3 个'[39m])[33m;[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m16 passed[39m[22m[90m (17)[39m

@@ -1,0 +1,56 @@
+
+> nexus@0.0.0 coverage:arms
+> tsx scripts/coverage-arms.mts
+
+codegen.ts（4 段没执行）
+  :251  "\"这条链（状态表说这个类型今天没接）\" : PIPELINE_NAMES[kindPipeline];"
+  :830  "name || \"未命名游戏\""
+  :842  "name || \"未命名游戏\""
+  :952  "name || \"未命名游戏\""
+
+combat.ts（21 段没执行）
+  :185  "throw new Error(`战斗调整不认识这个数值键：${statKey}`);"
+  :198  "return null;"
+  :200  "return null;"
+  :234  "return [];"
+  :238  "] : [];"
+  :244  "return null;"
+  :245  "return { entity: playerEntity, key: \"attackPower\" };"
+  :265  ""
+  :277  ""
+  :313  "return [];"
+  :357  ""
+  :369  ""
+  :488  "throw new Error(`战斗目标清单里没有 ${id}：判定与目标分叉了`);"
+  :497  ""
+  :514  "continue;"
+  :516  "continue;"
+  :563  "] ?? \"\""
+  :627  "stopReason = current.goals.every((goal) => goal.achieved) ? \"achieved\" : \"round-cap\";"
+  :691  "\"round-cap\" ? `轮次上限 ${COMBAT_RULES.maxRounds}` : "
+  :691  "\"not-runnable\" ? \"这份设计跑不起来\" : "
+  :672  "revertedBecause ?? \"\""
+
+level.ts（19 段没执行）
+  :284  "} 个可显示个体"
+  :376  "throw new Error(`布局目标清单里没有 ${id}：判定与目标分叉了`);"
+  :398  "1e-9 && Math.abs(to.y - thing.y) < 1e-9) "
+  :398  "return null;"
+  :400  "return null;"
+  :460  "return [];"
+  :463  "] : [];"
+  :475  "return [];"
+  :498  "return [];"
+  :502  "] : [];"
+  :520  "throw new Error(`布局写不进去（${item.entityName}.${key}=${value}）：${written.reason}`);"
+  :574  "] ?? \"\""
+  :591  ""
+  :641  ") ? \"achieved\" : "
+  :614  "label ?? id"
+  :730  ""
+  :742  "\"not-runnable\" ? \"这份设计跑不起来\" : "
+  :700  "} : null;"
+  :720  "revertedBecause ?? \"\""
+
+合计：1097 段、没执行过 44 段
+arms exit=0

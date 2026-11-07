@@ -1,0 +1,17 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+
+ [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22madoptScan（面板换读数的方向）[2m > [22m服务端送来更晚的一份：换掉手上这份，包括候选清空那种换法[32m 3[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22madoptScan（面板换读数的方向）[2m > [22m迟到的旧快照不许盖掉刚数出来的那份[32m 0[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22madoptScan（面板换读数的方向）[2m > [22m同一时刻的两份取后到的那份——refresh 送来的常是同一趟的读数，不能因为不比大小就停在旧引用上[32m 0[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22madoptScan（面板换读数的方向）[2m > [22m判的是时间不是数组长度：更长的一份如果是旧的，照样不接[32m 0[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mselectionOf / allCheckedOf / toggleId（勾选的范围）[2m > [22m没动过勾选 = 全勾这一屏；一行动过就只剩这一行[32m 1[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mselectionOf / allCheckedOf / toggleId（勾选的范围）[2m > [22m勾着的 id 里有已经不在新清单上的：那些自动作废，不许跟着请求一起发出去[32m 0[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mselectionOf / allCheckedOf / toggleId（勾选的范围）[2m > [22m空清单不算全选：按钮该是禁用的"收走这 0 个"，不是勾着的空范围[32m 0[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mselectionOf / allCheckedOf / toggleId（勾选的范围）[2m > [22m第一次取消勾选是从"全勾"里去掉这一行，不是变成"只勾这一行"[32m 0[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+[2m   Start at [22m 09:28:25
+[2m   Duration [22m 516ms[2m (transform 80ms, setup 0ms, collect 79ms, tests 7ms, environment 0ms, prepare 166ms)[22m
+

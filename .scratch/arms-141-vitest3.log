@@ -1,0 +1,22 @@
+判决名清单（源码派生）：24 条
+BASELINE vitest: 59/59 green, reds=[]
+VERDICT A-page-spells-it-again vitest: red=2/59 :: 产物的管线与这份设计标的那一型：错位要说出来，不许各写一遍 > 页面上那句链名只有一个写法：八型各生成一遍，那一格都出自 artifactChainSentence、第二条链：标了 RPG 原型的那份产物真的带成长循环 > README 那条成长披露与页面上那句链名都在，且随 rpg.ts 的导出变（哨兵数）
+SKIP A-page-spells-it-again parity（这一轮只跑 vitest）
+PREDICT A-page-spells-it-again: 该红 4 条（这一轮跑了 1 层）→ 漏 无 | 这一层没跑 2 条 | 预测外的红 无
+VERDICT B-step-spells-it-again vitest: red=3/59 :: §112 多步编排的执行方 > 第五格投影的是链末端那份：读数由测试自己重跑一遍生成器对出来，而且这一格不留草稿、§112 多步编排的执行方 > 另一条带了引擎的链（2D）也不许念错位：念的那一句是链名，两型各读各的、§112 多步编排的执行方 > 链上那份标的真是产物没接的那一型：错位那句话原样进 notes，计数跟着变 1
+PREDICT B-step-spells-it-again: 该红 3 条（这一轮跑了 1 层）→ 漏 无 | 这一层没跑 0 条 | 预测外的红 无
+SKIP C-growth-layer-decorative parity（这一轮只跑 vitest）
+PREDICT C-growth-layer-decorative: 该红 5 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 5 条 | 预测外的红 无
+SKIP G-engine-ignores-the-chain parity（这一轮只跑 vitest）
+PREDICT G-engine-ignores-the-chain: 该红 2 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 2 条 | 预测外的红 无
+SKIP D-rpg-payload-is-just-2d parity（这一轮只跑 vitest）
+PREDICT D-rpg-payload-is-just-2d: 该红 2 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 2 条 | 预测外的红 无
+VERDICT E-rpg-chain-un-carried vitest: red=12/59 :: §112 多步编排的执行方 > 第五格投影的是链末端那份：读数由测试自己重跑一遍生成器对出来，而且这一格不留草稿、§52 Code 出口：把库里那份设计投影成拿得走的产物 > 写进库的那份设计 → 产物与它逐字节对应：文件数、plan 里的实体、字节数都对上、§52 Code 出口：把库里那份设计投影成拿得走的产物 > 这一型读的就是产物那条链：响应里不许留一句空的警告、§52 最后一格：把设计投影成一份拿得走的产物 > 产物就是登记的那七份文件，每份都标了来历、§52 最后一格：把设计投影成一份拿得走的产物 > 来历标注跟着分派点走：rpg 指 compileRpg，2d 指 compileGame、产物的管线与这份设计标的那一型：错位要说出来，不许各写一遍 > 八型全过一遍：kindNote 为空当且仅当这一型在产物里真的带了引擎、产物的管线与这份设计标的那一型：错位要说出来，不许各写一遍 > 那一句话说清「错位」，而且三处念的是同一份字节、产物的管线与这份设计标的那一型：错位要说出来，不许各写一遍 > 换个类型就换一句话，而产物的文件清单还是那七份、第二条链：标了 RPG 原型的那份产物真的带成长循环 > 那段转写五个语义点一个都不许漏，而 2d 那份不带它、第二条链：标了 RPG 原型的那份产物真的带成长循环 > 成长那些数只在 plan.json 里定义一次，值从 rpg.ts 的导出来、第二条链：标了 RPG 原型的那份产物真的带成长循环 > 成长那几条限度走的是 plan.notes，不在产物代码里再抄一份、第二条链：标了 RPG 原型的那份产物真的带成长循环 > README 那条成长披露与页面上那句链名都在，且随 rpg.ts 的导出变（哨兵数）
+SKIP E-rpg-chain-un-carried parity（这一轮只跑 vitest）
+PREDICT E-rpg-chain-un-carried: 该红 17 条（这一轮跑了 1 层）→ 漏 无 | 这一层没跑 5 条 | 预测外的红 无
+SKIP F-panel-attr-hardwired e2e（这一轮只跑 vitest）
+PREDICT F-panel-attr-hardwired: 该红 1 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 1 条 | 预测外的红 无
+RESTORED packages/game-model/src/codegen.ts: byte-identical
+RESTORED apps/web/src/server/agent/runtime.ts: byte-identical
+RESTORED apps/web/src/studio/GameCodeExport.tsx: byte-identical
+VITEST_EXIT=0

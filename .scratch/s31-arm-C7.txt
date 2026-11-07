@@ -1,0 +1,5 @@
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 3 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+[31m[1mAssertionError[22m: expected [ '还有剩下的' ] to deeply equal [ '这一轮装不下，还有剩下的' ][39m
+[31m[1mAssertionError[22m: expected [ '还有剩下的' ] to deeply equal [ '只数了前 1000 个' ][39m
+[31m[1mAssertionError[22m: expected [ '还有剩下的' ] to deeply equal [ '这一轮装不下，还有剩下的', '只数了前 1000 个' ][39m
+[2m      Tests [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m14 passed[39m[22m[90m (17)[39m

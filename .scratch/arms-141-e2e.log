@@ -1,0 +1,8 @@
+BASELINE e2e: 1/1 green, reds=[]
+VERDICT F-panel-attr-hardwired e2e: red=1/1 :: E2E-FAILED :: expect(locator).toHaveAttribute(expected) failed
+PREDICT F-panel-attr-hardwired: 该红 1 条 → 漏 无 | 预测外的红 无
+RESTORED packages/game-model/src/codegen.ts: byte-identical
+RESTORED apps/web/src/server/agent/runtime.ts: byte-identical
+RESTORED apps/web/src/studio/GameCodeExport.tsx: byte-identical
+(node:14120) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)

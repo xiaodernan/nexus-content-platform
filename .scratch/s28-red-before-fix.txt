@@ -1,0 +1,14 @@
+    [90m200| [39m    [34mexpect[39m(statuses[33m.[39m[34mslice[39m([34m0[39m[33m,[39m [34m20[39m))[33m.[39m[34mtoEqual[39m([35mnew[39m [33mArray[39m([34m20[39m)[33m.[39m[34mfill[39m([32m'201'[39m))[33m;[39m
+    [90m201| [39m    [34mexpect[39m(statuses[33m.[39m[34mslice[39m([34m20[39m))[33m.[39m[34mtoEqual[39m([35mnew[39m [33mArray[39m([34m5[39m)[33m.[39m[34mfill[39m([32m'429'[39m))[33m;[39m
+    [90m   | [39m                               [31m^[39m
+    [90m202| [39m  })[33m;[39m
+    [90m203| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m9 failed[39m[22m[2m | [22m[1m[32m16 passed[39m[22m[90m (25)[39m
+[2m   Start at [22m 02:55:55
+[2m   Duration [22m 1.93s[2m (transform 629ms, setup 0ms, collect 769ms, tests 86ms, environment 0ms, prepare 313ms)[22m
+

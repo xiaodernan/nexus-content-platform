@@ -1,0 +1,18 @@
+
+Running 12 tests using 1 worker
+
+  ok  1 [chrome] › e2e\studio.spec.ts:85:5 › @smoke studio slice renders the model on canvas with DEMO MODE visible (4.2s)
+  ok  2 [chrome] › e2e\studio.spec.ts:100:5 › @smoke studio slice: select, edit a property, undo, autosave (9.7s)
+  ok  3 [chrome] › e2e\studio.spec.ts:139:5 › @smoke studio slice: server snapshot is created and restored through the database (15.4s)
+  ok  4 [chrome] › e2e\studio.spec.ts:191:5 › @smoke studio slice: branches keep each design direction and duplicate forks the project (26.7s)
+  ok  5 [chrome] › e2e\studio.spec.ts:280:5 › @smoke studio slice: 只看当前分支跟着当前那条线走 (9.7s)
+  ok  6 [chrome] › e2e\studio.spec.ts:337:5 › @smoke studio slice: variants generate side by side and combine into a new direction (55.6s)
+  ok  7 [chrome] › e2e\studio.spec.ts:434:5 › @smoke studio slice: publish pins the released snapshot behind a share URL (1.1m)
+  ok  8 [chrome] › e2e\studio.spec.ts:507:5 › @smoke 不刷新：发布的挡下与成功各自把状态走到终态（§163 × §57） (13.5s)
+  ok  9 [chrome] › e2e\studio.spec.ts:619:5 › @smoke studio slice: design system panel edits tokens and the canvas follows (11.8s)
+  ok 10 [chrome] › e2e\studio.spec.ts:699:5 › @smoke 属性面板的色标显示 token 解析后的真色（§12/§16） (3.8s)
+  ok 11 [chrome] › e2e\studio.spec.ts:727:5 › @smoke studio slice: AI command bar runs in DEMO MODE as one undoable transaction (7.3s)
+  ok 12 [chrome] › e2e\studio.spec.ts:802:5 › @smoke studio slice: mobile viewport reflows the same model (2.9s)
+
+  12 passed (3.9m)
+
