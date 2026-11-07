@@ -72,7 +72,9 @@ for (const c of resolvable) {
   for (const p of resolveToken(c.token).paths) if (!tracked.has(p)) untracked.add(`${p}  ← ${c.where}`);
 }
 
-console.log(`平面=${PLANE}（HEAD 干净 checkout，无 node_modules）`);
+console.log(
+  `平面=${PLANE}（${existsSync(join(PLANE, 'node_modules')) ? '有' : '无'} node_modules——无 = 真是 git worktree 出来的干净 checkout）`,
+);
 console.log(`腿1 人口：docs=${docs.length}（下限 50）· 点名出现=${cites.length}（下限 70）`);
 console.log(`腿3 解得出：${missing.length} 条点名在平面上查不到`);
 for (const m of missing.slice(0, 10)) console.log(`    缺 ${m.where} 点名 .scratch/${m.token}`);
