@@ -1298,17 +1298,18 @@ const vocab = (() => {
       'stake',
       'an undeclared status word no longer passes through unchanged — the face is inventing a sentence for a word the service never declared',
     );
-    // 11.17 — the MODERATION face RUN over its four declared words: each declared status
+    // 11.17 — the MODERATION face RUN over its four declared words: each declared reason
     // answers a non-empty sentence, the sentences are pairwise DISTINCT, and an undeclared
-    // status word passes through unchanged. Exact analogue of §11.15 (reason) and §11.16 (status),
+    // reason word passes through unchanged. Exact analogue of §11.15 (reason) and §11.16 (status),
     // applied to the moderation/desk face instead of the report bar/ reason/status faces.
-    const moderationFaceFn = reportFaces.model.moderationFace;
-    assert.equal(typeof moderationFaceFn, 'function', `${CLIENT_MODEL} no longer exports moderationFace — §11.17 has lost the face it grades, and the clauses above would be grading names`);
+    // The moderation desk re-exports reportReasonText from the owner module (ops.ts).
+    const moderationFaceFn = reportFaces.desk.reportReasonText;
+    assert.equal(typeof moderationFaceFn, 'function', `${CLIENT_MODEL} no longer exports reportReasonText — §11.17 has lost the face it grades, and the clauses above would be grading names`);
     const moderationSentences = vocab.serverReasons.map((reason) => ({ reason, sentence: moderationFaceFn(reason) }));
     for (const { reason, sentence } of moderationSentences) {
       assert.ok(
         typeof sentence === 'string' && sentence.length > 0,
-        `moderationFace answered "${sentence}" for the declared reason "${reason}" — an empty or non-string sentence is a reason the reader cannot see`,
+        `reportReasonText answered "${sentence}" for the declared reason "${reason}" — an empty or non-string sentence is a reason the reader cannot see`,
       );
     }
     const moderationDuplicateSentences = moderationSentences
