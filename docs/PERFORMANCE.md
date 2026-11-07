@@ -141,8 +141,7 @@ codegen 把 code-only 区域发成 JSX 里的字符串字面量（`packages/desi
   50 页 **135ms vs 13ms**（每页一次往返 ≈2.7ms，`nexus_regress` 同机探针）。改成一条
   `WHERE page_id IN (…)` 批量读 + 按 `page_id` 分组，`ORDER BY page_id, id` 保证页内键序不变。
   凭证：`load-document-identity` 2 条 + `document-*` 19 条 + `branches`/`snapshots` 18 条集成测全绿。
-- **画布侧没有虚拟化 / 增量渲染**：`resolveLayout` 每次改动重排整页（10k 节点 ≈ 98ms），
-  Studio 现在靠"一次只改一个节点"掩盖它；真正的 §147 要按视口裁剪 + 脏子树重排。
+- ~~**画布侧没有虚拟化 / 增量渲染**~~：**视口裁剪（DOM 虚拟化）已落地**（ADR-0064；`CANVAS_VIRTUALIZATION_THRESHOLD=400`，`data-canvas-virtualized` 徽标 + e2e `@smoke §147` 断言；2026-10-27 dev 档 1000/4000 节点画布 DOM 稳定在 18/34 个，图层树报全量但 DOM 窗口化）。**增量重解/脏子树复用**已接通（ADR-0049 根因修复、ADR-0064 三层防线；`runLayoutIncremental` + 测量缓存 token 指纹 + `layoutCache` 命中判据；模型层基准见 `scripts/perf-resolvelayout.mts`，深树 2.8–4.2×，10k 平铺 1.16×）。仍欠：生产构建 4000 档首帧/属性写入/选中读数（需 `next build`+`next start` perf 跑）；"增量渲染"在 React 层的更细粒度优化视实际瓶颈再做。
 - **没有 worker**：排版与体检都跑在主线程上。
 - **健康层全量重算**（`analyzeHealth`）：**2026-10-27 量了 10k 节点的分解**——
   `resolveLayout` 94ms / `validateDocument` 89ms / **`lintDesign` 184ms（最大头）** /
