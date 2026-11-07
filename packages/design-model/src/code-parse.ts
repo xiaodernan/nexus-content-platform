@@ -968,24 +968,48 @@ function decodeVariant(
   const topsV = takeUtility(list, "top");
   const absoluteV = consumeToken("absolute");
   const tierAbsolutelyPlaced = tierParentMode === "none" || tierParentMode === "stack";
+  // 这一档相对窄档由 absolute → 入流：`static` 顶掉窄档那条 absolute。这一档收到该 token 时，
+  // 语义是"该档不再绝对"——不回写任何键（模型里只有 absolute/stack 哪两档，没有 position: static 这个键），
+  // 以 checked 形式保留下来对自检透明（重投影会发同样类名）。
+  const staticV = consumeToken("static");
+  if (staticV) {
+    if (!tierAbsolutelyPlaced) {
+      out.checked.push("static");
+    } else {
+      // 父级依然 none/stack，消费 `static` 没有意义——md:static 会把子节点丢出流但父级不关流，
+      // 留在排版上就是回归。如实说明而不静默忽略。
+      note("static", `此档父级（${tierParentMode}）是自由定位逃生口：md:static 让子节点回到流，但父级不按流摆它`);
+    }
+  }
   if (tierAbsolutelyPlaced) {
     const position: { x?: number; y?: number } = {};
     const x = leftsV.all[0];
     const y = topsV.all[0];
+    const below = applyResponsiveBelow(node, breakpoint);
     if (x) {
       const n = numberOf(x.value);
-      if (n === null) note(x.literal, "断点 left 需要 px 数值");
-      else position.x = n;
+      if (n === null) {
+        note(x.literal, "断点 left 需要 px 数值");
+      } else if (below.position.x !== n) {
+        position.x = n;
+      } else {
+        // 这一档的 left 与窄档合出来的值一致 ⇒ 位置类是父级 flip 出来的绝对化，
+        // 不是子节点要盖的新值：保留 checked（类在这一档确实就长这样），但 patch 留空座。
+        out.checked.push(x.literal);
+      }
     }
     if (y) {
       const n = numberOf(y.value);
-      if (n === null) note(y.literal, "断点 top 需要 px 数值");
-      else position.y = n;
+      if (n === null) {
+        note(y.literal, "断点 top 需要 px 数值");
+      } else if (below.position.y !== n) {
+        position.y = n;
+      } else {
+        out.checked.push(y.literal);
+      }
     }
     if (Object.keys(position).length) {
       out.patch.position = position;
-      if (position.x !== undefined) out.checked.push(x!.literal);
-      if (position.y !== undefined) out.checked.push(y!.literal);
     }
     if (absoluteV) out.checked.push("absolute");
   } else if (absoluteV || leftsV.all.length || topsV.all.length) {

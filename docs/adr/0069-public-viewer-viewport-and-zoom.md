@@ -413,7 +413,8 @@
   与基线 `positionClasses` 同一判据。基线不 absolute 而这一档要 position 时，补发 `md:absolute`。
   回写侧 `decodeVariant` 现在也吃 `tierParentMode`（调用方把这一档投影后的父级模式传进），`absolute` 进 `checked`；
   父级不是自由定位逃生口时，这些类如实落在 unmapped，不静默当成位置回写（§16）。
-  见证：`codegen.test.ts`「断点位置发射……」、`code-parse.test.ts`「断点绝对定位往返……」（截至本片提交后 85 条全绿，回归面含 reverse/overflow/字重/字距等一轮一轮往返）。
+  见证：`codegen.test.ts`「断点位置发射……」「断点绝对化翻转……」、
+  `code-parse.test.ts`「断点绝对定位往返……」「断点绝对化往返 A/B……」（截至本片提交后 88 条全绿，回归面含 reverse/overflow/字重/字距等一轮一轮往返）。
 - **字重 / 行高 / 字距 / 大小写 / 装饰 / 对齐**：同一条判据，`md:font-*`/`md:leading-*`/
   `md:tracking-*`/`md:uppercase|lowercase|capitalize`/`md:underline|line-through`/`md:text-*` 的发射与回写。
   面板同步加了六行（`typography.fontWeight`/`typography.lineHeight`/`typography.letterSpacing`/`typography.textCase`/`typography.decoration`/`typography.align`），
@@ -421,13 +422,18 @@
 - **顺带**（上一片同属于这一档的收尾）：`layout.clipContent`/`layout.scroll` 两格也并入同一轮——
   `md:overflow-hidden`/`overflow-*-auto`/`overflow-visible`（取消更窄档 overflow 约束的那一刀：更窄那档没 overflow 约束时不发，更窄那档有时发 `md:overflow-visible` 并回写
   `{clipContent:false, scroll:"none"}`）。
-- 这轮之后，§14 的「键覆盖面」仍然欠：`position` 的面板输入口、`mode` 的 `stack`/`none`、
+- 这轮之后，§14 的「键覆盖面」仍然欠：`position` 的面板输入口、`mode` 的 `stack`/`none` 的**模型层**差量类
+  （`stack`/`none` 那个 mode 本身仍没有 display 类可发或被发——`md:flex-col` 那一阵类只对非绝对段有效）、
   `rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`typography` 的字族/垂直对齐、`style` 除填充与透明度——
   这些键《画布与访客》和《代码视图与 ZIP》仍然不同（§16）。
-- 另一个诚实记进来的边界：`mode` 的 `stack`/`none` 两档在响应式里**没有人发手写的变体类**——`stack`/`none` 本身就是
-  "子节点不再跟着 flex/grid flow，而是 absolute 自由定位"，它们对父级没有 display 类可以打；
-  真正变化的是**子节点**的摆放（绝对定位左/上）。今天画布读得到、访客也读得到这一档（同一份 `applyResponsive`），
-  但代码里没有办法只对这一档重投影子节点（`positionClasses` 不收 variant、`classOf` 也不收 tier）。
-  要打通这一刀，必须把 `tier` 参数下到 `positionClasses` 那一层——那是下一片的活，今天先把边界写进来。
+- **stack/none ↔ 绝对化**（第二刀，已落地）：`stack`/`none` 本身就是"子节点绝对定位"，代码里没有办法只对这一档
+  重投影**父级**，但可以对**子节点**投。实现：`classOf` 里加一层 `positionVariantClasses(node, parent, bp)`，
+  按 `PREV_BP` 链（`mobile→tablet→desktop→wide`，这一档 vs 上一档的对比）算差量——
+  窄档入流、这一档绝对 ⇒ `md:absolute` + `left/top` 类；窄档绝对、这一档入流 ⇒ `md:static` 顶掉窄档那条；
+  两档都绝对只在 x/y 有投影差时重发。回写侧 `decodeVariant` 对 `static` 静默消费 + 带条件 checked（父级仍是逃生口时不收，如实 unmapped），
+  left/top 数值只有与窄档 merged 出的下面一档不同时才写 patch（否则是父级 flip 投影出来的零补丁值，§19）。
+- **position 组回写改判据**（这一片的收尾）：`decodeVariant` 之前按"有 `md:left/top` 就写 `position` patch"——
+  那会把父级翻 `none` 时**子节点**的 base 定位类错写成一条自己根本没写、也不打算让动的 `position` patch。
+  现在与发射侧同一判据：类是不是从子节点自己的投影差里发过去的（`applyResponsiveBelow` 那一份）对上号，对得上就不写。
 
 

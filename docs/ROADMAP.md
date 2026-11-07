@@ -9067,12 +9067,11 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
 **第九片（2026-11-08）：断点位置（x/y）`md:`/`lg:`/`xl:` 三档发得出也读得回——父级仍是自由定位逃生口的判据**
 
 - 画布与访客此前就吃这一组键：mobile 靠基线投影生效，更宽那几档没有任何途径出类。现在
-  `responsiveClasses` 接下父级那一份投影（`applyResponsive(parent, breakpoint)`），只有父级在这一档
-  `none`/`stack` 时才发 `md:left-[…]`/`md:top-[…]`；基线不 absolute 而这一档要 position 时补发 `md:absolute`。
-- 回写侧 `decodeVariant` 第三入参（`tierParentMode`，调用方把这一档投影后的父级模式传进去）接上同一条
-  判据，`absolute`/`left`/`top` 都能进 `decodeVariant` 的清单里；父级不是自由定位逃生口时如实落 unmapped，
-  不静默当位置读（§16）。见证：`codegen.test.ts`「断点位置发射……」、`code-parse.test.ts`「断点绝对定位往返……」，
-  共 83 条全绿（含字重/行高那一轮）。
+  `classOf` 里加了 `positionVariantClasses(node, parent, bp)`，按 `PREV_BP` 链（`mobile→tablet→desktop→wide`，这一档 vs 上一档的对比）算差量——
+  窄档入流、这一档绝对 ⇒ `md:absolute` + `left/top` 类；窄档绝对、这一档入流 ⇒ `md:static` 顶掉窄档那条；两档都绝对仅在 x/y 有投影差时重发。回写侧 `decodeVariant` 的 position 组现在按与发射同一判据判（值与 `applyResponsiveBelow(node, breakpoint)` 对上就不写 patch——父级 flip 出来的 absolute 是零补丁类，不是子节点自己的值），`static` 静默消费 + 带条件 checked。
+- 子节点绝对化**不再依赖子节点自己带 position patch**——这一刀后，父级换 mode 的投影差量由子节点的 ClassNames 自己承担，与现有 `applyResponsive` 同一口径。
+- 见证：`codegen.test.ts`「断点位置发射……」「断点绝对化翻转……」、`code-parse.test.ts`「断点绝对定位往返……」「断点绝对化往返 A/B……」，
+  共 88 条全绿（回归面含 reverse/overflow/字重/字距等一轮一轮往返）；全模型层 486 条。
 
 **仍欠**
 
@@ -9087,7 +9086,7 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
 2. ~~某一档只声明 `{reverse:false}` 而更窄那档反向时发不出东西~~——**第八片已还**（2026-11-08）：
    发射侧在这种情况下重发一条正向方向类（`md:flex-col`），回写侧按同一条判据认领它，CSS 那一寸
    的跨档胜负与档内胜负都用真 Tailwind v4.3.3 + Chromium 量过（ADR-0069 第八片那节）。
-   还欠的换成下一层：`position`（x/y）面板输入口、`mode` 的 `stack`/`none`、
+   还欠的换成下一层：`position`（x/y）面板输入口、
    `rowGap`/`crossGap`（死字段——模型存了没人读，语义未定，见上面）、`typography` 的字族/垂直对齐、`style` 除填充与透明度。
 3. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
 4. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。

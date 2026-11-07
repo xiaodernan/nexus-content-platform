@@ -553,6 +553,69 @@ describe("Design → Code（§17-19）", () => {
     expect(transpileDiagnostics(file)).toEqual([]);
   });
 
+  it("断点绝对化翻转：父级 md 档变 none/horizontal 时子节点的 absolute/static（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const parent = createNode({
+      type: "section",
+      name: "FlipParent",
+      layout: { mode: "horizontal", gap: 8 },
+      size: { width: 400, height: 300 },
+    });
+    parent.parentId = root.id;
+    root.children = [parent.id];
+    page2.nodes[parent.id] = parent;
+    const child = createNode({
+      type: "section",
+      name: "FlipChild",
+      layout: { mode: "vertical", gap: 0 },
+      position: { x: 30, y: 60 },
+      size: { width: 80, height: 60 },
+    });
+    child.parentId = parent.id;
+    parent.children = [child.id];
+    page2.nodes[child.id] = child;
+    page2.nodes[parent.id] = {
+      ...page2.nodes[parent.id]!,
+      responsive: [{ breakpoint: "tablet", patch: { layout: { mode: "none" } } }],
+    };
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, child.id);
+    expect(tokens).toContain("md:absolute");
+    expect(tokens).toContain("md:left-[30px]");
+    expect(tokens).toContain("md:top-[60px]");
+
+    // 反向：base 是 none，md 把父级翻回 horizontal——`md:static` 顶掉窄档那条 absolute
+    const page3 = starterPage("Home");
+    const root3 = page3.nodes[page3.rootId]!;
+    const parent3 = createNode({
+      type: "section",
+      name: "RevertParent",
+      layout: { mode: "none", gap: 0 },
+      size: { width: 400, height: 300 },
+    });
+    parent3.parentId = root3.id;
+    root3.children = [parent3.id];
+    page3.nodes[parent3.id] = parent3;
+    const child3 = createNode({
+      type: "section",
+      name: "RevertChild",
+      layout: { mode: "vertical", gap: 0 },
+      position: { x: 30, y: 60 },
+      size: { width: 80, height: 60 },
+    });
+    child3.parentId = parent3.id;
+    parent3.children = [child3.id];
+    page3.nodes[child3.id] = child3;
+    page3.nodes[parent3.id] = {
+      ...page3.nodes[parent3.id]!,
+      responsive: [{ breakpoint: "tablet", patch: { layout: { mode: "horizontal" } } }],
+    };
+    const tokens3 = tokensOf(generatePageComponent(page3, {}, "Home").contents, child3.id);
+    expect(tokens3).toContain("absolute");
+    expect(tokens3).toContain("md:static");
+    expect(tokens3).not.toContain("md:absolute");
+  });
+
   it("three / webgl 节点保留占位容器并注明由 Runtime 承载（§50）", () => {
     const page2 = starterPage("Home");
     const root = page2.nodes[page2.rootId]!;

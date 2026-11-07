@@ -723,6 +723,80 @@ describe("类名 → 模型属性", () => {
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === child.id)).toEqual([]);
   });
 
+  it("断点绝对化往返 A（flex→none）：md:absolute + md:left/md:top 发得出也读得回，零补丁（§14）", () => {
+    const page = starterPage();
+    const root = nodeId(page, "Home");
+    const parent = createNode({
+      type: "section",
+      name: "FlipParent",
+      layout: { mode: "horizontal", gap: 8 },
+      size: { width: 400, height: 300 },
+    });
+    parent.parentId = root;
+    const rootNode = page.nodes[root]!;
+    rootNode.children = [parent.id];
+    page.nodes[parent.id] = parent;
+    const child = createNode({
+      type: "section",
+      name: "FlipChild",
+      layout: { mode: "vertical", gap: 0 },
+      position: { x: 30, y: 60 },
+      size: { width: 80, height: 60 },
+    });
+    child.parentId = parent.id;
+    parent.children = [child.id];
+    page.nodes[child.id] = child;
+    page.nodes[parent.id] = {
+      ...parent,
+      responsive: [{ breakpoint: "tablet", patch: { layout: { mode: "none" } } }],
+    };
+    const code = source(page);
+    const line = lineOf(code, child.id);
+    expect(line).toContain("md:absolute");
+    expect(line).toContain("md:left-[30px]");
+    expect(line).toContain("md:top-[60px]");
+    const result = parse(page, code);
+    expect(result.mappings.find((m) => m.nodeId === child.id)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === child.id)).toEqual([]);
+  });
+
+  it("断点绝对化往返 B（none→horizontal）：md:static 发得出也读得回，零补丁（§14）", () => {
+    const page = starterPage();
+    const root = nodeId(page, "Home");
+    const parent = createNode({
+      type: "section",
+      name: "RevertParent",
+      layout: { mode: "none", gap: 0 },
+      size: { width: 400, height: 300 },
+    });
+    parent.parentId = root;
+    const rootNode = page.nodes[root]!;
+    rootNode.children = [parent.id];
+    page.nodes[parent.id] = parent;
+    const child = createNode({
+      type: "section",
+      name: "RevertChild",
+      layout: { mode: "vertical", gap: 0 },
+      position: { x: 30, y: 60 },
+      size: { width: 80, height: 60 },
+    });
+    child.parentId = parent.id;
+    parent.children = [child.id];
+    page.nodes[child.id] = child;
+    page.nodes[parent.id] = {
+      ...parent,
+      responsive: [{ breakpoint: "tablet", patch: { layout: { mode: "horizontal" } } }],
+    };
+    const code = source(page);
+    const line = lineOf(code, child.id);
+    expect(line).toContain("absolute");
+    expect(line).toContain("md:static");
+    expect(line).not.toContain("md:absolute");
+    const result = parse(page, code);
+    expect(result.mappings.find((m) => m.nodeId === child.id)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === child.id)).toEqual([]);
+  });
+
   it("手机那一档的覆盖往返：发在基线上、读得回来、一个补丁都不发（§14 第五片）", () => {
     const page = starterPage();
     const hero = nodeId(page, "Hero");
