@@ -25,8 +25,13 @@
 //
 // Requires nothing but Node:  node docs/evidence/m9/trail-contract-proof.mjs
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
 import { javaRecordFields, tsInterfaceFields, assertSameFields } from './wire-fields.mjs';
+
+const require = createRequire(import.meta.url);
+const ts = require('typescript');
 
 const CONTROLLER = 'services/nexus-api/src/main/java/dev/nexus/api/ops/AuditController.java';
 const TRAIL_MODEL = 'apps/studio/src/lib/trail.ts';
@@ -113,4 +118,34 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
   console.log('[§5] the mutation was CAUGHT: renaming a wire field leaves the trail reading "assurance", which the service no longer sends');
 }
 
-console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — and the reader was shown to catch a rename");
+// ── §6 the trail's filter list is DERIVED from the verb table, not copied ───────────────────────────
+// A hand-copied list that happens to match today drifts silently when the service renames a verb.
+// TRAIL_FILTER_ACTIONS must be initialized from AUDIT_ACTIONS (imported from ops).
+{
+  const src = readFileSync(TRAIL_MODEL, 'utf8');
+  const sf = ts.createSourceFile(TRAIL_MODEL, src, ts.ScriptTarget.Latest, true);
+  let found = null;
+  const visit = (node) => {
+    if (ts.isVariableDeclaration(node) && node.name && node.name.getText(sf) === 'TRAIL_FILTER_ACTIONS') {
+      found = node;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  assert.ok(found, `${TRAIL_MODEL} does not declare TRAIL_FILTER_ACTIONS — the filter list the panel maps is missing`);
+  assert.ok(found.initializer, `${TRAIL_MODEL}'s TRAIL_FILTER_ACTIONS has no initializer`);
+  const usesAuditActions = (node) => {
+    if (ts.isIdentifier(node) && node.text === 'AUDIT_ACTIONS') return true;
+    let hit = false;
+    ts.forEachChild(node, (child) => { if (usesAuditActions(child)) hit = true; });
+    return hit;
+  };
+  assert.ok(
+    usesAuditActions(found.initializer),
+    `${TRAIL_MODEL}'s TRAIL_FILTER_ACTIONS is not initialized from AUDIT_ACTIONS — the filter row is a copy that can drift from the service's verbs`,
+  );
+  console.log('[§6] TRAIL_FILTER_ACTIONS is derived from AUDIT_ACTIONS (not a hand copy), so the filter row stays aligned with the service verbs');
+}
+
+console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — the reader was shown to catch a rename, and the trail's filter list is derived from the verb table");
