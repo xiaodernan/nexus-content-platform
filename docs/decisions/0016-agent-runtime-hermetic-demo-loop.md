@@ -13732,3 +13732,15 @@ This addendum GRANTS nothing and CORRECTS the record; the repair is amendment 51
 - **Bounds.** Distinctness is not correctness. No exact sentences pinned. No hosted contact claimed.
 
 - **CITES** amendments 549, 550, 537, 88 and §60; **GRANTS** amendment 565 / version v638 (re-checked free at this ref). Version label **v637** is the only label this landing mints.
+
+### Amendment 565 (v638, m9) — the reportBar reason face RUN over its four declared reasons: distinct sentences, no empty answer, and an undeclared reason passes through
+
+- **The gap.** §11.15/§11.17 ran the model's and desk's reason faces — but no clause RAN the reportBar's reason face over its own declaration and read the answer.
+
+- **The repair.** §11.25 calls `reportReasonText` — the shipped face from `reportBar.ts` via `loadShippedReportFaces` — over the four reasons `ReportDtos` declares, asserting non-empty, pairwise DISTINCT sentences and pass-through for undeclared (`'stake'`).
+
+- **Instrument readings (2026-11-08).** `node docs/evidence/m9/audit-contract-proof.mjs` — **exit 0**, **23 clause labels declared**, §11.25 green. `npm run verify:table-recount` — **exit 0**.
+
+- **Bounds.** Distinctness is not correctness. No exact sentences pinned. No hosted contact claimed.
+
+- **CITES** amendments 549, 550, 537, 88 and §60; **GRANTS** amendment 566 / version v639 (re-checked free at this ref). Version label **v638** is the only label this landing mints.

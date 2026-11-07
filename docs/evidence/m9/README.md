@@ -410,6 +410,18 @@ Measured: `apps/studio` **140 files / 2793 tests passed**, `ops.test.ts` **45**,
 
 **Files.** `docs/evidence/m9/audit-contract-proof.mjs` (§11.24) and this section. No `apps/studio` source changed.
 
+## v638 (ADR 0016 amendment 565) — the reportBar reason face RUN over its four declared reasons: distinct sentences, no empty answer, and an undeclared reason passes through
+
+- **The gap.** §11.15/§11.17 ran the model's and desk's reason faces — but no clause RAN the reportBar's reason face over its own declaration and read the answer.
+
+- **The repair.** §11.25 calls `reportReasonText` from `reportBar.ts` via `loadShippedReportFaces` over the four reasons `ReportDtos` declares, asserting non-empty, pairwise DISTINCT sentences and pass-through for undeclared (`'stake'`).
+
+- **Instrument readings (2026-11-08).** `node docs/evidence/m9/audit-contract-proof.mjs` — **exit 0**, **23 clause labels**, §11.25 green. `npm run verify:table-recount` — **exit 0**.
+
+- **Bounds.** Distinctness is not correctness. No exact sentences pinned. No hosted contact claimed.
+
+**Files.** `docs/evidence/m9/audit-contract-proof.mjs` (§11.25) and this section. No `apps/studio` source changed.
+
 ## v632 (ADR 0016 amendment 559) — the hosted claim drift face RUN over declared run numbers: distinct addresses, no empty answer, and an undeclared run number passes through
 
 - **The gap, named by 549's own Bounds.** 549 said it in the present tense: "no clause here requires them to be *right* … the run numbers are held by `evidence-census-proof.mjs`'s four cases and not by the gate." That was true of this proof: §11.7 pinned the face's declaration site, §11.9b pinned where run numbers are USED, §11.14 pinned the composer's derivation — but no clause RAN the hosted claim drift face over its own declaration and read the answer. A copy-paste giving two declared run numbers the same address would pass every clause above: each run number still had a sender, a reader, and a derivation, and a reader saw two identical lines where the service declared two different run numbers.
