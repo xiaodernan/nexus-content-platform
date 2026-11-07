@@ -229,4 +229,5 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
   console.log(`[§10] all ${wire.length} wire fields are required properties in auditServer.ts AuditEntry`);
 }
 
-console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — the reader was shown to catch a rename, the trail's filter list is derived from AUDIT_ACTIONS, AUDIT_ACTIONS is imported from the ops owner, the key face functions are exported, trail.ts has no local verb-table copy, and all wire fields are required properties in the server lane shape");
+console.log(`\n[summary] wire record ↔ trail shapes agree, field for field`);
+console.log(`the reader was shown to catch a rename; filter list derived from AUDIT_ACTIONS (ops owner); key faces exported; no local verb-table copy; all wire fields required in the server lane`);
