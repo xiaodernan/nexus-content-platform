@@ -59,7 +59,9 @@ const FONT_CANDIDATES = [
 
 export function findRenderFont(): string | undefined {
   for (const candidate of FONT_CANDIDATES) {
-    if (candidate && existsSync(candidate)) return candidate;
+    // 运行时探测系统字体路径：构建期无法静态限定它（可能在任意绝对路径），
+    // 显式拒绝让 Turbopack 把整个项目跟进服务端输出。
+    if (candidate && existsSync(/* turbopackIgnore: true */ candidate)) return candidate;
   }
   return undefined;
 }
