@@ -61,7 +61,7 @@ export function javaRecordFields(file, recordName) {
   if (!record) {
     throw new Error(`the record ${recordName} was not found in ${file} \u2014 the contract this proof grades has MOVED`);
   }
-  return record[1]
+  const out = record[1]
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
@@ -72,6 +72,10 @@ export function javaRecordFields(file, recordName) {
       }
       return { type: m[1], name: m[2] };
     });
+  if (out.length === 0) {
+    throw new Error(`the record ${recordName} in ${file} read zero fields — the wire contract this proof grades has MOVED or the reader is blind to this record's shape`);
+  }
+  return out;
 }
 
 /**
