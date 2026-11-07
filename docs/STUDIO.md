@@ -119,7 +119,7 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
   外加一颗「回设计尺寸」；点 tab 同时把画布切到那一档预览。每档摆得出哪些输入口**由内核现推**：
   `RESPONSIVE_CHANNELS` 里每条 `ChannelSpec.appliesTo(node, breakpoint)` 全过才上那一行——
   显示 / 宽 / 高 / 透明度 / 排布（`layout.mode`）/ 间距（`layout.gap`）/ 列数（`layout.columns`）/
-  主轴对齐（`layout.justify`）/ 交叉轴（`layout.items`）/ 顺序（`layout.reverse`）/ 裁剪（`layout.clipContent`）/ 滚动（`layout.scroll`）/ 字号（`typography.fontSize`）。
+  主轴对齐（`layout.justify`）/ 交叉轴（`layout.items`）/ 顺序（`layout.reverse`）/ 裁剪（`layout.clipContent`）/ 滚动（`layout.scroll`）/ 字号（`typography.fontSize`）/ 字重（`typography.fontWeight`）/ 行高（`typography.lineHeight`）。
   所以列数那一格
   **只在投影出来是网格的那一档**出现，对齐与顺序那三格反过来**只在投影出来是横排或竖排的那一档**出现
   （求解器的 grid / wrap 分支在用到 `justify`/`items`/`reverse` 之前就 return，那一档按下去什么都改不了；

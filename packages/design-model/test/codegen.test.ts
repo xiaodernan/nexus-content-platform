@@ -642,4 +642,23 @@ describe("Design → Code（§17-19）", () => {
     expect(tokens).toContain("md:overflow-visible");
     expect(tokens).toContain("lg:overflow-y-auto");
   });
+
+  it("断点字重/行高发射：typography patch 发出 font-*/leading-* 类（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "text", name: "TypoSlice", text: "字重行高" });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        { breakpoint: "tablet", patch: { typography: { fontWeight: 600, lineHeight: 1.8 } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:font-semibold");
+    expect(tokens).toContain("md:leading-[1.8]");
+  });
 });

@@ -528,6 +528,17 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
     }
     const fontSize = lengthClass(typography?.fontSize, prefix, (i) => `${variant}text-[${i}]`);
     if (fontSize) out.push(fontSize);
+    if (typography?.fontWeight !== undefined) {
+      const cls = WEIGHT_CLASS[typography.fontWeight] ?? `font-[${typography.fontWeight}]`;
+      out.push(`${variant}${cls}`);
+    }
+    if (typography?.lineHeight !== undefined) {
+      out.push(
+        typography.lineHeight === "auto"
+          ? `${variant}leading-normal`
+          : `${variant}leading-[${typography.lineHeight}]`,
+      );
+    }
     const gap = lengthClass(layout?.gap, prefix, (i) => `${variant}gap-[${i}]`);
     if (gap) out.push(gap);
     // 排布：display 那一组类取**这一档解出来**的排布（`applyResponsive` 把本档与更窄几档

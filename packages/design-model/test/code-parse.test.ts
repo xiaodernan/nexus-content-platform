@@ -635,6 +635,30 @@ describe("类名 → 模型属性", () => {
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
   });
 
+  it("断点字重/行高往返：发射与回写共用 font-*/leading-* 处方，往返零补丁（§14）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [
+            { breakpoint: "tablet", patch: { typography: { fontWeight: 600, lineHeight: 1.8 } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    expect(line).toContain("md:font-semibold");
+    expect(line).toContain("md:leading-[1.8]");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
   it("手机那一档的覆盖往返：发在基线上、读得回来、一个补丁都不发（§14 第五片）", () => {
     const page = starterPage();
     const hero = nodeId(page, "Hero");

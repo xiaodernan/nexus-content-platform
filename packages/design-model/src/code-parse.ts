@@ -767,6 +767,34 @@ function decodeVariant(
       out.checked.push(hit.literal);
     } else note(hit.literal, "断点覆盖暂不支持该 text-* 写法");
   }
+  // 字重 / 行高（§14）：与字号同组 `typography`，处方同基线（`WEIGHT_CLASS` · `leading-normal`）。
+  for (const hit of takeUtility(list, "leading").all) {
+    if (hit.value === "normal") {
+      typography.lineHeight = "auto";
+      out.checked.push(hit.literal);
+      continue;
+    }
+    const n = numberOf(hit.value);
+    if (n === null) note(hit.literal, "断点行高需要倍数数字（如 leading-[1.4]）");
+    else {
+      typography.lineHeight = n;
+      out.checked.push(hit.literal);
+    }
+  }
+  for (const hit of takeUtility(list, "font").all) {
+    const byName = WEIGHT_CLASS[hit.literal];
+    if (byName !== undefined) {
+      typography.fontWeight = byName;
+      out.checked.push(hit.literal);
+      continue;
+    }
+    const n = numberOf(hit.value);
+    if (n !== null && n >= 100 && n <= 900) {
+      typography.fontWeight = n;
+      out.checked.push(hit.literal);
+    }
+    // 其余 `font-*`（例如手写的字族）不收：如实落 unmapped 披露，不静默当字重读
+  }
   // 正向方向类（`md:flex-col`）在第八片之后可能说两件事：这一档的**排布**，以及「这一档不反向」。
   // 两件事各按自己的归属规矩收，判据与发射侧同一份（§14 第五/七/八片是同一条纪律的四次落地）：
   //  · `mode`：这一档自己声明过排布时收——发射侧就是按 `layout.mode !== undefined` 发这一组类的，

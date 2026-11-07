@@ -42,7 +42,9 @@ export type ResponsiveChannel =
   | 'layout.reverse'
   | 'layout.clipContent'
   | 'layout.scroll'
-  | 'typography.fontSize';
+  | 'typography.fontSize'
+  | 'typography.fontWeight'
+  | 'typography.lineHeight';
 
 export interface ResponsiveChoice {
   readonly value: string;
@@ -105,6 +107,12 @@ function cleanSize(value: unknown): Cleaned {
 const cleanOpacity = (value: unknown): Cleaned => (isFiniteNumber(value) ? Math.min(1, Math.max(0, value)) : REJECT);
 const cleanGap = (value: unknown): Cleaned => (isFiniteNumber(value) && value >= 0 ? Math.round(value) : REJECT);
 const cleanColumns = (value: unknown): Cleaned => (isFiniteNumber(value) && value >= 1 ? Math.floor(value) : REJECT);
+const cleanFontWeight = (value: unknown): Cleaned =>
+  isFiniteNumber(value) && value >= 100 && value <= 900 && Math.round(value / 100) * 100 === value
+    ? Math.round(value)
+    : REJECT;
+const cleanLineHeight = (value: unknown): Cleaned =>
+  isFiniteNumber(value) && value > 0 && value <= 10 ? value : REJECT;
 const cleanFontSize = (value: unknown): Cleaned => (isFiniteNumber(value) && value > 0 ? Math.round(value) : REJECT);
 
 /**
@@ -325,6 +333,32 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     step: 1,
     appliesTo: (node) => node.typography !== undefined,
     clean: cleanFontSize,
+  },
+  {
+    id: 'typography.fontWeight',
+    label: '字重',
+    group: 'typography',
+    key: 'fontWeight',
+    readPath: 'typography.fontWeight',
+    widget: 'number',
+    min: 100,
+    max: 900,
+    step: 100,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanFontWeight,
+  },
+  {
+    id: 'typography.lineHeight',
+    label: '行高',
+    group: 'typography',
+    key: 'lineHeight',
+    readPath: 'typography.lineHeight',
+    widget: 'number',
+    min: 0.5,
+    max: 10,
+    step: 0.05,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanLineHeight,
   },
 ];
 

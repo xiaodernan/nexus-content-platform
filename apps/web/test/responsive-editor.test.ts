@@ -525,6 +525,8 @@ describe('§14 面板读数与投影同源', () => {
     'layout.clipContent': { carrier: mkContainer, value: true },
     'layout.scroll': { carrier: mkContainer, value: 'vertical' },
     'typography.fontSize': { carrier: mkText, value: 28 },
+    'typography.fontWeight': { carrier: mkText, value: 700 },
+    'typography.lineHeight': { carrier: mkText, value: 1.8 },
   };
 
   it('每一个通道写一个非冗余值，impact 至少 1：不留"有规则但什么都没改"的那种规则', () => {
