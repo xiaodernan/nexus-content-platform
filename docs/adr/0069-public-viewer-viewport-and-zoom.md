@@ -413,7 +413,7 @@
   与基线 `positionClasses` 同一判据。基线不 absolute 而这一档要 position 时，补发 `md:absolute`。
   回写侧 `decodeVariant` 现在也吃 `tierParentMode`（调用方把这一档投影后的父级模式传进），`absolute` 进 `checked`；
   父级不是自由定位逃生口时，这些类如实落在 unmapped，不静默当成位置回写（§16）。
-  见证：`codegen.test.ts`「断点位置发射……」、`code-parse.test.ts`「断点绝对定位往返……」（83 条绿，回归面含 reverse 往返与 overflow 往返）。
+  见证：`codegen.test.ts`「断点位置发射……」、`code-parse.test.ts`「断点绝对定位往返……」（截至本片提交后 85 条全绿，回归面含 reverse/overflow/字重/字距等一轮一轮往返）。
 - **字重 / 行高 / 字距 / 大小写 / 装饰 / 对齐**：同一条判据，`md:font-*`/`md:leading-*`/
   `md:tracking-*`/`md:uppercase|lowercase|capitalize`/`md:underline|line-through`/`md:text-*` 的发射与回写。
   面板同步加了六行（`typography.fontWeight`/`typography.lineHeight`/`typography.letterSpacing`/`typography.textCase`/`typography.decoration`/`typography.align`），
