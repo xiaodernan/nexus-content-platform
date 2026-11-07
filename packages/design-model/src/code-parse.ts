@@ -878,6 +878,40 @@ function decodeVariant(
       out.checked.push(hit.literal);
     }
   }
+  // 裁剪 / 滚动（§14）：与基线同一组 overflow 类。`overflow-visible` 是响应式"取消"类，
+  // 仅在更窄那档有 overflow 约束时才有意义（与 reverse-cancel 同一判据形状）。
+  const consumeToken = (token: string): boolean => {
+    const at = list.indexOf(token);
+    if (at < 0) return false;
+    list.splice(at, 1);
+    return true;
+  };
+  if (consumeToken("overflow-hidden")) {
+    layout.clipContent = true;
+    out.checked.push("overflow-hidden");
+  } else if (consumeToken("overflow-y-auto")) {
+    layout.scroll = "vertical";
+    out.checked.push("overflow-y-auto");
+  } else if (consumeToken("overflow-x-auto")) {
+    layout.scroll = "horizontal";
+    out.checked.push("overflow-x-auto");
+  } else if (consumeToken("overflow-auto")) {
+    layout.scroll = "both";
+    out.checked.push("overflow-auto");
+  } else if (consumeToken("overflow-visible")) {
+    const narrowerOverflow =
+      narrower.layout.clipContent === true ||
+      (narrower.layout.scroll && narrower.layout.scroll !== "none");
+    if (narrowerOverflow) {
+      // 取消更窄那档的 overflow 约束：显式写回“无遮罩/不滚动”的模型状态
+      layout.clipContent = false;
+      layout.scroll = "none";
+      out.checked.push("overflow-visible");
+    } else {
+      // 更窄那档本来就没有 overflow 约束：这条类不改变投影，静默消费但不进 checked
+      //（进 checked 会要求重投影原样再现它，而这一档未声明时不会发 overflow-visible）
+    }
+  }
   if (Object.keys(size).length) out.patch.size = size;
   if (Object.keys(layout).length) out.patch.layout = layout;
   if (Object.keys(style).length) out.patch.style = style;
@@ -1449,6 +1483,12 @@ function decodeClasses(
   } else if (consume("overflow-auto")) {
     write("overflow-auto", "layout.scroll", "both");
     d.checked.push("overflow-auto");
+  } else if (consume("overflow-visible")) {
+    write("overflow-visible", "layout.clipContent", false);
+    if (node.layout.scroll && node.layout.scroll !== "none") {
+      write("overflow-visible", "layout.scroll", "none");
+    }
+    d.checked.push("overflow-visible");
   } else if (node.layout.clipContent) {
     write(null, "layout.clipContent", false);
   }

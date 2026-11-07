@@ -608,6 +608,33 @@ describe("类名 → 模型属性", () => {
     expect(reread.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
   });
 
+  it("断点裁剪/滚动往返：overflow 类发得出也读得回，取消更窄裁剪用 overflow-visible（§14）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const clipped: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          layout: { ...page.nodes[hero]!.layout, clipContent: true },
+          responsive: [
+            { breakpoint: "tablet", patch: { layout: { clipContent: false, scroll: "none" } } },
+            { breakpoint: "desktop", patch: { layout: { scroll: "vertical" } } },
+          ],
+        },
+      },
+    };
+    const code = source(clipped);
+    const line = lineOf(code, hero);
+    expect(line).toContain("overflow-hidden");
+    expect(line).toContain("md:overflow-visible");
+    expect(line).toContain("lg:overflow-y-auto");
+    const result = parse(clipped, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
   it("手机那一档的覆盖往返：发在基线上、读得回来、一个补丁都不发（§14 第五片）", () => {
     const page = starterPage();
     const hero = nodeId(page, "Hero");

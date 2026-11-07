@@ -620,4 +620,26 @@ describe("Design → Code（§17-19）", () => {
     // 文件名丢了页面名，所以归属必须由发射器标注，不能靠目录去猜
     expect(pageFile.origin).toEqual({ kind: "page", pageId: a.id, pageName: "结算页" });
   });
+
+  it("断点裁剪/滚动发射：clip/scroll 覆盖发 overflow 类，取消更窄裁剪发 overflow-visible（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({
+      type: "section",
+      name: "ClipScroll",
+      layout: { mode: "vertical", gap: 8, clipContent: true },
+      size: { width: 300, height: 200 },
+    });
+    node.responsive = [
+      { breakpoint: "tablet", patch: { layout: { clipContent: false, scroll: "none" } } },
+      { breakpoint: "desktop", patch: { layout: { scroll: "vertical" } } },
+    ];
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("overflow-hidden");
+    expect(tokens).toContain("md:overflow-visible");
+    expect(tokens).toContain("lg:overflow-y-auto");
+  });
 });

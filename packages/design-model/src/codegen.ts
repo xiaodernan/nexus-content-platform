@@ -600,6 +600,23 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
         : null;
       if (bg) out.push(bg);
     }
+    // 裁剪 / 滚动（§14）：与基线同一组 overflow 类、同一优先级（clipContent 优先于 scroll）。
+    // `clipContent:false` / `scroll:"none"` 本身不产生类，但若更窄那档真的有 overflow 约束，
+    // 需要用响应式 `overflow-visible` 顶掉它——否则 CSS 里没有"取消 overflow"的隐式手段。
+    const narrowerLayout = applyResponsiveBelow(node, rule.breakpoint).layout;
+    const narrowerOverflow =
+      narrowerLayout.clipContent === true || (narrowerLayout.scroll && narrowerLayout.scroll !== "none");
+    if (layout?.clipContent === true) {
+      out.push(`${variant}overflow-hidden`);
+    } else if (layout?.scroll === "vertical") {
+      out.push(`${variant}overflow-y-auto`);
+    } else if (layout?.scroll === "horizontal") {
+      out.push(`${variant}overflow-x-auto`);
+    } else if (layout?.scroll === "both") {
+      out.push(`${variant}overflow-auto`);
+    } else if ((layout?.clipContent === false || layout?.scroll === "none") && narrowerOverflow) {
+      out.push(`${variant}overflow-visible`);
+    }
     if (style?.opacity !== undefined) out.push(`${variant}opacity-[${style.opacity}]`);
     if (visible === false) out.push(`${variant}hidden`);
   }

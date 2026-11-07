@@ -522,6 +522,8 @@ describe('§14 面板读数与投影同源', () => {
       carrier: () => withLayout(mkContainer(), { mode: 'vertical', gap: 16 }),
       value: true,
     },
+    'layout.clipContent': { carrier: mkContainer, value: true },
+    'layout.scroll': { carrier: mkContainer, value: 'vertical' },
     'typography.fontSize': { carrier: mkText, value: 28 },
   };
 

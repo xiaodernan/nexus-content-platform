@@ -40,6 +40,8 @@ export type ResponsiveChannel =
   | 'layout.justify'
   | 'layout.items'
   | 'layout.reverse'
+  | 'layout.clipContent'
+  | 'layout.scroll'
   | 'typography.fontSize';
 
 export interface ResponsiveChoice {
@@ -146,6 +148,14 @@ const ITEMS_CHOICES: readonly ResponsiveChoice[] = (
 ).map((value) => ({ value, label: ITEMS_LABELS[value] }));
 const JUSTIFY_VALUES = new Set<string>(JUSTIFY_CHOICES.map((c) => c.value));
 const ITEMS_VALUES = new Set<string>(ITEMS_CHOICES.map((c) => c.value));
+
+const SCROLL_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'none', label: '不滚动' },
+  { value: 'vertical', label: '纵向' },
+  { value: 'horizontal', label: '横向' },
+  { value: 'both', label: '双向' },
+];
+const SCROLL_VALUES = new Set<string>(SCROLL_CHOICES.map((c) => c.value));
 
 const cleanAlign =
   (allowed: Set<string>) =>
@@ -279,6 +289,30 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     appliesTo: (node, breakpoint) => hasChildren(node) && alignableAt(node, breakpoint),
     clean: (value) => (typeof value === 'boolean' ? value : REJECT),
     absentAs: false,
+  },
+  {
+    id: 'layout.clipContent',
+    label: '裁剪',
+    group: 'layout',
+    key: 'clipContent',
+    readPath: 'layout.clipContent',
+    widget: 'toggle',
+    toggleLabels: ['可见', '裁剪'],
+    appliesTo: () => true,
+    clean: (value) => (typeof value === 'boolean' ? value : REJECT),
+    absentAs: false,
+  },
+  {
+    id: 'layout.scroll',
+    label: '滚动',
+    group: 'layout',
+    key: 'scroll',
+    readPath: 'layout.scroll',
+    widget: 'choice',
+    choices: SCROLL_CHOICES,
+    appliesTo: () => true,
+    clean: (value) => (typeof value === 'string' && SCROLL_VALUES.has(value) ? value : REJECT),
+    absentAs: 'none',
   },
   {
     id: 'typography.fontSize',
