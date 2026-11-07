@@ -16,8 +16,13 @@
 //
 // Requires nothing but Node:  node docs/evidence/m9/social-contract-proof.mjs
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
 import { javaRecordFields, tsInterfaceFields, assertSameFields } from './wire-fields.mjs';
+
+const require = createRequire(import.meta.url);
+const ts = require('typescript');
 
 const SOCIAL = 'services/nexus-api/src/main/java/dev/nexus/api/social';
 
@@ -65,7 +70,23 @@ for (const c of CONTRACTS) {
   assert.equal(createdAt.type, 'long', `the ${c.verb}'s instant travels as a long — epoch milliseconds, the client's own unit`);
   const client = tsInterfaceFields(c.client, c.clientShape);
   assert.ok(client.includes('createdAt'), `the ${c.verb}'s client shape has no createdAt — the two would be reading different clocks`);
-  console.log(`[§2] the ${c.verb}: the instant is a long (epoch ms) on the wire and a number on the client — the same unit on both sides`);
+  // createdAt must be required (not optional) in the client interface, matching the wire's non-nullable long.
+  const src = readFileSync(c.client, 'utf8');
+  const sf = ts.createSourceFile(c.client, src, ts.ScriptTarget.Latest, true);
+  let optional = null;
+  const visit = (node) => {
+    if (ts.isInterfaceDeclaration(node) && node.name.text === c.clientShape) {
+      for (const m of node.members) {
+        if (ts.isPropertySignature(m) && m.name && m.name.getText(sf) === 'createdAt') {
+          optional = !!m.questionToken;
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  assert.equal(optional, false, `the ${c.verb}'s client shape marks createdAt as optional — the wire always sends it as a long`);
+  console.log(`[§2] the ${c.verb}: the instant is a long (epoch ms) on the wire and a required number on the client — the same unit on both sides`);
 }
 
 // ── §3 it has been shown to FAIL ───────────────────────────────────────────────────────────────────
