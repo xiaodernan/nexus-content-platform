@@ -148,4 +148,31 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
   console.log('[§6] TRAIL_FILTER_ACTIONS is derived from AUDIT_ACTIONS (not a hand copy), so the filter row stays aligned with the service verbs');
 }
 
-console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — the reader was shown to catch a rename, and the trail's filter list is derived from the verb table");
+// ── §7 AUDIT_ACTIONS is imported from the ops owner module ──────────────────────────────────────────
+// The derivation in §6 is only as good as its source: AUDIT_ACTIONS must come from ops.ts (the single
+// owner reconciled with the service), not from a local copy or another module.
+{
+  const src = readFileSync(TRAIL_MODEL, 'utf8');
+  const sf = ts.createSourceFile(TRAIL_MODEL, src, ts.ScriptTarget.Latest, true);
+  let importsFromOps = false;
+  const visit = (node) => {
+    if (ts.isImportDeclaration(node) && node.moduleSpecifier && node.importClause) {
+      const spec = node.moduleSpecifier.text || '';
+      if (/(^|\/)ops$/.test(spec)) {
+        const bindings = node.importClause.namedBindings;
+        if (bindings && ts.isNamedImports(bindings)) {
+          if (bindings.elements.some((e) => e.name && e.name.text === 'AUDIT_ACTIONS')) importsFromOps = true;
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  assert.ok(
+    importsFromOps,
+    `${TRAIL_MODEL} does not import AUDIT_ACTIONS from an ops module — the verb table's owner is not the one the trail reads from`,
+  );
+  console.log('[§7] AUDIT_ACTIONS is imported from the ops owner module, so the trail reads the reconciled vocabulary');
+}
+
+console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — the reader was shown to catch a rename, the trail's filter list is derived from AUDIT_ACTIONS, and AUDIT_ACTIONS is imported from the ops owner");
