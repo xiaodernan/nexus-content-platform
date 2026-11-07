@@ -222,24 +222,33 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
   console.log('[§9] trail.ts does not declare a local AUDIT_ACTIONS copy (it imports from the owner)');
 }
 
-// ── §10 createdAt is required in the server lane's shape (matches wire's non-nullable long) ───────
-// TrailEntry is the trail's loose parsing input (fields may be unknown/optional during validation);
-// AuditEntry in auditServer.ts is the typed wire shape and must require createdAt like the service.
+// ── §10 all wire fields are required properties in the server lane's shape ───────────────────────
+// The service always sends all 7 fields (actorId/assurance may be null, but the properties are present).
+// TrailEntry is the trail's loose parsing input (unknown/optional during validation); AuditEntry in
+// auditServer.ts is the typed wire shape and must require every field.
 {
   const src = readFileSync(SERVER_LANE, 'utf8');
   const sf = ts.createSourceFile(SERVER_LANE, src, ts.ScriptTarget.Latest, true);
-  let optional = null;
+  const wire = javaRecordFields(CONTROLLER, 'Entry').map((f) => f.name);
+  const missing = [];
+  const optional = [];
   const visit = (node) => {
     if (ts.isInterfaceDeclaration(node) && node.name.text === 'AuditEntry') {
+      const props = new Map();
       for (const m of node.members) {
-        if (ts.isPropertySignature(m) && m.name && m.name.getText(sf) === 'createdAt') optional = !!m.questionToken;
+        if (ts.isPropertySignature(m) && m.name) props.set(m.name.getText(sf), !!m.questionToken);
+      }
+      for (const name of wire) {
+        if (!props.has(name)) missing.push(name);
+        else if (props.get(name)) optional.push(name);
       }
     }
     ts.forEachChild(node, visit);
   };
   visit(sf);
-  assert.equal(optional, false, `${SERVER_LANE} AuditEntry.createdAt must be required (the wire sends it as a non-nullable long)`);
-  console.log('[§10] createdAt is required in auditServer.ts AuditEntry (matches the wire instant)');
+  assert.deepEqual(missing, [], `${SERVER_LANE} AuditEntry is missing wire field(s): ${missing.join(', ')}`);
+  assert.deepEqual(optional, [], `${SERVER_LANE} AuditEntry marks wire field(s) optional: ${optional.join(', ')} — the service always sends them`);
+  console.log(`[§10] all ${wire.length} wire fields are required properties in auditServer.ts AuditEntry`);
 }
 
-console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — the reader was shown to catch a rename, the trail's filter list is derived from AUDIT_ACTIONS, AUDIT_ACTIONS is imported from the ops owner, the key face functions are exported, trail.ts has no local verb-table copy, and createdAt is required in the server lane shape");
+console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — the reader was shown to catch a rename, the trail's filter list is derived from AUDIT_ACTIONS, AUDIT_ACTIONS is imported from the ops owner, the key face functions are exported, trail.ts has no local verb-table copy, and all wire fields are required properties in the server lane shape");
