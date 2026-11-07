@@ -518,7 +518,10 @@ describe('§14 面板读数与投影同源', () => {
       value: 'center',
     },
     // 顺序这一格只在自动布局（横排 / 竖排）上摆得出来：网格与换行档读完什么都不改
-    'layout.reverse': { carrier: () => withLayout(mkContainer(), { mode: 'horizontal' }), value: true },
+    'layout.reverse': {
+      carrier: () => withLayout(mkContainer(), { mode: 'vertical', gap: 16 }),
+      value: true,
+    },
     'typography.fontSize': { carrier: mkText, value: 28 },
   };
 
@@ -553,5 +556,73 @@ describe('§14 面板读数与投影同源', () => {
     // 而 hug/fill 这两个关键字是合法覆盖值，写进去就是把数字换成关键字
     const hugged = withResponsiveValue({ ...bound, responsive: authored }, 'mobile', 'size.width', 'hug');
     expect(rule(hugged, 'mobile')!.patch).toEqual({ size: { width: 'hug' } });
+  });
+});
+
+describe('§14 第八片：「顺序」那一格——反向有了输入口，取消反向也存得下来', () => {
+  /** 设计值就是正序的横排容器，级联底下没有任何反向可顶 */
+  const forward = () => withLayout(mkContainer(), { mode: 'horizontal', gap: 16 });
+
+  it('这一格跟着这一档解出来的排布走：自动布局摆得出，网格档收回', () => {
+    const atGrid = withLayout(mkContainer(), { mode: 'grid', columns: 2 });
+    expect(
+      responsiveChannelsFor(atGrid, 'tablet').map((s) => s.id),
+      '网格档按下去什么都不改，这一格不摆（§159）'
+    ).not.toContain('layout.reverse');
+    expect(responsiveChannelsFor(forward(), 'tablet').map((s) => s.id)).toContain('layout.reverse');
+    // 与发射侧、求解器同一个判据：那一档解成网格时代码也不发方向类
+    const toGrid = withResponsiveValue(forward(), 'tablet', 'layout.mode', 'grid');
+    expect(
+      responsiveChannelsFor({ ...forward(), responsive: toGrid }, 'tablet').map((s) => s.id),
+      '这一档自己翻成网格，反向那格跟着主轴对齐一起收回'
+    ).not.toContain('layout.reverse');
+  });
+
+  it('写「反向」：一条规则、一处投影，撤销那一格只抹这一格', () => {
+    const node = forward();
+    const rules = withResponsiveValue(node, 'tablet', 'layout.reverse', true);
+    expect(rule(rules, 'tablet')!.patch).toEqual({ layout: { reverse: true } });
+    const shaped = { ...node, responsive: rules };
+    expect(responsiveImpactOf(shaped, 'tablet')).toBe(1);
+    expect(responsiveImpactDetailOf(shaped, 'tablet').outsidePanel, '这一格现在有输入口了').toEqual([]);
+    const cleared = withoutResponsiveChannel(shaped, 'tablet', 'layout.reverse');
+    expect(cleared, '清掉这一格，这一档的规则整个走').toEqual([]);
+  });
+
+  it('取消更窄那档的反向：这一档真顶掉了东西，存下来并算一处投影', () => {
+    const reversedAtMobile = withRules(forward(), [
+      { breakpoint: 'mobile', patch: { layout: { reverse: true } } },
+    ]);
+    expect(projectedValueOf(reversedAtMobile, 'tablet', 'layout.reverse'), 'tablet 继承手机那条反向').toBe(true);
+    const shaped = {
+      ...reversedAtMobile,
+      responsive: withResponsiveValue(reversedAtMobile, 'tablet', 'layout.reverse', false),
+    };
+    expect(rule(shaped.responsive!, 'tablet')!.patch, '冗余判据吃的是这一档的投影，不是设计值').toEqual({
+      layout: { reverse: false },
+    });
+    expect(responsiveImpactOf(shaped, 'tablet')).toBe(1);
+    expect(projectedValueOf(shaped, 'tablet', 'layout.reverse')).toBe(false);
+    expect(projectedValueOf(shaped, 'mobile', 'layout.reverse'), '手机那一档没被这一条改动').toBe(true);
+    // 设计档没写这个键，而"没写"在这一格就是正序（`absentAs`）：读数不说"默认"这种没法按的话
+    expect(designValueOf(shaped, 'layout.reverse')).toBe(false);
+  });
+
+  it('这一档本来正序：写「正序」一条规则都不存（发不出的键也不收，与代码那一侧同一判据）', () => {
+    const node = forward();
+    expect(withResponsiveValue(node, 'tablet', 'layout.reverse', false), '什么都没写').toEqual([]);
+    const shaped = withRules(node, [{ breakpoint: 'tablet', patch: { layout: { gap: 8 } } }]);
+    // 同档别的键不能被这一刀抹掉：写正序是冗余的 ⇒ 那条 gap 还在，reverse 不在
+    expect(withResponsiveValue(shaped, 'tablet', 'layout.reverse', false)).toEqual(
+      shaped.responsive,
+    );
+    expect(rule(shaped.responsive!, 'tablet')!.patch).toEqual({ layout: { gap: 8 } });
+  });
+
+  it('非布尔的取值不当"改成 false"处理：一条事务都不产生', () => {
+    const node = forward();
+    for (const bad of ['true', 1, null, undefined, {}]) {
+      expect(json(withResponsiveValue(node, 'tablet', 'layout.reverse', bad)), JSON.stringify(bad)).toEqual('[]');
+    }
   });
 });
