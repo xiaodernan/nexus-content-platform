@@ -13744,3 +13744,15 @@ This addendum GRANTS nothing and CORRECTS the record; the repair is amendment 51
 - **Bounds.** Distinctness is not correctness. No exact sentences pinned. No hosted contact claimed.
 
 - **CITES** amendments 549, 550, 537, 88 and §60; **GRANTS** amendment 566 / version v639 (re-checked free at this ref). Version label **v638** is the only label this landing mints.
+
+### Amendment 566 (v639, m9) — the trail action color face RUN over its nine declared verbs: distinct values, no empty answer, and an undeclared verb passes through
+
+- **The gap.** §11.20/§11.23/§11.24 ran trail text faces — but no clause RAN the trailActionColorVar face over its own declaration and read the answer.
+
+- **The repair.** §11.26 calls `trailActionColorVar` from `trail.ts` via `loadShippedReportFaces` over the nine verbs `AuditService.ACTIONS` declares, asserting non-empty, pairwise DISTINCT values and pass-through for undeclared (`'stake'`).
+
+- **Instrument readings (2026-11-08).** `node docs/evidence/m9/audit-contract-proof.mjs` — **exit 0**, **24 clause labels declared**, §11.26 green. `npm run verify:table-recount` — **exit 0**.
+
+- **Bounds.** Distinctness is not a visual/accessibility guarantee. The clause does not pin exact color values. No hosted contact is claimed.
+
+- **CITES** amendments 549, 550, 537, 88 and §60; **GRANTS** amendment 567 / version v640 (re-checked free at this ref). Version label **v639** is the only label this landing mints.

@@ -422,6 +422,18 @@ Measured: `apps/studio` **140 files / 2793 tests passed**, `ops.test.ts` **45**,
 
 **Files.** `docs/evidence/m9/audit-contract-proof.mjs` (§11.25) and this section. No `apps/studio` source changed.
 
+## v639 (ADR 0016 amendment 566) — the trail action color face RUN over its nine declared verbs: distinct values, no empty answer, and an undeclared verb passes through
+
+- **The gap.** §11.20/§11.23/§11.24 ran trail text faces — but no clause RAN the trailActionColorVar face over its own declaration and read the answer.
+
+- **The repair.** §11.26 calls `trailActionColorVar` from `trail.ts` via `loadShippedReportFaces` over the nine verbs `AuditService.ACTIONS` declares, asserting non-empty, pairwise DISTINCT values and pass-through for undeclared (`'stake'`).
+
+- **Instrument readings (2026-11-08).** `node docs/evidence/m9/audit-contract-proof.mjs` — **exit 0**, **24 clause labels**, §11.26 green. `npm run verify:table-recount` — **exit 0**.
+
+- **Bounds.** Distinctness is not a visual/accessibility guarantee. No exact color values pinned. No hosted contact claimed.
+
+**Files.** `docs/evidence/m9/audit-contract-proof.mjs` (§11.26) and this section. No `apps/studio` source changed.
+
 ## v632 (ADR 0016 amendment 559) — the hosted claim drift face RUN over declared run numbers: distinct addresses, no empty answer, and an undeclared run number passes through
 
 - **The gap, named by 549's own Bounds.** 549 said it in the present tense: "no clause here requires them to be *right* … the run numbers are held by `evidence-census-proof.mjs`'s four cases and not by the gate." That was true of this proof: §11.7 pinned the face's declaration site, §11.9b pinned where run numbers are USED, §11.14 pinned the composer's derivation — but no clause RAN the hosted claim drift face over its own declaration and read the answer. A copy-paste giving two declared run numbers the same address would pass every clause above: each run number still had a sender, a reader, and a derivation, and a reader saw two identical lines where the service declared two different run numbers.
