@@ -194,10 +194,10 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
     ts.forEachChild(node, visit);
   };
   visit(sf);
-  for (const name of ['trailActionText', 'trailFilterCaption', 'trailFilterHint', 'trailActionColorVar']) {
-    assert.ok(exported.has(name), `${TRAIL_MODEL} does not export ${name} — the face function the panels and proofs rely on is missing`);
+  for (const name of ['trailActionText', 'trailFilterCaption', 'trailFilterHint', 'trailActionColorVar', 'toTrailRow', 'toTrailRows', 'trailSummaryOf']) {
+    assert.ok(exported.has(name), `${TRAIL_MODEL} does not export ${name} — the function the panels and proofs rely on is missing`);
   }
-  console.log('[§8] trail.ts exports trailActionText, trailFilterCaption, trailFilterHint, trailActionColorVar (the key face functions)');
+  console.log('[§8] trail.ts exports the key face and row/summary functions (trailActionText, trailFilterCaption, trailFilterHint, trailActionColorVar, toTrailRow, toTrailRows, trailSummaryOf)');
 }
 
 // ── §9 trail.ts does not declare its own AUDIT_ACTIONS copy ────────────────────────────────────────
