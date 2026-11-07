@@ -28,7 +28,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, assertSameFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, assertSameFields } from './wire-fields.mjs';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
@@ -179,21 +179,7 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
 // trailActionText, trailFilterCaption, trailFilterHint are the faces graded by audit-contract's RUN
 // checks; they must exist as exports so the contract proofs and panels can read them.
 {
-  const src = readFileSync(TRAIL_MODEL, 'utf8');
-  const sf = ts.createSourceFile(TRAIL_MODEL, src, ts.ScriptTarget.Latest, true);
-  const exported = new Set();
-  const visit = (node) => {
-    if (ts.isFunctionDeclaration(node) && node.name && node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) {
-      exported.add(node.name.text);
-    }
-    if (ts.isVariableStatement(node) && node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) {
-      for (const d of node.declarationList.declarations) {
-        if (d.name && ts.isIdentifier(d.name)) exported.add(d.name.text);
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sf);
+  const exported = tsExportedFunctionNames(TRAIL_MODEL);
   for (const name of ['trailActionText', 'trailFilterCaption', 'trailFilterHint', 'trailActionColorVar', 'toTrailRow', 'toTrailRows', 'trailSummaryOf']) {
     assert.ok(exported.has(name), `${TRAIL_MODEL} does not export ${name} — the function the panels and proofs rely on is missing`);
   }

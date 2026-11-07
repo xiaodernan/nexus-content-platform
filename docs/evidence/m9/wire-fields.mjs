@@ -19,6 +19,25 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
 
+export function tsExportedFunctionNames(file) {
+  const src = readFileSync(file, 'utf8');
+  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true);
+  const out = new Set();
+  const visit = (node) => {
+    if (ts.isFunctionDeclaration(node) && node.name && node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) {
+      out.add(node.name.text);
+    }
+    if (ts.isVariableStatement(node) && node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) {
+      for (const d of node.declarationList.declarations) {
+        if (d.name && ts.isIdentifier(d.name)) out.add(d.name.text);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return out;
+}
+
 /**
  * The field names of a Java `record`, read out of the source.
  *
