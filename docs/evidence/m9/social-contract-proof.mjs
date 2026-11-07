@@ -64,29 +64,33 @@ for (const c of CONTRACTS) {
 // `long`s of milliseconds. A service that sent SECONDS would answer with instants 53817 years out, and
 // a client that read milliseconds as seconds would answer with instants in 1970 — so the unit is
 // checked, not assumed.
+const JAVA_PRIMITIVES = new Set(['long', 'int', 'boolean', 'double', 'float', 'short', 'byte', 'char']);
 for (const c of CONTRACTS) {
-  const createdAt = javaRecordFields(c.service, c.record).find((f) => f.name === 'createdAt');
+  const wireFields = javaRecordFields(c.service, c.record);
+  const createdAt = wireFields.find((f) => f.name === 'createdAt');
   assert.ok(createdAt, `the ${c.verb}'s wire record has no createdAt — the proof must know how to read it`);
   assert.equal(createdAt.type, 'long', `the ${c.verb}'s instant travels as a long — epoch milliseconds, the client's own unit`);
   const client = tsInterfaceFields(c.client, c.clientShape);
   assert.ok(client.includes('createdAt'), `the ${c.verb}'s client shape has no createdAt — the two would be reading different clocks`);
-  // createdAt must be required (not optional) in the client interface, matching the wire's non-nullable long.
+  // Primitive wire fields (long/int/boolean/...) are non-nullable; their TS properties must be required.
   const src = readFileSync(c.client, 'utf8');
   const sf = ts.createSourceFile(c.client, src, ts.ScriptTarget.Latest, true);
-  let optional = null;
+  const props = new Map();
   const visit = (node) => {
     if (ts.isInterfaceDeclaration(node) && node.name.text === c.clientShape) {
       for (const m of node.members) {
-        if (ts.isPropertySignature(m) && m.name && m.name.getText(sf) === 'createdAt') {
-          optional = !!m.questionToken;
-        }
+        if (ts.isPropertySignature(m) && m.name) props.set(m.name.getText(sf), !!m.questionToken);
       }
     }
     ts.forEachChild(node, visit);
   };
   visit(sf);
-  assert.equal(optional, false, `the ${c.verb}'s client shape marks createdAt as optional — the wire always sends it as a long`);
-  console.log(`[§2] the ${c.verb}: the instant is a long (epoch ms) on the wire and a required number on the client — the same unit on both sides`);
+  for (const f of wireFields) {
+    if (JAVA_PRIMITIVES.has(f.type)) {
+      assert.equal(props.get(f.name), false, `the ${c.verb}'s client shape marks ${f.name} optional, but the wire sends it as a non-nullable ${f.type}`);
+    }
+  }
+  console.log(`[§2] the ${c.verb}: the instant is a long (epoch ms) on the wire and required in the client; all primitive wire fields are required`);
 }
 
 // ── §3 it has been shown to FAIL ───────────────────────────────────────────────────────────────────
