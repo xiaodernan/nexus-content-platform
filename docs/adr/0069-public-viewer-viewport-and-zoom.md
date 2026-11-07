@@ -422,7 +422,12 @@
   `md:overflow-hidden`/`overflow-*-auto`/`overflow-visible`（取消更窄档 overflow 约束的那一刀：更窄那档没 overflow 约束时不发，更窄那档有时发 `md:overflow-visible` 并回写
   `{clipContent:false, scroll:"none"}`）。
 - 这轮之后，§14 的「键覆盖面」仍然欠：`position` 的面板输入口、`mode` 的 `stack`/`none`、
-  `rowGap`/`crossGap`、`typography` 的字族/垂直对齐、`style` 除填充与透明度——
+  `rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`typography` 的字族/垂直对齐、`style` 除填充与透明度——
   这些键《画布与访客》和《代码视图与 ZIP》仍然不同（§16）。
+- 另一个诚实记进来的边界：`mode` 的 `stack`/`none` 两档在响应式里**没有人发手写的变体类**——`stack`/`none` 本身就是
+  "子节点不再跟着 flex/grid flow，而是 absolute 自由定位"，它们对父级没有 display 类可以打；
+  真正变化的是**子节点**的摆放（绝对定位左/上）。今天画布读得到、访客也读得到这一档（同一份 `applyResponsive`），
+  但代码里没有办法只对这一档重投影子节点（`positionClasses` 不收 variant、`classOf` 也不收 tier）。
+  要打通这一刀，必须把 `tier` 参数下到 `positionClasses` 那一层——那是下一片的活，今天先把边界写进来。
 
 
