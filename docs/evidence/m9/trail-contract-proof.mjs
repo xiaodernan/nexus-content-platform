@@ -175,4 +175,29 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
   console.log('[§7] AUDIT_ACTIONS is imported from the ops owner module, so the trail reads the reconciled vocabulary');
 }
 
-console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — the reader was shown to catch a rename, the trail's filter list is derived from AUDIT_ACTIONS, and AUDIT_ACTIONS is imported from the ops owner");
+// ── §8 the trail exports the key face functions the panels rely on ─────────────────────────────────
+// trailActionText, trailFilterCaption, trailFilterHint are the faces graded by audit-contract's RUN
+// checks; they must exist as exports so the contract proofs and panels can read them.
+{
+  const src = readFileSync(TRAIL_MODEL, 'utf8');
+  const sf = ts.createSourceFile(TRAIL_MODEL, src, ts.ScriptTarget.Latest, true);
+  const exported = new Set();
+  const visit = (node) => {
+    if (ts.isFunctionDeclaration(node) && node.name && node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) {
+      exported.add(node.name.text);
+    }
+    if (ts.isVariableStatement(node) && node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) {
+      for (const d of node.declarationList.declarations) {
+        if (d.name && ts.isIdentifier(d.name)) exported.add(d.name.text);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  for (const name of ['trailActionText', 'trailFilterCaption', 'trailFilterHint', 'trailActionColorVar']) {
+    assert.ok(exported.has(name), `${TRAIL_MODEL} does not export ${name} — the face function the panels and proofs rely on is missing`);
+  }
+  console.log('[§8] trail.ts exports trailActionText, trailFilterCaption, trailFilterHint, trailActionColorVar (the key face functions)');
+}
+
+console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — the reader was shown to catch a rename, the trail's filter list is derived from AUDIT_ACTIONS, AUDIT_ACTIONS is imported from the ops owner, and the key face functions are exported");
