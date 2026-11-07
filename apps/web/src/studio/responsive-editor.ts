@@ -79,6 +79,13 @@ export interface ChannelSpec {
   readonly appliesTo: (node: DesignNode, breakpoint: BreakpointName) => boolean;
   /** 面板发来的原始值 → 能写进 patch 的值；认不出的给 REJECT，一条事务都不产生 */
   readonly clean: (value: unknown) => Cleaned;
+  /**
+   * 这个键在模型里**没写**时投影成什么。`layout.reverse` 没写就是正序（求解器读的是
+   * `node.layout.reverse === true`），而 `applyResponsive` 不会凭空补这个键——不做这层归一，
+   * 「这一档本来正序」读成 `undefined`，写「正序」就被当成一处改动存下来，画布一动不动而徽标说改过
+   * （§159）。没给的通道按 `undefined` 处理，即"没写就是没写"。
+   */
+  readonly absentAs?: unknown;
 }
 
 type Cleaned = number | string | boolean | typeof REJECT;
@@ -271,6 +278,7 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     // 方向类），所以"面板摆得出"与"发得出来、读得回来"是同一寸。
     appliesTo: (node, breakpoint) => hasChildren(node) && alignableAt(node, breakpoint),
     clean: (value) => (typeof value === 'boolean' ? value : REJECT),
+    absentAs: false,
   },
   {
     id: 'typography.fontSize',
@@ -295,6 +303,18 @@ function specOf(channel: ResponsiveChannel): ChannelSpec {
 }
 
 const sameValue = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * 这个节点在这条路径上**投影**成什么：模型里没写这个键时，按通道自己声明的 `absentAs` 算。
+ * 读、写、徽标三处都走这里，所以"这一档本来的值"只有一份口径——`layout.reverse` 没写就是正序，
+ * 不是"没值"；否则面板会把一次什么都不改的点击存成一条规则，徽标跟着说谎（§159）。
+ */
+function effectiveAt(node: DesignNode, readPath: string): unknown {
+  const raw = getByPath(node, readPath);
+  if (raw !== undefined) return raw;
+  const spec = RESPONSIVE_CHANNELS.find((c) => c.readPath === readPath);
+  return spec?.absentAs;
+}
 
 const orderOf = (breakpoint: BreakpointName): number => BREAKPOINT_ORDER.indexOf(breakpoint);
 
@@ -347,7 +367,7 @@ function projectionWithout(node: DesignNode, breakpoint: BreakpointName, readPat
     ...node,
     responsive: (node.responsive ?? []).filter((r) => r.breakpoint !== breakpoint),
   };
-  return getByPath(applyResponsive(stripped, breakpoint), readPath);
+  return effectiveAt(applyResponsive(stripped, breakpoint), readPath);
 }
 
 /** 改一条规则后重建整份数组：空的组删掉、空 patch 的规则删掉、同档只留一条、窄到宽排 */
@@ -435,7 +455,7 @@ export function responsiveOverrideOf(
 
 /** 这一档**什么规则都没有**时的值（设计值本身）——面板用它显示"设计 1280 → 这一档 375" */
 export function designValueOf(node: DesignNode, channel: ResponsiveChannel): unknown {
-  return getByPath(node, specOf(channel).readPath);
+  return effectiveAt(node, specOf(channel).readPath);
 }
 
 /** 这一档投影出来的值（含更窄档的继承）——面板上"这一档实际是多少"读的就是它 */
@@ -444,7 +464,7 @@ export function projectedValueOf(
   breakpoint: BreakpointName,
   channel: ResponsiveChannel,
 ): unknown {
-  return getByPath(applyResponsive(node, breakpoint), specOf(channel).readPath);
+  return effectiveAt(applyResponsive(node, breakpoint), specOf(channel).readPath);
 }
 
 /**
@@ -503,8 +523,8 @@ export function responsiveImpactDetailOf(node: DesignNode, breakpoint: Breakpoin
     breakpoint,
   );
   const live = candidatePaths(node, breakpoint).filter((path) => {
-    const value = getByPath(now, path);
-    return !sameValue(value, getByPath(node, path)) || !sameValue(value, getByPath(withoutOwn, path));
+    const value = effectiveAt(now, path);
+    return !sameValue(value, effectiveAt(node, path)) || !sameValue(value, effectiveAt(withoutOwn, path));
   });
   const editable = new Set(responsiveChannelsFor(node, breakpoint).map((spec) => spec.readPath));
   const outsidePanel = live
