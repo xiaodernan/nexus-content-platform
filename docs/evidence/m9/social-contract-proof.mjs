@@ -87,7 +87,7 @@ for (const c of CONTRACTS) {
   }
   assert.ok(caught, 'the reader did NOT catch the renamed wire field \u2014 the client would read a field the service no longer sends');
   assert.match(String(caught.message), /handle/, 'the caught message names the field that drifted');
-  console.log(`[§5] the mutation was CAUGHT: renaming the follow\u2019s "${c.record === 'Follow' ? 'handle' : 'handle'}" leaves the client reading a field the service no longer sends`);
+  console.log(`[§3] the mutation was CAUGHT: renaming the follow\u2019s handle leaves the client reading a field the service no longer sends`);
 }
 
 console.log('\n[summary] the three social verbs\u2019 client shapes and the service\u2019 wire shapes agree, field for field \u2014 and the reader was shown to catch a rename');
