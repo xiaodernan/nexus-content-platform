@@ -28,7 +28,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, assertSameFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, tsInterfaceDuplicateFields, assertSameFields } from './wire-fields.mjs';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
@@ -229,5 +229,22 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
   console.log(`[§10] all ${wire.length} wire fields are required properties in auditServer.ts AuditEntry`);
 }
 
+// ── §10b the wire record's field list has no duplicates ─────────────────────────────────────────
+{
+  const wire = javaRecordFields(CONTROLLER, 'Entry');
+  const seen = new Map();
+  for (const f of wire) seen.set(f.name, (seen.get(f.name) ?? 0) + 1);
+  const dups = [...seen.entries()].filter(([, n]) => n > 1).map(([name]) => name);
+  assert.deepEqual(dups, [], `${CONTROLLER} Entry record has duplicated field name(s): ${dups.join(', ')}`);
+  console.log('[§10b] the service Entry record has no duplicated field names');
+}
+
+// ── §11 public interfaces do not declare the same field twice ───────────────────────────────────
+{
+  const dups = tsInterfaceDuplicateFields(SERVER_LANE, 'AuditEntry');
+  assert.deepEqual(dups, [], `${SERVER_LANE} AuditEntry declares duplicated field(s): ${dups.join(', ')}`);
+  console.log('[§11] AuditEntry declares each wire field exactly once');
+}
+
 console.log(`\n[summary] wire record ↔ trail shapes agree, field for field`);
-console.log(`the reader was shown to catch a rename; filter list derived from AUDIT_ACTIONS (ops owner); key faces exported; no local verb-table copy; all wire fields required in the server lane`);
+console.log(`reader catches a rename; filter list derived from AUDIT_ACTIONS (ops owner); faces exported; no local verb copy; all wire fields required in the server lane`);

@@ -65,6 +65,16 @@ for (const c of CONTRACTS) {
   assert.equal(errs.length, 0, `the ${c.verb} client source has ${errs.length} parse error(s) — ${errs.slice(0, 2).map((e) => `${e.code}:${e.message}`).join(' · ')}`);
 }
 console.log('[§0] the three client sources parse with zero errors (sanity gate for the contract below)');
+{
+  for (const c of CONTRACTS) {
+    const wire = javaRecordFields(c.service, c.record);
+    const seen = new Map();
+    for (const f of wire) seen.set(f.name, (seen.get(f.name) ?? 0) + 1);
+    const dups = [...seen.entries()].filter(([, n]) => n > 1).map(([name]) => name);
+    assert.deepEqual(dups, [], `${c.verb}: ${c.service} record has duplicated field name(s): ${dups.join(', ')}`);
+  }
+  console.log('[§0b] each wire record has no duplicated field names');
+}
 for (const c of CONTRACTS) {
   const wireFields = javaRecordFields(c.service, c.record);
   const createdAt = wireFields.find((f) => f.name === 'createdAt');

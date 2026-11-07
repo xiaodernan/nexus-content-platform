@@ -135,6 +135,20 @@ export function tsInterfaceFieldOptionality(file, interfaceName) {
 }
 
 /**
+ * The duplicated field names in a TypeScript interface, if any.
+ *
+ * @param {string} file the TypeScript file
+ * @param {string} interfaceName the interface's name
+ * @returns {string[]} field names that appear more than once
+ */
+export function tsInterfaceDuplicateFields(file, interfaceName) {
+  const names = tsInterfaceFields(file, interfaceName);
+  const seen = new Map();
+  for (const n of names) seen.set(n, (seen.get(n) ?? 0) + 1);
+  return [...seen.entries()].filter(([, n]) => n > 1).map(([name]) => name);
+}
+
+/**
  * The two sides of a contract, checked against each other.
  *
  * The rule is symmetric on purpose: a client that reads a field the service does not send reads nothing
