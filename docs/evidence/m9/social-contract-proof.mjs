@@ -16,13 +16,7 @@
 //
 // Requires nothing but Node:  node docs/evidence/m9/social-contract-proof.mjs
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-
-import { javaRecordFields, tsInterfaceFields, assertSameFields } from './wire-fields.mjs';
-
-const require = createRequire(import.meta.url);
-const ts = require('typescript');
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, assertSameFields } from './wire-fields.mjs';
 
 const SOCIAL = 'services/nexus-api/src/main/java/dev/nexus/api/social';
 
@@ -73,18 +67,7 @@ for (const c of CONTRACTS) {
   const client = tsInterfaceFields(c.client, c.clientShape);
   assert.ok(client.includes('createdAt'), `the ${c.verb}'s client shape has no createdAt — the two would be reading different clocks`);
   // Primitive wire fields (long/int/boolean/...) are non-nullable; their TS properties must be required.
-  const src = readFileSync(c.client, 'utf8');
-  const sf = ts.createSourceFile(c.client, src, ts.ScriptTarget.Latest, true);
-  const props = new Map();
-  const visit = (node) => {
-    if (ts.isInterfaceDeclaration(node) && node.name.text === c.clientShape) {
-      for (const m of node.members) {
-        if (ts.isPropertySignature(m) && m.name) props.set(m.name.getText(sf), !!m.questionToken);
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sf);
+  const props = tsInterfaceFieldOptionality(c.client, c.clientShape);
   for (const f of wireFields) {
     if (JAVA_PRIMITIVES.has(f.type)) {
       assert.equal(props.get(f.name), false, `the ${c.verb}'s client shape marks ${f.name} optional, but the wire sends it as a non-nullable ${f.type}`);

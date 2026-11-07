@@ -73,6 +73,35 @@ export function tsInterfaceFields(file, interfaceName) {
 }
 
 /**
+ * Whether each field in a TypeScript interface is optional (has `?`), read with the compiler's parser.
+ *
+ * @param {string} file the TypeScript file
+ * @param {string} interfaceName the interface's name
+ * @returns {Map<string, boolean>} field name -> true if optional
+ */
+export function tsInterfaceFieldOptionality(file, interfaceName) {
+  const src = readFileSync(file, 'utf8');
+  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true);
+  let found = null;
+  const visit = (node) => {
+    if (ts.isInterfaceDeclaration(node) && node.name.text === interfaceName) {
+      found = node;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  if (!found) {
+    throw new Error(`the interface ${interfaceName} was not found in ${file} \u2014 the contract this proof grades has MOVED`);
+  }
+  const out = new Map();
+  for (const m of found.members) {
+    if (ts.isPropertySignature(m) && m.name) out.set(m.name.getText(sf), !!m.questionToken);
+  }
+  return out;
+}
+
+/**
  * The two sides of a contract, checked against each other.
  *
  * The rule is symmetric on purpose: a client that reads a field the service does not send reads nothing

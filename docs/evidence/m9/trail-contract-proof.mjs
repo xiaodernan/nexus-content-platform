@@ -28,7 +28,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import { javaRecordFields, tsInterfaceFields, assertSameFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, assertSameFields } from './wire-fields.mjs';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
@@ -227,25 +227,10 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
 // TrailEntry is the trail's loose parsing input (unknown/optional during validation); AuditEntry in
 // auditServer.ts is the typed wire shape and must require every field.
 {
-  const src = readFileSync(SERVER_LANE, 'utf8');
-  const sf = ts.createSourceFile(SERVER_LANE, src, ts.ScriptTarget.Latest, true);
   const wire = javaRecordFields(CONTROLLER, 'Entry').map((f) => f.name);
-  const missing = [];
-  const optional = [];
-  const visit = (node) => {
-    if (ts.isInterfaceDeclaration(node) && node.name.text === 'AuditEntry') {
-      const props = new Map();
-      for (const m of node.members) {
-        if (ts.isPropertySignature(m) && m.name) props.set(m.name.getText(sf), !!m.questionToken);
-      }
-      for (const name of wire) {
-        if (!props.has(name)) missing.push(name);
-        else if (props.get(name)) optional.push(name);
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sf);
+  const props = tsInterfaceFieldOptionality(SERVER_LANE, 'AuditEntry');
+  const missing = wire.filter((name) => !props.has(name));
+  const optional = wire.filter((name) => props.get(name));
   assert.deepEqual(missing, [], `${SERVER_LANE} AuditEntry is missing wire field(s): ${missing.join(', ')}`);
   assert.deepEqual(optional, [], `${SERVER_LANE} AuditEntry marks wire field(s) optional: ${optional.join(', ')} — the service always sends them`);
   console.log(`[§10] all ${wire.length} wire fields are required properties in auditServer.ts AuditEntry`);
