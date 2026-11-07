@@ -319,7 +319,8 @@ async function loadShippedReportFaces(box) {
   await copyIntoBox(box, CLIENT_PAGE_SHELL);
   const barPath = await copyIntoBox(box, CLIENT_REPORTBAR);
   const deskPath = await copyIntoBox(box, CLIENT_MODERATION);
-  return { model, bar: await import(pathToFileURL(barPath).href), desk: await import(pathToFileURL(deskPath).href) };
+  const trailPath = await copyIntoBox(box, CLIENT_TRAIL);
+  return { model, bar: await import(pathToFileURL(barPath).href), desk: await import(pathToFileURL(deskPath).href), trail: await import(pathToFileURL(trailPath).href) };
 }
 
 // ── §6 an anonymous entry belongs to no account ──────────────────────────────────────────────────────
@@ -1324,6 +1325,32 @@ const vocab = (() => {
       moderationFaceFn('stake'),
       'stake',
       'an undeclared reason word no longer passes through unchanged — the face is inventing a sentence for a word the service never declared',
+    );
+    // 11.20 — the TRAIL ACTION TEXT face RUN over its nine declared verbs: each declared verb
+    // answers a non-empty sentence, the sentences are pairwise DISTINCT, and an undeclared
+    // verb word passes through unchanged. Exact analogue of §11.15 (reason) and §11.16 (status),
+    // applied to the trailActionText face (from trail.ts) instead of the report bar/reason/status faces.
+    const trailActionTextFaceFn = reportFaces.trail.trailActionText;
+    assert.equal(typeof trailActionTextFaceFn, 'function', `${CLIENT_TRAIL} no longer exports trailActionText — §11.20 has lost the face it grades, and the clauses above would be grading names`);
+    const trailActionSentences = vocab.serverVerbs.map((verb) => ({ verb, sentence: trailActionTextFaceFn(verb) }));
+    for (const { verb, sentence } of trailActionSentences) {
+      assert.ok(
+        typeof sentence === 'string' && sentence.length > 0,
+        `trailActionText answered "${sentence}" for the declared verb "${verb}" — an empty or non-string sentence is a verb the reader cannot see`,
+      );
+    }
+    const trailActionDuplicateSentences = trailActionSentences
+      .filter((entry, i) => trailActionSentences.findIndex((other) => other.sentence === entry.sentence) !== i)
+      .map((entry) => `${entry.verb}→"${entry.sentence}"`);
+    assert.deepEqual(
+      trailActionDuplicateSentences,
+      [],
+      `the trail action text face gives ${trailActionDuplicateSentences.length} declared verb(s) a sentence another declared verb already has (${trailActionDuplicateSentences.join(', ')}) — two verbs a reader cannot tell apart, which is the copy-paste shape no declaration census can see`,
+    );
+    assert.equal(
+      trailActionTextFaceFn('stake'),
+      'stake',
+      'an undeclared verb word no longer passes through unchanged — the face is inventing a sentence for a word the service never declared',
     );
     console.log(`[§11.12] ${ownLabels.size} clause labels declared in this file · ${ownDuplicated.length} claimed twice · the range tag ${rangeTag} names ${rangeEndpoints.join(' and ')} and both are declared · ${printedTags.length} verdict line(s) print a §11 tag and every one is a declared label · a mention inside a message is not a declaration, so the citations this file prints are not counted here`);
     console.log(`[§11.7-11] one face per vocabulary: reportStatusText is declared only in ${faceOwners.reportStatusText} and imported from the owner by ${statusReaders.length} reader(s) (${statusReaders.join(', ')}), reportReasonText by ${faceOwners.reportReasonText} and imported from the owner by ${faceReadersOf.reportReasonText.length} reader(s) (${faceReadersOf.reportReasonText.join(', ')}), trailActionText by ${faceOwners.trailActionText} · ${statusTableReaders.length} shipped reader(s) outside the owner USE the REPORT_STATUSES list itself · ${shipped.length - 1} shipped files spell 0 of the ${vocab.serverStatuses.length} declared statuses, and the owner spells all ${ownerSpelled.length} · the report faces RUN give an unread status the words "the service gave no status" and arm nothing · and the client's standing set ${clientStanding.join(', ')} is the set the service's own ${guardNames.length} ReportDtos.STATUS guards refuse to move (${javaStanding.join(', ')}) · 11.9b charges ${reasonUseSites.length} file(s) that USE a reason word in a position (${reasonUseSites.map((s) => s.rel).join(', ') || 'nobody'}) while ${naiveReasonSites.length} file(s) spell one of the ${vocab.serverReasons.length} words in a different vocabulary and are NOT charged (${naiveReasonSites.map((s) => `${s.rel}(${s.words.join('+')})`).join(', ') || 'none'}), over a domain of ${reasonFieldReads.sites} \`.reason\` reads in ${reasonFieldReads.files} shipped files · ${reasonTableReaders.length} shipped reader(s) outside the owner USE the REPORT_REASONS list itself, each importing it from the owner`);

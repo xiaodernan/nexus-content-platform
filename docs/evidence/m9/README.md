@@ -350,6 +350,18 @@ Measured: `apps/studio` **140 files / 2793 tests passed**, `ops.test.ts` **45**,
 
 **Files.** `docs/evidence/m9/audit-contract-proof.mjs` (§11.17) and this section. No `apps/studio` source changed; the suite count is unchanged by this batch.
 
+## v633 (ADR 0016 amendment 560) — the trail action text face RUN over its nine declared verbs: distinct sentences, no empty answer, and an undeclared verb passes through
+
+- **The gap, named by 549's own Bounds.** 549 said it in the present tense: "no clause here requires them to be *right* … the verb VALUES are held by `trail.test.ts`'s cases and not by the gate." That was true of this proof: §11.7 pinned the face's declaration site, §11.9b pinned where verbs are USED, §11.14 pinned the composer's derivation — but no clause RAN the trail action text face over its own declaration and read the answer. A copy-paste giving two declared verbs the same sentence would pass every clause above: each verb still had a sender, a reader, and a derivation, and a reader saw two identical lines where the service declared two different verbs.
+
+- **The repair, shaped like §11.10's RUN.** §11.20 calls `trailActionText` — the shipped face, imported from `trail.ts` by the proof's own loader (via `loadShippedReportFaces`), not re-implemented — over the nine verbs `AuditService.ACTIONS` declares, and asserts: every answer is a non-empty string; the nine sentences are pairwise DISTINCT; and an undeclared verb passes through unchanged (`'stake'` → `'stake'`). It reads the VALUES 549 said no clause read; it does not claim the sentences are RIGHT — §60's permanent bound stands.
+
+- **Instrument readings at this ref (this box, 2026-11-08).** `node docs/evidence/m9/audit-contract-proof.mjs` — **exit 0**, **18 clause labels declared**, §11.20's three assertions green. `npm run verify:table-recount` — **exit 0**, 998 tracked cases matched.
+
+- **Bounds, stated not implied.** Distinctness is not correctness: nine different sentences can still all be wrong, and the gate cannot read English. The clause does not pin the exact sentences — a legitimate rewording must not redden it — only their number and their being non-empty and mutually distinct. The undeclared-word arm pins pass-through, not a vocabulary check. No hosted contact is claimed for these bytes.
+
+**Files.** `docs/evidence/m9/audit-contract-proof.mjs` (§11.20) and this section. No `apps/studio` source changed; the suite count is unchanged by this batch.
+
 ## v632 (ADR 0016 amendment 559) — the hosted claim drift face RUN over declared run numbers: distinct addresses, no empty answer, and an undeclared run number passes through
 
 - **The gap, named by 549's own Bounds.** 549 said it in the present tense: "no clause here requires them to be *right* … the run numbers are held by `evidence-census-proof.mjs`'s four cases and not by the gate." That was true of this proof: §11.7 pinned the face's declaration site, §11.9b pinned where run numbers are USED, §11.14 pinned the composer's derivation — but no clause RAN the hosted claim drift face over its own declaration and read the answer. A copy-paste giving two declared run numbers the same address would pass every clause above: each run number still had a sender, a reader, and a derivation, and a reader saw two identical lines where the service declared two different run numbers.
