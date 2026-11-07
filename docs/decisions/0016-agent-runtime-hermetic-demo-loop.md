@@ -13684,3 +13684,15 @@ This addendum GRANTS nothing and CORRECTS the record; the repair is amendment 51
 - **What this does not say.** Distinctness is not correctness: nine different sentences can still all be wrong, and the gate cannot read English. The clause does not pin the exact sentences — a legitimate rewording must not redden it — only their number and their being non-empty and mutually distinct. The undeclared-word arm pins pass-through, not a vocabulary check. No hosted contact is claimed for these bytes.
 
 - **CITES** amendments 549, 550, 537, 88 and §60; **GRANTS** amendment 561 / version v634 (re-checked free at this ref: no `### Amendment 56x` header beyond 560 exists in the COMMITTED ledger, and no landed commit subject claims v634). Version label **v633** is the only label this landing mints.
+
+### Amendment 561 (v634, m9) — the moderation desk status face RUN over its five declared statuses: distinct sentences, no empty answer, and an undeclared status passes through
+
+- **The gap, named by 549's own Bounds.** 549 said it in the present tense: "no clause here requires them to be *right* … the status VALUES are held by `moderation.test.ts`'s cases and not by the gate." That was true of this proof: §11.7 pinned the face's declaration site, §11.9b pinned where statuses are USED, §11.16/§11.17 ran the model's status face and the desk's reason face — but no clause RAN the desk's status face over its own declaration and read the answer.
+
+- **The repair, shaped like §11.10's RUN.** §11.21 calls `reportStatusText` — the shipped face, imported from `moderation.ts` by the proof's own loader (via `loadShippedReportFaces`), not re-implemented — over the five statuses `ReportDtos` declares, and asserts: every answer is a non-empty string; the five sentences are pairwise DISTINCT; and an undeclared status passes through unchanged (`'stake'` → `'stake'`). It reads the VALUES 549 said no clause read; it does not claim the sentences are RIGHT — §60's permanent bound stands.
+
+- **Instrument readings at this ref (this box, 2026-11-08).** `node docs/evidence/m9/audit-contract-proof.mjs` — **exit 0**, **19 clause labels declared**, §11.21's three assertions green. `npm run verify:table-recount` — **exit 0**, 998 tracked cases matched.
+
+- **Bounds, stated not implied.** Distinctness is not correctness. The clause does not pin exact sentences. The undeclared-word arm pins pass-through, not vocabulary validation. No hosted contact is claimed.
+
+- **CITES** amendments 549, 550, 537, 88 and §60; **GRANTS** amendment 562 / version v635 (re-checked free at this ref). Version label **v634** is the only label this landing mints.

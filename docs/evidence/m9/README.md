@@ -362,6 +362,18 @@ Measured: `apps/studio` **140 files / 2793 tests passed**, `ops.test.ts` **45**,
 
 **Files.** `docs/evidence/m9/audit-contract-proof.mjs` (§11.20) and this section. No `apps/studio` source changed; the suite count is unchanged by this batch.
 
+## v634 (ADR 0016 amendment 561) — the moderation desk status face RUN over its five declared statuses: distinct sentences, no empty answer, and an undeclared status passes through
+
+- **The gap, named by 549's own Bounds.** 549 said it in the present tense: "no clause here requires them to be *right* … the status VALUES are held by `moderation.test.ts`'s cases and not by the gate." That was true of this proof: §11.7 pinned the face's declaration site, §11.16/§11.17 ran the model's status face and the desk's reason face — but no clause RAN the desk's status face over its own declaration and read the answer.
+
+- **The repair, shaped like §11.10's RUN.** §11.21 calls `reportStatusText` — the shipped face, imported from `moderation.ts` by the proof's own loader (via `loadShippedReportFaces`), not re-implemented — over the five statuses `ReportDtos` declares, and asserts: every answer is a non-empty string; the five sentences are pairwise DISTINCT; and an undeclared status passes through unchanged (`'stake'` → `'stake'`). It reads the VALUES 549 said no clause read; it does not claim the sentences are RIGHT — §60's permanent bound stands.
+
+- **Instrument readings at this ref (this box, 2026-11-08).** `node docs/evidence/m9/audit-contract-proof.mjs` — **exit 0**, **19 clause labels declared**, §11.21's three assertions green. `npm run verify:table-recount` — **exit 0**, 998 tracked cases matched.
+
+- **Bounds, stated not implied.** Distinctness is not correctness. The clause does not pin exact sentences. The undeclared-word arm pins pass-through, not vocabulary validation. No hosted contact is claimed.
+
+**Files.** `docs/evidence/m9/audit-contract-proof.mjs` (§11.21) and this section. No `apps/studio` source changed; the suite count is unchanged by this batch.
+
 ## v632 (ADR 0016 amendment 559) — the hosted claim drift face RUN over declared run numbers: distinct addresses, no empty answer, and an undeclared run number passes through
 
 - **The gap, named by 549's own Bounds.** 549 said it in the present tense: "no clause here requires them to be *right* … the run numbers are held by `evidence-census-proof.mjs`'s four cases and not by the gate." That was true of this proof: §11.7 pinned the face's declaration site, §11.9b pinned where run numbers are USED, §11.14 pinned the composer's derivation — but no clause RAN the hosted claim drift face over its own declaration and read the answer. A copy-paste giving two declared run numbers the same address would pass every clause above: each run number still had a sender, a reader, and a derivation, and a reader saw two identical lines where the service declared two different run numbers.
