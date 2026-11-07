@@ -200,4 +200,26 @@ const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
   console.log('[§8] trail.ts exports trailActionText, trailFilterCaption, trailFilterHint, trailActionColorVar (the key face functions)');
 }
 
-console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — the reader was shown to catch a rename, the trail's filter list is derived from AUDIT_ACTIONS, AUDIT_ACTIONS is imported from the ops owner, and the key face functions are exported");
+// ── §9 trail.ts does not declare its own AUDIT_ACTIONS copy ────────────────────────────────────────
+// The vocabulary has one owner (ops.ts). A local AUDIT_ACTIONS declaration in trail.ts would be a
+// second copy that can drift from the service-reconciled table.
+{
+  const src = readFileSync(TRAIL_MODEL, 'utf8');
+  const sf = ts.createSourceFile(TRAIL_MODEL, src, ts.ScriptTarget.Latest, true);
+  let localDecl = false;
+  const visit = (node) => {
+    if ((ts.isVariableDeclaration(node) || ts.isFunctionDeclaration(node)) && node.name && node.name.getText(sf) === 'AUDIT_ACTIONS') {
+      if (!ts.isImportSpecifier(node.parent) && !ts.isImportClause(node.parent)) localDecl = true;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  assert.equal(
+    localDecl,
+    false,
+    `${TRAIL_MODEL} declares its own AUDIT_ACTIONS — the verb table has a second copy in the trail, which can drift from the ops owner`,
+  );
+  console.log('[§9] trail.ts does not declare a local AUDIT_ACTIONS copy (it imports from the owner)');
+}
+
+console.log("\n[summary] the service's wire record and the trail's client shapes agree, field for field — the reader was shown to catch a rename, the trail's filter list is derived from AUDIT_ACTIONS, AUDIT_ACTIONS is imported from the ops owner, the key face functions are exported, and trail.ts has no local verb-table copy");
