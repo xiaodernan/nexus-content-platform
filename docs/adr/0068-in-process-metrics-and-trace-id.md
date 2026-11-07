@@ -1,7 +1,7 @@
 # ADR-0068：观测性走"进程内计数器 + 请求追踪 id"，不接供应商、不包路由
 
 日期：2026-10-28。状态：已实施（`apps/web/src/server/observability.ts`、`apps/web/src/instrumentation.ts`、
-`apps/web/src/middleware.ts`、`apps/web/src/server/domain/metrics.ts`、`GET /api/admin/metrics`、`/admin/observability`）。
+`apps/web/src/proxy.ts`、`apps/web/src/server/domain/metrics.ts`、`GET /api/admin/metrics`、`/admin/observability`）。
 
 ## 背景
 

@@ -393,7 +393,7 @@ Tailwind 映射门，没有浏览器读数——如实记在这里，不假装�
 | A 摘掉写入方 | `rateLimit.ts` 那行 `increment(…)` 换成注释 | **3 条红**：「这些指标只有声明、没有写入方：nexus_rate_limit_decisions_total」／具名锚点缺该行／"真跑一次限流闸"那格拿不到账 |
 | B 往标签里塞身份 | `audit.ts` 的标签加 `actorId: input.actorId` | **首版只红了一条**——见下 |
 | C 往声明里塞身份 | `METRICS` 的 `nexus_audit_decisions_total` 加 `email: null` | 新加的「标签名单本身不含身份类字段」当场红（调用点那格合法，只有声明层看得见） |
-| D 摘掉响应头 | `middleware.ts` 的 `response.headers.set(TRACE_HEADER, …)` 换成注释 | e2e 游客那条红在 `首页的响应头里没有 x-nexus-trace` |
+| D 摘掉响应头 | `proxy.ts` 的 `response.headers.set(TRACE_HEADER, …)` 换成注释 | e2e 游客那条红在 `首页的响应头里没有 x-nexus-trace` |
 
 **B 臂抓到的是门自己的洞，比那笔违章严重**：身份禁令原来按 `/(?:increment|observe)\([^)]*\)/` 取调用点，
 而 `[^)]*` 会在 `String(input.allowed` 的那个 `)` 处截断——`actorId` 正好落在截断之后。

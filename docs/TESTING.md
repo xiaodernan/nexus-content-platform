@@ -1917,14 +1917,14 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
     走真 HTTP 证过服务端确实回 `413 {"error":"too_large",...}` → 一直以为是用例的竞态。
   - **真相（dev server 的日志给的）**：
     `Request body exceeded 10MB for /api/projects/import. Only the first 10MB will be available`
-    → **Next 16 的中间件会先把请求正文读进来才运行**（默认上限 10MB，`middlewareClientMaxBodySize`）
+    → **Next 16 的 proxy（原 middleware）会先把请求正文读进来才运行**（默认上限 10MB，`proxyClientMaxBodySize`）
     → 于是两件事同时错：
     ① **合法的 >10MB 导入今天就是坏的**（正文被截断到 10MB）；
     ② 路由里那道"按 Content-Length 先拒"**来不及跑**（要等中间件把正文读完）→
        客户端猛推 128MB 时，服务端读完才回 413 → 中途把连接收了 → 客户端只看到 `ECONNRESET`
        （**不是"拒收"，是"断线"**）。
-  - **修法**：**导入路由不进中间件**（`middleware.ts` 的 matcher 排除它；
-    它自己管鉴权，本来就不依赖中间件签的那枚游客 cookie——
+  - **修法**：**导入路由不进 proxy**（`proxy.ts` 的 matcher 排除它；
+    它自己管鉴权，本来就不依赖 proxy 签的那枚游客 cookie——
     `e2e/import.spec.ts` 的 §144 闭环（游客导入）4 支全绿证明了这一点）。
     路由于是**头一到手就能判**"这个包太大了" → **正文一个字都不用读**。
   - **凭证**：修完之后同一个探针 **723ms 就拿到 413**（修之前 8 秒还在等正文）；

@@ -67,7 +67,7 @@ describe('每个声明的指标都有调用方', () => {
       ['server/ai/submit.ts', ['increment(\'nexus_ai_jobs_submitted_total\'']],
       ['app/api/ai/run/route.ts', ['increment(\'nexus_ai_runs_total\'', 'observe(\'nexus_ai_run_duration_ms\'']],
       ['instrumentation.ts', ['increment(\'nexus_http_errors_total\'', 'export const onRequestError']],
-      ['middleware.ts', ['requestHeaders.set(TRACE_HEADER', 'response.headers.set(TRACE_HEADER']],
+      ['proxy.ts', ['requestHeaders.set(TRACE_HEADER', 'response.headers.set(TRACE_HEADER']],
     ];
     for (const [rel, needles] of anchors) {
       const text = byFile.get(join(SRC, ...rel.split('/')));

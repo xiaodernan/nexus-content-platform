@@ -2,7 +2,7 @@
 
 ## 背景
 
-§137 的免注册首次体验是这样落地的：`middleware.ts` 给每个**没有会话 cookie** 的请求
+§137 的免注册首次体验是这样落地的：`proxy.ts`（Next 16 将 middleware 更名为 proxy）给每个**没有会话 cookie** 的请求
 签一个随机 token 写进 cookie，`requireUser()` 拿不到会话行就**就地建一个 guest 用户**
 （`server/domain/session.ts` 的 `createUserSession`）。
 

@@ -51,13 +51,13 @@ export async function sessionOwnerByToken(
  * 免注册首次体验（§137）：没有有效会话时直接建一个 guest 用户，
  * 让用户先跑通 Create → Design → Publish，注册时再认领（claim）。
  *
- * 渲染期只读 cookie（写 cookie 属于 middleware / Route Handler，Next 会拒绝在
+ * 渲染期只读 cookie（写 cookie 属于 proxy / Route Handler，Next 会拒绝在
  * Server Component 里改 cookie）。guest 用户按会话 token 稳定，一个浏览器一个身份。
  */
 export async function requireUser(): Promise<CurrentUser> {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
-  if (!token) throw new Error('缺少会话 cookie：middleware 未签发 nexus_session');
+  if (!token) throw new Error('缺少会话 cookie：proxy 未签发 nexus_session');
   const db = getDb();
   const row = await sessionOwnerByToken(token);
 
@@ -94,7 +94,7 @@ async function createUserSession(token: string) {
 /**
  * 轮换会话（§80 会话支持吊销 + 防会话固定）。
  *
- * middleware 用客户端可预知的 cookie 值签发 guest 会话，意味着注册/登录这个
+ * proxy 用客户端可预知的 cookie 值签发 guest 会话，意味着注册/登录这个
  * 提权时刻若沿用旧 token，攻击者事先种下的已知 token 会变成真实账号的会话。
  * 所以每次身份变化都删除旧 token 的会话行、换发新 token，并返回给调用方写 cookie。
  * 传入 currentToken（当前请求的 cookie 值）以便吊销它。
