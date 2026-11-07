@@ -44,7 +44,11 @@ export type ResponsiveChannel =
   | 'layout.scroll'
   | 'typography.fontSize'
   | 'typography.fontWeight'
-  | 'typography.lineHeight';
+  | 'typography.lineHeight'
+  | 'typography.letterSpacing'
+  | 'typography.textCase'
+  | 'typography.decoration'
+  | 'typography.align';
 
 export interface ResponsiveChoice {
   readonly value: string;
@@ -113,6 +117,16 @@ const cleanFontWeight = (value: unknown): Cleaned =>
     : REJECT;
 const cleanLineHeight = (value: unknown): Cleaned =>
   isFiniteNumber(value) && value > 0 && value <= 10 ? value : REJECT;
+const cleanLetterSpacing = (value: unknown): Cleaned =>
+  isFiniteNumber(value) && value >= -100 && value <= 100 ? value : REJECT;
+const cleanTextCase =
+  (allowed: Set<string>) =>
+  (value: unknown): Cleaned =>
+    typeof value === 'string' && allowed.has(value) ? value : REJECT;
+const cleanDecoration =
+  (allowed: Set<string>) =>
+  (value: unknown): Cleaned =>
+    typeof value === 'string' && allowed.has(value) ? value : REJECT;
 const cleanFontSize = (value: unknown): Cleaned => (isFiniteNumber(value) && value > 0 ? Math.round(value) : REJECT);
 
 /**
@@ -164,6 +178,29 @@ const SCROLL_CHOICES: readonly ResponsiveChoice[] = [
   { value: 'both', label: '双向' },
 ];
 const SCROLL_VALUES = new Set<string>(SCROLL_CHOICES.map((c) => c.value));
+
+const TEXTCASE_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'original', label: '原样' },
+  { value: 'upper', label: '大写' },
+  { value: 'lower', label: '小写' },
+  { value: 'title', label: '首字母大写' },
+];
+const TEXTCASE_VALUES = new Set<string>(TEXTCASE_CHOICES.map((c) => c.value));
+
+const ALIGN_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'left', label: '左对齐' },
+  { value: 'center', label: '居中' },
+  { value: 'right', label: '右对齐' },
+  { value: 'justify', label: '两端对齐' },
+];
+const ALIGN_VALUES = new Set<string>(ALIGN_CHOICES.map((c) => c.value));
+
+const DECORATION_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'none', label: '无' },
+  { value: 'underline', label: '下划线' },
+  { value: 'line-through', label: '删除线' },
+];
+const DECORATION_VALUES = new Set<string>(DECORATION_CHOICES.map((c) => c.value));
 
 const cleanAlign =
   (allowed: Set<string>) =>
@@ -359,6 +396,52 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     step: 0.05,
     appliesTo: (node) => node.typography !== undefined,
     clean: cleanLineHeight,
+  },
+  {
+    id: 'typography.letterSpacing',
+    label: '字距',
+    group: 'typography',
+    key: 'letterSpacing',
+    readPath: 'typography.letterSpacing',
+    widget: 'number',
+    min: -100,
+    max: 100,
+    step: 1,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanLetterSpacing,
+  },
+  {
+    id: 'typography.textCase',
+    label: '大小写',
+    group: 'typography',
+    key: 'textCase',
+    readPath: 'typography.textCase',
+    widget: 'choice',
+    choices: TEXTCASE_CHOICES,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanTextCase(TEXTCASE_VALUES),
+  },
+  {
+    id: 'typography.decoration',
+    label: '装饰',
+    group: 'typography',
+    key: 'decoration',
+    readPath: 'typography.decoration',
+    widget: 'choice',
+    choices: DECORATION_CHOICES,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanDecoration(DECORATION_VALUES),
+  },
+  {
+    id: 'typography.align',
+    label: '对齐',
+    group: 'typography',
+    key: 'align',
+    readPath: 'typography.align',
+    widget: 'choice',
+    choices: ALIGN_CHOICES,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanAlign(ALIGN_VALUES),
   },
 ];
 

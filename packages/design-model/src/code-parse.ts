@@ -796,6 +796,26 @@ function decodeVariant(
     }
     // 其余 `font-*`（例如手写的字族）不收：如实落 unmapped 披露，不静默当字重读
   }
+  for (const hit of takeUtility(list, "tracking").all) {
+    const n = numberOf(hit.value);
+    if (n === null) note(hit.literal, "断点字距需要 px 数值");
+    else {
+      typography.letterSpacing = n;
+      out.checked.push(hit.literal);
+    }
+  }
+  const textCaseTok = list.find((token) => CASE_CLASS[token] !== undefined);
+  if (textCaseTok) {
+    list.splice(list.indexOf(textCaseTok), 1);
+    typography.textCase = CASE_CLASS[textCaseTok];
+    out.checked.push(textCaseTok);
+  }
+  const decorationTok = ["underline", "line-through"].find((token) => list.includes(token));
+  if (decorationTok) {
+    list.splice(list.indexOf(decorationTok), 1);
+    typography.decoration = decorationTok as NonNullable<Typography["decoration"]>;
+    out.checked.push(decorationTok);
+  }
   // 正向方向类（`md:flex-col`）在第八片之后可能说两件事：这一档的**排布**，以及「这一档不反向」。
   // 两件事各按自己的归属规矩收，判据与发射侧同一份（§14 第五/七/八片是同一条纪律的四次落地）：
   //  · `mode`：这一档自己声明过排布时收——发射侧就是按 `layout.mode !== undefined` 发这一组类的，

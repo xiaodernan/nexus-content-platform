@@ -527,6 +527,10 @@ describe('§14 面板读数与投影同源', () => {
     'typography.fontSize': { carrier: mkText, value: 28 },
     'typography.fontWeight': { carrier: mkText, value: 700 },
     'typography.lineHeight': { carrier: mkText, value: 1.8 },
+    'typography.letterSpacing': { carrier: mkText, value: 2 },
+    'typography.textCase': { carrier: mkText, value: 'upper' },
+    'typography.decoration': { carrier: mkText, value: 'underline' },
+    'typography.align': { carrier: mkText, value: 'center' },
   };
 
   it('每一个通道写一个非冗余值，impact 至少 1：不留"有规则但什么都没改"的那种规则', () => {

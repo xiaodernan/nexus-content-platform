@@ -9080,13 +9080,13 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
    但面板还没有输入口；`rowGap`/`crossGap`
    与 `typography` 其余键现在**数得进来、改不出去**，界面只能说"去代码那一节"或"整档清掉"。
    （第三片给了 `layout.mode`/`gap`/`columns`/`typography.fontSize`，第六片给了 `justify`/`items`；
-   第七片把 `reverse` 接进了求解器，第八片给它那一格；`layout.clipContent`/`layout.scroll` 与 `typography.fontWeight`/`typography.lineHeight` 已接入响应式面板、代码发射/回写与测试——`RESPONSIVE_CHANNELS` 现在十五格，
+   第七片把 `reverse` 接进了求解器，第八片给它那一格；`layout.clipContent`/`layout.scroll` 与 typography 六格（字重/行高/字距/大小写/装饰/对齐）已接入响应式面板、代码发射/回写与测试——`RESPONSIVE_CHANNELS` 现在十九格，
    写入口不再是「代码」视图独家。）
 2. ~~某一档只声明 `{reverse:false}` 而更窄那档反向时发不出东西~~——**第八片已还**（2026-11-08）：
    发射侧在这种情况下重发一条正向方向类（`md:flex-col`），回写侧按同一条判据认领它，CSS 那一寸
    的跨档胜负与档内胜负都用真 Tailwind v4.3.3 + Chromium 量过（ADR-0069 第八片那节）。
    还欠的换成下一层：`position`（x/y）面板输入口、`mode` 的 `stack`/`none`、
-   `rowGap`/`crossGap`、`typography` 的字族/字距/对齐/下划线、`style` 除填充与透明度。
+   `rowGap`/`crossGap`、`typography` 的字族/垂直对齐、`style` 除填充与透明度。
 3. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
 4. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。
 5. 这条 e2e 链在开发模式里 4.7m，其中腿 F 那一段从 9.7s 涨到 104s、发布到 266s 是同机另一会话同时在跑

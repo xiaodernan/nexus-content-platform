@@ -637,13 +637,13 @@ describe("类名 → 模型属性", () => {
 
   it("断点字重/行高往返：发射与回写共用 font-*/leading-* 处方，往返零补丁（§14）", () => {
     const page = starterPage();
-    const hero = nodeId(page, "Hero");
+    const headline = nodeId(page, "Headline");
     const withRule: Page = {
       ...page,
       nodes: {
         ...page.nodes,
-        [hero]: {
-          ...page.nodes[hero]!,
+        [headline]: {
+          ...page.nodes[headline]!,
           responsive: [
             { breakpoint: "tablet", patch: { typography: { fontWeight: 600, lineHeight: 1.8 } } },
           ],
@@ -651,12 +651,41 @@ describe("类名 → 模型属性", () => {
       },
     };
     const code = source(withRule);
-    const line = lineOf(code, hero);
+    const line = lineOf(code, headline);
     expect(line).toContain("md:font-semibold");
     expect(line).toContain("md:leading-[1.8]");
     const result = parse(withRule, code);
-    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
-    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+    expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
+  });
+
+  it("断点字距/大小写/装饰往返：发射与回写共用 tracking/uppercase/underline 处方，零补丁（§14）", () => {
+    const page = starterPage();
+    const headline = nodeId(page, "Headline");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [headline]: {
+          ...page.nodes[headline]!,
+          responsive: [
+            {
+              breakpoint: "tablet",
+              patch: { typography: { letterSpacing: 2, textCase: "upper", decoration: "underline", align: "center" } },
+            },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, headline);
+    expect(line).toContain("md:tracking-[2px]");
+    expect(line).toContain("md:uppercase");
+    expect(line).toContain("md:underline");
+    expect(line).toContain("md:text-center");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
   });
   it("断点绝对定位往返：父级自由定位时 md:left/top 发得出也读得回，零补丁（§14）", () => {
     const page = starterPage();

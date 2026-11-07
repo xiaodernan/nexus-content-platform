@@ -662,6 +662,30 @@ describe("Design → Code（§17-19）", () => {
     expect(tokens).toContain("md:leading-[1.8]");
   });
 
+  it("断点字距/大小写/装饰发射：typography patch 发 tracking/uppercase/underline 类（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "text", name: "TypoCase", text: "lc case" });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        {
+          breakpoint: "tablet",
+          patch: { typography: { letterSpacing: 2, textCase: "upper", decoration: "underline", align: "center" } },
+        },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:tracking-[2px]");
+    expect(tokens).toContain("md:uppercase");
+    expect(tokens).toContain("md:underline");
+    expect(tokens).toContain("md:text-center");
+  });
+
   it("断点位置发射：绝对定位父级里的位置覆盖发 md:left-*/md:top-* 类（§14）", () => {
     const page2 = starterPage("Home");
     const root = page2.nodes[page2.rootId]!;

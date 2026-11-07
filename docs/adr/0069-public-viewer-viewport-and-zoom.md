@@ -400,7 +400,7 @@
   同一套）退出 0。
 - **仍欠**（第八片之后）：`{reverse:false}` 这一寸现在发射、回写、面板、求解器四处同一判据；
   还欠的是键的覆盖面而不是档的覆盖面：`position`（x/y）除 `mobile` 档（第九片已还，见下）、`mode` 的 `stack`/`none`、
-  `rowGap`/`crossGap`、`typography` 的字族/字距/下划线/对齐、`style` 除填充与透明度、`layout` 的
+  `rowGap`/`crossGap`、`typography` 的字族/垂直对齐、`style` 除填充与透明度、`layout` 的
   `stack`/`none` 两档。AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方（真 provider 要授权，见 §105）。
 
 **第九片（2026-11-08）：断点位置（x/y）接进 `md:`/`lg:`/`xl:`，与字重/行高一并给出可回写的代码半边**
@@ -414,13 +414,15 @@
   回写侧 `decodeVariant` 现在也吃 `tierParentMode`（调用方把这一档投影后的父级模式传进），`absolute` 进 `checked`；
   父级不是自由定位逃生口时，这些类如实落在 unmapped，不静默当成位置回写（§16）。
   见证：`codegen.test.ts`「断点位置发射……」、`code-parse.test.ts`「断点绝对定位往返……」（83 条绿，回归面含 reverse 往返与 overflow 往返）。
-- **字重 / 行高**：同一条判据，`md:font-*`/`md:leading-*` 的发射与回写。面板同步加了两行
-  （`typography.fontWeight`/`typography.lineHeight`），`RESPONSIVE_CHANNELS` **十五格**。
+- **字重 / 行高 / 字距 / 大小写 / 装饰 / 对齐**：同一条判据，`md:font-*`/`md:leading-*`/
+  `md:tracking-*`/`md:uppercase|lowercase|capitalize`/`md:underline|line-through`/`md:text-*` 的发射与回写。
+  面板同步加了六行（`typography.fontWeight`/`typography.lineHeight`/`typography.letterSpacing`/`typography.textCase`/`typography.decoration`/`typography.align`），
+  `RESPONSIVE_CHANNELS` **十九格**。
 - **顺带**（上一片同属于这一档的收尾）：`layout.clipContent`/`layout.scroll` 两格也并入同一轮——
   `md:overflow-hidden`/`overflow-*-auto`/`overflow-visible`（取消更窄档 overflow 约束的那一刀：更窄那档没 overflow 约束时不发，更窄那档有时发 `md:overflow-visible` 并回写
   `{clipContent:false, scroll:"none"}`）。
 - 这轮之后，§14 的「键覆盖面」仍然欠：`position` 的面板输入口、`mode` 的 `stack`/`none`、
-  `rowGap`/`crossGap`、`typography` 的字族/字距/下划线/对齐、`style` 除填充与透明度——
+  `rowGap`/`crossGap`、`typography` 的字族/垂直对齐、`style` 除填充与透明度——
   这些键《画布与访客》和《代码视图与 ZIP》仍然不同（§16）。
 
 

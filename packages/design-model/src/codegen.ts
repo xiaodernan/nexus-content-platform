@@ -539,6 +539,18 @@ function responsiveClasses(node: DesignNode, prefix: string, parent: DesignNode 
           : `${variant}leading-[${typography.lineHeight}]`,
       );
     }
+    if (typography?.letterSpacing) {
+      out.push(`${variant}tracking-[${lengthClass(typography.letterSpacing, prefix, (i) => i) ?? "0px"}]`);
+    }
+    if (typography?.textCase === "upper") out.push(`${variant}uppercase`);
+    else if (typography?.textCase === "lower") out.push(`${variant}lowercase`);
+    else if (typography?.textCase === "title") out.push(`${variant}capitalize`);
+    else if (typography?.textCase === "original") {
+      // 原样是这一组的默认值：只发新的几个变体，不凭空发。
+    }
+    if (typography?.align && typography.align !== "left") out.push(`${variant}text-${typography.align}`);
+    if (typography?.decoration === "underline") out.push(`${variant}underline`);
+    else if (typography?.decoration === "line-through") out.push(`${variant}line-through`);
     const gap = lengthClass(layout?.gap, prefix, (i) => `${variant}gap-[${i}]`);
     if (gap) out.push(gap);
     // 排布：display 那一组类取**这一档解出来**的排布（`applyResponsive` 把本档与更窄几档
