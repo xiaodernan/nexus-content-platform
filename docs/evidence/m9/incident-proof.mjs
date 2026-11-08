@@ -61,6 +61,7 @@ import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { javaRecordFields } from './wire-fields.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m9/incident-proof.mjs -> the repository root.
@@ -182,6 +183,16 @@ const RECORD_FIELDS = [
 const SEVERITIES = ['low', 'medium', 'high', 'critical'];
 const STATUSES = ['open', 'resolved'];
 const LIST_FIELDS = ['count', 'incidents', 'limit', 'offset', 'severity', 'status', 'total'].sort();
+
+// §0a static wire contract: the Java DTOs must declare the fields this door expects.
+{
+  const INCIDENT_DTO = path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/incidents/IncidentDtos.java');
+  const recordWire = javaRecordFields(INCIDENT_DTO, 'IncidentRecord').map((f) => f.name).sort();
+  assert.deepEqual(recordWire, RECORD_FIELDS, `IncidentDtos.IncidentRecord wire fields ${JSON.stringify(recordWire)} disagree with expected ${JSON.stringify(RECORD_FIELDS)}`);
+  const listWire = javaRecordFields(INCIDENT_DTO, 'IncidentList').map((f) => f.name).sort();
+  assert.deepEqual(listWire, LIST_FIELDS, `IncidentDtos.IncidentList wire fields ${JSON.stringify(listWire)} disagree with expected ${JSON.stringify(LIST_FIELDS)}`);
+  console.log(`[§0a] static wire contract: IncidentRecord/IncidentList DTO fields match the shapes this proof grades (${recordWire.length}+${listWire.length} fields read from source)`);
+}
 
 let serviceProcess = null;
 let dbStarted = false;
