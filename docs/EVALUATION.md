@@ -2575,3 +2575,20 @@ prod 侧复验待另一会话未提交的半成品绿之后、重建再跑一遍
 只要文档没动，`layout / tokens / history / assetContext / document` 一路守恒——单步版的判断在长序列里照样得钉住）。
 
 gate 复核：`npm run evals` 4 套 **73 / 73 PASS**；`tsc -p video-model / tools` / `eslint evals` 0；同式两文件并入 `npm test` 已由 shard1/2 覆盖。
+
+
+## 2026-11-09 补记（接）：§85 evals 现在有 5 套
+
+```
+code-index       19/19
+model-roundtrip   7/7
+export-roundtrip 17/17（需真库，55100 regress 实例上实测）
+video-plan       30/30
+world-build      55/55
+```
+→ 不含 `evals:baseline` DB 基线的确定性套件合计 **128/128 结构不变式 PASS**。
+
+`world-build` 由另一位 commit `44f2979` 引入（骨架九类令、`autoLayout` 确定性、`worldGraph` 删点消边、`validateWorld` 8 类缺陷分类、
+`buildWorldScene` authored/fallback 拆分；`walkToward` / `terrainHeightAt` / `resolveWalkCollision` 走法物理，
+mesa 与 cone 两种 mesa 形状一致性 + 多 mesa 取最大高度规则），
+与已有 4 套一样遵循"结构不变式判红、数字人看"的纪律。

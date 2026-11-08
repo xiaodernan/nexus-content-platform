@@ -29,6 +29,7 @@ npm test                       # scripts/test/evals-framework.test.mts 会再验
 | `model-roundtrip` | 代码正确性 / 投影自洽（§16 · §19） | generate→parse 矩阵：横幅/横向带/网格/tablet none 翻转/gap+columns，每格零 issue 零补丁 | 否 |
 | `export-roundtrip` | 代码正确性 / 导出保真（§144 · ADR-0024） | 真 ZIP → node zlib CRC 交叉校验清单 → 真导回 → 结构对账；需要真库（见下方示例） | 是 |
 | `video-plan` | 代码正确性 / 视频模型投影自洽（§40-42） | 断句→分镜→时间线→渲染计划整链：确定性重放、`playable`/`renderable` 与"有没有帧"自洽、`splitShotAt` 时长守恒、`cardColor` 同 id 同色 | 否 |
+| `world-build` | 代码正确性 / 世界模型投影自洽（§44/§46/§140） | 骨架世界（九类条目各 1）· 确定性 autoLayout · `worldGraph` 删点消边 · `validateWorld` 8 类缺陷分辨 · `buildWorldScene` 实体数 / authored / fallback 拆分 · `terrainHeightAt` / `walkToward` / `resolveWalkCollision`（mesa + cone + 重叠取最高） | 否 |
 
 ## 口径（与 scripts/eval-baseline.mts 同）
 
