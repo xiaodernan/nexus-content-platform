@@ -97,6 +97,20 @@ export function javaRecordFieldNullability(file, recordName) {
 }
 
 /**
+ * The duplicated field names in a Java record, if any.
+ *
+ * @param {string} file the Java file
+ * @param {string} recordName the record's simple name
+ * @returns {string[]} field names that appear more than once
+ */
+export function javaRecordDuplicateFields(file, recordName) {
+  const fields = javaRecordFields(file, recordName);
+  const seen = new Map();
+  for (const f of fields) seen.set(f.name, (seen.get(f.name) ?? 0) + 1);
+  return [...seen.entries()].filter(([, n]) => n > 1).map(([name]) => name);
+}
+
+/**
  * The field names of a TypeScript interface, read with the compiler's own parser.
  *
  * @param {string} file the TypeScript file
