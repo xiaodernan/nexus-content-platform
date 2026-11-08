@@ -40,6 +40,7 @@ import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { javaRecordFields } from './wire-fields.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m9/service-health-proof.mjs -> the repository root.
@@ -153,6 +154,19 @@ async function stopService(child) {
 /** The response's shape, pinned: a field added here is a fact this door would start claiming. */
 const HEALTH_FIELDS = ['database', 'service', 'startedAt', 'uptimeSeconds', 'version'].sort();
 const REACHABLE_DATABASE_FIELDS = ['latencyMs', 'reachable'].sort();
+
+// §0a static wire contract: the Java DTOs must declare the fields this proof expects.
+{
+  const HEALTH_DTO = path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/status/HealthDtos.java');
+  const healthWire = javaRecordFields(HEALTH_DTO, 'Health').map((f) => f.name).sort();
+  assert.deepEqual(healthWire, HEALTH_FIELDS, `HealthDtos.Health wire fields ${JSON.stringify(healthWire)} disagree with expected ${JSON.stringify(HEALTH_FIELDS)}`);
+  const dbWire = javaRecordFields(HEALTH_DTO, 'Database').map((f) => f.name).sort();
+  for (const f of REACHABLE_DATABASE_FIELDS) {
+    assert.ok(dbWire.includes(f), `HealthDtos.Database is missing ${f} (wire has ${dbWire.join(', ')})`);
+  }
+  assert.ok(dbWire.includes('detail'), `HealthDtos.Database must carry detail for the unreachable case (wire has ${dbWire.join(', ')})`);
+  console.log(`[§0a] static wire contract: Health/Database DTO fields match the shape this proof grades (${healthWire.length}+${dbWire.length} fields read from source)`);
+}
 
 let serviceProcess = null;
 let dbStarted = false;
