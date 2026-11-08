@@ -53,6 +53,19 @@
 - 代价：§16 对这条键一直开口，作者只能整档重造或去代码视图手写+祈祷，不是长期态。
 - 结论：否，但允许作为 fallback（若 B 的浏览器验证不过，回到本状态并在本 ADR 里再记）。
 
+**落地记录（2026-11-08，同日第二笔，commit 85889a4）**：
+
+- 面板「自由定位」按钮落了：MODE_CHOICES value `none`、stack 保持仅代码可写；`withResponsiveValue` 走 generic `cleanMode`（`none` OK，`stack` REJECT）。
+- codegen 发 marker，但**门只有一个**：`applyResponsiveBelow→resolved` 进入 none/stack 才发——设计态默认 mode=none 的叶子（`defaultLayout` 死命给 text/image 类写死 none）不发、继承来的档不补发。
+  第一版没加这道门，`md:[--nexus-mode:none]` 在每个叶子、每个档上都平铺了，7 条 §14 往返测试（字重/字距/纵向对齐/圆角/字族）直接红了
+  （text 默认 none ⇒ 每个 typography 规则旁边都多一枚 mode 补丁），当场按 flip-gate 收了。
+- code-parse 以 marker 为权威判据：同档 `[--nexus-mode:none|stack]` 被认下→patch.mode；`relative` 与 marker 共现时同档消费（定位参照）；手写 marker 落 unmapped 不猜。
+- 读数：`packages/design-model` 35 files / **499 passed**（+4）、`responsive-editor` **41/41**。基线 mid-tier 的 `relative` + marker 不在本片（mobile 继续走基线）。
+- 浏览器腿 F7（同日已还）：Actions 翻「自由定位」（layout.mode:none）→ 两孩子失去 flow、画布 absolute 归各自 position（兄弟重叠落在 Actions 原点）→ 撤销恢复并排；
+  全链 A–F7–R **1 passed（58.1s）**、console `[ 5.6 s ] 腿 F7`，独占生产构建（next start -p 3201）。
+  两笔记账：影响徽标在埋的 padding+mode 下 flip 后仍读 2（而非预期的 1）——§159 数的是 model 键不找人情面；
+  boxIn 读的是页面坐标、不是父级内坐标，所以翻完两个孩子应当是『完全重叠』而非各自为 0（第二条与腿 F3/F4 同一条判据）。
+
 ## Decision
 
 **选 B。**断点档的父级 mode 通过任意属性标记类落脚：发射 `${variant}[--nexus-mode:{mode}]`，回写识别 `[--nexus-mode:none|stack]`；

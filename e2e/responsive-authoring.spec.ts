@@ -49,6 +49,8 @@ import { loginMember, reusableMemberWithProject } from './support/auth-session';
  * ⑬ 腿 F6（§14 第十一/十二片）把 style 那一组新通道走一遍：
  *    blendMode（choice multiply → computed mix-blend-mode）、rotation（填 15 → inline transform）、cursor（choice pointer → computed cursor），
  *    每步独立落库+撤销，徽标归零——骨架与前两腿同构，不碰 CTA 那套腿 G 的前提。
+ * ⑭ 腿 F7（§14 第十五片，2026-11-08）验证 ADR-0091 的落地：Actions 翻成自由定位——
+ *    两个孩子失去 flow（画布 absolute），撤销回到并排。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -683,6 +685,31 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     await undoButton(author).click();
     await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '0');
     stamp('腿 F6：style 那三格（blendMode ▸ 旋转 ▸ 指针）');
+
+    // 腿 F7：父级这一档翻成自由定位（ADR-0091 第十五片）——Actions 的设计模式是横排，
+    // 孩子并排（secondary 在 primary 右边）；平板那一档点「自由定位」后，两个孩子按各自 `position` 绝对摆放——
+    // 横排的孩子失去 flow，画布当场按 absolute 解（left 归零）。撤销回到并排。
+    await author.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await author.click('[data-breakpoint-tab="tablet"]');
+    const secondaryBefore = await boxIn(author, carriers.secondaryId, '自由定位翻转前的 Secondary CTA');
+    expect(secondaryBefore.left, '翻转前 secondary 排在 primary 右边（横排）').toBeGreaterThan(0);
+    await expect(
+      author.locator('[data-responsive-choice="layout.mode:none"]'),
+      '排布那一格摆了「自由定位」这个选择——它不是 mock 按钮，条件齐了（父级有孩子）才画得出',
+    ).toHaveCount(1);
+    await author.click('[data-responsive-choice="layout.mode:none"]');
+    // 这一档 Actions 上埋了 padding+mode 两个键（夹具埋的 tablet 规则），live 数 2——翻转没新增，也没丢既有那两格
+    await expect(tab(author, 'tablet')).toHaveAttribute('data-breakpoint-impact', '2');
+    // 相邻的兄弟失去了 flow：两个孩子按各自的 position 摆在 Actions 原点（都为 (0,0)），画布上重叠
+    const primaryFlipped = await boxIn(author, carriers.ctaId, '翻转后的 Primary CTA');
+    const secondaryFlipped = await boxIn(author, carriers.secondaryId, '翻转后的 Secondary CTA');
+    expect(secondaryFlipped.left, '自由定位档里兄弟重叠在 Actions 原点').toBe(primaryFlipped.left);
+    expect(secondaryFlipped.top, '自由定位档里兄弟重叠在 Actions 原点').toBe(primaryFlipped.top);
+    // 撤销：回到并排
+    await undoButton(author).click();
+    const secondaryUndone = await boxIn(author, carriers.secondaryId, '撤销后的 Secondary CTA');
+    expect(secondaryUndone.left, '撤销后回到 flow，secondary 回到 primary 右边').toBeGreaterThan(0);
+    stamp('腿 F7：父级翻成自由定位 → 孩子按 position 绝对摆 → 撤销恢复');
 
     // 腿 G：第二个节点、另一档、另一个通道（数字输入走失焦提交，一路打字不该塞一串事务）
     await author.click(`[data-layer-id="${carriers.ctaId}"]`);

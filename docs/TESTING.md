@@ -2343,3 +2343,9 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   shard1 重跑这 1831 条里唯一红的就是它（`expected [2 items] to deeply equal []`）。修法：两份日志 UTF-16 转 UTF-8 后 `git add -f`
   随 `11e35b3` 入库；doc-evidence 4/4 绿。记录在此是提醒：**写 `.scratch/…` 点名证据的同时就 `git add -f`——测试会在下一次分片里翻脸**。
   收尾：shard1 实跑 134 文件（133 pass + 1 fail 已修）、1830/1831 通过；与 shard2b 相加仍是 268 文件 / 3557 条（其中这次 doc-evidence 4 条全绿计入）。
+
+- **2026-11-08：§14 e2e 腿 F7（mode:stack/none marker + 自由定位按钮）—— 1 passed（58.1s）**——
+  Actions 点「自由定位」（面板 value `layout.mode:none`），两个孩子失去 flow、控制台 `[ 5.6 s ] 腿 F7`，console 走完 A–F7–R。
+  断言修了一轮：影响徽标翻完仍读 2（埋的 padding+mode 两个键两个 live）、`boxIn` 页面坐标下两个孩子重叠在 Actions 原点，不是分别 0。
+  口径：独占生产构建（next build + next start -p 3201）；3100 依旧跳动，dev 没量就不说量到。
+  顺带：mobile 档的 mode 往返**仍没接**（本片 mad:+），不想让任何人把 F7 读成“mobile 那一下也通了”。

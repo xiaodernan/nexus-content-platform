@@ -9148,6 +9148,25 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
 - 腿 F6（`style.blendMode` / `style.rotation` / `style.cursor` 三格，同日再跑一轮）：SandboxBadge 走完
   混合模式（点 multiply → computed mix-blend-mode）、旋转（填 15 → inline `transform: rotate(15deg)`）、指针（点 pointer → computed cursor），
   每格独立落库后各自撤销——全链 A–F6–R **1 passed**、console `[ 8.7 s ] 腿 F6`。
+
+**第十五片（2026-11-08）：`mode` 的 `stack`/`none` 模型层逃生口落地——md:/lg:/xl: 模式标记类（ADR-0091）**
+
+- codegen `responsiveClasses`：**只在这一档真的 flip 进 none/stack 才发** `${variant}[--nexus-mode:none|stack]`（Tailwind v4 任意属性，无消费方）；
+  定位参照 `${variant}relative` 与基线同一判据（有孩子且自身非 absolute 才发）。设计态默认 `mode:'none'` 的叶子（defaultLayout 写死）不发、
+  继承来的档不补发——首版没加这道门，marker 在所有档上平铺、7 条 §14 往返测试（字重/字距/圆角/字族/fontFamily 等）全部红了，当场收了 flip-gate。
+- code-parse `decodeVariant`：同档 `[--nexus-mode:none|stack]` 认下 → patch.mode；`relative` 与 marker 共现时消费（定位参照），不共现仍 unmapped 字面上，不猜；
+  `[--nexus-mode:grid]` 落 unmapped 不猜。
+- 面板「排布」那格加第五样「自由定位」（value none），stack 保持仅代码可写。
+- 见证：codegen「断点模式标记发射」（含 grid 投影不发 marker、叶子只发 marker 不发 relative）、code-parse「断点模式标记往返」、
+  responsive-editor「排布那格——自由定位第五样」。读数：design-model 35 files / **499 passed**（+4）、responsive-editor **41/41**、typecheck / eslint 0。
+- mobile 档的 mode 往返**仍没接**（mobile 是基线，`--nexus-mode` 无前缀那一刀另说；本片只 md:+）。
+
+**第十六片（2026-11-08）：浏览器腿 F7——面板翻出的「自由定位」一次真 Chrome 走完**
+
+- 腿 F7：Actions 翻成自由定位（面板那个 `[data-responsive-choice="layout.mode:none"]` → 徽标仍读埋的 padding+mode 两个 live 键 = 2），
+  两个孩子失去 flow、画布上归各自 position 落在 Actions 原点（兄弟重叠）→ 撤销恢复并排；console `[ 5.6 s ] 腿 F7`、全链 A–F7–R **1 passed（58.1s）**。
+  独占生产构建（`next start -p 3201`），跑完 3201 已停。
+  两笔记账：影响徽标翻完仍读 2（而非预期的 1，埋的 padding+mode 两个键两个 live）；`boxIn` 读页面坐标，翻后断言改成『兄弟重叠』而不是各自 0。
   面板此刻 **二十六格**。
 
 **仍欠**
