@@ -2101,7 +2101,12 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   现在有了骨架：`npm run evals`（确定性、无库无网的 suite；`--list` / `--suite` 过滤）与 `npm run evals:baseline`
   （这个脚本不动）分两条；第一套新维度 **code-index**（§69 Code Index 检索：totals 对账 / 语法诊断全无 /
   当前页与选中节点加权 / 精确符号名 / 预算=1 极限仍报未裁的数）19/19 结构不变式绿；
-  同文档两次投影逐字节相同第一次被钉住。读数见 `docs/EVALUATION.md` 第十五片。**第二片同日落地：渲染后页面的无障碍**（`e2e/a11y.spec.ts`）：真发布流程
+  同文档两次投影逐字节相同第一次被钉住。读数见 `docs/EVALUATION.md` 第十五/十六片。
+  **第四笔（2026-11-08）：登录后九张界面的浅色 axe 补上**——`e2e/a11y-light-internal.spec.ts`
+  （与 dark 同一名册/判据/纪律，前提门从 tokens.css 现读现算）：首跑 Studio 抓到 1 serious
+  `label-content-name-mismatch`（XL 屏画着"折起"的收起属性面板按钮，`aria-label="收起属性面板"`
+  不含可见文字；改 `折起属性面板` 后 25/0/0，其余八张首跑起就是 0/0/critical 0）；
+  dark 复扫同按钮链也绿（25/0/0）。浅色九张浏览器最低对比度 4.64:1。见 EVALUATION 第十七片。**第二片同日落地：渲染后页面的无障碍**（`e2e/a11y.spec.ts`）：真发布流程
   建公开作品页，匿名访客在真 Chrome 里对真 DOM 跑 axe（WCAG 2.0/2.1 A+AA）——设计模型的静态门禁
   测的是设计，渲染投影只有 axe 才测得到。首跑 serious color-contrast ×7（24 过 / 39 不适用 /
   critical 0），全部同源于一个 token `--nexus-color-fg-3`——改前暗色对四级表面是
