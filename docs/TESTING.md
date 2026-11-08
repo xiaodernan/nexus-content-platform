@@ -2376,3 +2376,7 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   `impact` 还读 2（埋的 padding+mode）、`boxIn` 是页面坐标；修正到『下到下、居中对齐』后一次过。
   写的是"访客那个版本翻了一次又一次"——这一刀同时验证了 panel、publish、render.ts 内联样式解法；
   public page **不发 Tailwind 类**（Tailwind 不参与），marker 只会在 ZIP / 代码产物里出现。
+
+- **2026-11-08：这一版工作树再跑两片——268 文件 / 3572 条、两次 exit 0（含合并 credits 车道那一坨）**——
+  shard1e 134 files / 1834、shard2e 134 files / 1738；与合并前（3572）逐计相同。期间补的都是 e2e 腿（F9 腿 S）和文档，
+  `.scratch/shard1e.log` / `.scratch/shard2e.log` 已 `git add -f` 入库。
