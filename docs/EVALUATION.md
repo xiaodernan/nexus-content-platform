@@ -2301,3 +2301,36 @@ localStorage。读数：
 notMeasured（如实记）：语义检索 / 意图判断（词法目录没有这一半，向量化要 embedding provider，§49）；
 Tool selection / Agent task completion（要真 provider）；真实 provider 下目录的增量更新成本（目录目前全量重算）。
 `scripts/eval-baseline.mts` 的 notMeasured（真 LLM 同批指标等）继续有效，两份清单各管各的。
+
+
+## 2026-11-08 第十六片：投影自洽矩阵（`model-roundtrip`）——§19 的"从单一夹具到矩阵"
+
+第十五片给了 §85 一个骨架，这片往里挂了第二套确定性套件：
+**设计 → 代码 → 设计 的载体矩阵**，与 `scripts/eval-baseline.mts` 里那一笔 round-trip
+（同配置、单夹具）不重复：这里把平台最常发的那几种形状逐格过 `generatePageComponent → codeToPageOps`，
+逐格要求"零 issue 零补丁"，单测管点（这个 pivot 会不会转），矩阵管面（加了一格形状之后
+生成物还能被自家解析器读回来吗）。
+
+| 格 | 形状 | 结果 |
+|---|---|---|
+| A | 基础横幅+页脚（starter） | issues=0 ops=0 |
+| B | 横向带 + gap/padding + justify/align | issues=0 ops=0 |
+| C | 网格 3 列（§20 grid） | issues=0 ops=0 |
+| D | tablet 档 `mode=none` 父级翻转（§14 tier-flip） | issues=0 ops=0 |
+| E | tablet 档 gap/columns 合并规则 | issues=0 ops=0 |
+
+**7/7 PASS。**
+
+**负对照（本片做了两次）**：
+
+1. 把 D 格生成物里 `md:[--nexus-mode:none]` 换成解析器不认得的类 ⇒ issues=0 ops=0——
+   **marker 被手改，这条往返门看不见**。原因是 decodeVariant 对未识别的类静默忽略
+   （record-only，不发 issue），而 responsive 规则的 divergence 没有比较对象。
+   要拦这一回归的是 e2e（腿 F8 / 腿 S）与 design-model 里的 round-trip 单测，不是这条门。
+   记下来，别让"往返绿"被读成"整条链绿"。
+2. 把生成物里的按钮文案改一个字 ⇒ `ops=1 · set text`——**模型真正写回了**，
+   说明这条门至少能抓住"代码与模型漂移"这类改动；它不是恒绿。
+
+两个结论都进记账：矩阵的判据是"零问题零补丁"，它的盲区是 marker 类本身——
+那一格的证据在 e2e，不在这里。notMeasured：code-only 区域往返（unmapped 是设计行为）、
+真 provider 补丁往返、xl/wide 档 tier-flip 的浏览器腿。

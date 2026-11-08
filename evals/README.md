@@ -25,6 +25,7 @@ npm test                       # scripts/test/evals-framework.test.mts 会再验
 | 套件 | §85 维度 | 量什么 | 需要库 |
 |---|---|---|---|
 | `code-index` | code correctness（§69 Code Index 检索） | 目录对真 codegen 产物的结构不变式 + 决定性查询检索 | 否 |
+| `model-roundtrip` | 代码正确性 / 投影自洽（§16 · §19） | generate→parse 矩阵：横幅/横向带/网格/tablet none 翻转/gap+columns，每格零 issue 零补丁 | 否 |
 
 ## 口径（与 scripts/eval-baseline.mts 同）
 

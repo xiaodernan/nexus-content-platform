@@ -1,4 +1,5 @@
 import { codeIndexSuite } from './suites/code-index.mts';
+import { modelRoundtripSuite } from './suites/model-roundtrip.mts';
 import { failedChecks, type EvalSuite, type EvalSuiteResult } from './types.ts';
 
 /**
@@ -19,7 +20,7 @@ import { failedChecks, type EvalSuite, type EvalSuiteResult } from './types.ts';
  *   npm run evals -- --suite code-index
  *   npm run evals -- --list
  */
-const SUITES: EvalSuite[] = [codeIndexSuite];
+const SUITES: EvalSuite[] = [codeIndexSuite, modelRoundtripSuite];
 
 const args = process.argv.slice(2);
 const listOnly = args.includes('--list');
