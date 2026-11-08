@@ -438,9 +438,14 @@
   面板现在 **二十五格**（混合模式是 choice、标签原名）、全模型层 **35 files / 491 passed**。
 - **`style.cursor` 一格**（第十二片，2026-11-08）：同一条判据再推一格——`md:cursor-*`（`cursor-default` 是合法取消类）、
   `decodeVariant` 按 `CURSORS` 白名单认领（中文名：默认/手型/文本/禁止/抓取/抓取中）；往返仍旧零补丁，面板 **二十五格**。
+- **`style.cornerRadius` 模型层**（第十三片，2026-11-08）：四键嵌套，与 layout.padding 同一判据——
+  发射侧四格同值折 `md:rounded-[…]`、缺格发单格、四格全 0 发 `md:rounded-[0px]`（取消）；
+  `decodeVariant` **先分格后折叠**（`rounded` 是 `rounded-tl-` 的前缀，顺序反了 uniform 会吃单格那边）。
+  面板与 layout.padding 同一状态：**不摆**（四格那类输入一格还是四格未定，徽标照数、「清掉这一档」照删）；
+  往返仍旧零补丁（`md:rounded-[10px]` / `lg:rounded-tl-[12px]`）。
 - 这轮之后，§14 的「键覆盖面」仍然欠：`mode` 的 `stack`/`none` 的**模型层**差量类
   （`stack`/`none` 那个 mode 本身仍没有 display 类可发或被发——`md:flex-col` 那一阵类只对非绝对段有效）、
-  `rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`typography` 的字族、`style` 除填充、透明度、混合模式、旋转与指针——
+  `rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`typography` 的字族、`style` 除填充、透明度、混合模式、旋转与指针（cornerRadius 模型层已通，面板不摆）——
   这些键《画布与访客》和《代码视图与 ZIP》仍然不同（§16）。
 - **stack/none ↔ 绝对化**（第二刀，已落地）：`stack`/`none` 本身就是"子节点绝对定位"，代码里没有办法只对这一档
   重投影**父级**，但可以对**子节点**投。实现：`classOf` 里加一层 `positionVariantClasses(node, parent, bp)`，

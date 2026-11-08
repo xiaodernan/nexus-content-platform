@@ -9113,8 +9113,20 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
   基线早能发/收（`cursor-*`）。这一片把 `md:cursor-*` 接进 `responsiveClasses`（声明就发，`cursor-default` 是合法取消类）、
   `decodeVariant` 按 `CURSORS` 白名单认领（未知名 unmapped 不猜）、面板加「指针」一格（choice，中文说法：默认/手型/文本/禁止/抓取/抓取中）。
 - 见证：同一份发射/往返两条用例扩成三样（混合模式/旋转/指针），往返仍旧零补丁；`responsive-editor` 39/39；全层回归绿。
-  面板此刻 **二十五格**。`style` 里还剩 `strokes`/`effects`/`cornerRadius`/`overflowX|Y`；cornerRadius 是四键嵌套
-  （与 layout.padding 同形，按 padding 已通的判据推），effects/strokes 是数组，没有数字通道可发。
+  面板此刻 **二十五格**。`style` 里还剩 `strokes`/`effects`/`cornerRadius`/`overflowX|Y`；cornerRadius 是四键嵌套，第十三片（下一笔）通了它的模型层，见下。
+
+**第十三片（2026-11-08）：`style.cornerRadius` 响应式通道的模型层——发射与回写round-trip，面板照旧不摆**
+
+- 与 `layout.padding` 同形（四键嵌套，`applyResponsive` 整键替换）：发射 `md:/lg:/xl:` 档读这一档 merged 出来的 cornerRadius，
+  四格同值折成一条 `md:rounded-[…]`；缺格就发单格那条 `md:rounded-tl/rounded-tr/rounded-br/rounded-bl-[…]`；
+  `{cornerRadius:四格全0}` 发 `md:rounded-[0px]`（Tailwind 合法取消类，同 reverse:false 一寸）。
+- `decodeVariant` 分格认领（`rounded-tl/tr/br/bl`）再折叠整个 `rounded-[…]`——顺序反了 uniform 会吞掉单格那边（`rounded-` vs `rounded-tl-` 是前缀关系，同 padding 那条判据）；
+  单格那边缺哪格就写哪格（patch partial 对象，§16）。
+- **面板照旧不摆 cornerRadius——与 layout.padding 同一状态**：四格那类嵌套通道的输入口还没立判据（一格还是四格？混合值怎么显示？），
+  徽标会把 `style.cornerRadius` 点名为"没有输入口"那一格，「清掉这一档」连着它一起删。
+- 见证：`codegen.test.ts`「断点圆角发射……」（md:rounded-[8px] / lg:rounded-tl-[12px] / xl:rounded-[0px]）、
+  `code-parse.test.ts`「断点圆角往返……」（折叠后往返仍零补丁）。读数：`packages/design-model` **35 files / 493 passed**（+2）、
+  `npm run typecheck` / `eslint` 0。
 
 **仍欠**
 

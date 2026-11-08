@@ -9,7 +9,7 @@ import {
   DISPLAY_CLASSES,
 } from "../src/codegen";
 import type { DesignNode, GeneratedFile } from "../src/index";
-import { ALIGNABLE_MODES, type Layout, type LayoutMode } from "../src/types";
+import { ALIGNABLE_MODES, type Layout, type LayoutMode, type Style } from "../src/types";
 
 /** §192：生成的代码必须真的能编译，而不是"看起来像 TSX" */
 function transpileDiagnostics(file: GeneratedFile): string[] {
@@ -785,6 +785,31 @@ describe("Design → Code（§17-19）", () => {
     expect(tokens).toContain("lg:mix-blend-normal");
     expect(tokens).toContain("lg:rotate-[0deg]");
     expect(tokens).toContain("lg:cursor-default");
+  });
+
+  it("断点圆角发射：four 同值折成一条 md:rounded-[…]，单格就发单格那边（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "frame", name: "RadiusSlice", size: { width: 200, height: 80 } });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        // 四格同值：折成一条 md:rounded-[…]
+        { breakpoint: "tablet", patch: { style: { cornerRadius: { topLeft: 8, topRight: 8, bottomRight: 8, bottomLeft: 8 } } } },
+        // 单格：只发那一格，其余三格的 CSS 继承基线
+        { breakpoint: "desktop", patch: { style: { cornerRadius: { topLeft: 12 } as Style["cornerRadius"] } } },
+        // 全部归零：Tailwind 合法类——顶掉更窄那档的圆角
+        { breakpoint: "wide", patch: { style: { cornerRadius: { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0 } } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:rounded-[8px]");
+    expect(tokens).toContain("lg:rounded-tl-[12px]");
+    expect(tokens).toContain("xl:rounded-[0px]");
   });
 
   it("断点字距/大小写/装饰发射：typography patch 发 tracking/uppercase/underline 类（§14）", () => {

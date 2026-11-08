@@ -634,6 +634,32 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
         });
       }
     }
+    // 圆角（§14）：同一条判据，同一组 rim——patch 写了哪几格就发哪几格，
+    // 四边同值折成一条 `md:rounded-[…]`。`applyResponsive` 整键替换，所以缺的三格不补（同 padding）。
+    if (style?.cornerRadius) {
+      const cr = style.cornerRadius;
+      const cornerKeys = ["topLeft", "topRight", "bottomRight", "bottomLeft"] as const;
+      const perCorner = {
+        topLeft: "rounded-tl",
+        topRight: "rounded-tr",
+        bottomRight: "rounded-br",
+        bottomLeft: "rounded-bl",
+      } as const;
+      const present = cornerKeys.filter((key) => cr[key] !== undefined);
+      const inner = present.map((key) => lengthClass(cr[key]!, prefix, (i) => i));
+      const uniform =
+        present.length === 4 && inner.every((value) => value !== null && value === inner[0])
+          ? inner[0]
+          : null;
+      if (uniform) out.push(`${variant}rounded-[${uniform}]`);
+      else {
+        present.forEach((key, i) => {
+          const value = inner[i];
+          const utility = perCorner[key];
+          if (value) out.push(`${variant}${utility}-[${value}]`);
+        });
+      }
+    }
     if (style?.fills && !isTextLabel(node)) {
       const solid = firstSolid(style.fills);
       const bg = solid

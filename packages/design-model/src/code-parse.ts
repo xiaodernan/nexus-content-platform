@@ -753,6 +753,36 @@ function decodeVariant(
     }
   }
   if (Object.keys(pad).length) layout.padding = pad;
+  // 圆角：先分格再折叠四边（`rounded` 的 head 是 `rounded-`，会顺带吃掉 `rounded-tl-[…]`，顺序反了就读不出边）。
+  // 与基线同一组 rim（px 数值或 radius.* token）；少一格的 uniform 折不出来，如实 unmapped。
+  const corners: Partial<CornerRadius> = {};
+  for (const [utility, corner] of [
+    ["rounded-tl", "topLeft"],
+    ["rounded-tr", "topRight"],
+    ["rounded-br", "bottomRight"],
+    ["rounded-bl", "bottomLeft"],
+  ] as const) {
+    for (const hit of takeUtility(list, utility).all) {
+      const n = lengthOrTokenOf(hit.value, ctx);
+      if (n === null) note(hit.literal, "圆角需要 px 数值或 radius.* token");
+      else {
+        corners[corner] = n;
+        out.checked.push(hit.literal);
+      }
+    }
+  }
+  if (Object.keys(corners).length) style.cornerRadius = corners;
+  // 四格折叠：任一格已被分格认领就不折（少一格的 uniform 会丢边）
+  if (!Object.keys(corners).length) {
+    for (const hit of takeUtility(list, "rounded").all) {
+      const n = lengthOrTokenOf(hit.value, ctx);
+      if (n === null) note(hit.literal, "圆角需要 px 数值或 radius.* token");
+      else {
+        style.cornerRadius = { topLeft: n, topRight: n, bottomRight: n, bottomLeft: n };
+        out.checked.push(hit.literal);
+      }
+    }
+  }
   const text = takeUtility(list, "text");
   for (const hit of text.arbitrary) {
     const parsed = classifyText(hit.value, ctx);

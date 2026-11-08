@@ -9,7 +9,7 @@ import {
   type ParseIssue,
 } from "../src/code-parse";
 import { RESPONSIVE_PATCH_GROUPS } from "../src/types";
-import type { Page, ResponsivePatchGroup } from "../src/types";
+import type { Page, ResponsivePatchGroup, Style } from "../src/types";
 
 /**
  * Code → Design（§17-19）。核心验收：`parse(generate(page))` 必须零补丁、零 unmapped——
@@ -713,6 +713,32 @@ describe("类名 → 模型属性", () => {
     expect(line).toContain("lg:mix-blend-normal");
     expect(line).toContain("lg:rotate-[0deg]");
     expect(line).toContain("lg:cursor-default");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
+  });
+
+  it("断点圆角往返：四边同值折成一条 rounded-[…] 也回得来（§14）", () => {
+    const page = starterPage();
+    const headline = nodeId(page, "Headline");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [headline]: {
+          ...page.nodes[headline]!,
+          responsive: [
+            { breakpoint: "tablet", patch: { style: { cornerRadius: { topLeft: 10, topRight: 10, bottomRight: 10, bottomLeft: 10 } } } },
+            // 单格：只收那一格，重投影时只发 md/lg:rounded-tl-[…]、其余三格留给基线
+            { breakpoint: "desktop", patch: { style: { cornerRadius: { topLeft: 12 } as Style["cornerRadius"] } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, headline);
+    expect(line).toContain("md:rounded-[10px]");
+    expect(line).toContain("lg:rounded-tl-[12px]");
     const result = parse(withRule, code);
     expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
