@@ -28,7 +28,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, tsInterfaceDuplicateFields, javaRecordDuplicateFields, tsInterfaceFieldTypes, assertSameFields, assertNoAnyFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, tsInterfaceFieldTypes, assertSameFields, assertNoAnyFields, assertNoDuplicateTSFields } from './wire-fields.mjs';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
@@ -264,8 +264,7 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
 // ── §11 public interfaces do not declare the same field twice ───────────────────────────────────
 {
   for (const [file, iface] of [[SERVER_LANE, 'AuditEntry'], [TRAIL_MODEL, 'TrailEntry']]) {
-    const dups = tsInterfaceDuplicateFields(file, iface);
-    assert.deepEqual(dups, [], `${file} ${iface} declares duplicated field(s): ${dups.join(', ')}`);
+    assertNoDuplicateTSFields(file, iface);
   }
   console.log('[§11] AuditEntry and TrailEntry declare each wire field exactly once');
 }
@@ -283,8 +282,7 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
 // ── §11c TrailRow (output shape) has no duplicates and no `any` ────────────────────────────────
 // The panel renders TrailRow; a duplicated or `any`-typed field here would silently break rendering.
 {
-  const dups = tsInterfaceDuplicateFields(TRAIL_MODEL, 'TrailRow');
-  assert.deepEqual(dups, [], `${TRAIL_MODEL} TrailRow declares duplicated field(s): ${dups.join(', ')}`);
+  assertNoDuplicateTSFields(TRAIL_MODEL, 'TrailRow');
   assertNoAnyFields(TRAIL_MODEL, 'TrailRow');
   console.log('[§11c] TrailRow declares each field exactly once with a concrete type — none is `any`');
 }
@@ -292,8 +290,7 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
 // ── §11d audit lane question/answer shapes have no duplicates and no `any` ─────────────────────
 {
   for (const [file, iface] of [[SERVER_LANE, 'AuditTrailAnswer'], [SERVER_LANE, 'AuditTrailQuestion']]) {
-    const dups = tsInterfaceDuplicateFields(file, iface);
-    assert.deepEqual(dups, [], `${file} ${iface} declares duplicated field(s): ${dups.join(', ')}`);
+    assertNoDuplicateTSFields(file, iface);
     assertNoAnyFields(file, iface);
   }
   console.log('[§11d] AuditTrailAnswer and AuditTrailQuestion declare each field exactly once with a concrete type — none is `any`');

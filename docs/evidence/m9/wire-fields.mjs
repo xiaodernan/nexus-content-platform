@@ -224,6 +224,32 @@ export function assertNoAnyFields(file, interfaceName, label) {
 }
 
 /**
+ * Assert a TypeScript interface declares each field name exactly once.
+ * @param {string} file the TypeScript file
+ * @param {string} interfaceName the interface's name
+ * @param {string} [label] optional label for the error message
+ */
+export function assertNoDuplicateTSFields(file, interfaceName, label) {
+  const dups = tsInterfaceDuplicateFields(file, interfaceName);
+  if (dups.length > 0) {
+    throw new Error(`${label ?? `${file} ${interfaceName}`} declares duplicated field(s): ${dups.join(', ')}`);
+  }
+}
+
+/**
+ * Assert a Java record declares each field name exactly once.
+ * @param {string} file the Java file
+ * @param {string} recordName the record's simple name
+ * @param {string} [label] optional label for the error message
+ */
+export function assertNoDuplicateJavaRecordFields(file, recordName, label) {
+  const dups = javaRecordDuplicateFields(file, recordName);
+  if (dups.length > 0) {
+    throw new Error(`${label ?? `${file} ${recordName}`} declares duplicated field name(s): ${dups.join(', ')}`);
+  }
+}
+
+/**
  * The two sides of a contract, checked against each other.
  *
  * The rule is symmetric on purpose: a client that reads a field the service does not send reads nothing
