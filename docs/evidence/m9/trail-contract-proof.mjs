@@ -263,9 +263,11 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
 
 // ── §11 public interfaces do not declare the same field twice ───────────────────────────────────
 {
-  const dups = tsInterfaceDuplicateFields(SERVER_LANE, 'AuditEntry');
-  assert.deepEqual(dups, [], `${SERVER_LANE} AuditEntry declares duplicated field(s): ${dups.join(', ')}`);
-  console.log('[§11] AuditEntry declares each wire field exactly once');
+  for (const [file, iface] of [[SERVER_LANE, 'AuditEntry'], [TRAIL_MODEL, 'TrailEntry']]) {
+    const dups = tsInterfaceDuplicateFields(file, iface);
+    assert.deepEqual(dups, [], `${file} ${iface} declares duplicated field(s): ${dups.join(', ')}`);
+  }
+  console.log('[§11] AuditEntry and TrailEntry declare each wire field exactly once');
 }
 
 // ── §11b no wire-shape field is typed as `any` ─────────────────────────────────────────────────
