@@ -28,7 +28,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, tsInterfaceFieldTypes, assertSameFields, assertNoAnyFields, assertNoDuplicateTSFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, tsInterfaceFieldTypes, assertSameFields, assertNoAnyFields, assertNoDuplicateTSFields, assertNoDuplicateJavaRecordFields } from './wire-fields.mjs';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
@@ -227,6 +227,12 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
   assert.deepEqual(missing, [], `${SERVER_LANE} AuditEntry is missing wire field(s): ${missing.join(', ')}`);
   assert.deepEqual(optional, [], `${SERVER_LANE} AuditEntry marks wire field(s) optional: ${optional.join(', ')} — the service always sends them`);
   console.log(`[§10] all ${wire.length} wire fields are required properties in auditServer.ts AuditEntry`);
+}
+
+// ── §10b the wire record's field list has no duplicates ────────────────────────────────────────
+{
+  assertNoDuplicateJavaRecordFields(CONTROLLER, 'Entry', `${CONTROLLER} Entry record`);
+  console.log('[§10b] the service Entry record has no duplicated field names');
 }
 
 // ── §10c Java primitive wire fields have compatible TS types ───────────────────────────────────
