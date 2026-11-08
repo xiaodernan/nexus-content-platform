@@ -16,7 +16,7 @@
 //
 // Requires nothing but Node:  node docs/evidence/m9/social-contract-proof.mjs
 import assert from 'node:assert/strict';
-import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsInterfaceFieldTypes, tsParseErrors, assertSameFields, javaRecordDuplicateFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsInterfaceFieldTypes, tsParseErrors, assertSameFields, javaRecordDuplicateFields, tsInterfaceDuplicateFields } from './wire-fields.mjs';
 
 const SOCIAL = 'services/nexus-api/src/main/java/dev/nexus/api/social';
 
@@ -71,6 +71,13 @@ console.log('[§0] the three client sources parse with zero errors (sanity gate 
     assert.deepEqual(dups, [], `${c.verb}: ${c.service} record has duplicated field name(s): ${dups.join(', ')}`);
   }
   console.log('[§0b] each wire record has no duplicated field names');
+}
+{
+  for (const c of CONTRACTS) {
+    const dups = tsInterfaceDuplicateFields(c.client, c.clientShape);
+    assert.deepEqual(dups, [], `${c.verb}: ${c.client} interface declares duplicated field name(s): ${dups.join(', ')}`);
+  }
+  console.log('[§0c] each client interface declares each field exactly once');
 }
 for (const c of CONTRACTS) {
   const wireFields = javaRecordFields(c.service, c.record);
