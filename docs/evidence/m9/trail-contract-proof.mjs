@@ -36,6 +36,8 @@ const ts = require('typescript');
 const CONTROLLER = 'services/nexus-api/src/main/java/dev/nexus/api/ops/AuditController.java';
 const TRAIL_MODEL = 'apps/studio/src/lib/trail.ts';
 const SERVER_LANE = 'apps/studio/src/lib/auditServer.ts';
+// v556 — the single owner module for the verb vocabulary the trail's filter row derives from.
+const OPS_MODEL = 'apps/studio/src/lib/ops.ts';
 
 // ── §0 the trail model and lane parse cleanly ──────────────────────────────────────────────────────
 for (const label of [['trail model', TRAIL_MODEL], ['server lane', SERVER_LANE]]) {
@@ -152,7 +154,20 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
     usesAuditActions(found.initializer),
     `${TRAIL_MODEL}'s TRAIL_FILTER_ACTIONS is not initialized from AUDIT_ACTIONS — the filter row is a copy that can drift from the service's verbs`,
   );
+  // The derivation is only as good as the table it derives from: a duplicated verb in the owner's array is
+  // a filter row that maps one button twice and a vocabulary the client can never widen without a second
+  // repeat. The array is read off the source, so a duplicate fails HERE rather than as a silent double map.
+  const opsSrc = readFileSync(OPS_MODEL, 'utf8');
+  const actionsArray = /export const AUDIT_ACTIONS = \[([\s\S]*?)\] as const;/.exec(opsSrc);
+  assert.ok(actionsArray, `${OPS_MODEL} does not declare AUDIT_ACTIONS as an array — the verb table the trail derives from has MOVED`);
+  const verbs = actionsArray[1]
+    .split(',')
+    .map((s) => s.trim().replace(/^['"`\s]+|['"`\s]+$/g, ''))
+    .filter(Boolean);
+  const dupes = [...new Set(verbs.filter((v, i) => verbs.indexOf(v) !== i))];
+  assert.deepEqual(dupes, [], `AUDIT_ACTIONS declares duplicate verb(s): ${dupes.join(', ')} — the trail's filter row would map one button twice`);
   console.log('[§6] TRAIL_FILTER_ACTIONS is derived from AUDIT_ACTIONS (not a hand copy), so the filter row stays aligned with the service verbs');
+  console.log(`[§6b] the owner's AUDIT_ACTIONS declares ${verbs.length} verb(s), each exactly once — ${verbs.join(', ')}`);
 }
 
 // ── §7 AUDIT_ACTIONS is imported from the ops owner module ──────────────────────────────────────────
