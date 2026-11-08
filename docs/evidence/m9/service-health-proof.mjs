@@ -161,10 +161,8 @@ const REACHABLE_DATABASE_FIELDS = ['latencyMs', 'reachable'].sort();
   const healthWire = javaRecordFields(HEALTH_DTO, 'Health').map((f) => f.name).sort();
   assert.deepEqual(healthWire, HEALTH_FIELDS, `HealthDtos.Health wire fields ${JSON.stringify(healthWire)} disagree with expected ${JSON.stringify(HEALTH_FIELDS)}`);
   const dbWire = javaRecordFields(HEALTH_DTO, 'Database').map((f) => f.name).sort();
-  for (const f of REACHABLE_DATABASE_FIELDS) {
-    assert.ok(dbWire.includes(f), `HealthDtos.Database is missing ${f} (wire has ${dbWire.join(', ')})`);
-  }
-  assert.ok(dbWire.includes('detail'), `HealthDtos.Database must carry detail for the unreachable case (wire has ${dbWire.join(', ')})`);
+  const DB_WIRE_FIELDS = ['detail', 'latencyMs', 'reachable'].sort();
+  assert.deepEqual(dbWire, DB_WIRE_FIELDS, `HealthDtos.Database wire fields ${JSON.stringify(dbWire)} disagree with expected ${JSON.stringify(DB_WIRE_FIELDS)}`);
   console.log(`[§0a] static wire contract: Health/Database DTO fields match the shape this proof grades (${healthWire.length}+${dbWire.length} fields read from source)`);
 }
 
