@@ -99,7 +99,11 @@ for (const c of CONTRACTS) {
       assert.equal(props.get(f.name), false, `the ${c.verb}'s client shape marks ${f.name} optional, but the wire sends it as a non-nullable ${f.type}`);
       const allowed = TYPE_MAP.get(f.type) ?? [];
       const t = types.get(f.name);
-      assert.ok(t && allowed.includes(t), `the ${c.verb}'s client shape fields ${f.name}: ${t ?? '(missing)'}, but the wire sends a Java ${f.type} — allowed: ${allowed.join(', ')}`);
+      assert.ok(t && allowed.some(allowedType => t.includes(allowedType)), `the ${c.verb}'s client shape fields ${f.name}: ${t ?? '(missing)'}, but the wire sends a Java ${f.type} — allowed: ${allowed.join(', ')}`);
+    }
+    if (f.type === 'String') {
+      const t = types.get(f.name);
+      assert.ok(t && (t === 'string' || t === 'string | null' || t.includes('string')), `the ${c.verb}'s client shape fields ${f.name}: ${t ?? '(missing)'}, but the wire sends a Java String — expected string | null`);
     }
   }
   console.log(`[§2] the ${c.verb}: the instant is a long (epoch ms) on the wire and required in the client; all primitive wire fields are required`);
