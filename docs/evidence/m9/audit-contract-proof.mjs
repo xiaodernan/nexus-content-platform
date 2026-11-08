@@ -183,6 +183,13 @@ const clientFields = (() => {
   });
 })();
 {
+  const names = clientFields.map((f) => f.name);
+  const dupes = [...new Set(names.filter((n, i) => names.indexOf(n) !== i))];
+  assert.deepEqual(dupes, [], `the client model AuditEntry declares field name(s) more than once: ${dupes.join(', ')} — a duplicate would make the field list disagree with the service's, and the seven-field order below would silently mis-grade`);
+  const anyFields = clientFields.filter((f) => f.text === 'any').map((f) => f.name);
+  assert.deepEqual(anyFields, [], `the client model AuditEntry declares field(s) as 'any': ${anyFields.join(', ')} — an 'any' field erases the wire contract and the nullability check below cannot see through it`);
+}
+{
   assert.deepEqual(
     clientFields.map((f) => f.name),
     ['id', 'action', 'actorId', 'targetId', 'targetType', 'createdAt', 'assurance'],
