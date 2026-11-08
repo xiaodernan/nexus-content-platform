@@ -762,7 +762,7 @@ describe("Design → Code（§17-19）", () => {
     expect(tokens).toContain("md:leading-[1.8]");
   });
 
-  it("断点混合模式/旋转发射：style patch 发 mix-blend-*/rotate-[…] 类（§14）", () => {
+  it("断点混合模式/旋转/指针发射：style patch 发 mix-blend-*/rotate-[…]/cursor-* 类（§14）", () => {
     const page2 = starterPage("Home");
     const root = page2.nodes[page2.rootId]!;
     const node = createNode({ type: "text", name: "BlendSlice", text: "混合模式旋转" });
@@ -772,17 +772,19 @@ describe("Design → Code（§17-19）", () => {
     const withRule: DesignNode = {
       ...node,
       responsive: [
-        { breakpoint: "tablet", patch: { style: { blendMode: "multiply", rotation: 15 } } },
-        // 显式写回 normal / 0：顶掉更窄那档（同 reverse:false 那一寸的形状）
-        { breakpoint: "desktop", patch: { style: { blendMode: "normal", rotation: 0 } } },
+        { breakpoint: "tablet", patch: { style: { blendMode: "multiply", rotation: 15, cursor: "pointer" } } },
+        // 显式写回 normal / 0 / default：顶掉更窄那档（同 reverse:false 那一寸的形状）
+        { breakpoint: "desktop", patch: { style: { blendMode: "normal", rotation: 0, cursor: "default" } } },
       ],
     };
     page2.nodes[node.id] = withRule;
     const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
     expect(tokens).toContain("md:mix-blend-multiply");
     expect(tokens).toContain("md:rotate-[15deg]");
+    expect(tokens).toContain("md:cursor-pointer");
     expect(tokens).toContain("lg:mix-blend-normal");
     expect(tokens).toContain("lg:rotate-[0deg]");
+    expect(tokens).toContain("lg:cursor-default");
   });
 
   it("断点字距/大小写/装饰发射：typography patch 发 tracking/uppercase/underline 类（§14）", () => {

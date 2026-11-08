@@ -508,6 +508,7 @@ describe('§14 面板读数与投影同源', () => {
     'style.opacity': { carrier: mkText, value: 0.3 },
     'style.blendMode': { carrier: mkText, value: 'multiply' },
     'style.rotation': { carrier: mkText, value: 15 },
+    'style.cursor': { carrier: mkText, value: 'pointer' },
     'layout.mode': { carrier: () => withLayout(mkContainer(), { mode: 'grid', columns: 2 }), value: 'horizontal' },
     'layout.gap': { carrier: () => withLayout(mkContainer(), { mode: 'horizontal', gap: 16 }), value: 24 },
     'layout.columns': { carrier: () => withLayout(mkContainer(), { mode: 'grid', columns: 2 }), value: 3 },

@@ -968,6 +968,15 @@ function decodeVariant(
       out.checked.push(hit.literal);
     }
   }
+  // 指针：`md:cursor-*`——`cursor-default` 是合法类（顶掉更窄那档的指针样式）。未知名 unmapped，不猜。
+  for (const hit of takeUtility(list, "cursor").all) {
+    if (!CURSORS.has(hit.value as Style["cursor"])) {
+      note(hit.literal, "cursor 取值不在模型的指针名单里");
+      continue;
+    }
+    style.cursor = hit.value as Style["cursor"];
+    out.checked.push(hit.literal);
+  }
   // 裁剪 / 滚动（§14）：与基线同一组 overflow 类。`overflow-visible` 是响应式"取消"类，
   // 仅在更窄那档有 overflow 约束时才有意义（与 reverse-cancel 同一判据形状）。
   const consumeToken = (token: string): boolean => {

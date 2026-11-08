@@ -664,6 +664,7 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
     // 正是"顶掉更窄那档"的那一刀（同 reverse:false 那一寸），不是摆设。
     if (style?.blendMode !== undefined) out.push(`${variant}mix-blend-${style.blendMode}`);
     if (style?.rotation !== undefined) out.push(`${variant}rotate-[${style.rotation}deg]`);
+    if (style?.cursor !== undefined) out.push(`${variant}cursor-${style.cursor}`);
     if (visible === false) out.push(`${variant}hidden`);
   }
   return out;

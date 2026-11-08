@@ -9107,18 +9107,27 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
   读数：`packages/design-model` **35 files / 491 passed**（+2）、`responsive-editor` 39/39、`npm run typecheck` / `eslint` 0、全层回归绿。
   面板此刻 **二十四格**（位置两格仍按父级自由定位摆/收，第十片样子）。
 
+**第十二片（2026-11-08）：`style.cursor` 响应式通道——取消半边同样有 Tailwind 合法类**
+
+- 与第十一片同一条判据再推一格：模型 `Style.cursor` 六值枚举（default/pointer/text/not-allowed/grab/grabbing），
+  基线早能发/收（`cursor-*`）。这一片把 `md:cursor-*` 接进 `responsiveClasses`（声明就发，`cursor-default` 是合法取消类）、
+  `decodeVariant` 按 `CURSORS` 白名单认领（未知名 unmapped 不猜）、面板加「指针」一格（choice，中文说法：默认/手型/文本/禁止/抓取/抓取中）。
+- 见证：同一份发射/往返两条用例扩成三样（混合模式/旋转/指针），往返仍旧零补丁；`responsive-editor` 39/39；全层回归绿。
+  面板此刻 **二十五格**。`style` 里还剩 `strokes`/`effects`/`cornerRadius`/`overflowX|Y`；cornerRadius 是四键嵌套
+  （与 layout.padding 同形，按 padding 已通的判据推），effects/strokes 是数组，没有数字通道可发。
+
 **仍欠**
 
 1. 面板仍然只有部分输入口：`rowGap`/`crossGap` 与 `typography` 其余键现在**数得进来、改不出去**，界面只能说"去代码那一节"或"整档清掉"。
    （2026-11-08 复核：`rowGap`/`crossGap` 存于 `Layout`（types.ts）但**没有任何实现方在读它们**——layout.ts / codegen.ts / code-parse.ts / validation 均零引用，
    把它们当成"缺少面板输入口的键"是误导，等同于"模型承诺了一个读不出效果的字段"。指派给哪一片、是否落地、按什么语义解释，要先定语义再写实现。）
    （第三片给了 `layout.mode`/`gap`/`columns`/`typography.fontSize`，第六片给了 `justify`/`items`；
-   第七片把 `reverse` 接进了求解器，第八片给它那一格；`layout.clipContent`/`layout.scroll` 与 typography 七格（字重/行高/字距/大小写/装饰/对齐/纵向对齐）以及 style 的混合模式/旋转（第十一片）已接入响应式面板、代码发射/回写与测试——`RESPONSIVE_CHANNELS` 现在**二十四格**（另两格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时才摆），
+   第七片把 `reverse` 接进了求解器，第八片给它那一格；`layout.clipContent`/`layout.scroll` 与 typography 七格（字重/行高/字距/大小写/装饰/对齐/纵向对齐）、style 的混合模式/旋转（第十一片）、指针（第十二片）已接入响应式面板、代码发射/回写与测试——`RESPONSIVE_CHANNELS` 现在**二十五格**（另两格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时才摆），
    写入口不再是「代码」视图独家。）
 2. ~~某一档只声明 `{reverse:false}` 而更窄那档反向时发不出东西~~——**第八片已还**（2026-11-08）：
    发射侧在这种情况下重发一条正向方向类（`md:flex-col`），回写侧按同一条判据认领它，CSS 那一寸
    的跨档胜负与档内胜负都用真 Tailwind v4.3.3 + Chromium 量过（ADR-0069 第八片那节）。
-   还欠的换成下一层：`rowGap`/`crossGap`（死字段——模型存了没人读，语义未定，见上面）、`typography` 的字族、`style` 除填充、透明度、混合模式与旋转。
+   还欠的换成下一层：`rowGap`/`crossGap`（死字段——模型存了没人读，语义未定，见上面）、`typography` 的字族、`style` 除填充、透明度、混合模式、旋转与指针。
    （2026-11-08 位置那两格已还：position.x/position.y 平板/桌面/Wide 都发得出也读得回，面板有输入口——父级 merged 为 `none`/`stack` 自由定位逃生口时才摆，否则收起；见 ADR-0069 第九片。）
 3. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
 4. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。

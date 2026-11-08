@@ -688,7 +688,7 @@ describe("类名 → 模型属性", () => {
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
   });
 
-  it("断点混合模式/旋转往返：发射与回写共用处方，零补丁（§14）", () => {
+  it("断点混合模式/旋转/指针往返：发射与回写共用处方，零补丁（§14）", () => {
     const page = starterPage();
     const headline = nodeId(page, "Headline");
     const withRule: Page = {
@@ -698,9 +698,9 @@ describe("类名 → 模型属性", () => {
         [headline]: {
           ...page.nodes[headline]!,
           responsive: [
-            { breakpoint: "tablet", patch: { style: { blendMode: "multiply", rotation: 15 } } },
-            // 显式写回 normal / 0：顶掉更窄那档——Tailwind 把 md:/lg: 放在基类之后，CSS 里它赢
-            { breakpoint: "desktop", patch: { style: { blendMode: "normal", rotation: 0 } } },
+            { breakpoint: "tablet", patch: { style: { blendMode: "multiply", rotation: 15, cursor: "pointer" } } },
+            // 显式写回 normal / 0 / default：顶掉更窄那档——Tailwind 把 md:/lg: 放在基类之后，CSS 里它赢
+            { breakpoint: "desktop", patch: { style: { blendMode: "normal", rotation: 0, cursor: "default" } } },
           ],
         },
       },
@@ -709,8 +709,10 @@ describe("类名 → 模型属性", () => {
     const line = lineOf(code, headline);
     expect(line).toContain("md:mix-blend-multiply");
     expect(line).toContain("md:rotate-[15deg]");
+    expect(line).toContain("md:cursor-pointer");
     expect(line).toContain("lg:mix-blend-normal");
     expect(line).toContain("lg:rotate-[0deg]");
+    expect(line).toContain("lg:cursor-default");
     const result = parse(withRule, code);
     expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);

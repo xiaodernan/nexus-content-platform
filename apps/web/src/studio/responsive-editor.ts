@@ -54,7 +54,8 @@ export type ResponsiveChannel =
   | 'position.x'
   | 'position.y'
   | 'style.blendMode'
-  | 'style.rotation';
+  | 'style.rotation'
+  | 'style.cursor';
 
 export interface ResponsiveChoice {
   readonly value: string;
@@ -165,6 +166,18 @@ const cleanBlendMode = (value: unknown): Cleaned =>
   typeof value === 'string' && BLEND_MODE_SET.has(value) ? (value as Style['blendMode']) : REJECT;
 const cleanRotation = (value: unknown): Cleaned =>
   isFiniteNumber(value) && value >= -360 && value <= 360 ? Math.round(value * 10) / 10 : REJECT;
+/** 指针：取值就是模型 `Style['cursor']` 那一串；`cursor-default` 是 Tailwind 合法类（写成默认 = 取消更窄档）。 */
+const CURSOR_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'default', label: '默认' },
+  { value: 'pointer', label: '手型' },
+  { value: 'text', label: '文本' },
+  { value: 'not-allowed', label: '禁止' },
+  { value: 'grab', label: '抓取' },
+  { value: 'grabbing', label: '抓取中' },
+];
+const CURSOR_VALUES = new Set<string>(CURSOR_CHOICES.map((c) => c.value));
+const cleanCursor = (value: unknown): Cleaned =>
+  typeof value === 'string' && CURSOR_VALUES.has(value) ? (value as Style['cursor']) : REJECT;
 
 /**
  * 排布只给这四样：求解器（layout.ts）与导出代码（codegen.ts 的 `layoutClasses`）都认它们。
@@ -344,6 +357,17 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     step: 1,
     appliesTo: () => true,
     clean: cleanRotation,
+  },
+  {
+    id: 'style.cursor',
+    label: '指针',
+    group: 'style',
+    key: 'cursor',
+    readPath: 'style.cursor',
+    widget: 'choice',
+    choices: CURSOR_CHOICES,
+    appliesTo: () => true,
+    clean: cleanCursor,
   },
   {
     id: 'layout.mode',
