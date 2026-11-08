@@ -76,6 +76,7 @@ import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { javaRecordFields } from '../../m9/wire-fields.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m10/webhook-proof.mjs → the repository root. Two would land on docs/.
@@ -189,6 +190,16 @@ async function stopService(child) {
 
 /** The receipt's wire shape, pinned: a field added here is a field a read door would start printing. */
 const RECEIPT_FIELDS = ['attemptedAt', 'detail', 'event', 'eventAt', 'id', 'outcome', 'redeliveryOf', 'status', 'targetId', 'webhookId'].sort();
+
+// §0a static wire contract: the Java DTO must declare exactly the fields this door prints.
+{
+  const WEBHOOK_DTO = path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/webhooks/WebhookDtos.java');
+  const receiptWire = javaRecordFields(WEBHOOK_DTO, 'DeliveryRecord').map((f) => f.name).sort();
+  assert.deepEqual(receiptWire, RECEIPT_FIELDS, `WebhookDtos.DeliveryRecord wire fields ${JSON.stringify(receiptWire)} disagree with expected ${JSON.stringify(RECEIPT_FIELDS)}`);
+  const answerWire = javaRecordFields(WEBHOOK_DTO, 'DeliveryAnswer').map((f) => f.name).sort();
+  assert.ok(answerWire.includes('deliveryId'), `WebhookDtos.DeliveryAnswer must carry deliveryId (wire has ${answerWire.join(', ')})`);
+  console.log(`[§0a] static wire contract: DeliveryRecord matches the pinned receipt fields (${receiptWire.length} fields read from source)`);
+}
 
 let serviceProcess = null;
 let dbStarted = false;
