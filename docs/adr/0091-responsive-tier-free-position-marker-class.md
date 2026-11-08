@@ -12,7 +12,9 @@
 - **画布与访客**：生效（求解器的 none/stack 分支把子节点按 `position` 绝对摆放）；
 - **代码与 ZIP**：这个**父级本身**在那一档得不到任何类——`DISPLAY_CLASSES` 对这两种 mode 是空数组（
   "那两档靠子节点自己的绝对坐标摆放"，codegen.ts:66-77）。子节点的 `md:absolute`/`md:static` 差量类**有**发（`positionVariantClasses`，
-  第九片），于是 CSS 层面的绝对化本身不依赖父级类。
+  第九片），于是 CSS 层面的绝对化本身不依赖父级类。公开页（PublishedFrame）走 `nodeStyle` 内联绝对定位，**不吃 Tailwind 类**——
+  `[--nexus-mode:none|stack]` 永远只出现在「代码视图 + 导出 ZIP（NexusExport 的 zip 产出）」里，公开 SSR 的 HTML class 里永远不会有这个类；
+  前者是给作者的源码，后者是给访客的页面（§16）。
 - **回写**：父级的模式 patch 找不到类来认领 ⇒ 从代码改回模型时，那一档的 `mode: none` **整条静默丢失**——
   作者在代码视图里看到的东西与模型不是同一份真值（§16/§19 的反例）。
 - **面板**：`MODE_CHOICES` 只有 竖排/横排/网格/换行（responsive-editor.ts）——作者无法在面板上把一档的父级翻成自由定位。
