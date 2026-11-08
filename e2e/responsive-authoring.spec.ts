@@ -51,6 +51,9 @@ import { loginMember, reusableMemberWithProject } from './support/auth-session';
  *    每步独立落库+撤销，徽标归零——骨架与前两腿同构，不碰 CTA 那套腿 G 的前提。
  * ⑭ 腿 F7（§14 第十五片，2026-11-08）验证 ADR-0091 的落地：Actions 翻成自由定位——
  *    两个孩子失去 flow（画布 absolute），撤销回到并排。
+ * ⑮ 腿 F8（同日）verify §159 的档内语义：**同一个孩子**在 tablet 翻进自由定位时才摆位置那两格，
+ *    mobile（设计 horizontal）和撤销后不摆；wide 继承 tablet 逃生口照样摆。
+ *    各腿按表盘预位、不在文档里用 `none`"预设"一段——实际场景里 none 是逃生口不是默认值。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -710,6 +713,43 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     const secondaryUndone = await boxIn(author, carriers.secondaryId, '撤销后的 Secondary CTA');
     expect(secondaryUndone.left, '撤销后回到 flow，secondary 回到 primary 右边').toBeGreaterThan(0);
     stamp('腿 F7：父级翻成自由定位 → 孩子按 position 绝对摆 → 撤销恢复');
+
+    // 腿 F8：位置那两格（`position.x`/`position.y`）也是按**这一档 merged 后的父级**决定摆不摆的，
+    // F3/F4 量的是设计态的 none；这一腿量的是"爸爸 flip 之后，孩子在这一档秒出输入口"——
+    // CTA（Actions 的孩子）在移动端（设计 horizontal）不摆，在 tablet（翻成 none）摆，在 wide（继承 tablet:none）也摆，
+    // 翻回并排、tablet 回横排 ⇒ 两格又收起。§159 的承诺只有档内时刻是真的。
+    await author.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await author.click('[data-breakpoint-tab="tablet"]');
+    await author.click('[data-responsive-choice="layout.mode:none"]');
+    await author.click(`[data-layer-id="${carriers.ctaId}"]`);
+    await author.click('[data-breakpoint-tab="mobile"]');
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      'tablet 翻进 none：mobile 这一档（设计 horizontal）里位置那两格照样不摆',
+    ).toHaveCount(0);
+    await author.click('[data-breakpoint-tab="tablet"]');
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      'tablet 翻进 none ⇒ 孩子在这一档是自由定位：left 那个数该摆出来',
+    ).toHaveCount(1);
+    await expect(
+      author.locator('[data-responsive-input="position.y"]'),
+      'tablet 翻进 none ⇒ 孩子在这一档是自由定位：top 那个数该摆出来',
+    ).toHaveCount(1);
+    await author.click('[data-breakpoint-tab="wide"]');
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      'wide 继承 tablet 那一档的 none：left 照样摆',
+    ).toHaveCount(1);
+    await author.click('[data-breakpoint-tab="tablet"]');
+    await author.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await undoButton(author).click();
+    await author.click(`[data-layer-id="${carriers.ctaId}"]`);
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      '撤销把 tablet 翻回横排：位置那两格又**消失**了（§159）',
+    ).toHaveCount(0);
+    stamp('腿 F8：父级这一档是不是逃生口，决定那一档位置有没有输入口');
 
     // 腿 G：第二个节点、另一档、另一个通道（数字输入走失焦提交，一路打字不该塞一串事务）
     await author.click(`[data-layer-id="${carriers.ctaId}"]`);

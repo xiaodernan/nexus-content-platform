@@ -62,6 +62,7 @@
 - code-parse 以 marker 为权威判据：同档 `[--nexus-mode:none|stack]` 被认下→patch.mode；`relative` 与 marker 共现时同档消费（定位参照）；手写 marker 落 unmapped 不猜。
 - 读数：`packages/design-model` 35 files / **499 passed**（+4）、`responsive-editor` **41/41**。基线 mid-tier 的 `relative` + marker 不在本片（mobile 继续走基线）。
 - 浏览器腿 F7（同日已还）：Actions 翻「自由定位」（layout.mode:none）→ 两孩子失去 flow、画布 absolute 归各自 position（兄弟重叠落在 Actions 原点）→ 撤销恢复并排；
+- 浏览器腿 F8（同日）：父级 flip 之后位置那两格按档**内**摆/收——mobile 不摆、tablet/wide 翻进 none 摆、撤销回并排又不摆；console `[ 7.9 s ] 腿 F8`、全链 A–F8–R **1 passed（6.0m）**。
 - 基线（mobile 档）模式标记同日补上：`layoutClasses` 无前缀那一档也发 `[--nexus-mode:…]`（没有 `md:` 前缀）——此前 mobile 档的 mode 无往返（§14 mobile-next-leg），live 页面与导出 ZIP 往返现在都能过；`decodeClasses` 同样消费 marker + `relative`（不猜）。
 
   全链 A–F7–R **1 passed（58.1s）**、console `[ 5.6 s ] 腿 F7`，独占生产构建（next start -p 3201）。

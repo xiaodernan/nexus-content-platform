@@ -9167,6 +9167,14 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
 - 腿 F7：Actions 翻成自由定位（面板那个 `[data-responsive-choice="layout.mode:none"]` → 徽标仍读埋的 padding+mode 两个 live 键 = 2），
   两个孩子失去 flow、画布上归各自 position 落在 Actions 原点（兄弟重叠）→ 撤销恢复并排；console `[ 5.6 s ] 腿 F7`、全链 A–F7–R **1 passed（58.1s）**。
   独占生产构建（`next start -p 3201`），跑完 3201 已停。
+
+**第十七片（2026-11-08）：腿 F8——位置那两格按档内逃生口摆/收，浏览器第一次走完**
+
+- 父级翻成自由定位（`layout.mode:none`）之后，孩子在 tablet 那档才摆出位置那两格（`position.x`/`position.y`）；
+  mobile 档（设计横排，没有任何 none/stack 那一档）不摆；wide 档继承 tablet 逃生口（merged cascade）照样摆；撤销把 tablet 翻回横排，两格又**消失**。
+- 读数：console `[ 7.9 s ] 腿 F8`，全链 A–F8–R **1 passed（6.0m）**；独占生产构建（`next start -p 3201`，已停）；spec 头注释 ⑮ 记了。
+  上一跑天荒地老红在两条断言口径上（影响徽标翻完仍是 2、`boxIn` 是页面坐标不是父级内坐标——见腿 F7）；这一条的踩点：`'[data-layer-id="${var}"]'` **单引号**模板字符串没替换，
+  定位器等了一个不存在的字符串的 900s 测试预算（段 745 点击死等）；顺手 grep 完 spec 全部单引号变量引用才过。
   两笔记账：影响徽标翻完仍读 2（而非预期的 1，埋的 padding+mode 两个键两个 live）；`boxIn` 读页面坐标，翻后断言改成『兄弟重叠』而不是各自 0。
   面板此刻 **二十六格**。
 

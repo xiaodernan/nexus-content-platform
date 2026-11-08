@@ -2354,3 +2354,11 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   里程见 85889a4 / 9b92bd3 / e644748 / 52039cf（配合：typecheck + eslint 每根都过 pre-commit）。
   shard1c **134 文件 / 1834 条**（1828+6）、shard2c **134 文件 / 1738 条**（1729+9）、两次都 exit 0——本批跑的就是工作区里另一会话的 credits WIP 还没提交的状态，
   所以它只说明那些文件此刻没把套件弄红，不是对它们的背书。`.scratch/shard1c.log` / `.scratch/shard2c.log` 已 `git add -f` 入库（本文件 §192 那条纪律：点名就得能 clone 到）。
+
+- **2026-11-08：§14 e2e 腿 F8（position 两格按档内逃生口摆/收）——全链 A–F8–R 1 passed（6.0m）**——
+  父级翻成 none（`layout.mode:none`）之后：移动端（设计 horizontal）位置 x 那格**不摆**；tablet 那一档摆（left/top 那两个 input）；
+  wide 继承 tablet 逃生口照样摆；撤销把 tablet 翻回横排，两格又消失。console `[ 7.9 s ] 腿 F8`。
+  这两格的 unit coverage（appliesTo + freePositionAt + 父级合并判据）早有单测，F8 首次把整条链（面板、store、撤销）推过真 Chrome。
+  口径：独占生产构建（`next start -p 3201`，已停）。
+  踩点：上一跑 900s 测试预算烧完死在第 745 行一行 `'[data-layer-id="${var}"]'` **单引号模板字符串没替换**，定位器等了一个不存在的选择器——
+  快速 grep 单引号变量引用应该在写 spec 时当 typo 门走一遍；修法以后照做（`npx playwright ...` 失败前必 grep 这一条）。
