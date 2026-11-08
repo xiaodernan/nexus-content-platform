@@ -112,7 +112,7 @@ export const designBuildSuite: EvalSuite = {
       rec.structural(
         'createDocument(projectType=game) 透传到 metadata',
         game.metadata.projectType === 'game',
-        game.metadata.projectType,
+        game.metadata.projectType ?? '',
       );
     }
 
@@ -362,7 +362,7 @@ export const designBuildSuite: EvalSuite = {
     {
       const { doc } = tree();
       const r = applyPatch(doc, {
-        ops: [{ op: 'addToken', token: { key: 'color.brand', value: '#f00' } }],
+        ops: [{ op: 'addToken', token: { key: 'color.brand', type: 'color', value: '#f00' } }],
       });
       rec.structural(
         'addToken 把 token 加进文档',
@@ -396,7 +396,15 @@ export const designBuildSuite: EvalSuite = {
     // ── 10. applyPatch · component / asset op ──────────────────────────────
     {
       const { doc } = tree();
-      const comp = { id: 'comp1', name: '卡片', pageId: doc.pages[0]!.id, rootId: 'x' };
+      const comp = {
+        id: 'comp1',
+        name: '卡片',
+        rootId: 'x',
+        pageId: doc.pages[0]!.id,
+        props: [],
+        variants: [],
+        slots: [],
+      };
       const add = applyPatch(doc, { ops: [{ op: 'addComponent', component: comp }] });
       rec.structural(
         'addComponent 注册组件',
@@ -414,7 +422,14 @@ export const designBuildSuite: EvalSuite = {
     }
     {
       const { doc } = tree();
-      const asset = { id: 'asset1', kind: 'image' as const, name: '图', src: 'x.png' };
+      const asset = {
+        id: 'asset1',
+        kind: 'image' as const,
+        name: '图',
+        storageKey: 'assets/asset1.png',
+        mimeType: 'image/png',
+        createdAt: new Date(0).toISOString(),
+      };
       const add = applyPatch(doc, { ops: [{ op: 'addAsset', asset }] });
       rec.structural(
         'addAsset 入库资产',

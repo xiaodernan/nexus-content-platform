@@ -90,8 +90,8 @@ export const projectBundleSuite: EvalSuite = {
     dPage.nodes[hero.id] = hero;
     dRoot.children = [hero.id];
     design.tokens.push(
-      { key: 'color.primary', value: '#3366ff' },
-      { key: 'space.md', value: '16px' },
+      { key: 'color.primary', type: 'color', value: '#3366ff' },
+      { key: 'space.md', type: 'dimension', value: '16px' },
     );
 
     // world：建世界后补一条 lore 条目
