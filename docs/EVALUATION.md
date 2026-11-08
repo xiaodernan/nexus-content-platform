@@ -9,12 +9,11 @@ NEXUS_DATABASE_URL=postgres://nexus:nexus_dev_only@localhost:55100/nexus \
   npx tsx --tsconfig apps/web/tsconfig.json scripts/eval-baseline.mts
 ```
 
-**确定性套件（`npm run evals`）于 2026-11-09 落成九套**：
-`code-index`（§69）· `model-roundtrip`（§16/§19）· `export-roundtrip`（§144，需库）·
-`video-plan`（§40-42）· `world-build`（§44/§46/§140）· `schemas-contract`（§6 边界）·
-`game-build`（§54/§51）· `design-build`（§12/§13）· `project-bundle`（§16/§159，集大成合成）。
-评测由上一轮起靠**结构不变式**（每条 check 看的是 `actual >= bound` 或 eq 判断）而不是阈值痛；
-AGPL 交付是同一行命令两次跑得出同样结果。
+九套评测并列（每一套绑定对应的 §85 维度、一个 model 包或一个跨包律令）：
+`code-index`（§69）· `model-roundtrip`（§16/§19）· `export-roundtrip`（§144）·
+`video-plan`（§40-42）· `world-build`（§44/§46/§140）· `schemas-contract`（§6）·
+`game-build`（§54/§51）· `design-build`（§12/§13）· `project-bundle`（§16/§159）。
+每条 `check` 都是结构级判：红即 exit 1——不是"这次数字难看"，是回归。
 
 分工（别把 §85 读成"只有一个脚本"）：
 - 确定性套件在 `evals/`，imports model code directly — 测设计模型投影、包内数据、token 解析
