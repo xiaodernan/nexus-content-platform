@@ -191,6 +191,10 @@ const LIST_FIELDS = ['count', 'incidents', 'limit', 'offset', 'severity', 'statu
   assert.deepEqual(recordWire, RECORD_FIELDS, `IncidentDtos.IncidentRecord wire fields ${JSON.stringify(recordWire)} disagree with expected ${JSON.stringify(RECORD_FIELDS)}`);
   const listWire = javaRecordFields(INCIDENT_DTO, 'IncidentList').map((f) => f.name).sort();
   assert.deepEqual(listWire, LIST_FIELDS, `IncidentDtos.IncidentList wire fields ${JSON.stringify(listWire)} disagree with expected ${JSON.stringify(LIST_FIELDS)}`);
+  const openWire = javaRecordFields(INCIDENT_DTO, 'OpenIncident').map((f) => f.name).sort();
+  assert.deepEqual(openWire, ['openedBy', 'severity', 'summary', 'targetId', 'targetKind', 'title'].sort(), `IncidentDtos.OpenIncident wire fields ${JSON.stringify(openWire)} disagree with expected request shape`);
+  const resolveWire = javaRecordFields(INCIDENT_DTO, 'ResolveIncident').map((f) => f.name).sort();
+  assert.deepEqual(resolveWire, ['resolvedBy'], `IncidentDtos.ResolveIncident wire fields ${JSON.stringify(resolveWire)} disagree with expected request shape`);
   const svc = readFileSync(path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/incidents/IncidentService.java'), 'utf8');
   const sevM = svc.match(/SEVERITIES\s*=\s*List\.of\(([^)]+)\)/);
   const sevWire = sevM ? sevM[1].split(',').map((x) => x.trim().replace(/"/g, '')) : null;
@@ -199,7 +203,7 @@ const LIST_FIELDS = ['count', 'incidents', 'limit', 'offset', 'severity', 'statu
   const resM = svc.match(/String\s+RESOLVED\s*=\s*"([^"]+)"/);
   const stWire = openM && resM ? [openM[1], resM[1]] : null;
   assert.deepEqual(stWire, STATUSES, `IncidentService statuses ${JSON.stringify(stWire)} disagree with proof ${JSON.stringify(STATUSES)}`);
-  console.log(`[§0a] static wire contract: IncidentRecord/IncidentList DTO fields + SEVERITIES/STATUSES vocabularies match (${recordWire.length}+${listWire.length} fields, ${SEVERITIES.length}+${STATUSES.length} words read from source)`);
+  console.log(`[§0a] static wire contract: Incident DTO fields + request shapes + SEVERITIES/STATUSES vocabularies match (${recordWire.length}+${listWire.length}+${openWire.length}+${resolveWire.length} fields, ${SEVERITIES.length}+${STATUSES.length} words read from source)`);
 }
 
 let serviceProcess = null;
