@@ -414,17 +414,18 @@
   回写侧 `decodeVariant` 现在也吃 `tierParentMode`（调用方把这一档投影后的父级模式传进），`absolute` 进 `checked`；
   父级不是自由定位逃生口时，这些类如实落在 unmapped，不静默当成位置回写（§16）。
   见证：`codegen.test.ts`「断点位置发射……」「断点绝对化翻转……」「断点绝对化只在对应 tier……」、
-  `code-parse.test.ts`「断点绝对定位往返……」「断点绝对化往返 A/B……」（截至本片提交后 89 条全绿，回归面含 reverse/overflow/字重/字距等一轮一轮往返）。
-- **字重 / 行高 / 字距 / 大小写 / 装饰 / 对齐**：同一条判据，`md:font-*`/`md:leading-*`/
-  `md:tracking-*`/`md:uppercase|lowercase|capitalize`/`md:underline|line-through`/`md:text-*` 的发射与回写。
-  面板同步加了六行（`typography.fontWeight`/`typography.lineHeight`/`typography.letterSpacing`/`typography.textCase`/`typography.decoration`/`typography.align`），
-  `RESPONSIVE_CHANNELS` **十九格**。
+  `code-parse.test.ts`「断点绝对定位往返……」「断点绝对化往返 A/B……」「断点纵向对齐往返……」（截至本片提交后 92 条全绿，回归面含 reverse/overflow/字重/字距等一轮一轮往返）。
+- **字重 / 行高 / 字距 / 大小写 / 装饰 / 对齐 / 纵向对齐**：同一条判据，`md:font-*`/`md:leading-*`/
+  `md:tracking-*`/`md:uppercase|lowercase|capitalize`/`md:underline|line-through`/`md:text-*`/
+  `md:flex|md:flex-col|md:justify-{center,end,start}`（verticalAlign 差异的文字节点才发/收）的发射与回写。
+  面板同步加了七行（`typography.fontWeight`/`typography.lineHeight`/`typography.letterSpacing`/`typography.textCase`/`typography.decoration`/`typography.align`/`typography.verticalAlign`），
+  `RESPONSIVE_CHANNELS` **二十格**。
 - **顺带**（上一片同属于这一档的收尾）：`layout.clipContent`/`layout.scroll` 两格也并入同一轮——
   `md:overflow-hidden`/`overflow-*-auto`/`overflow-visible`（取消更窄档 overflow 约束的那一刀：更窄那档没 overflow 约束时不发，更窄那档有时发 `md:overflow-visible` 并回写
   `{clipContent:false, scroll:"none"}`）。
 - 这轮之后，§14 的「键覆盖面」仍然欠：`position` 的面板输入口、`mode` 的 `stack`/`none` 的**模型层**差量类
   （`stack`/`none` 那个 mode 本身仍没有 display 类可发或被发——`md:flex-col` 那一阵类只对非绝对段有效）、
-  `rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`typography` 的字族/垂直对齐、`style` 除填充与透明度——
+  `rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`typography` 的字族、`style` 除填充与透明度——
   这些键《画布与访客》和《代码视图与 ZIP》仍然不同（§16）。
 - **stack/none ↔ 绝对化**（第二刀，已落地）：`stack`/`none` 本身就是"子节点绝对定位"，代码里没有办法只对这一档
   重投影**父级**，但可以对**子节点**投。实现：`classOf` 里加一层 `positionVariantClasses(node, parent, bp)`，
