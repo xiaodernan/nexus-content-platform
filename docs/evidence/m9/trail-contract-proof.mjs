@@ -246,5 +246,7 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
   console.log('[§11] AuditEntry declares each wire field exactly once');
 }
 
+
+
 console.log(`\n[summary] wire record ↔ trail shapes agree, field for field`);
 console.log(`reader catches a rename; filter list derived from AUDIT_ACTIONS (ops owner); faces exported; no local verb copy; all wire fields required in the server lane`);
