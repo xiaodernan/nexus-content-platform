@@ -46,6 +46,9 @@ import { loginMember, reusableMemberWithProject } from './support/auth-session';
  * ⑫ `typography.fontFamily`（腿 F5，§14 第十四片，2026-11-08）是面板里第一种**动态选项**通道：
  *    选项从文档现有的 fontFamily 型 token 现读（starter：heading/body/mono），
  *    不是抄一份静态清单。验的正是"这一格摆出来、点 mono、画布字族当场换、撤销回设计值"。
+ * ⑬ 腿 F6（§14 第十一/十二片）把 style 那一组新通道走一遍：
+ *    blendMode（choice multiply → computed mix-blend-mode）、rotation（填 15 → inline transform）、cursor（choice pointer → computed cursor），
+ *    每步独立落库+撤销，徽标归零——骨架与前两腿同构，不碰 CTA 那套腿 G 的前提。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -642,6 +645,44 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     await undoButton(author).click();
     await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '0');
     stamp('腿 F5：fontFamily 动态选项（文档有 token 才摆 → 点 mono → 画布改 → 撤销）');
+
+    // 腿 F6：style 那一组的三格新通道——blend mode / 旋转 / 指针，choice 或填数走通一遍，一格都不翻车。
+    // 载体是 SandboxBadge（frame 类型，style 两格都认、position 那两格也摆得出——和它既有那两格互不干涉）。
+    await author.click(`[data-layer-id="${carriers.sandboxBadgeId}"]`);
+    await author.click('[data-breakpoint-tab="mobile"]');
+    const badgeView = author.locator(`[data-node-id="${carriers.sandboxBadgeId}"]`);
+    // ① 混合模式：点击 multiply → 徽标 1 处 → mixBlendMode 当场换 → 撤销
+    await expect(
+      author.locator('[data-responsive-choice="style.blendMode:multiply"]'),
+      '混合模式那一行摆出来（choice 枚举）',
+    ).toHaveCount(1);
+    await author.click('[data-responsive-choice="style.blendMode:multiply"]');
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
+    expect(
+      await badgeView.evaluate((el) => getComputedStyle(el).mixBlendMode),
+      'mix-blend 写进画布的 computed style',
+    ).toBe('multiply');
+    await undoButton(author).click();
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '0');
+    // ② 旋转：填 15 → Enter → 徽标 1 处 → inline transform 当场有 rotate(15deg) → 撤销
+    await author.fill('[data-responsive-input="style.rotation"]', '15');
+    await author.press('[data-responsive-input="style.rotation"]', 'Enter');
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
+    await expect
+      .poll(async () => badgeView.evaluate((el) => (el as HTMLElement).style.transform), { timeout: 10_000 })
+      .toContain('rotate(15deg)');
+    await undoButton(author).click();
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '0');
+    // ③ 指针：点击 pointer → 徽标 1 处 → computed cursor 当场换 → 撤销
+    await author.click('[data-responsive-choice="style.cursor:pointer"]');
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
+    expect(
+      await badgeView.evaluate((el) => getComputedStyle(el).cursor),
+      'cursor 写进画布的 computed style',
+    ).toBe('pointer');
+    await undoButton(author).click();
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '0');
+    stamp('腿 F6：style 那三格（blendMode ▸ 旋转 ▸ 指针）');
 
     // 腿 G：第二个节点、另一档、另一个通道（数字输入走失焦提交，一路打字不该塞一串事务）
     await author.click(`[data-layer-id="${carriers.ctaId}"]`);

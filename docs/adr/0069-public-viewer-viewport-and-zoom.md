@@ -420,6 +420,7 @@
   `md:flex|md:flex-col|md:justify-{center,end,start}`（verticalAlign 差异的文字节点才发/收）的发射与回写。
   面板同步加了七行（`typography.fontWeight`/`typography.lineHeight`/`typography.letterSpacing`/`typography.textCase`/`typography.decoration`/`typography.align`/`typography.verticalAlign`），
   `RESPONSIVE_CHANNELS` 现在二十六格（另两格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时摆；混合模式/旋转是第十一片、指针是第十二片、圆角是第十三片、字族是第十四片）。
+- 浏览器腿同日补齐 F6（blendMode/rotation/cursor）：console `[ 8.7 s ] 腿 F6`，全链 A–F6–R 1 passed——本文件四格 style 全部真 Chrome 走过了（cornerRadius 照旧不摆，无腿）。
 - **顺带**（上一片同属于这一档的收尾）：`layout.clipContent`/`layout.scroll` 两格也并入同一轮——
   `md:overflow-hidden`/`overflow-*-auto`/`overflow-visible`（取消更窄档 overflow 约束的那一刀：更窄那档没 overflow 约束时不发，更窄那档有时发 `md:overflow-visible` 并回写
   `{clipContent:false, scroll:"none"}`）。

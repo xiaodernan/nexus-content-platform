@@ -2331,3 +2331,9 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   3100 的共享 dev server 依旧不稳定（另一会话的文件一保存就撞 JIT，间歇 500），没量到 dev 那一寸就不说量到。
   notMeasured：这条 e2e 只验了"有 fontFamily 型 token 时摆出来"那一条路；
   "文档没有这类 token 时不摆"这一条由 `responsive-editor` 单测钉着（默认空态），没进真浏览器。
+
+- **2026-11-08：§14 e2e 新通道的浏览器腿清掉——腿 F6（blendMode / rotation / cursor）1 passed**——
+  SandboxBadge 上：点 `style.blendMode:multiply` ⇒ computed `mix-blend-mode: multiply`；填 `style.rotation` 15 ⇒ inline `transform: rotate(15deg)`（poll 到才算）；
+  点 `style.cursor:pointer` ⇒ computed `cursor: pointer`；三步各自点一次 ⇒ 各自撤回 ⇒ 徽标归零。
+  全链 A–F6–R 一次过（`next start -p 3201` 独占生产构建；3100 dev 依旧跳动，不量就不说量到）。至此 §14 的 style 那一组、fontFamily 那一格的
+  **真 Chrome 路径都走过了**——剩的是 cornerRadius（模型层有、面板不摆，无 Chrome 腿）。

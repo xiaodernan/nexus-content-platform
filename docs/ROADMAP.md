@@ -9145,6 +9145,9 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
   e2e 腿 F5（同日跑绿，`next start -p 3201` 独占生产构建）：点 Headline ⇒ 字族三格摆出来 →
   `[data-responsive-choice="typography.fontFamily:{font.mono}"]` ⇒ 徽标读「改 1 处」、画布 computed fontFamily 当场换、撤销回设计值——
   console `[ 8.3 s ] 腿 F5`、全链 A–F5–R **1 passed（1.2m）**。
+- 腿 F6（`style.blendMode` / `style.rotation` / `style.cursor` 三格，同日再跑一轮）：SandboxBadge 走完
+  混合模式（点 multiply → computed mix-blend-mode）、旋转（填 15 → inline `transform: rotate(15deg)`）、指针（点 pointer → computed cursor），
+  每格独立落库后各自撤销——全链 A–F6–R **1 passed**、console `[ 8.7 s ] 腿 F6`。
   面板此刻 **二十六格**。
 
 **仍欠**
