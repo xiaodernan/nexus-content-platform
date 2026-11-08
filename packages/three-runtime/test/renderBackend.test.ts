@@ -211,6 +211,10 @@ describe('the WebGL backend where there is no GL (v476)', () => {
     try {
       const canvas = {
         addEventListener: () => {},
+        // three >=0.17 constructs the renderer against the canvas it is handed, and its construction path
+        // calls at least add/removeEventListener before it asks for a context — the fake canvas must be
+        // complete enough for three's own construction sequence, not merely complete enough to crash first.
+        removeEventListener: () => {},
         getContext: () => null,
       } as unknown as HTMLCanvasElement;
 
@@ -225,6 +229,7 @@ describe('the WebGL backend where there is no GL (v476)', () => {
     try {
       const canvas = {
         addEventListener: () => {},
+        removeEventListener: () => {},
         getContext: () => {
           throw new Error('probe-marker');
         },

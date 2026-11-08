@@ -3,16 +3,22 @@ import { defineConfig } from 'vitest/config';
 
 const from = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
+/**
+ * v215 (main line, kept by the 2026-11-09 consolidation): no hand-picked include list.
+ *
+ * An include list here broke turbo's per-package `vitest run` the day it landed, because the
+ * globs resolve relative to the PACKAGE directory when a package runs its own vitest, not to the
+ * merged workspace root: "packages/*​/test" matches nothing from inside packages/design-model and
+ * the whole studio suite went missing. The default include (every `*.test.*`) is what both lines
+ * actually want; the exclude list is the surviving two-line union of the two configs.
+ */
 export default defineConfig({
   test: {
-    // v215 (master): the ROOT config excludes the proof-scratch tree and its stale copies.
-    // main: the 35s room for real-DB suites and the parallelism ban lives here too.
     exclude: ['**/.scratch/**', '**/node_modules/**', '**/dist/**', '**/.git/**'],
-    include: ['packages/*/test/**/*.test.ts', 'apps/web/test/**/*.test.ts', 'apps/web/src/**/*.test.ts', 'apps/mcp-server/test/**/*.test.ts', 'scripts/test/**/*.test.mts'],
     environment: 'node',
     globals: false,
     reporters: 'dot',
-    // The real-DB suites share one Postgres; 5s kills them when they queue. Sequential is cheaper than red.
+    // Real-DB suites share one Postgres; 5s kills them when they queue. Sequential is cheaper than red.
     testTimeout: 30_000,
     hookTimeout: 30_000,
     fileParallelism: false,
