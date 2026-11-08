@@ -38,6 +38,11 @@ import { loginMember, reusableMemberWithProject } from './support/auth-session';
  *    顶掉的是**更窄那一档**的反向。三处口径必须同时认它——面板那一格（`{reverse:false}` 不是"没有规则"，
  *    而"本来正序时点正序"必须一个键都不写）、codegen（重发一条正向方向类，CSS 才会真的回头）、
  *    求解器（画布回到正序）。所以这条腿从面板点下去，一路量到代码那一行的类名与访客那一份几何。
+ * ⑪ `position.x` / `position.y`（腿 F3/F4，§14 第十片，2026-11-08）只摆在父级 merged 进这一档仍是
+ *    自由定位（`none`/`stack`）的孩子上——其余排布下 `left/top` 只会被忽略（§16），
+ *    面板不摆一个按下去什么都改不了的输入口（§159）。夹具里专门留了一个 `mode: none` 的
+ *    `Sandbox` 包住 `SandboxBadge`：父级自由定位 → 两行摆出来且写得动；
+ *    对照组是 Eyebrow（父级竖排）——同一节里位置两行根本不存在。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -99,6 +104,15 @@ interface Carriers {
   eyebrowDesignWidth: unknown;
   /** 起手时 Headline 在设计档的字号（面板那格的「设计」读数，也是访客腿 design 那份的读数） */
   headlineDesignFontSize: number;
+  /**
+   * 自由定位沙盒：`Sandbox` 永远是 `mode: none` 的自由定位逃生口，`SandboxBadge` 是它的孩子。
+   * 位置那两格（position.x / position.y）只有 merged 成 none/stack 的父级才摆得出——
+   * Eyebrow / CTA 的父级一个是竖排一个是横排，摆不出来，所以专门留一个自由定位载体。
+   */
+  sandboxId: string;
+  sandboxBadgeId: string;
+  /** 起手时 SandboxBadge 在设计尺寸里的位置（写第二条键之前先记下，判"这一档真的改了投影"） */
+  sandboxBadgeDesignPosition: { x: number; y: number };
 }
 
 /**
@@ -157,6 +171,83 @@ async function prepareRuleFreeDocument(page: Page, projectId: string): Promise<C
     bottom: seedSide('bottom'),
     left: seedSide('left'),
   };
+  // ── 自由定位沙盒：起手埋一个 `mode: none` 的父级 + 它的孩子，位置那两格的载体。
+  // 每轮重建（先把上一轮的沙盒连根拔掉），起点一致——固定数，不用随机。
+  const purgeByName = (name: string): void => {
+    for (const p of doc.pages) {
+      for (const [id, node] of Object.entries(p.nodes)) {
+        if (node.name === name) {
+          delete p.nodes[id];
+          // 孩子一起清掉（沙盒的孩子只有 SandboxBadge）
+          for (const childId of (node.children as string[] | undefined) ?? []) {
+            const parent = p.nodes[childId]?.parentId as string | undefined;
+            if (parent === id) delete p.nodes[childId];
+          }
+        }
+      }
+      // 从父级的孩子表里抹掉
+      for (const node of Object.values(p.nodes)) {
+        node.children = (node.children as string[] | undefined)?.filter((cid) => p.nodes[cid]) ?? [];
+      }
+    }
+  };
+  purgeByName('SandboxBadge');
+  purgeByName('Sandbox');
+  const sandboxId = `sandbox_${Date.now().toString(36)}a`;
+  const badgeId = `sandbox_${Date.now().toString(36)}b`;
+  const nodeDefaults = {
+    constraints: { horizontal: 'start' as const, vertical: 'start' as const },
+    visible: true,
+    locked: false,
+  };
+  const baseLayout = (mode: string) => ({
+    mode,
+    gap: 0,
+    padding: { top: 0, right: 0, bottom: 0, left: 0 },
+    justify: 'start',
+    items: 'start',
+    clipContent: false,
+    scroll: 'none',
+  });
+  const styleBase = {
+    strokes: [],
+    cornerRadius: { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0 },
+    effects: [],
+    opacity: 1,
+    blendMode: 'normal',
+    rotation: 0,
+    cursor: 'default',
+    overflowX: 'visible',
+    overflowY: 'visible',
+  };
+  const sandbox = {
+    id: sandboxId,
+    type: 'section',
+    name: 'Sandbox',
+    parentId: home.rootId,
+    children: [badgeId],
+    position: { x: 0, y: 0 },
+    size: { width: 420, height: 140 },
+    layout: baseLayout('none'),
+    style: { ...styleBase, fills: [{ kind: 'solid', color: '{color.surface}' }] },
+    ...nodeDefaults,
+  };
+  const badge = {
+    id: badgeId,
+    type: 'frame',
+    name: 'SandboxBadge',
+    parentId: sandboxId,
+    children: [],
+    position: { x: 48, y: 40 },
+    size: { width: 180, height: 48 },
+    layout: baseLayout('vertical'),
+    style: { ...styleBase, fills: [{ kind: 'solid', color: '{color.primary}' }] },
+    ...nodeDefaults,
+  };
+  home.nodes[sandboxId] = sandbox as unknown as RawNode;
+  home.nodes[badgeId] = badge as unknown as RawNode;
+  const homeRoot = home.nodes[home.rootId]!;
+  homeRoot.children = [...((homeRoot.children as string[]) ?? []), sandboxId];
   actions.responsive = [
     { breakpoint: 'tablet', patch: { layout: { mode: seededMode, padding: seededPadding } } },
   ];
@@ -183,6 +274,9 @@ async function prepareRuleFreeDocument(page: Page, projectId: string): Promise<C
     designPageWidth,
     eyebrowDesignWidth: (eyebrow.size as { width?: unknown } | undefined)?.width,
     headlineDesignFontSize,
+    sandboxId,
+    sandboxBadgeId: badgeId,
+    sandboxBadgeDesignPosition: { x: 48, y: 40 },
   };
 }
 
@@ -419,9 +513,103 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     await undoButton(author).click();
     await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
     await expect(author.locator('[data-responsive-clear="size.width"]'), '撤销要把第二个键抹干净').toHaveCount(0);
+    await author.fill('[data-responsive-input="size.width"]', '200');
+    await author.press('[data-responsive-input="size.width"]', 'Enter');
+    await expect(tab(author, 'mobile'), '宽 + 显示：一条规则里两个键都算进投影').toHaveAttribute(
+      'data-breakpoint-impact',
+      '2',
+    );
+    await expect(
+      author.locator('[data-responsive-clear="visible"]'),
+      '第二个键写下去不能把第一个键的清除键顶掉',
+    ).toHaveCount(1);
+    await expect(author.locator('[data-responsive-clear="size.width"]')).toHaveCount(1);
+    await expect(author.locator('[data-responsive-channel="size.width"]')).toContainText('这一档 200');
+    // 撤销这一次：只剩第一个键，徽标回到 1——事务的粒度是"一个键"，不是"整条规则"
+    await undoButton(author).click();
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
+    await expect(author.locator('[data-responsive-clear="size.width"]'), '撤销要把第二个键抹干净').toHaveCount(0);
     await redoButton(author).click();
     await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '2');
     stamp('腿 F–F2：切视口不改模型 + 同一条规则里的第二个键');
+
+    // 腿 F3：位置那两格（§14 第十片，2026-11-08）——只有父级 merged 进这一档仍是 none/stack
+    // （自由定位逃生口）时摆出来；Extra 的两个载体：SandboxBadge 的父级是自由定位、Eyebrow 的父级是竖排。
+    await author.click(`[data-layer-id="${carriers.sandboxBadgeId}"]`);
+    await expect(editor).toHaveAttribute('data-responsive-breakpoint', 'mobile');
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      '自由定位父级里：位置 x 那一格该摆出来',
+    ).toHaveCount(1);
+    await expect(
+      author.locator('[data-responsive-input="position.y"]'),
+      '自由定位父级里：位置 y 那一格该摆出来',
+    ).toHaveCount(1);
+    // 画布按页面坐标摆绝对定位的节点（整页是一张绝对画布），所以位置断言落在**相对父级的盒子**上
+    const badgeRel = async (where: string) =>
+      relBox(await boxIn(author, carriers.sandboxBadgeId, where), await boxIn(author, carriers.sandboxId, `${where} 的父级`));
+    const badgeStart = await badgeRel('画布上的 SandboxBadge');
+    expect(badgeStart.left).toBeCloseTo(carriers.sandboxBadgeDesignPosition.x, 0);
+    expect(badgeStart.top).toBeCloseTo(carriers.sandboxBadgeDesignPosition.y, 0);
+    await author.fill('[data-responsive-input="position.x"]', '120');
+    await author.press('[data-responsive-input="position.x"]', 'Enter');
+    await expect(tab(author, 'mobile'), 'x 那一个键写进去：影响就是 1 处').toHaveAttribute(
+      'data-breakpoint-impact',
+      '1',
+    );
+    await expect(
+      author.locator('[data-responsive-channel="position.x"]'),
+      '这一档 120 要当场读得出来',
+    ).toContainText('这一档 120');
+    const badgeMoved = await badgeRel('写 position.x 之后的 SandboxBadge');
+    expect(badgeMoved.left, '写下去的键当场改了画布这一格投影').toBeCloseTo(120, 0);
+    expect(badgeMoved.top, 'position.y 那一个键没被碰').toBeCloseTo(carriers.sandboxBadgeDesignPosition.y, 0);
+    // 级联：平板那一档看得见手机规则，但 Sandbox 的父级（根）在平板仍是自由定位 ⇒ 两行照样摆
+    await author.click('[data-breakpoint-tab="tablet"]');
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      '父级平板 merged 仍是自由定位：两行照样摆',
+    ).toHaveCount(1);
+    await expect(
+      author.locator('[data-responsive-input="position.y"]'),
+    ).toHaveCount(1);
+    const badgeTablet = await badgeRel('平板档的 SandboxBadge');
+    expect(badgeTablet.left, '平板那一档继承手机那条规则').toBeCloseTo(120, 0);
+    // 撤销：回到设计位置，位置那两格这一档就没有了
+    await undoButton(author).click();
+    const badgeUndone = await badgeRel('撤销后的 SandboxBadge');
+    expect(badgeUndone.left, '撤销真的把画布这一格投影恢复了').toBeCloseTo(
+      carriers.sandboxBadgeDesignPosition.x,
+      0,
+    );
+    await expect(
+      author.locator('[data-responsive-channel="position.x"]'),
+      '撤销之后这一格不该还写着 120',
+    ).not.toContainText('120');
+    await expect(
+      author.locator('[data-responsive-clear="position.x"]'),
+      '撤销抹掉了这一格自己的覆盖：清除键该跟着没',
+    ).toHaveCount(0);
+    stamp('腿 F3：位置两格的自由定位门（摆出来 → 写一格 → 级联 → 撤销）');
+
+    // 对照：Eyebrow 的父级是竖排——位置那两格按下去什么都改不了，面板不摆（§159）
+    await author.click(`[data-layer-id="${carriers.eyebrowId}"]`);
+    await author.click('[data-breakpoint-tab="mobile"]');
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      '竖排父级：位置 x 那一格不该摆出来',
+    ).toHaveCount(0);
+    await expect(
+      author.locator('[data-responsive-input="position.y"]'),
+      '竖排父级：位置 y 那一格不该摆出来',
+    ).toHaveCount(0);
+    // 回到 SandboxBadge 收尾，撤掉 F4 里选中的那档切换：夹具体没有新增事务
+    await author.click(`[data-layer-id="${carriers.sandboxBadgeId}"]`);
+    await expect(tab(author, 'mobile'), 'F3 的撤销之后这一档应该读 0 处投影').toHaveAttribute(
+      'data-breakpoint-impact',
+      '0',
+    );
+    stamp('腿 F4：位置两格只摆在自由定位父级（对照读数）');
 
     // 腿 G：第二个节点、另一档、另一个通道（数字输入走失焦提交，一路打字不该塞一串事务）
     await author.click(`[data-layer-id="${carriers.ctaId}"]`);

@@ -9072,12 +9072,29 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
 - 子节点绝对化**不再依赖子节点自己带 position patch**——这一刀后，父级换 mode 的投影差量由子节点的 ClassNames 自己承担，与现有 `applyResponsive` 同一口径。
 - 见证：`codegen.test.ts`「断点位置发射……」「断点绝对化翻转……」、`code-parse.test.ts`「断点绝对定位往返……」「断点绝对化往返 A/B……」，
   共 89 条全绿（回归面含 reverse/overflow/字重/字距等一轮一轮往返）；全模型层 487 条。
+- 面板输入口那一半（同日第二笔，`f895494`）：`position.x` / `position.y` 进 `RESPONSIVE_CHANNELS`，
+  `appliesTo` 加了可选 `{ parent }` 上下文；自由定位逃生口（none/stack）才摆，其余收起（§159）。
+- 浏览器腿（同日第三笔，本文件下面的第十片）：面板那两格在真 Chrome 里量过了。
+
+**第十片（2026-11-08）：位置那两格的面板腿进了 e2e——`Sandbox` 自由定位沙盒与对照读数的设计**
+
+- 夹具起手**之前**埋一个 `mode: none` 的 `Sandbox` 包住 `SandboxBadge`（固定位置 48/40，每轮先连根拔掉重建，幂等）；
+  Eyebrow/CTA 当对照组（竖排/横排父级，位置两行不摆）。落库走的是既有 `prepareRuleFreeDocument` 那条 PUT，
+  节点走 `validateDocument` 同一道门（本机校验过两条手拼节点，`errors: []`）。
+- 腿 F3（都在真 Chrome 里点）：沙盒里点 `SandboxBadge` ⇒ mobile 档位置两行摆出来 → `position.x` 填 120 ⇒
+  徽标读「这一档 120」、画布 inline left/top 相对 Sandbox 变成 (120, 40)（整页是一张绝对画布，断言落在**相对盒子**上，
+  `relBox`——`left` 的页面坐标不是父级内坐标，第一跑红在 `top=546.9≠40` 就是这样；按盒子对齐后全绿）→ tablet 两格照样摆、
+  投影继承 120（级联）→ 撤销 ⇒ 回 (48, 40)、清除键没了。腿 F4：Eyebrow 那一档位置两行不存在（对照）。
+- 读数：`playwright test e2e/responsive-authoring.spec.ts`，**1 passed（1.0m）**，全链 A–F4–R 一次过；
+  截图仍按失败即存。注：本机 3100 的另一会话 dev server 这段时间间歇 500（JIT 重编译期），这条跑的是**独占的生产构建**
+  （`apps/web` `next start -p 3201`，serve 的就是今天这笔提交的产物）；dev 那一寸没量到就不说量到（§159 也管测试读数）。
+- 第一跑的红是一个很有代表性的误判：`boxIn` 读到的是**页面坐标**（整页是一张绝对画布），不是父级内坐标——
+  `left=48` 碰巧对（Sandbox 横向在 x=0），`top=546.9≠40`（Sandbox 在页面流的下端）。位置断言全部改落在
+  既有的 `relBox`（相对父级的盒子）上之后绿——其余腿测量 Actions 的几何用的也是这把尺。
 
 **仍欠**
 
-1. 面板仍然只有部分输入口：`position`（x/y）——这一格的**代码行**现在也通了（md:/lg:/xl: 三档、父级自由定位时，ADR-0069 第九片），
-   但面板还没有输入口；`rowGap`/`crossGap`
-   与 `typography` 其余键现在**数得进来、改不出去**，界面只能说"去代码那一节"或"整档清掉"。
+1. 面板仍然只有部分输入口：`rowGap`/`crossGap` 与 `typography` 其余键现在**数得进来、改不出去**，界面只能说"去代码那一节"或"整档清掉"。
    （2026-11-08 复核：`rowGap`/`crossGap` 存于 `Layout`（types.ts）但**没有任何实现方在读它们**——layout.ts / codegen.ts / code-parse.ts / validation 均零引用，
    把它们当成"缺少面板输入口的键"是误导，等同于"模型承诺了一个读不出效果的字段"。指派给哪一片、是否落地、按什么语义解释，要先定语义再写实现。）
    （第三片给了 `layout.mode`/`gap`/`columns`/`typography.fontSize`，第六片给了 `justify`/`items`；
@@ -9087,7 +9104,7 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
    发射侧在这种情况下重发一条正向方向类（`md:flex-col`），回写侧按同一条判据认领它，CSS 那一寸
    的跨档胜负与档内胜负都用真 Tailwind v4.3.3 + Chromium 量过（ADR-0069 第八片那节）。
    还欠的换成下一层：`rowGap`/`crossGap`（死字段——模型存了没人读，语义未定，见上面）、`typography` 的字族、`style` 除填充与透明度。
-   （2026-11-08 位置那两格已还：position.x/position.y 平板/桌面/Wide 都发得出也读得回，面板有输入口——父级 merged 为 `none`/`stack` 自由定位逃生口时才摆，否则收起；见 ADR-0069 第十片。）
+   （2026-11-08 位置那两格已还：position.x/position.y 平板/桌面/Wide 都发得出也读得回，面板有输入口——父级 merged 为 `none`/`stack` 自由定位逃生口时才摆，否则收起；见 ADR-0069 第九片。）
 3. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
 4. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。
 5. 这条 e2e 链在开发模式里 4.7m，其中腿 F 那一段从 9.7s 涨到 104s、发布到 266s 是同机另一会话同时在跑

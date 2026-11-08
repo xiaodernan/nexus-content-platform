@@ -2311,3 +2311,14 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   顺带：`apps/web/test/responsive-editor.test.ts` 39/39 绿（position.x/y 那两格的 `expect` 一并生效）。
   notMeasured：整批一次跑的 exit-0 绿仍然拿不到（崩溃触发条件仍未查清，`fileParallelism` 配置没动）；
   分片绿 ≠ 收尾崩溃已修。
+
+- **2026-11-08：§14 e2e 断点人工入口加腿 F3/F4（位置那两格）——独占生产构建上 1 passed（59.5s）**——
+  `e2e/responsive-authoring.spec.ts` 现在会（埋在起手之前的）`Sandbox`（`mode: none`）+ `SandboxBadge`
+  固定位置 48/40；腿 F3：选中 badge ⇒ mobile 档两行摆出来 → x 写 120 ⇒ 画布相对 Sandbox 变成 (120, 40)、
+  徽标读「这一档 120」→ tablet 两格照样摆、继承 120 ⇒ 撤销 ⇒ (48, 40)、清除键没 → 腿 F4：Eyebrow（竖排父级）位置两行不存在。
+  **注意读数口径**：本机 3100 的 dev server 这段时间间歇 500（另一会话的源码在保存的瞬间让 JIT 重编译撞运行中请求），
+  这条跑的是独占生产构建（`apps/web` `next start -p 3201`，serve 的就是今天这笔提交的产物），dev 那一寸没量到就不说量到。
+  全链 A–F4–R 一次过，截图仅失败即存（这次没有失败图）。夹具每轮连根拔掉沙盒重建（PUT 幂等），
+  节点走 `validateDocument` 同一道门（本机校验 `errors: []`）。
+  notMeasured：这条 e2e 的**成功路径只在生产构建上量过**；开发模式下的腿 F3/F4 与 4.7m 量级的时长没重跑；
+  sandbox 埋点会出现在夹具项目的公开页里（本来没有可见文本，不影响其余腿）。

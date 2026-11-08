@@ -427,6 +427,10 @@
   只有父级 merged 进这一档仍是自由定位（`none`/`stack`）时摆出来，author 那一出来已经和代码发射侧对上；
   父级被翻成 `horizontal`/`vertical`/`grid`/`wrap` 时两格收起（画布也读不到 left/top）。
   `position.y` 行间标签是"上"、`position.x` 是"左"。
+  **见证**：`e2e/responsive-authoring.spec.ts` 腿 F3/F4（`Sandbox` 自由定位沙盒 + Eyebrow 竖排父级对照；
+  填 x=120 落库、画布相对 Sandbox 变成 (120, 40)、tablet 级联继承、撤销回 (48, 40)、
+  Eyebrow 那一档两行不存在）——真 Chrome、独占生产构建上 **1 passed（59.5s）**，
+  夹具幂等（每轮连根拔沙盒重建），2026-11-08。
 - 这轮之后，§14 的「键覆盖面」仍然欠：`mode` 的 `stack`/`none` 的**模型层**差量类
   （`stack`/`none` 那个 mode 本身仍没有 display 类可发或被发——`md:flex-col` 那一阵类只对非绝对段有效）、
   `rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`typography` 的字族、`style` 除填充与透明度——
