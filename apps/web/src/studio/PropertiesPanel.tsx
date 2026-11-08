@@ -299,11 +299,19 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
     const first = pick(nodes[0]!);
     return nodes.every((n) => JSON.stringify(pick(n)) === JSON.stringify(first)) ? first : MIXED;
   };
-  const impactOf = (breakpoint: BreakpointName) => mixedOf((n) => responsiveImpactOf(n, breakpoint));
+  /**
+   * position（`position.x/y`）那两格只有父级在这一档是自由定位才摆出来（`none`/`stack`）：
+   * 父级把这一档翻成横排/竖排后，子节点已在流里，画布读不到 `left/top`，两个输入口摆了只是谎
+   * （§159）。
+   */
+  const parentCtx = (node: DesignNode) => ({ parent: state.page?.nodes?.[node.parentId ?? ''] ?? null });
+  const parentOf = (node: DesignNode) => parentCtx(node).parent;
+  const impactOf = (breakpoint: BreakpointName) =>
+    mixedOf((n) => responsiveImpactOf(n, breakpoint, parentOf(n)));
   const impact = impactOf(bp);
   /** 徽标数的是模型里所有组，面板只摆得出真能改的那几格——差出来的那些键要说出来，不然"改 3 处"里
    *  有 2 处对着空白的行，作者会以为面板坏了（§159：界面说的话要跟画布/访客看得见的对得上） */
-  const outsideOf = mixedOf((n) => responsiveImpactDetailOf(n, bp).outsidePanel);
+  const outsideOf = mixedOf((n) => responsiveImpactDetailOf(n, bp, parentOf(n)).outsidePanel);
   const hasAnyRule = nodes.some((n) => hasResponsiveRule(n, bp));
 
   const pickBreakpoint = (next: BreakpointName) => {
@@ -348,9 +356,14 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
   /**
    * 行的名册由内核定：只摆**这个节点、这一档真能改**的那几格（`appliesTo`）。
    * 摆一个按下去什么都改不了的输入口，作者只会以为面板坏了（§159）。
-   * 多选取交集——不能对着一个不认这格的元素写这一格。
+   * 多选取**交集**——不能对着一个不认这格的元素写这一格。
+   * 位置（`position.x/y`）那两格只有父级在这一档是自由定位才摆出来（`none`/`stack`）：
+   * 父级把这一档翻成横排/竖排后，子节点已在流里，画布读不到 `left/top`，两个输入口摆了只是谎
+   * （§159）。
    */
-  const specs = RESPONSIVE_CHANNELS.filter((spec) => nodes.every((n) => spec.appliesTo(n, bp)));
+  const specs = RESPONSIVE_CHANNELS.filter((spec) =>
+    nodes.every((n) => spec.appliesTo(n, bp, { parent: parentOf(n) })),
+  );
 
   const renderChannelRow = (spec: ChannelSpec) => {
     const value = rowValue(spec.id);

@@ -9081,13 +9081,13 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
    （2026-11-08 复核：`rowGap`/`crossGap` 存于 `Layout`（types.ts）但**没有任何实现方在读它们**——layout.ts / codegen.ts / code-parse.ts / validation 均零引用，
    把它们当成"缺少面板输入口的键"是误导，等同于"模型承诺了一个读不出效果的字段"。指派给哪一片、是否落地、按什么语义解释，要先定语义再写实现。）
    （第三片给了 `layout.mode`/`gap`/`columns`/`typography.fontSize`，第六片给了 `justify`/`items`；
-   第七片把 `reverse` 接进了求解器，第八片给它那一格；`layout.clipContent`/`layout.scroll` 与 typography 七格（字重/行高/字距/大小写/装饰/对齐/纵向对齐）已接入响应式面板、代码发射/回写与测试——`RESPONSIVE_CHANNELS` 现在二十格，
+   第七片把 `reverse` 接进了求解器，第八片给它那一格；`layout.clipContent`/`layout.scroll` 与 typography 七格（字重/行高/字距/大小写/装饰/对齐/纵向对齐）已接入响应式面板、代码发射/回写与测试——`RESPONSIVE_CHANNELS` 现在**二十二格**（另一格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时才摆），
    写入口不再是「代码」视图独家。）
 2. ~~某一档只声明 `{reverse:false}` 而更窄那档反向时发不出东西~~——**第八片已还**（2026-11-08）：
    发射侧在这种情况下重发一条正向方向类（`md:flex-col`），回写侧按同一条判据认领它，CSS 那一寸
    的跨档胜负与档内胜负都用真 Tailwind v4.3.3 + Chromium 量过（ADR-0069 第八片那节）。
-   还欠的换成下一层：`position`（x/y）面板输入口、
-   `rowGap`/`crossGap`（死字段——模型存了没人读，语义未定，见上面）、`typography` 的字族、`style` 除填充与透明度。
+   还欠的换成下一层：`rowGap`/`crossGap`（死字段——模型存了没人读，语义未定，见上面）、`typography` 的字族、`style` 除填充与透明度。
+   （2026-11-08 位置那两格已还：position.x/position.y 平板/桌面/Wide 都发得出也读得回，面板有输入口——父级 merged 为 `none`/`stack` 自由定位逃生口时才摆，否则收起；见 ADR-0069 第十片。）
 3. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
 4. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。
 5. 这条 e2e 链在开发模式里 4.7m，其中腿 F 那一段从 9.7s 涨到 104s、发布到 266s 是同机另一会话同时在跑

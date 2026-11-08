@@ -500,7 +500,7 @@ describe('§14 面板读数与投影同源', () => {
    * `Record<ResponsiveChannel, …>` 让漏掉任何一格都编译不过。
    */
   const CHANNEL_CASES: Readonly<
-    Record<ResponsiveChannel, { readonly carrier: () => DesignNode; readonly value: unknown }>
+    Record<ResponsiveChannel, { readonly carrier: () => DesignNode; readonly value: unknown; readonly parent?: () => DesignNode | null }>
   > = {
     visible: { carrier: mkText, value: false },
     'size.width': { carrier: mkText, value: 420 },
@@ -523,6 +523,16 @@ describe('§14 面板读数与投影同源', () => {
       value: true,
     },
     'layout.clipContent': { carrier: mkContainer, value: true },
+    'position.x': {
+      carrier: mkNode,
+      value: 16,
+      parent: () => withLayout(mkContainer(), { mode: 'none', gap: 0 }),
+    },
+    'position.y': {
+      carrier: mkNode,
+      value: 24,
+      parent: () => withLayout(mkContainer(), { mode: 'none', gap: 0 }),
+    },
     'layout.scroll': { carrier: mkContainer, value: 'vertical' },
     'typography.fontSize': { carrier: mkText, value: 28 },
     'typography.fontWeight': { carrier: mkText, value: 700 },
@@ -538,7 +548,11 @@ describe('§14 面板读数与投影同源', () => {
     for (const spec of RESPONSIVE_CHANNELS) {
       const { carrier, value } = CHANNEL_CASES[spec.id];
       const node = carrier();
-      expect(spec.appliesTo(node, 'tablet'), `${spec.id} 的载体摆不出这一行`).toBe(true);
+      const parent = CHANNEL_CASES[spec.id].parent?.();
+      expect(
+        spec.appliesTo(node, 'tablet', { parent: parent ?? null }),
+        `${spec.id} 的载体摆不出这一行`,
+      ).toBe(true);
 
       const next = withResponsiveValue(node, 'tablet', spec.id, value);
       const shaped = { ...node, responsive: next };
@@ -546,9 +560,29 @@ describe('§14 面板读数与投影同源', () => {
       expect(responsiveChannelsOf(shaped, 'tablet'), spec.id).toContain(spec.id);
       expect(responsiveImpactOf(shaped, 'tablet'), `${spec.id} 写进去没改任何投影`).toBeGreaterThanOrEqual(1);
       // 写得进去的那一格不该同时出现在"面板没有输入口"的点名里
-      expect(responsiveImpactDetailOf(shaped, 'tablet').outsidePanel, spec.id).not.toContain(spec.readPath);
+      expect(
+        responsiveImpactDetailOf(shaped, 'tablet', parent ?? null).outsidePanel,
+        spec.id,
+      ).not.toContain(spec.readPath);
     }
   });
+
+  it('position.x / position.y 只摆在自由定位父级里：普通 flex 父级收起（父级没传进来也收起）', () => {
+    const node = mkNode();
+    const flexParent = withLayout(mkContainer(), { mode: 'horizontal', gap: 8 });
+    const freeParent = withLayout(mkContainer(), { mode: 'none', gap: 0 });
+    const specX = RESPONSIVE_CHANNELS.find((c) => c.id === 'position.x')!;
+    const specY = RESPONSIVE_CHANNELS.find((c) => c.id === 'position.y')!;
+    expect(specX.appliesTo(node, 'tablet', { parent: flexParent })).toBe(false);
+    expect(specY.appliesTo(node, 'tablet', { parent: flexParent })).toBe(false);
+    expect(specX.appliesTo(node, 'tablet', { parent: freeParent })).toBe(true);
+    expect(specY.appliesTo(node, 'tablet', { parent: freeParent })).toBe(true);
+    // 父级没传进来：收起——少显示比多显示安全
+    expect(specX.appliesTo(node, 'tablet')).toBe(false);
+    expect(specX.appliesTo(node, 'tablet', undefined)).toBe(false);
+    expect(specX.appliesTo(node, 'tablet', { parent: null })).toBe(false);
+  });
+
 
   it('token 绑定的尺寸（`{space.md}` 那种字符串引用）不崩，也发不出手抄的引用', () => {
     const ref = makeTokenRef('space.md');

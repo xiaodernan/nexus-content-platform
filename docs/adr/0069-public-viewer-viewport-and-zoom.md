@@ -419,11 +419,15 @@
   `md:tracking-*`/`md:uppercase|lowercase|capitalize`/`md:underline|line-through`/`md:text-*`/
   `md:flex|md:flex-col|md:justify-{center,end,start}`（verticalAlign 差异的文字节点才发/收）的发射与回写。
   面板同步加了七行（`typography.fontWeight`/`typography.lineHeight`/`typography.letterSpacing`/`typography.textCase`/`typography.decoration`/`typography.align`/`typography.verticalAlign`），
-  `RESPONSIVE_CHANNELS` **二十格**。
+  `RESPONSIVE_CHANNELS` 现在 **二十二格**（另两格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时摆，见下）。
 - **顺带**（上一片同属于这一档的收尾）：`layout.clipContent`/`layout.scroll` 两格也并入同一轮——
   `md:overflow-hidden`/`overflow-*-auto`/`overflow-visible`（取消更窄档 overflow 约束的那一刀：更窄那档没 overflow 约束时不发，更窄那档有时发 `md:overflow-visible` 并回写
   `{clipContent:false, scroll:"none"}`）。
-- 这轮之后，§14 的「键覆盖面」仍然欠：`position` 的面板输入口、`mode` 的 `stack`/`none` 的**模型层**差量类
+- **位置（x/y）面板输入口**同档也并入这一轮：`position.x` / `position.y` 两格现在进 `RESPONSIVE_CHANNELS`——
+  只有父级 merged 进这一档仍是自由定位（`none`/`stack`）时摆出来，author 那一出来已经和代码发射侧对上；
+  父级被翻成 `horizontal`/`vertical`/`grid`/`wrap` 时两格收起（画布也读不到 left/top）。
+  `position.y` 行间标签是"上"、`position.x` 是"左"。
+- 这轮之后，§14 的「键覆盖面」仍然欠：`mode` 的 `stack`/`none` 的**模型层**差量类
   （`stack`/`none` 那个 mode 本身仍没有 display 类可发或被发——`md:flex-col` 那一阵类只对非绝对段有效）、
   `rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`typography` 的字族、`style` 除填充与透明度——
   这些键《画布与访客》和《代码视图与 ZIP》仍然不同（§16）。

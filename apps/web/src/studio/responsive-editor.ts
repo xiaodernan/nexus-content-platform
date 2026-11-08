@@ -49,7 +49,9 @@ export type ResponsiveChannel =
   | 'typography.textCase'
   | 'typography.decoration'
   | 'typography.align'
-  | 'typography.verticalAlign';
+  | 'typography.verticalAlign'
+  | 'position.x'
+  | 'position.y';
 
 export interface ResponsiveChoice {
   readonly value: string;
@@ -85,7 +87,7 @@ export interface ChannelSpec {
    * `typography.fontSize` 要节点真有 typography 对象——`applyResponsive` 对没有 typography 的节点
    * 压根不合并那一组（layout.ts:175），写进去就是一条被冗余判据当场剪掉的键。
    */
-  readonly appliesTo: (node: DesignNode, breakpoint: BreakpointName) => boolean;
+  readonly appliesTo: (node: DesignNode, breakpoint: BreakpointName, context?: { parent?: DesignNode | null }) => boolean;
   /** 面板发来的原始值 → 能写进 patch 的值；认不出的给 REJECT，一条事务都不产生 */
   readonly clean: (value: unknown) => Cleaned;
   /**
@@ -225,6 +227,17 @@ const projectedModeOf = (node: DesignNode, breakpoint: BreakpointName): LayoutMo
  *  那一档解出来不是自动布局时这一格按下去什么都不改，面板不摆（§159），代码也不发（codegen 同一判据） */
 const alignableAt = (node: DesignNode, breakpoint: BreakpointName): boolean =>
   ALIGNABLE_MODES.includes(projectedModeOf(node, breakpoint));
+
+/**
+ * 父级 merged 进这一档后的自由定位逃生口（nodes.ts）。
+ * `position.x` / `position.y` 只对这类子节点有意义——其余排布下 left/top 只会被忽略（§16）。
+ * 父级没传进来时收起面板这两行（少显示比多显示安全，§159）。
+ */
+const freePositionAt = (parent: DesignNode | null, breakpoint: BreakpointName): boolean => {
+  if (!parent) return false;
+  const merged = applyResponsive(parent, breakpoint);
+  return merged.layout.mode === 'none' || merged.layout.mode === 'stack';
+};
 
 /** 这一档可编辑通道的顺序就是面板上行的顺序 */
 export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
@@ -465,6 +478,32 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     appliesTo: (node) => node.type === 'text' && node.typography !== undefined,
     clean: cleanVertAlign,
   },
+  {
+    id: 'position.x',
+    label: '左',
+    group: 'position',
+    key: 'x',
+    readPath: 'position.x',
+    widget: 'number',
+    min: 0,
+    max: 5000,
+    step: 1,
+    appliesTo: (_node, breakpoint, context) => freePositionAt(context?.parent ?? null, breakpoint),
+    clean: cleanGap,
+  },
+  {
+    id: 'position.y',
+    label: '上',
+    group: 'position',
+    key: 'y',
+    readPath: 'position.y',
+    widget: 'number',
+    min: 0,
+    max: 5000,
+    step: 1,
+    appliesTo: (_node, breakpoint, context) => freePositionAt(context?.parent ?? null, breakpoint),
+    clean: cleanGap,
+  },
 ];
 
 type Patch = ResponsiveRule['patch'];
@@ -654,9 +693,15 @@ export function hasResponsiveRule(node: DesignNode, breakpoint: BreakpointName):
  * 行的可见性由它决定，徽标那句"这几处面板没有输入口"也由它派生——两处用同一份判据，
  * 免得面板上一格而徽标说没有，或者反过来（§159：界面说的话要和画布对得上）。
  * 多选取**交集**：STUDIO.md 定的"多选时显示交集属性"，不能对着一个不认这格的元素写这一格。
+ * `parent` 是可选的——传进来时 position.x/y 的父级判据才生效；不传时位置输入口收起，
+ * 少显示比多显示安全（§159）。
  */
-export function responsiveChannelsFor(node: DesignNode, breakpoint: BreakpointName): ChannelSpec[] {
-  return RESPONSIVE_CHANNELS.filter((spec) => spec.appliesTo(node, breakpoint));
+export function responsiveChannelsFor(
+  node: DesignNode,
+  breakpoint: BreakpointName,
+  parent?: DesignNode | null,
+): ChannelSpec[] {
+  return RESPONSIVE_CHANNELS.filter((spec) => spec.appliesTo(node, breakpoint, { parent: parent ?? null }));
 }
 
 export interface ResponsiveImpact {
@@ -689,7 +734,15 @@ function candidatePaths(node: DesignNode, breakpoint: BreakpointName): string[] 
 }
 
 /** 徽标读数的全部真相：总数、面板摆得出输入口的那些占几处、剩下是哪些键 */
-export function responsiveImpactDetailOf(node: DesignNode, breakpoint: BreakpointName): ResponsiveImpact {
+/**
+ * 同 `responsiveChannelsFor`：`parent` 可选；传进来时 position.x/y 才算"面板摆得出"——
+ * 不传时这一对永远算作没有输入口的档（§159）。
+ */
+export function responsiveImpactDetailOf(
+  node: DesignNode,
+  breakpoint: BreakpointName,
+  parent?: DesignNode | null,
+): ResponsiveImpact {
   const now = applyResponsive(node, breakpoint);
   const withoutOwn = applyResponsive(
     { ...node, responsive: withoutResponsiveRule(node, breakpoint) },
@@ -699,7 +752,9 @@ export function responsiveImpactDetailOf(node: DesignNode, breakpoint: Breakpoin
     const value = effectiveAt(now, path);
     return !sameValue(value, effectiveAt(node, path)) || !sameValue(value, effectiveAt(withoutOwn, path));
   });
-  const editable = new Set(responsiveChannelsFor(node, breakpoint).map((spec) => spec.readPath));
+  const editable = new Set(
+    responsiveChannelsFor(node, breakpoint, parent ?? null).map((spec) => spec.readPath),
+  );
   const outsidePanel = live
     .filter((path) => !editable.has(path))
     .sort((a, b) => groupRank(a) - groupRank(b) || (a < b ? -1 : a > b ? 1 : 0));
@@ -726,6 +781,6 @@ function groupRank(path: string): number {
  * 代码视图会写 `layout.padding`/`position.x`，那些改动画布和访客一样看得见，徽标不能因为它们没有
  * 输入口就读 0。
  */
-export function responsiveImpactOf(node: DesignNode, breakpoint: BreakpointName): number {
-  return responsiveImpactDetailOf(node, breakpoint).total;
+export function responsiveImpactOf(node: DesignNode, breakpoint: BreakpointName, parent?: DesignNode | null): number {
+  return responsiveImpactDetailOf(node, breakpoint, parent ?? null).total;
 }
