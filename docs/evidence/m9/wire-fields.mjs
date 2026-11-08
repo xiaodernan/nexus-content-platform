@@ -82,6 +82,21 @@ export function javaRecordFields(file, recordName) {
 }
 
 /**
+ * Whether each field in a Java `record` is nullable (reference type, not primitive).
+ *
+ * @param {string} file the Java file
+ * @param {string} recordName the record's simple name
+ * @returns {Map<string, boolean>} field name -> true if nullable
+ */
+export function javaRecordFieldNullability(file, recordName) {
+  const fields = javaRecordFields(file, recordName);
+  const PRIMITIVE_TYPES = new Set(['long', 'int', 'boolean', 'double', 'float', 'short', 'byte', 'char']);
+  const out = new Map();
+  for (const f of fields) out.set(f.name, !PRIMITIVE_TYPES.has(f.type));
+  return out;
+}
+
+/**
  * The field names of a TypeScript interface, read with the compiler's own parser.
  *
  * @param {string} file the TypeScript file
