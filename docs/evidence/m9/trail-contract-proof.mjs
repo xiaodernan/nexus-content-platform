@@ -28,7 +28,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, tsInterfaceDuplicateFields, javaRecordDuplicateFields, assertSameFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, tsInterfaceDuplicateFields, javaRecordDuplicateFields, tsInterfaceFieldTypes, assertSameFields } from './wire-fields.mjs';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
@@ -229,12 +229,36 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
   console.log(`[§10] all ${wire.length} wire fields are required properties in auditServer.ts AuditEntry`);
 }
 
-// ── §10b the wire record's field list has no duplicates ─────────────────────────────────────────
+// ── §10c Java primitive wire fields have compatible TS types ───────────────────────────────────
 {
-  const dups = javaRecordDuplicateFields(CONTROLLER, 'Entry');
-  assert.deepEqual(dups, [], `${CONTROLLER} Entry record has duplicated field name(s): ${dups.join(', ')}`);
-  console.log('[§10b] the service Entry record has no duplicated field names');
+  const JAVA_PRIMITIVES = new Set(['long', 'int', 'boolean', 'double', 'float', 'short', 'byte', 'char']);
+  const TYPE_MAP = new Map([
+    ['boolean', ['boolean']],
+    ['long', ['number', 'bigint']],
+    ['int', ['number', 'bigint']],
+    ['short', ['number', 'bigint']],
+    ['byte', ['number', 'bigint']],
+    ['float', ['number']],
+    ['double', ['number']],
+    ['char', ['string']],
+  ]);
+  const fields = javaRecordFields(CONTROLLER, 'Entry');
+  const props = tsInterfaceFieldOptionality(SERVER_LANE, 'AuditEntry');
+  const types = tsInterfaceFieldTypes(SERVER_LANE, 'AuditEntry');
+  const mismatched = [];
+  for (const f of fields) {
+    if (JAVA_PRIMITIVES.has(f.type)) {
+      const t = types.get(f.name);
+      const allowed = TYPE_MAP.get(f.type) ?? [];
+      if (!t || !allowed.includes(t)) {
+        mismatched.push(`${f.name}: TS type ${t ?? '(missing)'}, wire Java ${f.type} — allowed: ${allowed.join(', ')}`);
+      }
+    }
+  }
+  assert.deepEqual(mismatched, [], `${SERVER_LANE} AuditEntry primitive type mismatch(es): ${mismatched.join(', ')}`);
+  console.log(`[§10c] Java primitive wire fields have compatible TS types in AuditEntry`);
 }
+
 
 // ── §11 public interfaces do not declare the same field twice ───────────────────────────────────
 {
