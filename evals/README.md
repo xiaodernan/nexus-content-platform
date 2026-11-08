@@ -30,6 +30,9 @@ npm test                       # scripts/test/evals-framework.test.mts 会再验
 | `export-roundtrip` | 代码正确性 / 导出保真（§144 · ADR-0024） | 真 ZIP → node zlib CRC 交叉校验清单 → 真导回 → 结构对账；需要真库（见下方示例） | 是 |
 | `video-plan` | 代码正确性 / 视频模型投影自洽（§40-42） | 断句→分镜→时间线→渲染计划整链：确定性重放、`playable`/`renderable` 与"有没有帧"自洽、`splitShotAt` 时长守恒、`cardColor` 同 id 同色 | 否 |
 | `world-build` | 代码正确性 / 世界模型投影自洽（§44/§46/§140） | 骨架世界（九类条目各 1）· 确定性 autoLayout · `worldGraph` 删点消边 · `validateWorld` 8 类缺陷分辨 · `buildWorldScene` 实体数 / authored / fallback 拆分 · `terrainHeightAt` / `walkToward` / `resolveWalkCollision`（mesa + cone + 重叠取最高） | 否 |
+| `game-build` | 代码正确性 / 游戏设计系统投影自洽（§54/§51） | 11 种实体完整骨架 createGame · 确定性 `kind=2d` · `setStat` 拒 NaN/Infinity/空值/空键/幽灵实体 · `linkEntities` 拒自指/不存在/空参 · 自动布局/单步推进/对账等 | 否 |
+| `design-build` | 代码正确性 / design-model 投影自洽（§12 / §13） | createDocument/createPage/createNode/validateDocument · applyPatch↔invertPatch 往返 · serialize↔deserialize 深度相等 · applyResponsive 分档级联 / tier-flip marker round-trip | 否 |
+| `project-bundle` | 代码正确性 / 跨模型集大成合成（§16/§159） | design+world+game+video 四对象以同 projectId 贯通；独立 `validateDocument / validateWorld / validateGame / planVideoRender` 各自全缺陷零；link 表对每个外部引用的实体都在；命名空间无碰撞；`color.primary` 在合成包内可解析 | 否 |
 | `schemas-contract` | 架构纪律 #6 / 跨端契约自洽（packages/schemas） | 所有跨端报文只能走 schemas zod 定义——注册表非空、每项齐全、每项可导出**可解析 JSON Schema**、DesignPatch 序列化往返稳定；Python 侧运行期真能拿去校验 | 否 |
 
 ## 口径（与 scripts/eval-baseline.mts 同）
