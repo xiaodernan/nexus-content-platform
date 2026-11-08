@@ -2298,3 +2298,16 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   红在 `expect(listId).toBe(...)`（Received null）；P2 零发现行也渲染成键 → 红在
   `toHaveCount(0)`（Received 1）；P3 列表去 `id` → 红在 `[id="…"]` 的 `toHaveCount(1)`（Received 0）。
   notMeasured：review 态、真服务端 5xx / 413、390 下弹层、焦点陷阱。
+- **2026-11-08：整批一次跑复现收尾 `ERR_IPC_CHANNEL_CLOSED`（exit 1，零条真失败）；分两片重跑，两片都绿——全仓 268 文件 / 3557 条**——
+  `npx vitest run --reporter=dot` 在打 summary 前崩（栈形状与 2026-10-30 那次逐字节一致：
+  `target.send node:internal/child_process` → `ProcessWorker.send tinypool/dist/index.js:140`
+  ← `MessagePort.<anonymous> …:149`），没有 `Test Files` / `Tests` 那两行——崩溃，不是红、也不是绿。
+  按本文件自己的纪律重跑：`--shard=1/2` 一次 exit 0，`.scratch/shard1.log` 读数
+  `Test Files  134 passed (134)` / `Tests  1828 passed (1828)`；`--shard=2/2` 第一次同样在收尾崩
+  （exit 1、零条真失败），原样重跑（`.scratch/shard2b.log`）exit 0，
+  `Test Files  134 passed (134)` / `Tests  1729 passed (1729)`。两片相加 268 文件 / 3557 条。
+  这次是在另一会话的 credits 在途文件（`apps/web/src/server/domain/credits.ts`、`credits-why-guards.test.ts` 等）
+  都还在工作区的状态下跑的——所以它只说明**这些文件此刻没把套件弄红**，不是对它们的背书。
+  顺带：`apps/web/test/responsive-editor.test.ts` 39/39 绿（position.x/y 那两格的 `expect` 一并生效）。
+  notMeasured：整批一次跑的 exit-0 绿仍然拿不到（崩溃触发条件仍未查清，`fileParallelism` 配置没动）；
+  分片绿 ≠ 收尾崩溃已修。
