@@ -762,6 +762,27 @@ describe("Design → Code（§17-19）", () => {
     expect(tokens).toContain("md:leading-[1.8]");
   });
 
+  it("断点字族发射：token 引用发 font-[family-name:var(--…)] 类，裸族名照发（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "text", name: "FamilySlice", text: "字族" });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        { breakpoint: "tablet", patch: { typography: { fontFamily: "{font.mono}" } } },
+        // 裸族名：作者手写进模型的 Georgia——如实发回同一个键名
+        { breakpoint: "desktop", patch: { typography: { fontFamily: "Georgia" } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:font-[family-name:var(--nx-font-mono)]");
+    expect(tokens).toContain("lg:font-[Georgia]");
+  });
+
   it("断点混合模式/旋转/指针发射：style patch 发 mix-blend-*/rotate-[…]/cursor-* 类（§14）", () => {
     const page2 = starterPage("Home");
     const root = page2.nodes[page2.rootId]!;

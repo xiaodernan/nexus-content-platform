@@ -9,6 +9,7 @@ import {
   type LayoutMode,
   type ResponsiveRule,
   type Style,
+  type Token,
 } from '@nexus/design-model';
 
 /**
@@ -45,6 +46,7 @@ export type ResponsiveChannel =
   | 'layout.scroll'
   | 'typography.fontSize'
   | 'typography.fontWeight'
+  | 'typography.fontFamily'
   | 'typography.lineHeight'
   | 'typography.letterSpacing'
   | 'typography.textCase'
@@ -81,6 +83,14 @@ export interface ChannelSpec {
   readonly min?: number;
   readonly max?: number;
   readonly step?: number;
+  /**
+   * `font-family-tokens`：选项**不**写在 spec 里——面板从文档现有的 `fontFamily` 型 token 现读（§16），
+   * 文档里没有这个型 token 时这一格**不摆**（靠 appliesTo 收起，§159）。其余 choice 通道仍用静态 `choices`。
+   */
+  readonly choicesFrom?: 'font-family-tokens';
+  /**
+   * 面板这一行的选项清单：**静态**的那一半 choice 给这里。`choicesFrom` 非空时可省略——两处只用一处。
+   */
   readonly choices?: readonly ResponsiveChoice[];
   /**
    * 这一行对这个节点、这一档有没有意义。面板不摆一个按下去什么都改不了的输入口（§159）：
@@ -91,7 +101,11 @@ export interface ChannelSpec {
    * `typography.fontSize` 要节点真有 typography 对象——`applyResponsive` 对没有 typography 的节点
    * 压根不合并那一组（layout.ts:175），写进去就是一条被冗余判据当场剪掉的键。
    */
-  readonly appliesTo: (node: DesignNode, breakpoint: BreakpointName, context?: { parent?: DesignNode | null }) => boolean;
+  readonly appliesTo: (
+    node: DesignNode,
+    breakpoint: BreakpointName,
+    context?: { parent?: DesignNode | null; tokens?: readonly Token[] },
+  ) => boolean;
   /** 面板发来的原始值 → 能写进 patch 的值；认不出的给 REJECT，一条事务都不产生 */
   readonly clean: (value: unknown) => Cleaned;
   /**
@@ -126,6 +140,14 @@ const cleanLineHeight = (value: unknown): Cleaned =>
   isFiniteNumber(value) && value > 0 && value <= 10 ? value : REJECT;
 const cleanLetterSpacing = (value: unknown): Cleaned =>
   isFiniteNumber(value) && value >= -100 && value <= 100 ? value : REJECT;
+/** 字族：`{token.key}` 引用（面板只摆文档现有的那几格，写进 model 的也是这几格），或裸族名 */
+const cleanFontFamily = (value: unknown): Cleaned => {
+  if (typeof value !== 'string') return REJECT;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > 120 || /[\n\r]/.test(trimmed)) return REJECT;
+  if (/^\{[a-zA-Z0-9][a-zA-Z0-9._-]*\}$/.test(trimmed)) return trimmed;
+  return /^[^{}<>\\]{1,120}$/.test(trimmed) ? trimmed : REJECT;
+};
 const cleanTextCase =
   (allowed: Set<string>) =>
   (value: unknown): Cleaned =>
@@ -478,6 +500,19 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     clean: cleanFontSize,
   },
   {
+    id: 'typography.fontFamily',
+    label: '字族',
+    group: 'typography',
+    key: 'fontFamily',
+    readPath: 'typography.fontFamily',
+    widget: 'choice',
+    /** 文档现有的 fontFamily 型 token 现读（选项从 `state.document.tokens` 派生），不在这里抄第二份名单 */
+    choicesFrom: 'font-family-tokens',
+    appliesTo: (node, _breakpoint, context) =>
+      node.typography !== undefined && (context?.tokens ?? []).some((token) => token.type === 'fontFamily'),
+    clean: cleanFontFamily,
+  },
+  {
     id: 'typography.fontWeight',
     label: '字重',
     group: 'typography',
@@ -782,8 +817,11 @@ export function responsiveChannelsFor(
   node: DesignNode,
   breakpoint: BreakpointName,
   parent?: DesignNode | null,
+  tokens?: readonly Token[],
 ): ChannelSpec[] {
-  return RESPONSIVE_CHANNELS.filter((spec) => spec.appliesTo(node, breakpoint, { parent: parent ?? null }));
+  return RESPONSIVE_CHANNELS.filter((spec) =>
+    spec.appliesTo(node, breakpoint, { parent: parent ?? null, tokens }),
+  );
 }
 
 export interface ResponsiveImpact {
@@ -818,12 +856,14 @@ function candidatePaths(node: DesignNode, breakpoint: BreakpointName): string[] 
 /** 徽标读数的全部真相：总数、面板摆得出输入口的那些占几处、剩下是哪些键 */
 /**
  * 同 `responsiveChannelsFor`：`parent` 可选；传进来时 position.x/y 才算"面板摆得出"——
- * 不传时这一对永远算作没有输入口的档（§159）。
+ * 不传时这一对永远算作没有输入口的档（§159）。`tokens` 让 `typography.fontFamily` 的
+ * 输入口判据跟文档走（§159）。
  */
 export function responsiveImpactDetailOf(
   node: DesignNode,
   breakpoint: BreakpointName,
   parent?: DesignNode | null,
+  tokens?: readonly Token[],
 ): ResponsiveImpact {
   const now = applyResponsive(node, breakpoint);
   const withoutOwn = applyResponsive(
@@ -835,7 +875,7 @@ export function responsiveImpactDetailOf(
     return !sameValue(value, effectiveAt(node, path)) || !sameValue(value, effectiveAt(withoutOwn, path));
   });
   const editable = new Set(
-    responsiveChannelsFor(node, breakpoint, parent ?? null).map((spec) => spec.readPath),
+    responsiveChannelsFor(node, breakpoint, parent ?? null, tokens).map((spec) => spec.readPath),
   );
   const outsidePanel = live
     .filter((path) => !editable.has(path))
@@ -863,6 +903,11 @@ function groupRank(path: string): number {
  * 代码视图会写 `layout.padding`/`position.x`，那些改动画布和访客一样看得见，徽标不能因为它们没有
  * 输入口就读 0。
  */
-export function responsiveImpactOf(node: DesignNode, breakpoint: BreakpointName, parent?: DesignNode | null): number {
-  return responsiveImpactDetailOf(node, breakpoint, parent ?? null).total;
+export function responsiveImpactOf(
+  node: DesignNode,
+  breakpoint: BreakpointName,
+  parent?: DesignNode | null,
+  tokens?: readonly Token[],
+): number {
+  return responsiveImpactDetailOf(node, breakpoint, parent ?? null, tokens).total;
 }

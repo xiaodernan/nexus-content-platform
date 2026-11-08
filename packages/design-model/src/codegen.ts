@@ -542,6 +542,13 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
     if (typography?.letterSpacing) {
       out.push(`${variant}tracking-[${lengthClass(typography.letterSpacing, prefix, (i) => i) ?? "0px"}]`);
     }
+    if (typography?.fontFamily !== undefined) {
+      const fontKey = tokenRefKey(typography.fontFamily);
+      if (fontKey) out.push(`${variant}font-[family-name:${cssVar(fontKey, prefix)}]`);
+      else if (typeof typography.fontFamily === "string" && typography.fontFamily) {
+        out.push(`${variant}font-[${typography.fontFamily.replace(/\s+/g, "_")}]`);
+      }
+    }
     // verticalAlign（§14）：
     // 仅在这一档真的把 narrower 的纵向对齐改成别的东西时才发——narrower 已经是 `top` 而本档写 `top` 等于
     // 什么都不改，发 `md:justify-start` 是个空表态；narrower 是 `middle`/`bottom` 时起动，本档给了 `top`

@@ -30,6 +30,7 @@ import {
   responsiveImpactOf,
   type ChannelSpec,
   type ResponsiveChannel,
+  type ResponsiveChoice,
 } from './responsive-editor';
 import { studio, useStudio, useStudioReady } from './store';
 
@@ -306,12 +307,14 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
    */
   const parentCtx = (node: DesignNode) => ({ parent: state.page?.nodes?.[node.parentId ?? ''] ?? null });
   const parentOf = (node: DesignNode) => parentCtx(node).parent;
+  /** 面板要跟文档走的判据只有一份：fontFamily 型 token 现读，impact/outsidePanel/名册全用它 */
+  const documentTokens = state.document?.tokens ?? [];
   const impactOf = (breakpoint: BreakpointName) =>
-    mixedOf((n) => responsiveImpactOf(n, breakpoint, parentOf(n)));
+    mixedOf((n) => responsiveImpactOf(n, breakpoint, parentOf(n), documentTokens));
   const impact = impactOf(bp);
   /** 徽标数的是模型里所有组，面板只摆得出真能改的那几格——差出来的那些键要说出来，不然"改 3 处"里
    *  有 2 处对着空白的行，作者会以为面板坏了（§159：界面说的话要跟画布/访客看得见的对得上） */
-  const outsideOf = mixedOf((n) => responsiveImpactDetailOf(n, bp, parentOf(n)).outsidePanel);
+  const outsideOf = mixedOf((n) => responsiveImpactDetailOf(n, bp, parentOf(n), documentTokens).outsidePanel);
   const hasAnyRule = nodes.some((n) => hasResponsiveRule(n, bp));
 
   const pickBreakpoint = (next: BreakpointName) => {
@@ -341,10 +344,22 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
   /** 布尔那一格两端的中文说法由通道自己给（`visible` 是显示/隐藏，`layout.reverse` 是正序/反向） */
   const boolLabels = (spec: ChannelSpec): readonly [string, string] => spec.toggleLabels ?? ['隐藏', '显示'];
   /** 读数用中文说法（显示/隐藏、竖排/横排），模型里的原值仍是 `visible` / `vertical` */
+  /**
+   * 静态 choice 用 spec 自己的名单；`font-family-tokens` 那一格从**文档现有的** fontFamily 型 token
+   * 现读——文档里没有这个型 token 时这格本来就不摆出来（appliesTo 收起）。
+   */
+  const choicesOf = (spec: ChannelSpec): readonly ResponsiveChoice[] | undefined => {
+    if (spec.choicesFrom === 'font-family-tokens') {
+      return (state.document?.tokens ?? [])
+        .filter((token: Token) => token.type === 'fontFamily')
+        .map((token) => ({ value: `{${token.key}}`, label: token.key }));
+    }
+    return spec.choices;
+  };
   const labelOf = (spec: ChannelSpec, value: unknown): string => {
     if (value === MIXED) return '混合';
     if (typeof value === 'boolean') return boolLabels(spec)[value ? 1 : 0];
-    return spec.choices?.find((choice) => choice.value === value)?.label ?? textOf(value);
+    return choicesOf(spec)?.find((choice) => choice.value === value)?.label ?? textOf(value);
   };
   /** 「设计」那一边的读数也要按多选算：两个节点的设计值不一样时说"混合"，
    *  而不是拿 `nodes[0]` 那个数冒充整批（§159：界面不能说出模型里没有的值） */
@@ -360,9 +375,10 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
    * 位置（`position.x/y`）那两格只有父级在这一档是自由定位才摆出来（`none`/`stack`）：
    * 父级把这一档翻成横排/竖排后，子节点已在流里，画布读不到 `left/top`，两个输入口摆了只是谎
    * （§159）。
+   * 字族那一格还要**文档里真有 fontFamily 型 token**——静态名单给不出这个判据。
    */
   const specs = RESPONSIVE_CHANNELS.filter((spec) =>
-    nodes.every((n) => spec.appliesTo(n, bp, { parent: parentOf(n) })),
+    nodes.every((n) => spec.appliesTo(n, bp, { parent: parentOf(n), tokens: documentTokens })),
   );
 
   const renderChannelRow = (spec: ChannelSpec) => {
@@ -374,7 +390,7 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
         <span className="w-14 shrink-0 text-12 text-fg-2">{spec.label}</span>
 
         {spec.widget === 'choice'
-          ? spec.choices?.map((choice) => (
+          ? choicesOf(spec)?.map((choice) => (
               <button
                 key={choice.value}
                 type="button"

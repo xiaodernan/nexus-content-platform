@@ -9128,18 +9128,34 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
   `code-parse.test.ts`「断点圆角往返……」（折叠后往返仍零补丁）。读数：`packages/design-model` **35 files / 493 passed**（+2）、
   `npm run typecheck` / `eslint` 0。
 
+**第十四片（2026-11-08）：`typography.fontFamily` 响应式通道——choice 列表从文档现读，不是抄一份**
+
+- `fontFamily` 是模型里唯一**动态选项**的一类面板通道：值长得像 `{font.heading}`，只有文档现有的 `fontFamily` 型 token
+  （starter 里是 `font.heading` / `font.body` / `font.mono`）才算数。静态名单摆那个文档的人看不到的一串是假输入（§159），所以：
+- `ChannelSpec` 新增 `choicesFrom: 'font-family-tokens'`（与静态 `choices` 二选一）；`appliesTo` 的可选上下文扩成 `{ parent, tokens }`；
+  面板从 `state.document.tokens` 现派生这一行的选项（以及徽标与 labelOf 的标签）——文档里没有 fontFamily 型 token 时这一格**不摆**，
+  appliesTo 与文档背书同一个判据。裸族名（`Georgia` 这种作者手写进模型的值）照样写得进写得出：
+  codegen 发 `md:font-[Georgia]`，decodeVariant 认 `font-[…]` 裸栈。
+- 发射/回写仍然走既有 typography 管线：`md:/lg:/xl:` 档发 `font-[family-name:var(--<prefix>-…)]`，
+  `decodeVariant` 用基线同一套 `WEIGHT_CLASS → tokenRefOf → 裸栈 → unmapped 不猜`——回写自检必须对得上。
+- 见证：`codegen.test.ts`「断点字族发射……」（token 引用 + 裸 Georgia 两种）、`code-parse.test.ts`「断点字族往返……」（零补丁）、
+  `responsive-editor.test.ts`：every-channel 载体换成 `{font.heading}→'{font.mono}'`（写相同值会被冗余判据当场剪掉）、
+  新腿「只摆在文档里真有 fontFamily 型 token 时」（空态不摆 / 传 DEFAULT_TOKENS 摆出 / 不传 tokens 收起）。
+  读数：`packages/design-model` **35 files / 495 passed**（+2）、`responsive-editor` 40/40（+1）、`npm run typecheck` / `eslint` 0。
+  面板此刻 **二十六格**。
+
 **仍欠**
 
-1. 面板仍然只有部分输入口：`typography` 的字族（token 引用，choice 的形状/来源还没定）现在数得进来、改不出去，界面只能说"去代码那一节"或"整档清掉"。
+1. ~~面板仍然只有部分输入口：`typography` 的字族~~——**已还（第十四片，2026-11-08）**：选项从文档现读，文档没有 fontFamily 型 token 就不摆，裸族名也能往返；仍欠只剩 `style` 那一组（见下面）。
    （`rowGap`/`crossGap` 已不在这儿：2026-11-08 记了 **ADR-0092**——死字段、`@deprecated` 标注、弃用而不实现不删；
    任何 grid 行间隙的真实需求须另开 ADR 重新起名。）
    （第三片给了 `layout.mode`/`gap`/`columns`/`typography.fontSize`，第六片给了 `justify`/`items`；
-   第七片把 `reverse` 接进了求解器，第八片给它那一格；`layout.clipContent`/`layout.scroll` 与 typography 七格（字重/行高/字距/大小写/装饰/对齐/纵向对齐）、style 的混合模式/旋转（第十一片）、指针（第十二片）已接入响应式面板、代码发射/回写与测试——`RESPONSIVE_CHANNELS` 现在**二十五格**（另两格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时才摆），
+   第七片把 `reverse` 接进了求解器，第八片给它那一格；`layout.clipContent`/`layout.scroll` 与 typography 七格（字重/行高/字距/大小写/装饰/对齐/纵向对齐）、字族（第十四片）、style 的混合模式/旋转（第十一片）、指针（第十二片）已接入响应式面板、代码发射/回写与测试——`RESPONSIVE_CHANNELS` 现在**二十六格**（另两格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时才摆），
    写入口不再是「代码」视图独家。）
 2. ~~某一档只声明 `{reverse:false}` 而更窄那档反向时发不出东西~~——**第八片已还**（2026-11-08）：
    发射侧在这种情况下重发一条正向方向类（`md:flex-col`），回写侧按同一条判据认领它，CSS 那一寸
    的跨档胜负与档内胜负都用真 Tailwind v4.3.3 + Chromium 量过（ADR-0069 第八片那节）。
-   还欠的换成下一层：`typography` 的字族、`style` 除填充、透明度、混合模式、旋转与指针（cornerRadius 模型层已通，面板不摆）。
+   还欠的换成下一层：`style` 除填充、透明度、混合模式、旋转与指针（cornerRadius 模型层已通，面板不摆）。
    （2026-11-08 位置那两格已还：position.x/position.y 平板/桌面/Wide 都发得出也读得回，面板有输入口——父级 merged 为 `none`/`stack` 自由定位逃生口时才摆，否则收起；见 ADR-0069 第九片。）
 3. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
 4. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。

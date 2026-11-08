@@ -419,7 +419,7 @@
   `md:tracking-*`/`md:uppercase|lowercase|capitalize`/`md:underline|line-through`/`md:text-*`/
   `md:flex|md:flex-col|md:justify-{center,end,start}`（verticalAlign 差异的文字节点才发/收）的发射与回写。
   面板同步加了七行（`typography.fontWeight`/`typography.lineHeight`/`typography.letterSpacing`/`typography.textCase`/`typography.decoration`/`typography.align`/`typography.verticalAlign`），
-  `RESPONSIVE_CHANNELS` 现在二十五格（另两格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时摆；混合模式/旋转是第十一片、指针是第十二片）。
+  `RESPONSIVE_CHANNELS` 现在二十六格（另两格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时摆；混合模式/旋转是第十一片、指针是第十二片、圆角是第十三片、字族是第十四片）。
 - **顺带**（上一片同属于这一档的收尾）：`layout.clipContent`/`layout.scroll` 两格也并入同一轮——
   `md:overflow-hidden`/`overflow-*-auto`/`overflow-visible`（取消更窄档 overflow 约束的那一刀：更窄那档没 overflow 约束时不发，更窄那档有时发 `md:overflow-visible` 并回写
   `{clipContent:false, scroll:"none"}`）。
@@ -438,6 +438,12 @@
   面板现在 **二十五格**（混合模式是 choice、标签原名）、全模型层 **35 files / 491 passed**。
 - **`style.cursor` 一格**（第十二片，2026-11-08）：同一条判据再推一格——`md:cursor-*`（`cursor-default` 是合法取消类）、
   `decodeVariant` 按 `CURSORS` 白名单认领（中文名：默认/手型/文本/禁止/抓取/抓取中）；往返仍旧零补丁，面板 **二十五格**。
+- **`typography.fontFamily` 一格**（第十四片，2026-11-08）：面板里第一种**动态选项**通道——`choicesFrom: 'font-family-tokens'`，
+  选项从 `state.document.tokens` 的 fontFamily 型 token 现派生（starter：font.heading/body/mono）；
+  文档没有这类 token 就不摆（§159）。`ChannelSpec.appliesTo` 上下文扩成 `{ parent, tokens }`；
+  codegen 发 `md:font-[family-name:var(--<prefix>-…)]`（裸族名 `md:font-[Georgia]`），
+  `decodeVariant` 复用基线 `WEIGHT_CLASS → tokenRefOf → 裸栈 → unmapped` 的认领顺序；
+  round-trip 零补丁（`code-parse.test.ts`「断点字族往返」，codegen 侧两条类都钉了名）。面板此刻 **二十六格**。
 - **`style.cornerRadius` 模型层**（第十三片，2026-11-08）：四键嵌套，与 layout.padding 同一判据——
   发射侧四格同值折 `md:rounded-[…]`、缺格发单格、四格全 0 发 `md:rounded-[0px]`（取消）；
   `decodeVariant` **先分格后折叠**（`rounded` 是 `rounded-tl-` 的前缀，顺序反了 uniform 会吃单格那边）。

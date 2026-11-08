@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyResponsive,
   createNode,
+  DEFAULT_TOKENS,
   makeTokenRef,
   type BreakpointName,
   type DesignNode,
@@ -538,6 +539,10 @@ describe('§14 面板读数与投影同源', () => {
     },
     'layout.scroll': { carrier: mkContainer, value: 'vertical' },
     'typography.fontSize': { carrier: mkText, value: 28 },
+    'typography.fontFamily': {
+      carrier: () => createNode({ type: 'text', name: '标题', text: '标题', typography: { fontFamily: '{font.heading}' } }),
+      value: '{font.mono}',
+    },
     'typography.fontWeight': { carrier: mkText, value: 700 },
     'typography.lineHeight': { carrier: mkText, value: 1.8 },
     'typography.letterSpacing': { carrier: mkText, value: 2 },
@@ -553,7 +558,7 @@ describe('§14 面板读数与投影同源', () => {
       const node = carrier();
       const parent = CHANNEL_CASES[spec.id].parent?.();
       expect(
-        spec.appliesTo(node, 'tablet', { parent: parent ?? null }),
+        spec.appliesTo(node, 'tablet', { parent: parent ?? null, tokens: DEFAULT_TOKENS }),
         `${spec.id} 的载体摆不出这一行`,
       ).toBe(true);
 
@@ -561,10 +566,10 @@ describe('§14 面板读数与投影同源', () => {
       const shaped = { ...node, responsive: next };
 
       expect(responsiveChannelsOf(shaped, 'tablet'), spec.id).toContain(spec.id);
-      expect(responsiveImpactOf(shaped, 'tablet'), `${spec.id} 写进去没改任何投影`).toBeGreaterThanOrEqual(1);
+      expect(responsiveImpactOf(shaped, 'tablet', parent ?? null, DEFAULT_TOKENS), `${spec.id} 写进去没改任何投影`).toBeGreaterThanOrEqual(1);
       // 写得进去的那一格不该同时出现在"面板没有输入口"的点名里
       expect(
-        responsiveImpactDetailOf(shaped, 'tablet', parent ?? null).outsidePanel,
+        responsiveImpactDetailOf(shaped, 'tablet', parent ?? null, DEFAULT_TOKENS).outsidePanel,
         spec.id,
       ).not.toContain(spec.readPath);
     }
@@ -586,6 +591,16 @@ describe('§14 面板读数与投影同源', () => {
     expect(specX.appliesTo(node, 'tablet', { parent: null })).toBe(false);
   });
 
+  it('typography.fontFamily 只摆在文档里真有 fontFamily 型 token 时（否则选项清单是空的，§159）', () => {
+    const spec = RESPONSIVE_CHANNELS.find((c) => c.id === 'typography.fontFamily')!;
+    const noFontFamily = DEFAULT_TOKENS.filter((t) => t.type !== 'fontFamily');
+    expect(spec.appliesTo(mkText(), 'tablet', { parent: null, tokens: noFontFamily })).toBe(false);
+    expect(spec.appliesTo(mkText(), 'tablet', { tokens: noFontFamily })).toBe(false);
+    expect(spec.appliesTo(mkText(), 'tablet', { parent: null, tokens: DEFAULT_TOKENS })).toBe(true);
+    // 不传 tokens：收起——少显示比多显示安全
+    expect(spec.appliesTo(mkText(), 'tablet')).toBe(false);
+    expect(spec.appliesTo(mkText(), 'tablet', {})).toBe(false);
+  });
 
   it('token 绑定的尺寸（`{space.md}` 那种字符串引用）不崩，也发不出手抄的引用', () => {
     const ref = makeTokenRef('space.md');

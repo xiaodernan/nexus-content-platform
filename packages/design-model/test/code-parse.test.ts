@@ -744,6 +744,30 @@ describe("类名 → 模型属性", () => {
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
   });
 
+  it("断点字族往返：token 引用与裸族名都回得去，往返零补丁（§14）", () => {
+    const page = starterPage();
+    const headline = nodeId(page, "Headline");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [headline]: {
+          ...page.nodes[headline]!,
+          responsive: [
+            // 起手 Headline 是 {font.heading}：这一档换成等宽，两端都得回得来
+            { breakpoint: "tablet", patch: { typography: { fontFamily: "{font.mono}" } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, headline);
+    expect(line).toContain("md:font-[family-name:var(--nx-font-mono)]");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
+  });
+
   it("断点纵向对齐往返：垂直对齐差异才发/收，往返零补丁（§14）", () => {
     const page = starterPage();
     const headline = nodeId(page, "Headline");

@@ -819,12 +819,25 @@ function decodeVariant(
       out.checked.push(hit.literal);
       continue;
     }
-    const n = numberOf(hit.value);
-    if (n !== null && n >= 100 && n <= 900) {
+    // 字族（§14）：与基线同一套认领（`WEIGHT_CLASS` 先行 → `tokenRefOf` → 裸族名 → unmapped 不猜）
+    const familyName = /^family-name:(.+)$/.exec(hit.value);
+    const raw = familyName ? familyName[1]! : hit.value;
+    const ref = tokenRefOf(raw, ctx);
+    if (ref) {
+      typography.fontFamily = ref;
+      out.checked.push(hit.literal);
+      continue;
+    }
+    const n = numberOf(raw);
+    if (n !== null && n >= 100 && n <= 900 && !familyName) {
       typography.fontWeight = n;
       out.checked.push(hit.literal);
+      continue;
     }
-    // 其余 `font-*`（例如手写的字族）不收：如实落 unmapped 披露，不静默当字重读
+    if (/^[A-Za-z][\w -]*$/.test(raw.replace(/_/g, " "))) {
+      typography.fontFamily = raw.replace(/_/g, " ");
+      out.checked.push(hit.literal);
+    } else note(hit.literal, "断点字族超出模型表达");
   }
   for (const hit of takeUtility(list, "tracking").all) {
     const n = numberOf(hit.value);
