@@ -282,5 +282,16 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
   console.log('[§11b] AuditEntry and TrailEntry declare every field with a concrete type — none is `any`');
 }
 
+// ── §11c TrailRow (output shape) has no duplicates and no `any` ────────────────────────────────
+// The panel renders TrailRow; a duplicated or `any`-typed field here would silently break rendering.
+{
+  const dups = tsInterfaceDuplicateFields(TRAIL_MODEL, 'TrailRow');
+  assert.deepEqual(dups, [], `${TRAIL_MODEL} TrailRow declares duplicated field(s): ${dups.join(', ')}`);
+  const types = tsInterfaceFieldTypes(TRAIL_MODEL, 'TrailRow');
+  const anyFields = [...types.entries()].filter(([, t]) => t === 'any').map(([name]) => name);
+  assert.deepEqual(anyFields, [], `${TRAIL_MODEL} TrailRow declares field(s) as 'any': ${anyFields.join(', ')} — an 'any' field erases the row contract`);
+  console.log('[§11c] TrailRow declares each field exactly once with a concrete type — none is `any`');
+}
+
 console.log(`\n[summary] wire record ↔ trail shapes agree, field for field`);
 console.log(`reader catches a rename; filter list derived from AUDIT_ACTIONS (ops owner); faces exported; no local verb copy; all wire fields required in the server lane`);
