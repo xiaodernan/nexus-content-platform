@@ -268,7 +268,17 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
   console.log('[§11] AuditEntry declares each wire field exactly once');
 }
 
-
+// ── §11b no wire-shape field is typed as `any` ─────────────────────────────────────────────────
+// An `any` field erases the wire contract — the parser would accept any shape and the panel would
+// read whatever the service happened to send.
+{
+  for (const [file, iface] of [[SERVER_LANE, 'AuditEntry'], [TRAIL_MODEL, 'TrailEntry']]) {
+    const types = tsInterfaceFieldTypes(file, iface);
+    const anyFields = [...types.entries()].filter(([, t]) => t === 'any').map(([name]) => name);
+    assert.deepEqual(anyFields, [], `${file} ${iface} declares field(s) as 'any': ${anyFields.join(', ')} — an 'any' field erases the wire contract`);
+  }
+  console.log('[§11b] AuditEntry and TrailEntry declare every field with a concrete type — none is `any`');
+}
 
 console.log(`\n[summary] wire record ↔ trail shapes agree, field for field`);
 console.log(`reader catches a rename; filter list derived from AUDIT_ACTIONS (ops owner); faces exported; no local verb copy; all wire fields required in the server lane`);
