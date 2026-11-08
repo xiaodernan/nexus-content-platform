@@ -2349,3 +2349,8 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   断言修了一轮：影响徽标翻完仍读 2（埋的 padding+mode 两个键两个 live）、`boxIn` 页面坐标下两个孩子重叠在 Actions 原点，不是分别 0。
   口径：独占生产构建（next build + next start -p 3201）；3100 依旧跳动，dev 没量就不说量到。
   顺带：mobile 档的 mode 往返**仍没接**（本片 mad:+），不想让任何人把 F7 读成“mobile 那一下也通了”。
+
+- **2026-11-08：§14 两个 shard 分片重跑都绿——268 文件 / 3572 条（这轮 +15 条）**——
+  里程见 85889a4 / 9b92bd3 / e644748 / 52039cf（配合：typecheck + eslint 每根都过 pre-commit）。
+  shard1c **134 文件 / 1834 条**（1828+6）、shard2c **134 文件 / 1738 条**（1729+9）、两次都 exit 0——本批跑的就是工作区里另一会话的 credits WIP 还没提交的状态，
+  所以它只说明那些文件此刻没把套件弄红，不是对它们的背书。`.scratch/shard1c.log` / `.scratch/shard2c.log` 已 `git add -f` 入库（本文件 §192 那条纪律：点名就得能 clone 到）。
