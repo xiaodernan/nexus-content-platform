@@ -184,14 +184,22 @@ const SEVERITIES = ['low', 'medium', 'high', 'critical'];
 const STATUSES = ['open', 'resolved'];
 const LIST_FIELDS = ['count', 'incidents', 'limit', 'offset', 'severity', 'status', 'total'].sort();
 
-// §0a static wire contract: the Java DTOs must declare the fields this door expects.
+// §0a static wire contract: the Java DTOs and service vocabularies must match what this proof grades.
 {
   const INCIDENT_DTO = path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/incidents/IncidentDtos.java');
   const recordWire = javaRecordFields(INCIDENT_DTO, 'IncidentRecord').map((f) => f.name).sort();
   assert.deepEqual(recordWire, RECORD_FIELDS, `IncidentDtos.IncidentRecord wire fields ${JSON.stringify(recordWire)} disagree with expected ${JSON.stringify(RECORD_FIELDS)}`);
   const listWire = javaRecordFields(INCIDENT_DTO, 'IncidentList').map((f) => f.name).sort();
   assert.deepEqual(listWire, LIST_FIELDS, `IncidentDtos.IncidentList wire fields ${JSON.stringify(listWire)} disagree with expected ${JSON.stringify(LIST_FIELDS)}`);
-  console.log(`[§0a] static wire contract: IncidentRecord/IncidentList DTO fields match the shapes this proof grades (${recordWire.length}+${listWire.length} fields read from source)`);
+  const svc = readFileSync(path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/incidents/IncidentService.java'), 'utf8');
+  const sevM = svc.match(/SEVERITIES\s*=\s*List\.of\(([^)]+)\)/);
+  const sevWire = sevM ? sevM[1].split(',').map((x) => x.trim().replace(/"/g, '')) : null;
+  assert.deepEqual(sevWire, SEVERITIES, `IncidentService.SEVERITIES ${JSON.stringify(sevWire)} disagree with proof ${JSON.stringify(SEVERITIES)}`);
+  const openM = svc.match(/String\s+OPEN\s*=\s*"([^"]+)"/);
+  const resM = svc.match(/String\s+RESOLVED\s*=\s*"([^"]+)"/);
+  const stWire = openM && resM ? [openM[1], resM[1]] : null;
+  assert.deepEqual(stWire, STATUSES, `IncidentService statuses ${JSON.stringify(stWire)} disagree with proof ${JSON.stringify(STATUSES)}`);
+  console.log(`[§0a] static wire contract: IncidentRecord/IncidentList DTO fields + SEVERITIES/STATUSES vocabularies match (${recordWire.length}+${listWire.length} fields, ${SEVERITIES.length}+${STATUSES.length} words read from source)`);
 }
 
 let serviceProcess = null;
