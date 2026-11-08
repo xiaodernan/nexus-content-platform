@@ -44,6 +44,7 @@ import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { javaRecordFields } from './wire-fields.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m9/service-liveness-proof.mjs -> the repository root.
@@ -161,6 +162,18 @@ const LIVENESS_FIELDS = ['service', 'startedAt', 'uptimeSeconds', 'version'].sor
 const READINESS_FIELDS = ['database', 'ready'].sort();
 const REACHABLE_DATABASE_FIELDS = ['latencyMs', 'reachable'].sort();
 const UNREACHABLE_DATABASE_FIELDS = ['detail', 'latencyMs', 'reachable'].sort();
+
+// §0a static wire contract: the Java DTOs must declare the fields these doors expect.
+{
+  const HEALTH_DTO = path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/status/HealthDtos.java');
+  const liveWire = javaRecordFields(HEALTH_DTO, 'Liveness').map((f) => f.name).sort();
+  assert.deepEqual(liveWire, LIVENESS_FIELDS, `HealthDtos.Liveness wire fields ${JSON.stringify(liveWire)} disagree with expected ${JSON.stringify(LIVENESS_FIELDS)}`);
+  const readyWire = javaRecordFields(HEALTH_DTO, 'Readiness').map((f) => f.name).sort();
+  assert.deepEqual(readyWire, READINESS_FIELDS, `HealthDtos.Readiness wire fields ${JSON.stringify(readyWire)} disagree with expected ${JSON.stringify(READINESS_FIELDS)}`);
+  const dbWire = javaRecordFields(HEALTH_DTO, 'Database').map((f) => f.name).sort();
+  assert.deepEqual(dbWire, UNREACHABLE_DATABASE_FIELDS, `HealthDtos.Database wire fields ${JSON.stringify(dbWire)} disagree with expected ${JSON.stringify(UNREACHABLE_DATABASE_FIELDS)}`);
+  console.log(`[§0a] static wire contract: Liveness/Readiness/Database DTO fields match the shapes this proof grades (${liveWire.length}+${readyWire.length}+${dbWire.length} fields read from source)`);
+}
 
 let serviceProcess = null;
 let dbStarted = false;
