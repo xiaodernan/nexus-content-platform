@@ -2390,3 +2390,10 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
 - **2026-11-09：§85 prod 复验全绿**——PRODUCTION build `apP2T7u2fy3pFppCjDq_y`（含这几天全部改动：令牌表的 44 个失名修好、
   浅色键盘车道焦点环的 ink 修好、text-like control-names 扇入出 18 处后全部修好）下跑五条浏览器门；
   全部 **1 passed**（详细表格见 `docs/EVALUATION.md` 第二十片、二十一片、二十二片与 log `.scratch/prod-recheck-2026-11-09.log`）。
+
+- **2026-11-09：再两片全绿——271 文件 / 3587 条，两次 exit 0**——
+  shard1 136 文件 / 1843 条（682.95s，03:28:31 UTC+8）、shard2 135 文件 / 1744 条（460.18s，03:40:20）；
+  两次都没出 ERR_IPC。与上一版记账（269 / 3578）差正好 +2 文件 / +9 条
+  （f14fe2a 已落地的 `test(§147 #32)` 引用守恒入框计数后的增加；
+  另在磁盘上但未被 git 跟踪的 `store-selection-stress.test.ts` 也参与本次计数——生产者填仓前先过一遍 lint/typecheck）。
+  `.scratch/shard1-2026-11-09b.log`、`.scratch/shard2-2026-11-09b.log` 已 `git add -f` 入库。
