@@ -320,6 +320,8 @@ function layoutClasses(
     !placement.absolute &&
     placement.hasChildren
   ) {
+    // 模式标记（ADR-0091）：无前缀＝基线那一档；让 stack/none 的设计模式也能往返——`relative` 没有它就读不回
+    out.push(`[--nexus-mode:${layout.mode}]`);
     out.push("relative");
   }
   if (layout.reverse && ALIGNABLE_MODES.includes(layout.mode)) {

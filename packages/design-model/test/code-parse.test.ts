@@ -795,6 +795,72 @@ describe("类名 → 模型属性", () => {
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
   });
 
+  it("基线模式标记往返：设计 mode=none（无 mobile 规则）也回得来，relative 同档消费（ADR-0091 · §14）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withMode: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          layout: { ...page.nodes[hero]!.layout, mode: "none" },
+        },
+      },
+    };
+    const code = source(withMode);
+    const line = lineOf(code, hero);
+    expect(line).toContain("[--nexus-mode:none]");
+    expect(line).toContain("relative");
+    const result = parse(withMode, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("基线模式标记往返：mobile 的 stack 也回得来——mobile 规则的 mode 也收进那条规则里（ADR-0091 · §14）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [{ breakpoint: "mobile", patch: { layout: { mode: "stack" } } }],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    // mobile 档走移动优先基线：那一档的 mode 也落在基线那组无前缀类里
+    expect(line).toContain("[--nexus-mode:stack]");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("断点横排/直排排布不发到这一寸：columns-only 的网格 patch 只发 columns，不发 projection mode 的窄档标记（§14）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          layout: { ...page.nodes[hero]!.layout, mode: "grid", columns: 2 },
+          responsive: [{ breakpoint: "tablet", patch: { layout: { columns: 2 } } }],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    expect(line).not.toContain("md:[--nexus-mode:");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
   it("断点纵向对齐往返：垂直对齐差异才发/收，往返零补丁（§14）", () => {
     const page = starterPage();
     const headline = nodeId(page, "Headline");

@@ -2047,6 +2047,33 @@ function decodeClasses(
     d.states.set(state, nested);
   }
 
+  // 自由定位逃生口模式标记（ADR-0091 基线那一档）：`[--nexus-mode:none|stack]`，只有生成器会发它，
+  // 值只收 none/stack——其余落 unmapped 不猜。`relative` 与 marker 共现时消费（定位参照），
+  // 单独一个 `relative` 仍落 unmapped（手写的相对定位不猜）。
+  {
+    let markerConsumed = false;
+    for (const token of [...list]) {
+      const m = /^\[--nexus-mode:([a-z]+)\]$/.exec(token);
+      if (!m) continue;
+      const value = m[1]!;
+      if (value === "none" || value === "stack") {
+        write(token, "layout.mode", value);
+        list.splice(list.indexOf(token), 1);
+        d.checked.push(token);
+        markerConsumed = true;
+        continue;
+      }
+      note(token, `模式标记只收 none / stack`);
+    }
+    if (markerConsumed) {
+      const relAt = list.indexOf("relative");
+      if (relAt >= 0) {
+        list.splice(relAt, 1);
+        d.checked.push("relative");
+      }
+    }
+  }
+
   for (const token of list) note(token, "不在 Design ↔ Code 类名白名单里（§19）");
   return d;
 }

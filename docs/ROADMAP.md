@@ -9159,7 +9159,8 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
 - 面板「排布」那格加第五样「自由定位」（value none），stack 保持仅代码可写。
 - 见证：codegen「断点模式标记发射」（含 grid 投影不发 marker、叶子只发 marker 不发 relative）、code-parse「断点模式标记往返」、
   responsive-editor「排布那格——自由定位第五样」。读数：design-model 35 files / **499 passed**（+4）、responsive-editor **41/41**、typecheck / eslint 0。
-- mobile 档的 mode 往返**仍没接**（mobile 是基线，`--nexus-mode` 无前缀那一刀另说；本片只 md:+）。
+- mobile 档的 mode 往返**已接**（同日第二刀）：`layoutClasses` 无前缀那组类发 `[--nexus-mode:…]`，`decodeClasses` 认下并消费 `relative`——
+  设计 `none` 与 mobile 规则翻 `stack` 都能往返（`code-parse.test.ts` 三腿：基线设计 none、基线 mobile stack、grid 投影不发）。design-model 35 files / **502 passed**（+3）。
 
 **第十六片（2026-11-08）：浏览器腿 F7——面板翻出的「自由定位」一次真 Chrome 走完**
 
