@@ -53,6 +53,7 @@ import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { javaRecordFields } from './wire-fields.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m9/service-traffic-proof.mjs -> the repository root.
@@ -171,6 +172,16 @@ const TRAFFIC_FIELDS = [
   'redirects', 'requests', 'serverErrors', 'successes', 'unclassified'
 ].sort();
 const LATENCY_FIELDS = ['over1000Ms', 'upTo1000Ms', 'upTo10Ms', 'upTo250Ms', 'upTo50Ms'].sort();
+
+// §0a static wire contract: the Java DTOs must declare the fields this door expects.
+{
+  const TRAFFIC_DTO = path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/status/TrafficDtos.java');
+  const trafficWire = javaRecordFields(TRAFFIC_DTO, 'Traffic').map((f) => f.name).sort();
+  assert.deepEqual(trafficWire, TRAFFIC_FIELDS, `TrafficDtos.Traffic wire fields ${JSON.stringify(trafficWire)} disagree with expected ${JSON.stringify(TRAFFIC_FIELDS)}`);
+  const latencyWire = javaRecordFields(TRAFFIC_DTO, 'Latency').map((f) => f.name).sort();
+  assert.deepEqual(latencyWire, LATENCY_FIELDS, `TrafficDtos.Latency wire fields ${JSON.stringify(latencyWire)} disagree with expected ${JSON.stringify(LATENCY_FIELDS)}`);
+  console.log(`[§0a] static wire contract: Traffic/Latency DTO fields match the shapes this proof grades (${trafficWire.length}+${latencyWire.length} fields read from source)`);
+}
 
 let serviceProcess = null;
 let dbStarted = false;
