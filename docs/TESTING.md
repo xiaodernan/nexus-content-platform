@@ -2362,3 +2362,8 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   口径：独占生产构建（`next start -p 3201`，已停）。
   踩点：上一跑 900s 测试预算烧完死在第 745 行一行 `'[data-layer-id="${var}"]'` **单引号模板字符串没替换**，定位器等了一个不存在的选择器——
   快速 grep 单引号变量引用应该在写 spec 时当 typo 门走一遍；修法以后照做（`npx playwright ...` 失败前必 grep 这一条）。
+
+- **2026-11-08：credits 车道合计入主（eb809df），合并树重跑两片——268 文件 / 3572 条，两次 exit 0**——
+  就是把另一会话那条 ENFORCED_PLAN_AXE_GUARDS 重构（+ ADR-0090、credits-why-guards.test.ts、credits-enforced-copy.test.ts 的逐字文案变更）
+  在主分支上兑现为可验证的合并态：shard1d 134 files / 1834、shard2d 134 files / 1738（与合并前 3572 一致）、exit 0——本轮唯一多的是这笔合并。
+  这次 shard 重跑在合并 main 上跑，不是 WIP 工作区，所以它就是合在主分支上的绿。日志 `.scratch/shard1d.log` / `.scratch/shard2d.log` 已 `git add -f` 入库。
