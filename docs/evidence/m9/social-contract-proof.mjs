@@ -16,7 +16,7 @@
 //
 // Requires nothing but Node:  node docs/evidence/m9/social-contract-proof.mjs
 import assert from 'node:assert/strict';
-import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsInterfaceFieldTypes, tsParseErrors, assertSameFields, javaRecordDuplicateFields, tsInterfaceDuplicateFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsInterfaceFieldTypes, tsParseErrors, assertSameFields, javaRecordDuplicateFields, tsInterfaceDuplicateFields, assertNoAnyFields } from './wire-fields.mjs';
 
 const SOCIAL = 'services/nexus-api/src/main/java/dev/nexus/api/social';
 
@@ -117,9 +117,7 @@ for (const c of CONTRACTS) {
 }
 {
   for (const c of CONTRACTS) {
-    const types = tsInterfaceFieldTypes(c.client, c.clientShape);
-    const anyFields = [...types.entries()].filter(([, t]) => t === 'any').map(([name]) => name);
-    assert.deepEqual(anyFields, [], `${c.verb}: ${c.client} declares field(s) as 'any': ${anyFields.join(', ')} — an 'any' field erases the wire contract`);
+    assertNoAnyFields(c.client, c.clientShape, `${c.verb}: ${c.client}`);
   }
   console.log('[§2d] each client interface declares every field with a concrete type — none is `any`');
 }

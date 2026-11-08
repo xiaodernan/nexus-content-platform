@@ -28,7 +28,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, tsInterfaceDuplicateFields, javaRecordDuplicateFields, tsInterfaceFieldTypes, assertSameFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, tsInterfaceDuplicateFields, javaRecordDuplicateFields, tsInterfaceFieldTypes, assertSameFields, assertNoAnyFields } from './wire-fields.mjs';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
@@ -275,9 +275,7 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
 // read whatever the service happened to send.
 {
   for (const [file, iface] of [[SERVER_LANE, 'AuditEntry'], [TRAIL_MODEL, 'TrailEntry']]) {
-    const types = tsInterfaceFieldTypes(file, iface);
-    const anyFields = [...types.entries()].filter(([, t]) => t === 'any').map(([name]) => name);
-    assert.deepEqual(anyFields, [], `${file} ${iface} declares field(s) as 'any': ${anyFields.join(', ')} — an 'any' field erases the wire contract`);
+    assertNoAnyFields(file, iface);
   }
   console.log('[§11b] AuditEntry and TrailEntry declare every field with a concrete type — none is `any`');
 }
@@ -287,9 +285,7 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
 {
   const dups = tsInterfaceDuplicateFields(TRAIL_MODEL, 'TrailRow');
   assert.deepEqual(dups, [], `${TRAIL_MODEL} TrailRow declares duplicated field(s): ${dups.join(', ')}`);
-  const types = tsInterfaceFieldTypes(TRAIL_MODEL, 'TrailRow');
-  const anyFields = [...types.entries()].filter(([, t]) => t === 'any').map(([name]) => name);
-  assert.deepEqual(anyFields, [], `${TRAIL_MODEL} TrailRow declares field(s) as 'any': ${anyFields.join(', ')} — an 'any' field erases the row contract`);
+  assertNoAnyFields(TRAIL_MODEL, 'TrailRow');
   console.log('[§11c] TrailRow declares each field exactly once with a concrete type — none is `any`');
 }
 
@@ -298,9 +294,7 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
   for (const [file, iface] of [[SERVER_LANE, 'AuditTrailAnswer'], [SERVER_LANE, 'AuditTrailQuestion']]) {
     const dups = tsInterfaceDuplicateFields(file, iface);
     assert.deepEqual(dups, [], `${file} ${iface} declares duplicated field(s): ${dups.join(', ')}`);
-    const types = tsInterfaceFieldTypes(file, iface);
-    const anyFields = [...types.entries()].filter(([, t]) => t === 'any').map(([name]) => name);
-    assert.deepEqual(anyFields, [], `${file} ${iface} declares field(s) as 'any': ${anyFields.join(', ')} — an 'any' field erases the lane contract`);
+    assertNoAnyFields(file, iface);
   }
   console.log('[§11d] AuditTrailAnswer and AuditTrailQuestion declare each field exactly once with a concrete type — none is `any`');
 }

@@ -210,6 +210,20 @@ export function tsInterfaceDuplicateFields(file, interfaceName) {
 }
 
 /**
+ * Assert a TypeScript interface declares no field as `any`.
+ * @param {string} file the TypeScript file
+ * @param {string} interfaceName the interface's name
+ * @param {string} [label] optional label for the error message
+ */
+export function assertNoAnyFields(file, interfaceName, label) {
+  const types = tsInterfaceFieldTypes(file, interfaceName);
+  const anyFields = [...types.entries()].filter(([, t]) => t === 'any').map(([name]) => name);
+  if (anyFields.length > 0) {
+    throw new Error(`${label ?? `${file} ${interfaceName}`} declares field(s) as 'any': ${anyFields.join(', ')} — an 'any' field erases the contract`);
+  }
+}
+
+/**
  * The two sides of a contract, checked against each other.
  *
  * The rule is symmetric on purpose: a client that reads a field the service does not send reads nothing
