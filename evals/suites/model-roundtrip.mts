@@ -159,6 +159,177 @@ const CELLS: RoundTripCell[] = [
       return document;
     },
   },
+  {
+    name: 'F 纵向栈 + gap + justify-center（vertical 模式实战形状）',
+    build() {
+      const document = createDocument('自洽 F', 'website');
+      const page = createPage('Home');
+      document.pages = [page];
+      document.activePageId = page.id;
+      const stack = createNode({
+        type: 'container',
+        name: '纵向栈',
+        parentId: page.rootId,
+        size: { width: 480, height: 320 },
+        layout: { mode: 'vertical', gap: 16, justify: 'center', items: 'stretch' },
+      });
+      const t1 = createNode({ type: 'text', name: '行一', parentId: stack.id, text: '一' });
+      const t2 = createNode({ type: 'text', name: '行二', parentId: stack.id, text: '二' });
+      page.nodes[stack.id] = stack;
+      page.nodes[t1.id] = t1;
+      page.nodes[t2.id] = t2;
+      page.nodes[page.rootId]!.children = [stack.id];
+      stack.children = [t1.id, t2.id];
+      return document;
+    },
+  },
+  {
+    name: 'G grid 4 列进阶（§20 grid 多格形状）',
+    build() {
+      const document = createDocument('自洽 G', 'website');
+      const page = createPage('Home');
+      document.pages = [page];
+      document.activePageId = page.id;
+      const grid = createNode({
+        type: 'grid',
+        name: '自适应网格',
+        parentId: page.rootId,
+        size: { width: 960, height: 240 },
+        layout: { columns: 4, gap: 12 },
+      });
+      const cells = ['甲', '乙', '丙', '丁', '戊'].map((label) => {
+        const cell = createNode({
+          type: 'container',
+          name: `单元 ${label}`,
+          parentId: grid.id,
+          size: { width: 200, height: 100 },
+        });
+        page.nodes[cell.id] = cell;
+        return cell;
+      });
+      page.nodes[grid.id] = grid;
+      page.nodes[page.rootId]!.children = [grid.id];
+      grid.children = cells.map((c) => c.id);
+      return document;
+    },
+  },
+  {
+    name: 'H token 驱动几何（gap={space.4} padding={space.2}）',
+    build() {
+      const document = createDocument('自洽 H', 'website');
+      const page = createPage('Home');
+      document.pages = [page];
+      document.activePageId = page.id;
+      const band = createNode({
+        type: 'container',
+        name: 'Token 带',
+        parentId: page.rootId,
+        size: { width: 720, height: 80 },
+        layout: {
+          mode: 'horizontal',
+          gap: '{space.4}',
+          padding: {
+            top: '{space.2}',
+            right: '{space.2}',
+            bottom: '{space.2}',
+            left: '{space.2}',
+          },
+          justify: 'space-between',
+        },
+      });
+      const a = createNode({ type: 'button', name: '按钮一', parentId: band.id, text: '确认' });
+      const b = createNode({ type: 'button', name: '按钮二', parentId: band.id, text: '取消' });
+      page.nodes[band.id] = band;
+      page.nodes[a.id] = a;
+      page.nodes[b.id] = b;
+      page.nodes[page.rootId]!.children = [band.id];
+      band.children = [a.id, b.id];
+      return document;
+    },
+  },
+  {
+    name: 'I stack 叠放模式（§20 stack 形状）',
+    build() {
+      const document = createDocument('自洽 I', 'website');
+      const page = createPage('Home');
+      document.pages = [page];
+      document.activePageId = page.id;
+      const stack = createNode({
+        type: 'container',
+        name: '叠放层',
+        parentId: page.rootId,
+        size: { width: 400, height: 400 },
+        layout: { mode: 'stack' },
+      });
+      const back = createNode({ type: 'image', name: '底图', parentId: stack.id });
+      const front = createNode({ type: 'text', name: '浮层', parentId: stack.id, text: '标题' });
+      page.nodes[stack.id] = stack;
+      page.nodes[back.id] = back;
+      page.nodes[front.id] = front;
+      page.nodes[page.rootId]!.children = [stack.id];
+      stack.children = [back.id, front.id];
+      return document;
+    },
+  },
+  {
+    name: 'J wrap 流式换行（§20 wrap 形状）',
+    build() {
+      const document = createDocument('自洽 J', 'website');
+      const page = createPage('Home');
+      document.pages = [page];
+      document.activePageId = page.id;
+      const wrap = createNode({
+        type: 'container',
+        name: '换行流',
+        parentId: page.rootId,
+        size: { width: 600, height: 200 },
+        layout: { mode: 'wrap', columns: 3, gap: 8 },
+      });
+      const tags = ['一', '二', '三', '四', '五', '六'].map((label) => {
+        const tag = createNode({
+          type: 'text',
+          name: `标签 ${label}`,
+          parentId: wrap.id,
+          text: label,
+        });
+        page.nodes[tag.id] = tag;
+        return tag;
+      });
+      page.nodes[wrap.id] = wrap;
+      page.nodes[page.rootId]!.children = [wrap.id];
+      wrap.children = tags.map((t) => t.id);
+      return document;
+    },
+  },
+  {
+    name: 'K 双层响应式（tablet 改 columns + mobile 改 mode）',
+    build() {
+      const document = createDocument('自洽 K', 'website');
+      const page = createPage('Home');
+      document.pages = [page];
+      document.activePageId = page.id;
+      const grid = createNode({
+        type: 'grid',
+        name: '分级网格',
+        parentId: page.rootId,
+        size: { width: 960, height: 200 },
+        layout: { columns: 4, gap: 24 },
+      });
+      grid.responsive = [
+        { breakpoint: 'tablet', patch: { layout: { columns: 2 } } },
+        { breakpoint: 'mobile', patch: { layout: { mode: 'vertical' } } },
+      ];
+      const items = ['一', '二', '三', '四'].map((label) => {
+        const cell = createNode({ type: 'container', name: `单元 ${label}`, parentId: grid.id });
+        page.nodes[cell.id] = cell;
+        return cell;
+      });
+      page.nodes[grid.id] = grid;
+      page.nodes[page.rootId]!.children = [grid.id];
+      grid.children = items.map((c) => c.id);
+      return document;
+    },
+  },
 ];
 
 export const modelRoundtripSuite: EvalSuite = {

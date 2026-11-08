@@ -2581,7 +2581,7 @@ gate 复核：`npm run evals` 4 套 **73 / 73 PASS**；`tsc -p video-model / too
 
 ```
 code-index       19/19
-model-roundtrip   7/7
+model-roundtrip  13/13
 video-plan       30/30
 world-build      55/55
 schemas-contract 17/17（跨端契约：注册表齐全、每项可导出可解析 JSON Schema、
@@ -2594,11 +2594,11 @@ project-bundle  14/14（跨模型集大成合成：四包同存、link 表自洽
 共享 token 解析、design 往返、projectId 贯通）
 export-roundtrip 17/17（需真库，55100 regress 实例上实测）
 ```
-→ 确定性套件合计 **224/224 结构不变式 PASS**（不含需真库的 export-roundtrip；含它则为 **241/241**）。
+→ 确定性套件合计 **230/230 结构不变式 PASS**（不含需真库的 export-roundtrip；含它则为 **247/247**）。
 
 `world-build` 由另一位 commit `44f2979` 引入（骨架九类令、`autoLayout` 确定性、`worldGraph` 删点消边、`validateWorld` 8 类缺陷分类、
 `buildWorldScene` authored/fallback 拆分；`walkToward` / `terrainHeightAt` / `resolveWalkCollision` 走法物理，
 mesa 与 cone 两种 mesa 形状一致性 + 多 mesa 取最大高度规则），
 与更早的套件一样遵循"结构不变式判红、数字人看"的纪律。
 `game-build`（`11f3879`）与 `design-build`（`935a44e`）随后补齐游戏设计系统与 design-model 的领域操作投影自洽，
-至此四个 model 包（world / video / game / design）各有一套确定性投影自洽套件，并以 `project-bundle` 跨模型合成套件把它们合到一起，确定性 eval 矩阵闭环（224/224，含需真库的 export-roundtrip 则 241/241）。
+至此四个 model 包（world / video / game / design）各有一套确定性投影自洽套件，并以 `project-bundle` 跨模型合成套件把它们合到一起，确定性 eval 矩阵闭环（230/230，含需真库的 export-roundtrip 则 247/247）。
