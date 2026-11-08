@@ -688,6 +688,34 @@ describe("类名 → 模型属性", () => {
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
   });
 
+  it("断点混合模式/旋转往返：发射与回写共用处方，零补丁（§14）", () => {
+    const page = starterPage();
+    const headline = nodeId(page, "Headline");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [headline]: {
+          ...page.nodes[headline]!,
+          responsive: [
+            { breakpoint: "tablet", patch: { style: { blendMode: "multiply", rotation: 15 } } },
+            // 显式写回 normal / 0：顶掉更窄那档——Tailwind 把 md:/lg: 放在基类之后，CSS 里它赢
+            { breakpoint: "desktop", patch: { style: { blendMode: "normal", rotation: 0 } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, headline);
+    expect(line).toContain("md:mix-blend-multiply");
+    expect(line).toContain("md:rotate-[15deg]");
+    expect(line).toContain("lg:mix-blend-normal");
+    expect(line).toContain("lg:rotate-[0deg]");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
+  });
+
   it("断点纵向对齐往返：垂直对齐差异才发/收，往返零补丁（§14）", () => {
     const page = starterPage();
     const headline = nodeId(page, "Headline");

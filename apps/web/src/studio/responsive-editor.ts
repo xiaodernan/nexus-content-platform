@@ -8,6 +8,7 @@ import {
   type Layout,
   type LayoutMode,
   type ResponsiveRule,
+  type Style,
 } from '@nexus/design-model';
 
 /**
@@ -51,7 +52,9 @@ export type ResponsiveChannel =
   | 'typography.align'
   | 'typography.verticalAlign'
   | 'position.x'
-  | 'position.y';
+  | 'position.y'
+  | 'style.blendMode'
+  | 'style.rotation';
 
 export interface ResponsiveChoice {
   readonly value: string;
@@ -131,6 +134,37 @@ const cleanDecoration =
   (value: unknown): Cleaned =>
     typeof value === 'string' && allowed.has(value) ? value : REJECT;
 const cleanFontSize = (value: unknown): Cleaned => (isFiniteNumber(value) && value > 0 ? Math.round(value) : REJECT);
+/**
+ * 混合模式：取值就是模型 `BlendMode` 那一串（Tailwind v4 的 `mix-blend-*` 名单与它一一对应），
+ * 标签直接用原名——这套东西本来就没有定型的中文说法，编一组中文等于让人对着对不上的名字找（§159）。
+ */
+const BLEND_MODE_VALUES = [
+  'normal',
+  'multiply',
+  'screen',
+  'overlay',
+  'darken',
+  'lighten',
+  'color-dodge',
+  'color-burn',
+  'soft-light',
+  'hard-light',
+  'difference',
+  'exclusion',
+  'hue',
+  'saturation',
+  'color',
+  'luminosity',
+] as const satisfies readonly Style['blendMode'][];
+const BLEND_MODE_CHOICES: readonly ResponsiveChoice[] = BLEND_MODE_VALUES.map((value) => ({
+  value,
+  label: value,
+}));
+const BLEND_MODE_SET = new Set<string>(BLEND_MODE_VALUES);
+const cleanBlendMode = (value: unknown): Cleaned =>
+  typeof value === 'string' && BLEND_MODE_SET.has(value) ? (value as Style['blendMode']) : REJECT;
+const cleanRotation = (value: unknown): Cleaned =>
+  isFiniteNumber(value) && value >= -360 && value <= 360 ? Math.round(value * 10) / 10 : REJECT;
 
 /**
  * 排布只给这四样：求解器（layout.ts）与导出代码（codegen.ts 的 `layoutClasses`）都认它们。
@@ -286,6 +320,30 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     step: 0.05,
     appliesTo: () => true,
     clean: cleanOpacity,
+  },
+  {
+    id: 'style.blendMode',
+    label: '混合模式',
+    group: 'style',
+    key: 'blendMode',
+    readPath: 'style.blendMode',
+    widget: 'choice',
+    choices: BLEND_MODE_CHOICES,
+    appliesTo: () => true,
+    clean: cleanBlendMode,
+  },
+  {
+    id: 'style.rotation',
+    label: '旋转',
+    group: 'style',
+    key: 'rotation',
+    readPath: 'style.rotation',
+    widget: 'number',
+    min: -360,
+    max: 360,
+    step: 1,
+    appliesTo: () => true,
+    clean: cleanRotation,
   },
   {
     id: 'layout.mode',

@@ -659,6 +659,11 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
       out.push(`${variant}overflow-visible`);
     }
     if (style?.opacity !== undefined) out.push(`${variant}opacity-[${style.opacity}]`);
+    // 混合模式 / 旋转（§14）：与基线同一组类（`styleClasses`），这一档声明了就必须发得出来也读得回来。
+    // 混合模式的 `mix-blend-normal` 与旋转的 `rotate-[0deg]` 都是 Tailwind 合法类——显式写回
+    // 正是"顶掉更窄那档"的那一刀（同 reverse:false 那一寸），不是摆设。
+    if (style?.blendMode !== undefined) out.push(`${variant}mix-blend-${style.blendMode}`);
+    if (style?.rotation !== undefined) out.push(`${variant}rotate-[${style.rotation}deg]`);
     if (visible === false) out.push(`${variant}hidden`);
   }
   return out;

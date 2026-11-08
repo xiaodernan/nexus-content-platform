@@ -949,6 +949,25 @@ function decodeVariant(
       out.checked.push(hit.literal);
     }
   }
+  // 混合模式：`md:mix-blend-*`——Tailwind v4 的 blend 名单与模型 `BlendMode` 一一对应（见 types.ts），
+  // `mix-blend-normal` 是合法类：显式写回正常模式顶掉更窄那档的混合模式。未知名一律进 unmapped，不猜。
+  for (const hit of takeUtility(list, "mix-blend").all) {
+    if (!BLEND_MODES.has(hit.value as Style["blendMode"])) {
+      note(hit.literal, "mix-blend 取值不在模型的混合模式名单里");
+      continue;
+    }
+    style.blendMode = hit.value as Style["blendMode"];
+    out.checked.push(hit.literal);
+  }
+  // 旋转：`md:rotate-[Ndeg]`——与基线同一判据（数字 + deg 后缀），其余格式一律进 unmapped，不猜。
+  for (const hit of takeUtility(list, "rotate").all) {
+    const m = /^-?\d+(?:\.\d+)?deg$/.exec(hit.value);
+    if (!m) note(hit.literal, "rotate 需要角度数值（deg）");
+    else {
+      style.rotation = Number(hit.value.slice(0, -3));
+      out.checked.push(hit.literal);
+    }
+  }
   // 裁剪 / 滚动（§14）：与基线同一组 overflow 类。`overflow-visible` 是响应式"取消"类，
   // 仅在更窄那档有 overflow 约束时才有意义（与 reverse-cancel 同一判据形状）。
   const consumeToken = (token: string): boolean => {

@@ -419,7 +419,7 @@
   `md:tracking-*`/`md:uppercase|lowercase|capitalize`/`md:underline|line-through`/`md:text-*`/
   `md:flex|md:flex-col|md:justify-{center,end,start}`（verticalAlign 差异的文字节点才发/收）的发射与回写。
   面板同步加了七行（`typography.fontWeight`/`typography.lineHeight`/`typography.letterSpacing`/`typography.textCase`/`typography.decoration`/`typography.align`/`typography.verticalAlign`），
-  `RESPONSIVE_CHANNELS` 现在 **二十二格**（另两格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时摆，见下）。
+  `RESPONSIVE_CHANNELS` 现在二十四格（另两格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时摆；混合模式/旋转是第十一片）。
 - **顺带**（上一片同属于这一档的收尾）：`layout.clipContent`/`layout.scroll` 两格也并入同一轮——
   `md:overflow-hidden`/`overflow-*-auto`/`overflow-visible`（取消更窄档 overflow 约束的那一刀：更窄那档没 overflow 约束时不发，更窄那档有时发 `md:overflow-visible` 并回写
   `{clipContent:false, scroll:"none"}`）。
@@ -431,9 +431,14 @@
   填 x=120 落库、画布相对 Sandbox 变成 (120, 40)、tablet 级联继承、撤销回 (48, 40)、
   Eyebrow 那一档两行不存在）——真 Chrome、独占生产构建上 **1 passed（59.5s）**，
   夹具幂等（每轮连根拔沙盒重建），2026-11-08。
+- **`style.blendMode` / `style.rotation` 两格**（第十一片，2026-11-08）：基线早就能发/收（`mix-blend-*` /
+  `rotate-[deg]`），这一片把 patch 那边也通了——`responsiveClasses` 发 `md:/lg:/xl:` 档的同名类（`md:mix-blend-normal`、
+  `lg:rotate-[0deg]` 都是合法 Tailwind 类，显式写回正是取消更窄那档的那一刀）；`decodeVariant` 认领 `mix-blend-*`
+  （对 `BLEND_MODES` 白名单）与 `rotate-[…deg]`（格式必须 `数字+deg`）。
+  面板现在 **二十四格**（混合模式是 choice、标签原名）、全模型层 **35 files / 491 passed**。
 - 这轮之后，§14 的「键覆盖面」仍然欠：`mode` 的 `stack`/`none` 的**模型层**差量类
   （`stack`/`none` 那个 mode 本身仍没有 display 类可发或被发——`md:flex-col` 那一阵类只对非绝对段有效）、
-  `rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`typography` 的字族、`style` 除填充与透明度——
+  `rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`typography` 的字族、`style` 除填充、透明度、混合模式与旋转——
   这些键《画布与访客》和《代码视图与 ZIP》仍然不同（§16）。
 - **stack/none ↔ 绝对化**（第二刀，已落地）：`stack`/`none` 本身就是"子节点绝对定位"，代码里没有办法只对这一档
   重投影**父级**，但可以对**子节点**投。实现：`classOf` 里加一层 `positionVariantClasses(node, parent, bp)`，
