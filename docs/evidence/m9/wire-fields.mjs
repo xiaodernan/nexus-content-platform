@@ -106,6 +106,35 @@ export function tsInterfaceFields(file, interfaceName) {
 }
 
 /**
+ * The TS type written for each field in a TypeScript interface, read with the compiler's parser.
+ *
+ * @param {string} file the TypeScript file
+ * @param {string} interfaceName the interface's name
+ * @returns {Map<string, string>} field name -> type text
+ */
+export function tsInterfaceFieldTypes(file, interfaceName) {
+  const src = readFileSync(file, 'utf8');
+  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true);
+  let found = null;
+  const visit = (node) => {
+    if (ts.isInterfaceDeclaration(node) && node.name.text === interfaceName) {
+      found = node;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  if (!found) {
+    throw new Error(`the interface ${interfaceName} was not found in ${file} — the contract this proof grades has MOVED`);
+  }
+  const out = new Map();
+  for (const m of found.members) {
+    if (ts.isPropertySignature(m) && m.name && m.type) out.set(m.name.getText(sf), m.type.getText(sf));
+  }
+  return out;
+}
+
+/**
  * Whether each field in a TypeScript interface is optional (has `?`), read with the compiler's parser.
  *
  * @param {string} file the TypeScript file

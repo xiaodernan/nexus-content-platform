@@ -16,7 +16,7 @@
 //
 // Requires nothing but Node:  node docs/evidence/m9/social-contract-proof.mjs
 import assert from 'node:assert/strict';
-import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsParseErrors, assertSameFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsInterfaceFieldTypes, tsParseErrors, assertSameFields } from './wire-fields.mjs';
 
 const SOCIAL = 'services/nexus-api/src/main/java/dev/nexus/api/social';
 
@@ -82,11 +82,27 @@ for (const c of CONTRACTS) {
   assert.equal(createdAt.type, 'long', `the ${c.verb}'s instant travels as a long — epoch milliseconds, the client's own unit`);
   const client = tsInterfaceFields(c.client, c.clientShape);
   assert.ok(client.includes('createdAt'), `the ${c.verb}'s client shape has no createdAt — the two would be reading different clocks`);
-  // Primitive wire fields (long/int/boolean/...) are non-nullable; their TS properties must be required.
+  // Primitive wire fields (long/int/boolean/...) are non-nullable; their TS properties must be required,
+  // and their TS types must be compatible — a Java `long` that arrives as a percent float or a
+  // `boolean` that arrives as "0"/"1" string would parse instead of failing.
   const props = tsInterfaceFieldOptionality(c.client, c.clientShape);
+  const types = tsInterfaceFieldTypes(c.client, c.clientShape);
+  const TYPE_MAP = new Map([
+    ['boolean', ['boolean']],
+    ['long', ['number', 'bigint']],
+    ['int', ['number', 'bigint']],
+    ['short', ['number', 'bigint']],
+    ['byte', ['number', 'bigint']],
+    ['float', ['number']],
+    ['double', ['number']],
+    ['char', ['string']],
+  ]);
   for (const f of wireFields) {
     if (JAVA_PRIMITIVES.has(f.type)) {
       assert.equal(props.get(f.name), false, `the ${c.verb}'s client shape marks ${f.name} optional, but the wire sends it as a non-nullable ${f.type}`);
+      const allowed = TYPE_MAP.get(f.type) ?? [];
+      const t = types.get(f.name);
+      assert.ok(t && allowed.includes(t), `the ${c.verb}'s client shape fields ${f.name}: ${t ?? '(missing)'}, but the wire sends a Java ${f.type} — allowed: ${allowed.join(', ')}`);
     }
   }
   console.log(`[§2] the ${c.verb}: the instant is a long (epoch ms) on the wire and required in the client; all primitive wire fields are required`);
