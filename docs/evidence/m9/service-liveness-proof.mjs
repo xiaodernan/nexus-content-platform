@@ -44,7 +44,7 @@ import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { javaRecordFields } from './wire-fields.mjs';
+import { javaRecordFields, javaRecordDuplicateFields } from './wire-fields.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m9/service-liveness-proof.mjs -> the repository root.
@@ -173,6 +173,17 @@ const UNREACHABLE_DATABASE_FIELDS = ['detail', 'latencyMs', 'reachable'].sort();
   const dbWire = javaRecordFields(HEALTH_DTO, 'Database').map((f) => f.name).sort();
   assert.deepEqual(dbWire, UNREACHABLE_DATABASE_FIELDS, `HealthDtos.Database wire fields ${JSON.stringify(dbWire)} disagree with expected ${JSON.stringify(UNREACHABLE_DATABASE_FIELDS)}`);
   console.log(`[§0a] static wire contract: Liveness/Readiness/Database DTO fields match the shapes this proof grades (${liveWire.length}+${readyWire.length}+${dbWire.length} fields read from source)`);
+}
+// §0b a record that declares a field twice cannot be read: the reader keeps both, the pinned list would
+// mis-grade, and a rename would silently land on the second declaration. The same defect class the trail,
+// traffic and health lanes caught, now over the readiness family's records.
+{
+  const HEALTH_DTO = path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/status/HealthDtos.java');
+  for (const record of ['Liveness', 'Readiness', 'Database']) {
+    const dupes = javaRecordDuplicateFields(HEALTH_DTO, record);
+    assert.deepEqual(dupes, [], `HealthDtos.${record} declares duplicate field(s): ${dupes.join(', ')} — the reader keeps both and the pinned list would mis-grade`);
+  }
+  console.log('[§0b] HealthDtos readiness-family records declare no duplicated field names');
 }
 
 let serviceProcess = null;
