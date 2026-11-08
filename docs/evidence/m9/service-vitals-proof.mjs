@@ -38,6 +38,7 @@ import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { javaRecordFields } from './wire-fields.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m9/service-vitals-proof.mjs -> the repository root.
@@ -155,6 +156,14 @@ const VITALS_FIELDS = [
   'heapCommittedBytes', 'heapMaxBytes', 'heapUsedBytes',
   'liveThreads', 'peakThreads', 'processors'
 ].sort();
+
+// §0a static wire contract: the Java DTO must declare the fields this door expects.
+{
+  const HEALTH_DTO = path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/status/HealthDtos.java');
+  const vitalsWire = javaRecordFields(HEALTH_DTO, 'Vitals').map((f) => f.name).sort();
+  assert.deepEqual(vitalsWire, VITALS_FIELDS, `HealthDtos.Vitals wire fields ${JSON.stringify(vitalsWire)} disagree with expected ${JSON.stringify(VITALS_FIELDS)}`);
+  console.log(`[§0a] static wire contract: Vitals DTO fields match the shape this proof grades (${vitalsWire.length} fields read from source)`);
+}
 
 let serviceProcess = null;
 let dbStarted = false;
