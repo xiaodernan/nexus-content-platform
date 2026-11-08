@@ -2577,20 +2577,26 @@ prod 侧复验待另一会话未提交的半成品绿之后、重建再跑一遍
 gate 复核：`npm run evals` 4 套 **73 / 73 PASS**；`tsc -p video-model / tools` / `eslint evals` 0；同式两文件并入 `npm test` 已由 shard1/2 覆盖。
 
 
-## 2026-11-09 补记（接）：§85 evals 现在有六套
+## 2026-11-09 补记（接）：§85 evals 现在有八套（七套确定性 + 一套需真库）
 
 ```
 code-index       19/19
 model-roundtrip   7/7
-export-roundtrip 17/17（需真库，55100 regress 实例上实测）
 video-plan       30/30
 world-build      55/55
 schemas-contract 17/17（跨端契约：注册表齐全、每项可导出可解析 JSON Schema、
 DesignPatch/PatchOp/AiRequest/HealthResponse 合法过·畸形拒、往返逐字段同）
+game-build       36/36（游戏设计系统：11 类骨架、stat 有限闸门、link 三闸门、
+remove 双向引用清扫、validateGame 6 类缺陷码、pipelineOfKind 单分派）
+design-build     46/46（design-model 领域操作：create/applyPatch 全家、remove 级联、
+reparent 环检测、Undo 往返、validateDocument 缺陷码、serialize 往返、applyResponsive）
+export-roundtrip 17/17（需真库，55100 regress 实例上实测）
 ```
-→ 不含 `evals:baseline` DB 基线的确定性套件合计 **145/145 结构不变式 PASS**。
+→ 确定性套件合计 **210/210 结构不变式 PASS**（不含需真库的 export-roundtrip；含它则为 **227/227**）。
 
 `world-build` 由另一位 commit `44f2979` 引入（骨架九类令、`autoLayout` 确定性、`worldGraph` 删点消边、`validateWorld` 8 类缺陷分类、
 `buildWorldScene` authored/fallback 拆分；`walkToward` / `terrainHeightAt` / `resolveWalkCollision` 走法物理，
 mesa 与 cone 两种 mesa 形状一致性 + 多 mesa 取最大高度规则），
-与已有 4 套一样遵循"结构不变式判红、数字人看"的纪律。
+与更早的套件一样遵循"结构不变式判红、数字人看"的纪律。
+`game-build`（`11f3879`）与 `design-build`（`935a44e`）随后补齐游戏设计系统与 design-model 的领域操作投影自洽，
+至此四个 model 包（world / video / game / design）各有一套确定性投影自洽套件，确定性 eval 矩阵闭环（210/210，含需真库的 export-roundtrip 则 227/227）。
