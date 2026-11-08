@@ -1,0 +1,474 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { eq, sql as rawSql } from 'drizzle-orm';
+import { createNode, findPage } from '@nexus/creative-model';
+import { MAX_NODES_PER_DOCUMENT, parseDocument } from '../src/server/validation';
+import { createProject, listProjects, loadDocument, saveDocument } from '../src/server/domain/projects';
+import { getDb } from '../src/server/db/client';
+import { designTokens, projects, users } from '../src/server/db/schema';
+
+/**
+ * 集成测试打真实 Postgres 容器（docs/TESTING.md：禁止 mock 数据库）。
+ * 先 `npm run infra:up && npm run db:migrate`。
+ */
+let ownerId: string;
+const created: string[] = [];
+
+beforeAll(async () => {
+  const db = getDb();
+  const probe = await db.execute(rawSql`select 1 as ok`);
+  if (!probe) throw new Error('数据库不可用');
+  const [user] = await db
+    .insert(users)
+    .values({ displayName: 'Integration Tester', email: `it+${Date.now()}@nexus.test` })
+    .returning({ id: users.id });
+  ownerId = user!.id;
+});
+
+afterAll(async () => {
+  const db = getDb();
+  await db.delete(projects).where(eq(projects.ownerId, ownerId));
+  await db.delete(users).where(eq(users.id, ownerId));
+});
+
+/** createProject 返回的就是从库里读回来的文档，其 id 即项目 id */
+async function newProject(name: string) {
+  const document = await createProject(ownerId, { name, kind: 'website' });
+  created.push(document.id);
+  return { document, id: document.id };
+}
+
+  it('并发同名建项目：slug 撞车换后缀重试，而不是 23505 500（#173）', async () => {
+    const db = getDb();
+    const name = `并发建项目 ${Date.now()}`;
+    // 先建一次拿到这个name 会被收成什么 slug，再把它删掉把位置腾出来
+    const first = await createProject(ownerId, { name, kind: 'website' });
+    const [slugRow] = await db.select({ slug: projects.slug }).from(projects).where(eq(projects.id, first.id));
+    const slug = slugRow!.slug;
+    await db.delete(projects).where(eq(projects.id, first.id));
+
+    // 真实竞态：另一个会话已经占了同一个 slug、还没提交——查重看不见未提交行，
+    // 于是照样往下走。后到者阻塞在唯一索引上，等那个事务落地后才发现撞车。
+    let racerId = '';
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let landed!: () => void;
+    const inserted = new Promise<void>((resolve) => {
+      landed = resolve;
+    });
+    const other = db.transaction(async (tx) => {
+      const [row] = await tx.insert(projects).values({ ownerId, slug, name }).returning({ id: projects.id });
+      racerId = row!.id;
+      landed();
+      await gate;
+    });
+    await inserted;
+    const pending = createProject(ownerId, { name, kind: 'website' });
+    // 等到这一发真的阻塞在唯一索引上（wait_event_type='Lock'）再放开那个事务：
+    // 竞态窗口由此钉死，不靠 sleep 碰时序。
+    let blocked = false;
+    for (let i = 0; i < 400 && !blocked; i += 1) {
+      const rows = await db.execute(
+        rawSql`select 1 as hit from pg_stat_activity
+               where pid <> pg_backend_pid() and wait_event_type = 'Lock'
+                 and query like '%insert into "projects"%' limit 1`,
+      );
+      blocked = rows.length > 0;
+      if (!blocked) await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(blocked, 'createProject 没能阻塞在唯一索引上——竞态窗口没造出来').toBe(true);
+    release();
+    const document = await pending;
+    await other;
+
+    expect(document.id).toBeTruthy();
+    const rows = await db.select({ slug: projects.slug }).from(projects).where(eq(projects.ownerId, ownerId));
+    expect(rows.filter((r) => r.slug === slug), '原 slug 只能有一条').toHaveLength(1);
+    expect(rows.filter((r) => r.slug === `${slug}-2`), '撞车的那发该换成 -2 后缀').toHaveLength(1);
+    created.push(document.id);
+
+    await db.delete(projects).where(eq(projects.id, racerId));
+  });
+
+describe('项目领域层（真实数据库）', () => {
+  it('创建项目后可以原样读回设计文档，且 id 稳定', async () => {
+    const { document, id } = await newProject('Roundtrip Site');
+    expect(document.pages).toHaveLength(1);
+    expect(document.id).toBe(id);
+
+    const first = await loadDocument(id);
+    const second = await loadDocument(id);
+    expect(first).not.toBeNull();
+    expect(first!.name).toBe('Roundtrip Site');
+    expect(first!.id).toBe(id);
+    expect(first!.tokens.length).toBeGreaterThan(0);
+    expect(first!.activePageId).toBe(first!.pages[0]!.id);
+    // 页面/节点 id 必须逐字保留：模型即真值，库里不得二次发号（§9）
+    expect(second!.pages[0]!.id).toBe(first!.pages[0]!.id);
+    expect(Object.keys(second!.pages[0]!.nodes).sort()).toEqual(Object.keys(first!.pages[0]!.nodes).sort());
+    expect(first!.pages[0]!.nodes[first!.pages[0]!.rootId]!.type).toBe('frame');
+  });
+
+  it('保存后的节点改动在重新读取时仍然存在（§15-16 真值回写）', async () => {
+    const { document, id } = await newProject('Edit Site');
+    const page = document.pages[0]!;
+    const hero = createNode({ type: 'section', name: 'Hero', parentId: page.rootId, size: { width: 'fill', height: 420 } });
+    page.nodes[hero.id] = hero;
+    page.nodes[page.rootId]!.children = [hero.id];
+
+    await saveDocument(id, document);
+    const loaded = await loadDocument(id);
+    const pageAfter = findPage(loaded!)!;
+    expect(pageAfter.nodes[hero.id]!.size.height).toBe(420);
+    expect(pageAfter.nodes[pageAfter.rootId]!.children).toContain(hero.id);
+  });
+
+  /**
+   * #40 的根因：`design_tokens` 以前没有一列记"文档里的顺序"，读回来是**没有 ORDER BY 的 SELECT**
+   * 给的物理行序。后果有两层：设计系统面板里的 token 顺序会自己重排；
+   * 更隐蔽的是 `documentsMatch` 对数组按序比，于是"内容没变"的分支切换会被判成有改动，
+   * 每次切换多出一条"切到 X 前的现场"的噪音快照（那条偶发找了很久，因为它偶发在读取顺序上，不在比较逻辑上）。
+   * 这里测的是修好之后的不变式：**顺序穿过一次存取不变**，而且存的不是字母序的巧合。
+   */
+  it('token 表的数组顺序穿过一次存取不变（§16：顺序也是模型的一部分）', async () => {
+    const { id } = await newProject('Token Order');
+    const first = await loadDocument(id);
+    expect(first!.tokens.length).toBeGreaterThan(3);
+
+    // 故意打乱成"既不是原序、也不是字母序"的一份：把最后一项挪到最前面
+    const shuffled = [...first!.tokens];
+    const moved = shuffled.pop()!;
+    const wanted = [moved, ...shuffled].map((t) => t.key);
+    // 前置条件：这份顺序不是字母序，否则下面"等于 wanted"可以被 sortIndex 全 0 的兜底蒙对
+    expect(wanted).not.toEqual([...wanted].sort());
+
+    await saveDocument(id, { ...first!, tokens: [moved, ...shuffled] });
+    expect((await loadDocument(id))!.tokens.map((t) => t.key)).toEqual(wanted);
+    // 再走一轮：第二次读取不能漂（这才是"没有 ORDER BY"那一条的反面——它漂不漂取决于行序）
+    expect((await loadDocument(id))!.tokens.map((t) => t.key)).toEqual(wanted);
+
+    // 反向对照：把**这个项目**那一列全抹成同一个值，读回来的顺序就再也不是文档那一份了。
+    // 这一条证明测的是 sortIndex 在起作用，而不是"postgres 恰好按插入顺序返回"
+    await getDb().update(designTokens).set({ sortIndex: 0 }).where(eq(designTokens.projectId, id));
+    const degraded = (await loadDocument(id))!.tokens.map((t) => t.key);
+    expect(degraded).not.toEqual(wanted);
+    expect(degraded).toEqual([...wanted].sort());
+  });
+
+  it('保存一个项目不会动到另一个项目的节点', async () => {
+    const a = await newProject('Isolation A');
+    const b = await newProject('Isolation B');
+    const pageA = a.document.pages[0]!;
+    const nodeA = createNode({ type: 'text', name: 'OnlyInA', text: 'A', parentId: pageA.rootId });
+    pageA.nodes[nodeA.id] = nodeA;
+    pageA.nodes[pageA.rootId]!.children = [nodeA.id];
+    await saveDocument(a.id, a.document);
+
+    const reloadedB = await loadDocument(b.id);
+    const namesB = Object.values(reloadedB!.pages[0]!.nodes).map((n) => n.name);
+    expect(namesB).not.toContain('OnlyInA');
+    expect(Object.keys(reloadedB!.pages[0]!.nodes).length).toBeGreaterThan(0);
+  });
+
+  it('主题 mode 与 mode 名单存得下来（§12）', async () => {
+    const { document, id } = await newProject('Theme Site');
+    expect(document.activeMode).toBeNull();
+    expect(document.metadata.modes).toEqual(['light', 'dark']);
+
+    const extra = await loadDocument(id);
+    extra!.metadata.modes = ['light', 'dark', 'high-contrast'];
+    extra!.activeMode = 'high-contrast';
+    await saveDocument(id, extra!);
+
+    const loaded = await loadDocument(id);
+    expect(loaded!.activeMode).toBe('high-contrast');
+    expect(loaded!.metadata.modes).toEqual(['light', 'dark', 'high-contrast']);
+    // 回到默认主题也要存得住，而不是"null 就等于没改"
+    loaded!.activeMode = null;
+    await saveDocument(id, loaded!);
+    expect((await loadDocument(id))!.activeMode).toBeNull();
+  });
+
+  /**
+   * §30/§174 的视觉语言与品牌包存在 projects 行的 jsonb 列里。saveDocument 一直会写，
+   * loadDocument 曾经不读回来：编辑器内存里还在，刷新/服务端装配（§68）就看不到，
+   * 于是"提取了 DNA 却按内置配色生成"。这条测的是闭环，不是配色算法。
+   */
+  it('视觉语言与品牌包存进去就读得回来（§30/§174/§68）', async () => {
+    const { id } = await newProject('Dna Site');
+    const doc = await loadDocument(id);
+    doc!.visualDna = {
+      source: { assetId: 'asset_x', method: 'pixel-stats', extractedAt: '2026-09-24T00:00:00.000Z', notes: ['只支持非隔行 8bit PNG'] },
+      palette: [{ role: 'color.accent.brand', color: '#14b8a6' }],
+      descriptors: ['高饱和', '冷色倾向'],
+    };
+    doc!.brandKit = { name: 'Nexus', tokenKeys: { color: ['color.background'], typography: [] }, toneOfVoice: ['克制'] };
+    await saveDocument(id, doc!);
+
+    const loaded = await loadDocument(id);
+    expect(loaded!.visualDna?.descriptors).toEqual(['高饱和', '冷色倾向']);
+    expect(loaded!.visualDna?.palette).toEqual([{ role: 'color.accent.brand', color: '#14b8a6' }]);
+    expect(loaded!.visualDna?.source?.method).toBe('pixel-stats');
+    expect(loaded!.brandKit?.name).toBe('Nexus');
+
+    // 撤销 DNA 后不能"删不掉"：写回 null 必须让下一份读到的文档也没有
+    delete loaded!.visualDna;
+    delete loaded!.brandKit;
+    await saveDocument(id, loaded!);
+    const cleared = await loadDocument(id);
+    expect(cleared!.visualDna).toBeUndefined();
+    expect(cleared!.brandKit).toBeUndefined();
+  });
+
+  it('metadata.createdAt 是项目真正被创建的时间，不是每次读到的"现在"', async () => {
+    const { document, id } = await newProject('Timestamped');
+    const first = await loadDocument(id);
+    const before = Date.now();
+    const second = await loadDocument(id);
+    expect(second!.metadata.createdAt).toBe(first!.metadata.createdAt);
+    expect(Date.parse(second!.metadata.createdAt)).toBeLessThanOrEqual(before);
+    expect(Date.parse(document.metadata.createdAt)).toBeLessThanOrEqual(before);
+  });
+
+  /**
+   * 单条 INSERT 的参数上限是 65,535，节点行 9 个参数 → 不切块时一个页面超过约 7,281 个节点
+   * 就**整体存不下去**（MAX_PARAMETERS_EXCEEDED）。§146 的规模目标正是 10,000 节点，
+   * 而模型层的基准只测内存里的文档，所以这条断链一直没人碰到。
+   */
+  it('一个页面 8,000 个节点仍然存得下来也读得回来（§146 规模）', async () => {
+    const { document, id } = await newProject('Scale Page');
+    const page = document.pages[0]!;
+    const existing = Object.keys(page.nodes).length;
+    let prev = page.rootId;
+    const ids: string[] = [];
+    for (let i = 0; i < 8000; i += 1) {
+      const node = createNode({ type: 'text', name: `t${i}` });
+      node.parentId = prev;
+      page.nodes[node.id] = node;
+      ids.push(node.id);
+      if (i % 50 === 0) prev = node.id;
+    }
+    await saveDocument(id, document);
+
+    const loaded = await loadDocument(id);
+    const nodes = loaded!.pages[0]!.nodes;
+    expect(Object.keys(nodes)).toHaveLength(existing + 8000);
+    // 切块插入不能改变行的内容，也不能丢掉最后一条父子关系
+    expect(nodes[ids[7999]!]?.name).toBe('t7999');
+    expect(nodes[ids[7999]!]?.parentId).toBeTruthy();
+  }, 120_000);
+
+  it('同一作者下重名项目会得到不同 slug', async () => {
+    const first = await newProject('Duplicate Name');
+    const second = await newProject('Duplicate Name');
+    expect(second.id).not.toBe(first.id);
+    const list = await listProjects(ownerId);
+    const slugs = list.filter((p) => p.name === 'Duplicate Name').map((p) => p.slug);
+    expect(slugs).toHaveLength(2);
+    expect(new Set(slugs).size).toBe(2);
+  });
+});
+
+/**
+ * 写路径的门：字段不全的节点不能进库。
+ * 之前它能写进去并且读得出来，然后健康度与排版在 Object.entries(undefined) 上抛，
+ * 用户看到的是整页白屏（1000 节点压测撞出来的，见 docs/PERFORMANCE.md）。
+ * 测的是 parseDocument —— `/api/projects/[id]` 的 PUT 就是拿它当门，
+ * 门在这里挡住的，路由一定也挡住。
+ */
+describe('PUT 文档时的结构门（§146 的白屏回归）', () => {
+  it('缺 style.cornerRadius / layout.padding 的节点被挡下，并说清是哪个节点', async () => {
+    const id = (await createProject(ownerId, { name: '残缺节点写入', kind: 'website' })).id;
+    const document = (await loadDocument(id))!;
+    const page = document.pages[0]!;
+    const root = page.nodes[page.rootId]!;
+    page.nodes.perf_bad = {
+      id: 'perf_bad',
+      type: 'text',
+      name: '残缺',
+      parentId: root.id,
+      children: [],
+      position: { x: 0, y: 0 },
+      size: { width: 200, height: 24 },
+      style: { fills: [] },
+      layout: { mode: 'none' },
+      visible: true,
+      locked: false,
+      text: '压测',
+    } as never;
+    root.children.push('perf_bad');
+
+    const parsed = parseDocument(document);
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) throw new Error('本该被挡下');
+    const joined = parsed.issues.join('；');
+    expect(joined).toContain('incomplete-node-style');
+    expect(joined).toContain('incomplete-node-layout');
+    expect(joined).toContain('残缺');
+
+    // 门后面没有别的路：走同一道门的 saveDocument 也不该被调用到
+    expect((await loadDocument(id))!.pages[0]!.nodes.perf_bad).toBeUndefined();
+  });
+
+  it('完整节点照常写得进去（门不能把正常文档也挡住）', async () => {
+    const id = (await createProject(ownerId, { name: '正常写入', kind: 'website' })).id;
+    const document = (await loadDocument(id))!;
+    const page = document.pages[0]!;
+    const root = page.nodes[page.rootId]!;
+    const good = createNode({ type: 'text', name: '正常', text: 'hi', parentId: root.id });
+    page.nodes[good.id] = good;
+    root.children.push(good.id);
+    expect(parseDocument(document).ok).toBe(true);
+    await saveDocument(id, document);
+    expect((await loadDocument(id))!.pages[0]!.nodes[good.id]).toBeTruthy();
+  });
+});
+
+/**
+ * §146 顶档那道门（ADR-0015）。
+ *
+ * 这道门以前挡的是**单页** 4000 个节点，于是 2026-09-27 拿浏览器脚本真打 PUT 时，
+ * "文档有 10000 个节点"这一档被 `400 页面 Home 节点数超过上限 4000` 挡下——
+ * 而上面那条"一个页面 8,000 个节点仍然存得下来"一直是绿的，因为它走 `saveDocument`、
+ * 绕过了 `parseDocument`。那条绿盖住了一个用户实际会撞见的 400，这就是这一节存在的理由：
+ * **规模类的用例必须走用户走的那道门**（`/api/projects/[id]` 的 PUT 就是拿 `parseDocument` 当门）。
+ */
+describe('§146 顶档走真实那道门（ADR-0015）', () => {
+  /** 造 n 个挂在 root 下的合法文本节点（照 §146 基准的造法：每 50 个套一层，避免一根 8000 叉的链） */
+  function fill(page: { rootId: string; nodes: Record<string, unknown> }, n: number, tag: string): string[] {
+    const nodes = page.nodes as Record<string, ReturnType<typeof createNode>>;
+    let prev = page.rootId;
+    const ids: string[] = [];
+    for (let i = 0; i < n; i += 1) {
+      const node = createNode({ type: 'text', name: `${tag}${i}`, text: '压测' });
+      node.parentId = prev;
+      nodes[node.id] = node;
+      ids.push(node.id);
+      if (i % 50 === 0) prev = node.id;
+    }
+    return ids;
+  }
+
+  it('一页 10000 个节点过门、存下去、读回来', async () => {
+    const { document, id } = await newProject('Scale Put Gate');
+    const page = document.pages[0]!;
+    const existing = Object.keys(page.nodes).length;
+    const ids = fill(page, 10_000, 'k');
+    const parsed = parseDocument(document);
+    // 这条断言在旧门上必红（单页 4000 上限）。门的拒绝理由也要一起断，
+    // 否则以后又换成别的数把它挡红时，看不出是同一件事
+    expect(parsed.ok, parsed.ok ? '' : parsed.issues.join('；')).toBe(true);
+    if (!parsed.ok) throw new Error('§146 的顶档被门挡下了');
+    await saveDocument(id, parsed.document);
+    const loaded = await loadDocument(id);
+    expect(Object.keys(loaded!.pages[0]!.nodes)).toHaveLength(existing + 10_000);
+    // 最后一条父子关系不能因为规模而丢
+    expect(loaded!.pages[0]!.nodes[ids[9999]!]?.name).toBe('k9999');
+  }, 180_000);
+
+  it('上限这个数本身不能被人悄悄调小（§146 顶档要过得去）', () => {
+    // 上面那条"一页 10000 过门"钉的是**下限**：谁把常量调到 10000 以下它就红。
+    // 这一条钉的是另一头：它必须至少是 §146 顶档的两倍（ADR-0015 的理由），
+    // 否则"改回去挡住大文档"会变成随手写一个数。
+    expect(MAX_NODES_PER_DOCUMENT).toBeGreaterThanOrEqual(20_000);
+  });
+
+  it('超过整份文档上限被挡下，并且是一条都不写（反向对照：门真的在挡）', async () => {
+    const { document, id } = await newProject('Scale Over Gate');
+    const page = document.pages[0]!;
+    // 比上限多一个：证明拒绝的正好是这条规则，而不是"大到别处先坏"
+    fill(page, MAX_NODES_PER_DOCUMENT + 1, 'o');
+    const parsed = parseDocument(document);
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) throw new Error('超过整份文档上限却过了门');
+    expect(parsed.issues.join('；')).toContain(`上限 ${MAX_NODES_PER_DOCUMENT}`);
+    // 挡在门外就等于没写：库里还是起手那 8 个节点
+    expect(Object.keys((await loadDocument(id))!.pages[0]!.nodes).length).toBeLessThan(100);
+  }, 180_000);
+
+  /** 复制一份新页：只带一个换过 id 的根节点，免得和第一页撞重复 id（validateDocument 会拒） */
+  function addPage(document: Awaited<ReturnType<typeof newProject>>['document'], tag: string) {
+    const src = document.pages[0]!;
+    const rootId = `page_${tag}_root`;
+    const root = {
+      ...structuredClone(src.nodes[src.rootId]!),
+      id: rootId,
+      parentId: null,
+      children: [] as string[],
+    };
+    const page = {
+      ...structuredClone({ ...src, nodes: {} }),
+      id: `page_${tag}`,
+      name: `页 ${tag}`,
+      rootId,
+      nodes: { [rootId]: root },
+    };
+    document.pages.push(page);
+    return page;
+  }
+
+  /**
+   * ADR-0015 改的是"挡什么"，所以这一条钉的是"求和这一维"。
+   *
+   * 前面三条都只用一页，于是把 `reduce` 写成"只看 pages[0]"、或写成"各页的最大值"，
+   * 它们全都照样绿 —— 那等于门悄悄退回了单页语义，而退回单页正是这个 ADR 要修的东西。
+   * 反向对照：同样的页、同样的造法，总数在上限之内就必须放过（证明拒的是和，不是"多页"本身）。
+   */
+  it('挡的是各页之和：单页都不超上限、总数超上限要拒；总数不超就放过', async () => {
+    const spread = async (total: number, name: string) => {
+      const { document } = await newProject(name);
+      const pages = [document.pages[0]!, addPage(document, 'b'), addPage(document, 'c')];
+      const per = Math.ceil(total / pages.length);
+      for (const [i, page] of pages.entries()) fill(page, per, `s${i}_`);
+      const counts = pages.map((p) => Object.keys(p.nodes).length);
+      return { document, counts, max: Math.max(...counts), sum: counts.reduce((a, b) => a + b, 0) };
+    };
+
+    const over = await spread(MAX_NODES_PER_DOCUMENT + 1, 'Scale Sum Over');
+    // 前置条件：没有任何一页单独够得着上限 —— 单页语义的门在这里会放过，所以这条红的就是"求和没了"
+    expect(over.max, `单页最多 ${over.max} 个，本来就不该由单页挡`).toBeLessThan(MAX_NODES_PER_DOCUMENT);
+    expect(over.sum).toBeGreaterThan(MAX_NODES_PER_DOCUMENT);
+    const parsed = parseDocument(over.document);
+    expect(parsed.ok, parsed.ok ? '整份文档超过上限却过了门' : '').toBe(false);
+
+    const under = await spread(MAX_NODES_PER_DOCUMENT - 1000, 'Scale Sum Under');
+    expect(under.sum).toBeLessThanOrEqual(MAX_NODES_PER_DOCUMENT);
+    const ok = parseDocument(under.document);
+    expect(ok.ok, ok.ok ? '' : ok.issues.join('；')).toBe(true);
+  }, 180_000);
+});
+
+describe('库里的错误要照原样抛出去（cause 链走到头那一臂）', () => {
+  it('外键违例抛回的是外键那句，不是 cause 链走过头的那句 TypeError', async () => {
+    // 归属不存在的用户 ⇒ projects_owner_id_fkey 违例。isSlugConflict 只在 23505 加那个约束名上说 true，
+    // 其余每一条都该走"照原样抛"。第二十一片探针 P3 实测到的却是 `Cannot read properties of undefined
+    // (reading 'cause')`——cause 链两层就到底，第三轮在 undefined 上读 cause 自己炸了，
+    // 病因被换成一句与病因无关的话，路由给出去的状态码与原因也就无从可读。
+    const ghost = '00000000-0000-0000-0000-000000000000';
+    const failure = await createProject(ghost, { name: `幽灵归属 ${Date.now()}`, kind: 'website' }).then(
+      () => null,
+      (error: unknown) => error,
+    );
+    expect(failure, '归属不存在的用户，项目却建成了').not.toBeNull();
+    const top = failure instanceof Error ? failure.message : String(failure);
+    expect(top, `抛回来的是 cause 链自己的话：${top}`).not.toContain("reading 'cause'");
+    // DrizzleQueryError 的顶层只有 "Failed query: …"，code 与约束名都在 cause 链上（isSlugConflict 的注释同一件事）。
+    // 所以这一条判的是"链上真的带着库给的那句"，而不是顶层那句话长得对不对。
+    const messages: string[] = [];
+    const codes: string[] = [];
+    let cursor: unknown = failure;
+    for (let depth = 0; depth < 5 && cursor !== null && cursor !== undefined; depth += 1) {
+      // 逐层结构化读取，不用 String()：链上任何一层都可能不是 Error，而 unknown 直接进
+      // 模板字符串只会得到 Object 的默认格式，把该看的两句冲掉。
+      const layer = cursor as { message?: unknown; code?: unknown; cause?: unknown };
+      messages.push(typeof layer.message === 'string' ? layer.message : Object.prototype.toString.call(cursor));
+      codes.push(typeof layer.code === 'string' ? layer.code : '');
+      cursor = layer.cause;
+    }
+    expect(messages.join('\n'), `cause 链一共 ${messages.length} 层，没一句提到外键`).toMatch(
+      /violates foreign key constraint/i,
+    );
+    expect(codes, `cause 链上的 SQLSTATE：${codes.join(' / ')}`).toContain('23503');
+  });
+});

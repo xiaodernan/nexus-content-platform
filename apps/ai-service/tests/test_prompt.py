@@ -1,0 +1,299 @@
+"""§68 的最后一公里：发给模型的提示吃的是**服务端装配的目录**，不是整份文档。
+
+夹具来自 `npm run contract:export` 导出的 `contracts/fixtures/ai-request-with-index.json`——
+那一份是 web 侧真的用 `buildDesignIndex` + `buildCodeIndex` + `deriveContextFromDocument`
+装配出来的请求（`selectionDigest` 也是服务端从权威文档算的，见 §68 第三笔）。
+不在这里手抄一份目录的形状：手抄的夹具会和 TS 侧漂移，
+漂移的结果是"Python 测试全绿而真实请求读不到东西"，正是这一片曾经的实际状态。
+"""
+
+from __future__ import annotations
+
+import json
+
+from conftest import CONTRACTS, FakeProvider, ai_request
+from ai_service.design_prompt import MAX_TOKENS_IN_PROMPT, build_prompt
+
+FIXTURE = CONTRACTS / "fixtures" / "ai-request-with-index.json"
+
+
+def _fixture_request() -> dict:
+    return json.loads(FIXTURE.read_text(encoding="utf-8"))
+
+
+def _user_payload(request: dict) -> dict:
+    _, user = build_prompt(request)
+    return json.loads(user)
+
+
+def test_fixture_itself_carries_no_document() -> None:
+    """§68：线上不该再有整份文档。夹具里如果混进 document，这一片测试的前提就没了。"""
+    assert "document" not in _fixture_request()["context"]
+
+
+def test_corpus_digest_reaches_the_prompt_verbatim() -> None:
+    """§49 × §66-71：装配按相关性取回的语料摘要必须原样进提示。
+
+    夹具里这一轮没有查询词（`query` 为 null），所以 `corpusNote` 必须缺席——
+    凭空冒出一句"有 3 条相关的因预算没带进来"就是假话。
+    """
+    request = _fixture_request()
+    corpus = request["context"]["corpus"]
+    payload = _user_payload(request)
+    assert corpus["query"] is None, "夹具应当是「这一轮没查语料库」的形状"
+    assert payload["corpus"] == corpus, "语料摘要被改写或丢了"
+    assert "corpusNote" not in payload, "没查语料库却给模型解释了一番裁掉多少"
+
+
+def test_corpus_note_reports_query_and_omitted_counts() -> None:
+    """给了查询词就要说清：按什么查的、有几条相关的因为预算没发过来（§159 不许"看起来是全集"）。"""
+    request = _fixture_request()
+    corpus = request["context"]["corpus"]
+    corpus["query"] = "雾里的港口只有一条会响的钟"
+    corpus["candidates"], corpus["used"], corpus["omitted"] = 5, 2, 3
+    _, user = build_prompt(request)
+    assert "雾里的港口只有一条会响的钟" in user, "查询词没进提示：模型无从知道这是按哪句取回的设定"
+    assert "corpusNote" in user
+    # 这条也要断**摘要本身**被转发了（提示里那份 JSON 就是证据）：只断说明文字的话，
+    # 把 payload["corpus"] 换成空对象也能全绿——探针真的这么试过，第一次就是这一条没抓到。
+    assert '"corpus"' in user and '"omitted":3' in user and '"candidates":5' in user, "摘要是空的那一份？"
+    # 数字要说得出：裁掉了 3 条、候选 5 条
+    assert "3" in user and "5" in user
+
+
+def test_catalog_reaches_the_model() -> None:
+    request = _fixture_request()
+    payload = _user_payload(request)
+    index = request["context"]["designIndex"]
+
+    assert payload["contextSource"] == "designIndex"
+    # 目录里的框与段必须逐个进提示：模型只能引用它看得见的 id
+    frame_ids = {frame["id"] for frame in index["frames"]}
+    assert frame_ids and frame_ids <= {frame["id"] for frame in payload["frames"]}
+    assert payload["pages"], "页面摘要没进提示"
+    assert any(token["key"] == "color.primary" for token in payload["tokens"])
+    # 目录没带什么也要一起发出去，否则模型会把"没列出来"当成"项目里没有"
+    assert payload["omissions"] == index["omissions"]
+    assert payload["totals"] == index["totals"]
+    # §69 的代码摘要并列发出，正文一个字符都不在
+    assert payload["code"]["files"][0]["path"] == "components/nexus/Home.tsx"
+    assert "tree" not in payload, "有目录时不该再走整份文档的节点表"
+
+
+def test_selection_digest_reaches_the_model_as_the_server_wrote_it() -> None:
+    """§68：选中了什么由服务端回答，整份结构原样进提示——包括 missing / unreachable / dropped。"""
+    request = _fixture_request()
+    payload = _user_payload(request)
+    digest = request["context"]["selectionDigest"]
+    assert payload["selectionDigest"] == digest
+    assert payload["selection"] == request["context"]["selection"]
+    # 目录里带的是可核对的事实，不是"id 列表"：模型要靠这些字段决定改哪一层
+    entry = digest["entries"][0]
+    assert entry["nodeId"] in request["context"]["selection"]
+    for field in ("pageName", "type", "name", "parent", "depth", "size", "fontSize", "tokenRefs"):
+        assert field in entry, f"selectionDigest 少了 {field}，模型只能凭空猜"
+    assert digest["omissions"], "没说明这份目录省略了什么，等于让模型以为看到了全部"
+
+
+def test_annotations_reach_the_prompt_with_their_locations() -> None:
+    """§111：批注要带着"钉在哪个元素"一起进提示，否则模型只知道有人抱怨过。"""
+    request = _fixture_request()
+    payload = _user_payload(request)
+    annotations = request["context"]["annotations"]
+    assert payload["annotations"] == annotations
+    assert annotations, "夹具里就该有一条批注，否则这条断言是空的"
+    assert {"nodeId", "pageId", "pageName", "nodeName", "body"} <= set(annotations[0])
+    # 钉在已删除节点上的那条不该出现，而且要说明为什么少了一条
+    assert all("已经不在文档里" not in a["body"] for a in annotations)
+    assert "annotationsNote" in payload
+    assert "节点已经不在文档里" in payload["annotationsNote"]
+
+
+def test_prompt_tells_the_model_not_to_copy_an_annotation_into_the_design() -> None:
+    """批注是需求描述，不是文案。提示词里没这条界，模型就会把"这个按钮太大"写进按钮。"""
+    from ai_service.design_prompt import SYSTEM_PROMPT
+
+    assert "不是要照抄进设计的文案" in SYSTEM_PROMPT
+    assert "别把没看见当成没有" in SYSTEM_PROMPT
+
+
+def test_unrecognised_selection_ids_are_reported_not_dropped() -> None:
+    """客户端谎报一个文档里没有的 id：服务端会把它记进 missing，模型要看得见"这个动不了"。"""
+    request = _fixture_request()
+    request["context"]["selection"] = ["fx004", "node_不存在"]
+    request["context"]["selectionDigest"]["requested"] = 2
+    request["context"]["selectionDigest"]["missing"] = ["node_不存在"]
+    payload = _user_payload(request)
+    assert payload["selectionDigest"]["missing"] == ["node_不存在"]
+    assert "node_不存在" in payload["selection"]
+
+
+def test_missing_catalog_falls_back_to_document_and_says_so() -> None:
+    """旧客户端仍可能发 document。能读，但要把降级写在脸上，不能静默。"""
+    request = ai_request()
+    payload = _user_payload(request)
+    assert payload["contextSource"] == "document-fallback"
+    assert "n_headline" in {node["nodeId"] for node in payload["tree"]}
+    assert "不该出现在正常请求里" in payload["note"]
+
+
+def test_nothing_at_all_is_reported_as_nothing() -> None:
+    """既没目录也没文档：提示里要明说这一轮看不到项目内容，而不是给一个空表假装看到了。"""
+    request = ai_request()
+    del request["context"]["document"]
+    request["context"]["selectionDigest"] = {}
+    payload = _user_payload(request)
+    assert payload["contextSource"] == "none"
+    assert "看不到项目内容" in payload["note"]
+    assert "tree" not in payload and "frames" not in payload
+
+
+def test_this_process_adds_no_cut_to_a_normal_request() -> None:
+    """服务端按预算裁过之后，这一层不该再动一份正常目录。动了就要说，不许静默变短。"""
+    payload = _user_payload(_fixture_request())
+    assert "promptTruncated" not in payload
+
+
+def test_token_cap_is_reported_not_silent() -> None:
+    request = _fixture_request()
+    tokens = request["context"]["designIndex"]["tokens"]
+    padded = tokens + [
+        {"key": f"color.extra{i}", "type": "color", "value": "#000000"} for i in range(MAX_TOKENS_IN_PROMPT)
+    ]
+    request["context"]["designIndex"]["tokens"] = padded
+    payload = _user_payload(request)
+    assert len(payload["tokens"]) == MAX_TOKENS_IN_PROMPT
+    assert f"token 表从 {len(padded)} 条裁到 {MAX_TOKENS_IN_PROMPT} 条" in payload["promptTruncated"]
+
+
+def test_char_budget_cut_is_reported() -> None:
+    request = _fixture_request()
+    frames = request["context"]["designIndex"]["frames"]
+    request["context"]["designIndex"]["frames"] = frames + [
+        {"id": f"fx_pad{i}", "type": "frame", "name": "垫" * 40, "pageId": "fx001", "width": 100, "height": 100}
+        for i in range(3000)
+    ]
+    payload = _user_payload(request)
+    assert len(payload["frames"]) < 3000 + len(frames)
+    assert "提示超过" in payload["promptTruncated"] and "frames" in payload["promptTruncated"]
+    # 裁的是列表条目，totals 仍然说真话（少给条目不少报数）
+    assert payload["totals"] == request["context"]["designIndex"]["totals"]
+
+
+def test_run_endpoint_accepts_a_real_assembled_request() -> None:
+    """整条路走一遍：契约校验收下真装配 → 模型真的收到目录内容。
+
+    这一条才是防漂移的关键：前面几条直接调 build_prompt，绕过了 HTTP 与 `contract_issues`。
+    """
+    from fastapi.testclient import TestClient
+
+    from ai_service.app import create_app
+    from ai_service.config import Settings
+    from ai_service.providers.registry import Registry
+
+    provider = FakeProvider(json.dumps({"patches": [], "explanation": "看到了", "labels": []}, ensure_ascii=False))
+    client = TestClient(create_app(Settings(), registry=Registry(Settings(), llm=provider)))
+    request = _fixture_request()
+    response = client.post("/v1/ai/run", json=request)
+    assert response.status_code == 200, response.text
+
+    user = provider.calls[0]["user"]
+    assert '"contextSource":"designIndex"' in user
+    for frame in request["context"]["designIndex"]["frames"]:
+        assert frame["id"] in user
+    assert "color.primary" in user
+    assert "components/nexus/Home.tsx" in user
+
+
+def _system(request: dict) -> str:
+    """Agent 那一句拼在发给模型的第一段（system）里，不在 JSON 载荷里。"""
+    system, _ = build_prompt(request)
+    return system
+
+
+def test_named_agent_responsibilities_reach_the_model() -> None:
+    """§112：名册里的那几条职责要变成模型听到的一句话，否则它只是库里的一列字。"""
+    request = ai_request(
+        agent={
+            "key": "design",
+            "name": "Design Agent",
+            "responsibilities": ["理解设计系统后再动手", "规划并修改设计模型"],
+            "capabilities": ["design.read", "design.patch"],
+        }
+    )
+    system = _system(request)
+    assert "本轮由 Design Agent 负责" in system
+    assert "理解设计系统后再动手" in system and "规划并修改设计模型" in system
+    assert "design.read" in system and "design.patch" in system
+    # 有 design.patch 的一位也要读到同一条规则：作用域是判断的输入，不是给界面看的标签
+    assert "才允许输出会改动设计文档的 op" in system
+
+
+def test_agent_without_the_patch_scope_is_told_to_keep_patches_empty() -> None:
+    """§73 在提示词里的那半句：没有 design.patch 的一位要自己把 patches 留空。
+
+    web 侧那道门是兜底，不是唯一一道：模型自己就该知道这一位做不了这件事，
+    否则每一次越权都要靠服务端挡，账本里全是拒绝记录而提示词从来没说过规矩。
+    """
+    request = ai_request(
+        agent={"key": "qa", "name": "QA Agent", "responsibilities": ["只提问题，不改设计文档"], "capabilities": ["browser.read", "test.run"]}
+    )
+    system = _system(request)
+    assert "本轮由 QA Agent 负责" in system
+    assert "patches 留空" in system
+    assert "design.patch" in system
+    # 权限作用域里不许出现它没有的那一个：把 capabilities 拼错成含 design.patch 就是替它授权
+    assert "design.read" not in system
+
+
+def test_unnamed_request_invents_no_agent() -> None:
+    """没点名时不说"你是设计 Agent"：那等于替请求方挑了一个人，还顺手给了他名册里的权限。"""
+    system = _system(ai_request())
+    assert "本轮没有点名任何 Agent" in system
+    assert "本轮由" not in system
+    assert "职责：" not in system
+
+
+def test_empty_roster_fields_say_they_are_empty() -> None:
+    """名册里职责/权限为空：要说"没有写"，不能拼成一句看起来正常的"职责：。权限：无"。"""
+    request = ai_request(agent={"key": "ghost", "name": "Ghost Agent", "responsibilities": [], "capabilities": []})
+    system = _system(request)
+    assert "名册里没有写这一位的职责" in system
+    assert "权限作用域：无" in system
+
+
+def test_a_non_object_agent_is_treated_as_no_agent_at_all() -> None:
+    """这一栏可能来自旧客户端或手改的报文：读不出名字就按"没点名"处理，不崩也不猜。"""
+    for bad in ("QA Agent", ["QA Agent"], None, {}):
+        system = _system(ai_request(agent=bad))
+        assert "本轮没有点名任何 Agent" in system, f"agent={bad!r} 时给出了 Agent 的说法"
+
+
+def test_run_endpoint_puts_the_agent_note_in_front_of_the_model() -> None:
+    """整条路（HTTP + 契约校验）走一遍：装配出来的 agent 真的到了 provider 手上。
+
+    直接调 build_prompt 的几条测不到这一层——契约那一关要是把 agent 判成非法字段，
+    请求在 422 就死了，提示词永远是绿的。
+    """
+    from fastapi.testclient import TestClient
+
+    from ai_service.app import create_app
+    from ai_service.config import Settings
+    from ai_service.providers.registry import Registry
+
+    provider = FakeProvider(json.dumps({"patches": [], "explanation": "看到了", "labels": []}, ensure_ascii=False))
+    client = TestClient(create_app(Settings(), registry=Registry(Settings(), llm=provider)))
+    request = _fixture_request()
+    request["agent"] = {
+        "key": "qa",
+        "name": "QA Agent",
+        "responsibilities": ["检查结果是否满足验收"],
+        "capabilities": ["browser.read"],
+    }
+    response = client.post("/v1/ai/run", json=request)
+    assert response.status_code == 200, response.text
+    system = provider.calls[0]["system"]
+    assert "本轮由 QA Agent 负责" in system
+    assert "检查结果是否满足验收" in system
+    # 同一次调用里目录照旧发得出：加这一段不许把项目上下文挤掉
+    assert '"contextSource":"designIndex"' in provider.calls[0]["user"]

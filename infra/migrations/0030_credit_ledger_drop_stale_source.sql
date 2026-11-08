@@ -1,0 +1,12 @@
+-- §134 / §127：摘掉 `credit_ledger` 上第二条**过期的** source 约束。
+--
+-- 与 0029 是同一个错、同一个来路，只是换了一列：0016 建的是 `credit_ledger_source`
+-- （允许 'plan_grant','generation','adjust'），0025 想去掉它却写了
+-- `DROP CONSTRAINT IF EXISTS credit_ledger_source_check`——名字差一个 `_check` 后缀，
+-- `IF EXISTS` 于是**静默地什么都没删**，然后 ADD 出一条**新的** `credit_ledger_source_check`。
+-- 两条同时生效，旧那条把 'marketplace_purchase' 与 'marketplace_sale' 挡死。
+--
+-- 这一条与 0029 一起，才让 §127 的买/分成路径真的能写进库。**两条都修之前，
+-- 修哪一条都不够**：kind 那一关过了，source 这一关照样拦。这也是为什么
+-- 补的守卫测试是"把库里生效的 CHECK 与常量逐条比"，而不是只比 kind。
+ALTER TABLE "credit_ledger" DROP CONSTRAINT IF EXISTS "credit_ledger_source";

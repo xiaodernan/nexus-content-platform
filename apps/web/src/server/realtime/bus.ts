@@ -1,0 +1,158 @@
+import type { RealtimeEvent } from '@nexus/schemas';
+import type { WireErrorReason } from './wireErrors';
+import { MemoryRealtimeBus } from './localBus';
+import { REDIS_URL_ENV, RedisRealtimeBus, WIRE_CHANNEL } from './redisBus';
+
+/**
+ * 实时事件总线（§163 / §94）。取舍见 `docs/adr/0010-realtime-sse-not-websocket.md`。
+ *
+ * 只做一件事：把生产者发出的事件，送到订阅了同一个频道的连接上。
+ * 传输（今天是一条 SSE 长连接）与报文（`RealtimeEventSchema`，早已是契约）都不在这一层里——
+ * 所以加 Redis 驱动做多实例扇出、甚至补一条 WS 传输，**生产者一行都不用改**。
+ *
+ * 与 `security/rateLimit.ts` 同一个套路：这一层有两个驱动，选哪个看环境变量——
+ * 默认 `MemoryRealtimeBus`（进程内，单实例正确，**在多实例下收不到别的实例的事件**），
+ * 设了 `NEXUS_REDIS_URL` 才换成 `RedisRealtimeBus`（跨实例扇出，见 `docs/adr/0028-…`）。
+ * 两个驱动都实现下面这四个方法，所以换驱动不换调用方。
+ *
+ * 一条纪律：`publish` **不抛异常**。实时通道是加速器，不是权威来源（见 ADR 的后果第 4 条）——
+ * 一个坏掉的订阅者不该把正在写库的那个请求带崩。
+ */
+
+export interface RealtimeBus {
+  /** 发一条事件。没有订阅者时静默丢弃（事件不是持久化的，权威状态永远在库里） */
+  publish(channel: string, event: RealtimeEvent): void;
+  /** 订阅一个频道，返回退订函数。退订必须幂等：重复调用不能把别人的订阅摘掉 */
+  subscribe(channel: string, listener: (event: RealtimeEvent) => void): () => void;
+  /**
+   * 摘掉这个频道上本进程内的全部订阅，之后的 `publish` 一条也不送达这些人（§144 / ADR-0025 第六件：
+   * 账号注销之后不该再向他推任何东西）。
+   *
+   * 它停的是**推送**，不是**连接**：已经打开的那条 SSE 还挂着，只是再也收不到事件；
+   * 这个人的下一次请求会因为没有会话而失败。今天这条总线没有任何"从服务端掐断一条 HTTP 长连接"
+   * 的原语（`connections.ts` 只数人数），所以界面上不写"连接已断开"这种话。
+   * 两个驱动都做得到：进程内驱动删掉本地那份订阅，Redis 驱动另外往线路上发一帧 `close`，
+   * 让别的实例各自关掉自己那份——第六件因此不只在一个进程里成立。
+   */
+  closeChannel(channel: string): void;
+  /**
+   * 当前订阅者数量，用于诊断与测试（"有没有人真的在听"）。
+   * Redis 驱动下这是**本进程**的人数：pub/sub 线路查不到远端有谁在订，别拿它当全平台的数。
+   */
+  subscriberCount(channel?: string): number;
+  /**
+   * 给 `/admin/realtime` 的自报家门（§163 诊断入口）：驱动是谁、线路接上没有、
+   * 断过几帧、本进程有几个人在听。同步返回——`wireReady` 是**已落定的答案或"还没落定"**，
+   * 不现场 await：诊断页不该被一次吊死的连接拖住（`ready` 永不 reject，但可能永不落定）。
+   *
+   * 两句不同的话，别合成一句：`wireReady` 回答的是"**构造那一次**线建起来了没有"，
+   * 落定后不再变；`wire` 回答的是"**此刻**两条连接在不在"，每次问都现读。
+   * Redis 起来得晚的那台机器上，前者是 `false` 而后者是 `up`——那不是矛盾，
+   * 是连接层自愈与一次性闩的分工（见 `redisBus.ts` 里 `ready` 字段那段）。
+   */
+  stats(): RealtimeBusStats;
+}
+
+/**
+ * 诊断报文（web 自己的 admin 端点，不跨进程——所以与 `RealtimeWireFrameSchema` 同理，
+ * 不进 `CONTRACT_EXPORTS`）。两处 `null` 各是一句诚实话，不是"0"的别名：
+ * 进程内驱动**没有线路**，`wireReady` / `wireErrorCount` 不适用（报 0 会被读成
+ * "没断过帧的 Redis"，而它根本没有帧可断）。
+ */
+export interface RealtimeBusStats {
+  /** 装的是哪个驱动。决定跨实例那半边在不在 */
+  driver: 'in-process' | 'redis';
+  /** 这台实例的身份（redis=origin，进程内=pid 标记）。多实例部署下每台各算各的 */
+  instance: string;
+  /** 本进程的订阅者总数——不是全平台的数（线路查不到远端有谁在订） */
+  subscriberCount: number;
+  /**
+   * **构造那一次**跨实例那半边接上没有；还没落定或没有这半边都是 `null`（含义由 `driver` 分）。
+   * 它不是一次健康检查：后来的断与复都不归它管（这是 `ready` 那个闩的语义，刻意保留——
+   * 集成测试与"等头几帧"的调用方要的是"曾经接过"，不是"这一刻恰好在"）。
+   */
+  wireReady: boolean | null;
+  /**
+   * **此刻**这条线在不在（每次问都现读两条连接的 `status`，不 await、不缓存）。
+   * 进程内驱动是 `'na'`——不是 `down`，"没有这回事"与"坏了"是两句话（与限流闸 `describe()` 同一套四档）。
+   *
+   * 限度，别读多：它读的是 ioredis 的连接状态，**不是**"订阅还在服务器那边登记着"的证明；
+   * 后者由 `realtime.redis.integration.test.ts` 那条真投递用例负责。
+   */
+  wire: 'up' | 'pending' | 'down' | 'na';
+  /** 线路失败累计（投递不出去 / 坏帧 / 订阅建不起来）；进程内驱动为 null */
+  wireErrorCount: number | null;
+  /**
+   * 同一本账，按**原因**拆开。key 只能是 `wireErrors.ts` 词表里的那几个字，由驱动自己写
+   * （`redisBus.ts` 的 `countWireError`），界面只照读不加工。
+   * 进程内驱动为 `null`（不是 `{}`）："没有线路"与"线上没断过"是两句话。
+   *
+   * 类型是**闭合词表的完整账**（每一格都在，没出过事的是 0）而不是 `Partial`：
+   * 少一格就是有人往词表里加了字却没让驱动记账——那件事要在这里红，而不是在界面上少一行。
+   * 这一格也是**必填**：一个说得出总账却说不出分账的驱动，界面上就会出现
+   * "断过 3 帧 + 这台还没出过一帧失败"同屏的自相矛盾（`stats-readout.ts` 的形状门拦的就是它）。
+   */
+  wireErrorByReason: Record<WireErrorReason, number> | null;
+}
+
+/**
+ * 频道命名。项目频道给 Studio 用；用户频道给 §164 的通知用
+ * ——`RealtimeEventSchema` 里 `notification` 的 `projectId` 是可选的，
+ * 所以通知不能只挂在项目频道上（用户可能还没打开任何项目）。
+ */
+export const channels = {
+  project: (projectId: string) => `project:${projectId}`,
+  user: (userId: string) => `user:${userId}`,
+};
+
+/**
+ * 单例挂在 globalThis 上，不是模块变量。
+ *
+ * 这不是"防止热更新丢状态"那种客套：dev 下 Next 会为不同的 route 编译出各自的模块图，
+ * 发事件的那条路由（`/api/ai/run`、`/api/published/interact`）与持连接的那条
+ * （`/api/realtime`）**可能各自拿到一份模块实例**。挂在模块变量上，一边 publish 到
+ * 自己那份空总线，另一边在自己那份上等——测试全绿（vitest 里只有一个实例），浏览器里
+ * 永远收不到。这是全局缓存的标准做法（Next 官方对 dev 单例的同一建议）。
+ */
+const GLOBAL_KEY = '__nexus_realtime_bus__';
+type GlobalStore = typeof globalThis & { [GLOBAL_KEY]?: RealtimeBus };
+
+const store = globalThis as GlobalStore;
+
+/**
+ * 选驱动：只看 `NEXUS_REDIS_URL`，非空即用 Redis 扇出，否则进程内。
+ *
+ * 为什么默认还是进程内：本机开发、vitest、e2e 都只有一个 web 进程，跨实例那一格在那里
+ * 不是被测试的功能而是多余的依赖；而"多实例部署"是真的需要时才打开的开关。
+ * 这条开关是 opt-in 的，所以建单例那一刻会把**装上了哪个驱动**打进日志——
+ * 只看环境变量的人会在"设了但没生效"和"生效了但没人说"之间分不清。
+ *
+ * 不做的事：不在连接失败时悄悄退回进程内。那会让一台配了 Redis 的实例看起来正常、
+ * 实际上收不到别家的事件，比直接报错更难查（`RedisRealtimeBus` 自己在 `publish` 里
+ * 记账并放行业务，那是同一句话的另一半：线路坏了不拖垮请求，但要说出来）。
+ */
+function createDefaultBus(): RealtimeBus {
+  const url = process.env[REDIS_URL_ENV]?.trim();
+  if (!url) {
+    console.log(`[realtime] 驱动=进程内（单实例；多实例部署设 ${REDIS_URL_ENV} 换成 Redis 扇出）`);
+    return new MemoryRealtimeBus();
+  }
+  console.log(`[realtime] 驱动=Redis 扇出（线路 ${WIRE_CHANNEL}）`);
+  return new RedisRealtimeBus({ url });
+}
+
+export function getRealtimeBus(): RealtimeBus {
+  if (!store[GLOBAL_KEY]) store[GLOBAL_KEY] = createDefaultBus();
+  return store[GLOBAL_KEY];
+}
+
+/**
+ * 测试用：换掉单例，或清空。传 undefined 恢复默认的驱动选择（也就是重新读一次环境变量）。
+ *
+ * 换掉之前手上那份 Redis 驱动请自己 `dispose()`——接口里没有这一格（生产者的生命周期
+ * 不归总线门面管），漏掉就是漏掉两条到 Redis 的连接。
+ */
+export function setRealtimeBus(bus: RealtimeBus | undefined): void {
+  if (bus) store[GLOBAL_KEY] = bus;
+  else delete store[GLOBAL_KEY];
+}

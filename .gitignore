@@ -2,6 +2,7 @@
 node_modules/
 .pnp
 .pnp.*
+.pnpm-store/
 
 # builds
 dist/
@@ -9,18 +10,20 @@ build/
 .next/
 out/
 *.tsbuildinfo
-
-# turbo
 .turbo/
 
 # env / secrets
 .env
 .env.*
 !.env.example
+.env.local
+.env.*.local
+*.pid
 
 # logs
 *.log
 npm-debug.log*
+logs/
 
 # editor / os
 .DS_Store
@@ -28,13 +31,23 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+*.swp
 
 # test / coverage
 coverage/
 .playwright-mcp/
+.playwright-profile/
+test-results/
+playwright-report/
+screenshots/
 
 # studio deploy records (v177 — the dock's deploy face appends measured facts here)
 .nexus/
+
+# nexus local data (web line — must anchor to the repo root so apps/web/src/server/storage stays tracked)
+/storage/
+.nexus-storage*
+.nexus-store/
 
 # java / maven
 target/
@@ -48,42 +61,29 @@ __pycache__/
 # scratch: proof runs materialise a ref here, so this tree holds WHOLE COPIES of test files (measured
 # 2026-10-09: 879 *.test.ts under four .scratch dirs). Two things went wrong while it was unignored: a
 # `git add -A` swept an in-flight doc edit into an unrelated commit (amendment 196's record landed inside an
-# M5 commit and described a tree that did not exist), and a root-level vitest run would have graded those
-# stale copies. `vitest.config.ts` excludes them; this keeps them out of commits too.
+# M5 commit and described a tree that did not exist), and a root-level vitest run would have graded
+# last week's code and reported it as this tree's result. `conftest/`ed by the 2026-11-09 consolidation:
+# main's line uses `.scratch/` deliberately for AN INVESTIGATION record that §192 requires travel with the
+# repository, so a blanket ignore would have displaced evidence. The 2026-11-09 merge subtracts from the
+# ignore for exactly those tracked files — they stay tracked and ignored-looking, and a git add -A keeps them
+# as they are (git does not re-add ignored tracked files). Never untrack a .scratch/ file with this line.
 .scratch/
 
 # vitest's config loader writes a TIMESTAMPED bundle next to the config it compiles
-# (`apps/studio/vitest.config.ts.timestamp-<ms>-<hash>.mjs`) and does not remove it. Measured 2026-10-20:
-# one such file sat untracked in the studio package — a `git add -A` away from a commit that carries a
-# build artefact. It is regenerated on every run, so ignoring the pattern is the durable fix; the file
-# itself could not be removed by the agent (the local launcher for recoverable deletion is unavailable).
+# (`apps/studio/vitest.config.ts.timestamp-<ms>-<hash>.mjs`) and does not remove it. Measured 2026-10-20.
 vitest.config.ts.timestamp-*.mjs
 
-# another tool's own memory directory, which holds no part of this project's build. Ignored for the same
-# reason .scratch/ is: an untracked foreign tree in the working directory is one `git add -A` away from being
-# swept into an unrelated commit, and amendment 215 records that happening once already.
+# another tool's own memory directory, which holds no part of this project's build.
 .workbuddy-ai/
 
-# scratch scripts and commit-message drafts. Measured 2026-10-25: 361 untracked `tmp_*.py` debug
-# scripts and a `commit_msg.txt` in the working tree — the same hazard `.scratch/` and
-# `.workbuddy-ai/` above exist for, one `git add -A` away from being swept into an unrelated
-# commit (amendments 196 and 215 each record that happening). None is tracked
-# (`git ls-files "tmp_*"` → 0), so ignoring the pattern deletes nothing; `git add -f` still
-# forces one in if a scratch file is ever meant to land.
+# scratch scripts and commit-message drafts (amendments 196 and 215 each record the hazard).
 tmp_*
 commit_msg.txt
 
-# the mutation probe's per-process scratch box (v531). A crashed run leaves one behind, and an
-# untracked box in apps/studio is one broad `git add` away from an unrelated commit.
+# the mutation probe's per-process scratch box (v531).
 .nexus-mut-probe*/
 
 # the lanes' scratch directory and the console captures a test run leaves at the root (v606).
-# Measured 2026-11-05: `ee96711` (subject "'v602'") swept a broad add that TRACKED 110 `.nexus-tmp/`
-# files plus `run-result.txt`, `test_output.txt` and `test-output.txt`, and `verify:record-encoding`
-# has been RED on every push since: those captures hold M1/M2 mojibake and raw ESC bytes -- 2545
-# chargeable lines / 34999 sites -- and the repo's own repairer reads all 34999 of them and declines
-# 30074, so no repair channel can clear the gate while the names sit in the graded population. They are
-# console output, not evidence, so the repair is to stop tracking them; every byte stays on disk.
 .nexus-tmp/
 run-result.txt
 test_output.txt

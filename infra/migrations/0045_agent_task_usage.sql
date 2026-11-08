@@ -1,0 +1,13 @@
+-- §75 AI Usage：这一行任务真正跑的时候，provider 报的用量。
+--
+-- 为什么是 `agent_tasks` 的一列 jsonb，而不是新表 / 拆成六列：
+-- 1. 用量天然是"附在这一行任务上的一个结构"（provider / model / modelClass / tokensIn /
+--    tokensOut / latencyMs / costUsd / toolCalls / demoMode），拆列意味着契约每多一个字段
+--    就多一次迁移；它从不参与查询与索引，只按任务行原样读出（账本页的「用量」列）。
+-- 2. 账单已经不是第二份真值：真值仍是 `AiResponse.usage`，这里只是把它留在库里，
+--    让"这条结果是模型给的吗、烧了多少 token"在关掉请求之后还能回答（§75）。
+--
+-- 历史行不回填：**0 token 与"没记"是两件事**（§159）。这一列 NULL = 那一行跑的时候
+-- 平台还没有记账这条路，账本页照实写"未记录"，而不是拿 0 冒充一次 0 token 的调用。
+ALTER TABLE "agent_tasks" ADD COLUMN IF NOT EXISTS "usage" jsonb;
+--> statement-breakpoint

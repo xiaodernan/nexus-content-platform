@@ -1,0 +1,172 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+
+[90mstdout[2m | apps/web/test/guest-reclaim.integration.test.ts
+[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m谓词的每一条边[2m > [22m沉默到线的两种形状都在候选里：会话烂了够久的、从来就没有会话的[32m 7[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m谓词的每一条边[2m > [22m会话还活着的人绝不进候选——哪怕他账龄一百天[32m 19[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m谓词的每一条边[2m > [22mgrace 是"再过 30 天"，不是"会话一过期就收"：差二十五天的不算，差一秒的算[32m 19[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m谓词的每一条边[2m > [22m出生没多久的零会话身份不动：`createUserSession` 那两步之间就是这形状[32m 15[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m谓词的每一条边[2m > [22mgrace 可以被调用方改小，但线仍然按新的 grace 算[32m 12[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m两条护身符：注册与发布[2m > [22m认领过的账号不是回收的对象，哪怕他的会话烂了六十天[32m 15[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m两条护身符：注册与发布[2m > [22m被手提成审核员的 guest 也不收：清扫不该改变谁能审核[32m 3[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m两条护身符：注册与发布[2m > [22m名下有已发布作品的访客被**明说**地排除：数到了但不进候选，界面上有他那一格[32m 6[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m两条护身符：注册与发布[2m > [22m还握着有效 API 令牌的访客同样排除；已吊销的那一枚不算护身符[32m 5[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m收走一个人 = ADR-0025 那六件事[2m > [22mdry run 一个字都不写：会话还在、人还在、审计表里也没有一行[32m 39[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m收走一个人 = ADR-0025 那六件事[2m > [22m真执行时六件事一件不少：草稿软删、会话吊销、令牌吊销、人打上时间戳、旧 cookie 解析不出人[32m 296[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m收走一个人 = ADR-0025 那六件事[2m > [22m已发布的东西不跟着清扫走：那条排除本身就是保证，而收走的别人不该让公网 404[33m 344[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m收走一个人 = ADR-0025 那六件事[2m > [22m每个被收走的人留下一行审计，主语是按按钮的人不是被收的人[32m 4[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m收走一个人 = ADR-0025 那六件事[2m > [22m再点一次什么也不发生：收走的人不再是候选，也不会留下第二行审计[32m 12[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m一次点击的爆炸半径[2m > [22mbatch 只管这一轮收几个，多出来的那句"还有剩下的"必须是真的[32m 103[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m一次点击的爆炸半径[2m > [22mbatch 上界挡在入口：要 5000 个一次收完是不可能的[32m 31[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m一次点击的爆炸半径[2m > [22m两个人同时点：每个人最多被收一次、两次调用都不抛、审计一人一行[33m 1192[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m一次点击的爆炸半径[2m > [22m不是审核员就一个字都不写，而且被拒的那一次进审计[32m 27[2mms[22m[39m
+ [31m×[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m点名（ids）：爆炸半径收窄到勾着的几行[2m > [22m只收点名的那一个：同批造的另一个候选这一轮不动[32m 95[2mms[22m[39m
+[31m   → expected 2 to be 1 // Object.is equality[39m
+ [31m×[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m点名（ids）：爆炸半径收窄到勾着的几行[2m > [22m点名的 id 里混进一个"此刻不算了"的：不进 reclaimed，但那一句数要说出来[32m 72[2mms[22m[39m
+[31m   → expected 1 to be 2 // Object.is equality[39m
+ [31m×[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m点名（ids）：爆炸半径收窄到勾着的几行[2m > [22m点名不是钥匙：认领过的账号与库里不存在的 id 都收不走，一个字节都不写[32m 28[2mms[22m[39m
+[31m   → expected +0 to be 2 // Object.is equality[39m
+ [31m×[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m点名（ids）：爆炸半径收窄到勾着的几行[2m > [22m点名的清单先去重再钳上界：一次事务不被一个手滑的 body 撑成两千条[32m 9[2mms[22m[39m
+[31m   → expected +0 to be 2 // Object.is equality[39m
+ [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m点名（ids）：爆炸半径收窄到勾着的几行[2m > [22m不给 ids 时仍是整份清单：`requested` 与 dry run 数到的候选同一个数[32m 8[2mms[22m[39m
+ [31m×[39m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m点名（ids）：爆炸半径收窄到勾着的几行[2m > [22m审计里看得出这一次是点名收的，还是整份清单收的[32m 50[2mms[22m[39m
+[31m   → expected false to be true // Object.is equality[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m门的顺序[2m > [22m没有 CSRF：403，而且库里一个候选都没少[32m 26[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m门的顺序[2m > [22m没有会话：401，且不替探测的人白造一个 guest 身份[32m 6[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m门的顺序[2m > [22m报文形状不对：400，而且连闸都不碰（限流的桶不该被畸形请求吃掉）[32m 23[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m门的顺序[2m > [22m不是审核员：403、一条不写、被拒的那一次进审计[32m 31[2mms[22m[39m
+[90mstdout[2m | apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m[2m缺省值与两种答案[2m > [22m[2m真执行那一次：说的是同一批人，库里也真的少了他们
+[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m门的顺序[2m > [22m同一个审核员连点第七次：429（额度按现成的 6 次/10 分钟跑满，没有为测试放宽）[32m 75[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m缺省值与两种答案[2m > [22m不带 body 的 POST 是"只数一遍"：200、dryRun 为真、那个访客还在[32m 13[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m缺省值与两种答案[2m > [22m真执行那一次：说的是同一批人，库里也真的少了他们[32m 50[2mms[22m[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m点名（ids）在报文层[2m > [22mids 里混进非 UUID 或超过 200 个：400，而且连闸都不碰[32m 73[2mms[22m[39m
+ [31m×[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m点名（ids）在报文层[2m > [22m带 ids 的真执行：只收点名的那一个，回执那句数说的是"点名的几个里"[32m 65[2mms[22m[39m
+[31m   → expected 2 to be 1 // Object.is equality[39m
+ [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m点名（ids）在报文层[2m > [22mids 是空数组：一个都不收，但那一句要如实说"点名的 0 个里收走了 0 个"[32m 10[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 6 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m点名（ids）在报文层[2m > [22m带 ids 的真执行：只收点名的那一个，回执那句数说的是"点名的几个里"
+[31m[1mAssertionError[22m: expected 2 to be 1 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 2[39m
+
+[36m [2m❯[22m apps/web/test/guest-reclaim-route.integration.test.ts:[2m249:28[22m[39m
+    [90m247| [39m    [34mexpect[39m(body[33m.[39mdryRun)[33m.[39m[34mtoBe[39m([35mfalse[39m)[33m;[39m
+    [90m248| [39m    [34mexpect[39m(body[33m.[39mnamed)[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+    [90m249| [39m    [34mexpect[39m(body[33m.[39mrequested)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                           [31m^[39m
+    [90m250| [39m    expect((body.reclaimed as { id: string }[]).map((r) => r.id)).toEq…
+    [90m251| [39m    [34mexpect[39m(body[33m.[39mmessage)[33m.[39m[34mtoBe[39m([32m'点名的 1 个里收走了 1 个'[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m点名（ids）：爆炸半径收窄到勾着的几行[2m > [22m只收点名的那一个：同批造的另一个候选这一轮不动
+[31m[1mAssertionError[22m: expected 2 to be 1 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 2[39m
+
+[36m [2m❯[22m apps/web/test/guest-reclaim.integration.test.ts:[2m535:27[22m[39m
+    [90m533| [39m    [34mexpect[39m(run[33m.[39mok)[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+    [90m534| [39m    [35mif[39m ([33m![39mrun[33m.[39mok) [35mreturn[39m[33m;[39m
+    [90m535| [39m    [34mexpect[39m(run[33m.[39mrequested)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                          [31m^[39m
+    [90m536| [39m    [34mexpect[39m(run[33m.[39mreclaimed[33m.[39m[34mmap[39m((r) [33m=>[39m r[33m.[39mid))[33m.[39m[34mtoEqual[39m([named])[33m;[39m
+    [90m537| [39m    [90m// 名字是从锁下那一行读回来的，不是拿扫描时的旧清单去查表——两者在并发里可以不一样[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m点名（ids）：爆炸半径收窄到勾着的几行[2m > [22m点名的 id 里混进一个"此刻不算了"的：不进 reclaimed，但那一句数要说出来
+[31m[1mAssertionError[22m: expected 1 to be 2 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 2[39m
+[31m+ 1[39m
+
+[36m [2m❯[22m apps/web/test/guest-reclaim.integration.test.ts:[2m553:27[22m[39m
+    [90m551| [39m    [34mexpect[39m(run[33m.[39mok)[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+    [90m552| [39m    [35mif[39m ([33m![39mrun[33m.[39mok) [35mreturn[39m[33m;[39m
+    [90m553| [39m    [34mexpect[39m(run[33m.[39mrequested)[33m.[39m[34mtoBe[39m([34m2[39m)[33m;[39m
+    [90m   | [39m                          [31m^[39m
+    [90m554| [39m    [34mexpect[39m(run[33m.[39mreclaimed[33m.[39m[34mmap[39m((r) [33m=>[39m r[33m.[39mid))[33m.[39m[34mtoEqual[39m([staleOne])[33m;[39m
+    [90m555| [39m    [34mexpect[39m(run[33m.[39mskippedUnderLock)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m点名（ids）：爆炸半径收窄到勾着的几行[2m > [22m点名不是钥匙：认领过的账号与库里不存在的 id 都收不走，一个字节都不写
+[31m[1mAssertionError[22m: expected +0 to be 2 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 2[39m
+[31m+ 0[39m
+
+[36m [2m❯[22m apps/web/test/guest-reclaim.integration.test.ts:[2m571:34[22m[39m
+    [90m569| [39m    [35mif[39m ([33m![39mrun[33m.[39mok) [35mreturn[39m[33m;[39m
+    [90m570| [39m    [34mexpect[39m(run[33m.[39mreclaimed[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+    [90m571| [39m    [34mexpect[39m(run[33m.[39mskippedUnderLock)[33m.[39m[34mtoBe[39m([34m2[39m)[33m;[39m
+    [90m   | [39m                                 [31m^[39m
+    [90m572| [39m    [34mexpect[39m(([35mawait[39m [34mstateOf[39m(claimed))[33m.[39mdeletedAt)[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m573| [39m    [35mconst[39m after [33m=[39m [35mawait[39m [34mscanGuestReclaimCandidates[39m({ now[33m:[39m [33mNOW[39m })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m点名（ids）：爆炸半径收窄到勾着的几行[2m > [22m点名的清单先去重再钳上界：一次事务不被一个手滑的 body 撑成两千条
+[31m[1mAssertionError[22m: expected +0 to be 2 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 2[39m
+[31m+ 0[39m
+
+[36m [2m❯[22m apps/web/test/guest-reclaim.integration.test.ts:[2m580:37[22m[39m
+    [90m578| [39m    [35mconst[39m [a[33m,[39m b] [33m=[39m [[34mrandomUUID[39m()[33m,[39m [34mrandomUUID[39m()][33m;[39m
+    [90m579| [39m    const dup = await reclaimExpiredGuests({ actorId: admin, now: NOW,…
+    [90m580| [39m    [34mexpect[39m(dup[33m.[39mok [33m&&[39m dup[33m.[39mrequested)[33m.[39m[34mtoBe[39m([34m2[39m)[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m581| [39m    [34mexpect[39m(dup[33m.[39mok [33m&&[39m dup[33m.[39mreclaimed[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+    [90m582| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m点名（ids）：爆炸半径收窄到勾着的几行[2m > [22m审计里看得出这一次是点名收的，还是整份清单收的
+[31m[1mAssertionError[22m: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m apps/web/test/guest-reclaim.integration.test.ts:[2m605:64[22m[39m
+    [90m603| [39m      .where(and(eq(auditEvents.action, 'user.reclaim'), eq(auditEvent…
+    [90m604| [39m      [33m.[39m[34mlimit[39m([34m1[39m)[33m;[39m
+    [90m605| [39m    expect((row!.detail as { named?: boolean } | null)?.named).toBe(tr…
+    [90m   | [39m                                                               [31m^[39m
+    [90m606| [39m  })[33m;[39m
+    [90m607| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m28 passed[39m[22m[90m (34)[39m
+[2m   Start at [22m 09:44:24
+[2m   Duration [22m 8.35s[2m (transform 833ms, setup 0ms, collect 3.56s, tests 4.12s, environment 0ms, prepare 194ms)[22m
+

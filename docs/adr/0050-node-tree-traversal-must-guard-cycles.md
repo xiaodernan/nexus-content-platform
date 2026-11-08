@@ -1,0 +1,63 @@
+# ADR-0050：节点树遍历必须带循环守卫（seen / 深度上限）
+
+- 状态：已接受（2026-10-21）
+- 关联：§16（设计模型唯一真值）、§159（不静默修数据，如实报）、save / Quality Gate 路径
+
+## 背景
+
+2026-10-21 在设计模型的**多个节点树遍历**里发现同一类真缺陷——遍历没有 visited / 深度守卫，
+遇到"成环"的节点文档不是**如实报 `cycle`**，而是**整个崩**：
+
+| 位置 | 遍历方向 | 成环时的表现 |
+| --- | --- | --- |
+| `patch.ts` `collectSubtree` | 沿 `children` 递归 | 栈溢出（`RangeError: Maximum call stack size exceeded`） |
+| `nodes.ts` `descendants` | 沿 `children` 递归 | 同上：栈溢出 |
+| `nodes.ts` `walk` | 沿 `children` 递归 | 同上：栈溢出 |
+| `nodes.ts` `ancestors` | 沿 `parentId` 爬 | 同步死循环（`while` 不退出） |
+| `nodes.ts` `isDescendant` | 沿 `parentId` 爬 | 同上：死循环 |
+| `context-index.ts` `firstTextIn` | 沿 `children` BFS | 队列无限增长 → `buildDesignIndex` 挂死（连报错都没有） |
+| `codegen.ts` `renderTree` | 沿 `children` 递归 | 栈溢出（`RangeError`） |
+| `layout.ts` `measure` | 沿 `visibleChildren` 递归 | 同上：栈溢出（用**路径集合**：进栈 add / 出栈 delete，而非全局 visited——它会在不同约束下重复测量同节点，全局 visited 会误伤正常重测） |
+| `components.ts` `collect`（组件实例化收子树） | 沿 `node.children` 递归 | 同上：栈溢出 |
+| `patch.ts` `isWithin` | 沿 `parentId` 爬 | 同步死循环（`while` 不退出）——`reparent` 的防环检查自己先挂住 |
+
+**为什么本意是"报 cycle"却崩了**：`validatePage` 是**先调 `collectSubtree` 求 reachable、再跑自己的
+`detectCycle`**（`validate.ts`）。于是成环文档在第一行就先把 `collectSubtree` 撑爆——**cycle 检测根本没机会跑**。
+旁边注释还写着"按 error 挡在写入侧"，崩显然不是预期出口。
+
+**畸形文档从哪来**：导入包、AI 补丁（尤其 `reparent` 少一道成环校验）、手改 jsonb。它们挡在门外本来就该得到
+一条 `cycle` issue，而不是一次保存 500 / 质量门挂掉。**同步死循环比栈溢出更隐蔽**：它连报错都留不下（vitest 只能被
+外部 SIGTERM 掐掉，连"红在哪一条"都说不清）。
+
+## 决定
+
+**所有沿 `children` 递归、沿 `parentId` 爬的节点树遍历，一律带 `seen` 守卫；父链用法同时配合数量上限。**
+
+硬约束（回归判据）：
+1. **无环树的输出逐项不变**——加守卫只把"崩 / hang"变成"有界"，绝不改变正常语义。
+   （实证：全 design-model 27 文件 / 339 条回归绿。）
+2. **成环必须终止而非崩**——回归用"成环不再抛 / 不再挂 + 无环树顺序·计数·ancestor 链不变"双断言钉死。
+
+横向清同族：修 `collectSubtree` 那一刻就该顺手扫的——凡是"沿 children 递归 / 沿 parentId 爬 且没有
+seen 或 depth 上限"的都是同一颗雷。第一批把 `collectSubtree / descendants / walk / ancestors / isDescendant`
+五处一次清完（配套 `traversal-cycle.test.ts`）；第二批沿"消费端"遍历补齐 `firstTextIn`（第 5 处，
+`context-index-cycle.test.ts`）、`renderTree`（codegen）、`measure`（layout）、`collect`（components 实例化），
+配套 `traversal-cycle-extra.test.ts`。第三批（第 9 处）：`patch.ts` 的 `isWithin` 也是父链 `while` 无 `seen` 守卫——
+它是 `reparent` 的防环检查，畸形父链会让检查本身先同步死循环；补上与 `ancestors` / `isDescendant` 同款的 `seen` 守卫。
+每处都做了**变异探针**：摘掉守卫后对应测试立即 `RangeError` 变红（父链那两条是同步死循环，只能被 SIGTERM 掐掉），
+证明不是"即使代码坏掉也会通过"的废断言。
+
+## 后果
+
+- 好：保存 / 质量门 / 补丁应用（`remove`、`reparent` 也走 `collectSubtree`）对畸形文档**不再崩**，
+  让上游的 `cycle` 检测有机会如实报 issue（§159）。
+- 代价：每个遍历多维护一个 `Set<string>` + 常数比较；实测无性能回归（10k 节点档未见差异，仅在访问到节点时 O(1) 判一次）。
+
+## 未做 / 后续
+
+- `diff` / `serialize` 已横向核对：`diff.ts` 的 `walkLeaves` 走的是**值树**（不是节点树，不会成环），
+  `serialize.ts` 的 `stringify` 同样只递归 JSON 值、`serializePage` 用扁平 `Object.values` —— 二者均无节点树
+  成环风险，不必加守卫。`health.ts` 只遍历 `layout.nodes` 这张已展开的扁平表，也不递归节点树。
+- 补丁应用侧已经**拒绝产生成环**：`reparent` 在改父指针前先跑 `isWithin`（`patch.ts:287`，`reparent would create a cycle`）；
+  本轮把 `isWithin` 自身也补上 `seen` 守卫，防的是"文档**已经**成环时，这条防环检查自己先挂住"。
+  所以两道防线是：① `reparent` 不让**新**环产生；② 所有遍历（含 `isWithin`）在**已有**环上都能终止。

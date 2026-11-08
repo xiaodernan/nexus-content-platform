@@ -1,0 +1,8 @@
+
+Running 3 tests using 1 worker
+
+  ok 1 [chrome] › e2e\guest-reclaim.spec.ts:54:5 › 审核员看到的回收面板：三处数同源，且「重新数一遍」在网络上就是 dry run (5.6s)
+  ok 2 [chrome] › e2e\guest-reclaim.spec.ts:107:5 › 点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在 (6.7s)
+  ok 3 [chrome] › e2e\guest-reclaim.spec.ts:176:5 › 游客态对照：这块面板与那些数对非审核员一个字都不渲染 (938ms)
+
+  3 passed (16.0s)

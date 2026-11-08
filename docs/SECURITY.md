@@ -1,3 +1,13 @@
+<!--
+CONSOLIDATED 2026-11-09 — the two lines of NEXUS were merged into one branch
+(see README.md). This file carries BOTH lines verbatim; nothing was reconciled into a
+false blend. The studio line's doc is first, then the main line's doc, behind a marked
+appendix heading. If you are editing this file, edit the section for your line and keep
+the other section's bytes alone.
+-->
+
+# Security & Safety · studio line
+
 # Security & Safety
 
 Per §28, §34, §54, §55 and ADR 0013.
@@ -17,3 +27,285 @@ Status: **Proposed** — the Milestone 0/1 slice runs no untrusted code and stor
 server-side, so there is currently no attack surface these controls guard. They are specified
 up front so M2+ implements rather than retrofits. A real security review is a Quality Gate
 (§31) before any publish.
+
+
+
+---
+
+# 附录 · SECURITY · main line (the older, richer line, kept in full)
+<!-- appendix appended verbatim by the consolidation; studio-line bytes are above the marker -->
+
+# SECURITY
+
+生成式平台的攻击面比普通 Web 应用大得多：用户与 Agent 都能产生代码、发起网络请求、读写文件。
+本文件是**硬约束清单**，不满足就不允许合并。
+
+## 认证与授权
+
+- 密码：Argon2id（回落 bcrypt）；绝不存明文或可逆
+- 会话：HttpOnly + SameSite=Lax + Secure（生产）Cookie，服务端校验，支持吊销；不用 localStorage 存 token
+- CSRF：状态变更走 SameSite + 同源校验 + 双提交 token（表单/AJAX）
+- RBAC：`role` × `permission`（§80）。项目级 owner/editor/viewer；平台级 admin/moderator
+- 每个 route handler 必须显式声明所需权限，默认拒绝（deny by default），不靠 UI 隐藏
+- 速率限制：滑动窗口，按 路由 + 身份 + IP（`apps/web/src/server/security/rateLimit.ts` 是门面，窗口住在驱动里）。
+  两个驱动同一形状：`rateLimitMemory.ts`（进程内，**默认**）与 `rateLimitRedis.ts`（Redis 有序集，
+  设 `NEXUS_REDIS_URL` 才换过来）。**不设它=每台各数各的**：`10 次/15 分钟/邮箱` 在多实例下实际是"每台 10 次"，
+  所以多实例部署这一格是必设项，不是优化项（取舍与三条硬约束见 `docs/adr/0076-rate-limit-redis-sliding-window.md`；
+  Redis 坏时退回进程内并且记账 `nexus_rate_limit_driver_fallbacks_total`，闸不停摆但口径降级）。
+  **闸自己的记账也有上界**（`docs/adr/0077-rate-limit-memory-bucket-ceiling.md`）：桶键里那段身份是
+  中间件给每个新访客现签的，"来一个人"就是"多一只桶"，所以进程内那张表原来单调涨、不收口——
+  现在它扫掉整窗过期的桶（每 256 次命中一趟全表，顶到上界时另外按每只桶自己的窗口放过名额），
+  把桶数钉在 `maxBuckets`（默认 50 000）以内并从最久没被碰的一头淘汰，
+  读数 `nexus_rate_limit_buckets_pruned_total{reason=expired|cap|reset}`；"到上界"那行日志最多一分钟一条，
+  逐笔的数只在 counter 里——洪水期间每请求一行日志就是这道闸自己开的一条写入口。
+  `cap` 在涨才是事故（说明这台进程被 distinct 身份压着打），`expired` 在涨是正常收尾；
+  被淘汰的那一格窗口重新变空，这一句是代价不是缺陷披露——真正的上界在 Redis 驱动与边缘层。
+  **Redis 那半的键基数同样收了口**（`docs/adr/0081-rate-limit-redis-bucket-key-ceiling.md`）：`PEXPIRE` 收的
+  是**单只桶的寿命**，从来不管**桶的条数**，而那台 Redis 实测 `maxmemory 0` + `noeviction`（逐出计数 0）——
+  也就是说键空间在 Redis 侧一点都没被限住。现在这条驱动按前缀记一名桶键名册
+  （`${keyPrefix}__bucket_index__`，成员是键名、分数是那只桶自己的到期时刻），每次命中先扫掉已过期的条目再判名额，
+  到 `maxBucketKeys`（默认 50 000，与进程内同一个数，换驱动时"这张表能有多少只桶"不必改口）就**不再新建桶键**：
+  那条请求交给本机窗口判，记 `nexus_rate_limit_driver_fallbacks_total{reason="over-cap"}`。
+  取向与进程内那一版相反并且是故意的——那里没有别处可以挪窗口，只能淘汰别人的桶（白送一次额度）；
+  这里有一个地方可以挪，所以**不动任何人的既有窗口**。因此 `over-cap` 在涨说的是
+  "Redis 这一侧的桶名额用完了"，正解是给那台 Redis 做容量规划或分片，**不是把这个数调大**。
+  退回日志按原因各一分钟一条（Redis 坏着 + 有人在刷时，每请求一行 `console.error` 就是这道闸自己开的磁盘写）。
+  **这笔代价在多实例部署下是每台各一份**：名额用完时两台各自放行到自己的限额、合计约 `实例数 × 限额`
+  （与断线退回同一格、不同触发原因）。它不是注释里的推理，而是有门的——
+  `npm run ratelimit:two-process` 里 `OVER_CAP_SCOPE_IS_PER_PROCESS` 用**两个真进程同时撞同一只建不出来的键**，
+  判据读的是两台**合计**（单看任何一台，"上界每台各一份"那版错实现给得出同样的形状），
+  对照 `PAIR_WITH_ROOM_SHARES_ONE_WINDOW` 在有名额时把合计钉回限额本身（ADR-0081「第三十六片补的那一组」）。
+  IP 取的是转发链的**可信右端**，
+  不是客户端随手写的最左端：`x-forwarded-for` 是追加出来的链条，判决与限度见 `docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`；
+  **三行转发头都读**——`x-forwarded-for` → RFC 7239 的 `Forwarded`（只认 `for=`，`by`/`proto`/`host` 永不进桶键）→ `x-real-ip`，
+  按优先级取一条链而不是叠加；三行都不在场那道闸才让路，在场却读不出地址归进 `invalid-xff` 一只共享桶照常限。
+  **部署要求（活体探针查实，别漏读）**：Next 会在 `x-forwarded-for` 缺席时填入 socket 对端，所以
+  **前置必须写 `x-forwarded-for`（追加）**——只写 `Forwarded` 的前置不会绕开闸，但会让自己后面的所有人共用
+  前置那一只桶。判决与限度见 `docs/adr/0071-forwarded-rfc7239-header-read-and-precedence.md`；
+  生成类接口另外按 credits 配额挡（`domain/credit-ledger.ts` 的 `refusalForRun` → `429 credits_exhausted`）
+
+**实现现状（任务 #9d，认证竖向切片）**：口令哈希走本文件允许的 **bcrypt 回落分支**（`bcryptjs` 纯 JS，cost=10），
+算法封在 `apps/web/src/server/domain/password.ts` 一处，`verifyPassword` 按 `$2` 前缀分派——将来接 Argon2id 只改这一处，
+旧串仍可验证；换之前不声称已是 Argon2id。会话 HttpOnly+SameSite=Lax cookie、服务端校验、可吊销，且**提权即轮换**
+（register/login 删旧 token 会话行、发新随机 token，防会话固定；guest 会话由 middleware 用客户端可见 cookie 签发，
+所以轮换不是可选项）。CSRF 双提交（`nexus_csrf` 非 HttpOnly cookie + `x-csrf-token` 头比对）**覆盖全部 mutation 路由**——
+auth 之外的 projects/snapshots/restore/branches/switch/duplicate/variants/merge/publish/assets/ai-run 一律先过 `csrfOk` 再动作，
+不过即 `403 csrf_failed`；客户端统一由 `src/lib/csrf.ts` 的 `csrfHeaders()` 带该头。会话 cookie 的 SameSite=Lax 仍是第一道防线。限流是 `RateLimiter` 接口 + 两个同形状的驱动（进程内滑动窗口 / Redis 有序集滑动窗口，
+后者要设 `NEXUS_REDIS_URL`，见上面"认证与授权"那一条与 `docs/adr/0076-…`）。登录对"邮箱不存在"也跑 dummy-hash 比较以对齐时序，防账号枚举。
+详见 `docs/adr/0002-password-hashing-and-csrf.md`。
+
+**限流闸自己的诊断入口（§SEC 第三十五片，2026-11-05）**：`GET /api/admin/rate-limit` + `/admin/rate-limit` 那一页
+回答的是"**这台实例**现在装的哪个驱动、桶键上界钉在几、数到了几只、有没有判定正由本机窗口代判"。
+2026-11-06（§SEC 第四十一片）起它还回答第五个问题："**每条按 IP 的窗口闸今天是照着哪一格装的**"——
+`limit/window` 收进 `IP_RATE_RULES`（`src/server/security/rateLimit.ts`，唯一真值；11 条，含 `auth/register`），
+调用点不再传数字，端点整表端出 `rules`、表盘只读渲染。安全上的意义是**审计面与拦截面同源**：
+以前"闸是 20 次/小时"这句话只有代码里一份、文档里一份、跑法脚本里一份，改哪边都不会让另外两边跟着改口。
+门与复核台、实时总线同一句口径：默认拒绝，`role!=='admin'` 一律 403 且**一个字段都不给**（回执里含键前缀与
+上界数字，不是每个人的机密，但也不是每个人的事）。两条口径要记住：
+① **这一页只回答这台实例**——多实例部署下每台各算各的，回答这次请求的那台会说话，别台不会（页脚写着同一句）；
+② `over-cap` 与 `command-failed` 对调用方同形（都是本机窗口给的判定），但在两本按原因的账里是**两句不同的话**：
+前者是"桶键名额用完"（正解是换上界或挪 Redis），后者是"Redis 没答上"（正解是去看那台 Redis）。
+把两者合成一本账就等于亲手抹掉运维唯一能分辨的那条线索，所以按原因的读数**只从 metrics 现读**，
+不让驱动自报第二份（同一句话只允许一个写入方）。详见 `docs/adr/0082-rate-limit-driver-readout-ui.md`。
+
+**`/api/ai/run` 的归属校验（§68 带来的新面）**：这条路由从"只转发客户端上传的文档"改成"服务端按 `projectId` 读库装配上下文"
+之后，它第一次成了**读取他人项目内容的入口**——所以 `assembleAiRequest` 在装配前先 `projectBelongsTo(projectId, userId)`，
+不属于你就 404（不区分"不存在"与"不是你的"，避免探测），软删除的项目同样读不到。顺序很要紧：先鉴权再读文档，
+反过来写就等于亲手造一个 IDOR。客户端再想自己塞 `context.document` 一律 400，归属检查不能被"我自带一份"绕过。
+
+## 生成代码执行（§81，最高优先）
+
+用户/Agent 产出的代码**绝不在主机进程执行**。允许的执行路径只有：
+
+1. 受限渲染器：只解释设计模型，不执行任意 JS（M1 默认）
+2. 浏览器沙箱 iframe：`sandbox="allow-scripts"`，**不给** `allow-same-origin`；`null` origin；独立子域；
+   CSP `script-src` 白名单、`connect-src` 只允许预览自身的消息通道、`frame-ancestors` 限定
+3. 构建沙箱：容器内临时目录、CPU/内存上限、超时、无出网（需出网时改白名单代理）、只读基础镜像、
+   构建产物体积上限、禁止读取环境变量中的 provider key
+
+PostMessage 是唯一跨界通道：校验 `origin` + `source`，schema 校验载荷，禁止透传 eval。
+
+## SSRF（§80/§31）
+
+网站导入与 `search_web` / `open_browser` 必须：
+- 只允许 http/https；拒绝 URL 内凭据
+- 解析后 IP 校验：拒绝 loopback / 私有 / 链路本地 / 组播 / 云 metadata；**对 DNS 重绑定做解析后二次校验**
+- 重定向逐跳重新校验；限制跳转次数、响应体大小、总耗时
+- 拒绝非默认端口白名单外的地址
+
+## 注入与 XSS
+
+- SQL：只走 Drizzle/参数化，禁止字符串拼接
+- 输出：React 默认转义；任何 `dangerouslySetInnerHTML` 需要白名单净化（sanitize 在服务端）+ 代码审查注释
+- HTML/Markdown 导入：净化后再入设计模型
+- Shell：`run_command` 走 `execFile` + 参数数组，禁止 `sh -c` 拼接用户输入
+- 文件路径：所有路径经 `resolveInside(workspaceRoot, userPath)`，拒绝越界与符号链接逃逸
+
+## 文件上传（§80/§130）
+
+- 校验真实 MIME（magic bytes）而非扩展名；图像重新编码后再存（去 EXIF，含 GPS/人脸定位元数据）
+- 体积与像素上限；zip 解压防 zip-bomb（条目数、总大小、压缩比、路径穿越）
+- 存储桶公有读仅限资产缩略图，原始上传私有
+- 人脸/真人照片：consent-aware 流程 + 身份/肖像保护（§129-130）
+
+**实现现状（任务 #9c，位图）**：magic-bytes 判定、体积/像素上限、按 id 生成的 object key、
+`nosniff` + `CSP: default-src 'none'` 的字节响应、公开取字节需"发布行 + 钉住快照确实引用"——均已落地并有测试。
+但"图像重新编码后再存"目前只做到**结构化剥离**（PNG/JPEG/WebP/GIF 的 EXIF/XMP/IPTC/注释段整段丢弃，
+被剥掉的段名回传作为处理回执），**没有做像素重编码/转码**。风险差异：结构化剥离能去掉隐私元数据，
+但挡不住解码器漏洞型恶意构造（重编码能，因为像素重画会丢弃异常结构）。
+真正的重编码/缩略图统一化等 provider 层落地时替换 `server/storage/images.ts`，替换前不声称已满足"重编码"这一条。
+
+**头像（任务 #50，§60）是"公有读仅限资产缩略图"的一个有意为之的例外**：`/api/avatar/<userId>/<file>` 对所有人可读，
+因为头像本来就是公开档案的一部分（`/u/<handle>` 上就在显示它）。它走的是同一条图片管线
+（magic bytes、体积/像素上限、结构化剥离），所以上一段那个"只做到剥离、没做到重编码"的差距对头像同样成立，
+不另外声称。缓存在这里不是性能问题而是正确性问题：地址按内容摘要生成，换一张就是换地址，
+响应才敢写 `immutable`——旧地址读不到由 `openAvatar` 的"文件名要和库里的 `avatar_url` 对得上"兜住，
+而不是靠"删旧字节"那一步成功（那一步是尽力而为，失败只忽略）。
+
+## Prompt 注入与 Agent 越权
+
+- 外部内容（网页、上传图 OCR、用户导入 repo 文本）一律视为**不可信数据**：进入上下文时包裹明确边界，
+  不得作为指令解释；Agent 工具选择只能由开发者定义的指令 + 结构化 schema 驱动
+- 工具按 Agent 授权（§73），越权调用即失败并审计
+- 高危动作强制人工审批（§74/§177）：删除、公开发布、消耗 credits、外发消息、生产部署、支付
+  - **删除项目这一格今天是真的**（2026-09-26）：`DELETE /api/projects/[id]` 的 `confirm` 必须逐字等于项目名，
+    判定在领域层做（`softDeleteProject`），所以它挡的是接口而不是弹窗——界面上那个卡片只是把同一句话问一遍。
+    不匹配 → 一行都不改 + 一行 `allowed:false` 的审计。删除是软的：`deleted_at` 置时间戳，
+    公开页与互动接口（`/api/published/interact` 认的 `publicRefByPath` 也补了同一条谓词）从那一刻一起关门，
+    快照 / 发布行 / 评论留着，回收站可恢复。**没有"永久删除"也没有到期清理**，所以这条链不承诺释放存储。
+    其余几格仍未实现：Agent 侧 `requires_approval` 无人置真，credits / 外发消息 / 部署 / 支付随 M7-M8 落地
+- 每个 Agent 步骤有步数/成本/时间预算上限，超限自动终止
+- 审计：谁（user/agent）在什么 task 上用什么工具改了什么，落 `agent_tool_calls` + 事件
+
+## 内容安全（§129-132）
+
+不得生成：非自愿亲密影像、涉未成年性内容、用于欺骗的身份冒充、违法内容。
+发布流水线（§131）已落地在 `apps/web/src/server/domain/moderation.ts`：
+`publish → 机检（词表红线 + 资产出处）→ clear / review / blocked → 发布或挂人工队列`。
+四条边界写在这里，不只在代码注释里：
+
+- **机检只升级，不认证。** `clear` 不把 `published_projects.moderation` 写成 `approved`；
+  那个值只能由 `role='admin'` 的人工裁决改（`POST /api/admin/moderation/[caseId]`，登录 + admin + CSRF 三样都要）。
+  被拒绝的那一版公开 URL 立刻不可达（`resolvePublishedPath` 认这一列）。
+- **词表能挡什么、挡不住什么都随结果发出去。** 扫描自带 `limits`（覆盖不到的部分）与 `rulesVersion`，
+  发布面板逐条显示；"没命中规则"在 UI 上就写成"这次没命中规则"，不写成"内容合规"。
+- **命中红线也留案。** 被挡下的那次发布没有 publication 行可挂，但 `moderation_cases` 仍记一行
+  `decision='blocked'` + 证据（哪段文字、在哪个节点）——否则连"有人试过发这个"都查不到。
+- **下架方向永远放行。** 切成 private 不受门禁与机检阻挡：把链接收回来比挡住收回安全。
+
+**公开主页（§60）的可见性边界**：只列 `published_projects.visibility='public'` 且没被人工拒绝的作品；
+世界与角色只列属于这些公开作品的，且只返回名字与一句 tagline —— 世界文档与角色档案
+（声音、关系、记忆）留在作者项目里。简介会先过发布机检那份红线词表，命中就不保存。
+收藏挂 `publication_id`：作者重新发布不会换掉别人收下那一版的内容，下架后收藏记录仍在并写明原因。
+
+公开互动（§59）同样在机检与限流覆盖之内：评论走 `scanTextForRedlines` —— 与发布扫描**同一份词表**，
+命中直接不发出去（不是"先发出去再挂人工"）；`/api/published/interact` 每身份每分钟 20 次、评论每小时 30 条，
+`/api/follow` 每分钟 30 次。发现列表与公开页解析同一口径：private 与被人工 rejected 的版本都不出现。
+Remix 只读发布快照，不读作者工作稿 —— 未公开内容不会因为"有人想改编"而泄露。
+
+社区能力：report 已落地（公开页 `POST /api/published/report`，限流 10 次/小时/身份，
+命中三条硬红线的举报自动挂人工复核案并按案子去重）；block / mute 也已落地（`user_blocks` +
+`/api/blocks`，CSRF + 每身份 30 次/10 分钟，入口只认 handle 不认 uuid）。三条与安全有关的取舍：
+- **block 不是删帖工具**：它只挡住往后的互动并过滤发起者自己看到的内容，历史评论对旁观者仍然可见。
+  要移除公开内容只能走 moderation 的人工裁决（§131），这条分界防止"人人都能悄悄删别人的发言"。
+- **"谁拉黑了我"不对外显示**：那是别人的隐私边界，公开等于广播谁在躲你。被挡住的一方只收到一句
+  不含对方身份细节的原因（"对方不接受你的互动"），既说不清为什么，也不给探测关系的手段。
+- 过滤按**查看者**在 SQL 里做（`notInArray`），不在前端 filter：前端过滤会把被屏蔽的内容留在响应体里，
+  等于"看不见但拿得到"。
+
+版权（§129 copyright safeguards）只有原则没有比对：
+没有指纹库或外部检索，平台判断不了一段文字或一张图是不是抄的。
+
+审核入口本身还有一个附带边界：`/api/admin/*` 用 `currentUserOrNull()` 而不是 `requireUser()` 读会话——
+后者会为无会话的请求现造一个 guest 身份（§137 的首次体验），那正好让任何人反复探测 admin 端点就能白手造用户行。
+
+谁是 admin：目前只能由运维直接改 `users.role`，平台没有自助提权路径。
+复核台在 `/admin/moderation`：非审核员（包括项目作者本人）看到的是一句拒绝，队列内容与案子数都不给。
+2026-09-24 在真浏览器里核对过整圈：挂起 → 队列里看到命中证据 → 放行后离开队列 →
+再发一版并拒绝 → 那个公开 URL 立刻 404。
+
+**批量收走身份的那颗按钮要单独约束**（ADR-0072，`POST /api/admin/guests/reclaim`）：它一次可以把
+最多 200 个"沉默六十天"的 guest 按注销那六件事软删掉，所以门不是"调用方看起来像人"，而是四样叠在一起——
+CSRF、`isAdmin()` 判在域里（不是判在路由里，下一个入口照抄才不会被漏掉）、按审核员 6 次/10 分钟的限流、
+以及一行 `user.reclaim` 审计（被拒的那一次也记，但没有身份的探测不记：那是账号枚举的清单）。
+四条刻意的写法：
+
+- **`dryRun` 默认 true**。不带 body 的 `POST` 最安全的解释是"先数一遍"；默认 false 等于任何一次手滑的 curl 都是批量删除。
+- **不复用注销那道确认串**。它证明的是"坐在键盘前的人认得自己的标识"，而被回收的人不存在；
+  用程序自己算出的确认串去满足一道检查是假装有门（§159）。
+- **`/api/admin/*` 一律 `currentUserOrNull()`** 在这条路上不是风格问题：`requireUser()` 会为无会话的请求
+  现造一个 guest，而这个端点恰恰拿 guest 开刀——探测一次白得一个身份，等于清扫自己造待收的料。
+- **一次的范围由调用方点名（`ids`），但点名的不是钥匙**（ADR-0072 决定八，2026-10-30）。
+  后台面板每行列一个勾选框、默认全勾这一屏，发出去的就是勾着的这几个 id；被点到的每个人仍然要
+  在 `for update` 锁下过**同一条判据**，不成立就记成"此刻不够格"跳过。报文里 `ids` 必须是 UUID、
+  去重后钳 200，畸形报文 400 且**挡在限流闸之前**——否则一个脚本连发坏报文就能把审核员那 6 次额度耗光，
+  让真正要做的那一次被 429 挡在门外。回执那句"点名的 N 个里收走了 M 个"由服务端算，审计 `detail.named`
+  分得清是指名道姓还是照整份清单收的。
+- **翻页不扩大范围**（ADR-0072 决定九，2026-10-30）。一屏 8 行，屏与屏之间在**同一份快照**上切窗口，
+  换屏不重新问服务端；换屏同时清空上一屏的勾集，所以发出去的 `ids` 永远是站着的那一屏，
+  不会把上一屏的 id 悄悄带过来。回执必须带整份 `scan`：面板换读数换的就是它，
+  少了这一份，那颗「重新数一遍」就只是一句漂亮的话，屏幕上的数一个都不动。
+
+误伤半径另有三条判据兜着（都在库里判，见 `domain/guest-reclaim.ts`）：认领过的、`role ≠ creator` 的、
+名下有已发布作品或还握着有效 API 令牌的，都不进候选；执行前每个人 `for update` 锁上自己那一行**再判一次**，
+并发里回来的浏览器排在这把锁后面。界面上那一屏列 8 行，够格的更多时可以一屏一屏翻（都在同一份快照上），
+但翻不出 `scanLimit`（默认 1000）那个圈——出了那个圈的人这一轮根本不进清单，界面会明说这一点。
+
+## 密钥与配置（§80）
+
+Provider key 只在 ai-service 进程环境；web 永不接触；构建沙箱与预览 iframe 永不接收。
+仓库禁止提交 `.env`、`*.key`、`*secret*.json`（全局 pre-commit 已强制）。日志对 key 与 token 做脱敏。
+
+## 观测与响应（§84）
+
+结构化日志字段：`request_id / user_id / agent / task_id / tool / decision / result / latency_ms / cost`。
+安全事件独立告警。生产环境不开 debug 端点。
+
+## 实时通道（§163）
+
+`GET /api/realtime` 是一条会长期挂着的连接，所以它的边界与一次性请求同口径，一条都不能少：
+
+- **会话与所有权走同一条路**。它读同一份会话 cookie，带 `?projectId=` 时过 `projectBelongsTo`；
+  不属于你的项目一律 404（不区分"不存在"与"不是你的"）。
+  这正是 ADR-0010 不选独立 WS 进程的安全理由：那条路要重新实现一遍鉴权，
+  而"实时通道是唯一一条没走所有权检查的路"是最不该出现的东西。
+- **只读**。POST/PUT/DELETE 一律 405，不给人把它当 RPC 端点用。
+- **同时连接数有上限**（每账号 8 条）。每条连接握着一个订阅与一个心跳定时器，
+  开多少条原本由客户端说了算——不设上限就是"一个登录用户写个循环堆满服务端定时器"。
+  满了回 429，不是硬开一条。
+- **事件形状固定**（`RealtimeEventSchema`），客户端也按同一份契约校验后再渲染。
+  通知事件只走收件人自己的用户频道，不走项目频道：一条写给 A 的通知推到项目频道，
+  就会送进同项目协作者 B 的连接里。
+- **事件里不放凭据、隐私与权威状态**。它是"该重新查了"的信号，不是数据本身——
+  因此断开、伪造、重放一条事件都拿不到额外权限，也改不了任何状态。
+- **线路自己也有边界**（2026-10-06，`docs/adr/0028-…`）。跨实例的帧走一条 Redis 频道 `nexus:realtime:v1`，
+  接收侧**先过 `RealtimeWireFrameSchema.safeParse` 才落到本机订阅者**：线路上的字节与浏览器发来的一样
+  按不可信输入处理，"是我们自己发的"不是免检理由；不合契约的帧只让 `wireErrorCount` 动，一条都不会渲染出去。
+  剩下的限度要说清楚：**那条频道本身不鉴权**——谁能连上那个 Redis，谁就能往里发帧。
+  危害受上一条限制（拿不到权限、改不了状态，最多让某个人界面多亮一次或提前关掉他一条频道，
+  且需要知道那个 `user:<id>` / `project:<id>` 的名字），但"能读整个平台的实时流"是真的。
+  所以部署时 Redis 必须待在私有网络里、带凭据、**不与别的项目共用实例**：
+  本机开发时那次"6380 其实是另一个项目的容器"（见 `docs/ENVIRONMENT.md`）就是这条要避免的事。
+  以前这里写的限度是"进程内驱动收不到跨实例事件"，那一半已经不是限度了（设 `NEXUS_REDIS_URL` 即扇出）；
+  今天真正的限度是**不补发**——断线期间的跨实例事件收不到，界靠刷新与 SSE 首帧重读兜住。
+- **线路读数分两格，且必须分两格**（§SEC 第三十七片，2026-11-05，`docs/adr/0083-…`）。
+  `GET /api/admin/realtime`（门与复核台同一句口径：`role!=='admin'` 一律 403 且一个字段都不给）交出
+  `wireReady`（**构造那一次**建起来了没有：一次性的闩，落定后不再改口）与 `wire`（**此刻**通不通：现读两条连接的
+  `status`，不 await、不缓存）。这两格**可以合法地不一致**，而那不是瑕疵：Redis 比这台进程晚起来时闩是 `false`、
+  线路随后由连接层自动重订并真的通。以前界面只读闩，于是一台收得到别机事件的实例被永久判成"没接上——收不到"，
+  **说的是读数而非事实**；把两格并成一句在任何界面上都看不出毛病，所以钉它的方式是两行 + 两个 `data-` 属性
+  （`data-realtime-wire` / `data-realtime-wire-boot`）+ 措辞抽成纯函数。三条口径要记住：
+  ① `wire` 是**这个进程里 ioredis 对那条 TCP 的看法**，不是"订阅仍在服务器那边登记着"的证明——那句由真投递用例负责；
+  ② 进程内驱动交 `wire: 'na'` 与两个 `null`，`na` ≠ `down`、`null` ≠ `0`（没有这回事、坏了、跑着一帧没断过是三句话）；
+  ③ 回执形状不认识时界面说"回执形状不认识"，不拿半截数据画一个看起来正常的表盘。
+- **线路失败那本账按原因拆开，而且是闭合的**（§SEC 第三十九片，2026-11-06，`docs/adr/0087-…`）。
+  `countWireError` 同时写总数与 `wireErrorByReason`，原因只能是 `wireErrors.ts` 里 `WIRE_ERROR_REASONS`
+  那十个字之一（词表单独一个文件、谁都不 import；写错一个原因名**编译不过**）。三条口径：
+  ① 账是**完整**的——每一格都在，没出过事的是 `0`，不是缺格；"没出过事"与"没人数"必须是两句话。
+  ② **两本线路账同口供**：形状门要求 `(wireErrorCount === null) === (wireErrorByReason === null)`，
+  且分账整格缺席算"不认识"（缺格 ≠ 不适用）。这条是补 `94d7cfe` 那道门缝的——那次只加了分账、
+  没加这条，于是喂一份缺 key 的回执能渲染出"失败累计 3"与"—（没有线路，不适用）"同屏的表盘而没有任何门响。
+  ③ **界面不认字，只照读**：`errorReasonList` 收的是 `Record<string, number>`，服务端加一格界面不改也印得出来
+  （有一条门喂整个词表、断言每一格都出现）。以前沉默的那格「订阅连接收到别的线路名」从此有数——
+  正常配置下永远为 0，非 0 就等于有人改错了订阅集合；帧仍然丢掉，但这一格不再是唯一没有读数的格子。
+  不变量 `Σ 分账 === 总数` 由三条集成用例常驻检查（坏帧、线路名不认识、端点连不上），不只在新格上查。

@@ -1,0 +1,4102 @@
+# NEXUS AI UNIVERSE STUDIO
+
+## MASTER DEVELOPMENT DIRECTIVE
+
+你现在不是一个普通代码生成器。
+
+你是 NEXUS 项目的：
+
+* Principal Software Architect
+* AI Agent Engineer
+* Full-stack Engineer
+* Frontend Engineer
+* Design Systems Engineer
+* UX Engineer
+* Graphics Engineer
+* Game Systems Engineer
+* Multimodal AI Engineer
+* QA Engineer
+* DevOps Engineer
+* Product Designer
+* Technical Product Manager
+
+你的任务不是回答问题。
+
+你的任务是：
+
+# BUILD NEXUS.
+
+---
+
+# 0. PRODUCT VISION
+
+NEXUS 是一个：
+
+# AI-NATIVE CREATIVE + ENTERTAINMENT + DESIGN + GAME CREATION PLATFORM
+
+核心理念：
+
+> Describe it.
+>
+> Design it.
+>
+> Generate it.
+>
+> Build it.
+>
+> Enter it.
+
+用户可以通过自然语言：
+
+* 创造角色
+* 创造世界
+* 创造故事
+* 创造游戏
+* 创造网站
+* 创造 UI
+* 创造视觉资产
+* 创造图片
+* 创造视频
+* 创建交互式原型
+* 创建完整应用
+* 创建互动体验
+
+最终：
+
+> 把想法变成可以真正运行的数字世界。
+
+---
+
+# 1. PRODUCT PILLARS
+
+NEXUS 必须由六个核心系统组成：
+
+## 1. NEXUS Explore
+
+发现：
+
+* Characters
+* Worlds
+* Stories
+* Games
+* Websites
+* Designs
+* Videos
+* Experiences
+
+---
+
+## 2. NEXUS Create
+
+AI 创作：
+
+* Character
+* World
+* Story
+* Image
+* Video
+* Audio
+* Game
+* Website
+* App
+* UI
+
+---
+
+## 3. NEXUS Studio
+
+这是整个项目最重要的产品之一。
+
+一个：
+
+# AI Design + Code + Creation IDE
+
+---
+
+## 4. NEXUS Runtime
+
+让用户真正：
+
+> Enter what they created.
+
+例如：
+
+* interactive story
+* game
+* 3D world
+* interactive website
+* AI character
+
+---
+
+## 5. NEXUS Agents
+
+让 AI 自主：
+
+* research
+* design
+* code
+* generate
+* test
+* debug
+* iterate
+* publish
+
+---
+
+## 6. NEXUS Community
+
+让用户：
+
+* publish
+* follow
+* remix
+* comment
+* like
+* fork
+* collaborate
+
+---
+
+# 2. CORE PRODUCT LOOP
+
+必须围绕：
+
+```text
+Idea
+↓
+AI Understanding
+↓
+Planning
+↓
+Design
+↓
+Generation
+↓
+Interaction
+↓
+Iteration
+↓
+Publish
+↓
+Community
+↓
+Remix
+```
+
+建立整个产品。
+
+---
+
+# 3. NEXUS STUDIO
+
+NEXUS Studio 是项目的核心。
+
+它必须类似：
+
+* Claude Design
+* Figma
+* Framer
+* v0
+* Lovable
+* modern IDE
+
+但最终目标是：
+
+> 把这些产品的核心工作流融合成一个 AI-native environment。
+
+当前 Claude Design 已经支持：
+
+* conversation
+* canvas
+* direct canvas editing
+* comments
+* design systems
+* import screenshots
+* codebase context
+* design ↔ Claude Code
+
+因此我们需要实现相似的核心闭环，但不能简单复制其 UI。
+
+参考：
+
+Claude Design:
+https://support.claude.com/en/articles/14604416-get-started-with-claude-design
+
+---
+
+# 4. STUDIO LAYOUT
+
+Desktop Studio：
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ NEXUS │ Project │ File │ Preview │ Share │ Publish      │
+├────────────┬──────────────────────────────┬─────────────┤
+│            │                              │             │
+│  Layers    │                              │ Properties  │
+│            │                              │             │
+│  Pages     │          CANVAS              │             │
+│            │                              │             │
+│  Assets    │                              │ Design      │
+│            │                              │             │
+│  Components│                              │ Animation   │
+│            │                              │             │
+├────────────┴──────────────────────────────┴─────────────┤
+│ AI COMMAND BAR / CHAT / AGENT ACTIVITY                  │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+# 5. LEFT SIDEBAR
+
+必须包含：
+
+```text
+Pages
+Layers
+Components
+Assets
+Variables
+Design System
+AI Agents
+Code
+History
+```
+
+---
+
+# 6. RIGHT SIDEBAR
+
+选中元素后显示：
+
+```text
+Design
+Layout
+Typography
+Color
+Effects
+Spacing
+Responsive
+Animation
+Accessibility
+Interactions
+Code
+AI
+```
+
+---
+
+# 7. BOTTOM AI COMMAND BAR
+
+这是 NEXUS Studio 最重要的交互之一。
+
+用户可以输入：
+
+> Make this feel more cinematic.
+
+> Make the hero 30% taller.
+
+> Change the visual style to dark fantasy.
+
+> Make mobile layout better.
+
+> Add a parallax animation.
+
+> Convert this into a responsive landing page.
+
+> Generate a matching dashboard.
+
+> Turn this design into React.
+
+> Refactor the code.
+
+> Find accessibility issues.
+
+> Make this production ready.
+
+---
+
+# 8. CANVAS
+
+Canvas 必须支持：
+
+* infinite canvas
+* zoom
+* pan
+* selection
+* multi-selection
+* drag
+* resize
+* rotate
+* align
+* distribute
+* grouping
+* nesting
+* guides
+* rulers
+* snapping
+* grid
+* responsive preview
+
+---
+
+# 9. DESIGN OBJECT MODEL
+
+不要直接把 DOM 当作设计模型。
+
+建立自己的：
+
+# Nexus Design Model
+
+例如：
+
+```typescript
+DesignDocument {
+  id
+  pages[]
+  components[]
+  variables[]
+  assets[]
+  metadata
+}
+```
+
+元素：
+
+```typescript
+DesignNode {
+  id
+  type
+  name
+  parentId
+  children[]
+  position
+  size
+  layout
+  style
+  typography
+  effects
+  responsive
+  animation
+  interactions
+  bindings
+}
+```
+
+---
+
+# 10. NODE TYPES
+
+至少支持：
+
+```text
+Frame
+Section
+Container
+Text
+Image
+Video
+SVG
+Shape
+Button
+Input
+Card
+List
+Grid
+Component
+Instance
+Group
+Code
+3D
+WebGL
+```
+
+未来：
+
+```text
+GameObject
+Particle
+Character
+Camera
+Light
+```
+
+---
+
+# 11. DESIGN SYSTEM
+
+建立：
+
+# Nexus Design System
+
+包含：
+
+```text
+Colors
+Typography
+Spacing
+Radius
+Shadows
+Motion
+Grid
+Breakpoints
+Components
+Icons
+```
+
+用户可以创建自己的 Design System。
+
+---
+
+# 12. DESIGN TOKENS
+
+支持：
+
+```json
+{
+  "color.primary": "...",
+  "color.background": "...",
+  "radius.md": "...",
+  "spacing.4": "...",
+  "font.heading": "...",
+  "motion.fast": "..."
+}
+```
+
+所有组件优先使用 tokens。
+
+---
+
+# 13. COMPONENT SYSTEM
+
+支持：
+
+```text
+Component
+Variant
+Property
+Slot
+Instance
+Override
+```
+
+例如：
+
+```text
+Button
+ ├── Primary
+ ├── Secondary
+ ├── Ghost
+ └── Destructive
+```
+
+---
+
+# 14. RESPONSIVE DESIGN
+
+设计必须支持：
+
+```text
+Mobile
+Tablet
+Desktop
+Wide
+```
+
+用户可以在 Canvas 中切换 viewport。
+
+AI 必须能够自动生成 responsive rules。
+
+---
+
+# 15. VISUAL EDITING
+
+用户选择一个元素后：
+
+```text
+Width
+Height
+X
+Y
+Padding
+Margin
+Gap
+Font
+Size
+Weight
+Color
+Background
+Border
+Radius
+Shadow
+Opacity
+Transform
+Animation
+```
+
+可以直接编辑。
+
+修改必须立即反映在 canvas。
+
+---
+
+# 16. DIRECT MANIPULATION
+
+例如：
+
+用户拖动：
+
+> button
+
+系统：
+
+```text
+pointer
+↓
+update design node
+↓
+update canvas
+↓
+update code representation
+```
+
+设计模型始终是真实 source of truth。
+
+---
+
+# 17. DESIGN ↔ CODE
+
+必须支持：
+
+```text
+Design
+↓
+Code
+```
+
+以及：
+
+```text
+Code
+↓
+Design
+```
+
+这是核心功能。
+
+---
+
+# 18. CODE GENERATION
+
+默认生成：
+
+```text
+React
+TypeScript
+Tailwind
+```
+
+未来支持：
+
+```text
+Vue
+HTML/CSS
+Svelte
+```
+
+---
+
+# 19. CODE VIEW
+
+Studio 中增加：
+
+# Code
+
+用户可以看到：
+
+```tsx
+<Component />
+```
+
+并直接修改。
+
+代码修改之后：
+
+```text
+Code
+↓
+Parser
+↓
+Design Model
+↓
+Canvas
+```
+
+如果无法安全双向转换：
+
+> 保留 code-only region。
+
+---
+
+# 20. AI DESIGN AGENT
+
+建立：
+
+# Nexus Design Agent
+
+职责：
+
+```text
+Understand design request
+↓
+Analyze existing design
+↓
+Understand design system
+↓
+Plan modifications
+↓
+Modify design model
+↓
+Generate assets if necessary
+↓
+Run visual validation
+↓
+Explain result
+```
+
+---
+
+# 21. AI CODING AGENT
+
+建立：
+
+# Nexus Coding Agent
+
+职责：
+
+```text
+Understand codebase
+↓
+Plan
+↓
+Modify files
+↓
+Run tests
+↓
+Run browser
+↓
+Inspect screenshot
+↓
+Fix
+↓
+Repeat
+```
+
+---
+
+# 22. DESIGN AGENT + CODING AGENT
+
+两个 Agent 必须协作。
+
+例如：
+
+用户：
+
+> Build this design as a production website.
+
+流程：
+
+```text
+User
+↓
+Design Agent
+↓
+Design Model
+↓
+Coding Agent
+↓
+Code
+↓
+Browser
+↓
+Screenshot
+↓
+Visual QA
+↓
+Fix
+```
+
+---
+
+# 23. AGENT ORCHESTRATOR
+
+建立：
+
+# Nexus Agent Runtime
+
+负责：
+
+* task planning
+* agent selection
+* tool selection
+* context management
+* memory
+* retries
+* permissions
+* cost tracking
+* evaluation
+
+---
+
+# 24. AGENTS
+
+至少：
+
+```text
+Product Agent
+Design Agent
+Coding Agent
+Research Agent
+Image Agent
+Video Agent
+3D Agent
+Game Agent
+QA Agent
+Security Agent
+SEO Agent
+Content Agent
+Growth Agent
+```
+
+---
+
+# 25. AGENT PLAN
+
+复杂任务必须先生成：
+
+```text
+Goal
+Constraints
+Tasks
+Dependencies
+Risks
+Validation
+```
+
+用户可以看到：
+
+```text
+Planning...
+
+1. Analyze requirements
+2. Create design system
+3. Build homepage
+4. Generate assets
+5. Implement interactions
+6. Test responsive layout
+7. Run accessibility audit
+8. Publish
+```
+
+---
+
+# 26. AGENT ACTIVITY
+
+提供：
+
+# Agent Activity Panel
+
+显示：
+
+```text
+Thinking about layout...
+Created 12 components
+Generated 4 assets
+Modified Hero.tsx
+Running tests...
+Opening browser...
+Screenshot captured...
+Detected alignment issue...
+Fixing...
+```
+
+注意：
+
+> 不显示模型隐藏 chain-of-thought。
+
+只显示安全、简洁的工作状态和结果。
+
+---
+
+# 27. VERSION HISTORY
+
+每次重大修改：
+
+```text
+Snapshot
+```
+
+用户可以：
+
+```text
+View
+Compare
+Restore
+Duplicate
+Branch
+```
+
+---
+
+# 28. BRANCHING
+
+支持：
+
+```text
+main
+design-v1
+design-v2
+experimental
+```
+
+例如：
+
+> Try 3 different visual directions.
+
+AI 自动生成：
+
+```text
+Option A
+Option B
+Option C
+```
+
+用户可以并排比较。
+
+---
+
+# 29. MULTI-VARIANT GENERATION
+
+这是非常重要的功能。
+
+用户：
+
+> Create 4 homepage concepts.
+
+AI：
+
+```text
+Concept A
+Concept B
+Concept C
+Concept D
+```
+
+用户：
+
+> Combine A's layout with C's visual style.
+
+AI：
+
+```text
+A layout
++
+C visual language
+=
+new design
+```
+
+---
+
+# 30. REFERENCE IMAGE
+
+用户可以上传：
+
+* screenshot
+* photo
+* Figma image
+* website screenshot
+* moodboard
+
+然后：
+
+> “Make my design feel like this.”
+
+AI 分析：
+
+```text
+layout
+color
+typography
+spacing
+visual hierarchy
+motion
+```
+
+然后转换为：
+
+> Design instructions。
+
+禁止直接复制受版权保护的具体作品。
+
+---
+
+# 31. WEBSITE IMPORT
+
+用户输入 URL。
+
+Agent：
+
+```text
+Fetch
+↓
+Analyze
+↓
+Screenshot
+↓
+Structure extraction
+↓
+Visual analysis
+↓
+Recreate inspired structure
+```
+
+不得直接复制受版权保护的网站内容。
+
+---
+
+# 32. DESIGN CRITIC AGENT
+
+建立：
+
+# Design Critic
+
+自动检查：
+
+```text
+visual hierarchy
+spacing
+contrast
+alignment
+consistency
+responsive layout
+accessibility
+typography
+information density
+```
+
+输出：
+
+```text
+Issue
+Severity
+Location
+Recommendation
+```
+
+---
+
+# 33. VISUAL QA AGENT
+
+浏览器：
+
+```text
+Playwright
+```
+
+流程：
+
+```text
+Build
+↓
+Open browser
+↓
+Screenshot
+↓
+Inspect
+↓
+Compare expected design
+↓
+Detect regression
+↓
+Fix
+```
+
+---
+
+# 34. FRONTEND GENERATION
+
+用户：
+
+> Build me a portfolio website for a cinematic game designer.
+
+AI 自动：
+
+```text
+Research
+↓
+Information architecture
+↓
+Design system
+↓
+Wireframe
+↓
+Visual design
+↓
+Assets
+↓
+Code
+↓
+Responsive
+↓
+Animation
+↓
+QA
+```
+
+---
+
+# 35. PROMPT TO PRODUCT
+
+用户甚至可以说：
+
+> “Create a social platform for AI-generated game worlds.”
+
+Agent 必须能够从：
+
+```text
+Idea
+```
+
+一直执行到：
+
+```text
+Running Application
+```
+
+---
+
+# 36. NEXUS AS AI APP BUILDER
+
+参考当前：
+
+* Figma Make
+* v0
+* Lovable
+
+但不要直接复制。
+
+这些产品已经证明：
+
+> 自然语言 → UI → code → working app
+
+是非常有价值的工作流。
+
+---
+
+# 37. PROJECT TYPES
+
+New Project：
+
+```text
+Website
+Web App
+Mobile UI
+Game
+Interactive Story
+3D Experience
+Dashboard
+Design System
+Prototype
+```
+
+---
+
+# 38. AI IMAGE SYSTEM
+
+建立：
+
+# Nexus Image Studio
+
+支持：
+
+```text
+Text → Image
+Image → Image
+Sketch → Image
+Reference → Variation
+Character → Scene
+```
+
+---
+
+# 39. CHARACTER CONSISTENCY
+
+用户创建：
+
+> Character A
+
+系统保存：
+
+```text
+identity
+appearance
+style
+clothing
+traits
+```
+
+后续生成：
+
+```text
+Character A
+in different scenes
+```
+
+尽可能保持视觉一致。
+
+---
+
+# 40. VIDEO SYSTEM
+
+建立：
+
+# Nexus Video Studio
+
+支持：
+
+```text
+Text → Video
+Image → Video
+Storyboard → Video
+Character → Scene
+```
+
+流程：
+
+```text
+Prompt
+↓
+Storyboard
+↓
+Shot list
+↓
+Image references
+↓
+Video generation
+↓
+Timeline
+```
+
+---
+
+# 41. VIDEO TIMELINE
+
+类似视频编辑器：
+
+```text
+Track 1
+Track 2
+Audio
+Subtitles
+Effects
+Camera
+```
+
+用户可以：
+
+* trim
+* reorder
+* regenerate shot
+* change prompt
+* extend
+* transition
+
+---
+
+# 42. STORYBOARD
+
+AI 自动：
+
+```text
+Scene 1
+Scene 2
+Scene 3
+Scene 4
+```
+
+每个 scene：
+
+```text
+camera
+characters
+environment
+dialogue
+action
+duration
+```
+
+---
+
+# 43. AUDIO
+
+未来支持：
+
+```text
+Music
+Voice
+Sound effects
+Ambience
+```
+
+---
+
+# 44. WORLD BUILDER
+
+用户：
+
+> Create a dark fantasy world.
+
+AI 生成：
+
+```text
+World
+ ├── Lore
+ ├── History
+ ├── Geography
+ ├── Factions
+ ├── Characters
+ ├── Creatures
+ ├── Items
+ ├── Quests
+ └── Story
+```
+
+---
+
+# 45. WORLD GRAPH
+
+可视化：
+
+```text
+Character
+   ↓
+Faction
+   ↓
+Kingdom
+   ↓
+Conflict
+   ↓
+Quest
+```
+
+用户可以拖动节点。
+
+---
+
+# 46. CHARACTER SYSTEM
+
+Character：
+
+```text
+Name
+Appearance
+Personality
+Backstory
+Goals
+Fears
+Relationships
+Memory
+Voice
+Visual identity
+```
+
+---
+
+# 47. CHARACTER AGENT
+
+用户可以：
+
+> Talk to character.
+
+Character Agent 必须使用：
+
+```text
+personality
+world lore
+memory
+relationships
+current state
+```
+
+生成回复。
+
+---
+
+# 48. MEMORY
+
+分：
+
+```text
+Session Memory
+Character Memory
+World Memory
+User Memory
+```
+
+必须可查看和删除。
+
+---
+
+# 49. RAG
+
+所有大型世界必须建立 RAG：
+
+```text
+Lore
+Characters
+History
+Locations
+Items
+Quests
+Documents
+```
+
+使用：
+
+```text
+PostgreSQL
+pgvector
+Hybrid Retrieval
+Reranking
+```
+
+---
+
+# 50. GAME BUILDER
+
+建立：
+
+# Nexus Game Studio
+
+第一阶段：
+
+# Web Games
+
+技术：
+
+```text
+Three.js
+React
+WebGL
+WebGPU where appropriate
+```
+
+未来：
+
+```text
+Godot
+Unity
+Unreal
+```
+
+---
+
+# 51. GAME TYPES
+
+至少支持：
+
+```text
+2D
+2.5D
+3D
+Interactive Story
+RPG prototype
+Exploration
+Puzzle
+Visual Novel
+```
+
+---
+
+# 52. GAME AGENT
+
+用户：
+
+> Build a Souls-like boss fight prototype.
+
+Agent：
+
+```text
+Game Design
+↓
+Combat Design
+↓
+Level Design
+↓
+Enemy
+↓
+Animations
+↓
+Effects
+↓
+UI
+↓
+Code
+↓
+Playtest
+```
+
+注意：
+
+> 可以做原创玩法，但不要复制具体商业游戏的角色、资产、剧情或受保护内容。
+
+---
+
+# 53. GAME PLAYTEST AGENT
+
+Agent 自动：
+
+```text
+Launch game
+↓
+Play
+↓
+Capture screenshots
+↓
+Detect bugs
+↓
+Analyze difficulty
+↓
+Fix
+```
+
+---
+
+# 54. GAME DESIGN SYSTEM
+
+支持：
+
+```text
+Player
+Enemy
+Weapon
+Item
+Quest
+Dialogue
+Trigger
+NPC
+Camera
+Animation
+Particle
+```
+
+---
+
+# 55. RUNTIME
+
+任何项目：
+
+```text
+Design
+↓
+Build
+↓
+Runtime
+```
+
+都可以点击：
+
+# PLAY
+
+---
+
+# 56. SHARE
+
+每个作品都有：
+
+```text
+/n/username/project
+```
+
+可以分享。
+
+---
+
+# 57. PUBLISH
+
+用户：
+
+```text
+Publish
+```
+
+选择：
+
+```text
+Public
+Unlisted
+Private
+```
+
+---
+
+# 58. REMIX
+
+其他用户：
+
+> Remix this.
+
+生成：
+
+```text
+Fork
+```
+
+而不是修改原作品。
+
+---
+
+# 59. COMMUNITY
+
+作品页面：
+
+```text
+Like
+Comment
+Follow
+Remix
+Share
+Save
+```
+
+---
+
+# 60. CREATOR PROFILE
+
+用户主页：
+
+```text
+Avatar
+Bio
+Projects
+Worlds
+Characters
+Games
+Followers
+Following
+```
+
+---
+
+# 61. DISCOVERY
+
+首页：
+
+```text
+Trending
+New
+Popular
+Following
+AI Picks
+Games
+Worlds
+Characters
+Designs
+```
+
+---
+
+# 62. PERSONALIZATION
+
+推荐系统：
+
+```text
+User interests
+Interactions
+Projects
+Likes
+Follows
+Searches
+```
+
+---
+
+# 63. SEARCH
+
+统一搜索：
+
+```text
+Projects
+Users
+Characters
+Worlds
+Games
+Designs
+Assets
+```
+
+支持：
+
+```text
+keyword
+semantic
+filters
+```
+
+---
+
+# 64. ASSET LIBRARY
+
+用户拥有：
+
+```text
+Images
+Videos
+Audio
+3D models
+Characters
+Components
+Design systems
+```
+
+---
+
+# 65. AI ASSET GENERATOR
+
+用户在 Canvas 中：
+
+> “Generate a matching background.”
+
+Agent：
+
+```text
+Analyze current design
+↓
+Extract visual language
+↓
+Generate asset
+↓
+Insert into canvas
+```
+
+---
+
+# 66. DESIGN CONTEXT
+
+Agent 必须知道：
+
+```text
+current selection
+current page
+current viewport
+design system
+project files
+assets
+user request
+```
+
+而不是每次重新从零理解。
+
+---
+
+# 67. CONTEXT ENGINE
+
+建立：
+
+# Nexus Context Engine
+
+负责：
+
+```text
+Project context
+Design context
+Code context
+Asset context
+Conversation context
+Agent context
+```
+
+---
+
+# 68. LONG CONTEXT
+
+对于大型项目：
+
+不要把整个 repo 每次塞进模型。
+
+使用：
+
+```text
+semantic retrieval
+file summaries
+symbol index
+dependency graph
+recent changes
+design graph
+```
+
+---
+
+# 69. CODE INDEX
+
+建立：
+
+```text
+File
+Symbol
+Function
+Class
+Component
+Dependency
+```
+
+Agent 可以：
+
+> 找到真正相关代码。
+
+---
+
+# 70. DESIGN INDEX
+
+同样建立：
+
+```text
+Page
+Frame
+Component
+Asset
+Token
+Interaction
+```
+
+---
+
+# 71. PROJECT GRAPH
+
+最终：
+
+```text
+Project
+├── Design
+├── Code
+├── Assets
+├── Agents
+├── Data
+├── Runtime
+└── Publishing
+```
+
+---
+
+# 72. AGENT TOOL SYSTEM
+
+建立统一：
+
+# Tool Registry
+
+Tools：
+
+```text
+read_file
+write_file
+search_code
+search_design
+modify_design
+run_command
+run_test
+open_browser
+click
+type
+screenshot
+generate_image
+generate_video
+query_database
+search_web
+retrieve_rag
+create_component
+publish
+```
+
+---
+
+# 73. TOOL PERMISSIONS
+
+每个 Agent 必须有权限。
+
+例如：
+
+```text
+Design Agent
+→ design tools
+→ asset tools
+
+Coding Agent
+→ code tools
+→ browser tools
+
+Research Agent
+→ web tools
+
+Publishing Agent
+→ publish tool
+```
+
+---
+
+# 74. HUMAN APPROVAL
+
+危险操作：
+
+```text
+Delete project
+Publish public
+Spend credits
+Send message
+Deploy production
+Payment
+```
+
+必须：
+
+> Human approval。
+
+---
+
+# 75. AI COST
+
+记录：
+
+```text
+tokens
+model
+latency
+cost
+tool calls
+```
+
+用户可以查看：
+
+# AI Usage
+
+---
+
+# 76. MODEL ROUTER
+
+支持：
+
+```text
+Fast model
+Reasoning model
+Vision model
+Image model
+Video model
+Embedding model
+Reranker
+```
+
+模型必须可替换。
+
+---
+
+# 77. PROVIDER ABSTRACTION
+
+不要把项目绑定一个 AI provider。
+
+建立：
+
+```text
+LLMProvider
+ImageProvider
+VideoProvider
+EmbeddingProvider
+SpeechProvider
+```
+
+---
+
+# 78. IMAGE PROVIDER
+
+统一接口：
+
+```typescript
+generateImage()
+editImage()
+variation()
+upscale()
+```
+
+---
+
+# 79. VIDEO PROVIDER
+
+统一：
+
+```typescript
+generateVideo()
+extendVideo()
+imageToVideo()
+```
+
+---
+
+# 80. SECURITY
+
+必须重点解决：
+
+* authentication
+* authorization
+* RBAC
+* rate limits
+* secret management
+* sandbox
+* SSRF
+* XSS
+* CSRF
+* injection
+* file upload security
+* malicious code execution
+
+---
+
+# 81. GENERATED CODE SANDBOX
+
+这是极重要的。
+
+用户生成代码：
+
+> 不能直接在主机上执行。
+
+使用：
+
+```text
+sandbox
+container
+resource limits
+network restrictions
+timeout
+filesystem isolation
+```
+
+---
+
+# 82. PREVIEW ENVIRONMENT
+
+生成的项目必须在：
+
+# Isolated Preview Runtime
+
+运行。
+
+例如：
+
+```text
+project
+↓
+build sandbox
+↓
+preview URL
+```
+
+---
+
+# 83. DEPLOYMENT
+
+支持：
+
+```text
+Preview
+Staging
+Production
+```
+
+---
+
+# 84. OBSERVABILITY
+
+记录：
+
+```text
+logs
+metrics
+traces
+agent traces
+LLM calls
+tool calls
+errors
+latency
+cost
+```
+
+---
+
+# 85. EVALUATION
+
+建立：
+
+# Nexus Agent Evaluation
+
+测试：
+
+```text
+Design accuracy
+Code correctness
+Visual quality
+Agent task completion
+Tool selection
+RAG accuracy
+Hallucination
+Accessibility
+Performance
+```
+
+---
+
+# 86. VISUAL BENCHMARK
+
+建立：
+
+```text
+reference screenshot
++
+generated screenshot
+```
+
+进行视觉比较。
+
+指标：
+
+```text
+layout similarity
+spacing
+alignment
+color
+typography
+component correctness
+```
+
+不要只使用 pixel-perfect comparison。
+
+---
+
+# 87. BROWSER AUTOMATION
+
+使用：
+
+# Playwright
+
+必须能够：
+
+```text
+launch
+navigate
+click
+type
+scroll
+screenshot
+inspect
+```
+
+---
+
+# 88. AUTONOMOUS QA
+
+Agent：
+
+```text
+Build
+↓
+Open browser
+↓
+Test
+↓
+Screenshot
+↓
+Analyze
+↓
+Fix
+↓
+Retest
+```
+
+---
+
+# 89. MOBILE TEST
+
+测试：
+
+```text
+iPhone viewport
+Android viewport
+Tablet
+Desktop
+```
+
+---
+
+# 90. ACCESSIBILITY
+
+至少：
+
+```text
+WCAG-aware
+keyboard navigation
+focus
+ARIA
+contrast
+screen reader semantics
+```
+
+---
+
+# 91. PERFORMANCE
+
+检查：
+
+```text
+LCP
+CLS
+INP
+bundle size
+image optimization
+code splitting
+```
+
+---
+
+# 92. DATABASE
+
+优先：
+
+# PostgreSQL
+
+核心：
+
+```text
+users
+projects
+pages
+design_nodes
+design_tokens
+components
+assets
+files
+agents
+agent_tasks
+conversations
+messages
+worlds
+characters
+stories
+games
+published_projects
+likes
+comments
+follows
+remixes
+usage
+```
+
+---
+
+# 93. VECTOR
+
+优先：
+
+# pgvector
+
+用于：
+
+```text
+project retrieval
+design retrieval
+code retrieval
+world lore
+character memory
+conversation memory
+```
+
+---
+
+# 94. CACHE
+
+使用：
+
+# Redis
+
+用于：
+
+```text
+sessions
+queues
+cache
+rate limits
+agent state
+realtime
+```
+
+---
+
+# 95. EVENT SYSTEM
+
+统一：
+
+```text
+project.created
+design.updated
+asset.generated
+agent.started
+agent.completed
+project.published
+game.played
+user.liked
+project.remixed
+```
+
+---
+
+# 96. FRONTEND STACK
+
+优先：
+
+```text
+Next.js
+React
+TypeScript
+Tailwind
+shadcn/ui
+Framer Motion
+```
+
+---
+
+# 97. CANVAS ENGINE
+
+不要简单依赖普通 DOM。
+
+评估：
+
+```text
+DOM Canvas
+SVG
+Canvas2D
+WebGL
+```
+
+设计工作台优先选择：
+
+> 对大型设计文档性能合理、支持交互编辑的架构。
+
+如果需要：
+
+> 自研 scene graph + rendering layer。
+
+---
+
+# 98. GRAPHICS
+
+3D：
+
+```text
+Three.js
+React Three Fiber
+```
+
+必要时：
+
+```text
+WebGPU
+```
+
+---
+
+# 99. BACKEND
+
+优先：
+
+```text
+Java
+Spring Boot
+PostgreSQL
+Redis
+```
+
+---
+
+# 100. AI SERVICE
+
+```text
+Python
+FastAPI
+```
+
+负责：
+
+```text
+agent orchestration
+RAG
+evaluation
+model routing
+generation
+```
+
+---
+
+# 101. FILE STORAGE
+
+使用：
+
+```text
+S3-compatible storage
+```
+
+保存：
+
+```text
+images
+videos
+audio
+projects
+exports
+```
+
+---
+
+# 102. PROJECT FORMAT
+
+设计项目必须可序列化。
+
+例如：
+
+```text
+.nexus/
+├── project.json
+├── design.json
+├── tokens.json
+├── components/
+├── assets/
+├── code/
+└── metadata.json
+```
+
+---
+
+# 103. EXPORT
+
+支持：
+
+```text
+PNG
+SVG
+PDF
+HTML
+React
+Project ZIP
+```
+
+未来：
+
+```text
+Figma
+Godot
+Unity
+Unreal
+```
+
+---
+
+# 104. DESIGN SYSTEM IMPORT
+
+支持：
+
+```text
+Nexus Design System
+Figma-like tokens
+JSON
+CSS variables
+Tailwind config
+```
+
+---
+
+# 105. CODE IMPORT
+
+允许：
+
+```text
+GitHub repository
+ZIP
+local folder
+```
+
+Agent：
+
+```text
+scan
+index
+understand
+```
+
+---
+
+# 106. REPOSITORY UNDERSTANDING
+
+Coding Agent 必须先建立：
+
+```text
+file map
+dependency graph
+component graph
+API graph
+```
+
+不要盲目修改。
+
+---
+
+# 107. GIT
+
+必须使用 Git。
+
+每个 milestone：
+
+```text
+test
+↓
+commit
+```
+
+---
+
+# 108. PROJECT SNAPSHOTS
+
+Git 是开发历史。
+
+Nexus Snapshot 是用户项目历史。
+
+两者不要混淆。
+
+---
+
+# 109. COLLABORATION
+
+未来支持：
+
+```text
+real-time cursors
+comments
+presence
+permissions
+```
+
+---
+
+# 110. AI COLLABORATION
+
+用户：
+
+> “@DesignAgent fix this.”
+
+Agent：
+
+> 修改选中的区域。
+
+---
+
+# 111. ANNOTATIONS
+
+用户可以在 Canvas：
+
+> 点击元素 → 写评论。
+
+例如：
+
+> “这个按钮太大。”
+
+Agent 自动定位。
+
+---
+
+# 112. MULTI-AGENT COLLABORATION
+
+例如：
+
+```text
+Product Agent
+↓
+Design Agent
+↓
+Coding Agent
+↓
+QA Agent
+```
+
+每个 Agent 有自己的职责。
+
+---
+
+# 113. AGENT HANDOFF
+
+必须共享：
+
+```text
+task
+context
+artifacts
+changes
+results
+```
+
+---
+
+# 114. DESIGN → CODE HANDOFF
+
+用户：
+
+> “Build this.”
+
+Design Agent：
+
+```text
+design complete
+```
+
+Coding Agent：
+
+```text
+imports design model
+```
+
+然后生成：
+
+```text
+React
+TypeScript
+CSS
+```
+
+---
+
+# 115. CODE → DESIGN
+
+用户：
+
+> “Visualize this existing app.”
+
+Agent：
+
+```text
+analyze code
+↓
+infer layout
+↓
+create design representation
+```
+
+---
+
+# 116. AI WEBSITE DESIGNER
+
+提供：
+
+# Design from Prompt
+
+用户：
+
+> “Create a premium landing page for an AI game platform.”
+
+Agent 自动：
+
+```text
+Research
+↓
+Information architecture
+↓
+Visual direction
+↓
+Design system
+↓
+Components
+↓
+Canvas
+```
+
+---
+
+# 117. DESIGN EXPLORATION
+
+AI 不应该只给一个结果。
+
+默认：
+
+```text
+3 visual directions
+```
+
+例如：
+
+```text
+Cinematic
+Minimal
+Futuristic
+```
+
+用户选择后继续。
+
+---
+
+# 118. DESIGN MEMORY
+
+项目记住：
+
+```text
+preferred style
+brand colors
+typography
+components
+visual references
+```
+
+---
+
+# 119. BRAND KIT
+
+用户可以建立：
+
+```text
+Logo
+Colors
+Typography
+Images
+Tone
+Components
+```
+
+所有 AI 生成内容自动遵守 Brand Kit。
+
+---
+
+# 120. AI DESIGN SYSTEM GENERATOR
+
+用户：
+
+> “Create a design system for this product.”
+
+AI 自动生成：
+
+```text
+colors
+type scale
+spacing
+radius
+shadows
+components
+motion
+```
+
+---
+
+# 121. DESIGN LINT
+
+自动检查：
+
+```text
+inconsistent spacing
+wrong colors
+duplicate components
+unused tokens
+bad typography
+poor contrast
+```
+
+---
+
+# 122. MOTION SYSTEM
+
+支持：
+
+```text
+fade
+slide
+scale
+spring
+parallax
+scroll reveal
+page transitions
+micro interactions
+```
+
+AI 可以：
+
+> “Make this feel more cinematic.”
+
+---
+
+# 123. INTERACTION BUILDER
+
+用户选择：
+
+```text
+Button
+```
+
+然后：
+
+> On click → open modal.
+
+或者：
+
+> On hover → glow.
+
+建立 visual interaction graph。
+
+---
+
+# 124. STATE SYSTEM
+
+支持：
+
+```text
+hover
+active
+focus
+disabled
+loading
+error
+success
+```
+
+---
+
+# 125. DATA BINDING
+
+组件可以连接：
+
+```text
+API
+Database
+Static data
+Agent output
+```
+
+例如：
+
+```text
+ProductCard
+↓
+GET /products
+```
+
+---
+
+# 126. AI GENERATED COMPONENTS
+
+用户：
+
+> “Create a cinematic character card.”
+
+AI：
+
+```text
+Design
+↓
+Component
+↓
+Variants
+↓
+Responsive
+↓
+Code
+```
+
+---
+
+# 127. COMPONENT MARKETPLACE
+
+未来：
+
+用户可以发布：
+
+```text
+Components
+Templates
+Design systems
+Assets
+```
+
+其他人 remix。
+
+---
+
+# 128. CREATOR ECONOMY
+
+未来支持：
+
+```text
+Sell templates
+Sell components
+Sell assets
+Sell worlds
+Sell games
+Sell AI characters
+```
+
+必须符合平台规则和适用法律。
+
+---
+
+# 129. CONTENT SAFETY
+
+平台必须建立：
+
+```text
+content moderation
+age-appropriate controls
+copyright safeguards
+identity/likeness protections
+abuse reporting
+```
+
+不得生成：
+
+* non-consensual intimate imagery
+* sexual content involving minors
+* impersonation intended to deceive
+* illegal content
+
+---
+
+# 130. IMAGE SAFETY
+
+对用户上传的人脸、真人照片等建立：
+
+```text
+consent-aware workflows
+```
+
+---
+
+# 131. PUBLICATION MODERATION
+
+Public projects：
+
+```text
+upload
+↓
+automated moderation
+↓
+risk classification
+↓
+publish or human review
+```
+
+---
+
+# 132. COMMUNITY MODERATION
+
+支持：
+
+```text
+report
+block
+mute
+moderation
+```
+
+---
+
+# 133. MONETIZATION
+
+未来：
+
+```text
+Free
+Pro
+Creator
+Studio
+Enterprise
+```
+
+按照：
+
+```text
+AI usage
+storage
+generation
+team collaboration
+publishing
+```
+
+设计。
+
+---
+
+# 134. CREDIT SYSTEM
+
+用户可以看到：
+
+```text
+AI credits
+Image credits
+Video credits
+Compute credits
+```
+
+所有消费透明。
+
+---
+
+# 135. DISCOVERY ENGINE
+
+推荐：
+
+```text
+semantic similarity
+behavior
+quality
+freshness
+social signals
+```
+
+不要单纯按照 engagement 排序。
+
+---
+
+# 136. HOME PAGE
+
+最终首页必须非常有视觉冲击力。
+
+Hero：
+
+# CREATE YOUR UNIVERSE
+
+Subtext：
+
+> Design it. Generate it. Build it. Enter it.
+
+CTA：
+
+```text
+Create
+Explore
+```
+
+背景可以是：
+
+> 动态生成的原创 3D 世界。
+
+---
+
+# 137. FIRST EXPERIENCE
+
+新用户无需注册即可：
+
+```text
+输入一句 prompt
+↓
+生成一个视觉作品
+↓
+体验 Canvas
+```
+
+之后再要求登录保存。
+
+---
+
+# 138. WOW MOMENT
+
+第一次使用必须在：
+
+# 60 seconds
+
+以内产生明显成果。
+
+---
+
+# 139. EXAMPLE
+
+用户：
+
+> “Create a dark fantasy world with a ruined castle.”
+
+NEXUS：
+
+```text
+Planning world...
+
+Generating visual direction...
+
+Creating castle...
+
+Creating environment...
+
+Creating character...
+
+Building world...
+
+Ready.
+
+[ENTER WORLD]
+```
+
+---
+
+# 140. SECOND WOW
+
+进入之后：
+
+用户可以：
+
+```text
+walk
+explore
+talk
+```
+
+---
+
+# 141. THIRD WOW
+
+用户说：
+
+> “Change the castle into a futuristic cyberpunk city.”
+
+AI：
+
+```text
+Analyzing world...
+
+Updating environment...
+
+Updating lore...
+
+Updating characters...
+
+Updating visual assets...
+
+Done.
+```
+
+整个世界改变。
+
+---
+
+# 142. DESIGN WORKSPACE WOW
+
+用户打开 Studio：
+
+> “Make this look like a premium sci-fi game landing page.”
+
+Agent 自动完成：
+
+```text
+design
+assets
+animations
+responsive
+code
+```
+
+然后：
+
+> **[Open Live Preview]**
+
+---
+
+# 143. USER CONTROL
+
+AI 永远不是唯一控制者。
+
+用户可以：
+
+```text
+AI generate
++
+manual edit
+```
+
+两者必须并存。
+
+---
+
+# 144. NO LOCK-IN
+
+用户可以：
+
+```text
+export design
+export code
+export assets
+delete account
+```
+
+---
+
+# 145. PROJECT OWNERSHIP
+
+用户作品：
+
+> 属于用户。
+
+平台只按照明确的服务条款和授权使用数据。
+
+---
+
+# 146. PERFORMANCE
+
+Studio 必须能够处理：
+
+```text
+100 nodes
+1000 nodes
+10000 nodes
+```
+
+逐步优化。
+
+---
+
+# 147. LARGE PROJECT
+
+大型项目必须：
+
+```text
+virtualize
+lazy load
+incremental rendering
+memoization
+worker
+```
+
+---
+
+# 148. UNDO / REDO
+
+设计编辑必须支持：
+
+```text
+Ctrl+Z
+Ctrl+Shift+Z
+```
+
+并支持：
+
+> AI 操作作为一个可撤销 transaction。
+
+---
+
+# 149. TRANSACTION MODEL
+
+一次 AI 操作：
+
+```text
+Before
+↓
+AI changes
+↓
+After
+```
+
+用户：
+
+> Undo AI change.
+
+整个修改回滚。
+
+---
+
+# 150. COMMAND SYSTEM
+
+建立：
+
+```text
+Command
+execute()
+undo()
+redo()
+```
+
+所有 Canvas 修改通过 Command。
+
+---
+
+# 151. AI DIFF
+
+AI 修改前后显示：
+
+```text
+Changed:
+Hero
+Button
+Typography
+Spacing
+```
+
+---
+
+# 152. SIDE-BY-SIDE
+
+允许：
+
+```text
+Before | After
+```
+
+---
+
+# 153. DESIGN BRANCH
+
+AI 可以：
+
+> “Try another version.”
+
+创建：
+
+```text
+Branch
+```
+
+---
+
+# 154. MULTI-MODEL
+
+用户可以选择：
+
+```text
+Fast
+Balanced
+Reasoning
+```
+
+---
+
+# 155. MODEL COMPARISON
+
+高级用户：
+
+> Generate with 3 models.
+
+显示：
+
+```text
+Model A
+Model B
+Model C
+```
+
+---
+
+# 156. AGENT BENCHMARK
+
+记录：
+
+```text
+task success
+visual quality
+code quality
+latency
+cost
+```
+
+---
+
+# 157. SELF-IMPROVEMENT
+
+Agent 应该能够发现：
+
+```text
+failure
+```
+
+然后：
+
+```text
+root cause
+↓
+fix
+↓
+evaluation
+```
+
+---
+
+# 158. DEVELOPMENT LOOP
+
+严格遵循：
+
+```text
+OBSERVE
+↓
+PLAN
+↓
+IMPLEMENT
+↓
+RUN
+↓
+TEST
+↓
+SCREENSHOT
+↓
+INSPECT
+↓
+FIX
+↓
+RETEST
+↓
+COMMIT
+```
+
+---
+
+# 159. NO FAKE IMPLEMENTATION
+
+禁止：
+
+```text
+TODO pretending to work
+fake API
+fake generation
+fake publish
+fake AI
+fake payment
+```
+
+如果 provider 尚未接入：
+
+> 明确显示 provider unavailable。
+
+---
+
+# 160. MOCK MODE
+
+开发阶段允许：
+
+```text
+Mock Provider
+```
+
+但必须明确：
+
+```text
+DEMO MODE
+```
+
+不能伪装成真实生成。
+
+---
+
+# 161. PROVIDER FAILOVER
+
+AI provider 失败：
+
+```text
+Provider A
+↓
+Provider B
+↓
+Fallback
+```
+
+---
+
+# 162. JOB QUEUE
+
+图片、视频、3D、复杂 Agent 任务：
+
+```text
+Queue
+↓
+Worker
+↓
+Progress
+↓
+Result
+```
+
+---
+
+# 163. REALTIME
+
+使用：
+
+```text
+WebSocket
+```
+
+显示：
+
+```text
+generation progress
+agent status
+build status
+preview status
+```
+
+---
+
+# 164. NOTIFICATIONS
+
+用户看到：
+
+```text
+Generation complete
+Build complete
+Agent task complete
+Publish complete
+```
+
+---
+
+# 165. SEARCH
+
+建立全平台搜索：
+
+```text
+projects
+users
+worlds
+games
+characters
+designs
+components
+assets
+```
+
+---
+
+# 166. SEO
+
+Public projects：
+
+```text
+SSR
+metadata
+OpenGraph
+JSON-LD
+sitemap
+```
+
+---
+
+# 167. SHARING
+
+每个作品：
+
+```text
+shareable URL
+```
+
+支持：
+
+```text
+preview
+interactive
+fork
+remix
+```
+
+---
+
+# 168. ANALYTICS
+
+Creator 可以看到：
+
+```text
+views
+likes
+remixes
+followers
+completion
+play time
+```
+
+---
+
+# 169. CREATOR ANALYTICS AGENT
+
+用户：
+
+> “为什么我的项目没人看？”
+
+Agent 分析：
+
+```text
+thumbnail
+title
+description
+retention
+traffic
+```
+
+给建议。
+
+---
+
+# 170. RESEARCH AGENT
+
+用户：
+
+> “Research current trends in cinematic web design.”
+
+Research Agent：
+
+```text
+search
+collect
+summarize
+cite
+```
+
+然后：
+
+> 给 Design Agent。
+
+---
+
+# 171. DESIGN RESEARCH
+
+建立：
+
+```text
+references
+competitors
+moodboard
+visual directions
+```
+
+---
+
+# 172. MOODBOARD
+
+用户拖入：
+
+```text
+images
+screenshots
+colors
+text
+```
+
+AI 自动分析：
+
+```text
+style
+palette
+typography
+composition
+```
+
+---
+
+# 173. AI STYLE EXTRACTION
+
+输出：
+
+```text
+Visual DNA
+```
+
+例如：
+
+```text
+Dark
+Cinematic
+High contrast
+Large typography
+Soft glass
+Slow motion
+```
+
+---
+
+# 174. DESIGN DNA
+
+项目保存：
+
+```text
+Visual DNA
+```
+
+所有 AI 生成内容遵循它。
+
+---
+
+# 175. FULL PROJECT AGENT
+
+最终用户可以说：
+
+> “Build me a complete AI game platform.”
+
+Nexus Agent：
+
+```text
+Research
+↓
+Product architecture
+↓
+Design
+↓
+Code
+↓
+Database
+↓
+AI
+↓
+Testing
+↓
+Deployment
+```
+
+---
+
+# 176. AUTONOMOUS MODE
+
+允许：
+
+# Autonomous Build
+
+用户：
+
+> “Build this product.”
+
+Agent 在权限范围内：
+
+```text
+Plan
+Implement
+Test
+Fix
+Iterate
+```
+
+持续运行。
+
+---
+
+# 177. HUMAN CHECKPOINTS
+
+用户可以设置：
+
+```text
+Ask before:
+production deploy
+public publish
+spend credits
+delete
+payment
+```
+
+---
+
+# 178. PROJECT HEALTH
+
+Studio 显示：
+
+```text
+Build: ✓
+Tests: ✓
+Accessibility: 94
+Performance: 91
+Visual QA: 96
+AI QA: 89
+Security: ✓
+```
+
+---
+
+# 179. QUALITY GATE
+
+发布前：
+
+```text
+Build
+Tests
+Security
+Performance
+Accessibility
+Visual QA
+```
+
+全部达到阈值才允许 Publish。
+
+---
+
+# 180. FINAL USER JOURNEY
+
+最终必须支持：
+
+```text
+Open NEXUS
+↓
+Create project
+↓
+Describe idea
+↓
+AI plans
+↓
+AI designs
+↓
+AI generates assets
+↓
+AI builds
+↓
+Canvas editing
+↓
+Code editing
+↓
+Preview
+↓
+AI QA
+↓
+Publish
+↓
+Share
+↓
+Community
+↓
+Remix
+```
+
+---
+
+# 181. FIRST MILESTONE
+
+不要尝试一次做完整平台。
+
+第一阶段只做：
+
+# NEXUS STUDIO VERTICAL SLICE
+
+必须实现：
+
+```text
+Create Project
+↓
+Prompt
+↓
+AI Design
+↓
+Canvas
+↓
+Layers
+↓
+Properties
+↓
+Design System
+↓
+AI Edit
+↓
+Code
+↓
+Live Preview
+↓
+Screenshot
+↓
+Publish
+```
+
+---
+
+# 182. SECOND MILESTONE
+
+加入：
+
+```text
+Image generation
+Asset library
+Reference image
+```
+
+---
+
+# 183. THIRD MILESTONE
+
+加入：
+
+```text
+World Builder
+Character Builder
+RAG
+Character Agent
+```
+
+---
+
+# 184. FOURTH MILESTONE
+
+加入：
+
+```text
+Three.js
+3D world
+Game runtime
+Game Agent
+```
+
+---
+
+# 185. FIFTH MILESTONE
+
+加入：
+
+```text
+Video generation
+Storyboard
+Timeline
+```
+
+---
+
+# 186. SIXTH MILESTONE
+
+加入：
+
+```text
+Community
+Publish
+Like
+Follow
+Remix
+```
+
+---
+
+# 187. SEVENTH MILESTONE
+
+加入：
+
+```text
+Creator marketplace
+Monetization
+Credits
+Subscriptions
+```
+
+---
+
+# 188. EIGHTH MILESTONE
+
+加入：
+
+```text
+MCP
+external agents
+API
+```
+
+---
+
+# 189. FINAL VISION
+
+最终：
+
+# NEXUS
+
+不是：
+
+> AI chatbot.
+
+不是：
+
+> Figma clone.
+
+不是：
+
+> game engine.
+
+不是：
+
+> image generator.
+
+不是：
+
+> social network.
+
+而是：
+
+# AI CREATIVE UNIVERSE
+
+一个：
+
+> **AI-native environment where ideas become interactive worlds.**
+
+---
+
+# 190. DEVELOPMENT RULE
+
+永远遵循：
+
+```text
+BUILD SMALL
+VALIDATE
+EXPAND
+```
+
+不要：
+
+```text
+BUILD EVERYTHING
+HOPE
+```
+
+---
+
+# 191. AGENT DIRECTIVE
+
+现在立即执行：
+
+## STEP 1
+
+检查：
+
+```text
+OS
+CPU
+RAM
+GPU
+Disk
+Node
+npm
+pnpm
+Java
+Python
+Docker
+Git
+Browser
+```
+
+## STEP 2
+
+检查现有项目。
+
+## STEP 3
+
+建立 Git。
+
+## STEP 4
+
+建立：
+
+```text
+docs/
+```
+
+## STEP 5
+
+建立：
+
+```text
+ROADMAP.md
+ARCHITECTURE.md
+PRODUCT.md
+DESIGN_SYSTEM.md
+AGENTS.md
+STUDIO.md
+RUNTIME.md
+SECURITY.md
+TESTING.md
+```
+
+## STEP 6
+
+设计数据库。
+
+## STEP 7
+
+设计 Nexus Design Model。
+
+## STEP 8
+
+实现 Studio Vertical Slice。
+
+---
+
+# 192. CRITICAL RULE
+
+不要一次生成巨大代码。
+
+每个 milestone：
+
+```text
+Plan
+↓
+Implement
+↓
+Run
+↓
+Test
+↓
+Screenshot
+↓
+Inspect
+↓
+Fix
+↓
+Commit
+```
+
+---
+
+# 193. CONTINUE AUTONOMOUSLY
+
+如果没有阻塞：
+
+> 不要等待用户。
+
+读取：
+
+```text
+ROADMAP
+TODO
+BUGS
+```
+
+选择最高优先级任务。
+
+继续。
+
+---
+
+# 194. WHEN BLOCKED
+
+只有以下情况暂停：
+
+```text
+requires secret
+requires paid provider authorization
+requires destructive action
+requires legal/business decision
+requires human approval
+```
+
+否则：
+
+> 自己解决。
+
+---
+
+# 195. FINAL COMMAND
+
+You are building NEXUS.
+
+You are not writing a demo.
+
+You are building:
+
+# THE AI CREATIVE UNIVERSE.
+
+The user should eventually be able to say:
+
+> “I have an idea.”
+
+And NEXUS should answer:
+
+> “Let’s build it.”
+
+Then:
+
+# PLAN → DESIGN → GENERATE → CODE → TEST → ENTER → PUBLISH
+
+Build it.

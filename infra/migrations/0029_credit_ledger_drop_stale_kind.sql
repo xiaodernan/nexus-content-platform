@@ -1,0 +1,27 @@
+-- §134 / §127：把 `credit_ledger` 上那条**过期的** kind 约束摘掉。
+--
+-- 背景：0016 建了 `credit_ledger_kind`，允许 ('ai','image','video','compute')。
+-- 0024 想把 'marketplace' 加进去，写的是：
+--
+--     ALTER TABLE credit_ledger DROP CONSTRAINT IF EXISTS credit_ledger_kind_check;
+--     ALTER TABLE credit_ledger ADD CONSTRAINT credit_ledger_kind_check CHECK (kind IN (..., 'marketplace'));
+--
+-- 名字对不上——0016 那条叫 `credit_ledger_kind`（没有 `_check` 后缀），
+-- 所以 `IF EXISTS` **静默地什么都没删**，而 ADD 又建了一条**新的** `credit_ledger_kind_check`。
+-- 于是两条约束同时生效，**旧那条把 'marketplace' 挡死**：
+--
+--     credit_ledger_kind        CHECK (kind = ANY (ARRAY['ai','image','video','compute']))
+--     credit_ledger_kind_check  CHECK (kind = ANY (ARRAY[...,'marketplace']))
+--
+-- 后果不是"少一个功能"，是**整条买/分成路径一行都写不进去**：
+-- `purchaseMarketplaceItem` 与 `settlePurchase` 的第一笔写就是 `kind='marketplace'` 的流水，
+-- 每一笔都撞 `credit_ledger_kind`。而这一格**当时没有用例**（真库那半一片空白），
+-- 所以它从 0024 落地起就一直是坏的，界面上的报错只会显示"购买失败"。
+--
+-- 修法就是把它 0024 本来想做的事做完：摘掉旧名那条。`IF EXISTS` 留着——
+-- 在已经手工修过的库上重跑一次不该炸（迁移要能在两种库上都跑得过）。
+--
+-- 为什么会漏成这样，以及补上的守卫：`apps/web/test/credit-ledger-kind.integration.test.ts`
+-- 现在会把**库里生效的约束**与 `CREDIT_LEDGER_KINDS` 逐字比一次（形状同 api_tokens 那一份）。
+-- 只比常量与 schema 是不够的——这次的错不在代码里，在"库里实际是哪条约束在生效"。
+ALTER TABLE "credit_ledger" DROP CONSTRAINT IF EXISTS "credit_ledger_kind";

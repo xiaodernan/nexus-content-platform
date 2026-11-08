@@ -1,0 +1,192 @@
+import { describe, expect, it } from 'vitest';
+import {
+  applyStoryboardPatch,
+  clampShotDuration,
+  dropIndexFor,
+  keyboardTrimDelta,
+  MAX_SHOT_MS,
+  MIN_SHOT_MS,
+  SHOT_MS_COARSE_STEP,
+  SHOT_MS_STEP,
+  shotIndexAtX,
+  TIMELINE_BLOCK_MIN_PX,
+  timelineBlockWidths,
+  type Storyboard,
+  type StoryboardShot,
+} from '../src/index';
+
+/**
+ * §41 的时间线编辑：拖右边缘 trim/extend、拖整块 reorder。
+ *
+ * 界面上那两种拖拽各有一处会用假绿骗过测试，所以决定不放在组件里，放在这两个纯函数上：
+ * ① 长度不吸附、不夹下限——拖一下就能得到 2817 毫秒，或者把一镜拖成 0 毫秒
+ *    （时间线上留下一块看不见的方块，而它又确实"在"）；
+ * ② reorder 的下标口径与 `moveShot` 的 `to` 差一位——这是最容易写错的一处：
+ *    `dropIndexFor` 返回的必须是**最终下标**，不是"插到第几格之前"。
+ *    所以最后两条不测函数本身，测它接进 `moveShot` 之后镜头到底排成什么样。
+ */
+
+function shot(id: string, durationMs: number): StoryboardShot {
+  return { id, prompt: `第 ${id} 镜要拍什么`, durationMs, camera: 'medium', transition: 'cut' };
+}
+
+/** 1000 / 2000 / 3000 毫秒，总长 6000：中点分别在 500 / 2000 / 3500 */
+const THREE: StoryboardShot[] = [shot('a', 1000), shot('b', 2000), shot('c', 3000)];
+
+function reordered(from: number, to: number): string[] {
+  const sb: Storyboard = { id: 'sb', title: 't', source: { arrow: 'text-to-video', prompt: 'x' }, shots: THREE, notes: [] };
+  return applyStoryboardPatch(sb, [{ op: 'moveShot', from, to }]).shots.map((s) => s.id);
+}
+
+describe('clampShotDuration —— 拖出来的长度吸附到刻度，并夹进上下限', () => {
+  it('吸附到 100ms 刻度：像素误差不该出现在模型里', () => {
+    expect(clampShotDuration(2817)).toBe(2800);
+    expect(clampShotDuration(2850)).toBe(2900);
+    expect(clampShotDuration(49)).toBe(MIN_SHOT_MS);
+  });
+
+  it('下限是一步：拖到 0 或负数都落回 100 毫秒，而不是消失', () => {
+    expect(clampShotDuration(0)).toBe(MIN_SHOT_MS);
+    expect(clampShotDuration(-5000)).toBe(MIN_SHOT_MS);
+    expect(MIN_SHOT_MS).toBe(SHOT_MS_STEP);
+  });
+
+  it('上限与列表里那个数字输入框同一个数（600000）', () => {
+    expect(clampShotDuration(999_999)).toBe(MAX_SHOT_MS);
+    expect(MAX_SHOT_MS).toBe(600_000);
+  });
+
+  it('坏数（NaN / Infinity）按一步算：一次坏拖拽不该把这一镜变成 NaN', () => {
+    expect(clampShotDuration(Number.NaN)).toBe(MIN_SHOT_MS);
+    expect(clampShotDuration(Number.POSITIVE_INFINITY)).toBe(MIN_SHOT_MS);
+  });
+});
+
+describe('dropIndexFor —— 拖到哪个位置落下（返回的是最终下标）', () => {
+  it('拖回原位：原样拿回它当前的下标，界面据此不记一次空事务', () => {
+    expect(dropIndexFor(THREE, 'a', 0)).toBe(0);
+    expect(dropIndexFor(THREE, 'b', 0)).toBe(1);
+    expect(dropIndexFor(THREE, 'c', 0)).toBe(2);
+  });
+
+  it('中心跨过下一格的中心就往后退一位', () => {
+    // a 的中心 500 往右 1000 → 1500，越过 b 的中心 1000
+    expect(dropIndexFor(THREE, 'a', 1000)).toBe(1);
+  });
+
+  it('中心跨过上一格的中心就往前挪一位', () => {
+    // c 的中心 4500 往左 2600 → 1900，越过 b 的中心 2000 但没到 a 的中心 500
+    expect(dropIndexFor(THREE, 'c', -2600)).toBe(1);
+  });
+
+  it('拖出两端：夹在第一位与最后一位，不会给出越界的下标', () => {
+    expect(dropIndexFor(THREE, 'b', -99_999)).toBe(0);
+    expect(dropIndexFor(THREE, 'b', 99_999)).toBe(2);
+  });
+
+  it('不在这份分镜里的 id 要抛错，不静默返回一个位置', () => {
+    expect(() => dropIndexFor(THREE, 'nope', 0)).toThrow(/不在这份分镜里/);
+  });
+
+  it('接进 moveShot：下标口径一致，第一位拖到最后一位真的落在那儿', () => {
+    const to = dropIndexFor(THREE, 'a', 3100);
+    expect(to).toBe(2);
+    expect(reordered(0, to)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('接进 moveShot：最后一位拖到第一位同理（差一位的写法会在这里红）', () => {
+    const to = dropIndexFor(THREE, 'c', -4500);
+    expect(to).toBe(0);
+    expect(reordered(2, to)).toEqual(['c', 'a', 'b']);
+  });
+});
+
+/**
+ * §41 的键盘那条 trim（`docs/DESIGN_SYSTEM.md` §90「全部交互可键盘到达」）。
+ *
+ * 这一支测的是**按键到意图**那一层：哪些键归 trim 管、一次调多少。写库那一步不在纯函数里，
+ * 所以最后三条都把增量接进 `clampShotDuration` 再看结果——只看 `keyboardTrimDelta` 的话，
+ * "把一镜调成 0 毫秒"或者"调出一个不在 100ms 刻度上的数"这两种错都测不出来。
+ */
+describe('keyboardTrimDelta —— 键盘那条 trim 的档位与放行规则', () => {
+  it('左右方向键各是一格（100ms）：右是加长、左是缩短', () => {
+    expect(keyboardTrimDelta('ArrowRight', false)).toBe(SHOT_MS_STEP);
+    expect(keyboardTrimDelta('ArrowLeft', false)).toBe(-SHOT_MS_STEP);
+  });
+
+  it('Shift 是粗档：一次 1 秒，正好是细档的十倍', () => {
+    expect(keyboardTrimDelta('ArrowRight', true)).toBe(SHOT_MS_COARSE_STEP);
+    expect(keyboardTrimDelta('ArrowLeft', true)).toBe(-SHOT_MS_COARSE_STEP);
+    expect(SHOT_MS_COARSE_STEP).toBe(SHOT_MS_STEP * 10);
+  });
+
+  it('不是 trim 的键一律返回 null（不是 0）——上下方向键要留给面板滚动，不能被这里吞掉', () => {
+    for (const key of ['ArrowUp', 'ArrowDown', 'Enter', 'Escape', ' ', 'Home', 'a']) {
+      expect(keyboardTrimDelta(key, false)).toBeNull();
+      expect(keyboardTrimDelta(key, true)).toBeNull();
+    }
+  });
+
+  it('接进 clampShotDuration：下限挡得住，一镜不会被键盘调成 0 毫秒或负数', () => {
+    expect(clampShotDuration(MIN_SHOT_MS + keyboardTrimDelta('ArrowLeft', false)!)).toBe(MIN_SHOT_MS);
+    expect(clampShotDuration(MIN_SHOT_MS + keyboardTrimDelta('ArrowLeft', true)!)).toBe(MIN_SHOT_MS);
+  });
+
+  it('接进 clampShotDuration：上限挡得住，不会调出超过 MAX_SHOT_MS 的镜头', () => {
+    expect(clampShotDuration(MAX_SHOT_MS + keyboardTrimDelta('ArrowRight', true)!)).toBe(MAX_SHOT_MS);
+  });
+
+  it('接进 clampShotDuration：整条路上都停在刻度上（滑出刻度 = 整份 PUT 被契约拒掉）', () => {
+    let ms = 3000;
+    const presses = [
+      ['ArrowRight', false],
+      ['ArrowLeft', true],
+      ['ArrowRight', true],
+      ['ArrowLeft', false],
+    ] as const;
+    for (const [key, shift] of presses) {
+      ms = clampShotDuration(ms + keyboardTrimDelta(key, shift)!);
+      expect(Number.isInteger(ms)).toBe(true);
+      expect(ms % SHOT_MS_STEP).toBe(0);
+    }
+  });
+});
+
+describe('timelineBlockWidths / shotIndexAtX —— 条的布局与命中（§41 联动的底座）', () => {
+  const shots = [shot('a', 1000), shot('b', 2000), shot('c', 3000)];
+  const total = 6000;
+
+  it('宽度按时长占比，短格有下限：100 毫秒在 9 秒的条上也有 6 像素，不是"没有这一镜"', () => {
+    // 600px 条上 1000/2000/3000 毫秒：比例各 1/6、2/6、3/6
+    expect(timelineBlockWidths(shots, total, 600)).toEqual([100, 200, 300]);
+    // 9 秒的条上夹一格 100 毫秒：2.67px，被下限抬到 6——这一格看得见，点得到
+    expect(timelineBlockWidths([shot('long', 8900), shot('tiny', 100)], 9000, 240)).toEqual([
+      (8900 / 9000) * 240,
+      TIMELINE_BLOCK_MIN_PX,
+    ]);
+  });
+
+  it('总长 0 或负数不产出 NaN：空分镜的时间线不该悄悄消失', () => {
+    const widths = timelineBlockWidths(shots, 0, 600);
+    expect(widths.every((w) => Number.isFinite(w))).toBe(true);
+  });
+
+  it('命中按布局后的累计宽度：点中间命中自己，不按线性换算跳到邻居', () => {
+    // 600px 条：a 占 0-100，b 占 100-300，c 占 300-600
+    expect(shotIndexAtX(shots, total, 600, 50)).toBe(0);
+    expect(shotIndexAtX(shots, total, 600, 150)).toBe(1);
+    expect(shotIndexAtX(shots, total, 600, 450)).toBe(2);
+    // 中间一格被下限抬宽（2.67px → 6px）：点 85px 命中的是这一格自己；
+    // 按时长线性换算会把它算进第三格（82.67px 起）——下限不改数据，但改命中
+    const floored = [shot('a', 3000), shot('b', 100), shot('c', 5900)];
+    expect(shotIndexAtX(floored, 9000, 240, 79)).toBe(0);
+    expect(shotIndexAtX(floored, 9000, 240, 85)).toBe(1);
+    expect(shotIndexAtX(floored, 9000, 240, 87)).toBe(2);
+  });
+
+  it('越界夹到两端，空分镜没有可对上的镜头', () => {
+    expect(shotIndexAtX(shots, total, 600, -50)).toBe(0);
+    expect(shotIndexAtX(shots, total, 600, 9999)).toBe(2);
+    expect(shotIndexAtX([], 0, 600, 10)).toBe(-1);
+  });
+});

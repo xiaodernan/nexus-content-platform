@@ -1,0 +1,614 @@
+/**
+ * Nexus Design Model —— 类型定义（§9 / §10 / §12-14 / §122-125）
+ *
+ * 边界纪律：本包不得 import React / DOM / Node fs。设计模型是平台的唯一真值，
+ * 渲染层、代码生成层、预览层都只是它的投影（§16）。
+ */
+
+import type { NodeStates } from "./states";
+
+export type NodeId = string;
+export type PageId = string;
+export type TokenKey = string;
+
+/**
+ * 写进「值槽位」的概念语言引用，形如 `{radius.md}`（§12）。
+ *
+ * 这些槽位以前标的是 TokenKey（裸 key），于是 `number | TokenKey` 塌成 `number | string`、
+ * `"hug" | "fill" | TokenKey` 塌成 `string`——字面量白写，类型什么也不挡。裸 key 和带花括号的
+ * 引用在运行时早就是两回事（isTokenRef / tokenRefKey / makeTokenRef），类型层现在才跟上。
+ */
+export type TokenRef = `{${string}}`;
+export type ComponentId = string;
+
+/** §10 节点类型。未来扩展：GameObject / Particle / Character / Camera / Light */
+export type NodeType =
+  | "frame"
+  | "section"
+  | "container"
+  | "group"
+  | "text"
+  | "image"
+  | "video"
+  | "svg"
+  | "shape"
+  | "button"
+  | "input"
+  | "card"
+  | "list"
+  | "grid"
+  | "component"
+  | "instance"
+  | "code"
+  | "three"
+  | "webgl";
+
+/** 可含子节点的类型集合 */
+export const CONTAINER_TYPES: readonly NodeType[] = [
+  "frame",
+  "section",
+  "container",
+  "group",
+  "list",
+  "grid",
+  "card",
+  "component",
+  "instance",
+];
+
+export type BreakpointName = "mobile" | "tablet" | "desktop" | "wide";
+
+/** §14 视口宽度基准 */
+export const BREAKPOINT_WIDTH: Record<BreakpointName, number> = {
+  mobile: 375,
+  tablet: 768,
+  desktop: 1280,
+  wide: 1536,
+};
+
+export type BlendMode =
+  | "normal"
+  | "multiply"
+  | "screen"
+  | "overlay"
+  | "darken"
+  | "lighten"
+  | "color-dodge"
+  | "color-burn"
+  | "soft-light"
+  | "hard-light"
+  | "difference"
+  | "exclusion"
+  | "hue"
+  | "saturation"
+  | "color"
+  | "luminosity";
+
+export interface RGBA {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
+
+/** 颜色可以是 hex 字面量，也可以是 token 引用 `{color.primary}` */
+export type ColorValue = string | RGBA;
+
+export type Paint =
+  | { kind: "solid"; color: ColorValue; opacity?: number; visible?: boolean }
+  | {
+      kind: "gradient";
+      type: "linear" | "radial" | "conic";
+      stops: { at: number; color: ColorValue }[];
+      angle?: number;
+      opacity?: number;
+      visible?: boolean;
+    }
+  | {
+      kind: "image";
+      assetId: string;
+      fit?: "cover" | "contain" | "fill" | "tile";
+      opacity?: number;
+      visible?: boolean;
+    };
+
+export interface Stroke {
+  paints: Paint[];
+  width: number;
+  position: "inside" | "outside" | "center";
+  cap?: "butt" | "round" | "square";
+  visible?: boolean;
+}
+
+export interface Effect {
+  kind: "drop-shadow" | "inner-shadow" | "layer-blur" | "background-blur";
+  color?: ColorValue;
+  offsetX?: number;
+  offsetY?: number;
+  blur?: number;
+  spread?: number;
+  visible?: boolean;
+}
+
+export interface CornerRadius {
+  topLeft: LengthValue;
+  topRight: LengthValue;
+  bottomRight: LengthValue;
+  bottomLeft: LengthValue;
+}
+
+export interface Typography {
+  /** 字体名本身是自由文本，也可以是 `{font.body}` 这样的 token 引用（§12），渲染层负责解析 */
+  fontFamily: string;
+  fontSize: number | TokenRef;
+  fontWeight: number;
+  lineHeight: number | "auto";
+  letterSpacing: number;
+  align: "left" | "center" | "right" | "justify";
+  verticalAlign: "top" | "middle" | "bottom";
+  decoration?: "none" | "underline" | "line-through";
+  textCase?: "original" | "upper" | "lower" | "title";
+  /** 字色。text 节点沿用 fills[0]；button / input 的 fills 是背景，字色只能走这里 */
+  color?: ColorValue;
+  /** 富文本局部样式；按字符偏移切分，未覆盖部分沿用整段样式 */
+  runs?: TextRun[];
+}
+
+export interface TextRun {
+  start: number;
+  end: number;
+  style: Partial<
+    Pick<
+      Typography,
+      "fontWeight" | "decoration" | "letterSpacing" | "fontSize" | "fontFamily"
+    >
+  > & { color?: ColorValue };
+}
+
+/** §122 动效系统 */
+export type AnimationPreset =
+  | "fade"
+  | "slide-up"
+  | "slide-down"
+  | "slide-left"
+  | "slide-right"
+  | "scale"
+  | "spring"
+  | "parallax"
+  | "scroll-reveal"
+  | "page-transition"
+  | "micro-interaction";
+
+export interface Animation {
+  preset: AnimationPreset;
+  trigger: "mount" | "hover" | "scroll" | "interaction" | "loop";
+  duration: number | TokenRef;
+  delay?: number;
+  easing:
+    | "linear"
+    | "ease"
+    | "ease-in"
+    | "ease-out"
+    | "ease-in-out"
+    | "spring"
+    | TokenRef;
+  distance?: number;
+  scaleFrom?: number;
+  opacityFrom?: number;
+  scrollRange?: [number, number];
+  enabled?: boolean;
+}
+
+/**
+ * §124 状态系统：NodeState / NodeStateStyle / NodeStates 的唯一来源在
+ * states.ts（ADR-0062），这里只做转发，免得两边各抄一份状态名。
+ */
+export type { NodeState } from "./states";
+
+/** §123 交互构建器 */
+export interface Interaction {
+  id: string;
+  trigger:
+    | "click"
+    | "hover-in"
+    | "hover-out"
+    | "press"
+    | "scroll-into-view"
+    | "key"
+    | "submit"
+    | "change";
+  action:
+    | "navigate"
+    | "open-modal"
+    | "close-modal"
+    | "toggle-state"
+    | "set-state"
+    | "scroll-to"
+    | "play-animation"
+    | "set-variable"
+    | "submit";
+  /** 指向谁：node id 或 page id（两种都可能，所以只能是宽 string + 注释，写联合类型是假的） */
+  target?: string;
+  key?: string;
+  variable?: string;
+  duration?: number;
+}
+
+/** §125 数据绑定 */
+export interface Binding {
+  property: "text" | "src" | "items" | "href" | "visible" | "value" | "color";
+  source: "static" | "variable" | "api" | "database" | "agent";
+  expression: string;
+  fallback?: unknown;
+}
+
+export type LayoutMode =
+  "none" | "vertical" | "horizontal" | "grid" | "stack" | "wrap";
+
+/**
+ * 求解器真会按 `justify` / `items` / `reverse` 摆放的那两档排布（`layout.ts` 的 grid、wrap、
+ * stack、none 分支在用到这几个键之前就 return 了）。
+ *
+ * 这份名单住在这里而不是 codegen，因为**判据的消费者跨两个投影**：发射侧（codegen）、回写侧
+ * （code-parse）、面板（responsive-editor）用它决定发不发/摆不摆，求解器（layout.ts）用它决定
+ * 认不认 `reverse`。谁抄一份，谁就会在下一片加档时掉队。几处不一致时最坏的走法不是少发一条类，
+ * 而是回写读了、重投影发不出来 ⇒ 整个节点的回写作废（§19）。
+ */
+export const ALIGNABLE_MODES: readonly LayoutMode[] = ["vertical", "horizontal"];
+
+/**
+ * 几何长度：字面 px 数值，或 `{space.*}` / `{radius.*}` 这类 token 引用。
+ * 运行时统一经 TokenStore.resolveValue 解析（layout/render/codegen 都已支持），
+ * 类型层如实反映这一点，别再谎报成纯 number（§16 设计模型即真值）。
+ */
+export type LengthValue = number | TokenRef;
+
+export interface Layout {
+  mode: LayoutMode;
+  gap: LengthValue;
+  rowGap?: LengthValue;
+  crossGap?: LengthValue;
+  padding: {
+    top: LengthValue;
+    right: LengthValue;
+    bottom: LengthValue;
+    left: LengthValue;
+  };
+  justify:
+    | "start"
+    | "center"
+    | "end"
+    | "space-between"
+    | "space-around"
+    | "space-evenly";
+  items: "start" | "center" | "end" | "stretch" | "baseline";
+  /** grid / wrap 时使用 */
+  columns?: number;
+  /** 子节点是否按设计顺序反向排列 */
+  reverse?: boolean;
+  /** 超出时是否允许滚动 */
+  scroll?: "none" | "vertical" | "horizontal" | "both";
+  /** 绝对定位（mode=none 时子节点按 position 摆放） */
+  clipContent?: boolean;
+}
+
+export type SizeValue = number | "hug" | "fill" | TokenRef;
+
+export interface Size {
+  width: SizeValue;
+  height: SizeValue;
+}
+
+export interface Position {
+  x: number;
+  y: number;
+}
+
+export interface ResponsiveRule {
+  breakpoint: BreakpointName;
+  /** 仅允许覆盖这些字段，避免整节点替换导致历史不可读 */
+  patch: {
+    layout?: Partial<Layout>;
+    size?: Partial<Size>;
+    position?: Partial<Position>;
+    style?: Partial<Style>;
+    typography?: Partial<Typography>;
+    visible?: boolean;
+  };
+}
+
+/** `patch` 里的分组键（`visible` 是布尔，不算一组） */
+export type ResponsivePatchGroup = Exclude<keyof ResponsiveRule["patch"], "visible">;
+
+/**
+ * 分组键的**运行时**名单：回写要把解码出来的分组并进对应那条规则，白名单必须存在但不能是手抄第二份。
+ * `code-parse.test.ts` 里有一条门用 `Record<ResponsivePatchGroup, true>` 的字面量核对这张表——
+ * 接口里多一组而这张表没跟上，那条门编译不过。少一组的后果是作者从代码写进去的那一寸静默丢掉（§159）。
+ */
+export const RESPONSIVE_PATCH_GROUPS: readonly ResponsivePatchGroup[] = [
+  "layout",
+  "size",
+  "position",
+  "style",
+  "typography",
+];
+
+export interface Style {
+  fills: Paint[];
+  strokes: Stroke[];
+  cornerRadius: CornerRadius;
+  effects: Effect[];
+  opacity: number;
+  blendMode: BlendMode;
+  rotation: number;
+  cursor: "default" | "pointer" | "text" | "not-allowed" | "grab" | "grabbing";
+  /** 文本节点是否可换行 */
+  textWrap?: "wrap" | "nowrap" | "truncate" | "truncate-2" | "truncate-3";
+  /** 组件级 CSS 泄漏出口：只能是 token 化白名单，不接受任意 CSS 字符串 */
+  overflowX?: "visible" | "hidden" | "auto";
+  overflowY?: "visible" | "hidden" | "auto";
+  minHeight?: number;
+  maxHeight?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  aspectRatio?: number;
+}
+
+/**
+ * §30 / §174 从参考图提取的视觉语言，作为 AI 生成的硬约束。
+ *
+ * 字段按"能不能被如实测出来"分组：`palette` 与 `descriptors` 任何来源都能给；
+ * 排版 / 间距 / 圆角 / 阴影 / 动效 / 层级是**看不准就不写**的——本地像素统计测不出
+ * 字号和缓动曲线，硬填等于造假（§159），所以它们一律可选，由能给出证据的来源填。
+ */
+export interface VisualDna {
+  /** 这份 DNA 的出处：本地像素统计 / 视觉模型 / 概念语言，三者可信度不同，不能互相冒充 */
+  source?: {
+    assetId?: string;
+    method: "pixel-stats" | "vision-model" | "concept-language";
+    extractedAt: string;
+    /** 用到的格式/维度等限制，例如"只支持非隔行 8bit PNG" */
+    notes?: string[];
+  };
+  palette: { role: string; color: ColorValue }[];
+  typography?: {
+    role: string;
+    fontFamily: string;
+    fontSize: number;
+    fontWeight: number;
+  }[];
+  spacingScale?: number[];
+  radius?: number;
+  shadow?: string;
+  motion?: {
+    character: "slow-cinematic" | "snappy" | "playful" | "minimal";
+    notes: string[];
+  };
+  hierarchy?: string[];
+  descriptors: string[];
+}
+
+export interface DesignNode {
+  id: NodeId;
+  type: NodeType;
+  name: string;
+  parentId: NodeId | null;
+  children: NodeId[];
+
+  position: Position;
+  size: Size;
+  layout: Layout;
+  style: Style;
+
+  /** 约束：节点在父容器 resize 时如何跟随 */
+  constraints: {
+    horizontal: "start" | "center" | "end" | "stretch" | "scale";
+    vertical: "start" | "center" | "end" | "stretch" | "scale";
+  };
+
+  typography?: Typography;
+  text?: string;
+
+  /** image / video / svg */
+  assetId?: string;
+  src?: string;
+  alt?: string;
+
+  /** shape */
+  shapeKind?: "rectangle" | "ellipse" | "line" | "polygon" | "star";
+
+  /** button / input 语义 */
+  componentId?: ComponentId;
+  variantProps?: Record<string, string>;
+  overrides?: Record<string, unknown>;
+
+  /** list / grid 数据驱动重复 */
+  repeatOf?: NodeId;
+  repeatCount?: number;
+  items?: unknown[];
+
+  /** code 节点：无法映射回设计模型时保留为 code-only region（§19） */
+  code?: {
+    language: "tsx" | "ts" | "html" | "css";
+    content: string;
+    readOnly: boolean;
+  };
+  /** three / webgl */
+  scene?: { kind: "three-scene"; camera?: string; assets?: string[] };
+
+  responsive?: ResponsiveRule[];
+  animation?: Animation[];
+  interactions?: Interaction[];
+  states?: NodeStates;
+  bindings?: Binding[];
+
+  /** 变量 / token 绑定表：属性路径 → token key（§12） */
+  bindingsMap?: Record<string, TokenKey>;
+
+  visible: boolean;
+  locked: boolean;
+  meta?: Record<string, unknown>;
+}
+
+export interface Page {
+  id: PageId;
+  name: string;
+  /** 页面根节点（type=frame） */
+  rootId: NodeId;
+  nodes: Record<NodeId, DesignNode>;
+  backgroundColor?: ColorValue;
+  width: number;
+  height: number;
+  meta?: { description?: string; route?: string };
+}
+
+export type TokenType =
+  | "color"
+  | "dimension"
+  | "fontFamily"
+  | "number"
+  | "string"
+  | "shadow"
+  | "motion"
+  | "duration"
+  | "easing";
+
+export interface Token {
+  key: TokenKey;
+  type: TokenType;
+  /** 默认值（无 mode 时使用） */
+  value: unknown;
+  /** 多主题：mode 名 → 值 */
+  modes?: Record<string, unknown>;
+  description?: string;
+  group?: string;
+}
+
+export interface ComponentVariant {
+  id: string;
+  /** 变体属性组合，如 { size: 'lg', state: 'hover' } */
+  props: Record<string, string>;
+  /** 变体对应的子树覆盖 */
+  overrides: Record<string, unknown>;
+}
+
+export interface ComponentPropDef {
+  name: string;
+  type: "text" | "boolean" | "select" | "instanceSwap" | "color" | "number";
+  options?: string[];
+  default: unknown;
+}
+
+export interface ComponentSlotDef {
+  name: string;
+  nodeId: NodeId;
+  accepts?: NodeType[];
+}
+
+export interface ComponentDefinition {
+  id: ComponentId;
+  name: string;
+  /** 主节点 id（位于 components 页面或文档级组件区） */
+  rootId: NodeId;
+  pageId?: PageId;
+  props: ComponentPropDef[];
+  variants: ComponentVariant[];
+  slots: ComponentSlotDef[];
+  description?: string;
+}
+
+export interface BrandKit {
+  name: string;
+  logoAssetId?: string;
+  tokenKeys: {
+    color: TokenKey[];
+    typography: TokenKey[];
+    radius?: TokenKey;
+    shadow?: TokenKey;
+  };
+  toneOfVoice?: string[];
+  referenceAssetIds?: string[];
+}
+
+export interface AssetRef {
+  id: string;
+  name: string;
+  /**
+   * `other` 与存储层的 asset_kind 枚举对齐：库里能存的东西，模型必须能表达，
+   * 否则载入时只能靠猜（或悄悄丢掉这一条）。
+   */
+  kind: "image" | "video" | "audio" | "model" | "font" | "svg" | "document" | "other";
+  /** 存储键（S3 兼容存储） */
+  storageKey: string;
+  width?: number;
+  height?: number;
+  mimeType: string;
+  sizeBytes?: number;
+  /** 生成来源，用于成本与再生成 */
+  generatedBy?: {
+    provider: string;
+    model: string;
+    prompt: string;
+    taskId?: string;
+    demoMode?: boolean;
+  };
+  /**
+   * 这张图归属的角色（§39）。库里 `assets.character_id` 已经有写入方（角色场景生成），
+   * 但清单投影里没有它——一列只写不读的真值在界面上等于不存在，
+   * 用户看不出哪张图是"某个角色的场景"。
+   */
+  characterId?: string;
+  /**
+   * 这一张是**角色自己的参考图**（肖像），不是它所在的某个场景（§39）。
+   * 库里 `genMeta.characterPortrait` 早就写上了，但清单投影里没有它：
+   * 于是卡片把肖像标成"角色场景"——界面说出与事实不符的话，跟回执上那类错是同一个。
+   */
+  characterPortrait?: boolean;
+  createdAt: string;
+}
+
+export interface DesignVariable {
+  id: string;
+  name: string;
+  scope: "document" | "page" | "node";
+  refId?: string;
+  value: unknown;
+  type: "string" | "number" | "boolean" | "json" | "data-source";
+}
+
+export interface DesignDocument {
+  id: string;
+  /** 设计模型格式版本，迁移用 */
+  schemaVersion: 1;
+  name: string;
+  pages: Page[];
+  activePageId: PageId;
+  components: ComponentDefinition[];
+  tokens: Token[];
+  /** token 主题 mode 名，null 表示用默认值 */
+  activeMode?: string | null;
+  assets: AssetRef[];
+  variables: DesignVariable[];
+  brandKit?: BrandKit;
+  visualDna?: VisualDna;
+  metadata: {
+    createdAt: string;
+    updatedAt: string;
+    author?: string;
+    projectType?: ProjectType;
+    /** 当前 token 主题列表 */
+    modes: string[];
+    fps?: number;
+  };
+}
+
+export type ProjectType =
+  | "website"
+  | "webapp"
+  | "mobile-ui"
+  | "game"
+  | "interactive-story"
+  | "3d-experience"
+  | "dashboard"
+  | "design-system"
+  | "prototype";

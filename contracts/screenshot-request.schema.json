@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "width": {
+      "default": 1280,
+      "type": "integer",
+      "minimum": 240,
+      "maximum": 4096
+    },
+    "height": {
+      "default": 800,
+      "type": "integer",
+      "minimum": 240,
+      "maximum": 4096
+    },
+    "fullPage": {
+      "default": true,
+      "type": "boolean"
+    },
+    "devices": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "mobile",
+          "tablet",
+          "desktop",
+          "wide"
+        ]
+      }
+    }
+  },
+  "required": [
+    "url"
+  ]
+}

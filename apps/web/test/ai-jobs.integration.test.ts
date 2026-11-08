@@ -1,0 +1,1162 @@
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
+import { createServer, type Server, type ServerResponse } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import type { AiJobStatusResponse, AiRequest, AiResponse } from '@nexus/schemas';
+import { AiJobObservationSchema, APPROVAL_TTL_MS } from '@nexus/schemas';
+import { observeJob, submitJob, cancelJob } from '../src/server/domain/ai-jobs';
+import type { ResolvedAgent } from '../src/server/domain/agents';
+import { decideApproval, listProjectTasks, readRetryableTask } from '../src/server/domain/agent-tasks';
+import { createProject, listProjects, loadDocument } from '../src/server/domain/projects';
+import { channels, getRealtimeBus } from '../src/server/realtime/bus';
+import { getDb } from '../src/server/db/client';
+import { agentTasks, auditEvents, notifications, projects, users } from '../src/server/db/schema';
+
+/**
+ * §162 web 侧作业消费者：状态的真值在 ai-service 那一侧，所以这台测试的重点不是
+ * "队列能不能跑"（那是 `apps/ai-service/tests/test_jobs.py` 的 9 条），而是
+ * **web 拿到一份作业状态之后做对了什么**：
+ * 什么时候写任务行、什么时候闭嘴、什么时候不许把 `completed` 当成功、
+ * 查不到时为什么不能留着一条永远转圈的 running。
+ *
+ * 因此这里用的是一个假 ai-service（本地 HTTP，返回按 `AiJobStatusResponseSchema` 的形状写）：
+ * 假的这一侧只负责"照我说的报状态"，被测的那一侧是 web 的镜像逻辑。
+ * stub 的形状必须与真报文一致——少给一个字段、多给一个字段，测出来的都是另一个东西。
+ * 真服务连同真 worker 的验证在 e2e 那一条（同一个 DEMO 之外的路径）。
+ */
+
+const RUN = `s162${Date.now().toString(36)}`;
+let ownerId = '';
+let otherId = '';
+let projectId = '';
+const createdProjects: string[] = [];
+
+/** 假 ai-service 的可变剧本 */
+let nextStatus: AiJobStatusResponse | null = null;
+let statusForUnknown: { status: number; body: unknown } = { status: 404, body: { code: 'not_found', message: 'job not found' } };
+let getCalls = 0;
+let postCalls = 0;
+let lastSubmitted: unknown = null;
+/** 取消端点的可变剧本：默认"受理、作业还在跑（只立标志，状态仍是 running）" */
+let cancelScript: { status: number; body: unknown } | null = null;
+let cancelCalls: string[] = [];
+/**
+ * 让 N 个并发 GET **都到齐**之后再一起答话。
+ *
+ * 并发用例要的是"两次观察真的重叠在游标上"，不是"大概会重叠"。没有这道闸，
+ * 两个 `observeJob` 很可能一个跑完另一个才开始，那条断言就以"顺序执行"的形态通过，
+ * 而它声称量的是竞争——**这种绿比红更坏**。有了它，两次 GET 一定同时在飞，
+ * 而 `observeJob` 是"先读任务行 → 再问状态 → 后 CAS 推进"，所以两次读到的游标必然相同。
+ * 用例另外断言 `maxInFlight === 2`：闸没生效时那一格会红，门就不许空转。
+ */
+let statusBarrier: { need: number; arrived: number; waiters: Array<() => void> } | null = null;
+let inFlight = 0;
+let maxInFlight = 0;
+
+function armStatusBarrier(need: number): void {
+  statusBarrier = { need, arrived: 0, waiters: [] };
+}
+
+async function passStatusBarrier(): Promise<void> {
+  const barrier = statusBarrier;
+  if (!barrier) return;
+  barrier.arrived += 1;
+  if (barrier.arrived >= barrier.need) {
+    statusBarrier = null; // 一次性的：不许留给下一个用例
+    for (const release of barrier.waiters) release();
+    barrier.waiters = [];
+    return;
+  }
+  await new Promise<void>((resolve) => barrier.waiters.push(resolve));
+}
+
+/** 状态端点那一支：要在答话之前等一道并发闸，所以它是 async 的（回调签名要 void，由调用方接住） */
+async function answerStatus(url: string, res: ServerResponse): Promise<void> {
+  getCalls += 1;
+  inFlight += 1;
+  maxInFlight = Math.max(maxInFlight, inFlight);
+  try {
+    await passStatusBarrier();
+  } finally {
+    inFlight -= 1;
+  }
+  const status = nextStatus;
+  const unknown = statusForUnknown;
+  const found = status && url === `/v1/ai/jobs/${status.jobId}`;
+  res.writeHead(found ? 200 : unknown.status, { 'content-type': 'application/json' });
+  res.end(JSON.stringify(found ? status : unknown.body));
+}
+
+/** 手工推进的作业状态：每个用例自己决定下一次 GET 报什么 */
+function scriptedJob(over: Partial<AiJobStatusResponse>): AiJobStatusResponse {
+  return {
+    jobId: over.jobId ?? 'job-x',
+    requestId: over.requestId ?? 'req-x',
+    backend: over.backend ?? 'memory',
+    status: over.status ?? 'running',
+    queuedAt: over.queuedAt ?? new Date('2026-09-26T00:00:00.000Z').toISOString(),
+    startedAt: over.startedAt ?? new Date('2026-09-26T00:00:01.000Z').toISOString(),
+    finishedAt: over.finishedAt ?? null,
+    progress: over.progress ?? null,
+    activities: over.activities ?? [],
+    ...(over.result ? { result: over.result } : {}),
+    ...(over.error ? { error: over.error } : {}),
+  };
+}
+
+/**
+ * 一份能过 `AiResponseSchema` 的 provider 结果。为什么要写全而不是 `as never` 塞一个形状：
+ * `fetchAiJobStatus` 会按契约校验整份报文，stub 少一个必填字段就会以"契约违约"的形态红，
+ * 而那条红与"镜像逻辑写错了"长得一模一样——测试自己造的坑最容易骗过人。
+ */
+function okResponse(over: Partial<AiResponse> = {}): AiResponse {
+  return {
+    requestId: `req-${RUN}`,
+    capability: 'real',
+    provider: 'fake-provider',
+    model: 'fake-model',
+    plans: [],
+    patches: [{ ops: [] }],
+    labels: [],
+    activities: [],
+    explanation: '',
+    usage: { provider: 'fake-provider', model: 'fake-model', modelClass: 'balanced', tokensIn: 0, tokensOut: 0, latencyMs: 10, costUsd: 0, toolCalls: 0, demoMode: false },
+    approvals: [],
+    ...over,
+  };
+}
+
+let server: Server;
+let baseUrl = '';
+const originalUrl = process.env.NEXUS_AI_SERVICE_URL;
+
+beforeAll(async () => {
+  const db = getDb();
+  await db.execute(rawSql`select 1 as ok`);
+  const [owner] = await db
+    .insert(users)
+    .values({ displayName: `队列作者${RUN}`, email: `s162o+${RUN}@nexus.test`, handle: `s162${RUN}` })
+    .returning({ id: users.id });
+  const [other] = await db
+    .insert(users)
+    .values({ displayName: `队列路人${RUN}`, email: `s162a+${RUN}@nexus.test`, handle: `s162a${RUN}` })
+    .returning({ id: users.id });
+  ownerId = owner!.id;
+  otherId = other!.id;
+  const doc = await createProject(ownerId, { name: `队列项目${RUN}`, kind: 'website' });
+  projectId = doc.id;
+  createdProjects.push(doc.id);
+
+  server = createServer((req, res) => {
+    if (req.method === 'POST' && req.url === '/v1/ai/jobs') {
+      let body = '';
+      req.on('data', (chunk) => (body += chunk));
+      req.on('end', () => {
+        postCalls += 1;
+        try {
+          lastSubmitted = JSON.parse(body) as unknown;
+        } catch {
+          lastSubmitted = null;
+        }
+        res.writeHead(202, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ jobId: `job-${postCalls}`, requestId: 'req-x', status: 'queued', backend: 'memory', note: '内存后端：重启即失', capacity: 1 }));
+      });
+      return;
+    }
+    // 取消端点（§162）：与真 ai-service 同一形状——200 回受理后的状态、404/409 回 AiError
+    if (req.method === 'POST' && req.url?.startsWith('/v1/ai/jobs/') && req.url.endsWith('/cancel')) {
+      const jobId = req.url.slice('/v1/ai/jobs/'.length, -'/cancel'.length);
+      cancelCalls.push(jobId);
+      const script = cancelScript ?? { status: 200, body: scriptedJob({ jobId, status: 'running' }) };
+      res.writeHead(script.status, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(script.body));
+      return;
+    }
+    if (req.method === 'GET' && req.url?.startsWith('/v1/ai/jobs/')) {
+      // 只有这一支需要 await（并发用例要在里面等闸），而 Node 的回调签名要 void——
+      // 所以把异步那段挪进 `answerStatus`，这里 `void` 接住它，不把整台服务器改成 async
+      void answerStatus(req.url, res);
+      return;
+    }
+    res.writeHead(404, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ code: 'not_found', message: 'no such route' }));
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  process.env.NEXUS_AI_SERVICE_URL = baseUrl;
+});
+
+afterEach(() => {
+  nextStatus = null;
+  getCalls = 0;
+  lastSubmitted = null;
+  cancelScript = null;
+  cancelCalls = [];
+  statusForUnknown = { status: 404, body: { code: 'not_found', message: 'job not found' } };
+  // 闸没被走满（用例中途红了、只来了一次 GET）时把等待方全部放行，
+  // 否则那个请求会一直挂着，把后面所有用例一起拖成超时——红要红得干净，不许留下卡死的服务器
+  if (statusBarrier) {
+    for (const release of statusBarrier.waiters) release();
+    statusBarrier = null;
+  }
+  inFlight = 0;
+  maxInFlight = 0;
+});
+
+afterAll(async () => {
+  if (originalUrl === undefined) delete process.env.NEXUS_AI_SERVICE_URL;
+  else process.env.NEXUS_AI_SERVICE_URL = originalUrl;
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  const db = getDb();
+  // 审计行不会因为删任务而消失（那张表本来就是"删了业务行也要留下当时发生过什么"），自己收干净
+  await db.delete(auditEvents).where(and(eq(auditEvents.action, 'ai.agent.capability'), eq(auditEvents.actorId, ownerId)));
+  await db.delete(auditEvents).where(and(eq(auditEvents.action, 'ai.job.cancel'), eq(auditEvents.actorId, ownerId)));
+  await db.delete(agentTasks).where(inArray(agentTasks.projectId, createdProjects));
+  await db.delete(projects).where(inArray(projects.id, createdProjects));
+  await db.delete(users).where(inArray(users.id, [ownerId, otherId]));
+});
+
+/** 每次现取 projectId：模块加载时它还只是空串，写成常量会把一个不存在的项目 id 发出去 */
+const wireFor = (pid: string): AiRequest => ({
+  requestId: `req-${RUN}`,
+  intent: 'design-edit',
+  prompt: '把标题换成更醒目的那一版',
+  modelClass: 'balanced',
+  variants: 1,
+  context: { projectId: pid, selection: [], recentChanges: [] },
+  references: [],
+  // §74 的两栏在契约上有默认值，`AiRequest`（推断自输出侧）因此要求显式给：
+  // 空审批策略 + 非 dryRun，就是"这次提交不挂审批、要真跑"
+  approvalPolicy: [],
+  dryRun: false,
+});
+
+/**
+ * §112 之后 `submitJob` 吃的是**服务端解析出的那一份**（`ResolvedAgent`），不再是一个自由字符串。
+ * 这一片测的是"web 怎么镜像作业状态"，所以默认给一份"没人被点名"的解析结果；
+ * 名册解析本身在 `agents.integration.test.ts`，那里的真名册读的是库。
+ */
+const UNNAMED: ResolvedAgent = { agent: null, unknown: [], ignored: [], rosterEmpty: false };
+
+async function submit(agentKey = 'design-edit', agent: ResolvedAgent = UNNAMED) {
+  const result = await submitJob({ wire: wireFor(projectId), projectId, createdById: ownerId, agent, fallbackAgentKey: agentKey, capability: 'real' });
+  if (!result.ok) throw new Error('这次提交本身失败了，用例的前提不成立');
+  return result;
+}
+
+async function taskRow(taskId: string) {
+  const [row] = await getDb().select().from(agentTasks).where(eq(agentTasks.id, taskId)).limit(1);
+  return row!;
+}
+
+async function generationRows(taskId: string) {
+  return getDb()
+    .select({ kind: notifications.kind, body: notifications.body, title: notifications.title })
+    .from(notifications)
+    .where(and(eq(notifications.dedupeKey, `generation:${taskId}`)));
+}
+
+describe('提交：先有账本，再有作业号', () => {
+  it('提交成功时任务行拿到 providerJobId，状态还是 running（没跑完不写成功）', async () => {
+    const submitted = await submit();
+    // 作业号由 ai-service 给，这里只要求它是它报的那个：唯一索引会挡住"两行认领同一个号"，
+    // 所以用例之间不能复用号（fake 的计数不重置，就是这个原因）
+    expect(/^job-\d+$/.test(submitted.jobId)).toBe(true);
+    expect(submitted.backend).toBe('memory');
+    // ai-service 那句限制原样带回来，不改写成"已入队，稍后可查"
+    expect(submitted.note).toBe('内存后端：重启即失');
+    const row = await taskRow(submitted.taskId);
+    expect(row.providerJobId).toBe(submitted.jobId);
+    expect(row.status).toBe('running');
+    expect(row.finishedAt).toBeNull();
+    expect((row.input as { async?: boolean }).async).toBe(true);
+
+    // 对照：账本里这一行确实归在这个项目下，而且带得进项目任务列表
+    const listed = await listProjectTasks(projectId, ownerId);
+    expect(listed?.tasks.some((t) => t.id === submitted.taskId)).toBe(true);
+
+    // 落到假服务的是 assemble 之后的 wire：§68 那条边界对异步提交同样成立。
+    // 正面先断"该带的带了"（intent / projectId），反面才说"不该带的没带"（整份文档）
+    const posted = lastSubmitted as { intent?: string; context?: { projectId?: string }; document?: unknown };
+    expect(posted.intent).toBe('design-edit');
+    expect(posted.context?.projectId).toBe(projectId);
+    expect(posted.document).toBeUndefined();
+  });
+
+  it('ai-service 没答话时把那行结掉，而不是留一条永远查不到的 running', async () => {
+    process.env.NEXUS_AI_SERVICE_URL = 'http://127.0.0.1:1';
+    const result = await submitJob({ wire: wireFor(projectId), projectId, createdById: ownerId, agent: UNNAMED, fallbackAgentKey: 'design-edit', capability: 'real' });
+    process.env.NEXUS_AI_SERVICE_URL = baseUrl;
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('前提不成立');
+    expect(result.status).toBeNull();
+    expect(result.error.code).toBe('provider-unavailable');
+    const newest = (await listProjectTasks(projectId, ownerId))!.tasks[0]!;
+    const row = await taskRow(newest.id);
+    expect(row.status).toBe('failed');
+    expect(row.error).toBe(result.error.message);
+    expect(row.finishedAt).not.toBeNull();
+    expect(row.providerJobId).toBeNull();
+  });
+});
+
+describe('观察：web 只是镜像，写什么由观察到的东西决定', () => {
+  it('还在跑：任务行不动，进度是空的，内存后端与没有进度来源各说一句', async () => {
+    const submitted = await submit();
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'running' });
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.jobStatus).toBe('running');
+    expect(seen?.taskStatus).toBe('running');
+    // 不许替 worker 填一个 0.5：单次 LLM 调用没有可观测的中间态
+    expect(seen?.progress).toBeNull();
+    expect(seen?.notes.join(' ')).toContain('内存里');
+    expect(seen?.notes.join(' ')).toContain('进度');
+    expect((await taskRow(submitted.taskId)).status).toBe('running');
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+  });
+
+  it('completed 但 provider 带着 error：账本与通知都按失败记', async () => {
+    const submitted = await submit();
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'completed',
+      finishedAt: new Date('2026-09-26T00:00:09.000Z').toISOString(),
+      result: okResponse({ patches: [], error: { code: 'provider-unavailable', message: 'DEMO Mock 不认这条指令', retryable: false } }),
+    });
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.jobStatus).toBe('completed');
+    expect(seen?.taskStatus).toBe('failed');
+    expect((await taskRow(submitted.taskId)).error).toContain('DEMO Mock 不认这条指令');
+    const rows = await generationRows(submitted.taskId);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.title).toContain('失败');
+
+    // 反向对照：同样一份 result 去掉那个 error，同一份代码就记成成功
+    const okSubmitted = await submit();
+    nextStatus = scriptedJob({
+      jobId: okSubmitted.jobId,
+      status: 'completed',
+      result: okResponse(),
+    });
+    const okSeen = await observeJob(okSubmitted.jobId, ownerId);
+    expect(okSeen?.taskStatus).toBe('succeeded');
+    expect(okSeen?.outcome).toBe('1 处补丁 · 0 份方案');
+  });
+
+  it('同一份 completed 被问两次：任务行不重写、通知只有一条（幂等靠 dedupe 键，不靠运气）', async () => {
+    const submitted = await submit();
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'completed',
+      result: okResponse(),
+    });
+    expect((await observeJob(submitted.jobId, ownerId))?.taskStatus).toBe('succeeded');
+    const first = await taskRow(submitted.taskId);
+    expect(await observeJob(submitted.jobId, ownerId)).not.toBeNull();
+    const second = await taskRow(submitted.taskId);
+    expect(second.finishedAt?.getTime()).toBe(first.finishedAt?.getTime());
+    expect(await generationRows(submitted.taskId)).toHaveLength(1);
+  });
+
+  it('failed：原因原样进账本，没有原因时是那句兜底而不是空', async () => {
+    const submitted = await submit();
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'failed', error: { code: 'provider-failed', message: 'worker 抛了：上游 502', retryable: true } });
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.taskStatus).toBe('failed');
+    expect(seen?.outcome).toBe('worker 抛了：上游 502');
+
+    const noReason = await submit();
+    nextStatus = scriptedJob({ jobId: noReason.jobId, status: 'failed' });
+    const seen2 = await observeJob(noReason.jobId, ownerId);
+    expect(seen2?.outcome).toBe('作业失败，没有给出原因');
+  });
+
+  it('作业在那一侧查不到：running 的行落成 failed 并写明原因；已经成功的行不倒回去', async () => {
+    const submitted = await submit();
+    nextStatus = null; // 走 404
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.jobStatus).toBeNull();
+    expect(seen?.taskStatus).toBe('failed');
+    expect(seen?.notes.join(' ')).toContain('查不到');
+
+    // 对照：同一份 404 打在一行已经成功的任务上，状态不许被改写
+    const done = await submit();
+    nextStatus = scriptedJob({
+      jobId: done.jobId,
+      status: 'completed',
+      result: okResponse(),
+    });
+    await observeJob(done.jobId, ownerId);
+    nextStatus = null;
+    const again = await observeJob(done.jobId, ownerId);
+    expect(again?.taskStatus).toBe('succeeded');
+    expect((await taskRow(done.taskId)).status).toBe('succeeded');
+  });
+
+  it('问不到（非 404）时任务行一动都不动：没观察到终态就不写终态', async () => {
+    const submitted = await submit();
+    statusForUnknown = { status: 503, body: { code: 'provider-unavailable', message: 'ai-service 正在重启', retryable: true } };
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.jobStatus).toBeNull();
+    expect(seen?.taskStatus).toBe('running');
+    expect(seen?.notes.join(' ')).toContain('正在重启');
+    expect((await taskRow(submitted.taskId)).status).toBe('running');
+  });
+});
+
+/**
+ * §75：用量属于**那次调用**，不属于任务的终态。
+ * 这一组之所以要真库，是因为它量的是"哪一列被写、什么时候被写、第二次会不会覆盖"——
+ * 这些都在 SQL 里（`update ... where usage is null`），用假库量到的只是"调用了几次"。
+ * 三态各一条，缺一条就会漏掉一类真会发生的行：跑完的、被扣下等审批的、以及用户已经取消但 provider 照旧烧完的。
+ */
+describe('§75 用量落账：跑过的那次调用留下读数，与终态怎么落无关', () => {
+  it('completed：那一行记着 provider 报的用量；再问一次仍是最初那一份', async () => {
+    const submitted = await submit();
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'completed', result: okResponse() });
+    expect((await observeJob(submitted.jobId, ownerId))?.taskStatus).toBe('succeeded');
+    expect((await taskRow(submitted.taskId)).usage).toEqual(okResponse().usage);
+    // 第二次观察走同一份 completed：任务行不重写，用量也不会被"第二份"顶掉（CAS 是 usage is null）
+    await observeJob(submitted.jobId, ownerId);
+    expect((await taskRow(submitted.taskId)).usage).toEqual(okResponse().usage);
+  });
+
+  it('挂起等审批：补丁被扣下，token 已经烧掉——用量照样落账', async () => {
+    const { submitted } = await heldJob();
+    const row = await taskRow(submitted.taskId);
+    // 终态是"还没决定"，但那次调用真的发生过：用量不能跟着补丁一起被扣下
+    expect(row.status).toBe('awaiting_approval');
+    expect(row.usage).toEqual(okResponse().usage);
+  });
+
+  it('取消之后队列才报 completed：行不改写，但烧掉的那次调用仍记上', async () => {
+    const submitted = await submit();
+    await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    // 取消那一刻还没观察到结果：没记就是没记（NULL 不是 0 token）
+    expect((await taskRow(submitted.taskId)).usage).toBeNull();
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'completed', result: okResponse() });
+    await observeJob(submitted.jobId, ownerId);
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('cancelled');
+    expect(row.usage).toEqual(okResponse().usage);
+    // 通知照旧不发：取消是用户自己点的，用量记账不会顺手多出一条"生成完成"
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+  });
+});
+
+describe('活动列表 → 实时事件：推过的不再推第二遍', () => {
+  it('started/completed 走 agent.step，info 走 agent.activity；第二次观察同一批活动一条都不发', async () => {
+    const submitted = await submit();
+    const events: string[] = [];
+    const unsubscribe = getRealtimeBus().subscribe(channels.project(projectId), (e) => {
+      if (e.type === 'agent.step' || e.type === 'agent.activity') events.push(`${e.type}:${'stepId' in e ? e.stepId : e.activity.stage}:${e.taskId === submitted.taskId ? 'mine' : 'other'}`);
+    });
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'running',
+      activities: [
+        { stage: 'assemble', status: 'started', summary: '装配上下文' },
+        { stage: 'assemble', status: 'completed', summary: '目录 12 页' },
+        { stage: 'note', status: 'info', summary: '这一条只是交代一句' },
+      ],
+    });
+    const first = await observeJob(submitted.jobId, ownerId);
+    expect(first?.activities).toHaveLength(3);
+    // 顺序与内容都是真的：三条活动、各自落在正确的事件类型上
+    expect(events).toEqual([
+      `agent.step:0:assemble:mine`,
+      `agent.step:1:assemble:mine`,
+      `agent.activity:note:mine`,
+    ]);
+    expect((await taskRow(submitted.taskId)).activityCursor).toBe(3);
+
+    // 同一批活动再问一次：一条都不许再推（不然界面的过程列表会越刷越长）
+    const before = events.length;
+    await observeJob(submitted.jobId, ownerId);
+    expect(events).toHaveLength(before);
+
+    // 对照：活动列表真的长了，才推新增那一条，游标跟着走
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'completed',
+      activities: [
+        { stage: 'assemble', status: 'started', summary: '装配上下文' },
+        { stage: 'assemble', status: 'completed', summary: '目录 12 页' },
+        { stage: 'note', status: 'info', summary: '这一条只是交代一句' },
+        { stage: 'provider', status: 'completed', summary: 'provider 返回 1 处补丁' },
+      ],
+      result: okResponse(),
+    });
+    await observeJob(submitted.jobId, ownerId);
+    expect(events.slice(before)).toEqual(['agent.step:3:provider:mine']);
+    expect((await taskRow(submitted.taskId)).activityCursor).toBe(4);
+    unsubscribe();
+  });
+
+  /**
+   * 上面那条量的是"顺序"：问两次，第二次不再推。这一条量的是**竞争**——
+   * 而"跨实例要靠 Redis 后端"这句口径（已改）说的正是这件事：游标是 `agent_tasks.activity_cursor`
+   * 这一**列**，由 `bumpActivityCursor` 的 CAS 推进，所以两个 web 进程同时来问也只有一个推得动。
+   * 真要让它们同时来问，就得让两次 GET 同时在飞（见 `armStatusBarrier`）——
+   * 否则这条用例退化成顺序跑，照样绿，而它声称量的是并发。
+   */
+  it('两个观察者同时来问同一个作业：每条活动最多推一次，游标只推进一次', async () => {
+    const submitted = await submit();
+    const events: string[] = [];
+    const unsubscribe = getRealtimeBus().subscribe(channels.project(projectId), (e) => {
+      if (e.type === 'agent.step' || e.type === 'agent.activity') events.push(`${e.type}:${'stepId' in e ? e.stepId : e.activity.stage}`);
+    });
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'running',
+      activities: [
+        { stage: 'assemble', status: 'started', summary: '装配上下文' },
+        { stage: 'assemble', status: 'completed', summary: '目录 12 页' },
+        { stage: 'note', status: 'info', summary: '这一条只是交代一句' },
+      ],
+    });
+    armStatusBarrier(2);
+    const both = await Promise.all([observeJob(submitted.jobId, ownerId), observeJob(submitted.jobId, ownerId)]);
+
+    // 两次观察都真的看到了那三条活动（不是其中一次什么都没问到）
+    expect(both[0]?.activities).toHaveLength(3);
+    expect(both[1]?.activities).toHaveLength(3);
+    // 竞争成立的前提：两次 GET 同时在飞
+    expect(maxInFlight, '两次观察没有重叠——闸没生效，这条用例退化成顺序跑').toBe(2);
+    // 判据：三条，不是六条。两个观察者里必须有一个 CAS 输掉，一条都不推
+    expect(events).toEqual(['agent.step:0:assemble', 'agent.step:1:assemble', 'agent.activity:note']);
+    expect((await taskRow(submitted.taskId)).activityCursor).toBe(3);
+    unsubscribe();
+  });
+});
+
+describe('归属：别人的作业号在这里问不出任何东西', () => {
+  it('路人拿同一个 jobId：查不到，而且 web 连去问 ai-service 都没有问', async () => {
+    const submitted = await submit();
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'completed' });
+    const callsBefore = getCalls;
+    expect(await observeJob(submitted.jobId, otherId)).toBeNull();
+    // 这一句是关键：归属判断在前，去问在后。反过来（先问再判）就会把别人的提示词摘要与补丁
+    // 取回自己的进程里再拒——那已经是把东西拿出来了
+    expect(getCalls).toBe(callsBefore);
+    // 对照：同一个人同一个号，这次去问了，而且状态落进行
+    expect(await observeJob(submitted.jobId, ownerId)).not.toBeNull();
+    expect(getCalls).toBe(callsBefore + 1);
+    expect((await taskRow(submitted.taskId)).status).toBe('succeeded');
+  });
+
+  it('项目不属于这个人时，任务列表整个不给（连任务数都不报）', async () => {
+    await submit();
+    expect(await listProjectTasks(projectId, otherId)).toBeNull();
+    expect((await listProjects(ownerId)).some((p) => p.id === projectId)).toBe(true);
+  });
+});
+
+/**
+ * §74 的门装在异步这条路上。这一组的重点不是"门会不会拦"（那是 `ai-approvals.integration.test.ts`
+ * 那 16 条的事），而是**同一条路上多了第二条入口之后，绕过去要付出什么**：
+ * 如果异步这条路把结果原样交回，那么"绕过审批"就只需要在提交时多选一个"异步"——
+ * 门就没必要存在了。所以这一组钉的是：拦点在这一侧、拦下之后账本上是什么、
+ * 批准/放弃之后再来问给什么，以及一次都没做完时不许有"Generation complete"。
+ */
+
+/** 从项目当前文档里取一个真实存在的非根节点：审批理由要报得出它的名字，就得用真 id */
+async function victimNode() {
+  const doc = await loadDocument(projectId);
+  if (!doc) throw new Error('项目文档读不到，用例的前提不成立');
+  const page = doc.pages[0];
+  if (!page) throw new Error('项目文档没有页，用例的前提不成立');
+  const node = Object.values(page.nodes).find((n) => n.id !== page.rootId);
+  if (!node) throw new Error('这一页只有根节点，用例需要一个可删的子节点');
+  return { pageId: page.id, nodeId: node.id, name: node.name };
+}
+
+/** 提交一份"跑完了、结果里带一个删除动作"的作业，并观察一次（返回这一轮看到的东西） */
+async function heldJob(nodeId?: string) {
+  const submitted = await submit();
+  const v = await victimNode();
+  nextStatus = scriptedJob({
+    jobId: submitted.jobId,
+    status: 'completed',
+    result: okResponse({ patches: [{ pageId: v.pageId, summary: '删掉这一块', ops: [{ op: 'remove', nodeId: nodeId ?? v.nodeId }] }] }),
+  });
+  const seen = await observeJob(submitted.jobId, ownerId);
+  if (!seen) throw new Error('自己的作业问不到，用例的前提不成立');
+  return { submitted, v, seen };
+}
+
+describe('§74 的同一道门：异步作业的结果也要先过门才交回', () => {
+  it('completed 带 remove：补丁不交回、行挂成 awaiting_approval、通知一条都不发', async () => {
+    const { submitted, v, seen } = await heldJob();
+    expect(seen.jobStatus).toBe('completed');
+    // 作业真的跑完了（jobStatus 是 completed），但任务行没写成功也没写失败——它在等人决定
+    expect(seen.taskStatus).toBe('awaiting_approval');
+    expect(seen.approvals).toHaveLength(1);
+    expect(seen.approvals[0]?.action).toBe('delete');
+    // 理由里是文档里那个节点的名字：证明异步这条路径也走了一遍 nodeNamer，
+    // 而不是"读不到就退回 id"那条兜底（真挂起时退化成裸 uuid 是能被接受的，但不该是默认）
+    expect(seen.approvals[0]?.reason).toContain(v.name);
+    // 交回的那一份里补丁是空的，而它带的是 approval-required 而不是"成功"
+    expect(seen.response?.patches ?? []).toEqual([]);
+    expect(seen.response?.error?.code).toBe('approval-required');
+    expect(JSON.stringify(seen.notes)).toContain('需要人工审批');
+    expect(AiJobObservationSchema.safeParse(seen).success).toBe(true);
+
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('awaiting_approval');
+    expect(row.requiresApproval).toBe(true);
+    // 等待不是终态：写了 finishedAt，任务列表就会把"还等人决定"算进已跑完的用时
+    expect(row.finishedAt).toBeNull();
+    // 存的是完整的那一份（批准的凭据是"看过这一版"），所以被扣下的 op 必须还在库里
+    const record = row.result as { held?: { patches?: unknown[] }; approvals?: unknown[]; heldOpCount?: number };
+    expect(record.held?.patches).toHaveLength(1);
+    expect(record.approvals).toHaveLength(1);
+    expect(record.heldOpCount).toBe(1);
+    // 这一句是这一组的核心反面：异步这条路上，"跑完"不该发一条完成通知
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+  });
+
+  /**
+   * §74 的到期在异步那条路上也要成立：作业挂起之后没人来点，Studio 是每隔几秒来问一次的，
+   * 那一条读就是这一片里"看得见等待态的入口"之一。不在这儿收敛，界面上就会出现一张
+   * 几天没动的"还等着审批"卡片——而且它的批准按钮按下去也不会生效，那才是真难解释的样子。
+   */
+  it('挂起之后一直没人裁决：下一次轮询把它作废，而不是继续说"还等着"', async () => {
+    const { submitted, seen } = await heldJob();
+    expect(seen.taskStatus).toBe('awaiting_approval');
+    await getDb()
+      .update(agentTasks)
+      .set({ awaitingSince: new Date(Date.now() - APPROVAL_TTL_MS - 60_000) })
+      .where(eq(agentTasks.id, submitted.taskId));
+
+    const again = await observeJob(submitted.jobId, ownerId);
+    expect(again?.taskStatus).toBe('cancelled');
+    // 补丁到死都没交回：作废改的是行的状态，不是"过期之后换个说法把内容发出去"
+    expect(again?.response?.patches ?? []).toEqual([]);
+    const notes = JSON.stringify(again?.notes ?? []);
+    expect(notes).toContain('已作废');
+    // 也不能反过来谎称是用户点的放弃：那一句只属于真的有人裁决过的行
+    expect(notes).not.toContain('已经被放弃');
+
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('cancelled');
+    expect(row.approvedBy).toBeNull();
+    expect(row.approvedAt).toBeNull();
+    // 作废不是完成：一条生成完成的通知都不该因为"终于有了终态"而发出去
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+  });
+
+  it('反向对照：没有高危动作的 completed 照旧一路到底——补丁交回、行写成功、通知一条', async () => {
+    const submitted = await submit();
+    const v = await victimNode();
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'completed',
+      result: okResponse({ patches: [{ pageId: v.pageId, summary: '换一句标题', ops: [{ op: 'set', nodeId: v.nodeId, path: 'name', value: '更醒目' }] }] }),
+    });
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.approvals).toEqual([]);
+    expect(seen?.taskStatus).toBe('succeeded');
+    expect(seen?.response?.patches?.[0]?.ops).toHaveLength(1);
+    expect((await taskRow(submitted.taskId)).requiresApproval).toBe(false);
+    expect(await generationRows(submitted.taskId)).toHaveLength(1);
+  });
+
+  it('批准之后再来问一次：给回完整的那一份，而不是又挂起来一次', async () => {
+    const v = await victimNode();
+    const { submitted } = await heldJob(v.nodeId);
+    const decided = await decideApproval(submitted.taskId, ownerId, 'approve', '127.0.0.1');
+    expect(decided.ok).toBe(true);
+    // 批准交回的就是被扣下的那一版：一个 op 都没少，也没重新生成
+    const held = (decided.ok ? decided.held : null) as { patches?: { ops: unknown[] }[] } | null;
+    expect(held?.patches?.[0]?.ops).toHaveLength(1);
+
+    // 决定之后同一个作业再问一次（界面刷新、另一个标签页轮询都会走到这里）
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.taskStatus).toBe('succeeded');
+    expect(seen?.approvals).toEqual([]);
+    expect(seen?.response?.patches?.[0]?.ops).toHaveLength(1);
+    // 行没有被打回等待态：门点过头之后，同一份结果不该再拦第二次
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('succeeded');
+    expect(row.requiresApproval).toBe(true);
+    expect(row.approvedBy).toBe(ownerId);
+  });
+
+  it('放弃之后再来问：一份补丁都不给，并且说一句为什么没有', async () => {
+    const v = await victimNode();
+    const { submitted } = await heldJob(v.nodeId);
+    const decided = await decideApproval(submitted.taskId, ownerId, 'reject', '127.0.0.1');
+    expect(decided.ok).toBe(true);
+    expect(decided.ok ? decided.status : null).toBe('cancelled');
+
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.taskStatus).toBe('cancelled');
+    // ai-service 那一侧仍报 completed 且带着结果——放弃是对"要不要交回"的决定，不是对作业的判断
+    expect(seen?.jobStatus).toBe('completed');
+    expect(seen?.response).toBeNull();
+    expect(JSON.stringify(seen?.notes)).toContain('已经被放弃');
+  });
+
+  it('同一次挂起被问两次：现场不重写，两次给的是同一份说法', async () => {
+    const v = await victimNode();
+    const { submitted } = await heldJob(v.nodeId);
+    const first = (await observeJob(submitted.jobId, ownerId))!;
+    expect(first.taskStatus).toBe('awaiting_approval');
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('awaiting_approval');
+    // 两轮给出去的报文完全相同：`delivered` 是挂起当时存下的那一份，不是每次现算的
+    expect(first.response).not.toBeNull();
+    expect(JSON.stringify(first.response)).toBe(JSON.stringify((row.result as { delivered: unknown }).delivered));
+    // 文档在两轮之间没有变，重算也只会算出同一句理由——但代码不该依赖"没有变"这个前提
+    expect(first.approvals).toHaveLength(1);
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+  });
+
+  it('文档里查不到的节点 id：理由退回那个 id，不编一个"某个元素"', async () => {
+    const { seen } = await heldJob('ghost-node-not-in-this-doc');
+    expect(seen.approvals[0]?.reason).toContain('ghost-node-not-in-this-doc');
+    expect(seen.approvals[0]?.reason).not.toContain('某个元素');
+    // 报不出名字不等于放过：门照样拦
+    expect(seen.taskStatus).toBe('awaiting_approval');
+  });
+});
+
+/**
+ * §73 在异步这条路的那一半：被点名的 Agent 没有 `design.patch` 时，结果是**拒收**，不是挂起。
+ *
+ * 为什么单独一组：§74 与 §73 在界面上长得像（都是"补丁没进画布"），但语义相反——
+ * 挂起是"这件事等人点头"，拒收是"这一位点了头也没用"。把它们混在一个 describe 里，
+ * 下一次有人只改 `approvals` 那条分支，测试不会告诉他另一条也变了。
+ */
+describe('§73 的越权拒收：被点名的人没有 design.patch', () => {
+  const QA: ResolvedAgent = {
+    agent: { key: 'qa', name: 'QA Agent', responsibilities: ['只提问题，不改设计文档'], capabilities: ['browser.read', 'test.run'] },
+    unknown: [],
+    ignored: [],
+    rosterEmpty: false,
+  };
+  const DESIGN: ResolvedAgent = {
+    agent: { key: 'design', name: 'Design Agent', responsibilities: ['规划并修改设计模型'], capabilities: ['design.read', 'design.patch'] },
+    unknown: [],
+    ignored: [],
+    rosterEmpty: false,
+  };
+
+  async function refusedJob(nodeId: string, pageId: string, op: { op: 'remove'; nodeId: string } | { op: 'set'; nodeId: string; path: string; value: unknown }) {
+    const submitted = await submit('qa', QA);
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'completed',
+      result: okResponse({ patches: [{ pageId, summary: '动一下这一块', ops: [op as never] }] }),
+    });
+    const seen = await observeJob(submitted.jobId, ownerId);
+    if (!seen) throw new Error('自己的作业问不到，用例的前提不成立');
+    return { submitted, seen };
+  }
+
+  it('remove 来自 QA：不挂起、不交回，行落 failed，审计留一条被拒的越权', async () => {
+    const v = await victimNode();
+    const { submitted, seen } = await refusedJob(v.nodeId, v.pageId, { op: 'remove', nodeId: v.nodeId });
+    // 这不是审批问题：approvals 是空的，没有人会被问"要不要让 QA 删掉它"
+    expect(seen.approvals).toEqual([]);
+    expect(seen.response?.patches ?? []).toEqual([]);
+    expect(seen.response?.error?.code).toBe('permission-denied');
+    expect(JSON.stringify(seen.notes)).toContain('没有交回（§73）');
+    expect(JSON.stringify(seen.notes)).toContain('QA Agent');
+
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('failed');
+    expect(row.requiresApproval).toBe(false);
+    // 越权要留证据（§73 后半句）。detail 里得说清是哪一位、缺哪个作用域、扣了几个 op
+    const audits = await getDb()
+      .select({ action: auditEvents.action, allowed: auditEvents.allowed, detail: auditEvents.detail, targetId: auditEvents.targetId })
+      .from(auditEvents)
+      .where(and(eq(auditEvents.action, 'ai.agent.capability'), eq(auditEvents.targetId, submitted.taskId)));
+    expect(audits).toHaveLength(1);
+    expect(audits[0]?.allowed).toBe(false);
+    expect(audits[0]?.detail).toMatchObject({ agentKey: 'qa', missing: 'design.patch', opCount: 1 });
+  });
+
+  it('不是删除也一样拒：QA 连"改个名字"都不能交回', async () => {
+    const v = await victimNode();
+    const { seen } = await refusedJob(v.nodeId, v.pageId, { op: 'set', nodeId: v.nodeId, path: 'name', value: 'QA 起的名字' });
+    // 同一个 op 换成 Design Agent 是能交回的（见下一条）——于是这一条的红不是"set 一律不进"
+    expect(seen.response?.patches ?? []).toEqual([]);
+    expect(seen.response?.error?.code).toBe('permission-denied');
+  });
+
+  it('反向对照：同样一份 set 补丁，来自 Design Agent 就照旧交回', async () => {
+    const v = await victimNode();
+    const submitted = await submit('design', DESIGN);
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'completed',
+      result: okResponse({ patches: [{ pageId: v.pageId, summary: '换个标题', ops: [{ op: 'set', nodeId: v.nodeId, path: 'name', value: '更醒目' }] }] }),
+    });
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.response?.patches?.[0]?.ops).toHaveLength(1);
+    expect(seen?.response?.error).toBeUndefined();
+    expect((await taskRow(submitted.taskId)).status).toBe('succeeded');
+    // 没越权就不该有那条审计：这一条是上一条的正向对照
+    const audits = await getDb().select({ id: auditEvents.id }).from(auditEvents).where(eq(auditEvents.targetId, submitted.taskId));
+    expect(audits).toHaveLength(0);
+  });
+
+  it('没人被点名、意图恰好叫 research：按名册里那位 Research Agent 的权限处理是错的，照旧只走 §74', async () => {
+    // `research` 既是一个意图类别，也是名册里一个 Agent 的 key。门只认账本里"被点名"的那一位，
+    // 靠 agentKey 字符串撞上的话，一次没人点名的请求会被换成另一套权限口径
+    const v = await victimNode();
+    const submitted = await submit('research', UNNAMED);
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'completed',
+      result: okResponse({ patches: [{ pageId: v.pageId, summary: '删掉这一块', ops: [{ op: 'remove', nodeId: v.nodeId }] }] }),
+    });
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.taskStatus).toBe('awaiting_approval');
+    expect(seen?.approvals).toHaveLength(1);
+    expect(seen?.agent).toBeNull();
+  });
+
+  it('观察报文里的 agent 来自账本：选了 QA 就写着 QA', async () => {
+    const v = await victimNode();
+    const { seen } = await refusedJob(v.nodeId, v.pageId, { op: 'set', nodeId: v.nodeId, path: 'name', value: 'x' });
+    expect(seen.agent).toEqual({ key: 'qa', name: 'QA Agent' });
+    expect(AiJobObservationSchema.safeParse(seen).success).toBe(true);
+  });
+});
+
+/**
+ * §162 取消/重试（2026-10-09）。这一组钉的是**顺序与不冒充**：
+ * 队列先受理（它才是"还跑不跑"的真值）、账本后 CAS；200 不等于"已经停了"；
+ * 每一种不受理（别人的、已结束的、等审批的、队列失联的）各自说各自的，不许互相顶替。
+ */
+describe('§162 取消：先让队列受理，再 CAS 账本行', () => {
+  async function cancelAudits(taskId: string) {
+    return getDb()
+      .select({ action: auditEvents.action, allowed: auditEvents.allowed, detail: auditEvents.detail, targetId: auditEvents.targetId })
+      .from(auditEvents)
+      .where(and(eq(auditEvents.action, 'ai.job.cancel'), eq(auditEvents.targetId, taskId)));
+  }
+
+  it('路人取消别人的作业：404，而且队列一次都没被问（归属判断在前）', async () => {
+    const submitted = await submit();
+    const outcome = await cancelJob(submitted.jobId, otherId, '127.0.0.1');
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) throw new Error('前提不成立');
+    expect(outcome.status).toBe(404);
+    expect(cancelCalls).toHaveLength(0);
+    expect((await taskRow(submitted.taskId)).status).toBe('running');
+  });
+
+  it('取消在跑的作业：队列 200（状态可能仍是 running）、行落 cancelled、审计留一条', async () => {
+    const submitted = await submit();
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) throw new Error('前提不成立');
+    // 受理≠停止：假服务按真语义回了 running（只立了标志），这一份回执照实透传
+    expect(outcome.jobStatus).toBe('running');
+    expect(outcome.taskStatus).toBe('cancelled');
+    expect(outcome.note).toContain('取消已受理');
+
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('cancelled');
+    expect(row.error).toContain('取消已受理');
+    expect(row.finishedAt).not.toBeNull();
+    // 用户自己点的取消不发通知（UI 当场就有回话）：收件箱只留给"没人看着时自己发生的事"
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+
+    expect(cancelCalls).toEqual([submitted.jobId]);
+    const audits = await cancelAudits(submitted.taskId);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]?.allowed).toBe(true);
+    expect(audits[0]?.detail).toMatchObject({ jobId: submitted.jobId, reason: 'accepted' });
+  });
+
+  it('已经是 cancelled 再按一次：幂等 200，而且不再问队列', async () => {
+    const submitted = await submit();
+    await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    const again = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(again.ok).toBe(true);
+    if (!again.ok) throw new Error('前提不成立');
+    expect(again.note).toContain('已经是已取消');
+    expect(cancelCalls).toHaveLength(1);
+    expect((await taskRow(submitted.taskId)).status).toBe('cancelled');
+  });
+
+  it('已经落终态的行：409 说"取消来不及了"，行不许被改写、队列不被问', async () => {
+    const submitted = await submit();
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'completed', result: okResponse() });
+    await observeJob(submitted.jobId, ownerId);
+    expect((await taskRow(submitted.taskId)).status).toBe('succeeded');
+
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) throw new Error('前提不成立');
+    expect(outcome.status).toBe(409);
+    expect(outcome.error.message).toContain('取消来不及了');
+    expect(outcome.error.message).toContain('重试');
+    expect(cancelCalls).toHaveLength(0);
+    expect((await taskRow(submitted.taskId)).status).toBe('succeeded');
+  });
+
+  it('挂起等审批的行：409 指向审批接口——放弃属于审批那条路，不在这条路上盖章', async () => {
+    const { submitted } = await heldJob();
+    expect((await taskRow(submitted.taskId)).status).toBe('awaiting_approval');
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) throw new Error('前提不成立');
+    expect(outcome.status).toBe(409);
+    expect(outcome.error.message).toContain('/approval');
+    expect(cancelCalls).toHaveLength(0);
+    expect((await taskRow(submitted.taskId)).status).toBe('awaiting_approval');
+  });
+
+  it('队列那边先结束了（409）：这一行不动，交给观察去落它的终态', async () => {
+    const submitted = await submit();
+    cancelScript = { status: 409, body: { code: 'validation-failed', message: '作业已经结束（completed），取消来不及了', retryable: false } };
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) throw new Error('前提不成立');
+    expect(outcome.status).toBe(409);
+    expect(outcome.error.message).toContain('取消来不及了');
+    expect((await taskRow(submitted.taskId)).status).toBe('running');
+    const audits = await cancelAudits(submitted.taskId);
+    expect(audits[0]?.allowed).toBe(false);
+    expect(audits[0]?.detail).toMatchObject({ reason: 'queue-terminal' });
+  });
+
+  it('队列失联（503）：503 说清"可能还会完成"，行一动不动', async () => {
+    const submitted = await submit();
+    cancelScript = { status: 503, body: { code: 'provider-unavailable', message: 'ai-service 正在重启', retryable: true } };
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) throw new Error('前提不成立');
+    expect(outcome.status).toBe(503);
+    expect(outcome.error.message).toContain('没能送到');
+    expect(outcome.error.message).toContain('不能先说成已取消');
+    // 行不动是这一条的核心：谎报成"已取消"，下一次观察看到 completed 就会当场打脸
+    expect((await taskRow(submitted.taskId)).status).toBe('running');
+  });
+
+  it('队列查不到（404）：行按取消落账——留一条永远查不回来的 running 更糟', async () => {
+    const submitted = await submit();
+    cancelScript = { status: 404, body: { code: 'validation-failed', message: `没有 id 为 ${submitted.jobId} 的作业`, retryable: false } };
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) throw new Error('前提不成立');
+    expect(outcome.jobStatus).toBeNull();
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('cancelled');
+    expect(row.error).toContain('查不到');
+  });
+
+  it('取消之后观察：outcome 是取消的理由；队列后来报 cancelled 也不覆盖行、不发通知', async () => {
+    const submitted = await submit();
+    await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+
+    // 队列还没到检查点（仍是 running）：观察不能把 cancelled 的行改回别的，outcome 给出取消理由
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'running' });
+    const stillRunning = await observeJob(submitted.jobId, ownerId);
+    expect(stillRunning?.taskStatus).toBe('cancelled');
+    expect(stillRunning?.jobStatus).toBe('running');
+    expect(stillRunning?.outcome).toContain('取消已受理');
+
+    // 检查点落了：观察把 cancelled 镜像出来，但任务行的错误栏（取消理由）原样保留
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'cancelled', finishedAt: new Date().toISOString() });
+    const done = await observeJob(submitted.jobId, ownerId);
+    expect(done?.jobStatus).toBe('cancelled');
+    expect(done?.taskStatus).toBe('cancelled');
+    expect(done?.response).toBeNull();
+    expect(JSON.stringify(done?.notes)).toContain('已被取消');
+    expect((await taskRow(submitted.taskId)).error).toContain('取消已受理');
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+  });
+});
+
+/**
+ * 重试的四道门住在 `readRetryableTask`（路由只是门面），所以这里直接测那一个函数——
+ * 每句拒绝话都是给用户看的承诺，不能只在 e2e 的 happy path 里顺带路过。
+ */
+describe('§162 重试的四道门', () => {
+  it('路人 / 查不到的行：404，与"没有这一行"同一个答案', async () => {
+    const submitted = await submit();
+    const stranger = await readRetryableTask(submitted.taskId, otherId);
+    expect(stranger.ok).toBe(false);
+    if (stranger.ok) throw new Error('前提不成立');
+    expect(stranger.status).toBe(404);
+    const ghost = await readRetryableTask('00000000-0000-4000-8000-000000000000', ownerId);
+    expect(ghost.ok).toBe(false);
+    if (ghost.ok) throw new Error('前提不成立');
+    expect(ghost.status).toBe(404);
+  });
+
+  it('同步行（没有作业号）：409，建议再按一次执行', async () => {
+    const db = getDb();
+    const [syncRow] = await db
+      .insert(agentTasks)
+      .values({ projectId, agentKey: 'design-edit', status: 'failed', createdById: ownerId, error: '同步那一次失败了', startedAt: new Date(), finishedAt: new Date() })
+      .returning({ id: agentTasks.id });
+    const check = await readRetryableTask(syncRow!.id, ownerId);
+    expect(check.ok).toBe(false);
+    if (check.ok) throw new Error('前提不成立');
+    expect(check.status).toBe(409);
+    expect(check.message).toContain('同步请求');
+    expect(check.message).toContain('再按一次执行');
+  });
+
+  it('还在跑的行：409——不能插队，成功的也没有重试的理由', async () => {
+    const submitted = await submit();
+    const running = await readRetryableTask(submitted.taskId, ownerId);
+    expect(running.ok).toBe(false);
+    if (running.ok) throw new Error('前提不成立');
+    expect(running.message).toContain('只有失败或已取消');
+
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'completed', result: okResponse() });
+    await observeJob(submitted.jobId, ownerId);
+    const succeeded = await readRetryableTask(submitted.taskId, ownerId);
+    expect(succeeded.ok).toBe(false);
+    if (succeeded.ok) throw new Error('前提不成立');
+    expect(succeeded.message).toContain('只有失败或已取消');
+  });
+
+  it('老行没存请求原话：409，不猜当时说了什么', async () => {
+    const submitted = await submit(); // helper 没传 request：正是"建于重试功能之前"的形状
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'failed', error: { code: 'provider-failed', message: '上游炸了', retryable: true } });
+    await observeJob(submitted.jobId, ownerId);
+    expect((await taskRow(submitted.taskId)).status).toBe('failed');
+    const check = await readRetryableTask(submitted.taskId, ownerId);
+    expect(check.ok).toBe(false);
+    if (check.ok) throw new Error('前提不成立');
+    expect(check.status).toBe(409);
+    expect(check.message).toContain('没有存下当时那份请求');
+  });
+
+  it('失败行 + 存了原话：过门，把解析好的请求原话一并带出', async () => {
+    const request = { ...wireFor(projectId), requestId: `req-retry-${RUN}`, prompt: '把对比度提高 30%' };
+    const first = await submitJob({ wire: request, request, projectId, createdById: ownerId, agent: UNNAMED, fallbackAgentKey: 'design-edit', capability: 'real' });
+    if (!first.ok) throw new Error('前提不成立');
+    nextStatus = scriptedJob({ jobId: first.jobId, status: 'failed', error: { code: 'provider-failed', message: 'worker 崩了', retryable: true } });
+    await observeJob(first.jobId, ownerId);
+    const check = await readRetryableTask(first.taskId, ownerId);
+    expect(check.ok).toBe(true);
+    if (!check.ok) throw new Error('过门了才对');
+    expect(check.request.prompt).toBe('把对比度提高 30%');
+    expect(check.task.attempt).toBe(1);
+  });
+});
+
+describe('§162 重试落账：新的一行，历史不抹', () => {
+  it('attempt+1、input.retryOf 接上旧行；旧行原样不动，两行都在列表里', async () => {
+    const request = { ...wireFor(projectId), requestId: `req-chain-${RUN}` };
+    const first = await submitJob({ wire: request, request, projectId, createdById: ownerId, agent: UNNAMED, fallbackAgentKey: 'design-edit', capability: 'real' });
+    if (!first.ok) throw new Error('前提不成立');
+    nextStatus = scriptedJob({ jobId: first.jobId, status: 'failed', error: { code: 'provider-failed', message: '第一次失败了', retryable: true } });
+    await observeJob(first.jobId, ownerId);
+    const oldRow = await taskRow(first.taskId);
+    expect(oldRow.status).toBe('failed');
+
+    const check = await readRetryableTask(first.taskId, ownerId);
+    if (!check.ok) throw new Error('过门了才对');
+    const second = await submitJob({
+      wire: request,
+      request,
+      projectId,
+      createdById: ownerId,
+      agent: UNNAMED,
+      fallbackAgentKey: 'design-edit',
+      capability: 'real',
+      retry: { of: check.task.id, attempt: check.task.attempt + 1 },
+    });
+    if (!second.ok) throw new Error('第二次提交本身失败了，用例的前提不成立');
+
+    const newRow = await taskRow(second.taskId);
+    expect(newRow.id).not.toBe(first.taskId);
+    expect(newRow.attempt).toBe(2);
+    expect(newRow.status).toBe('running');
+    const input = newRow.input as { retryOf?: string; request?: { prompt?: string } };
+    expect(input.retryOf).toBe(first.taskId);
+    expect(input.request?.prompt).toBe(request.prompt);
+
+    // 历史不抹：第一次失败那行的终态、错误与 attempt 都还在
+    const oldAfter = await taskRow(first.taskId);
+    expect(oldAfter.status).toBe('failed');
+    expect(oldAfter.error).toBe('第一次失败了');
+    expect(oldAfter.attempt).toBe(1);
+
+    const listed = await listProjectTasks(projectId, ownerId);
+    expect(listed?.tasks.filter((t) => t.id === first.taskId || t.id === second.taskId)).toHaveLength(2);
+    expect(listed?.tasks.find((t) => t.id === second.taskId)?.attempt).toBe(2);
+    // 只有自己的行才给 `mine`：重试按钮的显示条件就是这一栏
+    expect(listed?.tasks.find((t) => t.id === second.taskId)?.mine).toBe(true);
+  });
+
+  it('取消行与失败行同一口径：也能过门', async () => {
+    const request = { ...wireFor(projectId), requestId: `req-retry-cancel-${RUN}` };
+    const first = await submitJob({ wire: request, request, projectId, createdById: ownerId, agent: UNNAMED, fallbackAgentKey: 'design-edit', capability: 'real' });
+    if (!first.ok) throw new Error('前提不成立');
+    const cancelled = await cancelJob(first.jobId, ownerId, '127.0.0.1');
+    expect(cancelled.ok).toBe(true);
+    const check = await readRetryableTask(first.taskId, ownerId);
+    expect(check.ok).toBe(true);
+  });
+});
+
+/**
+ * DEMO 异步（`demo-memory` 后端）：作业活在 web 进程内存里，**观察永远不去问 ai-service**。
+ * 2026-10-09 之前这条分支不存在：DEMO 提交出去的作业，观察一律问 ai-service 得到 404，
+ * 任务行被错落成 failed（或者在没有 URL 的环境里永远 running）——这一组钉住那扇分支。
+ * 结果必须是一份**合法的 AiResponse**（与同步那条路共用 DeterministicMockProvider），
+ * 所以提示词要匹配得上确定性规则（'加一个定价区块' → add-section）。
+ */
+describe('DEMO 异步作业：真值在 web 进程内存，不去问 ai-service', () => {
+  async function submitDemo() {
+    const wire = { ...wireFor(projectId), requestId: `req-demo-${RUN}-${Math.random().toString(36).slice(2, 8)}`, prompt: '加一个定价区块' };
+    const document = await loadDocument(projectId);
+    const result = await submitJob({ wire, document, request: wire, projectId, createdById: ownerId, agent: UNNAMED, fallbackAgentKey: 'design-edit', capability: 'demo', isDemo: true });
+    if (!result.ok) throw new Error('DEMO 提交失败，用例的前提不成立');
+    return result;
+  }
+
+  it('轮询到完成：假 ai-service 一次都没被问，回交的是一份过门的合法结果', async () => {
+    const submitted = await submitDemo();
+    expect(submitted.backend).toBe('demo-memory');
+    const callsBefore = getCalls;
+    let seen = await observeJob(submitted.jobId, ownerId);
+    for (let i = 0; i < 60 && seen?.taskStatus === 'running'; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      seen = await observeJob(submitted.jobId, ownerId);
+    }
+    expect(seen?.backend).toBe('demo-memory');
+    expect(seen?.jobStatus).toBe('completed');
+    expect(seen?.taskStatus).toBe('succeeded');
+    // 这一行是这组的重点：demo 作业的真值在本进程内存，去问 ai-service 是走错了门
+    expect(getCalls).toBe(callsBefore);
+    expect(seen?.response).not.toBeNull();
+    expect(AiJobObservationSchema.safeParse(seen).success).toBe(true);
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('succeeded');
+    expect(row.capability).toBe('demo');
+    expect(await generationRows(submitted.taskId)).toHaveLength(1);
+  });
+
+  it('提交后立刻取消：标志被检查点落成 cancelled，结果永远不生成', async () => {
+    const submitted = await submitDemo();
+    const callsBefore = getCalls;
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(true);
+
+    let seen = await observeJob(submitted.jobId, ownerId);
+    for (let i = 0; i < 60 && seen?.jobStatus !== 'cancelled'; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      seen = await observeJob(submitted.jobId, ownerId);
+    }
+    expect(seen?.jobStatus).toBe('cancelled');
+    expect(seen?.taskStatus).toBe('cancelled');
+    expect(seen?.response).toBeNull();
+    expect(getCalls).toBe(callsBefore);
+    expect((await taskRow(submitted.taskId)).status).toBe('cancelled');
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+  });
+});

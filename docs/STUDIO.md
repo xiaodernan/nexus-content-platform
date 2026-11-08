@@ -1,3 +1,13 @@
+<!--
+CONSOLIDATED 2026-11-09 — the two lines of NEXUS were merged into one branch
+(see README.md). This file carries BOTH lines verbatim; nothing was reconciled into a
+false blend. The studio line's doc is first, then the main line's doc, behind a marked
+appendix heading. If you are editing this file, edit the section for your line and keep
+the other section's bytes alone.
+-->
+
+# NEXUS Studio · studio line
+
 # NEXUS Studio
 
 The creative workbench. Layout: a left **Layers** + **Components** + **Design System** panel, a
@@ -108,3 +118,338 @@ QA verdict (the designer brief stays sandbox-only until you approve), and a newe
 element first (§28 as product UX; ADR 0016 amendment 16).
 Everything is DEMO MODE-labeled: the agent proposes, the model stays canonical
 (§8), and no document mutation happens without the human checkpoint (§28).
+
+
+
+---
+
+# 附录 · STUDIO — NEXUS Studio 规格 · main line (the older, richer line, kept in full)
+<!-- appendix appended verbatim by the consolidation; studio-line bytes are above the marker -->
+
+# STUDIO — NEXUS Studio 规格
+
+Studio 是项目核心（§3）：AI Design + Code + Creation IDE。
+参考 Claude Design 的闭环（conversation / canvas / direct canvas editing / comments / design systems /
+import screenshots / codebase context / design ↔ code），但**不复刻其 UI**。
+
+## 布局（§4）
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ NEXUS │ Project │ File │ Preview │ Share │ Publish      │
+├────────────┬──────────────────────────────┬─────────────┤
+│  Pages     │                              │  Properties │
+│  Layers    │                              │  ─ Design   │
+│  Components│          CANVAS              │  ─ Layout   │
+│  Assets    │                              │  ─ Type     │
+│  Variables │                              │  ─ Color    │
+│  DesignSys │                              │  ─ Effects  │
+│  AI Agents │                              │  ─ Spacing  │
+│  Code      │                              │  ─ Responsive│
+│  History   │                              │  ─ Animation│
+├────────────┴──────────────────────────────┴─────────────┤
+│ AI COMMAND BAR / CHAT / AGENT ACTIVITY                  │
+└─────────────────────────────────────────────────────────┘
+```
+
+窄屏（<1280px）：左面板折叠为图标栏，右面板变为底部抽屉；AI 命令栏始终可达。
+
+## 协作角色（§133）
+
+- **editor** 与 **owner** 写门相同；**viewer** 读得到整份项目，写请求在服务端被
+  `403 read_only_role` 拒（写门每次现读成员行，改角色立刻生效）。
+- 壳体按服务端判出的角色渲染：viewer 顶部常驻 `data-studio-read-only` 横幅，说明"能看不能改"。
+  客户端的四个 store（设计 / 世界 / 游戏 / 分镜）在本地就把编辑按下——不换文档、不进撤销栈、
+  不排队保存，避免"界面先改成功、再被 403 打回"（§159）。服务端的 403 仍是最后一道，不是唯一一道。
+- 例外是**视图偏好**：切换页面与显示模式照旧在本地生效（那是"看"），只是不标脏、不写库，
+  下次载入服务端那份时回到原值。
+
+## 左面板（§5）
+
+Pages · Layers · Components · Assets · Variables · Design System · AI Agents · Code · History
+- 同一时刻只展开一个面板主体，图标栏常驻
+- Retrieve 面板（§49）：对项目语料做混合检索（全文 + 子串 + 词覆盖度），命中卡片写明**为什么命中**
+  （`substring` / `fulltext` / `coverage`）与来源；顶部常驻「向量检索未接」——没有语义检索就说没有
+- Context 面板（§66-71）：一次装配出的那份 Agent 上下文，摊开「画布本地的三项 + 服务端目录 + 代码目录 + 摘要 + 分支状态」。
+  数值都是读得出来的而不是估的：`目录 7,047 / 整份 9,882 字符（71.3%）` 是 §68 的可核对版本，
+  下面一行 `代码目录 6,209 字符：3 个文件 / 54 个符号 / 1 条内部依赖`（§69）是 AST 真数出来的，
+  有文件解析不出来或目录被预算裁过时同一行跟着报数——面板不替人判断这份目录完不完整；
+  预算框改成任何数会重算服务端目录，被裁时**逐条列出裁掉了什么**（`totals` 仍来自未裁的那份，宁可少列条目不少报数）；
+  §71 七个分支各写自己的状态，没落地的写「未索引」而不是留白，底部「这次没带的」列明边界（§159）
+- Layers 树支持：重命名、显隐、锁定、拖拽改父级、多选、搜索、按类型过滤
+- Assets 列 `document.assets`（清单本身在模型里，§16）：缩略图走鉴权路由、显示体积与引用计数；
+  删除 = 一个 `removeAsset` 事务，跨所有页面剥引用且可撤销——但服务端字节撤不回来，回执明说这条非对称（§159）
+- Assets 卡片上的「提取视觉语言」把这张参考图变成 `document.visualDna`（§30/§174，详见「参考输入」一节）；
+  只有图片卡片可点，非位图与解不了的编码都会拿到读得懂的原因而不是假结论
+- World 面板（§44）读的是**世界文档**（`@nexus/world-model`，存在 `worlds.document`），
+  与画布那份设计文档是两份真值：九类条目可增删改，失焦即写库。
+  没接真 provider 之前只有「创建世界骨架（模板）」——九类各一条空条目，正文留空；
+  AI 生成世界内容属于假生成，这里不做（§159）。世界编辑不进画布的 Ctrl+Z 栈，面板脚注明说
+- Game 面板（§54）读的是**游戏设计文档**（`@nexus/game-model`，存在 `games.document`），
+  与画布、世界那份是第三份真值：11 类实体分组列出，每类可加实体、写设计说明、加**开放数值**
+  （键名自己写，只校验"值是有限数"——§54 没规定每类有哪些属性，就不替它规定），
+  并按"发起方 → 目标（关系）"连有向引用、按引用自己的 id 摘掉。
+  没接真 provider 之前同样只有「创建游戏骨架（模板）」：11 类各一个空实体，说明与数值一律留空（§159）。
+  模型层拒掉的输入（空键名、非有限数、重复引用）**在面板顶部出声**并给出原因，不静默丢弃；
+  下一次成功的编辑会把这句回执擦掉。引用有两种画法：面板里挂在发起方实体下面的列表，
+  和主区「游戏图」那张 `referenceGraph` 投影——两处读写同一个 `gameStore`，连一条立刻同步。
+  面板顶部还有一个**游戏类型**下拉（§51 的 8 种）：类型是文档字段 `kind`，不是界面状态，
+  它决定 `/game/<项目>` 与公开试玩页跑哪条投影（`compileForKind` 是唯一分派点）。
+  下拉旁边那句"接没接"直接读 `GAME_KIND_STATUS[kind].note`——面板自己判断一遍，
+  就会和分派点说两套话（这里说能玩、点进去是空场子，正是 §159 禁止的那种谎）
+- Characters 面板（§46）编辑角色档案：名字 / 外观 / 性格 / 背景 / 目标 / 恐惧 / 关系 / 声音 / 视觉标识。
+  档案字段与 §39 对齐：identity / appearance / style / clothing / traits 五栏都有存储，
+  面板上前三栏有输入口（traits 还欠）；旧档案缺这几栏时按空值读出，不会变成"读不出来"。
+  建档只给名字，其余留空（AI 生成设定要真 provider，不塞假性格）；关系从世界条目的下拉里选目标，不手抄 id。
+  保存是显式的：角色编辑不进画布的 Ctrl+Z 栈，自动保存会把没写完的档案写进库而撤销救不回来。
+  档案里没有 memory 字段——记忆是 §48 的独立存储，放个文本框就会造出第二个真值
+- 角色档案的视觉标识那一段下面有「生成场景」（§39 / §40 的 Character → Scene）：填一句场景 → 
+  `POST /api/projects/:id/images` 带 `characterId` → 色相锚点取自**已存档**的 `visualIdentity.palette` →
+  产物进同一份资产清单、`assets.character_id` 记着归属。色板为空或场景为空时按钮不可点——
+  服务端判的是存档，界面拿草稿放行只会让人点出一个必然被拒的请求；DEMO 合成器的边界（换的是色调，
+  不是把画面内容改成另一个场景）写在按钮的 title 与回执里，不等人踩了才发现
+- 资产库面板顶部是「生成图片（DEMO · 扣 2 点）」（§38 Text → Image），图片卡片上是「提取视觉语言」「生成变体」
+  （Reference → Variation）与「删除」。两条生成都走同一个入口、同一道额度门与摄取门，
+  回执里明写来源是 DEMO 本地合成、扣了哪一桶几点；生成物同时是可撤销的一次事务（`addAsset` + 贴填充）
+- Memory 面板（§48）：四类记忆（本次会话 / 角色 / 世界 / 我的偏好）可查看、可单条删除、可按类清空。
+  归属是硬边界——每行都记着 owner，别人的既列不出来也删不掉（迁移 0004 补的列）。
+  没有"全部抹掉"按钮（§48 只要求按类删除），也没有搜索框：语义检索要 embedding 与真 provider（§49），
+  没接之前那一列是 null，界面上就写"不假装能搜"
+- History 列出 snapshot / branch / AI 事务，可 View / Compare / Restore / Duplicate / Branch（§27）
+- Health 页签是 §178 那七行的常驻读数：改一下文档就重算，点某行展开它的真实发现与"这项检查了什么"
+  （Publish 弹层里是同一个组件、同一个函数，见「项目健康」一节）
+
+## 主区视图（画布 / 方案 / 代码 / 世界图 / 游戏图）
+
+五个视图是同一批真值的不同投影，切换不复制数据：
+
+- 画布 = 设计文档（`pages/nodes`）；方案 = 各分支 head 上的文档（只读比较板，命令栏在这些视图收起）；
+  代码 = `codegen` 对同一份文档的投影；世界图 = 世界文档的关系与位置（§45）；
+  游戏图 = 游戏文档的实体引用（§54）
+- 「世界图」「游戏图」各读**另一份真值**（`@nexus/world-model` / `@nexus/game-model`），
+  与画布那份设计文档互不影响；左侧「世界」「游戏」面板与对应那张图共用同一个 store，不会两处各存一份
+- 世界图上：点两个节点连线（顺序就是箭头方向）、拖节点改位置（松手即写库）、点边删除关系；
+  没拖过的按类分列自动排布（确定性，不是随机数）
+- 游戏图上：点两个实体连引用、点边（或弧顶圆点）摘引用。位置**按 11 类分列算出来、不写进文档**——
+  游戏文档只记谁引用谁，不记摆在哪个像素（与世界图不同：那里 §140 要"摆过的位子＝3D 地面布局"）
+- DEMO MODE / LIVE PROVIDER 标识在所有视图里都常驻（§160）
+
+## 右面板（§6）
+
+选中元素后分区（顺序取 `PropertiesPanel.tsx` 里 `<Section title=…>` 的实际声明，不是一份抄来的英文名）：
+尺寸与位置 · 布局 · 文字（仅这一批节点里有排版时） · 填充与描边 · 效果 · 交互状态（§124） ·
+断点（§14） · 状态
+- 多选时显示交集属性，写入时广播到全部选中节点
+- 未选中时显示**页面/画布**属性 + Design System 概览
+- 每个可编辑字段旁边有 token 绑定按钮（链式图标）：绑定后属性值改为 token 引用（§12）
+- `AI` 分区：针对当前选区的快捷指令（"更电影感" / "对比更强" / "修间距"）—— 等价于 §110 的 @DesignAgent 局部修改
+- **断点**节（§14，ADR-0069）：四格 tab（手机/平板/桌面/宽屏）各带一个"这一档改了几处投影"的徽标，
+  外加一颗「回设计尺寸」；点 tab 同时把画布切到那一档预览。每档摆得出哪些输入口**由内核现推**：
+  `RESPONSIVE_CHANNELS` 里每条 `ChannelSpec.appliesTo(node, breakpoint)` 全过才上那一行——
+  显示 / 宽 / 高 / 透明度 / 排布（`layout.mode`）/ 间距（`layout.gap`）/ 列数（`layout.columns`）/
+  主轴对齐（`layout.justify`）/ 交叉轴（`layout.items`）/ 顺序（`layout.reverse`）/ 字号（`typography.fontSize`）。
+  所以列数那一格
+  **只在投影出来是网格的那一档**出现，对齐与顺序那三格反过来**只在投影出来是横排或竖排的那一档**出现
+  （求解器的 grid / wrap 分支在用到 `justify`/`items`/`reverse` 之前就 return，那一档按下去什么都改不了；
+  判据是 `types.ts` 那份 `ALIGNABLE_MODES`，发射、回写、面板与求解器四处共用一份），字号那一格
+  只在节点真有 `typography` 对象时出现（frame 摆不出，按下去什么都改不了的对象不该出现在面板上）。
+  **一次点击只写一个键、一条可撤销事务**（§150）；同档别的键不被抹掉，键写回这一档本来的投影就剪掉（不留一条不改任何东西的规则）。
+  徽标取**两个判据的并**：与设计值不同，或与"去掉这一档自己那条规则后的投影"不同——只取后者会在
+  "这一档把值改回设计值"时读 0，只取前者会在"更窄档的规则在这一档被抹平"时读 0，两种都是界面在说
+  "这一档没变化"而画布和访客都已经变了（§159）。**数的是模型里所有的键**（`layout`/`size`/`position`/`style`/
+  `typography`/`visible` 六组里 patch 出现过的每一个键，嵌套对象如 `layout.padding` 算一处），候选只吃本档与
+  更窄那几档的规则；面板没有输入口的那些由下一行单独点名（`data-responsive-outside`，写清"这几处面板改不了、
+  但「清掉这一档」会连着它们一起删"），否则"改 3 处"里有 2 处对着空白行，作者只会以为面板坏了。
+  点名用的是 `appliesTo` 同一个判别式，不是另抄一份通道清单——行的名单和"哪些没口"的名单必须同源，
+  否则下一片加了输入口，那句点名还在点名已经能改的键。
+  下面那行读数会说明改动是谁带来的：全部来自更窄那一档时
+  明说"这一档自己没有规则"，这一档自己写的规则一处投影都没改时反过来提示那是空覆盖、可以清掉。
+  规则按 `<=` 向上级联，所以平板那格会显示手机那条规则的改动，而清除键只在**这一档自己写过**的键上出现。
+  这几键同样进代码那一寸（§17-19，ADR-0069 第四、五、六片）：「代码」视图与导出的 ZIP 里，断点类发得出
+  该档**解出来的** display 组（`flex`/`flex-col`/`flex-row`/`flex-wrap`/`grid` + 自己声明了才发的列数）、
+  四边 padding（同值折成 `p-[…]`）、透明度、尺寸、字号与对齐（`justify-*`/`items-*`，同样只在自动布局那两档发），
+  `code-parse` 认得回来。
+  `layout.reverse`（第七、八片）走的是同一条判据的另一半：代码那一寸早就发得出、也读得回方向类
+  （`flex-col-reverse`/`flex-row-reverse`），但**求解器原先不读这个键**——画布按正序摆、公开页与导出的代码
+  按反序摆。第七片让 `layout.ts` 认它（只镜像主轴、交叉轴不动、溢出不夹住），两份投影合一；
+  第八片给它一行输入口（「顺序」那颗「正序 / 反向」的钮，判据与其余两格同一份 `ALIGNABLE_MODES`），
+  并把这一格里唯一"写下去的是否定"那种值接进代码：`{reverse:false}` 自己什么都不摆，顶掉的是**更窄那一档**
+  的反向，而 CSS 里没有"取消反向"这条类，所以发射侧在更窄档真的反着时**重发一条正向方向类**（`md:flex-col`）——
+  这一条的顺序与跨档胜负都用真的 Tailwind v4.3.3 加 Chromium 量过，记在 ADR-0069，换框架或升大版本要重量。
+  「没写这个键」在这一格读成**正序**而不是"没值"（`ChannelSpec.absentAs`）：不做这层归一，本来正序时点「正序」
+  会存下一条什么都不改的规则、徽标跟着说谎（§159）。顶掉继承之后这一档的规则真的在顶着东西，所以清除键与
+  徽标都数它；撤掉这一格有两条人工出口——面板那一格点回去、「清掉这一档」，撤销同源（一次点击 = 一条事务）。
+  在代码里删掉那条类仍然抹不掉这个键：回写是按档合并的，代码里没提的键从模型留着。
+  `mobile` 那一档走的是**无前缀基线**（第五片）：它没有 `mobile:` 这种前缀，所以那一档的覆盖不发断点类，
+  而是**就在无前缀那组类里**——发射与回写读的都是"设计 + 手机规则"那份投影（`applyResponsive(node,'mobile')`），
+  与 Tailwind 移动优先的级联同构。回写按**谁声明的**分流：手机那条规则声明过的键，代码里改的值写回那条规则；
+  没声明的键才动设计值。这一寸上落错地方不是差一点而是整条断掉——那条规则还盖着，重投影自检认不出那个类名，
+  整个节点的回写被放弃（§19），代码里写着新数而画布不动。手机档的隐藏也走同一份基线：`hidden` 无前缀发出去，
+  改回来落进 `patch.visible`。`position`（x/y）目前只在手机档走得通，`md:`/`lg:`/`xl:` 三档仍发不出（ADR-0069 仍欠）。
+  根画框不在这节的管辖内：图层列表从根的孩子起（layers-flat.ts:45），Ctrl+A 也排掉根（CanvasStage.tsx:272），
+  根那一档的宽由断点给出——那条披露在「页面」那一节（`data-page-root-width-from-breakpoint`）。
+
+## 底部 AI 命令栏（§7）
+
+单行输入 + 模式切换（Fast / Balanced / Reasoning，§154）+ @ 引用（组件/页面/资产/代码文件，§66）+
+上下文芯片（当前选区、当前页、当前 viewport）。
+输入示例必须全部可用：
+"Make this feel more cinematic." / "Make the hero 30% taller." / "Change visual style to dark fantasy." /
+"Make mobile layout better." / "Add a parallax animation." / "Convert this into a responsive landing page." /
+"Generate a matching dashboard." / "Turn this design into React." / "Refactor the code." /
+"Find accessibility issues." / "Make this production ready."
+
+回车 → Agent Plan（§25）可见 → 执行 → Activity Feed 流式（§26）→ 结果以**一次事务**落地 → AI Diff 摘要（§151）。
+Ctrl+Z 完整回滚该事务（§148-149）。
+
+发请求前命令栏会先把未保存的改动落库（§68）：AI 的上下文由服务端从库里那份装配，
+带脏数据提交只会让"我明明刚改了"变成"它按旧的生成"。存不上时命令栏**停下并说明原因**，
+不会假装按新版本跑了一次。请求体里也不带整份设计文档，只带 projectId / 当前页 / 选区摘要，
+服务端回给你的目录有多大、被裁掉多少，写在 Activity 第一行（「发给模型的是目录：N 字符（预算 M）」）。
+
+**「交给…」那一个下拉（§112，2026-09-26）提名这一轮由哪个 Agent 负责**，列表来自 `GET /api/ai/agents`
+（库里 `agents` 表那 13 行，不是前端写死的一份）。三件事界面上都说得清清楚楚：
+
+- 选中的一位下方立刻显示它的职责与权限作用域；**没有 `design.patch` 的那一位额外带一句
+  "这一位给出的改动会被服务端拒收，不进画布"** —— 在按下"执行"之前说，比让他看完一次失败再猜强。
+- 提交之后那一行写"这一轮交给 QA Agent"（名字来自服务端解析结果，不是下拉框里当前选中的那一个——
+  两边不一致时以服务端那份为准），点错名字/点了不止一个/名册没播种三种情况各有一句不同的话（`data-ai-agent-note`）。
+- 也可以不选下拉、直接在提示词里写 `@qa`。**注意这与上面那条"@ 引用组件/页面/资产"不是同一件事**：
+  那一种 @ 挑的是上下文，这一种 @ 挑的是负责人与权限。
+
+高危结果的处置也在这个区域，而且只有一处实现（§74）：服务端扣下补丁时出现审批卡片，
+写着"含 N 处需人工审批的动作，补丁已被服务端扣下，画布还没有被改动"，
+批准才交回编辑区、放弃就一份都不给；刷新之后卡片从账本找回来，不是 React 状态里的一次性记忆。
+被 §73 拒收的是另一种样子：**没有卡片**（没什么可批准），只有那一句 `permission-denied` 的红字。
+"异步作业"那个勾选换的只是"谁在等"（同步返回 vs 交给队列再回来问），拦不拦高危动作仍由服务端那道门说。
+
+## Canvas（§8）
+
+必备：infinite canvas · zoom（滚轮/Ctrl+滚轮/快捷键/百分比）· pan（空格拖拽/中键）· selection ·
+multi-select（框选/Shift 点选）· drag · resize（8 手柄 + 等比）· rotate · align · distribute ·
+grouping · nesting · guides（智能参考线 + 标尺）· snapping（吸附到邻居/网格/自身 8pt 基线）· grid ·
+responsive preview（viewport 切换：Mobile 375 / Tablet 768 / Desktop 1280 / Wide 1536，§14）。
+
+渲染分层：`scene`（节点矩形）+ `overlay`（选择框/手柄/参考线，独立层，不触发节点重绘）。
+DOM 渲染器 + 视口外节点不挂载；>1000 节点切虚拟化（§146-147）。
+
+## 直接操作与真值（§16）
+
+```
+pointer → hit-test → Command(update design node) → canvas re-render → code representation 更新
+```
+设计模型是唯一真值。渲染是投影，代码是投影，预览是投影。任何"先改 DOM 再同步回模型"的写法禁止。
+
+## 文本编辑
+
+双击进入行内编辑（contentEditable 仅作为输入面，退出时把结果写回 node.text，不回写结构）。
+富文本样式：整段 level + span runs（bold/italic/color/link），存于 typography。
+
+## 组件与实例（§13）
+
+Component（主节点）→ Instance（引用 + overrides 表）→ Variant（属性组合）→ Slot（可插入区域）。
+编辑主组件时所有实例跟随；实例上的改动记录为 override，可单独或整体 Reset。
+
+删定义走 `removeComponent`：移出目录的同时把**所有页面**上引用它的实例一起解开（与 `removeAsset`
+同一条规则——不留悬空引用），逆操作 `restoreComponent` 会把定义和那些链接一并接回来（§150）。
+它带 `skipped` 记账：删一个目录里本来就没有的 id 不算成功。
+界面上的投影在设计系统面板顶部那段「组件」里：列出目录、显示每个组件被多少实例引用、
+把选中的元素「存为组件」（未选中不可点），以及走上面那条事务的「删除」——撤销/重做在浏览器里点过（`e2e/components-panel.spec.ts`）。
+
+## 3D 世界（§140）
+
+世界图工具条上有「走进这个世界（3D）」，路由 `/world/<项目>`。渲染的是**同一份世界文档的投影**：
+
+- `buildWorldScene(document)`（`@nexus/world-model/scene.ts`，纯函数、无 React、无 WebGL）算出条目位置、
+  连线、外接框、图例与 `limits`；Three.js 只负责把它画出来。再存一份"场景文件"就是第二套真值（§16）
+- 位置只认 §45 图上摆过的坐标（图的 y 即世界的 z）——**这条连续性有 e2e 兜着**：
+  在世界图里拖一个节点、等落库、进 3D，HUD 必须从"0 个来自你摆过的"变成"1 个"，
+  且那个条目的标签带 `data-placed="authored"`。没摆过的按文档顺序排在同心环上，
+  画成**线框**并在 HUD 里报"几个来自你摆过的、几个是规则排的"——不是作者设计过的地形就别长得像
+- 所有条目大小一致（世界文档没有「重要性」「体积」字段）、颜色只表示九类中的哪一类（图例写明）
+- 条目名字是 **DOM 标签**（把世界坐标投影成屏幕坐标画的），不是画进 WebGL 的文字：
+  能被点、能被读屏、能被测试断言，也不用为了文字引 drei。只显示离你最近的 60 个，
+  被截了就在右下角明说"标签只显示离你最近的 60 个（共 N 个条目）"；近处的标签压过远处的
+- 走近 9 个单位内才展开正文；点标签或点下面的「读：某条」按钮也会展开——**那只读，不把你搬过去**
+- WebGL 不可用时明说进不去，不退回 2D 还自称世界；库里文档读不出来时报原因，不给一份空场景
+- 没有：地形/碰撞/寻路、3D 资产与贴图（§34）、和角色对话（§47 要 provider）
+
+## 注释（§111）
+
+Canvas 上点中一个元素 → 左下角「批注」面板写一句话，钉在该元素上。已落地：
+
+- 存在 `comments` 表里（`node_id` 非空即批注、为空即 §59 的公开评论），不另起一张表
+- **定位是服务端算的**：批注属于哪个页面、那个元素叫什么，由文档回答；节点被删之后
+  批注仍然列得出，但标成「节点已不在文档里」，历史不被一次删除抹掉
+- 画布上钉了批注的元素右上角有角标，点角标即选中该元素；面板浮在画布上，
+  所以它自己 `stopPropagation`——否则点面板里的控件会被画布当成"点了空白处"而清空选中
+- 随 AI 请求上线时走 §68 那条路：`context.annotations` 由服务端从库里读 + 按文档核对，
+  客户端上传 `annotations` / `annotationsNote` 一律 400；超出 20 条或节点已悬空都写进 `annotationsNote`
+- 提示词里明确一条界（§111 的"自动定位"不等于"照抄"）：批注回答"该动哪个元素"，
+  不是要写进设计的文案；与本轮诉求冲突时以诉求为准并说明冲突在哪
+
+还没做：评论正文里的 `@Agent` 提及解析（现在整批批注都会随上下文发出，不需要 @ 也会被定位）、
+批注的"已解决"状态、多人回复线程（`comments.parent_id` 那一列还没有写它的地方）。
+
+## Code View（§19）
+
+- 展示从设计模型派生的 React + TS + Tailwind（§18）
+- 可直接编辑；保存走：code → parser → design model → canvas
+- 无法安全映射的片段保留为 **code-only region**（灰显 + 明确徽标），不被设计编辑破坏
+- 文件树 + 面包屑 + 与 Layers 双向定位（点代码行 → 选中节点，反之高亮）
+
+## Preview / Play（§55）
+
+顶栏 Preview 切三态：Design（可编辑画布）· Preview（只读运行）· Play（Runtime 交互，游戏/故事/3D 时）。
+Preview 在隔离 iframe 中运行（见 SECURITY.md），不共享主站 origin。
+
+## 项目健康（§178）与 Quality Gate（§179）
+
+七行读数：Build · Tests · Accessibility · Performance · Visual QA · AI QA · Security。
+两处显示、一份算法：左栏「健康」实时按当前文档算（`HealthRail`），Publish 弹层里同一份 `HealthPanel`；
+服务端 `runPublishGate` 调的也是同一个 `analyzeHealth`（`packages/design-model/src/health.ts`），
+所以"屏幕上 76 分"和"服务器上挡住发布"不可能是两套数（§16）。
+
+分数怎么来的（不是拍脑袋）：
+- 每行把 `validateDocument` + `lintDesign` + 静态预算规则的真实发现归到自己名下，
+  `100 - Σ扣分`，error 扣 25 / warning 扣 6 / info 扣 1；
+- 门槛线集中在 `HEALTH_THRESHOLDS`：Accessibility 80 · Performance 70 · Visual QA 60；
+  Build 与 Security 没有分数线——有一条 error 级发现即挡；
+- 每条发现都能展开看（`basis` 说明这项到底检查了什么），单行最多列 40 条，
+  剩下的计数成 `omitted` 并写明"另有 N 条未列出（计分已计入）"，截的是显示不是问题。
+
+诚实边界（§159）：Tests 与 AI QA 至今没有任何本地可算的信号，状态是第三种——
+`not-run`，显示"未评估"、`score = null`、`gating = false`，UI 用 `—` 而不是 ✓。
+"没有发现"和"没检查过"是两件事，把前者当后者就是假绿。
+性能行同理：`basis` 明写这是静态预算（节点数/树深/位图字节/缺尺寸图片），不是 LCP/CLS 实测。
+
+门禁只管往外公开的方向：切成 `private` 是下架动作，即使门禁没过也允许，
+否则一份坏页面会收不回来；这时报告仍然如实带出全部失败项，面板上写一句为什么放行。
+
+对比度这条是本轮唯一"改设计而不是改阈值"的地方：`measureContrast` 先解析 token 引用、
+沿祖先链合成真实背景（按钮取 `typography.color` 而不是自己的填充），算不出来就返回 null 不报。
+修好之后暴露出内置起手页与四套概念语言自己就不达标（白字压 `#7c5cff` 只有 4.35:1 等），
+按 WCAG 重算了色板，而不是把 80 分线往下调。
+
+## 版本 / 分支 / 多方案（§27-29）
+
+- 重大修改自动 Snapshot；分支：main / design-v1 / experimental
+- "Try 3 different visual directions" → 自动生成分支 A/B/C，画布上并排比较（缩略 + 关键 token 差异）
+- "Combine A's layout with C's visual style" → 新设计 = A 结构 + C 视觉语言
+
+## 参考输入（§30-31）
+
+上传截图/照片/moodboard → 提取 Visual DNA（layout / color / typography / spacing / hierarchy / motion）
+→ 转为设计指令而非复制。输入 URL → fetch/analyze/screenshot/structure extraction → 受启发的结构重建，
+不得复制受版权保护的内容。
+
+当前落地（任务 #22）：资产库面板图片卡片上的「提取视觉语言」→ `POST /api/projects/:id/visual-dna` →
+服务端**本地像素统计**（只解 8 bit 非隔行 PNG：亮度/对比/饱和/冷暖/留白/边缘密度 + 主色板与角色）→
+结果落成 `document.visualDna`，走的是一条 `setVisualDna` 事务，所以可撤销；分析层不写业务库（§149/§150）。
+Design System 面板顶部展示它并标出 `source.method`（本地像素统计 / 视觉模型 / 概念语言三者可分辨，不互相冒充）。
+像素测不出来的字段一律留空并写进 `source.notes`：排版、圆角、动效位图统计给不出，§173 那种
+"Cinematic / Soft glass / Slow motion" 形容词要真视觉模型才谈得上（随真实 provider 授权补齐）。
+不支持的编码（16 bit / 隔行 / 非 PNG 的 JPEG 与 WebP）以及整张透明的图，返回一句中文原因，不返回半截 DNA；
+带 alpha 的 PNG 支持，只是 alpha<128 的像素一律跳过，不污染背景判断。
+§174「所有 AI 生成内容遵循它」已是可验证事实而非口号：DEMO MODE 的换色规则读文档 DNA 而非内置色板，
+e2e 用参考图的 `#14b8a6` 压过内置 cinematic `#05060a` 做回归。**URL 参考输入仍未实现**，别当作已有能力。

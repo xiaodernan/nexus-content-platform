@@ -1,0 +1,379 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { createServer, connect, type Server } from 'node:net';
+import { Redis } from 'ioredis';
+import type { RealtimeEvent, RealtimeWireFrame } from '@nexus/schemas';
+import { channels, getRealtimeBus, setRealtimeBus } from '@/server/realtime/bus';
+import { MemoryRealtimeBus } from '@/server/realtime/localBus';
+import { REDIS_URL_ENV, RedisRealtimeBus, WIRE_CHANNEL } from '@/server/realtime/redisBus';
+import { WIRE_ERROR_REASONS } from '@/server/realtime/wireErrors';
+
+/**
+ * §163 欠的那一格：跨实例扇出。打**真 Redis**（本机 `nexus-redis` 容器，56379），
+ * 不用假连接也不 mock —— 这一格唯一要证的正是"两条独立进程各自的本机订阅能不能经由线路连起来"，
+ * mock 掉线路就等于把要测的东西测了个空。取舍见 `docs/adr/0028-realtime-redis-fanout.md`。
+ *
+ * 每条用例都在问一个行为问题，不是问"有没有调用到 ioredis"：
+ * 别机的订阅者收得到吗、自己那份会不会收到两次、关门那一帧跨不跨得过去、
+ * 线路上坏掉的字节会不会落到本机订阅者嘴里、端点死了业务还被拖着吗。
+ */
+
+const REDIS_URL = process.env[REDIS_URL_ENV]?.trim() || 'redis://127.0.0.1:56379';
+/** 没人监听的端口：这一格要的正是"连不上"，所以不能借用上面那个真地址 */
+const DEAD_URL = 'redis://127.0.0.1:56399';
+
+const note = (title: string): RealtimeEvent => ({ type: 'notification', level: 'info', title });
+
+/**
+ * 一本**闭合的零账**：词表里每一格都在、都是 0。
+ * 这里从词表自己造，不 import 驱动用的那个 `emptyWireErrorLedger`——借来的话这条断言就变成
+ * "驱动用它自己的初始化检查它自己的初始化"，永远绿。
+ */
+const zeroLedger = (): Record<string, number> =>
+  Object.fromEntries(WIRE_ERROR_REASONS.map((reason) => [reason, 0]));
+
+const opened: RedisRealtimeBus[] = [];
+function makeBus(url = REDIS_URL, origin?: string): RedisRealtimeBus {
+  const bus = new RedisRealtimeBus({ url, origin });
+  opened.push(bus);
+  return bus;
+}
+
+let wire: Redis | null = null;
+/** 直接发到线路上、不经过总线的连接：用来扮演"另一台机器"以及"线路上的坏字节" */
+function wireConnection(): Redis {
+  wire ??= new Redis(REDIS_URL);
+  return wire;
+}
+
+const originalEnv = process.env[REDIS_URL_ENV];
+
+afterEach(() => {
+  for (const bus of opened) bus.dispose();
+  opened.length = 0;
+  wire?.disconnect();
+  wire = null;
+  setRealtimeBus(undefined);
+  if (originalEnv === undefined) delete process.env[REDIS_URL_ENV];
+  else process.env[REDIS_URL_ENV] = originalEnv;
+});
+
+/**
+ * 投递断言之前先确认线路真的接上了：`SUBSCRIBE` 要在服务器那边登记、发布连接要 ready，
+ * 这中间发到线路上的帧**真的会丢**（这一格明确接受：不补发，权威状态永远在库里）。
+ * 用 `ready` 而不是"反复发一帧直到收到"：后者测到的是建连接的竞态，
+ * 而且补发出去的那几帧会在断言开始后才到达，把"收到 1 条"变成"收到 2 条"——
+ * 2026-10-04 第一版就是这么红的（不是驱动错，是那条 warm-up 自己在漏帧）。
+ */
+async function wireIsUp(...buses: RedisRealtimeBus[]): Promise<void> {
+  for (const bus of buses) {
+    // 答案必须是 true：ready=false 的总线在下面的断言里只会表现为"收不到"，
+    // 那正是最容易误读成驱动坏了的失败形状
+    await expect(bus.ready).resolves.toBe(true);
+  }
+}
+
+describe('RedisRealtimeBus 跨实例投递', () => {
+  it('别机的订阅者收到，自己这台只收到一次（回环那一帧被 origin 摘掉）', async () => {
+    const alpha = makeBus();
+    const beta = makeBus();
+    const channel = channels.project('p-cross');
+    await wireIsUp(alpha, beta);
+
+    const seenAlpha: RealtimeEvent[] = [];
+    const seenBeta: RealtimeEvent[] = [];
+    alpha.subscribe(channel, (event) => seenAlpha.push(event));
+    beta.subscribe(channel, (event) => seenBeta.push(event));
+
+    alpha.publish(channel, note('跨实例那一条'));
+
+    // 本机那半边不等线路：publish 返回时同进程的订阅者已经拿到了
+    expect(seenAlpha).toHaveLength(1);
+    await expect.poll(() => seenBeta.length, { timeout: 15_000, interval: 100 }).toBe(1);
+    // 走过的是一趟 JSON + zod，不是同一个对象引用——字段得原样到达
+    expect(seenBeta[0]).toEqual({ type: 'notification', level: 'info', title: '跨实例那一条' });
+    // seenAlpha 停在 1 就是去重的见证：alpha 自己也订了那条线路，
+    // 少了 origin 那一刀，这里会是 2（本机一份 + 回环一份），Studio 会出现同一个进度条动两次
+    expect(seenAlpha).toHaveLength(1);
+  });
+
+  it('closeChannel 跨实例生效：别的实例上那个频道的订阅被摘掉，其他频道照旧', async () => {
+    const alpha = makeBus();
+    const beta = makeBus();
+    const gone = channels.user('gone');
+    const staying = channels.project('still-here');
+    await wireIsUp(alpha, beta);
+
+    const seenGone: RealtimeEvent[] = [];
+    const seenStaying: RealtimeEvent[] = [];
+    beta.subscribe(gone, (event) => seenGone.push(event));
+    beta.subscribe(staying, (event) => seenStaying.push(event));
+
+    // 对照（先证明这条频道是活的，"之后收不到"才不是白断言）
+    alpha.publish(gone, note('关门之前'));
+    await expect.poll(() => seenGone.length, { timeout: 15_000, interval: 100 }).toBe(1);
+
+    alpha.closeChannel(gone);
+
+    // 关门在 beta 上直接可见：不是"没收到"这种反证，是订阅者人数归零
+    await expect.poll(() => beta.subscriberCount(gone), { timeout: 15_000, interval: 100 }).toBe(0);
+    expect(alpha.subscriberCount(gone)).toBe(0);
+
+    alpha.publish(gone, note('关门之后'));
+    await expect.poll(() => beta.subscriberCount(staying), { timeout: 15_000, interval: 100 }).toBe(1);
+    expect(seenGone).toHaveLength(1); // 只有关门之前那一条
+
+    // 这不是把 beta 的总线整个关了：别的频道还活着（ADR-0025 第六件说的是这个人的频道）
+    alpha.publish(staying, note('别的频道照旧'));
+    await expect.poll(() => seenStaying.length, { timeout: 15_000, interval: 100 }).toBe(1);
+  });
+
+  it('线路上的帧先过契约：合法的收下来，坏字节只记账，不落本机订阅者', async () => {
+    const alpha = makeBus();
+    const channel = channels.user('wire-in');
+    const seen: RealtimeEvent[] = [];
+    alpha.subscribe(channel, (event) => seen.push(event));
+
+    const good: RealtimeWireFrame = { kind: 'event', origin: '别的实例', channel, event: note('合法的帧') };
+    await wireIsUp(alpha);
+    await wireConnection().publish(WIRE_CHANNEL, JSON.stringify(good));
+    // 对照组：同一台、同一频道，合法帧刚刚真的落到了本机订阅者嘴里
+    await expect.poll(() => seen.length, { timeout: 15_000, interval: 100 }).toBe(1);
+
+    const errorsBefore = alpha.wireErrorCount;
+    const ledgerBefore = { ...alpha.wireErrorByReason };
+    // 两种坏法都要试：根本不是 JSON 的字节，以及结构合但 event 少了必填字段的帧
+    const badEvent: unknown = { kind: 'event', origin: '别的实例', channel, event: { type: 'notification', level: 'info' } };
+    await wireConnection().publish(WIRE_CHANNEL, '这不是 JSON');
+    await wireConnection().publish(WIRE_CHANNEL, JSON.stringify(badEvent));
+
+    await expect.poll(() => alpha.wireErrorCount - errorsBefore, { timeout: 15_000, interval: 100 }).toBeGreaterThanOrEqual(2);
+    // 两帧都没到（还是 1 条，就是合法那一条）：线路上的字节不能因为"是我们自己发的"就直接对象化
+    expect(seen).toHaveLength(1);
+
+    // 按原因分账：这两帧各自记在**自己那一格**上，各 +1。
+    // 只断言总数（上面那句）的话，"所有失败都记到同一个 key"这种实现照样全绿——
+    // 而那正是这本账唯一要防的错：总数对、分账全是假的。
+    expect(alpha.wireErrorByReason['收到的帧不是 JSON'] - ledgerBefore['收到的帧不是 JSON']).toBe(1);
+    expect(alpha.wireErrorByReason['收到的帧不合契约'] - ledgerBefore['收到的帧不合契约']).toBe(1);
+    // 别的格一格没动（串号就红在这里）
+    for (const reason of WIRE_ERROR_REASONS) {
+      if (reason === '收到的帧不是 JSON' || reason === '收到的帧不合契约') continue;
+      expect(alpha.wireErrorByReason[reason], `这不该记到 ${reason} 上`).toBe(ledgerBefore[reason]);
+    }
+    // 不变量：两本账是同一本——总数 = 各原因之和
+    expect(Object.values(alpha.wireErrorByReason).reduce((sum, n) => sum + n, 0)).toBe(alpha.wireErrorCount);
+  });
+
+  /**
+   * `线路名不认识` 这一格以前是界面上唯一"非 0 就说明有人改错了配置、却永远读不出非 0"的格子：
+   * 订阅连接上收到别的线路名的帧，实现是一个光秃秃的 `return`。
+   * 这一条不修它也不坏功能（那一帧本来就该丢），修的是**它有没有账**。
+   */
+  it('线路名不认识的帧：丢掉、记在自己那一格、不落本机订阅者', async () => {
+    const bus = makeBus(REDIS_URL, 'wrong-wire-origin');
+    const channel = channels.user('wrong-wire-name');
+    const seen: RealtimeEvent[] = [];
+    bus.subscribe(channel, (event) => seen.push(event));
+    await wireIsUp(bus);
+
+    // 扮演"有人改错了订阅"：生产配置下这条连接只订 WIRE_CHANNEL，所以只能亲自动它一下。
+    // 拿 `sub.emit('message', …)` 造这一帧不算数——那是绕过线路自己演给自己看。
+    const sub = (bus as unknown as { sub: Redis }).sub;
+    await sub.subscribe('nexus:realtime:v0');
+    const frame: RealtimeWireFrame = { kind: 'event', origin: '别的实例', channel, event: note('走错线路名的帧') };
+    const before = bus.wireErrorByReason['线路名不认识'];
+
+    await wireConnection().publish('nexus:realtime:v0', JSON.stringify(frame));
+    await expect
+      .poll(() => bus.wireErrorByReason['线路名不认识'] - before, { timeout: 15_000, interval: 100 })
+      .toBeGreaterThanOrEqual(1);
+    // 帧仍然丢掉：不在契约线路上的字节，不能因为"这台恰好订过那个名字"就交给本机订阅者。
+    // 记账与丢弃发生在同一个回调里，所以上面那句 poll 一绿，这里就已经是最终状态。
+    expect(seen).toHaveLength(0);
+    // 对照：同一台、同一频道，走**对**线路名的那一帧真的送达——"没送达"因此不是白断言
+    await wireConnection().publish(WIRE_CHANNEL, JSON.stringify(frame));
+    await expect.poll(() => seen.length, { timeout: 15_000, interval: 100 }).toBe(1);
+    // 总数与分账仍然同口供
+    expect(Object.values(bus.wireErrorByReason).reduce((sum, n) => sum + n, 0)).toBe(bus.wireErrorCount);
+  });
+
+  it('自己的 origin 不处理：同一台机器发的帧不会二次送达', async () => {
+    const alpha = makeBus(REDIS_URL, 'fixed-origin');
+    const channel = channels.project('loopback');
+    const seen: RealtimeEvent[] = [];
+    alpha.subscribe(channel, (event) => seen.push(event));
+
+    await wireIsUp(alpha);
+    const mine: RealtimeWireFrame = { kind: 'event', origin: alpha.origin, channel, event: note('自己发的') };
+    await wireConnection().publish(WIRE_CHANNEL, JSON.stringify(mine));
+    // 这一帧带着 alpha 自己的 origin，也就是 `alpha.publish` 之后从线路上回来那一份的形状：
+    // 本机订阅者在 publish 当时就已经拿到过了，回来这一份必须跳过，否则同一条事件送达两次。
+    // 拿"紧接着另一台的那条真的到了"来给这次跳过定界，否则这里等到的只是超时。
+    const theirs: RealtimeWireFrame = { kind: 'event', origin: '另一台', channel, event: note('别人发的') };
+    await wireConnection().publish(WIRE_CHANNEL, JSON.stringify(theirs));
+    await expect.poll(() => seen.length, { timeout: 15_000, interval: 100 }).toBe(1);
+    // 到的那一条是别人的（去重坏了这里会是两条，第一条是"自己发的"）
+    expect(seen[0]).toEqual({ type: 'notification', level: 'info', title: '别人发的' });
+  });
+
+  it('端点连不上时 publish/closeChannel 都不抛，本机那半边照送', async () => {
+    const dead = makeBus(DEAD_URL);
+    const channel = channels.project('dead-wire');
+    const seen: RealtimeEvent[] = [];
+    dead.subscribe(channel, (event) => seen.push(event));
+
+    expect(() => dead.publish(channel, note('线路是坏的'))).not.toThrow();
+    expect(() => dead.closeChannel(channel)).not.toThrow();
+    // 实时通道是加速器不是权威来源：坏线路不能把正在写库的那个请求带崩，
+    // 也不能让同进程的订阅者白等——本机那一半边不依赖 Redis
+    expect(seen).toHaveLength(1);
+    await expect.poll(() => dead.wireErrorCount, { timeout: 5_000, interval: 50 }).toBeGreaterThan(0);
+    // ready 说的是不是"这条总线接上线了"，用假不了的反证钉一次：
+    // 端点连不上时它必须落定为 false，而不是吊在"订阅命令已经发出去了"这种半路上
+    await expect(dead.ready).resolves.toBe(false);
+    // stats() 是同一件事的自报家门版（§163 诊断入口）：答案一致、错误累计没被吞、
+    // 本机那半边照常报（订阅者还在，坏的只有线路）
+    const stats = dead.stats();
+    expect(stats.driver).toBe('redis');
+    expect(stats.instance).toBe(dead.origin);
+    expect(stats.wireReady).toBe(false);
+    // 端点连不上 ≠ 已关：连接层还在按 retryStrategy 自动重试，这一格必须是 pending。
+    // 报成 down 是对着一台仍在自愈的实例宣布它放弃了——那才真的会引人去重启它
+    expect(stats.wire).toBe('pending');
+    expect(stats.wireErrorCount).toBeGreaterThanOrEqual(1);
+    // 分账要说得出**是哪一类**：`ready` 落定成 false 这件事必须记在"发布连接未就绪"那一格，
+    // 而不是只留一个总数——运维对着"断过 3 帧"能做的选择有三个，指向端点的那一个才对的上是这台
+    expect(dead.wireErrorByReason['发布连接未就绪']).toBeGreaterThanOrEqual(1);
+    expect(Object.values(dead.wireErrorByReason).reduce((sum, n) => sum + n, 0)).toBe(dead.wireErrorCount);
+    // 上一步刚 closeChannel 过：本机那份订阅已按 ADR-0025 摘掉，stats 如实报 0——
+    // 不是把关门前的旧数留在表盘上
+    expect(stats.subscriberCount).toBe(0);
+  });
+
+  it('stats()：真 Redis 接上后 wireReady=true、零错误；落定前先报 null（还没落定不是没接上）', async () => {
+    const bus = makeBus(REDIS_URL, 'stats-origin');
+    // 构造函数返回的那一刻 ready 还在飞：stats 不 await 它，同步读到的必须是 null——
+    // 把"还没落定"报成 false 会让诊断页把每一次刚启动都画成"线路没接上"
+    expect(bus.stats()).toEqual({
+      driver: 'redis',
+      instance: 'stats-origin',
+      subscriberCount: 0,
+      wireReady: null,
+      // 活读数这一格此刻读到的就是"还在路上"：它不借用闩的值，也不等闩落定
+      wire: 'pending',
+      wireErrorCount: 0,
+      wireErrorByReason: zeroLedger(),
+    });
+    await wireIsUp(bus);
+    expect(bus.stats()).toEqual({
+      driver: 'redis',
+      instance: 'stats-origin',
+      subscriberCount: 0,
+      wireReady: true,
+      wire: 'up',
+      wireErrorCount: 0,
+      // 分账与总数同口供，而且**每一格都在**：一个空对象在这里等价于"没带账"，
+      // 而界面那句"—（这台还没出过一帧失败）"要的是前者，不是后者
+      wireErrorByReason: zeroLedger(),
+    });
+    bus.subscribe(channels.project('stats-view'), () => undefined);
+    expect(bus.stats().subscriberCount).toBe(1);
+  });
+
+  it('stats()：闩与活读数是两格——dispose 之后 wire 变 down，而 wireReady 仍是 true', async () => {
+    // 这一对是本片存在的理由，也是"两格没被合成一句"的唯一反证：
+    // 若实现把活读数做成 `wireReady ? 'up' : 'down'`（或反过来把闩改成现读），
+    // 上面两条 toEqual 都会红，而这里这一对不会同时成立。
+    const bus = makeBus(REDIS_URL, 'closed-origin');
+    await wireIsUp(bus);
+    expect(bus.stats().wire).toBe('up');
+
+    bus.dispose();
+    // 收尾不是同步落定的：ioredis 在 disconnect 之后才把 status 换成 end
+    await expect.poll(() => bus.stats().wire, { timeout: 5_000, interval: 50 }).toBe('down');
+    // 闩不改口："构造那一次到底建起来没有"是历史事实，连接层后来的死活不许回头改它——
+    // 那正是这一片要修的反面：一次 error 判死一格，从此界面再也读不出这台已经活了
+    expect(bus.stats().wireReady).toBe(true);
+  });
+});
+
+describe('线路比这台晚起来（第三十七片的主现场）', () => {
+  /**
+   * 生产上是这么坏的：web 先起、Redis 后起（重启窗口、编排没等就绪探针）。
+   * 那时 `ready` 落定成 false 后再也不改口，而连接层在 Redis 起来那一刻就把线订上了——
+   * **功能一直是好的，只有读数停在"没接上"**，改之前界面上就是这么写的。
+   *
+   * 这里不另起一个 Redis 容器，也不 mock 线路：用一个**纯字节转发器**扮演"这个端口后来才被占住"。
+   * 转发器不认识 RESP，只把两条 socket 对接，握手与自动重订全部走真 Redis 与本进程的 ioredis——
+   * 所以这一格证的是连接层自己的恢复，不是我们替它编的故事。
+   */
+  const LATE_PORT = 56998;
+
+  function openLateEndpoint(): Promise<Server> {
+    const target = new URL(REDIS_URL);
+    const upstreamPort = Number(target.port || 6379);
+    const host = target.hostname;
+    const server = createServer((client) => {
+      const upstream = connect(upstreamPort, host, () => {
+        client.pipe(upstream);
+        upstream.pipe(client);
+      });
+      // 任何一侧没了就收掉另一侧：留着半条线会让人以为还连着
+      client.on('error', () => upstream.destroy());
+      upstream.on('error', () => client.destroy());
+      client.on('close', () => upstream.destroy());
+      upstream.on('close', () => client.destroy());
+    });
+    return new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(LATE_PORT, '127.0.0.1', () => resolve(server));
+    });
+  }
+
+  it('端点后来通了：wire 从 pending 翻成 up，而闩落定成 false 就不改口', async () => {
+    const bus = makeBus(`redis://127.0.0.1:${LATE_PORT}`, 'late-origin');
+    // 此刻端口上没人监听 ⇒ 闩落定为 false（发布侧连不上就当场回答，不去等那条排队的订阅）
+    await expect(bus.ready).resolves.toBe(false);
+    expect(bus.stats()).toMatchObject({ wireReady: false, wire: 'pending' });
+
+    const late = await openLateEndpoint();
+    try {
+      // 等 ioredis 自己的重试把两条连接带回来：默认 retryStrategy 隔到 2 秒封顶，不必久等
+      await expect.poll(() => bus.stats().wire, { timeout: 20_000, interval: 200 }).toBe('up');
+      // 这一句就是本片要修的那格：改之前这里读出来的是"没接上"，而且会一直停在那里
+      expect(bus.stats().wireReady).toBe(false);
+
+      // 读数说 up 的时候事件真过来——表盘不是装饰，它承诺的那件事当场兑现
+      const channel = channels.project('late-view');
+      const seen: RealtimeEvent[] = [];
+      bus.subscribe(channel, (event) => seen.push(event));
+      const theirs: RealtimeWireFrame = { kind: 'event', origin: '另一台', channel, event: note('晚起来的线送到的') };
+      await wireConnection().publish(WIRE_CHANNEL, JSON.stringify(theirs));
+      await expect.poll(() => seen.length, { timeout: 15_000, interval: 100 }).toBe(1);
+      expect(seen[0]).toEqual({ type: 'notification', level: 'info', title: '晚起来的线送到的' });
+    } finally {
+      late.close();
+    }
+  });
+});
+
+describe('驱动选择（bus.ts 的那一刀）', () => {
+  it('默认进程内；只有 NEXUS_REDIS_URL 非空才换 Redis 扇出', () => {
+    delete process.env[REDIS_URL_ENV];
+    setRealtimeBus(undefined);
+    expect(getRealtimeBus()).toBeInstanceOf(MemoryRealtimeBus);
+
+    // 空串/全空格不算 URL：设了个空值的人想要的是"没设"，不是"连一个空地址"
+    process.env[REDIS_URL_ENV] = '   ';
+    setRealtimeBus(undefined);
+    expect(getRealtimeBus()).toBeInstanceOf(MemoryRealtimeBus);
+
+    process.env[REDIS_URL_ENV] = REDIS_URL;
+    setRealtimeBus(undefined);
+    const bus = getRealtimeBus();
+    expect(bus).toBeInstanceOf(RedisRealtimeBus);
+    // 单例还是单例：dev 下每条路由可能各自拿到一份模块图，跨实例扇出不能一条路由一份连接
+    expect(getRealtimeBus()).toBe(bus);
+    (bus as RedisRealtimeBus).dispose();
+  });
+});

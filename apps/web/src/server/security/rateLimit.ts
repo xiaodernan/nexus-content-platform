@@ -1,0 +1,362 @@
+/**
+ * 速率限制：滑动窗口（SECURITY.md「认证与授权」——按 用户 + IP + 路由）。
+ *
+ * 这一层是**门面**：接口、桶键的形状、以及"从哪一行头取 IP"住在这里，窗口住在驱动里。
+ * 两个驱动、同一形状（与 `realtime/` 的 `bus.ts` / `localBus.ts` / `redisBus.ts` 三件套一一对应）：
+ *
+ * - `rateLimitMemory.ts`——窗口在这台进程的 `Map` 里。**默认**，单进程 dev / vitest / e2e 正确。
+ *   多实例下退化为「每实例独立限流」：`10 次/15 分钟/邮箱` 变成"每台 10 次"。
+ *   绝不是「不限量」，但限额那句话已经和文档写的不是同一句了——这是要接 Redis 的原因。
+ *   这张表的**规模**也归它自己管（清扫过期桶 + 桶数上界）：桶键里那段身份是中间件给每个
+ *   新访客现签的，所以"来一个人"就是"多一只桶"，不收口就成了一道闸自己变成免成本写入口。
+ * - `rateLimitRedis.ts`——窗口在 Redis 的一条有序集上，所有实例看同一份数。
+ *   设了 `NEXUS_REDIS_URL` 才换过来（与实时总线同一个旋钮，不各设各的）。
+ *   三条硬约束（脚本内原子、服务端时钟、成员名唯一）与"坏了退回进程内"的取向见
+ *   `docs/adr/0076-rate-limit-redis-sliding-window.md`。
+ *
+ * §64 当年在这段注释里写的"生产多实例时换成 Redis 驱动，保持本接口形状不变即可"，
+ * 兑现方式是两个提交：先把 `hit` / `reset` 改成异步（同步接口只写得出进程内那版，
+ * 一次网络往返没有地方等它），再往这个缝里填驱动。判定逻辑在那两步里一个字没改，
+ * 而"两个驱动同答案"不是靠说的——收据是 `rate-limit.redis.integration.test.ts` 的 parity 一组。
+ */
+
+import { DEFAULT_MAX_BUCKETS, MemoryRateLimiter } from './rateLimitMemory';
+import { DEFAULT_KEY_PREFIX, DEFAULT_MAX_BUCKET_KEYS, REDIS_URL_ENV, RedisRateLimiter } from './rateLimitRedis';
+
+/**
+ * **全部 IP 窗口闸的限额与窗口，只有这一份。**
+ *
+ * 这些数字以前散在 13 处调用点里（同路由还出现两处），
+ * `/api/admin/rate-limit` 也端不出"闸是怎么装的"，只能端驱动——于是两件事只能靠记忆：
+ * ① 限额改没改（e2e 的节奏、ENVIRONMENT.md 那句"20 次/小时"全是手抄）；
+ * ② 哪些闸共用一只桶（`projects/create` 与 `marketplace/create` 是两个键、各自 20）。
+ * 现在这里是唯一真值：调用点不再传数字、诊断页照抄这一份、`rate-limit-rules.test.ts` 把
+ * 关键几格钉住。改动这里就是产品决策本身，改动任何一处调用点都只是把这份真值读出来。
+ *
+ * `auth/register` 用的不是 `ipWriteGate`（它当年直接走 `hit`），但它同属"身份之前的 IP 窗口闸"，
+ * 纳入这同一张表——e2e 连跑撞的就是这两道，漏掉它等于表里报的是半张图。
+ * `published/interact` 的 120/h 也在：同一族。
+ */
+export const IP_RATE_RULES = {
+  'projects/create': { limit: 20, windowMs: 3_600_000 },
+  'marketplace/create': { limit: 20, windowMs: 3_600_000 },
+  'published/report': { limit: 20, windowMs: 3_600_000 },
+  'published/interact': { limit: 120, windowMs: 3_600_000 },
+  'ai/run': { limit: 60, windowMs: 3_600_000 },
+  'ai/jobs': { limit: 60, windowMs: 3_600_000 },
+  'account/avatar': { limit: 60, windowMs: 3_600_000 },
+  'account/api-tokens': { limit: 10, windowMs: 3_600_000 },
+  'blocks': { limit: 60, windowMs: 3_600_000 },
+  'follow': { limit: 60, windowMs: 3_600_000 },
+  'auth/register': { limit: 10, windowMs: 3_600_000 },
+} as const;
+
+export type IpRateRoute = keyof typeof IP_RATE_RULES;
+/** 走 `ipWriteGate` 的那一族——`auth/register` 直接读 `IP_RATE_RULES['auth/register']`。 */
+export type IpGateRoute = Exclude<IpRateRoute, 'auth/register'>;
+
+export interface RateLimitDecision {
+  allowed: boolean;
+  count: number;
+  retryAfterMs: number;
+}
+
+/**
+ * 驱动自报的现场读数（`/admin/rate-limit` 与 `/api/admin/rate-limit` 端的就是这份）。
+ *
+ * 三个字段的"不适用"必须是 `null` 而不是 0 或 `'na'` 了事，因为它们各自都能被读反：
+ * - `keyPrefix`：进程内没有键空间，`''` 会被读成"前缀是空的 Redis"；
+ * - `fallbackCount`：进程内驱动没有"本该共享却退回本机"这回事，写 0 会被读成"没退过"；
+ * - `wire`：进程内是 `'na'`，那是"没有线路"，不是"线路断了"——后者意味着共享窗口没生效。
+ *
+ * `bucketsTracked` 两边同名单但**权威不同**：进程内就是那张表的条数（唯一权威），
+ * Redis 那份是这台进程最近一次判定带回的名册条数（权威是那台 `ZCARD`，见 ADR-0081 的观测一节）。
+ * 界面上这一格必须带那句限度，不然"长时间没流量"会被读成"键没被收掉"。
+ */
+export interface RateLimiterReadout {
+  driver: 'in-process' | 'redis';
+  /** 那份窗口住在谁的内存里；与 `driver` 成对，写反过一次就是"每台各数各的"被说成共享。 */
+  windowScope: 'this-process' | 'shared-across-instances';
+  bucketCeiling: number;
+  bucketsTracked: number;
+  keyPrefix: string | null;
+  wire: 'up' | 'pending' | 'down' | 'na';
+  fallbackCount: number | null;
+  /** 连接层最近一次真实报错（不代表"这一条请求退回了"，那由 `fallbackCount` 说）。 */
+  lastConnectionError: string | null;
+}
+
+export interface RateLimiter {
+  /**
+   * 记一次命中并返回是否放行；同时回带当前计数供 Retry-After 参考。
+   *
+   * **异步**是这一片新还的债：接口原来是同步的，那就只有"进程内"这一种后端写得出来。
+   * 而一次 Redis 往返必须有地方等它——把 seam 做成同步，等于把多实例那条路堵死在类型上。
+   *
+   * 漏掉 `await` 谁抓得住，两半不一样，别当成一条：
+   * - **这一半（回决策）由 `tsc` 当场拦下**——`Promise` 上没有 `allowed`，读它就报错。
+   *   44 个调用点是靠这条网一次性点齐的（臂 A1：摘掉一个 `await`，编译立刻指到用它的那一行）。
+   * - **下面那个 `reset` 那一半类型检查是瞎的**：`Promise<void>` 不接住不报错，
+   *   靠的是 eslint `no-floating-promises`（臂 A2：摘掉 `await`，`tsc` 一句不说，lint 报 9:5）。
+   *   今天内存驱动下漏 `await` 恰好也能生效——`async` 方法体在第一个 await 之前是同步跑的。
+   *   所以这条**只有在换成 Redis 驱动之后才真正咬人**：那时漏掉的那个 await 变成"清桶这件事
+   *   也许在测试已经开始之后才发生"，而内存驱动永远测不出它。这也是这一片先把 15 个
+   *   `reset()` 调用点全部补上 await 的原因，而不是"反正内存版同步能用"。
+   */
+  hit(key: string, limit: number, windowMs: number): Promise<RateLimitDecision>;
+  reset(key?: string): Promise<void>;
+  /**
+   * 同步自报现场。**同步是有意的**：诊断读数不该为了被看见而打一次网络往返，
+   * 也不该在 Redis 连着的时候把闸的调用方拖成等一次 `PING`。
+   * 所以 `wire` 读的是连接层的当前状态（ioredis 的 `status`），不是那次性的 `ready` promise——
+   * 后者一旦落定就不再变，用它回答"现在接上没有"会在重连之后继续说真话之前先说一段时间隔的假话。
+   */
+  describe(): RateLimiterReadout;
+}
+
+/**
+ * 单例挂在 `globalThis` 上，不是模块变量——理由与 `realtime/bus.ts` 那一份一模一样，
+ * 但从这一片起多了一层要紧：Next 会为不同的 route 各编译一份模块图，挂在模块变量上
+ * 就等于每台进程里有 N 份限流器。进程内驱动下这无所谓（桶键第一段就是路由名，
+ * 跨路由本来就不共用窗口），但 Redis 驱动下每一份都自带一条连接、
+ * 一份"退回时用"的进程内窗口——那台机器上的"每实例独立限流"就会退化成"每模块图独立限流"。
+ */
+const GLOBAL_KEY = '__nexus_rate_limiter__';
+type GlobalStore = typeof globalThis & { [GLOBAL_KEY]?: RateLimiter };
+
+const store = globalThis as GlobalStore;
+
+/**
+ * 选驱动：只看 `NEXUS_REDIS_URL`，非空即用 Redis 那份共享窗口，否则进程内。
+ * 与实时总线同一个旋钮，不各设各的——一台机器上"跨实例的那半边"要么都接上，要么都没接上，
+ * 设两个变量只会多出一种"改了一个忘了另一个"的部署。
+ *
+ * 与 `createDefaultBus()` 唯一的不同：这里在连接坏的时候**退回**进程内并且记账，
+ * 那里明确不退回。取向相反是故意的，理由写在 ADR-0076 的后果 1。
+ */
+function createDefaultLimiter(): RateLimiter {
+  const url = process.env[REDIS_URL_ENV]?.trim();
+  if (!url) {
+    console.log(`[rateLimit] 驱动=进程内（桶上界 ${DEFAULT_MAX_BUCKETS} 只；多实例部署设 ${REDIS_URL_ENV} 换成共享窗口）`);
+    return new MemoryRateLimiter();
+  }
+  // 上界写在启动这一行是因为它是**部署参数**而不是运行时旋钮：那台 Redis 若被键空间压住，
+  // 复盘第一眼要看的就是"这台写键的人自己钉了多少"。
+  console.log(`[rateLimit] 驱动=Redis 有序集滑动窗口（键前缀 ${DEFAULT_KEY_PREFIX}，桶键上界 ${DEFAULT_MAX_BUCKET_KEYS} 只）`);
+  return new RedisRateLimiter({ url });
+}
+
+export function getRateLimiter(): RateLimiter {
+  if (!store[GLOBAL_KEY]) store[GLOBAL_KEY] = createDefaultLimiter();
+  return store[GLOBAL_KEY];
+}
+
+/**
+ * 测试用：换掉单例，或清空（传 `undefined` = 恢复按环境变量重新选驱动）。
+ * 换掉之前手上那份 Redis 驱动请自己 `dispose()`——接口里没有这一格，漏掉就是漏掉一条连接。
+ */
+export function setRateLimiter(limiter: RateLimiter | undefined): void {
+  if (limiter) store[GLOBAL_KEY] = limiter;
+  else delete store[GLOBAL_KEY];
+}
+
+/**
+ * 反代链上我们信几跳（从面向本应用的那一跳开始数）。默认 1。
+ *
+ * 决定"从右边数第几段"，不是"信不信反代"的开关：`x-forwarded-for` 的写法是**追加**，
+ * 每一跳把自己亲眼看到的对端补到最右边，所以最右那一段才是"离本应用最近的连接"，
+ * 它左边的全部是上游（或客户端自己）说的。一级可信反代 ⇒ 取最右；两级（CDN → LB → 本机）
+ * ⇒ 最右那段是 LB 看到的 CDN 出口地址，客户端在倒数第二段 ⇒ 取 2。
+ */
+const DEFAULT_TRUSTED_PROXY_COUNT = 1;
+/** 超过这个数就是配错了（没有哪个真实拓扑有这么长）——宁可退回默认，也不要"从左边数"。 */
+const MAX_TRUSTED_PROXY_COUNT = 8;
+
+/**
+ * 头在场、但一个地址都解析不出来时，闸把这批请求归到这一个桶里。
+ * 不是豁免：写一行 `x-forwarded-for: whatever`（或 `Forwarded: for=whatever`）若能换来免限流，
+ * 那就是给所有 IP 闸留了一条"垃圾头绕过去"的公共出口。旧读法给每一串不同的垃圾各开一只桶，
+ * 效果就是绕过去；归进同一只桶才是"限住"。
+ * 桶名的字面量仍是 `invalid-xff`——它是既有读数与日志里的形状，三行头共用这一格不必各起一名。
+ */
+export const INVALID_IP_BUCKET = 'invalid-xff';
+
+function trustedProxyCount(): number {
+  const raw = process.env.NEXUS_TRUSTED_PROXY_COUNT;
+  if (raw === undefined || raw.trim() === '') return DEFAULT_TRUSTED_PROXY_COUNT;
+  const n = Number(raw);
+  // 读不出可信跳数就按"一级可信"走：这是 dev（Next 用 socket 地址填那一格）与
+  // 单反代部署的共同形状，而且**绝不会**退回"取最左端"那种客户端想写什么就写什么的读法。
+  if (!Number.isInteger(n) || n < 1 || n > MAX_TRUSTED_PROXY_COUNT) return DEFAULT_TRUSTED_PROXY_COUNT;
+  return n;
+}
+
+/**
+ * 把一段写进限流键的地址归一化：去空白、去方括号、去 IPv4 的端口，认不出的一律 null。
+ * 认不出来就当它不存在（链条短一段），而不是当它"是一个身份"——`evil-1` 拼进桶键
+ * 与 `1.2.3.4` 拼进桶键，对闸来说没有区别，那正是旧读法能被一行头绕过的原因。
+ */
+function normalizeAddress(raw: string): string | null {
+  const text = raw.trim();
+  if (!text) return null;
+  const bracketed = /^\[(.*)\](?::\d{1,5})?$/.exec(text);
+  const body = bracketed ? bracketed[1]!.trim() : text;
+  const v4 = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d{1,5})?$/.exec(body);
+  if (v4) {
+    const ip = v4[1]!;
+    return ip.split('.').every((octet) => Number(octet) <= 255) ? ip : null;
+  }
+  // IPv6：至少有一个冒号，且只剩十六进制、冒号、`::` 缩写里那些合法字符
+  if (body.includes(':') && /^[0-9a-fA-F:.%]+$/.test(body)) return body;
+  return null;
+}
+
+interface ForwardedChain {
+  /** 请求里到底有没有这一行头——「没有」与「有但读不出」在闸那里是两种处理，不能混。 */
+  headerPresent: boolean;
+  /** 从右往左排的可信段在读不出时已被丢掉；空数组＝这一行头里没有一个地址。 */
+  tokens: string[];
+}
+
+/**
+ * RFC 7239 的 `Forwarded`：一跳一段（逗号分隔），段内 `for=…;by=…;proto=…;host=…`。
+ *
+ * 只有 `for=` 是"这一跳亲眼看到的对端"；`by=` 说的是代理自己，`host=`/`proto=` 是被请求的
+ * 那一侧，把它们当地址会让整条链变成"谁的头写得花哨谁换桶"。`for=unknown` 与混淆值
+ * （`for="_gzz3"`，RFC 7239 §6.1 的例子）读不出地址——与垃圾的 XFF 同格：**归共享桶，不豁免**。
+ */
+function readRfc7239Tokens(value: string): string[] {
+  const tokens: string[] = [];
+  for (const hop of value.split(',')) {
+    for (const param of hop.split(';')) {
+      const eq = param.indexOf('=');
+      if (eq < 0) continue;
+      if (param.slice(0, eq).trim().toLowerCase() !== 'for') continue;
+      const raw = param.slice(eq + 1).trim();
+      const quoted = raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"');
+      const address = normalizeAddress(quoted ? raw.slice(1, -1) : raw);
+      if (address) tokens.push(address);
+    }
+  }
+  return tokens;
+}
+
+/**
+ * 三行头的读法与优先级：`x-forwarded-for` → `Forwarded`（RFC 7239）→ `x-real-ip`。
+ *
+ * 先读哪一行只取决于"哪一行给出了地址"，不改变链条语义：三行都是追加/覆盖写的同一族东西，
+ * 取的都是可信链右端第 `trustedProxyCount()` 段。同时在场时 XFF 说了算——两条链一起进桶键
+ * 会让同一个对端因写法不同落进两只桶，那正是"换一行头换一个桶"的另一种版本。
+ *
+ * `x-real-ip` 排在最后是有道理的：nginx 那类配置里它是**覆盖写**的（`X-Real-IP $remote_addr`），
+ * 客户端自带的那一份早被冲掉，所以它是三行里最不容易被伪造的一行；但它只有一段，
+ * 多跳拓扑下只有前面两行能给右端。
+ *
+ * **真 HTTP 路上这一支多半走不到**：`base-server.js:612` 的 `??=` 在 XFF 缺席时填入 socket 对端，
+ * 于是 `x-forwarded-for` 在处理器里几乎总在案（活体读数见 `.scratch/s28-forwarded-live-probe.mts`）。
+ * 一个只写 `Forwarded` 的前置因此不是"绕开闸"，而是**它的用户全落进前置那一只桶**——
+ * 部署要么让前置补写 XFF，要么按 ADR-0071 的后果 2 处理，别指望这段代码替拓扑做主。
+ */
+function readForwardedChain(request: Request): ForwardedChain {
+  const realRaw = request.headers.get('x-real-ip');
+  const real = realRaw === null ? null : normalizeAddress(realRaw);
+  const xff = request.headers.get('x-forwarded-for');
+  const forwarded = request.headers.get('forwarded');
+  const headerPresent = xff !== null || forwarded !== null || realRaw !== null;
+
+  if (xff !== null) {
+    const tokens = xff
+      .split(',')
+      .map(normalizeAddress)
+      .filter((token): token is string => token !== null);
+    if (tokens.length > 0) return { headerPresent, tokens };
+  }
+  if (forwarded !== null) {
+    const forwardedTokens = readRfc7239Tokens(forwarded);
+    if (forwardedTokens.length > 0) return { headerPresent, tokens: forwardedTokens };
+  }
+  return { headerPresent, tokens: real ? [real] : [] };
+}
+
+/** 从右端往左数第 `trustedProxyCount()` 段；链条比声明的跳数短就取最左那一段。 */
+function pickTrusted(tokens: string[]): string | null {
+  if (tokens.length === 0) return null;
+  return tokens[Math.max(0, tokens.length - trustedProxyCount())] ?? null;
+}
+
+/**
+ * 从请求头取调用方 IP（反代下用 x-forwarded-for **右端**那一段）。
+ *
+ * 旧读法取的是 `split(',')[0]`——链条最左端，也就是客户端随手写的那一段。每请求换一个值
+ * 就换一个限流桶，`ipWriteGate` 的 13 处与 `rateKey(route, clientIp(req), user.id)` 的
+ * 30 处按 IP 那半当场空转（ADR-0060 那道"堵住免成本写入口"的闸等于没挡住）。
+ *
+ * 一条代码挡不住的限度，说清而不是绕过去：`base-server.js:612` 用的是
+ * `req.headers['x-forwarded-for'] ??= originalRequest.socket.remoteAddress`——头**缺席**时
+ * 才拿 socket 地址填，头在场时原样透传。所以"客户端自带一行头"与"Next 填的"在处理器里
+ * 长得一模一样，分辨不出来；直接暴露（前面没有会追加的反代）时取右端也仍然信了客户端写的
+ * 那一段。那一档要靠部署补一个前置反代，或把 `NEXUS_TRUSTED_PROXY_COUNT` 按真实拓扑设对。
+ * 见 `docs/adr/0070-forwarded-ip-take-rightmost-trusted-hop.md`。
+ */
+export function clientIp(request: Request): string | null {
+  return pickTrusted(readForwardedChain(request).tokens);
+}
+
+/**
+ * 限流用的身份：与 `clientIp` 同源，但把"头缺席"与"头在场却读不出"分开。
+ *
+ * - `null`：没有任何一条可标识的信息——按既有口径让路（给标识不出的请求一个共享桶，
+ *   是把同部署下的正常用户一起挡掉，用一种故障换另一种故障）。真实 HTTP 路上走不到这一格，
+ *   因为 Next 会把 socket 地址填进 XFF；走得到的是内部直调与测试。
+ * - `INVALID_IP_BUCKET`：头来了却读不出地址——这不是"标识不出"，是"有人写了行垃圾"，
+ *   所以不豁免，全部归进同一个桶。
+ */
+export function gateIp(request: Request): string | null {
+  const chain = readForwardedChain(request);
+  if (!chain.headerPresent) return null;
+  if (chain.tokens.length === 0) return INVALID_IP_BUCKET;
+  return pickTrusted(chain.tokens);
+}
+
+/**
+ * 身份之前的闸：§137 的 guest 自动签发把"按 user.id 限流"这一族变成了空转。
+ *
+ * 中间件给每个没有会话 cookie 的请求签一个**随机** token 并写回 cookie，
+ * `requireUser()` 拿不到会话行就**就地建一个 guest 用户**。于是按 `user.id`
+ * 拼的限流键对"不存 cookie 的客户端"每次都是新键——实测（`.scratch` 探针，
+ * 打 `/api/published/report`）：
+ *   12 个不同 token → 建 12 个 guest 用户、**0 次 429**；
+ *   同一个 token 打 12 次 → 只建 1 个 guest，第 11 次起 429（按身份的那道闸本身是生效的）。
+ * 更糟的是 `POST /api/projects`、`POST /api/ai/run`、`POST /api/account/api-tokens`
+ * 这几条**本来就没有任何限流**：于是一个绕开 cookie 的客户端可以无上限地
+ * 建用户 + 项目 + 文档 + 任务行，把"首次体验"变成一条免成本的写入口。
+ *
+ * 所以在拿到身份**之前**先按 IP 挡一道，且闸门必须放在 `requireUser()` 之前——
+ * 被挡住的请求一个 guest 都不该建（建了就是"限流了但还是付了代价"）。
+ * 与 `auth/register` 同一形状（那一格早就这么做了：`rateKey('auth/register', ip)`）。
+ *
+ * 两条限度，说清而不是绕过去：
+ * 1. **头都不写的请求不进这个桶**（`x-forwarded-for` / `Forwarded` / `x-real-ip` 三行都不在场）。
+ *    限流只能限住能标识的对象；给标识不出的请求一个共享桶，会把同部署下的
+ *    正常用户一起挡掉——那是用一种故障换另一种故障。真实 HTTP 路上走不到这一格：
+ *    Next 在头缺席时就把 socket 地址填进去（`base-server.js:612`）。
+ *    **头在场却读不出地址的不算这一格**——那是有人写了行垃圾，归进 `INVALID_IP_BUCKET`
+ *    照样限（写一行垃圾不该换来免限流）。
+ * 2. IP 是粗粒度身份：同一 NAT 后的多人共用一个桶。所以限额取宽，
+ *    真正的"这个人"仍由各路由原有的按身份闸去管——这里是兜底，不是替代。
+ */
+export async function ipWriteGate(
+  route: IpGateRoute,
+  req: Request,
+): Promise<{ limited: false } | { limited: true; retryAfterMs: number }> {
+  const ip = gateIp(req);
+  if (!ip) return { limited: false };
+  const { limit, windowMs } = IP_RATE_RULES[route];
+  const rl = await getRateLimiter().hit(rateKey(route, ip), limit, windowMs);
+  return rl.allowed ? { limited: false } : { limited: true, retryAfterMs: rl.retryAfterMs };
+}
+
+/** 拼限流桶的键：路由 + 身份（用户或 IP）。 */
+export function rateKey(route: string, ip: string | null, userId?: string | null): string {
+  return `${route}|${userId ?? 'anon'}|${ip ?? 'no-ip'}`;
+}

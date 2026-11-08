@@ -1,0 +1,216 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+
+[33m[39m[31mx[39m[33m[39m[31mx[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[31mx[39m[33m[39m[31mx[39m[33m[39m[31mx[39m[33m[39m[31mx[39m[33m[39m[31mx[39m[33m[39m[31mx[39m[33m[39m[31mx[39m[33m[39m[32m·[39m[33m[39m[31mx[39m[33m[39m[32m·[39m[33m[39m[31mx[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 11 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/client-ip.test.ts[2m > [22mclientIp：取可信链的右端，不是客户端写的最左端[2m > [22m反代追加过的链条：右端是它亲眼看到的对端，左端是客户端自称的
+[31m[1mAssertionError[22m: expected '203.0.113.7' to be '198.51.100.9' // Object.is equality[39m
+
+Expected: [32m"198.51.100.9"[39m
+Received: [31m"203.0.113.7"[39m
+
+[36m [2m❯[22m apps/web/test/client-ip.test.ts:[2m39:83[22m[39m
+    [90m 37| [39m[34mdescribe[39m([32m'clientIp：取可信链的右端，不是客户端写的最左端'[39m[33m,[39m () [33m=>[39m {
+    [90m 38| [39m  [34mit[39m([32m'反代追加过的链条：右端是它亲眼看到的对端，左端是客户端自称的'[39m[33m,[39m () [33m=>[39m {
+    [90m 39| [39m    expect(clientIp(reqWith({ 'x-forwarded-for': '203.0.113.7, 198.51.…
+    [90m   | [39m                                                                                  [31m^[39m
+    [90m 40| [39m  })[33m;[39m
+    [90m 41| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/client-ip.test.ts[2m > [22mclientIp：取可信链的右端，不是客户端写的最左端[2m > [22m换着写最左端不再换桶（这是"一行头绕过整道闸"的那条路）
+[31m[1mAssertionError[22m: expected [ '192.0.2.1', '192.0.2.2', …(1) ] to deeply equal [ '198.51.100.9' ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[32m-   "198.51.100.9",[39m
+[31m+   "192.0.2.1",[39m
+[31m+   "192.0.2.2",[39m
+[31m+   "192.0.2.3",[39m
+[2m  ][22m
+
+[36m [2m❯[22m apps/web/test/client-ip.test.ts:[2m47:23[22m[39m
+    [90m 45| [39m      seen.add(clientIp(reqWith({ 'x-forwarded-for': `192.0.2.${n}, 19…
+    [90m 46| [39m    }
+    [90m 47| [39m    [34mexpect[39m([[33m...[39mseen])[33m.[39m[34mtoEqual[39m([[32m'198.51.100.9'[39m])[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m 48| [39m  })[33m;[39m
+    [90m 49| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/client-ip.test.ts[2m > [22mclientIp：取可信链的右端，不是客户端写的最左端[2m > [22mNEXUS_TRUSTED_PROXY_COUNT 把右端往左挪：两级可信跳时客户端在倒数第二段
+[31m[1mAssertionError[22m: expected '203.0.113.7' to be '198.51.100.9' // Object.is equality[39m
+
+Expected: [32m"198.51.100.9"[39m
+Received: [31m"203.0.113.7"[39m
+
+[36m [2m❯[22m apps/web/test/client-ip.test.ts:[2m62:97[22m[39m
+    [90m 60| [39m  [34mit[39m([32m'NEXUS_TRUSTED_PROXY_COUNT 把右端往左挪：两级可信跳时客户端在倒数第二段'[39m[33m,[39m () [33m=>[39m {
+    [90m 61| [39m    process[33m.[39menv[[33mENV_KEY[39m] [33m=[39m [32m'2'[39m[33m;[39m
+    [90m 62| [39m    expect(clientIp(reqWith({ 'x-forwarded-for': '203.0.113.7, 198.51.…
+    [90m   | [39m                                                                                                [31m^[39m
+    [90m 63| [39m  })[33m;[39m
+    [90m 64| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/client-ip.test.ts[2m > [22mclientIp：取可信链的右端，不是客户端写的最左端[2m > [22m非法的计数值退回 1，不退回"最左端"那种旧读法
+[31m[1mAssertionError[22m: expected '203.0.113.7' to be '198.51.100.9' // Object.is equality[39m
+
+Expected: [32m"198.51.100.9"[39m
+Received: [31m"203.0.113.7"[39m
+
+[36m [2m❯[22m apps/web/test/client-ip.test.ts:[2m68:85[22m[39m
+    [90m 66| [39m    [35mfor[39m ([35mconst[39m raw [35mof[39m [[32m'0'[39m[33m,[39m [32m'-2'[39m[33m,[39m [32m'abc'[39m[33m,[39m [32m''[39m[33m,[39m [32m'1.5'[39m[33m,[39m [32m'99'[39m]) {
+    [90m 67| [39m      process[33m.[39menv[[33mENV_KEY[39m] [33m=[39m raw[33m;[39m
+    [90m 68| [39m      expect(clientIp(reqWith({ 'x-forwarded-for': '203.0.113.7, 198.5…
+    [90m   | [39m                                                                                    [31m^[39m
+    [90m 69| [39m    }
+    [90m 70| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/client-ip.test.ts[2m > [22mclientIp：取可信链的右端，不是客户端写的最左端[2m > [22m带端口的 IPv4 与方括号里的 IPv6：归一化成地址本身
+[31m[1mAssertionError[22m: expected '203.0.113.7' to be '198.51.100.9' // Object.is equality[39m
+
+Expected: [32m"198.51.100.9"[39m
+Received: [31m"203.0.113.7"[39m
+
+[36m [2m❯[22m apps/web/test/client-ip.test.ts:[2m73:88[22m[39m
+    [90m 71| [39m
+    [90m 72| [39m  [34mit[39m([32m'带端口的 IPv4 与方括号里的 IPv6：归一化成地址本身'[39m[33m,[39m () [33m=>[39m {
+    [90m 73| [39m    expect(clientIp(reqWith({ 'x-forwarded-for': '203.0.113.7, 198.51.…
+    [90m   | [39m                                                                                       [31m^[39m
+    [90m 74| [39m    expect(clientIp(reqWith({ 'x-forwarded-for': '203.0.113.7, [2001:d…
+    [90m 75| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/client-ip.test.ts[2m > [22mclientIp：取可信链的右端，不是客户端写的最左端[2m > [22m回落 x-real-ip（nginx 的 $remote_addr 是被覆盖写的，不是追加的）
+[31m[1mAssertionError[22m: expected 'not-an-ip' to be '198.51.100.9' // Object.is equality[39m
+
+Expected: [32m"198.51.100.9"[39m
+Received: [31m"not-an-ip"[39m
+
+[36m [2m❯[22m apps/web/test/client-ip.test.ts:[2m79:96[22m[39m
+    [90m 77| [39m  [34mit[39m([32m'回落 x-real-ip（nginx 的 $remote_addr 是被覆盖写的，不是追加的）'[39m[33m,[39m () [33m=>[39m {
+    [90m 78| [39m    expect(clientIp(reqWith({ 'x-real-ip': '198.51.100.9' }))).toBe('1…
+    [90m 79| [39m    expect(clientIp(reqWith({ 'x-forwarded-for': 'not-an-ip', 'x-real-…
+    [90m   | [39m                                                                                               [31m^[39m
+    [90m 80| [39m  })[33m;[39m
+    [90m 81| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/client-ip.test.ts[2m > [22mclientIp：取可信链的右端，不是客户端写的最左端[2m > [22m头整个缺席 → 标识不出来（审计与限流都按"没有 IP"记，不编一个）
+[31m[1mTypeError[22m: (0 , gateIp) is not a function[39m
+[36m [2m❯[22m apps/web/test/client-ip.test.ts:[2m84:12[22m[39m
+    [90m 82| [39m  [34mit[39m([32m'头整个缺席 → 标识不出来（审计与限流都按"没有 IP"记，不编一个）'[39m[33m,[39m () [33m=>[39m {
+    [90m 83| [39m    [34mexpect[39m([34mclientIp[39m([34mreqWith[39m({})))[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m 84| [39m    [34mexpect[39m([34mgateIp[39m([34mreqWith[39m({})))[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m   | [39m           [31m^[39m
+    [90m 85| [39m  })[33m;[39m
+    [90m 86| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/client-ip.test.ts[2m > [22mclientIp：取可信链的右端，不是客户端写的最左端[2m > [22m审计口径：垃圾头不算"有 IP"
+[31m[1mAssertionError[22m: expected 'unknown' to be null[39m
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+"unknown"
+
+[36m [2m❯[22m apps/web/test/client-ip.test.ts:[2m88:71[22m[39m
+    [90m 86| [39m
+    [90m 87| [39m  [34mit[39m([32m'审计口径：垃圾头不算"有 IP"'[39m[33m,[39m () [33m=>[39m {
+    [90m 88| [39m    expect(clientIp(reqWith({ 'x-forwarded-for': 'unknown, , , ' }))).…
+    [90m   | [39m                                                                      [31m^[39m
+    [90m 89| [39m  })[33m;[39m
+    [90m 90| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/client-ip.test.ts[2m > [22mipWriteGate：垃圾头不该换来免限流[2m > [22m头在场但读不出可用地址 → 进同一个 invalid-xff 桶，不是让路
+[31m[1mAssertionError[22m: expected [ '201', '201', '201', '201' ] to deeply equal [ '201', '201', '201', '429' ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "201",[22m
+[2m    "201",[22m
+[2m    "201",[22m
+[32m-   "429",[39m
+[31m+   "201",[39m
+[2m  ][22m
+
+[36m [2m❯[22m apps/web/test/client-ip.test.ts:[2m99:22[22m[39m
+    [90m 97| [39m      statuses.push(ipWriteGate('projects/create', reqWith({ 'x-forwar…
+    [90m 98| [39m    }
+    [90m 99| [39m    [34mexpect[39m(statuses)[33m.[39m[34mtoEqual[39m([[32m'201'[39m[33m,[39m [32m'201'[39m[33m,[39m [32m'201'[39m[33m,[39m [32m'429'[39m])[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m100| [39m    expect(gateIp(reqWith({ 'x-forwarded-for': 'evil-1' }))).toBe(INVA…
+    [90m101| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/client-ip.test.ts[2m > [22mipWriteGate：垃圾头不该换来免限流[2m > [22m换着写最左端打不满限额：25 次里第 21 次起 429（右端才是桶）
+[31m[1mAssertionError[22m: expected [ '201', '201', '201', '201', '201' ] to deeply equal [ '429', '429', '429', '429', '429' ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[32m-   "429",[39m
+[32m-   "429",[39m
+[32m-   "429",[39m
+[32m-   "429",[39m
+[32m-   "429",[39m
+[31m+   "201",[39m
+[31m+   "201",[39m
+[31m+   "201",[39m
+[31m+   "201",[39m
+[31m+   "201",[39m
+[2m  ][22m
+
+[36m [2m❯[22m apps/web/test/client-ip.test.ts:[2m116:32[22m[39m
+    [90m114| [39m    }
+    [90m115| [39m    [34mexpect[39m(statuses[33m.[39m[34mslice[39m([34m0[39m[33m,[39m [34m20[39m))[33m.[39m[34mtoEqual[39m([35mnew[39m [33mArray[39m([34m20[39m)[33m.[39m[34mfill[39m([32m'201'[39m))[33m;[39m
+    [90m116| [39m    [34mexpect[39m(statuses[33m.[39m[34mslice[39m([34m20[39m))[33m.[39m[34mtoEqual[39m([35mnew[39m [33mArray[39m([34m5[39m)[33m.[39m[34mfill[39m([32m'429'[39m))[33m;[39m
+    [90m   | [39m                               [31m^[39m
+    [90m117| [39m  })[33m;[39m
+    [90m118| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m apps/web/test/client-ip.test.ts[2m > [22m限流键形状没变（SECURITY.md：路由 + 身份 + IP）[2m > [22mrateKey 仍按三段拼，右端读法只换第三段的值
+[31m[1mAssertionError[22m: expected 'projects/create|anon|203.0.113.7' to be 'projects/create|anon|198.51.100.9' // Object.is equality[39m
+
+Expected: [32m"projects/create|anon|[7m198.51.100.9[27m"[39m
+Received: [31m"projects/create|anon|[7m203.0.113.7[27m"[39m
+
+[36m [2m❯[22m apps/web/test/client-ip.test.ts:[2m130:111[22m[39m
+    [90m128| [39m    expect(rateKey('auth/login', '9.9.9.9', 'u')).toBe('auth/login|u|9…
+    [90m129| [39m    expect(rateKey('auth/register', null)).toBe('auth/register|anon|no…
+    [90m130| [39m    expect(rateKey('projects/create', clientIp(reqWith({ 'x-forwarded-…
+    [90m   | [39m                                                                                                              [31m^[39m
+    [90m131| [39m      [32m'projects/create|anon|198.51.100.9'[39m[33m,[39m
+    [90m132| [39m    )[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m11 failed[39m[22m[2m | [22m[1m[32m4 passed[39m[22m[90m (15)[39m
+[2m   Start at [22m 01:26:48
+[2m   Duration [22m 1.54s[2m (transform 201ms, setup 0ms, collect 283ms, tests 54ms, environment 0ms, prepare 425ms)[22m
+

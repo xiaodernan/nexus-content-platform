@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "allowJs": true,
+    "checkJs": false,
+    // tsx 项目按完整文件名 import 同级 .mts（Node ESM 要扩展名、tsx 也这么认）；
+    // 没有这条，`import './lib/x.mts'` 会被 tsc 以 TS5097 拒掉——类型检查是 noEmit，符合这个开关的前提。
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./apps/web/src/*"],
+      "@nexus/creative-model": ["./packages/creative-model/src/index.ts"],
+      "@nexus/schemas": ["./packages/schemas/src/index.ts"],
+      "@nexus/world-model": ["./packages/world-model/src/index.ts"],
+      "@nexus/game-model": ["./packages/game-model/src/index.ts"],
+      "@nexus/video-model": ["./packages/video-model/src/index.ts"]
+    }
+  },
+  "include": [
+    "scripts/**/*.mts",
+    "scripts/**/*.ts",
+    "vitest.config.ts",
+    "drizzle.config.ts",
+    "playwright.config.ts",
+    "eslint.config.mjs",
+    "apps/web/postcss.config.mjs",
+  ]
+}

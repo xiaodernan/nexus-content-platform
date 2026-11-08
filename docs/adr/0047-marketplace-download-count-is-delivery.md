@@ -1,0 +1,243 @@
+# ADR-0047：`downloadCount` 只有一个写入方——"下载（N）"从此就是"成功交付了几次"
+
+- 状态：已采纳（§127 那一格从「只记数不交付」变成「记的就是交付」，界面上那句「交付还没接」也一起改掉）
+- 日期：2026-10-21
+- 关联：§127-128、§144、ADR-0024（导出 ZIP 的归属门与头部写法，本 ADR 复用不重定义）、ADR-0025（账号注销：审计与账本留行的那一格）、§159（不许假发布）、`docs/ROADMAP.md` 的 M7 一节
+
+## 背景
+
+#120 把交付接上之后，仓库里同时存在两道门：
+
+- `GET /api/marketplace/[id]/content` —— 真交付（走 §144 的 `buildProjectExport` 拿 zip 字节）
+- `POST /api/marketplace/[id]/download` —— 只 `incrementDownloadCount`，一个字节的包都不给
+
+后者的调用方在界面换成前者之后就没了（`grep` 全站零引用），但它还活着，而且和交付门写的是**同一个数字**。
+于是这个数不再等于任何一件真实发生过的事：一条 curl 循环就能把「下载（N）」灌成任意大，
+而一次内容交付都没发生——正是 §159 禁止的那种"假发布"，只不过造假者是买家而不是平台。
+
+同一批还量到三个洞，每一个都能用一条请求验证（不是推测）：
+
+1. **买家永远拿不到包。** 建包传的是 `user?.id ?? creatorId`，而 §144 的归属门（ADR-0024）判的是
+   "这个项目在谁名下"。买家扣了 credits、`hasPurchased` 为真、走到建包那一步照样 404。
+2. **中文标题的条目每次交付都 500。** HTTP 头的值是 ByteString（latin1），把中文标题直接塞进
+   `Content-Disposition: filename="…"` 会在 `new NextResponse(…)` 构造时抛 `TypeError`。
+   平台上标题几乎必是中文，所以这条在集成测试之前就一直红着，只是没人打到那条路径。
+3. **计数写在交付之前。** 先 `+1` 再建包，那么"没有源项目""源项目已删除""导出抛错"这三条失败路径
+   照样让数字变大——界面上那个数印的是"没人拿到过东西的交付"。
+
+另外两个形状问题：`id` 不是 uuid 时 `eq(marketplace_items.id, …)` 撞 22P02 翻成 500
+（`domain/ids.ts` 记的同一口径，update/delete 两道门早已按 404 处理，这道门漏了）；
+以及这道门匿名可下免费物品，却没有任何限流。
+
+## 选项
+
+1. **保留 `POST /download`，让它变成"意图"计数，界面显示两个数。**
+   拒绝：买家点一次按钮就产生两条（一次意图 + 一次交付），两个数迟早对不上，而"哪个是真的"又要靠文案解释。
+   §127 要的是可信的数字，不是多一个数字。
+2. **把 `downloadCount` 改成从 `marketplace_audit` 的 download 行数派生。**
+   拒绝：审计表的 `actor_id` 是非空列，匿名下载那一批压根没有行；派生出来的数会系统性少计，
+   而这个字段是写进列表投影里的读数，改口径等于再引入一层"这个数字统计谁"的解释成本。
+   计数留在 `marketplace_items` 上，代价是它的含义必须由代码结构保证（见决定第 1 条）。
+3. **采纳：删掉第二道门，交付门成为唯一写入方，并把"交付"这件事的顺序与失败路径钉死。**
+
+## 决定
+
+- **结构上只允许一个写入方。** `incrementDownloadCount` 的调用点在生产的源文件里只出现两处：
+  `app/api/marketplace/[id]/content/route.ts`（唯一的 HTTP 写入路径）与 `server/domain/marketplace.ts`（定义处）。
+  这条不是靠注释维持的：`marketplace-content.integration.test.ts` 有一条普查断言，
+  遍历 `apps/web/src` 下非 `*.test|spec` 的文件数这个调用，多一处就红；同文件另有一条断言
+  `existsSync('api/marketplace/[id]/download/route.ts') === false`。测试文件里的调用被排除，
+  因为域单测直接调这个函数证明的是函数本身，不构成"界面上的数"的第二条路。
+- **计数跟着交付走，顺序是：门 → 建包 → 做成能发出去的响应 → 写计数与审计 → 返回。**
+  最后两步放在响应构造之后，是因为第 2 条洞就是"响应头构造失败"造成的——那种情况下手上虽然有字节，
+  但没人可能拿到它，写一条交付记录就是假话。
+- **建包永远以创作者身份走 §144**（`item.creatorId`）。买家的授权来自购买判定，不来自项目归属；
+  把两者混成一个，等价于宣布"市场里买到的东西只有作者自己能下载"。
+- **头部口径与 §144 导出门同一写法**：`filename` 只放 ASCII（去不掉就落到 `nexus-marketplace.zip`），
+  原始标题走 RFC 5987 的 `filename*=UTF-8''…`；体走 `Buffer.from`（`Uint8Array.buffer` 可能共享）。
+  两个门不许给两套规则——第 2 条洞在导出门早已修过，交付门是抄漏了。
+- **限流按"条目 + IP"，一小时 `MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR = 60`**，门开在读库之前。
+  常量导出在 domain 层，`page.tsx` 的 `data-marketplace-limits` 那句披露读的是同一个常量，
+  不手写数字（§164 那片"披露面走样"立的同一律）。
+- **匿名下载免费物品不留审计行**，这是**披露的限度**而不是待补的洞：`actor_id` 非空，没有身份可记。
+  风控看到的 download 审计因此只覆盖有身份的那些次，界面上那句话明说了。
+- **非 uuid 的 id 在读库前按 404 处理**，与 `domain/ids.ts` 记的那条横切纪律同一口径（`updateMarketplaceItem`
+  与 `deleteMarketplaceItem` 已经在域函数里挡，缺的是 `getMarketplaceItem` 这条读路径——所以这一片的门挡在
+  路由层，是临时位置，收口应该回域层，记为 #147）；不存在与已下架给同一个答案，
+  403 会泄露"这个 id 存在但你看不到"。
+
+## 后果
+
+- **正面**：`下载（0）` 与 `下载（1）` 现在是同一条断言的两半——e2e `@smoke §127` 里一条**不挂**来源项目
+  的条目报 `该物品没有可导出的源项目` 且数字停在 0，另一条**挂上**来源项目的条目在真浏览器里收到一个
+  zip（前两字节 `PK`）、消息是 `包已交付（设计文档 + 代码）。`、数字走到 1。只留一半的话任何一边写错都能自洽。
+- **见证的成本**：`apps/web/test/marketplace-content.integration.test.ts` 14 条（匿名免费、头部消毒、
+  下架/非 uuid 的 404、付费的 401/403、买后成功、作者自下、`no_source`、源项目软删、限流 60 满额后 429、
+  401 也吃配额而换一个 IP 不受影响、上面那两条结构断言），基线 14/14 绿。
+  **这份凭证差点自己塌过一次**：`beforeAll` 装配两个身份 + 两整份文档 + 六个条目 + 一次软删，
+  机器忙的时候撞上默认 30s 的 hook 超时——而 hook 超时不取消那段异步工作，它继续在后台插行，
+  `afterAll` 的清理正好撞在插到一半的 `projects` 外键上（23503），14 条全部 skipped、报文里看不出交付门坏没坏。
+  现在两个 hook 各写自己的时限（120s / 60s），装配失败就不做清理。**"套件红了"与"套件没跑"是两件事**，
+  后者要用时限挡在前面。
+  四只变异臂各自把一条律改坏，跑完都回到字节相同的原文件（还原后 sha256 逐次为 `5d8f653b5740ffac`），
+  **红了多少条是从输出里读的，不是先想的**：
+  `count_before_build`（把计数挪回建包之前）**7 failed**——凡是"成功一次数才动一次"的读数全部多算，
+  连免费/购买/自下那三条正对照也一起红，说明这条律不是只管失败路径；
+  `export_as_downloader`（用下载者身份建包）**2 failed**，第一条断言就是
+  「买过的人拿不到包，交付这一格就没存在过：expected 404 to be 200」；
+  `no_limiter`（摘掉限流）**2 failed**（那两条洪水用例）；
+  `raw_title_header`（中文标题原样进 `filename`）**5 failed**——所有能真交付的路径全崩在构造响应那一步。
+  第 1、2、3 号洞从此不可复发。
+- **买家的钱与包终于对上**：购买 → 下载成功 → 一条 `metadata.isCreator=false` 的审计，这条链以前是断的。
+- **欠账（本 ADR 明确留下，不在这一片偷偷补）**：
+  1. 交付的是 design + code 两档，**资产字节没进去**——那需要开作者名下的私有素材读路径，买家未必要得到，是另一片。
+  2. 市场其余**读路径**同样没挡形状：详情 GET 与 `preview` 走的是同一条 `getMarketplaceItem`
+     （实测 `GET /api/marketplace/not-a-uuid/preview` 现在回 **500 空报文**，而且匿名可达——卡片上的 `<img>` 就会打到），
+     `purchaseMarketplaceItem` 里的 `eq(id, …)` 也没守卫。`PATCH`/`DELETE` 因为在
+     `updateMarketplaceItem` / `deleteMarketplaceItem` 里已经挡过，回的是 400（"不存在"却报成正文错误，也不干净）。
+     这一片只给自己那道门负责，因为它是唯一会写用户可见数字的门；收口应该回域层并接进
+     `id-shape.integration.test.ts` 那条横切纪律，记为 #147。
+  3. `MarketplaceItemRow` 的下载走 `URL.createObjectURL` + 延迟 60s 回收（与 `ExportPanel` 同一寸）；
+     同期发现 `apps/web/src/studio/GameCodeExport.tsx:50-58` 在 click 之后**立即**回收对象 URL，
+     疑似拿到 0 字节文件。那是另一条链的界面，需要自己的见证，不在这里顺手改。
+
+## 2026-10-21 补记（#147）：欠账 2 已还——形状门收进域层，路由那道临时门删掉
+
+同一天的第二片，落到域层而不是三条路由各抄一遍：
+
+- `getMarketplaceItem` 形状不对 → `null`（详情 GET、预览图、交付三条读路共用这一处）；
+  `hasPurchased` → `false`；`incrementDownloadCount` → `0`（没有行被 +1）；
+  `purchaseMarketplaceItem` → 与"不存在或已下架"**同一句** throw（路由照旧翻成 404，不新造一句）。
+- 交付门里那道临时 `isUuid` 与它的 import 一并删掉：`getMarketplaceItem` 返回 null 之后，
+  下面那句 `if (!item) return 404` 已经把形状不对的 id 和其它"没有"收进同一个答案。
+- 见证补进 `id-shape.integration.test.ts`（第十个家族，18 → 27 条）：**修前先跑，7 条红**——
+  四个域助手与详情 GET、预览 GET 各以 `PostgresError 22P02` 失败，购买 POST 断言 `expected 500 to be 404`；
+  修后 27/27 绿，市场七套件回归 87/87 绿。正对照钉住"真条目照旧读得到、买得成（价格 0 不写扣点流水，
+  买家因此删得掉——账本只追加）、数得上"，防的是守卫把正常路径一起挡了。
+- 仍不干净的一处：`PATCH` / `DELETE` 在域函数里 throw、路由 catch 成 **400**（"不存在"被报成正文错误，
+  且回显的是内部那句话）。`marketplace-update.integration.test.ts` 已按 400 钉住，改口径要连同那两条一起动，
+  另作一片——**已由 #149 还上，见下**。
+- **欠账 3 量掉了（#148）**：`GameCodeExport` 那个"同一 tick 回收对象 URL → 0 字节"的**疑似在 Chrome 上没有复现**——
+  先原样跑 `@smoke 游戏：生成可玩产物…`（45.6s 过）：那条 e2e 点的是会走立即回收的那个按钮，并把落盘字节读回来
+  断言 `<!doctype html>`、CSP 与 zip 的 `PK\x03\x04` + 包内文件名，全过。结论按测量写：Chrome 在 click 的同一个
+  tick 里就把下载接走了。但三处下载（导出面板、市场条目、可玩产物）各抄一份、两种回收时机、两句互相矛盾的话，
+  仍是事实——统一到 `apps/web/src/lib/download.ts` 的 `saveBlob`（取 60s 延迟回收那一种），三处只留一个实现；
+  改后三条下载 e2e 一起跑（§127 市场 21.4s / §144 导出 40.5s / §52 产物 35.2s，3 passed），字节断言照旧。
+
+## 2026-10-21 补记（#149）：PATCH / DELETE 的答复码——400 那个"另作一片"还上了
+
+域函数从"抛一句英文"改成判别式结果，路由按语义翻码：
+
+- `updateMarketplaceItem` → `{ok:true,item}` / `{ok:false,reason:'not_found'|'forbidden'|'preview_asset_not_found'}`；
+  `deleteMarketplaceItem` → `{ok:true,item}` / `{ok:false,reason:'not_found'|'forbidden'}`。
+  这与 `api-tokens` 的 `RevokeResult`、`annotations` 的结果形状同一套，不再让路由去比对错误句子。
+- 状态码：不存在 / 已下架 / **私有条目被别人动** → 404；可见条目但不是你的 → 403；
+  预览素材不存在 → 400（`badRequest`，与 zod 的正文错误同一出口）；未知异常走 `failure()` → 500，
+  不再被 catch 成 400 且回显库错误正文。私有 → 404 是与详情、预览同一口径：403 等于告诉陌生人"这个 id 存在"。
+- 正文只给稳定机器码（`not_found` / `forbidden`）+ 一句中文 `message`（§26）；市场条目界面的"保存 / 下架"
+  失败改念 `message`，不再把机器码直接印给人看。
+- 见证：`id-shape` 家族 27 → **30 条**（update/delete 的形状门一条 + PATCH/DELETE 路由 404 各一条），
+  `marketplace-update` 12 → **14 条**（公开别人的 403、私有别人的 404，PATCH 与 DELETE 各一对）；
+  改前那两条按 400 钉住的用例在基线跑里是绿的（26/26），改后新口径 59/59 绿；市场六套件（含 update）66/66 绿；
+  tsc / eslint 0。
+- 仍未动：详情 GET 与预览图对别人的私有条目本来就答 404（这一片把它们与 PATCH/DELETE 对齐了），
+  **列表**的可见性规则不在这一片；`purchaseMarketplaceItem` 仍以句子 throw（购买路由比对句子翻码）——
+  那是下一条可收的口径。
+
+## 2026-10-21 补记（#150）：买家侧的「我的购买」——买了的东西在哪儿、下架之后长什么样
+
+这一片不碰计数（计数的唯一写入方仍是交付门），补的是**买家的读路**：此前只有店面、「我的物品」
+与创作者收益，买过的人看不到自己的单子。
+
+- 域层 `listBuyerPurchases(buyerId)`：从 `marketplace_purchases` 出发 join 条目与作者，
+  **不按 `deletedAt` 过滤**——下架是条目的事，购买记录仍在；返回 `delistedAt` 让界面自己说状态。
+  按 `purchasedAt` 倒序（最近买的在最上），上限 100。
+- `GET /api/marketplace/purchases`：只读当前用户的（匿名 401）；`cache-control: no-store`——
+  这张单子随购买变化，被中间层缓存一夜就会少一行。
+- 页面 `/marketplace/purchases` 三态都从记录本身推出来，不新造枚举：
+  `delistedAt` 非空 → 「已下架（不再交付）」且**不渲染下载按钮**；`visibility === 'private'` →
+  「已转私密（已购仍可下载）」（交付门对已购者仍放行）；其余 → 「在售」。
+- **一个不替产品拍板的决定**：买过的权利是否随下架终止，是商业/product 决定。本片不选，
+  只把现在的事实（交付门对已下架条目 404）写进页面文案与用例，让选择摆到明面上。
+- 见证：`marketplace-purchases.integration.test.ts` 8 条（三态各一行、陌生人只看到自己那一笔、
+  登录未买过 → 200 空列表、下架条目交付仍 404、匿名 401 且 `no-store`）；真浏览器里种三笔购买后
+  同屏显示、状态文案与按钮有无都对、点下载在无源项目时收到交付门那句「该物品没有可导出的源项目」，
+  截图 `screenshots/marketplace-purchases-150.png`；tsc / eslint 0。
+
+## 2026-10-21 补记（#151）：购买判定收成判别式结果——并把一个被旧用例盖住的 500 挖出来
+
+购买路由此前靠比对 `purchaseMarketplaceItem` 抛出的四句英文翻码；句子是内部措辞，改一个词就会
+悄悄改掉 HTTP 状态码（#149 已对 update/delete 收过同一口径）。这一片把购买也收进判别式结果：
+
+- 域层 `PurchaseResult`：`{ok:true,purchaseId,pricePaid}` /
+  `{ok:false,reason:'not_found'|'free_item'|'own_item'|'already_purchased'}`。私有草稿仍是
+  `not_found`（"没上架"与"不存在"对买家是同一个答案，不留下可分辨的差别）；未知异常仍 throw →
+  路由 500（"买家不该买"与"系统出错"不是一件事）。
+- 路由按 reason 翻码 404/400；界面的购买失败改念正文里的中文 `message`（此前只显示笼统的失败）。
+- **并发重复购买这条支路此前从未成功过**：撞唯一索引时 `isUniqueViolation` 只看顶层 `.code`，
+  而 drizzle 把驱动错误包在 `DrizzleQueryError` 里、`23505` 在 **cause 链**上——函数一直返回
+  false，输家以 500 的形状出现。旧并发用例只数"恰好 1 个 fulfilled"、不看被拒者的 reason，
+  把它盖住了。现在沿 cause 链走几步再判：输家回 `already_purchased`，事务回滚、一分不扣。
+- 见证：市场九套件 + id-shape **129/129** 绿（settle 并发用例拿到 `ok:true |
+  ok:false:already_purchased`；visibility 7 → 9 条——自己的公开条目 400 `own_item`、路由层重复购买
+  400 `already_purchased`；id-shape 30 条按结果形状断言）；tsc / eslint 0。
+- 仍未动：`settlePurchase` 仍以句子区分 'Already settled' / 'No revenue to split'，购买路由的
+  settle catch 仍比对这两句——同一套口径的下一格。
+
+## 2026-10-21 补记（#152）：结算判定也收成判别式结果
+
+购买路径上的钱逻辑有两段，`purchaseMarketplaceItem` 在 #151 收口后，剩下 `settlePurchase`
+仍用英文句子传递"正常重复 / 无收入可分"。路由靠
+`msg !== 'Already settled' && msg !== 'No revenue to split'` 决定是否记错误日志——句子一改，
+日志就失真（把正常重复记成故障，或反过来把真故障静默掉）。
+
+- 域层 `SettleResult`：`{ok:true,splitId,amount}` /
+  `{ok:false,reason:'purchase_not_found'|'item_not_found'|'already_settled'|'no_revenue'}`。
+  `already_settled` 同时覆盖快路（查重命中）与唯一索引冲突（并发输家）；`no_revenue` 是价格 0；
+  只有写不进去这类真异常仍 throw。购买路由按 reason 判断：前两者静默，其余记日志。
+- **这一片没有新的行为洞**：#151 把 `isUniqueViolation` 修到 cause 链之后，并发结算的输家已经
+  能被翻成正常重复；这里只是把同一结局从句子换成判别式，并补齐此前没钉的结局。
+- 见证：settle 套件 3 → 6 条——串行二次结算（`already_settled`，分成与流水都只有一行）、
+  价格 0（`no_revenue`，不写分成/收入）、不存在的购买（`purchase_not_found`，不抛）、
+  并发结算（恰好一个 `ok:true` + 一个 `ok:false:already_settled`，不允许 rejected）；
+  市场九套件 + id-shape **132/132** 绿；tsc / eslint 0。
+
+## 2026-10-21 补记（#153）：详情 GET 的「包括已下架」删掉
+
+#127 起详情路由的文档写着"获取物品详情（包括已下架的，用于收藏者查看原因）"，但
+`getMarketplaceItem` 从第一天就 `isNull(deletedAt)`——下架后一律 404，没有"原因"可看；
+市场里也没有收藏表，这句话的受益者不存在。买过的人要在「我的购买」看状态与下架时间（#150）。
+
+- 行为不动：详情 / 预览 / 交付三条读路同一口径（软删除保住数据，不保住可读性）。
+  没有"下架原因"这一列，也不在没有产品决策的情况下新增可见性。
+- 形状对齐：两处 404 从裸 `{error:'Item not found'}` 换成
+  `jsonError(404,'not_found',{message:'物品不存在或已下架'})`，与市场其余 `[id]` 门同一机器码。
+- 见证：visibility 9 → 10 条（下架后匿名与创作者本人都是 404 `not_found`）；
+  市场九套件 + id-shape **133/133** 绿；tsc / eslint 0。
+
+## 2026-10-21 补记（#154）：「我的物品」走所有者视角
+
+- 事实：`listMarketplaceItems` 的谓词是 `visibility IN ('public','free') AND deletedAt IS NULL`；
+  店面页的「我的物品」由它按 `creatorId` 过滤而来。缺省可见性是 private（表单默认选 public，
+  但 API/域层缺省 private），私密草稿于是谁的界面里都没有：创建成功也找不到，改可见性/下架
+  两个按钮碰不到，页面文档却写着"私密在那里可见、可删"。
+- 修法：新增 `listOwnedMarketplaceItems(creatorId, { itemType })`——过滤条件只有归属与
+  `deletedAt IS NULL`，不看可见性；店面页的「我的物品」改吃它。已下架的仍不出现（下架就是不在，
+  现有 e2e 按"下架后消失"断言，不在这里改产品语义）。
+- 见证：`marketplace-mine.integration.test.ts` 5 条——私密草稿在列表里；列表不含已下架、
+  不含别人的私密草稿；归属/创作者名/价格/下载计数字段齐；类型过滤同一语义；非 uuid 的
+  creatorId 回空表而不是 22P02。5/5 绿。
+
+## 2026-10-22 补记（#156）：可疑购买的证据落进审计
+
+- 事实：`detectSuspiciousPatterns` 只回 boolean，路由命中时只 `console.warn`；TODO 写的
+  "自动创建举报或标记为待审核"两样都没有落点——`marketplace_reports.reporter_id` 是真人外键，
+  没有系统举报者，也没有"待审核"状态列。写假举报就是把平台判断伪装成用户举报。
+- 决定：检测改成返回 `{fired, counts}`，路由写一行 `marketplace_audit_log`
+  （action=`suspicious_purchase`）。购买结果不变；审计写失败只记 stderr。
+- 可达性：唯一索引 `(item_id, buyer_id)` + `already_purchased` ⇒ 1 小时重复计数 ≤1；
+  自购被 `own_item` 先拒 ⇒ 规则 1/2 今天够不着，仅规则 3（24h >50 笔）可达。
+  规则保留，够不着这件事写进函数头。
+- 见证：`marketplace-suspicious.integration.test.ts` 8 条——50 笔不命中、第 51 笔 200 并落审计
+  （counts.purchase_volume_24h=51）、重复购买 400 不增行、自购 400 不写、对照买家不写、
+  self_purchase 直接调用能命中、正常 purchase 行仍在。

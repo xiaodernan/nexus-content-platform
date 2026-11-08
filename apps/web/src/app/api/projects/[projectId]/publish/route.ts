@@ -1,0 +1,73 @@
+import { NextResponse } from 'next/server';
+import { requireUser } from '@/server/domain/session';
+import { projectWriteAccess } from '@/server/domain/team';
+import { projectVisibleTo } from '@/server/domain/team';
+import { getPublication, publishProject, unpublishProject, type Visibility } from '@/server/domain/publish';
+import { csrfOk } from '@/server/security/csrf';
+import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
+
+interface RouteContext {
+  params: Promise<{ projectId: string }>;
+}
+
+const VISIBILITIES: Visibility[] = ['private', 'unlisted', 'public'];
+
+/** 作者视角：当前发布状态（含 private——作者要能看到"这条 URL 现在不公开"） */
+export async function GET(_req: Request, ctx: RouteContext): Promise<NextResponse> {
+  const { projectId } = await ctx.params;
+  try {
+    const user = await requireUser();
+    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
+    return NextResponse.json({ ok: true, publication: await getPublication(projectId) });
+  } catch (error) {
+    return failure(error, `GET /api/projects/${projectId}/publish`);
+  }
+}
+
+/**
+ * §57 Publish：选 Public / Unlisted / Private，门禁不过就挡住并列出原因。
+ * §131 之后还要过一遍机检：命中硬红线同样挡住，需要人看的照发但进人工队列。
+ * 两种回话都把 scan 原样带回去（含 limits），让"机检看到了什么、看不到什么"是能在 UI 上核对的。
+ */
+export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  const { projectId } = await ctx.params;
+  const body = await readJson(req);
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return badRequest(['请求体必须是 JSON 对象']);
+  const { visibility } = body as { visibility?: unknown };
+  if (typeof visibility !== 'string' || !VISIBILITIES.includes(visibility as Visibility)) {
+    return badRequest(['visibility 必须是 private / unlisted / public']);
+  }
+  try {
+    const user = await requireUser();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    const result = await publishProject(projectId, { visibility: visibility as Visibility, createdById: user.id });
+    if (!result) return notFound();
+    if (!result.ok) {
+      return NextResponse.json(
+        { ok: false, message: result.reason, gate: result.gate, scan: result.scan },
+        { status: 400 },
+      );
+    }
+    return NextResponse.json({ ok: true, publication: result.publication, gate: result.gate, scan: result.scan });
+  } catch (error) {
+    return failure(error, `POST /api/projects/${projectId}/publish`);
+  }
+}
+
+/** 取消发布：URL 立刻失效，历史快照留着 */
+export async function DELETE(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  const { projectId } = await ctx.params;
+  try {
+    const user = await requireUser();
+    const writeAccess = await projectWriteAccess(projectId, user.id);
+    if (writeAccess === 'not_found') return notFound();
+    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    return NextResponse.json({ ok: true, unpublished: await unpublishProject(projectId, user.id) });
+  } catch (error) {
+    return failure(error, `DELETE /api/projects/${projectId}/publish`);
+  }
+}

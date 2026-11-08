@@ -1,0 +1,59 @@
+Listing tests:
+  [chrome] › studio.spec.ts:85:5 › @smoke studio slice renders the model on canvas with DEMO MODE visible
+  [chrome] › studio.spec.ts:100:5 › @smoke studio slice: select, edit a property, undo, autosave
+  [chrome] › studio.spec.ts:139:5 › @smoke studio slice: server snapshot is created and restored through the database
+  [chrome] › studio.spec.ts:191:5 › @smoke studio slice: branches keep each design direction and duplicate forks the project
+  [chrome] › studio.spec.ts:280:5 › @smoke studio slice: 只看当前分支跟着当前那条线走
+  [chrome] › studio.spec.ts:337:5 › @smoke studio slice: variants generate side by side and combine into a new direction
+  [chrome] › studio.spec.ts:434:5 › @smoke studio slice: publish pins the released snapshot behind a share URL
+  [chrome] › studio.spec.ts:507:5 › @smoke 不刷新：发布的挡下与成功各自把状态走到终态（§163 × §57）
+  [chrome] › studio.spec.ts:619:5 › @smoke studio slice: design system panel edits tokens and the canvas follows
+  [chrome] › studio.spec.ts:699:5 › @smoke 属性面板的色标显示 token 解析后的真色（§12/§16）
+  [chrome] › studio.spec.ts:727:5 › @smoke studio slice: AI command bar runs in DEMO MODE as one undoable transaction
+  [chrome] › studio.spec.ts:802:5 › @smoke studio slice: mobile viewport reflows the same model
+  [chrome] › studio.spec.ts:816:5 › @smoke studio slice: code view is an editable projection of the same model
+  [chrome] › studio.spec.ts:867:5 › @smoke studio slice: preview route is a read-only projection
+  [chrome] › studio.spec.ts:931:5 › @smoke 上传图片：落画布、剥元数据回执、可撤销、预览同源
+  [chrome] › studio.spec.ts:978:5 › @smoke 资产库：上传后可见、删除跨画布生效、撤销恢复引用
+  [chrome] › studio.spec.ts:1032:5 › @smoke 参考图 → Visual DNA：提取、展示、约束生成、可撤销（§30/§174）
+  [chrome] › studio.spec.ts:1094:5 › @smoke 世界：建骨架、填一条、加一条、刷新仍在（§44）
+  [chrome] › studio.spec.ts:1132:5 › @smoke 世界图：拖一个圆画出台子，选中两步删，刷新仍在（§140 图上画地形）
+  [chrome] › studio.spec.ts:1266:5 › @smoke 游戏：建骨架、填数值、连引用、刷新仍在（§54）
+  [chrome] › studio.spec.ts:1339:5 › @smoke 检索面板：游戏骨架 0 块，填过的实体同一个词就从查不到变成查到（§49 × §54）
+  [chrome] › studio.spec.ts:1423:5 › @smoke 检索面板：设计正文一块即一页，改一句文案旧句子就再也查不到（§49 × §16）
+  [chrome] › studio.spec.ts:1476:5 › @smoke 检索面板：读不到语料库时不报块数，重试之后芯片回来（§73）
+  [chrome] › studio.spec.ts:1513:5 › @smoke 游戏图：点两个实体连引用、重复被拒、刷新仍在、摘掉归零（§54）
+  [chrome] › studio.spec.ts:1579:5 › @smoke 世界图：连线、拖拽、刷新后关系与位置都还在（§45）
+  [chrome] › studio.spec.ts:1645:5 › @smoke 角色：建档、填档案、连一条世界关系、刷新仍在（§46）
+  [chrome] › studio.spec.ts:1696:5 › @smoke 记忆：记三类、刷新仍在、按类清空（§48）
+  [chrome] › studio.spec.ts:1776:5 › @smoke 检索：世界条目进索引、中文子串命中、说明向量未接（§49）
+  [chrome] › studio.spec.ts:1818:5 › @smoke 上下文：目录尺寸、预算裁剪与未索引分支都写在脸上（§66-71）
+  [chrome] › studio.spec.ts:1931:5 › @smoke 发布机检与公开页举报：挡下要说清凭什么，举报要说清之后会发生什么（§131/§132）
+  [chrome] › studio.spec.ts:2009:5 › @smoke 社区：公开页能点赞、评论、改编；发现页只排排得出来的排序（§59/§61）
+  [chrome] › studio.spec.ts:2167:5 › @smoke 画布批注：钉在元素上、刷新还在、位置由服务端算（§111）
+  [chrome] › studio.spec.ts:2228:5 › @smoke 3D 世界：图上摆过的位置就是地面布局，走近才展开正文（§140）
+  [chrome] › studio.spec.ts:2364:5 › @smoke 全平台搜索：命中的都打得开，搜不到的要说清为什么（§165）
+  [chrome] › studio.spec.ts:2425:5 › @smoke §166 SEO：公开页 head、sitemap 与 robots 用的是同一套可见性判断
+  [chrome] › studio.spec.ts:2504:5 › @smoke §168 创作数据：访客真的来过，作者那一页才有真的数
+  [chrome] › studio.spec.ts:2684:5 › @smoke §164 通知：别人真的动过，作者的收件箱里才有那一条
+  [chrome] › studio.spec.ts:2821:5 › @smoke §132 拉黑与屏蔽：挡住的是互动，过滤的是自己看到的那一份
+  [chrome] › studio.spec.ts:2925:5 › @smoke §50 试玩：§54 那份设计文档真的跑成一关，能走动、能打赢、能通关
+  [chrome] › studio.spec.ts:3051:5 › @smoke §50 公开可玩：分享出去的链接玩的是发布那一刻钉住的那一版
+  [chrome] › studio.spec.ts:3145:5 › @smoke §163 实时通道：别人刚做完的那件事，作者这一端不用刷新就亮
+  [chrome] › studio.spec.ts:3226:5 › @smoke §163 断线重开：服务端真关流，客户端自动重连并重读权威（ADR-0029 的真浏览器凭证）
+  [chrome] › studio.spec.ts:3271:5 › @smoke §127 创作者市场：上架、出现在店面、下载计数、下架
+  [chrome] › studio.spec.ts:3367:5 › @smoke §74 删除项目：确认词打不动接口，删掉的公开页与互动一起关门
+  [chrome] › studio.spec.ts:3466:5 › @smoke §74 AI 的删除结果先过人工审批：扣住时画布不动，批准交回的是看过的那一版
+  [chrome] › studio.spec.ts:3572:5 › @smoke §162 异步作业：DEMO 队列提交、过 §74 的门、取消受理、任务列表重试开新行
+  [chrome] › studio.spec.ts:3637:5 › @smoke #10 账本实时：另一个标签页提交，任务列表不刷新也看见状态自己变
+  [chrome] › studio.spec.ts:3699:5 › @smoke §112/§73 名册下拉：点了 QA 就不能把补丁交回画布，而点 Design 照样要过审批门
+  [chrome] › studio.spec.ts:3764:5 › @smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D 出等轴测，标 3D 出立体视角，标探索出走近才看得见，标解谜出机关连线
+  [chrome] › studio.spec.ts:4029:5 › @smoke §134 跑一次生成 → 额度页少 1 点，且那一行指着这次的任务
+  [chrome] › studio.spec.ts:4087:5 › @smoke §144 导出：顶栏点一下就下载，回执说的和包里的一样（§164 的 Build complete 从此有来源）
+  [chrome] › studio.spec.ts:4157:5 › @smoke 游戏：生成可玩产物，点一个文件真的落盘，整份打包也拿得走（§52 Code）
+  [chrome] › studio.spec.ts:4398:5 › @smoke §124 状态层在预览与发布页真的生效（ADR-0062 part ④）
+  [chrome] › studio.spec.ts:4490:5 › @smoke §124 状态预览：?state=loading 只让定义了该状态的节点变，且不丢取景框
+  [chrome] › studio.spec.ts:4560:5 › @smoke §124 状态编辑器进面板：token 绑定/透明度/描边/清除/删除都落进模型（ADR-0062 part ⑤）
+  [chrome] › studio.spec.ts:4644:5 › @smoke §124 状态补丁复制/批量应用：贴到另一个元素、一次撤销只回滚这一贴
+  [chrome] › studio.spec.ts:4759:5 › @smoke §147 500 节点：画布只画视口内的、图层树报全量但只铺可见行
+Total: 57 tests in 1 file

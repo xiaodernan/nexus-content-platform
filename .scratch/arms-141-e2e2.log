@@ -1,0 +1,37 @@
+判决名清单（源码派生）：24 条
+BASELINE e2e: 作废 — 读不出这一条的成败（用例可能压根没被选中）
+ssions })
+[WebServer]   43 |     .from(sessions)
+[WebServer]   44 |     .innerJoin(users, and(eq(users.id, sessions.userId), isNull(users.deletedAt))) {
+[WebServer]   query: 'select "users"."id", "users"."email", "users"."password_hash", "users"."display_name", "users"."handle", "users"."avatar_url", "users"."bio", "users"."role", "users"."plan", "users"."guest", "users"."cla
+SKIP A-page-spells-it-again vitest（这一轮只跑 e2e）
+SKIP A-page-spells-it-again parity（这一轮只跑 e2e）
+PREDICT A-page-spells-it-again: 该红 4 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 4 条 | 预测外的红 无
+SKIP B-step-spells-it-again vitest（这一轮只跑 e2e）
+PREDICT B-step-spells-it-again: 该红 3 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 3 条 | 预测外的红 无
+SKIP C-growth-layer-decorative parity（这一轮只跑 e2e）
+PREDICT C-growth-layer-decorative: 该红 5 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 5 条 | 预测外的红 无
+SKIP G-engine-ignores-the-chain parity（这一轮只跑 e2e）
+PREDICT G-engine-ignores-the-chain: 该红 2 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 2 条 | 预测外的红 无
+SKIP D-rpg-payload-is-just-2d parity（这一轮只跑 e2e）
+PREDICT D-rpg-payload-is-just-2d: 该红 2 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 2 条 | 预测外的红 无
+SKIP E-rpg-chain-un-carried vitest（这一轮只跑 e2e）
+SKIP E-rpg-chain-un-carried parity（这一轮只跑 e2e）
+PREDICT E-rpg-chain-un-carried: 该红 8 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 8 条 | 预测外的红 无
+INTERFERED F-panel-attr-hardwired e2e: 读不出这一条的成败（用例可能压根没被选中）
+:15)
+[WebServer]     at async HomePage (src\app\page.tsx:26:16)
+[WebServer]   39 |   token: string,
+[WebServer]   40 | ): Promise<{ user: typeof users.$inferSelect; session: typeof sessions.$inferSelect } | null> {
+[WebServer] > 41 |   const [row] = await getDb()
+[WebServer]      |                 ^
+[WebServer]   42 |     .select({ user: users, session: sessions })
+[WebServer]   43 |     .from(sessions)
+[WebServer]   44 |     .innerJoin(users, and(eq(users.id, sessions.user
+PREDICT F-panel-attr-hardwired: 该红 1 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 1 条 | 预测外的红 无
+RESTORED packages/game-model/src/codegen.ts: byte-identical
+RESTORED apps/web/src/server/agent/runtime.ts: byte-identical
+RESTORED apps/web/src/studio/GameCodeExport.tsx: byte-identical
+(node:23000) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+E2E_EXIT=0

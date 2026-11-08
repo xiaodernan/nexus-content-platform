@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "service": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "capability": {
+      "type": "string",
+      "enum": [
+        "real",
+        "demo",
+        "unavailable"
+      ]
+    },
+    "providers": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "llm",
+              "image",
+              "video",
+              "embedding",
+              "speech"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "real",
+              "demo",
+              "unavailable"
+            ]
+          },
+          "models": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "status",
+          "models"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "queue": {
+      "default": {
+        "backend": "none",
+        "pending": 0,
+        "running": 0,
+        "capacity": 0,
+        "note": ""
+      },
+      "type": "object",
+      "properties": {
+        "backend": {
+          "type": "string",
+          "enum": [
+            "none",
+            "memory",
+            "redis"
+          ]
+        },
+        "pending": {
+          "default": 0,
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "running": {
+          "default": 0,
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "capacity": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "note": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "backend",
+        "pending",
+        "running",
+        "capacity",
+        "note"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "service",
+    "version",
+    "capability",
+    "providers",
+    "queue"
+  ],
+  "additionalProperties": false
+}

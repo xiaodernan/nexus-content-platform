@@ -13,10 +13,12 @@
     "noImplicitOverride": true,
     "exactOptionalPropertyTypes": false,
     "verbatimModuleSyntax": true,
+    "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "noEmit": true
   }
 }
