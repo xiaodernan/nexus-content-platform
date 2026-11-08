@@ -3411,6 +3411,7 @@ if (input.characterId && input.generateCharacterPortrait && !input.characterId) 
 **变异探针**：把那行守卫还原成旧的自相矛盾写法 → **红在"没有角色却按普通文生图放过去了——用户会以为这是角色肖像"**，
 改回后 16/16 全过。`character-fields.integration.test.ts` 那一组（四栏进 prompt）同批通过，
 两个文件合计 **19 条**；`npm test` **94 文件 / 1000 条全绿**。
+
 **仍欠**：真 provider 的像素（DEMO 合成器只认 prompt 的哈希，画不出"靛蓝斗篷"的语义）。
 
 ## §39 的第二半（再续）：肖像的界面入口，以及上一次欠下的那条变异探针
@@ -9178,6 +9179,14 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
   两笔记账：影响徽标翻完仍读 2（而非预期的 1，埋的 padding+mode 两个键两个 live）；`boxIn` 读页面坐标，翻后断言改成『兄弟重叠』而不是各自 0。
   面板此刻 **二十六格**。
 
+
+**第十八片（2026-11-08）：腿 S——公共页就是这份投影（翻进 none → 发布 → 访客也 absolute → 撤销 → 再发 → 访客回到竖排）**
+
+- 腿 S 验证：不是相信访客那半个模型的投影，而是**同一份模型、另一个真出去的版本**。tablet 翻进 none → 发布（路径不变、版本 v+1 起），
+  public page 的 tablet 变体里两个按钮**归一到同一个原点**（left/top 相等）；撤销翻转 → 再发（版本 v+2 起）→ 访客回到夹具的 seeded tablet 竖排（Primary 上 / Secondary 下、items:center 居中），**两处 `[data-published-variant="tablet"]` 里都在这一版是真实物理位姿**。这一刀同时覆盖：回写、代码视图、publish 链、public SSR——public page **不发 Tailwind 类**（`render.ts` 内联绝对定位），访客走内联 `style="left…;top…"`，marker 只出现在代码产物里。
+  首跑红在断言口径：恢复竖排我写的『Secondary 回到 Primary 右边』，而夹具的 seeded tablet **本来就是 vertical**（starter 的 Actions 在设计阶段就是横排的变体被 seed 翻成 vertical，items:center + 竖排内 justify:space-between）；修正到 Secondary 下 Primary 上、间距 gap=40 才能判。
+- 读数：腿 S **1 passed（1.8m）**、console `[ 9 9 . 6 s ] 腿 S`；独占生产构建（next start -p 3201，已停）。
+- 这一条也为 §16 收了**最后一寸**：设计模型 → 画布 → 发布物里的『什么都看得见』的那两个写方（design / code 工作台）现在都能证明访客那边同样吃到。
 **仍欠**
 
 1. ~~面板仍然只有部分输入口：`typography` 的字族~~——**已还（第十四片，2026-11-08）**：选项从文档现读，文档没有 fontFamily 型 token 就不摆，裸族名也能往返；仍欠只剩 `style` 那一组（见下面）。

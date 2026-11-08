@@ -54,6 +54,8 @@ import { loginMember, reusableMemberWithProject } from './support/auth-session';
  * ⑮ 腿 F8（同日）verify §159 的档内语义：**同一个孩子**在 tablet 翻进自由定位时才摆位置那两格，
  *    mobile（设计 horizontal）和撤销后不摆；wide 继承 tablet 逃生口照样摆。
  *    各腿按表盘预位、不在文档里用 `none`"预设"一段——实际场景里 none 是逃生口不是默认值。
+ * ⑯ 腿 S（同日，§16）"发布后公共页就是这份投影"：tablet 翻进 none → 发布 → 访客那一份看到的是 absolute（兄弟重叠），
+ *    撤销翻转 → 再发 → 访客回到并排。这里发布的版本是**真换出去的那个版本**，不是 mock 的占位。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -1682,6 +1684,66 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
       String(badgeBefore),
     );
     stamp('腿 R：撤销那条否定→换回同一寸的投影；再撤一次收尾');
+
+    // ══ 腿 S（2026-11-08，§16）：公开发布之后——访客那一份读的还是这份投影，不是猜一份副本。
+    // flip 到 none → publish → 访客在 tablet 那一份看到的是 absolute（兄弟重叠）；
+    // 撤销翻转 → 再发 → 访客回到横排。两个动作都走真实的发布链路，不是 mock。
+    await coder.click('[data-breakpoint-tab="tablet"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await coder.click('[data-responsive-choice="layout.mode:none"]');
+    const flippedRules = rulesWith(baseMobileLayout, { ...baseTabletLayout, mode: 'none' });
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(flippedRules);
+    // 发布：这就是作者真出去的那个版本；新版本会换出同一条路径
+    const flipPath = await publishPublic(coder, projectId);
+    expect(flipPath, '重复发布是换版本，路径不变').toBe(publicPath);
+    const flipContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const flipVisitor = await flipContext.newPage();
+    await flipVisitor.goto(url('viewport=tablet'));
+    await expect(flipVisitor.locator('[data-published-root]')).toBeVisible({ timeout: 60_000 });
+    const flipA = await boxIn(
+      flipVisitor.locator('[data-published-variant="tablet"]'),
+      carriers.ctaId,
+      '公开页 tablet：翻进 none 后的 CTA',
+    );
+    const flipB = await boxIn(
+      flipVisitor.locator('[data-published-variant="tablet"]'),
+      carriers.secondaryId,
+      '公开页 tablet：翻进 none 后的 Secondary',
+    );
+    expect(flipA.left, '访客 tablet 那一份：两个孩子归一到 Actions 原点').toBe(flipB.left);
+    expect(flipA.top, '访客 tablet 那一份：两个孩子归一到 Actions 原点').toBe(flipB.top);
+    await flipContext.close();
+    // 撤销翻转：访客必须回到横排（这条链发布之前的投影 ≠ 任何一档本来就是横排的假设）
+    await coder.click('[data-view="canvas"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await undoButton(coder).click();
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(forwardRules);
+    const restoredPath = await publishPublic(coder, projectId);
+    expect(restoredPath, '撤销翻转后再发布：路径不变').toBe(publicPath);
+    const backContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const backVisitor = await backContext.newPage();
+    await backVisitor.goto(url('viewport=tablet'));
+    await expect(backVisitor.locator('[data-published-root]')).toBeVisible({ timeout: 60_000 });
+    const backA = await boxIn(
+      backVisitor.locator('[data-published-variant="tablet"]'),
+      carriers.ctaId,
+      '公开页 tablet：撤销后的 CTA',
+    );
+    const backB = await boxIn(
+      backVisitor.locator('[data-published-variant="tablet"]'),
+      carriers.secondaryId,
+      '公开页 tablet：撤销后的 Secondary',
+    );
+    expect(
+      backB.top,
+      '访客 tablet 那一份：竖排流回来——Primary 在上、Secondary 在下（这份夹具的 seeded tablet 本来就是 vertical）',
+    ).toBeGreaterThan(backA.top + backA.height);
+    await backContext.close();
+    stamp('腿 S：翻进 none → 发布 → 访客也绝对 → 撤销 → 再发 → 访客回到竖排（夹具的 seeded tablet 本来就是 vertical）');
 
     await codeContext.close();
   });

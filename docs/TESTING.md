@@ -2367,3 +2367,12 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   就是把另一会话那条 ENFORCED_PLAN_AXE_GUARDS 重构（+ ADR-0090、credits-why-guards.test.ts、credits-enforced-copy.test.ts 的逐字文案变更）
   在主分支上兑现为可验证的合并态：shard1d 134 files / 1834、shard2d 134 files / 1738（与合并前 3572 一致）、exit 0——本轮唯一多的是这笔合并。
   这次 shard 重跑在合并 main 上跑，不是 WIP 工作区，所以它就是合在主分支上的绿。日志 `.scratch/shard1d.log` / `.scratch/shard2d.log` 已 `git add -f` 入库。
+
+- **2026-11-08：§14 e2e 腿 S（发布后公共页就是这份投影）—— 1 passed（1.8m）**——
+  tablet 翻进 none → 真发布（路径不变、版本 v+1）→ 访客 tablet 变体里两个孩子**归一到同一原点**（left/top 两个数各自相等，不依赖各自的 padding 修正）；
+  撤销翻转 → 再发（版本 v+2）→ 访客回到 seeded 竖排（Primary 上 / Secondary 下、`items:center` 居中、gap = 40）。
+  console `[ 9 9 . 6 s ] 腿 S`。
+  首跑红在断言口径：夹具的 seeded tablet 本来就是 vertical（"Secondary 回到 Primary 右边"我错当作横排），再往上回退发现
+  `impact` 还读 2（埋的 padding+mode）、`boxIn` 是页面坐标；修正到『下到下、居中对齐』后一次过。
+  写的是"访客那个版本翻了一次又一次"——这一刀同时验证了 panel、publish、render.ts 内联样式解法；
+  public page **不发 Tailwind 类**（Tailwind 不参与），marker 只会在 ZIP / 代码产物里出现。
