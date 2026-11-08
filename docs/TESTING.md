@@ -2322,3 +2322,12 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   节点走 `validateDocument` 同一道门（本机校验 `errors: []`）。
   notMeasured：这条 e2e 的**成功路径只在生产构建上量过**；开发模式下的腿 F3/F4 与 4.7m 量级的时长没重跑；
   sandbox 埋点会出现在夹具项目的公开页里（本来没有可见文本，不影响其余腿）。
+
+- **2026-11-08：§14 e2e 断点人工入口加腿 F5（`typography.fontFamily` 动态选项通道）——独占生产构建上 1 passed（1.2m，腿 F5 8.3s）**——
+  文档起手有 `font.heading` / `font.body` / `font.mono` 三个 fontFamily 型 token ⇒ Headline 那一行摆出三个选择按钮；
+  点 `{font.mono}` ⇒ 徽标读「改 1 处」、画布 computed fontFamily 当场换、撤销回设计值（
+  `[data-responsive-choice="typography.fontFamily:{font.mono}"]`、`[data-responsive-channel="typography.fontFamily"]` 读「这一档 font.mono」）。
+  全链 A–F5–R 一次过。**口径注**：这条跑的是独占生产构建（`npm run build` 后 `next start -p 3201`，serve 本次提交的产物），
+  3100 的共享 dev server 依旧不稳定（另一会话的文件一保存就撞 JIT，间歇 500），没量到 dev 那一寸就不说量到。
+  notMeasured：这条 e2e 只验了"有 fontFamily 型 token 时摆出来"那一条路；
+  "文档没有这类 token 时不摆"这一条由 `responsive-editor` 单测钉着（默认空态），没进真浏览器。

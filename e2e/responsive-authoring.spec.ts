@@ -43,6 +43,9 @@ import { loginMember, reusableMemberWithProject } from './support/auth-session';
  *    面板不摆一个按下去什么都改不了的输入口（§159）。夹具里专门留了一个 `mode: none` 的
  *    `Sandbox` 包住 `SandboxBadge`：父级自由定位 → 两行摆出来且写得动；
  *    对照组是 Eyebrow（父级竖排）——同一节里位置两行根本不存在。
+ * ⑫ `typography.fontFamily`（腿 F5，§14 第十四片，2026-11-08）是面板里第一种**动态选项**通道：
+ *    选项从文档现有的 fontFamily 型 token 现读（starter：heading/body/mono），
+ *    不是抄一份静态清单。验的正是"这一格摆出来、点 mono、画布字族当场换、撤销回设计值"。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -610,6 +613,35 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
       '0',
     );
     stamp('腿 F4：位置两格只摆在自由定位父级（对照读数）');
+
+    // 腿 F5：`typography.fontFamily`——面板里第一种**动态选项**通道（选项从文档现有的 fontFamily 型 token 现读）。
+    // Headline 是 starter 里真有 `typography` 的文字节点；文档起手有 heading/body/mono 三个 token。
+    await author.click(`[data-layer-id="${carriers.headlineId}"]`);
+    await author.click('[data-breakpoint-tab="mobile"]');
+    await expect(
+      author.locator('[data-responsive-choice="typography.fontFamily:{font.mono}"]'),
+      '文档有 fontFamily 型 token ⇒ 字族那一格摆出来（starter：heading/body/mono）',
+    ).toHaveCount(1);
+    const fontBefore = await author
+      .locator(`[data-node-id="${carriers.headlineId}"]`)
+      .evaluate((el) => getComputedStyle(el).fontFamily);
+    await author.click('[data-responsive-choice="typography.fontFamily:{font.mono}"]');
+    await expect(tab(author, 'mobile'), '字族这一格写进去：影响就是 1 处').toHaveAttribute(
+      'data-breakpoint-impact',
+      '1',
+    );
+    await expect(
+      author.locator('[data-responsive-channel="typography.fontFamily"]'),
+      '这一格写下的是 token 引用，label 照文档现读',
+    ).toContainText('font.mono');
+    const fontAfter = await author
+      .locator(`[data-node-id="${carriers.headlineId}"]`)
+      .evaluate((el) => getComputedStyle(el).fontFamily);
+    expect(fontAfter, '写下去的键当场改了画布上的字族').not.toBe(fontBefore);
+    // 撤销：规则抹掉，徽标回到 0——写进去的 token 引用当场回滚
+    await undoButton(author).click();
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '0');
+    stamp('腿 F5：fontFamily 动态选项（文档有 token 才摆 → 点 mono → 画布改 → 撤销）');
 
     // 腿 G：第二个节点、另一档、另一个通道（数字输入走失焦提交，一路打字不该塞一串事务）
     await author.click(`[data-layer-id="${carriers.ctaId}"]`);

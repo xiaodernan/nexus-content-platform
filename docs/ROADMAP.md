@@ -9142,6 +9142,9 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
   `responsive-editor.test.ts`：every-channel 载体换成 `{font.heading}→'{font.mono}'`（写相同值会被冗余判据当场剪掉）、
   新腿「只摆在文档里真有 fontFamily 型 token 时」（空态不摆 / 传 DEFAULT_TOKENS 摆出 / 不传 tokens 收起）。
   读数：`packages/design-model` **35 files / 495 passed**（+2）、`responsive-editor` 40/40（+1）、`npm run typecheck` / `eslint` 0。
+  e2e 腿 F5（同日跑绿，`next start -p 3201` 独占生产构建）：点 Headline ⇒ 字族三格摆出来 →
+  `[data-responsive-choice="typography.fontFamily:{font.mono}"]` ⇒ 徽标读「改 1 处」、画布 computed fontFamily 当场换、撤销回设计值——
+  console `[ 8.3 s ] 腿 F5`、全链 A–F5–R **1 passed（1.2m）**。
   面板此刻 **二十六格**。
 
 **仍欠**

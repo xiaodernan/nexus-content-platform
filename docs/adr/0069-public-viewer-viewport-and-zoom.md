@@ -443,7 +443,8 @@
   文档没有这类 token 就不摆（§159）。`ChannelSpec.appliesTo` 上下文扩成 `{ parent, tokens }`；
   codegen 发 `md:font-[family-name:var(--<prefix>-…)]`（裸族名 `md:font-[Georgia]`），
   `decodeVariant` 复用基线 `WEIGHT_CLASS → tokenRefOf → 裸栈 → unmapped` 的认领顺序；
-  round-trip 零补丁（`code-parse.test.ts`「断点字族往返」，codegen 侧两条类都钉了名）。面板此刻 **二十六格**。
+  round-trip 零补丁（`code-parse.test.ts`「断点字族往返」，codegen 侧两条类都钉了名）；
+  e2e 腿 F5 同日跑绿（独占生产构建，`[data-responsive-choice="…:{font.mono}"]` → 画布 computed fontFamily 当场换 → 撤销回设计值；全链 A–F5–R，1passed 1.2m）。面板此刻 **二十六格**。
 - **`style.cornerRadius` 模型层**（第十三片，2026-11-08）：四键嵌套，与 layout.padding 同一判据——
   发射侧四格同值折 `md:rounded-[…]`、缺格发单格、四格全 0 发 `md:rounded-[0px]`（取消）；
   `decodeVariant` **先分格后折叠**（`rounded` 是 `rounded-tl-` 的前缀，顺序反了 uniform 会吃单格那边）。
