@@ -36,6 +36,7 @@ import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { javaRecordFields } from '../../m9/wire-fields.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m10/mcp-face-proof.mjs -> the repository root.
@@ -151,6 +152,22 @@ async function stopService(child) {
  * claiming. The registry has no url, command or execution counter, so the MCP row must not invent one.
  */
 const DESCRIPTOR_FIELDS = ['description', 'inputSchema', 'name'].sort();
+
+// §0a static wire contract: the descriptor and the capability are read from the Java source, so a field
+// added to either fails here before a database or a jar is built. The advertised protocol string is checked
+// the same way — the proof asserts '2025-06-18' below, and the DTO must be the place that says it.
+{
+  const MCP_DTO = path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/mcp/McpDtos.java');
+  const descriptor = javaRecordFields(MCP_DTO, 'ToolDescriptor').map((f) => f.name).sort();
+  assert.deepEqual(descriptor, DESCRIPTOR_FIELDS, `McpDtos.ToolDescriptor wire fields ${JSON.stringify(descriptor)} disagree with the pinned ${JSON.stringify(DESCRIPTOR_FIELDS)}`);
+  const capability = javaRecordFields(MCP_DTO, 'ToolsCapability').map((f) => f.name);
+  assert.deepEqual(capability, ['listChanged'], `McpDtos.ToolsCapability must advertise exactly listChanged, got ${JSON.stringify(capability)}`);
+  const src = readFileSync(MCP_DTO, 'utf8');
+  const protocol = /PROTOCOL_VERSION\s*=\s*"([^"]+)"/.exec(src);
+  assert.ok(protocol, `McpDtos.PROTOCOL_VERSION was not found in ${MCP_DTO} — the protocol this proof asserts has MOVED`);
+  assert.equal(protocol[1], '2025-06-18', `McpDtos.PROTOCOL_VERSION is ${protocol[1]}, but §3 asserts 2025-06-18`);
+  console.log('[§0a] static wire contract: ToolDescriptor ({name,description,inputSchema}) and ToolsCapability ({listChanged}) match the source · PROTOCOL_VERSION is 2025-06-18');
+}
 
 let serviceProcess = null;
 let dbStarted = false;
