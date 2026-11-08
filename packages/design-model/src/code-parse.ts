@@ -837,7 +837,9 @@ function decodeVariant(
     const assertsReverse = list.includes(REVERSE_CLASS[mode] ?? "");
     const saysMode = declaresMode || mode !== narrower.layout.mode;
     const saysForward = !assertsReverse && narrowerReversed && ALIGNABLE_MODES.includes(mode);
-    if (!saysMode && !saysForward) continue;
+    if (!saysMode && !saysForward)
+      // verticalAlign narrow mode path: md:flex / md:flex-col only carrier — mode entry silent
+      continue;
     list.splice(at, 1);
     if (saysMode) layout.mode = mode;
     if (saysForward) layout.reverse = false;
@@ -864,6 +866,21 @@ function decodeVariant(
     const at = list.indexOf(cls);
     if (at >= 0) list.splice(at, 1);
   }
+  // 垂直对齐（§14）：文字节点上宽排版的 `md:justify-*` 不是自动布局的主轴对齐，
+  // 是 typography.verticalAlign 的 override——与发射侧同口径，按 narrower 档位的
+  // verticalAlign 向窄档看变化，有变化才从 table 捞回来进 patch。
+  // （此处 vAlignNarrowed 沿袭下游判断；这里不消费类，ED 带 `flex`/`flex-col`/`justify-*`
+  // 由下方的通用路径当正常处理——`justify-*` 落到 `justify` 写入，VA 的 narrowing 落到 VA block 之下。）
+  let vAlignNarrowed = false;
+  {
+    const narrower = applyResponsiveBelow(node, breakpoint);
+    const narrowerVa = narrower.typography?.verticalAlign ?? "top";
+    const tierVa = applyResponsive(node, breakpoint).typography?.verticalAlign ?? "top";
+    if (node.type === "text" && node.typography && tierVa !== narrowerVa) {
+      typography.verticalAlign = tierVa;
+      vAlignNarrowed = true;
+    }
+  }
   // 对齐两键（§14 第六片）。发射侧只在**这一档解出来的排布真是自动布局**时发 `md:justify-*` /
   // `md:items-*`：grid / wrap 下求解器不看这两个键，画布不动，而它们在 CSS 上真会挪东西——
   // 那份模型不认的类读回来就是凭空多出一个模型里没有、画布也不认的键。
@@ -886,6 +903,11 @@ function decodeVariant(
   ] as const) {
     const tokens = collectTokens(channel.table);
     if (!tokens.length) continue;
+    if (channel.key === "justify" && vAlignNarrowed) {
+      // VA dispatch already consumed, simply group-checked them here (they mirror narrower delta)
+      out.checked.push(...tokens);
+      continue;
+    }
     if (!ALIGNABLE_MODES.includes(modeOfThisTier)) {
       tokens.forEach((token) =>
         note(

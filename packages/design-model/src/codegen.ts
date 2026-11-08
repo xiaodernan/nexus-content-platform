@@ -542,6 +542,21 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
     if (typography?.letterSpacing) {
       out.push(`${variant}tracking-[${lengthClass(typography.letterSpacing, prefix, (i) => i) ?? "0px"}]`);
     }
+    // verticalAlign（§14）：
+    // 仅在这一档真的把 narrower 的纵向对齐改成别的东西时才发——narrower 已经是 `top` 而本档写 `top` 等于
+    // 什么都不改，发 `md:justify-start` 是个空表态；narrower 是 `middle`/`bottom` 时起动，本档给了 `top`
+    // 才发 `md:justify-start`（两端清单里只有这一条正方向类能顶掉窄档的 `md:justify-center/end`）。
+    // middle/bottom → 发 `flex`/`flex-col`/对应 justify：这条比 narrower 的默认 `flex` + `flex-col` 物理类加了一层，
+    // 不是纯表述；narrower 是 `top` 而本档 middle/bottom 时同 `bottom/middle` 与 narrower 发布代码一样。
+    if (node.type === "text" && typography) {
+      const narrowerAlign = (applyResponsiveBelow(node, rule.breakpoint) as DesignNode).typography?.verticalAlign ?? "top";
+      const tierAlign = typography.verticalAlign;
+      if (tierAlign && narrowerAlign !== tierAlign) {
+        if (tierAlign === "middle") out.push(`${variant}flex`, `${variant}flex-col`, `${variant}justify-center`);
+        else if (tierAlign === "bottom") out.push(`${variant}flex`, `${variant}flex-col`, `${variant}justify-end`);
+        else if (tierAlign === "top") out.push(`${variant}justify-start`);
+      }
+    }
     if (typography?.textCase === "upper") out.push(`${variant}uppercase`);
     else if (typography?.textCase === "lower") out.push(`${variant}lowercase`);
     else if (typography?.textCase === "title") out.push(`${variant}capitalize`);

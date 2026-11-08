@@ -687,6 +687,48 @@ describe("类名 → 模型属性", () => {
     expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
   });
+
+  it("断点纵向对齐往返：垂直对齐差异才发/收，往返零补丁（§14）", () => {
+    const page = starterPage();
+    const headline = nodeId(page, "Headline");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [headline]: {
+          ...page.nodes[headline]!,
+          responsive: [
+            { breakpoint: "tablet", patch: { typography: { verticalAlign: "middle" } } },
+            { breakpoint: "desktop", patch: { typography: { verticalAlign: "bottom" } } },
+            { breakpoint: "wide", patch: { typography: { verticalAlign: "top" } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, headline);
+    expect(line).toContain("md:flex");
+    expect(line).toContain("md:justify-center");
+    expect(line).toContain("lg:justify-end");
+    expect(line).toContain("xl:justify-start");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
+    // md/lg 发射 vertical row ⇒ roundtrip 写回 mode vertical + va；xl 是 top=va bottom→top 翻转，
+    // 不写 mode（text 没排版）
+    const ops = result.ops.filter((o) => "nodeId" in o && o.nodeId === headline);
+    expect(ops).toEqual([
+      {
+        op: "set",
+        nodeId: headline,
+        path: "responsive",
+        value: [
+          { breakpoint: "tablet", patch: { layout: { mode: "vertical" }, typography: { verticalAlign: "middle" } } },
+          { breakpoint: "desktop", patch: { layout: { mode: "vertical" }, typography: { verticalAlign: "bottom" } } },
+          { breakpoint: "wide", patch: { typography: { verticalAlign: "top" } } },
+        ],
+      },
+    ]);
+  });
   it("断点绝对定位往返：父级自由定位时 md:left/top 发得出也读得回，零补丁（§14）", () => {
     const page = starterPage();
     const root = nodeId(page, "Home");

@@ -786,6 +786,35 @@ describe("Design → Code（§17-19）", () => {
     expect(tokens).toContain("md:text-center");
   });
 
+  it("断点纵向对齐发射：typography.verticalAlign 差异才发 flex/flex-col/justify-*（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "text", name: "VertAlign", text: "纵" });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        { breakpoint: "tablet", patch: { typography: { verticalAlign: "middle" } } },
+        { breakpoint: "desktop", patch: { typography: { verticalAlign: "bottom" } } },
+        { breakpoint: "wide", patch: { typography: { verticalAlign: "top" } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:flex");
+    expect(tokens).toContain("md:flex-col");
+    expect(tokens).toContain("md:justify-center");
+    expect(tokens).toContain("lg:flex");
+    expect(tokens).toContain("lg:flex-col");
+    expect(tokens).toContain("lg:justify-end");
+    expect(tokens).toContain("xl:justify-start");
+    // narrower 是 top（设计默认），tier top 应当不发
+    expect(tokens).not.toContain("xl:flex");
+    expect(tokens).not.toContain("xl:flex-col");
+  });
+
   it("断点位置发射：绝对定位父级里的位置覆盖发 md:left-*/md:top-* 类（§14）", () => {
     const page2 = starterPage("Home");
     const root = page2.nodes[page2.rootId]!;

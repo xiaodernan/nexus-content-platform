@@ -48,7 +48,8 @@ export type ResponsiveChannel =
   | 'typography.letterSpacing'
   | 'typography.textCase'
   | 'typography.decoration'
-  | 'typography.align';
+  | 'typography.align'
+  | 'typography.verticalAlign';
 
 export interface ResponsiveChoice {
   readonly value: string;
@@ -195,12 +196,22 @@ const ALIGN_CHOICES: readonly ResponsiveChoice[] = [
 ];
 const ALIGN_VALUES = new Set<string>(ALIGN_CHOICES.map((c) => c.value));
 
+const VERT_ALIGN_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'top', label: '上对齐' },
+  { value: 'middle', label: '居中' },
+  { value: 'bottom', label: '下对齐' },
+];
+const VERT_ALIGN_VALUES = new Set<string>(VERT_ALIGN_CHOICES.map((c) => c.value));
+
 const DECORATION_CHOICES: readonly ResponsiveChoice[] = [
   { value: 'none', label: '无' },
   { value: 'underline', label: '下划线' },
   { value: 'line-through', label: '删除线' },
 ];
 const DECORATION_VALUES = new Set<string>(DECORATION_CHOICES.map((c) => c.value));
+
+const cleanVertAlign = (value: unknown): Cleaned =>
+  typeof value === 'string' && VERT_ALIGN_VALUES.has(value) ? value : REJECT;
 
 const cleanAlign =
   (allowed: Set<string>) =>
@@ -442,6 +453,17 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     choices: ALIGN_CHOICES,
     appliesTo: (node) => node.typography !== undefined,
     clean: cleanAlign(ALIGN_VALUES),
+  },
+  {
+    id: 'typography.verticalAlign',
+    label: '纵向对齐',
+    group: 'typography',
+    key: 'verticalAlign',
+    readPath: 'typography.verticalAlign',
+    widget: 'choice',
+    choices: VERT_ALIGN_CHOICES,
+    appliesTo: (node) => node.type === 'text' && node.typography !== undefined,
+    clean: cleanVertAlign,
   },
 ];
 

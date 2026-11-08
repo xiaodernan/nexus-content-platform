@@ -531,6 +531,7 @@ describe('§14 面板读数与投影同源', () => {
     'typography.textCase': { carrier: mkText, value: 'upper' },
     'typography.decoration': { carrier: mkText, value: 'underline' },
     'typography.align': { carrier: mkText, value: 'center' },
+    'typography.verticalAlign': { carrier: mkText, value: 'middle' },
   };
 
   it('每一个通道写一个非冗余值，impact 至少 1：不留"有规则但什么都没改"的那种规则', () => {
