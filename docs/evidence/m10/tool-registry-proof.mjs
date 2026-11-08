@@ -65,6 +65,7 @@ import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { javaRecordFields } from '../../m9/wire-fields.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m10/tool-registry-proof.mjs → the repository root. Two would land on docs/.
@@ -191,6 +192,34 @@ const PIN_BATCH_FIELDS = ['found', 'missing', 'requested', 'tools'].sort();
 const DEPRECATION_LIST_FIELDS = ['before', 'deprecations', 'limit', 'offset', 'owner', 'replacementStatus', 'total'].sort();
 const DEPRECATION_FIELDS = ['deprecatedAt', 'message', 'replacement', 'replacementStatus', 'replacementToolId', 'toolId'].sort();
 const DEPRECATION_ROW_FIELDS = ['deprecatedAt', 'message', 'name', 'replacement', 'replacementStatus', 'replacementToolId', 'toolId'].sort();
+
+// §0a static wire contract: every pinned array must name exactly the fields its Java DTO declares, in
+// source. A field added to a record is a capability a read door starts printing; this check fails on that
+// change BEFORE a database or a jar is built, rather than leaving the drift to a live assertion.
+{
+  const TOOL_DTO = path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/tools/ToolDtos.java');
+  const expected = [
+    ['Tool', TOOL_FIELDS],
+    ['ToolList', LIST_FIELDS],
+    ['ToolChangeList', JOURNAL_FIELDS],
+    ['ToolChangeView', CHANGE_FIELDS],
+    ['ToolBatch', BATCH_FIELDS],
+    ['ContractDiff', DIFF_FIELDS],
+    ['ContractSide', SIDE_FIELDS],
+    ['SchemaDiff', SCHEMA_DIFF_FIELDS],
+    ['PinMatches', PIN_MATCHES_FIELDS],
+    ['PinMatch', PIN_MATCH_FIELDS],
+    ['PinBatch', PIN_BATCH_FIELDS],
+    ['DeprecationList', DEPRECATION_LIST_FIELDS],
+    ['Deprecation', DEPRECATION_FIELDS],
+    ['DeprecatedTool', DEPRECATION_ROW_FIELDS],
+  ];
+  for (const [record, pinned] of expected) {
+    const wire = javaRecordFields(TOOL_DTO, record).map((f) => f.name).sort();
+    assert.deepEqual(wire, pinned, `ToolDtos.${record} wire fields ${JSON.stringify(wire)} disagree with the pinned ${JSON.stringify(pinned)}`);
+  }
+  console.log(`[§0a] static wire contract: ${expected.length} ToolDtos records match their pinned field arrays`);
+}
 
 let serviceProcess = null;
 let dbStarted = false;
