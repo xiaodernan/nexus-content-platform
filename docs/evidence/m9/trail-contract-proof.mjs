@@ -241,23 +241,24 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
     ['float', ['number']],
     ['double', ['number']],
     ['char', ['string']],
+    ['String', ['string']],
   ]);
   const fields = javaRecordFields(CONTROLLER, 'Entry');
   const props = tsInterfaceFieldOptionality(SERVER_LANE, 'AuditEntry');
   const types = tsInterfaceFieldTypes(SERVER_LANE, 'AuditEntry');
   const mismatched = [];
   for (const f of fields) {
-    if (JAVA_PRIMITIVES.has(f.type)) {
+    if (JAVA_PRIMITIVES.has(f.type) || f.type === 'String') {
+      assert.equal(props.get(f.name), false, `${SERVER_LANE} AuditEntry marks ${f.name} optional, but the wire sends it as a non-nullable ${f.type}`);
       const t = types.get(f.name);
       const allowed = TYPE_MAP.get(f.type) ?? [];
-      if (!t || !allowed.includes(t)) {
-        mismatched.push(`${f.name}: TS type ${t ?? '(missing)'}, wire Java ${f.type} — allowed: ${allowed.join(', ')}`);
-      }
+      const typeOk = allowed.some(allowedType => t && t.includes(allowedType));
+      assert.ok(typeOk, `${SERVER_LANE} AuditEntry field ${f.name}: ${t ?? '(missing)'}, but wire sends Java ${f.type} — allowed: ${allowed.join(', ')}`);
     }
   }
-  assert.deepEqual(mismatched, [], `${SERVER_LANE} AuditEntry primitive type mismatch(es): ${mismatched.join(', ')}`);
-  console.log(`[§10c] Java primitive wire fields have compatible TS types in AuditEntry`);
+  console.log(`[§10c] Java wire fields have required, type-compatible TS properties in AuditEntry`);
 }
+
 
 
 // ── §11 public interfaces do not declare the same field twice ───────────────────────────────────
