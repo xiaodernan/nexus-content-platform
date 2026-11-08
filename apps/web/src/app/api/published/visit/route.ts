@@ -12,7 +12,7 @@ import { badRequest, jsonError } from '@/server/http';
  * §168 采集端点：一个访客在公开页上的现场（看了多久、滚到哪儿）。
  *
  * 这是**匿名可写**的接口，所以三道边界都要在：
- * - CSRF 双提交照样要（middleware 给每个访客都签了 `nexus_csrf`，不存在"访客没有 token"）；
+ * - CSRF 双提交照样要（proxy 给每个访客都签了 `nexus_csrf`，不存在"访客没有 token"）；
  * - 只接受能解析到 public / unlisted 快照的 path，private 与已驳回的连一行都不写；
  * - 按 IP + 匿名 key 限流：一个页面每 15 秒一次心跳，一小时 240 次已经用满，
  *   再多就是有人在拿这个接口灌别人的统计。

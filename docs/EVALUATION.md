@@ -1,13 +1,27 @@
 # 评测基线（§85）
 
 ```bash
+# 确定性套件（无库无网，包里任何变更都可以例行跑）：
+npm run evals
+
+# 对照 "为什么退" 跑真·真库的 §85 first-pass 基线（RAG / 设计精度 / 视觉 / 无障碍）：
 NEXUS_DATABASE_URL=postgres://nexus:nexus_dev_only@localhost:55100/nexus \
   npx tsx --tsconfig apps/web/tsconfig.json scripts/eval-baseline.mts
 ```
 
-九个评测维度里，这里只测**本机不靠模型就能测**的，并且每一项都跑生产真路径：
-RAG 走真库索引与真检索，设计精度走真 provider（当前是 DEMO 规则 provider）与真
-`applyPatch`，往返走真 codegen→parse，无障碍走真健康门禁。
+九套评测并列（每一套绑定对应的 §85 维度、一个 model 包或一个跨包律令）：
+`code-index`（§69）· `model-roundtrip`（§16/§19）· `export-roundtrip`（§144）·
+`video-plan`（§40-42）· `world-build`（§44/§46/§140）· `schemas-contract`（§6）·
+`game-build`（§54/§51）· `design-build`（§12/§13）· `project-bundle`（§16/§159）。
+每条 `check` 都是结构级判：红即 exit 1——不是"这次数字难看"，是回归。
+
+分工（别把 §85 读成"只有一个脚本"）：
+- 确定性套件在 `evals/`，imports model code directly — 测设计模型投影、包内数据、token 解析
+  和同一 projectId 下四个 model 包是否零错运行——适合 pre-commit / CI 跑；
+- `scripts/eval-baseline.mts` 钉 §85 故事的另一半：真库、真索引、真 a11y（向公开页注入 axe），
+  跑法带 `NEXUS_DATABASE_URL`；
+- 两边共用同一条纪律：**只钉结构不变式，数字由人比对**，
+  `npm run evals` 全绿时 exit 0，任何一条变红 exit 1。
 
 不断言任何阈值——数字记在这里，回归靠人眼比对（同 `docs/PERFORMANCE.md` 的纪律）。
 但**结构不变式**失败时脚本以非零码退出，因为那是回归而不是"数字难看"：
@@ -393,7 +407,7 @@ Tailwind 映射门，没有浏览器读数——如实记在这里，不假装�
 | A 摘掉写入方 | `rateLimit.ts` 那行 `increment(…)` 换成注释 | **3 条红**：「这些指标只有声明、没有写入方：nexus_rate_limit_decisions_total」／具名锚点缺该行／"真跑一次限流闸"那格拿不到账 |
 | B 往标签里塞身份 | `audit.ts` 的标签加 `actorId: input.actorId` | **首版只红了一条**——见下 |
 | C 往声明里塞身份 | `METRICS` 的 `nexus_audit_decisions_total` 加 `email: null` | 新加的「标签名单本身不含身份类字段」当场红（调用点那格合法，只有声明层看得见） |
-| D 摘掉响应头 | `middleware.ts` 的 `response.headers.set(TRACE_HEADER, …)` 换成注释 | e2e 游客那条红在 `首页的响应头里没有 x-nexus-trace` |
+| D 摘掉响应头 | `proxy.ts` 的 `response.headers.set(TRACE_HEADER, …)` 换成注释 | e2e 游客那条红在 `首页的响应头里没有 x-nexus-trace` |
 
 **B 臂抓到的是门自己的洞，比那笔违章严重**：身份禁令原来按 `/(?:increment|observe)\([^)]*\)/` 取调用点，
 而 `[^)]*` 会在 `String(input.allowed` 的那个 `)` 处截断——`actorId` 正好落在截断之后。
@@ -2264,3 +2278,359 @@ localStorage。读数：
 - 观测（第十一片）量到的是**决定与结果**：按路由的 HTTP 状态码分布与延迟分位数**没有读数**
   （Next 16 的 instrumentation 只有 `onRequestError`，拿它得把每个 route handler 包一层，属于改路由形状）；
   也没有对外抓取目标与告警；耗时直方图目前只有 DEMO 链那一档。
+
+
+## 2026-11-08 第十五片：`evals/` 能力套件——§85 "按能力分套件" 第一次有了骨架
+
+背景：`docs/AGENTS.md` §85 与 `docs/TESTING.md` 一直写着 "`evals/` 下按能力分套件"，
+但仓库里**不存在 `evals/` 目录**——评测活着的地方是 `scripts/eval-baseline.mts` 这一个脚本，
+它能跑、读数在这份文档里，但它不是一个"套件结构"：后来人要加一项（比如 §69 的 Code Index），
+没有形状可照抄，只能把函数继续堆进那个 478 行的脚本里。
+
+这一片做的事（没有动 `scripts/eval-baseline.mts` 一字节，它仍是 DB 在后台跑的那一份）：
+
+- 新建 `evals/`：`types.ts`（suite 契约：name / dimension / needsDatabase / checks / notMeasured）、
+  `lib/recorder.ts`（suite 里随手记 check 的小抄，不短路）、`run.mts`（`npm run evals` 入口，
+  `--list` / `--suite` 过滤，未知参数 exit 2，任一结构不变式失败 exit 1）、`suites/code-index.mts`
+  （**第一套新维度：§69 Code Index 检索，确定性、无库无网**）、`README.md`（怎么跑、怎么加一套）。
+- `npm run evals` 是新命令；`npm run evals:baseline` 指向原基线脚本，两条纪律不混：
+  这里放确定性、不需要真库的套件；真库的基线仍在 EVALUATION.md 管着。
+- `tsconfig.tools.json` 与 `eslint.config.mjs` 同步收 `evals/**`；`scripts/test/evals-framework.test.mts`
+  3 条钉住框架自身（recorder 不吞 check / failedChecks 不漏红 / code-index suite 在 `npm test` 里再验一遍全绿）。
+
+**code-index 首跑读数**（2026-11-08，载体=真 `createDocument` + 一个 code-only 区域，
+`buildCodeIndex()` 对真 `generateProject()` 产物投影，1 页 Home、4 个文件）：
+
+| 读数 | 值 |
+|---|---|
+| 结构不变式 | **19/19 PASS**（totals 对账 / 语法诊断全无 / 路径不重复 / 锚点>0 / omissions 与声明一致 / 同文档两次投影 JSON 逐字段相同） |
+| 文件 / 符号 / 导出符号 / 组件 | 4 · 56 · 3 · 1 |
+| 节点锚点 / code-only 区域 | 6 · 1 |
+| 检索（决定性查询） | 当前页加权顶上 `components/nexus/Home.tsx@12`；组件符号名完全命中 @22（含「符号 Home 完全命中」理由）；选中节点顶上 `code-only/…@16` |
+| 预算=1 极限 | 留 1 个文件、trimmed 有逐步记录、totals 仍报未裁那份的数（不少报数） |
+
+这一片钉住的 §16 事实（以前没人说过）：**目录是全量可复算的纯投影，同一份文档两次投影逐字节相同**——
+这是"目录不持久化、算得出来就不写库"的合法性证据，不是形容词。
+
+notMeasured（如实记）：语义检索 / 意图判断（词法目录没有这一半，向量化要 embedding provider，§49）；
+Tool selection / Agent task completion（要真 provider）；真实 provider 下目录的增量更新成本（目录目前全量重算）。
+`scripts/eval-baseline.mts` 的 notMeasured（真 LLM 同批指标等）继续有效，两份清单各管各的。
+
+
+## 2026-11-08 第十六片：投影自洽矩阵（`model-roundtrip`）——§19 的"从单一夹具到矩阵"
+
+第十五片给了 §85 一个骨架，这片往里挂了第二套确定性套件：
+**设计 → 代码 → 设计 的载体矩阵**，与 `scripts/eval-baseline.mts` 里那一笔 round-trip
+（同配置、单夹具）不重复：这里把平台最常发的那几种形状逐格过 `generatePageComponent → codeToPageOps`，
+逐格要求"零 issue 零补丁"，单测管点（这个 pivot 会不会转），矩阵管面（加了一格形状之后
+生成物还能被自家解析器读回来吗）。
+
+| 格 | 形状 | 结果 |
+|---|---|---|
+| A | 基础横幅+页脚（starter） | issues=0 ops=0 |
+| B | 横向带 + gap/padding + justify/align | issues=0 ops=0 |
+| C | 网格 3 列（§20 grid） | issues=0 ops=0 |
+| D | tablet 档 `mode=none` 父级翻转（§14 tier-flip） | issues=0 ops=0 |
+| E | tablet 档 gap/columns 合并规则 | issues=0 ops=0 |
+
+**7/7 PASS。**
+
+**负对照（本片做了两次）**：
+
+1. 把 D 格生成物里 `md:[--nexus-mode:none]` 换成解析器不认得的类 ⇒ issues=0 ops=0——
+   **marker 被手改，这条往返门看不见**。原因是 decodeVariant 对未识别的类静默忽略
+   （record-only，不发 issue），而 responsive 规则的 divergence 没有比较对象。
+   要拦这一回归的是 e2e（腿 F8 / 腿 S）与 design-model 里的 round-trip 单测，不是这条门。
+   记下来，别让"往返绿"被读成"整条链绿"。
+2. 把生成物里的按钮文案改一个字 ⇒ `ops=1 · set text`——**模型真正写回了**，
+   说明这条门至少能抓住"代码与模型漂移"这类改动；它不是恒绿。
+
+两个结论都进记账：矩阵的判据是"零问题零补丁"，它的盲区是 marker 类本身——
+那一格的证据在 e2e，不在这里。notMeasured：code-only 区域往返（unmapped 是设计行为）、
+真 provider 补丁往返、xl/wide 档 tier-flip 的浏览器腿。
+
+
+## 2026-11-08 第十七片：登录后九张界面的浅色 axe——补上的那一片，持重它差点不红
+
+背景：2026-10-29 立了浅色入口（系统偏好 + 显式切换 + 持久化），guest 五张页扫过（第八片：**14→0**），
+登录后九张一直只有暗色读数（第四片）。本片补上：`e2e/a11y-light-internal.spec.ts`——与 dark 那一片
+同一张名册（同九张、同一 ready 判据）、同一前提门（浅色没真落到取样像素上就不算读数）、同一纪律
+（不断言违规条数、许红的只有结构不变式：passes>0 / critical===0 / 前提成立）。
+
+**首跑（先跑的读数，这一片真正的产出）**：Studio 违规 1 条 serious `label-content-name-mismatch`，目标 `.hidden` 节点。
+定位到 `StudioShell.tsx` 那个 **xl 断点才显示、画着"折起"的收起属性面板按钮**：
+`aria-label="收起属性面板"`，可读名里**不含**可见文字 "折起"。修法：`aria-label` 改 `折起属性面板`（含"折起"）。
+**这不是色彩问题——暗色下同一缺陷也成立**（暗色官方最近一次全绿读数是 2026-10-28 第四片，
+之后该按钮就没再被完整扫过；究竟是按钮引入更晚还是规则覆盖差异，本片没有证据，不作断言）。
+重建 + 复扫：**Studio 25 通过 / 违规 0 / critical 0**；其余八张自首跑起就是 **违规 0 / critical 0**。
+
+**浅色九张终读数**（prod build + `next start`，排除 nextjs-portal，WCAG 2.0/2.1 A+AA）：
+
+| 界面 | 通过 | 违规 | critical | 浏览器里最低对比度 |
+|---|---|---|---|---|
+| 首页 | 25 | 0 | 0 | 4.71:1（`accent-fg` 压 `brand`） |
+| Studio | 25 | 0 | 0 | 4.71:1 |
+| 发现 | 21 | 0 | 0 | **5.81:1**（`#0f6b7a` 压 `#f7f8fb`） |
+| 市场 | 22 | 0 | 0 | 4.64:1 |
+| 通知 | 21 | 0 | 0 | 5.59:1 |
+| 创作数据 | 22 | 0 | 0 | 5.59:1 |
+| 全平台搜索 | 22 | 0 | 0 | 5.59:1 |
+| 额度与消费 | 21 | 0 | 0 | 5.21:1 |
+| API 凭据 | 22 | 0 | 0 | 4.71:1 |
+
+最低 4.64:1 ≥ 4.5，全部过正文 AA。**读数说明的是"这九张当前的渲染像素"，不是"所有浅色像素 forever AA"**。
+
+暗色复扫同一按钮链：`1 passed (1.5m)`，Studio 行 `25 | 0 | 0`——修复在两主题下都成立。
+
+**这一片真正教的两个东西**：
+① 测量缺口自己会到期——2026-10-28 的 dark 0 是**当时的**读数，不是今天的保证，
+  `a11y-light-internal` 与 dark 两张今天都该由睡后的人再跑一次；
+② serious 声明里藏着产品缺陷时，**axe 抓的是名字不是颜色**——本片最有价值的一行
+  不是对比度数，是 `label-content-name-mismatch`。
+notMeasured 不变：键盘走查的浅色没有单独量（light 下 tab 顺序与暗色逐字同源，未证）。
+
+
+## 2026-11-09 第十八片：导出→导入往返评测（`export-roundtrip`）——§144 从"存在性"到"保真"
+
+背景：apps/web/test/export.integration.test.ts 证明导得出、清单格式、.nexus/ 条目
+（presence）——这一片把同一件事做成**量**：真项目 → 真 ZIP → **Node 内置 `zlib.crc32` 独立交叉校验清单**
+（不复用本仓 `lib/zip` 的实现，两个实现互证；事先在夹具上逐字节对拍过两实现，5/5 MATCH）→
+真 `importProjectZip` 导回 → 结构不变式对账（页数 / 节点类型多重集 / token 数 /
+responsive 规则）→ 二次导出计数对账。载体两格：纯 starter、带 tablet `mode=none` marker 的 starter。
+
+**首跑红一条，红在评测自己**（这正是本仓评测纪律要抓的那类东西）：
+`marker 走回` 那格用 `JSON.stringify` 比 responsive 规则——而 JSONB 会归一化键序
+（`{"breakpoint","patch"}` 落库读回是 `{"patch","breakpoint"}`），字节不同、语义相同。
+判据改成**递归键排序的 stableJson**（与 toEqual 同义），同一载体：
+
+| 读数 | 纯 starter | marker 载体 |
+|---|---|---|
+| formatVersion / 条目数 / CRC(node zlib) | 4 · 5 · **5/5** | 4 · 5 · **5/5** |
+| 导回 counts.design | 1 | 1 |
+| 页数 / 节点类型多重集 / tokens | 1/1/34 | 1/1/34 |
+| responsive marker 走回 | —（无 marker） | **PASS（stableJson）** |
+| 二次导出 code 文件数 | 3 == 3 | 3 == 3 |
+| 字节 / 文件数 | 25619 / 6 | 26146 / 6 |
+
+**runner 的第二课（挂死）**：`npm run evals` 补上真库套件后，首跑**挂死 15 分钟**——
+跑得完（读数全部打出来）、进程却不退出，因为 pg 连接池不会自己排空。
+修法就是一句 `process.exit()`；此前失败路径硬退、成功路径漏了退，
+所以这一挂只在全绿时发生——而它发生时，日志看着像"跑完了在等"，其实没有出口。
+
+**runner 的第一课（`@/` 解析）**：`apps/web` 的 domain 模块内部用 `@/lib/zip` 这类 alias，
+普通 `tsx` 按 repo 根的 tsconfig 找不到，`npm run evals` 直接 ModuleNotFound。
+修法：`tsx --tsconfig apps/web/tsconfig.json evals/run.mts`（apps/web 自带 baseUrl 与完整 paths），
+已落进 package.json 的 `evals` 脚本。`scripts/eval-baseline.mts` 不受影响（它没走 @ 链路）。
+
+notMeasured 不变且补充：逐字节复现（README 带生成时间）、413 那一格、video/image 半边、真 provider 补丁往返。
+evals 目录现在三套：code-index 19/19 · model-roundtrip 7/7 · export-roundtrip 17/17（需要真库，55100 上实测）。
+
+
+## 2026-11-09 第十九片：公开作品页 × 浅色——axe 报的 1 条 serious 是作者侧的，不是平台的
+
+这一片补的是"访客看到的那张页被扫过没有"。`e2e/a11y-light-public.spec.ts` 载体从 `/sitemap.xml`
+现取 `/n/<handle>/<slug>`（这里是 `…/u59a80e4f/断点夹具mvus7ari`），不注册、不建项目，
+门与 guest/internal 两片同构：外加**前提成立**（body 的 bg-0/fg-1 必须真翻成浅色，否则下面扫的是暗色读数）。
+
+首跑：**通过 24 · 不适用 39 · 违规 1 条 serious** color-contrast，**结构不变式照样绿**——所以这一片既通了门，也留下了真读数。
+
+**取证三连（§159：不归因到赢了不叫他输）**：
+
+1. axe 原文：`Element has insufficient color contrast of 4.25 (foreground #c4c5c7, background #5541bb, font size 11.3pt 15px, font weight normal)，期望 4.5:1`；
+   **暗色复扫报告的是同一条**（同节点、同一对数字）——**这不是浅色回归**；
+2. live-DOM 不能只看原始 HTML——这个节点在页面里有**四个投影复本**（五段 frame 尺寸的"作品总览"布局），找到真正上屏的那一个：
+   本机坐标 x=292.5 y=475.8，`opacity: 0.75`（作者本人设的，不是 fade-in 瞬态：60轮×100ms poll 链恒为 0.75），
+   文字内容是那颗 CTA（开始设计）白字压紫；
+   opacity 0.75 × 白字残在 #0b0d12 上 ≈ **#c4c5c7**、#6b4ff0 × 0.75 合成 over 底色 ≈ **#5541bb**——axe 的数字一个不差；
+3. 同节点裸算、不打折：白字（#ffffff）压紫底（#6b4ff6）= **5.24:1，本身过 AA**。
+   **失分完全来自作者给这颗按钮设的 opacity 0.75，与主题无关。**
+
+**定性**：这不是平台布局 / 渲染 bug，也不是主题入口的 bug——投影层忠实还原了作者文档；axe 是对的，设计模型也是对的，
+**对不上是设计本身（作者色值 + 作者 opacity 的组合）**。本片**不**改作者文档（那不是平台的决定），
+`style-tokens` 门也拦不住作者的颜色组合（它只管平台 token），所以这一条出口方式合法的只能是：记 `notMeasured`-ish
+并留着给作者的工具修（将来如果有"扫描作者色板"的评测项，那一项要写进 notMeasured，**不属于本片**）。
+
+教训两条（都是测量侧的）：
+① axe 数字是对 pixel 的合成着色量，白字紫底算 5.24 过、opacity .75 合成后 4.25 错——**白字红底这件事上,
+"颜色对"不等于"只要 opacity 合成了还对"**，这是浅色/暗色双主题都够不到的差距；
+② 同一个节点能在 DOM 里出现 N 份投影复本（帧尺寸预览），**原始 HTML 第一个实例 ≠ 上屏的实例**；
+ 取证必须看 live DOM 的 rect/visibility，不要从抓包的那份投影猜（本片首跑差点把这颗按钮归因错）。
+
+**Gate 改动**：spec 的打印附 `failureSummary`（不只 id+list），防止以后再看不懂报告——数字不同别人才知道要不要翻修。
+notMeasured：作者色板与 opacity 的组合（§同理，交付给作者侧）、同一作品页的不同帧尺寸复本的对比度（只上屏那复本量过）。
+
+
+## 2026-11-09 第二十片：浅色 × 键盘走查——§167 热点焦点环的 AA 缺口，抓到、修了、锁住
+
+背景：2026-10-29 主题入口留下两条未量（"键盘走查的浅色没有单独量"）；
+暗色第三片（同载体、§167 两页互动稿）只钉"有焦点指示"，不钉**够亮**。
+本片补的是这两条：新 spec `e2e/keyboard-light.spec.ts`——与暗色逐字同一条车（同载体、同 setInteractiveDocument、同 keyboardWalk 六道门 + 热点点名在册 + Enter 真走到 work-complete 200 recorded:true），
+外加一道**焦点指示色值门 ≥ 3:1**（WCAG 2.4.11/2.4.13；ring 的 box-shadow 或 outline 都要按有效背景合成出对比）。
+同时也一并关掉 notMeasured 里"键盘走查 × 浅色"那条。
+
+**首跑直接露真缺陷**：`InteractiveSurface.tsx` 的 `focus-visible:ring-[var(--nexus-color-accent-2)]`
+（暗色 token 用于暗色）——浅色下 `--nexus-color-accent-2` 并不翻译（#22d3ee ≈ **1.70:1**，与第九片那批强调色
+在浅色塌陷同根因），而且浅色下**不止是不达标的彩色，是低对比到读不见**。
+修复：`--nexus-color-accent-2-ink`（dark 同值、浅 #0f6b7a，Light ≥4.98:1；暗后无视觉变化——dark ink 与 accent-2 逐字节相同）。
+
+**读数（dev 实例 + 同车道暗色对照）**：
+
+| 门 / 阶 | 结果 |
+|---|---|
+| 走查覆盖 / 排除项 / 页外停留 | **18/18** · 排除项 1（comment-submit disabled）· 页外 2（主题切换 + dev portal） |
+| Tab 顺序（浅色） | 与 DOM 顺序一致（六道门与暗色同车道全过） |
+| Enter 热点 → work-complete | 200 + `recorded:true` |
+| 焦点指示色值（合成后） | `rgb(15, 107, 122)` on `rgb(247, 248, 251)` ≈ **6.05:1**（≥3:1 ✅；此前 ≈1.70:1 反证） |
+
+**测的是真缺陷，不是仪式**：
+修前=首跑就红在"焦点环 ≥3:1"；产品改了一句；再测绿。这与第十二片文本的对半做法一致：
+红是真红，指着真东西。
+
+**诚实substrate 说明**：本片 e2e 跑在 **dev server**（`next dev`，开发档 Turbopack），
+因为 prod 构建（`.next`）当时受另一会话未提交的半成品测试文件
+（`apps/web/src/studio/store-selection-identity.test.ts`，**它自己的**工作，构建级类型错误，
+code 里别人的东西，不动不删、也不代表这一片的代码）。
+dev 是同样 React 同样投影，同样读数；prod 待对方文件绿了才能重建复验——那是对方的里程碑不是这一片的。
+
+spec 自身的旅程（记下来别被"1 passed"遮了眼）：首跑红在自己的
+① 解析器第一次选了 box-shadow 里 alpha=0 的空影子层；② 环形判定又匹配到了同样 alpha=0 的
+zero-offset 层（正则写宽了）；③ 手写负离层判定到"四位数字全对齐 ox=oy=0、spread≥1px"才对；
+修复逐层核对（层数 5：3 个空影子→1 个真 ring→1 个空影子）。spec 红绿两轮之间产品改动只有一行 Tailwind arbitrary var。
+
+
+
+## 2026-11-09 第二十一片：收起的面板里还住着的控件——44 个失名输入，axe 抓到、control-names 没拦住
+
+背景：`control-names.test.ts`（JSX 字面门）只看 `select` 与 `input[type=file]`——
+scope 就这两类；**text / color 输入结构上不在这个门的视野里**。而 a11y-internal（可见 DOM）与
+a11y-light-internal（同）两片测的都是"看得见的 DOM"那一类，**收起面板里看不见的东西两边都没到**。
+同一故事：axe 只看得见渲染出来的 DOM ⇒ 必须把面板点开才量得到。
+
+载体：`e2e/a11y-panels.spec.ts`——一次注册、一个真项目；三片按次展开：
+左轨「设计系统」、主区「方案」视图、左轨「Agent」tab。三片各自跑 axe
+（WCAG 2.0/2.1 A+AA，排 nextjs-portal）。纪律与其他 a11y 片同一条：
+passes>0 / critical===0 只许红结构不变式；serious 是读数不是门。
+
+**首跑**：
+
+| 片 | passes | violations | critical |
+|---|---|---|---|
+| 设计系统 | 28 | **1 · label ×44** | **1（critical）** |
+| 方案板 | 28 | **1 · label ×44**（同一份令牌表，视图切了它还在） | **1** |
+| Agent | 25 | 0 | 0 |
+
+**目标**：`input[data-token-value=…]`（每个 token 的批改文字框，约 22 个）+
+`input[data-token-color=…]`（颜色小板，约 22 个）。
+44 个控件截完后读屏听到的是"文字框，文字框，文字框……"——分不清谁是谁，
+因为 JSX 里既没有 `<label>` 包它们、没有 `aria-*`、也没有 `title`。
+`control-names.test.ts` 的 scope 卡在 `select`/`input[type=file]`，结构上抓不到这一类，
+所以这 44 个从 2026-10-28 控制名门落地起就一直漏着。
+
+**修**（四处，只改属性，不动行为）：
+
+- `data-token-value` input → `aria-label={`${token.key} · 值`}`
+- `data-token-color` input → `aria-label={`${token.key} · 颜色`}`
+- `data-token-new-key`（"加入"表单里同样的两个裸输入之一）→ `aria-label="新 token 的键"`
+- `data-token-new-value` → `aria-label="新 token 的值"`
+
+**复扫**：设计系统 28/0/**0** · 方案板 28/0/**0** · Agent 25/0/**0**——44 → 0。
+
+**不是**：
+- 不是哪个 token 键名反了——键名本身 ≠ 控件的名字，屏幕读者要的是"这个字段改的是谁"；
+- 不是 React 的 `key` 绑定丢了——文字照渲染，丢的只是 accessible name；
+- 不是 axe 算错了——同一份设计系统两次扫到的都是同一批 44 个，说明两片扫到的是同一份 DOM。
+
+**历史关联**：设计系统面板是 §13 的落点。2026-10-28「control-names」那片修 select/file 两类裸控件，
+text/color 当时没收；这一片把收起面板这个盲区补上（先到这一屏，别的面板下一片再量）。
+
+substrate 说明（与第二十片同口径）：本片 e2e 跑在 dev（Turbopack）——prod 构建**暂时不能重建**，
+原因是另一会话未提交的半成品测试文件有类型错误（`store-selection-stress.test.ts`，
+不是本片的产物，不删不改不代提交）。prod 复验待对方文件绿后执行。
+
+
+## 2026-11-09 第二十二片：把 control-names 的盲区补上——18 个 text-like 裸控件一次修完
+
+背景：`control-names.test.ts` 2026-10-28 落地时范围只有 `<select>` 与 `<input type="file">`，
+注释里原话是"text-like 交给浏览器的 axe 判"。但全库扫了一遍：浏览器的 axe 只看得见**渲染出来的** DOM，
+而我这次要找的这些人——**全部失名、且遍布隐私密掩盖与破坏性确认**：
+
+- 账号面板登录/注册（邮箱、口令、显示名 ×3）
+- 删除确认区块旁的类型确认词（"逐字输入确认词"）×2（账号 & 项目）×2
+- 项目新建 / 市场新建表单（标题/简介/标签）
+- 市场举报行内 · 管理处置/复核备注 · 报告补充说明
+- 左轨联络世界、图层搜索框、图层重命名、顶栏重命名、方案板分支名
+- 上下文预算数字框（`id=ctx-budget`，没人 htmlFor 它）
+
+分拣口径（防过杀）：跳过 `hidden`/`submit`/`button`/`reset`/`image`；
+缺省（没写 `type`）按 `text` 算；`checkbox`/`radio`/`range`/`color` 等全在范围内。
+
+**首跑**：新门当场红出 **18 处**——与手工 Python 扫描同一批（分词一致）。修法：每处一个 `aria-label`，
+说人话、带上下文（"逐字输入确认词" / "项目名称" / "邮箱" / "口令" / …），不动 layout、不动 `placeholder`。
+
+**复跑**：`npx vitest run control-names.test.ts` 3/3 绿；新的两条断言（placeholder 不是名字、
+text-like 也要不过验电门）+ 既有电闸全过。
+
+**这一片沉淀下来的三样东西**：
+① placeholder ≠ accessible name（WCAG 1.3.1 / 2.4.6）——再花哨也只是提示；
+② "扩一道门只扫 selection"的反面演示：先用手工扫法数出来（18）、再进门（gate 红）、全修完、再计数进回归锁；
+③ 门现在数得进 text-like input 的数量（`checked > 20`），将来谁把 scope 改回去，这道门会当场变空并红。
+
+substrate 说明（同前两片口径）：本片的验证重心是**确定性门**（vitest，读 JSX 字面），不涉及浏览器 substrate；
+浏览器那层（a11y 面板展开即渲染的 real DOM）的读数见第二十一片，
+prod 侧复验待另一会话未提交的半成品绿之后、重建再跑一遍。
+
+
+## 2026-11-09 补记：§85 "评测挂两片" 的尾巴收进主线
+
+`evals/suites/video-plan.mts`（§40-42 视频模型投影自洽：断句→分镜→时间线→渲染计划整链，
+与单测互补——单测钉点，这条钉跨函数的不变式：确定性重放、时间线连续无洞、`playable`/`renderable`
+与"有没有帧"自洽、`splitShotAt` 时长守恒、`cardColor` 同 id 同色异 id 异色）+ `run.mts` 注册 + README 同步，
+同批接管：`apps/web/src/studio/store-selection-stress.test.ts`（§147 #32 选中派生引用**连续 24 步**压力不变式：
+只要文档没动，`layout / tokens / history / assetContext / document` 一路守恒——单步版的判断在长序列里照样得钉住）。
+
+gate 复核：`npm run evals` 4 套 **73 / 73 PASS**；`tsc -p video-model / tools` / `eslint evals` 0；同式两文件并入 `npm test` 已由 shard1/2 覆盖。
+
+
+## 2026-11-09 补记（接）：§85 evals 现在有九套（八套确定性 + 一套需真库）
+
+```
+code-index       19/19
+model-roundtrip  13/13
+video-plan       30/30
+world-build      55/55
+schemas-contract 17/17（跨端契约：注册表齐全、每项可导出可解析 JSON Schema、
+DesignPatch/PatchOp/AiRequest/HealthResponse 合法过·畸形拒、往返逐字段同）
+game-build       36/36（游戏设计系统：11 类骨架、stat 有限闸门、link 三闸门、
+remove 双向引用清扫、validateGame 6 类缺陷码、pipelineOfKind 单分派）
+design-build     46/46（design-model 领域操作：create/applyPatch 全家、remove 级联、
+reparent 环检测、Undo 往返、validateDocument 缺陷码、serialize 往返、applyResponsive）
+project-bundle  14/14（跨模型集大成合成：四包同存、link 表自洽、跨模型 id 无碰撞、
+共享 token 解析、design 往返、projectId 贯通）
+export-roundtrip 17/17（需真库，55100 regress 实例上实测）
+```
+→ 确定性套件合计 **230/230 结构不变式 PASS**（不含需真库的 export-roundtrip；含它则为 **247/247**）。
+
+`world-build` 由另一位 commit `44f2979` 引入（骨架九类令、`autoLayout` 确定性、`worldGraph` 删点消边、`validateWorld` 8 类缺陷分类、
+`buildWorldScene` authored/fallback 拆分；`walkToward` / `terrainHeightAt` / `resolveWalkCollision` 走法物理，
+mesa 与 cone 两种 mesa 形状一致性 + 多 mesa 取最大高度规则），
+与更早的套件一样遵循"结构不变式判红、数字人看"的纪律。
+`game-build`（`11f3879`）与 `design-build`（`935a44e`）随后补齐游戏设计系统与 design-model 的领域操作投影自洽，
+至此四个 model 包（world / video / game / design）各有一套确定性投影自洽套件，并以 `project-bundle` 跨模型合成套件把它们合到一起，确定性 eval 矩阵闭环（230/230，含需真库的 export-roundtrip 则 247/247）。
+
+
+## 2026-11-09 补记（收）：这一轮把 §85 评测矩阵按 9 套做完了
+
+九套确定性 eval 套件全部进入主线、全部绿：<br/>
+`code-index 19/19` · `model-roundtrip 13/13` · `export-roundtrip 17/17` ·
+`video-plan 30/30` · `world-build 55/55` · `schemas-contract 17/17` ·
+`game-build 36/36` · `design-build 46/46` · `project-bundle 14/14`（串行串行 ≈247/247）。
+
+- 模型投影：四个 model 包（world / video / game / design）各自有一套投影自洽套件；
+- 共性契约：`schemas-contract` 钉住跨端报文唯一来源 zod；
+- 集大成：`project-bundle` 把四个模型合成一套视图，验证彼此 ID 不碰撞、link 表自洽、
+  共享主题 token 在合成包里正确解析——这就是"四个模型合成为一个项目"的可验证证据；
+- 修复：本轮收下游分支 `design-build.mts` / `project-bundle.mts` 上的真实 TS错；
+  两起件的 suite 注册（`11f3879`、`935a44e`、`ced8538`）也同步补全文档（`bf87014`）。
+
+**遗留（不属于 §85）**：PDF/汇总类报表发布（§144 仍无回滚只读）；
+`@nexus/ai` 真 provider key 都是 §105 的工作，未包括在本轮。

@@ -386,7 +386,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             <button
               ref={foldRef}
               type="button"
-              aria-label="收起属性面板"
+              aria-label="折起属性面板"
               aria-expanded
               aria-controls="nexus-inspector"
               onClick={() => {

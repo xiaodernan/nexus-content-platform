@@ -59,14 +59,16 @@ export const PLAN_MONTHLY_GRANTS: Record<PlanKey, Record<CreditLedgerKind, numbe
 
 /**
  * §133 说档位按五件事设计：AI usage / storage / generation / team collaboration / publishing。
- * 今天**五格全都有真的拦截方**：AI usage（`refusalFor`，在 `credit-ledger.ts`）、
+ * 今天**五格全都有真的拦截方**（每格的地址在 `ENFORCED_PLAN_AXE_GUARDS`，界面上那一列由它拼）：
+ * AI usage（`refusalFor`——余额不足这一次的点数就拒，不是只在 0 点时才拒）、
  * storage（`refusalForStorage`，字节进存储之前问，见 `assets.ts` 的摄取门与 ADR-0018）、
  * generation（成片渲染的门：`refusalForRun` 在 `startTask` 之前问 Video credits，
  * #191 落下的那道门——本机没有视频 provider，"这个月还能渲几版"从此是真会拦的）、
  * publishing（同时公开发布的项目数上限：`refusalForPublishSlot` 在 `publishProject`
  * 落行之前问，#199 落成——换版本不占新名额，收回发布即释放）、
  * teamCollaboration（每个项目除 owner 外的协作者上限：`refusalForTeamSlot` 在
- * `inviteMember` 写邀请之前问，#201 落成——pending 邀请也占名额，撤回/移除即释放）。
+ * `inviteMember` 写邀请之前问，#201 落成——成员与**没过期**的 pending 邀请占名额，
+ * #213 起过期的一封不占，否则一枚失效邀请会把人永久堵在门外）。
  * §133 点名的五件事到此全部有拦截方，`UNENFORCED_PLAN_AXES` 只剩一个空壳——留着它
  * 是因为界面要能说清「哪些是已生效的限制、哪些还只是表格上的字」，把没拦截的上限写成
  * 已生效，是这一份文档里最贵的一种谎。真加了第六件事，先往这两列里放，再落拦截方。
@@ -87,23 +89,8 @@ export const ENFORCED_PLAN_AXES = ['aiUsage', 'storage', 'generation', 'publishi
 /** #201 之后五格全有拦截方。空数组不是漏了一格，是「没有还没拦截方的格子」 */
 export const UNENFORCED_PLAN_AXES = [] as const;
 
-/** 已生效那几格的名字；解释表按它键住——加了格子忘了写解释，是编译错误而不是某天页面上少一句 */
+/** 已生效那几格的名字；解释与拦截方那张表按它键住——加了格子忘了写解释，是编译错误而不是某天页面上少一句 */
 export type EnforcedPlanAxis = (typeof ENFORCED_PLAN_AXES)[number];
-
-/**
- * 每一格"拦截方长什么样"。
- *
- * 为什么要连解释一起搬进域里（ADR-0088 没牙 6）：`/credits` 那句话原来整句手写在页面上，
- * 里面那个"五"和四句解释都不由数组拼出来。数组哪天变成六格，页面不会跟着改口，而这一页偏偏是
- * 靠这句话让人相信"表上的上限是真会拦人的"——名单与句子不同源，正是这一页最容易说谎的方式。
- */
-export const ENFORCED_PLAN_AXE_WHY: Record<EnforcedPlanAxis, string> = {
-  aiUsage: '额度为 0 时新的 AI 任务会被挡下',
-  storage: '存储写满时新的素材会被拒绝（库里已有的不会被自动删掉）',
-  generation: '渲染额度为 0 时成片渲染被挡下（AI 任务与成片渲染各有一道门）',
-  publishing: '公开发布数达到档位上限时新的发布会被挡下（换版本不占名额，收回发布即释放）',
-  teamCollaboration: '协作者数达到档位上限时新的邀请会被挡下（pending 邀请也占名额，撤回/移除即释放）',
-};
 
 /**
  * 额度页 `[data-credits-enforced]` 那一句的唯一写法：数字、名单、逐格解释都由入参拼。
@@ -139,6 +126,53 @@ export const GENERATION_COST: Record<CreditLedgerKind, number> = {
   compute: 1,
   marketplace: 0,
 };
+
+/**
+ * 每一格「拦截方长什么样 + 它拦在哪条边界上」的**唯一一份**。
+ *
+ * 为什么要连解释一起搬进域里（ADR-0088 没牙 6）：`/credits` 那句话原来整句手写在页面上，
+ * 里面那个"五"和四句解释都不由数组拼出来。数组哪天变成六格，页面不会跟着改口。
+ *
+ * 为什么解释要带上 `module` / `guard`（第四十二片自己记下的「仍欠 ①」）：句子收进域里之后，
+ * **句子说的内容**仍然没有读者。它声称一件行为（"额度为 0 时挡下""pending 邀请占名额"），
+ * 而行为的真值在那道门里。门改了口径，句子不会跟着改口——这一片量出来的就是这件事：
+ * 五句里有三句与门今天的口径不符（见 `credits-why-guards.test.ts` 与 ADR-0090）。
+ * `module` + `guard` 是那道门的**地址**：测试按这两个字符串去模块命名空间里取真函数，
+ * 取不到、名字改了、或者在句子声称的边界上门不给同样的答复，都红。
+ * 点数不手抄：那两句里的数字由 `GENERATION_COST` / `PLAN_LIMITS` 拼出来。
+ */
+export const ENFORCED_PLAN_AXE_GUARDS = {
+  aiUsage: {
+    module: 'credits',
+    guard: 'refusalFor',
+    why: `余额不够这一次要用的点数时新的 AI 任务被挡下（ai 类一次 ${GENERATION_COST.ai} 点，image ${GENERATION_COST.image} 点、video ${GENERATION_COST.video} 点）`,
+  },
+  storage: {
+    module: 'credits',
+    guard: 'refusalForStorage',
+    why: '这一次要写的字节放不下时新素材会被拒绝（库里已有的不会被自动删掉）',
+  },
+  generation: {
+    module: 'credit-ledger',
+    guard: 'refusalForRun',
+    why: `Video credits 不够一次渲染的点数时成片渲染被挡下（一次 ${GENERATION_COST.video} 点；AI 任务与成片渲染各有一道门）`,
+  },
+  publishing: {
+    module: 'credits',
+    guard: 'refusalForPublishSlot',
+    why: '公开发布数达到档位上限时新的发布会被挡下（换版本不占名额，收回发布即释放）',
+  },
+  teamCollaboration: {
+    module: 'credits',
+    guard: 'refusalForTeamSlot',
+    why: '协作者数达到档位上限时新的邀请会被挡下（成员与没过期也没兑现的邀请占名额，过期、撤回或移除都释放名额）',
+  },
+} as const satisfies Record<EnforcedPlanAxis, { module: string; guard: string; why: string }>;
+
+/** 界面上那一列的解释——只能由上面那张表摊平出来，这里没有第二份句子 */
+export const ENFORCED_PLAN_AXE_WHY = Object.fromEntries(
+  ENFORCED_PLAN_AXES.map((axis) => [axis, ENFORCED_PLAN_AXE_GUARDS[axis].why]),
+) as Record<EnforcedPlanAxis, string>;
 
 /**
  * agentKey → 额度类别。

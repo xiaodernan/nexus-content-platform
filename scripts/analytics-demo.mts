@@ -27,7 +27,7 @@ const browser = await chromium.launch({ channel: 'chrome' });
 const context = await browser.newContext();
 const page = await context.newPage();
 
-// 1) 让 middleware 签发身份（guest 也行：访客现场与项目都挂在它名下）
+// 1) 让 proxy 签发身份（guest 也行：访客现场与项目都挂在它名下）
 await page.goto(WEB, { waitUntil: 'domcontentloaded' });
 const csrf = (await context.cookies()).find((cookie) => cookie.name === 'nexus_csrf')?.value ?? '';
 if (!csrf) throw new Error('没拿到 nexus_csrf：dev server 起来了吗？');

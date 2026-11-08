@@ -75,7 +75,7 @@ export function ReportControl({ path }: { path: string }) {
               </option>
             ))}
           </select>
-          <input
+          <input aria-label="举报补充说明（可选）"
             value={detail}
             onChange={(e) => setDetail(e.target.value)}
             placeholder="补充说明（可选）"

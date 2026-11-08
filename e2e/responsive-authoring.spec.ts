@@ -38,6 +38,24 @@ import { loginMember, reusableMemberWithProject } from './support/auth-session';
  *    顶掉的是**更窄那一档**的反向。三处口径必须同时认它——面板那一格（`{reverse:false}` 不是"没有规则"，
  *    而"本来正序时点正序"必须一个键都不写）、codegen（重发一条正向方向类，CSS 才会真的回头）、
  *    求解器（画布回到正序）。所以这条腿从面板点下去，一路量到代码那一行的类名与访客那一份几何。
+ * ⑪ `position.x` / `position.y`（腿 F3/F4，§14 第十片，2026-11-08）只摆在父级 merged 进这一档仍是
+ *    自由定位（`none`/`stack`）的孩子上——其余排布下 `left/top` 只会被忽略（§16），
+ *    面板不摆一个按下去什么都改不了的输入口（§159）。夹具里专门留了一个 `mode: none` 的
+ *    `Sandbox` 包住 `SandboxBadge`：父级自由定位 → 两行摆出来且写得动；
+ *    对照组是 Eyebrow（父级竖排）——同一节里位置两行根本不存在。
+ * ⑫ `typography.fontFamily`（腿 F5，§14 第十四片，2026-11-08）是面板里第一种**动态选项**通道：
+ *    选项从文档现有的 fontFamily 型 token 现读（starter：heading/body/mono），
+ *    不是抄一份静态清单。验的正是"这一格摆出来、点 mono、画布字族当场换、撤销回设计值"。
+ * ⑬ 腿 F6（§14 第十一/十二片）把 style 那一组新通道走一遍：
+ *    blendMode（choice multiply → computed mix-blend-mode）、rotation（填 15 → inline transform）、cursor（choice pointer → computed cursor），
+ *    每步独立落库+撤销，徽标归零——骨架与前两腿同构，不碰 CTA 那套腿 G 的前提。
+ * ⑭ 腿 F7（§14 第十五片，2026-11-08）验证 ADR-0091 的落地：Actions 翻成自由定位——
+ *    两个孩子失去 flow（画布 absolute），撤销回到并排。
+ * ⑮ 腿 F8（同日）verify §159 的档内语义：**同一个孩子**在 tablet 翻进自由定位时才摆位置那两格，
+ *    mobile（设计 horizontal）和撤销后不摆；wide 继承 tablet 逃生口照样摆。
+ *    各腿按表盘预位、不在文档里用 `none`"预设"一段——实际场景里 none 是逃生口不是默认值。
+ * ⑯ 腿 S（同日，§16）"发布后公共页就是这份投影"：tablet 翻进 none → 发布 → 访客那一份看到的是 absolute（兄弟重叠），
+ *    撤销翻转 → 再发 → 访客回到并排。这里发布的版本是**真换出去的那个版本**，不是 mock 的占位。
  *
  * 落库那条腿读的是 `GET /api/projects/<id>` 里服务端自己那份文档，不是顶栏的"已保存"字样
  * ——自动保存的标签会在事务落地前就写着旧值。
@@ -99,6 +117,15 @@ interface Carriers {
   eyebrowDesignWidth: unknown;
   /** 起手时 Headline 在设计档的字号（面板那格的「设计」读数，也是访客腿 design 那份的读数） */
   headlineDesignFontSize: number;
+  /**
+   * 自由定位沙盒：`Sandbox` 永远是 `mode: none` 的自由定位逃生口，`SandboxBadge` 是它的孩子。
+   * 位置那两格（position.x / position.y）只有 merged 成 none/stack 的父级才摆得出——
+   * Eyebrow / CTA 的父级一个是竖排一个是横排，摆不出来，所以专门留一个自由定位载体。
+   */
+  sandboxId: string;
+  sandboxBadgeId: string;
+  /** 起手时 SandboxBadge 在设计尺寸里的位置（写第二条键之前先记下，判"这一档真的改了投影"） */
+  sandboxBadgeDesignPosition: { x: number; y: number };
 }
 
 /**
@@ -157,6 +184,83 @@ async function prepareRuleFreeDocument(page: Page, projectId: string): Promise<C
     bottom: seedSide('bottom'),
     left: seedSide('left'),
   };
+  // ── 自由定位沙盒：起手埋一个 `mode: none` 的父级 + 它的孩子，位置那两格的载体。
+  // 每轮重建（先把上一轮的沙盒连根拔掉），起点一致——固定数，不用随机。
+  const purgeByName = (name: string): void => {
+    for (const p of doc.pages) {
+      for (const [id, node] of Object.entries(p.nodes)) {
+        if (node.name === name) {
+          delete p.nodes[id];
+          // 孩子一起清掉（沙盒的孩子只有 SandboxBadge）
+          for (const childId of (node.children as string[] | undefined) ?? []) {
+            const parent = p.nodes[childId]?.parentId as string | undefined;
+            if (parent === id) delete p.nodes[childId];
+          }
+        }
+      }
+      // 从父级的孩子表里抹掉
+      for (const node of Object.values(p.nodes)) {
+        node.children = (node.children as string[] | undefined)?.filter((cid) => p.nodes[cid]) ?? [];
+      }
+    }
+  };
+  purgeByName('SandboxBadge');
+  purgeByName('Sandbox');
+  const sandboxId = `sandbox_${Date.now().toString(36)}a`;
+  const badgeId = `sandbox_${Date.now().toString(36)}b`;
+  const nodeDefaults = {
+    constraints: { horizontal: 'start' as const, vertical: 'start' as const },
+    visible: true,
+    locked: false,
+  };
+  const baseLayout = (mode: string) => ({
+    mode,
+    gap: 0,
+    padding: { top: 0, right: 0, bottom: 0, left: 0 },
+    justify: 'start',
+    items: 'start',
+    clipContent: false,
+    scroll: 'none',
+  });
+  const styleBase = {
+    strokes: [],
+    cornerRadius: { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0 },
+    effects: [],
+    opacity: 1,
+    blendMode: 'normal',
+    rotation: 0,
+    cursor: 'default',
+    overflowX: 'visible',
+    overflowY: 'visible',
+  };
+  const sandbox = {
+    id: sandboxId,
+    type: 'section',
+    name: 'Sandbox',
+    parentId: home.rootId,
+    children: [badgeId],
+    position: { x: 0, y: 0 },
+    size: { width: 420, height: 140 },
+    layout: baseLayout('none'),
+    style: { ...styleBase, fills: [{ kind: 'solid', color: '{color.surface}' }] },
+    ...nodeDefaults,
+  };
+  const badge = {
+    id: badgeId,
+    type: 'frame',
+    name: 'SandboxBadge',
+    parentId: sandboxId,
+    children: [],
+    position: { x: 48, y: 40 },
+    size: { width: 180, height: 48 },
+    layout: baseLayout('vertical'),
+    style: { ...styleBase, fills: [{ kind: 'solid', color: '{color.primary}' }] },
+    ...nodeDefaults,
+  };
+  home.nodes[sandboxId] = sandbox as unknown as RawNode;
+  home.nodes[badgeId] = badge as unknown as RawNode;
+  const homeRoot = home.nodes[home.rootId]!;
+  homeRoot.children = [...((homeRoot.children as string[]) ?? []), sandboxId];
   actions.responsive = [
     { breakpoint: 'tablet', patch: { layout: { mode: seededMode, padding: seededPadding } } },
   ];
@@ -183,6 +287,9 @@ async function prepareRuleFreeDocument(page: Page, projectId: string): Promise<C
     designPageWidth,
     eyebrowDesignWidth: (eyebrow.size as { width?: unknown } | undefined)?.width,
     headlineDesignFontSize,
+    sandboxId,
+    sandboxBadgeId: badgeId,
+    sandboxBadgeDesignPosition: { x: 48, y: 40 },
   };
 }
 
@@ -419,9 +526,232 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
     await undoButton(author).click();
     await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
     await expect(author.locator('[data-responsive-clear="size.width"]'), '撤销要把第二个键抹干净').toHaveCount(0);
+    await author.fill('[data-responsive-input="size.width"]', '200');
+    await author.press('[data-responsive-input="size.width"]', 'Enter');
+    await expect(tab(author, 'mobile'), '宽 + 显示：一条规则里两个键都算进投影').toHaveAttribute(
+      'data-breakpoint-impact',
+      '2',
+    );
+    await expect(
+      author.locator('[data-responsive-clear="visible"]'),
+      '第二个键写下去不能把第一个键的清除键顶掉',
+    ).toHaveCount(1);
+    await expect(author.locator('[data-responsive-clear="size.width"]')).toHaveCount(1);
+    await expect(author.locator('[data-responsive-channel="size.width"]')).toContainText('这一档 200');
+    // 撤销这一次：只剩第一个键，徽标回到 1——事务的粒度是"一个键"，不是"整条规则"
+    await undoButton(author).click();
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
+    await expect(author.locator('[data-responsive-clear="size.width"]'), '撤销要把第二个键抹干净').toHaveCount(0);
     await redoButton(author).click();
     await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '2');
     stamp('腿 F–F2：切视口不改模型 + 同一条规则里的第二个键');
+
+    // 腿 F3：位置那两格（§14 第十片，2026-11-08）——只有父级 merged 进这一档仍是 none/stack
+    // （自由定位逃生口）时摆出来；Extra 的两个载体：SandboxBadge 的父级是自由定位、Eyebrow 的父级是竖排。
+    await author.click(`[data-layer-id="${carriers.sandboxBadgeId}"]`);
+    await expect(editor).toHaveAttribute('data-responsive-breakpoint', 'mobile');
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      '自由定位父级里：位置 x 那一格该摆出来',
+    ).toHaveCount(1);
+    await expect(
+      author.locator('[data-responsive-input="position.y"]'),
+      '自由定位父级里：位置 y 那一格该摆出来',
+    ).toHaveCount(1);
+    // 画布按页面坐标摆绝对定位的节点（整页是一张绝对画布），所以位置断言落在**相对父级的盒子**上
+    const badgeRel = async (where: string) =>
+      relBox(await boxIn(author, carriers.sandboxBadgeId, where), await boxIn(author, carriers.sandboxId, `${where} 的父级`));
+    const badgeStart = await badgeRel('画布上的 SandboxBadge');
+    expect(badgeStart.left).toBeCloseTo(carriers.sandboxBadgeDesignPosition.x, 0);
+    expect(badgeStart.top).toBeCloseTo(carriers.sandboxBadgeDesignPosition.y, 0);
+    await author.fill('[data-responsive-input="position.x"]', '120');
+    await author.press('[data-responsive-input="position.x"]', 'Enter');
+    await expect(tab(author, 'mobile'), 'x 那一个键写进去：影响就是 1 处').toHaveAttribute(
+      'data-breakpoint-impact',
+      '1',
+    );
+    await expect(
+      author.locator('[data-responsive-channel="position.x"]'),
+      '这一档 120 要当场读得出来',
+    ).toContainText('这一档 120');
+    const badgeMoved = await badgeRel('写 position.x 之后的 SandboxBadge');
+    expect(badgeMoved.left, '写下去的键当场改了画布这一格投影').toBeCloseTo(120, 0);
+    expect(badgeMoved.top, 'position.y 那一个键没被碰').toBeCloseTo(carriers.sandboxBadgeDesignPosition.y, 0);
+    // 级联：平板那一档看得见手机规则，但 Sandbox 的父级（根）在平板仍是自由定位 ⇒ 两行照样摆
+    await author.click('[data-breakpoint-tab="tablet"]');
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      '父级平板 merged 仍是自由定位：两行照样摆',
+    ).toHaveCount(1);
+    await expect(
+      author.locator('[data-responsive-input="position.y"]'),
+    ).toHaveCount(1);
+    const badgeTablet = await badgeRel('平板档的 SandboxBadge');
+    expect(badgeTablet.left, '平板那一档继承手机那条规则').toBeCloseTo(120, 0);
+    // 撤销：回到设计位置，位置那两格这一档就没有了
+    await undoButton(author).click();
+    const badgeUndone = await badgeRel('撤销后的 SandboxBadge');
+    expect(badgeUndone.left, '撤销真的把画布这一格投影恢复了').toBeCloseTo(
+      carriers.sandboxBadgeDesignPosition.x,
+      0,
+    );
+    await expect(
+      author.locator('[data-responsive-channel="position.x"]'),
+      '撤销之后这一格不该还写着 120',
+    ).not.toContainText('120');
+    await expect(
+      author.locator('[data-responsive-clear="position.x"]'),
+      '撤销抹掉了这一格自己的覆盖：清除键该跟着没',
+    ).toHaveCount(0);
+    stamp('腿 F3：位置两格的自由定位门（摆出来 → 写一格 → 级联 → 撤销）');
+
+    // 对照：Eyebrow 的父级是竖排——位置那两格按下去什么都改不了，面板不摆（§159）
+    await author.click(`[data-layer-id="${carriers.eyebrowId}"]`);
+    await author.click('[data-breakpoint-tab="mobile"]');
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      '竖排父级：位置 x 那一格不该摆出来',
+    ).toHaveCount(0);
+    await expect(
+      author.locator('[data-responsive-input="position.y"]'),
+      '竖排父级：位置 y 那一格不该摆出来',
+    ).toHaveCount(0);
+    // 回到 SandboxBadge 收尾，撤掉 F4 里选中的那档切换：夹具体没有新增事务
+    await author.click(`[data-layer-id="${carriers.sandboxBadgeId}"]`);
+    await expect(tab(author, 'mobile'), 'F3 的撤销之后这一档应该读 0 处投影').toHaveAttribute(
+      'data-breakpoint-impact',
+      '0',
+    );
+    stamp('腿 F4：位置两格只摆在自由定位父级（对照读数）');
+
+    // 腿 F5：`typography.fontFamily`——面板里第一种**动态选项**通道（选项从文档现有的 fontFamily 型 token 现读）。
+    // Headline 是 starter 里真有 `typography` 的文字节点；文档起手有 heading/body/mono 三个 token。
+    await author.click(`[data-layer-id="${carriers.headlineId}"]`);
+    await author.click('[data-breakpoint-tab="mobile"]');
+    await expect(
+      author.locator('[data-responsive-choice="typography.fontFamily:{font.mono}"]'),
+      '文档有 fontFamily 型 token ⇒ 字族那一格摆出来（starter：heading/body/mono）',
+    ).toHaveCount(1);
+    const fontBefore = await author
+      .locator(`[data-node-id="${carriers.headlineId}"]`)
+      .evaluate((el) => getComputedStyle(el).fontFamily);
+    await author.click('[data-responsive-choice="typography.fontFamily:{font.mono}"]');
+    await expect(tab(author, 'mobile'), '字族这一格写进去：影响就是 1 处').toHaveAttribute(
+      'data-breakpoint-impact',
+      '1',
+    );
+    await expect(
+      author.locator('[data-responsive-channel="typography.fontFamily"]'),
+      '这一格写下的是 token 引用，label 照文档现读',
+    ).toContainText('font.mono');
+    const fontAfter = await author
+      .locator(`[data-node-id="${carriers.headlineId}"]`)
+      .evaluate((el) => getComputedStyle(el).fontFamily);
+    expect(fontAfter, '写下去的键当场改了画布上的字族').not.toBe(fontBefore);
+    // 撤销：规则抹掉，徽标回到 0——写进去的 token 引用当场回滚
+    await undoButton(author).click();
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '0');
+    stamp('腿 F5：fontFamily 动态选项（文档有 token 才摆 → 点 mono → 画布改 → 撤销）');
+
+    // 腿 F6：style 那一组的三格新通道——blend mode / 旋转 / 指针，choice 或填数走通一遍，一格都不翻车。
+    // 载体是 SandboxBadge（frame 类型，style 两格都认、position 那两格也摆得出——和它既有那两格互不干涉）。
+    await author.click(`[data-layer-id="${carriers.sandboxBadgeId}"]`);
+    await author.click('[data-breakpoint-tab="mobile"]');
+    const badgeView = author.locator(`[data-node-id="${carriers.sandboxBadgeId}"]`);
+    // ① 混合模式：点击 multiply → 徽标 1 处 → mixBlendMode 当场换 → 撤销
+    await expect(
+      author.locator('[data-responsive-choice="style.blendMode:multiply"]'),
+      '混合模式那一行摆出来（choice 枚举）',
+    ).toHaveCount(1);
+    await author.click('[data-responsive-choice="style.blendMode:multiply"]');
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
+    expect(
+      await badgeView.evaluate((el) => getComputedStyle(el).mixBlendMode),
+      'mix-blend 写进画布的 computed style',
+    ).toBe('multiply');
+    await undoButton(author).click();
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '0');
+    // ② 旋转：填 15 → Enter → 徽标 1 处 → inline transform 当场有 rotate(15deg) → 撤销
+    await author.fill('[data-responsive-input="style.rotation"]', '15');
+    await author.press('[data-responsive-input="style.rotation"]', 'Enter');
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
+    await expect
+      .poll(async () => badgeView.evaluate((el) => (el as HTMLElement).style.transform), { timeout: 10_000 })
+      .toContain('rotate(15deg)');
+    await undoButton(author).click();
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '0');
+    // ③ 指针：点击 pointer → 徽标 1 处 → computed cursor 当场换 → 撤销
+    await author.click('[data-responsive-choice="style.cursor:pointer"]');
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '1');
+    expect(
+      await badgeView.evaluate((el) => getComputedStyle(el).cursor),
+      'cursor 写进画布的 computed style',
+    ).toBe('pointer');
+    await undoButton(author).click();
+    await expect(tab(author, 'mobile')).toHaveAttribute('data-breakpoint-impact', '0');
+    stamp('腿 F6：style 那三格（blendMode ▸ 旋转 ▸ 指针）');
+
+    // 腿 F7：父级这一档翻成自由定位（ADR-0091 第十五片）——Actions 的设计模式是横排，
+    // 孩子并排（secondary 在 primary 右边）；平板那一档点「自由定位」后，两个孩子按各自 `position` 绝对摆放——
+    // 横排的孩子失去 flow，画布当场按 absolute 解（left 归零）。撤销回到并排。
+    await author.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await author.click('[data-breakpoint-tab="tablet"]');
+    const secondaryBefore = await boxIn(author, carriers.secondaryId, '自由定位翻转前的 Secondary CTA');
+    expect(secondaryBefore.left, '翻转前 secondary 排在 primary 右边（横排）').toBeGreaterThan(0);
+    await expect(
+      author.locator('[data-responsive-choice="layout.mode:none"]'),
+      '排布那一格摆了「自由定位」这个选择——它不是 mock 按钮，条件齐了（父级有孩子）才画得出',
+    ).toHaveCount(1);
+    await author.click('[data-responsive-choice="layout.mode:none"]');
+    // 这一档 Actions 上埋了 padding+mode 两个键（夹具埋的 tablet 规则），live 数 2——翻转没新增，也没丢既有那两格
+    await expect(tab(author, 'tablet')).toHaveAttribute('data-breakpoint-impact', '2');
+    // 相邻的兄弟失去了 flow：两个孩子按各自的 position 摆在 Actions 原点（都为 (0,0)），画布上重叠
+    const primaryFlipped = await boxIn(author, carriers.ctaId, '翻转后的 Primary CTA');
+    const secondaryFlipped = await boxIn(author, carriers.secondaryId, '翻转后的 Secondary CTA');
+    expect(secondaryFlipped.left, '自由定位档里兄弟重叠在 Actions 原点').toBe(primaryFlipped.left);
+    expect(secondaryFlipped.top, '自由定位档里兄弟重叠在 Actions 原点').toBe(primaryFlipped.top);
+    // 撤销：回到并排
+    await undoButton(author).click();
+    const secondaryUndone = await boxIn(author, carriers.secondaryId, '撤销后的 Secondary CTA');
+    expect(secondaryUndone.left, '撤销后回到 flow，secondary 回到 primary 右边').toBeGreaterThan(0);
+    stamp('腿 F7：父级翻成自由定位 → 孩子按 position 绝对摆 → 撤销恢复');
+
+    // 腿 F8：位置那两格（`position.x`/`position.y`）也是按**这一档 merged 后的父级**决定摆不摆的，
+    // F3/F4 量的是设计态的 none；这一腿量的是"爸爸 flip 之后，孩子在这一档秒出输入口"——
+    // CTA（Actions 的孩子）在移动端（设计 horizontal）不摆，在 tablet（翻成 none）摆，在 wide（继承 tablet:none）也摆，
+    // 翻回并排、tablet 回横排 ⇒ 两格又收起。§159 的承诺只有档内时刻是真的。
+    await author.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await author.click('[data-breakpoint-tab="tablet"]');
+    await author.click('[data-responsive-choice="layout.mode:none"]');
+    await author.click(`[data-layer-id="${carriers.ctaId}"]`);
+    await author.click('[data-breakpoint-tab="mobile"]');
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      'tablet 翻进 none：mobile 这一档（设计 horizontal）里位置那两格照样不摆',
+    ).toHaveCount(0);
+    await author.click('[data-breakpoint-tab="tablet"]');
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      'tablet 翻进 none ⇒ 孩子在这一档是自由定位：left 那个数该摆出来',
+    ).toHaveCount(1);
+    await expect(
+      author.locator('[data-responsive-input="position.y"]'),
+      'tablet 翻进 none ⇒ 孩子在这一档是自由定位：top 那个数该摆出来',
+    ).toHaveCount(1);
+    await author.click('[data-breakpoint-tab="wide"]');
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      'wide 继承 tablet 那一档的 none：left 照样摆',
+    ).toHaveCount(1);
+    await author.click('[data-breakpoint-tab="tablet"]');
+    await author.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await undoButton(author).click();
+    await author.click(`[data-layer-id="${carriers.ctaId}"]`);
+    await expect(
+      author.locator('[data-responsive-input="position.x"]'),
+      '撤销把 tablet 翻回横排：位置那两格又**消失**了（§159）',
+    ).toHaveCount(0);
+    stamp('腿 F8：父级这一档是不是逃生口，决定那一档位置有没有输入口');
 
     // 腿 G：第二个节点、另一档、另一个通道（数字输入走失焦提交，一路打字不该塞一串事务）
     await author.click(`[data-layer-id="${carriers.ctaId}"]`);
@@ -1354,6 +1684,66 @@ test.describe('@smoke §14/ADR-0069 断点规则的人工入口：面板 → 落
       String(badgeBefore),
     );
     stamp('腿 R：撤销那条否定→换回同一寸的投影；再撤一次收尾');
+
+    // ══ 腿 S（2026-11-08，§16）：公开发布之后——访客那一份读的还是这份投影，不是猜一份副本。
+    // flip 到 none → publish → 访客在 tablet 那一份看到的是 absolute（兄弟重叠）；
+    // 撤销翻转 → 再发 → 访客回到横排。两个动作都走真实的发布链路，不是 mock。
+    await coder.click('[data-breakpoint-tab="tablet"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await coder.click('[data-responsive-choice="layout.mode:none"]');
+    const flippedRules = rulesWith(baseMobileLayout, { ...baseTabletLayout, mode: 'none' });
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(flippedRules);
+    // 发布：这就是作者真出去的那个版本；新版本会换出同一条路径
+    const flipPath = await publishPublic(coder, projectId);
+    expect(flipPath, '重复发布是换版本，路径不变').toBe(publicPath);
+    const flipContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const flipVisitor = await flipContext.newPage();
+    await flipVisitor.goto(url('viewport=tablet'));
+    await expect(flipVisitor.locator('[data-published-root]')).toBeVisible({ timeout: 60_000 });
+    const flipA = await boxIn(
+      flipVisitor.locator('[data-published-variant="tablet"]'),
+      carriers.ctaId,
+      '公开页 tablet：翻进 none 后的 CTA',
+    );
+    const flipB = await boxIn(
+      flipVisitor.locator('[data-published-variant="tablet"]'),
+      carriers.secondaryId,
+      '公开页 tablet：翻进 none 后的 Secondary',
+    );
+    expect(flipA.left, '访客 tablet 那一份：两个孩子归一到 Actions 原点').toBe(flipB.left);
+    expect(flipA.top, '访客 tablet 那一份：两个孩子归一到 Actions 原点').toBe(flipB.top);
+    await flipContext.close();
+    // 撤销翻转：访客必须回到横排（这条链发布之前的投影 ≠ 任何一档本来就是横排的假设）
+    await coder.click('[data-view="canvas"]');
+    await coder.click(`[data-layer-id="${carriers.actionsId}"]`);
+    await undoButton(coder).click();
+    await expect
+      .poll(() => rulesOfNodeOnServer(coder, projectId, carriers.actionsId), { timeout: 30_000 })
+      .toEqual(forwardRules);
+    const restoredPath = await publishPublic(coder, projectId);
+    expect(restoredPath, '撤销翻转后再发布：路径不变').toBe(publicPath);
+    const backContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const backVisitor = await backContext.newPage();
+    await backVisitor.goto(url('viewport=tablet'));
+    await expect(backVisitor.locator('[data-published-root]')).toBeVisible({ timeout: 60_000 });
+    const backA = await boxIn(
+      backVisitor.locator('[data-published-variant="tablet"]'),
+      carriers.ctaId,
+      '公开页 tablet：撤销后的 CTA',
+    );
+    const backB = await boxIn(
+      backVisitor.locator('[data-published-variant="tablet"]'),
+      carriers.secondaryId,
+      '公开页 tablet：撤销后的 Secondary',
+    );
+    expect(
+      backB.top,
+      '访客 tablet 那一份：竖排流回来——Primary 在上、Secondary 在下（这份夹具的 seeded tablet 本来就是 vertical）',
+    ).toBeGreaterThan(backA.top + backA.height);
+    await backContext.close();
+    stamp('腿 S：翻进 none → 发布 → 访客也绝对 → 撤销 → 再发 → 访客回到竖排（夹具的 seeded tablet 本来就是 vertical）');
 
     await codeContext.close();
   });

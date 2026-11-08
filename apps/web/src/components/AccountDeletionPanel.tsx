@@ -197,6 +197,7 @@ export function AccountDeletionPanel() {
             <input
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
+              aria-label="逐字输入确认词"
               placeholder="逐字输入确认词"
               maxLength={2000}
               className="w-[240px] rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] bg-bg-2 px-2 py-1 text-12 text-fg-1 placeholder:text-fg-3"

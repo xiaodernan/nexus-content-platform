@@ -247,7 +247,7 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
   外加一颗「回设计尺寸」；点 tab 同时把画布切到那一档预览。每档摆得出哪些输入口**由内核现推**：
   `RESPONSIVE_CHANNELS` 里每条 `ChannelSpec.appliesTo(node, breakpoint)` 全过才上那一行——
   显示 / 宽 / 高 / 透明度 / 排布（`layout.mode`）/ 间距（`layout.gap`）/ 列数（`layout.columns`）/
-  主轴对齐（`layout.justify`）/ 交叉轴（`layout.items`）/ 顺序（`layout.reverse`）/ 字号（`typography.fontSize`）。
+  主轴对齐（`layout.justify`）/ 交叉轴（`layout.items`）/ 顺序（`layout.reverse`）/ 裁剪（`layout.clipContent`）/ 滚动（`layout.scroll`）/ 字号（`typography.fontSize`）/ 字重（`typography.fontWeight`）/ 行高（`typography.lineHeight`）/ 字距（`typography.letterSpacing`）/ 大小写（`typography.textCase`）/ 装饰（`typography.decoration`）/ 对齐（`typography.align`）/ 纵向对齐（`typography.verticalAlign，仅文字节点）/ 字族（`typography.fontFamily`，选项从文档现有的 fontFamily 型 token 现读）/ 左（`position.x`）/ 上（`position.y`，仅父级 merged 为自由定位逃生口 `none`/`stack` 时摆出）/ 混合模式（`style.blendMode`）/ 旋转（`style.rotation`）/ 指针（`style.cursor`）。
   所以列数那一格
   **只在投影出来是网格的那一档**出现，对齐与顺序那三格反过来**只在投影出来是横排或竖排的那一档**出现
   （求解器的 grid / wrap 分支在用到 `justify`/`items`/`reverse` 之前就 return，那一档按下去什么都改不了；
@@ -285,7 +285,10 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
   与 Tailwind 移动优先的级联同构。回写按**谁声明的**分流：手机那条规则声明过的键，代码里改的值写回那条规则；
   没声明的键才动设计值。这一寸上落错地方不是差一点而是整条断掉——那条规则还盖着，重投影自检认不出那个类名，
   整个节点的回写被放弃（§19），代码里写着新数而画布不动。手机档的隐藏也走同一份基线：`hidden` 无前缀发出去，
-  改回来落进 `patch.visible`。`position`（x/y）目前只在手机档走得通，`md:`/`lg:`/`xl:` 三档仍发不出（ADR-0069 仍欠）。
+  改回来落进 `patch.visible`。**子节点的绝对定位不再依赖自己带 patch**——父级在断点档 merged 为 `none`/`stack`
+  时，子节点全部发 `md:absolute` + `left/top`（窄档入流、这一档绝对）；反之（窄档绝对、这一档入流）发 `md:static`
+  顶掉窄档那条 `absolute`；两档都绝对且 x/y 有投影差时重发——与基线 `positionClasses` 同一判据，只是带变体前缀
+  （ADR-0069 第九片续）。发得出也读得回，round-trip 全绿。
   根画框不在这节的管辖内：图层列表从根的孩子起（layers-flat.ts:45），Ctrl+A 也排掉根（CanvasStage.tsx:272），
   根那一档的宽由断点给出——那条披露在「页面」那一节（`data-page-root-width-from-breakpoint`）。
 

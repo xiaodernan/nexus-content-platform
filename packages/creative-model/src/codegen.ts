@@ -320,6 +320,8 @@ function layoutClasses(
     !placement.absolute &&
     placement.hasChildren
   ) {
+    // 模式标记（ADR-0091）：无前缀＝基线那一档；让 stack/none 的设计模式也能往返——`relative` 没有它就读不回
+    out.push(`[--nexus-mode:${layout.mode}]`);
     out.push("relative");
   }
   if (layout.reverse && ALIGNABLE_MODES.includes(layout.mode)) {
@@ -503,7 +505,7 @@ function typographyClasses(node: DesignNode, prefix: string): string[] {
 }
 
 /** 响应式覆盖 → Tailwind 断点前缀（§14） */
-function responsiveClasses(node: DesignNode, prefix: string): string[] {
+function responsiveClasses(node: DesignNode, prefix: string, parent?: DesignNode | null): string[] {
   if (!node.responsive?.length) return [];
   const out: string[] = [];
   for (const rule of node.responsive) {
@@ -528,6 +530,51 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
     }
     const fontSize = lengthClass(typography?.fontSize, prefix, (i) => `${variant}text-[${i}]`);
     if (fontSize) out.push(fontSize);
+    if (typography?.fontWeight !== undefined) {
+      const cls = WEIGHT_CLASS[typography.fontWeight] ?? `font-[${typography.fontWeight}]`;
+      out.push(`${variant}${cls}`);
+    }
+    if (typography?.lineHeight !== undefined) {
+      out.push(
+        typography.lineHeight === "auto"
+          ? `${variant}leading-normal`
+          : `${variant}leading-[${typography.lineHeight}]`,
+      );
+    }
+    if (typography?.letterSpacing) {
+      out.push(`${variant}tracking-[${lengthClass(typography.letterSpacing, prefix, (i) => i) ?? "0px"}]`);
+    }
+    if (typography?.fontFamily !== undefined) {
+      const fontKey = tokenRefKey(typography.fontFamily);
+      if (fontKey) out.push(`${variant}font-[family-name:${cssVar(fontKey, prefix)}]`);
+      else if (typeof typography.fontFamily === "string" && typography.fontFamily) {
+        out.push(`${variant}font-[${typography.fontFamily.replace(/\s+/g, "_")}]`);
+      }
+    }
+    // verticalAlign（§14）：
+    // 仅在这一档真的把 narrower 的纵向对齐改成别的东西时才发——narrower 已经是 `top` 而本档写 `top` 等于
+    // 什么都不改，发 `md:justify-start` 是个空表态；narrower 是 `middle`/`bottom` 时起动，本档给了 `top`
+    // 才发 `md:justify-start`（两端清单里只有这一条正方向类能顶掉窄档的 `md:justify-center/end`）。
+    // middle/bottom → 发 `flex`/`flex-col`/对应 justify：这条比 narrower 的默认 `flex` + `flex-col` 物理类加了一层，
+    // 不是纯表述；narrower 是 `top` 而本档 middle/bottom 时同 `bottom/middle` 与 narrower 发布代码一样。
+    if (node.type === "text" && typography) {
+      const narrowerAlign = (applyResponsiveBelow(node, rule.breakpoint) as DesignNode).typography?.verticalAlign ?? "top";
+      const tierAlign = typography.verticalAlign;
+      if (tierAlign && narrowerAlign !== tierAlign) {
+        if (tierAlign === "middle") out.push(`${variant}flex`, `${variant}flex-col`, `${variant}justify-center`);
+        else if (tierAlign === "bottom") out.push(`${variant}flex`, `${variant}flex-col`, `${variant}justify-end`);
+        else if (tierAlign === "top") out.push(`${variant}justify-start`);
+      }
+    }
+    if (typography?.textCase === "upper") out.push(`${variant}uppercase`);
+    else if (typography?.textCase === "lower") out.push(`${variant}lowercase`);
+    else if (typography?.textCase === "title") out.push(`${variant}capitalize`);
+    else if (typography?.textCase === "original") {
+      // 原样是这一组的默认值：只发新的几个变体，不凭空发。
+    }
+    if (typography?.align && typography.align !== "left") out.push(`${variant}text-${typography.align}`);
+    if (typography?.decoration === "underline") out.push(`${variant}underline`);
+    else if (typography?.decoration === "line-through") out.push(`${variant}line-through`);
     const gap = lengthClass(layout?.gap, prefix, (i) => `${variant}gap-[${i}]`);
     if (gap) out.push(gap);
     // 排布：display 那一组类取**这一档解出来**的排布（`applyResponsive` 把本档与更窄几档
@@ -541,6 +588,25 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
     const resolvedMode = applyResponsive(node, rule.breakpoint).layout.mode;
     if (layout?.mode !== undefined) {
       for (const cls of DISPLAY_CLASSES[resolvedMode]) out.push(`${variant}${cls}`);
+    }
+    // 自由定位逃生口的**标记任意属性**（ADR-0091）： Tailwind v4 对任意属性是核心能力，
+    // `md:[--nexus-mode:none]` 是编译得出来的、没有消费方的自定义属性声明（不改变任何渲染）。
+    // 为什么不是 infer（A）/inline display 类（C）：A 要跨节点猜"孩子绝对了"，手写 md:relative 伪报 mode 一存即 §19；
+    // C 的 block/static 既还原不出 none/stack 语义，又与真实类相撞。
+    // **门只有一个——这一档真的 flip 了**：本档与窄档比，`below → this` 进入 none/stack 才发。
+    // 设计态默认 mode=none 的叶子（`defaultLayout` 给 text/etc 写死 none）不发——那是 default
+    // 不是意图；继承来的档也不补发（窄档 flip 时 marker 已经发了，CSS 级联会顺带生效）。
+    // 定位参照那条 `md:relative` 与基线同一判据：有孩子且本档自己不是 absolute 才发。
+    const narrowerMode = applyResponsiveBelow(node, rule.breakpoint).layout.mode;
+    if (
+      (resolvedMode === "none" || resolvedMode === "stack") &&
+      narrowerMode !== resolvedMode
+    ) {
+      const tier = applyResponsive(node, rule.breakpoint);
+      const tierParent = parent ? applyResponsive(parent, rule.breakpoint) : null;
+      const selfAbsolute = isAbsoluteChild(tier, tierParent);
+      out.push(`${variant}[--nexus-mode:${resolvedMode}]`);
+      if (node.children.length > 0 && !selfAbsolute) out.push(`${variant}relative`);
     }
     if (resolvedMode === "grid" && layout?.columns !== undefined) {
       out.push(`${variant}${gridColsClass(layout.columns)}`);
@@ -574,6 +640,9 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
         if (cls && !out.includes(`${variant}${cls}`)) out.push(`${variant}${cls}`);
       }
     }
+    // 位置（§14）由 `positionVariantClasses` 统一收住：父级 merged 到这一档的 mode 是
+    // none/stack ⇒ 子节点在这一档绝对化；窄/当前档都绝对化时只在 x/y 有投影差时重发。
+    // `variant` 前缀背着这一档的级联走——Mobile 档的差量落在基线（无前缀）那组里。
     // padding：patch 写了哪几条边就发哪几条。`applyResponsive` 对 `layout` 组是整键
     // `Object.assign`，所以一条 `{padding:{top:24}}` 的意思就是"这一档的 padding 只有 top"——
     // 凭空补上另外三条边会把模型里不存在的东西写进代码（也读不回来）。
@@ -593,6 +662,32 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
         });
       }
     }
+    // 圆角（§14）：同一条判据，同一组 rim——patch 写了哪几格就发哪几格，
+    // 四边同值折成一条 `md:rounded-[…]`。`applyResponsive` 整键替换，所以缺的三格不补（同 padding）。
+    if (style?.cornerRadius) {
+      const cr = style.cornerRadius;
+      const cornerKeys = ["topLeft", "topRight", "bottomRight", "bottomLeft"] as const;
+      const perCorner = {
+        topLeft: "rounded-tl",
+        topRight: "rounded-tr",
+        bottomRight: "rounded-br",
+        bottomLeft: "rounded-bl",
+      } as const;
+      const present = cornerKeys.filter((key) => cr[key] !== undefined);
+      const inner = present.map((key) => lengthClass(cr[key]!, prefix, (i) => i));
+      const uniform =
+        present.length === 4 && inner.every((value) => value !== null && value === inner[0])
+          ? inner[0]
+          : null;
+      if (uniform) out.push(`${variant}rounded-[${uniform}]`);
+      else {
+        present.forEach((key, i) => {
+          const value = inner[i];
+          const utility = perCorner[key];
+          if (value) out.push(`${variant}${utility}-[${value}]`);
+        });
+      }
+    }
     if (style?.fills && !isTextLabel(node)) {
       const solid = firstSolid(style.fills);
       const bg = solid
@@ -600,7 +695,30 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
         : null;
       if (bg) out.push(bg);
     }
+    // 裁剪 / 滚动（§14）：与基线同一组 overflow 类、同一优先级（clipContent 优先于 scroll）。
+    // `clipContent:false` / `scroll:"none"` 本身不产生类，但若更窄那档真的有 overflow 约束，
+    // 需要用响应式 `overflow-visible` 顶掉它——否则 CSS 里没有"取消 overflow"的隐式手段。
+    const narrowerLayout = applyResponsiveBelow(node, rule.breakpoint).layout;
+    const narrowerOverflow =
+      narrowerLayout.clipContent === true || (narrowerLayout.scroll && narrowerLayout.scroll !== "none");
+    if (layout?.clipContent === true) {
+      out.push(`${variant}overflow-hidden`);
+    } else if (layout?.scroll === "vertical") {
+      out.push(`${variant}overflow-y-auto`);
+    } else if (layout?.scroll === "horizontal") {
+      out.push(`${variant}overflow-x-auto`);
+    } else if (layout?.scroll === "both") {
+      out.push(`${variant}overflow-auto`);
+    } else if ((layout?.clipContent === false || layout?.scroll === "none") && narrowerOverflow) {
+      out.push(`${variant}overflow-visible`);
+    }
     if (style?.opacity !== undefined) out.push(`${variant}opacity-[${style.opacity}]`);
+    // 混合模式 / 旋转（§14）：与基线同一组类（`styleClasses`），这一档声明了就必须发得出来也读得回来。
+    // 混合模式的 `mix-blend-normal` 与旋转的 `rotate-[0deg]` 都是 Tailwind 合法类——显式写回
+    // 正是"顶掉更窄那档"的那一刀（同 reverse:false 那一寸），不是摆设。
+    if (style?.blendMode !== undefined) out.push(`${variant}mix-blend-${style.blendMode}`);
+    if (style?.rotation !== undefined) out.push(`${variant}rotate-[${style.rotation}deg]`);
+    if (style?.cursor !== undefined) out.push(`${variant}cursor-${style.cursor}`);
     if (visible === false) out.push(`${variant}hidden`);
   }
   return out;
@@ -610,6 +728,47 @@ function positionClasses(node: DesignNode, parent: DesignNode | null): string[] 
   if (!isAbsoluteChild(node, parent)) return [];
   const round = (v: number): string => `${Math.round(v * 100) / 100}px`;
   return ["absolute", `left-[${round(node.position.x)}]`, `top-[${round(node.position.y)}]`];
+}
+
+/**
+ * 父级模式的 tier 差量：窄档与更宽档里，同一个节点有没有 absolute。Node 是严格 `position: Position`
+ * 在模型里必填的，Node 的绝对化不是调它自己那一档的排布，而是投影后父级是不是 `none` / `stack`
+ *（自由定位逃生口，nodes.ts）。所以这一段跟 `positionClasses` 同源——只是带上变体前缀，且把
+ * tier 之间的差量做了出来：
+ *  - 窄档入流、这一档绝对：绝对定位的容器里的孩子要带 absolute + left/top；父级跨档切换时，
+ *    Tailwind 的 md: 前奏比基线晚落在 @media 里，天然盖过窄档入流（窄档没发 absolute 就没有东西可以盖）。
+ *  - 窄档绝对、这一档入流：md:static 把窄档那条 absolute 顶掉；left/top 保持窄档那个值无影响
+ *    （static 位置属性被忽略，base 的 left/top 没有副作用）。
+ *  - 两档都绝对：只在 tier merge 结果比 narrow 档不同 x/y 时才重发 left/top（不同档不盖重码）。
+ */
+const PREV_BP = { tablet: "mobile", desktop: "tablet", wide: "desktop" } as const;
+const BP_CLASS = { tablet: "md:", desktop: "lg:", wide: "xl:" } as const;
+
+function positionVariantClasses(
+  node: DesignNode,
+  parent: DesignNode | null,
+  bp: keyof typeof BP_CLASS,
+): string[] {
+  const prefix = BP_CLASS[bp];
+  const ref = applyResponsive(node, PREV_BP[bp]);
+  const refParent = parent ? applyResponsive(parent, PREV_BP[bp]) : null;
+  const tier = applyResponsive(node, bp);
+  const tierParent = parent ? applyResponsive(parent, bp) : null;
+  const tierAbs = isAbsoluteChild(tier, tierParent);
+  const refAbs = isAbsoluteChild(ref, refParent);
+  const round = (v: number): string => `${Math.round(v * 100) / 100}px`;
+  const out: string[] = [];
+  if (tierAbs && !refAbs) {
+    out.push(`${prefix}absolute`);
+    out.push(`${prefix}left-[${round(tier.position.x)}]`);
+    out.push(`${prefix}top-[${round(tier.position.y)}]`);
+  } else if (!tierAbs && refAbs) {
+    out.push(`${prefix}static`);
+  } else if (tierAbs) {
+    if (tier.position.x !== ref.position.x) out.push(`${prefix}left-[${round(tier.position.x)}]`);
+    if (tier.position.y !== ref.position.y) out.push(`${prefix}top-[${round(tier.position.y)}]`);
+  }
+  return out;
 }
 
 function elementFor(
@@ -684,6 +843,9 @@ function classOf(node: DesignNode, parent: DesignNode | null, ctx: RenderCtx): s
   return [
     ...sizeClasses(view, parentView, ctx.prefix),
     ...positionClasses(view, parentView),
+    ...positionVariantClasses(node, parent, "tablet"),
+    ...positionVariantClasses(node, parent, "desktop"),
+    ...positionVariantClasses(node, parent, "wide"),
     ...layoutClasses(view, ctx.prefix, {
       absolute,
       hasChildren: childrenOf(ctx.page, view).length > 0,
@@ -693,7 +855,7 @@ function classOf(node: DesignNode, parent: DesignNode | null, ctx: RenderCtx): s
     ...stateClasses(view, ctx.prefix),
     ...typographyClasses(view, ctx.prefix),
     // 更宽那几档从**原始节点**解：它们要的是「本档与更窄几档」整条级联，基线只是窄的那一半
-    ...responsiveClasses(node, ctx.prefix),
+    ...responsiveClasses(node, ctx.prefix, parent),
   ].join(" ");
 }
 

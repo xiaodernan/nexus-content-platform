@@ -181,6 +181,39 @@ describe('§105/§144 导入往返（真实数据库）', () => {
     expect(await openAssetForOwner(sourceAssetId, userId), '源项目的那份字节被导入过程弄没了').not.toBeNull();
   });
 
+  /**
+   * §14 / ADR-0091 还欠的一格：文档里写下的 tablet `mode:none`（自由定位逃生口的面板逃生入口）
+   * 必须能**从导出 ZIP 走回导入 ZIP**——字节不同、id 不同、name 不同，但响应式规则保鲜。
+   *
+   * 这是 §16 "设计模型是唯一真值，导出/导入不改旗号" 的"三臂对照"之一：
+   *   1. 导出产物代码里有 `md:[--nexus-mode:none]`（export.integration.test.ts 已钉）；
+   *   2. 这一条钉住：ZIP → ZIP 整包走一遍，保留 responsive patch；
+   *   3. decodeClasses 在 markdown 那一份 code 里也认同 marker（code-parse.test.ts 已钉）。
+   */
+  it('tablet → none 的文件层标记在整包导出/导入之后还在', async () => {
+    const created = await createProject(userId, { name: '导入往返 marker 源项目', kind: 'website' });
+    const hero = Object.values(created.pages[0]!.nodes).find((n) => n.name === 'Hero');
+    if (!hero) throw new Error('起手页里没有名为 Hero 的节点：夹具变更后同步这里');
+
+    hero.responsive = [
+      { breakpoint: 'tablet', patch: { layout: { mode: 'none' } } },
+    ];
+    await saveDocument(created.id, created as DesignDocument);
+
+    const exported = await buildProjectExport(created.id, userId, ['design']);
+    if (!exported) throw new Error('带 marker 的项目导不出来');
+    const imported = await importProjectZip(userId, exported.bytes);
+    if (!imported.ok) throw new Error(`导入 marker 源项目被拒：${imported.reason}`);
+
+    const stored = await loadDocument(imported.projectId);
+    if (!stored) throw new Error('导入的项目读不回来');
+    const heroBack = Object.values(stored.pages[0]!.nodes).find((n) => n.name === 'Hero');
+    if (!heroBack) throw new Error('导入的项目里没有 Hero');
+    expect(heroBack.responsive, 'tablet marker 在整包导入后丢了').toEqual([
+      { breakpoint: 'tablet', patch: { layout: { mode: 'none' } } },
+    ]);
+  });
+
   it('别人拿这份包导入：新项目归他，源项目与源资产都到不了他手里', async () => {
     const exported = await buildProjectExport(sourceId, userId, ['design', 'assets']);
     if (!exported) throw new Error('自己的项目导不出来');

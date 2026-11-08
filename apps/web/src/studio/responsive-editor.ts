@@ -8,6 +8,8 @@ import {
   type Layout,
   type LayoutMode,
   type ResponsiveRule,
+  type Style,
+  type Token,
 } from '@nexus/creative-model';
 
 /**
@@ -40,7 +42,22 @@ export type ResponsiveChannel =
   | 'layout.justify'
   | 'layout.items'
   | 'layout.reverse'
-  | 'typography.fontSize';
+  | 'layout.clipContent'
+  | 'layout.scroll'
+  | 'typography.fontSize'
+  | 'typography.fontWeight'
+  | 'typography.fontFamily'
+  | 'typography.lineHeight'
+  | 'typography.letterSpacing'
+  | 'typography.textCase'
+  | 'typography.decoration'
+  | 'typography.align'
+  | 'typography.verticalAlign'
+  | 'position.x'
+  | 'position.y'
+  | 'style.blendMode'
+  | 'style.rotation'
+  | 'style.cursor';
 
 export interface ResponsiveChoice {
   readonly value: string;
@@ -66,6 +83,14 @@ export interface ChannelSpec {
   readonly min?: number;
   readonly max?: number;
   readonly step?: number;
+  /**
+   * `font-family-tokens`：选项**不**写在 spec 里——面板从文档现有的 `fontFamily` 型 token 现读（§16），
+   * 文档里没有这个型 token 时这一格**不摆**（靠 appliesTo 收起，§159）。其余 choice 通道仍用静态 `choices`。
+   */
+  readonly choicesFrom?: 'font-family-tokens';
+  /**
+   * 面板这一行的选项清单：**静态**的那一半 choice 给这里。`choicesFrom` 非空时可省略——两处只用一处。
+   */
   readonly choices?: readonly ResponsiveChoice[];
   /**
    * 这一行对这个节点、这一档有没有意义。面板不摆一个按下去什么都改不了的输入口（§159）：
@@ -76,7 +101,11 @@ export interface ChannelSpec {
    * `typography.fontSize` 要节点真有 typography 对象——`applyResponsive` 对没有 typography 的节点
    * 压根不合并那一组（layout.ts:175），写进去就是一条被冗余判据当场剪掉的键。
    */
-  readonly appliesTo: (node: DesignNode, breakpoint: BreakpointName) => boolean;
+  readonly appliesTo: (
+    node: DesignNode,
+    breakpoint: BreakpointName,
+    context?: { parent?: DesignNode | null; tokens?: readonly Token[] },
+  ) => boolean;
   /** 面板发来的原始值 → 能写进 patch 的值；认不出的给 REJECT，一条事务都不产生 */
   readonly clean: (value: unknown) => Cleaned;
   /**
@@ -103,18 +132,88 @@ function cleanSize(value: unknown): Cleaned {
 const cleanOpacity = (value: unknown): Cleaned => (isFiniteNumber(value) ? Math.min(1, Math.max(0, value)) : REJECT);
 const cleanGap = (value: unknown): Cleaned => (isFiniteNumber(value) && value >= 0 ? Math.round(value) : REJECT);
 const cleanColumns = (value: unknown): Cleaned => (isFiniteNumber(value) && value >= 1 ? Math.floor(value) : REJECT);
+const cleanFontWeight = (value: unknown): Cleaned =>
+  isFiniteNumber(value) && value >= 100 && value <= 900 && Math.round(value / 100) * 100 === value
+    ? Math.round(value)
+    : REJECT;
+const cleanLineHeight = (value: unknown): Cleaned =>
+  isFiniteNumber(value) && value > 0 && value <= 10 ? value : REJECT;
+const cleanLetterSpacing = (value: unknown): Cleaned =>
+  isFiniteNumber(value) && value >= -100 && value <= 100 ? value : REJECT;
+/** 字族：`{token.key}` 引用（面板只摆文档现有的那几格，写进 model 的也是这几格），或裸族名 */
+const cleanFontFamily = (value: unknown): Cleaned => {
+  if (typeof value !== 'string') return REJECT;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > 120 || /[\n\r]/.test(trimmed)) return REJECT;
+  if (/^\{[a-zA-Z0-9][a-zA-Z0-9._-]*\}$/.test(trimmed)) return trimmed;
+  return /^[^{}<>\\]{1,120}$/.test(trimmed) ? trimmed : REJECT;
+};
+const cleanTextCase =
+  (allowed: Set<string>) =>
+  (value: unknown): Cleaned =>
+    typeof value === 'string' && allowed.has(value) ? value : REJECT;
+const cleanDecoration =
+  (allowed: Set<string>) =>
+  (value: unknown): Cleaned =>
+    typeof value === 'string' && allowed.has(value) ? value : REJECT;
 const cleanFontSize = (value: unknown): Cleaned => (isFiniteNumber(value) && value > 0 ? Math.round(value) : REJECT);
+/**
+ * 混合模式：取值就是模型 `BlendMode` 那一串（Tailwind v4 的 `mix-blend-*` 名单与它一一对应），
+ * 标签直接用原名——这套东西本来就没有定型的中文说法，编一组中文等于让人对着对不上的名字找（§159）。
+ */
+const BLEND_MODE_VALUES = [
+  'normal',
+  'multiply',
+  'screen',
+  'overlay',
+  'darken',
+  'lighten',
+  'color-dodge',
+  'color-burn',
+  'soft-light',
+  'hard-light',
+  'difference',
+  'exclusion',
+  'hue',
+  'saturation',
+  'color',
+  'luminosity',
+] as const satisfies readonly Style['blendMode'][];
+const BLEND_MODE_CHOICES: readonly ResponsiveChoice[] = BLEND_MODE_VALUES.map((value) => ({
+  value,
+  label: value,
+}));
+const BLEND_MODE_SET = new Set<string>(BLEND_MODE_VALUES);
+const cleanBlendMode = (value: unknown): Cleaned =>
+  typeof value === 'string' && BLEND_MODE_SET.has(value) ? (value as Style['blendMode']) : REJECT;
+const cleanRotation = (value: unknown): Cleaned =>
+  isFiniteNumber(value) && value >= -360 && value <= 360 ? Math.round(value * 10) / 10 : REJECT;
+/** 指针：取值就是模型 `Style['cursor']` 那一串；`cursor-default` 是 Tailwind 合法类（写成默认 = 取消更窄档）。 */
+const CURSOR_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'default', label: '默认' },
+  { value: 'pointer', label: '手型' },
+  { value: 'text', label: '文本' },
+  { value: 'not-allowed', label: '禁止' },
+  { value: 'grab', label: '抓取' },
+  { value: 'grabbing', label: '抓取中' },
+];
+const CURSOR_VALUES = new Set<string>(CURSOR_CHOICES.map((c) => c.value));
+const cleanCursor = (value: unknown): Cleaned =>
+  typeof value === 'string' && CURSOR_VALUES.has(value) ? (value as Style['cursor']) : REJECT;
 
 /**
- * 排布只给这四样：求解器（layout.ts）与导出代码（codegen.ts 的 `layoutClasses`）都认它们。
- * `stack` / `none` 靠子节点自己的绝对坐标摆放，一条断点规则改不了那批坐标，所以这一格不摆那两个
- * 按钮——点了没效果的选项不该出现在面板上（§159）。
+ * 排布给五样。前四样之外**没有「堆叠」那格**：`stack` 与 `none` 在求解器里语义等同，
+ * 同时摆两个按钮是 §159 说的同一件事（两个入口做同一件事）。
+ * 第五样「自由定位」落 `none`——子节点按自己的 `position` 走绝对摆放；
+ * 模型层的模式标记类（ADR-0091，md:/lg:/xl: 的 `[--nexus-mode:none]`）已 round-trip，
+ * 位置那两格（`position.x`/`position.y`）按同一判据需要父级这一档投影出来是 none/stack 才摆。
  */
 const MODE_CHOICES: readonly ResponsiveChoice[] = [
   { value: 'vertical', label: '竖排' },
   { value: 'horizontal', label: '横排' },
   { value: 'grid', label: '网格' },
   { value: 'wrap', label: '换行' },
+  { value: 'none', label: '自由定位' },
 ];
 const MODE_VALUES = new Set<string>(MODE_CHOICES.map((c) => c.value));
 
@@ -147,6 +246,47 @@ const ITEMS_CHOICES: readonly ResponsiveChoice[] = (
 const JUSTIFY_VALUES = new Set<string>(JUSTIFY_CHOICES.map((c) => c.value));
 const ITEMS_VALUES = new Set<string>(ITEMS_CHOICES.map((c) => c.value));
 
+const SCROLL_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'none', label: '不滚动' },
+  { value: 'vertical', label: '纵向' },
+  { value: 'horizontal', label: '横向' },
+  { value: 'both', label: '双向' },
+];
+const SCROLL_VALUES = new Set<string>(SCROLL_CHOICES.map((c) => c.value));
+
+const TEXTCASE_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'original', label: '原样' },
+  { value: 'upper', label: '大写' },
+  { value: 'lower', label: '小写' },
+  { value: 'title', label: '首字母大写' },
+];
+const TEXTCASE_VALUES = new Set<string>(TEXTCASE_CHOICES.map((c) => c.value));
+
+const ALIGN_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'left', label: '左对齐' },
+  { value: 'center', label: '居中' },
+  { value: 'right', label: '右对齐' },
+  { value: 'justify', label: '两端对齐' },
+];
+const ALIGN_VALUES = new Set<string>(ALIGN_CHOICES.map((c) => c.value));
+
+const VERT_ALIGN_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'top', label: '上对齐' },
+  { value: 'middle', label: '居中' },
+  { value: 'bottom', label: '下对齐' },
+];
+const VERT_ALIGN_VALUES = new Set<string>(VERT_ALIGN_CHOICES.map((c) => c.value));
+
+const DECORATION_CHOICES: readonly ResponsiveChoice[] = [
+  { value: 'none', label: '无' },
+  { value: 'underline', label: '下划线' },
+  { value: 'line-through', label: '删除线' },
+];
+const DECORATION_VALUES = new Set<string>(DECORATION_CHOICES.map((c) => c.value));
+
+const cleanVertAlign = (value: unknown): Cleaned =>
+  typeof value === 'string' && VERT_ALIGN_VALUES.has(value) ? value : REJECT;
+
 const cleanAlign =
   (allowed: Set<string>) =>
   (value: unknown): Cleaned =>
@@ -159,6 +299,17 @@ const projectedModeOf = (node: DesignNode, breakpoint: BreakpointName): LayoutMo
  *  那一档解出来不是自动布局时这一格按下去什么都不改，面板不摆（§159），代码也不发（codegen 同一判据） */
 const alignableAt = (node: DesignNode, breakpoint: BreakpointName): boolean =>
   ALIGNABLE_MODES.includes(projectedModeOf(node, breakpoint));
+
+/**
+ * 父级 merged 进这一档后的自由定位逃生口（nodes.ts）。
+ * `position.x` / `position.y` 只对这类子节点有意义——其余排布下 left/top 只会被忽略（§16）。
+ * 父级没传进来时收起面板这两行（少显示比多显示安全，§159）。
+ */
+const freePositionAt = (parent: DesignNode | null, breakpoint: BreakpointName): boolean => {
+  if (!parent) return false;
+  const merged = applyResponsive(parent, breakpoint);
+  return merged.layout.mode === 'none' || merged.layout.mode === 'stack';
+};
 
 /** 这一档可编辑通道的顺序就是面板上行的顺序 */
 export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
@@ -207,6 +358,41 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     step: 0.05,
     appliesTo: () => true,
     clean: cleanOpacity,
+  },
+  {
+    id: 'style.blendMode',
+    label: '混合模式',
+    group: 'style',
+    key: 'blendMode',
+    readPath: 'style.blendMode',
+    widget: 'choice',
+    choices: BLEND_MODE_CHOICES,
+    appliesTo: () => true,
+    clean: cleanBlendMode,
+  },
+  {
+    id: 'style.rotation',
+    label: '旋转',
+    group: 'style',
+    key: 'rotation',
+    readPath: 'style.rotation',
+    widget: 'number',
+    min: -360,
+    max: 360,
+    step: 1,
+    appliesTo: () => true,
+    clean: cleanRotation,
+  },
+  {
+    id: 'style.cursor',
+    label: '指针',
+    group: 'style',
+    key: 'cursor',
+    readPath: 'style.cursor',
+    widget: 'choice',
+    choices: CURSOR_CHOICES,
+    appliesTo: () => true,
+    clean: cleanCursor,
   },
   {
     id: 'layout.mode',
@@ -281,6 +467,30 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     absentAs: false,
   },
   {
+    id: 'layout.clipContent',
+    label: '裁剪',
+    group: 'layout',
+    key: 'clipContent',
+    readPath: 'layout.clipContent',
+    widget: 'toggle',
+    toggleLabels: ['可见', '裁剪'],
+    appliesTo: () => true,
+    clean: (value) => (typeof value === 'boolean' ? value : REJECT),
+    absentAs: false,
+  },
+  {
+    id: 'layout.scroll',
+    label: '滚动',
+    group: 'layout',
+    key: 'scroll',
+    readPath: 'layout.scroll',
+    widget: 'choice',
+    choices: SCROLL_CHOICES,
+    appliesTo: () => true,
+    clean: (value) => (typeof value === 'string' && SCROLL_VALUES.has(value) ? value : REJECT),
+    absentAs: 'none',
+  },
+  {
     id: 'typography.fontSize',
     label: '字号',
     group: 'typography',
@@ -291,6 +501,128 @@ export const RESPONSIVE_CHANNELS: readonly ChannelSpec[] = [
     step: 1,
     appliesTo: (node) => node.typography !== undefined,
     clean: cleanFontSize,
+  },
+  {
+    id: 'typography.fontFamily',
+    label: '字族',
+    group: 'typography',
+    key: 'fontFamily',
+    readPath: 'typography.fontFamily',
+    widget: 'choice',
+    /** 文档现有的 fontFamily 型 token 现读（选项从 `state.document.tokens` 派生），不在这里抄第二份名单 */
+    choicesFrom: 'font-family-tokens',
+    appliesTo: (node, _breakpoint, context) =>
+      node.typography !== undefined && (context?.tokens ?? []).some((token) => token.type === 'fontFamily'),
+    clean: cleanFontFamily,
+  },
+  {
+    id: 'typography.fontWeight',
+    label: '字重',
+    group: 'typography',
+    key: 'fontWeight',
+    readPath: 'typography.fontWeight',
+    widget: 'number',
+    min: 100,
+    max: 900,
+    step: 100,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanFontWeight,
+  },
+  {
+    id: 'typography.lineHeight',
+    label: '行高',
+    group: 'typography',
+    key: 'lineHeight',
+    readPath: 'typography.lineHeight',
+    widget: 'number',
+    min: 0.5,
+    max: 10,
+    step: 0.05,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanLineHeight,
+  },
+  {
+    id: 'typography.letterSpacing',
+    label: '字距',
+    group: 'typography',
+    key: 'letterSpacing',
+    readPath: 'typography.letterSpacing',
+    widget: 'number',
+    min: -100,
+    max: 100,
+    step: 1,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanLetterSpacing,
+  },
+  {
+    id: 'typography.textCase',
+    label: '大小写',
+    group: 'typography',
+    key: 'textCase',
+    readPath: 'typography.textCase',
+    widget: 'choice',
+    choices: TEXTCASE_CHOICES,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanTextCase(TEXTCASE_VALUES),
+  },
+  {
+    id: 'typography.decoration',
+    label: '装饰',
+    group: 'typography',
+    key: 'decoration',
+    readPath: 'typography.decoration',
+    widget: 'choice',
+    choices: DECORATION_CHOICES,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanDecoration(DECORATION_VALUES),
+  },
+  {
+    id: 'typography.align',
+    label: '对齐',
+    group: 'typography',
+    key: 'align',
+    readPath: 'typography.align',
+    widget: 'choice',
+    choices: ALIGN_CHOICES,
+    appliesTo: (node) => node.typography !== undefined,
+    clean: cleanAlign(ALIGN_VALUES),
+  },
+  {
+    id: 'typography.verticalAlign',
+    label: '纵向对齐',
+    group: 'typography',
+    key: 'verticalAlign',
+    readPath: 'typography.verticalAlign',
+    widget: 'choice',
+    choices: VERT_ALIGN_CHOICES,
+    appliesTo: (node) => node.type === 'text' && node.typography !== undefined,
+    clean: cleanVertAlign,
+  },
+  {
+    id: 'position.x',
+    label: '左',
+    group: 'position',
+    key: 'x',
+    readPath: 'position.x',
+    widget: 'number',
+    min: 0,
+    max: 5000,
+    step: 1,
+    appliesTo: (_node, breakpoint, context) => freePositionAt(context?.parent ?? null, breakpoint),
+    clean: cleanGap,
+  },
+  {
+    id: 'position.y',
+    label: '上',
+    group: 'position',
+    key: 'y',
+    readPath: 'position.y',
+    widget: 'number',
+    min: 0,
+    max: 5000,
+    step: 1,
+    appliesTo: (_node, breakpoint, context) => freePositionAt(context?.parent ?? null, breakpoint),
+    clean: cleanGap,
   },
 ];
 
@@ -481,9 +813,18 @@ export function hasResponsiveRule(node: DesignNode, breakpoint: BreakpointName):
  * 行的可见性由它决定，徽标那句"这几处面板没有输入口"也由它派生——两处用同一份判据，
  * 免得面板上一格而徽标说没有，或者反过来（§159：界面说的话要和画布对得上）。
  * 多选取**交集**：STUDIO.md 定的"多选时显示交集属性"，不能对着一个不认这格的元素写这一格。
+ * `parent` 是可选的——传进来时 position.x/y 的父级判据才生效；不传时位置输入口收起，
+ * 少显示比多显示安全（§159）。
  */
-export function responsiveChannelsFor(node: DesignNode, breakpoint: BreakpointName): ChannelSpec[] {
-  return RESPONSIVE_CHANNELS.filter((spec) => spec.appliesTo(node, breakpoint));
+export function responsiveChannelsFor(
+  node: DesignNode,
+  breakpoint: BreakpointName,
+  parent?: DesignNode | null,
+  tokens?: readonly Token[],
+): ChannelSpec[] {
+  return RESPONSIVE_CHANNELS.filter((spec) =>
+    spec.appliesTo(node, breakpoint, { parent: parent ?? null, tokens }),
+  );
 }
 
 export interface ResponsiveImpact {
@@ -516,7 +857,17 @@ function candidatePaths(node: DesignNode, breakpoint: BreakpointName): string[] 
 }
 
 /** 徽标读数的全部真相：总数、面板摆得出输入口的那些占几处、剩下是哪些键 */
-export function responsiveImpactDetailOf(node: DesignNode, breakpoint: BreakpointName): ResponsiveImpact {
+/**
+ * 同 `responsiveChannelsFor`：`parent` 可选；传进来时 position.x/y 才算"面板摆得出"——
+ * 不传时这一对永远算作没有输入口的档（§159）。`tokens` 让 `typography.fontFamily` 的
+ * 输入口判据跟文档走（§159）。
+ */
+export function responsiveImpactDetailOf(
+  node: DesignNode,
+  breakpoint: BreakpointName,
+  parent?: DesignNode | null,
+  tokens?: readonly Token[],
+): ResponsiveImpact {
   const now = applyResponsive(node, breakpoint);
   const withoutOwn = applyResponsive(
     { ...node, responsive: withoutResponsiveRule(node, breakpoint) },
@@ -526,7 +877,9 @@ export function responsiveImpactDetailOf(node: DesignNode, breakpoint: Breakpoin
     const value = effectiveAt(now, path);
     return !sameValue(value, effectiveAt(node, path)) || !sameValue(value, effectiveAt(withoutOwn, path));
   });
-  const editable = new Set(responsiveChannelsFor(node, breakpoint).map((spec) => spec.readPath));
+  const editable = new Set(
+    responsiveChannelsFor(node, breakpoint, parent ?? null, tokens).map((spec) => spec.readPath),
+  );
   const outsidePanel = live
     .filter((path) => !editable.has(path))
     .sort((a, b) => groupRank(a) - groupRank(b) || (a < b ? -1 : a > b ? 1 : 0));
@@ -553,6 +906,11 @@ function groupRank(path: string): number {
  * 代码视图会写 `layout.padding`/`position.x`，那些改动画布和访客一样看得见，徽标不能因为它们没有
  * 输入口就读 0。
  */
-export function responsiveImpactOf(node: DesignNode, breakpoint: BreakpointName): number {
-  return responsiveImpactDetailOf(node, breakpoint).total;
+export function responsiveImpactOf(
+  node: DesignNode,
+  breakpoint: BreakpointName,
+  parent?: DesignNode | null,
+  tokens?: readonly Token[],
+): number {
+  return responsiveImpactDetailOf(node, breakpoint, parent ?? null, tokens).total;
 }

@@ -684,6 +684,7 @@ function decodeVariant(
   node: DesignNode,
   ctx: Ctx,
   breakpoint: BreakpointName,
+  tierParentMode?: string | null,
 ): VariantDecode {
   const list = [...tokens];
   const out: VariantDecode = { patch: {}, checked: [], unmapped: [] };
@@ -752,6 +753,61 @@ function decodeVariant(
     }
   }
   if (Object.keys(pad).length) layout.padding = pad;
+  // 自由定位逃生口的模式标记（ADR-0091·切片 15）： Tailwind 任意属性 `[--nexus-mode:none|stack]`，
+  // 只有 NEXUS 自己的生成器会发它，值只收 `none`/`stack`——其余如实 unmapped 不猜。
+  // 定位参照那条 `md:relative` 只在与 marker **同时出现**时被认下（它是这一刀的定位参照，不是作者意图），
+  // 单独一个 `md:relative` 仍落 unmapped（手写的 relative 落在字面上，不猜）。
+  let markerMode: "none" | "stack" | null = null;
+  for (const token of [...list]) {
+    const m = /^\[--nexus-mode:([a-z]+)\]$/.exec(token);
+    if (!m) continue;
+    const value = m[1]!;
+    if (value === "none" || value === "stack") {
+      markerMode = value;
+      out.checked.push(token);
+      list.splice(list.indexOf(token), 1);
+      continue;
+    }
+    note(token, `模式标记只收 none / stack（手写 "${value}" 不认，不猜）`);
+  }
+  if (markerMode) {
+    layout.mode = markerMode;
+    const relAt = list.indexOf("relative");
+    if (relAt >= 0) {
+      list.splice(relAt, 1);
+      out.checked.push("relative");
+    }
+  }
+  // 圆角：先分格再折叠四边（`rounded` 的 head 是 `rounded-`，会顺带吃掉 `rounded-tl-[…]`，顺序反了就读不出边）。
+  // 与基线同一组 rim（px 数值或 radius.* token）；少一格的 uniform 折不出来，如实 unmapped。
+  const corners: Partial<CornerRadius> = {};
+  for (const [utility, corner] of [
+    ["rounded-tl", "topLeft"],
+    ["rounded-tr", "topRight"],
+    ["rounded-br", "bottomRight"],
+    ["rounded-bl", "bottomLeft"],
+  ] as const) {
+    for (const hit of takeUtility(list, utility).all) {
+      const n = lengthOrTokenOf(hit.value, ctx);
+      if (n === null) note(hit.literal, "圆角需要 px 数值或 radius.* token");
+      else {
+        corners[corner] = n;
+        out.checked.push(hit.literal);
+      }
+    }
+  }
+  if (Object.keys(corners).length) style.cornerRadius = corners;
+  // 四格折叠：任一格已被分格认领就不折（少一格的 uniform 会丢边）
+  if (!Object.keys(corners).length) {
+    for (const hit of takeUtility(list, "rounded").all) {
+      const n = lengthOrTokenOf(hit.value, ctx);
+      if (n === null) note(hit.literal, "圆角需要 px 数值或 radius.* token");
+      else {
+        style.cornerRadius = { topLeft: n, topRight: n, bottomRight: n, bottomLeft: n };
+        out.checked.push(hit.literal);
+      }
+    }
+  }
   const text = takeUtility(list, "text");
   for (const hit of text.arbitrary) {
     const parsed = classifyText(hit.value, ctx);
@@ -766,6 +822,67 @@ function decodeVariant(
       typography.align = ALIGN_CLASS[hit.literal];
       out.checked.push(hit.literal);
     } else note(hit.literal, "断点覆盖暂不支持该 text-* 写法");
+  }
+  // 字重 / 行高（§14）：与字号同组 `typography`，处方同基线（`WEIGHT_CLASS` · `leading-normal`）。
+  for (const hit of takeUtility(list, "leading").all) {
+    if (hit.value === "normal") {
+      typography.lineHeight = "auto";
+      out.checked.push(hit.literal);
+      continue;
+    }
+    const n = numberOf(hit.value);
+    if (n === null) note(hit.literal, "断点行高需要倍数数字（如 leading-[1.4]）");
+    else {
+      typography.lineHeight = n;
+      out.checked.push(hit.literal);
+    }
+  }
+  for (const hit of takeUtility(list, "font").all) {
+    const byName = WEIGHT_CLASS[hit.literal];
+    if (byName !== undefined) {
+      typography.fontWeight = byName;
+      out.checked.push(hit.literal);
+      continue;
+    }
+    // 字族（§14）：与基线同一套认领（`WEIGHT_CLASS` 先行 → `tokenRefOf` → 裸族名 → unmapped 不猜）
+    const familyName = /^family-name:(.+)$/.exec(hit.value);
+    const raw = familyName ? familyName[1]! : hit.value;
+    const ref = tokenRefOf(raw, ctx);
+    if (ref) {
+      typography.fontFamily = ref;
+      out.checked.push(hit.literal);
+      continue;
+    }
+    const n = numberOf(raw);
+    if (n !== null && n >= 100 && n <= 900 && !familyName) {
+      typography.fontWeight = n;
+      out.checked.push(hit.literal);
+      continue;
+    }
+    if (/^[A-Za-z][\w -]*$/.test(raw.replace(/_/g, " "))) {
+      typography.fontFamily = raw.replace(/_/g, " ");
+      out.checked.push(hit.literal);
+    } else note(hit.literal, "断点字族超出模型表达");
+  }
+  for (const hit of takeUtility(list, "tracking").all) {
+    const n = numberOf(hit.value);
+    if (n === null) note(hit.literal, "断点字距需要 px 数值");
+    else {
+      typography.letterSpacing = n;
+      out.checked.push(hit.literal);
+    }
+  }
+  const textCaseTok = list.find((token) => CASE_CLASS[token] !== undefined);
+  if (textCaseTok) {
+    list.splice(list.indexOf(textCaseTok), 1);
+    typography.textCase = CASE_CLASS[textCaseTok];
+    out.checked.push(textCaseTok);
+  }
+  const decorationTok = ["underline", "line-through"].find((token) => list.includes(token));
+  if (decorationTok) {
+    list.splice(list.indexOf(decorationTok), 1);
+    typography.decoration = decorationTok as NonNullable<Typography["decoration"]>;
+    out.checked.push(decorationTok);
   }
   // 正向方向类（`md:flex-col`）在第八片之后可能说两件事：这一档的**排布**，以及「这一档不反向」。
   // 两件事各按自己的归属规矩收，判据与发射侧同一份（§14 第五/七/八片是同一条纪律的四次落地）：
@@ -788,7 +905,9 @@ function decodeVariant(
     const assertsReverse = list.includes(REVERSE_CLASS[mode] ?? "");
     const saysMode = declaresMode || mode !== narrower.layout.mode;
     const saysForward = !assertsReverse && narrowerReversed && ALIGNABLE_MODES.includes(mode);
-    if (!saysMode && !saysForward) continue;
+    if (!saysMode && !saysForward)
+      // verticalAlign narrow mode path: md:flex / md:flex-col only carrier — mode entry silent
+      continue;
     list.splice(at, 1);
     if (saysMode) layout.mode = mode;
     if (saysForward) layout.reverse = false;
@@ -815,6 +934,21 @@ function decodeVariant(
     const at = list.indexOf(cls);
     if (at >= 0) list.splice(at, 1);
   }
+  // 垂直对齐（§14）：文字节点上宽排版的 `md:justify-*` 不是自动布局的主轴对齐，
+  // 是 typography.verticalAlign 的 override——与发射侧同口径，按 narrower 档位的
+  // verticalAlign 向窄档看变化，有变化才从 table 捞回来进 patch。
+  // （此处 vAlignNarrowed 沿袭下游判断；这里不消费类，ED 带 `flex`/`flex-col`/`justify-*`
+  // 由下方的通用路径当正常处理——`justify-*` 落到 `justify` 写入，VA 的 narrowing 落到 VA block 之下。）
+  let vAlignNarrowed = false;
+  {
+    const narrower = applyResponsiveBelow(node, breakpoint);
+    const narrowerVa = narrower.typography?.verticalAlign ?? "top";
+    const tierVa = applyResponsive(node, breakpoint).typography?.verticalAlign ?? "top";
+    if (node.type === "text" && node.typography && tierVa !== narrowerVa) {
+      typography.verticalAlign = tierVa;
+      vAlignNarrowed = true;
+    }
+  }
   // 对齐两键（§14 第六片）。发射侧只在**这一档解出来的排布真是自动布局**时发 `md:justify-*` /
   // `md:items-*`：grid / wrap 下求解器不看这两个键，画布不动，而它们在 CSS 上真会挪东西——
   // 那份模型不认的类读回来就是凭空多出一个模型里没有、画布也不认的键。
@@ -837,6 +971,11 @@ function decodeVariant(
   ] as const) {
     const tokens = collectTokens(channel.table);
     if (!tokens.length) continue;
+    if (channel.key === "justify" && vAlignNarrowed) {
+      // VA dispatch already consumed, simply group-checked them here (they mirror narrower delta)
+      out.checked.push(...tokens);
+      continue;
+    }
     if (!ALIGNABLE_MODES.includes(modeOfThisTier)) {
       tokens.forEach((token) =>
         note(
@@ -877,6 +1016,126 @@ function decodeVariant(
       style.opacity = n;
       out.checked.push(hit.literal);
     }
+  }
+  // 混合模式：`md:mix-blend-*`——Tailwind v4 的 blend 名单与模型 `BlendMode` 一一对应（见 types.ts），
+  // `mix-blend-normal` 是合法类：显式写回正常模式顶掉更窄那档的混合模式。未知名一律进 unmapped，不猜。
+  for (const hit of takeUtility(list, "mix-blend").all) {
+    if (!BLEND_MODES.has(hit.value as Style["blendMode"])) {
+      note(hit.literal, "mix-blend 取值不在模型的混合模式名单里");
+      continue;
+    }
+    style.blendMode = hit.value as Style["blendMode"];
+    out.checked.push(hit.literal);
+  }
+  // 旋转：`md:rotate-[Ndeg]`——与基线同一判据（数字 + deg 后缀），其余格式一律进 unmapped，不猜。
+  for (const hit of takeUtility(list, "rotate").all) {
+    const m = /^-?\d+(?:\.\d+)?deg$/.exec(hit.value);
+    if (!m) note(hit.literal, "rotate 需要角度数值（deg）");
+    else {
+      style.rotation = Number(hit.value.slice(0, -3));
+      out.checked.push(hit.literal);
+    }
+  }
+  // 指针：`md:cursor-*`——`cursor-default` 是合法类（顶掉更窄那档的指针样式）。未知名 unmapped，不猜。
+  for (const hit of takeUtility(list, "cursor").all) {
+    if (!CURSORS.has(hit.value as Style["cursor"])) {
+      note(hit.literal, "cursor 取值不在模型的指针名单里");
+      continue;
+    }
+    style.cursor = hit.value as Style["cursor"];
+    out.checked.push(hit.literal);
+  }
+  // 裁剪 / 滚动（§14）：与基线同一组 overflow 类。`overflow-visible` 是响应式"取消"类，
+  // 仅在更窄那档有 overflow 约束时才有意义（与 reverse-cancel 同一判据形状）。
+  const consumeToken = (token: string): boolean => {
+    const at = list.indexOf(token);
+    if (at < 0) return false;
+    list.splice(at, 1);
+    return true;
+  };
+  if (consumeToken("overflow-hidden")) {
+    layout.clipContent = true;
+    out.checked.push("overflow-hidden");
+  } else if (consumeToken("overflow-y-auto")) {
+    layout.scroll = "vertical";
+    out.checked.push("overflow-y-auto");
+  } else if (consumeToken("overflow-x-auto")) {
+    layout.scroll = "horizontal";
+    out.checked.push("overflow-x-auto");
+  } else if (consumeToken("overflow-auto")) {
+    layout.scroll = "both";
+    out.checked.push("overflow-auto");
+  } else if (consumeToken("overflow-visible")) {
+    const narrowerOverflow =
+      narrower.layout.clipContent === true ||
+      (narrower.layout.scroll && narrower.layout.scroll !== "none");
+    if (narrowerOverflow) {
+      // 取消更窄那档的 overflow 约束：显式写回“无遮罩/不滚动”的模型状态
+      layout.clipContent = false;
+      layout.scroll = "none";
+      out.checked.push("overflow-visible");
+    } else {
+      // 更窄那档本来就没有 overflow 约束：这条类不改变投影，静默消费但不进 checked
+      //（进 checked 会要求重投影原样再现它，而这一档未声明时不会发 overflow-visible）
+    }
+  }
+  // 绝对定位（§14 第九片）：`md:left-*` / `md:top-*` / `md:absolute` 只在这一档投影后的父级
+  // 是自由定位逃生口（none / stack）时才收——与基线 `positionClasses` 同一判据，只是父级模式
+  // 按这一档投影读。父级不是时如实披露：这一档的 left/top 不会移动画布上的东西，只是在骗读者。
+  const leftsV = takeUtility(list, "left");
+  const topsV = takeUtility(list, "top");
+  const absoluteV = consumeToken("absolute");
+  const tierAbsolutelyPlaced = tierParentMode === "none" || tierParentMode === "stack";
+  // 这一档相对窄档由 absolute → 入流：`static` 顶掉窄档那条 absolute。这一档收到该 token 时，
+  // 语义是"该档不再绝对"——不回写任何键（模型里只有 absolute/stack 哪两档，没有 position: static 这个键），
+  // 以 checked 形式保留下来对自检透明（重投影会发同样类名）。
+  const staticV = consumeToken("static");
+  if (staticV) {
+    if (!tierAbsolutelyPlaced) {
+      out.checked.push("static");
+    } else {
+      // 父级依然 none/stack，消费 `static` 没有意义——md:static 会把子节点丢出流但父级不关流，
+      // 留在排版上就是回归。如实说明而不静默忽略。
+      note("static", `此档父级（${tierParentMode}）是自由定位逃生口：md:static 让子节点回到流，但父级不按流摆它`);
+    }
+  }
+  if (tierAbsolutelyPlaced) {
+    const position: { x?: number; y?: number } = {};
+    const x = leftsV.all[0];
+    const y = topsV.all[0];
+    const below = applyResponsiveBelow(node, breakpoint);
+    if (x) {
+      const n = numberOf(x.value);
+      if (n === null) {
+        note(x.literal, "断点 left 需要 px 数值");
+      } else if (below.position.x !== n) {
+        position.x = n;
+      } else {
+        // 这一档的 left 与窄档合出来的值一致 ⇒ 位置类是父级 flip 出来的绝对化，
+        // 不是子节点要盖的新值：保留 checked（类在这一档确实就长这样），但 patch 留空座。
+        out.checked.push(x.literal);
+      }
+    }
+    if (y) {
+      const n = numberOf(y.value);
+      if (n === null) {
+        note(y.literal, "断点 top 需要 px 数值");
+      } else if (below.position.y !== n) {
+        position.y = n;
+      } else {
+        out.checked.push(y.literal);
+      }
+    }
+    if (Object.keys(position).length) {
+      out.patch.position = position;
+    }
+    if (absoluteV) out.checked.push("absolute");
+  } else if (absoluteV || leftsV.all.length || topsV.all.length) {
+    // 父级不是自由定位的容器：这些类在这一档不会改变画布上的位置（§16），如实披露
+    note(
+      absoluteV ? "absolute" : leftsV.all[0]?.literal ?? topsV.all[0]?.literal ?? "left/top",
+      `这一档的父级（${tierParentMode ?? "未知/无父级"}）不是自由定位容器，不回写`,
+    );
   }
   if (Object.keys(size).length) out.patch.size = size;
   if (Object.keys(layout).length) out.patch.layout = layout;
@@ -1449,6 +1708,12 @@ function decodeClasses(
   } else if (consume("overflow-auto")) {
     write("overflow-auto", "layout.scroll", "both");
     d.checked.push("overflow-auto");
+  } else if (consume("overflow-visible")) {
+    write("overflow-visible", "layout.clipContent", false);
+    if (node.layout.scroll && node.layout.scroll !== "none") {
+      write("overflow-visible", "layout.scroll", "none");
+    }
+    d.checked.push("overflow-visible");
   } else if (node.layout.clipContent) {
     write(null, "layout.clipContent", false);
   }
@@ -1764,7 +2029,7 @@ function decodeClasses(
   else if (!node.visible) write(null, "visible", true);
 
   for (const [breakpoint, tokens] of variants) {
-    const nested = decodeVariant(tokens, node, ctx, breakpoint);
+    const nested = decodeVariant(tokens, node, ctx, breakpoint, parent ? applyResponsive(parent, breakpoint).layout.mode : null);
     nested.checked.forEach((token) => d.checked.push(`${VARIANT_PREFIX[breakpoint]}${token}`));
     nested.unmapped.forEach((entry) =>
       d.unmapped.push({ token: `${VARIANT_PREFIX[breakpoint]}${entry.token}`, reason: `断点 ${breakpoint}：${entry.reason}` }),
@@ -1780,6 +2045,33 @@ function decodeClasses(
       d.unmapped.push({ token: `${prefix}${entry.token}`, reason: `状态 ${state}：${entry.reason}` }),
     );
     d.states.set(state, nested);
+  }
+
+  // 自由定位逃生口模式标记（ADR-0091 基线那一档）：`[--nexus-mode:none|stack]`，只有生成器会发它，
+  // 值只收 none/stack——其余落 unmapped 不猜。`relative` 与 marker 共现时消费（定位参照），
+  // 单独一个 `relative` 仍落 unmapped（手写的相对定位不猜）。
+  {
+    let markerConsumed = false;
+    for (const token of [...list]) {
+      const m = /^\[--nexus-mode:([a-z]+)\]$/.exec(token);
+      if (!m) continue;
+      const value = m[1]!;
+      if (value === "none" || value === "stack") {
+        write(token, "layout.mode", value);
+        list.splice(list.indexOf(token), 1);
+        d.checked.push(token);
+        markerConsumed = true;
+        continue;
+      }
+      note(token, `模式标记只收 none / stack`);
+    }
+    if (markerConsumed) {
+      const relAt = list.indexOf("relative");
+      if (relAt >= 0) {
+        list.splice(relAt, 1);
+        d.checked.push("relative");
+      }
+    }
   }
 
   for (const token of list) note(token, "不在 Design ↔ Code 类名白名单里（§19）");

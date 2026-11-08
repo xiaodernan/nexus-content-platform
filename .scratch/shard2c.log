@@ -1,0 +1,353 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/鍐呭鍒涗綔骞冲彴[39m
+
+[90mstdout[2m | apps/web/test/account-deletion.integration.test.ts[2m > [22m[2m纭璇嶅彇鍝竴鍒?[2m > [22m[2m娌″彂甯冭繃鐨勪汉娌℃湁 handle锛岄偅涓€鑷傛敼璁ゅ睍绀哄悕鈥斺€斿睍绀哄悕閫愬瓧杈撳叆纭疄娉ㄩ攢寰楁帀
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/rate-limit.redis.integration.test.ts
+[22m[39m[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+node.exe : [90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m涓や釜椹卞姩閫愭牸鍚岀瓟妗堬紙parity锛?[
+2m > [22m[2mlimit=1/3/5 涓夋。锛歛llowed 涓?count 姣忎竴鏍肩浉鍚岋紝retryAfterMs 鏂瑰悜涓€鑷淬€侀噺绾т竴鑷?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘
+绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallba
+cks_total{reason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue options is false
+所在位置 行:1 字符: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([90mstderr[2m...ptions is false:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m涓や釜椹卞姩閫愭牸鍚岀瓟妗堬紙parity锛?[2m > [22m
+[2mlimit=1/3/5 涓夋。锛歛llowed 涓?count 姣忎竴鏍肩浉鍚岋紝retryAfterMs 鏂瑰悜涓€鑷淬€侀噺绾т竴鑷?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1
+ 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{r
+eason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m涓や釜椹卞姩閫愭牸鍚岀瓟妗堬紙parity锛?[2m > [22m
+[2mlimit=1/3/5 涓夋。锛歛llowed 涓?count 姣忎竴鏍肩浉鍚岋紝retryAfterMs 鏂瑰悜涓€鑷淬€侀噺绾т竴鑷?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1
+ 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{r
+eason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m涓や釜椹卞姩閫愭牸鍚岀瓟妗堬紙parity锛?[2m > [22m
+[2m绐楀彛婊戣繃涔嬪悗涓よ竟閮介噸鏂版斁琛岋紙鍚屼竴鏉¤竟鐣岋紝涓嶆槸涓ゅ杈圭晫锛?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨
+勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 S
+tream isn't writeable and enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mRedis 椹卞姩锛氬瀹炰緥涓€璧锋暟鍚屼竴浠界獥鍙?[2m > 
+[22m[2m涓や釜瀹炰緥鍚堣鎭板ソ limit 娆★紝涓嶆槸 2脳limit
+[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮
+瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue
+ options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mRedis 椹卞姩锛氬瀹炰緥涓€璧锋暟鍚屼竴浠界獥鍙?[2m > 
+[22m[2m鍚屾绉掑苟鍙戠獊鍙戯細鎭板ソ鏀捐 limit 鏉★紙鍘熷瓙鎬ч偅涓€鏍硷級
+[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮
+瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue
+ options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mRedis 椹卞姩锛氬瀹炰緥涓€璧锋暟鍚屼竴浠界獥鍙?[2m > 
+[22m[2m鎴愬憳鍚嶆瘡鏉￠兘涓嶅悓锛氬悓姣涓ゆ鍛戒腑鍦ㄩ泦鍚堥噷鍗犱袱鏍?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶
+紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 St
+ream isn't writeable and enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mRedis 椹卞姩锛氬瀹炰緥涓€璧锋暟鍚屼竴浠界獥鍙?[2m > 
+[22m[2m琚尅涓嬬殑閭ｄ竴娆′笉杩涚獥鍙ｏ紙鍚﹀垯闄愭祦鎴愪簡鍔犻€熻嚜閿侊級
+[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮
+瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue
+ options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mRedis 椹卞姩锛氬瀹炰緥涓€璧锋暟鍚屼竴浠界獥鍙?[2m > 
+[22m[2m鎸?retryAfterMs 绛夊畬涔嬪悗鐪熺殑鑳借繃锛堥偅鍙ヨ瘽涓嶆槸鎽嗚锛?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄
+悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}
+锛夛細 Stream isn't writeable and enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m閫€鍥烇紙Redis 閭ｅ崐杈逛笉琛屾椂闂歌繕鍦ㄦ尅锛?[2m > 
+[22m[2m閿笂鎸傜潃閿欒绫诲瀷 鈬?褰撳満閫€鍥炪€佷笉鎶涖€侀檺棰濅粛鐒剁敓鏁?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀
+悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細
+ Stream isn't writeable and enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m閫€鍥烇紙Redis 閭ｅ崐杈逛笉琛屾椂闂歌繕鍦ㄦ尅锛?[2m > 
+[22m[2m杩炰笉涓婄殑 Redis 鈬?ready=false銆乭it 涓嶆姏銆佷粛鎸′綇銆佽鏁板湪娑?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙
+扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-f
+ailed"}锛夛細 Stream isn't writeable and enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m閫€鍥烇紙Redis 閭ｅ崐杈逛笉琛屾椂闂歌繕鍦ㄦ尅锛?[2m > 
+[22m[2m姝ｅ父璺緞涓?fallbackCount 涓€鐩存槸 0锛堥檶鐢熷洖鎵т笉璁歌璇绘垚鏀捐锛?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€
+鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-
+failed"}锛夛細 Stream isn't writeable and enableOfflineQueue options is false
+
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m闂ㄩ潰鎸夌幆澧冨彉閲忛€夐┍鍔?[2m > [22m[2m璁句簡 NEXUS_REDIS_URL 鐢?Redis 閭ｄ唤锛屾病璁剧敤杩涚▼鍐呴偅浠?[22m[39m[rateLimit] 椹卞姩=Redis 鏈夊簭闆嗘粦鍔ㄧ獥鍙ｏ紙閿墠缂€ nexus:ratelimit:v1:锛屾《閿笂鐣?50000 鍙級
+[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mreset 鐨勭垎鐐稿崐寰?[2m > [22m[2mreset(
+key) 鍙竻閭ｄ竴鍙《
+[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮
+瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue
+ options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mreset 鐨勭垎鐐稿崐寰?[2m > [22m[2mreset(
+) 鍙竻鑷繁鐨勫墠缂€锛屽埆浜哄墠缂€涓嬬殑閿竴鏉′笉灏?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=comman
+d-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't 
+writeable and enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mreset 鐨勭垎鐐稿崐寰?[2m > [22m[2mRedis 
+鏂嚎鏃?reset 涓嶆姏锛岃€岃繘绋嬪唴閭ｄ竴浠界収鏍疯娓?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=comma
+nd-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't
+ writeable and enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mreset 鐨勭垎鐐稿崐寰?[2m > [22m[2mRedis 
+鏂嚎鏃?reset 涓嶆姏锛岃€岃繘绋嬪唴閭ｄ竴浠界収鏍疯娓?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 3 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=reset
+锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="reset"}锛夛細 Stream isn't writeable and ena
+bleOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m妗堕敭鐨勪笂鐣?[2m > [22m[2m鍚嶉鐢ㄥ畬鏃舵柊妗跺缓
+涓嶅嚭鏉ワ紝浣嗛偅鏉¤姹備粛琚湰鏈虹獥鍙ｆ尅浣忥紙涓嶆槸鍏嶆锛?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=com
+mand-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn
+'t writeable and enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m妗堕敭鐨勪笂鐣?[2m > [22m[2m鍚嶉鐢ㄥ畬鏃舵柊妗跺缓
+涓嶅嚭鏉ワ紝浣嗛偅鏉¤姹備粛琚湰鏈虹獥鍙ｆ尅浣忥紙涓嶆槸鍏嶆锛?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 2 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=ove
+r-cap锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="over-cap"}锛夛細 妗堕敭鍚嶉鐢ㄥ畬锛氫笂鐣?2锛屽悕鍐岄噷 
+2 鏉?
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m妗堕敭鐨勪笂鐣?[2m > [22m[2m涓婄晫鍙鏂板缓锛氬凡
+缁忓湪鏁颁笢瑗跨殑閭ｅ彧妗剁収鏍峰線 Redis 鐨勭獥鍙ｉ噷璁帮紝涔熺収鏍疯瀹冩尅浣?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇
+鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 
+Stream isn't writeable and enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m妗堕敭鐨勪笂鐣?[2m > [22m[2m涓婄晫鍙鏂板缓锛氬凡
+缁忓湪鏁颁笢瑗跨殑閭ｅ彧妗剁収鏍峰線 Redis 鐨勭獥鍙ｉ噷璁帮紝涔熺収鏍疯瀹冩尅浣?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 2 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇
+鐨勶紱鍘熷洜=over-cap锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="over-cap"}锛夛細 妗堕敭鍚嶉鐢ㄥ畬锛氫笂
+鐣?1锛屽悕鍐岄噷 1 鏉?
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m妗堕敭鐨勪笂鐣?[2m > [22m[2m鏁寸獥杩囨湡鐨勬潯鐩吘
+鍑轰綅瀛愶細绛変竴绛夛紝鏂版《鍙堣兘寤轰簡
+[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮
+瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue
+ options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m妗堕敭鐨勪笂鐣?[2m > [22m[2m鍚嶅唽璇寸殑鏉℃暟锛濋偅
+鍙?Redis 涓婄湡鐨勬湁鐨勬《鏁?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘
+棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't writeable and
+ enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m妗堕敭鐨勪笂鐣?[2m > [22m[2m鍚嶅唽鑷繁涔熸湁瀵垮懡
+锛堝畠涓嶈兘鍙樻垚涓€鍙案涔呯殑閿級
+[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮
+瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue
+ options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m妗堕敭鐨勪笂鐣?[2m > [22m[2mreset(key) 鎶
+婂悕鍐岄噷閭ｆ潯涓€璧锋憳鎺夛細鍚嶉绔嬪埢杩樼粰鏂版《
+[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮
+瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue
+ options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m閿殑瀵垮懡[2m > [22m[2mPEXPIRE 璁╅暱鏃堕
+棿娌′汉鎵撶殑閿嚜宸辨秷澶憋紙涓嶈禆鍦ㄥ簱閲岋級
+[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮
+瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue
+ options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m椹卞姩鑷姤鐜板満鐨勭嚎璺偅鍑犳牸锛堢涓夊崄浜旂墖鐨勯泦鎴愪晶锛?
+[2m > [22m[2m绾胯矾鍦ㄦ椂鎶?up锛屼笖 bucketsTracked 灏辨槸閭ｅ彴鍚嶅唽鐨勬潯鏁帮紙涓嶆槸鍙︾畻鐨勪竴浠斤級
+[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮
+瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue
+ options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m椹卞姩鑷姤鐜板満鐨勭嚎璺偅鍑犳牸锛堢涓夊崄浜旂墖鐨勯泦鎴愪晶锛?
+[2m > [22m[2m娌℃祦閲忔椂 bucketsTracked 鍋滃湪鏈€鍚庝竴娆″線鏉ョ湅鍒扮殑鏁扳€斺€旂晫闈㈤偅鍙?瀹冩槸鏃х殑"鐨勫嚟璇?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃
+暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_t
+otal{reason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue options is false
+
+[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m椹卞姩鑷姤鐜板満鐨勭嚎璺偅鍑犳牸锛堢涓夊崄浜旂墖鐨勯泦鎴愪晶锛?
+[2m > [22m[2m杩炰笂杩囧啀鏂紑鏃舵姤 down锛堟湁鐣岃疆璇紝鏂嚎鐨勮惤瀹氭湰鏉ュ氨鏄紓姝ョ殑锛?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂
+磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="comm
+and-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue options is false
+
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/analytics-trend.integration.test.ts[2m > [22m[2m鎸夊ぉ鏇茬嚎锛堢湡搴擄級[2m > [22m[2m缂虹殑閭ｅぉ琛ユ垚 0锛屼笉璺宠繃锛涗絾"涓€鏉″績璺抽兘娌℃湁"閭ｅぉ鐨勬椂闀挎槸 null 涓嶆槸 0
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/guest-write-gate.integration.test.ts
+[22m[39m[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/storyboard-render.integration.test.ts[2m > [22m[2mrenderStoryboardDemo 鈥斺€?搂40 鏈€鍚庝竴鏍硷細鍒嗛暅鐪熺殑娓插嚭鏉ワ紝璧拌棰戞憚鍏ラ摼钀藉簱[2m > [22m[2m蹇箰璺緞锛氱湡 ffmpeg 娓插嚭鐨?mp4 钀芥垚 kind=video 璧勪骇锛屼换鍔?succeeded锛寁ideo 妗舵墸 5 鐐癸紝demoMode 璁板湪 genMeta 閲?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/social.integration.test.ts[2m > [22m[2mLike / Comment / Follow[2m > [22m[2m鐐硅禐鏄彲鍒囨崲鐨勫紑鍏筹紝璁℃暟璇寸殑鏄湡鏁?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/social.integration.test.ts[2m > [22m[2mRemix锛埪?8 鍒嗗弶锛屼笉鏄敼鍘熶綔鍝侊級[2m > [22m[2m鍒嗗弶鍑烘潵鐨勬槸鍙戝竷閭ｄ竴鐗堬紝浣滆€呮病鍏紑鐨勬敼鍔ㄤ笉浼氳窡鐫€鍑哄幓
+[22m[39m[storage] 椹卞姩=local configured=false 鈥斺€?鏈厤缃?NEXUS_S3_* 鍑嵁锛屽洖钀藉埌鏈湴鐩綍 D:\鍐呭鍒涗綔骞冲彴\.nexus-storage锛堝紑鍙戝厹搴曪紝闈炵敓浜у舰鎬侊級
+
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/profile.integration.test.ts[2m > [22m[2mprofileOf锛埪?0 鐨勫彲瑙佹€ц竟鐣岋級[2m > [22m[2m鍙垪鍏綉涓婁紶鐫€鐨勪綔鍝侊紱鏈彂甯冧笌宸蹭笅鏋剁殑涓嶅嚭鐜?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/guest-reclaim.integration.test.ts
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/image-studio.integration.test.ts[2m > [22m[2m搂38 Reference 鈫?Variation 鎵撶湡搴?[2m > [22m[2m鍙傝€冨浘鐨勪富鑹插喅瀹氱敾闈細鍚?prompt 鍚?seed锛屾崲鍙傝€冨氨鏄崲瀛楄妭
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstdout[2m | apps/web/test/image-studio.integration.test.ts[2m > [22m[2m搂38 Reference 鈫?Variation 鎵撶湡搴?[2m > [22m[2m鍙傝€冨浘鐨勪富鑹插喅瀹氱敾闈細鍚?prompt 鍚?seed锛屾崲鍙傝€冨氨鏄崲瀛楄妭
+[22m[39m[storage] 椹卞姩=local configured=false 鈥斺€?鏈厤缃?NEXUS_S3_* 鍑嵁锛屽洖钀藉埌鏈湴鐩綍 D:\鍐呭鍒涗綔骞冲彴\.nexus-storage锛堝紑鍙戝厹搴曪紝闈炵敓浜у舰鎬侊級
+
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/publish.integration.test.ts[2m > [22m[2m鍙戝竷涓庡垎浜紙鐪熷疄鏁版嵁搴擄級[2m > [22m[2m鍙戝竷锛氱敓鎴?/n/<handle>/<slug>锛屽苟鐣欎笅涓€鏉?publish 蹇収
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/api-tokens.integration.test.ts[2m > [22m[2m绔偣鍞竴鐨勫叆鍙ｏ細scope 涓嶅鍒伴檺娴?[2m > [22m[2m甯?design:read 鎵嶈寰楀埌璁捐鏂囨。閭ｄ竴鏍硷紱缂哄畠鐨勫嚟鎹厛鎾?403
+[22m[39m[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/project-delete.integration.test.ts[2m > [22m[2m鍒犻櫎涔嬪悗锛屽摢浜涢潰鍐嶄篃鐪嬩笉鍒板畠[2m > [22m[2m搂61 鍙戠幇涓庝釜浜轰富椤碉細鍏紑鐫€鐨勯」鐩竴鍒犲氨浠庝袱杈规秷澶?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/notifications.integration.test.ts[2m > [22m[2m鍐欏叆锛氳皝鏀跺埌銆侀噸澶嶇殑鎬庝箞鍔?[2m > [22m[2m鍙戝竷瀹屾垚鏃朵綔鑰呮湁涓€鏉★紝璺汉娌℃湁锛涜矾浜鸿嚜宸卞彂甯冨悗浠栭偅渚у氨鏈変簡
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/seo.integration.test.ts[2m > [22m[2msitemap 涓庡叕寮€椤靛厓鏁版嵁锛堢湡瀹炴暟鎹簱锛?[2m > [22m[2mpublic 杩涙竻鍗曪紱unlisted 涓嶈繘锛屽悓涓€娆℃煡璇㈤噷浜掍负瀵圭収
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/ai-approvals.integration.test.ts[2m > [22m[2m搂73 鐨勮秺鏉冩嫆鏀讹細琚偣鍚嶇殑浜烘病鏈?design.patch[2m > [22m[2m鐪熻矾寰勶細@qa 鐨勫垹闄ゆ寚浠よ闂ㄦ嫆鎺夛紝璐︽湰钀?failed 鑰屼笉鏄?绛変汉鍐冲畾"
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/analytics-agent.integration.test.ts[2m > [22m[2m瑁呴厤鍑烘潵鐨勪簨瀹炲繀椤绘潵鑷湡瀹炵幇鍦?[2m > [22m[2m鍒氬彂甯冦€佸彧鏈変綔鑰呰嚜宸辨墦寮€杩?鈫?璇寸殑鏄?杩欎覆鏁板瓧鍙瘉鏄庝綘鑷繁鐪嬭繃"锛屼笉鏄?闆惰瀹?
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/storyboard-import.integration.test.ts
+[22m[39m[storage] 椹卞姩=local configured=false 鈥斺€?鏈厤缃?NEXUS_S3_* 鍑嵁锛屽洖钀藉埌鏈湴鐩綍 D:\鍐呭鍒涗綔骞冲彴\.nexus-storage锛堝紑鍙戝厹搴曪紝闈炵敓浜у舰鎬侊級
+
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/game-publish.integration.test.ts[2m > [22m[2m鍙戝竷閽変綇娓告垙璁捐[2m > [22m[2m鍙戝竷鏃堕拤浣忓綋鏃堕偅浠斤紱鏀瑰伐浣滅涓嶉噸鏂板彂甯冿紝鍏紑鐨勯偅涓€浠戒笉鍔?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/storyboard-render-build-status.integration.test.ts[2m > [22m[2mrenderStoryboardDemo 鐨?build.status 浜嬩欢涓诧紙搂163锛?[2m > [22m[2m蹇箰璺緞锛歜uilding 鈫?ok锛宱k 鐨?log 璇存竻鎴愮墖鍏ヤ簡璧勪骇搴擄紝涓斾笉鍙?preview.status
+[22m[39m[storage] 椹卞姩=local configured=false 鈥斺€?鏈厤缃?NEXUS_S3_* 鍑嵁锛屽洖钀藉埌鏈湴鐩綍 D:\鍐呭鍒涗綔骞冲彴\.nexus-storage锛堝紑鍙戝厹搴曪紝闈炵敓浜у舰鎬侊級
+
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/import.integration.test.ts
+[22m[39m[storage] 椹卞姩=local configured=false 鈥斺€?鏈厤缃?NEXUS_S3_* 鍑嵁锛屽洖钀藉埌鏈湴鐩綍 D:\鍐呭鍒涗綔骞冲彴\.nexus-storage锛堝紑鍙戝厹搴曪紝闈炵敓浜у舰鎬侊級
+
+[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 璺ㄥ疄渚嬫姇閫?[2m > [22m
+[2m绾胯矾涓婄殑甯у厛杩囧绾︼細鍚堟硶鐨勬敹涓嬫潵锛屽潖瀛楄妭鍙璐︼紝涓嶈惤鏈満璁㈤槄鑰?[22m[39m[realtime] redis 椹卞姩 鏀跺埌鐨勫抚涓嶆槸 JSON 澶辫触锛堢 1 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨
+▉鐘舵€佸湪搴撻噷锛夛細 Unexpected token '杩?, "杩欎笉鏄?JSON" is not valid JSON
+
+[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 璺ㄥ疄渚嬫姇閫?[2m > [22m
+[2m绾胯矾涓婄殑甯у厛杩囧绾︼細鍚堟硶鐨勬敹涓嬫潵锛屽潖瀛楄妭鍙璐︼紝涓嶈惤鏈満璁㈤槄鑰?[22m[39m[realtime] redis 椹卞姩 鏀跺埌鐨勫抚涓嶅悎濂戠害 澶辫触锛堢 2 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨▉鐘
+舵€佸湪搴撻噷锛夛細 [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "event",
+      "title"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]
+
+[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 璺ㄥ疄渚嬫姇閫?[2m > [22m
+[2m绾胯矾鍚嶄笉璁よ瘑鐨勫抚锛氫涪鎺夈€佽鍦ㄨ嚜宸遍偅涓€鏍笺€佷笉钀芥湰鏈鸿闃呰€?[22m[39m[realtime] redis 椹卞姩 绾胯矾鍚嶄笉璁よ瘑 澶辫触锛堢 1 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨▉鐘舵€佸湪搴撻噷
+锛夛細 杩欐潯杩炴帴鍙璁?nexus:realtime:v1锛屽嵈鏀跺埌浜?nexus:realtime:v0 涓婄殑甯э細璁㈤槄闆嗗悎琚姩杩?
+[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 璺ㄥ疄渚嬫姇閫?[2m > [22m
+[2m绔偣杩炰笉涓婃椂 publish/closeChannel 閮戒笉鎶涳紝鏈満閭ｅ崐杈圭収閫?[22m[39m[realtime] redis 椹卞姩 鎶曢€?澶辫触锛堢 1 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨▉鐘舵€佸湪搴撻噷锛
+夛細 Stream isn't writeable and enableOfflineQueue options is false
+[realtime] redis 椹卞姩 鎶曢€?澶辫触锛堢 2 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨▉鐘舵€佸湪搴撻噷锛夛細 Stream isn't writeable and enableOfflineQueue options is f
+alse
+
+[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 璺ㄥ疄渚嬫姇閫?[2m > [22m
+[2m绔偣杩炰笉涓婃椂 publish/closeChannel 閮戒笉鎶涳紝鏈満閭ｅ崐杈圭収閫?[22m[39m[realtime] redis 椹卞姩 鍙戝竷杩炴帴 澶辫触锛堢 3 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨▉鐘舵€佸湪搴
+撻噷锛夛細 connect ECONNREFUSED 127.0.0.1:56399
+
+[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 璺ㄥ疄渚嬫姇閫?[2m > [22m
+[2m绔偣杩炰笉涓婃椂 publish/closeChannel 閮戒笉鎶涳紝鏈満閭ｅ崐杈圭収閫?[22m[39m[realtime] redis 椹卞姩 鍙戝竷杩炴帴鏈氨缁?澶辫触锛堢 4 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨▉鐘舵
+€佸湪搴撻噷锛夛細 connect ECONNREFUSED 127.0.0.1:56399
+
+[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 璺ㄥ疄渚嬫姇閫?[2m > [22m
+[2mstats()锛氱湡 Redis 鎺ヤ笂鍚?wireReady=true銆侀浂閿欒锛涜惤瀹氬墠鍏堟姤 null锛堣繕娌¤惤瀹氫笉鏄病鎺ヤ笂锛?[22m[39m[realtime] redis 椹卞姩 璁㈤槄绾胯矾 澶辫触锛堢
+ 5 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨▉鐘舵€佸湪搴撻噷锛夛細 Connection is closed.
+
+[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2m绾胯矾姣旇繖鍙版櫄璧锋潵锛堢涓夊崄涓冪墖鐨勪富鐜板満锛?[2m > [
+22m[2m绔偣鍚庢潵閫氫簡锛歸ire 浠?pending 缈绘垚 up锛岃€岄棭钀藉畾鎴?false 灏变笉鏀瑰彛
+[22m[39m[realtime] redis 椹卞姩 鍙戝竷杩炴帴 澶辫触锛堢 1 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨▉鐘舵€佸湪搴撻噷锛夛細 connect ECONNREFUSED 127.0.0.1:56998
+
+[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2m绾胯矾姣旇繖鍙版櫄璧锋潵锛堢涓夊崄涓冪墖鐨勪富鐜板満锛?[2m > [
+22m[2m绔偣鍚庢潵閫氫簡锛歸ire 浠?pending 缈绘垚 up锛岃€岄棭钀藉畾鎴?false 灏变笉鏀瑰彛
+[22m[39m[realtime] redis 椹卞姩 鍙戝竷杩炴帴鏈氨缁?澶辫触锛堢 2 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨▉鐘舵€佸湪搴撻噷锛夛細 connect ECONNREFUSED 127.0.0.1:56998
+
+[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2m绾胯矾姣旇繖鍙版櫄璧锋潵锛堢涓夊崄涓冪墖鐨勪富鐜板満锛?[2m > [
+22m[2m绔偣鍚庢潵閫氫簡锛歸ire 浠?pending 缈绘垚 up锛岃€岄棭钀藉畾鎴?false 灏变笉鏀瑰彛
+[22m[39m[realtime] redis 椹卞姩 璁㈤槄杩炴帴 澶辫触锛堢 3 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨▉鐘舵€佸湪搴撻噷锛夛細 connect ECONNREFUSED 127.0.0.1:56998
+
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2m椹卞姩閫夋嫨锛坆us.ts 鐨勯偅涓€鍒€锛?[2m > [22m[2m榛樿杩涚▼鍐咃紱鍙湁 NEXUS_REDIS_URL 闈炵┖鎵嶆崲 Redis 鎵囧嚭
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?[realtime] 椹卞姩=Redis 鎵囧嚭锛堢嚎璺?nexus:realtime:v1锛?
+[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts
+[22m[39m[realtime] redis 椹卞姩 璁㈤槄绾胯矾 澶辫触锛堢 1 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨▉鐘舵€佸湪搴撻噷锛夛細 Connection is closed.
+
+[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts
+[22m[39m[realtime] redis 椹卞姩 鍙戝竷杩炴帴鏈氨缁?澶辫触锛堢 2 娆★紝浜嬩欢涓嶈ˉ鍙戯紱鏉冨▉鐘舵€佸湪搴撻噷锛夛細 杩炴帴宸茬粨鏉?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/api-v1-write.integration.test.ts[2m > [22m[2mPOST /api/v1/projects[2m > [22m[2m鏈?scope 鈫?201锛岄」鐩湡鐨勮惤搴撱€乲ind 鐢熸晥銆佷笖鍑虹幇鍦ㄥ悓涓€涓汉鐨勬竻鍗曢噷
+[22m[39m[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/collaborator-visibility.integration.test.ts
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/team.integration.test.ts[2m > [22m[2m搂133 鍗忎綔鑰呬笌閭€璇凤紙鐪熷疄鏁版嵁搴擄級[2m > [22m[2m鈶?閭€璇?鈫?鎺ュ彈 鈫?鎴愬憳钀藉簱锛涘悓涓€鏋氶個璇峰啀鎺ュ彈涓€娆′笉浼氭彃鍑轰袱琛?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/character-fields.integration.test.ts[2m > [22m[2m搂39 瑙掕壊妗ｆ鐨勫洓鏍忕湡鐨勫瓨寰椾笅鏉?[2m > [22m[2m鍐欒繘搴撳啀璇诲洖鏉ワ紝鍥涙爮涓€涓瓧閮戒笉璁镐涪
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstdout[2m | apps/web/test/character-fields.integration.test.ts[2m > [22m[2m搂39 瑙掕壊妗ｆ鐨勫洓鏍忕湡鐨勫瓨寰椾笅鏉?[2m > [22m[2m鍐欒繘搴撳啀璇诲洖鏉ワ紝鍥涙爮涓€涓瓧閮戒笉璁镐涪
+[22m[39m[storage] 椹卞姩=local configured=false 鈥斺€?鏈厤缃?NEXUS_S3_* 鍑嵁锛屽洖钀藉埌鏈湴鐩綍 D:\鍐呭鍒涗綔骞冲彴\.nexus-storage锛堝紑鍙戝厹搴曪紝闈炵敓浜у舰鎬侊級
+
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/notifications-mute.integration.test.ts
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/admin-marketplace.integration.test.ts[2m > [22m[2m搂123/#158 涓炬姤宸ュ崟鐨勫缃紙PATCH /api/admin/marketplace/reports/[id]锛?[2m > [22m[2m闈?admin 鈫?403锛屾嫆缁濆皾璇曞啓杩涘璁★紝宸ュ崟浠嶆槸 pending
+[22m[39m[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/admin-marketplace.integration.test.ts[2m > [22m[2m搂123/#158 涓炬姤宸ュ崟鐨勫缃紙PATCH /api/admin/marketplace/reports/[id]锛?[2m > [22m[2mreviewing 鈫?resolved锛堝甫缁撴澶囨敞锛夆啋 200锛宺esolvedAt 钀藉簱锛汫ET ?status=resolved 璇诲緱鍥?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/credits.integration.test.ts[2m > [22m[2m搂134 娑堣垂锛氫竴娆℃垚鍔熺殑浠诲姟鍙墸涓€琛?[2m > [22m[2m璺戝畬涓€娆＄湡浠诲姟 鈫?AI 棰濆害灏?1 鐐癸紝娴佹按閭ｈ鎸囩潃閭ｆ浠诲姟
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/export-route.integration.test.ts[2m > [22m[2m搂144/搂163/搂164 瀵煎嚭鎴愬姛璺緞锛氬洖鎵с€佸疄鏃朵袱甯с€丅uild complete 閫氱煡[2m > [22m[2m鎴愬姛瀵煎嚭 鈫?200 + zip 鍥炴墽 + building/ok 涓ゅ抚 + 涓€鏉?build 閫氱煡
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstderr[2m | apps/web/test/audit.integration.test.ts[2m > [22m[2m瀹¤鐨勫啓鍏ユ柟[2m > [22m[2m鍐欎笉杩涘幓鏃惰繑鍥?false 鑰屼笉鏄
+妸杩欐璇锋眰甯﹀穿
+[22m[39m[audit] 鍐欏叆澶辫触 trace=- test.bad-actor allowed=true Failed query: insert into "audit_events" ("id", "actor_id"
+, "action", "target_type", "target_id", "allowed", "detail", "ip", "created_at") values (default, $1, $2, $3, $4, $5, $
+6, $7, default)
+params: 00000000-0000-4000-8000-0000000000ff,test.bad-actor,,,true,,
+
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/api-v1-team.integration.test.ts
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstdout[2m | apps/web/test/api-v1-team.integration.test.ts[2m > [22m[2m#207 v1 鍥㈤槦鍚嶅唽绔偣锛坱eam:read锛?[2m > [22m[2m鈶?owner 鐨勫嚟鎹寰楀埌鍚嶅唽锛氭垚鍛樺湪鍐屻€乺ole 姝ｇ‘銆乼oken 杩欎釜 secret 涓嶅湪鍥炴墽閲?[22m[39m[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/agent-tasks.integration.test.ts[2m > [22m[2m浠诲姟琛岀殑涓€鐢?[2m > [22m[2m寮€濮嬫槸 running锛屾垚鍔熻惤 succeeded 骞剁畻寰楀嚭鐢ㄦ椂锛涗笉瀛樺湪鐨?id 涓嶄細琚鎴愭敼濂戒簡
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/blocks-route.integration.test.ts[2m > [22m[2m搂132 /api/blocks 鐨勫叆鍙ｅ舰鐘?[2m > [22m[2m鍧忔鏂?/ 鍧?kind / 涓嶅瓨鍦ㄧ殑 handle 鍚勮嚜缁欏悇鑷殑绛旀
+[22m[39m[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/tasks-ledger.integration.test.ts[2m > [22m[2mlistProjectTasks 鈫?TasksLedgerSchema锛堣处鏈渚?#10锛?[2m > [22m[2m鐪熷疄鐨勪竴琛岃繃寰椾簡濂戠害锛岃嚜宸辩殑琛?mine=true銆佽窇瀹岀殑琛?durationMs 鏄釜鏁?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/csrf-boundary.integration.test.ts[2m > [22m[2m搂159 CSRF 杈圭晫锛歝ookie 浼氳瘽鐨勬敼鐘舵€佽矾鐢?[2m > [22m[2m甯?CSRF 鈫?姝ｅ父璧板畬锛屽叧娉ㄨ竟鐪熺殑寤鸿捣鏉?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/admin-realtime.integration.test.ts[2m > [22m[2m搂163 璇婃柇鍏ュ彛鐨勯棬[2m > [22m[2madmin 鈫?200锛屽洖鎵у舰鐘跺氨鏄€荤嚎鑷姤鐨勯偅浠斤紙null 涓嶈鏀规垚 0銆乶a 涓嶈鏀规垚 down锛?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/marketplace-report-outcome-notify.integration.test.ts[2m > [22m[2m搂123脳搂164 涓炬姤缁撹閫氱煡锛堝彈鐞嗕笉鏄粨璁猴紝缁堟€佹墠鍑哄０锛?[2m > [22m[2m缁撴 鈫?created锛氭爣棰樺康鍑虹墿鍝佸悕銆佹寚鍥炪€屾垜鐨勪妇鎶ャ€嶃€佹鏂囪娓呯粨璁轰笉绛変簬鎾や笅鐗╁搧
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/observability-instrumented.test.ts[2m > [22m[2m鍐欏叆鏂圭湡鐨勫湪鍔紙涓嶆槸缂栧緱杩囧幓鐨勬浠ｇ爜锛?[2m > [22m[2m璧颁竴娆￠檺娴侀椄锛氭斁琛屼笌鎷掔粷鍚勮涓€娆★紝鏍囩鍙湁闂稿悕娌℃湁韬唤
+[22m[39m[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/admin-rate-limit.integration.test.ts[2m > [22m[2m搂SEC 绗笁鍗佷簲鐗?璇婃柇鍏ュ彛鐨勯棬[2m > [22m[2madmin 鈫?200锛氬洖鎵у氨鏄┍鍔ㄨ嚜鎶ラ偅浠斤紝涓変釜"涓嶉€傜敤"涓嶈鎶瑰钩
+[22m[39m[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+[90mstderr[2m | apps/web/test/admin-rate-limit.integration.test.ts[2m > [22m[2m搂SEC 绗笁鍗佷簲鐗?璇婃柇鍏ュ彛鐨勯棬[2m > [22m
+[2m鎸夊師鍥犵殑璐︽潵鑷?metrics锛屼笉鏄┍鍔ㄨ嚜杩帮細鐪熼€€涓€娆★紝閭ｄ竴鏍煎氨鍦ㄥ洖鎵ч噷娑?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙
+扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-f
+ailed"}锛夛細 Stream isn't writeable and enableOfflineQueue options is false
+
+[90mstdout[2m | apps/web/test/admin-rate-limit.integration.test.ts[2m > [22m[2m搂SEC 绗笁鍗佷簲鐗?璇婃柇鍏ュ彛鐨勯棬[2m > [22m[2m绌烘牸涓茬畻"娌¤"锛氫笌閫夐┍鍔ㄩ偅涓€姝ヨ鐨勬槸鍚屼竴涓?.trim() 鍚庣殑鍊?[22m[39m[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+[90mstderr[2m | apps/web/test/rate-limit-readout.test.ts[2m > [22m[2m杩涚▼鍐呴┍鍔ㄧ殑鑷姤[2m > [22m[2m娲按鎶婅〃鍘嬪埌涓婄晫鏃讹紝鎶ョ
+殑鏄笂鐣岃€屼笉鏄〃闀跨殑鏌愮杩戜技
+[22m[39m[rateLimit] 杩涚▼鍐呴檺娴佹《鍒颁笂鐣?3锛岃繖涓€瓒熶粠鏈€涔呮病琚鐨勪竴澶存窐姹?1 鍙紙杩囧幓杩欐鏃堕棿鐨勭疮璁℃暟鍦?nexus_rate_limit_buckets_pruned_tota
+l{reason="cap"} 閲岋紝杩欐潯鏃ュ織鏈€澶氫竴鍒嗛挓涓€琛屸€斺€旀椽姘存湡闂存瘡璇锋眰涓€琛屽氨鏄椄鑷繁寮€浜嗕竴鏉″啓鏃ュ織鐨勫叆鍙ｏ級銆傚悗鏋滄槸琚窐姹拌韩浠界殑閭ｄ竴妗ｇ獥鍙ｉ噸鏂板彉绌猴紱杩欎釜璇绘暟鎸佺画娑
+ㄨ鏄庤繖鍙拌繘绋嬫琚?distinct 韬唤鍘嬶紝姝ｈВ鏄 NEXUS_REDIS_URL 鎶婄獥鍙ｆ尓鍑哄唴瀛樸€?
+[90mstderr[2m | apps/web/test/rate-limit-readout.test.ts[2m > [22m[2mRedis 椹卞姩鐨勮嚜鎶ワ紙涓嶄緷璧栫嚎璺級[2m > [22m[2m閫€鍥炶
+鏁版定涔嬪悗锛岃嚜鎶ョ殑閭ｄ釜鏁拌窡鐫€娑紙璇婃柇涓嶆槸鏌愪釜闈欐€佸睘鎬э級
+[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮
+瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 Stream isn't writeable and enableOfflineQueue
+ options is false
+
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/rate-limit-readout.test.ts[2m > [22m[2m闂ㄩ潰绔嚭鐨勫氨鏄崟渚嬮偅浠界幇鍦?[2m > [22m[2m涓嶈鍙橀噺鏃堕棬闈㈣鐨勬槸杩涚▼鍐呴偅涓€浠斤紝鑰岄儴缃查偅鍙ヨ鐨勪篃鏄悓涓€涓幆澧冨彉閲?[22m[39m[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+[90mstderr[2m | apps/web/test/rate-limit-readout.test.ts[2m > [22m[2m璇绘暟鐨勬潵婧愰拤姝?[2m > [22m[2m绾胯矾涓嶉€氭椂 bucketsTra
+cked 鍋滃湪 0锛氬畠鏄?鏈€杩戜竴娆″垽瀹氬甫鍥炵殑鏁?锛屼笉鏄富鍔ㄥ幓鏌ョ殑鏁?[22m[39m[rateLimit] redis 椹卞姩閫€鍥炶繘绋嬪唴璁℃暟锛堢 1 娆★紱澶氬疄渚嬫湡闂磋繖涓€鍙扮殑棰濆害鏄悇绠楀悇
+鐨勶紱鍘熷洜=command-failed锛涜繖绫绘棩蹇楁瘡涓€鍒嗛挓鏈€澶氫竴琛岋紝閫愮瑪鐨勬暟鍦?nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}锛夛細 
+Stream isn't writeable and enableOfflineQueue options is false
+
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/client-ip.test.ts[2m > [22m[2mclientIp锛氬彇鍙俊閾剧殑鍙崇锛屼笉鏄鎴风鍐欑殑鏈€宸︾[2m > [22m[2m鍙嶄唬杩藉姞杩囩殑閾炬潯锛氬彸绔槸瀹冧翰鐪肩湅鍒扮殑瀵圭锛屽乏绔槸瀹㈡埛绔嚜绉扮殑
+[22m[39m[rateLimit] 椹卞姩=杩涚▼鍐咃紙妗朵笂鐣?50000 鍙紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚鍏变韩绐楀彛锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m閫佸埌鍚屼竴棰戦亾涓婄殑璁㈤槄鑰咃紝涓嶈法棰戦亾娉勬紡
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m鍚屼竴涓閬撲笂鐨勫涓闃呰€呴兘鏀跺埌锛堝鏍囩椤佃涓€璧蜂寒锛?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m娌℃湁璁㈤槄鑰呮椂涓嶆姏寮傚父锛堜簨浠朵笉鎸佷箙鍖栵紝娌′汉鍚氨涓㈡帀锛?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m閫€璁箣鍚庝笉鍐嶆敹鍒帮紝涓旈€€璁㈡槸骞傜瓑鐨?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m閫€璁㈠彧鎽樿嚜宸憋紝涓嶅奖鍝嶅悓涓€棰戦亾涓婄殑鍏朵粬浜?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m涓€涓闃呰€呮姏寮傚父涓嶅奖鍝嶅悓棰戦亾鐨勫叾浠栦汉锛屼篃涓嶅奖鍝嶅彂甯冩柟
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstderr[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m涓€涓闃呰€呮姏寮傚父涓嶅奖鍝嶅悓棰戦亾鐨勫叾浠栦汉
+锛屼篃涓嶅奖鍝嶅彂甯冩柟
+[22m[39m[realtime] 璁㈤槄鑰呭洖璋冨嚭閿?project:p1 notification 杩欎釜璁㈤槄鑰呭潖浜?
+[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m璁㈤槄鑰呭湪鍥炶皟閲岄€€璁㈣嚜宸憋紝涓嶄細婕忔帀鍚庨潰鐨勪汉
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2msubscriberCount 濡傚疄鎶ユ暟锛岄€€璁㈠悗棰戦亾琚竻鎺?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2mcloseChannel 鎽樻帀杩欎釜棰戦亾涓婄殑鍏ㄩ儴璁㈤槄锛屽埆鐨勯閬撶収鏃ф敹寰楀埌
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2mcloseChannel 涔嬪悗锛屾嬁鐫€鏃ч€€璁㈠嚱鏁扮殑浜哄啀璋冪敤涓€娆′笉浼氭姏锛屼篃涓嶄細璇憳鏂拌闃?[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2mcloseChannel 瀵规病鏈夎闃呯殑棰戦亾涓庡凡缁忎笉瀛樺湪鐨勯閬撻兘鏄棤鎿嶄綔
+[22m[39m[realtime] 椹卞姩=杩涚▼鍐咃紙鍗曞疄渚嬶紱澶氬疄渚嬮儴缃茶 NEXUS_REDIS_URL 鎹㈡垚 Redis 鎵囧嚭锛?
+[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m[33m[39m[32m路[39m
+
+[2m Test Files [22m [1m[32m134 passed[39m[22m[90m (134)[39m
+[2m      Tests [22m [1m[32m1738 passed[39m[22m[90m (1738)[39m
+[2m   Start at [22m 19:41:24
+[2m   Duration [22m 244.71s[2m (transform 4.09s, setup 0ms, collect 77.44s, tests 123.83s, environment 19ms, prepare 14.28s)[22m
+

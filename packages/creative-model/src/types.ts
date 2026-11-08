@@ -266,7 +266,15 @@ export type LengthValue = number | TokenRef;
 export interface Layout {
   mode: LayoutMode;
   gap: LengthValue;
+  /**
+   * @deprecated 死字段（ADR-0092）：M0 地基落的 schema 残渣，从第一天起就没有任何读取方
+   * 也没有任何 spec / 文档 / 配方写过它。**不要写、不要依赖、不要实现**——
+   * grid 行间隙若真是日后需求，另开 ADR 重新起名。
+   */
   rowGap?: LengthValue;
+  /**
+   * @deprecated `rowGap` 同义死字段（ADR-0092）。flex 没有"交叉轴 gap"的概念，`gap` 本身就是两轴对称的那条。
+   */
   crossGap?: LengthValue;
   padding: {
     top: LengthValue;

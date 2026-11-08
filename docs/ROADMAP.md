@@ -484,7 +484,7 @@ guest 首次发布时补一个稳定 handle（`u<id 前 8 位>`），URL 才真�
 `verifyPassword` 按 `$2` 前缀分派，将来换 Argon2id 只改这一处、旧串仍可验证；登录对"邮箱不存在"也跑 dummy-hash 对齐时序，防账号枚举。
 ② **认领用就地升级**：guest 的项目/快照/资产全挂在该 user id 下，注册时把同一行改成真实账号（写 email/password_hash/claimed_at、guest=false），
 归属一条都不搬，自然不漏——e2e 实测"游客建项目 → 注册 → 项目仍在名下、回执显示已认领 1 个"。
-③ **会话防固定**：middleware 用客户端可见的 cookie 值签发 guest 会话，所以 register/login 一律 `rotateSession`——删旧 token 会话行、发新随机 token，
+③ **会话防固定**：（`middleware` 为 Next 16 旧名，2026-11-08 起更名 `proxy.ts`，本节以下同）middleware 用客户端可见的 cookie 值签发 guest 会话，所以 register/login 一律 `rotateSession`——删旧 token 会话行、发新随机 token，
 否则攻击者事先种下的已知 token 会在提权后变成真实账号的会话；登出删会话行 + 清 cookie（吊销）。
 ④ **CSRF 双提交** + **滑动窗口限流**：`server/security/{csrf,rateLimit}.ts`。CSRF 靠 middleware 另发一个前端可读的 `nexus_csrf` cookie，
 状态变更请求要在 `x-csrf-token` 头原样带回并比对（会话 cookie 的 SameSite=Lax 是第一道防线）；限流是 `RateLimiter` 接口 + 内存驱动，
@@ -637,7 +637,7 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
 §147 剩下的如实挂着：整份拷贝仍是那 129ms 的主体（下一步是结构共享）、画布没有虚拟化/增量渲染、
 画布侧没有 worker；浏览器端指标 2026-09-24 起由 `npm run perf:browser` 量（数字与限定见 `docs/PERFORMANCE.md`）。
 验证：`npm test` 313（克隆的 `undefined` 键 / 数组空洞 / 非纯对象回落，以及"一次 execute 只应用一遍"各一条回归）、
-17 条 @smoke 全绿（编辑—撤销—自动保存那条走的就是被改过的路径）。
+17 条 @smoke 全绿（编辑—撤销—自动保存那条走的就是被改过的路径）。**2026-11-08 补记**：§147 的生产构建复测落在 `docs/PERFORMANCE.md` 2026-11-08 prod-65c96db 那节——真测出来：首帧 8档 106.3 / 1000档 313.4 / 4000档 1014.8ms；属性写入 5.1 / 12.9 / 28.8ms（三档都在 <50ms 门内）；pan 中位帧距与 >33ms 帧全线 16.7ms / 0；选中响应 32.6 / 40.8 / 44.5ms，仍超 <16ms 门。`PERF_INCREMENTAL=0` 那半没干净量成，如实记在 PERFORMANCE（不冒充）。Next 16 的 `middleware` 更名 `proxy`（`apps/web/src/proxy.ts`）顺带消掉了构建期 deprecated 警告，其余跨仓引用同步。
 
 **M2 进度记录（2026-09-23，几何 token 化，任务 #25）**：修掉一处"声称能做其实做不到"。
 §29 的视觉语言此前只带颜色与字体，`cyber` 写着「直角」、`warm` 写着「圆角」，
@@ -2139,7 +2139,40 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   不断言阈值，但结构不变式红即非零码退出。首跑 7 条不变式红 5 条，归因出**三个产品真缺陷**
   （§86 颜色指标自比 ≠1 的分母谎、§38 合成链"换色不变构图"的假注释、DEMO provider 引用不存在的
   `{font.display}` token）加两个评测自己的错（语料少建一条 lore、引用检查器把链式 insert 当幻觉），
-  全部修复并有回归钉。**第二片同日落地：渲染后页面的无障碍**（`e2e/a11y.spec.ts`）：真发布流程
+  全部修复并有回归钉。**§85 第三笔（2026-11-08）：`evals/` 目录落地**——"按能力分套件"以前只有这一个脚本，
+  现在有了骨架：`npm run evals`（确定性、无库无网的 suite；`--list` / `--suite` 过滤）与 `npm run evals:baseline`
+  （这个脚本不动）分两条；第一套新维度 **code-index**（§69 Code Index 检索：totals 对账 / 语法诊断全无 /
+  当前页与选中节点加权 / 精确符号名 / 预算=1 极限仍报未裁的数）19/19 结构不变式绿；
+  同文档两次投影逐字节相同第一次被钉住。读数见 `docs/EVALUATION.md` 第十五/十六片。
+  **第四笔（2026-11-08）：登录后九张界面的浅色 axe 补上**——`e2e/a11y-light-internal.spec.ts`
+  （与 dark 同一名册/判据/纪律，前提门从 tokens.css 现读现算）：首跑 Studio 抓到 1 serious
+  `label-content-name-mismatch`（XL 屏画着"折起"的收起属性面板按钮，`aria-label="收起属性面板"`
+  不含可见文字；改 `折起属性面板` 后 25/0/0，其余八张首跑起就是 0/0/critical 0）；
+  dark 复扫同按钮链也绿（25/0/0）。浅色九张浏览器最低对比度 4.64:1。见 EVALUATION 第十七片。
+  **第五笔（2026-11-09）：`export-roundtrip` 真库套件**——§144 从 presence 到 fidelity：
+  真项目→真 ZIP→node zlib CRC 交叉校验（5/5）→真导回→结构对账（页数/类型多重集/tokens/responsive marker）
+  →二次导出计数对账；17/17 PASS。两条教得入账：JSONB 键序归一化 ⇒ stableJson 比较；
+  真库套件把 pg 池漏在事件循环里 ⇒ `npm run evals` 需要显式 `process.exit(0)`。见 EVALUATION 第十八片。
+  **第六笔（2026-11-09）：公开作品页 × 浅色 axe 补上**——`e2e/a11y-light-public.spec.ts`（sitemap 现取载体，不注册不建项目，
+  与 guest/internal 两片同一套门与纪律）：axe 报 1 serious color-contrast（作者本人 opacity 0.75 的 CTA 白字压紫，
+  合成后 4.25<4.5；白字紫底本身 5.24 过；暗色同条；记作者侧，非平台缺陷）。结构不变式绿（passes=24 / critical=0）。
+  见 EVALUATION 第十九片。
+  **第七笔（2026-11-09）：浅色键盘走查补上且抓到一个真缺**——`e2e/keyboard-light.spec.ts`：
+  公开作品页的热点焦点环从 `var(--nexus-color-accent-2)` 换成 `var(--nexus-color-accent-2-ink)`；
+  §167 修的重点环浅色 #0f6b7a vs 浅色背景 ≈ **6.05:1**（此前 ≈1.70:1，强调色浅色不翻域同根因）。
+  六道门同车道绿（18/18），Enter 真走到 work-complete 200 recorded:true。见 EVALUATION 第二十片。
+  **第八笔（2026-11-09）：增量/全量 A/B 有了首份同刻证据**——同一构建（含 b89631c）两次：首帧 1000 节点 off 反优，
+  pan/属性写入分不出；**浏览器端分辨不出增量增益**（模型层那条证据不受影响）。证据 log 入库。见 PERFORMANCE.md 2026-11-09 节。
+  **第九笔（2026-11-09）：收起面板的 axe 补上并收下 44 个失名真缺**——
+  `e2e/a11y-panels.spec.ts` 展开设计系统令牌表 + 方案板投票 + Agent 面板扫三屏：
+  首跑 **44 个 text/color 输入全裸名**（`control-names.test.ts` 只有 select/file 两类，结构上看不见）；
+  补 `aria-label`（`{token.key} · 值` / `· 颜色` / `新 token 的键` / `的值`）后 **0 违规 / 0 critical**。
+  见 EVALUATION 第二十一片。
+  **第十笔（2026-11-09）：`control-names.test.ts` 扇入 text-like 输入，18 处裸名全收**——
+  首跑红 18（`AccountPanel` ×3、`NewProjectForm`、`ProjectDeleteCard`、`MarketplaceCreateForm` ×3、`ReportControl`、
+  `AccountDeletionPanel`、`LayersPanel` ×2、`TopBar`、`ContextPanel`、`VariantsBoard`、admin/marketplace + admin/moderation ×2）；
+  全量补 `aria-label` 中文名，3/3 门绿——门现在数 text-like input 的存活数，改过 scope 缩回去当场变空并红。
+  见 EVALUATION 第二十二片。**第二片同日落地：渲染后页面的无障碍**（`e2e/a11y.spec.ts`）：真发布流程
   建公开作品页，匿名访客在真 Chrome 里对真 DOM 跑 axe（WCAG 2.0/2.1 A+AA）——设计模型的静态门禁
   测的是设计，渲染投影只有 axe 才测得到。首跑 serious color-contrast ×7（24 过 / 39 不适用 /
   critical 0），全部同源于一个 token `--nexus-color-fg-3`——改前暗色对四级表面是
@@ -3453,6 +3486,7 @@ if (input.characterId && input.generateCharacterPortrait && !input.characterId) 
 **变异探针**：把那行守卫还原成旧的自相矛盾写法 → **红在"没有角色却按普通文生图放过去了——用户会以为这是角色肖像"**，
 改回后 16/16 全过。`character-fields.integration.test.ts` 那一组（四栏进 prompt）同批通过，
 两个文件合计 **19 条**；`npm test` **94 文件 / 1000 条全绿**。
+
 **仍欠**：真 provider 的像素（DEMO 合成器只认 prompt 的哈希，画不出"靛蓝斗篷"的语义）。
 
 ## §39 的第二半（再续）：肖像的界面入口，以及上一次欠下的那条变异探针
@@ -9106,25 +9140,151 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
   e2e 腿 A–R **1 passed（4.9m）**，腿 R 三段 172.3s / 215.1s / 224.8s；CSS 那一寸的九格读数与行号
   现量在 `.scratch/tw-cancel.log`；`npm run lint`（九份 tsc 项目 + eslint 全树）**退出 0**。
 
+**第九片（2026-11-08）：断点位置（x/y）`md:`/`lg:`/`xl:` 三档发得出也读得回——父级仍是自由定位逃生口的判据**
 
+- 画布与访客此前就吃这一组键：mobile 靠基线投影生效，更宽那几档没有任何途径出类。现在
+  `classOf` 里加了 `positionVariantClasses(node, parent, bp)`，按 `PREV_BP` 链（`mobile→tablet→desktop→wide`，这一档 vs 上一档的对比）算差量——
+  窄档入流、这一档绝对 ⇒ `md:absolute` + `left/top` 类；窄档绝对、这一档入流 ⇒ `md:static` 顶掉窄档那条；两档都绝对仅在 x/y 有投影差时重发。回写侧 `decodeVariant` 的 position 组现在按与发射同一判据判（值与 `applyResponsiveBelow(node, breakpoint)` 对上就不写 patch——父级 flip 出来的 absolute 是零补丁类，不是子节点自己的值），`static` 静默消费 + 带条件 checked。
+- 子节点绝对化**不再依赖子节点自己带 position patch**——这一刀后，父级换 mode 的投影差量由子节点的 ClassNames 自己承担，与现有 `applyResponsive` 同一口径。
+- 见证：`codegen.test.ts`「断点位置发射……」「断点绝对化翻转……」、`code-parse.test.ts`「断点绝对定位往返……」「断点绝对化往返 A/B……」，
+  共 89 条全绿（回归面含 reverse/overflow/字重/字距等一轮一轮往返）；全模型层 487 条。
+- 面板输入口那一半（同日第二笔，`f895494`）：`position.x` / `position.y` 进 `RESPONSIVE_CHANNELS`，
+  `appliesTo` 加了可选 `{ parent }` 上下文；自由定位逃生口（none/stack）才摆，其余收起（§159）。
+- 浏览器腿（同日第三笔，本文件下面的第十片）：面板那两格在真 Chrome 里量过了。
+
+**第十片（2026-11-08）：位置那两格的面板腿进了 e2e——`Sandbox` 自由定位沙盒与对照读数的设计**
+
+- 夹具起手**之前**埋一个 `mode: none` 的 `Sandbox` 包住 `SandboxBadge`（固定位置 48/40，每轮先连根拔掉重建，幂等）；
+  Eyebrow/CTA 当对照组（竖排/横排父级，位置两行不摆）。落库走的是既有 `prepareRuleFreeDocument` 那条 PUT，
+  节点走 `validateDocument` 同一道门（本机校验过两条手拼节点，`errors: []`）。
+- 腿 F3（都在真 Chrome 里点）：沙盒里点 `SandboxBadge` ⇒ mobile 档位置两行摆出来 → `position.x` 填 120 ⇒
+  徽标读「这一档 120」、画布 inline left/top 相对 Sandbox 变成 (120, 40)（整页是一张绝对画布，断言落在**相对盒子**上，
+  `relBox`——`left` 的页面坐标不是父级内坐标，第一跑红在 `top=546.9≠40` 就是这样；按盒子对齐后全绿）→ tablet 两格照样摆、
+  投影继承 120（级联）→ 撤销 ⇒ 回 (48, 40)、清除键没了。腿 F4：Eyebrow 那一档位置两行不存在（对照）。
+- 读数：`playwright test e2e/responsive-authoring.spec.ts`，**1 passed（1.0m）**，全链 A–F4–R 一次过；
+  截图仍按失败即存。注：本机 3100 的另一会话 dev server 这段时间间歇 500（JIT 重编译期），这条跑的是**独占的生产构建**
+  （`apps/web` `next start -p 3201`，serve 的就是今天这笔提交的产物）；dev 那一寸没量到就不说量到（§159 也管测试读数）。
+- 第一跑的红是一个很有代表性的误判：`boxIn` 读到的是**页面坐标**（整页是一张绝对画布），不是父级内坐标——
+  `left=48` 碰巧对（Sandbox 横向在 x=0），`top=546.9≠40`（Sandbox 在页面流的下端）。位置断言全部改落在
+  既有的 `relBox`（相对父级的盒子）上之后绿——其余腿测量 Actions 的几何用的也是这把尺。
+
+**第十一片（2026-11-08）：`style.blendMode` / `style.rotation` 两个响应式通道——取消半边也有 Tailwind 合法类**
+
+- 模型里 `Style.blendMode`（16 值枚举）与 `Style.rotation`（角度）早就能在基线里发/收（codegen `styleClasses` 发 `mix-blend-*` /
+  `rotate-[deg]`，code-parse 基线侧也读得回），但这两格进不了断点 patch，画布访客写得下、代码与 ZIP 读不回来（§16 那一端）。
+- 这一刀：`responsiveClasses` 在 `md:/lg:/xl:` 档发同名的 `mix-blend-{值}` / `rotate-[{n}deg]`（`md:mix-blend-normal`、`lg:rotate-[0deg]`
+  都是 Tailwind v4 合法类——显式写回正是"顶掉更窄那档"的那一刀，同 reverse:false 一寸）；
+  `decodeVariant` 认领 `mix-blend-*`（对 `BLEND_MODES` 白名单，未知名进 unmapped 不猜）与 `rotate-[…deg]`（格式必须 `数字+deg`，否则 unmapped）——
+  **这两格现在一整个 patch 组都通了**，面板也有了输入口（混合模式是 choice、标签用原名；旋转是 -360..360 的数字格）。
+- 顺带说明为什么 `mix-blend-normal` 不需要"silently consume"：`mix-blend-normal` 本身就是 Tailwind 类，
+  写回 normal 是合法的取消语义，直接进 checked。
+- 见证：`codegen.test.ts`「断点混合模式/旋转发射……」、`code-parse.test.ts`「断点混合模式/旋转往返……」（含 `lg:mix-blend-normal` / `lg:rotate-[0deg]`
+  取消更窄档那一条）；`responsive-editor.test.ts` 的"每一个通道非冗余值"那条腿因两个新格自动覆盖（载体都是普通文字节点）。
+  读数：`packages/design-model` **35 files / 491 passed**（+2）、`responsive-editor` 39/39、`npm run typecheck` / `eslint` 0、全层回归绿。
+  面板此刻 **二十四格**（位置两格仍按父级自由定位摆/收，第十片样子）。
+
+**第十二片（2026-11-08）：`style.cursor` 响应式通道——取消半边同样有 Tailwind 合法类**
+
+- 与第十一片同一条判据再推一格：模型 `Style.cursor` 六值枚举（default/pointer/text/not-allowed/grab/grabbing），
+  基线早能发/收（`cursor-*`）。这一片把 `md:cursor-*` 接进 `responsiveClasses`（声明就发，`cursor-default` 是合法取消类）、
+  `decodeVariant` 按 `CURSORS` 白名单认领（未知名 unmapped 不猜）、面板加「指针」一格（choice，中文说法：默认/手型/文本/禁止/抓取/抓取中）。
+- 见证：同一份发射/往返两条用例扩成三样（混合模式/旋转/指针），往返仍旧零补丁；`responsive-editor` 39/39；全层回归绿。
+  面板此刻 **二十五格**。`style` 里还剩 `strokes`/`effects`/`cornerRadius`/`overflowX|Y`；cornerRadius 是四键嵌套，第十三片（下一笔）通了它的模型层，见下。
+
+**第十三片（2026-11-08）：`style.cornerRadius` 响应式通道的模型层——发射与回写round-trip，面板照旧不摆**
+
+- 与 `layout.padding` 同形（四键嵌套，`applyResponsive` 整键替换）：发射 `md:/lg:/xl:` 档读这一档 merged 出来的 cornerRadius，
+  四格同值折成一条 `md:rounded-[…]`；缺格就发单格那条 `md:rounded-tl/rounded-tr/rounded-br/rounded-bl-[…]`；
+  `{cornerRadius:四格全0}` 发 `md:rounded-[0px]`（Tailwind 合法取消类，同 reverse:false 一寸）。
+- `decodeVariant` 分格认领（`rounded-tl/tr/br/bl`）再折叠整个 `rounded-[…]`——顺序反了 uniform 会吞掉单格那边（`rounded-` vs `rounded-tl-` 是前缀关系，同 padding 那条判据）；
+  单格那边缺哪格就写哪格（patch partial 对象，§16）。
+- **面板照旧不摆 cornerRadius——与 layout.padding 同一状态**：四格那类嵌套通道的输入口还没立判据（一格还是四格？混合值怎么显示？），
+  徽标会把 `style.cornerRadius` 点名为"没有输入口"那一格，「清掉这一档」连着它一起删。
+- 见证：`codegen.test.ts`「断点圆角发射……」（md:rounded-[8px] / lg:rounded-tl-[12px] / xl:rounded-[0px]）、
+  `code-parse.test.ts`「断点圆角往返……」（折叠后往返仍零补丁）。读数：`packages/design-model` **35 files / 493 passed**（+2）、
+  `npm run typecheck` / `eslint` 0。
+
+**第十四片（2026-11-08）：`typography.fontFamily` 响应式通道——choice 列表从文档现读，不是抄一份**
+
+- `fontFamily` 是模型里唯一**动态选项**的一类面板通道：值长得像 `{font.heading}`，只有文档现有的 `fontFamily` 型 token
+  （starter 里是 `font.heading` / `font.body` / `font.mono`）才算数。静态名单摆那个文档的人看不到的一串是假输入（§159），所以：
+- `ChannelSpec` 新增 `choicesFrom: 'font-family-tokens'`（与静态 `choices` 二选一）；`appliesTo` 的可选上下文扩成 `{ parent, tokens }`；
+  面板从 `state.document.tokens` 现派生这一行的选项（以及徽标与 labelOf 的标签）——文档里没有 fontFamily 型 token 时这一格**不摆**，
+  appliesTo 与文档背书同一个判据。裸族名（`Georgia` 这种作者手写进模型的值）照样写得进写得出：
+  codegen 发 `md:font-[Georgia]`，decodeVariant 认 `font-[…]` 裸栈。
+- 发射/回写仍然走既有 typography 管线：`md:/lg:/xl:` 档发 `font-[family-name:var(--<prefix>-…)]`，
+  `decodeVariant` 用基线同一套 `WEIGHT_CLASS → tokenRefOf → 裸栈 → unmapped 不猜`——回写自检必须对得上。
+- 见证：`codegen.test.ts`「断点字族发射……」（token 引用 + 裸 Georgia 两种）、`code-parse.test.ts`「断点字族往返……」（零补丁）、
+  `responsive-editor.test.ts`：every-channel 载体换成 `{font.heading}→'{font.mono}'`（写相同值会被冗余判据当场剪掉）、
+  新腿「只摆在文档里真有 fontFamily 型 token 时」（空态不摆 / 传 DEFAULT_TOKENS 摆出 / 不传 tokens 收起）。
+  读数：`packages/design-model` **35 files / 495 passed**（+2）、`responsive-editor` 40/40（+1）、`npm run typecheck` / `eslint` 0。
+  e2e 腿 F5（同日跑绿，`next start -p 3201` 独占生产构建）：点 Headline ⇒ 字族三格摆出来 →
+  `[data-responsive-choice="typography.fontFamily:{font.mono}"]` ⇒ 徽标读「改 1 处」、画布 computed fontFamily 当场换、撤销回设计值——
+  console `[ 8.3 s ] 腿 F5`、全链 A–F5–R **1 passed（1.2m）**。
+- 腿 F6（`style.blendMode` / `style.rotation` / `style.cursor` 三格，同日再跑一轮）：SandboxBadge 走完
+  混合模式（点 multiply → computed mix-blend-mode）、旋转（填 15 → inline `transform: rotate(15deg)`）、指针（点 pointer → computed cursor），
+  每格独立落库后各自撤销——全链 A–F6–R **1 passed**、console `[ 8.7 s ] 腿 F6`。
+
+**第十五片（2026-11-08）：`mode` 的 `stack`/`none` 模型层逃生口落地——md:/lg:/xl: 模式标记类（ADR-0091）**
+
+- codegen `responsiveClasses`：**只在这一档真的 flip 进 none/stack 才发** `${variant}[--nexus-mode:none|stack]`（Tailwind v4 任意属性，无消费方）；
+  定位参照 `${variant}relative` 与基线同一判据（有孩子且自身非 absolute 才发）。设计态默认 `mode:'none'` 的叶子（defaultLayout 写死）不发、
+  继承来的档不补发——首版没加这道门，marker 在所有档上平铺、7 条 §14 往返测试（字重/字距/圆角/字族/fontFamily 等）全部红了，当场收了 flip-gate。
+- code-parse `decodeVariant`：同档 `[--nexus-mode:none|stack]` 认下 → patch.mode；`relative` 与 marker 共现时消费（定位参照），不共现仍 unmapped 字面上，不猜；
+  `[--nexus-mode:grid]` 落 unmapped 不猜。
+- 面板「排布」那格加第五样「自由定位」（value none），stack 保持仅代码可写。
+- 见证：codegen「断点模式标记发射」（含 grid 投影不发 marker、叶子只发 marker 不发 relative）、code-parse「断点模式标记往返」、
+  responsive-editor「排布那格——自由定位第五样」。读数：design-model 35 files / **499 passed**（+4）、responsive-editor **41/41**、typecheck / eslint 0。
+- mobile 档的 mode 往返**已接**（同日第二刀）：`layoutClasses` 无前缀那组类发 `[--nexus-mode:…]`，`decodeClasses` 认下并消费 `relative`——
+  设计 `none` 与 mobile 规则翻 `stack` 都能往返（`code-parse.test.ts` 三腿：基线设计 none、基线 mobile stack、grid 投影不发）。design-model 35 files / **502 passed**（+3）。
+
+**第十六片（2026-11-08）：浏览器腿 F7——面板翻出的「自由定位」一次真 Chrome 走完**
+
+- 腿 F7：Actions 翻成自由定位（面板那个 `[data-responsive-choice="layout.mode:none"]` → 徽标仍读埋的 padding+mode 两个 live 键 = 2），
+  两个孩子失去 flow、画布上归各自 position 落在 Actions 原点（兄弟重叠）→ 撤销恢复并排；console `[ 5.6 s ] 腿 F7`、全链 A–F7–R **1 passed（58.1s）**。
+  独占生产构建（`next start -p 3201`），跑完 3201 已停。
+
+**第十七片（2026-11-08）：腿 F8——位置那两格按档内逃生口摆/收，浏览器第一次走完**
+
+- 父级翻成自由定位（`layout.mode:none`）之后，孩子在 tablet 那档才摆出位置那两格（`position.x`/`position.y`）；
+  mobile 档（设计横排，没有任何 none/stack 那一档）不摆；wide 档继承 tablet 逃生口（merged cascade）照样摆；撤销把 tablet 翻回横排，两格又**消失**。
+- 读数：console `[ 7.9 s ] 腿 F8`，全链 A–F8–R **1 passed（6.0m）**；独占生产构建（`next start -p 3201`，已停）；spec 头注释 ⑮ 记了。
+  上一跑天荒地老红在两条断言口径上（影响徽标翻完仍是 2、`boxIn` 是页面坐标不是父级内坐标——见腿 F7）；这一条的踩点：`'[data-layer-id="${var}"]'` **单引号**模板字符串没替换，
+  定位器等了一个不存在的字符串的 900s 测试预算（段 745 点击死等）；顺手 grep 完 spec 全部单引号变量引用才过。
+  两笔记账：影响徽标翻完仍读 2（而非预期的 1，埋的 padding+mode 两个键两个 live）；`boxIn` 读页面坐标，翻后断言改成『兄弟重叠』而不是各自 0。
+  面板此刻 **二十六格**。
+
+
+**第十八片（2026-11-08）：腿 S——公共页就是这份投影（翻进 none → 发布 → 访客也 absolute → 撤销 → 再发 → 访客回到竖排）**
+
+- 腿 S 验证：不是相信访客那半个模型的投影，而是**同一份模型、另一个真出去的版本**。tablet 翻进 none → 发布（路径不变、版本 v+1 起），
+  public page 的 tablet 变体里两个按钮**归一到同一个原点**（left/top 相等）；撤销翻转 → 再发（版本 v+2 起）→ 访客回到夹具的 seeded tablet 竖排（Primary 上 / Secondary 下、items:center 居中），**两处 `[data-published-variant="tablet"]` 里都在这一版是真实物理位姿**。这一刀同时覆盖：回写、代码视图、publish 链、public SSR——public page **不发 Tailwind 类**（`render.ts` 内联绝对定位），访客走内联 `style="left…;top…"`，marker 只出现在代码产物里。
+  首跑红在断言口径：恢复竖排我写的『Secondary 回到 Primary 右边』，而夹具的 seeded tablet **本来就是 vertical**（starter 的 Actions 在设计阶段就是横排的变体被 seed 翻成 vertical，items:center + 竖排内 justify:space-between）；修正到 Secondary 下 Primary 上、间距 gap=40 才能判。
+- 读数：腿 S **1 passed（1.8m）**、console `[ 9 9 . 6 s ] 腿 S`；独占生产构建（next start -p 3201，已停）。
+- 这一条也为 §16 收了**最后一寸**：设计模型 → 画布 → 发布物里的『什么都看得见』的那两个写方（design / code 工作台）现在都能证明访客那边同样吃到。
 **仍欠**
 
-1. 面板仍然只有部分输入口：`position`（x/y）、`layout.scroll`/`clipContent`/`rowGap`/`crossGap`
-   与 `typography` 除字号那几键现在**数得进来、改不出去**，界面只能说"去代码那一节"或"整档清掉"。
+1. ~~面板仍然只有部分输入口：`typography` 的字族~~——**已还（第十四片，2026-11-08）**：选项从文档现读，文档没有 fontFamily 型 token 就不摆，裸族名也能往返；仍欠只剩 `style` 那一组（见下面）。
+   （`rowGap`/`crossGap` 已不在这儿：2026-11-08 记了 **ADR-0092**——死字段、`@deprecated` 标注、弃用而不实现不删；
+   任何 grid 行间隙的真实需求须另开 ADR 重新起名。）
    （第三片给了 `layout.mode`/`gap`/`columns`/`typography.fontSize`，第六片给了 `justify`/`items`；
-   第七片把 `reverse` 接进了求解器，第八片给它那一格——`RESPONSIVE_CHANNELS` 现在十一格，
+   第七片把 `reverse` 接进了求解器，第八片给它那一格；`layout.clipContent`/`layout.scroll` 与 typography 七格（字重/行高/字距/大小写/装饰/对齐/纵向对齐）、字族（第十四片）、style 的混合模式/旋转（第十一片）、指针（第十二片）已接入响应式面板、代码发射/回写与测试——`RESPONSIVE_CHANNELS` 现在**二十六格**（另两格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时才摆），
    写入口不再是「代码」视图独家。）
 2. ~~某一档只声明 `{reverse:false}` 而更窄那档反向时发不出东西~~——**第八片已还**（2026-11-08）：
    发射侧在这种情况下重发一条正向方向类（`md:flex-col`），回写侧按同一条判据认领它，CSS 那一寸
    的跨档胜负与档内胜负都用真 Tailwind v4.3.3 + Chromium 量过（ADR-0069 第八片那节）。
-   还欠的换成下一层：`position`（x/y）除 `mobile` 档、`mode` 的 `stack`/`none`、
-   `rowGap`/`crossGap`/`scroll`/`clipContent`、`typography` 除字号、`style` 除填充与透明度。
+   还欠的换成下一层：`style` 除填充、透明度、混合模式、旋转与指针（cornerRadius 模型层已通，面板不摆）。
+   （2026-11-08 位置那两格已还：position.x/position.y 平板/桌面/Wide 都发得出也读得回，面板有输入口——父级 merged 为 `none`/`stack` 自由定位逃生口时才摆，否则收起；见 ADR-0069 第九片。）
 3. 根画框仍然只读；断点档上它由断点决定，这条披露在「页面」那一节，不是编辑入口。
 4. AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方；真 provider 需要授权（`[!]`，见 §105）。
 5. 这条 e2e 链在开发模式里 4.7m，其中腿 F 那一段从 9.7s 涨到 104s、发布到 266s 是同机另一会话同时在跑
    e2e 挤出来的。没有独占库/独占端口之前，它不能当常驻快门。
 6. 徽标数的是投影，不预测渲染：`layout.columns` 这类键在 codegen 里怎么落成 Tailwind 类，与画布/访客是不是
    真的按它摆，是另一条链（§85 那套体检表量的就是这一层）。
+7. ~~`mode` 的 `stack`/`none` 模型层逃生口~~——**已落地（2026-11-08，第十五/十六片）**：
+   ADR-0091 定标记任意属性 `[--nexus-mode:none|stack]`、flip-gate（`applyResponsiveBelow→resolved` 进入 none/stack 才发）、
+   code-parse round-trip 零补丁（含 mobile 基线档）、面板「自由定位」按钮（stack 仅代码可写）、
+   浏览器腿 F7 同样绿（Actions 翻成自由定位，全链 A–F7–R **1 passed（58.1s）**）。独占生产构建上验证。
 
 ## §85 第三十五片：点开才出现的界面第一次进读数——发布弹层（2026-11-02）
 

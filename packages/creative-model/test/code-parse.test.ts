@@ -9,7 +9,7 @@ import {
   type ParseIssue,
 } from "../src/code-parse";
 import { RESPONSIVE_PATCH_GROUPS } from "../src/types";
-import type { Page, ResponsivePatchGroup } from "../src/types";
+import type { Page, ResponsivePatchGroup, Style } from "../src/types";
 
 /**
  * Code → Design（§17-19）。核心验收：`parse(generate(page))` 必须零补丁、零 unmapped——
@@ -606,6 +606,410 @@ describe("类名 → 模型属性", () => {
       { breakpoint: "tablet", patch: { layout: { mode: "vertical", reverse: false } } },
     ]);
     expect(reread.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+  });
+
+  it("断点裁剪/滚动往返：overflow 类发得出也读得回，取消更窄裁剪用 overflow-visible（§14）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const clipped: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          layout: { ...page.nodes[hero]!.layout, clipContent: true },
+          responsive: [
+            { breakpoint: "tablet", patch: { layout: { clipContent: false, scroll: "none" } } },
+            { breakpoint: "desktop", patch: { layout: { scroll: "vertical" } } },
+          ],
+        },
+      },
+    };
+    const code = source(clipped);
+    const line = lineOf(code, hero);
+    expect(line).toContain("overflow-hidden");
+    expect(line).toContain("md:overflow-visible");
+    expect(line).toContain("lg:overflow-y-auto");
+    const result = parse(clipped, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("断点字重/行高往返：发射与回写共用 font-*/leading-* 处方，往返零补丁（§14）", () => {
+    const page = starterPage();
+    const headline = nodeId(page, "Headline");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [headline]: {
+          ...page.nodes[headline]!,
+          responsive: [
+            { breakpoint: "tablet", patch: { typography: { fontWeight: 600, lineHeight: 1.8 } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, headline);
+    expect(line).toContain("md:font-semibold");
+    expect(line).toContain("md:leading-[1.8]");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
+  });
+
+  it("断点字距/大小写/装饰往返：发射与回写共用 tracking/uppercase/underline 处方，零补丁（§14）", () => {
+    const page = starterPage();
+    const headline = nodeId(page, "Headline");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [headline]: {
+          ...page.nodes[headline]!,
+          responsive: [
+            {
+              breakpoint: "tablet",
+              patch: { typography: { letterSpacing: 2, textCase: "upper", decoration: "underline", align: "center" } },
+            },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, headline);
+    expect(line).toContain("md:tracking-[2px]");
+    expect(line).toContain("md:uppercase");
+    expect(line).toContain("md:underline");
+    expect(line).toContain("md:text-center");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
+  });
+
+  it("断点混合模式/旋转/指针往返：发射与回写共用处方，零补丁（§14）", () => {
+    const page = starterPage();
+    const headline = nodeId(page, "Headline");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [headline]: {
+          ...page.nodes[headline]!,
+          responsive: [
+            { breakpoint: "tablet", patch: { style: { blendMode: "multiply", rotation: 15, cursor: "pointer" } } },
+            // 显式写回 normal / 0 / default：顶掉更窄那档——Tailwind 把 md:/lg: 放在基类之后，CSS 里它赢
+            { breakpoint: "desktop", patch: { style: { blendMode: "normal", rotation: 0, cursor: "default" } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, headline);
+    expect(line).toContain("md:mix-blend-multiply");
+    expect(line).toContain("md:rotate-[15deg]");
+    expect(line).toContain("md:cursor-pointer");
+    expect(line).toContain("lg:mix-blend-normal");
+    expect(line).toContain("lg:rotate-[0deg]");
+    expect(line).toContain("lg:cursor-default");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
+  });
+
+  it("断点圆角往返：四边同值折成一条 rounded-[…] 也回得来（§14）", () => {
+    const page = starterPage();
+    const headline = nodeId(page, "Headline");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [headline]: {
+          ...page.nodes[headline]!,
+          responsive: [
+            { breakpoint: "tablet", patch: { style: { cornerRadius: { topLeft: 10, topRight: 10, bottomRight: 10, bottomLeft: 10 } } } },
+            // 单格：只收那一格，重投影时只发 md/lg:rounded-tl-[…]、其余三格留给基线
+            { breakpoint: "desktop", patch: { style: { cornerRadius: { topLeft: 12 } as Style["cornerRadius"] } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, headline);
+    expect(line).toContain("md:rounded-[10px]");
+    expect(line).toContain("lg:rounded-tl-[12px]");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
+  });
+
+  it("断点字族往返：token 引用与裸族名都回得去，往返零补丁（§14）", () => {
+    const page = starterPage();
+    const headline = nodeId(page, "Headline");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [headline]: {
+          ...page.nodes[headline]!,
+          responsive: [
+            // 起手 Headline 是 {font.heading}：这一档换成等宽，两端都得回得来
+            { breakpoint: "tablet", patch: { typography: { fontFamily: "{font.mono}" } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, headline);
+    expect(line).toContain("md:font-[family-name:var(--nx-font-mono)]");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
+  });
+
+  it("断点模式标记往返：md:[--nexus-mode:none|stack] 换回 mode patch，父级定位参照同档（ADR-0091 · §14）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [
+            // 这一档把父级翻成自由定位逃生口
+            { breakpoint: "tablet", patch: { layout: { mode: "none" } } },
+            { breakpoint: "desktop", patch: { layout: { mode: "stack" } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    expect(line).toContain("md:[--nexus-mode:none]");
+    expect(line).toContain("md:relative");
+    expect(line).toContain("lg:[--nexus-mode:stack]");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("基线模式标记往返：设计 mode=none（无 mobile 规则）也回得来，relative 同档消费（ADR-0091 · §14）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withMode: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          layout: { ...page.nodes[hero]!.layout, mode: "none" },
+        },
+      },
+    };
+    const code = source(withMode);
+    const line = lineOf(code, hero);
+    expect(line).toContain("[--nexus-mode:none]");
+    expect(line).toContain("relative");
+    const result = parse(withMode, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("基线模式标记往返：mobile 的 stack 也回得来——mobile 规则的 mode 也收进那条规则里（ADR-0091 · §14）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [{ breakpoint: "mobile", patch: { layout: { mode: "stack" } } }],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    // mobile 档走移动优先基线：那一档的 mode 也落在基线那组无前缀类里
+    expect(line).toContain("[--nexus-mode:stack]");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("断点横排/直排排布不发到这一寸：columns-only 的网格 patch 只发 columns，不发 projection mode 的窄档标记（§14）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          layout: { ...page.nodes[hero]!.layout, mode: "grid", columns: 2 },
+          responsive: [{ breakpoint: "tablet", patch: { layout: { columns: 2 } } }],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    expect(line).not.toContain("md:[--nexus-mode:");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
+  it("断点纵向对齐往返：垂直对齐差异才发/收，往返零补丁（§14）", () => {
+    const page = starterPage();
+    const headline = nodeId(page, "Headline");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [headline]: {
+          ...page.nodes[headline]!,
+          responsive: [
+            { breakpoint: "tablet", patch: { typography: { verticalAlign: "middle" } } },
+            { breakpoint: "desktop", patch: { typography: { verticalAlign: "bottom" } } },
+            { breakpoint: "wide", patch: { typography: { verticalAlign: "top" } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, headline);
+    expect(line).toContain("md:flex");
+    expect(line).toContain("md:justify-center");
+    expect(line).toContain("lg:justify-end");
+    expect(line).toContain("xl:justify-start");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === headline)?.unmapped).toEqual([]);
+    // md/lg 发射 vertical row ⇒ roundtrip 写回 mode vertical + va；xl 是 top=va bottom→top 翻转，
+    // 不写 mode（text 没排版）
+    const ops = result.ops.filter((o) => "nodeId" in o && o.nodeId === headline);
+    expect(ops).toEqual([
+      {
+        op: "set",
+        nodeId: headline,
+        path: "responsive",
+        value: [
+          { breakpoint: "tablet", patch: { layout: { mode: "vertical" }, typography: { verticalAlign: "middle" } } },
+          { breakpoint: "desktop", patch: { layout: { mode: "vertical" }, typography: { verticalAlign: "bottom" } } },
+          { breakpoint: "wide", patch: { typography: { verticalAlign: "top" } } },
+        ],
+      },
+    ]);
+  });
+  it("断点绝对定位往返：父级自由定位时 md:left/top 发得出也读得回，零补丁（§14）", () => {
+    const page = starterPage();
+    const root = nodeId(page, "Home");
+    // 父级自己写出 free 定位逃生口（mode=none），子节点的位置覆盖才能在 md 档生效
+    const parent = createNode({
+      type: "section",
+      name: "AbsParent",
+      layout: { mode: "none", gap: 0 },
+      size: { width: 400, height: 300 },
+    });
+    parent.parentId = root;
+    const rootNode = page.nodes[root]!;
+    rootNode.children = [parent.id];
+    page.nodes[parent.id] = parent;
+    const child = createNode({
+      type: "section",
+      name: "AbsChild",
+      layout: { mode: "vertical", gap: 0 },
+      size: { width: 80, height: 60 },
+      position: { x: 12, y: 14 },
+    });
+    parent.children = [child.id];
+    child.parentId = parent.id;
+    page.nodes[child.id] = {
+      ...child,
+      responsive: [{ breakpoint: "tablet", patch: { position: { x: 44, y: 52 } } }],
+    };
+    const code = source(page);
+    const line = lineOf(code, child.id);
+    expect(line).toContain("md:left-[44px]");
+    expect(line).toContain("md:top-[52px]");
+    const result = parse(page, code);
+    expect(result.mappings.find((m) => m.nodeId === child.id)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === child.id)).toEqual([]);
+  });
+
+  it("断点绝对化往返 A（flex→none）：md:absolute + md:left/md:top 发得出也读得回，零补丁（§14）", () => {
+    const page = starterPage();
+    const root = nodeId(page, "Home");
+    const parent = createNode({
+      type: "section",
+      name: "FlipParent",
+      layout: { mode: "horizontal", gap: 8 },
+      size: { width: 400, height: 300 },
+    });
+    parent.parentId = root;
+    const rootNode = page.nodes[root]!;
+    rootNode.children = [parent.id];
+    page.nodes[parent.id] = parent;
+    const child = createNode({
+      type: "section",
+      name: "FlipChild",
+      layout: { mode: "vertical", gap: 0 },
+      position: { x: 30, y: 60 },
+      size: { width: 80, height: 60 },
+    });
+    child.parentId = parent.id;
+    parent.children = [child.id];
+    page.nodes[child.id] = child;
+    page.nodes[parent.id] = {
+      ...parent,
+      responsive: [{ breakpoint: "tablet", patch: { layout: { mode: "none" } } }],
+    };
+    const code = source(page);
+    const line = lineOf(code, child.id);
+    expect(line).toContain("md:absolute");
+    expect(line).toContain("md:left-[30px]");
+    expect(line).toContain("md:top-[60px]");
+    const result = parse(page, code);
+    expect(result.mappings.find((m) => m.nodeId === child.id)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === child.id)).toEqual([]);
+  });
+
+  it("断点绝对化往返 B（none→horizontal）：md:static 发得出也读得回，零补丁（§14）", () => {
+    const page = starterPage();
+    const root = nodeId(page, "Home");
+    const parent = createNode({
+      type: "section",
+      name: "RevertParent",
+      layout: { mode: "none", gap: 0 },
+      size: { width: 400, height: 300 },
+    });
+    parent.parentId = root;
+    const rootNode = page.nodes[root]!;
+    rootNode.children = [parent.id];
+    page.nodes[parent.id] = parent;
+    const child = createNode({
+      type: "section",
+      name: "RevertChild",
+      layout: { mode: "vertical", gap: 0 },
+      position: { x: 30, y: 60 },
+      size: { width: 80, height: 60 },
+    });
+    child.parentId = parent.id;
+    parent.children = [child.id];
+    page.nodes[child.id] = child;
+    page.nodes[parent.id] = {
+      ...parent,
+      responsive: [{ breakpoint: "tablet", patch: { layout: { mode: "horizontal" } } }],
+    };
+    const code = source(page);
+    const line = lineOf(code, child.id);
+    expect(line).toContain("absolute");
+    expect(line).toContain("md:static");
+    expect(line).not.toContain("md:absolute");
+    const result = parse(page, code);
+    expect(result.mappings.find((m) => m.nodeId === child.id)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === child.id)).toEqual([]);
   });
 
   it("手机那一档的覆盖往返：发在基线上、读得回来、一个补丁都不发（§14 第五片）", () => {

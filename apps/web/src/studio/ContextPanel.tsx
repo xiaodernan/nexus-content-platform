@@ -183,7 +183,7 @@ export function ContextPanel() {
             </div>
             <div className="text-[11px] text-white/40">目录预算</div>
             <div className="flex items-center gap-2">
-              <input
+              <input aria-label="上下文预算（字符）"
                 id="ctx-budget"
                 type="number"
                 min={0}

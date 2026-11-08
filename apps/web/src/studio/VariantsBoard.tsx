@@ -250,7 +250,7 @@ export function VariantsBoard() {
           ))}
         </select>
         <span className="text-12 text-fg-3">的视觉</span>
-        <input
+        <input aria-label="新分支名"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="新分支名（可留空）"

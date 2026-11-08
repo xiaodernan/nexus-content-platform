@@ -343,6 +343,7 @@ export function DesignSystemPanel() {
               onChange={(e) => setNewToken((t) => ({ ...t, key: e.target.value }))}
               placeholder="color.brand"
               data-token-new-key
+              aria-label="新 token 的键"
               className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-2 py-1 font-mono text-11 text-fg-1 outline-none"
             />
             <select
@@ -364,6 +365,7 @@ export function DesignSystemPanel() {
             onChange={(e) => setNewToken((t) => ({ ...t, value: e.target.value }))}
             placeholder="#7c5cff 或 16"
             data-token-new-value
+            aria-label="新 token 的值"
             className="mt-1 w-full rounded-[var(--nexus-radius-sm)] bg-bg-1 px-2 py-1 font-mono text-11 text-fg-1 outline-none"
           />
           {formError ? (
@@ -460,6 +462,7 @@ export function DesignSystemPanel() {
                             e.stopPropagation();
                           }}
                           data-token-value={token.key}
+                          aria-label={`${token.key} · 值`}
                           className="w-full min-w-0 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-[2px] font-mono text-11 text-fg-1 outline-none focus:bg-bg-3"
                         />
                         {isColor(token) ? (
@@ -468,6 +471,7 @@ export function DesignSystemPanel() {
                             value={/^#[0-9a-f]{6}$/i.test(String(token.value)) ? String(token.value) : '#000000'}
                             onChange={(e) => setTokenValue(token, e.target.value)}
                             data-token-color={token.key}
+                            aria-label={`${token.key} · 颜色`}
                             className="h-5 w-6 shrink-0 cursor-pointer rounded-[3px] border border-[var(--nexus-color-border-subtle)] bg-transparent"
                           />
                         ) : null}

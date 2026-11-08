@@ -75,7 +75,7 @@ export function ProjectDeleteCard({
         公开页会立刻打不开，快照与发布记录留着，可以在回收站恢复。
       </p>
       <div className="flex items-center gap-2">
-        <input
+        <input aria-label="逐字输入项目名"
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
           placeholder="逐字输入项目名"

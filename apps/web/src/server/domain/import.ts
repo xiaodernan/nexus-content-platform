@@ -41,7 +41,7 @@ import { sniffVideoMime } from '../storage/videos';
  * Next 16 的中间件会**先把请求正文读进来才运行**（默认 10MB 上限）→
  * 路由拿到的正文被截断（合法的 >10MB 导入就是坏的），
  * 而路由里那道"按 Content-Length 先拒"也来不及跑。
- * 所以导入路由**不进中间件**（见 `apps/web/src/middleware.ts` 的 matcher）→
+ * 所以导入路由**不进 proxy**（见 `apps/web/src/proxy.ts` 的 matcher）→
  * 头一到手就能拒 → **正文一个字都不用读**。
  */
 export const IMPORT_MAX_ZIP_BYTES = 128 * 1024 * 1024;

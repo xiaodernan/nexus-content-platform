@@ -74,7 +74,7 @@ run concurrently; build the affected package directly with `tsc -p tsconfig.json
 | 集成（跨实例） | Vitest + 真 Redis(容器)，另加 `npm run realtime:two-process` 起真实第二个进程 | 实时总线扇出：进程与进程之间的投递、关门、坏帧、线路断开不拖业务（§163 / ADR-0028） | 实时驱动或连接参数改动 |
 | 端到端 | Playwright | Studio 全流程竖向切片（见下 Golden Path） | 每里程碑 + 发布前 |
 | 视觉 | Playwright screenshot + Visual Benchmark | 渲染快照、AI Diff 前后对比、参考图 vs 生成图 | Studio/渲染器改动 |
-| Agent 评测 | `evals/` | design accuracy / code correctness / tool selection / RAG / accessibility | ai-service 改动 |
+| Agent 评测 | `npm run evals`（`evals/` 按能力分套件、九套、全绿 exit 0；`--list`/`--suite` 经 CLI 选片）· `npm run evals:baseline`（`scripts/eval-baseline.mts`，真库基线） | 确定性套件（当前九套全绿 · 247 checks）：`code-index 19 · model-roundtrip 13 · export-roundtrip 17（需真库，skip sentinel）· video-plan 30 · world-build 55 · schemas-contract 17 · game-build 36 · design-build 46 · project-bundle 14`；真库基线：RAG / 设计精度 / 视觉 / 无障碍 | 评测框架与套件改动时
 
 禁止 mock 数据库做集成测试（真实容器实例）；provider 在测试里用 Mock Provider，但必须显式标注 DEMO MODE 断言。
 
@@ -1975,14 +1975,14 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
     走真 HTTP 证过服务端确实回 `413 {"error":"too_large",...}` → 一直以为是用例的竞态。
   - **真相（dev server 的日志给的）**：
     `Request body exceeded 10MB for /api/projects/import. Only the first 10MB will be available`
-    → **Next 16 的中间件会先把请求正文读进来才运行**（默认上限 10MB，`middlewareClientMaxBodySize`）
+    → **Next 16 的 proxy（原 middleware）会先把请求正文读进来才运行**（默认上限 10MB，`proxyClientMaxBodySize`）
     → 于是两件事同时错：
     ① **合法的 >10MB 导入今天就是坏的**（正文被截断到 10MB）；
     ② 路由里那道"按 Content-Length 先拒"**来不及跑**（要等中间件把正文读完）→
        客户端猛推 128MB 时，服务端读完才回 413 → 中途把连接收了 → 客户端只看到 `ECONNRESET`
        （**不是"拒收"，是"断线"**）。
-  - **修法**：**导入路由不进中间件**（`middleware.ts` 的 matcher 排除它；
-    它自己管鉴权，本来就不依赖中间件签的那枚游客 cookie——
+  - **修法**：**导入路由不进 proxy**（`proxy.ts` 的 matcher 排除它；
+    它自己管鉴权，本来就不依赖 proxy 签的那枚游客 cookie——
     `e2e/import.spec.ts` 的 §144 闭环（游客导入）4 支全绿证明了这一点）。
     路由于是**头一到手就能判**"这个包太大了" → **正文一个字都不用读**。
   - **凭证**：修完之后同一个探针 **723ms 就拿到 413**（修之前 8 秒还在等正文）；
@@ -2356,3 +2356,111 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   红在 `expect(listId).toBe(...)`（Received null）；P2 零发现行也渲染成键 → 红在
   `toHaveCount(0)`（Received 1）；P3 列表去 `id` → 红在 `[id="…"]` 的 `toHaveCount(1)`（Received 0）。
   notMeasured：review 态、真服务端 5xx / 413、390 下弹层、焦点陷阱。
+- **2026-11-08：整批一次跑复现收尾 `ERR_IPC_CHANNEL_CLOSED`（exit 1，零条真失败）；分两片重跑，两片都绿——全仓 268 文件 / 3557 条**——
+  `npx vitest run --reporter=dot` 在打 summary 前崩（栈形状与 2026-10-30 那次逐字节一致：
+  `target.send node:internal/child_process` → `ProcessWorker.send tinypool/dist/index.js:140`
+  ← `MessagePort.<anonymous> …:149`），没有 `Test Files` / `Tests` 那两行——崩溃，不是红、也不是绿。
+  按本文件自己的纪律重跑：`--shard=1/2` 一次 exit 0，`.scratch/shard1.log` 读数
+  `Test Files  134 passed (134)` / `Tests  1828 passed (1828)`；`--shard=2/2` 第一次同样在收尾崩
+  （exit 1、零条真失败），原样重跑（`.scratch/shard2b.log`）exit 0，
+  `Test Files  134 passed (134)` / `Tests  1729 passed (1729)`。两片相加 268 文件 / 3557 条。
+  这次是在另一会话的 credits 在途文件（`apps/web/src/server/domain/credits.ts`、`credits-why-guards.test.ts` 等）
+  都还在工作区的状态下跑的——所以它只说明**这些文件此刻没把套件弄红**，不是对它们的背书。
+  顺带：`apps/web/test/responsive-editor.test.ts` 39/39 绿（position.x/y 那两格的 `expect` 一并生效）。
+  notMeasured：整批一次跑的 exit-0 绿仍然拿不到（崩溃触发条件仍未查清，`fileParallelism` 配置没动）；
+  分片绿 ≠ 收尾崩溃已修。
+
+- **2026-11-08：§14 e2e 断点人工入口加腿 F3/F4（位置那两格）——独占生产构建上 1 passed（59.5s）**——
+  `e2e/responsive-authoring.spec.ts` 现在会（埋在起手之前的）`Sandbox`（`mode: none`）+ `SandboxBadge`
+  固定位置 48/40；腿 F3：选中 badge ⇒ mobile 档两行摆出来 → x 写 120 ⇒ 画布相对 Sandbox 变成 (120, 40)、
+  徽标读「这一档 120」→ tablet 两格照样摆、继承 120 ⇒ 撤销 ⇒ (48, 40)、清除键没 → 腿 F4：Eyebrow（竖排父级）位置两行不存在。
+  **注意读数口径**：本机 3100 的 dev server 这段时间间歇 500（另一会话的源码在保存的瞬间让 JIT 重编译撞运行中请求），
+  这条跑的是独占生产构建（`apps/web` `next start -p 3201`，serve 的就是今天这笔提交的产物），dev 那一寸没量到就不说量到。
+  全链 A–F4–R 一次过，截图仅失败即存（这次没有失败图）。夹具每轮连根拔掉沙盒重建（PUT 幂等），
+  节点走 `validateDocument` 同一道门（本机校验 `errors: []`）。
+  notMeasured：这条 e2e 的**成功路径只在生产构建上量过**；开发模式下的腿 F3/F4 与 4.7m 量级的时长没重跑；
+  sandbox 埋点会出现在夹具项目的公开页里（本来没有可见文本，不影响其余腿）。
+
+- **2026-11-08：§14 e2e 断点人工入口加腿 F5（`typography.fontFamily` 动态选项通道）——独占生产构建上 1 passed（1.2m，腿 F5 8.3s）**——
+  文档起手有 `font.heading` / `font.body` / `font.mono` 三个 fontFamily 型 token ⇒ Headline 那一行摆出三个选择按钮；
+  点 `{font.mono}` ⇒ 徽标读「改 1 处」、画布 computed fontFamily 当场换、撤销回设计值（
+  `[data-responsive-choice="typography.fontFamily:{font.mono}"]`、`[data-responsive-channel="typography.fontFamily"]` 读「这一档 font.mono」）。
+  全链 A–F5–R 一次过。**口径注**：这条跑的是独占生产构建（`npm run build` 后 `next start -p 3201`，serve 本次提交的产物），
+  3100 的共享 dev server 依旧不稳定（另一会话的文件一保存就撞 JIT，间歇 500），没量到 dev 那一寸就不说量到。
+  notMeasured：这条 e2e 只验了"有 fontFamily 型 token 时摆出来"那一条路；
+  "文档没有这类 token 时不摆"这一条由 `responsive-editor` 单测钉着（默认空态），没进真浏览器。
+
+- **2026-11-08：§14 e2e 新通道的浏览器腿清掉——腿 F6（blendMode / rotation / cursor）1 passed**——
+  SandboxBadge 上：点 `style.blendMode:multiply` ⇒ computed `mix-blend-mode: multiply`；填 `style.rotation` 15 ⇒ inline `transform: rotate(15deg)`（poll 到才算）；
+  点 `style.cursor:pointer` ⇒ computed `cursor: pointer`；三步各自点一次 ⇒ 各自撤回 ⇒ 徽标归零。
+  全链 A–F6–R 一次过（`next start -p 3201` 独占生产构建；3100 dev 依旧跳动，不量就不说量到）。至此 §14 的 style 那一组、fontFamily 那一格的
+  **真 Chrome 路径都走过了**——剩的是 cornerRadius（模型层有、面板不摆，无 Chrome 腿）。
+
+- **2026-11-08：整批分片重跑抓到一条真红——doc-evidence.test.ts §192（我自己的文档引用了没入库的 .scratch 日志）**——
+  本回合早些时候我在 TESTING.md 引用了两份日志（`.scratch/shard1.log` / `.scratch/shard2b.log`）而没 `git add -f`，
+  shard1 重跑这 1831 条里唯一红的就是它（`expected [2 items] to deeply equal []`）。修法：两份日志 UTF-16 转 UTF-8 后 `git add -f`
+  随 `11e35b3` 入库；doc-evidence 4/4 绿。记录在此是提醒：**写 `.scratch/…` 点名证据的同时就 `git add -f`——测试会在下一次分片里翻脸**。
+  收尾：shard1 实跑 134 文件（133 pass + 1 fail 已修）、1830/1831 通过；与 shard2b 相加仍是 268 文件 / 3557 条（其中这次 doc-evidence 4 条全绿计入）。
+
+- **2026-11-08：§14 e2e 腿 F7（mode:stack/none marker + 自由定位按钮）—— 1 passed（58.1s）**——
+  Actions 点「自由定位」（面板 value `layout.mode:none`），两个孩子失去 flow、控制台 `[ 5.6 s ] 腿 F7`，console 走完 A–F7–R。
+  断言修了一轮：影响徽标翻完仍读 2（埋的 padding+mode 两个键两个 live）、`boxIn` 页面坐标下两个孩子重叠在 Actions 原点，不是分别 0。
+  口径：独占生产构建（next build + next start -p 3201）；3100 依旧跳动，dev 没量就不说量到。
+  顺带：mobile 档的 mode 往返**仍没接**（本片 mad:+），不想让任何人把 F7 读成“mobile 那一下也通了”。
+
+- **2026-11-08：§14 两个 shard 分片重跑都绿——268 文件 / 3572 条（这轮 +15 条）**——
+  里程见 85889a4 / 9b92bd3 / e644748 / 52039cf（配合：typecheck + eslint 每根都过 pre-commit）。
+  shard1c **134 文件 / 1834 条**（1828+6）、shard2c **134 文件 / 1738 条**（1729+9）、两次都 exit 0——本批跑的就是工作区里另一会话的 credits WIP 还没提交的状态，
+  所以它只说明那些文件此刻没把套件弄红，不是对它们的背书。`.scratch/shard1c.log` / `.scratch/shard2c.log` 已 `git add -f` 入库（本文件 §192 那条纪律：点名就得能 clone 到）。
+
+- **2026-11-08：§14 e2e 腿 F8（position 两格按档内逃生口摆/收）——全链 A–F8–R 1 passed（6.0m）**——
+  父级翻成 none（`layout.mode:none`）之后：移动端（设计 horizontal）位置 x 那格**不摆**；tablet 那一档摆（left/top 那两个 input）；
+  wide 继承 tablet 逃生口照样摆；撤销把 tablet 翻回横排，两格又消失。console `[ 7.9 s ] 腿 F8`。
+  这两格的 unit coverage（appliesTo + freePositionAt + 父级合并判据）早有单测，F8 首次把整条链（面板、store、撤销）推过真 Chrome。
+  口径：独占生产构建（`next start -p 3201`，已停）。
+  踩点：上一跑 900s 测试预算烧完死在第 745 行一行 `'[data-layer-id="${var}"]'` **单引号模板字符串没替换**，定位器等了一个不存在的选择器——
+  快速 grep 单引号变量引用应该在写 spec 时当 typo 门走一遍；修法以后照做（`npx playwright ...` 失败前必 grep 这一条）。
+
+- **2026-11-08：credits 车道合计入主（eb809df），合并树重跑两片——268 文件 / 3572 条，两次 exit 0**——
+  就是把另一会话那条 ENFORCED_PLAN_AXE_GUARDS 重构（+ ADR-0090、credits-why-guards.test.ts、credits-enforced-copy.test.ts 的逐字文案变更）
+  在主分支上兑现为可验证的合并态：shard1d 134 files / 1834、shard2d 134 files / 1738（与合并前 3572 一致）、exit 0——本轮唯一多的是这笔合并。
+  这次 shard 重跑在合并 main 上跑，不是 WIP 工作区，所以它就是合在主分支上的绿。日志 `.scratch/shard1d.log` / `.scratch/shard2d.log` 已 `git add -f` 入库。
+
+- **2026-11-08：§14 e2e 腿 S（发布后公共页就是这份投影）—— 1 passed（1.8m）**——
+  tablet 翻进 none → 真发布（路径不变、版本 v+1）→ 访客 tablet 变体里两个孩子**归一到同一原点**（left/top 两个数各自相等，不依赖各自的 padding 修正）；
+  撤销翻转 → 再发（版本 v+2）→ 访客回到 seeded 竖排（Primary 上 / Secondary 下、`items:center` 居中、gap = 40）。
+  console `[ 9 9 . 6 s ] 腿 S`。
+  首跑红在断言口径：夹具的 seeded tablet 本来就是 vertical（"Secondary 回到 Primary 右边"我错当作横排），再往上回退发现
+  `impact` 还读 2（埋的 padding+mode）、`boxIn` 是页面坐标；修正到『下到下、居中对齐』后一次过。
+  写的是"访客那个版本翻了一次又一次"——这一刀同时验证了 panel、publish、render.ts 内联样式解法；
+  public page **不发 Tailwind 类**（Tailwind 不参与），marker 只会在 ZIP / 代码产物里出现。
+
+- **2026-11-08：这一版工作树再跑两片——268 文件 / 3572 条、两次 exit 0（含合并 credits 车道那一坨）**——
+  shard1e 134 files / 1834、shard2e 134 files / 1738；与合并前（3572）逐计相同。期间补的都是 e2e 腿（F9 腿 S）和文档，
+  `.scratch/shard1e.log` / `.scratch/shard2e.log` 已 `git add -f` 入库。
+
+- **2026-11-09：这一版工作树再跑两片（含 `b89631c` 浅色内部件修复与 evals 三套）——269 文件 / 3578 条全部通过，两次 exit 0**——
+  shard1 135 文件 / 1838 条（493.53s）、shard2 134 文件 / 1740 条（673.65s），逐计合计 **269 / 3578**；
+  与上一版两片（2026-11-08，268 文件 / 3572 条）相差正好 +1 文件 / +6 条，
+  对得上这两天只增了 `scripts/test/evals-framework.test.mts`（+4 条 +1 文件）与导出/导入往返标记的两条集成用例（+2 条）。
+  `.scratch/shard1-2026-11-09.log` / `.scratch/shard2-2026-11-09.log` 已 `git add -f` 入库。
+
+- **2026-11-09：§85 prod 复验全绿**——PRODUCTION build `apP2T7u2fy3pFppCjDq_y`（含这几天全部改动：令牌表的 44 个失名修好、
+  浅色键盘车道焦点环的 ink 修好、text-like control-names 扇入出 18 处后全部修好）下跑五条浏览器门；
+  全部 **1 passed**（详细表格见 `docs/EVALUATION.md` 第二十片、二十一片、二十二片与 log `.scratch/prod-recheck-2026-11-09.log`）。
+
+- **2026-11-09：再两片全绿——271 文件 / 3587 条，两次 exit 0**——
+  shard1 136 文件 / 1843 条（682.95s，03:28:31 UTC+8）、shard2 135 文件 / 1744 条（460.18s，03:40:20）；
+  两次都没出 ERR_IPC。与上一版记账（269 / 3578）差正好 +2 文件 / +9 条
+  （f14fe2a 已落地的 `test(§147 #32)` 引用守恒入框计数后的增加；
+  另在磁盘上但未被 git 跟踪的 `store-selection-stress.test.ts` 也参与本次计数——生产者填仓前先过一遍 lint/typecheck）。
+  `.scratch/shard1-2026-11-09b.log`、`.scratch/shard2-2026-11-09b.log` 已 `git add -f` 入库。
+
+- **2026-11-09：又一次两片重跑全绿——272 文件 / 3590 条，两次 exit 0**——
+  shard1 136 文件 / 1843 条（1073.83s，至 06:14）；shard2 136 文件 / 1747 条（940.10s，至 06:25）；
+  两次都没出 ERR_IPC。与上一版记账（269 / 3578）差 **+3 文件 / +12 条**，具体：
+  - `store-cross-model.test.ts`（§16/§159 跨模型同进程 3 条，`62563e6`）
+  - `store-selection-identity.test.ts`（§147 #32 派生引用守恒 8 条，`f14fe2a`）
+  - `store-selection-stress.test.ts`（§147 #32 压力版 1 条，`43eb15b`）
+  `git ls-files -- '**/*.test.ts' '**/*.test.mts'` `= 272` 与两片之和一致。
+  证据日志 `.scratch/shard1-2026-11-09c.log`、`.scratch/shard2-2026-11-09c.log` 已 `git add -f` 入库。

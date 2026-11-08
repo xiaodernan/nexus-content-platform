@@ -87,10 +87,11 @@ describe('页面不许把那句话再抄一遍（静态门）', () => {
   it('今天这一页端出来的那句话，逐字与生成函数一致（不是"差不多"）', () => {
     expect(planEnforcementReadout()).toBe(
       '§133 点名的 5 件事今天全都有真的拦截方（aiUsage、storage、generation、publishing、teamCollaboration）：' +
-        'aiUsage：额度为 0 时新的 AI 任务会被挡下；storage：存储写满时新的素材会被拒绝（库里已有的不会被自动删掉）；' +
-        'generation：渲染额度为 0 时成片渲染被挡下（AI 任务与成片渲染各有一道门）；' +
+        'aiUsage：余额不够这一次要用的点数时新的 AI 任务被挡下（ai 类一次 1 点，image 2 点、video 5 点）；' +
+        'storage：这一次要写的字节放不下时新素材会被拒绝（库里已有的不会被自动删掉）；' +
+        'generation：Video credits 不够一次渲染的点数时成片渲染被挡下（一次 5 点；AI 任务与成片渲染各有一道门）；' +
         'publishing：公开发布数达到档位上限时新的发布会被挡下（换版本不占名额，收回发布即释放）；' +
-        'teamCollaboration：协作者数达到档位上限时新的邀请会被挡下（pending 邀请也占名额，撤回/移除即释放）。' +
+        'teamCollaboration：协作者数达到档位上限时新的邀请会被挡下（成员与没过期也没兑现的邀请占名额，过期、撤回或移除都释放名额）。' +
         '真加了第六件事，先在这两列里放明，再落拦截方。',
     );
   });

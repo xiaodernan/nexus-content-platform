@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyResponsive,
   createNode,
+  DEFAULT_TOKENS,
   makeTokenRef,
   type BreakpointName,
   type DesignNode,
@@ -500,12 +501,15 @@ describe('§14 面板读数与投影同源', () => {
    * `Record<ResponsiveChannel, …>` 让漏掉任何一格都编译不过。
    */
   const CHANNEL_CASES: Readonly<
-    Record<ResponsiveChannel, { readonly carrier: () => DesignNode; readonly value: unknown }>
+    Record<ResponsiveChannel, { readonly carrier: () => DesignNode; readonly value: unknown; readonly parent?: () => DesignNode | null }>
   > = {
     visible: { carrier: mkText, value: false },
     'size.width': { carrier: mkText, value: 420 },
     'size.height': { carrier: mkText, value: 420 },
     'style.opacity': { carrier: mkText, value: 0.3 },
+    'style.blendMode': { carrier: mkText, value: 'multiply' },
+    'style.rotation': { carrier: mkText, value: 15 },
+    'style.cursor': { carrier: mkText, value: 'pointer' },
     'layout.mode': { carrier: () => withLayout(mkContainer(), { mode: 'grid', columns: 2 }), value: 'horizontal' },
     'layout.gap': { carrier: () => withLayout(mkContainer(), { mode: 'horizontal', gap: 16 }), value: 24 },
     'layout.columns': { carrier: () => withLayout(mkContainer(), { mode: 'grid', columns: 2 }), value: 3 },
@@ -522,23 +526,93 @@ describe('§14 面板读数与投影同源', () => {
       carrier: () => withLayout(mkContainer(), { mode: 'vertical', gap: 16 }),
       value: true,
     },
+    'layout.clipContent': { carrier: mkContainer, value: true },
+    'position.x': {
+      carrier: mkNode,
+      value: 16,
+      parent: () => withLayout(mkContainer(), { mode: 'none', gap: 0 }),
+    },
+    'position.y': {
+      carrier: mkNode,
+      value: 24,
+      parent: () => withLayout(mkContainer(), { mode: 'none', gap: 0 }),
+    },
+    'layout.scroll': { carrier: mkContainer, value: 'vertical' },
     'typography.fontSize': { carrier: mkText, value: 28 },
+    'typography.fontFamily': {
+      carrier: () => createNode({ type: 'text', name: '标题', text: '标题', typography: { fontFamily: '{font.heading}' } }),
+      value: '{font.mono}',
+    },
+    'typography.fontWeight': { carrier: mkText, value: 700 },
+    'typography.lineHeight': { carrier: mkText, value: 1.8 },
+    'typography.letterSpacing': { carrier: mkText, value: 2 },
+    'typography.textCase': { carrier: mkText, value: 'upper' },
+    'typography.decoration': { carrier: mkText, value: 'underline' },
+    'typography.align': { carrier: mkText, value: 'center' },
+    'typography.verticalAlign': { carrier: mkText, value: 'middle' },
   };
 
   it('每一个通道写一个非冗余值，impact 至少 1：不留"有规则但什么都没改"的那种规则', () => {
     for (const spec of RESPONSIVE_CHANNELS) {
       const { carrier, value } = CHANNEL_CASES[spec.id];
       const node = carrier();
-      expect(spec.appliesTo(node, 'tablet'), `${spec.id} 的载体摆不出这一行`).toBe(true);
+      const parent = CHANNEL_CASES[spec.id].parent?.();
+      expect(
+        spec.appliesTo(node, 'tablet', { parent: parent ?? null, tokens: DEFAULT_TOKENS }),
+        `${spec.id} 的载体摆不出这一行`,
+      ).toBe(true);
 
       const next = withResponsiveValue(node, 'tablet', spec.id, value);
       const shaped = { ...node, responsive: next };
 
       expect(responsiveChannelsOf(shaped, 'tablet'), spec.id).toContain(spec.id);
-      expect(responsiveImpactOf(shaped, 'tablet'), `${spec.id} 写进去没改任何投影`).toBeGreaterThanOrEqual(1);
+      expect(responsiveImpactOf(shaped, 'tablet', parent ?? null, DEFAULT_TOKENS), `${spec.id} 写进去没改任何投影`).toBeGreaterThanOrEqual(1);
       // 写得进去的那一格不该同时出现在"面板没有输入口"的点名里
-      expect(responsiveImpactDetailOf(shaped, 'tablet').outsidePanel, spec.id).not.toContain(spec.readPath);
+      expect(
+        responsiveImpactDetailOf(shaped, 'tablet', parent ?? null, DEFAULT_TOKENS).outsidePanel,
+        spec.id,
+      ).not.toContain(spec.readPath);
     }
+  });
+
+  it('position.x / position.y 只摆在自由定位父级里：普通 flex 父级收起（父级没传进来也收起）', () => {
+    const node = mkNode();
+    const flexParent = withLayout(mkContainer(), { mode: 'horizontal', gap: 8 });
+    const freeParent = withLayout(mkContainer(), { mode: 'none', gap: 0 });
+    const specX = RESPONSIVE_CHANNELS.find((c) => c.id === 'position.x')!;
+    const specY = RESPONSIVE_CHANNELS.find((c) => c.id === 'position.y')!;
+    expect(specX.appliesTo(node, 'tablet', { parent: flexParent })).toBe(false);
+    expect(specY.appliesTo(node, 'tablet', { parent: flexParent })).toBe(false);
+    expect(specX.appliesTo(node, 'tablet', { parent: freeParent })).toBe(true);
+    expect(specY.appliesTo(node, 'tablet', { parent: freeParent })).toBe(true);
+    // 父级没传进来：收起——少显示比多显示安全
+    expect(specX.appliesTo(node, 'tablet')).toBe(false);
+    expect(specX.appliesTo(node, 'tablet', undefined)).toBe(false);
+    expect(specX.appliesTo(node, 'tablet', { parent: null })).toBe(false);
+  });
+
+  it('typography.fontFamily 只摆在文档里真有 fontFamily 型 token 时（否则选项清单是空的，§159）', () => {
+    const spec = RESPONSIVE_CHANNELS.find((c) => c.id === 'typography.fontFamily')!;
+    const noFontFamily = DEFAULT_TOKENS.filter((t) => t.type !== 'fontFamily');
+    expect(spec.appliesTo(mkText(), 'tablet', { parent: null, tokens: noFontFamily })).toBe(false);
+    expect(spec.appliesTo(mkText(), 'tablet', { tokens: noFontFamily })).toBe(false);
+    expect(spec.appliesTo(mkText(), 'tablet', { parent: null, tokens: DEFAULT_TOKENS })).toBe(true);
+    // 不传 tokens：收起——少显示比多显示安全
+    expect(spec.appliesTo(mkText(), 'tablet')).toBe(false);
+    expect(spec.appliesTo(mkText(), 'tablet', {})).toBe(false);
+  });
+
+  it('排布那格：第五样是「自由定位」value none；stack 不经面板（ADR-0091）', () => {
+    const spec = RESPONSIVE_CHANNELS.find((c) => c.id === 'layout.mode')!;
+    expect((spec.choices ?? []).map((c) => c.value)).toEqual(['vertical', 'horizontal', 'grid', 'wrap', 'none']);
+    expect(spec.choices?.find((c) => c.value === 'none')?.label).toBe('自由定位');
+    // stack 不是面板那一格——按下去什么都不该发生
+    const base = withLayout(mkContainer(), { mode: 'vertical', gap: 16 });
+    expect(rule(withResponsiveValue(base, 'tablet', 'layout.mode', 'stack'), 'tablet')).toBeUndefined();
+    // 而 none 正是这一格摆出来的语义（子节点按 position 走绝对摆放）
+    expect(rule(withResponsiveValue(base, 'tablet', 'layout.mode', 'none'), 'tablet')?.patch).toEqual({
+      layout: { mode: 'none' },
+    });
   });
 
   it('token 绑定的尺寸（`{space.md}` 那种字符串引用）不崩，也发不出手抄的引用', () => {

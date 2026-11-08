@@ -186,8 +186,18 @@ Provider 故障走 failover 链（A → B → fallback），并在 Activity Feed
 
 ## 评测（§85-86）
 
-`evals/` 下按能力分套件：design accuracy · code correctness · visual quality · agent task completion ·
-tool selection · RAG accuracy · hallucination · accessibility · performance。
+§85 的方向盘：`docs/EVALUATION.md` + 下面两个 npm 脚本。`evals/` 下按能力分套件（2026-11-09 落地至九套确定性、零 provider 依赖）：
+
+- `npm run evals`（`evals/run.mts`，无 `NEXUS_DATABASE_URL` 直接跑全部确定性套件；真库 suite `export-roundtrip` 仅在 `NEXUS_DATABASE_URL` 已设时跑）：
+  - 确定性：`code-index` · `model-roundtrip` · `video-plan` · `world-build` · `schemas-contract` · `game-build` · `design-build` · `project-bundle`
+  - 真库套：`export-roundtrip`（导出→导入往返 + zlib CRC 交叉校验）
+  - 另一侧：`scripts/eval-baseline.mts`（`npm run evals:baseline`）是 §85 first-pass
+    真库套——RAG 词面检索、设计精度（DEMO provider 走端到端 applyPatch）、
+    codegen→parse 往返、a11y 散检与图像合成链——它是唯一真正回答"真值链通不通"的套。
+  - 全绿即 `exit 0`、任一结构不变式红 `exit 1`。
+
+§85/§86 的产物分两类：结构不变式（裸事实、判绿判红）、真库首跑读数（记在 `docs/EVALUATION.md` 的逐片记录里）。
+
 Visual Benchmark 用参考截图 vs 生成截图，指标为 layout similarity / spacing / alignment / color /
 typography / component correctness —— **不用 pixel-perfect 单一判据**。
 

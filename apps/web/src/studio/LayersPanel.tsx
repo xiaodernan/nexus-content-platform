@@ -96,7 +96,7 @@ export function LayersPanel() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-1 border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-2)] py-[var(--nexus-space-2)]">
-        <input
+        <input aria-label="搜索图层"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="搜索图层 / 文本"
@@ -278,6 +278,7 @@ function LayerRow(props: {
           <input
             autoFocus
             value={draft}
+            aria-label="图层名"
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commitRename}
             onKeyDown={(e) => {

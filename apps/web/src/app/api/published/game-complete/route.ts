@@ -16,7 +16,7 @@ import { badRequest, jsonError } from '@/server/http';
  * ⇒ 两处分开存、分开读。拿滚动完成度冒充通关是 §159 禁止的那种假数据。
  *
  * 边界与访客现场同款（这是**匿名可写**的接口）：
- * - CSRF 双提交照样要（middleware 给每个访客都签了 `nexus_csrf`）；
+ * - CSRF 双提交照样要（proxy 给每个访客都签了 `nexus_csrf`）；
  * - 只接受能解析到 public / unlisted 快照的 path，private 与已驳回的连一行都不写；
  * - 按 IP + 匿名 key 限流：通关是低频事件（一个人玩一遍记一次），一小时 30 次已经用满。
  *

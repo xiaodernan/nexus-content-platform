@@ -48,7 +48,7 @@ export function ResolveButtons({ caseId }: { caseId: string }) {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <input
+      <input aria-label="结论依据（可选）"
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="结论依据（可选，会记在案子上）"

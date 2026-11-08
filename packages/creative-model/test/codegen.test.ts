@@ -9,7 +9,7 @@ import {
   DISPLAY_CLASSES,
 } from "../src/codegen";
 import type { DesignNode, GeneratedFile } from "../src/index";
-import { ALIGNABLE_MODES, type Layout, type LayoutMode } from "../src/types";
+import { ALIGNABLE_MODES, type Layout, type LayoutMode, type Style } from "../src/types";
 
 /** §192：生成的代码必须真的能编译，而不是"看起来像 TSX" */
 function transpileDiagnostics(file: GeneratedFile): string[] {
@@ -553,6 +553,106 @@ describe("Design → Code（§17-19）", () => {
     expect(transpileDiagnostics(file)).toEqual([]);
   });
 
+  it("断点绝对化翻转只在对应 tier 发：desktop-only 的 none 不会漏进 md（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const parent = createNode({
+      type: "section",
+      name: "WideFlipParent",
+      layout: { mode: "horizontal", gap: 8 },
+      size: { width: 400, height: 300 },
+    });
+    parent.parentId = root.id;
+    root.children = [parent.id];
+    page2.nodes[parent.id] = parent;
+    const child = createNode({
+      type: "section",
+      name: "WideFlipChild",
+      layout: { mode: "vertical", gap: 0 },
+      position: { x: 30, y: 60 },
+      size: { width: 80, height: 60 },
+    });
+    child.parentId = parent.id;
+    parent.children = [child.id];
+    page2.nodes[child.id] = child;
+    // 只在 wide 档把父级翻到 none：md: 不该发、xl: 才发
+    page2.nodes[parent.id] = {
+      ...page2.nodes[parent.id]!,
+      responsive: [{ breakpoint: "wide", patch: { layout: { mode: "none" } } }],
+    };
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, child.id);
+    expect(tokens).not.toContain("md:absolute");
+    expect(tokens).not.toContain("md:left-[30px]");
+    expect(tokens).not.toContain("md:top-[60px]");
+    expect(tokens).not.toContain("lg:absolute");
+    expect(tokens).toContain("xl:absolute");
+    expect(tokens).toContain("xl:left-[30px]");
+    expect(tokens).toContain("xl:top-[60px]");
+  });
+
+  it("断点绝对化翻转：父级 md 档变 none/horizontal 时子节点的 absolute/static（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const parent = createNode({
+      type: "section",
+      name: "FlipParent",
+      layout: { mode: "horizontal", gap: 8 },
+      size: { width: 400, height: 300 },
+    });
+    parent.parentId = root.id;
+    root.children = [parent.id];
+    page2.nodes[parent.id] = parent;
+    const child = createNode({
+      type: "section",
+      name: "FlipChild",
+      layout: { mode: "vertical", gap: 0 },
+      position: { x: 30, y: 60 },
+      size: { width: 80, height: 60 },
+    });
+    child.parentId = parent.id;
+    parent.children = [child.id];
+    page2.nodes[child.id] = child;
+    page2.nodes[parent.id] = {
+      ...page2.nodes[parent.id]!,
+      responsive: [{ breakpoint: "tablet", patch: { layout: { mode: "none" } } }],
+    };
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, child.id);
+    expect(tokens).toContain("md:absolute");
+    expect(tokens).toContain("md:left-[30px]");
+    expect(tokens).toContain("md:top-[60px]");
+
+    // 反向：base 是 none，md 把父级翻回 horizontal——`md:static` 顶掉窄档那条 absolute
+    const page3 = starterPage("Home");
+    const root3 = page3.nodes[page3.rootId]!;
+    const parent3 = createNode({
+      type: "section",
+      name: "RevertParent",
+      layout: { mode: "none", gap: 0 },
+      size: { width: 400, height: 300 },
+    });
+    parent3.parentId = root3.id;
+    root3.children = [parent3.id];
+    page3.nodes[parent3.id] = parent3;
+    const child3 = createNode({
+      type: "section",
+      name: "RevertChild",
+      layout: { mode: "vertical", gap: 0 },
+      position: { x: 30, y: 60 },
+      size: { width: 80, height: 60 },
+    });
+    child3.parentId = parent3.id;
+    parent3.children = [child3.id];
+    page3.nodes[child3.id] = child3;
+    page3.nodes[parent3.id] = {
+      ...page3.nodes[parent3.id]!,
+      responsive: [{ breakpoint: "tablet", patch: { layout: { mode: "horizontal" } } }],
+    };
+    const tokens3 = tokensOf(generatePageComponent(page3, {}, "Home").contents, child3.id);
+    expect(tokens3).toContain("absolute");
+    expect(tokens3).toContain("md:static");
+    expect(tokens3).not.toContain("md:absolute");
+  });
+
   it("three / webgl 节点保留占位容器并注明由 Runtime 承载（§50）", () => {
     const page2 = starterPage("Home");
     const root = page2.nodes[page2.rootId]!;
@@ -619,5 +719,269 @@ describe("Design → Code（§17-19）", () => {
     expect(transpileDiagnostics(pageFile)).toEqual([]);
     // 文件名丢了页面名，所以归属必须由发射器标注，不能靠目录去猜
     expect(pageFile.origin).toEqual({ kind: "page", pageId: a.id, pageName: "结算页" });
+  });
+
+  it("断点裁剪/滚动发射：clip/scroll 覆盖发 overflow 类，取消更窄裁剪发 overflow-visible（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({
+      type: "section",
+      name: "ClipScroll",
+      layout: { mode: "vertical", gap: 8, clipContent: true },
+      size: { width: 300, height: 200 },
+    });
+    node.responsive = [
+      { breakpoint: "tablet", patch: { layout: { clipContent: false, scroll: "none" } } },
+      { breakpoint: "desktop", patch: { layout: { scroll: "vertical" } } },
+    ];
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("overflow-hidden");
+    expect(tokens).toContain("md:overflow-visible");
+    expect(tokens).toContain("lg:overflow-y-auto");
+  });
+
+  it("断点字重/行高发射：typography patch 发出 font-*/leading-* 类（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "text", name: "TypoSlice", text: "字重行高" });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        { breakpoint: "tablet", patch: { typography: { fontWeight: 600, lineHeight: 1.8 } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:font-semibold");
+    expect(tokens).toContain("md:leading-[1.8]");
+  });
+
+  it("断点字族发射：token 引用发 font-[family-name:var(--…)] 类，裸族名照发（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "text", name: "FamilySlice", text: "字族" });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        { breakpoint: "tablet", patch: { typography: { fontFamily: "{font.mono}" } } },
+        // 裸族名：作者手写进模型的 Georgia——如实发回同一个键名
+        { breakpoint: "desktop", patch: { typography: { fontFamily: "Georgia" } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:font-[family-name:var(--nx-font-mono)]");
+    expect(tokens).toContain("lg:font-[Georgia]");
+  });
+
+  it("断点模式标记发射：自由定位那一档发 [--nexus-mode:…] 与 relative（ADR-0091）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "frame", name: "ModeSlice", size: { width: 200, height: 80 } });
+    // 给它一个孩子：relative 只用来给"孩子能稳定绝对摆放"找参照——没有孩子的淡出就只发 marker
+    const child = createNode({ type: "text", name: "ModeChild", text: "子" });
+    child.parentId = node.id;
+    node.children = [child.id];
+    page2.nodes[child.id] = child;
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        { breakpoint: "tablet", patch: { layout: { mode: "none" } } },
+        { breakpoint: "wide", patch: { layout: { mode: "stack" } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:[--nexus-mode:none]");
+    expect(tokens).toContain("md:relative");
+    expect(tokens).toContain("xl:[--nexus-mode:stack]");
+    // xl 只是把 stack 从上一档继承下来那也算自由定位——标记必须继续发（同档级联同构）
+  });
+
+  it("自由定位标记：叶子节点只有 marker、不发 relative——没东西需要定位参照", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "text", name: "FreeLeaf", text: "自由定位叶子" });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        { breakpoint: "desktop", patch: { layout: { mode: "stack" } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("lg:[--nexus-mode:stack]");
+    expect(tokens).not.toContain("lg:relative");
+  });
+
+  it("拷贝那两格进 FREELAYOUT：模式按投影（而非 patch 只带 columns）发不出来就不发（ADR-0091 的不猜偏置）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "grid", name: "MarkerGrid", size: { width: 200, height: 80 }, layout: { mode: "grid", columns: 2 } });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        // 只写 columns 不改 mode：这一档解出来仍是 grid ⇒ 一个标记类都不该发
+        { breakpoint: "tablet", patch: { layout: { columns: 2 } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).not.toContain("md:[--nexus-mode:none]");
+    expect(tokens).not.toContain("md:[--nexus-mode:stack]");
+  });
+
+  it("断点混合模式/旋转/指针发射：style patch 发 mix-blend-*/rotate-[…]/cursor-* 类（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "text", name: "BlendSlice", text: "混合模式旋转" });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        { breakpoint: "tablet", patch: { style: { blendMode: "multiply", rotation: 15, cursor: "pointer" } } },
+        // 显式写回 normal / 0 / default：顶掉更窄那档（同 reverse:false 那一寸的形状）
+        { breakpoint: "desktop", patch: { style: { blendMode: "normal", rotation: 0, cursor: "default" } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:mix-blend-multiply");
+    expect(tokens).toContain("md:rotate-[15deg]");
+    expect(tokens).toContain("md:cursor-pointer");
+    expect(tokens).toContain("lg:mix-blend-normal");
+    expect(tokens).toContain("lg:rotate-[0deg]");
+    expect(tokens).toContain("lg:cursor-default");
+  });
+
+  it("断点圆角发射：four 同值折成一条 md:rounded-[…]，单格就发单格那边（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "frame", name: "RadiusSlice", size: { width: 200, height: 80 } });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        // 四格同值：折成一条 md:rounded-[…]
+        { breakpoint: "tablet", patch: { style: { cornerRadius: { topLeft: 8, topRight: 8, bottomRight: 8, bottomLeft: 8 } } } },
+        // 单格：只发那一格，其余三格的 CSS 继承基线
+        { breakpoint: "desktop", patch: { style: { cornerRadius: { topLeft: 12 } as Style["cornerRadius"] } } },
+        // 全部归零：Tailwind 合法类——顶掉更窄那档的圆角
+        { breakpoint: "wide", patch: { style: { cornerRadius: { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0 } } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:rounded-[8px]");
+    expect(tokens).toContain("lg:rounded-tl-[12px]");
+    expect(tokens).toContain("xl:rounded-[0px]");
+  });
+
+  it("断点字距/大小写/装饰发射：typography patch 发 tracking/uppercase/underline 类（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "text", name: "TypoCase", text: "lc case" });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        {
+          breakpoint: "tablet",
+          patch: { typography: { letterSpacing: 2, textCase: "upper", decoration: "underline", align: "center" } },
+        },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:tracking-[2px]");
+    expect(tokens).toContain("md:uppercase");
+    expect(tokens).toContain("md:underline");
+    expect(tokens).toContain("md:text-center");
+  });
+
+  it("断点纵向对齐发射：typography.verticalAlign 差异才发 flex/flex-col/justify-*（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "text", name: "VertAlign", text: "纵" });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        { breakpoint: "tablet", patch: { typography: { verticalAlign: "middle" } } },
+        { breakpoint: "desktop", patch: { typography: { verticalAlign: "bottom" } } },
+        { breakpoint: "wide", patch: { typography: { verticalAlign: "top" } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:flex");
+    expect(tokens).toContain("md:flex-col");
+    expect(tokens).toContain("md:justify-center");
+    expect(tokens).toContain("lg:flex");
+    expect(tokens).toContain("lg:flex-col");
+    expect(tokens).toContain("lg:justify-end");
+    expect(tokens).toContain("xl:justify-start");
+    // narrower 是 top（设计默认），tier top 应当不发
+    expect(tokens).not.toContain("xl:flex");
+    expect(tokens).not.toContain("xl:flex-col");
+  });
+
+  it("断点位置发射：绝对定位父级里的位置覆盖发 md:left-*/md:top-* 类（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const parent = createNode({
+      type: "section",
+      name: "AbsParent",
+      layout: { mode: "none", gap: 0 },
+      size: { width: 400, height: 300 },
+    });
+    parent.parentId = root.id;
+    root.children = [parent.id];
+    page2.nodes[parent.id] = parent;
+    const child = createNode({
+      type: "section",
+      name: "AbsChild",
+      layout: { mode: "vertical", gap: 0 },
+      size: { width: 80, height: 60 },
+      position: { x: 12, y: 14 },
+    });
+    child.parentId = parent.id;
+    parent.children = [child.id];
+    page2.nodes[child.id] = child;
+    page2.nodes[child.id] = {
+      ...child,
+      responsive: [{ breakpoint: "tablet", patch: { position: { x: 44, y: 52 } } }],
+    };
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, child.id);
+    expect(tokens).toContain("absolute");
+    expect(tokens).toContain("md:left-[44px]");
+    expect(tokens).toContain("md:top-[52px]");
+    expect(tokens).not.toContain("md:absolute");
   });
 });

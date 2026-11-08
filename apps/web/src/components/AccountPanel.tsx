@@ -129,7 +129,7 @@ export function AccountPanel({ user }: { user: Identity }) {
             </button>
           </div>
           {mode === 'register' ? (
-            <input
+            <input aria-label="显示名"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="昵称（可选）"
@@ -138,7 +138,7 @@ export function AccountPanel({ user }: { user: Identity }) {
               data-auth-displayname
             />
           ) : null}
-          <input
+          <input aria-label="邮箱"
             type="email"
             required
             value={email}
@@ -148,7 +148,7 @@ export function AccountPanel({ user }: { user: Identity }) {
             className={inputClass}
             data-auth-email
           />
-          <input
+          <input aria-label="口令"
             type="password"
             required
             minLength={mode === 'register' ? 8 : 1}

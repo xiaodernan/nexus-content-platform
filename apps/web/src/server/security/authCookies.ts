@@ -16,7 +16,7 @@ export function applySessionCookie(response: NextResponse, token: string): NextR
   return response;
 }
 
-/** 清掉会话 cookie（登出）；CSRF cookie 留给 middleware 重新签发。 */
+/** 清掉会话 cookie（登出）；CSRF cookie 留给 proxy 重新签发。 */
 export function clearSessionCookie(response: NextResponse): NextResponse {
   response.cookies.set(SESSION_COOKIE, '', {
     httpOnly: true,

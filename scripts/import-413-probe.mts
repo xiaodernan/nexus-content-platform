@@ -3,7 +3,7 @@
  *
  * 用法：先起服务（`npm run dev`），再 `npx tsx scripts/import-413-probe.mts`。
  *
- * 为什么是一条脚本而不是 vitest 用例：这一格要的是**真 HTTP**——真 middleware 签的会话与 CSRF、
+ * 为什么是一条脚本而不是 vitest 用例：这一格要的是**真 HTTP**——真 proxy 签的会话与 CSRF、
  * 真路由、真状态码。而 Playwright 那条 e2e（`e2e/import.spec.ts` 里同名那一条）在本机跑不起来：
  * 沙箱的批量删除守卫不让 Playwright 清 `test-results/`（`SAFE_DELETE_BULK_CONFIRM_REQUIRED`）。
  * 本仓已有 `realtime-two-process.mts` / `two-instance-roundtrip.mts` 两个同类先例，

@@ -399,7 +399,71 @@
   字节交换探针原地还原过，sha 未变、mtime 变了）；`npm run lint`（九份 tsc 项目 + eslint 全树，与 pre-commit
   同一套）退出 0。
 - **仍欠**（第八片之后）：`{reverse:false}` 这一寸现在发射、回写、面板、求解器四处同一判据；
-  还欠的是键的覆盖面而不是档的覆盖面：`position`（x/y）除 `mobile` 档、`mode` 的 `stack`/`none`、
-  `rowGap`/`crossGap`/`scroll`/`clipContent`、`typography` 除字号、`style` 除填充与透明度。
-  AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方（真 provider 要授权，见 §105）。
+  还欠的是键的覆盖面而不是档的覆盖面：`position`（x/y）除 `mobile` 档（第九片已还，见下）、`mode` 的 `stack`/`none`、
+  `rowGap`/`crossGap`、`typography` 的字族/垂直对齐、`style` 除填充与透明度、`layout` 的
+  `stack`/`none` 两档。AI 自动生成规则那一半仍只有 mock 的「移动端优化」配方（真 provider 要授权，见 §105）。
+
+**第九片（2026-11-08）：断点位置（x/y）接进 `md:`/`lg:`/`xl:`，与字重/行高一并给出可回写的代码半边**
+
+上一片（clipContent / scroll 那一刀）之后，这一片按同一条三处判据（发射、回写、面板）推进：
+
+- **位置（x/y）**：画布与访客此前就吃这一组键（手机档靠基线投影生效——移动优先基线本就是「设计+mobile 规则」那份）。
+  现在这一档的覆盖也能发、也能读：`responsiveClasses` 需要**父级**那一份投影（`applyResponsive(parent, breakpoint)`），
+  只有父级在这一档投影后是 `none`/`stack`（`nodes.ts` 的自由定位逃生口）时才发 `md:left-[x]`/`md:top-[y]`——
+  与基线 `positionClasses` 同一判据。基线不 absolute 而这一档要 position 时，补发 `md:absolute`。
+  回写侧 `decodeVariant` 现在也吃 `tierParentMode`（调用方把这一档投影后的父级模式传进），`absolute` 进 `checked`；
+  父级不是自由定位逃生口时，这些类如实落在 unmapped，不静默当成位置回写（§16）。
+  见证：`codegen.test.ts`「断点位置发射……」「断点绝对化翻转……」「断点绝对化只在对应 tier……」、
+  `code-parse.test.ts`「断点绝对定位往返……」「断点绝对化往返 A/B……」「断点纵向对齐往返……」（截至本片提交后 92 条全绿，回归面含 reverse/overflow/字重/字距等一轮一轮往返）。
+- **字重 / 行高 / 字距 / 大小写 / 装饰 / 对齐 / 纵向对齐**：同一条判据，`md:font-*`/`md:leading-*`/
+  `md:tracking-*`/`md:uppercase|lowercase|capitalize`/`md:underline|line-through`/`md:text-*`/
+  `md:flex|md:flex-col|md:justify-{center,end,start}`（verticalAlign 差异的文字节点才发/收）的发射与回写。
+  面板同步加了七行（`typography.fontWeight`/`typography.lineHeight`/`typography.letterSpacing`/`typography.textCase`/`typography.decoration`/`typography.align`/`typography.verticalAlign`），
+  `RESPONSIVE_CHANNELS` 现在二十六格（另两格位置 x/y 只在父级 merged 为自由定位逃生口 `none`/`stack` 时摆；混合模式/旋转是第十一片、指针是第十二片、圆角是第十三片、字族是第十四片）。
+- 浏览器腿同日补齐 F6（blendMode/rotation/cursor）：console `[ 8.7 s ] 腿 F6`，全链 A–F6–R 1 passed——本文件四格 style 全部真 Chrome 走过了（cornerRadius 照旧不摆，无腿）。
+- **顺带**（上一片同属于这一档的收尾）：`layout.clipContent`/`layout.scroll` 两格也并入同一轮——
+  `md:overflow-hidden`/`overflow-*-auto`/`overflow-visible`（取消更窄档 overflow 约束的那一刀：更窄那档没 overflow 约束时不发，更窄那档有时发 `md:overflow-visible` 并回写
+  `{clipContent:false, scroll:"none"}`）。
+- **位置（x/y）面板输入口**同档也并入这一轮：`position.x` / `position.y` 两格现在进 `RESPONSIVE_CHANNELS`——
+  只有父级 merged 进这一档仍是自由定位（`none`/`stack`）时摆出来，author 那一出来已经和代码发射侧对上；
+  父级被翻成 `horizontal`/`vertical`/`grid`/`wrap` 时两格收起（画布也读不到 left/top）。
+  `position.y` 行间标签是"上"、`position.x` 是"左"。
+  **见证**：`e2e/responsive-authoring.spec.ts` 腿 F3/F4（`Sandbox` 自由定位沙盒 + Eyebrow 竖排父级对照；
+  填 x=120 落库、画布相对 Sandbox 变成 (120, 40)、tablet 级联继承、撤销回 (48, 40)、
+  Eyebrow 那一档两行不存在）——真 Chrome、独占生产构建上 **1 passed（59.5s）**，
+  夹具幂等（每轮连根拔沙盒重建），2026-11-08。
+- **`style.blendMode` / `style.rotation` 两格**（第十一片，2026-11-08）：基线早就能发/收（`mix-blend-*` /
+  `rotate-[deg]`），这一片把 patch 那边也通了——`responsiveClasses` 发 `md:/lg:/xl:` 档的同名类（`md:mix-blend-normal`、
+  `lg:rotate-[0deg]` 都是合法 Tailwind 类，显式写回正是取消更窄那档的那一刀）；`decodeVariant` 认领 `mix-blend-*`
+  （对 `BLEND_MODES` 白名单）与 `rotate-[…deg]`（格式必须 `数字+deg`）。
+  面板现在 **二十五格**（混合模式是 choice、标签原名）、全模型层 **35 files / 491 passed**。
+- **`style.cursor` 一格**（第十二片，2026-11-08）：同一条判据再推一格——`md:cursor-*`（`cursor-default` 是合法取消类）、
+  `decodeVariant` 按 `CURSORS` 白名单认领（中文名：默认/手型/文本/禁止/抓取/抓取中）；往返仍旧零补丁，面板 **二十五格**。
+- **`typography.fontFamily` 一格**（第十四片，2026-11-08）：面板里第一种**动态选项**通道——`choicesFrom: 'font-family-tokens'`，
+  选项从 `state.document.tokens` 的 fontFamily 型 token 现派生（starter：font.heading/body/mono）；
+  文档没有这类 token 就不摆（§159）。`ChannelSpec.appliesTo` 上下文扩成 `{ parent, tokens }`；
+  codegen 发 `md:font-[family-name:var(--<prefix>-…)]`（裸族名 `md:font-[Georgia]`），
+  `decodeVariant` 复用基线 `WEIGHT_CLASS → tokenRefOf → 裸栈 → unmapped` 的认领顺序；
+  round-trip 零补丁（`code-parse.test.ts`「断点字族往返」，codegen 侧两条类都钉了名）；
+  e2e 腿 F5 同日跑绿（独占生产构建，`[data-responsive-choice="…:{font.mono}"]` → 画布 computed fontFamily 当场换 → 撤销回设计值；全链 A–F5–R，1passed 1.2m）。面板此刻 **二十六格**。
+- **`style.cornerRadius` 模型层**（第十三片，2026-11-08）：四键嵌套，与 layout.padding 同一判据——
+  发射侧四格同值折 `md:rounded-[…]`、缺格发单格、四格全 0 发 `md:rounded-[0px]`（取消）；
+  `decodeVariant` **先分格后折叠**（`rounded` 是 `rounded-tl-` 的前缀，顺序反了 uniform 会吃单格那边）。
+  面板与 layout.padding 同一状态：**不摆**（四格那类输入一格还是四格未定，徽标照数、「清掉这一档」照删）；
+  往返仍旧零补丁（`md:rounded-[10px]` / `lg:rounded-tl-[12px]`）。
+- ~~这轮之后，§14 的「键覆盖面」仍然欠：`mode` 的 `stack`/`none` 的**模型层**差量类~~——**第十五/十六片已还**（2026-11-08，ADR-0091）：
+  marker `[--nexus-mode:none|stack]`（无前缀＝基线、md:/lg:/xl:＝variant）、`applyResponsiveBelow→resolved` flip-gate、
+  round-trip 零补丁、面板「自由定位」按钮（stack 仅代码可写）、浏览器腿 F7。
+  仍然欠的只剩：`rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`style` 除填充、透明度、混合模式、旋转与指针（cornerRadius 模型层已通，面板不摆）——
+  这些键《画布与访客》和《代码视图与 ZIP》仍然不同（§16）。
+- **stack/none ↔ 绝对化**（第二刀，已落地）：`stack`/`none` 本身就是"子节点绝对定位"，代码里没有办法只对这一档
+  重投影**父级**，但可以对**子节点**投。实现：`classOf` 里加一层 `positionVariantClasses(node, parent, bp)`，
+  按 `PREV_BP` 链（`mobile→tablet→desktop→wide`，这一档 vs 上一档的对比）算差量——
+  窄档入流、这一档绝对 ⇒ `md:absolute` + `left/top` 类；窄档绝对、这一档入流 ⇒ `md:static` 顶掉窄档那条；
+  两档都绝对只在 x/y 有投影差时重发。回写侧 `decodeVariant` 对 `static` 静默消费 + 带条件 checked（父级仍是逃生口时不收，如实 unmapped），
+  left/top 数值只有与窄档 merged 出的下面一档不同时才写 patch（否则是父级 flip 投影出来的零补丁值，§19）。
+- **position 组回写改判据**（这一片的收尾）：`decodeVariant` 之前按"有 `md:left/top` 就写 `position` patch"——
+  那会把父级翻 `none` 时**子节点**的 base 定位类错写成一条自己根本没写、也不打算让动的 `position` patch。
+  现在与发射侧同一判据：类是不是从子节点自己的投影差里发过去的（`applyResponsiveBelow` 那一份）对上号，对得上就不写。
+
 

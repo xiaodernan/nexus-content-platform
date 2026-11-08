@@ -22,6 +22,8 @@
   "include": [
     "scripts/**/*.mts",
     "scripts/**/*.ts",
+    "evals/**/*.mts",
+    "evals/**/*.ts",
     "vitest.config.ts",
     "drizzle.config.ts",
     "playwright.config.ts",
