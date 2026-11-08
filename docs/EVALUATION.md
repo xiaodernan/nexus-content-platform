@@ -2264,3 +2264,40 @@ localStorage。读数：
 - 观测（第十一片）量到的是**决定与结果**：按路由的 HTTP 状态码分布与延迟分位数**没有读数**
   （Next 16 的 instrumentation 只有 `onRequestError`，拿它得把每个 route handler 包一层，属于改路由形状）；
   也没有对外抓取目标与告警；耗时直方图目前只有 DEMO 链那一档。
+
+
+## 2026-11-08 第十五片：`evals/` 能力套件——§85 "按能力分套件" 第一次有了骨架
+
+背景：`docs/AGENTS.md` §85 与 `docs/TESTING.md` 一直写着 "`evals/` 下按能力分套件"，
+但仓库里**不存在 `evals/` 目录**——评测活着的地方是 `scripts/eval-baseline.mts` 这一个脚本，
+它能跑、读数在这份文档里，但它不是一个"套件结构"：后来人要加一项（比如 §69 的 Code Index），
+没有形状可照抄，只能把函数继续堆进那个 478 行的脚本里。
+
+这一片做的事（没有动 `scripts/eval-baseline.mts` 一字节，它仍是 DB 在后台跑的那一份）：
+
+- 新建 `evals/`：`types.ts`（suite 契约：name / dimension / needsDatabase / checks / notMeasured）、
+  `lib/recorder.ts`（suite 里随手记 check 的小抄，不短路）、`run.mts`（`npm run evals` 入口，
+  `--list` / `--suite` 过滤，未知参数 exit 2，任一结构不变式失败 exit 1）、`suites/code-index.mts`
+  （**第一套新维度：§69 Code Index 检索，确定性、无库无网**）、`README.md`（怎么跑、怎么加一套）。
+- `npm run evals` 是新命令；`npm run evals:baseline` 指向原基线脚本，两条纪律不混：
+  这里放确定性、不需要真库的套件；真库的基线仍在 EVALUATION.md 管着。
+- `tsconfig.tools.json` 与 `eslint.config.mjs` 同步收 `evals/**`；`scripts/test/evals-framework.test.mts`
+  3 条钉住框架自身（recorder 不吞 check / failedChecks 不漏红 / code-index suite 在 `npm test` 里再验一遍全绿）。
+
+**code-index 首跑读数**（2026-11-08，载体=真 `createDocument` + 一个 code-only 区域，
+`buildCodeIndex()` 对真 `generateProject()` 产物投影，1 页 Home、4 个文件）：
+
+| 读数 | 值 |
+|---|---|
+| 结构不变式 | **19/19 PASS**（totals 对账 / 语法诊断全无 / 路径不重复 / 锚点>0 / omissions 与声明一致 / 同文档两次投影 JSON 逐字段相同） |
+| 文件 / 符号 / 导出符号 / 组件 | 4 · 56 · 3 · 1 |
+| 节点锚点 / code-only 区域 | 6 · 1 |
+| 检索（决定性查询） | 当前页加权顶上 `components/nexus/Home.tsx@12`；组件符号名完全命中 @22（含「符号 Home 完全命中」理由）；选中节点顶上 `code-only/…@16` |
+| 预算=1 极限 | 留 1 个文件、trimmed 有逐步记录、totals 仍报未裁那份的数（不少报数） |
+
+这一片钉住的 §16 事实（以前没人说过）：**目录是全量可复算的纯投影，同一份文档两次投影逐字节相同**——
+这是"目录不持久化、算得出来就不写库"的合法性证据，不是形容词。
+
+notMeasured（如实记）：语义检索 / 意图判断（词法目录没有这一半，向量化要 embedding provider，§49）；
+Tool selection / Agent task completion（要真 provider）；真实 provider 下目录的增量更新成本（目录目前全量重算）。
+`scripts/eval-baseline.mts` 的 notMeasured（真 LLM 同批指标等）继续有效，两份清单各管各的。

@@ -151,7 +151,15 @@ export default tseslint.config(
     // 于是 type-aware 规则直接报"解析不了"。这里显式把它们交给 tsconfig.tools.json——
     // 不是为了少报几条，是因为压测脚本自己就藏过一次"量了 8 个节点却写成 1000 个节点"的事故
     // （见 docs/PERFORMANCE.md），它比产品代码更需要类型检查。
-    files: ['scripts/**/*.mts', 'scripts/**/*.ts', 'vitest.config.ts', 'drizzle.config.ts', 'playwright.config.ts'],
+    files: [
+      'scripts/**/*.mts',
+      'scripts/**/*.ts',
+      'evals/**/*.mts',
+      'evals/**/*.ts',
+      'vitest.config.ts',
+      'drizzle.config.ts',
+      'playwright.config.ts',
+    ],
     languageOptions: {
       parserOptions: {
         projectService: false,
