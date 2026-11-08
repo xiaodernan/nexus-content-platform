@@ -553,6 +553,43 @@ describe("Design → Code（§17-19）", () => {
     expect(transpileDiagnostics(file)).toEqual([]);
   });
 
+  it("断点绝对化翻转只在对应 tier 发：desktop-only 的 none 不会漏进 md（§14）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const parent = createNode({
+      type: "section",
+      name: "WideFlipParent",
+      layout: { mode: "horizontal", gap: 8 },
+      size: { width: 400, height: 300 },
+    });
+    parent.parentId = root.id;
+    root.children = [parent.id];
+    page2.nodes[parent.id] = parent;
+    const child = createNode({
+      type: "section",
+      name: "WideFlipChild",
+      layout: { mode: "vertical", gap: 0 },
+      position: { x: 30, y: 60 },
+      size: { width: 80, height: 60 },
+    });
+    child.parentId = parent.id;
+    parent.children = [child.id];
+    page2.nodes[child.id] = child;
+    // 只在 wide 档把父级翻到 none：md: 不该发、xl: 才发
+    page2.nodes[parent.id] = {
+      ...page2.nodes[parent.id]!,
+      responsive: [{ breakpoint: "wide", patch: { layout: { mode: "none" } } }],
+    };
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, child.id);
+    expect(tokens).not.toContain("md:absolute");
+    expect(tokens).not.toContain("md:left-[30px]");
+    expect(tokens).not.toContain("md:top-[60px]");
+    expect(tokens).not.toContain("lg:absolute");
+    expect(tokens).toContain("xl:absolute");
+    expect(tokens).toContain("xl:left-[30px]");
+    expect(tokens).toContain("xl:top-[60px]");
+  });
+
   it("断点绝对化翻转：父级 md 档变 none/horizontal 时子节点的 absolute/static（§14）", () => {
     const page2 = starterPage("Home");
     const root = page2.nodes[page2.rootId]!;
