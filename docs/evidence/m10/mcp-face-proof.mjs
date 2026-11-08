@@ -36,7 +36,7 @@ import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { javaRecordFields } from '../../m9/wire-fields.mjs';
+import { javaRecordFields } from '../m9/wire-fields.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m10/mcp-face-proof.mjs -> the repository root.

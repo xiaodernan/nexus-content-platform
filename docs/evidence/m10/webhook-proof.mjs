@@ -76,7 +76,7 @@ import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { javaRecordFields } from '../../m9/wire-fields.mjs';
+import { javaRecordFields } from '../m9/wire-fields.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m10/webhook-proof.mjs → the repository root. Two would land on docs/.
@@ -191,14 +191,23 @@ async function stopService(child) {
 /** The receipt's wire shape, pinned: a field added here is a field a read door would start printing. */
 const RECEIPT_FIELDS = ['attemptedAt', 'detail', 'event', 'eventAt', 'id', 'outcome', 'redeliveryOf', 'status', 'targetId', 'webhookId'].sort();
 
-// §0a static wire contract: the Java DTO must declare exactly the fields this door prints.
+// ── §0a static wire contract: the Java DTO must declare exactly the fields these doors print.
 {
   const WEBHOOK_DTO = path.join(SERVICE_DIR, 'src/main/java/dev/nexus/api/webhooks/WebhookDtos.java');
-  const receiptWire = javaRecordFields(WEBHOOK_DTO, 'DeliveryRecord').map((f) => f.name).sort();
-  assert.deepEqual(receiptWire, RECEIPT_FIELDS, `WebhookDtos.DeliveryRecord wire fields ${JSON.stringify(receiptWire)} disagree with expected ${JSON.stringify(RECEIPT_FIELDS)}`);
-  const answerWire = javaRecordFields(WEBHOOK_DTO, 'DeliveryAnswer').map((f) => f.name).sort();
-  assert.ok(answerWire.includes('deliveryId'), `WebhookDtos.DeliveryAnswer must carry deliveryId (wire has ${answerWire.join(', ')})`);
-  console.log(`[§0a] static wire contract: DeliveryRecord matches the pinned receipt fields (${receiptWire.length} fields read from source)`);
+  const wireOf = (recordName) => javaRecordFields(WEBHOOK_DTO, recordName).map((f) => f.name).sort();
+  const check = (recordName, pinned, label) => {
+    const wire = wireOf(recordName);
+    assert.deepEqual(wire, pinned, `WebhookDtos.${recordName} ${label} fields ${JSON.stringify(wire)} disagree with the pinned ${JSON.stringify(pinned)}`);
+  };
+  check('DeliveryRecord', RECEIPT_FIELDS, 'a receipt');
+  check('DeliveryAnswer', ['at', 'delivered', 'deliveryId', 'detail', 'outcome', 'status', 'url', 'webhookId'], 'a delivery answer');
+  check('SubscribeRequest', ['events', 'subscriberId', 'url'], 'the subscribe request');
+  check('WebhookSecret', ['createdAt', 'events', 'id', 'note', 'secret', 'url'], 'the subscribe answer');
+  check('WebhookList', ['limit', 'offset', 'subscriberId', 'total', 'webhooks'], 'the subscription window');
+  check('WebhookDeliveryList', ['deliveries', 'limit', 'offset', 'subscriberId', 'total'], 'the delivery window');
+  check('PruneAnswer', ['before', 'pruned', 'remaining', 'subscriberId', 'webhookId'], 'a prune answer');
+  check('WebhookHealth', ['attemptsSinceLastDelivery', 'createdAt', 'delivered', 'events', 'lastAttemptAt', 'lastDeliveredAt', 'lastDetail', 'lastOutcome', 'lastStatus', 'refused', 'subscriberId', 'totalAttempts', 'unreachable', 'url', 'webhookId'], 'a health answer');
+  console.log(`[§0a] static wire contract: every pinned WebhookDtos record agrees with its pinned field array, read from source`);
 }
 
 let serviceProcess = null;
