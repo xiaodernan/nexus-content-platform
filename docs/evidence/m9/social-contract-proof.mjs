@@ -115,6 +115,14 @@ for (const c of CONTRACTS) {
   }
   console.log(`[§2] the ${c.verb}: the instant is a long (epoch ms) on the wire and required in the client; all primitive wire fields are required`);
 }
+{
+  for (const c of CONTRACTS) {
+    const types = tsInterfaceFieldTypes(c.client, c.clientShape);
+    const anyFields = [...types.entries()].filter(([, t]) => t === 'any').map(([name]) => name);
+    assert.deepEqual(anyFields, [], `${c.verb}: ${c.client} declares field(s) as 'any': ${anyFields.join(', ')} — an 'any' field erases the wire contract`);
+  }
+  console.log('[§2d] each client interface declares every field with a concrete type — none is `any`');
+}
 
 // ── §3 it has been shown to FAIL ───────────────────────────────────────────────────────────────────
 // A green proof nobody has seen go red is decoration. The mutation below renames a wire field in a COPY
