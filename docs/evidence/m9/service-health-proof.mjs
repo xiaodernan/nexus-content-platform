@@ -45,7 +45,11 @@ import { javaRecordFields } from './wire-fields.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m9/service-health-proof.mjs -> the repository root.
 const REPO_ROOT = path.resolve(__dirname, '../../..');
-const SERVICE_DIR = path.join(REPO_ROOT, 'services/nexus-api');
+// This repository's worktree is shared by concurrent lanes; when another lane is mid-edit, set
+// NEXUS_SERVICE_DIR to a clean snapshot of services/nexus-api to grade THAT tree instead of the dirty one.
+const SERVICE_DIR = process.env.NEXUS_SERVICE_DIR
+  ? path.resolve(process.env.NEXUS_SERVICE_DIR)
+  : path.join(REPO_ROOT, 'services/nexus-api');
 const DB_IMAGE = 'pgvector/pgvector:pg16';
 const STAMP = `${Date.now()}-${process.pid}`;
 const BUILD_DIR = path.join(tmpdir(), `nexus-health-proof-build-${STAMP}`);
