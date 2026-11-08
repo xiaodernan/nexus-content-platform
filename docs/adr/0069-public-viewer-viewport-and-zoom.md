@@ -451,9 +451,10 @@
   `decodeVariant` **先分格后折叠**（`rounded` 是 `rounded-tl-` 的前缀，顺序反了 uniform 会吃单格那边）。
   面板与 layout.padding 同一状态：**不摆**（四格那类输入一格还是四格未定，徽标照数、「清掉这一档」照删）；
   往返仍旧零补丁（`md:rounded-[10px]` / `lg:rounded-tl-[12px]`）。
-- 这轮之后，§14 的「键覆盖面」仍然欠：`mode` 的 `stack`/`none` 的**模型层**差量类
-  （`stack`/`none` 那个 mode 本身仍没有 display 类可发或被发——`md:flex-col` 那一阵类只对非绝对段有效）、
-  `rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`typography` 的字族、`style` 除填充、透明度、混合模式、旋转与指针（cornerRadius 模型层已通，面板不摆）——
+- ~~这轮之后，§14 的「键覆盖面」仍然欠：`mode` 的 `stack`/`none` 的**模型层**差量类~~——**第十五/十六片已还**（2026-11-08，ADR-0091）：
+  marker `[--nexus-mode:none|stack]`（无前缀＝基线、md:/lg:/xl:＝variant）、`applyResponsiveBelow→resolved` flip-gate、
+  round-trip 零补丁、面板「自由定位」按钮（stack 仅代码可写）、浏览器腿 F7。
+  仍然欠的只剩：`rowGap`/`crossGap`（死字段——模型存了没人读，与 `layout.ts` 无任何读取方）、`style` 除填充、透明度、混合模式、旋转与指针（cornerRadius 模型层已通，面板不摆）——
   这些键《画布与访客》和《代码视图与 ZIP》仍然不同（§16）。
 - **stack/none ↔ 绝对化**（第二刀，已落地）：`stack`/`none` 本身就是"子节点绝对定位"，代码里没有办法只对这一档
   重投影**父级**，但可以对**子节点**投。实现：`classOf` 里加一层 `positionVariantClasses(node, parent, bp)`，

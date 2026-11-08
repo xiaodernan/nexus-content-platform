@@ -9189,9 +9189,10 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
    e2e 挤出来的。没有独占库/独占端口之前，它不能当常驻快门。
 6. 徽标数的是投影，不预测渲染：`layout.columns` 这类键在 codegen 里怎么落成 Tailwind 类，与画布/访客是不是
    真的按它摆，是另一条链（§85 那套体检表量的就是这一层）。
-7. `mode` 的 `stack`/`none` 模型层差量类：2026-11-08 记了 **ADR-0091**（标记任意属性 `md:[--nexus-mode:none|stack]`；
-   结构推理与单靠显示类两个候选都否了），落地实现清单在那份文档——**还没有实现**，
-   要在一台安静的机器上：实现 → 模型层 round-trip → 面板「自由定位」按钮 → e2e 全链（Run→test→screenshot 不放水）。
+7. ~~`mode` 的 `stack`/`none` 模型层逃生口~~——**已落地（2026-11-08，第十五/十六片）**：
+   ADR-0091 定标记任意属性 `[--nexus-mode:none|stack]`、flip-gate（`applyResponsiveBelow→resolved` 进入 none/stack 才发）、
+   code-parse round-trip 零补丁（含 mobile 基线档）、面板「自由定位」按钮（stack 仅代码可写）、
+   浏览器腿 F7 同样绿（Actions 翻成自由定位，全链 A–F7–R **1 passed（58.1s）**）。独占生产构建上验证。
 
 ## §85 第三十五片：点开才出现的界面第一次进读数——发布弹层（2026-11-02）
 
