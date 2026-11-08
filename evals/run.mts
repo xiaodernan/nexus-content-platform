@@ -2,6 +2,7 @@ import { codeIndexSuite } from './suites/code-index.mts';
 import { modelRoundtripSuite } from './suites/model-roundtrip.mts';
 import { exportRoundtripSuite } from './suites/export-roundtrip.mts';
 import { videoPlanSuite } from './suites/video-plan.mts';
+import { worldBuildSuite } from './suites/world-build.mts';
 import { failedChecks, type EvalSuite, type EvalSuiteResult } from './types.ts';
 
 /**
@@ -22,7 +23,7 @@ import { failedChecks, type EvalSuite, type EvalSuiteResult } from './types.ts';
  *   npm run evals -- --suite code-index
  *   npm run evals -- --list
  */
-const SUITES: EvalSuite[] = [codeIndexSuite, modelRoundtripSuite, exportRoundtripSuite, videoPlanSuite];
+const SUITES: EvalSuite[] = [codeIndexSuite, modelRoundtripSuite, exportRoundtripSuite, videoPlanSuite, worldBuildSuite];
 
 const args = process.argv.slice(2);
 const listOnly = args.includes('--list');
