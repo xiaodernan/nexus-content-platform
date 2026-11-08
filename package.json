@@ -49,6 +49,7 @@
     "verify:evidence-census": "node docs/evidence/ci/evidence-census-proof.mjs",
     "verify:arms": "node docs/evidence/ci/ci-wiring-arms.mjs",
     "verify:audit-contract": "node docs/evidence/m9/audit-contract-proof.mjs",
+    "verify:m9-arms": "node docs/evidence/m9/audit-contract-arms.mjs",
     "verify:health": "node docs/evidence/m9/service-health-proof.mjs",
     "verify:liveness": "node docs/evidence/m9/service-liveness-proof.mjs",
     "verify:vitals": "node docs/evidence/m9/service-vitals-proof.mjs",

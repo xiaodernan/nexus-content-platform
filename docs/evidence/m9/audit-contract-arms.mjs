@@ -1,6 +1,10 @@
-// NEXUS v598 (docs/evidence/m9) — THE 11.9b ARMS ARE A ROW NOW: EVERY CHARGE THE REASON CENSUS MAKES IS RE-EARNED ON A PLANE OUTSIDE THE REPOSITORY, ON THE COMMITTED BYTES, ON EVERY BUILD (ADR 0016 amendment 551).
+// NEXUS v605 (docs/evidence/m9) — THE REASON CENSUS AND THE LABEL CENSUS ARE A ROW NOW: EVERY CHARGE §11.9b AND §11.12 MAKE IS RE-EARNED ON A PLANE OUTSIDE THE REPOSITORY, ON THE COMMITTED BYTES, ON EVERY BUILD (ADR 0016 amendment 553).
 // sweep-budget-ms: 420000
 // sweep-asks-repository: git rev-parse HEAD, git cat-file -e, git merge-base --is-ancestor, git ls-tree -r and git show of a pinned BASE ref and of HEAD
+// v641 (ADR 0016 amendment 568) — two of the §11.12 arms went GREEN on their own premises, because they hard-named
+// clause numbers (13, and the 11.13/11.14 pair) that the graded proof has since GRANTED to real clauses; the fix is
+// to derive an undeclared number from the census's own count, which is what makes arms A10 and A14 un-ageable.
+//
 //
 // Why this exists, stated the way §60 requires: amendment 550's record says `8 arms · 8/8 MATCHED`, and until
 // this file existed the only place those eight arms lived was `.nexus-tmp/arms-v597.mjs` — scratch, untracked,
@@ -16,8 +20,19 @@
 //      clause the day this file lands — a before-picture keyed on HEAD would silently become an after-picture.
 //   2. the BASE proof over a tree that HAS the charged shapes: predicted GREEN on both plants. That green is the
 //      blindness control — the hole was measured, not asserted.
-//   3. HEAD's bytes × the shipped proof, and the arms: five charges, one per rule, plus two plants this clause
-//      refuses to charge, predicted green on purpose.
+//   3. HEAD's bytes × the shipped proof, and the arms: five charges, one per reason rule, plus two plants §11.9b
+//      refuses to charge, predicted green on purpose. Then seven arms against the PROOF'S OWN bytes for §11.12
+//      (§11.12 as `f53f988` landed it, plus the fourth carrier the commit before this row added — a
+//      duplicated label, a declaration the census cannot read, a range
+//      tag naming an endpoint nobody declares, a verdict line whose §11 tag no comment declares, the same
+//      charge re-run on the real bytes of `6625992` with those bytes' own tags re-aimed at numbers nothing
+//      declares today, and A13, which re-plants `6625992`'s two lines EXACTLY as they landed and is predicted
+//      GREEN because those two numbers became real clauses afterwards — the discrimination that keeps this
+//      carrier from being a word-hunt about history) plus one that plants a
+//      MENTION of an undeclared label in a string and stays green — the arm that makes the census's "a mention
+//      is not a declaration" sentence a measurement instead of a remark. These eight mutate the graded file
+//      itself, so the plane's copy is restored from the bytes this run planted and re-hashed against the
+//      snapshot before the next arm is believed.
 //
 // The bytes planted are read from REFS (`git show`), never from the worktree, so a dirty shared tree cannot
 // talk this row into a verdict about bytes no commit ever held. Every needle matches exactly once, every plant is
@@ -38,19 +53,26 @@ const PROOF = 'docs/evidence/m9/audit-contract-proof.mjs';
 // full sha because a control keyed on "the parent" stops being the same control the day someone rebases.
 const BASE = 'f726debc8a6978406d71cc1ab8f89e7c2ec1cf56';
 
+// The commit that printed two §11 clause tags no comment declared — the bytes the fourth carrier's reverse
+// control runs under (amendment 553's record names it, so the arm reads them from the ref rather than from a
+// hand-copy that would rot the day the prose is reworded).
+const PRINTED_WITHOUT_CLAUSE = '6625992a616ace0d38bd13a3ff3e3e9df3c475a6';
+
 const git = (args, encoding = 'utf8') => execFileSync('git', args, { cwd: ROOT, encoding, maxBuffer: 64 * 1024 * 1024 });
 
 if (!existsSync(join(ROOT, '.git'))) throw new Error(`${ROOT} is not a repository — this battery reads refs, so it cannot run on a bare copy`);
 const HEAD_REF = git(['rev-parse', 'HEAD']).trim();
-try {
-  git(['cat-file', '-e', `${BASE}^{commit}`]);
-} catch {
-  throw new Error(`the pinned BASE ${BASE} is not in this clone — the battery needs a full history (.github/workflows/ci.yml checks out with fetch-depth: 0; a shallow clone cannot state a "before")`);
-}
 // spawnSync, not execFileSync: an ancestry refusal is a verdict this file has to read, and execFileSync would
 // throw before a `.status` ever existed to check.
-if (spawnSync('git', ['merge-base', '--is-ancestor', BASE, HEAD_REF], { cwd: ROOT }).status !== 0) {
-  throw new Error(`${BASE} is not an ancestor of ${HEAD_REF} — the "before" ref must be reachable from what is being graded`);
+for (const [role, ref] of [['the pinned BASE', BASE], ['the printed-tag ref', PRINTED_WITHOUT_CLAUSE]]) {
+  try {
+    git(['cat-file', '-e', `${ref}^{commit}`]);
+  } catch {
+    throw new Error(`${role} ${ref} is not in this clone — the battery needs a full history (.github/workflows/ci.yml checks out with fetch-depth: 0; a shallow clone cannot state a "before")`);
+  }
+  if (spawnSync('git', ['merge-base', '--is-ancestor', ref, HEAD_REF], { cwd: ROOT }).status !== 0) {
+    throw new Error(`${ref} is not an ancestor of ${HEAD_REF} — the "before" ref must be reachable from what is being graded`);
+  }
 }
 
 // The closure is DERIVED from each ref's own tree, not copied from disk: the plane gets exactly the files the
@@ -176,6 +198,10 @@ const VERDICTS = {
   '11.9b-R3': 'R3-table',
   '11.9b-R4': 'R4-wholesale',
   '11.9b-R5': 'R5-attribute',
+  '11.12-duplicate': 'clause label(s) declared more than once',
+  '11.12-blind': 'does not find its OWN label',
+  '11.12-endpoint': 'as an endpoint',
+  '11.12-print': 'of them are undeclared',
 };
 
 const classify = ({ exit, out }) => {
@@ -226,7 +252,67 @@ const headClosure = plant(HEAD_REF);
 const snapshot = new Map();
 for (const rel of headClosure) snapshot.set(rel, planeHash(rel));
 console.log(`\n[phase 3 · HEAD ${HEAD_REF.slice(0, 7)} × shipped proof, ${headClosure.length} files planted]`);
-console.log(`  ${reasonSentence(runProof('HEAD × shipped').out)}`);
+const headRun = runProof('HEAD × shipped');
+console.log(`  ${reasonSentence(headRun.out)}`);
+
+// Which clause numbers the graded file's OWN census declares is derived below, after the baseline is captured:
+// the arms need a number the census does NOT see, and hard-coding one is exactly how A10 and A13 went stale — the
+// proof gained labels 11.13 and 11.14 after those arms were written, so a tag naming 13 stopped being a defect and
+// both arms turned green on their own premise.
+
+// The §11.12 arms grade the PROOF ITSELF, so they rewrite the plane's copy of it. The baseline is the bytes
+// this run planted, captured before the first splice; the snapshot re-hash below is what proves the restore.
+const proofBaseline = readFileSync(join(PLANE, PROOF), 'utf8');
+if (proofBaseline !== refBytes(HEAD_REF, PROOF).toString('utf8')) {
+  throw new Error(`the plane's ${PROOF} is not the bytes of ${HEAD_REF.slice(0, 7)} — a splice would grade a file no commit holds`);
+}
+
+const spliceInto = (how) => {
+  const { from, to } = how(proofBaseline);
+  const hits = proofBaseline.split(from).length - 1;
+  if (hits !== 1) throw new Error(`the splice needle occurs ${hits} times in ${PROOF}, expected exactly once: ${from.slice(0, 70)}`);
+  const next = proofBaseline.replace(from, to);
+  if (next === proofBaseline) throw new Error(`the splice changes no bytes in ${PROOF} — the arm would grade the unmutated file and call the green a measurement`);
+  if (!next.includes(to)) throw new Error(`the spliced bytes are not in the file the arm writes — the replacement was not applied`);
+  writeFileSync(join(PLANE, PROOF), next);
+  return to;
+};
+const restoreProof = () => writeFileSync(join(PLANE, PROOF), proofBaseline);
+
+// The two verdict lines `6625992` printed with no clause behind them, read from that ref rather than copied
+// into this file: the reverse control has to run the new carrier over the bytes that actually landed.
+const printedWithoutClause = refBytes(PRINTED_WITHOUT_CLAUSE, PROOF).toString('utf8')
+  .split('\n')
+  .filter((l) => /^\s*console\.log\(`\[§11\.1[34]\]/.test(l))
+  .map((l) => l.replace(/\s+$/, ''));
+if (printedWithoutClause.length !== 2) {
+  throw new Error(`${PRINTED_WITHOUT_CLAUSE.slice(0, 7)} holds ${printedWithoutClause.length} undeclared §11 verdict line(s), not the 2 amendment 553 names — the reverse control has nothing to re-plant`);
+}
+
+// The label census's declaration grammar, mirrored from §11.12 so that an arm needing a number the census does
+// NOT declare derives one instead of naming 13 and watching the file grant it a cycle later. The mirror is
+// reconciled against the count §11.12 prints for itself, so a grammar that drifts from its owner stops this row
+// rather than quietly picking an "undeclared" number that is already declared.
+const DECLARATION_RE = /^[ \t]*\/\/+[ \t]*(11\.[0-9]+[a-z]?)[ \t]+—[ \t]/gm;
+const declaredLabels = new Set([...proofBaseline.matchAll(DECLARATION_RE)].map((m) => m[1]));
+const censusCount = /(\d+) clause labels declared in this file/.exec(headRun.out);
+if (censusCount === null) {
+  throw new Error(`the shipped proof's §11.12 line printed no label count — the arms cannot check their mirror of the declaration grammar against its owner`);
+}
+if (declaredLabels.size !== Number(censusCount[1])) {
+  throw new Error(`this file's mirror of §11.12's grammar finds ${declaredLabels.size} clause labels while §11.12 itself counts ${censusCount[1]} — an arm would pick its "undeclared" number from a scan that disagrees with the census it grades`);
+}
+// Two numbers the census does NOT declare, taken ABOVE the highest label the file owns, so a spliced tag still
+// reads as a clause that has not been written rather than as a hole in the middle of the numbering.
+const highestDeclared = Math.max(...[...declaredLabels].map((label) => Number(/^11\.(\d+)$/.exec(label)?.[1] ?? 0)));
+const undeclaredSuffixes = [highestDeclared + 1, highestDeclared + 2].filter((n) => !declaredLabels.has(`11.${n}`));
+if (undeclaredSuffixes.length !== 2) {
+  throw new Error(`only ${undeclaredSuffixes.length} of the two numbers above the highest declared label (${highestDeclared}) are undeclared — the derivation cannot promise an arm a number the census does not see`);
+}
+
+const ANCHOR_1110 = '    // 11.10 — the two faces RUN';
+const ANCHOR_1112 = '// 11.12 — a clause LABEL';
+const ANCHOR_FOURTH = '    // Fourth: a tag PRINTED as a verdict';
 
 const ARMS = [
   { tag: 'A0', verdict: 'green', plants: [], note: 'control: HEAD as it stands charges nobody' },
@@ -237,19 +323,79 @@ const ARMS = [
   { tag: 'A5', verdict: '11.9b-R5', plants: ['R5'], note: 'a JSX attribute named data-reason wearing a wire token' },
   { tag: 'A6', verdict: 'green', plants: ['INNOCENT'], note: 'DISCRIMINATION: a category list and label map that spell `other` in their own vocabulary' },
   { tag: 'A7', verdict: 'green', plants: ['SEED'], note: 'DISCLOSED BOUND: a seed ROW written with a reason word is data the service accepts, not a second speaker' },
+  {
+    tag: 'A8',
+    verdict: '11.12-duplicate',
+    plants: [],
+    splice: () => ({ from: ANCHOR_1110, to: `    // 11.10 — the arm claims this label too.\n${ANCHOR_1110}` }),
+    note: '§11.12 as 5a3a841 left it: a second block wearing a number the file already owns',
+  },
+  {
+    tag: 'A9',
+    verdict: '11.12-blind',
+    plants: [],
+    splice: () => ({ from: ANCHOR_1112, to: '// 11.12: a clause LABEL' }),
+    note: 'the census grammar turned away from its own heading — the silent-grammar control that makes "no duplicates" a measurement',
+  },
+  {
+    tag: 'A10',
+    verdict: '11.12-endpoint',
+    plants: [],
+    splice: () => ({ from: '[§11.7-11]', to: `[§11.7-${undeclaredSuffixes[0]}]` }),
+    note: `the run prints a range whose upper endpoint (${undeclaredSuffixes[0]}) no comment declares — coverage certified over clauses the census cannot see; the number is derived from the census's own count, because naming 13 here was true when this arm was written and stopped being true when the file granted 11.13`,
+  },
+  {
+    tag: 'A11',
+    verdict: 'green',
+    plants: [],
+    splice: () => ({
+      from: ANCHOR_1110,
+      to: `    const armMention = 'the census keys on a declaration, so this 11.${undeclaredSuffixes[1]} — mention inside a string is not a claim';\n${ANCHOR_1110}`,
+    }),
+    note: `DISCRIMINATION: an undeclared label (${undeclaredSuffixes[1]}) MENTIONED in a string stays uncharged, which is what separates a census from a word-hunt — A10 and A13 went green for naming 13 in prose, so this number is derived too`,
+  },
+  {
+    tag: 'A12',
+    verdict: '11.12-print',
+    plants: [],
+    splice: () => ({
+      from: ANCHOR_FOURTH,
+      to: '    console.log(`[§11.99] an arm prints a verdict with no clause behind it`);\n' + ANCHOR_FOURTH,
+    }),
+    note: 'the fourth carrier: a printed §11 tag with no declaration is a citation wearing a verdict\'s clothes',
+  },
+  {
+    tag: 'A13',
+    verdict: 'green',
+    plants: [],
+    splice: () => ({ from: ANCHOR_FOURTH, to: `${printedWithoutClause.join('\n')}\n${ANCHOR_FOURTH}` }),
+    note: `DISCRIMINATION on ${PRINTED_WITHOUT_CLAUSE.slice(0, 7)}'s own bytes: the two lines that landed at v604 with no clause behind them are re-planted as they were, and today they are GREEN — because 11.13 and 11.14 were granted real clauses in the cycles after (v636/v637), which is exactly the difference between a tag that names a clause and one that does not. The carrier is not refuted by them; A14 charges the same bytes with the tags moved to numbers nothing declares.`,
+  },
+  {
+    tag: 'A14',
+    verdict: '11.12-print',
+    plants: [],
+    splice: () => ({
+      from: ANCHOR_FOURTH,
+      to: `${printedWithoutClause.map((line, i) => line.replace(/\[§11\.[0-9]+\]/, `[§11.${undeclaredSuffixes[i]}]`)).join('\n')}\n${ANCHOR_FOURTH}`,
+    }),
+    note: `REVERSE CONTROL kept alive: ${PRINTED_WITHOUT_CLAUSE.slice(0, 7)}'s two verdict lines, word for word, with their tags re-aimed at the numbers the census does not declare today (${undeclaredSuffixes.map((n) => `11.${n}`).join(', ')}) — the defect those bytes actually had is charged, and the arm cannot age into a green when the file grants another label`,
+  },
 ];
 
 let matched = 0;
 for (const arm of ARMS) {
   create(arm.plants);
+  if (arm.splice) spliceInto(arm.splice);
   const res = runProof(arm.tag);
   const verdict = classify(res);
   const ok = verdict === arm.verdict;
   if (ok) matched += 1;
   const charged = chargedCount(res.out);
   console.log(`[${arm.tag}] predicted ${arm.verdict} · observed ${verdict} · exit ${res.exit} · ${ok ? 'MATCHED' : 'MISMATCH'}`);
-  console.log(`       charged: ${charged.n} (${charged.who}) · ${arm.note}`);
+  console.log(`       ${Number.isNaN(charged.n) ? 'charge set not reached (a §11.12 red stops before the print)' : `charged: ${charged.n} (${charged.who})`} · ${arm.note}`);
   if (!ok) console.log(`       ${(res.out.split('\n').find((l) => l.includes('AssertionError')) || res.out).trim().slice(0, 260)}`);
+  if (arm.splice) restoreProof();
   remove(arm.plants);
   const leftover = arm.plants.filter((n) => existsSync(join(PLANE, PLANTS[n].rel)));
   if (leftover.length) throw new Error(`[${arm.tag}] the plant ${leftover.join(', ')} is still on the plane after restore`);

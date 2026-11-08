@@ -1,3 +1,4 @@
+// NEXUS v595 (ADR 0016 amendment 548) — M9: this module is the evidence that record points at; the claim is:
 // NEXUS M9 — A PATCH IS THE BYTES AN AUTHOR WROTE, ATTACHED TO ONE INCIDENT: `POST /incidents/{id}/patches`
 // stores a proposed change, `GET /incidents/{id}/patches` reads the incident's newest window with both
 // counts beside it, and `GET /patches/{id}` reads one proposal with its bytes. This proof builds the service,
