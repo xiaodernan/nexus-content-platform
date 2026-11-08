@@ -2115,8 +2115,22 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   与 guest/internal 两片同一套门与纪律）：axe 报 1 serious color-contrast（作者本人 opacity 0.75 的 CTA 白字压紫，
   合成后 4.25<4.5；白字紫底本身 5.24 过；暗色同条；记作者侧，非平台缺陷）。结构不变式绿（passes=24 / critical=0）。
   见 EVALUATION 第十九片。
-  **第七笔（2026-11-09）：增量/全量 A/B 有了首份同刻证据**——同一构建（含 b89631c）两次：首帧 1000 节点 off 反优，
-  pan/属性写入分不出；**浏览器端分辨不出增量增益**，模型层那条证据不受影响。证据 log 入库。见 PERFORMANCE.md 2026-11-09 节。**第二片同日落地：渲染后页面的无障碍**（`e2e/a11y.spec.ts`）：真发布流程
+  **第七笔（2026-11-09）：浅色键盘走查补上且抓到一个真缺**——`e2e/keyboard-light.spec.ts`：
+  公开作品页的热点焦点环从 `var(--nexus-color-accent-2)` 换成 `var(--nexus-color-accent-2-ink)`；
+  §167 修的重点环浅色 #0f6b7a vs 浅色背景 ≈ **6.05:1**（此前 ≈1.70:1，强调色浅色不翻域同根因）。
+  六道门同车道绿（18/18），Enter 真走到 work-complete 200 recorded:true。见 EVALUATION 第二十片。
+  **第八笔（2026-11-09）：增量/全量 A/B 有了首份同刻证据**——同一构建（含 b89631c）两次：首帧 1000 节点 off 反优，
+  pan/属性写入分不出；**浏览器端分辨不出增量增益**（模型层那条证据不受影响）。证据 log 入库。见 PERFORMANCE.md 2026-11-09 节。
+  **第九笔（2026-11-09）：收起面板的 axe 补上并收下 44 个失名真缺**——
+  `e2e/a11y-panels.spec.ts` 展开设计系统令牌表 + 方案板投票 + Agent 面板扫三屏：
+  首跑 **44 个 text/color 输入全裸名**（`control-names.test.ts` 只有 select/file 两类，结构上看不见）；
+  补 `aria-label`（`{token.key} · 值` / `· 颜色` / `新 token 的键` / `的值`）后 **0 违规 / 0 critical**。
+  见 EVALUATION 第二十一片。
+  **第十笔（2026-11-09）：`control-names.test.ts` 扇入 text-like 输入，18 处裸名全收**——
+  首跑红 18（`AccountPanel` ×3、`NewProjectForm`、`ProjectDeleteCard`、`MarketplaceCreateForm` ×3、`ReportControl`、
+  `AccountDeletionPanel`、`LayersPanel` ×2、`TopBar`、`ContextPanel`、`VariantsBoard`、admin/marketplace + admin/moderation ×2）；
+  全量补 `aria-label` 中文名，3/3 门绿——门现在数 text-like input 的存活数，改过 scope 缩回去当场变空并红。
+  见 EVALUATION 第二十二片。**第二片同日落地：渲染后页面的无障碍**（`e2e/a11y.spec.ts`）：真发布流程
   建公开作品页，匿名访客在真 Chrome 里对真 DOM 跑 axe（WCAG 2.0/2.1 A+AA）——设计模型的静态门禁
   测的是设计，渲染投影只有 axe 才测得到。首跑 serious color-contrast ×7（24 过 / 39 不适用 /
   critical 0），全部同源于一个 token `--nexus-color-fg-3`——改前暗色对四级表面是

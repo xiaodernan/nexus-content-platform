@@ -2444,3 +2444,123 @@ evals 目录现在三套：code-index 19/19 · model-roundtrip 7/7 · export-rou
 
 **Gate 改动**：spec 的打印附 `failureSummary`（不只 id+list），防止以后再看不懂报告——数字不同别人才知道要不要翻修。
 notMeasured：作者色板与 opacity 的组合（§同理，交付给作者侧）、同一作品页的不同帧尺寸复本的对比度（只上屏那复本量过）。
+
+
+## 2026-11-09 第二十片：浅色 × 键盘走查——§167 热点焦点环的 AA 缺口，抓到、修了、锁住
+
+背景：2026-10-29 主题入口留下两条未量（"键盘走查的浅色没有单独量"）；
+暗色第三片（同载体、§167 两页互动稿）只钉"有焦点指示"，不钉**够亮**。
+本片补的是这两条：新 spec `e2e/keyboard-light.spec.ts`——与暗色逐字同一条车（同载体、同 setInteractiveDocument、同 keyboardWalk 六道门 + 热点点名在册 + Enter 真走到 work-complete 200 recorded:true），
+外加一道**焦点指示色值门 ≥ 3:1**（WCAG 2.4.11/2.4.13；ring 的 box-shadow 或 outline 都要按有效背景合成出对比）。
+同时也一并关掉 notMeasured 里"键盘走查 × 浅色"那条。
+
+**首跑直接露真缺陷**：`InteractiveSurface.tsx` 的 `focus-visible:ring-[var(--nexus-color-accent-2)]`
+（暗色 token 用于暗色）——浅色下 `--nexus-color-accent-2` 并不翻译（#22d3ee ≈ **1.70:1**，与第九片那批强调色
+在浅色塌陷同根因），而且浅色下**不止是不达标的彩色，是低对比到读不见**。
+修复：`--nexus-color-accent-2-ink`（dark 同值、浅 #0f6b7a，Light ≥4.98:1；暗后无视觉变化——dark ink 与 accent-2 逐字节相同）。
+
+**读数（dev 实例 + 同车道暗色对照）**：
+
+| 门 / 阶 | 结果 |
+|---|---|
+| 走查覆盖 / 排除项 / 页外停留 | **18/18** · 排除项 1（comment-submit disabled）· 页外 2（主题切换 + dev portal） |
+| Tab 顺序（浅色） | 与 DOM 顺序一致（六道门与暗色同车道全过） |
+| Enter 热点 → work-complete | 200 + `recorded:true` |
+| 焦点指示色值（合成后） | `rgb(15, 107, 122)` on `rgb(247, 248, 251)` ≈ **6.05:1**（≥3:1 ✅；此前 ≈1.70:1 反证） |
+
+**测的是真缺陷，不是仪式**：
+修前=首跑就红在"焦点环 ≥3:1"；产品改了一句；再测绿。这与第十二片文本的对半做法一致：
+红是真红，指着真东西。
+
+**诚实substrate 说明**：本片 e2e 跑在 **dev server**（`next dev`，开发档 Turbopack），
+因为 prod 构建（`.next`）当时受另一会话未提交的半成品测试文件
+（`apps/web/src/studio/store-selection-identity.test.ts`，**它自己的**工作，构建级类型错误，
+code 里别人的东西，不动不删、也不代表这一片的代码）。
+dev 是同样 React 同样投影，同样读数；prod 待对方文件绿了才能重建复验——那是对方的里程碑不是这一片的。
+
+spec 自身的旅程（记下来别被"1 passed"遮了眼）：首跑红在自己的
+① 解析器第一次选了 box-shadow 里 alpha=0 的空影子层；② 环形判定又匹配到了同样 alpha=0 的
+zero-offset 层（正则写宽了）；③ 手写负离层判定到"四位数字全对齐 ox=oy=0、spread≥1px"才对；
+修复逐层核对（层数 5：3 个空影子→1 个真 ring→1 个空影子）。spec 红绿两轮之间产品改动只有一行 Tailwind arbitrary var。
+
+
+
+## 2026-11-09 第二十一片：收起的面板里还住着的控件——44 个失名输入，axe 抓到、control-names 没拦住
+
+背景：`control-names.test.ts`（JSX 字面门）只看 `select` 与 `input[type=file]`——
+scope 就这两类；**text / color 输入结构上不在这个门的视野里**。而 a11y-internal（可见 DOM）与
+a11y-light-internal（同）两片测的都是"看得见的 DOM"那一类，**收起面板里看不见的东西两边都没到**。
+同一故事：axe 只看得见渲染出来的 DOM ⇒ 必须把面板点开才量得到。
+
+载体：`e2e/a11y-panels.spec.ts`——一次注册、一个真项目；三片按次展开：
+左轨「设计系统」、主区「方案」视图、左轨「Agent」tab。三片各自跑 axe
+（WCAG 2.0/2.1 A+AA，排 nextjs-portal）。纪律与其他 a11y 片同一条：
+passes>0 / critical===0 只许红结构不变式；serious 是读数不是门。
+
+**首跑**：
+
+| 片 | passes | violations | critical |
+|---|---|---|---|
+| 设计系统 | 28 | **1 · label ×44** | **1（critical）** |
+| 方案板 | 28 | **1 · label ×44**（同一份令牌表，视图切了它还在） | **1** |
+| Agent | 25 | 0 | 0 |
+
+**目标**：`input[data-token-value=…]`（每个 token 的批改文字框，约 22 个）+
+`input[data-token-color=…]`（颜色小板，约 22 个）。
+44 个控件截完后读屏听到的是"文字框，文字框，文字框……"——分不清谁是谁，
+因为 JSX 里既没有 `<label>` 包它们、没有 `aria-*`、也没有 `title`。
+`control-names.test.ts` 的 scope 卡在 `select`/`input[type=file]`，结构上抓不到这一类，
+所以这 44 个从 2026-10-28 控制名门落地起就一直漏着。
+
+**修**（四处，只改属性，不动行为）：
+
+- `data-token-value` input → `aria-label={`${token.key} · 值`}`
+- `data-token-color` input → `aria-label={`${token.key} · 颜色`}`
+- `data-token-new-key`（"加入"表单里同样的两个裸输入之一）→ `aria-label="新 token 的键"`
+- `data-token-new-value` → `aria-label="新 token 的值"`
+
+**复扫**：设计系统 28/0/**0** · 方案板 28/0/**0** · Agent 25/0/**0**——44 → 0。
+
+**不是**：
+- 不是哪个 token 键名反了——键名本身 ≠ 控件的名字，屏幕读者要的是"这个字段改的是谁"；
+- 不是 React 的 `key` 绑定丢了——文字照渲染，丢的只是 accessible name；
+- 不是 axe 算错了——同一份设计系统两次扫到的都是同一批 44 个，说明两片扫到的是同一份 DOM。
+
+**历史关联**：设计系统面板是 §13 的落点。2026-10-28「control-names」那片修 select/file 两类裸控件，
+text/color 当时没收；这一片把收起面板这个盲区补上（先到这一屏，别的面板下一片再量）。
+
+substrate 说明（与第二十片同口径）：本片 e2e 跑在 dev（Turbopack）——prod 构建**暂时不能重建**，
+原因是另一会话未提交的半成品测试文件有类型错误（`store-selection-stress.test.ts`，
+不是本片的产物，不删不改不代提交）。prod 复验待对方文件绿后执行。
+
+
+## 2026-11-09 第二十二片：把 control-names 的盲区补上——18 个 text-like 裸控件一次修完
+
+背景：`control-names.test.ts` 2026-10-28 落地时范围只有 `<select>` 与 `<input type="file">`，
+注释里原话是"text-like 交给浏览器的 axe 判"。但全库扫了一遍：浏览器的 axe 只看得见**渲染出来的** DOM，
+而我这次要找的这些人——**全部失名、且遍布隐私密掩盖与破坏性确认**：
+
+- 账号面板登录/注册（邮箱、口令、显示名 ×3）
+- 删除确认区块旁的类型确认词（"逐字输入确认词"）×2（账号 & 项目）×2
+- 项目新建 / 市场新建表单（标题/简介/标签）
+- 市场举报行内 · 管理处置/复核备注 · 报告补充说明
+- 左轨联络世界、图层搜索框、图层重命名、顶栏重命名、方案板分支名
+- 上下文预算数字框（`id=ctx-budget`，没人 htmlFor 它）
+
+分拣口径（防过杀）：跳过 `hidden`/`submit`/`button`/`reset`/`image`；
+缺省（没写 `type`）按 `text` 算；`checkbox`/`radio`/`range`/`color` 等全在范围内。
+
+**首跑**：新门当场红出 **18 处**——与手工 Python 扫描同一批（分词一致）。修法：每处一个 `aria-label`，
+说人话、带上下文（"逐字输入确认词" / "项目名称" / "邮箱" / "口令" / …），不动 layout、不动 `placeholder`。
+
+**复跑**：`npx vitest run control-names.test.ts` 3/3 绿；新的两条断言（placeholder 不是名字、
+text-like 也要不过验电门）+ 既有电闸全过。
+
+**这一片沉淀下来的三样东西**：
+① placeholder ≠ accessible name（WCAG 1.3.1 / 2.4.6）——再花哨也只是提示；
+② "扩一道门只扫 selection"的反面演示：先用手工扫法数出来（18）、再进门（gate 红）、全修完、再计数进回归锁；
+③ 门现在数得进 text-like input 的数量（`checked > 20`），将来谁把 scope 改回去，这道门会当场变空并红。
+
+substrate 说明（同前两片口径）：本片的验证重心是**确定性门**（vitest，读 JSX 字面），不涉及浏览器 substrate；
+浏览器那层（a11y 面板展开即渲染的 real DOM）的读数见第二十一片，
+prod 侧复验待另一会话未提交的半成品绿之后、重建再跑一遍。

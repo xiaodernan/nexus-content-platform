@@ -83,7 +83,7 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
       </a>
       <span className="h-4 w-px bg-[var(--nexus-color-border-subtle)]" />
       {editingName ? (
-        <input
+        <input aria-label="项目名"
           ref={nameRef}
           value={nameDraft}
           onChange={(e) => setNameDraft(e.target.value)}

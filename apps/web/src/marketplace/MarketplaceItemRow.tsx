@@ -309,7 +309,7 @@ export function MarketplaceItemRow({
               ))}
             </select>
           </label>
-          <input
+          <input aria-label="举报说明"
             value={reportNote}
             onChange={(e) => setReportNote(e.target.value)}
             maxLength={1000}

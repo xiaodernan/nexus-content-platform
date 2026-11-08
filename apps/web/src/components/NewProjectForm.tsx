@@ -48,7 +48,7 @@ export function NewProjectForm() {
 
   return (
     <form onSubmit={(event) => void submit(event)} className="flex flex-wrap items-center gap-[var(--nexus-space-2)]">
-      <input
+      <input aria-label="项目名称"
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="项目名称"

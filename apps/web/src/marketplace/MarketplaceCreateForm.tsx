@@ -108,7 +108,7 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
             <option value="private">私密（只给自己看）</option>
           </select>
         </label>
-        <input
+        <input aria-label="标题（必填）"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="标题（必填）"
@@ -124,14 +124,14 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
           data-marketplace-create-price
           className="rounded bg-bg-2 px-2 py-1 text-12"
         />
-        <input
+        <input aria-label="简介"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="描述"
           data-marketplace-create-description
           className="rounded bg-bg-2 px-2 py-1 text-12 sm:col-span-2"
         />
-        <input
+        <input aria-label="标签（用逗号分隔）"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
           placeholder="标签，用逗号隔开"

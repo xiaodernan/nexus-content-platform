@@ -85,7 +85,7 @@ export function InteractiveHotspots({
             padding: 0,
             cursor: 'pointer',
           }}
-          className="rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nexus-color-accent-2)] hover:ring-2 hover:ring-inset hover:ring-[var(--nexus-color-accent-2)]"
+          className="rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nexus-color-accent-2-ink)] hover:ring-2 hover:ring-inset hover:ring-[var(--nexus-color-accent-2-ink)]"
         />
       ))}
     </>

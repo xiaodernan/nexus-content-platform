@@ -52,7 +52,7 @@ export function TriageButtons({ reportId }: { reportId: string }) {
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
-        <input
+        <input aria-label="处置依据（可选）"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="处置依据（可选，会记在工单上）"
