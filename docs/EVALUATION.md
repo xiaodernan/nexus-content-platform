@@ -1,13 +1,28 @@
 # 评测基线（§85）
 
 ```bash
+# 确定性套件（无库无网，包里任何变更都可以例行跑）：
+npm run evals
+
+# 对照 "为什么退" 跑真·真库的 §85 first-pass 基线（RAG / 设计精度 / 视觉 / 无障碍）：
 NEXUS_DATABASE_URL=postgres://nexus:nexus_dev_only@localhost:55100/nexus \
   npx tsx --tsconfig apps/web/tsconfig.json scripts/eval-baseline.mts
 ```
 
-九个评测维度里，这里只测**本机不靠模型就能测**的，并且每一项都跑生产真路径：
-RAG 走真库索引与真检索，设计精度走真 provider（当前是 DEMO 规则 provider）与真
-`applyPatch`，往返走真 codegen→parse，无障碍走真健康门禁。
+**确定性套件（`npm run evals`）于 2026-11-09 落成九套**：
+`code-index`（§69）· `model-roundtrip`（§16/§19）· `export-roundtrip`（§144，需库）·
+`video-plan`（§40-42）· `world-build`（§44/§46/§140）· `schemas-contract`（§6 边界）·
+`game-build`（§54/§51）· `design-build`（§12/§13）· `project-bundle`（§16/§159，集大成合成）。
+评测由上一轮起靠**结构不变式**（每条 check 看的是 `actual >= bound` 或 eq 判断）而不是阈值痛；
+AGPL 交付是同一行命令两次跑得出同样结果。
+
+分工（别把 §85 读成"只有一个脚本"）：
+- 确定性套件在 `evals/`，imports model code directly — 测设计模型投影、包内数据、token 解析
+  和同一 projectId 下四个 model 包是否零错运行——适合 pre-commit / CI 跑；
+- `scripts/eval-baseline.mts` 钉 §85 故事的另一半：真库、真索引、真 a11y（向公开页注入 axe），
+  跑法带 `NEXUS_DATABASE_URL`；
+- 两边共用同一条纪律：**只钉结构不变式，数字由人比对**，
+  `npm run evals` 全绿时 exit 0，任何一条变红 exit 1。
 
 不断言任何阈值——数字记在这里，回归靠人眼比对（同 `docs/PERFORMANCE.md` 的纪律）。
 但**结构不变式**失败时脚本以非零码退出，因为那是回归而不是"数字难看"：
