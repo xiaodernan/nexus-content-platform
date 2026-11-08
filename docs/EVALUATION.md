@@ -2374,3 +2374,39 @@ Tool selection / Agent task completion（要真 provider）；真实 provider �
 ② serious 声明里藏着产品缺陷时，**axe 抓的是名字不是颜色**——本片最有价值的一行
   不是对比度数，是 `label-content-name-mismatch`。
 notMeasured 不变：键盘走查的浅色没有单独量（light 下 tab 顺序与暗色逐字同源，未证）。
+
+
+## 2026-11-09 第十八片：导出→导入往返评测（`export-roundtrip`）——§144 从"存在性"到"保真"
+
+背景：apps/web/test/export.integration.test.ts 证明导得出、清单格式、.nexus/ 条目
+（presence）——这一片把同一件事做成**量**：真项目 → 真 ZIP → **Node 内置 `zlib.crc32` 独立交叉校验清单**
+（不复用本仓 `lib/zip` 的实现，两个实现互证；事先在夹具上逐字节对拍过两实现，5/5 MATCH）→
+真 `importProjectZip` 导回 → 结构不变式对账（页数 / 节点类型多重集 / token 数 /
+responsive 规则）→ 二次导出计数对账。载体两格：纯 starter、带 tablet `mode=none` marker 的 starter。
+
+**首跑红一条，红在评测自己**（这正是本仓评测纪律要抓的那类东西）：
+`marker 走回` 那格用 `JSON.stringify` 比 responsive 规则——而 JSONB 会归一化键序
+（`{"breakpoint","patch"}` 落库读回是 `{"patch","breakpoint"}`），字节不同、语义相同。
+判据改成**递归键排序的 stableJson**（与 toEqual 同义），同一载体：
+
+| 读数 | 纯 starter | marker 载体 |
+|---|---|---|
+| formatVersion / 条目数 / CRC(node zlib) | 4 · 5 · **5/5** | 4 · 5 · **5/5** |
+| 导回 counts.design | 1 | 1 |
+| 页数 / 节点类型多重集 / tokens | 1/1/34 | 1/1/34 |
+| responsive marker 走回 | —（无 marker） | **PASS（stableJson）** |
+| 二次导出 code 文件数 | 3 == 3 | 3 == 3 |
+| 字节 / 文件数 | 25619 / 6 | 26146 / 6 |
+
+**runner 的第二课（挂死）**：`npm run evals` 补上真库套件后，首跑**挂死 15 分钟**——
+跑得完（读数全部打出来）、进程却不退出，因为 pg 连接池不会自己排空。
+修法就是一句 `process.exit()`；此前失败路径硬退、成功路径漏了退，
+所以这一挂只在全绿时发生——而它发生时，日志看着像"跑完了在等"，其实没有出口。
+
+**runner 的第一课（`@/` 解析）**：`apps/web` 的 domain 模块内部用 `@/lib/zip` 这类 alias，
+普通 `tsx` 按 repo 根的 tsconfig 找不到，`npm run evals` 直接 ModuleNotFound。
+修法：`tsx --tsconfig apps/web/tsconfig.json evals/run.mts`（apps/web 自带 baseUrl 与完整 paths），
+已落进 package.json 的 `evals` 脚本。`scripts/eval-baseline.mts` 不受影响（它没走 @ 链路）。
+
+notMeasured 不变且补充：逐字节复现（README 带生成时间）、413 那一格、video/image 半边、真 provider 补丁往返。
+evals 目录现在三套：code-index 19/19 · model-roundtrip 7/7 · export-roundtrip 17/17（需要真库，55100 上实测）。

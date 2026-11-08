@@ -1,5 +1,6 @@
 import { codeIndexSuite } from './suites/code-index.mts';
 import { modelRoundtripSuite } from './suites/model-roundtrip.mts';
+import { exportRoundtripSuite } from './suites/export-roundtrip.mts';
 import { failedChecks, type EvalSuite, type EvalSuiteResult } from './types.ts';
 
 /**
@@ -20,7 +21,7 @@ import { failedChecks, type EvalSuite, type EvalSuiteResult } from './types.ts';
  *   npm run evals -- --suite code-index
  *   npm run evals -- --list
  */
-const SUITES: EvalSuite[] = [codeIndexSuite, modelRoundtripSuite];
+const SUITES: EvalSuite[] = [codeIndexSuite, modelRoundtripSuite, exportRoundtripSuite];
 
 const args = process.argv.slice(2);
 const listOnly = args.includes('--list');
@@ -97,3 +98,6 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('\n全部结构不变式 PASS。数字读数记进 docs/EVALUATION.md，回归靠人眼比对。');
+// 真库套件的连接池不会自己排空——不显式退出，命令会把事件循环留在一个挂着的 postgres 连接上。
+//（上一轮就是这样：检查点都跑完了、输出也打了，但进程永远结束不了。）
+process.exit(0);

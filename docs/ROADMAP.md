@@ -2106,7 +2106,11 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   （与 dark 同一名册/判据/纪律，前提门从 tokens.css 现读现算）：首跑 Studio 抓到 1 serious
   `label-content-name-mismatch`（XL 屏画着"折起"的收起属性面板按钮，`aria-label="收起属性面板"`
   不含可见文字；改 `折起属性面板` 后 25/0/0，其余八张首跑起就是 0/0/critical 0）；
-  dark 复扫同按钮链也绿（25/0/0）。浅色九张浏览器最低对比度 4.64:1。见 EVALUATION 第十七片。**第二片同日落地：渲染后页面的无障碍**（`e2e/a11y.spec.ts`）：真发布流程
+  dark 复扫同按钮链也绿（25/0/0）。浅色九张浏览器最低对比度 4.64:1。见 EVALUATION 第十七片。
+  **第五笔（2026-11-09）：`export-roundtrip` 真库套件**——§144 从 presence 到 fidelity：
+  真项目→真 ZIP→node zlib CRC 交叉校验（5/5）→真导回→结构对账（页数/类型多重集/tokens/responsive marker）
+  →二次导出计数对账；17/17 PASS。两条教得入账：JSONB 键序归一化 ⇒ stableJson 比较；
+  真库套件把 pg 池漏在事件循环里 ⇒ `npm run evals` 需要显式 `process.exit(0)`。见 EVALUATION 第十八片。**第二片同日落地：渲染后页面的无障碍**（`e2e/a11y.spec.ts`）：真发布流程
   建公开作品页，匿名访客在真 Chrome 里对真 DOM 跑 axe（WCAG 2.0/2.1 A+AA）——设计模型的静态门禁
   测的是设计，渲染投影只有 axe 才测得到。首跑 serious color-contrast ×7（24 过 / 39 不适用 /
   critical 0），全部同源于一个 token `--nexus-color-fg-3`——改前暗色对四级表面是

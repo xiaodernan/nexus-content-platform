@@ -12,10 +12,11 @@
 ## 跑
 
 ```bash
-npm run evals                  # 全部确定性套件
+npm run evals                  # 全部确定性套件（export-roundtrip 不设库时打印 SKIP）
 npm run evals -- --list        # 列出套件
 npm run evals -- --suite code-index
-npm test                       # scripts/test/evals-framework.test.mts 会再验一遍 suite 全绿
+NEXUS_DATABASE_URL=postgres://nexus:nexus_dev_only@localhost:55100/nexus npm run evals   # 含真库套件（55100 regress 实例）
+npm test                       # scripts/test/evals-framework.test.mts 会再验一遍确定性套件全绿
 ```
 
 退出码：任一结构不变式未过 → 1（不是"这次数字难看"，是回归）。未知参数 → 2。
@@ -26,6 +27,7 @@ npm test                       # scripts/test/evals-framework.test.mts 会再验
 |---|---|---|---|
 | `code-index` | code correctness（§69 Code Index 检索） | 目录对真 codegen 产物的结构不变式 + 决定性查询检索 | 否 |
 | `model-roundtrip` | 代码正确性 / 投影自洽（§16 · §19） | generate→parse 矩阵：横幅/横向带/网格/tablet none 翻转/gap+columns，每格零 issue 零补丁 | 否 |
+| `export-roundtrip` | 代码正确性 / 导出保真（§144 · ADR-0024） | 真 ZIP → node zlib CRC 交叉校验清单 → 真导回 → 结构对账；需要真库（见下方示例） | 是 |
 
 ## 口径（与 scripts/eval-baseline.mts 同）
 
