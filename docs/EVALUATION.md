@@ -2602,3 +2602,21 @@ mesa 与 cone 两种 mesa 形状一致性 + 多 mesa 取最大高度规则），
 与更早的套件一样遵循"结构不变式判红、数字人看"的纪律。
 `game-build`（`11f3879`）与 `design-build`（`935a44e`）随后补齐游戏设计系统与 design-model 的领域操作投影自洽，
 至此四个 model 包（world / video / game / design）各有一套确定性投影自洽套件，并以 `project-bundle` 跨模型合成套件把它们合到一起，确定性 eval 矩阵闭环（230/230，含需真库的 export-roundtrip 则 247/247）。
+
+
+## 2026-11-09 补记（收）：这一轮把 §85 评测矩阵按 9 套做完了
+
+九套确定性 eval 套件全部进入主线、全部绿：<br/>
+`code-index 19/19` · `model-roundtrip 13/13` · `export-roundtrip 17/17` ·
+`video-plan 30/30` · `world-build 55/55` · `schemas-contract 17/17` ·
+`game-build 36/36` · `design-build 46/46` · `project-bundle 14/14`（串行串行 ≈247/247）。
+
+- 模型投影：四个 model 包（world / video / game / design）各自有一套投影自洽套件；
+- 共性契约：`schemas-contract` 钉住跨端报文唯一来源 zod；
+- 集大成：`project-bundle` 把四个模型合成一套视图，验证彼此 ID 不碰撞、link 表自洽、
+  共享主题 token 在合成包里正确解析——这就是"四个模型合成为一个项目"的可验证证据；
+- 修复：本轮收下游分支 `design-build.mts` / `project-bundle.mts` 上的真实 TS错；
+  两起件的 suite 注册（`11f3879`、`935a44e`、`ced8538`）也同步补全文档（`bf87014`）。
+
+**遗留（不属于 §85）**：PDF/汇总类报表发布（§144 仍无回滚只读）；
+`@nexus/ai` 真 provider key 都是 §105 的工作，未包括在本轮。
