@@ -45,6 +45,9 @@ export function tsExportedFunctionNames(file) {
     ts.forEachChild(node, visit);
   };
   visit(sf);
+  if (out.size === 0) {
+    throw new Error(`${file} exports no functions or const bindings — the reader found nothing to grade`);
+  }
   return out;
 }
 
