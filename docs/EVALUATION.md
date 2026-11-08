@@ -2564,3 +2564,14 @@ text-like 也要不过验电门）+ 既有电闸全过。
 substrate 说明（同前两片口径）：本片的验证重心是**确定性门**（vitest，读 JSX 字面），不涉及浏览器 substrate；
 浏览器那层（a11y 面板展开即渲染的 real DOM）的读数见第二十一片，
 prod 侧复验待另一会话未提交的半成品绿之后、重建再跑一遍。
+
+
+## 2026-11-09 补记：§85 "评测挂两片" 的尾巴收进主线
+
+`evals/suites/video-plan.mts`（§40-42 视频模型投影自洽：断句→分镜→时间线→渲染计划整链，
+与单测互补——单测钉点，这条钉跨函数的不变式：确定性重放、时间线连续无洞、`playable`/`renderable`
+与"有没有帧"自洽、`splitShotAt` 时长守恒、`cardColor` 同 id 同色异 id 异色）+ `run.mts` 注册 + README 同步，
+同批接管：`apps/web/src/studio/store-selection-stress.test.ts`（§147 #32 选中派生引用**连续 24 步**压力不变式：
+只要文档没动，`layout / tokens / history / assetContext / document` 一路守恒——单步版的判断在长序列里照样得钉住）。
+
+gate 复核：`npm run evals` 4 套 **73 / 73 PASS**；`tsc -p video-model / tools` / `eslint evals` 0；同式两文件并入 `npm test` 已由 shard1/2 覆盖。

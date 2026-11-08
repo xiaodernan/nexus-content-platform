@@ -28,6 +28,7 @@ npm test                       # scripts/test/evals-framework.test.mts 会再验
 | `code-index` | code correctness（§69 Code Index 检索） | 目录对真 codegen 产物的结构不变式 + 决定性查询检索 | 否 |
 | `model-roundtrip` | 代码正确性 / 投影自洽（§16 · §19） | generate→parse 矩阵：横幅/横向带/网格/tablet none 翻转/gap+columns，每格零 issue 零补丁 | 否 |
 | `export-roundtrip` | 代码正确性 / 导出保真（§144 · ADR-0024） | 真 ZIP → node zlib CRC 交叉校验清单 → 真导回 → 结构对账；需要真库（见下方示例） | 是 |
+| `video-plan` | 代码正确性 / 视频模型投影自洽（§40-42） | 断句→分镜→时间线→渲染计划整链：确定性重放、`playable`/`renderable` 与"有没有帧"自洽、`splitShotAt` 时长守恒、`cardColor` 同 id 同色 | 否 |
 
 ## 口径（与 scripts/eval-baseline.mts 同）
 

@@ -1,27 +1,28 @@
 import { codeIndexSuite } from './suites/code-index.mts';
 import { modelRoundtripSuite } from './suites/model-roundtrip.mts';
 import { exportRoundtripSuite } from './suites/export-roundtrip.mts';
+import { videoPlanSuite } from './suites/video-plan.mts';
 import { failedChecks, type EvalSuite, type EvalSuiteResult } from './types.ts';
 
 /**
  * §85 能力评测入口：`npm run evals`。
  *
  * 与 `scripts/eval-baseline.mts` 的分工（别把它读成"评测只有这里"）：
- * - 这里放**不需要真库、不需要 provider、确定性**的能力套件（今天只有 Code Index）；
+ * - 这里放**不需要真库、不需要 provider、确定性**的能力套件（视频、模型往返、检索、真库都靠 `needsDatabase` 开关单列）；
  * - `scripts/eval-baseline.mts` 是 DB 在后台跑的那一份（RAG / 设计精度 / 视觉 / 无障碍），
  *   读数与口径都在 `docs/EVALUATION.md`，跑法：`npm run evals:baseline`；
  * - 两边共用同一条纪律：**只钉结构不变式**，数字由人比对。
  *
  * 为什么 needsDatabase 单列：runner 不偷连库——
- * 今天所有 suite 都是 false；等将来有需要真库的 suite，它可以声明 needsDatabase: true，
- * runner 会打印 SKIP + 原因并退出码不变（红的是"该测没测"还是"测了没过"必须能区分）。
+ * 不声明 needsDatabase 的（`code-index` / `model-roundtrip` / `video-plan`）全在内存跑；
+ * `export-roundtrip` 声明 needsDatabase: true：不设 `NEXUS_DATABASE_URL`/`DATABASE_URL` 时打印 SKIP + 原因并退出码不变。
  *
  * 用法：
  *   npm run evals                 跑全部套件
  *   npm run evals -- --suite code-index
  *   npm run evals -- --list
  */
-const SUITES: EvalSuite[] = [codeIndexSuite, modelRoundtripSuite, exportRoundtripSuite];
+const SUITES: EvalSuite[] = [codeIndexSuite, modelRoundtripSuite, exportRoundtripSuite, videoPlanSuite];
 
 const args = process.argv.slice(2);
 const listOnly = args.includes('--list');
