@@ -1,0 +1,13 @@
+§85 prod复验（2026-11-09 · build apP2T7u2fy3pFppCjDq_y · `next start -p 3201` · NEXUS_WEB_URL=http://localhost:3201）
+
+背景：2026-11-09 全 a11y 相关改动合入后，在**生产构建**上复跑五条浏览器门：
+
+| 规格 | 结果 | 说明 |
+|---|---|---|
+| e2e/a11y-internal.spec.ts（登录后九张 · dark） | 1 passed (25.3s) | Studio 25 通过 / 0 违规 |
+| e2e/a11y-light-internal.spec.ts（登录后九张 · light） | 1 passed (4.6m) | 九张 0 违规 / 0 critical；最低对比度 ≥4.64 |
+| e2e/a11y-panels.spec.ts（展开面板 · dark） | 1 passed (10.1s) | 设计系统 28/0/0 · 方案板 28/0/0 · Agent 25/0/0 |
+| e2e/keyboard-light.spec.ts（§167 两页互动稿 · light + 焦点指示 ≥3:1 门） | 1 passed (10.4s) | 六道结构门全绿，Tab 顺序逐字等于 DOM 顺序 |
+| e2e/a11y-light-public.spec.ts（sitemap 现取访客页 · light） | 1 passed (5.5s) | 1 serious color-contrast（作者侧 opacity 0.75 CTA，合成后 4.25:1）——按归因记为作者侧，门照绿（passes=24 / critical=0） |
+
+机器上无残留进程（3201 已停）。

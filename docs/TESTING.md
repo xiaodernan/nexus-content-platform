@@ -2386,3 +2386,7 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   与上一版两片（2026-11-08，268 文件 / 3572 条）相差正好 +1 文件 / +6 条，
   对得上这两天只增了 `scripts/test/evals-framework.test.mts`（+4 条 +1 文件）与导出/导入往返标记的两条集成用例（+2 条）。
   `.scratch/shard1-2026-11-09.log` / `.scratch/shard2-2026-11-09.log` 已 `git add -f` 入库。
+
+- **2026-11-09：§85 prod 复验全绿**——PRODUCTION build `apP2T7u2fy3pFppCjDq_y`（含这几天全部改动：令牌表的 44 个失名修好、
+  浅色键盘车道焦点环的 ink 修好、text-like control-names 扇入出 18 处后全部修好）下跑五条浏览器门；
+  全部 **1 passed**（详细表格见 `docs/EVALUATION.md` 第二十片、二十一片、二十二片与 log `.scratch/prod-recheck-2026-11-09.log`）。
