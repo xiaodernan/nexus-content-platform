@@ -2397,3 +2397,12 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   （f14fe2a 已落地的 `test(§147 #32)` 引用守恒入框计数后的增加；
   另在磁盘上但未被 git 跟踪的 `store-selection-stress.test.ts` 也参与本次计数——生产者填仓前先过一遍 lint/typecheck）。
   `.scratch/shard1-2026-11-09b.log`、`.scratch/shard2-2026-11-09b.log` 已 `git add -f` 入库。
+
+- **2026-11-09：又一次两片重跑全绿——272 文件 / 3590 条，两次 exit 0**——
+  shard1 136 文件 / 1843 条（1073.83s，至 06:14）；shard2 136 文件 / 1747 条（940.10s，至 06:25）；
+  两次都没出 ERR_IPC。与上一版记账（269 / 3578）差 **+3 文件 / +12 条**，具体：
+  - `store-cross-model.test.ts`（§16/§159 跨模型同进程 3 条，`62563e6`）
+  - `store-selection-identity.test.ts`（§147 #32 派生引用守恒 8 条，`f14fe2a`）
+  - `store-selection-stress.test.ts`（§147 #32 压力版 1 条，`43eb15b`）
+  `git ls-files -- '**/*.test.ts' '**/*.test.mts'` `= 272` 与两片之和一致。
+  证据日志 `.scratch/shard1-2026-11-09c.log`、`.scratch/shard2-2026-11-09c.log` 已 `git add -f` 入库。
