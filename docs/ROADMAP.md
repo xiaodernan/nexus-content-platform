@@ -2110,7 +2110,13 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   **第五笔（2026-11-09）：`export-roundtrip` 真库套件**——§144 从 presence 到 fidelity：
   真项目→真 ZIP→node zlib CRC 交叉校验（5/5）→真导回→结构对账（页数/类型多重集/tokens/responsive marker）
   →二次导出计数对账；17/17 PASS。两条教得入账：JSONB 键序归一化 ⇒ stableJson 比较；
-  真库套件把 pg 池漏在事件循环里 ⇒ `npm run evals` 需要显式 `process.exit(0)`。见 EVALUATION 第十八片。**第二片同日落地：渲染后页面的无障碍**（`e2e/a11y.spec.ts`）：真发布流程
+  真库套件把 pg 池漏在事件循环里 ⇒ `npm run evals` 需要显式 `process.exit(0)`。见 EVALUATION 第十八片。
+  **第六笔（2026-11-09）：公开作品页 × 浅色 axe 补上**——`e2e/a11y-light-public.spec.ts`（sitemap 现取载体，不注册不建项目，
+  与 guest/internal 两片同一套门与纪律）：axe 报 1 serious color-contrast（作者本人 opacity 0.75 的 CTA 白字压紫，
+  合成后 4.25<4.5；白字紫底本身 5.24 过；暗色同条；记作者侧，非平台缺陷）。结构不变式绿（passes=24 / critical=0）。
+  见 EVALUATION 第十九片。
+  **第七笔（2026-11-09）：增量/全量 A/B 有了首份同刻证据**——同一构建（含 b89631c）两次：首帧 1000 节点 off 反优，
+  pan/属性写入分不出；**浏览器端分辨不出增量增益**，模型层那条证据不受影响。证据 log 入库。见 PERFORMANCE.md 2026-11-09 节。**第二片同日落地：渲染后页面的无障碍**（`e2e/a11y.spec.ts`）：真发布流程
   建公开作品页，匿名访客在真 Chrome 里对真 DOM 跑 axe（WCAG 2.0/2.1 A+AA）——设计模型的静态门禁
   测的是设计，渲染投影只有 axe 才测得到。首跑 serious color-contrast ×7（24 过 / 39 不适用 /
   critical 0），全部同源于一个 token `--nexus-color-fg-3`——改前暗色对四级表面是

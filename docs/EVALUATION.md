@@ -2410,3 +2410,37 @@ responsive 规则）→ 二次导出计数对账。载体两格：纯 starter、
 
 notMeasured 不变且补充：逐字节复现（README 带生成时间）、413 那一格、video/image 半边、真 provider 补丁往返。
 evals 目录现在三套：code-index 19/19 · model-roundtrip 7/7 · export-roundtrip 17/17（需要真库，55100 上实测）。
+
+
+## 2026-11-09 第十九片：公开作品页 × 浅色——axe 报的 1 条 serious 是作者侧的，不是平台的
+
+这一片补的是"访客看到的那张页被扫过没有"。`e2e/a11y-light-public.spec.ts` 载体从 `/sitemap.xml`
+现取 `/n/<handle>/<slug>`（这里是 `…/u59a80e4f/断点夹具mvus7ari`），不注册、不建项目，
+门与 guest/internal 两片同构：外加**前提成立**（body 的 bg-0/fg-1 必须真翻成浅色，否则下面扫的是暗色读数）。
+
+首跑：**通过 24 · 不适用 39 · 违规 1 条 serious** color-contrast，**结构不变式照样绿**——所以这一片既通了门，也留下了真读数。
+
+**取证三连（§159：不归因到赢了不叫他输）**：
+
+1. axe 原文：`Element has insufficient color contrast of 4.25 (foreground #c4c5c7, background #5541bb, font size 11.3pt 15px, font weight normal)，期望 4.5:1`；
+   **暗色复扫报告的是同一条**（同节点、同一对数字）——**这不是浅色回归**；
+2. live-DOM 不能只看原始 HTML——这个节点在页面里有**四个投影复本**（五段 frame 尺寸的"作品总览"布局），找到真正上屏的那一个：
+   本机坐标 x=292.5 y=475.8，`opacity: 0.75`（作者本人设的，不是 fade-in 瞬态：60轮×100ms poll 链恒为 0.75），
+   文字内容是那颗 CTA（开始设计）白字压紫；
+   opacity 0.75 × 白字残在 #0b0d12 上 ≈ **#c4c5c7**、#6b4ff0 × 0.75 合成 over 底色 ≈ **#5541bb**——axe 的数字一个不差；
+3. 同节点裸算、不打折：白字（#ffffff）压紫底（#6b4ff6）= **5.24:1，本身过 AA**。
+   **失分完全来自作者给这颗按钮设的 opacity 0.75，与主题无关。**
+
+**定性**：这不是平台布局 / 渲染 bug，也不是主题入口的 bug——投影层忠实还原了作者文档；axe 是对的，设计模型也是对的，
+**对不上是设计本身（作者色值 + 作者 opacity 的组合）**。本片**不**改作者文档（那不是平台的决定），
+`style-tokens` 门也拦不住作者的颜色组合（它只管平台 token），所以这一条出口方式合法的只能是：记 `notMeasured`-ish
+并留着给作者的工具修（将来如果有"扫描作者色板"的评测项，那一项要写进 notMeasured，**不属于本片**）。
+
+教训两条（都是测量侧的）：
+① axe 数字是对 pixel 的合成着色量，白字紫底算 5.24 过、opacity .75 合成后 4.25 错——**白字红底这件事上,
+"颜色对"不等于"只要 opacity 合成了还对"**，这是浅色/暗色双主题都够不到的差距；
+② 同一个节点能在 DOM 里出现 N 份投影复本（帧尺寸预览），**原始 HTML 第一个实例 ≠ 上屏的实例**；
+ 取证必须看 live DOM 的 rect/visibility，不要从抓包的那份投影猜（本片首跑差点把这颗按钮归因错）。
+
+**Gate 改动**：spec 的打印附 `failureSummary`（不只 id+list），防止以后再看不懂报告——数字不同别人才知道要不要翻修。
+notMeasured：作者色板与 opacity 的组合（§同理，交付给作者侧）、同一作品页的不同帧尺寸复本的对比度（只上屏那复本量过）。
