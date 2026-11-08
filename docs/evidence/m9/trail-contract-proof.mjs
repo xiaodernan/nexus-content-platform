@@ -28,7 +28,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, tsInterfaceDuplicateFields, assertSameFields } from './wire-fields.mjs';
+import { javaRecordFields, tsInterfaceFields, tsInterfaceFieldOptionality, tsExportedFunctionNames, tsParseErrors, tsInterfaceDuplicateFields, javaRecordDuplicateFields, assertSameFields } from './wire-fields.mjs';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
@@ -231,10 +231,7 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
 
 // ── §10b the wire record's field list has no duplicates ─────────────────────────────────────────
 {
-  const wire = javaRecordFields(CONTROLLER, 'Entry');
-  const seen = new Map();
-  for (const f of wire) seen.set(f.name, (seen.get(f.name) ?? 0) + 1);
-  const dups = [...seen.entries()].filter(([, n]) => n > 1).map(([name]) => name);
+  const dups = javaRecordDuplicateFields(CONTROLLER, 'Entry');
   assert.deepEqual(dups, [], `${CONTROLLER} Entry record has duplicated field name(s): ${dups.join(', ')}`);
   console.log('[§10b] the service Entry record has no duplicated field names');
 }
