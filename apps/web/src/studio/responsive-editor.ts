@@ -202,15 +202,18 @@ const cleanCursor = (value: unknown): Cleaned =>
   typeof value === 'string' && CURSOR_VALUES.has(value) ? (value as Style['cursor']) : REJECT;
 
 /**
- * 排布只给这四样：求解器（layout.ts）与导出代码（codegen.ts 的 `layoutClasses`）都认它们。
- * `stack` / `none` 靠子节点自己的绝对坐标摆放，一条断点规则改不了那批坐标，所以这一格不摆那两个
- * 按钮——点了没效果的选项不该出现在面板上（§159）。
+ * 排布给五样。前四样之外**没有「堆叠」那格**：`stack` 与 `none` 在求解器里语义等同，
+ * 同时摆两个按钮是 §159 说的同一件事（两个入口做同一件事）。
+ * 第五样「自由定位」落 `none`——子节点按自己的 `position` 走绝对摆放；
+ * 模型层的模式标记类（ADR-0091，md:/lg:/xl: 的 `[--nexus-mode:none]`）已 round-trip，
+ * 位置那两格（`position.x`/`position.y`）按同一判据需要父级这一档投影出来是 none/stack 才摆。
  */
 const MODE_CHOICES: readonly ResponsiveChoice[] = [
   { value: 'vertical', label: '竖排' },
   { value: 'horizontal', label: '横排' },
   { value: 'grid', label: '网格' },
   { value: 'wrap', label: '换行' },
+  { value: 'none', label: '自由定位' },
 ];
 const MODE_VALUES = new Set<string>(MODE_CHOICES.map((c) => c.value));
 

@@ -602,6 +602,19 @@ describe('§14 面板读数与投影同源', () => {
     expect(spec.appliesTo(mkText(), 'tablet', {})).toBe(false);
   });
 
+  it('排布那格：第五样是「自由定位」value none；stack 不经面板（ADR-0091）', () => {
+    const spec = RESPONSIVE_CHANNELS.find((c) => c.id === 'layout.mode')!;
+    expect((spec.choices ?? []).map((c) => c.value)).toEqual(['vertical', 'horizontal', 'grid', 'wrap', 'none']);
+    expect(spec.choices?.find((c) => c.value === 'none')?.label).toBe('自由定位');
+    // stack 不是面板那一格——按下去什么都不该发生
+    const base = withLayout(mkContainer(), { mode: 'vertical', gap: 16 });
+    expect(rule(withResponsiveValue(base, 'tablet', 'layout.mode', 'stack'), 'tablet')).toBeUndefined();
+    // 而 none 正是这一格摆出来的语义（子节点按 position 走绝对摆放）
+    expect(rule(withResponsiveValue(base, 'tablet', 'layout.mode', 'none'), 'tablet')?.patch).toEqual({
+      layout: { mode: 'none' },
+    });
+  });
+
   it('token 绑定的尺寸（`{space.md}` 那种字符串引用）不崩，也发不出手抄的引用', () => {
     const ref = makeTokenRef('space.md');
     const bound: DesignNode = { ...mkNode(), size: { width: ref, height: 640 } };

@@ -768,6 +768,33 @@ describe("类名 → 模型属性", () => {
     expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === headline)).toEqual([]);
   });
 
+  it("断点模式标记往返：md:[--nexus-mode:none|stack] 换回 mode patch，父级定位参照同档（ADR-0091 · §14）", () => {
+    const page = starterPage();
+    const hero = nodeId(page, "Hero");
+    const withRule: Page = {
+      ...page,
+      nodes: {
+        ...page.nodes,
+        [hero]: {
+          ...page.nodes[hero]!,
+          responsive: [
+            // 这一档把父级翻成自由定位逃生口
+            { breakpoint: "tablet", patch: { layout: { mode: "none" } } },
+            { breakpoint: "desktop", patch: { layout: { mode: "stack" } } },
+          ],
+        },
+      },
+    };
+    const code = source(withRule);
+    const line = lineOf(code, hero);
+    expect(line).toContain("md:[--nexus-mode:none]");
+    expect(line).toContain("md:relative");
+    expect(line).toContain("lg:[--nexus-mode:stack]");
+    const result = parse(withRule, code);
+    expect(result.mappings.find((m) => m.nodeId === hero)?.unmapped).toEqual([]);
+    expect(result.ops.filter((o) => "nodeId" in o && o.nodeId === hero)).toEqual([]);
+  });
+
   it("断点纵向对齐往返：垂直对齐差异才发/收，往返零补丁（§14）", () => {
     const page = starterPage();
     const headline = nodeId(page, "Headline");

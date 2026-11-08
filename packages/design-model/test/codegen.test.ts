@@ -783,6 +783,72 @@ describe("Design → Code（§17-19）", () => {
     expect(tokens).toContain("lg:font-[Georgia]");
   });
 
+  it("断点模式标记发射：自由定位那一档发 [--nexus-mode:…] 与 relative（ADR-0091）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "frame", name: "ModeSlice", size: { width: 200, height: 80 } });
+    // 给它一个孩子：relative 只用来给"孩子能稳定绝对摆放"找参照——没有孩子的淡出就只发 marker
+    const child = createNode({ type: "text", name: "ModeChild", text: "子" });
+    child.parentId = node.id;
+    node.children = [child.id];
+    page2.nodes[child.id] = child;
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        { breakpoint: "tablet", patch: { layout: { mode: "none" } } },
+        { breakpoint: "wide", patch: { layout: { mode: "stack" } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("md:[--nexus-mode:none]");
+    expect(tokens).toContain("md:relative");
+    expect(tokens).toContain("xl:[--nexus-mode:stack]");
+    // xl 只是把 stack 从上一档继承下来那也算自由定位——标记必须继续发（同档级联同构）
+  });
+
+  it("自由定位标记：叶子节点只有 marker、不发 relative——没东西需要定位参照", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "text", name: "FreeLeaf", text: "自由定位叶子" });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        { breakpoint: "desktop", patch: { layout: { mode: "stack" } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).toContain("lg:[--nexus-mode:stack]");
+    expect(tokens).not.toContain("lg:relative");
+  });
+
+  it("拷贝那两格进 FREELAYOUT：模式按投影（而非 patch 只带 columns）发不出来就不发（ADR-0091 的不猜偏置）", () => {
+    const page2 = starterPage("Home");
+    const root = page2.nodes[page2.rootId]!;
+    const node = createNode({ type: "grid", name: "MarkerGrid", size: { width: 200, height: 80 }, layout: { mode: "grid", columns: 2 } });
+    node.parentId = root.id;
+    root.children = [node.id];
+    page2.nodes[node.id] = node;
+    const withRule: DesignNode = {
+      ...node,
+      responsive: [
+        // 只写 columns 不改 mode：这一档解出来仍是 grid ⇒ 一个标记类都不该发
+        { breakpoint: "tablet", patch: { layout: { columns: 2 } } },
+      ],
+    };
+    page2.nodes[node.id] = withRule;
+    const tokens = tokensOf(generatePageComponent(page2, {}, "Home").contents, node.id);
+    expect(tokens).not.toContain("md:[--nexus-mode:none]");
+    expect(tokens).not.toContain("md:[--nexus-mode:stack]");
+  });
+
   it("断点混合模式/旋转/指针发射：style patch 发 mix-blend-*/rotate-[…]/cursor-* 类（§14）", () => {
     const page2 = starterPage("Home");
     const root = page2.nodes[page2.rootId]!;

@@ -753,6 +753,31 @@ function decodeVariant(
     }
   }
   if (Object.keys(pad).length) layout.padding = pad;
+  // 自由定位逃生口的模式标记（ADR-0091·切片 15）： Tailwind 任意属性 `[--nexus-mode:none|stack]`，
+  // 只有 NEXUS 自己的生成器会发它，值只收 `none`/`stack`——其余如实 unmapped 不猜。
+  // 定位参照那条 `md:relative` 只在与 marker **同时出现**时被认下（它是这一刀的定位参照，不是作者意图），
+  // 单独一个 `md:relative` 仍落 unmapped（手写的 relative 落在字面上，不猜）。
+  let markerMode: "none" | "stack" | null = null;
+  for (const token of [...list]) {
+    const m = /^\[--nexus-mode:([a-z]+)\]$/.exec(token);
+    if (!m) continue;
+    const value = m[1]!;
+    if (value === "none" || value === "stack") {
+      markerMode = value;
+      out.checked.push(token);
+      list.splice(list.indexOf(token), 1);
+      continue;
+    }
+    note(token, `模式标记只收 none / stack（手写 "${value}" 不认，不猜）`);
+  }
+  if (markerMode) {
+    layout.mode = markerMode;
+    const relAt = list.indexOf("relative");
+    if (relAt >= 0) {
+      list.splice(relAt, 1);
+      out.checked.push("relative");
+    }
+  }
   // 圆角：先分格再折叠四边（`rounded` 的 head 是 `rounded-`，会顺带吃掉 `rounded-tl-[…]`，顺序反了就读不出边）。
   // 与基线同一组 rim（px 数值或 radius.* token）；少一格的 uniform 折不出来，如实 unmapped。
   const corners: Partial<CornerRadius> = {};

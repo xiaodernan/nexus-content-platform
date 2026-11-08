@@ -503,7 +503,7 @@ function typographyClasses(node: DesignNode, prefix: string): string[] {
 }
 
 /** 响应式覆盖 → Tailwind 断点前缀（§14） */
-function responsiveClasses(node: DesignNode, prefix: string): string[] {
+function responsiveClasses(node: DesignNode, prefix: string, parent?: DesignNode | null): string[] {
   if (!node.responsive?.length) return [];
   const out: string[] = [];
   for (const rule of node.responsive) {
@@ -586,6 +586,25 @@ function responsiveClasses(node: DesignNode, prefix: string): string[] {
     const resolvedMode = applyResponsive(node, rule.breakpoint).layout.mode;
     if (layout?.mode !== undefined) {
       for (const cls of DISPLAY_CLASSES[resolvedMode]) out.push(`${variant}${cls}`);
+    }
+    // 自由定位逃生口的**标记任意属性**（ADR-0091）： Tailwind v4 对任意属性是核心能力，
+    // `md:[--nexus-mode:none]` 是编译得出来的、没有消费方的自定义属性声明（不改变任何渲染）。
+    // 为什么不是 infer（A）/inline display 类（C）：A 要跨节点猜"孩子绝对了"，手写 md:relative 伪报 mode 一存即 §19；
+    // C 的 block/static 既还原不出 none/stack 语义，又与真实类相撞。
+    // **门只有一个——这一档真的 flip 了**：本档与窄档比，`below → this` 进入 none/stack 才发。
+    // 设计态默认 mode=none 的叶子（`defaultLayout` 给 text/etc 写死 none）不发——那是 default
+    // 不是意图；继承来的档也不补发（窄档 flip 时 marker 已经发了，CSS 级联会顺带生效）。
+    // 定位参照那条 `md:relative` 与基线同一判据：有孩子且本档自己不是 absolute 才发。
+    const narrowerMode = applyResponsiveBelow(node, rule.breakpoint).layout.mode;
+    if (
+      (resolvedMode === "none" || resolvedMode === "stack") &&
+      narrowerMode !== resolvedMode
+    ) {
+      const tier = applyResponsive(node, rule.breakpoint);
+      const tierParent = parent ? applyResponsive(parent, rule.breakpoint) : null;
+      const selfAbsolute = isAbsoluteChild(tier, tierParent);
+      out.push(`${variant}[--nexus-mode:${resolvedMode}]`);
+      if (node.children.length > 0 && !selfAbsolute) out.push(`${variant}relative`);
     }
     if (resolvedMode === "grid" && layout?.columns !== undefined) {
       out.push(`${variant}${gridColsClass(layout.columns)}`);
@@ -834,7 +853,7 @@ function classOf(node: DesignNode, parent: DesignNode | null, ctx: RenderCtx): s
     ...stateClasses(view, ctx.prefix),
     ...typographyClasses(view, ctx.prefix),
     // 更宽那几档从**原始节点**解：它们要的是「本档与更窄几档」整条级联，基线只是窄的那一半
-    ...responsiveClasses(node, ctx.prefix),
+    ...responsiveClasses(node, ctx.prefix, parent),
   ].join(" ");
 }
 
