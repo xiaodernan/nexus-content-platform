@@ -2380,3 +2380,9 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
 - **2026-11-08：这一版工作树再跑两片——268 文件 / 3572 条、两次 exit 0（含合并 credits 车道那一坨）**——
   shard1e 134 files / 1834、shard2e 134 files / 1738；与合并前（3572）逐计相同。期间补的都是 e2e 腿（F9 腿 S）和文档，
   `.scratch/shard1e.log` / `.scratch/shard2e.log` 已 `git add -f` 入库。
+
+- **2026-11-09：这一版工作树再跑两片（含 `b89631c` 浅色内部件修复与 evals 三套）——269 文件 / 3578 条全部通过，两次 exit 0**——
+  shard1 135 文件 / 1838 条（493.53s）、shard2 134 文件 / 1740 条（673.65s），逐计合计 **269 / 3578**；
+  与上一版两片（2026-11-08，268 文件 / 3572 条）相差正好 +1 文件 / +6 条，
+  对得上这两天只增了 `scripts/test/evals-framework.test.mts`（+4 条 +1 文件）与导出/导入往返标记的两条集成用例（+2 条）。
+  `.scratch/shard1-2026-11-09.log` / `.scratch/shard2-2026-11-09.log` 已 `git add -f` 入库。
