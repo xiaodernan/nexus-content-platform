@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-03T19:38:14.276Z",
+  "ranAt": "2026-11-08T22:52:58.313Z",
   "arms": 54,
   "matched": 54,
   "armNames": [
@@ -344,6 +344,11 @@
       "name": "verify:log-window",
       "file": "docs/evidence/agents/log-window-proof.mjs",
       "marker": null
+    },
+    {
+      "name": "verify:m9-arms",
+      "file": "docs/evidence/m9/audit-contract-arms.mjs",
+      "marker": "// sweep-budget-ms: 420000"
     },
     {
       "name": "verify:mcp",
