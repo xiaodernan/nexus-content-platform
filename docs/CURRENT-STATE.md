@@ -17,8 +17,9 @@
 | `game-build` | §54/§51 游戏设计系统 | 36/36 |
 | `design-build` | §12/§13 design-model 投影 | 46/46 |
 | `project-bundle` | §16/§159 集大成合成 | 14/14 |
+| `local-embedding` | §49 本地 token-bag 语料检索（确定性） | 14/14 |
 
-**合计 247 / 247 PASS**（不含 needsDatabase 的 `export-roundtrip`：那一项 `npm run evals` 在 env 已设时跑、不设则打印 `SKIP` 退出码不变，CI 安全）。
+**合计 261 / 261 PASS**（不含 needsDatabase 的 `export-roundtrip`：那一项 `npm run evals` 在 env 已设时跑、不设则打印 `SKIP` 退出码不变，CI 安全）。
 
 真库首跑读数（仍以 `npm run evals:baseline` 验）：recall@5 = 100% / MRR = 0.786 / 代码往返 5/5 干净 / 无障碍 4/4 检出 / 渲染后页面 axe 违规 0 条—— `docs/EVALUATION.md` 第十五片起。
 
@@ -40,7 +41,7 @@
 ## 已经合入主干的另一会话成果（无许可主动删不动）
 
 - 两条线合入一个分支后的内容，全部是两侧原子的整个体系（无内容被裁剪，无证词被改写）。
-- `8179208`：`apps/web` 确定性本地 embedding provider（§49），环境变量 `NEXUS_EMBEDDING_PROVIDER=local` 显式 opt-in，测试 13/13 绿；不存在没有 provider 时告随便的行为，同一个模型档在 `model_for` 上自报家门。
+- `8179208`：`apps/web` 确定性本地 embedding provider（§49），环境变量 `NEXUS_EMBEDDING_PROVIDER=local` 显式 opt-in，测试 13/13 绿；不存在没有 provider 时告随便的行为，同一个模型档在 `model_for` 上自报家门。`evals` 第十套 `local-embedding 14/14` 进矩阵（261/261），`.github/workflows/main-line.yml`（`cf1537e`）让结构不变式进了 CI。
 - `cf1537e`：新增 `.github/workflows/main-line.yml`，主线的 `typecheck:main` + `evals` 决定性结构不变式进了 CI（ADR-0093），针对 `pgvector` 容器跑 `export-roundtrip`（无库时打印 SKIP 且退码保持不变）。
 - 其余动作都在 `docs/evidence` 里按 amendment 568（v641）记录：id 568 已授予。
 

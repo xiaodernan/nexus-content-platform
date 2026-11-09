@@ -2634,3 +2634,23 @@ mesa 与 cone 两种 mesa 形状一致性 + 多 mesa 取最大高度规则），
 
 **遗留（不属于 §85）**：PDF/汇总类报表发布（§144 仍无回滚只读）；
 `@nexus/ai` 真 provider key 都是 §105 的工作，未包括在本轮。
+
+## 2026-11-09 补记（续）：§85 evals 第十套 `local-embedding`——§49 本地确定性入矩阵
+
+第十套 `local-embedding`（确定性、§49/§93、本地 token-bag）：`14/14`：
+
+```
+local-embedding 14/14
+```
+
+它钉的是结构不变式：1536 维（== pgvector 列）、非空文档单位范数、同输入逐位确定性、空输入零向量、
+ASCII 词 / CJK bigram 双模识别、八个语料主题×八个 CJK 查询全部 top-1 命中（8/8）。
+
+`local-embedding` 测的是“检索自洽”——不是语义模型、不是检索质量的度量。
+真实 provider 接入后这一格照样守住现成的同一份检索链路。十套现在合计 **261/261**
+（不含需真库的 export-roundtrip；含它也是 261/261）。
+
+相关的 Studio 线增量：`8179208`（`NEXUS_EMBEDDING_PROVIDER=local` opt-in，`embed()`/
+`VectorStore.upsertChunks` 链路直接可用，不替任何人接 key、也不在缺 key 时假装有能力）；
+`cf1537e` 主线 CI（`.github/workflows/main-line.yml`）让这些结构不变式进了选择性 CI。
+

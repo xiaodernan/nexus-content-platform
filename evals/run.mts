@@ -7,6 +7,7 @@ import { schemasContractSuite } from './suites/schemas-contract.mts';
 import { gameBuildSuite } from './suites/game-build.mts';
 import { designBuildSuite } from './suites/design-build.mts';
 import { projectBundleSuite } from './suites/project-bundle.mts';
+import { localEmbeddingSuite } from './suites/local-embedding.mts';
 import { failedChecks, type EvalSuite, type EvalSuiteResult } from './types.ts';
 
 /**
@@ -27,7 +28,7 @@ import { failedChecks, type EvalSuite, type EvalSuiteResult } from './types.ts';
  *   npm run evals -- --suite code-index
  *   npm run evals -- --list
  */
-const SUITES: EvalSuite[] = [codeIndexSuite, modelRoundtripSuite, exportRoundtripSuite, videoPlanSuite, worldBuildSuite, schemasContractSuite, gameBuildSuite, designBuildSuite, projectBundleSuite];
+const SUITES: EvalSuite[] = [codeIndexSuite, modelRoundtripSuite, exportRoundtripSuite, videoPlanSuite, worldBuildSuite, schemasContractSuite, gameBuildSuite, designBuildSuite, projectBundleSuite, localEmbeddingSuite];
 
 const args = process.argv.slice(2);
 const listOnly = args.includes('--list');
