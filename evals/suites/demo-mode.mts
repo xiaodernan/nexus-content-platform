@@ -1,6 +1,6 @@
-import { createDocument, createPage } from '../../packages/creative-model/src/index.ts';
-import { mockProvider, DeterministicMockProvider } from '../../apps/web/src/server/ai/mock.ts';
-import type { AiRequest, DesignDocument } from '../../packages/schemas/src/index.js';
+import { createDocument, createPage, type DesignDocument } from '../../packages/creative-model/src/index.ts';
+import { DeterministicMockProvider } from '../../apps/web/src/server/ai/mock.ts';
+import type { AiRequest } from '../../packages/schemas/src/index.js';
 import { EvalRecorder } from '../lib/recorder.ts';
 import type { EvalSuite } from '../types.ts';
 

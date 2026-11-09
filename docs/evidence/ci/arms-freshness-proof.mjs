@@ -97,6 +97,10 @@ const BASE_FILES = {
     },
   }, null, 2),
   '.github/workflows/ci.yml': 'on:\n  push:\n    branches: [master]\njobs:\n  quality:\n    runs-on: ubuntu-latest\n',
+  // The fixture carries EVERY subject the receipt hashes, because `makeReceipt` reads them all and a subject
+  // missing from this table crashes the plane BUILD rather than reaching §2's named-missing refusal. The main
+  // line's workflow joined it when amendment 573's §14 made it a subject.
+  '.github/workflows/main-line.yml': 'on:\n  push:\n    branches: [master]\njobs:\n  main_line:\n    runs-on: ubuntu-latest\n',
   'docs/evidence/ci/ci-wiring-proof.mjs': '// fixture: the gate the receipt names\n',
   'docs/evidence/ci/ci-wiring-arms.mjs': '// fixture: the tool the receipt names\n',
   'tools/ci/proof-set.mjs': '// fixture: the runner the arms exercise\n',
@@ -155,6 +159,13 @@ const ARMS = [
   {
     tag: 'F7-subject-deleted', files: BASE_FILES, expect: '§2', sig: /sweep \(docs\/evidence\/agents\/sweep\.mjs\)/,
     mutate: (dir) => rmSync(join(dir, 'docs/evidence/agents/sweep.mjs')),
+  },
+  // F1 moves the FIRST subject; this moves the second workflow file, so the loop over SUBJECT_FILES is graded
+  // on a subject that is not the one every earlier fixture was written around. Without it, `mainline` could be
+  // added to the table and never hashed, and the receipt would still call the plane fresh.
+  {
+    tag: 'F8-mainline-moved', files: BASE_FILES, expect: '§2', sig: /subjects changed since[^\n]*\bmainline\b/,
+    mutate: (dir) => writeFileSync(join(dir, '.github/workflows/main-line.yml'), 'on:\n  workflow_dispatch\n'),
   },
 ];
 

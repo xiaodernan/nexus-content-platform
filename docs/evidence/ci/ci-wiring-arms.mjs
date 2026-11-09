@@ -8,13 +8,16 @@
 //
 // Why this exists, stated the way §60 requires: amendment 514 shipped `.github/workflows/ci.yml`'s first
 // `verify:*` step and `tools/ci/proof-set.mjs`, and a shipped gate is worth exactly as much as the day someone
-// tries to make it stop. `ci-wiring-proof.mjs` reads a workflow and refuses thirteen shapes; every one of those
-// refusals is a sentence until an arm proves it is a DOOR. So each arm below rewrites one byte-range of one
-// plane file — the trigger losing `master`, the proof step vanishing or doubling, a `|| true` growing on it,
+// tries to make it stop. `ci-wiring-proof.mjs` reads the two workflow files and refuses fourteen shapes;
+// every one of those refusals is a sentence until an arm proves it is a DOOR. So each arm below rewrites one
+// byte-range of one plane file — the trigger losing `master`, the proof step vanishing or doubling, a `|| true`
+// growing on it,
 // the proofs moving before the build, an exemption outliving its hazard, a dangling script, an exclusion for a
 // proof that reaches nothing, the job's ceiling vanishing, being raised past the rows' own worst case, falling
 // under the floor or not being a number at all, its token widening to a write scope, losing its read scope, or
-// losing its `permissions:` block entirely — and the arm is satisfied only when the gate reddens at EXACTLY the
+// losing its `permissions:` block entirely, a declared tsc leg left with no step in any workflow to reach it, or
+// that leg undeclared so a package's tsconfig is typed by nothing — and the arm is satisfied only when the gate
+// reddens at EXACTLY the
 // predicted clause: every `[§k]` below it printed, none of it or above did, and the stderr carries that clause's
 // own words. v540 added one arm per §11 assertion, because "every refusal is a door" means all eight of them.
 //
@@ -44,6 +47,14 @@
 // from becoming a stamp. On the gate side A26 plants a tail the row cannot print whole, C3 plants the same
 // sentence in a helper that has no gutter, and C4 plants a line that is long only because of what it
 // interpolates — the shape this clause cannot see and therefore must not refuse.
+// v646 (amendment 573) opens §14, and §14 counts a REACH across BOTH workflow files, so its plane closure had to
+// grow the same way the clause's own census does: `GATE_CLOSURE` now lists every file under `.github/workflows`
+// and every `package.json` / `tsconfig*.json` a root `workspaces` glob names, because a closure kept by hand
+// would grade pristine bytes for the very file an arm edited and report a surviving guard. A27 deletes the one
+// step that reaches eight of the tree's typecheck surfaces; A28 undeclares the leg instead, so the config sits
+// untyped and the SECOND refusal fires (the first one cannot be satisfied by deleting what it counts); C6
+// rewrites the same step as a `run: |` block scalar and must stay green, because the clause reads step BODIES,
+// not spellings.
 //
 // Nothing an ARM writes survives: each one gets its own plane directory, built from pristine bytes read out of
 // `SRC` (derived from THIS file's own location, not from the caller's cwd), and is removed the moment the arm
@@ -57,12 +68,14 @@
 //
 // sweep-budget-ms: 900000
 //
-// Run from the repository root:  node docs/evidence/ci/ci-wiring-arms.mjs     (~7 minutes on this box, both halves;
-// the row declares 15 minutes because four runner arms sleep between 0.6 s and 1.5 s by design)
+// Run from the repository root:  node docs/evidence/ci/ci-wiring-arms.mjs     (17 m 57 s on this box for the
+// 57-arm set, measured 2026-11-10; hosted run 41428780884 carried 49 arms in 122.0 s, so the row's declared
+// 900000 ms is the hosted budget and this box overshoots it — four runner arms sleep between 0.6 s and 1.5 s by
+// design, and every gate arm spawns a whole gate run)
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join, posix, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { makeReceipt, markerLine, populationOf, RECEIPT_FILE, subjectsOf } from './arms-receipt.mjs';
 
@@ -115,20 +128,34 @@ function makePlane(tag, files) {
 const readSrc = (rel) => readFileSync(join(SRC, rel), 'utf8');
 
 // ── half 1: the gate ──────────────────────────────────────────────────────────────────────────────────
-// The closure is everything ci-wiring-proof.mjs reads, imported or byte-read: the workflow, the manifest, the
-// runner, the sweep it borrows its budget grammar from, this file's own bytes, and every proof the derived
-// population names. Anything missing makes a clause red for the wrong reason, which is the failure mode this
-// whole increment is about.
+// The closure is everything ci-wiring-proof.mjs reads, imported or byte-read: the workflow files, the root
+// manifest, the runner, the sweep it borrows its budget grammar from, this file's own bytes, the manifests and
+// tsconfigs §14 censuses, and every proof the derived population names. Anything missing makes a clause red for
+// the wrong reason, which is the failure mode this whole increment is about.
+const WF_DIR = '.github/workflows';
+const wfFiles = readdirSync(join(SRC, WF_DIR)).filter((f) => /\.(yml|yaml)$/.test(f)).map((f) => `${WF_DIR}/${f}`);
+// §14's population is the root `workspaces` globs expanded one level, THE SAME WAY the clause expands them: a
+// closure kept by hand is a plane that silently grades half the tree, and a new package would join the gate's
+// census while staying out of the arms that are supposed to break it.
+const pkgDirs = [...new Set(['.', ...(pkg.workspaces ?? []).flatMap((glob) => {
+  const parent = String(glob).replace(/\/\*.*$/, '');
+  const at = join(SRC, parent === '' ? '.' : parent);
+  return existsSync(at) ? readdirSync(at, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => posix.join(parent, e.name)) : [];
+})])];
+const typeSurfaces = pkgDirs.flatMap((d) => (existsSync(join(SRC, d))
+  ? readdirSync(join(SRC, d)).filter((f) => f === 'package.json' || /^tsconfig.*\.json$/.test(f)).map((f) => posix.join(d, f))
+  : []));
 const GATE_CLOSURE = [...new Set([
   'package.json',
-  '.github/workflows/ci.yml',
+  ...wfFiles,
   'tools/ci/proof-set.mjs',
   'docs/evidence/agents/sweep.mjs',
   'docs/evidence/ci/ci-wiring-proof.mjs',
+  ...typeSurfaces,
   ...population.map((d) => d.file),
 ])];
 
-const CLAUSES = ['§1', '§2', '§3', '§4', '§5', '§6', '§7', '§8', '§9', '§10', '§11', '§12', '§13'];
+const CLAUSES = ['§1', '§2', '§3', '§4', '§5', '§6', '§7', '§8', '§9', '§10', '§11', '§12', '§13', '§14'];
 
 function gatePlane(tag, edits) {
   const files = new Map(GATE_CLOSURE.map((rel) => [rel, readSrc(rel)]));
@@ -156,11 +183,18 @@ function runGate(dir) {
 const tagsOf = (out) => [...new Set([...out.matchAll(/^\[(§\d+)\]/gm)].map((m) => m[1]))];
 
 const WF = '.github/workflows/ci.yml';
+const MAIN_LINE = '.github/workflows/main-line.yml';
 const PKG = 'package.json';
 const RUNNER = 'tools/ci/proof-set.mjs';
 const MUT = 'docs/evidence/studio/mutation-probe.mjs';
 const BUILD_STEP = '      - name: Build\n        run: npm run build\n';
 const PROOFS_STEP = '      - name: Evidence proofs\n        run: npm run verify:proofs\n';
+// §14's two charged shapes, quoted from the shipped bytes: the ONE step that reaches the main line's legs, and
+// the ONE leg of that step which no other script declares. The block-scalar spelling of the same step is the
+// control, because the clause reads step bodies through its own YAML subset and must not care how a run is typed.
+const TSC_STEP = '      - name: Typecheck main line\n        run: npm run typecheck:main\n';
+const TSC_STEP_BLOCKY = '      - name: Typecheck main line\n        run: |\n          npm run typecheck:main\n';
+const TOOLS_LEG = ' && tsc -p tsconfig.tools.json --noEmit';
 // A10/A11's premise MOVED at v547: v545 retired the docker row, v546 the live-stack row, and v547 (amendment
 // 530) the LAST one, so the shipped `EXCLUDED` was empty and an arm that quoted an entry would be editing bytes
 // that do not exist — the needle-matched-nothing crash A10's first draft already hit in v540 for the opposite
@@ -285,7 +319,7 @@ const GATE_ARMS = [
   // v568 removed from `agents/color-proof.mjs` (and its seven siblings) is a print that survives below the
   // row's own summary, and an arm that copied that summary line into a needle would be refused by its next
   // edit. C1 and C2 are the two ways this clause could cry wolf — by reddening any trailing print, or by
-  // reddening a file that is not a row — and each is a control, so both must print all thirteen tags and
+  // reddening a file that is not a row — and each is a control, so both must print every tag in `CLAUSES` and
   // exit 0. §13 is the LENGTH of that same tail, and it inherits the append machinery: A26 plants a print
   // whose OWN text exceeds the gutter's bound, C3 plants it in a helper, and C4 plants a line that is long
   // only because of what it interpolates — the half of the cut this clause cannot see, and must not pretend
@@ -297,6 +331,15 @@ const GATE_ARMS = [
   { tag: 'A26-tail-whose-own-text-overruns-the-gutter', clause: '§13', edits: [{ file: COLOR, append: `console.log('[verdict] ${'z'.repeat(320)}');` }], sig: /end their source on a print too long for the gutter/ },
   { tag: 'C3-long-tail-on-a-file-that-is-not-a-row', clause: null, edits: [{ file: SWEEP, append: `console.log('[verdict] ${'z'.repeat(320)} a helper has no gutter, so §13 has no business measuring it');` }], sig: null },
   { tag: 'C4-tail-long-only-because-of-what-it-interpolates', clause: null, edits: [{ file: COLOR, append: "console.log('[verdict] ${'a'.repeat(400)} is long at run time and unknowable at the byte level, which is what the marker is for');" }], sig: null },
+  // §14 counts a REACH over the whole workspace set, so its arms delete one of the two things the census can
+  // refuse: A27 removes the only step that reaches eight legs, which must come back as eight ORPHANED legs and
+  // not as a smaller population — the clause's second refusal exists precisely so that cannot be the answer —
+  // and A28 removes a LEG declaration, which must come back as an UNTYPED SURFACE naming the config. C6 keeps
+  // the step and changes only how its `run:` is typed, because a reach census that reads step bodies must be a
+  // reading of the build, not of the editor's taste in YAML.
+  { tag: 'A27-typecheck-step-deleted', clause: '§14', edits: [{ file: MAIN_LINE, from: TSC_STEP, to: '' }], sig: /typecheck leg\(s\) are declared in a script no workflow step reaches/ },
+  { tag: 'A28-tools-leg-undeclared', clause: '§14', edits: [{ file: PKG, from: TOOLS_LEG, to: '' }], sig: /tsconfig file\(s\) sit in a package directory, name no leg and extend nothing/ },
+  { tag: 'C6-the-same-step-spelled-as-a-block-scalar', clause: null, edits: [{ file: MAIN_LINE, from: TSC_STEP, to: TSC_STEP_BLOCKY }], sig: null },
 ];
 
 // A clause with no arm is a sentence nobody has tried to break, and an arm aimed at a clause the gate no longer

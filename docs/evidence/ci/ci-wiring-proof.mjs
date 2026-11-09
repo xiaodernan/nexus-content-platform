@@ -9,7 +9,7 @@
 // had never executed once, so every "CI would have caught it" sentence in this project's records was about a
 // machine that does not run.
 //
-// So the wiring is a subject, not a footnote. This proof reads the shipped workflow as bytes and refuses,
+// So the wiring is a subject, not a footnote. This proof reads the shipped workflows as bytes and refuses,
 // clause by clause, each way the fix could rot back into the hole: the trigger losing this branch, the proof
 // step disappearing, the step swallowing a failure (`|| true`, `continue-on-error`), the proofs running
 // before the build they grade, and — the one a hand-written list always ends up in — the derived set and the
@@ -40,9 +40,9 @@
 //
 // Run from the repository root:  node docs/evidence/ci/ci-wiring-proof.mjs   (or: npm run verify:ci-wiring)
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -64,12 +64,12 @@ const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
  * `name:`, `uses:` and a `run:` that is either a single line or a `|` block scalar. Refusing a shape this
  * reader cannot parse is deliberate: silently grading half a step is how a swallow hides.
  */
-function stepsOf(text) {
+function stepsOf(text, label = WORKFLOW) {
   const lines = text.split(/\r?\n/);
   const at = lines.findIndex((l) => /^\s+steps:\s*$/.test(l));
-  assert.ok(at >= 0, `${WORKFLOW}: no "steps:" sequence, so nothing here can say which commands the build runs`);
+  assert.ok(at >= 0, `${label}: no "steps:" sequence, so nothing here can say which commands the build runs`);
   const first = lines.slice(at + 1).find((l) => /^\s*-\s/.test(l));
-  assert.ok(first, `${WORKFLOW}: \`steps:\` has no entries`);
+  assert.ok(first, `${label}: \`steps:\` has no entries`);
   const indent = first.match(/^\s*/)[0].length;
   const blocks = [];
   let cur = null;
@@ -474,4 +474,96 @@ const noCall = running.length - tails.size;
   console.log(`[§13] ${measured} row(s) measured against the runner's own ${producer.GUTTER_BOUND_BYTES}-byte clip, 0 guaranteed to be cut · ${atTheBound} land exactly on the bound and print whole · the longest whole one is ${closest.name} at ${closest.bytes} bytes · ${unreadable} row(s) end on a call this gate cannot read`);
 }
 
-console.log(`\nci wiring: trigger covers master · proof step #${proofSteps[0].index} · ${steps.length} steps swallow nothing · build precedes it · population ${population.length} closes as ${splitSet(population).running.length} + ${splitSet(population).residue.length} · build Node ${buildNodeMajor} · ceiling ${jobTimeoutMinutes} min, read-only token · no row ends its source on a cleanup print · no row's tail is guaranteed to overrun the gutter`);
+
+// ── §14 every tsc surface the tree declares is reached by a step of SOME workflow ──────────────────
+// Why a second workflow needs a clause of its own: `.github/workflows/main-line.yml` was added by cf1537e on
+// 2026-11-09 — 48 commits back from the ref this clause lands on — and until this clause the string `main-line`
+// appeared in NO file under tools/ or docs/evidence/ (`git grep -l main-line HEAD -- tools docs/evidence` answers
+// nothing), so the thirteen clauses that gate then had read ci.yml only. The silence was not harmless: the
+// sentence amendment 572 shipped about exactly this reach was false, and only reading this file plus a hosted log
+// settled it (see that amendment's addendum — `git log -S"typecheck:main" -- .github/workflows/ci.yml` answers
+// nothing, and the main-line job of hosted run 42665488782 printed exactly one error,
+// `evals/suites/demo-mode.mts(3,26): error TS2724`). Eight of the tree's typecheck surfaces, `tsconfig.tools`
+// among them, are reached by nothing but one step of that workflow, so a step deleted from it reddens no build
+// and hides no error — it just stops the grading.
+// What is counted is a REACH, not a name. A LEG is `tsc -p <config>` inside a script of the root manifest or of
+// a manifest a root `workspaces` glob names, or a bare `tsc --noEmit`, which reads its own directory; a leg is
+// REACHED when a step's `run:` in a workflow file names, transitively through `npm run` and `turbo run`, the
+// script that declares it. Two refusals follow, and the second exists so the first cannot be satisfied by
+// deleting the thing it counts: an ORPHAN leg (a config some script typechecks that no workflow reaches) and an
+// UNTYPED surface (a tsconfig inside a package directory that no leg names anywhere — unless another config
+// EXTENDS it, because a base is not a surface; seven of the tree's tsconfig files are named that way, the root
+// `tsconfig.base.json` and the six package `tsconfig.json` files their `tsconfig.test.json` sibling extends).
+// The census reads STEP BODIES, not files. `main-line.yml` names `npm run typecheck:main` twice in its own
+// header comment, and the first version of this clause scanned whole files for `npm run`: its arm deleted the
+// step and the gate stayed green, because the prose still said the words.
+{
+  const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
+  const TSC_P = /\btsc\b[^&|\n]*?-p\s+(\S+\.json)/g;
+  const TSC_P_ONCE = new RegExp(TSC_P.source);
+  const TSC_BARE = /\btsc\b[^&|\n]*?--noEmit/;
+  const RUN = /npm\s+run\s+([A-Za-z0-9:_-]+)/g;
+  const TURBO = /turbo\s+run\s+([A-Za-z0-9:_-]+)/g;
+  const one = (xs) => [...new Set(xs)];
+  const cfgKey = (dir, name) => posix.normalize(posix.join(dir === '.' ? '' : dir, name.replace(/^\.\//, '')));
+
+  const WF_DIR = '.github/workflows';
+  const wfNames = existsSync(join(ROOT, WF_DIR))
+    ? readdirSync(join(ROOT, WF_DIR)).filter((f) => /\.(yml|yaml)$/.test(f)).sort() : [];
+  assert.ok(wfNames.length >= 1, `no workflow file under ${WF_DIR}, so nothing in this repository can say what CI runs and every reach claim below would be vacuous`);
+  const pkgDirs = one(['.', ...(JSON.parse(read('package.json')).workspaces ?? []).flatMap((glob) => {
+    const parent = glob.replace(/\/\*.*$/, '');
+    const at = join(ROOT, parent === '' ? '.' : parent);
+    return existsSync(at) ? readdirSync(at, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => posix.join(parent, e.name)) : [];
+  })]).sort();
+  const manifests = pkgDirs.filter((d) => existsSync(join(ROOT, d, 'package.json')));
+
+  const scripts = new Map();
+  const legs = new Map();
+  const addLeg = (cfg, site) => { if (!legs.has(cfg)) legs.set(cfg, new Set()); legs.get(cfg).add(site); };
+  for (const dir of manifests) {
+    const mf = dir === '.' ? 'package.json' : posix.join(dir, 'package.json');
+    for (const [name, body] of Object.entries(JSON.parse(read(mf)).scripts ?? {})) {
+      const key = `${mf}#${name}`;
+      scripts.set(key, String(body));
+      for (const m of String(body).matchAll(TSC_P)) addLeg(cfgKey(dir, m[1]), key);
+      if (TSC_BARE.test(String(body)) && !TSC_P_ONCE.test(String(body))) addLeg(cfgKey(dir, 'tsconfig.json'), key);
+    }
+  }
+  const reachedBy = new Map();
+  const touch = (key, rel) => { if (!reachedBy.has(key)) reachedBy.set(key, new Set()); reachedBy.get(key).add(rel); };
+  for (const wf of wfNames) {
+    const rel = `${WF_DIR}/${wf}`;
+    const seeds = new Set();
+    for (const st of stepsOf(read(rel), rel)) for (const m of String(st.run ?? '').matchAll(RUN)) seeds.add(`package.json#${m[1]}`);
+    const visit = (key) => {
+      if (!scripts.has(key) || (reachedBy.get(key)?.has(rel) ?? false)) return;
+      touch(key, rel);
+      for (const m of scripts.get(key).matchAll(RUN)) visit(`${key.split('#')[0]}#${m[1]}`);
+      for (const m of scripts.get(key).matchAll(TURBO)) for (const k of scripts.keys()) if (k.endsWith(`#${m[1]}`)) visit(k);
+    };
+    for (const s of seeds) visit(s);
+  }
+  const wfOf = (cfg) => [...new Set([...(legs.get(cfg) ?? [])].flatMap((k) => [...(reachedBy.get(k) ?? [])]))];
+  const orphans = [...legs.keys()].filter((cfg) => wfOf(cfg).length === 0).sort();
+  assert.deepEqual(orphans, [], `${orphans.length} typecheck leg(s) are declared in a script no workflow step reaches, so nothing in CI runs tsc over those bytes: ${orphans.map((c) => `${c} (declared by ${[...legs.get(c)].join(', ')})`).join(' | ')} — re-arm the step, or retire the leg with the config, but do not leave a surface that looks typechecked while nothing grades it`);
+
+  const inPackages = one(pkgDirs.flatMap((d) => (existsSync(join(ROOT, d)) ? readdirSync(join(ROOT, d)) : [])
+    .filter((f) => /^tsconfig.*\.json$/.test(f)).map((f) => cfgKey(d, f)))).sort();
+  const bases = new Set();
+  for (const cfg of inPackages) {
+    const m = /"extends"\s*:\s*"([^"]+)"/.exec(read(cfg));
+    if (m) bases.add(cfgKey(posix.dirname(cfg), m[1]));
+  }
+  const untyped = inPackages.filter((cfg) => !legs.has(cfg) && !bases.has(cfg)).sort();
+  assert.deepEqual(untyped, [], `${untyped.length} tsconfig file(s) sit in a package directory, name no leg and extend nothing, so they describe a typecheck surface the build never performs: ${untyped.join(', ')} — either a script gains a \`tsc -p\` leg for it and a workflow reaches that script, or the file is a base and another config says so with \`extends\``);
+
+  const byWf = new Map();
+  for (const cfg of legs.keys()) {
+    const k = wfOf(cfg).map((w) => posix.basename(w)).sort().join('+');
+    byWf.set(k, (byWf.get(k) ?? 0) + 1);
+  }
+  console.log(`[§14] ${legs.size} config(s) carry a declared tsc leg across ${manifests.length} of the ${pkgDirs.length} directories the root \`workspaces\` globs name, and ALL of them are reached by a step of the ${wfNames.length} workflow file(s) · who reaches them: ${[...byWf].map(([k, n]) => `${n} by ${k}`).sort().join(' · ')} · ${inPackages.length} tsconfig inside the package set, ${bases.size} of them an extends-base excused from a leg · 0 orphaned leg · 0 untyped surface`);
+}
+
+console.log(`\nci wiring: trigger covers master · proof step #${proofSteps[0].index} · ${steps.length} steps swallow nothing · build precedes it · population ${population.length} closes as ${splitSet(population).running.length} + ${splitSet(population).residue.length} · build Node ${buildNodeMajor} · ceiling ${jobTimeoutMinutes} min, read-only token · no row ends its source on a cleanup print · no row's tail is guaranteed to overrun the gutter · no orphaned tsc leg`);

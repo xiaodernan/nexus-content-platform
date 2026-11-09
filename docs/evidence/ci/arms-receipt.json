@@ -1,9 +1,9 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-09T16:39:13.414Z",
-  "arms": 54,
-  "matched": 54,
+  "ranAt": "2026-11-09T18:58:13.513Z",
+  "arms": 57,
+  "matched": 57,
   "armNames": [
     "C0-control",
     "A1-trigger-loses-master",
@@ -36,6 +36,9 @@
     "A26-tail-whose-own-text-overruns-the-gutter",
     "C3-long-tail-on-a-file-that-is-not-a-row",
     "C4-tail-long-only-because-of-what-it-interpolates",
+    "A27-typecheck-step-deleted",
+    "A28-tools-leg-undeclared",
+    "C6-the-same-step-spelled-as-a-block-scalar",
     "R0-control",
     "R1-red-proof-fails-the-build",
     "R2-hang-is-TIMEOUT-not-RED",
@@ -62,12 +65,13 @@
   ],
   "subjects": {
     "workflow": "6e39ab2cb0bb78f2a2ed7e06f88085fc264ed638515708451a47415490983803",
-    "gate": "d9ef4e999f2deaefc27bf56726927f1beb3055fa4ebfceb2025009bcb5a41509",
-    "arms": "75241dede0e968995e1cefa40b595375da42bc205a4d302b7d2acb1d0d1df16d",
+    "mainline": "fe754ec950b7bd30ecb26a622a8a4923e8b2752defc189cb160f40efd23dc2d0",
+    "gate": "e8f45d7568ee467ddf9940a5d2d0b392d057871b743abbe2a53ed76fcb22f02f",
+    "arms": "178bb66057cc8026bebb17c7a1902e897af877490ad797ce1d5e5885bd83e203",
     "runner": "9bff110c11511e3d0a13065b6b8d9e68d668091d1143157016270df34f2f0f71",
     "sweep": "a9904d1f3edcccd0b38b3a396474e7b6eb079a91924eeb0eed3d02ea38cd3097",
-    "scripts": "4f13a845cd9e400b99e3de1617490e81e04721dcbdbead22b5458e555fe2bc7f",
-    "rule": "d950d243b7678dda17d00f877e2a3cbdf94d7d70a1eafed0c2fb59aa06b437d1"
+    "scripts": "1b651470ac2dbead8088827cefe6a91f38f76355beded514bb8c9e2de576cf5f",
+    "rule": "4a38542af2c09948265f43cfa38a59e24145eabee1ffe8f1fe9e2cbb19ee1cc8"
   },
   "population": [
     {
