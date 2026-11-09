@@ -156,3 +156,18 @@
 - `evidence-census`, `arms-freshness`, `doc-evidence`, `table-recount`, `package-counts` all green.
 - `main-line` CI (`tsc` for the main lane + `evals` over the 11-suite matrix, including reranker)
   is green for every pushed commit of this session.
+
+
+## 2026-11-09 addendum (cont. 4): the local deterministic stack is proven end-to-end
+
+- `b8c5d05`: `apps/web/test/knowledge-local.integration.test.ts` exercises the WHOLE path on real
+  Postgres with zero credentials — `saveWorld` -> `syncProjectKnowledge` -> local token-bag embeds
+  go into the 1536-dim `pgvector` column -> hybrid `VectorStore.search` (with the local reranker)
+  returns relevant chunks deterministically. `bucketStore.upsertChunks` gained an honest empty-array
+  guard (real bug found: drizzle's `values()` throws on `[]`).
+- `evals:baseline:web` added — the baseline evaluation script as documented runs under the web
+  tsconfig; `evals:baseline` alone still uses `scripts/eval-baseline.mts` (it was missing web paths).
+- Shard 2 re-verified green on the merged tree (196 files / 2879 passed).
+- CI multi-lane status: `main-line` CI has been green on every commit this session; `master`'s
+  Studio CI keeps two known runner-bound red rows (`liveness`, `health`), the others are regenerated
+  and green. `main-line` master briefly red on a GitHub runner Docker-start flake — rerun launched.
