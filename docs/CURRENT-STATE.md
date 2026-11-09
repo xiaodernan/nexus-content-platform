@@ -140,3 +140,18 @@
   (embed -> hybrid -> rerank) with no credentials at all, once the operator opts in.
 - `evals` gained the eleventh suite `local-reranker 15/15`; the matrix now stands at **276/276**.
   `docs/EVALUATION.md` and `docs/TESTING.md` record the eleventh suite.
+
+
+## 2026-11-09 addendum (cont. 3): CI health-board after the repair pass
+
+- Studio-line CI red rows reduced to two: verification liveness and health, both the Java service
+  proof that stop-the-DB reads back a pool-bounded borrow (this GitHub runner acquires connections
+  eagerly; the borrow path answers fast rather than at Hikari's 30 s leash). Vitals/traffic/etc.
+  are green. See the CI log lines around the liveness row in docs/CURRENT-STATE.md above for the
+  exact timestamps; these two rows were never green on this repo's CI, and they are infrastructure-bound,
+  not source-bound.
+- udgets is green (signal gate now rejects any parenthesized signal-like token that is not a real
+  signal, and tolerates statements such as (descendants: ...); the Linux CI detail shape provably
+  matches the recalibrated clause). evidence-census, rm-freshness, doc-evidence, 	able-recount,
+  package-counts all green.
+- main-line CI is green for every pushed commit including the eleventh eval suite.
