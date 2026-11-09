@@ -2606,7 +2606,7 @@ design-build     46/46（design-model 领域操作：create/applyPatch 全家、
 reparent 环检测、Undo 往返、validateDocument 缺陷码、serialize 往返、applyResponsive）
 project-bundle  14/14（跨模型集大成合成：四包同存、link 表自洽、跨模型 id 无碰撞、
 共享 token 解析、design 往返、projectId 贯通）
-export-roundtrip 17/17（需真库，55100 regress 实例上实测）
+export-roundtrip 17/17（需真库，55100 regress 实例上实测；2026-11-09 合并树重跑样本同为 17/17 @ conn 55100）
 ```
 → 确定性套件合计 **230/230 结构不变式 PASS**（不含需真库的 export-roundtrip；含它则为 **247/247**）。
 
