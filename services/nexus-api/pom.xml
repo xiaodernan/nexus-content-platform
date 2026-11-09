@@ -71,6 +71,19 @@
       <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
     </dependency>
 
+    <!-- The TYPED client for the domain service: an interface is the contract, and the address comes
+         from discovery rather than from a URL somebody typed into a config file. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-openfeign</artifactId>
+    </dependency>
+    <!-- The breaker that stands in front of that call. Without it a downstream that is down produces
+         a timeout per request; with it, the failure is fast AND named. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

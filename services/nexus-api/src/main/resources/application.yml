@@ -17,6 +17,30 @@ spring:
       # exists, and the bound is stated in the README rather than implied by this line.
       ddl-auto: update
     open-in-view: false
+  cloud:
+    openfeign:
+      circuitbreaker:
+        # The breaker in front of the domain-service call. Without it a downstream that is down costs
+        # every call a full timeout; with it, the failure is fast AND it is a named fact rather than
+        # an exception the caller has to guess about.
+        enabled: true
+        group:
+          # The per-client instance below is the one that matters; the shared group is left off so
+          # that one client's failures cannot open a breaker for an unrelated one.
+          enabled: false
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      # The instance name MUST be the Feign client's `name`, or the breaker that stands in front of
+      # the call is not the one this configuration describes.
+      nexus-domain-service:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
 
 server:
   port: ${NEXUS_API_PORT:8080}
