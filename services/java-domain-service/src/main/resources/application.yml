@@ -1,28 +1,58 @@
+# NEXUS java-domain-service — the Java write-path service (SC-6).
+#
+# Every value is overridable by environment for the same reason nexus-api's are: a proof must be able to
+# point this service at ITS OWN port and database. The defaults below are local-development conveniences,
+# not a deployment contract.
 server:
-  port: 8081
+  port: ${NEXUS_DOMAIN_PORT:8082}
 
 spring:
   application:
     name: nexus-domain-service
+  autoconfigure:
+    # Without this, Boot prints "Using generated security password" and configures an in-memory user that no
+    # request needs: SecurityConfig defines the only filter chain this service has.
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   datasource:
-    url: jdbc:postgresql://localhost:5432/nexus
+    # The schema is owned by the WEB layer (apps/web/src/server/db/schema.ts + its Drizzle migrations).
+    # This service reads and writes the tables that already exist; it never runs DDL (ddl-auto: none) and
+    # carries no migration tool, because a second writer of DDL is how two systems disagree about a table.
+    url: ${NEXUS_DOMAIN_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus}
     username: ${DB_USERNAME:nexus}
     password: ${DB_PASSWORD:nexus_password}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # `stringtype=unspecified` lets PostgreSQL infer the type of a bound String instead of assuming
+      # varchar. The shared schema uses native ENUM columns (`project_kind`, `visibility`, `user_role`), and
+      # without this an INSERT of "website" fails with "column kind is of type project_kind but expression is
+      # of type character varying". It is set on the pool, not the URL, so it also applies when a deployment
+      # supplies NEXUS_DOMAIN_DB_URL without remembering to add the parameter.
+      data-source-properties:
+        stringtype: unspecified
   jpa:
     hibernate:
-      ddl-auto: validate
+      # `none`: the shared schema is not this service's to change. See the datasource comment above.
+      ddl-auto: ${NEXUS_DOMAIN_DDL_AUTO:none}
+    open-in-view: false
     show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+# SC-6 — the discovery half of the gateway's second `lb://` route.
+#
+# Registration and fetch are both OFF by default, exactly like nexus-api: a standalone run (a test, a proof,
+# `java -jar` on a laptop) must not depend on something answering on 8761. A deployment that wants discovery
+# sets NEXUS_DOMAIN_REGISTER=true.
+eureka:
+  client:
+    service-url:
+      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8761/eureka/}
+    register-with-eureka: ${NEXUS_DOMAIN_REGISTER:false}
+    fetch-registry: ${NEXUS_DOMAIN_FETCH:false}
+  instance:
+    prefer-ip-address: true
 
 logging:
   level:

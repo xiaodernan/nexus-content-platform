@@ -85,6 +85,33 @@ HTTP/WS contracts only"。但仓库里
 `http://127.0.0.1:8081/projects/doc_19d8pa`。网关测试断言 stub socket 实际收到的头；`nexus-api` 侧
 `PublishControllerTest` 断言有头用调用方地址、空头回落本机地址。
 
+### SC-6 `java-domain-service` 接入：第二条 `lb://` 路由
+
+- 网关路由表现在是**两条**：`/api/** → lb://nexus-api`、`/domain/** → lb://nexus-domain-service`，
+  各自 StripPrefix 自己的段数、各自独立 breaker 实例。测试用**两个 stub socket**，断言 domain 调用
+  只落在 domain stub 上——一个把两条前缀都发往同一服务的路由表不会被这种断言放过。
+- `java-domain-service` 从 Boot 3.2/Java 21 升到 Boot 3.5.16/Java 25，与 `nexus-api` 同代；
+  Spring Cloud 2025.0.3 + Eureka client，`NEXUS_DOMAIN_REGISTER`/`NEXUS_DOMAIN_FETCH` 默认 false。
+- 这个服务映射的是 **web 层拥有的 schema**（`apps/web/src/server/db/schema.ts` + Drizzle 迁移）：
+  `ddl-auto: none`、删掉 Flyway——第二个 DDL 写入者就是两个系统对同一张表产生分歧的方式。
+- 三个"老路"修复，全部有实测错误原文：
+  1. `projects.kind/visibility`、`users.role` 是 PostgreSQL ENUM；String 以 varchar 绑定失败
+     （`column "kind" is of type project_kind but expression is of type character varying`）→ 连接池设
+     `stringtype=unspecified`（**pool 级**，URL 被覆盖也不会丢）。
+  2. 枚举标签是小写（`creator`/`admin`、`free`/`studio`），`@Enumerated(STRING)` 绑 `CREATOR` 且
+     `valueOf("free")` 失败（`invalid input value for enum user_role: "CREATOR"`、
+     `No enum constant ...UserPlan.free`）→ `UserRoleConverter`/`UserPlanConverter`。
+  3. `projects.brand_kit/visual_dna/modes` 是 `jsonb`；省略字段时 NULL 以 varchar 绑定失败
+     （`column "brand_kit" is of type jsonb but expression is of type character varying`）→
+     `@JdbcTypeCode(SqlTypes.JSON)`。
+- `SecurityConfig` 显式 `permitAll`：没有 filter chain 时 Boot 会把所有路径锁在生成的密码后面；鉴权是
+  网关尚未做的一刀，所以这个服务**不得直接暴露端口**写在 README 边界里。
+- 测试：domain-service 22 条（此前 0 条）——`ProjectServiceTest` 5、`ProjectControllerTest` 5、
+  `UserServiceTest` 7、两个 converter 5。网关 8 条（原 7 + domain 路由 1）。
+- 真联调（2026-11-09）：经 8091 `POST /domain/api/v1/projects` = **201**、`GET` 同 id = **200**（`kind=game`）、
+  `DELETE` = **204**、再 `GET` = **404**；`/platform/services` 读数含 `nexus-api`、`nexus-gateway`、
+  `nexus-domain-service`（以及共享注册表里另一项目的 `football-edge`，只展示不路由）。探针行已从库里清掉。
+
 **已知边界（如实记）**：
 
 - `nexus-api` 信任 `X-Nexus-Original-URL`，与任何 forwarded 头同一信任边界：网关覆盖写、不追加；能直连
@@ -97,4 +124,5 @@ HTTP/WS contracts only"。但仓库里
 ## 仍欠
 
 1. 网关鉴权、限流、TLS、WebSocket；多实例时的共享限流与 breaker 状态不在进程内。
-2. `java-domain-service` 尚未接入注册中心——它是第二个后端，接入后网关才有多路由的意义。
+2. `java-domain-service` 的 community/permission/billing 三个服务仍是桩：没有控制器、不可达、README 已
+   如实标注；它们不是"能用"，是"还没建"。

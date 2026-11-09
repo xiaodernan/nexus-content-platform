@@ -33,18 +33,33 @@ public class GatewayConfig {
     @Bean
     RouteLocator nexusRoutes(
             RouteLocatorBuilder builder,
-            @Value("${nexus.gateway.api-service:nexus-api}") String service,
-            @Value("${nexus.gateway.api-prefix:/api}") String prefix) {
-        // "/api" is one segment; a prefix of "/platform/api" would be two, and stripping one would leave
-        // the backend answering a path it never published.
-        int segments = (int) java.util.Arrays.stream(prefix.split("/")).filter((s) -> !s.isEmpty()).count();
-        String fallback = "forward:/fallback/" + service;
+            @Value("${nexus.gateway.api-service:nexus-api}") String apiService,
+            @Value("${nexus.gateway.api-prefix:/api}") String apiPrefix,
+            @Value("${nexus.gateway.domain-service:nexus-domain-service}") String domainService,
+            @Value("${nexus.gateway.domain-prefix:/domain}") String domainPrefix) {
         return builder.routes()
-                .route(service, r -> r.path(prefix + "/**")
-                        .filters(f -> f.stripPrefix(segments)
-                                .circuitBreaker(c -> c.setName(service).setFallbackUri(fallback)))
-                        .uri("lb://" + service))
+                .route(apiService, r -> r.path(apiPrefix + "/**")
+                        .filters(f -> f.stripPrefix(segments(apiPrefix))
+                                .circuitBreaker(c -> c.setName(apiService).setFallbackUri(fallback(apiService))))
+                        .uri("lb://" + apiService))
+                // SC-6 — the second backend. `java-domain-service` publishes `/api/v1/{users,projects}`; the
+                // gateway publishes it under `/domain/**` so a caller can tell the two backends apart from the
+                // URL alone. Route order matters only where prefixes overlap, and these two do not.
+                .route(domainService, r -> r.path(domainPrefix + "/**")
+                        .filters(f -> f.stripPrefix(segments(domainPrefix))
+                                .circuitBreaker(c -> c.setName(domainService).setFallbackUri(fallback(domainService))))
+                        .uri("lb://" + domainService))
                 .build();
+    }
+
+    /** How many path segments a prefix has — one for {@code /api}, two for {@code /platform/api}. */
+    private static int segments(String prefix) {
+        // Stripping one segment too many would leave the backend answering a path it never published.
+        return (int) java.util.Arrays.stream(prefix.split("/")).filter((s) -> !s.isEmpty()).count();
+    }
+
+    private static String fallback(String service) {
+        return "forward:/fallback/" + service;
     }
 
     /**

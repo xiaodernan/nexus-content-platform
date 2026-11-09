@@ -10957,6 +10957,29 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   客户端可以伪造它，部署不得把 `nexus-api` 直接暴露给不可信客户端。
 - 仍欠：第一片的 ③（网关 auth / 限流 / TLS / WebSocket / 重试 / 缓存）与 ④（`java-domain-service`
   接入注册中心）。
+## §SC 第四片：第二个后端接进拓扑（2026-11-09）
+
+- 起点（第一片仍欠④）：`java-domain-service` 是一个从未启动过的脚手架——Boot 3.2/Java 21、端口 8081
+  （与联调端口撞车）、Flyway 开着但没有任何迁移、无 SecurityConfig（默认会 401 一切）、**0 个测试**。
+- 做法：升到 Boot 3.5.16/Java 25 + Spring Cloud 2025.0.3 + Eureka client（注册/拉取默认 false）；
+  `ddl-auto: none`、删 Flyway（schema 属于 web 层）；`SecurityConfig` 显式 permitAll 并写清"不得直接
+  暴露端口"；网关加第二条 `/domain/** → lb://nexus-domain-service` 路由与独立 breaker 实例；新增 22 条
+  domain-service 测试（此前 0 条）。community/permission/billing 三个桩**保持不可达**，README 如实标注。
+- 映射三个"老路"，全部按实测错误原文修：
+  1. `column "kind" is of type project_kind but expression is of type character varying` → 连接池
+     `data-source-properties.stringtype: unspecified`（不是 URL 参数；`connection-properties` 实测未生效）。
+  2. `invalid input value for enum user_role: "CREATOR"` 与 `No enum constant ...UserPlan.free` →
+     `UserRoleConverter`/`UserPlanConverter` 写小写标签、读两种大小写。
+  3. `column "brand_kit" is of type jsonb but expression is of type character varying` →
+     `@JdbcTypeCode(SqlTypes.JSON)`（省字段的 insert 以前直接 500）。
+- 见证：`mvn -f services/java-domain-service/pom.xml test` 22 条全绿；网关 8 条全绿（新增 domain 路由一条，
+  用**两个** stub socket 断言调用只落在 domain stub）。真联调经 8091：
+  `POST /domain/api/v1/projects` = **201**（`kind=game`）、`GET` 同 id = **200**、`DELETE` = **204**、
+  再 `GET` = **404**；`/platform/services` 读到 `nexus-api`、`nexus-gateway`、`nexus-domain-service`
+  与另一项目的 `football-edge`（只展示不路由）。探针行已从库里删除（`DELETE 4`，复查 0 行）。
+- 边界：domain-service 无鉴权、不得直接暴露；三个域服务仍是桩。
+- 仍欠：网关 auth / 限流 / TLS / WebSocket / 重试 / 缓存；domain-service 的 community/permission/billing
+  真正实现。
 ## §85 第四十四片：机检 review 态进读数（2026-11-09）
 
 - 缺口：此前 e2e 只覆盖了 blocked（硬红线挡下）。review 是 **页面已经发出去、内容挂人工复核**，

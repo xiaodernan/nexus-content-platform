@@ -37,12 +37,17 @@ public class User {
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
+    /**
+     * Stored as the database's lowercase {@code user_role} label — see {@link UserRoleConverter}, which is
+     * why there is no {@code @Enumerated} here.
+     */
     @Column(name = "role", nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = UserRoleConverter.class)
     private UserRole role = UserRole.CREATOR;
 
+    /** Stored as a lowercase label — see {@link UserPlanConverter} for why there is no {@code @Enumerated}. */
     @Column(name = "plan", nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = UserPlanConverter.class)
     private UserPlan plan = UserPlan.FREE;
 
     @Column(name = "guest", nullable = false)
@@ -105,10 +110,16 @@ public class User {
     public Instant getDeletedAt() { return deletedAt; }
     public void setDeletedAt(Instant deletedAt) { this.deletedAt = deletedAt; }
 
+    /**
+     * Must match the labels of the database's {@code user_role} ENUM (creator, admin).
+     *
+     * <p>A constant the database cannot store is not a role this service has: the previous MODERATOR
+     * constant had no label, so a read by that role reached PostgreSQL and failed there instead of being
+     * refused here. The two lists are kept identical on purpose.
+     */
     public enum UserRole {
         CREATOR,
-        ADMIN,
-        MODERATOR
+        ADMIN
     }
 
     public enum UserPlan {

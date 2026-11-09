@@ -51,19 +51,28 @@ import org.springframework.test.web.reactive.server.WebTestClient;
         })
 class GatewayRoutingTest {
 
-    /** Started before the context so its OS-chosen port can be written into the discovery property. */
-    private static StubUpstream upstream;
+    /** Started before the context so their OS-chosen ports can be written into the discovery properties. */
+    private static StubUpstream apiUpstream;
+
+    private static StubUpstream domainUpstream;
 
     @DynamicPropertySource
-    static void advertiseTheStub(DynamicPropertyRegistry registry) {
-        upstream = StubUpstream.start();
-        registry.add("spring.cloud.discovery.client.simple.instances.nexus-api[0].uri", upstream::uri);
+    static void advertiseTheStubs(DynamicPropertyRegistry registry) {
+        apiUpstream = StubUpstream.start();
+        domainUpstream = StubUpstream.start();
+        domainUpstream.answer(200, "{\"projects\":[],\"from\":\"domain-stub\"}");
+        registry.add("spring.cloud.discovery.client.simple.instances.nexus-api[0].uri", apiUpstream::uri);
+        registry.add(
+                "spring.cloud.discovery.client.simple.instances.nexus-domain-service[0].uri", domainUpstream::uri);
     }
 
     @AfterAll
-    static void stopStub() {
-        if (upstream != null) {
-            upstream.stop();
+    static void stopStubs() {
+        if (apiUpstream != null) {
+            apiUpstream.stop();
+        }
+        if (domainUpstream != null) {
+            domainUpstream.stop();
         }
     }
 
@@ -78,8 +87,11 @@ class GatewayRoutingTest {
     @BeforeEach
     void reset() {
         resetBreakers();
-        upstream.reset();
-        upstream.clearPaths();
+        for (StubUpstream stub : List.of(apiUpstream, domainUpstream)) {
+            stub.reset();
+            stub.clearPaths();
+        }
+        domainUpstream.answer(200, "{\"projects\":[],\"from\":\"domain-stub\"}");
         client = WebTestClient.bindToServer()
                 .baseUrl("http://127.0.0.1:" + port)
                 .responseTimeout(Duration.ofSeconds(15))
@@ -107,19 +119,19 @@ class GatewayRoutingTest {
 
         // The whole point of StripPrefix is the request the backend actually RECEIVED, not the URL the test
         // typed. `/api/publications` must arrive as `/publications`, query string intact.
-        assertThat(upstream.paths()).containsExactly("/publications?limit=2");
+        assertThat(apiUpstream.paths()).containsExactly("/publications?limit=2");
 
         // The gateway also tells the backend which address the CLIENT used. Without it a receipt built from
         // the backend's own view names an internal instance address the client cannot open.
         // NOT asserted on X-Forwarded-Host: the framework's header filter rewrites that one after us
         // (measured: the stub received an empty string), which is why the gateway also sets a header of its own.
-        assertThat(upstream.probeHeaders()).containsExactly("1");
-        assertThat(upstream.originalUrls()).containsExactly("http://127.0.0.1:" + port);
+        assertThat(apiUpstream.probeHeaders()).containsExactly("1");
+        assertThat(apiUpstream.originalUrls()).containsExactly("http://127.0.0.1:" + port);
     }
 
     @Test
     void aBackendErrorIsPassedThroughInsteadOfBecomingAnEmptySuccess() {
-        upstream.answer(500, "{\"error\":\"boom\",\"from\":\"stub-upstream\"}");
+        apiUpstream.answer(500, "{\"error\":\"boom\",\"from\":\"stub-upstream\"}");
 
         client.get()
                 .uri("/api/publications")
@@ -131,7 +143,7 @@ class GatewayRoutingTest {
                 .isEqualTo("boom");
 
         // A 5xx is a response, not a transport failure: the breaker filter must not turn it into a fallback.
-        assertThat(upstream.paths()).containsExactly("/publications");
+        assertThat(apiUpstream.paths()).containsExactly("/publications");
     }
 
     @Test
@@ -169,6 +181,26 @@ class GatewayRoutingTest {
     }
 
     @Test
+    void theDomainRouteReachesTheSecondBackendAndStripsOnlyItsOwnPrefix() {
+        client.get()
+                .uri("/domain/api/v1/projects/abc")
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody()
+                .jsonPath("$.from")
+                .isEqualTo("domain-stub");
+
+        // Two backends, two sockets: the domain call must reach the DOMAIN stub and must not have touched the
+        // api stub. Asserting on the one that answered would not catch a route table that sent both prefixes
+        // to the same service.
+        assertThat(domainUpstream.paths()).containsExactly("/api/v1/projects/abc");
+        assertThat(apiUpstream.paths()).isEmpty();
+        assertThat(domainUpstream.originalUrls()).containsExactly("http://127.0.0.1:" + port);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void theServicesReadoutNamesWhatTheRegistryHoldsAndSaysItIsNotAHealthCheck() {
         client.get()
                 .uri("/platform/services")
@@ -177,18 +209,22 @@ class GatewayRoutingTest {
                 .isOk()
                 .expectBody()
                 .jsonPath("$.total")
-                .isEqualTo(1)
-                .jsonPath("$.services[0].id")
-                .isEqualTo("nexus-api")
-                .jsonPath("$.services[0].instances")
-                .isEqualTo(1)
-                .jsonPath("$.services[0].addresses[0]")
-                .value(address -> assertThat((String) address).contains(":" + upstream.port()))
+                .isEqualTo(2)
+                // Order is the registry's, not ours: assert membership, not positions.
+                .jsonPath("$.services[*].id")
+                .value(ids -> assertThat((List<String>) ids).contains("nexus-api", "nexus-domain-service"))
+                .jsonPath("$.services[?(@.id == 'nexus-api')].addresses[0]")
+                .value(addresses -> assertThat((List<?>) addresses)
+                        .anySatisfy(address -> assertThat((String) address).contains(":" + apiUpstream.port())))
+                .jsonPath("$.services[?(@.id == 'nexus-domain-service')].addresses[0]")
+                .value(addresses -> assertThat((List<?>) addresses)
+                        .anySatisfy(address -> assertThat((String) address).contains(":" + domainUpstream.port())))
                 .jsonPath("$.note")
                 .value(note -> assertThat((String) note).contains("not a health check"));
 
-        // The readout is a directory lookup, not a routed call: it must not reach the backend.
-        assertThat(upstream.paths()).isEmpty();
+        // The readout is a directory lookup, not a routed call: it must not reach either backend.
+        assertThat(apiUpstream.paths()).isEmpty();
+        assertThat(domainUpstream.paths()).isEmpty();
     }
 
     @Test

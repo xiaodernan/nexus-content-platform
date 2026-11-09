@@ -44,6 +44,10 @@ Spring Cloud 三件（2026-11-09 起，SC-1–SC-3）：注册中心 `8761`、�
 三个都可被环境变量覆盖：`NEXUS_REGISTRY_PORT` / `NEXUS_GATEWAY_PORT` / `NEXUS_API_PORT`，后端用
 `NEXUS_API_REGISTER=true` 才会注册。
 
+SC-6 起第四个进程：`java-domain-service` 默认 `8082`（`NEXUS_DOMAIN_PORT`），用
+`NEXUS_DOMAIN_REGISTER=true` 注册；数据库用 `NEXUS_DOMAIN_DB_URL` + `DB_USERNAME` / `DB_PASSWORD`，
+Redis 用 `REDIS_HOST` / `REDIS_PORT`。它映射的是 web 层的 schema，`ddl-auto` 固定 `none`。
+
 > `8761` 是 Eureka 的默认端口，**本机别的项目也可能把服务注册到这里**：2026-11-09 联调时
 > `/eureka/apps` 里同时有外部项目的 `FOOTBALL-EDGE`，网关的 `/platform/services` 老实把它列了出来。
 > 这是读数在说真话，不是串台；要隔离就换 `NEXUS_REGISTRY_PORT` 并让三个服务指向同一个

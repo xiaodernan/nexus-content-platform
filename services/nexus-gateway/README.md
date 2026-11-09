@@ -11,6 +11,7 @@ Spring Boot 3.5 + Spring Cloud Gateway (reactive) + LoadBalancer + Resilience4j,
 | request | answer |
 | --- | --- |
 | `/api/**` | routed to the `nexus-api` **service id** through `nexus-registry`, prefix stripped |
+| `/domain/**` | routed to the `nexus-domain-service` **service id**, prefix stripped (SC-6) |
 | `/platform/services` | what the registry holds right now, with a `note` saying it is not a health check |
 | anything the route cannot complete | `503` + `{error:"service_unavailable", service, cause, note}` |
 
@@ -19,9 +20,15 @@ line moved `spring.cloud.gateway.*` to `spring.cloud.gateway.server.webflux.*`; 
 against a prefix a dependency bump renames does not fail — it starts cleanly and stops matching. A compiled
 route is a build error instead of a silent 404.
 
-There is exactly **one** route. `discovery.locator.enabled` would publish `/{serviceId}/**` for every
-service in the registry, turning "can reach the registry" into "can reach every backend". Adding a backend
-is a deliberate edit to `GatewayConfig`.
+There are exactly **two** routes, both written down here. `discovery.locator.enabled` would publish
+`/{serviceId}/**` for every service in the registry — including the registry itself and other projects'
+services — turning "can reach the registry" into "can reach every backend". Adding a backend is therefore a
+deliberate edit to `GatewayConfig`, not something the registry gets to decide.
+
+Measured on a joined-up run (2026-11-09): `POST /domain/api/v1/projects` answered `201`, `GET` by id `200`,
+`DELETE` `204`, and the same `GET` afterwards `404`; `/platform/services` listed `nexus-api`,
+`nexus-gateway`, `nexus-domain-service` (plus `football-edge`, a service another local project registers in
+the shared registry — it is shown, not routed).
 
 ### The receipt names the address you called, not the instance
 

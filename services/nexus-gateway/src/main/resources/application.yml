@@ -15,6 +15,9 @@ nexus:
     # The service ID the registry must know. `lb://` + this name is the whole address: no host, no port.
     api-service: ${NEXUS_GATEWAY_API_SERVICE:nexus-api}
     api-prefix: ${NEXUS_GATEWAY_API_PREFIX:/api}
+    # SC-6 — the Java write-path service. Its own prefix keeps the two backends distinguishable in a URL.
+    domain-service: ${NEXUS_GATEWAY_DOMAIN_SERVICE:nexus-domain-service}
+    domain-prefix: ${NEXUS_GATEWAY_DOMAIN_PREFIX:/domain}
 
 eureka:
   client:
@@ -38,9 +41,19 @@ resilience4j:
       nexus-api:
         timeout-duration: ${NEXUS_GATEWAY_TIMEOUT:5s}
         cancel-running-future: true
+      nexus-domain-service:
+        timeout-duration: ${NEXUS_GATEWAY_TIMEOUT:5s}
+        cancel-running-future: true
   circuitbreaker:
     instances:
       nexus-api:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: ${NEXUS_GATEWAY_OPEN_WAIT:10s}
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+      nexus-domain-service:
         sliding-window-size: 10
         minimum-number-of-calls: 5
         failure-rate-threshold: 50
