@@ -60,6 +60,10 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci || npm install
+      - name: Migrate the database (evals need the `users` table)
+        run: npm run db:migrate
+        env:
+          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55100/nexus
       - name: Typecheck main line
         run: npm run typecheck:main
       - name: Evals (invariants in CI, ADR-0093)
