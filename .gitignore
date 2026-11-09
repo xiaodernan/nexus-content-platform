@@ -88,3 +88,19 @@ commit_msg.txt
 run-result.txt
 test_output.txt
 test-output.txt
+
+# Three root-level SCRATCH files that were tracked before the rules above existed, and were kept
+# tracked by the same `git add -A` hazard the .scratch/ note describes. Measured 2026-11-09 while
+# consolidating the tree after the two lines merged:
+#   merge_out.bin        — the raw output of a `git merge` that hit add/add conflicts. It is a
+#                          transcript of a past event, not a source file, and nothing reads it.
+#   .msg.txt             — a commit-message draft for an increment (v590) that has long landed.
+#   progress_summary.txt — a status snapshot from v623. The repo is past v643, so the file states
+#                          a version that no longer exists: a stale summary in the root is worse
+#                          than none, because a reader believes it.
+# They are UNTRACKED here but kept on disk (git rm --cached, not git rm): the history keeps them,
+# and the working tree loses nothing. This repo's convention is to move a record into docs/ or
+# leave it where it is — never to destroy one silently.
+merge_out.bin
+.msg.txt
+progress_summary.txt

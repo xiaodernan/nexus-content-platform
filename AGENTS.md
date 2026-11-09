@@ -1,6 +1,7 @@
 # NEXUS — Agent 工作守则（仓库根）
 
-这是给在此仓库长期工作的 AI Agent 的操作手册。需求原文：`docs/specs/MASTER_DIRECTIVE.original.txt`。
+这是给在此仓库长期工作的 AI Agent 的操作手册。需求原文：`docs/specs/MASTER_DIRECTIVE.original.txt`
+（另有一份更早的 `docs/specs/MASTER_AGENT_DIRECTIVE.original.txt`，两者内容不同，都保留）。
 
 ## 开工顺序（每次都执行）
 
