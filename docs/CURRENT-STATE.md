@@ -111,3 +111,20 @@
 - `verify:record-encoding` exits 0 (2079 graded files, 0 chargeable lines). The shard witnesses that
   were encoding-damaged were retired from the repo; `docs/TESTING.md` now records the runs and exit
   codes in prose instead of pointing at retired paths.
+
+
+## 2026-11-09 addendum (cont.): the import/export zip round-trip bug and the full e2e re-check
+
+- `9d350a4`: the export `.nexus/manifest.json` previously declared **every requested part** (design,
+  code, assets, storyboard, character), even the parts the project had nothing for. The import side
+  is strict — a declared storyboard with no `storyboard/storyboard.json` file refuses the whole package
+  with 415, so a fresh project could never export and re-import its own default zip. The manifest now
+  declares **only the parts that actually shipped in the package** (per-register counts > 0); `README.txt`
+  still reports both what was requested and what is inside (an empty storyboard/character prints "this
+  version has no storyboard/character to export" as it did before). No import contract changed; no
+  format version bump (the manifest shape did not change, just its honesty).
+- Verified: the two failing e2e specs (`§144` client import roundtrip; `§105` status-code matrix,
+  which got 415 where 201 was promised) now both pass (`npx playwright test e2e/import.spec.ts` →
+  4/4 passed, 55.6s, against the local Docker-backed dev stack).
+- `npm run evals` (all nine suites incl. `export-roundtrip 17/17` on the real DB, port 55100) and the
+  export/zip integration tests (77/77) pass on the merged tree.
