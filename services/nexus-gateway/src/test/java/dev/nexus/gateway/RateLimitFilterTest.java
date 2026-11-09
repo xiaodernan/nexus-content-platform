@@ -44,7 +44,7 @@ class RateLimitFilterTest {
     void theBurstIsTheNumberOfRequestsThatGetThroughThenItIs429() {
         CALLS.set(0);
         // rate 0: no tokens are ever returned, which makes the count exact instead of timing-dependent.
-        RateLimitFilter filter = new RateLimitFilter(true, 0, 2, 100);
+        RateLimitFilter filter = new RateLimitFilter(true, new MemoryRateLimitBackend(0, 2, 100));
         GatewayFilterChain chain = countingChain();
 
         assertThat(filter.filter(exchangeFrom("10.1.0.1"), chain).block() == null).isTrue();
@@ -64,7 +64,7 @@ class RateLimitFilterTest {
     @Test
     void aDifferentClientHasItsOwnBucket() {
         CALLS.set(0);
-        RateLimitFilter filter = new RateLimitFilter(true, 0, 1, 100);
+        RateLimitFilter filter = new RateLimitFilter(true, new MemoryRateLimitBackend(0, 1, 100));
         GatewayFilterChain chain = countingChain();
 
         filter.filter(exchangeFrom("10.2.0.1"), chain).block();
@@ -76,7 +76,7 @@ class RateLimitFilterTest {
     @Test
     void theFirstForwardedForEntryIsTheClientKey() {
         CALLS.set(0);
-        RateLimitFilter filter = new RateLimitFilter(true, 0, 1, 100);
+        RateLimitFilter filter = new RateLimitFilter(true, new MemoryRateLimitBackend(0, 1, 100));
         GatewayFilterChain chain = countingChain();
 
         filter.filter(exchangeWithForwardedFor("203.0.113.9, 10.0.0.1", "10.3.0.1"), chain).block();
@@ -91,7 +91,7 @@ class RateLimitFilterTest {
     @Test
     void disabledMeansTheBucketDoesNotExist() {
         CALLS.set(0);
-        RateLimitFilter filter = new RateLimitFilter(false, 0, 1, 100);
+        RateLimitFilter filter = new RateLimitFilter(false, new MemoryRateLimitBackend(0, 1, 100));
         GatewayFilterChain chain = countingChain();
 
         filter.filter(exchangeFrom("10.4.0.1"), chain).block();
@@ -99,5 +99,55 @@ class RateLimitFilterTest {
         filter.filter(exchangeFrom("10.4.0.1"), chain).block();
 
         assertThat(CALLS.get()).isEqualTo(3);
+    }
+
+    /**
+     * The fail-open contract of SC-12. Redis down must not close the door: the limiter is a bound, not an
+     * authentication check, and an outage of the component that slows traffic down must not become an outage
+     * of all traffic. The request is allowed, and the response status is whatever the chain decides.
+     */
+    @Test
+    void aFailingBackendAllowsTheRequestInsteadOfClosingTheDoor() {
+        CALLS.set(0);
+        RateLimitBackend failing = new RateLimitBackend() {
+            @Override
+            public Mono<Boolean> tryAcquire(String clientKey) {
+                return Mono.error(new IllegalStateException("redis unreachable"));
+            }
+
+            @Override
+            public String describe() {
+                return "failing";
+            }
+        };
+        RateLimitFilter filter = new RateLimitFilter(true, failing);
+        ServerWebExchange exchange = exchangeFrom("10.5.0.1");
+
+        filter.filter(exchange, countingChain()).block();
+
+        assertThat(CALLS.get()).isEqualTo(1);
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+    }
+
+    /** A backend that answers with nothing is "no reason to refuse", not "refused". */
+    @Test
+    void aBackendThatCompletesEmptyAllowsTheRequest() {
+        CALLS.set(0);
+        RateLimitBackend silent = new RateLimitBackend() {
+            @Override
+            public Mono<Boolean> tryAcquire(String clientKey) {
+                return Mono.empty();
+            }
+
+            @Override
+            public String describe() {
+                return "silent";
+            }
+        };
+        RateLimitFilter filter = new RateLimitFilter(true, silent);
+
+        filter.filter(exchangeFrom("10.6.0.1"), countingChain()).block();
+
+        assertThat(CALLS.get()).isEqualTo(1);
     }
 }

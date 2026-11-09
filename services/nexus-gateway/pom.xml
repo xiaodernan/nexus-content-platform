@@ -94,6 +94,16 @@
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
     </dependency>
+    <!--
+      SC-12 — the OPTIONAL shared limiter. The starter is on the classpath so the `redis` backend can be
+      selected by configuration, but the default backend is `memory`: nothing connects to Redis unless a
+      deployment asks for it. Lettuce connects lazily, so a gateway with backend=memory never needs a
+      second process to start or to answer.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

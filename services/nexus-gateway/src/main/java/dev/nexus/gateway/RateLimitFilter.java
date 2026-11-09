@@ -1,10 +1,9 @@
 package dev.nexus.gateway;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -12,21 +11,27 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 /**
- * A per-client token bucket, in front of every route.
+ * The door's per-client rate check, in front of every route.
  *
- * <p>Why this and not {@code RequestRateLimiter} + Redis: that filter makes Redis a hard dependency of EVERY
- * request through the door — when Redis is down, the door is down. This build's gateway must answer honestly
- * without a second process, and the bound is stated instead of hidden: a bucket is per INSTANCE, so two
- * gateways allow twice the configured rate. Shared limiting is a Redis slice, and it is owed.
+ * <p>Where the counter lives is a choice, not an accident (SC-12):
  *
- * <p>Why Caffeine: the map of clients is attacker-controlled, so it needs a ceiling and an idle expiry. A
- * {@code ConcurrentHashMap} keyed by client address is an unbounded allocation growth bug wearing a hat.
+ * <ul>
+ *   <li>{@code memory} (default) — {@link MemoryRateLimitBackend}, a token bucket per instance. The door
+ *       answers without a second process; two gateways allow twice the configured rate.
+ *   <li>{@code redis} — {@link RedisRateLimitBackend}, one atomic bucket shared by every instance. The
+ *       configured rate becomes the rate of the cluster.
+ * </ul>
+ *
+ * <p><b>Fail-open, deliberately.</b> A rate limit is a bound, not an authentication decision. If the shared
+ * backend cannot answer — Redis down, network blackholed, command timeout — refusing every request would turn
+ * a degraded limiter into a full outage: the door would be closed by the component whose only job is to slow
+ * traffic down. The failure is logged (throttled, so an outage cannot flood the log) and the request proceeds
+ * UNTHROTTLED. The honest statement during that window is "the gateway is up and unthrottled", and an
+ * operator reading the log learns exactly that.
  *
  * <p>The client key is {@code X-Forwarded-For}'s first entry when present, else the socket's peer address.
  * That is only as trustworthy as what sits in front of this gateway: a client that can reach it directly can
@@ -41,27 +46,15 @@ final class RateLimitFilter implements GlobalFilter, Ordered {
     /** Ordered before routing and before {@code clientAddressHeaders()}, so a refused call costs nothing. */
     static final int ORDER = Ordered.HIGHEST_PRECEDENCE + 10;
 
-    private final boolean enabled;
-    private final double refillPerSecond;
-    private final int burst;
-    private final Cache<String, Bucket> buckets;
+    private static final long BACKEND_WARNING_INTERVAL_MILLIS = 10_000L;
 
-    RateLimitFilter(boolean enabled, double refillPerSecond, int burst, int maxClients) {
+    private final boolean enabled;
+    private final RateLimitBackend backend;
+    private final AtomicLong lastBackendWarningAt = new AtomicLong(0);
+
+    RateLimitFilter(boolean enabled, RateLimitBackend backend) {
         this.enabled = enabled;
-        this.refillPerSecond = Math.max(0, refillPerSecond);
-        this.burst = Math.max(1, burst);
-        this.buckets = Caffeine.newBuilder()
-                .maximumSize(Math.max(1, maxClients))
-                .expireAfterAccess(Duration.ofMinutes(10))
-                .build();
-        // A reading at startup, because "the limiter is on" is otherwise indistinguishable from "the limiter
-        // was never wired" until somebody measures a 429 by hand.
-        log.info(
-                "gateway rate limit: enabled={} ratePerSecond={} burst={} maxClients={}",
-                enabled,
-                this.refillPerSecond,
-                this.burst,
-                maxClients);
+        this.backend = backend;
     }
 
     @Override
@@ -70,20 +63,38 @@ final class RateLimitFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
         String key = clientKey(exchange);
-        Bucket bucket = buckets.get(key, (ignored) -> new Bucket(burst, refillPerSecond));
-        if (bucket.tryAcquire()) {
-            return chain.filter(exchange);
-        }
+        return backend.tryAcquire(key)
+                .doOnError(this::warnBackendFailure)
+                // Fail-open: see the class comment. This is why the limiter is not a hard Redis dependency.
+                .onErrorResume(error -> Mono.just(true))
+                // A backend that completes empty has no reason to refuse; treating "no answer" as "refused"
+                // would block traffic on a backend that is merely confused.
+                .defaultIfEmpty(true)
+                .flatMap(allowed -> Boolean.TRUE.equals(allowed) ? chain.filter(exchange) : refuse(exchange));
+    }
+
+    private Mono<Void> refuse(ServerWebExchange exchange) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         // One second is the honest retry hint for a bucket that refills continuously: by then at least
         // floor(refillPerSecond) tokens exist (provided the rate is at least 1/s).
         response.getHeaders().set("Retry-After", "1");
-        byte[] body = "{\"error\":\"rate_limited\",\"note\":\"per-client bucket on this gateway instance; Retry-After is seconds\"}"
+        byte[] body = "{\"error\":\"rate_limited\",\"note\":\"per-client bucket shared by the gateway deployment; Retry-After is seconds\"}"
                 .getBytes(StandardCharsets.UTF_8);
         DataBuffer buffer = response.bufferFactory().wrap(body);
         return response.writeWith(Mono.just(buffer));
+    }
+
+    private void warnBackendFailure(Throwable error) {
+        long now = System.currentTimeMillis();
+        long last = lastBackendWarningAt.get();
+        if (now - last >= BACKEND_WARNING_INTERVAL_MILLIS && lastBackendWarningAt.compareAndSet(last, now)) {
+            log.warn(
+                    "gateway rate limit backend '{}' failed; request allowed unthrottled (fail-open): {}",
+                    backend.describe(),
+                    error.toString());
+        }
     }
 
     @Override
@@ -104,38 +115,5 @@ final class RateLimitFilter implements GlobalFilter, Ordered {
         return remote == null || remote.getAddress() == null
                 ? "unknown"
                 : remote.getAddress().getHostAddress();
-    }
-
-    /** A single bucket. Synchronized because two requests for one client can arrive on different event loops. */
-    static final class Bucket {
-
-        private final double capacity;
-        private final double refillPerSecond;
-        private final AtomicLong lastRefillNanos = new AtomicLong(System.nanoTime());
-        private double tokens;
-
-        Bucket(double capacity, double refillPerSecond) {
-            this.capacity = capacity;
-            this.refillPerSecond = refillPerSecond;
-            this.tokens = capacity;
-        }
-
-        synchronized boolean tryAcquire() {
-            refill();
-            if (tokens >= 1.0) {
-                tokens -= 1.0;
-                return true;
-            }
-            return false;
-        }
-
-        private void refill() {
-            long now = System.nanoTime();
-            long previous = lastRefillNanos.getAndSet(now);
-            double elapsedSeconds = (now - previous) / 1_000_000_000.0;
-            if (elapsedSeconds > 0) {
-                tokens = Math.min(capacity, tokens + elapsedSeconds * refillPerSecond);
-            }
-        }
     }
 }

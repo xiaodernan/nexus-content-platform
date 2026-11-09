@@ -51,7 +51,11 @@ Redis 用 `REDIS_HOST` / `REDIS_PORT`。它映射的是 web 层的 schema，`ddl
 SC-7 起网关的边界参数也可覆盖：`NEXUS_GATEWAY_MAX_REQUEST_BYTES`（默认 1048576）、
 `NEXUS_GATEWAY_RATE_LIMIT`（默认 `true`）、`NEXUS_GATEWAY_RATE_LIMIT_RATE`（默认 100 每秒）、
 `NEXUS_GATEWAY_RATE_LIMIT_BURST`（默认 200）、`NEXUS_GATEWAY_RATE_LIMIT_CLIENTS`（默认 10000）。
-限流桶按**实例**计，两台网关就是两倍速率；共享限流仍欠 Redis。
+SC-12 起限流后端可选：`NEXUS_GATEWAY_RATE_LIMIT_BACKEND`（`memory` 默认 / `redis` 共享计数）、
+`NEXUS_GATEWAY_RATE_LIMIT_KEY_PREFIX`（默认 `nexus:gateway:rate:`）、`NEXUS_REDIS_HOST` /
+`NEXUS_REDIS_PORT`（默认 `127.0.0.1` / **56379**，不是本机别人的 6379）、
+`NEXUS_GATEWAY_REDIS_CONNECT_TIMEOUT` / `NEXUS_GATEWAY_REDIS_TIMEOUT`（各 1 秒）。`memory` 桶按**实例**
+计；`redis` 桶由所有实例共享，后端不可达时 **fail-open**（放行 + WARN，限流不阻断门）。
 
 SC-8 起网关的 `/platform/health` 会逐个实例探测 `/actuator/health`，单实例超时用
 `NEXUS_GATEWAY_HEALTH_TIMEOUT_MS`（默认 1500）。注意本机 6379 被另一项目的 specproof-redis 占用且要

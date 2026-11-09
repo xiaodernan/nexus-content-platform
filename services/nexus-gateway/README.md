@@ -47,13 +47,30 @@ Both routes go through one `edgePolicy(...)` in `GatewayConfig`, so the two back
 | `retry`, GET only | one retry on connection failure / `502` / `503` | a proxy that repeats a write is how one click becomes two publications. `setSeries()` is deliberately emptied: left unset, the filter retries ANY 5xx, which would repeat a GET whose backend answered `500` — an answer, not a transient fault |
 | `circuitBreaker` | `503` naming the recorded cause | last, so it counts the final outcome of the retried call |
 
-In front of every route sits `RateLimitFilter`: a per-client token bucket
-(`NEXUS_GATEWAY_RATE_LIMIT_RATE` per second, `NEXUS_GATEWAY_RATE_LIMIT_BURST` burst), keyed by the first
-`X-Forwarded-For` entry when present, else the peer address, over a Caffeine cache with a ceiling
-(`NEXUS_GATEWAY_RATE_LIMIT_CLIENTS`) and a 10-minute idle expiry. Over the bucket: `429` +
+In front of every route sits `RateLimitFilter`: a per-client token bucket keyed by the first
+`X-Forwarded-For` entry when present, else the peer address. Over the bucket: `429` +
 `{"error":"rate_limited"}` + `Retry-After: 1`.
 
-Measured on the joined-up run (2026-11-09, gateway on 8091, bucket forced to rate 0 / burst 3):
+Where the counter lives is configuration (SC-12):
+
+| `nexus.gateway.rate-limit.backend` | meaning |
+| --- | --- |
+| `memory` (default) | a bucket per instance over a Caffeine cache with a ceiling (`NEXUS_GATEWAY_RATE_LIMIT_CLIENTS`) and a 10-minute idle expiry. No second process; two gateways allow twice the configured rate |
+| `redis` | one atomic bucket per client in Redis, shared by every gateway instance. The configured rate becomes the rate of the cluster |
+
+The Redis backend is a Lua script: read `tokens`/`ts`, refill from Redis's own `TIME` (instances have
+different clocks, so a local clock would make the allowance depend on which instance answered), subtract
+one token, write back with a TTL equal to the time a full bucket needs to refill. One EVAL, so two
+instances cannot hand out the same token twice.
+
+**It fails open, deliberately.** If Redis cannot answer — down, blackholed, command timeout — the request
+proceeds unthrottled and a WARN is logged at most once per 10 s. A rate limit is a bound, not an
+authentication decision; an outage of the component whose job is to slow traffic down must not become an
+outage of all traffic. The honest statement during that window is "the gateway is up and unthrottled",
+and the log says exactly that. Timeouts are 1 s (command and connect) so "no answer" becomes "allow"
+quickly instead of becoming a slow request path.
+
+Measured on the joined-up run (2026-11-09, bucket forced to rate 0 / burst 3, memory backend):
 
 | attempt | answer |
 | --- | --- |
@@ -61,6 +78,12 @@ Measured on the joined-up run (2026-11-09, gateway on 8091, bucket forced to rat
 | 4–6 | `429`, `Retry-After: 1`, `{"error":"rate_limited",...}` |
 
 and a 1.2 MB `POST /api/v1/projects` answered `413` with zero rows written to PostgreSQL.
+
+Measured for the shared backend (2026-11-09, two gateways 8092 / 8093, one Redis, `rate=0 burst=2`):
+8092 answered `200`, `200`; 8093 — whose local bucket had never been touched — answered the third request
+with `429`. Redis held `nexus:gateway:rate:127.0.0.1` with `tokens=0` and a TTL of 3588 s. A third
+instance pointed at a dead Redis port answered `200` twice with `burst=1`, logging
+`... failed; request allowed unthrottled (fail-open) ...`.
 
 **The bound that is easy to miss:** `/platform/services` is a controller *inside this gateway*, and
 Spring's `RequestMappingHandlerMapping` answers it before `RoutePredicateHandlerMapping` ever runs — so
@@ -95,9 +118,10 @@ reason the value can be believed.
 ## What it deliberately does not do
 
 - **No authentication.** A backend behind this door is reachable by anyone who can reach the door.
-- **No shared limiting.** The bucket is per instance: two gateways allow twice the configured rate. Shared
-  limiting needs Redis, and making Redis a hard dependency of every request is its own outage mode; that
-  slice is owed, not hidden.
+- **Shared limiting is opt-in, not the default.** `backend=memory` keeps the door independent of a second
+  process; `backend=redis` makes the rate a cluster-wide bound. With the Redis backend, Redis is on the
+  request path, and its failure is answered by failing open (see above) rather than by closing the door —
+  the price of that choice is written down, not hidden.
 - **No TLS termination, no WebSocket upgrade path.** The Studio's realtime channel does not go through
   this module yet.
 - **No retried writes.** Retry is GET-only by construction; POST/PATCH/DELETE are answered once.
@@ -134,7 +158,12 @@ The gateway's own port is `NEXUS_GATEWAY_PORT` (8090), the registry's is `NEXUS_
 the service id it routes to is `NEXUS_GATEWAY_API_SERVICE` (`nexus-api`). The breaker's time limit defaults
 to 5 s (`NEXUS_GATEWAY_TIMEOUT`): the library default of 1 s would report a cold service as unavailable
 while it was still answering. The edge bounds are `NEXUS_GATEWAY_MAX_REQUEST_BYTES` (1048576) and
-`NEXUS_GATEWAY_RATE_LIMIT` / `_RATE` / `_BURST` / `_CLIENTS` (true / 100 / 200 / 10000).
+`NEXUS_GATEWAY_RATE_LIMIT` / `_RATE` / `_BURST` / `_CLIENTS` (true / 100 / 200 / 10000). The limiter's
+backend is `NEXUS_GATEWAY_RATE_LIMIT_BACKEND` (`memory`; set `redis` for a shared counter), its key prefix is
+`NEXUS_GATEWAY_RATE_LIMIT_KEY_PREFIX` (`nexus:gateway:rate:`), and the Redis server is
+`NEXUS_REDIS_HOST` / `NEXUS_REDIS_PORT` (`127.0.0.1` / 56379 — this machine's 6379 belongs to another
+project and requires AUTH). Connection and command timeouts are `NEXUS_GATEWAY_REDIS_CONNECT_TIMEOUT` /
+`NEXUS_GATEWAY_REDIS_TIMEOUT` (1 s each).
 
 ## Bounds, stated (§60)
 

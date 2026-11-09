@@ -183,9 +183,11 @@ HTTP/WS contracts only"。但仓库里
   可离线测试；引入 Consul 会同时引入一个必须常驻的共识集群，收益与成本不匹配。
 - 见证（2026-11-09）：`GET /nexus-gateway/default` 返回两个 property source（`nexus-gateway.yml` 在前，
   `application.yml` 在后），`rate-per-second=50`；`NEXUS_CONFIG_ENABLED=true` 启动的网关日志逐字
-  `gateway rate limit: enabled=true ratePerSecond=50.0 ...`——本地文件是 100，50 只能来自配置中心。不带该
-  开关时同一 jar 用本地 100 启动。配置模块 3 条测试全绿（文件内容、共享合并、未知应用仍回共享文档）。
-- 仍欠：api/domain 的客户端接入；Git 后端；鉴权；动态刷新；配置变更的审计。
+  `gateway rate limit: enabled=true backend=memory ratePerSecond=50.0 ...`——本地文件是 100，50 只能来自
+  配置中心（SC-12 给同一行加了 `backend=` 字段）。不带该开关时同一 jar 用本地 100 启动。配置模块 3 条测试全绿
+  （文件内容、共享合并、未知应用仍回共享文档）。
+- 仍欠（当时）：api/domain 的客户端接入；Git 后端；鉴权；动态刷新；配置变更的审计。其中客户端接入已由
+  SC-11 关闭，其余仍欠。
 
 ### SC-10 默认值即环境真相：domain 的 Redis 默认端口
 
@@ -224,6 +226,40 @@ HTTP/WS contracts only"。但仓库里
 - 边界：配置中心仍是单点（optional 导入把"中心挂了"降级为"用打包文件"）；仍无鉴权、无动态刷新；
   api/domain 的其它参数不搬家（见决定 3）。SC-9 的"api/domain 客户端接入"欠项就此关闭。
 
+### SC-12 限流计数搬进 Redis：一个集群一个桶，后端挂了门不关
+
+- 起点（SC-7 仍欠）：桶按**实例**计，两台网关就是两倍速率；一个客户端在两台之间轮换，等于没有上限。
+  ADR-0077 已在 web 层还过同一笔债，网关这层一直欠着。
+- 决定：
+  1. 新增 `nexus.gateway.rate-limit.backend: memory|redis`，默认 **memory**（既有测试与离线运行的行为不变）。
+     未知值启动失败，不静默回落到 memory——一个"要了共享限流却悄悄拿到本地桶"的部署，正好是这道开关要
+     防的那种错误。
+  2. redis 后端用 `spring-boot-starter-data-redis-reactive`（Lettuce，懒连接）＋**一个 Lua 令牌桶**：
+     `HMGET tokens/ts` → 用 Redis `TIME` 补水 → 扣 1 → `HSET` + `PEXPIRE`。一次 EVAL 原子完成。
+     为什么用服务端时间：实例是不同机器、不同时钟；按 JVM 时钟补水会让额度取决于"这次是哪台接的"，
+     那正是共享后端要消灭的东西。
+  3. key = `<prefix><client>`（前缀默认 `nexus:gateway:rate:`，可配）；TTL = 补满一桶的时间 + 1 秒
+     （rate=0 时 1 小时）。调用方决定的 key 集合不会永久驻留。
+  4. **fail-open**：后端异常或空答复 → 放行 + 10 秒一条 WARN。限流是上界、不是鉴权；让"负责减速的组件"
+     变成"关闭所有流量的组件"是更坏的故障。代价明写：Redis 故障期间网关不设防。
+  5. Redis 默认 `127.0.0.1:56379`（不是本机别人的 6379），命令/连接超时各 1 秒——"没有答复"要快速变成
+     放行，而不是把每个请求都拖成慢请求。
+- 见证（2026-11-09 真三进程：registry 8761 + api 8081 + 两个网关 8092/8093，同一 Redis、`rate=0 burst=2`）：
+  8092 两次 → `200`、`200`；8093 第三次 → `429` +
+  `{"error":"rate_limited","note":"per-client bucket shared by the gateway deployment; Retry-After is seconds"}`
+  ＋ `Retry-After: 1`。这一刻 B 自己的本地桶是满的，429 只可能来自共享计数。Redis 读数：
+  `nexus:gateway:rate:127.0.0.1` = `tokens=0`、`TTL=3588`。
+  另一实例 8094 指向死端口 56380、`burst=1 rate=0`：连续两次均 `200`（未限流），日志逐字
+  `gateway rate limit backend 'redis' failed; request allowed unthrottled (fail-open): ...RedisConnectionFailureException`。
+  单测 **30 条**全绿（`RateLimitFilterTest` 6、`RedisRateLimitBackendTest` 5，其余 19）。启动行现在读作
+  `gateway rate limit: enabled=true backend=redis ratePerSecond=0.0 burst=2 maxClients=10000`。
+- 边界：Redis 是**可选**依赖，但一旦选了 redis，它就在请求路径上（失败即 fail-open，不阻断）;
+  key 在 TTL 窗口内计数精确，跨窗口只承诺"整桶上限 + 连续补水"，不是滑动窗口; `X-Forwarded-For` 的信任
+  边界与 SC-7 相同; 网关自己的 controller 仍不受限流（SC-7 实测）。
+- 观察（未修，记下来）：注册表为空时一次 `/api/projects` 探测在 503 已提交后又抛
+  `UnsupportedOperationException`，`HttpWebHandlerAdapter` 记为 "ServerHttpResponse already committed"。
+  只出现在"注册表无实例"的故障路径，不属于 SC-12；列为待查。
+
 **已知边界（如实记）**：
 
 - `nexus-api` 信任 `X-Nexus-Original-URL`，与任何 forwarded 头同一信任边界：网关覆盖写、不追加；能直连
@@ -235,8 +271,10 @@ HTTP/WS contracts only"。但仓库里
 
 ## 仍欠
 
-1. 网关鉴权、TLS、WebSocket；多实例时的共享限流（Redis）与 breaker 状态不在进程内；网关自己的诊断
-   端点不受路由边界策略约束（SC-7 实测）。
-2. 配置中心只有网关一个客户端；Git 后端、鉴权、动态刷新、变更审计都未做（SC-9 已写明"未做"）。
+1. 网关鉴权、TLS、WebSocket；breaker 状态不在进程内；网关自己的诊断端点不受路由边界策略约束
+   （SC-7 实测）。~~多实例时的共享限流（Redis）~~ **已还清（SC-12）**：`backend=redis` 时计数在一个
+   Redis 里，故障 fail-open。
+2. 配置中心仍无 Git 后端、鉴权、动态刷新（`@RefreshScope` 未接）与变更审计；api/domain 客户端已接入
+   （SC-11），SC-9 的欠项关闭。
 3. `java-domain-service` 的 community/permission/billing 三个服务仍是桩：没有控制器、不可达、README 已
    如实标注；它们不是"能用"，是"还没建"。

@@ -11039,6 +11039,21 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   `Fetching config from server at : http://127.0.0.1:8888` 与 `Registering application NEXUS-DOMAIN-SERVICE`。
   配置模块 5 条测试、domain 22 条、api 全量测试全绿。
 - 边界：无鉴权/动态刷新；中心挂了退回打包文件（optional 导入）。
+## §SC 第十片：SC-12 共享限流搬进 Redis——一个集群一个桶，后端挂了门不关（2026-11-09）
+
+- 起点：SC-7 的桶按**实例**计，两台网关 = 两倍速率；客户端在两台间轮换等于没有上限。
+- 做法：`nexus.gateway.rate-limit.backend: memory|redis`（默认 memory，未知值启动失败）。redis 后端用
+  reactive Lettuce + 一个 Lua 令牌桶（Redis `TIME` 补水、单次 EVAL 原子扣减、TTL = 补满一桶 + 1 秒）；
+  key 前缀 `nexus:gateway:rate:` 可配；Redis 默认 `127.0.0.1:56379`，命令/连接超时各 1 秒。
+  **fail-open**：后端异常/空答复 → 放行 + 10 秒一条 WARN（限流是上界，不是鉴权；不让减速组件变成停机组件）。
+- 见证（真三进程：registry 8761 + api 8081 + 网关 8092/8093，同 `rate=0 burst=2`）：8092 两次 `200`/`200`；
+  从未碰过本地桶的 8093 第三次 `429` + `Retry-After: 1`；Redis `nexus:gateway:rate:127.0.0.1` 读数
+  `tokens=0`、TTL 3588。指向死端口 56380 的 8094（`burst=1`）连续两次 `200`，日志逐字
+  `gateway rate limit backend 'redis' failed; request allowed unthrottled (fail-open)`。
+  单测 30 条全绿（新增 `RedisRateLimitBackendTest` 5 条、`RateLimitFilterTest` +2）。
+- 边界：redis 在请求路径上（失败即放行，不阻断）；跨窗口只承诺整桶上限 + 连续补水，不是滑动窗口；
+  网关自身 controller 仍不受限流（SC-7）。观察待查：注册表为空时 503 提交后又抛
+  `UnsupportedOperationException`（`ServerHttpResponse already committed`），只在故障路径出现。
 ## §85 第四十四片：机检 review 态进读数（2026-11-09）
 
 - 缺口：此前 e2e 只覆盖了 blocked（硬红线挡下）。review 是 **页面已经发出去、内容挂人工复核**，

@@ -12,9 +12,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * through the registry, so the address of the system of record is a fact the registry holds rather than a
  * string in a frontend config file.
  *
- * <p>Bounds, stated rather than implied: one route (see {@link GatewayConfig}), no authentication, no rate
- * limiting, no TLS termination, and no WebSocket upgrade path yet. What it DOES promise is that a backend
- * it cannot reach produces a 503 naming the service and the failure — never a 200 with an empty list.
+ * <p>Bounds, stated rather than implied: no authentication, no TLS termination, and no WebSocket upgrade path
+ * yet. Request rate is bounded per client — per instance by default, or shared across instances when the
+ * Redis backend is configured (SC-12); that limiter fails OPEN when its backend is unreachable, because a
+ * slow-down must not become an outage. What it DOES promise is that a backend it cannot reach produces a 503
+ * naming the service and the failure — never a 200 with an empty list.
  */
 @SpringBootApplication
 public class GatewayApplication {

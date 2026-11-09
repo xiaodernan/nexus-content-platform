@@ -2,6 +2,9 @@ package dev.nexus.gateway;
 
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.route.RouteLocator;
@@ -10,6 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.unit.DataSize;
@@ -34,6 +38,8 @@ import org.springframework.web.server.ServerWebExchange;
  */
 @Configuration
 public class GatewayConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(GatewayConfig.class);
 
     @Bean
     RouteLocator nexusRoutes(
@@ -127,20 +133,59 @@ public class GatewayConfig {
     }
 
     /**
-     * The door's own bound on request rate, per client, per instance.
+     * The door's own bound on request rate, per client.
+     *
+     * <p>Two backends (SC-12):
+     *
+     * <ul>
+     *   <li>{@code memory} (default) — a token bucket per instance, over a Caffeine cache with a ceiling. It
+     *       needs no second process; the bound is per instance, so two gateways allow twice the rate.
+     *   <li>{@code redis} — one atomic bucket per client in Redis, shared by every gateway instance that
+     *       points at the same server. {@code NEXUS_REDIS_HOST}/{@code NEXUS_REDIS_PORT} choose the server.
+     * </ul>
      *
      * <p>Defaults are deliberately generous (100 requests/second, burst 200): the point is to stop a runaway
      * client from turning into unbounded work, not to shape traffic. A deployment lowers them by environment.
      * {@code NEXUS_GATEWAY_RATE_LIMIT=false} turns the bucket off entirely, for a benchmark or a client that
      * legitimately needs more than the configured ceiling.
+     *
+     * <p>An unknown backend name is a startup failure, not a silent fallback to memory: a deployment that
+     * asked for shared limiting and quietly got per-instance buckets would be wrong in exactly the way this
+     * setting exists to prevent.
      */
     @Bean
     RateLimitFilter rateLimitFilter(
             @Value("${nexus.gateway.rate-limit.enabled:true}") boolean enabled,
+            @Value("${nexus.gateway.rate-limit.backend:memory}") String backendName,
             @Value("${nexus.gateway.rate-limit.rate-per-second:100}") double ratePerSecond,
             @Value("${nexus.gateway.rate-limit.burst:200}") int burst,
-            @Value("${nexus.gateway.rate-limit.max-clients:10000}") int maxClients) {
-        return new RateLimitFilter(enabled, ratePerSecond, burst, maxClients);
+            @Value("${nexus.gateway.rate-limit.max-clients:10000}") int maxClients,
+            @Value("${nexus.gateway.rate-limit.redis-key-prefix:nexus:gateway:rate:}") String redisKeyPrefix,
+            ObjectProvider<ReactiveStringRedisTemplate> redis) {
+        RateLimitBackend backend;
+        if ("memory".equalsIgnoreCase(backendName)) {
+            backend = new MemoryRateLimitBackend(ratePerSecond, burst, maxClients);
+        } else if ("redis".equalsIgnoreCase(backendName)) {
+            ReactiveStringRedisTemplate template = redis.getIfAvailable();
+            if (template == null) {
+                throw new IllegalStateException(
+                        "nexus.gateway.rate-limit.backend=redis, but no ReactiveStringRedisTemplate is configured");
+            }
+            backend = new RedisRateLimitBackend(template, ratePerSecond, burst, redisKeyPrefix);
+        } else {
+            throw new IllegalStateException("unknown nexus.gateway.rate-limit.backend '" + backendName
+                    + "'; expected 'memory' or 'redis'");
+        }
+        // A reading at startup, because "the limiter is on, on which backend" is otherwise indistinguishable
+        // from "the limiter was never wired" until somebody measures a 429 by hand.
+        log.info(
+                "gateway rate limit: enabled={} backend={} ratePerSecond={} burst={} maxClients={}",
+                enabled,
+                backend.describe(),
+                ratePerSecond,
+                burst,
+                maxClients);
+        return new RateLimitFilter(enabled, backend);
     }
 
     private static ServerWebExchange withClientAddress(ServerWebExchange exchange) {

@@ -16,6 +16,22 @@ spring:
     config:
       enabled: ${NEXUS_CONFIG_ENABLED:false}
 
+  # SC-12 — the server behind the optional `redis` rate-limit backend. Nothing connects here unless that
+  # backend is selected: Lettuce is lazy, so the default (memory) gateway starts and answers without Redis.
+  #
+  # 56379, not 6379: this machine's 6379 is another project's Redis and answers NOAUTH. A default that points
+  # at someone else's service is a trap (the same lesson SC-10 applied to domain).
+  #
+  # The timeouts are part of the fail-open story: a blackholed server must produce "no answer" quickly, not
+  # hold every request for the command timeout default. Short bounds only affect the limiter, whose failure
+  # mode is "allow"; they never turn into a slow request path.
+  data:
+    redis:
+      host: ${NEXUS_REDIS_HOST:127.0.0.1}
+      port: ${NEXUS_REDIS_PORT:56379}
+      timeout: ${NEXUS_GATEWAY_REDIS_TIMEOUT:1s}
+      connect-timeout: ${NEXUS_GATEWAY_REDIS_CONNECT_TIMEOUT:1s}
+
 server:
   port: ${NEXUS_GATEWAY_PORT:8090}
 
@@ -31,9 +47,16 @@ nexus:
     max-request-bytes: ${NEXUS_GATEWAY_MAX_REQUEST_BYTES:1048576}
     rate-limit:
       enabled: ${NEXUS_GATEWAY_RATE_LIMIT:true}
+      # SC-12 — memory = a bucket per instance (no second process); redis = one atomic bucket shared by every
+      # gateway instance pointing at this Redis. Unknown values fail startup instead of silently using memory.
+      backend: ${NEXUS_GATEWAY_RATE_LIMIT_BACKEND:memory}
       rate-per-second: ${NEXUS_GATEWAY_RATE_LIMIT_RATE:100}
       burst: ${NEXUS_GATEWAY_RATE_LIMIT_BURST:200}
+      # Only the memory backend uses this ceiling; Redis keys expire by TTL instead.
       max-clients: ${NEXUS_GATEWAY_RATE_LIMIT_CLIENTS:10000}
+      # Only the redis backend uses this prefix. Deployments sharing one server with another gateway share
+      # buckets only if they share this prefix, which is why it is configuration rather than a literal.
+      redis-key-prefix: ${NEXUS_GATEWAY_RATE_LIMIT_KEY_PREFIX:nexus:gateway:rate:}
     # SC-8 — how long /platform/health waits for one instance's GET /actuator/health. Short on purpose: the
     # answer is "what is true right now", and a probe that takes 30 s has already stopped being one.
     health-probe-timeout-ms: ${NEXUS_GATEWAY_HEALTH_TIMEOUT_MS:1500}
