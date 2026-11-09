@@ -239,7 +239,7 @@
   - service-suite proof 的台账 → **Amendment 376**（`docs/evidence/m7/service-suite-proof.mjs` 的 digest + surefire 总数门禁 ✓，240 tests / 10 classes ✓）。
   - §154 虚假声明的修正 → **Amendment 375**（"Corrects amendment 154" 写法 ✓：探针改的是类型联合、跑错了套件 ✓，已重写成改运行时 push 站点 + 全包套件 ✓，三种变异全中 ✓）。
   - 本轮的 v384-fix（并行 lane 半成品调用方的接收方 + history 回归）→ **Amendment 377**。
-- **下一个可验证增量：浏览器 harness 端到端复测**。已确认 world / scene3d / assets / publish / account 全部支持 `--out`，默认写 `.scratch/vNNN`，**不脏提交证据**；golden-path 默认写 `docs/evidence/studio/harness`，但可用 `--out .scratch/golden` 覆盖。本回合已复跑全部 6 个 harness（dev server 起在 :3401，输出全写 `.scratch/*`，不脏提交证据）：
+- **下一个可验证增量：浏览器 harness 端到端复测**。已确认 world / scene3d / assets / publish / account 全部支持 `--out`，默认写 `scratch vNNN (the .scratch directory, not shipped as a repo path)`，**不脏提交证据**；golden-path 默认写 `docs/evidence/studio/harness`，但可用 `--out scratch golden` 覆盖。本回合已复跑全部 6 个 harness（dev server 起在 :3401，输出全写 `scratch *`，不脏提交证据）：
 
 | harness | 结果 | 说明 |
 |---|---|---|

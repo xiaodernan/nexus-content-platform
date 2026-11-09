@@ -1626,7 +1626,7 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
 ### 第二条产物链的电池怎么修的（#141，2026-10-20）
 
 这一节记的是**见证自己**的四条缺陷：全部由电池量出来，实现那一片（`0d1d2f6`）当时已经绿了。
-读数在 `.scratch/arms-141-parity4.log`、`.scratch/arms-141-vitest*.log`、`.scratch/arms-141-e2e*.log`。
+读数在 `.scratch/arms-141-parity4.log`、`scratch arms-141-vitest*.log`、`scratch arms-141-e2e*.log`。
 
 1. **靶面清单只能有一处。** 第一轮的 preflight 拿的是一张手抄的靶表，抄的那份还留着上一片删掉的臂名，
    于是"preflight 全 OK"与"臂什么都没打到"同时成立。现在 `needles-141.mjs` 是唯一的靶表：

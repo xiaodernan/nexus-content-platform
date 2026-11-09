@@ -1851,7 +1851,7 @@ staging stays a human act and `git push` stays out of scope (§28, §9).
 
 57th tracked proof (58th script). v69 handed the window claim to every door that PARSES and named
 `git.commit` as the deliberate exception. §1 of the probe that opened this increment
-(`.scratch/v70-commit-echo-probe.mjs`) shows the exception is not cosmetic: git's commit echo is TWO lines
+(`scratch v70-commit-echo-probe.mjs`) shows the exception is not cosmetic: git's commit echo is TWO lines
 (`[main 2fd0f2f] <subject>`, then the stat footer), so a budget can keep the header and lose the footer —
 `record.stat` becomes `null` — or lose both, and then the door's record has **no `record` at all** while HEAD
 moved, because committing already happened.
@@ -1923,7 +1923,7 @@ gave the host `descendantsStopped` to state what became of the rest of the tree 
 child kept writing 7 heartbeats after the host reported the kill). v60 put both in a verification report's
 SENTENCE. §1 here measures what the report's STRUCTURE said before v73 — nothing at all:
 `detail, engine, failures, ok, passed, total`, with the signal, the tree and the missing exit code surviving
-only inside prose (`.scratch/v73-kill-report-probe.mjs`).
+only inside prose (`scratch v73-kill-report-probe.mjs`).
 
 So `TestReport` gains `killed?: { signal, descendantsStopped, exitCode }`, filled only when the budget killed
 the run, in the host's own words, absent rather than zeroed. The runtime deliberately does not restate v55's
@@ -2043,7 +2043,7 @@ here: the walk returns **220 files / 3 801 218 B**, a clean clone of the same co
 the 27 untracked files carry **2 204 169 B** and **637 of the 1 664 chunks** (38 %) that
 `code-index-proof.mjs` indexes. Its `deserializeApp schemaVersion localStorage` query expects
 `apps/studio/src/lib/persist.ts` at **#3 in this tree, #2 in the clean clone**, with
-`.scratch/README-damaged.md` and `.scratch/adr-head.md` taking two of the five slots. §1 the tree digest
+`scratch README-damaged.md` and `scratch adr-head.md` taking two of the five slots. §1 the tree digest
 is an identity: stable when asked twice, moves on an edit, on an untracked file, on a rename with no byte
 moved, and an ignored-but-present `.md` IS walked (git-ignorance is not walk-ignorance). §2 the three
 ownership bins are exhaustive, disjoint and re-derived by a second reader of git. §3 shows the
@@ -3573,7 +3573,7 @@ contention. This also explains why `docs/evidence/lib/syncproc.mjs` — which re
 async path — is load-bearing rather than a convenience, and why every proof that imports it works.
 
 The proof is a MEASUREMENT, not a gate: it always exits 0, prints the verdict, and writes a JSON artifact to
-`.scratch/ebusy-<plane>-<ts>.json`. The isolated plane is measured by the sweep and recorded when it runs.
+`ebusy-<plane>-<ts>.json` (the .scratch naming pattern, not a witness shipped with the repo). The isolated plane is measured by the sweep and recorded when it runs.
 ## The Amendment 129 behavioral probe runs: all reason-field mutations are caught (amendment129-probe.mjs — M2 v154 — ADR 0016 amendment 154)
 
 Amendment 129 introduced a discriminated `reason` field on the `unreadable` entries of the save-file survey:

@@ -31,7 +31,7 @@
 
 - shard 1 + shard 2（2026-11-09 06:35）：合计 272 files / **3590 tests**
 
-证据日志入库（`.scratch/shard*-2026-11-09c.log`，已 `git add -f`），见 `docs/TESTING.md` 2026-11-09 那条。
+证据日志入库（`scratch shard*-2026-11-09c.log`，已 `git add -f`），见 `docs/TESTING.md` 2026-11-09 那条。
 
 ## 关键 ADR
 

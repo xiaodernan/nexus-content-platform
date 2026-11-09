@@ -1564,11 +1564,11 @@ loader can tell the two apart rather than guessing from a missing field. A fourt
 `inventory` is now refused by three planes with three different sentences, and `player` itself is refused only
 by `'world-state'`, because a bag key of that name would be a second owner of one player.
 
-**Suite at this follow-on: 5 files / 322 cases / 0 red and `tsc --noEmit` exit 0 (114s), graded from HEAD's own bytes materialised into `.scratch/v136/headpkg/packages/three-runtime` with the write-side CRLF restored on 5 of its 12 files, and a before/after digest over every graded file saying nothing moved.** An earlier draft of this line said "322 passed / 5 files, 0 failed" and no kept artifact backed it: the two collections that exist are `5 files / 321 cases / 0 red` (`full-after-diagfix.json`, before the new case) and `5 / 322 / 1 red` (`fix-run.json`, with it — that red being the wording iteration), both taken mid-fix.
+**Suite at this follow-on: 5 files / 322 cases / 0 red and `tsc --noEmit` exit 0 (114s), graded from HEAD's own bytes materialised into `scratch v136/headpkg/packages/three-runtime` with the write-side CRLF restored on 5 of its 12 files, and a before/after digest over every graded file saying nothing moved.** An earlier draft of this line said "322 passed / 5 files, 0 failed" and no kept artifact backed it: the two collections that exist are `5 files / 321 cases / 0 red` (`full-after-diagfix.json`, before the new case) and `5 / 322 / 1 red` (`fix-run.json`, with it — that red being the wording iteration), both taken mid-fix.
 
 ### The hole the probe found, in the order it was found
 
-The first probe run (`.scratch/v136/probe.mjs`, 12 arms + control, `probe-run.log`) graded the source before
+The first probe run (`scratch v136/probe.mjs`, 12 arms + control, `probe-run.log`) graded the source before
 this fix: **control 0 red of 321, 11 arms caught, 1 survived**. The survivor was the arm that deletes the
 writer's `player: this.playerSnapshot(sceneId),` line. It reddened 16 cases — every case that loads a file it
 had just built, because the loader refuses a claim without its half — but it left
@@ -1614,7 +1614,7 @@ Two of these readings were wrong before they were corrected, and both were mine.
 - The same rewriting erased a landed edit: the Edit tool reported success, the harness reported "the file
   baseline was refreshed", and `grep -c claimsWithoutBytes` came back 0 after the run. From that point the src
   file is written by a script that asserts its own anchor count, writes, re-reads, and counts the marker
-  (`.scratch/v136/applyDiagnosisFix.mjs`), and the marker is counted again AFTER the test run rather than only
+  (`scratch v136/applyDiagnosisFix.mjs`), and the marker is counted again AFTER the test run rather than only
   before it. The earlier scare that the tracked source had lost `player: this.playerSnapshot(sceneId),` is the
   same event seen from the other side: the line was there, a reader had caught the file mid-rewrite.
 
@@ -1978,7 +1978,7 @@ reddened.
 
 **The rate, measured rather than asserted.** The first landing of this section claimed the list was
 "losing names at roughly one per grant" while quoting a fresh worktree reading as if it were a
-historical one. So the claim got a second reader: `.scratch/v139/measureOldListVsWorktree.mjs`
+historical one. So the claim got a second reader: `scratch v139/measureOldListVsWorktree.mjs`
 grades the hand-copied list exactly as it stood at `9bf77b1` against the module bytes as they stand
 in the worktree NOW — where the v138 writer's combat names are still uncommitted. It reports
 `holes=4`: `CombatAttachOptions`, `CombatantFieldAudit`, `DEFAULT_COMBATANT`, `RefusalRow`. The same
@@ -2068,7 +2068,7 @@ absolute forms,
 and the temp of
 the save called `x.json` at the same time.
 
-**Measured on a probe, not on a feeling.** `.scratch/vnext/collisionProbe.mjs` runs against the
+**Measured on a probe, not on a feeling.** `scratch vnext/collisionProbe.mjs` runs against the
 built store seam
 and prints what the seam actually does: `resolveSavePath ACCEPTS "x.json.tmp"` on both planes; then
 a plain
@@ -2201,10 +2201,10 @@ heal removed
 health while reporting itself as a heal.
 
 **Measured on a probe, at the landing ref, against bytes nobody had fixed.**
-`.scratch/vnext/probeAtHead.mjs`
+`scratch vnext/probeAtHead.mjs`
 clones HEAD into a throwaway plane, drops the probe in as `test/zzCeilingProbe.test.ts`, runs it,
 writes the
-output to `.scratch/vnext/ceilingProbe-head.out`, and deletes the probe. Before running it reads the
+output to `scratch vnext/ceilingProbe-head.out`, and deletes the probe. Before running it reads the
 subject
 file and refuses if the ceiling clause is already there — a probe that runs after the fix measures a
 green tree
@@ -2409,7 +2409,7 @@ file whose NAME contains a backslash, and on this Windows host it is a directory
 it, and worse, a save the caller wrote under one spelling could be replaced, byte for byte, by a write under a name
 the other host considers the same file.
 
-**Measured before anything was written, on a 12-leg probe** (`.scratch/vnext/probe196.mjs`,
+**Measured before anything was written, on a 12-leg probe** (`scratch vnext/probe196.mjs`,
 `probe196-measurement.json`, all legs green at `c8396a3`):
 
 | leg | what the unpatched door answered |
@@ -2589,8 +2589,8 @@ of them — are owned only by `SaveData`, and `SerializedScene` only one hop dee
 (`SaveData.sceneGraph → SerializedSceneGraph.scenes`), which is why the first draft's "typed by a `SaveData`
 field" was false.
 
-**Measured.** Plane `.scratch/vnext/plane7e` — a clone of `b73165cb1fa111bb87985c09f329b0dd1ed28fdf` with `core.autocrlf=false`, so the plane is LF and
-every figure below is the plane's, not the shared worktree's. Round 4 measured this gate at `edf8681`; since then HEAD has taken 9 more commits and the shared ADR-0016 ledger has grown from amendment 150 to 154, so the plane was re-cloned at `b73165c` and re-run end to end: every one of the six measurement fields (baseline, withGate, tscWith, arms, final, finalTsc) in `.scratch/vnext/p7e-measurement.json` is byte-identical to the `plane7d` file at `edf8681`, which is the check that the intervening commits touched nothing this package owns.
+**Measured.** Plane `scratch vnext/plane7e` — a clone of `b73165cb1fa111bb87985c09f329b0dd1ed28fdf` with `core.autocrlf=false`, so the plane is LF and
+every figure below is the plane's, not the shared worktree's. Round 4 measured this gate at `edf8681`; since then HEAD has taken 9 more commits and the shared ADR-0016 ledger has grown from amendment 150 to 154, so the plane was re-cloned at `b73165c` and re-run end to end: every one of the six measurement fields (baseline, withGate, tscWith, arms, final, finalTsc) in `scratch vnext/p7e-measurement.json` is byte-identical to the `plane7d` file at `edf8681`, which is the check that the intervening commits touched nothing this package owns.
 
 | run | cases | files | red | tsc |
 | --- | --- | --- | --- | --- |

@@ -14,7 +14,15 @@ const from = (p: string) => fileURLToPath(new URL(p, import.meta.url));
  */
 export default defineConfig({
   test: {
-    exclude: ['**/.scratch/**', '**/node_modules/**', '**/dist/**', '**/.git/**'],
+    // v215 (main line, kept by the 2026-11-09 consolidation): no hand-picked include list, but the
+    // two halves of the repo are point-different on HOW they run their tests:
+    //   - apps/studio has its OWN vitest.config.ts (alias `@`, monorepo source layout) — when the
+    //     root config runs studio's files directly, `@/lib/store` doesn't resolve and the whole
+    //     suite goes red. The studio suite therefore runs under the studio workspace's own config
+    //     (`npm run test -w @nexus/studio` handles it correctly).
+    //   - e2e/ is Playwright, not vitest — its spec files fail at collect time inside vitest.
+    // Both are still FULLY executed — under the turbo/playwright runners the CI uses, not here.
+    exclude: ['**/.scratch/**', '**/node_modules/**', '**/dist/**', '**/.git/**', 'apps/studio/**', 'e2e/**'],
     environment: 'node',
     globals: false,
     reporters: 'dot',
