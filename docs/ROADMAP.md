@@ -10936,3 +10936,14 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   /projects/ddl-probe-20261109/publish` = 201；`audit_entry` 新行 `publish / ddl-probe-20261109 /
   publication`；旧 19 行保持 null；`DELETE` 清理 = 200 `{removed:true}`；43 个测试类仍全绿。
 - 仍欠：Flyway/Liquibase 迁移与 `SET NOT NULL`（回填 `publication` 有依据，但要一次可审计的迁移）。
+## §85 第四十四片：机检 review 态进读数（2026-11-09）
+
+- 缺口：此前 e2e 只覆盖了 blocked（硬红线挡下）。review 是 **页面已经发出去、内容挂人工复核**，
+  后果与文案都和 blocked 相反；把 review 念成 clear 会让读屏用户以为"没命中所以没问题"，念成 blocked
+  会让人以为"没发出去"。
+- 做法：`route.fetch()` 先让服务端真发布并拿到真回执，只把 `body.scan` 改写成合规的 review 结构；
+  断言结果块、地址、顶栏版本号（从回执文本读，不硬编码）与裁决块同时成立。详见 `docs/TESTING.md`。
+- 读数：**28 通过 / 35 不适用 / 0 违规**，1 passed（16.8s）；截图
+  `screenshots/a11y-opened-publish-scan-review.png` 人工看过。
+- 三条臂 N1–N3（去 role / 改 clear 口径 / 丢规则名）各自红一次，还原后复跑绿，PublishPanel 无残留 diff。
+- notMeasured：真服务端 5xx / 413、390 下弹层、焦点陷阱。

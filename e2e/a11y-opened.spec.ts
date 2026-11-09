@@ -523,6 +523,91 @@ test('§85 发布被机检挡下：硬红线裁决与限度说明进读数', asy
   await page.screenshot({ path: 'screenshots/a11y-opened-publish-scan-blocked.png' });
 });
 
+/**
+ * 第四十四片：**机检挂人工复核**。它与"挡下"共用同一个裁决块，但后果相反——页面已经发出去了。
+ * 这一条钉的是两个容易混起来的读法：
+ * - 回执是**真的**：`route.fetch()` 先让服务端发布并落下 publication，只把 `scan` 改写成 review；
+ *   结果块、地址与顶栏版本号都必须是这次真回执带出来的，不能靠注入凭空造一个成功；
+ * - 文案是 review 的口径：「挂人工复核」+「页面已发出去」同时出现，不能拿 clear 的"没命中"或
+ *   blocked 的"没发出去"顶上——那会让读屏用户对"内容是否公开"得到相反的答案。
+ * 变异臂：去掉 `role=status`、把 review 文案改成 clear 口径、吞掉 findings。
+ */
+test('§85 发布机检挂人工复核：页面已发出，裁决与发现进读数', async ({ page }) => {
+  test.setTimeout(360_000);
+  const { projectId } = await reusableMemberWithProject(page, EMAIL, PASSWORD, `无障碍机检复核夹具${RUN}`);
+  await page.goto(`/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 120_000 });
+
+  const trigger = page.locator('[data-publish-open]');
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-publish-panel]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-publish-gate]')).toBeVisible({ timeout: 120_000 });
+
+  // ---- 夹具可能已被上一轮发布过：先收回来，保证结果块是这次动作带出来的
+  const resultBlock = page.locator('[data-publish-result]');
+  if (await resultBlock.count()) {
+    await page.locator('[data-publish-off]').click();
+    await expect(resultBlock).toHaveCount(0, { timeout: 60_000 });
+    await expect(trigger).toHaveText(/^发布$/, { timeout: 60_000 });
+  }
+
+  // ---- 真发布先发生：拿服务端真回执，只改写 scan 为合规的 review 态
+  await page.route('**/api/projects/*/publish', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    const response = await route.fetch();
+    const body = (await response.json()) as Record<string, unknown>;
+    body.scan = {
+      rulesVersion: '2026-11-02.1',
+      decision: 'review',
+      findings: [
+        {
+          rule: 'ad-disclosure',
+          level: 'review',
+          why: '疑似未标明广告合作',
+          where: 'node:hero-headline',
+          quote: '全网最低价',
+        },
+      ],
+      limits: ['只扫可见文字与引用资产', '图片里的文字未识别'],
+      scanned: { pages: 1, textNodes: 8, assetRefs: 0 },
+    };
+    await route.fulfill({ response, json: body });
+  });
+
+  await page.locator('[data-publish-submit]').click();
+
+  const scanBlock = page.locator('[data-publish-scan]');
+  await expect(scanBlock).toBeVisible({ timeout: 120_000 });
+  await expect(scanBlock).toHaveAttribute('role', 'status');
+
+  // ---- review 不是 blocked：这次真的发出去了，结果块与地址必须都在
+  await expect(resultBlock).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('[data-publish-url]')).toHaveCount(1);
+  const blockText = ((await resultBlock.textContent()) ?? '').trim();
+  const versionMatch = blockText.match(/当前公开地址（第 (\d+) 版）/);
+  expect(versionMatch, `结果块里没有版本那一句：${blockText.slice(0, 80)}`).toBeTruthy();
+  await expect(trigger).toHaveText(new RegExp(`已发布 v${versionMatch?.[1]}`));
+
+  // ---- 裁决说"挂复核"且"已发出去"，发现条目与限度说明都要在
+  await expect(page.locator('[data-scan-decision]')).toHaveText(/1 项挂人工复核.*页面已发出去/);
+  const finding = page.locator('[data-scan-finding="ad-disclosure"]');
+  await expect(finding, '裁决说挂了复核，却没说挂的是哪一条').toHaveCount(1);
+  await expect(finding).toContainText('疑似未标明广告合作');
+  await expect(finding).toContainText('node:hero-headline');
+  await expect(finding).toContainText('全网最低价');
+  await expect(page.locator('[data-scan-limit]')).toHaveCount(2);
+  await expect(page.locator('[data-publish-error]')).toHaveCount(0);
+  await expect(page.locator('[data-publish-busy]')).toHaveCount(0);
+
+  await scanBlock.scrollIntoViewIfNeeded();
+  const scanResults = await scan(page);
+  const critical = printSurface('Studio · 发布弹层（机检复核态）', scanResults);
+  expect(scanResults.passes.length, '机检复核态扫描为空转：裁决块没渲染或 axe 没命中规则集').toBeGreaterThan(0);
+  expect(critical, `机检复核态有 ${critical} 类 critical 违规，逐条见上面的读数`).toBe(0);
+  await page.screenshot({ path: 'screenshots/a11y-opened-publish-scan-review.png' });
+});
+
 test('§85 发布成功后的结果块：地址、版本与审核状态进读数', async ({ page }) => {
   test.setTimeout(360_000);
   const { projectId } = await reusableMemberWithProject(page, EMAIL, PASSWORD, `无障碍发布结果夹具${RUN}`);

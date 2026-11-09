@@ -2464,3 +2464,21 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   - `store-selection-stress.test.ts`（§147 #32 压力版 1 条，`43eb15b`）
   `git ls-files -- '**/*.test.ts' '**/*.test.mts'` `= 272` 与两片之和一致。
   证据日志 `shard1-2026-11-09c.log（生成时的证据日志，GBK 损坏，本仓已弃用）`、`shard2-2026-11-09c.log（生成时的证据日志，GBK 损坏，本仓已弃用）` 已 `git add -f` 入库。
+- **2026-11-09：§85 第四十四片 机检 review 态（页面已发出去，复核不是挡下）**——`e2e/a11y-opened.spec.ts`
+  新增一条。**真发布先发生**：`page.route('**/api/projects/*/publish')` 里先 `route.fetch()` 让服务端
+  真的发布、落下 publication 并返回真回执，只把 `body.scan` 改写成合规的 review 结构
+  （`ad-disclosure` / `level:'review'` / 一条 finding / 两条 limits / scanned 1·8·0），
+  `route.fulfill({ response, json: body })` 保留状态码与头——成功不是注入造出来的，只有裁决那一个字段
+  是构造的。夹具若已被上一轮发布过，先点 `[data-publish-off]` 收回来再发。跑法同上，
+  `-g "机检挂人工复核"` 单跑。断言链：`[data-publish-scan]` 可见且 `role=status`；结果块可见、
+  `[data-publish-url]` 恰好 1 个、顶栏 `已发布 vN`（N 从结果块文本读，不硬编码）；`[data-scan-decision]`
+  同时含「1 项挂人工复核」「页面已发出去」；`[data-scan-finding="ad-disclosure"]` 的 rule / why / where /
+  quote 逐项在；`[data-scan-limit]` 恰好 2 条；无 `[data-publish-error]`、无 `[data-publish-busy]`。
+  读数：**28 通过 / 35 不适用 / 0 违规**，critical 全 0；**1 passed（16.8s）**。截图
+  `screenshots/a11y-opened-publish-scan-review.png` 人工看过（顶栏 v26、裁决句与发现条目同屏）。
+  **三条臂**：N1 裁决块去 `role="status"` → 红在 `toHaveAttribute('role','status')`；
+  N2 review 文案改成 clear 口径 → 红在 `toHaveText(/1 项挂人工复核.*页面已发出去/)`
+  （unexpected `"机检（2026-11-02.1）：这次没命中规则。"`）；N3 发现条目把 `data-scan-finding`
+  固定成 `other` → 红在 `toHaveCount(1)`（Received 0）。三条臂后逐字节还原，
+  `git diff -- apps/web/src/studio/PublishPanel.tsx` 为空，复跑 **1 passed**。
+  notMeasured：真服务端 5xx / 413、390 下弹层、焦点陷阱。
