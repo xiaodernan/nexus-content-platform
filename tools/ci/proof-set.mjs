@@ -79,8 +79,31 @@ export const PROOF_COMMAND = /^node +(docs\/evidence\/\S+\.mjs)$/;
  * and a warm `~/.m2` for the offline flag, which the workflow buys online (a warm-up step) before the proofs
  * run. The array is kept — not deleted — because the clause is "a proof the build cannot run must say what it
  * needs", and an empty set is still a set the gates read.
+ *
+ * v645 (ADR 0054/0055/0056) — the residue is not empty again, and the reason is read out of
+ * `.github/workflows/ci.yml`, not from the row's slowness. TWO things that workflow does not do:
+ *
+ *  1. IT BRINGS NO POSTGRESQL UP. The workflow's docker step is two `docker pull` lines; no step runs
+ *     `docker compose up`, and the job declares no `services:` block — so `nexus-postgres`, the container
+ *     `infra/docker-compose.yml` names for the `core` profile, does not exist when the proofs run. The proof
+ *     creates two throwaway DATABASES inside that container with `docker exec … psql` and waits for the
+ *     published port to answer a TCP connect.
+ *  2. IT WARMS MAVEN FOR ONE MODULE. The warm-up step is `mvn -B -q -f services/nexus-api/pom.xml test` and
+ *     `cache-dependency-path` names that one pom, so the other three service poms face this proof's
+ *     `mvn -o -B package` with a cold local repository — and offline, a missing artifact is a build failure,
+ *     so §1 would redden on an artifact the runner never downloaded rather than on the topology.
+ *
+ * Both needs are the WORKFLOW's, not the machine's: a hosted runner has a docker daemon and room for four JVMs,
+ * so retiring this entry is a ci.yml change (compose-up plus a per-module warm), and the census's derived split
+ * moves the day it happens. Until then the row is EXCLUDED rather than deleted — it still runs on this box — and
+ * the residue is PRINTED on every build, so nobody can mistake the running count for the whole population.
  */
-export const EXCLUDED = [];
+export const EXCLUDED = [
+  {
+    file: 'docs/evidence/java/spring-cloud-proof.mjs',
+    needs: 'the repository\'s own running PostgreSQL container, and an offline-warm Maven for the three service modules the workflow never builds',
+  },
+];
 
 export const readPkg = (root = ROOT) => JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 

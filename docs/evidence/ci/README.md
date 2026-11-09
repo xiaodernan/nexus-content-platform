@@ -10,7 +10,7 @@ footnote to the evidence tree; it is the reason the evidence tree can rot.
 ```
 npm run verify:proofs      # the build's own row: run every derived proof row, exit 1 on any RED
 npm run verify:ci-wiring   # the gate over the wiring itself (and a row inside the set it enumerates)
-npm run verify:arms        # the 49 witness arms — a row since v555
+npm run verify:arms        # the 54 witness arms — a row since v555
 ```
 
 | § | what `ci-wiring-proof.mjs` refuses |
@@ -26,6 +26,8 @@ npm run verify:arms        # the 49 witness arms — a row since v555
 | 9 | the CI runner and the agents sweep disagree about the budget grammar, or a row's marker is REFUSED |
 | 10 | the build's Node cannot carry the type-stripper these proofs import |
 | 11 | the job declares no time ceiling, one that is not a whole number or under 5 minutes, one at or above the sum of the rows' own budgets (no outer bound at all), no `permissions:` block or an empty one, a write scope, or a token that lacks `contents: read` |
+| 12 | a running row's last source print opens on a housekeeping tag (`[cleanup]`/`[teardown]`/`[finally]`/`[housekeeping]`), so the gutter keeps the sentence about deleting a temp directory instead of the measurement |
+| 13 | a running row's final print literal is longer than the gutter's room, so its last line can only arrive severed — the runner marks the cut, the clause refuses the size |
 
 ### What each piece is
 
@@ -296,12 +298,23 @@ people.
 - **No hosted contact yet, stated plainly.** The motivating log `41433663171` predates these bytes; the marker's behavior on real severed hosted gutters is known only from the fixture arms until the next hosted run. This section does not claim a hosted reading for its own repair.
 - **Bounds (§60), stated.** §13 reads SOURCE, not run bytes — an interpolated tail is invisible to it by construction (C4, and the printed `1 row(s) end on a call this gate cannot read`). The marker names a cut, not a verdict: a severed sentence and a brief one are the same bytes to the log; it is this slice's 12-byte choice, not a format version. §13 keys on the LENGTH of the final literal's opening bytes, not its words, and enforces nothing a row is allowed to say. The 112 measured rows are tails the gate can read, and say nothing about what those rows printed.
 
+### v645 — a row arrives whose hazard is the WORKFLOW's, not the machine's: the Spring Cloud proof is EXCLUDED by name, and the arms that plant an exclusion now READ the shipped declaration instead of assuming it was empty (ADR 0016 amendment 572)
+
+- **What landed, read out of the workflow's bytes.** `package.json:41` carries `"verify:spring-cloud": "node docs/evidence/java/spring-cloud-proof.mjs"`, so the admission rule turns it into a row and `§5` counts it: **117 = 116 run + 1 named residue**. The proof's own roster (`spring-cloud-proof.mjs:95-98`) names four modules and `:369` runs `mvn -o -B package -DskipTests` in a copy of each. Against that, `.github/workflows/ci.yml` brings up **no** PostgreSQL — its docker step is two `docker pull` lines, and the job declares no `services:` block — and it warms Maven with `mvn -B -q -f services/nexus-api/pom.xml test` plus a `cache-dependency-path` naming that one pom. So on the hosted runner the row would fail on an artifact `-o` refused to download and on a container (`nexus-postgres`, `infra/docker-compose.yml`, `--profile core`) that was never created. The red would have named the runner, not the topology.
+- **The honest half of that sentence is the exclusion, not a skip.** `tools/ci/proof-set.mjs` now carries one `EXCLUDED` entry naming the file and its needs — *"the repository's own running PostgreSQL container, and an offline-warm Maven for the three service modules the workflow never builds"* — and §6 grades the reason against the file: `[§6] residue docs/evidence/java/spring-cloud-proof.mjs reaches "postgres" in code — …`, i.e. the reach is in the proof's CODE (`createConnection` to a published port, `docker exec … psql`), not in its prose. The row is excluded from the BUILD, not retired: it is the java lane's own evidence, and commit `04693aa` records the four-service topology it proves on a machine that has the container. **Retirement is a ci.yml change** (a compose-up step and a per-module warm), and the census's derived run/residue split moves the day it happens — that is why the need is written as the workflow's absence rather than as slowness.
+- **The premise the arms carried died with it.** v547 retired the last excluded row, so A10/A11 spliced their planted entry onto a needle copied from `export const EXCLUDED = [];` — true then, false now, and a needle that matches nothing crashes the arm instead of arming it. Both arms now insert after the opening bracket of a declaration READ from the producer's bytes through `EXCLUDED_DECL_RE`, which accepts the one-line and the block spelling alike; a load-time assert refuses to run when that declaration appears zero or two or more times, because a plant that matched no place grades pristine bytes and calls the result a surviving guard. The planted entry is followed by a comma on purpose: measured in this batch, an entry spliced without a separator makes the plane's producer fail to PARSE, and a gate that dies before reading the residue reports a MISMATCH for a syntax error rather than for its clause.
+- **The runner half's plane must not inherit the shipped record.** `runnerPlane` now clears the residue (`residueCleared`) before it writes its nine stub scripts: with the Spring Cloud entry left standing, `unknownExclusions` fires in EVERY runner arm for naming a file the synthetic population cannot hold — R6's charge and nobody else's — and R4's `runs 9 + excluded 0` is the same claim from the other side. The clearing asserts its own carrier too, so the day the producer's spelling moves the arms say so rather than mis-grade.
+- **Three arms answered red, and the reading that said why.** The first battery of this batch printed **51/54**: A10 and A11 died at `proof-set.mjs:107` inside their own plane and A15 on an ENOENT. Re-producing those three subjects on the current bytes in a scratch plane answered `declaration hits: 1`, `node --check` exit **0**, and the gate exit **1** carrying A10's predicted sentence — *"nothing OUTSIDE its comments reaches a docker daemon, a maven/postgres client, a harness or a socket — so this exclusion retires a proof the build COULD run"*. So the red was the killed earlier run's residue on a reused plane root, not a live defect; the re-run with nothing else touching the closure answered **54/54**.
+- **Instrument readings at this ref (2026-11-10, this box).** `verify:ci-wiring` **exit 0** — trigger covers master, proof step #11 of 12 steps, nothing swallowed, population **117 closes as 116 + 1**, §9 **22 of 116** rows declare their own budget, §11 job ceiling 60 min below the rows' own worst case **667 min**, §12 **115 of 116** end on a literal print with 1 unreadable tail and 0 housekeeping, §13 longest whole tail `verify:record-window` at **293 bytes** and 0 guaranteed cuts. `verify:arms` **54/54 matched** (31 gate incl. the control, 23 runner), planes removed. `verify:arms-freshness` **8/8**, and `arms-receipt.json` stamps **54 arms / 7 subjects / 117 derived rows**. `verify:evidence-census` closes **129** tracked modules as **117 row + 4 helper + 3 swept + 5 tool + 0 deferred**, `rows 116+1`, its own arms **131/131**.
+- **Two stale sentences the same change made worse.** The header's `npm run verify:arms # the 49 witness arms` restated a set that moved 49 → 54 at v591, and the §-table stopped at clause 11 while the gate prints thirteen. Both now read 54 and 1–13. A number in prose has no reader unless a gate imports it — these two had none, which is exactly how they survived a cycle.
+- **No hosted contact yet, stated plainly.** This section's claim is about the workflow's bytes, and the bytes are in the commit; whether the hosted runner keeps the residue at one and reddens nothing else is knowable only from the next run's log.
+
 ### What this does NOT claim
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
 never turned into a `verify:*` script stays invisible to the build. Amendments 516–519 closed that half:
 the census below gives every one of the **129** tracked modules a disposition, and the derived population is
-**117 running rows + 0 excluded by name** at this ref (v532 triaged the swept population and wired sixteen
+**116 running rows + 1 excluded by name** at this ref (v532 triaged the swept population and wired sixteen
 Node-only proofs; v533 ran the sweep over all 81 and wired the forty-eight green dist+spawn proofs). And no
 gate here can make GitHub run: it reads bytes
 committed in this repository, and whether the workflow executes on `master` is knowable only from the real
@@ -321,7 +334,7 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 | class | count at this ref | how it is decided |
 | --- | --- | --- |
-| ROW | **117** (117 run + 0 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
+| ROW | **117** (116 run + 1 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **4** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs`, `ci/arms-receipt.mjs` |
 | SWEPT | **3** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — at this ref `cwd-axis` and `tree-axis`, the tree-motion witnesses, which stay there by measurement (their verdict is about whether the walked tree moved during the run), plus `agents/record-repair-proof.mjs`, which the sweep runs and no `verify:*` script claims |
 | TOOL | **5** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, one plane-arms script, the isolated-build arms, the SVG generator) |

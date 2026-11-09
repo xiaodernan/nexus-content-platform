@@ -162,13 +162,47 @@ const MUT = 'docs/evidence/studio/mutation-probe.mjs';
 const BUILD_STEP = '      - name: Build\n        run: npm run build\n';
 const PROOFS_STEP = '      - name: Evidence proofs\n        run: npm run verify:proofs\n';
 // A10/A11's premise MOVED at v547: v545 retired the docker row, v546 the live-stack row, and v547 (amendment
-// 530) the LAST one, so the shipped `EXCLUDED` is empty and an arm that quoted an entry would be editing bytes
+// 530) the LAST one, so the shipped `EXCLUDED` was empty and an arm that quoted an entry would be editing bytes
 // that do not exist — the needle-matched-nothing crash A10's first draft already hit in v540 for the opposite
-// reason (its needle was ambiguous with the runner's own prose). So both arms now PLANT their exclusion by
-// splicing one entry into the `EXCLUDED = []` DECLARATION: one for a proof that reaches nothing (§6's reach
-// rule) and one whose reason is shorter than the floor (§6's "states nothing" rule). The needle is the
-// declaration line, and the reason each planted row is unique is that the declaration occurs once.
-const EXCLUDED_DECL = 'export const EXCLUDED = [];\n';
+// reason (its needle was ambiguous with the runner's own prose). So both arms PLANT their exclusion by splicing
+// one entry into the DECLARATION: one for a proof that reaches nothing (§6's reach rule) and one whose reason is
+// shorter than the floor (§6's "states nothing" rule).
+//
+// v645 moved it again — the Spring Cloud row is excluded, so the shipped array is not empty and a needle that
+// copied the empty form would match nothing. The needle is therefore READ from the producer's own bytes rather
+// than assumed in either direction: `EXCLUDED_DECL_RE` accepts the one-line and the block spelling alike, and
+// `plant()` inserts the arm's entry after the opening bracket, so the shipped record stays standing and the
+// arm fires on its own rot. The declaration occurs exactly once or the arms refuse to run: a plant that matched
+// zero or two places grades pristine bytes and calls the result a surviving guard.
+const EXCLUDED_DECL_RE = /export const EXCLUDED = \[[\s\S]*?\];\n/;
+const EXCLUDED_EMPTY = 'export const EXCLUDED = [];\n';
+const SHIPPED_DECL = (() => {
+  const hits = [...readSrc(RUNNER).matchAll(new RegExp(EXCLUDED_DECL_RE.source, 'g'))];
+  assert.equal(hits.length, 1, `the producer declares EXCLUDED in ${hits.length} places, so an arm cannot know which declaration it is arming`);
+  return hits[0][0];
+})();
+/** One entry, inserted FIRST: §6 walks the residue in order, so the planted rot is judged before the shipped record. */
+function plant(entry) {
+  const opening = 'export const EXCLUDED = [';
+  assert.ok(SHIPPED_DECL.startsWith(opening), `the declaration ${JSON.stringify(SHIPPED_DECL.slice(0, 32))} does not open with ${JSON.stringify(opening)} — plant has no insertion point`);
+  return {
+    from: SHIPPED_DECL,
+    // the comma is not decoration: an inserted entry with no separator makes the plane's producer fail to
+    // PARSE, and a gate that crashes before it reads the residue reports a MISMATCH for a syntax error.
+    to: `${opening}\n${entry},\n${SHIPPED_DECL.slice(opening.length)}`,
+  };
+}
+/**
+ * The runner half's synthetic plane starts from an EMPTY residue, whatever the shipped array holds. Its
+ * population is nine stubs, so a record naming a file of the real tree is exactly what R6 exists to redden on —
+ * `unknownExclusions` would fire in EVERY runner arm, and the arms would be grading the shipped data instead of
+ * their own edit. R4's `runs 9 + excluded 0` is the same claim from the other side.
+ */
+function residueCleared(text) {
+  assert.ok(EXCLUDED_DECL_RE.test(text), 'the producer no longer declares `export const EXCLUDED = …` in a form the arms can clear — a residue left standing on the synthetic plane reddens every runner arm for the wrong reason');
+  return text.replace(EXCLUDED_DECL_RE, EXCLUDED_EMPTY);
+}
+const EXCLUDED_DECL = EXCLUDED_EMPTY;
 
 // A14's premise is the WHOLE population's declaration set, so its edits are DERIVED, not copied: at v528 one
 // row declared a budget and deleting that one armed §9; by v540 six did, and the hardcoded delete left five
@@ -229,12 +263,11 @@ const GATE_ARMS = [
     clause: '§6',
     edits: [{
       file: RUNNER,
-      from: EXCLUDED_DECL,
-      to: "export const EXCLUDED = [\n  {\n    file: 'docs/evidence/studio/credits-proof.mjs',\n    needs: 'nothing at all — it is a pure node proof, so this exclusion is the rot the arm plants',\n  },\n];\n",
+      ...plant("  {\n    file: 'docs/evidence/studio/credits-proof.mjs',\n    needs: 'nothing at all — it is a pure node proof, so this exclusion is the rot the arm plants',\n  }"),
     }],
     sig: /nothing OUTSIDE its comments reaches/,
   },
-  { tag: 'A11-exclusion-without-a-reason', clause: '§6', edits: [{ file: RUNNER, from: EXCLUDED_DECL, to: "export const EXCLUDED = [\n  {\n    file: 'docs/evidence/m7/service-suite-proof.mjs',\n    needs: 'docker',\n  },\n];\n" }], sig: /without naming what it needs/ },
+  { tag: 'A11-exclusion-without-a-reason', clause: '§6', edits: [{ file: RUNNER, ...plant("  {\n    file: 'docs/evidence/m7/service-suite-proof.mjs',\n    needs: 'docker',\n  }") }], sig: /without naming what it needs/ },
   { tag: 'A12-runner-path-swapped', clause: '§7', edits: [{ file: PKG, from: '"verify:proofs": "node tools/ci/proof-set.mjs"', to: '"verify:proofs": "node tools/ci/proof-set-old.mjs"' }], sig: /must be the same door/ },
   { tag: 'A13-gate-not-in-its-own-set', clause: '§8', edits: [{ file: PKG, from: '    "verify:ci-wiring": "node docs/evidence/ci/ci-wiring-proof.mjs",\n', to: '' }], sig: /verify:ci-wiring is/ },
   { tag: 'A14-nobody-declares-a-budget', clause: '§9', edits: DECLARED_MARKERS, sig: /no row of the running set declares a budget/ },
@@ -279,12 +312,13 @@ const GATE_ARMS = [
 
 // ── half 2: the runner ────────────────────────────────────────────────────────────────────────────────
 // A synthetic plane, because the claim is about EXIT CODES and nothing else: NINE derived `verify:*` rows, all
-// runnable stubs — v547 retired the shipped set's last excluded row, so a plane that still carried one would
-// grade a shape the tree no longer has. R6 and R9 PLANT their exclusion by splicing it into the runner's
-// `EXCLUDED = []` declaration — a ghost file for the stale-record arm, stub-a with a six-character reason for
-// the reason-floor arm — so each fires on its own cause, and the floor (R8, two scripts deleted) can never
-// answer for the wrong clause. Each stub appends to `ran.log`, which makes "this run executed nothing" a fact
-// about a file rather than a reading of a sentence.
+// runnable stubs. The shipped residue is CLEARED on this plane (see `residueCleared`) — with the Spring Cloud
+// record left standing, `unknownExclusions` would fire in every runner arm for naming a file the synthetic
+// population cannot hold, which is R6's charge and nobody else's. R6 and R9 PLANT their exclusion by splicing
+// one entry into the declaration after that clearing: a ghost file for the stale-record arm, stub-a with a
+// six-character reason for the reason-floor arm — so each fires on its own cause, and the floor (R8, two
+// scripts deleted) can never answer for the wrong clause. Each stub appends to `ran.log`, which makes "this run
+// executed nothing" a fact about a file rather than a reading of a sentence.
 // Every stub declares its own generous budget. The runner arms pass `--budget 600` to the whole synthetic
 // plane to prove a ROW's marker beats the fallback (R2b), and on a loaded box a healthy stub once took 0.7 s
 // and was killed before the row under test could speak — the arm's subject is `c`, so no other row may be
@@ -322,7 +356,7 @@ const SLOW_WITHOUT_MARKER = "import { appendFileSync } from 'node:fs';\nappendFi
 
 function runnerPlane(tag, { scripts = BASE_SCRIPTS, bodies = BASE_BODIES, remove = [], edits = [] } = {}) {
   const files = new Map([
-    [RUNNER, readSrc(RUNNER)],
+    [RUNNER, residueCleared(readSrc(RUNNER))],
     ['docs/evidence/agents/sweep.mjs', readSrc('docs/evidence/agents/sweep.mjs')],
     ['package.json', JSON.stringify({ name: 'nexus-ci-arms-plane', private: true, scripts }, null, 2)],
     ...Object.entries(bodies),

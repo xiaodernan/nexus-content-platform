@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-09T04:20:20.643Z",
+  "ranAt": "2026-11-09T16:39:13.414Z",
   "arms": 54,
   "matched": 54,
   "armNames": [
@@ -63,8 +63,8 @@
   "subjects": {
     "workflow": "6e39ab2cb0bb78f2a2ed7e06f88085fc264ed638515708451a47415490983803",
     "gate": "d9ef4e999f2deaefc27bf56726927f1beb3055fa4ebfceb2025009bcb5a41509",
-    "arms": "a89ecc1219ed777495ba1f44fb36ce4d6cb43d28715fe1d176ed87188d345a7f",
-    "runner": "5fdc49c0f79ae155ee6f8e392d51a5e7dda44709ac706804d9b40441eb4d72e6",
+    "arms": "75241dede0e968995e1cefa40b595375da42bc205a4d302b7d2acb1d0d1df16d",
+    "runner": "9bff110c11511e3d0a13065b6b8d9e68d668091d1143157016270df34f2f0f71",
     "sweep": "a9904d1f3edcccd0b38b3a396474e7b6eb079a91924eeb0eed3d02ea38cd3097",
     "scripts": "4f13a845cd9e400b99e3de1617490e81e04721dcbdbead22b5458e555fe2bc7f",
     "rule": "d950d243b7678dda17d00f877e2a3cbdf94d7d70a1eafed0c2fb59aa06b437d1"
@@ -554,6 +554,11 @@
       "name": "verify:spawnlog",
       "file": "docs/evidence/agents/spawnlog-proof.mjs",
       "marker": null
+    },
+    {
+      "name": "verify:spring-cloud",
+      "file": "docs/evidence/java/spring-cloud-proof.mjs",
+      "marker": "// sweep-budget-ms: 1200000"
     },
     {
       "name": "verify:staged",
