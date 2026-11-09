@@ -11,6 +11,7 @@ import java.util.jar.Attributes;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import javax.sql.DataSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -45,6 +46,16 @@ public class HealthService {
     private final String version;
     private final Instant startedAt;
 
+    /**
+     * The constructor Spring uses.
+     *
+     * <p>It is annotated because this class has a SECOND constructor — the seam a test pins a clock
+     * through — and a bean with two constructors and no annotation has no default one to fall back
+     * on. Measured 2026-11-09: the topology proof started this service and it died with "No default
+     * constructor found", which the unit suite could not see because the unit suite constructs the
+     * service itself.
+     */
+    @Autowired
     public HealthService(
             DataSource dataSource,
             @Value("${spring.application.name:nexus-domain-service}") String service) {
