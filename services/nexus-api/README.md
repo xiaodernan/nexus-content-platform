@@ -88,6 +88,22 @@ The service is configured by **environment** (`NEXUS_DB_URL`, `NEXUS_DB_USER`, `
 `NEXUS_API_PORT`, `NEXUS_PORT_FILE`). The proof passes the same values as **command-line arguments**
 instead — see the note below.
 
+### Discovery (SC-3)
+
+`nexus-api` can announce itself to `nexus-registry` (8761) so that `nexus-gateway` can route
+`lb://nexus-api` without a hard-coded address. **Registration is off by default:**
+
+| variable | default | effect |
+| --- | --- | --- |
+| `NEXUS_API_REGISTER` | `false` | announce this instance to the registry |
+| `NEXUS_API_FETCH` | `false` | pull the registry's service list |
+| `NEXUS_REGISTRY_ZONE` | `http://127.0.0.1:8761/eureka/` | where the registry is |
+| `NEXUS_API_EUREKA_ENABLED` | `true` | set `false` to skip the client entirely |
+
+Both flags off means the Eureka client starts **no network task** — a standalone run and every unit test
+behave exactly as before this dependency was added. A three-service run sets `NEXUS_API_REGISTER=true`; see
+`services/nexus-gateway/README.md` for the joined-up command.
+
 ## Bounds, stated (§60)
 
 - **No auth, no accounts, no ownership.** Anyone who can reach the service can publish any project id.

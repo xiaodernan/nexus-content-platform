@@ -1,0 +1,54 @@
+# NEXUS nexus-gateway (Spring Cloud SC-2) — the HTTP door ADR 0011 promises the Studio.
+#
+# Routes are NOT here: see GatewayConfig, which builds them with the compiled DSL. The Gateway 4.2+ line
+# renamed `spring.cloud.gateway.*` to `spring.cloud.gateway.server.webflux.*`, and a YAML route table under
+# a prefix a bump renames stops matching silently instead of failing.
+spring:
+  application:
+    name: nexus-gateway
+
+server:
+  port: ${NEXUS_GATEWAY_PORT:8090}
+
+nexus:
+  gateway:
+    # The service ID the registry must know. `lb://` + this name is the whole address: no host, no port.
+    api-service: ${NEXUS_GATEWAY_API_SERVICE:nexus-api}
+    api-prefix: ${NEXUS_GATEWAY_API_PREFIX:/api}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8761/eureka/}
+    registry-fetch-interval-seconds: ${NEXUS_GATEWAY_FETCH_SECONDS:10}
+    register-with-eureka: ${NEXUS_GATEWAY_REGISTER:true}
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+# The breaker's own bounds. Spring Cloud CircuitBreaker's default TimeLimiter is ONE second, which is a
+# reasonable library default and a wrong platform default: a cold nexus-api answering a 4000-node document
+# would be cut off and reported as unavailable while it was still working. Five seconds is the bound this
+# deployment chose, and it is a bound — a call slower than this answers 503 naming the timeout.
+resilience4j:
+  timelimiter:
+    instances:
+      nexus-api:
+        timeout-duration: ${NEXUS_GATEWAY_TIMEOUT:5s}
+        cancel-running-future: true
+  circuitbreaker:
+    instances:
+      nexus-api:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: ${NEXUS_GATEWAY_OPEN_WAIT:10s}
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+
+logging:
+  level:
+    root: warn
+    dev.nexus.gateway: info

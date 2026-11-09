@@ -10890,3 +10890,34 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   DB 平面的行为腿夹具已设计好写在 ADR-0094 里（造 `CAP+1` 条，第 200 位给 3 个赞、第 201 位给 10 个赞，
   断言头一张是第 200 位且第 201 位不出现）——**两个方向都能红**；只造"最老那条分最高"的夹具抓不住上限变小。
   ② `TRENDING_CANDIDATE_CAP` 仍是硬编码，§61 那一节早就写明"平台大了要换成分桶预聚合而不是抬高这个数"，本片没动那个架构判断。
+
+## §SC 第一片：微服务拓扑从形容词变成三件真东西（2026-11-09）
+
+- 起点：`docs/decisions/0011-backend-service-boundaries.md` 写着 "Studio talks to the API gateway over
+  typed HTTP/WS contracts only"，但仓库里没有网关，`apps/studio` 直连 `127.0.0.1:8080`。仓库里已有
+  两个 Spring Boot 服务（`java-domain-service`、`nexus-api`），它们的地址只存在于启动脚本里。
+  "微服务"在这里一直是形容词，不是一个可运行的拓扑。
+- 做了什么（决定与取舍见 `docs/adr/0095-microservice-topology-registry-gateway.md`）：
+  ① `services/nexus-registry`（SC-1）——独立 Eureka Server，单节点、不自注册、关自保护、关只读缓存；
+     6 条腿全部走真 HTTP + 真 servlet 容器，注册体用 Eureka 自己的 `EurekaJacksonCodec` 生成。
+  ② `services/nexus-gateway`（SC-2）——Spring Cloud Gateway + LoadBalancer + Resilience4j；一条
+     `/api/** → lb://nexus-api` 路由，Java DSL（YAML 前缀被 Gateway 4.2+ 改名会静默不再匹配）；
+     StripPrefix 段数从 prefix 计算；5s TimeLimiter；兜底 503 + 断路器实际记录的 cause；
+     `/platform/services` 只报注册表持有的地址，并写明"不是网关做的健康检查"。
+     7 条腿：`GatewayRoutingTest` 6 条（真 socket 上游：后端**收到的路径**、500 透传、超时 503、
+     断连 503、读数、无 DiscoveryClient 的单元分支）+ `GatewayUnknownServiceTest` 1 条（注册表里没有 ⇒ 503）。
+  ③ `services/nexus-api`（SC-3）——加 eureka-client；注册默认**关**（`NEXUS_API_REGISTER=false`），
+     两个开关都关时客户端不启动任何网络任务，43 个既有测试行为不变。
+- 见证（逐字）：registry `Tests run: 6, Failures: 0`；gateway `6 + 1 = 7, Failures: 0`；
+  nexus-api 43 个测试类全绿（`mvn -f services/nexus-api/pom.xml test` 退出码 0）。
+  真三服务联调 2026-11-09：`/eureka/apps/NEXUS-API` = 200；网关 `/platform/services` 读到
+  `nexus-api → http://192.168.1.5:8081`（同一张表里还有外部项目的 `football-edge`，这是读数在说真话）；
+  `GET http://127.0.0.1:8091/api/projects?limit=1` = **200 + 真 publication `doc_19d8pa`**。
+- 顺带修正：网关的 pom/README/注释原先把这句话归给 "ADR 0011"，但 `docs/adr/0011` 讲的是作业收敛；
+  正确出处是 `docs/decisions/0011-backend-service-boundaries.md`，已改准。
+- 仍欠，如实记：① 经网关拿到的 `url` 是**后端实例地址**（Host 透传），不是网关地址，需要
+  `X-Forwarded-*` 或 public base URL 策略；② `nexus-api` 在本机旧库上启动时 Hibernate 报
+  `column "target_type" of relation "audit_entry" contains null values`（`ddl-auto: update` 加不了
+  NOT NULL 列），读路径不受影响、写审计的路径会失败，需要迁移工具或带默认值的列演进；
+  ③ 网关的 auth / 限流 / TLS / WebSocket / 重试 / Caffeine 缓存都没做；④ `java-domain-service`
+  还没接入注册中心。

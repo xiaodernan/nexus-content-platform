@@ -40,6 +40,19 @@
 因此 NEXUS 使用**独立端口段**避免冲突：Postgres `55433`、Redis `56379`、MinIO `59000/59001`、AI Service `3200`、Web `3100`。
 容器统一前缀 `nexus-`，compose project name 为 `nexus`。
 
+Spring Cloud 三件（2026-11-09 起，SC-1–SC-3）：注册中心 `8761`、网关 `8090`、`nexus-api` 默认 `8080`。
+三个都可被环境变量覆盖：`NEXUS_REGISTRY_PORT` / `NEXUS_GATEWAY_PORT` / `NEXUS_API_PORT`，后端用
+`NEXUS_API_REGISTER=true` 才会注册。
+
+> `8761` 是 Eureka 的默认端口，**本机别的项目也可能把服务注册到这里**：2026-11-09 联调时
+> `/eureka/apps` 里同时有外部项目的 `FOOTBALL-EDGE`，网关的 `/platform/services` 老实把它列了出来。
+> 这是读数在说真话，不是串台；要隔离就换 `NEXUS_REGISTRY_PORT` 并让三个服务指向同一个
+> `NEXUS_REGISTRY_ZONE`。
+
+> 同一天实测 `8080` 与 `8090` 都被机器上的外部进程占着（不是本仓库的服务，**不要终止**）。
+> 联调改用 `--server.port=8081`（api）与 `NEXUS_GATEWAY_PORT=8091`（网关）；注册中心按服务 id 找到
+> 8081，所以网关不需要知道这个数字。
+
 > 端口 `3000` 已被机器上另一个项目的 Next dev server 占用（`D:\求职平台\frontend`，属外部进程，禁止终止），
 > 因此 NEXUS Web 固定使用 **3100**，e2e / 预览 / 截图脚本都以 `http://localhost:3100` 为基准。
 

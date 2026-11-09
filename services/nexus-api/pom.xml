@@ -29,7 +29,20 @@
     <java.version>25</java.version>
     <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <spring-cloud.version>2025.0.3</spring-cloud.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
@@ -44,6 +57,16 @@
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
+    </dependency>
+    <!--
+      SC-3: the registry half of "lb://nexus-api". Without this dependency the gateway's route can never
+      resolve, because nothing ever announces this service's address. Registration is OFF by default (see
+      application.yml): a standalone proof run must not depend on a registry being up, and a service that
+      silently registers itself into whatever answers on 8761 is a deployment decision, not a default.
+    -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

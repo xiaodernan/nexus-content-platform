@@ -21,6 +21,26 @@ spring:
 server:
   port: ${NEXUS_API_PORT:8080}
 
+# SC-3 — the registry half of the gateway's `lb://nexus-api` route.
+#
+# Registering is OFF by default. A standalone run (a proof, a test, `java -jar` on a laptop) must not depend
+# on something answering on 8761, and a service that silently joins whatever registry happens to be there is
+# a deployment decision, not a default. A deployment that wants discovery sets NEXUS_API_REGISTER=true.
+#
+# With both flags off the Eureka client starts no network task at all: no registration, no fetch, no
+# heartbeat. That is why this block can live in the shipped config instead of a test-only profile.
+eureka:
+  client:
+    enabled: ${NEXUS_API_EUREKA_ENABLED:true}
+    service-url:
+      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8761/eureka/}
+    register-with-eureka: ${NEXUS_API_REGISTER:false}
+    fetch-registry: ${NEXUS_API_FETCH:false}
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
 logging:
   level:
     root: warn
