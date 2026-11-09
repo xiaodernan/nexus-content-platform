@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  NEXUS — services/java-gateway (Spring Cloud Gateway: the EDGE).
+
+  What this service is: the single front door for service-to-service traffic. It owns the routing
+  table (which path goes to which service), the circuit breakers (what happens when a service
+  behind the door is down), and the failure shape (what a caller is told when the door could not
+  reach a service).
+
+  What it is NOT: it holds no business data and makes no business decisions. Every route it
+  forwards is a route to a service that already owns the answer. The gateway's own contribution is
+  the ANSWER IT GIVES WHEN A SERVICE IS ABSENT — which is why the fallback below is written to
+  name the cause rather than to return a plausible-looking empty body. An edge that invents a
+  200 is worse than no edge at all.
+
+  Note the ABSENCE of spring-boot-starter-web: a Gateway application is reactive (WebFlux), and the
+  servlet starter on the classpath makes the two runtimes fight over the same port. That is a real
+  failure with a real error message, and this pom is the place where it is prevented.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.16</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>dev.nexus</groupId>
+  <artifactId>nexus-gateway</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>nexus-gateway</name>
+  <description>NEXUS edge gateway (Spring Cloud Gateway, reactive, with Resilience4j circuit breakers).</description>
+
+  <properties>
+    <java.version>25</java.version>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <spring-cloud.version>2025.0.3</spring-cloud.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- The edge itself. The `-server-webflux` starter is the one that matches Gateway 4.3.x; the
+         older `spring-cloud-starter-gateway` artifact stopped at 4.1.x. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
+    </dependency>
+
+    <!-- The breakers behind the `CircuitBreaker` filter: without this starter the filter's
+         fallbackUri is never consulted and a dead upstream becomes a 500 with a stack trace. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
+    </dependency>
+
+    <!-- Discovery: with a registry running, a route may name `lb://<service>` and the gateway
+         resolves it to a live instance instead of a hard-coded address. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+    </dependency>
+
+    <!-- Health + metrics: the edge is the piece whose health a caller checks FIRST, so it must be
+         able to answer the question itself. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.14.1</version>
+        <configuration>
+          <release>25</release>
+          <encoding>UTF-8</encoding>
+          <source>25</source>
+          <target>25</target>
+          <compilerArgs>
+            <arg>-J-Dfile.encoding=UTF-8</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

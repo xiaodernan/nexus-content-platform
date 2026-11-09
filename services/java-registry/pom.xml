@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  NEXUS — services/java-registry (Spring Cloud: the DISCOVERY server).
+
+  What this service is: the Eureka server the other Java services register with. It is the
+  "who is up right now" half of the microservice topology — a registry, not a business service.
+  It answers exactly two questions for the rest of the platform:
+    - which instances of a named service are alive, and
+    - which instance should a caller pick next (the client side does the picking; the registry
+      only reports).
+
+  What it is NOT: it holds no business data, it authors nothing, and it is not a proxy. The
+  traffic path never passes through it — a registry outage degrades DISCOVERY, not the data
+  plane, and that separation is the reason it can be started and stopped without touching the
+  write path.
+
+  Version pins: Spring Cloud 2025.0.3 is the release train that matches Spring Boot 3.5.x
+  (this repo's `services/nexus-api` parent). The BOM is imported rather than the versions
+  being spelled out one by one, so the whole train moves as a unit.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.16</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>dev.nexus</groupId>
+  <artifactId>nexus-registry</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>nexus-registry</name>
+  <description>NEXUS service registry (Spring Cloud Netflix Eureka server).</description>
+
+  <properties>
+    <java.version>25</java.version>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <spring-cloud.version>2025.0.3</spring-cloud.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- The registry serves HTTP: its own Eureka REST API and the dashboard. Named explicitly rather
+         than inherited transitively, because "this service answers HTTP" is a fact about the service
+         and not an accident of a starter's dependency graph. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- The registry itself: the Eureka server + its dashboard + the peer-replication stubs. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+    </dependency>
+
+    <!-- Health + metrics, so the gateway and the proof can ask whether the registry is ANSWERING
+         rather than merely running. A registry that cannot be asked cannot be trusted. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.14.1</version>
+        <configuration>
+          <release>25</release>
+          <encoding>UTF-8</encoding>
+          <source>25</source>
+          <target>25</target>
+          <compilerArgs>
+            <arg>-J-Dfile.encoding=UTF-8</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

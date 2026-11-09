@@ -1,0 +1,72 @@
+# NEXUS nexus-gateway (Spring Cloud Gateway) — the EDGE.
+#
+# Every value here is overridable by environment, because the proof that runs this service must point
+# it at its OWN upstream and its OWN port — not at whatever happens to be listening on 8080 on this
+# machine, which is somebody else's container.
+#
+# The route table is the service's whole product: which path goes to which service, and what a caller
+# is told when that service cannot be reached.
+server:
+  port: ${NEXUS_GATEWAY_PORT:8081}
+
+spring:
+  application:
+    name: nexus-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            # The system of record. `StripPrefix=1` removes the `/api` prefix, so the service behind
+            # the door sees the path IT owns (`/projects/{id}/publish`) rather than the edge's path.
+            #
+            # The circuit breaker is the reason this route is safe to expose: when `nexus-api` is down,
+            # the edge answers 503 with a body that NAMES the service that could not be reached — never
+            # a 200 with an empty body, which a caller could not tell from "there is no such project".
+            - id: nexus-api
+              uri: ${NEXUS_GATEWAY_NEXUS_API_URI:http://127.0.0.1:8080}
+              predicates:
+                - Path=/api/**
+              filters:
+                - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    name: nexusApiCircuitBreaker
+                    fallbackUri: forward:/__fallback/nexus-api
+
+    # Discovery. The registry is OPTIONAL: with `NEXUS_EUREKA_ENABLED` set, this service registers itself
+    # and can resolve `lb://` route targets; without it, the service runs exactly as before and the
+    # routes above use their configured addresses. A service that cannot start because an optional
+    # dependency is absent is a service whose absence takes the edge down with it.
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+# Eureka's OWN namespace is TOP-LEVEL `eureka.*`, not `spring.cloud.eureka.*`. The switch that stops
+# the client is `eureka.client.enabled` — and the address it would register with is
+# `eureka.client.service-url.defaultZone`. Measured here: with the block written under
+# `spring.cloud.eureka`, the client started anyway and tried to register with Eureka's own default
+# (localhost:8761) — a service quietly dialling a registry nobody started, for a reason no log line
+# explains. The names below are the ones Eureka actually reads.
+eureka:
+  client:
+    enabled: ${NEXUS_EUREKA_ENABLED:false}
+    register-with-eureka: ${NEXUS_EUREKA_ENABLED:false}
+    fetch-registry: ${NEXUS_EUREKA_ENABLED:false}
+    service-url:
+      defaultZone: ${NEXUS_EUREKA_URL:http://127.0.0.1:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    root: warn
+    dev.nexus.gateway: info
+
+# Where this service writes the port it actually bound, when a caller asks it to. Empty by default
+# (no file, no behaviour change) — same rule the other Java services follow.
+nexus:
+  port-file: ${NEXUS_PORT_FILE:}

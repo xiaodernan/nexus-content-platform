@@ -1,0 +1,53 @@
+# NEXUS nexus-registry (Spring Cloud Netflix Eureka) — the DISCOVERY server.
+#
+# Every value here is overridable by environment, because the proof that runs this service must point
+# it at its OWN port and the services under test must point at ITS port — not at whatever happens to
+# be listening on 8761 on this machine.
+#
+# SINGLE NODE, ON PURPOSE. `register-with-eureka` and `fetch-registry` are both false: a registry
+# with no peers must not spend its startup trying to find them, and the peer-sync story that a
+# second registry would need is not exercised by anything in this repo yet. The bound is stated in
+# the README rather than implied by a dashboard.
+server:
+  port: ${NEXUS_REGISTRY_PORT:8761}
+
+spring:
+  application:
+    name: nexus-registry
+
+eureka:
+  instance:
+    # The address other services are told to reach this one at. `localhost` rather than the
+    # container id, because the registry and its clients run on the same host in this repo.
+    hostname: ${NEXUS_REGISTRY_HOST:localhost}
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+  server:
+    # Self-preservation keeps a registry from evicting every instance when it cannot hear the
+    # renewals. That is a real production setting; for a single-node development registry it
+    # hides the very fact the operator needs ("nothing is renewing"), so it is OFF here and the
+    # README says so.
+    enable-self-preservation: false
+    # The read cache is how often `/eureka/apps` re-reads the registry. The default is 30 s,
+    # which makes a test that registers an instance and immediately reads it back flaky. One
+    # second keeps the registry honest AND lets the proof read its own registration promptly.
+    response-cache-update-interval-ms: 1000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    root: warn
+    dev.nexus.registry: info
+
+# Where this service writes the port it actually bound, when a caller asks it to. Empty by default
+# (no file, no behaviour change) — same rule `services/nexus-api` follows.
+nexus:
+  port-file: ${NEXUS_PORT_FILE:}
