@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cloud.client.circuitbreaker.NoFallbackAvailableException;
 
 /**
  * The reader that talks to the DOMAIN service, graded over a stubbed client.
@@ -126,6 +127,48 @@ class DomainProjectReaderTest {
                 .isEqualTo("downstream-unavailable");
         assertThat(answer.project()).isNull();
         assertThat(answer.reason()).contains("500");
+    }
+
+    @Test
+    void aFourOhFourThatArrivedAsAnotherFeignExceptionIsStillNotFound() {
+        UUID id = UUID.randomUUID();
+        // A 404 that Feign raised as its generic client exception instead of `NotFound`. The reader
+        // must decide by the STATUS, not by which exception family the library happened to use.
+        FeignException asClientException = FeignException.errorStatus(
+                METHOD_KEY,
+                Response.builder()
+                        .status(404)
+                        .reason("Not Found")
+                        .request(request(id))
+                        .headers(Map.of())
+                        .build());
+        when(client.getProject(id)).thenThrow(asClientException);
+
+        DomainResponse answer = reader.read(id);
+
+        assertThat(answer.state())
+                .as("a 404 is a fact about the PROJECT; a different exception class must not turn it into a fact about the service")
+                .isEqualTo("not-found");
+        assertThat(answer.project()).isNull();
+    }
+
+    @Test
+    void aFourOhFourWrappedByTheBreakerIsStillNotFound() {
+        UUID id = UUID.randomUUID();
+        // THE shape the topology proof produced (measured 2026-11-09): with a circuit breaker in
+        // front of the call, Spring Cloud routes EVERY exception through the breaker's fallback, and
+        // with no fallback bean it throws NoFallbackAvailableException WRAPPING the original. The
+        // original is the fact: a 404 says the service was there, healthy, and holding no such row.
+        when(client.getProject(id)).thenThrow(new NoFallbackAvailableException(
+                "No fallback available.", notFound(id)));
+
+        DomainResponse answer = reader.read(id);
+
+        assertThat(answer.state())
+                .as("a 404 that reached the reader inside a wrapper is still a fact about the PROJECT")
+                .isEqualTo("not-found");
+        assertThat(answer.isUnavailable()).isFalse();
+        assertThat(answer.project()).isNull();
     }
 
     @Test

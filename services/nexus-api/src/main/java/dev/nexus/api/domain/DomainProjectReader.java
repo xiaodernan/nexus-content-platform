@@ -26,10 +26,28 @@ import org.springframework.stereotype.Service;
  * the artifact page in this service answers 503 for "the service is not running" and 404 for
  * "nothing is published here" — so the same rule is carried across the service boundary here.
  *
- * <p>The circuit breaker that stands in front of the call is configured on the client; what this
- * class guarantees is that WHICHEVER way the call fails — an open breaker, a refused connection, a
- * timeout — the answer says {@code downstream-unavailable} rather than pretending the project is
- * absent.
+ * <h2>Why this class digs through the cause chain</h2>
+ *
+ * <p>Because the failure arrives WRAPPED, and the wrapper is the whole story.
+ *
+ * <p>Measured 2026-11-09, on the topology proof: with a circuit breaker in front of the call, a 404
+ * from the domain service arrived at this class as
+ *
+ * <pre>NoFallbackAvailableException: No fallback available.
+ *   (cause: NotFound: [404] during [GET] to [http://nexus-domain-service/api/v1/projects/…])</pre>
+ *
+ * <p>Spring Cloud's OpenFeign integration routes EVERY exception through the breaker's fallback
+ * function, and with no fallback bean configured that function throws
+ * {@code NoFallbackAvailableException} **wrapping the original**. The original exception is in the
+ * cause — and the original exception is the fact.
+ *
+ * <p>So a reader that only recognised a bare {@code FeignException} answered <b>503 "the domain
+ * service could not be reached"</b> to a caller who had asked about a project that simply does not
+ * exist. That is the exact lie this slice exists to prevent, produced by a wrapper rather than by a
+ * mistake in the logic.
+ *
+ * <p>Hence: find the {@link FeignException} wherever it is in the chain, and decide by its
+ * <b>status</b> — 404 is a fact about the project, anything else is a fact about the service.
  */
 @Service
 public class DomainProjectReader {
@@ -59,18 +77,66 @@ public class DomainProjectReader {
                         "the domain service answered with an empty body; no project was invented from it");
             }
             return DomainResponse.found(project);
-        } catch (FeignException.NotFound notFound) {
-            return DomainResponse.notFound();
-        } catch (FeignException e) {
-            log.warn("the domain service could not be reached: {}", e.getMessage());
-            return DomainResponse.unavailable(
-                    "the domain service could not be reached: " + e.getMessage());
-        } catch (RuntimeException e) {
-            // The breaker refusing, a load balancer with no instance, a DNS failure — none of these
-            // is a fact about the project, so none of them may be reported as one.
-            log.warn("the domain service could not be reached: {}", e.getMessage());
-            return DomainResponse.unavailable(
-                    "the domain service could not be reached: " + e.getMessage());
+        } catch (RuntimeException failure) {
+            return classify(failure);
         }
+    }
+
+    /**
+     * Turn a failure into one of the three facts.
+     *
+     * <p>The order matters: the downstream's own answer comes FIRST, because it is the more specific
+     * fact. A 404 that the breaker wrapped is still a 404 — it says the service was there, healthy,
+     * and holding no such row.
+     */
+    private DomainResponse classify(RuntimeException failure) {
+        FeignException answered = findFeignException(failure);
+        if (answered != null) {
+            if (answered.status() == 404) {
+                return DomainResponse.notFound();
+            }
+            log.warn("the domain service answered with an error ({}): {}", answered.status(), answered.getMessage());
+            return DomainResponse.unavailable(
+                    "the domain service answered with an error " + answered.status() + ": " + answered.getMessage());
+        }
+
+        // The breaker refusing, a load balancer with no instance, a DNS failure — none of these
+        // is a fact about the project, so none of them may be reported as one.
+        //
+        // The CLASS is in the log because "which failure" is the question an operator asks first,
+        // and a message alone ("No fallback available.") does not answer it. The CAUSE is in the log
+        // because that is where the breaker's own name lives — a caller that has to open a source
+        // file to learn which breaker refused is a caller that has to guess.
+        log.warn("the domain service could not be reached ({}): {}{}", failure.getClass().getSimpleName(),
+                failure.getMessage(), causeOf(failure));
+        return DomainResponse.unavailable(
+                "the domain service could not be reached: " + failure.getMessage());
+    }
+
+    /**
+     * The downstream's own answer, wherever it sits in the cause chain.
+     *
+     * <p>{@code null} when the failure did not come from an HTTP answer at all — a refused
+     * connection, a load balancer with no instance, an open breaker.
+     */
+    private static FeignException findFeignException(Throwable failure) {
+        for (Throwable current = failure; current != null; current = current.getCause()) {
+            if (current instanceof FeignException answered) {
+                return answered;
+            }
+            if (current.getCause() == current) {
+                break;
+            }
+        }
+        return null;
+    }
+
+    /** The cause of a failure, in one line — {@code " (cause: X: y)"} or nothing when there is none. */
+    private static String causeOf(Throwable failure) {
+        Throwable cause = failure.getCause();
+        if (cause == null) {
+            return "";
+        }
+        return " (cause: " + cause.getClass().getSimpleName() + ": " + cause.getMessage() + ")";
     }
 }
