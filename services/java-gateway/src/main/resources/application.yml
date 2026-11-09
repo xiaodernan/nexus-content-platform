@@ -39,6 +39,25 @@ spring:
     # routes above use their configured addresses. A service that cannot start because an optional
     # dependency is absent is a service whose absence takes the edge down with it.
 
+# The breaker the ROUTE asks for. The instance name MUST be the name in the route's `CircuitBreaker`
+# filter above (`nexusApiCircuitBreaker`), or this block configures an instance nothing uses — and a
+# configuration that names the wrong instance fails SILENTLY: the file still looks right.
+#
+# Why the numbers matter, measured on the topology proof (2026-11-09): with the library's DEFAULTS
+# (100 calls before the breaker may open, 60 seconds before it may come back) the edge kept sending
+# traffic to a dead upstream for about half a minute. Five calls and ten seconds is the difference
+# between "the service is gone" and "the edge noticed".
+resilience4j:
+  circuitbreaker:
+    instances:
+      nexusApiCircuitBreaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
 management:
   endpoints:
     web:
