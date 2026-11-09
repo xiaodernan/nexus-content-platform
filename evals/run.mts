@@ -8,6 +8,7 @@ import { gameBuildSuite } from './suites/game-build.mts';
 import { designBuildSuite } from './suites/design-build.mts';
 import { projectBundleSuite } from './suites/project-bundle.mts';
 import { localEmbeddingSuite } from './suites/local-embedding.mts';
+import { localRerankerSuite } from './suites/local-reranker.mts';
 import { failedChecks, type EvalSuite, type EvalSuiteResult } from './types.ts';
 
 /**
@@ -28,7 +29,7 @@ import { failedChecks, type EvalSuite, type EvalSuiteResult } from './types.ts';
  *   npm run evals -- --suite code-index
  *   npm run evals -- --list
  */
-const SUITES: EvalSuite[] = [codeIndexSuite, modelRoundtripSuite, exportRoundtripSuite, videoPlanSuite, worldBuildSuite, schemasContractSuite, gameBuildSuite, designBuildSuite, projectBundleSuite, localEmbeddingSuite];
+const SUITES: EvalSuite[] = [codeIndexSuite, modelRoundtripSuite, exportRoundtripSuite, videoPlanSuite, worldBuildSuite, schemasContractSuite, gameBuildSuite, designBuildSuite, projectBundleSuite, localEmbeddingSuite, localRerankerSuite];
 
 const args = process.argv.slice(2);
 const listOnly = args.includes('--list');

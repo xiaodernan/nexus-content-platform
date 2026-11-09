@@ -2654,3 +2654,27 @@ ASCII 词 / CJK bigram 双模识别、八个语料主题×八个 CJK 查询全�
 `VectorStore.upsertChunks` 链路直接可用，不替任何人接 key、也不在缺 key 时假装有能力）；
 `cf1537e` 主线 CI（`.github/workflows/main-line.yml`）让这些结构不变式进了选择性 CI。
 
+
+## 2026-11-09 补记（续二）：§85 evals 第十一套 `local-reranker`——§93 本地确定性重排入矩阵
+
+第十一套 `local-reranker`（确定性、§93、本地 token-bag 重排）：`15/15`：
+
+```
+local-reranker 15/15
+```
+
+它钉的是结构不变式：`models()` 自报唯一模型（`local-token-bag-rerank-1`）、同输入逐位确定性、
+每个文档都拿到一个分数（空查询全 0、空文档列表为空分数表）、八个语料主题×八个查询全部
+target 文档落在 top-1 或 top-2、所有分数有限。
+
+`local-reranker` 测的是"重排自洽"——不是"模型质量"、也不是"语义理解"。
+真实 provider 接入后这一格照样守住现成的同一份检索链路。十一套现在合计 **276/276**
+（不含需真库的 export-roundtrip；含它也是 276/276）。
+
+`apps/web/src/server/ai/embedding.ts` 新增 `LocalTokenBagRerankerProvider`（与本地 embedder 同一条纪律：
+`NEXUS_RERANKER_PROVIDER=local` 显式 opt-in、`NEXUS_OPENAI_API_KEY` 单独存在绝不静默切到它、
+未知 provider 名字响亮失败、与 `hasRerankerProvider()` 同口径），
+并由 `/api/projects/<id>/knowledge/search` 在混合检索成功时把 reranker 接给 `VectorStore.search`——
+`NEXUS_RERANKER_PROVIDER=local` 之下，DEMO MODE 全链路（bge-tokenizer → 1536 维 → 混合 → rerank）
+无需任何凭据即可离线跑通。
+

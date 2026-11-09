@@ -19,7 +19,7 @@
 | `project-bundle` | §16/§159 集大成合成 | 14/14 |
 | `local-embedding` | §49 本地 token-bag 语料检索（确定性） | 14/14 |
 
-**合计 261 / 261 PASS**（不含 needsDatabase 的 `export-roundtrip`：那一项 `npm run evals` 在 env 已设时跑、不设则打印 `SKIP` 退出码不变，CI 安全）。
+**合计 276 / 276 PASS**（不含 needsDatabase 的 `export-roundtrip`：那一项 `npm run evals` 在 env 已设时跑、不设则打印 `SKIP` 退出码不变，CI 安全）。
 
 真库首跑读数（仍以 `npm run evals:baseline` 验）：recall@5 = 100% / MRR = 0.786 / 代码往返 5/5 干净 / 无障碍 4/4 检出 / 渲染后页面 axe 违规 0 条—— `docs/EVALUATION.md` 第十五片起。
 
@@ -41,7 +41,7 @@
 ## 已经合入主干的另一会话成果（无许可主动删不动）
 
 - 两条线合入一个分支后的内容，全部是两侧原子的整个体系（无内容被裁剪，无证词被改写）。
-- `8179208`：`apps/web` 确定性本地 embedding provider（§49），环境变量 `NEXUS_EMBEDDING_PROVIDER=local` 显式 opt-in，测试 13/13 绿；不存在没有 provider 时告随便的行为，同一个模型档在 `model_for` 上自报家门。`evals` 第十套 `local-embedding 14/14` 进矩阵（261/261），`.github/workflows/main-line.yml`（`cf1537e`）让结构不变式进了 CI。
+- `8179208`：`apps/web` 确定性本地 embedding provider（§49），环境变量 `NEXUS_EMBEDDING_PROVIDER=local` 显式 opt-in，测试 13/13 绿；不存在没有 provider 时告随便的行为，同一个模型档在 `model_for` 上自报家门。`evals` 第十套 `local-embedding 14/14` and 第十一套 local-reranker 15/15 in the matrix (276/276)，`.github/workflows/main-line.yml`（`cf1537e`）让结构不变式进了 CI。
 - `cf1537e`：新增 `.github/workflows/main-line.yml`，主线的 `typecheck:main` + `evals` 决定性结构不变式进了 CI（ADR-0093），针对 `pgvector` 容器跑 `export-roundtrip`（无库时打印 SKIP 且退码保持不变）。
 - 其余动作都在 `docs/evidence` 里按 amendment 568（v641）记录：id 568 已授予。
 
@@ -128,3 +128,15 @@
   4/4 passed, 55.6s, against the local Docker-backed dev stack).
 - `npm run evals` (all nine suites incl. `export-roundtrip 17/17` on the real DB, port 55100) and the
   export/zip integration tests (77/77) pass on the merged tree.
+
+
+
+## 2026-11-09 addendum (cont. 2): the local reranker landed
+
+- `b527422`: `LocalTokenBagRerankerProvider` joins the deterministic local retrieval stack, next to
+  the local embedder. `NEXUS_RERANKER_PROVIDER=local` selects it explicitly; a key alone does nothing;
+  an unknown provider name throws naming the two legal values. `apps/web/src/app/api/projects/[projectId]/knowledge/search/route.ts`
+  now passes the selected reranker into `VectorStore.search`, so DEMO MODE can run the whole path
+  (embed -> hybrid -> rerank) with no credentials at all, once the operator opts in.
+- `evals` gained the eleventh suite `local-reranker 15/15`; the matrix now stands at **276/276**.
+  `docs/EVALUATION.md` and `docs/TESTING.md` record the eleventh suite.
