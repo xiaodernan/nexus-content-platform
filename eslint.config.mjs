@@ -32,9 +32,22 @@ export default tseslint.config(
       // Agent 的临时实验区：里面是变异探针与跑批脚本，不属于任何 tsconfig，
       // 类型感知的规则集对它会直接报"文件不在 project service 里"（见 .gitignore 同名条目）
       '.scratch/**',
+      // 同一个家族的另一半：`.nexus-tmp/`（.gitignore:87），481 个探针/一次性脚本，其中 146 个
+      // 是 ESLint 认得的扩展名。别以为点目录会被自动跳过——实测（在 tools/ 下放一个 `.nxprobe/bad.mjs`
+      // 再 `eslint tools`）ESLint 10.11 照样走进去并把它算进 18 个文件里。而这里没有一个文件在任何
+      // tsconfig 里，走进去读到的只有解析错误。
+      '.nexus-tmp/**',
       // 根目录的同类临时脚本（scratch-shot.mjs 一类）：同样不属于任何 tsconfig，
       // 留在根目录时整仓 eslint 会被它一个人卡住
       'scratch-*.mjs',
+      // apps/studio 自带一份 eslint 9 + eslint-config-next，并且是唯一一个声明了 `lint` 脚本的包
+      // （`npm run lint` = `turbo run lint`，CI 走的就是这条路；它自己那一跑实测 exit 0）。根这一份是
+      // eslint 10：在 HEAD 的字节上、用脚本自己的 argv（`eslint .`，不带 --config）实测 4.5 秒就死在
+      // `@rushstack/eslint-patch` 里——"Failed to patch ESLint because the calling module was
+      // not recognized"，exit 2，输出里没有一行点名的文件，因为 ESLint 走到 studio 时会去加载它就近的
+      // 配置。加上这条 ignore 之后同一个 argv 跑得完了：248 秒、223 条、exit 1。排除它不是放过它：它被
+      // 那条已到达的腿评着，这里排除的是"同一份代码被两个不同大版本的 eslint 各评一遍"。
+      'apps/studio/**',
     ],
   },
 
@@ -165,6 +178,51 @@ export default tseslint.config(
         projectService: false,
         project: ['./tsconfig.tools.json'],
       },
+    },
+  },
+
+  {
+    // 每个包只有两份 tsconfig，分工写死在文件名里：`tsconfig.json` 是构建（`exclude: ["test"]`），
+    // `tsconfig.test.json` 是 vitest 实际编译的那份（`include: ["src","test"]`）。
+    // project service 只会去开 `tsconfig.json`，所以下面这 6 个包的 test 目录里的每一个 .ts
+    // 都是一条 "was not found by the project service" 的解析错误——类型感知的规则一条也没看过它们。
+    // 这里把解析器交给包自己的那份 test 配置（`project` 支持通配，一条顶六条）。
+    //
+    // 名单只列**把 test 排除出构建**的那 6 个包。另外 5 个（creative-model / game-model / schemas /
+    // video-model / world-model）的 `tsconfig.json` 没有 exclude，test 本来就在程序里，
+    // project service 认得——给它们也套上 `project:` 反而会把它们从"认得"变成"找不到归属"
+    // （实测多出的 12 条解析错误就是这么来的）。这条分工由 `packages/*/tsconfig*.json` 的
+    // 名字决定，不是风格选择：见 docs/decisions/0016 里配这条改动的门。
+    files: [
+      'packages/ai-providers/test/**/*.ts',
+      'packages/design-model/test/**/*.ts',
+      'packages/three-runtime/test/**/*.ts',
+      'packages/world-engine/test/**/*.ts',
+      'agents/runtime/test/**/*.ts',
+      'agents/exec-host/test/**/*.ts',
+    ],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: ['./packages/*/tsconfig.test.json', './agents/*/tsconfig.test.json'],
+      },
+    },
+  },
+
+  {
+    // 证据语料（docs/evidence/**、tools/**）是纯 Node ESM，没有任何 tsconfig 说过它们。
+    // 实测：把 type-aware 那批规则留着跑 `eslint docs tools`，146 个文件得到 146 条解析错误
+    // ——每个文件恰好一条 "was not found by the project service"，一条规则都没往下看。
+    // 关掉 type-aware 不等于放过它们：非类型规则（恒真/死代码/未 await 那几条）照常评，
+    // 实测这批文件仍有 101 条 finding，而这些文件真正的守卫是它们自己跑起来的断言
+    // （`npm run verify:proofs`）。
+    files: ['docs/evidence/**/*.mjs', 'tools/**/*.mjs'],
+    extends: [tseslint.configs.disableTypeChecked],
+    rules: {
+      // .mjs 里没有类型层，ESLint 也看不到 Node 的全局对象。实测把这条打开再跑同一批文件：
+      // finding 从 101 涨到 2101，多出来的正好是 2000 条 no-undef——`process` / `console` / `URL`
+      // 每一个引用一次报一次。噪音盖过信号，所以关掉，而不是逐个文件加 disable。
+      'no-undef': 'off',
     },
   },
 

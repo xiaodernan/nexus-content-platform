@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-09T18:58:13.513Z",
+  "ranAt": "2026-11-09T22:49:09.264Z",
   "arms": 57,
   "matched": 57,
   "armNames": [
@@ -64,7 +64,7 @@
     "R19-a-line-at-the-bound-is-not-marked"
   ],
   "subjects": {
-    "workflow": "6e39ab2cb0bb78f2a2ed7e06f88085fc264ed638515708451a47415490983803",
+    "workflow": "f6b9ddcd5e35a0e64ae3e802b569c7c5faeea4a80271187db880c5eddfa2dde0",
     "mainline": "fe754ec950b7bd30ecb26a622a8a4923e8b2752defc189cb160f40efd23dc2d0",
     "gate": "e8f45d7568ee467ddf9940a5d2d0b392d057871b743abbe2a53ed76fcb22f02f",
     "arms": "178bb66057cc8026bebb17c7a1902e897af877490ad797ce1d5e5885bd83e203",

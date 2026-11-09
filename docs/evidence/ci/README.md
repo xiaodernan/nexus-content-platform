@@ -10,6 +10,7 @@ cost the build nothing. That is not a footnote to the evidence tree; it is the r
 
 ```
 npm run verify:proofs      # the build's own row: run every derived proof row, exit 1 on any RED
+npm run verify:lint-tree   # the tree's own lint door: 19 derived areas, one ESLint child each, vs lint-debt.json
 npm run verify:ci-wiring   # the gate over the wiring itself (and a row inside the set it enumerates)
 npm run verify:arms        # the witness arms — a row since v555 (the set's own size is in its receipt)
 ```
@@ -51,6 +52,13 @@ npm run verify:arms        # the witness arms — a row since v555 (the set's ow
   under `../nexus-ci-arms-plane-<pid>`, and the tool's only in-tree write (the receipt) now happens only when
   its content would change. It rewrites one byte-range of one plane file per arm and accepts the arm only when
   the gate reddens at exactly the clause the arm aimed at.
+- **`tools/ci/lint-tree.mjs`** is the second door the build walks (`verify:lint-tree`), and a `runner` in the
+  manifest census rather than a row: its command is `node tools/ci/lint-tree.mjs`, outside `docs/evidence`, so
+  the admission rule that derives rows cannot derive it. Its 19 areas come from `git ls-files`, so a new
+  top-level directory is graded the day it is committed and there is no list to forget; the two areas it
+  excuses each state the reader that excuses them, and the gate re-derives that reader every run. It spawns
+  one ESLint child per area because one process over 1117 files is one heap, and it grades its own verdicts on
+  15 planted shapes before it reports a single real finding.
 
 ### Why §9 reads refusals first
 
@@ -325,6 +333,122 @@ people.
 
 - **Bounds (§60), stated.** §14 grades a REACH, not a RESULT: it says a workflow step names a script that names a `tsc -p`, and says nothing about whether that tsc exits 0 — the hosted log above is what reads the verdict. It counts only legs declared in a MANIFEST script, so a `tsc` spawned from inside a proof file is invisible to it by construction, and the `extends`-base excuse is a naming rule, not a coverage claim: a base with no `extends` reader and no leg is a §14 red, which is what A28 proves. Nothing here makes GitHub execute the main-line job; the four readings above come from `gh run view`, and the next one will disagree with this page if this page is wrong.
 
+### v647 — the build's one lint door graded ONE package, and the root script that could have graded the rest died before it named a file: `tools/ci/lint-tree.mjs` walks 19 derived areas against a per-(rule, file) debt ledger on the INDEX's bytes, and the census learned that a door must be attributed to the step that walks it (ADR 0016 amendment 574)
+
+- **What CI linted before this, counted from the manifests.** `npm run lint` is `turbo run lint`, and a package
+  joins that run only by declaring a `lint` script. Of the 14 workspace manifests the root `workspaces` globs
+  resolve, exactly one declares it — `apps/studio -> eslint . --max-warnings=0`. So the build's lint verdict was
+  300 files of one Next app, and said nothing whatever about the other **1117 tracked lintable files** the new
+  gate enumerates over 19 derived areas — the ten largest: `apps/web` 548, `docs` 129, `agents/runtime` 85,
+  `packages/creative-model` 55, `e2e` 51, `packages/three-runtime` 35, `scripts` 35, `packages/game-model` 26,
+  `agents/exec-host` 25, `packages/ai-providers` 18; amendment 574 carries all nineteen and their sum. The two
+  scripts that WOULD have covered them — `eslint` (`eslint .`) and `lint:main` (`npm run typecheck && npm run
+  eslint`) — are named by no step of either workflow file, and still are: this increment ships a door that
+  reaches the tree, it does not adopt the crashed script.
+- **The crash was re-measured at the script's OWN argv, because the carrier is the argv.** Pointed at anything
+  under `apps/studio`, with the root config at HEAD bytes and the exact command the manifest declares, ESLint
+  10.11.0 answers in 4.5 s with exit 2 — `Cannot read config file: apps/studio/node_modules/eslint-config-next/index.js`
+  under `Failed to patch ESLint because the calling module was not recognized`, `Referenced from: …/eslint-config-next/core-web-vitals.js`
+  — and the probe's own reading of its stdout is `first line naming a graded file: NONE (nothing printed a path)`.
+  A run made earlier answered differently, and the difference was MY command: it carried `--config <path>`, which
+  suppresses the per-directory config lookup, so it never loaded the studio file at all. That invocation survives
+  the crash and dies of the heap instead — exit 134, `Ineffective mark-compacts near heap limit`, 4079 MB at 202 s
+  in, again with no verdict on any file. With this landing's bytes the same argv finishes (248 s, 223 findings,
+  exit 1), because `apps/studio/**` is now in the root `ignores`; that run is still unreached by CI, and the gate
+  does not depend on it.
+- **Nineteen areas derived, two excused by name, and each excuse states its reader.** The areas are
+  `git ls-files`'s own top-level directories, so a new one is graded the day it is committed — there is no list to
+  forget. `apps/studio` (300 files) is excused by a reach chain the gate re-derives every run: its manifest
+  declares `lint`, `npm run lint` walks it, ci.yml names that step, and the package is measured passing at its own
+  bytes (eslint 9.39.5, `eslint . --max-warnings=0`, exit 0). It pins `eslint-config-next`, whose peer range is
+  `^7.23.0 || ^8.0.0 || ^9.0.0` — the root's 10.11.0 is outside what that config supports, which is why the root
+  run may not descend into it and why the exemption is a handoff rather than a pass. `UNLINTED EXEMPTION` reddens
+  the day the `lint` script is gone. `.scratch` (24 files) is the other one: probes rewritten mid-run, each already
+  graded by the arm that spawns it.
+- **The ledger is (rule, file), and the four verdicts are about movement.** `docs/evidence/ci/lint-debt.json`
+  carries **221 findings over 109 (rule, file) pairs in 16 rules across 91 files** — the families as this run
+  prints them: `docs` 84, `packages/world-engine` 37, `packages/three-runtime` 28, `agents/runtime` 26,
+  `agents/exec-host` 15, `tools` 15, `packages/ai-providers` 9, `packages/design-model` 6, and one finding each in
+  `apps/web` and at the root. `UNDECLARED` refuses a finding the ledger never named; `GREW` refuses one above its
+  ceiling; `LOOSE` refuses a ceiling the file no longer needs — debt that shrank silently is a red, because a
+  ledger nobody keeps honest is a licence; `STALE` refuses a pair the file does not produce. `--write` may only
+  move a ceiling DOWN, and the planted shape `moved-not-reduced` proves a sideways rewrite is refused rather than
+  recorded: that is the laundering case, a "repair" that leaves the total intact while changing what it claims.
+- **The basis is the INDEX, and the two readings must agree.** A count compared to a committed ceiling must be a
+  count of the committed bytes, so every tracked lintable file differing from the index is re-measured through
+  `eslint --stdin --stdin-filename <its own path>` before a verdict prints — `basis-control`,
+  `basis-draft-overstates`, `basis-draft-hides-committed-debt` and `basis-row-erased` are planted shapes, not
+  hope. At this ref 4 such files exist and one changes the number: `docs/evidence/java/spring-cloud-proof.mjs —
+  the worktree says 4, the INDEX says 3; graded from the index, so stage your fix to have it counted`. That is the
+  concurrent lane's uncommitted Spring Cloud edit, and the sentence is its handoff rather than my red.
+- **Three totals, reconciled by name.** The gate prints 221 at the committed bytes; the worktree alone would
+  print 222; `npm run eslint` at this ref prints 223. The attribution runs file by file: the root's run grades 92
+  files where the ledger carries 91, and the extra one is `tmp_servicecall_orig.ts` — root debris dated Oct 24, 46
+  lines, untracked, not this increment's to delete, and ESLint grades untracked files while this gate does not;
+  the second unit is the 4-vs-3 above. 223 = 221 + 1 + 1 with every unit named.
+- **Fifteen planted shapes run before a single real finding is reported.** Seven grade the verdict table, four
+  grade the index basis, and four grade the exemptions: `linter-control` (a planted package declaring `lint` is
+  excused and its own linter still runs), `linter-script-gone` (delete the declaration → `UNLINTED`),
+  `linter-not-a-workspace` (a directory that only LOOKS like a package → `UNREACHED`), `linter-graded-not-exempt`
+  (a package a step reaches but the file never excuses may not be silently dropped). §4b's pair is this
+  increment's own hole projected onto the packages: no `lint` script is `UNLINTED`, and one no step names is
+  `UNREACHED` — an exemption that outruns its reader is the same lie as a gate nobody calls.
+- **A door is attributed to the STEP that walks it, or the print is a sentence about nothing.** The manifest
+  census had one `runner`, so its caption — "the workflow's proofs step calls" — was true by accident: the only
+  door disposed as a runner WAS the proofs step's. `verify:lint-tree`'s command is `node tools/ci/lint-tree.mjs`,
+  outside `docs/evidence`, so the admission rule cannot derive it as a row; without a class of its own it would
+  have landed as an undispositioned NAME. It is disposed as the second `runner`, and `runLinesOf` keeps the step
+  name beside each run command so the pair is printed AND graded: `verify:proofs` → step "Evidence proofs",
+  `verify:lint-tree` → step "Lint the whole tree against the debt ledger". Reshaping the fixture's step into a
+  block scalar (arm `M25`) is what found the pairing itself wrong — a `- name:` line that closes a block was
+  tested AFTER the block-exit branch, so the step named above a block kept ownership of every command written
+  below it. The roster grows **131 → 132 arms** in twelve families (A19 · R10 · **M25** · T17 · N7 · X8 · S7 · C8 ·
+  D14 · E10 · F2 · G5), and the number moves in every copy at once: the `// ROSTER` marker, the fixture README the
+  census grades inside itself, this file's headline, and the ten arms that drift these numbers.
+- **The two censuses, printed by this run.** `127 names close as 117 derived rows + 2 runner + 1 covered +
+  7 deferred + 0 undispositioned, over 16 run commands the workflow actually executes`, and on the tools side
+  `17 modules close as 2 runner + 4 reached + 7 named + 0 behind + 4 standby + 0 unreached, over a live closure of
+  132 modules reached from 117 rows, the runner door and 5 declared tools`. The evidence population is unchanged at
+  `129` modules (`117 row + 4 helper + 3 swept + 5 tool + 0 deferred · rows 116+1 · 0 unclassified`) — this
+  increment's new file lives in `tools/`, which is exactly what the reach census was built to see. ci.yml's proof
+  step moves **#11 → #12 of 13** because the lint door joins before it; §2 names that index and §4 the order after
+  `build` step #9, and neither number is re-pinned by hand.
+- **Instrument readings at this ref (2026-11-10, this box).** `npm run verify:lint-tree` **exit 0** — 19 areas +
+  2 named exemptions, **1117** files, **221 findings over 109 (rule, file) pairs in 16 rules** exactly at their
+  ceilings, 0 parse errors, 0 crashes, 15 planted shapes run first, basis: 4 file(s) re-measured from the index.
+  `npm run verify:evidence-census` **exit 0** — its arms **132/132 MATCHED**, 119 refusations, manifest **127
+  names close as 117 derived rows + 2 runner + 1 covered + 7 deferred + 0 undispositioned** over 16 run commands,
+  tools **17 modules close as 2 runner + 4 reached + 7 named + 0 behind + 4 standby + 0 unreached**, and the
+  evidence population unchanged at **129** modules. `npm run verify:ci-wiring` **exit 0** — all fourteen clauses,
+  population **117 closes as 116 + 1**, §2's proof step now **#12 of 13** with `build` at #9, §9 **22 of 116**
+  rows declaring their own budget and 0 refused, §11 a 60 min ceiling against the rows' own 667 min, §12 **115 of
+  116** ending on a literal print, §13's longest whole tail **293 bytes**, §14 **22** legs with 0 orphaned and 0
+  untyped. `npm run verify:arms` **57/57 arms matched (34 gate incl. the control, 23 runner)**, planes removed;
+  `npm run verify:arms-freshness` **9/9 fixture arms**; `arms-receipt.json` re-stamped by that run at **57 arms /
+  8 subjects / 117 derived rows**. `npm run typecheck:main` **exit 0**; `npm run evals` **exit 0** with all ten
+  suites' structural invariants PASS and `demo-mode` at **14/14**. The root script both ways: at HEAD's config
+  bytes with its own argv **exit 2 in 4.5 s** and not one file named, at this landing's bytes **exit 1 / 223
+  findings / 248 s** — and neither is a step in either workflow file.
+
+- **The record gates read this landing's own words, and say so clause by clause.** `npm run verify:table-recount`
+  **exit 0**: its §7 prints **the newest grant 574 IS titled**, and proves that is a condition rather than a free
+  pass by scrubbing this section's heading numbers on a copy and re-reading — the refusal becomes
+  `unrecordedNewest:574` and the title hole gains 574 — over **561 ledger headings** and a **253-file** record
+  corpus, with **0 dangling** explicit citations, **8 grants titled nowhere** (242, 248, 249, 250, 251, 252, 253,
+  254, each named beside whatever carries them instead of a record) and **none granted twice**. Its §2 recounts
+  the suites at HEAD's bytes — runtime **640 cases over 43 files**, exec-host **358 over 13**, the run's 44th
+  runtime file (`buildArc.test.ts`) unowned by the graded state and therefore not counted — and §5 catches
+  **4/4** planted table mutations with the same reader that calls the real table clean. `npm run
+  verify:record-window` **exit 0**: **7 doors × 2 budgets** with sentence and record agreeing, exactly **1 key**
+  (`windowed`) that a truncation adds and a whole read does not have, and the aggregate bit alone refuted by
+  `exec.run` at 28 B of stdout kept of 28 B with 9 000 B of stderr cut. `npm run verify:record-encoding` **exit 0**
+  — **0 chargeable lines**, over **2 125 graded files** out of **2 139 names** of which 14 are binary, with
+  **3 956 flank-rejected look-alike render sites in 617 files** and the rows ledger paired **116/116** one-for-one
+  onto 116 distinct tree lines. The CARRIER of that population is `git ls-files` — the index, not the tree; the
+  walk is the branch a plane with no git falls to — so the two files this landing writes joined the graded set when
+  they were STAGED (HEAD answers 2 137 names, the index 2 139), the delta from amendment 573's **2 123** is exactly
+  those two files, and a scratch file sitting in `.nexus-tmp` is graded by neither plane.
+
 ### What this does NOT claim
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
@@ -358,9 +482,9 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
 commit no longer owns, a declaration shadowing a derived class, a reason a reader cannot falsify, a row target
-the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **131
+the commit does not own, an import of a file the commit does not own, an exclusion that retires no row. **132
 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README number
-each, twenty-four that dispose the manifest's blind side, seventeen that dispose the tools corpus behind it (the
+each, twenty-five that dispose the manifest's blind side, seventeen that dispose the tools corpus behind it (the
 next three blocks), seven that grade the numbers those deferrals state, eight that recompute the roster this
 sentence lives in, seven that grade the marker the proof carries in its own header and eight that grade the arms
 list itself, fourteen that date the durations published further down this file, ten that re-derive the commits a hosted claim

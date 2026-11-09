@@ -16,6 +16,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
+    "verify:lint-tree": "node tools/ci/lint-tree.mjs",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "verify:harness": "node tools/harness/smoke.mjs",

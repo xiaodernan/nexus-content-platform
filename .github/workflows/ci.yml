@@ -59,6 +59,17 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
+      # `npm run lint` above is `turbo run lint`, and a package joins that run only by declaring a `lint`
+      # script — the step below prints the tally it resolves from the root workspaces globs, so nobody has
+      # to trust a comment about how many that is. This step is the surface the rest of the tree never had:
+      # every tracked source file outside the packages that lint themselves, one ESLint child per area,
+      # judged against a debt ledger that only falls (docs/evidence/ci/lint-debt.json).
+      # It runs in CI on purpose: a lint surface nobody reaches is a lint surface nobody sees rot.
+      # The script is named `verify:*` so the evidence census has to decide it: MANIFEST disposes it as the
+      # second door the build walks directly, and `tools/ci/lint-tree.mjs` lands in that census as a runner
+      # instead of an unaccounted module under tools/.
+      - name: Lint the whole tree against the debt ledger
+        run: npm run verify:lint-tree
       - name: Test
         run: npm run test
       - name: Build
