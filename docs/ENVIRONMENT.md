@@ -53,6 +53,11 @@ SC-7 起网关的边界参数也可覆盖：`NEXUS_GATEWAY_MAX_REQUEST_BYTES`（
 `NEXUS_GATEWAY_RATE_LIMIT_BURST`（默认 200）、`NEXUS_GATEWAY_RATE_LIMIT_CLIENTS`（默认 10000）。
 限流桶按**实例**计，两台网关就是两倍速率；共享限流仍欠 Redis。
 
+SC-8 起网关的 `/platform/health` 会逐个实例探测 `/actuator/health`，单实例超时用
+`NEXUS_GATEWAY_HEALTH_TIMEOUT_MS`（默认 1500）。注意本机 6379 被另一项目的 specproof-redis 占用且要
+AUTH：`java-domain-service` 必须用 `REDIS_HOST=127.0.0.1` / `REDIS_PORT=56379`（nexus-redis），否则
+它的 health 会（诚实地）报 DOWN。
+
 > `8761` 是 Eureka 的默认端口，**本机别的项目也可能把服务注册到这里**：2026-11-09 联调时
 > `/eureka/apps` 里同时有外部项目的 `FOOTBALL-EDGE`，网关的 `/platform/services` 老实把它列了出来。
 > 这是读数在说真话，不是串台；要隔离就换 `NEXUS_REGISTRY_PORT` 并让三个服务指向同一个

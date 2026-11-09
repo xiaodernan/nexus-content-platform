@@ -10998,6 +10998,17 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 - 顺带发现（已写进 README/ADR）：`/platform/services` 是网关自己的 controller，
   `RequestMappingHandlerMapping` 先于路由匹配，`GlobalFilter` 看不到它——诊断端点不在边界策略内。
 - 仍欠：auth、TLS、WebSocket、Redis 共享限流、多实例 breaker 状态、诊断端点自身边界。
+## §SC 第六片：拓扑健康读数（2026-11-09）
+
+- 起点：`/platform/services` 只列地址，注册表只列租约，没有一处回答"哪些实例现在真的会答话"。
+- 做法：三个服务加 actuator，只暴露 `health`（`show-details: never`）；网关新增
+  `GET /platform/health`，对每个发现实例发 `GET /actuator/health`，逐实例给出
+  `UP` / `DOWN` / `UNKNOWN` + `allUp`。超时不折算 DOWN；`/platform/health` 执行后恒 200。
+  探针全响应式（controller 在 Netty event-loop 上，`block()` 会被立即拒绝——这是测试抓到的真 bug）。
+- 见证：单测 + 接线测共 6 条新增（网关合计 **23 条**全绿）。真联调：`allUp:true`，三个服务均 `UP`；
+  停 domain 后 `allUp:false`、该实例 `UNKNOWN` + `"no answer within 800 ms"`。
+- 边界：点测量、不缓存；探测端点不在路由边界策略内；本机 domain 必须 `REDIS_PORT=56379`，否则会
+  连到别的项目的 6379 并诚实报 DOWN。
 ## §85 第四十四片：机检 review 态进读数（2026-11-09）
 
 - 缺口：此前 e2e 只覆盖了 blocked（硬红线挡下）。review 是 **页面已经发出去、内容挂人工复核**，

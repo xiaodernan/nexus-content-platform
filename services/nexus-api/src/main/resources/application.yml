@@ -48,6 +48,18 @@ eureka:
     lease-renewal-interval-in-seconds: 10
     lease-expiration-duration-in-seconds: 30
 
+# SC-8 — the only management endpoint this service publishes. `health` (and nothing else) is what the
+# gateway's /platform/health probes; `show-details: never` keeps component names, datasource URLs and
+# exception text out of an unauthenticated answer. Status is still aggregated (a down database answers DOWN).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 logging:
   level:
     root: warn

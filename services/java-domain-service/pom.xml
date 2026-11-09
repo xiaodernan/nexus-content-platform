@@ -58,6 +58,14 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
+        <!--
+          SC-8: GET /actuator/health is what the gateway's /platform/health probes. Only `health` is exposed
+          (see application.yml); the actuator surface is not a second API.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
 
         <!-- Database -->
         <dependency>

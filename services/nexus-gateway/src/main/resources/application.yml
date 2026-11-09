@@ -25,6 +25,9 @@ nexus:
       rate-per-second: ${NEXUS_GATEWAY_RATE_LIMIT_RATE:100}
       burst: ${NEXUS_GATEWAY_RATE_LIMIT_BURST:200}
       max-clients: ${NEXUS_GATEWAY_RATE_LIMIT_CLIENTS:10000}
+    # SC-8 — how long /platform/health waits for one instance's GET /actuator/health. Short on purpose: the
+    # answer is "what is true right now", and a probe that takes 30 s has already stopped being one.
+    health-probe-timeout-ms: ${NEXUS_GATEWAY_HEALTH_TIMEOUT_MS:1500}
 
 eureka:
   client:
@@ -67,6 +70,17 @@ resilience4j:
         wait-duration-in-open-state: ${NEXUS_GATEWAY_OPEN_WAIT:10s}
         permitted-number-of-calls-in-half-open-state: 3
         automatic-transition-from-open-to-half-open-enabled: true
+
+# SC-8 — the management surface is `health` only. `/platform/health` is the aggregate the Studio/operator
+# asks; this is the gateway's own answer, so a probe of the probe exists.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
 
 logging:
   level:

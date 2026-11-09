@@ -54,6 +54,16 @@ eureka:
   instance:
     prefer-ip-address: true
 
+# SC-8 — see nexus-api: only `health` is exposed, and details stay out of an unauthenticated answer.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 logging:
   level:
     com.nexus: INFO

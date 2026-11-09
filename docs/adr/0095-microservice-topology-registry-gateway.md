@@ -136,6 +136,35 @@ HTTP/WS contracts only"。但仓库里
   `RoutePredicateHandlerMapping` 匹配，`GlobalFilter` 看不到它——诊断端点不在路由边界策略内。它不是
   "已加固的入口"，不得按入口暴露；若要同等限流，应移到路由后或在 controller 内自己做。
 
+### SC-8 拓扑健康读数：把"注册了"和"能答话"分开
+
+- 起点（SC-3 边界仍欠）：`/platform/services` 只列地址，注册表只列租约；两者都不是健康检查，运维看到
+  地址只能猜哪个服务真的会答话。
+- 决定：
+  1. `nexus-api`、`java-domain-service`、`nexus-gateway` 各加 `spring-boot-starter-actuator`，只暴露
+     `health`，`show-details: never`（不把 datasource URL、异常文本放进未鉴权响应）。
+  2. 网关新增 `GET /platform/health`：对注册表里的**每个实例**发一次 `GET /actuator/health`，逐实例
+     返回 `uri/httpStatus/status/detail`，并汇总 `allUp`。探测并发上限 8，单实例超时
+     `NEXUS_GATEWAY_HEALTH_TIMEOUT_MS`（默认 1500 ms）。
+  3. 三种状态写死定义：`UP` = 2xx 且 `status=UP`；`DOWN` = 非 2xx、自报 DOWN/OUT_OF_SERVICE、或连接被
+     拒绝；`UNKNOWN` = 超时、读不懂的 2xx、其它传输错误。超时**不**折算成 DOWN。
+  4. `/platform/health` 在探测执行后恒返回 HTTP 200（`allUp` 才是结论）。网关自己答话了；某个后端挂了不
+     等于门不健康，503 还会让"端点不存在"和"后端挂了"无法区分。
+  5. 探针必须**全响应式**：它由 WebFlux controller 在 Netty event-loop 线程调用，第一版里的 `block()`
+     会被 Reactor 立即拒绝（`PlatformHealthWiringTest` 第一次运行把每个实例都读成 UNKNOWN，正是这个
+     真 bug）。现版本用 `Mono` 组合，实例并发探测。
+- 为什么不用注册表的 lease 状态：那只能说明"进程还在续租"，不能说明它现在能否处理请求，也不能区分
+  503 与超时。
+- 见证（2026-11-09 真联调）：`/platform/health` → `allUp:true`，`nexus-api` / `nexus-domain-service` /
+  `nexus-gateway` 均 `UP`；停掉 domain 后同一端点 → `allUp:false`，该实例 `UNKNOWN` +
+  `"no answer within 800 ms"`（LAN 地址被静默丢包，没有否定答案）。网关测试 23 条全绿（新增
+  `ServiceHealthProbeTest` 4、`PlatformHealthWiringTest` 2）。
+- 调参（实测驱动）：上述 domain 重启后**第一次**探测又读到 UNKNOWN，直接 `curl` 同一地址却 167 ms 返回
+  UP——冷启动时 servlet 初始化让首个探测超过 800 ms。默认值因此上调到 1500 ms；再探 `allUp:true`。
+- 边界：这是**点测量**，不缓存、不是监控历史；探测端点自身仍是网关 controller，不在路由边界策略内。
+  另外本机 `localhost:6379` 是另一个项目的 specproof-redis（要 AUTH），domain 必须用
+  `REDIS_PORT=56379` 指向自己的 nexus-redis，否则 health 会诚实报 DOWN（已在 ENVIRONMENT 写明）。
+
 **已知边界（如实记）**：
 
 - `nexus-api` 信任 `X-Nexus-Original-URL`，与任何 forwarded 头同一信任边界：网关覆盖写、不追加；能直连

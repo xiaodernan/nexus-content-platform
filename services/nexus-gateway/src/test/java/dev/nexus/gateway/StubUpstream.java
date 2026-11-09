@@ -34,6 +34,7 @@ final class StubUpstream {
     private volatile int status = 200;
     private volatile int failureStatus = 503;
     private volatile String body = "{\"publications\":[],\"from\":\"stub-upstream\"}";
+    private volatile long delayMs;
 
     private StubUpstream(HttpServer server) {
         this.server = server;
@@ -60,6 +61,13 @@ final class StubUpstream {
         originalUrls.add(originalUrl == null ? "" : originalUrl);
         probeHeaders.add(String.valueOf(exchange.getRequestHeaders().getFirst("X-Nexus-Gateway")));
         try {
+            if (delayMs > 0) {
+                try {
+                    Thread.sleep(delayMs);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
             if (path.startsWith("/drop")) {
                 // Close without a response: what a backend that dies mid-call looks like from the wire.
                 exchange.close();
@@ -133,10 +141,16 @@ final class StubUpstream {
         this.failuresLeft.set(Math.max(0, times));
     }
 
+    /** Every answer waits this long, so a probe's timeout can be measured against a real slow socket. */
+    void delay(long millis) {
+        this.delayMs = Math.max(0, millis);
+    }
+
     void reset() {
         this.status = 200;
         this.failureStatus = 503;
         this.failuresLeft.set(0);
+        this.delayMs = 0;
         this.body = "{\"publications\":[],\"from\":\"stub-upstream\"}";
     }
 

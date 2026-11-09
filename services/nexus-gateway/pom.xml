@@ -57,6 +57,14 @@
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
     </dependency>
+    <!--
+      SC-8: the gateway's own /actuator/health, and the fact that /platform/health probes the SAME path on
+      every backend. Exposing `health` only keeps management from becoming a second API surface.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-loadbalancer</artifactId>

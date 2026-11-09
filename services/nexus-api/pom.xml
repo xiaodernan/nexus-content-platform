@@ -53,6 +53,15 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
+    <!--
+      SC-8: the gateway's /platform/health asks each discovered instance GET /actuator/health. Without this
+      dependency that path answers 404 from THIS service, and the probe would report the service as DOWN
+      while it was serving traffic — a health reading that is wrong in the alarming direction.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>

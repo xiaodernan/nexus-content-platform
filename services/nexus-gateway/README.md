@@ -13,6 +13,7 @@ Spring Boot 3.5 + Spring Cloud Gateway (reactive) + LoadBalancer + Resilience4j,
 | `/api/**` | routed to the `nexus-api` **service id** through `nexus-registry`, prefix stripped |
 | `/domain/**` | routed to the `nexus-domain-service` **service id**, prefix stripped (SC-6) |
 | `/platform/services` | what the registry holds right now, with a `note` saying it is not a health check |
+| `/platform/health` | one `GET /actuator/health` per discovered instance: `UP` / `DOWN` / `UNKNOWN`, plus `allUp` (SC-8) |
 | anything the route cannot complete | `503` + `{error:"service_unavailable", service, cause, note}` |
 
 The route is built in `GatewayConfig` with the **compiled DSL**, not a YAML route table. The Gateway 4.2+
@@ -28,7 +29,11 @@ deliberate edit to `GatewayConfig`, not something the registry gets to decide.
 Measured on a joined-up run (2026-11-09): `POST /domain/api/v1/projects` answered `201`, `GET` by id `200`,
 `DELETE` `204`, and the same `GET` afterwards `404`; `/platform/services` listed `nexus-api`,
 `nexus-gateway`, `nexus-domain-service` (plus `football-edge`, a service another local project registers in
-the shared registry — it is shown, not routed).
+the shared registry — it is shown, not routed). `/platform/health` answered `allUp: true` with all three
+reachable and each instance `UP` at its registry address; with `nexus-domain-service` stopped, the same call
+answered `allUp: false` and `UNKNOWN` ("no answer within 800 ms") for that instance — a silent address is
+not called `DOWN`. After that run the default timeout was raised to 1500 ms: the first probe after a backend
+start can exceed 800 ms while its servlet initializes, and a healthy cold service should not read UNKNOWN.
 
 ### The edge policy every route carries (SC-7)
 
@@ -137,5 +142,9 @@ while it was still answering. The edge bounds are `NEXUS_GATEWAY_MAX_REQUEST_BYT
   then this gateway's route cannot resolve and correctly answers `503` — which is the honest state, not a
   broken one.
 - The registry lists **addresses, not health**. A service that dies without cancelling its lease stays
-  listed until the lease expires.
+  listed until the lease expires. `/platform/health` closes that gap with a point-in-time probe: it asks
+  every discovered instance's actuator and names the address it actually called. It does not cache, so it
+  is also not a monitoring history.
+- **`UNKNOWN` is a real answer.** A timeout, a connection that silently disappears, or a 2xx without a
+  recognizable `status` field is reported as `UNKNOWN`, never rounded to `UP` or `DOWN`.
 - One gateway instance. No session affinity, no shared breaker state, no operator UI.
