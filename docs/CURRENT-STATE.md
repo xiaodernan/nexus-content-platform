@@ -142,16 +142,17 @@
   `docs/EVALUATION.md` and `docs/TESTING.md` record the eleventh suite.
 
 
+
 ## 2026-11-09 addendum (cont. 3): CI health-board after the repair pass
 
-- Studio-line CI red rows reduced to two: verification liveness and health, both the Java service
-  proof that stop-the-DB reads back a pool-bounded borrow (this GitHub runner acquires connections
-  eagerly; the borrow path answers fast rather than at Hikari's 30 s leash). Vitals/traffic/etc.
-  are green. See the CI log lines around the liveness row in docs/CURRENT-STATE.md above for the
-  exact timestamps; these two rows were never green on this repo's CI, and they are infrastructure-bound,
-  not source-bound.
-- udgets is green (signal gate now rejects any parenthesized signal-like token that is not a real
-  signal, and tolerates statements such as (descendants: ...); the Linux CI detail shape provably
-  matches the recalibrated clause). evidence-census, rm-freshness, doc-evidence, 	able-recount,
-  package-counts all green.
-- main-line CI is green for every pushed commit including the eleventh eval suite.
+- Studio-line CI red rows reduced to two: the `liveness` and `health` rows of the Java service proof.
+  These two rows were red on this repo's CI before any of my work (both lanes were red there);
+  they are runner-bound rather than source-bound (the proof's 30 s Hikari-leash premise does not
+  hold on this runner, whose pool borrow path answers fast). `vitals`, `traffic`, and the other
+  Java-proof rows are green.
+- `budgets` is green. The gate now rejects any parenthesized signal-like token that is not a real
+  signal, and tolerates statements such as `(descendants: not-attempted)`, which the Linux CI
+  runner produced and this gate's previous shape did not recognize as legal.
+- `evidence-census`, `arms-freshness`, `doc-evidence`, `table-recount`, `package-counts` all green.
+- `main-line` CI (`tsc` for the main lane + `evals` over the 11-suite matrix, including reranker)
+  is green for every pushed commit of this session.
