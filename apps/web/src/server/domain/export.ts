@@ -63,24 +63,25 @@ function assetName(name: string, id: string, index: number): string {
 
 function manifest(args: {
   projectName: string;
-  parts: ExportPart[];
+  /** 用户请求的 parts——README 对未能出包的部分要照实说"这一版没有"，而不是静默略过 */
+  requested: ExportPart[];
   counts: Record<ExportPart, number>;
   missingAssets: string[];
   document: DesignDocument;
   /** 库里有行、档案却读不出来的角色数（README 里要点名，不静默少导几个人） */
   unreadableCharacters: number;
 }): string {
-  const { projectName, parts, counts, missingAssets, document, unreadableCharacters } = args;
+  const { projectName, requested, counts, missingAssets, document, unreadableCharacters } = args;
   const lines: string[] = [
     `NEXUS 项目导出：${projectName}`,
     `生成时间：${new Date().toISOString()}`,
     '',
     '包里有什么',
   ];
-  if (parts.includes('design')) lines.push(`  design/document.json — 设计文档本身（${document.pages.length} 页，${counts.design} 个文件）`);
-  if (parts.includes('code')) lines.push(`  code/ — 由设计文档确定性投影出来的代码（${counts.code} 个文件）`);
-  if (parts.includes('assets')) lines.push(`  assets/ — 本项目上传的资产（${counts.assets} 个文件）`);
-  if (parts.includes('storyboard')) {
+  if (requested.includes('design')) lines.push(`  design/document.json — 设计文档本身（${document.pages.length} 页，${counts.design} 个文件）`);
+  if (requested.includes('code')) lines.push(`  code/ — 由设计文档确定性投影出来的代码（${counts.code} 个文件）`);
+  if (requested.includes('assets')) lines.push(`  assets/ — 本项目上传的资产（${counts.assets} 个文件）`);
+  if (requested.includes('storyboard')) {
     lines.push(
       counts.storyboard > 0
         ? '  storyboard/storyboard.json — 分镜文档（§40-42）。镜头的参考帧在 assets/ 里，按 id 引用'
@@ -88,7 +89,7 @@ function manifest(args: {
     );
     lines.push('  分镜渲染出的成片是**本地确定性推演的 DEMO 产物**（本机没有视频 provider，§160），不是 AI 生成的。');
   }
-  if (parts.includes('character')) {
+  if (requested.includes('character')) {
     lines.push(
       counts.character > 0
         ? `  character/characters.json — 角色档案（${counts.character} 位）。世界归属不随包走：导入时角色挂到新项目自己的世界上`
@@ -253,8 +254,16 @@ export async function buildProjectExport(
     if (unreadable.length > 0) unreadableCharacters += unreadable.length;
   }
 
+  // 清单里的 `parts` 只声明**真的进了包**的那几栏——
+  // 少了一个 part 却声明带了它，读回来的那一方就只能拒了整包（导入侧靠 parts 预读每一份应有文件）。
+  // 例如一个还没有分镜或角色的项目，parts 说 storyboard+character 但包里没有对应文件，
+  // 作者下载这份包再导回来就会被 415。清单是对包内容的承诺，不是对勾选的回执。
+  const partsWritten = (['design', 'code', 'assets', 'storyboard', 'character'] as ExportPart[]).filter(
+    (part) => counts[part] > 0,
+  );
+
   entries.unshift(
-    textEntry('README.txt', manifest({ projectName, parts, counts, missingAssets, document, unreadableCharacters })),
+    textEntry('README.txt', manifest({ projectName, requested: parts, counts, missingAssets, document, unreadableCharacters })),
   );
   // 机器可读的那一层放在**最前面**：读回来的一方要先认格式版本，再谈里面的内容
   entries.unshift(
@@ -264,7 +273,7 @@ export async function buildProjectExport(
         buildNexusManifest({
           projectName,
           kind: identity?.kind ?? 'website',
-          parts,
+          parts: partsWritten,
           entries,
           assetRefs,
           missingAssets,
