@@ -74,7 +74,7 @@ run concurrently; build the affected package directly with `tsc -p tsconfig.json
 | 集成（跨实例） | Vitest + 真 Redis(容器)，另加 `npm run realtime:two-process` 起真实第二个进程 | 实时总线扇出：进程与进程之间的投递、关门、坏帧、线路断开不拖业务（§163 / ADR-0028） | 实时驱动或连接参数改动 |
 | 端到端 | Playwright | Studio 全流程竖向切片（见下 Golden Path） | 每里程碑 + 发布前 |
 | 视觉 | Playwright screenshot + Visual Benchmark | 渲染快照、AI Diff 前后对比、参考图 vs 生成图 | Studio/渲染器改动 |
-| Agent 评测 | `npm run evals`（`evals/` 按能力分套件、十套、全绿 exit 0；`--list`/`--suite` 经 CLI 选片）· `npm run evals:baseline`（`scripts/eval-baseline.mts`，真库基线） | 确定性套件（当前十一套全绿 · 276 checks）：`code-index 19 · model-roundtrip 13 · export-roundtrip 17（需真库，skip sentinel）· video-plan 30 · world-build 55 · schemas-contract 17 · game-build 36 · design-build 46 · project-bundle 14 · local-embedding 14（§49 本地 token-bag 检索自洽） · local-reranker 15（§93 本地 token-bag 重排自洽）`；真库基线：RAG / 设计精度 / 视觉 / 无障碍 | 评测框架与套件改动时
+| Agent 评测 | `npm run evals`（`evals/` 按能力分套件、十套、全绿 exit 0；`--list`/`--suite` 经 CLI 选片）· `npm run evals:baseline`（`scripts/eval-baseline.mts`，真库基线） | 确定性套件（当前十二套全绿 · 290 checks）：`code-index 19 · model-roundtrip 13 · export-roundtrip 17（需真库，skip sentinel）· video-plan 30 · world-build 55 · schemas-contract 17 · game-build 36 · design-build 46 · project-bundle 14 · local-embedding 14（§49 本地 token-bag 检索自洽） · local-reranker 15（§93 本地 token-bag 重排自洽） · demo-mode 14（§159/§160 DEMO 诚实）`；真库基线：RAG / 设计精度 / 视觉 / 无障碍 | 评测框架与套件改动时
 
 禁止 mock 数据库做集成测试（真实容器实例）；provider 在测试里用 Mock Provider，但必须显式标注 DEMO MODE 断言。
 

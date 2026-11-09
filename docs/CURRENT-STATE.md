@@ -19,7 +19,7 @@
 | `project-bundle` | §16/§159 集大成合成 | 14/14 |
 | `local-embedding` | §49 本地 token-bag 语料检索（确定性） | 14/14 |
 
-**合计 276 / 276 PASS**（不含 needsDatabase 的 `export-roundtrip`：那一项 `npm run evals` 在 env 已设时跑、不设则打印 `SKIP` 退出码不变，CI 安全）。
+**合计 290 / 290 PASS**（不含 needsDatabase 的 `export-roundtrip`：那一项 `npm run evals` 在 env 已设时跑、不设则打印 `SKIP` 退出码不变，CI 安全）。
 
 真库首跑读数（仍以 `npm run evals:baseline` 验）：recall@5 = 100% / MRR = 0.786 / 代码往返 5/5 干净 / 无障碍 4/4 检出 / 渲染后页面 axe 违规 0 条—— `docs/EVALUATION.md` 第十五片起。
 
