@@ -563,7 +563,7 @@ test('§85 发布成功后的结果块：地址、版本与审核状态进读数
   // 看得见的那串是绝对地址（由同一条 path 拼出来），它必须以 href 结尾：否则"看起来是它、点开是别的"
   const shown = ((await url.textContent()) ?? '').trim();
   expect(shown, `链接文字与 href 指的不是同一个地址：${shown} vs ${href}`).toBeTruthy();
-  expect(shown.startsWith(APP_ORIGIN + '/')), `链接文字不是绝对地址：${shown}`).toBe(true);
+  expect(shown.startsWith(APP_ORIGIN + '/'), `链接文字不是绝对地址：${shown}`).toBe(true);
   expect(shown.endsWith(href ?? ''), `链接文字没落在 href 那条 path 上：${shown}`).toBe(true);
   // 审核状态那句必须跟着结果块一起出现，不能只给一个地址
   await expect(resultBlock).toContainText('人工审核');
