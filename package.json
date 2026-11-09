@@ -159,6 +159,7 @@
     "perf:browser": "tsx scripts/perf-browser.mts",
     "evals": "tsx --tsconfig apps/web/tsconfig.json evals/run.mts",
     "evals:baseline": "tsx scripts/eval-baseline.mts",
+    "evals:baseline:web": "tsx --tsconfig apps/web/tsconfig.json scripts/eval-baseline.mts",
     "parity:game-code": "tsx scripts/game-code-parity.mts",
     "test:ai-service": "apps\\ai-service\\.venv\\Scripts\\python.exe -m pytest apps/ai-service/tests -q",
     "contract:export": "tsx scripts/export-ai-contract.mts",
