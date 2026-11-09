@@ -23,6 +23,30 @@ There is exactly **one** route. `discovery.locator.enabled` would publish `/{ser
 service in the registry, turning "can reach the registry" into "can reach every backend". Adding a backend
 is a deliberate edit to `GatewayConfig`.
 
+### The receipt names the address you called, not the instance
+
+A publish receipt carries a `url`. `nexus-api` composes it from the request it sees, so behind a gateway
+that forwarded only `Host`, it would name the internal instance (`192.168.1.5:8081`) — an address the caller
+usually cannot open and one that leaks the topology.
+
+This gateway sets `X-Nexus-Original-URL` (the scheme and authority the **client** typed) on every routed
+request, and `nexus-api` prefers it. Measured on a joined-up run (2026-11-09):
+
+| caller | receipt `url` |
+| --- | --- |
+| `GET http://127.0.0.1:8091/api/projects?limit=1` (through the gateway) | `http://127.0.0.1:8091/projects/doc_19d8pa` |
+| `GET http://127.0.0.1:8081/projects?limit=1` (direct) | `http://127.0.0.1:8081/projects/doc_19d8pa` |
+
+Why a self-defined header and not `X-Forwarded-Host`: the framework's own `XForwardedHeadersFilter` runs
+after route filters and rewrites the standard header with a host-only value — measured, the backend received
+an empty string. Our header is set by a `GlobalFilter` at `LOWEST_PRECEDENCE - 1` and is ours end to end;
+the gateway test asserts the value the stub socket actually received.
+
+**Trust boundary:** `nexus-api` trusts `X-Nexus-Original-URL` the same way it would trust any forwarded
+header — the gateway overwrites it (never appends), and a client that can reach `nexus-api` directly can
+forge it. Deployments must not expose `nexus-api` to untrusted clients; the gateway's overwrite is the
+reason the value can be believed.
+
 ## What it deliberately does not do
 
 - **No authentication.** A backend behind this door is reachable by anyone who can reach the door.

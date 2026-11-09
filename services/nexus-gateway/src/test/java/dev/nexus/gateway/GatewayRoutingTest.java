@@ -108,6 +108,13 @@ class GatewayRoutingTest {
         // The whole point of StripPrefix is the request the backend actually RECEIVED, not the URL the test
         // typed. `/api/publications` must arrive as `/publications`, query string intact.
         assertThat(upstream.paths()).containsExactly("/publications?limit=2");
+
+        // The gateway also tells the backend which address the CLIENT used. Without it a receipt built from
+        // the backend's own view names an internal instance address the client cannot open.
+        // NOT asserted on X-Forwarded-Host: the framework's header filter rewrites that one after us
+        // (measured: the stub received an empty string), which is why the gateway also sets a header of its own.
+        assertThat(upstream.probeHeaders()).containsExactly("1");
+        assertThat(upstream.originalUrls()).containsExactly("http://127.0.0.1:" + port);
     }
 
     @Test

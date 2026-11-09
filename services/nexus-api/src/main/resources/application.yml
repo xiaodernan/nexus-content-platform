@@ -20,6 +20,13 @@ spring:
 
 server:
   port: ${NEXUS_API_PORT:8080}
+  # SC-3 — behind the gateway, the address a CLIENT used is the gateway's, not this instance's. Receipts are
+  # built with ServletUriComponentsBuilder, so without this the `url` in a publish receipt would name an
+  # internal address (10.x / 192.168.x:8080) that the caller cannot open. `framework` makes the servlet
+  # request report the scheme/host/port the gateway forwarded; a direct call carries no X-Forwarded-* and is
+  # unchanged. Trust boundary: this trusts those headers, so nexus-api must not be exposed directly to
+  # clients that may forge them — the gateway overwrites them (see services/nexus-gateway/README.md).
+  forward-headers-strategy: framework
 
 # SC-3 — the registry half of the gateway's `lb://nexus-api` route.
 #

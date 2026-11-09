@@ -10936,6 +10936,27 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   /projects/ddl-probe-20261109/publish` = 201；`audit_entry` 新行 `publish / ddl-probe-20261109 /
   publication`；旧 19 行保持 null；`DELETE` 清理 = 200 `{removed:true}`；43 个测试类仍全绿。
 - 仍欠：Flyway/Liquibase 迁移与 `SET NOT NULL`（回填 `publication` 有依据，但要一次可审计的迁移）。
+## §SC 第三片：回执 URL 指向调用方地址（2026-11-09）
+
+- 起点（第一片仍欠①，真读数逐字）：经 8091 取回的回执里 `url` 是 `http://192.168.1.5:8081/projects/...`
+  ——后端实例地址。调用方打不开它，它还把内部拓扑写进了回执。
+- 做法：网关在每条路由请求上设置自有头 `X-Nexus-Original-URL`（调用方实际输入的 scheme + authority），
+  `nexus-api` 的 `PublishController` 优先采用；头缺失或全空白时回落
+  `ServletUriComponentsBuilder`。`nexus-api` 同时加 `server.forward-headers-strategy: framework`。
+- 为什么不用 `X-Forwarded-Host`（走过的弯路，逐字记）：先试路由 filter、再试 `LOWEST_PRECEDENCE - 1`
+  的 `GlobalFilter`，后端收到的仍是空串——框架自带的 `XForwardedHeadersFilter` 在我们的 filter 之后
+  用 host-only 值重写了标准头。结论：标准头的写入时机不由我们掌握，回执地址用一个端到端属于自己的头。
+- 见证：gateway 7 条腿全绿，其中 `GatewayRoutingTest` 断言的是 **stub socket 实际收到的**
+  `X-Nexus-Original-URL = http://127.0.0.1:<gatewayPort>`，不是 filter 的意图；`nexus-api`
+  `PublishControllerTest` 19 条（+2：有头用 `https://studio.example.test/projects/pub-1`、空头回落
+  `http://localhost/projects/pub-1`），全量 `mvn -f services/nexus-api/pom.xml test` 退出码 0。
+  真三服务复验 2026-11-09：经网关 `GET http://127.0.0.1:8091/api/projects?limit=1` →
+  `"url":"http://127.0.0.1:8091/projects/doc_19d8pa"`；直连
+  `GET http://127.0.0.1:8081/projects?limit=1` → `"url":"http://127.0.0.1:8081/projects/doc_19d8pa"`。
+- 边界：`nexus-api` 信任该头，与任何 forwarded 头同一信任面——网关覆盖写、不追加；能直连后端的
+  客户端可以伪造它，部署不得把 `nexus-api` 直接暴露给不可信客户端。
+- 仍欠：第一片的 ③（网关 auth / 限流 / TLS / WebSocket / 重试 / 缓存）与 ④（`java-domain-service`
+  接入注册中心）。
 ## §85 第四十四片：机检 review 态进读数（2026-11-09）
 
 - 缺口：此前 e2e 只覆盖了 blocked（硬红线挡下）。review 是 **页面已经发出去、内容挂人工复核**，

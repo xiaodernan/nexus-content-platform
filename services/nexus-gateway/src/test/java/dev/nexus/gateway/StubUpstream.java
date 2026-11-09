@@ -25,6 +25,9 @@ final class StubUpstream {
 
     private final HttpServer server;
     private final List<String> paths = new CopyOnWriteArrayList<>();
+    private final List<String> forwardedHosts = new CopyOnWriteArrayList<>();
+    private final List<String> probeHeaders = new CopyOnWriteArrayList<>();
+    private final List<String> originalUrls = new CopyOnWriteArrayList<>();
 
     private volatile int status = 200;
     private volatile String body = "{\"publications\":[],\"from\":\"stub-upstream\"}";
@@ -48,6 +51,11 @@ final class StubUpstream {
     private void handle(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().toString();
         paths.add(path);
+        String forwardedHost = exchange.getRequestHeaders().getFirst("X-Forwarded-Host");
+        forwardedHosts.add(forwardedHost == null ? "" : forwardedHost);
+        String originalUrl = exchange.getRequestHeaders().getFirst("X-Nexus-Original-URL");
+        originalUrls.add(originalUrl == null ? "" : originalUrl);
+        probeHeaders.add(String.valueOf(exchange.getRequestHeaders().getFirst("X-Nexus-Gateway")));
         try {
             if (path.startsWith("/drop")) {
                 // Close without a response: what a backend that dies mid-call looks like from the wire.
@@ -85,8 +93,25 @@ final class StubUpstream {
         return List.copyOf(paths);
     }
 
+    /** The {@code X-Forwarded-Host} the backend actually received, one entry per request. */
+    List<String> forwardedHosts() {
+        return List.copyOf(forwardedHosts);
+    }
+
+    List<String> probeHeaders() {
+        return List.copyOf(probeHeaders);
+    }
+
+    /** The {@code X-Nexus-Original-URL} the backend received — the caller-facing base the gateway promises. */
+    List<String> originalUrls() {
+        return List.copyOf(originalUrls);
+    }
+
     void clearPaths() {
         paths.clear();
+        forwardedHosts.clear();
+        probeHeaders.clear();
+        originalUrls.clear();
     }
 
     void answer(int status, String body) {

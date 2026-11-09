@@ -78,20 +78,23 @@ HTTP/WS contracts only"。但仓库里
 - `GET http://127.0.0.1:8091/api/projects?limit=1` = **200**，返回真实 publication
   `doc_19d8pa`（PostgreSQL 55433）。这条链是：网关 → 服务 id → 注册中心 → 后端 → 库。
 
+**SC-5 已修（2026-11-09）**：经网关的回执 URL 曾指向后端实例地址（`192.168.1.5:8081`）。现在网关对每条
+路由请求设置自有头 `X-Nexus-Original-URL`（调用方实际输入的 scheme + authority），`nexus-api` 优先采用它。
+不用 `X-Forwarded-Host` 的原因：框架自带的 `XForwardedHeadersFilter` 会在此后重写它（实测后端收到空串）。
+真三服务复验：经 8091 的回执 `url` = `http://127.0.0.1:8091/projects/doc_19d8pa`；直连 8081 仍为
+`http://127.0.0.1:8081/projects/doc_19d8pa`。网关测试断言 stub socket 实际收到的头；`nexus-api` 侧
+`PublishControllerTest` 断言有头用调用方地址、空头回落本机地址。
+
 **已知边界（如实记）**：
 
-- 经网关取回的回执里 `url` 是 `http://192.168.1.5:8081/projects/...`，即**后端实例地址**，不是网关
-  地址：网关透传 `Host`，`nexus-api` 用它构造自身 URL。要给出对外地址，需要 `X-Forwarded-Host`
-  处理或配置化的 public base URL——下一片。
-- `nexus-api` 在本机旧库上启动时 Hibernate 报
-  `column "target_type" of relation "audit_entry" contains null values`：`ddl-auto: update` 无法给已有
-  行加 NOT NULL 列。读路径不受影响，写审计的路径会失败。这是既有技术债，需要迁移工具或带默认值的
-  列演进，不在本片修。
-- 网关没有 auth、限流、TLS、WebSocket 升级、重试、Caffeine 缓存；生产形态未做。
+- `nexus-api` 信任 `X-Nexus-Original-URL`，与任何 forwarded 头同一信任边界：网关覆盖写、不追加；能直连
+  后端的客户端可以伪造它。部署不得把 `nexus-api` 直接暴露给不可信客户端。
+- `nexus-api` 在本机旧库上启动时 Hibernate 曾报
+  `column "target_type" of relation "audit_entry" contains null values`。已按"写入端强制、schema 对历史
+  行诚实留 null"修复（53c77e04）：实体去掉 `nullable = false`，不伪造历史行的 kind；真发布探针 201、
+  审计新行带 `publication`，旧行保持 null。要把列重新收紧为 NOT NULL，仍需要一次真正的迁移回填。
 
 ## 仍欠
 
-1. 网关的 `X-Forwarded-*` / public base URL 策略（上面那条边界）。
-2. `audit_entry.target_type` 的迁移（Flyway/Liquibase，或带 DEFAULT 的列演进）。
-3. 网关鉴权、限流、TLS、WebSocket；多实例时的共享限流与 breaker 状态不在进程内。
-4. `java-domain-service` 尚未接入注册中心——它是第二个后端，接入后网关才有多路由的意义。
+1. 网关鉴权、限流、TLS、WebSocket；多实例时的共享限流与 breaker 状态不在进程内。
+2. `java-domain-service` 尚未接入注册中心——它是第二个后端，接入后网关才有多路由的意义。
