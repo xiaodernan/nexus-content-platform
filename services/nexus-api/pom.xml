@@ -77,6 +77,14 @@
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
     </dependency>
+    <!--
+      SC-11: the client half of the config center (SC-9). The import is `optional:` and the client is OFF by
+      default (see application.yml), so nothing here starts a network task unless a deployment asks for it.
+    -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-config</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

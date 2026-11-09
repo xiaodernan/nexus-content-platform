@@ -50,6 +50,40 @@ class ConfigServerTest {
     }
 
     @Test
+    void theApiDocumentIsTheLabRegistrationTruth() {
+        client.get()
+                .uri("/nexus-api/default")
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody()
+                .jsonPath("$.name")
+                .isEqualTo("nexus-api")
+                .jsonPath("$.propertySources.length()")
+                .isEqualTo(2)
+                .jsonPath("$.propertySources[0].name")
+                .value(containsString("nexus-api.yml"))
+                .jsonPath("$.propertySources[0].source['eureka.client.register-with-eureka']")
+                .isEqualTo(true);
+    }
+
+    @Test
+    void theDomainDocumentIsTheLabRegistrationTruth() {
+        client.get()
+                .uri("/nexus-domain-service/default")
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody()
+                .jsonPath("$.name")
+                .isEqualTo("nexus-domain-service")
+                .jsonPath("$.propertySources[0].name")
+                .value(containsString("nexus-domain-service.yml"))
+                .jsonPath("$.propertySources[0].source['eureka.client.register-with-eureka']")
+                .isEqualTo(true);
+    }
+
+    @Test
     void theSharedDocumentIsServedOnItsOwn() {
         client.get()
                 .uri("/application/default")

@@ -9,6 +9,12 @@ server:
 spring:
   application:
     name: nexus-domain-service
+  # SC-11 — config client, same contract as the gateway (SC-9): `optional:` import, client OFF by default.
+  config:
+    import: optional:configserver:${NEXUS_CONFIG_URL:http://127.0.0.1:8888}
+  cloud:
+    config:
+      enabled: ${NEXUS_CONFIG_ENABLED:false}
   autoconfigure:
     # Without this, Boot prints "Using generated security password" and configures an in-memory user that no
     # request needs: SecurityConfig defines the only filter chain this service has.

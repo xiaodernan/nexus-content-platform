@@ -59,9 +59,9 @@ AUTH：`java-domain-service` 的 Redis 默认端口已改成 **56379**（nexus-r
 `REDIS_PORT` 才会改走别处。
 
 SC-9 起可选第五个进程：`nexus-config` 默认 `8888`（`NEXUS_CONFIG_PORT`），native 模式读自身 classpath
-的 `nexus-config/`。网关默认**不连**它；要看集中配置生效，启动网关时加
-`NEXUS_CONFIG_ENABLED=true` 与 `NEXUS_CONFIG_URL=http://127.0.0.1:8888`。配置中心不注册 Eureka，
-`8888` 不要和别的项目混用。
+的 `nexus-config/`。**三个服务（gateway / nexus-api / java-domain-service）都默认不连它**；要看集中配置
+生效，启动时加 `NEXUS_CONFIG_ENABLED=true` 与 `NEXUS_CONFIG_URL=http://127.0.0.1:8888`（SC-11 把客户端接到
+api 与 domain）。配置中心不注册 Eureka，`8888` 不要和别的项目混用。
 
 > `8761` 是 Eureka 的默认端口，**本机别的项目也可能把服务注册到这里**：2026-11-09 联调时
 > `/eureka/apps` 里同时有外部项目的 `FOOTBALL-EDGE`，网关的 `/platform/services` 老实把它列了出来。

@@ -1,0 +1,7 @@
+# Central truth for `spring.application.name=nexus-domain-service` when NEXUS_CONFIG_ENABLED=true.
+#
+# Same rationale as nexus-api.yml: registration stays OFF in the packaged file (a standalone run must not
+# depend on a registry), and this lab file is the deployment truth that says "there is a registry here".
+eureka:
+  client:
+    register-with-eureka: true

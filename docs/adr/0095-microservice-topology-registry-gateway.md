@@ -201,6 +201,29 @@ HTTP/WS contracts only"。但仓库里
 - 边界：56379 是**本机实验室拓扑**的默认值；部署到别处仍必须显式给 `REDIS_HOST/REDIS_PORT`。
   不改 `REDIS_HOST` 默认 `localhost` 的理由相同但方向相反：默认远端主机才是更坏的陷阱。
 
+### SC-11 api/domain 接入配置中心：默认关，开启后注册由中心说了算
+
+- 起点（SC-9 仍欠）：配置中心只有网关一个客户端；api/domain 的部署参数仍靠一串
+  `NEXUS_API_REGISTER` / `NEXUS_DOMAIN_REGISTER` 环境变量，漏一个就是"服务起来了但没有进拓扑"。
+- 决定：
+  1. 两个服务都加 `spring-cloud-starter-config`，与网关同一契约：`optional:configserver:` 导入，
+     `spring.cloud.config.enabled` 默认 **false**。配置中心不可达不是启动失败；打包文件仍是离线真相。
+  2. 新增 `nexus-api.yml` / `nexus-domain-service.yml`，只放这一条本实验室的部署真相：
+     `eureka.client.register-with-eureka: true`。打包文件继续默认 false（独立运行不依赖注册表）。
+  3. 不把 datasource/redis 地址搬进中心：那些必须由运行环境决定（每个 proof 指向自己的库），
+     搬进来反而制造"中心配错一处、所有服务连同一个库"的新陷阱。
+- 为什么用注册开关当证据：它是**可观测**的布尔值。本机打包默认为 false，环境里不设
+  `NEXUS_API_REGISTER` 时若实例出现在注册表，`true` 只可能来自中心文件。
+- 见证（2026-11-09 双臂）：配置中心在 8888 应答、环境无 register 变量时——
+  客户端关（默认）→ `/actuator/health` 200 但 `/eureka/apps` 无 `NEXUS-API`；
+  客户端开 → `NEXUS-API`（8081）出现，网关 `/platform/health` 该实例 `UP`。
+  domain 同一次启动的日志逐字：
+  `ConfigServerConfigDataLoader : Fetching config from server at : http://127.0.0.1:8888`、
+  `Located environment: name=nexus-domain-service`、`Registering application NEXUS-DOMAIN-SERVICE ... UP`。
+  配置模块测试 5 条全绿（新增两份文档的断言）；api 全量测试、domain 22 条测试绿。
+- 边界：配置中心仍是单点（optional 导入把"中心挂了"降级为"用打包文件"）；仍无鉴权、无动态刷新；
+  api/domain 的其它参数不搬家（见决定 3）。SC-9 的"api/domain 客户端接入"欠项就此关闭。
+
 **已知边界（如实记）**：
 
 - `nexus-api` 信任 `X-Nexus-Original-URL`，与任何 forwarded 头同一信任边界：网关覆盖写、不追加；能直连

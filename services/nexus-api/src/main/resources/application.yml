@@ -6,6 +6,14 @@
 spring:
   application:
     name: nexus-api
+  # SC-11 — config client, same contract as the gateway (SC-9). `optional:` means an unreachable config
+  # center is not a startup failure; `enabled` is false unless a deployment says NEXUS_CONFIG_ENABLED=true,
+  # so this file stays the offline truth and no test or proof silently depends on something on 8888.
+  config:
+    import: optional:configserver:${NEXUS_CONFIG_URL:http://127.0.0.1:8888}
+  cloud:
+    config:
+      enabled: ${NEXUS_CONFIG_ENABLED:false}
   datasource:
     url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus}
     username: ${NEXUS_DB_USER:nexus}

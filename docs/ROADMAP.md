@@ -11028,6 +11028,17 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 - 见证：停旧进程 → `mvn package`（22 条测试绿）→ 不带 `REDIS_PORT` 启动 → `/actuator/health` 200 UP；
   网关 `/platform/health` `allUp:true`。
 - 边界：默认值绑定本机实验室拓扑；异地部署必须显式给 `REDIS_HOST/REDIS_PORT`。
+## §SC 第九片：api/domain 接入配置中心（2026-11-09）
+
+- 起点：配置中心只有网关一个客户端；两个后端的注册开关仍靠环境变量，漏传就是"起来了但没进拓扑"。
+- 做法：两个服务加 config client（`optional:configserver:`，`enabled` 默认 false）；中心新增
+  `nexus-api.yml` / `nexus-domain-service.yml`，只放本实验室的 `register-with-eureka: true`。
+  datasource/redis 地址不搬进中心（必须由运行环境决定）。
+- 见证（双臂）：环境无 register 变量、中心在 8888 应答时——客户端关 → health 200 但注册表无
+  `NEXUS-API`；客户端开 → `NEXUS-API` 出现在注册表且网关读数 `UP`。domain 启动日志逐字显示
+  `Fetching config from server at : http://127.0.0.1:8888` 与 `Registering application NEXUS-DOMAIN-SERVICE`。
+  配置模块 5 条测试、domain 22 条、api 全量测试全绿。
+- 边界：无鉴权/动态刷新；中心挂了退回打包文件（optional 导入）。
 ## §85 第四十四片：机检 review 态进读数（2026-11-09）
 
 - 缺口：此前 e2e 只覆盖了 blocked（硬红线挡下）。review 是 **页面已经发出去、内容挂人工复核**，
