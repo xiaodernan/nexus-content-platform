@@ -28,8 +28,11 @@ final class StubUpstream {
     private final List<String> forwardedHosts = new CopyOnWriteArrayList<>();
     private final List<String> probeHeaders = new CopyOnWriteArrayList<>();
     private final List<String> originalUrls = new CopyOnWriteArrayList<>();
+    private final java.util.concurrent.atomic.AtomicInteger failuresLeft =
+            new java.util.concurrent.atomic.AtomicInteger();
 
     private volatile int status = 200;
+    private volatile int failureStatus = 503;
     private volatile String body = "{\"publications\":[],\"from\":\"stub-upstream\"}";
 
     private StubUpstream(HttpServer server) {
@@ -69,10 +72,15 @@ final class StubUpstream {
                     Thread.currentThread().interrupt();
                 }
             }
+            int remainingFailures = failuresLeft.getAndUpdate((n) -> n > 0 ? n - 1 : 0);
+            int replyStatus = remainingFailures > 0 ? failureStatus : status;
+            if (remainingFailures > 0) {
+                exchange.getResponseHeaders().add("X-Stub-Failure", "1");
+            }
             byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("X-Stub-Upstream", "nexus-api");
             exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(status, bytes.length);
+            exchange.sendResponseHeaders(replyStatus, bytes.length);
             try (OutputStream out = exchange.getResponseBody()) {
                 out.write(bytes);
             }
@@ -119,8 +127,16 @@ final class StubUpstream {
         this.body = body;
     }
 
+    /** The next {@code times} responses answer {@code status}, then normal answers resume. */
+    void failNextRequests(int failureStatus, int times) {
+        this.failureStatus = failureStatus;
+        this.failuresLeft.set(Math.max(0, times));
+    }
+
     void reset() {
         this.status = 200;
+        this.failureStatus = 503;
+        this.failuresLeft.set(0);
         this.body = "{\"publications\":[],\"from\":\"stub-upstream\"}";
     }
 

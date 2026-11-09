@@ -10980,6 +10980,24 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 - 边界：domain-service 无鉴权、不得直接暴露；三个域服务仍是桩。
 - 仍欠：网关 auth / 限流 / TLS / WebSocket / 重试 / 缓存；domain-service 的 community/permission/billing
   真正实现。
+## §SC 第五片：网关边界策略（2026-11-09）
+
+- 起点（第一片仍欠③）：网关只有路由与 503 兜底；限流 / 重试 / 请求体上限 / 安全头都是空的。
+- 做法（决定与取舍见 `docs/adr/0095-microservice-topology-registry-gateway.md` 的 SC-7 段）：
+  ① 两条路由共享 `edgePolicy`：StripPrefix → `setRequestSize`（默认 1 MiB，超限 413 且不转发）→
+     `secureHeaders` → **仅 GET** 一次重试（只对 502/503 与连接异常，`setSeries()` 主动清空，避免 500
+     被重试）→ CircuitBreaker 收尾；
+  ② 自研 `RateLimitFilter`（Caffeine 有界缓存 + 令牌桶，`HIGHEST_PRECEDENCE + 10`），默认 100/s、
+     burst 200、maxClients 10000，超限 429 + `Retry-After: 1`；不用 Redis `RequestRateLimiter` 的理由：
+     那会让 Redis 成为每个请求的硬依赖；
+  ③ 启动打一行读数，避免"限流开着"和"限流根本没接上"无法区分。
+- 见证：网关 **17 条**测试全绿（Routing 7 / Unknown 1 / EdgePolicy 4 / RateLimitFilter 4 / Wiring 1）。
+  真联调 2026-11-09：三项安全头齐全；1.2 MB POST → **413** 且 DB 0 行；`rate=0/burst=3` 时前 3 次转发、
+  后 3 次 **429 + `Retry-After: 1`**；启动日志逐字
+  `gateway rate limit: enabled=true ratePerSecond=0.0 burst=3 maxClients=10000`。
+- 顺带发现（已写进 README/ADR）：`/platform/services` 是网关自己的 controller，
+  `RequestMappingHandlerMapping` 先于路由匹配，`GlobalFilter` 看不到它——诊断端点不在边界策略内。
+- 仍欠：auth、TLS、WebSocket、Redis 共享限流、多实例 breaker 状态、诊断端点自身边界。
 ## §85 第四十四片：机检 review 态进读数（2026-11-09）
 
 - 缺口：此前 e2e 只覆盖了 blocked（硬红线挡下）。review 是 **页面已经发出去、内容挂人工复核**，

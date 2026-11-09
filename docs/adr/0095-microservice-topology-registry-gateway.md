@@ -112,6 +112,30 @@ HTTP/WS contracts only"。但仓库里
   `DELETE` = **204**、再 `GET` = **404**；`/platform/services` 读数含 `nexus-api`、`nexus-gateway`、
   `nexus-domain-service`（以及共享注册表里另一项目的 `football-edge`，只展示不路由）。探针行已从库里清掉。
 
+### SC-7 边界策略：拒绝要有读数，重试要有边界
+
+- 起点（第一片仍欠③）：网关的 auth / 限流 / TLS / WebSocket / 重试 / 缓存都为空。
+- 决定：
+  1. 两条路由共享一个 `edgePolicy(...)`，顺序即语义：StripPrefix（段数由前缀计算）→ RequestSize
+     （`NEXUS_GATEWAY_MAX_REQUEST_BYTES`，默认 1 MiB）→ SecureHeaders → **仅 GET** 的一次重试 →
+     CircuitBreaker（最后，统计重试后的最终结果）。
+  2. 重试条件写成 `502/503 + IOException/TimeoutException`，并**主动清空 series**。只设 methods 时
+     框架默认 series=SERVER_ERROR，500 也会被重试（实测：stub 收到两次 `/publications`）；500 是后端的
+     真实回答，不是瞬态故障。
+  3. 自研 `RateLimitFilter`（`GlobalFilter`，`HIGHEST_PRECEDENCE + 10`）：Caffeine 有界缓存 + 每客户端
+     令牌桶，默认 100/s、burst 200、maxClients 10000；超限 429 + `Retry-After: 1` + JSON 错误体。
+- 为什么不用 `RequestRateLimiter` + Redis：那会把 Redis 变成**每个请求**的硬依赖——Redis 挂 = 门挂。
+  本阶段网关必须不依赖第二个进程就能诚实回答。代价写明：桶按**实例**计，两台网关 = 两倍速率；共享
+  限流是独立的 Redis 片，仍欠。
+- 见证：网关 17 条测试全绿（`GatewayRoutingTest` 7、`GatewayUnknownServiceTest` 1、
+  `GatewayEdgePolicyTest` 4、`RateLimitFilterTest` 4、`GatewayRateLimitWiringTest` 1）。真联调
+  2026-11-09：三项安全头齐全；1.2 MB POST → 413 且 DB 0 行；桶强制 rate=0/burst=3 时前 3 次被转发
+  （探针路径本身 404，说明已到路由），后 3 次 429 + `Retry-After: 1`；启动日志逐字
+  `gateway rate limit: enabled=true ratePerSecond=0.0 burst=3 maxClients=10000`。
+- 发现并如实记：`/platform/services` 是网关自己的 controller，`RequestMappingHandlerMapping` 先于
+  `RoutePredicateHandlerMapping` 匹配，`GlobalFilter` 看不到它——诊断端点不在路由边界策略内。它不是
+  "已加固的入口"，不得按入口暴露；若要同等限流，应移到路由后或在 controller 内自己做。
+
 **已知边界（如实记）**：
 
 - `nexus-api` 信任 `X-Nexus-Original-URL`，与任何 forwarded 头同一信任边界：网关覆盖写、不追加；能直连
@@ -123,6 +147,7 @@ HTTP/WS contracts only"。但仓库里
 
 ## 仍欠
 
-1. 网关鉴权、限流、TLS、WebSocket；多实例时的共享限流与 breaker 状态不在进程内。
+1. 网关鉴权、TLS、WebSocket；多实例时的共享限流（Redis）与 breaker 状态不在进程内；网关自己的诊断
+   端点不受路由边界策略约束（SC-7 实测）。
 2. `java-domain-service` 的 community/permission/billing 三个服务仍是桩：没有控制器、不可达、README 已
    如实标注；它们不是"能用"，是"还没建"。

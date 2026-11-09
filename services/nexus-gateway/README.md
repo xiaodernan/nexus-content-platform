@@ -30,6 +30,39 @@ Measured on a joined-up run (2026-11-09): `POST /domain/api/v1/projects` answere
 `nexus-gateway`, `nexus-domain-service` (plus `football-edge`, a service another local project registers in
 the shared registry — it is shown, not routed).
 
+### The edge policy every route carries (SC-7)
+
+Both routes go through one `edgePolicy(...)` in `GatewayConfig`, so the two backends cannot drift apart:
+
+| filter | what it answers | why |
+| --- | --- | --- |
+| `StripPrefix` | backend sees `/api/v1/...` | the count comes from the route prefix, not a magic number |
+| `setRequestSize` | `413` at the door; body never forwarded | a backend cannot be made to buffer an oversized upload |
+| `secureHeaders` | nosniff, frame `DENY`, referrer policy, HSTS | it applies to the 413/429/503 answers too, not just the happy path |
+| `retry`, GET only | one retry on connection failure / `502` / `503` | a proxy that repeats a write is how one click becomes two publications. `setSeries()` is deliberately emptied: left unset, the filter retries ANY 5xx, which would repeat a GET whose backend answered `500` — an answer, not a transient fault |
+| `circuitBreaker` | `503` naming the recorded cause | last, so it counts the final outcome of the retried call |
+
+In front of every route sits `RateLimitFilter`: a per-client token bucket
+(`NEXUS_GATEWAY_RATE_LIMIT_RATE` per second, `NEXUS_GATEWAY_RATE_LIMIT_BURST` burst), keyed by the first
+`X-Forwarded-For` entry when present, else the peer address, over a Caffeine cache with a ceiling
+(`NEXUS_GATEWAY_RATE_LIMIT_CLIENTS`) and a 10-minute idle expiry. Over the bucket: `429` +
+`{"error":"rate_limited"}` + `Retry-After: 1`.
+
+Measured on the joined-up run (2026-11-09, gateway on 8091, bucket forced to rate 0 / burst 3):
+
+| attempt | answer |
+| --- | --- |
+| 1–3 | forwarded (the probe path itself answered `404` from `nexus-api` — the point is it reached the route) |
+| 4–6 | `429`, `Retry-After: 1`, `{"error":"rate_limited",...}` |
+
+and a 1.2 MB `POST /api/v1/projects` answered `413` with zero rows written to PostgreSQL.
+
+**The bound that is easy to miss:** `/platform/services` is a controller *inside this gateway*, and
+Spring's `RequestMappingHandlerMapping` answers it before `RoutePredicateHandlerMapping` ever runs — so
+`GlobalFilter`s (including the limiter) do not see it. It is a diagnostic endpoint, not a route; do not
+expose this gateway's own endpoints as if they were perimeter-hardened. If it ever needs the same bucket,
+it belongs behind a route or inside the controller — written down as owed, not assumed.
+
 ### The receipt names the address you called, not the instance
 
 A publish receipt carries a `url`. `nexus-api` composes it from the request it sees, so behind a gateway
@@ -57,11 +90,12 @@ reason the value can be believed.
 ## What it deliberately does not do
 
 - **No authentication.** A backend behind this door is reachable by anyone who can reach the door.
-- **No rate limiting.** `apps/web` and `nexus-api` own their own bounds; the gateway adds none.
+- **No shared limiting.** The bucket is per instance: two gateways allow twice the configured rate. Shared
+  limiting needs Redis, and making Redis a hard dependency of every request is its own outage mode; that
+  slice is owed, not hidden.
 - **No TLS termination, no WebSocket upgrade path.** The Studio's realtime channel does not go through
   this module yet.
-- **No retries.** A failed call is answered, not repeated: a POST retried by a proxy is a duplicate the
-  caller never asked for.
+- **No retried writes.** Retry is GET-only by construction; POST/PATCH/DELETE are answered once.
 - **No invented success.** A backend that is down, slow, or dropped mid-call answers `503` with the cause
   the breaker recorded. It never answers `200 []`: "the system of record has no publications" and "the
   system of record is down" must not look the same (§159).
@@ -94,7 +128,8 @@ mvn -f services/nexus-gateway/pom.xml spring-boot:run
 The gateway's own port is `NEXUS_GATEWAY_PORT` (8090), the registry's is `NEXUS_REGISTRY_PORT` (8761), and
 the service id it routes to is `NEXUS_GATEWAY_API_SERVICE` (`nexus-api`). The breaker's time limit defaults
 to 5 s (`NEXUS_GATEWAY_TIMEOUT`): the library default of 1 s would report a cold service as unavailable
-while it was still answering.
+while it was still answering. The edge bounds are `NEXUS_GATEWAY_MAX_REQUEST_BYTES` (1048576) and
+`NEXUS_GATEWAY_RATE_LIMIT` / `_RATE` / `_BURST` / `_CLIENTS` (true / 100 / 200 / 10000).
 
 ## Bounds, stated (§60)
 
