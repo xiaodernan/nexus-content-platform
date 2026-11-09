@@ -28,19 +28,41 @@ spring:
           # The per-client instance below is the one that matters; the shared group is left off so
           # that one client's failures cannot open a breaker for an unrelated one.
           enabled: false
+        # The NAME of the breaker is decided by `DomainCircuitBreakerNameResolver` (see
+        # `dev.nexus.api.domain`), NOT by the library's default resolvers. Measured (2026-11-09): those
+        # name a breaker `dev.nexus.api.domain.DomainServiceClient#getProject` — and, by default, that
+        # with every non-alphanumeric character removed. The `resilience4j` block below is keyed by
+        # `nexus-domain-service`, so with the library's own resolver it configured an instance
+        # NOTHING WAS USING, and the breaker that actually guarded the call ran on the defaults.
+        #
+        # The first run of the topology proof showed what that costs: the real breaker counted every
+        # exception as a failure, including a 404 — which is an ANSWER, not a failure — and once it
+        # opened, a healthy domain service answered "there is no project with that id" with
+        # 503 "No fallback available." instead of 404.
+        #
+        # `DomainCircuitBreakerConfigTest` reads this file and refuses to let the instance name and
+        # the name in front of the call drift apart again.
 
 resilience4j:
   circuitbreaker:
     instances:
-      # The instance name MUST be the Feign client's `name`, or the breaker that stands in front of
-      # the call is not the one this configuration describes.
+      # The instance name MUST be the name Spring Cloud OpenFeign actually asks for — which is the
+      # Feign client's name, verbatim, because `alphanumeric-ids.enabled` is false above — or the
+      # breaker that stands in front of the call is not the one this configuration describes.
       nexus-domain-service:
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 20
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
         permittedNumberOfCallsInHalfOpenState: 2
         automaticTransitionFromOpenToHalfOpenEnabled: true
+        # A 404 is an ANSWER, not a failure. The domain service said "there is no project with that
+        # id", which is exactly what it was asked — a healthy service doing its job. Counting it as a
+        # failure would open the breaker for a service that is working perfectly, and every later 404
+        # would then come back as a 503, i.e. as "the service is down". The two facts must not be
+        # confused on this side of the boundary either.
+        ignoreExceptions:
+          - feign.FeignException.NotFound
 
 server:
   port: ${NEXUS_API_PORT:8080}
