@@ -1,0 +1,68 @@
+name: main-line
+
+# MAIN-LINE GATES — the main line's deterministic §85 structural invariants, gated in CI per ADR-0093.
+#
+# WHY A SECOND WORKFLOW INSTEAD OF A NEW STEP IN ci.yml:
+# ci.yml is the studio line's workflow, and its 12-step census is graded hard by `verify:ci-wiring`
+# (step indices, the naming of the proof step, the 60-minute ceiling and the token scope). Touching it
+# invalidates a counted, evidence-bearing contract for no reason this line needs. This file is the
+# main line's own door: it runs whatever the main line needs that that book does not name.
+#
+# WHAT IT GRADES:
+#   1. `npm run typecheck:main` — the main line's own tsc --noEmit chain (both models + every model
+#      package + apps/web + apps/mcp-server + e2e + the tsx tools), not turbo's per-package scope.
+#   2. `npm run evals` — the §85 deterministic structural invariants, exit 1 on any red (ADR-0093).
+#      With NEXUS_DATABASE_URL pointed at the service container, the export-roundtrip suite runs too
+#      (it prints SKIP without one, without a red).
+#
+# WHAT IT DELIBERATELY DOES NOT GRADE:
+#   - the studio line's gates — they run in ci.yml and are re-earned by `npm run verify:proofs`;
+#   - the DB-backed web integration suite — those tests skip or pass against their own fixtures; the
+#     suite's real dependency is the pgvector container this job provides only for the export
+#     suite's own use (no web server is started here);
+#   - provider-facing behaviour — every feature DEMO MODE takes honest defaults, and nothing in this
+#     job pretends a human signed off anything.
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: nexus
+          POSTGRES_PASSWORD: nexus_dev_only
+          POSTGRES_DB: nexus
+        ports:
+          - 55433:5432
+          - 55100:5432
+        options: >-
+          --health-cmd "pg_isready -U nexus -d nexus"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm ci || npm install
+      - name: Typecheck main line
+        run: npm run typecheck:main
+      - name: Evals (invariants in CI, ADR-0093)
+        run: npm run evals
+        env:
+          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55100/nexus
