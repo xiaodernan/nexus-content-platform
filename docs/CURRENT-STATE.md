@@ -39,6 +39,11 @@
 
 ## 已经合入主干的另一会话成果（无许可主动删不动）
 
+- 两条线合入一个分支后的内容，全部是两侧原子的整个体系（无内容被裁剪，无证词被改写）。
+- `8179208`：`apps/web` 确定性本地 embedding provider（§49），环境变量 `NEXUS_EMBEDDING_PROVIDER=local` 显式 opt-in，测试 13/13 绿；不存在没有 provider 时告随便的行为，同一个模型档在 `model_for` 上自报家门。
+- `cf1537e`：新增 `.github/workflows/main-line.yml`，主线的 `typecheck:main` + `evals` 决定性结构不变式进了 CI（ADR-0093），针对 `pgvector` 容器跑 `export-roundtrip`（无库时打印 SKIP 且退码保持不变）。
+- 其余动作都在 `docs/evidence` 里按 amendment 568（v641）记录：id 568 已授予。
+
 另一位智能体在 `main` 上的提交我负责接下来：
 - `f14fe2a` §147 选中响应回归测试（已随 my commits 入 main）
 - `8e0335c` §85 公开作品页 × 浅色 axe
@@ -58,8 +63,15 @@
 
 ## 本仓与工作树
 
-- 只 `main` 一条分支，工作目录 `D:\内容创作平台`，单 worktree（`git worktree list` 一条）。
+- 2026-11-09 已把两条平行线（studio 线 `master` 与 main 线 `main`）合并成一条：`origin/master` == `origin/main` == 本地 `master`，工作目录不再是单行。
+  - Studio 线的 `packages/design-model` 在原路径；main 线的模型被**原样**搬到 `packages/creative-model`，包名 `@nexus/creative-model`，main 线文件里的 `@nexus/design-model` 已全部改指向新包。
+  - 两类模型的文档（12 个共享 docs）现在**逐字保留**两边：studio 线在前，main 线的全文在 `# 附录 · …` 之下，不抹不删。
+  - studio 线的 `docs/evidence`、Java 服务、agents runtime 全部原样保留并可验证。
+  - 12 个 add/add 冲突的解法见 `README.md` 的 "Consolidation history" 一节。
+
 - 子模块 `packages/*` 通过 `@nexus/*` alias 或 `tsconfig.json paths`——`tsconfig.base.json` 是单一真值来源。
+
+- 2026-11-09 新增 `apps/web` 侧确定性本地 embedding：`NEXUS_EMBEDDING_PROVIDER=local`（**必须显式设置，绝不静默切换**）后，Web 进程内就能完成 §49 的 embedding 与 hybrid 检索——token-bag 哈希，1536 维，无需 key；不是语义模型，只是确定性本地便捷。真实 provider 仍按原有路径接入。
 - 全局环境：Windows 11 / Node 24 / Python 3.11 / Java 25 + Maven（ai-service），以及 Compose 上的 PostgreSQL 55433 / Redis 56379（`infra/docker-compose.yml`）。
 
 ## 交接
