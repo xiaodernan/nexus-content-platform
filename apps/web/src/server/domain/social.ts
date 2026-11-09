@@ -1,5 +1,11 @@
 import { and, desc, eq, gte, inArray, isNull, notInArray, sql, type SQLWrapper } from 'drizzle-orm';
 import { duplicateDocument, remapAssetIds } from '@nexus/creative-model';
+import {
+  COMMUNITY_REFUSAL,
+  publicationReachable,
+  type CommunityFollowState,
+  type CommunityLikeState,
+} from '@nexus/schemas';
 import { getDb } from '../db/client';
 import { comments, follows, likes, projects, publishedProjects, publicationVisits, remixes, saves, snapshots, users } from '../db/schema';
 import { createProject, saveDocument } from './projects';
@@ -60,14 +66,20 @@ export async function publicRefByPath(path: string): Promise<PublicationRef | nu
       visibility: publishedProjects.visibility,
       moderation: publishedProjects.moderation,
       projectName: projects.name,
+      projectDeletedAt: projects.deletedAt,
     })
     .from(publishedProjects)
     .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
-    .where(and(eq(publishedProjects.path, path), isNull(projects.deletedAt)))
+    .where(eq(publishedProjects.path, path))
     .limit(1);
   if (!row) return null;
-  if (row.visibility === 'private' || row.moderation === 'rejected') return null;
-  return row;
+  const { projectDeletedAt, ...ref } = row;
+  // 三条事实一起交给共享谓词（§SC-17）：软删除这一条以前写在 SQL 里，另两条写在 JS 里，
+  // 于是"什么算存在"有两处口径。Java 侧读的是同一份参数。
+  if (!publicationReachable({ visibility: ref.visibility, moderation: ref.moderation, projectDeleted: projectDeletedAt !== null })) {
+    return null;
+  }
+  return ref;
 }
 
 /** 公开页一进来要显示的那一份现场：计数 + 我做过没有。全部来自真表，没有一处是猜的 */
@@ -149,13 +161,11 @@ export async function publicationState(path: string, viewerId: string | null): P
   };
 }
 
-export interface LikeState {
-  liked: boolean;
-  count: number;
-  /** §132 挡住时是 'me' / 'them'（谁先拉的谁），没挡住是 null；不是一次"点赞失败" */
-  blocked: 'me' | 'them' | null;
-  reason: string | null;
-}
+/**
+ * §132 挡住时 `blocked` 是 'me' / 'them'（谁先拉的谁），没挡住是 null；不是一次"点赞失败"。
+ * 形状由契约定义（§SC-17）：java-domain-service 返回的是同一份 schema。
+ */
+export type LikeState = CommunityLikeState;
 
 export async function toggleLike(actorId: string, publicationId: string): Promise<LikeState> {
   const db = getDb();
@@ -165,7 +175,7 @@ export async function toggleLike(actorId: string, publicationId: string): Promis
     .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
     .where(eq(publishedProjects.id, publicationId))
     .limit(1);
-  if (!pub) throw new Error('没有这个发布版本');
+  if (!pub) throw new Error(COMMUNITY_REFUSAL.noSuchPublication);
 
   const verdict = await canInteract(actorId, pub.ownerId);
   if (!verdict.allowed) {
@@ -254,7 +264,7 @@ export async function addComment(actorId: string, publicationId: string, body: s
     .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
     .where(eq(publishedProjects.id, publicationId))
     .limit(1);
-  if (!pub) return { ok: false, reason: '没有这个发布版本' };
+  if (!pub) return { ok: false, reason: COMMUNITY_REFUSAL.noSuchPublication };
 
   // §132：先问能不能落到对方身上，再写库。机检在前是因为那一步不需要查库、
   // 而"被谁拉黑"是一个人随时能改的状态，放在后面判定才不会用到过期结果
@@ -275,15 +285,10 @@ export async function addComment(actorId: string, publicationId: string, body: s
   };
 }
 
-export interface FollowState {
-  following: boolean;
-  followers: number;
-  blocked: 'me' | 'them' | null;
-  reason: string | null;
-}
+export type FollowState = CommunityFollowState;
 
 export async function toggleFollow(actorId: string, targetUserId: string): Promise<FollowState> {
-  if (actorId === targetUserId) throw new Error('不能关注自己');
+  if (actorId === targetUserId) throw new Error(COMMUNITY_REFUSAL.selfFollow);
   const db = getDb();
   const existing = await db
     .select({ followerId: follows.followerId })
@@ -324,18 +329,24 @@ export async function remixPublication(actorId: string, publicationId: string): 
     .from(publishedProjects)
     .where(eq(publishedProjects.id, publicationId))
     .limit(1);
-  if (!pub) return { ok: false, reason: '没有这个发布版本' };
-  if (pub.visibility === 'private' || pub.moderation === 'rejected') return { ok: false, reason: '这一版已经不公开了' };
+  if (!pub) return { ok: false, reason: COMMUNITY_REFUSAL.noSuchPublication };
+  const [source] = await db
+    .select({ name: projects.name, ownerId: projects.ownerId, deletedAt: projects.deletedAt })
+    .from(projects)
+    .where(eq(projects.id, pub.projectId))
+    .limit(1);
+  // 项目行没了与软删除同一口径（publicRefByPath 的 innerJoin 说的也是这件事）。
+  // 这里以前只查 visibility/moderation，软删除那条臂在改编上是空的（§SC-17 收拢谓词时补上）。
+  const reachable = publicationReachable({
+    visibility: pub.visibility,
+    moderation: pub.moderation,
+    projectDeleted: !source || source.deletedAt !== null,
+  });
+  if (!reachable) return { ok: false, reason: COMMUNITY_REFUSAL.publicationGone };
   if (!pub.snapshotId) return { ok: false, reason: '这一版没有对应的快照，分叉不出来' };
 
   const snapshot = await readSnapshot(pub.projectId, pub.snapshotId);
   if (!snapshot) return { ok: false, reason: '快照读不到，分叉不出来' };
-
-  const [source] = await db
-    .select({ name: projects.name, ownerId: projects.ownerId })
-    .from(projects)
-    .where(eq(projects.id, pub.projectId))
-    .limit(1);
   // 改编会挂在原作者的统计上并给他发一条通知，所以它和评论一样是"落到对方身上"的动作（§132）
   const verdict = source ? await canInteract(actorId, source.ownerId) : { allowed: true as const };
   if (!verdict.allowed) return { ok: false, reason: verdict.reason };

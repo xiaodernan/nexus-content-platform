@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CommunityFollowStateSchema, CommunityLikeStateSchema } from './community-policy';
 import {
   AiChatRequestSchema,
   AiChatResponseSchema,
@@ -20,6 +21,9 @@ import {
  * Python 侧运行期按导出的文件校验，测试再保证仓库里的文件没有漂移。
  *
  * io:'input' 允许缺省字段走 default；io:'output' 要求返回时字段齐全。
+ *
+ * `contracts/community-policy.json` 不在这张单子上：它是**值**文档而不是形状，
+ * 由 `community-policy.ts` 的 `renderCommunityPolicy()` 导出，同一个脚本一起写。
  */
 export const CONTRACT_EXPORTS: { file: string; schema: z.ZodType; io: 'input' | 'output' }[] = [
   { file: 'ai-request.schema.json', schema: AiRequestSchema, io: 'input' },
@@ -34,6 +38,8 @@ export const CONTRACT_EXPORTS: { file: string; schema: z.ZodType; io: 'input' | 
   { file: 'screenshot-request.schema.json', schema: ScreenshotRequestSchema, io: 'input' },
   { file: 'screenshot-response.schema.json', schema: ScreenshotResponseSchema, io: 'output' },
   { file: 'realtime-event.schema.json', schema: RealtimeEventSchema, io: 'output' },
+  { file: 'community-like-state.schema.json', schema: CommunityLikeStateSchema, io: 'output' },
+  { file: 'community-follow-state.schema.json', schema: CommunityFollowStateSchema, io: 'output' },
 ];
 
 export function renderContract(file: string): string {

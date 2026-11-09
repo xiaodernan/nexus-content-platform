@@ -5,6 +5,9 @@ import { z } from 'zod';
  * 两侧都不得自定义形状；新增字段必须先改这里。
  */
 
+/** §SC-17 社区互动策略（值 + 回执形状）。包入口统一从这里出，与其余 69 处 import 同一写法 */
+export * from './community-policy';
+
 /** §159-160：任何生成结果必须自证来源，前端据此显示 DEMO MODE */
 export const CapabilityStatus = z.enum(['real', 'demo', 'unavailable']);
 export type CapabilityStatus = z.infer<typeof CapabilityStatus>;
