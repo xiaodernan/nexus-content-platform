@@ -10826,6 +10826,46 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   一格不多一格不少"那条已有的门一起叫），而句子自己改口成"6 件事"；V3 页面再抄一遍 ⇒ 静态门 2 failed；
   V4 名单只点前四格 ⇒ e2e `Error: 句子里写的是 5 件事，括号里点名了 4 格（aiUsage、storage、generation、publishing）`。
   收尾 `grep -rn "MUT " apps/web/src` = 0，两个文件的 `md5sum` 回到臂前基线。
-- 仍欠，如实记：① **每格那句解释本身对不对没有门能验**——真值在 `refusalFor*` 那几道门里，
-  今天靠 `credits-enforcement.integration.test.ts` 验行为、不验措辞；要钉死得让解释带上"拦截方是哪个函数"
-  并由测试真的 import 它；② `UNENFORCED_PLAN_AXES` 非空那句尾今天只有单测覆盖（界面没有真读数，因为它是空数组）。
+- 仍欠，如实记：① **每格那句解释本身对不对没有门能验**——**已还（§SEC 第四十三片，2026-11-08 落地 / 2026-11-09 补账，
+  见文末那一节与 `docs/adr/0090-plan-axis-explanations-name-their-guard.md`）**：解释带上了 `{module, guard}` 地址，
+  门按地址取来在句子声称的边界上问一次，七条变异臂全部按预测红；② `UNENFORCED_PLAN_AXES` 非空那句尾今天只有单测覆盖
+  （界面没有真读数，因为它是空数组）。
+
+## §SEC 第四十三片：每格解释带上它说的是哪道门——门按地址取来、在句子声称的那条边界上问一次（2026-11-08）
+
+- 起点就是上一节「仍欠 ①」：`ENFORCED_PLAN_AXE_WHY` 里每格那句解释**本身**对不对，没有任何门能验。
+  这一片第一遍就跑出**三句与门不符的解释**，三句都是曾经真过、后来门改了口径而句子没跟着改口的：
+  ① aiUsage 说「额度为 0 时挡下」，而 `refusalFor` 比的是 `balance >= cost`——image 类一次 2 点，
+  余额 1 点**不是 0** 也照样拒；② storage 说「存储写满时拒绝」，而 `refusalForStorage` 比的是
+  `used + incoming <= limit`——198MB 已用 / 上限 200MB 时传 4MB 被拒，**没写满也拒**；
+  ③ teamCollaboration 说「pending 邀请也占名额」，而 #213 之后 `teamSlotRefusalFor` 数邀请时带
+  `gt(projectInvites.expiresAt, new Date())`——**过期那封不占**，否则人会被永久堵在门外。
+  **改的是措辞，判据一行没动**（门的口径由 #191/#199/#211/#213 落定时就定了，今天没有证据说它们该改）。
+- 做了什么（决定与取舍见 `docs/adr/0090-plan-axis-explanations-name-their-guard.md`）：
+  ① `ENFORCED_PLAN_AXE_GUARDS` 取代纯字符串表，每格 `{module, guard, why}`，`as const satisfies Record<EnforcedPlanAxis, …>`
+  ⇒ 加一格忘写拦截方是**编译错误**；`ENFORCED_PLAN_AXE_WHY` 保留但只能由它 `Object.fromEntries` 摊平（写入方仍只有一个）；
+  ② 点数不手抄：aiUsage / generation 两句里的点数由 `${GENERATION_COST.*}` 拼，另配一条腿把句子里的整数逐个抠出来对照常量表；
+  另三句**不许带数字**（上限在页面另有一列，句子只说形状）；
+  ③ **边界腿一律走地址**（`guardFromTable(axis)` 从命名空间按 `{module, guard}` 取真函数），不 import 具体门名——
+  这是对调臂 W7 唯一能响的原因；④ 声称行为的句子钉在**它点名的那个函数自己的那一段源码**上
+  （`functionSource(file, name)` 切片），不是全树搜 token：`gt(projectInvites.expiresAt` 在 `team.ts` 的邀请视图里也有一份，
+  全树搜索的写法删掉名额 SQL 那道过滤照样绿（W6 量到的正是这个洞）；也不用 `fn.toString()`——
+  vitest 的 SSR transform 会把被调方改写成 `(0,__vite_ssr_import_N__.name)(…)`，那条腿在**未变异的树上**就红；
+  ⑤ 旧口径句子双端禁（`STALE` 四条既不许出现在页面端出去的那句话里，也不许出现在 `credits.ts` 的散文里）。
+- 见证（逐字）：新门 `apps/web/test/credits-why-guards.test.ts` 17 条腿；连同 `credits-enforced-copy.test.ts`（8 条）
+  与 `credits.test.ts`（26 条）⇒ **51 passed**（电池对照与电池收尾各一次，同数）；`@smoke §134 跑一次生成…` **1 passed (1.1m)**；
+  `npm run typecheck` / `npm run eslint` 各 exit 0；全量由 `f604d13`（272 文件 / 3590 条，两次 exit 0）覆盖到本片
+  （`git merge-base --is-ancestor eb809df f604d13` 为真）。
+- 臂表（七条，每条**先写预测红/绿名单再跑**，全部 `pred 全中 · not 全绿`；跑法与逐字读数入库在
+  `.scratch/arms-creditswhy.mjs` / `.scratch/arms-creditswhy.txt`）：
+  W1 地址指错模块 ⇒ 2 failed；W2 门改名 ⇒ 3 failed；W3 `>=`收紧成`>` ⇒ 3 failed；
+  W4 点数改回手抄 + `GENERATION_COST.image` 2→3 ⇒ **1 failed（只有数字腿红，边界腿全绿）**；
+  W5 改回旧口径 ⇒ 4 failed；W6 删掉名额 SQL 的 `expiresAt` 过滤 ⇒ **1 failed**；
+  W7 publishing 与 teamCollaboration 的门名对调 ⇒ **2 failed（名册腿全绿，两格边界腿红）**。
+  还原由电池按 sha1 自校 ⇒ `credits.ts=OK credit-ledger.ts=OK`、`aborted=no`。
+  两条不在预测里的另红如实记在 ADR 里（W3 连坐 §134 那条、W5 连坐页面逐字门），都是同源连坐不是漏洞。
+- 仍欠，如实记：① 地址只证明"这道门存在、装在链上、在我问的那条边界上按句子答"——句子若声称一件**我没写用例去问**的行为
+  （例如"撤回即释放名额"），仍没有腿问它一次；那要往 DB 平面要一条真邀请（`team.integration.test.ts` ⑥ 有形状，但它不读 `why`）。
+  ② `NAMESPACES` 那两行是手写登记处，新增一个模块的门要先在那里登记（这是想要的摩擦，但仍是手工的一步）。
+  ③ 本节与 ADR 的见证是 2026-11-09 补写的：落地那笔（`eb809df`）当时 ROADMAP 是另一条会话的在飞路径，
+  故账先只记在 ADR；今天工作树干净才补上这一节，**补账日期与落地日期分开写**。
