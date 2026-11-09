@@ -259,6 +259,20 @@ HTTP/WS contracts only"。但仓库里
 - 观察（未修，记下来）：注册表为空时一次 `/api/projects` 探测在 503 已提交后又抛
   `UnsupportedOperationException`，`HttpWebHandlerAdapter` 记为 "ServerHttpResponse already committed"。
   只出现在"注册表无实例"的故障路径，不属于 SC-12；列为待查。
+  **补记（2026-11-10，第十一片接手时量到）：这条观察的范围写窄了。** 本机 `mvn -o test` 一趟里，
+  `GatewayEdgePolicyTest` 的 `/api/drop`、`/api/slow` 与 `GatewayUnknownServiceTest` 的
+  `/api/projects?limit=1` **三处都打了同一句** `Error [java.lang.UnsupportedOperationException] … but
+  ServerHttpResponse already committed (503 SERVICE_UNAVAILABLE)`。所以它不是"注册表为空"独有的，
+  而是**走 fallback 那条路**就会发生；测试只断言 503 的正文，没有任何一条断言"提交之后不许再写"，
+  于是 30 条全绿与这句 ERROR 同时成立。修它连同那条断言是 SC-13。
+- 补记（2026-11-10，第十一片）：上面那段两实例见证是上一线量的；接手这一遍自己量的是**脚本那一层**。
+  `RedisRateLimitBackendTest` 把 template 换成 mock，脚本正文此前在自动化里零读者，现在有了常驻的一支：
+  `npm run ratelimit:gateway-lua`（`scripts/gateway-rate-lua-live.mts`）从 Java text block 里**读出**脚本
+  （不抄第二份，打印 sha256 前 12 位），在真 Redis 上跑 6 条判据：共享桶第三次拒（1/1/0、tokens=0）、
+  每实例一份的对照（1/1/1）、三条独立连接 13 次问门合计只放 3、补水用服务端钟且被 capacity 夹住
+  （剩恰好 1 枚）、未来 ts 不倒扣出令牌、TTL 是传进去的数且真的到期。L1–L5 五条臂各自红一次
+  （读数与还原 md5 见 ROADMAP §SC 第十一片）。**仍欠**：两个网关**进程**共用一只桶这一格本机没复现
+  （空闲内存 357MB，起不来三个 JVM），上面那段进程级见证仍是上一线的读数。
 
 **已知边界（如实记）**：
 

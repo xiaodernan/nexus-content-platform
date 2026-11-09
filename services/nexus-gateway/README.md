@@ -136,6 +136,21 @@ reason the value can be believed.
 mvn -f services/nexus-gateway/pom.xml test
 ```
 
+Those 30 tests mock the Redis template, so the Lua bucket itself is graded separately, against a real
+Redis and without any JVM (repo root; needs only `nexus-redis` on 56379):
+
+```bash
+npm run ratelimit:gateway-lua
+```
+
+It reads the script out of `RedisRateLimitBackend.java` (no second copy to drift), prints its sha256,
+and asks six questions of the live server: the shared bucket refuses the third caller, the
+per-instance control does not, three independent connections cannot over-issue a burst of 3, refill
+uses Redis's own clock and is clamped by capacity, a future stamp cannot mint tokens, and the TTL is
+the argument rather than a constant. Any failed verdict exits non-zero; a dead Redis is an error, not
+a skip. Readings land in `.scratch/gateway-rate-lua-live/readings.json`. What this does **not** prove
+is two gateway *processes* sharing one bucket — that needs three JVMs and is recorded in ADR-0095.
+
 A joined-up three-service run (from the repo root, one terminal each):
 
 ```bash
@@ -176,4 +191,8 @@ project and requires AUTH). Connection and command timeouts are `NEXUS_GATEWAY_R
   is also not a monitoring history.
 - **`UNKNOWN` is a real answer.** A timeout, a connection that silently disappears, or a 2xx without a
   recognizable `status` field is reported as `UNKNOWN`, never rounded to `UP` or `DOWN`.
-- One gateway instance. No session affinity, no shared breaker state, no operator UI.
+- No session affinity, no shared breaker state, no operator UI. Multiple gateway instances are supported
+  (SC-12): with `NEXUS_GATEWAY_RATE_LIMIT_BACKEND=redis` they decrement one bucket per client, so the
+  configured rate is the cluster's rate. With the default `memory` backend each instance keeps its own
+  bucket and N instances allow N times the rate — that is the honest reading of the default, not a bug.
+  The breaker's state is still per instance either way.

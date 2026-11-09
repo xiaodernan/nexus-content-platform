@@ -11065,3 +11065,68 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   `screenshots/a11y-opened-publish-scan-review.png` 人工看过。
 - 三条臂 N1–N3（去 role / 改 clear 口径 / 丢规则名）各自红一次，还原后复跑绿，PublishPanel 无残留 diff。
 - notMeasured：真服务端 5xx / 413、390 下弹层、焦点陷阱。
+
+## §SC 第十一片：接手 SC-12 收尾——那只 Lua 桶在真 Redis 上有了常驻读者（2026-11-10）
+
+- 起点（接手时的工作树）：SC-12 的代码、测试、文档都写好了但**未提交**（4 个新 java 文件已暂存、9 个改动
+  未暂存）。上一线的两实例见证记在 ADR-0095 里；本机这一遍要自己量过才提交。核对时撞到两件事：
+  ① `RedisRateLimitBackendTest` 那 5 条把 template 换成了 mock（它自己的注释写着 "graded without a Redis
+  server"），于是**脚本正文那 30 行在自动化里一个读者都没有**——补水算错、nil 没兜住、`PEXPIRE` 写成常量、
+  并发下两个调用方拿到同一枚令牌，都能在 mock 全绿的同时发生；② 本机空闲内存只有 **357MB**
+  （`FreePhysicalMemory` 读数），再起三个 JVM 复现"两实例共享桶"会把机器压垮。所以这一片把见证下沉到
+  Redis 那一层：同一只键上的多个调用方就是多个实例，这件事不需要多个 JVM。
+- 做法：新增 `scripts/gateway-rate-lua-live.mts`（`npm run ratelimit:gateway-lua`）。脚本正文**不抄第二份**，
+  从 `RedisRateLimitBackend.java` 的 text block 里读出来（找不到 `String LUA = """` 就红，不是跳过），
+  并打印它的 sha256 前 12 位——读数对应哪一份字节是可核对的。判据只读线路：放行数由 `EVAL` 的返回值数，
+  桶里剩几枚 / PTTL 多少由父进程自己 `HGET` / `PTTL` 读，不采信任何一边的自述。键名带本次 runId，
+  与生产客户端的桶隔开（同一台 Redis 上可能正跑着真网关），收尾只删自己造的键。
+- 读数（真 Redis `redis://127.0.0.1:56379`，脚本 `sha256:8db0f4043dd7`，runId `mw9lz2cl-30360`，
+  2026-11-09T18:42:30.986Z，6 条判据全 PASS、exit=0；`.scratch/gateway-rate-lua-live/readings.json`）：
+
+```
+verdict SHARED_BUCKET_CAPPED: PASS         三次问门 1/1/0、tokens=0、PTTL=3599996ms
+verdict PER_INSTANCE_CONTROL: PASS         对照：第三个调用方换一只键 ⇒ 1/1/1
+verdict ATOMIC_BURST_THREE_CONNECTIONS: PASS  三条独立连接共 13 次问门、burst=3 ⇒ 合计放行 3、tokens=0
+verdict REFILL_FROM_SERVER_CLOCK: PASS     打空 1/1/0 → 等 1.1s → 再问=1、剩恰好 1 枚；
+                                           ts=1794249749.563400 落在 EVAL 前后两次 Redis TIME
+                                           （1794249749.561248 … 1794249749.564844）之间
+verdict FUTURE_STAMP_REFUSES: PASS         ts 写到未来 30s、tokens=0、rate=100 ⇒ 这一次=0、桶里 0 枚
+verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms、1.4s 后 EXISTS=0、
+                                           再问=1；rate=0 那只键 PTTL=3599999ms
+```
+
+- 臂（L1–L5，每条先红一次再还原。还原后 `RedisRateLimitBackend.java` 的 md5 =
+  `a1391461adabb98aa9242e61a705416a`、`grep -c "MUT "` = 0，脚本 sha 回到 `8db0f4043dd7`）：
+
+| 臂 | 改了什么 | 哪条判据红 | 量到的数（原话） |
+| --- | --- | --- | --- |
+| L1 | 去掉 `math.min(capacity, …)` | `REFILL_FROM_SERVER_CLOCK` | 剩 **1.223516** 枚（应恰好 1）；exit=1 |
+| L2 | `if tokens >= 1` 改成 `>= 0` | `SHARED_BUCKET_CAPPED`（另 3 条连带红） | 三次问门 **1/1/1**、桶里剩 **-1** 枚；exit=1 |
+| L3 | 删掉 `PEXPIRE` 那一行 | `TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES` | PTTL **-1**ms、1.4s 后 EXISTS=**1**、再问=**0**；exit=1 |
+| L4 | 删掉 `elapsed < 0` 的夹取 | `FUTURE_STAMP_REFUSES` | 桶里 **-2999.8854160309** 枚（应 0）；exit=1 |
+| L5 | 不改源码，`NEXUS_REDIS_URL` 指向死端口 56380 | 整趟抛错（不是 skip） | `Redis 线路不通（redis://127.0.0.1:56380）：connect ECONNREFUSED`；exit=1 |
+
+  L5 第一次跑还多打了一行 `[ioredis] Unhandled error event`（lazyConnect 失败时既 reject 又 emit）；
+  加了监听者之后复跑，那一行计数为 **0**，报错原话里带上了 `ECONNREFUSED`。
+- 接手这一遍的其它核对：`mvn -o test`（网关模块）**30 条全绿** = 4+1+7+1+2+6+5+4；
+  `npx tsc -p tsconfig.tools.json --noEmit` exit=0；`npx eslint scripts/gateway-rate-lua-live.mts` exit=0。
+  **`npm run lint` 这一趟是 `7 successful, 7 cached … FULL TURBO`**——缓存命中不是验证：根级 `scripts/`
+  不在任何 package 的 lint 任务里（只有 `apps/studio` 定义了 `lint`），所以另外单独跑了上面两条。
+  第一版脚本还真被 `tsc` 抓到一处 `(await redis.time()) as [string, string]`（TS2352，ioredis 的类型是
+  `number[]`），改成直接读下标后 exit=0。
+- 顺手修的两处口径：网关 README 那句 "One gateway instance" 在 SC-12 之后不再成立（redis 后端就是为多实例
+  写的）；`docs/TESTING.md` 的分层表此前**没有 JVM / Spring Cloud 这一行**，五个 Java 模块的测试不在表上。
+- 仍然没牙的那格（如实记）：这一片量的是**脚本在 Redis 上的语义**，不是"两个网关进程真的共用一只桶"。
+  后者要三个 JVM（registry + 两个网关），本机 357MB 空闲起不来；ADR-0095 里 SC-12 那段两实例读数仍是
+  上一线量的，本机没有复现。等内存宽裕时补一支 `ratelimit:gateway-two-process`（形状照
+  `scripts/rate-limit-two-process.mts`：判据读线路，不采信孩子进程自述）。
+- 合并盘点（同一遍做的）：`git worktree list` 只有主工作树一个，`git stash list` 空，
+  `origin/master`（`6e765101`）已是 `main` 的祖先（`git merge-base main origin/master` = 它自己，
+  `main..origin/master` 为空）——**没有第二份内容等着并进来**。`main` 领先 `origin/main` 10 个提交，
+  按仓库约定默认不 push。
+- 并轨实况（如实记，因为它改了这一片的提交形状）：本片量的过程当中，**同一工作树里另一条会话**
+  把 SC-12 提交了两次——`ce316b3b`（02:37，网关共享限流的代码与文档）与 `75a5895c`（02:43，
+  把本片写的 `scripts/gateway-rate-lua-live.mts` 连同 npm 入口一起提交，并把 `ioredis` 从传递依赖
+  提升为显式 devDependency）。所以本片的脚本读数是真的、提交却不在本片的 commit 里；本片自己的
+  commit 只带四处文档口径（ROADMAP / ADR-0095 / TESTING 分层表 / 网关 README）。
+  `main` 因此领先 `origin/main` 12 个提交。两条会话在同一工作树上并行，接下来各自挑不相交的模块做。

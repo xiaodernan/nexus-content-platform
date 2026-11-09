@@ -72,6 +72,7 @@ run concurrently; build the affected package directly with `tsc -p tsconfig.json
 | 服务 | pytest（`apps/ai-service/tests`） | 契约校验、Model Router、provider 成功/失败/噪声、审批门、dryRun、体积上限 | ai-service 改动 |
 | 集成 | Vitest + 真 Postgres(容器) | 项目 CRUD、snapshot/branch、publish、usage | 每里程碑 |
 | 集成（跨实例） | Vitest + 真 Redis(容器)，另加 `npm run realtime:two-process` 起真实第二个进程 | 实时总线扇出：进程与进程之间的投递、关门、坏帧、线路断开不拖业务（§163 / ADR-0028） | 实时驱动或连接参数改动 |
+| 服务（JVM / Spring Cloud） | Maven Surefire：`mvn -f services/<模块>/pom.xml test`（registry / config / gateway / api / domain）；网关那只共享限流桶另加 `npm run ratelimit:gateway-lua`（真 Redis、零 JVM，脚本正文从 Java text block 里读出、打印 sha256，6 条判据，臂 L1–L5 见 ROADMAP §SC 第十一片） | 注册与路由、边界策略（413/429/503 与 fallback 正文）、逐实例健康读数、配置中心客户端、限流后端；Lua 桶的共享计数/原子性/服务端钟补水/TTL | Java 模块或限流脚本改动 |
 | 端到端 | Playwright | Studio 全流程竖向切片（见下 Golden Path） | 每里程碑 + 发布前 |
 | 视觉 | Playwright screenshot + Visual Benchmark | 渲染快照、AI Diff 前后对比、参考图 vs 生成图 | Studio/渲染器改动 |
 | Agent 评测 | `npm run evals`（`evals/` 按能力分套件、十套、全绿 exit 0；`--list`/`--suite` 经 CLI 选片）· `npm run evals:baseline`（`scripts/eval-baseline.mts`，真库基线） | 确定性套件（当前十一套全绿 · 276 checks）：`code-index 19 · model-roundtrip 13 · export-roundtrip 17（需真库，skip sentinel）· video-plan 30 · world-build 55 · schemas-contract 17 · game-build 36 · design-build 46 · project-bundle 14 · local-embedding 14（§49 本地 token-bag 检索自洽） · local-reranker 15（§93 本地 token-bag 重排自洽）`；真库基线：RAG / 设计精度 / 视觉 / 无障碍 | 评测框架与套件改动时
