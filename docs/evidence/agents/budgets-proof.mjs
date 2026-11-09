@@ -265,7 +265,13 @@ try {
   const killed = impatient.out.output;
   assert.equal(killed.ok, false, 'a verify that never finished may not report green');
   assert.match(killed.detail, /killed at timeout budget/, 'the report NAMES the budget as the reason, distinct from a test failure');
-  assert.match(killed.detail, /SIGTERM/);
+  // v60^2: the budget bit is what the OS reported — the NAME it answered to differs by plane (the default kill
+  // is SIGTERM, a detached reaper or a Windows forced exit may not report one at all). What may not happen is
+  // an INVENTED signal: a named one has to be a real OS signal. The Linux CI runner raced vitest's own exit
+  // into the budget window (no signal reported), which is a legitimate shape; the Windows authoring box reported
+  // SIGTERM. The sentence stays honest either way, so the assertion follows the sentence's own claim.
+  const namedSignal = /\((SIGTERM|SIGKILL|SIGINT|SIGQUIT)\)/;
+  assert.ok(namedSignal.test(killed.detail) || !/\(/.test(killed.detail), 'the budget sentence names the OS-reported signal when the OS gave one, and invents none otherwise');
   assert.match(killed.detail, /no exit code reported/, 'v60: the sentence names the ABSENCE of an exit rather than printing "exit null" for a process that never exited');
   assert.equal(killed.report.passed, 0);
   assert.ok(impatient.ms < 15_000, `the timeout actually cut the wait short (took ${impatient.ms}ms)`);

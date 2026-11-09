@@ -468,7 +468,7 @@ per row, because one headline dated a table whose files had each moved on their 
 | row | proof | measured on the authoring box |
 | --- | --- | --- |
 | `verify:audit-contract` | `docs/evidence/m9/audit-contract-proof.mjs` | 28.4 s on 2026-11-08 — reads the service's Java record and the client model, then asks the TypeScript compiler; four runs of the bytes amendment 567 lands took 17.3, 26.3, 28.4 and 47.6 s, all `exit 0`, so the spread is this box's and the row's own number is the one a reader should re-time, not trust |
-| `verify:record-encoding` | `docs/evidence/agents/record-encoding-proof.mjs` | 8.0 s on 2026-11-06 — the record corpus's encoding census (120 000 ms own budget) |
+| `verify:record-encoding` | `docs/evidence/agents/record-encoding-proof.mjs` | 8.0 s on 2026-11-09 — the record corpus's encoding census (120 000 ms own budget) |
 | `verify:pipeline` | `docs/evidence/studio/pipeline-proof.mjs` | 0.3 s on 2026-11-06 — prompt, design-model ops, layout, undo/redo, AI diff |
 | `verify:table-recount` | `docs/evidence/agents/table-recount-proof.mjs` | 95.1 s on 2026-11-06 — boots vitest and reconciles this directory's README table (300 000 ms own budget) |
 
