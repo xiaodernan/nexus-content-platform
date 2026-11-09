@@ -23,6 +23,7 @@ export interface EmbeddingResult {
 /** §49/§93 — deterministic local embedding dimension count (matches the pgvector column). */
 export const LOCAL_EMBEDDING_DIMENSIONS = 1536 as const;
 export const LOCAL_EMBEDDING_MODEL = 'local-token-bag-1536' as const;
+export const LOCAL_RERANKER_MODEL = 'local-token-bag-rerank-1' as const;
 
 /**
  * §49 local embeddings without a provider key are only honest if they say what they are.
@@ -120,6 +121,62 @@ export class LocalTokenBagEmbeddingProvider implements EmbeddingProvider {
       provider: this.name,
       model,
       tokens_in: tokenCounts.reduce((a, b) => a + b, 0),
+      latency_ms: Math.round(performance.now() - started),
+    };
+  }
+
+  close(): void {
+    // 无连接可关
+  }
+}
+
+/**
+ * §93 — deterministic local reranker, opt-in via NEXUS_RERANKER_PROVIDER=local (never by a key alone).
+ * Same honesty contract as the local embedder: it is NOT a cross-encoder working on meaning.
+ * It scores query and document by cosine of their L2-normalized token-bag vectors — i.e. token-overlap
+ * preference with the same deterministic machinery as the embedder. It reorders what the retrieval
+ * stage already produced; it does not judge relevance semantically, and it says so rather than pretending.
+ */
+export class LocalTokenBagRerankerProvider implements RerankerProvider {
+  kind = 'reranker';
+  name = 'local-token-bag';
+
+  models(): string[] {
+    return [LOCAL_RERANKER_MODEL];
+  }
+
+  model_for(model_class: string): string {
+    if (model_class !== 'reranker') {
+      throw new Error(`未知的模型档：${model_class}（local-token-bag 只声明 reranker 档）`);
+    }
+    return LOCAL_RERANKER_MODEL;
+  }
+
+  async rerank({ model, query, documents }: { model: string; query: string; documents: string[] }): Promise<{ scores: number[]; provider: string; model: string; latency_ms: number }> {
+    if (model !== LOCAL_RERANKER_MODEL) {
+      throw new Error(`local-token-bag 只提供 ${LOCAL_RERANKER_MODEL}，不接受 ${model}`);
+    }
+    const started = performance.now();
+    if (documents.length === 0) {
+      return { scores: [], provider: this.name, model, latency_ms: 0 };
+    }
+    const qv = localTokenBagVector(query);
+    const qvNorm = qv.some((x) => x !== 0);
+    const scores = documents.map((doc) => {
+      if (!qvNorm) return 0; // 空查询对一切文档得 0 分；排序稳定（见 vector-store 对 0 分的处理）
+      const dv = localTokenBagVector(doc);
+      let dot = 0;
+      for (let i = 0; i < dv.length; i++) {
+        const a = qv[i] ?? 0;
+        const b = dv[i] ?? 0;
+        dot += a * b;
+      }
+      return dot;
+    });
+    return {
+      scores,
+      provider: this.name,
+      model,
       latency_ms: Math.round(performance.now() - started),
     };
   }
@@ -347,10 +404,14 @@ class OpenAICompatibleRerankerProvider {
   }
 }
 
-let cachedRerankerProvider: OpenAICompatibleRerankerProvider | null = null;
+let cachedRerankerProvider: { want: string; provider: RerankerProvider } | null = null;
 
-export function getRerankerProvider(): OpenAICompatibleRerankerProvider | null {
-  if (cachedRerankerProvider) return cachedRerankerProvider;
+function createRerankerProvider(want: string): RerankerProvider | null {
+  if (want === 'local') return new LocalTokenBagRerankerProvider();
+  if (want !== 'openai-compatible') {
+    // 与 embedding 同一条纪律：未命名的 provider 绝不静默换成别的大脑。
+    throw new Error(`未知的 reranker provider：${want}（可选：openai-compatible | local）`);
+  }
 
   const apiKey = process.env.NEXUS_OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -360,10 +421,23 @@ export function getRerankerProvider(): OpenAICompatibleRerankerProvider | null {
   const rerankerModelEnv = process.env.NEXUS_MODEL_RERANKER;
   if (rerankerModelEnv) models.reranker = rerankerModelEnv;
 
-  cachedRerankerProvider = new OpenAICompatibleRerankerProvider(apiKey, baseUrl, models);
-  return cachedRerankerProvider;
+  return new OpenAICompatibleRerankerProvider(apiKey, baseUrl, models);
+}
+
+export function getRerankerProvider(): RerankerProvider | null {
+  const want = process.env.NEXUS_RERANKER_PROVIDER ?? 'openai-compatible';
+  if (cachedRerankerProvider?.want === want) return cachedRerankerProvider.provider;
+  const provider = createRerankerProvider(want);
+  if (provider) cachedRerankerProvider = { want, provider };
+  return provider;
 }
 
 export function hasRerankerProvider(): boolean {
-  return !!process.env.NEXUS_OPENAI_API_KEY;
+  // 与 embedding 同口径：未知 provider 说 "true" —— 调用方拿到 getRerankerProvider()!，
+  // 撞上的是清楚写出可选名单的 throw，而不是被静默降级成没有 rerank。
+  const want = process.env.NEXUS_RERANKER_PROVIDER;
+  if (!want) return !!process.env.NEXUS_OPENAI_API_KEY;
+  if (want === 'local') return true;
+  if (want === 'openai-compatible') return !!process.env.NEXUS_OPENAI_API_KEY;
+  return true; // 未命名：响亮失败，绝不静默降级
 }

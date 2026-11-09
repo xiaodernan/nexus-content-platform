@@ -2,9 +2,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   LOCAL_EMBEDDING_DIMENSIONS,
   LOCAL_EMBEDDING_MODEL,
+  LOCAL_RERANKER_MODEL,
   LocalTokenBagEmbeddingProvider,
+  LocalTokenBagRerankerProvider,
   getEmbeddingProvider,
   hasEmbeddingProvider,
+  getRerankerProvider,
+  hasRerankerProvider,
   localTokenBag,
   localTokenBagVector,
   tokenizeForLocalEmbedding,
@@ -126,5 +130,94 @@ describe('the embedding provider selection (§49 wiring)', () => {
     // 没有 key：不报假接入、不偷换成本地 brain——§49 的选择是调用方的事，不是这里的猜测权
     expect(getEmbeddingProvider()).toBeNull();
     expect(hasEmbeddingProvider()).toBe(false);
+  });
+});
+
+
+describe('the §93 local token-bag reranker', () => {
+  it('scores documents against the query by token overlap, deterministically', async () => {
+    const provider = new LocalTokenBagRerankerProvider();
+    const { scores } = await provider.rerank({
+      model: LOCAL_RERANKER_MODEL,
+      query: '设计文档的画布组件',
+      documents: ['画布排版与组件栅格系统', '游戏关卡与副本规则', '设计文档里的画布与组件'],
+    });
+    expect(scores).toHaveLength(3);
+    // the two design docs must outrank the game doc
+    const design = Math.max(scores[0]!, scores[2]!);
+    const game = scores[1]!;
+    expect(design).toBeGreaterThan(game);
+  });
+
+  it('is byte-identical across calls (determinism)', async () => {
+    const provider = new LocalTokenBagRerankerProvider();
+    const docs = ['a b c', '设计图纸与排版栅格', 'the quick brown fox'];
+    const a = await provider.rerank({ model: LOCAL_RERANKER_MODEL, query: '设计排版', documents: docs });
+    const b = await provider.rerank({ model: LOCAL_RERANKER_MODEL, query: '设计排版', documents: docs });
+    expect(b.scores).toEqual(a.scores);
+    expect(b.provider).toBe('local-token-bag');
+    expect(b.model).toBe(LOCAL_RERANKER_MODEL);
+  });
+
+  it('models() and model_for name the one model it ships', () => {
+    const provider = new LocalTokenBagRerankerProvider();
+    expect(provider.models()).toEqual([LOCAL_RERANKER_MODEL]);
+    expect(provider.model_for('reranker')).toBe(LOCAL_RERANKER_MODEL);
+    expect(() => provider.model_for('embedding')).toThrow('embedding');
+  });
+
+  it('rerank() refuses a model it does not ship', async () => {
+    const provider = new LocalTokenBagRerankerProvider();
+    await expect(
+      provider.rerank({ model: 'text-embedding-3-small', query: 'q', documents: ['d'] }),
+    ).rejects.toThrow(LOCAL_RERANKER_MODEL);
+  });
+
+  it('gives every document a score, even when the query is empty (0, stable)', async () => {
+    const provider = new LocalTokenBagRerankerProvider();
+    const { scores } = await provider.rerank({ model: LOCAL_RERANKER_MODEL, query: '', documents: ['任何东西', 'anything'] });
+    expect(scores).toEqual([0, 0]);
+  });
+
+  it('gives the empty document list the empty score list', async () => {
+    const provider = new LocalTokenBagRerankerProvider();
+    const { scores } = await provider.rerank({ model: LOCAL_RERANKER_MODEL, query: 'x', documents: [] });
+    expect(scores).toEqual([]);
+  });
+});
+
+
+describe('the reranker provider selection (§93 wiring)', () => {
+  const saved = { ...process.env };
+
+  beforeEach(() => {
+    delete process.env.NEXUS_RERANKER_PROVIDER;
+    delete process.env.NEXUS_OPENAI_API_KEY;
+  });
+
+  afterEach(() => {
+    Object.assign(process.env, saved);
+  });
+
+  it('local mode returns the deterministic reranker without any key', () => {
+    process.env.NEXUS_RERANKER_PROVIDER = 'local';
+    const provider = getRerankerProvider();
+    expect(provider).not.toBeNull();
+    expect(provider!.models()).toContain(LOCAL_RERANKER_MODEL);
+    expect(hasRerankerProvider()).toBe(true);
+  });
+
+  it('local mode needs NEXUS_RERANKER_PROVIDER=local, a key alone does nothing', () => {
+    expect(getRerankerProvider()).toBeNull();
+    expect(hasRerankerProvider()).toBe(false);
+    process.env.NEXUS_RERANKER_PROVIDER = 'openai-compatible';
+    expect(getRerankerProvider()).toBeNull();
+    expect(hasRerankerProvider()).toBe(false);
+  });
+
+  it('an unknown provider name is a loud refusal, never a silent fallback', () => {
+    process.env.NEXUS_RERANKER_PROVIDER = 'nonsense';
+    expect(hasRerankerProvider()).toBe(true); // loud on purpose
+    expect(() => getRerankerProvider()).toThrow('nonsense');
   });
 });

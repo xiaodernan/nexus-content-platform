@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { retrieveProjectKnowledge } from '@/server/domain/knowledge';
-import { getEmbeddingProvider, hasEmbeddingProvider } from '@/server/ai/embedding';
+import { getEmbeddingProvider, hasEmbeddingProvider, getRerankerProvider, hasRerankerProvider } from '@/server/ai/embedding';
 import { VectorStore } from '@/server/ai/vector-store';
 import { requireUser } from '@/server/domain/session';
 import { projectVisibleTo } from '@/server/domain/team';
@@ -44,6 +44,7 @@ export async function POST(
     if (hasEmbeddingProvider()) {
       const embeddingProvider = getEmbeddingProvider()!;
       const vectorStore = new VectorStore(embeddingProvider, embeddingProvider.model_for('embedding'));
+      const reranker = hasRerankerProvider() ? (getRerankerProvider() ?? undefined) : undefined;
       results = await vectorStore.search({
         projectId,
         query: q,
@@ -53,6 +54,7 @@ export async function POST(
         textK: textK ?? 20,
         limit: limit ?? 10,
         sourceType,
+        reranker,
       });
       vectorAvailable = true;
     } else {
