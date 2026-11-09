@@ -165,6 +165,28 @@ HTTP/WS contracts only"。但仓库里
   另外本机 `localhost:6379` 是另一个项目的 specproof-redis（要 AUTH），domain 必须用
   `REDIS_PORT=56379` 指向自己的 nexus-redis，否则 health 会诚实报 DOWN（已在 ENVIRONMENT 写明）。
 
+### SC-9 配置中心：环境真相是一个地址，而不是一串 shell 变量
+
+- 起点：网关的边界参数来自本地 `application.yml` + 一串 `NEXUS_GATEWAY_*`。单机可行；两个环境要不同值
+  就得靠脚本记住每个变量，漏一个就是悄悄用了错误的值。
+- 决定：
+  1. 新增 `services/nexus-config`（Spring Cloud Config Server，`native` profile，端口 8888），从自身
+     classpath 的 `nexus-config/` 读 YAML。`native` 是实验室选择，不是生产结论：生产把同一服务器的后端
+     换成 Git，HTTP 契约不变。
+  2. 只服务两个文件：`application.yml`（所有客户端共享且完全相同的设置）与 `nexus-gateway.yml`
+     （网关的环境真相）。目前**只有网关**是客户端；api/domain 仍读打包文件，未接入就不写进文档冒充。
+  3. 网关加 `spring-cloud-starter-config`；`spring.config.import=optional:configserver:...`，
+     `spring.cloud.config.enabled` 默认 **false**。配置中心挂了不能把门带停；本地文件始终是离线真相。
+  4. 不注册进 Eureka、不做鉴权/加密（文件里不放 secret）、不提供写 API、不做动态刷新
+     （`@RefreshScope` 未接，改值要重启客户端）。
+- 为什么不用 Consul/Zookeeper：本阶段只需要"按应用名下发 YAML"，Config Server 的 native 模式零外部状态、
+  可离线测试；引入 Consul 会同时引入一个必须常驻的共识集群，收益与成本不匹配。
+- 见证（2026-11-09）：`GET /nexus-gateway/default` 返回两个 property source（`nexus-gateway.yml` 在前，
+  `application.yml` 在后），`rate-per-second=50`；`NEXUS_CONFIG_ENABLED=true` 启动的网关日志逐字
+  `gateway rate limit: enabled=true ratePerSecond=50.0 ...`——本地文件是 100，50 只能来自配置中心。不带该
+  开关时同一 jar 用本地 100 启动。配置模块 3 条测试全绿（文件内容、共享合并、未知应用仍回共享文档）。
+- 仍欠：api/domain 的客户端接入；Git 后端；鉴权；动态刷新；配置变更的审计。
+
 **已知边界（如实记）**：
 
 - `nexus-api` 信任 `X-Nexus-Original-URL`，与任何 forwarded 头同一信任边界：网关覆盖写、不追加；能直连
@@ -178,5 +200,6 @@ HTTP/WS contracts only"。但仓库里
 
 1. 网关鉴权、TLS、WebSocket；多实例时的共享限流（Redis）与 breaker 状态不在进程内；网关自己的诊断
    端点不受路由边界策略约束（SC-7 实测）。
-2. `java-domain-service` 的 community/permission/billing 三个服务仍是桩：没有控制器、不可达、README 已
+2. 配置中心只有网关一个客户端；Git 后端、鉴权、动态刷新、变更审计都未做（SC-9 已写明"未做"）。
+3. `java-domain-service` 的 community/permission/billing 三个服务仍是桩：没有控制器、不可达、README 已
    如实标注；它们不是"能用"，是"还没建"。

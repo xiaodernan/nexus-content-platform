@@ -1,0 +1,12 @@
+# Served as `GET /application/default` and merged under every application-specific file.
+#
+# Only settings that are identical for every client belong here. A value that differs per service goes in
+# that service's own file, so a reader can answer "where does this come from?" with one path.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

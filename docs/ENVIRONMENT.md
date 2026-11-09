@@ -58,6 +58,11 @@ SC-8 起网关的 `/platform/health` 会逐个实例探测 `/actuator/health`，
 AUTH：`java-domain-service` 必须用 `REDIS_HOST=127.0.0.1` / `REDIS_PORT=56379`（nexus-redis），否则
 它的 health 会（诚实地）报 DOWN。
 
+SC-9 起可选第五个进程：`nexus-config` 默认 `8888`（`NEXUS_CONFIG_PORT`），native 模式读自身 classpath
+的 `nexus-config/`。网关默认**不连**它；要看集中配置生效，启动网关时加
+`NEXUS_CONFIG_ENABLED=true` 与 `NEXUS_CONFIG_URL=http://127.0.0.1:8888`。配置中心不注册 Eureka，
+`8888` 不要和别的项目混用。
+
 > `8761` 是 Eureka 的默认端口，**本机别的项目也可能把服务注册到这里**：2026-11-09 联调时
 > `/eureka/apps` 里同时有外部项目的 `FOOTBALL-EDGE`，网关的 `/platform/services` 老实把它列了出来。
 > 这是读数在说真话，不是串台；要隔离就换 `NEXUS_REGISTRY_PORT` 并让三个服务指向同一个

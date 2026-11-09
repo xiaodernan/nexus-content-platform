@@ -65,6 +65,15 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
+    <!--
+      SC-9 — the optional central-config client. `spring.cloud.config.enabled` defaults to false, so tests and
+      the laptop run read application.yml only; a deployment sets NEXUS_CONFIG_ENABLED=true and the same jar
+      reads its bounds from nexus-config instead.
+    -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-config</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-loadbalancer</artifactId>

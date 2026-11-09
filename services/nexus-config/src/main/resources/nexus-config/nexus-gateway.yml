@@ -1,0 +1,12 @@
+# Central truth for `spring.application.name=nexus-gateway` when NEXUS_CONFIG_ENABLED=true.
+#
+# These values override the gateway's local application.yml (Config Client property sources rank above the
+# packaged file). The rate is deliberately 50 here, lower than the local 100, so a running gateway's startup
+# line says which source won: `gateway rate limit: ... ratePerSecond=50.0` can only come from this file.
+#
+# The local file stays the offline truth. Turning the client on is a deployment decision, not a default.
+nexus:
+  gateway:
+    rate-limit:
+      rate-per-second: 50
+    health-probe-timeout-ms: 1500

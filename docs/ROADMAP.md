@@ -11009,6 +11009,16 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   停 domain 后 `allUp:false`、该实例 `UNKNOWN` + `"no answer within 800 ms"`。
 - 边界：点测量、不缓存；探测端点不在路由边界策略内；本机 domain 必须 `REDIS_PORT=56379`，否则会
   连到别的项目的 6379 并诚实报 DOWN。
+## §SC 第七片：配置中心（2026-11-09）
+
+- 起点：网关边界参数靠本地 yml + 一串 env；跨环境不同值只能靠脚本记住每个变量。
+- 做法：新增 `services/nexus-config`（Spring Cloud Config Server，native，8888），只服务
+  `application.yml` 与 `nexus-gateway.yml`；网关加 config client，`optional:configserver:` 导入且
+  `spring.cloud.config.enabled` 默认 false（配置中心挂了不带停门，本地文件是离线真相）。
+- 见证（2026-11-09）：`/nexus-gateway/default` 返回两个 property source、`rate-per-second=50`；
+  `NEXUS_CONFIG_ENABLED=true` 启动日志 `ratePerSecond=50.0`（本地为 100），不带开关时同一 jar 用 100。
+  配置模块 3 条测试全绿。
+- 明确不做：api/domain 客户端接入、Git 后端、鉴权、动态刷新、变更审计。
 ## §85 第四十四片：机检 review 态进读数（2026-11-09）
 
 - 缺口：此前 e2e 只覆盖了 blocked（硬红线挡下）。review 是 **页面已经发出去、内容挂人工复核**，

@@ -6,6 +6,15 @@
 spring:
   application:
     name: nexus-gateway
+  # SC-9 — central config is OPTIONAL. `optional:` means a missing server does not stop the door; the client
+  # itself is off unless a deployment says otherwise, so the packaged file stays the offline truth and the
+  # test suite never needs a second process. When enabled, values served for `nexus-gateway` override this
+  # file (Config Client property sources rank above application.yml).
+  config:
+    import: optional:configserver:${NEXUS_CONFIG_URL:http://127.0.0.1:8888}
+  cloud:
+    config:
+      enabled: ${NEXUS_CONFIG_ENABLED:false}
 
 server:
   port: ${NEXUS_GATEWAY_PORT:8090}
