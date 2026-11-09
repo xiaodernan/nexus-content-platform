@@ -637,6 +637,7 @@ export const GIT_SUBCOMMANDS = new Set([
   'reset', 'rev-list', 'rev-parse', 'show', 'status', 'blame', 'branch', 'checkout', 'clean', 'config',
   'describe', 'for-each-ref', 'hash-object', 'init', 'mktree', 'name-rev', 'remote', 'restore', 'rm',
   'show-ref', 'switch', 'tag', 'update-index', 'worktree', 'write-tree', 'version',
+  'check-ignore',
 ]);
 
 export function gitReaches(src, sink) {
