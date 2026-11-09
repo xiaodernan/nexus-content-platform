@@ -1,35 +1,35 @@
 
-[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+ RUN  v3.2.7 D:/内容创作平台
 
-[90mstdout[2m | apps/web/test/guest-reclaim.integration.test.ts
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/guest-reclaim.integration.test.ts
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[31mx[39m[33m[39m[32m·[39m
+·························x·
 
-[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
 
-[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m一趟看多少个：scanLimit 与那句"只数了前 N 个"[2m > [22m上界收到 1 起步：0 与负数不许把这一趟变成"一个都没看"却报出个像结论的数
-[31m[1mAssertionError[22m: scanLimit=0 没有被收回 1 起步: expected +0 to be 1 // Object.is equality[39m
+ FAIL  apps/web/test/guest-reclaim.integration.test.ts > 一趟看多少个：scanLimit 与那句"只数了前 N 个" > 上界收到 1 起步：0 与负数不许把这一趟变成"一个都没看"却报出个像结论的数
+AssertionError: scanLimit=0 没有被收回 1 起步: expected +0 to be 1 // Object.is equality
 
-[32m- Expected[39m
-[31m+ Received[39m
+- Expected
++ Received
 
-[32m- 1[39m
-[31m+ 0[39m
+- 1
++ 0
 
-[36m [2m❯[22m apps/web/test/guest-reclaim.integration.test.ts:[2m641:60[22m[39m
-    [90m639| [39m    [35mfor[39m ([35mconst[39m value [35mof[39m [[34m0[39m[33m,[39m [33m-[39m[34m5[39m[33m,[39m [34m0.4[39m]) {
-    [90m640| [39m      const s = await scanGuestReclaimCandidates({ now: NOW, scanLimit…
-    [90m641| [39m      [34mexpect[39m(s[33m.[39mscanLimit[33m,[39m [32m`scanLimit=[39m[36m${[39mvalue[36m}[39m[32m 没有被收回 1 起步`[39m)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
-    [90m   | [39m                                                           [31m^[39m
-    [90m642| [39m      [34mexpect[39m(s[33m.[39mstale)[33m.[39m[34mtoBeLessThanOrEqual[39m([34m1[39m)[33m;[39m
-    [90m643| [39m    }
+ ❯ apps/web/test/guest-reclaim.integration.test.ts:641:60
+    639|     for (const value of [0, -5, 0.4]) {
+    640|       const s = await scanGuestReclaimCandidates({ now: NOW, scanLimit…
+    641|       expect(s.scanLimit, `scanLimit=${value} 没有被收回 1 起步`).toBe(1);
+       |                                                            ^
+    642|       expect(s.stale).toBeLessThanOrEqual(1);
+    643|     }
 
-[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
 
 
-[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
-[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m26 passed[39m[22m[90m (27)[39m
-[2m   Start at [22m 00:16:29
-[2m   Duration [22m 58.32s[2m (transform 9.15s, setup 0ms, collect 18.42s, tests 37.67s, environment 0ms, prepare 723ms)[22m
+ Test Files  1 failed (1)
+      Tests  1 failed | 26 passed (27)
+   Start at  00:16:29
+   Duration  58.32s (transform 9.15s, setup 0ms, collect 18.42s, tests 37.67s, environment 0ms, prepare 723ms)
 

@@ -1,156 +1,156 @@
 
-[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+ RUN  v3.2.7 D:/内容创作平台
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/image-studio.integration.test.ts[2m > [22m[2m§38 Reference → Variation 打真库[2m > [22m[2m参考图的主色决定画面：同 prompt 同 seed，换参考就是换字节
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·························stdout | apps/web/test/image-studio.integration.test.ts > §38 Reference → Variation 打真库 > 参考图的主色决定画面：同 prompt 同 seed，换参考就是换字节
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/image-studio.integration.test.ts[2m > [22m[2m§38 Reference → Variation 打真库[2m > [22m[2m参考图的主色决定画面：同 prompt 同 seed，换参考就是换字节
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+stdout | apps/web/test/image-studio.integration.test.ts > §38 Reference → Variation 打真库 > 参考图的主色决定画面：同 prompt 同 seed，换参考就是换字节
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/branches.integration.test.ts[2m > [22m[2m分支与副本（真实数据库）[2m > [22m[2mDuplicate：新项目内容一致、id 全部换号，源项目不受影响
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+·····························stdout | apps/web/test/branches.integration.test.ts > 分支与副本（真实数据库） > Duplicate：新项目内容一致、id 全部换号，源项目不受影响
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/storyboard-render.integration.test.ts[2m > [22m[2mrenderStoryboardDemo —— §40 最后一格：分镜真的渲出来，走视频摄入链落库[2m > [22m[2m快乐路径：真 ffmpeg 渲出的 mp4 落成 kind=video 资产，任务 succeeded，video 桶扣 5 点，demoMode 记在 genMeta 里
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+······stdout | apps/web/test/storyboard-render.integration.test.ts > renderStoryboardDemo —— §40 最后一格：分镜真的渲出来，走视频摄入链落库 > 快乐路径：真 ffmpeg 渲出的 mp4 落成 kind=video 资产，任务 succeeded，video 桶扣 5 点，demoMode 记在 genMeta 里
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/project-delete.integration.test.ts[2m > [22m[2m删除之后，哪些面再也看不到它[2m > [22m[2m§61 发现与个人主页：公开着的项目一删就从两边消失
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·············································stdout | apps/web/test/project-delete.integration.test.ts > 删除之后，哪些面再也看不到它 > §61 发现与个人主页：公开着的项目一删就从两边消失
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/agent-draft-accept.integration.test.ts[2m > [22m[2m§52 接受入口[2m > [22m[2m过 CSRF 之后写进项目：读回来的是任务行里那一份，且留下一条放行审计
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···············stdout | apps/web/test/agent-draft-accept.integration.test.ts > §52 接受入口 > 过 CSRF 之后写进项目：读回来的是任务行里那一份，且留下一条放行审计
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/social.integration.test.ts[2m > [22m[2mLike / Comment / Follow[2m > [22m[2m点赞是可切换的开关，计数说的是真数
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·········stdout | apps/web/test/social.integration.test.ts > Like / Comment / Follow > 点赞是可切换的开关，计数说的是真数
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/social.integration.test.ts[2m > [22m[2mRemix（§58 分叉，不是改原作品）[2m > [22m[2m分叉出来的是发布那一版，作者没公开的改动不会跟着出去
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+·····stdout | apps/web/test/social.integration.test.ts > Remix（§58 分叉，不是改原作品） > 分叉出来的是发布那一版，作者没公开的改动不会跟着出去
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/profile.integration.test.ts[2m > [22m[2mprofileOf（§60 的可见性边界）[2m > [22m[2m只列公网上传着的作品；未发布与已下架的不出现
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···················stdout | apps/web/test/profile.integration.test.ts > profileOf（§60 的可见性边界） > 只列公网上传着的作品；未发布与已下架的不出现
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/analytics-trend.integration.test.ts[2m > [22m[2m按天曲线（真库）[2m > [22m[2m缺的那天补成 0，不跳过；但"一条心跳都没有"那天的时长是 null 不是 0
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···········stdout | apps/web/test/analytics-trend.integration.test.ts > 按天曲线（真库） > 缺的那天补成 0，不跳过；但"一条心跳都没有"那天的时长是 null 不是 0
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/storyboard-render-route.integration.test.ts[2m > [22m[2mGET /api/projects/[projectId]/storyboard/render 的入口形状[2m > [22m[2m渲过之后：清单里就是那颗资产，storyboardId 对得上
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···········stdout | apps/web/test/storyboard-render-route.integration.test.ts > GET /api/projects/[projectId]/storyboard/render 的入口形状 > 渲过之后：清单里就是那颗资产，storyboardId 对得上
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/analytics.integration.test.ts[2m > [22m[2m访客现场的写入（一天一行）[2m > [22m[2m同一访客同一天的多次心跳合成一行：打开次数相加、时长相加、完成度取最远
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·······stdout | apps/web/test/analytics.integration.test.ts > 访客现场的写入（一天一行） > 同一访客同一天的多次心跳合成一行：打开次数相加、时长相加、完成度取最远
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/ai-approvals.integration.test.ts[2m > [22m[2m§73 的越权拒收：被点名的人没有 design.patch[2m > [22m[2m真路径：@qa 的删除指令被门拒掉，账本落 failed 而不是"等人决定"
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+··································stdout | apps/web/test/ai-approvals.integration.test.ts > §73 的越权拒收：被点名的人没有 design.patch > 真路径：@qa 的删除指令被门拒掉，账本落 failed 而不是"等人决定"
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/account-deletion.integration.test.ts[2m > [22m[2m确认词取哪一列[2m > [22m[2m没发布过的人没有 handle，那一臂改认展示名——展示名逐字输入确实注销得掉
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·································stdout | apps/web/test/account-deletion.integration.test.ts > 确认词取哪一列 > 没发布过的人没有 handle，那一臂改认展示名——展示名逐字输入确实注销得掉
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/moderation.integration.test.ts[2m > [22m[2mpublishProject × 机检（§131 的四种走向）[2m > [22m[2m命中红线：公开被挡下，没有 publication 行，但案子留着
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+··········································stdout | apps/web/test/moderation.integration.test.ts > publishProject × 机检（§131 的四种走向） > 命中红线：公开被挡下，没有 publication 行，但案子留着
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/ai-jobs.integration.test.ts[2m > [22m[2m提交：先有账本，再有作业号[2m > [22m[2m提交成功时任务行拿到 providerJobId，状态还是 running（没跑完不写成功）
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+······································stdout | apps/web/test/ai-jobs.integration.test.ts > 提交：先有账本，再有作业号 > 提交成功时任务行拿到 providerJobId，状态还是 running（没跑完不写成功）
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/work-completion.integration.test.ts[2m > [22m[2m§167 互动作品 completion[2m > [22m[2m发布互动稿 ⇒ interactive 被存进发布行；走到终点记一次 ⇒ 创作者那边是 1
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···········································································stdout | apps/web/test/work-completion.integration.test.ts > §167 互动作品 completion > 发布互动稿 ⇒ interactive 被存进发布行；走到终点记一次 ⇒ 创作者那边是 1
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/guest-reclaim.integration.test.ts
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·········stdout | apps/web/test/guest-reclaim.integration.test.ts
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[31mx[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/publish.integration.test.ts[2m > [22m[2m发布与分享（真实数据库）[2m > [22m[2m发布：生成 /n/<handle>/<slug>，并留下一条 publish 快照
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+x························stdout | apps/web/test/publish.integration.test.ts > 发布与分享（真实数据库） > 发布：生成 /n/<handle>/<slug>，并留下一条 publish 快照
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/notifications.integration.test.ts[2m > [22m[2m写入：谁收到、重复的怎么办[2m > [22m[2m发布完成时作者有一条，路人没有；路人自己发布后他那侧就有了
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+········stdout | apps/web/test/notifications.integration.test.ts > 写入：谁收到、重复的怎么办 > 发布完成时作者有一条，路人没有；路人自己发布后他那侧就有了
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/trending.integration.test.ts[2m > [22m[2mTrending 排的是最近，不是累计[2m > [22m[2m最近被赞的排前面；窗口外的赞不计；同一份数据下 popular 给出另一种顺序
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+··················stdout | apps/web/test/trending.integration.test.ts > Trending 排的是最近，不是累计 > 最近被赞的排前面；窗口外的赞不计；同一份数据下 popular 给出另一种顺序
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/storyboard-render-build-status.integration.test.ts[2m > [22m[2mrenderStoryboardDemo 的 build.status 事件串（§163）[2m > [22m[2m快乐路径：building → ok，ok 的 log 说清成片入了资产库，且不发 preview.status
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+···stdout | apps/web/test/storyboard-render-build-status.integration.test.ts > renderStoryboardDemo 的 build.status 事件串（§163） > 快乐路径：building → ok，ok 的 log 说清成片入了资产库，且不发 preview.status
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/analytics-agent.integration.test.ts[2m > [22m[2m装配出来的事实必须来自真实现场[2m > [22m[2m刚发布、只有作者自己打开过 → 说的是"这串数字只证明你自己看过"，不是"零访客"
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+····stdout | apps/web/test/analytics-agent.integration.test.ts > 装配出来的事实必须来自真实现场 > 刚发布、只有作者自己打开过 → 说的是"这串数字只证明你自己看过"，不是"零访客"
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/blocks.integration.test.ts[2m > [22m[2m互动的挡住与不挡住[2m > [22m[2m被拉黑之后评论不入库、点赞不改计数；第三个人两样都做得到
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+··········stdout | apps/web/test/blocks.integration.test.ts > 互动的挡住与不挡住 > 被拉黑之后评论不入库、点赞不改计数；第三个人两样都做得到
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/game-completion.integration.test.ts[2m > [22m[2m§168 游戏侧 completion[2m > [22m[2m记一次通关 ⇒ 创作者那边"通关过"是 1（页面上那一格不是别的数）
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·······stdout | apps/web/test/game-completion.integration.test.ts > §168 游戏侧 completion > 记一次通关 ⇒ 创作者那边"通关过"是 1（页面上那一格不是别的数）
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/game-publish.integration.test.ts[2m > [22m[2m发布钉住游戏设计[2m > [22m[2m发布时钉住当时那份；改工作稿不重新发布，公开的那一份不动
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+········stdout | apps/web/test/game-publish.integration.test.ts > 发布钉住游戏设计 > 发布时钉住当时那份；改工作稿不重新发布，公开的那一份不动
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/api-v1-publish.integration.test.ts[2m > [22m[2mPOST /api/v1/projects/<id>/publish[2m > [22m[2munlisted → 200，行真的落库、URL 解析得出、projects.visibility 跟着变
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+······stdout | apps/web/test/api-v1-publish.integration.test.ts > POST /api/v1/projects/<id>/publish > unlisted → 200，行真的落库、URL 解析得出、projects.visibility 跟着变
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/import.integration.test.ts
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+······stdout | apps/web/test/import.integration.test.ts
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/storyboard-import.integration.test.ts
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+································································stdout | apps/web/test/storyboard-import.integration.test.ts
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/seo.integration.test.ts[2m > [22m[2msitemap 与公开页元数据（真实数据库）[2m > [22m[2mpublic 进清单；unlisted 不进，同一次查询里互为对照
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+····stdout | apps/web/test/seo.integration.test.ts > sitemap 与公开页元数据（真实数据库） > public 进清单；unlisted 不进，同一次查询里互为对照
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/assets.integration.test.ts[2m > [22m[2m鉴权取字节[2m > [22m[2m公开路径要满足"发布 + 快照确实引用"两条，缺一即 null
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···········stdout | apps/web/test/assets.integration.test.ts > 鉴权取字节 > 公开路径要满足"发布 + 快照确实引用"两条，缺一即 null
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/collaborator-visibility.integration.test.ts
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·····stdout | apps/web/test/collaborator-visibility.integration.test.ts
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/export.integration.test.ts
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+········································································································································stdout | apps/web/test/export.integration.test.ts
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/team-routes.integration.test.ts[2m > [22m[2m§133 成员/邀请路由（真实数据库 + mock cookies）[2m > [22m[2m① roster：owner 与协作者看得见名册与名额上限，陌生人 404
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···························stdout | apps/web/test/team-routes.integration.test.ts > §133 成员/邀请路由（真实数据库 + mock cookies） > ① roster：owner 与协作者看得见名册与名额上限，陌生人 404
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/analytics-export.integration.test.ts[2m > [22m[2m§168 导出（CSV）[2m > [22m[2m数字与页面同一份：逐项等于 creatorAnalytics 给的那一份
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+······························stdout | apps/web/test/analytics-export.integration.test.ts > §168 导出（CSV） > 数字与页面同一份：逐项等于 creatorAnalytics 给的那一份
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/unpublish-keeps-stats.integration.test.ts[2m > [22m[2m§168 取消发布不再把统计一起删掉[2m > [22m[2m下架之后统计还在，而且那一行作者自己还看得见（标着"已停"）
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+····stdout | apps/web/test/unpublish-keeps-stats.integration.test.ts > §168 取消发布不再把统计一起删掉 > 下架之后统计还在，而且那一行作者自己还看得见（标着"已停"）
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/credits-enforcement.integration.test.ts[2m > [22m[2m§133 generation 那一格：余额为 0 时每一条生成入口都被挡下，且一行任务都不写[2m > [22m[2m正对照：额度还回去之后同一句门就让路（守卫挡的是余额，不是正常路径）
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+··················stdout | apps/web/test/credits-enforcement.integration.test.ts > §133 generation 那一格：余额为 0 时每一条生成入口都被挡下，且一行任务都不写 > 正对照：额度还回去之后同一句门就让路（守卫挡的是余额，不是正常路径）
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/credits-enforcement.integration.test.ts[2m > [22m[2m§133 generation 那一格：余额为 0 时每一条生成入口都被挡下，且一行任务都不写[2m > [22m[2m正对照：额度还回去之后同一句门就让路（守卫挡的是余额，不是正常路径）
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+stdout | apps/web/test/credits-enforcement.integration.test.ts > §133 generation 那一格：余额为 0 时每一条生成入口都被挡下，且一行任务都不写 > 正对照：额度还回去之后同一句门就让路（守卫挡的是余额，不是正常路径）
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/team.integration.test.ts[2m > [22m[2m§133 协作者与邀请（真实数据库）[2m > [22m[2m① 邀请 → 接受 → 成员落库；同一枚邀请再接受一次不会插出两行
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·stdout | apps/web/test/team.integration.test.ts > §133 协作者与邀请（真实数据库） > ① 邀请 → 接受 → 成员落库；同一枚邀请再接受一次不会插出两行
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/character-fields.integration.test.ts[2m > [22m[2m§39 角色档案的四栏真的存得下来[2m > [22m[2m写进库再读回来，四栏一个字都不许丢
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···············································stdout | apps/web/test/character-fields.integration.test.ts > §39 角色档案的四栏真的存得下来 > 写进库再读回来，四栏一个字都不许丢
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/character-fields.integration.test.ts[2m > [22m[2m§39 角色档案的四栏真的存得下来[2m > [22m[2m写进库再读回来，四栏一个字都不许丢
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+stdout | apps/web/test/character-fields.integration.test.ts > §39 角色档案的四栏真的存得下来 > 写进库再读回来，四栏一个字都不许丢
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/document-write-read-contention.integration.test.ts[2m > [22m[2m大文档写入与读取的并发（§146 浏览器端那次 60 秒空白的数据层验证）[2m > [22m[2m写 1000 个节点的同时，读同一个项目不该被排到秒级
-[22m[39m写入 1000 节点耗时 241ms；期间读了 5 次，中位 29ms，最慢 83ms
+··stdout | apps/web/test/document-write-read-contention.integration.test.ts > 大文档写入与读取的并发（§146 浏览器端那次 60 秒空白的数据层验证） > 写 1000 个节点的同时，读同一个项目不该被排到秒级
+写入 1000 节点耗时 241ms；期间读了 5 次，中位 29ms，最慢 83ms
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m[2m缺省值与两种答案[2m > [22m[2m真执行那一次：说的是同一批人，库里也真的少了他们
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·············stdout | apps/web/test/guest-reclaim-route.integration.test.ts > 缺省值与两种答案 > 真执行那一次：说的是同一批人，库里也真的少了他们
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/admin-marketplace.integration.test.ts[2m > [22m[2m§123/#158 举报工单的处置（PATCH /api/admin/marketplace/reports/[id]）[2m > [22m[2mreviewing → resolved（带结案备注）→ 200，resolvedAt 落库；GET ?status=resolved 读得回
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+··················································stdout | apps/web/test/admin-marketplace.integration.test.ts > §123/#158 举报工单的处置（PATCH /api/admin/marketplace/reports/[id]） > reviewing → resolved（带结案备注）→ 200，resolvedAt 落库；GET ?status=resolved 读得回
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/credits.integration.test.ts[2m > [22m[2m§134 消费：一次成功的任务只扣一行[2m > [22m[2m跑完一次真任务 → AI 额度少 1 点，流水那行指着那次任务
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···············stdout | apps/web/test/credits.integration.test.ts > §134 消费：一次成功的任务只扣一行 > 跑完一次真任务 → AI 额度少 1 点，流水那行指着那次任务
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/notifications-mute.integration.test.ts
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·········stdout | apps/web/test/notifications-mute.integration.test.ts
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/audit.integration.test.ts[2m > [22m[2m审计的写入方[2m > [22m[2m写不进去时返回 false 而不是把这次请求带崩
-[22m[39m[audit] 写入失败 trace=- test.bad-actor allowed=true Failed query: insert into "audit_events" ("id", "actor_id", "action", "target_type", "target_id", "allowed", "detail", "ip", "created_at") values (default, $1, $2, $3, $4, $5, $6, $7, default)
+······stderr | apps/web/test/audit.integration.test.ts > 审计的写入方 > 写不进去时返回 false 而不是把这次请求带崩
+[audit] 写入失败 trace=- test.bad-actor allowed=true Failed query: insert into "audit_events" ("id", "actor_id", "action", "target_type", "target_id", "allowed", "detail", "ip", "created_at") values (default, $1, $2, $3, $4, $5, $6, $7, default)
 params: 00000000-0000-4000-8000-0000000000ff,test.bad-actor,,,true,,
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/api-v1-team.integration.test.ts
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+··········stdout | apps/web/test/api-v1-team.integration.test.ts
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 跨实例投递[2m > [22m[2m线路上的帧先过契约：合法的收下来，坏字节只记账，不落本机订阅者
-[22m[39m[realtime] redis 驱动 收到的帧不是 JSON 失败（第 1 次，事件不补发；权威状态在库里）： Unexpected token '这', "这不是 JSON" is not valid JSON
+·······stderr | apps/web/test/realtime.redis.integration.test.ts > RedisRealtimeBus 跨实例投递 > 线路上的帧先过契约：合法的收下来，坏字节只记账，不落本机订阅者
+[realtime] redis 驱动 收到的帧不是 JSON 失败（第 1 次，事件不补发；权威状态在库里）： Unexpected token '这', "这不是 JSON" is not valid JSON
 
-[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 跨实例投递[2m > [22m[2m线路上的帧先过契约：合法的收下来，坏字节只记账，不落本机订阅者
-[22m[39m[realtime] redis 驱动 收到的帧不合契约 失败（第 2 次，事件不补发；权威状态在库里）： [
+stderr | apps/web/test/realtime.redis.integration.test.ts > RedisRealtimeBus 跨实例投递 > 线路上的帧先过契约：合法的收下来，坏字节只记账，不落本机订阅者
+[realtime] redis 驱动 收到的帧不合契约 失败（第 2 次，事件不补发；权威状态在库里）： [
   {
     "expected": "string",
     "code": "invalid_type",
@@ -162,110 +162,110 @@ params: 00000000-0000-4000-8000-0000000000ff,test.bad-actor,,,true,,
   }
 ]
 
-[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 跨实例投递[2m > [22m[2m端点连不上时 publish/closeChannel 都不抛，本机那半边照送
-[22m[39m[realtime] redis 驱动 投递 失败（第 1 次，事件不补发；权威状态在库里）： Stream isn't writeable and enableOfflineQueue options is false
+·stderr | apps/web/test/realtime.redis.integration.test.ts > RedisRealtimeBus 跨实例投递 > 端点连不上时 publish/closeChannel 都不抛，本机那半边照送
+[realtime] redis 驱动 投递 失败（第 1 次，事件不补发；权威状态在库里）： Stream isn't writeable and enableOfflineQueue options is false
 [realtime] redis 驱动 投递 失败（第 2 次，事件不补发；权威状态在库里）： Stream isn't writeable and enableOfflineQueue options is false
 
-[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 跨实例投递[2m > [22m[2m端点连不上时 publish/closeChannel 都不抛，本机那半边照送
-[22m[39m[realtime] redis 驱动 发布连接 失败（第 3 次，事件不补发；权威状态在库里）： connect ECONNREFUSED 127.0.0.1:56399
+stderr | apps/web/test/realtime.redis.integration.test.ts > RedisRealtimeBus 跨实例投递 > 端点连不上时 publish/closeChannel 都不抛，本机那半边照送
+[realtime] redis 驱动 发布连接 失败（第 3 次，事件不补发；权威状态在库里）： connect ECONNREFUSED 127.0.0.1:56399
 
-[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 跨实例投递[2m > [22m[2m端点连不上时 publish/closeChannel 都不抛，本机那半边照送
-[22m[39m[realtime] redis 驱动 发布连接未就绪 失败（第 4 次，事件不补发；权威状态在库里）： connect ECONNREFUSED 127.0.0.1:56399
+stderr | apps/web/test/realtime.redis.integration.test.ts > RedisRealtimeBus 跨实例投递 > 端点连不上时 publish/closeChannel 都不抛，本机那半边照送
+[realtime] redis 驱动 发布连接未就绪 失败（第 4 次，事件不补发；权威状态在库里）： connect ECONNREFUSED 127.0.0.1:56399
 
-[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2mRedisRealtimeBus 跨实例投递[2m > [22m[2mstats()：真 Redis 接上后 wireReady=true、零错误；落定前先报 null（还没落定不是没接上）
-[22m[39m[realtime] redis 驱动 订阅线路 失败（第 5 次，事件不补发；权威状态在库里）： Connection is closed.
+stderr | apps/web/test/realtime.redis.integration.test.ts > RedisRealtimeBus 跨实例投递 > stats()：真 Redis 接上后 wireReady=true、零错误；落定前先报 null（还没落定不是没接上）
+[realtime] redis 驱动 订阅线路 失败（第 5 次，事件不补发；权威状态在库里）： Connection is closed.
 
-[90mstdout[2m | apps/web/test/realtime.redis.integration.test.ts[2m > [22m[2m驱动选择（bus.ts 的那一刀）[2m > [22m[2m默认进程内；只有 NEXUS_REDIS_URL 非空才换 Redis 扇出
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/realtime.redis.integration.test.ts > 驱动选择（bus.ts 的那一刀） > 默认进程内；只有 NEXUS_REDIS_URL 非空才换 Redis 扇出
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 [realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 [realtime] 驱动=Redis 扇出（线路 nexus:realtime:v1）
 
-[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts
-[22m[39m[realtime] redis 驱动 订阅线路 失败（第 1 次，事件不补发；权威状态在库里）： Connection is closed.
+stderr | apps/web/test/realtime.redis.integration.test.ts
+[realtime] redis 驱动 订阅线路 失败（第 1 次，事件不补发；权威状态在库里）： Connection is closed.
 
-[90mstderr[2m | apps/web/test/realtime.redis.integration.test.ts
-[22m[39m[realtime] redis 驱动 发布连接未就绪 失败（第 2 次，事件不补发；权威状态在库里）： 连接已结束
+stderr | apps/web/test/realtime.redis.integration.test.ts
+[realtime] redis 驱动 发布连接未就绪 失败（第 2 次，事件不补发；权威状态在库里）： 连接已结束
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/agent-tasks.integration.test.ts[2m > [22m[2m任务行的一生[2m > [22m[2m开始是 running，成功落 succeeded 并算得出用时；不存在的 id 不会被说成改好了
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+····stdout | apps/web/test/agent-tasks.integration.test.ts > 任务行的一生 > 开始是 running，成功落 succeeded 并算得出用时；不存在的 id 不会被说成改好了
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/export-route.integration.test.ts[2m > [22m[2m§144/§163/§164 导出成功路径：回执、实时两帧、Build complete 通知[2m > [22m[2m成功导出 → 200 + zip 回执 + building/ok 两帧 + 一条 build 通知
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+······················stdout | apps/web/test/export-route.integration.test.ts > §144/§163/§164 导出成功路径：回执、实时两帧、Build complete 通知 > 成功导出 → 200 + zip 回执 + building/ok 两帧 + 一条 build 通知
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/marketplace-suspicious.integration.test.ts[2m > [22m[2m§123 路由：可疑购买写进审计，购买结果不变[2m > [22m[2m第 51 笔购买 200，多一行 suspicious_purchase，带规则与读数
-[22m[39m[FRAUD] Suspicious purchase: buyer=5cf4547f-7c96-43e3-947b-e3811b75d885, item=bf393ea8-d746-4fa2-a6df-dc68e0e0a648, rules=purchase_volume_24h
+··············stderr | apps/web/test/marketplace-suspicious.integration.test.ts > §123 路由：可疑购买写进审计，购买结果不变 > 第 51 笔购买 200，多一行 suspicious_purchase，带规则与读数
+[FRAUD] Suspicious purchase: buyer=5cf4547f-7c96-43e3-947b-e3811b75d885, item=bf393ea8-d746-4fa2-a6df-dc68e0e0a648, rules=purchase_volume_24h
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/marketplace-report-outcome-notify.integration.test.ts[2m > [22m[2m§123×§164 举报结论通知（受理不是结论，终态才出声）[2m > [22m[2m结案 → created：标题念出物品名、指回「我的举报」、正文说清结论不等于撤下物品
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·····················································stdout | apps/web/test/marketplace-report-outcome-notify.integration.test.ts > §123×§164 举报结论通知（受理不是结论，终态才出声） > 结案 → created：标题念出物品名、指回「我的举报」、正文说清结论不等于撤下物品
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/tasks-ledger.integration.test.ts[2m > [22m[2mlistProjectTasks → TasksLedgerSchema（账本读侧 #10）[2m > [22m[2m真实的一行过得了契约，自己的行 mine=true、跑完的行 durationMs 是个数
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+······························································stdout | apps/web/test/tasks-ledger.integration.test.ts > listProjectTasks → TasksLedgerSchema（账本读侧 #10） > 真实的一行过得了契约，自己的行 mine=true、跑完的行 durationMs 是个数
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/admin-realtime.integration.test.ts[2m > [22m[2m§163 诊断入口的门[2m > [22m[2madmin → 200，回执形状就是总线自报的那份（null 不被改成 0）
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···············································································stdout | apps/web/test/admin-realtime.integration.test.ts > §163 诊断入口的门 > admin → 200，回执形状就是总线自报的那份（null 不被改成 0）
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m送到同一频道上的订阅者，不跨频道泄漏
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+····························································································································································································································································································stdout | apps/web/test/realtime.test.ts > RealtimeBus > 送到同一频道上的订阅者，不跨频道泄漏
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m同一个频道上的多个订阅者都收到（多标签页要一起亮）
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/realtime.test.ts > RealtimeBus > 同一个频道上的多个订阅者都收到（多标签页要一起亮）
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m没有订阅者时不抛异常（事件不持久化，没人听就丢掉）
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/realtime.test.ts > RealtimeBus > 没有订阅者时不抛异常（事件不持久化，没人听就丢掉）
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m退订之后不再收到，且退订是幂等的
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/realtime.test.ts > RealtimeBus > 退订之后不再收到，且退订是幂等的
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m退订只摘自己，不影响同一频道上的其他人
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/realtime.test.ts > RealtimeBus > 退订只摘自己，不影响同一频道上的其他人
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m一个订阅者抛异常不影响同频道的其他人，也不影响发布方
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/realtime.test.ts > RealtimeBus > 一个订阅者抛异常不影响同频道的其他人，也不影响发布方
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstderr[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m一个订阅者抛异常不影响同频道的其他人，也不影响发布方
-[22m[39m[realtime] 订阅者回调出错 project:p1 notification 这个订阅者坏了
+stderr | apps/web/test/realtime.test.ts > RealtimeBus > 一个订阅者抛异常不影响同频道的其他人，也不影响发布方
+[realtime] 订阅者回调出错 project:p1 notification 这个订阅者坏了
 
-[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2m订阅者在回调里退订自己，不会漏掉后面的人
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/realtime.test.ts > RealtimeBus > 订阅者在回调里退订自己，不会漏掉后面的人
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2msubscriberCount 如实报数，退订后频道被清掉
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/realtime.test.ts > RealtimeBus > subscriberCount 如实报数，退订后频道被清掉
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2mcloseChannel 摘掉这个频道上的全部订阅，别的频道照旧收得到
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/realtime.test.ts > RealtimeBus > closeChannel 摘掉这个频道上的全部订阅，别的频道照旧收得到
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2mcloseChannel 之后，拿着旧退订函数的人再调用一次不会抛，也不会误摘新订阅
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/realtime.test.ts > RealtimeBus > closeChannel 之后，拿着旧退订函数的人再调用一次不会抛，也不会误摘新订阅
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/realtime.test.ts[2m > [22m[2mRealtimeBus[2m > [22m[2mcloseChannel 对没有订阅的频道与已经不存在的频道都是无操作
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/realtime.test.ts > RealtimeBus > closeChannel 对没有订阅的频道与已经不存在的频道都是无操作
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m
+··················································································································································································································································································································································································································································
 
-[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
 
-[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim.integration.test.ts[2m > [22m谓词的每一条边[2m > [22m沉默到线的两种形状都在候选里：会话烂了够久的、从来就没有会话的
-[31m[1mAssertionError[22m: expected false to be true // Object.is equality[39m
+ FAIL  apps/web/test/guest-reclaim.integration.test.ts > 谓词的每一条边 > 沉默到线的两种形状都在候选里：会话烂了够久的、从来就没有会话的
+AssertionError: expected false to be true // Object.is equality
 
-[32m- Expected[39m
-[31m+ Received[39m
+- Expected
++ Received
 
-[32m- true[39m
-[31m+ false[39m
+- true
++ false
 
-[36m [2m❯[22m apps/web/test/guest-reclaim.integration.test.ts:[2m247:61[22m[39m
-    [90m245| [39m  [34mit[39m([32m'沉默到线的两种形状都在候选里：会话烂了够久的、从来就没有会话的'[39m[33m,[39m [35masync[39m () [33m=>[39m {
-    [90m246| [39m    [35mconst[39m scan [33m=[39m [35mawait[39m [34mscanGuestReclaimCandidates[39m({ now[33m:[39m [33mNOW[39m })[33m;[39m
-    [90m247| [39m    [35mfor[39m ([35mconst[39m c [35mof[39m scan[33m.[39mcandidates) [34mexpect[39m([33mMINE[39m[33m.[39m[34mhas[39m(c[33m.[39mid))[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
-    [90m   | [39m                                                            [31m^[39m
-    [90m248| [39m
-    [90m249| [39m    [35mconst[39m found [33m=[39m [34mcandidateIds[39m(scan)[33m;[39m
+ ❯ apps/web/test/guest-reclaim.integration.test.ts:247:61
+    245|   it('沉默到线的两种形状都在候选里：会话烂了够久的、从来就没有会话的', async () => {
+    246|     const scan = await scanGuestReclaimCandidates({ now: NOW });
+    247|     for (const c of scan.candidates) expect(MINE.has(c.id)).toBe(true);
+       |                                                             ^
+    248| 
+    249|     const found = candidateIds(scan);
 
-[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
 
 
-[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m177 passed[39m[22m[90m (178)[39m
-[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1919 passed[39m[22m[90m (1920)[39m
-[2m   Start at [22m 09:52:52
-[2m   Duration [22m 602.51s[2m (transform 15.37s, setup 0ms, collect 185.64s, tests 346.80s, environment 39ms, prepare 21.58s)[22m
+ Test Files  1 failed | 177 passed (178)
+      Tests  1 failed | 1919 passed (1920)
+   Start at  09:52:52
+   Duration  602.51s (transform 15.37s, setup 0ms, collect 185.64s, tests 346.80s, environment 39ms, prepare 21.58s)
 

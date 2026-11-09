@@ -1,16 +1,16 @@
 
-[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+ RUN  v3.2.7 D:/内容创作平台
 
-[90mstdout[2m | apps/web/test/guest-reclaim.integration.test.ts
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/guest-reclaim.integration.test.ts
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m[2m缺省值与两种答案[2m > [22m[2m真执行那一次：说的是同一批人，库里也真的少了他们
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+························stdout | apps/web/test/guest-reclaim-route.integration.test.ts > 缺省值与两种答案 > 真执行那一次：说的是同一批人，库里也真的少了他们
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m
+·····
 
-[2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
-[2m      Tests [22m [1m[32m29 passed[39m[22m[90m (29)[39m
-[2m   Start at [22m 05:13:31
-[2m   Duration [22m 19.08s[2m (transform 2.86s, setup 0ms, collect 8.22s, tests 8.97s, environment 1ms, prepare 613ms)[22m
+ Test Files  3 passed (3)
+      Tests  29 passed (29)
+   Start at  05:13:31
+   Duration  19.08s (transform 2.86s, setup 0ms, collect 8.22s, tests 8.97s, environment 1ms, prepare 613ms)
 

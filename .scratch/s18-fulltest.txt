@@ -3,109 +3,109 @@
 > vitest run
 
 
-[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+ RUN  v3.2.7 D:/内容创作平台
 
-[90mstdout[2m | apps/web/test/ai-jobs.integration.test.ts[2m > [22m[2m提交：先有账本，再有作业号[2m > [22m[2m提交成功时任务行拿到 providerJobId，状态还是 running（没跑完不写成功）
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+stdout | apps/web/test/ai-jobs.integration.test.ts > 提交：先有账本，再有作业号 > 提交成功时任务行拿到 providerJobId，状态还是 running（没跑完不写成功）
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/blocks.integration.test.ts[2m > [22m[2m互动的挡住与不挡住[2m > [22m[2m被拉黑之后评论不入库、点赞不改计数；第三个人两样都做得到
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···································································································stdout | apps/web/test/blocks.integration.test.ts > 互动的挡住与不挡住 > 被拉黑之后评论不入库、点赞不改计数；第三个人两样都做得到
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/branches.integration.test.ts[2m > [22m[2m分支与副本（真实数据库）[2m > [22m[2mDuplicate：新项目内容一致、id 全部换号，源项目不受影响
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+··············stdout | apps/web/test/branches.integration.test.ts > 分支与副本（真实数据库） > Duplicate：新项目内容一致、id 全部换号，源项目不受影响
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/notifications.integration.test.ts[2m > [22m[2m写入：谁收到、重复的怎么办[2m > [22m[2m发布完成时作者有一条，路人没有；路人自己发布后他那侧就有了
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+····························stdout | apps/web/test/notifications.integration.test.ts > 写入：谁收到、重复的怎么办 > 发布完成时作者有一条，路人没有；路人自己发布后他那侧就有了
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/agent-draft-accept.integration.test.ts[2m > [22m[2m§52 接受入口[2m > [22m[2m过 CSRF 之后写进项目：读回来的是任务行里那一份，且留下一条放行审计
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+············································································stdout | apps/web/test/agent-draft-accept.integration.test.ts > §52 接受入口 > 过 CSRF 之后写进项目：读回来的是任务行里那一份，且留下一条放行审计
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/social.integration.test.ts[2m > [22m[2mLike / Comment / Follow[2m > [22m[2m点赞是可切换的开关，计数说的是真数
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·········stdout | apps/web/test/social.integration.test.ts > Like / Comment / Follow > 点赞是可切换的开关，计数说的是真数
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/social.integration.test.ts[2m > [22m[2mRemix（§58 分叉，不是改原作品）[2m > [22m[2m分叉出来的是发布那一版，作者没公开的改动不会跟着出去
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+·····stdout | apps/web/test/social.integration.test.ts > Remix（§58 分叉，不是改原作品） > 分叉出来的是发布那一版，作者没公开的改动不会跟着出去
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/storyboard-render.integration.test.ts[2m > [22m[2mrenderStoryboardDemo —— §40 最后一格：分镜真的渲出来，走视频摄入链落库[2m > [22m[2m快乐路径：真 ffmpeg 渲出的 mp4 落成 kind=video 资产，任务 succeeded，video 桶扣 5 点，demoMode 记在 genMeta 里
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·····stdout | apps/web/test/storyboard-render.integration.test.ts > renderStoryboardDemo —— §40 最后一格：分镜真的渲出来，走视频摄入链落库 > 快乐路径：真 ffmpeg 渲出的 mp4 落成 kind=video 资产，任务 succeeded，video 桶扣 5 点，demoMode 记在 genMeta 里
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/api-v1-publish.integration.test.ts[2m > [22m[2mPOST /api/v1/projects/<id>/publish[2m > [22m[2munlisted → 200，行真的落库、URL 解析得出、projects.visibility 跟着变
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+··············stdout | apps/web/test/api-v1-publish.integration.test.ts > POST /api/v1/projects/<id>/publish > unlisted → 200，行真的落库、URL 解析得出、projects.visibility 跟着变
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/storyboard-render-route.integration.test.ts[2m > [22m[2mGET /api/projects/[projectId]/storyboard/render 的入口形状[2m > [22m[2m渲过之后：清单里就是那颗资产，storyboardId 对得上
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+····························stdout | apps/web/test/storyboard-render-route.integration.test.ts > GET /api/projects/[projectId]/storyboard/render 的入口形状 > 渲过之后：清单里就是那颗资产，storyboardId 对得上
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/analytics.integration.test.ts[2m > [22m[2m访客现场的写入（一天一行）[2m > [22m[2m同一访客同一天的多次心跳合成一行：打开次数相加、时长相加、完成度取最远
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·······stdout | apps/web/test/analytics.integration.test.ts > 访客现场的写入（一天一行） > 同一访客同一天的多次心跳合成一行：打开次数相加、时长相加、完成度取最远
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/import.integration.test.ts
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+·················stdout | apps/web/test/import.integration.test.ts
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/image-studio.integration.test.ts[2m > [22m[2m§38 Reference → Variation 打真库[2m > [22m[2m参考图的主色决定画面：同 prompt 同 seed，换参考就是换字节
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·······stdout | apps/web/test/image-studio.integration.test.ts > §38 Reference → Variation 打真库 > 参考图的主色决定画面：同 prompt 同 seed，换参考就是换字节
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[90mstdout[2m | apps/web/test/image-studio.integration.test.ts[2m > [22m[2m§38 Reference → Variation 打真库[2m > [22m[2m参考图的主色决定画面：同 prompt 同 seed，换参考就是换字节
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+stdout | apps/web/test/image-studio.integration.test.ts > §38 Reference → Variation 打真库 > 参考图的主色决定画面：同 prompt 同 seed，换参考就是换字节
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/account-deletion.integration.test.ts[2m > [22m[2m确认词取哪一列[2m > [22m[2m没发布过的人没有 handle，那一臂改认展示名——展示名逐字输入确实注销得掉
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·······················stdout | apps/web/test/account-deletion.integration.test.ts > 确认词取哪一列 > 没发布过的人没有 handle，那一臂改认展示名——展示名逐字输入确实注销得掉
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/project-delete.integration.test.ts[2m > [22m[2m删除之后，哪些面再也看不到它[2m > [22m[2m§61 发现与个人主页：公开着的项目一删就从两边消失
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·······················································stdout | apps/web/test/project-delete.integration.test.ts > 删除之后，哪些面再也看不到它 > §61 发现与个人主页：公开着的项目一删就从两边消失
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/game-publish.integration.test.ts[2m > [22m[2m发布钉住游戏设计[2m > [22m[2m发布时钉住当时那份；改工作稿不重新发布，公开的那一份不动
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+······stdout | apps/web/test/game-publish.integration.test.ts > 发布钉住游戏设计 > 发布时钉住当时那份；改工作稿不重新发布，公开的那一份不动
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/work-completion.integration.test.ts[2m > [22m[2m§167 互动作品 completion[2m > [22m[2m发布互动稿 ⇒ interactive 被存进发布行；走到终点记一次 ⇒ 创作者那边是 1
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·····stdout | apps/web/test/work-completion.integration.test.ts > §167 互动作品 completion > 发布互动稿 ⇒ interactive 被存进发布行；走到终点记一次 ⇒ 创作者那边是 1
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/trending.integration.test.ts[2m > [22m[2mTrending 排的是最近，不是累计[2m > [22m[2m最近被赞的排前面；窗口外的赞不计；同一份数据下 popular 给出另一种顺序
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·········stdout | apps/web/test/trending.integration.test.ts > Trending 排的是最近，不是累计 > 最近被赞的排前面；窗口外的赞不计；同一份数据下 popular 给出另一种顺序
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/profile.integration.test.ts[2m > [22m[2mprofileOf（§60 的可见性边界）[2m > [22m[2m只列公网上传着的作品；未发布与已下架的不出现
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···········stdout | apps/web/test/profile.integration.test.ts > profileOf（§60 的可见性边界） > 只列公网上传着的作品；未发布与已下架的不出现
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/analytics-trend.integration.test.ts[2m > [22m[2m按天曲线（真库）[2m > [22m[2m缺的那天补成 0，不跳过；但"一条心跳都没有"那天的时长是 null 不是 0
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·························stdout | apps/web/test/analytics-trend.integration.test.ts > 按天曲线（真库） > 缺的那天补成 0，不跳过；但"一条心跳都没有"那天的时长是 null 不是 0
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/moderation.integration.test.ts[2m > [22m[2mpublishProject × 机检（§131 的四种走向）[2m > [22m[2m命中红线：公开被挡下，没有 publication 行，但案子留着
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···········································································stdout | apps/web/test/moderation.integration.test.ts > publishProject × 机检（§131 的四种走向） > 命中红线：公开被挡下，没有 publication 行，但案子留着
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/storyboard-render-build-status.integration.test.ts[2m > [22m[2mrenderStoryboardDemo 的 build.status 事件串（§163）[2m > [22m[2m快乐路径：building → ok，ok 的 log 说清成片入了资产库，且不发 preview.status
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+········stdout | apps/web/test/storyboard-render-build-status.integration.test.ts > renderStoryboardDemo 的 build.status 事件串（§163） > 快乐路径：building → ok，ok 的 log 说清成片入了资产库，且不发 preview.status
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/assets.integration.test.ts[2m > [22m[2m鉴权取字节[2m > [22m[2m公开路径要满足"发布 + 快照确实引用"两条，缺一即 null
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·················stdout | apps/web/test/assets.integration.test.ts > 鉴权取字节 > 公开路径要满足"发布 + 快照确实引用"两条，缺一即 null
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/publish.integration.test.ts[2m > [22m[2m发布与分享（真实数据库）[2m > [22m[2m发布：生成 /n/<handle>/<slug>，并留下一条 publish 快照
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+···············stdout | apps/web/test/publish.integration.test.ts > 发布与分享（真实数据库） > 发布：生成 /n/<handle>/<slug>，并留下一条 publish 快照
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/game-completion.integration.test.ts[2m > [22m[2m§168 游戏侧 completion[2m > [22m[2m记一次通关 ⇒ 创作者那边"通关过"是 1（页面上那一格不是别的数）
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+········stdout | apps/web/test/game-completion.integration.test.ts > §168 游戏侧 completion > 记一次通关 ⇒ 创作者那边"通关过"是 1（页面上那一格不是别的数）
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/export.integration.test.ts
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+··············································stdout | apps/web/test/export.integration.test.ts
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/storyboard-import.integration.test.ts
-[22m[39m[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
+·············stdout | apps/web/test/storyboard-import.integration.test.ts
+[storage] 驱动=local configured=false —— 未配置 NEXUS_S3_* 凭据，回落到本地目录 D:\内容创作平台\.nexus-storage（开发兜底，非生产形态）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/analytics-export.integration.test.ts[2m > [22m[2m§168 导出（CSV）[2m > [22m[2m数字与页面同一份：逐项等于 creatorAnalytics 给的那一份
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+······························································stdout | apps/web/test/analytics-export.integration.test.ts > §168 导出（CSV） > 数字与页面同一份：逐项等于 creatorAnalytics 给的那一份
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/collaborator-visibility.integration.test.ts
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+····stdout | apps/web/test/collaborator-visibility.integration.test.ts
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m
-[31m⎯⎯⎯⎯[39m[1m[41m Unhandled Rejection [49m[22m[31m⎯⎯⎯⎯⎯[39m
-[31m[1mError[22m: Channel closed[39m
-[90m [2m❯[22m target.send node:internal/child_process:[2m777:16[22m[39m
-[90m [2m❯[22m ProcessWorker.send ../%E5%86%85%E5%AE%B9%E5%88%9B%E4%BD%9C%E5%B9%B3%E5%8F%B0/node_modules/tinypool/dist/index.js:[2m140:41[22m[39m
-[90m [2m❯[22m MessagePort.<anonymous> ../%E5%86%85%E5%AE%B9%E5%88%9B%E4%BD%9C%E5%B9%B3%E5%8F%B0/node_modules/tinypool/dist/index.js:[2m149:62[22m[39m
-[90m [2m❯[22m [nodejs.internal.kHybridDispatch] node:internal/event_target:[2m843:20[22m[39m
-[90m [2m❯[22m MessagePort.<anonymous> node:internal/per_context/messageport:[2m23:28[22m[39m
+····················
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: Channel closed
+ ❯ target.send node:internal/child_process:777:16
+ ❯ ProcessWorker.send ../%E5%86%85%E5%AE%B9%E5%88%9B%E4%BD%9C%E5%B9%B3%E5%8F%B0/node_modules/tinypool/dist/index.js:140:41
+ ❯ MessagePort.<anonymous> ../%E5%86%85%E5%AE%B9%E5%88%9B%E4%BD%9C%E5%B9%B3%E5%8F%B0/node_modules/tinypool/dist/index.js:149:62
+ ❯ [nodejs.internal.kHybridDispatch] node:internal/event_target:843:20
+ ❯ MessagePort.<anonymous> node:internal/per_context/messageport:23:28
 
-[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22m[39m
-[31m[1mSerialized Error:[22m[39m [90m{ code: 'ERR_IPC_CHANNEL_CLOSED' }[39m
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'ERR_IPC_CHANNEL_CLOSED' }
 
 
 

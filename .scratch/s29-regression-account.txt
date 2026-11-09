@@ -1,13 +1,13 @@
 
-[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+ RUN  v3.2.7 D:/内容创作平台
 
-[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/account-deletion.integration.test.ts[2m > [22m[2m确认词取哪一列[2m > [22m[2m没发布过的人没有 handle，那一臂改认展示名——展示名逐字输入确实注销得掉
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+·stdout | apps/web/test/account-deletion.integration.test.ts > 确认词取哪一列 > 没发布过的人没有 handle，那一臂改认展示名——展示名逐字输入确实注销得掉
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m
+··············
 
-[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
-[2m      Tests [22m [1m[32m15 passed[39m[22m[90m (15)[39m
-[2m   Start at [22m 06:05:41
-[2m   Duration [22m 14.35s[2m (transform 4.88s, setup 0ms, collect 7.69s, tests 6.06s, environment 0ms, prepare 165ms)[22m
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+   Start at  06:05:41
+   Duration  14.35s (transform 4.88s, setup 0ms, collect 7.69s, tests 6.06s, environment 0ms, prepare 165ms)
 

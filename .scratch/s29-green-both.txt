@@ -1,7 +1,7 @@
 
-[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+ RUN  v3.2.7 D:/内容创作平台
 
-[1m[43m DEPRECATED [49m[22m [33m'basic' reporter is deprecated and will be removed in Vitest v3.
+ DEPRECATED  'basic' reporter is deprecated and will be removed in Vitest v3.
 Remove 'basic' from 'reporters' option. To match 'basic' reporter 100%, use configuration:
 {
   "test": {
@@ -14,27 +14,27 @@ Remove 'basic' from 'reporters' option. To match 'basic' reporter 100%, use conf
       ]
     ]
   }
-}[39m
-[90mstdout[2m | apps/web/test/guest-reclaim.integration.test.ts
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+}
+stdout | apps/web/test/guest-reclaim.integration.test.ts
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
- [32m✓[39m apps/web/test/guest-reclaim.integration.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 34656[2mms[22m[39m
-   [33m[2m✓[22m[39m 收走一个人 = ADR-0025 那六件事[2m > [22m真执行时六件事一件不少：草稿软删、会话吊销、令牌吊销、人打上时间戳、旧 cookie 解析不出人 [33m 880[2mms[22m[39m
-   [33m[2m✓[22m[39m 收走一个人 = ADR-0025 那六件事[2m > [22m已发布的东西不跟着清扫走：那条排除本身就是保证，而收走的别人不该让公网 404 [33m 3783[2mms[22m[39m
-   [33m[2m✓[22m[39m 一次点击的爆炸半径[2m > [22mbatch 只管这一轮收几个，多出来的那句"还有剩下的"必须是真的 [33m 580[2mms[22m[39m
-   [33m[2m✓[22m[39m 一次点击的爆炸半径[2m > [22mbatch 上界挡在入口：要 5000 个一次收完是不可能的 [33m 466[2mms[22m[39m
-   [33m[2m✓[22m[39m 一次点击的爆炸半径[2m > [22m两个人同时点：每个人最多被收一次、两次调用都不抛、审计一人一行 [33m 13084[2mms[22m[39m
-   [33m[2m✓[22m[39m 一次点击的爆炸半径[2m > [22m不是审核员就一个字都不写，而且被拒的那一次进审计 [33m 443[2mms[22m[39m
-[90mstdout[2m | apps/web/test/guest-reclaim-route.integration.test.ts[2m > [22m[2m缺省值与两种答案[2m > [22m[2m真执行那一次：说的是同一批人，库里也真的少了他们
-[22m[39m[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
+ ✓ apps/web/test/guest-reclaim.integration.test.ts (18 tests) 34656ms
+   ✓ 收走一个人 = ADR-0025 那六件事 > 真执行时六件事一件不少：草稿软删、会话吊销、令牌吊销、人打上时间戳、旧 cookie 解析不出人  880ms
+   ✓ 收走一个人 = ADR-0025 那六件事 > 已发布的东西不跟着清扫走：那条排除本身就是保证，而收走的别人不该让公网 404  3783ms
+   ✓ 一次点击的爆炸半径 > batch 只管这一轮收几个，多出来的那句"还有剩下的"必须是真的  580ms
+   ✓ 一次点击的爆炸半径 > batch 上界挡在入口：要 5000 个一次收完是不可能的  466ms
+   ✓ 一次点击的爆炸半径 > 两个人同时点：每个人最多被收一次、两次调用都不抛、审计一人一行  13084ms
+   ✓ 一次点击的爆炸半径 > 不是审核员就一个字都不写，而且被拒的那一次进审计  443ms
+stdout | apps/web/test/guest-reclaim-route.integration.test.ts > 缺省值与两种答案 > 真执行那一次：说的是同一批人，库里也真的少了他们
+[realtime] 驱动=进程内（单实例；多实例部署设 NEXUS_REDIS_URL 换成 Redis 扇出）
 
- [32m✓[39m apps/web/test/guest-reclaim-route.integration.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 5406[2mms[22m[39m
-   [33m[2m✓[22m[39m 门的顺序[2m > [22m同一个审核员连点第七次：429（额度按现成的 6 次/10 分钟跑满，没有为测试放宽） [33m 1133[2mms[22m[39m
-   [33m[2m✓[22m[39m 缺省值与两种答案[2m > [22m真执行那一次：说的是同一批人，库里也真的少了他们 [33m 1123[2mms[22m[39m
+ ✓ apps/web/test/guest-reclaim-route.integration.test.ts (7 tests) 5406ms
+   ✓ 门的顺序 > 同一个审核员连点第七次：429（额度按现成的 6 次/10 分钟跑满，没有为测试放宽）  1133ms
+   ✓ 缺省值与两种答案 > 真执行那一次：说的是同一批人，库里也真的少了他们  1123ms
 
 
-[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
-[2m      Tests [22m [1m[32m25 passed[39m[22m[90m (25)[39m
-[2m   Start at [22m 04:27:07
-[2m   Duration [22m 62.24s[2m (transform 5.03s, setup 0ms, collect 19.02s, tests 40.06s, environment 1ms, prepare 579ms)[22m
+ Test Files  2 passed (2)
+      Tests  25 passed (25)
+   Start at  04:27:07
+   Duration  62.24s (transform 5.03s, setup 0ms, collect 19.02s, tests 40.06s, environment 1ms, prepare 579ms)
 

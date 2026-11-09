@@ -1,53 +1,53 @@
 
-[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+ RUN  v3.2.7 D:/内容创作平台
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[31mx[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[31mx[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m
+········x···x····
 
-[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
 
-[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mpageCount / clampPage / pageWindow（一屏之外还有几屏）[2m > [22m9 行分两屏：第一屏 8 行，第二屏剩 1 行
-[31m[1mAssertionError[22m: expected [] to have a length of 8 but got +0[39m
+ FAIL  apps/web/test/guest-reclaim-panel.test.ts > pageCount / clampPage / pageWindow（一屏之外还有几屏） > 9 行分两屏：第一屏 8 行，第二屏剩 1 行
+AssertionError: expected [] to have a length of 8 but got +0
 
-[32m- Expected[39m
-[31m+ Received[39m
+- Expected
++ Received
 
-[32m- 8[39m
-[31m+ 0[39m
+- 8
++ 0
 
-[36m [2m❯[22m apps/web/test/guest-reclaim-panel.test.ts:[2m141:73[22m[39m
-    [90m139| [39m    [90m// 对照：一屏就装下了的清单，站在第 2 屏也不会切出一张空表——屏号先过 `clampPage`[39m
-    [90m140| [39m    [34mexpect[39m([34mpageCount[39m([34m8[39m))[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
-    [90m141| [39m    expect(pageWindow(Array.from({ length: 8 }, (_, i) => `c${i}`), 1)…
-    [90m   | [39m                                                                        [31m^[39m
-    [90m142| [39m  })[33m;[39m
-    [90m143| [39m
+ ❯ apps/web/test/guest-reclaim-panel.test.ts:141:73
+    139|     // 对照：一屏就装下了的清单，站在第 2 屏也不会切出一张空表——屏号先过 `clampPage`
+    140|     expect(pageCount(8)).toBe(1);
+    141|     expect(pageWindow(Array.from({ length: 8 }, (_, i) => `c${i}`), 1)…
+       |                                                                         ^
+    142|   });
+    143| 
 
-[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
 
-[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mpageCount / clampPage / pageWindow（一屏之外还有几屏）[2m > [22m一屏几行是参数，不是写死在切片的数里
-[31m[1mAssertionError[22m: expected [] to deeply equal [ 'c8' ][39m
+ FAIL  apps/web/test/guest-reclaim-panel.test.ts > pageCount / clampPage / pageWindow（一屏之外还有几屏） > 一屏几行是参数，不是写死在切片的数里
+AssertionError: expected [] to deeply equal [ 'c8' ]
 
-[32m- Expected[39m
-[31m+ Received[39m
+- Expected
++ Received
 
-[32m- [[39m
-[32m-   "c8",[39m
-[32m- ][39m
-[31m+ [][39m
+- [
+-   "c8",
+- ]
++ []
 
-[36m [2m❯[22m apps/web/test/guest-reclaim-panel.test.ts:[2m171:36[22m[39m
-    [90m169| [39m  [34mit[39m([32m'一屏几行是参数，不是写死在切片的数里'[39m[33m,[39m () [33m=>[39m {
-    [90m170| [39m    [34mexpect[39m([34mpageCount[39m([34m9[39m[33m,[39m [34m4[39m))[33m.[39m[34mtoBe[39m([34m3[39m)[33m;[39m
-    [90m171| [39m    [34mexpect[39m([34mpageWindow[39m(nine[33m,[39m [34m2[39m[33m,[39m [34m4[39m))[33m.[39m[34mtoEqual[39m([[32m'c8'[39m])[33m;[39m
-    [90m   | [39m                                   [31m^[39m
-    [90m172| [39m    [34mexpect[39m([34mclampPage[39m([34m2[39m[33m,[39m [34m9[39m[33m,[39m [34m4[39m))[33m.[39m[34mtoBe[39m([34m2[39m)[33m;[39m
-    [90m173| [39m    [90m// 每屏 9 行时 9 个就是一屏，没有第二屏[39m
+ ❯ apps/web/test/guest-reclaim-panel.test.ts:171:36
+    169|   it('一屏几行是参数，不是写死在切片的数里', () => {
+    170|     expect(pageCount(9, 4)).toBe(3);
+    171|     expect(pageWindow(nine, 2, 4)).toEqual(['c8']);
+       |                                    ^
+    172|     expect(clampPage(2, 9, 4)).toBe(2);
+    173|     // 每屏 9 行时 9 个就是一屏，没有第二屏
 
-[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
 
 
-[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
-[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m15 passed[39m[22m[90m (17)[39m
-[2m   Start at [22m 00:15:22
-[2m   Duration [22m 1.34s[2m (transform 245ms, setup 0ms, collect 271ms, tests 25ms, environment 0ms, prepare 411ms)[22m
+ Test Files  1 failed (1)
+      Tests  2 failed | 15 passed (17)
+   Start at  00:15:22
+   Duration  1.34s (transform 245ms, setup 0ms, collect 271ms, tests 25ms, environment 0ms, prepare 411ms)
 

@@ -1,107 +1,107 @@
 
-[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+ RUN  v3.2.7 D:/内容创作平台
 
-[90mstdout[2m | apps/web/test/rate-limit.redis.integration.test.ts
-[22m[39m[rateLimit] 驱动=进程内（多实例部署设 NEXUS_REDIS_URL 换成共享窗口）
-
-[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m两个驱动逐格同答案（parity）[2m > [22m[2mlimit=1/3/5 三档：allowed 与 count 每一格相同，retryAfterMs 方向一致、量级一致
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
-
-[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m两个驱动逐格同答案（parity）[2m > [22m[2mlimit=1/3/5 三档：allowed 与 count 每一格相同，retryAfterMs 方向一致、量级一致
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
-
-[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m两个驱动逐格同答案（parity）[2m > [22m[2mlimit=1/3/5 三档：allowed 与 count 每一格相同，retryAfterMs 方向一致、量级一致
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
-
-[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m两个驱动逐格同答案（parity）[2m > [22m[2m窗口滑过之后两边都重新放行（同一条边界，不是两套边界）
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
-
-[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mRedis 驱动：多实例一起数同一份窗口[2m > [22m[2m两个实例合计恰好 limit 次，不是 2×limit
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
-
-[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mRedis 驱动：多实例一起数同一份窗口[2m > [22m[2m同毫秒并发突发：恰好放行 limit 条（原子性那一格）
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
-
-[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mRedis 驱动：多实例一起数同一份窗口[2m > [22m[2m成员名每条都不同：同毫秒两次命中在集合里占两格
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
-
-[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mRedis 驱动：多实例一起数同一份窗口[2m > [22m[2m被挡下的那一次不进窗口（否则限流成了加速自锁）
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
-
-[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mRedis 驱动：多实例一起数同一份窗口[2m > [22m[2m按 retryAfterMs 等完之后真的能过（那句话不是摆设）
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
-
-[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m退回（Redis 那半边不行时闸还在挡）[2m > [22m[2m键上挂着错误类型 ⇒ 当场退回、不抛、限额仍然生效
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
-
-[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m退回（Redis 那半边不行时闸还在挡）[2m > [22m[2m连不上的 Redis ⇒ ready=false、hit 不抛、仍挡住、计数在涨
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
-
-[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m退回（Redis 那半边不行时闸还在挡）[2m > [22m[2m正常路径下 fallbackCount 一直是 0（陌生回执不许被读成放行）
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
-
-[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m门面按环境变量选驱动[2m > [22m[2m设了 NEXUS_REDIS_URL 用 Redis 那份，没设用进程内那份
-[22m[39m[rateLimit] 驱动=Redis 有序集滑动窗口（键前缀 nexus:ratelimit:v1:）
+stdout | apps/web/test/rate-limit.redis.integration.test.ts
 [rateLimit] 驱动=进程内（多实例部署设 NEXUS_REDIS_URL 换成共享窗口）
 
-[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mreset 的爆炸半径[2m > [22m[2mreset(key) 只清那一只桶
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+stderr | apps/web/test/rate-limit.redis.integration.test.ts > 两个驱动逐格同答案（parity） > limit=1/3/5 三档：allowed 与 count 每一格相同，retryAfterMs 方向一致、量级一致
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mreset 的爆炸半径[2m > [22m[2mreset() 只清自己的前缀，别人前缀下的键一条不少
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+stderr | apps/web/test/rate-limit.redis.integration.test.ts > 两个驱动逐格同答案（parity） > limit=1/3/5 三档：allowed 与 count 每一格相同，retryAfterMs 方向一致、量级一致
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mreset 的爆炸半径[2m > [22m[2mRedis 断线时 reset 不抛，而进程内那一份照样被清
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+stderr | apps/web/test/rate-limit.redis.integration.test.ts > 两个驱动逐格同答案（parity） > limit=1/3/5 三档：allowed 与 count 每一格相同，retryAfterMs 方向一致、量级一致
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2mreset 的爆炸半径[2m > [22m[2mRedis 断线时 reset 不抛，而进程内那一份照样被清
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 3 次；多实例期间这一台的额度是各算各的；原因=reset；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="reset"}）： Stream isn't writeable and enableOfflineQueue options is false
+stderr | apps/web/test/rate-limit.redis.integration.test.ts > 两个驱动逐格同答案（parity） > 窗口滑过之后两边都重新放行（同一条边界，不是两套边界）
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m桶键的上界[2m > [22m[2m名额用完时新桶建不出来，但那条请求仍被本机窗口挡住（不是免检）
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+·stderr | apps/web/test/rate-limit.redis.integration.test.ts > Redis 驱动：多实例一起数同一份窗口 > 两个实例合计恰好 limit 次，不是 2×limit
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m桶键的上界[2m > [22m[2m名额用完时新桶建不出来，但那条请求仍被本机窗口挡住（不是免检）
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 2 次；多实例期间这一台的额度是各算各的；原因=over-cap；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="over-cap"}）： 桶键名额用完：上界 2，名册里 2 条
+·stderr | apps/web/test/rate-limit.redis.integration.test.ts > Redis 驱动：多实例一起数同一份窗口 > 同毫秒并发突发：恰好放行 limit 条（原子性那一格）
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m桶键的上界[2m > [22m[2m上界只管新建：已经在数东西的那只桶照样往 Redis 的窗口里记，也照样被它挡住
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+··stderr | apps/web/test/rate-limit.redis.integration.test.ts > Redis 驱动：多实例一起数同一份窗口 > 成员名每条都不同：同毫秒两次命中在集合里占两格
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m桶键的上界[2m > [22m[2m上界只管新建：已经在数东西的那只桶照样往 Redis 的窗口里记，也照样被它挡住
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 2 次；多实例期间这一台的额度是各算各的；原因=over-cap；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="over-cap"}）： 桶键名额用完：上界 1，名册里 1 条
+·stderr | apps/web/test/rate-limit.redis.integration.test.ts > Redis 驱动：多实例一起数同一份窗口 > 被挡下的那一次不进窗口（否则限流成了加速自锁）
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m桶键的上界[2m > [22m[2m整窗过期的条目腾出位子：等一等，新桶又能建了
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+·stderr | apps/web/test/rate-limit.redis.integration.test.ts > Redis 驱动：多实例一起数同一份窗口 > 按 retryAfterMs 等完之后真的能过（那句话不是摆设）
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m桶键的上界[2m > [22m[2m名册说的条数＝那台 Redis 上真的有的桶数
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+·stderr | apps/web/test/rate-limit.redis.integration.test.ts > 退回（Redis 那半边不行时闸还在挡） > 键上挂着错误类型 ⇒ 当场退回、不抛、限额仍然生效
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m桶键的上界[2m > [22m[2m名册自己也有寿命（它不能变成一只永久的键）
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+··stderr | apps/web/test/rate-limit.redis.integration.test.ts > 退回（Redis 那半边不行时闸还在挡） > 连不上的 Redis ⇒ ready=false、hit 不抛、仍挡住、计数在涨
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m桶键的上界[2m > [22m[2mreset(key) 把名册里那条一起摘掉：名额立刻还给新桶
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+stderr | apps/web/test/rate-limit.redis.integration.test.ts > 退回（Redis 那半边不行时闸还在挡） > 正常路径下 fallbackCount 一直是 0（陌生回执不许被读成放行）
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstderr[2m | apps/web/test/rate-limit.redis.integration.test.ts[2m > [22m[2m键的寿命[2m > [22m[2mPEXPIRE 让长时间没人打的键自己消失（不赖在库里）
-[22m[39m[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+·stdout | apps/web/test/rate-limit.redis.integration.test.ts > 门面按环境变量选驱动 > 设了 NEXUS_REDIS_URL 用 Redis 那份，没设用进程内那份
+[rateLimit] 驱动=Redis 有序集滑动窗口（键前缀 nexus:ratelimit:v1:）
+[rateLimit] 驱动=进程内（多实例部署设 NEXUS_REDIS_URL 换成共享窗口）
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/observability-instrumented.test.ts[2m > [22m[2m写入方真的在动（不是编得过去的死代码）[2m > [22m[2m走一次限流闸：放行与拒绝各计一次，标签只有闸名没有身份
-[22m[39m[rateLimit] 驱动=进程内（多实例部署设 NEXUS_REDIS_URL 换成共享窗口）
+stderr | apps/web/test/rate-limit.redis.integration.test.ts > reset 的爆炸半径 > reset(key) 只清那一只桶
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[90mstdout[2m | apps/web/test/rateLimit.test.ts[2m > [22m[2mrateLimit（内存滑动窗口）[2m > [22m[2m窗口内放行到上限，之后挡住
-[22m[39m[rateLimit] 驱动=进程内（多实例部署设 NEXUS_REDIS_URL 换成共享窗口）
+··stderr | apps/web/test/rate-limit.redis.integration.test.ts > reset 的爆炸半径 > reset() 只清自己的前缀，别人前缀下的键一条不少
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[90mstderr[2m | apps/web/test/rateLimit.test.ts[2m > [22m[2m进程内限流桶的规模（清扫、上界与记账）[2m > [22m[2m洪水把表顶到上界就不再涨，淘汰的是最久没被碰的那一头
-[22m[39m[rateLimit] 进程内限流桶到上界 8，这一趟从最久没被碰的一头淘汰 1 只（过去这段时间的累计数在 nexus_rate_limit_buckets_pruned_total{reason="cap"} 里，这条日志最多一分钟一行——洪水期间每请求一行就是闸自己开了一条写日志的入口）。后果是被淘汰身份的那一档窗口重新变空；这个读数持续涨说明这台进程正被 distinct 身份压，正解是设 NEXUS_REDIS_URL 把窗口挪出内存。
+·stderr | apps/web/test/rate-limit.redis.integration.test.ts > reset 的爆炸半径 > Redis 断线时 reset 不抛，而进程内那一份照样被清
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[90mstderr[2m | apps/web/test/rateLimit.test.ts[2m > [22m[2m进程内限流桶的规模（清扫、上界与记账）[2m > [22m[2m正在挨挡的那一格不被洪水淘汰（碰过的桶留在 LRU 尾部）
-[22m[39m[rateLimit] 进程内限流桶到上界 4，这一趟从最久没被碰的一头淘汰 1 只（过去这段时间的累计数在 nexus_rate_limit_buckets_pruned_total{reason="cap"} 里，这条日志最多一分钟一行——洪水期间每请求一行就是闸自己开了一条写日志的入口）。后果是被淘汰身份的那一档窗口重新变空；这个读数持续涨说明这台进程正被 distinct 身份压，正解是设 NEXUS_REDIS_URL 把窗口挪出内存。
+stderr | apps/web/test/rate-limit.redis.integration.test.ts > reset 的爆炸半径 > Redis 断线时 reset 不抛，而进程内那一份照样被清
+[rateLimit] redis 驱动退回进程内计数（第 3 次；多实例期间这一台的额度是各算各的；原因=reset；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="reset"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[90mstderr[2m | apps/web/test/rateLimit.test.ts[2m > [22m[2m进程内限流桶的规模（清扫、上界与记账）[2m > [22m[2m代价说清楚：被挤出去的那一格，下一次命中重新变空
-[22m[39m[rateLimit] 进程内限流桶到上界 2，这一趟从最久没被碰的一头淘汰 1 只（过去这段时间的累计数在 nexus_rate_limit_buckets_pruned_total{reason="cap"} 里，这条日志最多一分钟一行——洪水期间每请求一行就是闸自己开了一条写日志的入口）。后果是被淘汰身份的那一档窗口重新变空；这个读数持续涨说明这台进程正被 distinct 身份压，正解是设 NEXUS_REDIS_URL 把窗口挪出内存。
+stderr | apps/web/test/rate-limit.redis.integration.test.ts > 桶键的上界 > 名额用完时新桶建不出来，但那条请求仍被本机窗口挡住（不是免检）
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
 
-[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m[33m[39m[32m·[39m
+··stderr | apps/web/test/rate-limit.redis.integration.test.ts > 桶键的上界 > 名额用完时新桶建不出来，但那条请求仍被本机窗口挡住（不是免检）
+[rateLimit] redis 驱动退回进程内计数（第 2 次；多实例期间这一台的额度是各算各的；原因=over-cap；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="over-cap"}）： 桶键名额用完：上界 2，名册里 2 条
 
-[2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
-[2m      Tests [22m [1m[32m46 passed[39m[22m[90m (46)[39m
-[2m   Start at [22m 03:59:28
-[2m   Duration [22m 25.50s[2m (transform 969ms, setup 0ms, collect 3.37s, tests 18.06s, environment 1ms, prepare 1.02s)[22m
+stderr | apps/web/test/rate-limit.redis.integration.test.ts > 桶键的上界 > 上界只管新建：已经在数东西的那只桶照样往 Redis 的窗口里记，也照样被它挡住
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+
+·stderr | apps/web/test/rate-limit.redis.integration.test.ts > 桶键的上界 > 上界只管新建：已经在数东西的那只桶照样往 Redis 的窗口里记，也照样被它挡住
+[rateLimit] redis 驱动退回进程内计数（第 2 次；多实例期间这一台的额度是各算各的；原因=over-cap；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="over-cap"}）： 桶键名额用完：上界 1，名册里 1 条
+
+stderr | apps/web/test/rate-limit.redis.integration.test.ts > 桶键的上界 > 整窗过期的条目腾出位子：等一等，新桶又能建了
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+
+·stderr | apps/web/test/rate-limit.redis.integration.test.ts > 桶键的上界 > 名册说的条数＝那台 Redis 上真的有的桶数
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+
+·stderr | apps/web/test/rate-limit.redis.integration.test.ts > 桶键的上界 > 名册自己也有寿命（它不能变成一只永久的键）
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+
+·stderr | apps/web/test/rate-limit.redis.integration.test.ts > 桶键的上界 > reset(key) 把名册里那条一起摘掉：名额立刻还给新桶
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+
+··stderr | apps/web/test/rate-limit.redis.integration.test.ts > 键的寿命 > PEXPIRE 让长时间没人打的键自己消失（不赖在库里）
+[rateLimit] redis 驱动退回进程内计数（第 1 次；多实例期间这一台的额度是各算各的；原因=command-failed；这类日志每一分钟最多一行，逐笔的数在 nexus_rate_limit_driver_fallbacks_total{reason="command-failed"}）： Stream isn't writeable and enableOfflineQueue options is false
+
+·····stdout | apps/web/test/observability-instrumented.test.ts > 写入方真的在动（不是编得过去的死代码） > 走一次限流闸：放行与拒绝各计一次，标签只有闸名没有身份
+[rateLimit] 驱动=进程内（多实例部署设 NEXUS_REDIS_URL 换成共享窗口）
+
+·····stdout | apps/web/test/rateLimit.test.ts > rateLimit（内存滑动窗口） > 窗口内放行到上限，之后挡住
+[rateLimit] 驱动=进程内（多实例部署设 NEXUS_REDIS_URL 换成共享窗口）
+
+stderr | apps/web/test/rateLimit.test.ts > 进程内限流桶的规模（清扫、上界与记账） > 洪水把表顶到上界就不再涨，淘汰的是最久没被碰的那一头
+[rateLimit] 进程内限流桶到上界 8，这一趟从最久没被碰的一头淘汰 1 只（过去这段时间的累计数在 nexus_rate_limit_buckets_pruned_total{reason="cap"} 里，这条日志最多一分钟一行——洪水期间每请求一行就是闸自己开了一条写日志的入口）。后果是被淘汰身份的那一档窗口重新变空；这个读数持续涨说明这台进程正被 distinct 身份压，正解是设 NEXUS_REDIS_URL 把窗口挪出内存。
+
+stderr | apps/web/test/rateLimit.test.ts > 进程内限流桶的规模（清扫、上界与记账） > 正在挨挡的那一格不被洪水淘汰（碰过的桶留在 LRU 尾部）
+[rateLimit] 进程内限流桶到上界 4，这一趟从最久没被碰的一头淘汰 1 只（过去这段时间的累计数在 nexus_rate_limit_buckets_pruned_total{reason="cap"} 里，这条日志最多一分钟一行——洪水期间每请求一行就是闸自己开了一条写日志的入口）。后果是被淘汰身份的那一档窗口重新变空；这个读数持续涨说明这台进程正被 distinct 身份压，正解是设 NEXUS_REDIS_URL 把窗口挪出内存。
+
+stderr | apps/web/test/rateLimit.test.ts > 进程内限流桶的规模（清扫、上界与记账） > 代价说清楚：被挤出去的那一格，下一次命中重新变空
+[rateLimit] 进程内限流桶到上界 2，这一趟从最久没被碰的一头淘汰 1 只（过去这段时间的累计数在 nexus_rate_limit_buckets_pruned_total{reason="cap"} 里，这条日志最多一分钟一行——洪水期间每请求一行就是闸自己开了一条写日志的入口）。后果是被淘汰身份的那一档窗口重新变空；这个读数持续涨说明这台进程正被 distinct 身份压，正解是设 NEXUS_REDIS_URL 把窗口挪出内存。
+
+···············
+
+ Test Files  3 passed (3)
+      Tests  46 passed (46)
+   Start at  03:59:28
+   Duration  25.50s (transform 969ms, setup 0ms, collect 3.37s, tests 18.06s, environment 1ms, prepare 1.02s)
 

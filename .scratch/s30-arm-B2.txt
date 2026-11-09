@@ -1,67 +1,67 @@
 
-[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mD:/内容创作平台[39m
+ RUN  v3.2.7 D:/内容创作平台
 
- [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22madoptScan（面板换读数的方向）[2m > [22m服务端送来更晚的一份：换掉手上这份，包括候选清空那种换法[32m 2[2mms[22m[39m
- [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22madoptScan（面板换读数的方向）[2m > [22m迟到的旧快照不许盖掉刚数出来的那份[32m 0[2mms[22m[39m
- [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22madoptScan（面板换读数的方向）[2m > [22m同一时刻的两份取后到的那份——refresh 送来的常是同一趟的读数，不能因为不比大小就停在旧引用上[32m 0[2mms[22m[39m
- [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22madoptScan（面板换读数的方向）[2m > [22m判的是时间不是数组长度：更长的一份如果是旧的，照样不接[32m 0[2mms[22m[39m
- [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mselectionOf / allCheckedOf / toggleId（勾选的范围）[2m > [22m没动过勾选 = 全勾这一屏；一行动过就只剩这一行[32m 1[2mms[22m[39m
- [31m×[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mselectionOf / allCheckedOf / toggleId（勾选的范围）[2m > [22m勾着的 id 里有已经不在新清单上的：那些自动作废，不许跟着请求一起发出去[32m 7[2mms[22m[39m
-[31m   → expected [ 'a', 'z' ] to deeply equal [][39m
- [32m✓[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mselectionOf / allCheckedOf / toggleId（勾选的范围）[2m > [22m空清单不算全选：按钮该是禁用的"收走这 0 个"，不是勾着的空范围[32m 0[2mms[22m[39m
- [31m×[39m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mselectionOf / allCheckedOf / toggleId（勾选的范围）[2m > [22m第一次取消勾选是从"全勾"里去掉这一行，不是变成"只勾这一行"[32m 1[2mms[22m[39m
-[31m   → expected [ 'a', 'b', 'c', 'zzz' ] to deeply equal [ 'a', 'b', 'c' ][39m
+ ✓ apps/web/test/guest-reclaim-panel.test.ts > adoptScan（面板换读数的方向） > 服务端送来更晚的一份：换掉手上这份，包括候选清空那种换法 2ms
+ ✓ apps/web/test/guest-reclaim-panel.test.ts > adoptScan（面板换读数的方向） > 迟到的旧快照不许盖掉刚数出来的那份 0ms
+ ✓ apps/web/test/guest-reclaim-panel.test.ts > adoptScan（面板换读数的方向） > 同一时刻的两份取后到的那份——refresh 送来的常是同一趟的读数，不能因为不比大小就停在旧引用上 0ms
+ ✓ apps/web/test/guest-reclaim-panel.test.ts > adoptScan（面板换读数的方向） > 判的是时间不是数组长度：更长的一份如果是旧的，照样不接 0ms
+ ✓ apps/web/test/guest-reclaim-panel.test.ts > selectionOf / allCheckedOf / toggleId（勾选的范围） > 没动过勾选 = 全勾这一屏；一行动过就只剩这一行 1ms
+ × apps/web/test/guest-reclaim-panel.test.ts > selectionOf / allCheckedOf / toggleId（勾选的范围） > 勾着的 id 里有已经不在新清单上的：那些自动作废，不许跟着请求一起发出去 7ms
+   → expected [ 'a', 'z' ] to deeply equal []
+ ✓ apps/web/test/guest-reclaim-panel.test.ts > selectionOf / allCheckedOf / toggleId（勾选的范围） > 空清单不算全选：按钮该是禁用的"收走这 0 个"，不是勾着的空范围 0ms
+ × apps/web/test/guest-reclaim-panel.test.ts > selectionOf / allCheckedOf / toggleId（勾选的范围） > 第一次取消勾选是从"全勾"里去掉这一行，不是变成"只勾这一行" 1ms
+   → expected [ 'a', 'b', 'c', 'zzz' ] to deeply equal [ 'a', 'b', 'c' ]
 
-[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
 
-[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mselectionOf / allCheckedOf / toggleId（勾选的范围）[2m > [22m勾着的 id 里有已经不在新清单上的：那些自动作废，不许跟着请求一起发出去
-[31m[1mAssertionError[22m: expected [ 'a', 'z' ] to deeply equal [][39m
+ FAIL  apps/web/test/guest-reclaim-panel.test.ts > selectionOf / allCheckedOf / toggleId（勾选的范围） > 勾着的 id 里有已经不在新清单上的：那些自动作废，不许跟着请求一起发出去
+AssertionError: expected [ 'a', 'z' ] to deeply equal []
 
-[32m- Expected[39m
-[31m+ Received[39m
+- Expected
++ Received
 
-[32m- [][39m
-[31m+ [[39m
-[31m+   "a",[39m
-[31m+   "z",[39m
-[31m+ ][39m
+- []
++ [
++   "a",
++   "z",
++ ]
 
-[36m [2m❯[22m apps/web/test/guest-reclaim-panel.test.ts:[2m90:49[22m[39m
-    [90m 88| [39m  [34mit[39m([32m'勾着的 id 里有已经不在新清单上的：那些自动作废，不许跟着请求一起发出去'[39m[33m,[39m () [33m=>[39m {
-    [90m 89| [39m    [90m// 上一轮勾了 a 与 z，这一轮 refresh 送下来的清单只剩 b、c、z 里的 b 与 c[39m
-    [90m 90| [39m    [34mexpect[39m([34mselectionOf[39m([[32m'a'[39m[33m,[39m [32m'z'[39m][33m,[39m [[32m'b'[39m[33m,[39m [32m'c'[39m]))[33m.[39m[34mtoEqual[39m([])[33m;[39m
-    [90m   | [39m                                                [31m^[39m
-    [90m 91| [39m    [34mexpect[39m([34mselectionOf[39m([[32m'a'[39m[33m,[39m [32m'b'[39m][33m,[39m [[32m'b'[39m[33m,[39m [32m'c'[39m]))[33m.[39m[34mtoEqual[39m([[32m'b'[39m])[33m;[39m
-    [90m 92| [39m    [90m// 对照：全都还在屏上时，一个都不该被筛掉——证明筛的是"在不在这一屏"，不是长度[39m
+ ❯ apps/web/test/guest-reclaim-panel.test.ts:90:49
+     88|   it('勾着的 id 里有已经不在新清单上的：那些自动作废，不许跟着请求一起发出去', () => {
+     89|     // 上一轮勾了 a 与 z，这一轮 refresh 送下来的清单只剩 b、c、z 里的 b 与 c
+     90|     expect(selectionOf(['a', 'z'], ['b', 'c'])).toEqual([]);
+       |                                                 ^
+     91|     expect(selectionOf(['a', 'b'], ['b', 'c'])).toEqual(['b']);
+     92|     // 对照：全都还在屏上时，一个都不该被筛掉——证明筛的是"在不在这一屏"，不是长度
 
-[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
 
-[41m[1m FAIL [22m[49m apps/web/test/guest-reclaim-panel.test.ts[2m > [22mselectionOf / allCheckedOf / toggleId（勾选的范围）[2m > [22m第一次取消勾选是从"全勾"里去掉这一行，不是变成"只勾这一行"
-[31m[1mAssertionError[22m: expected [ 'a', 'b', 'c', 'zzz' ] to deeply equal [ 'a', 'b', 'c' ][39m
+ FAIL  apps/web/test/guest-reclaim-panel.test.ts > selectionOf / allCheckedOf / toggleId（勾选的范围） > 第一次取消勾选是从"全勾"里去掉这一行，不是变成"只勾这一行"
+AssertionError: expected [ 'a', 'b', 'c', 'zzz' ] to deeply equal [ 'a', 'b', 'c' ]
 
-[32m- Expected[39m
-[31m+ Received[39m
+- Expected
++ Received
 
-[2m  [[22m
-[2m    "a",[22m
-[2m    "b",[22m
-[2m    "c",[22m
-[31m+   "zzz",[39m
-[2m  ][22m
+  [
+    "a",
+    "b",
+    "c",
++   "zzz",
+  ]
 
-[36m [2m❯[22m apps/web/test/guest-reclaim-panel.test.ts:[2m109:64[22m[39m
-    [90m107| [39m    [90m// 屏幕外的 id 被点进来也不碍事：发出去之前 `selectionOf` 按这一筛掉，范围仍然只有这一屏[39m
-    [90m108| [39m    expect(toggleId(null, screen, 'zzz')).toEqual(['a', 'b', 'c', 'zzz…
-    [90m109| [39m    expect(selectionOf(toggleId(null, screen, 'zzz'), screen)).toEqual…
-    [90m   | [39m                                                               [31m^[39m
-    [90m110| [39m  })[33m;[39m
-    [90m111| [39m})[33m;[39m
+ ❯ apps/web/test/guest-reclaim-panel.test.ts:109:64
+    107|     // 屏幕外的 id 被点进来也不碍事：发出去之前 `selectionOf` 按这一筛掉，范围仍然只有这一屏
+    108|     expect(toggleId(null, screen, 'zzz')).toEqual(['a', 'b', 'c', 'zzz…
+    109|     expect(selectionOf(toggleId(null, screen, 'zzz'), screen)).toEqual…
+       |                                                                ^
+    110|   });
+    111| });
 
-[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
 
 
-[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
-[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m6 passed[39m[22m[90m (8)[39m
-[2m   Start at [22m 09:43:04
-[2m   Duration [22m 1.45s[2m (transform 74ms, setup 0ms, collect 62ms, tests 12ms, environment 0ms, prepare 926ms)[22m
+ Test Files  1 failed (1)
+      Tests  2 failed | 6 passed (8)
+   Start at  09:43:04
+   Duration  1.45s (transform 74ms, setup 0ms, collect 62ms, tests 12ms, environment 0ms, prepare 926ms)
 
