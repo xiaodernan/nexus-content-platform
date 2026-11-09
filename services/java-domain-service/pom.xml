@@ -1,13 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  NEXUS — services/java-domain-service (the AUTHORITATIVE WRITE PATH for the domain tables).
+
+  This service owns the writes for the rows the web layer only reads: `projects` and `users` are
+  declared in `apps/web/src/server/db/schema.ts` (drizzle) and are the SAME tables this service's
+  JPA entities map onto. Two writers on one table is a deliberate boundary, not an accident: the
+  web layer's writes go through its own validated paths, and the DOMAIN writes go through here.
+
+  Version alignment (measured 2026-11-09): this pom used to pin Spring Boot **3.2.0** (Jan 2024)
+  and Java **21**, while every other Java service in this repository runs Spring Boot **3.5.16** on
+  Java **25**. The consequence was that the service had NEVER BEEN COMPILED: `mvn -o test` failed
+  with "Cannot access central in offline mode" for eleven artifacts, because Boot 3.2.0's
+  dependency versions are not in this machine's local Maven repository — the repository holds
+  Boot 3.5.16's. A service nobody has built is a service nobody can claim works.
+
+  So the versions are now the repository's versions, and the compiler settings are copied from
+  `services/nexus-api` — including the explicit UTF-8 encoding, which this repository has needed
+  more than once (see the GBK records repair, ADR 0016 amendment 570).
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
 
@@ -15,16 +34,34 @@
     <artifactId>domain-service</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>NEXUS Domain Service</name>
-    <description>Java Spring Boot domain services for NEXUS platform (user/project/community/permission/billing)</description>
+    <description>NEXUS authoritative write path for project/user/community/permission/billing (Java Spring Boot).</description>
 
     <properties>
-        <java.version>21</java.version>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters -->
+        <!-- Web + JPA + the Postgres driver: exactly what the code USES.
+             Four starters this pom used to declare have been REMOVED, and the reason for each is
+             the same shape — a dependency nobody imports is not a harmless extra, it is a
+             behaviour nobody asked for:
+
+               security  — spring-boot-starter-security with NO SecurityFilterChain locks EVERY
+                           endpoint behind a generated basic-auth password. A service whose
+                           controllers are meant to be reachable would answer 401 to everything,
+                           and the log line that explains it is one nobody reads.
+               cache     — no @Cacheable anywhere in the source; the starter only adds a
+                           caffeine dependency and a cache auto-configuration.
+               redis     — no RedisTemplate anywhere in the source.
+               validation— no @Valid / @NotNull / @Validated on any parameter.
+               flyway    — there is NO db/migration directory, and the schema of these tables is
+                           owned by drizzle in `apps/web/src/server/db/schema.ts`. A second
+                           migration tool pointed at the same database would write its own
+                           history table into a database it does not own. The honest arrangement is
+                           ONE schema owner, and it is not this service. -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -33,34 +70,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-cache</artifactId>
-        </dependency>
 
         <!-- Database -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-
-        <!-- Redis -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
         <!-- Test -->
@@ -69,15 +84,24 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-test</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.1</version>
+                <configuration>
+                    <release>25</release>
+                    <encoding>UTF-8</encoding>
+                    <source>25</source>
+                    <target>25</target>
+                    <compilerArgs>
+                        <arg>-J-Dfile.encoding=UTF-8</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
