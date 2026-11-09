@@ -59,10 +59,14 @@ export const localEmbeddingSuite: EvalSuite = {
     rec.structural('every non-empty document is L2-normalized to a unit vector', normsOk, 1);
 
     // 确定性：同输入两次计算逐位相等（浮点归一化是确定性代码路径，同机同字节）
-    const twice = CORPUS.map((d) => [localTokenBagVector(d.text), localTokenBagVector(d.text)]);
+    const twice = CORPUS.map((d) => {
+      const a = localTokenBagVector(d.text);
+      const b = localTokenBagVector(d.text);
+      return JSON.stringify(a) === JSON.stringify(b);
+    });
     rec.structural(
       'determinism: the same text embeds to the identical bytes',
-      twice.every(([a, b]) => a.length === b.length && a.every((x, i) => x === b[i])),
+      twice.every(Boolean),
       1,
     );
 
