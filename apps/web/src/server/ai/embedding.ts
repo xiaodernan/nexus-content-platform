@@ -39,11 +39,12 @@ export const LOCAL_EMBEDDING_MODEL = 'local-token-bag-1536' as const;
 const FNV1A_PRIME = 0x01000193;
 const FNV1A_OFFSET = 0x811c9dc5;
 
-/** FNV-1a over UTF-8 bytes of the token, folded into [0, 1535]. */
+/** FNV-1a over the token's UTF-8 bytes, folded into [0, 1535]. */
 function tokenBucket(token: string): number {
+  const bytes = new TextEncoder().encode(token);
   let hash = FNV1A_OFFSET;
-  for (let i = 0; i < token.length; i++) {
-    hash ^= token.charCodeAt(i) & 0xff;
+  for (let i = 0; i < bytes.length; i++) {
+    hash ^= bytes[i]!;
     hash = Math.imul(hash, FNV1A_PRIME);
   }
   hash ^= hash >>> 16;
