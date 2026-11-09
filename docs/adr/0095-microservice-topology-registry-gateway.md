@@ -264,7 +264,10 @@ HTTP/WS contracts only"。但仓库里
   `/api/projects?limit=1` **三处都打了同一句** `Error [java.lang.UnsupportedOperationException] … but
   ServerHttpResponse already committed (503 SERVICE_UNAVAILABLE)`。所以它不是"注册表为空"独有的，
   而是**走 fallback 那条路**就会发生；测试只断言 503 的正文，没有任何一条断言"提交之后不许再写"，
-  于是 30 条全绿与这句 ERROR 同时成立。修它连同那条断言是 SC-13。
+  于是 30 条全绿与这句 ERROR 同时成立。**说明（2026-11-10，第十二片接手）**：此处的"SC-13"原指修这条
+  503 已提交噪声；接手后 SC-13 被定为**网关鉴权**（仍欠①），故上面那条 fallback 路径的
+  `ServerHttpResponse already committed` 噪声作为**独立待修边**保留：它只是一条被记录、测试仍断言 503
+  正文的 ERROR，不污染答案，修它需要动 retry/fallback 的交互（有把 30 条测红的风险），故未随 SC-13 一并改。
 - 补记（2026-11-10，第十一片）：上面那段两实例见证是上一线量的；接手这一遍自己量的是**脚本那一层**。
   `RedisRateLimitBackendTest` 把 template 换成 mock，脚本正文此前在自动化里零读者，现在有了常驻的一支：
   `npm run ratelimit:gateway-lua`（`scripts/gateway-rate-lua-live.mts`）从 Java text block 里**读出**脚本
@@ -273,6 +276,38 @@ HTTP/WS contracts only"。但仓库里
   （剩恰好 1 枚）、未来 ts 不倒扣出令牌、TTL 是传进去的数且真的到期。L1–L5 五条臂各自红一次
   （读数与还原 md5 见 ROADMAP §SC 第十一片）。**仍欠**：两个网关**进程**共用一只桶这一格本机没复现
   （空闲内存 357MB，起不来三个 JVM），上面那段进程级见证仍是上一线的读数。
+
+### SC-13 网关鉴权：门先认人，再决定是否放行（关闭"仍欠①"的网关鉴权项）
+
+- 起点（SC-7 / 仍欠①）：门对能摸到它的人完全敞开——`/api/**`、`/domain/**` 任何客户端都能直达后端，
+  没有任何身份断言。ADR 把"网关鉴权"列为仍欠已久。本片把它还清，且**不引入第三方、不引入 JWT 库、
+  不给一个能悄悄开门的默认密钥**（§159 同样适用于"门"，鉴权要么用真实密钥验真实签名、要么拒，不能假装）。
+- 决定：
+  1. 新增 `nexus.gateway.auth.enabled`（默认 **false**）＋ `nexus.gateway.auth.secret`。**开启但 secret 为空
+     → 启动失败**（`IllegalStateException: refusing to start an open door`），而不是带着空密钥启动一扇开着的门。
+     这扇门要防的"配了鉴权却悄悄拿到空密钥"的部署，正是这道开关存在的理由。
+  2. `AuthFilter`（`GlobalFilter`，`ORDER = HIGHEST_PRECEDENCE + 5`，**先于**限流 `+10`，所以未认证的请求
+     不占用令牌桶）：读 `Authorization: Bearer <token>`。token 是仓库**自己签**的 HMAC-SHA256 紧凑令牌——
+     `base64url(payload) + "." + base64url(sig)`，`payload = {"sub","scp":[],"iat","exp"}`，
+     `sig = HMAC-SHA256(payloadBytes, secret)`。签名的字节就是规范化 payload 的 UTF-8，所以不存在"两边
+     JSON 规范化不一致导致篡改令牌验过"的空子；先常量时间比签名，只有签过的 payload 才解析 exp。
+  3. **白名单（免令牌）**：`/platform/health`、`/actuator/health`、`/fallback/**`。门自己要先能被探活
+     （探活不需要先亮证件），fallback 是门在够不到后端时自己说的话，自然也不能要求令牌。
+  4. 成功 → 向下游注入 `X-Nexus-Subject` / `X-Nexus-Scopes`（**覆盖写、不追加**：伪造这两个头的客户端
+     不能让后端以为它是别人；后端信任它们，因为只有这扇门在受信任的请求上设置它们）。
+  5. 失败（缺令牌 / 格式坏 / 签名错 / 过期）→ `401`，请求**不到达**任何后端。
+  6. **fail-closed，与限流相反**：鉴权没有"放行"兜底。secret 缺失启动即失败；验签若抛异常（本不该），
+     拒而非放行。一扇因为 crypto 失败而开着的门，比关着的门更糟。
+- 验证（2026-11-10，本机 `mvn -o test`）：**9 条** `AuthFilterTest`（MockServerWebExchange，无服务）：
+  关闭即透传、无令牌 401、有效令牌放行且注入头、伪造 subject 被覆盖写、篡改签名拒、过期拒（签名仍有效，
+  单独隔离到期检查）、格式坏拒、健康探针白名单放行、fallback 白名单放行。**4 条** `GatewayAuthWiringTest`
+  （真 socket + StubUpstream）：无令牌 `/api` → 401 `missing_token`、有效令牌 `/api` → 200 且后端实测收到
+  `X-Nexus-Subject: studio` / `X-Nexus-Scopes: read,write`、篡改签名 → 401 `bad_signature`、鉴权开着时
+  `/platform/health` 仍 200（不被 401）。网关测试总计 **43 条**全绿（原 30 + 13）。`mint` 与 `verify` 同一
+  代码路径，测试用同一密钥签发再验——§159 不造假，这里也没有可造假之处。
+- 边界：secret 由部署提供真实密钥；本机默认关，离线/测试的"真相"仍是关着的门。`X-Forwarded-For` 的信任
+  边界与 SC-7/SC-12 相同；网关自己的 controller 仍不受鉴权约束（它们在路由之前由控制器应答）。令牌有效期
+  由签发方决定，门只验签名 + `exp`（含 1 秒宽限，是这扇门唯一授予的时钟偏移，且是显式的）。
 
 **已知边界（如实记）**：
 
@@ -285,9 +320,10 @@ HTTP/WS contracts only"。但仓库里
 
 ## 仍欠
 
-1. 网关鉴权、TLS、WebSocket；breaker 状态不在进程内；网关自己的诊断端点不受路由边界策略约束
-   （SC-7 实测）。~~多实例时的共享限流（Redis）~~ **已还清（SC-12）**：`backend=redis` 时计数在一个
-   Redis 里，故障 fail-open。
+1. ~~网关鉴权~~ **已还清（SC-13）**：`auth.enabled=true` 且 `auth.secret` 非空才开门，否则启动失败；
+   白名单 `/platform/health`、`/actuator/health`、`/fallback/**`。仍欠：TLS、WebSocket；breaker 状态不在
+   进程内；网关自己的诊断端点不受路由边界策略约束（SC-7 实测）。~~多实例时的共享限流（Redis）~~
+   **已还清（SC-12）**：`backend=redis` 时计数在一个 Redis 里，故障 fail-open。
 2. 配置中心仍无 Git 后端、鉴权、动态刷新（`@RefreshScope` 未接）与变更审计；api/domain 客户端已接入
    （SC-11），SC-9 的欠项关闭。
 3. `java-domain-service` 的 community/permission/billing 三个服务仍是桩：没有控制器、不可达、README 已

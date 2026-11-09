@@ -115,9 +115,41 @@ header — the gateway overwrites it (never appends), and a client that can reac
 forge it. Deployments must not expose `nexus-api` to untrusted clients; the gateway's overwrite is the
 reason the value can be believed.
 
+### Authentication at the door (SC-13)
+
+The door can require a token before a request reaches any backend — but it is **off by default** so the
+packaged door stays offline-truth (no secret, no open door). Turn it on with a real secret:
+
+```bash
+NEXUS_GATEWAY_AUTH_ENABLED=true
+NEXUS_GATEWAY_AUTH_SECRET=<a real secret the deployment controls>
+```
+
+A caller then presents `Authorization: Bearer <token>`. The token is a compact, stateless, provider-free
+HMAC-SHA256 token the deployment's own identity service mints and the door verifies — `base64url(payload)
++ "." + base64url(HMAC-SHA256(payload, secret))`, where `payload = {"sub","scp":[...],"iat","exp"}`. No
+third party, no JWT library, no default key that silently opens the door. A blank secret while enabled fails
+startup (`refusing to start an open door`) rather than starting open — fail-closed, unlike the rate limiter.
+
+Whitelisted (no token needed): `/platform/health`, `/actuator/health`, `/fallback/**` — the door must answer
+its own health probe before a caller is known, and the fallback is what the door says when it could not reach
+a backend. Everything routed to a backend needs a valid, unexpired token or it gets `401` and never reaches
+the backend. On success the door overwrites `X-Nexus-Subject` / `X-Nexus-Scopes` on the trusted request, so
+a forged identity header from the client cannot impersonate someone else. The test mints tokens with the
+same code path the door verifies (`AuthFilter.mint` / `AuthFilter.verify`), so "a valid token is accepted"
+is proven against a real signature, not a stubbed one.
+
 ## What it deliberately does not do
 
-- **No authentication.** A backend behind this door is reachable by anyone who can reach the door.
+- **No authentication *by default*.** The door ships with `nexus.gateway.auth.enabled=false`, so the packaged
+  door stays offline-truth: no secret, no open door, and the laptop and the test suite run without a token
+  service. Turn it on WITH a real secret (`NEXUS_GATEWAY_AUTH_SECRET`); enabling it with a blank secret fails
+  startup instead of starting an open door (SC-13). When on, a caller presents `Authorization: Bearer <token>`
+  — a compact HMAC-SHA256 token the deployment's identity service mints (`AuthFilter.mint`) and the door
+  verifies with the same secret. Whitelisted (no token needed): `/platform/health`, `/actuator/health`,
+  `/fallback/**`. Anything routed to a backend needs a valid, unexpired token or it gets `401` and never
+  reaches a backend. On success the door injects `X-Nexus-Subject` / `X-Nexus-Scopes` for the backend,
+  overwriting any client-supplied value.
 - **Shared limiting is opt-in, not the default.** `backend=memory` keeps the door independent of a second
   process; `backend=redis` makes the rate a cluster-wide bound. With the Redis backend, Redis is on the
   request path, and its failure is answered by failing open (see above) rather than by closing the door —
@@ -136,8 +168,9 @@ reason the value can be believed.
 mvn -f services/nexus-gateway/pom.xml test
 ```
 
-Those 30 tests mock the Redis template, so the Lua bucket itself is graded separately, against a real
-Redis and without any JVM (repo root; needs only `nexus-redis` on 56379):
+The gateway unit tests (now **43** — the original 30 plus 13 auth tests, `AuthFilterTest` 9 and
+`GatewayAuthWiringTest` 4) mock the Redis template where they must, so the Lua bucket itself is graded
+separately, against a real Redis and without any JVM (repo root; needs only `nexus-redis` on 56379):
 
 ```bash
 npm run ratelimit:gateway-lua
@@ -178,7 +211,9 @@ backend is `NEXUS_GATEWAY_RATE_LIMIT_BACKEND` (`memory`; set `redis` for a share
 `NEXUS_GATEWAY_RATE_LIMIT_KEY_PREFIX` (`nexus:gateway:rate:`), and the Redis server is
 `NEXUS_REDIS_HOST` / `NEXUS_REDIS_PORT` (`127.0.0.1` / 56379 — this machine's 6379 belongs to another
 project and requires AUTH). Connection and command timeouts are `NEXUS_GATEWAY_REDIS_CONNECT_TIMEOUT` /
-`NEXUS_GATEWAY_REDIS_TIMEOUT` (1 s each).
+`NEXUS_GATEWAY_REDIS_TIMEOUT` (1 s each). Authentication is `NEXUS_GATEWAY_AUTH_ENABLED` (`false`) and
+`NEXUS_GATEWAY_AUTH_SECRET` (blank — a blank secret while enabled fails startup, so the door is closed
+rather than open). Whitelisted from the token check: `/platform/health`, `/actuator/health`, `/fallback/**`.
 
 ## Bounds, stated (§60)
 

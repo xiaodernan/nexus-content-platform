@@ -60,6 +60,12 @@ nexus:
     # SC-8 — how long /platform/health waits for one instance's GET /actuator/health. Short on purpose: the
     # answer is "what is true right now", and a probe that takes 30 s has already stopped being one.
     health-probe-timeout-ms: ${NEXUS_GATEWAY_HEALTH_TIMEOUT_MS:1500}
+    # SC-13 — the door's identity check. OFF by default so the packaged door stays offline-truth (no secret,
+    # no open door). Turn it on only with a real secret: a blank secret while enabled fails startup instead
+    # of starting open. Whitelisted (no token needed): /platform/health, /actuator/health, /fallback/**.
+    auth:
+      enabled: ${NEXUS_GATEWAY_AUTH_ENABLED:false}
+      secret: ${NEXUS_GATEWAY_AUTH_SECRET:}
 
 eureka:
   client:

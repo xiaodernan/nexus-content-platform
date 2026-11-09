@@ -11130,3 +11130,29 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
   提升为显式 devDependency）。所以本片的脚本读数是真的、提交却不在本片的 commit 里；本片自己的
   commit 只带四处文档口径（ROADMAP / ADR-0095 / TESTING 分层表 / 网关 README）。
   `main` 因此领先 `origin/main` 12 个提交。两条会话在同一工作树上并行，接下来各自挑不相交的模块做。
+
+## §SC 第十二片：网关鉴权（SC-13）—— 门先认人，再放行（2026-11-10）
+
+- 起点（接手时工作树）：SC-12 的代码/测试/文档都已并入 main（第十一片接手的两 commit 已在上游），但 ADR-0095
+  的"仍欠①"里**网关鉴权**一直空着——门对能摸到它的人完全敞开，`/api/**`、`/domain/**` 无需任何凭证直达
+  后端。用户明确要"加一些 Spring Cloud 微服务的元素"，鉴权是最实在的一件，且 §159 对"门"同样适用：
+  鉴权要么用真实密钥验真实签名、要么拒，不能假装。
+- 做法：新增 `AuthFilter`（`GlobalFilter`，`ORDER = HIGHEST_PRECEDENCE + 5`，**先于**限流 `+10`，所以未认证
+  请求不占令牌桶）。令牌是仓库**自签**的 HMAC-SHA256 紧凑令牌 `base64url(payload) + "." + base64url(sig)`，
+  `payload = {"sub","scp":[],"iat","exp"}`，`sig = HMAC-SHA256(payloadBytes, secret)`，签名字节就是规范化
+  payload 的 UTF-8——不存在"两边 JSON 规范化不一致让篡改令牌验过"的空子；先常量时间比签名，签过的 payload
+  才解析 `exp`。白名单（免令牌）：`/platform/health`、`/actuator/health`、`/fallback/**`（门自己要先能被探活，
+  fallback 是门够不到后端时自己说的话）。其余路径缺/坏/过期令牌 → `401` 不到达后端；成功向下游覆盖写
+  `X-Nexus-Subject` / `X-Nexus-Scopes`。`auth.enabled=true` 且 secret 为空 → 启动失败（`refusing to start
+  an open door`），fail-closed，与限流相反。
+- 读数（`mvn -o test`，网关测试 **43 条全绿：原 30 + 13**）：`AuthFilterTest` 9 条（MockServerWebExchange，
+  含伪造 subject 被覆盖写、篡改签名拒、过期拒、健康/fallback 白名单放行）；`GatewayAuthWiringTest` 4 条（真
+  socket + StubUpstream：无令牌 `/api` → 401 `missing_token`、有效令牌 `/api` → 200 且后端实测收到
+  `X-Nexus-Subject: studio`/`X-Nexus-Scopes: read,write`、篡改签名 → 401 `bad_signature`、鉴权开着时
+  `/platform/health` 仍 200）。`mint`/`verify` 同一代码路径，§159 不造假。
+- 诚实边界：本机默认关（离线真相）；secret 由部署提供真实密钥；令牌有效期由签发方决定；1 秒过期宽限是门唯一
+  授予的时钟偏移，且显式。ADR-0095 把"网关鉴权"从仍欠①划掉、标 SC-13 还清；README 把"No authentication"
+  改成"默认关、可开、开则必须真密钥"。
+- 仍欠（如实记）：TLS、WebSocket；breaker 状态不在进程内；以及第十一片记下的 fallback 路径
+  `ServerHttpResponse already committed` 噪声——它只是一条被记录的 ERROR（测试仍断言 503 正文），修它需要动
+  retry/fallback 交互、有把现有测红的风险，本片未随 SC-13 一并改，单列待修边。

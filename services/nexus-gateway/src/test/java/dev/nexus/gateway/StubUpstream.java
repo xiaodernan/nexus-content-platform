@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -25,6 +26,7 @@ final class StubUpstream {
 
     private final HttpServer server;
     private final List<String> paths = new CopyOnWriteArrayList<>();
+    private final List<Map<String, List<String>>> requestHeaders = new CopyOnWriteArrayList<>();
     private final List<String> forwardedHosts = new CopyOnWriteArrayList<>();
     private final List<String> probeHeaders = new CopyOnWriteArrayList<>();
     private final List<String> originalUrls = new CopyOnWriteArrayList<>();
@@ -55,6 +57,7 @@ final class StubUpstream {
     private void handle(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().toString();
         paths.add(path);
+        requestHeaders.add(new java.util.LinkedHashMap<>(exchange.getRequestHeaders()));
         String forwardedHost = exchange.getRequestHeaders().getFirst("X-Forwarded-Host");
         forwardedHosts.add(forwardedHost == null ? "" : forwardedHost);
         String originalUrl = exchange.getRequestHeaders().getFirst("X-Nexus-Original-URL");
@@ -107,6 +110,11 @@ final class StubUpstream {
 
     List<String> paths() {
         return List.copyOf(paths);
+    }
+
+    /** Every request header map the backend actually received, one entry per request. */
+    List<Map<String, List<String>>> requestHeaders() {
+        return List.copyOf(requestHeaders);
     }
 
     /** The {@code X-Forwarded-Host} the backend actually received, one entry per request. */

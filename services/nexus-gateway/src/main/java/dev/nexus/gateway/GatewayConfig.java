@@ -188,6 +188,31 @@ public class GatewayConfig {
         return new RateLimitFilter(enabled, backend);
     }
 
+    /**
+     * The door's identity check (SC-13).
+     *
+     * <p>OFF by default so the packaged door stays offline-truth: with no secret and no open door, the laptop
+     * and the test suite run without a token service. A deployment turns it on WITH a real secret. Enabling it
+     * with a blank secret fails startup rather than starting an open door — an auth gate whose secret is
+     * "whatever" is the one configuration this setting exists to prevent.
+     *
+     * <p>Whitelisted (no token required): the door's own health probes ({@code /platform/health},
+     * {@code /actuator/health}) and the circuit-breaker fallback ({@code /fallback/**}), because a caller
+     * cannot present a token before it knows the door is even up, and the fallback is what the door says when
+     * it could not reach a backend. Everything routed to a backend needs a valid token; see {@link AuthFilter}.
+     */
+    @Bean
+    AuthFilter authFilter(
+            @Value("${nexus.gateway.auth.enabled:false}") boolean enabled,
+            @Value("${nexus.gateway.auth.secret:}") String secret) {
+        if (enabled && (secret == null || secret.isBlank())) {
+            throw new IllegalStateException(
+                    "nexus.gateway.auth.enabled=true but nexus.gateway.auth.secret is blank; refusing to start an open door");
+        }
+        log.info("gateway auth: enabled={}", enabled);
+        return new AuthFilter(enabled, secret);
+    }
+
     private static ServerWebExchange withClientAddress(ServerWebExchange exchange) {
         var request = exchange.getRequest();
         // The authority of the URI the CLIENT called, not the Host header: a proxy in front of this gateway
