@@ -55,8 +55,8 @@ SC-7 起网关的边界参数也可覆盖：`NEXUS_GATEWAY_MAX_REQUEST_BYTES`（
 
 SC-8 起网关的 `/platform/health` 会逐个实例探测 `/actuator/health`，单实例超时用
 `NEXUS_GATEWAY_HEALTH_TIMEOUT_MS`（默认 1500）。注意本机 6379 被另一项目的 specproof-redis 占用且要
-AUTH：`java-domain-service` 必须用 `REDIS_HOST=127.0.0.1` / `REDIS_PORT=56379`（nexus-redis），否则
-它的 health 会（诚实地）报 DOWN。
+AUTH：`java-domain-service` 的 Redis 默认端口已改成 **56379**（nexus-redis，SC-10 修复），只有显式
+`REDIS_PORT` 才会改走别处。
 
 SC-9 起可选第五个进程：`nexus-config` 默认 `8888`（`NEXUS_CONFIG_PORT`），native 模式读自身 classpath
 的 `nexus-config/`。网关默认**不连**它；要看集中配置生效，启动网关时加

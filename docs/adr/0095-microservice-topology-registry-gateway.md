@@ -162,8 +162,8 @@ HTTP/WS contracts only"。但仓库里
 - 调参（实测驱动）：上述 domain 重启后**第一次**探测又读到 UNKNOWN，直接 `curl` 同一地址却 167 ms 返回
   UP——冷启动时 servlet 初始化让首个探测超过 800 ms。默认值因此上调到 1500 ms；再探 `allUp:true`。
 - 边界：这是**点测量**，不缓存、不是监控历史；探测端点自身仍是网关 controller，不在路由边界策略内。
-  另外本机 `localhost:6379` 是另一个项目的 specproof-redis（要 AUTH），domain 必须用
-  `REDIS_PORT=56379` 指向自己的 nexus-redis，否则 health 会诚实报 DOWN（已在 ENVIRONMENT 写明）。
+  另外本机 `localhost:6379` 是另一个项目的 specproof-redis（要 AUTH）；domain 的 Redis 默认端口已在
+  SC-10 改为 56379，不再依赖启动脚本显式传 `REDIS_PORT`（见下）。
 
 ### SC-9 配置中心：环境真相是一个地址，而不是一串 shell 变量
 
@@ -186,6 +186,20 @@ HTTP/WS contracts only"。但仓库里
   `gateway rate limit: enabled=true ratePerSecond=50.0 ...`——本地文件是 100，50 只能来自配置中心。不带该
   开关时同一 jar 用本地 100 启动。配置模块 3 条测试全绿（文件内容、共享合并、未知应用仍回共享文档）。
 - 仍欠：api/domain 的客户端接入；Git 后端；鉴权；动态刷新；配置变更的审计。
+
+### SC-10 默认值即环境真相：domain 的 Redis 默认端口
+
+- 起点：SC-8 联调时 domain 的 health 曾 503，日志 `NOAUTH`——`localhost:6379` 是**另一个项目**的
+  specproof-redis，而本项目的 nexus-redis 在 56379。当时靠启动脚本显式 `REDIS_PORT=56379` 绕开；
+  "默认值指向别人的服务"意味着漏传一个环境变量就会静默用错库，且只在 health 上暴露。
+- 决定：`java-domain-service` 的 `application.yml` 把 `REDIS_PORT` 默认值改为 **56379**，并写明注释
+  （"A default that points at someone else's service is not a default, it is a trap."）。
+  这只是改默认值，不改变 `REDIS_PORT`/`REDIS_HOST` 的覆盖语义。
+- 见证（2026-11-09）：停掉旧进程 → `mvn package`（22 条测试绿）→ **不带** `REDIS_PORT` 启动 →
+  `GET /actuator/health` 200 `{"status":"UP"}`；网关 `/platform/health` → `allUp:true`、
+  `nexus-domain-service` `UP`。
+- 边界：56379 是**本机实验室拓扑**的默认值；部署到别处仍必须显式给 `REDIS_HOST/REDIS_PORT`。
+  不改 `REDIS_HOST` 默认 `localhost` 的理由相同但方向相反：默认远端主机才是更坏的陷阱。
 
 **已知边界（如实记）**：
 

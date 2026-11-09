@@ -11019,6 +11019,15 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   `NEXUS_CONFIG_ENABLED=true` 启动日志 `ratePerSecond=50.0`（本地为 100），不带开关时同一 jar 用 100。
   配置模块 3 条测试全绿。
 - 明确不做：api/domain 客户端接入、Git 后端、鉴权、动态刷新、变更审计。
+## §SC 第八片：domain 的 Redis 默认值纠偏（2026-11-09）
+
+- 起点：SC-8 联调暴露 `localhost:6379` 是另一项目的 Redis（要 AUTH），domain 漏传 `REDIS_PORT` 就会
+  连错库并只在 health 上现形。
+- 做法：`java-domain-service` 的 `REDIS_PORT` 默认值 6379 → **56379**（本项目 nexus-redis），注释写明
+  为什么"指向别人服务的默认值不是默认，是陷阱"；覆盖语义不变。
+- 见证：停旧进程 → `mvn package`（22 条测试绿）→ 不带 `REDIS_PORT` 启动 → `/actuator/health` 200 UP；
+  网关 `/platform/health` `allUp:true`。
+- 边界：默认值绑定本机实验室拓扑；异地部署必须显式给 `REDIS_HOST/REDIS_PORT`。
 ## §85 第四十四片：机检 review 态进读数（2026-11-09）
 
 - 缺口：此前 e2e 只覆盖了 blocked（硬红线挡下）。review 是 **页面已经发出去、内容挂人工复核**，

@@ -38,7 +38,11 @@ spring:
   data:
     redis:
       host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      # 56379 is this project's nexus-redis (docs/ENVIRONMENT.md). 6379 on this machine belongs to another
+      # project's Redis and requires AUTH — defaulting to it made a fresh `java -jar` report health DOWN and
+      # then need an environment variable to recover. A default that points at someone else's service is not
+      # a default, it is a trap.
+      port: ${REDIS_PORT:56379}
 
 # SC-6 — the discovery half of the gateway's second `lb://` route.
 #
