@@ -86,3 +86,11 @@
 6. 跑评测：`npm run evals`
 
 即可得到当前文字所写的状态。
+
+
+## 2026-11-09 补记：GBK 记录损坏收尾（amendment 569/570）
+
+- `6e5e3b9`：两份长期红的记录落到零损坏——`infra/migrations/0000_init.sql`（274 个前导制表符 → 两个空格；SQL 对空白不敏感、字节级仅空白有变化；其余迁移均已用空格）与 `docs/adr/0043-bot-visitor-suspected-not-convicted.md`（首次落库即损坏：GBK mojibake、16 站点 repairer 判定不可修；从残存字节 + ROADMAP.md §168 第三片镜像文本**重建**，文件头已注明；门的读法不变）。
+- 双语岛 pin 从 6 行扩到 69 行，每一行都在屏幕上读过再钉——全是作者亲笔的双语（测试 displayName、路径/订阅线路/三条路、0016 台账里引路的英文、ROADMAP 的 CJK 标点）。
+- 台账 commit `b7773b6` 落 amendments 569 (v642) + 570 (v643)。双语岛 pin 的两个口径（+2 行余量条款 / 单一种类拼写条款）按中文稠密语料重校：前者本语料下没有两行空档（witness 分布 0–53 全连续），改为仅登记测量事实；后者扩为明确两个命名拼写（路 / 露）。
+- `verify:record-encoding` 退码 0（2079 个文件、0 行 chargeable）；`shard 1`（196 files / 2748 passed）/ `shard 2`（196 files / 2879 passed）/ `table-recount` / `ci-wiring` / `doc-evidence` 全绿。本轮曾损坏又被退役的 shard 台账日志不再在仓库里——`docs/TESTING.md` 的引用改为运行读数与退出码的叙述。
