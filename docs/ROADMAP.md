@@ -10869,3 +10869,24 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   ② `NAMESPACES` 那两行是手写登记处，新增一个模块的门要先在那里登记（这是想要的摩擦，但仍是手工的一步）。
   ③ 本节与 ADR 的见证是 2026-11-09 补写的：落地那笔（`eb809df`）当时 ROADMAP 是另一条会话的在飞路径，
   故账先只记在 ADR；今天工作树干净才补上这一节，**补账日期与落地日期分开写**。
+
+## §SEC 第四十四片：「只在最近 200 条公开版本里排」——那个数在 SQL 那一端必须有读者（2026-11-09）
+
+- 起点：`/discover` 的「最近最热」复述 `trendingMethod()`，末尾那句 **「只在最近 200 条公开版本里排」**；
+  真取候选集的是 `social.ts` 的 `discover()` 里 `.limit(input.sort === 'trending' ? TRENDING_CANDIDATE_CAP : limit)`。
+  今天两端同源所以这句话是对的，**但没有门要求它们继续同源**：`trending.test.ts` 只钉"句子里有这个常数"，
+  把 SQL 改成 `.limit(200)`（手抄）或 `.limit(limit)`（跟着页长走，页长上限 60），句子照样说 200、那条腿照样绿。
+- 做了什么（决定与取舍见 `docs/adr/0094-trending-candidate-cap-has-one-reader.md`）：新门
+  `apps/web/test/trending-cap-reader.test.ts` 5 条腿，判据钉在 **`discover` 自己的源码切片**上（ADR-0090 决定 4 同一手法）：
+  ① 两条载体腿先红于判据腿（找不到函数体 / 切片里 `.limit(` 不是一处 ⇒ 先说"判据没有载体"，不让 `toContain` 在空串上假绿）；
+  ② 那一行必须含标识符 `TRENDING_CANDIDATE_CAP`、仍区分 trending 与别的排序、**不含任何写死的数字**；
+  ③ 同源腿要求 `social.ts` 真的从 `./trending` import 它、且本地没有第二份同名声明。
+- 见证（逐字）：`trending-cap-reader.test.ts` 5 条 + `trending.test.ts` 7 条 ⇒ **12 passed (2 files)**；
+  对照 `total=12 failed=0 exit=0`。臂表与跑法入库在 `.scratch/arms-trendingcap.mjs` / `.scratch/arms-trendingcap.txt`，
+  四条**先写预测再跑**、全部 `pred 全中 · not 全绿`：X1 手抄 200 ⇒ 1 failed；X2 `.limit(limit)` ⇒ 1 failed；
+  X3 本地另声明 `= 500` ⇒ 1 failed；**X4 反向对照（常数本身 200→50）⇒ 0 failed**——两端一起改口，门不许惩罚正当改动。
+  每条还原校验 `OK`、`aborted=no`、收尾 `social.ts=OK trending.ts=OK`。
+- 仍欠，如实记：① 这是**静态门**，证明"SQL 按名字读的就是句子那端的常数"，不证明"库里真的只取了 200 条"。
+  DB 平面的行为腿夹具已设计好写在 ADR-0094 里（造 `CAP+1` 条，第 200 位给 3 个赞、第 201 位给 10 个赞，
+  断言头一张是第 200 位且第 201 位不出现）——**两个方向都能红**；只造"最老那条分最高"的夹具抓不住上限变小。
+  ② `TRENDING_CANDIDATE_CAP` 仍是硬编码，§61 那一节早就写明"平台大了要换成分桶预聚合而不是抬高这个数"，本片没动那个架构判断。
