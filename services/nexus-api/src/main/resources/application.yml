@@ -21,6 +21,24 @@ spring:
 server:
   port: ${NEXUS_API_PORT:8080}
 
+# Discovery, OPT-IN. With NEXUS_EUREKA_ENABLED=true this service registers with the registry and the
+# edge can reach it as `lb://nexus-api`; with it unset the service behaves exactly as it did before
+# and does not need a registry to start. The client is on the classpath either way — the switch
+# decides whether it DIALS anything.
+#
+# Eureka's own namespace is TOP-LEVEL `eureka.*`, not `spring.cloud.eureka.*`. Measured in the
+# gateway: written under the wrong prefix the client started anyway and dialled a registry nobody
+# started, for a reason no log line explained.
+eureka:
+  client:
+    enabled: ${NEXUS_EUREKA_ENABLED:false}
+    register-with-eureka: ${NEXUS_EUREKA_ENABLED:false}
+    fetch-registry: ${NEXUS_EUREKA_ENABLED:false}
+    service-url:
+      defaultZone: ${NEXUS_EUREKA_URL:http://127.0.0.1:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
 logging:
   level:
     root: warn

@@ -29,7 +29,23 @@
     <java.version>25</java.version>
     <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- Spring Cloud 2025.0.3 is the release train that matches Spring Boot 3.5.x (this service's
+         parent). The BOM is imported rather than the versions being spelled out one by one, so the
+         whole train moves as a unit. -->
+    <spring-cloud.version>2025.0.3</spring-cloud.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
@@ -45,6 +61,16 @@
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
+
+    <!-- Discovery, OPT-IN at runtime (see application.yml). The client is on the classpath so the
+         service CAN register; `eureka.client.enabled` decides whether it actually does. A service
+         whose optional dependency is absent must still start, so nothing here may be required for
+         the service to answer. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
