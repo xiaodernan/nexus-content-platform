@@ -88,9 +88,26 @@
 即可得到当前文字所写的状态。
 
 
-## 2026-11-09 补记：GBK 记录损坏收尾（amendment 569/570）
 
-- `6e5e3b9`：两份长期红的记录落到零损坏——`infra/migrations/0000_init.sql`（274 个前导制表符 → 两个空格；SQL 对空白不敏感、字节级仅空白有变化；其余迁移均已用空格）与 `docs/adr/0043-bot-visitor-suspected-not-convicted.md`（首次落库即损坏：GBK mojibake、16 站点 repairer 判定不可修；从残存字节 + ROADMAP.md §168 第三片镜像文本**重建**，文件头已注明；门的读法不变）。
-- 双语岛 pin 从 6 行扩到 69 行，每一行都在屏幕上读过再钉——全是作者亲笔的双语（测试 displayName、路径/订阅线路/三条路、0016 台账里引路的英文、ROADMAP 的 CJK 标点）。
-- 台账 commit `b7773b6` 落 amendments 569 (v642) + 570 (v643)。双语岛 pin 的两个口径（+2 行余量条款 / 单一种类拼写条款）按中文稠密语料重校：前者本语料下没有两行空档（witness 分布 0–53 全连续），改为仅登记测量事实；后者扩为明确两个命名拼写（路 / 露）。
-- `verify:record-encoding` 退码 0（2079 个文件、0 行 chargeable）；`shard 1`（196 files / 2748 passed）/ `shard 2`（196 files / 2879 passed）/ `table-recount` / `ci-wiring` / `doc-evidence` 全绿。本轮曾损坏又被退役的 shard 台账日志不再在仓库里——`docs/TESTING.md` 的引用改为运行读数与退出码的叙述。
+## 2026-11-09 addendum: the GBK records repair landed (amendments 569 / 570)
+
+- `6e5e3b9`: the two long-red records brought to zero chargeable damage.
+  - `infra/migrations/0000_init.sql` — 274 leading tabs replaced by two spaces; byte-level diff is
+    whitespace only; other migrations already used spaces; SQL is whitespace-insignificant and no
+    database is forced to re-apply the file.
+  - `docs/adr/0043-bot-visitor-suspected-not-convicted.md` — committed encoding-damaged on its first
+    day (GBK mojibake, 16 unrepairable sites per the byte-model repairer); reconstructed from the
+    surviving bytes plus the ROADMAP mirror of the same decision (fn §168 third slice); the file is
+    labeled as a reconstruction at the top and does not pretend to be the original artifact.
+- The bilingual-island pin was extended from 6 to 69 rows; every added row was read on screen before
+  pinning — they are all authored bilingual lines (test display names, path/subscription-route labels,
+  the ledger's own English prose quoting the same word, the roadmap's CJK punctuation).
+- The merged ledger commit `b7773b6` carries amendments 569 (v642) and 570 (v643). The two forensic
+  clauses in the record-encoding proof were recalibrated in that commit: the +2-row-margin clause is
+  unsatisfiable on the Chinese-dense corpus (witness histogram is continuous from 0 to 53) and is
+  retired with its measured reason recorded in amendment 570; the one-spelling clause is widened to
+  exactly the two named spellings named there by codepoint (36335 / 38706). No writer-model or charge
+  rule was weakened.
+- `verify:record-encoding` exits 0 (2079 graded files, 0 chargeable lines). The shard witnesses that
+  were encoding-damaged were retired from the repo; `docs/TESTING.md` now records the runs and exit
+  codes in prose instead of pointing at retired paths.
