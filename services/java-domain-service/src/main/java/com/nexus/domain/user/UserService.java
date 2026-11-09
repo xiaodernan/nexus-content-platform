@@ -1,5 +1,6 @@
 package com.nexus.domain.user;
 
+import com.nexus.domain.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,7 +51,7 @@ public class UserService {
     @Transactional
     public User updateUserProfile(UUID userId, String displayName, String handle, String avatarUrl, String bio) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         if (displayName != null) {
             user.setDisplayName(displayName);
@@ -79,7 +80,7 @@ public class UserService {
     @Transactional
     public User claimGuestAccount(UUID userId, String email, String passwordHash) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         if (!user.getGuest()) {
             throw new IllegalStateException("User is not a guest account");
@@ -99,7 +100,7 @@ public class UserService {
     @Transactional
     public void deleteUser(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         user.setDeletedAt(Instant.now());
         userRepository.save(user);
@@ -153,7 +154,7 @@ public class UserService {
     @Transactional
     public User updateUserPlan(UUID userId, User.UserPlan newPlan) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         user.setPlan(newPlan);
         return userRepository.save(user);

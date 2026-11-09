@@ -3,6 +3,7 @@ package com.nexus.domain.project;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -158,6 +159,14 @@ public class ProjectController {
         private String description;
         private String visibility;
         private UUID forkOf;
+        /**
+         * When the row was written. These two were NOT in this DTO when the service-to-service contract
+         * was written: the entity carries them, the column carries them, and a caller on the other side of
+         * the boundary asked for a project and was told when it was made. Dropping them would have made the
+         * client's declared shape a promise the service does not keep.
+         */
+        private Instant createdAt;
+        private Instant updatedAt;
 
         public UUID getId() { return id; }
         public void setId(UUID id) { this.id = id; }
@@ -175,6 +184,10 @@ public class ProjectController {
         public void setVisibility(String visibility) { this.visibility = visibility; }
         public UUID getForkOf() { return forkOf; }
         public void setForkOf(UUID forkOf) { this.forkOf = forkOf; }
+        public Instant getCreatedAt() { return createdAt; }
+        public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+        public Instant getUpdatedAt() { return updatedAt; }
+        public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
     }
 
     private ProjectResponse toResponse(Project project) {
@@ -187,6 +200,8 @@ public class ProjectController {
         response.setDescription(project.getDescription());
         response.setVisibility(project.getVisibility());
         response.setForkOf(project.getForkOf());
+        response.setCreatedAt(project.getCreatedAt());
+        response.setUpdatedAt(project.getUpdatedAt());
         return response;
     }
 }

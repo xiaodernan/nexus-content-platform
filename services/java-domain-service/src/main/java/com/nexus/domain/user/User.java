@@ -1,5 +1,6 @@
 package com.nexus.domain.user;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -38,11 +39,11 @@ public class User {
     private String bio;
 
     @Column(name = "role", nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = UserRoleLabelConverter.class)
     private UserRole role = UserRole.CREATOR;
 
     @Column(name = "plan", nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = UserPlanLabelConverter.class)
     private UserPlan plan = UserPlan.FREE;
 
     @Column(name = "guest", nullable = false)
@@ -105,17 +106,111 @@ public class User {
     public Instant getDeletedAt() { return deletedAt; }
     public void setDeletedAt(Instant deletedAt) { this.deletedAt = deletedAt; }
 
+    /**
+     * The role vocabulary, and the LABELS the database actually stores.
+     *
+     * <p>Measured against the real schema (2026-11-09): {@code users.role} is a PostgreSQL enum whose
+     * labels are {@code 'creator'} and {@code 'admin'} — lowercase. Writing the Java constant names
+     * instead fails outright:
+     *
+     * <pre>ERROR: invalid input value for enum user_role: "CREATOR"</pre>
+     *
+     * <p>That is not a hypothetical: this service's write path did exactly that, so every user it created
+     * was rejected by the database. The label is therefore carried BY the constant, and the constant's
+     * name is never the thing that reaches the column.
+     *
+     * <p>{@code MODERATOR} used to be a constant here. The schema has never had that label, so it was a
+     * role this service could promise and never deliver; it is gone, and {@link #fromLabel(String)}
+     * refuses it by name.
+     */
     public enum UserRole {
-        CREATOR,
-        ADMIN,
-        MODERATOR
+        CREATOR("creator"),
+        ADMIN("admin");
+
+        private final String label;
+
+        UserRole(String label) {
+            this.label = label;
+        }
+
+        /** The label the database stores, and the label the rest of the platform speaks. */
+        public String label() {
+            return label;
+        }
+
+        /**
+         * Read a role from the wire. Case-insensitive on the way in, because a caller writing
+         * {@code "Creator"} and a caller writing {@code "creator"} mean the same role.
+         *
+         * <p>This is also the JSON factory, so a body that carries {@code "creator"} deserializes into
+         * {@link #CREATOR} instead of failing: the platform's vocabulary is lowercase, and Jackson's
+         * default enum reader would have demanded {@code "CREATOR"}.
+         *
+         * @throws IllegalArgumentException when the word names no role this service can store.
+         */
+        @JsonCreator
+        public static UserRole fromLabel(String raw) {
+            if (raw == null || raw.isBlank()) {
+                throw new IllegalArgumentException("a role is required; the accepted roles are 'creator' and 'admin'");
+            }
+            for (UserRole role : values()) {
+                if (role.label.equalsIgnoreCase(raw.trim()) || role.name().equalsIgnoreCase(raw.trim())) {
+                    return role;
+                }
+            }
+            throw new IllegalArgumentException(
+                    "'" + raw + "' is not a role this service can store; the accepted roles are 'creator' and 'admin'");
+        }
     }
 
+    /**
+     * The plan tiers, and the LABELS the database stores.
+     *
+     * <p>Measured against the real schema: {@code users.plan} is a plain {@code text} column whose
+     * values the web layer writes and compares in LOWERCASE ({@code 'free'}, {@code 'pro'}, …) — see
+     * {@code apps/web/src/server/db/schema.ts} and {@code apps/web/src/server/domain/roles.ts}. A row
+     * written here as {@code "FREE"} would be a row no web-layer comparison ever matches, so the label is
+     * carried by the constant here too.
+     */
     public enum UserPlan {
-        FREE,
-        PRO,
-        CREATOR,
-        STUDIO,
-        ENTERPRISE
+        FREE("free"),
+        PRO("pro"),
+        CREATOR("creator"),
+        STUDIO("studio"),
+        ENTERPRISE("enterprise");
+
+        private final String label;
+
+        UserPlan(String label) {
+            this.label = label;
+        }
+
+        /** The label the database stores, and the label the rest of the platform speaks. */
+        public String label() {
+            return label;
+        }
+
+        /**
+         * Read a tier from the wire.
+         *
+         * <p>Also the JSON factory, for the same reason as {@link UserRole#fromLabel(String)}: the
+         * platform sends {@code "free"}, and Jackson's default enum reader would have demanded
+         * {@code "FREE"}.
+         *
+         * @throws IllegalArgumentException when the word names no tier this service can store.
+         */
+        @JsonCreator
+        public static UserPlan fromLabel(String raw) {
+            if (raw == null || raw.isBlank()) {
+                throw new IllegalArgumentException("a plan is required; the accepted plans are 'free', 'pro', 'creator', 'studio' and 'enterprise'");
+            }
+            for (UserPlan plan : values()) {
+                if (plan.label.equalsIgnoreCase(raw.trim()) || plan.name().equalsIgnoreCase(raw.trim())) {
+                    return plan;
+                }
+            }
+            throw new IllegalArgumentException(
+                    "'" + raw + "' is not a plan this service can store; the accepted plans are 'free', 'pro', 'creator', 'studio' and 'enterprise'");
+        }
     }
 }

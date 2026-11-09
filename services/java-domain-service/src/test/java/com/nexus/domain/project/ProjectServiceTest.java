@@ -3,9 +3,11 @@ package com.nexus.domain.project;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.nexus.domain.ResourceNotFoundException;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,6 +86,16 @@ class ProjectServiceTest {
     }
 
     @Test
+    void aKindTheSchemaDoesNotHoldIsRefusedBeforeAnythingIsWritten() {
+        assertThatThrownBy(() -> service.createProject(UUID.randomUUID(), "s", "n", "not-a-kind", null))
+                .as("the column is a PostgreSQL enum; refusing here keeps a caller's bad word off the write path")
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not-a-kind");
+
+        verify(repository, never()).save(any(Project.class));
+    }
+
+    @Test
     void anUpdateChangesOnlyTheFieldsItWasGiven() {
         stubSaveReturningTheRow();
         UUID id = UUID.randomUUID();
@@ -105,7 +117,8 @@ class ProjectServiceTest {
         when(repository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.updateProject(id, "New Name", null, null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .as("a missing row is a 404, not a 400: the request was fine, the row is not there")
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Project not found")
                 .hasMessageContaining(id.toString());
     }
@@ -154,7 +167,7 @@ class ProjectServiceTest {
         when(repository.findById(originalId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.forkProject(originalId, UUID.randomUUID(), "s", "n"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Original project not found");
     }
 

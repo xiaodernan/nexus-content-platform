@@ -40,7 +40,24 @@
         <java.version>25</java.version>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Spring Cloud 2025.0.3 is the release train that matches Spring Boot 3.5.x (this service's
+             parent) — the same train `services/nexus-api` and `services/java-gateway` ride. The BOM is
+             imported rather than the versions being spelled out one by one, so the whole train moves as a
+             unit. -->
+        <spring-cloud.version>2025.0.3</spring-cloud.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- Web + JPA + the Postgres driver: exactly what the code USES.
@@ -76,6 +93,16 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- Discovery, OPT-IN at runtime (see application.yml). This service is the one `nexus-api`
+             reaches BY NAME through OpenFeign, so it has to be findable: without a registry the name
+             resolves to nothing and the caller gets an honest 503. The client is on the classpath either
+             way — `eureka.client.enabled` decides whether it actually dials anything, so a deployment
+             without a registry still starts and still serves. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
 
         <!-- Test -->
