@@ -7,6 +7,8 @@
 
 export interface EmbeddingProvider {
   models(): string[];
+  /** 模型档 → 具体模型名。实现方必须自报，调用方不拼名。 */
+  model_for(model_class: string): string;
   embed(args: { model: string; texts: string[] }): Promise<{ vectors: number[][]; provider: string; model: string; tokens_in: number; latency_ms: number }>;
 }
 
@@ -16,6 +18,114 @@ export interface EmbeddingResult {
   model: string;
   tokens_in: number;
   latency_ms: number;
+}
+
+/** §49/§93 — deterministic local embedding dimension count (matches the pgvector column). */
+export const LOCAL_EMBEDDING_DIMENSIONS = 1536 as const;
+export const LOCAL_EMBEDDING_MODEL = 'local-token-bag-1536' as const;
+
+/**
+ * §49 local embeddings without a provider key are only honest if they say what they are.
+ *
+ * This is NOT a semantic model. It is a deterministic bag-of-tokens hashing embedding:
+ *   - ASCII runs of a–z/0–9, lowercased, count as one token each;
+ *   - a CJK run is cut into 2-character bigrams, which is the granularity CJK search wants;
+ *   - every token hashes (FNV-1a 32-bit) into a fixed 1536-bucket bag, count-weighted, L2-normalized.
+ * Two texts with similar token overlap get close vectors; it cannot learn meaning, and it is the
+ * same honesty rule as DEMO MODE (§159/§160): a local convenience is never presented as a real model.
+ * Opt-in ONLY — `NEXUS_EMBEDDING_PROVIDER=local` selects it, `NEXUS_OPENAI_API_KEY` alone never does,
+ * and naming an unknown provider throws rather than silently falling back to a different brain.
+ */
+const FNV1A_PRIME = 0x01000193;
+const FNV1A_OFFSET = 0x811c9dc5;
+
+/** FNV-1a over UTF-8 bytes of the token, folded into [0, 1535]. */
+function tokenBucket(token: string): number {
+  let hash = FNV1A_OFFSET;
+  for (let i = 0; i < token.length; i++) {
+    hash ^= token.charCodeAt(i) & 0xff;
+    hash = Math.imul(hash, FNV1A_PRIME);
+  }
+  hash ^= hash >>> 16;
+  return (hash >>> 0) % LOCAL_EMBEDDING_DIMENSIONS;
+}
+
+const ASCII_RUN = /[a-z0-9]+/g;
+const CJK_RUN = /[一-鿿㐀-䶿]+/g;
+
+/** Tokenize text into the exact token list the bag carries. Exported for the honestly-measured test. */
+export function tokenizeForLocalEmbedding(text: string): string[] {
+  const t = text.toLowerCase();
+  const tokens: string[] = [];
+  for (const match of t.matchAll(ASCII_RUN)) tokens.push(match[0]);
+  for (const match of t.matchAll(CJK_RUN)) {
+    const run = match[0];
+    for (let i = 0; i < run.length - 1; i++) tokens.push(run.slice(i, i + 2));
+    if (run.length === 1) tokens.push(run);
+  }
+  return tokens;
+}
+
+/** The raw, count-weighted, unnormalized bag — exported so the honest test can measure its weight. */
+export function localTokenBag(text: string): Map<number, number> {
+  const bag = new Map<number, number>();
+  for (const token of tokenizeForLocalEmbedding(text)) {
+    const bucket = tokenBucket(token);
+    bag.set(bucket, (bag.get(bucket) ?? 0) + 1);
+  }
+  return bag;
+}
+
+/** L2-normalized 1536-dim vector; the empty text yields the zero vector (the store refuses it on read). */
+export function localTokenBagVector(text: string): number[] {
+  const out = new Array<number>(LOCAL_EMBEDDING_DIMENSIONS).fill(0);
+  let norm = 0;
+  for (const [bucket, count] of localTokenBag(text)) {
+    out[bucket] = count;
+    norm += count * count;
+  }
+  if (norm === 0) return out;
+  const scale = 1 / Math.sqrt(norm);
+  for (let i = 0; i < out.length; i++) out[i] = (out[i] ?? 0) * scale;
+  return out;
+}
+
+export class LocalTokenBagEmbeddingProvider implements EmbeddingProvider {
+  kind = 'embedding';
+  name = 'local-token-bag';
+
+  models(): string[] {
+    return [LOCAL_EMBEDDING_MODEL];
+  }
+
+  model_for(model_class: string): string {
+    if (model_class !== 'embedding') {
+      throw new Error(`未知的模型档：${model_class}（local-token-bag 只声明 embedding 档）`);
+    }
+    return LOCAL_EMBEDDING_MODEL;
+  }
+
+  async embed({ model, texts }: { model: string; texts: string[] }): Promise<EmbeddingResult> {
+    if (model !== LOCAL_EMBEDDING_MODEL) {
+      throw new Error(`local-token-bag 只提供 ${LOCAL_EMBEDDING_MODEL}，不接受 ${model}`);
+    }
+    const started = performance.now();
+    if (!texts.length) {
+      return { vectors: [], provider: this.name, model, tokens_in: 0, latency_ms: 0 };
+    }
+    const tokenCounts = texts.map((t) => tokenizeForLocalEmbedding(t).length);
+    return {
+      vectors: texts.map(localTokenBagVector),
+      provider: this.name,
+      model,
+      tokens_in: tokenCounts.reduce((a, b) => a + b, 0),
+      latency_ms: Math.round(performance.now() - started),
+    };
+  }
+
+  close(): void {
+    // 无连接可关
+  }
 }
 
 /** §93 reranker 切片的 TypeScript 接口 */
@@ -114,10 +224,14 @@ class OpenAICompatibleEmbeddingProvider {
   }
 }
 
-let cachedEmbeddingProvider: OpenAICompatibleEmbeddingProvider | null = null;
+let cachedEmbeddingProvider: { want: string; provider: EmbeddingProvider } | null = null;
 
-export function getEmbeddingProvider(): OpenAICompatibleEmbeddingProvider | null {
-  if (cachedEmbeddingProvider) return cachedEmbeddingProvider;
+function createEmbeddingProvider(want: string): EmbeddingProvider | null {
+  if (want === 'local') return new LocalTokenBagEmbeddingProvider();
+  if (want !== 'openai-compatible') {
+    // 未命名的 provider 绝不静默换成别的大脑——这是本函数的选择权，不是本函数的猜测权。
+    throw new Error(`未知的 embedding provider：${want}（可选：openai-compatible | local）`);
+  }
 
   const apiKey = process.env.NEXUS_OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -127,12 +241,27 @@ export function getEmbeddingProvider(): OpenAICompatibleEmbeddingProvider | null
   const embeddingModelEnv = process.env.NEXUS_MODEL_EMBEDDING;
   if (embeddingModelEnv) models.embedding = embeddingModelEnv;
 
-  cachedEmbeddingProvider = new OpenAICompatibleEmbeddingProvider(apiKey, baseUrl, models);
-  return cachedEmbeddingProvider;
+  return new OpenAICompatibleEmbeddingProvider(apiKey, baseUrl, models);
+}
+
+export function getEmbeddingProvider(): EmbeddingProvider | null {
+  const want = process.env.NEXUS_EMBEDDING_PROVIDER ?? 'openai-compatible';
+  if (cachedEmbeddingProvider?.want === want) return cachedEmbeddingProvider.provider;
+  const provider = createEmbeddingProvider(want);
+  // 只缓存已创建的 provider；null（缺 key）不缓存，免得先调用时缓存住 null、后来补 key 却落不进去。
+  if (provider) cachedEmbeddingProvider = { want, provider };
+  return provider;
 }
 
 export function hasEmbeddingProvider(): boolean {
-  return !!process.env.NEXUS_OPENAI_API_KEY;
+  // §49/§93: an unknown provider claims true ON PURPOSE — the caller then takes
+  // getEmbeddingProvider()! and hits the throw naming the allowed values, instead of the
+  // system silently degrading to lexical search and hiding a broken env var from the operator.
+  const want = process.env.NEXUS_EMBEDDING_PROVIDER;
+  if (!want) return !!process.env.NEXUS_OPENAI_API_KEY;
+  if (want === 'local') return true;
+  if (want === 'openai-compatible') return !!process.env.NEXUS_OPENAI_API_KEY;
+  return true; // unknown: loud misuse, never silent degradation
 }
 
 /** §93 OpenAI 兼容 reranker provider（跨模型复用，支持 /v1/rerank 等兼容端点） */
