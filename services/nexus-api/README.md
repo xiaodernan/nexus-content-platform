@@ -21,6 +21,49 @@ The table above is the v193 PUBLISH slice only. Later slices have their own pack
 `src/main/java/dev/nexus/api/` (`search`, `social`, `moderation`, `ops`, and `webhooks` below), each with
 doors of its own; this README names them by package rather than keeping a second, drifting table.
 
+## The DOMAIN service — the first service-to-service call (ADR 0055)
+
+| method | path | answer |
+| --- | --- | --- |
+| `GET` | `/domain/projects/{id}` | `200` + the project row, `404` when the domain service answered and does not hold it, `503` when the domain service could not be reached at all |
+
+The domain service is reached **by name** (`@FeignClient(name = "nexus-domain-service")`), so its
+address comes from discovery rather than from a URL somebody typed into a config file. The contract
+is an interface, and the wire types live in **this** service's own package: the two services are
+independently released deployables, and a shared Java module would couple them at the COMPILE level —
+the exact thing a microservice boundary exists to prevent.
+
+**Three facts, three answers.** A project the domain service holds is `200`. A project it does NOT
+hold is `404`. A domain service that could not be reached is `503`, and the body **names it**. The
+third one is load-bearing: a 404 delivered because the service was down would tell a caller that the
+project had been deleted — and the caller would say so, to a user.
+
+**The failure arrives WRAPPED, and the reader digs.** Measured 2026-11-09: with a circuit breaker in
+front of the call, a 404 reaches the reader as
+
+```
+NoFallbackAvailableException: No fallback available.
+  (cause: NotFound: [404] during [GET] to [http://nexus-domain-service/api/v1/projects/…])
+```
+
+Spring Cloud routes **every** downstream exception through the breaker's fallback function, and with
+no fallback bean it throws a wrapper **around the original**. The original is the fact, and it is in
+the cause — so `DomainProjectReader` finds the `FeignException` in the cause chain and decides by its
+**status**. A reader that recognised only a bare `FeignException` answered 503 to a caller who had
+asked about a project that simply does not exist.
+
+**The breaker's name is the client's name.** Spring Cloud's own resolvers name a breaker
+`dev.nexus.api.domain.DomainServiceClient#getProject` — and, by default, that with every
+non-alphanumeric character removed — so a `resilience4j.circuitbreaker.instances.nexus-domain-service`
+block would configure an instance **nothing uses**, and it would fail SILENTLY.
+`DomainCircuitBreakerNameResolver` names it after the client instead, and
+`DomainCircuitBreakerConfigTest` reads `application.yml` and refuses to let the two drift apart.
+`ignoreExceptions: feign.FeignException.NotFound` says the rest of it: **a 404 is an answer, not a
+failure.**
+
+Discovery is **opt-in**: `NEXUS_EUREKA_ENABLED=false` by default, so a deployment without a registry
+still starts and still serves.
+
 ## Webhooks — the first outbound contract (M10 v557–v560, ADR 0021)
 
 | method | path | answer |

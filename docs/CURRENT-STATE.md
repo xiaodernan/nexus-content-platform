@@ -33,6 +33,31 @@
 
 证据日志入库（`scratch shard*-2026-11-09c.log`，已 `git add -f`），见 `docs/TESTING.md` 2026-11-09 那条。
 
+## Spring Cloud 微服务拓扑（ADR 0054 / 0055，2026-11-09）
+
+四个 Java 服务、四个进程、一条请求走通：
+
+| 服务 | Spring Cloud 部件 | 作用 |
+|---|---|---|
+| `services/java-registry` | Eureka server 4.3.3 | 发现：哪些实例活着 |
+| `services/java-gateway` | Gateway 4.3.5 + Resilience4j | 边缘：路由、熔断、失败形状 |
+| `services/nexus-api` | Eureka client + OpenFeign 4.3.3 | 系统之记录；按**名字**调域服务 |
+| `services/java-domain-service` | Eureka client | 域表的权威写路径 |
+
+- `services/nexus-api`：`mvn -o -B test` → **907 tests, 0 failures**（新增 OpenFeign 客户端 + 三态 reader + 门控测试 + 断路器配置守卫）。
+- `services/java-domain-service`：`mvn -o -B test` → **39 tests, 0 failures**（原 10）。
+- 拓扑证明 `npm run verify:spring-cloud`（`docs/evidence/java/spring-cloud-proof.mjs`）→ §1–§11 全绿：四个 jar 构建；注册中心 UP；**真实 schema 用 `pg_dump` 复制进一次性库**（域服务 `ddl-auto: validate` 对着空库会正确地拒绝启动，所以不能空着）；域服务对着真实 schema 起来并**注册自己**；`lb://` 路由；**边缘 → nexus-api → lb://nexus-domain-service → 域服务 → PostgreSQL** 读回证明自己插入的那一行；未知 id 是 **404**；域服务被杀后**同一个 URL** 是 **503** 并点名它；nexus-api 被杀后边缘 503 并点名它。
+
+三条被实测钉死的形状：
+
+1. **不可达 ≠ 不存在。** 下游不在 → 503 并**点名**那个服务；下游说"没有这一行" → 404。把前者折叠成后者，调用方就会告诉用户"项目被删了"。
+2. **失败是包着来的。** 熔断器在前时，Spring Cloud 会把**每一个**下游异常塞进 `NoFallbackAvailableException`（原异常在 cause 里）。只认裸 `FeignException` 的 reader 会把"这个项目不存在"（404）说成"域服务联系不上"（503）——正是这一段要消灭的那个谎，而且它由包装层造成，不是逻辑写错。现在 reader 沿 cause 链找到真正的 `FeignException`，**按状态码**分类。
+3. **schema 拥有词汇。** `users.role` 是 PostgreSQL 枚举，标签是小写 `creator`/`admin`；Java 侧曾写常量名 `CREATOR`，实测每一次用户写入都被数据库拒绝（`invalid input value for enum user_role: "CREATOR"`）。现在标签由常量携带、转换器落库、边界处校验（未知 kind → 400 并列出可用的词，而不是 500）。
+
+附带钉死的一条：断路器的**名字**就是它的配置的**名字**。OpenFeign **不**按服务名给断路器命名：它自带的两个解析器都产出没人猜得到的名字（默认那个返回 `Feign.configKey(type, method)`，即 `dev.nexus.api.domain.DomainServiceClient#getProject`；再由默认开启的 alphanumeric 解析器去掉所有非字母数字字符）。于是 `application.yml` 里那份 resilience4j 配置**从未生效**，真正在跑的断路器用着默认值：100 次才开、60 秒才半开，而且**把 404 也记成故障**。现在由 `DomainCircuitBreakerNameResolver` 自己命名（就是服务名 `nexus-domain-service`，两个库自带解析器都是 `@ConditionalOnMissingBean`，会被我们这个顶掉），配 `ignoreExceptions: feign.FeignException.NotFound`（404 是答案不是故障），并由 `DomainCircuitBreakerConfigTest` 读 yml 钉住不许再漂；网关那一侧也有同样的守卫（`GatewayCircuitBreakerConfigTests`，直接问 registry 里那个断路器的真实参数）。
+
+ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/0055-a-service-is-reached-by-name-and-its-failure-is-a-fact.md`。
+
 ## 关键 ADR
 
 `docs/adr/0093-eval-runner-deterministic-invariants-in-ci.md`：§85 判决门——结构不变式红即
