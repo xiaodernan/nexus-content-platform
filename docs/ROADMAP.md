@@ -10921,3 +10921,18 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   NOT NULL 列），读路径不受影响、写审计的路径会失败，需要迁移工具或带默认值的列演进；
   ③ 网关的 auth / 限流 / TLS / WebSocket / 重试 / Caffeine 缓存都没做；④ `java-domain-service`
   还没接入注册中心。
+## §SC 第二片：旧库 DDL 漂移的真实修复（2026-11-09）
+
+- 症状（真日志逐字）：`nexus-api` 在本机 55433 旧库上每次启动报
+  `Error executing DDL "alter table if exists audit_entry add column target_type varchar(16) not null" ...
+  [ERROR: column "target_type" of relation "audit_entry" contains null values]`。这不是无关紧要的告警：
+  列没加上，随后写审计的路径会失败，发布 / 点赞 / 评论 / 举报的审计都会缺行。
+- 根因：`ddl-auto: update` 只能"加列"，不能"给已有行补值"；`NOT NULL` + 19 行旧数据 = 永远加不上。
+- 修复：`AuditEntry.targetType` 去掉 `nullable = false`，**写入端仍然强制**（`AuditService.requireTargetType`
+  的闭合集校验一字未改），DB 层对"列引入之前的行"诚实保留 null。实体注释写明"null 意为早于列存在，
+  不是第四种类型"，README Bounds 补同一条。没有伪造回填：旧动词都发生在 publication 上、是可回填的，
+  但回填应由一次可审计的迁移完成，不该让 ORM 在启动时猜。
+- 见证：重启后 `audit_entry.target_type | YES | character varying` 已存在；`POST
+  /projects/ddl-probe-20261109/publish` = 201；`audit_entry` 新行 `publish / ddl-probe-20261109 /
+  publication`；旧 19 行保持 null；`DELETE` 清理 = 200 `{removed:true}`；43 个测试类仍全绿。
+- 仍欠：Flyway/Liquibase 迁移与 `SET NOT NULL`（回填 `publication` 有依据，但要一次可审计的迁移）。

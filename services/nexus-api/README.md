@@ -112,7 +112,12 @@ behave exactly as before this dependency was added. A three-service run sets `NE
   answer reports the cap it applied. A caller that wants the 5000th publication is asking a question this
   service does not answer yet.
 - **`ddl-auto: update`, no migrations.** The schema is one table and this service is the only writer. A
-  migration tool is the honest answer once a second writer or a destructive change exists.
+  migration tool is the honest answer once a second writer or a destructive change exists. This build
+  relaxed `audit_entry.target_type` from `NOT NULL` to nullable for exactly that reason: Hibernate's
+  `update` cannot add a NOT NULL column to a table that already holds rows (PostgreSQL answers
+  "column … contains null values"), so a database created before v384 starts with a DDL warning on every
+  boot. Writes still REQUIRE a kind (the service refuses otherwise); reads must treat null as "written
+  before the column existed". Re-tightening it needs the migration tool.
 - **The URL is this server's.** No CDN, no rewrite rule, no custom domain. "Hosted publish" here means a row
   on this service and an address that serves it.
 - **The document is stored, not understood.** No validation beyond "is a JSON object", no migration, no

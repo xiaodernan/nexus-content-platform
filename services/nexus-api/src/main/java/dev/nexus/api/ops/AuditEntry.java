@@ -66,11 +66,14 @@ public class AuditEntry {
      * caller declares it and this column records the declaration. A CLOSED SET of three — {@code account},
      * {@code plan}, {@code publication} — validated by the service on the way in ({@code AuditService}).
      *
-     * <p>Not nullable: every entry this build writes names one. The verbs that existed before this column
-     * (publish, unpublish, like, unlike, comment, uncomment, report, withdraw-report, acknowledge) all
-     * happened to a PUBLICATION, which is what the service records for them.
+     * <p>Required at the WRITE, nullable in the SCHEMA. Every entry this build writes names one (the
+     * service refuses otherwise), but rows written before this column existed have no kind to name:
+     * {@code ddl-auto: update} cannot add a {@code NOT NULL} column to a table that already holds rows, and
+     * a backfill would fabricate a kind nobody recorded. A reader must treat null as "written before this
+     * column existed", not as a fourth kind. Re-tightening the constraint belongs to a migration tool
+     * (see the README's bounds), not to this annotation.
      */
-    @Column(name = "target_type", nullable = false, length = 16)
+    @Column(name = "target_type", length = 16)
     private String targetType;
 
     /** When it happened. */
