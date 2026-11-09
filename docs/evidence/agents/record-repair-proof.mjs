@@ -65,11 +65,8 @@
 // be the bytes that went in. A plant that comes back CHANGED without a refusal naming it is a silent wrong
 // repair, and that is the failure this row exists to catch; a plant that comes back untouched with a
 // refusal is the tool declining honestly, and is counted, not punished.
-// sweep-budget-ms: 240000
-// (re-measured on this box at the landing of S2b and the witness arm: 17.9 s wall, so the declared budget is
-// ~13x the run -- S2 reads the graded tree twice, once per reader, S3 repairs eight whole record files a few
-// passes each, and S2b/S4 each spawn a handful of git and node processes. amendment 85's rule holds that a
-// kill is a different verdict from a failure, which is why the number is generous rather than tight.)
+// The budget is the default (240000 ms watched against a 17.9 s wall run): declaring the default is
+// decoration, so this file says nothing. A declaration that changes nothing is noise the sweeper must ignore.
 // sweep-asks-repository: git ls-files -z -- the population is read the way the shipped row reads it, through
 // spawnSync below, whose program position is a literal this row's own scanner cannot see past; the bytes
 // under test are read off disk and never written: every file this row writes for the CLI arms lands in a
