@@ -5253,7 +5253,7 @@ delete account
   `assetFailures` / `exportedAt` / `bytes`），拒收时 `reason` 与 `issues` **逐条**贴出来。
 - `apps/web/src/app/page.tsx` — 挂上那一格。
 - `e2e/import.spec.ts` — 三条，全在真浏览器里跑（`npx playwright test e2e/import.spec.ts` → **3 passed (48.6s)**）：
-  ① 顶栏「导出」下载到的**同一份字节**（`.scratch/browser-import-source.zip`）喂回那颗文件输入，
+  ① 顶栏「导出」下载到的**同一份字节**（`browser-import-source.zip (created by the e2e)`）喂回那颗文件输入，
   回执出现、列表里是**两行同名**（源项目没被覆盖）、点进新项目画布投影得出 8 个节点
   （截图 `screenshots/import-roundtrip-canvas.png`，标题栏就是那个"导入往返 …"的新项目）；
   ② `POST /api/projects/import` 的 403（CSRF 头不对）→ 401（新的空 cookie jar，middleware 签的 token 库里查不到）
@@ -8848,7 +8848,7 @@ ADR-0069 只接了**手动**那一半（`?viewport=`）；不点链接的访客�
 
 需求原文 §14 要四档（Mobile/Tablet/Desktop/Wide）、要能在 Canvas 切 viewport、**AI 必须能自动生成
 responsive rules**。ADR-0069 与 ADR-0074 把访客那一侧接完之后，作者这一侧仍然没有一条**专门为写规则
-设计的**路：能写 `responsive` 的只有 AI 配方（mock 的「移动端优化」）、代码视图的断点变体类
+设计的**·：能写 `responsive` 的只有 AI 配方（mock 的「移动端优化」）、代码视图的断点变体类
 （`code-parse` 按 `VARIANT_PREFIX` 解回规则）、以及直接改模型；Properties 面板只有读取那一半
 （「tablet 下为 W×H」那一行）。这一片补的是那一格界面。
 

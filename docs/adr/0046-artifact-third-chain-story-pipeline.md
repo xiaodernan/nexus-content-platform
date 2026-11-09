@@ -72,7 +72,7 @@ ADR-0045 把"这一份带不带引擎"从一句判断变成一张表（`ARTIFACT
   `plan.chain === "story" ? NexusStory : (plan.chain === "rpg" ? NexusRpg : NexusSim)`，
   而且**分流必须在碰画布之前**（对话那一页里根本没有 `<canvas id="arena">`，
   `getElementById` 拿到 null，`null.getContext` 会抛 TypeError）；
-  渲染器同样分两路（story 路渲染正文与选项按钮，点击调 `NexusStory.step`；其余走今天的 canvas 路）。
+  渲染器同样分两路（story 路渲染正文与选项按钮，点击调 `NexusStory.step`；其余走今天的 canvas ·）。
 - **判定只在编译期，产物只播放**：`compileStory` 已经把起点（未被任何对话指向的第一条）、
   悬空引用、指向非对话的引用、空正文、终点、成环提示全都判完并写进那份载荷；
   **产物里一个都不许重做**——重做就是第二个供给点（ADR-0045 否掉的那件事）。

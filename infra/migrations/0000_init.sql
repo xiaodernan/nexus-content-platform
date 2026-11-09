@@ -10,364 +10,364 @@ CREATE TYPE "public"."task_status" AS ENUM('queued', 'planning', 'running', 'awa
 CREATE TYPE "public"."user_role" AS ENUM('creator', 'admin');--> statement-breakpoint
 CREATE TYPE "public"."visibility" AS ENUM('private', 'unlisted', 'public');--> statement-breakpoint
 CREATE TABLE "agent_events" (
-	"id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "agent_events_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
-	"task_id" uuid NOT NULL,
-	"seq" integer NOT NULL,
-	"stage" text NOT NULL,
-	"status" text NOT NULL,
-	"summary" text,
-	"counts" jsonb,
-	"artifact_ref" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "agent_events_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
+  "task_id" uuid NOT NULL,
+  "seq" integer NOT NULL,
+  "stage" text NOT NULL,
+  "status" text NOT NULL,
+  "summary" text,
+  "counts" jsonb,
+  "artifact_ref" text,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "agent_tasks" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid,
-	"conversation_id" uuid,
-	"agent_key" text NOT NULL,
-	"status" "task_status" DEFAULT 'queued' NOT NULL,
-	"plan" jsonb,
-	"input" jsonb,
-	"result" jsonb,
-	"error" text,
-	"requires_approval" boolean DEFAULT false NOT NULL,
-	"approved_by" uuid,
-	"approved_at" timestamp with time zone,
-	"capability" "capability_status",
-	"attempt" smallint DEFAULT 1 NOT NULL,
-	"created_by" uuid,
-	"started_at" timestamp with time zone,
-	"finished_at" timestamp with time zone,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid,
+  "conversation_id" uuid,
+  "agent_key" text NOT NULL,
+  "status" "task_status" DEFAULT 'queued' NOT NULL,
+  "plan" jsonb,
+  "input" jsonb,
+  "result" jsonb,
+  "error" text,
+  "requires_approval" boolean DEFAULT false NOT NULL,
+  "approved_by" uuid,
+  "approved_at" timestamp with time zone,
+  "capability" "capability_status",
+  "attempt" smallint DEFAULT 1 NOT NULL,
+  "created_by" uuid,
+  "started_at" timestamp with time zone,
+  "finished_at" timestamp with time zone,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "agents" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"key" text NOT NULL,
-	"name" text NOT NULL,
-	"capabilities" text[] DEFAULT '{}' NOT NULL,
-	"tools" text[] DEFAULT '{}' NOT NULL,
-	"model_class" text DEFAULT 'fast' NOT NULL,
-	"max_steps" smallint DEFAULT 12 NOT NULL,
-	"output" text,
-	"enabled" boolean DEFAULT true NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "key" text NOT NULL,
+  "name" text NOT NULL,
+  "capabilities" text[] DEFAULT '{}' NOT NULL,
+  "tools" text[] DEFAULT '{}' NOT NULL,
+  "model_class" text DEFAULT 'fast' NOT NULL,
+  "max_steps" smallint DEFAULT 12 NOT NULL,
+  "output" text,
+  "enabled" boolean DEFAULT true NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "assets" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid,
-	"kind" "asset_kind" NOT NULL,
-	"name" text NOT NULL,
-	"storage_key" text NOT NULL,
-	"mime" text,
-	"bytes" bigint,
-	"width" integer,
-	"height" integer,
-	"checksum" text,
-	"source" "asset_source" DEFAULT 'upload' NOT NULL,
-	"gen_meta" jsonb,
-	"character_id" uuid,
-	"created_by" uuid,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid,
+  "kind" "asset_kind" NOT NULL,
+  "name" text NOT NULL,
+  "storage_key" text NOT NULL,
+  "mime" text,
+  "bytes" bigint,
+  "width" integer,
+  "height" integer,
+  "checksum" text,
+  "source" "asset_source" DEFAULT 'upload' NOT NULL,
+  "gen_meta" jsonb,
+  "character_id" uuid,
+  "created_by" uuid,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "audit_events" (
-	"id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "audit_events_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
-	"actor_id" uuid,
-	"action" text NOT NULL,
-	"target_type" text,
-	"target_id" text,
-	"allowed" boolean DEFAULT true NOT NULL,
-	"detail" jsonb,
-	"ip" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "audit_events_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
+  "actor_id" uuid,
+  "action" text NOT NULL,
+  "target_type" text,
+  "target_id" text,
+  "allowed" boolean DEFAULT true NOT NULL,
+  "detail" jsonb,
+  "ip" text,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "branches" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid NOT NULL,
-	"name" text NOT NULL,
-	"head_snapshot_id" uuid,
-	"is_default" boolean DEFAULT false NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid NOT NULL,
+  "name" text NOT NULL,
+  "head_snapshot_id" uuid,
+  "is_default" boolean DEFAULT false NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "characters" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"world_id" uuid,
-	"project_id" uuid,
-	"owner_id" uuid NOT NULL,
-	"name" text NOT NULL,
-	"profile" jsonb,
-	"visual" jsonb,
-	"voice" jsonb,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "world_id" uuid,
+  "project_id" uuid,
+  "owner_id" uuid NOT NULL,
+  "name" text NOT NULL,
+  "profile" jsonb,
+  "visual" jsonb,
+  "voice" jsonb,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "comments" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid NOT NULL,
-	"user_id" uuid NOT NULL,
-	"parent_id" uuid,
-	"node_id" text,
-	"body" text NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid NOT NULL,
+  "user_id" uuid NOT NULL,
+  "parent_id" uuid,
+  "node_id" text,
+  "body" text NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "components" (
-	"id" text PRIMARY KEY NOT NULL,
-	"project_id" uuid NOT NULL,
-	"name" text NOT NULL,
-	"page_id" text,
-	"root_node_id" text NOT NULL,
-	"variants" jsonb,
-	"props" jsonb,
-	"slots" jsonb,
-	"description" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" text PRIMARY KEY NOT NULL,
+  "project_id" uuid NOT NULL,
+  "name" text NOT NULL,
+  "page_id" text,
+  "root_node_id" text NOT NULL,
+  "variants" jsonb,
+  "props" jsonb,
+  "slots" jsonb,
+  "description" text,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "conversations" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid,
-	"user_id" uuid,
-	"title" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid,
+  "user_id" uuid,
+  "title" text,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "design_nodes" (
-	"id" text NOT NULL,
-	"page_id" text NOT NULL,
-	"parent_id" text,
-	"node_type" text NOT NULL,
-	"name" text NOT NULL,
-	"sort_index" integer DEFAULT 0 NOT NULL,
-	"data" jsonb NOT NULL,
-	"component_id" uuid,
-	"visible" boolean DEFAULT true NOT NULL,
-	"locked" boolean DEFAULT false NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "design_nodes_page_id_id_pk" PRIMARY KEY("page_id","id")
+  "id" text NOT NULL,
+  "page_id" text NOT NULL,
+  "parent_id" text,
+  "node_type" text NOT NULL,
+  "name" text NOT NULL,
+  "sort_index" integer DEFAULT 0 NOT NULL,
+  "data" jsonb NOT NULL,
+  "component_id" uuid,
+  "visible" boolean DEFAULT true NOT NULL,
+  "locked" boolean DEFAULT false NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+  CONSTRAINT "design_nodes_page_id_id_pk" PRIMARY KEY("page_id","id")
 );
 --> statement-breakpoint
 CREATE TABLE "design_tokens" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid NOT NULL,
-	"key" text NOT NULL,
-	"type" text NOT NULL,
-	"value" jsonb NOT NULL,
-	"modes" jsonb,
-	"description" text,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid NOT NULL,
+  "key" text NOT NULL,
+  "type" text NOT NULL,
+  "value" jsonb NOT NULL,
+  "modes" jsonb,
+  "description" text,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "files" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid NOT NULL,
-	"path" text NOT NULL,
-	"kind" text DEFAULT 'code' NOT NULL,
-	"content" text,
-	"bytes" bigint,
-	"checksum" text,
-	"code_only" boolean DEFAULT false NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid NOT NULL,
+  "path" text NOT NULL,
+  "kind" text DEFAULT 'code' NOT NULL,
+  "content" text,
+  "bytes" bigint,
+  "checksum" text,
+  "code_only" boolean DEFAULT false NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "follows" (
-	"follower_id" uuid NOT NULL,
-	"followee_id" uuid NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "follows_follower_id_followee_id_pk" PRIMARY KEY("follower_id","followee_id")
+  "follower_id" uuid NOT NULL,
+  "followee_id" uuid NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  CONSTRAINT "follows_follower_id_followee_id_pk" PRIMARY KEY("follower_id","followee_id")
 );
 --> statement-breakpoint
 CREATE TABLE "games" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid,
-	"title" text NOT NULL,
-	"game_kind" text DEFAULT '2d' NOT NULL,
-	"entities" jsonb,
-	"scene" jsonb,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid,
+  "title" text NOT NULL,
+  "game_kind" text DEFAULT '2d' NOT NULL,
+  "entities" jsonb,
+  "scene" jsonb,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "knowledge_chunks" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid,
-	"world_id" uuid,
-	"source_type" text NOT NULL,
-	"source_id" text NOT NULL,
-	"chunk_index" integer DEFAULT 0 NOT NULL,
-	"content" text NOT NULL,
-	"tokens" integer,
-	"embedding" vector(1536),
-	"tsv" "tsvector" GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED,
-	"meta" jsonb,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid,
+  "world_id" uuid,
+  "source_type" text NOT NULL,
+  "source_id" text NOT NULL,
+  "chunk_index" integer DEFAULT 0 NOT NULL,
+  "content" text NOT NULL,
+  "tokens" integer,
+  "embedding" vector(1536),
+  "tsv" "tsvector" GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED,
+  "meta" jsonb,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "likes" (
-	"user_id" uuid NOT NULL,
-	"project_id" uuid NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "likes_user_id_project_id_pk" PRIMARY KEY("user_id","project_id")
+  "user_id" uuid NOT NULL,
+  "project_id" uuid NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  CONSTRAINT "likes_user_id_project_id_pk" PRIMARY KEY("user_id","project_id")
 );
 --> statement-breakpoint
 CREATE TABLE "memories" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"scope" "memory_scope" NOT NULL,
-	"subject_id" text NOT NULL,
-	"content" text NOT NULL,
-	"embedding" vector(1536),
-	"meta" jsonb,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "scope" "memory_scope" NOT NULL,
+  "subject_id" text NOT NULL,
+  "content" text NOT NULL,
+  "embedding" vector(1536),
+  "meta" jsonb,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "messages" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"conversation_id" uuid NOT NULL,
-	"role" "message_role" NOT NULL,
-	"content" text NOT NULL,
-	"patch" jsonb,
-	"task_id" uuid,
-	"capability" "capability_status",
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "conversation_id" uuid NOT NULL,
+  "role" "message_role" NOT NULL,
+  "content" text NOT NULL,
+  "patch" jsonb,
+  "task_id" uuid,
+  "capability" "capability_status",
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "pages" (
-	"id" text PRIMARY KEY NOT NULL,
-	"project_id" uuid NOT NULL,
-	"name" text NOT NULL,
-	"root_node_id" text NOT NULL,
-	"sort_index" integer DEFAULT 0 NOT NULL,
-	"width" integer DEFAULT 1440 NOT NULL,
-	"height" integer DEFAULT 1024 NOT NULL,
-	"background_color" text,
-	"layout" jsonb,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" text PRIMARY KEY NOT NULL,
+  "project_id" uuid NOT NULL,
+  "name" text NOT NULL,
+  "root_node_id" text NOT NULL,
+  "sort_index" integer DEFAULT 0 NOT NULL,
+  "width" integer DEFAULT 1440 NOT NULL,
+  "height" integer DEFAULT 1024 NOT NULL,
+  "background_color" text,
+  "layout" jsonb,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "projects" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"owner_id" uuid NOT NULL,
-	"slug" text NOT NULL,
-	"name" text NOT NULL,
-	"kind" "project_kind" DEFAULT 'website' NOT NULL,
-	"description" text,
-	"visibility" "visibility" DEFAULT 'private' NOT NULL,
-	"fork_of" uuid,
-	"active_page_id" text,
-	"current_snapshot_id" uuid,
-	"brand_kit" jsonb,
-	"visual_dna" jsonb,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "owner_id" uuid NOT NULL,
+  "slug" text NOT NULL,
+  "name" text NOT NULL,
+  "kind" "project_kind" DEFAULT 'website' NOT NULL,
+  "description" text,
+  "visibility" "visibility" DEFAULT 'private' NOT NULL,
+  "fork_of" uuid,
+  "active_page_id" text,
+  "current_snapshot_id" uuid,
+  "brand_kit" jsonb,
+  "visual_dna" jsonb,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "published_projects" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid NOT NULL,
-	"snapshot_id" uuid,
-	"path" text NOT NULL,
-	"visibility" "visibility" DEFAULT 'public' NOT NULL,
-	"version" integer DEFAULT 1 NOT NULL,
-	"moderation" "moderation_status" DEFAULT 'pending' NOT NULL,
-	"published_by" uuid,
-	"views" bigint DEFAULT 0 NOT NULL,
-	"published_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid NOT NULL,
+  "snapshot_id" uuid,
+  "path" text NOT NULL,
+  "visibility" "visibility" DEFAULT 'public' NOT NULL,
+  "version" integer DEFAULT 1 NOT NULL,
+  "moderation" "moderation_status" DEFAULT 'pending' NOT NULL,
+  "published_by" uuid,
+  "views" bigint DEFAULT 0 NOT NULL,
+  "published_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "remixes" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"source_project_id" uuid NOT NULL,
-	"forked_project_id" uuid NOT NULL,
-	"user_id" uuid NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "source_project_id" uuid NOT NULL,
+  "forked_project_id" uuid NOT NULL,
+  "user_id" uuid NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "sessions" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
-	"token_hash" text NOT NULL,
-	"user_agent" text,
-	"ip" text,
-	"expires_at" timestamp with time zone NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "user_id" uuid NOT NULL,
+  "token_hash" text NOT NULL,
+  "user_agent" text,
+  "ip" text,
+  "expires_at" timestamp with time zone NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "snapshots" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid NOT NULL,
-	"branch_id" uuid,
-	"parent_id" uuid,
-	"label" text,
-	"source" "snapshot_source" DEFAULT 'manual' NOT NULL,
-	"document" jsonb NOT NULL,
-	"summary" text,
-	"patch" jsonb,
-	"task_id" uuid,
-	"created_by" uuid,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid NOT NULL,
+  "branch_id" uuid,
+  "parent_id" uuid,
+  "label" text,
+  "source" "snapshot_source" DEFAULT 'manual' NOT NULL,
+  "document" jsonb NOT NULL,
+  "summary" text,
+  "patch" jsonb,
+  "task_id" uuid,
+  "created_by" uuid,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "stories" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid,
-	"world_id" uuid,
-	"title" text NOT NULL,
-	"script" jsonb,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid,
+  "world_id" uuid,
+  "title" text NOT NULL,
+  "script" jsonb,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "usage" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid,
-	"project_id" uuid,
-	"task_id" uuid,
-	"provider" text NOT NULL,
-	"model" text NOT NULL,
-	"kind" text NOT NULL,
-	"tokens_in" integer,
-	"tokens_out" integer,
-	"latency_ms" integer,
-	"cost_estimate" real,
-	"demo_mode" boolean DEFAULT true NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "user_id" uuid,
+  "project_id" uuid,
+  "task_id" uuid,
+  "provider" text NOT NULL,
+  "model" text NOT NULL,
+  "kind" text NOT NULL,
+  "tokens_in" integer,
+  "tokens_out" integer,
+  "latency_ms" integer,
+  "cost_estimate" real,
+  "demo_mode" boolean DEFAULT true NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"email" text,
-	"password_hash" text,
-	"display_name" text NOT NULL,
-	"handle" text,
-	"avatar_url" text,
-	"role" "user_role" DEFAULT 'creator' NOT NULL,
-	"guest" boolean DEFAULT false NOT NULL,
-	"claimed_at" timestamp with time zone,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone,
-	"deleted_at" timestamp with time zone
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "email" text,
+  "password_hash" text,
+  "display_name" text NOT NULL,
+  "handle" text,
+  "avatar_url" text,
+  "role" "user_role" DEFAULT 'creator' NOT NULL,
+  "guest" boolean DEFAULT false NOT NULL,
+  "claimed_at" timestamp with time zone,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone,
+  "deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "worlds" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid,
-	"owner_id" uuid NOT NULL,
-	"name" text NOT NULL,
-	"summary" text,
-	"lore" jsonb,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "project_id" uuid,
+  "owner_id" uuid NOT NULL,
+  "name" text NOT NULL,
+  "summary" text,
+  "lore" jsonb,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "agent_events" ADD CONSTRAINT "agent_events_task_id_agent_tasks_id_fk" FOREIGN KEY ("task_id") REFERENCES "public"."agent_tasks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

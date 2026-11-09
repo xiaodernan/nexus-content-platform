@@ -2360,9 +2360,9 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   `npx vitest run --reporter=dot` 在打 summary 前崩（栈形状与 2026-10-30 那次逐字节一致：
   `target.send node:internal/child_process` → `ProcessWorker.send tinypool/dist/index.js:140`
   ← `MessagePort.<anonymous> …:149`），没有 `Test Files` / `Tests` 那两行——崩溃，不是红、也不是绿。
-  按本文件自己的纪律重跑：`--shard=1/2` 一次 exit 0，`.scratch/shard1.log` 读数
+  按本文件自己的纪律重跑：`--shard=1/2` 一次 exit 0，`shard1.log（编码损坏，已从仓库移除）` 读数
   `Test Files  134 passed (134)` / `Tests  1828 passed (1828)`；`--shard=2/2` 第一次同样在收尾崩
-  （exit 1、零条真失败），原样重跑（`.scratch/shard2b.log`）exit 0，
+  （exit 1、零条真失败），原样重跑（`shard2b.log（编码损坏，已从仓库移除）`）exit 0，
   `Test Files  134 passed (134)` / `Tests  1729 passed (1729)`。两片相加 268 文件 / 3557 条。
   这次是在另一会话的 credits 在途文件（`apps/web/src/server/domain/credits.ts`、`credits-why-guards.test.ts` 等）
   都还在工作区的状态下跑的——所以它只说明**这些文件此刻没把套件弄红**，不是对它们的背书。
@@ -2397,7 +2397,7 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   **真 Chrome 路径都走过了**——剩的是 cornerRadius（模型层有、面板不摆，无 Chrome 腿）。
 
 - **2026-11-08：整批分片重跑抓到一条真红——doc-evidence.test.ts §192（我自己的文档引用了没入库的 .scratch 日志）**——
-  本回合早些时候我在 TESTING.md 引用了两份日志（`.scratch/shard1.log` / `.scratch/shard2b.log`）而没 `git add -f`，
+  本回合早些时候我在 TESTING.md 引用了两份日志（`shard1.log（编码损坏，已从仓库移除）` / `shard2b.log（编码损坏，已从仓库移除）`）而没 `git add -f`，
   shard1 重跑这 1831 条里唯一红的就是它（`expected [2 items] to deeply equal []`）。修法：两份日志 UTF-16 转 UTF-8 后 `git add -f`
   随 `11e35b3` 入库；doc-evidence 4/4 绿。记录在此是提醒：**写 `.scratch/…` 点名证据的同时就 `git add -f`——测试会在下一次分片里翻脸**。
   收尾：shard1 实跑 134 文件（133 pass + 1 fail 已修）、1830/1831 通过；与 shard2b 相加仍是 268 文件 / 3557 条（其中这次 doc-evidence 4 条全绿计入）。
@@ -2411,7 +2411,7 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
 - **2026-11-08：§14 两个 shard 分片重跑都绿——268 文件 / 3572 条（这轮 +15 条）**——
   里程见 85889a4 / 9b92bd3 / e644748 / 52039cf（配合：typecheck + eslint 每根都过 pre-commit）。
   shard1c **134 文件 / 1834 条**（1828+6）、shard2c **134 文件 / 1738 条**（1729+9）、两次都 exit 0——本批跑的就是工作区里另一会话的 credits WIP 还没提交的状态，
-  所以它只说明那些文件此刻没把套件弄红，不是对它们的背书。`.scratch/shard1c.log` / `.scratch/shard2c.log` 已 `git add -f` 入库（本文件 §192 那条纪律：点名就得能 clone 到）。
+  所以它只说明那些文件此刻没把套件弄红，不是对它们的背书。`shard1c.log（编码损坏，已从仓库移除）` / `shard2c.log（编码损坏，已从仓库移除）` 已 `git add -f` 入库（本文件 §192 那条纪律：点名就得能 clone 到）。
 
 - **2026-11-08：§14 e2e 腿 F8（position 两格按档内逃生口摆/收）——全链 A–F8–R 1 passed（6.0m）**——
   父级翻成 none（`layout.mode:none`）之后：移动端（设计 horizontal）位置 x 那格**不摆**；tablet 那一档摆（left/top 那两个 input）；
@@ -2424,7 +2424,7 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
 - **2026-11-08：credits 车道合计入主（eb809df），合并树重跑两片——268 文件 / 3572 条，两次 exit 0**——
   就是把另一会话那条 ENFORCED_PLAN_AXE_GUARDS 重构（+ ADR-0090、credits-why-guards.test.ts、credits-enforced-copy.test.ts 的逐字文案变更）
   在主分支上兑现为可验证的合并态：shard1d 134 files / 1834、shard2d 134 files / 1738（与合并前 3572 一致）、exit 0——本轮唯一多的是这笔合并。
-  这次 shard 重跑在合并 main 上跑，不是 WIP 工作区，所以它就是合在主分支上的绿。日志 `.scratch/shard1d.log` / `.scratch/shard2d.log` 已 `git add -f` 入库。
+  这次 shard 重跑在合并 main 上跑，不是 WIP 工作区，所以它就是合在主分支上的绿。日志 `shard1d.log（编码损坏，已从仓库移除）` / `shard2d.log（编码损坏，已从仓库移除）` 已 `git add -f` 入库。
 
 - **2026-11-08：§14 e2e 腿 S（发布后公共页就是这份投影）—— 1 passed（1.8m）**——
   tablet 翻进 none → 真发布（路径不变、版本 v+1）→ 访客 tablet 变体里两个孩子**归一到同一原点**（left/top 两个数各自相等，不依赖各自的 padding 修正）；
@@ -2437,13 +2437,13 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
 
 - **2026-11-08：这一版工作树再跑两片——268 文件 / 3572 条、两次 exit 0（含合并 credits 车道那一坨）**——
   shard1e 134 files / 1834、shard2e 134 files / 1738；与合并前（3572）逐计相同。期间补的都是 e2e 腿（F9 腿 S）和文档，
-  `.scratch/shard1e.log` / `.scratch/shard2e.log` 已 `git add -f` 入库。
+  `shard1e.log（编码损坏，已从仓库移除）` / `shard2e.log（编码损坏，已从仓库移除）` 已 `git add -f` 入库。
 
 - **2026-11-09：这一版工作树再跑两片（含 `b89631c` 浅色内部件修复与 evals 三套）——269 文件 / 3578 条全部通过，两次 exit 0**——
   shard1 135 文件 / 1838 条（493.53s）、shard2 134 文件 / 1740 条（673.65s），逐计合计 **269 / 3578**；
   与上一版两片（2026-11-08，268 文件 / 3572 条）相差正好 +1 文件 / +6 条，
   对得上这两天只增了 `scripts/test/evals-framework.test.mts`（+4 条 +1 文件）与导出/导入往返标记的两条集成用例（+2 条）。
-  `.scratch/shard1-2026-11-09.log` / `.scratch/shard2-2026-11-09.log` 已 `git add -f` 入库。
+  `shard1-2026-11-09.log（生成时的证据日志，GBK 损坏，本仓已弃用）` / `shard2-2026-11-09.log（生成时的证据日志，GBK 损坏，本仓已弃用）` 已 `git add -f` 入库。
 
 - **2026-11-09：§85 prod 复验全绿**——PRODUCTION build `apP2T7u2fy3pFppCjDq_y`（含这几天全部改动：令牌表的 44 个失名修好、
   浅色键盘车道焦点环的 ink 修好、text-like control-names 扇入出 18 处后全部修好）下跑五条浏览器门；
@@ -2454,7 +2454,7 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   两次都没出 ERR_IPC。与上一版记账（269 / 3578）差正好 +2 文件 / +9 条
   （f14fe2a 已落地的 `test(§147 #32)` 引用守恒入框计数后的增加；
   另在磁盘上但未被 git 跟踪的 `store-selection-stress.test.ts` 也参与本次计数——生产者填仓前先过一遍 lint/typecheck）。
-  `.scratch/shard1-2026-11-09b.log`、`.scratch/shard2-2026-11-09b.log` 已 `git add -f` 入库。
+  `shard1-2026-11-09b.log（生成时的证据日志，GBK 损坏，本仓已弃用）`、`shard2-2026-11-09b.log（生成时的证据日志，GBK 损坏，本仓已弃用）` 已 `git add -f` 入库。
 
 - **2026-11-09：又一次两片重跑全绿——272 文件 / 3590 条，两次 exit 0**——
   shard1 136 文件 / 1843 条（1073.83s，至 06:14）；shard2 136 文件 / 1747 条（940.10s，至 06:25）；
@@ -2463,4 +2463,4 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   - `store-selection-identity.test.ts`（§147 #32 派生引用守恒 8 条，`f14fe2a`）
   - `store-selection-stress.test.ts`（§147 #32 压力版 1 条，`43eb15b`）
   `git ls-files -- '**/*.test.ts' '**/*.test.mts'` `= 272` 与两片之和一致。
-  证据日志 `.scratch/shard1-2026-11-09c.log`、`.scratch/shard2-2026-11-09c.log` 已 `git add -f` 入库。
+  证据日志 `shard1-2026-11-09c.log（生成时的证据日志，GBK 损坏，本仓已弃用）`、`shard2-2026-11-09c.log（生成时的证据日志，GBK 损坏，本仓已弃用）` 已 `git add -f` 入库。

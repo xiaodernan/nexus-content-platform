@@ -151,7 +151,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const nameOf = nodeNamer(assembled.toolDocument);
 
     /**
-     * §74 的门在这里：过不了门的补丁不会离开服务端。两条 provider 路（真服务 / DEMO Mock）
+     * §74 的门在这里：过不了门的补丁不会离开服务端。两条 provider ·（真服务 / DEMO Mock）
      * 走同一个 `deliver`，所以"接上第 N 家 provider 就有第 N 种审批口径"这件事不会发生。
      * §73 的那半（被点名的 Agent 有没有 design.patch）也在同一个函数里判——同一个道理：
      * 一条路管一条路，就等于两条路各有一套规矩。
