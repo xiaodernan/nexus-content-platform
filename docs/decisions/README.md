@@ -65,3 +65,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0051  | A journal is pruned only from the front                        | Accepted |
 | 0052  | A replacement chain names where it ends                        | Accepted |
 | 0053  | A warning list can select several states at once                | Accepted |
+| 0054  | Spring Cloud enters NEXUS as a REGISTRY and an EDGE, not as a rewrite | Accepted |
