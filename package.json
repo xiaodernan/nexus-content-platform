@@ -38,6 +38,7 @@
     "verify:social-contract": "node docs/evidence/m9/social-contract-proof.mjs",
     "verify:validate": "node docs/evidence/design-model/validate-proof.mjs",
     "verify:png": "node docs/evidence/studio/png-baseline-proof.mjs",
+    "verify:spring-cloud": "node docs/evidence/java/spring-cloud-proof.mjs",
     "verify:service": "node docs/evidence/m7/service-suite-proof.mjs",
     "verify:credits": "node docs/evidence/studio/credits-proof.mjs",
     "verify:mutation": "node docs/evidence/studio/mutation-probe.mjs",
