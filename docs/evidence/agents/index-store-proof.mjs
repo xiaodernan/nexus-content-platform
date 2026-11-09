@@ -41,13 +41,13 @@ assert.deepEqual(rescan.rechunked, [], 'unchanged repo must reuse every chunk');
 assert.deepEqual(rescan.index, cold);
 
 // 3) One edited file re-chunks exactly it; result equals a cold rebuild.
-const edited = { ...files, 'agents/runtime/src/codeIndex.ts': files['agents/runtime/src/codeIndex.ts'] + '\nexport const MARKER_V4 = 1;\n' };
+const edited = { ...files, 'agents/runtime/src/codeIndex.ts': files['agents/runtime/src/codeIndex.ts'] + '\nexport const ZZUNIQUEMARKER9f2 = 1;\n' };
 const t1 = process.hrtime.bigint();
 const partial = rescanIndex(rescan.index, rescan.fingerprints, edited);
 const msEdited = Number(process.hrtime.bigint() - t1) / 1e6;
 assert.deepEqual(partial.rechunked, ['agents/runtime/src/codeIndex.ts']);
 assert.deepEqual(partial.index, buildIndex(edited), 'incremental output must equal cold build');
-assert.ok(queryIndex(partial.index, 'MARKER_V4', 1)[0].path === 'agents/runtime/src/codeIndex.ts', 'new symbol is queryable after rescan');
+assert.ok(queryIndex(partial.index, 'ZZUNIQUEMARKER9f2', 1)[0].path === 'agents/runtime/src/codeIndex.ts', 'new symbol is queryable after rescan');
 console.log(`[index-store] rescan: unchanged=${msUnchanged.toFixed(0)}ms (0 rechunked), one-edit=${msEdited.toFixed(0)}ms (1 rechunked, cold rebuild would re-chunk ${Object.keys(files).length})`);
 
 // 4) Corrupt snapshot fails honestly.

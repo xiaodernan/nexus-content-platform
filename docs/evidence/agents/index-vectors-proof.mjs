@@ -69,7 +69,7 @@ assert.equal(fs.readFileSync(VECT, 'utf8'), before, 'reused vectors must seriali
 
 // 4) One edited file re-embeds ONLY the chunk windows whose text actually changed; merge output ≡ cold rebuild.
 const EDITED = 'agents/runtime/src/codeIndex.ts';
-const editedFiles = { ...files, [EDITED]: files[EDITED] + '\nexport const MARKER_V23 = 1;\n' };
+const editedFiles = { ...files, [EDITED]: files[EDITED] + '\nexport const ZZUNIQUEMARKER9f3 = 1;\n' };
 const p3 = createIndexProvider({ files: editedFiles, snapshotFile: SNAP, vectorsFile: VECT, fsLike: fs });
 p3.refresh(); // loads p2's vectors from disk
 const prevById = new Map(p2.vectors().entries.map((e) => [e.id, e]));
@@ -83,7 +83,7 @@ const merged = mergeIndexVectors(p2.vectors(), buildIndex(editedFiles));
 assert.ok(changedIds.length > 0 && changedIds.length < merged.db.entries.length, 'an edit must touch some but not all chunks');
 assert.deepEqual(merged.reembedded.sort(), changedIds.sort(), 'only genuinely changed chunk windows may re-embed');
 assert.deepEqual(merged.db, indexToVectorDb(buildIndex(editedFiles)), 'incremental vectors must equal a cold rebuild');
-const hitV23 = queryIndexWithVectors(p3.index(), p3.vectors(), 'MARKER_V23', 1);
+const hitV23 = queryIndexWithVectors(p3.index(), p3.vectors(), 'ZZUNIQUEMARKER9f3', 1);
 assert.equal(hitV23.engine, 'vectors');
 assert.equal(hitV23.hits[0].path, EDITED, 'new symbol is queryable through the vector path after an incremental refresh');
 console.log(`[index-vectors] incremental: appended 1 line re-embedded ${changedIds.length} of ${merged.db.entries.length} chunk vectors (cold rebuild would embed all)`);

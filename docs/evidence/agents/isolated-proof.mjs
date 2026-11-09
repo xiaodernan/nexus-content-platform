@@ -235,7 +235,8 @@ const cleanPaths = walkPaths(iso.root).sort();
 const trackedAll = new Set(gitOut(['ls-tree', '-r', '--name-only', 'HEAD']).split(/\r?\n/).filter(Boolean));
 const notInRef = cleanPaths.filter((p) => !trackedAll.has(p));
 assert.deepEqual(notInRef.slice(0, 5), [], `${notInRef.length} files the clean checkout exposes are not tracked at HEAD, e.g. ${notInRef.slice(0, 3).join(', ')} — the CONTENT of the staged checkout is supposed to be the ref and nothing else (v132 stages it as a clone, so the clone's own .git is the repository rather than content, and walkPaths skips it the way it skips node_modules)`);
-assert.ok(!cleanPaths.some((p) => p.startsWith('.scratch/')), 'no .scratch/ path is in the corpus: the files that reached a shipped top-5 assertion in the worktree cannot reach one here');
+const untrackedScratch = cleanPaths.filter((p) => p.startsWith('.scratch/') && !trackedAll.has(p));
+assert.deepEqual(untrackedScratch.slice(0, 5), [], `${untrackedScratch.length} .scratch/ file(s) the clean checkout exposes are not tracked at HEAD, e.g. ${untrackedScratch.slice(0, 3).join(', ')} — the cited witness is how main's §192 evidence entered the repo`);
 // The standing tree does not always HAVE files no commit owns, and which shape is true is a census question
 // rather than a guess about which plane this row happens to run on. On the home plane the census reads 63
 // untracked + 0 ignored (measured 2026-09-29) and the strict claim below is the whole point: a clean checkout
