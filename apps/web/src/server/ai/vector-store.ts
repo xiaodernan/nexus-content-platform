@@ -314,6 +314,7 @@ export class VectorStore {
     }>,
   ): Promise<void> {
     const db = getDb();
+    if (chunks.length === 0) return; // nothing to write — an empty world is not a crash
     const contents = chunks.map((c) => c.content);
 
     // 批量生成向量
