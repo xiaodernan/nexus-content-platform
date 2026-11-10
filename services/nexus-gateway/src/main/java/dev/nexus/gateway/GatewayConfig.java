@@ -1,6 +1,7 @@
 package dev.nexus.gateway;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -152,6 +153,11 @@ public class GatewayConfig {
      * <p>An unknown backend name is a startup failure, not a silent fallback to memory: a deployment that
      * asked for shared limiting and quietly got per-instance buckets would be wrong in exactly the way this
      * setting exists to prevent.
+     *
+     * <p>{@code backend-timeout-ms} (SC-36) is the gateway's OWN deadline on the shared limiter's answer —
+     * not Lettuce's. If Redis never answers at all (blackhole, exhausted pool, hung DNS), fail-open can only
+     * fire once the backend produces an error; this bound guarantees that error arrives on a deadline the
+     * deployment controls. Only the redis backend uses it; memory answers in-process without a wait.
      */
     @Bean
     RateLimitFilter rateLimitFilter(
@@ -161,6 +167,7 @@ public class GatewayConfig {
             @Value("${nexus.gateway.rate-limit.burst:200}") int burst,
             @Value("${nexus.gateway.rate-limit.max-clients:10000}") int maxClients,
             @Value("${nexus.gateway.rate-limit.redis-key-prefix:nexus:gateway:rate:}") String redisKeyPrefix,
+            @Value("${nexus.gateway.rate-limit.backend-timeout-ms:1000}") long backendTimeoutMs,
             ObjectProvider<ReactiveStringRedisTemplate> redis) {
         RateLimitBackend backend;
         if ("memory".equalsIgnoreCase(backendName)) {
@@ -171,20 +178,25 @@ public class GatewayConfig {
                 throw new IllegalStateException(
                         "nexus.gateway.rate-limit.backend=redis, but no ReactiveStringRedisTemplate is configured");
             }
-            backend = new RedisRateLimitBackend(template, ratePerSecond, burst, redisKeyPrefix);
+            backend = new RedisRateLimitBackend(
+                    template, ratePerSecond, burst, redisKeyPrefix, Duration.ofMillis(backendTimeoutMs));
         } else {
             throw new IllegalStateException("unknown nexus.gateway.rate-limit.backend '" + backendName
                     + "'; expected 'memory' or 'redis'");
         }
         // A reading at startup, because "the limiter is on, on which backend" is otherwise indistinguishable
-        // from "the limiter was never wired" until somebody measures a 429 by hand.
+        // from "the limiter was never wired" until somebody measures a 429 by hand. The self-owned deadline is
+        // logged only for redis (memory answers in-process and has no wait to bound).
         log.info(
-                "gateway rate limit: enabled={} backend={} ratePerSecond={} burst={} maxClients={}",
+                "gateway rate limit: enabled={} backend={} ratePerSecond={} burst={} maxClients={}{}",
                 enabled,
                 backend.describe(),
                 ratePerSecond,
                 burst,
-                maxClients);
+                maxClients,
+                backend instanceof RedisRateLimitBackend redisBackend
+                        ? " backendTimeout=" + redisBackend.backendTimeout()
+                        : "");
         return new RateLimitFilter(enabled, backend);
     }
 

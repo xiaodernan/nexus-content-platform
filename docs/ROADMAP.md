@@ -11649,3 +11649,51 @@ decision；护栏坏了不该把门焊死」。但这条承诺此前只有 `Rate
   typecheck **14/14 PASS**。整仓 eslint 仍是本机内存超时边界（非 lint 报错），如实记；未推送。
 - **仍欠（同前片）**：响应中途断开；`RedisRateLimitBackend` 显式超时硬上界（blackhole 形态）；多实例
   breaker 聚合；CI `topology` job 经真实 push 执行。
+  > 上片留的「显式超时硬上界」已由下一片 §SC 第三十二片接上，并诚实划定它在 connect 阶段的边界。
+
+## §SC 第三十二片：共享限流器有了自持 deadline——把「没回答」在网关自己的表上变成 fail-open，并诚实划出 connect 阶段边界（2026-11-11）
+
+- **缺口**：ADR-0107 在真实 connection-refused 上证明了 fail-open，但 `RateLimitFilter.onErrorResume` 有一条
+  从未被写下的前提——backend **最终要产生 error**。一个「连上却永不回」的 backend（`Flux.never()`：命令卡死、
+  池耗尽等槽、Lua 死循环、DNS hang）既不 emit 也不 error，`onErrorResume` 永不触发，请求永久挂在限流关——
+  用坏护栏把门焊死，正是 `RateLimitFilter` 注释发誓避免的 "degraded limiter → full outage"。SC-35 明确定过：
+  给 fail-open 一个与 Lettuce 实现无关的硬上界，是「生产改动，另立一片」，本片即那一片。
+- **生产改动（最小、不碰 fail-open 语义）**：`RedisRateLimitBackend.tryAcquire()` 在 `map` 后叠
+  `.timeout(backendTimeout)`，把「没回答」在 deadline 上变成 `TimeoutException` error，交回 SC-12 原有
+  `onErrorResume` 链；`GatewayConfig.rateLimitFilter` 注入 `nexus.gateway.rate-limit.backend-timeout-ms`
+  （env `NEXUS_GATEWAY_RATE_LIMIT_BACKEND_TIMEOUT_MS`，默认 **1000ms**）并写进启动日志；构造器 **fail-closed
+  拒绝** `null`/零/负上界。`RateLimitFilter`、`application.yml` 的 fail-open 取舍、memory 后端均不改。
+- **先实测（三次一次性探针，跑完即删；读数见 ADR-0108）**——结果**推翻了初始方案**，故如实记：
+  1. 探针①（mock backend `Flux.never()`）：改前靠调用方 `block(600ms)` 才脱离；链外叠 `+200ms` 则在
+     **267ms** 由响应式链自己 error。命门是两种 `TimeoutException` **来源不同**：前者是调用方强加、backend
+     零信号，后者才是 `onErrorResume` 能接住的那一种。
+  2. 探针②（真实 Lettuce 连 TCP accept 后永不回字节的黑洞，Lettuce 超时压到 3s）：`execute()` 调用 **4ms**
+     （懒）；带 `.timeout(400ms)` 的 `tryAcquire` 却等了 **4051/3085ms**，异常是 Lettuce 的
+     `RedisConnectionFailureException`——**400ms 自持上界没有先于 connect 阶段触发**。
+  3. 探针③（对比专用 scheduler）在 `dispose`/Lettuce 非 daemon 线程清理时 **hang 住 JVM 退出**，跑 9 分钟
+     日志 0 字节，按「遇阻塞绕开、不把超时说成通过」主动 kill，**不作任何结论证据**，只记一次探测失败。
+- **据此重新定位（关键诚实决策）**：初始以为「叠 `.timeout` = 全形态自持硬上界」，探针②证伪它对**连接层
+  黑洞**的覆盖——Reactor timer 中断不了 Lettuce **connect 订阅**（Netty connect/cancel 语义），那种形态本就该
+  由 `spring.data.redis.connect-timeout`（默认 1s，探针故意拉到 3s 才显出 3-4s）兜底。`.timeout(backendTimeout)`
+  真正守的是**连接已建立后、命令答复永不返回**的形态（探针① 的 `Flux.never()` 是其确定性等价）——那正是 backend
+  自己该负责、下游 command timeout 可能因配得过长而没守住的窗口。**不改生产方案，但把承诺边界说清楚**：它是
+  网关自持的**命令阶段** deadline，不是连接阶段的替代；两者是分工。把这点说成「全形态硬上界」即假绿。
+  旁证：本片首版 wire 用真实 TCP 黑洞 + `connect-timeout=10s`，3 轮断言**只在耗时那行红**（11953ms），
+  `status==200`/`wire==1` 全过——黑洞下门**最终未焊死**、诚实 200、穿后端恰 1 次，只是兜底耗时由 Lettuce 决定。
+- **双判据，各钉各的、不越界**：
+  - **单元** `RedisRateLimitBackendTest`（原 5 条语义不变 + 新增 3 条）：`Flux.never()` → 宽松上界内以
+    `java.util.concurrent.TimeoutException` 结束（不 pin 精确毫秒）、上界即配置值、非正上界构造期拒绝。
+  - **wire** `GatewayRedisBackendTimeoutWiringTest`：用 `@Primary` 的 `Flux.never()` Redis 模板（受控源，
+    刻意移除网络 confounder）经**真实网关过滤器链**证明 deadline 触发后：门不焊死（诚实 200）、请求穿后端
+    恰 1 次、fail-open 告警不静默、无 hang（8s 宽松上界只抓真挂死）。实测日志坐实是网关自持的 deadline 在
+    工作：`fail-open ... TimeoutException: Did not observe any item or terminal signal within 400ms in 'map'`。
+  - 与 SC-35 构成**完整故障谱**：SC-35 = 真实 connection-refused（Lettuce 兜底）；SC-36 = 命令阶段永不返回
+    （网关自持 deadline 兜底）；连接层黑洞边界本片如实记录（Lettuce `connect-timeout` 兜底）。
+- **刻意不 pin / 诚实边界**：精确耗时（400ms 是配置值，实际受 scheduler 抖动；wire 8s 上界只兜真 hang，单元
+  只要求远小于 3s 逃生口）；**不宣称连接阶段有自持硬上界**（探针②，要消除需改 Lettuce/Netty 层或独立连接
+  看门狗，属更大生产改动，记下待评估）；探针③ hang 不作证据；memory 后端无等待可 bound，不受影响；不改
+  `RateLimitFilter` 与 fail-open 取舍。
+- **读数**：单元 `RedisRateLimitBackendTest` **8/8**、wire 单类 **1/1 PASS**；网关全套与顶层 typecheck 见下方
+  验证记录。整仓 eslint 仍是本机内存超时边界（非 lint 报错，本轮零前端文件），如实记；未推送。
+- **仍欠（同前片，去掉已闭合的「显式超时硬上界」）**：连接层黑洞的独立看门狗（消除 connect 阶段对 Lettuce
+  的依赖，需更大生产改动）；响应中途断开；多实例 breaker 聚合；CI `topology` job 经真实 push 执行。

@@ -57,6 +57,13 @@ nexus:
       # Only the redis backend uses this prefix. Deployments sharing one server with another gateway share
       # buckets only if they share this prefix, which is why it is configuration rather than a literal.
       redis-key-prefix: ${NEXUS_GATEWAY_RATE_LIMIT_KEY_PREFIX:nexus:gateway:rate:}
+      # SC-36 — the gateway's OWN deadline on the shared limiter's answer (redis backend only). Fail-open can
+      # only fire once the backend produces an error; Lettuce's connect/command timeouts are a client detail
+      # that does not cover a blackholed server, an exhausted connection pool or a hung DNS lookup. This bound
+      # guarantees "no answer" becomes an error on a deadline WE own, then flows into the existing fail-open.
+      # Keep it relative to spring.data.redis.timeout above: the first of the two to fire wins, and both lead to
+      # allow-unthrottled. Only affects the limiter, whose failure mode is "allow"; never a slow request path.
+      backend-timeout-ms: ${NEXUS_GATEWAY_RATE_LIMIT_BACKEND_TIMEOUT_MS:1000}
     # SC-8 — how long /platform/health waits for one instance's GET /actuator/health. Short on purpose: the
     # answer is "what is true right now", and a probe that takes 30 s has already stopped being one.
     health-probe-timeout-ms: ${NEXUS_GATEWAY_HEALTH_TIMEOUT_MS:1500}

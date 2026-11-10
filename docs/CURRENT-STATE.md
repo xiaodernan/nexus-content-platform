@@ -12,7 +12,21 @@
 > 本轮开工复核：`git worktree list` 仅 main、无游离分支/stash、`--no-merged` 为空，**git 侧无可并内容**。
 > 未推送（无明确指令）。
 >
-> **2026-11-11 续（§SC-35 / ADR-0107，最新）**：共享限流器（`redis` 后端）的 **fail-open** 承诺第一次在
+> **2026-11-11 续（§SC-36 / ADR-0108，最新）**：给共享限流器装了**网关自持的命令阶段 deadline**——
+> `RedisRateLimitBackend.tryAcquire()` 叠 `.timeout(backendTimeout)`（`nexus.gateway.rate-limit.backend-timeout-ms`，
+> 默认 1000ms，构造器 fail-closed 拒绝非正值），把「backend 连上却永不回」在 deadline 上变成 error，交回 SC-12
+> 原有 fail-open 链；不改 `RateLimitFilter`。命门是 `onErrorResume` 从前提（backend 最终产生 error）变成承诺。
+> **三次一次性探针推翻了初始「全形态自持硬上界」方案，故诚实划界**：真实 Lettuce **connect 阶段**黑洞下
+> `.timeout(400ms)` 没先触发（等了 3-4s，由 Lettuce `connect-timeout` 兜底——Reactor timer 中断不了 connect 订阅）；
+> 第三支对比探针在清理阶段 hang 住 JVM 退出，主动 kill、不作证据。`.timeout` 真正守的是**连接已建立后命令永不回**
+> 的形态（探针① `Flux.never()` 确定性等价）；两者是分工，绝不假报「全形态硬上界」。双判据：单元
+> `RedisRateLimitBackendTest` **8/8**（never→界内 TimeoutException、上界可配置、非正值拒绝构造）+ wire
+> `GatewayRedisBackendTimeoutWiringTest` **1/1**（受控 `Flux.never()` 经真实过滤器链：门不焊死诚实 200、穿后端
+> 恰 1、告警不静默、无 hang，日志坐实 `TimeoutException ... within 400ms in 'map'` 触发 fail-open）。与 SC-35
+> 真实 connection-refused 构成完整故障谱。**仍欠**：连接层黑洞的独立看门狗（消除 connect 阶段对 Lettuce 的依赖，
+> 属更大生产改动）。详见 ADR-0108 / ROADMAP 第三十二片。
+>
+> **2026-11-11 续（§SC-35 / ADR-0107）**：共享限流器（`redis` 后端）的 **fail-open** 承诺第一次在
 > **真实 Lettuce 连接失败**上被测——此前只有 `RateLimitFilterTest` 的 mock `Mono.error` 单测。配
 > `backend=redis` 指向端口 1（无监听、确定性 connection-refused），一次性探针 3 轮实测：caller 全 **200**、
 > 后端 stub wire 全 **1**、耗时 **1205ms→22ms→19ms**（首轮冷 Lettuce 失败+重试、失败缓存后快速失败），

@@ -1,5 +1,6 @@
 package dev.nexus.gateway;
 
+import java.time.Duration;
 import java.util.List;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -23,6 +24,16 @@ import reactor.core.publisher.Mono;
  * <p>Why an expiry: the map of clients belongs to the caller, so keys must disappear on their own. The TTL is
  * the time a full bucket takes to refill (plus a margin), after which the key's state is indistinguishable
  * from a fresh one; an idle client costs Redis nothing instead of leaking one key per address forever.
+ *
+ * <p><b>Why a self-owned timeout (SC-36).</b> Fail-open lives in {@link RateLimitFilter#onErrorResume}, which
+ * can only fire if this backend eventually produces an ERROR. Lettuce has its own connect/command timeouts,
+ * but those are a CLIENT detail this class does not control: a blackholed Redis, an exhausted connection pool
+ * waiting for a slot, or a hung DNS lookup can all leave {@code redis.execute(...)} neither emitting nor
+ * erroring. In that shape, {@code onErrorResume} never fires and the request hangs at the limiter — a degraded
+ * limiter welding the door shut, the exact failure fail-open exists to prevent. So the bound lives HERE, in the
+ * gateway's own decision: {@link #tryAcquire} applies {@code timeout(backendTimeout)}, turning "no answer" into
+ * an error on a deadline the deployment owns, independent of how Lettuce happens to be configured. The error
+ * then flows into the existing fail-open path unchanged.
  */
 final class RedisRateLimitBackend implements RateLimitBackend {
 
@@ -70,14 +81,26 @@ final class RedisRateLimitBackend implements RateLimitBackend {
     private final int burst;
     private final long ttlMillis;
     private final String keyPrefix;
+    private final Duration backendTimeout;
 
     RedisRateLimitBackend(
-            ReactiveStringRedisTemplate redis, double refillPerSecond, int burst, String keyPrefix) {
+            ReactiveStringRedisTemplate redis,
+            double refillPerSecond,
+            int burst,
+            String keyPrefix,
+            Duration backendTimeout) {
+        // Fail-closed on configuration, fail-open on runtime failure. A non-positive bound would either
+        // throw on every request (zero) or disable the very guarantee this field exists to provide (negative
+        // is rejected by Reactor too); refusing to start is clearer than a limiter that silently never waits.
+        if (backendTimeout == null || backendTimeout.isZero() || backendTimeout.isNegative()) {
+            throw new IllegalArgumentException("backendTimeout must be a positive duration, got " + backendTimeout);
+        }
         this.redis = redis;
         this.refillPerSecond = Math.max(0, refillPerSecond);
         this.burst = Math.max(1, burst);
         this.keyPrefix = keyPrefix.endsWith(":") ? keyPrefix : keyPrefix + ":";
         this.ttlMillis = ttlMillis(this.burst, this.refillPerSecond);
+        this.backendTimeout = backendTimeout;
     }
 
     @Override
@@ -90,7 +113,15 @@ final class RedisRateLimitBackend implements RateLimitBackend {
                                 String.valueOf(refillPerSecond),
                                 String.valueOf(ttlMillis)))
                 .next()
-                .map(result -> result != null && result == 1L);
+                .map(result -> result != null && result == 1L)
+                // SC-36: the gateway's own deadline. If Redis never answers, this emits a TimeoutException
+                // on the bound, which RateLimitFilter's onErrorResume turns into fail-open. Without it, a
+                // never-answering backend hangs the request forever — see the class comment.
+                .timeout(backendTimeout);
+    }
+
+    Duration backendTimeout() {
+        return backendTimeout;
     }
 
     @Override
