@@ -15,6 +15,8 @@
  *      Hikari warm-up and can exceed the gateway's 5s response bound (observed live: 503
  *      service_unavailable naming TimeoutException). The smoke retries idempotent GETs until the door
  *      answers non-503, so it measures the topology, not the warm-up.
+ *   8. the gateway's own composite view of the registry (`GET /platform/services`) lists the domain
+ *      service — discovery is not merely wired, it is answering at the door.
  *
  * Exits 0 only when every check passed. Exits 1 on the first failure and ALWAYS stops the three
  * services it started — a smoke that leaves three JVMs behind is a smoke that exhausts the box.
@@ -221,6 +223,25 @@ async function main() {
   }
   if (!warmed) bad('domain-service warms through the door', 'still 503 after 120s of retries');
   else ok('domain-service answers through the door (warm-up)');
+
+  // The gateway's composite view of the registry, read at the door. Retry: on a loaded runner the
+  // gateway's eureka fetch lags registration by seconds, not minutes.
+  const discoveryDeadline = Date.now() + 30_000;
+  let listed: string[] = [];
+  while (Date.now() < discoveryDeadline) {
+    const res = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/platform/services`, {
+      signal: AbortSignal.timeout(5_000),
+    }).catch(() => null);
+    if (res?.ok) {
+      const body = await res.json().catch(() => null) as { services?: Array<{ id?: string }> } | null;
+      listed = (body?.services ?? []).map((s) => String(s.id ?? ''));
+      if (listed.some((id) => id.toLowerCase().includes('domain-service'))) break;
+    }
+    await new Promise((r) => setTimeout(r, 1_000));
+  }
+  if (!listed.some((id) => id.toLowerCase().includes('domain-service'))) {
+    bad('gateway discovery lists nexus-domain-service', `services=${JSON.stringify(listed)}`);
+  } else ok(`gateway discovery lists ${listed.join(', ')}`);
 
   // Through the gateway: the community surface
   const policy = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/community/policy`, { signal: AbortSignal.timeout(10_000) });
