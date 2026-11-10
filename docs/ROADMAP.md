@@ -11354,3 +11354,18 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
 - 故意不做的测量：failover/eviction（eureka lease ≤90s + gateway LB 缓存自己的时钟——
   "杀一个还能通"是超时不是性质）；轮询交替（带了实例 id 就是把部署细节泄进响应契约）。
 - 与 8771 的关系：registry 换端口（ADR-0100）后本 smoke 默认走 8773，不撞主冒烟的 8771。
+
+## §SC 第二十三片：认证门活体——抓到网关自己不认自己门的洞（2026-11-10）
+
+- 触发：`verify:auth` 首跑，9 条断言红 2 条，两条都是真发现：
+  1. 缺词真的是 `missing_token`（我曾断言 `missing`）——修断言，真值以运行中网关为准；
+  2. **`/platform/services` 无 token 答 200**——AuthFilter 是 GlobalFilter，只在路由管道生效；
+     网关自己的 controller 在 WebFlux 层先被答掉，拓扑地址簿公开可读。
+- 修复（§SC-27）：新增 `PlatformAuthFilter`（WebFilter，HIGHEST_PRECEDENCE+5，与 AuthFilter 同白名单/同
+  secret/同 reason 词/同 X-Nexus-Subject 覆写）；8 条无 Spring 上下文测试全绿；AuthFilterTest 9/9。
+  **route 流量被查两次（WebFilter + GlobalFilter）——幂等、刻意、一次 HMAC 的代价。**
+- 如实记：修复后本机 ~169MB 空闲（vmmemWSL/msedge/docker——非本仓进程，未动），gateway 150s 起不来，
+  `verify:auth` 非零退出并清干净——**机器没内存，不是门坏了**；CI topology job 已追加 verify:auth 步骤。
+- 顺带控制了实验：`ServiceHealthProbeTest` 三条应 DOWN/UP 的断言在 124–169MB 空闲下全变 UNKNOWN；
+  把我两个新文件移出再跑**同样失败**——资源问题实证，非本片引入；未改测试。
+- CI topology job 现在有三个冒烟步骤（topology/lb/auth），**仍从未被真实 CI 执行过**。
