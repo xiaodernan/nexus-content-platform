@@ -23,9 +23,9 @@
 - **注册中心默认端口已迁到 8771（2026-11-10，ADR-0100）**——8761 被本机另一项目（`D:\3a大作`）的
   Spring Cloud 栈占用（其 config-server 心跳进来，registry 日志可考）；本仓库的 registry 与所有服务的
   `defaultZone` 现在默认都指向 8771，`/platform/services` 读数只列出本仓库服务；
-- **网关自己的地址簿此前公开可读**（§SC-27）：`/platform/services` 无 token 答 200——`GlobalFilter` 不覆盖网关自己的 controller。已修：`PlatformAuthFilter`（WebFilter），同白名单同 secret；`npm run verify:auth` 首跑红出它，CI 已追加该步骤；
-- **本机内存枯竭（~150MB 空闲）**：`ServiceHealthProbeTest` 三条真 socket 断言全变 UNKNOWN——对照实验证实（移走两个新文件同样失败）；非本片引入，未改测试，CI 才是裁判；
-- **CI 的 topology job 现在有三个冒烟步骤（topology / lb / auth），全部从未被真实 CI 执行过**——首个 push 会一次性裁判它们；
+- **网关自己的地址簿此前公开可读**（§SC-27）：`/platform/services` 无 token 答 200——`GlobalFilter` 不覆盖网关自己的 controller。已修：`PlatformAuthFilter`（WebFilter），同白名单同 secret；修复后本机活体验证 12/12 PASS；**顺带抓到并修了 `@Component` 双构造器导致的 boot 崩溃**（`BeanInstantiationException`）——standalone 单测抓不到，因此新增 `PlatformAuthWiringTest`（真实 wiring 上下文）；
+- **CI 的 topology job 现在有三个冒烟步骤（topology / lb / auth），全部从未被 push 真实 CI 执行过**——首个 push 会一次性裁判它们；
+- 冒烟 spawned JVM 已加 `-Xmx` 上界（domain 512m / 其他 384m，`NEXUS_SMOKE_HEAP[_DOMAIN]` 可覆盖）；本机内存枯竭的窗口里 `ServiceHealthProbeTest` 曾三条断言变 UNKNOWN——对照实验证实非本次改动、恢复后 4/4 全绿；
 - 2026-11-10 起 `npm run eslint` 是"真·0 错误"（此前一例是配置崩溃导致的假绿），见 ADR-0098。
 
 ## 评测（§85）

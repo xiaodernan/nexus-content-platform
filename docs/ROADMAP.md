@@ -11369,3 +11369,9 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
 - 顺带控制了实验：`ServiceHealthProbeTest` 三条应 DOWN/UP 的断言在 124–169MB 空闲下全变 UNKNOWN；
   把我两个新文件移出再跑**同样失败**——资源问题实证，非本片引入；未改测试。
 - CI topology job 现在有三个冒烟步骤（topology/lb/auth），**仍从未被真实 CI 执行过**。
+- 修复后本机 `verify:auth` **12/12 PASS**（678MB 空闲窗口）——读数见 `docs/evidence/sc27-auth-door-live-proof.md`；
+  修复过程中又抓到并修了真实 boot 崩溃：`@Component` 双构造器 → `BeanInstantiationException: No default constructor found`，
+  standalone 单测抓不到，因此新增 `PlatformAuthWiringTest`（真实 Spring wiring 上下文）。
+- 冒烟 spawned JVM 加 `-Xmx` heap 上界（`NEXUS_SMOKE_HEAP[_DOMAIN]` 可覆盖；domain 512m / 其余 384m）——内存吃紧时 Spring Boot 起不动，不能把"养不起"当"门坏了"。
+- `ServiceHealthProbeTest` 在内存恢复后 4/4 全绿；CI runner 才是这类时延断言的判决场。
+- CI topology job 三个冒烟步骤（topology / lb / auth）仍从未被 push 真实 CI 执行过。

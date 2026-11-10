@@ -89,10 +89,18 @@ async function waitForUrl(url: string, want: number, deadlineMs: number) {
   return last;
 }
 
+/** 每个 JVM 的 heap 上限——本机 16GB 常常只剩几百 MB。 */
+function heapArgs(service: string) {
+  const dedicated = process.env.NEXUS_SMOKE_HEAP_DOMAIN && service.startsWith('domain') ? process.env.NEXUS_SMOKE_HEAP_DOMAIN
+    : process.env.NEXUS_SMOKE_HEAP;
+  const size = dedicated ?? (service.startsWith('domain') ? '512m' : '384m');
+  return [`-Xmx${size}`];
+}
+
 function spawnJar(name: string, jar: string, env: Record<string, string> = {}) {
   const log = path.join(LOG_DIR, `${name}.log`);
   const err = path.join(LOG_DIR, `${name}.err`);
-  const child = spawn('java', ['-jar', jar], {
+  const child = spawn('java', [...heapArgs(name), '-jar', jar], {
     cwd: repo,
     env: { ...process.env, ...env },
     stdio: ['ignore', 'pipe', 'pipe'],

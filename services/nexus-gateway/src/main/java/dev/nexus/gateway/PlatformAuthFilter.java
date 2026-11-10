@@ -44,6 +44,7 @@ public class PlatformAuthFilter implements WebFilter {
     private final List<String> whitelistExact;
     private final List<String> whitelistPrefixes;
 
+    @org.springframework.beans.factory.annotation.Autowired
     PlatformAuthFilter(
             @org.springframework.beans.factory.annotation.Value("${nexus.gateway.auth.enabled:false}")
             boolean enabled,

@@ -17,13 +17,41 @@
    **完全相同**的规则（白名单 /platform/health、/actuator/health、/fallback/**；同 secret；同 reason 词）；
    route 流量会被查两次（WebFilter + GlobalFilter）——幂等、刻意、代价一次 HMAC-SHA256。
    8 条无 Spring 上下文的测试全绿（`PlatformAuthFilterTest`），`AuthFilterTest` 9/9 全绿。
-4. **活体验证本轮没能跑完**（如实）：修复后本机只有 ~169MB 空闲物理内存（vmmemWSL 3GB、
-   msedge 2.4GB、docker 907MB——全部不是本仓库的进程，不动），gateway 在 150 秒内起不来，
-   `npm run verify:auth` 以非零退出、三个 JVM 全部清干净。**不是门坏了，是机器没内存了。**
-   - CI `main-line.yml` 的 topology job 已追加 `verify:auth` 步骤（8774/8087/8093）——CI 的 7GB
-     runner 才是这扇门的真正验收场；一次真实 push 之前，它依然从未被 CI 实跑过。
-   - 单元层的事实：WebFilter 与 GlobalFilter 走同一个 `AuthFilter.verify`——网关自己的面与后端的面
-     现在过同一把锁。
+4. **修复后活体验证一次通过**（本机 678MB 空闲时段）：`npm run verify:auth`（`NEXUS_GATEWAY_PORT=8093`）
+   全部 12 条断言读数见下。其间又抓到并修了一个真实的 boot 崩溃：**`@Component` 双构造器**——
+   `PlatformAuthFilter` 有两个包级私有构造器，Spring 的隐式单构造器注入不成立、两个都没 `@Autowired`，
+   gateway 在 `BeanInstantiationException` 处直接起不来。看日志才发现（`No default constructor found`）。
+   修法：注解化 `@Value` 构造器。**standalone 单元测试抓不到这个**（没有 Spring 上下文），
+   因此新增 `PlatformAuthWiringTest`——与 `GatewayAuthWiringTest` 同款的 real-socket wiring 测试：
+   无 token 在网关自己的面上 401、有 token 200、`/platform/health` 白名单、拒绝 body 与路由边逐字同款。
+5. **仍如实的两件**：
+   - `ServiceHealthProbeTest` 在本机内存枯竭时曾三条断言被判 UNKNOWN；控制了对照实验（把两个新文件
+     移走同样失败）；如今内存恢复后 **4/4 全绿**；
+   - CI 的 topology job 追加 `verify:auth` 步骤（8774/8087/8093）——**CI 依然从未被 push 实跑过**。
+
+## 活体读数（2026-11-10，修复后本机）
+
+```
+gateway is answering (auth enabled)
+door-less request refused (401, reason=missing_token)
+garbage token refused (401, reason=bad_format)
+wrong-secret token refused (401, reason=bad_signature)
+expired token refused (401, reason=expired)
+valid token passes the door (200)
+X-Request-Id echoed (correlation id survives auth)
+backend saw exactly the minted subject (User not found: aaaaaaaa-1111-4000-8000-000000000027)
+whitelisted /platform/health answers without a token (200)
+diagnostic /platform/services requires a token (401)
+[verify-auth] stopped registry / domain-service / gateway
+[verify-auth] PASS — the door verifies a real signature against a real secret, or it refuses
+```
+
+两个附带的修复（都是 smoke 自身，非业务）：
+- 冒烟 spawned JVM 加 `-Xmx` heap 上界（domain 512m、其余 384m，可 `NEXUS_SMOKE_HEAP[_DOMAIN]` 覆盖）——
+  本机内存吃紧时 Spring Boot 起不动，不能把"机器养不起"当"门坏了"；
+- `ServiceHealthProbeTest` 在恢复后全绿（4/4）——前一次红是纯资源现象，未改测试。
+
+## CI 拓扑 job（现在）
 
 ## 顺带：`ServiceHealthProbeTest` 两个主机环境已实证
 
@@ -41,6 +69,7 @@
 
 ## 仍欠
 
-- 本机的活体验证（等内存窗口：verify:auth 重跑 + verify:topology / verify:lb 复跑）；
-- `ServiceHealthProbeTest` 在小内存主机上的稳定性——应在 CI 跑出真判决，本机不改测试去迁就环境；
+- ~~本机的活体验证~~——已完成（见上活体读数）：`verify:auth` 12/12 PASS、`verify:topology` 与
+  `verify:lb` 在加堆上界后复跑全绿；
+- `ServiceHealthProbeTest` 在小内存主机上的稳定性——本机已恢复全绿（4/4）；CI 的 7GB runner 作为判决场；
 - 3a大作 的 config-server 仍会心跳进 8761——本仓库已迁 8771（ADR-0100），不再有它在默认目标上。
