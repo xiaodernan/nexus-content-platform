@@ -416,3 +416,9 @@ export NEXUS_PROOF_SOURCE=nexus-postgres NEXUS_PROOF_DB_PORT=55433
 "自己起 scratch 容器"那条路，然后卡死在 `docker run` 上（2026-11-10 两次实跑都是这个形状）。
 两个遗留的 `Created` 尸体容器（`nexus-java-pg`、`nexus-proof-source-…`）就是这类中断的痕迹，
 引擎允许时再 `docker rm -f`。
+
+**`exec` 也会挂**（2026-11-11 实测）：一次 `docker exec nexus-postgres pg_dump …` 通过 `spawnSync`
+调用时永久阻塞——证明进程活着、日志停在 §2、`ps` 里**看不到任何子进程**，五分钟后只能手工杀掉。
+`spawnSync` 没有默认超时，所以"挂住"和"还在算"在同一份日志里长得一模一样。现在证明里每个
+`spawnSync('docker', …)` 都带显式 `timeout`，`run()` 也在 300 s 处杀子进程并回报是哪一条命令；
+`docker exec` 本身仍然是这台机器上最可靠的那条路，但"最可靠"不等于"一定回话"。

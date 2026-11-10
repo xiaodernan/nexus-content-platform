@@ -65,7 +65,7 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { createConnection } from 'node:net';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -149,15 +149,33 @@ function canConnect(port, timeoutMs = 1000) {
  */
 function run(cmd, args, opts = {}) {
   return new Promise((resolve) => {
+    const limit = opts.timeout ?? 300_000;
     const child = spawn(cmd, args, { cwd: REPO_ROOT, ...opts });
     let out = '';
+    let timedOut = false;
+    // A proof that HANGS is worse than a proof that fails: measured 2026-11-11, one `docker exec`
+    // blocked forever and the run sat silent at §2 for five minutes with nothing to point at. Every
+    // child gets a limit, and the answer says which limit it was.
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGKILL');
+    }, limit);
     child.stdout?.on('data', (d) => { out += d; });
     child.stderr?.on('data', (d) => { out += d; });
     if (opts.input !== undefined) {
       child.stdin?.end(opts.input);
     }
-    child.on('close', (code) => resolve({ code, out }));
-    child.on('error', (e) => resolve({ code: -1, out: String(e) }));
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      resolve({
+        code: timedOut ? -1 : code,
+        out: timedOut ? `${out}\n[the command did not finish within ${limit} ms and was killed]` : out,
+      });
+    });
+    child.on('error', (e) => {
+      clearTimeout(timer);
+      resolve({ code: -1, out: String(e) });
+    });
   });
 }
 
@@ -294,12 +312,37 @@ async function httpText(url) {
   return { status: response.status, text: await response.text() };
 }
 
-async function httpJson(url) {
-  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+async function httpJson(url, headers = {}) {
+  const response = await fetch(url, { headers: { Accept: 'application/json', ...headers } });
   const text = await response.text();
   let body;
   try { body = JSON.parse(text); } catch { body = text; }
   return { status: response.status, body, text };
+}
+
+/**
+ * Wait until a service's captured log carries a needle, and answer the line that carries it.
+ *
+ * <p>Needed because a log line and a response are two different facts about one request: the edge
+ * writes its "answered" line from {@code doFinally}, which can run a millisecond after the client
+ * has already read the body. Polling is not slack — it is the honest way to ask "did this hop write
+ * it" without pretending the two events are ordered.
+ */
+async function waitForLog(handle, needle, timeoutMs, who) {
+  const began = Date.now();
+  for (;;) {
+    const line = handle.log().split('\n').find((each) => each.includes(needle));
+    if (line) {
+      return line.trim();
+    }
+    if (Date.now() - began > timeoutMs) {
+      throw new Error(
+        `${who} never wrote a line carrying ${needle}. Its log's last 1200 characters were:\n`
+        + handle.log().slice(-1200),
+      );
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
 }
 
 /**
@@ -407,12 +450,12 @@ async function teardown() {
   // The throwaway DATABASES go with the proof. Dropping them is best-effort: a database that could
   // not be dropped is a named leftover, and the name says which run it belongs to.
   for (const name of [DB_NAME_API, DB_NAME_DOMAIN]) {
-    spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', 'postgres', '-c', `DROP DATABASE IF EXISTS ${name}`]);
+    spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', 'postgres', '-c', `DROP DATABASE IF EXISTS ${name}`], { timeout: 60_000 });
   }
   // On the CI plane the SOURCE is gone too — the scratch container carried only this run's work.
   // On the local plane (NEXUS_PROOF_DB_CONTAINER set) the container is the operator's and stays.
   if (SCRATCH) {
-    const gone = spawnSync('docker', ['rm', '-f', SOURCE]);
+    const gone = spawnSync('docker', ['rm', '-f', SOURCE], { timeout: 60_000 });
     if (gone.status !== 0) {
       console.log(`[§16] warning: the scratch source ${SOURCE} could not be removed — the name says which run left it`);
     }
@@ -475,7 +518,7 @@ try {
   // pgvector/pgvector:pg16, runs a scratch source, and replays the repository's own ordered
   // migrations into it. The two planes share every remaining byte of what follows.
   if (SCRATCH) {
-    const pull = spawnSync('docker', ['pull', 'pgvector/pgvector:pg16'], { maxBuffer: 64 * 1024 * 1024 });
+    const pull = spawnSync('docker', ['pull', 'pgvector/pgvector:pg16'], { maxBuffer: 64 * 1024 * 1024, timeout: 600_000 });
     assert.equal(
       pull.status,
       0,
@@ -495,7 +538,7 @@ try {
     );
     const deadline = Date.now() + 90_000;
     for (;;) {
-      const ready = spawnSync('docker', ['exec', SOURCE, 'pg_isready', '-U', DB_USER, '-d', DB_PLATFORM], { encoding: 'utf8' });
+      const ready = spawnSync('docker', ['exec', SOURCE, 'pg_isready', '-U', DB_USER, '-d', DB_PLATFORM], { encoding: 'utf8', timeout: 20_000 });
       if (ready.status === 0) break;
       if (Date.now() > deadline) {
         throw new Error(`the scratch source ${SOURCE} never answered pg_isready in 90s: ${ready.stdout}${ready.stderr}`);
@@ -505,7 +548,7 @@ try {
     const inspect = spawnSync(
       'docker',
       ['inspect', '-f', '{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}', SOURCE],
-      { encoding: 'utf8' },
+      { encoding: 'utf8', timeout: 20_000 },
     );
     dbPort = Number(inspect.stdout.trim());
     assert.ok(
@@ -521,7 +564,7 @@ try {
     const ext = spawnSync(
       'docker',
       ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', DB_PLATFORM, '-v', 'ON_ERROR_STOP=1', '-q', '-c', 'CREATE EXTENSION IF NOT EXISTS vector'],
-      { encoding: 'utf8' },
+      { encoding: 'utf8', timeout: 60_000 },
     );
     assert.equal(ext.status, 0, `the scratch source refused the pgvector extension:\n${ext.stdout}${ext.stderr}`);
     for (const file of order) {
@@ -529,7 +572,7 @@ try {
       const done = spawnSync(
         'docker',
         ['exec', '-i', SOURCE, 'psql', '-U', DB_USER, '-d', DB_PLATFORM, '-v', 'ON_ERROR_STOP=1', '-q'],
-        { input: sql, maxBuffer: 64 * 1024 * 1024 },
+        { input: sql, maxBuffer: 64 * 1024 * 1024, timeout: 180_000 },
       );
       assert.equal(
         done.status,
@@ -563,7 +606,11 @@ try {
   const dump = spawnSync(
     'docker',
     ['exec', SOURCE, 'pg_dump', '-U', DB_USER, '-d', DB_PLATFORM, '--schema-only', '--no-owner', '--no-privileges'],
-    { maxBuffer: 64 * 1024 * 1024 },
+    // A TIMEOUT, because a proof that HANGS is worse than a proof that fails: measured 2026-11-11,
+    // `docker exec … pg_dump` blocked forever on this host and the run sat silent at §2 for five
+    // minutes with no child process to point at. `spawnSync` has no default timeout, so the hang was
+    // indistinguishable from "still working".
+    { maxBuffer: 64 * 1024 * 1024, timeout: 180_000 },
   );
   assert.equal(dump.status, 0, `pg_dump failed: ${dump.stderr?.toString().slice(-1500)}`);
   assert.ok(dump.stdout.length > 1000, 'pg_dump produced nothing to copy');
@@ -833,6 +880,80 @@ try {
     `the edge answered the scrape with something that is not a scrape: ${edgeAnswer.text.slice(0, 300)}`,
   );
   console.log('[§10b] the four CONSUMER doors answer the prometheus scrape in the exposition format — measured with the header a scraper sends, not assumed');
+
+  // ── §10c ONE trace id, minted by the CALLER, read at every hop (v656) ───────────────────
+  // §7 already made a call, and the first version of this section read the ids out of the logs that
+  // call left behind. It failed, and the failure was worth more than the section: only nexus-api's
+  // log carried an id at all. Two different reasons, both measured:
+  //
+  //   * the edge and the domain service wrote no line PER REQUEST (they wrote one line per process),
+  //     so the ids existed in the MDC and had nowhere to be printed;
+  //   * the edge, even once it wrote a line, printed EMPTY ids: WebFlux opens no thread-scoped span,
+  //     so its MDC is empty on the thread that logs (the wire was always right — see the class).
+  //
+  // So this section mints the id ITSELF and sends it as a W3C `traceparent`, which turns the question
+  // into one with a single possible answer: does the id the CALLER chose appear in the log of every
+  // hop the request crossed? An id the proof minted cannot be produced by a hop that lost it, and a
+  // hop that quietly started a new trace would print a different one. Sampling is 1.0 (the config
+  // says so) because a sampled-out request is a request with nothing to read.
+  const callerTraceId = randomBytes(16).toString('hex');
+  const callerSpanId = randomBytes(8).toString('hex');
+  const markedRead = await httpJson(`${gatewayBase}/api/domain/projects/${PROOF_PROJECT_ID}`, {
+    traceparent: `00-${callerTraceId}-${callerSpanId}-01`,
+  });
+  assert.equal(
+    markedRead.status,
+    200,
+    `the marked call must still return the row; it answered ${markedRead.status}: ${markedRead.text.slice(0, 300)}`,
+  );
+
+  // The three hops the request crossed: the edge (server side), nexus-api (server side), and the
+  // domain service (server side, reached by name through Feign). The registry is not one of them: it
+  // is discovery, not traffic.
+  const hops = ['gateway', 'api', 'domain'];
+  const named = { gateway: 'the edge', api: 'nexus-api', domain: 'the domain service' };
+  const lines = {};
+  for (const hop of hops) {
+    lines[hop] = await waitForLog(
+      running.get(hop),
+      callerTraceId,
+      15_000,
+      `${named[hop]} — the hop that the caller's trace id must reach`,
+    );
+  }
+
+  // The line must carry the id in the CORRELATION segment (`[app,traceId,spanId]`), not just
+  // somewhere in its text: that segment is what an operator greps, and it is filled by the logging
+  // pattern out of the MDC — so a match here says the ids reached the logger, not that a string was
+  // concatenated.
+  const segment = (line) => {
+    const found = line.match(/\[[a-z0-9-]+,([0-9a-f]{32}),([0-9a-f]{16})\]/);
+    return found ? { trace: found[1], span: found[2] } : null;
+  };
+  const seen = Object.fromEntries(hops.map((hop) => [hop, segment(lines[hop])]));
+  for (const hop of hops) {
+    assert.ok(
+      seen[hop],
+      `${named[hop]} carries the id but not in the correlation segment [app,traceId,spanId]: ${lines[hop]}`,
+    );
+    assert.equal(
+      seen[hop].trace,
+      callerTraceId,
+      `${named[hop]} must carry the CALLER's trace id ${callerTraceId}, not ${seen[hop].trace}`,
+    );
+  }
+  // One trace, three DIFFERENT spans: each hop made its own, which is what a chain looks like. If
+  // all three printed the same span id, the "hops" would be one hop writing three times.
+  const spanIds = new Set(hops.map((hop) => seen[hop].span));
+  assert.equal(
+    spanIds.size,
+    3,
+    `each hop must have its OWN span under the one trace; the span ids were ${JSON.stringify([...spanIds])}`,
+  );
+  console.log(
+    `[§10c] ONE trace id crossed all three hops — the id the CALLER minted (${callerTraceId}), with a `
+    + `different span at each: edge ${seen.gateway.span}, api ${seen.api.span}, domain ${seen.domain.span}`,
+  );
 
   // ── §11 the REGISTRY dies, and the chain keeps working ──────────────────────────────────
   // The interesting half of discovery: a service that has LEARNED where another service lives

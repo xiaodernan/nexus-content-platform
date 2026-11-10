@@ -362,7 +362,7 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
   was never a dependency, so the entire `management:` block named endpoints nothing served. The static gate
   now checks the three halves together (endpoint names, the registry, the actuator), so this shape is a red
   test rather than a twelve-minute run.
-- **Found on the way, and fixed (ADR 0057 amendment 658).** A whole proof run was lost because a NEIGHBOURING
+- **Found on the way, and fixed (ADR 0057, amended in v658).** A whole proof run was lost because a NEIGHBOURING
   project's config server was answering on `8888` — this repository's client default — and fed the domain
   service a foreign `eureka.client.service-url`, so it registered into their registry on 8761 and our proof
   waited 60 s for a name our registry had never been told. NEXUS's config door now defaults to **18888**
@@ -371,3 +371,49 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
   not open.
 - **The bound, stated.** This says the five doors ANSWER. There is no Prometheus server, no scrape config, no
   retention and no alerting in this repository, and none is claimed.
+
+## 2026-11-11 addendum (cont. 11): ONE trace id, minted by the caller, read at all three hops — v656, and the three wrong turns before it
+
+- **The claim.** A caller's W3C `traceparent` id, sent through the edge, is carried to `nexus-api`, across
+  the Feign call, and into `java-domain-service` — and every one of the three hops PRINTS it, in the
+  correlation segment `[app,traceId,spanId]`, with a span of its own. Witness (§10c of
+  `spring-cloud-proof.mjs`, 2026-11-11):
+  `ONE trace id crossed all three hops — the id the CALLER minted (0373802ea98db2a970186d32582b605f),
+  with a different span at each: edge c1997df94252e90c, api 4cc124a7c25cc1a6, domain c67537629f0cf928`.
+- **Why the id is MINTED here.** The first version read ids out of the logs the §7 call had already left
+  behind. It failed — and the failure was the slice. Harvested ids can belong to another request, or to a
+  failure from §12, which is exactly how the first version "found" an id at nexus-api. An id the caller
+  chose cannot be produced by a hop that lost it. §10c now generates it, sends it, and requires THAT id.
+- **Wrong turn #1 — an id needs a LINE.** `micrometer-tracing-bridge-brave` was on all three classpaths and
+  the MDC carried ids, but the edge and the domain service wrote **one line per process** and none per
+  request; nexus-api wrote per-request lines only when something FAILED. Three services, ids in three MDCs,
+  visible in one log. Each hop now has a `HopLogFilter` that writes two lines per request (received,
+  answered) — a production feature (what an operator greps at 03:00), not scaffolding for a proof.
+- **Wrong turn #2 — the edge's wire was right and its log was empty.** With a hop log added the edge printed
+  `[nexus-gateway,,] hop gateway received GET /api/domain/projects/abc` for a request that an echoing
+  upstream saw as `traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-e2a406945c3e465d-01`. WebFlux opens no
+  thread-scoped span: the observation lives in the Reactor context, so the Reactor thread that logs has
+  nothing in its MDC — and `Tracer.currentSpan()` is null there too. The edge now reads its own span off
+  `ServerRequestObservationContext.findCurrent(exchange.getAttributes())` and borrows its ids for exactly
+  the duration of one log call. The same span the wire carries, not a string concatenated from a header.
+- **Wrong turn #3 — the span is not under `Span.class`.** The first version of that fix asked the observation
+  context for `Span.class`: it compiled, ran, and printed empty ids again. The tracing handler keeps its span
+  inside a `TracingObservationHandler.TracingContext` (`context.getOrDefault(TracingContext.class, …)`, read
+  out of `micrometer-tracing` 1.5.12 with `javap`). A wrong key returns null, and null looks exactly like
+  "this hop has no span".
+- **Static half.** `apps/web/test/java-tracing-surface.test.ts` — 23 legs, ordinary population: the bridge is
+  in the three traffic poms and ONLY those three, `feign-micrometer` is on nexus-api (or the trace stops at
+  the call), every deployable prints `%X{traceId}`/`%X{spanId}` (the config server included, so the format
+  does not vary), propagation is W3C, sampling is a knob (`NEXUS_TRACING_SAMPLING`), every hop has a
+  `HopLogFilter` that logs and sees every request, and the edge's filter reads the observation.
+- **Four mutation arms, each red then restored** (2026-11-11): drop nexus-api's correlation pattern → 1 red;
+  drop `java-domain-service`'s brave bridge → 2 red; drop `feign-micrometer` → 1 red; move the gateway's hop
+  log file away → 2 red. The runtime arm is wrong turn #1 itself, which reddened §10c and named the two
+  silent hops.
+- **Also fixed on the way (proof hygiene).** `spawnSync` calls around `docker` now carry timeouts, and `run()`
+  kills at a 300 s ceiling: measured, one `docker exec … pg_dump` blocked forever and the run sat silent at
+  §2 for five minutes with no child process to point at. A proof that HANGS is worse than one that fails.
+- **The bound, stated.** There is no collector and no exporter: spans are created, given ids, propagated on
+  the wire, printed — and then they end with the process. This buys **log correlation** (follow one request
+  through three services by grep), not trace storage, per-span latency, or a service map. Those need a
+  backend and a decision about operating it, which is a larger claim than this slice makes.

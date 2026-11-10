@@ -21,7 +21,7 @@ database anybody else owns.
 
 ## What each proof claims, and which plane it claimed it on
 
-### `spring-cloud-proof.mjs` — the crown measurement (all 16 sections, all 16 re-earned)
+### `spring-cloud-proof.mjs` — the crown measurement (all 17 sections, all 17 re-earned)
 
 Boots registry → gateway → api → domain → PostgreSQL on **ad-hoc ports** against throwaway
 databases, and measures, section by section:
@@ -39,6 +39,7 @@ databases, and measures, section by section:
 | 9 | both breakers are visible and named as configured (`nexus-domain-service`, `nexusApiCircuitBreaker`) | the runtime's OWN names, read from the running service |
 | 10 | all four services answer their own health question — UP about themselves | four doors, four answers |
 | 10b | the four CONSUMER doors answer the **Prometheus scrape** — a body carrying `# HELP`/`jvm_`, not just a 200 (v658) | four doors, four scrapes |
+| 10c | **ONE trace id**, minted by the caller as a W3C `traceparent`, is required in the correlation segment of the edge, nexus-api AND the domain service — with three DIFFERENT span ids under it (v656) | three logs of one request |
 | 11 | with the REGISTRY dead the chain still works, and the duration of that comfort is MEASURED (a fetch interval + its TTL), not promised | §5.1 of ADR 0056 |
 | 12 | with the DOMAIN service dead the service-to-service door answers 503, names it, and says WHICH failure (`timeout` since 2026-11-10) | measured against a killed container |
 | 13 | the breaker OPENS and the refusal is attributed — `not.permitted.calls` counts it, and the answer says `circuit-breaker-open`. The state read asks for the `state=open` gauge series specifically, because `resilience4j.circuitbreaker.state` is ONE GAUGE PER STATE, exactly one of which is 1 at any instant and any untagged read aggregates to 1 forever (measured red-fix 2026-11-10) | tagged-actuator read |
@@ -59,7 +60,7 @@ export NEXUS_PROOF_SOURCE=nexus-postgres NEXUS_PROOF_DB_PORT=55433
 The system Node 24 is not a preference: the bundled Node 22 on this host dies inside `fs.cpSync`
 (§1 copies four service trees) with exit code 127 and no stack — see `docs/ENVIRONMENT.md`. And the
 proof disables the config door for every service it starts, so a config server on the developer's
-machine cannot change what it measures (ADR 0057 amendment 658).
+machine cannot change what it measures (ADR 0057, amended in v658).
 
 ### The service-test suites — the modules' own doors
 
@@ -96,9 +97,12 @@ the top of every build so a blinded rule reddens the row rather than clearing it
   (`scripts/smoke-java-profile.mts`) and asserts the six doors plus the edge chain answering 404 for
   an unknown id; it has never run on this box or in CI, so until it prints PASS, the paragraph
   stays exactly this honest.
-- **No distributed tracing** — ADR 0056 named it as the open hole (Micrometer Tracing across
-  gateway → api → Feign → domain). A trace id read at every hop is not proven anywhere in this
-  ledger yet.
+- **Log correlation, not trace storage.** Since v656 (ADR 0059) one caller-minted trace id is
+  propagated with W3C `traceparent` across edge → api → Feign → domain and PRINTED at every hop,
+  and §10c requires that exact id in all three logs. What does NOT exist: a collector, an exporter,
+  any span retention, per-span latency percentiles, or a service map. Spans are created, given ids,
+  put on the wire, printed — and then they end with the process. `grep <traceId>` over three logs is
+  the whole capability, and it is the one thing claimed.
 - **No edge rate limiting** — still a program slice (v657), named here so its absence is a fact on
   the record rather than a gap somebody discovers. The Redis the slice needs is in compose
   (`nexus-redis`) but no gateway filter reads it yet.

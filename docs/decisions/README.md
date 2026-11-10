@@ -70,3 +70,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0056  | A failure must NAME itself: which service, which kind, and who refused | Accepted |
 | 0057  | Configuration enters NEXUS as ONE door, and it is optional at boot | Accepted |
 | 0058  | Spring Cloud in NEXUS: what runs, what only parses, and what is deliberately absent | Accepted |
+| 0059  | A trace id is evidence only where a hop WRITES IT DOWN                  | Accepted |

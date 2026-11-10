@@ -106,6 +106,18 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- v656 — ONE trace id across the hops. The bridge makes this service a participant; the Feign
+         capability is what puts the SAME id on the outbound call to the domain service. Without the
+         second artifact the api is a hop that STARTS a trace and the domain service never hears it. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-tracing-bridge-brave</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.openfeign</groupId>
+      <artifactId>feign-micrometer</artifactId>
+    </dependency>
+
     <!-- Prometheus scrape endpoint on the operator door: the door answers with the metrics
          the same services already produce, in the standard format nothing invents. -->
     <dependency>

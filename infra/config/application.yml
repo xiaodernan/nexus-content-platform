@@ -17,6 +17,14 @@
 # every service that needs them — the edge and the registry because the gateway reads metrics
 # before credentials pass through, the services because the proof reads both.
 management:
+  # v656 — ONE trace id, and it travels on the WIRE (W3C `traceparent`), not in a header NEXUS invented.
+  # Sampling is 1.0 in development because a sampled-out request is a request with nothing to read; a
+  # deployment sets NEXUS_TRACING_SAMPLING (0.1 is a normal production number).
+  tracing:
+    sampling:
+      probability: ${NEXUS_TRACING_SAMPLING:1.0}
+    propagation:
+      type: W3C
   endpoints:
     web:
       exposure:
@@ -26,6 +34,11 @@ management:
 # info (and, when debugging, its own name to debug in the service-specific file beside this one).
 # No service silently starts logging another service's internals at debug.
 logging:
+  # v656 — the ids have to BE in the line for anyone (including a proof) to read them. Boot only
+  # prints them when this pattern is set; measured: without it the format is `[app]` and with it
+  # `[app,traceId,spanId]` (empty ids on a thread with no span, which is the honest rendering too).
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
   level:
     root: warn
 

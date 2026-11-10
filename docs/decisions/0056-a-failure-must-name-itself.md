@@ -184,7 +184,7 @@ answer for.
   service whose port must not be exposed publicly, which is a deployment concern this repository
   does not own yet.
 
-## Amendment 658 — the scrape endpoint is published: the rejected option, accepted, and what the record got wrong (2026-11-10)
+## Amendment (v658) — the scrape endpoint is published: the rejected option, accepted, and what the record got wrong (2026-11-10)
 
 The Context above rejected one alternative in as many words:
 

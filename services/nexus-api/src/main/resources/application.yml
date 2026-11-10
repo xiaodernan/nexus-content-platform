@@ -86,6 +86,14 @@ server:
 # This door is NOT reachable through the edge: the gateway's route table matches only `/api/**`.
 # So `/actuator/**` answers on this service's own port and nowhere else.
 management:
+  # v656 — ONE trace id, and it travels on the WIRE (W3C `traceparent`), not in a header NEXUS invented.
+  # Sampling is 1.0 in development because a sampled-out request is a request with nothing to read; a
+  # deployment sets NEXUS_TRACING_SAMPLING (0.1 is a normal production number).
+  tracing:
+    sampling:
+      probability: ${NEXUS_TRACING_SAMPLING:1.0}
+    propagation:
+      type: W3C
   endpoints:
     web:
       exposure:
@@ -110,6 +118,11 @@ eureka:
     prefer-ip-address: true
 
 logging:
+  # v656 — the ids have to BE in the line for anyone (including a proof) to read them. Boot only
+  # prints them when this pattern is set; measured: without it the format is `[app]` and with it
+  # `[app,traceId,spanId]` (empty ids on a thread with no span, which is the honest rendering too).
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
   level:
     root: warn
     dev.nexus.api: info

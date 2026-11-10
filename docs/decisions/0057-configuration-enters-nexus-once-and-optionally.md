@@ -147,7 +147,7 @@ services with it; the door is read once at boot and then irrelevant.
 - **No encryption, no HA, no Git.** All deliberate, all stated, all replaceable by the next ADR
   when a deployment needs any of them.
 
-## Amendment 658 — the door moved off `8888`, because on this machine it was somebody else's door (2026-11-10)
+## Amendment (v658) — the door moved off `8888`, because on this machine it was somebody else's door (2026-11-10)
 
 The tradeoff above says the config door is "a sixth deployable [that] must be started, stopped, and (in
 development) tolerated when absent". Tolerating its ABSENCE was designed. Tolerating its **IMPOSTOR**

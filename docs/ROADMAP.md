@@ -29,6 +29,18 @@ family README section) and a door that reddens the sentence it repairs:
         (CURRENT-STATE, root README) tell the SIX-service truth (#337, #338).
   v656  distributed tracing across gateway -> api -> Feign -> domain: Micrometer
         Tracing + W3C propagation, proven by ONE trace id read from every hop.
+        [LANDED 2026-11-11 — the id is MINTED BY THE CALLER (a W3C `traceparent` this proof
+        generates), and §10c requires that exact id in the correlation segment of all three hops,
+        with a DIFFERENT span at each: "ONE trace id crossed all three hops — the id the CALLER
+        minted (0373802ea98db2a970186d32582b605f), with a different span at each: edge
+        c1997df94252e90c, api 4cc124a7c25cc1a6, domain c67537629f0cf928".
+        The slice's finding is that an id is evidence only where a hop WRITES IT DOWN: the edge and
+        the domain service wrote one line per process and none per request, and WebFlux opens no
+        thread-scoped span at all (measured: the edge's wire carried `traceparent: 00-<id>-<span>-01`
+        while its log printed `[nexus-gateway,,]`). Each hop now announces every request
+        (`HopLogFilter`), and the edge reads its own span off the exchange's observation. ADR 0059;
+        static half `apps/web/test/java-tracing-surface.test.ts` (23 legs, 4 mutation arms red then
+        restored). BOUND: no collector, no exporter — this buys log correlation, not trace storage.]
   v657  edge rate limiting (Spring Cloud Gateway RequestRateLimiter over Redis),
         proven by the 429 its own configuration promises, closed when Redis is absent.
   v658  a Prometheus registry on every service with a named allowlist, proven by a
@@ -36,8 +48,8 @@ family README section) and a door that reddens the sentence it repairs:
         [LANDED 2026-11-11 — five deployables, not six: the sixth member of the compose profile is
         PostgreSQL, which has no Spring registry. Four doors read by §10b of the topology proof, the
         config door by ConfigServerTest's scrape leg, the allowlist by a static gate
-        (apps/web/test/java-metrics-surface.test.ts). ADR 0056 amendment 658 corrects the earlier
-        "shadowed route" reading; ADR 0057 amendment 658 moves the config door to 18888 after a
+        (apps/web/test/java-metrics-surface.test.ts). ADR 0056 (amended in v658) corrects the earlier
+        "shadowed route" reading; ADR 0057 (amended in v658) moves the config door to 18888 after a
         neighbour's config server on 8888 captured a proof run.]
   v659  lint-debt drain family by family (#342) plus the census arms that charge the
         faces the reach census does not yet grade (#343).

@@ -46,6 +46,12 @@ management:
         include: health,info,metrics,prometheus
 
 logging:
+  # v656 — the same correlation segment every other deployable prints. This process is not a hop a
+  # request crosses, but it is a process whose lines an operator reads while chasing one, and a log
+  # whose shape differs between deployables is a log you have to think about. The ids are empty here
+  # unless a span reaches this thread; an empty segment is honest, a MISSING one is a different format.
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
   level:
     root: warn
     dev.nexus.configserver: info

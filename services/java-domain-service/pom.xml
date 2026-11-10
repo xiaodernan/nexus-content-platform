@@ -127,6 +127,14 @@
             <scope>test</scope>
         </dependency>
 
+    <!-- v656 — the bridge (only the bridge): this deployable RECEIVES the trace from the hop before it
+         and continues it; it starts no outbound typed call of its own, so the Feign capability would be a
+         dependency with nothing to attach to. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-tracing-bridge-brave</artifactId>
+    </dependency>
+
     <!-- Prometheus scrape endpoint on the operator door: the door answers with the metrics
          the same services already produce, in the standard format nothing invents. -->
     <dependency>
