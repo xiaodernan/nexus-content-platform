@@ -8,7 +8,7 @@
 //
 // Why this exists, stated the way §60 requires: amendment 514 shipped `.github/workflows/ci.yml`'s first
 // `verify:*` step and `tools/ci/proof-set.mjs`, and a shipped gate is worth exactly as much as the day someone
-// tries to make it stop. `ci-wiring-proof.mjs` reads the two workflow files and refuses fourteen shapes;
+// tries to make it stop. `ci-wiring-proof.mjs` reads the two workflow files and refuses fifteen shapes;
 // every one of those refusals is a sentence until an arm proves it is a DOOR. So each arm below rewrites one
 // byte-range of one plane file — the trigger losing `master`, the proof step vanishing or doubling, a `|| true`
 // growing on it,
@@ -55,6 +55,20 @@
 // untyped and the SECOND refusal fires (the first one cannot be satisfied by deleting what it counts); C6
 // rewrites the same step as a `run: |` block scalar and must stay green, because the clause reads step BODIES,
 // not spellings.
+// v650 (amendment 575) opens §15, and §15 is the census of a DIFFERENT build tool: the tree tracks four Maven
+// modules and the workflow built one of them, so `verify:spring-cloud`'s exclusion could honestly name "an
+// offline-warm Maven for the three service modules the workflow never builds". The clause counts `mvn -f …pom.xml`
+// lines in the run BODIES of both workflow files, and the arms prove each of its five refusals: A29 deletes the
+// registry's warm line, so a module the commit owns has no step naming it; A30 keeps the line and adds
+// `-DskipTests`, which is the same module reached by a command that runs no test; A31 names a pom the commit does
+// not own, which is the shape that cannot be satisfied by deleting the population, so A32 deletes EVERY Maven line
+// and the vacuity refusal fires instead — a reader that sees no Maven command cannot certify that all of them
+// reached a test. A33 collapses the cache key to the one pom it used to be, and A34 puts an unowned path in it,
+// because `cache: maven` with a stale key re-uses the previous job's cache for the changed module and spends the
+// grading row's own budget on parent POMs. C7 plants a pom path in a COMMENT line and must stay green: §14 taught
+// that the census reads commands, and prose naming a token is not a command. The closure grows the same way the
+// clause's population does — every `pom.xml` `git ls-files` owns — and the pristine-plane check below refuses a
+// closure that does not hold exactly the population §15 grades.
 //
 // Nothing an ARM writes survives: each one gets its own plane directory, built from pristine bytes read out of
 // `SRC` (derived from THIS file's own location, not from the caller's cwd), and is removed the moment the arm
@@ -66,12 +80,15 @@
 // the file (and its `ranAt`) exactly as committed, which is what lets the build schedule this tool as a row
 // without a run re-stamping evidence bytes.
 //
-// sweep-budget-ms: 900000
+// sweep-budget-ms: 1050000
 //
-// Run from the repository root:  node docs/evidence/ci/ci-wiring-arms.mjs     (17 m 57 s on this box for the
-// 57-arm set, measured 2026-11-10; hosted run 41428780884 carried 49 arms in 122.0 s, so the row's declared
-// 900000 ms is the hosted budget and this box overshoots it — four runner arms sleep between 0.6 s and 1.5 s by
-// design, and every gate arm spawns a whole gate run)
+// Run from the repository root:  node docs/evidence/ci/ci-wiring-arms.mjs     (two back-to-back runs of the
+// 64-arm set on this box as §15 landed — 15 m 16 s and 15 m 21 s, the second with two Maven builds sharing the
+// CPU; the last hosted reading this file carries is run 41428780884 — 49 arms in 122.0 s. So the declared budget
+// is the SLOWER of the two planes this row runs on, plus headroom: the hosted runner finishes in minutes, while
+// this box spends a quarter of an hour because four runner arms sleep between 0.6 s and 1.5 s by design and every
+// gate arm spawns a whole gate run. A row whose declaration its own slowest plane overshoots is a row the build
+// kills, and a killed row is read as a failure it did not have.)
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -145,17 +162,29 @@ const pkgDirs = [...new Set(['.', ...(pkg.workspaces ?? []).flatMap((glob) => {
 const typeSurfaces = pkgDirs.flatMap((d) => (existsSync(join(SRC, d))
   ? readdirSync(join(SRC, d)).filter((f) => f === 'package.json' || /^tsconfig.*\.json$/.test(f)).map((f) => posix.join(d, f))
   : []));
+// §15's population is the pom files the COMMIT owns, and the plane can only hold them if this closure carries
+// them: a closure that dropped one would make the gate read THREE modules where the tree has four, and every arm
+// below would be grading a population the clause never names — the same hazard the type surfaces above are for.
+// The basis is the index rather than a walk, so the number cannot come from an arm's own edit: if the closure
+// were derived from the workflow bytes, A29 deleting a line would delete the module from the population AND
+// from the refusal that names it, which is the "satisfied by deleting what it counts" shape §14's second refusal
+// exists to block.
+const pomList = spawnSync('git', ['-C', SRC, 'ls-files', '-z', '--', '*pom.xml'], { encoding: 'utf8', windowsHide: true });
+assert.equal(pomList.status, 0, `git ls-files failed in ${SRC}, so §15's population cannot be put in the closure and its arms would grade a plane holding no Maven module at all`);
+const pomsInCommit = String(pomList.stdout).split('\0').filter(Boolean).map((p) => posix.normalize(p.replace(/\\/g, '/'))).sort();
+assert.ok(pomsInCommit.length >= 1, `${SRC} owns no pom.xml, so §15 has nothing to reach and its arms would be arming an empty set`);
 const GATE_CLOSURE = [...new Set([
   'package.json',
   ...wfFiles,
   'tools/ci/proof-set.mjs',
   'docs/evidence/agents/sweep.mjs',
   'docs/evidence/ci/ci-wiring-proof.mjs',
+  ...pomsInCommit,
   ...typeSurfaces,
   ...population.map((d) => d.file),
 ])];
 
-const CLAUSES = ['§1', '§2', '§3', '§4', '§5', '§6', '§7', '§8', '§9', '§10', '§11', '§12', '§13', '§14'];
+const CLAUSES = ['§1', '§2', '§3', '§4', '§5', '§6', '§7', '§8', '§9', '§10', '§11', '§12', '§13', '§14', '§15'];
 
 function gatePlane(tag, edits) {
   const files = new Map(GATE_CLOSURE.map((rel) => [rel, readSrc(rel)]));
@@ -195,6 +224,47 @@ const PROOFS_STEP = '      - name: Evidence proofs\n        run: npm run verify:
 const TSC_STEP = '      - name: Typecheck main line\n        run: npm run typecheck:main\n';
 const TSC_STEP_BLOCKY = '      - name: Typecheck main line\n        run: |\n          npm run typecheck:main\n';
 const TOOLS_LEG = ' && tsc -p tsconfig.tools.json --noEmit';
+// §15's charged shapes, quoted from the shipped bytes of ci.yml: the four lines the warm-up step walks, the key
+// that hashes them, and one path the commit does not own. A GHOST module name is used rather than a typo of a
+// real one, because a needle that renames `java-registry` into `java-regisrtry` reddens TWO refusals at once and
+// leaves the arm unable to say which door it opened.
+const MVN_REGISTRY_LINE = '          mvn -B -q -f services/java-registry/pom.xml package\n';
+const MVN_ALL_LINES = [
+  '          mvn -B -q -f services/java-registry/pom.xml package\n',
+  '          mvn -B -q -f services/java-gateway/pom.xml package\n',
+  '          mvn -B -q -f services/java-domain-service/pom.xml package\n',
+  '          mvn -B -q -f services/nexus-api/pom.xml package\n',
+].join('');
+// The key block is QUOTED FROM THE SHIPPED BYTES rather than re-typed in this file's own order: `splice` refuses
+// a needle that occurs zero times, and an arm that crashes at its own needle takes the whole battery with it —
+// so the block is read out of ci.yml, in whatever order the workflow lists it, and the premise that it lists the
+// whole population is checked here rather than assumed (the same claim §15 makes red when it stops being true).
+const CACHE_KEY_BLOCK = (() => {
+  const lines = readSrc(WF).split('\n');
+  const at = lines.findIndex((l) => l.trim() === 'cache-dependency-path: |');
+  assert.ok(at >= 0, `${WF}: no \`cache-dependency-path: |\` key, so A33 has no block to collapse and §15's cache refusal has nothing to grade`);
+  const out = [lines[at]];
+  for (const l of lines.slice(at + 1)) {
+    if (!/^\s*[\w./-]+pom\.xml\s*$/.test(l)) break;
+    out.push(l);
+  }
+  const listed = out.slice(1).map((l) => posix.normalize(l.trim()));
+  assert.deepEqual([...listed].sort(), pomsInCommit, `${WF}: the cache key holds ${listed.join(', ')} and the commit owns ${pomsInCommit.join(', ')} — A33's needle is this exact block, so it must name the whole population and nothing else, and §15 already reddens when it does not`);
+  return `${out.join('\n')}\n`;
+})();
+const CACHE_KEY_ONE = '          cache-dependency-path: services/nexus-api/pom.xml\n';
+const GHOST_POM = 'services/java-gamma/pom.xml';
+// The closure and the clause must agree about HOW MANY modules there are, and the witness is the clause itself:
+// the pristine gate is run over the closure's own bytes and its `[§15]` line is read back. A hand-matched number
+// in this file would certify nothing, because the arms are graded against the plane, not against SRC.
+{
+  const pristine = runGate(makePlane('pristine-15', new Map(GATE_CLOSURE.map((rel) => [rel, readSrc(rel)]))));
+  const line = pristine.out.split('\n').find((l) => l.startsWith('[§15]'));
+  const m = /^\[§15\] (\d+) pom\.xml owned by the commit/.exec(line ?? '');
+  assert.ok(pristine.code === 0 && m && Number(m[1]) === pomsInCommit.length,
+    `the closure does not hold the population §15 grades: ${pomsInCommit.length} pom(s) copied into the plane, gate exit ${pristine.code} printing ${JSON.stringify(line ?? pristine.err.split('\n').slice(0, 3).join(' | ').slice(0, 220))}`);
+  console.log(`§15 premise: the plane holds ${pomsInCommit.length} pom.xml and the pristine gate counts the same ${m[1]}`);
+}
 // A10/A11's premise MOVED at v547: v545 retired the docker row, v546 the live-stack row, and v547 (amendment
 // 530) the LAST one, so the shipped `EXCLUDED` was empty and an arm that quoted an entry would be editing bytes
 // that do not exist — the needle-matched-nothing crash A10's first draft already hit in v540 for the opposite
@@ -340,6 +410,22 @@ const GATE_ARMS = [
   { tag: 'A27-typecheck-step-deleted', clause: '§14', edits: [{ file: MAIN_LINE, from: TSC_STEP, to: '' }], sig: /typecheck leg\(s\) are declared in a script no workflow step reaches/ },
   { tag: 'A28-tools-leg-undeclared', clause: '§14', edits: [{ file: PKG, from: TOOLS_LEG, to: '' }], sig: /tsconfig file\(s\) sit in a package directory, name no leg and extend nothing/ },
   { tag: 'C6-the-same-step-spelled-as-a-block-scalar', clause: null, edits: [{ file: MAIN_LINE, from: TSC_STEP, to: TSC_STEP_BLOCKY }], sig: null },
+  // §15 counts a REACH through Maven, and its three refusals are the three ways a build can look graded while
+  // nothing grades it: a module no step names (A29), a step that names it but skips its tests (A30), and a step
+  // that names a file the commit does not own (A31 — which is also the answer to "make the red go away by writing
+  // a path"). A32 charges the vacuity belt, the half that keeps the clause from certifying a Maven it cannot see.
+  // A33/A34 grade the CACHE KEY, the second half of the same repair: a key over one pom of four restores a cache
+  // the other three then pay for inside the row. A34 fires BOTH of the key's refusals, and the arm says so by
+  // asserting the phantom half, because the missing half would also be true. C7 is the control this clause
+  // cannot do without: a `#` line inside a `run:` block is a shell comment that executes nothing, and a reader
+  // that counted prose would redden the very sentence the shipped step writes about `services/*/pom.xml`.
+  { tag: 'A29-registry-mvn-line-deleted', clause: '§15', edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: '' }], sig: /never have their tests run by CI/ },
+  { tag: 'A30-registry-warmed-without-tests', clause: '§15', edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: MVN_REGISTRY_LINE.replace(' package\n', ' package -DskipTests\n') }], sig: /named only by a command that skips tests/ },
+  { tag: 'A31-phantom-pom-named-by-a-step', clause: '§15', edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: `${MVN_REGISTRY_LINE}          mvn -B -q -f ${GHOST_POM} package\n` }], sig: /named by a workflow step are not owned by the commit/ },
+  { tag: 'A32-every-maven-line-deleted', clause: '§15', edits: [{ file: WF, from: MVN_ALL_LINES, to: '' }], sig: /§15 read 0/ },
+  { tag: 'A33-cache-key-collapsed-to-one-pom', clause: '§15', edits: [{ file: WF, from: CACHE_KEY_BLOCK, to: CACHE_KEY_ONE }], sig: new RegExp(`hashes 1 of the ${pomsInCommit.length} poms`) },
+  { tag: 'A34-cache-key-names-an-unowned-pom', clause: '§15', edits: [{ file: WF, from: `            ${pomsInCommit[0]}\n`, to: `            ${GHOST_POM}\n` }], sig: /which the commit does not own/ },
+  { tag: 'C7-a-pom-named-only-in-a-comment', clause: null, edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: `          # mvn -B -q -f ${GHOST_POM} package is a comment about a module, not a build of it\n${MVN_REGISTRY_LINE}` }], sig: null },
 ];
 
 // A clause with no arm is a sentence nobody has tried to break, and an arm aimed at a clause the gate no longer

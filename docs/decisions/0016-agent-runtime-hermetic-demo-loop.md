@@ -14021,3 +14021,83 @@ This addendum GRANTS nothing and CORRECTS the record; the repair is amendment 51
   sentence names.
 
 **CITES** amendments 573 (v646 — the record whose `@rushstack` sentence this re-measures with the script's own argv and confirms, and whose unreached `eslint`/`lint:main` pair this ships a door for), 514 (v528 — the gate whose derived population this joins as a second door), 545 (v591 — the arms machinery that grades the census roster this moves to 132), 568 (v641 — the census whose `MANIFEST` classes gain a runner's carrier) and 572 (v645 — the exclusion whose hosted reading the same proof step now follows); amendments 571 and version v644 remain a grant that was promised and never written, and this landing does not consume it; **GRANTS** amendment 575 / version v648 (re-checked free at this ref: no `### Amendment 575` header exists and no landed commit subject carries `v648`, on `--all`). Version label **v647** is the only label this landing mints.
+
+### Amendment 575 (v650, gates) — CI built ONE of the four Maven modules the commit owns, three of them never had a reader anywhere in either workflow file, and §15 now derives the pom roster from the index and refuses a `mvn` line that names nothing, skips its tests, or hashes a cache key over one path of four
+
+- **The hole is a REACH, and it is countable without opinion.** `git ls-files` owns 4 `pom.xml`; a `mvn` command
+  in a workflow run body names at most one of them with `-f`. At HEAD the count is one: ci.yml's step "Warm the
+  Maven repository (the service-suite row runs offline)" runs `mvn -B -q -f services/nexus-api/pom.xml test`, and
+  `main-line.yml` has no Maven command. `java-registry`, `java-gateway` and `java-domain-service` were therefore
+  built by nobody: their **45 tests over 9 classes** (2/1, 4/2, 39/6) had never been run by a CI job, beside the
+  917 tests over 46 classes the same build does run. The evidence for those five numbers is not inference — four
+  `mvn -B -f <pom> package` runs at HEAD's bytes on a detached plane exit 0 and write surefire XML, and the count
+  of that XML is **962 tests over 55 classes**. The same step's `cache-dependency-path` named the one pom it
+  warmed, so a change to any of the other three re-used a cache keyed on a file nobody touched: v646 (amendment
+  573) named that shape for a `tsc` leg and called it a reach bug, and this is the Maven copy of it.
+- **What "reaches" means, written so a fifth module cannot be quietly forgotten.** The population is the
+  commit's poms, from the index (the basis every census in this repository uses; a plane with no git falls to a
+  tree walk and prints that it did). A command reaches a module when all three hold: it invokes `mvn` with
+  `-f`/`--file` naming that pom; it does not skip tests (`-DskipTests`, `-Dmaven.test.skip` — and `-DskipITs` is
+  deliberately NOT a skip, because ITs are a phase a project may choose to run in CI and a door that called it a
+  skip would be a door that approves `-DskipITs` everywhere); and it names a test-bearing phase (`test`,
+  `package`, `verify`, `install`, `integration-test`). `#` lines inside a run body are dropped before the scan: a
+  pom that appears only in a comment is a pom a reader can believe in and no command can build.
+- **Four refusals, ordered the way the clause reads them.** `§15 read 0` — the reader that sees no Maven command
+  certifies nothing, which is the vacuity ceiling every clause here carries. A pom named by a step that the commit
+  does not own — the phantom path, the run that goes green against a file absent from the tree it describes. An
+  owned pom no command reaches, or one reached only by a command that skips its tests — the two halves of the hole
+  this amendment closes, refused by one clause with two sentences because they are two different mistakes. A
+  `cache: maven` key hashing fewer paths than the commit owns, or hashing one it does not own — because a restore
+  that lies about its inputs shows up as a build failure inside the row that is grading something else.
+- **Why four explicit lines rather than a glob or a reactor.** There is no root `pom.xml` in this repository, so
+  a reactor build has nothing to name, and `mvn -f services/*/pom.xml` is expanded by a shell rather than by the
+  file — which makes both shapes commands this census cannot attribute to a module. **A command the census cannot
+  attribute is a command the census cannot redden**, and a door that cannot be reddened is prose. So the step
+  carries four literal lines with `package` as the phase (the java proofs resolve jar-shaped dependencies a bare
+  `test` does not build), and a fifth tracked pom makes §15 red with its name in the sentence until a fifth line
+  is written.
+- **Six arms and a control, all landing on the frontier, and the budget marker moved with them.** The roster goes
+  **57 → 64 (41 gate incl. the control, 23 runner)**. `A29-registry-mvn-line-deleted`,
+  `A30-registry-warmed-without-tests`, `A31-phantom-pom-named-by-a-step`, `A32-every-maven-line-deleted`,
+  `A33-cache-key-collapsed-to-one-pom`, `A34-cache-key-names-an-unowned-pom` each report `first red at §15,
+  14 clause(s) below it, none above, exit 1`: the refusal is reached, its words reach stderr, and no clause that
+  ran before it moved. `C7-a-pom-named-only-in-a-comment` is the control for the comment rule — the plant is in
+  the file and the gate still prints all fifteen clauses with exit 0, like `C0-control`. The row's declared
+  budget moved `900000 → 1050000` because the row was measured twice at these bytes: **15 m 16 s and 15 m 21 s**
+  (916 s and 921 s against the older 900 s declaration, the second run with two Maven builds sharing the CPU),
+  where the last hosted reading the file carries is run 41428780884 at 49 arms in 122.0 s. A row whose declaration
+  its own slowest plane overshoots is killed by the runner and reported as a failure it did not have, so the
+  declaration is the slower plane plus headroom — and §9 reads the marker, which is what makes the header comment
+  a claim rather than a note.
+- **Execution.** Eight files, all of them this lane's: `.github/workflows/ci.yml` (+28/−10 — the four explicit
+  `mvn -B -q -f <pom> package` lines, the four-path `cache-dependency-path` block, and the comments that say why
+  each shape is what it is), `docs/evidence/ci/ci-wiring-proof.mjs` (+140/−1 — §15 and its four refusals, the
+  `trackedPoms()` index reader with its skip-listed tree-walk fallback, `depPathsOf()` reading the block-scalar
+  cache key, and the `TEST_PHASE` / `SKIP_TESTS` predicates), `docs/evidence/ci/ci-wiring-arms.mjs` (+93/−7 — six gate arms, the comment-planting
+  control, the §15 premise line the battery prints before anything else, and the budget marker with both local
+  readings beside it), `tools/ci/proof-set.mjs` (+19/−8 — the residue's `needs` sentence now says what the
+  workflow does not do, and the two stale sentences about the warm-up are corrected rather than deleted so the
+  reader can see which half the door closed), `docs/evidence/ci/evidence-census-proof.mjs` (+7/−0 — the
+  paragraph that records the run-command tally moving 16 → 19 without the census re-pinning a line),
+  `docs/evidence/ci/arms-receipt.json` (2 changed lines — re-stamped by the battery, not edited by hand),
+  `docs/evidence/ci/README.md` (+88/−0 — this increment's section, inserted whole before "What this
+  does NOT claim"), and this amendment (+81/−0). No `services/**` path, no container, no database, no
+  `git stash`, nothing deleted; the battery is the last write, because `verify:arms-freshness` §2 reddens a
+  receipt whose subject bytes moved after it was stamped.
+- **What this is not.** Not hosted green: these bytes have not run on the host, and the previous hosted run
+  reddened on three rows whose claims are keyed to the machine rather than to the contract — the 25-second floor
+  this box's docker-proxy pays and a Linux refusal does not, an integer `uptimeSeconds` that can fail to cross a
+  second boundary inside a fast outage, and a `no exit code reported` sentence for a child that reports an exit
+  code there. All three are filed (v651a/b/c) with their causes read out of the hosted log. Not a verdict about
+  the 962 tests: §15 grades reach, not result — the surefire counts above came from this increment's own four
+  runs on this box, and the CI verdict is the next hosted log's to give. Not a census of every Maven command in
+  the repository: eight proof rows build `services/nexus-api` in a temp plane with `mvn -B -q package
+  -DskipTests`, a command §15 would refuse twice and does not read at all, because the clause charges the
+  workflow rather than the corpus; and `docs/evidence/java/spring-cloud-proof.mjs`, which builds all four, is the
+  residue §6 names for want of a PostgreSQL no workflow step brings up — that half is v653's to close. Not a
+  rule about jobs that never start: an `if:`-gated job's steps are read as reach here. And the version label is
+  re-aimed with the ledger open: amendment 574's grant sentence predicted **v648** for this number, the landing
+  minted **v650**, and the two queued increments that hold v648 and v649 land after it — said here rather than
+  left for a reader to trip over.
+
+**CITES** amendments 574 (v647 — the reach census whose run-command tally this moves 16 → 19, and the method of charging a step rather than a script that §15 copies to Maven), 573 (v646 — the cache-key-over-one-path bug this repeats for Maven, and the two-workflow-file basis §15 reads), 572 (v645 — the exclusion whose residue §6 now names as a PostgreSQL the workflow never brings up), 545 (v591 — the arms machinery these six arms join) and 568 (v641 — the 116-row population this moves no row of); **GRANTS** amendment 576 / version v651 (re-checked free at this ref: no `### Amendment 576` header exists and no landed commit subject carries `v651`, on `--all`). Version label **v650** is the only label this landing mints.

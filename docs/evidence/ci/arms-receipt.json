@@ -1,9 +1,9 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-09T22:49:09.264Z",
-  "arms": 57,
-  "matched": 57,
+  "ranAt": "2026-11-10T00:28:10.283Z",
+  "arms": 64,
+  "matched": 64,
   "armNames": [
     "C0-control",
     "A1-trigger-loses-master",
@@ -39,6 +39,13 @@
     "A27-typecheck-step-deleted",
     "A28-tools-leg-undeclared",
     "C6-the-same-step-spelled-as-a-block-scalar",
+    "A29-registry-mvn-line-deleted",
+    "A30-registry-warmed-without-tests",
+    "A31-phantom-pom-named-by-a-step",
+    "A32-every-maven-line-deleted",
+    "A33-cache-key-collapsed-to-one-pom",
+    "A34-cache-key-names-an-unowned-pom",
+    "C7-a-pom-named-only-in-a-comment",
     "R0-control",
     "R1-red-proof-fails-the-build",
     "R2-hang-is-TIMEOUT-not-RED",
@@ -64,11 +71,11 @@
     "R19-a-line-at-the-bound-is-not-marked"
   ],
   "subjects": {
-    "workflow": "f6b9ddcd5e35a0e64ae3e802b569c7c5faeea4a80271187db880c5eddfa2dde0",
+    "workflow": "d461641a6295489b6e671a633a6d044b85afed209b771bd22ca0032cec893760",
     "mainline": "fe754ec950b7bd30ecb26a622a8a4923e8b2752defc189cb160f40efd23dc2d0",
-    "gate": "e8f45d7568ee467ddf9940a5d2d0b392d057871b743abbe2a53ed76fcb22f02f",
-    "arms": "178bb66057cc8026bebb17c7a1902e897af877490ad797ce1d5e5885bd83e203",
-    "runner": "9bff110c11511e3d0a13065b6b8d9e68d668091d1143157016270df34f2f0f71",
+    "gate": "fcbc702ec76b56b49d60cefff8468f08d53bdfa65c08852d8b7415ff7e3ebce2",
+    "arms": "5eb5d211c81746336b1ac36b60430b745d2bc962ae2c2093ffb3ba3d03e3adca",
+    "runner": "09d0b2cc38ebc3c0e6c23dd20a95f0e5ffab63310682b5593bc608ef9549d384",
     "sweep": "a9904d1f3edcccd0b38b3a396474e7b6eb079a91924eeb0eed3d02ea38cd3097",
     "scripts": "1b651470ac2dbead8088827cefe6a91f38f76355beded514bb8c9e2de576cf5f",
     "rule": "4a38542af2c09948265f43cfa38a59e24145eabee1ffe8f1fe9e2cbb19ee1cc8"
@@ -87,7 +94,7 @@
     {
       "name": "verify:arms",
       "file": "docs/evidence/ci/ci-wiring-arms.mjs",
-      "marker": "// sweep-budget-ms: 900000"
+      "marker": "// sweep-budget-ms: 1050000"
     },
     {
       "name": "verify:arms-freshness",

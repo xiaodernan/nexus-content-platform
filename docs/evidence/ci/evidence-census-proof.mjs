@@ -371,6 +371,13 @@
 // touched — this census exits 1 naming `verify:lint-tree`, and the ci.yml bytes restored from the index are
 // identical to what they were.
 //
+// v650 (amendment 575) MOVED the run-command tally above from 16 to 19 without this census changing a line: the
+// warm step became four explicit per-module `mvn` lines and `cache-dependency-path` became a four-path block, so
+// the number is a projection of `.github/workflows/ci.yml` and nothing else. Said plainly because it is a face
+// this census does NOT charge: the row totals, the fixture arms and the README headline are re-read every run,
+// while a hand-copied count in a comment is only as live as the person who last looked at the print. The door
+// that refuses a stale copy of THAT number is owed, and owed is how it is recorded.
+//
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
