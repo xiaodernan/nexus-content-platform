@@ -19,10 +19,11 @@
  * Exits 0 only when every check passed. Exits 1 on the first failure and ALWAYS stops the three
  * services it started — a smoke that leaves three JVMs behind is a smoke that exhausts the box.
  *
- * Run from the repo root. Ports default to the services themselves (8761/8082/8090); each can be
- * overridden with NEXUS_REGISTRY_PORT / NEXUS_DOMAIN_PORT / NEXUS_GATEWAY_PORT — e.g. when an unrelated
- * process already holds 8090. If any needed port is in use the run fails fast with the name of the port,
- * rather than fighting it.
+ * Run from the repo root. Ports default to the services themselves (8761/8082/8090); everything can be
+ * overridden — NEXUS_REGISTRY_PORT / NEXUS_DOMAIN_PORT / NEXUS_GATEWAY_PORT, NEXUS_DOMAIN_DB_URL,
+ * DB_USERNAME, DB_PASSWORD, NEXUS_DOMAIN_PG_PORT — e.g. when an unrelated process already holds 8090 or a
+ * CI runner exposes Postgres on another host port. If any needed port is in use the run fails fast with
+ * the name of the port, rather than fighting it.
  */
 import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, createWriteStream, readdirSync, statSync } from 'node:fs';
@@ -37,6 +38,10 @@ const DENY = '[verify-topology]';
 const REGISTRY_PORT = Number(process.env.NEXUS_REGISTRY_PORT ?? 8761);
 const DOMAIN_PORT = Number(process.env.NEXUS_DOMAIN_PORT ?? 8082);
 const GATEWAY_PORT = Number(process.env.NEXUS_GATEWAY_PORT ?? 8090);
+const DB_URL = process.env.NEXUS_DOMAIN_DB_URL ?? 'jdbc:postgresql://127.0.0.1:55433/nexus';
+const DB_USERNAME = process.env.DB_USERNAME ?? 'nexus';
+const DB_PASSWORD = process.env.DB_PASSWORD ?? 'nexus_dev_only';
+const PG_PORT = Number(process.env.NEXUS_DOMAIN_PG_PORT ?? 55433);
 let failures = 0;
 const ok = (name) => console.log(`  ✓ ${name}`);
 const bad = (name, detail) => {
@@ -157,9 +162,9 @@ async function main() {
 
   // Postgres is the domain service's only hard dependency besides Eureka. Refuse to start without it.
   const pg = await (async () => {
-    try { const r = await fetch('http://127.0.0.1:55433', { signal: AbortSignal.timeout(2_000) }); return r.status > 0; } catch { return false; }
+    try { const r = await fetch(`http://127.0.0.1:${PG_PORT}`, { signal: AbortSignal.timeout(2_000) }); return r.status > 0; } catch { return false; }
   })();
-  if (!pg) console.warn(`${DENY} warning: 127.0.0.1:55433 did not answer HTTP (not fatal for policy endpoint, but billing plan reads users — expect 400)`);
+  if (!pg) console.warn(`${DENY} warning: 127.0.0.1:${PG_PORT} did not answer HTTP (not fatal for policy endpoint, but billing plan reads users — expect 400)`);
 
   for (const port of [REGISTRY_PORT, DOMAIN_PORT, GATEWAY_PORT]) await assertFree(port);
 
@@ -175,9 +180,9 @@ async function main() {
   const domain = spawnJar('domain-service', domainJar, {
     NEXUS_DOMAIN_REGISTER: 'true',
     NEXUS_DOMAIN_FETCH: 'true',
-    NEXUS_DOMAIN_DB_URL: 'jdbc:postgresql://127.0.0.1:55433/nexus',
-    DB_USERNAME: 'nexus',
-    DB_PASSWORD: 'nexus_dev_only',
+    NEXUS_DOMAIN_DB_URL: DB_URL,
+    DB_USERNAME,
+    DB_PASSWORD,
     NEXUS_DOMAIN_PORT: String(DOMAIN_PORT),
     NEXUS_CONFIG_ENABLED: 'false',
   });
