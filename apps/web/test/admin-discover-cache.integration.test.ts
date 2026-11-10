@@ -238,4 +238,32 @@ describe('§SC-43 读数原样端出与诚实', () => {
       expect(discoverCacheStats().loads).toBe(loadsBefore); // 面板读数不是一次发现页查询
     });
   });
+
+  it('§SC-47 慢 loader 的墙钟耗时端到端可见，形状门认得，读数动作本身不打库', async () => {
+    await withRedisUrl(undefined, async () => {
+      let clock = 1_000;
+      resetDiscoverCacheForTest({ bus: null, ttlMs: 600_000, slowLoadMs: 50, loadSampleCapacity: 4, now: () => clock });
+      asUser(adminToken);
+      const slow = async () => {
+        clock += 137; // 受控时钟推进 137ms（超 50ms 阈值），不 sleep
+        return { sort: 'new' as const, cards: [{ publicationId: 'p', path: '/p', name: 'n', owner: 'o', handle: null, publishedAt: '2026-01-01T00:00:00.000Z', views: 0, likes: 0, comments: 0, remixes: 0, kind: 'website' as const, coverAssetId: null, ownerHandle: null }], unavailable: [], hiddenAuthors: 0, method: null };
+      };
+      await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, slow);
+      expect(discoverCacheStats().maxLoadMs).toBe(137);
+
+      const loadsBefore = discoverCacheStats().loads;
+      const res = await getDiscoverCache();
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(isKnownReadout(body)).toBe(true); // 前后端形状门闭环，含新计数与 recentLoads
+      expect(body.stats.loadsTimed).toBe(1);
+      expect(body.stats.maxLoadMs).toBe(137); // 墙钟原样端出
+      expect(body.stats.slowLoads).toBe(1);
+      expect(body.stats.recentLoads).toHaveLength(1);
+      expect(body.stats.recentLoads[0]).toMatchObject({ durationMs: 137, ok: true });
+      expect(body.stats.config.slowLoadMs).toBe(50);
+      expect(body.stats.config.loadSampleCapacity).toBe(4);
+      expect(discoverCacheStats().loads).toBe(loadsBefore); // 面板读数不是一次发现页查询
+    });
+  });
 });

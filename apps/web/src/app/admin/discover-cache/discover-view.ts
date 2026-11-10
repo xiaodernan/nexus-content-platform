@@ -10,11 +10,16 @@
  *     ADR-0114 诚实边界的落点（跨实例最终一致、丢帧退回 TTL）；
  *   - `wavesHeadline([])` 若把"还没有失效波"画成"没有惊群"，就把"还没发布过 public 作品"
  *     说成"压测过且很平稳"——空榜是"没触发采样"，不是"测过没事"（§SC-45 同一家族的诚实）；
- *   - `waveRow` 把 `firstFillMs:null`（窗口内无人读）画成 0ms，会谎称"失效瞬间就有人重填"。
+ *   - `waveRow` 把 `firstFillMs:null`（窗口内无人读）画成 0ms，会谎称"失效瞬间就有人重填"；
+ *   - `loadTimingHeadline(0,…)` 若把"还没量到已 settle 的加载"画成"没有慢查询/都很快"，就把
+ *     "这台实例还没人触发过打库"说成"压测过且不慢"；`maxLoadMs=0` 同理是"没量到"不是"0ms 的光速查询"
+ *     （§SC-47，同 `hitRate(0,0)` / 空波榜家族的诚实）；
+ *   - `loadNote` 若不说"hang 不进样本"，运维会拿"最慢<阈值"当"没有连接黑洞"的免死金牌——而那正是
+ *     SC-47 探查的真实盲区， hung loader 永远到不了 finally。
  *
  * 全部纯函数、零 React / 零 DOM / 零网络，判据可逐支验电。
  */
-import type { DiscoverCacheReadout, EpochWave } from '@/server/domain/discover-cache';
+import type { DiscoverCacheReadout, EpochWave, LoadDuration } from '@/server/domain/discover-cache';
 import type { InvalidationBusStats } from '@/server/domain/invalidation-bus';
 
 /** 没测到 / 不适用渲染成"—（…）"，绝不渲染成 0。 */
@@ -89,7 +94,7 @@ export function isKnownReadout(value: unknown): value is DiscoverCacheReadout {
   const stats = v['stats'];
   if (!stats || typeof stats !== 'object') return false;
   const s = stats as Record<string, unknown>;
-  for (const key of ['hits', 'misses', 'evictions', 'loads', 'inFlight', 'size', 'globalGen', 'globalEpoch', 'viewerGenerations', 'staleServed']) {
+  for (const key of ['hits', 'misses', 'evictions', 'loads', 'inFlight', 'size', 'globalGen', 'globalEpoch', 'viewerGenerations', 'staleServed', 'loadsTimed', 'maxLoadMs', 'slowLoads']) {
     if (typeof s[key] !== 'number') return false;
   }
   // config 的 ttlMs / maxEntries / maxViewers 是面板 KPI 的分母（size/maxEntries）、秒数（ttlMs/1000）
@@ -98,7 +103,7 @@ export function isKnownReadout(value: unknown): value is DiscoverCacheReadout {
   const config = s['config'];
   if (!config || typeof config !== 'object') return false;
   const c = config as Record<string, unknown>;
-  for (const key of ['ttlMs', 'maxEntries', 'maxViewers', 'staleMaxMs']) {
+  for (const key of ['ttlMs', 'maxEntries', 'maxViewers', 'staleMaxMs', 'slowLoadMs', 'loadSampleCapacity']) {
     if (typeof c[key] !== 'number') return false;
   }
   const bus = s['bus'];
@@ -130,6 +135,18 @@ export function isKnownReadout(value: unknown): value is DiscoverCacheReadout {
   const wc = waveConfig as Record<string, unknown>;
   for (const key of ['windowMs', 'capacity']) {
     if (typeof wc[key] !== 'number') return false;
+  }
+  // §SC-47 耗时样本：recentLoads 必须是数组，每条四字段齐全（epoch/durationMs/atMs 是数、ok 是布尔）。
+  // 缺一个，面板就会把 "NaN ms" / "undefined" 画到运维眼前——坏回执在形状门这层挡掉。
+  const recentLoads = s['recentLoads'];
+  if (!Array.isArray(recentLoads)) return false;
+  for (const raw of recentLoads) {
+    if (!raw || typeof raw !== 'object') return false;
+    const d = raw as Record<string, unknown>;
+    for (const key of ['epoch', 'durationMs', 'atMs']) {
+      if (typeof d[key] !== 'number') return false;
+    }
+    if (typeof d['ok'] !== 'boolean') return false;
   }
   return true;
 }
@@ -193,6 +210,36 @@ export function waveNote(windowMs: number, capacity: number): string {
  */
 export function staleNote(staleServed: number, staleMaxMs: number): string {
   return `上游打库失败时端出旧页 ${staleServed} 次（0 只表示还没抖过，不是降级没开——上界 ${Math.round(staleMaxMs / 1000)}s 才是开关）· 旧值最多 ${Math.round(staleMaxMs / 1000)}s，超了宁可报错也不把几小时前的页冒充此刻 · block/发布让键一变，那份旧值可能含刚拉黑的人或刚下架的作品，**绝不端** · 连旧值都没有就报错、不画空页；普通访客照常看到卡片、察觉不到这次降级，这笔账只记在运维面板里。`;
+}
+
+/**
+ * §SC-47 加载耗时标题判据。0 次**绝不说"没有慢查询/都很快"**——那把"这台实例还没量到一次已完成的
+ * 打库"说成"压测过且不慢"，同 `hitRate(0,0)` / 空波榜家族。`maxLoadMs` 也只在有样本时才画，
+ * 0ms 是"没量到"不是"光速查询"。有样本时给最慢值与超阈值次数，让运维一眼看到有没有秒级长尾。
+ */
+export function loadTimingHeadline(loadsTimed: number, maxLoadMs: number, slowLoads: number): string {
+  if (loadsTimed <= 0) {
+    return '还没量到一次已 settle 的发现页打库——是尚未观测，不是"没有慢查询、都很快"。';
+  }
+  return `已计时 ${loadsTimed} 次真实打库 · 最慢 ${maxLoadMs}ms · 超过慢查询阈值 ${slowLoads} 次（只记已跑完的；卡住不返回的看下方在途差）`;
+}
+
+/** 单条耗时样本行：成败如实标、耗时与归属世代照实，不给"很快/很慢"下结论。 */
+export function loadRow(d: LoadDuration): string {
+  return `世代 ${d.epoch} · 耗时 ${d.durationMs}ms · ${d.ok ? '成功' : '失败'}`;
+}
+
+/**
+ * §SC-47 方法论旁注：把"为什么只量不设闸"这个反向判断放到运维眼前，而不是只躺在 ADR-0119。
+ * 钉五件事：①只计时**真实打库**（singleflight 跟随者/缓存命中不进包装函数，不会把一次打库记 N 次、
+ * 把等 leader 的墙钟误算成查询）；②只记**已 settle**——卡住不返回的 hang 永远到不了 finally、
+ * **不进样本**，故"最慢<阈值"不能证明"没有连接黑洞"，那要看 `loads−loadsTimed`/在途差长期是否为正；
+ * ③超过 `slowLoadMs` 只 ++slowLoads、不拦不 abort；④有界环形缓冲留最近 capacity 条，不随加载次数涨；
+ * ⑤触发阈值：真有秒级长尾也不在 race 层加软超时（hung 查询堆积雪崩），而是 `BoundedCache.abandon(key)`
+ * 放弃在途、或 Postgres `statement_timeout`（波及全站、高危、单独评估）；最慢远低于阈值则 deadline 是伪需求。
+ */
+export function loadNote(slowLoadMs: number, capacity: number): string {
+  return `只记不拦：包在 loader 外的墙钟只计真实打库那一次（缓存命中与 singleflight 跟随者不进包装函数），超过 ${slowLoadMs}ms 只 ++slowLoads，不超时、不 abort、不改发现页行为 · **只记已跑完的加载**——上游卡住不返回（连接池排队 / 锁等待）永远到不了 finally、不进样本，所以"最慢低于阈值"**不能**证明没有连接黑洞；要看 KPI 里"真查库 loads − 已计时 loadsTimed"与"在途合并"是否长期为正 · 环形缓冲只留最近 ${capacity} 次打库的分布（有界，不随加载次数涨）· 真出现秒级长尾也不在 Promise.race 层加软超时（race 不取消底层、hung 查询会堆积占满连接池），而是给缓存加可放弃在途的 abandon(key) 或用 Postgres statement_timeout（后者波及全站、须单独评估）；最慢远低于阈值则 deadline 是伪需求，这就是先量再治。`;
 }
 
 /** 页脚那句"最终一致 + 只看这台"是否该出现：接了总线就一定要说，单机也要说清边界。 */

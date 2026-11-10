@@ -15,7 +15,12 @@
  *    再来会重新拿到 0，于是命中它**拉黑前**缓存的那份 key。根治是**进程级单调递增水位线
  *    `globalGen`**：任何 viewer 重新分配到的 generation 都严格大于它历史上用过的所有值，
  *    旧键永久拼不出来，最坏只是多查一次库。
- * 4. **新作品发布后最多一个 TTL 才进发现页（§SC-44 / ADR-0116，内容新鲜度）**：public 发布 /
+ * 4. **上游慢查询 / 连接黑洞（§SC-47 / ADR-0119，观测而非设闸）**：SC-46 的 stale 兜底只在 loader
+ *    `reject` 时生效，若上游**永不回答**（慢查询 / 连接池排队 / 锁等待），首屏会焊死；但直接上
+ *    `Promise.race` 软超时更糟（race 不取消底层，hung 查询仍占 singleflight inflight、堆积占满连接池）。
+ *    故本片**先量再治**：只记不拦地观测每次真实打库的墙钟耗时（`maxLoadMs`/`slowLoads`/有界样本），
+ *    拿真实数字回答"有没有秒级长尾"，再决定要不要 deadline / abandon / statement_timeout。
+ * 5. **新作品发布后最多一个 TTL 才进发现页（§SC-44 / ADR-0116，内容新鲜度）**：public 发布 /
  *    从 public 下架 / public 内容被 rejected，对所有 viewer 都是新内容，连匿名共享缓存也得分。
  *    故键再带一段**全缓存世代 `globalEpoch`**：这些写路径调 `invalidateDiscoverGlobally` 让它 +1，
  *    所有旧键（匿名 `|0|…`、已缓存 viewer 的旧 generation）一次性拼不出来。**与 `globalGen` 正交**：
@@ -61,6 +66,14 @@ export interface DiscoverCacheConfig {
    * 故必须由这道闸卡住，绝不把几小时前的发现页冒充"还能看"。
    */
   readonly staleMaxMs: number;
+  /**
+   * §SC-47 上游 loader 墙钟耗时超过多少毫秒算一次"慢查询"。默认 1000ms（秒级长尾门槛）：
+   * 用来把"发现页加载到底有没有秒级长尾"从猜测变成可设阈值的数字，回答"要不要 deadline"。
+   * 这是观测分类的旋钮、不是超时——超过它**不拦、不 abort、不中断底层 promise**，只 ++slowLoads。
+   */
+  readonly slowLoadMs: number;
+  /** §SC-47 最近耗时样本环形缓冲容量：只留最近 N 次真实打库的分布，防读数无界增长。默认 12。 */
+  readonly loadSampleCapacity: number;
 }
 
 /**
@@ -87,6 +100,28 @@ export interface EpochWave {
   readonly settled: boolean;
 }
 
+/* ── §SC-47 loader 墙钟耗时观测：包装注入的 loader，只记不拦，零生产行为变化 ── */
+
+/**
+ * §SC-47 一次**真实打库**的耗时样本。epoch 是这次加载**发起时**锁定的 globalEpoch，
+ * 便于把"慢"归到某次发布后的冷启动波上（与 SC-45 的波对照）。
+ *
+ * 只覆盖**已 settle** 的加载：缓存命中、singleflight 跟随者（不执行 loader）、
+ * 以及永不 resolve/reject 的 hang（finally 永远不进）都不会出现在样本里。
+ * 因此"最慢 < 阈值"只能证明"没有慢到超阈值的已完成加载"，**不能**证明"没有 hang"——
+ * 后者靠 `stats().inFlight` / `loads - loadsTimed` 长期不归零旁证（写进面板旁注）。
+ */
+export interface LoadDuration {
+  /** 加载发起那一刻锁定的全局世代（期间发布/失效也不改这次归属） */
+  readonly epoch: number;
+  /** loader 墙钟耗时（注入时钟差值，毫秒） */
+  readonly durationMs: number;
+  /** loader 是否成功 settle；false = reject（SC-46 降级/重抛发生在这之后，不改变这条的成败） */
+  readonly ok: boolean;
+  /** 记下这条样本的时刻（注入时钟值），让运维知道"什么时候慢的" */
+  readonly atMs: number;
+}
+
 export type DiscoverCacheStats = CacheStats & {
   /** 进程级单调水位线，只增不减；判据用它证明淘汰后不会回退 */
   readonly globalGen: number;
@@ -107,6 +142,21 @@ export type DiscoverCacheStats = CacheStats & {
    * 但运维必须看得见"DB 在抖、这台端了几次旧页"，否则失败被悄悄吞掉。
    */
   readonly staleServed: number;
+  /**
+   * §SC-47 迄今**已 settle 并被计时**的真实打库次数（只增不减，进程内账、不跨 reset）。
+   * 与 `CacheStats.loads` 的差 = 发起但尚未 settle 的加载：长期 >0 是 hang 的旁证
+   * （inFlight 已被 fromLoad 清掉的失败除外，但那也会让 loads 与 loadsTimed 同步增长）。
+   */
+  readonly loadsTimed: number;
+  /**
+   * §SC-47 进程内观测到最慢一次 loader 的墙钟耗时（毫秒），0 = 还没量到任何已 settle 的加载。
+   * 诚实边界：0 **不是**"加载都是 0ms"，是"还没量到"；hang 不进样本，故它也不是"没有 hang"。
+   */
+  readonly maxLoadMs: number;
+  /** §SC-47 墙钟耗时超过 `config.slowLoadMs` 的加载次数（只增不减）；0 = 还没观测到超阈值的加载。 */
+  readonly slowLoads: number;
+  /** §SC-47 最近若干次真实打库的耗时样本（有界环形缓冲，新的在前）；空 = 还没量到已 settle 的加载。 */
+  readonly recentLoads: readonly LoadDuration[];
 };
 
 interface Store {
@@ -138,12 +188,24 @@ interface Store {
   settledWaves: EpochWave[];
   /** §SC-46 本实例迄今端出过几次上游失败降级的旧值（只增不减，进程内账，不跨 reset） */
   staleServed: number;
+  /** §SC-47 已 settle 并被计时的真实打库次数（只增不减，进程内账、不跨 reset） */
+  loadsTimed: number;
+  /** §SC-47 进程内最慢一次 loader 的墙钟耗时（毫秒），0 = 还没量到 */
+  maxLoadMs: number;
+  /** §SC-47 墙钟耗时超过 slowLoadMs 的加载次数（只增不减） */
+  slowLoads: number;
+  /** §SC-47 最近若干次真实打库耗时样本，新的在前（有界环形缓冲） */
+  recentLoads: LoadDuration[];
 }
 
 /** §SC-45 采样窗口：全局失效后这么久内的重填算作"这一波"。默认一个 TTL——过了它旧键本就自然过期。 */
 const DEFAULT_WAVE_WINDOW_MS = 15_000;
 /** §SC-45 环形缓冲容量：只留最近 12 波，防发布高频时读数无界增长（数据结构有界纪律）。 */
 const DEFAULT_WAVE_CAPACITY = 12;
+/** §SC-47 慢查询墙钟阈值：1s。discover 主查询含 3 个 count(*) 子查询 + 三表 join，超过 1s 值得运维盯。 */
+const DEFAULT_SLOW_LOAD_MS = 1_000;
+/** §SC-47 耗时样本环形缓冲容量：只留最近 12 次真实打库的分布，不随加载次数增长。 */
+const DEFAULT_LOAD_SAMPLE_CAPACITY = 12;
 
 /** 采样中的可变波；定格时转不可变 EpochWave 存入环形缓冲。 */
 interface MutableWave {
@@ -164,6 +226,10 @@ export const DISCOVER_WAVE_WINDOW_MS_ENV = 'NEXUS_DISCOVER_WAVE_WINDOW_MS';
 export const DISCOVER_WAVE_CAPACITY_ENV = 'NEXUS_DISCOVER_WAVE_CAPACITY';
 /** §SC-46 上游失败降级时旧值的最大年龄；默认 `ttlMs * 2`。 */
 export const DISCOVER_STALE_MAX_MS_ENV = 'NEXUS_DISCOVER_STALE_MAX_MS';
+/** §SC-47 慢查询墙钟阈值（毫秒）；默认 1000。 */
+export const DISCOVER_SLOW_LOAD_MS_ENV = 'NEXUS_DISCOVER_SLOW_LOAD_MS';
+/** §SC-47 耗时样本环形缓冲容量；默认 12。 */
+export const DISCOVER_LOAD_SAMPLE_CAPACITY_ENV = 'NEXUS_DISCOVER_LOAD_SAMPLE_CAPACITY';
 /** 跨实例失效总线的开关：与实时总线、限流、网关共享缓存共用这一个 Redis 旋钮（ADR-0081/0112）。 */
 export const DISCOVER_INVALIDATION_URL_ENV = 'NEXUS_REDIS_URL';
 
@@ -188,6 +254,9 @@ export interface DiscoverCacheTestOverrides {
   readonly waveCapacity?: number;
   /** §SC-46 上游失败降级的旧值最大年龄（判据收窄以验"超界宁可报错"，不 sleep）。 */
   readonly staleMaxMs?: number;
+  /** §SC-47 慢查询墙钟阈值 / 样本容量（判据收窄以便不 sleep 就钉慢/快与有界）。 */
+  readonly slowLoadMs?: number;
+  readonly loadSampleCapacity?: number;
 }
 
 interface GlobalStore {
@@ -283,6 +352,8 @@ export function resetDiscoverCacheForTest(overrides: DiscoverCacheTestOverrides 
     waveCapacity: overrides.waveCapacity ?? envInt(DISCOVER_WAVE_CAPACITY_ENV, DEFAULT_WAVE_CAPACITY, 1),
     // 默认一个 TTL 的降级宽容（与正常缓存命中的新鲜度同量级）；env/overrides 可覆盖。
     staleMaxMs: overrides.staleMaxMs ?? envInt(DISCOVER_STALE_MAX_MS_ENV, ttlMs * 2, 1),
+    slowLoadMs: overrides.slowLoadMs ?? envInt(DISCOVER_SLOW_LOAD_MS_ENV, DEFAULT_SLOW_LOAD_MS, 1),
+    loadSampleCapacity: overrides.loadSampleCapacity ?? envInt(DISCOVER_LOAD_SAMPLE_CAPACITY_ENV, DEFAULT_LOAD_SAMPLE_CAPACITY, 1),
   };
   const cache = new BoundedCache<DiscoverResult>({
     maxEntries: config.maxEntries,
@@ -307,6 +378,12 @@ export function resetDiscoverCacheForTest(overrides: DiscoverCacheTestOverrides 
     settledWaves: [],
     // §SC-46 降级计数是**本进程此刻的账**，不跨 reset（与波一样是观测快照，不是要保住的水位线）。
     staleServed: 0,
+    // §SC-47 耗时观测同样是**本进程此刻的快照**，不跨 reset：旧进程的耗时与新 store 无关，
+    // 且与波/降级计数同列（都不是要保住的 globalEpoch/globalGen 水位线）。
+    loadsTimed: 0,
+    maxLoadMs: 0,
+    slowLoads: 0,
+    recentLoads: [],
   };
   store[STORE_KEY] = next; // 先落位再挂 bus，让 attachBus 的"是否当前实例"判断成立
   attachBus(next, overrides.bus);
@@ -504,10 +581,16 @@ export function invalidateDiscoverGlobally(): void {
  *   `fromLoad` 的 finally 已清掉 inflight，`peakInFlight` 会恒为 0——那是谎报「没有惊群」。
  * - loader 收尾（含失败）后再采一次：并发键可能稍后才登记，这里把 `loadsDelta` / `firstFillMs`
  *   更新到本轮最新值。两次都 try/catch 兜住：观测绝不许拖垮发现页读主业。
+ *
+ * §SC-47 的墙钟观测走**另一条路线**（包 loader，见 `withLoadTiming`），不复用上面两处采样点：
+ * 波要的是"失效后多久、几键并发"的**读侧**瞬时快照，耗时要的是"单次打库跑了多久"的**loader 侧**
+ * 墙钟，且必须避开 singleflight 跟随者的等待时间——两者时序需求不同，故分开，互不干扰。
  */
 async function loadFromStore(s: Store, input: DiscoverCacheInput, loader: DiscoverLoader): Promise<DiscoverResult> {
   const key = keyFor(s, input); // 请求开始时锁定的键（含此刻的 epoch + generation）
-  const pending = s.cache.getOrLoad(key, loader);
+  // §SC-47：包 loader 量墙钟耗时，只记真实打库那一次（singleflight 跟随者/缓存命中不进包装函数）。
+  // 观测全程 try/catch、零新 DB 查询、零行为变化——见 withLoadTiming 的时序与诚实边界。
+  const pending = s.cache.getOrLoad(key, withLoadTiming(s, s.globalEpoch, loader));
   try {
     sampleWave(s, s.now());
   } catch {
@@ -561,6 +644,71 @@ function serveStaleOrThrow(s: Store, input: DiscoverCacheInput, keyRequested: st
   throw cause; // 无合法旧值 / 键已失效 / 超界 / 降级出错 → 原样重抛，不画空、不冒充此刻
 }
 
+/* ── §SC-47 实现：包装 loader 的墙钟观测 + 有界样本缓冲（只记不拦，零生产行为变化） ── */
+
+/** 有界环形缓冲：push 后超容量丢最旧一条（内存不随加载次数增长）。 */
+function pushLoadSample(s: Store, sample: LoadDuration): void {
+  s.recentLoads.push(sample);
+  const cap = Math.max(1, s.config.loadSampleCapacity);
+  while (s.recentLoads.length > cap) s.recentLoads.shift();
+}
+
+/** 记一次**已 settle** 的真实打库耗时。纯内存、只增不减、有界；成功/失败都记（慢失败同样是长尾证据）。 */
+function observeLoad(s: Store, epoch: number, startedAt: number, ok: boolean, atMs: number): void {
+  s.loadsTimed += 1;
+  const durationMs = Math.max(0, atMs - startedAt);
+  if (durationMs > s.maxLoadMs) s.maxLoadMs = durationMs;
+  if (durationMs > s.config.slowLoadMs) s.slowLoads += 1;
+  pushLoadSample(s, { epoch, durationMs, ok, atMs });
+}
+
+/**
+ * §SC-47 把注入的 loader 包一层墙钟观测，返回语义完全等价的新 loader。
+ *
+ * 为什么包 loader 而不是在 `loadFromStore` 外层拿 `s.now()` 掐表：
+ * - `BoundedCache.getOrLoad` 的 singleflight **只对 leader 真正调用 loader**（cache.ts 里
+ *   `Promise.resolve().then(loader)` 只在没有 running 时执行一次），跟随者 await 同一个 promise、
+ *   **根本不会进被包装的函数**；缓存命中更是不调 loader。故"包 loader"天然只计时真实打库那一次——
+ *   若改在 loadFromStore 外层掐表，N 个同键并发会把一次打库记成 N 次，还把"等 leader 的墙钟"误算成
+ *   查询耗时，等于用观测制造一份"并发越高越慢"的假长尾。
+ * - 失败也要记：`finally` 一定执行，loader reject 时同样落一条 `ok:false` 样本；慢失败也是长尾证据，
+ *   而 SC-46 的降级/重抛发生在 getOrLoad 之后、不影响这条的成败归属。
+ * - **hang 绝不进样本**：永不 resolve/reject 的 loader 永远到不了 finally——这是刻意的诚实边界。
+ *   于是"最慢 < 阈值 / slowLoads=0"**不能证明"没有 hang"**（那正是 SC-47 探查的真实盲区）；
+ *   hang 只能靠 `loads - loadsTimed` 长期 >0 / `inFlight` 不归零旁证，已写进面板旁注与 ADR。
+ *
+ * 主业隔离：读时钟与记样本的每一步都在 try/catch 里，任何意外（时钟源/样本缓冲）都绝不改变
+ * loader 的返回值、绝不吞/改它的异常；时间源与 BoundedCache、SC-45 波共用同一个 `s.now`。
+ *
+ * @param epoch 加载发起那一同步段锁定的 globalEpoch（与 key 同源），供样本归属某次发布后的波。
+ */
+function withLoadTiming(s: Store, epoch: number, loader: DiscoverLoader): DiscoverLoader {
+  return async (): Promise<DiscoverResult> => {
+    let startedAt = 0;
+    let timing = false;
+    let ok = false;
+    try {
+      startedAt = s.now();
+      timing = true;
+    } catch {
+      /* 时钟源异常：跳过观测，loader 照常执行（观测绝不拖垮主业） */
+    }
+    try {
+      const value = await loader();
+      ok = true;
+      return value;
+    } finally {
+      if (timing) {
+        try {
+          observeLoad(s, epoch, startedAt, ok, s.now());
+        } catch {
+          /* 观测失败绝不影响 loader 的返回值 / 异常传播 */
+        }
+      }
+    }
+  };
+}
+
 /**
  * 取或加载一份发现页结果。loader 由 `social.discoverCached` 注入（此处不 import social 运行时值，
  * 依赖单向无环）。同 viewer/sort/limit 并发只跑一次 loader；不同 viewer 永不合并。
@@ -584,6 +732,11 @@ function statsFromStore(s: Store): DiscoverCacheStats {
     waves: wavesReadout(s, s.now()),
     waveConfig: { windowMs: s.config.waveWindowMs, capacity: s.config.waveCapacity },
     staleServed: s.staleServed,
+    loadsTimed: s.loadsTimed,
+    maxLoadMs: s.maxLoadMs,
+    slowLoads: s.slowLoads,
+    // 新的在前（store 内缓冲是旧的在前、push/shift 维护容量）；拷一份避免外部改到内部数组。
+    recentLoads: [...s.recentLoads].reverse(),
   };
 }
 
@@ -646,6 +799,8 @@ export function createIsolatedDiscoverCacheForTest(options: {
   waveWindowMs?: number;
   waveCapacity?: number;
   staleMaxMs?: number;
+  slowLoadMs?: number;
+  loadSampleCapacity?: number;
 }): IsolatedDiscoverCache {
   const ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
   const config: DiscoverCacheConfig = {
@@ -655,6 +810,8 @@ export function createIsolatedDiscoverCacheForTest(options: {
     waveWindowMs: options.waveWindowMs ?? DEFAULT_WAVE_WINDOW_MS,
     waveCapacity: options.waveCapacity ?? DEFAULT_WAVE_CAPACITY,
     staleMaxMs: options.staleMaxMs ?? ttlMs * 2,
+    slowLoadMs: options.slowLoadMs ?? DEFAULT_SLOW_LOAD_MS,
+    loadSampleCapacity: options.loadSampleCapacity ?? DEFAULT_LOAD_SAMPLE_CAPACITY,
   };
   const now = options.now ?? Date.now;
   const cache = new BoundedCache<DiscoverResult>({
@@ -675,6 +832,10 @@ export function createIsolatedDiscoverCacheForTest(options: {
     activeWave: null,
     settledWaves: [],
     staleServed: 0,
+    loadsTimed: 0,
+    maxLoadMs: 0,
+    slowLoads: 0,
+    recentLoads: [],
   };
   // 与全局 store 的 attachBus 同一语义：定向帧 → bumpLocal，全局帧 → bump epoch（共用内核）。
   if (s.bus) {

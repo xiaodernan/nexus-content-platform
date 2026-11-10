@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { DiscoverCacheReadout } from '@/server/domain/discover-cache';
-import { busTag, dashOr, epochNote, footNote, generationNote, hitRate, isKnownReadout, pollAllowed, staleNote, waveNote, waveRow, wavesHeadline } from './discover-view';
+import { busTag, dashOr, epochNote, footNote, generationNote, hitRate, isKnownReadout, loadNote, loadRow, loadTimingHeadline, pollAllowed, staleNote, waveNote, waveRow, wavesHeadline } from './discover-view';
 
 /**
  * §SC-43 面板：把这一台实例的发现页缓存账与跨实例总线账渲染出来，每 4 秒问一次
@@ -197,6 +197,32 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
         </div>
         <p className="dc-note" data-discover-stale-note>
           {staleNote(stats.staleServed, cfg.staleMaxMs)}
+        </p>
+      </section>
+
+      {/* §SC-47 加载耗时观测：先量再治，只记真实打库的墙钟、不设闸；0 = 没量到，不是都很快 */}
+      <section className="flex flex-col gap-2" aria-label="加载耗时观测">
+        <h2 className="text-13 font-semibold text-fg-2">加载耗时观测 · 只记不设闸</h2>
+        <p className="text-12 text-fg-2" data-discover-load-headline>
+          {loadTimingHeadline(stats.loadsTimed, stats.maxLoadMs, stats.slowLoads)}
+        </p>
+        <div className="dc-ledgerGrid" data-discover-load-timing>
+          <LedgerRow label="已计时打库 loadsTimed" value={dashOr(stats.loadsTimed)} />
+          <LedgerRow label="最慢一次 maxLoadMs" value={dashOr(stats.maxLoadMs, '—（未测）')} />
+          <LedgerRow label="超阈值次数 slowLoads" value={dashOr(stats.slowLoads)} />
+          {/* 慢查询阈值是毫秒粒度（可配 50/100ms），画成秒会得到 "0s" 的谎，故照画毫秒 */}
+          <LedgerRow label="慢查询阈值 slowLoadMs" value={`${cfg.slowLoadMs}ms`} />
+          <LedgerRow label="发起 − 已计时（卡住的旁证）" value={dashOr(Math.max(0, stats.loads - stats.loadsTimed))} />
+        </div>
+        {stats.recentLoads.length ? (
+          <div className="dc-ledgerGrid" data-discover-load-samples>
+            {stats.recentLoads.map((d, i) => (
+              <LedgerRow key={`${d.atMs}-${i}`} label={`样本 #${i + 1}`} value={loadRow(d)} mono={false} />
+            ))}
+          </div>
+        ) : null}
+        <p className="dc-note" data-discover-load-note>
+          {loadNote(cfg.slowLoadMs, cfg.loadSampleCapacity)}
         </p>
       </section>
 

@@ -8,13 +8,16 @@ import {
   hitRate,
   isKnownReadout,
   keepPreviousOnError,
+  loadNote,
+  loadRow,
+  loadTimingHeadline,
   pollAllowed,
   staleNote,
   waveNote,
   waveRow,
   wavesHeadline,
 } from '../src/app/admin/discover-cache/discover-view';
-import type { DiscoverCacheReadout, EpochWave } from '../src/server/domain/discover-cache';
+import type { DiscoverCacheReadout, EpochWave, LoadDuration } from '../src/server/domain/discover-cache';
 
 /**
  * §SC-43 展示判据：纯函数、零 React / DOM / 网络，逐支验电。
@@ -35,11 +38,15 @@ const knownReadout = (): DiscoverCacheReadout => ({
     globalGen: 7,
     globalEpoch: 2,
     viewerGenerations: 3,
-    config: { ttlMs: 15_000, maxEntries: 2048, maxViewers: 512, waveWindowMs: 15_000, waveCapacity: 12, staleMaxMs: 30_000 },
+    config: { ttlMs: 15_000, maxEntries: 2048, maxViewers: 512, waveWindowMs: 15_000, waveCapacity: 12, staleMaxMs: 30_000, slowLoadMs: 1_000, loadSampleCapacity: 12 },
     bus: null,
     waves: [],
     waveConfig: { windowMs: 15_000, capacity: 12 },
     staleServed: 0,
+    loadsTimed: 0,
+    maxLoadMs: 0,
+    slowLoads: 0,
+    recentLoads: [],
   },
 });
 
@@ -287,5 +294,99 @@ describe('上游故障降级旁注（§SC-46 把"端旧页"的次数与边界摆
   it('上界秒数跟入参走，不写死（改 staleMaxMs 时旁注不说谎）', () => {
     expect(staleNote(1, 5_000)).toContain('5s');
     expect(staleNote(1, 5_000)).not.toContain('30s');
+  });
+});
+
+describe('加载耗时观测（§SC-47 先量再治，0 不说"都很快"）', () => {
+  const sample = (over: Partial<LoadDuration> = {}): LoadDuration => ({
+    epoch: 2, durationMs: 1345, ok: true, atMs: 1_000, ...over,
+  });
+
+  it('形状门：config 缺 slowLoadMs / loadSampleCapacity 挡掉（旁注秒数、容量分母不能画 NaN/undefined）', () => {
+    const broken = knownReadout();
+    expect(isKnownReadout({
+      ...broken,
+      stats: { ...broken.stats, config: { ...broken.stats.config, slowLoadMs: undefined } },
+    })).toBe(false);
+    expect(isKnownReadout({
+      ...broken,
+      stats: { ...broken.stats, config: { ...broken.stats.config, loadSampleCapacity: '12' } },
+    })).toBe(false);
+    expect(isKnownReadout({
+      ...broken,
+      stats: { ...broken.stats, config: { ...broken.stats.config, slowLoadMs: 1_000, loadSampleCapacity: 12 } },
+    })).toBe(true);
+  });
+
+  it('形状门：loadsTimed / maxLoadMs / slowLoads 缺一个或类型错都挡掉', () => {
+    const broken = knownReadout();
+    for (const key of ['loadsTimed', 'maxLoadMs', 'slowLoads']) {
+      expect(isKnownReadout({ ...broken, stats: { ...broken.stats, [key]: undefined } })).toBe(false);
+      expect(isKnownReadout({ ...broken, stats: { ...broken.stats, [key]: 'x' } })).toBe(false);
+    }
+  });
+
+  it('形状门：recentLoads 非数组挡掉；空数组合法（还没量到）', () => {
+    const broken = knownReadout();
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, recentLoads: undefined } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, recentLoads: 'oops' } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, recentLoads: [] } })).toBe(true);
+  });
+
+  it('形状门：单条样本字段坏（durationMs 非数 / ok 非布尔 / null 元素）都挡掉', () => {
+    const broken = knownReadout();
+    const good = sample();
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, recentLoads: [good] } })).toBe(true);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, recentLoads: [{ ...good, durationMs: '1345' }] } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, recentLoads: [{ ...good, epoch: undefined }] } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, recentLoads: [{ ...good, ok: 'true' }] } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, recentLoads: [{ ...good, atMs: null }] } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, recentLoads: [null] } })).toBe(false);
+    // ok=false（失败的慢查询）是合法样本，别误杀
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, recentLoads: [sample({ ok: false })] } })).toBe(true);
+  });
+
+  it('空标题：说"尚未观测"，绝不画成"没有慢查询/都很快"（同 hitRate(0,0) 家族）', () => {
+    const head = loadTimingHeadline(0, 0, 0);
+    expect(head).toContain('还没量到');
+    expect(head).toContain('不是');
+    // 被禁止的断言只应作为"纠正对象"出现在否定句里，不能成为一句独立结论。
+    // 钉法：删掉否定词后，整句不得再以"没有慢查询/都很快"收尾下结论。
+    expect(head).toContain('没有慢查询');
+    expect(head.split('不是').length).toBe(2); // 恰好一处否定前缀，把那句封在"不是…"里
+  });
+  it('有样本标题：报已计时次数 / 最慢毫秒 / 超阈值次数，并诚实标"只记已跑完"', () => {
+    const head = loadTimingHeadline(9, 1345, 2);
+    expect(head).toContain('9 次');
+    expect(head).toContain('1345ms');
+    expect(head).toContain('2 次');
+    expect(head).toContain('只记已跑完'); // 卡住不返回的看在途差，绝不谎报"没有慢查询"
+  });
+  it('单条样本行：成败如实标、毫秒与世代照实，不下"快/慢"结论', () => {
+    expect(loadRow(sample())).toContain('1345ms');
+    expect(loadRow(sample())).toContain('成功');
+    expect(loadRow(sample())).toContain('世代 2');
+    expect(loadRow(sample({ ok: false }))).toContain('失败');
+    expect(loadRow(sample({ ok: false }))).not.toContain('成功');
+  });
+  it('方法论旁注：钉只记真实打库 / hang 不进样本 / 只 ++不拦 / 有界 / 不在 race 层设闸 / 伪需求阈值', () => {
+    const note = loadNote(1_000, 12);
+    expect(note).toContain('1000ms'); // 阈值是毫秒粒度，画秒会得到 1s 但 50ms 会变 0s——故照画毫秒
+    expect(note).toContain('12'); // 有界容量
+    expect(note).toContain('singleflight'); // 跟随者不进包装函数
+    expect(note).toContain('不进样本'); // hang 诚实边界
+    expect(note).toContain('不能'); // "不能证明没有连接黑洞"
+    expect(note).toContain('loads − 已计时 loadsTimed'); // hang 的旁证写法，逐字来自文案
+    expect(note).toContain('不 abort'); // 只记不拦
+    expect(note).toContain(' abandon(key)'); // 正确方向
+    expect(note).toContain('statement_timeout');
+    expect(note).toContain('Promise.race'); // 明确否掉 race 层
+    expect(note).toContain('伪需求'); // 先量再治的收口
+  });
+  it('旁注阈值毫秒跟入参走、不写死也不画秒（50ms 不能变成 0s 的谎）', () => {
+    expect(loadNote(2_000, 8)).toContain('2000ms');
+    expect(loadNote(2_000, 8)).not.toContain('1000ms');
+    expect(loadNote(50, 8)).toContain('50ms'); // 小阈值照实画毫秒，不 /1000 变 0s
+    expect(loadNote(50, 8)).toContain('8'); // 容量也跟入参
   });
 });

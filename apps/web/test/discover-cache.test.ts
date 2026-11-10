@@ -607,3 +607,189 @@ describe('§SC-46 上游失败 stale 兜底（有界、守隐私、可观测）'
     expect(discoverCacheStats().staleServed).toBe(0); // 观测从零重计
   });
 });
+
+/**
+ * §SC-47 loader 墙钟耗时观测的验电：把"发现页加载到底有没有秒级长尾"从猜测变成可钉死的数字。
+ * 全程受控时钟 + fake loader，不 sleep、不连库、零生产行为变化。守的是几类真实坏法：
+ * 1. **把 singleflight 跟随者/缓存命中记进去** → 一次打库记成 N 次、把"等 leader 的墙钟"误算成查询耗时，
+ *    制造"并发越高越慢"的假长尾。包装 loader 放在 getOrLoad 里，跟随者根本不进包装函数——专设判据。
+ * 2. **失败不算**：慢失败同样是长尾证据；finally 必执行，reject 也落一条 ok:false 样本。
+ * 3. **hang 被谎报成"没有长尾"**：永不 settle 的 loader 到不了 finally、不进样本——这是诚实的边界，
+ *    判据钉"maxLoadMs 只反映已跑完的"，且 loads−loadsTimed 是 hang 的旁证而非伪造的完成耗时。
+ * 4. 有界缓冲漏界 / 观测跨 reset 保留 / 观测抛错反过来拖垮 loader 或吞异常。
+ */
+describe('§SC-47 loader 耗时观测（先量再治，只记不拦）', () => {
+  /** 可推进时钟 + 可收窄的慢阈值/容量；时钟与 BoundedCache、波、耗时共用同一个 now。 */
+  function timingStore(slowLoadMs = 100, loadSampleCapacity = 3) {
+    let clock = 1_000;
+    resetDiscoverCacheForTest({
+      maxEntries: 64, maxViewers: 8, ttlMs: 600_000, now: () => clock, slowLoadMs, loadSampleCapacity,
+    });
+    return { advance: (ms: number): void => { clock += ms; }, now: (): number => clock };
+  }
+
+  it('config 如实回读慢阈值/容量；初始 loadsTimed=0/maxLoadMs=0/recentLoads=[] 不是"都很快"', () => {
+    timingStore(250, 5);
+    const stats = discoverCacheStats();
+    expect(stats.config.slowLoadMs).toBe(250);
+    expect(stats.config.loadSampleCapacity).toBe(5);
+    expect(stats.loadsTimed).toBe(0);
+    expect(stats.maxLoadMs).toBe(0);
+    expect(stats.slowLoads).toBe(0);
+    expect(stats.recentLoads).toEqual([]);
+  });
+
+  it('受控时钟钉死单次墙钟：loader 内推进 37ms → maxLoadMs=37、recentLoads[0].durationMs=37', async () => {
+    const h = timingStore(100);
+    const epoch = discoverCacheStats().globalEpoch;
+    const slow: DiscoverLoader = async () => { h.advance(37); return resultFor('slow'); };
+    const r = await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, slow);
+    expect(r.cards[0]?.path).toBe('slow');
+    const stats = discoverCacheStats();
+    expect(stats.loadsTimed).toBe(1);
+    expect(stats.loads).toBe(1);
+    expect(stats.maxLoadMs).toBe(37);
+    expect(stats.slowLoads).toBe(0); // 37 < 100，没超阈值
+    expect(stats.recentLoads[0]).toMatchObject({ epoch, durationMs: 37, ok: true, atMs: 1_037 });
+  });
+
+  it('超阈值才 ++slowLoads；同一 store 多次打库取最慢值，不是最后一次', async () => {
+    const h = timingStore(100);
+    const mk = (ms: number): DiscoverLoader => async () => { h.advance(ms); return resultFor(`d${ms}`); };
+    await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, mk(12)); // 12ms，不超
+    await loadDiscoverCached({ sort: 'new', viewerId: 'B' }, mk(180)); // 180ms，超阈值
+    await loadDiscoverCached({ sort: 'new', viewerId: 'C' }, mk(45)); // 45ms，不超，且比 180 小
+    const stats = discoverCacheStats();
+    expect(stats.loadsTimed).toBe(3);
+    expect(stats.maxLoadMs).toBe(180); // 峰值，不是最后的 45
+    expect(stats.slowLoads).toBe(1); // 只有 180 那次超
+    // store 内缓冲旧的在前，stats 新的在前：180ms 那条现在是 recentLoads[1]
+    expect(stats.recentLoads.map((d) => d.durationMs)).toEqual([45, 180, 12]);
+  });
+
+  it('失败 loader 也记账且异常不吞：finally 落一条 ok:false，原始异常原样冒泡', async () => {
+    const h = timingStore(100);
+    const boom: DiscoverLoader = async () => { h.advance(210); throw new Error('db slow fail'); };
+    await expect(loadDiscoverCached({ sort: 'new', viewerId: 'A' }, boom)).rejects.toThrow('db slow fail');
+    const stats = discoverCacheStats();
+    expect(stats.loadsTimed).toBe(1);
+    expect(stats.maxLoadMs).toBe(210);
+    expect(stats.slowLoads).toBe(1); // 慢失败也是长尾证据
+    expect(stats.recentLoads[0]).toMatchObject({ durationMs: 210, ok: false });
+  });
+
+  it('singleflight 跟随者不重复计时：N 个同键并发只记 1 次、且不含"等 leader"的墙钟', async () => {
+    const h = timingStore(100);
+    // 门控：leader 卡在 gate 上 50ms；跟随者 await 同一个 inflight promise，根本不进包装函数。
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const gated: DiscoverLoader = async () => { await gate; h.advance(50); return resultFor('gated'); };
+    const ps = Array.from({ length: 5 }, () => loadDiscoverCached({ sort: 'new', viewerId: 'same' }, gated));
+    release();
+    await Promise.all(ps);
+    const stats = discoverCacheStats();
+    expect(stats.loads).toBe(1); // 只真打了一次库
+    expect(stats.loadsTimed).toBe(1); // 关键：不是 5——跟随者若被计时这里会红
+    expect(stats.maxLoadMs).toBe(50); // 是 loader 墙钟，不是某个跟随者"等了多久"的墙钟
+    expect(stats.recentLoads).toHaveLength(1);
+  });
+
+  it('缓存命中不计：同键连读两次只计时一次（没打库就没有耗时）', async () => {
+    const h = timingStore(100);
+    const { loader } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'new', viewerId: 'A' };
+    await loadDiscoverCached(input, loader);
+    h.advance(999); // 时钟走很多，但第二次命中缓存不调 loader
+    await loadDiscoverCached(input, loader);
+    expect(discoverCacheStats().loadsTimed).toBe(1);
+    expect(discoverCacheStats().recentLoads).toHaveLength(1);
+  });
+
+  it('hang 诚实边界：永不 settle 的 loader 不进样本；maxLoadMs=0 但 loads−loadsTimed=1 暴露卡住', async () => {
+    timingStore(100);
+    const hung: DiscoverLoader = () => new Promise<DiscoverResult>(() => { /* 永不 resolve/reject */ });
+    // 不 await 这个调用（它永不返回）；触发同步段的 getOrLoad + 包装后立刻查读数。
+    void loadDiscoverCached({ sort: 'new', viewerId: 'A' }, hung);
+    // 让微任务跑起来（getOrLoad 用 Promise.resolve().then(loader)），但 loader 不 settle。
+    await Promise.resolve();
+    await Promise.resolve();
+    const stats = discoverCacheStats();
+    expect(stats.loads).toBe(1); // 发起了
+    expect(stats.loadsTimed).toBe(0); // 但没跑完 → 不计时，绝不伪造一个"完成耗时"
+    expect(stats.maxLoadMs).toBe(0); // 0 = 没量到，不是"0ms 光速"
+    expect(stats.loads - stats.loadsTimed).toBe(1); // 差值为正 = hang 的旁证（面板正是这么标的）
+  });
+
+  it('环形缓冲有界：连续 5 次打库只留最近 3 条，新的在前；聚合 loadsTimed/maxLoadMs 不丢', async () => {
+    const h = timingStore(100, 3);
+    const mk = (ms: number): DiscoverLoader => async () => { h.advance(ms); return resultFor('x'); };
+    for (const [i, ms] of [10, 20, 30, 40, 50].entries()) {
+      await loadDiscoverCached({ sort: 'new', viewerId: `v${i}` }, mk(ms));
+    }
+    const stats = discoverCacheStats();
+    expect(stats.loadsTimed).toBe(5); // 累计不因缓冲淘汰而少
+    expect(stats.maxLoadMs).toBe(50); // 峰值不因淘汰而丢
+    expect(stats.recentLoads).toHaveLength(3); // 恰好容量
+    expect(stats.recentLoads.map((d) => d.durationMs)).toEqual([50, 40, 30]); // 最新在前，最旧两条被丢
+  });
+
+  it('不跨 reset：耗时快照清零（旧进程的耗时与新 store 无关），但 config 保留', async () => {
+    const h = timingStore(100, 3);
+    const slow: DiscoverLoader = async () => { h.advance(77); return resultFor('s'); };
+    await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, slow);
+    expect(discoverCacheStats().maxLoadMs).toBe(77);
+    resetDiscoverCacheForTest({ slowLoadMs: 100, loadSampleCapacity: 3, now: () => 1_000 });
+    const stats = discoverCacheStats();
+    expect(stats.loadsTimed).toBe(0);
+    expect(stats.maxLoadMs).toBe(0);
+    expect(stats.slowLoads).toBe(0);
+    expect(stats.recentLoads).toEqual([]);
+    expect(stats.config.slowLoadMs).toBe(100); // 配置是部署事实，不因观测清零而变
+  });
+
+  it('epoch 归属锁在发起那一刻：loader 跑的途中发生 public 发布，样本仍记旧世代（不冒充结束后的新世代）', async () => {
+    const h = timingStore(100);
+    const epochBefore = discoverCacheStats().globalEpoch;
+    // loader 执行期间 public 发布 → globalEpoch +1；但这条耗时属于"发起它的那一次"冷启动波。
+    const crossPublish: DiscoverLoader = async () => {
+      h.advance(20);
+      invalidateDiscoverGlobally(); // epoch +1，且这一步自己会开一个 SC-45 波
+      return resultFor('published-mid-load');
+    };
+    const r = await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, crossPublish);
+    expect(r.cards[0]?.path).toBe('published-mid-load'); // 观测/失效都不改变这次 loader 的返回
+    const stats = discoverCacheStats();
+    expect(stats.globalEpoch).toBe(epochBefore + 1); // 发布确实涨了世代
+    expect(stats.loadsTimed).toBe(1);
+    expect(stats.recentLoads[0]!.epoch).toBe(epochBefore); // 样本归属发起时的世代，不是发布后的
+  });
+
+  it('loadsTimed / maxLoadMs / slowLoads / recentLoads 可安全 JSON 往返（admin route 原样端出）', async () => {
+    const h = timingStore(100);
+    const slow: DiscoverLoader = async () => { h.advance(150); return resultFor('s'); };
+    await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, slow);
+    const json = JSON.parse(JSON.stringify(discoverCacheStats()));
+    expect(json.loadsTimed).toBe(1);
+    expect(json.maxLoadMs).toBe(150);
+    expect(json.slowLoads).toBe(1);
+    expect(json.recentLoads[0].ok).toBe(true); // 布尔不丢
+    expect(json.recentLoads[0].durationMs).toBe(150);
+  });
+
+  it('与 SC-46 降级共存：上游慢且失败但端出旧页，耗时记一条 ok:false，降级计数照旧', async () => {
+    let clock = 1_000;
+    resetDiscoverCacheForTest({ maxEntries: 64, maxViewers: 8, ttlMs: 1_000, staleMaxMs: 5_000, slowLoadMs: 100, now: () => clock });
+    const { loader } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'new', viewerId: 'A' };
+    const first = await loadDiscoverCached(input, loader);
+    clock += 1_200; // 过 TTL
+    const slowFail: DiscoverLoader = async () => { clock += 180; throw new Error('db down'); };
+    const served = await loadDiscoverCached(input, slowFail);
+    expect(served.cards[0]?.path).toBe(first.cards[0]?.path); // SC-46：端出旧页
+    const stats = discoverCacheStats();
+    expect(stats.staleServed).toBe(1); // SC-46 降级账
+    expect(stats.loadsTimed).toBe(2); // 两次打库都计时（首次成功 + 这次慢失败）
+    expect(stats.maxLoadMs).toBe(180); // 慢失败被量到
+    expect(stats.recentLoads[0]).toMatchObject({ ok: false, durationMs: 180 });
+  });
+});

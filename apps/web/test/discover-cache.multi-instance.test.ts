@@ -228,6 +228,30 @@ describe('§SC-44 跨实例全局失效（新作品发布对所有实例、所�
     expect(b.stats().waves[0]!.loadsDelta).toBe(1); // B 这一波真打了一次库
     expect(bLoad.calls()).toBe(2);
   });
+
+  it('§SC-47 isolated 工厂的耗时账各算各的：B 打库的墙钟只记在 B，不串到 A', async () => {
+    let clock = 1_000;
+    const aBus = new MemoryInvalidationBus(hub);
+    const bBus = new MemoryInvalidationBus(hub);
+    opened.push(aBus, bBus);
+    const a = createIsolatedDiscoverCacheForTest({ bus: aBus, ttlMs: 600_000, slowLoadMs: 50 });
+    const b = createIsolatedDiscoverCacheForTest({ bus: bBus, ttlMs: 600_000, slowLoadMs: 50, now: () => clock });
+    stores.push(a, b);
+    const anon = { sort: 'new' as const, viewerId: null, limit: 24 };
+    const slowB: () => Promise<DiscoverResult> = async () => {
+      clock += 90; // 受控时钟推进 90ms，超 B 的 50ms 阈值
+      return { sort: 'new', cards: [{ path: 'B-slow' } as DiscoverResult['cards'][number]], unavailable: [], hiddenAuthors: 0, method: null };
+    };
+    await b.load(anon, slowB);
+    expect(b.stats().loadsTimed).toBe(1);
+    expect(b.stats().maxLoadMs).toBe(90);
+    expect(b.stats().slowLoads).toBe(1);
+    expect(b.stats().recentLoads[0]).toMatchObject({ epoch: 0, durationMs: 90, ok: true });
+    // A 没打过库，耗时账全是 0——每台实例只报自己的墙钟（与总线四账、波同口径）
+    expect(a.stats().loadsTimed).toBe(0);
+    expect(a.stats().maxLoadMs).toBe(0);
+    expect(a.stats().recentLoads).toEqual([]);
+  });
 });
 
 describe('fail-open（线路不在，单机语义不回退）', () => {
