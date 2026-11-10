@@ -20,18 +20,24 @@
  *   9. nexus-api itself is part of the topology: it starts, registers into the same registry, and
  *      answers 200 through the gateway's `/api/**` route (its own throwaway database, created by the
  *      operator or CI before the smoke starts — see README note in docs/ENVIRONMENT.md).
+ *  10. the config server is a real leg, not a decorative pom: nexus-config serves nexus-gateway.yml /
+ *      nexus-api.yml / nexus-domain-service.yml (native profile). The gateway is started with
+ *      NEXUS_CONFIG_ENABLED=true and NO rate-limit env — its startup log must show `ratePerSecond=50.0`
+ *      (local default is 100), and both backends must appear in the registry with NO env register flags
+ *      (their config files say register-with-eureka:true). A silent config-client failure fails this run.
  *
  * Exits 0 only when every check passed. Exits 1 on the first failure and ALWAYS stops the three
  * services it started — a smoke that leaves three JVMs behind is a smoke that exhausts the box.
  *
- * Run from the repo root. Ports default to the services themselves (8761/8082/8090); everything can be
+ * Run from the repo root. Ports default to the services themselves (8761 registry · 8888 config ·
+ * 8082 domain · 8084 api · 8090 gateway, Postgres on 55433); everything can be
  * overridden — NEXUS_REGISTRY_PORT / NEXUS_DOMAIN_PORT / NEXUS_GATEWAY_PORT, NEXUS_DOMAIN_DB_URL,
  * DB_USERNAME, DB_PASSWORD, NEXUS_DOMAIN_PG_PORT — e.g. when an unrelated process already holds 8090 or a
  * CI runner exposes Postgres on another host port. If any needed port is in use the run fails fast with
  * the name of the port, rather than fighting it.
  */
 import { spawn, execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, createWriteStream, readdirSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, createWriteStream, readdirSync, statSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -43,6 +49,7 @@ const DENY = '[verify-topology]';
 const REGISTRY_PORT = Number(process.env.NEXUS_REGISTRY_PORT ?? 8761);
 const DOMAIN_PORT = Number(process.env.NEXUS_DOMAIN_PORT ?? 8082);
 const GATEWAY_PORT = Number(process.env.NEXUS_GATEWAY_PORT ?? 8090);
+const CONFIG_PORT = Number(process.env.NEXUS_CONFIG_PORT ?? 8888);
 const API_PORT = Number(process.env.NEXUS_API_PORT ?? 8084);
 const DB_URL = process.env.NEXUS_DOMAIN_DB_URL ?? 'jdbc:postgresql://127.0.0.1:55433/nexus';
 const DB_USERNAME = process.env.DB_USERNAME ?? 'nexus';
@@ -129,7 +136,25 @@ async function waitFor(label, url, want = 200, deadlineMs = 90_000) {
   return false;
 }
 
-/** Spawn a service jar with env; returns the child. Logs go to LOG_DIR. */
+/** Poll a URL until it answers `want` or the deadline passes; returns the last response (or a 499 stub). */
+async function waitForUrl(url, want, deadlineMs) {
+  const start = Date.now();
+  let last = { status: 499 };
+  while (Date.now() - start < deadlineMs) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+      last = res;
+      if (res.status === want) return res;
+    } catch {
+      last = { status: 499 };
+    }
+    await new Promise((r) => setTimeout(r, 1_000));
+  }
+  return last;
+}
+
+/** Spawn a service jar with env; returns the child. Logs go to LOG_DIR — truncated per run: a stale
+ *  line from yesterday must not be able to satisfy today's assertion. */
 function spawnJar(name, jar, env = {}) {
   const log = path.join(LOG_DIR, `${name}.log`);
   const err = path.join(LOG_DIR, `${name}.err`);
@@ -138,8 +163,8 @@ function spawnJar(name, jar, env = {}) {
     env: { ...process.env, ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  child.stdout.pipe(createWriteStream(log, { flags: 'a' }));
-  child.stderr.pipe(createWriteStream(err, { flags: 'a' }));
+  child.stdout.pipe(createWriteStream(log, { flags: 'w' }));
+  child.stderr.pipe(createWriteStream(err, { flags: 'w' }));
   return child;
 }
 
@@ -167,6 +192,7 @@ async function main() {
   const domainJar = ensureJarFresh('domain-service', 'java-domain-service', 'target/domain-service-1.0.0-SNAPSHOT.jar');
   const gatewayJar = ensureJarFresh('gateway', 'nexus-gateway', 'target/nexus-gateway-0.1.0-SNAPSHOT.jar');
   const apiJar = ensureJarFresh('nexus-api', 'nexus-api', 'target/nexus-api-0.1.0-SNAPSHOT.jar');
+  const configJar = ensureJarFresh('nexus-config', 'nexus-config', 'target/nexus-config-0.1.0-SNAPSHOT.jar');
 
   // Postgres is the domain service's only hard dependency besides Eureka. Refuse to start without it.
   const pg = await (async () => {
@@ -174,7 +200,7 @@ async function main() {
   })();
   if (!pg) console.warn(`${DENY} warning: 127.0.0.1:${PG_PORT} did not answer HTTP (not fatal for policy endpoint, but billing plan reads users — expect 400)`);
 
-  for (const port of [REGISTRY_PORT, DOMAIN_PORT, GATEWAY_PORT, API_PORT]) await assertFree(port);
+  for (const port of [REGISTRY_PORT, CONFIG_PORT, DOMAIN_PORT, GATEWAY_PORT, API_PORT]) await assertFree(port);
 
   console.log(`${DENY} starting registry / domain-service / gateway (logs in ${LOG_DIR})`);
   const registry = spawnJar('registry', registryJar, { NEXUS_REGISTRY_PORT: String(REGISTRY_PORT) });
@@ -185,54 +211,80 @@ async function main() {
   }
   ok('eureka is answering');
 
+  // The config server joins next. It is the ONLY source of the `register-with-eureka: true` the two
+  // backends need — nothing in the process environment says it — so whether they appear in the registry
+  // proves the config client round-trip, not just the client's mere presence.
+  const configServer = spawnJar('nexus-config', configJar, { NEXUS_CONFIG_PORT: String(CONFIG_PORT) });
+  services.push({ name: 'nexus-config', child: configServer });
+  if (!(await waitFor('nexus-config', `http://127.0.0.1:${CONFIG_PORT}/actuator/health`, 200))) {
+    await cleanup();
+    process.exit(1);
+  }
+  ok('config server is answering');
+
   const domain = spawnJar('domain-service', domainJar, {
-    NEXUS_DOMAIN_REGISTER: 'true',
-    NEXUS_DOMAIN_FETCH: 'true',
     NEXUS_DOMAIN_DB_URL: DB_URL,
     DB_USERNAME,
     DB_PASSWORD,
     NEXUS_DOMAIN_PORT: String(DOMAIN_PORT),
-    NEXUS_CONFIG_ENABLED: 'false',
+    NEXUS_CONFIG_ENABLED: 'true',
+    // No NEXUS_DOMAIN_REGISTER/FETCH anywhere: the register-with-eureka:true this service will obey
+    // can ONLY come from nexus-domain-service.yml served by the config server. If the round-trip fails,
+    // the registry stays empty and the check below fails — that is the assertion, not an implementation detail.
   });
   services.push({ name: 'domain-service', child: domain });
-  if (!(await waitFor('domain-service', `http://127.0.0.1:${DOMAIN_PORT}/actuator/health`, 200))) {
+  if (!(await waitFor('domain-service', `http://127.0.0.1:${DOMAIN_PORT}/actuator/health`, 200, 150_000))) {
     await cleanup();
     process.exit(1);
   }
-  ok('domain-service registered itself');
-
-  // The domain service self-declares its health even with a down Redis (healthDetails show it, but status stays UP only when DB is up)
-  const reg = await fetch(`http://127.0.0.1:${REGISTRY_PORT}/eureka/apps/NEXUS-DOMAIN-SERVICE`);
-  if (reg.status !== 200) bad('domain-service registered in eureka', `GET answered ${reg.status}`);
-  else ok('eureka holds NEXUS-DOMAIN-SERVICE');
+  const reg = await waitForUrl(`http://127.0.0.1:${REGISTRY_PORT}/eureka/apps/NEXUS-DOMAIN-SERVICE`, 200, 30_000);
+  if (reg.status !== 200) bad('domain-service registered via config server', `GET answered ${reg.status}`);
+  else ok('eureka holds NEXUS-DOMAIN-SERVICE (via config server, no env flags)');
 
   // nexus-api joins the same registry before the gateway starts, so the gateway's first fetch sees
   // the full topology (not just the domain service). It owns its own throwaway database.
   const api = spawnJar('nexus-api', apiJar, {
-    NEXUS_API_REGISTER: 'true',
-    NEXUS_API_FETCH: 'true',
     NEXUS_DB_URL: API_DB_URL,
     NEXUS_DB_USER: DB_USERNAME,
     NEXUS_DB_PASSWORD: DB_PASSWORD,
     NEXUS_API_PORT: String(API_PORT),
-    NEXUS_CONFIG_ENABLED: 'false',
+    NEXUS_CONFIG_ENABLED: 'true',
+    // Same round-trip: nexus-api.yml says register-with-eureka:true — nothing in env does.
   });
   services.push({ name: 'nexus-api', child: api });
-  if (!(await waitFor('nexus-api', `http://127.0.0.1:${API_PORT}/actuator/health`, 200))) {
+  if (!(await waitFor('nexus-api', `http://127.0.0.1:${API_PORT}/actuator/health`, 200, 150_000))) {
     await cleanup();
     process.exit(1);
   }
-  const apiReg = await fetch(`http://127.0.0.1:${REGISTRY_PORT}/eureka/apps/NEXUS-API`);
-  if (apiReg.status !== 200) bad('nexus-api registered in eureka', `GET answered ${apiReg.status}`);
-  else ok('eureka holds NEXUS-API');
+  const apiReg = await waitForUrl(`http://127.0.0.1:${REGISTRY_PORT}/eureka/apps/NEXUS-API`, 200, 30_000);
+  if (apiReg.status !== 200) bad('nexus-api registered via config server', `GET answered ${apiReg.status}`);
+  else ok('eureka holds NEXUS-API (via config server, no env flags)');
 
-  const gateway = spawnJar('gateway', gatewayJar, { NEXUS_GATEWAY_PORT: String(GATEWAY_PORT), NEXUS_CONFIG_ENABLED: 'false' });
+  const gateway = spawnJar('gateway', gatewayJar, { NEXUS_GATEWAY_PORT: String(GATEWAY_PORT), NEXUS_CONFIG_ENABLED: 'true' });
   services.push({ name: 'gateway', child: gateway });
   if (!(await waitFor('gateway', `http://127.0.0.1:${GATEWAY_PORT}/platform/health`, 200))) {
     await cleanup();
     process.exit(1);
   }
   ok('gateway is answering');
+
+  // The config round-trip, read out of the gateway's own startup line: it started with
+  // NEXUS_CONFIG_ENABLED=true and NO rate-limit env var, so `ratePerSecond=50.0` in the log can only
+  // mean nexus-gateway.yml from nexus-config won over the packaged default (100). A config client
+  // that silently failed would print 100 and this check would say so — that is the assertion.
+  const gatewayLog = path.join(LOG_DIR, 'gateway.log');
+  let served50 = false;
+  const cfgDeadline = Date.now() + 30_000;
+  while (Date.now() < cfgDeadline && !served50) {
+    try {
+      served50 = readFileSync(gatewayLog, 'utf8').includes('ratePerSecond=50.0');
+    } catch {
+      served50 = false;
+    }
+    if (!served50) await new Promise((r) => setTimeout(r, 1_000));
+  }
+  if (!served50) bad('config server served nexus-gateway.yml', 'gateway log never showed ratePerSecond=50.0 (a silent config-client failure would print the local default 100)');
+  else ok('config server served nexus-gateway.yml (ratePerSecond=50.0)');
 
   // Warm the domain service's JPA stack through the door. The first DB-touching request pays metamodel
   // init + Hikari warm-up and can exceed the gateway's 5s bound; a smoke that asserts before then

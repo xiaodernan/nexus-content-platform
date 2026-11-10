@@ -8,9 +8,11 @@
 
 - Permission HTTP 面（`GET /api/v1/permission/check`）已上线并经 `lb://nexus-domain-service` 活体验证；
 - **第一次调用真 503**（gateway 5s 上限 vs domain 冷启动）——设计行为，不是 bug；首先由 smoke 预热绕开（§SC-17），随后由 boot 预热对齐到服务端（§SC-18 / ADR-0099，`WarmupRunner`，users=4193）彻底关闭；
-- `npm run verify:topology` 现覆盖四个服务（registry / domain-service / **nexus-api** / gateway，
-  `NEXUS_*_PORT`、DB 侧同理）、自动重打包 stale jar、断言 permission 面与 `/platform/services`
-  （discovery 的消费方读数，列出的两个后端都要有）；证据 `docs/evidence/sc24-nexus-api-live-proof.md`；
+- `npm run verify:topology` 现覆盖**五个**服务（registry / **nexus-config** / domain-service /
+  nexus-api / gateway），`NEXUS_*_PORT` 与 DB 侧全可覆盖、stale jar 自动重打包、逐条断言
+  community/billing/permission 三面、`/platform/services` discovery 读数，以及 **config server
+  往返**（两个后端无 env register 标志也入库；网关启动日志 `ratePerSecond=50.0`）；
+  证据 `docs/evidence/sc24-nexus-api-live-proof.md` 与 `sc25-config-roundtrip-live-proof.md`；
 - 主线 CI 新增 `topology` job（`.github/workflows/main-line.yml`）：打包三服务 + migrate + `verify:topology`，
   **首个 push 前未经 CI 实跑**——红则为真信号；
 - `:8090` 被本仓之外的进程（PID 39424，`com.nexus.NexusApplication`，classpath 指向已不存在的
@@ -86,6 +88,15 @@
   - 12 个 add/add 冲突的解法见 `README.md` 的 "Consolidation history" 一节。
 
 - 子模块 `packages/*` 通过 `@nexus/*` alias 或 `tsconfig.json paths`——`tsconfig.base.json` 是单一真值来源。
+
+- 2026-11-10 全盘并轨盘点（只读，未动任何一字节）：D:\ 顶层 94 个 `nexus-*`/内容创作* 目录中，
+  唯一 remote 匹配本仓库的就是本目录（origin=github.com/xiaodernan/nexus-content-platform）——
+  **没有未推送游离副本、没有 worktree、没有 stash**；另外 5 个 git 候选全部属于另一项目
+  `D:/获客平台` 的本地 remote 线（detached HEAD、shared parent 系），一个（`nexus-headplane-r20`）
+  是无 remote 空仓（16 个未跟踪改动、无 commit，性质可疑但不可归类、无可合并内容）；
+  两个残留 Java 进程（3a大作 的 discovery-server/config-server，ports 29161/29888）与
+  `PID 39424 com.nexus.NexusApplication`（argfile 指向已不存在的 `services/platform/target/classes`，
+  本仓无此模块、git 无此路径历史）全部无主可合、且后者已自行退出。8090 端口因此已空闲。
 
 - 2026-11-09 新增 `apps/web` 侧确定性本地 embedding：`NEXUS_EMBEDDING_PROVIDER=local`（**必须显式设置，绝不静默切换**）后，Web 进程内就能完成 §49 的 embedding 与 hybrid 检索——token-bag 哈希，1536 维，无需 key；不是语义模型，只是确定性本地便捷。真实 provider 仍按原有路径接入。
 - 全局环境：Windows 11 / Node 24 / Python 3.11 / Java 25 + Maven（ai-service），以及 Compose 上的 PostgreSQL 55433 / Redis 56379（`infra/docker-compose.yml`）。

@@ -11305,3 +11305,23 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
   `psql CREATE DATABASE` 成功。四个 JVM 全部干净退出。
 - 未验证：CI 的 `topology` job 仍从未被真正 push 执行过；它红了就是真信号。
   gateway 的 `/api/**` 在本机 auth 关闭下是通的（auth 开着时同路径要 token）。
+
+## §SC 第二十片：Config Server 往返——配了但没证明的那部分人（2026-11-10）
+
+- 触发：SC-9/10/11 立了 config server 但只证明了"客户端接线了、默认关"；gateway/domain/api 都走
+  optional import，没人证明过 8888 真的把属性送进过服务。
+- 交付（verify-topology 第五条腿，`npm run verify:topology` 默认全程 <2.5 分钟）：
+  起 registry :8761 → nexus-config :8888（native）→ domain :8082（**无** `NEXUS_DOMAIN_REGISTER/FETCH`
+  env，只给 `NEXUS_CONFIG_ENABLED=true`）→ nexus-api :8084（同上）→ gateway :8090
+  （**无** rate-limit env，只给 `NEXUS_CONFIG_ENABLED=true`）。
+- 三条判据，全过：
+  1. 两个后端都出现在 eureka 里而**环境里没有任何 register 标志**——只能从 config 文件来；
+  2. 网关启动日志 `ratePerSecond=50.0`（本地打包默认 100）——nexus-gateway.yml 真的赢了；
+  3. `/platform/services` 列出两者、社区/账单/权限/`/api/health` 全部照常——config 没把门搞挂。
+- smoke 自身修了三处：日志截断（追加式日志会让昨天的 50.0 骗过今天的断言）、domain/api
+  就绪等待 90→150s（首跑在内存吃紧下 domain 花了 111s 才就绪——失败门非零退出、进程全清干净）、
+  eureka 存在性改轮询（注册是异步的）。
+- 首跑如实记录（vt-run5.log）：domain 90s 未就绪 → 非零退出 → 进程清干净。复跑全绿。
+- CI `topology` job 同步：打包 nexus-config 五个 jar；**CI topology 仍未被 push 实跑过**。
+- config server 是 native（classpath，非 Git）——客户端契约与本片判据在 Git/Vault backend 同样成立，
+  生产 config backend 未验证。

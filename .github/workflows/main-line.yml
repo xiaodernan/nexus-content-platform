@@ -14,9 +14,11 @@ name: main-line
 #   2. `npm run evals` — the §85 deterministic structural invariants, exit 1 on any red (ADR-0093).
 #      With NEXUS_DATABASE_URL pointed at the service container, the export-roundtrip suite runs too
 #      (it prints SKIP without one, without a red).
-#   3. `verify:topology` (the `topology` job) — SC-19/SC-20/SC-23's live smoke: registry + domain-service
-#      + gateway + nexus-api packaged, started, asserted against each other. This is the CI answer to the
-#      stale-jar class of bug (a green `mvn test` says nothing about `java -jar`).
+#   3. `verify:topology` (the `topology` job) — the §SC-19/20/23/25 live smoke: registry + config +
+#      domain-service + gateway + nexus-api packaged, started, asserted against each other, with the
+#      config round-trip proven out of the gateway's own startup log (ratePerSecond=50.0 beats the
+#      packaged 100) and both backends registering with ZERO env register flags. This is the CI answer
+#      to the stale-jar class of bug (a green `mvn test` says nothing about `java -jar`).
 #
 # WHAT IT DELIBERATELY DOES NOT GRADE:
 #   - the studio line's gates — they run in ci.yml and are re-earned by `npm run verify:proofs`;
@@ -121,13 +123,14 @@ jobs:
           psql -h localhost -p 55433 -U nexus -d postgres -c "CREATE DATABASE nexus_api_smoke" || true
         env:
           PGPASSWORD: nexus_dev_only
-      - name: Package the four services (jar must postdate the checkout's source mtimes)
+      - name: Package the five services (jar must postdate the checkout's source mtimes)
         run: |
           mvn -B -DskipTests package -f services/nexus-registry/pom.xml
+          mvn -B -DskipTests package -f services/nexus-config/pom.xml
           mvn -B -DskipTests package -f services/java-domain-service/pom.xml
           mvn -B -DskipTests package -f services/nexus-gateway/pom.xml
           mvn -B -DskipTests package -f services/nexus-api/pom.xml
-      - name: verify:topology (registry + domain-service + gateway + nexus-api through service discovery)
+      - name: verify:topology (registry + config + domain-service + gateway + nexus-api through service discovery)
         run: npm run verify:topology
         env:
           NEXUS_GATEWAY_PORT: 8090
