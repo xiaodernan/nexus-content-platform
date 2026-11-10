@@ -67,6 +67,42 @@ ADR-0089 把 `/credits` 那句话收成一份表（件数、名单、解释同�
 - **仍然没牙的那格**（如实记）：地址只证明"这道门存在、装在链上、在我问的那条边界上按句子答"。
   句子若声称一件**我没写用例去问**的行为（例如"撤回即释放名额"），门仍不会被任何腿问一次——
   那需要往 DB 平面要一条真邀请，`team.integration.test.ts` ⑥ 有形状，但它不读 `why`。
-- **ROADMAP 那一行没写**（如实记）：`docs/ROADMAP.md` 此刻是另一条会话的在飞路径（工作树里有它未提交的改动），
-  按路径提交会把别人的半成品混进这一笔。§SEC 第四十三片的账先记在这份 ADR 里，
-  ROADMAP 的 `## §SEC 第四十三片` 一节留给下一次能安全写 ROADMAP 的落地补上——**这一条本身就是欠账，不是已完成**。
+- **ROADMAP 那一行当时没写**（如实记，2026-11-09 已还）：落地那一刻 `docs/ROADMAP.md` 是另一条会话的在飞路径
+  （工作树里有它未提交的改动），按路径提交会把别人的半成品混进这一笔，所以第四十三片的账先只记在这份 ADR 里。
+  那条会话的改动已进主干（工作树干净）之后，`docs/ROADMAP.md` 文末补上了 `## §SEC 第四十三片` 一节，
+  并把第四十二片「仍欠 ①」那句就地改成已还——**欠账清偿的日期与清偿时的 HEAD 都写在那一节里**。
+
+## 见证（逐字读数）
+
+- 门本身：`apps/web/test/credits-why-guards.test.ts` 17 条腿；连同 `credits-enforced-copy.test.ts`（8 条）与
+  `credits.test.ts`（26 条）三个文件一起跑 ⇒ **51 passed**（电池对照臂与电池收尾各跑一次，两次同数；
+  这三份就是 `.scratch/arms-creditswhy.mjs` 里 `TESTS` 那三行，臂评的人口与对照的人口是同一份）。
+- 变异电池：`.scratch/arms-creditswhy.mjs`（跑法 `node .scratch/arms-creditswhy.mjs`，
+  读数逐字落在 `.scratch/arms-creditswhy.txt`）。七条臂**每条都先写预测红名单与预测绿名单再跑**，
+  结果七条全部 `pred 全中 · not 全绿`：
+
+  | 臂 | 变异（改的是真值那一侧，不是测试） | 预测红 | 实测 failed |
+  | --- | --- | --- | --- |
+  | 对照 | 无 | — | 0（total=51，exit=0） |
+  | W1 | generation 的 `module` 从 `credit-ledger` 写成 `credits`（地址指错模块） | 解析 / generation 函数体 | 2 |
+  | W2 | storage 的 `guard` 改成一个不存在的名字（门改名，句子还说它拦着） | 解析 / 调用点 / storage 边界 | 3 |
+  | W3 | `refusalFor` 的 `balance >= cost` 收紧成 `>`（刚好够也不放行） | aiUsage 边界 / generation 同源 | 3 |
+  | W4 | aiUsage 那句点数改回手抄，同时 `GENERATION_COST.image` 2→3 | 只有"数字不许有第二份"那条 | 1 |
+  | W5 | teamCollaboration 那句改回旧口径「pending 邀请也占名额」 | 旧措辞双端 / 过期口径 | 4 |
+  | W6 | 删掉 `teamSlotRefusalFor` 里的 `expiresAt` 过滤 | 只有"过期不占名额"那条 | 1 |
+  | W7 | publishing 与 teamCollaboration 的 `guard` 名字对调（两门都在、都有调用点） | 两格边界腿 | 2 |
+
+  W4 与 W7 是这一片区别于"加几条用例"的证据：W4 里边界腿全绿而数字腿独红（成本变了、句子没改口），
+  W7 里名册腿全绿而两格边界腿红（门都在，只是句子说错了对象）——静态门与"测试自己 import 门名"的写法都看不见这两种。
+- 两条**不在预测里的另红**，如实记而不是事后补预测：W3 多红 `§134 余额、发放与拒绝 点不够就不许跑，且拒绝的话里带着两个数字`
+  （它读的是同一道 `refusalFor`，边界收紧当然连它一起红）；W5 多红 `今天这一页端出来的那句话，逐字与生成函数一致`
+  （页面读的是 `planEnforcementReadout()`，表改口它就跟着改口，逐字门先响）。两条都是同源连坐，不是门的漏洞。
+- 还原：电池自己按 sha1 校验两个被改的文件回到臂前字节 ⇒ `credits.ts=OK credit-ledger.ts=OK`，`aborted=no`。
+  中途一次人为停跑把树留在 W3 的变异上（`balance > cost`），按已知那一条 splice 反向改回 `>=`，
+  **没有用 `git checkout --`**（那会连未提交的表一起抹掉），改回后 `git diff` 逐行确认只剩本片 intended 的改动。
+- 界面：`@smoke §134 跑一次生成…` **1 passed (1.1m)**；`screenshots/credits-enforced-copy.png` 逐字看过
+  （该目录在 `.gitignore` 里，截图是本地凭证不是入库证据，故这一条只记读数不记路径为证）。
+- 静态门：`npm run typecheck` 与 `npm run eslint` 各 exit 0。
+- 全量：本片进主干后由另一条会话的两片重跑覆盖到（`f604d13`，272 文件 / 3590 条，两次 exit 0）；
+  `git merge-base --is-ancestor eb809df f604d13` 为真，即那次全量跑的人口里**有**这一片的三个文件。
+  本会话自己起的那次全量后台跑被会话重启截断（输出只有 40 行、没有 summary），**不作为证据引用**。
