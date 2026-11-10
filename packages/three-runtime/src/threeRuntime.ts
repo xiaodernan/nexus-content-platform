@@ -52,6 +52,18 @@ import { SAVE_TEMP_SUFFIX, savePathRefusal, type SaveStore } from './saveStore.j
 
 export { DEFAULT_THREE_CONFIG };
 
+/**
+ * A listener for a runtime event.
+ *
+ * <p>This used to be spelled `Function`, which types nothing at all: it accepts any function-like
+ * value and says nothing about what the listener is handed. The runtime's events are string-keyed
+ * with heterogeneous payloads, and `emit` hands each listener whatever that event carries — so
+ * the payload is `any` here and the LISTENER narrows it. (`any` rather than `unknown` because the
+ * map holds listeners of different payload types at once, and an `unknown` in the parameter
+ * position would reject every listener that declares a narrower one.)
+ */
+export type ThreeEventListener = (data?: any) => void;
+
 /** A controller attached to an entity, stepped by the frame loop. `groundY` is NOT one of these fields
  *  — it is a property of the world the character stands on, so it lives on the registry entry. */
 export interface ControllerAttachOptions {
@@ -1194,7 +1206,7 @@ export class ThreeRuntime {
   private canvas: HTMLCanvasElement | OffscreenCanvas | null = null;
   private animationFrameId: number | null = null;
   private running = false;
-  private eventListeners: Map<string, Function[]> = new Map();
+  private eventListeners: Map<string, ThreeEventListener[]> = new Map();
   /** Entities carrying a character controller, keyed by entity id. The registry — not a component —
    *  owns this because the integrator needs a per-entity world property (`groundY`) beside the controller. */
   private controllers: Map<EntityId, ControllerEntry> = new Map();
@@ -4317,14 +4329,14 @@ export class ThreeRuntime {
     this.sceneGraph.stats.lines = info.lines;
   }
 
-  addEventListener(event: string, listener: Function): void {
+  addEventListener(event: string, listener: ThreeEventListener): void {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, []);
     }
     this.eventListeners.get(event)!.push(listener);
   }
 
-  removeEventListener(event: string, listener: Function): void {
+  removeEventListener(event: string, listener: ThreeEventListener): void {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
       const index = listeners.indexOf(listener);

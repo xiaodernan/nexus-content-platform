@@ -130,6 +130,10 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
     emit({ type: 'verify', ok: verdict.ok === true, detail: String(verdict.detail ?? '') });
     let green = verdict.ok === true;
     let attempt = 0;
+    // no-unmodified-loop-condition：stepsUsed 在这里**确实**在长——长在 `invoke` 里，而本循环每轮调用
+    // 它两次。这条规则只看得见循环体内的赋值，跨闭包的写对它就是「没被改过」。预算是真的在管：
+    // 每轮 fix 长两步，条件因此会停住轮次。写清原因，免得下一个人以为是漏了。
+    // eslint-disable-next-line no-unmodified-loop-condition
     while (!green && attempt < maxFixRounds && stepsUsed < maxSteps) {
       attempt++;
       const fixStep: Step = {

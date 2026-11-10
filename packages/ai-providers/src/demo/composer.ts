@@ -169,7 +169,7 @@ function buildDashboard(c: Composer, headline: string): ContainerNode {
     c.text('title', headline || 'Dashboard', { sizeToken: 'font.size.lg', weight: 700 }, { width: 200, height: 32 }),
     c.ellipse('avatar', { width: 32, height: 32, fills: [token('color.accent')] }),
   ]);
-  const statCards = ['Revenue', 'Active users', 'Conversion'].map((s, i) => {
+  const statCards = ['Revenue', 'Active users', 'Conversion'].map((s) => {
     const card = c.frame('stat ' + s, { width: 276, height: 120, cornerRadius: 12, fills: [token('color.surface')] }, vLayout(6, { top: 16, right: 16, bottom: 16, left: 16 }));
     c.adopt(card, [
       c.text('k', s, { sizeToken: 'font.size.sm' }, { width: 240, height: 18, fills: [token('color.textMuted')] }),

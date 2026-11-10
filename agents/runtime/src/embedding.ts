@@ -24,15 +24,35 @@ export function embedTokens(text: string): number[] {
   return v.map((x) => x / m);
 }
 
+/**
+ * The SAME hybrid score, with the query's vector and tokens already in hand.
+ *
+ * <p>`hybridScore` re-embeds the query for every candidate it scores, and re-embeds the candidate too.
+ * A caller that ranks many candidates against ONE query pays for that embedding once per candidate —
+ * and a caller that already holds the candidate's stored vector pays for it again. This is the rule
+ * itself, factored so that the fast path and the plain path are the SAME arithmetic: there is one
+ * score, not two that drift apart.
+ *
+ * <p>The arithmetic is identical to {@link hybridScore}, given that `docVector` is
+ * `embedTokens(docText)`: a text sharing zero query tokens scores exactly 0 (cosine noise alone never
+ * ranks, §60), otherwise `0.6 * cosine + 0.4 * coverage`.
+ */
+export function hybridScoreFrom(
+  queryVector: number[],
+  queryTokens: ReadonlySet<string>,
+  docVector: number[],
+  docText: string,
+): number {
+  const dt = new Set(tokenize(docText));
+  let shared = 0;
+  for (const t of queryTokens) if (dt.has(t)) shared++;
+  if (shared === 0) return 0;
+  const coverage = queryTokens.size === 0 ? 0 : shared / queryTokens.size;
+  return 0.6 * cosine(queryVector, docVector) + 0.4 * coverage;
+}
+
 /** Hybrid score used by both index queries and memory recall: embedding pull + token coverage.
  * A text sharing zero query tokens scores exactly 0 — cosine noise alone never ranks (§60). */
 export function hybridScore(query: string, text: string): number {
-  const qv = embedTokens(query);
-  const qt = new Set(tokenize(query));
-  const dt = new Set(tokenize(text));
-  let shared = 0;
-  for (const t of qt) if (dt.has(t)) shared++;
-  if (shared === 0) return 0;
-  const coverage = qt.size === 0 ? 0 : shared / qt.size;
-  return 0.6 * cosine(qv, embedTokens(text)) + 0.4 * coverage;
+  return hybridScoreFrom(embedTokens(query), new Set(tokenize(query)), embedTokens(text), text);
 }

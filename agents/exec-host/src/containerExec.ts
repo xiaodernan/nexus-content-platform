@@ -464,9 +464,10 @@ export function createContainerExecHost(policy: ContainerPolicy, options: Contai
             });
           child.kill();
         }, plan.timeoutMs);
-        child.onEnd(async (e) => {
-          clearTimeout(timer);
-          if (cleanupSettled) await cleanupSettled;
+        // 监听器必须是同步的：onEnd 把监听器的返回值丢弃，写成 async 时，监听器里抛出的异常会变成一次
+        // 无主的 rejection（没人 await 也没人 catch），而外层这个 promise 将永远不落定——挂死比报错更难查。
+        // 「先等清理再落定」这件事挂在 cleanupSettled 上：它自带 catch，永不 reject。
+        const settle = (e: { code: number | null; signal: string | null; error?: string }) => {
           const streams = (['stdout', 'stderr'] as const).filter((s) => cut[s]);
           const result: ContainerRunResult = {
             ran: true,
@@ -494,6 +495,11 @@ export function createContainerExecHost(policy: ContainerPolicy, options: Contai
             return;
           }
           resolve(result);
+        };
+        child.onEnd((e) => {
+          clearTimeout(timer);
+          if (cleanupSettled) void cleanupSettled.then(() => settle(e));
+          else settle(e);
         });
       });
     },

@@ -32,8 +32,6 @@
  * the value's TYPE, because the renderer's own answer is silence: the node simply is not drawn, and a
  * person looking at an empty canvas cannot tell whether the document is empty or corrupt.
  */
-import type { DesignDocument, DesignNode, NexusId } from './types.js';
-
 export interface DocumentProblem {
   /** A stable machine-readable kind, so a caller can branch without reading prose. */
   code: string;
@@ -82,7 +80,13 @@ export function validateDocument(doc: unknown): DocumentVerdict {
     } else {
       const root = nodes[rootId]!;
       if (root.type !== 'document') add('root-not-document', `the node named by rootId (${rootId}) is a ${String(root.type)}, not a document`);
-      if (root.parentId !== null) add('root-has-parent', `the root ${rootId} has a parentId (${String(root.parentId)}); a root has none`);
+      if (root.parentId !== null) {
+        // parentId 是 unknown（这份校验收的是类型系统之外的字节），所以 String() 它只会印出
+        // "[object Object]" —— 那不是事实，是一句谎。这里报它的类型；是字符串就把字符串说出来。
+        const parent = root.parentId;
+        const shown = typeof parent === 'string' ? parent : `a ${typeof parent}`;
+        add('root-has-parent', `the root ${rootId} has a parentId (${shown}); a root has none`);
+      }
       // the DEAD field must stay empty
       if (Array.isArray(root.childIds) && root.childIds.length > 0) {
         add('document-child-ids-used', `the document node ${rootId} has a non-empty childIds (${root.childIds.length}); a document's children live in pageIds, and childIds is dead`);

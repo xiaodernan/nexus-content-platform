@@ -1,6 +1,5 @@
 import type {
   WorldState,
-  WorldId,
   Character,
   CharacterId,
   Location,
@@ -8,15 +7,9 @@ import type {
   Faction,
   FactionId,
   LoreEntry,
-  LoreId,
   WorldEvent,
-  EventId,
   CharacterAttributes,
-  CharacterStatus,
-  InventoryItem,
-  Goal,
   KnowledgeState,
-  Relationship,
   WorldEngineConfig,
   RAGQuery,
   RAGResult,
@@ -184,7 +177,7 @@ export class WorldEngine {
   private decayRelationships(): number {
     let changed = 0;
     for (const character of this.world.characters.values()) {
-      for (const [targetId, rel] of character.relationships) {
+      for (const rel of character.relationships.values()) {
         const next = decayStrength(rel.strength);
         if (next !== rel.strength) {
           rel.strength = next;
@@ -552,10 +545,10 @@ createCharacter(
   }
 
   updateAgentConfig(characterId: CharacterId, config: Partial<CharacterAgentConfig>): void {
-    const agent = this.agents.get(characterId);
-    if (agent) {
-      // Would need to expose config update in CharacterAgent
-    }
+    // This used to be a no-op with a comment where the work should have been: the config was taken
+    // and dropped, so a caller that re-weighted an agent saw no change and no error either. The
+    // weights live on the agent, so the agent is the door that changes them.
+    this.agents.get(characterId)?.updateConfig(config);
   }
 
   /** Knowledge holds Sets and a Map — shapes JSON.stringify flattens into `{}` and `{}`, which is how

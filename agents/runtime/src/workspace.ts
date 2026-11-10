@@ -1,3 +1,4 @@
+import { stringArg } from './args.js';
 import { buildIndex, queryIndex } from './codeIndex.js';
 import { queryIndexWithVectors } from './indexVectors.js';
 import type { IndexProvider } from './indexStore.js';
@@ -123,7 +124,7 @@ export function registerWorkspaceTools(registry: ToolRegistry, ws: InMemoryWorks
     registry.register(spec, (args) => {
       switch (spec.name) {
         case 'fs.list':
-          return ws.list(String(args.prefix ?? ''));
+          return ws.list(stringArg(args, 'prefix'));
         case 'fs.read':
           return { content: ws.read(String(args.path)) };
         case 'fs.search':

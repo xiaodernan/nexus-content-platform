@@ -1,3 +1,4 @@
+import { stringArg } from './args.js';
 import type { MemoryRecord, MemoryStore } from './memory.js';
 import type { FsLike } from './realfs.js';
 import { collectTextFiles } from './realfs.js';
@@ -131,7 +132,7 @@ export function registerDiskTools(registry: ToolRegistry, opts: DiskToolOptions)
             extensions: opts.extensions ?? /.*/,
             maxFiles: opts.maxFiles ?? 2000,
           });
-          const prefix = String(args.prefix ?? '');
+          const prefix = stringArg(args, 'prefix');
           return { paths: Object.keys(files).filter((p) => p.startsWith(prefix)) };
         }
         default:

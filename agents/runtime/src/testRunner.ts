@@ -1,3 +1,4 @@
+import { stringArg } from './args.js';
 import type { FsWriteLike } from './durability.js';
 import type { ToolRegistry } from './registry.js';
 import type { ToolSpec } from './types.js';
@@ -127,7 +128,7 @@ export const TEST_TOOL_SPECS: ToolSpec[] = [
 export function registerTestTools(registry: ToolRegistry, runner: TestRunner): ToolRegistry {
   for (const spec of TEST_TOOL_SPECS) {
     registry.register(spec, async (args) => {
-      const only = args.only === undefined ? undefined : String(args.only);
+      const only = args.only === undefined ? undefined : stringArg(args, 'only');
       const report = await runner.run(only);
       if (only !== undefined && report.total === 0) throw new Error(`no test predicate named "${only}"`);
       return { ok: report.ok, detail: report.detail, report };

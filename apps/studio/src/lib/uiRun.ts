@@ -39,8 +39,10 @@ export function createDomDriver(): UiDriver {
     type(index: number, text: string): string {
       const el = list()[index];
       if (!(el instanceof HTMLInputElement)) throw new Error(`element ${index} is not an input`);
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
-      setter.call(el, text);
+      // The setter comes off the PROTOTYPE's descriptor, not the element's own: React tracks whether the
+      // native setter ran, not whether the value changed. Writing it as one chain keeps the accessor
+      // attached to its descriptor — no local to hand around, and no `this` left to get wrong.
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(el, text);
       el.dispatchEvent(new Event('input', { bubbles: true }));
       return `type:${labelOf(el)}=${text}`;
     },
@@ -112,7 +114,9 @@ export async function runUiTask(
     face ?? {
       mode: 'human',
       decide: ({ call }) => {
-        const label = String(call.args.label ?? 'page');
+        // args 是未知的：String() 它只会印出 "[object Object]"，而这个 label 是给人看的名字。
+        const rawLabel = call.args.label;
+        const label = typeof rawLabel === 'string' ? rawLabel : 'page';
         return decide({ tool: call.tool, label, detail: call.tool === 'ui.type' ? `type “${call.args.text}”` : 'one click' });
       },
     },

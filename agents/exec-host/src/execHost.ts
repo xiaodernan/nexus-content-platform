@@ -375,9 +375,10 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
             })();
           }
         }, plan.timeoutMs);
-        child.onEnd(async (e) => {
-          clearTimeout(timer);
-          if (reapSettled) await reapSettled;
+        // 监听器必须是同步的：onEnd 把监听器的返回值丢弃，写成 async 时，监听器里抛出的异常会变成一次
+        // 无主的 rejection（没人 await 也没人 catch），而外层这个 promise 将永远不落定——挂死比报错更难查。
+        // 「先等树清理再落定」这件事挂在 reapSettled 上：它自带 catch，永不 reject。
+        const settle = (e: { code: number | null; signal: string | null; error?: string }) => {
           // M2 v544 (ADR 0016 amendment 527): `killed` is the TIMER's decision; this is what ENDED
           // the process. Measured on the ubuntu runner (run 40833035921): a timer delivered after a
           // cheap child had already finished produced `killed` beside `exit 0, signal null` in 3 of
@@ -411,6 +412,11 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
             return;
           }
           resolve(result);
+        };
+        child.onEnd((e) => {
+          clearTimeout(timer);
+          if (reapSettled) void reapSettled.then(() => settle(e));
+          else settle(e);
         });
       });
     },

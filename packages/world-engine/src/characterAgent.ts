@@ -8,13 +8,9 @@ import type {
   CharacterAction,
   AgentDecision,
   CharacterAgentContext,
-  CharacterAttributes,
   Relationship,
-  InventoryItem,
-  KnowledgeState,
-  CharacterStatus,
 } from './types.js';
-import { worldId, characterId, locationId, factionId, loreId, eventId } from './types.js';
+import { characterId, locationId, eventId } from './types.js';
 import { WorldRAG } from './rag.js';
 import { RELATIONSHIP_FLOOR, gainStrength, deriveRelationType, isDerivableRelationType } from './relationships.js';
 
@@ -53,6 +49,19 @@ export class CharacterAgent {
 
   getCharacter(): Character {
     return this.character;
+  }
+
+  /**
+   * Re-weight this agent in place.
+   *
+   * <p>This exists because the world engine's `updateAgentConfig` used to be a no-op: it took a
+   * config, said nothing, and changed nothing — a method that promises a change and makes none
+   * is a fake API (§159). The weights are private, so the engine cannot set them from outside;
+   * this is the one door that does it, and it merges rather than replaces so a partial update
+   * leaves the untouched weights alone.
+   */
+  updateConfig(config: Partial<CharacterAgentConfig>): void {
+    this.config = { ...this.config, ...config };
   }
 
   getContext(): CharacterAgentContext {
@@ -199,7 +208,7 @@ export class CharacterAgent {
       reasoning: this.generateReasoning(bestAction, context, bestScore),
       confidence: Math.min(1, bestScore / 10),
       alternativeActions: alternatives,
-      expectedOutcome: this.predictOutcome(bestAction, context),
+      expectedOutcome: this.predictOutcome(bestAction),
     };
 
     this.lastDecision = decision;
@@ -292,7 +301,7 @@ export class CharacterAgent {
     return reasons.join('; ') || `Evaluated action ${action.name} with score ${score.toFixed(2)}`;
   }
 
-  private predictOutcome(action: CharacterAction, context: CharacterAgentContext): string {
+  private predictOutcome(action: CharacterAction): string {
     switch (action.type) {
       case 'rest': return 'Recover health and energy';
       case 'move': return `Travel to new location`;

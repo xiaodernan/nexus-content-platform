@@ -1,6 +1,14 @@
 import type { ArgType, PermissionClass, ToolArgSpec, ToolCall, ToolResult, ToolSpec } from './types.js';
 
-export type ToolImpl = (args: Record<string, unknown>) => unknown | Promise<unknown>;
+/**
+ * What a tool's implementation returns.
+ *
+ * `unknown | Promise<unknown>` was `unknown` wearing a disguise: `unknown` absorbs every other
+ * member of a union, so the `| Promise<unknown>` said nothing and only read like a promise was
+ * excluded. `unknown` alone says exactly what it means — an implementation may return a value or
+ * a promise, and the registry awaits the result either way.
+ */
+export type ToolImpl = (args: Record<string, unknown>) => unknown;
 
 export interface CheckpointRequest {
   call: ToolCall;

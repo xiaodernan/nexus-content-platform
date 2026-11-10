@@ -1,3 +1,4 @@
+import { stringArg } from './args.js';
 import type { ToolImpl, ToolRegistry } from './registry.js';
 import type { ToolSpec } from './types.js';
 
@@ -406,7 +407,7 @@ export function registerAssetTools(registry: ToolRegistry, driver: AssetDriver):
       if (args.tags !== undefined) {
         // Tags arrive as a comma-separated string because `ToolArgSpec` has no array type; an empty list is
         // a legitimate patch (it clears them), so `''` means "no tags" rather than "not given".
-        patch.tags = String(args.tags)
+        patch.tags = stringArg(args, 'tags')
           .split(',')
           .map((t) => t.trim())
           .filter((t) => t.length > 0);

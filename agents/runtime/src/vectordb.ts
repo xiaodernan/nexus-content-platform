@@ -1,5 +1,5 @@
-import { cosine, EMBED_DIM } from '@nexus/ai-providers';
-import { embedTokens, hybridScore, tokenize } from './embedding.js';
+import { EMBED_DIM } from '@nexus/ai-providers';
+import { embedTokens, hybridScoreFrom, tokenize } from './embedding.js';
 import type { FsWriteLike } from './durability.js';
 
 /**
@@ -83,6 +83,10 @@ export interface VectorHit {
  * Exact-scan hybrid query over stored vectors: 0.6 cosine (stored vector, no recompute)
  * + 0.4 query-token coverage. Zero shared tokens ⇒ 0, ties by id — identical ranking to
  * `hybridScore(query, text)` by construction, asserted in tests.
+ *
+ * The score itself is `hybridScoreFrom` — the SAME rule `hybridScore` applies, with the query's
+ * vector and tokens hoisted out of the loop. This used to inline the arithmetic here, which made
+ * the rule live in two places; one rule, one place.
  */
 export function queryVectors(db: VectorDb, query: string, opts: { k?: number; filterIds?: Set<string> } = {}): VectorHit[] {
   const qv = embedTokens(query);
@@ -90,7 +94,7 @@ export function queryVectors(db: VectorDb, query: string, opts: { k?: number; fi
   const hits: VectorHit[] = [];
   for (const e of db.entries) {
     if (opts.filterIds && !opts.filterIds.has(e.id)) continue;
-    const score = hybridScore(query, e.text) === 0 ? 0 : 0.6 * cosine(qv, e.vector) + 0.4 * (qt.size ? [...qt].filter((t) => new Set(tokenize(e.text)).has(t)).length / qt.size : 0);
+    const score = hybridScoreFrom(qv, qt, e.vector, e.text);
     if (score > 0) hits.push({ id: e.id, score, text: e.text, ...(e.meta ? { meta: e.meta } : {}) });
   }
   hits.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));

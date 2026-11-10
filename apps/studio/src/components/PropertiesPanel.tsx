@@ -109,7 +109,7 @@ function NodeEditor({ node }: { node: DesignNode }) {
             <NumberField label="Size" value={Number(style.sizePx ?? 16)} min={1} onCommit={(n) => updateNode(node.id, { style: { ...style, sizePx: Math.max(1, n) } })} />
             <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11, color: 'var(--nexus-muted)' }}>
               Align
-              <select className="field" value={String(style.align ?? 'left')} onChange={(e) => updateNode(node.id, { style: { ...style, align: e.target.value } })}>
+              <select className="field" value={typeof style.align === 'string' ? style.align : 'left'} onChange={(e) => updateNode(node.id, { style: { ...style, align: e.target.value } })}>
                 <option value="left">left</option>
                 <option value="center">center</option>
                 <option value="right">right</option>
