@@ -11697,3 +11697,36 @@ decision；护栏坏了不该把门焊死」。但这条承诺此前只有 `Rate
   验证记录。整仓 eslint 仍是本机内存超时边界（非 lint 报错，本轮零前端文件），如实记；未推送。
 - **仍欠（同前片，去掉已闭合的「显式超时硬上界」）**：连接层黑洞的独立看门狗（消除 connect 阶段对 Lettuce
   的依赖，需更大生产改动）；响应中途断开；多实例 breaker 聚合；CI `topology` job 经真实 push 执行。
+
+## §SC 第三十三片：Bulkhead 不是「没接」，是沉默默认——把它变成声明出来、可调、可读、wire 级证明的容量边界（2026-11-11）
+
+起点是第二十六片留下的一句「有意未接 Bulkhead：runtime scope + 并发易 flaky」。这一回**先用反编译把「没接」这个前提本身推翻了**，再补上真正缺的东西。
+
+- **前提订正（读字节码，不猜）**：Spring Cloud 的 reactive 断路器**早就**在每条 route 上套了 `SemaphoreBulkhead`——`ReactiveResilience4JCircuitBreakerFactory` 与 `ReactiveResilience4JCircuitBreaker` 都持有 `ReactiveResilience4jBulkheadProvider`，由 auto-config 默认注册；`run()` 字节码顺序是 `decorateMono → CircuitBreakerOperator → Mono.timeout → onErrorResume(fallback)`，舱壁在最内层。`create(id)→create(id,id)`、`decorateMono(groupName=id)` 从 `BulkheadRegistry` 按 id 取，id 正是 `setName(service)`。默认值 `DEFAULT_MAX_CONCURRENT_CALLS=25`。**所以不是接不接，而是**：一个决定「多少并发能打到后端」的边界，一直靠库默认值在跑，无配置、无 env、无读数、无行为证明。
+- **生产改动（把沉默默认变显式承诺）**：`application.yml` 为两后端各声明 `resilience4j.bulkhead.instances.<service>`：`max-concurrent-calls: ${NEXUS_GATEWAY_BULKHEAD_MAX_CALLS:25}`、`max-wait-duration: 0`。**默认仍 25**（库默认），故行为不变；变的是「谁决定这个值」——平台显式选择、部署可 env 收紧。wait=0 = 满即减载、不排队、不制造隐藏延迟悬崖。零生产 Java 改动（Spring Cloud 接线本就正确）。
+- **运维读数 + 诚实边界**：exposure `health,circuitbreakers` → `health,circuitbreakers,bulkheads`。**探针实测 `BulkheadEndpoint` 只给 `{"bulkheads":[...]}` 名字列表，`/actuator/bulkheads/{id}` 是 404，没有实时在途数**——这是「哪些 route 挂了边界」的读数，不是并发仪表（明确写进 ADR-0109 与测试断言，绝不包装成容量指标）。auth-on 时无 token 401 / 带 token 200 / health 仍开放，独立 context 实测。
+- **wire 判据 `GatewayBulkheadWiringTest`（3 条，一条都不 pin 竞态）**：新夹具 `StubUpstream.holdNext(n)` 占住前 N 个 handler 线程 + `awaitHeld()` 握手**证明在途**，之后才发第 N+1 个调用。钉：①满时诚实 503、`cause=BulkheadFullException`；②**拒绝在 wire 之前**（后端只见放行的 N 条，不放大、不把更多活压给满载后端）；③breaker 全程 CLOSED、cause **不是** `CallNotPermitted`（容量减载 ≠ 后端故障，两者不能混）；④释放后自愈。连跑 3 轮 + 整套 3 次稳定。
+- **为什么旧判「易 flaky」如今能做**：换掉靠 `sleep` 碰运气重叠的夹具，改用 `CountDownLatch` **确定性占用**（占用是事实后才发下一个调用）。三个硬约束：必须 `startConcurrent()`（串行 `HttpServer` 会让被占 handler 挡住后续、wire 假读，SC-34 同类桩谎言）；等待有界 + `@AfterEach` 无条件 `release()`（SC-36 非 daemon 线程 hang JVM 退出 9 分钟的教训）；并发腿用**非阻塞 `WebClient`**（`WebTestClient.exchange()` 阻塞，一个线程发不出两个在途——探针编译阶段就拦下了这个选型错误）。
+- **读数**：单类 3/3（连跑 3 次）、actuator wiring 3/3、actuator auth 3/3；网关全套 110/110（context 缓存根治见下片）；typecheck 14/14。一次性探针（5 类字节码反编译 + 3 轮真实并发读数）跑完即删。未推送。
+- **仍欠**：多实例 breaker/bulkhead 聚合（各实例各报各的）；连接层黑洞独立看门狗（SC-36）；CI `topology` job 经真实 push 执行。
+
+## §SC 第三十四片：响应中途断开不说谎——以及「多个测试随机红」的真凶是 context 缓存没封顶（2026-11-11）
+
+本片有两半：一半补后端故障的第四种形状，一半被迫根治一个被新增测试**揪出来**的测试基础设施缺陷。
+
+### 前半：响应中途断开（SC-38）
+
+- **缺口**：后端故障四种形状，5xx / 连接拒绝 / 响应前断连都已有 wire 判据，唯独**第四种从没测**：发 `200 + headers + 部分 body` 后声明的 `Content-Length` 未满足就 close。最容易说谎的一种——网关可能把半截 JSON 当成功，调用方解析出空内容报「没有数据」，真相是「后端死了」（§159 禁止的「空列表冒充 outage」的近亲）。
+- **一次性探针实测（先读数，不预设）**：`StubUpstream.truncateResponses()` 声明比实际更长的 body、只写前半就 close。GET/POST 各 3 轮一致：调用方收到**连接级失败** `PrematureCloseException: Connection prematurely closed DURING response`，**从未** 200 + 截断 body；后端 wire 恒 1（GET 不重试——已拿 200 头进入 body 阶段才断，retry 两触发源都不覆盖「响应头已转发后的 body 断流」）；健康基线 200/42B 不污染。
+- **决定：不改生产，网关已正确**。把安全属性变 wire 不变量（`GatewayTruncatedResponseWiringTest` 3 条 × 3 轮）：①中途断开绝不返回「成功响应」，失败信号带真实 `PrematureCloseException DURING response`（不伪造 cause）；②GET/POST wire 恒 1、不重放不放大；③健康应答仍是真 200（守夹具不自欺）。
+- **诚实边界（不粉饰成假绿）**：调用方看到的是**连接级异常，不是干净 503**。原因同 ADR-0101 的 `ServerHttpResponse already committed`——body 断时 200 头已转下游，改 503 会撞「已提交」。平台**无法**在此承诺 503，能承诺的是「不把断流伪装成成功」。要干净 503 需「响应提交前全量缓冲 body」的更大改动，另立片，本片不假报已做到。刻意不 pin 耗时（冷连 ~1.2s / 热连 ~30-50ms）与包装异常确切类型。
+
+### 后半：全套随机红的真凶 —— Spring context 缓存没封顶
+
+- **现象**：SC-37 加 4 个 `@SpringBootTest` 后全套 98→110。连跑两次全套**每次各红一条不同的既存测试**（retry wire=0、routing 读到残留 `"/drop"`），第三次三条不同测试同时红（两个 actuator 的 `/actuator/health` 报 **503**、`ServiceHealthProbeTest` 变 UNKNOWN），同时稳定出现 `Surefire is going to kill self fork JVM ... 30s after System.exit(0)`。**每条单独跑都稳定。** 逐条改断言是错的。
+- **根因（对照实验定性）**：排除本轮 4 个新类后全套 **BUILD SUCCESS、零告警**。病灶不是新测试本身，而是测试基础设施：全套 **21 个 RANDOM_PORT `@SpringBootTest`**，各带不同 properties → Spring context 缓存默认 `maxSize=32` 把**全部 21 个 Spring + Netty context 常驻同一 `-Xmx512m` fork**。新增 4 个把常驻数推过堆临界点 → GC 压力拖慢 health 探测（报 503）、拖慢 in-flight wire 记录（时序漂移）、拖住非 daemon 线程（fork 退出告警）。
+- **治本（测试夹具界，零生产影响）**：surefire `argLine` 加 `-Dspring.test.context.cache.maxSize=4`（属性名经 `spring-test` 的 `ContextCacheUtils.retrieveMaxCacheSize()` 字节码核实、`SpringProperties` 读 `-D`）。缓存上限 4 让 Spring **淘汰最久未用 context**，常驻数不再随测试类增长。代价：context 重启使全套耗时升到 ~3:06，换确定性——正是「测真实读数不粉饰」该付的价。
+- **顺带修两条被环境压力揪出的既存过度紧断言（语义等价、不放宽）**：`GatewayRetryTransportWiringTest` 的 wire 改经有界 `awaitPathsAtLeast(1,250)` 等 floor（retry 第 2 条可能晚于 fallback 提交 503 才落 wire）再钉上界 ≤2，保留「真到后端 ≥1 / 不放大 ≤2」两条不变式；`GatewayRoutingTest` domain 腿 `apiUpstream.paths()).isEmpty()` 改 `doesNotContain(domain 路径)`（原断言比本意更强，前一条 `/drop` 的 retry 尾请求会在 `clearPaths()` 后留下无害 `"/drop"`）。
+- **验证**：封顶前连跑三次全套三次各红不同既存测试 + 稳定 fork 告警；封顶后三次独立全套均 **110/110 BUILD SUCCESS、fork 告警消失**，typecheck 14/14。
+- **经验（供接手）**：①多个测试红且各自单独绿 → 先怀疑共享资源/context 累积，别逐条改断言，对照实验（排除新增类跑基线）最快定性；②加 `@SpringBootTest` 就想 context 缓存——真实 socket context 很重，套件一大必须封顶 maxSize，否则堆临界点上 health/时序断言随机红还伪装成业务 bug；③**有界等待 + 语义上界**优于「瞬时读数 + 宽区间」：既抓放大又抗竞态。详见 ADR-0110。
+- **仍欠**：多实例 breaker/bulkhead 聚合；连接层黑洞独立看门狗（SC-36）；CI `topology` job 经真实 push 执行。

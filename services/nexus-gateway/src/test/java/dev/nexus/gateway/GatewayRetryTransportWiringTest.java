@@ -44,6 +44,15 @@ import org.springframework.test.web.reactive.server.WebTestClient;
  * either value would be a flaky, fake-green test. The DETERMINISTIC "GET replays once" proof belongs to
  * {@link GatewayEdgePolicyTest}'s status-trigger leg; this class owns the exception-trigger's WRITE-SAFETY
  * proof. Repeating rounds here grades stability itself, not a lucky single run.
+ *
+ * <p><b>A full-suite flake was found and fixed (2026-11-11, SC-38):</b> under the whole 110-test context the
+ * GET leg occasionally read wire=0 — the blocking call returned on the fallback's committed 503 BEFORE the
+ * retry's 2nd attempt was recorded, so an instant {@code paths().size()} read saw fewer attempts than would
+ * ultimately land. It was NOT a new regression (the class passed 3/3 in isolation); it was a read race the
+ * loose {@code isBetween(1,2)} still assumed away. The wire is now read via a bounded
+ * {@link StubUpstream#awaitPathsAtLeast(int, long)} grace (wait for the floor, then grade the upper bound),
+ * keeping BOTH invariants — the call truly hit the backend and retry did not amplify it — without pinning a
+ * value that races the fallback. The bound is a read grace, never the thing under test.
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -139,9 +148,13 @@ class GatewayRetryTransportWiringTest {
         int honestAnswers = 0;
         for (int i = 0; i < ROUNDS; i++) {
             int status = getWithOneDrop();
-            int wire = upstream.paths().size();
+            // The retry's 2nd attempt can land AFTER the fallback committed 503 (ADR-0101's already-committed
+            // race). Read the wire only once it is stable: wait for the 1st attempt with a BOUNDED grace, then
+            // grade the upper bound. This keeps both invariants — the call really reached the backend (>=1)
+            // and retry never amplified it (>2) — without pinning the read to a response/fallback race.
+            int wire = upstream.awaitPathsAtLeast(1, 250);
             assertThat(wire)
-                    .as("round %d: retry=1 caps the backend at 2 wire attempts (no amplification)", i)
+                    .as("round %d: the call reached the backend (>=1) and retry=1 caps it at 2 (no amplification)", i)
                     .isBetween(1, 2);
             assertThat(status)
                     .as("round %d: a dropped GET must self-heal to 200 or answer an honest 503", i)

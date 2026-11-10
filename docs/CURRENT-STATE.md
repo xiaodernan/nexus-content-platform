@@ -2,7 +2,12 @@
 
 本文件是项目当前状态的快照——供未来任何 agent（或人类）在我不在的时候接上。它**只描述已经交付、已可执行的事**，不承诺未做的事。
 
-> **2026-11-11 接上须知（置顶）**：Spring Cloud 断路由 §SC-28 又向前一段——§SC 第二十五片 /
+> **2026-11-11 续（§SC-37/38，最新置顶）**：Spring Cloud 弹性四件套收口 + 一个被揪出并根治的测试基础设施缺陷。
+> **§SC-37 / ADR-0109（Bulkhead）**：反编译推翻了「Bulkhead 没接」的前提——Spring Cloud reactive 断路器**早就**在每条 route 套了 `SemaphoreBulkhead`（`ReactiveResilience4jBulkheadProvider` auto-config 默认注册，默认 25 并发），只是沉默、无配置、无读数、无 wire 证明。本片把它**显式化**：`application.yml` 两后端各声明 `bulkhead.instances.<svc>.max-concurrent-calls=${NEXUS_GATEWAY_BULKHEAD_MAX_CALLS:25}` + `max-wait-duration:0`（满即减载、不排队），默认仍 25 故行为不变，变的是「谁决定这个值」。新增 `GatewayBulkheadWiringTest`（确定性 `StubUpstream.holdNext/awaitHeld` 占用夹具 + 非阻塞 `WebClient`）钉：满时诚实 503/`cause=BulkheadFullException`、拒绝**在 wire 之前**（不放大）、breaker 全程 CLOSED（容量减载 ≠ `CallNotPermitted` 后端故障）、释放后自愈；actuator 暴露 `bulkheads` 并**诚实记边界**（resilience4j 2.2.0 只给名字列表、`/{id}` 404、无实时并发数）+ auth-on 保护。此前判「并发易 flaky」靠的是 `sleep` 碰运气重叠，今换成 `CountDownLatch` 确定性握手，缺口正面关掉。
+> **§SC-38 / ADR-0110（响应中途断开 + context 缓存根治）**：补后端故障第四种形状——`200+headers+部分 body` 后断流。探针实测 caller 得**连接级** `PrematureCloseException DURING response`、**从不**收到截断的成功 200，GET/POST wire 恒 1；`GatewayTruncatedResponseWiringTest` 把它变 wire 不变量，**不改生产**（网关已正确）。诚实边界：caller 看到连接异常而非干净 503，因 200 头已提交（`already committed`），要 503 需全量缓冲 body 的更大改动。**关键基础设施修复**：加 4 个 `@SpringBootTest` 后全套连跑三次**各红一条不同的既存测试**（含 actuator `/actuator/health` 报 503、`ServiceHealthProbeTest` UNKNOWN）+ 稳定 fork 退出告警，但各自单独稳定；对照实验（排除新增类→BUILD SUCCESS）定位真凶＝**21 个 RANDOM_PORT context 全常驻默认 `maxSize=32` 缓存、挤爆 `-Xmx512m` fork**。治本：surefire argLine 加 `-Dspring.test.context.cache.maxSize=4`（属性名字节码核实）让 Spring 淘汰最久未用 context，常驻数不再随测试类增长；代价全套耗时升到 ~3:06，换确定性。顺带把两条被压力揪出的既存过紧断言改语义等价的稳健形式（`awaitPathsAtLeast` 等 floor 再钉上界；domain 腿 `isEmpty`→`doesNotContain(domain 路径)`），**不放宽**。
+> **验证**：网关全套 `mvn -o -B test` **110/110 BUILD SUCCESS**（context 封顶后三次独立全套，fork 告警消失；封顶前三次各红不同既存测试），顶层 `npm run typecheck` **14/14**。整仓 eslint 仍是本机内存超时边界（非 lint 报错，本轮零前端文件），如实记。git 开工复核：单 main、无游离分支/worktree/stash、`--no-merged` 空，**无可并内容**；main 领先 origin/main 56（本轮提交前），未 push（无明确指令）。仍欠：多实例 breaker/bulkhead 聚合、连接层黑洞独立看门狗（SC-36）、CI `topology` job 经真实 push 执行。细节见 ADR-0109/0110 与 ROADMAP §SC 第三十三/三十四片。
+>
+> **2026-11-11 接上须知（历史）**：Spring Cloud 断路由 §SC-28 又向前一段——§SC 第二十五片 /
 > ADR-0101 给网关断路由补上了 **HALF_OPEN 闭合回路**：后端恢复能自愈（自动半开→探测成功→CLOSED→
 > 流量重新放行）、后端仍坏能被重新屏蔽（探测失败→回 OPEN）。三条从写下起从未被证明的 HALF_OPEN
 > 生产设置第一次有 wire 级判据。新增 `GatewayCircuitHalfOpenWiringTest`，网关全套 **64/64**
@@ -12,7 +17,7 @@
 > 本轮开工复核：`git worktree list` 仅 main、无游离分支/stash、`--no-merged` 为空，**git 侧无可并内容**。
 > 未推送（无明确指令）。
 >
-> **2026-11-11 续（§SC-36 / ADR-0108，最新）**：给共享限流器装了**网关自持的命令阶段 deadline**——
+> **2026-11-11 续（§SC-36 / ADR-0108）**：给共享限流器装了**网关自持的命令阶段 deadline**——
 > `RedisRateLimitBackend.tryAcquire()` 叠 `.timeout(backendTimeout)`（`nexus.gateway.rate-limit.backend-timeout-ms`，
 > 默认 1000ms，构造器 fail-closed 拒绝非正值），把「backend 连上却永不回」在 deadline 上变成 error，交回 SC-12
 > 原有 fail-open 链；不改 `RateLimitFilter`。命门是 `onErrorResume` 从前提（backend 最终产生 error）变成承诺。

@@ -115,21 +115,46 @@ resilience4j:
         wait-duration-in-open-state: ${NEXUS_GATEWAY_OPEN_WAIT:10s}
         permitted-number-of-calls-in-half-open-state: 3
         automatic-transition-from-open-to-half-open-enabled: true
+  # SC-37 — the bulkhead (the fourth resilience4j primitive) was ALREADY wrapping every route: Spring Cloud's
+  # reactive circuit-breaker factory registers a SemanticBulkhead provider by default, on resilience4j's silent
+  # DEFAULT_MAX_CONCURRENT_CALLS=25. This makes that bound explicit and tunable instead of an accident of a
+  # library default. It caps how many calls may be IN FLIGHT to one backend at once (a different failure from
+  # the breaker: capacity shedding, not a failing backend). When all slots are full the next call is refused at
+  # the door with an honest 503 naming BulkheadFullException — it never queues onto an already-saturated backend
+  # and never amplifies the wire (graded by GatewayBulkheadWiringTest). max-wait-duration=0 is deliberate: a
+  # caller waits for a FREE SLOT zero time, so shedding is immediate rather than a hidden latency cliff.
+  # Keep the default at 25 (the library default) so declaring it changes no existing behaviour; a deployment
+  # tightens it by env when one slow backend must not consume all the door's concurrency.
+  bulkhead:
+    instances:
+      nexus-api:
+        max-concurrent-calls: ${NEXUS_GATEWAY_BULKHEAD_MAX_CALLS:25}
+        max-wait-duration: 0
+      nexus-domain-service:
+        max-concurrent-calls: ${NEXUS_GATEWAY_BULKHEAD_MAX_CALLS:25}
+        max-wait-duration: 0
 
 # SC-8 — `/platform/health` is the aggregate the Studio/operator asks; this is the gateway's own answer,
 # so a probe of the probe exists.
 #
 # SC-31 — `circuitbreakers` is exposed alongside `health` so an operator can READ the breaker state that
 # §SC-24/§SC-29 drive: which backend is tripped, its failure rate and call counts, and that the door healed.
-# It is deliberately NOT in PlatformAuthFilter's whitelist (only /actuator/health is): when auth is enabled
-# the readout is behind a token (graded by CircuitBreakerActuatorAuthTest), because a free map of which
-# backends are failing is an intrusion aid, not a health probe. With auth off (the packaged offline truth)
-# it is readable locally, like /platform/services — the deployment decides by turning auth on.
+# SC-37 — `bulkheads` joins it, listing which routes carry a capacity bound ({"bulkheads":["nexus-api",...]}).
+# HONEST BOUND: resilience4j's 2.2.0 BulkheadEndpoint exposes only the NAMES by default — no per-name
+# /actuator/bulkheads/{id} detail and no live in-flight count exists to read. This is a "which doors have a
+# bound" readout, NOT a real-time occupancy gauge; the occupancy itself is graded on the wire by
+# GatewayBulkheadWiringTest. Do not dress the name list up as a capacity metric.
+#
+# Neither is in PlatformAuthFilter's whitelist (only /actuator/health is): when auth is enabled the readouts
+# are behind a token (graded by CircuitBreakerActuatorAuthTest / BulkheadActuatorAuthTest), because a free map
+# of which backends are failing or saturated is an intrusion aid, not a health probe. With auth off (the
+# packaged offline truth) they are readable locally, like /platform/services — the deployment decides by
+# turning auth on.
 management:
   endpoints:
     web:
       exposure:
-        include: health,circuitbreakers
+        include: health,circuitbreakers,bulkheads
   endpoint:
     health:
       show-details: never

@@ -191,11 +191,16 @@ class GatewayRoutingTest {
                 .jsonPath("$.from")
                 .isEqualTo("domain-stub");
 
-        // Two backends, two sockets: the domain call must reach the DOMAIN stub and must not have touched the
-        // api stub. Asserting on the one that answered would not catch a route table that sent both prefixes
-        // to the same service.
+        // Two backends, two sockets: the domain call must reach the DOMAIN stub and must NOT have been routed
+        // to the api stub. The semantic claim is "this path did not go to the wrong backend", so we assert the
+        // DOMAIN path is absent from apiUpstream. Asserting apiUpstream is entirely EMPTY was a stronger claim
+        // than the test can keep: aBackendThatDropsTheConnectionAnswers503NotAnEmptyList retries its /drop GET,
+        // and under full-suite load that retry's 2nd wire attempt can land after the prior test returned and
+        // after @BeforeEach cleared paths — leaving a harmless "/drop" that is about THIS test's routing.
+        // Prefix isolation catches the real bug (a route table sending /domain/** to nexus-api) without being
+        // tripped by an in-flight tail from a different method.
         assertThat(domainUpstream.paths()).containsExactly("/api/v1/projects/abc");
-        assertThat(apiUpstream.paths()).isEmpty();
+        assertThat(apiUpstream.paths()).doesNotContain("/api/v1/projects/abc");
         assertThat(domainUpstream.originalUrls()).containsExactly("http://127.0.0.1:" + port);
     }
 

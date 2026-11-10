@@ -19,10 +19,19 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * test typed) and can answer a chosen status, hang, or drop the connection — the three ways a real backend
  * fails that a gateway must tell apart.
  *
+ * <p>SC-37 adds a fourth shape: hold the first N requests IN FLIGHT until the test releases them. That is
+ * what grades a semaphore bulkhead, whose whole semantics are "how many calls may be concurrently in
+ * flight" — a thing a serial or instant-answer stub cannot exercise. The wait is BOUNDED: a red assertion
+ * that forgets to release must never pin a non-daemon dispatch thread and hang the JVM on exit (the failure
+ * mode a 9-minute-killed probe taught us in SC-36).
+ *
  * <p>It is NOT a fake nexus-api: it publishes no domain data and no test asserts a domain fact against it.
  * Every assertion is about what the GATEWAY did with the answer.
  */
 final class StubUpstream {
+
+    /** Safety net: a parked handler resumes on its own even if the test never calls {@link #release()}. */
+    private static final long HOLD_BOUND_SECONDS = 5;
 
     private final HttpServer server;
     // SC-34 — only startConcurrent() sets this. A plain HttpServer dispatches requests SERIALLY on one
@@ -43,6 +52,21 @@ final class StubUpstream {
     // This isolates the retry filter's setExceptions(IOException) trigger from its setStatuses(503) trigger.
     private final java.util.concurrent.atomic.AtomicInteger dropsLeft =
             new java.util.concurrent.atomic.AtomicInteger();
+    // SC-37 — deterministic in-flight occupancy. holdNext(n) parks the next n handler threads on
+    // holdRelease; holdArrived counts down as each one actually parks, so a test can PROVE occupancy
+    // before sending the call that should be refused. Both latches are replaced per holdNext(), and the
+    // await in handle() is bounded, so no thread can be left parked by a failing assertion.
+    private final java.util.concurrent.atomic.AtomicInteger holdRemaining =
+            new java.util.concurrent.atomic.AtomicInteger();
+    private volatile java.util.concurrent.CountDownLatch holdArrived =
+            new java.util.concurrent.CountDownLatch(0);
+    private volatile java.util.concurrent.CountDownLatch holdRelease;
+
+    // SC-38 — truncate the RESPONSE BODY mid-stream: declare a Content-Length larger than what is written,
+    // then close. Unlike /drop (no response byte at all → transport IOException), the gateway here has
+    // already received the status + headers and part of the body before the socket dies. That is a different
+    // failure: the response may already be committed downstream, so "answer 503" is no longer available.
+    private volatile boolean truncateBody;
 
     private volatile int status = 200;
     private volatile int failureStatus = 503;
@@ -65,6 +89,7 @@ final class StubUpstream {
      * SC-34 — concurrent dispatch, for tests that keep a request IN FLIGHT (a real sleep past the gateway's
      * timelimiter) while other requests arrive. Without this, a sleeping handler monopolises the sole
      * dispatch thread and later requests never reach {@link #handle()}, so wire counts falsely read 0.
+     * SC-37 also requires it: two held requests must occupy two threads at the same time.
      */
     static StubUpstream startConcurrent() {
         return start(java.util.concurrent.Executors.newCachedThreadPool());
@@ -105,6 +130,21 @@ final class StubUpstream {
                 exchange.close();
                 return;
             }
+            // SC-37 — park the first N requests IN FLIGHT. paths.add() above already put them on the wire;
+            // the latch then keeps them occupying bulkhead concurrent-call slots until release() (or the
+            // bound). A request past N falls straight through and answers normally, so "the bulkhead refused
+            // it before the wire" shows up as a wire count that stays at N: a refusal that never reached the
+            // backend cannot be hidden by an instant-answer stub.
+            java.util.concurrent.CountDownLatch gate = this.holdRelease;
+            if (gate != null && holdRemaining.getAndUpdate((n) -> n > 0 ? n - 1 : 0) > 0) {
+                java.util.concurrent.CountDownLatch arrived = this.holdArrived;
+                arrived.countDown();
+                try {
+                    gate.await(HOLD_BOUND_SECONDS, java.util.concurrent.TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
             // SC-29 — a recoverable mid-call drop, controlled by the test. Checked before the permanent
             // /drop path so the same socket can first open a breaker and then prove it closes again.
             if (dropConnections) {
@@ -129,6 +169,19 @@ final class StubUpstream {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
+            }
+            if (truncateBody || path.startsWith("/truncate")) {
+                // SC-38 — send a 200 with a declared body length, write only a PREFIX, then close. The peer
+                // sees a committed response header and a premature end of body — not a connection refusal
+                // (that is /drop), but a stream that dies after the gateway may have started forwarding.
+                byte[] full = body.getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().add("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, full.length + 4096L); // claim MORE than we will write
+                try (OutputStream out = exchange.getResponseBody()) {
+                    out.write(full, 0, Math.max(1, full.length / 2));
+                    out.flush();
+                } // close with the declared length unmet → premature body EOF on the wire
+                return;
             }
             int remainingFailures = failuresLeft.getAndUpdate((n) -> n > 0 ? n - 1 : 0);
             int replyStatus = remainingFailures > 0 ? failureStatus : status;
@@ -157,6 +210,28 @@ final class StubUpstream {
 
     List<String> paths() {
         return List.copyOf(paths);
+    }
+
+    /**
+     * Wait (bounded) until the backend has recorded at least {@code n} requests, or the deadline elapses.
+     *
+     * <p>Why this exists: with retry + breaker fallback, the SECOND wire attempt can land just AFTER the
+     * fallback has already committed a 503 to the caller. A test that reads {@link #paths()} the instant the
+     * blocking HTTP call returns may therefore see fewer attempts than will ultimately hit the wire. Reading
+     * a stable value (wait for the floor, or give up on a bound) grades the OUTCOME, not a read race. The
+     * bound is generous and never the thing under test — it only stops a genuinely stalled wire from hanging.
+     */
+    int awaitPathsAtLeast(int n, long millis) {
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(millis);
+        while (paths.size() < n && System.nanoTime() < deadline) {
+            try {
+                Thread.sleep(5L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        return paths.size();
     }
 
     /** Every request header map the backend actually received, one entry per request. */
@@ -203,6 +278,41 @@ final class StubUpstream {
         this.dropsLeft.set(Math.max(0, times));
     }
 
+    /**
+     * SC-37 — park the next {@code n} requests IN FLIGHT until {@link #release()} (or the bounded wait).
+     * Requires {@link #startConcurrent()}: a serial dispatcher cannot hold two requests at once. Pair with
+     * {@link #awaitHeld(long)} to prove occupancy BEFORE sending the call that should be refused.
+     */
+    void holdNext(int n) {
+        int count = Math.max(0, n);
+        this.holdRemaining.set(count);
+        this.holdArrived = new java.util.concurrent.CountDownLatch(count);
+        this.holdRelease = new java.util.concurrent.CountDownLatch(1);
+    }
+
+    /** True when all requested in-flight requests actually parked — a prerequisite for a valid grading. */
+    boolean awaitHeld(long seconds) {
+        try {
+            return this.holdArrived.await(seconds, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+    }
+
+    /** Let any parked requests resume. Idempotent; safe from teardown even if nothing is held. */
+    void release() {
+        java.util.concurrent.CountDownLatch gate = this.holdRelease;
+        if (gate != null) {
+            gate.countDown();
+        }
+    }
+
+    /** SC-38 — make EVERY response die mid-body (status + headers sent, declared length unmet). */
+    void truncateResponses() {
+        this.truncateBody = true;
+    }
+
     /** Every answer waits this long, so a probe's timeout can be measured against a real slow socket. */
     void delay(long millis) {
         this.delayMs = Math.max(0, millis);
@@ -219,16 +329,22 @@ final class StubUpstream {
     }
 
     void reset() {
+        release(); // never leave a parked handler behind when a test re-arms the stub
+        this.holdRemaining.set(0);
+        this.holdRelease = null;
+        this.holdArrived = new java.util.concurrent.CountDownLatch(0);
         this.status = 200;
         this.failureStatus = 503;
         this.failuresLeft.set(0);
         this.dropsLeft.set(0);
         this.delayMs = 0;
         this.dropConnections = false;
+        this.truncateBody = false;
         this.body = "{\"publications\":[],\"from\":\"stub-upstream\"}";
     }
 
     void stop() {
+        release();
         server.stop(0);
         if (executor != null) {
             executor.shutdownNow();

@@ -136,7 +136,18 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <argLine>-Xmx512m -Dfile.encoding=UTF-8</argLine>
+          <!--
+            SC-38 — the suite has 21 RANDOM_PORT @SpringBootTest classes, each with a distinct property set,
+            so Spring's context cache (default maxSize=32) kept ALL of them alive in one 512m fork. Adding the
+            SC-37 bulkhead contexts pushed past the heap ceiling: GC pressure made health probes answer 503,
+            shifted in-flight wire counts, and left the fork 30s past System.exit(0) before surefire killed it
+            — three different existing tests went red across three full-suite runs, each green in isolation.
+            Capping the cache at 4 lets Spring evict the least-recently-used contexts, so resident contexts no
+            longer grow with the test count. This is a TEST-HARNESS bound, not a production setting; the
+            property name is Spring's own (ContextCacheUtils.retrieveMaxCacheSize / spring.test.context.cache.maxSize,
+            source-verified), read via SpringProperties, which honours the -D system property.
+          -->
+          <argLine>-Xmx512m -Dfile.encoding=UTF-8 -Dspring.test.context.cache.maxSize=4</argLine>
         </configuration>
       </plugin>
       <plugin>
