@@ -171,3 +171,26 @@
 - CI multi-lane status: `main-line` CI has been green on every commit this session; `master`'s
   Studio CI keeps two known runner-bound red rows (`liveness`, `health`), the others are regenerated
   and green. `main-line` master briefly red on a GitHub runner Docker-start flake — rerun launched.
+
+## 2026-11-10 addendum (cont. 5): whole-repo lint is real now, and the evidence rule it broke is closed
+
+`npm run eslint` 从"跑不起来"到 **0 错误**。本机 16GB（空闲约 4GB）上整仓 type-aware lint 需要超过
+Node 默认堆（4288 MB），根脚本现为 `node --max-old-space-size=10240 node_modules/eslint/bin/eslint.js .`
+（ADR-0096 / ADR-0098 记选项、后果与证据）。
+
+- 364 条错误 → 0：262 条是「文件不在任何 tsconfig 里」的解析失败（六个包的 `tsconfig.test.json` 被指给
+  project service；`docs/evidence/**`、`tools/**` 的 .mjs 并进 `tsconfig.tools.json`；`.mjs` 配 Node 全局），
+  102 条是真实规则违反。
+- 规则改出的是真 bug：`updateAgentConfig` 空壳（§159 假 API）→ 真门；`onEnd(async …)` 会挂死 →
+  同步监听器 + promise 链；`kill: c.kill` 丢 `this` 的真失败（exec-host 测试里）；RAG 查询向量算了不用 →
+  `hybridScoreFrom` 一份规则两个调用方，打分结果逐位不变；`vitest.config.ts` 里的零宽空格骗了注释 →
+  现写 `<pkg>` 并把原因留在注释里。
+- 定向豁免共四处，每处都写了原因（ANSI 必须匹配 ESC、`new Function` 求值、跨闭包循环标志、
+  一条测试的主题就是"宿主抛非 Error"）。
+- 断言一个没削弱：`LocalTokenBagRerankerProvider` 从未用导入改成 `toBeInstanceOf` 实例身份断言；
+  `expect(design.generate).not.toHaveBeenCalled()` 不能改成 `.bind()`（绑出来恒真、测试变谎话），
+  改为解构出局部变量，指向同一 mock。
+- `npm run typecheck` 14/14；evals exit 0（11 套全 PASS，含 export-roundtrip 真库）；
+  studio 测试 2857/2857；shard 1：197 文件 / 2779+1（doc-evidence 的唯一红条，由
+  `git add -f .scratch/gateway-rate-lua-live/readings.json` 修掉——该文件被 ROADMAP 点名、
+  测试要求被点名的证据入库，修法就写在测试自己的错误信息里）。
