@@ -11236,3 +11236,23 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
   timeout/retry 仍没定——resilience4j 当初删了就是"没人读铃"，要加就得有读者。
 - global pre-commit hook 全绿（turbo lint 13 个任务）；提交 {SC-19..SC-21} 全部走的是本地
   `git -c user.name="NEXUS Dev" -c user.email="dev@nexus.local" commit`，未推送（无明确指令）。
+
+## §SC 第十六片：SC-23——权限面补上最后一扇门，顺带撞出 gateway 5s 冷启动真问题（2026-11-10）
+
+- 触发：ROADMAP 第十四片立的欠账——"permission 面同形状（permission 的 JPA @Query 要先与 users 表对齐）"。
+  PermissionService 早已是只读检查器且 97→103 测试全绿，缺的只有 HTTP 面。
+- 交付：`PermissionController`（`GET /api/v1/permission/check?resourceType&resourceId&action=read`）+
+  6 条无 Spring 上下文 MVC 测试；`mvn -B test` = **103/103**。
+- 真跑（registry :8761 / domain :8082 / gateway **:8091**——:8090 被本仓之外的进程 PID 39424
+  `com.nexus.NexusApplication` 占着，本片不抢）：
+  - 真主人 write → 200 allowed:true；陌生人 write → 200 allowed:false；陌生人 read → 200 allowed:true（legacy 契约如实）；
+    鬼资源 → allowed:false；moon resourceType → 400（服务自己的句子）；无 subject → 400；
+    哨兵 subject（库里无此人）→ 400 `User not found` + X-Request-Id 原样回显。
+  - **第一次调用真 503**：gateway 5s 上限撞上 domain 冷启动（Hibernate metamodel + Hikari 首连）。
+    503 是设计行为（快速失败不挂请求），不是 bug；暴露的是 smoke 没覆盖"冷"路径这一层。已记入欠账，
+    未用调大 timeout 消音。第二次（warm）即 200。完整读数见 `docs/evidence/sc23-permission-live-proof.md`。
+- verify:topology 扩面：permission 两条断言（哨兵拒绝 + 无 subject 400）、端口经
+  `NEXUS_REGISTRY_PORT/NEXUS_DOMAIN_PORT/NEXUS_GATEWAY_PORT` 可覆盖、stale jar 自动
+  `mvn -o -DskipTests package`（Windows 走 mvn.cmd + shell:true）。port 8091 上 **PASS**。
+- 仍欠：gateway→domain first-hit 冷启动的读数覆盖（smoke 要拿到"冷"的合法 503 或预热策略）；
+  resilience4j 仍缺读者（不加）。提交为本地 `git -c user.name="NEXUS Dev" ... commit`，未推送（无明确指令）。

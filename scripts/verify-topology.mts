@@ -8,16 +8,20 @@
  *   2. the gateway really routes /domain/** at lb://nexus-domain-service (service discovery);
  *   3. X-Request-Id is minted/echoed across the door (SC-14);
  *   4. the community policy surface AND the billing surface answer 200 through the gateway;
- *   5. a door-less request to billing is refused with a sentence (not a guess).
+ *   5. a door-less request to billing is refused with a sentence (not a guess);
+ *   6. the permission surface answers through the gateway — a sentinel subject nobody holds gets a 400
+ *      with the domain's own "User not found" sentence, and a door-less call is refused.
  *
  * Exits 0 only when every check passed. Exits 1 on the first failure and ALWAYS stops the three
  * services it started — a smoke that leaves three JVMs behind is a smoke that exhausts the box.
  *
- * Run from the repo root. Ports are taken from the services themselves (8761/8082/8090); if any of
- * them is already in use the run fails fast with the name of the port, rather than fighting it.
+ * Run from the repo root. Ports default to the services themselves (8761/8082/8090); each can be
+ * overridden with NEXUS_REGISTRY_PORT / NEXUS_DOMAIN_PORT / NEXUS_GATEWAY_PORT — e.g. when an unrelated
+ * process already holds 8090. If any needed port is in use the run fails fast with the name of the port,
+ * rather than fighting it.
  */
-import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, createWriteStream } from 'node:fs';
+import { spawn, execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, createWriteStream, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -26,6 +30,9 @@ const LOG_DIR = path.join(process.env.TEMP ?? '/tmp', 'nexus-verify-topology');
 mkdirSync(LOG_DIR, { recursive: true });
 
 const DENY = '[verify-topology]';
+const REGISTRY_PORT = Number(process.env.NEXUS_REGISTRY_PORT ?? 8761);
+const DOMAIN_PORT = Number(process.env.NEXUS_DOMAIN_PORT ?? 8082);
+const GATEWAY_PORT = Number(process.env.NEXUS_GATEWAY_PORT ?? 8090);
 let failures = 0;
 const ok = (name) => console.log(`  ✓ ${name}`);
 const bad = (name, detail) => {
@@ -44,6 +51,48 @@ async function assertFree(port) {
     socket.on('error', () => resolve(false));
   });
   if (busy) throw new Error(`port ${port} is already in use — stop whatever holds it and rerun`);
+}
+
+/** 最新 .java 源码的 mtime——jar 必须比它新，否则它打的包就不是当前源码。 */
+function newestJavaMtime(serviceDir) {
+  const base = path.join(repo, 'services', serviceDir, 'src', 'main', 'java');
+  let newest = 0;
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.name.endsWith('.java')) {
+        const m = statSync(full).mtimeMs;
+        if (m > newest) newest = m;
+      }
+    }
+  };
+  if (existsSync(base)) walk(base);
+  return newest;
+}
+
+/** jar 必须存在且不比最新 .java 源码旧；否则先 package。这就是"mvn test 绿≠jar 能启动"的防线。 */
+function ensureJarFresh(name, serviceDir, jarRelative) {
+  const jar = path.join(repo, 'services', serviceDir, jarRelative);
+  const srcNewest = newestJavaMtime(serviceDir);
+  const jarMtime = existsSync(jar) ? statSync(jar).mtimeMs : 0;
+  if (jarMtime >= srcNewest) return jar;
+  console.log(`${DENY} ${name}: jar is stale (src newer) — running mvn -o -DskipTests package`);
+  execFileSyncSafe(mavenCmd(), ['-o', '-q', '-B', '-DskipTests', 'package'], path.join(repo, 'services', serviceDir));
+  return jar;
+}
+
+function mavenCmd() {
+  return process.platform === 'win32' ? 'mvn.cmd' : 'mvn';
+}
+
+function execFileSyncSafe(cmd, args, cwd) {
+  try {
+    execFileSync(cmd, args, { cwd, stdio: 'pipe', shell: process.platform === 'win32' });
+  } catch (e) {
+    console.error(`${DENY} ${cmd} failed: ${e.stderr?.toString() ?? e.message}`);
+    process.exit(1);
+  }
 }
 
 /** Wait until a URL answers with the status we want, or the deadline passes. Polls every 2s. */
@@ -98,15 +147,9 @@ process.on('uncaughtException', (e) => {
 
 async function main() {
   console.log(`${DENY} repo=${repo}`);
-  const registryJar = path.join(repo, 'services/nexus-registry/target/nexus-registry-0.1.0-SNAPSHOT.jar');
-  const domainJar = path.join(repo, 'services/java-domain-service/target/domain-service-1.0.0-SNAPSHOT.jar');
-  const gatewayJar = path.join(repo, 'services/nexus-gateway/target/nexus-gateway-0.1.0-SNAPSHOT.jar');
-  for (const [n, jar] of [['registry', registryJar], ['domain-service', domainJar], ['gateway', gatewayJar]]) {
-    if (!existsSync(jar)) {
-      bad(n, `jar missing at ${jar} — run mvn -DskipTests package first`);
-    }
-  }
-  if (failures) process.exit(1);
+  const registryJar = ensureJarFresh('registry', 'nexus-registry', 'target/nexus-registry-0.1.0-SNAPSHOT.jar');
+  const domainJar = ensureJarFresh('domain-service', 'java-domain-service', 'target/domain-service-1.0.0-SNAPSHOT.jar');
+  const gatewayJar = ensureJarFresh('gateway', 'nexus-gateway', 'target/nexus-gateway-0.1.0-SNAPSHOT.jar');
 
   // Postgres is the domain service's only hard dependency besides Eureka. Refuse to start without it.
   const pg = await (async () => {
@@ -114,12 +157,12 @@ async function main() {
   })();
   if (!pg) console.warn(`${DENY} warning: 127.0.0.1:55433 did not answer HTTP (not fatal for policy endpoint, but billing plan reads users — expect 400)`);
 
-  for (const port of [8761, 8082, 8090]) await assertFree(port);
+  for (const port of [REGISTRY_PORT, DOMAIN_PORT, GATEWAY_PORT]) await assertFree(port);
 
   console.log(`${DENY} starting registry / domain-service / gateway (logs in ${LOG_DIR})`);
-  const registry = spawnJar('registry', registryJar, { NEXUS_REGISTRY_PORT: '8761' });
+  const registry = spawnJar('registry', registryJar, { NEXUS_REGISTRY_PORT: String(REGISTRY_PORT) });
   services.push({ name: 'registry', child: registry });
-  if (!(await waitFor('registry', 'http://127.0.0.1:8761/eureka/apps', 200))) {
+  if (!(await waitFor('registry', `http://127.0.0.1:${REGISTRY_PORT}/eureka/apps`, 200))) {
     await cleanup();
     process.exit(1);
   }
@@ -131,31 +174,31 @@ async function main() {
     NEXUS_DOMAIN_DB_URL: 'jdbc:postgresql://127.0.0.1:55433/nexus',
     DB_USERNAME: 'nexus',
     DB_PASSWORD: 'nexus_dev_only',
-    NEXUS_DOMAIN_PORT: '8082',
+    NEXUS_DOMAIN_PORT: String(DOMAIN_PORT),
     NEXUS_CONFIG_ENABLED: 'false',
   });
   services.push({ name: 'domain-service', child: domain });
-  if (!(await waitFor('domain-service', 'http://127.0.0.1:8082/actuator/health', 200))) {
+  if (!(await waitFor('domain-service', `http://127.0.0.1:${DOMAIN_PORT}/actuator/health`, 200))) {
     await cleanup();
     process.exit(1);
   }
   ok('domain-service registered itself');
 
   // The domain service self-declares its health even with a down Redis (healthDetails show it, but status stays UP only when DB is up)
-  const reg = await fetch('http://127.0.0.1:8761/eureka/apps/NEXUS-DOMAIN-SERVICE');
+  const reg = await fetch(`http://127.0.0.1:${REGISTRY_PORT}/eureka/apps/NEXUS-DOMAIN-SERVICE`);
   if (reg.status !== 200) bad('domain-service registered in eureka', `GET answered ${reg.status}`);
   else ok('eureka holds NEXUS-DOMAIN-SERVICE');
 
-  const gateway = spawnJar('gateway', gatewayJar, { NEXUS_GATEWAY_PORT: '8090', NEXUS_CONFIG_ENABLED: 'false' });
+  const gateway = spawnJar('gateway', gatewayJar, { NEXUS_GATEWAY_PORT: String(GATEWAY_PORT), NEXUS_CONFIG_ENABLED: 'false' });
   services.push({ name: 'gateway', child: gateway });
-  if (!(await waitFor('gateway', 'http://127.0.0.1:8090/platform/health', 200))) {
+  if (!(await waitFor('gateway', `http://127.0.0.1:${GATEWAY_PORT}/platform/health`, 200))) {
     await cleanup();
     process.exit(1);
   }
   ok('gateway is answering');
 
   // Through the gateway: the community surface
-  const policy = await fetch('http://127.0.0.1:8090/domain/api/v1/community/policy', { signal: AbortSignal.timeout(10_000) });
+  const policy = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/community/policy`, { signal: AbortSignal.timeout(10_000) });
   if (policy.status !== 200) bad('community policy via gateway', `HTTP ${policy.status}`);
   else {
     const body = await policy.json();
@@ -165,7 +208,7 @@ async function main() {
 
   // Through the gateway: the billing surface — with a subject
   const subject = 'aaaaaaaa-1111-4000-8000-000000000001';
-  const balance = await fetch('http://127.0.0.1:8090/domain/api/v1/billing/balance', {
+  const balance = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/billing/balance`, {
     headers: { 'X-Nexus-Subject': subject, 'X-Request-Id': 'verify-topology-001' },
     signal: AbortSignal.timeout(10_000),
   });
@@ -179,16 +222,37 @@ async function main() {
   }
 
   // Through the gateway: a door-less billing call is refused with a sentence
-  const noSubject = await fetch('http://127.0.0.1:8090/domain/api/v1/billing/balance', { signal: AbortSignal.timeout(10_000) });
+  const noSubject = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/billing/balance`, { signal: AbortSignal.timeout(10_000) });
   if (noSubject.status !== 400) bad('door-less billing refused', `HTTP ${noSubject.status} (want 400)`);
   else ok('door-less billing refused (400)');
+
+  // Through the gateway: the permission surface — a subject nobody holds is refused with the domain's
+  // own sentence (not a silent yes), and a door-less call is refused before the domain is touched.
+  const perm = await fetch(
+    `http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/permission/check?resourceType=project&resourceId=6fef79cf-a5f7-4d27-9e7e-30309e567dad&action=read`,
+    {
+      headers: { 'X-Nexus-Subject': subject, 'X-Request-Id': 'verify-topology-perm-001' },
+      signal: AbortSignal.timeout(10_000),
+    });
+  if (perm.status !== 400) bad('permission check for an absent user', `HTTP ${perm.status} (want 400)`);
+  else {
+    const body = await perm.json().catch(() => null);
+    const msg = body?.error ?? '';
+    if (!String(msg).includes('User not found')) bad('permission refusal sentence', JSON.stringify(body).slice(0, 200));
+    else if (perm.headers.get('x-request-id') !== 'verify-topology-perm-001') {
+      bad('X-Request-Id echoed on permission refusal', `wanted verify-topology-perm-001, got ${perm.headers.get('x-request-id')}`);
+    } else ok('permission check refused (User not found, X-Request-Id echoed)');
+  }
+  const permNoSubject = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/permission/check?resourceType=project&resourceId=6fef79cf-a5f7-4d27-9e7e-30309e567dad&action=read`, { signal: AbortSignal.timeout(10_000) });
+  if (permNoSubject.status !== 400) bad('door-less permission refused', `HTTP ${permNoSubject.status} (want 400)`);
+  else ok('door-less permission refused (400)');
 
   await cleanup();
   if (failures) {
     console.error(`${DENY} FAIL — see above`);
     process.exit(1);
   }
-  console.log(`${DENY} PASS — topology, correlation id, and both surfaces through the gateway`);
+  console.log(`${DENY} PASS — topology, correlation id, and all three surfaces through the gateway`);
   process.exit(0);
 }
 

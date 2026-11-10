@@ -2,6 +2,16 @@
 
 本文件是项目当前状态的快照——供未来任何 agent（或人类）在我不在的时候接上。它**只描述已经交付、已可执行的事**，不承诺未做的事。
 
+第 3 行下面的所有旧读数中，凡提到 Java 侧测试数的，以 2026-11-10 的为准：**java-domain-service 103/103**
+（含新增 BillingControllerTest 7 + PermissionControllerTest 6）。最新一片（§SC-16 / SC-23）详见
+`docs/ROADMAP.md` 末尾与 `docs/evidence/sc23-permission-live-proof.md`：
+
+- Permission HTTP 面（`GET /api/v1/permission/check`）已上线并经 `lb://nexus-domain-service` 活体验证；
+- **第一次调用真 503**（gateway 5s 上限 vs domain 冷启动）——设计行为，不是 bug，欠账在 ROADMAP；
+- `npm run verify:topology` 现可覆盖三个端口（`NEXUS_*_PORT`）、自动重打包 stale jar、并断言 permission 面；
+- `:8090` 被本仓之外的进程（PID 39424）占用——功能验证已在 `:8091` 上完成，**未杀该进程**；
+- 2026-11-10 起 `npm run eslint` 是"真·0 错误"（此前一例是配置崩溃导致的假绿），见 ADR-0098。
+
 ## 评测（§85）
 
 `npm run evals` 返回 0（退出码）：
