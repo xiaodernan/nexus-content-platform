@@ -183,6 +183,9 @@
     "infra:up": "docker compose -f infra/docker-compose.yml --profile core up -d",
     "infra:up:full": "docker compose -f infra/docker-compose.yml --profile full up -d",
     "infra:down": "docker compose -f infra/docker-compose.yml --profile core --profile full down",
+    "infra:up:java": "docker compose -f infra/docker-compose.yml --profile java up -d --wait",
+    "infra:down:java": "docker compose -f infra/docker-compose.yml --profile java down",
+    "infra:smoke:java": "node scripts/smoke-java-profile.mts",
     "format": "prettier --write \"apps/**/*.{ts,tsx,css,md}\" \"packages/**/*.{ts,tsx}\""
   },
   "devDependencies": {

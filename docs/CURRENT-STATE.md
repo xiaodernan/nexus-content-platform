@@ -273,3 +273,30 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
   cont. 4 stands unchanged, and CI green is a fact about THIS ref on THIS runner — nothing in this
   ledger cites it as a general promise about the future, and none of the excluded/runner-bound rows
   have been "fixed" in this tree.
+
+
+## 2026-11-10 addendum (cont. 8): the six Java deployables entered `infra/docker-compose.yml` — config-validated, never executed here
+
+- `infra/docker-compose.yml` gained a `java` profile: five Dockerfiles (`services/<name>/Dockerfile`,
+  `eclipse-temurin:25-jre`, jar built on the host), a **throwaway** `nexus-java-pg` (pgvector pg16 + tmpfs,
+  host port 15433, schema owned by `npm run db:migrate`), healthchecks that prove "the JVM accepts
+  connections" (port-accept only — the HTTP probes are the proof's job), and the six ports mapped to
+  18761/18888/18080/18081/18082. `npm run infra:up:java` / `infra:down:java` / `infra:smoke:java`
+  (`scripts/smoke-java-profile.mts` — six doors + the edge chain answering 404 for an unknown id,
+  ALWAYS tears down, no volume survives).
+- **This slice was never executed on the author's host, and this file must not claim otherwise.** The host's
+  Docker engine cannot start NEW containers right now (measured 2026-11-10):
+  - `docker compose --profile java up -d` hung at `Container nexus-java-pg Starting` for over an hour
+    until the foreground call's timeout killed it; `docker rm -f` of the corpse hung too.
+  - A `Created`-but-unstartable corpse `nexus-java-pg` remains; force-remove it when the engine allows.
+  - Existing long-running containers (nexus-postgres and the rest) answer, and the engine leaves volume
+    READS working; only the container-creation write path is wedged tonight.
+- What IS measured, and nothing more: `docker compose --profile java config --quiet` exits 0; `package.json`
+  carries the three scripts; all five Dockerfiles copied from tested jars; the smoke script was type-/syntax-
+  exercised by running it up to the engine-dependent step (it failed loudly at `docker compose up -d`, wrote
+  nothing, and exited non-zero — the honest failure mode). NO healthy-chain claim is made anywhere; the
+  config-only door has been documented in the README's honest bounds on both doors that mention compose
+  (`docs/evidence/java/README.md`, `services/java-config-server/README.md`).
+- The v654 slice in the CONVERGENCE program is exactly this file — it is now **half-done and honestly
+  marked**: the profile exists and parses; the hosted run (fresh container start on a healthy engine) is
+  the next mechanical step. This ledger names the boundary instead of pretending a green.

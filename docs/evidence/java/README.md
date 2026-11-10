@@ -75,10 +75,17 @@ the top of every build so a blinded rule reddens the row rather than clearing it
 
 ## Honest bounds (none of these are claims this ledger pretends to support)
 
-- **No docker-compose row for the Java services yet** — the CONVERGENCE program lists it as its
-  next slice (six deployables with healthchecks and a compose smoke leg). Until that lands,
-  nothing here claims "the platform starts up" — it claims WHAT RAN, WHICH PORTS, and on WHICH
-  machine.
+- **A docker-compose row for the six Java services exists but is config-validated, not executed.**
+  `infra/docker-compose.yml` gained a `java` profile on 2026-11-10: five Dockerfiles
+  (`services/<name>/Dockerfile`, `eclipse-temurin:25-jre`), a tmpfs throwaway `nexus-java-pg`
+  (schema comes from this repo's own `npm run db:migrate`), and port-accept healthchecks for the six
+  deployables. `docker compose --profile java config --quiet` exits 0 — that is the ENTIRE claim.
+  The author's host cannot start NEW containers right now (`up -d` hung at
+  `Container nexus-java-pg Starting` for over an hour; a `Created`-but-unstartable corpse named
+  `nexus-java-pg` was left behind; force-remove it when the engine allows). The smoke script exists
+  (`scripts/smoke-java-profile.mts`) and asserts the six doors plus the edge chain answering 404 for
+  an unknown id; it has never run on this box or in CI, so until it prints PASS, the paragraph
+  stays exactly this honest.
 - **No distributed tracing** — ADR 0056 named it as the open hole (Micrometer Tracing across
   gateway → api → Feign → domain). A trace id read at every hop is not proven anywhere in this
   ledger yet.

@@ -102,8 +102,15 @@ The four services still pass their suites with the client on the classpath:
   `optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:8888}` — a deployment without a
   config door boots with its local `application.yml` exactly as before this service existed. The
   option is a feature, not a convenience.
-- **Not in `infra/docker-compose.yml`.** The Java topology is the proof's to run, on ad-hoc ports;
-  this service plugs into the same shape (see `docs/evidence/java/spring-cloud-proof.mjs`).
+- **Entered `infra/docker-compose.yml` as a `java` profile on 2026-11-10 — config-validated, never
+  executed on the author's host.** The profile has five Dockerfiles, a tmpfs throwaway postgres
+  (`nexus-java-pg`) and all six deployables with port-accept healthchecks, plus
+  `scripts/smoke-java-profile.mts` (`npm run infra:smoke:java`) as the one-shot verification.
+  `docker compose --profile java config --quiet` exits 0. What was NOT proven on purpose, out of
+  honesty about this host's wedged engine: `up -d` hung at `Container nexus-java-pg Starting` for
+  over an hour (2026-11-10) and left a `Created`-but-unstartable corpse named `nexus-java-pg` —
+  force-remove it when the engine allows. The claim "`up:java` stands the platform up" becomes
+  true the first time the smoke prints PASS, not before.
 - **Single node.** No HA story is claimed or implemented. A development topology with one door.
 
 ## Configuration
