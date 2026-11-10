@@ -24,6 +24,18 @@
 
 **必须说清的边界**：调用方看到的是**连接级异常，不是一个干净的 503**。原因见 ADR-0101 的 `ServerHttpResponse already committed`——body 断时网关已把 200 头转给下游，再把状态改写成 503 会撞"响应已提交"。所以平台**无法**在此承诺诚实 503，能承诺且已证明的是"不把断流伪装成成功"。若将来真要干净 503，需要**响应提交前全量缓冲 body**的更大生产改动，另立片评估，本片不假报已做到。刻意不 pin：每轮耗时（冷连 ~1.2s / 热连 ~30-50ms）、包装异常的确切类型（reactor 可能裸抛或包 `Exceptions$ReactiveException`），只钉语义。
 
+## 第一部分附：多实例 retry × LB 的 committed 竞态（已探、有意不做成 wire 判据）
+
+SC-38 期间顺手探了一个常被误解的 Spring Cloud 语义（一次性 3 轮探针，跑完即删）：**gateway 的 route-level retry 遇到一个宕机实例时，会不会 failover 到健康实例？** 配 SimpleDiscovery 的 `nexus-api[0]`（持续断连）+ `[1]`（健康），RoundRobin，breaker 强制 CLOSED（`minimum-number-of-calls=100`）。逐请求实测（6 轮，读数确定）：
+
+- 每个请求 wire 上 dead=1、live=0/1（retry **确实**会重选实例，第二条 attempt 落到健康实例并答 200）；
+- **但 caller 恒得 503**，`cause` 恒为 dead 实例那条 attempt 的 `PrematureCloseException`，breaker 全程 CLOSED；
+- 停止断连后立刻全 200（dead=2 / live=3）。
+
+**定论**：这是 ADR-0101 记录的 `ServerHttpResponse already committed` 竞态的**跨实例版本**——第一条（dead）attempt 的异常先被 breaker filter 的 `onErrorResume` 拿去 commit 503，第二条（live）attempt 的 200 随后到达却已无处可写。健康实例的应答白干，且 caller 从 cause **看不出**曾有健康实例答过 200。
+
+**有意不做成永久 wire 判据（诚实，避免 flaky 负债）**：① `liveWire`（0/1）与最终 status 受 retry/fallback 调度竞态支配，钉任一精确值必 flaky，与 ADR-0101/0106 同源；② 本质不是独立新缺口，是已记录 committed 边界在多实例下的重演，重复钉它没有新信息；③ 本探针用 **SimpleDiscovery 静态列表（无健康剔除）**，而真生产用 eureka——坏实例会被心跳摘除，从源头减少该竞态触发。**部署含义（值得记）**：`/actuator/circuitbreakers` 的 OPEN/失败读数是 **service-id 级**，无法告诉你"是哪个实例坏了"；在 eureka 摘除窗口内，单实例故障仍可能以整组 503 的形式出现。若将来要根治，方向是"响应提交前全量缓冲"或"按实例粒度的 breaker/bulkhead"，两者都是更大生产改动，另立片评估。
+
 ## 第二部分：测试 context 缓存封顶（本轮被迫发现并根治）
 
 ### 上下文与真实现象
