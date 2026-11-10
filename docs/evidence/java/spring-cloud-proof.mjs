@@ -275,10 +275,20 @@ async function httpJson(url) {
  *
  * <p>The tag-scoped query is used deliberately: the unscoped endpoint answers with the aggregate
  * over every breaker, and an aggregate cannot say what one breaker did.
+ *
+ * <p>WHAT THE STATE GAUGE ACTUALLY IS (measured 2026-11-10 — a run of this proof reddened on a read
+ * that never could have changed): `resilience4j.circuitbreaker.state` is not ONE gauge. The tagged
+ * publisher registers one gauge PER state — closed, open, half_open — tagged `state=<state>` with
+ * value 1 when the breaker is in that state and 0 otherwise. Exactly one of the three is 1 at any
+ * instant, so reading the name-tagged metric aggregates to 1 no matter which state the breaker is in.
+ * The tie is broken by asking for the one `state=<x>` series that this question is about.
+ * (Resilience4j micrometer 2.2.0, `io.github.resilience4j.micrometer.tagged.AbstractCircuitBreakerMetrics`:
+ * `Gauge.builder(names.getStateMetricName(), cb -> cb.getState() == state ? 1 : 0)`.)
  */
-async function readBreakerMetric(baseUrl, metricName, breakerName) {
+async function readBreakerMetric(baseUrl, metricName, breakerName, stateTag) {
   const url = `${baseUrl}/actuator/metrics/${encodeURIComponent(metricName)}`
-    + (breakerName ? `?tag=name:${encodeURIComponent(breakerName)}` : '');
+    + (breakerName ? `?tag=name:${encodeURIComponent(breakerName)}` : '')
+    + (stateTag ? `&tag=state:${encodeURIComponent(stateTag)}` : '');
   const response = await fetch(url, { headers: { Accept: 'application/json' } });
   const text = await response.text();
   if (response.status !== 200) {
@@ -286,7 +296,13 @@ async function readBreakerMetric(baseUrl, metricName, breakerName) {
   }
   let body = null;
   try { body = JSON.parse(text); } catch { return { status: response.status, value: null, tag: null, names: [], text }; }
-  const measurement = (body?.measurements ?? []).find((m) => m.statistic === 'VALUE');
+  // resilience4j reports two measurement shapes: gauges carry statistic "VALUE", counters carry
+  // statistic "COUNT". A proof that only knew one would read a counter's 0.0 as "no data", which is
+  // exactly what happened in practice — so accept both and fall back to the first one present.
+  const measurement =
+    (body?.measurements ?? []).find((m) => m.statistic === 'VALUE')
+    ?? (body?.measurements ?? []).find((m) => m.statistic === 'COUNT')
+    ?? (body?.measurements ?? [])[0];
   const nameTag = (body?.availableTags ?? []).find((t) => t.tag === 'name');
   return {
     status: response.status,
@@ -588,11 +604,11 @@ try {
   );
 
   const apiBreakerState = await readBreakerMetric(
-    `http://127.0.0.1:${api.port}`, 'resilience4j.circuitbreaker.state', 'nexus-domain-service');
+    `http://127.0.0.1:${api.port}`, 'resilience4j.circuitbreaker.state', 'nexus-domain-service', 'closed');
   const apiNotPermitted = await readBreakerMetric(
     `http://127.0.0.1:${api.port}`, 'resilience4j.circuitbreaker.not.permitted.calls', 'nexus-domain-service');
-  assert.ok(apiBreakerState.value !== null,
-    `the breaker's state must be readable; the actuator answered: ${apiBreakerState.text.slice(0, 400)}`);
+  assert.equal(apiBreakerState.value, 1,
+    `the breaker starts CLOSED; the actuator answered: ${apiBreakerState.text.slice(0, 400)}`);
   // The "calls refused" counter is only published once something HAS been refused — a counter that
   // never incremented is not in the registry, and the endpoint answers 404. Both readings mean the
   // same thing here: nothing has been refused yet. (Measured: the first run of this proof failed
@@ -611,7 +627,7 @@ try {
   );
   console.log(
     `[§9] both breakers are visible and are named what the configuration says: nexus-api's `
-    + `\`nexus-domain-service\` (state ${apiBreakerState.value}, ${apiNotPermitted.value} calls refused) and the edge's `
+    + `\`nexus-domain-service\` (closed gauge ${apiBreakerState.value}, ${apiNotPermitted.value} calls refused) and the edge's `
     + `\`nexusApiCircuitBreaker\``,
   );
 
@@ -764,14 +780,14 @@ try {
     `the breaker's own metric must count the calls it refused; the actuator said: ${notPermitted.text.slice(0, 400)}`,
   );
   const openState = await readBreakerMetric(
-    `http://127.0.0.1:${api.port}`, 'resilience4j.circuitbreaker.state', 'nexus-domain-service');
-  assert.notEqual(
-    openState.value, apiBreakerState.value,
-    `the breaker's state must have changed once it opened; it is still ${openState.value}`,
+    `http://127.0.0.1:${api.port}`, 'resilience4j.circuitbreaker.state', 'nexus-domain-service', 'open');
+  assert.equal(
+    openState.value, 1,
+    `the breaker's OPEN gauge must read 1 once it opened; the actuator answered: ${openState.text.slice(0, 400)}`,
   );
   console.log(
-    `[§13] the breaker opened and took the blame for it: it refused ${notPermitted.value} calls, its state went `
-    + `from ${apiBreakerState.value} to ${openState.value}, and the answer says "circuit-breaker-open"`,
+    `[§13] the breaker opened and took the blame for it: it refused ${notPermitted.value} calls, its OPEN-state gauge read `
+    + `${openState.value}, and the answer says "circuit-breaker-open"`,
   );
 
   // ── §14 with nexus-api gone, the edge says so ──────────────────────────────────────────
