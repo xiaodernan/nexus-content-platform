@@ -474,6 +474,15 @@ try {
     const migrations = path.join(REPO_ROOT, 'infra', 'migrations');
     const order = readdirSync(migrations).filter((f) => f.endsWith('.sql')).sort();
     console.log(`[§3a] the scratch source ${SOURCE} is up on host port ${dbPort}; replaying ${order.length} migrations from infra/migrations`);
+    // The migrator does this first (scripts/db-migrate.mts): pgvector ships in the image, but the
+    // extension must be created EXPLICITLY — migrations 0000_init.sql et al. declare `vector(1536)`
+    // columns and would fail with "type vector does not exist" without this one statement.
+    const ext = spawnSync(
+      'docker',
+      ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', DB_PLATFORM, '-v', 'ON_ERROR_STOP=1', '-q', '-c', 'CREATE EXTENSION IF NOT EXISTS vector'],
+      { encoding: 'utf8' },
+    );
+    assert.equal(ext.status, 0, `the scratch source refused the pgvector extension:\n${ext.stdout}${ext.stderr}`);
     for (const file of order) {
       const sql = readFileSync(path.join(migrations, file), 'utf8');
       const done = spawnSync(
