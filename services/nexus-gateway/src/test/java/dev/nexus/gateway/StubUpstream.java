@@ -37,6 +37,9 @@ final class StubUpstream {
     private volatile int failureStatus = 503;
     private volatile String body = "{\"publications\":[],\"from\":\"stub-upstream\"}";
     private volatile long delayMs;
+    // SC-29 — when set, EVERY request is dropped mid-call until stopDropping(). Unlike the permanent /drop
+    // path, this is a RECOVERABLE outage: the backend can come back, which is what half-open probing needs.
+    private volatile boolean dropConnections;
 
     private StubUpstream(HttpServer server) {
         this.server = server;
@@ -64,6 +67,12 @@ final class StubUpstream {
         originalUrls.add(originalUrl == null ? "" : originalUrl);
         probeHeaders.add(String.valueOf(exchange.getRequestHeaders().getFirst("X-Nexus-Gateway")));
         try {
+            // SC-29 — a recoverable mid-call drop, controlled by the test. Checked before the permanent
+            // /drop path so the same socket can first open a breaker and then prove it closes again.
+            if (dropConnections) {
+                exchange.close();
+                return;
+            }
             if (delayMs > 0) {
                 try {
                     Thread.sleep(delayMs);
@@ -154,11 +163,22 @@ final class StubUpstream {
         this.delayMs = Math.max(0, millis);
     }
 
+    /** SC-29 — start dropping every request mid-call; a recoverable outage the test can end at will. */
+    void startDropping() {
+        this.dropConnections = true;
+    }
+
+    /** SC-29 — the backend is back; requests answer normally again. */
+    void stopDropping() {
+        this.dropConnections = false;
+    }
+
     void reset() {
         this.status = 200;
         this.failureStatus = 503;
         this.failuresLeft.set(0);
         this.delayMs = 0;
+        this.dropConnections = false;
         this.body = "{\"publications\":[],\"from\":\"stub-upstream\"}";
     }
 

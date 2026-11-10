@@ -2,6 +2,16 @@
 
 本文件是项目当前状态的快照——供未来任何 agent（或人类）在我不在的时候接上。它**只描述已经交付、已可执行的事**，不承诺未做的事。
 
+> **2026-11-11 接上须知（置顶）**：Spring Cloud 断路由 §SC-28 又向前一段——§SC 第二十五片 /
+> ADR-0101 给网关断路由补上了 **HALF_OPEN 闭合回路**：后端恢复能自愈（自动半开→探测成功→CLOSED→
+> 流量重新放行）、后端仍坏能被重新屏蔽（探测失败→回 OPEN）。三条从写下起从未被证明的 HALF_OPEN
+> 生产设置第一次有 wire 级判据。新增 `GatewayCircuitHalfOpenWiringTest`，网关全套 **64/64**
+> （基线 62+2）。桩件 `StubUpstream` 加了可恢复断连 `startDropping`/`stopDropping`。首跑如实红过一次
+> （负向腿把「一次逻辑调用」误当「一次 wire 失败」，retry 使其不等价），已改为测平台语义而非库计数，
+> 细节与retry/fallback 的 `ServerHttpResponse already committed` 已知边界记在 ADR-0101 与 ROADMAP 第二十五片。
+> 本轮开工复核：`git worktree list` 仅 main、无游离分支/stash、`--no-merged` 为空，**git 侧无可并内容**。
+> 未推送（无明确指令）。
+
 第 3 行下面的所有旧读数中，凡提到 Java 侧测试数的，以 2026-11-10 的为准：**java-domain-service 103/103**
 （含新增 BillingControllerTest 7 + PermissionControllerTest 6）。最新一片（§SC-16 / SC-23）详见
 `docs/ROADMAP.md` 末尾与 `docs/evidence/sc23-permission-live-proof.md`：

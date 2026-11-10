@@ -11427,3 +11427,31 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
 - 如实的边界：notes 是**计划里**的出声——面板原样显示 `plan.notes`，所以这句话就是界面话；
   历史清单与 task 行没有新的持久化字段（这次渲染就会展示，不装进去就再不说了）。
 - player 仍需真 provider（§38 明码 DEMO）。
+
+## §SC 第二十五片：断路器的闭合回路——后端恢复能自愈、探测失败能重屏蔽（2026-11-11）
+
+- 起点：§SC-24 只量了「OPEN 会失败快」，断路器**合上**的那一半从没被 wire 级证明；而
+  `application.yml` 里 HALF_OPEN 的三行生产设置（`automatic-transition-from-open-to-half-open-enabled`
+  / `wait-duration-in-open-state` / `permitted-number-of-calls-in-half-open-state`）从写下起无人证明生效。
+  一个只会开不会合的断路器 = 穿着韧性外衣的永久停机。决定见 `docs/adr/0101`。
+- 交付：`GatewayCircuitHalfOpenWiringTest`（真 socket stub + 真网关 + random port，2 条 `@Test`）：
+  1. **恢复腿**：连续 drop→OPEN（一次调用 503 且 stub 无新请求）→`stopDropping()` 后**不发任何请求**，
+     纯等待即观测到状态自动到 HALF_OPEN（automatic-transition 第一次被证明生效）→2 个探测各 200 且
+     `$.from=stub-upstream`（fallback 恒 503，故 200 本身就证明越过响应线到后端）→状态 CLOSED→普通调用
+     200 且 stub 收到新路径。**门真的自愈了**。
+  2. **重屏蔽腿**：同样等到 HALF_OPEN，但后端仍坏：有界探测（≤3 次逻辑调用）后状态回到 OPEN、期间**从不
+     CLOSED**、之后调用再次 503 且 stub 无新请求。**半开是受控探测，不是无脑重开**。
+- 桩件：`StubUpstream` 新增 `startDropping()`/`stopDropping()`——**可恢复**的中段断连，区别于永久 `/drop`；
+  同一 socket 先造 OPEN 再宣布后端回来，才测得了自愈。`reset()` 清零开关，既有测试不受影响。
+- 读数：`mvn -o -B test -f services/nexus-gateway/pom.xml` = **64/64 BUILD SUCCESS**（基线 62 + 新增 2）；
+  单类 2/2 PASS；全套同跑无端口/registry 时序干扰。窗口缩到 4、等待 1.5s、permitted 2（同 §SC-24 缩窗理由）。
+- **首跑如实红一次且有价值**：负向腿初版断言「单次失败探测后立刻 OPEN」，实测停在 HALF_OPEN——
+  Spring Cloud Gateway 的 GET retry（`setRetries(1)`）在半开探测上花掉第二次 wire attempt，
+  「一次逻辑调用」≠「一次 wire 失败」，pin「一次就重开」等于 pin 库+filter 编排细节。改为测平台语义
+  （有界探测直到回 OPEN、期间不 CLOSED、后端被重新屏蔽），**没有放宽为接受 HALF_OPEN、没有改恒真**。
+  日志里 retry 与 fallback 争抢响应提交产生 `UnsupportedOperationException: ServerHttpResponse already
+  committed (503)`——filter 编排在半开失败路径的噪声，caller 仍得诚实 503；不改生产 route 语义，记为已知边界。
+- 并轨：开工复核 `git worktree list` 仅 main、`git branch -a` 无游离分支、`git branch --no-merged main` 为空——
+  两条线 2026-11-09 已并，`git` 侧**无可并内容**（用户要求的"合并 worktree"本轮无对象可合并，如实记录不造假）。
+- 未验证：生产 `wait-duration=10s/permitted=3` 只按数字缩放、语义同；CI `topology` job 仍从未被真实 push 执行
+  （沿用 §SC-17 起声明）；真实 Eureka 下半开未单测（breaker 自身行为，与发现实现无关）。未推送（无明确指令）。
