@@ -10,7 +10,11 @@
  *   4. the community policy surface AND the billing surface answer 200 through the gateway;
  *   5. a door-less request to billing is refused with a sentence (not a guess);
  *   6. the permission surface answers through the gateway — a sentinel subject nobody holds gets a 400
- *      with the domain's own "User not found" sentence, and a door-less call is refused.
+ *      with the domain's own "User not found" sentence, and a door-less call is refused;
+ *   7. a warm-up precedes the assertions: the first DB-touching request pays Hibernate metamodel +
+ *      Hikari warm-up and can exceed the gateway's 5s response bound (observed live: 503
+ *      service_unavailable naming TimeoutException). The smoke retries idempotent GETs until the door
+ *      answers non-503, so it measures the topology, not the warm-up.
  *
  * Exits 0 only when every check passed. Exits 1 on the first failure and ALWAYS stops the three
  * services it started — a smoke that leaves three JVMs behind is a smoke that exhausts the box.
@@ -196,6 +200,22 @@ async function main() {
     process.exit(1);
   }
   ok('gateway is answering');
+
+  // Warm the domain service's JPA stack through the door. The first DB-touching request pays metamodel
+  // init + Hikari warm-up and can exceed the gateway's 5s bound; a smoke that asserts before then
+  // measures the warm-up, not the topology. Retry idempotent GETs until a non-503 answer arrives.
+  const warmupDeadline = Date.now() + 120_000;
+  let warmed = false;
+  while (Date.now() < warmupDeadline) {
+    const res = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/billing/plan`, {
+      headers: { 'X-Nexus-Subject': 'aaaaaaaa-1111-4000-8000-000000000001' },
+      signal: AbortSignal.timeout(10_000),
+    }).catch(() => null);
+    if (res && res.status !== 503) { warmed = true; break; }
+    await new Promise((r) => setTimeout(r, 1_500));
+  }
+  if (!warmed) bad('domain-service warms through the door', 'still 503 after 120s of retries');
+  else ok('domain-service answers through the door (warm-up)');
 
   // Through the gateway: the community surface
   const policy = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/community/policy`, { signal: AbortSignal.timeout(10_000) });
