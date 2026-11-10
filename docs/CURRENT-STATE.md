@@ -20,6 +20,14 @@
 > 首跑红 3 条是测试桩真 bug——`StubUpstream.clearPaths()` 没清 `requestHeaders` 致跨测试读到上一条的请求，
 > 已修（记录型集合共生命周期）。Bulkhead 本轮**未接**：其依赖在 gateway 是 runtime scope、并发断言本机易
 > flaky，理由与缺口记在 ROADMAP §SC 第二十六片。
+>
+> **2026-11-11 续（§SC-31 / ADR-0103）**：breaker 状态从「只有测试能读」变成**运维读数**——
+> `application.yml` 的 `exposure.include` 由 `health` 加到 `health,circuitbreakers`（resilience4j 自带端点，
+> 零生产 Java 改动），把 §SC-24/§SC-29 的 OPEN/自愈第一次经 `/actuator/circuitbreakers` 对外可见，
+> 并与 `CircuitBreakerRegistry` 真值对账。**刻意不进 auth 白名单**：auth 开着时需 token（无 token 401 /
+> 带 token 200，health 仍开放），已由 `CircuitBreakerActuatorAuthTest` 验证 WebFilter 确实覆盖 actuator
+> handler（§SC-27 陷阱的变体），暴露端点不开洞。新增 2 个测试类共 5 条，网关全套 **78/78**（SC-30 的 73+5），
+> **首次尝试全绿**（先探针实测 JSON 形状再写断言，没猜字段）。多实例聚合未做（各实例各报各的）。
 
 第 3 行下面的所有旧读数中，凡提到 Java 侧测试数的，以 2026-11-10 的为准：**java-domain-service 103/103**
 （含新增 BillingControllerTest 7 + PermissionControllerTest 6）。最新一片（§SC-16 / SC-23）详见

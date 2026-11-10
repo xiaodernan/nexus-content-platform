@@ -11480,3 +11480,31 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
 - 未选 Bulkhead（resilience4j 弹性三件套仅剩的一件）：`resilience4j-bulkhead` 在 gateway 是 **runtime**
   scope（非 compile），且「并发在途数」的 wire 断言在本机 2.5GB 环境时序敏感、易 flaky——与本项目
   「测真实读数不粉饰」纪律相冲。作为已知缺口记此，将来若上真并发夹具（如受控 latch 后端）再接。
+
+## §SC 第二十七片：断路器状态从「测试能读」变成「运维能读」——暴露且默认守住 /actuator/circuitbreakers（2026-11-11）
+
+- 起点：§SC-24（OPEN 失败快）与 §SC-29（HALF_OPEN 自愈）之后，breaker 的状态**只有测试**能通过注入
+  `CircuitBreakerRegistry` 读到；值班运维答不出「哪个后端正被熔断、失败率多少、门合上没」。
+  resilience4j-spring-boot3 **自带** `CircuitBreakerEndpoint`，jar 一直在 classpath，但
+  `application.yml` 的 `exposure.include` 只有 `health`——读数在，没人读得到。用户要求「集大成/继续演进」，
+  把弹性能力接到可观测面正是这种汇合。决定见 `docs/adr/0103`。
+- 交付：
+  - 生产 `application.yml`：`management.endpoints.web.exposure.include: health → health,circuitbreakers`
+    （**零生产 Java 代码改动**：端点由 resilience4j 现有 bean 提供）。
+  - `CircuitBreakerActuatorWiringTest`（2 条，auth-off context）：静态面——端点列出两个后端、与 registry
+    真值对账、初始 CLOSED、`failureRateThreshold=50.0%`；动态面——§SC-24 连 drop 打开电路后端点显示
+    `state=OPEN` + `failedCalls>0` + `failureRate` 真实带 `%`、另一后端仍 CLOSED（不是全站停摆），
+    §SC-29 半开恢复后端点回 CLOSED。**门自愈第一次成为 operator 可见的事实，不是测试独占的断言。**
+  - `CircuitBreakerActuatorAuthTest`（3 条，auth-on context）：无 token → `401 missing_token`；带有效
+    token → `200` 可读 state；`/actuator/health` 仍开放。**专门验证 §SC-27 类陷阱的变体**：actuator 端点
+    由 reactive handler 应答，`PlatformAuthFilter`（WebFilter）确实先执行、覆盖到它——暴露端点不开洞。
+- **安全取舍**：`circuitbreakers` 刻意**不进** auth 白名单（只 `health` 可公开）。一张「哪些后端正在失败」
+  的免费弱点地图不是 health probe；auth-off 的打包离线真值下它本地可读（同 `/platform/services`），
+  部署靠打开 auth 决定。
+- 读数：`mvn -o -B test -f services/nexus-gateway/pom.xml` = **78/78 BUILD SUCCESS**（SC-30 基线 73 + 5），
+  **首次尝试全绿**：先一次性探针实测端点真实 JSON 形状（`{"circuitBreakers":{"nexus-api":{...,"state":...},...}}`）
+  再写断言，没猜 DTO 字段、没靠库版本碰运气（区别于前两片的首跑红）。`CircuitBreakerActuatorAuthTest`
+  冷启动 ~63s（本机内存），绿且稳定。
+- 诚实边界：只读、无写操作；读数反映**本实例**内存状态，多实例各报各的（聚合未做，需另一组件）；
+  `verify:topology` 冒烟未改为断言该端点（本片是网关单测）；CI `topology` job 仍从未被真实 push 执行；
+  未推送（无明确指令）。

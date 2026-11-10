@@ -109,13 +109,20 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 3
         automatic-transition-from-open-to-half-open-enabled: true
 
-# SC-8 — the management surface is `health` only. `/platform/health` is the aggregate the Studio/operator
-# asks; this is the gateway's own answer, so a probe of the probe exists.
+# SC-8 — `/platform/health` is the aggregate the Studio/operator asks; this is the gateway's own answer,
+# so a probe of the probe exists.
+#
+# SC-31 — `circuitbreakers` is exposed alongside `health` so an operator can READ the breaker state that
+# §SC-24/§SC-29 drive: which backend is tripped, its failure rate and call counts, and that the door healed.
+# It is deliberately NOT in PlatformAuthFilter's whitelist (only /actuator/health is): when auth is enabled
+# the readout is behind a token (graded by CircuitBreakerActuatorAuthTest), because a free map of which
+# backends are failing is an intrusion aid, not a health probe. With auth off (the packaged offline truth)
+# it is readable locally, like /platform/services — the deployment decides by turning auth on.
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,circuitbreakers
   endpoint:
     health:
       show-details: never
