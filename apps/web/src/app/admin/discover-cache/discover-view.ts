@@ -7,11 +7,14 @@
  *   - `hitRate(0,0)` 若画成 "0%"，就把"这台实例还没人读过"说成了"缓存一个都没命中"；
  *   - `pollAllowed('hidden')` 若返回 true，面板就在没人看的后台标签里给本实例制造轮询流量；
  *   - `busTag(bus)` 若把 `errors>0` 画成绿，就把"线路丢过帧/连不上"藏了起来——而那正是
- *     ADR-0114 诚实边界的落点（跨实例最终一致、丢帧退回 TTL）。
+ *     ADR-0114 诚实边界的落点（跨实例最终一致、丢帧退回 TTL）；
+ *   - `wavesHeadline([])` 若把"还没有失效波"画成"没有惊群"，就把"还没发布过 public 作品"
+ *     说成"压测过且很平稳"——空榜是"没触发采样"，不是"测过没事"（§SC-45 同一家族的诚实）；
+ *   - `waveRow` 把 `firstFillMs:null`（窗口内无人读）画成 0ms，会谎称"失效瞬间就有人重填"。
  *
  * 全部纯函数、零 React / 零 DOM / 零网络，判据可逐支验电。
  */
-import type { DiscoverCacheReadout } from '@/server/domain/discover-cache';
+import type { DiscoverCacheReadout, EpochWave } from '@/server/domain/discover-cache';
 import type { InvalidationBusStats } from '@/server/domain/invalidation-bus';
 
 /** 没测到 / 不适用渲染成"—（…）"，绝不渲染成 0。 */
@@ -108,6 +111,26 @@ export function isKnownReadout(value: unknown): value is DiscoverCacheReadout {
       if (typeof b[key] !== 'number') return false;
     }
   }
+  // §SC-45 失效波读数：waves 必须是数组，每波六字段齐全（firstFillMs 允许 null=窗口内无人读，
+  // settled 必须布尔）；waveConfig 的 windowMs/capacity 是旁注分母。缺一个，面板就会把
+  // "NaN 波"、"undefined ms" 画到运维眼前——坏回执在形状门这层挡掉，而不是渲染后才发现。
+  const waves = s['waves'];
+  if (!Array.isArray(waves)) return false;
+  for (const raw of waves) {
+    if (!raw || typeof raw !== 'object') return false;
+    const w = raw as Record<string, unknown>;
+    for (const key of ['epoch', 'openedAtMs', 'loadsDelta', 'peakInFlight']) {
+      if (typeof w[key] !== 'number') return false;
+    }
+    if (w['firstFillMs'] !== null && typeof w['firstFillMs'] !== 'number') return false;
+    if (typeof w['settled'] !== 'boolean') return false;
+  }
+  const waveConfig = s['waveConfig'];
+  if (!waveConfig || typeof waveConfig !== 'object') return false;
+  const wc = waveConfig as Record<string, unknown>;
+  for (const key of ['windowMs', 'capacity']) {
+    if (typeof wc[key] !== 'number') return false;
+  }
   return true;
 }
 
@@ -126,6 +149,40 @@ export function generationNote(globalGen: number, viewerGenerations: number, max
  */
 export function epochNote(globalEpoch: number): string {
   return `全局世代 ${globalEpoch}（每次 public 发布/下架/审核拒绝 +1）· 每次 +1 会让所有 sort、所有 viewer（含匿名）的旧键一次性作废，新作品无需等 TTL 就出现；代价是随后那一波会重查库——singleflight 只合并同一键的并发、不跨键，这是预期的冷启动尖峰，不是缓存故障。`;
+}
+
+/**
+ * §SC-45 发布冷启动波的标题判据。空波**绝不说"没有惊群"**——那会把"还没发布过 public 作品、
+ * 一次都没触发过采样"说成"压测过且很平稳"。非空时给峰值，让运维一眼看到"这一波真打了几次库"。
+ */
+export function wavesHeadline(waves: readonly EpochWave[]): string {
+  if (waves.length === 0) {
+    return '这台实例还没经历过全局失效波（还没发布/下架过 public 作品）——是尚未触发采样，不是"测过没有惊群"。';
+  }
+  const newest = waves[0]!; // wavesReadout 保证新的在前
+  const peakLoads = waves.reduce((m, w) => Math.max(m, w.loadsDelta), 0);
+  const peakFlight = waves.reduce((m, w) => Math.max(m, w.peakInFlight), 0);
+  return `${waves.length} 波 · 最新世代 ${newest.epoch} · 峰值打库 ${peakLoads} 次 · 峰值在途 ${peakFlight}（瞬时采样，非锁存的精确峰值）`;
+}
+
+/**
+ * 单波读数行：`firstFillMs=null` 说"窗口内无人读"，**不画 0ms**（0 会谎称"失效瞬间就有人重填"，
+ * 与 `hitRate(0,0)` 不说 0% 同一条纪律）；`settled=false` 如实标"仍在采样"，读数还会变。
+ */
+export function waveRow(w: EpochWave): string {
+  const first = w.firstFillMs === null ? '窗口内无人读' : `${w.firstFillMs}ms`;
+  return `世代 ${w.epoch} · 打库 ${w.loadsDelta} 次 · 在途峰值 ${w.peakInFlight} · 首击 ${first} · ${w.settled ? '已定格' : '采样中'}`;
+}
+
+/**
+ * §SC-45 方法论旁注：把"为什么不写通用并发闸门"这个反向判断放到运维眼前，而不是只躺在 ADR-0117。
+ * 钉四件事：① 常态上界是个位数键（匿名 ≤4 sort、登录键受活跃 viewer 与 maxEntries 限）；
+ * ② 已有三道天然舱壁（singleflight 同键合并 / DB 连接池 / 网关 SemaphoreBulkhead），无实测尖峰证据；
+ * ③ 刻意不加跨键闸门（会引入 permit 泄漏、排队饿死、读数失真、延迟稀释即时可见）；
+ * ④ 触发阈值：只有实测峰值逼近 DB 连接池，才按预案做匿名 new 写侧预热 / 满即减载。
+ */
+export function waveNote(windowMs: number, capacity: number): string {
+  return `采样窗口 ${Math.round(windowMs / 1000)}s · 环形缓冲只留最近 ${capacity} 波（有界，不随发布次数涨）· 只记不拦。常态下一次全局失效 ≈ 一次冷启动，匿名键 ≤ 4 个 sort、登录键受活跃 viewer 限，打库上界是个位数；已有三道舱壁：singleflight 只按同键合并、DB 连接池、网关 SemaphoreBulkhead——没有实测尖峰证据。这里刻意不加跨键并发闸门：会引入 permit 泄漏、排队饿死、读数失真，还会把即时可见排队稀释掉；只有当实测峰值逼近 DB 连接池，才按预案做 O(1) 匿名 new 写侧预热 / 满即减载。peakInFlight 是读后瞬时采样，不是锁存精确峰值。`;
 }
 
 /** 页脚那句"最终一致 + 只看这台"是否该出现：接了总线就一定要说，单机也要说清边界。 */

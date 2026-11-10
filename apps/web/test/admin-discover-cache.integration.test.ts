@@ -6,6 +6,7 @@ import {
   describeDiscoverCache,
   discoverCacheStats,
   DISCOVER_INVALIDATION_URL_ENV,
+  invalidateDiscoverGlobally,
   resetDiscoverCacheForTest,
 } from '../src/server/domain/discover-cache';
 import type { InvalidationBus, InvalidationBusStats } from '../src/server/domain/invalidation-bus';
@@ -194,6 +195,23 @@ describe('§SC-43 读数原样端出与诚实', () => {
       expect(body.stats).toEqual(direct.stats);
       expect(body.busAttached).toBe(direct.busAttached);
       expect(body.busUrlConfigured).toBe(direct.busUrlConfigured);
+    });
+  });
+
+  it('§SC-45 全局失效后 waves / waveConfig 端到端可见，形状门认得，读数动作本身不打库', async () => {
+    await withRedisUrl(undefined, async () => {
+      resetDiscoverCacheForTest({ bus: null, waveWindowMs: 15_000, waveCapacity: 12 });
+      asUser(adminToken);
+      invalidateDiscoverGlobally(); // 制造一个真实全局失效波
+      const loadsBefore = discoverCacheStats().loads;
+      const res = await getDiscoverCache();
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(isKnownReadout(body)).toBe(true); // 前后端形状门闭环，含新字段
+      expect(body.stats.waves).toHaveLength(1); // 波原样端出
+      expect(body.stats.waves[0].epoch).toBe(body.stats.globalEpoch);
+      expect(body.stats.waveConfig).toEqual({ windowMs: 15_000, capacity: 12 });
+      expect(discoverCacheStats().loads).toBe(loadsBefore); // 面板读数不是一次发现页查询
     });
   });
 });

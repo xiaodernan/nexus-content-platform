@@ -208,6 +208,26 @@ describe('§SC-44 跨实例全局失效（新作品发布对所有实例、所�
     expect(b.stats().globalEpoch).toBe(0); // B 没收到
     expect(b.keyFor({ sort: 'new', viewerId: null, limit: 24 })).toBe(keyBefore);
   });
+
+  it('§SC-45 远端全局帧也在对端开自己的波——否则多实例下只有发布那台的尖峰可见', async () => {
+    const [a, b] = makePair();
+    const bLoad = sequentialLoader('B');
+    const anon = { sort: 'new' as const, viewerId: null, limit: 24 };
+    await b.load(anon, bLoad.loader); // B 预热一份
+    expect(a.stats().waves).toEqual([]); // 两边初始都没波
+    expect(b.stats().waves).toEqual([]);
+
+    a.invalidateAll(); // 只有 A 走写路径
+
+    // A 本机开波，B 收到全局帧也经同一内核 bumpEpochAndOpenWave 开波（带 B 自己的 epoch）
+    expect(a.stats().waves).toHaveLength(1);
+    expect(b.stats().waves).toHaveLength(1);
+    expect(b.stats().waves[0]!.epoch).toBe(b.stats().globalEpoch); // 波归属 B 自己的世代
+    // B 首击延迟可观测（不是猜测）：远端帧后 B 重填会记下 loadsDelta
+    await b.load(anon, bLoad.loader);
+    expect(b.stats().waves[0]!.loadsDelta).toBe(1); // B 这一波真打了一次库
+    expect(bLoad.calls()).toBe(2);
+  });
 });
 
 describe('fail-open（线路不在，单机语义不回退）', () => {

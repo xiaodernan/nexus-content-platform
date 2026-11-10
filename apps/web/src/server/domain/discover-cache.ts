@@ -50,6 +50,34 @@ export interface DiscoverCacheConfig {
   readonly ttlMs: number;
   readonly maxEntries: number;
   readonly maxViewers: number;
+  /** §SC-45 失效波采样窗口（毫秒）：全局失效后这么久内的重填算这一波。默认一个 TTL。 */
+  readonly waveWindowMs: number;
+  /** §SC-45 失效波环形缓冲容量：只留最近 N 波，防读数无界增长。默认 12。 */
+  readonly waveCapacity: number;
+}
+
+/**
+ * §SC-45 一次"全局失效波"的读数：从 `globalEpoch` 跳变那一刻起到采样窗口结束，
+ * 这段时间内真打库的次数 / 在途并发峰值 / 首击延迟。把 SC-44 诚实留下的"预期冷启动尖峰"
+ * 从猜测变成可观测、可设阈值的数字——**只记不拦**，零新 DB 查询、零生产行为变化。
+ *
+ * 采样而非 profiler：`loadsDelta` 用 `cache.stats().loads` 的差值（BoundedCache 的 loads 只在真发起
+ * loader 时 +1），精确锚定"这一波真打了几库"；`peakInFlight` 是每次读之后的瞬时采样最大值，
+ * 不是锁存精确峰值（诚实写进 ADR）。窗口内没人读的波 `loadsDelta=0`——那正是"没有惊群"的证据。
+ */
+export interface EpochWave {
+  /** 触发这次波的全局世代值（失效后的新 epoch） */
+  readonly epoch: number;
+  /** 波开启时刻（注入时钟的毫秒值） */
+  readonly openedAtMs: number;
+  /** 采样窗口内真发起的 loader 次数（= 打库次数） */
+  readonly loadsDelta: number;
+  /** 采样到的在途 loader 峰值（瞬时采样，非锁存） */
+  readonly peakInFlight: number;
+  /** 从失效到第一次真打库的毫秒数；窗口内无人读为 null（不是 0——0 会谎称"瞬间就有人读"） */
+  readonly firstFillMs: number | null;
+  /** 是否已定格（false = 仍在采样窗口内、读数还在变） */
+  readonly settled: boolean;
 }
 
 export type DiscoverCacheStats = CacheStats & {
@@ -62,6 +90,10 @@ export type DiscoverCacheStats = CacheStats & {
   readonly config: DiscoverCacheConfig;
   /** 跨实例失效总线的读数（没接 = null）；最终一致、会丢帧，不是隐私强一致承诺 */
   readonly bus: InvalidationBusStats | null;
+  /** §SC-45 最近若干次全局失效波（有界环形缓冲，新的在前）；空数组 = 还没发生过全局失效 */
+  readonly waves: readonly EpochWave[];
+  /** §SC-45 采样窗口配置（毫秒 / 缓冲条数），让面板讲清"这是采样不是 profiler" */
+  readonly waveConfig: { readonly windowMs: number; readonly capacity: number };
 };
 
 interface Store {
@@ -85,11 +117,36 @@ interface Store {
   unsubscribe: (() => void) | null;
   /** 建总线过程中的线路错误数（连接失败、坏帧等），只记账不影响本机正确性 */
   busErrors: number;
+  /** 与 BoundedCache 同一个时钟源，供失效波记时间戳；判据注入受控时钟即可钉延迟 */
+  readonly now: () => number;
+  /** §SC-45 当前仍在采样窗口内的全局失效波；null = 还没发生过全局失效 */
+  activeWave: MutableWave | null;
+  /** §SC-45 已定格的失效波，旧的在前（环形缓冲语义由 pushWave 维护容量与顺序） */
+  settledWaves: EpochWave[];
+}
+
+/** §SC-45 采样窗口：全局失效后这么久内的重填算作"这一波"。默认一个 TTL——过了它旧键本就自然过期。 */
+const DEFAULT_WAVE_WINDOW_MS = 15_000;
+/** §SC-45 环形缓冲容量：只留最近 12 波，防发布高频时读数无界增长（数据结构有界纪律）。 */
+const DEFAULT_WAVE_CAPACITY = 12;
+
+/** 采样中的可变波；定格时转不可变 EpochWave 存入环形缓冲。 */
+interface MutableWave {
+  readonly epoch: number;
+  readonly openedAtMs: number;
+  readonly loadsAtOpen: number;
+  loadsDelta: number;
+  peakInFlight: number;
+  firstFillMs: number | null;
 }
 
 export const DISCOVER_TTL_MS_ENV = 'NEXUS_DISCOVER_CACHE_TTL_MS';
 export const DISCOVER_MAX_ENTRIES_ENV = 'NEXUS_DISCOVER_CACHE_MAX_ENTRIES';
 export const DISCOVER_MAX_VIEWERS_ENV = 'NEXUS_DISCOVER_CACHE_MAX_VIEWERS';
+/** §SC-45 失效波采样窗口（毫秒）；默认一个 TTL。 */
+export const DISCOVER_WAVE_WINDOW_MS_ENV = 'NEXUS_DISCOVER_WAVE_WINDOW_MS';
+/** §SC-45 失效波环形缓冲容量；默认 12。 */
+export const DISCOVER_WAVE_CAPACITY_ENV = 'NEXUS_DISCOVER_WAVE_CAPACITY';
 /** 跨实例失效总线的开关：与实时总线、限流、网关共享缓存共用这一个 Redis 旋钮（ADR-0081/0112）。 */
 export const DISCOVER_INVALIDATION_URL_ENV = 'NEXUS_REDIS_URL';
 
@@ -109,6 +166,9 @@ export interface DiscoverCacheTestOverrides {
    * 不传 = 走 `NEXUS_REDIS_URL` 的 opt-in 默认。
    */
   readonly bus?: InvalidationBus | null;
+  /** §SC-45 失效波采样窗口 / 容量（判据收窄窗口以消除等待，不 sleep）。 */
+  readonly waveWindowMs?: number;
+  readonly waveCapacity?: number;
 }
 
 interface GlobalStore {
@@ -167,7 +227,8 @@ function attachBus(s: Store, injected: InvalidationBus | null | undefined): void
     s.bus = bus;
     s.unsubscribe = bus.subscribe((ids, global) => {
       // 远端帧与本地写路径共用同一内核：定向帧只 bump 这些人，全局帧 bump 整个世代。
-      if (global === true) s.globalEpoch += 1;
+      // §SC-45 远端实例收到全局帧同样经历冷启动，必须开自己的波，否则多实例下只有发布那台尖峰可见。
+      if (global === true) bumpEpochAndOpenWave(s, s.now());
       else bumpLocal(s, ids);
     });
   };
@@ -198,6 +259,8 @@ export function resetDiscoverCacheForTest(overrides: DiscoverCacheTestOverrides 
     ttlMs: overrides.ttlMs ?? envInt(DISCOVER_TTL_MS_ENV, DEFAULT_TTL_MS, 1),
     maxEntries: overrides.maxEntries ?? envInt(DISCOVER_MAX_ENTRIES_ENV, DEFAULT_MAX_ENTRIES, 1),
     maxViewers: overrides.maxViewers ?? envInt(DISCOVER_MAX_VIEWERS_ENV, DEFAULT_MAX_VIEWERS, 1),
+    waveWindowMs: overrides.waveWindowMs ?? envInt(DISCOVER_WAVE_WINDOW_MS_ENV, DEFAULT_WAVE_WINDOW_MS, 1),
+    waveCapacity: overrides.waveCapacity ?? envInt(DISCOVER_WAVE_CAPACITY_ENV, DEFAULT_WAVE_CAPACITY, 1),
   };
   const cache = new BoundedCache<DiscoverResult>({
     maxEntries: config.maxEntries,
@@ -215,6 +278,11 @@ export function resetDiscoverCacheForTest(overrides: DiscoverCacheTestOverrides 
     bus: null,
     unsubscribe: null,
     busErrors: 0,
+    now: overrides.now ?? Date.now,
+    // §SC-45 失效波是**可观测快照**，不跨 reset/热重载保留：旧进程的波带着旧 epoch，
+    // 与新 store 的 epoch 撞值会误导运维。reset = 观测从零重新计数（与 globalEpoch 的"必须保留"相反）。
+    activeWave: null,
+    settledWaves: [],
   };
   store[STORE_KEY] = next; // 先落位再挂 bus，让 attachBus 的"是否当前实例"判断成立
   attachBus(next, overrides.bus);
@@ -275,6 +343,96 @@ function invalidateInStore(s: Store, viewerIds: (string | null | undefined)[]): 
   if (ids.length) s.bus?.publish(ids); // 2. 净辐射广播（同步 void、绝不抛、绝不 await 网络）
 }
 
+/* ── §SC-45 失效波采集：纯函数，不碰 DB / 不改缓存行为，只读 loads 差值与在途采样 ── */
+
+/** 开一波：把上一波（若还在窗口内）先定格归档，再以当前 epoch 开新的可变波。 */
+function openWave(s: Store, now: number): void {
+  if (s.activeWave) pushWave(s, settleWave(s.activeWave), s.config.waveCapacity);
+  s.activeWave = {
+    epoch: s.globalEpoch,
+    openedAtMs: now,
+    loadsAtOpen: s.cache.stats().loads,
+    loadsDelta: 0,
+    peakInFlight: 0,
+    firstFillMs: null,
+  };
+}
+
+/** 每次读之后采样当前波：差值即这一波真打库数，瞬时 inFlight 取最大，首击记延迟。 */
+function sampleWave(s: Store, now: number): void {
+  const w = s.activeWave;
+  if (!w) return;
+  const stats = s.cache.stats();
+  const delta = Math.max(0, stats.loads - w.loadsAtOpen);
+  w.loadsDelta = delta;
+  if (stats.inFlight > w.peakInFlight) w.peakInFlight = stats.inFlight;
+  if (delta > 0 && w.firstFillMs === null) w.firstFillMs = Math.max(0, now - w.openedAtMs);
+}
+
+/** 冻结一波成不可变读数。 */
+function settleWave(w: MutableWave): EpochWave {
+  return {
+    epoch: w.epoch,
+    openedAtMs: w.openedAtMs,
+    loadsDelta: w.loadsDelta,
+    peakInFlight: w.peakInFlight,
+    firstFillMs: w.firstFillMs,
+    settled: true,
+  };
+}
+
+/**
+ * 惰性定格：窗口过了就归档、清空 activeWave。由 stats/readout 与下一次读驱动，不靠定时器
+ * （无定时器 = 无后台资源、无热重载残留）。返回是否刚定格了一波。
+ */
+function settleWaveIfExpired(s: Store, now: number): boolean {
+  const w = s.activeWave;
+  if (!w || now - w.openedAtMs <= s.config.waveWindowMs) return false;
+  pushWave(s, settleWave(w), s.config.waveCapacity);
+  s.activeWave = null;
+  return true;
+}
+
+/** 有界环形缓冲：push 后超容量就丢最旧一条（内存不随发布次数增长）。 */
+function pushWave(s: Store, wave: EpochWave, capacity: number): void {
+  s.settledWaves.push(wave);
+  const cap = Math.max(1, capacity);
+  while (s.settledWaves.length > cap) s.settledWaves.shift();
+}
+
+/** 供 stats/readout 组装：已定格波（最近在前）+ 仍进行中的波（未定格、读数还在变）。 */
+function wavesReadout(s: Store, now: number): readonly EpochWave[] {
+  settleWaveIfExpired(s, now);
+  const settled = [...s.settledWaves].reverse(); // 新的在前
+  const w = s.activeWave;
+  if (!w) return settled;
+  const active: EpochWave = {
+    epoch: w.epoch,
+    openedAtMs: w.openedAtMs,
+    loadsDelta: w.loadsDelta,
+    peakInFlight: w.peakInFlight,
+    firstFillMs: w.firstFillMs,
+    settled: false,
+  };
+  return [active, ...settled];
+}
+
+/**
+ * §SC-44/45 全局世代跳变的**单一内核**：本机写路径（publish/unpublish/rejected）与远端全局帧
+ * 共用这一句，杜绝两处逻辑漂移。顺序是承诺的一部分：
+ * 1. 先 `globalEpoch += 1`（主业）——所有旧键（含匿名）当场拼不出来，本机即时生效、fail-open 最后一道；
+ * 2. 再开观测波（SC-45）——纯内存记账，**绝不因为它的失败/抛错反过来破坏上面的失效**。
+ *    故观测用 try/catch 兜住：SC-44「失效绝不抛、绝不阻塞写库请求」的承诺一字不改地延续。
+ */
+function bumpEpochAndOpenWave(s: Store, now: number): void {
+  s.globalEpoch += 1;
+  try {
+    openWave(s, now);
+  } catch {
+    /* 观测失败绝不影响 epoch bump 与缓存键失效：主业与观测严格隔离 */
+  }
+}
+
 /** 写路径调用：让这些 viewer 的所有旧键**即时**失效，并把这一帧广播给别的实例。匿名 `null` 是 no-op。 */
 export function invalidateDiscoverFor(...viewerIds: (string | null | undefined)[]): void {
   invalidateInStore(getStore(), viewerIds);
@@ -297,7 +455,10 @@ export function invalidateDiscoverFor(...viewerIds: (string | null | undefined)[
  * 不是 bug；常态发布频率下可接受，代价与收益都在面板 `globalEpoch` 读数里可见。
  */
 function invalidateAllInStore(s: Store): void {
-  s.globalEpoch += 1; // 1. 本机即时：所有旧键（含匿名）拼不出来
+  // 1. 本机即时：epoch +1 让所有旧键（含匿名）拼不出来，并开一个只记不拦的失效波采样窗口。
+  //    观测"这一波重填真打了几库 / 峰值在途 / 首击延迟"——零新 DB 查询、零生产行为变化。
+  //    epoch bump 在前、观测在后且有 try/catch 兜底，SC-44 的失效承诺不受影响（见 bumpEpochAndOpenWave）。
+  bumpEpochAndOpenWave(s, s.now());
   s.bus?.publish([], true); // 2. 净辐射广播全局帧（同步 void、绝不 await/不抛）
 }
 
@@ -310,9 +471,32 @@ export function invalidateDiscoverGlobally(): void {
   invalidateAllInStore(getStore());
 }
 
-/** 取或加载的参数化内核（全局入口与多实例测试工厂共用）。同 viewer/sort/limit 并发只跑一次 loader。 */
+/**
+ * 取或加载的参数化内核（全局入口与多实例测试工厂共用）。同 viewer/sort/limit 并发只跑一次 loader。
+ *
+ * §SC-45 只记不拦的采样点为什么要**两处**：
+ * - `getOrLoad` 是 async，但调用它的同步段已完成 `inflight.set` 与 `loads += 1`（见 BoundedCache）。
+ *   故**调用后立刻**采一次，才抓得到「我 + 其它并发重填」的瞬时在途峰值；若等 `await` 返回再采，
+ *   `fromLoad` 的 finally 已清掉 inflight，`peakInFlight` 会恒为 0——那是谎报「没有惊群」。
+ * - loader 收尾（含失败）后再采一次：并发键可能稍后才登记，这里把 `loadsDelta` / `firstFillMs`
+ *   更新到本轮最新值。两次都 try/catch 兜住：观测绝不许拖垮发现页读主业。
+ */
 async function loadFromStore(s: Store, input: DiscoverCacheInput, loader: DiscoverLoader): Promise<DiscoverResult> {
-  return (await s.cache.getOrLoad(keyFor(s, input), loader)).value;
+  const pending = s.cache.getOrLoad(keyFor(s, input), loader);
+  try {
+    sampleWave(s, s.now());
+  } catch {
+    /* 观测失败不影响加载 */
+  }
+  try {
+    return (await pending).value;
+  } finally {
+    try {
+      sampleWave(s, s.now());
+    } catch {
+      /* 观测失败不影响返回值/异常传播 */
+    }
+  }
 }
 
 /**
@@ -323,8 +507,11 @@ export async function loadDiscoverCached(input: DiscoverCacheInput, loader: Disc
   return loadFromStore(getStore(), input, loader);
 }
 
-export function discoverCacheStats(): DiscoverCacheStats {
-  const s = getStore();
+/**
+ * §SC-45：把 stats 组装抽成共用内核（全局门面与 isolated 测试 store 共用这一句，杜绝两处漂移）。
+ * `waves` 读数会驱动一次惰性定格（窗口已过的波归档），纯内存、无定时器、无 DB 查询。
+ */
+function statsFromStore(s: Store): DiscoverCacheStats {
   return {
     ...s.cache.stats(),
     globalGen: s.globalGen,
@@ -332,7 +519,13 @@ export function discoverCacheStats(): DiscoverCacheStats {
     viewerGenerations: s.viewerGen.size,
     config: s.config,
     bus: s.bus ? { ...s.bus.stats(), errors: s.bus.stats().errors + s.busErrors } : null,
+    waves: wavesReadout(s, s.now()),
+    waveConfig: { windowMs: s.config.waveWindowMs, capacity: s.config.waveCapacity },
   };
+}
+
+export function discoverCacheStats(): DiscoverCacheStats {
+  return statsFromStore(getStore());
 }
 
 /**
@@ -387,16 +580,21 @@ export function createIsolatedDiscoverCacheForTest(options: {
   ttlMs?: number;
   maxViewers?: number;
   maxEntries?: number;
+  waveWindowMs?: number;
+  waveCapacity?: number;
 }): IsolatedDiscoverCache {
   const config: DiscoverCacheConfig = {
     ttlMs: options.ttlMs ?? DEFAULT_TTL_MS,
     maxEntries: options.maxEntries ?? DEFAULT_MAX_ENTRIES,
     maxViewers: options.maxViewers ?? DEFAULT_MAX_VIEWERS,
+    waveWindowMs: options.waveWindowMs ?? DEFAULT_WAVE_WINDOW_MS,
+    waveCapacity: options.waveCapacity ?? DEFAULT_WAVE_CAPACITY,
   };
+  const now = options.now ?? Date.now;
   const cache = new BoundedCache<DiscoverResult>({
     maxEntries: config.maxEntries,
     ttlMs: config.ttlMs,
-    now: options.now,
+    now,
   });
   const s: Store = {
     cache,
@@ -407,11 +605,15 @@ export function createIsolatedDiscoverCacheForTest(options: {
     bus: options.bus ?? null,
     unsubscribe: null,
     busErrors: 0,
+    now,
+    activeWave: null,
+    settledWaves: [],
   };
   // 与全局 store 的 attachBus 同一语义：定向帧 → bumpLocal，全局帧 → bump epoch（共用内核）。
   if (s.bus) {
     s.unsubscribe = s.bus.subscribe((ids, global) => {
-      if (global === true) s.globalEpoch += 1;
+      // §SC-45 远端实例收到全局帧同样经历冷启动，必须开自己的波，否则多实例下只有发布那台尖峰可见。
+      if (global === true) bumpEpochAndOpenWave(s, s.now());
       else bumpLocal(s, ids);
     });
   }
@@ -419,14 +621,7 @@ export function createIsolatedDiscoverCacheForTest(options: {
     load: (input, loader) => loadFromStore(s, input, loader),
     invalidate: (...ids) => invalidateInStore(s, ids),
     invalidateAll: () => invalidateAllInStore(s),
-    stats: () => ({
-      ...s.cache.stats(),
-      globalGen: s.globalGen,
-      globalEpoch: s.globalEpoch,
-      viewerGenerations: s.viewerGen.size,
-      config: s.config,
-      bus: s.bus ? { ...s.bus.stats(), errors: s.bus.stats().errors + s.busErrors } : null,
-    }),
+    stats: () => statsFromStore(s),
     keyFor: (input) => keyFor(s, input),
     dispose: () => {
       s.unsubscribe?.();

@@ -312,3 +312,146 @@ describe('有界性（数据结构 · 防内存被外部可控键撑爆）', () 
     expect(stats.evictions).toBeGreaterThan(0);
   });
 });
+
+/**
+ * §SC-45 失效波采集的验电：把 ADR-0116 诚实留下的"预期冷启动尖峰"从猜测变成可钉死的数字。
+ * 全程受控时钟 + fake loader，不 sleep、不连库、零生产行为变化——只验证"读数是否与真实发生的事相符"，
+ * 以及"观测代码绝不许拖垮失效/读主业"这两件事。守的是几类真实坏法：
+ * 1. 环形缓冲漏了界 → 发布越多次读数越涨，最终又是一个内存漏点；
+ * 2. `peakInFlight` 采样点放到 `await` 之后 → inflight 已清零、恒 0，把惊群谎报成"没有"；
+ * 3. `firstFillMs=null`（窗口内无人读）被画成 0 → 谎称"失效瞬间就有人重填"（同 `hitRate(0,0)` 不说 0%）；
+ * 4. 观测抛错 → 反过来破坏 SC-44 的失效承诺或吞掉 loader 的异常；
+ * 5. 波跨 reset 保留 → 旧进程带旧 epoch 的波与新 store 撞值，误导运维。
+ */
+describe('§SC-45 发布冷启动波（只记不拦的可观测快照）', () => {
+  /** 可推进的受控时钟 + 可收窄的波窗口/容量；时钟与 BoundedCache、Store 共用同一个 now。 */
+  function waveStore(waveWindowMs = 1_000, waveCapacity = 12) {
+    let clock = 1_000;
+    resetDiscoverCacheForTest({
+      maxEntries: 64, maxViewers: 8, ttlMs: 600_000, now: () => clock, waveWindowMs, waveCapacity,
+    });
+    return { advance: (ms: number): void => { clock += ms; }, now: (): number => clock };
+  }
+
+  /** 门控 loader：多个键可同时卡在 gate 上，用来验证 peakInFlight 抓的是"并发在途"的瞬时值。 */
+  function gatedLoader(): { loader: DiscoverLoader; release: () => void } {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    return {
+      loader: async () => { await gate; return resultFor('gated'); },
+      release: (): void => release(),
+    };
+  }
+
+  it('waveConfig 如实回读配置；初始 waves 为空不是"0 波惊群"', () => {
+    waveStore(250, 3);
+    const stats = discoverCacheStats();
+    expect(stats.waveConfig).toEqual({ windowMs: 250, capacity: 3 });
+    expect(stats.waves).toEqual([]);
+  });
+
+  it('定向 privacy 失效不开波；只有全局失效才开一个仍在采样的 active 波', () => {
+    waveStore();
+    invalidateDiscoverFor('A');
+    expect(discoverCacheStats().waves).toEqual([]); // 隐私失效不是冷启动，不占波
+    invalidateDiscoverGlobally();
+    const waves = discoverCacheStats().waves;
+    expect(waves).toHaveLength(1);
+    expect(waves[0]!.settled).toBe(false); // 还在窗口内，读数还会变
+    expect(waves[0]!.epoch).toBe(discoverCacheStats().globalEpoch); // 波归属失效后的新世代
+  });
+
+  it('受控时钟钉死首击延迟与打库增量：失效后 13ms 首次重填 → firstFillMs=13、loadsDelta=1', async () => {
+    const h = waveStore(1_000);
+    const { loader } = countingLoader();
+    await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, loader); // 预热，loads=1（此时没有 active 波）
+    invalidateDiscoverGlobally(); // openWave 记 loadsAtOpen=1、openedAtMs=1000
+    const epoch = discoverCacheStats().globalEpoch;
+    h.advance(13);
+    await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, loader); // 新 epoch → miss → loads=2
+    const w = discoverCacheStats().waves[0]!;
+    expect(w.epoch).toBe(epoch);
+    expect(w.loadsDelta).toBe(1); // 差值精确锚定"这一波真打了几库"
+    expect(w.firstFillMs).toBe(13); // 不是估算，是受控时钟的精确毫秒
+  });
+
+  it('窗口内无人读：loadsDelta=0、firstFillMs=null（不是 0——0 会谎称"瞬间就有人读"）', () => {
+    waveStore(1_000);
+    invalidateDiscoverGlobally();
+    const w = discoverCacheStats().waves[0]!;
+    expect(w.loadsDelta).toBe(0);
+    expect(w.firstFillMs).toBeNull();
+    expect(w.peakInFlight).toBe(0);
+  });
+
+  it('惰性定格：窗口未过仍在采样，读 stats 推过窗口后才归档，且不重复定格', () => {
+    const h = waveStore(100);
+    invalidateDiscoverGlobally();
+    h.advance(50);
+    expect(discoverCacheStats().waves[0]!.settled).toBe(false); // 50 < 100，仍在采样
+    h.advance(51); // 累计 101 > 100
+    const after = discoverCacheStats().waves;
+    expect(after).toHaveLength(1);
+    expect(after[0]!.settled).toBe(true); // 读 stats 这一下惰性归档，无定时器
+    expect(discoverCacheStats().waves).toHaveLength(1); // 再读不重复 push
+  });
+
+  it('环形缓冲有界：连续 5 次失效只留最近 2 波，新的在前、最旧的被丢', () => {
+    const h = waveStore(10, 2);
+    const e0 = discoverCacheStats().globalEpoch;
+    for (let i = 0; i < 5; i += 1) {
+      invalidateDiscoverGlobally();
+      h.advance(100); // 每次推过窗口，逼上一波归档
+    }
+    h.advance(100); // 让最后一波（active）也定格
+    const waves = discoverCacheStats().waves;
+    expect(waves).toHaveLength(2); // 恰好容量，不是 5——读数不随发布次数增长
+    expect(waves[0]!.epoch).toBe(e0 + 5); // 最新在前
+    expect(waves[1]!.epoch).toBe(e0 + 4);
+    expect(waves.every((w) => w.settled)).toBe(true);
+  });
+
+  it('peakInFlight 抓到并发在途峰值（≥2）：专钉"采样点放到 await 之后就恒 0"的回归', async () => {
+    waveStore(1_000);
+    const gated = gatedLoader();
+    invalidateDiscoverGlobally();
+    // 两个不同键并发卡在 gate 上：getOrLoad 同步登记 inFlight 后，loadFromStore 立刻采样。
+    const pA = loadDiscoverCached({ sort: 'new', viewerId: 'A' }, gated.loader);
+    const pB = loadDiscoverCached({ sort: 'popular', viewerId: 'B' }, gated.loader);
+    gated.release();
+    await Promise.all([pA, pB]);
+    const w = discoverCacheStats().waves[0]!;
+    expect(w.peakInFlight).toBeGreaterThanOrEqual(2); // 若只在 await 后采样，inflight 已清零 → 这里红
+    expect(w.loadsDelta).toBe(2); // 两个键各发一次 loader（singleflight 不跨键合并）
+  });
+
+  it('loader 失败不崩、异常不吞，波仍如实记下"打过一次库"', async () => {
+    waveStore(1_000);
+    invalidateDiscoverGlobally();
+    const boom: DiscoverLoader = async () => { throw new Error('db down'); };
+    await expect(loadDiscoverCached({ sort: 'new', viewerId: 'A' }, boom)).rejects.toThrow('db down');
+    const w = discoverCacheStats().waves[0]!;
+    expect(w.loadsDelta).toBe(1); // getOrLoad 在发起 loader 前就 loads++，失败也算真打过库
+    expect(w.firstFillMs).toBe(0); // 失效当刻就有人读，0ms 是诚实的
+  });
+
+  it('观测不跨 reset：波清零（旧进程带旧 epoch 会误导），但 globalEpoch 必须保留', () => {
+    waveStore(1_000);
+    invalidateDiscoverGlobally();
+    expect(discoverCacheStats().waves.length).toBeGreaterThanOrEqual(1);
+    const epoch = discoverCacheStats().globalEpoch;
+    resetDiscoverCacheForTest({ maxEntries: 64, maxViewers: 8, ttlMs: 10_000, now: () => 1_000 });
+    const stats = discoverCacheStats();
+    expect(stats.waves).toEqual([]); // 观测从零重计
+    expect(stats.globalEpoch).toBe(epoch); // 但内容世代不能丢（否则旧键复活）——两者故意相反
+  });
+
+  it('waves / waveConfig 可安全 JSON 往返（admin route 原样端出，null 不丢成 undefined）', () => {
+    waveStore(1_000, 12);
+    invalidateDiscoverGlobally();
+    const json = JSON.parse(JSON.stringify(discoverCacheStats()));
+    expect(json.waves).toHaveLength(1);
+    expect(json.waves[0].firstFillMs).toBeNull(); // null 是"无人读"，不能往返成 undefined
+    expect(json.waveConfig).toEqual({ windowMs: 1_000, capacity: 12 });
+  });
+});

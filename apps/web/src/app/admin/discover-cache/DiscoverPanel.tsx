@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { DiscoverCacheReadout } from '@/server/domain/discover-cache';
-import { busTag, dashOr, epochNote, footNote, generationNote, hitRate, isKnownReadout, pollAllowed } from './discover-view';
+import { busTag, dashOr, epochNote, footNote, generationNote, hitRate, isKnownReadout, pollAllowed, waveNote, waveRow, wavesHeadline } from './discover-view';
 
 /**
  * §SC-43 面板：把这一台实例的发现页缓存账与跨实例总线账渲染出来，每 4 秒问一次
@@ -162,6 +162,29 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
         </div>
         <p className="dc-note" data-discover-epoch-note>
           {epochNote(stats.globalEpoch)}
+        </p>
+      </section>
+
+      {/* §SC-45 发布冷启动波：把 ADR-0116 诚实留下的"预期尖峰"从猜测变成可观测数字，只记不拦 */}
+      <section className="flex flex-col gap-2" aria-label="发布冷启动波">
+        <h2 className="text-13 font-semibold text-fg-2">发布冷启动波 · 只记不拦</h2>
+        <p className="text-12 text-fg-2" data-discover-waves-headline>
+          {wavesHeadline(stats.waves)}
+        </p>
+        {stats.waves.length ? (
+          <div className="dc-ledgerGrid" data-discover-waves>
+            {stats.waves.map((w) => (
+              <LedgerRow
+                key={`${w.epoch}-${w.openedAtMs}`}
+                label={`波 #${w.epoch}`}
+                value={waveRow(w)}
+                mono={false}
+              />
+            ))}
+          </div>
+        ) : null}
+        <p className="dc-note" data-discover-waves-note>
+          {waveNote(stats.waveConfig.windowMs, stats.waveConfig.capacity)}
         </p>
       </section>
 

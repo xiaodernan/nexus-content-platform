@@ -9,8 +9,11 @@ import {
   isKnownReadout,
   keepPreviousOnError,
   pollAllowed,
+  waveNote,
+  waveRow,
+  wavesHeadline,
 } from '../src/app/admin/discover-cache/discover-view';
-import type { DiscoverCacheReadout } from '../src/server/domain/discover-cache';
+import type { DiscoverCacheReadout, EpochWave } from '../src/server/domain/discover-cache';
 
 /**
  * §SC-43 展示判据：纯函数、零 React / DOM / 网络，逐支验电。
@@ -31,8 +34,10 @@ const knownReadout = (): DiscoverCacheReadout => ({
     globalGen: 7,
     globalEpoch: 2,
     viewerGenerations: 3,
-    config: { ttlMs: 15_000, maxEntries: 2048, maxViewers: 512 },
+    config: { ttlMs: 15_000, maxEntries: 2048, maxViewers: 512, waveWindowMs: 15_000, waveCapacity: 12 },
     bus: null,
+    waves: [],
+    waveConfig: { windowMs: 15_000, capacity: 12 },
   },
 });
 
@@ -133,6 +138,30 @@ describe('回执形状门（坏 JSON / 残缺 bus / 残缺 config 不许画成�
     expect(isKnownReadout({ ...broken, stats: { ...broken.stats, config: undefined } })).toBe(false);
     expect(isKnownReadout({ ...broken, stats: { ...broken.stats, config: 'oops' } })).toBe(false);
   });
+  it('§SC-45 waves 缺失/非数组挡掉；空数组是合法读数（还没发生全局失效）', () => {
+    const broken = knownReadout();
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waves: undefined } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waves: 'oops' } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waves: [] } })).toBe(true);
+  });
+  it('§SC-45 单波字段坏（epoch 非数 / firstFillMs 是 undefined / settled 非布尔）都挡掉', () => {
+    const broken = knownReadout();
+    const good: EpochWave = { epoch: 1, openedAtMs: 0, loadsDelta: 2, peakInFlight: 1, firstFillMs: 5, settled: true };
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waves: [good] } })).toBe(true);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waves: [{ ...good, epoch: '1' }] } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waves: [{ ...good, firstFillMs: undefined }] } })).toBe(false);
+    // firstFillMs=null 是合法的"窗口内无人读"，别误杀
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waves: [{ ...good, firstFillMs: null }] } })).toBe(true);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waves: [{ ...good, settled: 'yes' }] } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waves: [null] } })).toBe(false);
+  });
+  it('§SC-45 waveConfig 缺失/字段坏挡掉——它是旁注秒数与容量的分母', () => {
+    const broken = knownReadout();
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waveConfig: undefined } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waveConfig: { windowMs: 15_000 } } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waveConfig: { windowMs: 'x', capacity: 12 } } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waveConfig: { windowMs: 15_000, capacity: 12 } } })).toBe(true);
+  });
 });
 
 describe('旁注与页脚（把方法论结论与最终一致边界放到运维眼前）', () => {
@@ -174,5 +203,51 @@ describe('全局世代旁注（§SC-44 把即时可见的收益与冷启动代�
     expect(note).toContain('TTL'); // 明说不用等 TTL
     expect(note).toContain('singleflight'); // 冷启动尖峰的成因
     expect(note).toContain('不是缓存故障'); // 预期行为，不是事故
+  });
+});
+
+describe('发布冷启动波（§SC-45 只记不拦，把尖峰从猜测变成数字）', () => {
+  const wave = (over: Partial<EpochWave> = {}): EpochWave => ({
+    epoch: 2, openedAtMs: 1_000, loadsDelta: 4, peakInFlight: 2, firstFillMs: 12, settled: true, ...over,
+  });
+
+  it('空波榜：说"还没触发采样"，绝不画成"没有惊群"（那是把没测说成测过没事）', () => {
+    const head = wavesHeadline([]);
+    expect(head).toContain('还没');
+    expect(head).toContain('没有惊群'); // 明确点名这个被禁止的断言
+    expect(head).toContain('不是'); // 主动纠正
+  });
+  it('有波榜：报波数、最新世代、峰值打库与峰值在途，并诚实标"瞬时采样非锁存"', () => {
+    const head = wavesHeadline([wave({ epoch: 3, loadsDelta: 2, peakInFlight: 1 }), wave({ epoch: 2, loadsDelta: 7, peakInFlight: 3 })]);
+    expect(head).toContain('2 波');
+    expect(head).toContain('最新世代 3'); // 首项即最新
+    expect(head).toContain('峰值打库 7'); // 取最大，不是首项
+    expect(head).toContain('峰值在途 3');
+    expect(head).toContain('瞬时'); // 不谎称精确锁存
+  });
+  it('单波行：firstFillMs=null 说"窗口内无人读"，绝不画 0ms', () => {
+    const cold = waveRow(wave({ firstFillMs: null }));
+    expect(cold).toContain('窗口内无人读');
+    expect(cold).not.toContain('0ms');
+    const hot = waveRow(wave({ firstFillMs: 0 }));
+    expect(hot).toContain('0ms'); // 真测到 0ms 才照实说
+    expect(hot).not.toContain('无人读');
+  });
+  it('单波行：如实标"已定格"/"采样中"，读数还会变的别画成终值', () => {
+    expect(waveRow(wave({ settled: true }))).toContain('已定格');
+    expect(waveRow(wave({ settled: false }))).toContain('采样中');
+  });
+  it('方法论旁注：讲清上界个位数 / 三道舱壁 / 未加闸门的理由 / 触发阈值', () => {
+    const note = waveNote(15_000, 12);
+    expect(note).toContain('15s'); // 窗口秒数从入参来
+    expect(note).toContain('12'); // 有界容量
+    expect(note).toContain('个位数'); // 上界判断
+    expect(note).toContain('singleflight');
+    expect(note).toContain('连接池');
+    expect(note).toContain('SemaphoreBulkhead'); // 三道舱壁齐全
+    expect(note).toContain('不加跨键并发闸门'); // 反向判断
+    expect(note).toContain('permit'); // 说清代价
+    expect(note).toContain('逼近'); // 触发阈值
+    expect(note).toContain('瞬时采样');
   });
 });
