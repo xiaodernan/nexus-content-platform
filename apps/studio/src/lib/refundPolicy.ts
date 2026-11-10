@@ -66,8 +66,12 @@ export function refundPolicyProblem(policy: RefundPolicy | null | undefined): st
   const window = (policy as { windowMs?: unknown }).windowMs;
   if (window === null) return null;
   if (typeof window !== 'number' || !Number.isFinite(window) || window < 0) {
-    // window 是 unknown：String() 它只会印出 "[object Object]"，那不是事实。报它的类型。
-    const shown = typeof window === 'string' ? window : `a ${typeof window}`;
+    // window 是 unknown：是数字就把数字说出来（主机要看见它发了什么），不是数字才报它的类型——
+    // 直接 String() 一个可能是对象的东西只会印出 "[object Object]"
+    const shown =
+      typeof window === 'number' ? String(window)
+      : typeof window === 'string' ? window
+      : `a ${typeof window}`;
     return `the policy's windowMs must be null or a finite non-negative number of milliseconds, and it is ${shown}`;
   }
   return null;
