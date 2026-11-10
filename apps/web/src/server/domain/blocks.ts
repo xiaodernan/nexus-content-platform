@@ -9,6 +9,7 @@ import {
 } from '@nexus/schemas';
 import { getDb } from '../db/client';
 import { follows, userBlocks, users } from '../db/schema';
+import { invalidateDiscoverFor } from './discover-cache';
 
 /**
  * §132 社区治理的第三、第四件：block 与 mute。report 与 moderation 先落了
@@ -116,6 +117,10 @@ export async function setBlock(actorId: string, targetId: string, kind: BlockKin
       .returning({ followerId: follows.followerId });
     unfollowed = removed.length;
   }
+  // §SC-41：屏蔽名单变了 → actor 的全部发现视图即时作废。block 还拆掉了双向关注，
+  // 目标用户那侧的 following 列表也变了，一起失效；mute 不动关注，只失效 actor 自己。
+  // 隐私即时生效，不依赖 TTL——否则拉黑后 TTL 内仍看得到被拉黑的人。
+  invalidateDiscoverFor(actorId, kind === 'block' ? targetId : null);
   return { ok: true, kind, created: !existing.length, unfollowed };
 }
 
@@ -125,6 +130,8 @@ export async function clearBlock(actorId: string, targetId: string): Promise<{ r
     .delete(userBlocks)
     .where(and(eq(userBlocks.blockerId, actorId), eq(userBlocks.blockedId, targetId)))
     .returning({ blockerId: userBlocks.blockerId });
+  // §SC-41：解除屏蔽 → actor 的发现视图即时重算（解除后作品该立刻回来，不能等 TTL）。
+  if (removed.length) invalidateDiscoverFor(actorId);
   return { removed: removed.length > 0 };
 }
 

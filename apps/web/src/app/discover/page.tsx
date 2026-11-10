@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { discover, type DiscoverSort } from '@/server/domain/social';
+import { discoverCached, type DiscoverSort } from '@/server/domain/social';
 import { currentUserOrNull } from '@/server/domain/session';
 import { publicAssetUrl } from '@/studio/assets';
 
@@ -26,7 +26,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   const query = await searchParams;
   const sort: DiscoverSort = TABS.some((t) => t.id === query.sort) ? (query.sort as DiscoverSort) : 'new';
   const viewer = await currentUserOrNull();
-  const result = await discover({ sort, viewerId: viewer?.id ?? null });
+  const result = await discoverCached({ sort, viewerId: viewer?.id ?? null });
 
   return (
     <main className="mx-auto flex max-w-[1080px] flex-col gap-[var(--nexus-space-6)] px-6 py-10" data-discover-root>

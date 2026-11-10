@@ -11762,3 +11762,19 @@ decision；护栏坏了不该把门焊死」。但这条承诺此前只有 `Rate
 - **验证（不粉饰）**：项目日常门 `npm run typecheck`（turbo）**14/14**；网关全套 Java `mvn -o -B test` **116/116 BUILD SUCCESS、无 fork 告警**（本轮零 Java 改动，做全仓回归确认）；前端判据 116/116。**边界**：`typecheck:main` 聚合命令有 3 条 `docs/evidence/**/*.mjs` 的 `TS8016`（`.mjs` 里写 `as` 断言，`checkJs:false` 挡不住语法错），经 `git show HEAD` 核实**既存、非本轮引入**，日常门不跑它，如实记为仍欠、不擅自扩大改动。整仓 eslint 仍是本机内存超时边界（本轮零 lint 报错），如实记。
 - **两次真信号，都没放过**：①缓存判据首跑 `expected 5 to be 3`——诊断证明是**夹具**给三列都喂了 routes 形状、services/health 归一化失败故不缓存（正是"读不出≠有"的诚实行为），非生产缺陷，修夹具后全绿；②CSS Module 迁移带出 5 个 `string|undefined` 与 `className={gw-x}` 裸标识符，逐个修净、typecheck 归零。
 - **仍欠**：`discover()` 按 viewer 分键缓存（数据隔离敏感，另立片 + 真库集成测）；实例粒度 breaker/bulkhead 聚合；连接层黑洞独立看门狗（SC-36）；CI `topology` job 经真实 push；3 条既存 `.mjs` TS8016。未 push。
+
+## §SC 第四十一片：发现页热读按 viewer 分键缓存——隐私即时失效，和那个"淘汰就复活旧隐私"的陷阱（SC-41 / ADR-0113，2026-11-11）
+
+SC-40 探针留下一条独立片：`discover()` 发现页热读**无缓存**且依赖 `viewerId`（屏蔽名单 + 关注排序），全局缓存会串味。本片正面接上，把用户点名的 **缓存 / 数据库性能 / 数据结构与算法 / 前后端协同** 各落在真实坏法上——难点从不是"加个 Map"，而是缓存一个**随 viewer 私有关系而变**的结果，且写后必须即时失效（拉黑在 TTL 窗口内不生效 = 隐私事故）。
+
+- **空位复核（只读）**：`discover` 两个调用点（RSC `/discover/page.tsx`、route `/api/discover`）在 `force-dynamic` 下每次导航重跑，无任何缓存/请求级去重；私有面收敛到三处——`hiddenAuthorIds` 过滤 + `hiddenAuthors` 计数、`following` 的关注集合、匿名早退。卡片**不含** `likedByMe`/已读等 per-viewer 字段，故键只需 `(viewerId, sort, limit)`。真库在线（`localhost:55433` LISTENING），既有串味模板 `blocks.integration.test.ts:246` 可直接对照。git 单 main、无 worktree/stash/游离分支、`--no-merged` 空——**无可并内容**。
+- **生产（薄包装 + 单向无环，未改 `discover` 函数体 / DB 查询 / 索引 / 依赖）**：
+  - 新增 `server/domain/discover-cache.ts`：键 = `discover:v1|<generation>|<JSON([viewerId??null,sort,limit??24])>`（JSON 编码防分隔符碰撞）；复用 ADR-0112 的 `BoundedCache`（有界 TTL+LRU+singleflight），`maxEntries` 默认 2048、`maxViewers` 默认 512、TTL 默认 15s（三个 `NEXUS_DISCOVER_CACHE_*` env 可调）；单例挂 `globalThis`（热重载共享）；**只 `import type` social**、loader 由闭包注入 → 依赖单向无环。singleflight 按完整键合并：不同 viewer 永不合并（否则即串味），同 viewer 并发只打一次库（真降载）。
+  - `social.ts` 加一句 `discoverCached(input) = loadDiscoverCached(input, () => discover(input))`；两个调用点切到它；`discover` 仍是隐私/排序/算法唯一真值源，缓存层不复制任何判定。
+  - **三条真写路径即时失效（O(受影响 viewer 数)，无前缀扫描）**：`setBlock(mute)` → actor；`setBlock(block)` → actor + target（还删了双向关注边）；`clearBlock` → actor；`toggleFollow` → actor。隐私新鲜度靠主动失效，**不靠 TTL**；TTL 只管公有内容（新发布/计数/trending 榜单）别太陈旧。
+- **本片方法论核心——单调水位线 `globalGen`（最隐蔽的陷阱，写进 ADR-0113）**：generation 若按「每 viewer 从 0 起的小计数器 + LRU 淘汰」实现，viewer 被淘汰后重新初始化为 0 → **命中它拉黑前缓存的那份 key，隐私过滤被淘汰悄悄撤销**。根治：进程级 `globalGen` 只增不减、跨淘汰/跨 store 重建都不归零，任何 viewer 重新分配到的 generation 严格大于历史值，旧键永久拼不出来，最坏多查一次库。判据用 `maxViewers=2` 强制淘汰 A，钉死"绝不复活 C_before"。
+- **判据（不粉饰）**：纯单测 `discover-cache.test.ts` **16/16**（键三维/防碰撞/匿名共享/singleflight 同键合并且跨 viewer 不合并/写后即时失效不靠 TTL/invalidate 不误伤他人/淘汰串味陷阱/水位线只增不减/受控时钟验 TTL/双有界封顶）；真库集成测 `discover-cache.integration.test.ts` **6/6**（打真 Postgres、禁 mock：两 viewer 经 `discoverCached` 仍互不串味且命中后再读仍过滤；`setBlock`/`clearBlock`/`toggleFollow` 真写路径即时失效；`stats.loads` 增量证明命中确实不打库、invalidate 确实重打）。回归：既有 `blocks.integration.test.ts` + 网关三判据 **55/55**；`npm run typecheck` **14/14**。
+- **首跑真信号**：真库"降载"用例首版**超时 90s**——夹具错在 `discoverCached` 外又套 `loadDiscoverCached`，同键嵌套 singleflight 自等待死锁；**是测试夹具 bug 不是生产路径**（生产 `discoverCached` 是唯一入口、loader 是原 `discover`，不重入）。改为直走 `discoverCached` + `stats.loads` 增量，6/6、8s，判据留注释防重踩。
+- **诚实边界**：进程内缓存，多实例部署各实例不共享——A 实例失效了，B 实例仍可能持有该 viewer 最多 15s 旧视图；跨实例即时一致需 Redis pub/sub 广播失效或共享 generation 存储，属更大改动，**本片不做、不假报**。单机/单实例下隐私即时成立（真库判据已证）。`publishProject` 后新作品最多 15s 才进他人发现页（未接发布失效钩子，要"发布即见"另立片）。
+- **流程细节查证（纠正探查）**：CI "ADR index integrity" 门（`.github/workflows/ci.yml:50-57`）只扫 `docs/decisions/[0-9]*.md`（55 个、全已索引、`GATE_EXIT=0`），**不扫 `docs/adr/`**——故 0101–0112 从没登记 README 仍 CI 绿。本 ADR 放 `docs/adr/0113`，按惯例不动 `docs/decisions/README.md`（详见 ADR-0113 专段）。
+- **仍欠**：跨实例共享失效；publish 即时进发现页；发现页缓存命中率接进 admin 可观测；实例粒度 breaker/bulkhead 聚合；连接层黑洞独立看门狗（SC-36）；CI `topology` job 经真实 push（需授权 push）；3 条既存 `.mjs` TS8016。未 push（main 领先 origin/main 60，本片提交前）。

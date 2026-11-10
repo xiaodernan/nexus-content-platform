@@ -13,6 +13,7 @@ import { copyProjectAssets } from './assets';
 import { readSnapshot } from './snapshots';
 import { scanTextForRedlines } from './moderation';
 import { canInteract, hiddenAuthorIds } from './blocks';
+import { invalidateDiscoverFor, loadDiscoverCached, type DiscoverCacheInput } from './discover-cache';
 import {
   TRENDING_CANDIDATE_CAP,
   TRENDING_WINDOW_DAYS,
@@ -309,6 +310,8 @@ export async function toggleFollow(actorId: string, targetUserId: string): Promi
     // 终局是"已关注"，与库里一致，不把 23505 抛成 500。
     await db.insert(follows).values({ followerId: actorId, followeeId: targetUserId }).onConflictDoNothing();
   }
+  // §SC-41：关注关系变了，这个人的 following 视图及其派生发现列表必须即时重算，不能等 TTL。
+  invalidateDiscoverFor(actorId);
   const [count] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(follows)
@@ -548,6 +551,20 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
     hiddenAuthors: hidden.length,
     method,
   };
+}
+
+/**
+ * §SC-41：发现页热读的对外入口 = 原 `discover` 外包一层按 viewer 分键的有界缓存。
+ *
+ * 薄到只有一句，是有意的：`discover` 是**隐私与排序的唯一真值源**，缓存层不许复制它的任何
+ * 判定（屏蔽/关注/可见性/算法都留在里面），否则又多一份会漂移的影子逻辑。缓存层只负责
+ * "这一份 (viewer, sort, limit) 的结果这一刻能不能复用"，加载器由本闭包注入，依赖单向无环。
+ *
+ * 三条写路径（`blocks.setBlock` / `blocks.clearBlock` / 本文件 `toggleFollow`）成功后会调
+ * `invalidateDiscoverFor`，把受影响 viewer 的 generation 淘汰——隐私即时生效，不依赖 TTL。
+ */
+export function discoverCached(input: DiscoverCacheInput): Promise<DiscoverResult> {
+  return loadDiscoverCached(input, () => discover(input));
 }
 
 /**

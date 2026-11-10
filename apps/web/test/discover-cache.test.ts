@@ -1,0 +1,255 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  discoverCacheKeyForTest,
+  discoverCacheStats,
+  invalidateDiscoverFor,
+  loadDiscoverCached,
+  resetDiscoverCacheForTest,
+  type DiscoverCacheInput,
+  type DiscoverLoader,
+} from '../src/server/domain/discover-cache';
+import type { DiscoverResult, DiscoverSort } from '../src/server/domain/social';
+
+/**
+ * §SC-41 发现页缓存的验电夹具：全部注入 fake loader / 受控时钟 / 极小容量，不连库、不 sleep。
+ *
+ * 判据盯的是三个真实坏法，而不是"缓存能不能存值"：
+ * 1. 跨 viewer 串味（键含 viewer、singleflight 不跨 viewer 合并）；
+ * 2. 写后即时失效（invalidate 不靠 TTL）；
+ * 3. **generation 被 LRU 淘汰后回退 → 旧隐私缓存复活**（最隐蔽，专设一组）。
+ */
+
+const SORTS: DiscoverSort[] = ['new', 'popular', 'trending', 'following'];
+
+function card(path: string) {
+  return {
+    publicationId: path,
+    path,
+    name: path,
+    owner: 'o',
+    handle: null,
+    publishedAt: '2026-01-01T00:00:00.000Z',
+    views: 0,
+    likes: 0,
+    comments: 0,
+    remixes: 0,
+    kind: 'website',
+    coverAssetId: null,
+    ownerHandle: null,
+  };
+}
+
+function resultFor(path: string): DiscoverResult {
+  return { sort: 'new', cards: [card(path)], unavailable: [], hiddenAuthors: 0, method: null };
+}
+
+/** 计数 loader：每次真正被调用就 +1，返回一份带代次标记的结果，便于认出"复活的是哪一代"。 */
+function countingLoader(): { loader: DiscoverLoader; calls: () => number } {
+  let calls = 0;
+  return {
+    loader: async () => {
+      calls += 1;
+      return resultFor(`gen-${calls}`);
+    },
+    calls: () => calls,
+  };
+}
+
+beforeEach(() => {
+  // 每个用例独立 store；传极小容量/固定时钟，TTL 判据另行覆盖。
+  resetDiscoverCacheForTest({ maxEntries: 64, maxViewers: 8, ttlMs: 10_000, now: () => 1_000 });
+});
+
+describe('键构造（隐私第一道闸）', () => {
+  it('键含 viewerId / sort / limit，任一维不同就是不同键', () => {
+    const a = discoverCacheKeyForTest({ sort: 'new', viewerId: 'viewer-A', limit: 24 });
+    const b = discoverCacheKeyForTest({ sort: 'new', viewerId: 'viewer-B', limit: 24 });
+    const c = discoverCacheKeyForTest({ sort: 'popular', viewerId: 'viewer-A', limit: 24 });
+    const d = discoverCacheKeyForTest({ sort: 'new', viewerId: 'viewer-A', limit: 12 });
+    expect(new Set([a, b, c, d]).size).toBe(4);
+    // 同一个 (viewer, sort, limit) 反复取，键稳定（generation 未变时）
+    expect(discoverCacheKeyForTest({ sort: 'new', viewerId: 'viewer-A', limit: 24 })).toBe(a);
+  });
+
+  it('viewerId 含分隔符也不会与别的组合碰撞（JSON 编码，不是字符串拼接）', () => {
+    const tricky = discoverCacheKeyForTest({ sort: 'new', viewerId: 'a|b', limit: 24 });
+    const normal = discoverCacheKeyForTest({ sort: 'new', viewerId: 'a', limit: 24 });
+    expect(tricky).not.toBe(normal);
+  });
+
+  it('匿名与登录是不同键；两个匿名共享一份（匿名没有私有视图）', () => {
+    const anon = discoverCacheKeyForTest({ sort: 'new', viewerId: null, limit: 24 });
+    const user = discoverCacheKeyForTest({ sort: 'new', viewerId: 'viewer-A', limit: 24 });
+    expect(anon).not.toBe(user);
+    expect(discoverCacheKeyForTest({ sort: 'new', viewerId: undefined, limit: 24 })).toBe(anon);
+  });
+
+  it('四种 sort 都进键，不含 trending 遗漏', () => {
+    const keys = SORTS.map((sort) => discoverCacheKeyForTest({ sort, viewerId: 'v', limit: 24 }));
+    expect(new Set(keys).size).toBe(4);
+  });
+});
+
+describe('取或加载（降载 + 隔离）', () => {
+  it('同 viewer 连读两次只加载一次（命中缓存，不重复打库）', async () => {
+    const { loader, calls } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'new', viewerId: 'viewer-A', limit: 24 };
+    const first = await loadDiscoverCached(input, loader);
+    const second = await loadDiscoverCached(input, loader);
+    expect(calls()).toBe(1);
+    expect(second.cards[0]?.path).toBe(first.cards[0]?.path);
+    expect(discoverCacheStats().hits).toBeGreaterThanOrEqual(1);
+  });
+
+  it('不同 viewer 各加载一次，结果互不串味', async () => {
+    const { loader, calls } = countingLoader();
+    const a = await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, loader);
+    const b = await loadDiscoverCached({ sort: 'new', viewerId: 'B' }, loader);
+    expect(calls()).toBe(2);
+    // 各自拿到自己那一次加载的代次，而不是同一份
+    expect(a.cards[0]?.path).not.toBe(b.cards[0]?.path);
+  });
+
+  it('singleflight：同 viewer 并发只加载一次；不同 viewer 并发各自加载，不合并', async () => {
+    const same = countingLoader();
+    await Promise.all([
+      loadDiscoverCached({ sort: 'trending', viewerId: 'S' }, same.loader),
+      loadDiscoverCached({ sort: 'trending', viewerId: 'S' }, same.loader),
+      loadDiscoverCached({ sort: 'trending', viewerId: 'S' }, same.loader),
+    ]);
+    expect(same.calls()).toBe(1); // 同键合并
+
+    const cross = countingLoader();
+    await Promise.all([
+      loadDiscoverCached({ sort: 'trending', viewerId: 'X' }, cross.loader),
+      loadDiscoverCached({ sort: 'trending', viewerId: 'Y' }, cross.loader),
+    ]);
+    expect(cross.calls()).toBe(2); // 跨 viewer 绝不合并（否则就是串味）
+  });
+
+  it('匿名并发共享一份：N 个匿名只加载一次', async () => {
+    const { loader, calls } = countingLoader();
+    await Promise.all(
+      Array.from({ length: 5 }, () => loadDiscoverCached({ sort: 'popular', viewerId: null }, loader)),
+    );
+    expect(calls()).toBe(1);
+  });
+});
+
+describe('写后即时失效（隐私，不靠 TTL）', () => {
+  it('invalidate 后同 viewer 立刻重载，不受 TTL 保护', async () => {
+    let ttlNow = 1_000;
+    resetDiscoverCacheForTest({ maxEntries: 64, maxViewers: 8, ttlMs: 600_000, now: () => ttlNow });
+    const { loader, calls } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'new', viewerId: 'A', limit: 24 };
+    const before = await loadDiscoverCached(input, loader);
+    expect(calls()).toBe(1);
+
+    invalidateDiscoverFor('A'); // 拉黑发生
+    ttlNow += 1; // 时钟几乎没走，远未到 TTL
+    const after = await loadDiscoverCached(input, loader);
+    expect(calls()).toBe(2); // 必须重载，而不是吃 TTL 内的旧隐私视图
+    expect(after.cards[0]?.path).not.toBe(before.cards[0]?.path);
+  });
+
+  it('invalidate 只作用于指定 viewer，不牵连别人（否则是可用性事故）', async () => {
+    const { loader, calls } = countingLoader();
+    await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, loader);
+    await loadDiscoverCached({ sort: 'new', viewerId: 'B' }, loader);
+    expect(calls()).toBe(2);
+
+    invalidateDiscoverFor('A');
+    await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, loader); // A 重载
+    await loadDiscoverCached({ sort: 'new', viewerId: 'B' }, loader); // B 仍命中
+    expect(calls()).toBe(3); // 恰好 +1，B 没被误伤
+  });
+
+  it('invalidate(匿名) 是 no-op；登录 viewer 拉黑不影响匿名共享视图', async () => {
+    const { loader, calls } = countingLoader();
+    await loadDiscoverCached({ sort: 'new', viewerId: null }, loader);
+    await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, loader);
+    invalidateDiscoverFor('A', null, undefined);
+    await loadDiscoverCached({ sort: 'new', viewerId: null }, loader); // 匿名命中
+    expect(calls()).toBe(2);
+  });
+});
+
+describe('单调水位线（本片最隐蔽的一条）', () => {
+  it('invalidate 让该 viewer 的 generation 严格增大，旧键永不复现', () => {
+    const before = discoverCacheKeyForTest({ sort: 'new', viewerId: 'A' });
+    invalidateDiscoverFor('A');
+    const after = discoverCacheKeyForTest({ sort: 'new', viewerId: 'A' });
+    expect(after).not.toBe(before);
+    // 再次取键稳定（新 generation 已生效）
+    expect(discoverCacheKeyForTest({ sort: 'new', viewerId: 'A' })).toBe(after);
+    expect(discoverCacheStats().globalGen).toBeGreaterThanOrEqual(2);
+  });
+
+  it('generation 表被 LRU 淘汰后回退会复活旧隐私缓存——水位线必须挡住这一条', async () => {
+    // maxViewers=2：放第三个 viewer 就淘汰最久未用的那个。
+    resetDiscoverCacheForTest({ maxEntries: 64, maxViewers: 2, ttlMs: 600_000, now: () => 1_000 });
+    const { loader, calls } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'following', viewerId: 'A', limit: 24 };
+
+    // 第 1 代：A 拉黑前的视图（gen-1）
+    const gen1 = await loadDiscoverCached(input, loader);
+    expect(gen1.cards[0]?.path).toBe('gen-1');
+
+    // A 拉黑 → generation 淘汰 → 第 2 代：拉黑后的视图（gen-2）
+    invalidateDiscoverFor('A');
+    const gen2 = await loadDiscoverCached(input, loader);
+    expect(gen2.cards[0]?.path).toBe('gen-2');
+
+    // 塞两个别的 viewer，把 A 从 generation 表里挤出去（A 的 gen 条目被淘汰）
+    await loadDiscoverCached({ sort: 'new', viewerId: 'B' }, loader);
+    await loadDiscoverCached({ sort: 'new', viewerId: 'C' }, loader);
+    expect(discoverCacheStats().viewerGenerations).toBeLessThanOrEqual(2);
+
+    // A 再来：若 generation 天真地从 0 重新分配，就会命中 gen-1 那份**拉黑前**的隐私缓存。
+    // 单调水位线保证重新分配到的是比历史都大的新 generation → 必重新加载，拿到当前视图。
+    const gen3 = await loadDiscoverCached(input, loader);
+    expect(gen3.cards[0]?.path).not.toBe('gen-1'); // 绝不复活拉黑前那份
+    expect(calls()).toBeGreaterThanOrEqual(3);
+    expect(discoverCacheStats().globalGen).toBeGreaterThanOrEqual(3);
+  });
+
+  it('全局水位线只增不减：连 reset 也不把它归零（否则跨热重载串味）', () => {
+    const g1 = discoverCacheStats().globalGen;
+    invalidateDiscoverFor('A', 'B', 'C');
+    discoverCacheKeyForTest({ sort: 'new', viewerId: 'D' }); // 分配一次
+    const g2 = discoverCacheStats().globalGen;
+    expect(g2).toBeGreaterThan(g1);
+    resetDiscoverCacheForTest({ maxEntries: 64, maxViewers: 8, ttlMs: 10_000, now: () => 1_000 });
+    expect(discoverCacheStats().globalGen).toBe(g2); // 重置不清零
+  });
+});
+
+describe('有界性（数据结构 · 防内存被外部可控键撑爆）', () => {
+  it('TTL 到期后重载，且受控时钟让"过期"可钉不靠 sleep', async () => {
+    let clock = 0;
+    resetDiscoverCacheForTest({ maxEntries: 64, maxViewers: 8, ttlMs: 100, now: () => clock });
+    const { loader, calls } = countingLoader();
+    await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, loader);
+    clock = 50;
+    await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, loader); // 未过期
+    expect(calls()).toBe(1);
+    clock = 200;
+    await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, loader); // 过期重载
+    expect(calls()).toBe(2);
+  });
+
+  it('缓存条目数被 maxEntries 封顶，generation 表被 maxViewers 封顶', async () => {
+    resetDiscoverCacheForTest({ maxEntries: 5, maxViewers: 4, ttlMs: 600_000, now: () => 1_000 });
+    const { loader } = countingLoader();
+    // 4 个 viewer × 4 种 sort = 16 个键，远超 maxEntries=5
+    await Promise.all(
+      Array.from({ length: 4 }, (_, i) =>
+        SORTS.map((sort) => loadDiscoverCached({ sort, viewerId: `v${i}` }, loader)),
+      ).flat(),
+    );
+    const stats = discoverCacheStats();
+    expect(stats.size).toBeLessThanOrEqual(5);
+    expect(stats.viewerGenerations).toBeLessThanOrEqual(4);
+    expect(stats.evictions).toBeGreaterThan(0);
+  });
+});
