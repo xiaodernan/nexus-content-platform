@@ -149,6 +149,22 @@ class DomainFailureTest {
     }
 
     @Test
+    void theTimeLimiterTimeoutIsTheSameFactAsATransportTimeout() {
+        // Measured 2026-11-10 (the spring-cloud topology proof §12): with the domain service's container
+        // killed, the transport did not refuse fast enough for Feign — resilience4j's TimeLimiter (default
+        // 1 s) cuts the call instead, and what arrives one or more wrappers up the chain is a
+        // java.util.concurrent.TimeoutException. A classifier that only knew the transport's timeouts
+        // called that fact "unknown" — and §12 printed `failure: unknown` for the most common dead-downstream
+        // failure on this machine. Same fact, different door, same kind.
+        DomainFailure failure = DomainFailure.classify(
+                new java.util.concurrent.ExecutionException(
+                        new java.util.concurrent.TimeoutException(
+                                "TimeoutException: Timeout waiting for the domain service to answer")));
+
+        assertThat(failure.kind()).isEqualTo(DomainFailure.TIMEOUT);
+    }
+
+    @Test
     void aHostThatCannotBeResolvedIsItsOwnKind() {
         DomainFailure failure = DomainFailure.classify(new RetryableException(
                 -1,

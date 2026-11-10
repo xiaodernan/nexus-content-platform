@@ -70,6 +70,12 @@
       <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
     </dependency>
 
+    <!-- The config door: same shared four-service surface as everywhere else. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-config</artifactId>
+    </dependency>
+
     <!-- Health + metrics, so the gateway and the proof can ask whether the registry is ANSWERING
          rather than merely running. A registry that cannot be asked cannot be trusted. -->
     <dependency>

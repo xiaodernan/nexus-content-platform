@@ -148,6 +148,15 @@ public record DomainFailure(String kind, String reason) {
                 return new DomainFailure(TIMEOUT,
                         "the domain service could not be reached: the call did not finish in time");
             }
+            // The TimeLimiter's own answer — measured (2026-11-10, the spring-cloud topology proof §12):
+            // with the domain service's container killed, the connection does not refuse fast enough for
+            // the transport, and resilience4j's TimeLimiter (default 1 s) cuts the call instead. What arrives
+            // is a java.util.concurrent.TimeoutException, one layer ABOVE the transport the rules above name —
+            // the same fact ("the downstream did not answer in time") through a different door.
+            if (current instanceof java.util.concurrent.TimeoutException) {
+                return new DomainFailure(TIMEOUT,
+                        "the domain service could not be reached: the call did not finish in time");
+            }
         }
         Throwable deepest = deepestCause(failure);
         return new DomainFailure(UNKNOWN,

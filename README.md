@@ -54,7 +54,9 @@ packages/schemas          zod contracts (main line)
 packages/world-model       world/level model (main line)
 packages/game-model        games model + tuning (main line)
 packages/video-model       storyboard/video model (main line)
-services/nexus-api         studio line backend (Spring Boot, Java 25)
+services/          five Java deployables (Spring Boot, Java 25): nexus-api (studio line backend),
+                    java-domain-service (write path), java-gateway (Spring Cloud edge),
+                    java-registry (Eureka discovery), java-config-server (config door, ADR 0057)
 agents/             studio line agent runtime (TS, hermetic DEMO-MODE planner, ADR 0016)
 tools/              shared tooling (CI runner, hooks, render)
 docs/               the living documentation — consolidated (see below)

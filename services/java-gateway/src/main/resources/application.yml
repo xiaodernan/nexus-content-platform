@@ -12,6 +12,10 @@ server:
 spring:
   application:
     name: nexus-gateway
+  # The config door, optional (see nexus-api): a deployment without
+  # the config server boots with this file as it stands.
+  config:
+    import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:8888}"
   cloud:
     gateway:
       server:

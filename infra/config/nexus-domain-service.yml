@@ -1,0 +1,5 @@
+# keys for `services/java-domain-service` only.
+
+logging:
+  level:
+    dev.nexus.domain: info

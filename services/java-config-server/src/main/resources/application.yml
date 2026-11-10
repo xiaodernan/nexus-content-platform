@@ -1,0 +1,35 @@
+# NEXUS — the config server (ADR 0057).
+#
+# What it serves: the YAMLs in `infra/config/` (or whatever NEXUS_CONFIG_SEARCH points at).
+# Each service asks for `/{spring.application.name}/{profile}` and gets the keys for THAT service,
+# plus whatever "application.yml" has to say to every service.
+#
+# Every service importing this door uses `optional:configserver:http://…:8888` — a deployment
+# without a config door still boots (local application.yml wins whatever this lacks). A production
+# deployment should never omit it: the operator's knobs live here, not in a rebuilt jar.
+
+spring:
+  application:
+    name: nexus-config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: ${NEXUS_CONFIG_SEARCH:file:../../infra/config/}
+
+server:
+  port: ${NEXUS_CONFIG_SERVER_PORT:8888}
+
+# The operator's door: health answers "is the config door up?" and nothing more.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    root: warn
+    dev.nexus.configserver: info

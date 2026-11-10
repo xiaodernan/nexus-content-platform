@@ -84,6 +84,13 @@
       <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
     </dependency>
 
+    <!-- The config door: where operator knobs live. Optional (see application.yml): this service
+         boots without the config server, it just boots with its local file. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-config</artifactId>
+    </dependency>
+
     <!-- The operator's door: health, and the METRICS that say what the breakers are doing.
          Without the metrics there is no way to tell WHICH component refused a call — the 503
          says a service was unreachable, and the breaker's own state (OPEN, HALF_OPEN, CLOSED) is

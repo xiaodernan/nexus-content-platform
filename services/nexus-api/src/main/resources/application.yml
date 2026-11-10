@@ -6,6 +6,10 @@
 spring:
   application:
     name: nexus-api
+  # The config door, optional: a deployment without the config server boots with this file as it
+  # stands; with one, the shared surface (health/info/metrics) and the api-specific keys live there.
+  config:
+    import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:8888}"
   datasource:
     url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus}
     username: ${NEXUS_DB_USER:nexus}

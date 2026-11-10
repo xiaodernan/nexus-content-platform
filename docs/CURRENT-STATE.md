@@ -196,3 +196,37 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
 - CI multi-lane status: `main-line` CI has been green on every commit this session; `master`'s
   Studio CI keeps two known runner-bound red rows (`liveness`, `health`), the others are regenerated
   and green. `main-line` master briefly red on a GitHub runner Docker-start flake — rerun launched.
+
+
+## 2026-11-10 addendum (cont. 5): the Spring Cloud config door is in, and the proof's §13 measures the gauge that actually moves
+
+- The Java topology gains a SIXTH deployable, `services/java-config-server` (Spring Cloud Config,
+  native profile) serving `infra/config/`: one shared `application.yml` (health/info/metrics exposure,
+  root log level `warn`, `nexus.config-server-served=true`) and one `{spring.application.name}.yml`
+  per Java service. Every one of the four services imports the door OPTIONALLY
+  (`optional:configserver:${NEXUS_CONFIG_SERVER_URL:...}`), and all four suites stay green with no
+  config door listening (api 932 / gateway 13 / domain 39 / registry 2). ADR 0057 records the decision,
+  including the measured fact that the 2025.0.3 BOM manages `spring-cloud-starter-config` and
+  `spring-cloud-config-server` (NOT the `-client`/`-server` starter names), and the measured file-name
+  contract (`{spring.application.name}.yml`, not the Maven module name — the native profile serves it
+  by application name, and a first draft failed its own test for exactly that reason).
+- `docs/evidence/java/spring-cloud-proof.mjs` §13 now reads the `resilience4j.circuitbreaker.state`
+  series with the `state=open` tag. The earlier assertion (state must differ from the §9 reading)
+  could never pass: the tagged publisher registers one gauge PER state (closed/open/half_open), exactly
+  one of which is 1 at any instant, so the untagged read is a constant 1 and the breaker opening is
+  invisible to it — a red that named itself wrong would have stayed red forever.
+- `docs/evidence/agents/README.md` recounted by the §3 exec-host rule (17→18 for
+  `exec-host/execTestRunner.test.ts`, exec-host rows 358→359 over 13 files) — the v651c case landed in
+  9ab2371 and the prose had not been recounted in the same commit, which the recount door caught.
+- `DomainFailure` learned resilience4j's TimeLimiter answer: with the domain service's container
+  killed, the transport does not refuse fast enough, the TimeLimiter cuts the call, and what arrives
+  is a `java.util.concurrent.TimeoutException` — classified as `unknown` until now. It is the same
+  fact as a transport timeout, so it is now the same `timeout` kind; §12 reports it honestly and the
+  api-side suite is 932 green (DomainFailureTest 11 → 12).
+- Full four-service topology proof re-run end-to-end on this machine: **GREEN, all 16 sections**
+  (throwaway databases, build copies, processes all cleaned up in §16; §13 printed
+  "it refused 1 calls, its OPEN-state gauge read 1").
+- CI posture unchanged: the spring-cloud proof row is the ci-wiring-excluded one (it needs
+  PostgreSQL + a warm Maven) — nothing in ci.yml moved. The working tree's two known runner-bound
+  red rows on the Studio lane (`liveness`, `health`) remain red and are still called out honestly
+  rather than worked around.
