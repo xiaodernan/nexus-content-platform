@@ -213,6 +213,17 @@ public class GatewayConfig {
         return new AuthFilter(enabled, secret);
     }
 
+    /**
+     * A correlation id on every request, so a call the Studio makes can be followed across the door and the
+     * backends (SC-14). The caller's own {@code X-Request-Id} is honoured; a missing one is generated. The id
+     * is stamped on the request the backend receives and echoed on the response. Runs AFTER auth and the rate
+     * limiter and before routing — a refused request never needs a correlation id.
+     */
+    @Bean
+    CorrelationFilter correlationFilter() {
+        return new CorrelationFilter();
+    }
+
     private static ServerWebExchange withClientAddress(ServerWebExchange exchange) {
         var request = exchange.getRequest();
         // The authority of the URI the CLIENT called, not the Host header: a proxy in front of this gateway
