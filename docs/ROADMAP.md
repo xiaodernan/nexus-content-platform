@@ -11853,3 +11853,12 @@ ADR-0116 为"新作品即时进发现页"给键加了独立 `globalEpoch` 段，
 - **验证 / git**：`npx tsc -p apps/web/tsconfig.json --noEmit` **EXIT=0**；**全仓 vitest 404 files passed | 1 skipped（405 total）/ 5828 tests passed | 1 skipped（5829 total）、EXIT=0**（对比 SC-45 基线 404/5812+1 skipped，净增 16 tests；540.60s）。未改 `discover` 函数体/DB 查询/索引/依赖/两个入口/领域类型。开工复核：单 main、单 worktree、无 stash/游离分支、`--no-merged` 空、**无可并内容**；未 push。
 - **仍欠**：共享权威 generation/epoch 存储；实例粒度 breaker/bulkhead 聚合；Redis/Lettuce connect 阶段黑洞独立看门狗（SC-36）；CI `topology` job 经真实 push；3 条既存 `.mjs` TS8016；SC-45 按需减载预案待实测。详见 ADR-0118 / §SC 第四十六片。
 
+### §SC-47 探查起点（Pending · 本轮只探查未实现，先把失败模式钉死防重踩）
+
+SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时触发。若上游**永不回答**（慢查询 / 连接池排队 / 锁等待），`discover()` 既不 resolve 也不 reject，catch 永远不进——stale 旧值明明在表里却端不出来，首屏焊死。这正是 SC-36 在网关测过的"连接黑洞"，但发现页这条本地 Postgres 链从没查过。本轮探查结论：
+
+- **事实（读码确证）**：`server/db/client.ts` 只设 `postgres(URL,{max: NEXUS_DB_POOL??5})`，**无 `connect_timeout` / `idle_timeout` / statement_timeout / query deadline**；全仓超时原语（`AbortSignal.timeout`）只用在 `fetch` HTTP 出站，DB 查询链零 deadline。`discover()` 主查询含 3 个 `SELECT count(*)` 子查询 + 三表 join，慢库上确实可能长尾。连接池 `max=5` 是 SC-45 依赖的物理 bulkhead，但它只让超出者**在池里排队**，不设等待上界。
+- **关键失败模式（为什么不直接用 `Promise.race` 软 deadline）**：`BoundedCache.getOrLoad` 的 singleflight 把 hung 的 loader promise 存进 `inflight`，只在 `fromLoad` 的 `finally` 清除。若只在 `loadFromStore` 外层 `Promise.race([getOrLoad, timeout])`：① race 超时返回 stale 后，**底层 hung promise 仍挂在 `inflight`**，后续同键请求会 `await` 它、一起 hang（超时形同虚设）；② 每个超时请求各起一个 race，底层 hung 查询不断堆积、占满 5 个连接，把单键慢变成全站发现页雪崩。**在 race 层加超时会让情况更糟**。
+- **正确方向（两条，都要"先观测 / 谨慎"）**：① **先做 loader 耗时观测**（复用 §SC-45 失效波那套受控时钟 `s.now()` 与有界环形缓冲，只记不拦：`maxLoadMs` / `slowLoads` 超阈值计数进 stats + 面板），用真实数字回答"发现页加载到底有没有秒级长尾"——若最慢 < 100ms，deadline 就是伪需求、永不需要做；这是与 SC-45/46 一致的**观测优先**纪律。② 若实测确有长尾、确需 deadline，**不能在 race 层做**：要么给 `BoundedCache` 加可放弃 inflight 的 `abandon(key)` 原语（超时时摘掉 inflight、让底层跑完自清、后续请求重新发起），要么用 Postgres `statement_timeout`（但会波及全站查询、属高危，须单独评估）。
+- **本轮决定**：**不仓促加 DB 超时**。先在下一片做"发现页加载耗时观测"（纯观测、零生产行为变化、不碰共享 DB 客户端 / `BoundedCache`），拿到证据再决定要不要 deadline。这是克制不是欠账——无证据对共享数据库层加超时，正是 SC-45 拒绝"无实测尖峰就加并发闸门"的同一条理由。
+
