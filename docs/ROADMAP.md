@@ -11275,3 +11275,16 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
 - 并轨：`git branch --no-merged main` 为空、worktree 仅 main——两条线早已合并（2026-11-09），本片无可并内容。
 - 未推送（无明确指令）。:8090 的占用进程（PID 39424，`com.nexus.NexusApplication`，classpath 指向已不存在的
   `services/platform/target/classes`，疑为已清理 checkout 的残留）未被触碰；一切验证改走 :8091。
+
+## §SC 第十八片：boot 预热——把冷启动对齐到服务端，而不是只测绕开它（2026-11-10）
+
+- 触发：§SC-23 抓到的真 503（gateway 5s 上限 vs domain 冷启动）。上一片用 smoke 预热绕开了，
+  但那只是「测试知道绕开」，真调用方的第一下依然会撞。
+- 决定（ADR-0099）：`WarmupRunner`（`ApplicationRunner`）在 context 起来时 `users.count()`——
+  Hibernate metamodel/Hikari 首连的成本移到 boot，对所有调用方生效；失败只 WARN 不抛，
+  boot 不失败，DB down 的话交给健康端点和部署层。**不放宽 gateway 5s**（那是门的设计语义）。
+- 读数：`mvn -B test` = **103/103** BUILD SUCCESS；domain-service 日志实打实出现
+  `WarmupRunner : warmup: shared schema reachable, users=4193`；
+  `NEXUS_GATEWAY_PORT=8091 npm run verify:topology` = **PASS** 全程 <2 分钟。
+- 未验证：极端慢 DB + 空表下 boot 预热是否足够——smoke 预热段保留作为第二道防线；
+  若把 "DB 慢" 做成 CI SLO，这条要重新量。

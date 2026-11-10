@@ -7,7 +7,7 @@
 `docs/ROADMAP.md` 末尾与 `docs/evidence/sc23-permission-live-proof.md`：
 
 - Permission HTTP 面（`GET /api/v1/permission/check`）已上线并经 `lb://nexus-domain-service` 活体验证；
-- **第一次调用真 503**（gateway 5s 上限 vs domain 冷启动）——设计行为，不是 bug；smoke 现已预热再断言，欠账关闭；
+- **第一次调用真 503**（gateway 5s 上限 vs domain 冷启动）——设计行为，不是 bug；首先由 smoke 预热绕开（§SC-17），随后由 boot 预热对齐到服务端（§SC-18 / ADR-0099，`WarmupRunner`，users=4193）彻底关闭；
 - `npm run verify:topology` 现可覆盖三个端口（`NEXUS_*_PORT`，DB 侧同理）、自动重打包 stale jar、
   断言 permission 面与 `/platform/services`（discovery 的消费方读数）；
 - 主线 CI 新增 `topology` job（`.github/workflows/main-line.yml`）：打包三服务 + migrate + `verify:topology`，
