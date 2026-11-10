@@ -11613,3 +11613,39 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
   eslint` 仍是本机内存超时边界（非 lint 报错），如实记；未推送（无明确指令）。
 - **仍欠（同前片 + 本片新增）**：「响应中途断开」（响应头已发、body 中途断）仍未覆盖，需另造判据；
   多实例 breaker 聚合、CI `topology` job 经真实 push 执行，仍欠。
+
+## §SC 第三十一片：共享限流器的 fail-open 在真实 Lettuce 故障上被测——门不关、请求到后端、告警不静默（2026-11-11）
+
+SC-12 给门装了共享令牌桶（`redis` 后端全实例共用一个原子桶），`RateLimitFilter` 声明后端故障时
+**fail-open**（`onErrorResume(error -> Mono.just(true))`）：「a rate limit is a bound, not an authentication
+decision；护栏坏了不该把门焊死」。但这条承诺此前只有 `RateLimitFilterTest` 用 **mock backend 立即
+`Mono.error`** 验证过——测了 `onErrorResume` 的 Java 语义，没测真实 Redis 依赖故障的连接池 / 重试 /
+超时，更没测「请求是否真穿到后端拿诚实答复」。共享限流依赖恰是那种一挂就想关门的组件，这是最值得在
+真实故障下证明的韧性。
+
+- **交付**：新增 `GatewayRedisFailOpenWiringTest`（1 条方法 × 5 轮，真实 Lettuce 连接失败）。钉三条不变式：
+  ①**门不关**——每轮 caller 拿后端诚实 **200**（非 500/429/空成功），availability-over-throttling 的 SC-12
+  取舍成立；②**请求真穿到后端且只一次**（wire **恰 1**）——fail-open 放行整条链、且限流失败不重放；
+  ③**告警被记、不静默**——`OutputCaptureExtension` 断言至少一条含 `fail-open` 与后端名 `redis` 的 WARN，
+  operator 能区分「门开着但未限流」与「限流器在岗」。
+- **先实测（一次性探针，跑完即删）**：`backend=redis` 指向**端口 1（无监听，确定性 connection-refused）**、
+  Redis 超时压到 300ms、后端正常 200。3 轮读数：caller 全 **200**、后端 wire 全 **1**、耗时
+  **1205ms → 22ms → 19ms**（首轮冷 Lettuce 连接失败 + 重试，失败缓存后快速失败），日志
+  `backend 'redis' failed; request allowed unthrottled (fail-open): RedisConnectionFailureException`。
+  3 轮故障只打 **1 条** WARN（`BACKEND_WARNING_INTERVAL_MILLIS=10s` 节流生效）。
+
+- **刻意不 pin**：每轮精确耗时（1205/22/19ms 是 Lettuce 连接池状态 + 机器速度的函数，钉死即 flaky）；
+  只设 **8s 宽松上界**兜「真挂死」——fail-open 存在的首要理由。日志只钉「至少一条」（节流，非每轮一条），
+  不 pin 精确条数；异常只钉「fail-open 发生了」，不钉具体类名（connection-refused 是
+  `RedisConnectionFailureException`，blackhole 会是 timeout 类）。
+- **诚实缺口（记下不假装已解）**：`RedisRateLimitBackend.tryAcquire()` **没有显式 `.timeout(...)`**，
+  把「不可达变 error」交给 Lettuce 自身 connect/command 超时。对探针的 connection-refused 形态链条是活的；
+  **黑洞型**依赖（连上但慢于上界不回）会先拖住请求到边界才 error→fail-open，精确延迟本片未测（需不可路由
+  地址、依赖本机网络易 flaky）。若要与 Lettuce 实现无关的硬上界，将来可在 backend 叠显式 `Mono.timeout`——
+  生产改动，另立一片评估，本片不越界。
+- **不改生产**：SC-12 契约在真实连接失败上成立，无缺陷可修；本片把只被 mock 证明的韧性升级为 wire 事实，
+  并把对可观测性的要求一并钉住。
+- **读数**：单类 **1/1 PASS**（含 5 轮真实连接失败采样）；网关全套 **93 → 94/94 BUILD SUCCESS**；顶层
+  typecheck **14/14 PASS**。整仓 eslint 仍是本机内存超时边界（非 lint 报错），如实记；未推送。
+- **仍欠（同前片）**：响应中途断开；`RedisRateLimitBackend` 显式超时硬上界（blackhole 形态）；多实例
+  breaker 聚合；CI `topology` job 经真实 push 执行。

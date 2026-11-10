@@ -12,7 +12,19 @@
 > 本轮开工复核：`git worktree list` 仅 main、无游离分支/stash、`--no-merged` 为空，**git 侧无可并内容**。
 > 未推送（无明确指令）。
 >
-> **2026-11-11 续（§SC-34 / ADR-0106，最新）**：重试 `setExceptions` 的**第二半 `TimeoutException`**
+> **2026-11-11 续（§SC-35 / ADR-0107，最新）**：共享限流器（`redis` 后端）的 **fail-open** 承诺第一次在
+> **真实 Lettuce 连接失败**上被测——此前只有 `RateLimitFilterTest` 的 mock `Mono.error` 单测。配
+> `backend=redis` 指向端口 1（无监听、确定性 connection-refused），一次性探针 3 轮实测：caller 全 **200**、
+> 后端 stub wire 全 **1**、耗时 **1205ms→22ms→19ms**（首轮冷 Lettuce 失败+重试、失败缓存后快速失败），
+> 日志 `backend 'redis' failed; request allowed unthrottled (fail-open): RedisConnectionFailureException`，
+> 3 轮故障仅 1 条 WARN（10s 节流）。新增 `GatewayRedisFailOpenWiringTest`（1 条 × 5 轮）钉三条不变式：
+> **门不关**（每轮诚实 200）、**请求真穿到后端且只 1 次**（不放大）、**告警被记不静默**（OutputCapture 钉
+> 至少一条含 `fail-open`+`redis` 的 WARN）。**刻意不 pin** 浮动耗时（只设 8s 宽松上界兜真 hang）、日志精确
+> 条数、异常具体类名。**诚实缺口**：`RedisRateLimitBackend.tryAcquire()` 无显式 `.timeout`，依赖 Lettuce
+> 自身超时；blackhole 型依赖的精确延迟未测，显式硬上界是生产改动、另立片评估，本片不越界。**不改生产**
+> （SC-12 契约成立）。网关全套 **93 → 94/94**，typecheck 14/14。细节见 ADR-0107 与 ROADMAP §SC 第三十一片。
+>
+> **2026-11-11 续（§SC-34 / ADR-0106）**：重试 `setExceptions` 的**第二半 `TimeoutException`**
 > （后端连着、只是慢到超过 timelimiter）第一次上 wire——resilience4j 四件套里 `timelimiter` 曾是唯一无
 > 独立判据的一块，`application.yml` 的 `timeout-duration` 写下起被当背景参数 override。新增
 > `GatewayTimeoutWiringTest`（3 条）：**慢 POST × 5 轮 wire 恰 1**（超时路径写也不被重放）、**慢 GET × 5
