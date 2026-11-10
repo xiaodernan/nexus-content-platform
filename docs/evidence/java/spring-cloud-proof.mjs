@@ -10,9 +10,11 @@
 //
 //   §1 the four jars BUILD;
 //   §2 the registry answers on a port it was told to use;
-//   §3 two THROWAWAY DATABASES inside the repository's own running PostgreSQL — one empty for
-//      nexus-api, one carrying the REAL schema, copied out of the platform's own database with
-//      pg_dump, because the domain service validates its mapping against that schema and would
+//   §3 a SOURCE database holding the REAL schema exists — a scratch pgvector/pgvector:pg16 source
+//      container created here (migrations replayed from infra/migrations/*.sql) or, with
+//      NEXUS_PROOF_SOURCE set, an operator-named container — then two THROWAWAY DATABASES
+//      inside it: one empty for nexus-api, one carrying the REAL schema, copied out of the source
+//      with pg_dump, because the domain service validates its mapping against that schema and would
 //      (correctly) refuse to start against an empty one;
 //   §4 the DOMAIN SERVICE starts against the real schema and REGISTERS ITSELF;
 //   §5 nexus-api starts against its own database and REGISTERS ITSELF;
@@ -40,22 +42,23 @@
 //      anything there to answer, and a 503 would be an invention;
 //   §16 everything this file created is gone afterwards.
 //
-// Everything it creates is throwaway: two throwaway DATABASES inside the repository's own running
-// PostgreSQL container, four jars built in ISOLATED COPIES of the services, four port files in the
-// same copies, and four child processes. None of them touch the working tree, and none of them
-// touch the platform's own data.
+// Everything it creates is throwaway: two throwaway DATABASES — inside the repository's own
+// running PostgreSQL container when the operator names one NEXUS_PROOF_SOURCE, or inside
+// a SCRATCH source container this proof creates and destroys otherwise — four jars built in
+// ISOLATED COPIES of the services, four port files in the same copies, and four child processes.
+// None of them touch the working tree, and none of them touch the platform's own data.
 //
-// Why a throwaway DATABASE and not a throwaway CONTAINER: this host cannot afford another
-// container. Measured 2026-11-09: the first run of this proof asked Docker for a fresh
-// `pgvector/pgvector:pg16` container and the container stayed in the `Created` state — Docker
-// accepted the creation and never started it, and `docker inspect` on it hung. The machine runs
-// PostgreSQL, Redis, MinIO and several other projects' containers on 16 GB of RAM with ~2.5 GB
-// free (see docs/ENVIRONMENT.md). A database inside the container that is ALREADY running costs
-// nothing, and a fresh database is just as isolated as a fresh container for the proof's purpose:
-// the service writes to it and the proof drops it afterwards.
+// Why a THROWAWAY SOURCE CONTAINER and not a shared dev one: the schema must be the REAL shape
+// (the domain validates it), but the hosted runner has no dev container — this proof must create
+// its own or stay an exclusion. The migrations ARE the schema's canonical source of truth, so on
+// the CI plane the proof replays `infra/migrations/*.sql` (the repository's own ordered list)
+// into a fresh pgvector/pgvector:pg16 container, and destroys it in §16. Locally the operator may
+// opt back into reusing the dev container by setting NEXUS_PROOF_SOURCE; nothing else
+// changes between the two planes except where the databases live.
 //
-// Requires: Java 25, Maven, and the repository's PostgreSQL container running
-// (`docker compose -f infra/docker-compose.yml --profile core up -d`).
+// Requires: Java 25, Maven, and Docker (the CI plane pulls pgvector/pgvector:pg16 on demand).
+// Local plane: Docker may be wedged and NEXUS_PROOF_SOURCE may point at an already-migrated
+// container instead (`docker compose -f infra/docker-compose.yml --profile core up -d` produces one).
 // Run:  node docs/evidence/java/spring-cloud-proof.mjs
 //
 // sweep-budget-ms: 1200000
@@ -74,9 +77,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 const STAMP = `${Date.now()}-${process.pid}`.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 
-/** The repository's own PostgreSQL container, and the port it publishes on (infra/docker-compose.yml). */
-const DB_CONTAINER = process.env.NEXUS_PROOF_DB_CONTAINER ?? 'nexus-postgres';
-const DB_PORT = Number(process.env.NEXUS_PROOF_DB_PORT ?? 55433);
+/**
+ * The source the throwaway databases live inside.
+ *
+ * When NEXUS_PROOF_SOURCE is set, the proof reuses THAT container (the local dev plane — the
+ * `--profile core` compose creates it). When it is unset, the proof ESTABLISHES its own scratch
+ * source: pgvector/pgvector:pg16 with `infra/migrations/*.sql` replayed into it, which is the exact
+ * schema the local plane copies and the exact schema the runner will see. The two planes differ only
+ * in where the source is — that is the entire point of the split.
+ */
+const SCRATCH = process.env.NEXUS_PROOF_SOURCE === undefined;
+const SOURCE = SCRATCH ? `nexus-proof-source-${STAMP}` : process.env.NEXUS_PROOF_SOURCE;
+let dbPort = Number(process.env.NEXUS_PROOF_DB_PORT ?? 55433);
 const DB_USER = process.env.NEXUS_PROOF_DB_USER ?? 'nexus';
 const DB_PASSWORD = process.env.NEXUS_PROOF_DB_PASSWORD ?? 'nexus_dev_only';
 /** A fresh database inside that container, named for this run and dropped at the end. */
@@ -328,7 +340,7 @@ function describeThrown(error) {
 function psql(database, sql) {
   return spawnSync(
     'docker',
-    ['exec', DB_CONTAINER, 'psql', '-U', DB_USER, '-d', database, '-v', 'ON_ERROR_STOP=1', '-q', '-c', sql],
+    ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', database, '-v', 'ON_ERROR_STOP=1', '-q', '-c', sql],
     { maxBuffer: 32 * 1024 * 1024 },
   );
 }
@@ -366,7 +378,15 @@ async function teardown() {
   // The throwaway DATABASES go with the proof. Dropping them is best-effort: a database that could
   // not be dropped is a named leftover, and the name says which run it belongs to.
   for (const name of [DB_NAME_API, DB_NAME_DOMAIN]) {
-    spawnSync('docker', ['exec', DB_CONTAINER, 'psql', '-U', DB_USER, '-d', 'postgres', '-c', `DROP DATABASE IF EXISTS ${name}`]);
+    spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', 'postgres', '-c', `DROP DATABASE IF EXISTS ${name}`]);
+  }
+  // On the CI plane the SOURCE is gone too — the scratch container carried only this run's work.
+  // On the local plane (NEXUS_PROOF_DB_CONTAINER set) the container is the operator's and stays.
+  if (SCRATCH) {
+    const gone = spawnSync('docker', ['rm', '-f', SOURCE]);
+    if (gone.status !== 0) {
+      console.log(`[§16] warning: the scratch source ${SOURCE} could not be removed — the name says which run left it`);
+    }
   }
   rmSync(BUILD_ROOT, { recursive: true, force: true });
   for (const f of started) rmSync(f, { force: true });
@@ -408,6 +428,68 @@ try {
   assert.ok(String(health.text).includes('UP'), `the registry is not UP: ${health.text}`);
   console.log(`[§2] the registry answered on port ${registry.port} and reports UP`);
 
+  // ── §3a establish the source when the CI plane owes one ────────────────────────────────────
+  // On the local plane the operator names an already-migrated container (NEXUS_PROOF_SOURCE)
+  // and the proof REUSES it; on the CI plane nothing is named, so the proof pulls
+  // pgvector/pgvector:pg16, runs a scratch source, and replays the repository's own ordered
+  // migrations into it. The two planes share every remaining byte of what follows.
+  if (SCRATCH) {
+    const pull = spawnSync('docker', ['pull', 'pgvector/pgvector:pg16'], { maxBuffer: 64 * 1024 * 1024 });
+    assert.equal(
+      pull.status,
+      0,
+      `the scratch source needs pgvector/pgvector:pg16 and the pull did not succeed:\n${String(pull.stderr).slice(-1500)}`,
+    );
+    const up = spawnSync(
+      'docker',
+      ['run', '-d', '--name', SOURCE,
+        '-e', 'POSTGRES_USER=nexus', '-e', `POSTGRES_PASSWORD=${DB_PASSWORD}`, '-e', 'POSTGRES_DB=nexus',
+        '-p', '0:5432', 'pgvector/pgvector:pg16'],
+      { encoding: 'utf8' },
+    );
+    assert.equal(
+      up.status,
+      0,
+      `could not start the scratch source ${SOURCE}: ${String(up.stderr).slice(-1500)}`,
+    );
+    const deadline = Date.now() + 90_000;
+    for (;;) {
+      const ready = spawnSync('docker', ['exec', SOURCE, 'pg_isready', '-U', DB_USER, '-d', DB_PLATFORM], { encoding: 'utf8' });
+      if (ready.status === 0) break;
+      if (Date.now() > deadline) {
+        throw new Error(`the scratch source ${SOURCE} never answered pg_isready in 90s: ${ready.stdout}${ready.stderr}`);
+      }
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+    const inspect = spawnSync(
+      'docker',
+      ['inspect', '-f', '{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}', SOURCE],
+      { encoding: 'utf8' },
+    );
+    dbPort = Number(inspect.stdout.trim());
+    assert.ok(
+      Number.isInteger(dbPort) && dbPort > 0,
+      `could not learn the scratch source's host port from inspect: ${inspect.stdout}${inspect.stderr}`,
+    );
+    const migrations = path.join(REPO_ROOT, 'infra', 'migrations');
+    const order = readdirSync(migrations).filter((f) => f.endsWith('.sql')).sort();
+    console.log(`[§3a] the scratch source ${SOURCE} is up on host port ${dbPort}; replaying ${order.length} migrations from infra/migrations`);
+    for (const file of order) {
+      const sql = readFileSync(path.join(migrations, file), 'utf8');
+      const done = spawnSync(
+        'docker',
+        ['exec', '-i', SOURCE, 'psql', '-U', DB_USER, '-d', DB_PLATFORM, '-v', 'ON_ERROR_STOP=1', '-q'],
+        { input: sql, maxBuffer: 64 * 1024 * 1024 },
+      );
+      assert.equal(
+        done.status,
+        0,
+        `the schema of migration ${file} did not apply to the scratch source:\n${String(done.stderr).slice(-1500)}`,
+      );
+    }
+    console.log(`[§3a] the schema exists on the CI plane too — ${order.length} migrations replayed`);
+  }
+
   // ── §3 two throwaway databases, one of them carrying the REAL schema ────────────────────
   // The domain service is the authoritative write path for tables that DRIZZE owns, and it runs with
   // `ddl-auto: validate` — on purpose, so it refuses to start if its mapping disagrees with the
@@ -419,32 +501,32 @@ try {
   // real indexes, the real constraints — and it still touches none of the platform's data, because
   // the rows it reads are the rows it inserted.
   const created = await run('docker', [
-    'exec', DB_CONTAINER, 'psql', '-U', DB_USER, '-d', 'postgres',
+    'exec', SOURCE, 'psql', '-U', DB_USER, '-d', 'postgres',
     '-c', `CREATE DATABASE ${DB_NAME_API}`,
   ]);
   assert.equal(
     created.code,
     0,
-    `could not create the throwaway database ${DB_NAME_API} inside ${DB_CONTAINER}. Its answer was:\n${created.out}`,
+    `could not create the throwaway database ${DB_NAME_API} inside ${SOURCE}. Its answer was:\n${created.out}`,
   );
 
   const dump = spawnSync(
     'docker',
-    ['exec', DB_CONTAINER, 'pg_dump', '-U', DB_USER, '-d', DB_PLATFORM, '--schema-only', '--no-owner', '--no-privileges'],
+    ['exec', SOURCE, 'pg_dump', '-U', DB_USER, '-d', DB_PLATFORM, '--schema-only', '--no-owner', '--no-privileges'],
     { maxBuffer: 64 * 1024 * 1024 },
   );
   assert.equal(dump.status, 0, `pg_dump failed: ${dump.stderr?.toString().slice(-1500)}`);
   assert.ok(dump.stdout.length > 1000, 'pg_dump produced nothing to copy');
 
   const createdDomain = await run('docker', [
-    'exec', DB_CONTAINER, 'psql', '-U', DB_USER, '-d', 'postgres',
+    'exec', SOURCE, 'psql', '-U', DB_USER, '-d', 'postgres',
     '-c', `CREATE DATABASE ${DB_NAME_DOMAIN}`,
   ]);
   assert.equal(createdDomain.code, 0, `could not create ${DB_NAME_DOMAIN}: ${createdDomain.out}`);
 
   const applied = await run(
     'docker',
-    ['exec', '-i', DB_CONTAINER, 'psql', '-U', DB_USER, '-d', DB_NAME_DOMAIN, '-v', 'ON_ERROR_STOP=1', '-q'],
+    ['exec', '-i', SOURCE, 'psql', '-U', DB_USER, '-d', DB_NAME_DOMAIN, '-v', 'ON_ERROR_STOP=1', '-q'],
     { input: dump.stdout },
   );
   assert.equal(
@@ -464,7 +546,7 @@ try {
   );
   assert.equal(seeded.status, 0, `could not seed the proof's own rows: ${seeded.stderr?.toString().slice(-1500)}`);
 
-  await waitFor(() => canConnect(DB_PORT, 2000), 60_000, 'the PostgreSQL container to accept connections');
+  await waitFor(() => canConnect(dbPort, 2000), 60_000, 'the PostgreSQL container to accept connections');
   console.log(
     `[§3] two throwaway databases: ${DB_NAME_API} (empty) and ${DB_NAME_DOMAIN} (the REAL schema, `
     + `copied with pg_dump — ${dump.stdout.length} bytes)`,
@@ -472,7 +554,7 @@ try {
 
   // ── §4 the DOMAIN SERVICE starts against the real schema and REGISTERS ITSELF ───────────
   const domain = await startService(SERVICES[3], [
-    `-Dspring.datasource.url=jdbc:postgresql://127.0.0.1:${DB_PORT}/${DB_NAME_DOMAIN}`,
+    `-Dspring.datasource.url=jdbc:postgresql://127.0.0.1:${dbPort}/${DB_NAME_DOMAIN}`,
     `-Dspring.datasource.username=${DB_USER}`,
     `-Dspring.datasource.password=${DB_PASSWORD}`,
     '-DNEXUS_EUREKA_ENABLED=true',
@@ -495,7 +577,7 @@ try {
 
   // ── §5 nexus-api starts against its own database and REGISTERS ITSELF ───────────────────
   const api = await startService(SERVICES[2], [
-    `-Dspring.datasource.url=jdbc:postgresql://127.0.0.1:${DB_PORT}/${DB_NAME_API}`,
+    `-Dspring.datasource.url=jdbc:postgresql://127.0.0.1:${dbPort}/${DB_NAME_API}`,
     `-Dspring.datasource.username=${DB_USER}`,
     `-Dspring.datasource.password=${DB_PASSWORD}`,
     // The discovery client is ON for this run — that is what §5 is about.

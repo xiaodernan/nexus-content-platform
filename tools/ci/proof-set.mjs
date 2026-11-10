@@ -80,41 +80,23 @@ export const PROOF_COMMAND = /^node +(docs\/evidence\/\S+\.mjs)$/;
  * run. The array is kept — not deleted — because the clause is "a proof the build cannot run must say what it
  * needs", and an empty set is still a set the gates read.
  *
- * v645 (ADR 0054/0055/0056) — the residue is not empty again, and the reason is read out of
- * `.github/workflows/ci.yml`, not from the row's slowness. TWO things that workflow did not do; one of them
- * stopped being true at v650 and is said below rather than deleted, so the reader can see which half remains:
+ * v653 (2026-11-10) — EMPTY AGAIN, and this time the exclusion DIED BY ITS OWN REDESIGN rather than by
+ * a special case. The blocker was never the machine and never Maven (warmed at v650); the blocker was
+ * the proof's own shape: it wanted an already-migrated `nexus-postgres` container, and no workflow
+ * step had one to give. v653 made the proof self-sufficient on the hosted plane: with no
+ * NEXUS_PROOF_DB_CONTAINER set, §3a now pulls `pgvector/pgvector:pg16`, runs a scratch source
+ * container on an ephemeral host port, replays the repository's ENTIRE ordered `infra/migrations/*.sql`
+ * into it (the canonical schema, not a pg_dump locally of an arbitrary dev database), and destroys it
+ * in §16. The workflow already pre-pulls pgvector/pgvector:pg16, so no ci.yml step changed; nothing
+ * outside the proof file changed either. On the hosted runner that is the whole gate for the row's
+ * green: it re-earns or honestly reddens like any other row — the residue is zero by construction
+ * rather than by hope.
  *
- *  1. IT BRINGS NO POSTGRESQL UP. The workflow's docker step is two `docker pull` lines; no step runs
- *     `docker compose up`, and the job declares no `services:` block — so `nexus-postgres`, the container
- *     `infra/docker-compose.yml` names for the `core` profile, does not exist when the proofs run. The proof
- *     creates two throwaway DATABASES inside that container with `docker exec … psql` and waits for the
- *     published port to answer a TCP connect.
- *  2. IT WARMS MAVEN FOR ONE MODULE. The warm-up step was `mvn -B -q -f services/nexus-api/pom.xml test` and
- *     `cache-dependency-path` named that one pom, so the other three service poms faced this proof's
- *     `mvn -o -B package` with a cold local repository — and offline, a missing artifact is a build failure,
- *     so §1 would redden on an artifact the runner never downloaded rather than on the topology.
- *     THAT HALF IS CLOSED at v650 (ADR 0016 amendment 575), and it is closed by a door rather than by this
- *     comment: the step now walks FOUR explicit `mvn -B -q -f <module>/pom.xml package` lines, one per tracked
- *     module, and `cache-dependency-path` lists the same four poms. §15 of
- *     `docs/evidence/ci/ci-wiring-proof.mjs` reads the run BODIES of both workflow files and reddens the build
- *     the day a tracked module loses its line, a line loses its tests to `-DskipTests`, a step names a pom the
- *     commit does not own, or the cache key and the pom population part company. The lifecycle is `package`,
- *     not `test`, because this proof's own `mvn -o -B package` resolves jar-shaped dependencies a bare `test`
- *     lifecycle never touches.
- *
- * The FIRST need is still the WORKFLOW's, not the machine's: a hosted runner has a docker daemon and room for
- * four JVMs, so retiring this entry outright is a ci.yml change (a `services:` block or a compose-up), and the
- * census's derived split moves the day it happens. The Maven need is gone from the sentence below for exactly
- * that reason — a deferral that outlives half its blocker is the stale record this file refuses. Until then the
- * row is EXCLUDED rather than deleted — it still runs on this box — and the residue is PRINTED on every build,
- * so nobody can mistake the running count for the whole population.
+ * The operator-local plane is unchanged: `NEXUS_PROOF_DB_CONTAINER=nexus-postgres` (with the core
+ * profile's compose up) reuses the dev container exactly as before, including its pg_dump path out of
+ * the platform's own database. The two planes share every step after §3a.
  */
-export const EXCLUDED = [
-  {
-    file: 'docs/evidence/java/spring-cloud-proof.mjs',
-    needs: 'the repository\'s own running PostgreSQL container — infra/docker-compose.yml\'s nexus-postgres, which no workflow step brings up (the Maven half v645 named here went warm at v650, and §15 of ci-wiring-proof keeps it warm)',
-  },
-];
+export const EXCLUDED = [];
 
 export const readPkg = (root = ROOT) => JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
