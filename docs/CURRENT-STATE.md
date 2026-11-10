@@ -300,3 +300,29 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
 - The v654 slice in the CONVERGENCE program is exactly this file — it is now **half-done and honestly
   marked**: the profile exists and parses; the hosted run (fresh container start on a healthy engine) is
   the next mechanical step. This ledger names the boundary instead of pretending a green.
+
+
+## 2026-11-10 addendum (cont. 9): the spring-cloud row retired from the exclusion and passed GREEN on the hosted runner — 117/117, residue 0
+
+- `docs/evidence/java/spring-cloud-proof.mjs` was EXCLUDED for one reason since v645 (2026-11-10): no
+  ci.yml step brings up PostgreSQL. v653's redesign retired the need for the workflow to do the carrying:
+  with no `NEXUS_PROOF_DB_CONTAINER` set, §3a now pulls `pgvector/pgvector:pg16` (already a pre-pull line),
+  runs a scratch source container on an ephemeral host port, REPLAYS the repository's own ordered
+  `infra/migrations/*.sql` (deleting none, keeping none extra), and destroys the source in §16.
+  Maven was not the reason (warm at v650); the host was not the reason (runner has docker and room for
+  the JVMs); the reason was the proof's shape demanding a pre-migrated container nobody was offered.
+- The first hosted contact (`dd6e9c9`) reddened in 22.5s: **the pgvector extension was missing on a fresh
+  source** — `infra/migrations/0000_init.sql:209` declares `vector(1536)` and nothing created the extension
+  before the first migration ran. The fix creates it first (the same shape `scripts/db-migrate.mts` uses);
+  the runner clipped the failing row's output, so the cause was read out of the migration TREE's own bytes,
+  not out of a log. `cb3f3a7` pushed; CI master re-ran green in 45 m 5 s with
+  `verify:spring-cloud ... declared 1200000ms ... OK 120.6s` and `117/117 green of a derived population of 117 · residue named: 0`.
+- The operator-local plane is UNCHANGED: `NEXUS_PROOF_DB_CONTAINER=nexus-postgres` reuses the dev
+  container exactly as before (pg_dump out of the current dev database). The two planes differ only in
+  where the SOURCE is — that is the entire design split.
+- `tools/ci/proof-set.mjs` keeps an EMPTY `EXCLUDED` — the gate prints residue 0 rather than hiding silence.
+- The compose `java` profile (v654) and this hosted row (v653) are two different planes and deliberately
+  separate: compose stands the topology up for a developer's machine; the hosted row grdes the same
+  topology on a stateless runner.
+- `verify:arms` re-stamped `arms-receipt.json` (the `runner` subject changed with proof-set.mjs; 64/64
+  matched on the re-stamped bytes); census and table-recount re-derived clean (`rows 117+0`, HELPER 5).
