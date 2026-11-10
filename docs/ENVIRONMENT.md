@@ -14,6 +14,9 @@
 
 **关键约束：内存。** 不能同时常驻 Next.js dev server + FastAPI + Spring Boot + Postgres + Redis + MinIO + Playwright。
 所有本地服务必须支持"按需启动"，并在 `docs/RUNTIME.md` 中给出最小可运行组合。
+2026-11-10 实测：`scripts/verify-topology|loadbalance|auth.mts` 启动的 JVM 全部带 `-Xmx` heap 上界
+（**domain 512m，其余 384m**，用 `NEXUS_SMOKE_HEAP` / `NEXUS_SMOKE_HEAP_DOMAIN` 覆盖）——
+本机空闲只剩 ~150MB 时 Spring Boot 默认堆会让服务在 150 秒内起不来；把"内存吃紧"当"服务坏了"是误诊。
 
 ## 工具链
 
