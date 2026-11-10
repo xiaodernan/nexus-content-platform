@@ -8,6 +8,9 @@
 
 - Permission HTTP 面（`GET /api/v1/permission/check`）已上线并经 `lb://nexus-domain-service` 活体验证；
 - **第一次调用真 503**（gateway 5s 上限 vs domain 冷启动）——设计行为，不是 bug；首先由 smoke 预热绕开（§SC-17），随后由 boot 预热对齐到服务端（§SC-18 / ADR-0099，`WarmupRunner`，users=4193）彻底关闭；
+- `npm run verify:lb`（`scripts/verify-loadbalance.mts`，§SC-26）：一个 service id 两个域实例 +
+  registry/gateway，断言 eureka 持两个、`/platform/services` 列同一 id 两个不同地址、
+  `/platform/health` 两者皆 UP（allUp=true）、十连发 200——**LB 的多实例拓扑被测量过了**；
 - `npm run verify:topology` 现覆盖**五个**服务（registry / **nexus-config** / domain-service /
   nexus-api / gateway），`NEXUS_*_PORT` 与 DB 侧全可覆盖、stale jar 自动重打包、逐条断言
   community/billing/permission 三面、`/platform/services` discovery 读数，以及 **config server

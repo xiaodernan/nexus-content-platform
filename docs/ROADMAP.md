@@ -11341,3 +11341,16 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
   `/platform/services` 只列出 `nexus-domain-service, nexus-api`（无外部服务——本片对外来污染的判据）、
   config 往返、permission/billing/community 全部断言通过；eslint exit 0。
 - 未验证：3a大作 是否注意到 8761 空置——不是本仓库的事；本仓库不再在它们的默认目标上。
+
+## §SC 第二十二片：LoadBalancer 体征——一个服务 id，两个实例，一扇门（2026-11-10）
+
+- 触发：拓扑证明了"能路由"，但"两个实例同时注册、lb:// 真的在它们之间选"从来没被测过。
+- 交付：`scripts/verify-loadbalance.mts`（`npm run verify:lb`）——registry :8773 + domain-a :8085 +
+  domain-b :8086（同一 id `nexus-domain-service`）+ gateway :8092；断言 eureka 持两个实例、
+  `/platform/services` 把两者列为同一 id 下两个不同地址、`/platform/health` 两者都 UP（allUp=true）、
+  十连发 `/domain/**` 全 200。端口全部避开 8090/8091/8771，env 可覆盖。
+- 读数：**PASS**（本机 2026-11-10，<2.5 分钟；四个 JVM 全部自动干净退出）。`verify:lb` 已追加进
+  CI main-line.yml 的 `topology` job（8773/8085/8086/8092）——**CI 仍未被 push 实跑过**。
+- 故意不做的测量：failover/eviction（eureka lease ≤90s + gateway LB 缓存自己的时钟——
+  "杀一个还能通"是超时不是性质）；轮询交替（带了实例 id 就是把部署细节泄进响应契约）。
+- 与 8771 的关系：registry 换端口（ADR-0100）后本 smoke 默认走 8773，不撞主冒烟的 8771。

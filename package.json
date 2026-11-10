@@ -60,6 +60,7 @@
     "verify:tools": "node docs/evidence/m10/tool-registry-proof.mjs",
     "verify:mcp": "node docs/evidence/m10/mcp-face-proof.mjs",
     "verify:topology": "tsx --tsconfig apps/web/tsconfig.json scripts/verify-topology.mts",
+    "verify:lb": "tsx --tsconfig apps/web/tsconfig.json scripts/verify-loadbalance.mts",
     "verify:record-encoding": "node docs/evidence/agents/record-encoding-proof.mjs",
     "verify:pipeline": "node docs/evidence/studio/pipeline-proof.mjs",
     "verify:table-recount": "node docs/evidence/agents/table-recount-proof.mjs",
