@@ -11196,3 +11196,43 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
 - 服务 README 同步：表格三行从 stub 换成真话（community 全 real；permission/billing "real, service
   only"），"stubs are scaffolding" 那段删掉，security posture 里"gateway 鉴权还没建"改成 SC-13 已落、
   本服务自身仍不做认证、端口仍不许暴露；Tests 段换成 90 条的分解。
+
+## §SC 第十四片：SC-19/SC-20——微服务拓扑不只是和面条，要真成一条链（2026-11-10）
+
+- 触发：上一片让 gateway 能路由、domain-service 有 controller，但"网关经服务发现把 `/domain/**` 真的打进
+  domain-service、correlation id 真的一路回显"只在文档里写过、没在这一片台跑过。跑给你看。
+- SC-19（docs/evidence/sc19-topology-live-proof.md）：本机起 registry(:8761) → domain-service(:8082，
+  NEXUS_DOMAIN_REGISTER=true) → gateway(:8090)。eureka 里 UP（instanceId `host.docker.internal:nexus-domain-service:8082`，
+  VIP `nexus-domain-service`）；`GET /api/v1/community/policy` 域服务直答 200；经 gateway
+  `GET /domain/api/v1/community/policy`（带 `X-Request-Id: proof-sc19-001`）**HTTP 200 且 X-Request-Id
+  原样回显**——网关确实按 service discovery 解析到 192.168.1.5:8082，不是硬编码；`/platform/services`
+  读到两条服务、实例数各 1。
+- **本片抓到的真 bug（java -jar ≠ mvn test）**：测试用 target/classes（编译即新），`java -jar` 用 jar 里的类——
+  domain-service 的 jar 是在社区 Controller 加入**之前**打包的，community 包里只有 CommunityService.class，
+  首次 `java -jar` 直接 404。必须先 `mvn -DskipTests package` 再跑；本片已把这条教训写进证据文档和本条，
+  不是"顺序问题"。
+- SC-20：给 Billing 补一扇门（本来 service 是真的，只缺控制器）。BillingController：
+  `GET /api/v1/billing/balance?kind=ai` 与 `GET /api/v1/billing/plan`；身份只来自 X-Nexus-Subject（门覆盖），
+  无 header → 400；非 UUID subject → 400；未知 kind → 400（BillingService.requireKind 的句子透出，
+  "Unknown credit kind: moon-bucks"）；user id 不存在 → 400（"User not found: …"）。7 条无 Spring 上下文
+  MVC 测试全绿；`mvn -B test` = **97/97** BUILD SUCCESS。
+- 真验证（registry+domain+gateway 起来后）：无 subject → 400；有 subject balance=0（`X-Request-Id` 自动铸）；
+  moon-bucks → 400；不存在 id plan → 400；真实用户 4d5bf1ac-… → plan=free、balance=0。
+- 读数（`npm run evals` 需 DB）：`NEXUS_DATABASE_URL=…:55100/nexus_regress npm run evals` = exit 0，11 套全 PASS
+  （含 `export-roundtrip` 真库 17/17）。**typecheck 14/14** · studio 测试 **2857/2857** · shard 1/2 与 2/2
+  全绿（shard 1 曾有一红——`doc-evidence`：ROADMAP 点名的 `.scratch/gateway-rate-lua-live/readings.json`
+  没入册，一条未跟踪——本片 `git add -f` 修掉，重跑 4/4）。
+
+## §SC 第十五片：verify:topology——这条链的活验证变成一条 npm 命令（2026-11-10）
+
+- 问题：上两片的证据是当天手动 curl 出来的——**第三天就不能复跑**。把它固化成
+  `scripts/verify-topology.mts`（`npm run verify:topology`）：
+  启动 registry+domain-service+gateway（日志落 TEMP，不污染仓库），逐项断言——eureka 应答、domain-service
+  注册进库、policy 经 gateway 200、billing balance=0、**X-Request-Id 原样回显**（SC-14 端到端）、无 subject 的
+  billing 400——任何一步失败退出非零。**结束无论如何都杀三个 JVM**（SIGINT/uncaughtException 兜底），不留残骸。
+- 读数：`npm run verify:topology` = **PASS**（整个过程 <2 分钟）；`npx eslint scripts/verify-topology.mts` = 0；
+  `npm run lint` = turbo FULL TURBO 绿。
+- 仍欠：permission 面同形状（permission 的 JPA @Query 要先与 users 表对齐）；gateway 到 domain-service 的
+  timeout/retry 仍没定——resilience4j 当初删了就是"没人读铃"，要加就得有读者。
+- global pre-commit hook 全绿（turbo lint 13 个任务）；提交 {SC-19..SC-21} 全部走的是本地
+  `git -c user.name="NEXUS Dev" -c user.email="dev@nexus.local" commit`，未推送（无明确指令）。
