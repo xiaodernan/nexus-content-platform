@@ -276,6 +276,31 @@ export function discoverCacheStats(): DiscoverCacheStats {
   };
 }
 
+/**
+ * §SC-43：面板用的只读门面。返回**可安全 JSON 化**的读数 + 一句部署描述，
+ * route 不直接触达内部 Store 结构（那是 `discover-cache` 的私有领地）。
+ *
+ * 加一个 `measuredAt`：这份读数也是"此刻这一台实例"的快照，带时间才诚实——
+ * 面板据此显示"更新于"，且页脚说明多实例各算各的、总线是最终一致。
+ */
+export interface DiscoverCacheReadout {
+  readonly measuredAt: string;
+  readonly stats: DiscoverCacheStats;
+  /** 这台实例此刻有没有接跨实例总线；null 读数是"单机/未接"，不是"接了但全 0" */
+  readonly busAttached: boolean;
+  readonly busUrlConfigured: boolean;
+}
+
+export function describeDiscoverCache(): DiscoverCacheReadout {
+  const stats = discoverCacheStats();
+  return {
+    measuredAt: new Date().toISOString(),
+    stats,
+    busAttached: stats.bus !== null,
+    busUrlConfigured: Boolean(process.env[DISCOVER_INVALIDATION_URL_ENV]?.trim()),
+  };
+}
+
 /** 判据用：只读当前生成的键（会分配/刷新 generation，故调用即"此 viewer 此刻的键"）。 */
 export function discoverCacheKeyForTest(input: DiscoverCacheInput): string {
   return keyFor(getStore(), input);
