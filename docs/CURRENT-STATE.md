@@ -11,6 +11,15 @@
 > 细节与retry/fallback 的 `ServerHttpResponse already committed` 已知边界记在 ADR-0101 与 ROADMAP 第二十五片。
 > 本轮开工复核：`git worktree list` 仅 main、无游离分支/stash、`--no-merged` 为空，**git 侧无可并内容**。
 > 未推送（无明确指令）。
+>
+> **2026-11-11 续（§SC-30 / ADR-0102）**：网关又补一个 Spring Cloud 元素——**W3C Trace Context**
+> （`traceparent`/`tracestate`），与 §SC-14 私有 `X-Request-Id` 并存、各司其职。新增 `TraceContextFilter`
+> （ORDER +21，紧跟 correlation +20）：合法入站保留 trace-id/flags 但**换 parent-id**（网关是一跳，原样
+> 转发会让整链共用一个 span id），缺失/畸形重新 mint，`tracestate` 逐字透传，provider-free 不采样不导出。
+> 新增 `TraceContextFilterTest` 5 + `GatewayTraceContextWiringTest` 4，网关全套 **73/73**（SC-29 的 64 + 9）。
+> 首跑红 3 条是测试桩真 bug——`StubUpstream.clearPaths()` 没清 `requestHeaders` 致跨测试读到上一条的请求，
+> 已修（记录型集合共生命周期）。Bulkhead 本轮**未接**：其依赖在 gateway 是 runtime scope、并发断言本机易
+> flaky，理由与缺口记在 ROADMAP §SC 第二十六片。
 
 第 3 行下面的所有旧读数中，凡提到 Java 侧测试数的，以 2026-11-10 的为准：**java-domain-service 103/103**
 （含新增 BillingControllerTest 7 + PermissionControllerTest 6）。最新一片（§SC-16 / SC-23）详见

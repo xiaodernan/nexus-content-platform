@@ -11455,3 +11455,28 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
   两条线 2026-11-09 已并，`git` 侧**无可并内容**（用户要求的"合并 worktree"本轮无对象可合并，如实记录不造假）。
 - 未验证：生产 `wait-duration=10s/permitted=3` 只按数字缩放、语义同；CI `topology` job 仍从未被真实 push 执行
   （沿用 §SC-17 起声明）；真实 Eureka 下半开未单测（breaker 自身行为，与发现实现无关）。未推送（无明确指令）。
+
+## §SC 第二十六片：网关说 W3C Trace Context——私有 X-Request-Id 之外补上开放标准的那一半（2026-11-11）
+
+- 起点：§SC-14 的 `CorrelationFilter` 只发 NEXUS 私有 `X-Request-Id`，自家日志能对齐，但 **Jaeger /
+  Zipkin / OTel / 上游 mesh 都不读这个头**——NEXUS 发起的调用跨出平台边界后链路在外部是断的。
+  用户本轮要求「加 Spring Cloud 微服务元素、集大成」，可观测性的跨系统传播是教科书元素。
+- 决定（`docs/adr/0102`）：新增 `TraceContextFilter`（ORDER +21，紧跟 correlation +20、路由前），
+  **provider-free** 地说 W3C `traceparent`/`tracestate`——只按格式解析/生成随机 id、透传 tracestate，
+  不采样、不导出、不连 vendor（无 tracing backend 就不假装有，§159/§160）。不替换私有头，两者并存各司其职。
+- **真懂 W3C 的那一刀**：合法入站保留 trace-id + flags，**但换掉 parent-id**——网关是一「跳」不是原始
+  调用方，后端看到的父 span 必须是本跳的；原样转发会让整条链共用一个 span id，看着连着实则撒谎。
+  缺失/畸形（长度错、非 hex、全 0、版本非 00）→ 重新 mint，不传播垃圾。traceparent 回显响应；
+  tracestate 因 mutate 只重写 traceparent 而天然逐字透传（符合 W3C「不懂也不得丢 vendor 条目」）。
+- 读数：`mvn -o -B test -f services/nexus-gateway/pom.xml` = **73/73 BUILD SUCCESS**
+  （§SC-29 基线 64 + 本片 9 = 无服务器 `TraceContextFilterTest` 5 + wire `GatewayTraceContextWiringTest` 4）。
+  wire 读到：无入站→生成并后端实收=响应回显；合法入站→trace-id/flags 留、parent-id 换（≠调用方值）、
+  tracestate 逐字不变；畸形→后端实收新 mint 的合法值而非垃圾；私有 X-Request-Id 与标准头同请求并存互不覆盖。
+- **首跑如实红 3 条，是测试桩真 bug**：wire 4 条里「合法入站」先 PASS（证 filter 真进链、换 parent 在线上
+  成立），另 3 条 `backendSaw(0,…)` 读到上一条测试的请求——`StubUpstream.clearPaths()` 没清 `requestHeaders`，
+  跨测试隔离漏了。修：让 `clearPaths()` 同清所有记录型集合，三条全绿。**没放宽断言、没改恒真**。
+- 诚实边界：只做头部层（mint/延续/透传/回显），不做 span 记录/采样/导出；`tracestate` 只透传不解析；
+  版本只认 `00`，其余按畸形重 mint。CI `topology` job 仍未真实 push 执行；未推送（无明确指令）。
+- 未选 Bulkhead（resilience4j 弹性三件套仅剩的一件）：`resilience4j-bulkhead` 在 gateway 是 **runtime**
+  scope（非 compile），且「并发在途数」的 wire 断言在本机 2.5GB 环境时序敏感、易 flaky——与本项目
+  「测真实读数不粉饰」纪律相冲。作为已知缺口记此，将来若上真并发夹具（如受控 latch 后端）再接。

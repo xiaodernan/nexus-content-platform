@@ -142,6 +142,7 @@ final class StubUpstream {
 
     void clearPaths() {
         paths.clear();
+        requestHeaders.clear();
         forwardedHosts.clear();
         probeHeaders.clear();
         originalUrls.clear();

@@ -224,6 +224,18 @@ public class GatewayConfig {
         return new CorrelationFilter();
     }
 
+    /**
+     * W3C Trace Context (SC-30): an open {@code traceparent} a Jaeger / Zipkin / OTel collector can join,
+     * complementing the private {@link CorrelationFilter#REQUEST_ID_HEADER}. Provider-free — this door mints
+     * random ids and speaks the standard format; it does not sample or export to any vendor. Well-formed input
+     * keeps its trace-id + flags but gets a FRESH parent-id (a gateway is a hop), and {@code tracestate} is
+     * forwarded untouched (the mutate below only rewrites {@code traceparent}). See {@link TraceContextFilter}.
+     */
+    @Bean
+    TraceContextFilter traceContextFilter() {
+        return new TraceContextFilter();
+    }
+
     private static ServerWebExchange withClientAddress(ServerWebExchange exchange) {
         var request = exchange.getRequest();
         // The authority of the URI the CLIENT called, not the Host header: a proxy in front of this gateway
