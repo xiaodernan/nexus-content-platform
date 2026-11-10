@@ -30,8 +30,9 @@ import reactor.core.publisher.Mono;
  * traffic is checked twice (here, then again inside {@link AuthFilter}) — idempotent, deliberate, and the
  * second check costs one HMAC-SHA256 (~microseconds), not a behavior change.
  *
- * <p>Keep the two whitelists in sync with {@link AuthFilter}'s defaults; they must agree, or the door would
- * claim one truth at the route edge and another at its own endpoints.
+ * <p>SC-32: the whitelist, the path-boundary rule, the blank-secret guard and the 401 body are no longer
+ * copied here — both doors delegate to the single {@link AuthPolicy}. What used to be a "keep them in sync"
+ * COMMENT is now a mechanism, checked on every request by {@code AuthWhitelistParityTest}.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 5)
@@ -50,15 +51,12 @@ public class PlatformAuthFilter implements WebFilter {
             boolean enabled,
             @org.springframework.beans.factory.annotation.Value("${nexus.gateway.auth.secret:}")
             String secret) {
-        this(enabled, secret, List.of("/platform/health", "/actuator/health"), List.of("/fallback"));
+        this(enabled, secret, AuthPolicy.OPEN_EXACT, AuthPolicy.OPEN_PREFIXES);
     }
 
     PlatformAuthFilter(boolean enabled, String secret, List<String> whitelistExact, List<String> whitelistPrefixes) {
-        if (enabled && (secret == null || secret.isBlank())) {
-            throw new IllegalStateException(
-                    "nexus.gateway.auth.enabled=true but nexus.gateway.auth.secret is blank; "
-                            + "refusing to start an open door");
-        }
+        // SC-32: identical construction-time fail-closed to AuthFilter — one implementation, two doors.
+        AuthPolicy.requireSecret(enabled, secret);
         this.enabled = enabled;
         this.secret = secret;
         this.whitelistExact = whitelistExact;
@@ -97,20 +95,8 @@ public class PlatformAuthFilter implements WebFilter {
     }
 
     private boolean isWhitelisted(String path) {
-        if (path == null) {
-            return false;
-        }
-        for (String exact : whitelistExact) {
-            if (exact.equals(path)) {
-                return true;
-            }
-        }
-        for (String prefix : whitelistPrefixes) {
-            if (path.startsWith(prefix)) {
-                return true;
-            }
-        }
-        return false;
+        // SC-32: the SAME path-SEGMENT rule as AuthFilter via AuthPolicy — /fallbackish is guarded on both.
+        return AuthPolicy.isOpen(path, whitelistExact, whitelistPrefixes);
     }
 
     private static String bearerToken(ServerWebExchange exchange) {
@@ -126,8 +112,8 @@ public class PlatformAuthFilter implements WebFilter {
         org.springframework.http.server.reactive.ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        String body = "{\"error\":\"unauthorized\",\"reason\":\"" + reason
-                + "\",\"note\":\"present Authorization: Bearer <token>; /platform/health and /fallback/** are open\"}";
+        // SC-32: one refusal dialect for both doors; a caller sees ONE 401 shape for the whole gateway.
+        String body = AuthPolicy.refusalBody(reason);
         return response.writeWith(Mono.just(response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8))));
     }
 }

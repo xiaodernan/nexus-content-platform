@@ -40,9 +40,10 @@ import reactor.core.publisher.Mono;
  * on the trusted (post-filter) request.
  *
  * <p>Fail-closed, deliberately — the opposite of the rate limiter. An authentication decision has no
- * "allow" fallback: if auth is enabled with no secret configured the gateway refuses to start (see
- * GatewayConfig) instead of starting open, and if signature verification throws the request is refused, not
- * waved through. A door that is open because its crypto failed is worse than a door that is closed.
+ * "allow" fallback: if auth is enabled with no secret configured the CONSTRUCTOR itself refuses to start
+ * (SC-32, via {@link AuthPolicy#requireSecret}, shared with {@link PlatformAuthFilter}), so no caller can
+ * accidentally open the door, and if signature verification throws the request is refused, not waved through.
+ * A door that is open because its crypto failed is worse than a door that is closed.
  */
 final class AuthFilter implements GlobalFilter, Ordered {
 
@@ -51,7 +52,7 @@ final class AuthFilter implements GlobalFilter, Ordered {
     /** Runs before RateLimitFilter (+10) so an unauthenticated request spends no bucket token. */
     static final int ORDER = Ordered.HIGHEST_PRECEDENCE + 5;
 
-    private static final String BEARER = "Bearer ";
+    private static final String BEARER = AuthPolicy.BEARER;
     static final String AUTH_HEADER = "Authorization";
     static final String SUBJECT_HEADER = "X-Nexus-Subject";
     static final String SCOPES_HEADER = "X-Nexus-Scopes";
@@ -62,10 +63,13 @@ final class AuthFilter implements GlobalFilter, Ordered {
     private final List<String> whitelistPrefixes;
 
     AuthFilter(boolean enabled, String secret) {
-        this(enabled, secret, List.of("/platform/health", "/actuator/health"), List.of("/fallback"));
+        this(enabled, secret, AuthPolicy.OPEN_EXACT, AuthPolicy.OPEN_PREFIXES);
     }
 
     AuthFilter(boolean enabled, String secret, List<String> whitelistExact, List<String> whitelistPrefixes) {
+        // SC-32: fail closed in the constructor itself, so BOTH auth doors refuse a blank secret identically.
+        // No caller can forget to check — the door itself is the guard, not a convention in its builders.
+        AuthPolicy.requireSecret(enabled, secret);
         this.enabled = enabled;
         this.secret = secret;
         this.whitelistExact = whitelistExact;
@@ -103,20 +107,9 @@ final class AuthFilter implements GlobalFilter, Ordered {
     }
 
     private boolean isWhitelisted(String path) {
-        if (path == null) {
-            return false;
-        }
-        for (String exact : whitelistExact) {
-            if (exact.equals(path)) {
-                return true;
-            }
-        }
-        for (String prefix : whitelistPrefixes) {
-            if (path.startsWith(prefix)) {
-                return true;
-            }
-        }
-        return false;
+        // SC-32: path-SEGMENT prefix match (also used by PlatformAuthFilter). A bare startsWith("/fallback")
+        // would also open /fallbackish — a sibling, not a child. AuthPolicy is the one boundary rule.
+        return AuthPolicy.isOpen(path, whitelistExact, whitelistPrefixes);
     }
 
     private static String bearerToken(ServerWebExchange exchange) {
@@ -292,8 +285,8 @@ final class AuthFilter implements GlobalFilter, Ordered {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        String body = "{\"error\":\"unauthorized\",\"reason\":\"" + reason
-                + "\",\"note\":\"present Authorization: Bearer <token>; /platform/health and /fallback/** are open\"}";
+        // SC-32: one refusal dialect for both doors; a caller sees ONE 401 shape for the whole gateway.
+        String body = AuthPolicy.refusalBody(reason);
         return response.writeWith(Mono.just(response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8))));
     }
 

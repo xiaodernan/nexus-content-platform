@@ -205,10 +205,9 @@ public class GatewayConfig {
     AuthFilter authFilter(
             @Value("${nexus.gateway.auth.enabled:false}") boolean enabled,
             @Value("${nexus.gateway.auth.secret:}") String secret) {
-        if (enabled && (secret == null || secret.isBlank())) {
-            throw new IllegalStateException(
-                    "nexus.gateway.auth.enabled=true but nexus.gateway.auth.secret is blank; refusing to start an open door");
-        }
+        // SC-32: one fail-closed rule, not three copies. The AuthFilter constructor enforces it too, so a
+        // door built anywhere (bean OR direct construction in a test) cannot start open with a blank secret.
+        AuthPolicy.requireSecret(enabled, secret);
         log.info("gateway auth: enabled={}", enabled);
         return new AuthFilter(enabled, secret);
     }

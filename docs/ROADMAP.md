@@ -11508,3 +11508,37 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
 - 诚实边界：只读、无写操作；读数反映**本实例**内存状态，多实例各报各的（聚合未做，需另一组件）；
   `verify:topology` 冒烟未改为断言该端点（本片是网关单测）；CI `topology` job 仍从未被真实 push 执行；
   未推送（无明确指令）。
+
+## §SC 第二十八片：两扇认证门共用一份策略——把「保持同步」从注释变成机制（2026-11-11）
+
+- 起点：网关有**两扇认证门**——`AuthFilter`（`GlobalFilter`，守路由 edge）与 `PlatformAuthFilter`
+  （`WebFilter`，守网关自己的 controller/actuator，§SC-27 补洞）。两者各自**复制**了同一张白名单、同一条
+  「auth 开 + secret 空白就拒绝启动」的 fail-closed、同一段 401 拒答 body。两个类的注释都写着
+  「keep the two whitelists in sync」——但那是**注释，不是机制**。§SC-31 刚又新增一个受保护端点，白名单
+  正在变多，一次「只改一侧」就会静默开一个 §SC-27 形状的洞。用户要求「集大成/继续演进」，决定见
+  `docs/adr/0104`。
+- 交付：
+  - **新增单一真值源** `AuthPolicy.java`：一份白名单（`OPEN_EXACT`/`OPEN_PREFIXES`）、一个段边界匹配
+    `isOpen()`（exact 或 `prefix + "/"`；`/fallbackish` 不再命中 `/fallback`，尾斜杠容忍）、一个
+    `requireSecret()`（fail-closed 下沉到两门**构造器**及 `GatewayConfig` bean）、一个 `refusalBody()`
+    （两门 401 逐字同形）。
+  - 两扇门删掉各自的四行白名单循环与字面量 401 body，改为委托；`GatewayConfig.authFilter()` 的
+    bean fail-closed 也改为调同一函数。**原来 `AuthFilter` 构造器不检查空白 secret、`PlatformAuthFilter`
+    检查**的不一致消失。
+  - `AuthWhitelistParityTest`（4 条，行为锁）：8 条代表路径上两门判定一致、401 body 逐字相同、该开
+    的开该守的守（含 `/fallbackish`）、两门空白 secret 都构造期拒绝。
+  - `AuthPolicyTest`（6 条，真值源锁）：直接钉 `isOpen` 段边界（exact 不误伤 lookalike、前缀开子路径
+    不开字符兄弟、尾斜杠容忍、null/真实路由受保护）、`requireSecret` 三态、401 方言文本。**结构折叠后
+    若有人改回裸 `startsWith`，两门会一起漂移、parity 仍绿，这把锁专捕「一起错」。**
+- **首跑红 2 条，都是真缺陷**：`/fallbackish expected 401 but was 0`（裸 `startsWith` 放行字符兄弟，
+  §SC-27 洞的同类变体）；`route edge must refuse a blank secret`（`AuthFilter` 构造器不检查空白 secret，
+  两门态度不一致）。**没放宽断言、没红改绿**：匹配改段边界、fail-closed 下沉构造器，从生产语义修。
+- 读数：定向四条 **27/27**（AuthFilterTest 9 + AuthPolicyTest 6 + Parity 4 + PlatformAuthFilterTest 8）；
+  网关全套 `mvn -o -B test -f services/nexus-gateway/pom.xml` = **88/88 BUILD SUCCESS**（SC-31 基线 78 + 10）；
+  顶层 `npm run typecheck` = **14/14 PASS**。日志可见 `/fallbackish`、`/platform/services`、
+  `/actuator/circuitbreakers`、`/api/publications` 在两门上都记 `missing_token` → 401。
+- 诚实边界：段边界而非仅精确匹配（`/fallback/**` 是子树语义，尾斜杠容忍防配置手误）；parity 不 pin
+  「哪张表对」、只要求两门一致，真值源锁才钉语义，故合法地**给两门同时**加白名单路径不会被阻拦；
+  收敛是**同进程内/编译期**的，非跨服务配置中心（多实例用同一份代码常量，无运行时漂移）；零新依赖、
+  零新端点、不扩大攻击面。整仓 `npm run eslint` 仍是本机内存下的超时边界（非 lint 报错），如实记；
+  未推送（无明确指令）。

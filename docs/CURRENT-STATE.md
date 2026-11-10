@@ -21,6 +21,16 @@
 > 已修（记录型集合共生命周期）。Bulkhead 本轮**未接**：其依赖在 gateway 是 runtime scope、并发断言本机易
 > flaky，理由与缺口记在 ROADMAP §SC 第二十六片。
 >
+> **2026-11-11 续（§SC-32 / ADR-0104）**：两扇认证门（`AuthFilter` 路由 edge + `PlatformAuthFilter`
+> 网关自身端点）**从两份复制的拷贝折叠成单一真值源 `AuthPolicy`**：一份白名单、一个「exact 或整路径段」
+> 匹配 `isOpen()`、一个 fail-closed `requireSecret()`、一个 401 方言 `refusalBody()`，两门与
+> `GatewayConfig` bean 全部委托。**修掉两个真缺陷**：裸 `startsWith("/fallback")` 把 `/fallbackish`
+> 也放行（§SC-27 洞的同类变体）、`AuthFilter` 构造器不检查空白 secret 而 `PlatformAuthFilter` 检查。
+> 过去「keep the two whitelists in sync」只是注释，现由**双锁**保证：`AuthWhitelistParityTest`（4 条，
+> 两门判定/401 body 逐字一致）+ `AuthPolicyTest`（6 条，钉真值源段边界本身，防「两门一起漂移 parity
+> 仍绿」）。网关全套 **78 → 88/88**（SC-31 基线 78 + 10），typecheck 14/14；首跑红 2 条从生产语义修，
+> 未放宽断言。细节见 ADR-0104 与 ROADMAP §SC 第二十八片。
+>
 > **2026-11-11 续（§SC-31 / ADR-0103）**：breaker 状态从「只有测试能读」变成**运维读数**——
 > `application.yml` 的 `exposure.include` 由 `health` 加到 `health,circuitbreakers`（resilience4j 自带端点，
 > 零生产 Java 改动），把 §SC-24/§SC-29 的 OPEN/自愈第一次经 `/actuator/circuitbreakers` 对外可见，
