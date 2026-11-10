@@ -1,7 +1,7 @@
 /**
  * 发现页热读的「按 viewer 分键」有界缓存（§SC-41 / ADR-0113）。
  *
- * 它要挡的不是"慢"，而是三种会真发生的错：
+ * 它要挡的不是"慢"，而是四种会真发生的错：
  *
  * 1. **跨 viewer 串味（隐私红线）**：`discover` 的结果随 viewer 的屏蔽名单与关注关系而变
  *    （`hiddenAuthorIds` / `following`）。若缓存键不含 viewer、或 singleflight 跨 viewer 合并，
@@ -15,10 +15,17 @@
  *    再来会重新拿到 0，于是命中它**拉黑前**缓存的那份 key。根治是**进程级单调递增水位线
  *    `globalGen`**：任何 viewer 重新分配到的 generation 都严格大于它历史上用过的所有值，
  *    旧键永久拼不出来，最坏只是多查一次库。
+ * 4. **新作品发布后最多一个 TTL 才进发现页（§SC-44 / ADR-0116，内容新鲜度）**：public 发布 /
+ *    从 public 下架 / public 内容被 rejected，对所有 viewer 都是新内容，连匿名共享缓存也得分。
+ *    故键再带一段**全缓存世代 `globalEpoch`**：这些写路径调 `invalidateDiscoverGlobally` 让它 +1，
+ *    所有旧键（匿名 `|0|…`、已缓存 viewer 的旧 generation）一次性拼不出来。**与 `globalGen` 正交**：
+ *    内容变更不动 privacy 分键、privacy 变更不动全局世代；两者都**跨 reset 保留**防旧键复活。
+ *    不能靠 `++globalGen`/清 `viewerGen` 代替——匿名恒 0、已缓存 viewer 读缓存值，都绕过它们。
  *
  * 另两层与 §SC-40 网关缓存复用同一个 `BoundedCache` 原语：
  * - **有界 TTL + LRU**：键由 viewer × sort 撑，注册用户/爬虫不能决定本进程留多少内存；
- *   TTL 只负责"公有内容（新发布/计数/榜单）别太陈旧"，隐私新鲜度靠上面的主动失效兜。
+ *   TTL 是**最终兜底**（计数/榜单等没有写路径信号的公有数据靠它收敛），隐私与发现页收录
+ *   的新鲜度都靠上面的主动失效兜——不把"新作品多久出现"押在 TTL 到点上。
  * - **singleflight**：同一 viewer 并发热读只打一次库；同一时刻的 N 个 RSC 导航不放大成 N 条 SQL。
  *
  * 单例挂 `globalThis`（与 `gateway/index.ts` 同范式）：Next 开发态热重载、RSC 与 route handler
@@ -48,6 +55,8 @@ export interface DiscoverCacheConfig {
 export type DiscoverCacheStats = CacheStats & {
   /** 进程级单调水位线，只增不减；判据用它证明淘汰后不会回退 */
   readonly globalGen: number;
+  /** §SC-44 全缓存世代版本号，只增不减；每次全局失效 +1，面板据此看"发布清了几次缓存" */
+  readonly globalEpoch: number;
   /** 当前留在 generation 表里的 viewer 数（有界） */
   readonly viewerGenerations: number;
   readonly config: DiscoverCacheConfig;
@@ -59,8 +68,16 @@ interface Store {
   readonly cache: BoundedCache<DiscoverResult>;
   /** viewerId -> 当前生效的 generation；有界 LRU，条目被淘汰只会多查库，不会串味 */
   readonly viewerGen: Map<string, number>;
-  /** 只增不减的单调水位线，永不随淘汰/重置归零 */
+  /** 只增不减的单调水位线，永不随淘汰/重置归零（给**新 viewer** 分配 generation 用） */
   globalGen: number;
+  /**
+   * §SC-44 全缓存世代版本号（与 `globalGen` 正交，绝不复用）。新作品发布/下架/审核拒绝
+   * 对所有 viewer 都是新内容，需要让**所有键**（含匿名的 `|0|…`、已缓存 viewer 的旧 generation）
+   * 一次性拼不出来。为什么不能靠 `++globalGen`：匿名 generation 恒 0、已缓存 viewer 直接读缓存值，
+   * 两者都绕过 `globalGen`，bump 它一个现有键都失效不了。故独立一个键段、每次全局失效 `+1`。
+   * 同样**跨 reset/热重载保留**，否则 epoch 回退会复活旧键（与 `globalGen` 同一条理由）。
+   */
+  globalEpoch: number;
   readonly config: DiscoverCacheConfig;
   /** 可选跨实例失效总线；不设 NEXUS_REDIS_URL 或注入替身时为 null（单机语义零变化） */
   bus: InvalidationBus | null;
@@ -148,8 +165,10 @@ function attachBus(s: Store, injected: InvalidationBus | null | undefined): void
       return;
     }
     s.bus = bus;
-    s.unsubscribe = bus.subscribe((ids) => {
-      bumpLocal(s, ids); // 远端失效与本地共用 bumpLocal
+    s.unsubscribe = bus.subscribe((ids, global) => {
+      // 远端帧与本地写路径共用同一内核：定向帧只 bump 这些人，全局帧 bump 整个世代。
+      if (global === true) s.globalEpoch += 1;
+      else bumpLocal(s, ids);
     });
   };
 
@@ -190,6 +209,8 @@ export function resetDiscoverCacheForTest(overrides: DiscoverCacheTestOverrides 
     cache,
     viewerGen: new Map<string, number>(),
     globalGen: previous?.globalGen ?? 0,
+    // 与 globalGen 同一条理由：epoch 回退会让"上次全局失效之前"拼出的旧键重新可命中。
+    globalEpoch: previous?.globalEpoch ?? 0,
     config,
     bus: null,
     unsubscribe: null,
@@ -228,11 +249,18 @@ function generationFor(s: Store, viewerId: string | null): number {
   return fresh;
 }
 
-/** JSON 数组编码，viewerId 含 `|`/`:` 也不会与别的 (viewer,sort,limit) 组合碰撞。limit 缺省按 discover 的 24。 */
+/**
+ * JSON 数组编码，viewerId 含 `|`/`:` 也不会与别的 (viewer,sort,limit) 组合碰撞。limit 缺省按 discover 的 24。
+ * 键四段：`discover:v1|<globalEpoch>|<generation>|<JSON>`。
+ * - `globalEpoch`（§SC-44）：全缓存世代，新作品发布/下架 +1 → 所有旧键（含匿名、含已缓存 viewer）
+ *   一次性拼不出来；跨实例经总线广播同步。
+ * - `generation`（§SC-41）：该 viewer 的私有关系世代，屏蔽/关注变更 +1 → 只失效这个人。
+ * 两者正交：全局内容变更不动 privacy 分键，privacy 变更不动全局世代。
+ */
 function keyFor(s: Store, input: DiscoverCacheInput): string {
   const viewerId = input.viewerId ?? null;
   const generation = generationFor(s, viewerId);
-  return `discover:v1|${generation}|${JSON.stringify([viewerId, input.sort, input.limit ?? 24])}`;
+  return `discover:v1|${s.globalEpoch}|${generation}|${JSON.stringify([viewerId, input.sort, input.limit ?? 24])}`;
 }
 
 /**
@@ -250,6 +278,36 @@ function invalidateInStore(s: Store, viewerIds: (string | null | undefined)[]): 
 /** 写路径调用：让这些 viewer 的所有旧键**即时**失效，并把这一帧广播给别的实例。匿名 `null` 是 no-op。 */
 export function invalidateDiscoverFor(...viewerIds: (string | null | undefined)[]): void {
   invalidateInStore(getStore(), viewerIds);
+}
+
+/**
+ * §SC-44 全局失效内核：新作品发布/下架/审核拒绝走到这里——内容对所有 viewer 都是新的，
+ * 必须让**所有键**（匿名共享 + 每个登录 viewer 的每个 sort）一次性拼不出来。
+ *
+ * 顺序与 `invalidateInStore` 同一纪律：**本机 `globalEpoch += 1` 永远先做**（本机即时生效、
+ * fail-open 最后一道），再 fire-and-forget 广播全局帧；广播失败也不回退、不抛、不阻塞写库请求。
+ *
+ * 为什么 not 复用 `globalGen`、also not `viewerGen.clear()`：
+ * - 匿名 generation 恒 0、已缓存 viewer 读缓存值，`++globalGen`/清表都动不了它们的现有键；
+ * - 只有把 epoch 放进**每个键**才能无条件作废旧键。清 `viewerGen` 是可选的 LRU 释放，但
+ *   **不能**靠它做失效（匿名根本不在表里），故这里刻意不动它，保持"epoch 是唯一全局闸门"。
+ *
+ * 惊群诚实边界（写进 ADR-0116）：全局失效 ≈ 一次冷启动，singleflight 只合并**同键**并发、
+ * 不跨键，故打库量随活跃 (viewer,sort,limit) 组合数上升。这是"发布即时可见"的直接代价，
+ * 不是 bug；常态发布频率下可接受，代价与收益都在面板 `globalEpoch` 读数里可见。
+ */
+function invalidateAllInStore(s: Store): void {
+  s.globalEpoch += 1; // 1. 本机即时：所有旧键（含匿名）拼不出来
+  s.bus?.publish([], true); // 2. 净辐射广播全局帧（同步 void、绝不 await/不抛）
+}
+
+/**
+ * §SC-44 写路径调用：让**所有 viewer、所有 sort** 的发现页缓存即时失效。
+ * 只在"发现页收录状态真的改变"时调——public 发布 / 从 public 下架 / public 内容被 rejected；
+ * private/unlisted 发布与 approved 裁决不改变发现页收录，不调（避免无意义地清空全站缓存造惊群）。
+ */
+export function invalidateDiscoverGlobally(): void {
+  invalidateAllInStore(getStore());
 }
 
 /** 取或加载的参数化内核（全局入口与多实例测试工厂共用）。同 viewer/sort/limit 并发只跑一次 loader。 */
@@ -270,6 +328,7 @@ export function discoverCacheStats(): DiscoverCacheStats {
   return {
     ...s.cache.stats(),
     globalGen: s.globalGen,
+    globalEpoch: s.globalEpoch,
     viewerGenerations: s.viewerGen.size,
     config: s.config,
     bus: s.bus ? { ...s.bus.stats(), errors: s.bus.stats().errors + s.busErrors } : null,
@@ -315,6 +374,8 @@ export function discoverCacheKeyForTest(input: DiscoverCacheInput): string {
 export interface IsolatedDiscoverCache {
   load(input: DiscoverCacheInput, loader: DiscoverLoader): Promise<DiscoverResult>;
   invalidate(...viewerIds: (string | null | undefined)[]): void;
+  /** §SC-44：全局失效（新作品发布/下架），让所有键拼不出来并广播给同 hub 其它实例。 */
+  invalidateAll(): void;
   stats(): DiscoverCacheStats;
   keyFor(input: DiscoverCacheInput): string;
   dispose(): void;
@@ -341,19 +402,27 @@ export function createIsolatedDiscoverCacheForTest(options: {
     cache,
     viewerGen: new Map<string, number>(),
     globalGen: 0,
+    globalEpoch: 0,
     config,
     bus: options.bus ?? null,
     unsubscribe: null,
     busErrors: 0,
   };
-  // 与全局 store 的 attachBus 同一语义：远端帧 → 本实例 bumpLocal（本地与远端共用内核）。
-  if (s.bus) s.unsubscribe = s.bus.subscribe((ids) => bumpLocal(s, ids));
+  // 与全局 store 的 attachBus 同一语义：定向帧 → bumpLocal，全局帧 → bump epoch（共用内核）。
+  if (s.bus) {
+    s.unsubscribe = s.bus.subscribe((ids, global) => {
+      if (global === true) s.globalEpoch += 1;
+      else bumpLocal(s, ids);
+    });
+  }
   return {
     load: (input, loader) => loadFromStore(s, input, loader),
     invalidate: (...ids) => invalidateInStore(s, ids),
+    invalidateAll: () => invalidateAllInStore(s),
     stats: () => ({
       ...s.cache.stats(),
       globalGen: s.globalGen,
+      globalEpoch: s.globalEpoch,
       viewerGenerations: s.viewerGen.size,
       config: s.config,
       bus: s.bus ? { ...s.bus.stats(), errors: s.bus.stats().errors + s.busErrors } : null,

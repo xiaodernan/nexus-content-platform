@@ -1,10 +1,12 @@
 /**
  * 发现页缓存的**跨实例失效总线**（§SC-42 / ADR-0114）。
  *
- * 它只做一件事：把「某个 viewer 的私有关系变了」这一帧广播给别的进程，让对方也 bump
- * 本地 generation。权威状态永远在 Postgres（`user_blocks` / `follows`），缓存是加速器，
- * 广播是**尽力即时的最终一致**，不是隐私强一致承诺——订阅掉线窗口内丢一帧，对方最坏
- * 多用一个 TTL（默认 15s）的旧 generation，随后自愈。绝不拿它当"拉黑全集群瞬时生效"的尺子。
+ * 它做两件事：把「某个 viewer 的私有关系变了」广播给别的进程（让对方 bump 本地 generation），
+ * 以及 §SC-44 起把「全缓存世代变了」（新作品发布/下架，对所有 viewer 都是新内容）广播成
+ * 一帧全局失效（让对方 bump 本地 globalEpoch）。权威状态永远在 Postgres
+ * （`user_blocks` / `follows` / `published_projects`），缓存是加速器，广播是**尽力即时的
+ * 最终一致**，不是强一致承诺——订阅掉线窗口内丢一帧，对方最坏多用一个 TTL（默认 15s）的
+ * 旧视图，随后自愈。绝不拿它当"拉黑/下架全集群瞬时生效"的尺子。
  *
  * 三个机制各自挡一种真实坏法：
  *
@@ -37,6 +39,13 @@ export interface InvalidationFrame {
   readonly v: 1;
   readonly origin: string;
   readonly viewerIds: string[];
+  /**
+   * §SC-44：全局失效帧（新作品发布 / 下架 / 审核拒绝，对所有 viewer 都是新内容）。
+   * 可选字段——旧帧没有它，新帧带 `global:true` 且 `viewerIds:[]`。
+   * **单向兼容**：新实例能收旧帧（viewerIds 非空、无 global）；旧实例解析新帧时会因
+   * 空 viewerIds 撞护栏而 fail-safe 丢弃（当成坏帧记账），绝不把空集误当"要 bump 的人"。
+   */
+  readonly global?: true;
 }
 
 export interface InvalidationBusStats {
@@ -55,10 +64,18 @@ export interface InvalidationBusStats {
  * `discover-cache` 只认这个接口，不认 Redis——注入替身即可确定性测多实例语义。
  */
 export interface InvalidationBus {
-  /** 广播「这些 viewer 的私有关系变了」。绝不抛、绝不 await 网络、绝不阻塞调用方。 */
-  publish(viewerIds: string[]): void;
-  /** 订阅远端失效；返回幂等退订函数（dispose 会调）。 */
-  subscribe(onInvalidate: (viewerIds: string[]) => void): () => void;
+  /**
+   * 广播「这些 viewer 的私有关系变了」。`global=true` 时广播"全缓存世代变了"
+   * （viewerIds 必须为空）——新作品发布/下架对所有 viewer 都是新内容，无法也不该把全站
+   * viewerId 塞进一帧。绝不抛、绝不 await 网络、绝不阻塞调用方。
+   */
+  publish(viewerIds: string[], global?: boolean): void;
+  /**
+   * 订阅远端失效；第二参 `global` 为 true 表示这一帧是全局失效（viewerIds 为空）。
+   * 旧订阅者只接第一参也能照常工作（多余实参被忽略），故签名改动向后兼容。
+   * 返回幂等退订函数（dispose 会调）。
+   */
+  subscribe(onInvalidate: (viewerIds: string[], global?: boolean) => void): () => void;
   /** 主动收摊：断开全部连接、清监听器，幂等。 */
   dispose(): void;
   stats(): InvalidationBusStats;
@@ -85,6 +102,14 @@ export function parseInvalidationFrame(payload: string): InvalidationFrame | nul
   if (typeof candidate['origin'] !== 'string' || candidate['origin'].length === 0) return null;
   if (!Array.isArray(candidate['viewerIds'])) return null;
   const ids = candidate['viewerIds'];
+  // §SC-44 两种帧互斥：全局帧（global===true）必须带空 viewerIds；定向帧必须非空。
+  // 用显式 global 字段而非"空数组即全局"消歧，避免把一条被截坏的定向帧误读成全局失效。
+  const isGlobal = candidate['global'] === true;
+  if (isGlobal) {
+    if (ids.length !== 0) return null; // 全局帧带人 = 形状矛盾，丢
+    return { v: 1, origin: candidate['origin'], viewerIds: [], global: true };
+  }
+  // 定向帧：旧实例正是靠"空数组直接丢"把 SC-44 的全局帧 fail-safe 挡掉的，这条护栏不能松。
   if (ids.length === 0 || ids.length > MAX_VIEWERS_PER_FRAME) return null;
   if (ids.some((id) => typeof id !== 'string' || id.length === 0 || id.length > MAX_VIEWER_ID_LENGTH)) return null;
   return { v: 1, origin: candidate['origin'], viewerIds: ids as string[] };
@@ -109,7 +134,7 @@ function defaultOrigin(): string {
 function makeDispatcher(
   origin: string,
   counters: { received: number; errors: number; applied: number },
-  onInvalidate: (viewerIds: string[]) => void,
+  onInvalidate: (viewerIds: string[], global?: boolean) => void,
 ): (payload: string) => void {
   return (payload: string) => {
     const frame = parseInvalidationFrame(payload);
@@ -120,10 +145,11 @@ function makeDispatcher(
     if (frame.origin === origin) return; // 自己回环的那一帧，丢掉
     counters.received += 1;
     try {
-      onInvalidate(frame.viewerIds);
-      counters.applied += frame.viewerIds.length;
+      onInvalidate(frame.viewerIds, frame.global === true);
+      // 全局帧记 1 次处置（不是 0 个 viewer，否则四账会显示"收到却没做任何事"的谎）。
+      counters.applied += frame.global === true ? 1 : frame.viewerIds.length;
     } catch {
-      // 上层回调（bump 本地 generation）不该抛；真抛了也只记账，不让线路处理崩掉。
+      // 上层回调（bump 本地 generation / epoch）不该抛；真抛了也只记账，不让线路处理崩掉。
       counters.errors += 1;
     }
   };
@@ -134,17 +160,17 @@ function makeDispatcher(
  * `dispatch` 把一帧的 viewerIds 交给所有在册回调；某个回调抛错由调用方（dispatcher）兜住。
  */
 export class InvalidationListeners {
-  private readonly listeners = new Set<(viewerIds: string[]) => void>();
+  private readonly listeners = new Set<(viewerIds: string[], global?: boolean) => void>();
 
-  subscribe(listener: (viewerIds: string[]) => void): () => void {
+  subscribe(listener: (viewerIds: string[], global?: boolean) => void): () => void {
     this.listeners.add(listener);
     return () => {
       this.listeners.delete(listener);
     };
   }
 
-  dispatch(viewerIds: string[]): void {
-    for (const listener of [...this.listeners]) listener(viewerIds);
+  dispatch(viewerIds: string[], global?: boolean): void {
+    for (const listener of [...this.listeners]) listener(viewerIds, global);
   }
 
   get size(): number {
@@ -168,16 +194,22 @@ export class MemoryInvalidationBus implements InvalidationBus {
   private disposed = false;
 
   constructor(private readonly hub: MemoryInvalidationHub) {
-    this.dispatchFrame = makeDispatcher(this.origin, this.counters, (ids) => this.listeners.dispatch(ids));
+    this.dispatchFrame = makeDispatcher(this.origin, this.counters, (ids, global) => this.listeners.dispatch(ids, global));
     this.wireListener = (payload: string) => {
       if (!this.disposed) this.dispatchFrame(payload);
     };
     this.hub.attach(this.wireListener);
   }
 
-  publish(viewerIds: string[]): void {
+  publish(viewerIds: string[], global?: boolean): void {
     if (this.disposed) return;
-    const payload = serializeFrame({ v: 1, origin: this.origin, viewerIds: [...viewerIds] });
+    // global 帧必须空 viewerIds；定向帧空集是 no-op（与生产 Redis 驱动同一口径）。
+    if (global !== true && viewerIds.length === 0) return;
+    const payload = serializeFrame(
+      global === true
+        ? { v: 1, origin: this.origin, viewerIds: [], global: true }
+        : { v: 1, origin: this.origin, viewerIds: [...viewerIds] },
+    );
     if (payload === null) {
       this.counters.errors += 1;
       return;
@@ -186,7 +218,7 @@ export class MemoryInvalidationBus implements InvalidationBus {
     this.hub.emit(payload, this.origin);
   }
 
-  subscribe(onInvalidate: (viewerIds: string[]) => void): () => void {
+  subscribe(onInvalidate: (viewerIds: string[], global?: boolean) => void): () => void {
     return this.listeners.subscribe(onInvalidate);
   }
 
@@ -266,7 +298,7 @@ export class RedisInvalidationBus implements InvalidationBus {
     options: RedisInvalidationBusOptions,
   ) {
     this.origin = options.origin ?? defaultOrigin();
-    this.dispatchFrame = makeDispatcher(this.origin, this.counters, (ids) => this.listeners.dispatch(ids));
+    this.dispatchFrame = makeDispatcher(this.origin, this.counters, (ids, global) => this.listeners.dispatch(ids, global));
 
     // 两条连接都挂常驻 error 监听：Node 里无监听者的 error 事件是 uncaught exception。
     const onError = options.onError ?? (() => undefined);
@@ -295,9 +327,15 @@ export class RedisInvalidationBus implements InvalidationBus {
     });
   }
 
-  publish(viewerIds: string[]): void {
-    if (this.disposed || viewerIds.length === 0) return;
-    const payload = serializeFrame({ v: 1, origin: this.origin, viewerIds: [...viewerIds] });
+  publish(viewerIds: string[], global?: boolean): void {
+    if (this.disposed) return;
+    // §SC-44：全局帧（viewerIds 空）不再被这条早退挡掉；定向帧空集仍是 no-op。
+    if (global !== true && viewerIds.length === 0) return;
+    const payload = serializeFrame(
+      global === true
+        ? { v: 1, origin: this.origin, viewerIds: [], global: true }
+        : { v: 1, origin: this.origin, viewerIds: [...viewerIds] },
+    );
     if (payload === null) {
       this.counters.errors += 1;
       return;
@@ -309,7 +347,7 @@ export class RedisInvalidationBus implements InvalidationBus {
     });
   }
 
-  subscribe(onInvalidate: (viewerIds: string[]) => void): () => void {
+  subscribe(onInvalidate: (viewerIds: string[], global?: boolean) => void): () => void {
     return this.listeners.subscribe(onInvalidate);
   }
 

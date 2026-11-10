@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { DiscoverCacheReadout } from '@/server/domain/discover-cache';
-import { busTag, dashOr, footNote, generationNote, hitRate, isKnownReadout, pollAllowed } from './discover-view';
+import { busTag, dashOr, epochNote, footNote, generationNote, hitRate, isKnownReadout, pollAllowed } from './discover-view';
 
 /**
  * §SC-43 面板：把这一台实例的发现页缓存账与跨实例总线账渲染出来，每 4 秒问一次
@@ -150,6 +150,18 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
         </div>
         <p className="dc-note" data-discover-generation-note>
           {generationNote(stats.globalGen, stats.viewerGenerations, cfg.maxViewers)}
+        </p>
+      </section>
+
+      {/* §SC-44 全局世代：把"新作品即时可见"的收益与冷启动代价一起放到运维眼前 */}
+      <section className="flex flex-col gap-2" aria-label="全局世代">
+        <h2 className="text-13 font-semibold text-fg-2">内容新鲜度的内存账</h2>
+        <div className="dc-ledgerGrid" data-discover-epoch>
+          <LedgerRow label="全局世代 globalEpoch" value={dashOr(stats.globalEpoch)} />
+          <LedgerRow label="每次 +1 作废" value="所有 sort · 所有 viewer · 含匿名" mono={false} />
+        </div>
+        <p className="dc-note" data-discover-epoch-note>
+          {epochNote(stats.globalEpoch)}
         </p>
       </section>
 

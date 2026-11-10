@@ -1,14 +1,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { inArray, sql as rawSql } from 'drizzle-orm';
+import { eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { createNode, findPage } from '@nexus/creative-model';
 import { raisePlan } from './support/test-plan';
 import { clearBlock, setBlock } from '../src/server/domain/blocks';
 import { discoverCached, toggleFollow } from '../src/server/domain/social';
-import { publishProject } from '../src/server/domain/publish';
+import { resolveCase } from '../src/server/domain/moderation';
+import { publishProject, unpublishProject } from '../src/server/domain/publish';
 import { createProject, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { discoverCacheStats, invalidateDiscoverFor, resetDiscoverCacheForTest } from '../src/server/domain/discover-cache';
 import { getDb } from '../src/server/db/client';
-import { projects, publishedProjects, users } from '../src/server/db/schema';
+import { moderationCases, projects, users } from '../src/server/db/schema';
 import type { DiscoverResult } from '../src/server/domain/social';
 
 /**
@@ -77,6 +78,23 @@ async function publishedBy(owner: string): Promise<string> {
   const result = await publishProject(project.id, { visibility: 'public', createdById: owner });
   if (!result?.ok) throw new Error(`前置发布失败：${!result || result.ok ? '?' : result.reason}`);
   return result.publication.path;
+}
+
+/** 与 publishedBy 同一条发布链，但把 projectId 也带出来（给需要 unpublish 的用例）。 */
+async function publishedProjectBy(owner: string): Promise<{ path: string; projectId: string }> {
+  seq += 1;
+  const name = `缓存隔离作品${seq}`;
+  const project = await createProject(owner, { name, kind: 'website' });
+  const document = await loadDocument(project.id);
+  const page = findPage(document!, document!.activePageId) ?? document!.pages[0]!;
+  const root = page.nodes[page.rootId]!;
+  const node = createNode({ type: 'text', name: 'body', text: '缓存可见性', parentId: root.id });
+  page.nodes[node.id] = node;
+  root.children.push(node.id);
+  await saveDocument(project.id, document!);
+  const result = await publishProject(project.id, { visibility: 'public', createdById: owner });
+  if (!result?.ok) throw new Error(`前置发布失败：${!result || result.ok ? '?' : result.reason}`);
+  return { path: result.publication.path, projectId: project.id };
 }
 
 const has = (r: DiscoverResult, path: string) => r.cards.some((c) => c.path === path);
@@ -164,6 +182,101 @@ describe('缓存接真库：隐私边界不回退', () => {
       await toggleFollow(authorId, fanId); // 取消关注，复位
       const unfollowed = await discoverCached({ sort: 'following', viewerId: authorId, limit: 60 });
       expect(has(unfollowed, fanWork)).toBe(false);
+    },
+    HEAVY_MS,
+  );
+});
+
+describe('§SC-44 新作品即时进发现页（真库端到端：写路径 → 全局失效 → 重查）', () => {
+  it(
+    'public 发布后所有 viewer（含匿名）立刻看到，无需等 TTL；且屏蔽名单不被全局失效绕过',
+    async () => {
+      await setBlock(authorId, fanId, 'mute'); // author 屏蔽 fan，验证隐私在全局失效后仍生效
+      const oldWork = await publishedBy(fanId); // 旧作品（fan 的，author 该看不到）
+      const anonInput = { sort: 'new' as const, viewerId: null, limit: 60 };
+      const authorInput = { sort: 'new' as const, viewerId: authorId, limit: 60 };
+
+      // 预热缓存：此刻两份视图都缓存了，且都没有"待发布的新作品"
+      const anonBefore = await discoverCached(anonInput);
+      const authorBefore = await discoverCached(authorInput);
+      expect(has(authorBefore, oldWork)).toBe(false); // author 屏蔽生效
+      expect(authorBefore.hiddenAuthors).toBe(1);
+      const epochBefore = discoverCacheStats().globalEpoch;
+      const loadsBefore = discoverCacheStats().loads;
+
+      // 真发布一个 public 新作品（走 publishProject，内部应触发全局失效）
+      const freshPath = await publishedBy(authorId);
+
+      // 断言 1：epoch 因这次发布 +1（写路径钩子真的接上了）
+      expect(discoverCacheStats().globalEpoch).toBe(epochBefore + 1);
+      // 断言 2：匿名与 author 重查都能立刻看到新作品（没吃 TTL 内的旧缓存）
+      const anonAfter = await discoverCached(anonInput);
+      const authorAfter = await discoverCached(authorInput);
+      expect(has(anonAfter, freshPath)).toBe(true);
+      expect(has(authorAfter, freshPath)).toBe(true);
+      // 断言 3：全局失效后 loads 增长 = 确实重查了库（不是继续命中旧键）
+      expect(discoverCacheStats().loads).toBeGreaterThan(loadsBefore);
+      // 断言 4（隐私不串味）：author 仍看不到被自己屏蔽的 fan 旧作品——
+      // 全局失效只清缓存、不碰库里的屏蔽关系，重查后隐私过滤照旧。
+      expect(has(authorAfter, oldWork)).toBe(false);
+      expect(authorAfter.hiddenAuthors).toBe(1);
+      expect(has(anonAfter, oldWork)).toBe(true); // 匿名没屏蔽，仍在
+
+      await clearBlock(authorId, fanId);
+    },
+    HEAVY_MS,
+  );
+
+  it(
+    '从 public 下架后所有 viewer 立刻看不到，无需等 TTL',
+    async () => {
+      const { path: victim, projectId } = await publishedProjectBy(fanId);
+      const anonInput = { sort: 'new' as const, viewerId: null, limit: 60 };
+      const strangerInput = { sort: 'new' as const, viewerId: strangerId, limit: 60 };
+
+      // 预热：匿名与 stranger 都缓存了"作品还在"的视图
+      expect(has(await discoverCached(anonInput), victim)).toBe(true);
+      expect(has(await discoverCached(strangerInput), victim)).toBe(true);
+      const epochBefore = discoverCacheStats().globalEpoch;
+
+      // 真下架：unpublishProject 把 visibility 切回 private
+      expect(await unpublishProject(projectId, fanId)).toBe(true);
+
+      // 全局失效 + 重查：两份视图都该立刻看不到它
+      expect(discoverCacheStats().globalEpoch).toBe(epochBefore + 1);
+      expect(has(await discoverCached(anonInput), victim)).toBe(false);
+      expect(has(await discoverCached(strangerInput), victim)).toBe(false);
+    },
+    HEAVY_MS,
+  );
+
+  it(
+    'public 内容被人工判 rejected 后所有 viewer 立刻看不到，无需等 TTL',
+    async () => {
+      const { path: victim, projectId } = await publishedProjectBy(fanId);
+      // publishProject 对每次 outward 发布都会立案（recordScan），取那条未结案的案卷。
+      const [openCase] = await getDb()
+        .select({ id: moderationCases.id })
+        .from(moderationCases)
+        .where(eq(moderationCases.projectId, projectId))
+        .limit(1);
+      expect(openCase).toBeTruthy();
+
+      const anonInput = { sort: 'new' as const, viewerId: null, limit: 60 };
+      const strangerInput = { sort: 'new' as const, viewerId: strangerId, limit: 60 };
+      // 预热：两份视图都缓存了"作品还在"（pending 本就在发现页里）
+      expect(has(await discoverCached(anonInput), victim)).toBe(true);
+      expect(has(await discoverCached(strangerInput), victim)).toBe(true);
+      const epochBefore = discoverCacheStats().globalEpoch;
+
+      // 真裁决：rejected。resolveCase 把该 publication 的 moderation 写 rejected → 发现页收录失效。
+      const outcome = await resolveCase(openCase!.id, { adminId: strangerId, resolution: 'rejected' });
+      expect(outcome).toMatchObject({ ok: true, hidden: true });
+
+      // 全局失效 + 重查：两份视图都该立刻看不到它（不该等到 TTL）
+      expect(discoverCacheStats().globalEpoch).toBe(epochBefore + 1);
+      expect(has(await discoverCached(anonInput), victim)).toBe(false);
+      expect(has(await discoverCached(strangerInput), victim)).toBe(false);
     },
     HEAVY_MS,
   );

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   busTag,
   dashOr,
+  epochNote,
   footNote,
   generationNote,
   hitRate,
@@ -28,6 +29,7 @@ const knownReadout = (): DiscoverCacheReadout => ({
     inFlight: 0,
     size: 12,
     globalGen: 7,
+    globalEpoch: 2,
     viewerGenerations: 3,
     config: { ttlMs: 15_000, maxEntries: 2048, maxViewers: 512 },
     bus: null,
@@ -109,6 +111,12 @@ describe('回执形状门（坏 JSON / 残缺 bus / 残缺 config 不许画成�
   it('bus=null（单机）是合法读数，不被形状门误杀', () => {
     expect(isKnownReadout({ ...knownReadout(), stats: { ...knownReadout().stats, bus: null } })).toBe(true);
   });
+  it('globalEpoch（§SC-44 面板要显示）缺/类型错也挡掉——否则运维看到 undefined', () => {
+    const broken = knownReadout();
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, globalEpoch: undefined } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, globalEpoch: '2' } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, globalEpoch: 0 } })).toBe(true);
+  });
   it('config 是面板分母（size/maxEntries）与秒数（ttlMs/1000）的来源，缺一个/类型错都挡掉', () => {
     const broken = knownReadout();
     for (const key of ['ttlMs', 'maxEntries', 'maxViewers']) {
@@ -153,5 +161,18 @@ describe('旁注与页脚（把方法论结论与最终一致边界放到运维�
     expect(foot).toContain('每 8 秒');
     expect(foot).not.toContain('每 4 秒');
     expect(foot.match(/每 \d+ 秒/g)).toHaveLength(1); // 早先 scope 硬编码 4、末尾又拼一次，会在这里红
+  });
+});
+
+describe('全局世代旁注（§SC-44 把即时可见的收益与冷启动代价都摆出来）', () => {
+  it('讲清 epoch 因何涨、涨了作废哪些键、为什么冷启动尖峰不是故障', () => {
+    const note = epochNote(3);
+    expect(note).toContain('3'); // 当前世代如实报
+    expect(note).toContain('发布');
+    expect(note).toContain('下架');
+    expect(note).toContain('匿名'); // 匿名共享缓存也被作废，这是与 privacy 失效的关键区别
+    expect(note).toContain('TTL'); // 明说不用等 TTL
+    expect(note).toContain('singleflight'); // 冷启动尖峰的成因
+    expect(note).toContain('不是缓存故障'); // 预期行为，不是事故
   });
 });

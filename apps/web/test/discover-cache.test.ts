@@ -3,6 +3,7 @@ import {
   discoverCacheKeyForTest,
   discoverCacheStats,
   invalidateDiscoverFor,
+  invalidateDiscoverGlobally,
   loadDiscoverCached,
   resetDiscoverCacheForTest,
   type DiscoverCacheInput,
@@ -221,6 +222,64 @@ describe('单调水位线（本片最隐蔽的一条）', () => {
     expect(g2).toBeGreaterThan(g1);
     resetDiscoverCacheForTest({ maxEntries: 64, maxViewers: 8, ttlMs: 10_000, now: () => 1_000 });
     expect(discoverCacheStats().globalGen).toBe(g2); // 重置不清零
+  });
+});
+
+describe('§SC-44 全局失效（新作品发布/下架——内容新鲜度，与 privacy 失效正交）', () => {
+  it('预热匿名 + 多 viewer + 4 sort → 一次全局失效 → 每个键都重新加载（含匿名共享那份）', async () => {
+    const { loader, calls } = countingLoader();
+    // 匿名共享 1 份 + 两个登录 viewer × 4 sort = 9 个键，全部预热命中
+    const inputs: DiscoverCacheInput[] = [
+      { sort: 'new', viewerId: null },
+      ...['A', 'B'].flatMap((v) => SORTS.map((sort) => ({ sort, viewerId: v }))),
+    ];
+    for (const input of inputs) await loadDiscoverCached(input, loader);
+    expect(calls()).toBe(9); // 9 个键各加载一次
+    const epochBefore = discoverCacheStats().globalEpoch;
+
+    invalidateDiscoverGlobally();
+
+    expect(discoverCacheStats().globalEpoch).toBe(epochBefore + 1);
+    // 再读一遍：所有键都是新 epoch → 全部 miss、全部重载，没有一个吃旧缓存（尤其匿名）。
+    // calls 从 9 变 18 就是"匿名共享那份 + 每个 viewer 每个 sort 全部重载"的精确反证——
+    // 若匿名没被全局失效（像 privacy 失效那样 no-op），这里只会是 17。
+    for (const input of inputs) await loadDiscoverCached(input, loader);
+    expect(calls()).toBe(18);
+  });
+
+  it('正交性：定向 invalidate 不动 epoch；全局 invalidate 不动任何 viewer 的 generation', () => {
+    const keyA0 = discoverCacheKeyForTest({ sort: 'new', viewerId: 'A' });
+    const epoch0 = discoverCacheStats().globalEpoch;
+    const genA0 = discoverCacheStats().globalGen;
+
+    invalidateDiscoverFor('A'); // 只删 A 的 generation 条目（此刻尚未重新分配，水位线不动）
+    expect(discoverCacheStats().globalEpoch).toBe(epoch0); // epoch 没动
+    // generation 是**懒分配**的：invalidate 只淘汰条目，下次取键才 ++globalGen 拿一个更大的值。
+    const keyA1 = discoverCacheKeyForTest({ sort: 'new', viewerId: 'A' });
+    const genA1 = discoverCacheStats().globalGen;
+    expect(genA1).toBeGreaterThan(genA0); // 重新分配到更大的 generation
+    expect(keyA1).not.toBe(keyA0);
+
+    invalidateDiscoverGlobally(); // 只改 epoch
+    expect(discoverCacheStats().globalEpoch).toBe(epoch0 + 1);
+    expect(discoverCacheStats().globalGen).toBe(genA1); // generation 没动
+    // 全局失效后 A 的键再变一次，但这次纯粹是 epoch 造成的（generation 已在上面钉住没动）
+    const keyA2 = discoverCacheKeyForTest({ sort: 'new', viewerId: 'A' });
+    expect(keyA2).not.toBe(keyA1);
+    expect(keyA2).not.toBe(keyA0);
+  });
+
+  it('全局水位线只增不减：连 reset 也不归零（否则热重载后旧 epoch 的键会复活）', () => {
+    const epoch0 = discoverCacheStats().globalEpoch;
+    invalidateDiscoverGlobally();
+    const e1 = discoverCacheStats().globalEpoch;
+    expect(e1).toBe(epoch0 + 1);
+
+    // reset（模拟热重载）：epoch 必须保住，否则新 store 从 0 起会重新拼出上一代全局失效前的键
+    resetDiscoverCacheForTest({ maxEntries: 64, maxViewers: 8, ttlMs: 10_000, now: () => 1_000 });
+    expect(discoverCacheStats().globalEpoch).toBe(e1); // 重置不清零
+    invalidateDiscoverGlobally();
+    expect(discoverCacheStats().globalEpoch).toBe(e1 + 1);
   });
 });
 

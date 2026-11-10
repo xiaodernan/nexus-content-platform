@@ -13,6 +13,7 @@ import { emit } from './notifications';
 import { createSnapshot, readSnapshot } from './snapshots';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { DELETED_USER_LABEL } from './audit';
+import { invalidateDiscoverGlobally } from './discover-cache';
 
 /**
  * §56 / §57：Publish 与分享链接 `/n/<handle>/<slug>`。
@@ -315,6 +316,13 @@ export async function publishProject(
   // 到这里才是"这一版构建产物真的落库了"：publication 行写好、审计与通知都记上了
   emitBuildStatus(projectId, 'ok', `v${publication.version} · ${publication.path} · 可见性 ${input.visibility}`);
   await publishPreviewStatus(projectId, publication.path, outward);
+  // §SC-44 / ADR-0116：只在"发现页收录状态真的改变"时清全缓存，别让 private/unlisted
+  // 这种本来就不进发现页的发布制造全站冷启动尖峰。三种要清的：
+  //   ① 这次变 public（新作品/换版本/从 private 转公开）→ 该进发现页了；
+  //   ② 这次从 public 撤回 private/unlisted → 该从发现页消失了（existing 是旧版本可见性）。
+  // 失败分支（名额/门禁/机检）早已提前 return，走不到这——"只有真发布成功才失效"天然成立。
+  // 本机即时、fire-and-forget 广播、绝不 await 网络、绝不阻塞这条正在写库请求的返回。
+  if (input.visibility === 'public' || existing?.visibility === 'public') invalidateDiscoverGlobally();
   return { ok: true, publication, gate, scan, snapshotId: written.snapshotId };
 }
 
@@ -346,15 +354,33 @@ export async function getPublication(projectId: string): Promise<Publication | n
  */
 export async function unpublishProject(projectId: string, actorId: string | null = null): Promise<boolean> {
   const db = getDb();
+  // §SC-44：先读旧 visibility 再改。Postgres `UPDATE ... RETURNING` 返回的是**更新后**的行，
+  // 拿不到旧值——若靠 returning 判断，撤 public 时读到的已经是 private，全局失效就永远不触发。
+  // 下架是低频操作，这一次轻查询换来"只有当作品真的曾进过发现页（public）才清全缓存"的精确语义，
+  // 避免撤一个 unlisted（本就不进发现页）也制造全站冷启动尖峰。
+  const [before] = await db
+    .select({ visibility: publishedProjects.visibility })
+    .from(publishedProjects)
+    .where(eq(publishedProjects.projectId, projectId))
+    .limit(1);
   const stopped = await db
     .update(publishedProjects)
     .set({ visibility: 'private' })
     // 只撤**还公开着**的那一次：已经下架过（这一行还在，只是 private）再说一次，
     // 没有任何新东西发生 ⇒ 与"没发布过"一样如实返回 false，也不写审计（没发生的事不记）。
     .where(and(eq(publishedProjects.projectId, projectId), ne(publishedProjects.visibility, 'private')))
-    .returning({ id: publishedProjects.id, path: publishedProjects.path, version: publishedProjects.version });
+    .returning({
+      id: publishedProjects.id,
+      path: publishedProjects.path,
+      version: publishedProjects.version,
+    });
   if (stopped.length) {
     await db.update(projects).set({ visibility: 'private' }).where(eq(projects.id, projectId));
+  // §SC-44：只有从 public 撤下才改变发现页收录——unlisted 本来就不进发现页，撤它不必清全缓存。
+  // 诚实边界：select 与 update 之间若有"unlisted→public→此刻下架"的并发发布窄窗口，可能漏清一次
+  // 缓存；后果仅是该作品在发现页最多残留一个 TTL（15s）后自愈，URL 已即时 404、不丢数据。
+  // 要绝对原子得用 CTE 拿 OLD 行，代价是这条低频操作的复杂度，不值得——TTL 就是兜底。
+  if (before?.visibility === 'public') invalidateDiscoverGlobally();
     // 撤下这一笔必须留痕：URL 从这一刻起 404，但"谁撤的、撤的是哪一条"不能跟着行一起消失。
     // targetId 记的是被撤下的那条 publication（行还在，只是它不公开了）。
     // 没发布过再取消（stopped 为空）不写——没发生的事不记。

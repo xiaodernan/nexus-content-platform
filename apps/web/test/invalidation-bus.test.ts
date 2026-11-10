@@ -33,6 +33,19 @@ describe('线路帧校验（线路字节不可信）', () => {
     expect(parseInvalidationFrame(JSON.stringify({ v: 1, origin: 'a', viewerIds: [] }))).toBeNull();
   });
 
+  it('§SC-44 全局帧（global:true + 空 viewerIds）解析成功；带人 / 空数组无 global 都挡掉', () => {
+    const global = parseInvalidationFrame(JSON.stringify({ v: 1, origin: 'a', viewerIds: [], global: true }));
+    expect(global).toEqual({ v: 1, origin: 'a', viewerIds: [], global: true });
+    // 全局帧却塞了 viewerIds：形状矛盾，丢（防一条帧既清全局又 bump 特定人）
+    expect(parseInvalidationFrame(JSON.stringify({ v: 1, origin: 'a', viewerIds: ['u1'], global: true }))).toBeNull();
+    // 空数组但不带 global：这正是**旧实例**解析 SC-44 全局帧时的路径 → fail-safe 丢弃，
+    // 绝不把空集误当"要 bump 的 viewer"（单向兼容的关键）。
+    expect(parseInvalidationFrame(JSON.stringify({ v: 1, origin: 'a', viewerIds: [] }))).toBeNull();
+    // global 必须是字面 true，别的类型不认（线路字节不可信）
+    expect(parseInvalidationFrame(JSON.stringify({ v: 1, origin: 'a', viewerIds: [], global: 1 }))).toBeNull();
+    expect(parseInvalidationFrame(JSON.stringify({ v: 1, origin: 'a', viewerIds: [], global: 'yes' }))).toBeNull();
+  });
+
   it('viewerIds 条数/长度护栏挡住恶意大帧（防一条帧让所有实例抖动）', () => {
     const tooMany = Array.from({ length: MAX_VIEWERS_PER_FRAME + 1 }, (_, i) => `u${i}`);
     expect(parseInvalidationFrame(JSON.stringify({ v: 1, origin: 'a', viewerIds: tooMany }))).toBeNull();
@@ -83,6 +96,26 @@ describe('内存 bus（同进程双实例互通，判据确定性主路径）', 
     c.dispose();
     b.dispose();
     a.dispose();
+  });
+
+  it('§SC-44 全局帧：A publishGlobal → B 收到 (ids=[], global=true)；回环去重照旧', () => {
+    const hub = new MemoryInvalidationHub();
+    const a = new MemoryInvalidationBus(hub);
+    const b = new MemoryInvalidationBus(hub);
+    const seenA: Array<[string[], boolean | undefined]> = [];
+    const seenB: Array<[string[], boolean | undefined]> = [];
+    a.subscribe((ids, global) => seenA.push([ids, global]));
+    b.subscribe((ids, global) => seenB.push([ids, global]));
+
+    a.publish([], true);
+    expect(seenA).toEqual([]); // origin 回环去重照旧
+    expect(seenB).toEqual([[[], true]]); // 对端收到"全局"标志，viewerIds 为空
+    // 全局帧的 applied 记 1 次处置，不是 0 个 viewer（否则四账会显示"收到却没做事"）
+    expect(a.stats().published).toBe(1);
+    expect(b.stats().received).toBe(1);
+    expect(b.stats().applied).toBe(1);
+    a.dispose();
+    b.dispose();
   });
 
   it('dispose 后不再收发（幂等，防热重载后旧 bus 还活）', () => {
@@ -158,6 +191,20 @@ describe('Redis 驱动（假连接，验证不抛 / 不 hang / 生命周期）',
     expect(sub.subscribed).toEqual([DISCOVER_INVALIDATE_CHANNEL]); // 构造那一刻就订上，不等第一个订阅者
     bus.publish(['u1']);
     expect(pub.published).toEqual([[DISCOVER_INVALIDATE_CHANNEL, expect.any(String)]]);
+    expect(bus.stats().published).toBe(1);
+    bus.dispose();
+  });
+
+  it('§SC-44 Redis 驱动发全局帧：空 viewerIds 不再被早退挡掉，线上带 global 标志', async () => {
+    const pub = fakeRedis();
+    const sub = fakeRedis();
+    const bus = makeBus(pub, sub);
+    // 与另一实例对称：用另一个 sub handler 收这一帧，验线上 payload 形状
+    bus.publish([], true);
+    expect(pub.published).toHaveLength(1); // 发出去了（旧实现会因空数组早退，这里会红）
+    const wire = JSON.parse(pub.published[0]![1]) as { viewerIds: string[]; global?: boolean; origin: string };
+    expect(wire.viewerIds).toEqual([]);
+    expect(wire.global).toBe(true);
     expect(bus.stats().published).toBe(1);
     bus.dispose();
   });

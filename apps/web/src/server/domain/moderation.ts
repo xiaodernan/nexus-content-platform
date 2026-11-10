@@ -6,6 +6,7 @@ import { recordAudit } from './audit';
 import { isUuid } from './ids';
 import { abuseReports, moderationCases, projects, publishedProjects, users } from '../db/schema';
 import { emit } from './notifications';
+import { invalidateDiscoverGlobally } from './discover-cache';
 
 /**
  * §131 发布审核：upload → 机检 → 风险分级 → 发布或人工复核。
@@ -308,11 +309,17 @@ export async function resolveCase(
 
   let hidden = false;
   if (existing.publicationId) {
-    await db
+    const [updated] = await db
       .update(publishedProjects)
       .set({ moderation: actor.resolution })
-      .where(eq(publishedProjects.id, existing.publicationId));
+      .where(eq(publishedProjects.id, existing.publicationId))
+      // §SC-44：顺手取回这条 publication 的可见性，省一次查询就能判断它是否曾进过发现页。
+      .returning({ visibility: publishedProjects.visibility });
     hidden = actor.resolution === 'rejected';
+    // 只有"原本 public 的内容被判 rejected"才把它从发现页移除 → 清全缓存让各实例即时见效。
+    // approved 不改收录（pending 本就在发现页里），private/unlisted 被 rejected 也不影响发现页。
+    // 与 publish/unpublish 同一句、同一 fire-and-forget 纪律，绝不 await 网络。
+    if (hidden && updated?.visibility === 'public') invalidateDiscoverGlobally();
   }
   if (actor.resolution === 'rejected' && existing.publicationId) {
     // 只在真挂了发布行时才有举报可关：`?? ''` 那种写法会把空串塞进 uuid 列，

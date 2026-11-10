@@ -143,6 +143,73 @@ describe('跨实例失效（两个独立 store 经 hub 互通）', () => {
   });
 });
 
+describe('§SC-44 跨实例全局失效（新作品发布对所有实例、所有 viewer 都是新的）', () => {
+  it('实例 A 全局失效 → B 的 globalEpoch bump → B 的所有键（含匿名）拼不出来、全部重查', async () => {
+    const [a, b] = makePair();
+    const bLoad = sequentialLoader('B');
+    const anon = { sort: 'new' as const, viewerId: null, limit: 24 };
+    const u1 = { sort: 'popular' as const, viewerId: 'u1', limit: 24 };
+
+    // B 预热匿名 + 登录两个键，各自命中
+    await b.load(anon, bLoad.loader);
+    await b.load(u1, bLoad.loader);
+    expect(bLoad.calls()).toBe(2);
+    const bAnonKeyBefore = b.keyFor(anon);
+    const bU1KeyBefore = b.keyFor(u1);
+    const bEpochBefore = b.stats().globalEpoch;
+
+    // A 上发生 public 发布 → 全局失效并广播
+    a.invalidateAll();
+
+    // B 经 hub 收到全局帧，epoch +1，且**匿名与登录两个键都变了**（这是与定向失效的区别）
+    expect(b.stats().globalEpoch).toBe(bEpochBefore + 1);
+    expect(b.keyFor(anon)).not.toBe(bAnonKeyBefore);
+    expect(b.keyFor(u1)).not.toBe(bU1KeyBefore);
+    // B 再读两个键都 miss、重查库（拿到 B-3、B-4，不继续吃 B-1/B-2 旧视图）
+    await b.load(anon, bLoad.loader);
+    await b.load(u1, bLoad.loader);
+    expect(bLoad.calls()).toBe(4);
+    // A 自己那半边也即时 bump（本机先 +1，不靠 B 回帧）
+    expect(a.stats().globalEpoch).toBe(1);
+  });
+
+  it('定向失效不 broadcast 全局：A bump 单个 viewer 不动 B 的 epoch，也不动 B 的匿名键', async () => {
+    const [a, b] = makePair();
+    const bAnon = { sort: 'new' as const, viewerId: null, limit: 24 };
+    const bKeyBefore = b.keyFor(bAnon);
+    const bEpochBefore = b.stats().globalEpoch;
+
+    a.invalidate('u1'); // 只失效 u1（privacy 语义）
+
+    expect(b.stats().globalEpoch).toBe(bEpochBefore); // B 的全局世代没动
+    expect(b.keyFor(bAnon)).toBe(bKeyBefore); // 匿名键没被误伤
+  });
+
+  it('fail-open：没 bus 的实例发布，本机 epoch 照旧 +1、所有键即时失效，不抛', async () => {
+    const solo = createIsolatedDiscoverCacheForTest({ bus: null, ttlMs: 600_000 });
+    stores.push(solo);
+    const load = sequentialLoader('S');
+    const anon = { sort: 'new' as const, viewerId: null, limit: 24 };
+    await solo.load(anon, load.loader);
+    const keyBefore = solo.keyFor(anon);
+
+    expect(() => solo.invalidateAll()).not.toThrow(); // 没 bus 也不抛
+    expect(solo.stats().globalEpoch).toBe(1);
+    expect(solo.keyFor(anon)).not.toBe(keyBefore); // 本机匿名键即时失效，单机语义不回退
+    await solo.load(anon, load.loader);
+    expect(load.calls()).toBe(2);
+  });
+
+  it('dispose 后的实例不再被别人的全局帧 bump（旧订阅已退订）', async () => {
+    const [a, b] = makePair();
+    const keyBefore = b.keyFor({ sort: 'new', viewerId: null, limit: 24 });
+    b.dispose(); // B 退订
+    a.invalidateAll();
+    expect(b.stats().globalEpoch).toBe(0); // B 没收到
+    expect(b.keyFor({ sort: 'new', viewerId: null, limit: 24 })).toBe(keyBefore);
+  });
+});
+
 describe('fail-open（线路不在，单机语义不回退）', () => {
   it('无 bus 的实例：写路径失效本机照旧即时生效，不抛', async () => {
     const solo = createIsolatedDiscoverCacheForTest({ bus: null, ttlMs: 600_000 });

@@ -86,7 +86,7 @@ export function isKnownReadout(value: unknown): value is DiscoverCacheReadout {
   const stats = v['stats'];
   if (!stats || typeof stats !== 'object') return false;
   const s = stats as Record<string, unknown>;
-  for (const key of ['hits', 'misses', 'evictions', 'loads', 'inFlight', 'size', 'globalGen', 'viewerGenerations']) {
+  for (const key of ['hits', 'misses', 'evictions', 'loads', 'inFlight', 'size', 'globalGen', 'globalEpoch', 'viewerGenerations']) {
     if (typeof s[key] !== 'number') return false;
   }
   // config 的 ttlMs / maxEntries / maxViewers 是面板 KPI 的分母（size/maxEntries）、秒数（ttlMs/1000）
@@ -117,6 +117,15 @@ export function isKnownReadout(value: unknown): value is DiscoverCacheReadout {
  */
 export function generationNote(globalGen: number, viewerGenerations: number, maxViewers: number): string {
   return `水位线 ${globalGen}（只增不减）· generation 表 ${viewerGenerations}/${maxViewers} 个 viewer · 被淘汰只会让那个人多查一次库，不会把他拉黑前的旧视图找回来。`;
+}
+
+/**
+ * §SC-44 全局世代旁注：把"新作品即时进发现页"的代价摆到运维眼前，而不是藏在 ADR 里。
+ * 钉三件事：epoch 因何而涨（public 发布/下架/拒绝）、涨了会怎样（所有旧键作废、下一波重查库）、
+ * 为什么这是**预期的冷启动尖峰**而非事故（singleflight 只合并同键、不跨键）。
+ */
+export function epochNote(globalEpoch: number): string {
+  return `全局世代 ${globalEpoch}（每次 public 发布/下架/审核拒绝 +1）· 每次 +1 会让所有 sort、所有 viewer（含匿名）的旧键一次性作废，新作品无需等 TTL 就出现；代价是随后那一波会重查库——singleflight 只合并同一键的并发、不跨键，这是预期的冷启动尖峰，不是缓存故障。`;
 }
 
 /** 页脚那句"最终一致 + 只看这台"是否该出现：接了总线就一定要说，单机也要说清边界。 */
