@@ -9,6 +9,7 @@ import {
   isKnownReadout,
   keepPreviousOnError,
   pollAllowed,
+  staleNote,
   waveNote,
   waveRow,
   wavesHeadline,
@@ -34,10 +35,11 @@ const knownReadout = (): DiscoverCacheReadout => ({
     globalGen: 7,
     globalEpoch: 2,
     viewerGenerations: 3,
-    config: { ttlMs: 15_000, maxEntries: 2048, maxViewers: 512, waveWindowMs: 15_000, waveCapacity: 12 },
+    config: { ttlMs: 15_000, maxEntries: 2048, maxViewers: 512, waveWindowMs: 15_000, waveCapacity: 12, staleMaxMs: 30_000 },
     bus: null,
     waves: [],
     waveConfig: { windowMs: 15_000, capacity: 12 },
+    staleServed: 0,
   },
 });
 
@@ -124,7 +126,7 @@ describe('回执形状门（坏 JSON / 残缺 bus / 残缺 config 不许画成�
   });
   it('config 是面板分母（size/maxEntries）与秒数（ttlMs/1000）的来源，缺一个/类型错都挡掉', () => {
     const broken = knownReadout();
-    for (const key of ['ttlMs', 'maxEntries', 'maxViewers']) {
+    for (const key of ['ttlMs', 'maxEntries', 'maxViewers', 'staleMaxMs']) {
       expect(isKnownReadout({
         ...broken,
         stats: { ...broken.stats, config: { ...broken.stats.config, [key]: undefined } },
@@ -161,6 +163,18 @@ describe('回执形状门（坏 JSON / 残缺 bus / 残缺 config 不许画成�
     expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waveConfig: { windowMs: 15_000 } } })).toBe(false);
     expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waveConfig: { windowMs: 'x', capacity: 12 } } })).toBe(false);
     expect(isKnownReadout({ ...broken, stats: { ...broken.stats, waveConfig: { windowMs: 15_000, capacity: 12 } } })).toBe(true);
+  });
+  it('§SC-46 staleServed 缺失/类型错挡掉——面板拿它画"端了几次旧页"，缺了会画 undefined', () => {
+    const broken = knownReadout();
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, staleServed: undefined } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, staleServed: '3' } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, staleServed: 0 } })).toBe(true); // 0 合法：还没抖过
+  });
+  it('§SC-46 config.staleMaxMs 是旁注秒数的分母，缺/类型错挡掉（不画 NaN s）', () => {
+    const broken = knownReadout();
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, config: { ...broken.stats.config, staleMaxMs: undefined } } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, config: { ...broken.stats.config, staleMaxMs: 'x' } } })).toBe(false);
+    expect(isKnownReadout({ ...broken, stats: { ...broken.stats, config: { ...broken.stats.config, staleMaxMs: 30_000 } } })).toBe(true);
   });
 });
 
@@ -249,5 +263,29 @@ describe('发布冷启动波（§SC-45 只记不拦，把尖峰从猜测变成�
     expect(note).toContain('permit'); // 说清代价
     expect(note).toContain('逼近'); // 触发阈值
     expect(note).toContain('瞬时采样');
+  });
+});
+
+describe('上游故障降级旁注（§SC-46 把"端旧页"的次数与边界摆到运维眼前）', () => {
+  it('0 次不说"降级没开"——点明只是还没抖过，开关是 staleMaxMs', () => {
+    const note = staleNote(0, 30_000);
+    expect(note).toContain('0');
+    expect(note).toContain('还没抖过'); // 0 ≠ 功能没开（同 null≠0、0% 家族）
+    expect(note).toContain('不是降级没开');
+    expect(note).toContain('30s'); // 上界秒数从入参来
+  });
+  it('有降级次数如实报，且讲清旧值上界 / 隐私红线 / 无旧值不画空 / 对读用户透明', () => {
+    const note = staleNote(7, 2_000);
+    expect(note).toContain('7 次');
+    expect(note).toContain('2s'); // 上界秒数从入参来
+    expect(note).toContain('超了宁可报错'); // 有界
+    expect(note).toContain('拉黑'); // 隐私红线：键变了绝不端
+    expect(note).toContain('不画空页'); // 无旧值不造空结果
+    expect(note).toContain('察觉不到'); // 降级对内容消费者透明
+    expect(note).toContain('运维面板'); // 但运维可见
+  });
+  it('上界秒数跟入参走，不写死（改 staleMaxMs 时旁注不说谎）', () => {
+    expect(staleNote(1, 5_000)).toContain('5s');
+    expect(staleNote(1, 5_000)).not.toContain('30s');
   });
 });

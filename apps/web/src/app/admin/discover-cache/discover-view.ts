@@ -89,7 +89,7 @@ export function isKnownReadout(value: unknown): value is DiscoverCacheReadout {
   const stats = v['stats'];
   if (!stats || typeof stats !== 'object') return false;
   const s = stats as Record<string, unknown>;
-  for (const key of ['hits', 'misses', 'evictions', 'loads', 'inFlight', 'size', 'globalGen', 'globalEpoch', 'viewerGenerations']) {
+  for (const key of ['hits', 'misses', 'evictions', 'loads', 'inFlight', 'size', 'globalGen', 'globalEpoch', 'viewerGenerations', 'staleServed']) {
     if (typeof s[key] !== 'number') return false;
   }
   // config 的 ttlMs / maxEntries / maxViewers 是面板 KPI 的分母（size/maxEntries）、秒数（ttlMs/1000）
@@ -98,7 +98,7 @@ export function isKnownReadout(value: unknown): value is DiscoverCacheReadout {
   const config = s['config'];
   if (!config || typeof config !== 'object') return false;
   const c = config as Record<string, unknown>;
-  for (const key of ['ttlMs', 'maxEntries', 'maxViewers']) {
+  for (const key of ['ttlMs', 'maxEntries', 'maxViewers', 'staleMaxMs']) {
     if (typeof c[key] !== 'number') return false;
   }
   const bus = s['bus'];
@@ -183,6 +183,16 @@ export function waveRow(w: EpochWave): string {
  */
 export function waveNote(windowMs: number, capacity: number): string {
   return `采样窗口 ${Math.round(windowMs / 1000)}s · 环形缓冲只留最近 ${capacity} 波（有界，不随发布次数涨）· 只记不拦。常态下一次全局失效 ≈ 一次冷启动，匿名键 ≤ 4 个 sort、登录键受活跃 viewer 限，打库上界是个位数；已有三道舱壁：singleflight 只按同键合并、DB 连接池、网关 SemaphoreBulkhead——没有实测尖峰证据。这里刻意不加跨键并发闸门：会引入 permit 泄漏、排队饿死、读数失真，还会把即时可见排队稀释掉；只有当实测峰值逼近 DB 连接池，才按预案做 O(1) 匿名 new 写侧预热 / 满即减载。peakInFlight 是读后瞬时采样，不是锁存精确峰值。`;
+}
+
+/**
+ * §SC-46 上游故障降级的旁注：把"DB 抖动时这台端过几次旧页"和它的边界摆到运维眼前。
+ * 钉四件事：①`staleServed` 是**降级次数**，0 只说明"还没抖过"，不是"降级没开"（那看 staleMaxMs）；
+ * ②旧值最多 `staleMaxMs` 毫秒、超过宁可报错；③隐私/收录失效（block/发布）后旧键不可信、**绝不端**；
+ * ④无旧值就报错、不画空页，且降级对读用户透明、只在这本账里可见。
+ */
+export function staleNote(staleServed: number, staleMaxMs: number): string {
+  return `上游打库失败时端出旧页 ${staleServed} 次（0 只表示还没抖过，不是降级没开——上界 ${Math.round(staleMaxMs / 1000)}s 才是开关）· 旧值最多 ${Math.round(staleMaxMs / 1000)}s，超了宁可报错也不把几小时前的页冒充此刻 · block/发布让键一变，那份旧值可能含刚拉黑的人或刚下架的作品，**绝不端** · 连旧值都没有就报错、不画空页；普通访客照常看到卡片、察觉不到这次降级，这笔账只记在运维面板里。`;
 }
 
 /** 页脚那句"最终一致 + 只看这台"是否该出现：接了总线就一定要说，单机也要说清边界。 */

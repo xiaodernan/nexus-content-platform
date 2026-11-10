@@ -455,3 +455,155 @@ describe('§SC-45 发布冷启动波（只记不拦的可观测快照）', () =>
     expect(json.waveConfig).toEqual({ windowMs: 1_000, capacity: 12 });
   });
 });
+
+/**
+ * §SC-46 上游失败 stale 兜底的验电。`BoundedCache.peek()` 注释早声明"供上游失败时 stale 兜底"，
+ * gateway 已在用，发现页这条同样打 DB 的热读链此前却让一次抖动直接冒泡成 500。守的是几类真实坏法：
+ * 1. **隐私/收录红线（最隐蔽）**：`key` 在 loader 开始前锁定，若打库期间发生 block（generation 变）
+ *    或 public 发布（epoch 变），`peek(旧key)` 仍拿到旧条目（SC-41 只删 generation 表、不删 cache 表），
+ *    那份可能含刚拉黑的人 / 刚下架的内容——必须重算 key 比对，键变了就绝不端；
+ * 2. 无旧值画空：首次冷启动失败必须抛错，不许造一份空 DiscoverResult 冒充；
+ * 3. 无界陈旧：peek 的过期条目 ageMs 无上界，超 staleMaxMs 宁可报错；
+ * 4. 降级悄悄吞掉：staleServed 必须如实记账，让运维看见 DB 在抖；
+ * 5. 嵌套 singleflight 死锁：降级只做同步 peek、不重入 getOrLoad。
+ */
+describe('§SC-46 上游失败 stale 兜底（有界、守隐私、可观测）', () => {
+  /** 可推进时钟 + 短的 staleMaxMs，全部受控、不 sleep。 */
+  function staleStore(ttlMs = 1_000, staleMaxMs = 2_000) {
+    let clock = 1_000;
+    resetDiscoverCacheForTest({ maxEntries: 64, maxViewers: 8, ttlMs, staleMaxMs, now: () => clock });
+    return { advance: (ms: number): void => { clock += ms; }, now: (): number => clock };
+  }
+
+  const fail: DiscoverLoader = async () => { throw new Error('db down'); };
+
+  it('正向：条目 TTL 过期但仍在表、上游失败 → 端出旧值且 staleServed=1', async () => {
+    const h = staleStore(1_000, 5_000);
+    const { loader, calls } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'new', viewerId: 'A' };
+    const first = await loadDiscoverCached(input, loader); // 首次成功，写入缓存
+    h.advance(1_200); // 过 TTL：条目 expired 但仍在表里（get 不删）
+    const served = await loadDiscoverCached(input, fail); // 上游失败
+    expect(served.cards[0]?.path).toBe(first.cards[0]?.path); // 端出的是那份旧值
+    expect(calls()).toBe(1); // 失败那次没再成功加载
+    expect(discoverCacheStats().staleServed).toBe(1); // 如实记一次降级
+    expect(discoverCacheStats().loads).toBe(2); // 但确实发起过第二次 loader（打过库）
+  });
+
+  it('无旧值不画空：首次冷启动就失败 → 原样抛错、staleServed=0', async () => {
+    staleStore();
+    await expect(loadDiscoverCached({ sort: 'new', viewerId: 'A' }, fail)).rejects.toThrow('db down');
+    expect(discoverCacheStats().staleServed).toBe(0);
+    expect(discoverCacheStats().size).toBe(0); // 没有凭空造出缓存条目
+  });
+
+  it('有界：条目录龄超 staleMaxMs → 宁可抛错，不端几小时前的发现页', async () => {
+    const h = staleStore(1_000, 1_500); // 降级上界 1.5s
+    const { loader } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'popular', viewerId: 'A' };
+    await loadDiscoverCached(input, loader);
+    h.advance(1_600); // 过期且超过降级上界
+    await expect(loadDiscoverCached(input, fail)).rejects.toThrow('db down');
+    expect(discoverCacheStats().staleServed).toBe(0); // 超界不算降级，绝不端
+  });
+
+  it('隐私红线：loader 期间 block 了本 viewer（generation 变）→ 旧键不可信，绝不端旧视图', async () => {
+    const h = staleStore(1_000, 5_000);
+    const { loader } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'new', viewerId: 'A' };
+    const before = await loadDiscoverCached(input, loader); // 拉黑前的视图
+    h.advance(1_200); // 过期
+
+    // 打库那一刻正好有人把 A 拉黑：loader 内部 invalidate，然后抛错。
+    const failAfterBlock: DiscoverLoader = async () => {
+      invalidateDiscoverFor('A'); // generation 表条目被删 → 重算 keyFor 会分配更大的 generation
+      throw new Error('db down after block');
+    };
+    await expect(loadDiscoverCached(input, failAfterBlock)).rejects.toThrow('db down after block');
+    // 若实现少了"重算 key 比对"，这里会端出 before（含被拉黑的人）——隐私红线被突破。
+    expect(discoverCacheStats().staleServed).toBe(0);
+    expect(discoverCacheStats().globalGen).toBeGreaterThanOrEqual(2); // 新 generation 已分配
+    // 再读一次（此时上游恢复）：必是新 generation 的新键，绝不复活拉黑前那份
+    const after = await loadDiscoverCached(input, loader);
+    expect(after.cards[0]?.path).not.toBe(before.cards[0]?.path);
+  });
+
+  it('收录红线：loader 期间 public 发布（epoch 变）→ 旧键不可信，绝不端下架/旧收录', async () => {
+    const h = staleStore(1_000, 5_000);
+    const { loader } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'new', viewerId: null }; // 匿名共享缓存
+    await loadDiscoverCached(input, loader);
+    h.advance(1_200);
+
+    const failAfterPublish: DiscoverLoader = async () => {
+      invalidateDiscoverGlobally(); // epoch +1 → 所有旧键（含匿名）拼不出来
+      throw new Error('db down after publish');
+    };
+    await expect(loadDiscoverCached(input, failAfterPublish)).rejects.toThrow('db down after publish');
+    expect(discoverCacheStats().staleServed).toBe(0); // SC-44 的即时可见不被 stale 破坏
+    const fresh = await loadDiscoverCached(input, loader); // 新 epoch 重填
+    expect(fresh.cards[0]?.path).toBe('gen-2'); // 不是旧那份 gen-1
+  });
+
+  it('隔离：loader 期间 block 的是别人 → 本 viewer 键不变，仍可端旧值（不误伤可用性）', async () => {
+    const h = staleStore(1_000, 5_000);
+    const { loader } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'new', viewerId: 'A' };
+    const first = await loadDiscoverCached(input, loader);
+    h.advance(1_200);
+
+    const failAfterOtherBlock: DiscoverLoader = async () => {
+      invalidateDiscoverFor('B'); // 只动 B，与 A 无关
+      throw new Error('db down');
+    };
+    const served = await loadDiscoverCached(input, failAfterOtherBlock);
+    expect(served.cards[0]?.path).toBe(first.cards[0]?.path); // A 的视图没变，可端
+    expect(discoverCacheStats().staleServed).toBe(1);
+  });
+
+  it('并发失败不死锁、计数精确：N 个同键并发共享一次 loader，失败各端一份旧值不重入 singleflight', async () => {
+    const h = staleStore(1_000, 5_000);
+    const { loader } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'trending', viewerId: 'A' };
+    await loadDiscoverCached(input, loader); // 预热
+    h.advance(1_200);
+    // N 个并发同键上游失败：都共享同一个 inflight fail，各自 peek 到旧值；若降级重入 getOrLoad 会自等待死锁。
+    const served = await Promise.all(Array.from({ length: 4 }, () => loadDiscoverCached(input, fail)));
+    for (const r of served) expect(r.cards[0]?.path).toBe('gen-1');
+    expect(discoverCacheStats().staleServed).toBe(4); // 四个调用方各被兜住一次，计数精确
+  });
+
+  it('健康路径零影响：上游成功照常返回、不记降级；失败的错不吞、异常原样', async () => {
+    staleStore();
+    const { loader } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'new', viewerId: 'A' };
+    const ok = await loadDiscoverCached(input, loader);
+    expect(ok.cards[0]?.path).toBe('gen-1');
+    expect(discoverCacheStats().staleServed).toBe(0); // 成功不算降级
+    // 无旧值的键失败 → 异常一字不改地冒泡（不被降级逻辑吞掉）
+    await expect(loadDiscoverCached({ sort: 'new', viewerId: 'B' }, fail)).rejects.toThrow('db down');
+  });
+
+  it('降级对内容消费者透明：返回类型仍是纯 DiscoverResult，不新增状态字段也不改领域类型', async () => {
+    const h = staleStore(1_000, 5_000);
+    const { loader } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'new', viewerId: 'A' };
+    await loadDiscoverCached(input, loader);
+    h.advance(1_200);
+    const served = await loadDiscoverCached(input, fail);
+    // 形状与正常结果完全一致（sort/cards/unavailable/hiddenAuthors/method 五字段，无 stale 标记混进来）
+    expect(Object.keys(served).sort()).toEqual(['cards', 'hiddenAuthors', 'method', 'sort', 'unavailable']);
+  });
+
+  it('降级账不跨 reset 保留（进程此刻的账，与波同、与 epoch 反）', async () => {
+    const h = staleStore(1_000, 5_000);
+    const { loader } = countingLoader();
+    const input: DiscoverCacheInput = { sort: 'new', viewerId: 'A' };
+    await loadDiscoverCached(input, loader);
+    h.advance(1_200);
+    await loadDiscoverCached(input, fail);
+    expect(discoverCacheStats().staleServed).toBe(1);
+    resetDiscoverCacheForTest({ ttlMs: 1_000, staleMaxMs: 5_000, now: () => 1_000 });
+    expect(discoverCacheStats().staleServed).toBe(0); // 观测从零重计
+  });
+});

@@ -54,6 +54,13 @@ export interface DiscoverCacheConfig {
   readonly waveWindowMs: number;
   /** §SC-45 失效波环形缓冲容量：只留最近 N 波，防读数无界增长。默认 12。 */
   readonly waveCapacity: number;
+  /**
+   * §SC-46 上游失败时允许端出的旧值最大年龄（毫秒）。默认 `ttlMs * 2`：
+   * 正常缓存命中本就可能是 ttlMs 内的旧值，降级再多给一个 TTL 的宽容；超过就宁可报错。
+   * `peek()` 拿到的 expired 条目 ageMs **无上界**（键长期没人读会滞留到 LRU 淘汰），
+   * 故必须由这道闸卡住，绝不把几小时前的发现页冒充"还能看"。
+   */
+  readonly staleMaxMs: number;
 }
 
 /**
@@ -94,6 +101,12 @@ export type DiscoverCacheStats = CacheStats & {
   readonly waves: readonly EpochWave[];
   /** §SC-45 采样窗口配置（毫秒 / 缓冲条数），让面板讲清"这是采样不是 profiler" */
   readonly waveConfig: { readonly windowMs: number; readonly capacity: number };
+  /**
+   * §SC-46 本实例迄今端出过几次"上游失败降级"的旧值（进程内累计，只增不减）。
+   * 0 = 从没降级过，**不是**"降级功能没开"——后者看 config.staleMaxMs。降级对内容消费者透明，
+   * 但运维必须看得见"DB 在抖、这台端了几次旧页"，否则失败被悄悄吞掉。
+   */
+  readonly staleServed: number;
 };
 
 interface Store {
@@ -123,6 +136,8 @@ interface Store {
   activeWave: MutableWave | null;
   /** §SC-45 已定格的失效波，旧的在前（环形缓冲语义由 pushWave 维护容量与顺序） */
   settledWaves: EpochWave[];
+  /** §SC-46 本实例迄今端出过几次上游失败降级的旧值（只增不减，进程内账，不跨 reset） */
+  staleServed: number;
 }
 
 /** §SC-45 采样窗口：全局失效后这么久内的重填算作"这一波"。默认一个 TTL——过了它旧键本就自然过期。 */
@@ -147,6 +162,8 @@ export const DISCOVER_MAX_VIEWERS_ENV = 'NEXUS_DISCOVER_CACHE_MAX_VIEWERS';
 export const DISCOVER_WAVE_WINDOW_MS_ENV = 'NEXUS_DISCOVER_WAVE_WINDOW_MS';
 /** §SC-45 失效波环形缓冲容量；默认 12。 */
 export const DISCOVER_WAVE_CAPACITY_ENV = 'NEXUS_DISCOVER_WAVE_CAPACITY';
+/** §SC-46 上游失败降级时旧值的最大年龄；默认 `ttlMs * 2`。 */
+export const DISCOVER_STALE_MAX_MS_ENV = 'NEXUS_DISCOVER_STALE_MAX_MS';
 /** 跨实例失效总线的开关：与实时总线、限流、网关共享缓存共用这一个 Redis 旋钮（ADR-0081/0112）。 */
 export const DISCOVER_INVALIDATION_URL_ENV = 'NEXUS_REDIS_URL';
 
@@ -169,6 +186,8 @@ export interface DiscoverCacheTestOverrides {
   /** §SC-45 失效波采样窗口 / 容量（判据收窄窗口以消除等待，不 sleep）。 */
   readonly waveWindowMs?: number;
   readonly waveCapacity?: number;
+  /** §SC-46 上游失败降级的旧值最大年龄（判据收窄以验"超界宁可报错"，不 sleep）。 */
+  readonly staleMaxMs?: number;
 }
 
 interface GlobalStore {
@@ -255,12 +274,15 @@ function attachBus(s: Store, injected: InvalidationBus | null | undefined): void
 export function resetDiscoverCacheForTest(overrides: DiscoverCacheTestOverrides = {}): void {
   const previous = store[STORE_KEY] as Store | undefined;
   if (previous) closeStore(previous);
+  const ttlMs = overrides.ttlMs ?? envInt(DISCOVER_TTL_MS_ENV, DEFAULT_TTL_MS, 1);
   const config: DiscoverCacheConfig = {
-    ttlMs: overrides.ttlMs ?? envInt(DISCOVER_TTL_MS_ENV, DEFAULT_TTL_MS, 1),
+    ttlMs,
     maxEntries: overrides.maxEntries ?? envInt(DISCOVER_MAX_ENTRIES_ENV, DEFAULT_MAX_ENTRIES, 1),
     maxViewers: overrides.maxViewers ?? envInt(DISCOVER_MAX_VIEWERS_ENV, DEFAULT_MAX_VIEWERS, 1),
     waveWindowMs: overrides.waveWindowMs ?? envInt(DISCOVER_WAVE_WINDOW_MS_ENV, DEFAULT_WAVE_WINDOW_MS, 1),
     waveCapacity: overrides.waveCapacity ?? envInt(DISCOVER_WAVE_CAPACITY_ENV, DEFAULT_WAVE_CAPACITY, 1),
+    // 默认一个 TTL 的降级宽容（与正常缓存命中的新鲜度同量级）；env/overrides 可覆盖。
+    staleMaxMs: overrides.staleMaxMs ?? envInt(DISCOVER_STALE_MAX_MS_ENV, ttlMs * 2, 1),
   };
   const cache = new BoundedCache<DiscoverResult>({
     maxEntries: config.maxEntries,
@@ -283,6 +305,8 @@ export function resetDiscoverCacheForTest(overrides: DiscoverCacheTestOverrides 
     // 与新 store 的 epoch 撞值会误导运维。reset = 观测从零重新计数（与 globalEpoch 的"必须保留"相反）。
     activeWave: null,
     settledWaves: [],
+    // §SC-46 降级计数是**本进程此刻的账**，不跨 reset（与波一样是观测快照，不是要保住的水位线）。
+    staleServed: 0,
   };
   store[STORE_KEY] = next; // 先落位再挂 bus，让 attachBus 的"是否当前实例"判断成立
   attachBus(next, overrides.bus);
@@ -482,7 +506,8 @@ export function invalidateDiscoverGlobally(): void {
  *   更新到本轮最新值。两次都 try/catch 兜住：观测绝不许拖垮发现页读主业。
  */
 async function loadFromStore(s: Store, input: DiscoverCacheInput, loader: DiscoverLoader): Promise<DiscoverResult> {
-  const pending = s.cache.getOrLoad(keyFor(s, input), loader);
+  const key = keyFor(s, input); // 请求开始时锁定的键（含此刻的 epoch + generation）
+  const pending = s.cache.getOrLoad(key, loader);
   try {
     sampleWave(s, s.now());
   } catch {
@@ -490,6 +515,9 @@ async function loadFromStore(s: Store, input: DiscoverCacheInput, loader: Discov
   }
   try {
     return (await pending).value;
+  } catch (error) {
+    // §SC-46 上游失败：交给降级判据，能端合法旧值就端，否则原样重抛（绝不画空、绝不冒充此刻）。
+    return serveStaleOrThrow(s, input, key, error);
   } finally {
     try {
       sampleWave(s, s.now());
@@ -497,6 +525,40 @@ async function loadFromStore(s: Store, input: DiscoverCacheInput, loader: Discov
       /* 观测失败不影响返回值/异常传播 */
     }
   }
+}
+
+/**
+ * §SC-46 上游失败降级的判据内核：只有三个条件**同时**成立才端旧值，否则原样重抛上游异常。
+ *
+ * 1. **键仍有效（隐私/收录红线，最容易被漏掉的一条）**：`key` 是 loader 开始前算的。若 loader
+ *    执行期间发生了 block（generation 重分配）或 public 发布（epoch +1），`keyFor` 会拼出**不同**的
+ *    当前键。而 SC-41 的失效纪律是"只删 generation 表条目、不删 cache 表条目"——故 `peek(key)` 此刻
+ *    **仍能拿到旧条目**，那份可能含刚被拉黑的人 / 刚下架的内容。所以必须先重算 `keyFor` 比对：
+ *    键变了就绝不端，直接重抛。重算会懒分配一次新 generation（若期间被定向失效），那正是失效该付的代价。
+ * 2. **有旧条目**：首次冷启动就失败、或条目已被 LRU 淘汰 → `peek` 为 null → 重抛（无旧值不画空）。
+ * 3. **旧值够新**：`ageMs <= staleMaxMs`。`peek` 的 expired 条目 ageMs **无上界**（键长期没人读会
+ *    滞留到 LRU 淘汰），故必须卡龄；超界宁可报错，也不把几小时前的发现页冒充"还能看"。
+ *
+ * 降级对内容消费者**透明**（返回类型仍是 DiscoverResult，不新增状态字段、不改 route/page）——发现页
+ * 本无"此刻"承诺，正常缓存命中本就是 TTL 内的旧值。但通过 `staleServed` 对运维**完全可观测**，
+ * 否则 DB 抖动被悄悄吞掉。降级路径只做同步 `peek`、不碰 `getOrLoad`，故不会引入嵌套 singleflight 死锁。
+ * 任何降级自身的意外（keyFor/peek 抛错）都**绝不掩盖上游原始异常**，落到统一的 `throw cause`。
+ */
+function serveStaleOrThrow(s: Store, input: DiscoverCacheInput, keyRequested: string, cause: unknown): DiscoverResult {
+  try {
+    // 1. 键有效性校验：期间发生隐私/收录失效 → 当前键变了 → 旧条目不可信，绝不端。
+    if (keyFor(s, input) === keyRequested) {
+      const old = s.cache.peek(keyRequested); // 2. 有旧条目？
+      if (old && old.ageMs <= s.config.staleMaxMs) {
+        // 3. 够新。才端出——且只对运维记账，不往 DiscoverResult 里塞降级状态（保持领域类型纯净）。
+        s.staleServed += 1;
+        return old.value;
+      }
+    }
+  } catch {
+    /* 降级路径自身的意外绝不吞掉上游异常，也绝不凭空造空结果；统一落到下面的原样重抛。 */
+  }
+  throw cause; // 无合法旧值 / 键已失效 / 超界 / 降级出错 → 原样重抛，不画空、不冒充此刻
 }
 
 /**
@@ -521,6 +583,7 @@ function statsFromStore(s: Store): DiscoverCacheStats {
     bus: s.bus ? { ...s.bus.stats(), errors: s.bus.stats().errors + s.busErrors } : null,
     waves: wavesReadout(s, s.now()),
     waveConfig: { windowMs: s.config.waveWindowMs, capacity: s.config.waveCapacity },
+    staleServed: s.staleServed,
   };
 }
 
@@ -582,13 +645,16 @@ export function createIsolatedDiscoverCacheForTest(options: {
   maxEntries?: number;
   waveWindowMs?: number;
   waveCapacity?: number;
+  staleMaxMs?: number;
 }): IsolatedDiscoverCache {
+  const ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
   const config: DiscoverCacheConfig = {
-    ttlMs: options.ttlMs ?? DEFAULT_TTL_MS,
+    ttlMs,
     maxEntries: options.maxEntries ?? DEFAULT_MAX_ENTRIES,
     maxViewers: options.maxViewers ?? DEFAULT_MAX_VIEWERS,
     waveWindowMs: options.waveWindowMs ?? DEFAULT_WAVE_WINDOW_MS,
     waveCapacity: options.waveCapacity ?? DEFAULT_WAVE_CAPACITY,
+    staleMaxMs: options.staleMaxMs ?? ttlMs * 2,
   };
   const now = options.now ?? Date.now;
   const cache = new BoundedCache<DiscoverResult>({
@@ -608,6 +674,7 @@ export function createIsolatedDiscoverCacheForTest(options: {
     now,
     activeWave: null,
     settledWaves: [],
+    staleServed: 0,
   };
   // 与全局 store 的 attachBus 同一语义：定向帧 → bumpLocal，全局帧 → bump epoch（共用内核）。
   if (s.bus) {

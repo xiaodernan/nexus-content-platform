@@ -7,6 +7,7 @@ import {
   discoverCacheStats,
   DISCOVER_INVALIDATION_URL_ENV,
   invalidateDiscoverGlobally,
+  loadDiscoverCached,
   resetDiscoverCacheForTest,
 } from '../src/server/domain/discover-cache';
 import type { InvalidationBus, InvalidationBusStats } from '../src/server/domain/invalidation-bus';
@@ -211,6 +212,29 @@ describe('§SC-43 读数原样端出与诚实', () => {
       expect(body.stats.waves).toHaveLength(1); // 波原样端出
       expect(body.stats.waves[0].epoch).toBe(body.stats.globalEpoch);
       expect(body.stats.waveConfig).toEqual({ windowMs: 15_000, capacity: 12 });
+      expect(discoverCacheStats().loads).toBe(loadsBefore); // 面板读数不是一次发现页查询
+    });
+  });
+
+  it('§SC-46 上游失败降级后 staleServed 端到端可见，形状门认得，读数动作本身不打库', async () => {
+    await withRedisUrl(undefined, async () => {
+      let clock = 1_000;
+      resetDiscoverCacheForTest({ bus: null, ttlMs: 1_000, staleMaxMs: 5_000, now: () => clock });
+      asUser(adminToken);
+      const ok = async () => ({ sort: 'new' as const, cards: [{ publicationId: 'p', path: '/p', name: 'n', owner: 'o', handle: null, publishedAt: '2026-01-01T00:00:00.000Z', views: 0, likes: 0, comments: 0, remixes: 0, kind: 'website' as const, coverAssetId: null, ownerHandle: null }], unavailable: [], hiddenAuthors: 0, method: null });
+      const fail = async (): Promise<Awaited<ReturnType<typeof ok>>> => { throw new Error('db down'); };
+      await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, ok); // 成功填充
+      clock += 1_200; // 过 TTL
+      await loadDiscoverCached({ sort: 'new', viewerId: 'A' }, fail); // 上游失败 → 端旧页
+      expect(discoverCacheStats().staleServed).toBe(1);
+
+      const loadsBefore = discoverCacheStats().loads;
+      const res = await getDiscoverCache();
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(isKnownReadout(body)).toBe(true); // 前后端形状门闭环，含 staleServed / staleMaxMs
+      expect(body.stats.staleServed).toBe(1); // 降级次数原样端出
+      expect(body.stats.config.staleMaxMs).toBe(5_000); // 上界秒数的分母
       expect(discoverCacheStats().loads).toBe(loadsBefore); // 面板读数不是一次发现页查询
     });
   });

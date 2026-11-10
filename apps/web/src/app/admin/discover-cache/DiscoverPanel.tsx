@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { DiscoverCacheReadout } from '@/server/domain/discover-cache';
-import { busTag, dashOr, epochNote, footNote, generationNote, hitRate, isKnownReadout, pollAllowed, waveNote, waveRow, wavesHeadline } from './discover-view';
+import { busTag, dashOr, epochNote, footNote, generationNote, hitRate, isKnownReadout, pollAllowed, staleNote, waveNote, waveRow, wavesHeadline } from './discover-view';
 
 /**
  * §SC-43 面板：把这一台实例的发现页缓存账与跨实例总线账渲染出来，每 4 秒问一次
@@ -185,6 +185,18 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
         ) : null}
         <p className="dc-note" data-discover-waves-note>
           {waveNote(stats.waveConfig.windowMs, stats.waveConfig.capacity)}
+        </p>
+      </section>
+
+      {/* §SC-46 上游故障降级：DB 抖动时端过几次旧页，0 只表示还没抖过、不是功能没开 */}
+      <section className="flex flex-col gap-2" aria-label="上游故障降级">
+        <h2 className="text-13 font-semibold text-fg-2">上游故障降级 · 只记不声张</h2>
+        <div className="dc-ledgerGrid" data-discover-stale>
+          <LedgerRow label="端出旧页次数 staleServed" value={dashOr(stats.staleServed)} />
+          <LedgerRow label="旧值上界 staleMaxMs" value={`${Math.round(cfg.staleMaxMs / 1000)}s`} />
+        </div>
+        <p className="dc-note" data-discover-stale-note>
+          {staleNote(stats.staleServed, cfg.staleMaxMs)}
         </p>
       </section>
 
