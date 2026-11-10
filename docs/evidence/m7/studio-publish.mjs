@@ -208,7 +208,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * — a proof whose timeout sits at the median is a proof that flakes.
  */
 const SERVICE_START_TRIES = 180;
-const MVN = process.platform === 'win32' ? 'mvn.cmd' : 'mvn';
 
 /** Ask the OS for a port nothing is listening on, then let it go. Only used for the DATABASE and the
  *  Studio — the SERVICE picks its own port and reports it, because probing then handing over is a race. */
@@ -3290,7 +3289,6 @@ try {
     const backerOwner = JSON.parse(String(backerRaw)).id;
     const backerSubs = await fetch(`${apiBase}/subscriptions?creator=${encodeURIComponent(backerOwner)}&limit=50`);
     const backerSubsBody = await backerSubs.json();
-    const serviceSubscribers = (backerSubsBody.subscriptions ?? []).map((s) => s.subscriberId).filter(Boolean);
     const serviceHandles = (backerSubsBody.subscriptions ?? []).map((s) => s.handle).filter(Boolean);
     check(
       'the SERVICE agrees — it sends the supporter’s name on the wire, and the panel shows it',
@@ -3835,7 +3833,7 @@ try {
   // two names without saying so would let a reader take the two for all of them.
   {
     const windowHtml = await (await fetch(`${studioBase}/u/${encodeURIComponent(accountRecord?.id ?? '')}`)).text();
-    const claimsMore = (html, marker) => {
+    const claimsMore = (html, _marker) => {
       const m = /data-(?:likes|tips|followers)="(\d+)"/.exec(html);
       return m ? Number(m[1]) : null;
     };
@@ -4030,7 +4028,7 @@ try {
     check(
       'the SERVICE agrees — every total names the currency it is in',
       serviceGroups.every((g) => {
-        const [period, currency] = g.split(':');
+        const [period, _currency] = g.split(':');
         // the amount is written in its own currency, so the panel's text has to carry the period — and the
         // currency's own money sign when the service had anything standing to say.
         return panelTotal.includes(period);

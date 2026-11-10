@@ -8,9 +8,16 @@ const from = (p: string) => fileURLToPath(new URL(p, import.meta.url));
  *
  * An include list here broke turbo's per-package `vitest run` the day it landed, because the
  * globs resolve relative to the PACKAGE directory when a package runs its own vitest, not to the
- * merged workspace root: "packages/*​/test" matches nothing from inside packages/design-model and
- * the whole studio suite went missing. The default include (every `*.test.*`) is what both lines
- * actually want; the exclude list is the surviving two-line union of the two configs.
+ * merged workspace root: the per-package glob "packages/<pkg>/test" matches nothing from inside
+ * packages/design-model and the whole studio suite went missing. The default include (every
+ * `*.test.*`) is what both lines actually want; the exclude list is the surviving two-line union
+ * of the two configs.
+ *
+ * The glob is spelled `<pkg>` rather than `*` on purpose: the literal per-package glob ends a BLOCK
+ * comment at the star-slash inside it, and the rest of the line is then parsed as code (an
+ * unterminated string literal). This file used to carry a zero-width space between the star and
+ * the slash — which hid the sequence from the parser and hid the reason from everyone reading it.
+ * A visible placeholder is worth more than an invisible accident.
  */
 export default defineConfig({
   test: {

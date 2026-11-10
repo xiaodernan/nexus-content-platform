@@ -23,7 +23,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { createThreeRuntime, type ThreeRuntime } from '../src/threeRuntime.js';
 import { createHeadlessBackend } from '../src/renderBackend.js';
-import { entityId as eid, type EntityId, type SceneId } from '../src/types.js';
+import { type EntityId, type SceneId } from '../src/types.js';
 
 const lf = (text: string) => text.replace(/\r\n/g, '\n');
 const typesSource = lf(readFileSync(new URL('../src/types.ts', import.meta.url), 'utf8'));
@@ -136,7 +136,6 @@ const outside = population.filter((n) => !fileOwn.reached.has(n));
 let runtime: ThreeRuntime;
 let scene: SceneId;
 let hero: EntityId;
-let heroObj: THREE.Object3D;
 
 beforeEach(() => {
   const created = createThreeRuntime({}, { backend: (_canvas, cfg) => createHeadlessBackend(cfg) });

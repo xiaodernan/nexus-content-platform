@@ -67,6 +67,7 @@ function mkTmp(prefix) {
   mkdirSync(base + n, { recursive: true });
   return base + n;
 }
+// eslint-disable-next-line no-control-regex -- ANSI 转义序列必须匹配 ESC 本身，这条规则表达不了
 const esc = (s) => (s.match(/\x1b\[[0-9;]*m/g) ?? []).length;
 const show = (s) => JSON.stringify(s).replace(/\\u001b/g, 'ESC');
 /** git's counted config minus the color slots, renumbered — i.e. v46's isolation without v67's half of it. */
@@ -205,9 +206,11 @@ assert.equal(stagedStat.detail, 'git.staged --stat → exit 0: index holds 1 fil
 const log = await door(gitLogPolicy(r1), registerGitLogTool, 'git.log', { count: 3 }, '§2:log');
 assert.equal(log.commits.length, 3, `3 commits exist; the door read ${log.commits.length}: ${show(log.detail)}`);
 assert.ok(!/empty log/.test(log.detail), `a repository with 3 commits must never be read as an empty log: ${show(log.detail)}`);
+// eslint-disable-next-line no-control-regex -- ANSI 转义序列必须匹配 ESC 本身，这条规则表达不了
 assert.ok(!/\x1b/.test(JSON.stringify(log.commits)), 'and no commit field carries a paint byte');
 const shown = await door(gitShowPolicy(r1), registerGitShowTool, 'git.show', { path: 'src/base.ts' }, '§2:show');
 assert.ok(shown.detail.includes('HEAD changed src/base.ts'), show(shown.detail));
+// eslint-disable-next-line no-control-regex -- ANSI 转义序列必须匹配 ESC 本身，这条规则表达不了
 assert.ok(!/\x1b/.test(JSON.stringify(shown.addedLines ?? [])), `git.show's content lines must be the file's bytes, not git's: ${show(JSON.stringify(shown.addedLines))}`);
 for (const [name, o] of Object.entries({ status: st, staged, stagedStat, log, show: shown })) {
   assert.equal(JSON.stringify(o).includes('\\u001b'), false, `${name}: a door record may not hold an escape byte`);
@@ -296,6 +299,7 @@ console.log('\n§5 两层的理由：git.commit 的失败建议');
   assert.equal(esc(`${failPinned.stdout}${failPinned.stderr}`), 0, 'and the env pins clear the whole block');
   const commitDoor = await door(gitCommitPolicy(r1), registerGitCommitTool, 'git.commit', { message: 'v67 proof: nothing staged' }, '§5:commit');
   const quoted = commitDoor.detail.split('\n')[0];
+  // eslint-disable-next-line no-control-regex -- ANSI 转义序列必须匹配 ESC 本身，这条规则表达不了
   assert.ok(!/\x1b/.test(quoted), `what the commit door quotes today was already plain (git prints its verdict line unpainted): ${show(quoted)}`);
   assert.equal(esc(bareLines[bareLines.length - 1]) , 0, 'measured: the LAST line — the one gitVerdict reads — is plain in BOTH faces, so this pin is the block, not that line');
   console.log(`  无钉失败建议 ${esc(failBare.stdout + failBare.stderr)} 个 ANSI / 有钉 ${esc(failPinned.stdout + failPinned.stderr)} 个 · 门引的那行两面皆净: ${show(quoted)}`);

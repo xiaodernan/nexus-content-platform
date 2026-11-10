@@ -92,7 +92,7 @@ try {
     ['blank title', { title: '   ' }, /title/],
     ['negative price', { priceCents: -1 }, /price/],
     ['unknown category', { category: 'nope' }, /category/],
-  ]) {
+  ] as Array<[string, Record<string, unknown>, RegExp]>) {
     const res = publish.publishTemplate(doc(), { ...input, ...over });
     assert.equal(res.ok, false, `${label} was published`);
     assert.match(res.reason, pattern);

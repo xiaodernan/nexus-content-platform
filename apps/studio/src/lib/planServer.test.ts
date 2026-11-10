@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { cancelSubscription, offerOnService, readPlans, readSubscriptions, repricePlan, retirePlan, subscribeOnService } from './planServer';
 import { nexusApiBase } from './publishServer';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v313 — the server-side half of the PLANS and SUBSCRIPTIONS lane.
@@ -166,7 +167,7 @@ describe('planServer — offerOnService (v447)', () => {
     expect(seenUrl).toBe(`${nexusApiBase()}/plans`);
     expect(seenInit?.method).toBe('POST');
     expect(seenInit?.headers).toMatchObject({ 'content-type': 'application/json', accept: 'application/json' });
-    expect(JSON.parse(String(seenInit?.body))).toEqual({
+    expect(JSON.parse(bodyText(seenInit))).toEqual({
       planId: 'pro',
       priceCents: 1500,
       currency: 'CNY',
@@ -182,7 +183,7 @@ describe('planServer — offerOnService (v447)', () => {
       return new Response(JSON.stringify({ ok: true, plans: [] }), { status: 201 });
     });
     await offerOnService('pro', 100, 'CNY', 'month', { accountId: 'acct-bob' }, fetchImpl);
-    expect(JSON.parse(String(seenInit?.body)).claim).toEqual({ accountId: 'acct-bob', handle: null, assurance: null, claimedAt: null });
+    expect(JSON.parse(bodyText(seenInit)).claim).toEqual({ accountId: 'acct-bob', handle: null, assurance: null, claimedAt: null });
   });
 
   it('the ask carries the SERVICE budget of 15 seconds, pinned on AbortSignal.timeout (v337)', async () => {

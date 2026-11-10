@@ -46,7 +46,7 @@ describe('worldSaveLane write/read (v191)', () => {
     let capturedBody: string | undefined;
     let capturedUrl: string | undefined;
     globalThis.fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-      capturedUrl = String(url);
+      capturedUrl = url instanceof URL ? url.href : typeof url === 'string' ? url : url.url;
       capturedBody = init?.body as string | undefined;
       return new Response(JSON.stringify({ ok: true, path: 'world-saved', bytes: 512 }), { status: 200 });
     }) as typeof fetch;

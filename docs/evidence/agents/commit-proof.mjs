@@ -10,7 +10,7 @@
 // Run after `npm run build`:  node docs/evidence/agents/commit-proof.mjs
 import assert from 'node:assert/strict';
 import { execFileSync } from '../lib/syncproc.mjs';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -18,7 +18,7 @@ import { pathToFileURL } from 'node:url';
 const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
 const eh = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
 const { ToolRegistry, planExec } = rt;
-const { GIT_COMMIT_TOOL_SPECS, NODE_SPAWN, createExecHost, gitCommitPolicy, gitEnv, parseCommitOutput, registerGitCommitTool } = eh;
+const { NODE_SPAWN, createExecHost, gitCommitPolicy, gitEnv, parseCommitOutput, registerGitCommitTool } = eh;
 
 // 1) Pure: ONE argv shape, and git's own echo parses into a record.
 const policy = gitCommitPolicy('X:/repo');

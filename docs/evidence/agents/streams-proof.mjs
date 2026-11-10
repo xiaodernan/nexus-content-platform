@@ -125,7 +125,7 @@ try {
   eh.registerGitStagedTool(registry, readHost(), { env: {} });
   eh.registerGitLogTool(registry, readHost(), { env: {} });
   eh.registerGitShowTool(registry, readHost(), { env: {} });
-  for (const [tool, args] of [['git.status', {}], ['git.diff', {}], ['git.diff', { stat: true }], ['git.staged', {}], ['git.log', { count: 5 }], ['git.show', { path: 'seed.md' }]]) {
+  for (const [tool, args] of [['git.status', {}], ['git.diff', {}], ['git.diff', { stat: true }], ['git.staged', {}], ['git.log', { count: 5 }], ['git.show', { path: 'seed.md' }]] as Array<[string, Record<string, unknown>]>) {
     const res = await registry.invoke({ callId: `v53:${tool}`, tool, args }, { checkpoint: () => true });
     assert.equal(res.ok, true, `${tool} answers through the shared ceiling policy`);
     const out = res.output;

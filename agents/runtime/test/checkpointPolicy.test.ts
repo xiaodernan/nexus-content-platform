@@ -78,7 +78,7 @@ describe('checkpoint policy (§28 as data)', () => {
 
   it('runTask end-to-end: the policy decides which steps of the SAME plan run — audit says who', async () => {
     const ws = new InMemoryWorkspace({ 'docs/a.md': '# A\nwidget notes\n' });
-    let registry = registerWorkspaceTools(new ToolRegistry(), ws);
+    const registry = registerWorkspaceTools(new ToolRegistry(), ws);
     registry.register({ name: 'test.run', description: 'v', permissions: ['exec'], args: [] }, () => ({ ok: true, detail: 'green' }));
     registry.register({ name: 'git.commit', description: 'c', permissions: ['exec'], args: [{ name: 'message', type: 'string' }] }, () => ({ ok: true }));
     const task: AgentTask = { id: 'cp1', goal: 'add widget docs', targetPath: 'docs/a.md' };
@@ -114,20 +114,20 @@ describe('checkpoint policy (§28 as data)', () => {
 describe('receiptsOrNote + gatedCallIds (v54)', () => {
   const call = (id: string, tool: string) => ({ call: { callId: id, tool, args: {} }, permissions: ['write'] as ['write'] });
 
-  it('takes only the receipts whose call id this record issued, in the order they were asked', () => {
+  it('takes only the receipts whose call id this record issued, in the order they were asked', async () => {
     const cp = policyCheckpoint(POLICY);
-    cp(call('a:annotate', 'fs.append'));
-    cp(call('other:annotate', 'fs.append')); // an earlier stage of the same process, same tool
-    cp(call('a:write', 'fs.write'));
+    await cp(call('a:annotate', 'fs.append'));
+    await cp(call('other:annotate', 'fs.append')); // an earlier stage of the same process, same tool
+    await cp(call('a:write', 'fs.write'));
     const owned = ['a:annotate', 'a:write'];
     const { decisions, note } = receiptsOrNote(cp, owned);
     expect(decisions.map((d) => d.call.callId)).toEqual(['a:annotate', 'a:write']);
     expect(note).toBeUndefined();
   });
 
-  it('hands out COPIES, so a running process cannot edit what a record already reported', () => {
+  it('hands out COPIES, so a running process cannot edit what a record already reported', async () => {
     const cp = policyCheckpoint(POLICY);
-    cp(call('a:annotate', 'fs.append'));
+    await cp(call('a:annotate', 'fs.append'));
     const { decisions } = receiptsOrNote(cp, ['a:annotate']);
     const before = JSON.stringify(decisions);
     cp.decisions[0]!.granted = false;
@@ -135,9 +135,9 @@ describe('receiptsOrNote + gatedCallIds (v54)', () => {
     expect(JSON.stringify(decisions)).toBe(before);
   });
 
-  it('an empty list from a face that KEEPS one is a fact, not a gap needing a sentence', () => {
+  it('an empty list from a face that KEEPS one is a fact, not a gap needing a sentence', async () => {
     const cp = policyCheckpoint(POLICY);
-    cp(call('elsewhere:x', 'fs.append'));
+    await cp(call('elsewhere:x', 'fs.append'));
     const { decisions, note } = receiptsOrNote(cp, ['a:nothing-mine']);
     expect(decisions).toEqual([]);
     expect(note).toBeUndefined();

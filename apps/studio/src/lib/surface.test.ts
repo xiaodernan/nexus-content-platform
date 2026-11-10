@@ -175,7 +175,7 @@ describe('the wiring that makes the 3D surface reachable', () => {
     const lib = read('./scene3d.ts');
     const block = lib.match(/export interface SceneSurface \{[\s\S]*?\n\}/);
     if (!block) throw new Error('scene3d.ts no longer declares `export interface SceneSurface { … }`');
-    const verbs = [...block[0].matchAll(/^  (\w*Camera\w*)\(/gm)].map((m) => m[1] ?? '');
+    const verbs = [...block[0].matchAll(/^ {2}(\w*Camera\w*)\(/gm)].map((m) => m[1] ?? '');
     expect(verbs).toEqual(['watchCameras', 'addCamera', 'removeCamera', 'activateCamera']);
 
     // `watch*` is the subscription leg, pinned by its own case above; the rest are CONTROLS, and each gets
@@ -201,7 +201,7 @@ describe('the wiring that makes the 3D surface reachable', () => {
     const lib = read('./scene3d.ts');
     const block = lib.match(/export interface SceneSurface \{[\s\S]*?\n\}/);
     if (!block) throw new Error('scene3d.ts no longer declares `export interface SceneSurface { … }`');
-    const verbs = [...block[0].matchAll(/^  (\w*Scene\w*)\(/gm)].map((m) => m[1] ?? '');
+    const verbs = [...block[0].matchAll(/^ {2}(\w*Scene\w*)\(/gm)].map((m) => m[1] ?? '');
     expect(verbs).toEqual(['watchScenes', 'activateScene']);
 
     const controls = verbs.filter((verb) => !verb.startsWith('watch'));

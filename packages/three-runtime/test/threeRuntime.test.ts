@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import * as THREE from 'three';
 import { ThreeRuntime, createThreeRuntime, DEFAULT_THREE_CONFIG, sceneId, entityId, cameraId } from '../src/index.js';
-import type { ThreeRuntimeConfig, ThreeScene, ThreeEntity, ThreeCamera, ThreeAnimation, EntityId, SceneId, CameraId, AnimationId } from '../src/types.js';
+import type { ThreeRuntimeConfig } from '../src/types.js';
 import { createHeadlessBackend, webglAvailable, manualFrameScheduler, type HeadlessBackend } from '../src/renderBackend.js';
 
 const mockCanvas = {
@@ -313,7 +313,7 @@ describe('ThreeRuntime', () => {
     const sceneCreated = vi.fn();
     runtime.addEventListener('sceneCreated', sceneCreated);
 
-    const scene = runtime.createScene('Event Test');
+    runtime.createScene('Event Test');
     expect(sceneCreated).toHaveBeenCalledWith(expect.objectContaining({ scene: expect.any(Object) }));
   });
 
@@ -331,7 +331,7 @@ describe('ThreeRuntime', () => {
   it('disposes properly', () => {
     runtime.initialize(mockCanvas);
     const scene = runtime.createScene('Test Scene');
-    const entity = runtime.createEntity(scene.id, 'Cube', 'mesh');
+    runtime.createEntity(scene.id, 'Cube', 'mesh');
 
     runtime.dispose();
 

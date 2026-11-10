@@ -1259,7 +1259,7 @@ export function sourceRosterDrift({ source, roster }) {
     violations.push(`the ROSTER line lists ${stated.length} family pair(s); the arms list defines ${roster.families.length} — the marker and its own count disagree about how many families it names`);
     return violations;
   }
-  const sum = stated.reduce((a, s) => a + (Number(/(\d+)$/.exec(s)?.[1]) ?? NaN), 0);
+  const sum = stated.reduce((a, s) => a + Number(/(\d+)$/.exec(s)?.[1]), 0);
   if (Number.isNaN(sum)) violations.push(`the ROSTER line states a family as ${JSON.stringify(stated.find((s) => !/\D+\d+$/.test(s)))} — a pair is a letter prefix and a count, in that order`);
   else if (Number(m[1]) !== sum) violations.push(`the ROSTER line's families add to ${sum} against its own headline of ${m[1]} arms — the marker answers its question twice`);
   stated.forEach((pair, i) => {
@@ -1820,7 +1820,7 @@ export function refusalSites(source) {
  */
 export function armCoverage({ source, sets = [], declared = [] }) {
   const violations = [];
-  const { sites, forwards, unreadable } = refusalSites(source);
+  const { sites, unreadable } = refusalSites(source);
   if (unreadable.length > 0) violations.push(`${unreadable.length} violations.push() call(s) in this file cannot be closed by this reader (${unreadable.join(', ')}) — a refusal it cannot find is a refusal it cannot count, and the index below is short by that much`);
   const reachedBy = (site) => sets.filter((s) => (s.violations ?? []).some((v) => segmentsMatch(v, site.segs))).map((s) => String(s.name).split(' ')[0]);
   const keys = new Map();

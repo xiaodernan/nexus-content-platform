@@ -2059,6 +2059,7 @@ describe('addCamera / removeCamera — the surface authors the camera set (M5 v2
   it('a host that throws something that is not an Error is still answered in data, not in a crash', () => {
     const { runtime } = fakeRuntime({
       removeCamera: () => {
+        // eslint-disable-next-line no-throw-literal, @typescript-eslint/only-throw-error -- 裸字符串正是这条测试的主题：宿主抛出「不是 Error 的东西」时，面板要把它答成数据而不是崩掉。
         throw 'a bare string';
       },
     });

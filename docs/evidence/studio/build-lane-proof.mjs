@@ -39,8 +39,6 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 // ── the shipped arc + container layers ───────────────────────────────────────────────────────────────
-const execHost = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
-const { CONTAINER_ISOLATION_ARGS, CONTAINER_MOUNT_FLAGS } = execHost;
 
 // ── the SHIPPED Studio route core, type-stripped rather than copied ──────────────────────────────────
 const { stripTypeScriptTypes } = await import('node:module');
@@ -56,7 +54,7 @@ const box = mkdtempSync(join('apps/studio', 'nexus-build-lane-'));
 try {
   await strip('apps/studio/src/lib/containerServer.ts', box); // buildServer's relative import lands here
   const buildServer = await strip('apps/studio/src/lib/buildServer.ts', box);
-  const { buildArcState, runStudioBuildArc, STUDIO_BUILD_ARC_ID, STUDIO_BUILD_CATALOG, STUDIO_BUILD_ENGINE, studioBuildCatalogAllowlistError, studioBuildCheckpointPolicyError } = buildServer;
+  const { buildArcState, runStudioBuildArc, STUDIO_BUILD_ARC_ID, STUDIO_BUILD_CATALOG, studioBuildCatalogAllowlistError, studioBuildCheckpointPolicyError } = buildServer;
   assert.equal(typeof runStudioBuildArc, 'function', 'the Studio route core was really imported, not re-implemented');
 
   // ── §1 the probe is the REAL daemon's answer, merged with the pinned lane facts ───────────────────

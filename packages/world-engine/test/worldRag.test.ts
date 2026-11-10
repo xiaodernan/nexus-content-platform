@@ -1,16 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { WorldRAG, type WorldRAGIndex } from '../src/rag.js';
-import {
-  characterId,
-  eventId,
-  factionId,
-  loreId,
-  locationId,
-  worldId,
-  type Character,
-  type Location,
-  type WorldState,
-} from '../src/types.js';
+import { WorldRAG } from '../src/rag.js';
+import { characterId, eventId, locationId, worldId, type Character, type Location, type WorldState } from '../src/types.js';
 
 // `rag.ts` (WorldRAG) had no direct unit coverage before this file — it is only exercised
 // indirectly through WorldEngine. These pin the index build + query/scoping/filter/limit/context

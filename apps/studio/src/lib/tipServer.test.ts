@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { readTips, readTipsGiven, tipOnService, type TipEntry } from './tipServer';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v404 — the server-side half of the TIPS reader and writer.
@@ -178,7 +179,7 @@ describe('tipServer — tipOnService GIVES a tip (v404)', () => {
     const answer = await tipOnService('acct-r', 500, 'thanks', false, claim, fetchImpl);
     expect(seen).toContain('/tips');
     expect(init?.method).toBe('POST');
-    expect(JSON.parse(String(init?.body))).toEqual({
+    expect(JSON.parse(bodyText(init))).toEqual({
       recipientAccountId: 'acct-r',
       amountCents: 500,
       message: 'thanks',
@@ -196,7 +197,7 @@ describe('tipServer — tipOnService GIVES a tip (v404)', () => {
       return new Response(JSON.stringify({ ok: true, tips: [tip(0)] }), { status: 200 });
     });
     await tipOnService('acct-r', 100, '', true, { accountId: 'acct-p' }, fetchImpl);
-    const body = JSON.parse(String(init?.body)) as { claim: Record<string, unknown> };
+    const body = JSON.parse(bodyText(init)) as { claim: Record<string, unknown> };
     expect(body.claim).toEqual({ accountId: 'acct-p', handle: null, assurance: null, claimedAt: null });
   });
 

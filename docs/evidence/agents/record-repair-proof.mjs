@@ -116,6 +116,7 @@ function modelOf(rel) {
     `${rel}: a stripped line is not a self-contained statement (${dropped.filter((l) => !l.trimEnd().endsWith(');')).slice(0, 2).map((l) => JSON.stringify(l.slice(0, 60))).join(' | ')}) -- the slice would cut a sentence in half`);
   let model;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval -- 这条证明的活就是把切出来的模型区域求值出来；不求值就证明不了切片边界对不对。
     model = new Function(`${kept.join('\n')}
 return { ALPHA_CP, ALPHA, GBK_BYTES, m1, m2, m1whole, m2whole, RENDER, RENDERS, HEADS, spans, cls, tightCls, chargeable, isCharged };`)();
   } catch (e) {
@@ -464,7 +465,7 @@ console.log(`[5] flank shelter: ${plantForms.length} forms seen / ${charged0} ch
 for (const rel of [TOOL, ROW, SELF]) {
   const bytes = readFileSync(join(root, rel));
   const t = bytes.toString('utf8');
-  assert.ok(!/[^\x00-\x7f]/.test(t), `${rel} must be ASCII in its own bytes -- every non-ASCII character it names is written as an escape, or the record-encoding row charges the file that grades the record`);
+  assert.ok(!/[^\p{ASCII}]/u.test(t), `${rel} must be ASCII in its own bytes -- every non-ASCII character it names is written as an escape, or the record-encoding row charges the file that grades the record`);
   assert.ok(!t.includes('\r'), `${rel} carries CR bytes`);
   assert.ok(!t.includes(str([0xfffd])), `${rel} carries a replacement character`);
   assert.equal(tool.chargedSitesOf(t.replace(/\r\n/g, '\n')), 0, `${rel} must not carry a charged line itself`);

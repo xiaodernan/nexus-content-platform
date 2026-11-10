@@ -24,7 +24,7 @@
 // The proof is a MEASUREMENT, not a gate: it always exits 0 and writes a JSON artifact under `.scratch/`.
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
+import { writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -140,7 +140,6 @@ async function main() {
   console.log(`[ebusy] CONCURRENT  clone --shared --no-checkout (isolated staging shape): total=${cloneResult.total} ok=${cloneResult.ok} ebusy=${cloneResult.ebusy} otherErr=${cloneResult.otherErr} rate=${cloneResult.rate}%`);
   scenarios.push({ shape: 'clone --shared --no-checkout (isolated staging shape)', concurrent: { arm: 'concurrent', label: 'clone --shared --no-checkout', ...cloneResult }, sequential: null });
 
-  const allConcurrent = tally(scenarios.flatMap((s) => Array(s.concurrent.total).fill({ outcome: s.concurrent.ebusy ? 'ebusy' : 'ok' })));
   const totals = {
     concurrent: { total: scenarios.reduce((n, s) => n + s.concurrent.total, 0), ebusy: scenarios.reduce((n, s) => n + s.concurrent.ebusy, 0) },
     sequential: { total: scenarios.reduce((n, s) => n + (s.sequential?.total ?? 0), 0), ebusy: scenarios.reduce((n, s) => n + (s.sequential?.ebusy ?? 0), 0) },

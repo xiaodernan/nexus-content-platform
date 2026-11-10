@@ -40,7 +40,6 @@ const {
   NO_RECEIPTS_NOTE,
   RELEASE_ROLE,
   formatLedgerLine,
-  isArcRecord,
   loadLedger,
   parseLedgerLine,
   policyCheckpoint,

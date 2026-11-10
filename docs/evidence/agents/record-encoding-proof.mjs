@@ -50,7 +50,7 @@
 // read off disk.
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
@@ -434,7 +434,8 @@ assert.equal(siteTotal, 58, `S4 the ledger carries 58 damage sites over its 35 S
 console.log(`[4a] tree side of the ledger: ${rowsFound}/116 rows paired one-for-one onto ${claimed.size} distinct tree lines (${dupGroups} digest(s) shared by more than one row, widest ${maxDup}), ${rowsAtPosition} still at the line number the measurement recorded, ${siteTotal} sites, 0 chargeable`);
 
 if (onRef && refLines[FILES[0]]) {
-  let refCharge = 0, walkOk = 0, producerFails = 0, glueEaten = 0, mechSeen = new Set();
+  let refCharge = 0, walkOk = 0, producerFails = 0, glueEaten = 0;
+  const mechSeen = new Set();
   const lineFail = [];
   for (const row of LEDGER) {
     const rel = FILES[row.f];
@@ -593,7 +594,7 @@ console.log(`[5] README headings: ${vHead.length} of shape ## vN, ${dashForm.len
 
 // -- S6 what this file claims about itself ----------------------------------------------------------
 const selfBytes = readFileSync(join(root, SELF));
-assert.ok(!/[^\x00-\x7f]/.test(selfBytes.toString('utf8')), 'S6 the gate is ASCII-only in its own bytes, so it can never add a chargeable line to the census it runs -- every non-ASCII character it names is written as an escape');
+assert.ok(!/[^\p{ASCII}]/u.test(selfBytes.toString('utf8')), 'S6 the gate is ASCII-only in its own bytes, so it can never add a chargeable line to the census it runs -- every non-ASCII character it names is written as an escape');
 const selfLines = partition(selfBytes.toString('utf8'));
 const selfCharged = selfLines.filter((l) => chargedLine(l));
 assert.deepEqual(selfCharged, [], `S6 the gate scans clean LINE BY LINE (${selfCharged.length} chargeable of ${selfLines.length} lines: ${selfCharged.slice(0, 2).map((l) => JSON.stringify(l.slice(0, 60))).join(' | ')})`);

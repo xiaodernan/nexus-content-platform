@@ -225,7 +225,8 @@ class CdpSession {
       } catch (err) {
         clearTimeout(timer);
         this.pending.delete(id);
-        reject(err);
+        // 拒绝的理由要是 Error：调用方拿它做 `err.message`，一个裸字符串就答不出这句话。
+        reject(err instanceof Error ? err : new Error(String(err)));
       }
     });
   }

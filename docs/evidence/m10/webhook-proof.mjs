@@ -315,7 +315,7 @@ try {
     return { status: response.status, body, text };
   }
 
-  const asJson = (value) => ({ 'content-type': 'application/json' });
+  const asJson = (_value) => ({ 'content-type': 'application/json' });
   const postJson = (pathname, value) => call(pathname, { method: 'POST', headers: asJson(value), body: JSON.stringify(value) });
   const q = (value) => encodeURIComponent(value);
 

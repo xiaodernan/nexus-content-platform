@@ -199,14 +199,14 @@ describe('M5 v239 - a removable camera leaves the scene and the bus says so', ()
 describe('M5 v239 - the unknown-subject refusals answer false and move nothing', () => {
   let runtime: ThreeRuntime;
   let scene: ReturnType<ThreeRuntime['createScene']>;
-  let active: ReturnType<ThreeRuntime['createCamera']>;
   let spare: ReturnType<ThreeRuntime['createCamera']>;
   let removed: RemovedData[];
 
   beforeEach(() => {
     runtime = headlessRuntime().runtime;
     scene = runtime.createScene('Refusal Scene');
-    active = runtime.createCamera(scene.id, 'Cam Active');
+    // 这台相机必须存在（名册的断言要看见它），但这一块从不读它的句柄——所以只创建，不留绑定。
+    runtime.createCamera(scene.id, 'Cam Active');
     spare = runtime.createCamera(scene.id, 'Cam Spare');
     removed = [];
     runtime.addEventListener('cameraRemoved', (data?: unknown) => removed.push(data as RemovedData));

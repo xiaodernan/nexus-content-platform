@@ -79,7 +79,7 @@ export function queryTokens(query: string): string[] {
       query
         .toLowerCase()
         .split(/[^\p{L}\p{N}]+/u)
-        .filter((t) => t.length >= 2 || /[^\x00-\x7F]/.test(t)),
+        .filter((t) => t.length >= 2 || /[^\p{ASCII}]/u.test(t)),
     ),
   ];
 }

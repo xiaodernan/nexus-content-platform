@@ -62,7 +62,7 @@ describe('parseShowDiff (one file of HEAD\'s diff → the lines git kept, pure d
     expect(parseShowDiff(out, 'x.png')).toMatchObject({ hunks: 0, additions: 0, addedLines: [], binary: true });
   });
 
-  it('empty stdout means HEAD touched nothing here, and a "\ No newline" marker is not a line', () => {
+  it('empty stdout means HEAD touched nothing here, and a "\\ No newline" marker is not a line', () => {
     expect(parseShowDiff('', 'a.md')).toMatchObject({ hunks: 0, additions: 0, deletions: 0, addedLines: [], binary: false });
     expect(parseShowDiff('@@ -1 +1 @@\n+tail\n\\ No newline at end of file\n', 'a.md').addedLines).toEqual(['tail']);
   });

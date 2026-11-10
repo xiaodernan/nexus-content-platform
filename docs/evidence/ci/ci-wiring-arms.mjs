@@ -353,7 +353,7 @@ const RUNNER_ARMS = [
   { tag: 'R2c-undeclared-slow-row-is-killed', bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': SLOW_WITHOUT_MARKER }, argv: ['--budget', '600'], code: 1, has: [/── verify:stub-c TIMEOUT ──/, /\[default 600ms\]/], lacks: [/\bRED\b/], ran: true },
   { tag: 'R3-only-typo-certifies-nothing', argv: ['--only', 'nosuchrow'], code: 1, has: [/NOTHING RAN/], lacks: [ALL_GREEN], ran: false },
   { tag: 'R3b-only-selects-one-row', argv: ['--only', 'stub-a'], code: 0, has: [/1\/1 green of a derived population of 9/], lacks: [/verify:stub-b/], ran: true, ranRows: 1 },
-  { tag: 'R4-list-runs-nothing', argv: ['--list'], code: 0, has: [/RUN      verify:stub-a/, /derived population 9 = runs 9 \+ excluded 0/], lacks: [/EXCLUDED/, /OK \d/], ran: false },
+  { tag: 'R4-list-runs-nothing', argv: ['--list'], code: 0, has: [/RUN {6}verify:stub-a/, /derived population 9 = runs 9 \+ excluded 0/], lacks: [/EXCLUDED/, /OK \d/], ran: false },
   { tag: 'R5-dangling-script-is-red-not-skipped', remove: ['docs/evidence/stub/d.mjs'], argv: [], code: 1, has: [/points at a proof file that is not on disk/], lacks: [ALL_GREEN], ran: false },
   { tag: 'R6-stale-exclusion-named', edits: [{ file: RUNNER, from: EXCLUDED_DECL, to: "export const EXCLUDED = [\n  {\n    file: 'docs/evidence/stub/ghost.mjs',\n    needs: 'a daemon this synthetic plane never starts — the arm plants a record for a proof nobody wires',\n  },\n];\n" }], argv: [], code: 1, has: [/EXCLUDED names a file that is not in the derived population/], lacks: [ALL_GREEN], ran: false },
   // v555 — the stub's target is ASSEMBLED, not written whole: the runner's `distNeeded` reads this row's own

@@ -265,7 +265,7 @@ describe('renderExploreCards — the card grid the gallery and the profile share
   it('caller-controlled text is ESCAPED on its way into the card', () => {
     // A title is a stranger's words: it lands in a text node and an attribute, so it is escaped
     // rather than interpolated — the one rule every server-rendered page in this app shares.
-    const html = renderExploreCards([card({ title: '<script>alert(\"x\")</script> & \'quoted\'' })]);
+    const html = renderExploreCards([card({ title: '<script>alert("x")</script> & \'quoted\'' })]);
     expect(html).toContain('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; &#39;quoted&#39;');
     expect(html).not.toContain('<script>');
   });

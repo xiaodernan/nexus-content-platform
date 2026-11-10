@@ -12,7 +12,7 @@ import { pathToFileURL } from 'node:url';
 
 const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
 const hostPkg = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
-const { DEPLOY_RECORD_TOOL, ToolRegistry, planBuildArc, planDeployArc, registerBuildTools, registerDeployTools, runBuildArc, runDeployArc } = rt;
+const { DEPLOY_RECORD_TOOL, ToolRegistry, planDeployArc, registerBuildTools, registerDeployTools, runBuildArc, runDeployArc } = rt;
 const { createContainerExecHost, probeContainerRuntime } = hostPkg;
 
 const POLICY = {

@@ -115,7 +115,7 @@ describe('parseStagedDiff (the index as a stated set of changes, pure data)', ()
     expect(totals).toEqual({ files: 3, hunks: 3, additions: 3, deletions: 2, binary: 0 });
   });
 
-  it('the name pair before the first hunk is never content, and a "\ No newline" marker is never a line', () => {
+  it('the name pair before the first hunk is never content, and a "\\ No newline" marker is never a line', () => {
     const c = parseStagedDiff('diff --git a/a.md b/a.md\nindex 1..2 100644\n--- a/a.md\n+++ b/a.md\n@@ -1 +1 @@\n+tail\n\\ No newline at end of file\n');
     expect(c.files[0]).toMatchObject({ additions: 1, deletions: 0, addedLines: ['tail'] });
     expect(c.files[0]!.path).toBe('a.md');

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { CALL_TIMEOUT_MS, giveTip, readMyTips, readMyTipsGiven } from './tipLane';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v331 / v332 / v333 / v334 — the browser half of the TIPS lane.
@@ -149,7 +150,7 @@ describe('tipLane — giveTip (the write half, v439)', () => {
     expect(seenUrl).toBe('/api/tips');
     expect(seenInit?.method).toBe('POST');
     expect(seenInit?.headers).toEqual({ 'content-type': 'application/json', accept: 'application/json' });
-    expect(JSON.parse(String(seenInit?.body))).toEqual({
+    expect(JSON.parse(bodyText(seenInit))).toEqual({
       recipientAccountId: 'acct-ada',
       amountCents: 500,
       message: 'the harness tips you',
@@ -162,7 +163,7 @@ describe('tipLane — giveTip (the write half, v439)', () => {
   it('anonymous travels as the boolean the payer chose, and the amount as a number', async () => {
     let body: { anonymous?: unknown; amountCents?: unknown } = {};
     const fetchImpl = makeFetch((_url, init) => {
-      body = JSON.parse(String(init?.body));
+      body = JSON.parse(bodyText(init));
       return new Response(JSON.stringify({ ok: true, tips: [{ recipientId: 'acct-ada', amountCents: 1 }] }), { status: 200 });
     });
 
@@ -177,7 +178,7 @@ describe('tipLane — giveTip (the write half, v439)', () => {
     const message = 'line one\nline two "quoted" <&> \u2014 end';
     let sent: unknown;
     const fetchImpl = makeFetch((_url, init) => {
-      sent = JSON.parse(String(init?.body));
+      sent = JSON.parse(bodyText(init));
       return new Response(JSON.stringify({ ok: true, tips: [{ recipientId: 'acct-ada', amountCents: 1 }] }), { status: 200 });
     });
 

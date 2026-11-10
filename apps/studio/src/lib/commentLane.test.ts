@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { CALL_TIMEOUT_MS, postComment, readMyComments, removeComment } from './commentLane';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v321 — the browser half of the COMMENTS lane, and the take-back it gained.
@@ -81,7 +82,7 @@ describe('commentLane — postComment (v442)', () => {
     expect(seenUrl).toBe('/api/comments');
     expect(seenInit?.method).toBe('POST');
     expect(seenInit?.headers).toEqual({ 'content-type': 'application/json', accept: 'application/json' });
-    expect(JSON.parse(String(seenInit?.body))).toEqual({ projectId: 'pub-1', body: 'hello', claim: CLAIM });
+    expect(JSON.parse(bodyText(seenInit))).toEqual({ projectId: 'pub-1', body: 'hello', claim: CLAIM });
     expect(answer.ok).toBe(true);
     expect(answer.comment?.id).toBe('c-new');
   });
@@ -109,7 +110,7 @@ describe('commentLane — postComment (v442)', () => {
     const text = 'line one\nline two "quoted" <&> — end';
     let sent: unknown;
     const fetchImpl = makeFetch((_url, init) => {
-      sent = JSON.parse(String(init?.body));
+      sent = JSON.parse(bodyText(init));
       return new Response(JSON.stringify({ ok: true, comment: { id: 'c-new', body: text, accountId: 'acct-ada', createdAt: 5 } }), { status: 200 });
     });
 

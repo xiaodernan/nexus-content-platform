@@ -69,7 +69,7 @@ export function javaRecordFields(file, recordName) {
     .map((s) => s.trim())
     .filter(Boolean)
     .map((s) => {
-      const m = /^([A-Za-z_][\w.<>\[\]]*)\s+([A-Za-z_]\w*)$/.exec(s);
+      const m = /^([A-Za-z_][\w.<>[\]]*)\s+([A-Za-z_]\w*)$/.exec(s);
       if (!m) {
         throw new Error(`the wire field "${s}" is not in the shape "Type name" \u2014 the proof must know how to read it`);
       }

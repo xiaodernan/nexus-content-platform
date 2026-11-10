@@ -147,7 +147,7 @@ ${good}${END}\n`;
     { name: 'a file count drifts', text: text.replace('| **103/103** | 6 |', '| **103/103** | 7 |'), expect: '@nexus/world-engine' },
     { name: 'a package row is deleted', text: text.replace(/^\| `@nexus\/exec-host`[^\n]*\n/m, ''), expect: '@nexus/exec-host' },
     { name: 'a row for a package nobody ran is invented', text: text.replace('| **106/106** |', '| **106/106** |').replace(END, `| \`@nexus/ghost\` | **7/7** | 1 | nowhere |\n${END}`), expect: '@nexus/ghost' },
-    { name: 'every number right, rows reshuffled', text: text.replace(/^(\| \`@nexus\/design-model\`[^\n]*\n)(\| \`@nexus\/ai-providers\`[^\n]*\n)/m, '$2$1'), expect: 'row order' },
+    { name: 'every number right, rows reshuffled', text: text.replace(/^(\| `@nexus\/design-model`[^\n]*\n)(\| `@nexus\/ai-providers`[^\n]*\n)/m, '$2$1'), expect: 'row order' },
   ];
   let caught = 0;
   for (const mut of muts) {

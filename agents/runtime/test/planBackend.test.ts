@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { demoPlanner, routerPlanner, validatePlan } from '../src/planBackend.js';
+import { routerPlanner, validatePlan } from '../src/planBackend.js';
 import { ToolRegistry } from '../src/registry.js';
 import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
 import { runTask } from '../src/orchestrator.js';

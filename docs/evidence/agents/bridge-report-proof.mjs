@@ -40,7 +40,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const gitText = (...args) => new Promise((resolve, reject) => execFile('git', args, { encoding: 'utf8' }, (e, out) => (e ? reject(e) : resolve(out))));
+const gitText = (...args) => new Promise((resolve, reject) => execFile('git', args, { encoding: 'utf8' }, (e, out) => {
+  if (!e) { resolve(out); return; }
+  // e 的类型是 unknown：String() 它只会印出 "[object Object]"，而拒绝的理由是要给人看的。
+  reject(e instanceof Error ? e : new Error(typeof e === 'string' ? e : JSON.stringify(e)));
+}));
 
 const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
 const eh = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
@@ -56,6 +60,7 @@ const env = () => {
 };
 const B = (s) => Buffer.byteLength(s ?? '', 'utf8');
 const repoRoot = process.cwd().replace(/\\/g, '/');
+// eslint-disable-next-line no-control-regex -- ANSI 转义序列必须匹配 ESC 本身，这条规则表达不了
 const ANSI = /\x1b\[[0-9;]*m/g;
 
 /**

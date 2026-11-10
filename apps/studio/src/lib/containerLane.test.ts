@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { containerAnswerLine, probeContainerLane, requestContainerExec } from './containerLane';
+import { bodyText } from './fetchBody';
 
 const realFetch = globalThis.fetch;
 
@@ -43,7 +44,7 @@ describe('containerLane exec (v172)', () => {
   it('POSTs the argv as JSON and passes the answer through', async () => {
     let captured = '';
     globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
-      captured = String(init?.body ?? '');
+      captured = bodyText(init);
       return new Response(JSON.stringify({ ok: true, ran: true, detail: 'container node:22-alpine node -e x → exit 0' }), { status: 200 });
     }) as typeof fetch;
     const a = await requestContainerExec({ argv: ['node', '-e', 'x'] });
@@ -64,7 +65,7 @@ describe('containerLane exec (v172)', () => {
   it('serializes cwd alongside argv when one is given', async () => {
     let captured = '';
     globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
-      captured = String(init?.body ?? '');
+      captured = bodyText(init);
       return new Response(JSON.stringify({ ok: true, ran: true, detail: 'ok' }), { status: 200 });
     }) as typeof fetch;
     await requestContainerExec({ argv: ['ls'], cwd: '/workspace' });

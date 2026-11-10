@@ -339,7 +339,11 @@ function treeHarness(options: { pid?: number; reapTree?: boolean; reaperResult?:
       c.emitEnd({ code: null, signal: 'SIGTERM' });
     }; // like the real FakeChild: the direct kill ends THIS process, and only this one
     child = c;
-    return options.pid === undefined ? { onData: (l) => c.onData(l), onEnd: (l) => c.onEnd(l), kill: c.kill } : { onData: (l) => c.onData(l), onEnd: (l) => c.onEnd(l), kill: c.kill, pid: options.pid };
+    // kill 写成箭头而不是 `c.kill`：方法摘出来传走时 `this` 就不是那个 FakeChild 了，
+    // 而 kill() 里的 `this.killed` / `this.emitEnd` 都要它——`this.emitEnd` 在包装对象上不存在。
+    return options.pid === undefined
+      ? { onData: (l) => c.onData(l), onEnd: (l) => c.onEnd(l), kill: () => c.kill() }
+      : { onData: (l) => c.onData(l), onEnd: (l) => c.onEnd(l), kill: () => c.kill(), pid: options.pid };
   };
   const reaper: TreeReaper = (pid) => {
     reaped.push(pid);
@@ -406,7 +410,7 @@ describe('the process tree (v55): what a timeout kill stops, and what it says it
         c.emitEnd({ code: null, signal: 'SIGTERM' });
       };
       child = c;
-      return { onData: (l) => c.onData(l), onEnd: (l) => c.onEnd(l), kill: c.kill, pid: 777 };
+      return { onData: (l) => c.onData(l), onEnd: (l) => c.onEnd(l), kill: () => c.kill(), pid: 777 };
     };
     const host = createExecHost(POLICY, { spawnLike, reapTree: true, reaper: () => gate });
     const pending = host.run({ argv: ['git', 'status', '--short'] }, OK_GATE); // the 20 ms rule
@@ -496,7 +500,7 @@ describe('whose answer is asked (v529): the platform gates the built-in reaper, 
         c.emitEnd({ code: null, signal: 'SIGTERM' });
       };
       child = c;
-      return { onData: (l) => c.onData(l), onEnd: (l) => c.onEnd(l), kill: c.kill, pid: 4242 };
+      return { onData: (l) => c.onData(l), onEnd: (l) => c.onEnd(l), kill: () => c.kill(), pid: 4242 };
     };
     const options: Parameters<typeof mod.createExecHost>[1] = { spawnLike, reapTree: true };
     if (which === 'mine') {

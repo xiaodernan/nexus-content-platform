@@ -11,7 +11,6 @@ const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
 const eh = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
 const { ToolRegistry } = rt;
 const { GIT_DIFF_FLAGS, createExecHost, gitEnv, gitReadOnlyPolicy, parseDiffStat, parseGitDiff, parseGitStatus, registerGitTools } = eh;
-const F = GIT_DIFF_FLAGS.join(' ');
 
 // 1) Pure parsers first: the structured view exists before any process does.
 const st = parseGitStatus(' M src/a.ts\nR  old/x.md -> new/x.md\n?? pipeout.bin\nUU conflict.ts\n');

@@ -87,7 +87,7 @@ describe('studio world save lane facts (v191)', () => {
     expect(STUDIO_WORLD_SAVES_ROOT).toBe('.nexus/world-saves');
     expect(STUDIO_WORLD_DISK_SAVE_PATH).toBe('world-saved');
     expect(createStudioWorldSaveStore().kind).toBe('fs');
-    expect(nodeSaveFs.flushSync).toBeUndefined();
+    expect('flushSync' in nodeSaveFs).toBe(false);
   });
 
   it('write → probe → read round-trips one world save through the store', () => {

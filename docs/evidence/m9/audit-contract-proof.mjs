@@ -123,7 +123,7 @@ const SOURCES = [CONTROLLER, AUDIT_SERVICE, REPORT_DTOS, REPORT_SERVICE, MODERAT
     .map((s) => s.trim())
     .filter(Boolean)
     .map((s) => {
-      const m = /^([A-Za-z_][\w.<>\[\]]*)\s+([A-Za-z_]\w*)$/.exec(s);
+      const m = /^([A-Za-z_][\w.<>[\]]*)\s+([A-Za-z_]\w*)$/.exec(s);
       assert.ok(m, `the wire field "${s}" is not in the shape "Type name" — the proof must know how to read it`);
       return { type: m[1], name: m[2] };
     });
@@ -373,7 +373,7 @@ async function loadShippedReportFaces(box) {
     .map((s) => s.trim())
     .filter(Boolean)
     .map((s) => {
-      const m = /^([A-Za-z_][\w.<>\[\]]*)\s+([A-Za-z_]\w*)$/.exec(s);
+      const m = /^([A-Za-z_][\w.<>[\]]*)\s+([A-Za-z_]\w*)$/.exec(s);
       assert.ok(m, `the envelope field "${s}" is not in the shape "Type name" — the proof must know how to read it`);
       return { type: m[1], name: m[2] };
     });
@@ -1120,7 +1120,7 @@ const vocab = (() => {
     const reportFaces = await loadShippedReportFaces(box);
     const NEVER_SENT_BAR = { id: 'r-ns', reporterId: 'acct-ada', targetId: 'pub-1', reason: 'spam', detail: '', createdAt: 1 };
     const NEVER_SENT_DESK = { reportId: 'r-ns', targetProjectId: 'pub-1', reason: 'spam', detail: '', createdAt: 1 };
-    for (const [face, fn, key] of [['reportBar', reportFaces.bar.toReportRow, NEVER_SENT_BAR], ['moderation', reportFaces.desk.toDeskRow, NEVER_SENT_DESK]]) {
+    for (const [face, fn] of [['reportBar', reportFaces.bar.toReportRow], ['moderation', reportFaces.desk.toDeskRow]]) {
       assert.equal(typeof fn, 'function', `${face === 'reportBar' ? CLIENT_REPORTBAR : CLIENT_MODERATION} no longer exports its row builder — §11.10 has lost the face it grades, and the clauses above would be grading names`);
     }
     {

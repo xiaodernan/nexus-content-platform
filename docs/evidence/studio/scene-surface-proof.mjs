@@ -44,7 +44,7 @@
 // Run after `npm run build`:  node docs/evidence/studio/scene-surface-proof.mjs
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { execFileSync } from '../lib/syncproc.mjs';
@@ -89,10 +89,8 @@ const CONFIG = {
 };
 const scheduler = manualFrameScheduler();
 const backend = createHeadlessBackend(CONFIG);
-let initialised = 0;
 const runtime = new ThreeRuntime(CONFIG, {
   backend: () => {
-    initialised += 1;
     return backend;
   },
   scheduler,

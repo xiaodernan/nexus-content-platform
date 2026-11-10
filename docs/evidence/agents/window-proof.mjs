@@ -50,10 +50,8 @@ function mkTmp(prefix) {
   return base + n;
 }
 
-const PIN = gitEnv({});
 const homeHead = (await raw('.', 'rev-parse', 'HEAD')).stdout.trim();
 const workRoot = mkTmp('nexus-v63-proof');
-const envInit = { ...PIN, GIT_CONFIG_NOSYSTEM: '1' };
 let spawns = 0;
 const counting = (cmd, args, opts) => {
   spawns += 1;
