@@ -67,3 +67,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0053  | A warning list can select several states at once                | Accepted |
 | 0054  | Spring Cloud enters NEXUS as a REGISTRY and an EDGE, not as a rewrite | Accepted |
 | 0055  | A service is reached BY NAME, and its failure is a FACT about the service | Accepted |
+| 0056  | A failure must NAME itself: which service, which kind, and who refused | Accepted |

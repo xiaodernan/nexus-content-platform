@@ -48,6 +48,12 @@ import org.springframework.stereotype.Service;
  *
  * <p>Hence: find the {@link FeignException} wherever it is in the chain, and decide by its
  * <b>status</b> — 404 is a fact about the project, anything else is a fact about the service.
+ *
+ * <p>And a fact about the service has to be NAMED. The wrapper's own message ("No fallback
+ * available.") names neither the service nor the failure, so an operator reading it has to go
+ * looking; {@link DomainFailure} turns the chain into a word a caller can branch on
+ * ({@code connection-refused}, {@code circuit-breaker-open}, {@code timeout}, …) and a sentence
+ * that says which it was.
  */
 @Service
 public class DomainProjectReader {
@@ -73,8 +79,8 @@ public class DomainProjectReader {
                 // A 200 with no body is not a project. It is a malformed answer, and it is treated
                 // as the failure it is rather than as "a project with no fields".
                 log.warn("the domain service answered a project read with an empty body");
-                return DomainResponse.unavailable(
-                        "the domain service answered with an empty body; no project was invented from it");
+                return DomainResponse.unavailable(DomainFailure.malformedAnswer(
+                        "the domain service answered with an empty body; no project was invented from it"));
             }
             return DomainResponse.found(project);
         } catch (RuntimeException failure) {
@@ -88,55 +94,24 @@ public class DomainProjectReader {
      * <p>The order matters: the downstream's own answer comes FIRST, because it is the more specific
      * fact. A 404 that the breaker wrapped is still a 404 — it says the service was there, healthy,
      * and holding no such row.
+     *
+     * <p>Everything else is a failure of the SERVICE, and it is named: {@link DomainFailure} works
+     * out which kind it was (the connection was refused, the breaker was open, the call timed out,
+     * the service answered with an error) so that neither the answer nor the log says only
+     * "No fallback available." — which names neither the service nor the failure.
      */
     private DomainResponse classify(RuntimeException failure) {
-        FeignException answered = findFeignException(failure);
-        if (answered != null) {
-            if (answered.status() == 404) {
-                return DomainResponse.notFound();
-            }
-            log.warn("the domain service answered with an error ({}): {}", answered.status(), answered.getMessage());
-            return DomainResponse.unavailable(
-                    "the domain service answered with an error " + answered.status() + ": " + answered.getMessage());
+        FeignException answered = DomainFailure.findAnswered(failure);
+        if (answered != null && answered.status() == 404) {
+            return DomainResponse.notFound();
         }
 
-        // The breaker refusing, a load balancer with no instance, a DNS failure — none of these
-        // is a fact about the project, so none of them may be reported as one.
-        //
-        // The CLASS is in the log because "which failure" is the question an operator asks first,
-        // and a message alone ("No fallback available.") does not answer it. The CAUSE is in the log
-        // because that is where the breaker's own name lives — a caller that has to open a source
-        // file to learn which breaker refused is a caller that has to guess.
-        log.warn("the domain service could not be reached ({}): {}{}", failure.getClass().getSimpleName(),
-                failure.getMessage(), causeOf(failure));
-        return DomainResponse.unavailable(
-                "the domain service could not be reached: " + failure.getMessage());
-    }
-
-    /**
-     * The downstream's own answer, wherever it sits in the cause chain.
-     *
-     * <p>{@code null} when the failure did not come from an HTTP answer at all — a refused
-     * connection, a load balancer with no instance, an open breaker.
-     */
-    private static FeignException findFeignException(Throwable failure) {
-        for (Throwable current = failure; current != null; current = current.getCause()) {
-            if (current instanceof FeignException answered) {
-                return answered;
-            }
-            if (current.getCause() == current) {
-                break;
-            }
-        }
-        return null;
-    }
-
-    /** The cause of a failure, in one line — {@code " (cause: X: y)"} or nothing when there is none. */
-    private static String causeOf(Throwable failure) {
-        Throwable cause = failure.getCause();
-        if (cause == null) {
-            return "";
-        }
-        return " (cause: " + cause.getClass().getSimpleName() + ": " + cause.getMessage() + ")";
+        DomainFailure classified = DomainFailure.classify(failure);
+        // The whole chain goes into the log, because "which failure" is the question an operator
+        // asks first, and the WRAPPER's message ("No fallback available.") does not answer it.
+        // The chain is one line: A: msg <- B: msg <- C: msg.
+        log.warn("the domain service call failed ({}): {}", classified.kind(),
+                DomainFailure.chainOf(failure));
+        return DomainResponse.unavailable(classified);
     }
 }

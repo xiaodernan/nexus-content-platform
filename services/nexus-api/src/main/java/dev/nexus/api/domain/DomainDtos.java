@@ -67,20 +67,25 @@ public final class DomainDtos {
      * FABRICATED EMPTY PROJECT: a caller that ignored the status code would have seen a project
      * with no name and no owner. A missing project and an unreachable service must not be spelled
      * the same way, even in a body.
+     * <p>{@code failure} says WHICH failure, in a stable word a caller may branch on
+     * ({@code connection-refused}, {@code circuit-breaker-open}, {@code timeout}, …), and
+     * {@code reason} says the same thing in a sentence. The reason is what a human reads; the
+     * kind is what a program reads — and a program cannot parse an English sentence without
+     * guessing. Both are absent when nothing failed.
      */
-    public record DomainResponse(String state, DomainProject project, String reason) {
+    public record DomainResponse(String state, DomainProject project, String reason, String failure) {
 
         public static DomainResponse found(DomainProject project) {
-            return new DomainResponse("found", project, null);
+            return new DomainResponse("found", project, null, null);
         }
 
         public static DomainResponse notFound() {
             return new DomainResponse("not-found", null,
-                    "the domain service answered and holds no project with that id");
+                    "the domain service answered and holds no project with that id", null);
         }
 
-        public static DomainResponse unavailable(String detail) {
-            return new DomainResponse("downstream-unavailable", null, detail);
+        public static DomainResponse unavailable(DomainFailure failure) {
+            return new DomainResponse("downstream-unavailable", null, failure.reason(), failure.kind());
         }
 
         public boolean isFound() {

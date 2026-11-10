@@ -71,8 +71,9 @@ class DomainControllerTest {
 
     @Test
     void aDomainServiceThatCannotBeReachedAnswersFiveZeroThreeAndNamesIt() {
-        when(reader.read(PROJECT_ID)).thenReturn(
-                DomainResponse.unavailable("the domain service could not be reached: connection refused"));
+        when(reader.read(PROJECT_ID)).thenReturn(DomainResponse.unavailable(new DomainFailure(
+                DomainFailure.CONNECTION_REFUSED,
+                "the domain service could not be reached: the connection was refused")));
 
         ResponseEntity<DomainResponse> answer = controller.read(PROJECT_ID);
 
@@ -83,6 +84,9 @@ class DomainControllerTest {
         assertThat(answer.getBody().state()).isEqualTo("downstream-unavailable");
         assertThat(answer.getBody().project()).isNull();
         assertThat(answer.getBody().reason()).contains("domain service");
+        assertThat(answer.getBody().failure())
+                .as("the body carries the KIND as well, so a caller that cannot parse a sentence can still branch on it")
+                .isEqualTo(DomainFailure.CONNECTION_REFUSED);
     }
 
     @Test

@@ -38,12 +38,28 @@ written to be unambiguous:
   "ok": false,
   "reason": "upstream-unavailable",
   "upstream": "nexus-api",
-  "detail": "the gateway could not reach the upstream service; no answer was invented on its behalf"
+  "failure": "connection-refused",
+  "detail": "the gateway could not reach nexus-api: the connection was refused; no answer was invented on its behalf"
 }
 ```
 
 The `upstream` name is not a guess — it is carried by the route's own `fallbackUri`, so the body
 names the service that was actually being protected.
+
+**And it names WHICH failure (ADR 0056).** Naming the upstream answers "where do I look?"; it does
+not answer "what happened?". A refused connection, a call that timed out, a breaker that was open
+and an upstream that is not registered anywhere are **four different problems with four different
+fixes** — and an edge that answers all four with the same sentence sends the operator to the logs
+to find out which it was. So the edge reads the exception Spring Cloud's own circuit breaker filter
+leaves in the exchange (`ServerWebExchangeUtils.CIRCUITBREAKER_EXECUTION_EXCEPTION_ATTR`) and names
+it: `circuit-breaker-open`, `connection-refused`, `timeout`, `no-instance`, or `unknown` — and
+`unknown` is a real answer, not a shrug: an edge that cannot name a failure says so rather than
+picking the nearest word and sending it to a caller who will believe it.
+
+`GET /actuator/metrics/resilience4j.circuitbreaker.state` says whether the edge's **own** breaker
+is closed or open, and its `name` tag is the name the route table uses (`nexusApiCircuitBreaker`).
+The operator's door is `/actuator/**` — and the route table matches only `/api/**`, so it is not on
+the public side.
 
 ## Tech stack
 

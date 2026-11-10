@@ -86,6 +86,13 @@ class NexusGatewayApplicationTests {
                 .as("the edge's own answer must name the failure; an empty 200 would be indistinguishable from 'no such project'")
                 .contains("\"ok\":false")
                 .contains("\"reason\":\"upstream-unavailable\"")
-                .contains("\"upstream\":\"nexus-api\"");
+                .contains("\"upstream\":\"nexus-api\"")
+                // The upstream was there and is gone: the connection was refused. That is a
+                // different fact from "the breaker was open" and from "there is no upstream to
+                // route to", and the edge can tell them apart — so it says which.
+                .contains("\"failure\":\"connection-refused\"");
+        assertThat(body)
+                .as("and the detail must name the upstream too, not just the failure")
+                .contains("the gateway could not reach nexus-api");
     }
 }

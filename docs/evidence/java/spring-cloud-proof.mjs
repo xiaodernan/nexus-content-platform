@@ -21,16 +21,28 @@
 //      PostgreSQL, and the row that comes back is the row the proof inserted. This is the whole
 //      microservice claim in one request: four processes, two databases, one name;
 //   §8 an id the domain service does not hold is a 404 — a fact ABOUT THE PROJECT;
-//   §9 with the DOMAIN SERVICE GONE, the service-to-service door answers 503 and NAMES it — a fact
-//      ABOUT THE SERVICE. The two are different facts, and a 404 delivered because a service was
-//      down would tell a caller that a project had been deleted. The same question is then asked
-//      THROUGH the edge, which has its own breaker and its own honest 503;
-//   §10 with nexus-api gone, the edge answers 503 and names it too;
-//   §11 everything this file created is gone afterwards.
+//   §9 the BREAKER SAYS WHAT IT IS DOING. A 503 says "the service could not be reached"; the
+//      breaker's own metric says whether the breaker refused the call, refused the network, or
+//      never made it — and the metric's `name` tag is the breaker's own name, the same word the
+//      configuration file uses. This is what turns a 503 into an answer about WHICH component
+//      stopped the call, and it is the end of a trail that began with a configuration file naming
+//      a breaker that nothing was using;
+//   §10 every service reports its OWN health, on its own door;
+//   §11 the REGISTRY DIES and the chain keeps working — the edge routes from what it learned
+//      before, and the row still comes back. Discovery is a soft dependency, and this is where
+//      that stops being a claim and becomes a measurement;
+//   §12 with the DOMAIN SERVICE GONE, the service-to-service door answers 503, NAMES the service,
+//      and says WHICH FAILURE it was;
+//   §13 the breaker OPENS — and the refusal is attributed: the metric counts the calls it refused,
+//      and the answer says `circuit-breaker-open`;
+//   §14 with nexus-api gone, the edge answers 503 and names it too;
+//   §15 with the EDGE gone, the caller gets a CONNECTION ERROR — because there is no longer
+//      anything there to answer, and a 503 would be an invention;
+//   §16 everything this file created is gone afterwards.
 //
 // Everything it creates is throwaway: two throwaway DATABASES inside the repository's own running
 // PostgreSQL container, four jars built in ISOLATED COPIES of the services, four port files in the
-// OS temp dir, and four child processes. None of them touch the working tree, and none of them
+// same copies, and four child processes. None of them touch the working tree, and none of them
 // touch the platform's own data.
 //
 // Why a throwaway DATABASE and not a throwaway CONTAINER: this host cannot afford another
@@ -51,8 +63,7 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { createConnection } from 'node:net';
 import { randomUUID } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -87,7 +98,15 @@ const SERVICES = [
   { id: 'domain', dir: 'services/java-domain-service', jar: 'domain-service-1.0.0-SNAPSHOT.jar', heap: '-Xmx320m' },
 ];
 
-const BUILD_ROOT = path.join(tmpdir(), `nexus-cloud-proof-build-${STAMP}`);
+// A SIBLING of the repository, not a directory inside it: the copies must not enter the sweeps and
+// censuses that walk the repo's own files. And not the OS temp dir either — measured 2026-11-09: a
+// run built all four jars (every Maven exit code 0) and §2 then found no registry jar at all, because
+// something on this host empties loose `%TEMP%` directories while a run is in progress. A plane has
+// to live where nothing sweeps it, so it lives beside the project and carries its port files too.
+const PLANE_ROOT = process.env.NEXUS_PROOF_PLANE_ROOT ?? path.resolve(REPO_ROOT, '..', 'nexus-proof-planes');
+const BUILD_ROOT = path.join(PLANE_ROOT, `spring-cloud-${STAMP}`);
+/** Past this age a plane belongs to a run that was killed — see `pruneAbandonedPlanes`. */
+const PLANE_ABANDONED_AFTER_MS = 6 * 60 * 60 * 1000;
 const children = [];
 const started = [];
 /** The services that are RUNNING, so a failure can say what they said. */
@@ -212,7 +231,7 @@ async function readPortFile(file, timeoutMs = 90_000) {
 
 /** Start one of the built services and wait until it answers on the port it reported. */
 async function startService(service, extraArgs) {
-  const portFile = path.join(tmpdir(), `nexus-cloud-proof-${service.id}-port-${STAMP}.txt`);
+  const portFile = path.join(BUILD_ROOT, `nexus-cloud-proof-${service.id}-port-${STAMP}.txt`);
   started.push(portFile);
   const jar = path.join(BUILD_ROOT, service.id, 'target', service.jar);
   assert.ok(existsSync(jar), `the ${service.id} jar was not built: ${jar}`);
@@ -244,6 +263,51 @@ async function httpJson(url) {
   return { status: response.status, body, text };
 }
 
+/**
+ * Read ONE circuit breaker's own metric from a service.
+ *
+ * <p>The metric names are the library's, read out of the jar rather than guessed
+ * (`io.github.resilience4j.micrometer.tagged.CircuitBreakerMetricNames`, resilience4j 2.2.0):
+ * `resilience4j.circuitbreaker.state` is the breaker's state as a gauge, and
+ * `resilience4j.circuitbreaker.not.permitted.calls` counts the calls the breaker REFUSED. The tag
+ * that says which breaker is `name` — the breaker's own name, which is the same word the
+ * configuration file uses.
+ *
+ * <p>The tag-scoped query is used deliberately: the unscoped endpoint answers with the aggregate
+ * over every breaker, and an aggregate cannot say what one breaker did.
+ */
+async function readBreakerMetric(baseUrl, metricName, breakerName) {
+  const url = `${baseUrl}/actuator/metrics/${encodeURIComponent(metricName)}`
+    + (breakerName ? `?tag=name:${encodeURIComponent(breakerName)}` : '');
+  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  const text = await response.text();
+  if (response.status !== 200) {
+    return { status: response.status, value: null, tag: null, names: [], text };
+  }
+  let body = null;
+  try { body = JSON.parse(text); } catch { return { status: response.status, value: null, tag: null, names: [], text }; }
+  const measurement = (body?.measurements ?? []).find((m) => m.statistic === 'VALUE');
+  const nameTag = (body?.availableTags ?? []).find((t) => t.tag === 'name');
+  return {
+    status: response.status,
+    value: measurement ? measurement.value : null,
+    tag: nameTag?.values?.[0] ?? null,
+    names: nameTag?.values ?? [],
+    text,
+  };
+}
+
+/** A failure, and everything that caused it, in one line. */
+function describeThrown(error) {
+  const parts = [];
+  for (let current = error; current; current = current.cause) {
+    const code = current.code ?? current.errors?.[0]?.code;
+    parts.push([current.name, code, current.message].filter(Boolean).join(' '));
+    if (parts.length > 6) break;
+  }
+  return parts.join(' <- ');
+}
+
 /** Ask the container's `psql` to run a statement, and report the exit code. */
 function psql(database, sql) {
   return spawnSync(
@@ -251,6 +315,32 @@ function psql(database, sql) {
     ['exec', DB_CONTAINER, 'psql', '-U', DB_USER, '-d', database, '-v', 'ON_ERROR_STOP=1', '-q', '-c', sql],
     { maxBuffer: 32 * 1024 * 1024 },
   );
+}
+
+/**
+ * Delete planes built by PAST runs of this proof that can no longer be running.
+ *
+ * A plane outlives its run only when that run was killed: a run that reaches its end removes the
+ * plane in §16, green or red. Each plane is named with the `Date.now()` of the run that made it, so
+ * age is read from the name rather than from a directory mtime that a long Maven build leaves far
+ * behind. The bound below is hours, while a run of this proof is minutes, so anything past it is
+ * nobody's live run — and this proof is the only thing that would ever reclaim the rest. Measured
+ * 2026-11-09: two 180 MB planes left by killed runs sat unreclaimed until deleted by hand.
+ */
+function pruneAbandonedPlanes() {
+  if (!existsSync(PLANE_ROOT)) return [];
+  const abandonBefore = Date.now() - PLANE_ABANDONED_AFTER_MS;
+  const gone = [];
+  for (const name of readdirSync(PLANE_ROOT)) {
+    const m = /^spring-cloud-(\d+)_/.exec(name);
+    if (!m || Number(m[1]) > abandonBefore) continue;
+    const dir = path.join(PLANE_ROOT, name);
+    try {
+      rmSync(dir, { recursive: true, force: true });
+      gone.push(dir);
+    } catch { /* could not be deleted — reported below, never silently */ }
+  }
+  return gone;
 }
 
 async function teardown() {
@@ -268,6 +358,10 @@ async function teardown() {
 
 try {
   // ── §1 the four jars BUILD ───────────────────────────────────────────────────────────────
+  const pruned = pruneAbandonedPlanes();
+  if (pruned.length > 0) {
+    console.log(`[§1] reclaimed ${pruned.length} plane(s) older than any run of this proof could be`);
+  }
   mkdirSync(BUILD_ROOT, { recursive: true });
   for (const service of SERVICES) {
     const copy = path.join(BUILD_ROOT, service.id);
@@ -277,6 +371,15 @@ try {
       built.code,
       0,
       `the ${service.id} service did not build. Its output was:\n${built.out.slice(-3000)}`,
+    );
+    // An exit code is not an artifact. Measured 2026-11-09, run v643: four Maven commands returned
+    // four zeros and §1 printed four "built" lines, and §2 then could not find the registry jar —
+    // the directory the jars had been written into was emptied while the run was still going. A
+    // green sentence about a build must be paid for by the file the next clause is about to read.
+    const jar = path.join(copy, 'target', service.jar);
+    assert.ok(
+      existsSync(jar),
+      `the ${service.id} build exited 0 but left no ${jar}. Its output was:\n${built.out.slice(-3000)}`,
     );
     console.log(`[§1] ${service.id} built: ${service.jar}`);
   }
@@ -466,7 +569,120 @@ try {
   assert.equal(missingBody.project, null, 'a project that is not there is not a project with no fields');
   console.log(`[§8] an id the domain service does not hold answered 404 and said so: ${missing.text.slice(0, 200)}`);
 
-  // ── §9 with the domain service GONE, the service-to-service door says so ─────────────────
+  // ── §9 the BREAKER says what it is doing ────────────────────────────────────────────────
+  // A 503 says "the service could not be reached". It does not say WHICH component stopped the
+  // call, and "which" is the question an operator asks first.
+  //
+  // The breaker's own metric answers it — and the metric's `name` tag is the breaker's OWN name.
+  // That is worth proving rather than assuming: the trail started with a configuration file that
+  // named a breaker (`nexus-domain-service`) which the library was NOT using, so the file looked
+  // right while the runtime did something else. Here the runtime's own name is read back out of
+  // the running service, and it is the same word.
+  const apiBreakerNames = await readBreakerMetric(
+    `http://127.0.0.1:${api.port}`, 'resilience4j.circuitbreaker.state', null);
+  assert.equal(apiBreakerNames.status, 200,
+    `nexus-api must expose its breaker's state; the actuator answered ${apiBreakerNames.status}: ${apiBreakerNames.text.slice(0, 400)}`);
+  assert.ok(
+    apiBreakerNames.names.includes('nexus-domain-service'),
+    `the running breaker must be the one the configuration file names; the running names were: ${JSON.stringify(apiBreakerNames.names)}`,
+  );
+
+  const apiBreakerState = await readBreakerMetric(
+    `http://127.0.0.1:${api.port}`, 'resilience4j.circuitbreaker.state', 'nexus-domain-service');
+  const apiNotPermitted = await readBreakerMetric(
+    `http://127.0.0.1:${api.port}`, 'resilience4j.circuitbreaker.not.permitted.calls', 'nexus-domain-service');
+  assert.ok(apiBreakerState.value !== null,
+    `the breaker's state must be readable; the actuator answered: ${apiBreakerState.text.slice(0, 400)}`);
+  // The "calls refused" counter is only published once something HAS been refused — a counter that
+  // never incremented is not in the registry, and the endpoint answers 404. Both readings mean the
+  // same thing here: nothing has been refused yet. (Measured: the first run of this proof failed
+  // here, asserting 0 against a metric that did not exist.)
+  assert.ok(
+    apiNotPermitted.status === 404 || apiNotPermitted.value === 0,
+    'nothing has been refused yet, so the breaker must not have refused anything; the actuator '
+      + `answered ${apiNotPermitted.status}: ${apiNotPermitted.text.slice(0, 300)}`,
+  );
+
+  const edgeBreakerNames = await readBreakerMetric(
+    `${gatewayBase}`, 'resilience4j.circuitbreaker.state', null);
+  assert.ok(
+    edgeBreakerNames.names.includes('nexusApiCircuitBreaker'),
+    `the edge's running breaker must be the one its route table names; the running names were: ${JSON.stringify(edgeBreakerNames.names)}`,
+  );
+  console.log(
+    `[§9] both breakers are visible and are named what the configuration says: nexus-api's `
+    + `\`nexus-domain-service\` (state ${apiBreakerState.value}, ${apiNotPermitted.value} calls refused) and the edge's `
+    + `\`nexusApiCircuitBreaker\``,
+  );
+
+  // ── §10 every service reports its OWN health ─────────────────────────────────────────────
+  // Four services, four doors, four answers — each one about itself, and each one real.
+  //
+  // Two of them answer in Spring Boot's own shape (`{"status":"UP"}`) and two in this platform's
+  // (the service names itself AND says whether its database is reachable). Both shapes are
+  // checked for what they actually claim: an actuator that said UP while the database was gone
+  // would be worse than no answer at all.
+  const actuatorHealth = [
+    { who: 'the registry', url: `${registryBase}/actuator/health` },
+    { who: 'the edge', url: `${gatewayBase}/actuator/health` },
+    { who: 'nexus-api (the operator door)', url: `http://127.0.0.1:${api.port}/actuator/health` },
+  ];
+  for (const one of actuatorHealth) {
+    const answer = await httpJson(one.url);
+    assert.equal(answer.status, 200, `${one.who} must answer its own health question; it answered ${answer.status}`);
+    assert.equal(answer.body?.status, 'UP', `${one.who} must report itself UP; it said: ${answer.text.slice(0, 300)}`);
+  }
+
+  const platformHealth = [
+    { who: 'the domain service', url: `http://127.0.0.1:${domain.port}/health`, service: 'nexus-domain-service' },
+    { who: 'nexus-api', url: `http://127.0.0.1:${api.port}/health`, service: 'nexus-api' },
+  ];
+  for (const one of platformHealth) {
+    const answer = await httpJson(one.url);
+    assert.equal(answer.status, 200, `${one.who} must answer its own health question; it answered ${answer.status}`);
+    assert.equal(answer.body?.service, one.service, `${one.who} must name itself; it said: ${answer.text.slice(0, 300)}`);
+    assert.equal(
+      answer.body?.database?.reachable, true,
+      `${one.who} must be able to reach its database — or say that it cannot; it said: ${answer.text.slice(0, 300)}`,
+    );
+  }
+  console.log('[§10] all four services answered their own health question, and said UP about themselves');
+
+  // ── §11 the REGISTRY dies, and the chain keeps working ──────────────────────────────────
+  // The interesting half of discovery: a service that has LEARNED where another service lives
+  // keeps working when the registry stops answering, because the client holds what it learned.
+  //
+  // This is asserted immediately after the registry is stopped — the claim is about the topology,
+  // not about how long Eureka's lease lasts. How long it lasts is a property of Eureka, so it is
+  // MEASURED below rather than promised here.
+  registry.child.kill();
+  await new Promise((r) => setTimeout(r, 3000));
+  assert.ok(!(await canConnect(registry.port)), 'the registry must really be gone for this section to mean anything');
+
+  const afterRegistry = await waitForAnswer(
+    `${gatewayBase}/api/domain/projects/${PROOF_PROJECT_ID}`,
+    (answer) => answer.status === 200,
+    60_000,
+    'the four-service chain to keep working with the registry gone',
+  );
+  const afterRegistryBody = JSON.parse(afterRegistry.text);
+  assert.equal(afterRegistryBody.project?.slug, PROOF_PROJECT_SLUG,
+    `the row must still be the row the proof inserted; it was: ${afterRegistry.text.slice(0, 300)}`);
+  console.log(
+    '[§11] with the registry GONE the edge → nexus-api → domain-service → PostgreSQL chain still '
+    + `returned the row: ${afterRegistry.text.slice(0, 180)}`,
+  );
+
+  // How long that lasts is a MEASUREMENT, not a promise: Eureka's lease and the client's fetch
+  // interval decide it, and this section reports what it saw rather than claiming a duration.
+  await new Promise((r) => setTimeout(r, 40_000));
+  const laterAnswer = await httpJson(`${gatewayBase}/api/domain/projects/${PROOF_PROJECT_ID}`);
+  console.log(
+    `[§11] 40 s after the registry died (one Eureka fetch interval plus its cache TTL) the same call `
+    + `answered ${laterAnswer.status} — measured, not promised: ${String(laterAnswer.text).slice(0, 160)}`,
+  );
+
+  // ── §12 with the domain service GONE, the service-to-service door says so ─────────────────
   // This is the section that cannot be faked. The URL is the SAME one that answered 200 a moment
   // ago; the only thing that changed is that the service behind it is gone. The answer must be a
   // 503 that NAMES the domain service — because "the service is down" and "the project does not
@@ -493,8 +709,14 @@ try {
     String(goneBody.reason ?? '').includes('domain'),
     `the 503 must name the service that could not be reached; its reason was: ${downstreamGone.text}`,
   );
+  // WHICH failure it was — the answer has to say it, not just that something was unreachable.
+  assert.ok(
+    String(goneBody.failure ?? '').length > 0,
+    `the 503 must carry the kind of failure; its body was: ${downstreamGone.text}`,
+  );
   console.log(
-    `[§9] with the domain service gone the service-to-service door answered 503 and named it: ${downstreamGone.text.slice(0, 220)}`,
+    `[§12] with the domain service gone the service-to-service door answered 503, named it, and said `
+    + `which failure it was (${goneBody.failure}): ${downstreamGone.text.slice(0, 220)}`,
   );
 
   // The same question, asked THROUGH the edge. The answer must be a 503 as well — and the body must
@@ -511,9 +733,48 @@ try {
     throughEdge.text.includes('unavailable'),
     `the edge's answer must say the upstream was unavailable; it was: ${throughEdge.text}`,
   );
-  console.log(`[§9] through the edge the same call answered 503 too: ${throughEdge.text.slice(0, 200)}`);
+  console.log(`[§12] through the edge the same call answered 503 too: ${throughEdge.text.slice(0, 200)}`);
 
-  // ── §10 with nexus-api gone, the edge says so ──────────────────────────────────────────
+  // ── §13 the breaker OPENS, and the refusal is attributed ────────────────────────────────
+  // §12 proved that the answer is honest. It did NOT prove which component refused the call: a
+  // 503 says a service was unreachable, and the refusal could have come from the breaker, from
+  // the network, or from the service itself.
+  //
+  // The breaker answers for itself. Its configuration asks for 20 calls before it may open, so the
+  // proof asks 20 times — and then reads the two things that must agree: the metric that counts
+  // the calls the breaker REFUSED, and the answer's own `failure` field.
+  let breakerRefusal = null;
+  const refusals = [];
+  for (let attempt = 0; attempt < 40 && !breakerRefusal; attempt += 1) {
+    const answer = await httpJson(`http://127.0.0.1:${api.port}/domain/projects/${PROOF_PROJECT_ID}`);
+    if (answer.status !== 503) continue;
+    const kind = answer.body?.failure ?? null;
+    refusals.push(kind);
+    if (kind === 'circuit-breaker-open') breakerRefusal = answer;
+  }
+  assert.ok(
+    breakerRefusal,
+    `the breaker must open and refuse, and the answer must say so; the kinds it gave were: ${JSON.stringify(refusals)}`,
+  );
+
+  const notPermitted = await readBreakerMetric(
+    `http://127.0.0.1:${api.port}`, 'resilience4j.circuitbreaker.not.permitted.calls', 'nexus-domain-service');
+  assert.ok(
+    notPermitted.value !== null && notPermitted.value > 0,
+    `the breaker's own metric must count the calls it refused; the actuator said: ${notPermitted.text.slice(0, 400)}`,
+  );
+  const openState = await readBreakerMetric(
+    `http://127.0.0.1:${api.port}`, 'resilience4j.circuitbreaker.state', 'nexus-domain-service');
+  assert.notEqual(
+    openState.value, apiBreakerState.value,
+    `the breaker's state must have changed once it opened; it is still ${openState.value}`,
+  );
+  console.log(
+    `[§13] the breaker opened and took the blame for it: it refused ${notPermitted.value} calls, its state went `
+    + `from ${apiBreakerState.value} to ${openState.value}, and the answer says "circuit-breaker-open"`,
+  );
+
+  // ── §14 with nexus-api gone, the edge says so ──────────────────────────────────────────
   api.child.kill();
   await new Promise((r) => setTimeout(r, 2000));
   const refused = await waitForAnswer(
@@ -526,10 +787,33 @@ try {
     refused.text.includes('upstream-unavailable') && refused.text.includes('nexus-api'),
     `the edge's failure answer must NAME the upstream; it was: ${refused.text}`,
   );
-  console.log(`[§10] with nexus-api gone the edge answered 503 and named it: ${refused.text.slice(0, 200)}`);
+  console.log(`[§14] with nexus-api gone the edge answered 503 and named it: ${refused.text.slice(0, 200)}`);
 
-  // ── §11 everything this file created is gone afterwards ─────────────────────────────────
-  console.log('[§11] tearing down the throwaway databases, the processes and the build copies');
+  // ── §15 with the EDGE gone, the caller gets a connection error ─────────────────────────
+  // The last honest boundary. §14 and §12 are answers: something was THERE and it said so. This
+  // is not an answer — the edge is not there any more, so the caller gets a refused connection.
+  //
+  // It is worth stating plainly, because the tempting alternative is to keep the edge alive and
+  // let it answer 503 for itself: then every failure looks the same, and a caller cannot tell
+  // "the edge is gone" from "the service behind the edge is gone". Two different problems, two
+  // different fixes, and the difference is visible in what the caller receives.
+  gateway.child.kill();
+  await new Promise((r) => setTimeout(r, 2000));
+  let edgeError = null;
+  try {
+    const response = await fetch(`${gatewayBase}/api/health`);
+    edgeError = `the edge answered ${response.status}: ${(await response.text()).slice(0, 200)}`;
+  } catch (error) {
+    edgeError = describeThrown(error);
+  }
+  assert.ok(
+    /ECONNREFUSED|ECONNRESET|fetch failed|EPIPE/.test(edgeError),
+    `with the edge gone the caller must get a connection error, not an invented answer; it got: ${edgeError}`,
+  );
+  console.log(`[§15] with the edge gone the caller got a connection error, not an invented answer: ${edgeError}`);
+
+  // ── §16 everything this file created is gone afterwards ─────────────────────────────────
+  console.log('[§16] tearing down the throwaway databases, the processes and the build copies');
 } catch (error) {
   console.error(`\n[§?] the proof FAILED: ${error?.stack ?? error}`);
   // What the services SAID, not just what the proof saw. Measured on the run that first found the
@@ -543,5 +827,5 @@ try {
   process.exitCode = 1;
 } finally {
   await teardown();
-  console.log('[§11] the throwaway databases, the four processes and the build copies are gone');
+  console.log('[§16] the throwaway databases, the four processes and the build copies are gone');
 }

@@ -84,6 +84,16 @@
       <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
     </dependency>
 
+    <!-- The operator's door: health, and the METRICS that say what the breakers are doing.
+         Without the metrics there is no way to tell WHICH component refused a call — the 503
+         says a service was unreachable, and the breaker's own state (OPEN, HALF_OPEN, CLOSED) is
+         what turns that into an answer. It is NOT routed through the edge: the gateway's table
+         matches only /api/**, so /actuator/** answers on this service's own port and nowhere else. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

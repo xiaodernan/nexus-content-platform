@@ -9,6 +9,8 @@ import feign.FeignException;
 import feign.Request;
 import feign.Response;
 import feign.RetryableException;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -84,6 +86,9 @@ class DomainProjectReaderTest {
         assertThat(answer.isUnavailable()).isFalse();
         assertThat(answer.project()).as("a project that is not there is not a project with no fields").isNull();
         assertThat(answer.reason()).isNotBlank();
+        assertThat(answer.failure())
+                .as("a 404 is a fact about the PROJECT, not a failure of the service")
+                .isNull();
     }
 
     @Test
@@ -98,9 +103,27 @@ class DomainProjectReaderTest {
                 .isEqualTo("downstream-unavailable");
         assertThat(answer.isUnavailable()).isTrue();
         assertThat(answer.project()).isNull();
+        assertThat(answer.failure())
+                .as("the answer must NAME the failure, so an operator is not guessing")
+                .isEqualTo(DomainFailure.CONNECTION_REFUSED);
+        assertThat(answer.reason()).contains("connection was refused");
+    }
+
+    @Test
+    void anOpenBreakerIsUnavailableAndSaysTheBreakerRefusedTheCall() {
+        UUID id = UUID.randomUUID();
+        when(client.getProject(id)).thenThrow(breakerRefused(id));
+
+        DomainResponse answer = reader.read(id);
+
+        assertThat(answer.state()).isEqualTo("downstream-unavailable");
+        assertThat(answer.project()).isNull();
+        assertThat(answer.failure())
+                .as("the call was never made: that is a different fact from a refused connection")
+                .isEqualTo(DomainFailure.CIRCUIT_BREAKER_OPEN);
         assertThat(answer.reason())
-                .as("the reason must name the failure, so an operator is not guessing")
-                .contains("connection refused");
+                .as("the wrapper's own message names neither the service nor the failure")
+                .doesNotContain("No fallback available");
     }
 
     @Test
@@ -112,6 +135,9 @@ class DomainProjectReaderTest {
 
         assertThat(answer.isFound()).isFalse();
         assertThat(answer.state()).isEqualTo("downstream-unavailable");
+        assertThat(answer.failure())
+                .as("an empty body is a malformed ANSWER, which is its own kind of failure")
+                .isEqualTo(DomainFailure.MALFORMED_ANSWER);
         assertThat(answer.reason()).contains("empty body");
     }
 
@@ -126,6 +152,9 @@ class DomainProjectReaderTest {
                 .as("the service DID answer; it answered badly. That is its failure, not the project's absence")
                 .isEqualTo("downstream-unavailable");
         assertThat(answer.project()).isNull();
+        assertThat(answer.failure())
+                .as("an answer with an error status is a different kind of failure from no answer at all")
+                .isEqualTo(DomainFailure.ERROR_STATUS);
         assertThat(answer.reason()).contains("500");
     }
 
@@ -150,6 +179,7 @@ class DomainProjectReaderTest {
                 .as("a 404 is a fact about the PROJECT; a different exception class must not turn it into a fact about the service")
                 .isEqualTo("not-found");
         assertThat(answer.project()).isNull();
+        assertThat(answer.failure()).isNull();
     }
 
     @Test
@@ -169,19 +199,24 @@ class DomainProjectReaderTest {
                 .isEqualTo("not-found");
         assertThat(answer.isUnavailable()).isFalse();
         assertThat(answer.project()).isNull();
+        assertThat(answer.failure()).isNull();
     }
 
     @Test
     void aNonFeignFailureIsAlsoDownstreamAndNotAProject() {
         UUID id = UUID.randomUUID();
-        when(client.getProject(id)).thenThrow(new IllegalStateException("no instance available"));
+        // THE shape Spring Cloud's load balancer raises when it has nowhere to send the call: a
+        // plain IllegalStateException, with the service's name in the message.
+        when(client.getProject(id)).thenThrow(
+                new IllegalStateException("No instances available for nexus-domain-service"));
 
         DomainResponse answer = reader.read(id);
 
         assertThat(answer.state())
                 .as("a load balancer with no instance is not a statement about the project")
                 .isEqualTo("downstream-unavailable");
-        assertThat(answer.reason()).contains("no instance available");
+        assertThat(answer.failure()).isEqualTo(DomainFailure.NO_INSTANCE);
+        assertThat(answer.reason()).contains("no instance");
     }
 
     /** The exception Feign raises for a 404 — the one that means "it answered, and no". */
@@ -191,13 +226,32 @@ class DomainProjectReaderTest {
 
     /** The exception Feign raises when the connection itself fails. */
     private static FeignException connectionRefused(UUID id) {
+        // THE shape Feign builds (read out of feign-core 13.6.1 with javap): status -1, message
+        // "<ioe message> executing <method> <url>", and the IOException as the cause. The old
+        // helper here used status 503, which is an HTTP answer — and the difference between the
+        // two is exactly the difference this reader now has to keep.
         return new RetryableException(
-                503,
-                "connection refused",
+                -1,
+                "Connection refused executing GET http://nexus-domain-service/api/v1/projects/" + id,
                 Request.HttpMethod.GET,
-                new ConnectException("connection refused"),
+                new ConnectException("Connection refused"),
                 (Long) null,
                 request(id));
+    }
+
+    /** The exception Spring Cloud's breaker raises when it refuses the call. */
+    private static RuntimeException breakerRefused(UUID id) {
+        // A REAL open breaker, refusing a REAL call: the exception is the library's own, because
+        // the library gives no public way to build one by hand (javap on resilience4j 2.2.0 — its
+        // only public factory wants a CircuitBreaker).
+        CircuitBreaker breaker = CircuitBreaker.ofDefaults("nexus-domain-service");
+        breaker.transitionToOpenState();
+        try {
+            breaker.executeSupplier(() -> "the call that must not happen");
+        } catch (CallNotPermittedException refused) {
+            return new NoFallbackAvailableException("No fallback available.", refused);
+        }
+        throw new AssertionError("an open breaker must refuse the call");
     }
 
     /** The exception Feign raises for a 5xx that is not a retry. */

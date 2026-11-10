@@ -62,7 +62,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # `metrics` is here for one reason: `resilience4j.circuitbreaker.state` says whether the
+        # edge's own breaker (the one the route table names) is CLOSED, OPEN or HALF_OPEN, and its
+        # `name` tag is the breaker's own name — `nexusApiCircuitBreaker`, the same word the route
+        # uses. Without it, a 503 says the upstream was unreachable and nobody can tell whether
+        # the edge stopped asking on purpose.
+        #
+        # This door is not reachable THROUGH the edge: the route table below matches only `/api/**`.
+        include: health,info,metrics
 
 # Eureka's OWN namespace is TOP-LEVEL `eureka.*`, not `spring.cloud.eureka.*`. The switch that stops
 # the client is `eureka.client.enabled` — and the address it would register with is

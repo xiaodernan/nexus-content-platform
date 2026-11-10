@@ -2,12 +2,16 @@ package dev.nexus.gateway.fallback;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ServerWebExchange;
 
 /**
  * What the edge says when a service behind it could not be reached.
@@ -31,9 +35,23 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>The {@code upstream} name comes from the FALLBACK URI, not from a guess: the route's circuit
  * breaker names the upstream it was protecting, and that name is what is forwarded here. A body
  * that named the wrong service would be a worse lie than no body at all.
+ *
+ * <h2>And it says WHICH failure, not only which service</h2>
+ *
+ * <p>Naming the upstream answers "where do I look?"; it does not answer "what happened?".
+ * A refused connection, a call that timed out, a breaker that was open and an upstream that is
+ * not registered anywhere are four different problems with four different fixes, and an edge that
+ * answers all four with the same sentence forces the operator to go and find out which it was —
+ * usually by reading logs that say "No fallback available.".
+ *
+ * <p>So the failure is taken from the exchange, where Spring Cloud's own circuit breaker filter
+ * leaves it ({@code ServerWebExchangeUtils.CIRCUITBREAKER_EXECUTION_EXCEPTION_ATTR} — measured in
+ * the jar, {@code SpringCloudCircuitBreakerFilterFactory}), and named by {@link UpstreamFailure}.
  */
 @RestController
 public class UpstreamFallbackHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(UpstreamFallbackHandler.class);
 
     /**
      * The circuit breaker's fallback target.
@@ -42,13 +60,23 @@ public class UpstreamFallbackHandler {
      * it — e.g. {@code forward:/__fallback/nexus-api} for the route that fronts {@code nexus-api}.
      */
     @RequestMapping(path = "/__fallback/{upstream}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Object>> upstreamUnavailable(@PathVariable("upstream") String upstream) {
+    public ResponseEntity<Map<String, Object>> upstreamUnavailable(
+            @PathVariable("upstream") String upstream, ServerWebExchange exchange) {
+        Throwable failure = exchange.getAttribute(ServerWebExchangeUtils.CIRCUITBREAKER_EXECUTION_EXCEPTION_ATTR);
+        UpstreamFailure classified = UpstreamFailure.classify(failure);
+
+        // The whole chain goes into the log: the wrapper's own message names neither the upstream
+        // nor the failure, and the chain is where the truth is.
+        log.warn("the upstream {} could not be reached ({}): {}", upstream, classified.kind(),
+                UpstreamFailure.chainOf(failure));
+
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("ok", false);
         body.put("reason", "upstream-unavailable");
         body.put("upstream", upstream);
-        body.put("detail",
-                "the gateway could not reach the upstream service; no answer was invented on its behalf");
+        body.put("failure", classified.kind());
+        body.put("detail", "the gateway could not reach " + upstream + ": " + classified.detail()
+                + "; no answer was invented on its behalf");
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
     }
 }

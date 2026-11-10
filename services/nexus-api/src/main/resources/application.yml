@@ -67,6 +67,22 @@ resilience4j:
 server:
   port: ${NEXUS_API_PORT:8080}
 
+# The operator's door.
+#
+# `metrics` is here for ONE reason: `resilience4j.circuitbreaker.state` is the metric that says
+# whether the breaker in front of the domain service is CLOSED, OPEN or HALF_OPEN, and its `name`
+# tag is the breaker's own name — `nexus-domain-service`, the same word the configuration above
+# uses. Without it, a 503 says "the domain service could not be reached" and nobody can tell
+# whether the call was refused by the breaker, refused by the network, or never made.
+#
+# This door is NOT reachable through the edge: the gateway's route table matches only `/api/**`.
+# So `/actuator/**` answers on this service's own port and nowhere else.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
 # Discovery, OPT-IN. With NEXUS_EUREKA_ENABLED=true this service registers with the registry and the
 # edge can reach it as `lb://nexus-api`; with it unset the service behaves exactly as it did before
 # and does not need a registry to start. The client is on the classpath either way — the switch

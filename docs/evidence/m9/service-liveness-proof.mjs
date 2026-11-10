@@ -1,8 +1,9 @@
 // NEXUS M9 — LIVENESS IS NOT READINESS: one process fact, one pool fact, two doors. This proof builds the
 // service, starts it against a throwaway PostgreSQL, reads `/health/live` and `/health/ready`, STOPS the
 // database under the running process, and measures BOTH doors in the same outage: `/health/live` must keep
-// answering 200 in well under a second, while `/health/ready` answers 503 after the pool's own borrow bound
-// (Hikari's 30 s connectionTimeout). Then it starts the database again and reads the recovery.
+// answering 200 in well under a second, while `/health/ready` answers 503 after the pool's own borrow —
+// the wait READ from the service's own `database.latencyMs`, never compared to a timeout remembered from
+// one box. Then it starts the database again and reads the recovery.
 //
 // Why the split is a separate fact and not a URL alias:
 //   a supervisor that restarts a process when the DATABASE is down restarts a healthy process and repairs
@@ -20,17 +21,24 @@
 //      `startedAt` as `/health/live`, and `/health` still answers 200 — the doors agree on the process;
 //   §3 the database is STOPPED under the running process: `/health/live` still answers 200 in under 2 s
 //      with the same `startedAt`, while `/health/ready` answers 503 with `ready=false` and a SHORT reason
-//      token after the pool's own bound — measured, not assumed — and neither body carries a JDBC URL,
+//      token, and the wait it took is the wait the SERVICE timed inside itself — the two numbers must be
+//      the same wait, whatever that wait happens to be on this box — and neither body carries a JDBC URL,
 //      host, password, message or stack trace;
 //   §4 the database is STARTED again: `/health/ready` returns to 200 with `detail` gone and `ready=true`,
-//      `/health/live` still answers the SAME `startedAt` with a larger uptime, and psql reads ZERO audit
+//      `/health/live` still answers the SAME `startedAt` with an uptime proven to ADVANCE (never backwards,
+//      still derived from that instant, then polled for the whole-second step), and psql reads ZERO audit
 //      entries, ZERO webhook deliveries and ZERO `health%` tables — the split added no state and no write;
 //   §5 teardown.
 //
 // The honest bound, stated rather than hidden: liveness proves the HTTP stack and this bean run; it does
 // NOT prove the JVM's threads are healthy, that memory is available or that a request needing the database
-// can succeed — that is readiness's job. Readiness still waits for Hikari's `connectionTimeout` when the
-// pool holds no usable connection: the proof measures that wait instead of racing it with a second timer.
+// can succeed — that is readiness's job. Readiness really does wait for the pool when the pool holds no
+// usable connection, and HOW LONG it waits is a fact about the box, not about this contract: when the
+// published port stops accepting cleanly the borrow is REFUSED in milliseconds, and when a proxy keeps the
+// already-pooled socket open the borrow HANGS until the pool gives up on it. The v651 row claims neither
+// shape. It claims the one thing that is true on both planes and false for a service that answers from a
+// cache or from a second, shorter timer: the wall time the client saw and the time the service says it
+// spent asking the pool are THE SAME WAIT.
 //
 // Requires: Java 25, Maven, and a running Docker daemon. Run:  node docs/evidence/m9/service-liveness-proof.mjs
 // This repository's worktree is shared by concurrent lanes; when another lane is mid-edit, set
@@ -45,6 +53,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { javaRecordFields, javaRecordDuplicateFields } from './wire-fields.mjs';
+import { okPredicates, planeBoundClaims, planeBoundRuleIsLive } from './plane-bound-claims.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m9/service-liveness-proof.mjs -> the repository root.
@@ -184,6 +193,21 @@ const UNREACHABLE_DATABASE_FIELDS = ['detail', 'latencyMs', 'reachable'].sort();
     assert.deepEqual(dupes, [], `HealthDtos.${record} declares duplicate field(s): ${dupes.join(', ')} — the reader keeps both and the pinned list would mis-grade`);
   }
   console.log('[§0b] HealthDtos readiness-family records declare no duplicated field names');
+}
+
+// §0c the shape that reddened this row hosted is now refused by the row itself. `elapsedMs >= 25_000` was
+// Hikari's connectionTimeout remembered from the box whose docker-proxy keeps an already-pooled socket
+// hanging; on a runner where the socket is closed the same borrow is refused in milliseconds, and the row
+// reddened for a fact about the machine. Amendment 576 derives the bound from the service's own
+// `database.latencyMs` instead, and this clause grades that rule on planted assertions BEFORE anything is
+// started, then against this proof's own bytes. The rule tries itself first, both directions, so a guard
+// that went blind reddens rather than clearing the tree quietly.
+{
+  const ruleVerdict = planeBoundRuleIsLive();
+  const ownBytes = readFileSync(fileURLToPath(import.meta.url), 'utf8');
+  const own = planeBoundClaims(ownBytes);
+  assert.deepEqual(own, [], `this proof asserts a plane-bound claim: ${JSON.stringify(own, null, 1)} — a measured field floored against a remembered constant, or two reads of one whole-second counter compared strictly, decides its own verdict by the machine that ran it`);
+  console.log(`[§0c] ${ruleVerdict}; this proof's own ${okPredicates(ownBytes).length} assert.ok predicate(s) carry 0 plane-bound claims`);
 }
 
 let serviceProcess = null;
@@ -378,10 +402,26 @@ try {
     assert.equal(outage.text.includes(forbidden), false,
         `the unauthenticated body must not carry ${JSON.stringify(forbidden)}: ${outage.text}`);
   }
-  assert.ok(outage.elapsedMs >= 25_000,
-      `readiness is bounded by the pool's OWN borrow, measured >= 25 s; this call returned in ${outage.elapsedMs} ms, which would mean a second timer answered instead`);
+  // v651b (ADR 0016 amendment 576): the floor used to read `elapsedMs >= 25_000`, which is Hikari's 30 s
+  // connectionTimeout remembered from the box that wrote the row and quietly promoted to a contract clause.
+  // It is not one: HEAD's application.yml carries no hikari block, so there is no constant here to read
+  // either, and the wait has TWO honest shapes. Where the port stops accepting cleanly the borrow is
+  // REFUSED in milliseconds; where a proxy keeps an already-pooled socket open it HANGS until the pool
+  // gives up on it. The hosted runner saw the first and reddened on a clause about the second. What is true
+  // on both planes — and false for a service that answers a readiness question from a remembered verdict —
+  // is that the wall time the client measured and the time the service measured INSIDE the request it is
+  // answering with are the same wait. So the bound comes from the service's own number, not from a timeout.
+  const borrowMs = outage.body.database.latencyMs;
+  assert.ok(outage.elapsedMs >= borrowMs,
+      `the HTTP call cannot be shorter than the work the service says it did inside it: the client timed ${outage.elapsedMs} ms, the body claims a ${borrowMs} ms probe — a second timer answered, not the pool`);
+  // The other direction is the one that could still lie on either plane: an envelope far slower than the
+  // probe it carries means something else was waited for. The tolerance is the round trip, the JSON write
+  // and this process's scheduler, which measure in the low hundreds of milliseconds on both planes; it is
+  // rounded up by two orders of magnitude so the clause grades AGREEMENT rather than this box's clock.
+  assert.ok(outage.elapsedMs - borrowMs <= 15_000,
+      `the envelope and the service's own measurement must be ONE wait: ${outage.elapsedMs} ms elapsed vs ${borrowMs} ms probed, so ${outage.elapsedMs - borrowMs} ms of that call was not the probe`);
   assert.ok(outage.elapsedMs < 120_000, `readiness must not exceed the proof's own ceiling, took ${outage.elapsedMs} ms`);
-  console.log(`[§3b] with the database STOPPED, /health/ready answered 503 after ${outage.elapsedMs} ms (Hikari's own borrow bound): ready=false · reachable=false · detail "${detail}" (a token, not a message) · no JDBC URL, host, password, message or stack trace — a load balancer reads THIS door`);
+  console.log(`[§3b] with the database STOPPED, /health/ready answered 503 after the pool's own borrow, read from the answer itself: the service timed its probe at ${borrowMs} ms and the client timed the call at ${outage.elapsedMs} ms (${outage.elapsedMs - borrowMs} ms of round trip) — whether that wait was a hang or a refusal is this box's fact and is NOT claimed here: ready=false · reachable=false · detail "${detail}" (a token, not a message) · no JDBC URL, host, password, message or stack trace — a load balancer reads THIS door`);
 
   // ── §4 the database STARTS again: the same process recovers, and nothing was written ─────────────
   const restartedDb = await run('docker', ['start', DB_CONTAINER]);
@@ -408,15 +448,41 @@ try {
   assert.equal(liveAfter.status, 200);
   assert.equal(liveAfter.body.startedAt, live.body.startedAt,
       'the service was NOT restarted: the startedAt instant is the same process');
-  assert.ok(liveAfter.body.uptimeSeconds > liveDuringOutage.body.uptimeSeconds,
-      `uptime must have grown through the outage (${liveDuringOutage.body.uptimeSeconds}s → ${liveAfter.body.uptimeSeconds}s)`);
+  // v651a (ADR 0016 amendment 576): `>` compared two INTEGER-second readings, which made the row a bet on
+  // where the second boundary fell rather than a claim about the contract — it reddened on a runner whose
+  // outage read and recovery read landed in the same second while the process was perfectly healthy. What
+  // the row means is "the same process has been up LONGER now", and that is carried by three clauses true on
+  // every plane: the counter never goes backwards, the recovery reading is still the SAME DERIVATION from
+  // the startedAt clause above just proved identical (a re-based counter would agree with nothing), and the
+  // step up is POLLED FOR within a bound instead of demanded from one read — the field cannot speak a step
+  // smaller than a second, so the poll gets that step plus the round trips to show it.
+  assert.ok(liveAfter.body.uptimeSeconds >= liveDuringOutage.body.uptimeSeconds,
+      `uptime never goes backwards inside one process (${liveDuringOutage.body.uptimeSeconds}s -> ${liveAfter.body.uptimeSeconds}s)`);
+  const liveRecoveryFromWall = Math.floor((Date.now() - Date.parse(liveAfter.body.startedAt)) / 1000);
+  assert.ok(Math.abs(liveRecoveryFromWall - liveAfter.body.uptimeSeconds) <= 3,
+      `the recovered uptime is still derived from the original startedAt, not re-based: uptime ${liveAfter.body.uptimeSeconds}s, wall ${liveRecoveryFromWall}s`);
+  let growthTries = 0;
+  const growthBegan = Date.now();
+  let grown = null;
+  const grew = await until(async () => {
+    growthTries++;
+    const answer = await call('/health/live');
+    if (answer.status === 200 && answer.body.uptimeSeconds > liveAfter.body.uptimeSeconds) {
+      grown = { from: liveAfter.body.uptimeSeconds, to: answer.body.uptimeSeconds, startedAt: answer.body.startedAt, elapsedMs: answer.elapsedMs };
+      return true;
+    }
+    return false;
+  }, { tries: 12, gapMs: 500, label: 'uptimeSeconds to advance while /health/live keeps answering 200' });
+  assert.ok(grown, `uptime never advanced past ${liveAfter.body.uptimeSeconds}s in ${growthTries} reads over ${Date.now() - growthBegan} ms — either the counter is stuck or this is not the process that started`);
+  assert.equal(grown.startedAt, live.body.startedAt, 'the read that showed the growth names the SAME process');
+  assert.ok(grown.elapsedMs < 2000, `the read that showed the growth was itself fast: ${grown.elapsedMs} ms — liveness never waits behind the pool`);
   assert.ok(liveAfter.elapsedMs < 2000, `recovered liveness must still be fast, took ${liveAfter.elapsedMs} ms`);
 
   assert.equal(await sql('select count(*) from audit_entry'), '0', 'the split records no trail fact');
   assert.equal(await sql('select count(*) from webhook_delivery'), '0', 'the split knocks on nothing');
   assert.equal(await sql("select count(*) from information_schema.tables where table_name like 'health%'"), '0',
       'the split stores no state: no health table, no probe history');
-  console.log(`[§4] after the database returned, /health/ready answered 200 again (ready=true, NO detail) and /health/live still answered the SAME startedAt ${live.body.startedAt}, uptime ${liveDuringOutage.body.uptimeSeconds}s → ${liveAfter.body.uptimeSeconds}s in ${liveAfter.elapsedMs} ms — the process never restarted · psql read ZERO audit entries, ZERO deliveries and ZERO health tables`);
+  console.log(`[§4] after the database returned, /health/ready answered 200 again (ready=true, NO detail) and /health/live still answered the SAME startedAt ${live.body.startedAt}: uptime ${liveDuringOutage.body.uptimeSeconds}s -> ${liveAfter.body.uptimeSeconds}s in ${liveAfter.elapsedMs} ms (never backwards, ${liveRecoveryFromWall}s by the wall clock from that startedAt) and PROVEN to advance to ${grown.to}s in ${growthTries} reads / ${Date.now() - growthBegan} ms — the process never restarted · psql read ZERO audit entries, ZERO deliveries and ZERO health tables`);
 
   // ── §5 teardown ────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
@@ -428,7 +494,7 @@ try {
   assert.equal(goneContainer.stdout.trim(), '', `the throwaway container is still listed: ${goneContainer.stdout.trim()}`);
   console.log(`[§5] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log('\n[summary] M9: services/nexus-api BUILT and RAN against a real PostgreSQL · /health/live answered 200 with service/version (the POM\'s own)/startedAt/uptimeSeconds and NO database field · /health/ready answered 200 with ready=true and a reachable database with no detail · with the database stopped under the running process, /health/live still answered 200 in under 2 s while /health/ready answered 503 after Hikari\'s own 30 s borrow with ready=false and a short token, neither leaking a JDBC URL, host, password, message or stack trace · with the database started again the SAME process recovered (ready=true, detail gone, the same startedAt, a larger uptime) and wrote nothing');
+  console.log('\n[summary] M9: services/nexus-api BUILT and RAN against a real PostgreSQL · /health/live answered 200 with service/version (the POM\'s own)/startedAt/uptimeSeconds and NO database field · /health/ready answered 200 with ready=true and a reachable database with no detail · with the database stopped under the running process, /health/live still answered 200 in under 2 s while /health/ready answered 503 with ready=false and a short token, its wait read from the service\'s own database.latencyMs and proved to be the SAME wait the client timed — never a timeout remembered from one box, and neither door leaking a JDBC URL, host, password, message or stack trace · with the database started again the SAME process recovered (ready=true, detail gone, the same startedAt, an uptime proven to have grown against startedAt) and wrote nothing');
   rmSync(BUILD_DIR, { recursive: true, force: true });
   console.log('[m9-service-liveness-proof] ALL ASSERTIONS PASSED (liveness is not readiness: the process fact answers during the outage and does not wait behind the pool, the pool fact fails slowly and names why, and both doors name the same process)');
 } finally {

@@ -61,6 +61,26 @@ block would configure an instance **nothing uses**, and it would fail SILENTLY.
 `ignoreExceptions: feign.FeignException.NotFound` says the rest of it: **a 404 is an answer, not a
 failure.**
 
+**A failure NAMES itself (ADR 0056).** The 503 body carries two things: a **kind** — a stable word a
+program may branch on — and a **reason**, the sentence a human reads. The kinds are
+`error-status` (the downstream answered, its answer was an error), `connection-refused`,
+`host-unknown`, `timeout`, `circuit-breaker-open` (the breaker refused it — **the call was never
+made**), `no-instance` (the router had nobody to choose), `malformed-answer` and `unknown`. A 404
+carries **no** kind: "there is no such project" is not a failure of the service, it is the service
+doing its job.
+
+The rule behind it was read out of the library rather than guessed (`javap` on Feign 13.6.1):
+`FeignException.errorExecuting` builds a `RetryableException` with status **-1** when the
+connection itself failed, so **a status below 400 means no answer was received**, and a status from
+400 to 599 means the service answered and its answer was an error. The previous wording said the
+service "answered with an error -1" — which claimed an answer in the one case where there was none.
+
+**The operator's door.** `GET /actuator/metrics/resilience4j.circuitbreaker.state` says whether the
+breaker in front of the domain service is closed or open, and its `name` tag is the breaker's own
+name — the same word `application.yml` uses. `…/not.permitted.calls` counts the calls the breaker
+**refused**. So a 503 can be attributed to a component instead of guessed at. The door is
+`/actuator/**`, which the edge does **not** route (its table matches only `/api/**`).
+
 Discovery is **opt-in**: `NEXUS_EUREKA_ENABLED=false` by default, so a deployment without a registry
 still starts and still serves.
 

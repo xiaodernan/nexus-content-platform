@@ -19,16 +19,20 @@
 //   §3 the database is STOPPED under the running process: `/health` answers 503, `reachable` is false, the
 //      reason is a SHORT token (an exception's simple name or `invalid-connection`), the latency is still
 //      measured, and the body carries no JDBC URL, no host, no password, no message and no stack trace;
-//   §4 the database is STARTED again: `/health` returns to 200 with `detail` gone, the SAME `startedAt` and a
-//      LARGER uptime — the service was never restarted — and psql still reads zero audit entries, zero
-//      deliveries and zero health tables, because even a FAILED probe wrote nothing;
+//   §4 the database is STARTED again: `/health` returns to 200 with `detail` gone, the SAME `startedAt` and an
+//      uptime PROVEN to advance (never-go-backwards, still derived from that `startedAt`, then a bounded poll
+//      until the whole-second counter steps up) — the service was never restarted — and psql still reads zero
+//      audit entries, zero deliveries and zero health tables, because even a FAILED probe wrote nothing;
 //   §5 teardown.
 //
 // The honest bound, stated rather than hidden: this service adds no timer of its own. When the pool holds no
-// usable connection, the borrow waits for Hikari's `connectionTimeout` (30 s by default), and the proof
-// allows that. A door that raced the pool with its own deadline would answer "down" while the pool was still
-// trying, which is a different claim from the one this door makes. The probe checks THIS service's database
-// only: it does not call other services, run a deep query or return a boolean total.
+// usable connection the borrow waits for the pool, and how LONG that takes is a fact about the box rather
+// than about this door — a clean refusal returns in milliseconds, a pooled socket held open by a proxy hangs
+// to the pool's own bound. The proof therefore claims no duration it cannot read from the service's own
+// `database.latencyMs`. What it refuses to allow is a door that raced the pool with its own deadline, or
+// answered "down" without asking: the envelope and the measurement inside it must be one and the same wait.
+// The probe checks THIS service's database only: it does not call other services, run a deep query or return
+// a boolean total.
 //
 // Requires: Java 25, Maven, and a running Docker daemon. Run:  node docs/evidence/m9/service-health-proof.mjs
 //
@@ -41,6 +45,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { javaRecordFields, javaRecordDuplicateFields } from './wire-fields.mjs';
+import { okPredicates, planeBoundClaims, planeBoundRuleIsLive } from './plane-bound-claims.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // THREE levels up: docs/evidence/m9/service-health-proof.mjs -> the repository root.
@@ -179,6 +184,19 @@ const REACHABLE_DATABASE_FIELDS = ['latencyMs', 'reachable'].sort();
     assert.deepEqual(dupes, [], `HealthDtos.${record} declares duplicate field(s): ${dupes.join(', ')} — the reader keeps both and the pinned list would mis-grade`);
   }
   console.log('[§0b] HealthDtos declares no duplicated field names across its five records');
+}
+
+// §0c the shape that reddened this row hosted is now refused by the row itself. `uptime must have grown`
+// compared two reads of an integer-second counter, so the verdict was a coin flip on the runner's clock; the
+// repair (amendment 576) is graded here on planted assertions BEFORE anything is started, and then against
+// this proof's own bytes. The rule tries itself first, both directions, so a guard that went blind reddens
+// instead of clearing the tree quietly.
+{
+  const ruleVerdict = planeBoundRuleIsLive();
+  const ownBytes = readFileSync(fileURLToPath(import.meta.url), 'utf8');
+  const own = planeBoundClaims(ownBytes);
+  assert.deepEqual(own, [], `this proof asserts a plane-bound claim: ${JSON.stringify(own, null, 1)} — a measured field floored against a remembered constant, or two reads of one whole-second counter compared strictly, decides its own verdict by the machine that ran it`);
+  console.log(`[§0c] ${ruleVerdict}; this proof's own ${okPredicates(ownBytes).length} assert.ok predicate(s) carry 0 plane-bound claims`);
 }
 
 let serviceProcess = null;
@@ -377,14 +395,40 @@ try {
   assert.ok(recovered.body.database.latencyMs >= 0);
   assert.equal(recovered.body.startedAt, first.body.startedAt,
       'the service was NOT restarted: the startedAt instant is the same process');
-  assert.ok(recovered.body.uptimeSeconds > outage.body.uptimeSeconds,
-      `uptime must have grown through the outage (${outage.body.uptimeSeconds}s → ${recovered.body.uptimeSeconds}s)`);
+  // v651a (ADR 0016 amendment 576): this row used to compare two INTEGER-second readings with `>`, which is a
+  // bet on where the second boundary fell, not a property of the contract. It passed by luck wherever recovery
+  // happened to take more than a second and reddened on a runner whose outage read and recovery read landed in
+  // the SAME second — a green-or-red verdict decided by the clock rather than by the service. The fact the row
+  // is reaching for is "this process was never restarted, and it has been up longer since". Three clauses
+  // carry it on every plane: uptime never goes backwards, the recovery reading is still DERIVED from the
+  // startedAt the clause above just proved identical (a re-based or remembered counter would agree with
+  // nothing), and the growth is POLLED FOR, bounded, instead of demanded from a single read — the field
+  // cannot speak a step smaller than one second, so the poll is given that step plus the round trips to show it.
+  assert.ok(recovered.body.uptimeSeconds >= outage.body.uptimeSeconds,
+      `uptime never goes backwards inside one process (${outage.body.uptimeSeconds}s -> ${recovered.body.uptimeSeconds}s)`);
+  const recoveryFromWall = Math.floor((Date.now() - Date.parse(recovered.body.startedAt)) / 1000);
+  assert.ok(Math.abs(recoveryFromWall - recovered.body.uptimeSeconds) <= 3,
+      `the recovery uptime is still the same derivation from startedAt, not a counter that reset: uptime ${recovered.body.uptimeSeconds}s, wall ${recoveryFromWall}s`);
+  let growthTries = 0;
+  const growthBegan = Date.now();
+  let grown = null;
+  const grew = await until(async () => {
+    growthTries++;
+    const answer = await call('/health');
+    if (answer.status === 200 && answer.body.uptimeSeconds > recovered.body.uptimeSeconds) {
+      grown = { from: recovered.body.uptimeSeconds, to: answer.body.uptimeSeconds, startedAt: answer.body.startedAt };
+      return true;
+    }
+    return false;
+  }, { tries: 12, gapMs: 500, label: 'uptimeSeconds to advance while the same process keeps answering 200' });
+  assert.ok(grown, `uptime never advanced past ${recovered.body.uptimeSeconds}s in ${growthTries} reads over ${Date.now() - growthBegan} ms — either the counter is stuck or this is not the process that started`);
+  assert.equal(grown.startedAt, first.body.startedAt, 'the read that showed the growth names the SAME process');
 
   assert.equal(await sql('select count(*) from audit_entry'), '0', 'even a failed probe records no trail fact');
   assert.equal(await sql('select count(*) from webhook_delivery'), '0', 'even a failed probe knocks on nothing');
   assert.equal(await sql("select count(*) from information_schema.tables where table_name like 'health%'"), '0',
       'the door still stores no state');
-  console.log(`[§4] after the database returned, /health answered 200 again: reachable in ${recovered.body.database.latencyMs} ms, NO detail, the SAME startedAt ${recovered.body.startedAt}, uptime ${outage.body.uptimeSeconds}s → ${recovered.body.uptimeSeconds}s — the process never restarted · and psql still read ZERO audit entries, ZERO deliveries and ZERO health tables`);
+  console.log(`[§4] after the database returned, /health answered 200 again: reachable in ${recovered.body.database.latencyMs} ms, NO detail, the SAME startedAt ${recovered.body.startedAt}, uptime ${outage.body.uptimeSeconds}s -> ${recovered.body.uptimeSeconds}s (never backwards, ${recoveryFromWall}s by the wall clock from that startedAt) and PROVEN to advance to ${grown.to}s in ${growthTries} reads / ${Date.now() - growthBegan} ms — the process never restarted · and psql still read ZERO audit entries, ZERO deliveries and ZERO health tables`);
 
   // ── §5 teardown ────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
@@ -396,7 +440,7 @@ try {
   assert.equal(goneContainer.stdout.trim(), '', `the throwaway container is still listed: ${goneContainer.stdout.trim()}`);
   console.log(`[§5] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log('\n[summary] M9: services/nexus-api BUILT and RAN against a real PostgreSQL · /health answered 200 with service/version (the POM\'s own)/startedAt/uptimeSeconds and a reachable database with a non-negative latency and NO detail, under Cache-Control: no-store · psql read ZERO audit entries, ZERO webhook deliveries and ZERO health tables · with the database stopped under the running process the door answered 503, reachable=false and a short reason token, with no JDBC URL, host, password, message or stack trace · with the database started again the SAME process answered 200 with detail gone and a larger uptime, and still wrote nothing');
+  console.log('\n[summary] M9: services/nexus-api BUILT and RAN against a real PostgreSQL · /health answered 200 with service/version (the POM\'s own)/startedAt/uptimeSeconds and a reachable database with a non-negative latency and NO detail, under Cache-Control: no-store · psql read ZERO audit entries, ZERO webhook deliveries and ZERO health tables · with the database stopped under the running process the door answered 503, reachable=false and a short reason token, with no JDBC URL, host, password, message or stack trace · with the database started again the SAME process answered 200 with detail gone and an uptime PROVEN to advance — never backwards, still derived from the original startedAt, then polled for the whole-second step instead of betting one read against another — and still wrote nothing');
   rmSync(BUILD_DIR, { recursive: true, force: true });
   console.log('[m9-service-health-proof] ALL ASSERTIONS PASSED (a health door that separates "the process answers" from "the database can serve", states the failure without describing the machine, and survives an outage without being restarted)');
 } finally {

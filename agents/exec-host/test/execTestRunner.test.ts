@@ -12,6 +12,11 @@ const POLICY: ExecPolicy = {
 
 class FakeChild implements ExecChild {
   killed = false;
+  // What the OS answers when this fake is killed. v651c: this used to be hard-coded to the POSIX signalled
+  // death (code null, signal SIGTERM), which is ONE plane's shape — and the row that read the rendered
+  // sentence inherited it. A win32 forced exit ends code 1 / signal null, and a child that races its own
+  // exit into the budget window ends with a code beside the kill (ADR 0016 amendment 527).
+  killEnd: { code: number | null; signal: string | null } = { code: null, signal: 'SIGTERM' };
   private data: Array<(s: 'stdout' | 'stderr', c: Buffer | string) => void> = [];
   private ends: Array<(e: { code: number | null; signal: string | null; error?: string }) => void> = [];
   onData(l: (s: 'stdout' | 'stderr', c: Buffer | string) => void) {
@@ -22,7 +27,7 @@ class FakeChild implements ExecChild {
   }
   kill() {
     this.killed = true;
-    this.emitEnd({ code: null, signal: 'SIGTERM' });
+    this.emitEnd(this.killEnd);
   }
   emitData(s: 'stdout' | 'stderr', c: Buffer | string) {
     for (const l of this.data) l(s, c);
@@ -32,12 +37,17 @@ class FakeChild implements ExecChild {
   }
 }
 
-function harness(end: { code?: number | null; signal?: string | null } = { code: 0, signal: null }, chunks: ['stdout' | 'stderr', string][] = []) {
+function harness(
+  end: { code?: number | null; signal?: string | null } = { code: 0, signal: null },
+  chunks: ['stdout' | 'stderr', string][] = [],
+  killEnd?: { code: number | null; signal: string | null },
+) {
   const calls: string[][] = [];
   let child: FakeChild | undefined;
   const spawnLike: SpawnLike = (command, args) => {
     calls.push([command, ...args]);
     child = new FakeChild();
+    if (killEnd) child.killEnd = killEnd;
     const c = child;
     queueMicrotask(() => {
       for (const [s, t] of chunks) c.emitData(s, t);
@@ -81,6 +91,22 @@ describe('execTestRunner (v31: a real command answers the §63 verify step)', ()
     // never exited. The absence is named as an absence; nothing is invented either way.
     expect(rep.failures[0]!.message).toContain('no exit code reported');
     expect(rep.failures[0]!.message.includes('exit null'), 'a killed run has no exit code to print').toBe(false);
+    expect(h.lastChild().killed).toBe(true);
+  });
+
+  it('a kill the OS answered WITH an exit code prints that code, not an absence — v651c', async () => {
+    // The face hosted run 42681784313 saw on the ubuntu runner: the timer fired, the child had an exit code.
+    // The row used to demand 'no exit code reported' for every plane, which is a claim about win32, not about
+    // the bridge. Both faces are a contract; one of them was only ever this box.
+    const h = harness({}, [], { code: 1, signal: null });
+    const rep = await execTestRunner(h.host, ['git', 'status', '--short'], PASS_OPTS).run();
+    expect(rep.ok).toBe(false);
+    expect(rep.failures[0]!.message).toContain('killed at timeout budget');
+    expect(rep.failures[0]!.message).toContain('exit 1');
+    expect(rep.failures[0]!.message.includes('no exit code reported'),
+      'a child that reported an exit code has one to print').toBe(false);
+    // signal null means there is no signal to name, and the sentence may not invent one (v60^2's rule).
+    expect(rep.failures[0]!.message.includes('(SIGTERM)'), 'no signal was reported').toBe(false);
     expect(h.lastChild().killed).toBe(true);
   });
 
