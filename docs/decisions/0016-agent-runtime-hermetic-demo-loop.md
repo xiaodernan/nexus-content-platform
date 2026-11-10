@@ -14101,3 +14101,60 @@ This addendum GRANTS nothing and CORRECTS the record; the repair is amendment 51
   left for a reader to trip over.
 
 **CITES** amendments 574 (v647 — the reach census whose run-command tally this moves 16 → 19, and the method of charging a step rather than a script that §15 copies to Maven), 573 (v646 — the cache-key-over-one-path bug this repeats for Maven, and the two-workflow-file basis §15 reads), 572 (v645 — the exclusion whose residue §6 now names as a PostgreSQL the workflow never brings up), 545 (v591 — the arms machinery these six arms join) and 568 (v641 — the 116-row population this moves no row of); **GRANTS** amendment 576 / version v651 (re-checked free at this ref: no `### Amendment 576` header exists and no landed commit subject carries `v651`, on `--all`). Version label **v650** is the only label this landing mints.
+
+### Amendment 576 (v651, evidence) — A MEASUREMENT MAY NOT BE GRADED BY A NUMBER REMEMBERED FROM ANOTHER MACHINE
+
+- **Status of the landing:** this record is WRITTEN LATE, and this section says so instead of hiding it.
+  The content it names landed in commit `9ab2371` ("feat(services): a failure names itself everywhere
+  across the edge, the api, and the proof (ADR 0056)"), which is the commit this ledger's own recount
+  door sent a reader to when `docs/evidence/m9/plane-bound-claims.mjs:1` cited v651 / amendment 576 and
+  no `### Amendment 576` existed for the reader to be sent to. The grant itself was amendment 575's
+  (v650) to make — "**GRANTS** amendment 576 / version v651" — and v651 content landed exactly as
+  filed, in three parts (a/b/c), without this record ever being appended. The recount door caught the
+  hole, and deleting or rewording the citation would have been deleting the finding.
+- **What the three parts were, read out of the bytes rather than remembered:**
+  - **v651a** — the assertion `outage.elapsedMs >= 25_000` compared a DURATION against a constant
+    that is true only on the machine that wrote it (Hikari's connectionTimeout as the Windows
+    docker-proxy leaves an already-pooled socket hanging) and is REFUTED on a runner where
+    `docker stop` closes the socket and the borrow is refused in milliseconds. Repaired by deriving
+    the bound inside the SAME run — the service's own `database.latencyMs` beside the client's own
+    wall time — in `docs/evidence/m9/service-liveness-proof.mjs` and
+    `docs/evidence/m9/service-health-proof.mjs` (both carry the `planeBoundRuleIsLive()` call at the
+    top of every build, so a blinded rule reddens the row rather than quietly clearing it).
+  - **v651b** — the assertion "uptime must have grown" compared two READS of an integer-second
+    counter with a strict `>`, so it passed by luck whenever the recovery landed inside the same
+    second. Repaired by a non-decreasing reading plus a bounded poll for the step up, in the same
+    two m9 proof files.
+  - **v651c** — the rendered sentence "no exit code reported" was unconditionally claimed for a
+    killed child, when a win32 forced exit (and the ubuntu runner's own sighting, hosted run
+    `42681784313`) ends with `code 1` beside the kill and NO signal. `agents/exec-host/test/
+    execTestRunner.test.ts` now carries v651c's case: a kill the OS answered WITH an exit code prints
+    that code, and no signal is invented beside it.
+  - **the gate that keeps the two shapes charged:** `docs/evidence/m9/plane-bound-claims.mjs`
+    reads an assertion's predicate (the first argument of `assert.ok(...)`), charges
+    REMEMBERED-FLOOR (a `>=`/`>` whose left side names a measured field and whose right side is a
+    number literal other than 0) and COIN-FLIP (a strict order between two reads of the same measured
+    field), refuses itself when the rules stop firing (`planeBoundRuleIsLive()`), and deliberately
+    does NOT charge ceilings or bounds whose far side is another reading. Executing it calls the
+    same rule the rows call.
+- **Which hosted rows this repair touched, and which it did not:** the `verify:liveness` and
+  `verify:health` rows of the Java service proof. They remain the two known runner-bound Studio-CI
+  reds called out elsewhere in this ledger; this record does not claim they are green there and does
+  not repair them — the 30 s Hikari-leash premise does not hold on the runner, and the gate's
+  answer is to stop grading the CALLER's clocks, not to fake a refusal the runner never felt.
+- **What this landing does NOT mint:** the next number after 576. Amendments 577 / v652 remain
+  unwritten BY NOT EXISTING — no `### Amendment 577` heading exists, no RUN anywhere is charged by a
+  gate against it, and this record deliberately does not grant it: granting ahead of the record is
+  the exact hole this section was written to close, and writing a grant that nothing loads is how a
+  ledger accumulates orphan grants no reader can be sent to. A successor increment (for example,
+  the residue 575's body names — §6's `verify:spring-cloud` row and a PostgreSQL no workflow step
+  brings up, v653's to close) lands as its own amendment with its own record first.
+
+**CITES** amendment 575 (v650 — the landing this record completes whose footer granted this number
+and whose body filed v651a/b/c and named the two runner-bound rows), `docs/evidence/m9/
+plane-bound-claims.mjs` (the gate, whose first line and whose `planeBoundRuleIsLive()` are the
+contract described above), `docs/evidence/m9/service-liveness-proof.mjs` and `docs/evidence/m9/
+service-health-proof.mjs` (the two repaired rows) and `agents/exec-host/test/execTestRunner.test.ts`
+(v651c's case; the exec-host row was recounted in `3dfeb0b` for exactly this case); commit `9ab2371`
+(where the content landed); **GRANTS nothing** — no number is promised by this record, said plainly
+so the next reader's recount door has no orphan to catch.
