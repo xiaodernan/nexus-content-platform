@@ -68,6 +68,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
         warnings: result.warnings,
         notes: result.notes,
         renderMs: result.renderMs,
+        segments: result.segments,
       },
       { status: 201 },
     );

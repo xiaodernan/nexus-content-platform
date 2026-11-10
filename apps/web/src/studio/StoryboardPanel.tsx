@@ -231,12 +231,13 @@ export function StoryboardPanel() {
   const [imageError, setImageError] = useState<string | null>(null);
   const [renderBusy, setRenderBusy] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
-  /** 上一次 DEMO 渲染的交代：没做到的事（warnings）与计划说的每一句（notes）原样显示（§159） */
+  /** 上一次 DEMO 渲染的交代：没做到的事（warnings）与计划说的每一句（notes）原样显示（§159）。segments = 逐镜画面出处（本镜自己挂的 / 整片那张 / 色卡） */
   const [renderNote, setRenderNote] = useState<{
     assetId: string;
     warnings: string[];
     notes: string[];
     renderMs: number;
+    segments: Array<{ index: number; shotId: string; frame: 'own' | 'whole-piece' | 'card' }>;
   } | null>(null);
   /** 这个项目渲染出过的成片，新的在前（§101 资产清单的"分镜产物"那一格） */
   const [renders, setRenders] = useState<RenderRecord[]>([]);
@@ -370,6 +371,7 @@ export function StoryboardPanel() {
             notes?: string[];
             renderMs?: number;
             message?: string;
+            segments?: Array<{ index: number; shotId: string; frame: 'own' | 'whole-piece' | 'card' }>;
           }
         | null;
       if (!res.ok || !body?.asset) throw new Error(body?.message ?? `HTTP ${res.status}`);
@@ -387,6 +389,7 @@ export function StoryboardPanel() {
         warnings: body.warnings ?? [],
         notes: body.notes ?? [],
         renderMs: body.renderMs ?? 0,
+        segments: body.segments ?? [],
       });
       // 历史清单里立刻多出这一版：不刷新的话面板指着旧清单，像"刚渲的不算数"
       const list = (await fetch(`/api/projects/${studio.projectId}/storyboard/render`, { cache: 'no-store' })
@@ -1216,6 +1219,21 @@ export function StoryboardPanel() {
                   {renderNote.warnings.map((w) => (
                     <li key={w} className="text-11 text-warn-ink">
                       {w}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {renderNote.segments.length ? (
+                <ul className="flex flex-col gap-1" data-storyboard-render-provenance>
+                  {renderNote.segments.map((segment) => (
+                    <li key={`${segment.shotId}-${segment.index}`} className="text-11 text-fg-3">
+                      {`第 ${segment.index + 1} 镜：${
+                        segment.frame === 'own'
+                          ? '画面来自这一镜自己挂的参考帧'
+                          : segment.frame === 'whole-piece'
+                            ? '画面来自整片那张图（image-to-video 箭头带的，本镜没自己挂）'
+                            : '色卡占位（本镜没挂参考帧）'
+                      }`}
                     </li>
                   ))}
                 </ul>

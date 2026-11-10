@@ -11388,3 +11388,26 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
 - 顺带的事实：STATE 文档里"resilience4j 缺读者"早已过期——breaker 一直在
   （503 fallback 每次冷启动都被记下来了）；本片补的是**开路**那半把尺子。
 - CI 未实跑（仍从未 push）。
+
+## §M5 第四十片：逐镜画面出处——第三十八片欠下的"每一镜拿的是它自己那一张"（2026-11-10）
+
+- 起点：第三十八片末尾如实记下的仍欠 ②——"只证了整片那张图进了画面，没证**每一镜拿的是哪一张图**"。
+  （`RenderSource.reference.from: 'shot' | 'source'` 一直在计划里，但**谁都没读它**：
+  面板只看得到最终视频和一份 notes，看不到"第几镜的画面由谁供给"。）
+- 做了什么：
+  ① `packages/video-model` 无改动——计划里一直有这格，不动唯一真值形状（§16）；
+  ② web 领域层 `RenderStoryboardOutcome` 加 `segments: ShotProvenance[]`（index / shotId /
+     frame: `own`（这一镜自己挂的参考帧）| `whole-piece`（整片那张图，本镜自己没挂）|
+     `card`（色卡占位）），映射直接从 `plan.segments` 读，不建第二份真值；
+  ③ 渲染路由把它原样带回界面（POST 201 的 body）；
+  ④ 面板结果块新增 `[data-storyboard-render-provenance]`：逐镜一行，
+     "第 i 镜：画面来自这一镜自己挂的参考帧 / 来自整片那张图（image-to-video 箭头带的，本镜没自己挂）/ 色卡占位（本镜没挂参考帧）"；
+  ⑤ 历史清单暂不带（`StoryboardRenderRecord` 没存出处，装出来就是假记录——不造目前存不下的读数）。
+- 读数（真 ffmpeg + 真 Postgres，55100 nexus_regress）：
+  - `storyboard-render.integration.test.ts` = **15/15**（新增两条：快乐路径按镜断言
+    `[{shot-ref, own}, {shot-card, card}]`；Whole-piece 对照组断言 `[{shot-src-a, whole-piece}, {shot-src-b, whole-piece}]`）；
+  - `storyboard-render-route.integration.test.ts` = **9/9**；
+  - studio **2857/2857** · typecheck 14/14 · eslint exit 0（web 与 studio 两套门）。
+- 如实的边界：e2e 断言已加但**本机没跑 playwright**（系统 Chrome + dev server + 1.2GB 空闲——顶不住；
+  `screenshots/storyboard-whole-piece-reference.png` 那条 smoke 的机制与断言同构，下次机器松一点时可复跑）；
+  历史清单无出处是刻意的（见 ⑤）。
