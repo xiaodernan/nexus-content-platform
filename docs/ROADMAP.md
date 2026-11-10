@@ -11408,6 +11408,22 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
     `[{shot-ref, own}, {shot-card, card}]`；Whole-piece 对照组断言 `[{shot-src-a, whole-piece}, {shot-src-b, whole-piece}]`）；
   - `storyboard-render-route.integration.test.ts` = **9/9**；
   - studio **2857/2857** · typecheck 14/14 · eslint exit 0（web 与 studio 两套门）。
-- 如实的边界：e2e 断言已加但**本机没跑 playwright**（系统 Chrome + dev server + 1.2GB 空闲——顶不住；
-  `screenshots/storyboard-whole-piece-reference.png` 那条 smoke 的机制与断言同构，下次机器松一点时可复跑）；
-  历史清单无出处是刻意的（见 ⑤）。
+- 读数：`npx playwright test e2e/storyboard.spec.ts --grep '整片参考图'` = **1 passed**（1.1m；两条 provenance 逐镜断言入 browser，screenshot 同名文件已更新）；
+  studio **2857/2857** · typecheck 14/14 · eslint exit 0（web 与 studio 两套门）；
+- 如实的边界：历史清单暂不带（`StoryboardRenderRecord` 没存出处，装出来就是假记录——不造目前存不下的读数）。
+
+## §M5 第四十一片：箭头不认但留着的人/图——静默丢弃的格子出声（2026-11-10）
+
+- 起点：第三十八片末尾如实记下的无牙格子 ②——`missingArrowSource` 只管缺不管多带：
+  选了图/角色却换到一条不读它的箭头（text-to-video 上带 referenceAssetId / characterId），
+  渲染里静默丢弃，界面上没有任何一句。
+- 做了什么：`planVideoRender` 的 notes 里加两句（条件触发，arrow 不认对应格才说）：
+  `source.referenceAssetId 被带着但 {arrow} 不读它…换成 image-to-video 才会进。`
+  与
+  `source.characterId 被带着但 {arrow} 不读它…换成 character-to-scene 才会进。`
+  两句分开出——图一件事、角色一件事，不是一句笼统的"有残留"。
+- 读数：`npx vitest run --no-file-parallelism packages/video-model/test` = **101/101**
+  （100→101；"别的箭头带图也不进像素"用例补一条 `不读它` 断言 ×3 箭头；新增 residue 用例同时断言两格）。
+- 如实的边界：notes 是**计划里**的出声——面板原样显示 `plan.notes`，所以这句话就是界面话；
+  历史清单与 task 行没有新的持久化字段（这次渲染就会展示，不装进去就再不说了）。
+- player 仍需真 provider（§38 明码 DEMO）。

@@ -259,6 +259,18 @@ export function planVideoRender(storyboard: Storyboard): VideoRenderPlan {
         'character-to-scene 这条箭头今天还不进像素：渲染读的是每一镜自己的参考帧，而模型不查库、拿不到这位角色的肖像。先给角色生成肖像、把那张图挂到镜头上，否则这些镜渲出来是色卡。',
       );
     }
+    // 箭头不认但留着的东西：界面上看得见"选了图/角色"，渲染里看不见"这张图没用上"——
+    // 那是两句不同的话，少一句就是假诚实（上一片发现的静默格子）。
+    if (storyboard.source.arrow !== 'image-to-video' && storyboard.source.referenceAssetId) {
+      notes.push(
+        `source.referenceAssetId 带着那张图，但 ${storyboard.source.arrow} 这条箭头不读它——这张图这次渲染不进画面。换成 image-to-video 才会进。`,
+      );
+    }
+    if (storyboard.source.arrow !== 'character-to-scene' && storyboard.source.characterId) {
+      notes.push(
+        `source.characterId 带着那位角色，但 ${storyboard.source.arrow} 这条箭头不读它——这位角色这次渲染不进画面。换成 character-to-scene 才会进。`,
+      );
+    }
     const transitions = storyboard.shots.filter((s) => s.transition !== 'cut').length;
     notes.push(
       transitions > 0
