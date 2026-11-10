@@ -257,3 +257,19 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
   deliberately). The surgical re-stamp is strictly narrower and carries the runner's evidence.
 - `main-line` CI stays green on every push this session, including the first hosted answer for the Java
   config-door leg (temurin 25 + the 4/4 config-server suite).
+
+
+## 2026-11-10 addendum (cont. 7): the Studio `quality` row is GREEN on the hosted runner — 42758678472 (master) and 42758689082 (main), sha fc4b25f
+
+- After the §15/cache-key recount (5 of 5 poms), the v652 lint-debt closure (221→218 findings), the
+  exec-host package-table re-stamp (358→359/359 — the ONE row the runner's quality job refused) and
+  the v651 measurement repair, the Studio `CI` `quality` job is FULLY GREEN at this ref:
+  `42758678472` (master) and `42758689082` (main), both `success`. `main-line` is green on the same
+  sha too (`42758678797` master, `42758689269` main) — including its Java config-door Maven leg.
+  They were earned by `04a3eaf` (the v652 unit landing whole) and `fc4b25f` (the one-row re-stamp) —
+  not by widening a gate, not by retrying, and not by deleting an assertion.
+- What this does NOT mean, said plainly: the `verify:spring-cloud` row stays EXCLUDED (a PostgreSQL no
+  workflow step brings up, named in `tools/ci/proof-set.mjs`), the flaky concurrent-tap note from
+  cont. 4 stands unchanged, and CI green is a fact about THIS ref on THIS runner — nothing in this
+  ledger cites it as a general promise about the future, and none of the excluded/runner-bound rows
+  have been "fixed" in this tree.
