@@ -11375,3 +11375,16 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
 - 冒烟 spawned JVM 加 `-Xmx` heap 上界（`NEXUS_SMOKE_HEAP[_DOMAIN]` 可覆盖；domain 512m / 其余 384m）——内存吃紧时 Spring Boot 起不动，不能把"养不起"当"门坏了"。
 - `ServiceHealthProbeTest` 在内存恢复后 4/4 全绿；CI runner 才是这类时延断言的判决场。
 - CI topology job 三个冒烟步骤（topology / lb / auth）仍从未被 push 真实 CI 执行过。
+
+## §SC 第二十四片：断路器的 OPEN 态——从"开火"到"失败快"的最后一把尺子（2026-11-10）
+
+- 触发：网关早已有 circuit breaker（`edgePolicy` 的 `circuitBreaker` + FallbackController 的 503 句子）——
+  但 `GatewayRoutingTest` 刻意把窗口设成 100，**OPEN 态从来没有被 wire 级测量过**。
+- 交付：`GatewayCircuitOpenWiringTest`（真实 socket stub + 真实网关 + random port）：
+  滑窗 4、minimum-number-of-calls 4、阈值 50、wait-duration 60s；4 次 mid-call 连接拒绝（异常——
+  breaker 数的是异常，不是 5xx 响应）→ 第 5 次调用被 fallback 直接拒：
+  **cause 含 `CallNotPermitted`**（不是 not-reported 也不是 timeout），且 **stub 没有收到新请求**。
+- 读数：`mvn -B test` gateway = **62/62** BUILD SUCCESS（新增 1 条断言种类；ServiceHealthProbeTest 4/4）。
+- 顺带的事实：STATE 文档里"resilience4j 缺读者"早已过期——breaker 一直在
+  （503 fallback 每次冷启动都被记下来了）；本片补的是**开路**那半把尺子。
+- CI 未实跑（仍从未 push）。

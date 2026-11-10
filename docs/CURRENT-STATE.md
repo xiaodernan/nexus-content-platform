@@ -27,6 +27,10 @@
 - **CI 的 topology job 现在有三个冒烟步骤（topology / lb / auth），全部从未被 push 真实 CI 执行过**——首个 push 会一次性裁判它们；
 - 冒烟 spawned JVM 已加 `-Xmx` 上界（domain 512m / 其他 384m，`NEXUS_SMOKE_HEAP[_DOMAIN]` 可覆盖）；本机内存枯竭的窗口里 `ServiceHealthProbeTest` 曾三条断言变 UNKNOWN——对照实验证实非本次改动、恢复后 4/4 全绿；
 - 2026-11-10 起 `npm run eslint` 是"真·0 错误"（此前一例是配置崩溃导致的假绿），见 ADR-0098。
+- **断路器 OPEN 态现有 wire 级判据**（§SC-24 / `GatewayCircuitOpenWiringTest`）：4 次后端 refusal（滑窗 4、
+  阈值 50%）→ 第 5 次调用被 fallback 直接拒（cause=`CallNotPermitted`，stub 没有收到新请求）——
+  一个 breaker 的"快速失败"从此不是一种配置，是一个被读数钉住的事实；
+  此前 `GatewayRoutingTest` 只覆盖了"breaker 开火"，没覆盖"开路后失败快"。
 
 ## 评测（§85）
 
