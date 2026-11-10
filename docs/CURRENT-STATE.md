@@ -230,3 +230,30 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
   PostgreSQL + a warm Maven) — nothing in ci.yml moved. The working tree's two known runner-bound
   red rows on the Studio lane (`liveness`, `health`) remain red and are still called out honestly
   rather than worked around.
+
+
+## 2026-11-10 addendum (cont. 6): the Studio `quality` row reached the end of the proofs batch on the runner, and exactly one thing was red — the package table the exec-host recount caught
+
+- The merged tree's `CI` workflow (`quality`) did not get past `verify:lint-tree` before the v652 unit (two
+  unused `grew` bindings, plus the spring-cloud proof's findings and the re-derived lint-debt ceiling
+  221→218 findings). With those landed (`04a3eaf`), the full 116-row proofs batch ran on the runner at
+  this ref: **exactly one row red** — `verify:package-counts`,
+  `@nexus/exec-host: the table says 358/358; the suite answered 359/359` (the v651c case, `9ab2371`).
+  Everything else was green: `verify:lint-tree`, `verify:publish-e2e` 340s, `verify:arms` 601.2s,
+  `verify:vitals`, `verify:traffic`, `verify:vitals`, `verify:table-recount` 14.3s,
+  `verify:record-encoding` 1.6s — **115/116 green of a derived population of 117 · residue named: 1**
+  (the spring-cloud row, an exclusion NAMED in `tools/ci/proof-set.mjs`, not a red).
+- The two rows previously recorded as runner-bound here are GREEN on the runner at this ref:
+  `verify:health` **22.2s OK** and `verify:liveness` **22.1s OK**. That is amendment 576 / v651 doing
+  what it was built for — no assertion may grade a number remembered from another machine. It is NOT a
+  promise they stay green forever; a red that reappears deserves the same cause-reading pass, not a shrug.
+  cont. 5's last bullet is SUPERSEDED by this addendum and is kept visible on purpose, not rewritten.
+- The re-stamp: exec-host row `358→359/359` in the generated block (`docs/evidence/studio/README.md`,
+  footer date 2026-11-10) and the same count in `docs/evidence/agents/README.md`; the studio suite was
+  NOT re-run on this box for this edit — the runner's own package-counts pass rejected only the
+  exec-host row and cleared the studio row at **2857/2857 (142 files)**, and this box measured the
+  exec-host arm at 359/359 exit 0 before its `--write` was interrupted twice (first by the server
+  restart — nothing was written; §1a held — then left stalled at 4/7 arms with 0.2 s CPU and stopped
+  deliberately). The surgical re-stamp is strictly narrower and carries the runner's evidence.
+- `main-line` CI stays green on every push this session, including the first hosted answer for the Java
+  config-door leg (temurin 25 + the 4/4 config-server suite).

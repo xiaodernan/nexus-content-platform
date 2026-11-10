@@ -56,7 +56,7 @@ same file is then asserted to run ZERO programs. `porcelain-path-proof.mjs` (v61
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 658/658 + @nexus/exec-host 358/358 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 658/658 + @nexus/exec-host 359/359 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
