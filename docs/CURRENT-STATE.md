@@ -12,6 +12,21 @@
 > 本轮开工复核：`git worktree list` 仅 main、无游离分支/stash、`--no-merged` 为空，**git 侧无可并内容**。
 > 未推送（无明确指令）。
 >
+> **2026-11-11 续（§SC-34 / ADR-0106，最新）**：重试 `setExceptions` 的**第二半 `TimeoutException`**
+> （后端连着、只是慢到超过 timelimiter）第一次上 wire——resilience4j 四件套里 `timelimiter` 曾是唯一无
+> 独立判据的一块，`application.yml` 的 `timeout-duration` 写下起被当背景参数 override。新增
+> `GatewayTimeoutWiringTest`（3 条）：**慢 POST × 5 轮 wire 恰 1**（超时路径写也不被重放）、**慢 GET × 5
+> 轮 wire∈[1,2]** 诚实 503、**cause 精确 `java.util.concurrent.TimeoutException`**（补强
+> `GatewayRoutingTest` 那条 `isNotEqualTo("not-reported")` 弱断言，刻意不改旧测试）。一次性探针先实测：
+> **首轮 wire 读成 POST 1,0,0,0,1 / GET 0,0,0,1,0，抓到会说谎的桩**——`HttpServer` 默认**串行**分派，
+> 慢请求占住唯一线程后后续进不了 `handle()`，wire 假读 0（真重放也会假绿）。加 `StubUpstream.startConcurrent()`
+> （cached pool，**默认 `start()` 一字不动**保既有 90 测试语义）后重测 POST 1,1,1,1,1 / GET 1,2,2,2,2、
+> status 全 503、cause 全超时，才是对网关的真实测量。查 `resilience4j-timelimiter` 源码订正：超时抛的就是
+> `java.util.concurrent.TimeoutException`（`GatewayConfig` 引的类，异常触发源是活的），叠加 §SC-33 已证的
+> `return retryableMethod` 门 → 慢写恒 1 是必然。**刻意不 pin** GET 单轮精确 wire（1/2 是 retry 与 fallback
+> 抢写响应的调度竞争，与 ADR-0101 同源）；**不改生产**（无缺陷可修）。工程教训：`HttpServer` 默认串行，
+> 凡用 `delay`/长 sleep 又断言 wire 的测试必须在并发桩上跑。仍欠：响应中途断开。
+>
 > **2026-11-11 续（§SC-30 / ADR-0102）**：网关又补一个 Spring Cloud 元素——**W3C Trace Context**
 > （`traceparent`/`tracestate`），与 §SC-14 私有 `X-Request-Id` 并存、各司其职。新增 `TraceContextFilter`
 > （ORDER +21，紧跟 correlation +20）：合法入站保留 trace-id/flags 但**换 parent-id**（网关是一跳，原样

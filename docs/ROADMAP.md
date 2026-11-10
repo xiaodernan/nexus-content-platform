@@ -11579,3 +11579,37 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
 - 仍欠（如实记）：本片测「响应前断连」（`PrematureCloseException`）；**超时型故障**（`TimeoutException`）
   与「响应中途断开」未覆盖——`StubUpstream.delay` 已在，但 timeout 与 retry 时序同样易浮动，需另造
   不 pin 时序的判据再接。多实例 breaker 聚合、CI `topology` job 经真实 push 执行，仍欠（同前片）。
+  > 超时型故障这一项已由下一片 §SC 第三十片接上。
+
+## §SC 第三十片：超时是重试的活触发源——钉住慢写不被重放，并抓出一只会说谎的桩（2026-11-11）
+
+上片 ADR-0105 留的缺口：`setExceptions(IOException, TimeoutException)` 的 `IOException` 半已 wire 证明，
+**`TimeoutException` 半（后端连着、只是慢到超过 timelimiter）从没测过**——resilience4j 四件套里
+`timelimiter` 是唯一没有独立判据的一块，`application.yml` 的 `timeout-duration` 从写下起被所有测试当
+背景参数 override。风险同源：若方法门在超时路径上失效，一次慢 POST 会变成两次投稿。
+
+- **交付**：新增 `GatewayTimeoutWiringTest`（3 条）+ `StubUpstream.startConcurrent()`。判定三条不变式：
+  ①**慢写绝不被重放**（POST × 5 轮，wire **恰 1** + 诚实 503 + cause `java.util.concurrent.TimeoutException`）；
+  ②**慢读重试不放大**（GET × 5 轮，wire **∈[1,2]** + 诚实 503 + 精确 cause，永非空 200/500/挂死）；
+  ③**超时 cause 是真值不是被发明**（钉死 fallback 五字段 + 精确类名）——这是 `GatewayRoutingTest` 那条
+  `isNotEqualTo("not-reported")` 弱断言的 graded 替代，建在不会说谎的桩上，刻意不改旧测试。
+- **先实测（一次性探针，跑完即删）**：`timelimiter=250ms` / 后端 `delay(1200ms)` / breaker 保持 CLOSED。
+  **首轮探针 wire 读成 POST 1,0,0,0,1 / GET 0,0,0,1,0**——抓到一只会说谎的桩：`HttpServer.create`
+  默认**串行**分派，一个慢请求占住唯一线程后，后续请求进不了 `handle()`，`paths.add()` 不执行 → wire
+  假读 0；在这种桩上**真重放也会假绿**。加 `startConcurrent()`（cached pool executor，默认 `start()`
+  一字不动保既有 90 测试语义）后重测：**POST 1,1,1,1,1 / GET 1,2,2,2,2，status 全 503，cause 全
+  `java.util.concurrent.TimeoutException`**，才是对网关的真实测量。
+- **源码订正（猜错即改，记下防再犯）**：查 `resilience4j-timelimiter:2.1.0`，`TimeLimiterImpl` 超时经
+  `createdTimeoutExceptionWithName` 抛的**就是** `java.util.concurrent.TimeoutException`（`import
+  java.util.concurrent.*`），正是 `GatewayConfig.setExceptions` 引的类——**异常触发源是活的**，非死配置。
+  叠加 §SC-33 已源码确认的「exception 谓词命中后 `return retryableMethod`、套同一 `setMethods(GET)` 门」，
+  慢写 wire 恒 1 是方法门必然。
+- **刻意不 pin**：GET 单轮精确 wire（1 或 2）——retry 第二次 wire 先到桩、还是 fallback 先 commit 503
+  是调度竞争，与 ADR-0101 `already committed (503)` 同源；`isBetween(1,2)` 钉上界、不钉这一次是几。
+- **不改生产**：异常触发源活、方法门挡写、答复诚实，无缺陷可修；本片把安全不变式从「配置存在+源码可推」
+  升级为「wire 实测+多轮稳定+cause 真值」，并**堵上一只会假绿的桩**。工程教训：`HttpServer` 默认串行，
+  任何用 `delay`/长 sleep 又断言 wire 计数的测试都必须在并发桩上跑，否则测到的是桩的排队而非网关转发。
+- **读数**：单类 **3/3 PASS**（含 5×2 次真实慢超时采样）；网关全套与 typecheck 见下。整仓 `npm run
+  eslint` 仍是本机内存超时边界（非 lint 报错），如实记；未推送（无明确指令）。
+- **仍欠（同前片 + 本片新增）**：「响应中途断开」（响应头已发、body 中途断）仍未覆盖，需另造判据；
+  多实例 breaker 聚合、CI `topology` job 经真实 push 执行，仍欠。

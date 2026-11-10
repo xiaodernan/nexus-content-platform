@@ -25,6 +25,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 final class StubUpstream {
 
     private final HttpServer server;
+    // SC-34 — only startConcurrent() sets this. A plain HttpServer dispatches requests SERIALLY on one
+    // thread, so a slow (delay()/sleep) request blocks every later request from even reaching handle() —
+    // paths.add() never runs and wire counts read 0, which is a fixture lie, not a gateway fact. A cached
+    // pool makes concurrent/in-flight requests real. Null for the default start(), whose behaviour is
+    // deliberately unchanged (all existing wire tests keep their measured semantics).
+    private java.util.concurrent.ExecutorService executor;
     private final List<String> paths = new CopyOnWriteArrayList<>();
     private final List<Map<String, List<String>>> requestHeaders = new CopyOnWriteArrayList<>();
     private final List<String> forwardedHosts = new CopyOnWriteArrayList<>();
@@ -50,11 +56,29 @@ final class StubUpstream {
         this.server = server;
     }
 
+    /** Default serial dispatch — every existing wire test uses this; do not change its semantics. */
     static StubUpstream start() {
+        return start(null);
+    }
+
+    /**
+     * SC-34 — concurrent dispatch, for tests that keep a request IN FLIGHT (a real sleep past the gateway's
+     * timelimiter) while other requests arrive. Without this, a sleeping handler monopolises the sole
+     * dispatch thread and later requests never reach {@link #handle()}, so wire counts falsely read 0.
+     */
+    static StubUpstream startConcurrent() {
+        return start(java.util.concurrent.Executors.newCachedThreadPool());
+    }
+
+    private static StubUpstream start(java.util.concurrent.ExecutorService executor) {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             StubUpstream stub = new StubUpstream(server);
+            stub.executor = executor;
             server.createContext("/", stub::handle);
+            if (executor != null) {
+                server.setExecutor(executor);
+            }
             server.start();
             return stub;
         } catch (IOException e) {
@@ -206,5 +230,8 @@ final class StubUpstream {
 
     void stop() {
         server.stop(0);
+        if (executor != null) {
+            executor.shutdownNow();
+        }
     }
 }
