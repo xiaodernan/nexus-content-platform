@@ -11288,3 +11288,20 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
   `NEXUS_GATEWAY_PORT=8091 npm run verify:topology` = **PASS** 全程 <2 分钟。
 - 未验证：极端慢 DB + 空表下 boot 预热是否足够——smoke 预热段保留作为第二道防线；
   若把 "DB 慢" 做成 CI SLO，这条要重新量。
+
+## §SC 第十九片：nexus-api 进拓扑——四服务全经 service discovery，冒烟满员（2026-11-10）
+
+- 触发：§SC-17 把 topology job 固化进 CI 之后，拓扑本身只覆盖 registry/domain-service/gateway——
+  nexus-api 一直被默认关着（`NEXUS_API_REGISTER`），没人证明网关 `/api/**` 这条 lb 路由真能打通。
+- 交付：
+  - `verify-topology.mts` 第四条腿：起 nexus-api（`:8084`，自己的一次性库 `nexus_api_smoke`，
+    ddl-auto:update，不碰 e2e 的 `nexus` 库）、等 actuator health、断言 eureka 持有 NEXUS-API、
+    断言 `/platform/services` 列出**两者**、断言经网关 `GET /api/health → 200`（body 带
+    service/version/startedAt；/api/health 仅当数据库可达才 200）；
+  - CI `topology` job 同步：建 `nexus_api_smoke`（psql，没有就 apt 装 postgresql-client）、
+    打包 nexus-api 共四个 jar；
+  - `docs/ENVIRONMENT.md` 增加 `nexus_api_smoke` 行（它连谁、谁写它、不许污染谁）。
+- 读数：`NEXUS_GATEWAY_PORT=8091 npm run verify:topology` = **PASS**（<2 分钟）；lint exit 0；
+  `psql CREATE DATABASE` 成功。四个 JVM 全部干净退出。
+- 未验证：CI 的 `topology` job 仍从未被真正 push 执行过；它红了就是真信号。
+  gateway 的 `/api/**` 在本机 auth 关闭下是通的（auth 开着时同路径要 token）。

@@ -167,6 +167,11 @@ docker inspect nexus-redis --format '{{.HostConfig.Memory}}' → 0（容器也�
 | --- | --- | --- |
 | 集成测试（`apps/web/test/**.integration.test.ts`） | `postgres://nexus:nexus_dev_only@localhost:55100/nexus_regress` | 打真库、可随时清 |
 | e2e（Playwright 起的 dev server） | `postgres://nexus:nexus_dev_only@localhost:55433/nexus`（代码默认；显式设成 55100 也行） | 浏览器那一寸落数据的地方 |
+| nexus-api 冒烟（2026-11-10，`npm run verify:topology`） | `jdbc:postgresql://127.0.0.1:55433/nexus_api_smoke` | nexus-api 自带 ddl-auto:update 的一次性演示库；CI 每次跑前显式 `CREATE DATABASE nexus_api_smoke` |
+
+> 2026-11-10 部署冒烟把 **nexus-api 也纳入了拓扑**：它注册进同一个 8761 注册中心（`NEXUS_API_REGISTER=true`），
+> 网关 `/api/** → lb://nexus-api` 真的走 service discovery 打进去；它**连的是自己的一次性库**
+> `nexus_api_smoke`，不是 e2e 的 `nexus` 库——两个库的写入者都不许互相污染。
 
 ⇒ ⇒ **所以：加一条新迁移，两个库都要打**（`npm run db:migrate` 跑两遍，第二个库改一下 `NEXUS_DATABASE_URL`）。
 只打一个的后果很具体（今天踩过）：集成测试全绿（它打的那张表存在），

@@ -16,7 +16,10 @@
  *      service_unavailable naming TimeoutException). The smoke retries idempotent GETs until the door
  *      answers non-503, so it measures the topology, not the warm-up.
  *   8. the gateway's own composite view of the registry (`GET /platform/services`) lists the domain
- *      service — discovery is not merely wired, it is answering at the door.
+ *      service and nexus-api — discovery is not merely wired, it is answering at the door;
+ *   9. nexus-api itself is part of the topology: it starts, registers into the same registry, and
+ *      answers 200 through the gateway's `/api/**` route (its own throwaway database, created by the
+ *      operator or CI before the smoke starts — see README note in docs/ENVIRONMENT.md).
  *
  * Exits 0 only when every check passed. Exits 1 on the first failure and ALWAYS stops the three
  * services it started — a smoke that leaves three JVMs behind is a smoke that exhausts the box.
@@ -40,10 +43,12 @@ const DENY = '[verify-topology]';
 const REGISTRY_PORT = Number(process.env.NEXUS_REGISTRY_PORT ?? 8761);
 const DOMAIN_PORT = Number(process.env.NEXUS_DOMAIN_PORT ?? 8082);
 const GATEWAY_PORT = Number(process.env.NEXUS_GATEWAY_PORT ?? 8090);
+const API_PORT = Number(process.env.NEXUS_API_PORT ?? 8084);
 const DB_URL = process.env.NEXUS_DOMAIN_DB_URL ?? 'jdbc:postgresql://127.0.0.1:55433/nexus';
 const DB_USERNAME = process.env.DB_USERNAME ?? 'nexus';
 const DB_PASSWORD = process.env.DB_PASSWORD ?? 'nexus_dev_only';
 const PG_PORT = Number(process.env.NEXUS_DOMAIN_PG_PORT ?? 55433);
+const API_DB_URL = process.env.NEXUS_API_DB_URL ?? `jdbc:postgresql://127.0.0.1:${PG_PORT}/nexus_api_smoke`;
 let failures = 0;
 const ok = (name) => console.log(`  ✓ ${name}`);
 const bad = (name, detail) => {
@@ -161,6 +166,7 @@ async function main() {
   const registryJar = ensureJarFresh('registry', 'nexus-registry', 'target/nexus-registry-0.1.0-SNAPSHOT.jar');
   const domainJar = ensureJarFresh('domain-service', 'java-domain-service', 'target/domain-service-1.0.0-SNAPSHOT.jar');
   const gatewayJar = ensureJarFresh('gateway', 'nexus-gateway', 'target/nexus-gateway-0.1.0-SNAPSHOT.jar');
+  const apiJar = ensureJarFresh('nexus-api', 'nexus-api', 'target/nexus-api-0.1.0-SNAPSHOT.jar');
 
   // Postgres is the domain service's only hard dependency besides Eureka. Refuse to start without it.
   const pg = await (async () => {
@@ -168,7 +174,7 @@ async function main() {
   })();
   if (!pg) console.warn(`${DENY} warning: 127.0.0.1:${PG_PORT} did not answer HTTP (not fatal for policy endpoint, but billing plan reads users — expect 400)`);
 
-  for (const port of [REGISTRY_PORT, DOMAIN_PORT, GATEWAY_PORT]) await assertFree(port);
+  for (const port of [REGISTRY_PORT, DOMAIN_PORT, GATEWAY_PORT, API_PORT]) await assertFree(port);
 
   console.log(`${DENY} starting registry / domain-service / gateway (logs in ${LOG_DIR})`);
   const registry = spawnJar('registry', registryJar, { NEXUS_REGISTRY_PORT: String(REGISTRY_PORT) });
@@ -199,6 +205,26 @@ async function main() {
   const reg = await fetch(`http://127.0.0.1:${REGISTRY_PORT}/eureka/apps/NEXUS-DOMAIN-SERVICE`);
   if (reg.status !== 200) bad('domain-service registered in eureka', `GET answered ${reg.status}`);
   else ok('eureka holds NEXUS-DOMAIN-SERVICE');
+
+  // nexus-api joins the same registry before the gateway starts, so the gateway's first fetch sees
+  // the full topology (not just the domain service). It owns its own throwaway database.
+  const api = spawnJar('nexus-api', apiJar, {
+    NEXUS_API_REGISTER: 'true',
+    NEXUS_API_FETCH: 'true',
+    NEXUS_DB_URL: API_DB_URL,
+    NEXUS_DB_USER: DB_USERNAME,
+    NEXUS_DB_PASSWORD: DB_PASSWORD,
+    NEXUS_API_PORT: String(API_PORT),
+    NEXUS_CONFIG_ENABLED: 'false',
+  });
+  services.push({ name: 'nexus-api', child: api });
+  if (!(await waitFor('nexus-api', `http://127.0.0.1:${API_PORT}/actuator/health`, 200))) {
+    await cleanup();
+    process.exit(1);
+  }
+  const apiReg = await fetch(`http://127.0.0.1:${REGISTRY_PORT}/eureka/apps/NEXUS-API`);
+  if (apiReg.status !== 200) bad('nexus-api registered in eureka', `GET answered ${apiReg.status}`);
+  else ok('eureka holds NEXUS-API');
 
   const gateway = spawnJar('gateway', gatewayJar, { NEXUS_GATEWAY_PORT: String(GATEWAY_PORT), NEXUS_CONFIG_ENABLED: 'false' });
   services.push({ name: 'gateway', child: gateway });
@@ -235,13 +261,17 @@ async function main() {
     if (res?.ok) {
       const body = await res.json().catch(() => null) as { services?: Array<{ id?: string }> } | null;
       listed = (body?.services ?? []).map((s) => String(s.id ?? ''));
-      if (listed.some((id) => id.toLowerCase().includes('domain-service'))) break;
+      const hasDomain = listed.some((id) => id.toLowerCase().includes('domain-service'));
+      const hasApi = listed.some((id) => id.toLowerCase().includes('nexus-api'));
+      if (hasDomain && hasApi) break;
     }
     await new Promise((r) => setTimeout(r, 1_000));
   }
-  if (!listed.some((id) => id.toLowerCase().includes('domain-service'))) {
-    bad('gateway discovery lists nexus-domain-service', `services=${JSON.stringify(listed)}`);
-  } else ok(`gateway discovery lists ${listed.join(', ')}`);
+  const hasDomain = listed.some((id) => id.toLowerCase().includes('domain-service'));
+  const hasApi = listed.some((id) => id.toLowerCase().includes('nexus-api'));
+  if (!hasDomain) bad('gateway discovery lists nexus-domain-service', `services=${JSON.stringify(listed)}`);
+  if (!hasApi) bad('gateway discovery lists nexus-api', `services=${JSON.stringify(listed)}`);
+  if (hasDomain && hasApi) ok(`gateway discovery lists ${listed.join(', ')}`);
 
   // Through the gateway: the community surface
   const policy = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/community/policy`, { signal: AbortSignal.timeout(10_000) });
@@ -293,12 +323,21 @@ async function main() {
   if (permNoSubject.status !== 400) bad('door-less permission refused', `HTTP ${permNoSubject.status} (want 400)`);
   else ok('door-less permission refused (400)');
 
+  // Through the gateway: nexus-api answers /api/health — full path gateway → lb://nexus-api → its own
+  // throwaway database, all live. /api/health is 200 only when the database answers.
+  const apiHealth = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/api/health`, { signal: AbortSignal.timeout(10_000) });
+  if (apiHealth.status !== 200) bad('nexus-api /api/health via gateway', `HTTP ${apiHealth.status} (want 200)`);
+  else {
+    const text = await apiHealth.text();
+    ok(`nexus-api answers through the gateway /api/health (200, ${text.slice(0, 80)}…)`);
+  }
+
   await cleanup();
   if (failures) {
     console.error(`${DENY} FAIL — see above`);
     process.exit(1);
   }
-  console.log(`${DENY} PASS — topology, correlation id, and all three surfaces through the gateway`);
+  console.log(`${DENY} PASS — registry, gateway, domain-service and nexus-api, all through service discovery`);
   process.exit(0);
 }
 
