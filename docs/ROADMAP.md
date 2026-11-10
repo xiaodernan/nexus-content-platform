@@ -11156,3 +11156,43 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
 - 仍欠（如实记）：TLS、WebSocket；breaker 状态不在进程内；以及第十一片记下的 fallback 路径
   `ServerHttpResponse already committed` 噪声——它只是一条被记录的 ERROR（测试仍断言 503 正文），修它需要动
   retry/fallback 交互、有把现有测红的风险，本片未随 SC-13 一并改，单列待修边。
+
+## §SC 第十三片：接手 java-domain-service 在途片——社区全收，计费/权限按共享 schema 重写（2026-11-10）
+
+- 接手事实：同一工作树的另一条会话在 `services/java-domain-service` 留下一片**未提交**的在途工作后停了近
+  七小时。按用户授权（"并轨的内容…直接接手帮他把剩下的内容做完，即使锁住也不要管"）整片接管。接手时的
+  实况，逐项量过：`pom.xml` **不可解析**（`Unrecognised tag: 'groupId'`——一处 `<dependency>` 少了开标签）；
+  相比 HEAD 掉了 5 个依赖（security / validation / cache / eureka-client / security-test），连带
+  `SecurityConfig` 编译不过；`application.yml` 三处回退（`required:configserver` 会卡启动、eureka 挪进了
+  不存在的 `spring.cloud.*` 命名空间、datasource/redis 两块被删）；`User` 实体发明了 `users.credits` 列——
+  共享 schema（web 层所有，`schema.ts`）里没有这一列，额度只存在于 `credit_ledger` 的 SUM；`CreditLedger`
+  的形状与 schema 不符（发明 balance、写方、agentKey 语义）；一条编造的 Feign 腿（ai-service 没有
+  `/generate`，更不会返回 User）；`PermissionService` 编译不过且查询在撒谎（JPQL `SELECT p FROM Project …
+  , User.class` 是运行时 ClassCastException 被空 catch 吞掉——所有权检查静默退化成"人人可读"）。
+- 收下与重写的界线：**社区那一半原样收下**（entities/service/controller/policy/41 条测试——形状贴着
+  共享 schema，拒绝句来自 SC-17 的导出文件，wire 断言对着真 schema 文件；这正是本仓库要的样子）。
+  **计费与权限重写**。计费按 schema 的规矩写成只读账本读者：`@Immutable` 的 `credit_ledger` 实体
+  （append-only 由 DB 触发器把守，JPA 层再锁一道）、`balanceOf = SUM(delta)`（没有 balance 列，schema
+  也不许有）、`hasEnoughCredits`、`getSubscriptionPlan` 返回小写标签；额度数值留在 web 层
+  `credits.ts` 的 `PLAN_MONTHLY_GRANTS`，不抄第二份；消费行（带 taskId 的扣减）仍由 web 的
+  `finishTask` 写——Java 侧能追溯（按 taskId/kind 查）但不代写。权限写成只读检查器：所有权读
+  `projects.owner_id`，publication 沿 `project_id` 追到项目再比主；**解析不到的资源什么都不给**
+  （调用方该回 404，幽灵行不许从 read 兜底变 yes）；未知 resourceType 抛 IllegalArgumentException
+  （调用方 bug，不是一次否认）；删掉了 grantRole/revokeRole（无人监督的角色写入是提权原语）、
+  toUserDetails（声明返回 UserDetails 实际返回 Authentication，从未编译过；认证是门 SC-13 的事）、
+  isModerator（`user_role` 枚举只有 creator/admin 两个标签，moderator 是 schema 存不下的身份）。
+- Feign 缩成一条真腿：`AiServiceClient` 只留 `GET /healthz`（对真 ai-service 的 `/healthz`，返回体就是
+  `{service,version,capability,providers,queue}` 那个 dict），生成不走 Java（ADR-0011：web→ai 直连）。
+  resilience4j 依赖**直接删**——树里没有任何读者，留着它只是 pom 上的装饰；breaker 欠账仍在仍欠清单里。
+  pom/yml 恢复成 HEAD 字节再加两样真东西：`spring-cloud-starter-openfeign`、把 `../../contracts` 的
+  `community-policy.json` 拷进 jar 的 resources 块（社区服务启动时 fail-fast 读的就是它）。
+- 读数：`MAVEN_OPTS=-Xmx400m mvn -B -o test` **90 条全绿**（32s，离线）：
+  Community 41（19+14+10+8）+ Permission 11 + Billing 5 + Feign wire 1 + 原 User/Project 22
+  （7+3+2+5+5）。Feign 那条对着 loopback HttpServer 打真实 HTTP（SpringMvcContract），断言收到的
+  path 与 `/healthz` 的真实返回形状。
+- 诚实边界：Permission/Billing 是**真服务、无控制器**——什么路由都到不了它们，README 的表格按这句写；
+  `AiServiceClient` 的 wire 测试是对 loopback 桩量的，**没有**在本机对运行中的 ai-service 跑过
+  （README 不宣称那次活体通话）；live run（建→读→删→404 过网关）仍是 README 说的"另一半"。
+- 服务 README 同步：表格三行从 stub 换成真话（community 全 real；permission/billing "real, service
+  only"），"stubs are scaffolding" 那段删掉，security posture 里"gateway 鉴权还没建"改成 SC-13 已落、
+  本服务自身仍不做认证、端口仍不许暴露；Tests 段换成 90 条的分解。

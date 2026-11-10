@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  NEXUS java-domain-service — the JVM write-path service (SC-6).
+
+  Dependencies are the same set the standalone tests grade, plus the two Spring Cloud halves this
+  service actually declares: eureka-client (SC-6, registration OFF by default) and config (SC-11,
+  `optional:` import, OFF by default) — see application.yml. resilience4j was added and removed in the
+  same slice: nothing in the tree reads it yet, and a dependency nobody consumes is a promise with no
+  creditor (the breaker debt stays recorded in docs/ROADMAP.md §SC).
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -37,37 +46,41 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- Spring Boot Starters -->
+        <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+
+        <!-- Spring Data JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
+
+        <!-- Security: SecurityConfig defines the only filter chain this service has -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
-        <!--
-          SC-8: GET /actuator/health is what the gateway's /platform/health probes. Only `health` is exposed
-          (see application.yml); the actuator surface is not a second API.
-        -->
+
+        <!-- Spring Boot Actuator (SC-8: health only) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-        <!-- Database -->
+        <!-- PostgreSQL Driver -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
@@ -102,6 +115,16 @@
             <artifactId>spring-cloud-starter-config</artifactId>
         </dependency>
 
+        <!--
+          SC-18: OpenFeign — the declarative client for service-to-service calls (AiServiceClient).
+          The client resolves ai-service by explicit URL (NEXUS_AI_SERVICE_URL, default the documented
+          ai port 8000), so like everything above it is inert until a caller injects it.
+        -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -116,7 +139,60 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <!--
+              SC-17: the community policy values document is exported by `npm run contract:export` into the
+              repo-root contracts/ and copied into the jar here — CommunityPolicy reads it from the classpath
+              and stops the context on any missing or malformed key. One file, one writer (the export), two
+              readers (TS web domain, JVM policy loader).
+            -->
+            <resource>
+                <directory>${project.basedir}/../../contracts</directory>
+                <targetPath>contracts</targetPath>
+                <includes>
+                    <include>community-policy.json</include>
+                </includes>
+            </resource>
+        </resources>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <testResource>
+                <directory>${project.basedir}/../../contracts</directory>
+                <targetPath>contracts</targetPath>
+                <includes>
+                    <include>community-policy.json</include>
+                    <include>community-like-state.schema.json</include>
+                    <include>community-follow-state.schema.json</include>
+                </includes>
+            </testResource>
+        </testResources>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.1</version>
+                <configuration>
+                    <release>25</release>
+                    <encoding>UTF-8</encoding>
+                    <source>25</source>
+                    <target>25</target>
+                    <compilerArgs>
+                        <arg>-J-Dfile.encoding=UTF-8</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Xmx512m -Dfile.encoding=UTF-8</argLine>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
