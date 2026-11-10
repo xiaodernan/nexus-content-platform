@@ -18,7 +18,11 @@ spring:
   # The config door, optional (see nexus-api): a deployment without
   # the config server boots with this file as it stands.
   config:
-    import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:8888}"
+    # NEXUS's OWN port, not Spring's default 8888: 8888 is the first port a neighbouring Spring
+    # project takes, and measured 2026-11-10 one did — its config door answered ours and handed a
+    # proof service a FOREIGN `eureka.client.service-url` (ADR 0057 amendment 658). Compose publishes
+    # this door on 18888 and the smoke probes 18888; the default now agrees with both.
+    import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:18888}"
   datasource:
     url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus}
     username: ${NEXUS_DB_USER:nexus}
@@ -44,6 +48,14 @@ logging:
   level:
     com.nexus: INFO
     org.springframework.web: WARN
+
+# The operator's door — identical with or without the config server (§4 of ADR 0056/0058 keeps
+# the four-service surface uniform): health/info/metrics/prometheus on the service's OWN port.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
 
 # Discovery, OPT-IN. With NEXUS_EUREKA_ENABLED=true this service registers with the registry under the
 # name `nexus-domain-service`, which is the name `nexus-api`'s OpenFeign client asks for; with it unset

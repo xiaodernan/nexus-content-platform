@@ -183,3 +183,81 @@ answer for.
   through the edge, and the gateway's test says so — but a service reachable from the network is a
   service whose port must not be exposed publicly, which is a deployment concern this repository
   does not own yet.
+
+## Amendment 658 — the scrape endpoint is published: the rejected option, accepted, and what the record got wrong (2026-11-10)
+
+The Context above rejected one alternative in as many words:
+
+> **Publish the actuator's `prometheus` endpoint.** Not done: the plain `metrics` endpoint carries
+> the same numbers, and a Prometheus registry would be a dependency the services would then owe an
+> answer for.
+
+Both halves of that sentence are still true, and neither is an argument against publishing.
+
+**"The same numbers" is not the same interface.** `/actuator/metrics` answers a CATALOGUE of names;
+`/actuator/metrics/{name}` answers one metric's samples as JSON, and the caller must already know the
+name. A scrape is one GET that returns every series in the exposition format. A collector cannot
+enumerate a catalogue one request at a time and remain a collector — it would need a NEXUS-specific
+client, which is the opposite of the standard the whole metric story is supposed to speak.
+
+**The dependency does owe an answer, so the answer is paid where every other claim here is paid: a
+door that reads it.** Five deployables carry `io.micrometer:micrometer-registry-prometheus`; the
+shared configuration document names `prometheus` in the exposure allowlist; the four CONSUMER doors
+answer a real scrape, measured by `spring-cloud-proof.mjs` §10b; and the config server answers on its
+own port, measured two ways (below) and pinned by `ConfigServerTest`.
+
+### What the record got wrong first, and the correction
+
+The first reading of this (in the working tree before this amendment) said the config server's
+`/{application}/{profile}` product route SHADOWS `/actuator/prometheus`, so the config server could
+not answer and did not need to. That is half right and half a mis-diagnosis, and the difference
+matters because the wrong half would have justified a management port this service does not need:
+
+- **Right:** the product route is a two-segment catch-all, and ANY two-segment GET that the actuator
+  has no exact mapping for lands on it — answering `{"name":"actuator","profiles":["prometheus"],…}`,
+  the shared document, with status 200. Measured, and it is exactly the shape of lie this ADR is
+  about: a 200 that is not the thing that was asked for.
+- **Wrong:** that the route wins when the endpoint EXISTS. Measured on the built service
+  (`mvn spring-boot:run`, port 18999): `GET /actuator/prometheus` answers
+  `# HELP application_ready_time_seconds …`; the same URL with `Accept: application/json` answers
+  **406 Not Acceptable** — the actuator's mapping was selected and refused the format. The exact
+  mapping wins; the catch-all only answers when there is nothing to win with.
+- **And the trap in between:** a Spring Boot TEST context turns metrics export OFF by default
+  (`management.defaults.metrics.export.enabled=false`). The scrape leg therefore failed in
+  `ConfigServerTest` while the same jar answered on its own — the condition report said, verbatim,
+  `management.defaults.metrics.export.enabled is considered false`. The leg now sets the PER-REGISTRY
+  switch (`management.prometheus.metrics.export.enabled=true`) in its own `properties`, which wins
+  over the test customizer's default. The shipped configuration is unchanged: this was a property of
+  the test, not of the service.
+
+- **And a third, in the proof itself.** §10b's first run asked the scrape with the JSON helper and read
+  **406 Not Acceptable** as "the door does not answer". The door was right: a Prometheus exposition body
+  is not JSON. The leg now asks with `Accept: text/plain` — what a scraper asks with — and the 406 is
+  recorded in the file as the reason the helper exists. A proof that asks the wrong question gets a
+  correct refusal, and the refusal is not the fact being measured.
+
+- **And a fourth, found the same way.** The domain service listed `health,info,metrics,prometheus` and
+  carried the registry, but had **no `spring-boot-starter-actuator`** on the classpath at all: the door
+  answered **404**, and the `management:` block was decoration. A configuration that names endpoints
+  nothing serves is the same species of lie as an answer that names a failure it did not have. The static
+  gate now grades the three halves together — the names, the registry, and the actuator — because any two
+  of them without the third is a claim with no server behind it.
+
+### The allowlist is named, and that is graded
+
+`include: *` publishes `heapdump`, `env`, `configprops` and `loggers` — a heap dump is the process's
+memory and `env` is its environment, and both are one keystroke from `metrics`. So the surface is
+graded statically, in the ordinary test population:
+`apps/web/test/java-metrics-surface.test.ts` reads all six configuration files (five local + the
+shared door) and refuses a wildcard, any of nine dangerous endpoints, a deployable whose pom lacks
+the registry, a local file that disagrees with the shared document, and a sixth service appearing
+without being named.
+
+### Consequences
+
+- Every deployable that carries the registry now has a reader for it: §10b for the four consumers,
+  `ConfigServerTest` for the config server.
+- The static gate makes the two configuration planes (shared document and each service's own file)
+  answer the same list, so a service booted WITHOUT the config door does not lose the scrape.
+- The bound: this says the doors answer. It does not say a Prometheus SERVER is scraping them —
+  there is no scrape config, no retention, no alerting in this repository, and none is claimed.

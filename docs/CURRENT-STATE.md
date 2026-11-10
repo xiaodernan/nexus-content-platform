@@ -326,3 +326,48 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
   topology on a stateless runner.
 - `verify:arms` re-stamped `arms-receipt.json` (the `runner` subject changed with proof-set.mjs; 64/64
   matched on the re-stamped bytes); census and table-recount re-derived clean (`rows 117+0`, HELPER 5).
+
+
+## 2026-11-10 addendum (cont. 10): the scrape is published on all five deployables — v658, and the two wrong turns on the way (2026-11-11)
+
+- **The claim.** Five Java deployables carry `io.micrometer:micrometer-registry-prometheus`; the shared
+  configuration document (`infra/config/application.yml`) and each service's OWN `application.yml` name
+  `health,info,metrics,prometheus`; and every one of the five answers. The four CONSUMER doors are read by
+  `spring-cloud-proof.mjs` **§10b** (registry / domain / api / edge, body must be `# HELP` or `jvm_`), and the
+  config server's own door is read by `ConfigServerTest`'s scrape leg.
+- **Static half.** `apps/web/test/java-metrics-surface.test.ts` (13 tests, ordinary population) reads the six
+  configuration files and refuses: a wildcard, any of nine dangerous endpoints (`heapdump`, `env`,
+  `configprops`, `loggers`, `shutdown`, …), a deployable whose pom lacks the registry, a local file that
+  disagrees with the shared document, and a sixth service arriving without being named.
+- **Wrong turn #1 — "the route shadows it".** The first record (written the same day, corrected here) said the
+  config server's `/{application}/{profile}` product route SHADOWS `/actuator/prometheus` and that the config
+  server therefore does not need to answer. Measured on the built service: the exact actuator mapping WINS
+  (`GET /actuator/prometheus` → `# HELP application_ready_time_seconds …`; the same URL with
+  `Accept: application/json` → **406**, not a config document). What the catch-all does answer is the case
+  where NO endpoint exists at that path — which is what happened while `prometheus` was missing from the
+  exposure list: a 200 carrying `{"name":"actuator","profiles":["prometheus"], …}`. A 200 that is not the
+  thing asked for is exactly the failure ADR 0056 is about; the fix was the exposure list, not a second port.
+- **Wrong turn #2 — the scrape leg failed in a TEST context while the jar answered.** Spring Boot's test
+  support sets `management.defaults.metrics.export.enabled=false` for every test context, so no
+  `PrometheusMeterRegistry` bean existed and `/actuator/prometheus` fell through to the config route. The
+  condition report said it verbatim (`management.defaults.metrics.export.enabled is considered false`). The
+  leg now sets the PER-REGISTRY switch in its own `properties`; the shipped configuration is untouched.
+  Witness: `ConfigServerTest` **5 tests, 0 failures**.
+- **Wrong turn #3 — the proof asked for JSON.** §10b's first run fetched the scrape with the JSON helper
+  (`Accept: application/json`) and read the door's **406** as "does not answer". The door was right; the
+  question was wrong. The leg now asks with `Accept: text/plain`, the header a scraper sends.
+- **Wrong turn #4 — the domain service had NO actuator at all.** §10b's next run answered the registry's
+  door (rejected only the JSON Accept), then read **404** on the domain service's. Its `application.yml`
+  named `health,info,metrics,prometheus` and its pom carried the registry — but `spring-boot-starter-actuator`
+  was never a dependency, so the entire `management:` block named endpoints nothing served. The static gate
+  now checks the three halves together (endpoint names, the registry, the actuator), so this shape is a red
+  test rather than a twelve-minute run.
+- **Found on the way, and fixed (ADR 0057 amendment 658).** A whole proof run was lost because a NEIGHBOURING
+  project's config server was answering on `8888` — this repository's client default — and fed the domain
+  service a foreign `eureka.client.service-url`, so it registered into their registry on 8761 and our proof
+  waited 60 s for a name our registry had never been told. NEXUS's config door now defaults to **18888**
+  everywhere (server, four consumers, compose host mapping, smoke probes), and the proof passes
+  `-Dspring.cloud.config.enabled=false` to every service it starts: a proof must not depend on a door it did
+  not open.
+- **The bound, stated.** This says the five doors ANSWER. There is no Prometheus server, no scrape config, no
+  retention and no alerting in this repository, and none is claimed.

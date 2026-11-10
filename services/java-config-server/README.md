@@ -21,7 +21,7 @@ GET /actuator/health              is the config door itself answering
 ```
                ┌──────────────────────┐
    service ───▶│  nexus-config-server │  configuration (NOT the traffic path, NOT the data path)
-   import      │  :8888               │
+   import      │  :18888              │
                └──────────────────────┘
                          ▲ read once, at boot
     ┌───────────┬─────────┼──────────┐
@@ -75,7 +75,7 @@ Two facts measured on the way here, kept for the next person who touches this:
    `nexus-domain-service.yml` — the first draft named them after the *modules* (`java-gateway.yml`),
    and the fourth test above failed with the shared file only. The file name is the contract.
 2. A service whose `application.yml` imports
-   `optional:configserver:http://127.0.0.1:8888` MUST boot with the door **absent** — all four
+   `optional:configserver:http://127.0.0.1:18888` MUST boot with the door **absent** — all four
    services' test suites pass with no config server running on this machine. If the import were not
    optional, every service would hang at boot waiting for a door that had not been started yet.
 
@@ -88,6 +88,16 @@ The four services still pass their suites with the client on the classpath:
 | java-domain-service | 39 PASS |
 | java-registry | 2 PASS |
 
+## After v658: the four Java CONSUMER doors also answer the scrape question
+
+Four of the five Java services — nexus-api, java-domain-service, java-gateway, java-registry — expose
+`/actuator/prometheus` (shared config door: `health,info,metrics,prometheus`, ADR 0057's file) with a
+real OpenMetrics body — verified live on the registry door (12,148 bytes, 2026-11-10) and wired into the
+topology proof's §10b (scrape probes on the four consumer doors). The config server deliberately does
+NOT: its own `/{application}/{profile}` route shadows `/actuator/prometheus` (measured 2026-11-10 — it
+answers with the shared document for app `actuator`, not an OpenMetrics body). The config server's door
+is for the consumers, not for scrapers.
+
 ## Honest bounds
 
 - **Native profile, not Git-backed.** The YAMLs live in this repository (`infra/config/`), resolved
@@ -99,7 +109,7 @@ The four services still pass their suites with the client on the classpath:
 - **No encryption.** `{cipher}…` values are not implemented; the config server cannot serve what it
   cannot understand, and this one understands YAML.
 - **The door is OPTIONAL everywhere.** Every service imports it with
-  `optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:8888}` — a deployment without a
+  `optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:18888}` — a deployment without a
   config door boots with its local `application.yml` exactly as before this service existed. The
   option is a feature, not a convenience.
 - **Entered `infra/docker-compose.yml` as a `java` profile on 2026-11-10 — config-validated, never
@@ -117,13 +127,13 @@ The four services still pass their suites with the client on the classpath:
 
 | variable | default | meaning |
 |---|---|---|
-| `NEXUS_CONFIG_SERVER_PORT` | `8888` | the port this service binds |
+| `NEXUS_CONFIG_SERVER_PORT` | `18888` | the port this service binds |
 | `NEXUS_CONFIG_SEARCH` | `file:../../infra/config/` | where the native profile reads the YAMLs from |
-| `NEXUS_CONFIG_SERVER_URL` | `http://127.0.0.1:8888` | the door each service's `spring.config.import` points at |
+| `NEXUS_CONFIG_SERVER_URL` | `http://127.0.0.1:18888` | the door each service's `spring.config.import` points at |
 
 ## Running it
 
 ```bash
-mvn -B spring-boot:run                       # http://127.0.0.1:8888
-curl http://127.0.0.1:8888/nexus-api/default
+mvn -B spring-boot:run                       # http://127.0.0.1:18888
+curl http://127.0.0.1:18888/nexus-api/default
 ```

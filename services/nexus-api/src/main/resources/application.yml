@@ -9,7 +9,11 @@ spring:
   # The config door, optional: a deployment without the config server boots with this file as it
   # stands; with one, the shared surface (health/info/metrics) and the api-specific keys live there.
   config:
-    import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:8888}"
+    # NEXUS's OWN port, not Spring's default 8888: 8888 is the first port a neighbouring Spring
+    # project takes, and measured 2026-11-10 one did — its config door answered ours and handed a
+    # proof service a FOREIGN `eureka.client.service-url` (ADR 0057 amendment 658). Compose publishes
+    # this door on 18888 and the smoke probes 18888; the default now agrees with both.
+    import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:18888}"
   datasource:
     url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus}
     username: ${NEXUS_DB_USER:nexus}
@@ -85,7 +89,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
 
 # Discovery, OPT-IN. With NEXUS_EUREKA_ENABLED=true this service registers with the registry and the
 # edge can reach it as `lb://nexus-api`; with it unset the service behaves exactly as it did before

@@ -17,7 +17,11 @@ spring:
   # The config door, optional (see nexus-api): a deployment without
   # the config server boots with this file as it stands.
   config:
-    import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:8888}"
+    # NEXUS's OWN port, not Spring's default 8888: 8888 is the first port a neighbouring Spring
+    # project takes, and measured 2026-11-10 one did — its config door answered ours and handed a
+    # proof service a FOREIGN `eureka.client.service-url` (ADR 0057 amendment 658). Compose publishes
+    # this door on 18888 and the smoke probes 18888; the default now agrees with both.
+    import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:18888}"
 
 eureka:
   instance:
@@ -44,7 +48,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
 
 logging:
   level:

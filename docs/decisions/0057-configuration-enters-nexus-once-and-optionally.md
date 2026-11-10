@@ -30,7 +30,7 @@ serving the repository's own `infra/config/` directory. The resolution order is 
 own: `{application}-{profile}.yml`, then `{application}.yml`, then `application-{profile}.yml`,
 then `application.yml`.
 
-- `infra/config/application.yml` — what EVERY Java service gets: the `health,info,metrics`
+- `infra/config/application.yml` — what EVERY Java service gets: the `health,info,metrics,prometheus`
   exposure, the root log level at `warn`, and the `nexus.config-server-served=true` marker.
 - `infra/config/{spring.application.name}.yml` — what exactly one service gets on top of the
   shared file. Today: the service's own package at `info`.
@@ -146,3 +146,36 @@ services with it; the door is read once at boot and then irrelevant.
   was bypassed.
 - **No encryption, no HA, no Git.** All deliberate, all stated, all replaceable by the next ADR
   when a deployment needs any of them.
+
+## Amendment 658 — the door moved off `8888`, because on this machine it was somebody else's door (2026-11-10)
+
+The tradeoff above says the config door is "a sixth deployable [that] must be started, stopped, and (in
+development) tolerated when absent". Tolerating its ABSENCE was designed. Tolerating its **IMPOSTOR**
+was not, and that is what a proof run found:
+
+- `spring-cloud-proof.mjs` starts the domain service, whose `spring.config.import` is
+  `optional:configserver:http://127.0.0.1:8888` — Spring's default port, which this repository had
+  adopted as its own default. On this machine a NEIGHBOURING project's config server was already
+  answering there, and the domain service imported it. That document carried the neighbour's
+  `eureka.client.service-url.defaultZone`, so the service registered itself into the neighbour's
+  registry on 8761; our registry never heard the name, and the proof failed sixty seconds later with
+  `timed out waiting for the domain service to appear in the registry` — a symptom that names
+  nothing that actually happened.
+- `8888` is not a reserved port. It is the port every Spring project reaches for first, so it is the
+  port most likely to belong to somebody else on a developer's machine. The default was the bug.
+
+**Decision.** NEXUS's config door now lives on **18888**, everywhere it is named: the server's
+`server.port` default, the four consumers' `spring.config.import` default, the compose host mapping
+(`ports: ['18888:8888']` — the container keeps 8888, the host publishes 18888), and the smoke probes
+that were already asking 18888. A bare-metal run and a containerised one now name the same number.
+
+**And the proof stops importing at all.** `startService` passes
+`-Dspring.cloud.config.enabled=false` to every service it starts. A proof must not depend on a door
+it did not open: with the flag, the four services under test read their own `application.yml` and
+nothing else, so a config server on the developer's machine — ours, stale, or somebody else's — cannot
+change what the proof measures. The config door's own behaviour is graded by `ConfigServerTest`, on a
+random port, against this repository's `infra/config/`.
+
+**The bound.** This does not make a deployment safe from a wrong URL: `NEXUS_CONFIG_SERVER_URL` is
+still an environment variable, and pointing it at the wrong door is still possible. What changed is
+that the DEFAULT no longer points at a port the rest of the world uses.

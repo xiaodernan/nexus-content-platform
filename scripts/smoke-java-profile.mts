@@ -99,6 +99,12 @@ try {
 
   console.log('[4/5] the probes from this host');
   await until('registry /actuator/health answers UP', () => probe('http://127.0.0.1:18761/actuator/health', '"status":"UP"'), 120_000);
+  // the scrape endpoint on the consumer doors (NOT the config server, whose /{application}/{profile}
+  // route shadows /actuator/prometheus — measured 2026-11-10).
+  await until('registry answers the prometheus scrape', () => probe('http://127.0.0.1:18761/actuator/prometheus', 'jvm_'), 60_000);
+  await until('domain proves itself by scrape', () => probe('http://127.0.0.1:18082/actuator/prometheus', 'jvm_'), 60_000);
+  await until('api proves itself by scrape', () => probe('http://127.0.0.1:18080/actuator/prometheus', 'jvm_'), 60_000);
+  await until('edge answers the prometheus scrape', () => probe('http://127.0.0.1:18081/actuator/prometheus', 'jvm_'), 60_000);
   await until('config door serves the shared surface', () => probe('http://127.0.0.1:18888/application/default', 'health,info,metrics'), 60_000);
   await until('config door serves the api overlay', () => probe('http://127.0.0.1:18888/nexus-api/default', 'dev.nexus.api'), 60_000);
   await until('domain names itself + database reachable', () => probe('http://127.0.0.1:18082/health', 'nexus-domain-service'), 120_000);

@@ -104,3 +104,7 @@ test-output.txt
 merge_out.bin
 .msg.txt
 progress_summary.txt
+
+# The agent's own workspace memory (D://终极项目//.workbuddy//memory): notes for the NEXT session, not
+# product bytes. Local state, like .scratch — the record that must travel with the repo lives in docs/.
+.workbuddy/

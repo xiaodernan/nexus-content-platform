@@ -33,6 +33,12 @@ family README section) and a door that reddens the sentence it repairs:
         proven by the 429 its own configuration promises, closed when Redis is absent.
   v658  a Prometheus registry on every service with a named allowlist, proven by a
         scrape of all six (ADR 0056:157-159 records the hole).
+        [LANDED 2026-11-11 — five deployables, not six: the sixth member of the compose profile is
+        PostgreSQL, which has no Spring registry. Four doors read by §10b of the topology proof, the
+        config door by ConfigServerTest's scrape leg, the allowlist by a static gate
+        (apps/web/test/java-metrics-surface.test.ts). ADR 0056 amendment 658 corrects the earlier
+        "shadowed route" reading; ADR 0057 amendment 658 moves the config door to 18888 after a
+        neighbour's config server on 8888 captured a proof run.]
   v659  lint-debt drain family by family (#342) plus the census arms that charge the
         faces the reach census does not yet grade (#343).
   v660  a full gate sweep at the then-current ref with every red door attributed

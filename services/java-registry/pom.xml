@@ -88,6 +88,12 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Prometheus scrape endpoint on the operator door: the door answers with the metrics
+         the same services already produce, in the standard format nothing invents. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

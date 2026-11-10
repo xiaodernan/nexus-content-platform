@@ -109,13 +109,31 @@
             <artifactId>spring-cloud-starter-config</artifactId>
         </dependency>
 
+        <!-- The operator's door. MEASURED 2026-11-11: this module exposed
+             `health,info,metrics,prometheus` in its application.yml and carried the Prometheus
+             registry, but had NO actuator on the classpath at all — so `/actuator/prometheus`
+             answered 404 and the whole management block was decoration. A configuration that names
+             endpoints nothing can serve is the same class of lie as an answer that names a failure
+             it did not have; the topology proof's §10b found it by asking the door. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-    </dependencies>
+
+    <!-- Prometheus scrape endpoint on the operator door: the door answers with the metrics
+         the same services already produce, in the standard format nothing invents. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+  </dependencies>
 
     <build>
         <plugins>

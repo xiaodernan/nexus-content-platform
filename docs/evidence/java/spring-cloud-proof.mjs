@@ -233,7 +233,12 @@ async function waitForAnswer(url, accept, timeoutMs, what) {
 }
 
 /** Read the port a service reported it bound to (the PortAnnouncer's file). */
-async function readPortFile(file, timeoutMs = 90_000) {
+// 180 s, measured: nexus-api runs `ddl-auto: update` against the EMPTY throwaway database and creates
+// its whole schema there — on the hosted runner that finishes inside 90 s, on this laptop under memory
+// pressure it was still adding constraints at 90 s (2026-11-11, the run that failed with "api never
+// reported its port"). The wait is for a FACT that has no second answer, so a longer deadline costs
+// nothing but patience; a short one costs a whole run and reports the wrong cause.
+async function readPortFile(file, timeoutMs = 180_000) {
   return waitFor(async () => {
     if (!existsSync(file)) return null;
     const raw = readFileSync(file, 'utf8').trim();
@@ -248,7 +253,15 @@ async function startService(service, extraArgs) {
   const jar = path.join(BUILD_ROOT, service.id, 'target', service.jar);
   assert.ok(existsSync(jar), `the ${service.id} jar was not built: ${jar}`);
 
-  const child = spawn('java', [...extraArgs, service.heap, '-Dserver.port=0', `-Dnexus.port-file=${portFile}`, '-jar', jar], {
+  // `spring.cloud.config.enabled=false` is NOT a convenience — it is the proof refusing to depend on a
+  // door it did not open. Measured 2026-11-10, and it cost a whole run: a NEIGHBOURING project's config
+  // server was answering on 8888 (the Spring default, and this repo's client default at the time), the
+  // domain service imported it, and the document it received carried that project's
+  // `eureka.client.service-url.defaultZone` — so the service registered itself into THEIR registry on
+  // 8761 and this proof waited sixty seconds for a name its own registry had never been told. Nothing
+  // in the failure named the config door; the only visible symptom was a timeout. A proof that reads
+  // the developer's machine is not a proof, so the import is off for every service started here.
+  const child = spawn('java', [...extraArgs, service.heap, '-Dserver.port=0', `-Dnexus.port-file=${portFile}`, '-Dspring.cloud.config.enabled=false', '-jar', jar], {
     cwd: path.join(BUILD_ROOT, service.id),
     env: { ...process.env },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -265,6 +278,20 @@ async function startService(service, extraArgs) {
   const handle = { port, portFile, child, log: () => log };
   running.set(service.id, handle);
   return handle;
+}
+
+/**
+ * GET a door that answers TEXT, which the scrape does and JSON does not.
+ *
+ * Measured 2026-11-11, on §10b's first run: the scrape endpoint refuses `Accept: application/json` with
+ * **406 Not Acceptable** — correctly, because a Prometheus exposition body is not JSON. The proof asked
+ * with `httpJson` (which asks for JSON) and the door's refusal was read as "the door does not answer".
+ * A proof that asks the wrong question gets a correct refusal, and the refusal is not the fact being
+ * measured. Scrapers ask for text; so does this.
+ */
+async function httpText(url) {
+  const response = await fetch(url, { headers: { Accept: 'text/plain' } });
+  return { status: response.status, text: await response.text() };
 }
 
 async function httpJson(url) {
@@ -371,6 +398,8 @@ function pruneAbandonedPlanes() {
   return gone;
 }
 
+let planeKept = false;
+
 async function teardown() {
   for (const child of children) {
     try { child.kill(); } catch { /* already gone */ }
@@ -388,8 +417,20 @@ async function teardown() {
       console.log(`[§16] warning: the scratch source ${SOURCE} could not be removed — the name says which run left it`);
     }
   }
-  rmSync(BUILD_ROOT, { recursive: true, force: true });
-  for (const f of started) rmSync(f, { force: true });
+  // The build plane is a WHOLE COPY of four services (thousands of files). Measured 2026-11-11: on a host
+  // whose shell wraps `fs.rmSync` with a bulk-delete guard (this repository's own sandbox does), the delete
+  // THROWS *inside* teardown — after every section passed — and the run exits non-zero for a reason no
+  // section names. A leftover that cannot be deleted is a NAMED leftover, not a verdict: the next run
+  // reclaims it by age (`pruneAbandonedPlanes`), so it is reported and the verdict stands.
+  try {
+    rmSync(BUILD_ROOT, { recursive: true, force: true });
+  } catch (e) {
+    planeKept = true;
+    console.log(`[§16] warning: the build plane ${BUILD_ROOT} could not be removed (${e?.message ?? e}); the next run reclaims it by age`);
+  }
+  for (const f of started) {
+    try { rmSync(f, { force: true }); } catch { /* a port file is a hint, not a claim */ }
+  }
 }
 
 try {
@@ -755,6 +796,44 @@ try {
   }
   console.log('[§10] all four services answered their own health question, and said UP about themselves');
 
+  // ── §10b the scrape endpoints answer on the four CONSUMER doors ───────────────────────────
+  // The shared config door says every service exposes /actuator/prometheus, so each door must answer
+  // in the format a scraper reads — not merely with a 200. The four doors here are the ones this proof
+  // STARTS; the config server is not one of them (it is optional at boot and this proof never starts
+  // it), so its own scrape is graded by `ConfigServerTest` on a random port instead.
+  //
+  // Two measured facts are why this section exists at all:
+  //   * the EXPOSURE LIST is what makes the endpoint exist. With `prometheus` absent there is no exact
+  //     actuator mapping, and a two-segment GET falls through to the config server's own catch-all
+  //     route `/{application}/{profile}` — which answers 200 with a config document. A 200 that is not
+  //     the thing asked for is the failure this whole ADR is about (measured 2026-11-10).
+  //   * the DOOR must be served by something: the domain service named these endpoints for months
+  //     with no actuator on its classpath at all, and answered 404 (measured 2026-11-11).
+  const scrapes = [
+    { who: 'the registry', url: `${registryBase}/actuator/prometheus` },
+    { who: 'the domain service', url: `http://127.0.0.1:${domain.port}/actuator/prometheus` },
+    { who: 'nexus-api', url: `http://127.0.0.1:${api.port}/actuator/prometheus` },
+  ];
+  for (const one of scrapes) {
+    const answer = await httpText(one.url);
+    assert.equal(
+      answer.status,
+      200,
+      `${one.who} must answer the scrape question; the door answered ${answer.status}: ${answer.text.slice(0, 200)}`,
+    );
+    assert.ok(
+      answer.text.includes('# HELP') || answer.text.includes('jvm_'),
+      `${one.who} answered the scrape with something that is not a scrape: ${answer.text.slice(0, 300)}`,
+    );
+  }
+  const edgeAnswer = await httpText(`${gatewayBase}/actuator/prometheus`);
+  assert.equal(edgeAnswer.status, 200, `the edge must answer the scrape question; it answered ${edgeAnswer.status}`);
+  assert.ok(
+    edgeAnswer.text.includes('# HELP') || edgeAnswer.text.includes('jvm_'),
+    `the edge answered the scrape with something that is not a scrape: ${edgeAnswer.text.slice(0, 300)}`,
+  );
+  console.log('[§10b] the four CONSUMER doors answer the prometheus scrape in the exposition format — measured with the header a scraper sends, not assumed');
+
   // ── §11 the REGISTRY dies, and the chain keeps working ──────────────────────────────────
   // The interesting half of discovery: a service that has LEARNED where another service lives
   // keeps working when the registry stops answering, because the client holds what it learned.
@@ -934,5 +1013,7 @@ try {
   process.exitCode = 1;
 } finally {
   await teardown();
-  console.log('[§16] the throwaway databases, the four processes and the build copies are gone');
+  console.log(planeKept
+    ? '[§16] the throwaway databases and the four processes are gone; the build plane is the named leftover above'
+    : '[§16] the throwaway databases, the four processes and the build copies are gone');
 }

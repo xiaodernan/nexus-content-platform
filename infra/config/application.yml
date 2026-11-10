@@ -20,7 +20,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
 
 # The platform's log discipline: the root stays at warn; each service raises its own package to
 # info (and, when debugging, its own name to debug in the service-specific file beside this one).
