@@ -11743,3 +11743,22 @@ decision；护栏坏了不该把门焊死」。但这条承诺此前只有 `Rate
 - **wire 判据把注释变事实**：`PlatformRoutesWiringTest`（3 条 × 3 轮）：①注册中心advertise 三服务（nexus-api / nexus-domain-service / **rogue-service**），读数**恰两条** `lb://` 命名路由、不含 rogue，且逐字段与 live `RouteLocator` 对账（不是印死的字面）；②`/rogue-service/anything` **404 且 `rogue.wire=[]`**（registry 知道它、门不给它路由），命名路由 `/api/publications` 200 且 `api.wire=[/publications]`——「缺席即无路由」的 wire 证明；③exposure 故意含 `gateway`，钉 GET/POST/DELETE **全 404**，证明「exposure 单独开不了写端点」、本网关没带写面。`PlatformRoutesAuthTest`（3 条 × 3 轮）：auth-on 无 token 401 / 带 token 200、401 方言逐字一致、health 仍开放——既有 `PlatformAuthFilter` 无需生产改动就覆盖到这个**新** controller（gateway 自有 controller 先于 route pipeline 应答，只有 `WebFilter` 够得着）。
 - **验证**：定向 6/6 × 3 轮全绿；网关全套 `mvn -o -B test` **116/116 BUILD SUCCESS**（两次独立全套，context 缓存封顶后无 fork 告警）；顶层 `npm run typecheck` **14/14**。一次性探针 `GatewayActuatorProbeTest` 跑完即删。未 push。
 - **仍欠**：多实例 breaker/bulkhead 按实例粒度聚合（service-id 级读数的另一面，ADR-0110）；连接层黑洞独立看门狗（SC-36）；CI `topology` job 经真实 push 执行（需授权 push）。
+
+## §SC 第四十片：网关三份读数终于接到前端——一条纵切同时落下 Redis / 计网 / 算法 / 缓存 / 前端美学（SC-40 / ADR-0112，2026-11-11）
+
+这一轮换了重心：前几片把 Spring Cloud 网关弹性做到 SC-39（全套 Java 116/116），边际递减；用户点名 **Redis、计网、算法、操作系统/数据结构级优化、前端登峰造极、前后端协同、数据库与缓存性能**。真问题随之浮出——网关 SC-29→39 产出的 `/platform/{routes,services,health}` 三份运维读数，**全仓库零前端消费者**，`admin/observability` 只看得到 web 自己的进程计数器。这一片把它们接成一张前端态势图，六项侧重各自有真实落点，不是堆砌。
+
+- **空位探针（只读，先读真实状态）**：确认三个 `/platform/*` 端点零消费者、`AdminNav` 八个入口无"网关态势"、`NEXUS_GATEWAY_URL` 不存在、Redis 已有 `NEXUS_REDIS_URL` 单一旋钮（限流/实时总线共用）、design-token 门禁扫 `var(--nexus-*)` 与强调色配对、`noUncheckedIndexedAccess` 严格模式。git 侧仍单 main、无 worktree/stash/游离分支、`--no-merged` 空——**无可并内容**（不伪造合并）。
+- **一条纯 TS 门面 `apps/web/src/server/gateway/`（零新依赖，全部可注入判据）**：
+  - `types.ts` 手写归一化：外部 HTTP 回执形状不认识 → `null` → `unavailable`，不 `as` 断言伪装类型；`lb://<service>` 抽 service id 供 join。
+  - `backoff.ts` **全抖动退避** `rng()*min(cap,base*2^n)`（计网惊群经典）+ cap 封顶；rng 注入让"随机"可逐支验电。
+  - `cache.ts` **有界 TTL + LRU + singleflight**（数据结构/OS）：键来自注册中心（外部可控），有界防内存漏点；同键并发只跑一发防 N 个 admin 把 health 扇出打成 N 遍。
+  - `client.ts` `AbortSignal.timeout` + **只重试该重试的**（5xx/网络/超时/429 才退避；4xx/坏形状立即失败、不缓存失败值）+ `allSettled` 并发扇出（一列挂不拖垮整页）+ **失败降级不画 0**（有旧值标 `stale`，无旧值 `unavailable`）。fetch/sleep/now/clock/rng/shared 全可注入，判据零网络零真实等待。
+  - `snapshot.ts` **三表按 service id join**：错处才是价值——`unrouted`（注册了没路由，ADR-0111 rogue 边界第一次前端可见）、`dangling`（有路由没注册）、DOWN/UNKNOWN 分列；**没测到的列画 `null` 不画 0**，三列 measuredAt 各不同如实登记"非原子快照"。
+  - `index.ts` 门面单例挂 globalThis（热重载共享缓存/单飞）；**Redis opt-in**（`NEXUS_REDIS_URL` 同旋钮）、懒接、`enableOfflineQueue:false`、fail-open 回进程内；`NEXUS_GATEWAY_URL` 没设给可解释默认但不谎称"平台在此"。
+- **前端（登峰造极但零新增颜色 token）**：`/api/admin/gateway`（`role=admin` 门 + `no-store` + snapshot 原样端出，不二次加工把 `null` 抹成 0）、`/admin/gateway` 服务端首屏（取数失败降级三列 `unavailable`，不白屏不画空图）、`GatewayPanel`（每 4s 轮询 + `visibilitychange` 后台暂停 + 请求失败保留上一帧 + 骨架屏 + KPI + 逐服务状态灯 + gap 清单 + 三列时刻条）、`AdminNav` 加"网关态势"入口。视觉层并入 `globals.css` 的 `@layer components`（`.gw-` 类）：层次（表面分级 + brand→accent-1 渐变描边）+ 光晕（状态灯 `color-mix` 借语义色、只染圆点不染文字）+ 呼吸（脉冲走 motion token、`prefers-reduced-motion` 全归零）。**取舍**：全仓第一个 CSS Module 在 `noUncheckedIndexedAccess` 下 `styles.x` 是 `string|undefined`（需额外 `.d.ts`），改并入 globals 让类名回到普通字符串，style-tokens 门禁本就扫它、管得更统一。
+- **判据抽纯模块（复用 `reclaim-state.ts` 范式）**：`gateway-view.ts` 收 `null→Dash` / 健康态映射（UNKNOWN 绝不当 DOWN、只有 DOWN 用红点）/ 归类文案 / 后台暂停 / 非原子提示；组件只消费，测纯函数不渲染。新增 **44 条判据全绿**（pure 18 + client 14 + view 12）；相关横向门 style-tokens 24 / route-security-gate 5 / jsx-text+control-names+api-response+observability+doc-evidence 43——连同 **116/116**。
+- **数据库性能探针（如实记，不冒险改）**：`schema.ts` 每个热读都有对应复合索引、96 个 `CREATE INDEX`（0043 连查询计划分析都写了）——**没有真库 `EXPLAIN ANALYZE` 就不凭空加索引**。发现 `discover()` 发现页热读**无缓存**且依赖 `viewerId`（关注排序 + 屏蔽名单），全局缓存会串味 → **记为下一条独立片**（按 viewer 分键 + 真库集成测数据隔离），本轮不把敏感数据隔离路径混进这一纵切。连接池已配（`NEXUS_DB_POOL` 默认 5），合理。
+- **验证（不粉饰）**：项目日常门 `npm run typecheck`（turbo）**14/14**；网关全套 Java `mvn -o -B test` **116/116 BUILD SUCCESS、无 fork 告警**（本轮零 Java 改动，做全仓回归确认）；前端判据 116/116。**边界**：`typecheck:main` 聚合命令有 3 条 `docs/evidence/**/*.mjs` 的 `TS8016`（`.mjs` 里写 `as` 断言，`checkJs:false` 挡不住语法错），经 `git show HEAD` 核实**既存、非本轮引入**，日常门不跑它，如实记为仍欠、不擅自扩大改动。整仓 eslint 仍是本机内存超时边界（本轮零 lint 报错），如实记。
+- **两次真信号，都没放过**：①缓存判据首跑 `expected 5 to be 3`——诊断证明是**夹具**给三列都喂了 routes 形状、services/health 归一化失败故不缓存（正是"读不出≠有"的诚实行为），非生产缺陷，修夹具后全绿；②CSS Module 迁移带出 5 个 `string|undefined` 与 `className={gw-x}` 裸标识符，逐个修净、typecheck 归零。
+- **仍欠**：`discover()` 按 viewer 分键缓存（数据隔离敏感，另立片 + 真库集成测）；实例粒度 breaker/bulkhead 聚合；连接层黑洞独立看门狗（SC-36）；CI `topology` job 经真实 push；3 条既存 `.mjs` TS8016。未 push。

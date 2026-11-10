@@ -22,6 +22,7 @@ const LINKS = [
   { key: 'rate-limit', href: '/admin/rate-limit', label: '限流闸' },
   { key: 'access', href: '/admin/access', label: '访问账' },
   { key: 'observability', href: '/admin/observability', label: '观测' },
+  { key: 'gateway', href: '/admin/gateway', label: '网关态势' },
 ] as const;
 
 export type AdminSection = (typeof LINKS)[number]['key'];
