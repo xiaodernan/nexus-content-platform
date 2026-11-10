@@ -1,7 +1,7 @@
 # Central truth for `spring.application.name=nexus-api` when NEXUS_CONFIG_ENABLED=true.
 #
 # The packaged file keeps registration OFF, because a standalone run (a proof, a test, `java -jar` on a
-# laptop) must not depend on something answering on 8761. This file is the other half of that sentence:
+# laptop) must not depend on something answering on 8771 (dedicated registry port — 8761 is the framework default and on this machine demonstrably somebody else's; see docs/adr/0100). This file is the other half of that sentence:
 # THIS lab has a registry, so an instance started against the config center registers itself and the
 # gateway's `lb://nexus-api` route can resolve it without a start-up script remembering an env variable.
 #

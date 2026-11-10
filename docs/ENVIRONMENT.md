@@ -40,7 +40,10 @@
 因此 NEXUS 使用**独立端口段**避免冲突：Postgres `55433`、Redis `56379`、MinIO `59000/59001`、AI Service `3200`、Web `3100`。
 容器统一前缀 `nexus-`，compose project name 为 `nexus`。
 
-Spring Cloud 三件（2026-11-09 起，SC-1–SC-3）：注册中心 `8761`、网关 `8090`、`nexus-api` 默认 `8080`。
+Spring Cloud 三件（2026-11-09 起，SC-1–SC-3）：注册中心 **`8771`**（2026-11-10 起专用端口，
+原 8761 已被本机另一项目（`D:\3a大作`）的 Spring Cloud 栈占用——其 config-server 会心跳进一个
+在 8761 起的 registry，实测见 `docs/adr/0100`）、网关 `8090`（被占挡用 8091，`NEXUS_GATEWAY_PORT`）、
+`nexus-api` 默认 `8080`。
 三个都可被环境变量覆盖：`NEXUS_REGISTRY_PORT` / `NEXUS_GATEWAY_PORT` / `NEXUS_API_PORT`，后端用
 `NEXUS_API_REGISTER=true` 才会注册。
 
@@ -67,10 +70,12 @@ SC-9 起可选第五个进程：`nexus-config` 默认 `8888`（`NEXUS_CONFIG_POR
 生效，启动时加 `NEXUS_CONFIG_ENABLED=true` 与 `NEXUS_CONFIG_URL=http://127.0.0.1:8888`（SC-11 把客户端接到
 api 与 domain）。配置中心不注册 Eureka，`8888` 不要和别的项目混用。
 
-> `8761` 是 Eureka 的默认端口，**本机别的项目也可能把服务注册到这里**：2026-11-09 联调时
-> `/eureka/apps` 里同时有外部项目的 `FOOTBALL-EDGE`，网关的 `/platform/services` 老实把它列了出来。
-> 这是读数在说真话，不是串台；要隔离就换 `NEXUS_REGISTRY_PORT` 并让三个服务指向同一个
-> `NEXUS_REGISTRY_ZONE`。
+> `8761` 是 Eureka 的默认端口，**本机别的项目注册到这里是常态**：2026-11-09 联调时
+> `/eureka/apps` 里同时有外部项目的 `FOOTBALL-EDGE`；2026-11-10 再实测，`D:\3a大作` 的
+> config-server 心跳打进一个跑在 8761 的 registry（registry 日志 `Not Found (Renew): CONFIG-SERVER -
+> host.docker.internal:config-server:28889`），`/platform/services` 会老实把它列出来。这是读数在说真话，
+> 不是串台——所以 **2026-11-10 注册中心默认端口迁到 `8771`**（所有服务的 `defaultZone` 与
+> `NEXUS_REGISTRY_PORT` 默认都指向 8771；8761 留给 3a大作）。要回退只需重新设回两个环境变量。
 
 > 同一天实测 `8080` 与 `8090` 都被机器上的外部进程占着（不是本仓库的服务，**不要终止**）。
 > 联调改用 `--server.port=8081`（api）与 `NEXUS_GATEWAY_PORT=8091`（网关）；注册中心按服务 id 找到
@@ -169,7 +174,7 @@ docker inspect nexus-redis --format '{{.HostConfig.Memory}}' → 0（容器也�
 | e2e（Playwright 起的 dev server） | `postgres://nexus:nexus_dev_only@localhost:55433/nexus`（代码默认；显式设成 55100 也行） | 浏览器那一寸落数据的地方 |
 | nexus-api 冒烟（2026-11-10，`npm run verify:topology`） | `jdbc:postgresql://127.0.0.1:55433/nexus_api_smoke` | nexus-api 自带 ddl-auto:update 的一次性演示库；CI 每次跑前显式 `CREATE DATABASE nexus_api_smoke` |
 
-> 2026-11-10 部署冒烟把 **nexus-api 也纳入了拓扑**：它注册进同一个 8761 注册中心（`NEXUS_API_REGISTER=true`），
+> 2026-11-10 部署冒烟把 **nexus-api 也纳入了拓扑**：它注册进同一个注册中心（2026-11-10 时为 8761；同日迁往 8771 后为 8771，`NEXUS_API_REGISTER=true`），
 > 网关 `/api/** → lb://nexus-api` 真的走 service discovery 打进去；它**连的是自己的一次性库**
 > `nexus_api_smoke`，不是 e2e 的 `nexus` 库——两个库的写入者都不许互相污染。
 

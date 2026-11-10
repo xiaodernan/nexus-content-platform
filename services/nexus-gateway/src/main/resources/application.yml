@@ -70,7 +70,7 @@ nexus:
 eureka:
   client:
     service-url:
-      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8761/eureka/}
+      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8771/eureka/}
     registry-fetch-interval-seconds: ${NEXUS_GATEWAY_FETCH_SECONDS:10}
     register-with-eureka: ${NEXUS_GATEWAY_REGISTER:true}
     fetch-registry: true

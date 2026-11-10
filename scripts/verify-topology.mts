@@ -29,7 +29,7 @@
  * Exits 0 only when every check passed. Exits 1 on the first failure and ALWAYS stops the three
  * services it started — a smoke that leaves three JVMs behind is a smoke that exhausts the box.
  *
- * Run from the repo root. Ports default to the services themselves (8761 registry · 8888 config ·
+ * Run from the repo root. Ports default to the services themselves (8771 registry · 8888 config ·
  * 8082 domain · 8084 api · 8090 gateway, Postgres on 55433); everything can be
  * overridden — NEXUS_REGISTRY_PORT / NEXUS_DOMAIN_PORT / NEXUS_GATEWAY_PORT, NEXUS_DOMAIN_DB_URL,
  * DB_USERNAME, DB_PASSWORD, NEXUS_DOMAIN_PG_PORT — e.g. when an unrelated process already holds 8090 or a
@@ -46,7 +46,7 @@ const LOG_DIR = path.join(process.env.TEMP ?? '/tmp', 'nexus-verify-topology');
 mkdirSync(LOG_DIR, { recursive: true });
 
 const DENY = '[verify-topology]';
-const REGISTRY_PORT = Number(process.env.NEXUS_REGISTRY_PORT ?? 8761);
+const REGISTRY_PORT = Number(process.env.NEXUS_REGISTRY_PORT ?? 8771);
 const DOMAIN_PORT = Number(process.env.NEXUS_DOMAIN_PORT ?? 8082);
 const GATEWAY_PORT = Number(process.env.NEXUS_GATEWAY_PORT ?? 8090);
 const CONFIG_PORT = Number(process.env.NEXUS_CONFIG_PORT ?? 8888);
@@ -76,28 +76,29 @@ async function assertFree(port) {
   if (busy) throw new Error(`port ${port} is already in use — stop whatever holds it and rerun`);
 }
 
-/** 最新 .java 源码的 mtime——jar 必须比它新，否则它打的包就不是当前源码。 */
-function newestJavaMtime(serviceDir) {
-  const base = path.join(repo, 'services', serviceDir, 'src', 'main', 'java');
+/** 最新源码（java 与 resources 全部——改 application.yml 同样会让 jar 过期）的 mtime。 */
+function newestSourceMtime(serviceDir) {
+  const base = path.join(repo, 'services', serviceDir, 'src', 'main');
   let newest = 0;
   const walk = (dir) => {
+    if (!existsSync(dir)) return;
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, e.name);
       if (e.isDirectory()) walk(full);
-      else if (e.name.endsWith('.java')) {
+      else {
         const m = statSync(full).mtimeMs;
         if (m > newest) newest = m;
       }
     }
   };
-  if (existsSync(base)) walk(base);
+  walk(base);
   return newest;
 }
 
-/** jar 必须存在且不比最新 .java 源码旧；否则先 package。这就是"mvn test 绿≠jar 能启动"的防线。 */
+/** jar 必须存在且不比最新 src/main 任何文件新；否则先 package。这就是"mvn test 绿≠jar 能启动"的防线。 */
 function ensureJarFresh(name, serviceDir, jarRelative) {
   const jar = path.join(repo, 'services', serviceDir, jarRelative);
-  const srcNewest = newestJavaMtime(serviceDir);
+  const srcNewest = newestSourceMtime(serviceDir);
   const jarMtime = existsSync(jar) ? statSync(jar).mtimeMs : 0;
   if (jarMtime >= srcNewest) return jar;
   console.log(`${DENY} ${name}: jar is stale (src newer) — running mvn -o -DskipTests package`);

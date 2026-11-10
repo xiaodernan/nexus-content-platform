@@ -1,13 +1,16 @@
 # NEXUS nexus-registry (Spring Cloud SC-1) — a STANDALONE Eureka server.
 #
 # Every value is overridable by environment, for the same reason nexus-api's are: a proof that starts this
-# service must point it at its OWN port, and on this machine 8761 may already belong to somebody else.
+# service must point it at its OWN port. On this machine the Eureka DEFAULT 8761 demonstrably belongs to
+# D:\3a大作's stack (its config-server heartbeats against an 8761 registry started here — confirmed from the
+# registry's own "lease doesn't exist" log, 2026-11-10; see docs/adr/0100). This service therefore defaults
+# to a dedicated port instead of the framework's default.
 spring:
   application:
     name: nexus-registry
 
 server:
-  port: ${NEXUS_REGISTRY_PORT:8761}
+  port: ${NEXUS_REGISTRY_PORT:8771}
 
 eureka:
   instance:
@@ -19,7 +22,7 @@ eureka:
     register-with-eureka: ${NEXUS_REGISTRY_REGISTER:false}
     fetch-registry: ${NEXUS_REGISTRY_FETCH:false}
     service-url:
-      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8761/eureka/}
+      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8771/eureka/}
   server:
     # Self-preservation stops evictions when a large fraction of heartbeats goes missing at once — it protects
     # a real fleet from a network partition. With one node and a handful of services it instead keeps dead

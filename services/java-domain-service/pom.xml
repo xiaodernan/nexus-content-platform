@@ -100,7 +100,7 @@
         <!--
           Service discovery (SC-6): registers as `nexus-domain-service` so the gateway can route to it by ID.
           Registration is OFF by default (`NEXUS_DOMAIN_REGISTER=false`): a standalone run must not depend on
-          a registry answering on 8761.
+          a registry answering on the dedicated port 8771.
         -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

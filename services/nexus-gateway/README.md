@@ -202,7 +202,7 @@ mvn -f services/nexus-gateway/pom.xml spring-boot:run
 #       curl http://127.0.0.1:8090/api/projects?limit=1
 ```
 
-The gateway's own port is `NEXUS_GATEWAY_PORT` (8090), the registry's is `NEXUS_REGISTRY_PORT` (8761), and
+The gateway's own port is `NEXUS_GATEWAY_PORT` (8090), the registry's is `NEXUS_REGISTRY_PORT` (8771), and
 the service id it routes to is `NEXUS_GATEWAY_API_SERVICE` (`nexus-api`). The breaker's time limit defaults
 to 5 s (`NEXUS_GATEWAY_TIMEOUT`): the library default of 1 s would report a cold service as unavailable
 while it was still answering. The edge bounds are `NEXUS_GATEWAY_MAX_REQUEST_BYTES` (1048576) and

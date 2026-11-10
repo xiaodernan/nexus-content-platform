@@ -53,12 +53,14 @@ spring:
 # SC-6 — the discovery half of the gateway's second `lb://` route.
 #
 # Registration and fetch are both OFF by default, exactly like nexus-api: a standalone run (a test, a proof,
-# `java -jar` on a laptop) must not depend on something answering on 8761. A deployment that wants discovery
+# `java -jar` on a laptop) must not depend on something answering on 8771 (the dedicated registry port;
+# 8761 is the framework default and, on this machine, provably already somebody else's — see docs/adr/0100).
+# A deployment that wants discovery
 # sets NEXUS_DOMAIN_REGISTER=true.
 eureka:
   client:
     service-url:
-      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8761/eureka/}
+      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8771/eureka/}
     register-with-eureka: ${NEXUS_DOMAIN_REGISTER:false}
     fetch-registry: ${NEXUS_DOMAIN_FETCH:false}
   instance:

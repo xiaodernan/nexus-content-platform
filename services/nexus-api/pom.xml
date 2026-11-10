@@ -71,7 +71,7 @@
       SC-3: the registry half of "lb://nexus-api". Without this dependency the gateway's route can never
       resolve, because nothing ever announces this service's address. Registration is OFF by default (see
       application.yml): a standalone proof run must not depend on a registry being up, and a service that
-      silently registers itself into whatever answers on 8761 is a deployment decision, not a default.
+      silently registers itself into whatever answers on 8771 is a deployment decision, not a default.
     -->
     <dependency>
       <groupId>org.springframework.cloud</groupId>

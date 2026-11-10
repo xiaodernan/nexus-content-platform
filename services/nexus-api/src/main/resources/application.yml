@@ -39,7 +39,9 @@ server:
 # SC-3 — the registry half of the gateway's `lb://nexus-api` route.
 #
 # Registering is OFF by default. A standalone run (a proof, a test, `java -jar` on a laptop) must not depend
-# on something answering on 8761, and a service that silently joins whatever registry happens to be there is
+# on something answering on 8771 (dedicated port — 8761 is the framework default and on this machine
+# provably already somebody else's; see docs/adr/0100), and a service that silently joins whatever registry
+# happens to be there is
 # a deployment decision, not a default. A deployment that wants discovery sets NEXUS_API_REGISTER=true.
 #
 # With both flags off the Eureka client starts no network task at all: no registration, no fetch, no
@@ -48,7 +50,7 @@ eureka:
   client:
     enabled: ${NEXUS_API_EUREKA_ENABLED:true}
     service-url:
-      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8761/eureka/}
+      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8771/eureka/}
     register-with-eureka: ${NEXUS_API_REGISTER:false}
     fetch-registry: ${NEXUS_API_FETCH:false}
   instance:

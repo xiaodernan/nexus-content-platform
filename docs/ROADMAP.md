@@ -11325,3 +11325,19 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
 - CI `topology` job 同步：打包 nexus-config 五个 jar；**CI topology 仍未被 push 实跑过**。
 - config server 是 native（classpath，非 Git）——客户端契约与本片判据在 Git/Vault backend 同样成立，
   生产 config backend 未验证。
+
+## §SC 第二十一片：8761 是别人的端口——本仓库注册中心迁到 8771（2026-11-10）
+
+- 触发：verify:topology 的 `/platform/services` 突然多出 `config-server`——追查到
+  `D:\3a大作` 的 config-server 心跳打进一个跑在 **8761** 的 registry（registry 日志：
+  `Not Found (Renew): CONFIG-SERVER - host.docker.internal:config-server:28889`）。
+  本机两条 Spring Cloud 栈共享了 Eureka 的框架默认端口。
+- 决定（ADR-0100）：本仓库专用 **8771**（`NEXUS_REGISTRY_PORT` 默认、所有 `defaultZone` 默认、
+  README/ENVIRONMENT 口径同步）；8761 留给 3a大作；evidence 记录不抹。
+- 附带抓到**第二个 stale-jar 坑**：`ensureJarFresh` 原来只算 `src/main/java`，改
+  `application.yml` 不触发重打包 → registry 在旧 jar 上起、smoke 在 8771 等 → fail-fast 超时。
+  已改为扫描整个 `src/main/`（java + resources）。
+- 读数（`NEXUS_GATEWAY_PORT=8091`）：verify:topology **PASS**——
+  `/platform/services` 只列出 `nexus-domain-service, nexus-api`（无外部服务——本片对外来污染的判据）、
+  config 往返、permission/billing/community 全部断言通过；eslint exit 0。
+- 未验证：3a大作 是否注意到 8761 空置——不是本仓库的事；本仓库不再在它们的默认目标上。

@@ -17,6 +17,9 @@
   **首个 push 前未经 CI 实跑**——红则为真信号；
 - `:8090` 被本仓之外的进程（PID 39424，`com.nexus.NexusApplication`，classpath 指向已不存在的
   `services/platform/target/classes`）占用——功能验证已在 `:8091` 上完成，**未杀该进程**；
+- **注册中心默认端口已迁到 8771（2026-11-10，ADR-0100）**——8761 被本机另一项目（`D:\3a大作`）的
+  Spring Cloud 栈占用（其 config-server 心跳进来，registry 日志可考）；本仓库的 registry 与所有服务的
+  `defaultZone` 现在默认都指向 8771，`/platform/services` 读数只列出本仓库服务；
 - 2026-11-10 起 `npm run eslint` 是"真·0 错误"（此前一例是配置崩溃导致的假绿），见 ADR-0098。
 
 ## 评测（§85）
