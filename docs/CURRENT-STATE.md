@@ -95,8 +95,10 @@
   `D:/获客平台` 的本地 remote 线（detached HEAD、shared parent 系），一个（`nexus-headplane-r20`）
   是无 remote 空仓（16 个未跟踪改动、无 commit，性质可疑但不可归类、无可合并内容）；
   两个残留 Java 进程（3a大作 的 discovery-server/config-server，ports 29161/29888）与
-  `PID 39424 com.nexus.NexusApplication`（argfile 指向已不存在的 `services/platform/target/classes`，
-  本仓无此模块、git 无此路径历史）全部无主可合、且后者已自行退出。8090 端口因此已空闲。
+  `com.nexus.NexusApplication`（argfile→已不存在的 `services/platform/target/classes`，本仓无此模块、
+  git 无此路径历史）全部无主可合。后者自旋重启过两次（PID 39424 → 12952，同一 spring-boot:run 签名），
+  始终占着 8090；所有冒烟验证因此固定走 **:8091**（`NEXUS_GATEWAY_PORT=8091`），
+  `verify:topology` 在 8090 被占时按设计 fail-fast 并报出端口名、零副作用退出。
 
 - 2026-11-09 新增 `apps/web` 侧确定性本地 embedding：`NEXUS_EMBEDDING_PROVIDER=local`（**必须显式设置，绝不静默切换**）后，Web 进程内就能完成 §49 的 embedding 与 hybrid 检索——token-bag 哈希，1536 维，无需 key；不是语义模型，只是确定性本地便捷。真实 provider 仍按原有路径接入。
 - 全局环境：Windows 11 / Node 24 / Python 3.11 / Java 25 + Maven（ai-service），以及 Compose 上的 PostgreSQL 55433 / Redis 56379（`infra/docker-compose.yml`）。
