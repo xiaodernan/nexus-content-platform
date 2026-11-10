@@ -11256,3 +11256,22 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
   `mvn -o -DskipTests package`（Windows 走 mvn.cmd + shell:true）。port 8091 上 **PASS**。
 - 仍欠：gateway→domain first-hit 冷启动的读数覆盖（smoke 要拿到"冷"的合法 503 或预热策略）；
   resilience4j 仍缺读者（不加）。提交为本地 `git -c user.name="NEXUS Dev" ... commit`，未推送（无明确指令）。
+
+## §SC 第十七片：CI 门第三扇（topology job）+ smoke 预热与发现断言（2026-11-10）
+
+- 触发：SC-19 证据里写下的下一步——"把 mvn package → java -jar 的部署冒烟作为 CI 的一步"。本来只靠人手动跑。
+- 交付：
+  - `.github/workflows/main-line.yml` 新增 `topology` job：pgvector/pgvector:pg16@55433 → npm ci →
+    setup-java temurin 25（cache maven）→ `npm run db:migrate` → 三服务 `mvn -B -DskipTests package` →
+    `npm run verify:topology`。**诚实声明：首个 push 前该 job 未经 CI 实跑**；若红，失败是真信号——
+    这正是它存在的意义（抓 "test 绿但 jar 挂" 这一整类问题）。ci.yml 原样不动（verify:ci-wiring 数着它的 12 步契约）。
+  - `verify-topology.mts`：`NEXUS_DOMAIN_DB_URL/DB_USERNAME/DB_PASSWORD/NEXUS_DOMAIN_PG_PORT` 全环境
+    参数化；**预热段**——plan GET（哨兵 subject，幂等）重试至非 503（≤120s），断言不再撞冷启动 5s 上限；
+    断言扩展至 8 条，含 `/platform/services` 必须列出 nexus-domain-service（discovery 不是只有接线没有消费方）；
+    stale jar 自打包（Windows mvn.cmd + shell:true）。
+- 读数：`NEXUS_GATEWAY_PORT=8091 npm run verify:topology` = **PASS**（<2 分钟）；eslint exit 0。
+  - 一次瞬态崩溃如实记入：`RUN=-1073740791`（0xC0000409，经 PowerShell 管道输出时的一次硬崩）——
+    原命令重跑即全绿；冒烟本身的断言没有任何一次"侥幸通过"。
+- 并轨：`git branch --no-merged main` 为空、worktree 仅 main——两条线早已合并（2026-11-09），本片无可并内容。
+- 未推送（无明确指令）。:8090 的占用进程（PID 39424，`com.nexus.NexusApplication`，classpath 指向已不存在的
+  `services/platform/target/classes`，疑为已清理 checkout 的残留）未被触碰；一切验证改走 :8091。

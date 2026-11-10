@@ -7,9 +7,13 @@
 `docs/ROADMAP.md` 末尾与 `docs/evidence/sc23-permission-live-proof.md`：
 
 - Permission HTTP 面（`GET /api/v1/permission/check`）已上线并经 `lb://nexus-domain-service` 活体验证；
-- **第一次调用真 503**（gateway 5s 上限 vs domain 冷启动）——设计行为，不是 bug，欠账在 ROADMAP；
-- `npm run verify:topology` 现可覆盖三个端口（`NEXUS_*_PORT`）、自动重打包 stale jar、并断言 permission 面；
-- `:8090` 被本仓之外的进程（PID 39424）占用——功能验证已在 `:8091` 上完成，**未杀该进程**；
+- **第一次调用真 503**（gateway 5s 上限 vs domain 冷启动）——设计行为，不是 bug；smoke 现已预热再断言，欠账关闭；
+- `npm run verify:topology` 现可覆盖三个端口（`NEXUS_*_PORT`，DB 侧同理）、自动重打包 stale jar、
+  断言 permission 面与 `/platform/services`（discovery 的消费方读数）；
+- 主线 CI 新增 `topology` job（`.github/workflows/main-line.yml`）：打包三服务 + migrate + `verify:topology`，
+  **首个 push 前未经 CI 实跑**——红则为真信号；
+- `:8090` 被本仓之外的进程（PID 39424，`com.nexus.NexusApplication`，classpath 指向已不存在的
+  `services/platform/target/classes`）占用——功能验证已在 `:8091` 上完成，**未杀该进程**；
 - 2026-11-10 起 `npm run eslint` 是"真·0 错误"（此前一例是配置崩溃导致的假绿），见 ADR-0098。
 
 ## 评测（§85）
