@@ -21,6 +21,18 @@
 > 已修（记录型集合共生命周期）。Bulkhead 本轮**未接**：其依赖在 gateway 是 runtime scope、并发断言本机易
 > flaky，理由与缺口记在 ROADMAP §SC 第二十六片。
 >
+> **2026-11-11 续（§SC-33 / ADR-0105）**：重试的**第二条触发源**（`setExceptions(IOException,
+> TimeoutException)`，后端连接层直接断、不回 503）第一次被测到——此前只有 `setStatuses(503)` 那条有
+> wire 判据，而连接重置/进程崩溃恰是最常见真实故障。一次性探针 5 轮实测：**dropped POST wire 恒 1**
+> （5/5，写从不被重放）、dropped GET wire 2/1/2/1/2 浮动、status 200/503 浮动。查 `reactor-netty-http`
+> 源码订正初判：`PrematureCloseException extends IOException`，故异常触发源是活的；再查
+> `RetryGatewayFilterFactory.RetryConfig` 确认 status 与 exception 两条谓词**都套 `setMethods(GET)` 门**，
+> 写安全是必然。`GatewayRetryTransportWiringTest`（2 条 × 6 轮）钉住**写永不被重放（wire 恰 1+诚实 503）**
+> 与**重试不放大（GET wire≤2、答复必 200/503）**；**刻意不 pin GET 单轮的 wire/status**（filter 抢写响应
+> 时序浮动，与 ADR-0101 的 `already committed (503)` 同源，延续「不改生产 route 语义」决定）。桩件新增
+> 有界自愈断连夹具 `dropNextConnections`。网关全套 **88 → 90/90**，typecheck 14/14。仍欠：超时型故障、
+> 响应中途断开（时序易浮动，需另造不 pin 的判据）。细节见 ADR-0105 与 ROADMAP §SC 第二十九片。
+>
 > **2026-11-11 续（§SC-32 / ADR-0104）**：两扇认证门（`AuthFilter` 路由 edge + `PlatformAuthFilter`
 > 网关自身端点）**从两份复制的拷贝折叠成单一真值源 `AuthPolicy`**：一份白名单、一个「exact 或整路径段」
 > 匹配 `isOpen()`、一个 fail-closed `requireSecret()`、一个 401 方言 `refusalBody()`，两门与

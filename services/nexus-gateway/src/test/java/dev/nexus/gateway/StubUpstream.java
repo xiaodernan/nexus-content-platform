@@ -32,6 +32,11 @@ final class StubUpstream {
     private final List<String> originalUrls = new CopyOnWriteArrayList<>();
     private final java.util.concurrent.atomic.AtomicInteger failuresLeft =
             new java.util.concurrent.atomic.AtomicInteger();
+    // SC-33 — like failNextRequests but at the CONNECTION layer: the next N requests are dropped mid-call
+    // (a close with no response byte), which the gateway sees as a transport exception, NOT a 503 status.
+    // This isolates the retry filter's setExceptions(IOException) trigger from its setStatuses(503) trigger.
+    private final java.util.concurrent.atomic.AtomicInteger dropsLeft =
+            new java.util.concurrent.atomic.AtomicInteger();
 
     private volatile int status = 200;
     private volatile int failureStatus = 503;
@@ -67,6 +72,15 @@ final class StubUpstream {
         originalUrls.add(originalUrl == null ? "" : originalUrl);
         probeHeaders.add(String.valueOf(exchange.getRequestHeaders().getFirst("X-Nexus-Gateway")));
         try {
+            // SC-33 — a BOUNDED connection-layer drop: the first N attempts die before any response byte.
+            // Unlike the permanent /drop path or SC-29's manual toggle, this recovers on its own after N, so
+            // a probe can watch the retry act on a transport failure and then succeed. paths.add() above
+            // still counts it — that is exactly the wire count the test needs (was the write replayed?).
+            int remainingDrops = dropsLeft.getAndUpdate((n) -> n > 0 ? n - 1 : 0);
+            if (remainingDrops > 0) {
+                exchange.close();
+                return;
+            }
             // SC-29 — a recoverable mid-call drop, controlled by the test. Checked before the permanent
             // /drop path so the same socket can first open a breaker and then prove it closes again.
             if (dropConnections) {
@@ -159,6 +173,12 @@ final class StubUpstream {
         this.failuresLeft.set(Math.max(0, times));
     }
 
+    /** SC-33 — drop the next {@code times} connections with no response (a transport error, not a 503),
+     * then normal answers resume. Bounded and self-recovering so a single test can observe retry + success. */
+    void dropNextConnections(int times) {
+        this.dropsLeft.set(Math.max(0, times));
+    }
+
     /** Every answer waits this long, so a probe's timeout can be measured against a real slow socket. */
     void delay(long millis) {
         this.delayMs = Math.max(0, millis);
@@ -178,6 +198,7 @@ final class StubUpstream {
         this.status = 200;
         this.failureStatus = 503;
         this.failuresLeft.set(0);
+        this.dropsLeft.set(0);
         this.delayMs = 0;
         this.dropConnections = false;
         this.body = "{\"publications\":[],\"from\":\"stub-upstream\"}";

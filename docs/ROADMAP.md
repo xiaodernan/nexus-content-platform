@@ -11542,3 +11542,40 @@ verdict TTL_IS_THE_ARGUMENT_AND_IT_EXPIRES: PASS  传 ttl=1200 ⇒ PTTL=1199ms�
   收敛是**同进程内/编译期**的，非跨服务配置中心（多实例用同一份代码常量，无运行时漂移）；零新依赖、
   零新端点、不扩大攻击面。整仓 `npm run eslint` 仍是本机内存下的超时边界（非 lint 报错），如实记；
   未推送（无明确指令）。
+
+## §SC 第二十九片：重试的第二条触发源也挡住了写重放——连接层故障下的 GET-only 承诺（2026-11-11）
+
+- 起点：`GatewayConfig.edgePolicy()` 的重试有**两条独立触发源**——`setStatuses(503)`（后端回 5xx）与
+  `setExceptions(IOException, TimeoutException)`（后端连接层直接断）。`GatewayEdgePolicyTest` 已把前者
+  钉在 wire 上（GET 重放一次 wire=2、POST 不重放 wire=1），但**后者从没测过**，而连接重置/进程崩溃
+  恰是最常见真实故障。策略注释把「只重放 GET」当安全承诺（"one click becomes two publications"）；
+  若方法门在异常路径上失效，一次网络抖动就会把一次投稿变两次——数据级事故。决定见 `docs/adr/0105`。
+- 交付（**先一次性探针实测、再落判据，探针跑完即删**）：
+  - `StubUpstream.dropNextConnections(int)`：前 N 个请求在 `paths.add()` **之后** `exchange.close()`
+    （无响应字节）、之后自愈。有界、自恢复，补上桩件此前缺的「异常触发 + 能恢复」失败形态
+    （`failNextRequests` 是回 5xx、`startDropping` 是手动永久断连，都不合此用）。`reset()` 清零。
+  - `GatewayRetryTransportWiringTest`（2 条 × **6 轮**真实 socket 断连）：①**写永不被重放**——dropped
+    POST 每轮恰好到后端 **1 次**、caller 诚实 503，`hasSize(1)` 兼证「打到 wire」与「无第二次尝试」；
+    ②**重试不放大、答复必诚实**——dropped GET 每轮 wire ∈ [1,2]（上限 1 次重试）、status ∈ {200,503}
+    （自愈或 fallback 诚实失败，绝非 500/429/挂死）。 breaker 刻意保持 CLOSED（窗口 100）以隔离方法门。
+- **实测读数（探针 5 轮，不粉饰）**：POST wire **1,1,1,1,1** 全稳、status 全 503；GET wire
+  **2,1,2,1,2** 浮动、status **503,503,200,503,200** 浮动。日志抓到 `PrematureCloseException` 与
+  ADR-0101 同源的 `ServerHttpResponse already committed (503)` 噪声。
+- **源码订正（猜错即改，记下来防再犯）**：初判以为 `PrematureCloseException` 是 RuntimeException、
+  匹配不上 `setExceptions(IOException)`；查 `reactor-netty-http` 源码订正为
+  `PrematureCloseException extends IOException`——**触发源二是活的**，GET 的 wire=2 走的就是异常重试。
+  再查 `RetryGatewayFilterFactory.RetryConfig`：status 谓词 `retryableMethod && retryableStatusCode`、
+  exception 谓词命中后 `return retryableMethod`——**两条触发源都套同一个 `setMethods(GET)` 门**，
+  故 POST wire 恒 1 是方法门必然、非侥幸。
+- **刻意不 pin**：GET 单轮精确 wire 与 status——它是 Netty 断连 / fallback 抢先 commit 503 / retry
+  争着重放三者时序交叠的结果，跨轮浮动，钉死即 flaky 假绿。GET「能重试且只重试一次」的确定性证明
+  归 `GatewayEdgePolicyTest` 的 status 腿（时序可控、wire 恒 2）；本片只负责异常腿的**写安全**证明。
+- **不修生产**：触发源二配置活且正确（异常命中、方法门挡写、安全承诺成立，无缺陷可修）；GET 的
+  status 浮动源于 retry 与 circuit-breaker 两 filter 失败路径抢写响应，与 ADR-0101 已决定「不改生产
+  route 语义」的 `already committed` **同源**。修它要动 filter 编排/fallback，扰动 §SC-24/29 已验证的
+  breaker 行为，风险远大于收益——延续既有决定，记为已知边界。
+- 读数：单类 **2/2 PASS**（含 12 次真实断连采样）；网关全套 **90/90 BUILD SUCCESS**（SC-32 基线 88+2）；
+  顶层 typecheck **14/14 PASS**。整仓 eslint 仍是本机内存超时边界（非 lint 报错），如实记；未推送。
+- 仍欠（如实记）：本片测「响应前断连」（`PrematureCloseException`）；**超时型故障**（`TimeoutException`）
+  与「响应中途断开」未覆盖——`StubUpstream.delay` 已在，但 timeout 与 retry 时序同样易浮动，需另造
+  不 pin 时序的判据再接。多实例 breaker 聚合、CI `topology` job 经真实 push 执行，仍欠（同前片）。
