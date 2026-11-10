@@ -44,14 +44,16 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-          # The key hashed ONE pom while the tree tracks four, so a change to the registry, the gateway or the
-          # domain service re-used the previous job's cache — and the first build of the CHANGED module paid for
-          # its own parents and plugins inside the row that grades it. §15 refuses a tracked pom missing here.
+          # The key hashed ONE pom while the tree tracks five, so a change to the registry, the gateway, the
+          # domain service, the config server or the api re-used the previous job's cache — and the first build
+          # of the CHANGED module paid for its own parents and plugins inside the row that grades it.
+          # §15 refuses a tracked pom missing here.
           cache-dependency-path: |
             services/java-registry/pom.xml
             services/java-gateway/pom.xml
             services/java-domain-service/pom.xml
             services/nexus-api/pom.xml
+            services/java-config-server/pom.xml
       - name: Install (workspace root)
         run: npm ci || npm install
       - name: ADR index integrity

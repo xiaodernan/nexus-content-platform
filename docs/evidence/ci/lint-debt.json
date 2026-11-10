@@ -1,8 +1,8 @@
 {
  "generated_by": "tools/ci/lint-tree.mjs --write",
  "meaning": "a ceiling is the count THIS (rule, file) pair reached the last time the debt was reduced; a pair above it, a pair not in here, and a pair below it are all red, so the only way to change this file is to fix something",
- "findings": 221,
- "pairs": 109,
+ "findings": 218,
+ "pairs": 107,
  "ceilings": {
   "no-irregular-whitespace": {
    "vitest.config.ts": 1
@@ -23,8 +23,7 @@
    "docs/evidence/ci/ci-wiring-proof.mjs": 2,
    "docs/evidence/m7/service-suite-proof.mjs": 1,
    "packages/world-engine/src/characterAgent.ts": 1,
-   "tools/ci/record-encoding-repair.mjs": 1,
-   "docs/evidence/java/spring-cloud-proof.mjs": 2
+   "tools/ci/record-encoding-repair.mjs": 1
   },
   "@typescript-eslint/unbound-method": {
    "agents/exec-host/test/containerExec.test.ts": 1,
@@ -94,8 +93,7 @@
    "packages/world-engine/test/worldEngine.test.ts": 10,
    "packages/world-engine/test/worldRag.test.ts": 3,
    "tools/ci/record-encoding-repair.mjs": 1,
-   "tools/harness/studio-golden-path.mjs": 1,
-   "docs/evidence/java/spring-cloud-proof.mjs": 1
+   "tools/harness/studio-golden-path.mjs": 1
   },
   "@typescript-eslint/no-base-to-string": {
    "agents/runtime/src/assetTools.ts": 1,

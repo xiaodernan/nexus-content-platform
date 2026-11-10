@@ -62,7 +62,9 @@
 // registry's warm line, so a module the commit owns has no step naming it; A30 keeps the line and adds
 // `-DskipTests`, which is the same module reached by a command that runs no test; A31 names a pom the commit does
 // not own, which is the shape that cannot be satisfied by deleting the population, so A32 deletes EVERY Maven line
-// and the vacuity refusal fires instead — a reader that sees no Maven command cannot certify that all of them
+// of BOTH workflow files — the fifth module's reader lives in main-line.yml since v652, so a one-file deletion
+// would leave a non-empty reader and fire UNREACHED rather than the vacuity refusal — and the vacuity refusal
+// fires: a reader that sees no Maven command cannot certify that all of them
 // reached a test. A33 collapses the cache key to the one pom it used to be, and A34 puts an unowned path in it,
 // because `cache: maven` with a stale key re-uses the previous job's cache for the changed module and spends the
 // grading row's own budget on parent POMs. C7 plants a pom path in a COMMENT line and must stay green: §14 taught
@@ -235,6 +237,16 @@ const MVN_ALL_LINES = [
   '          mvn -B -q -f services/java-domain-service/pom.xml package\n',
   '          mvn -B -q -f services/nexus-api/pom.xml package\n',
 ].join('');
+// The FIFTH module's reader is a `mvn -f` line in the OTHER workflow file, so a battery that deletes only
+// ci.yml's warm-up no longer empties §15's reader: A32 must delete the main-line config-server line too, or its
+// predicted `§15 read 0` is false the day the fifth module lands (this was measured: the arm was written when
+// main-line.yml carried no Maven command at all). The line is DERIVED from the shipped bytes with its premise
+// checked here, because a hand-typed needle that drifts crashes the arm at its own splice.
+const MVN_MAIN_LINE = (() => {
+  const lines = readSrc(MAIN_LINE).split('\n').filter((l) => !l.trim().startsWith('#') && /(?:^|\s)mvn\b/.test(l) && /(?:-f|--file)\s+\S*pom\.xml/.test(l));
+  assert.equal(lines.length, 1, `${MAIN_LINE}: expected exactly ONE \`mvn -f <pom>\` run line (the config server door), found ${lines.length} — A32 deletes this exact line to mean "every Maven line in both files"`);
+  return `${lines[0]}\n`;
+})();
 // The key block is QUOTED FROM THE SHIPPED BYTES rather than re-typed in this file's own order: `splice` refuses
 // a needle that occurs zero times, and an arm that crashes at its own needle takes the whole battery with it —
 // so the block is read out of ci.yml, in whatever order the workflow lists it, and the premise that it lists the
@@ -413,16 +425,18 @@ const GATE_ARMS = [
   // §15 counts a REACH through Maven, and its three refusals are the three ways a build can look graded while
   // nothing grades it: a module no step names (A29), a step that names it but skips its tests (A30), and a step
   // that names a file the commit does not own (A31 — which is also the answer to "make the red go away by writing
-  // a path"). A32 charges the vacuity belt, the half that keeps the clause from certifying a Maven it cannot see.
-  // A33/A34 grade the CACHE KEY, the second half of the same repair: a key over one pom of four restores a cache
-  // the other three then pay for inside the row. A34 fires BOTH of the key's refusals, and the arm says so by
+  // a path"). A32 charges the vacuity belt, the half that keeps the clause from certifying a Maven it cannot see,
+  // and since v652 it deletes the main-line config door too: the reader population is BOTH workflow files, so a
+  // ci.yml-only deletion is four UNREACHED modules beside one living reader, not an empty reader.
+  // A33/A34 grade the CACHE KEY, the second half of the same repair: a key over one pom of five restores a cache
+  // the other four then pay for inside the row. A34 fires BOTH of the key's refusals, and the arm says so by
   // asserting the phantom half, because the missing half would also be true. C7 is the control this clause
   // cannot do without: a `#` line inside a `run:` block is a shell comment that executes nothing, and a reader
   // that counted prose would redden the very sentence the shipped step writes about `services/*/pom.xml`.
   { tag: 'A29-registry-mvn-line-deleted', clause: '§15', edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: '' }], sig: /never have their tests run by CI/ },
   { tag: 'A30-registry-warmed-without-tests', clause: '§15', edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: MVN_REGISTRY_LINE.replace(' package\n', ' package -DskipTests\n') }], sig: /named only by a command that skips tests/ },
   { tag: 'A31-phantom-pom-named-by-a-step', clause: '§15', edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: `${MVN_REGISTRY_LINE}          mvn -B -q -f ${GHOST_POM} package\n` }], sig: /named by a workflow step are not owned by the commit/ },
-  { tag: 'A32-every-maven-line-deleted', clause: '§15', edits: [{ file: WF, from: MVN_ALL_LINES, to: '' }], sig: /§15 read 0/ },
+  { tag: 'A32-every-maven-line-deleted', clause: '§15', edits: [{ file: WF, from: MVN_ALL_LINES, to: '' }, { file: MAIN_LINE, from: MVN_MAIN_LINE, to: '' }], sig: /§15 read 0/ },
   { tag: 'A33-cache-key-collapsed-to-one-pom', clause: '§15', edits: [{ file: WF, from: CACHE_KEY_BLOCK, to: CACHE_KEY_ONE }], sig: new RegExp(`hashes 1 of the ${pomsInCommit.length} poms`) },
   { tag: 'A34-cache-key-names-an-unowned-pom', clause: '§15', edits: [{ file: WF, from: `            ${pomsInCommit[0]}\n`, to: `            ${GHOST_POM}\n` }], sig: /which the commit does not own/ },
   { tag: 'C7-a-pom-named-only-in-a-comment', clause: null, edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: `          # mvn -B -q -f ${GHOST_POM} package is a comment about a module, not a build of it\n${MVN_REGISTRY_LINE}` }], sig: null },

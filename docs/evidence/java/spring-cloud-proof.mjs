@@ -247,7 +247,7 @@ async function startService(service, extraArgs) {
   child.stderr.on('data', (d) => { log += d; });
 
   const port = await readPortFile(portFile).catch((e) => {
-    throw new Error(`${service.id} never reported its port. Its output was:\n${log.slice(-2000)}`);
+    throw new Error(`${service.id} never reported its port (${e.message}). Its output was:\n${log.slice(-2000)}`);
   });
   assert.ok(await canConnect(port), `${service.id} reported port ${port} but nothing is listening there`);
   const handle = { port, portFile, child, log: () => log };
@@ -258,7 +258,7 @@ async function startService(service, extraArgs) {
 async function httpJson(url) {
   const response = await fetch(url, { headers: { Accept: 'application/json' } });
   const text = await response.text();
-  let body = null;
+  let body;
   try { body = JSON.parse(text); } catch { body = text; }
   return { status: response.status, body, text };
 }
@@ -294,7 +294,7 @@ async function readBreakerMetric(baseUrl, metricName, breakerName, stateTag) {
   if (response.status !== 200) {
     return { status: response.status, value: null, tag: null, names: [], text };
   }
-  let body = null;
+  let body;
   try { body = JSON.parse(text); } catch { return { status: response.status, value: null, tag: null, names: [], text }; }
   // resilience4j reports two measurement shapes: gauges carry statistic "VALUE", counters carry
   // statistic "COUNT". A proof that only knew one would read a counter's 0.0 as "no data", which is
@@ -554,7 +554,7 @@ try {
     });
     const text = await response.text();
     if (response.status !== 200) return null;
-    let body = null;
+    let body;
     try { body = JSON.parse(text); } catch { return null; }
     return body?.project?.slug === PROOF_PROJECT_SLUG ? { status: response.status, body, text } : null;
   }, 90_000, 'the typed call to reach the domain service and return the row');

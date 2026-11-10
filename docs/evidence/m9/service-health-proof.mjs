@@ -412,7 +412,7 @@ try {
   let growthTries = 0;
   const growthBegan = Date.now();
   let grown = null;
-  const grew = await until(async () => {
+  await until(async () => {
     growthTries++;
     const answer = await call('/health');
     if (answer.status === 200 && answer.body.uptimeSeconds > recovered.body.uptimeSeconds) {

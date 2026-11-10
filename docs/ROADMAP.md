@@ -6,6 +6,45 @@ appendix heading. If you are editing this file, edit the section for your line a
 the other section's bytes alone.
 -->
 
+<!--
+PROGRAM: CONVERGENCE (opened 2026-11-10, owner: the master line)
+
+One line, one branch, one green tree. The two histories were merged at 90ccf28 and
+`origin/main` is an ancestor of `master`; from here every slice lands on `master`,
+fast-forwards `main`, and is witnessed by the hosted CI run at the landed ref. A slice
+that cannot be witnessed on this host is witnessed on the runner — and says so.
+
+Slices, each one commit series with its own evidence record (ADR 0016 amendment + the
+family README section) and a door that reddens the sentence it repairs:
+
+  v652  the lint debt the merge carried: my two m9 proofs' unused binding and the
+        spring-cloud proof's four findings; the ledger re-derived DOWNWARD only. [done when CI quality is green]
+  v653  hosted PostgreSQL for `verify:spring-cloud` (#347): a CI `services:` database +
+        the schema the proof expects, the exclusion in tools/ci/proof-set.mjs retired,
+        and the topology proof run on the runner — the second plane for the crown proof.
+  v654  the six deployables enter infra/docker-compose.yml (registry, gateway, api,
+        domain, config, postgres) with healthchecks and a compose smoke leg; TODAY NO
+        compose file names a Java service (java-config-server/README.md:105-106).
+  v655  the Java evidence README (docs/evidence/java/README.md) and the live docs
+        (CURRENT-STATE, root README) tell the SIX-service truth (#337, #338).
+  v656  distributed tracing across gateway -> api -> Feign -> domain: Micrometer
+        Tracing + W3C propagation, proven by ONE trace id read from every hop.
+  v657  edge rate limiting (Spring Cloud Gateway RequestRateLimiter over Redis),
+        proven by the 429 its own configuration promises, closed when Redis is absent.
+  v658  a Prometheus registry on every service with a named allowlist, proven by a
+        scrape of all six (ADR 0056:157-159 records the hole).
+  v659  lint-debt drain family by family (#342) plus the census arms that charge the
+        faces the reach census does not yet grade (#343).
+  v660  a full gate sweep at the then-current ref with every red door attributed
+        (#333), then this program re-plans from what it measured.
+
+Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
+free and its Docker engine currently refuses to start containers (`docker start` hangs;
+`docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and
+the record names that plane. Nothing here may be claimed as done without a run whose
+output is read (agents.md §158/§159).
+-->
+
 # NEXUS Roadmap · studio line
 
 # NEXUS Roadmap
