@@ -100,6 +100,9 @@ describe('local embedding + reranker end-to-end (real Postgres)', () => {
     const reranker = getRerankerProvider()!;
     expect(embeddingProvider.models()).toContain(LOCAL_EMBEDDING_MODEL);
     expect(reranker.models()).toContain(LOCAL_RERANKER_MODEL);
+    // 模型名匹配还不够：必须证明 opt-in 选中的**就是**本地那一支，而不是别的 provider 恰好报了同一个模型名
+    expect(embeddingProvider).toBeInstanceOf(LocalTokenBagEmbeddingProvider);
+    expect(reranker).toBeInstanceOf(LocalTokenBagRerankerProvider);
 
     // 直接用 Route 同款组合：VectorStore + 本地 embedding + 本地 rerank（调用 route 那条路所做的事，不差一步）
     const store = new VectorStore(embeddingProvider as LocalTokenBagEmbeddingProvider, LOCAL_EMBEDDING_MODEL);
