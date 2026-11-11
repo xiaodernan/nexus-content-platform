@@ -1,4 +1,63 @@
-import type { GamePlan, PlayActor } from "./index";
+import type { GamePlan, PlayActor, PlayTrigger, PlayQuest } from "./index";
+
+/**
+ * 一份 `plan` 的只读索引（§PERF）。`step` 每帧都要按 id 把 state 里的 sim actor 对回 plan 里的
+ * design；这些索引**只依赖 plan**，而 `plan` 是 `compileGame` 的不可变产物，整场模拟 / 整个 rAF
+ * 序列都是同一引用。改前每帧重建 4 个 Map + 1 次 filter（60fps≈每秒 240 个短命 Map，一次
+ * 60s playtest≈57600 个），纯属 GC 压力；这里把它按 plan 缓存起来，分配从 O(帧数) 降到 O(plan 数)。
+ *
+ * `WeakMap` 做键不阻止 plan 被回收，plan 一旦被换掉（升级）旧索引随之可收，不泄漏。
+ */
+export interface PlanIndices {
+  readonly enemyById: ReadonlyMap<string, PlayActor>;
+  readonly itemById: ReadonlyMap<string, PlayActor>;
+  readonly triggerById: ReadonlyMap<string, PlayTrigger>;
+  readonly questById: ReadonlyMap<string, PlayQuest>;
+  readonly judgeable: readonly PlayQuest[];
+}
+
+/** 构造一份 plan 索引——纯函数，单独导出便于逐支验电。 */
+export function buildPlanIndices(plan: GamePlan): PlanIndices {
+  return {
+    enemyById: new Map(plan.enemies.map((enemy) => [enemy.id, enemy])),
+    itemById: new Map(plan.items.map((item) => [item.id, item])),
+    triggerById: new Map(plan.triggers.map((trigger) => [trigger.id, trigger])),
+    questById: new Map(plan.quests.map((quest) => [quest.id, quest])),
+    judgeable: plan.quests.filter((quest) => quest.judgeable),
+  };
+}
+
+/**
+ * 索引缓存。`builds` 是**注入计数的确定性判据**（对标 SC-51 的可注入钟）：判据跑 N 帧后断言
+ * `builds===1` 而非拿 `Date.now()` 量墙钟——后者在多 agent 抢资源的机器上会 flaky。
+ * 生产默认走模块级 WeakMap 单例；判据可注入自己的 cache 观察命中/未命中。
+ */
+export interface PlanIndexCache {
+  get(plan: GamePlan): PlanIndices;
+  readonly builds: number;
+}
+
+export function makePlanIndexCache(): PlanIndexCache {
+  const memo = new WeakMap<GamePlan, PlanIndices>();
+  let builds = 0;
+  return {
+    get(plan) {
+      let found = memo.get(plan);
+      if (!found) {
+        found = buildPlanIndices(plan);
+        memo.set(plan, found);
+        builds += 1;
+      }
+      return found;
+    },
+    get builds() {
+      return builds;
+    },
+  };
+}
+
+/** 生产单例：同一 plan 在整场模拟里只建一次索引。 */
+const defaultPlanIndexCache = makePlanIndexCache();
 
 /**
  * §50 的可玩规则：一份纯函数模拟器（状态 + 输入 + 时长 → 新状态）。
@@ -116,8 +175,17 @@ function push(events: { t: number; text: string }[], t: number, text: string): v
  * 推进一小段模拟。**不修改传入的 state**（返回一份新的），所以 React 里可以直接 setState，
  * 也让"同一个初始状态 + 同一段输入 = 同一个结果"这种可复现断言成立。
  */
-export function step(plan: GamePlan, state: SimState, input: SimInput, dt: number): SimState {
+export function step(
+  plan: GamePlan,
+  state: SimState,
+  input: SimInput,
+  dt: number,
+  cache: PlanIndexCache = defaultPlanIndexCache,
+): SimState {
   if (state.status !== "playing") return state;
+  // 只读索引按 plan 缓存：整场模拟里 plan 不变，4 个 Map + judgeable 只建一次（§PERF）。
+  // 正常路径零行为变化（Map 内容逐字相同），只是不再每帧重新分配。
+  const idx = cache.get(plan);
   const frame = Math.min(Math.max(dt, 0), MAX_FRAME_SECONDS); // 定步长上限：切标签页回来不该一次跳几秒
   const next: SimState = {
     ...state,
@@ -139,8 +207,7 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
   next.py = Math.min(Math.max(next.py + (input.dy / norm) * player.speed * frame, player.radius), plan.arena.height - player.radius);
 
   // —— 敌人：察觉则追击，接触则结算伤害 ——
-  const byId = new Map<string, PlayActor>();
-  for (const enemy of plan.enemies) byId.set(enemy.id, enemy);
+  const byId = idx.enemyById;
   for (const sim of next.enemies) {
     if (!sim.active) continue;
     const design = byId.get(sim.id)!;
@@ -177,7 +244,7 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
   }
 
   // —— 拾取 ——
-  const itemById = new Map(plan.items.map((i) => [i.id, i]));
+  const itemById = idx.itemById;
   for (const sim of next.items) {
     if (!sim.active) continue;
     const design = itemById.get(sim.id)!;
@@ -189,7 +256,7 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
   }
 
   // —— 触发器：只记账（见文件头那条限度）。首次踩到记为「激活」，解谜任务判定读它 ——
-  const triggerById = new Map(plan.triggers.map((t) => [t.id, t]));
+  const triggerById = idx.triggerById;
   for (const sim of next.triggers) {
     const design = triggerById.get(sim.id)!;
     if (dist(next.px, next.py, sim.x, sim.y) > design.radius) continue;
@@ -206,7 +273,7 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
   }
 
   // —— 任务完成判定 ——
-  const questById = new Map(plan.quests.map((q) => [q.id, q]));
+  const questById = idx.questById;
   for (const quest of plan.quests) {
     if (!quest.judgeable || next.questDone[quest.id] !== undefined) continue;
     const allMet = quest.goals.every((goal) => {
@@ -220,7 +287,7 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
   }
 
   // —— 结束条件 ——
-  const judgeable = plan.quests.filter((quest) => quest.judgeable);
+  const judgeable = idx.judgeable;
   if (next.health <= 0) {
     next.status = "lost";
     next.outcome = `生命值归零（${Math.round(next.t * 10) / 10} 秒，承受 ${next.counters.damageTaken} 点伤害）。`;
