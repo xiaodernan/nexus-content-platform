@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-10T09:11:31.355Z",
+  "ranAt": "2026-11-11T18:02:59.410Z",
   "arms": 64,
   "matched": 64,
   "armNames": [
@@ -217,6 +217,11 @@
       "marker": null
     },
     {
+      "name": "verify:db-index",
+      "file": "docs/evidence/java/db-index-proof.mjs",
+      "marker": null
+    },
+    {
       "name": "verify:deploy-arc",
       "file": "docs/evidence/agents/deploy-arc-proof.mjs",
       "marker": null
@@ -285,6 +290,11 @@
       "name": "verify:explore",
       "file": "docs/evidence/m7/explore-proof.mjs",
       "marker": null
+    },
+    {
+      "name": "verify:gateway-tests",
+      "file": "docs/evidence/java/gateway-suite-proof.mjs",
+      "marker": "// sweep-budget-ms: 1200000"
     },
     {
       "name": "verify:git-aware",

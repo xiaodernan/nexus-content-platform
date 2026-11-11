@@ -907,3 +907,39 @@ by this lane except the suites that require a hosted runner.
   `Vary: Accept-Encoding` merge is not touched here: discover uses bare `NextResponse.json` and §188
   measured that next's compressor does not reach Route Handler writes — the day it does, `Vary` must
   APPEND `Accept-Encoding` beside `Cookie` (as `apiJson` already does at `http.ts:117`), not overwrite it.
+
+
+## 2026-11-12 addendum (cont. 22): the one door closed, and the night the litter of one receipt reddened four refs
+
+**The door that was open, now closed.** The committed `docs/evidence/ci/arms-receipt.json` stamped
+2026-11-10 (64 arms, 117 derived rows) could not speak for the wiring at HEAD (119 rows: this lane's lint
+fix + the parallel lane's `verify:gateway-tests` and `verify:db-index`). The runner cannot commit a receipt
+back. The re-arm ran at the pinned worktree (`7191e7e`): **64/64 arms matched** (41 gate incl. the control,
+23 runner; planes self-removed). The fresh receipt stamps 119 rows. Measured at this ref:
+`verify:arms-freshness` exit 0, 9/9 fixture arms matched — the gate that reddened every ref of this night
+is now green in-tree.
+
+**The four reds that shared one cause, named out loud:**
+
+Studio CI (both branches) at `dd14c10`, `b7e8df9`, `fe1566e` (queue follow-up) and `f367352` — and,
+confirmed once more on the network queue, only ever ONE gate each: `verify:arms-freshness RED 0.1s`,
+`118/119 green of a derived population of 119 · residue named: 0`. The hosted runner printed the
+drift verbatim: `verify:db-index ... (no marker)` and `verify:gateway-tests ... sweep-budget-ms: 1200000`.
+Every other row at all four refs was green, including the full lint tree (after `dd14c10`'s fix) and
+`verify:spring-cloud` (~110–126s), `verify:gateway-tests` (OK 16.8s hosted), mutation, e2e,
+the service suite. **The lint red itself is now green hosted at f367352's both branches** (its runs passed
+the `Lint the whole tree` step — the UNDECLARED `no-useless-assignment` the parallel lane's push left and
+`dd14c10` removed is closed).
+
+**Verified locally tonight at those refs/by this lane before landing (not claimed from the runner):**
+`job-queue.test.ts` 7/7, `job-worker.test.ts` 9/9, `job-lane-idempotency.integration.test.ts` 2/2,
+`job-queue-degraded.test.ts` 1/1, trending-cap-db (ADR-0094 amendment, parallel lane's) 4/4 against real
+Postgres, `verify:db-index` all four Index-Scan legs against a 2000-row mirror, `verify:gateway-tests`
+22/22 green, two full back-to-back suite runs, and the §5–§16 topology proof green at `196e624` and again
+after the timelimiter change was visible.
+
+**The branch state at 2026-11-12 01:50 UTC.** `master ≡ main ≡ 32e3b82` (the parallel lane's discover-cache
+contract v664, ADR 0096) until this push; after it: master ≡ main ≡ the re-arm ref (one commit carrying
+this file + the receipt). Studio CI for refs `dd14c10`, `a1f3476`, `6e44c55`, `b7e8df9`, `32e3b82` and this
+re-arm ref is queued on the serialized runner as of this writing; main-line green on every pushed ref; the
+queue is 8-deep per branch and every ref that speaks red off one row is recorded here, not smoothed over.
