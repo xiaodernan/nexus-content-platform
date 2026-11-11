@@ -77,4 +77,26 @@ describe('TtlLru（有界 + TTL 的进程内缓存）', () => {
     expect(cache.liveSize()).toBe(8);
     expect(cache.get('k999')).toBe(999);
   });
+
+  it('stats() 报活实数据——sets / gets / hits / evicted / live 都对得上', () => {
+    const c = clock();
+    const cache = new TtlLru<string, number>({ maxEntries: 4, defaultTtlMs: 100 });
+    cache.set('a', 1, 100, c.now());
+    cache.set('b', 2, 100, c.now());
+    cache.set('c', 3, 100, c.now());
+    cache.set('d', 4, 100, c.now());  // 第 4 条到顶
+    cache.set('e', 5, 100, c.now());  // 淘汰 'a'（最久没碰）
+    expect(cache.stats(c.now())).toEqual({
+      size: 4,
+      liveSize: 4,
+      evictedCount: 1,
+      sets: 5,
+      gets: 0,
+      hits: 0,
+    });
+    expect(cache.get('e', c.now())).toBe(5);  // hits:1
+    expect(cache.get('missing', c.now())).toBeUndefined();  // gets:2
+    expect(cache.stats(c.now()).hits).toBe(1);
+    expect(cache.stats(c.now()).gets).toBe(2);
+  });
 });

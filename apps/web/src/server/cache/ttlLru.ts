@@ -28,22 +28,41 @@ export interface TtlEntry<V> {
   expiresAt: number;
 }
 
+export interface TtlLruStats {
+  /** Entries present (including ones not yet read-and-swept). */
+  size: number;
+  /** Entries that survived the last sweep but would expire now. */
+  liveSize: number;
+  /** Total number of `maxEntries` induced evictions recorded lifetime. */
+  evictedCount: number;
+  /** Total number of inserts (count, not unique keys). */
+  sets: number;
+  /** Total number of gets. */
+  gets: number;
+  /** gets that found an unexpired value. */
+  hits: number;
+}
+
 export class TtlLru<K, V> {
   private readonly store = new Map<K, V>();
   private readonly expiry = new Map<K, number>();
   private readonly maxEntries: number;
   private readonly defaultTtlMs: number;
+  private evictedCount = 0;
+  private sets = 0;
+  private gets = 0;
+  private hits = 0;
 
   constructor(options: TtlLruOptions = {}) {
     this.maxEntries = options.maxEntries ?? 256;
     this.defaultTtlMs = options.defaultTtlMs ?? 30_000;
   }
 
-  /** 命中就 true，且把条目刷新到最新（LRU）。 */
+  /** 命中就 true. */
   get(key: K, now = Date.now()): V | undefined {
+    this.gets += 1;
     const expiresAt = this.expiry.get(key);
     if (expiresAt !== undefined && now >= expiresAt) {
-      // 读到过期的：当场删掉，别让它占着容量
       this.store.delete(key);
       this.expiry.delete(key);
       return undefined;
@@ -54,16 +73,18 @@ export class TtlLru<K, V> {
     this.expiry.delete(key);
     this.store.set(key, value);
     this.expiry.set(key, expiresAt!);
+    this.hits += 1;
     return value;
   }
 
-  /** 命中返回 undefined 以外的值。每条条目带不带自定义 TTL，由调用决定。 */
+  /** 把一个条目存入或替换。带 TTL 的轻触发淘汰。 */
   set(key: K, value: V, ttlMs?: number, now = Date.now()): void {
     const ttl = ttlMs ?? this.defaultTtlMs;
     const existing = this.store.delete(key);
     if (existing) this.expiry.delete(key);
     this.store.set(key, value);
     this.expiry.set(key, ttl === 0 ? Number.POSITIVE_INFINITY : now + ttl);
+    this.sets += 1;
     this.evictIfNeeded();
   }
 
@@ -83,6 +104,18 @@ export class TtlLru<K, V> {
     return count;
   }
 
+  /** 这台进程对这张表做了什么——对系统提示他的唯一有根据的可见度 */
+  stats(now = Date.now()): TtlLruStats {
+    return {
+      size: this.store.size,
+      liveSize: this.liveSize(now),
+      evictedCount: this.evictedCount,
+      sets: this.sets,
+      gets: this.gets,
+      hits: this.hits,
+    };
+  }
+
   /** 全清。只用于测试与安全计数器的掉线路径；不与调用方的键命名空间共享。 */
   clear(): void {
     this.store.clear();
@@ -91,11 +124,11 @@ export class TtlLru<K, V> {
 
   private evictIfNeeded(): void {
     while (this.store.size > this.maxEntries) {
-      // Map 的插入序就是 LRU——头部是最久没被碰的那一条
       const oldest = this.store.keys().next();
       if (oldest.done) break;
       this.store.delete(oldest.value);
       this.expiry.delete(oldest.value);
+      this.evictedCount += 1;
     }
   }
 }
