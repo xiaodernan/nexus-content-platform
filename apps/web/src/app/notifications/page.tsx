@@ -103,7 +103,13 @@ export default async function NotificationsPage({ searchParams }: { searchParams
 
   return (
     <main className="mx-auto max-w-[900px] px-6 py-10" data-notification-page>
-      <h1 className="text-[var(--nexus-font-size-21)] font-semibold text-fg-1">通知</h1>
+      <h1 className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent">
+        通知
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
+        />
+      </h1>
       <p className="mt-1 text-12 text-fg-3">
         {user.displayName} · 共 {page.total} 条 · 未读 {page.unread} 条 · 只有你能看到这一页
       </p>
