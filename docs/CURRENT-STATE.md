@@ -1075,3 +1075,26 @@ queue is 8-deep per branch and every ref that speaks red off one row is recorded
   `git status` + `git show --stat` + ff direction before committing; base for this commit is `96bd5cf`.
   No `git add -A`, no force. Queue decisions live in `docs/decisions/0064`/`0066`, while the numbered
   ADRs 0096–0099 live in `docs/adr/` — two numbering systems, now stated explicitly.
+
+
+## 2026-11-12 addendum (cont. 23): the record-encoding door closed; the 5612-byte night the runner answered with a one-character fix
+
+Studio CI at `5485c62` (the re-arm, both branches):
+`verify:record-encoding ... RED 0.1s` — 1 chargeable line: `docs/adr/0095-anon-discover-cache-contract-and-the-two-driver-alias-gap.md:10`, a registered CJK-latin boundary render the flank rule could not exempt (flanks alpha `n` and fullwidth paren `（`).
+`verify:gateway-tests ... OK ...`, `verify:spring-cloud ... OK 111–126 s`, `verify:db-index ... OK 10–19 s` — every other door green; 118/119, residue named: 0.
+The fix at `932d07f`: `anon 路（` → `anon 路径（`, one character; the flank rule rejects the site (`REJECTED flanks alpha|cjk`); the proof re-ran on this host: **0 chargeable lines over 2205 graded files, exit 0**.
+Hosted verdict for `932d07f` master (43083170396): **success** (watcher exit 0 — the gate is hosted-green at that ref on master).
+main: **unread at time of writing — GitHub API rate-limited (403), not verifiable from this host**.
+
+Convergences of the re-arm:
+
+- `verify:arms` ran whole at this wiring (64/64 matched; planes self-removed), at the pinned worktree `7191e7e`; subject hashes byte-identical to HEAD (all 8 verified).
+- `verify:arms-freshness` exit 0 at this host; receipt re-stamps 119; the fixture arms read 9/9.
+- Re-audit of the whole hosted battery after re-green: doors green, one door refused because of bytes OTHER lanes wrote; the Record rule corrected it in an hour.
+
+Open honest notes:
+
+- `cea9340` Studio CI: unread (rate-limited at the same hour).
+- `96bd5cf` (game/world brand lift) and `932d07f` main: unread (rate-limited; master verified green for `932d07f`).
+- `fe1566e`/`f367352`/`b7e8df9`/`5995d5b`/`43065890546`: every one red at `verify:arms-freshness` only — those four refs were carrying the stale 117-row receipt; they are HISTORICAL refs predating the re-arm; the wiring that produces them no longer exists at HEAD.
+- `d6c2260` (session-json-cache contract v666, parallel lane) Studio CI: in flight at time of writing.
