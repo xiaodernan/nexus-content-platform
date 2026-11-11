@@ -838,3 +838,31 @@ by this lane except the suites that require a hosted runner.
   redeclaration all red earlier), leaving "directly editing the limit expression" as the one variant
   not arm-tested this slice — it is necessarily caught by the conjunction on any quiet host. The
   fixture and criteria are committed so that arm needs no redesign.
+
+## 2026-11-11 addendum (cont. 23): the anon discover cache's prose becomes a gate — ADR 0095, v663
+
+- **What closed.** `/api/discover`'s anon path caches for 15s (`cachedDiscoverAnonymous`) and two write
+  paths (`publish`, `moderation`) invalidate it. The driver was tested (`discover-redis.integration.test.ts`:
+  shared window, bounded `SET PX`, `redis-unavailable` over silent fallback) and the data structure was
+  tested (`ttl-lru.test.ts`), but the **middle layer was only comments**. `apps/web/test/discover-route-cache.test.ts`
+  now grades what that layer promised: ① a hit does not re-run `compute`; ② a throwing `compute` rejects
+  AND is not remembered (a later healthy `compute` really runs); ③ `sort` participates in the key (`new`
+  never reads `popular`'s value); ④ `invalidateDiscoverRoute()` really drains the window so the next read
+  recomputes; ⑤ a static leg pins `route.ts`: only the `!viewer` branch wraps the cache, the viewer branch
+  calls `discover({ sort, viewerId: viewer.id })` directly, and there is exactly one cache call site — a
+  private/following answer cannot leak into the shared key.
+- **Measured.** `discover-route-cache.test.ts` **5/5** on the memory driver (no DB, no Redis, no source
+  edits, 1.09s), `npx tsc -p apps/web/tsconfig.json --noEmit` **exit 0**, `npx eslint <file>` **exit 0**.
+  Zero external dependencies — this is the shape a slice must take on a 0.3–0.6 GB free shared host.
+- **Honest gap, recorded NOT gated (ADR 0095).** Writing the gate exposed a real difference: the memory
+  driver stores `DiscoverResult` **by reference** (`TtlLru` returns the same object) while the Redis driver
+  `JSON.stringify`/`parse`s to a **value copy** — the two drivers disagree on alias isolation, which sits
+  awkwardly with `discoverRedis.ts`'s "two drivers, one contract" opening line. It is **not observable
+  today**: the only caller `route.ts` immediately `NextResponse.json(result)` and never mutates it. No
+  gate was written on purpose: gating reference-sharing contradicts the current memory driver (red now),
+  gating value-copies would freeze the alias semantics and punish the legitimate future fix that unifies
+  both drivers to value copies — the ADR-0094 X4 discipline ("a gate must not punish a正当 change").
+  The decision is postponed to when a mutating caller appears or the two drivers are unified; this slice
+  neither fixes it nor prematurely locks it. The first draft of this gate DID assert value semantics,
+  went red against the real implementation, and was removed rather than used to force a production change
+  on a shared tree — the measurement is preserved here instead.

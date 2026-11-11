@@ -89,6 +89,20 @@ family README section) and a door that reddens the sentence it repairs:
         HONEST GAP: no source-level mutation arm on social.ts .limit(...) — shared tree + a
         host with 0.3–0.6 GB free; the conjunction + premise + static gate give the two-way
         discrimination, and the arm is owed on a quiet host. Fixture & criteria are in place.]
+  v663  the anon /api/discover cache's SEMANTIC contract gets a gate (ADR 0095): the driver
+        (discover-redis.integration) and the data structure (ttl-lru) were tested, but the
+        middle layer was only prose. [LANDED 2026-11-11 — discover-route-cache.test.ts 5/5,
+        memory driver, no DB/Redis, no source edits: a hit does not re-run compute; a throwing
+        compute rejects AND is not remembered (next call really recomputes); sort is part of the
+        key; invalidateDiscoverRoute really drains the window; a static leg pins route.ts so only
+        the !viewer branch touches the cache and the viewer branch calls discover directly with
+        viewerId. tsc + eslint exit 0. HONEST GAP, recorded not gated: the memory driver stores
+        DiscoverResult by reference while the Redis driver JSON-round-trips to a value — the two
+        drivers disagree on alias isolation, contradicting "one contract" in discoverRedis.ts.
+        Not observable today (route.ts only NextResponse.json's the result) and NO gate is written:
+        gating either side would punish the legitimate future fix that unifies both to value
+        copies (ADR-0094 X4 discipline). Decided when a mutating caller appears or the two
+        drivers are unified; this slice neither fixes nor prematurely locks it.]
 
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
