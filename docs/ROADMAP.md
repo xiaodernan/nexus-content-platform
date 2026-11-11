@@ -12143,3 +12143,10 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **诚实边界**：grouped Feign（全客户端共享 breaker）只适配单 hop client；future 多方法时分离 resolver；
   **/api/v1/ai/** 不受影响（主路径不绕 Feign）；`breakerState` 还没接 admin 面板；
   不入 CI topology，topology 仍是 8093 hand-run smoke。**未 push**。详见 ADR-0139。
+
+## §SC 第六十一片（§SC-61）：线路探针门——固定 frame + operator token / 不给调用方定制帧位（2026-11-11 / ADR-0141）
+- **为什么**：user 本轮点名"消息队列的合理运用"。§SC-53 上线 probe 时留下了一根后门：`?channel=*&title=*&body=*` + `X-Nexus-Subject` UUID ——就是任何带 UUID header 的人都能随机注入 notification frame 上 `nexus:realtime:v1` 线路。这不是"真线路"，是"可以乱写的假线路"。本片一刀把它收成 operator 专用门。
+- **做法**（controller 重写，2 file + 1 脚本）：`POST /api/v1/realtime/probe` 不再收 `channel/title`；frame 固定 `projects:probe` + `"probe event"` + notification；**没有 token = 探针永远 403**（`probe_disabled`）；缺 token = 403；token 不对 = 403；对 + post = `assertFrame` 内容固定 200。`GET /api/v1/realtime/stats` 保留敞开但仅带 count/cap。X-Nexus-Operator-Token 独立于 X-Nexus-Subject ——不把 operator 权授给任意门口用户。
+- **判分面**：`RealtimeControllerTest` 6/6（无 token/缺 header/错 token/对→200/Redis down→503/合法 token-bypass channel/title override 都失败被忽略）。**live**：无 header→403、错→403、对→200+ publishedFrame；`realtime-java-to-web.mts` 三 verdict **PASS**。java 全套 **137/137**。
+- **诚实边界**：这不是"鉴权 service"——token 生命周期归 infra，轮转不在 repo；`projects:probe` 频道没监听者只发帧给 Studio 的 bus；wire 不带 operator 认证 validator。帧本身是固定的，对内部结构没有额外 privacy 意义；真正的 schema validator 还得在 SC-53's `RealtimeWireFrameSchema` 那个抓手里；like/follow 仍是 web TS 主路径。
+- **仍欠**：probe 未接入 verify:topology dep；Java 业务路径（like/follow 等）还没 emit 任何 frame；operator token 生命周期自动轮换缺席；Studio 没专门的 "probe listener" UI 控件。未 push。详见 ADR-0141。
