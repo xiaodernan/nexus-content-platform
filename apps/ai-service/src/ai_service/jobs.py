@@ -273,13 +273,22 @@ class RedisJobStore:
             job.finishedAt = utc_now()
             job.activities.append({"stage": "queue", "status": "info", "summary": CANCEL_NOTE_QUEUED, "at": job.finishedAt})
             await self.save(job)
+            # 从 pending list 摘掉：counts() 以 list 长度报 pending，不摘的话一个已取消作业
+            # 会永远占着一格（不显眼，但它让 /healthz 报的 pending 一直多一件，且与 memory 后端口径分叉）。
+            # 若 claim 已先原子弹出此 id，LREM 摘到零条——无副作用、无竞态。
+            try:
+                await self._r.lrem(self._pending_key, 0, job_id)
+            except Exception:  # noqa: BLE001 - 摘失败不改业务正确性：claim 侧有过滤兜底
+                pass
         return job
 
     async def is_cancel_requested(self, job_id: str) -> bool:
         return bool(await self._r.exists(self._cancel_key(job_id)))
 
     async def counts(self) -> tuple[int, int]:
-        # 队列长度是 Redis 给的，不需要 SCAN 全部 key（那会随作业数线性变贵）
+        # pending = list 长度（O(1)），running = SCAN 计数（与 memory 后端同口径 status==running）。
+        # LLEN 之所以够用：唯一会残留在 list 里却非 queued 的就是"已取消的排队作业"，
+        # 它在 request_cancel 里已被 LREM 摘掉（取消先于 claim 的封底路径还有 claim 的过滤）。
         pending = int(await self._r.llen(self._pending_key) or 0)
         running = 0
         async for key in self._r.scan_iter(match=f"{self._prefix}:job:*", count=200):
