@@ -40,13 +40,22 @@ export default async function HomePage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-[820px] flex-col gap-[var(--nexus-space-8)] px-[var(--nexus-space-6)] py-[var(--nexus-space-12)]">
-      <header className="flex items-baseline justify-between gap-[var(--nexus-space-4)]">
-        <div>
-          <h1 className="text-[var(--nexus-font-size-28)] font-semibold tracking-tight">NEXUS</h1>
-          <p className="text-[var(--nexus-font-size-14)] text-fg-2">Describe it. Design it. Generate it. Build it. Enter it.</p>
+      <header className="relative flex flex-wrap items-center justify-between gap-4 border-b border-[var(--nexus-color-border-subtle)] pb-4">
+        <div className="relative flex flex-col gap-1">
+          <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
+            HOME
+          </span>
+          <h1
+            className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent"
+            data-page-title="home"
+          >
+            NEXUS
+            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70" />
+          </h1>
+          <p className="text-[var(--nexus-font-size-13)] text-fg-2">Describe it. Design it. Generate it. Build it. Enter it.</p>
         </div>
         <span
-          className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-[var(--nexus-space-3)] py-[var(--nexus-space-1)] font-mono text-[var(--nexus-font-size-12)] text-fg-2"
+          className="rounded-full border border-[var(--nexus-color-border-strong)] bg-bg-2 px-4 py-1 font-mono text-[var(--nexus-font-size-11)] uppercase tracking-[0.18em] text-fg-2"
           data-demo-mode={caps.live ? 'off' : 'on'}
         >
           {caps.live ? 'LIVE PROVIDER' : 'DEMO MODE'}
@@ -86,7 +95,7 @@ export default async function HomePage() {
       </section>
 
       <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
-        <h2 className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-16)] font-medium">项目</h2>
+        <h2 className="font-mono text-11 uppercase tracking-[0.2em] text-[var(--nexus-color-accent-2-ink)]">项目</h2>
         <NewProjectForm />
         <ImportPanel />
         {projects.length ? (
@@ -118,7 +127,7 @@ export default async function HomePage() {
       </section>
 
       <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
-        <h2 className="mb-[var(--nexus-space-2)] text-[var(--nexus-font-size-16)] font-medium">回收站（{deleted.length}）</h2>
+        <h2 className="font-mono text-11 uppercase tracking-[0.2em] text-[var(--nexus-color-accent-2-ink)]">回收站 · {deleted.length}</h2>
         <p className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-13)] text-fg-3">
           删掉的项目不再出现在项目列表、搜索、发现和创作数据里，公开页与分享链接也从那一刻打不开。
           快照、发布记录与评论都还留着，恢复后回到上面的列表。
@@ -167,7 +176,7 @@ export default async function HomePage() {
           <ProfileEditor initialBio={account.bio} />
         </div>
 
-        <h3 className="mb-[var(--nexus-space-2)] mt-[var(--nexus-space-5)] text-[var(--nexus-font-size-14)] font-medium">
+        <h3 className="mb-[var(--nexus-space-2)] mt-[var(--nexus-space-5)] font-mono text-11 uppercase tracking-[0.2em] text-[var(--nexus-color-accent-2-ink)]">
           我收藏的版本（{saved.length}）
         </h3>
         {saved.length ? (
