@@ -12087,9 +12087,10 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **做法（零新依赖）**：`application.yml` 加 `feign.client.config.ai-service`：connect 1s/read 3s（env 可覆盖）；新增 `AiHealthController GET /api/v1/system/ai-health`：上游活 → 200 body=Python 报文**原样副本**+status:healthy+responseTimeMs（不抹字段、不造字段、不代判绿红）；上游死 → status:"degraded"+error+message+200——200 不是健康的承诺。未鉴权同 /policy 口径（只读、零载荷），未写库。
 - **判分面**：`AiHealthControllerTest` **3/3**（passthrough 逐字保留 providers/queue + degraded 200 + 最小报文不造字段）· AiServiceClientWireTest 1/1 零回归 · java 全套 **129/129**。**live 三笔**（8082+8000）：#1 空 8000 → degraded/RetryableException **93ms**；#2 起 Python → healthy（providers 5 条原样、queue backend=redis）**306ms**；#3 停 Python → degraded **2ms**——有↔无开关在一条链路上切了两次，都是人眼读到的真值。
 - **诚实边界**：只端 healthz 一跳（主路径 `/v1/ai/*` 不受影响、web 仍直连 Python）；探针只覆盖"端点能表演健康"、不代表 provider 能生成（缺 key 一律 unavailable 如实如是）；多实例各答各的、永不猜 healthy；超时按同机校准。
+- **补记（2026-11-11）**：`npm run verify:topology`（NEXUS_GATEWAY_PORT=8093，8090 被别的项目占用）**PASS**。`ensureJarFresh` 因源码新而重打了 registry/gateway/config 三个 jar（domain 已在上片打过）——eureka 起、config 起、网关从配置中心拿到 `ratePerSecond=50.0`、网关 discovery 列出 domain-service 与 nexus-api、community policy/billing/permission 三面全绿（200/200/400 及 X-Request-Id 回显）、nexus-api `/api/health` 经 door 200，全部五个进程按 smoke 契约收尾干净。这证明 SC-53–SC-59 这几轮 Java 侧改动后，这个 Spring Cloud 家族整体收敛仍然成立——不是"某几个 jar 碰巧能起"。
 - **仍欠**：
   - `ai-health` 接 gateway LB+breaker（SC-9/SC-25 套路，顺手）；
   - provider 真 key（M2/M5）未授权前 capability=unavailable 永远如此、如实说；
   - CI topology job 未含本端点、未经真 push 驯服；
-  - verification smoke 未接入 verify:topology。
+  - topology smoke 本次是**手工跑一次**（人盯输出、收尾干净），脚本本身没有把 `ai-health` 纳入断言集——脚本断言要长一个"AiHealthController 存在且 degraded≠故障"的格子，另立片。
 **未 push**。详见 ADR-0137。
