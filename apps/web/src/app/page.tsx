@@ -40,13 +40,13 @@ export default async function HomePage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-[820px] flex-col gap-[var(--nexus-space-8)] px-[var(--nexus-space-6)] py-[var(--nexus-space-12)]">
-      <header className="flex items-baseline justify-between gap-[var(--nexus-space-4)]">
+      <header className="hp-hero">
         <div>
-          <h1 className="text-[var(--nexus-font-size-28)] font-semibold tracking-tight">NEXUS</h1>
-          <p className="text-[var(--nexus-font-size-14)] text-fg-2">Describe it. Design it. Generate it. Build it. Enter it.</p>
+          <h1 className="hp-heroTitle" data-nexus-wordmark>NEXUS</h1>
+          <p className="hp-heroSub">Describe it. Design it. Generate it. Build it. Enter it.</p>
         </div>
         <span
-          className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-[var(--nexus-space-3)] py-[var(--nexus-space-1)] font-mono text-[var(--nexus-font-size-12)] text-fg-2"
+          className={`hp-demoChip ${caps.live ? 'hp-demoChipLive' : 'hp-demoChipDemo'}`}
           data-demo-mode={caps.live ? 'off' : 'on'}
         >
           {caps.live ? 'LIVE PROVIDER' : 'DEMO MODE'}
@@ -55,24 +55,24 @@ export default async function HomePage() {
 
       {/* 这一排在 820px 的容器里放不下五个链接加一句说明：不 flex-wrap 就会被 flex 压着
           在词中间断行（"全平台搜/索"），所以链接各自 nowrap、整排允许换行。 */}
-      <nav className="flex flex-wrap items-center gap-3 text-13" data-site-nav>
-        <a href="/search" className="whitespace-nowrap text-accent-2-ink underline" data-nav-search>
+      <nav className="flex flex-wrap items-center gap-2" data-site-nav aria-label="站点导航">
+        <a href="/search" className="hp-navlink" data-nav-search>
           全平台搜索
         </a>
-        <a href="/discover" className="whitespace-nowrap text-accent-2-ink underline" data-nav-discover>
+        <a href="/discover" className="hp-navlink" data-nav-discover>
           发现
         </a>
-        <a href="/marketplace" className="whitespace-nowrap text-accent-2-ink underline" data-nav-marketplace>
+        <a href="/marketplace" className="hp-navlink" data-nav-marketplace>
           市场
         </a>
-        <a href="/analytics" className="whitespace-nowrap text-accent-2-ink underline" data-nav-analytics>
+        <a href="/analytics" className="hp-navlink" data-nav-analytics>
           创作数据
         </a>
-        <a href="/blocks" className="whitespace-nowrap text-accent-2-ink underline" data-nav-blocks>
+        <a href="/blocks" className="hp-navlink" data-nav-blocks>
           已拉黑与已屏蔽
         </a>
         <NotificationBell />
-        <span className="text-fg-3">公开在跑的作品与全平台的内容搜索；数据与通知只对登录后的你自己可见</span>
+        <span className="text-fg-3 text-11">公开在跑的作品与全平台的内容搜索；数据与通知只对登录后的你自己可见</span>
       </nav>
 
       <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
@@ -113,7 +113,9 @@ export default async function HomePage() {
             ))}
           </ul>
         ) : (
-          <p className="mt-[var(--nexus-space-3)] text-[var(--nexus-font-size-13)] text-fg-3">还没有项目。创建一个即可进入 Studio 画布。</p>
+          <div className="hp-emptySection">
+            <p>还没有项目。创建一个即可进入 Studio 画布。</p>
+          </div>
         )}
       </section>
 
