@@ -2,6 +2,14 @@
 
 记录 Java Spring Cloud 家族**实装的**与**仅 scaffold 的**部分，来源皆为已落地的 smoke/测试/ADR——本篇不新写声称，只交叉查询事实。
 
+## Actuator 出阵（§SC-64 / §SC-64b / §SC-66 / §SC-66b / §SC-66c，逐步加码）
+
+- **`/actuator/info`**（live on 8082）返回 **`app`** + **`runtime`** + **`os`** + **`build`** 四段真实字段：
+  `{"app":{"artifact":"domain-service","group":"com.nexus","name":"NEXUS Domain Service","version":"1.0.0-SNAPSHOT"},…}`。
+- **`/actuator/circuitbreakers`**（live on 8082）：`{"circuitBreakers":{"ai-service":{"state":"CLOSED","bufferedCalls":0,…}}}`。
+- **ActuatorShapeTest** `onlyHealthInfoAndCircuitBreakersAreExposed` 秒兵固定 `{health,info}` 不能多、不能少、不能带 detail。
+- **Smoke 实线** — `verify:topology` 验证 `/actuator/info`，断言 `build.artifact=domain-service`、`runtime.java=25.0.1`，并**加入**`/actuator/circuitbreakers` 双重断言；两次都 PASS。
+
 ## 端口（只在本机有效）
 
 | 端口 | 服务 | 状态 | 备注 |
