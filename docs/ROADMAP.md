@@ -12092,5 +12092,14 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
   - `ai-health` 接 gateway LB+breaker（SC-9/SC-25 套路，顺手）；
   - provider 真 key（M2/M5）未授权前 capability=unavailable 永远如此、如实说；
   - CI topology job 未含本端点、未经真 push 驯服；
-  - topology smoke 本次是**手工跑一次**（人盯输出、收尾干净），脚本本身没有把 `ai-health` 纳入断言集——脚本断言要长一个"AiHealthController 存在且 degraded≠故障"的格子，另立片。
+  - topology smoke **脚本已纳入**本端点：`scripts/verify-topology.mts` 断言 `/domain/api/v1/system/ai-health` 200 且 status ∈ {healthy,degraded}（ai-service 在 8000 时 healthy 亦成立；门外端口 smoke 两次皆绿：ai-health via gateway degraded 52ms）。脚本断言存在，≠CI runner 执行过。
 **未 push**。详见 ADR-0137。
+
+## §FE 第六片（§FE-6）：公开作品页登峰造极——门面化 + 静态判据 + 双主题真浏览器（2026-11-11 / ADR-0138）
+- **为什么**：user 再次点名最重的**前端美观/魅力登峰造极**。公开门面矩阵已升 discover / marketplace / home / /search / 创作者主页，唯独缺 `/n/<handle>/<slug>` **公开作品页**——内容平台最核心的落点、访客点开分享链接看到的第一张脸。补上这块即集大成。
+- **做法（只动视觉，守 ADR-0123 六红线）**：加 `.pb-` 语义段（与 `.se-`/`.pf-` 同 token 语言，零新增颜色 token、全 `var(--nexus-*)` + `color-mix`、零写死 hex、双主题 AA、reduced-motion 收口、键盘 focus-visible）。header 渐变墨字 + meta 胶囊 + 品牌渐隐光带；作品舞台径向辉光、每份断点投影裱成圆角细边 + 阴影；互动说明 accent-1 左竖线（top/height 居中不用 transform）；试玩/分镜 chip 化 hover 抬升 + 扫光 + focus 双链接；统计告知虚线分隔弱化条。`page.tsx` 纯 className 叠加，结构/文案/12 个 `data-*`/逻辑/六颗客户端组件一字未改；`.pb-` 段零删除行（FE-4/5 未动）。
+- **诚实读数（不为凑"协同"编造优化）**：先探明读路径已收口——`getPublishedPage = cache(resolvePublishedPath)`（React cache，generateMetadata 与正文各调一次但只查一次库）、`recordView(...).catch()` fire-and-forget 不阻塞首屏。故本片把这两件连同四份断点投影/自动选档/交互热点/`PublishedFrame` 作品本体列为**"守住"门**，不假称在此做了新数据库性能改造。
+- **判分面（静态那一寸）**：`published-style.test.ts` **9 条先红 4→9/9**（类名闭环/规模/reduced-motion/focus-visible 四红精准命中未落地；零 hex/token/12 钩子/守协同/守渲染路径五绿是零回归对照）；**六变异臂全红**（删主规则/写死 hex/删 transition:none/删 focus/删 data 钩子/删 transform:none），GOOD 两文件字节级恢复；合并 `style-tokens` **33/33**；eslint 0、`tsc -p apps/web` 0、`tsc -p e2e` 0。
+- **判据自身三处诚实修正**：①沿用 FE-5 教训 preemptively 把零 hex/token 门从"只扫含类名行"收紧为**扫整段含续行**（堵续行声明漏判）；②GOOD 首跑抓出 transform 门把 `text-transform: uppercase` 误当几何位移——改为**只认声明边界的 transform**（负向前瞻排 `text-transform`），不迁就删 CSS，精确化后 GOOD 全绿且臂 F 仍红（没放水）；③动效门按规则块解析（沿用 FE-5 正解）。
+- **真浏览器那一寸**：`e2e/published-visual.spec.ts` 双主题 @smoke，从发现页一件真公开作品的 `/n/<handle>/<slug>` 整条地址进页（量访客真正看到的作品页，非作者预览态），验门面/舞台/裱框/SEO JSON-LD 钩子/统计告知全在、零 console error，无公开作品时 test.skip。首跑被 agent 环境 `safe-delete` 护栏（turn 内删除达 50/50）拦截 Next dev 冷启动清 `.next/dev`，非代码问题；零删除 `mv` 改名陈旧 `.next/dev` 后重跑——结果见 ADR-0138 回填。
+- **仍欠**：既有 `a11y-*` / `interactive-work.spec.ts`（axe/键盘/互动 completion）判据面未改，留待干净窗口随本片复跑；hover 态逐帧看图；全仓真库/拓扑套件无干净窗口未硬跑、不编绿灯。**未 push**。详见 ADR-0138。

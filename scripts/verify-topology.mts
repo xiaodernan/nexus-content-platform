@@ -384,6 +384,22 @@ async function main() {
   if (permNoSubject.status !== 400) bad('door-less permission refused', `HTTP ${permNoSubject.status} (want 400)`);
   else ok('door-less permission refused (400)');
 
+  // Through the gateway: the Java→Python self-report — /api/v1/system/ai-health (§SC-59).
+  // ai-service is intentionally NOT part of this smoke (no Python toolchain in the topology),
+  // so the honest expectation is status:"degraded" — the hop works IF Feign really ran and reported
+  // connection-refused. On a machine where ai-service IS running on 8000, "healthy" is equally true;
+  // both prove the probe answers 200 through the door's /domain/** route with the Feign client live.
+  const aiHealth = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/system/ai-health`, {
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (aiHealth.status !== 200) bad('ai-health via gateway', `HTTP ${aiHealth.status} (want 200)`);
+  else {
+    const body = await aiHealth.json().catch(() => null);
+    const s = body?.status;
+    if (s !== 'degraded' && s !== 'healthy') bad('ai-health status is healthy|degraded', JSON.stringify(body).slice(0, 200));
+    else ok(`ai-health via gateway (${s}${body?.error ? `, error=${body.error}` : ''}, ${body?.responseTimeMs}ms)`);
+  }
+
   // Through the gateway: nexus-api answers /api/health — full path gateway → lb://nexus-api → its own
   // throwaway database, all live. /api/health is 200 only when the database answers.
   const apiHealth = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/api/health`, { signal: AbortSignal.timeout(10_000) });
