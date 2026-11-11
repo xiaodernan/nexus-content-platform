@@ -1019,6 +1019,120 @@
     .nf-discover:hover, .nf-home:hover { transform: none; }
   }
 
+  /* ── §FE-11 / ADR-0159 市场交互原子 `MarketplaceItemRow` 门面化 ──────────────
+   * 外壳 `.mk-card`（FE-2）已精致：渐变卡片 + accent-2 压边 + hover 抬升。这里补的是它
+   * 内部的交互控件——此前购买/下载/举报/编辑/下架 5 类按钮、3 处 disabled busy、2 个
+   * disclosure 面板、表单与徽标全是裸 Tailwind 原子类，是"外壳精致、控件全裸"的断层。
+   * 沿用 FE-10 的 `.mp-` 交互态状态语言并推广到原子层：统一 .mi-btn 骨架 + 三档语气
+   * （主/幽灵/危险）、四态（hover/active/disabled/focus-visible）、reduced-motion 收口。
+   * 六红线照守（ADR-0123）：零新增颜色 token、全锚双主题 token + color-mix、无写死 hex；
+   * 只换 className、零行为——5 fetch / 12 useState / 3 disabled / disclosure aria / 22 data-*
+   * 钩子由静态判据的 JS 段 SHA256 + 契约门逐字节钉死。不加渐变墨字，故不触发 A11Y-1。 */
+  .mi-head {
+    display: flex; flex: 1 1 100%; flex-wrap: wrap; align-items: center;
+    gap: var(--nexus-space-2); min-width: 0;
+  }
+  .mi-preview {
+    width: 5rem; height: 3.5rem; flex: none; border-radius: var(--nexus-radius-sm);
+    object-fit: cover; border: 1px solid var(--nexus-color-border-subtle);
+  }
+  .mi-title {
+    font-family: var(--nexus-font-sans); font-size: var(--nexus-font-size-13);
+    font-weight: 600; color: var(--nexus-color-fg-1);
+  }
+  .mi-tag, .mi-badgeReported {
+    border-radius: var(--nexus-radius-full); padding: 0 var(--nexus-space-1);
+    font-size: var(--nexus-font-size-12); line-height: 1.6;
+    background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-2);
+    white-space: nowrap;
+  }
+  .mi-badgeReported { color: var(--nexus-color-fg-3); }
+  .mi-price { font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); white-space: nowrap; }
+  .mi-badgePurchased {
+    border-radius: var(--nexus-radius-full); padding: 0 var(--nexus-space-1);
+    font-size: var(--nexus-font-size-12); line-height: 1.6; white-space: nowrap;
+    background: color-mix(in srgb, var(--nexus-color-success) 18%, var(--nexus-color-bg-2));
+    color: var(--nexus-color-success); border: 1px solid color-mix(in srgb, var(--nexus-color-success) 40%, transparent);
+  }
+  .mi-creator { margin-left: auto; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); white-space: nowrap; }
+
+  /* 统一按钮骨架：尺寸/圆角/动效/focus/disabled 一处定义，三档语气只覆写配色。 */
+  .mi-btn {
+    appearance: none; display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid transparent; border-radius: var(--nexus-radius-sm);
+    padding: var(--nexus-space-1) var(--nexus-space-2);
+    font-family: var(--nexus-font-sans); font-size: var(--nexus-font-size-12); line-height: 1.4;
+    cursor: pointer; white-space: nowrap;
+    transition: transform var(--nexus-motion-base) var(--nexus-motion-ease),
+                background var(--nexus-motion-base) var(--nexus-motion-ease),
+                color var(--nexus-motion-base) var(--nexus-motion-ease),
+                box-shadow var(--nexus-motion-base) var(--nexus-motion-ease),
+                filter var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .mi-btn:focus-visible, .mi-input:focus-visible, .mi-select:focus-visible {
+    outline: 2px solid var(--nexus-color-brand); outline-offset: 2px;
+  }
+  .mi-btn:disabled { cursor: progress; filter: saturate(.5); opacity: .62; box-shadow: none; }
+  /* 主：购买 / 保存 / 提交举报 */
+  .mi-btnPrimary { background: var(--nexus-color-accent-1); color: var(--nexus-color-accent-fg); }
+  .mi-btnPrimary:hover:not(:disabled) {
+    background: var(--nexus-color-brand);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--nexus-color-brand) 26%, transparent);
+    transform: translateY(-1px);
+  }
+  /* 幽灵：编辑 / 下载 / 取消 */
+  .mi-btnGhost { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-2); }
+  .mi-btnGhost:hover:not(:disabled) { background: var(--nexus-color-bg-1); color: var(--nexus-color-fg-1); }
+  /* 危险：举报 / 下架（常态低调、hover 才显危险色，避免满屏红） */
+  .mi-btnDanger { background: transparent; color: var(--nexus-color-fg-3); }
+  .mi-btnDanger:hover:not(:disabled) { color: var(--nexus-color-danger-ink); background: color-mix(in srgb, var(--nexus-color-danger) 8%, transparent); }
+  /* :active 必须写在三档 :hover 之后——否则同特异性(0,3,0)下后写的 hover transform
+     translateY(-1px) 会盖掉按下的 scale(.97)，主按钮按下无收缩反馈（FE-11 e2e 真抓到的产品缺陷）。
+     组合选择器显式列出三档，让任何档位的按下都压过其自身 hover 规则。 */
+  .mi-btn:active:not(:disabled),
+  .mi-btnPrimary:active:not(:disabled),
+  .mi-btnGhost:active:not(:disabled),
+  .mi-btnDanger:active:not(:disabled) { transform: scale(.97); }
+
+  /* disclosure 面板：.edit/.report 共用，纵向堆叠、token 化描边，随卡片 flex-wrap 换行到整行。 */
+  .mi-panel {
+    display: flex; flex: 1 1 100%; flex-wrap: wrap; align-items: center;
+    gap: var(--nexus-space-2); min-width: 0;
+    margin-top: var(--nexus-space-2); padding-top: var(--nexus-space-2);
+    border-top: 1px solid var(--nexus-color-border-subtle);
+    animation: mi-panel-in var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  @keyframes mi-panel-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+  }
+  .mi-field { display: inline-flex; align-items: center; gap: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .mi-input, .mi-select {
+    appearance: none; border: 1px solid var(--nexus-color-border-strong);
+    border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1);
+    color: var(--nexus-color-fg-1); font-family: var(--nexus-font-sans);
+    transition: border-color var(--nexus-motion-base) var(--nexus-motion-ease), box-shadow var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .mi-input:hover:not(:disabled), .mi-select:hover:not(:disabled) { border-color: var(--nexus-color-brand); }
+  .mi-inputNum { width: 5rem; padding: 2px var(--nexus-space-1); font-size: var(--nexus-font-size-12); }
+  .mi-inputNote { min-width: 16rem; flex: 1 1 auto; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); }
+  .mi-select { padding: var(--nexus-space-1); font-size: var(--nexus-font-size-12); }
+  .mi-hint { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .mi-desc { flex: 1 1 100%; margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .mi-msg {
+    flex: 1 1 100%; margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-12);
+    color: var(--nexus-color-fg-2);
+    border-left: 2px solid var(--nexus-color-brand); padding-left: var(--nexus-space-2);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mi-btn, .mi-input, .mi-select { transition: none; }
+    /* 与上方 :active 组合选择器逐一对应：三档按下 + hover 抬升在 reduce 下全部归零。 */
+    .mi-btn:active:not(:disabled), .mi-btnPrimary:active:not(:disabled),
+    .mi-btnGhost:active:not(:disabled), .mi-btnDanger:active:not(:disabled) { transform: none; }
+    .mi-btnGhost:hover:not(:disabled), .mi-btnPrimary:hover:not(:disabled) { transform: none; }
+    .mi-panel { animation: none; }
+  }
+
   /* ── §FE-10 / ADR-0158 市场购买页 `/marketplace/purchases` 门面化 ────────────
    * 与 .dv-/.mk-/.nf- 等同一套 token 语言（守 ADR-0123 六红线）：零新增颜色 token、
    * 全锚双主题 token + color-mix、无写死 hex；双主题 AA；只换 className、零行为——
