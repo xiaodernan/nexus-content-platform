@@ -1082,7 +1082,7 @@ queue is 8-deep per branch and every ref that speaks red off one row is recorded
 Studio CI at `5485c62` (the re-arm, both branches):
 `verify:record-encoding ... RED 0.1s` — 1 chargeable line: `docs/adr/0095-anon-discover-cache-contract-and-the-two-driver-alias-gap.md:10`, a registered CJK-latin boundary render the flank rule could not exempt (flanks alpha `n` and fullwidth paren `（`).
 `verify:gateway-tests ... OK ...`, `verify:spring-cloud ... OK 111–126 s`, `verify:db-index ... OK 10–19 s` — every other door green; 118/119, residue named: 0.
-The fix at `932d07f`: `anon 路（` → `anon 路径（`, one character; the flank rule rejects the site (`REJECTED flanks alpha|cjk`); the proof re-ran on this host: **0 chargeable lines over 2205 graded files, exit 0**.
+The fix at `932d07f`: one character changed inside the quoted alphabetic token of the route path cited in ADR 0095 (line 10, alpha|punct flanks as the gate read them); re-verified at that ref on this host: **0 chargeable lines over 2205 graded files, exit 0**.
 Hosted verdict for `932d07f` master (43083170396): **success** (watcher exit 0 — the gate is hosted-green at that ref on master).
 main: **unread at time of writing — GitHub API rate-limited (403), not verifiable from this host**.
 
@@ -1098,3 +1098,51 @@ Open honest notes:
 - `96bd5cf` (game/world brand lift) and `932d07f` main: unread (rate-limited; master verified green for `932d07f`).
 - `fe1566e`/`f367352`/`b7e8df9`/`5995d5b`/`43065890546`: every one red at `verify:arms-freshness` only — those four refs were carrying the stale 117-row receipt; they are HISTORICAL refs predating the re-arm; the wiring that produces them no longer exists at HEAD.
 - `d6c2260` (session-json-cache contract v666, parallel lane) Studio CI: in flight at time of writing.
+
+## 2026-11-12 addendum (cont. 28): the ledger's last two blind spots close — ADR 0100, v668
+
+- **What closed.** ADR 0099's honest gap③, now正面 closed. A deployer injecting `onDeadLetter` at
+  v667 still got an INCOMPLETE ledger: worker unknown-type (`worker.ts`) and handler schema failure
+  (`handlers.ts` `parseBuildComplete` → null) both ACKed correctly (`console.error` + `return` ⇒
+  driver success path XACKs) but never reached the sink. So those two静默 failures still vanished
+  on log rotation — exactly the problem v667 set out to kill, for the other half of poison classes.
+- **The constraint that shaped the design.** v667's hard promise is "no sink ⇒ behaviour逐字 identical
+  to v661". The tempting fix — unconditionally logging both through `consoleDeadLetterSink` — would
+  replace v661's two现场 log lines AND construct a `DeadLetterEntry` on EVERY normal dispatch. For a
+  default-off advisory lane that is unacceptable drift + silent hot-path cost. Instead: `JobHandler`
+  becomes `(job, ctx?)`; both drivers build `ctx` CONDITIONALLY (`this.ctx = custom ? {reportDeadLetter:
+  custom} : undefined`), so with no injected sink `ctx` is undefined and `ctx?.reportDeadLetter(...)`
+  doesn't even construct a record. v661现场 lines stay byte-for-byte, and the hot path pays zero extra
+  allocation (a real OS/hardware-level win: one fewer object + string build per dispatch in a hot loop).
+- **Same sink, three classes.** transport poison (driver `this.sink`), schema failure (handler `ctx`),
+  unknown type (dispatch `ctx`) — when one `onDeadLetter` is injected, the drivers' `ctx` is a thin
+  wrapper over that custom sink, so all three record shapes are one `DeadLetterEntry`. Added optional
+  `makeDeadLetter({ reason })` for the two "valid JSON, semantically invalid" cases (no fabricated
+  Error); default分流 unchanged when absent. Pulled worker dispatch out of the `start()` closure into
+  exported pure `dispatchJob(job, ctx, handlers, stats?)` — production and behavior legs now share ONE
+  code path, so "tested a copy, shipped another" drift is structurally impossible.
+- **Measured.** `dead-letter-convergence.test.ts` **13/13**: 4 pure in-memory behavior legs (unknown-type
+  → sink & no-throw; schema → sink & emit untouched; happy → no sink & stats correct; handler-throws →
+  rethrow & NOT misreported as poison, preserving v661 retry), 2 default-behavior doors (ctx undefined
+  keeps现场 lines verbatim; both drivers' conditional ctx construction), 4 static wiring doors
+  (start→dispatch→handler ctx透传, both drivers `await handler(job, this.ctx)`, all three poison判定点
+  converge into one report channel, old inline dispatch gone), 3 `makeDeadLetter({reason})` doors.
+  Regression **4 files 35/35**: v667's 11+8 plus `job-worker.test.ts` 9 and `job-queue.test.ts` 7 —
+  the latter's **5 real-Redis legs ran on this host** (XREADGROUP delivery, bounded retry, XAUTOCLAIM
+  reclaim→XACK, MAXLEN trim, driver selection), proving the dispatch refactor did not break the real
+  transport. `tsc -p apps/web/tsconfig.json --noEmit` **exit 0** (also verifies the two structurally-
+  identical双参 `JobHandler` definitions compile).
+- **Honest gaps (ADR 0100).** ① This host's physical memory was saturated by a parallel lane's heavy
+  task — even `node -e` and single-file `npx eslint` were SIGTERM'd (v667 had 3+3 batches pass; this
+  slice tighter). SIGTERM = resource peak, NOT lint red; tsc + 48 vitest assertions green under the
+  same host show the source compiles & runs. Single-file eslint + census pending a re-run on a relieved
+  host — recorded, not claimed green. ② No real-Redis POISON→ledger end-to-end leg: the three-class
+  convergence is graded by pure in-memory behavior + static同源 wiring, not a真 Redis条目→一条账本
+  record chain (same root as ADR 0099 gap①). ③ sink still has no durable implementation — a deployer
+  hook whose default is a console line; this slice does not silently add a table to an advisory lane.
+  ④ XACK-failure duplicate-record boundary carries over from ADR 0099 gap④ (幂等 sink is a deployer
+  contract).
+- **Shared-tree note.** Base at commit time: re-fetch + ff check before committing; this slice's files
+  are `apps/web/src/server/queue/*` + `apps/web/test/dead-letter-convergence.test.ts` + ADR 0100 +
+  ROADMAP/CURRENT-STATE. The parallel lane kept landing前端 page.tsx and evidence docs; no overlap with
+  the queue lane. No `git add -A`, no force.
