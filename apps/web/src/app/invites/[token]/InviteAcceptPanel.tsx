@@ -39,28 +39,33 @@ export function InviteAcceptPanel({ token }: { token: string }) {
 
   if (joinedProjectId) {
     return (
-      <div className="flex flex-col gap-2" data-invite-accepted>
-        <p className="text-13 text-accent-2-ink">已加入项目。</p>
-        <Link href={`/studio/${joinedProjectId}`} className="text-13 text-accent-2-ink underline">
-          打开这个项目
+      <div className="flex flex-col gap-3 rounded-xl border border-[var(--nexus-color-brand)]/30 bg-gradient-to-br from-bg-2 via-bg-2 to-bg-1 p-4 shadow-[0_0_30px_rgb(91_108_255/0.15)]" data-invite-accepted>
+        <p className="flex items-center gap-2 text-16 font-semibold text-fg-1">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--nexus-color-accent-2-ink)]">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+          已加入项目
+        </p>
+        <Link href={`/studio/${joinedProjectId}`} className="inline-flex min-h-10 w-fit items-center rounded-lg bg-[var(--nexus-color-brand)] px-4 py-2 text-13 font-semibold text-[var(--nexus-color-accent-fg)] transition-all hover:shadow-[0_0_24px_rgb(91_108_255/0.45)]">
+          打开这个项目 →
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       <button
         type="button"
         disabled={busy}
         onClick={() => void accept()}
         data-invite-accept
-        className="self-start rounded-[var(--nexus-radius-sm)] bg-bg-3 px-3 py-1 text-13 text-fg-1 disabled:opacity-40"
+        className="inline-flex min-h-11 w-fit items-center rounded-lg bg-[var(--nexus-color-brand)] px-5 py-2 text-13 font-semibold text-[var(--nexus-color-accent-fg)] transition-all duration-150 hover:shadow-[0_0_30px_rgb(91_108_255/0.45)] disabled:opacity-40 disabled:hover:shadow-none"
       >
-        {busy ? '处理中…' : '接受邀请，加入这个项目'}
+        {busy ? '正在处理…' : '接受邀请，加入这个项目'}
       </button>
       {error ? (
-        <p className="text-12 text-danger-ink" data-invite-error>
+        <p className="rounded-lg border border-[var(--nexus-color-danger)]/30 bg-danger/10 px-3 py-2 text-12 text-danger-ink" data-invite-error>
           {error}
         </p>
       ) : null}

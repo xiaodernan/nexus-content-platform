@@ -17,8 +17,11 @@ export default async function InviteAcceptPage({ params }: { params: Promise<{ t
   const user = await currentUserOrNull();
   return (
     <main className="mx-auto flex w-full max-w-[560px] flex-col gap-[var(--nexus-space-4)] px-[var(--nexus-space-4)] py-[var(--nexus-space-6)]" data-invite-accept-page>
-      <header className="flex flex-col gap-1">
-        <h1 className="text-14 font-medium text-fg-1">接受项目邀请</h1>
+      <header className="relative flex flex-col gap-1 overflow-hidden rounded-xl border border-[var(--nexus-color-border-subtle)] bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 px-6 py-6">
+        {/* ambient glow — pure CSS */}
+        <span aria-hidden="true" className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[radial-gradient(circle,rgb(91_108_255/0.22),transparent_70%)] blur-2xl" />
+        <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">TEAM INVITE</span>
+        <h1 className="mt-1 text-[var(--nexus-font-size-24)] font-bold tracking-tight text-fg-1">接受项目邀请</h1>
         {user ? (
           <p className="text-12 text-fg-3">
             你正在以 <span className="text-fg-1">{user.email ?? user.displayName ?? '当前用户'}</span> 的身份接受邀请。
