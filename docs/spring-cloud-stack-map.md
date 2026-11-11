@@ -16,6 +16,7 @@
 - **§SC-70**：gateway（无 JPA）的 `GatewayRateLimitHealthIndicator` —— `memory` backend 如实报 `probe: not_applicable`；`redis` backend `ReactiveStringRedisTemplate.ping()` 实跑 PING，两秒 deadline。
 - **§SC-71**：nexus-registry（无 DB 的 Eureka standalone）装 `RegistryStandaloneHealthIndicator` —— 直接读 `PeerAwareInstanceRegistry` 真值：`mode: in-memory-standalone`、`applications`/`instances` 内存计数、`renewsLastMinute`、`selfPreservation`。加 `spring-boot-starter-actuator`（之前完全没有 /actuator/health）。live `MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS=always` 抛出 `registryStandalone:{…applications:0,…}` 确证是内存 truth、不是 stub。
 - **§SC-71c**：nexus-config 装 `ConfigServedDefaultsHealthIndicator` —— `native` classpath 下必须含 `management.endpoints.web.exposure.include: health,info`（2026-11-11 那次共享默认被放宽导致 domain-service 继承 + /actuator/circuitbreakers 404 的事故箭靶），不符→DOWN。配一条单测 `ConfigServedDefaultsHealthIndicatorTest` 锁死。另：nexus-config 的 `ConfigServerTest` 里 `health` → `health,info` 断言已随共享默认收窄同步修正（§SC-64 遗留 stale）。
+- **§SC-72**：`scripts/verify-actuator.mts`（`npm run verify:actuator`）——五个 JVM 逐个真起，断 `/actuator/health` 200 + `status:UP` + 无 `components/details` + 无 JDBC/端口/密码/Hibernate 字样（`show-details: never` 是死罪线），`/actuator/info` 断 `build.artifact`/`build.component` 与本仓实际产物一致（§SC-68b），domain-service 额外断 `/actuator/circuitbreakers` 出 `ai-service`。实跑 PASS（domain 8088 / api 8086 / registry 8777 / config 8889 / gateway 8095，覆盖 env 可改）。
 
 ## 端口（只在本机有效）
 
