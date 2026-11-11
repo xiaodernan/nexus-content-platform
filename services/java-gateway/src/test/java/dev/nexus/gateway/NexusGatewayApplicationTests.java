@@ -101,5 +101,13 @@ class NexusGatewayApplicationTests {
         assertThat(body)
                 .as("and the detail must name the upstream too, not just the failure")
                 .contains("the gateway could not reach nexus-api");
+        // v670 — the fallback path must carry Server-Timing too. If it doesn't, the header
+        // only exists on the happy path and is useless precisely when the edge is doing its
+        // most important work: telling the caller that it is the one holding the answer.
+        var serverTiming = result.getResponseHeaders().getFirst("Server-Timing");
+        assertThat(serverTiming)
+                .as("the fallback answer must also carry Server-Timing; a dev-tools panel sees only 503 with no duration otherwise")
+                .isNotNull()
+                .matches("^edge;dur=\\d+$");
     }
 }

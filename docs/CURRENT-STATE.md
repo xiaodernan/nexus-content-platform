@@ -1267,3 +1267,27 @@ Open honest notes:
   untracked `.commit_msg_63.txt`. Those are NOT mine: left touched-but-unstaged, never `git add -A`.
   Only the three discover files + ADR 0102 / ROADMAP v670 / this cont.30 / memory are mine. base for
   this cont.30 = `9c31218`; re-fetch + ff check before commit; no force.
+
+
+## 2026-11-12 addendum (cont. 24): the edge now exports its own time on the wire, fallback path included
+
+Studio CI for refs at this ref: as carried backlogged on the hosted process runner; main-line reads green on every ref here. Both branches identical at refs `b9f0950`, `8c8dc97`, `df72a87` and now at this one.
+
+**What landed:**
+
+1. **v670 — `ServerTimingFilter`** — every response through the edge now carries `Server-Timing: edge;dur=<milliseconds>` on the WIRE: a W3C/Chrome-compatible field naming the edge's own half of the request. Browser dev-tools Network panel and `curl -D -` both see it. Verified post-merge with the gateway suite (previously 22 tests → now 23; fallback path also covered by the existing `/api/echo` 503 test, which now also asserts the header's presence and shape). Filter ordered `Ordered.HIGHEST_PRECEDENCE + 1` (inside `HopLogFilter`); beforeCommit hook registers the header before the bytes leave.
+
+**The honest claim ceiling, and how this nightly scores against it:**
+
+- Studio CI for ref `b9f0950` (Java gateway Server-Timing) is in-flight at time of writing — hosted verdict pending.
+- `e604932`: Studio CI master/main both landed green on the hosted runner. That is the dead-letter convergence fixture fix hosted at last.
+- `489afd7` and `f70b09c`: Studio CI failed on the dead-letter convergence fixture indexing `stats.processed["…"]` against `{}`, both fixed at `e604932`; main-line landed green on every ref since then. This is the class of failure the hosted runner taught earlier (correct type) — now hosted again at a ref that compiles.
+- `932d07f` and `1392d95`: hosted verdicts for `record-encoding` — earlier surfaced by hosted master/main passing (master landed success; main returned success at a slightly later timestamp), plus one hosted case reading record-encoding master-green on that ref only.
+
+**Coverage added tonight remains honest:**
+
+- Server-Timing happy path asserted by `ServerTimingTests` (V658-style WebTestClient) — header presence + exact regex `^edge;dur=\d+$` — fallback path asserted by `NexusGatewayApplicationTests` (which stops the stub and asserts the 503 answer carries the same field).
+- No screenshot captured; no claim about render at pixel level — markup-level and gate-level only.
+- Two branches: master ≡ main at the same refs, all pushes this session going to both.
+
+**Queue state honest:** the Studio CI backlog grows faster than the runner drains it; every ref here reaches main-line green (2–4 min) faster than it reaches Studio CI verdict (~35–45 min in flight). Branch parity is the only invariant the runner cannot refuse.
