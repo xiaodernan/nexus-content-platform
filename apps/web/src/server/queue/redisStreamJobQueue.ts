@@ -1,6 +1,7 @@
 import { Redis } from 'ioredis';
-import type { JobEnvelope, JobHandler, JobQueue, JobQueueDriver, JobQueueOptions } from './jobQueue';
+import type { DeadLetterSink, JobEnvelope, JobHandler, JobQueue, JobQueueDriver, JobQueueOptions } from './jobQueue';
 import { MemoryJobQueue } from './memoryJobQueue';
+import { consoleDeadLetterSink, makeDeadLetter } from './deadLetter';
 
 /**
  * Redis Streams job queue.
@@ -26,6 +27,7 @@ export class RedisStreamJobQueue implements JobQueue {
   private readonly blockMs: number;
   private readonly reclaimMs: number;
   private readonly maxLen: number;
+  private readonly sink: DeadLetterSink;
 
   private readonly reader: Redis;
   private readonly writer: Redis;
@@ -45,6 +47,7 @@ export class RedisStreamJobQueue implements JobQueue {
     // nodes. If an UNPROCESSED backlog exceeds the cap, the oldest are shed to bound memory — the
     // stated trade in ADR 0066 for advisory side-effects.
     this.maxLen = options?.maxLen ?? RedisStreamJobQueue.DEFAULT_MAX_LEN;
+    this.sink = options?.onDeadLetter ?? consoleDeadLetterSink;
     // Reader: blocking reads must not queue offline; writer: a send that cannot go should not hang a request.
     this.reader = new Redis(url, { maxRetriesPerRequest: null, enableOfflineQueue: false } as never);
     this.writer = new Redis(url, { maxRetriesPerRequest: 2, enableOfflineQueue: true } as never);
@@ -96,9 +99,11 @@ export class RedisStreamJobQueue implements JobQueue {
   private async drain(handler: JobHandler): Promise<void> {
     while (this.running) {
       try {
-        // Reclaim entries this consumer (or a dead one) left pending too long.
+        // Reclaim entries this consumer (or a dead one) left pending too long. Reclaimed entries carry
+        // their raw id+fields so a poison one can be acked away too — dropping null here would strand it
+        // in PENDING forever, where XAUTOCLAIM would keep re-handing it to us each tick (v667 fix).
         const claimed = await this.reclaim();
-        for (const job of claimed) await this.process(job, handler);
+        for (const [id, fields] of claimed) await this.handleEntry(id, fields, handler);
 
         const res = (await this.reader.xreadgroup(
           'GROUP',
@@ -114,10 +119,7 @@ export class RedisStreamJobQueue implements JobQueue {
         )) as [string, [string, string[]][]][] | null;
         if (!res) continue;
         for (const [, entries] of res) {
-          for (const [id, fields] of entries) {
-            const job = this.toEnvelope(id, fields);
-            if (job) await this.process(job, handler);
-          }
+          for (const [id, fields] of entries) await this.handleEntry(id, fields, handler);
         }
       } catch (err) {
         // A blip in the read loop must not kill the worker; log and retry next tick.
@@ -127,7 +129,8 @@ export class RedisStreamJobQueue implements JobQueue {
     }
   }
 
-  private async reclaim(): Promise<JobEnvelope[]> {
+  /** Return raw id+fields (not envelopes) so the poison path still has the id to XACK. */
+  private async reclaim(): Promise<[string, string[]][]> {
     try {
       const out = (await this.writer.xautoclaim(
         this.streamKey,
@@ -138,13 +141,35 @@ export class RedisStreamJobQueue implements JobQueue {
         'COUNT',
         '10',
       )) as [string, [string, string[]][], string[]];
-      const claimed = out[1] ?? [];
-      return claimed
-        .map(([id, fields]) => this.toEnvelope(id, fields))
-        .filter((j): j is JobEnvelope => j !== null);
+      return out[1] ?? [];
     } catch {
       return [];
     }
+  }
+
+  /**
+   * The one funnel for both fresh reads and reclaimed entries. A poison entry (unparseable body / missing
+   * fields) is ACKed away AND reported to the sink — ADR 0066 promises "logged and ACKed away", which the
+   * old `if (job) process(...)` silently violated for null envelopes (never acked, re-claimed forever).
+   */
+  private async handleEntry(id: string, fields: string[], handler: JobHandler): Promise<void> {
+    const job = this.toEnvelope(id, fields);
+    if (!job) {
+      this.sink(makeDeadLetter({ kind: 'poison', type: this.rawType(fields), attempts: 0, body: this.rawBody(fields) }));
+      await this.writer.xack(this.streamKey, this.group, id);
+      return;
+    }
+    await this.process(job, handler);
+  }
+
+  /** Best-effort type/body out of a malformed field list, for the poison record only. Never throws. */
+  private rawType(fields: string[]): string {
+    for (let i = 0; i + 1 < fields.length; i += 2) if (fields[i] === 'type') return fields[i + 1] ?? '';
+    return '<unknown>';
+  }
+  private rawBody(fields: string[]): string {
+    for (let i = 0; i + 1 < fields.length; i += 2) if (fields[i] === 'body') return fields[i + 1] ?? '';
+    return '';
   }
 
   private async process(job: JobEnvelope, handler: JobHandler): Promise<void> {
@@ -158,7 +183,8 @@ export class RedisStreamJobQueue implements JobQueue {
         // as the producer path — a retry that skipped it would be the hole that lets the stream grow.
         await this.append(job.type, job.payload, job.attempts + 1);
       } else {
-        console.error(`[job-queue] DROPPED after ${job.attempts} attempts: ${job.type}`);
+        // Terminal: report to the sink (default keeps the old log line) instead of only console.error.
+        this.sink(makeDeadLetter({ kind: 'exhausted', type: job.type, attempts: job.attempts, err, body: job.payload }));
       }
       await this.writer.xack(this.streamKey, this.group, job.id);
     }
@@ -176,7 +202,7 @@ export class RedisStreamJobQueue implements JobQueue {
     try {
       payload = map.body !== undefined ? JSON.parse(map.body) : null;
     } catch {
-      return null; // poison entry — let the caller ack it away via process()'s success path
+      return null; // poison entry — handleEntry() reports it to the sink and XACKs it (v667)
     }
     const attempts = Number(map.attempts ?? '0') + 1;
     return { id, type, payload, attempts, createdAt: Date.now() };

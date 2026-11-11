@@ -1028,3 +1028,50 @@ queue is 8-deep per branch and every ref that speaks red off one row is recorded
   ③ the ledger's file-level whitelist is deliberately conservative (any `cache-control`/`vary`/`NO_STORE` token
   anywhere ⇒ compliant), trading per-exit precision for a non-brittle door — a file could still have one naked
   exit beside one guarded one; finer convergence owes a real HTTP leg on a resourced host, not a meaner regex.
+
+## 2026-11-12 addendum (cont. 27): the poison no one ACKed — dead letters become an injectable sink — ADR 0099, v667
+
+- **What closed.** ADR 0066 (`docs/decisions/0066-...`) states that unknown job types and poison
+  payloads are "logged and ACKed away". Checking that sentence against the three poison classes found
+  ONE real hole, not a doc drift: worker unknown-type (`worker.ts`) and handler schema-failure
+  (`handlers.ts`) both `console.error` + `return` ⇒ the driver's success path XACKs them (promise
+  kept, but only in logs); the TRANSPORT class — a Redis entry whose `body` fails JSON.parse or
+  lacks fields, so `toEnvelope()` returns null — hit `if (job) process(...)` and was skipped with
+  **no log and no XACK**. It stayed PENDING forever and `XAUTOCLAIM` re-handed it to a live worker
+  every `reclaimMs`, directly contradicting "never retried forever"; `MAXLEN ~` cannot shed a PENDING
+  entry either. Fixed with one funnel `handleEntry(id, fields, handler)` used by both XREADGROUP and
+  XAUTOCLAIM: poison → `sink(makeDeadLetter({ kind: 'poison' }))` then XACK (record first, so an ACK
+  failure cannot leave "neither recorded nor cleared"), and `reclaim()` now returns raw
+  `[id, fields][]` so a poison keeps the id it must ack. Retry exhaustion reports `kind: 'exhausted'`
+  through the same sink; `MemoryJobQueue` matches the shape; the default sink is the v661 log line,
+  so an unconfigured deployment is behaviour-identical.
+- **Measured.** `job-queue-deadletter.test.ts` **8/8** (3 MemoryJobQueue behaviour legs + 5 Redis
+  static wiring legs) and `dead-letter.test.ts` **11/11** (pure shape / bounded privacy preview /
+  never-throw / injectable time). RED-first: the static gate's `reclaim()` regex omitted the outer
+  `[]` (`Promise<[string, string[]]>` vs the real `Promise<[string, string[]][]>`) → 1 FAIL / 8; fixed
+  the GATE, not the implementation, re-run 8/8. Real lint found two more: `String(body)` on the
+  unstringifiable fallback produced `[object Object]` (`no-base-to-string`) → now a typed marker; two
+  indent-pinning regexes tripped `no-regex-spaces` → `{n}` quantifiers, semantically identical, gate
+  re-run 8/8. `tsc -p apps/web/tsconfig.json --noEmit` **exit 0**; eslint **3+3 files, each exit 0**
+  (6-at-once and vitest-chained runs were SIGTERM'd by the host memory peak, not red). census **exit
+  0**: 132 modules / 119 rows / arms 132/132 / 0 unclassified — `npm run` kept getting SIGTERM'd;
+  `node --max-old-space-size=384 docs/evidence/ci/evidence-census-proof.mjs` (one fewer node process
+  + capped heap) ran clean, a reusable workaround on this host.
+- **Honest gaps (ADR 0099).** ① No real-Redis poison leg — the XACK is graded by static source
+  wiring; ADR 0066's real-Redis `job-queue.test.ts` has no poison case. ② Default sink is still a
+  log; `onDeadLetter` is a hook for the deployer, not a store — this slice does not silently add
+  durable state to an advisory lane. ③ **The sink's view is incomplete**: the other two poison
+  classes (schema failure in `handlers.ts`, unknown type in `worker.ts`) still only `console.error`;
+  they ACK correctly but never reach `onDeadLetter`, so an injected ledger misses them. Convergence
+  needs a shared sink across worker/handler and driver (touches `JobHandler` signature or closure
+  injection) and is left for its own slice rather than smuggled into these verified doors. ④
+  sink-before-XACK means a failing XACK can re-deliver the same poison and record it MORE THAN ONCE
+  (never zero, but possibly duplicated) — exactly-once would need an idempotent sink, a deployer
+  contract.
+- **Shared-tree note.** Work started at `1392d95` (the parallel lane's `932d07f` ADR 0095 encoding
+  fix + `1392d95` java README); during this slice the parallel lane landed `96bd5cf` (brand language
+  on the `/game` and `/world` authoring pages — two `page.tsx`). It touched NONE of this slice's files
+  (all v667 files are `apps/web/src/server/queue/*` + `apps/web/test/*` + these three docs). Re-checked
+  `git status` + `git show --stat` + ff direction before committing; base for this commit is `96bd5cf`.
+  No `git add -A`, no force. Queue decisions live in `docs/decisions/0064`/`0066`, while the numbered
+  ADRs 0096–0099 live in `docs/adr/` — two numbering systems, now stated explicitly.

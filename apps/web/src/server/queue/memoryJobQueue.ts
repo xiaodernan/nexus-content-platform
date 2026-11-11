@@ -1,4 +1,5 @@
-import type { JobEnvelope, JobHandler, JobQueue, JobQueueOptions } from './jobQueue';
+import type { DeadLetterSink, JobEnvelope, JobHandler, JobQueue, JobQueueOptions } from './jobQueue';
+import { consoleDeadLetterSink, makeDeadLetter } from './deadLetter';
 
 /**
  * Single-instance, in-memory job queue. Used when the job lane is opted into but no Redis URL is
@@ -15,6 +16,7 @@ export class MemoryJobQueue implements JobQueue {
 
   private readonly pending: JobEnvelope[] = [];
   private readonly maxAttempts: number;
+  private readonly sink: DeadLetterSink;
   private running = false;
   private loop: Promise<void> | null = null;
   private wakeDrain: (() => void) | null = null;
@@ -22,6 +24,7 @@ export class MemoryJobQueue implements JobQueue {
 
   constructor(options?: JobQueueOptions) {
     this.maxAttempts = options?.maxAttempts ?? 5;
+    this.sink = options?.onDeadLetter ?? consoleDeadLetterSink;
   }
 
   async enqueue<T>(type: string, payload: T): Promise<string> {
@@ -62,11 +65,11 @@ export class MemoryJobQueue implements JobQueue {
       job.attempts += 1;
       try {
         await handler(job);
-      } catch {
+      } catch (err) {
         // At-least-once: a failed handler is put back for another attempt until the ceiling, then
-        // dropped (dead-letter by log, same as the Redis driver).
+        // dropped. Terminal jobs go to the same sink as the Redis driver (shape parity, v667).
         if (job.attempts < this.maxAttempts) this.pending.push(job);
-        else console.error(`[job-queue] DROPPED after ${job.attempts} attempts: ${job.type}`);
+        else this.sink(makeDeadLetter({ kind: 'exhausted', type: job.type, attempts: job.attempts, err, body: job.payload }));
       }
     }
   }

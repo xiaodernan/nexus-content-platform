@@ -27,6 +27,29 @@ export type JobHandler = (job: JobEnvelope) => Promise<void>;
 
 export type JobQueueDriver = 'redis' | 'memory';
 
+/**
+ * 一条没能完成的作业的去向记录（ADR 0066 的 "dead-letter by log" 第一步：从一行日志升级为可查询的事件）。
+ *
+ * `kind` 区分两种终态：
+ * - `exhausted`：handler 一直抛，重试到 `maxAttempts` 上限后被丢弃；
+ * - `poison`：条目本身取不出可执行的 envelope（Redis 侧 body JSON 解析失败 / 缺字段），无法交给任何 handler。
+ *
+ * 只带**摘要**不带完整 payload：`bodyPreview` 截到定长，且不保证是合法 JSON。advisory side-effect lane
+ * 不该把用户数据（通知 payload 里可能有标题 / 链接）再复制进一份长期账本；需要完整内容时应回放 Redis
+ * stream 本身（在 MAXLEN 窗口内），而不是指望这条记录。
+ */
+export interface DeadLetterEntry {
+  kind: 'exhausted' | 'poison';
+  type: string;
+  attempts: number;
+  reason: string;
+  at: number;
+  bodyPreview: string;
+}
+
+/** 可选观察者：两驱在作业进入终态（重试耗尽 / 毒条目）时调用。缺省则退回 console.error，行为不变。 */
+export type DeadLetterSink = (entry: DeadLetterEntry) => void;
+
 export interface JobQueue {
   readonly driver: JobQueueDriver;
   /** Append a job. Resolves with the job id. Never throws for a transient network blip on the Redis
@@ -53,4 +76,6 @@ export interface JobQueueOptions {
   blockMs?: number;
   /** Idle time after which an unacked pending entry is reclaimed by another worker (XAUTOCLAIM). */
   reclaimMs?: number;
+  /** 终态作业（重试耗尽 / 毒条目）的观察者。不设则只记日志——与 v661 行为完全一致。 */
+  onDeadLetter?: DeadLetterSink;
 }

@@ -175,6 +175,27 @@ family README section) and a door that reddens the sentence it repairs:
         ledger's file-level whitelist is deliberately conservative (a file mentioning cache-control
         anywhere counts compliant) rather than a brittle per-exit regex.]
 
+  v667  a poison stream entry stops being an infinite XAUTOCLAIM loop — it is reported to a pluggable
+        dead-letter sink and ACKed away (ADR 0099): ADR 0066 promised "logged and ACKed away" for
+        poison payloads, but only the worker/handler layers honoured it; the transport layer's
+        `if (job) process(...)` skipped a null envelope entirely — no log, no XACK, so the entry sat
+        PENDING and was re-claimed every tick, and `MAXLEN ~` cannot shed a PENDING entry.
+        [LANDED 2026-11-12 — § 消息队列 × Redis × 数据结构. New `DeadLetterEntry` / `DeadLetterSink`
+        + `JobQueueOptions.onDeadLetter`; `deadLetter.ts` builds bounded, privacy-truncated records
+        (120-char preview, time injectable). One `handleEntry()` funnel serves BOTH XREADGROUP and
+        XAUTOCLAIM; poison → sink(kind:poison) THEN XACK (a failed ACK still leaves a record), and
+        `reclaim()` returns raw [id, fields] so a poison keeps the id it must ack. Exhausted retries
+        use the same sink; MemoryJobQueue matches the shape; default sink is the old console.error
+        line, so an unconfigured deployment is behaviour-identical to v661. Doors 8/8 + 11/11; a
+        RED-first static-gate spelling bug (reclaim signature regex missing its outer `[]`) was fixed
+        in the GATE, not the implementation; real lint caught `String(body)`'s [object Object] and two
+        no-regex-spaces. tsc 0, eslint 3+3 files 0 (6-at-once and vitest-chained runs SIGTERM on this
+        host — resource, not red), census 132/119/132-arms unchanged via capped-heap direct node.
+        HONEST GAP: no real-Redis poison leg; and the OTHER two poison classes (bad schema in
+        handlers.ts, unknown type in worker.ts) still only console.error — they ACK correctly but do
+        NOT reach the sink, so an injected ledger is incomplete; that convergence is named for a
+        separate slice, not smuggled into verified doors.]
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and
