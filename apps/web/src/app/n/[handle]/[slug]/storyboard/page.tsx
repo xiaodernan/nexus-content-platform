@@ -38,11 +38,23 @@ export default async function PublicStoryboardPage({ params }: { params: Promise
   if (page.storyboardDocument === null || page.storyboardDocument === undefined) {
     return (
       <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-storyboard="none">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">这一版没有分镜稿</h1>
-        <p className="text-13 text-fg-2" data-storyboard-none-reason>
-          发布的时候这个项目还没有 §40 的分镜文档，所以这一版没钉住镜头表。
-          这里不会拿作者现在的工作稿顶上——那是另一份东西，而且它随时在变。
-        </p>
+        <div className="flex flex-col items-start gap-4 rounded-2xl border border-[var(--nexus-color-border-subtle)] bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-8">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--nexus-color-brand)]/40 bg-gradient-to-br from-[var(--nexus-color-brand)]/20 via-bg-2 to-[var(--nexus-color-accent-2)]/20 text-[var(--nexus-color-accent-2-ink)]">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M7 4v12a2 2 0 0 0 2 2h8m-8-14h11a1 1 0 0 1 1 1v10m-12 4h11a1 1 0 0 0 1-1V6" />
+            </svg>
+          </span>
+          <div className="flex flex-col gap-1">
+            <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
+              STORYBOARD
+            </span>
+            <h1 className="text-[var(--nexus-font-size-21)] font-semibold">这一版没有分镜稿</h1>
+          </div>
+          <p className="max-w-md text-13 leading-6 text-fg-2" data-storyboard-none-reason>
+            发布的时候这个项目还没有 §40 的分镜文档，所以这一版没钉住镜头表。
+            这里不会拿作者现在的工作稿顶上——那是另一份东西，而且它随时在变。
+          </p>
+        </div>
         {back}
       </main>
     );
@@ -52,7 +64,18 @@ export default async function PublicStoryboardPage({ params }: { params: Promise
   if (!parsed.success) {
     return (
       <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-storyboard="broken">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">这一版钉住的分镜读不出来</h1>
+        <div className="flex flex-col items-start gap-4 rounded-2xl border border-[color:var(--nexus-color-brand)]/35 bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-8 shadow-[0_0_32px_rgb(91_108_255/0.12)]">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--nexus-color-brand)]/40 bg-gradient-to-br from-[var(--nexus-color-brand)]/20 via-bg-2 to-[var(--nexus-color-accent-2)]/20 text-[var(--nexus-color-accent-2-ink)]">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 9v4m0 4h.01M10.29 3.86 2.82 17a2 2 0 0 0 1.71 3h14.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+            </svg>
+          </span>
+          <div className="flex flex-col gap-1">
+            <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
+              UNREADABLE
+            </span>
+            <h1 className="text-[var(--nexus-font-size-21)] font-semibold">这一版钉住的分镜读不出来</h1>
+          </div>
         <ul className="flex flex-col gap-1">
           {parsed.error.issues.slice(0, 5).map((issue) => (
             <li key={`${issue.path.join('.')}-${issue.message}`} className="text-12 text-danger-ink" data-storyboard-issue>
@@ -60,9 +83,10 @@ export default async function PublicStoryboardPage({ params }: { params: Promise
             </li>
           ))}
         </ul>
-        <p className="text-11 text-fg-3">
+        <p className="max-w-md text-11 leading-5 text-fg-3">
           明说读不出来，比悄悄给一张空镜头表诚实（§159）。这一版钉住的就是这些字节，重新发布才会换。
         </p>
+        </div>
         {back}
       </main>
     );
@@ -72,18 +96,28 @@ export default async function PublicStoryboardPage({ params }: { params: Promise
   const totalMs = storyboard.shots.reduce((sum, shot) => sum + shot.durationMs, 0);
   return (
     <main className="mx-auto flex max-w-[880px] flex-col gap-4 px-6 py-8" data-storyboard="live">
-      <header className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h1 className="text-[var(--nexus-font-size-21)] font-semibold" data-storyboard-title>
+      <header className="relative flex flex-col gap-2">
+        <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
+          STORYBOARD
+        </span>
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
+          <h1
+            className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent"
+            data-storyboard-title
+          >
             {storyboard.title}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
+            />
           </h1>
           {back}
         </div>
-        <p className="text-11 text-fg-3" data-storyboard-source>
+        <p className="max-w-lg text-13 leading-6 text-fg-2" data-storyboard-source>
           {ARROW_LABELS[storyboard.source.arrow]}
           {storyboard.source.prompt.trim() ? ` ·「${storyboard.source.prompt}」` : ''}
         </p>
-        <p className="text-11 text-fg-3" data-storyboard-pinned>
+        <p className="max-w-lg text-11 leading-5 text-fg-3" data-storyboard-pinned>
           {page.ownerName} 发布的第 {page.publication.version} 版 · 这一页读的是发布那一刻钉住的分镜头表，
           作者之后的改动不会跑到这个链接上
         </p>
@@ -94,7 +128,7 @@ export default async function PublicStoryboardPage({ params }: { params: Promise
           {storyboard.shots.map((shot, index) => (
             <li
               key={shot.id}
-              className="rounded border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-[var(--nexus-space-3)]"
+              className="rounded-xl border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-[var(--nexus-space-3)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--nexus-color-brand)] hover:shadow-[0_18px_48px_rgb(91_108_255/0.2)]"
               data-storyboard-shot
             >
               <p className="font-mono text-11 text-fg-3" data-storyboard-shot-meta>

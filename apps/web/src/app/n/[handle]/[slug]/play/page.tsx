@@ -33,11 +33,23 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
   if (page.gameDocument === null || page.gameDocument === undefined) {
     return (
       <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-play="none">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">这一版没有可玩内容</h1>
-        <p className="text-13 text-fg-2">
-          发布的时候这个项目还没有 §54 的游戏设计文档，所以这一版没钉住可玩的东西。
-          这里不会拿作者现在的工作稿顶上——那是另一份东西，而且它随时在变。
-        </p>
+        <div className="flex flex-col items-start gap-4 rounded-2xl border border-[var(--nexus-color-border-subtle)] bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-8">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--nexus-color-brand)]/40 bg-gradient-to-br from-[var(--nexus-color-brand)]/20 via-bg-2 to-[var(--nexus-color-accent-2)]/20 text-[var(--nexus-color-accent-2-ink)]">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 12h4m-2-2v4m7-3v4m1-4h2.5A1.5 1.5 0 0 1 22 12v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a8 8 0 0 1 16 0Z" />
+            </svg>
+          </span>
+          <div className="flex flex-col gap-1">
+            <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
+              PLAY
+            </span>
+            <h1 className="text-[var(--nexus-font-size-21)] font-semibold">这一版没有可玩内容</h1>
+          </div>
+          <p className="max-w-md text-13 leading-6 text-fg-2">
+            发布的时候这个项目还没有 §54 的游戏设计文档，所以这一版没钉住可玩的东西。
+            这里不会拿作者现在的工作稿顶上——那是另一份东西，而且它随时在变。
+          </p>
+        </div>
         {back}
       </main>
     );
@@ -47,7 +59,18 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
   if (!parsed.success) {
     return (
       <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-play="broken">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">这一版钉住的游戏读不出来</h1>
+        <div className="flex flex-col items-start gap-4 rounded-2xl border border-[color:var(--nexus-color-brand)]/35 bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-8 shadow-[0_0_32px_rgb(91_108_255/0.12)]">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--nexus-color-brand)]/40 bg-gradient-to-br from-[var(--nexus-color-brand)]/20 via-bg-2 to-[var(--nexus-color-accent-2)]/20 text-[var(--nexus-color-accent-2-ink)]">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 9v4m0 4h.01M10.29 3.86 2.82 17a2 2 0 0 0 1.71 3h14.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+            </svg>
+          </span>
+          <div className="flex flex-col gap-1">
+            <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
+              UNREADABLE
+            </span>
+            <h1 className="text-[var(--nexus-font-size-21)] font-semibold">这一版钉住的游戏读不出来</h1>
+          </div>
         <ul className="flex flex-col gap-1">
           {parsed.error.issues.slice(0, 5).map((issue) => (
             <li key={`${issue.path.join('.')}-${issue.message}`} className="text-12 text-danger-ink" data-play-issue>
@@ -55,9 +78,10 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
             </li>
           ))}
         </ul>
-        <p className="text-11 text-fg-3">
+        <p className="max-w-md text-11 leading-5 text-fg-3">
           明说读不出来，比悄悄给一个空关卡诚实（§159）。这一版钉住的就是这些字节，重新发布才会换。
         </p>
+        </div>
         {back}
       </main>
     );
@@ -68,15 +92,25 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
   const projection = compileForKind(document);
   return (
     <main className="mx-auto flex max-w-[1180px] flex-col gap-4 px-6 py-8" data-play="live">
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <h1 className="text-[var(--nexus-font-size-21)] font-semibold" data-play-title>
+      <header className="relative flex flex-wrap items-baseline justify-between gap-4">
+        <div className="relative flex flex-col gap-1">
+          <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
+            PLAYING
+          </span>
+          <h1
+            className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent"
+            data-play-title
+          >
             {document.name}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
+            />
           </h1>
           <p className="text-11 text-fg-3" data-play-subtitle>
             {describeProjection(document, projection)}
           </p>
-          <p className="text-11 text-fg-3" data-play-pinned>
+          <p className="max-w-lg text-11 leading-5 text-fg-3" data-play-pinned>
             {page.ownerName} 发布的第 {page.publication.version} 版 · 这一页玩的是发布那一刻钉住的游戏设计，
             作者之后的改动不会跑到这个链接上
           </p>
