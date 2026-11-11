@@ -20,7 +20,11 @@ export default async function BlocksPage() {
   const muted = blocks.filter((b) => b.kind === 'mute');
 
   const row = (b: (typeof blocks)[number]) => (
-    <li key={b.targetId} className="flex items-center justify-between gap-3 rounded bg-bg-1 px-3 py-2" data-block-row={b.handle ?? b.targetId}>
+    <li
+      key={b.targetId}
+      className="group flex items-center justify-between gap-3 rounded-xl border border-[var(--nexus-color-border-subtle)] bg-bg-1 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--nexus-color-brand)] hover:shadow-[0_18px_48px_rgb(91_108_255/0.2)]"
+      data-block-row={b.handle ?? b.targetId}
+    >
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-13 text-fg-1" data-block-row-name>
           {b.name}
@@ -36,9 +40,23 @@ export default async function BlocksPage() {
 
   return (
     <main className="mx-auto flex max-w-[720px] flex-col gap-4 px-6 py-10" data-blocks-root>
-      <header className="flex items-baseline justify-between gap-3">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">已拉黑与已屏蔽</h1>
-        <Link href="/" className="text-11 text-accent-2-ink underline" data-blocks-home>
+      <header className="relative flex flex-wrap items-baseline justify-between gap-4">
+        <div className="relative flex flex-col gap-1">
+          <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
+            BOUNDARY
+          </span>
+          <h1
+            className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent"
+            data-blocks-title
+          >
+            已拉黑与已屏蔽
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
+            />
+          </h1>
+        </div>
+        <Link href="/" className="whitespace-nowrap text-accent-2-ink underline" data-blocks-home>
           回主页
         </Link>
       </header>
@@ -50,7 +68,7 @@ export default async function BlocksPage() {
       </p>
 
       <section>
-        <h2 className="text-13 font-semibold text-fg-1">拉黑（{blocked.length}）</h2>
+        <h2 className="font-mono text-11 uppercase tracking-[0.2em] text-[var(--nexus-color-accent-2-ink)]">拉黑 · {blocked.length}</h2>
         {blocked.length === 0 ? (
           <p className="mt-1 text-12 text-fg-3" data-blocks-empty="block">
             没有拉黑过任何人。
@@ -63,7 +81,7 @@ export default async function BlocksPage() {
       </section>
 
       <section>
-        <h2 className="text-13 font-semibold text-fg-1">屏蔽（{muted.length}）</h2>
+        <h2 className="font-mono text-11 uppercase tracking-[0.2em] text-[var(--nexus-color-accent-2-ink)]">屏蔽 · {muted.length}</h2>
         {muted.length === 0 ? (
           <p className="mt-1 text-12 text-fg-3" data-blocks-empty="mute">
             没有屏蔽过任何人。
