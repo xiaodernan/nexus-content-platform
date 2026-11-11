@@ -3,6 +3,10 @@
 - 状态：Proposed（本轮只探查定稿、未改生产代码）
 - 编号沿革：本文件初稿占过 `0123`，与并行会话的 `0123-fe-elevation-redline.md` 撞号；2026-11-11 本轮以
   `git mv` 让位并重编为 `0125`（`0124` 归同轮的令牌桶判据片），全仓 ADR 编号恢复唯一。
+- 消歧：本文件的 **SC-50 专指「共享缓存 `retryStrategy` 断后永不重连 + `driver` 诚实读数」** 这条缺口；
+  请勿与并行会话一个同样标了 `§SC-50` 的 commit（`0410ba24`，修 Java `/actuator/info` live 实测、改
+  `application.yml` + `ActuatorShapeTest`）混淆——那是一条独立的 Java 元数据修复，与本文件无关，且
+  未在 ROADMAP 登记正式片号。本片仍是**探查定稿、代码待干净全仓窗口**，状态未变。
 - 日期：2026-11-11
 - 相关：ADR-0112（`BoundedCache`）、ADR-0114（Redis pub/sub 双连接骨架 / fail-open）、ADR-0115（没接上绝不画成四账 0）、§SC 第四十四/四十五片同一"诚实读数"纪律
 
