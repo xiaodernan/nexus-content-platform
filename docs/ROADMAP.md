@@ -12053,3 +12053,11 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **修正记录（写进 ADR-0133）**：候选①原话"零判据"不是确数——精确说法是"间接 21 条、store 本体 0 → 11"。
 - **诚实边界**：本机内存态测不出 OOM/真并发调度（并发判据在 HTTP 层与 Redis 后端）；`_purge` 触发时机是 enqueue 前而非满了就清（判据写进去了）；内存后端是单机兜底，正确答案永远是"配置 Redis"——判据钉的是 note 说实话。
 - **仍欠**：RedisJobStore 裸判据（通路已建：opt-in `NEXUS_REDIS_URL=redis://127.0.0.1:6380/0`）；Worker 取消检查点粒度；内存后端 CI 默认干掉 Redis flag 另评估。未 push。详见 ADR-0133。
+
+## §SC 第五十七片（§SC-57）：取消的排队作业从 pending list 真摘掉（2026-11-11 / ADR-0134）
+- **为什么**：`/healthz` 的 pending 由 `llen(pending)` 直报（O(1)），而 `request_cancel` 的排队分支把作业落成 `cancelled` 却不动 list —— 一个已死作业永远占 `llen` 一格，pending 虚高一件、两后端（memory 按 status、redis 按 list）口径分叉。
+- **做法（手术刀改 2 处）**：`request_cancel` 排队分支落状态后 `LREM pending 0 <id>`（claim 抢先则摘零条、失败静默继续，claim 侧状态过滤为封底）；`counts()` 注释同步"为什么 LLEN 够用"。**未触 memory 后端一行**。
+- **判据（打真 Redis 127.0.0.1:6380，独立前缀，收尾扫删自己的键）**：`test_redis_job_store.py` **8/8**——FIFO、TTL 幽灵被 LPOP 跳过、**取消摘 pending 后 counts=(1,0) 而非 (2,0)**、worker 整份写回不抹取消标志（独立 `jobcancel:` key）、未知 id 拒绝、前缀隔离、完整生命周期 (0,0)、note 自报真相。
+- **数字**：新判据 **8/8**；全套 **96/96**（88+8）同一 env 全绿，HTTP/worker 零回归。
+- **诚实边界**：LREM 是 O(n)，发生在低频取消路径；`LLEN` 结构性取舍保留（claim 高频 O(1)）；若绕开 `request_cancel` 淘汰作业键（TTL），claim 照旧跳过但 counts 不保成——需 reaper 另立片根治；多副本并发交错只论证了、没在一个真集群测。
+- **仍欠**：reaper 扫过期者认领；worker 取消检查点密度；CI 里缺 `NEXUS_REDIS_URL` 时全文件 skip（文档已写清，缺 env≠绿）；两后端大量作业下 counts SCAN 成本未实测缩放。**未 push**。详见 ADR-0134。
