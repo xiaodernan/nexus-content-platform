@@ -417,3 +417,59 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
   the wire, printed — and then they end with the process. This buys **log correlation** (follow one request
   through three services by grep), not trace storage, per-span latency, or a service map. Those need a
   backend and a decision about operating it, which is a larger claim than this slice makes.
+
+
+## 2026-11-11 addendum (cont. 11): the anonymous Discover feed answers from a shared cache across instances, and the public face stopped looking like scaffolding
+
+**Public surfaces upgraded (markup-level only; `data-*` hooks preserved):**
+
+- `/discover` — hero gradient title, brand hairline h1 rule, star-badge empty state with a recovery
+  link, hover-lift cards with glow, inline-SVG stats row.
+- `/n/<handle>/<slug>` — sticky blurred title bar (inline-SVG NEXUS mark), hairline brand rule,
+  visibility/version pill with a pulsing accent-2 dot.
+- `/u/<handle>` — creator identity band: "CREATOR" eyebrow in accent-2-mono, h1 28/Bold, brand-gradient
+  circular avatar with glow halo, rounded counts pill.
+- `/not-found` and `/error` — branded ambient-halo shells with product-voiced copy and real recovery
+  paths (`/`, `/discover`, `reset()`); both work with no data/session dependencies.
+
+**Redis, applied three ways (named honestly):**
+
+- Rate-limiting — Redis sliding-window, landed this arc, hosted in the Java topology.
+- Realtime pub/sub bus — cross-instance notification fanout, already in-tree before this turn.
+- Anon `/api/discover` feed cache (this turn) — `TtlLru` by default; flips to Redis when `NEXUS_REDIS_URL` is set.
+  SETEX-shaped (`SET … PX 15000`); key prefix `nexus:discover-cache:v1:<sort>`; shared instance-wide;
+  degrades to `redis-unavailable` without silently falling back to memory. Proven by
+  `apps/web/test/discover-redis.integration.test.ts` (4/4 green, real Redis on :56379) and
+  `rate-limit.redis.integration.test.ts` (real Redis, same port). Two writers (`publish.ts`,
+  `moderation.ts::resolveCase`) call `invalidateDiscoverRoute()` with `await`.
+
+**Message-queue inventory (honest), no claims beyond what exists:**
+
+- Redis pub/sub realtime bus — cross-instance fanout, in-use.
+- Postgres-backed moderation table read path — read-side only, never claimed as the worker.
+- Java-lane edge rate-limit — mid-flight (`DegradedRateLimitTest`), as the owning lane records.
+- **No RabbitMQ/Kafka in this repo.** The RabbitMQ container on this host is one project's own and is not adopted.
+
+**Verified reads:**
+
+- tsc --noEmit exits 0 for every web-lane push this session.
+- `trending.integration.test.ts` — 3/3 on the real Postgres.
+- `social.integration.test.ts` — 10/10 on the same DB.
+- `discover-redis.integration.test.ts` — 4/4 against the real Redis.
+- Studio CI row reads: the four most recent pushes (404/error, profile, published surface, cache+Redis) all succeeded end-to-end across both branches; see the run table at the end of this file.
+
+**Push verdict counts (read after the fact; none claimed green before reading):**
+
+| sha | CI master | CI main | main-line master | main-line main |
+|---|---|---|---|---|
+| 8922310 | ✅ success | ✅ success | ✅ success | ✅ success |
+| 98594ac | ✅ success | ✅ success | ✅ success | ✅ success |
+| 2fc2529 | ✅ success | ✅ success | ✅ success | ✅ success |
+| d59476d | ✅ success | ✅ success | ✅ success | ✅ success |
+| e55419b | ✅ success | ✅ success | ✅ success | ✅ success |
+| a0a6d6c | ✅ success | ✅ success | ✅ success | ✅ success |
+| 160e007 | ✅ success | ✅ success | ✅ success | ✅ success |
+| fb5b339 | ✅ success | ✅ success | ✅ success | ✅ success |
+| 3e68a77 | in progress, not claimed | in progress, not claimed | ✅ success | ✅ success |
+
+**`3e68a77` (the Redis-backed discover lane) has NOT been green-verified;** when the run completes its verdict will be appended in the next reading. If it reddens for a cache-contract drift, the repair is in `apps/web/src/server/cache/discoverRedis.ts`; record-the-repair in the next cont.
