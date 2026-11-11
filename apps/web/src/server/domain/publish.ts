@@ -12,6 +12,7 @@ import { currentBranchId } from './branches';
 import { emit } from './notifications';
 import { createSnapshot, readSnapshot } from './snapshots';
 import { channels, getRealtimeBus } from '../realtime/bus';
+import { invalidateDiscoverRoute } from '../cache/discoverRouteCache';
 import { DELETED_USER_LABEL } from './audit';
 
 /**
@@ -312,7 +313,10 @@ export async function publishProject(
     version: publication.version,
     visibility: input.visibility,
   });
-  // 到这里才是"这一版构建产物真的落库了"：publication 行写好、审计与通知都记上了
+  // 到这里才是"这一版构建产物真的落库了"：publication 行写好、审计与通知都记上了。
+  // 匿名 `/api/discover` 的 15 秒缓存从这一刻起失效——曾今发生的一切公开页面都必须可见
+  // （§46 缓存有自己的寿命，但寿命由真实写路径拔掉，不靠等待）。
+  invalidateDiscoverRoute();
   emitBuildStatus(projectId, 'ok', `v${publication.version} · ${publication.path} · 可见性 ${input.visibility}`);
   await publishPreviewStatus(projectId, publication.path, outward);
   return { ok: true, publication, gate, scan, snapshotId: written.snapshotId };

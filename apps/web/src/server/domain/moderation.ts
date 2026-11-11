@@ -6,6 +6,7 @@ import { recordAudit } from './audit';
 import { isUuid } from './ids';
 import { abuseReports, moderationCases, projects, publishedProjects, users } from '../db/schema';
 import { emit } from './notifications';
+import { invalidateDiscoverRoute } from '../cache/discoverRouteCache';
 
 /**
  * §131 发布审核：upload → 机检 → 风险分级 → 发布或人工复核。
@@ -313,6 +314,8 @@ export async function resolveCase(
       .set({ moderation: actor.resolution })
       .where(eq(publishedProjects.id, existing.publicationId));
     hidden = actor.resolution === 'rejected';
+    // §46：裁决是公开列表的真相突变——匿名 Discover 的 15 秒缓存同一秒清空
+    invalidateDiscoverRoute();
   }
   if (actor.resolution === 'rejected' && existing.publicationId) {
     // 只在真挂了发布行时才有举报可关：`?? ''` 那种写法会把空串塞进 uuid 列，
