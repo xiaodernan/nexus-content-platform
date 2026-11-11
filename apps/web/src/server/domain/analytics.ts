@@ -171,7 +171,12 @@ export interface AnalyticsNumbers {
   remixes: number;
   /** 作者级：关注这个人，不是这一版作品 */
   followers: number;
-  /** 平均"最远到达比例"，以及它是几个访客聚合出来的；一个都没有时 null */
+  /**
+   * 平均"最远到达比例"，以及这个平均是几个**滚过 0% 的 人·天 行**算出来的（`over`）。
+   * 口径说全：`>0` 才进分子也才进 `over`，打开即走、一秒心跳都没留下的 0% 不计入——
+   * 它数的是「滚过 0% 的 人×天 行数」，不是去重人数，也不是全部上报行（同一人分两天各滚过就记 2）。
+   * 一个这样的行都没有时整格为 null，不是 0。
+   */
   completion: { avgPct: number; over: number } | null;
   /** 累计可见时长；一条心跳都没有时 null，不拿 views 换算 */
   playTimeMs: number | null;
@@ -525,7 +530,9 @@ const EXPORT_COLUMNS: readonly { label: string; pick: (row: PublicationAnalytics
   { label: '改编', pick: (row) => String(row.analytics.remixes) },
   { label: '关注作者', pick: (row) => String(row.analytics.followers) },
   { label: '平均完成度%', pick: (row) => (row.analytics.completion ? String(row.analytics.completion.avgPct) : '') },
-  { label: '达标的访客', pick: (row) => (row.analytics.completion ? String(row.analytics.completion.over) : '') },
+  // 口径注：这一格是「滚过 0% 的 人·天 行数」，不是去重人数、也不是全部上报行；
+  // 打开即走的 0% 与爬虫都不计入（>0 才进分子与分母）。CSV 下载给人看，故表头自带口径。
+  { label: '滚过0%的人·天行数', pick: (row) => (row.analytics.completion ? String(row.analytics.completion.over) : '') },
   { label: '通关过人数', pick: (row) => String(row.analytics.completedVisitors) },
   { label: '疑似爬虫通关', pick: (row) => String(row.analytics.botCompletions) },
   // 非互动作品这一格没有意义 ⇒ 留空（与页面上那个 `—` 同一句话：空不是 0）
@@ -594,7 +601,10 @@ export interface DailyPoint {
   visitors: number;
   /** 这一天累计的可见时长；这一天一条真人心跳都没有时是 null */
   playTimeMs: number | null;
-  /** 这一天各真人访客"最远到达比例"的平均值；这一天没人上报过完成度时 null */
+  /**
+   * 这一天各真人"最远滚到比例"的平均：只数**滚过 0%** 的 人·天 行，打开即走的 0% 不计入；
+   * 当天一条 >0 的都没有（含全是 0%）时是 null 不是 0——"来过但没滚"与"没采到"仍分得开。
+   */
   completionPct: number | null;
 }
 
@@ -605,9 +615,12 @@ export interface VisitTotals {
   visitors: number;
   /** 窗口内累计可见时长；整个窗口一条真人心跳都没有时 null */
   playTimeMs: number | null;
-  /** 窗口内有完成度上报的那些行的平均值 */
+  /** 窗口内**滚过 0%** 的真人 人·天 行"最远到达比例"的平均；打开即走的 0% 不计入，一条都没有时 null */
   completionPct: number | null;
-  /** 上面那个平均是几行算出来的 */
+  /**
+   * 上面那个平均是几个**滚过 0%** 的 人·天 行算出来的（不是去重人数、也不是全部上报行）：
+   * 0% 与爬虫都不计入，同一人分两天各滚过记 2。表头那格因此叫「滚过0%的人·天行数」。
+   */
   completionOver: number;
   /** 窗口内有访客活动的天数（那天至少有一条真人心跳） */
   activeDays: number;
@@ -615,7 +628,8 @@ export interface VisitTotals {
   botOpens: number;
 }
 
-interface VisitDayRow {
+/** 窗口聚合的输入行（人 × 天）。导出只为让纯内存判据能合成行喂 `totalsOf` / `dailySeries`，不改变任何行为。 */
+export interface VisitDayRow {
   day: string;
   visitorKey: string;
   opens: number;
@@ -689,8 +703,10 @@ function emptyTotals(): VisitTotals {
 /**
  * §168 第三片：窗口的数按真人/爬虫分开算——曲线与汇总只数真人，
  * 爬虫的打开次数单独给一格（totals.botOpens），不混进"有没有人在来"这个问题的答案里。
+ *
+ * 导出只为纯内存不变量判据：合成人×天行直接验聚合口径，不建库、不读时钟。调用方与行为一字未动。
  */
-function totalsOf(rows: readonly VisitDayRow[]): VisitTotals {
+export function totalsOf(rows: readonly VisitDayRow[]): VisitTotals {
   const humans = rows.filter((row) => !row.suspectedBot);
   const botOpens = rows.reduce((sum, row) => (row.suspectedBot ? sum + row.opens : sum), 0);
   if (!humans.length) return { ...emptyTotals(), botOpens };
@@ -712,8 +728,12 @@ function totalsOf(rows: readonly VisitDayRow[]): VisitTotals {
   };
 }
 
-/** 把窗口里缺的那些天补成 0，得到日期密集的一条曲线（只数真人，爬虫不画） */
-function dailySeries(rows: readonly VisitDayRow[], window: DayWindow): DailyPoint[] {
+/**
+ * 把窗口里缺的那些天补成 0，得到日期密集的一条曲线（只数真人，爬虫不画）。
+ *
+ * 导出只为纯内存不变量判据：验"按天先过滤 0% 再平均"与日期密集补齐。行为一字未动。
+ */
+export function dailySeries(rows: readonly VisitDayRow[], window: DayWindow): DailyPoint[] {
   const byDay = new Map<string, VisitDayRow[]>();
   for (const row of rows) {
     if (row.suspectedBot) continue; // 曲线回答"有没有人在来"，爬虫不是"人来"

@@ -35,7 +35,7 @@ const DEFINITIONS: { label: string; meaning: string }[] = [
   },
   { label: '点赞 / 改编', meaning: '挂在项目上，不是这一版：重新发布不会把它们清零' },
   { label: '粉丝', meaning: '作者级：关注的是这个人，不是这份作品' },
-  { label: '完成度', meaning: '每个访客"最远滚到页面几成"的平均值。内容比视口短时它就是 100%（没有可滚的地方=整页都在眼前）' },
+  { label: '完成度', meaning: '每个访客"最远滚到页面几成"的平均值，按 人·天 行逐条加权：只数滚过 0% 的真人行，打开即走、一秒心跳都没留下的 0% 不计入（所以那个 over 是「滚过 0% 的人·天行数」，不是去重人数，也不是全部上报行）。内容比视口短时它就是 100%（没有可滚的地方=整页都在眼前）' },
   {
     label: '通关过',
     meaning:
@@ -85,7 +85,7 @@ function CompletionCell({ analytics }: { analytics: AnalyticsNumbers }): ReactEl
   return (
     <td className="px-2 py-1 text-right font-mono text-12 text-fg-1" data-analytics-value="completion">
       {analytics.completion.avgPct}%
-      <span className="ml-1 text-11 text-fg-3">/ {analytics.completion.over} 人</span>
+      <span className="ml-1 text-11 text-fg-3">/ {analytics.completion.over} 人·天</span>
     </td>
   );
 }
@@ -296,7 +296,7 @@ export default async function AnalyticsPage(props: {
                 <span className="text-fg-3">未采集</span>
               ) : (
                 <span className="font-mono text-fg-1" data-analytics-window="completion">
-                  {overview.totals.completionPct}%（{overview.totals.completionOver} 条上报）
+                  {overview.totals.completionPct}%（{overview.totals.completionOver} 个滚过 0% 的 人·天；打开即走的 0% 不计入）
                 </span>
               )}
             </li>
