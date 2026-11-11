@@ -860,4 +860,24 @@
     .ss-back, .ss-shot { transition: none; }
     .ss-back:hover, .ss-shot:hover { transform: none; }
   }
+
+  /* ── §A11Y-1 / ADR-0146 渐变墨字高对比度回退 ──────────────────────────────
+   * 跨 UA 加固（措辞经真 Chrome 实测收紧）：FE-1~FE-8 的渐变墨字标题（下列 8 个）常规态
+   * 是 color:transparent + background-clip:text。真 Chrome 在 forced-colors:active 下会
+   * 内建保护——强制 color 成系统前景色、把渐变 background 清成 none，故"Chrome 高对比度
+   * 标题变空白字"并不成立、不夸大；真正残留的是 background-clip:text 没回落。Chrome 兜住
+   * color/bg，但其它 UA / 用户自定义高对比度主题不保证同等保护，clip 残留是跨 UA 隐患。
+   * 修法（防御性、零常规视觉变化）：显式回落 background-clip 到 border-box、清空渐变背景、
+   * color 设系统色 CanvasText、声明 forced-color-adjust:auto。用系统色而非写死色，才能自动
+   * 适配用户选的任意对比度配色（零 hex、零 nexus token——双主题 token 不覆盖自定义高对比度）。
+   * 真浏览器 A/B 见 e2e/forced-colors.spec.ts（测 clip:text→border-box 这个可区分量）。 */
+  @media (forced-colors: active) {
+    .dv-title, .mk-title, .hp-heroTitle, .se-title,
+    .pf-name, .pb-title, .pp-title, .ss-title {
+      forced-color-adjust: auto;
+      background: none;
+      -webkit-background-clip: border-box; background-clip: border-box;
+      color: CanvasText;
+    }
+  }
 }
