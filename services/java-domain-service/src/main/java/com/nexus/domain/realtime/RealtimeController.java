@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,13 +41,26 @@ public class RealtimeController {
             @RequestParam(required = false) String body) {
         String json = publisher.publishNotification(channel, projectId, title, body);
         if (json == null) {
+            // `redis_unavailable` 保留这个识别符（SC-53 已发布、smoke 可能按它判断）；
+            // 精确原因（tooLargeDropped vs redisFailures）去 GET /api/v1/realtime/stats 对账。
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(Map.of("published", false, "error", "redis_unavailable"));
+                    .body(Map.of("published", false, "error", "redis_unavailable",
+                            "note", "精确原因见 GET /api/v1/realtime/stats"));
         }
         return ResponseEntity.ok(Map.of(
                 "published", true,
                 "channel", WirePublisher.WIRE_CHANNEL,
                 "frame", json));
+    }
+
+    /**
+     * 读数口径：这进程进出的帧——{@code publishedTotal} 成功 / {@code tooLargeDropped} 超限丢 /
+     * {@code redisFailures} 线路异常。不打库。是否需要认证同 {@code /policy} 一样敞开——
+     * 数字不带内容，不外泄任何请求的载荷。
+     */
+    @GetMapping("/stats")
+    public Map<String, Object> stats() {
+        return publisher.stats();
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

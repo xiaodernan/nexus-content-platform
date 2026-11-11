@@ -1,5 +1,8 @@
 package com.nexus.domain.realtime;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.concurrent.atomic.LongAdder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -29,6 +32,13 @@ public class WirePublisher {
 
     static final String DEFAULT_CHANNEL = "projects:probe";
 
+    /** 与 web 侧 `MAX_FRAME_BYTES` 对齐：超过 64 KiB 的帧在发线路前就地丢弃。 */
+    public static final int MAX_FRAME_BYTES = 64 * 1024;
+
+    private final LongAdder publishedTotal = new LongAdder();
+    private final LongAdder tooLargeDropped = new LongAdder();
+    private final LongAdder redisFailures = new LongAdder();
+
     /** web 订阅方按这个前缀辨认 Java 源的帧。恒为此值，勿改。 */
     static final String ORIGIN = "java-domain-service";
 
@@ -51,13 +61,30 @@ public class WirePublisher {
      */
     public String publishNotification(String channel, String projectId, String title, String body) {
         String json = frameJson(channel, projectId, title, body);
+        if (json.getBytes(StandardCharsets.UTF_8).length > MAX_FRAME_BYTES) {
+            tooLargeDropped.increment();
+            log.warn("realtime frame too large: {} bytes (cap {})", json.getBytes(StandardCharsets.UTF_8).length, MAX_FRAME_BYTES);
+            return null;
+        }
         try {
             redis.convertAndSend(WIRE_CHANNEL, json);
+            publishedTotal.increment();
             return json;
         } catch (RuntimeException e) {
+            redisFailures.increment();
             log.warn("realtime wire publish failed: {}", e.getMessage());
             return null;
         }
+    }
+
+    /** 计数读数（{@code /api/v1/realtime/stats} 用）：这进程进出的帧，一目了然。 */
+    public Map<String, Object> stats() {
+        return Map.of(
+                "wireChannel", WIRE_CHANNEL,
+                "maxFrameBytes", MAX_FRAME_BYTES,
+                "publishedTotal", publishedTotal.sum(),
+                "tooLargeDropped", tooLargeDropped.sum(),
+                "redisFailures", redisFailures.sum());
     }
 
     /** 组线路帧 JSON。参数不合法直接抛——web 侧 min(1) 把这条帧丢掉只会让排障更难。 */

@@ -77,4 +77,33 @@ class WirePublisherFrameShapeTest {
         assertThat(result).isNull();
         factory.destroy();
     }
+
+    @Test
+    void oversizeFrameIsDroppedBeforeItReachesTheLine() {
+        var unreachable = new StringRedisTemplate();
+        var factory = new LettuceConnectionFactory("127.0.0.1", 1);
+        unreachable.setConnectionFactory(factory);
+        factory.afterPropertiesSet();
+        var publisher = new WirePublisher(unreachable);
+
+        String hugeBody = "x".repeat(WirePublisher.MAX_FRAME_BYTES + 1024);
+        String result = publisher.publishNotification("projects:x", null, "t", hugeBody);
+
+        assertThat(result).isNull();
+        assertThat(publisher.stats().get("tooLargeDropped")).isEqualTo(1L);
+        // 根本没走到线路上，账里只有"超限丢"一笔，不会污染"线路异常"
+        assertThat(publisher.stats().get("redisFailures")).isEqualTo(0L);
+        factory.destroy();
+    }
+
+    @Test
+    void statsExposeChannelCapAndCounters() {
+        var publisher = new WirePublisher(new StringRedisTemplate());
+        var stats = publisher.stats();
+        assertThat(stats).containsEntry("wireChannel", "nexus:realtime:v1")
+                .containsEntry("maxFrameBytes", WirePublisher.MAX_FRAME_BYTES)
+                .containsEntry("publishedTotal", 0L)
+                .containsEntry("tooLargeDropped", 0L)
+                .containsEntry("redisFailures", 0L);
+    }
 }

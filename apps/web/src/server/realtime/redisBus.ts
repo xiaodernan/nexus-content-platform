@@ -26,6 +26,14 @@ export const REDIS_URL_ENV = 'NEXUS_REDIS_URL';
 /** 线路名。版本段写在里面：将来换帧格式时旧实例发来的帧会因 parse 失败被记下来，而不是被误读 */
 export const WIRE_CHANNEL = 'nexus:realtime:v1';
 
+/**
+ * 一帧的字节上限（64 KiB）。线上是 pub/sub：没有成员名册、没有背压、没有死信——
+ * 只能靠"别发超大帧"这一条护栏。64 KiB 对人写的通知/进度帧绰绰有余，
+ * 就是用来挡住"整份 plan/整段代码被 JSON 塞进来"那一类生产事故。
+ * 超限即丢弃（本机那一半照常送达），原因记进 '帧超长'。
+ */
+export const MAX_FRAME_BYTES = 64 * 1024;
+
 export interface RedisRealtimeBusOptions {
   url: string;
   /**
@@ -290,6 +298,15 @@ export class RedisRealtimeBus implements RealtimeBus {
       payload = JSON.stringify(frame);
     } catch (error) {
       this.countWireError('帧序列化', error);
+      return;
+    }
+    // 背压只能靠发送端自律：pub/sub 没有订阅者名册、没有 slow-consumer、没有死信，
+    // 一帧几 MB 会原样复制给每一个订阅连接并撑爆它们的缓冲。超限就地丢弃（本机那一半已送达）。
+    if (Buffer.byteLength(payload) > MAX_FRAME_BYTES) {
+      this.countWireError(
+        '帧超长',
+        new Error(`帧 ${Buffer.byteLength(payload)} 字节超过护栏 ${MAX_FRAME_BYTES} 字节`),
+      );
       return;
     }
     // ioredis 返回 Promise；没人接的 rejection 会变成 unhandled rejection，必须接住。
