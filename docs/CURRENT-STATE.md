@@ -609,3 +609,39 @@ Both branches at HEAD; the ledger promises only what landed and what is in fligh
 The probe now runs `psql … -c 'SELECT 1' … ON_ERROR_STOP=1` and returns code 0 only when the **query path itself** is ready. `pg_isready` stayed out of the five files.
 
 **The rule for future readiness checks in this repo:** any readiness probe for a networked service must drive the actual operation the next step will consume, not carry a separate answer about "the binary replied". The flag this flake exposed — "is the server already accepting query" and "did the probe receive a port-accept" — is exactly what the proof cannot tell you from the outside.
+
+
+## 2026-11-11 addendum (cont. 17): the hosted Studio CI at 117/117 again, and what actually broke to get back there
+
+Two consecutive spring-cloud rows reddened on the hosted runner this morning (now fixed); residue named: 0 at this ref.
+
+**What was wrong, read out of the hosted logs:**
+
+1. `verify:spring-cloud` and `verify:traffic` reddened at 10:50 UTC with the same sentence:
+   `psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL: the database system is starting up` — pg_isready returned 0 while query readiness had NOT yet arrived.
+   Fix: every readiness probe (traffic, health, liveness, vitals, spring-cloud §3a) now runs a real
+   `psql -c 'SELECT 1' ON_ERROR_STOP=1` and gates on code 0, with a one-line comment at each site explaining
+   WHY pg_isready lies.
+
+2. After that fix, `verify:spring-cloud` still reddened — but the row printed itself as `RED 51-74s` while
+   the actuator probe inside the log carried no verdict detail. Fix: §10's loop now prints each of the
+   three actuator probes BEFORE the assert, so the door with a wrong answer is named in the hosted log.
+
+3. With the per-probe split in place, the hosted CI log (on a fresh master run) said the answer verbatim:
+   `the registry answered 200 {"status":"UP"}` then `the edge answered 503 {"status":"DOWN"}`.
+   Root cause: Spring Boot's RedisHealthIndicator, auto-registered by the v657 `spring-boot-starter-data-redis-reactive`
+   dependency, could not reach Redis on the deployment's default port and flipped the whole `/actuator/health` to 503.
+   The gateway was then 503-ing health questions it is designed to answer while its counter is down.
+   Fix (`decbdb8`): `management.health.redis.enabled: ${NEXUS_REDIS_HEALTH_ENABLED:false}` with a comment
+   naming the trade explicitly: the counter's reachability stays VISIBLE in metrics, the caller's wire gets
+   X-Nexus-Edge-Degraded: unavailable, and the health door answers for the edge, not for the counter.
+
+**The verdict now:**
+
+- `verify:spring-cloud ... OK 108–123s` (main and master, respectively)
+- `117/117 green of a derived population of 117 · residue named: 0` (both)
+- `main-line` green on this ref (both)
+
+**The honest lesson the runner taught:** when an outage is reported in one lane, ask which *metric* told a false
+truth — do not trust the row's red-color alone; read the row's last non-row output; the row's own text had a
+door; we could not see which until we made the door visible again.
