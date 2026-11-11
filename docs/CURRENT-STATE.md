@@ -866,3 +866,44 @@ by this lane except the suites that require a hosted runner.
   neither fixes it nor prematurely locks it. The first draft of this gate DID assert value semantics,
   went red against the real implementation, and was removed rather than used to force a production change
   on a shared tree — the measurement is preserved here instead.
+
+## 2026-11-11 addendum (cont. 24): the discover route tells downstream how to cache it — ADR 0096, v664
+
+- **What closed.** ADR 0095 gated the SERVER-side 15s anon window; but `/api/discover` itself emitted
+  **no HTTP cache headers** — a bare `NextResponse.json(result)` — while the sibling v1 exit
+  `apiJson()` (`server/http.ts`) already defaults to `no-store`. New pure function
+  `discoverResponseHeaders(authenticated)` (in `discoverRouteCache.ts`, beside the window it guards)
+  returns `Vary: Cookie` + `no-store` for anon and `Vary: Cookie` + `private, no-store` for a viewer;
+  both branches of `route.ts` now pass it (`false` / `true`, never hand-copied). Two concrete reasons,
+  not decoration: ① `currentUserOrNull()` reads the `nexus_session` cookie, so the SAME URL
+  `/api/discover?sort=new` returns a public feed to anon and a following/moderation-filtered feed to a
+  viewer — without `Vary: Cookie`, any middle cache can cross-serve the two (§188's Accept-Encoding
+  discipline, now on the more dangerous cookie axis); ② `invalidateDiscoverRoute()` drains only the
+  server window, so a browser/CDN copy would silently defeat "new content appears within 15s" — hence
+  downstream `no-store`, with the server window still absorbing repeat DB hits (two layers, no overlap).
+  `private` is the login branch's second lock if anyone later loosens `no-store`.
+- **Measured.** `discover-route-cache.test.ts` **9/9** (5 v663 semantic + 3 header-contract + 1 static
+  wiring leg); `npx tsc -p apps/web/tsconfig.json --noEmit` **exit 0**; `npx eslint` on the three files
+  **exit 0** (its first chained run was SIGTERM'd by the host memory peak, not red — re-run alone clean).
+  **Mutation + reverse-control 11/11**: 6 break-arms redden (anon/viewer bare json, false→true swap,
+  `public, max-age=60`, `Vary`→`Origin`, drop `no-store`), 3 legitimate edits stay green (space inside
+  call parens, comment-only, harmless `must-revalidate`), 2 baselines green — done by reading the real
+  source text into memory and mutating it, no source file touched on the shared tree. `verify:lint-tree`
+  whole-tree door was **SIGTERM'd twice** on this host (all 15 self-tests passed, killed mid graded-area
+  by the memory/time peak — no debt verdict, not a ledger red); this slice cannot drift its ledger:
+  the three touched files hold **zero** (rule,file) ceilings in `lint-debt.json` (107 pairs) and lint
+  **0 findings** standalone, so expected 0 = measured 0. A full-tree green still owes a run on a host /
+  CI runner with headroom — not claimed here.
+- **Discipline re-applied.** v663's viewer-isolation static leg had the reply spelling
+  `return NextResponse.json(result);` baked into its regex and would have falsely reddened on this
+  正当 change; it was NARROWED to pin only "cache call is wrapped by `!viewer`", and the new static
+  wiring leg owns the reply shape — each door grades one thing (ADR-0094 X4). The wiring regex uses
+  `\s*` so a harmless `discoverResponseHeaders( false )` is not punished.
+- **Honest gaps, recorded NOT claimed (ADR 0096).** ① **No real HTTP leg** — no `next start` + a
+  with/without-cookie request read back off the wire, so how Next.js surfaces these headers on a Route
+  Handler (or whether it overlays its own) is unmeasured; this slice is a pure-function + static gate,
+  not an end-to-end proof. ② `Vary: Cookie` is deliberately coarse (any cookie change forks the key);
+  `no-store` makes it free today, and gating a finer scheme would freeze the safe default. ③ gzip's
+  `Vary: Accept-Encoding` merge is not touched here: discover uses bare `NextResponse.json` and §188
+  measured that next's compressor does not reach Route Handler writes — the day it does, `Vary` must
+  APPEND `Accept-Encoding` beside `Cookie` (as `apiJson` already does at `http.ts:117`), not overwrite it.

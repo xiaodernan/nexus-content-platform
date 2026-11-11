@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { currentUserOrNull } from '@/server/domain/session';
 import { discover, type DiscoverSort } from '@/server/domain/social';
-import { cachedDiscoverAnonymous } from '@/server/cache/discoverRouteCache';
+import { cachedDiscoverAnonymous, discoverResponseHeaders } from '@/server/cache/discoverRouteCache';
 
 /**
  * §61 发现列表。只承诺排得出来的三种：New / Popular / Following。
@@ -11,6 +11,10 @@ import { cachedDiscoverAnonymous } from '@/server/cache/discoverRouteCache';
  * Anon 路径下 (`viewer` 为空) 走一个 15 秒的进程内 TTL 缓存（`cachedDiscoverAnonymous`）：
  * 发现页最贵的一组连接 + 子查询在同一 sort 下反复轰本机 DB，而答案在 15 秒尺度上完全
  * 稳定。带 viewerId 时直接算（following 按人照做；收敛炸弹：绝不把个人答案混进公共缓存）。
+ *
+ * 两分支都挂 `discoverResponseHeaders(...)` 的应答头（§ 计网 × 前后端协同）：`Vary: Cookie`
+ * 把 anon / 登录两种内容隔在缓存键两侧，`no-store`（登录另加 `private`）堵住下游浏览器 / CDN
+ * 再存一层、绕过服务端 invalidate 的路。服务端 15s 缓存与下游不存各管一段，不重叠。
  */
 const SORTS: DiscoverSort[] = ['new', 'popular', 'following'];
 
@@ -21,8 +25,8 @@ export async function GET(req: Request): Promise<NextResponse> {
   const viewer = await currentUserOrNull();
   if (!viewer) {
     const result = await cachedDiscoverAnonymous(sort, () => discover({ sort, viewerId: null }));
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers: discoverResponseHeaders(false) });
   }
   const result = await discover({ sort, viewerId: viewer.id });
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers: discoverResponseHeaders(true) });
 }

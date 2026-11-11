@@ -103,6 +103,27 @@ family README section) and a door that reddens the sentence it repairs:
         gating either side would punish the legitimate future fix that unifies both to value
         copies (ADR-0094 X4 discipline). Decided when a mutating caller appears or the two
         drivers are unified; this slice neither fixes nor prematurely locks it.]
+  v664  `/api/discover` grows an HTTP response cache contract (ADR 0096): the server-side 15s
+        window was gated in v663, but the route told DOWNSTREAM (browser/CDN/reverse proxy) nothing —
+        bare `NextResponse.json`, while the v1 exit `apiJson` already defaults to no-store.
+        [LANDED 2026-11-11 — § 计网 × 前后端协同. `discoverResponseHeaders(authenticated)` returns
+        `Vary: Cookie` + `no-store` (anon) / `private, no-store` (viewer); both branches of route.ts
+        use it, no hand-copied headers. Why: the SAME URL `?sort=new` returns different content by
+        `nexus_session` cookie, so without Vary a future middle cache can cross-serve a private
+        following feed to anon or vice versa (the §188 Accept-Encoding discipline on a more
+        dangerous axis); and `invalidateDiscoverRoute()` drains only the SERVER window — a browser/CDN
+        copy would bypass the "new content in 15s" promise, so downstream must not store. Gates:
+        discover-route-cache.test.ts 9/9 (5 semantic + 3 header-contract + 1 static wiring leg that
+        refuses a bare `NextResponse.json(result)`, false/true swapped, or >2 reply points). tsc +
+        eslint exit 0. Mutation+reverse-control 11/11 arms: 6 breaks redden (bare json ×2, wrong
+        false→true, public/max-age, Vary→Origin, drop no-store), 3 legitimate edits stay green
+        (space in call parens, comment-only, harmless must-revalidate), 2 baselines green. v663's
+        viewer-isolation static leg was NARROWED (it hard-coded the reply spelling and would falsely
+        redden on this正当 change) to pin only cache ownership; the ADR-0094 X4 discipline again.
+        HONEST GAP: no real HTTP leg — no `next start` request with/without cookie read back off the
+        wire, so how Next.js surfaces these headers on a Route Handler is unmeasured, not claimed;
+        `Vary: Cookie` is deliberately coarse (no-store makes it free); gzip's Vary:Accept-Encoding
+        merge is owed when/if this route goes through a compressor (§188).]
 
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
