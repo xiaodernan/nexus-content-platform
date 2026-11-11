@@ -158,6 +158,12 @@ management:
   endpoint:
     health:
       show-details: never
+  # §SC-68: build-info goal 出 jar 时带 artifact/group/version/time + component
+  info:
+    build:
+      enabled: true
+    env:
+      enabled: false
 
 logging:
   level:
