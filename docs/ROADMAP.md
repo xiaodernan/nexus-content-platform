@@ -12061,3 +12061,16 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **数字**：新判据 **8/8**；全套 **96/96**（88+8）同一 env 全绿，HTTP/worker 零回归。
 - **诚实边界**：LREM 是 O(n)，发生在低频取消路径；`LLEN` 结构性取舍保留（claim 高频 O(1)）；若绕开 `request_cancel` 淘汰作业键（TTL），claim 照旧跳过但 counts 不保成——需 reaper 另立片根治；多副本并发交错只论证了、没在一个真集群测。
 - **仍欠**：reaper 扫过期者认领；worker 取消检查点密度；CI 里缺 `NEXUS_REDIS_URL` 时全文件 skip（文档已写清，缺 env≠绿）；两后端大量作业下 counts SCAN 成本未实测缩放。**未 push**。详见 ADR-0134。
+
+## §FE 第五片（§FE-5）：创作者主页登峰造极——个人门面化 + 静态判据 + 双主题真浏览器看图（2026-11-11 / ADR-0135）
+
+- 触发（user 长期点名最重的一条）：**前端美观/魅力登峰造极**，同时前后端协同不牺牲。FE-1/2/3/4 已升 `/discover`/`/marketplace`/`/`/`/search`（货架面），本片升**人**：`/u/<handle>` 创作者主页（§60，访客从发现页/搜索点进一个作者看到的第一张脸）。改前是**零语义前缀的裸 Tailwind**：头像无环、名字纯色、handle 裸文本、作品卡一层薄边框、世界/角色/游戏贴着页边的无样式列表——没有主次、可点提示、身份感。**只动视觉**（§159），结构/文案/21 个 `data-*`/交互逻辑一字未改。
+- **落地（`.pf-` 前缀，与 `.dv-`/`.mk-`/`.hp-`/`.se-` 同 token 语言，守 ADR-0123 六红线）**：零新增颜色 token（全锚 tokens.css 既有双主题名 + color-mix、零写死 hex）；门面 hero 卡（brand 12% 径向辉光底 + 渐变压边）、头像 brand→accent-1 渐变环、名字渐变墨字（fg-1→accent-1，浅色不白字写白底）、handle pill、粉丝数 tabular-nums badge；分区标题 brand→accent-1 左竖线 + 世界/角色双栏 panel；作品卡 accent-2 左描边 + hover 抬升/品牌描边/渐显左条/阴影、auto-fill 网格窄屏落单列；列表项 hover 淡染 + brand 圆点 + 来源退 fg-3；试玩链接 chip 化、设计稿中性 pill、隐私说明 accent-1 边界条、注销 banner warn-ink 左描边。竖线用 `top:15%+height:70%` 居中而**不用 transform**（transform 只留给动效，免得 reduced-motion 门混淆静态居中与要关的位移）。
+- **不碰交互**：`FollowButton`/`BlockControl` 是带 `data-*` 与交互的客户端组件，本片一字未改；page.tsx 的 diff **纯 className 替换**，所有文本节点/21 钩子逐字仍在（含新增一个 `data-profile-work-card` 是增强、不破坏）。
+- **静态判据（`profile-style.test.ts` +8，零浏览器/零真库/零时钟）**：先跑 **4 红 4 绿**精准命中"视觉段没落地"→ 写实现转 **8/8**：29 个 pf 类**都有基础规则定义**、≥18 成规模定义、零 hex、token 真存在、21 钩子不丢、两组件未内联重写、动效按**规则块**被 reduced-motion 收口、作品卡/试玩键有 focus-visible。**四变异臂**（删 `.pf-workCard` 主规则红 2 / 写死 hex 红 1 / 删 transition:none 红 1 / 删 gamePlay focus 红 2，GOOD 字节级恢复）证明每门有牙。
+- **判据自身两处真缺口由变异臂抓出并修正（不掩盖）**：①"类名存在性"最初按"出现过"算，臂 A 删主规则仍被 `::before`/`:hover`/reduced-motion 蒙混 → 改为**剔掉 reduced-motion 段、只认基础选择器**（`.pf-x` 后紧跟 `{`/`,`，排除 `:` 伪类）；②reduced-motion 门最初按"行"扫，多行声明块的 `transition:` 在无 `.pf-` 字样的后续行被丢、`transitioned` 空集让臂 C 假绿 → 改为**按完整规则块 `selector{decls}`**解析。修正后 GOOD 8/8、四臂全红。
+- **验证（诚实分层）**：静态 8/8 + `style-tokens` **24/24**（合并 32/32）、`eslint`（page+test）**EXIT=0**、`tsc -p apps/web` **EXIT=0**、`tsc -p e2e` **EXIT=0**；**真 Chrome e2e `e2e/profile-visual.spec.ts`（本片新增）深/浅 2 passed（2.4m，非 skip）**——从发现页真公开作品 `/n/udac7ccfa/…` 取 handle、量访客视角，验 hero/名字/双栏/分区/作品卡 href 或空态/浅色名字非白字/两主题零 console error。
+- **看图（§159，补上 FE-4 欠的那一寸）**：深/浅两张真 Chrome 截图**已人工 Inspect**——hero 辉光+渐变压边、头像渐变环、渐变墨字名、handle 胶囊、作品卡左描边、双 panel、分区竖线、隐私条全部正确渲染、无错乱；浅色白底上名字深色可读。归档 `docs/evidence/fe-profile-elevation/{profile-dark,profile-light}.png`（截图/测试结果目录被 .gitignore 排除，按 FE-1 约定落 `docs/evidence/<slice>/`）。hover 态只在 CSS+静态门覆盖、未逐帧看图（如实记）。全仓真库套件无干净窗口、未硬跑、不编绿灯。未 push。
+- **编号**：ADR 初稿占 `0134`，落盘前查重发现会话已落 `0134-redis-cancel-strips-pending-list.md`（§SC-57），让位重编 **ADR-0135**（标题号同步改），会话文档未动。
+- **协作边界**：只碰自己 6 文件（page.tsx/globals.css/新静态测试/新 e2e/ADR-0135/两张截图）+ 三处文档；会话正在写的 realtime/community/stats-readout/route 等一概未碰；globals.css diff **零删除行**（FE-4 `.se-` 段逐字未动）、无会话 CSS 混入（已核）。
+- **仍欠**：既有 `profile-tasks.spec.ts`（axe + 390）下个干净窗口随本片 e2e 一并复跑（本片未改其判据面）；hover 态逐帧看图；`/n/<handle>/<slug>` 作品页、storyboard 分镜页可按本片范式另立 FE 片。详见 ADR-0135。

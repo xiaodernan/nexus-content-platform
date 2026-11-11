@@ -451,4 +451,145 @@
   .se-scopeTitle { margin-bottom: var(--nexus-space-2); font-size: var(--nexus-font-size-14); font-weight: 600; color: var(--nexus-color-fg-1); }
   .se-scopeList { display: grid; gap: var(--nexus-space-1); color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-12); line-height: 1.6; }
   @media (prefers-reduced-motion: reduce) { .se-form, .se-submit, .se-hit, .se-hit::before, .se-suggestion, .se-historyChip, .se-historyRemove { transition: none; } .se-submit:hover, .se-hit:hover { transform: none; } }
+
+  /* ─────────────────────────────────────────────────────────────────────────     §FE 创作者主页（/u/<handle>）：陌生人认识一个作者的第一张脸。
+     改前是零语义前缀的裸 Tailwind 原子类：头像无环、名字纯色、作品卡一层薄边框、
+     世界/角色/游戏是贴着页边的无样式列表。这里把它收成顶流个人门面——
+     - 头部是一张微辉光 hero 卡：头像 brand→accent-1 渐变环、名字渐变墨字、handle 胶囊；
+     - 每个分区是一张带左竖线标题的卡，计数 badge 走 tabular-nums；
+     - 作品卡 accent-2 左描边 + hover 侧移/品牌描边/渐显左条/阴影（与 .se-hit 同一语言）；
+     - 世界/角色双栏各自成 panel，列表项 hover 淡染、来源元信息退到 fg-3；
+     - 试玩链接 chip 化、设计稿标注中性 pill、隐私说明走 accent-1 边界条。
+     零新增颜色 token（全锚 tokens.css 既有双主题名 + color-mix、零写死 hex）；
+     只动视觉，结构/文案/data-* 钩子/交互逻辑（FollowButton/BlockControl）一字未改（§159）。
+     ───────────────────────────────────────────────────────────────────────── */
+  .pf-root { position: relative; }
+  .pf-header {
+    display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--nexus-space-4);
+    position: relative; padding: var(--nexus-space-6);
+    border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-lg);
+    background:
+      radial-gradient(130% 160% at 0% 0%, color-mix(in srgb, var(--nexus-color-brand) 12%, var(--nexus-color-bg-1)) 0%, var(--nexus-color-bg-1) 58%),
+      var(--nexus-color-bg-1);
+    box-shadow: var(--nexus-shadow-sm);
+  }
+  .pf-header::after {
+    content: ''; position: absolute; left: var(--nexus-space-6); right: var(--nexus-space-6); bottom: 0;
+    height: 2px; border-radius: var(--nexus-radius-full);
+    background: linear-gradient(90deg, var(--nexus-color-brand), var(--nexus-color-accent-1), transparent);
+  }
+  .pf-avatar {
+    flex-shrink: 0; width: 4rem; height: 4rem; border-radius: var(--nexus-radius-full);
+    object-fit: cover; background: var(--nexus-color-bg-2);
+    padding: 3px; /* 给渐变环留边；首字母态靠 pf-avatarInitial 的 inset 背景填回 */
+    box-shadow: 0 0 0 1px var(--nexus-color-border-subtle), var(--nexus-shadow-md);
+    background-image: linear-gradient(135deg, var(--nexus-color-brand), var(--nexus-color-accent-1));
+    background-clip: padding-box;
+  }
+  .pf-avatarInitial {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--nexus-color-accent-fg); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-24); font-weight: 700;
+    background-color: var(--nexus-color-bg-2);
+    background-image: linear-gradient(135deg, var(--nexus-color-brand), var(--nexus-color-accent-1));
+  }
+  .pf-identity { min-width: 16rem; flex: 1; }
+  .pf-name {
+    margin: 0; font-size: var(--nexus-font-size-24); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15;
+    background: linear-gradient(120deg, var(--nexus-color-fg-1) 35%, var(--nexus-color-accent-1) 92%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .pf-handle {
+    display: inline-block; margin-top: var(--nexus-space-1);
+    border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-full);
+    padding: 0 var(--nexus-space-2); color: var(--nexus-color-fg-3);
+    font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12);
+  }
+  .pf-bio { margin: var(--nexus-space-2) 0 0; color: var(--nexus-color-fg-2); font-size: var(--nexus-font-size-13); line-height: 1.55; max-width: 52ch; }
+  .pf-actions { display: flex; flex-direction: column; align-items: flex-end; gap: var(--nexus-space-2); }
+  .pf-counts {
+    font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums;
+    font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3);
+    border-radius: var(--nexus-radius-full); background: var(--nexus-color-bg-2);
+    padding: var(--nexus-space-1) var(--nexus-space-3);
+  }
+  .pf-selfNote { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .pf-deleted {
+    border: 1px dashed var(--nexus-color-border-strong); border-left: 3px solid var(--nexus-color-warn-ink);
+    border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1);
+    padding: var(--nexus-space-3) var(--nexus-space-4); color: var(--nexus-color-fg-2); font-size: var(--nexus-font-size-12); line-height: 1.55;
+  }
+  .pf-section { padding: var(--nexus-space-1) 0; }
+  .pf-sectionTitle {
+    display: flex; align-items: center; gap: var(--nexus-space-2); position: relative;
+    margin: 0 0 var(--nexus-space-3); padding-left: var(--nexus-space-3);
+    font-size: var(--nexus-font-size-14); font-weight: 600; color: var(--nexus-color-fg-1);
+  }
+  .pf-sectionTitle::before {
+    /* 竖线靠 top:15% + height:70% 垂直居中，不用 transform——transform 只留给动效，
+       免得 reduced-motion 门分不清"静态居中"与"要关掉的位移"（§90）。 */
+    content: ''; position: absolute; left: 0; top: 15%; height: 70%; width: 3px;
+    border-radius: var(--nexus-radius-full);
+    background: linear-gradient(180deg, var(--nexus-color-brand), var(--nexus-color-accent-1));
+  }
+  .pf-empty {
+    border: 1px dashed var(--nexus-color-border-strong); border-radius: var(--nexus-radius-lg);
+    padding: var(--nexus-space-6); text-align: center; color: var(--nexus-color-fg-2); font-size: var(--nexus-font-size-13); line-height: 1.55;
+    background: radial-gradient(120% 140% at 15% 0%, color-mix(in srgb, var(--nexus-color-brand) 12%, var(--nexus-color-bg-1)) 0%, var(--nexus-color-bg-1) 62%);
+  }
+  .pf-works { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--nexus-space-3); margin: 0; padding: 0; list-style: none; }
+  .pf-workCard {
+    position: relative; display: flex; flex-direction: column; gap: var(--nexus-space-1); overflow: hidden;
+    border: 1px solid var(--nexus-color-border-subtle); border-left: 2px solid var(--nexus-color-accent-2);
+    border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1);
+    padding: var(--nexus-space-4); text-decoration: none;
+    transition: transform var(--nexus-motion-base) var(--nexus-motion-ease), border-color var(--nexus-motion-base) var(--nexus-motion-ease), box-shadow var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .pf-workCard::before {
+    content: ''; position: absolute; inset: 0 auto 0 0; width: 2px;
+    background: linear-gradient(180deg, var(--nexus-color-brand), var(--nexus-color-accent-1)); opacity: 0;
+    transition: opacity var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .pf-workCard:hover { transform: translateY(-3px); border-color: var(--nexus-color-brand); box-shadow: var(--nexus-shadow-md); }
+  .pf-workCard:hover::before { opacity: 1; }
+  .pf-workCard:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .pf-workName { font-size: var(--nexus-font-size-14); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .pf-workCounts { font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .pf-twin { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: var(--nexus-space-4); }
+  .pf-panel {
+    border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-lg);
+    background: var(--nexus-color-bg-1); padding: var(--nexus-space-4) var(--nexus-space-5);
+  }
+  .pf-list { display: flex; flex-direction: column; gap: var(--nexus-space-1); margin: 0; padding: 0; list-style: none; }
+  .pf-listItem {
+    border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-3);
+    color: var(--nexus-color-fg-2); font-size: var(--nexus-font-size-12); line-height: 1.5;
+    transition: background var(--nexus-motion-base) var(--nexus-motion-ease), color var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .pf-listItem::before { content: '·'; margin-right: var(--nexus-space-2); color: var(--nexus-color-brand); font-weight: 700; }
+  .pf-listItem:hover { background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-1); }
+  .pf-listMeta { color: var(--nexus-color-fg-3); }
+  .pf-listEmpty { color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-12); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .pf-privacy {
+    border-left: 2px solid var(--nexus-color-accent-1); border-radius: var(--nexus-radius-sm);
+    background: color-mix(in srgb, var(--nexus-color-accent-1) 7%, var(--nexus-color-bg-1));
+    padding: var(--nexus-space-3) var(--nexus-space-4); color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-12); line-height: 1.6;
+  }
+  .pf-gamePlay {
+    display: inline-block; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-full);
+    padding: var(--nexus-space-1) var(--nexus-space-3); color: var(--nexus-color-fg-1);
+    font-size: var(--nexus-font-size-13); text-decoration: none;
+    transition: border-color var(--nexus-motion-base) var(--nexus-motion-ease), box-shadow var(--nexus-motion-base) var(--nexus-motion-ease), transform var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .pf-gamePlay:hover { border-color: var(--nexus-color-brand); box-shadow: var(--nexus-shadow-sm); transform: translateY(-1px); }
+  .pf-gamePlay:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .pf-designOnly {
+    display: inline-block; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-full);
+    padding: 0 var(--nexus-space-2); background: var(--nexus-color-bg-2);
+    color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-12);
+  }
+  .pf-gamesNote { margin: var(--nexus-space-2) 0 0; color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-12); line-height: 1.55; }
+  @media (prefers-reduced-motion: reduce) {
+    .pf-workCard, .pf-workCard::before, .pf-listItem, .pf-gamePlay { transition: none; }
+    .pf-workCard:hover, .pf-gamePlay:hover { transform: none; }
+  }
 }
