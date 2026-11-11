@@ -33,33 +33,40 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
           这个账号已经注销：作者名与个人简介不再显示，下面列出的作品仍在公网上传着、可以正常访问与阅读。
         </p>
       ) : null}
-      <header className="flex flex-wrap items-start gap-4" data-profile-header>
-        {/* 头像：没有就是首字母，不放占位图（§159 不画假内容）；注销的账号连首字母也没有，因为那是本人的名字 */}
-        {profile.avatarUrl ? (
-          <img src={profile.avatarUrl} alt="" className="h-12 w-12 rounded-full bg-bg-2 object-cover" data-profile-avatar="url" />
-        ) : profile.accountDeleted ? null : (
-          <span
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-bg-2 font-mono text-16 text-fg-1"
-            data-profile-avatar="initial"
-          >
-            {profile.name.slice(0, 1).toUpperCase()}
-          </span>
-        )}
-        <div className="min-w-[16rem] flex-1">
-          <h1 className="text-[var(--nexus-font-size-21)] font-semibold" data-profile-name>
-            {profile.name}
-          </h1>
-          <p className="text-11 text-fg-3">@{profile.handle}</p>
-          {profile.accountDeleted ? null : (
-            <p className="mt-2 text-13 text-fg-2" data-profile-bio>
-              {profile.bio ?? '这位作者还没写简介。'}
-            </p>
-          )}
+      <header className="relative overflow-hidden rounded-2xl border border-[var(--nexus-color-border-subtle)] bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 px-6 py-6" data-profile-header>
+        {/* the ambient glow — a soft patch of brand light bleeding from the top-right, pure CSS, no images */}
+        <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-14 h-48 w-48 rounded-full bg-[radial-gradient(circle,rgb(91_108_255/0.35),transparent_70%)] blur-2xl" />
+        <div className="relative flex flex-wrap items-start gap-5">
+          <span className="font-mono text-10 uppercase tracking-[0.18em] text-[var(--nexus-color-accent-2-ink)]">CREATOR</span>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <span className="text-11 text-fg-3" data-profile-counts>
-            {profile.followers} 位粉丝 · 关注 {profile.following} 人
-          </span>
+        <div className="relative mt-3 flex flex-wrap items-start gap-5">
+          {/* 头像：没有就是首字母，不放占位图（§159 不画假内容）；注销的账号连首字母也没有，因为那是本人的名字 */}
+          {profile.avatarUrl ? (
+            <img src={profile.avatarUrl} alt="" className="h-20 w-20 rounded-full border-2 border-[var(--nexus-color-border-strong)] object-cover shadow-[0_0_30px_rgb(91_108_255/0.25)]" data-profile-avatar="url" />
+          ) : profile.accountDeleted ? null : (
+            <span
+              className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-[var(--nexus-color-brand)]/40 bg-gradient-to-br from-[var(--nexus-color-brand)] via-[var(--nexus-color-accent-1)] to-[var(--nexus-color-accent-2)] font-sans text-28 font-bold text-[var(--nexus-color-accent-fg)] shadow-[0_0_36px_rgb(91_108_255/0.4)]"
+              data-profile-avatar="initial"
+            >
+              {profile.name.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <div className="min-w-[16rem] flex-1">
+            <h1 className="text-[var(--nexus-font-size-28)] font-bold leading-tight tracking-tight text-fg-1" data-profile-name>
+              {profile.name}
+            </h1>
+            <p className="mt-0.5 font-mono text-12 text-[var(--nexus-color-accent-2-ink)]">@{profile.handle}</p>
+            {profile.accountDeleted ? null : (
+              <p className="mt-3 max-w-xl text-14 leading-6 text-fg-2" data-profile-bio>
+                {profile.bio ?? '这位作者还没写简介。'}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col items-end gap-2 self-center">
+            <span className="flex items-center gap-2 rounded-full border border-[var(--nexus-color-border-strong)] bg-bg-2/80 px-3 py-1 font-mono text-11 text-fg-2" data-profile-counts>
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--nexus-color-accent-2)]" aria-hidden="true" />
+              {profile.followers} 粉 · 关注 {profile.following}
+            </span>
           {profile.isSelf ? (
             <span className="text-11 text-fg-3">这是你自己的主页</span>
           ) : (
@@ -77,6 +84,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
             </>
           )}
         </div>
+      </div>
       </header>
 
       <section>
@@ -89,8 +97,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
           <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2" data-profile-works>
             {profile.works.map((work) => (
               <li key={work.publicationId}>
-                <Link href={work.path} className="flex flex-col gap-1 rounded border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-3">
-                  <span className="text-13 text-fg-1" data-profile-work-name>
+                <Link href={work.path} className="flex flex-col gap-1 rounded-xl border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--nexus-color-brand)] hover:shadow-[0_14px_40px_rgb(91_108_255/0.18)]">
+                  <span className="text-13 font-semibold text-fg-1 transition-colors hover:text-[#eef1f6]" data-profile-work-name>
                     {work.name}
                   </span>
                   <span className="text-11 text-fg-3" data-profile-work-counts>
