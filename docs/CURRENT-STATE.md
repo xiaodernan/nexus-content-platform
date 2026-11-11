@@ -473,3 +473,22 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
 | 3e68a77 | in progress, not claimed | in progress, not claimed | ✅ success | ✅ success |
 
 **`3e68a77` (the Redis-backed discover lane) has NOT been green-verified;** when the run completes its verdict will be appended in the next reading. If it reddens for a cache-contract drift, the repair is in `apps/web/src/server/cache/discoverRedis.ts`; record-the-repair in the next cont.
+
+
+## 2026-11-11 addendum (cont. 12): the hosted door-kill proof flake re-recorded honestly
+
+- `verify:door-kill` (the exec-host breaker-test proof) reddened on Studio MASTER at 08:51 UTC
+  this morning (`42984425137`): `git.diff: a killed read is not an answer`. The SAME sha on main
+  (`42984437264`, finished at the next hour) answered green on every row. Local execution of
+  `node docs/evidence/agents/door-kill-proof.mjs` on this host passes clean (`§1 git.diff ok=false
+  exit=null killed={"signal":"SIGTERM"} ... verdict: 5 faces driven to a real kill · 0 sentences
+  blamed git for the host's kill`).
+- The proof itself was redesigned at M2 v544 (ADR 0016 amendment 527) to defeat a racy budget-on-loose-timing;
+  the redesign makes the failure rarer, not impossible — v544's header text states it plainly (on the ubuntu
+  runner at `40833035921`, 3 of 4 "kills" were no-ops because the timer fired after the child had already
+  finished).
+- This run, on this runner, the row went false at the delivery point of `deliveredBudget()`. The proof
+  stays exactly as is — no tolerance widened, no row rewritten; the verdict is recorded here, not elided.
+- Policy: the next Studio CI master run on this ref will re-render the same verdict. If it passes, this
+  flake is the recorded mode (one red in N runs); if it reddens the same row, the gate remains honest
+  about its own window — not by being made weaker, but by being read by the graph of CI runs.
