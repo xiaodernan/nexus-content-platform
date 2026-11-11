@@ -88,6 +88,12 @@ management:
     health:
       show-details: never
 
+# §SC-61 — 线路探针（/api/v1/realtime/probe）的 operator 门钥匙。空 = 探针永远关闭（有意识的安全默认值），
+# 必须显式设置 NEXUS_OPERATOR_TOKEN 才放行；不设等于无探针 = 组件在（wire 路径）存在但没发射器。
+nexus:
+  operator:
+    token: ${NEXUS_OPERATOR_TOKEN:}
+
 # SC-59 — Feign 到 Python ai-service 的超时。缺了这两条就是库默认（read 可能十秒级），
 # 一个探针挂住一次 pageload 就不叫探针。1s 连 / 3s 读（一个 provider 健康应当远快于此）。
 feign:

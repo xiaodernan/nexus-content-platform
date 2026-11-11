@@ -1,18 +1,19 @@
 /**
- * §SC-53 立证·收官：Java → Redis 线路 → web 订阅者。
+ * §SC-53/§SC-61 立证·收官：Java → Redis 线路 → web 订阅者。
  *
  * 与 `scripts/realtime-two-process.mts`（web↔web 双进程）同构，但发布方换成 **java-domain-service**
- * 经网关之外的直连 HTTP 探针端点 `POST /api/v1/realtime/probe`。判分面只有三条，不虚报：
+ * 经网关之外的直连 HTTP 探针端点 `POST /api/v1/realtime/probe`。**SC-61 之后**不再接受
+ * `channel/title` 参数——probe 不给调用方定制帧，只替代操作员间问一句"链路通吗"；
+ * 调用方必须带 `X-Nexus-Operator-Token`（**必须**等于 domain-service 启动时
+ * `nexus.operator.token` / 环境 `NEXUS_OPERATOR_TOKEN`；否则 403）。
  *
- * 1. PROBE_PUBLISHED  —— 探针 HTTP 200 且 body.published === true（Java 真的把帧写上了线路）
- * 2. WEB_BUS_DELIVERED —— web 的 RedisRealtimeBus（不是手写 ioredis）在 `project:java-probe`
- *    频道上收到了这帧，且 event.title 精确匹配（schema safeParse 这一关在 bus 内部过了，
- *    否则帧会被丢弃且 wireErrorCount 动；下面一条专门钉死它）
- * 3. NO_WIRE_ERRORS   —— 监听端 wireErrorCount === 0（线路上没有一帧被判为"不是合法 wire frame"而丢弃）
+ * 判分面：PROBE_PUBLISHED —— probe HTTP 200 + body.published === true（Java 真的发了一帧）
+ *          WEB_BUS_DELIVERED —— web 的 RedisRealtimeBus 在 `projects:probe` 上收到了那帧（wire safeParse 这道门也过了）
+ *          NO_WIRE_ERRORS — 监听侧 wireErrorCount === 0
  *
- * 前提：domain-service 已经在跑，NEXUS_DOMAIN_URL 指向它（默认 http://127.0.0.1:8082），
- * 且该实例能连上它的 Redis（本机 127.0.0.1:56379，见 docs/ENVIRONMENT.md）。
- * 跑：npm run realtime:java-to-web
+ * 前提：domain-service 已经跑起来（NEXUS_DOMAIN_URL，默认 http://127.0.0.1:8082），它必须能连上
+ * 它自己那条 Redis（NEXUS_REDIS_URL 或 127.0.0.1:56379），且**启动时必须带上** `NEXUS_OPERATOR_TOKEN`。
+ * 跑：NEXUS_OPERATOR_TOKEN=<token> npm run realtime:java-to-web
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
@@ -27,7 +28,12 @@ const WEB_TSCONFIG = resolve(ROOT, 'apps/web/tsconfig.json');
 const WORK = resolve(ROOT, '.scratch/realtime-java-to-web');
 const REDIS_URL = process.env.NEXUS_REDIS_URL?.trim() || 'redis://127.0.0.1:56379';
 const DOMAIN_URL = (process.env.NEXUS_DOMAIN_URL?.trim() || 'http://127.0.0.1:8082').replace(/\/$/, '');
-const CHANNEL = 'project:java-probe';
+const OPERATOR_TOKEN = process.env.NEXUS_OPERATOR_TOKEN?.trim();
+const CHANNEL = 'projects:probe';  // §SC-61 fixed — the probe does not accept channel overrides
+
+if (!OPERATOR_TOKEN) {
+  throw new Error('NEXUS_OPERATOR_TOKEN is required: §SC-61 probe is closed by default. Set the same value the domain-service was started with.');
+}
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
@@ -102,17 +108,15 @@ rmSync(resolve(WORK, 'stop.json'), { force: true });
 rmSync(resolve(WORK, 'listen-ready.json'), { force: true });
 rmSync(resolve(WORK, 'listen-report.json'), { force: true });
 
-// 先确认 domain-service 活着——不活着就如实报，不留一份"全绿"的幻觉
 try {
   const health = await fetch(`${DOMAIN_URL}/actuator/health`, { signal: AbortSignal.timeout(8_000) });
   if (!health.ok) throw new Error(`HTTP ${health.status}`);
-  console.log(`[java] domain-service 健康：${await health.text()}`);
+  console.log(`[domain-service] healthy：${await health.text()}`);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   throw new Error(`domain-service 不在 ${DOMAIN_URL}（先启动它再跑这条验证）：${message}`);
 }
 
-// 线路自检（同 two-process：手动 ping 一次，确认 Redis 真在这条地址上）
 {
   const probe = new Redis(REDIS_URL, {
     enableOfflineQueue: false,
@@ -130,7 +134,6 @@ try {
   }
 }
 
-// 起监听进程（web 总线走 tsx 加载 apps/web 的模块图）
 const script = import.meta.filename;
 const log = resolve(WORK, 'log-listen.txt');
 const fd = openSync(log, 'w');
@@ -166,28 +169,23 @@ const ready = await waitFor<ListenReady>('监听进程就绪', () => read<Listen
 if (!ready.ready) throw new Error(`监听进程 ready=false（线路 ${REDIS_URL} 没就位）`);
 console.log(`[listen pid=${ready.pid}] web 总线已订阅 ${CHANNEL}（origin=${ready.origin}）`);
 
-// 触发 Java 探针：真实帧，真实频道，真实 title —— 全唯一，避免误匹配
-const title = `java-probe-${Date.now().toString(36)}`;
-const subject = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
-const probeUrl = `${DOMAIN_URL}/api/v1/realtime/probe?channel=${encodeURIComponent(CHANNEL)}&title=${encodeURIComponent(title)}`;
-const probe = await fetch(probeUrl, {
+const probe = await fetch(`${DOMAIN_URL}/api/v1/realtime/probe`, {
   method: 'POST',
-  headers: { 'X-Nexus-Subject': subject },
+  headers: { 'X-Nexus-Operator-Token': OPERATOR_TOKEN },
   signal: AbortSignal.timeout(10_000),
 });
 const probeBody = (await probe.json()) as { published?: boolean; channel?: string; frame?: string; error?: string };
-console.log(`[probe] HTTP ${probe.status} published=${String(probeBody.published)}`);
+console.log(`[probe] HTTP ${probe.status} published=${String(probeBody.published)}${probe.status === 403 ? ` error=${probeBody.error}` : ''}`);
 
 const delivered = await waitFor<ListenReport>(
   'web 总线收到帧',
   () => {
     const r = read<ListenReport>('listen-report.json');
-    return r && r.received.includes(title) ? r : null;
+    return r && r.received.includes('probe event') ? r : null;
   },
   12_000,
 );
 
-// 收尾：让监听进程写完最终报告，然后停掉它
 writeFileSync(resolve(WORK, 'stop.json'), 'stop');
 await waitFor<ListenReport>('监听进程收尾', () => read<ListenReport>('listen-report.json'), 10_000);
 await sleep(500);
@@ -195,7 +193,7 @@ child.kill();
 
 const verdicts: [string, boolean, string][] = [
   ['PROBE_PUBLISHED', probe.status === 200 && probeBody.published === true, `HTTP ${probe.status} published=${String(probeBody.published)}`],
-  ['WEB_BUS_DELIVERED', delivered.received.includes(title), `received=${JSON.stringify(delivered.received)}`],
+  ['WEB_BUS_DELIVERED', delivered.received.includes('probe event'), `received=${JSON.stringify(delivered.received)}`],
   ['NO_WIRE_ERRORS', delivered.wireErrorCount === 0, `wireErrorCount=${delivered.wireErrorCount}`],
 ];
 for (const [name, ok, detail] of verdicts) console.log(`verdict ${name}: ${ok ? 'PASS' : 'FAIL'} — ${detail}`);
