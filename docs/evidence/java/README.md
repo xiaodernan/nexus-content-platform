@@ -41,7 +41,7 @@ databases, and measures, section by section:
 | 10b | the four CONSUMER doors answer the **Prometheus scrape** — a body carrying `# HELP`/`jvm_`, not just a 200 (v658) | four doors, four scrapes |
 | 10c | **ONE trace id**, minted by the caller as a W3C `traceparent`, is required in the correlation segment of the edge, nexus-api AND the domain service — with three DIFFERENT span ids under it (v656) | three logs of one request |
 | 11 | with the REGISTRY dead the chain still works, and the duration of that comfort is MEASURED (a fetch interval + its TTL), not promised | §5.1 of ADR 0056 |
-| 12 | with the DOMAIN service dead the service-to-service door answers 503, names it, and says WHICH failure (`timeout` since 2026-11-10) | measured against a killed container |
+| 12 | with the DOMAIN service dead the service-to-service door answers 503, names it, and says WHICH failure (the failure byte the service mints — asserted non-empty, kind printed per run; the deadline is an explicit 5 s decision since `196e624`, 2026-11-11) | measured against a killed container |
 | 13 | the breaker OPENS and the refusal is attributed — `not.permitted.calls` counts it, and the answer says `circuit-breaker-open`. The state read asks for the `state=open` gauge series specifically, because `resilience4j.circuitbreaker.state` is ONE GAUGE PER STATE, exactly one of which is 1 at any instant and any untagged read aggregates to 1 forever (measured red-fix 2026-11-10) | tagged-actuator read |
 | 14 | with nexus-api dead the edge answers 503 and NAMES its upstream | tagged-actuator + §4 of ADR 0056 |
 | 15 | with the EDGE dead the caller gets a CONNECTION ERROR — because there is nothing left to answer, and a 503 would be an invention | honest absence |
@@ -68,7 +68,7 @@ machine cannot change what it measures (ADR 0057, amended in v658).
 |---|---|---|
 | nexus-api | `mvn -o -B test` | **932 PASS** (incl. `DomainCircuitBreakerConfigTest`, `DomainFailureTest` 12) |
 | java-domain-service | `mvn -o -B test` | **39 PASS** |
-| java-gateway | `mvn -o -B test` | **13 PASS** |
+| java-gateway | `mvn -o -B test` | **22 PASS** (incl. `DegradedRateLimitTest` 2 and `ResilientRateLimiterTest` 7 from v657's Redis-absent case) |
 | java-registry | `mvn -o -B test` | **2 PASS** |
 | java-config-server | `mvn -o -B test` | **5 PASS** (the scrape leg is one of them) |
 
@@ -78,11 +78,28 @@ step tests); the others run where PostgreSQL and a warm Maven exist.
 
 ### The gates the census tracks
 
-`verify:ci-wiring` (§1–§15, two workflow files), `verify:arms` (64/64 at the latest re-stamp),
-`verify:arms-freshness` (9/9 fixture arms), `verify:evidence-census` (130 tracked modules closed
-as `117 row + 5 helper` — `m9/plane-bound-claims.mjs` being helper #5), `verify:table-recount`
-(§3 exec-host 359/13), `verify:record-encoding`. The M9 proofs carry `planeBoundRuleIsLive()` at
+`verify:ci-wiring` (§1–§15, two workflow files), `verify:arms` (64/64 at the latest re-stamp — the
+receipt on disk is older than this section's ref; see the honest bounds), `verify:arms-freshness`
+(9/9 fixture arms), `verify:evidence-census` (the closure re-derives every run — no module count is
+restated here, because at `dd14c10` the derived population is 119 and any hand-typed number rots),
+`verify:table-recount`, `verify:record-encoding`. The M9 proofs carry `planeBoundRuleIsLive()` at
 the top of every build so a blinded rule reddens the row rather than clearing it.
+
+Two census rows are new since this page's previous state: `verify:gateway-tests` (the module's own
+22 tests, reached-direct, wired by the parallel lane at `01e2e20` and linted clean at `dd14c10`) and
+`verify:db-index` (`EXPLAIN` of the four soft-delete queries against a 2000-row mirror, wired by the
+parallel lane at `7191e7e`; the plan is asserted as `Index Scan`s against this repository's partial
+indexes — its own commit message names the plane). The first row is this lane's companion; this
+README records both and claims neither beyond what its run prints.
+
+**The arms-receipt honesty (2026-11-12):** the committed `docs/evidence/ci/arms-receipt.json` stamps
+2026-11-10 with 117 rows; the derived population at `dd14c10` is 119. `verify:arms-freshness` will
+red at this wiring until `ci-wiring-arms.mjs` completes whole and rewrites the receipt. Hosted facts,
+re-read not re-remembered, at master run `43038847821` (ref `4c3bcac`, 2026-11-11T14:57Z):
+`verify:arms ... OK 674.1s` (receipt already stamping those bytes — left unchanged) and
+`verify:arms-freshness ... OK 0.1s`. Two attempts on this box to re-stamp at 119 rows were starved
+before completion before `dd14c10` landed. The re-stamp is the door the wiring lane owes; it is not
+this README's to fake.
 
 ## Honest bounds (none of these are claims this ledger pretends to support)
 
@@ -103,18 +120,30 @@ the top of every build so a blinded rule reddens the row rather than clearing it
   any span retention, per-span latency percentiles, or a service map. Spans are created, given ids,
   put on the wire, printed — and then they end with the process. `grep <traceId>` over three logs is
   the whole capability, and it is the one thing claimed.
-- **No edge rate limiting** — still a program slice (v657), named here so its absence is a fact on
-  the record rather than a gap somebody discovers. The Redis the slice needs is in compose
-  (`nexus-redis`) but no gateway filter reads it yet.
+- **The edge rate limiter exists, over Redis, and degrades when it must (v657, landed 2026-11-10/11).**
+  `RequestRateLimiter` (`redis-rate-limiter`, burst 100 / refill 50 by default, 429 on overflow) guards
+  `lb://nexus-api`. The counter IS the deployment's Redis, not a shared library file. With no reachable
+  counter, the edge **serves the request, labels it** (`X-Nexus-Edge-Degraded: unavailable`) and counts it
+  per request in the `nexus.edge.rate_limit.degraded` metric — RFC 9110 §15.5.29's 429 is a claim about
+  the caller, and nothing here counted anything. Proven by `DegradedRateLimitTest` (real jar, 6399-as-no-
+  Redis-port) in `verify:gateway-tests`, the row that now grades this module from the census. The counter's
+  reachability stays visible in metric and on the wire; the edge's own `/actuator/health` does NOT depend on
+  it (v658: `management.health.redis.enabled` default false, overridable).
 - **The scrape is published; nothing scrapes it.** All five deployables carry
   `micrometer-registry-prometheus` and answer `/actuator/prometheus` (v658: §10b for the four
   consumers, `ConfigServerTest` for the config door, and a static allowlist gate for the
   configuration). There is no Prometheus server, no scrape config, no retention and no alerting in
   this repository — and none is claimed.
-- **The two runner-bound red rows** (`verify:liveness` and `verify:health`) are a property of
-  the hosted runner's socket semantics, not of this repository's behaviour — the record in
-  `docs/CURRENT-STATE.md` (cont. 3) says it plainly; the gates that once graded a machine
-  remembered from another machine no longer do.
+- **The runner-bound red rows (`verify:liveness` and `verify:health`) are resolved, and the resolution is
+  recorded.** The readiness probe was `pg_isready`, which answered 0 while `psql` still saw
+  `FATAL: the database system is starting up`; both rows — and `verify:spring-cloud` beside them — reddened
+  together at 10:50 UTC on 2026-11-11 (ADR 0056's failure-names-itself rule one layer down, in the probe).
+  The probes now run real `psql -c 'SELECT 1' ON_ERROR_STOP=1` and gate on code 0; `verify:spring-cloud`
+  afterwards required the §10 per-probe log split to name which door reddened (the edge's auto-registered
+  Redis health indicator flipped `/actuator/health` to 503 — `decbdb8` made the door answer for the edge).
+  Hosted CI at `decbdb8` then: both branches, `verify:spring-cloud ... OK 108.3s / 122.8s`, `117/117`, residue 0.
+  Hosted CI at `4c3bcac` (the door-kill witness fix): both branches SUCCESS again. This bullet is kept as the
+  record of WHY the probes look like this; it is no longer a promise about today.
 - **Eureka on a single node** — no peer replication story is implemented or claimed;
   `register-with-eureka: false` on the registry.
 - **Native profile for the config server** — Git-backed config, encryption at rest, `{cipher}`
@@ -126,6 +155,13 @@ the top of every build so a blinded rule reddens the row rather than clearing it
 - ADR 0055 — a service is reached BY NAME, and its failure is a FACT
 - ADR 0056 — a failure must NAME itself (kinds, refusal attribution, the breaker's own metric)
 - ADR 0057 — configuration enters NEXUS as ONE door, and it is optional at boot
+- ADR 0058 — Spring Cloud in NEXUS: what runs, what only parses, and what is deliberately absent
+- ADR 0061 — when the Discover feed cache is correct, and when it breaks
+- ADR 0063 — Redis in NEXUS: what it earns, what it costs, when it lies
+- ADR 0064 — Messaging in NEXUS, honestly inventoried: SSE-only delivery, Redis pub-sub as the
+  cross-instance carrier, and the things it is NOT
+- ADR 0065 — the routes actuator is a dead door on the WebFlux edge (verified three ways);
+  NEXUS proves the live route table instead
 - `docs/CURRENT-STATE.md` — the dated addendum log (cont. 5 records the config door)
 - `docs/evidence/ci/README.md` — the census re-stamp (130 modules, helper #5, 2026-11-10)
 - `infra/config/` — what the config door serves: the shared surface + one overlay per app,
