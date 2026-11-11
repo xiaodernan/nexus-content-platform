@@ -252,6 +252,17 @@ async function main() {
   if (reg.status !== 200) bad('domain-service registered via config server', `GET answered ${reg.status}`);
   else ok('eureka holds NEXUS-DOMAIN-SERVICE (via config server, no env flags)');
 
+  // §SC-60 §SC-64: the Feign breaker is really wired and really reportable — not a label on a class.
+  const breakers = await fetch(`http://127.0.0.1:${DOMAIN_PORT}/actuator/circuitbreakers`, { signal: AbortSignal.timeout(5_000) });
+  if (breakers.status !== 200) {
+    bad('domain-service /actuator/circuitbreakers', `HTTP ${breakers.status} (want 200)`);
+  } else {
+    const cb = await breakers.json().catch(() => null);
+    const ai = cb?.circuitBreakers?.['ai-service'];
+    if (!ai) bad('domain-service /actuator/circuitbreakers.ai-service', JSON.stringify(cb).slice(0, 200));
+    else ok(`domain-service /actuator/circuitbreakers: ai-service=${ai.state} bufferedCalls=${ai.bufferedCalls}`);
+  }
+
   // nexus-api joins the same registry before the gateway starts, so the gateway's first fetch sees
   // the full topology (not just the domain service). It owns its own throwaway database.
   const api = spawnJar('nexus-api', apiJar, {
