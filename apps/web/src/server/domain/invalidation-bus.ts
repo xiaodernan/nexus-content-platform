@@ -25,8 +25,6 @@
  * **清理**：`dispose()` 用 `disconnect()`（不是 `quit()`，对从没连上过的死连接 quit 会吊住进程退出），
  * 幂等；两条连接的 `error` 事件都在构造时挂常驻监听（否则 Node 里 uncaught exception 带崩进程）。
  */
-import type { Redis } from 'ioredis';
-
 /** 频道名带版本段：将来换帧格式，旧实例的帧因版本不符被丢，而不是被误读。 */
 export const DISCOVER_INVALIDATE_CHANNEL = 'nexus:discover-invalidate:v1';
 
@@ -81,10 +79,6 @@ export interface InvalidationBus {
   stats(): InvalidationBusStats;
 }
 
-function emptyStats(): InvalidationBusStats {
-  return { published: 0, received: 0, errors: 0, applied: 0 };
-}
-
 /**
  * 线路字节校验：只认形状对、版本对、条数/长度都在护栏内的帧。
  * 不写 `as InvalidationFrame` 把不可信字节伪装成有类型——校验不过就是 null。
@@ -130,11 +124,17 @@ function defaultOrigin(): string {
   return `${process.pid}:${Date.now().toString(36)}:${originSeq}`;
 }
 
+/** 一次派发的结果：成功处置的 listener 数 + 抛错的 listener 数。让 dispatcher 诚实记账。 */
+export interface DispatchOutcome {
+  readonly applied: number;
+  readonly failed: number;
+}
+
 /** 订阅端共用的分发器：把一帧拆成 viewerId 交给回调，统一记账，避免两种驱动各写一份漂移。 */
 function makeDispatcher(
   origin: string,
   counters: { received: number; errors: number; applied: number },
-  onInvalidate: (viewerIds: string[], global?: boolean) => void,
+  onInvalidate: (viewerIds: string[], global?: boolean) => DispatchOutcome,
 ): (payload: string) => void {
   return (payload: string) => {
     const frame = parseInvalidationFrame(payload);
@@ -144,20 +144,30 @@ function makeDispatcher(
     }
     if (frame.origin === origin) return; // 自己回环的那一帧，丢掉
     counters.received += 1;
+    let outcome: DispatchOutcome;
     try {
-      onInvalidate(frame.viewerIds, frame.global === true);
-      // 全局帧记 1 次处置（不是 0 个 viewer，否则四账会显示"收到却没做任何事"的谎）。
-      counters.applied += frame.global === true ? 1 : frame.viewerIds.length;
+      outcome = onInvalidate(frame.viewerIds, frame.global === true);
     } catch {
-      // 上层回调（bump 本地 generation / epoch）不该抛；真抛了也只记账，不让线路处理崩掉。
+      // onInvalidate 本身崩了（不该发生：它已逐 listener 隔离）——整帧记一笔 error，不让线路崩。
       counters.errors += 1;
+      return;
     }
+    // 只有至少一个 listener 成功处置，这一帧才算"被处置"；全抛/零订阅不虚记 applied。
+    // 全局帧记 1 次（不是 0 个 viewer，否则四账显示"收到却没做任何事"的谎）；
+    // 按「帧 × viewerIds」记一次，与有几个 listener 无关（幂等 bump，多订阅者收同帧也是一次失效）。
+    if (outcome.applied > 0) {
+      counters.applied += frame.global === true ? 1 : frame.viewerIds.length;
+    }
+    // 每个抛错的 listener 各记一笔 error——隔离不等于把失败藏起来（§MQ-1 / ADR-0126）。
+    counters.errors += outcome.failed;
   };
 }
 
 /**
  * 订阅者名册：支持多个订阅者、退订幂等。两种驱动共用，避免各写一份漂移。
- * `dispatch` 把一帧的 viewerIds 交给所有在册回调；某个回调抛错由调用方（dispatcher）兜住。
+ * `dispatch` 把一帧的 viewerIds 交给所有在册回调，**逐个隔离**：某个回调抛错不影响
+ * 同一帧的其余订阅者（与 `realtime/localBus.ts` 同一纪律，§MQ-1 / ADR-0126）。
+ * 每个回调的成败如实计入 `DispatchOutcome`，由 dispatcher 统一记账，绝不静默吞帧。
  */
 export class InvalidationListeners {
   private readonly listeners = new Set<(viewerIds: string[], global?: boolean) => void>();
@@ -169,8 +179,22 @@ export class InvalidationListeners {
     };
   }
 
-  dispatch(viewerIds: string[], global?: boolean): void {
-    for (const listener of [...this.listeners]) listener(viewerIds, global);
+  dispatch(viewerIds: string[], global?: boolean): DispatchOutcome {
+    let applied = 0;
+    let failed = 0;
+    // 先复制再遍历：回调里可能退订（关页面/热重载），直接遍历原 Set 会漏掉后面的人。
+    for (const listener of [...this.listeners]) {
+      try {
+        listener(viewerIds, global);
+        applied += 1;
+      } catch {
+        // 一个坏订阅者不该让同帧其余订阅者收不到；也不该让正在写库的请求崩掉。
+        // 这里只记账、不打日志：线路异常已在 dispatcher 的 counters 与 admin 面板可见，
+        // 逐帧 console.error 反而是可被一条坏帧刷屏的日志风暴面。
+        failed += 1;
+      }
+    }
+    return { applied, failed };
   }
 
   get size(): number {
@@ -342,7 +366,7 @@ export class RedisInvalidationBus implements InvalidationBus {
     }
     this.counters.published += 1;
     // fire-and-forget：接住 Promise，坏线路当场失败、不阻塞写库请求、不制造 unhandled rejection。
-    void this.pub.publish(DISCOVER_INVALIDATE_CHANNEL, payload).catch((error: unknown) => {
+    void this.pub.publish(DISCOVER_INVALIDATE_CHANNEL, payload).catch(() => {
       this.counters.errors += 1;
     });
   }

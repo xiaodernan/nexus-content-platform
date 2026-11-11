@@ -11965,3 +11965,18 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **ADR 编号修复**：本轮发现 `docs/adr/` 有**两个 ADR-0123**（会话的 `0123-fe-elevation-redline.md` + 我上轮 SC-50 探查的 `0123-shared-cache-reconnect-honesty-probe.md`）。以 `git mv` 把我那份让位重编为 **ADR-0125**（标题号同步改、补编号沿革），`0124` 归本片令牌桶；全仓 ADR 编号恢复唯一。会话的 FE 文档未动。
 - **协作边界**：全程只 add 我的 2 个 Java 文件 + ADR-0124 + ADR-0125 重命名 + ROADMAP/CURRENT-STATE/memory 登记；并行会话正在改的 `nexus-registry/application.yml`、`nexus-config/application.yml`、`test.yml`、前端文件一概未碰；`mvn test` 解包出的 `BOOT-INF/` 副产物已清理。
 - **仍欠**：SC-50（共享缓存 `retryStrategy:()=>null` 断后永不重连 + 恒报 `driver=redis`，ADR-0125）待干净全仓窗口才实现；offset javadoc 措辞统一是跨十几处的产品决策、须另立片；ROADMAP 里第四十八/四十九片各有一份并行会话留下的**叠写重复副本**（11894/11908），属会话整理范围，本轮不替它删、避免制造编辑冲突。详见 ADR-0124。
+
+## §SC 第五十二片（§MQ-1）：一个坏订阅者吞掉同帧其余人——失效总线逐 listener 隔离 + 账本不虚记（SC-52 / ADR-0126，2026-11-11）
+
+- 触发（user 长期点名新增）：**消息队列的合理运用 + 前后端协同 + 缓存合理运用 + 算法/数据结构合理性**。选片前只读探查 5 个实时/失效总线源文件 + 4 份 Python 队列源码 + 11 份相关 `*test*` 的**实际内容**（逐个读、不轻信文件名），列出 3 个候选：①ai-service `MemoryJobStore` 默认内存后端内部算法零判据（最贴 SC-51 风格、纯加测试）；②**失效总线 `dispatch` 缺逐 listener 隔离（真 bug）**；③`publish` 不守 `MAX_VIEWERS_PER_FRAME`（当前调用方最多 2 viewer，到不了上限，是契约地雷非现网事故）。取**②**——唯一真 bug，且成色是"与同仓已固化纪律分叉"。
+- **真缺口**：`InvalidationListeners.dispatch` 裸 `for` 循环，第一个 listener 抛错→同帧后面全部静默吞；`makeDispatcher` 的整次 `try/catch` 只兜"进程不崩 + errors+1"，兜不住"其余订阅者照常收"。而同仓 `realtime/localBus.ts:22-29` 早钉死并测过相反纪律。生产 `RedisInvalidationBus` 走同一条 dispatch，生产挂多只订阅者（bump `generation` 隐私 + bump `globalEpoch` 可见性）——前者抛错会让后者收不到那帧、两世代不同步、退回 15s TTL 自愈。读码顺带确认第二处读数缺口：`applied` 无条件按 `viewerIds.length` 累加，**零 listener 也虚记 applied>0**（违自己注释、违 ADR-0115「没接上绝不画四账 0」同类）；全 listener 抛错时 `errors` 只记 1 不记满。
+- **做法（范围钉死 2 文件：`invalidation-bus.ts` + 其 test；零公共 API / 零前端形状变化）**：
+  - `dispatch` 从 `void` 改为返回 `DispatchOutcome{applied,failed}`，逐个 `try/catch`、先复制 `[...listeners]` 再遍历（退订不漏人，抄 localBus），一个抛错只 `failed+=1` 继续下一个；不打 `console.error`（线路异常已在 counters/面板可见，逐帧日志是可被坏帧刷屏的风暴面）。
+  - `makeDispatcher` 按 outcome 诚实记账：**`outcome.applied>0` 才累加 applied**（全抛/零订阅不虚增；仍按帧×viewerIds 记一次，与订阅者数无关）；**每个坏回调各记一笔 errors**（`+= outcome.failed`）；`onInvalidate` 本身崩（不该发生）整帧记 1 error 保留防御。
+  - **语义是收紧不是改字段**：`InvalidationBusStats` 形状不动，admin `DiscoverPanel` / `discover-view.busTag` 的 `errors>0` 分支仍成立，前端零联动。**正常路径（无坏回调、有订阅者）逐字等价**。
+- **判据 +7**（并入 `invalidation-bus.test.ts`，纯内存 hub / 假连接，零真 Redis / 零真库 / 零 sleep / 零时钟）：首个抛错后续照收、中间抛错前后都收、全抛→`applied=0/errors=2`、零 listener→`received=1/applied=0/errors=0`、双正常订阅零回归（`applied=2` 不翻 4）、坏订阅退订后不拖累、生产 Redis 假连接走真实 `message` handler 同样隔离。
+- **先红后绿铁证**：先加 7 判据未改实现 → **5 红 2 绿**（隔离 2 + 账本 2 + Redis 1 红，两条零回归对照绿），抓准 bug 才写修复；修复后 `invalidation-bus.test.ts` **20/20**。
+- **三变异臂各有牙逐条还原**（ADR-0077）：臂 A 去逐 listener try/catch → 精确红 4（隔离判据）；臂 B 去 `applied>0` 门 → 精确红 2（两条不虚记判据）；臂 C 删 `errors+=failed` → 精确红 4（带 errors 断言）。证明非惰性判据，脚本跑完自动恢复正确实现。
+- **验证**：周边纯内存零真库套件 `discover-view` + `realtime` 合并 **82/82**；两改动文件 `eslint` **EXIT=0**（**顺带清掉两文件 HEAD 基线各 3 条 lint 遗留**——生产文件未用 `Redis` type import / `emptyStats` / publish catch 未用 `error` 参；测试文件 `Map<string,Function>`→显式 `WireHandler`；均零行为变化，交付文件 lint 从基线红清零）；`tsc --noEmit -p apps/web/tsconfig.json` **EXIT=0**。`admin-discover-cache.integration` 为真库集成，本机多 agent 抢同一 Postgres 无干净窗口，未硬跑、如实记为推算待复核、不编绿灯。未 push。
+- **协作边界**：只碰我自己的 2 文件 + ADR-0126 + 三处文档登记；并行会话正在改的文件一概未碰；ROADMAP 第四十八/四十九片叠写重复副本（会话遗留）不替它删、避免编辑冲突。
+- **仍欠**：`InvalidationBusStats` 注释与 admin 面板标签文案（"消息处理回调数"/"坏帧·线路错误数"）仍是旧措辞，现语义已收紧，下片可同步注释/tooltip（本片只改行为不扩 footprint）；SC-50（ADR-0125）待干净窗口；MQ 候选①（ai-service `MemoryJobStore` 零判据）、③（`MAX_VIEWERS_PER_FRAME` 发送端护栏）留待后续 MQ 片。详见 ADR-0126。

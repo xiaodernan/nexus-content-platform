@@ -133,6 +133,147 @@ describe('内存 bus（同进程双实例互通，判据确定性主路径）', 
   });
 });
 
+/**
+ * §MQ-1 / ADR-0126：订阅者异常隔离。与 `realtime/localBus.ts` 同一纪律——
+ * 一个坏回调不能吞掉同一帧的其余订阅者。全部纯内存 hub / 假连接，零真 Redis、零真库、零 sleep。
+ *
+ * 这里同时验四账诚实：applied 记"帧是否被处置"（至少一个 listener 成功才算），
+ * errors 记"坏回调数"；隔离绝不能做成把失败藏起来的 swallowing。
+ */
+describe('订阅者异常隔离（§MQ-1：内存与 Redis 双驱动共用同一 dispatch）', () => {
+  it('第一个 listener 抛错，同帧后续 listener 照常收到（修复前必红：后续全丢）', () => {
+    const hub = new MemoryInvalidationHub();
+    const a = new MemoryInvalidationBus(hub);
+    const b = new MemoryInvalidationBus(hub);
+    const seen: string[][] = [];
+    b.subscribe(() => {
+      throw new Error('坏订阅者');
+    });
+    b.subscribe((ids) => seen.push(ids));
+
+    expect(() => a.publish(['u1'])).not.toThrow(); // 写路径不因坏回调带崩
+    expect(seen).toEqual([['u1']]); // 核心：修复前这里是 []
+    expect(b.stats()).toMatchObject({ received: 1, applied: 1, errors: 1 });
+    a.dispose();
+    b.dispose();
+  });
+
+  it('中间 listener 抛错，前后两个都照常收到', () => {
+    const hub = new MemoryInvalidationHub();
+    const a = new MemoryInvalidationBus(hub);
+    const b = new MemoryInvalidationBus(hub);
+    const first: string[][] = [];
+    const third: string[][] = [];
+    b.subscribe((ids) => first.push(ids));
+    b.subscribe(() => {
+      throw new Error('中间的坏订阅者');
+    });
+    b.subscribe((ids) => third.push(ids));
+
+    a.publish(['u1', 'u2']);
+    expect(first).toEqual([['u1', 'u2']]);
+    expect(third).toEqual([['u1', 'u2']]);
+    expect(b.stats()).toMatchObject({ errors: 1, applied: 2 });
+    a.dispose();
+    b.dispose();
+  });
+
+  it('诚实读数：全部 listener 都抛错 → applied 不虚增、errors 记满坏回调数', () => {
+    const hub = new MemoryInvalidationHub();
+    const a = new MemoryInvalidationBus(hub);
+    const b = new MemoryInvalidationBus(hub);
+    b.subscribe(() => {
+      throw new Error('坏 1');
+    });
+    b.subscribe(() => {
+      throw new Error('坏 2');
+    });
+
+    a.publish(['u1', 'u2']);
+    // 没有任何订阅者处置这一帧：applied 必须是 0，不能因为"帧解析成功"就虚记 2。
+    expect(b.stats().applied).toBe(0);
+    // 两个坏回调各记一笔 error，不是笼统 1 笔。
+    expect(b.stats().errors).toBe(2);
+    expect(b.stats().received).toBe(1);
+    a.dispose();
+    b.dispose();
+  });
+
+  it('诚实读数：零 listener 时帧到达但无人处置，applied 不虚增', () => {
+    const hub = new MemoryInvalidationHub();
+    const a = new MemoryInvalidationBus(hub);
+    const b = new MemoryInvalidationBus(hub); // 挂在 hub 上会收到帧，但没人 subscribe
+
+    a.publish(['u1']);
+    expect(b.stats().received).toBe(1); // 帧确实到了
+    expect(b.stats().applied).toBe(0); // 但没人处置——收紧"注释说回调数、实现却虚记"的分叉
+    expect(b.stats().errors).toBe(0); // 没坏回调，不该记 error
+    a.dispose();
+    b.dispose();
+  });
+
+  it('零回归：两个正常 listener 各收一遍，applied 按帧处置量记一次、不因 listener 数翻倍', () => {
+    const hub = new MemoryInvalidationHub();
+    const a = new MemoryInvalidationBus(hub);
+    const b = new MemoryInvalidationBus(hub);
+    const seen: string[][] = [];
+    b.subscribe((ids) => seen.push(ids));
+    b.subscribe((ids) => seen.push(ids));
+
+    a.publish(['u1', 'u2']);
+    expect(seen).toEqual([
+      ['u1', 'u2'],
+      ['u1', 'u2'],
+    ]); // 各收一遍
+    // applied 是"这一帧造成几次本地失效"（幂等 bump），不是回调次数：记 2 = viewerIds.length，不是 4。
+    expect(b.stats().applied).toBe(2);
+    expect(b.stats().errors).toBe(0);
+    a.dispose();
+    b.dispose();
+  });
+
+  it('坏 listener 退订后不再拖累账本', () => {
+    const hub = new MemoryInvalidationHub();
+    const a = new MemoryInvalidationBus(hub);
+    const b = new MemoryInvalidationBus(hub);
+    const seen: string[][] = [];
+    const offBad = b.subscribe(() => {
+      throw new Error('已退订的坏订阅者');
+    });
+    b.subscribe((ids) => seen.push(ids));
+    offBad();
+
+    a.publish(['u1']);
+    expect(seen).toEqual([['u1']]);
+    expect(b.stats().errors).toBe(0); // 坏回调已退订，这一帧没有失败
+    expect(b.stats().applied).toBe(1);
+    a.dispose();
+    b.dispose();
+  });
+
+  it('§MQ-1 生产 Redis 驱动同样隔离：一个 listener 抛错不影响同帧其余订阅者', () => {
+    const sub = fakeRedis();
+    const bus = new RedisInvalidationBus(fakeRedis(), sub, { url: 'redis://fake' });
+    const seen: string[][] = [];
+    bus.subscribe(() => {
+      throw new Error('坏订阅者');
+    });
+    bus.subscribe((ids) => seen.push(ids));
+
+    // 走真实 message handler（生产路径），不是内存 hub：证明两种驱动共用的 dispatch 都修好了。
+    const message = sub.handlers.get('message') as (channel: string, payload: string) => void;
+    expect(() =>
+      message(DISCOVER_INVALIDATE_CHANNEL, JSON.stringify({ v: 1, origin: 'other', viewerIds: ['u1'] })),
+    ).not.toThrow();
+    expect(seen).toEqual([['u1']]);
+    expect(bus.stats()).toMatchObject({ received: 1, applied: 1, errors: 1 });
+    bus.dispose();
+  });
+});
+
+/** 线路回调签名（`RedisLike.on` 存进来的 error / message handler）。 */
+type WireHandler = (...args: any[]) => void;
+
 /** 假 ioredis 连接：记录命令、可注入 subscribe/publish 失败，验证驱动不抛、不 hang。 */
 function fakeRedis(
   overrides: { subscribeFail?: boolean; publishFail?: boolean } = {},
@@ -140,9 +281,9 @@ function fakeRedis(
   published: Array<[string, string]>;
   subscribed: string[];
   disconnected: number;
-  handlers: Map<string, Function>;
+  handlers: Map<string, WireHandler>;
 } {
-  const handlers = new Map<string, Function>();
+  const handlers = new Map<string, WireHandler>();
   const published: Array<[string, string]> = [];
   const subscribed: string[] = [];
   let disconnected = 0;
@@ -174,7 +315,7 @@ function fakeRedis(
     published: Array<[string, string]>;
     subscribed: string[];
     disconnected: number;
-    handlers: Map<string, Function>;
+    handlers: Map<string, WireHandler>;
   };
 }
 
