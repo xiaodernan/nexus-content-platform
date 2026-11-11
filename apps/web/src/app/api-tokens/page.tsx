@@ -14,13 +14,23 @@ export default async function ApiTokensPage(): Promise<ReactElement> {
   const user = await currentUserOrNull();
   if (!user) redirect('/');
   return (
-    <main className="mx-auto flex w-full max-w-[900px] flex-col gap-[var(--nexus-space-4)] px-[var(--nexus-space-4)] py-[var(--nexus-space-5)]" data-api-tokens-page>
-      <header className="flex flex-col gap-1">
-        <h1 className="text-14 font-medium text-fg-1">公开 API 凭据</h1>
-        <p className="text-12 text-fg-3">
-          给平台外的程序（外部 Agent、脚本、CI）用：<code className="text-fg-2">Authorization: Bearer &lt;token&gt;</code>
-          。今天 v1 是三个只读端点加一个写端点（<code className="text-fg-2">PATCH …/design</code>，要
-          <code className="text-fg-2">design:write</code>）：写发的是补丁而不是整份文档，删除类动作在这一侧一律拒。
+    <main className="mx-auto flex w-full max-w-[900px] flex-col gap-[var(--nexus-space-5)] px-[var(--nexus-space-4)] py-[var(--nexus-space-6)]" data-api-tokens-page>
+      <header className="flex flex-col gap-2">
+        <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
+          TOKENS
+        </span>
+        <h1
+          className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent"
+          data-api-tokens-title
+        >
+          公开 API 凭据
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
+          />
+        </h1>
+        <p className="max-w-2xl text-13 leading-6 text-fg-2">
+          给平台外的程序（外部 Agent、脚本、CI）用<code className="text-fg-2">Authorization: Bearer &lt;token&gt;</code>。今天 v1 是三个只读端点加一个写端点（<code className="text-fg-2">PATCH - design</code>，要<code className="text-fg-2">design:write</code>）：写发的是补丁而不是整份文档，删除类动作在这一侧一律拒。
           <Link href="/" className="ml-2 text-accent-2-ink underline">
             回创作页
           </Link>

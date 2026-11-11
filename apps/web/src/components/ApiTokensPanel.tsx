@@ -246,7 +246,9 @@ export function ApiTokensPanel() {
 
   return (
     <section className="flex flex-col gap-[var(--nexus-space-3)]">
-      <div className="flex flex-wrap items-end gap-2">
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--nexus-color-brand)]/35 bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-4 shadow-[0_0_32px_rgb(91_108_255/0.15)]" data-api-tokens-create>
+      <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgb(91_108_255/0.28)_0%,transparent_65%)] blur-xl" />
+      <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1 text-11 text-fg-3">
           名称（认哪一把用）
           <input
@@ -273,10 +275,10 @@ export function ApiTokensPanel() {
           type="button"
           onClick={() => void create()}
           disabled={busy || !name.trim() || scopes.length === 0}
-          className="h-[30px] rounded-[var(--nexus-radius-sm)] bg-brand px-3 text-12 text-accent-fg disabled:opacity-40"
+          className="h-[30px] rounded-[var(--nexus-radius-sm)] bg-[var(--nexus-color-brand)] px-4 py-1 text-12 font-semibold text-[var(--nexus-color-accent-fg)] transition-shadow hover:shadow-[0_0_18px_rgb(91_108_255/0.45)] disabled:opacity-40"
           data-token-create
         >
-          签发凭据
+          签发凭据 →
         </button>
       </div>
 
@@ -295,6 +297,7 @@ export function ApiTokensPanel() {
             <span className="text-fg-3">· {SCOPE_LABELS[scope]}</span>
           </label>
         ))}
+      </div>
       </div>
 
       {issued ? (
