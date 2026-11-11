@@ -237,6 +237,8 @@ async function main() {
     DB_PASSWORD,
     NEXUS_DOMAIN_PORT: String(DOMAIN_PORT),
     NEXUS_CONFIG_ENABLED: 'true',
+    // §SC-62/verify: covered: probe is gated; need a known operator token to assert the positive branch.
+    NEXUS_OPERATOR_TOKEN: 'verify-topology-op-token',
     // No NEXUS_DOMAIN_REGISTER/FETCH anywhere: the register-with-eureka:true this service will obey
     // can ONLY come from nexus-domain-service.yml served by the config server. If the round-trip fails,
     // the registry stays empty and the check below fails — that is the assertion, not an implementation detail.
@@ -398,6 +400,41 @@ async function main() {
     const s = body?.status;
     if (s !== 'degraded' && s !== 'healthy') bad('ai-health status is healthy|degraded', JSON.stringify(body).slice(0, 200));
     else ok(`ai-health via gateway (${s}${body?.error ? `, error=${body.error}` : ''}, ${body?.responseTimeMs}ms)`);
+  }
+
+  // Through the gateway: Java /api/v1/realtime/stats (§SC-62/SC-55). The smoke also passes the operator token
+  // into the domain-service spawn above, so we can exercise the fixed probe end-to-end.
+  const stats = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/realtime/stats`, { signal: AbortSignal.timeout(10_000) });
+  if (stats.status !== 200) {
+    bad('realtime stats via gateway', `HTTP ${stats.status} (want 200)`);
+  } else {
+    const sbody = await stats.json().catch(() => null);
+    const hasShape = sbody && typeof sbody.wireChannel === 'string'
+      && typeof sbody.maxFrameBytes === 'number'
+      && typeof sbody.publishedTotal === 'number'
+      && (
+        sbody.breakerState === 'CLOSED'
+        || sbody.breakerState === 'OPEN'
+        || sbody.breakerState === 'HALF_OPEN'
+        || sbody.breakerState === null
+      );
+    if (!hasShape) bad('realtime stats shape', JSON.stringify(sbody).slice(0, 200));
+    else ok(`realtime stats via gateway (wireChannel=${sbody.wireChannel}, publishedTotal=${sbody.publishedTotal}, breakerState=${sbody.breakerState ?? 'null'})`);
+  }
+  const probeNoToken = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/realtime/probe`, { method: 'POST', signal: AbortSignal.timeout(10_000) });
+  if (probeNoToken.status !== 403) bad('probe without operator token refused', `HTTP ${probeNoToken.status} (want 403)`);
+  else ok('probe without operator token refused (403)');
+  const probeWithToken = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/domain/api/v1/realtime/probe`, {
+    method: 'POST',
+    headers: { 'X-Nexus-Operator-Token': 'verify-topology-op-token' },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (probeWithToken.status !== 200) {
+    bad('probe with operator token', `HTTP ${probeWithToken.status} (want 200)`);
+  } else {
+    const pbody = await probeWithToken.json().catch(() => null);
+    if (pbody?.published !== true) bad('probe published', JSON.stringify(pbody).slice(0, 200));
+    else ok(`probe published (channel=${pbody.channel})`);
   }
 
   // Through the gateway: nexus-api answers /api/health — full path gateway → lb://nexus-api → its own
