@@ -1,0 +1,106 @@
+/* 手绘预览样式：逐值对应 apps/web/src/styles/tokens.css 与 AdminNav.tsx 用到的工具类语义。
+ * 这不是 apps/web 的编译产物；它是"组件在本设计系统下的落样"的设计证据。
+ * token 值与 tokens.css 逐字一致（暗 / 浅双主题都收）。 */
+
+:root {
+  --nexus-color-bg-0: #0a0b10;
+  --nexus-color-bg-1: #101219;
+  --nexus-color-bg-2: #171a24;
+  --nexus-color-bg-3: #1f2330;
+  --nexus-color-fg-1: #eef1f6;
+  --nexus-color-fg-2: #a4adc0;
+  --nexus-color-fg-3: #828ca8;
+  --nexus-color-brand: #5b6cff;
+  --nexus-color-accent-1: #8b5cf6;
+  --nexus-color-accent-2: #22d3ee;
+  --nexus-color-accent-2-ink: #22d3ee;
+  --nexus-color-accent-fg: #0a0b10;
+  --nexus-color-info: #3b82f6;
+  --nexus-color-border-subtle: #262b3a;
+  --nexus-color-border-strong: #3a4056;
+  --nexus-color-danger-ink: #f2555a;
+  --nexus-color-warn-ink: #f5a623;
+  --nexus-font-sans: 'Inter', ui-sans-serif, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --nexus-font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  --nexus-radius-full: 9999px;
+  --nexus-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --nexus-shadow-md: 0 6px 20px rgb(0 0 0 / 0.4);
+  --nexus-motion-fast: 120ms;
+  --nexus-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-nexus-theme='light'] {
+  --nexus-color-bg-0: #f7f8fb;
+  --nexus-color-bg-1: #ffffff;
+  --nexus-color-bg-2: #eef0f6;
+  --nexus-color-bg-3: #e3e7f0;
+  --nexus-color-fg-1: #12141c;
+  --nexus-color-fg-2: #4a5265;
+  --nexus-color-fg-3: #5b6478;
+  --nexus-color-accent-2-ink: #0f6b7a;
+  --nexus-color-border-subtle: #dfe3ec;
+  --nexus-color-border-strong: #c3c9d6;
+  --nexus-color-warn-ink: #7a4f00;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--nexus-font-sans);
+  background: var(--nexus-color-bg-0);
+  color: var(--nexus-color-fg-1);
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+}
+
+.pane {
+  width: 860px;
+  padding: 28px 28px 32px;
+  background: var(--nexus-color-bg-1);
+  border: 1px solid var(--nexus-color-border-subtle);
+  border-radius: 16px;
+}
+.label {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  margin-bottom: 14px; color: var(--nexus-color-fg-3);
+  font: 12px var(--nexus-font-mono); letter-spacing: 0.04em; text-transform: uppercase;
+}
+.label strong { color: var(--nexus-color-fg-2); font-weight: 600; }
+
+/* ===== AdminNav（对应组件：AdminNav.tsx） ===== */
+.admin-nav {
+  display: inline-flex; max-width: 100%; flex-wrap: wrap; align-items: center; gap: 4px;
+  border-radius: var(--nexus-radius-full);
+  border: 1px solid var(--nexus-color-border-subtle);
+  background: color-mix(in srgb, var(--nexus-color-bg-2) 70%, transparent);
+  padding: 4px; box-shadow: var(--nexus-shadow-sm); backdrop-filter: blur(12px);
+}
+.admin-nav__item {
+  display: inline-flex; min-height: 28px; align-items: center; gap: 6px;
+  border-radius: var(--nexus-radius-full); padding: 0 12px;
+  font-size: 11px; text-decoration: none; white-space: nowrap;
+  color: var(--nexus-color-fg-2);
+  transition: color var(--nexus-motion-fast) var(--nexus-motion-ease),
+              background-color var(--nexus-motion-fast) var(--nexus-motion-ease);
+}
+.admin-nav__item:hover { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
+.admin-nav__item:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--nexus-color-accent-2-ink); }
+.admin-nav__item--current {
+  background: linear-gradient(135deg, var(--nexus-color-accent-2), var(--nexus-color-info));
+  color: var(--nexus-color-accent-fg); font-weight: 600; box-shadow: var(--nexus-shadow-sm);
+}
+.admin-nav__dot {
+  width: 6px; height: 6px; border-radius: 9999px; background: var(--nexus-color-accent-fg);
+}
+
+/* forced-colors：Chrome 会砍渐变与 backdrop；这里复现那一刻组件必须还能说清楚 */
+.forced-note { margin-top: 10px; color: var(--nexus-color-fg-3); font-size: 11px; }
+@media (forced-colors: active) {
+  .admin-nav { background: ButtonFace; border: 1px solid ButtonText; backdrop-filter: none; }
+  .admin-nav__item { color: LinkText; }
+  .admin-nav__item--current {
+    background: Highlight; color: HighlightText; forced-color-adjust: none;
+  }
+  .admin-nav__dot { background: HighlightText; }
+}

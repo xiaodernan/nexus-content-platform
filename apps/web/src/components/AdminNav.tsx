@@ -12,6 +12,14 @@ import Link from 'next/link';
  * 这里把**名单**收到一处（`LINKS`），把**下限**也收到一处（`ITEM`）。
  *
  * 当前页渲染成 `<span aria-current="page">`：一页不该链到自己，读屏也靠它说"你在这"。
+ *
+ * §A11Y-3（本轮升维）：极简文字链接 → **磨砂胶囊长航格**。名单不变、入口不变、
+ * aria 语义不变（aria-current / aria-label / data-admin-link 全保留）；变化的只有皮相：
+ * 玻璃质感容器（border-subtle + bg-2 半透 + backdrop-blur + shadow-sm），当前页用
+ * accent-2→info 渐变实底 + accent-fg 墨字（两主题皆 ≥10.9:1，token 出处 tokens.css），
+ * 非当前页 hover 才亮 bg-3 底；可见聚焦环沿用 accent-2-ink（style-tokens 钉住 AA）。
+ * 下限仍是 WCAG 2.5.8：`min-h-7` = 28px，比 24px 下限更高。`prefers-reduced-motion`
+ * 里所有过渡自动归零（--nexus-motion-* 已归零，transition-colors 用其时长）。
  */
 const LINKS = [
   { key: 'users', href: '/admin/users', label: '账号与角色' },
@@ -28,20 +36,32 @@ const LINKS = [
 
 export type AdminSection = (typeof LINKS)[number]['key'];
 
-/** `min-h-6` = 24px：不是装饰，是 2.5.8 的下限；横向 padding 让相邻链接之间也隔得开 */
-const ITEM = 'inline-flex min-h-6 items-center rounded px-1';
+/** `min-h-7` = 28px：比 WCAG 2.5.8 的 24px 下限更积极的一条；rounded-full 胶囊；聚焦环永远可见 */
+const ITEM =
+  'inline-flex min-h-7 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-11 ' +
+  'transition-colors duration-[var(--nexus-motion-fast)] outline-none focus-visible:ring-2 ' +
+  'focus-visible:ring-[var(--nexus-color-accent-2-ink)]';
 
 export function AdminNav({ current }: { current: AdminSection }) {
   return (
-    <nav className="flex flex-wrap items-center gap-x-3 gap-y-1 text-11" aria-label="管理台" data-admin-nav>
+    <nav
+      className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-full border border-[var(--nexus-color-border-subtle)] bg-[var(--nexus-color-bg-2)]/70 p-1 shadow-[var(--nexus-shadow-sm)] backdrop-blur-md"
+      aria-label="管理台"
+      data-admin-nav
+    >
       {LINKS.map((link) =>
         link.key === current ? (
           <span
             key={link.key}
             aria-current="page"
             data-admin-link={link.key}
-            className={`${ITEM} font-semibold text-fg-1`}
+            className={`${ITEM} bg-[linear-gradient(135deg,var(--nexus-color-accent-2),var(--nexus-color-info))] font-semibold text-[var(--nexus-color-accent-fg)] shadow-[var(--nexus-shadow-sm)]`}
           >
+            <span
+              aria-hidden="true"
+              className="size-1.5 rounded-full bg-[var(--nexus-color-accent-fg)]"
+              data-admin-dot={link.key}
+            />
             {link.label}
           </span>
         ) : (
@@ -49,7 +69,7 @@ export function AdminNav({ current }: { current: AdminSection }) {
             key={link.key}
             href={link.href}
             data-admin-link={link.key}
-            className={`${ITEM} text-accent-2-ink underline`}
+            className={`${ITEM} text-fg-2 no-underline hover:bg-[var(--nexus-color-bg-3)] hover:text-fg-1`}
           >
             {link.label}
           </Link>
