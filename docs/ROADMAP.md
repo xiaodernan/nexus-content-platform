@@ -12074,3 +12074,10 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **编号**：ADR 初稿占 `0134`，落盘前查重发现会话已落 `0134-redis-cancel-strips-pending-list.md`（§SC-57），让位重编 **ADR-0135**（标题号同步改），会话文档未动。
 - **协作边界**：只碰自己 6 文件（page.tsx/globals.css/新静态测试/新 e2e/ADR-0135/两张截图）+ 三处文档；会话正在写的 realtime/community/stats-readout/route 等一概未碰；globals.css diff **零删除行**（FE-4 `.se-` 段逐字未动）、无会话 CSS 混入（已核）。
 - **仍欠**：既有 `profile-tasks.spec.ts`（axe + 390）下个干净窗口随本片 e2e 一并复跑（本片未改其判据面）；hover 态逐帧看图；`/n/<handle>/<slug>` 作品页、storyboard 分镜页可按本片范式另立 FE 片。详见 ADR-0135。
+
+## §SC 第五十八片（§SC-58）：admin/realtime 下半区看 Java 生产者——两个世界的账，同一张表盘（2026-11-11 / ADR-0136）
+- **为什么**：user 本轮点名**消息队列的合理运用 + 前后端协同 + Spring Cloud 微服务元素 + 前端登峰造极**。§SC-55 让 Java 生产者有了 `GET /api/v1/realtime/stats`，但**没有一个界面能消费它**——管理员想知道"Java 那半出去的帧可不可信"只能读代码或猜。
+- **做法（零新增 color token，全部复用既有原语）**：`server/realtime/java-wire.ts`（新门面）——GET `NEXUS_JAVA_WIRE_STATS_URL`（默认 `127.0.0.1:8082`，与 domain-service 默认同端）；`AbortSignal.timeout(3000)`；只收形状（计数 NaN/负/空 channel 一律 null）；fail-open 即 null——**浏览器从不直接打 Java 端点**。`/api/admin/realtime`（additive）响应新增 `javaWire`，`isKnownStats` 的考卷只认老字段；并顺手补 `no-store`。StatsPanel 下半区：有值印五格（线路/帧上限/已发/超限丢/线路异常），没值画一行"没拿到"（domain-service 没在跑/连不上/回执不认识——**不是"接了但都是 0"**）。纯函数 `javaWireNote`/`javaWirePanelRows`/`kb` 逐档钉。page.tsx 明写两个世界的对照口径。
+- **判分面（全实跑，含截图）**：`java-wire.test.ts` **5/5** · `realtime-stats-readout.test.ts` 净增 **14**（全套两文件 34/34）· `admin-realtime.integration.test.ts` **4/4**（真库集成，role=admin 门）· `tsc --noEmit` EXIT=0 · eslint 7 文件 EXIT=0。**真浏览器截图**：`docs/evidence/fe-admin-realtime/java-wire-panel.png`（Chrome + 真 session + 真 8082 + `POST /probe` 一帧 → publishedTotal 0→1，五格俱全）。截图后该测试 session 已从库删除。
+- **诚实边界**：只对 role=admin 可见；读数只这一台 instance；Java 侧只报计数不带帧内容；无新 E2E（真浏览器截图是人眼验证一次，E2E 待干净窗口）；CI topology job 未被真 push 驯服。
+- **仍欠**：多实例聚合读数；定性 E2E（admin-realtime.spec.ts）；帧内容样本评估（先过 ADR-0132 红线）；Java 线路 smoke 接入 verify:topology 待干净窗口。未 push。详见 ADR-0136。
