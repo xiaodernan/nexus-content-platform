@@ -534,13 +534,22 @@ export function queryTokens(query: string): string[] {
   return [...new Set([...ascii, ...bigrams])];
 }
 
-function hit(haystack: string, token: string): boolean {
-  const needle = token.toLowerCase();
-  const value = haystack.toLowerCase();
-  if (!needle || !value) return false;
-  if (value.includes(needle)) return true;
+/**
+ * §PERF-5：命中判定的低层原语。入参须是**已小写**的 `lowerValue`（字段原文的小写）与
+ * `needle`（token 的小写）。优化前的 `hit(haystack, token)` 每次调用都各自 toLowerCase 一次；
+ * 但两者在 rankCodeFiles 的 O(files × tokens × fields) 嵌套循环里都是**循环不变量**，
+ * 提到调用方各算一次即可复用——toLowerCase 纯且幂等，结果只依赖字符串内容。
+ *
+ * 语义逐条保留：空串早退 → 正向 includes → 反方向「长度 ≥3 的中文 needle 包含 value」。
+ * 诚实边界：反方向分支在当前 queryTokens 切词下**不可达**（含 CJK 的 token 恒为 1/2 字，达不到 ≥3），
+ *   保留它只为防御未来切词变更；不可达性由判据的专门一条门钉死，不谎称已覆盖（§CRIT-1 纪律）。
+ * 等价性由 code-index-rank-lowercase.test.ts 的逐字节 oracle 门钉死（CJK 正向 / exact / contains / 加权 / 排序 / reasons 去重）。
+ */
+function hitLower(lowerValue: string, needle: string): boolean {
+  if (!needle || !lowerValue) return false;
+  if (lowerValue.includes(needle)) return true;
   // 反方向只认长度 ≥3 的中文词：否则"页"这种单字会把每份文件都命中一遍
-  return CJK_CHAR.test(needle) && needle.length >= 3 && needle.includes(value);
+  return CJK_CHAR.test(needle) && needle.length >= 3 && needle.includes(lowerValue);
 }
 
 /** 同分时谁更像要改的地方：页面组件是一页的入口，区域片段与样式/汇总次之 */
@@ -560,6 +569,10 @@ function originTier(origin: CodeFileOrigin): number {
 /** §69 的后半句："找到真正相关代码"。纯词法，命中理由逐条列出。 */
 export function rankCodeFiles(index: CodeIndex, input: CodeRankInput): CodeFileMatch[] {
   const tokens = input.query ? queryTokens(input.query) : [];
+  // §PERF-5：token 的小写是内层循环不变量——对整份 query 只算一次，供所有 file × 所有字段复用。
+  // queryTokens 的输出恒满足 `token === token.toLowerCase()`（ASCII 已转小写、CJK 无大小写），
+  // 故 needles[i] 与 token 原著逐字节等价，只省掉重复的小写动作。
+  const needles = tokens.map((token) => token.toLowerCase());
   const nodeIds = new Set(input.nodeIds ?? []);
   const limit = input.limit ?? 8;
   const matches: CodeFileMatch[] = [];
@@ -570,6 +583,14 @@ export function rankCodeFiles(index: CodeIndex, input: CodeRankInput): CodeFileM
     const nodeName = origin.kind === 'node-region' ? origin.nodeName : null;
     const reasons: string[] = [];
     let score = 0;
+
+    // §PERF-5：每个 file 的字段小写同样是 token 循环不变量——每份文件只算一次，
+    // 供该文件的所有 token 比对复用。字段**原文**仍保留给 reasons 文案，只把小写副本用于命中判定。
+    const lowerPath = file.path.toLowerCase();
+    const lowerPageName = pageName === null ? null : pageName.toLowerCase();
+    const lowerNodeName = nodeName === null ? null : nodeName.toLowerCase();
+    const lowerSymbols = file.symbols.map((candidate) => ({ name: candidate.name, lower: candidate.name.toLowerCase() }));
+    const lowerExternals = file.externals.map((external) => external.toLowerCase());
 
     // 每个字段最多计一次分：否则"结算页"切出来的十来个二元组会在同一份文件上叠到 80 分，
     // 排序就变成了"谁的名字长谁赢"，而不是"谁真的相关"。
@@ -584,28 +605,31 @@ export function rankCodeFiles(index: CodeIndex, input: CodeRankInput): CodeFileM
 
     let symbolHit = 0;
     let symbolName = '';
-    for (const token of tokens) {
-      const symbol = file.symbols.find((candidate) => hit(candidate.name, token));
+    for (const [i, token] of tokens.entries()) {
+      const needle = needles[i]!;
+      // find 短路：与旧 `file.symbols.find` 同序、同首个命中；exact 用预小写的 name 判定。
+      // 旧 `symbol.name.toLowerCase() === token` ⟺ `lower === needle`（token 已小写、needle=token）
+      const symbol = lowerSymbols.find((candidate) => hitLower(candidate.lower, needle));
       if (symbol) {
-        const exact = symbol.name.toLowerCase() === token;
+        const exact = symbol.lower === needle;
         if ((exact ? 10 : 5) > symbolHit) {
           symbolHit = exact ? 10 : 5;
           symbolName = symbol.name;
         }
       }
-      if (pageName && hit(pageName, token) && !reasons.includes(`页面「${pageName}」`)) {
+      if (lowerPageName && hitLower(lowerPageName, needle) && !reasons.includes(`页面「${pageName}」`)) {
         score += 8;
         reasons.push(`页面「${pageName}」`);
       }
-      if (nodeName && hit(nodeName, token) && !reasons.includes(`节点「${nodeName}」`)) {
+      if (lowerNodeName && hitLower(lowerNodeName, needle) && !reasons.includes(`节点「${nodeName}」`)) {
         score += 8;
         reasons.push(`节点「${nodeName}」`);
       }
-      if (hit(file.path, token) && !reasons.includes(`路径 ${file.path}`)) {
+      if (hitLower(lowerPath, needle) && !reasons.includes(`路径 ${file.path}`)) {
         score += 4;
         reasons.push(`路径 ${file.path}`);
       }
-      if (file.externals.some((external) => hit(external, token)) && !reasons.includes(`外部依赖 ${token}`)) {
+      if (lowerExternals.some((external) => hitLower(external, needle)) && !reasons.includes(`外部依赖 ${token}`)) {
         score += 2;
         reasons.push(`外部依赖 ${token}`);
       }
