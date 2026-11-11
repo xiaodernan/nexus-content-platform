@@ -12024,3 +12024,11 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **工程教训（入 git）**：PowerShell 5 读写源码不带显式 UTF-8 会把 CJK 二次解码损坏（§SC-53 BOM 事故同类，本片两条注释行受损后逐字恢复并经 git diff 核验）。源码一律字节级安全写入；`Get-Content -Raw` 比对经显式编码校验。
 - **协作**：只碰自己的 Java 文件 + `scripts/realtime-java-community.mts` + `package.json` + 本 ADR 落盘 + 二处文档；会话正在改的 search/globals 文件一概未动。
 - **仍欠**：真浏览器里 Java 帧→SSE→§164 通知 UI 的 e2e 实证未跑（消费侧现成：`/api/realtime` 本就 subscribe `user:<id>`、web 既有 user 频道 notification 渲染）；`generation.progress` JVM 侧进度帧同构处理；发送端帧大小护栏；双路触发同一频道的去重策略（web 不补不抄）；CI topology job 未含本链路 smoke。未 push。详见 ADR-0130。
+
+## §SC 第五十五片（§SC-55）：发送端帧 64 KiB 护栏——pub/sub 没有背压，大帧只能靠收发端自律（2026-11-11 / ADR-0132）
+
+- **为什么**：user 本轮点名消息队列的合理运用。MQ 候选③（§ADR-0126/ADR-0127 的"仍欠"）正面收口。根上的事：Redis pub/sub 没有订阅者名册、没有 slow-consumer、没有死信。一帧几 MB 的 JSON 会原样复制给每一个订阅连接并撑爆缓冲。**能不能上线路唯一决定点是发送端**。
+- **做法**：web `redisBus.ts` `Buffer.byteLength` 在 `pub.publish` 前量字节，超限 → `countWireError('帧超长')`（新词条入闭合词表，admin 面板通用渲染、零前端改动）后 return——本机半边仍送达、ioredis 从未被调用、『投递』账不污染。Java `WirePublisher` 同护栏 + `LongAdder` 计数，新端点 `GET /api/v1/realtime/stats`（同 /policy 未鉴权）：`{wireChannel, maxFrameBytes:65536, publishedTotal, tooLargeDropped, redisFailures}`。`/probe` 的 `redis_unavailable` 保持不变（SC-53 契约），精确失败种类去 /stats 对账。
+- **判分面（全部实跑）**：`test/realtime-frame-guard.test.ts` **3/3**（死端口挡线路——大帧就地丢、本机半边送达 1 帧、『帧超长』计 1、『投递』0；双发计 2；边界不误伤）；tsc EXIT=0；eslint EXIT=0；`realtime-stats-readout`+`realtime.redis.integration`+`realtime-frame-guard` 三文件 **30/30**；java 全套 **126/126**（+2）；**live**：8082 up，`GET /stats` 200，`POST /probe` 发布后 stats `publishedTotal: 0→1`。
+- **诚实边界**：只防大帧、不防大量小帧（rate limit 别处已有）；O(n) 扫描相对 RTT 可忽略；64 KiB 是护栏非天花板，`agent.plan` 合法 KB 量级值不触界；Java/web 两处各自定义常量（不同语言不能跨进程共享），如要调整一起改。
+- **仍欠**：发送端背压的订阅侧窗口（pub/sub 无成员名册，VALUE 另立片评估）；admin 面板『帧超长』的可视化排序（count desc 够用）；stats 只进程生命周期（跨重启不持久）；agent.plan base64 字段裁剪另立片。未 push。详见 ADR-0132。
