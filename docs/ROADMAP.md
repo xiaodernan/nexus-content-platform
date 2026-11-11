@@ -155,6 +155,26 @@ family README section) and a door that reddens the sentence it repairs:
         invalidate could still interleave in the tiny gap — judged not worth a Lua/WATCH for a
         worst-case 15s stale head, recorded as a bound, not an incident).]
 
+  v666  session-dependent JSON responses get a DOWNWARD-ONLY cache-contract ledger, and the
+        four most sensitive read GETs move to a shared helper (ADR 0098): v664 wired one route,
+        a census found 96 session-reading routes with a whole family of bare private GETs.
+        [LANDED 2026-11-12 — § 计网 × 缓存 × 安全 × 前后端协同. New `sessionResponseHeaders()` /
+        `privateJson()` in server/http.ts: default `Vary: Cookie` + `private, no-store`, Vary APPENDED
+        not overwritten (keeps Accept-Encoding), caller's existing cache-control respected. Migrated
+        /api/auth/me, /api/projects GET, /api/notifications GET, /api/marketplace/earnings GET. The
+        other 27 naked session GETs are listed in session-json-cache-ledger.json (lint-debt discipline):
+        gate A refuses any NEW unregistered naked exit, gate B refuses a STALE entry (fixed-but-not-
+        removed ⇒ forces down-only accounting), gate C pins the header contract, gate D pins the 4
+        migrations (comments stripped, so a note mentioning an old API is no longer punished — that
+        RED-first catch was the reverse-control). 12/12; mutation+reverse-control 13/13 (5 break-arms
+        red, 8 legit green); tsc + eslint exit 0; census 132/119 unchanged. NO unified proxy floor:
+        measured that proxy response headers DO reach the client (trace id), but the merge order vs a
+        route's own headers was NOT measurable on this host, and a blanket private,no-store would risk
+        v664's anon/viewer split + apiJson's Accept-Encoding — so the framework-wide兜底 is recorded as
+        an honest owed + WHY, not claimed. Also no real HTTP wire leg (function contract only); the
+        ledger's file-level whitelist is deliberately conservative (a file mentioning cache-control
+        anywhere counts compliant) rather than a brittle per-exit regex.]
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and

@@ -989,3 +989,42 @@ queue is 8-deep per branch and every ref that speaks red off one row is recorded
   bound, not an incident. ③ `inFlight` is a module singleton that the existing test reset seam does
   not clear; all 6 doors await every flight to settle so none leaks, but a future test that leaves a
   flight in flight should get a `__resetDiscoverInflightForTests()` seam rather than leak state.
+
+## 2026-11-12 addendum (cont. 26): session JSON cache contract becomes a DOWNWARD ledger — ADR 0098, v666
+
+- **What closed.** v664 wired HTTP cache headers on ONE route (`/api/discover`); a census then found the gap
+  is a FAMILY: 96 session-reading `api/**/route.ts`, with `/api/auth/me`, `/api/projects`, `/api/notifications`,
+  `/api/marketplace/earnings`, `/api/admin/*` and a whole `/api/projects/[projectId]/*` family returning bare
+  `NextResponse.json` for cookie-dependent private GETs — the §188 discipline, unapplied, on the cookie axis.
+  Added `sessionResponseHeaders()` + `privateJson()` to `server/http.ts` (default `Vary: Cookie` +
+  `private, no-store`; Vary APPENDED not overwritten so `Accept-Encoding` survives; a caller's existing
+  `cache-control` is respected). Migrated the 4 most sensitive read GETs. The other **27** naked session GETs
+  are explicitly listed in `apps/web/test/session-json-cache-ledger.json` (lint-debt discipline, DOWNWARD-only):
+  gate A refuses a NEW unregistered naked exit (debt cannot spread), gate B refuses a STALE entry (fixed but
+  still listed ⇒ must be removed in the same commit), gate C pins the header contract, gate D pins the 4
+  migrations against regression. `bytesResponse` (explicit cache arg) and `NO_STORE` routes are correctly
+  recognised as compliant and kept OUT of the ledger.
+- **A floor we measured and did NOT claim.** `src/proxy.ts` is the unified request entry and already sends a
+  response header (`x-nexus-trace`), and Next docs confirm `NextResponse.next({headers})` headers reach the
+  client. Tempting to blanket-add `Vary: Cookie` + `no-store` to all `/api/*` there. NOT done, with reasons
+  recorded in ADR 0098: ① the merge order between a proxy-set `cache-control` and a route's own headers was
+  NOT measurable on this host (no `next start`), and betting dozens of endpoints on an unmeasured framework
+  behaviour violates measured-not-assumed; ② a blanket `private, no-store` override would risk v664's
+  anon/viewer split (anon must NOT be private) and `apiJson`'s appended `Accept-Encoding`; ③ Next itself
+  discourages `next({headers})` as a response-header channel. The framework-wide floor is a named owed, not
+  a silent hole and not a false claim.
+- **Measured.** `session-json-cache.test.ts` **12/12** (ledger A/B self-check against real source: no new, no
+  stale, no dupes; 5 header-contract legs; 4 migration guard legs). RED-first: gate D first reddened on
+  `earnings`' COMMENT mentioning an old `NextResponse.json(...)` — fixed by stripping comments before judging
+  (a reverse-control: the door must catch code regressions, not prose), re-run 12/12. **Mutation + reverse-
+  control 13/13** on a production-isomorphic model (5 break-arms red: new naked exit, fixed-but-not-removed,
+  header missing Vary / loosened to public,max-age / overwriting Vary; 8 legit green). `tsc` **exit 0** (first
+  pass reddened `string|undefined` under `noUncheckedIndexedAccess`; fixed by a precise return type
+  `{vary:string; cache-control:string}` + local narrowing, NOT a `!` assertion); single-file `eslint` **exit 0**
+  (one `no-useless-escape` fixed). census **exit 0**: 132 modules / 119 rows / arms 132/132 (this slice's
+  `apps/web/test/*` + ledger JSON are outside census population).
+- **Honest gaps (ADR 0098).** ① no framework-level proxy floor, merge order unmeasured — the 27 debts remain
+  real, just explicitly bounded and reclaimable; ② no real HTTP wire leg (function-contract proof only);
+  ③ the ledger's file-level whitelist is deliberately conservative (any `cache-control`/`vary`/`NO_STORE` token
+  anywhere ⇒ compliant), trading per-exit precision for a non-brittle door — a file could still have one naked
+  exit beside one guarded one; finer convergence owes a real HTTP leg on a resourced host, not a meaner regex.

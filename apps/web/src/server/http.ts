@@ -88,6 +88,42 @@ export function acceptsGzip(req: Request): boolean {
 }
 
 /**
+ * 会话相关的 JSON 出口：默认 `Vary: Cookie` + `cache-control: private, no-store`（§ 计网 × 前后端协同）。
+ *
+ * 为什么存在：全站有一族 GET 端点（`/api/auth/me`、`/api/projects`、`/api/notifications`、
+ * `/api/marketplace/earnings` …）的应答随 `nexus_session` cookie 变化——同一个 URL 对 anon 与登录用户、
+ * 对不同用户返回不同内容。裸 `NextResponse.json` 一个缓存头都不带，等于把"这份结果受 cookie 影响"
+ * 这件事瞒着浏览器 / CDN / 反代：今天没共享缓存所以暂时没人存，但漏掉 `Vary: Cookie` 正是 §188 在
+ * `Accept-Encoding` 上立过、v664 在 `/api/discover` 上落过的同一条欠账，落到 cookie 维度更危险。
+ * `private` 是二道锁：即使将来有人误把 `no-store` 放宽成短缓存，共享缓存仍不许碰它。
+ *
+ * 合并而非覆盖：调用方已有 `cache-control` 就尊重（例如某端点能证明自己可短缓存）；已有 `Vary`
+ * 就把 `Cookie` 追加进去（保住 `Accept-Encoding` 等其它维度，与 `apiJson` 同纪律）。返回纯数据头
+ * 的 `sessionResponseHeaders()` 供静态门断言，不手抄字符串。
+ */
+export function sessionResponseHeaders(given?: HeadersInit): { vary: string; 'cache-control': string } {
+  const headers = new Headers(given);
+  const cache = headers.get('cache-control');
+  if (!cache) headers.set('cache-control', 'private, no-store');
+  const vary = headers.get('vary');
+  if (!vary) headers.set('vary', 'Cookie');
+  else if (!/(?:^|,)\s*cookie\s*(?:,|$)/i.test(vary)) headers.set('vary', `${vary}, Cookie`);
+  // 两个键在上面都保证 set 过，本地变量收窄避免 noUncheckedIndexedAccess 下的 string|undefined。
+  const outVary = headers.get('vary') ?? 'Cookie';
+  const outCache = headers.get('cache-control') ?? 'private, no-store';
+  return { vary: outVary, 'cache-control': outCache };
+}
+
+/** `NextResponse.json` 的会话感知版本：见 `sessionResponseHeaders`。 */
+export function privateJson(data: unknown, init: ResponseInit = {}): NextResponse {
+  const headers = new Headers(init.headers);
+  const merged = sessionResponseHeaders(headers);
+  headers.set('vary', merged.vary);
+  headers.set('cache-control', merged['cache-control']);
+  return NextResponse.json(data, { ...init, headers });
+}
+
+/**
  * 公网 v1 的 JSON 出口：够大且对方收得住就原样压一份 gzip。
  *
  * 为什么要在这里压：`next start` 自带的 compress 中间件**认得** `application/json`

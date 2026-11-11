@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server';
 import { getCreatorEarnings } from '@/server/domain/marketplace';
 import { currentUserOrNull } from '@/server/domain/session';
-import { failure, jsonError } from '@/server/http';
+import { failure, jsonError, privateJson } from '@/server/http';
 
 /**
  * §128 创作者收益明细：一次购买后创作者分成（`marketplace_splits`）的聚合视图。
@@ -21,7 +20,7 @@ export async function GET() {
 
   try {
     const summary = await getCreatorEarnings({ creatorId: user.id });
-    return NextResponse.json(summary);
+    return privateJson(summary);
   } catch (error) {
     return failure(error, 'GET /api/marketplace/earnings');
   }
