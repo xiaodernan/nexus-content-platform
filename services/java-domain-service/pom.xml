@@ -4,9 +4,8 @@
 
   Dependencies are the same set the standalone tests grade, plus the two Spring Cloud halves this
   service actually declares: eureka-client (SC-6, registration OFF by default) and config (SC-11,
-  `optional:` import, OFF by default) — see application.yml. resilience4j was added and removed in the
-  same slice: nothing in the tree reads it yet, and a dependency nobody consumes is a promise with no
-  creditor (the breaker debt stays recorded in docs/ROADMAP.md §SC).
+  `optional:` import, OFF by default) — see application.yml. resilience4j is here since SC-60:
+  the Feign client (AiServiceClient) reads it — the breaker exists and has a real caller.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -119,10 +118,16 @@
           SC-18: OpenFeign — the declarative client for service-to-service calls (AiServiceClient).
           The client resolves ai-service by explicit URL (NEXUS_AI_SERVICE_URL, default the documented
           ai port 8000), so like everything above it is inert until a caller injects it.
+          SC-60: the breaker has real pressure — repeated probes against a dead Python stop being free
+          connection-refused episodes and become "stop trying for 10s"; the endpoint does not pretend.
         -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
         </dependency>
 
         <!-- Test -->

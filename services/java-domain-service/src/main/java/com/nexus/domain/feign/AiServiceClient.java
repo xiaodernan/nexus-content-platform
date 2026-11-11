@@ -21,8 +21,12 @@ import java.util.Map;
  *
  * <p>Resolved by explicit URL ({@code NEXUS_AI_SERVICE_URL}, default the documented ai port 8000), so
  * like every other half of this service it is inert until a caller injects it.
+ *
+ * <p>The client carries a fallback ({@code AiServiceFallback} since §SC-60): repeated probes against
+ * a dead Python stop being free connection-refused episodes and become an honest degraded report naming
+ * the circuit. The fallback throws — it never fabricates a healthy payload.
  */
-@FeignClient(name = "ai-service", url = "${NEXUS_AI_SERVICE_URL:http://127.0.0.1:8000}")
+@FeignClient(name = "ai-service", url = "${NEXUS_AI_SERVICE_URL:http://127.0.0.1:8000}", fallback = AiServiceFallback.class)
 public interface AiServiceClient {
 
     @GetMapping("/healthz")

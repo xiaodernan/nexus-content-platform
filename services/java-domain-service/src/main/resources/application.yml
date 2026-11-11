@@ -15,6 +15,14 @@ spring:
   cloud:
     config:
       enabled: ${NEXUS_CONFIG_ENABLED:false}
+    # SC-60 — Feign integration breaker. Without this the Feign client ignores resilience4j entirely.
+    # group.enabled=true: Feign matches the breaker by Feign-client's name (ai-service), not the
+    # ephemeral ConfigKey-derived "AiServiceClienthealthz" — one stable breaker named ai-service.
+    openfeign:
+      circuitbreaker:
+        enabled: ${NEXUS_FEIGN_BREAKER:true}
+        group:
+          enabled: ${NEXUS_FEIGN_BREAKER_GROUP:true}
   autoconfigure:
     # Without this, Boot prints "Using generated security password" and configures an in-memory user that no
     # request needs: SecurityConfig defines the only filter chain this service has.
@@ -88,6 +96,25 @@ feign:
       ai-service:
         connect-timeout: ${NEXUS_AI_HEALTH_CONNECT_MS:1000}
         read-timeout: ${NEXUS_AI_HEALTH_READ_MS:3000}
+
+# SC-60 — the breaker's own bounds. Spring Cloud CircuitBreaker's defaults are for a library,
+# not a platform: minimum-number-of-calls defaults to 100, which is a mile of polite silence on top
+# of a five-call outage window. A default base-config is set deliberately (any breaker the
+# framework opens, including Feign's resolver-derived one, inherits sane silent behavior out of the box):
+# 10s of patience, close the circuit after 10 calls in the window, reopen at 50% failures.
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: ${NEXUS_FEIGN_OPEN_WAIT_MS:10s}
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+    instances:
+      ai-service:
+        base-config: default
 
 logging:
   level:

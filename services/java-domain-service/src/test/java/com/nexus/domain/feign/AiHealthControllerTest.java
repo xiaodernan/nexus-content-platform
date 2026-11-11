@@ -31,7 +31,9 @@ class AiHealthControllerTest {
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.standaloneSetup(new AiHealthController(ai)).build();
+        // 断路器注册表放在零个 bean 上——null 是合法实例：currentBreakerState() 会回 null，
+        // 与"生产上关掉断路器"的形状一一对应，这是判据最想看见的场景之一
+        mvc = MockMvcBuilders.standaloneSetup(new AiHealthController(ai, null)).build();
     }
 
     private static Map<String, Object> bodyOf(MvcResult result) throws Exception {
@@ -60,6 +62,9 @@ class AiHealthControllerTest {
         assertThat(((List<?>) body.get("providers"))).hasSize(1);
         assertThat(((Map<?, ?>) body.get("queue")).get("backend")).isEqualTo("memory");
         assertThat(((Number) body.get("responseTimeMs")).longValue()).isGreaterThanOrEqualTo(0L);
+        // 断路器 bean 不存在时，breakerState 是 null（部署把断路器关了），不是一张假 CLOSED
+        assertThat(body).containsKey("breakerState");
+        assertThat(body.get("breakerState")).isNull();
     }
 
     @Test
