@@ -238,7 +238,8 @@ try {
   dbStarted = true;
 
   const inside = await until(async () => {
-    const r = await run('docker', ['exec', DB_CONTAINER, 'pg_isready', '-U', DB_USER, '-d', DB_NAME]);
+      // the readiness probe runs a real query, not pg_isready — pg_isready answers 0 during 'starting up', psql does not
+const r = await run('docker', ['exec', DB_CONTAINER, 'psql', '-U', DB_USER, '-d', DB_NAME, '-c', 'SELECT 1', '-q', '-X', '-v', 'ON_ERROR_STOP=1']);
     return r.code === 0;
   }, { tries: 60, gapMs: 1000, label: 'postgres to accept connections inside its container' });
   assert.ok(inside, 'the throwaway database never became ready');

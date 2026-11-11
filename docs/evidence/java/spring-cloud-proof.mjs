@@ -538,7 +538,8 @@ try {
     );
     const deadline = Date.now() + 90_000;
     for (;;) {
-      const ready = spawnSync('docker', ['exec', SOURCE, 'pg_isready', '-U', DB_USER, '-d', DB_PLATFORM], { encoding: 'utf8', timeout: 20_000 });
+        // the readiness probe runs a real query, not pg_isready — pg_isready answers 0 during 'starting up', psql does not
+const ready = spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', DB_PLATFORM, '-c', 'SELECT 1', '-q', '-X', '-v', 'ON_ERROR_STOP=1'], { encoding: 'utf8', timeout: 20_000 });
       if (ready.status === 0) break;
       if (Date.now() > deadline) {
         throw new Error(`the scratch source ${SOURCE} never answered pg_isready in 90s: ${ready.stdout}${ready.stderr}`);

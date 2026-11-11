@@ -591,3 +591,21 @@ consequence directly: five inserts into a 4-cap cache produces exactly one evict
   runs safely.
 
 Both branches at HEAD; the ledger promises only what landed and what is in flight, named as such.
+
+
+## 2026-11-11 addendum (cont. 16): the hosted Postgres-startup flake — every readiness probe upgraded to drive the real query path, not a shortcut answer
+
+**Hosted CI's two most recent runs reddened on `verify:spring-cloud` and `verify:traffic` (this morning, at 10:50 UTC).** Both said the same sentence, in the same shape:
+`psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL: the database system is starting up` — i.e., the proof entered the query path **after** pg_isready reported `accepting connections`, but before the server really was.
+
+**Per-file:**
+
+- `docs/evidence/m9/service-traffic-proof.mjs` — the readiness probe inside `until()` for the throwaway Postgres container.
+- `docs/evidence/m9/service-health-proof.mjs` — identical pattern for its container.
+- `docs/evidence/m9/service-liveness-proof.mjs` — identical pattern.
+- `docs/evidence/m9/service-vitals-proof.mjs` — identical pattern.
+- `docs/evidence/java/spring-cloud-proof.mjs` — identical pattern inside the §3a scratch-source block.
+
+The probe now runs `psql … -c 'SELECT 1' … ON_ERROR_STOP=1` and returns code 0 only when the **query path itself** is ready. `pg_isready` stayed out of the five files.
+
+**The rule for future readiness checks in this repo:** any readiness probe for a networked service must drive the actual operation the next step will consume, not carry a separate answer about "the binary replied". The flag this flake exposed — "is the server already accepting query" and "did the probe receive a port-accept" — is exactly what the proof cannot tell you from the outside.
