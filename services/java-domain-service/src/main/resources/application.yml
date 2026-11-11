@@ -80,6 +80,15 @@ management:
     health:
       show-details: never
 
+# SC-59 — Feign 到 Python ai-service 的超时。缺了这两条就是库默认（read 可能十秒级），
+# 一个探针挂住一次 pageload 就不叫探针。1s 连 / 3s 读（一个 provider 健康应当远快于此）。
+feign:
+  client:
+    config:
+      ai-service:
+        connect-timeout: ${NEXUS_AI_HEALTH_CONNECT_MS:1000}
+        read-timeout: ${NEXUS_AI_HEALTH_READ_MS:3000}
+
 logging:
   level:
     com.nexus: INFO
