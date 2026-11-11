@@ -386,6 +386,47 @@ export function codeIndexChars(index: CodeIndex): number {
 }
 
 /**
+ * §PERF-4：数组 [items[0..k]] 的 `JSON.stringify` 字符长度前缀和，供预算裁剪做 O(1) 查表。
+ *
+ * 为什么需要它：`JSON.stringify({...index, files: files.slice(0, keep)})` 的长度 =
+ *   **与 files 无关的骨架长度** + **files 数组那一段的长度**。而数组段长度有闭式：
+ *     len([e0..e(k-1)]) = 2 个方括号 + Σ len(stringify(ei)) + (k-1) 个逗号
+ * 于是只要每个元素的序列化长度已知（各 stringify 一次，O(总字符) 总量），
+ * 任意前缀长度都能 O(1) 求出，不必每换一个 keep 就全量 stringify 整个 index（那曾是 O(n²)）。
+ *
+ * 元素各自 `JSON.stringify(item).length` 的长度，与它作为数组元素时**完全一致**——
+ * JSON.stringify 对数组每一项独立序列化，元素不感知自己在数组里的位置（无上下文转义差异）。
+ * 这条等价由 code-index-complexity.test.ts 的逐字节 oracle 门钉死。
+ *
+ * @param itemLengths 每个元素单独 `JSON.stringify(item).length`，按数组顺序
+ * @returns prefix[k] = `JSON.stringify(items.slice(0, k))` 的长度；prefix[0] = 2（空数组 `[]`）
+ */
+export function jsonArrayCharsPrefix(itemLengths: readonly number[]): number[] {
+  const prefix = new Array<number>(itemLengths.length + 1);
+  prefix[0] = 2; // []
+  let sum = 0;
+  for (let k = 1; k <= itemLengths.length; k += 1) {
+    sum += itemLengths[k - 1]!;
+    prefix[k] = jsonArrayCharsFromSum(sum, k);
+  }
+  return prefix;
+}
+
+/** §PERF-4：数组段长度的增量闭式——已知前 count 个元素序列化长度之和 sum，O(1) 求数组段字符数。 */
+export function jsonArrayCharsFromSum(sum: number, count: number): number {
+  return count <= 0 ? 2 : 2 + sum + (count - 1); // 2 方括号 + Σ元素 + (count-1) 逗号
+}
+
+/**
+ * §PERF-4：给定"数组段长度"，求整个 index 在替换 files 后的总字符长度。
+ * skeletonChars = `JSON.stringify({...index, files: []})` 的长度（含空数组 `[]` 的 2），
+ * 因此替换成任意数组段长度 arrayChars 时，总长 = skeletonChars - 2 + arrayChars。
+ */
+export function indexCharsWithFiles(skeletonChars: number, arrayChars: number): number {
+  return skeletonChars - 2 + arrayChars;
+}
+
+/**
  * 目录自己也要有预算：docs/PERFORMANCE.md 那一档实测下来，全量发给 Agent 就又把 §68 反着做了一遍。
  * 裁剪按固定优先级，totals 始终来自未裁的那一份——宁可少列条目，不许少报数。
  */
@@ -422,9 +463,31 @@ export function fitCodeIndexToBudget(index: CodeIndex, maxChars: number = DEFAUL
     trimmed.push('去掉了符号的参数名');
   }
   // 4) 文件按 codegen 顺序保留前若干个（页面顺序就是文档顺序，砍尾巴等于砍后面的页面）
+  // §PERF-4：原实现从 keep=length-1 逐个递减、每轮全量 JSON.stringify({...index, files.slice(0,keep)})
+  //   —— 最坏 O(n) 轮 × O(总字符) = O(n²)。改为：每个 file 只序列化一次求长度（O(总字符) 总量），
+  //   再用前缀和 O(1) 求任意前缀的数组段长度、二分找可容纳的最大 keep（O(log n) 次查表）。
+  //   "总长随 keep 单调递增"（文件越多字符串越长）保证二分与原线性扫描退出在同一 keep。
   if (codeIndexChars({ ...index, files }) > maxChars) {
-    let keep = files.length - 1;
-    while (keep > 1 && codeIndexChars({ ...index, files: files.slice(0, keep) }) > maxChars) keep -= 1;
+    const skeleton = codeIndexChars({ ...index, files: [] });
+    const prefix = jsonArrayCharsPrefix(files.map((file) => JSON.stringify(file).length));
+    const charsAt = (keep: number): number => indexCharsWithFiles(skeleton, prefix[keep]!);
+
+    // 与原逻辑同域：上界 files.length-1（已知全量超预算，先让掉一个），下界 1。
+    // 找最大 keep∈[1, length-1] 使 charsAt(keep) <= maxChars；若连 keep=1 都超，取 1。
+    let keep = 1;
+    if (files.length > 1) {
+      let lo = 1;
+      let hi = files.length - 1;
+      while (lo <= hi) {
+        const mid = lo + ((hi - lo) >> 1);
+        if (charsAt(mid) <= maxChars) {
+          keep = mid;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+    }
     dropped.files = files.length - keep;
     files = files.slice(0, Math.max(keep, 1));
     trimmed.push(`只列前 ${Math.max(keep, 1)} 个文件，另有 ${dropped.files} 个未展开（总数仍在 totals 里）`);
@@ -694,6 +757,16 @@ export function buildCodeDigest(index: CodeIndex, input: CodeRankInput & { maxCh
   const files: CodeDigestFile[] = [];
   const trimmed: string[] = [];
 
+  // §PERF-4：原实现每追加一份就 `[...files, candidate]`（O(k) 复制）+ 全量 stringify（O(总字符)），
+  //   m 份候选累计 O(m²)。改为维护"已入列候选的序列化长度之和"，用增量闭式 O(1) 求
+  //   `{schemaVersion:1, files:[已入列..., candidate]}` 的总长（骨架只算一次）。
+  //   骨架 = JSON.stringify({schemaVersion:1, files: []}) 的长度；元素各自 stringify 的长度与
+  //   作为数组元素时一致（同 jsonArrayCharsPrefix 的等价前提），逐字节相等由 oracle 门钉死。
+  const skeleton = JSON.stringify({ schemaVersion: 1, files: [] }).length;
+  let runningSum = 0;
+  const digestCharsWith = (candidate: CodeDigestFile, candidateChars: number): number =>
+    indexCharsWithFiles(skeleton, jsonArrayCharsFromSum(runningSum + candidateChars, files.length + 1));
+
   for (const match of ranked) {
     const file = byPath.get(match.path);
     if (!file) continue;
@@ -709,11 +782,13 @@ export function buildCodeDigest(index: CodeIndex, input: CodeRankInput & { maxCh
       unresolvedDeps: file.unresolvedDeps,
       reasons: match.reasons,
     };
-    if (JSON.stringify({ schemaVersion: 1, files: [...files, candidate] }).length > maxChars) {
+    const candidateChars = JSON.stringify(candidate).length;
+    if (digestCharsWith(candidate, candidateChars) > maxChars) {
       trimmed.push(`预算 ${maxChars} 字符用满：还有 ${ranked.length - files.length} 个命中的文件没发出去`);
       break;
     }
     files.push(candidate);
+    runningSum += candidateChars;
   }
 
   if (!files.length && (input.query || input.pageId || input.nodeIds?.length)) {
