@@ -305,6 +305,57 @@ family README section) and a door that reddens the sentence it repairs:
         robust cross-process identity is owed. ④ single frame version v1; a v1 instance during a
         rolling upgrade drops v2 frames and degrades to the 15s TTL, no dual-version subscribe.]
 
+  v671  two of the hottest in-process data structures get their amortized-complexity PROMISE turned
+        into a gated contract — before it was prose in a file header (ADR 0104): `TtlLru` and
+        `MemoryRateLimiter` both document O(1) hit / amortized-O(1) eviction in exhaustive comments,
+        yet every gate asked only "is the ANSWER right, who was evicted, how many were counted" —
+        none asked "does cost stay flat as the table grows". A real regression (an extra liveSize()
+        scan in get, or evictToCap rewritten to sort the whole table) would leave all semantics
+        green while taking the hot path O(1)→O(n); for the limiter that is worse than a bug — a gate
+        meant to stop cheap-write floods becomes an amplification attack on itself.
+        [LANDED 2026-11-12 — § 数据结构 × 操作系统/硬件适配 × 算法. TWO evidence kinds, deliberately
+        split. Wall-clock `scripts/ds-benchmark.mts` (`npx tsx ...`, --json; NO threshold assertions,
+        inherited from perf-baseline.mts's "a flaky threshold's next step is a deleted threshold"):
+        TtlLru hit vs capacity 8/8192, TtlLru 400k-set flood into a 256 cap, limiter 60k-distinct flood
+        at maxBuckets 64/4096, reporting throughput + p50/p99 into docs/PERFORMANCE.md. Deterministic
+        `ds-complexity-contract.test.ts` (the GATE): wraps Map.prototype.get/set/delete/[Symbol.iterator]
+        with vi.spyOn (originals saved BEFORE spying, forwarded after — no recursive套娃; sync measured
+        interval bracketed by resets) and counts hash/iterator ops, NOT milliseconds. Note
+        `MemoryRateLimiter.hit` is `async` but has no `await` in its body — the whole cost lands before
+        the resolved Promise returns, so the count right after the call IS the full per-hit cost. Measured:
+        TtlLru hit = **6** Map ops, set = **3**, IDENTICAL at capacity 8 and 8192; eviction before/after
+        cap same cost; limiter at-cap = **13** ops, **480 hits zero variance**, and maxBuckets 8 vs 4096
+        single-eviction cost EQUAL. Gate pins the SHAPE (capacity-independent + bounded + flood-uniform),
+        deliberately NOT the literal "6" — a future two-Map→one-Map win (hit 6→3) must stay green
+        (ADR 0094 X4 discipline). Benchmark read (host node 22.22.2 win32 x64, scale=1, shared host,
+        archive not verdict): TtlLru hit 8→8192 (1024×) ops/s 483k→214k p50 0.42→0.56us (same order,
+        no O(n)); TtlLru flood ops/s 356k p50 0.74us (linear, not squared); limiter 64→4096 (64×)
+        ops/s 18k→11k p50 49→79us (only ~39% slower, not 64× ⇒ amortized O(1)). p99 28–237us is GC/
+        host noise, not code. MEASUREMENT-METHOD FIX: v1 timed every op with performance.now() and got
+        self-contradictory ns/op=6875 vs p50=0.4us (each timer call ≈ the hit itself) — switched to
+        CHUNKED timing (512 ops/segment, only ~hundreds of timer calls); this is exactly WHY the gate
+        uses op counts, not wall-clock. Mutation arms `docs/evidence/ds/complexity-arms.mjs` (plain
+        node, non-type-aware evidence rule set) 2/2 RED as expected: TtlLru hit +O(n) scan ⇒ cap8=11
+        vs cap8192=8195; eviction cost ∝ max ⇒ max8=12 vs max4096=4100. A THIRD arm "fixed cap +
+        sweep whole table every eviction" was designed to red but measured GREEN — and the gate is
+        RIGHT: with a fixed cap the bucket count is constant, so "scan a fixed 8" is still O(1) (just
+        a bigger constant), zero variance; the real degradable dimension is max (arm ② catches it).
+        That non-red arm and its reason are recorded honestly, no fake-toothed arm (ADR 0104). Zero
+        regression: contract 4/4 + existing ttl/rateLimit/readout **39/39**; narrow tsc (web test +
+        tools script, each changed-files + import graph) exit 0; eslint 3 files individually heap-fed
+        exit 0 (full-project tsc/eslint SIGTERM on ~0.3GB host = resource, not red). HARDWARE-FIT
+        LEAVE-WEIGHT (measured, NOT changed): TtlLru splits {value,expiresAt} across TWO Maps ⇒ 6 hash
+        ops/hit, keys stored twice, LRU order maintained in two tables, and the `expiresAt!` assertion
+        leans on an unexpressed "two maps always share keys" invariant; merging into one Map<K,{value,
+        expiresAt}> would cut hit 6→3 / set 3→2, improve locality, and remove that invariant by
+        construction — but that is a production hot-path storage change, left for a FOLLOW-UP slice
+        with end-to-end regression headroom, not smuggled into a shared host here. HONEST GAPS: wall-clock
+        numbers are single-host single-run scale=1 (no multi-session mean / fixed CI runner); gate counts
+        a proxy (Map ops) that catches O(n) structural regressions but not constant-factor ones; the
+        limiter's O(limit) single-bucket filter (limit caller-supplied, capped) is a stated bound, not
+        gated; two-Map→one-Map gain is structural reasoning + op count (6→3), no before/after wall-clock
+        yet (that comes with the slice that actually changes it).]
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and

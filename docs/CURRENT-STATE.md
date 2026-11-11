@@ -1291,3 +1291,75 @@ Studio CI for refs at this ref: as carried backlogged on the hosted process runn
 - Two branches: master ≡ main at the same refs, all pushes this session going to both.
 
 **Queue state honest:** the Studio CI backlog grows faster than the runner drains it; every ref here reaches main-line green (2–4 min) faster than it reaches Studio CI verdict (~35–45 min in flight). Branch parity is the only invariant the runner cannot refuse.
+
+## 2026-11-12 addendum (cont. 31): the amortized-O(1) promise becomes a gate, not a file header — v671, ADR 0104
+
+- **The gap.** `TtlLru` and `MemoryRateLimiter` are two of the hottest in-process structures on the
+  platform, and both file headers argue their amortized cost at length: `TtlLru` "hit refreshes to the
+  tail via delete+set, eviction walks the head in O(1)"; `MemoryRateLimiter` "eviction takes one pass
+  at the LRU head per hit — if it ever sorted the whole table per hit, a gate built to stop cheap-write
+  floods would become an amplification attack on itself". Yet **every existing gate asked only about the
+  ANSWER** (`ttl-lru.test.ts` 8, `rateLimit.test.ts`'s scale group) — who got evicted, how many counted,
+  which window survived — **none asked whether cost stays flat as the table grows**. A real regression
+  (an extra full scan in `get`, `evictToCap` rewritten to scan everything) would keep all semantics green
+  while collapsing the hot path O(1)→O(n).
+- **Decision — two evidence kinds, deliberately split.** Wall-clock `scripts/ds-benchmark.mts`
+  (`npx tsx`, `--json`; NO threshold assertions, inheriting perf-baseline.mts's discipline that a flaky
+  threshold's next step is a deleted one) archives throughput/p50/p99 into `docs/PERFORMANCE.md`. The
+  deterministic GATE is `apps/web/test/ds-complexity-contract.test.ts`: it wraps
+  `Map.prototype.get/set/delete/[Symbol.iterator]` with `vi.spyOn` (originals saved BEFORE spying and
+  forwarded after, to avoid recursive套娃; the sync measured interval is bracketed by counter resets)
+  and counts **hash/iterator operations, not milliseconds**. `MemoryRateLimiter.hit` is `async` but has
+  no `await` in its body, so the entire per-hit cost lands before its resolved Promise returns and the
+  count read right after the call is complete. The gate pins the SHAPE — hit cost independent of
+  capacity, eviction cost unchanged before/after cap, at-cap flood per-hit zero variance, and equal
+  single-eviction cost at maxBuckets 8 vs 4096 — deliberately **not** the literal "6 ops per hit", so a
+  future two-Map→one-Map win (hit 6→3) stays green (ADR 0094 X4 discipline).
+- **Measured.** Op counts: `TtlLru` hit = **6** / set = **3**, IDENTICAL at capacity 8 and 8192;
+  `MemoryRateLimiter` at-cap = **13** ops across **480 hits with zero variance**, and maxBuckets 8 vs
+  4096 single-eviction costs EQUAL. Wall-clock (node 22.22.2 win32 x64, scale=1, shared host, archive
+  not verdict): TtlLru hit 8→8192 (1024×) ops/s 483k→214k p50 0.42→0.56us (same order — no O(n));
+  TtlLru 400k-set flood into 256 cap ops/s 356k p50 0.74us (linear, not squared); limiter 64→4096
+  (64×) ops/s 18k→11k p50 49→79us (only ~39% slower, not 64× ⇒ amortized O(1)). p99 28–237us is GC /
+  host noise, not code. **Method fix recorded:** v1 timed every op with `performance.now()` and got
+  self-contradictory ns/op=6875 vs p50=0.4us (a timer call ≈ the hit itself) — switched to CHUNKED
+  timing (512 ops/segment); this is exactly why the gate uses op counts, not wall-clock.
+- **Mutation arms (2/2 RED as expected).** `docs/evidence/ds/complexity-arms.mjs` (plain node, non-type
+  evidence rule set): ① `TtlLru` hit +O(n) scan ⇒ cap8=11 vs cap8192=8195, gate 1 red; ② eviction cost
+  ∝ max ⇒ max8=12 vs max4096=4100, gate 4 red. A THIRD arm "fixed cap + sweep whole table each eviction"
+  was designed to red but measured GREEN — and **the gate is RIGHT**: with a fixed cap the bucket count
+  is constant, so scanning a fixed 8 entries is still O(1) (a larger constant), zero variance; the real
+  degradable dimension is `max` (arm ② catches it). That non-red arm and its reason are in the script
+  comment, PERFORMANCE.md and ADR 0104 — no fake-toothed arm to self-deceive, and it cleanly marks gate
+  3's boundary: it proves "per-hit cost doesn't drift with time/traffic at a fixed cap", not "minimal
+  per-hit cost". Zero regression: contract **4/4** + existing ttl/rateLimit/readout **39/39**; narrow
+  tsc (web test + tools script, each changed-files + import graph) **exit 0**; eslint 3 files individually
+  heap-fed (2000m) **exit 0** (full-project tsc/eslint still SIGTERM on this ~0.3GB-free host — resource,
+  not red).
+- **Hardware-fit leave-weight (measured, NOT changed).** `TtlLru` splits `{value, expiresAt}` across TWO
+  Maps ⇒ 6 hash ops/hit, keys stored twice, LRU order kept in two tables, and the `expiresAt!` assertion
+  leans on an unexpressed "two maps always share keys" invariant. Merging into one `Map<K,{value,
+  expiresAt}>` would cut hit 6→3 / set 3→2, improve cache locality, and remove that invariant by
+  construction — but that is a **production hot-path storage change**, and this slice only MEASURED and
+  recorded its cost. Left for a follow-up slice with end-to-end regression headroom, not smuggled into a
+  shared host. Recorded as a candidate, not claimed as a gain.
+- **Honest gaps (ADR 0104).** ① wall-clock numbers are single-host single-run scale=1, no multi-session
+  mean / fixed CI runner — a comparison baseline, not a cross-machine SLA. ② the gate counts a PROXY
+  (Map ops), catching O(n) structural regressions but not constant-factor ones. ③ the limiter's O(limit)
+  single-bucket `filter` (limit caller-supplied and capped) is a stated bound, not gated. ④ the two-Map→
+  one-Map gain has only structural reasoning + op count (6→3), no before/after wall-clock — that comes
+  with the slice that actually changes it.
+- **Shared-tree note — ADR number collision, resolved by yielding.** v671 was advanced in the SAME
+  worktree as parallel lanes, and one landed `facf76c docs(adr): 0103 — edge Server-Timing` DURING this
+  slice, taking **ADR 0103**. This slice's ADR was written as 0103 too; it was renamed to **ADR 0104**
+  (file `0104-amortized-complexity-as-a-gated-contract.md`) and every cross-reference (ROADMAP v671,
+  this cont.31, PERFORMANCE.md, memory) updated to 0104 — the lane's 0103 was left untouched. Lesson:
+  in a shared tree, re-check `ls docs/adr/ | grep 01xx` right before commit; two lanes can claim the
+  same next number in one session. This slice touched only new files (`ds-benchmark.mts` under the
+  tsconfig-covered `scripts/`, `ds-complexity-contract.test.ts`, `docs/adr/0104`,
+  `docs/evidence/ds/complexity-arms.mjs` under the non-type-aware evidence rule set)
+  plus two append-only ledgers (PERFORMANCE.md / ROADMAP.md / this cont.31). The evidence arm was moved
+  from `.mts` to `.mjs` after measuring that `docs/evidence/**` is covered by the non-type lint rule set
+  (`docs/evidence/**/*.mjs`), while `scripts/**/*.mts` is in `tsconfig.tools.json`. No parallel-lane file
+  was staged; `git add` was exact, never `git add -A`. base for this cont.31 = current HEAD; re-fetch +
+  ff check before commit; no force.
