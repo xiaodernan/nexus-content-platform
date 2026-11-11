@@ -11948,3 +11948,20 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
   - 空态不伪造推荐位；`unavailable` 那格严格照旧渲染（如实说明平台没做什么）。
 - **仍欠**：`/discover` 没有 e2e 截图门（视觉变化本页所有用例同构、无独立断言；后续要有"公开面改版必带截图前后"的规约，另立片）。
 - **FE-1 补片（2026-11-11）**：新增 `e2e/discover.spec.ts`（§FE-1 的浏览器那一寸）——匿名冷启动测：标题/四个排序标签/搜索入口可见、卡片 data-* 属性与 `/<handle>/<slug>` href 或空态 `data-discover-empty` 二选一、切到"最近最热"必看到 `aria-current=page` 且 `data-discover-method` 口径写在页上、全程零 console error。tsc exit 0。**未跑**——机器当前约 700MB 空闲、全仓 vitest 正在争资源，下一窗口专跑一次 `npx playwright test e2e/discover.spec.ts`。
+
+## §SC 第五十一片：给默认内存令牌桶装一只可注入的钟——refill 从"靠 sleep 也测不了"到逐支验电（SC-51 / ADR-0124，2026-11-11）
+
+- 触发（user 长期点名）：**Spring Cloud 微服务元素 + Redis / 计网 / 算法 / 数据结构优化运行速度 + 缓存合理运用**。选片前先做只读探查，**证伪了两个诱人但错的方向**（不轻信二手结论、先读测试意图）：
+  - `nexus-api` 十几处 `PageRequest.of(from / asked, asked)` 看似"声明 offset=ROWS、实际按页跳"的 bug；逐处读 `LikeServiceTest:268` / `ReportServiceTest:287` / `TipServiceTest:238` / `AuditServiceTest:243` 等注释后确认 `from/asked` **整页翻译是有意设计、已被逐处固化**，javadoc 措辞不一致是另一笔账——**不动**（修它会撕裂十几处服务与判据）。
+  - `CommunityPolicy` 的"缓存声明未兑现"经读码证伪：单例 `@Component`、构造只读一次，无热路径收益——**不动**。
+  - 真正干净的缺口：**默认**限流后端 `MemoryRateLimitBackend`（无 Redis 时就在跑）的 refill 算法**零测试**，而 `RedisRateLimitBackend` 一直有 test；`RateLimitFilterTest` 只用 `refillPerSecond=0` 把补水关掉换确定性。根因：`Bucket.refill()` 硬读 `System.nanoTime()`，想验"过 100ms 补 1 token"除了 sleep 别无他法，于是没人写。
+- 做法（**零生产行为变化、范围钉死在一个文件 + 一个新测试文件**）：
+  - 三参构造委托 `System::nanoTime`；新增包私有四参构造接 `LongSupplier clockNanos`（纳秒），`Bucket` 一并接住。生产路径逐字等价；未改 `RateLimitBackend` 接口 / `RateLimitFilter` / `GatewayConfig` / `describe()`。
+  - 锁内多余的 `AtomicLong.getAndSet` 化为普通 `long`——`refill()` 只在 `synchronized tryAcquire()` 下跑，CAS 是多余的、且暗示本类并不主张的"无锁安全"；**并发正确性靠判据证明、不靠类型**。
+  - **时间回退边界由判据抓出、由实现兑现**：首版"无论补不补都把水位推到 now"在"时钟回退"用例上红（回退把水位拉到过去，下一步前进会把丢失时间当 elapsed 补回、白铸 token）。改为**水位只在前进时推进**，回退完全忽略；单调生产钟下零变化。这是"既然声明可注入任意钟，就不许注入后行为与自己写下的注释相反"，非为不可能输入加机制。
+- 判据 `MemoryRateLimitBackendTest` **10/10 全绿**（0.645s，纯 `new` + `AtomicLong` 手摇钟 + 8 线程池，零上下文/容器）：满桶首击 burst 次、按 10/s 推进 100ms 补 1、长等封顶 capacity、不足 1 token 拒绝、时钟回退不补不扣、多 client 隔离、rate=0 永不补、并发 40 抢 burst=5 恰好 5 个放行、`describe()=memory`、maxClients=1 塞 200 key 不抛。
+- **三条变异臂各有牙、逐条还原**（ADR-0077 纪律）：臂 A 除数 `1e9→1e6` → 精确红 2 条（纳秒换算）；臂 B 删 `Math.min` → 精确红 1 条（封顶）；臂 C 删 `synchronized` → 并发判据红（放行 > burst）。证明不是惰性判据。
+- **验证**：改前 gateway 基线 EXIT=0；改后 `mvn -DskipTests compile` EXIT=0；`mvn -f services/nexus-gateway/pom.xml test` **126 tests / 0 failures / 0 errors / BUILD SUCCESS / EXIT=0**（3m11s，含新判据 10 + 既有 116）。首跑曾报 `126/Failures:1`，如实定性：`GatewayCircuitHalfOpenWiringTest` 的**时序偶发红**（并行会话抢资源；单跑 2/2 全绿、干净全模块跑全绿），与令牌桶零因果；另有三份失败 `.txt` 是 **02:50/10:32 陈旧报告**（源文件已被并行会话删/重构），清 `target/surefire-reports` 后不再出现——**既不拿陈旧报告当本次失败，也不掩盖本次那条偶发红**。全仓 web vitest 本片未复跑（本片纯 Java，与 web 套件零因果；本机多 agent 抢同一 Postgres 无干净窗口）。未 push。
+- **ADR 编号修复**：本轮发现 `docs/adr/` 有**两个 ADR-0123**（会话的 `0123-fe-elevation-redline.md` + 我上轮 SC-50 探查的 `0123-shared-cache-reconnect-honesty-probe.md`）。以 `git mv` 把我那份让位重编为 **ADR-0125**（标题号同步改、补编号沿革），`0124` 归本片令牌桶；全仓 ADR 编号恢复唯一。会话的 FE 文档未动。
+- **协作边界**：全程只 add 我的 2 个 Java 文件 + ADR-0124 + ADR-0125 重命名 + ROADMAP/CURRENT-STATE/memory 登记；并行会话正在改的 `nexus-registry/application.yml`、`nexus-config/application.yml`、`test.yml`、前端文件一概未碰；`mvn test` 解包出的 `BOOT-INF/` 副产物已清理。
+- **仍欠**：SC-50（共享缓存 `retryStrategy:()=>null` 断后永不重连 + 恒报 `driver=redis`，ADR-0125）待干净全仓窗口才实现；offset javadoc 措辞统一是跨十几处的产品决策、须另立片；ROADMAP 里第四十八/四十九片各有一份并行会话留下的**叠写重复副本**（11894/11908），属会话整理范围，本轮不替它删、避免制造编辑冲突。详见 ADR-0124。
