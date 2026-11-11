@@ -7,7 +7,7 @@
 
 ## 背景
 
-`/api/discover` 的 anon 路（`route.ts` 里 `!viewer` 分支）走一个 15 秒窗口的缓存
+`/api/discover` 的 anon 路径（`route.ts` 里 `!viewer` 分支）走一个 15 秒窗口的缓存
 （`cachedDiscoverAnonymous`），`publish` 与 `moderation` 两条写路径各自调 `invalidateDiscoverRoute()`
 把它清掉。三层各有测试，但**中间那层没人测**：
 
