@@ -119,6 +119,18 @@ management:
       probability: ${NEXUS_TRACING_SAMPLING:1.0}
     propagation:
       type: W3C
+  # v658 — the gateway's health question is "is the EDGE alive", not "is the shared counter alive".
+  # `spring-boot-starter-data-redis-reactive` puts Spring Boot's RedisHealthIndicator on the classpath
+  # automatically, and with no Redis on the deployment's configured port it answers DOWN and flips
+  # /actuator/health to 503. That is NOT a fact about the edge's ability to route: the rate limiter
+  # degrades gracefully when the counter is unreachable (see ResilientRateLimiter — the request
+  # is SERVED, the answer is LABELLED with X-Nexus-Edge-Degraded: unavailable, and the call's own
+  # metric counts), so turning the whole health endpoint DOWN for the counter would cascade the outage
+  # into a full third of the topology. The counter's reachability stays VISIBLE in metrics and in
+  # x-nexus-edge-degraded on the wire; it is exactly the kind of thing this line says NOT to hide.
+  health:
+    redis:
+      enabled: ${NEXUS_REDIS_HEALTH_ENABLED:false}
   endpoints:
     web:
       exposure:
