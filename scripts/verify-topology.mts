@@ -262,6 +262,23 @@ async function main() {
     if (!ai) bad('domain-service /actuator/circuitbreakers.ai-service', JSON.stringify(cb).slice(0, 200));
     else ok(`domain-service /actuator/circuitbreakers: ai-service=${ai.state} bufferedCalls=${ai.bufferedCalls}`);
   }
+  // §SC-66 / §SC-66b: /actuator/info 现在真包含 app/runtime/os/build 四段。 smoke 不仅看 HTTP 200,
+  // 还要至少端到 build.artifact——因为这是 Maven build-info goal 自动产出的字节,手写不会冒充。
+  const infoResp = await fetch(`http://127.0.0.1:${DOMAIN_PORT}/actuator/info`, { signal: AbortSignal.timeout(5_000) });
+  if (infoResp.status !== 200) {
+    bad('domain-service /actuator/info', `HTTP ${infoResp.status} (want 200)`);
+  } else {
+    const info = await infoResp.json().catch(() => null);
+    const buildService = info?.build?.artifact;
+    const javaVersion = info?.runtime?.java;
+    if (buildService !== 'domain-service') {
+      bad('domain-service /actuator/info build.artifact', `got "${String(buildService)}" want "domain-service" (full: ${JSON.stringify(info).slice(0, 200)})`);
+    } else if (typeof javaVersion !== 'string' || !javaVersion.startsWith('25')) {
+      bad('domain-service /actuator/info runtime.java', `got "${String(javaVersion)}" want 25.* (full: ${JSON.stringify(info).slice(0, 200)})`);
+    } else {
+      ok(`domain-service /actuator/info: build.artifact=${buildService}, runtime.java=${javaVersion}, app.name=${info?.app?.name}`);
+    }
+  }
 
   // nexus-api joins the same registry before the gateway starts, so the gateway's first fetch sees
   // the full topology (not just the domain service). It owns its own throwaway database.
