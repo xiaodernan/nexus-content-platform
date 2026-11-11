@@ -21,8 +21,16 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   return (
     <main className="mx-auto flex min-h-screen max-w-[820px] flex-col gap-6 px-6 py-10" data-search-root>
       <header className="flex flex-wrap items-baseline gap-3">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">全平台搜索</h1>
-        <span className="font-mono text-12 text-fg-3">{result.signedIn ? '九类目标 · 内容组只覆盖你自己的项目' : '未登录：只搜公开项目与公开主页'}</span>
+        <h1 className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent">
+          全平台搜索
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
+          />
+        </h1>
+        <span className="rounded-full border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-2.5 py-0.5 font-mono text-11 text-fg-3">
+          {result.signedIn ? '九类目标 · 内容组只覆盖你自己的项目' : '未登录：只搜公开项目与公开主页'}
+        </span>
       </header>
 
       {/* §165：建议来自真实命中（同一份可见性判定），历史只存在这台设备上。
@@ -64,13 +72,17 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                     <li key={hit.id}>
                       <a
                         href={hit.href}
-                        className="flex items-baseline justify-between gap-3 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-4 py-3 hover:bg-bg-2"
+                        className="group flex items-baseline justify-between gap-3 rounded-xl border border-[var(--nexus-color-border-subtle)] bg-bg-1 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--nexus-color-brand)] hover:shadow-[0_12px_32px_rgb(91_108_255/0.18)]"
                         data-search-hit={hit.id}
                       >
-                        <span className="text-14" data-search-hit-title>
+                        <span className="text-14 text-fg-1" data-search-hit-title>
                           {hit.title}
                         </span>
-                        {hit.detail ? <span className="truncate text-12 text-fg-3">{hit.detail}</span> : null}
+                        {hit.detail ? (
+                          <span className="truncate text-12 text-fg-3 transition-colors group-hover:text-fg-2">
+                            {hit.detail}
+                          </span>
+                        ) : null}
                       </a>
                     </li>
                   ))}
