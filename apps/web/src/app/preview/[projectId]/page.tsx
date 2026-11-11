@@ -57,14 +57,20 @@ export default async function PreviewPage({ params, searchParams }: Props) {
 
   return (
     <main className="min-h-screen w-full overflow-auto bg-bg-0 pb-[var(--nexus-space-10)]" data-preview-root data-page={page.name}>
-      <header className="sticky top-0 z-10 flex items-center gap-[var(--nexus-space-3)] border-b border-[var(--nexus-color-border-subtle)] bg-bg-1/95 px-[var(--nexus-space-4)] py-[var(--nexus-space-2)] backdrop-blur">
-        <a href={`/studio/${projectId}`} className="text-13 text-fg-2 underline decoration-dotted">
+      <header className="sticky top-0 z-10 flex items-center gap-[var(--nexus-space-3)] border-b border-[var(--nexus-color-border-subtle)] bg-bg-1/95 px-[var(--nexus-space-4)] py-[var(--nexus-space-2)] backdrop-blur-sm">
+        <a
+          href={`/studio/${projectId}`}
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-13 text-fg-2 transition-colors hover:bg-bg-2 hover:text-fg-1"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
           回到 Studio
         </a>
         <span className="font-mono text-12 text-fg-3">
           {document.name} · {page.name} · {layout.width}×{layout.height}
           {breakpoint ? ` · ${breakpoint}` : ''}
         </span>
+        {/* the hairline under brand */}
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)]/50 to-transparent opacity-80" />
       </header>
       {stateSheet ? (
         <div
