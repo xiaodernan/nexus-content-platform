@@ -12025,6 +12025,18 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **协作**：只碰自己的 Java 文件 + `scripts/realtime-java-community.mts` + `package.json` + 本 ADR 落盘 + 二处文档；会话正在改的 search/globals 文件一概未动。
 - **仍欠**：真浏览器里 Java 帧→SSE→§164 通知 UI 的 e2e 实证未跑（消费侧现成：`/api/realtime` 本就 subscribe `user:<id>`、web 既有 user 频道 notification 渲染）；`generation.progress` JVM 侧进度帧同构处理；发送端帧大小护栏；双路触发同一频道的去重策略（web 不补不抄）；CI topology job 未含本链路 smoke。未 push。详见 ADR-0130。
 
+## §PERF 第一片（§PERF-1）：sim.step 每帧重建 plan 只读索引——按不可变 plan 缓存，构造次数 O(帧数)→O(plan 数)（2026-11-11 / ADR-0131）
+
+- 触发（user 长期点名最重的一条性能线）：**通过操作系统 / 数据结构与算法分析优化代码运行速度与合理性、适配硬件 + 缓存合理运用**。落点选全仓唯一由 `requestAnimationFrame` / three.js `useFrame` / playtest 定步长循环**每帧驱动**的模型层代码 `packages/game-model/src/sim.ts:step`——`GamePlay.tsx:414` 每帧调（effect 依赖 `[plan,view]`，整条 rAF 序列 plan 同一引用）、`GameCanvas3D.tsx:216` 每帧调、`playtest.ts` 定步长 60s=14400 帧。
+- **真缺口（改前）**：`step` 每帧构造 4 个只读 Map（enemy/item/trigger/quest by id）+ 1 次 `quests.filter(judgeable)`——60fps≈每秒 240 个短命 Map，一次 60s playtest≈57600 个，纯 GC 压力；而 plan 是 `compileGame` 的**不可变产物**，这些索引只依赖 plan，整场模拟零变化。属"每帧重算一个循环不变量"，非算法复杂度错。
+- **做法（范围钉死 1 生产文件 + 1 新测试文件，零行为变化）**：新增 `PlanIndices` / `buildPlanIndices(plan)` 纯函数 / `makePlanIndexCache()`（内部 `WeakMap<GamePlan,PlanIndices>`，plan 换引用旧索引自动可收、不泄漏）；`step` 加**第五个可选参数** `cache=defaultPlanIndexCache`（模块级单例），5 处 `new Map`/`filter` 改为 `idx.*`。`builds` 是**注入计数的确定性判据**（对标 SC-51 可注入钟）：判据跑 N 帧断言 `builds===1`，不拿 `Date.now()` 量墙钟（抢资源机必 flaky）。正常路径 Map 内容逐字相同、零行为变化。
+- **判据 +7**（`sim-index-cache.test.ts`，纯内存零真库/零网络/零时钟）：600 帧 `builds===1`；14400 帧仍 `===1`；换 plan 对象→再建一次（WeakMap 按对象分键、内容相同不串味）；共享缓存跑 120 帧与"每帧新建"**逐帧逐字段相同**；四 Map+judgeable 内容正确；两独立 cache 各自 `builds===1`；带攻击输入 30 帧行为等价。
+- **两变异臂各有牙、逐条还原**（ADR-0077）：臂 A 把 `cache.get(plan)` 改回每帧 `buildPlanIndices(plan)` → 精确红 5；臂 B 删 `memo.set`（永不命中）→ 精确红 6；脚本跑完自动恢复 `sim.ts`。证明非惰性判据。
+- **验证（诚实分层）**：三文件合并 **57/57**；game-model **全包 16 文件 331/331**（含 925 行 parity 护栏逐帧对账 + playtest/rpg/combat/level）；`eslint`（sim.ts+新测试）**EXIT=0**；**game-model 包 `tsc --noEmit -p packages/game-model/tsconfig.json` EXIT=0**。落账前 HEAD 前移到 `971cd28b`（会话落 SC-53/SC-54）后**全部复绿重跑**：57/57 · 331/331 · eslint 0 · 包 tsc 0；根 `web tsc` 亦 **EXIT=0**（会话 `realtime-frame-guard.test.ts` 的类型红已随会话推进自愈，本片未碰它一行）。全仓 vitest / 真库套件本机多 agent 抢同一 Postgres 无干净窗口、未硬跑、不编绿灯。未 push。
+- **诚实边界（SC-48 纪律：不夸墙钟）**：2D 关卡实体个位数到几十，单帧省微秒级+4 次分配，**本片不承诺任何墙钟毫秒数字**（抢资源机给不出稳定收益）；价值判据是确定性的"构造次数 4N→1"，最能体现在 14400 帧 playtest 循环。`questById` 是已知纯冗余但**刻意不消除**——那需要"plan 内 quest id 唯一"前置假设，宁可留一处冗余也不引入未证实语义（§159）。
+- **协作边界**：只碰自己的 sim.ts + 新测试 + ADR-0131 + 三处文档登记；并行会话正在写的 `java-domain-service/.../realtime`、`.../community`、`package.json`、`application.yml`、`realtime-frame-guard.test.ts`、ADR-0128/0130 一概未碰。ADR 编号 `0131` 已查重（0130 归会话 SC-54）。
+- **仍欠**：`questById` 冗余（确认 quest id 唯一后可直接换 `quest.name` 并去掉该索引）；候选 B 同根因 `rpg.ts:194`/`playtest.ts:102` 的 O(E²) `state.enemies.find`（依赖顺序不变量、改动面更大，另立片）；墙钟收益实测待干净窗口。详见 ADR-0131。
+
 ## §SC 第五十五片（§SC-55）：发送端帧 64 KiB 护栏——pub/sub 没有背压，大帧只能靠收发端自律（2026-11-11 / ADR-0132）
 
 - **为什么**：user 本轮点名消息队列的合理运用。MQ 候选③（§ADR-0126/ADR-0127 的"仍欠"）正面收口。根上的事：Redis pub/sub 没有订阅者名册、没有 slow-consumer、没有死信。一帧几 MB 的 JSON 会原样复制给每一个订阅连接并撑爆缓冲。**能不能上线路唯一决定点是发送端**。
@@ -12032,3 +12044,12 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **判分面（全部实跑）**：`test/realtime-frame-guard.test.ts` **3/3**（死端口挡线路——大帧就地丢、本机半边送达 1 帧、『帧超长』计 1、『投递』0；双发计 2；边界不误伤）；tsc EXIT=0；eslint EXIT=0；`realtime-stats-readout`+`realtime.redis.integration`+`realtime-frame-guard` 三文件 **30/30**；java 全套 **126/126**（+2）；**live**：8082 up，`GET /stats` 200，`POST /probe` 发布后 stats `publishedTotal: 0→1`。
 - **诚实边界**：只防大帧、不防大量小帧（rate limit 别处已有）；O(n) 扫描相对 RTT 可忽略；64 KiB 是护栏非天花板，`agent.plan` 合法 KB 量级值不触界；Java/web 两处各自定义常量（不同语言不能跨进程共享），如要调整一起改。
 - **仍欠**：发送端背压的订阅侧窗口（pub/sub 无成员名册，VALUE 另立片评估）；admin 面板『帧超长』的可视化排序（count desc 够用）；stats 只进程生命周期（跨重启不持久）；agent.plan base64 字段裁剪另立片。未 push。详见 ADR-0132。
+
+## §SC 第五十六片（§SC-56）：MemoryJobStore 裸单测 11 条——MQ 候选①（2026-11-11 / ADR-0133）
+
+- **为什么**：user 本轮点名**消息队列的合理运用** + 系统层级合理性。ADR-0126/0127/0132 的"仍欠"里 MQ 候选①写着"ai-service `MemoryJobStore` 零判据"。本片先读码定性再动手，**如实修正原话**：通过 HTTP/worker 间接测了约 21 条，零判据的是 **store 本体**（FIFO、`_purge` 淘汰、counts、取消标志与作业本体分离——worker 的整份 save 会抹取消请求这个被钉下的竞态、多副本诚实提示）。
+- **做法（零生产代码改动、+172 行判据）**：新文件 `apps/ai-service/tests/test_memory_job_store.py`——裸打 store、stdlib `asyncio.run` 包装、不碰 Redis/时钟之外的外部状态。覆盖：FIFO 领队/counts 迁移/`_purge` 淘汰最旧终结/排队装载不被淘汰/queued 取消即终态 + claim 跳过/save 不抹取消标志/完成后追加取消终态不覆盖/未知作业诚实/payload 原样到 claim/`note` 自报"多副本/重启即失"/TERMINAL 词表一致。
+- **数字**：新判据 **11/11 passed**（0.32s）；全套 **88/88**（77+11）同一 env 下全绿。
+- **修正记录（写进 ADR-0133）**：候选①原话"零判据"不是确数——精确说法是"间接 21 条、store 本体 0 → 11"。
+- **诚实边界**：本机内存态测不出 OOM/真并发调度（并发判据在 HTTP 层与 Redis 后端）；`_purge` 触发时机是 enqueue 前而非满了就清（判据写进去了）；内存后端是单机兜底，正确答案永远是"配置 Redis"——判据钉的是 note 说实话。
+- **仍欠**：RedisJobStore 裸判据（通路已建：opt-in `NEXUS_REDIS_URL=redis://127.0.0.1:6380/0`）；Worker 取消检查点粒度；内存后端 CI 默认干掉 Redis flag 另评估。未 push。详见 ADR-0133。
