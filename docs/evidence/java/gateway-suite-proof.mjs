@@ -80,7 +80,10 @@ console.log(`[§0] toolchain: Maven answers · the REAL sync API on this host is
 const before = digestGateway();
 console.log(`[§1] digesting ${before.files} gateway source file(s) — ${before.digest}`);
 
-let out = '';
+// `out` is assigned on every path through the try/catch; seeding a never-read `''` is the exact shape
+// the lint gate refuses (`no-useless-assignment` — hosted CI came red on it as the evidence lane landed,
+// 2026-11-11). No seed, no dead store.
+let out;
 let exit = 0;
 const started = Date.now();
 try {
