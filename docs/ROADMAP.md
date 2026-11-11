@@ -254,6 +254,57 @@ family README section) and a door that reddens the sentence it repairs:
         the lane's commit 489afd7 carries the find()+@Autowired+Spring-shape-fix plus both new gates;
         the auto-config door + ADR 0101 + this ledger follow as the successor commit.]
 
+  v670  discover's anon cache gets CROSS-INSTANCE invalidation — the Redis keys were shared, but the
+        generation guard that protects them was not (ADR 0102): v665's generation guard is
+        process-local, while `discoverRedis.ts` shares the three sort keys across instances. So on
+        instance B a compute started at generation=G can land AFTER instance A's publish invalidated
+        (bumped only A's generation, DELed the shared key) and SET the JUST-CLEARED stale value back
+        to the SHARED key — a cache-resurrection every single-process gate was blind to, defeating
+        "new content visible within 15s".
+        [LANDED 2026-11-12 — § 缓存 × 计网 × Redis × 数据结构. New `discoverInvalidation.ts`: a
+        `DiscoverInvalidationBus` with a `RedisInvalidationBus` (dedicated versioned channel
+        `nexus:discover-invalidate:v1`, frame `{v,origin,at,nonce}`, origin filters the sender's own
+        loopback) and a `MemoryInvalidationHub`/`Bus` (zero-dep, two bus instances share a hub to
+        simulate two machines). `parseInvalidationFrame` treats wire bytes as untrusted (bad JSON /
+        wrong version / empty origin / non-finite at|nonce ⇒ null ⇒ counted and dropped). Connection
+        discipline inherited from realtime's ADR 0028: TWO connections (sub can't send commands),
+        asymmetric options (pub no-offline-queue + 1 retry; sub queue + null/unlimited self-heal),
+        subscribe-at-construction, publish NEVER throws/rejects (writer request is not held hostage to
+        the bus; 15s TTL is the backstop), every `error` listener attached (an unheard error event
+        takes the process down), subscribe ack checked BY SHAPE (ioredis 6 returns a channel COUNT,
+        not a boolean). `getDiscoverInvalidationBus()` shares `NEXUS_REDIS_URL` with
+        `getDiscoverCache()` so you can't share the cache but not its invalidation. Refactored
+        `discoverRouteCache.ts` module-level `inFlight`/`generation` into
+        `createDiscoverRouteCacheRuntime({cache, bus})`: subscribe-at-construction applies the SAME
+        local invalidation on a remote frame (bump + clear flights + clear cache driver) but does NOT
+        republish (no storm); `invalidateDiscoverRoute()` bumps synchronously BEFORE publish so in-flight
+        old flights self-expire, then `await cache.clear()`. `cache` is a LAZY getter not a captured
+        instance — the existing tests reset the driver singleton without touching the runtime, so
+        capturing it would leak stale contents across tests. Top-level export SIGNATURES unchanged ⇒
+        zero regression on both write call sites. TWO lines of defence close the gap together: the
+        generation guard stops THIS instance's late flight; pub/sub bumps the OTHER instance's
+        generation so ITS late flight can't write back to the SHARED key. Evidence:
+        `discover-cross-instance.test.ts` 15/15 running the REAL `RedisInvalidationBus` class over a
+        fake shared channel registry — frame parser 2, memory hub 1, Redis orchestration 5 (asymmetric
+        options · frame reaches B only, lands on the dedicated channel · bad frame/unknown channel
+        counted & dropped · publish failure doesn't throw · unknown subscribe ack ⇒ wireReady=false),
+        CORE race 4 (line OPEN ⇒ B's generation bumps +1, its late flight does NOT write back, next
+        request recomputes fresh; REVERSE CONTROL line CLOSED ⇒ stale RESURRECTS, next request hits it
+        with freshCalls=0; bus publish failure ⇒ A still invalidates locally, writer doesn't reject;
+        post-invalidate request doesn't join another instance's old flight), static wiring 3. The
+        reverse control walks the SAME business code with only the line open/closed as the variable —
+        its red proves the green is a real fix, not a coincidence. Zero regression: singleflight +
+        route-cache suites still 15/15 (30/30 across 3 files). Narrow tsc (changed files + import
+        graph) exit 0; eslint 3 files individually heap-fed exit 0 (full-project tsc/eslint still
+        SIGTERM on this ~0.3GB-free host — resource, not red). A real lint caught a Promise-in-boolean
+        defensive check (`no-misused-promises`) — removed, published Promise now directly `.catch`ed.
+        HONEST GAPS: ① NO real-Redis pub/sub end-to-end leg — 6379/56379 unreachable, no ioredis-mock,
+        Docker refuses containers; the真 class + fake connections grades the编排, the真 wire byte
+        round-trip between two real processes is still-owed. ② no real two-`next start` HTTP leg.
+        ③ default origin is pid:timestamp:seq (unique per process) — a stable instance-id knob for
+        robust cross-process identity is owed. ④ single frame version v1; a v1 instance during a
+        rolling upgrade drops v2 frames and degrades to the 15s TTL, no dual-version subscribe.]
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and
