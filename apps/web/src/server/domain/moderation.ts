@@ -315,7 +315,7 @@ export async function resolveCase(
       .where(eq(publishedProjects.id, existing.publicationId));
     hidden = actor.resolution === 'rejected';
     // §46：裁决是公开列表的真相突变——匿名 Discover 的 15 秒缓存同一秒清空
-    invalidateDiscoverRoute();
+    await invalidateDiscoverRoute();
   }
   if (actor.resolution === 'rejected' && existing.publicationId) {
     // 只在真挂了发布行时才有举报可关：`?? ''` 那种写法会把空串塞进 uuid 列，
