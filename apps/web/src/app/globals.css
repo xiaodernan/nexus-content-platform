@@ -1019,6 +1019,168 @@
     .nf-discover:hover, .nf-home:hover { transform: none; }
   }
 
+  /* ── §FE-10 / ADR-0158 市场购买页 `/marketplace/purchases` 门面化 ────────────
+   * 与 .dv-/.mk-/.nf- 等同一套 token 语言（守 ADR-0123 六红线）：零新增颜色 token、
+   * 全锚双主题 token + color-mix、无写死 hex；双主题 AA；只换 className、零行为——
+   * 状态机（rows/error/busy/message）、fetch、disabled、data-* 钩子、状态徽标文案
+   * 一字不动。FE-2 只给市场列表外壳上了 .mk- 妆，顶栏导进来的 purchases 子页却是
+   * 全裸 Tailwind 原子类；这里把它补成完整门面，是三兄弟（purchases/earnings/reports）
+   * 的模板片。
+   * 刻意补全库门面 CSS 的一处空白：首次引入 token 化的 :active 按下反馈与 :disabled
+   * 禁用视觉（busy 下载态终于有反馈），但克制在 .mp- 内、不动共享约定。
+   * 本片不加渐变墨字（纯色标题 + 渐隐品牌轨），故不触发 A11Y-1 forced-colors 联动。 */
+  .mp-root {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--nexus-space-5);
+    padding: var(--nexus-space-8) var(--nexus-space-5);
+    background:
+      radial-gradient(100% 55% at 50% 0%, color-mix(in srgb, var(--nexus-color-brand) 8%, transparent), transparent 60%),
+      var(--nexus-color-bg-0);
+    font-family: var(--nexus-font-mono);
+  }
+  .mp-frame {
+    position: relative;
+    width: 100%;
+    max-width: 60rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--nexus-space-5);
+  }
+  /* 渐隐品牌轨：呼应 .nf-frame::before，纯装饰不抢字 */
+  .mp-frame::before {
+    content: '';
+    position: absolute;
+    left: 8%; right: 8%; top: calc(-1 * var(--nexus-space-4)); height: 2px;
+    border-radius: var(--nexus-radius-full);
+    background: linear-gradient(90deg, transparent, var(--nexus-color-brand) 35%, var(--nexus-color-accent-2) 65%, transparent);
+    opacity: .55; pointer-events: none;
+  }
+  .mp-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--nexus-space-3);
+    padding-bottom: var(--nexus-space-4);
+    border-bottom: 1px solid var(--nexus-color-border-subtle);
+  }
+  .mp-headActions { display: flex; align-items: center; gap: var(--nexus-space-3); }
+  .mp-heading { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .mp-title {
+    margin: 0;
+    font-size: var(--nexus-font-size-28);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: var(--nexus-color-fg-1);
+  }
+  .mp-subtitle { margin: 0; max-width: 46rem; font-size: var(--nexus-font-size-12); line-height: 1.65; color: var(--nexus-color-fg-2); }
+  .mp-back {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    padding: 0 var(--nexus-space-3);
+    border: 1px solid var(--nexus-color-border-strong);
+    border-radius: var(--nexus-radius-full);
+    color: var(--nexus-color-accent-2-ink);
+    font-size: var(--nexus-font-size-12);
+    text-decoration: none;
+    background: color-mix(in srgb, var(--nexus-color-bg-2) 60%, transparent);
+    transition: transform var(--nexus-motion-base) var(--nexus-motion-ease), border-color var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .mp-back:hover { transform: translateY(-2px); border-color: var(--nexus-color-brand); }
+  .mp-back:active { transform: translateY(0); }
+  .mp-back:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 3px; }
+  /* 四态：error / loading / empty / list —— 各有专属视觉，不是同一副裸样子 */
+  .mp-error, .mp-loading, .mp-empty {
+    margin: 0;
+    padding: var(--nexus-space-5) var(--nexus-space-5);
+    border-radius: var(--nexus-radius-md);
+    font-size: var(--nexus-font-size-12);
+    line-height: 1.7;
+  }
+  .mp-error {
+    border: 1px solid var(--nexus-color-danger);
+    border-left: 3px solid var(--nexus-color-danger);
+    background: color-mix(in srgb, var(--nexus-color-danger) 8%, var(--nexus-color-bg-1));
+    color: var(--nexus-color-danger-ink);
+  }
+  .mp-loading {
+    border: 1px dashed var(--nexus-color-border-subtle);
+    background: color-mix(in srgb, var(--nexus-color-bg-2) 50%, var(--nexus-color-bg-1));
+    color: var(--nexus-color-fg-2);
+    animation: mp-pulse var(--nexus-motion-slow) var(--nexus-motion-ease) infinite;
+  }
+  .mp-empty {
+    border: 1px solid var(--nexus-color-border-subtle);
+    background: color-mix(in srgb, var(--nexus-color-info) 5%, var(--nexus-color-bg-1));
+    color: var(--nexus-color-fg-2);
+  }
+  .mp-empty a { color: var(--nexus-color-accent-2-ink); }
+  .mp-empty a:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  @keyframes mp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+  .mp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--nexus-space-3); }
+  .mp-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nexus-space-2);
+    padding: var(--nexus-space-4);
+    border: 1px solid var(--nexus-color-border-subtle);
+    border-radius: var(--nexus-radius-md);
+    background: color-mix(in srgb, var(--nexus-color-bg-2) 70%, var(--nexus-color-bg-1));
+    box-shadow: var(--nexus-shadow-sm);
+    transition: border-color var(--nexus-motion-base) var(--nexus-motion-ease), transform var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .mp-row:hover { border-color: var(--nexus-color-brand); transform: translateY(-1px); }
+  .mp-rowTop { display: flex; align-items: center; flex-wrap: wrap; gap: var(--nexus-space-2); }
+  .mp-rowName { font-size: var(--nexus-font-size-14); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .mp-type {
+    padding: 0 var(--nexus-space-2);
+    border-radius: var(--nexus-radius-full);
+    background: var(--nexus-color-bg-3);
+    color: var(--nexus-color-fg-2);
+    font-size: var(--nexus-font-size-12);
+  }
+  .mp-status { font-size: var(--nexus-font-size-12); }
+  .mp-status[data-purchase-status-label] { color: var(--nexus-color-fg-2); }
+  .mp-statusLive { color: var(--nexus-color-success); }
+  .mp-statusPrivate { color: var(--nexus-color-accent-2-ink); }
+  .mp-statusDelisted { color: var(--nexus-color-fg-3); }
+  .mp-date { margin-left: auto; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .mp-rowMeta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  /* 下载按钮：hover 抬升 + :active 按下回弹 + :disabled busy 态视觉（全库门面首次覆盖） */
+  .mp-download {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    padding: 0 var(--nexus-space-3);
+    border: none;
+    border-radius: var(--nexus-radius-sm);
+    background: linear-gradient(115deg, var(--nexus-color-brand), var(--nexus-color-accent-2));
+    color: var(--nexus-color-accent-fg);
+    font-family: inherit;
+    font-size: var(--nexus-font-size-12);
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--nexus-shadow-sm);
+    transition: transform var(--nexus-motion-base) var(--nexus-motion-ease), box-shadow var(--nexus-motion-base) var(--nexus-motion-ease), filter var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .mp-download:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px color-mix(in srgb, var(--nexus-color-brand) 26%, transparent); }
+  .mp-download:active:not(:disabled) { transform: translateY(0) scale(.97); box-shadow: none; }
+  .mp-download:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .mp-download:disabled { cursor: progress; filter: saturate(.5); opacity: .62; box-shadow: none; }
+  .mp-message { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  @media (prefers-reduced-motion: reduce) {
+    .mp-back, .mp-row, .mp-download { transition: none; }
+    .mp-back:hover, .mp-row:hover, .mp-download:hover:not(:disabled) { transform: none; }
+    .mp-download:active:not(:disabled) { transform: none; }
+    .mp-loading { animation: none; }
+  }
+
   /* ── §A11Y-1 / ADR-0146 渐变墨字高对比度回退 ──────────────────────────────
    * 跨 UA 加固（措辞经真 Chrome 实测收紧）：FE-1~FE-8 的渐变墨字标题（下列 8 个）常规态
    * 是 color:transparent + background-clip:text。真 Chrome 在 forced-colors:active 下会
