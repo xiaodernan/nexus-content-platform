@@ -12103,3 +12103,31 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **判据自身五处诚实修正（含两处真 bug）**：①沿用 FE-5 教训把零 hex/token 门收紧为**扫整段含续行**；②transform 门把 `text-transform: uppercase` 误当几何位移——改为**只认声明边界的 transform**（负向前瞻），精确化后臂 F 仍红（没放水）；③动效门按规则块解析；④**真 CSS bug**：注释正文里 `data-*` 紧跟斜杠凑成块注释结束符、提前闭合注释→9 门全绿但真 Next 编译 `Unexpected token '/'`——真浏览器首跑抓出，补**第 10 门定界符严格配对**（`postcss.parse` 实测是假门抓不住，改用字符码构造定界符 + 状态机，避自指陷阱）；⑤**真视觉 bug**：`.pb-title` 渐变墨字被更高层 Tailwind `text-fg-1` utility 覆盖退回纯色字——真浏览器浅色 computed color 抓出，移除该 utility 对齐 FE-5 `.pf-name` 范式，补**第 11 门层优先级检查**。臂 G/H 各精确红 1。
 - **真浏览器那一寸（五次启动，最终 2 passed 非 skip）**：`e2e/published-visual.spec.ts` 双主题 @smoke，从发现页一件真公开作品的 `/n/<handle>/<slug>` 整条地址进页（量访客真正看到的作品页，非作者预览态），验门面/舞台/裱框/SEO JSON-LD 钩子/统计告知全在、浅色渐变墨字生效、零 console error，无公开作品时 test.skip。五次：①`safe-delete` 护栏拦 Next 冷启动清 `.next/dev`（非代码）；②零删除 mv 后真编译跑起、但抓出④的注释提前闭合；③修注释+第 10 门后 dark 过、light 抓出⑤的 utility 覆盖；④修标题+第 11 门后护栏拦 Playwright 清 `test-results/`（零删除归档解决）；⑤**最终 `2 passed`（4.2m，系统 Chrome）**。深/浅双截图**人工 Inspect**（header 门面条/meta 胶囊/裱框投影/统计告知全对无错乱）、归档 `docs/evidence/fe-published-elevation/`。两次真 bug 都在真浏览器浮出、又被静态第 10/11 门永久钉死——静态 + 浏览器两层判据缺一不可的实证。
 - **仍欠**：既有 `a11y-*` / `interactive-work.spec.ts`（axe/键盘/互动 completion）判据面未改，留待干净窗口随本片复跑；hover 态逐帧看图；全仓真库/拓扑套件无干净窗口未硬跑、不编绿灯。**未 push**。详见 ADR-0138。
+
+## §SC 第六十片（§SC-60）：Feign breaker 从假到真——注册表、名称解析、windowed 失败判分（2026-11-11 / ADR-0139）
+- **为什么**：user 本轮点名 **Spring Cloud 微服务元素**。
+  SC-59 把 Feign 端出来后发现：`spring.cloud.openfeign.circuitbreaker.enabled` 不设 `=true`，
+  失败永远没人记；管道开放但 Feign 永远不触发——"Spring Cloud 有 breaker"=形状好看、
+  不是真保护。
+- **陷阱（钉在判据里）**：Feign 默认 alphanum resolver 把 `AiServiceClient#healthz()` 剥成
+  `AiServiceClienthealthz`（无下划线），不叫"ai-service"；lib 默认 `minimum-number-of-calls=100`
+  ——**库不是平台**。本片改 `spring.cloud.openfeign.circuitbreaker.enabled=true` +
+  `spring.cloud.openfeign.circuitbreaker.group.enabled=true` + `resilience4j.circuitbreaker.configs.default.*`
+  （sliding-window-size=10, min-calls=5, threshold=50, wait-open=10s, half-open-permitted=3）。
+- **契约端 controller 新增 `breakerState`**：`"CLOSED" | "OPEN" | "HALF_OPEN"`；registry bean 不存在
+  （NEXUS_FEIGN_BREAKER=false）时返回 null——不编造"部署没开"为"健康"。
+- **Fallback 不伪造健康 payload**：Spring Cloud Fallback → `AiServiceFallback.healthz()` 抛
+  `AiServiceUnavailableException`（RuntimeException、消息明示"不是健康的证明、等 10s 重试"）。
+- **验证（全实跑）**：
+  - `@SpringBootTest(port = 9)`（丢弃端口、ai-service 必然不在）：**6 次调用后**
+    Feign-breaker metrics `bufferedCalls=5 failedCalls=5 failureRate=100.0 state=OPEN`；
+    断言此 breaker 不是 CLOSED。
+  - **live**:`/api/v1/system/ai-health` 跨六次探针闭环：`CLOSED → CLOSED → CLOSED → CLOSED →
+    **OPEN** → HALF_OPEN` —— OPEN 突然出现、断路器真在动；「breaker cut in」与「provider broken」
+    一眼分开（错误类名 `AiServiceUnavailableException`）。
+  - `AiHealthControllerTest` **3/3**（+1：breaker bean 缺省时 breakerState = null，不编造 CLOSED）·
+    `AiServiceFallbackTest` **1/1** · `AiServiceClientWireTest` 1/1（不破坏"虚假 claim"假设）·
+    java 全套 **131/131**。
+- **诚实边界**：grouped Feign（全客户端共享 breaker）只适配单 hop client；future 多方法时分离 resolver；
+  **/api/v1/ai/** 不受影响（主路径不绕 Feign）；`breakerState` 还没接 admin 面板；
+  不入 CI topology，topology 仍是 8093 hand-run smoke。**未 push**。详见 ADR-0139。
