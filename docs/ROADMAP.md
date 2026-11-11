@@ -12003,3 +12003,14 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **诚实边界（不宣称）**：这是**探针链路**，不是业务事件源——`like/follow/publication` 领域事件**尚未**接线；pub/sub 无送达保证，业务正确性不许依赖它；Studio 收到的是 info 级 notification，醒目与否是前端自己的事；跨实例只到 Redis 为止，web 侧 origin 回环去重照旧。
 - **工程教训（已入 git）**：PowerShell 5 `Set-Content -Encoding UTF8` 会写 BOM，本机 javac 工具链下直接拒编译（误报"注释未闭合"）——源码一律字节级安全写入。
 - **仍欠**：真实领域事件（至少 like/publish 之一）接到线路并被 Studio 消费；发送端帧大小护栏（MQ 候选③，合并评估）；`projects:probe` 与前端路由约定文档化；多实例 origin 细粒度（当前稳定串够用）；Java→线路 smoke 接入 verify:topology（本机手工跑 `realtime:java-to-web`）。未 push。详见 ADR-0128。
+
+## §FE 第四片：/search 全平台搜索登峰造极——发现链路第二个公开入口（FE-4 / ADR-0129，2026-11-11）
+
+- 触发（user 长期点名最重的一条）：**前端的美观程度、魅力程度登峰造极**。FE-1/2/3 已升 `/discover`/`/marketplace`/`/`，剩公开面流量最大却最朴素的是 `/search`（§165 发现链路第二入口）：标题纯文本、搜索框裸输入+方钮、命中行平块、空态一色字。**只动视觉，搜索逻辑/信息架构/文案/`data-*` 钩子一字未改**（§159）。
+- **落地（`.se-` 前缀，与 `.dv-`/`.mk-`/`.hp-` 同 token 语言，守 ADR-0123 六红线）**：零新增颜色 token（全锚 `tokens.css` 既有双主题名 + `color-mix`、零写死 hex）；标题渐变墨字 + 渐变压边、适用身份中性 pill；搜索框整块门面 + `:focus-within` brand 辉光环、提交键 brand→accent-1 渐变 + hover glow；分组标题竖线 + tabular-nums 计数 badge；命中行 accent-2 左描边 + hover 侧移 3px/brand 描边/渐显左条/阴影；空态 brand 14% 径向辉光；排法/范围条边界彩；建议列表圆角阴影 + 选中淡染、历史 chip 化。交互保 focus-visible 描边，`prefers-reduced-motion` 关掉全部 transform/transition，渐变墨字标题用 fg-1 端起步（浅色不白字写白底）。
+- **验证（分层诚实）**：`style-tokens` **24/24**（`.se-` 全部 `var(--nexus-*)` 已声明 + fg-3 过 AA）；`eslint`（page.tsx + SearchBox.tsx）**EXIT=0**；`tsc --noEmit -p apps/web` **EXIT=0**；**真 Chrome e2e `e2e/search.spec.ts`（本片新增）深/浅 2 passed**（1.1m）——深色验门面/表单 GET action+method/输入可聚焦/结果空态二选一/`.se-` 钩子/零 console error，浅色验门面与标题计算色非白字/零 console error。
+- **看图（§159）**：深色匿名冷启动截图已人工 Inspect——渐变标题、pill 范围、门面搜索框+紫钮、径向辉光空态、边界彩范围条全部正确渲染、无样式错乱，达顶流公开页水准。该截图来自修 matcher 前那次失败现场：我误用 Playwright 不存在的 `toBeFocusable()`（**判据 bug 非页面 bug**），已改 `evaluate` 验 activeElement 修复后 2/2 全绿。
+- **未截到（如实记，不编）**：想再补"带结果命中行 hover/计数 badge"深/浅截图，但单命令内起 Next dev + 双 Chrome 截图在多 agent 抢资源下被 SIGTERM 超时、未截到——命中行视觉**未人工看图**，只由 e2e 结构断言 + 静态 token 门覆盖。e2e 2/2 取自早先 server 稳定运行时，非这次超时脚本。未 push。
+- **编号**：本片 ADR 初稿占 `0128` 与会话 `0128-java-domain-service-speaks-on-the-wire.md` 撞号，让位重编 **ADR-0129**（沿用 SC-51 撞号纪律），会话 Java 文档未动。
+- **协作边界**：只碰自己的 globals.css + search/page.tsx + SearchBox.tsx + 新 e2e + ADR-0129 + 三处文档；会话正在改的 `CommunityService.java`/`application.yml`/`package.json`/`realtime` 目录一概未碰。
+- **仍欠**：带结果命中行深/浅人工看图（待干净资源窗口补截图）；FE-1 `e2e/discover.spec.ts` 此前写就未跑，下个干净窗口与 `search.spec.ts` 一并复跑；`/u/[handle]` 创作者主页、`/n/[handle]/[slug]` 作品页可按本片范式继续升（另立 FE 片）。详见 ADR-0129。
