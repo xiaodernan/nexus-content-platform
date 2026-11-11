@@ -1630,3 +1630,51 @@ JSON 存档在 `docs/evidence/ds/before-single-map-v672.json` / `after-single-ma
 eslint 改动文件与证据脚本各 exit 0。仍欠：A/B 是单宿主 9 轮、无固定 CI 机型多会话均值；A/B 里双 Map
 版 `set` 未逐字复刻旧版同键覆盖刷 LRU 尾那一次额外 delete（命中路径逐字对应，故命中的 1.4× 最可信，
 写入 1.3× 作方向性证据）。详见 ADR 0105。
+
+## 2026-11-12：第二条复杂度轴——单桶 O(limit) filter 的门与读数（v673，ADR 0106）
+
+v671 的门只数 `Map` 操作（**桶数维度**），对 `MemoryRateLimiter.hit` 里 `(previous?.hits ?? []).filter(t => t > cutoff)`
+这条**单桶 `limit` 维度**结构性失明——`filter` 不触发任何 Map 操作。本片不改生产源码（O(limit) 是设计内的
+有界成本），只把 ADR 0104 仍欠③那句"stated bound, not gated"兑现成门，并把成本量出来归档。
+
+**确定性读数（探针，时钟冻结、同一只键）**——数 `Array.prototype.filter` 回调次数（＝扫过的时间戳数）：
+
+| 场景 | 回调数 | 无关 filter 基线 |
+|---|---|---|
+| 空桶首笔 | 0 | 0 |
+| 满桶 limit=64 单笔 | **64** | 0 |
+| 撞上限连量 5 笔 | **恒 64**（零方差） | 0 |
+| limit=8 / 64 / 512 满桶单笔 | **8 / 64 / 512**（精确线性） | 0 |
+
+**墙钟（只归档不裁决）**——`scripts/ds-benchmark.mts` 第 4 组，**同一次进程内**相邻规模对照（`windowMs=1h`
+确保整段不过期、`scale=1`、node v22.22.2 win32 x64）：
+
+| limit | total ms / 20 万笔 | ops/s | p50 us | p99 us | ns/op | 相对 limit=8 |
+|---|---|---|---|---|---|---|
+| 8 | 3655.5 | 54,712 | 13.15 | 69.77 | 18,278 | 1× |
+| 64 | 4484.5 | 44,598 | 17.92 | 67.92 | 22,423 | 1.23× |
+| 512 | 12800.5 | 15,624 | 56.93 | 167.88 | 64,003 | 3.5× |
+
+读数读法：数据 8× 时只慢 1.23×、64× 时只慢 3.5×——**线性，没有 O(limit²) 的"64× 数据 → 数千× 时间"
+塌缩**，与探针精确回调数（8/64/512）吻合。单桶命中 ns/op 比 `TtlLru` 命中（~0.4–0.6k）高一个量级，
+是 `hit()` 里 `increment`、Map delete/set、Promise 分配等**与 limit 无关的固定开销**——正因 limit 8→64
+才只慢 1.23×。**墙钟不是门**：本机共享宿主不稳，v672 已被跨进程 +695% 假 8× 教过一次；这里是同进程
+相邻规模对照，只用来看比例抓数量级塌缩，门的那一半走确定性操作计数。JSON 存档
+`docs/evidence/ds/bench-single-bucket-limit-v673.json`。
+
+**门（`ds-complexity-contract.test.ts` +2 条，判据只钉 O(1) 优化也绿的形状）**：① 封顶门——满桶后逐笔
+回调数零方差 + 被 `limit+32` 封顶（挡数组无限累积与 O(limit²)）；② 正交门——同一只满桶在 8 桶 vs
+4096 桶的表里逐笔回调数相等（挡"退化成扫全镇"）。**刻意不钉"必须随 limit 线性"**，否则把将来 O(1)
+环形缓冲的正当优化判红（ADR 0094 X4）；limit 线性只读数、不做门。
+
+**变异臂** `docs/evidence/ds/complexity-arms.mjs` +4 ⇒ **7/7 as-expected（5 RED + 2 GREEN）**：M6 嵌套
+filter（O(limit²)，272 回调/笔）封顶门红、M7 扫全镇（8 vs 4096）正交门红；**M8 正当 O(1) 环形裁剪
+两条门都绿**（正面臂，证明门不惩罚降成本的正当优化）；**M5"hits 无限累积"退化实测不可达**（allowed=
+false 不 push，hits 被 limit 卡死，逐笔恒 8 零方差）——门判绿是**正确的**，如实记录不伪造有牙臂，同时
+暴露 O(limit) 有界性有两道保险（filter 裁过期 + allowed 封 push）。判据边界：数的是 filter 回调这个
+**代理量**，抓不住藏进非-filter 循环（如 for-of）的 O(limit²)，记为界不冒充全覆盖。
+
+**零回归**：契约门 8/8、全套 7 文件 **73/73**；web 测试域 + tools 域窄 tsc 各 exit 0；eslint 三文件
+足堆（2000m）exit 0（全项目仍 SIGTERM，资源非红）。窄 tsc 抓到一个真实类型错（`...args: never[]`
+让 `args[0]` 推成 `undefined`，改 `unknown[]` 收口），是门在做功。仍欠：墙钟单宿主单次、无固定 CI
+多会话均值；只门不改，O(limit)→O(1) 是后续候选但要等 parity 腿本机可跑。详见 ADR 0106。

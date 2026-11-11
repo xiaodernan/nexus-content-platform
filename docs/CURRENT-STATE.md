@@ -1425,3 +1425,62 @@ Studio CI for refs at this ref: as carried backlogged on the hosted process runn
   origin/master=origin/main=b9d6578, no local `main` branch (normal). ADR number re-checked before
   commit (`ls docs/adr/ | grep 01xx`) to avoid the v671-style collision — 0105 was free. Only my files
   were touched; `git add` exact, never `git add -A`; re-fetch + ff check before push; no force.
+
+## 2026-11-12 addendum (cont. 33): the SECOND complexity axis — gating the single-bucket O(limit) filter — v673, ADR 0106
+
+- **The gap.** v671 gated `MemoryRateLimiter`'s BUCKET-COUNT dimension (at-cap eviction = amortized O(1),
+  per-hit Map ops zero-variance, equal at maxBuckets 8 vs 4096) by counting `Map` operations. But `hit()`
+  also runs `(previous?.hits ?? []).filter(t => t > cutoff)` on EVERY call — an O(bucket timestamps) ≤
+  O(limit) sliding-window scan that fires **zero Map operations**, so the Map-op gates are STRUCTURALLY
+  blind to it. Swap that line for a double loop / nested filter / sweep-all-buckets and every v671 gate
+  stays green. Worse: at `allowed=false` (the flood path, exactly when this gate must be cheapest) it
+  stops `push`ing but STILL filters all `limit` timestamps — most expensive precisely under the
+  distinct-identity abuse (§137 guest auto-issue) it exists to stop. ADR 0104 still-owed ③ named this
+  ("O(limit) is a stated bound, not gated"); this slice repays it.
+- **Decision — gate, do NOT touch production source.** O(limit) is a designed BOUNDED cost (limit is
+  caller-supplied & capped; the file header already states single-bucket memory ≤ limit×8), not a
+  defect. Rewriting to an O(1) ring would touch limiting semantics that must stay byte-for-byte parity
+  with the Redis driver, whose parity leg cannot fully run here (no real Redis) — swapping a hot-path
+  algorithm on a shared host with no regression headroom is worse than leaving it. So ZERO production
+  source lines changed; only turn v671's "stated bound, not gated" into a gate. `ds-complexity-contract
+  .test.ts` +2: counter wraps `Array.prototype.filter` (counts callbacks = timestamps scanned; spy-then-
+  forward, reset around the sync interval). ① CAP gate — at-cap per-hit callback count zero-variance +
+  bounded by `limit+32` (stops unbounded growth / O(limit²)); ② ORTHOGONALITY gate — same full bucket in
+  an 8-bucket vs 4096-bucket table costs the SAME (stops sweep-all-buckets). **Deliberately NOT pinning
+  "must grow linearly with limit"** — that would red a legitimate future O(1)-ring optimization (ADR
+  0094 X4); the linear reading is archive-only. Pin bounded + orthogonal + non-drifting, all O(1)-green.
+- **Measured (deterministic, frozen clock).** empty-bucket first hit 0 callbacks; full limit=64 at-cap
+  **64**; 5 at-cap hits **恒 64 zero-variance**; limit 8/64/512 ⇒ **8/64/512 exact linear**; unrelated-
+  filter baseline **0**. v671's Map-op counter is confirmed blind to this whole axis.
+- **Wall-clock (archive only, not verdict — SAME-PROCESS adjacent-scale, unlike v672's cross-process
+  noise).** `scripts/ds-benchmark.mts` +group 4 (`windowMs=1h` so timestamps never expire mid-run,
+  scale=1, node v22.22.2 win32 x64): limit 8/64/512 ⇒ p50 **13.15 / 17.92 / 56.93us**, ns/op 18278 /
+  22423 / 64003. 8× data costs only 1.23×, 64× costs 3.5× ⇒ LINEAR, no O(limit²) thousands-fold
+  collapse — matches the probe's exact callback counts. The 18k–64k ns/op sits ~1 order above TtlLru
+  hit (~0.4–0.6k) from `increment` / Map delete+set / Promise allocation, all limit-INDEPENDENT fixed
+  cost (hence 8→64 only 1.23×). Wall-clock is never a gate here: v672 already got burned by a +695%
+  fake 8× on this shared host. JSON `docs/evidence/ds/bench-single-bucket-limit-v673.json`.
+- **Mutation arms +4 ⇒ 7/7 as-expected (5 RED + 2 GREEN).** M6 nested filter (O(limit²), 272 callbacks
+  at limit=16) CAP red; M7 sweep-all-buckets (8 vs 4096) ORTHOGONAL red; **M8 legit O(1) ring trim
+  GREEN on both gates** — a POSITIVE witness that the gate does not punish cost-reducing refactors (X4),
+  not a "didn't-red" excuse; **M5 "hits unbounded" measured UNREACHABLE** (allowed=false stops push ⇒
+  hits capped at limit, per-hit 恒 8 zero-variance) — the gate GREENS correctly, recorded honestly like
+  v671's M2, no fake-toothed arm, and it exposes that O(limit) boundedness has TWO safeguards (filter
+  trims expired + allowed caps push). **Gate boundary stated honestly**: the proxy is "filter callbacks",
+  so an O(limit²) hidden in a non-filter loop (e.g. for-of) is NOT caught — M6's first version used
+  for-of and measured green until rewritten as nested filter; recorded as a bound, not claimed covered.
+- **Zero regression / gates.** contract **8/8**; full 7-file suite **73/73** (v672's 71 + 2); web-test +
+  tools narrow tsc each **exit 0**; eslint 3 files heap-fed (2000m) **exit 0** (full-project still SIGTERM
+  on ~0.3GB-free host — resource, not red). Narrow tsc caught a real type error (`...args: never[]` made
+  `args[0]` infer `undefined`; fixed to `unknown[]`) — the gate working, not noise.
+- **Honest gaps (ADR 0106).** ① wall-clock single-host single-run scale=1, no fixed CI multi-run mean.
+  ② gate counts a PROXY (filter callbacks), misses non-filter-loop O(limit²). ③ gate-only; O(limit)→O(1)
+  ring is a named follow-up pending a locally-runnable parity leg. ④ cap bound is `limit+32` (absorbs
+  unrelated-filter baseline); if that baseline drifts with bucket count/time, orthogonality/zero-variance
+  red correctly — know the semantics before loosening them.
+- **Shared-tree note.** v673 advanced in the SAME worktree as parallel lanes. ADR number re-checked
+  (`ls docs/adr/ | grep 01xx`) before commit — 0106 was free (0103 lane's, 0104/0105 mine). Touched only
+  my 3 files (`ds-complexity-contract.test.ts`, `complexity-arms.mjs`, `ds-benchmark.mts`) + 1 new
+  evidence JSON + append-only PERFORMANCE / ROADMAP / this cont.33 / ADR 0106 / memory. Two narrow
+  tsconfigs were temporary and DELETED after gating (never staged). `git add` exact, never `add -A`;
+  re-fetch + ff check before push; no force.

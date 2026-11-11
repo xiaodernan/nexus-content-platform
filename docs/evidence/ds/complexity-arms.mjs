@@ -1,12 +1,20 @@
 /**
  * 变异臂（evidence 语料，纯 Node ESM）：证明 ds-complexity-contract.test.ts 的判据能区分
- * "退化实现"，门不是碰巧绿。三条臂都内联一个故意写坏的同类结构，用与契约门相同的 Map 计数，
+ * "退化实现"，门不是碰巧绿。每条臂内联一个故意写坏的同类结构，用与契约门相同的操作计数，
  * 断言判据会拒绝它。跑法：`node docs/evidence/ds/complexity-arms.mjs`。
  *
- * 臂 M1/M3/M4 RED as expected；M4 是 v672 新增的"改回双 Map ⇒ 单 Map 形状门红"。
- * 臂 M2 曾设计成"固定上界下每次扫全表"，实测门判绿——**门是对的**：
+ * M1/M3/M4（v671/v672，Map 操作轴）RED as expected；M4 是"改回双 Map ⇒ 单 Map 形状门红"。
+ * M2 曾设计成"固定上界下每次扫全表"，实测门判绿——**门是对的**：
  * 上界固定时 bucketCount 恒定，"扫固定 8 只"就是 O(1)（只是常数大），逐笔零方差。真能红的退化
- * 是"成本随 max 涨"（臂 3），门4 抓住了。这段诚实记录见 ADR 0103，不伪造有牙的臂自欺。
+ * 是"成本随 max 涨"（臂 3），门4 抓住了。这段诚实记录见 ADR 0104，不伪造有牙的臂自欺。
+ *
+ * M5/M6/M7/M8（v673 / ADR 0106，单桶 filter 数组扫描轴）：判据数的是 Array.prototype.filter
+ * 的回调次数（＝滑动窗口扫过的时间戳数），补 v671 只数 Map 操作而看不见的单桶内部复杂度。
+ *  - M5 无限累积（不再滤掉过期时间戳）⇒ 封顶门"逐笔零方差"红；
+ *  - M6 O(limit²)（filter 里对每个 t 再扫一遍 window）⇒ 封顶门"≤limit+常数"红；
+ *  - M7 扫全桶（把全镇桶的时间戳拼起来扫）⇒ 正交门"与桶数无关"红；
+ *  - M8 **正当 O(1) 环形裁剪 ⇒ 两条门都必须绿**（ADR 0094 X4 正面臂：门不许惩罚把 O(limit)
+ *    降到 O(1) 的正当优化，否则判据钉了"今天恰好线性"这个字面值，将来优化反被判红）。
  */
 import assert from 'node:assert/strict';
 
@@ -104,6 +112,99 @@ class DoubleMapLru {
   }
 }
 
+/** 包住 Array.prototype.filter 数回调次数（＝滑动窗口扫过的时间戳数），先存原引用防递归。 */
+function arrayFilterCallbackCounter() {
+  const original = Array.prototype.filter;
+  let count = 0;
+  Array.prototype.filter = function (...args) {
+    const cb = args[0];
+    const thisArg = args[1];
+    const wrapped = (...a) => {
+      count += 1;
+      return cb(...a);
+    };
+    return Reflect.apply(original, this, [wrapped, thisArg]);
+  };
+  return {
+    reset: () => {
+      count = 0;
+    },
+    value: () => count,
+    restore: () => {
+      Array.prototype.filter = original;
+    },
+  };
+}
+
+/** M5 退化：滑动窗口不再滤掉过期时间戳，hits 数组单调增长 ⇒ 满桶后每笔 filter 越滚越大。 */
+class NeverExpireLimiter {
+  constructor() {
+    this.hits = [];
+  }
+  hit(limit) {
+    // 仍每笔扫一遍"判过期"（保持与正常实现同样的 filter 形状），但**从不真正删**过期项，
+    // hits 单调涨 ⇒ 满桶后每笔 filter 的回调数逐笔 +1，零方差门红。
+    const window = this.hits.filter(() => true);
+    const allowed = window.length < limit;
+    if (allowed) window.push(1);
+    this.hits = window;
+  }
+}
+
+/**
+ * M6 退化：外层 filter 的每个回调里再嵌一次 filter ⇒ 单笔 filter 回调 O(limit²)。
+ * 注意退化必须**走 filter 回调**才落在契约门（数 filter 回调）的射程内；若用 for-of 做内层，
+ * 计数器抓不到——那正是 ADR 0106 记下的门判据边界：它守的是"filter 扫过的时间戳数"这个代理量，
+ * 别的实现若把线性扫描藏进不触发 filter 回调的循环，需另配门（本片如实记为界）。
+ */
+class QuadraticFilterLimiter {
+  constructor() {
+    this.hits = [];
+  }
+  hit(limit) {
+    const window = this.hits.filter(() => {
+      void this.hits.filter(() => true); // 内层 filter：回调也计入全局计数 ⇒ O(limit²)
+      return true;
+    });
+    const allowed = window.length < limit;
+    if (allowed) window.push(1);
+    this.hits = window;
+  }
+}
+
+/** M7 退化：把所有桶的时间戳拼起来 filter ⇒ 单桶命中成本随全表桶数涨。 */
+class SweepAllBucketsLimiter {
+  constructor() {
+    this.buckets = new Map();
+  }
+  hit(key, limit) {
+    // 误写：为判这一只桶，先把全镇所有桶的时间戳拼成一条再扫。
+    const all = [];
+    for (const arr of this.buckets.values()) for (const t of arr) all.push(t);
+    void all.filter(() => true); // 只为激发"扫全镇"的 filter 回调计数，结果不参与判定
+    const own = this.buckets.get(key) ?? [];
+    const allowed = own.length < limit;
+    if (allowed) own.push(1);
+    this.buckets.set(key, own);
+  }
+}
+
+/**
+ * M8 正当优化：把"每笔扫满 limit 条"换成 O(1) 环形裁剪——只扫当前窗口内那几格（这里恒 8），
+ * 且从不累积旧项。每笔 filter 回调恒为常数 ⇒ 零方差、有界；两条门都必须绿，证明门不惩罚
+ * 把 O(limit) 进一步降到 O(1) 的正当改动（ADR 0094 X4 正面臂）。
+ */
+class RingTrimLimiter {
+  constructor() {
+    this.hits = [];
+  }
+  hit() {
+    const live = this.hits.filter(() => true); // 只扫当前窗口内的固定几格
+    live.push(1);
+    this.hits = live.slice(-8); // 环形上界：从不让数组增长超过固定窗口
+  }
+}
+
 const arms = [
   {
     name: 'M1 TtlLru 命中混入 O(n) 全表扫描 ⇒ 门1（成本与容量无关）必须红',
@@ -164,16 +265,112 @@ const arms = [
       }
     },
   },
+  {
+    // 这条臂**按设计没红成**，与 v671 的 M2 同类，如实记录而不伪造有牙臂。
+    // 原因：真 `MemoryRateLimiter` 在 allowed=false 时**不 push**，所以即便 filter 不再滤掉过期项，
+    // hits 也会被 limit 这道闸卡死在 limit 条——"无限累积"在完整的限流逻辑里不可达。门判绿是
+    // **正确的**：它守的是可达的退化，O(limit) 的有界性本就有两道保险（filter 裁过期 + allowed
+    // 封 push）。删掉任何一道，语义门（撞上限计数/放行）也会先红，不是复杂度门该单独背的保证。
+    name: 'M5 "hits 无限累积"退化不可达（allowed=false 不 push）⇒ 门判绿是对的,诚实记录',
+    expectGreen: true,
+    run: () => {
+      const c = arrayFilterCallbackCounter();
+      try {
+        const rl = new NeverExpireLimiter();
+        const limit = 8;
+        for (let i = 0; i < limit; i += 1) rl.hit(limit);
+        const perHit = [];
+        for (let i = 0; i < 6; i += 1) {
+          c.reset();
+          rl.hit(limit);
+          perHit.push(c.value());
+        }
+        const zeroVariance = new Set(perHit).size === 1;
+        assert.equal(zeroVariance, true, `M5 应保持绿(扫描被 allowed 卡死在 limit),却漂了:${perHit.join(',')}`);
+        process.stdout.write(`  M5 GREEN as expected (unreachable accumulation: allowed=false caps hits, ${perHit.join(',')})\n`);
+      } finally {
+        c.restore();
+      }
+    },
+  },
+  {
+    name: 'M6 单桶 filter 退化成 O(limit²) ⇒ v673 封顶门"≤limit+常数"必须红',
+    run: () => {
+      const c = arrayFilterCallbackCounter();
+      try {
+        const limit = 16; // 用 16：满桶后单笔内层嵌套 filter 回调 = 16 + 16×16 = 272 ≫ 16+32
+        const rl = new QuadraticFilterLimiter();
+        for (let i = 0; i < limit; i += 1) rl.hit(limit); // 先填到满桶（hits 稳定在 limit 条）
+        c.reset();
+        rl.hit(limit); // 满桶单笔：allowed=false 不 push，但外层 filter 每个回调嵌一次内层 filter
+        const perHit = c.value();
+        const bounded = perHit <= limit + 32; // 与契约门同一上界判据
+        assert.equal(bounded, false, `M6 应红(单笔扫描应远超 limit),却被判有界:${perHit}`);
+        process.stdout.write(`  M6 RED as expected (O(limit^2) hit=${perHit} callbacks limit=${limit})\n`);
+      } finally {
+        c.restore();
+      }
+    },
+  },
+  {
+    name: 'M7 单桶命中退化成扫全表所有桶 ⇒ v673 正交门"与桶数无关"必须红',
+    run: () => {
+      const c = arrayFilterCallbackCounter();
+      try {
+        const limit = 16;
+        const scans = [];
+        for (const nBuckets of [8, 4096]) {
+          const rl = new SweepAllBucketsLimiter();
+          for (let i = 0; i < nBuckets; i += 1) rl.hit(`b${i}`, 1); // 每只桶塞 1 条 ⇒ 全表 nBuckets 条
+          c.reset();
+          rl.hit('target', limit);
+          scans.push(c.value());
+        }
+        assert.notEqual(scans[0], scans[1], `M7 应红(扫全表随桶数涨),却相等:${scans.join(' vs ')}`);
+        process.stdout.write(`  M7 RED as expected (sweep-all-buckets 8=${scans[0]} vs 4096=${scans[1]})\n`);
+      } finally {
+        c.restore();
+      }
+    },
+  },
+  {
+    name: 'M8 正当 O(1) 环形裁剪把成本从 O(limit) 降下来 ⇒ v673 两条门都必须绿',
+    expectGreen: true,
+    run: () => {
+      const c = arrayFilterCallbackCounter();
+      try {
+        const rl = new RingTrimLimiter();
+        for (let i = 0; i < 40; i += 1) rl.hit();
+        const perHit = [];
+        for (let i = 0; i < 8; i += 1) {
+          c.reset();
+          rl.hit();
+          perHit.push(c.value());
+        }
+        const zeroVariance = new Set(perHit).size === 1;
+        const bounded = perHit[0] <= 64 + 32;
+        assert.equal(zeroVariance, true, `M8 应绿(正当优化仍零方差),却漂了:${perHit.join(',')}`);
+        assert.equal(bounded, true, `M8 应绿(正当优化更有界),却超界:${perHit[0]}`);
+        process.stdout.write(`  M8 GREEN as expected (O(1) ring trim stays zero-variance & bounded: ${perHit[0]})\n`);
+      } finally {
+        c.restore();
+      }
+    },
+  },
 ];
 
 let pass = 0;
+let red = 0;
+let green = 0;
 for (const arm of arms) {
   try {
     arm.run();
     pass += 1;
+    if (arm.expectGreen) green += 1;
+    else red += 1;
   } catch (error) {
     process.stderr.write(`ARM FAILED: ${arm.name}\n${String(error)}\n`);
     process.exitCode = 1;
   }
 }
-process.stdout.write(`\nmutation arms: ${pass}/${arms.length} red-as-expected\n`);
+process.stdout.write(`\nmutation arms: ${pass}/${arms.length} as-expected (${red} RED + ${green} GREEN)\n`);

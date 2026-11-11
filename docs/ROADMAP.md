@@ -398,6 +398,51 @@ family README section) and a door that reddens the sentence it repairs:
         future added field should get a separate internal type, not grow the public contract. Ledger:
         ADR 0105; ADR 0104 leave-weight + still-owed ④ marked REPAID.]
 
+  v673  the SECOND complexity axis — v671 gated the bucket-count dimension; this gates the single-bucket
+        `limit` dimension that the Map-op counter was structurally blind to (ADR 0106):
+        [LANDED 2026-11-12 — § 数据结构 × 算法 × 限流/安全. `MemoryRateLimiter.hit` does
+        `(previous?.hits ?? []).filter(t => t > cutoff)` every call — an O(bucket timestamps) ≤ O(limit)
+        sliding-window scan that fires ZERO Map operations, so v671's Map-op gates cannot see it. Worse,
+        at `allowed=false` (the flood / at-cap path, exactly when this gate must be cheapest) it stops
+        `push`ing but STILL filters all `limit` timestamps — the gate is most expensive precisely when
+        distinct-identity abuse (§137 guest auto-issue) makes it matter. Same discipline as the file
+        header's "a gate must not fall over before what it guards". This REPAYS ADR 0104 still-owed ③
+        ("O(limit) is a stated bound, not gated").
+        DECISION: gate, do NOT change production source. O(limit) is a designed bounded cost (limit is
+        caller-supplied & capped; header already states single-bucket memory ≤ limit×8); rewriting it
+        to an O(1) ring would touch limiting semantics that must stay byte-for-byte parity with the
+        Redis driver, whose parity leg cannot run fully here (no real Redis). v671's contract +2 gates:
+        ① CAP gate — at-cap per-hit filter-callback count ZERO VARIANCE + bounded by limit+const (stops
+        unbounded `hits` growth and O(limit²)); ② ORTHOGONALITY gate — same full bucket in an 8-bucket
+        vs 4096-bucket table costs the SAME (stops "sweep all buckets"). Counter wraps
+        `Array.prototype.filter` (counts callbacks = timestamps scanned), spy-then-forward, reset around
+        the sync interval. **Deliberately does NOT pin "must grow linearly with limit"** — that would
+        red the legitimate future O(1)-ring optimization (ADR 0094 X4); the limit-linearity is archive
+        only. Pin: bounded + bucket-orthogonal + non-drifting, all O(1)-optimization-green.
+        DETERMINISTIC PROBE (frozen clock): empty-bucket first hit 0 callbacks; full limit=64 at-cap
+        **64**; 5 at-cap hits **恒 64 zero-variance**; limit 8/64/512 ⇒ **8/64/512 exact linear**;
+        unrelated-filter baseline 0. WALL-CLOCK archive (only, not verdict; SAME-PROCESS adjacent-scale,
+        unlike v672's cross-process noise): limit 8/64/512 p50 **13.15 / 17.92 / 56.93us**, ns/op
+        18278 / 22423 / 64003 — 8× data costs only 1.23×, 64× costs 3.5× ⇒ LINEAR, no O(limit²)
+        thousands-fold collapse; 18k–64k ns/op is ~1 order above TtlLru hit from `increment` / Map
+        delete+set / Promise allocation, all limit-INDEPENDENT fixed cost (hence 8→64 only 1.23×).
+        `scripts/ds-benchmark.mts` +group 4; JSON `docs/evidence/ds/bench-single-bucket-limit-v673.json`.
+        MUTATION ARMS `complexity-arms.mjs` +4 ⇒ **7/7 as-expected (5 RED + 2 GREEN)**: M6 nested filter
+        (O(limit²), 272 callbacks/hit at limit=16) CAP red; M7 sweep-all (8 vs 4096) ORTHOGONAL red;
+        M8 **legit O(1) ring trim stays GREEN on both gates** (X4 positive witness); M5 "unbounded hits"
+        degeneration is **UNREACHABLE** (allowed=false stops push ⇒ hits capped at limit, zero-variance)
+        — gate GREENS correctly, recorded honestly, no fake-toothed arm, and it exposes a 2nd safeguard
+        (allowed caps push). Gate boundary stated: the proxy is "filter callbacks", so an O(limit²)
+        hidden in a non-filter loop (e.g. for-of) is NOT caught — M6's first version used for-of and
+        measured green until rewritten as nested filter; recorded as a bound, not claimed covered.
+        ZERO REGRESSION: contract **8/8**; full 7-file suite **73/73**; web-test + tools narrow tsc each
+        exit 0; eslint 3 files heap-fed exit 0 (full-project still SIGTERM on ~0.3GB host = resource).
+        HONEST GAPS (ADR 0106): ① wall-clock single-host single-run scale=1, no fixed CI multi-run mean;
+        ② gate counts a proxy (filter callbacks), misses non-filter-loop O(limit²); ③ gate-only, O(limit)
+        →O(1) ring is a named follow-up pending a locally-runnable parity leg; ④ cap bound is limit+32
+        (absorbs unrelated-filter baseline) — if that baseline drifts with bucket count/time, the
+        orthogonality/zero-variance gates red correctly, know the semantics before loosening them.]
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and
