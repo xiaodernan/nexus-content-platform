@@ -8,6 +8,8 @@ import {
   errorCountText,
   errorReasonList,
   isKnownStats,
+  javaActuatorNote,
+  javaActuatorPanelRows,
   javaWireNote,
   javaWirePanelRows,
   liveTag,
@@ -87,6 +89,7 @@ export function RealtimeStatsPanel() {
   const live = liveTag(stats.wire);
   const javaRows = javaWirePanelRows(stats.javaWire);
   const breakers = stats.javaBreakers;
+  const javaActuatorRows = javaActuatorPanelRows(stats.javaActuator);
 
   return (
     <div className="flex flex-col gap-2 text-13" data-realtime-stats="ready">
@@ -156,6 +159,23 @@ export function RealtimeStatsPanel() {
               </Fragment>
             ))}
           </dl>
+        )}
+      </section>
+      <section data-java-actuator className="flex flex-col gap-1 border-t border-[var(--nexus-color-border-subtle)] pt-2">
+        <p className="text-11 font-medium text-fg-3" data-java-actuator-title>actuator info（Java runtime 自报）</p>
+        {javaActuatorRows ? (
+          <dl className="grid grid-cols-[9rem_1fr] gap-x-3 gap-y-1 text-12">
+            {javaActuatorRows.map(([label, value]) => (
+              <Fragment key={label}>
+                <dt className="text-fg-3">{label}</dt>
+                <dd data-java-actuator-row={label} className="tabular-nums text-fg-1">{value}</dd>
+              </Fragment>
+            ))}
+          </dl>
+        ) : (
+          <p className="text-13 text-fg-2" data-java-actuator="missing">
+            {javaActuatorNote(stats.javaActuator)}
+          </p>
         )}
       </section>
       {stats.wireErrorCount !== null && stats.wireErrorCount > 0 ? (

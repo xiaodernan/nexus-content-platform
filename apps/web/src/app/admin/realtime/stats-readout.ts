@@ -6,7 +6,7 @@
  * 一句合成话的写法在界面上看不出任何毛病，只能把逐档措辞变成可判定的纯函数来钉。
  */
 
-import type { BreakerState, JavaWireStats, JavaActuatorBreakerEntry } from '@/server/realtime/java-wire';
+import type { BreakerState, JavaWireStats, JavaActuatorBreakerEntry, JavaActuatorInfo } from '@/server/realtime/java-wire';
 
 /** 跨实例线路的档位：`na` 与 `down` 是两句话——没有这回事 ≠ 有一根断了的线 */
 export type WireLive = 'up' | 'pending' | 'down' | 'na';
@@ -31,6 +31,8 @@ export type RealtimeStatsReadout = {
   javaWire?: JavaWireStats | null;
   /** §SC-64：/actuator/circuitbreakers 原样端出"name → entry"的清单；`null` = 没拿到，`[]` = 拿到但空。 */
   javaBreakers?: JavaActuatorBreakerEntry[] | null;
+  /** §SC-66：/actuator/info 原样端出 app/runtime/os 三组；`null` = 没拿到。 */
+  javaActuator?: JavaActuatorInfo | null;
 };
 
 /**
@@ -144,6 +146,24 @@ export function breakerStateText(state: BreakerState | undefined): string {
     case undefined:
       return '—（本次 wire 份响应不带此格）';
   }
+}
+
+/** §SC-66 · Java actuator info（`/actuator/info` 原样出 info 面板）。 */
+export function javaActuatorPanelRows(
+  info: JavaActuatorInfo | null | undefined,
+): Array<[label: string, value: string]> | null {
+  if (!info) return null;
+  return [
+    ['名称', `${info.app.name} · ${info.app.version}`],
+    ['组件', `${info.app.group}:${info.app.artifact}`],
+    ['Java', `${info.runtime.java} · ${info.runtime.vendor}`],
+    ['OS', `${info.os.name} · ${info.os.arch}`],
+  ];
+}
+
+export function javaActuatorNote(info: JavaActuatorInfo | null | undefined): string {
+  if (info == null) return '没拿到 /actuator/info 的回执——这台实例没暴露 info 段（如实，不冒充）';
+  return `Java 生产者 · ${info.app.name} ${info.app.version} · 编译 ${info.runtime.java} · ${info.runtime.vendor} · ${info.os.name} on ${info.os.arch}`;
 }
 
 /** §SC-58 · Java 生产者那一侧（`/admin/realtime` 里轮询同一份回执）。 */

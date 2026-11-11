@@ -29,6 +29,7 @@ export interface JavaWireStats {
 
 const DEFAULT_URL = 'http://127.0.0.1:8082/api/v1/realtime/stats';
 const DEFAULT_ACTUATOR_URL = 'http://127.0.0.1:8082/actuator/circuitbreakers';
+const DEFAULT_INFO_URL = 'http://127.0.0.1:8082/actuator/info';
 
 const BREAKER_STRINGS = new Set(['CLOSED', 'OPEN', 'HALF_OPEN']);
 
@@ -87,7 +88,6 @@ export async function fetchJavaWireStats(): Promise<JavaWireStats | null> {
  */
 export interface JavaActuatorBreakerEntry {
   name: string;
-  /** 原样透传断路器的状态字（CLOSED / OPEN / HALF_OPEN / DISABLED /  future: ...）。 */
   state: string;
   failureRate: string;
   slowCallRate: string;
@@ -98,6 +98,29 @@ export interface JavaActuatorBreakerEntry {
   slowCalls: number;
   slowFailedCalls: number;
   notPermittedCalls: number;
+}
+
+/**
+ * `/actuator/info` 读数门面（§SC-66-admin）：把 Java service 的 app/version、java/runtime、
+ * os/arch 这三格原样端出，供 admin/realtime 第二面板展示——之前总是 curl 8082 摸
+ * — 不该需要人手 curl，终端该可见从另外一端来的证据。
+ */
+export interface JavaActuatorInfo {
+  app: {
+    name: string;
+    version: string;
+    group: string;
+    artifact: string;
+    description: string;
+  };
+  runtime: {
+    java: string;
+    vendor: string;
+  };
+  os: {
+    arch: string;
+    name: string;
+  };
 }
 
 export async function fetchJavaActuatorBreakers(): Promise<JavaActuatorBreakerEntry[] | null> {
@@ -141,6 +164,44 @@ export async function fetchJavaActuatorBreakers(): Promise<JavaActuatorBreakerEn
       });
     }
     return entries;
+  } catch {
+    return null;
+  }
+}
+
+const INFO_REQUIRED_KEYS = ['app', 'runtime', 'os'] as const;
+
+/** 形状校验——只接受规范矩形的 `app/runtime/os` 三组. Pure Java-side fields
+ *  with exact names so the panel renders without a cast. */
+export function isJavaActuatorInfo(value: unknown): value is JavaActuatorInfo {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  for (const key of INFO_REQUIRED_KEYS) {
+    if (typeof v[key] !== 'object' || v[key] === null) return false;
+  }
+  const app = v.app as Record<string, unknown>;
+  const runtime = v.runtime as Record<string, unknown>;
+  const os = v.os as Record<string, unknown>;
+  for (const key of ['name', 'version', 'group', 'artifact', 'description'] as const) {
+    if (typeof app[key] !== 'string' || app[key].trim().length === 0) return false;
+  }
+  for (const key of ['java', 'vendor'] as const) {
+    if (typeof runtime[key] !== 'string' || runtime[key].trim().length === 0) return false;
+  }
+  for (const key of ['arch', 'name'] as const) {
+    if (typeof os[key] !== 'string' || os[key].trim().length === 0) return false;
+  }
+  return true;
+}
+
+export async function fetchJavaActuatorInfo(): Promise<JavaActuatorInfo | null> {
+  const url = process.env.NEXUS_JAVA_ACTUATOR_INFO_URL?.trim() || DEFAULT_INFO_URL;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(3_000), cache: 'no-store' });
+    if (!res.ok) return null;
+    const data: unknown = await res.json();
+    if (!isJavaActuatorInfo(data)) return null;
+    return { app: data.app, runtime: data.runtime, os: data.os };
   } catch {
     return null;
   }
