@@ -592,4 +592,87 @@
     .pf-workCard, .pf-workCard::before, .pf-listItem, .pf-gamePlay { transition: none; }
     .pf-workCard:hover, .pf-gamePlay:hover { transform: none; }
   }
+
+  /* ── §FE-6 / ADR-0138 公开作品页 `/n/[handle]/[slug]` 门面化 ─────────────────
+   * 与 .dv-/.mk-/.hp-/.se-/.pf- 同一套 token 语言（守 ADR-0123 六红线）：
+   * 零新增颜色 token（全锚双主题 token + color-mix，无写死 hex）；双主题 AA；
+   * 只做视觉——page.tsx 结构、文案、data 判据钩子、SEO 与 React cache 读路径、
+   * 四份投影、热点、PublishedFrame 作品本体一字未改，本段只给页面 chrome 上妆，
+   * 不碰作品内容本身。 */
+  .pb-root { position: relative; isolation: isolate; }
+  .pb-header {
+    position: relative;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--nexus-color-bg-2) 72%, var(--nexus-color-brand) 6%), var(--nexus-color-bg-1));
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--nexus-color-border-subtle) 70%, transparent), var(--nexus-shadow-sm);
+  }
+  .pb-header::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+    background: linear-gradient(90deg, var(--nexus-color-brand), var(--nexus-color-accent-1) 45%, transparent 85%);
+    opacity: .55; pointer-events: none;
+  }
+  /* 渐变墨字：浅色主题下 fg-1 端保证可读，不是白字写白底 */
+  .pb-title {
+    font-weight: 650; letter-spacing: -0.01em;
+    background: linear-gradient(115deg, var(--nexus-color-fg-1) 28%, var(--nexus-color-brand) 92%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .pb-meta {
+    display: inline-flex; align-items: center; min-height: 1.5rem;
+    padding: 0 var(--nexus-space-2); border: 1px solid var(--nexus-color-border-subtle);
+    border-radius: var(--nexus-radius-full); background: color-mix(in srgb, var(--nexus-color-bg-2) 65%, transparent);
+  }
+  .pb-headerAside { position: relative; z-index: 1; }
+  .pb-brand { opacity: .72; letter-spacing: .06em; text-transform: uppercase; }
+  .pb-actions { border-bottom: 1px solid var(--nexus-color-border-subtle); }
+  /* 作品舞台：柔和底 + 顶部微光，让访客视线落到裱起来的作品上 */
+  .pb-stage {
+    position: relative;
+    background:
+      radial-gradient(120% 60% at 50% -10%, color-mix(in srgb, var(--nexus-color-brand) 7%, transparent), transparent 70%),
+      color-mix(in srgb, var(--nexus-color-bg-1) 55%, var(--nexus-color-bg-2) 45%);
+  }
+  .pb-variant {
+    display: inline-block; max-width: 100%; border-radius: var(--nexus-radius-lg);
+    border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1);
+    box-shadow: var(--nexus-shadow-md); overflow: hidden;
+    transition: box-shadow var(--nexus-motion-base) var(--nexus-motion-ease), transform var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .pb-variant:hover { box-shadow: 0 10px 34px color-mix(in srgb, var(--nexus-color-brand) 18%, transparent); transform: translateY(-2px); }
+  /* 互动说明卡：accent-1 左竖线，居中用 top/height 不用 transform（transform 只留给动效，收口门才分得清） */
+  .pb-note {
+    position: relative; border-left: 3px solid var(--nexus-color-accent-1);
+    background: color-mix(in srgb, var(--nexus-color-accent-1) 5%, var(--nexus-color-bg-1));
+    border-radius: 0 var(--nexus-radius-md) var(--nexus-radius-md) 0; line-height: 1.6;
+  }
+  .pb-note::before {
+    content: ''; position: absolute; left: -3px; top: 15%; height: 70%; width: 3px;
+    border-radius: var(--nexus-radius-full);
+    background: linear-gradient(180deg, var(--nexus-color-accent-1), var(--nexus-color-brand));
+  }
+  .pb-entry { display: flex; flex-wrap: wrap; align-items: center; }
+  /* 试玩 / 分镜 chip：底色 token 化、hover 抬升 + 辉光、键盘 focus 描边 */
+  .pb-playLink, .pb-storyboardLink {
+    position: relative; overflow: hidden; font-weight: 600; text-decoration: none;
+    box-shadow: var(--nexus-shadow-sm);
+    transition: transform var(--nexus-motion-base) var(--nexus-motion-ease), box-shadow var(--nexus-motion-base) var(--nexus-motion-ease), filter var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .pb-playLink::after, .pb-storyboardLink::after {
+    content: ''; position: absolute; inset: 0; opacity: 0; pointer-events: none;
+    background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--nexus-color-accent-fg) 22%, transparent) 50%, transparent 80%);
+    transition: opacity var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .pb-playLink:hover, .pb-storyboardLink:hover { transform: translateY(-2px); filter: saturate(1.08); box-shadow: 0 6px 18px color-mix(in srgb, var(--nexus-color-accent-2) 28%, transparent); }
+  .pb-playLink:hover::after, .pb-storyboardLink:hover::after { opacity: 1; }
+  .pb-playLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .pb-storyboardLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .pb-entryHint { line-height: 1.5; }
+  /* 统计告知条：弱化但可读，顶部细分隔 */
+  .pb-notice {
+    border-top: 1px dashed var(--nexus-color-border-subtle); line-height: 1.55;
+    padding-top: var(--nexus-space-2); background: color-mix(in srgb, var(--nexus-color-bg-1) 70%, transparent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pb-variant, .pb-playLink, .pb-storyboardLink, .pb-playLink::after, .pb-storyboardLink::after { transition: none; }
+    .pb-variant:hover, .pb-playLink:hover, .pb-storyboardLink:hover { transform: none; }
+  }
 }
