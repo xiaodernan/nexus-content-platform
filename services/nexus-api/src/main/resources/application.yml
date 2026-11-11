@@ -52,6 +52,48 @@ spring:
         # the name in front of the call drift apart again.
 
 resilience4j:
+  # v669 — the fourth resilience pillar, on the SAME typed call. The three already here answer
+  # "the service is down" (breaker), "the service is slow" (deadline, on the gateway), "too many
+  # callers" (rate limit). RETRY answers "the service had a momentary blip" — a GET that can be
+  # asked again safely. It is the last pillar because it is the only one that can make a bad call
+  # WORSE if wired wrongly, so it is wired by hand and graded hard (see DomainServiceRetry).
+  #
+  # THE TRAP this config is written around: Spring Cloud OpenFeign's CircuitBreaker integration
+  # wraps the call in a CircuitBreaker (and a TimeLimiter) but does NOT consult a Resilience4j
+  # RETRY instance — there is no retry config class in spring-cloud-circuitbreaker-resilience4j.
+  # So a `resilience4j.retry.instances.*` block alone would configure an instance NOTHING uses,
+  # silently — the exact failure mode this repository already survived once with the breaker name
+  # (see the circuitbreaker block below). `DomainServiceRetry` is the code that ACTUALLY obtains
+  # this instance from RetryRegistry and runs the call through it; the config and the code must
+  # agree on the name, and `DomainServiceRetryConfigTest` refuses to let them drift.
+  retry:
+    instances:
+      # Same instance name as the breaker: the retry protects the ONE typed call, named after the
+      # Feign client. A second spelling here would quietly configure a retry nothing applies.
+      nexus-domain-service:
+        # 3 total attempts = the first call + at most 2 retries. Bounded on purpose: an unbounded
+        # retry against a hung downstream turns one slow caller into a connection-pool exhaustion.
+        maxAttempts: ${NEXUS_DOMAIN_RETRY_ATTEMPTS:3}
+        # A fixed, bounded wait: 2 retries × 200 ms is at most 400 ms of backoff, comfortably inside
+        # the caller's own deadline. Exponential-backoff properties exist in newer Resilience4j
+        # Spring Boot bindings, but are deliberately NOT used here: a knob this release does not
+        # bind would be another silently-ignored line, and a fixed wait is all a bounded retry needs.
+        waitDuration: ${NEXUS_DOMAIN_RETRY_WAIT:200ms}
+        retryExceptions:
+          # Only transient wire failures are worth asking twice. A Feign RetryableException is the
+          # family Feign uses for connection failures; FeignException.ServiceUnavailable (503) is a
+          # response that says "try me again". Neither is a statement about the PROJECT.
+          - feign.RetryableException
+          - feign.FeignException$ServiceUnavailable
+        ignoreExceptions:
+          # A 404 is an ANSWER, not a blip: the service was there and holds no such project. Retrying
+          # it wastes two round trips and turns a cheap 404 into a slow one. SAME rule the breaker
+          # already applies to 404, kept in lockstep here.
+          - feign.FeignException$NotFound
+          # An open breaker means the call was NEVER MADE; retrying only re-hits the open breaker.
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+          # No instance to call is a topology fact, not a momentary blip.
+          - java.lang.IllegalStateException
   circuitbreaker:
     instances:
       # The instance name MUST be the name Spring Cloud OpenFeign actually asks for — which is the

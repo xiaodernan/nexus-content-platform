@@ -60,10 +60,33 @@ public class DomainProjectReader {
 
     private static final Logger log = LoggerFactory.getLogger(DomainProjectReader.class);
 
-    private final DomainServiceClient client;
+    private final DomainServiceRetry retry;
 
+    /**
+     * Pre-v669 construction, kept verbatim: a pass-through retry that calls the client exactly once.
+     * Every existing test uses this, so adding the retry pillar changes NO behaviour for a caller
+     * that did not opt into one — and the reader stays trivially unit-testable without a Spring
+     * context or a RetryRegistry.
+     */
     public DomainProjectReader(DomainServiceClient client) {
-        this.client = client;
+        this(new DomainServiceRetry(client));
+    }
+
+    /**
+     * v669 — Spring injects the retry wired to the YAML-declared {@code Retry} instance. The reader
+     * knows nothing about attempts or backoff; it just asks the retry to run the call and keeps its
+     * one job: saying which of the three facts came back.
+     *
+     * <p>{@code @Autowired} is REQUIRED and not decorative: a class with two single-argument
+     * constructors fails Spring context startup with "no default constructor found" — the other
+     * constructor starts out looking unannotatable because it is the convenience path used by unit
+     * tests without a context. Without the marker here, Spring cannot tell which of the two it
+     * wants, refuses to guess between two single-argument constructors, and the wiring test goes
+     * red for a reason nobody would look up without booting Spring once to see it fail.
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public DomainProjectReader(DomainServiceRetry retry) {
+        this.retry = retry;
     }
 
     /**
@@ -74,7 +97,9 @@ public class DomainProjectReader {
      */
     public DomainResponse read(UUID id) {
         try {
-            DomainProject project = client.getProject(id);
+            // v669: the SAME typed call, now optionally wrapped in a bounded retry. A pass-through
+            // retry (the default constructor) makes exactly one call — byte-for-byte pre-v669.
+            DomainProject project = retry.getProject(id);
             if (project == null) {
                 // A 200 with no body is not a project. It is a malformed answer, and it is treated
                 // as the failure it is rather than as "a project with no fields".
