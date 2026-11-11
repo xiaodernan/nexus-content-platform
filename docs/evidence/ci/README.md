@@ -541,8 +541,8 @@ people.
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
 never turned into a `verify:*` script stays invisible to the build. Amendments 516–519 closed that half:
-the census below gives every one of the **130** tracked modules a disposition, and the derived population is
-**117 running rows + 0 excluded by name** at this ref (the v645 exclusion is retired — the spring-cloud
+the census below gives every one of the **132** tracked modules a disposition, and the derived population is
+**119 running rows + 0 excluded by name** at this ref (the v645 exclusion is retired — the spring-cloud
 proof establishes its own scratch pgvector source container on the hosted plane — and the residue this
 sentence once carried is now zero). v532 triaged the
 swept population and wired sixteen
@@ -565,7 +565,7 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 | class | count at this ref | how it is decided |
 | --- | --- | --- |
-| ROW | **117** (117 run + 0 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
+| ROW | **119** (119 run + 0 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **5** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs`, `ci/arms-receipt.mjs`, `m9/plane-bound-claims.mjs` (added 2026-11-10 — the import closure of the two repaired m9 proofs; committed in 9ab2371) |
 | SWEPT | **3** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — at this ref `cwd-axis` and `tree-axis`, the tree-motion witnesses, which stay there by measurement (their verdict is about whether the walked tree moved during the run), plus `agents/record-repair-proof.mjs`, which the sweep runs and no `verify:*` script claims |
 | TOOL | **5** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, one plane-arms script, the isolated-build arms, the SVG generator) |
@@ -961,3 +961,29 @@ can only run what the commit owns.
   - `the README says 129 tracked modules; this census read 130 from the index`.
 - What moved: the disposition table above — `every one of the **130**` and `| HELPER | **5** |` with `m9/plane-bound-claims.mjs` named in the closure list. Nothing else did: ROW stays **117** (116 run + 1 excluded), SWEPT stays **3**, TOOL stays **5**, DEFERRED stays **0**, and no row, proof, package.json or gate moved by one byte. The recount door's §3 scoreboard reads `exec-host rows 359/13 · measured 359/13`, and the recount proof is exit 0 at this ref. The amendment-witness census (`table-recount-proof` §7) reads `ledger headings 254 · no dangling explicit citations · the newest grant 576 IS titled` — 576's record is 0016's own 2026-11-10 entry, written late on purpose, and this file does not repeat it.
 - Measured exits at this ref: `verify:evidence-census` **exit 0** (`... 130 tracked modules close as 117 row + 5 helper + 3 swept + 5 tool + 0 deferred · 0 unclassified · rows 116+1`), `verify:table-recount` **exit 0**, `verify:record-encoding` **exit 0**, `verify:record-window` unchanged. `verify:arms` and `verify:arms-freshness` and `verify:ci-wiring` read the same population as the previous section — this re-stamp moves no clause, no ceiling, no population and mints no amendment (a recount is not an increment).
+
+### 2026-11-11 — the catch-up: 130 → 132 tracked modules, ROW 117 → 119 (two Java proof rows entered the census without this ledger following)
+
+- The two modules that moved the index are `docs/evidence/java/gateway-suite-proof.mjs` and
+  `docs/evidence/java/db-index-proof.mjs`, added as `verify:gateway-tests` (`01e2e20`, which wired the
+  edge's 22-test suite into the ledger) and `verify:db-index` (`7191e7e`, the EXPLAIN proof that the
+  soft-delete queries take an Index Scan). Both are `verify:*` scripts whose whole command is one `node`
+  call into `docs/evidence`, so the census derives them as ROW the moment those commits exist. It reads the
+  INDEX, not the filesystem: the population went 117 → 119 rows and 130 → 132 tracked modules without
+  anyone touching this table, and `verify:evidence-census` was exit 1 from `7191e7e` onward for exactly
+  its four honest drifts (`ROW row says 117; derived 119`, the run/residue split twice, and
+  `README says 130 tracked; derived 132`).
+- What moved: the disposition table above — `every one of the **132**`, `**119 running rows + 0 excluded
+  by name**`, and `| ROW | **119** (119 run + 0 excluded) |`. Nothing else did: HELPER stays **5**, SWEPT
+  **3**, TOOL **5**, DEFERRED **0** (119 + 5 + 3 + 5 + 0 = 132), no row was removed or excluded, and no
+  proof, gate, roster or `package.json` byte moved. This is a recount, not an increment: it mints no
+  amendment and the arms roster stays **132** (the "132 fixture arms" number on the table is arms, not
+  modules — unchanged).
+- The queue slice being landed alongside this (`v661`, ADR 0066) adds NO `docs/evidence` row: its proofs
+  are ordinary vitest files under `apps/web/test/` (real Redis on 56379, real Postgres, and the opt-in
+  switch), which the census does not enumerate. Its only effect on this ledger is that the catch-up was
+  noticed and repaired here rather than left red for the next lane to inherit.
+- Measured exits at this ref: `verify:evidence-census` **exit 0** (`132 tracked modules close as 119 row
+  + 5 helper + 3 swept + 5 tool + 0 deferred · 0 unclassified · rows 119+0 · arms 132/132 MATCHED`),
+  `verify:ci-wiring` **exit 0** (population **119 closes as 119 + 0**, 0 orphaned tsc leg, every Maven
+  module built).

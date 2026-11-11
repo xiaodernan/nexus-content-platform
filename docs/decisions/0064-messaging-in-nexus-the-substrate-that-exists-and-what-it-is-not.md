@@ -51,3 +51,18 @@ Do not add a broker to NEXUS for the sake of having one. Every real-time lane is
 by exactly one of the four mechanisms above. When a future lane writes "add a queue here", the ADR that
 granted it must name the lane, the producer, the consumer, the durability requirement, and the failure
 mode it survives — or the commit must not open a second transport.
+
+## Amendment (v661) — the rule was exercised, not reversed (ADR 0066)
+
+On 2026-11-11 a fifth lane earned the rule above and was granted by **ADR 0066**. The four mechanisms
+in the inventory remain exactly as described — nothing here was wrong — but the inventory is no longer
+the whole transport picture: `build.complete` (post-export notification, durable-but-late) now rides a
+Redis **Stream** with a consumer group, off the download response path. It is deliberately NOT a broker
+(the Kafka/Rabbit "absent" rows above still stand — this is the Redis the platform already runs, inside
+one service), NOT client-facing, and NOT a replacement for SSE (the lossy realtime bus is unchanged).
+It survives a worker crash between `emit` and `XACK` via `XAUTOCLAIM`, and is safe under that redelivery
+because the producer mints `exportId` and the notification's UNIQUE `dedupe_key` collapses the retry.
+It is opt-in (`NEXUS_JOB_QUEUE`) and off by default, so an instance using Redis only for realtime
+fanout does not run a worker. Read ADR 0066 for the named producer/consumer/durability/failure-mode;
+this amendment exists only so no reader of "four mechanisms" is misled into thinking the ledger ended
+here.

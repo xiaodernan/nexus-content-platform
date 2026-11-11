@@ -55,6 +55,22 @@ family README section) and a door that reddens the sentence it repairs:
         faces the reach census does not yet grade (#343).
   v660  a full gate sweep at the then-current ref with every red door attributed
         (#333), then this program re-plans from what it measured.
+  v661  a durable side-effect lane so the export download stops waiting on its
+        notification write (ADR 0066): Redis Streams (XADD / XREADGROUP / XACK /
+        XAUTOCLAIM) behind an opt-in `NEXUS_JOB_QUEUE` knob, first job `build.complete`.
+        [LANDED 2026-11-11 — the fifth lane ADR 0064 said a future commit must EARN before
+        opening a second transport. Named per that rule: producer `notifyBuildComplete` mints the
+        idempotency anchor `exportId`; consumer one in-process XREADGROUP worker per Next nodejs
+        instance from `instrumentation.register()`; durability at-least-once, surviving a worker
+        crash between emit and XACK by XAUTOCLAIM reclaiming PENDING. The id is minted by the
+        PRODUCER, not the handler — a redelivery reuses it and `dedupeKey=build:<exportId>` over a
+        real UNIQUE index collapses two deliveries to one row (measured: created → duplicate →
+        one row; a distinct exportId still writes a second). OFF by default: with the knob off
+        `getJobQueue()` opens NO connection and the old synchronous emit runs verbatim (export
+        integration 19/19 unchanged); an instance that wants Redis only for realtime fanout does
+        not accidentally run a worker. BOUND: not a broker, not an SSE replacement, no ordering,
+        no dead-letter store (drop-by-log at maxAttempts); opted-in non-nodejs/no-Redis gets the
+        in-memory driver plus a loud warning, not silent loss.]
 
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;

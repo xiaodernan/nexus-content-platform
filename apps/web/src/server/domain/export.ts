@@ -4,6 +4,7 @@ import { crc32, textEntry, zipStore, type ZipEntry } from '@/lib/zip';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { listProjectAssets, openAssetForOwner } from './assets';
 import { emit } from './notifications';
+import { getJobQueue } from '../queue/worker';
 import { listCharacters } from './characters';
 import { loadDocument, loadProjectIdentity } from './projects';
 import { projectVisibleTo } from './team';
@@ -320,6 +321,33 @@ export async function notifyBuildComplete(args: {
   durationMs: number;
   detail: string | null;
 }): Promise<void> {
+  // ADR 0065：可选把这条副作用甩到 durable 作业队列。开关关着（默认）时，下面这段同步 emit
+  // 逐字不变——这是十来个导出集成测试钉住的行为，也是没配 Redis 的部署的行为。
+  const queue = getJobQueue();
+  if (queue) {
+    // idempotency 锚点由**生产方**铸造并随 payload 走：worker 崩溃后 XAUTOCLAIM 重投同一条，
+    // handler 复用同一个 exportId，emit 的 dedupeKey=build:<exportId> 把第二次写合并掉。
+    // 若改在 handler 里 crypto.randomUUID()，每次重投都会写出第二条通知——那就不是 at-least-once 而是 at-least-twice。
+    const exportId = crypto.randomUUID();
+    const id = await queue.enqueue('build.complete', {
+      recipientId: args.actorId,
+      projectId: args.projectId,
+      projectName: args.projectName,
+      exportId,
+      ok: args.ok,
+      counts: {
+        design: args.counts.design ?? 0,
+        code: args.counts.code ?? 0,
+        assets: args.counts.assets ?? 0,
+      },
+      missingAssets: args.missingAssets,
+      durationMs: args.durationMs,
+      detail: args.detail,
+    });
+    console.log(`[job-queue] build.complete 已入队 id=${id || '(enqueue 失败，降级未发生：通知可能不会送达)'} export=${exportId}`);
+    return;
+  }
+
   await emit({
     kind: 'build',
     recipientId: args.actorId,

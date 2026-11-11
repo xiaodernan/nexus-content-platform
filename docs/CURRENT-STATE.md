@@ -709,3 +709,45 @@ will be recorded when the hosted runner speaks — master and main will not be p
 
 Also honest to note: Studio CI for 196e624 (timelimiter + gateway-dead-door ADR push) was still in-flight
 when this entry was written; cont. 18 stands as the pending-verification record for that ref.
+
+## 2026-11-11 addendum (cont. 20): a fifth messaging lane, earned rather than assumed — v661, ADR 0066
+
+- **The claim.** `GET /api/projects/<id>/export` no longer waits on its notification write when the lane
+  is opted in. The post-export `build.complete` notice (§164) moves off the download response path onto
+  a durable Redis **Stream**: the producer `XADD`s one job, an in-process XREADGROUP worker consumes it,
+  and XACK closes it. This is ADR 0064's "name the lane / producer / consumer / durability / failure
+  mode" rule being **exercised** for the first time, not the broker question being reopened. ADR 0064
+  carries an amendment pointing here so its "four mechanisms" inventory is not read as the end of the
+  ledger.
+- **Why it is a lane and not a fifth "mechanism for realtime".** ADR 0064's four (SSE bus, Redis pub-sub
+  carrier, moderation worklist, `agent_tasks` leasing queue) do not fit durable-but-late side effects:
+  pub-sub has no ack/replay, the worklist is human, `agent_tasks` is bound to the AI runner. The gap was
+  concrete and measured: the export route `await`ed a DB insert + SSE publish before handing back the
+  zip. That work must happen once, may happen a moment later, and has nothing to do with whether the
+  bytes are ready.
+- **The design decision that matters — mint the id at the PRODUCER.** At-least-once means the handler
+  provably can run twice (crash after `emit`, before `XACK`). No queue prevents that; the domain must be
+  idempotent. `notifyBuildComplete` mints `exportId` and carries it in the payload; a redelivery reuses
+  the same entry and the same id; `notify-plan` derives `dedupeKey = build:<exportId>`; and the real
+  UNIQUE index on `notifications.dedupe_key` (schema + migration 0010) with `ON CONFLICT DO NOTHING`
+  collapses two deliveries to one row. Minting in the handler instead would turn every retry into a
+  second notification — the exact trap at-least-once sets. Measured on a real Postgres: `created` then
+  `duplicate`, one row; a distinct `exportId` still writes a second (dedupe does not mistake "every
+  export is a new event" for a repeat).
+- **A transport proof, not a mock.** `job-queue.test.ts` grades a real Redis on 56379: delivery, bounded
+  retry, driver selection, and **XAUTOCLAIM reclaiming a crashed consumer's PENDING entry** and ACKing it
+  out of pending. `job-worker.test.ts` grades the opt-in switch (off by default, opens NO connection),
+  the producer→handler handoff, one dedupeKey per id, and poison-payload rejection. The idempotency
+  anchor itself is graded against a real DB in `job-lane-idempotency.integration.test.ts`.
+- **Zero regression, witnessed.** With `NEXUS_JOB_QUEUE` off (the default), `getJobQueue()` is a true
+  no-op and the old synchronous `emit` runs verbatim: `export-route.integration.test.ts` +
+  `export.integration.test.ts` **19/19 green**. An instance that wants Redis only for realtime fanout
+  therefore does not accidentally grow a consumer — the opt-in knob is intentionally separate from
+  `NEXUS_REDIS_URL` (that one now picks only the DRIVER). With the knob on but no Redis URL, the
+  in-memory driver runs **and logs a warning**: silent process-local side-effects would be a durability
+  lie.
+- **The bound, stated.** Not a broker (no Kafka/Rabbit/Spring Cloud Stream; this is the Redis already in
+  one service), not client-facing, no ordering guarantee, no dead-letter store (drop-by-log at
+  `maxAttempts`). Latency is now eventual, and only for opted-in instances; a serverless/edge-only
+  deployment that opts in without the Next `nodejs` runtime or a Redis URL gets the honest in-memory
+  fallback, not silent loss.
