@@ -97,6 +97,103 @@ describe('有界 TTL + LRU 缓存（数据结构 · 内存/惊群）', () => {
     expect(ok.value).toBe(7);
     expect(attempts).toBe(1);
   });
+
+  // §SC-49 clear × singleflight 在途回写泄漏：可控 deferred，精确钉住"清空发生在 loader 在途那一段"。
+  /** 手动收放的 promise：resolve/reject 由判据在 clear 之后调用，制造真实的竞态窗口。 */
+  function deferred<T>() {
+    let resolve!: (v: T) => void;
+    let reject!: (e: unknown) => void;
+    const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+    return { promise, resolve, reject };
+  }
+
+  it('§SC-49 leader 在途被 clear：值照常交给调用者，但绝不复活成 size=1/loads=0 的假账', async () => {
+    const cache = new BoundedCache<number>({ maxEntries: 4, ttlMs: 9999, now: () => 0 });
+    const gate = deferred<number>();
+    const pending = cache.getOrLoad('k', () => gate.promise);
+    // 此刻 leader 在途：inflight 已登记、loads 已 ++，但 map 还没写
+    expect(cache.stats().inFlight).toBe(1);
+    expect(cache.stats().size).toBe(0);
+
+    cache.clear(); // 在途期间清空
+    expect(cache.stats().size).toBe(0);
+    expect(cache.stats().inFlight).toBe(0); // clear 连 inflight 一起清了
+
+    gate.resolve(42);
+    const entry = await pending;
+    expect(entry.value).toBe(42); // 等这一发的调用者拿到真值，不因 clear 变 undefined
+    expect(cache.stats().size).toBe(0); // 旧世界的结果没写回来
+    expect(cache.stats().loads).toBe(0); // 计数不复活、不自相矛盾
+    expect(cache.stats().inFlight).toBe(0);
+  });
+
+  it('§SC-49 follower 与 leader 同属旧世代，一起被挡：两个调用者都拿值，map 仍空', async () => {
+    const cache = new BoundedCache<number>({ maxEntries: 4, ttlMs: 9999, now: () => 0 });
+    const gate = deferred<number>();
+    let loaderCalls = 0;
+    const loader = () => { loaderCalls += 1; return gate.promise; };
+    const leader = cache.getOrLoad('k', loader);
+    const follower = cache.getOrLoad('k', loader); // 复用同一在途 promise
+    expect(cache.stats().loads).toBe(1); // singleflight：sync 段只登记一次 load
+    await Promise.resolve(); // getOrLoad 把 loader 推到微任务，让出一次它才真正执行
+    expect(loaderCalls).toBe(1); // follower 没再调 loader
+
+    cache.clear();
+    gate.resolve(7);
+    const [a, b] = await Promise.all([leader, follower]);
+    expect([a.value, b.value]).toEqual([7, 7]); // 两边都拿到真值
+    expect(cache.stats().size).toBe(0); // 但没有任何一条写回（leader 与 follower 都捕获旧 gen）
+    expect(cache.stats().loads).toBe(0);
+  });
+
+  it('§SC-49 失败 loader 在途被 clear：异常原样传，也不写回、不钉住在途', async () => {
+    const cache = new BoundedCache<number>({ maxEntries: 4, ttlMs: 9999, now: () => 0 });
+    const gate = deferred<number>();
+    const pending = cache.getOrLoad('k', () => gate.promise);
+    cache.clear();
+    gate.reject(new Error('db down mid-clear'));
+    await expect(pending).rejects.toThrow('db down mid-clear'); // 不吞、不变形
+    expect(cache.stats().size).toBe(0);
+    expect(cache.stats().inFlight).toBe(0);
+    // clear 之后的新一发仍能正常加载写入，不被旧失败污染
+    const ok = await cache.getOrLoad('k', async () => 9);
+    expect(ok.value).toBe(9);
+    expect(cache.get('k')?.value).toBe(9);
+  });
+
+  it('§SC-49 正常 clear 路径不回归：无在途时清空后重填照常写缓存、计数重来', async () => {
+    const cache = new BoundedCache<number>({ maxEntries: 4, ttlMs: 9999, now: () => 0 });
+    await cache.getOrLoad('k', async () => 1);
+    expect(cache.get('k')?.value).toBe(1);
+    expect(cache.stats().loads).toBe(1);
+    cache.clear();
+    expect(cache.stats().size).toBe(0);
+    expect(cache.stats().loads).toBe(0);
+    await cache.getOrLoad('k', async () => 2);
+    expect(cache.get('k')?.value).toBe(2); // 新世代能正常写入
+    expect(cache.stats().loads).toBe(1);
+  });
+
+  it('§SC-49 旧 leader 的 finally 不误删 clear 之后同键新发起的那一发', async () => {
+    const cache = new BoundedCache<number>({ maxEntries: 4, ttlMs: 9999, now: () => 0 });
+    const oldGate = deferred<number>();
+    const oldPending = cache.getOrLoad('k', () => oldGate.promise);
+
+    cache.clear(); // 旧一发在途时被清空
+    const newGate = deferred<number>();
+    const newPending = cache.getOrLoad('k', () => newGate.promise); // 同键、新世代、新在途
+    expect(cache.stats().inFlight).toBe(1); // 只有新的那一发在途
+
+    oldGate.resolve(1); // 旧一发姗姗来迟，其 finally 必须不碰新 inflight
+    await oldPending;
+    expect(cache.stats().inFlight).toBe(1); // 新的还挂着，没被旧的 finally 误删
+
+    newGate.resolve(2);
+    const entry = await newPending;
+    expect(entry.value).toBe(2); // 新一发正常完成
+    expect(cache.get('k')?.value).toBe(2); // 新世代正常写入
+    expect(cache.stats().inFlight).toBe(0);
+  });
 });
 
 describe('手写归一化（形状不认识 → null，不画 0）', () => {

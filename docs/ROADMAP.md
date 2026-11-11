@@ -11872,3 +11872,78 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **验证 / git**：`npx tsc -p apps/web/tsconfig.json --noEmit` **EXIT=0**；**全仓 vitest 405 files passed（404 + 1 skipped，405 total）/ 5851 tests passed | 1 skipped（5852 total）、EXIT=0**（对比 SC-46 基线 404/5828+1 skipped，净增 23 tests = 4 文件 97→118，文件数不变因只在既有文件加用例；8m43s）。开工复核：单 main、单 worktree、无 stash/游离分支、`--no-merged` 空、**无可并内容**；未改 `discover` 函数体/DB/索引/依赖/两个入口/领域类型；未 push。
 - **仍欠（拿到证据后才动，克制非欠账）**：若实测确有秒级长尾、确需 deadline → `BoundedCache.abandon(key)`（超时摘 inflight、底层跑完自清、后续重新发起）或 Postgres `statement_timeout`（波及全站、高危、须单独评估），**绝不在 `Promise.race` 层做**；连接层黑洞独立看门狗（SC-36）；SC-45 按需减载预案待实测 `peakInFlight` 逼近 `NEXUS_DB_POOL`；共享权威 generation/epoch 存储；实例粒度 breaker/bulkhead 聚合；CI `topology` job 经真实 push；3 条既存 `.mjs` TS8016。详见 ADR-0119 / §SC 第四十七片。
 
+## §SC 第四十八片：发现页 popular 排序先真库 EXPLAIN 再谈优化——拆查询是冷启动假象，物化计数器欠火候（SC-48 / ADR-0120，2026-11-11）
+
+**本片零代码改动**，落用户点名的 **数据库性能 / 运行速度 / 数据结构与算法优化**。`discover()` 主查询（`social.ts:417`）投影带 3 个相关子查询计 likes/comments/remixes、`popular` 排序又嵌第 4 个 likes `count(*)`，读码直觉"该优化"；按 ADR-0117/0119 纪律先用真库数字回答，结论**两条证伪 + 一个拐点**：
+
+- **① 拆查询 = 冷启动假象下的伪优化**：首次 `EXPLAIN` 跑 `popular` 得 **297ms**，其中 `Seq Scan on snapshots`（1335 行含大 jsonb document）独占 **206ms（69%）**，看似"排序逼出整表 hash"。但同一会话**热缓存**连跑 3 次稳态：现有 `popular` **1.29 / 1.42ms**、阶段1（去 snapshots join）0.88 / 1.34ms、阶段2（主键 `=ANY(ids)` 补 document）0.29 / 0.38ms、`new` 对照 0.35 / 0.48ms。**现有热稳态本身 ~1.3ms**，拆成两阶段 B+C≈1.2ms 无实质收益，却多一次往返、多一次 planning、破坏 `discover` 单查询原子性、在两阶段间开一个"阶段1 拿 24 行→阶段2 补 document"的读一致性窗口（期间下架/改可见性能拼出单查询拼不出的混合快照）——**净亏**。297ms 应在连接预热/缓存回填解决，不是改查询。**这与 ADR-0119 同一条：没分清冷/热就下结论=用观测造假热点。**
+- **② 物化计数器 = 方向对但欠火候**：`new` 走 `published_visibility_published_idx` 倒扫、LIMIT 提前停（22ms 冷/0.4ms 热、从不扫全表）；`popular` 排序键含相关子查询、优化器无法用索引提前停，`SubPlan 4` 的 `loops`=候选行数（真库 135）、投影 `SubPlan 1` 又对 24 行重算——同一 likes count 算 **159 遍**，是真实 O(N) 结构。但真库仅 135 候选、likes 11 行，每次 `Seq Scan likes` 0.016ms、159 遍合计约 2ms，**根本不是当前瓶颈**；为不存在的规模引入三张互动表冗余计数列（写路径增减/并发回滚/历史回填一致性债）得不偿失——同 ADR-0117"无实测尖峰不加闸门"。
+- **③ 拐点实测（数据驱动触发阈值）**：`generate_series` 事务内造 **20000 候选 + 7101 likes**（唯一合成数据、同事务 `ROLLBACK`、零污染真库），热跑 2 次：当前相关子查询 **22.9 / 28.3ms**（`SubPlan loops=20000`+投影 24）vs 物化 `likes_count` 列 **2.17 / 2.33ms**（0 次子查询），**约 10–12x，万级候选拐点明确**。故记下触发阈值：候选逼近万级（或 `popular` 的 `maxLoadMs`/`recentLoads` 持续数十 ms 且 popular 占比高）再评估物化；**正确方向 = `published_projects` 物化三计数 + 写路径事务内增减，不是拆 join、不是微调子查询、更不是给共享 `db/client.ts` 加全局 `statement_timeout`**；即便物化仍是 O(N log N) 全量排序，十万级才需 keyset/预计算榜单，那更要等真实流量证据。
+- **验证 / git**：真库 `nexus-postgres`（55433）健康，实测 `published_projects=151/likes=11/comments=8/remixes=2/snapshots=1335`，索引齐备（`likes_project_idx`/`comments_project_idx`/`remixes_source_idx`/`published_visibility_published_idx`）。12 次热缓存采样取稳态、2 万候选拐点 2 次各，bench 脚本 `test-results-mine/sc{48-bench,48-scale}.sql`（辅助未跟踪目录、按惯例不提交，ADR 内联全部数字可复跑）。**本片无判据净增、无 typecheck/全仓变化（零代码改动）**；开工复核单 main/单 worktree/无 stash/无游离分支/`--no-merged` 空、**无可并内容**；未改 `social.ts`/索引/`db/client.ts`；未 push。详见 ADR-0120。
+
+## §SC 第四十九片：clear 必须让在途加载的回写作废——generation token 堵住"清空被复活"（SC-49 / ADR-0121，2026-11-11）
+
+`BoundedCache`（网关取数客户端的有界 TTL/LRU/singleflight 底座，ADR-0112）的 `clear()` 对外承诺"清空+计数归零"，却与 singleflight 在途加载交错出一道**真实正确性裂缝**：leader `getOrLoad` 在 `fromLoad` 里 `await load` 挂起 → `clear()` 清 `map`/`inflight`/计数 → loader 随后 resolve、`fromLoad` 继续 `this.set(k,value)` **把一条值写回刚清空的 map**，读数变成 `size=1 / loads=0` 自相矛盾的假账（follower 还各 `set` 一次刷 LRU）。**范围诚实交代**：`clear()` 唯一生产入口 `client.ts` 的 `clearCache()` 全仓**零调用点**，故这是**底座 latent 债、非正在发生的事故**；但 `BoundedCache` 是复用底座（发现页也 `new BoundedCache`，只是其 test reset 走"重建实例"而非 `clear`、不受此 bug 也不受本修复影响），趁早补齐比将来踩到便宜——同 ADR-0117/0120"把声明与实现分叉处钉死"。落 **数据结构与算法 / 缓存合理运用 / 操作系统竞态**。
+
+- **生产**：实例加单片程单调整数 `generation`，`clear()` 时 +1；`getOrLoad` 同步段捕获当前 gen（leader/follower 都捕），交 `fromLoad`；`fromLoad` 在 `await load` 后、写 map 前比对 `genAtStart !== generation` → **值照常交回等这一发的调用者**（那份数据当时确实查到、是真的，不能因中途 clear 就变 undefined 凭空造一次读失败），但**不写 map、不增计数**，map 保持空、counters 保持归零。**关键取舍**：挡的是"回写"不是"结果"，缓存一致性与调用者正确性同时成立。`finally` 的 `inflight.get(k)===load` **刻意不加 gen 判断**：没被 clear 时精确清自己、保失败可重试；被 clear 过时 `inflight` 已清空、`get(k)` 要么 undefined 要么是 clear 后同键新一发的 promise（≠旧 `load`），两种情形都**不误删新一发**——判据专钉这个最易写错成"finally 加 gen 反把新一发删掉"的竞态。generation 只解决单实例内 clear×在途竞态、不持久化、与 `discover-cache` 的 `globalGen`/`globalEpoch`（跨 reset 保持久水位线）正交。
+- **零生产行为变化**：clear 返回后无旧结果再写、`size=0/loads=0` 自洽；未清空路径 `set`/singleflight/TTL/LRU 全不变；loader 返回值与异常传播不变；不碰 db/网络/`discover-cache`/任何公开类型。
+- **判据（净增 +5，全落 `gateway-pure.test.ts`，零网络、可控 deferred+注入 now、不 sleep）**：① leader 在途 clear 值照交但 `size=0/loads=0/inFlight=0` 不复活；② follower 与 leader 同属旧世代一起被挡（两者都拿值、map 仍空、loads=0）；③ 失败 loader 在途 clear 异常原样传、不写回不钉在途、clear 后新一发能加载；④ 正常 clear 无在途时重填照常写、计数重来；⑤ **旧 leader 的 finally 不误删 clear 后同键新一发**（新一发 inFlight 保持、正常完成写入）。
+- **首跑真信号（判据自检）**：判据② 首版同步断言 `loaderCalls===1` 红了——`getOrLoad` 用 `Promise.resolve().then(loader)` 把 loader 推到微任务、同步时还没跑（实际 0），是**判据时序写错、非实现 bug**；改用同步 `++` 的 `stats().loads` 验 singleflight、断言 loader 次数前 `await Promise.resolve()` 让出微任务，修正后绿。**经验再坐实：判据要_match 被测代码的执行时序（同步段 vs 微任务），红先分辨是判据错还是实现错。**
+- **验证 / git**：gateway 两组（`gateway-pure`+`gateway-client`）**37 passed**；discover-cache 回归 + 横向门 3 文件 **90 passed**（含 `style-tokens` 24/24、零新增颜色 token）；`npx tsc -p apps/web/tsconfig.json --noEmit` **EXIT=0**；**全仓 vitest 数字 `__FULL_VITEST__` 回填中（后台运行中）**。开工复核单 main/单 worktree/无 stash/无游离分支、**无可并内容**；未改 `discover-cache.ts`；未 push。详见 ADR-0121 / §SC 第四十九片。
+
+## §SC 第四十八片：发现页 popular 排序先真库 EXPLAIN 再谈优化（SC-48 / ADR-0120，2026-11-11）
+
+- 起点：`discover()` 主查询（`server/domain/social.ts`）投影里有 3 个相关子查询（likes/comments/remixes）+
+  排序键带第 4 个 likes `count(*)`，看起来"明显该改"。本片**不动查询**，先按 ADR-0117/0119 的观测优先纪律量：
+- **事实（真库 `nexus-postgres`）**：snapshots Seq Scan 206ms 是**冷启动一次性**（把大 jsonb 从磁盘读进 shared_buffers）；
+  热缓存稳态 `popular` ≈ **1.3ms**。拆成"阶段1 24 行 + 阶段2 补 document" ≈ 1.2ms，**净亏**：多一次 DB 往返、
+  第二份 planning、以及一个读一致性窗口。`new` 排序索引倒扫提前停，冷 22ms / 热 0.4ms。
+- **拐点（合成 20000 候选 + 7101 行 likes，`generate_series` 事务内、同事务 ROLLBACK，零污染真库）**：
+  当前相关子查询 22.9/28.3ms（`SubPlan loops=20000`）vs 物化 `likes_count` 列后 2.17/2.33ms，**~10–12x**。
+  触发阈值被钉成数据：public 候选逼近万级才评估物化计数列。
+- **决定**：**不落地**物化列、JOIN 拆分或拆 join——为一个不存在的规模付真实复杂度。记下方向（物化计数列 +
+  写路径事务内增减）、不改任何代码、任何索引、`db/client.ts`。
+- 交付：ADR-0120 + 可复现真库读数；**零生产代码改动**（§159：不 fake 优化）。
+
+## §SC 第四十九片：clear 必须让在途加载的回写作废（SC-49 / ADR-0121，2026-11-11）
+
+- 起点：SC-41/42/43/44/45/46/47 把发现页热读做进程内正确（SC-49 的发现基于同一条 `BoundedCache` 底座）——
+  这一片修的是**底座**本身的一道正确性裂缝：`getOrLoad` singleflight 让 leader 在途、`clear()` 已 "size=0/loads=0",
+  loader 随后把结果**写回刚被清空的 map**，读数变 `size=1 / loads=0` 自相矛盾。
+- **范围诚实**：`clear()` 唯一生产入口 `client.ts` 的 `clearCache()` 全仓**零调用点**——这是一个 latent 正确性债，
+  不是正在发生的事故；趁早补齐比将来某个调用者踩到便宜得多。
+- **决定（generation token）**：实例加单调 `generation`，`clear()` 时 +1；`getOrLoad` 同步段捕获 gen、
+  交 `fromLoad`；`await load` 后、`set()` 前比对——过期就**交值、不写回、不增计数**。值照交给等它的调用者
+  （它在 loader resolve 那刻是真的），只是不落库。`finally` 刻意不带 gen：`inflight.get(key) === load` 是精确判断，
+  被 clear 过则 `<undefined 或 新一发> !== load`、不会误删新一发（判据焊死）。
+- 判据 **+5**（全部可控 deferred / 注入 now、零网络、零 sleep）：
+  leader 在途 clear（值 42 照交、`size=0 / loads=0`）/ follower 与 leader 同世代一起挡 /
+  失败 loader 在途 clear 异常原样传 / 正常 clear 路径零回归 /
+  **旧 leader 的 finally 不误删 clear 后同键新一发**。
+- 判据自检真信号：判据 2 初版红（`Promise.resolve().then(loader)` 决定 loader 时序，同步断言拿到 0）——
+  夹具错非实现错：singleflight 改用同步 `stats().loads` 验 + 加 `await Promise.resolve()` 让出微任务后再数 loaderCalls，
+  定格为判据注释。
+- 验证（本 slice 开工实测）：`gateway-pure` + `gateway-client` **37/37**；全仓门复跑后回填。
+- **影响面**：只动 `apps/web/src/server/gateway/cache.ts`（+ 进程内组件，零公共 API 变化），不碰 discover / DB / 索引 / 依赖 / 领域类型。
+
+## §FE 第一片：/discover 的视觉登峰造极——算法版每页最先看见的那一页（2026-11-11）
+
+- 触发（user 直接点名）：**前端的美观程度，前端的魅力程度登峰造极**（同时用户新增了 Redis / 计网 / 算法 / 前后端协同 / 数据库性能 / 缓存 等方向——
+  这些在 SC-40–SC-49 里已被全链覆盖并逐条 ADR）。本片只动**公开面**里流量最大、此前最朴素的一页：
+  `/discover`（排序四榜，每一条卡面都是平台里真实发布作品）。
+- 做了什么：
+  - **零新增颜色 token**：所有效果锚在 `tokens.css` 已定义、两个主题（深/浅）都成立的色上（brand/accent-1/accent-2/bg*/fg*/border*/motion*）；
+  - **标题**渐变墨字（fg-1→accent-2）+ 下方一道 brand→accent-1→transparent 压边（header::after 伪元素，min(320px,60%) 长）；
+  - **排序收成分段胶囊**（`.dv-tabRow`，pill 容器底 bg-2；当前格 `.dv-tabActive` = brand→accent-1 渐变底 + glow shadow），`aria-current=page`；
+  - **卡片**：顶部 accent-2→transparent 2px 描边 + 底线一条渐变，封面 600ms 缓放大 hover、底部 veil 保证文字压深底色，
+    卡身 hover 抬升 3px + border-strong + shadow-lg + brand 25% mix 描边；计数走 `font-mono` + `tabular-nums`；
+  - **空态**：虚线框 + 径向品牌辉光（brand 14% → bg-1 60%）非生硬灰块；
+  - **排法说明 / 做不出来的排序**：各自有独立的语义边界条（accent-1/warn 左边彩），同 `.dc-note` 语法且浅色主题也过 AA；
+  - 搜索入口升级为 `dv-searchPill`（pill 圆角 + hover border-brand）。
+  - 所有尺寸/间距/圆角/字号全部 token 化（`--nexus-font-size-*` / `--nexus-space-*` / `--nexus-radius-*` / `--nexus-motion-*` / `--nexus-shadow-*`）。
+- **门禁**：`style-tokens`（var(--nexus-*) 存在性）+ eslint（page.tsx exit 0）+ 全仓 vitest（交付后回填）。
+- **取舍**：
+  - **不加 CSS Module**（与 SC-40 的结论一致：全仓无先例、为它引入 .d.ts/门禁获益不抵成本；globals @layer components + `.dv-` 前缀，与 style-tokens 对齐）；
+  - 不动 schema/card 内容/链接目标（§159：观感升级不是信息架构升级）；
+  - 空态不伪造推荐位；`unavailable` 那格严格照旧渲染（如实说明平台没做什么）。
+- **仍欠**：`/discover` 没有 e2e 截图门（视觉变化本页所有用例同构、无独立断言；后续要有"公开面改版必带截图前后"的规约，另立片）。

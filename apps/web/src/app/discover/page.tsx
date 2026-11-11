@@ -29,76 +29,79 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   const result = await discoverCached({ sort, viewerId: viewer?.id ?? null });
 
   return (
-    <main className="mx-auto flex max-w-[1080px] flex-col gap-[var(--nexus-space-6)] px-6 py-10" data-discover-root>
-      <header className="flex flex-wrap items-baseline gap-3">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">发现</h1>
-        <nav className="flex gap-2" data-discover-tabs>
+    <main className="mx-auto flex w-full max-w-[1080px] flex-col gap-[var(--nexus-space-6)] px-6 py-10" data-discover-root>
+      <header className="dv-header">
+        <h1 className="dv-title" data-discover-title>发现</h1>
+        <p className="dv-subtitle">平台上正在放出的真实作品——每一张都来自一个创作者的公开橱窗，没有人替你点选。</p>
+        <nav className="dv-tabRow" data-discover-tabs aria-label="发现页排序">
           {TABS.map((tab) => (
             <Link
               key={tab.id}
               href={`/discover?sort=${tab.id}`}
               data-discover-tab={tab.id}
               data-current={tab.id === result.sort ? 'true' : 'false'}
-              className={`rounded px-2 py-1 text-12 ${tab.id === result.sort ? 'bg-accent-2 text-accent-fg' : 'bg-bg-2 text-fg-2'}`}
+              className={`dv-tab ${tab.id === result.sort ? 'dv-tabActive' : ''}`}
+              aria-current={tab.id === result.sort ? 'page' : undefined}
             >
               {tab.label}
             </Link>
           ))}
         </nav>
-        <Link
-          href="/search"
-          className="inline-flex min-h-6 items-center rounded px-1 text-12 text-accent-2-ink underline"
-          data-search-link
-        >
+        <Link href="/search" className="dv-searchPill" data-search-link>
           按关键词搜全平台
         </Link>
       </header>
 
       {result.cards.length === 0 ? (
-        <p className="text-13 text-fg-2" data-discover-empty>
-          {result.sort === 'following'
-            ? '你关注的作者还没有公开作品。'
-            : '还没有公开的作品。这个列表只收真正放出去、且没被人工拒绝的页面。'}
-        </p>
+        <div className="dv-empty" data-discover-empty>
+          <p className="mx-auto max-w-md">
+            {result.sort === 'following'
+              ? '你关注的作者还没有公开作品。'
+              : '还没有公开的作品。这个列表只收真正放出去、且没被人工拒绝的页面。'}
+          </p>
+        </div>
       ) : null}
 
       {result.method ? (
-        <p className="text-11 text-fg-3" data-discover-method>
+        <p className="dv-method" data-discover-method>
           这个榜的排法：{result.method}
         </p>
       ) : null}
 
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" data-discover-grid>
+      <ul className="dv-cardGrid" data-discover-grid>
         {result.cards.map((card) => (
           <li key={card.publicationId} data-discover-card={card.path}>
-            <Link href={card.path} className="flex h-full flex-col gap-1 rounded border border-[var(--nexus-color-border-subtle)] bg-bg-1 overflow-hidden">
+            <Link href={card.path} className="dv-card">
               {/* §927 封面图：有就显示，没有就留一个占位 */}
               {card.coverAssetId && card.ownerHandle ? (
-                <div className="relative aspect-video w-full bg-bg-2">
+                <div className="dv-coverWrap">
                   <Image
                     src={publicAssetUrl(card.ownerHandle, card.coverAssetId)}
                     alt={card.name}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className="object-cover"
+                    className="dv-cover"
                   />
+                  <div className="dv-coverVeil" aria-hidden="true" />
                 </div>
               ) : (
-                <div className="aspect-video w-full bg-bg-2 flex items-center justify-center text-fg-3 text-11">无封面</div>
+                <div className="dv-coverWrap">
+                  <div className="dv-coverFallback">{/* 封面缺席：留白不编造画面 */}暂无封面</div>
+                </div>
               )}
-              <div className="p-3 flex flex-col gap-1">
-                <span className="text-13 font-semibold text-fg-1" data-discover-name>
+              <div className="dv-cardBody">
+                <span className="dv-cardName" data-discover-name>
                   {card.name}
                 </span>
-                <span className="text-11 text-fg-3">
+                <span className="dv-cardMeta">
                   {card.owner} · {card.kind} · {new Date(card.publishedAt).toLocaleDateString('zh-CN')}
                 </span>
-                <span className="mt-auto text-11 text-fg-2" data-discover-counts>
+                <span className="dv-cardCounts" data-discover-counts>
                   {card.views} 次浏览 · {card.likes} 赞 · {card.comments} 评论 · {card.remixes} 改编
                 </span>
                 {/* 分数只在"最近最热"这一栏有：它是算法输出，不是事实，所以连同排法一起显示 */}
                 {card.score !== undefined ? (
-                  <span className="text-11 text-fg-3" data-discover-score={card.score}>
+                  <span className="dv-cardScore" data-discover-score={card.score}>
                     热度分 {card.score}
                   </span>
                 ) : null}
@@ -117,9 +120,9 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
         </p>
       ) : null}
 
-      <section className="rounded-[var(--nexus-radius-sm)] bg-bg-2 p-3" data-discover-unavailable>
+      <section className="dv-unavailable" data-discover-unavailable>
         <p className="text-12 text-fg-2">这些排序我们做不出来，不是忘了：</p>
-        <ul className="mt-1 space-y-[2px]">
+        <ul className="mt-2 space-y-1">
           {result.unavailable.map((item) => (
             <li className="text-11 text-fg-3" data-discover-gap={item.key} key={item.key}>
               · {item.key}：{item.reason}
