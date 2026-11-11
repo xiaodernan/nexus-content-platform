@@ -159,11 +159,9 @@
               <goal>build-info</goal>
             </goals>
             <configuration>
-              <buildInfo>
-                <additionalProperties>
+              <additionalProperties>
                   <component>nexus-gateway</component>
                 </additionalProperties>
-              </buildInfo>
             </configuration>
           </execution>
         </executions>

@@ -210,12 +210,10 @@
                             <goal>build-info</goal>
                         </goals>
                         <configuration>
-                            <buildInfo>
-                                <additionalProperties>
+                            <additionalProperties>
                                     <!-- pinned at packaging time; nothing dynamic or secret. -->
                                     <component>nexus-domain-service</component>
                                 </additionalProperties>
-                            </buildInfo>
                         </configuration>
                     </execution>
                 </executions>

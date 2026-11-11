@@ -101,11 +101,9 @@
               <goal>build-info</goal>
             </goals>
             <configuration>
-              <buildInfo>
-                <additionalProperties>
+              <additionalProperties>
                   <component>nexus-config</component>
                 </additionalProperties>
-              </buildInfo>
             </configuration>
           </execution>
         </executions>

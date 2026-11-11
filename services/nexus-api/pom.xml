@@ -117,11 +117,9 @@
               <goal>build-info</goal>
             </goals>
             <configuration>
-              <buildInfo>
-                <additionalProperties>
+              <additionalProperties>
                   <component>nexus-api</component>
                 </additionalProperties>
-              </buildInfo>
             </configuration>
           </execution>
         </executions>
