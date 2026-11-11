@@ -12081,3 +12081,15 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **判分面（全实跑，含截图）**：`java-wire.test.ts` **5/5** · `realtime-stats-readout.test.ts` 净增 **14**（全套两文件 34/34）· `admin-realtime.integration.test.ts` **4/4**（真库集成，role=admin 门）· `tsc --noEmit` EXIT=0 · eslint 7 文件 EXIT=0。**真浏览器截图**：`docs/evidence/fe-admin-realtime/java-wire-panel.png`（Chrome + 真 session + 真 8082 + `POST /probe` 一帧 → publishedTotal 0→1，五格俱全）。截图后该测试 session 已从库删除。
 - **诚实边界**：只对 role=admin 可见；读数只这一台 instance；Java 侧只报计数不带帧内容；无新 E2E（真浏览器截图是人眼验证一次，E2E 待干净窗口）；CI topology job 未被真 push 驯服。
 - **仍欠**：多实例聚合读数；定性 E2E（admin-realtime.spec.ts）；帧内容样本评估（先过 ADR-0132 红线）；Java 线路 smoke 接入 verify:topology 待干净窗口。未 push。详见 ADR-0136。
+
+## §SC 第五十九片（§SC-59）：Java→Python 这一跳上运维眼前——AiHealthController + Feign 超时钉死（2026-11-11 / ADR-0137）
+- **为什么**：user 本轮点名 **Spring Cloud 微服务元素**。domain-service 全家桶齐备（eureka/config/gateway LB+breaker+bulkhead/Feign）——但 `AiServiceClient.healthz()` **从来没有被 caller 过一次**：构造好、wire 判过，Python 端活不活**没人知道**。本片把这一跳叫成有呼吸的。
+- **做法（零新依赖）**：`application.yml` 加 `feign.client.config.ai-service`：connect 1s/read 3s（env 可覆盖）；新增 `AiHealthController GET /api/v1/system/ai-health`：上游活 → 200 body=Python 报文**原样副本**+status:healthy+responseTimeMs（不抹字段、不造字段、不代判绿红）；上游死 → status:"degraded"+error+message+200——200 不是健康的承诺。未鉴权同 /policy 口径（只读、零载荷），未写库。
+- **判分面**：`AiHealthControllerTest` **3/3**（passthrough 逐字保留 providers/queue + degraded 200 + 最小报文不造字段）· AiServiceClientWireTest 1/1 零回归 · java 全套 **129/129**。**live 三笔**（8082+8000）：#1 空 8000 → degraded/RetryableException **93ms**；#2 起 Python → healthy（providers 5 条原样、queue backend=redis）**306ms**；#3 停 Python → degraded **2ms**——有↔无开关在一条链路上切了两次，都是人眼读到的真值。
+- **诚实边界**：只端 healthz 一跳（主路径 `/v1/ai/*` 不受影响、web 仍直连 Python）；探针只覆盖"端点能表演健康"、不代表 provider 能生成（缺 key 一律 unavailable 如实如是）；多实例各答各的、永不猜 healthy；超时按同机校准。
+- **仍欠**：
+  - `ai-health` 接 gateway LB+breaker（SC-9/SC-25 套路，顺手）；
+  - provider 真 key（M2/M5）未授权前 capability=unavailable 永远如此、如实说；
+  - CI topology job 未含本端点、未经真 push 驯服；
+  - verification smoke 未接入 verify:topology。
+**未 push**。详见 ADR-0137。
