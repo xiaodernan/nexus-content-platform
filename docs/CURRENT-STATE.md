@@ -943,3 +943,49 @@ contract v664, ADR 0096) until this push; after it: master ≡ main ≡ the re-a
 this file + the receipt). Studio CI for refs `dd14c10`, `a1f3476`, `6e44c55`, `b7e8df9`, `32e3b82` and this
 re-arm ref is queued on the serialized runner as of this writing; main-line green on every pushed ref; the
 queue is 8-deep per branch and every ref that speaks red off one row is recorded here, not smoothed over.
+
+## 2026-11-12 addendum (cont. 25): discover's window boundary stops stampeding — ADR 0097, v665
+
+- **What closed.** Two real gaps on the hottest read path, both measured, neither theoretical.
+  ① **Cache stampede**: v663 gated the 15s anon window and v664 wrote its HTTP headers, but the
+  WINDOW BOUNDARY was unguarded — at expiry, N concurrent anon requests all `get` miss and each
+  re-runs `discover()`'s three `count(*)` subqueries per row. ② **Invalidation race**: an in-flight
+  compute that started BEFORE publish/moderation's `invalidateDiscoverRoute()` and lands AFTER it
+  writes the JUST-CLEARED window back to **stale** content, defeating "new content visible within
+  15s". `discoverRouteCache.ts` now carries two process-local mechanisms (the `DiscoverCache` driver
+  interface is untouched, so memory + Redis both benefit): a `Map<sort, Promise>` single-flight that
+  merges same-sort misses into ONE compute, and a `generation` counter bumped by invalidate that a
+  landing flight checks before writing back (changed ⇒ skip write-back, but that request still gets
+  its own result). Three implementation命门 the doors pin: the flight is registered SYNCHRONOUSLY
+  before any await (else two concurrents each start one); a rejection releases the table (else the
+  next request joins a dead promise); release checks flight identity (else a stale flight deletes a
+  successor's entry). single-flight merges WITHIN one process; cross-instance repeat reads are still
+  absorbed by the Redis shared window — two layers, no overlap.
+- **Measured.** RED-first on the old impl: `discover-singleflight.test.ts` **3 FAIL / 6** —
+  concurrent-merge (1 expected, 2+ measured) ×2 and stale-write-back (expected `fresh`, got `stale`).
+  After the fix: **6/6** (merge to 1 · shared rejection + failure not remembered · two sorts separate
+  · cache hits never recompute · late write-back can't refill stale · post-invalidate request starts
+  its own flight); v663's `discover-route-cache.test.ts` **9/9** still green (15 total). `tsc`
+  `-p apps/web/tsconfig.json --noEmit` **exit 0**; `npx eslint` on the two touched files **exit 0**
+  (its chained run was SIGTERM'd by the host memory peak, re-run alone clean — resource spike, not red).
+  Tests drive concurrency with controllable deferred promises, NOT timers: settle time is the test's,
+  so "did it really merge" is deterministic, no DB / no Redis / no source edits.
+- **Mutation + reverse-control 7/7** on a production-isomorphic in-memory state machine: 3 break-arms
+  each observed the exact regression (drop single-flight → 3 computes; drop generation → stale refill
+  with zero recompute; drop release-identity → successor wrongly deleted, third request recomputes);
+  4 legit controls stayed green (merge to 1 · two sorts separate · invalidation yields fresh · a stale
+  flight landing does not delete its successor). The doors grade the three mechanisms, not a spelling.
+- **Shared-tree note.** While this slice ran, the parallel lane landed `5485c62` (re-arm the wiring
+  receipt; only `CURRENT-STATE.md` + `docs/evidence/ci/arms-receipt.json`). It did NOT touch any v665
+  file; this slice's worktree sat cleanly on top of it. Both worktrees (`终极项目`, `终极项目-arms-probe`)
+  were synced to one ref before starting; no `git add -A`, no force.
+- **Honest gaps, recorded NOT claimed (ADR 0097).** ① **No real N-way concurrent HTTP leg** — no
+  `next start` + wire-level query counting, so how single-flight behaves across real Route Handler
+  lifecycles / worker isolation is unmeasured; this is a function-contract proof, not a load test.
+  ② The generation guard is a read-then-`await set`, NOT an atomic conditional write; a Redis
+  invalidate can still interleave in the tiny gap between an equality check and the write. Memory
+  driver's `set` is synchronous (no window); closing it for Redis would need Lua / WATCH, a
+  distributed transaction judged NOT worth paying for a worst-case 15s stale head — recorded as a
+  bound, not an incident. ③ `inFlight` is a module singleton that the existing test reset seam does
+  not clear; all 6 doors await every flight to settle so none leaks, but a future test that leaves a
+  flight in flight should get a `__resetDiscoverInflightForTests()` seam rather than leak state.

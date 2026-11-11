@@ -125,6 +125,36 @@ family README section) and a door that reddens the sentence it repairs:
         `Vary: Cookie` is deliberately coarse (no-store makes it free); gzip's Vary:Accept-Encoding
         merge is owed when/if this route goes through a compressor (§188).]
 
+  v665  discover's hottest read path gets single-flight + a generation guard against the
+        invalidation race (ADR 0097): the 15s window was gated (v663) and its HTTP headers
+        written (v664), but the WINDOW BOUNDARY itself was unguarded.
+        [LANDED 2026-11-12 — § 算法 × 缓存 × 数据库性能 × 计网. Two real gaps, both deterministically
+        measured. ① cache stampede: at the instant the 15s window expires, N concurrent anon
+        requests all miss and each re-runs discover()'s three count(*) subqueries — the cache
+        missed exactly when it was needed most. ② invalidation race: an in-flight compute that
+        started BEFORE publish/moderation's invalidate and lands AFTER it writes the JUST-CLEARED
+        window back to stale content, defeating "new content visible within 15s". Fix in
+        discoverRouteCache.ts, process-local only (DiscoverCache driver interface untouched, so
+        memory + Redis drivers both benefit): a `Map<sort, Promise>` merges same-sort misses into
+        ONE flight (registered SYNCHRONOUSLY before any await; rejection releases the table; release
+        checks flight identity so a stale flight cannot delete a successor), plus a `generation`
+        counter bumped by invalidate that a landing flight checks before writing back (changed ⇒
+        skip write-back, still return its own result). single-flight merges within ONE process;
+        cross-instance repeat reads are still absorbed by the Redis shared window — two layers,
+        no overlap. Evidence: discover-singleflight.test.ts uses controllable deferred promises
+        (not timers) to make concurrency deterministic — 6/6 (merge to 1 · shared rejection +
+        failure not remembered · two sorts separate · hits don't recompute · late write-back can't
+        refill stale · post-invalidate request starts its own flight); RED-first proof on the old
+        impl: 3 FAIL (2 stampede + 1 stale write-back). v663's 9/9 still green (15 total). tsc +
+        eslint exit 0. Mutation + reverse-control 7/7 on a production-isomorphic in-memory state
+        machine (3 break-arms: drop single-flight → 3 computes; drop generation → stale refill with
+        zero recompute; drop release-identity → successor wrongly deleted; 4 legit controls stay
+        green). HONEST GAP: no real N-way concurrent HTTP leg (no `next start` + wire query count),
+        so cross-route-handler / worker-isolation behavior is unmeasured, not claimed; the
+        generation guard is a read-then-await-set, not an atomic conditional write (a Redis
+        invalidate could still interleave in the tiny gap — judged not worth a Lua/WATCH for a
+        worst-case 15s stale head, recorded as a bound, not an incident).]
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and
