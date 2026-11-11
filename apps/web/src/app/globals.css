@@ -747,4 +747,117 @@
     .pp-back { transition: none; }
     .pp-back:hover { transform: none; }
   }
+
+  /* ── §FE-8 / ADR-0144 公开分镜页 `/n/[handle]/[slug]/storyboard` 门面化 ───────
+   * 与 .dv-/.mk-/.hp-/.se-/.pf-/.pb-/.pp- 同一套 token 语言（守 ADR-0123 六红线）：
+   * 零新增颜色 token（全锚双主题 token + color-mix、无写死 hex）；双主题 AA；
+   * 只做视觉——三态分支、文案、data-storyboard 钩子、读路径、VisitMeter、
+   * "镜头表不是视频"的诚实边界一字未改，本段只给分镜页 chrome 上妆。
+   * 镜头表用 ordered list 逐镜裱成卡，强调"这是发布那一刻钉住的镜头表文本，
+   * 不是播放器、不是视频"——§159 的内容诚实优先于任何视觉冲动。 */
+  .ss-root { position: relative; isolation: isolate; }
+  .ss-live { gap: var(--nexus-space-4); }
+  .ss-header {
+    position: relative;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--nexus-color-bg-2) 72%, var(--nexus-color-accent-2) 6%), var(--nexus-color-bg-1));
+    border: 1px solid var(--nexus-color-border-subtle);
+    border-radius: var(--nexus-radius-lg);
+    padding: var(--nexus-space-4);
+    box-shadow: var(--nexus-shadow-sm);
+  }
+  .ss-header::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+    border-radius: var(--nexus-radius-full);
+    background: linear-gradient(90deg, var(--nexus-color-accent-2), var(--nexus-color-brand) 45%, transparent 85%);
+    opacity: .55; pointer-events: none;
+  }
+  /* 渐变墨字：浅色主题下 fg-1 端保证可读；绝不再挂 text-fg-* utility（FE-6 真 bug 固化） */
+  .ss-title {
+    font-weight: 650; letter-spacing: -0.01em;
+    background: linear-gradient(115deg, var(--nexus-color-fg-1) 28%, var(--nexus-color-accent-2) 92%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .ss-source { margin-top: var(--nexus-space-1); line-height: 1.5; }
+  /* 钉住版说明：弱化但可读的虚线隔离条，强调"分享链接不随工作稿变"（ADR-0009） */
+  .ss-pinned {
+    margin-top: var(--nexus-space-2); padding-top: var(--nexus-space-2);
+    border-top: 1px dashed var(--nexus-color-border-subtle); line-height: 1.55;
+  }
+  /* 回到作品页：门面胶囊 + hover 抬升辉光 + 键盘 focus 描边 */
+  .ss-back {
+    position: relative; overflow: hidden; min-height: 1.75rem;
+    padding: var(--nexus-space-1) var(--nexus-space-3);
+    border: 1px solid var(--nexus-color-border-subtle);
+    border-radius: var(--nexus-radius-full);
+    background: color-mix(in srgb, var(--nexus-color-bg-2) 65%, transparent);
+    box-shadow: var(--nexus-shadow-sm); font-weight: 600; text-decoration: none;
+    transition: transform var(--nexus-motion-base) var(--nexus-motion-ease), box-shadow var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .ss-back:hover { transform: translateY(-2px); box-shadow: 0 6px 18px color-mix(in srgb, var(--nexus-color-accent-2) 22%, transparent); }
+  .ss-back:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  /* 镜头表：逐镜裱成细边圆角卡，镜头序号/meta 用等宽弱化、prompt 是主体 */
+  .ss-shots { list-style: none; }
+  .ss-shot {
+    position: relative;
+    background: color-mix(in srgb, var(--nexus-color-bg-2) 45%, var(--nexus-color-bg-1));
+    border: 1px solid var(--nexus-color-border-subtle);
+    border-left: 3px solid var(--nexus-color-accent-2);
+    border-radius: var(--nexus-radius-md);
+    box-shadow: var(--nexus-shadow-sm);
+    transition: transform var(--nexus-motion-base) var(--nexus-motion-ease), box-shadow var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .ss-shot:hover { transform: translateY(-1px); box-shadow: var(--nexus-shadow-md); }
+  .ss-shotMeta { letter-spacing: .01em; line-height: 1.5; }
+  .ss-shotPrompt { margin-top: var(--nexus-space-1); line-height: 1.55; }
+  .ss-shotRefs {
+    margin-top: var(--nexus-space-2); padding-top: var(--nexus-space-2);
+    border-top: 1px dashed var(--nexus-color-border-subtle); line-height: 1.5;
+  }
+  .ss-shotsEmpty {
+    padding: var(--nexus-space-4);
+    border: 1px dashed var(--nexus-color-border-subtle);
+    border-radius: var(--nexus-radius-md);
+    background: color-mix(in srgb, var(--nexus-color-bg-2) 45%, var(--nexus-color-bg-1)); line-height: 1.55;
+  }
+  .ss-total {
+    margin-top: var(--nexus-space-1); padding-top: var(--nexus-space-2);
+    border-top: 1px solid var(--nexus-color-border-subtle);
+  }
+  .ss-notes {
+    padding: var(--nexus-space-3);
+    border-left: 3px solid var(--nexus-color-info);
+    background: color-mix(in srgb, var(--nexus-color-info) 5%, var(--nexus-color-bg-1));
+    border-radius: 0 var(--nexus-radius-md) var(--nexus-radius-md) 0;
+  }
+  .ss-notesTitle { margin-bottom: var(--nexus-space-1); font-weight: 600; }
+  /* "不是视频"诚实边界：中性 notice 条，不伪装成播放器 */
+  .ss-notice {
+    padding: var(--nexus-space-2) var(--nexus-space-3);
+    border-left: 3px solid var(--nexus-color-border-strong);
+    background: color-mix(in srgb, var(--nexus-color-bg-2) 55%, var(--nexus-color-bg-1));
+    border-radius: 0 var(--nexus-radius-md) var(--nexus-radius-md) 0; line-height: 1.55;
+  }
+  /* 空态 / 错误态：柔和径向辉光门面，居中不空旷，但不冒充"有分镜稿" */
+  .ss-empty {
+    position: relative;
+    background:
+      radial-gradient(110% 70% at 50% 0%, color-mix(in srgb, var(--nexus-color-accent-2) 7%, transparent), transparent 68%),
+      color-mix(in srgb, var(--nexus-color-bg-1) 60%, var(--nexus-color-bg-2) 40%);
+    border: 1px solid var(--nexus-color-border-subtle);
+    border-radius: var(--nexus-radius-lg);
+    box-shadow: var(--nexus-shadow-sm);
+  }
+  .ss-emptyTitle { font-weight: 650; letter-spacing: -0.01em; }
+  /* 读不出来态：warn 左竖线 + 中性说明，强调是诚实读不出来而非悄悄空镜头表 */
+  .ss-broken { border-left: 3px solid var(--nexus-color-warn); }
+  .ss-issues {
+    position: relative; padding: var(--nexus-space-2) var(--nexus-space-3);
+    border-left: 3px solid var(--nexus-color-warn);
+    background: color-mix(in srgb, var(--nexus-color-warn) 5%, var(--nexus-color-bg-1));
+    border-radius: 0 var(--nexus-radius-md) var(--nexus-radius-md) 0; line-height: 1.55;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ss-back, .ss-shot { transition: none; }
+    .ss-back:hover, .ss-shot:hover { transform: none; }
+  }
 }
