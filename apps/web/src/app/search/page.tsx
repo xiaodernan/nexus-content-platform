@@ -41,16 +41,21 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       </p>
 
       {result.tooShort ? (
-        <p className="text-13 text-fg-2" data-search-too-short>
-          至少输入两个字符。一个汉字会命中半个平台，那样的结果列表没有意义。
-        </p>
+        <div className="flex flex-col items-start gap-4 rounded-2xl border border-[var(--nexus-color-border-subtle)] bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-6" data-search-too-short>
+          <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">SEARCH</span>
+          <h2 className="text-15 font-semibold text-fg-1">至少输入两个字符</h2>
+          <p className="max-w-md text-13 leading-6 text-fg-2">一个汉字会命中半个平台，那样的结果列表没有意义。</p>
+        </div>
       ) : total === 0 ? (
-        <p className="text-13 text-fg-2" data-search-empty>
-          没有匹配「{q}」的内容。
-          {result.signedIn
-            ? '内容那六组只搜你自己的项目——别人的世界、角色与资产没有发布链路，列出来也打不开。'
-            : '登录后还会搜你自己的世界、游戏、角色、设计稿、组件与资产。'}
-        </p>
+        <div className="flex flex-col items-start gap-3 rounded-2xl border border-[var(--nexus-color-border-subtle)] bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-6" data-search-empty>
+          <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">SEARCH</span>
+          <h2 className="text-15 font-semibold text-fg-1">没有匹配「{q}」的内容</h2>
+          <p className="max-w-md text-13 leading-6 text-fg-2">
+            {result.signedIn
+              ? '内容那六组只搜你自己的项目——别人的世界、角色与资产没有发布链路，列出来也打不开。'
+              : '登录后还会搜你自己的世界、游戏、角色、设计稿、组件与资产。'}
+          </p>
+        </div>
       ) : (
         <div className="flex flex-col gap-6" data-search-results>
           <p className="text-12 text-fg-3" data-search-method>
@@ -59,7 +64,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           {result.groups.map((group) =>
             group.hits.length ? (
               <section key={group.key} data-search-group={group.key}>
-                <h2 className="mb-2 text-14 font-medium">
+                <h2 className="mb-2 font-mono text-11 uppercase tracking-[0.2em] text-[var(--nexus-color-accent-2-ink)]">
                   {group.label}
                   {group.capped ? (
                     <span className="ml-2 font-mono text-12 text-fg-3" data-search-capped>
@@ -94,7 +99,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       )}
 
       <section className="border-t border-[var(--nexus-color-border-subtle)] pt-4" data-search-scope>
-        <h2 className="mb-2 text-14 font-medium">这份搜索没覆盖什么</h2>
+        <h2 className="mb-2 font-mono text-11 uppercase tracking-[0.2em] text-[var(--nexus-color-accent-2-ink)]">这份搜索没覆盖什么</h2>
         <ul className="grid gap-1 text-12 leading-relaxed text-fg-3">
           {SEARCH_NOT_COVERED.map((line) => (
             <li key={line}>· {line}</li>
