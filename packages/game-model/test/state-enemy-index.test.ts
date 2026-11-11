@@ -186,9 +186,12 @@ describe("PERF-2 调用点静态判据（改动真实落到了三处）", () => 
     expect(playtest).not.toMatch(/\bstate\.enemies\.find\s*\(/);
   });
 
-  it("sim.ts 任务判定的 enemies 分支走 enemyByIdOf（items 分支保留线性 find，范围最小）", () => {
+  it("sim.ts 任务判定的 enemies 分支走 enemyByIdOf（items 分支已在 §PERF-3 同步 O(1) 化）", () => {
     expect(sim).toContain("enemyByIdOf(next.enemies, idx, goal.actorId)");
     expect(sim).not.toMatch(/\bnext\.enemies\.find\s*\(/);
-    expect(sim).toMatch(/items\.find\s*\(/); // 诚实：items 未建 id→index，仍 find
+    // §PERF-3 收口了 PERF-2 当时"诚实保留"的 items.find：此处不再是范围最小快照，
+    // 改为断言 items 也走下标（与 state-item-index.test.ts 的静态判据同口径，两份判据不打架）。
+    expect(sim).toContain("itemByIdOf(next.items, idx, goal.actorId)");
+    expect(sim).not.toMatch(/\bnext\.items\.find\s*\(/);
   });
 });

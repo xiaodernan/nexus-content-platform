@@ -20,6 +20,12 @@ export interface PlanIndices {
    * 模型层强制实体 id 唯一（`index.ts` 的 `duplicate-id` 校验），故下标一一对应。
    */
   readonly enemyIndexById: ReadonlyMap<string, number>;
+  /**
+   * §PERF-3：物品 id → 在 `plan.items`（从而 `state.items`）里的下标。与 `enemyIndexById` 同构、
+   * 同样只依赖不可变 plan、随其余索引一起缓存；把任务判定 collect 分支打在逐帧 state 上的
+   * `next.items.find` 从 O(I) 降到 O(1)。items 的顺序不变量与 id 唯一性同 enemies（见 `itemByIdOf`）。
+   */
+  readonly itemIndexById: ReadonlyMap<string, number>;
 }
 
 /** 构造一份 plan 索引——纯函数，单独导出便于逐支验电。 */
@@ -31,6 +37,7 @@ export function buildPlanIndices(plan: GamePlan): PlanIndices {
     questById: new Map(plan.quests.map((quest) => [quest.id, quest])),
     judgeable: plan.quests.filter((quest) => quest.judgeable),
     enemyIndexById: new Map(plan.enemies.map((enemy, at) => [enemy.id, at])),
+    itemIndexById: new Map(plan.items.map((item, at) => [item.id, at])),
   };
 }
 
@@ -80,6 +87,52 @@ export function measureEnemyLookups<T>(run: () => T): { result: T; meter: EnemyL
     return { result: run(), meter: { hits: meter.hits, findFallbacks: meter.findFallbacks } };
   } finally {
     lookupMeter = prev; // 嵌套安全：判据并行/嵌套时不互相污染
+  }
+}
+
+/**
+ * §PERF-3：按 id 从一份**与 plan.items 同序同长**的 state actor 数组里 O(1) 取回（与 `enemyByIdOf`
+ * 同构）。顺序不变量由 `initialState`/`step` 保证：`state.items` 从 `plan.items` 逐位置构造、
+ * 整场拾取只就地改 `active`，从不重排增删；id 唯一（模型层 `duplicate-id` 全局校验）。
+ *
+ * <p>**守护而非盲信**：下标处的 `id` 与请求不符（未来有人重排/增删 state.items）就回退线性 `find`，
+ * 宁可退回 O(I) 也绝不静默返回错 actor（§159）——即使某个 plan 绕过 `validateGame`、id 重复，
+ * 守护也保证结果正确，安全性不依赖"校验一定跑过"。
+ */
+export function itemByIdOf(
+  actors: readonly SimActor[],
+  idx: Pick<PlanIndices, "itemIndexById">,
+  id: string,
+): SimActor | undefined {
+  const at = idx.itemIndexById.get(id);
+  if (at === undefined) return undefined;
+  const hit = actors[at];
+  if (hit && hit.id === id) {
+    if (itemLookupMeter) itemLookupMeter.hits += 1;
+    return hit;
+  }
+  if (itemLookupMeter) itemLookupMeter.findFallbacks += 1;
+  return actors.find((e) => e.id === id);
+}
+
+/**
+ * §PERF-3 可注入计数缝：与 PERF-2 的 `measureEnemyLookups` **完全独立**（各自一个模块级 meter、
+ * 默认 null、生产零开销、`finally` 还原、嵌套安全），刻意不并表——PERF-2 的 API 与判据零回归，
+ * 两条查找路径的计数互不串味，"items 分支在真实循环里 O(1) 生效"因此也是确定性判据。
+ */
+export interface ItemLookupMeter {
+  readonly hits: number;
+  readonly findFallbacks: number;
+}
+let itemLookupMeter: { hits: number; findFallbacks: number } | null = null;
+export function measureItemLookups<T>(run: () => T): { result: T; meter: ItemLookupMeter } {
+  const prev = itemLookupMeter;
+  const meter = { hits: 0, findFallbacks: 0 };
+  itemLookupMeter = meter;
+  try {
+    return { result: run(), meter: { hits: meter.hits, findFallbacks: meter.findFallbacks } };
+  } finally {
+    itemLookupMeter = prev;
   }
 }
 
@@ -339,11 +392,11 @@ export function step(
     if (!quest.judgeable || next.questDone[quest.id] !== undefined) continue;
     const allMet = quest.goals.every((goal) => {
       if (goal.kind === "activate") return next.activated[goal.actorId] !== undefined;
-      // §PERF-2：enemies 走按 plan 缓存的下标 O(1)；items 未建 id→index，仍线性 find（范围最小，见 ADR）
+      // §PERF-2 enemies / §PERF-3 items 都走按 plan 缓存的下标 O(1)；守护式回退保证不返回错 actor
       const sim =
         goal.kind === "defeat"
           ? enemyByIdOf(next.enemies, idx, goal.actorId)
-          : next.items.find((i) => i.id === goal.actorId);
+          : itemByIdOf(next.items, idx, goal.actorId);
       return sim ? !sim.active : false;
     });
     if (!allMet) continue;
