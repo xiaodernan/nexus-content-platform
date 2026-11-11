@@ -107,6 +107,9 @@ management:
     git:
       enabled: false
   endpoint:
+    #  §SC-69 — show-details: never（安全阀）
+    #  health probe 的 detail 由 /actuator/health 自己控制——外部一律 UP/DOWN；组件名（db）等信息只在
+    #  admin 抓包时才看得到；永远不把 stacktrace leak 给公共未认证调用方。
     health:
       show-details: never
 
