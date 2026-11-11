@@ -84,4 +84,4 @@ return this.set(key, value);
 
 - `npx tsc -p apps/web/tsconfig.json --noEmit` **EXIT=0**；
 - discover-cache 回归 + 横向门 3 文件 **90 passed**（含 `style-tokens` 24/24，零新增颜色 token）；
-- **全仓 vitest 本轮未单独复跑（不粉饰）**：验证期间两路外部 `vitest run`（本仓并行会话 + 另一项目的 trending 集成测）同时打本机同一个 `nexus-postgres`（`max=5` 连接池）与 CPU，互相把 30s hookTimeout 拖爆、卡在等库；本轮全仓与纯逻辑分卷两度撞车超时，而判别实验（外部争抢下单跑 `gateway-pure` 仍 23/23 秒绿）已证明本片纯内存改动零回归。基于 SC-47 已实测基线 5851 passed | 1 skipped + 本轮净增 5 条纯测，**预期全仓 5856 passed | 1 skipped（推算、待干净窗口实测复核）**。那两路外部进程非本轮所起、按仓库纪律不 kill。详见 ROADMAP §SC 第四十九片。
+- **全仓 vitest 本轮未单独复跑（不粉饰）**：验证期间两路外部 `vitest run`（本仓并行会话 + 另一项目的 trending 集成测）同时打本机同一个 `nexus-postgres`（`max=5` 连接池）与 CPU，互相把 30s hookTimeout 拖爆、卡在等库；本轮全仓与纯逻辑分卷两度撞车超时，而判别实验（外部争抢下单跑 `gateway-pure` 仍 23/23 秒绿）已证明本片纯内存改动零回归；**JSON reporter 精确实测核心 5 文件**（`discover-cache` + `discover-view` + `gateway-pure` + `gateway-client` + `style-tokens`）= **154 tests / 37 suites 全 passed、success=true、EXIT=0**（`test-results-mine/web-unit.json`），覆盖本片全部改动与其所有消费者 + SC-41~47 + 横向门。基于 SC-47 已实测基线 5851 passed | 1 skipped + 本轮净增 5 条纯测，**预期全仓 5856 passed | 1 skipped（推算、待干净窗口实测复核）**。那两路外部进程非本轮所起、按仓库纪律不 kill。详见 ROADMAP §SC 第四十九片。
