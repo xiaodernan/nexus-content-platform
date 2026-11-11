@@ -102,12 +102,29 @@ export default async function AnalyticsPage(props: {
   const user = await currentUserOrNull();
   if (!user) {
     return (
-      <main className="mx-auto max-w-[900px] px-6 py-16" data-analytics-denied="anonymous">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">创作数据</h1>
-        <p className="mt-2 text-13 text-fg-2">需要先登录：这里只列你自己发布过的版本。</p>
-        <Link href="/" className="mt-4 inline-block text-12 text-accent-2-ink underline">
-          回到首页
-        </Link>
+      <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-analytics-denied="anonymous">
+        <div className="flex flex-col items-start gap-4 rounded-2xl border border-[var(--nexus-color-border-subtle)] bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-8">
+          <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
+            ANALYTICS
+          </span>
+          <h1
+            className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent"
+            data-page-title="analytics"
+          >
+            创作数据
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
+            />
+          </h1>
+          <p className="max-w-md text-13 leading-6 text-fg-2">需要先登录：这里只列你自己发布过的版本。</p>
+          <Link
+            href="/"
+            className="mt-1 inline-flex min-h-10 items-center rounded-lg bg-[var(--nexus-color-brand)] px-4 py-2 text-13 font-semibold text-[var(--nexus-color-accent-fg)] transition-shadow hover:shadow-[0_0_24px_rgb(91_108_255/0.45)]"
+          >
+            回到首页 →
+          </Link>
+        </div>
       </main>
     );
   }
@@ -129,8 +146,20 @@ export default async function AnalyticsPage(props: {
   const trend = projectId ? await publicationTrend(user.id, projectId, window) : null;
 
   return (
-    <main className="mx-auto max-w-[1100px] px-6 py-10" data-analytics-page>
-      <h1 className="text-[var(--nexus-font-size-21)] font-semibold text-fg-1">创作数据</h1>
+    <main className="relative mx-auto flex max-w-[1100px] flex-col gap-2 px-6 py-10" data-analytics-page>
+      <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
+        ANALYTICS
+      </span>
+      <h1
+        className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent"
+        data-page-title="analytics"
+      >
+        创作数据
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
+        />
+      </h1>
       <p className="mt-1 text-12 text-fg-3">
         {user.displayName} · 共 {rows.length} 个发布过的版本 · 数据只对你自己可见
       </p>
@@ -139,16 +168,16 @@ export default async function AnalyticsPage(props: {
           href="/api/analytics/export"
           download="creator-analytics.csv"
           data-analytics-export
-          className="underline decoration-dotted underline-offset-2"
+          className="rounded-full border border-[var(--nexus-color-brand)]/50 bg-[var(--nexus-color-brand)]/10 px-3 py-1 text-11 font-semibold text-[var(--nexus-color-accent-2-ink)] transition-colors hover:border-[var(--nexus-color-brand)] hover:bg-[var(--nexus-color-brand)]/20"
         >
-          导出这一份数据（CSV）
+          导出这一份数据（CSV） ↗
         </a>
         <span className="ml-2 text-fg-3">
           导出的是上面这张表里的同一份数字；空着的格子是「未采集」，不是 0。
         </span>
       </p>
 
-      <ul className="mt-4 grid gap-1 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-3 text-11 text-fg-3 sm:grid-cols-2">
+      <ul className="mt-4 grid gap-2 rounded-2xl border border-[var(--nexus-color-brand)]/25 bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-4 text-11 text-fg-3 sm:grid-cols-2">
         {DEFINITIONS.map((item) => (
           <li key={item.label}>
             <span className="text-fg-2">{item.label}</span>
@@ -162,7 +191,7 @@ export default async function AnalyticsPage(props: {
           className="mt-4 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-3"
           data-analytics-agent
         >
-          <h2 className="text-13 font-semibold text-fg-1">
+          <h2 className="font-mono text-11 uppercase tracking-[0.18em] text-[var(--nexus-color-accent-2-ink)]">
             「{fact?.projectName ?? '这个项目'}」为什么没人看？
             <span className="ml-2 text-11 font-normal text-fg-3">
               规则分析：读的是这一页上面那几个数与项目本身的设置，没有调用任何模型
@@ -233,7 +262,7 @@ export default async function AnalyticsPage(props: {
           data-analytics-trend
         >
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-13 font-semibold text-fg-1">
+            <h2 className="font-mono text-11 uppercase tracking-[0.18em] text-[var(--nexus-color-accent-2-ink)]">
               最近 {windowDays} 天（按 UTC 日）
               <span className="ml-2 text-11 font-normal text-fg-3">
                 {overview.window.from} → {overview.window.to} · 名下 {overview.publications} 个发布版本合在一起
