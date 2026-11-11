@@ -825,6 +825,9 @@ const ready = spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', 
   ];
   for (const one of actuatorHealth) {
     const answer = await httpJson(one.url);
+    // The runner clipped the whole failure line last time; keep the per-probe verdict visible so
+    // the role of the endpoint is named, not the server in aggregate.
+    console.log(`[§10] ${one.who} answered ${answer.status} ${String(answer.text).slice(0, 200)}`);
     assert.equal(answer.status, 200, `${one.who} must answer its own health question; it answered ${answer.status}`);
     assert.equal(answer.body?.status, 'UP', `${one.who} must report itself UP; it said: ${answer.text.slice(0, 300)}`);
   }
