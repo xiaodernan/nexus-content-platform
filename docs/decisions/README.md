@@ -73,4 +73,5 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0059  | A span is evidence only where a hop writes it down | Accepted |
 | 0061  | When the Discover feed cache is correct, and when it breaks | Accepted |
 | 0062  | The CONVERGENCE program: what is live, what is landed, what is pending, what we will not do | Accepted |
+| 0063  | Redis in NEXUS: what it earns, what it costs, when it lies | Accepted |
 | 0059  | A trace id is evidence only where a hop WRITES IT DOWN                  | Accepted |
