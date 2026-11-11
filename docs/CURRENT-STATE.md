@@ -751,3 +751,57 @@ when this entry was written; cont. 18 stands as the pending-verification record 
   `maxAttempts`). Latency is now eventual, and only for opted-in instances; a serverless/edge-only
   deployment that opts in without the Next `nodejs` runtime or a Redis URL gets the honest in-memory
   fallback, not silent loss.
+
+
+## 2026-11-12 addendum (cont. 21): the shared-tree night — a green gate fixed, a receipt owed, and a lane landed
+
+This session shared its working tree with a parallel lane (the Redis-Streams side-effect lane, v661). Both lanes pushed together; nothing overlapped except this page. Facts, measured not narrated:
+
+1. **Studio CI at `b707989` (main branch only) went RED at `verify:door-kill`** — `AssertionError: git.log:
+   a killed read is not an answer`. Same commit green on master: a witness, not a regression. `§1` drove
+   five faces through a real 1 ms SIGTERM; `git.log` over a one-commit, 300-file repo answered sub-
+   millisecond, so the kill had no target and `kill()` on the zombie returned success. Fix (`4c3bcac`): the
+   tmp seed carries **200 empty pad commits** (git.log -n 100 walks 100 trees) and a **~4 MB blob** (the
+   git.show face must decompress it). 3/3 local runs green; hosted verdict at `4c3bcac`: **SUCCESS, both
+   branches** (conclusion checked by this lane; at b707989 master the door-kill row read OK with 116/117 green and residue named 0).
+
+2. **The parallel lane's plug-through went red on the hosted LINT gate** — `docs/evidence/java/
+   gateway-suite-proof.mjs` carried an UNDECLARED `no-useless-assignment` (`let out = ''`, a seed no path
+   reads). Fixed at the source (`dd14c10`, `let out;`); the gate was measured green locally before staging
+   (218 findings / 107 pairs / exactly their ceilings, 0 crashes). **Hosted verdict for `dd14c10`: pending
+   at time of writing — the lint step is what reddened both branches of `01e2e20` and `7191e7e`.**
+
+3. **The arms receipt owes a re-stamp and this host could not pay it tonight.** `docs/evidence/ci/
+   arms-receipt.json` (2026-11-10) stamps 117 rows; the wiring at HEAD derives **119**
+   (`verify:gateway-tests` from the lane, `verify:db-index` from the db-tuning commit). Two attempts to
+   re-arm on this box never completed: one measured mid-`C2` during another agent's vitest battery, one
+   wedged ahead of the first print. The hosted runner measures `verify:arms OK 674.1s` (at `4c3bcac`,
+   master run 43038847821) but writes no receipt. **Consequence: `verify:arms-freshness` will red at any
+   ref until `ci-wiring-arms.mjs` completes whole on a quiet box and the receipt is committed.** The other
+   lane's census catch-up (§cont. 20's sibling line) already moved the disposition table to 132/119.
+
+4. **ADR 0065 (this lane)**: the routes actuator (`gateway` endpoint id, `GatewayControllerEndpoint` /
+   `GatewayLegacyControllerEndpoint`, `@RestControllerEndpoint` MVC family) never mounts on this
+   WebFlux-only edge — measured three ways (default flags, verbose.enabled=true, =false): discovery lists
+   exactly health/info/metrics/prometheus and `/actuator/gateway/**` answers 404 everywhere. No `gateway`
+   is listed in the exposure. The live route table stays verified by the proof booting the real jar.
+
+5. **The 5 s decision that resilience4j was owning silently (`196e624`)**: the reactive CircuitBreaker
+   wraps every proxied call in a TimeLimiter named `nexusApiCircuitBreaker`; with no `timelimiter.*`
+   instance it arrives at `Duration.ofSeconds(1)` from the library's own TimeLimiterConfig (verified in
+   resilience4j-timelimiter-2.2.0 sources). It is now `${NEXUS_UPSTREAM_TIMEOUT:5s}` with a comment naming
+   the mechanism and the measured failure it came from (`DegradedRateLimitTest` flaked twice on this host;
+   green twice isolated, green after, twice back-to-back full suite runs). Full topology proof re-run
+   against the rebuilt edge: §5–§16 green. **Hosted verdict for `196e624`: SUCCESS on both branches.**
+
+6. **`v661` landed here (`6e44c55`, authored with the parallel lane)**: a durable side-effect lane on
+   Redis Streams behind `NEXUS_JOB_QUEUE` (off by default), producer mints `exportId`, in-process
+   XREADGROUP worker from `instrumentation.register()`, `XAUTOCLAIM` reclaims a crashed consumer's PENDING
+   entries, `build:<exportId>` dedupe over the real UNIQUE index. This lane verified on this host against
+   real Redis 56379 + real Postgres before landing it: `job-queue` 7/7 · `job-worker` 9/9 ·
+   `job-lane-idempotency.integration` 2/2 · `export-route` + `export.integration` **19/19** (knob OFF).
+   ADR 0066 names the bound; ADR 0064 carries the amendment. Branch state at push: `master ≡ main ≡ 6e44c55`.
+
+CI verdicts pending at time of writing: Studio CI for `dd14c10`, `a1f3476`, `6e44c55` (both branches).
+The lint step is the one that reddened before; everything else has its bytes at HEAD already graded locally
+by this lane except the suites that require a hosted runner.
