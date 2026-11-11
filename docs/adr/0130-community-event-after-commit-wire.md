@@ -54,7 +54,7 @@ JVM 侧刻意 silence 的理由（"两个发信者 = 两份事实来源"）针�
 
 ## 仍欠
 
-- Studio 真订阅 `user:<id>` 频道渲染这类帧并展示红点——前端消费侧还没写；
+- 真浏览器里 Java 帧 → SSE → §164 通知 UI 的 e2e 实证没跑（消费侧代码是现成的：`/api/realtime` 本就 subscribe `user:<id>`，web 既有 user 频道 notification 渲染）——没跑就不说"红点出现了"；
 - `generation.progress` 同构处理（AI 生成任务的 JVM 侧进度帧）——下一条 MQ 候选；
 - 发送端帧大小护栏（与 MQ 候选③ 合并评估）；
 - AFTER_COMMIT 与 "web 收件箱 emit()" 双路触发同一频道的去重策略（web 不补、不抄，边界清晰）；

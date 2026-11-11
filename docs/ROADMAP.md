@@ -12023,4 +12023,4 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **诚实边界**：线路只是 notification 数据流，Java **不写收件箱**；web 主路径（interact route）零改动；帧里没有 link/actorHandle；线路无送达保证；`AFTER_COMMIT` 只在事务同步内生效；本轮「顺手翻车」：脚本首版随机 UUID actor → FK → HTTP 500（业务正确），已修为真实零互动 actor 并复跑全绿。
 - **工程教训（入 git）**：PowerShell 5 读写源码不带显式 UTF-8 会把 CJK 二次解码损坏（§SC-53 BOM 事故同类，本片两条注释行受损后逐字恢复并经 git diff 核验）。源码一律字节级安全写入；`Get-Content -Raw` 比对经显式编码校验。
 - **协作**：只碰自己的 Java 文件 + `scripts/realtime-java-community.mts` + `package.json` + 本 ADR 落盘 + 二处文档；会话正在改的 search/globals 文件一概未动。
-- **仍欠**：Studio 真订阅 `user:<id>` 渲染帧并展示红点；`generation.progress` JVM 侧进度帧同构处理；发送端帧大小护栏；双路触发同一频道的去重策略（web 不补不抄）；CI topology job 未含本链路 smoke。未 push。详见 ADR-0130。
+- **仍欠**：真浏览器里 Java 帧→SSE→§164 通知 UI 的 e2e 实证未跑（消费侧现成：`/api/realtime` 本就 subscribe `user:<id>`、web 既有 user 频道 notification 渲染）；`generation.progress` JVM 侧进度帧同构处理；发送端帧大小护栏；双路触发同一频道的去重策略（web 不补不抄）；CI topology job 未含本链路 smoke。未 push。详见 ADR-0130。
