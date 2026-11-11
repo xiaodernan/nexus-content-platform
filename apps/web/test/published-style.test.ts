@@ -47,6 +47,14 @@ function cssNoComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
+/**
+ * 去掉 JSDoc 后的**真实代码**——所有语义门（类名/钩子/读路径计数/SEO/渲染/层优先级）
+ * 一律锚它，不锚含注释的 page 全文（ADR-0154）。同批 play 门被变异臂证伪过：删正文
+ * `getPublishedPage(path)`、只在 JSDoc 补同形字样，锚全文仍绿。计数门改锚 code 后，
+ * 靠注释凑 `getPublishedPage(` 次数也失效——只认真调用。
+ */
+const code = cssNoComments(page);
+
 /** globals.css 里含 `.pb-` 的选择器行。 */
 function pbRules(css: string): string[] {
   return cssNoComments(css)
@@ -171,7 +179,7 @@ const pbReducedMotionBody = mediaBlocks(
 
 describe('§FE-6 公开作品页视觉段（静态不变式）', () => {
   it('page.tsx 确实用了 .pb- 语义类，且全部在 globals.css 有基础定义（拼错不静默失效）', () => {
-    const used = pagePbClasses(page);
+    const used = pagePbClasses(code);
     expect(used.length, 'page.tsx 一个 pb- 类都没有，视觉段没接上').toBeGreaterThan(8);
     const defined = definedPbClasses(globals);
     const missing = used.filter((c) => !defined.has(c));
@@ -211,7 +219,7 @@ describe('§FE-6 公开作品页视觉段（静态不变式）', () => {
       'data-visit-notice',
       'data-seo-jsonld',
     ];
-    const missing = expected.filter((h) => !page.includes(h));
+    const missing = expected.filter((h) => !code.includes(h));
     expect(missing, `结构/判据钩子丢了（不是纯视觉片）：${missing.join(', ')}`).toEqual([]);
   });
 
@@ -261,23 +269,23 @@ describe('§FE-6 公开作品页视觉段（静态不变式）', () => {
   });
 
   it('守住前后端协同：服务端 SEO / React cache 去重读路径 / fire-and-forget 浏览量统计未被弄断', () => {
-    expect(page, '强制动态渲染声明丢了（公开快照页口径）').toContain("export const dynamic = 'force-dynamic'");
-    expect(page, 'generateMetadata 丢了（抓取端不执行 JS，head 必须服务端出）').toContain('export async function generateMetadata');
+    expect(code, '强制动态渲染声明丢了（公开快照页口径）').toContain("export const dynamic = 'force-dynamic'");
+    expect(code, 'generateMetadata 丢了（抓取端不执行 JS，head 必须服务端出）').toContain('export async function generateMetadata');
     // generateMetadata 与正文各调一次 getPublishedPage，靠 React cache 去重为一次库查（不为爬虫再查）
-    const reads = page.match(/getPublishedPage\(/g) ?? [];
+    const reads = code.match(/getPublishedPage\(/g) ?? [];
     expect(reads.length, 'getPublishedPage 读取点少了一处，React cache 去重那条腿断了').toBeGreaterThanOrEqual(2);
-    expect(page, 'SEO 构建丢了').toContain('buildPublishedSeo');
-    expect(page, 'JSON-LD 结构化数据钩子丢了').toContain('data-seo-jsonld');
-    expect(page, 'JSON-LD script 类型丢了').toContain('application/ld+json');
-    expect(page, '浏览量统计不再是 fire-and-forget（会拖慢首屏）').toMatch(/recordView\([^)]*\)\.catch\(/);
+    expect(code, 'SEO 构建丢了').toContain('buildPublishedSeo');
+    expect(code, 'JSON-LD 结构化数据钩子丢了').toContain('data-seo-jsonld');
+    expect(code, 'JSON-LD script 类型丢了').toContain('application/ld+json');
+    expect(code, '浏览量统计不再是 fire-and-forget（会拖慢首屏）').toMatch(/recordView\([^)]*\)\.catch\(/);
   });
 
   it('守住最脆的渲染路径：四份断点投影 / 自动选档 / 交互热点 / PublishedFrame 作品本体未被动', () => {
-    expect(page, 'PublishedFrame 作品本体渲染丢了').toContain('<PublishedFrame');
-    expect(page, '四份投影 variants 丢了').toContain('variants.map');
-    expect(page, '自动选档媒体查询样式丢了').toContain('publishedVariantsStyle()');
-    expect(page, '交互热点投影丢了').toContain('hotspotsFor(layout)');
-    expect(page, 'PublishedFrame 拿到的 hotspots props 丢了').toContain('hotspots={hotspotsFor(layout)}');
+    expect(code, 'PublishedFrame 作品本体渲染丢了').toContain('<PublishedFrame');
+    expect(code, '四份投影 variants 丢了').toContain('variants.map');
+    expect(code, '自动选档媒体查询样式丢了').toContain('publishedVariantsStyle()');
+    expect(code, '交互热点投影丢了').toContain('hotspotsFor(layout)');
+    expect(code, 'PublishedFrame 拿到的 hotspots props 丢了').toContain('hotspots={hotspotsFor(layout)}');
   });
 
   /**
@@ -298,7 +306,7 @@ describe('§FE-6 公开作品页视觉段（静态不变式）', () => {
     // .pb-title 用 color:transparent + background-clip:text 实现渐变墨字；Tailwind 的
     // text-fg-*/text-accent-* 属更高优先级的 utilities 层，一旦同挂会盖掉 transparent，
     // 让渐变失效、退回纯色字（真浏览器浅色 computed color 抓出的真 bug，§ADR-0138）。
-    const titleTags = [...page.matchAll(/className="([^"]*\bpb-title\b[^"]*)"/g)].map((m) => m[1]!);
+    const titleTags = [...code.matchAll(/className="([^"]*\bpb-title\b[^"]*)"/g)].map((m) => m[1]!);
     expect(titleTags.length, 'page.tsx 找不到 pb-title').toBeGreaterThan(0);
     const colorUtility = /\btext-(fg|accent|brand|warn|bg)-\d/;
     const offenders = titleTags.filter((cls) => colorUtility.test(cls));

@@ -40,6 +40,13 @@ function cssNoComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
+/**
+ * 去掉 JSDoc 后的**真实代码**——所有语义门一律锚它，不锚含注释的 page 全文（ADR-0154）。
+ * 同批 play 门被变异臂证伪过：删正文 `getPublishedPage(path)`、只在 JSDoc 补同形字样，
+ * 锚全文仍绿。判据守真实调用/文案/钩子，不守"文件里含某词"。
+ */
+const code = cssNoComments(page);
+
 function ssRules(css: string): string[] {
   return cssNoComments(css)
     .split('\n')
@@ -145,7 +152,7 @@ const ssReducedMotionBody = mediaBlocks(
 
 describe('§FE-8 公开分镜页视觉段（静态不变式）', () => {
   it('page.tsx 用了 .ss- 语义类，且全部在 globals.css 有基础定义（拼错不静默失效）', () => {
-    const used = pageSsClasses(page);
+    const used = pageSsClasses(code);
     expect(used.length, 'page.tsx 一个 ss- 类都没有，视觉段没接上').toBeGreaterThan(8);
     const defined = definedSsClasses(globals);
     const missing = used.filter((c) => !defined.has(c));
@@ -190,7 +197,7 @@ describe('§FE-8 公开分镜页视觉段（静态不变式）', () => {
       'data-storyboard-notes',
       'data-storyboard-notice',
     ];
-    const missing = expected.filter((h) => !page.includes(h));
+    const missing = expected.filter((h) => !code.includes(h));
     expect(missing, `结构/判据钩子丢了（不是纯视觉片）：${missing.join(', ')}`).toEqual([]);
   });
 
@@ -233,20 +240,20 @@ describe('§FE-8 公开分镜页视觉段（静态不变式）', () => {
   });
 
   it('守住三态读路径与诚实分支：force-dynamic / 复用 getPublishedPage / schema 校验 / VisitMeter / 钉住版说明 / 不是视频', () => {
-    expect(page, '强制动态渲染声明丢了').toContain("export const dynamic = 'force-dynamic'");
-    expect(page, '可见性判定不再复用 getPublishedPage（会抄出第二份漂移谓词）').toContain('getPublishedPage(path)');
-    expect(page, 'schema 校验丢了（读不出来要如实说，不悄悄空镜头表）').toContain('StoryboardDocumentSchema.safeParse');
-    expect(page, 'VisitMeter 访问心跳丢了（与作品页/试玩页同口径）').toContain('<VisitMeter');
-    expect(page, '分镜标签映射丢了').toContain('CAMERA_LABELS');
-    expect(page, '镜头转场标签丢了').toContain('TRANSITION_LABELS');
-    expect(page, '钉住版本说明丢了（分享链接不随工作稿变）').toContain('data-storyboard-pinned');
-    expect(page, '空态诚实文案丢了').toContain('这一版没有分镜稿');
-    expect(page, '读不出来态诚实文案丢了').toContain('这一版钉住的分镜读不出来');
-    expect(page, '「不是视频」诚实边界丢了（本机无视频 provider，不把镜头表说成视频）').toContain('不是视频');
+    expect(code, '强制动态渲染声明丢了').toContain("export const dynamic = 'force-dynamic'");
+    expect(code, '可见性判定不再复用 getPublishedPage（会抄出第二份漂移谓词）').toContain('getPublishedPage(path)');
+    expect(code, 'schema 校验丢了（读不出来要如实说，不悄悄空镜头表）').toContain('StoryboardDocumentSchema.safeParse');
+    expect(code, 'VisitMeter 访问心跳丢了（与作品页/试玩页同口径）').toContain('<VisitMeter');
+    expect(code, '分镜标签映射丢了').toContain('CAMERA_LABELS');
+    expect(code, '镜头转场标签丢了').toContain('TRANSITION_LABELS');
+    expect(code, '钉住版本说明丢了（分享链接不随工作稿变）').toContain('data-storyboard-pinned');
+    expect(code, '空态诚实文案丢了').toContain('这一版没有分镜稿');
+    expect(code, '读不出来态诚实文案丢了').toContain('这一版钉住的分镜读不出来');
+    expect(code, '「不是视频」诚实边界丢了（本机无视频 provider，不把镜头表说成视频）').toContain('不是视频');
   });
 
   it('渐变墨字 .ss-title 不被更高层的 Tailwind 颜色 utility 覆盖（层优先级）', () => {
-    const titleTags = [...page.matchAll(/className="([^"]*\bss-title\b[^"]*)"/g)].map((m) => m[1]!);
+    const titleTags = [...code.matchAll(/className="([^"]*\bss-title\b[^"]*)"/g)].map((m) => m[1]!);
     expect(titleTags.length, 'page.tsx 找不到 ss-title').toBeGreaterThan(0);
     const colorUtility = /\btext-(fg|accent|brand|warn|bg)-\d/;
     const offenders = titleTags.filter((cls) => colorUtility.test(cls));

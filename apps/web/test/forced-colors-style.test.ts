@@ -139,13 +139,15 @@ describe('§A11Y-1 渐变墨字高对比度回退（静态不变式）', () => {
   });
 
   it('回退块零写死 hex（CSS 系统色关键字，不是新颜色）', () => {
-    const forced = globals.slice(globals.search(/@media\s*\(forced-colors:\s*active\)/));
+    // 锚去注释的 clean（顶部已算）：注释里引用的示例 hex 不是生产颜色，不该喂红；
+    // 生产声明里真出现 hex 仍会被抓（变异臂验过）。ADR-0154 把 code/clean 纪律推广到本门。
+    const forced = clean.slice(clean.search(/@media\s*\(forced-colors:\s*active\)/));
     const hex = [...forced.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]);
     expect(hex, `forced-colors 块出现写死 hex：${hex.join(', ')}`).toEqual([]);
   });
 
   it('回退块零 var(--nexus-*) token（用 CSS 系统色自动适配用户对比度偏好）', () => {
-    const forced = globals.slice(globals.search(/@media\s*\(forced-colors:\s*active\)/));
+    const forced = clean.slice(clean.search(/@media\s*\(forced-colors:\s*active\)/));
     const vars = [...forced.matchAll(/var\(--nexus-[a-z0-9-]+/g)].map((m) => m[0]);
     expect(vars, `forced-colors 块引用了 nexus token（双主题 token 不覆盖用户自定义高对比度主题）：${[...new Set(vars)].join(', ')}`).toEqual([]);
   });

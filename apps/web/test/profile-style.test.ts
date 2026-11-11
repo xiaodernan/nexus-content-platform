@@ -37,6 +37,12 @@ function cssNoComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
+/**
+ * 去掉 JSDoc 后的**真实代码**——语义门一律锚它，不锚含注释的 page 全文（ADR-0154）。
+ * 同批 play 门被变异臂证伪过：删正文真实调用/文案、只在 JSDoc 补同形字样，锚全文仍绿。
+ */
+const code = cssNoComments(page);
+
 /** globals.css 里 `.pf-` 段的文本：从第一个 `.pf-` 定义到该 @layer 段收尾。
  *  取「含 `.pf-` 的选择器行」整段即可——判据只关心这些行的声明。 */
 function pfRules(css: string): string[] {
@@ -163,7 +169,7 @@ const pfReducedMotionBody = mediaBlocks(
 
 describe('§FE-5 创作者主页视觉段（静态不变式）', () => {
   it('page.tsx 确实用了 .pf- 语义类，且全部在 globals.css 有定义（拼错的类名不静默失效）', () => {
-    const used = pagePfClasses(page);
+    const used = pagePfClasses(code);
     expect(used.length, 'page.tsx 一个 pf- 类都没有，视觉段没接上').toBeGreaterThan(8);
     const defined = definedPfClasses(globals);
     const missing = used.filter((c) => !defined.has(c));
@@ -213,15 +219,15 @@ describe('§FE-5 创作者主页视觉段（静态不变式）', () => {
       'data-profile-game-design-only',
       'data-profile-games-note',
     ];
-    const missing = expected.filter((h) => !page.includes(h));
+    const missing = expected.filter((h) => !code.includes(h));
     expect(missing, `结构/判据钩子丢了（不是纯视觉片）：${missing.join(', ')}`).toEqual([]);
   });
 
   it('两颗动作键客户端组件文件未被 FE-5 改动（只动视觉、不碰交互逻辑）', () => {
     // 判据面：FollowButton / BlockControl 的 data-* 钩子与交互逻辑留在各自文件里，
     // page.tsx 只是引用它们。这里钉的是 page.tsx 没把它们内联重写（那会带进逻辑）。
-    expect(page).toContain('<FollowButton');
-    expect(page).toContain('<BlockControl');
+    expect(code).toContain('<FollowButton');
+    expect(code).toContain('<BlockControl');
     const follow = readFileSync(join(ROOT, 'apps/web/src/app/u/[handle]/FollowButton.tsx'), 'utf8');
     const block = readFileSync(join(ROOT, 'apps/web/src/app/u/[handle]/BlockControl.tsx'), 'utf8');
     expect(follow).toContain('data-follow-button');

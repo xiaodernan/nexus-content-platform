@@ -38,6 +38,14 @@ function cssNoComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
+/**
+ * 去掉 JSDoc 后的**真实代码**——所有语义门（类名提取/结构钩子/读路径/诚实文案/层优先级）
+ * 一律锚它，不锚含注释的 page 全文。纪律来源见 ADR-0154 / FE-9：变异臂证伪过一次假绿——
+ * 删掉正文 `getPublishedPage(path)` 调用、只在 JSDoc 补同形字样，旧门锚 page 全文仍绿。
+ * 判据守的是"真实代码里的调用与文案"，不是"文件里含某个词"。
+ */
+const code = cssNoComments(page);
+
 function ppRules(css: string): string[] {
   return cssNoComments(css)
     .split('\n')
@@ -143,7 +151,7 @@ const ppReducedMotionBody = mediaBlocks(
 
 describe('§FE-7 公开试玩页视觉段（静态不变式）', () => {
   it('page.tsx 用了 .pp- 语义类，且全部在 globals.css 有基础定义（拼错不静默失效）', () => {
-    const used = pagePpClasses(page);
+    const used = pagePpClasses(code);
     expect(used.length, 'page.tsx 一个 pp- 类都没有，视觉段没接上').toBeGreaterThan(8);
     const defined = definedPpClasses(globals);
     const missing = used.filter((c) => !defined.has(c));
@@ -180,7 +188,7 @@ describe('§FE-7 公开试玩页视觉段（静态不变式）', () => {
       'data-play-issue',
       'data-play-issues',
     ];
-    const missing = expected.filter((h) => !page.includes(h));
+    const missing = expected.filter((h) => !code.includes(h));
     expect(missing, `结构/判据钩子丢了（不是纯视觉片）：${missing.join(', ')}`).toEqual([]);
   });
 
@@ -223,20 +231,20 @@ describe('§FE-7 公开试玩页视觉段（静态不变式）', () => {
   });
 
   it('守住三态读路径与诚实分支：force-dynamic / 复用 getPublishedPage / schema 校验 / 交互组件 / 钉住版说明', () => {
-    expect(page, '强制动态渲染声明丢了').toContain("export const dynamic = 'force-dynamic'");
-    expect(page, '可见性判定不再复用 getPublishedPage（会抄出第二份漂移谓词）').toContain('getPublishedPage(path)');
-    expect(page, 'schema 校验丢了（读不出来要如实说，不悄悄空关卡）').toContain('GameDocumentSchema.safeParse');
-    expect(page, '投影编译丢了').toContain('compileForKind(document)');
-    expect(page, '校验问题如实列出丢了').toContain('validateGame(document)');
-    expect(page, 'PublicPlay 交互组件丢了（游戏运行时本体，门面不能碰）').toContain('<PublicPlay');
-    expect(page, 'VisitMeter 访问心跳丢了（与作品页同口径）').toContain('<VisitMeter');
-    expect(page, '钉住版本说明丢了（分享链接不随工作稿变）').toContain('data-play-pinned');
-    expect(page, '三态分支的诚实文案丢了').toContain('这一版没有可玩内容');
-    expect(page, '读不出来态的诚实文案丢了').toContain('这一版钉住的游戏读不出来');
+    expect(code, '强制动态渲染声明丢了').toContain("export const dynamic = 'force-dynamic'");
+    expect(code, '可见性判定不再复用 getPublishedPage（会抄出第二份漂移谓词）').toContain('getPublishedPage(path)');
+    expect(code, 'schema 校验丢了（读不出来要如实说，不悄悄空关卡）').toContain('GameDocumentSchema.safeParse');
+    expect(code, '投影编译丢了').toContain('compileForKind(document)');
+    expect(code, '校验问题如实列出丢了').toContain('validateGame(document)');
+    expect(code, 'PublicPlay 交互组件丢了（游戏运行时本体，门面不能碰）').toContain('<PublicPlay');
+    expect(code, 'VisitMeter 访问心跳丢了（与作品页同口径）').toContain('<VisitMeter');
+    expect(code, '钉住版本说明丢了（分享链接不随工作稿变）').toContain('data-play-pinned');
+    expect(code, '三态分支的诚实文案丢了').toContain('这一版没有可玩内容');
+    expect(code, '读不出来态的诚实文案丢了').toContain('这一版钉住的游戏读不出来');
   });
 
   it('渐变墨字 .pp-title 不被更高层的 Tailwind 颜色 utility 覆盖（层优先级）', () => {
-    const titleTags = [...page.matchAll(/className="([^"]*\bpp-title\b[^"]*)"/g)].map((m) => m[1]!);
+    const titleTags = [...code.matchAll(/className="([^"]*\bpp-title\b[^"]*)"/g)].map((m) => m[1]!);
     expect(titleTags.length, 'page.tsx 找不到 pp-title').toBeGreaterThan(0);
     const colorUtility = /\btext-(fg|accent|brand|warn|bg)-\d/;
     const offenders = titleTags.filter((cls) => colorUtility.test(cls));
