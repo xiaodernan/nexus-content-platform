@@ -201,6 +201,24 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <!-- SC-66: drop a META-INF/build-info.properties into the jar so /actuator/info
+                         renders the artifact's real coordinates; Spring Boot auto-register the
+                         BuildInfoContributor at startup when build.properties is visible on the classpath. -->
+                    <execution>
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                        <configuration>
+                            <buildInfo>
+                                <additionalProperties>
+                                    <!-- pinned at packaging time; nothing dynamic or secret. -->
+                                    <component>nexus-domain-service</component>
+                                </additionalProperties>
+                            </buildInfo>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
