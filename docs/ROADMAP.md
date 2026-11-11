@@ -72,7 +72,23 @@ family README section) and a door that reddens the sentence it repairs:
         no dead-letter store (drop-by-log at maxAttempts); an enqueue-time Redis failure logs and
         skips the notice rather than blocking the response (advisory under outage — at-least-once
         holds only once an entry is in the stream; knob-off keeps it synchronous and guaranteed);
-        opted-in non-nodejs/no-Redis gets the in-memory driver plus a loud warning, not silent loss.]
+        opted-in non-nodejs/no-Redis gets the in-memory driver plus a loud warning, not silent loss.
+        Follow-up fe1566e names the enqueue-failure boundary in ADR 0066 and grades it with
+        job-queue-degraded.test.ts (mocked XADD, no live Redis).]
+  v662  the ADR-0094 candidate-cap gate grows a DB-plane behaviour leg: the static proof said
+        "the SQL reads the constant by name"; this one proves the database REALLY takes only
+        CAP rows. [LANDED 2026-11-11 — §SEC 第四十五片. trending-cap-db.integration.test.ts
+        (4/4, real Postgres): CAP+1 public versions with future publishedAt so they own the
+        newest slots; #CAP gets 3 likes, #CAP+1 gets 10. Asserts the #CAP card is trending's
+        HEAD and the higher-scoring #CAP+1 is ABSENT — a conjunction green only when the LIMIT
+        boundary sits exactly between #CAP and #CAP+1 (smaller cap → #CAP shed; larger/none →
+        #CAP+1 surfaces). A direct DB count proves the excluded card indeed scores higher, so
+        its absence can only be the boundary; the method sentence must name the same CAP.
+        Static trending-cap-reader.test.ts pins the SQL line + method to one constant, so the
+        two gates together cover shrink / grow / hand-copied number / page-length mutations.
+        HONEST GAP: no source-level mutation arm on social.ts .limit(...) — shared tree + a
+        host with 0.3–0.6 GB free; the conjunction + premise + static gate give the two-way
+        discrimination, and the arm is owed on a quiet host. Fixture & criteria are in place.]
 
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;

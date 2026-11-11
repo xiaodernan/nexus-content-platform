@@ -807,3 +807,34 @@ This session shared its working tree with a parallel lane (the Redis-Streams sid
 CI verdicts pending at time of writing: Studio CI for `dd14c10`, `a1f3476`, `6e44c55` (both branches).
 The lint step is the one that reddened before; everything else has its bytes at HEAD already graded locally
 by this lane except the suites that require a hosted runner.
+
+## 2026-11-11 addendum (cont. 22): the candidate cap gets a physical boundary proof — ADR-0094 amendment, v662
+
+- **What closed.** ADR-0094's "仍欠①" — the static gate proved `discover`'s SQL line reads
+  `TRENDING_CANDIDATE_CAP` by name (and that the method sentence reads the same constant), but
+  **not** that the database really takes only CAP rows. `apps/web/test/trending-cap-db.integration.test.ts`
+  now grades that physical fact against a real Postgres, no mocks.
+- **The fixture.** Insert `CAP+1` public versions as minimal rows (`publishedProjects.snapshotId` is
+  nullable and `snapshots` is a LEFT JOIN, so 201 snapshot documents are NOT built). Future
+  `publishedAt` minus 1s per row makes this batch own the newest slots regardless of other tests'
+  residue. Row #CAP gets 3 likes, row #CAP+1 gets 10, the rest zero. A DB-order self-check runs
+  first so a fixture that failed to own the boundary cannot make the later assertions green by accident.
+- **The judgement is a conjunction**, green only when the LIMIT boundary sits exactly between #CAP
+  and #CAP+1: `discover({sort:'trending'})` returns #CAP as the HEAD card AND omits the higher-scoring
+  #CAP+1. If the cap shrinks, #CAP is shed and the head becomes a zero-score recent row; if it grows
+  or is removed, #CAP+1 surfaces at the top. A direct like-count assertion proves the excluded card
+  scores higher, so its absence can only come from the boundary; a fourth leg checks the method
+  sentence names the same CAP. Together with the static `trending-cap-reader.test.ts` (SQL line +
+  method pinned to one constant, no hand-copied number), the two gates cover shrink / grow /
+  hand-copied literal / page-length coupling.
+- **Measured.** `trending-cap-db.integration.test.ts` **4/4** on real Postgres (self-check ·
+  conjunction · premise · method), `npx tsc -p apps/web/tsconfig.json --noEmit` **exit 0**.
+  `describe.skipIf(!dbUp)` skips the whole file when no DB answers (top-level-await probe settled),
+  same discipline as the job-lane idempotency proof.
+- **Honest gap.** No source-level mutation arm on `social.ts`'s `.limit(...)` line (the §SEC-series
+  convention): this host keeps 0.3–0.6 GB free and the tree is shared with a parallel lane, so a
+  mutate→run→sha1-restore arm is unsafe here. Two-way discrimination is argued by the conjunction
+  + score premise + the static gate's three measured arms (X1 hand-copy / X2 page-length / X3 local
+  redeclaration all red earlier), leaving "directly editing the limit expression" as the one variant
+  not arm-tested this slice — it is necessarily caught by the conjunction on any quiet host. The
+  fixture and criteria are committed so that arm needs no redesign.
