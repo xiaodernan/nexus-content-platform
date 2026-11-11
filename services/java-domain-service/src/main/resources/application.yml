@@ -15,6 +15,17 @@ spring:
   cloud:
     config:
       enabled: ${NEXUS_CONFIG_ENABLED:false}
+      # SC-59: with fail-fast OFF the service still boots without a live config server (fallback to
+      # packaged application.yml + env vars). With retry set, a short blip mid-start doesn't permanently
+      # ignore the shared truth — the client retries a transient failure only when the server comes back.
+      # no infinite hang because request-timeout is per-request (2s), not socket-level infinity.
+      fail-fast: ${NEXUS_CONFIG_FAIL_FAST:false}
+      request-timeout: ${NEXUS_CONFIG_TIMEOUT_MS:2000}
+      retry:
+        max-attempts: ${NEXUS_CONFIG_RETRY_MAX_ATTEMPTS:3}
+        initial-interval: ${NEXUS_CONFIG_RETRY_INITIAL_MS:1000}
+        multiplier: ${NEXUS_CONFIG_RETRY_MULTIPLIER:1.5}
+        max-interval: ${NEXUS_CONFIG_RETRY_MAX_INTERVAL_MS:3000}
     # SC-60 — Feign integration breaker. Without this the Feign client ignores resilience4j entirely.
     # group.enabled=true: Feign matches the breaker by Feign-client's name (ai-service), not the
     # ephemeral ConfigKey-derived "AiServiceClienthealthz" — one stable breaker named ai-service.
