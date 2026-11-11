@@ -12014,3 +12014,13 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **编号**：本片 ADR 初稿占 `0128` 与会话 `0128-java-domain-service-speaks-on-the-wire.md` 撞号，让位重编 **ADR-0129**（沿用 SC-51 撞号纪律），会话 Java 文档未动。
 - **协作边界**：只碰自己的 globals.css + search/page.tsx + SearchBox.tsx + 新 e2e + ADR-0129 + 三处文档；会话正在改的 `CommunityService.java`/`application.yml`/`package.json`/`realtime` 目录一概未碰。
 - **仍欠**：带结果命中行深/浅人工看图（待干净资源窗口补截图）；FE-1 `e2e/discover.spec.ts` 此前写就未跑，下个干净窗口与 `search.spec.ts` 一并复跑；`/u/[handle]` 创作者主页、`/n/[handle]/[slug]` 作品页可按本片范式继续升（另立 FE 片）。详见 ADR-0129。
+
+## §SC 第五十四片（§SC-54）：社区 like/follow 上线路——领域事件 + AFTER_COMMIT，收件箱归 web、线路归大家（2026-11-11 / ADR-0130）
+
+- **为什么**：user 本轮点名**消息队列的合理运用 + 前后端协同**。§SC-53 证明 Java 栈"能说探针话"，本片把它接到**真实写路径**——like/follow 提交后，Studio/web 的用户频道拿到收件箱计划逐字同文的通知（`<actorName> 点赞了《作品》` / `<actorName> 开始关注你`）。
+- **做法（领域事件 + AFTER_COMMIT，零协议变更）**：`CommunityEvents.LikeAdded / FollowAdded`；`CommunityService` 发出；`WireCommunityEventListener` 在 `AFTER_COMMIT` 帧化上线路。**事务回滚 → 不发帧**（实测：随机 UUID actor 撞 FK `likes_user_id_users_id_fk` → HTTP 500 → 回滚 → 线路零动静，这条语义不是嘴上说的）；线路挂了 → warn + 返回 null，业务不受影响。只发"加"（unlike/unfollow/blocked/拒绝一律不发），与 web 收件箱"取消点赞不是新消息"同构。频道复用 web `channels.user(userId)` 约定：like 帧落 owner 频道（带 `projectId`）、follow 帧落靶用户频道。文案与 web `lib/notify-plan.ts` 逐字对齐；`actorName` 查一次库、缺省"有人"、超长 clip 140。**Java 不写收件箱表**（"谁写收件箱"仍是 web 独占）。
+- **判分面（全部实跑，零虚报）**：`WireCommunityEventListenerTest` **6/6** · `CommunityServiceTest` 19→**25**（+6：加/删/blocked × like/follow） · 全套 **124/124** · `npm run realtime:java-community` **7/7 verdicts PASS**（like×2 各一帧、follow×2 各一帧、unlike/unfollow 静默、`projectId` 逐字对齐、`wireErrorCount=0`） · **库零残留**（likes=0/follows=0 已如实查询）。选真 public 发布《无障碍弹层夹具mvza9nk2》作试验对象（owner dac7ccfa…、project a41e5c63…、publication bd16e0f8…、actor db8347d5…——真实存在且零互动，收尾成对翻转抵消）。
+- **诚实边界**：线路只是 notification 数据流，Java **不写收件箱**；web 主路径（interact route）零改动；帧里没有 link/actorHandle；线路无送达保证；`AFTER_COMMIT` 只在事务同步内生效；本轮「顺手翻车」：脚本首版随机 UUID actor → FK → HTTP 500（业务正确），已修为真实零互动 actor 并复跑全绿。
+- **工程教训（入 git）**：PowerShell 5 读写源码不带显式 UTF-8 会把 CJK 二次解码损坏（§SC-53 BOM 事故同类，本片两条注释行受损后逐字恢复并经 git diff 核验）。源码一律字节级安全写入；`Get-Content -Raw` 比对经显式编码校验。
+- **协作**：只碰自己的 Java 文件 + `scripts/realtime-java-community.mts` + `package.json` + 本 ADR 落盘 + 二处文档；会话正在改的 search/globals 文件一概未动。
+- **仍欠**：Studio 真订阅 `user:<id>` 渲染帧并展示红点；`generation.progress` JVM 侧进度帧同构处理；发送端帧大小护栏；双路触发同一频道的去重策略（web 不补不抄）；CI topology job 未含本链路 smoke。未 push。详见 ADR-0130。
