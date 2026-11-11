@@ -1159,3 +1159,53 @@ Open honest notes:
   cont.23 and cont.28 are present, and that no parallel content was removed. Files: `apps/web/src/server/
   queue/*` + `apps/web/test/dead-letter-convergence.test.ts` + ADR 0100 + ROADMAP/CURRENT-STATE. Re-fetch
   + ff check before commit; no `git add -A`, no force.
+
+## 2026-11-12 addendum (cont. 29): the retry that retried a 404 — a test harness, a constructor, and a silent default — ADR 0101, v669
+
+- **The red gate was not the policy.** v669 added a bounded Resilience4j Retry to the ONE typed call
+  (`nexus-api → nexus-domain-service`, a repeatable GET): retry RetryableException/503 only, ignore
+  404 / open-breaker / no-instance. `DomainServiceRetryTest` had three red legs — those three
+  "tried once" facts were each measured at **3 calls**. Reading the Resilience4j **2.2.0** sources
+  (not guessing) showed why: `InMemoryRetryRegistry.retry(String name)` delegates to
+  `retry(name, getDefaultConfig())` — a **get-or-create that ignores the name for config lookup**;
+  `RetryRegistry.of(Map.of(name, config))` puts `config` in the SHARED-CONFIG table only and creates
+  no instance. So the test's Retry was built on `RetryConfig.ofDefaults()` (retry-everything ×3) and
+  the composed `(retrySet) ∧ ¬(ignoreSet)` predicate — which was correct — never ran. The harness
+  used a registry shape production never constructs.
+- **Two real defects the red gate exposed.** ① `DomainProjectReader` had gained two single-arg
+  constructors (pre-v669 pass-through + v669 retry) with no no-arg and no `@Autowired`; a REAL
+  `AnnotationConfigApplicationContext` measured `No default constructor found` — **nexus-api could
+  not boot**, and the last topology proof predated v669 so had not caught it. Fixed with `@Autowired`
+  on the retry constructor. ② latent production hazard: the active constructor's `retry(INSTANCE)`
+  would, if the YAML `instances.*` block were deleted/renamed, silently get-or-create a retry-all
+  default that retries every 404 — while its own Javadoc claimed "FAIL AT STARTUP". Fixed with
+  `registry.find(INSTANCE).orElseThrow(IllegalStateException)` (read-only lookup; `retry(name,
+  configName)` rejected as it conflates the instance-name and config-name namespaces).
+- **Measured.** `DomainServiceRetryTest` **9/9** (three ignore legs finally green on the real policy,
+  plus `InternalServerError` tried **once** — an ofDefaults retry would try it 3×, so this is the leg
+  that proves the YAML policy is actually applied, plus undeclared-instance refuses-to-start with zero
+  client calls); `DomainServiceRetryConfigTest` **6/6**; `DomainProjectReaderWiringTest` **1/1** in a
+  real context (measured red `No default constructor found` → green, asserting `read(id)` routes
+  through `DomainServiceRetry.getProject` and never the raw client);
+  `DomainServiceRetryAutoConfigTest` **3/3** — `ApplicationContextRunner` + the REAL
+  `RetryAutoConfiguration` with the same `resilience4j.retry.instances.nexus-domain-service.*` shape
+  as `application.yml`, proving auto-config PRE-CREATES the instance so `find(name)` hits it, 404
+  once, transient blip twice. **nexus-api full offline `mvn -o -B -q test`: 951 tests / 0 failures /
+  0 errors / 0 skipped.**
+- **Honest gaps (ADR 0101).** ① the 14-section `docs/evidence/java/spring-cloud-proof.mjs` topology
+  was NOT re-run on this host (`mvn` needs `MAVEN_OPTS=-Xmx1400m` not to be SIGTERM'd; the host keeps
+  ~0.3 GB free and Docker refuses to start containers); retry's real-request behaviour is graded by
+  the SAME-SHAPE auto-config door, not an end-to-end typed call through a live registry + DB —
+  last full-topology green predates v669. ② 500/not-retried is graded by a real exception object, not
+  a live 500 from the downstream. ③ Retry and breaker are two instances each reading the same 404
+  rule; config consistency is gated, but "breaker opens → CallNotPermittedException → retry also
+  declines" is only covered by a真 exception object, not a live breaker transition in topology.
+  ④ no exponential backoff: 2.2.0's Spring Boot binding for it is unconfirmed, so a fixed bounded
+  200ms wait is used rather than leave a silently-ignored knob.
+- **Shared-tree note.** v669 was advanced in the SAME worktree as a parallel lane; both independently
+  root-caused the get-or-create trap from the sources. The lane's commit `489afd7` already carries
+  the converged code (`find()+orElseThrow`, reader `@Autowired`, Spring-shape harness, the two new
+  gates, and `DomainProjectReaderWiringTest`); my `DomainServiceRetryAutoConfigTest.java` plus
+  ADR 0101 / ROADMAP v669 / this cont.29 / memory land as the successor. A parallel unstaged
+  `apps/web/src/app/page.tsx` edit was left untouched (not staged, not `git add -A`). base for this
+  cont.29 = `489afd7`; re-fetch + ff check before commit; no force.

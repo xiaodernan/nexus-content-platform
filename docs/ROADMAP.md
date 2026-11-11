@@ -217,6 +217,43 @@ family README section) and a door that reddens the sentence it repairs:
         non-drifting, NOT claimed green. No real-Redis POISON→ledger end-to-end (static wiring同源 only);
         sink still has no durable implementation. Closes ADR 0099 gap③ without touching shape/ACK/retry.]
 
+  v669  the Feign typed call gets a bounded Resilience4j RETRY — and two silent defects surface
+        (ADR 0101): `nexus-api → nexus-domain-service` is one safe, repeatable GET. A 404 is an
+        ANSWER, an open breaker never made the call, a missing instance is a topology fact — none
+        may be asked twice; only a transient wire blip may. `application.yml` declares
+        `resilience4j.retry.instances.nexus-domain-service` (3 bounded attempts, 200ms fixed wait,
+        retry only RetryableException/503, ignore 404/open-breaker/no-instance), and
+        `DomainServiceRetry` is the code that ACTUALLY obtains and applies that instance — because
+        OpenFeign's circuit-breaker integration never consults a Retry, so a YAML block alone is a
+        silently-unused configuration (the same lesson the breaker's NAME taught in ADR 0057).
+        [LANDED 2026-11-12 — § Spring Cloud 微服务 × 计网 × 算法/容错. THREE defects, all measured:
+        ① the retry gate was RED (404/open/no-instance each called 3×) for a reason UNRELATED to the
+        policy — `RetryRegistry.retry(name)` is get-or-create via `getDefaultConfig()` (Resilience4j
+        2.2.0 sources), and the test's `RetryRegistry.of(Map.of(name, config))` fills only the
+        SHARED-CONFIG map, so `retry(name)` built a retry-everything ofDefaults instance and the
+        composed `(retrySet) ∧ ¬(ignoreSet)` predicate NEVER RAN. Fixed by building the registry the
+        way Spring does (`ofDefaults()` + `retry(name, config)` pre-create); production uses
+        `find(name).orElseThrow` so a deleted/renamed YAML instance FAILS AT STARTUP instead of
+        silently retrying every 404 (`retry(name, configName)` rejected: it conflates the instance
+        and config-name namespaces). ② `DomainProjectReader` had two single-arg constructors and no
+        no-arg — a real `AnnotationConfigApplicationContext` measured `No default constructor found`,
+        i.e. nexus-api could not boot; `@Autowired` on the retry constructor fixes which Spring picks.
+        ③ latent hazard: `retry(name)` would silently get-or-create a retry-all default on a missing
+        instance — closed by find()+fail-loud. NEW DOORS: `DomainServiceRetryTest` 9/9 (three ignore
+        legs finally green on the real policy, + InternalServerError tried once which an ofDefaults
+        retry would try 3× = the leg proving the YAML policy is in force, + undeclared-instance
+        refuses-to-start), `DomainServiceRetryConfigTest` 6/6, `DomainProjectReaderWiringTest` 1/1
+        (real context, red→green), `DomainServiceRetryAutoConfigTest` 3/3 (real `RetryAutoConfiguration`
+        via `ApplicationContextRunner`: find(name) hits the declared instance, 404 once, blip twice).
+        nexus-api full offline suite 951 tests / 0 / 0 / 0. HONEST GAPS: the 14-section
+        `spring-cloud-proof.mjs` topology was NOT re-run on this host (mvn needs -Xmx1400m not to be
+        SIGTERM'd); retry's real-request behaviour is graded by the same-shape auto-config door, not
+        an end-to-end typed call through a live registry + DB. 500/not-retried covered by a真 exception
+        object, not a live downstream. No exponential backoff (2.2.0 binding unconfirmed; fixed wait
+        is bounded and honest). SHARED TREE: converged with a parallel lane in the same worktree;
+        the lane's commit 489afd7 carries the find()+@Autowired+Spring-shape-fix plus both new gates;
+        the auto-config door + ADR 0101 + this ledger follow as the successor commit.]
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and
