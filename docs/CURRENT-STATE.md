@@ -645,3 +645,48 @@ Two consecutive spring-cloud rows reddened on the hosted runner this morning (no
 **The honest lesson the runner taught:** when an outage is reported in one lane, ask which *metric* told a false
 truth — do not trust the row's red-color alone; read the row's last non-row output; the row's own text had a
 door; we could not see which until we made the door visible again.
+
+
+## 2026-11-11 addendum (cont. 18): the door that was never mounted, and the deadline that was never chosen
+
+Two findings tonight, both verified-not-assumed, both in the edge's configuration.
+
+### 1. The routes actuator does not exist in this WebFlux stack — ADR 0065
+
+`spring-cloud-gateway-server-4.3.5.jar` ships the routes actuator beans
+(`GatewayControllerEndpoint` / `GatewayLegacyControllerEndpoint`, id `gateway`, enableByDefault=false).
+Exposing `gateway` in `management.endpoints.web.exposure.include` was tried and measured three ways
+(default flags; `verbose.enabled=true`; `verbose.enabled=false`). All three:
+
+- `/actuator` discovery lists exactly `health`, `info`, `metrics`, `prometheus` — `gateway` absent;
+- `/actuator/gateway/routes` answers 404 in all three;
+- both beans are `@RestControllerEndpoint` (the servlet-family annotation); the reactive handler mapping
+  never mounts them, for neither verbose mode. Bytecode explains it; the 404s decide it.
+
+Decision (ADR 0065): do NOT list `gateway`. An exposure line for a door that does not exist is a door drawn
+on a wall. The live route table is verified the way that cannot drift: the topology proof boots the real jar
+and routes a real request through it (§6). Two consecutive 22/22 suites + full topology proof green locally.
+
+### 2. The edge's upstream deadline was a silent 1 second, inherited from resilience4j — now it is a decision
+
+`DegradedRateLimitTest` flaked twice under a loaded host (isolated reruns: green both times). The mechanism,
+verified against `resilience4j-timelimiter-2.2.0` sources: the reactive CircuitBreaker wraps every proxied
+call in a TimeLimiter whose instance name is the route's breaker name (`nexusApiCircuitBreaker`), and with no
+`timelimiter.instances.*` block the timeout comes from the jar at `Duration.ofSeconds(1)` — never chosen,
+never named anywhere in this repo.
+
+Because the counter lane already decided 300 ms is a decision not a default, the upstream got the same treatment:
+
+```yaml
+resilience4j.timelimiter.instances.nexusApiCircuitBreaker.timeoutDuration: ${NEXUS_UPSTREAM_TIMEOUT:5s}
+```
+
+5 s is the shipped decision (a loaded-but-alive API answering in tens of ms never trips it; a hung upstream
+cannot hold callers open-ended), overridable in a tighter deployment. After the change: two full 22/22 suite
+runs back-to-back, plus the spring-cloud topology proof booted the rebuilt edge and served §5-§16 green.
+
+### What NOT done, deliberately
+- No hand-rolled routes-dump controller in the edge. The trigger for mounting the door is named in ADR 0065
+  (a second route consumer, or upstream fixing the WebFlux registration).
+- The 22/22 green under this host's memory pressure is not a CI guarantee; the Java suite is not yet a CI row.
+- Current branches: master == main, to be recorded at push time; CI verdicts pending for this ref.

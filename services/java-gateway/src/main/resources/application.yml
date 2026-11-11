@@ -100,6 +100,24 @@ spring:
 # traffic to a dead upstream for about half a minute. Five calls and ten seconds is the difference
 # between "the service is gone" and "the edge noticed".
 resilience4j:
+  # The breaker ENDS a dead upstream, but a deadline is what stops a SLOW one from holding callers
+  # open-ended. The reactive path wraps every proxied call in the breaker AND in a TimeLimiter whose
+  # instance name is the one the route's `CircuitBreaker` filter names (nexusApiCircuitBreaker) —
+  # and when no `timelimiter.instances.*` block exists, that TimeLimiter comes up at the library's
+  # DEFAULT: `Duration.ofSeconds(1)`, verified in resilience4j-timelimiter-2.2.0's TimeLimiterConfig.
+  # This file declares its timeouts as DECISIONS (the redis counter below is 300 ms on the same
+  # principle) — so the upstream deadline is decided here too, not inherited from a jar nobody read.
+  #
+  # 5s is the decision: an API on a healthy box answers in tens of milliseconds (measured, not hoped),
+  # and a single-digit-second tail is not a failure — killing that tail caller at 1s was a denial of
+  # service against a loaded-but-alive upstream, not a guard against a dead one. Tight deployments
+  # set NEXUS_UPSTREAM_TIMEOUT; the shipped default only guarantees a hung upstream cannot hold a
+  # caller open-ended. The breaker still opens on the failures this produces.
+  timelimiter:
+    instances:
+      nexusApiCircuitBreaker:
+        timeoutDuration: ${NEXUS_UPSTREAM_TIMEOUT:5s}
+        cancelRunningFuture: true
   circuitbreaker:
     instances:
       nexusApiCircuitBreaker:
@@ -140,7 +158,18 @@ management:
         # uses. Without it, a 503 says the upstream was unreachable and nobody can tell whether
         # the edge stopped asking on purpose.
         #
-        # This door is not reachable THROUGH the edge: the route table below matches only `/api/**`.
+        # NOTE on the door that is NOT here: Spring Cloud Gateway 4.3.5 ships the routes actuator
+        # beans (GatewayControllerEndpoint / GatewayLegacyControllerEndpoint, endpoint id `gateway`),
+        # but in this WebFlux-only edge they never register — measured three ways: default flags,
+        # `spring.cloud.gateway.server.webflux.actuator.verbose.enabled=true`, and `=false`.
+        # /actuator discovery lists only health/info/metrics/prometheus and /actuator/gateway/**
+        # answers 404 in all three configurations. Both beans are @RestControllerEndpoint (the
+        # servlet-family annotation), and no routes endpoint is mounted on the reactive handler
+        # mapping. `gateway` was verified dead in THIS deployment, so it is not listed here — an
+        # exposure-list entry for an endpoint that does not exist is a door drawn on a wall.
+        # If a future Spring Cloud version mounts it (or a second route consumer appears), adding
+        # the id to this list is the change. Until then the live route table is verified the way
+        # that cannot drift: the proof boots the real jar and routes a real request through it.
         include: health,info,metrics,prometheus
 
 # Eureka's OWN namespace is TOP-LEVEL `eureka.*`, not `spring.cloud.eureka.*`. The switch that stops
