@@ -12037,6 +12037,18 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **协作边界**：只碰自己的 sim.ts + 新测试 + ADR-0131 + 三处文档登记；并行会话正在写的 `java-domain-service/.../realtime`、`.../community`、`package.json`、`application.yml`、`realtime-frame-guard.test.ts`、ADR-0128/0130 一概未碰。ADR 编号 `0131` 已查重（0130 归会话 SC-54）。
 - **仍欠**：`questById` 冗余（确认 quest id 唯一后可直接换 `quest.name` 并去掉该索引）；候选 B 同根因 `rpg.ts:194`/`playtest.ts:102` 的 O(E²) `state.enemies.find`（依赖顺序不变量、改动面更大，另立片）；墙钟收益实测待干净窗口。详见 ADR-0131。
 
+## §PERF 第二片（§PERF-2）：逐帧 state 的敌人 find 按 plan 下标 O(1) 化——PERF-1"候选 B"收口（2026-11-11 / ADR-0140）
+
+- 触发（user 长期点名）：**数据结构与算法 / 操作系统层面优化运行速度与硬件适配 + 缓存合理运用**。正面收口 ADR-0131"仍欠"的候选 B。三处每帧线性查找：`rpg.ts:195/196` 经验结算（O(|enemyXp|×E)）、`playtest.ts:104` `nearest`（O(E²)，每个 policy step 都调 × 60s×4 策略）、`sim.ts:281` 任务判定的 defeat goal。
+- **与 PERF-1 的本质区别**：PERF-1 缓存的是**不可变 plan**（WeakMap 一次命中整场）；这三处打的是**每帧克隆的新 state 数组**（`sim.ts:193`），WeakMap 按 state 分键永不命中——直接套用无效，这就是"更脆、另立片"的原因。
+- **做法（零新缓存机制 + 守护式，零行为变化）**：先读码论证顺序不变量（`state.enemies[i]` 恒对应 `plan.enemies[i]`：初始/每帧都逐位置 map、敌人只就地改 active/坐标从不重排、id 唯一由 `duplicate-id` 校验）；给 PERF-1 的 `PlanIndices` 加 `enemyIndexById: Map<string,number>`（随现成 WeakMap 单例一并建），导出 `getPlanIndices(plan)` + 守护式 `enemyByIdOf(actors,idx,id)`：**校验 `hit.id===id` 一致才 O(1) 返回，不一致就回退线性 find**（不变量被破坏也绝不返回错 actor）。三处 find 改走它；`items` 分支诚实保留线性 find（范围最小）。复杂度每帧每敌 O(E)→O(1)。
+- **可注入计数缝（确定性、非墙钟）**：`measureEnemyLookups(fn)` 短暂启用模块级 `lookupMeter`（默认 null、生产零开销、`finally` 还原、嵌套安全），暴露 `{hits,findFallbacks}`；判据跑真实 `rpgStep`/`runPolicy` 断言 `hits>0 && findFallbacks===0`。
+- **判据 +12**（`state-enemy-index.test.ts`，纯内存零真库/网络/墙钟）：fixture 强制 ≥6 敌（E=1 会假绿）；索引内容正确；**Proxy 拦截 Array.find** 证明同序 O(1) 零 find、未知 id 零 find、**乱序守护回退仍正确**；注入计数真实长跑 `hits>0/findFallbacks=0`；整场 14400 帧同序同长；默认单例不串味；**源码静态判据**钉三处调用点都改造、items 分支保留。**三变异臂各有牙、trap 保证还原**：臂 A 改回 find→静态红 / 臂 B 去守护→乱序回退红 / 臂 C 索引全映 0→内容红。臂 B 首跑被 SIGTERM 残留变异，grep 复核发现并从备份字节级恢复、改 trap 重跑拿干净红——**教训：变异恢复必须放 trap/finally**。
+- **验证（诚实分层）**：新判据 **12/12**；**全包 16 文件分 5 批单 worker 全绿合计 343/343**（核心 sim+925 行 parity+index-cache+新判据 69/69；调用链 rpg+playtest+story 81/81；combat+level+play 85/85；codegen+exploration+puzzle 56/56；game+iso+kind-dispatch 52/52；全包一次跑两次 SIGTERM，分批是资源取舍、每批独立 EXIT=0，非掩盖失败）；`eslint`（3 源+新测试）**EXIT=0**；包级 **`tsc --noEmit -p packages/game-model` EXIT=0**（首跑 3 处 possibly-undefined 已修）。全仓真库套件无干净窗口未硬跑、不编绿灯。未 push。
+- **诚实边界（SC-48/PERF-1 纪律）**：**不承诺墙钟毫秒**（实体个位数到几十、抢资源机给不出稳定收益），价值是确定性的"每帧每敌 O(E)→O(1)、N 帧零 find 回退"；items 未建索引、保留线性 find；守护回退是 O(E) 的失败安全。
+- **协作边界**：探明并行会话 SC-60（Feign breaker）正实时编辑 java-domain-service，按纪律未碰 feign 文件/未 kill 进程，转做完全隔离的 game-model（纯 TS）；并行会话随后自行完成并提交 SC-60（ADR-0139 / `2d9210e2`），其 CURRENT-STATE 明示"另一会话改 game-model、持锁格没碰到"，两线互相避让零冲突。本片只提交 3 源 + 新测试 + ADR-0140 + 三处文档，不卷入并行会话的 realtime 文件/test-results-mine*。
+- **仍欠**：items 分支也要 O(1) 需加 `itemIndexById` 并扩守护判据；墙钟实测待干净窗口；`questById` 冗余（PERF-1 欠、需先证 quest id 唯一）。详见 ADR-0140（承接 ADR-0131）。
+
 ## §SC 第五十五片（§SC-55）：发送端帧 64 KiB 护栏——pub/sub 没有背压，大帧只能靠收发端自律（2026-11-11 / ADR-0132）
 
 - **为什么**：user 本轮点名消息队列的合理运用。MQ 候选③（§ADR-0126/ADR-0127 的"仍欠"）正面收口。根上的事：Redis pub/sub 没有订阅者名册、没有 slow-consumer、没有死信。一帧几 MB 的 JSON 会原样复制给每一个订阅连接并撑爆缓冲。**能不能上线路唯一决定点是发送端**。

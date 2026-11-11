@@ -1,6 +1,6 @@
 import type { GameDocument } from "./index";
 import { compileGame, type GamePlan, type StatSource } from "./play";
-import { initialState, step, type SimInput, type SimState } from "./sim";
+import { enemyByIdOf, getPlanIndices, initialState, step, type SimInput, type SimState } from "./sim";
 
 /**
  * §51 的最后一条管线：RPG 原型——把文档串成**成长/战斗循环**。
@@ -190,10 +190,13 @@ export function rpgStep(plan: RpgPlan, state: RpgState, input: SimInput, dt: num
   }
 
   // —— 经验：这一帧打倒的敌人 ——
+  // §PERF-2：state.base.enemies 与 plan.base.enemies 同序同长（step 只就地改 active/坐标），
+  // 索引按不可变 plan.base 缓存一次，逐帧按 id O(1) 取回，不再每帧对每个敌人线性 find。
   let gained = 0;
+  const enemyIdx = getPlanIndices(plan.base);
   for (const enemy of plan.enemyXp) {
-    const before = state.base.enemies.find((e) => e.id === enemy.id);
-    const after = next.base.enemies.find((e) => e.id === enemy.id);
+    const before = enemyByIdOf(state.base.enemies, enemyIdx, enemy.id);
+    const after = enemyByIdOf(next.base.enemies, enemyIdx, enemy.id);
     if (before?.active && after && !after.active) {
       gained += enemy.xp;
       pushEvent(

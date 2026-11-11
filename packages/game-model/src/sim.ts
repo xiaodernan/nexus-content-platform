@@ -14,6 +14,12 @@ export interface PlanIndices {
   readonly triggerById: ReadonlyMap<string, PlayTrigger>;
   readonly questById: ReadonlyMap<string, PlayQuest>;
   readonly judgeable: readonly PlayQuest[];
+  /**
+   * §PERF-2：敌人 id → 在 `plan.enemies`（从而 `state.enemies`）里的下标。
+   * 只依赖不可变 plan，随其余索引一起缓存；把打在逐帧 state 上的 `enemies.find` 从 O(E) 降到 O(1)。
+   * 模型层强制实体 id 唯一（`index.ts` 的 `duplicate-id` 校验），故下标一一对应。
+   */
+  readonly enemyIndexById: ReadonlyMap<string, number>;
 }
 
 /** 构造一份 plan 索引——纯函数，单独导出便于逐支验电。 */
@@ -24,7 +30,62 @@ export function buildPlanIndices(plan: GamePlan): PlanIndices {
     triggerById: new Map(plan.triggers.map((trigger) => [trigger.id, trigger])),
     questById: new Map(plan.quests.map((quest) => [quest.id, quest])),
     judgeable: plan.quests.filter((quest) => quest.judgeable),
+    enemyIndexById: new Map(plan.enemies.map((enemy, at) => [enemy.id, at])),
   };
+}
+
+/**
+ * §PERF-2：按 id 从一份**与 plan.enemies 同序同长**的 state actor 数组里 O(1) 取回。
+ *
+ * <p>顺序不变量由 `initialState`/`step` 保证：`state.enemies` 从 `plan.enemies` 逐位置构造，
+ * 整场只对元素就地改 active/坐标，从不重排或增删。id 唯一（模型层 `duplicate-id` 校验）。
+ * 因此 `enemyIndexById.get(id)` 的下标必然指回同一个敌人。
+ *
+ * <p>**守护而非盲信**：若下标处的 `id` 与请求不符（未来有人重排/增删 state.enemies，不变量被破坏），
+ * 就地回退线性 `find` 保证结果仍正确——宁可退回 O(E)，也绝不静默返回一个错的 actor（§159）。
+ * 判据用 Proxy 拦截 `Array.find`：正常同序路径零 find 调用，乱序路径才触发回退。
+ */
+export function enemyByIdOf(
+  actors: readonly SimActor[],
+  idx: Pick<PlanIndices, "enemyIndexById">,
+  id: string,
+): SimActor | undefined {
+  const at = idx.enemyIndexById.get(id);
+  if (at === undefined) return undefined; // id 不在 plan 里 → 与 find 一样找不到
+  const hit = actors[at];
+  if (hit && hit.id === id) {
+    if (lookupMeter) lookupMeter.hits += 1;
+    return hit;
+  }
+  // 顺序不变量被破坏：回退线性 find，宁可退回 O(E) 也不返回错的 actor
+  if (lookupMeter) lookupMeter.findFallbacks += 1;
+  return actors.find((e) => e.id === id);
+}
+
+/**
+ * §PERF-2 可注入计数缝（对标 PERF-1 `builds` / SC-51 可注入钟）：默认 `null`，生产路径零开销、
+ * 零行为变化。仅判据通过 `measureEnemyLookups` 短暂启用，跑完即还原，不在模块里留状态。
+ * 这样"N 帧走了多少次 O(1) 命中、是否触发过 find 回退"成了确定性判据，而非 flaky 墙钟。
+ */
+export interface EnemyLookupMeter {
+  readonly hits: number;
+  readonly findFallbacks: number;
+}
+let lookupMeter: { hits: number; findFallbacks: number } | null = null;
+export function measureEnemyLookups<T>(run: () => T): { result: T; meter: EnemyLookupMeter } {
+  const prev = lookupMeter;
+  const meter = { hits: 0, findFallbacks: 0 };
+  lookupMeter = meter;
+  try {
+    return { result: run(), meter: { hits: meter.hits, findFallbacks: meter.findFallbacks } };
+  } finally {
+    lookupMeter = prev; // 嵌套安全：判据并行/嵌套时不互相污染
+  }
+}
+
+/** 取 plan 的只读索引（走 PERF-1 的默认单例）——供 rpg.ts / playtest.ts 复用同一份缓存。 */
+export function getPlanIndices(plan: GamePlan): PlanIndices {
+  return defaultPlanIndexCache.get(plan);
 }
 
 /**
@@ -278,7 +339,11 @@ export function step(
     if (!quest.judgeable || next.questDone[quest.id] !== undefined) continue;
     const allMet = quest.goals.every((goal) => {
       if (goal.kind === "activate") return next.activated[goal.actorId] !== undefined;
-      const sim = goal.kind === "defeat" ? next.enemies.find((e) => e.id === goal.actorId) : next.items.find((i) => i.id === goal.actorId);
+      // §PERF-2：enemies 走按 plan 缓存的下标 O(1)；items 未建 id→index，仍线性 find（范围最小，见 ADR）
+      const sim =
+        goal.kind === "defeat"
+          ? enemyByIdOf(next.enemies, idx, goal.actorId)
+          : next.items.find((i) => i.id === goal.actorId);
       return sim ? !sim.active : false;
     });
     if (!allMet) continue;
