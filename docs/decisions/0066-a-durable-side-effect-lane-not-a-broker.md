@@ -88,6 +88,14 @@ pending entry) is graded against a **real Redis** in `job-queue.test.ts`.
   side-effects (one notification per export) that is the right side of the trade; a lane whose work
   must never be shed under any circumstance needs a larger cap, a real dead-letter path, and its own
   ADR before it rides here.
+- **An enqueue failure is a missed notification, not a synchronous fallback.** `enqueue` never throws
+  into the request it serves: when the Redis wire is down and `XADD` fails, it logs and returns an empty
+  id, and `notifyBuildComplete` returns without writing the notice. That is the price of lifting the
+  write off the download path — the response is never held hostage to a queue blip, but the notice is
+  **advisory under a Redis outage**. The at-least-once guarantee above holds only once an entry exists
+  in the stream; it says nothing about an entry that could not be appended. A deployment that must never
+  drop the notice keeps `NEXUS_JOB_QUEUE` off and pays the inline `emit` latency. This is the same honest
+  tier as the lossy SSE bus — stated, not silently assumed.
 
 ## Consequences
 
@@ -104,8 +112,12 @@ pending entry) is graded against a **real Redis** in `job-queue.test.ts`.
 
 ## Evidence
 
-- `apps/web/test/job-queue.test.ts` — 6 legs against a real Redis (56379): delivery, bounded retry,
-  driver selection, and XAUTOCLAIM reclaim of a crashed consumer's pending entry (ACKed out of pending).
+- `apps/web/test/job-queue.test.ts` — 5 legs against a real Redis (56379): delivery, bounded retry,
+  driver selection, XAUTOCLAIM reclaim of a crashed consumer's pending entry (ACKed out of pending),
+  and the `MAXLEN ~` bound (260 appends trimmed to within one macro node of a cap of 8, newest entry
+  surviving); plus 2 in-memory-fallback legs.
+- `apps/web/test/job-queue-degraded.test.ts` — 1 leg with a mocked failing `XADD`: `enqueue` resolves to
+  an empty id and logs, never rejecting the caller's request — the outage boundary above, measured.
 - `apps/web/test/job-worker.test.ts` — 9 legs: the opt-in switch (off by default, no connection), the
   producer-minted id surviving the handoff, one dedupeKey per id, and poison-payload rejection.
 - `apps/web/test/job-lane-idempotency.integration.test.ts` — 2 legs against a real Postgres: two

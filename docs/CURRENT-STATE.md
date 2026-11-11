@@ -750,7 +750,9 @@ when this entry was written; cont. 18 stands as the pending-verification record 
   one service), not client-facing, no ordering guarantee, no dead-letter store (drop-by-log at
   `maxAttempts`). Latency is now eventual, and only for opted-in instances; a serverless/edge-only
   deployment that opts in without the Next `nodejs` runtime or a Redis URL gets the honest in-memory
-  fallback, not silent loss.
+  fallback, not silent loss. And an enqueue-time Redis failure resolves to an empty id and logs — the
+  notice is skipped, never allowed to fail the download (advisory under outage; at-least-once begins
+  only once an entry is in the stream). Measured in `job-queue-degraded.test.ts`.
 
 
 ## 2026-11-12 addendum (cont. 21): the shared-tree night — a green gate fixed, a receipt owed, and a lane landed

@@ -69,8 +69,10 @@ family README section) and a door that reddens the sentence it repairs:
         `getJobQueue()` opens NO connection and the old synchronous emit runs verbatim (export
         integration 19/19 unchanged); an instance that wants Redis only for realtime fanout does
         not accidentally run a worker. BOUND: not a broker, not an SSE replacement, no ordering,
-        no dead-letter store (drop-by-log at maxAttempts); opted-in non-nodejs/no-Redis gets the
-        in-memory driver plus a loud warning, not silent loss.]
+        no dead-letter store (drop-by-log at maxAttempts); an enqueue-time Redis failure logs and
+        skips the notice rather than blocking the response (advisory under outage — at-least-once
+        holds only once an entry is in the stream; knob-off keeps it synchronous and guaranteed);
+        opted-in non-nodejs/no-Redis gets the in-memory driver plus a loud warning, not silent loss.]
 
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
