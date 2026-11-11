@@ -15,9 +15,9 @@ spring:
     config:
       enabled: ${NEXUS_CONFIG_ENABLED:false}
   datasource:
-    url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus}
+    url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:55433/nexus}
     username: ${NEXUS_DB_USER:nexus}
-    password: ${NEXUS_DB_PASSWORD:nexus}
+    password: ${NEXUS_DB_PASSWORD:nexus_dev_only}
   jpa:
     hibernate:
       # `update` for the first slice: the schema is one table and the service is the only writer. A
