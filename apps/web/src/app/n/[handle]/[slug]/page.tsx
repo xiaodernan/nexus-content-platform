@@ -127,21 +127,36 @@ export default async function PublishedPage({ params, searchParams }: Props) {
 
   return (
     <main className="min-h-screen w-full bg-bg-0 text-fg-1" data-published-root data-published-path={publication.path}>
-      <header className="flex flex-wrap items-center gap-[var(--nexus-space-3)] border-b border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-4)] py-[var(--nexus-space-2)]">
-        <span className="font-mono text-13 text-fg-1" data-published-title>
-          {ownerName} / {projectName}
-        </span>
-        <span className="font-mono text-12 text-fg-3" data-published-meta>
-          第 {publication.version} 版 ·{' '}
-          {publication.visibility === 'public' ? '公开' : '仅链接可见'} ·{' '}
+      <header className="bg-bg-1/90 backdrop-blur-md supports-[backdrop-filter]:bg-bg-1/75 sticky top-0 z-10 flex flex-wrap items-center gap-[var(--nexus-space-3)] border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-4)] py-[var(--nexus-space-2)]">
+        <a href="/" className="group flex items-center gap-2.5 no-underline" data-published-brand>
+          <span className="flex h-6 w-6 items-center justify-center rounded-md border border-[var(--nexus-color-border-strong)] bg-gradient-to-br from-[var(--nexus-color-brand)] via-[var(--nexus-color-accent-1)] to-[var(--nexus-color-accent-2)] text-[13px] font-black text-[var(--nexus-color-accent-fg)] shadow-[0_0_16px_rgb(91_108_255/0.4)] transition-transform duration-200 group-hover:scale-105">
+            N
+          </span>
+          <span className="font-mono text-11 font-semibold tracking-[0.08em] text-fg-2 transition-colors group-hover:text-fg-1">
+            NEXUS
+          </span>
+        </a>
+        <span aria-hidden="true" className="hidden h-4 w-px bg-[var(--nexus-color-border-strong)] sm:block" />
+        <a href={publication.path} className="font-mono text-13 font-semibold text-fg-1 transition-colors hover:text-[var(--nexus-color-accent-2-ink)]" data-published-title>
+          <span className="text-fg-3">{ownerName}</span>
+          <span className="mx-1.5 text-[var(--nexus-color-accent-1)]">/</span>
+          {projectName}
+        </a>
+        <span className="flex items-center gap-1.5 rounded-full border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-2.5 py-0.5 font-mono text-10 text-fg-3" data-published-meta>
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--nexus-color-accent-2)]" aria-hidden="true" />
+          v{publication.version} · {publication.visibility === 'public' ? '公开' : '仅链接可见'} ·{' '}
           {new Date(publication.publishedAt).toLocaleString('zh-CN', { hour12: false })}
         </span>
         {/* §132：公开页要有人能举报，否则 §129 的红线只能靠作者自觉 */}
         <span className="ml-auto flex items-center gap-2">
           <ReportControl path={publication.path} />
-          <span className="font-mono text-11 text-fg-3">Built with NEXUS</span>
+          <span className="rounded-full border border-[var(--nexus-color-border-strong)] bg-gradient-to-r from-bg-2 via-bg-3 to-bg-2 px-3 py-1 font-sans text-11 font-medium text-fg-2">
+            Built with <span className="font-bold text-fg-1">NEXUS</span>
+          </span>
         </span>
       </header>
+      {/* hairline brand rule: the one warm gradient along the entire title bar */}
+      <div aria-hidden="true" className="h-px w-full bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)]/60 via-40% to-transparent" />
       {actions ? (
         <div className="w-full px-[var(--nexus-space-4)] pt-[var(--nexus-space-2)]">
           <PublicationActions state={actions} />
