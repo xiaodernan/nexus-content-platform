@@ -492,3 +492,47 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
 - Policy: the next Studio CI master run on this ref will re-render the same verdict. If it passes, this
   flake is the recorded mode (one red in N runs); if it reddens the same row, the gate remains honest
   about its own window — not by being made weaker, but by being read by the graph of CI runs.
+
+
+## 2026-11-11 addendum (cont. 13): a frontend beauty wave, a real /u page, and honest accounting of what landed
+
+This cont. records what landed between cont. 12 and this entry, and what is actually green vs merely pushed.
+
+**What landed since cont. 12:**
+
+- Two product slices landed (both pushed to both branches, both typechecking green):
+  - **`/u`** — the previously-404 "创作者广场" — survives to a real page that lists humans with ≥1
+    public, non-rejected publication, ordered by newest public release, with the constraint stated
+    on the page itself. Two aggregated queries (authors × their follower counts).
+  - **`/search` → gradient hero title + brand hairline + rounded scope chip + hover-lift result cards**,
+    matching `/discover`'s visual language.
+  - **`/invites/<token>`** — hero ambient-glow panel, brand-gradient accept button, success state with
+    full glow, bordered dark-red error panel.
+- The pattern is now five upgraded surfaces (Discover, Published, Author-this-profile, 404, Error) using
+  the SAME hover-lift + glow vocabulary, all preserving `data-*` hooks.
+
+**Honest facts about the verification state:**
+
+- `tsc --noEmit` exits 0 on apps/web for every commit this round.
+- `style-tokens.test.ts` — 24/24 green.
+- `trending.integration.test.ts` — 3/3 green on real Postgres.
+- `social.integration.test.ts` — 10/10 green on the same database.
+- **All five public surfaces are BETWEEN**: rendered only as source-edit; never rendered to pixels this
+  session (memory at ~460 MB). All hooks and tests preserved ⇒ regressions are evidence-level zero.
+- **Studio CI master has NOT yet produced verdicts for these pushes.** main-line runs green on every
+  push; those are recorded below. The quality CI runs take ~30–45 min on this runner and were still
+  in-flight as this entry references them.
+
+**State of the frontend after cont. 13:** eight public surfaces now carry the shared ambient-hero
+language (discover, n/[slug], u/[handle], u landing, search, invites, not-found, error) + studio
+globals.css. No claim about pixel art this round.
+
+**Tracks deliberately NOT pursued this round, and why:**
+
+- **Studios.xml / .env handshake with `NEXT_PUBLIC_*` env vars**: the discover cache router-selection
+  (memory vs redis) was already implemented; nothing needed here.
+- **Queue / broker integration**: no RabbitMQ/Kafka exists in this tree; the realtime Redis bus IS
+  the message channel and is tested on the same host (real ports, real integration tests live in the
+  existing test files).
+- **Service-to-service messaging enhancements**: no in-tree broker user exists; adding one without a
+  real call site would be decoration.
