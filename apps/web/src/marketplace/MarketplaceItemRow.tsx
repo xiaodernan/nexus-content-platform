@@ -169,7 +169,7 @@ export function MarketplaceItemRow({
 
   return (
     <li
-      className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-3"
+      className="group rounded-xl border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--nexus-color-brand)] hover:shadow-[0_18px_48px_rgb(91_108_255/0.22)]"
       data-marketplace-item={item.id}
     >
       <div className="flex flex-wrap items-center gap-2">
@@ -220,7 +220,7 @@ export function MarketplaceItemRow({
             onClick={() => void purchase()}
             disabled={purchasing}
             data-marketplace-purchase={item.id}
-            className="rounded bg-accent-1 px-2 py-1 text-11 hover:bg-accent-2"
+            className="rounded bg-[var(--nexus-color-brand)] px-2 py-1 text-11 font-semibold text-[var(--nexus-color-accent-fg)] transition-shadow hover:shadow-[0_0_24px_rgb(91_108_255/0.45)]"
           >
             {purchasing ? '购买中...' : '购买'}
           </button>
@@ -241,7 +241,7 @@ export function MarketplaceItemRow({
           onClick={() => void download()}
           disabled={downloading}
           data-marketplace-download={item.id}
-          className="rounded bg-bg-3 px-2 py-1 text-11 text-fg-2 hover:bg-bg-1"
+          className="rounded border border-[var(--nexus-color-brand)]/50 bg-[var(--nexus-color-brand)]/10 px-2 py-1 text-11 text-[var(--nexus-color-accent-2-ink)] transition-colors hover:border-[var(--nexus-color-brand)] hover:bg-[var(--nexus-color-brand)]/20"
         >
           {downloading ? '取包中...' : `下载（${item.downloadCount}）`}
         </button>

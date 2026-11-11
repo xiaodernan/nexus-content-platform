@@ -87,8 +87,12 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
   };
 
   return (
-    <div className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] p-3" data-marketplace-create>
-      <h2 className="text-[var(--nexus-font-size-16)] font-medium">上架新物品</h2>
+    <div
+      className="relative overflow-hidden rounded-2xl border border-[var(--nexus-color-brand)]/35 bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-4 shadow-[0_0_32px_rgb(91_108_255/0.15)]"
+      data-marketplace-create
+    >
+      <span aria-hidden="true" className="pointer-events-none absolute -right-14 -top-14 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgb(91_108_255/0.25)_0%,transparent_65%)] blur-xl" />
+      <h2 className="relative font-mono text-11 uppercase tracking-[0.2em] text-[var(--nexus-color-accent-2-ink)]">上架新物品</h2>
       <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
         <label className="flex items-center gap-2 text-12">
           类型
@@ -177,7 +181,7 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
         onClick={() => void submit()}
         disabled={busy || !title.trim()}
         data-marketplace-create-submit
-        className="mt-2 rounded bg-accent-1 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
+        className="mt-2 rounded bg-[var(--nexus-color-brand)] px-4 py-2 text-12 font-semibold text-[var(--nexus-color-accent-fg)] transition-shadow hover:shadow-[0_0_24px_rgb(91_108_255/0.45)] disabled:opacity-50"
       >
         {busy ? '上架中…' : '上架'}
       </button>

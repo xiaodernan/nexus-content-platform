@@ -63,10 +63,19 @@ export default async function MarketplacePage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-[980px] flex-col gap-[var(--nexus-space-5)] p-[var(--nexus-space-6)] font-mono">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[var(--nexus-font-size-28)] font-semibold tracking-tight">创作者市场</h1>
-          <p className="text-[var(--nexus-font-size-12)] text-fg-2">
+      <header className="relative flex flex-wrap items-center justify-between gap-4">
+        <div className="relative flex flex-col gap-1">
+          <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
+            MARKET
+          </span>
+          <h1 className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent" data-marketplace-title>
+            创作者市场
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
+            />
+          </h1>
+          <p className="max-w-lg text-13 leading-6 text-fg-2">
             组件 / 模板 / 设计系统 / 素材 / 世界 / 游戏 / AI 角色。列表只显示公开在售与免费的物品。
           </p>
         </div>
@@ -96,28 +105,58 @@ export default async function MarketplacePage({
         <Link
           href="/marketplace"
           data-marketplace-type="all"
-          className="rounded bg-bg-2 px-2 py-1 hover:bg-bg-3"
+          data-current={itemType ? 'false' : 'true'}
+          className={`rounded-full border px-3 py-1 transition-all duration-200 ${
+            itemType
+              ? 'border-[var(--nexus-color-border-subtle)] text-fg-2 hover:border-[var(--nexus-color-brand)] hover:text-fg-1'
+              : 'border-[var(--nexus-color-brand)] bg-[var(--nexus-color-brand)] font-semibold text-[var(--nexus-color-accent-fg)] shadow-[0_0_18px_rgb(91_108_255/0.35)]'
+          }`}
         >
           全部
         </Link>
-        {MARKETPLACE_ITEM_TYPES.map((t) => (
-          <Link
-            key={t}
-            href={`/marketplace?type=${t}`}
-            data-marketplace-type={t}
-            className="rounded bg-bg-2 px-2 py-1 hover:bg-bg-3"
-          >
-            {TYPE_LABELS[t]}
-          </Link>
-        ))}
+        {MARKETPLACE_ITEM_TYPES.map((t) => {
+          const current = itemType === t;
+          return (
+            <Link
+              key={t}
+              href={`/marketplace?type=${t}`}
+              data-marketplace-type={t}
+              data-current={current ? 'true' : 'false'}
+              className={`rounded-full border px-3 py-1 transition-all duration-200 ${
+                current
+                  ? 'border-[var(--nexus-color-brand)] bg-[var(--nexus-color-brand)] font-semibold text-[var(--nexus-color-accent-fg)] shadow-[0_0_18px_rgb(91_108_255/0.35)]'
+                  : 'border-[var(--nexus-color-border-subtle)] text-fg-2 hover:border-[var(--nexus-color-brand)] hover:text-fg-1'
+              }`}
+            >
+              {TYPE_LABELS[t]}
+            </Link>
+          );
+        })}
       </nav>
 
       <section className="flex flex-col gap-2" data-marketplace-list>
-        <h2 className="text-[var(--nexus-font-size-16)] font-medium">在售（{items.length}）</h2>
+        <h2 className="font-mono text-11 uppercase tracking-[0.18em] text-[var(--nexus-color-accent-2-ink)]">在售 · {items.length}</h2>
         {items.length === 0 ? (
-          <p className="text-12 text-fg-3" data-marketplace-empty>
-            还没有这一类的物品在售。
-          </p>
+          <div
+            className="flex flex-col items-start gap-3 rounded-2xl border border-[var(--nexus-color-border-subtle)] bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-8"
+            data-marketplace-empty
+          >
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--nexus-color-brand)]/40 bg-gradient-to-br from-[var(--nexus-color-brand)]/20 via-bg-2 to-[var(--nexus-color-accent-2)]/20 text-[var(--nexus-color-accent-2-ink)]">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 6h15l-1.5 9a2 2 0 0 1-2 1.7H9a2 2 0 0 1-2-1.7L5 5H3m5 17a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m8 0a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0" />
+              </svg>
+            </span>
+            <p className="text-15 font-semibold text-fg-1">这一格还是空的</p>
+            <p className="max-w-md text-13 leading-6 text-fg-2">
+              这个分类还没有创作者上架真东西。换一个分类试试，或者——你自己可以是第一个。
+            </p>
+            <Link
+              href="/discover"
+              className="mt-1 inline-flex min-h-10 items-center rounded-lg bg-[var(--nexus-color-brand)] px-4 py-2 text-13 font-semibold text-[var(--nexus-color-accent-fg)] transition-shadow hover:shadow-[0_0_24px_rgb(91_108_255/0.45)]"
+            >
+              去看看公开作品 →
+            </Link>
+          </div>
         ) : (
           <ul className="flex flex-col gap-2">
             {items.map((item) => (
@@ -152,7 +191,7 @@ export default async function MarketplacePage({
           />
           {mine.length ? (
             <div className="mt-[var(--nexus-space-4)]" data-marketplace-mine>
-              <h2 className="text-[var(--nexus-font-size-16)] font-medium">我的物品（{mine.length}）</h2>
+              <h2 className="font-mono text-11 uppercase tracking-[0.18em] text-[var(--nexus-color-accent-2-ink)]">我的物品 · {mine.length}</h2>
               <ul className="mt-2 flex flex-col gap-2">
                 {mine.map((item) => (
                   <MarketplaceItemRow
