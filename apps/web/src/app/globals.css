@@ -61,9 +61,29 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* 焦点环始终可见（§90） */
+  /* 焦点环始终可见（§90）——加一点辉光，与圆角/主题一致，且不超出 AA */
   :focus-visible {
     outline: 2px solid var(--nexus-color-brand);
-    outline-offset: 1px;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgb(91 108 255 / 0.18);
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: rgb(91 108 255 / 0.32);
+    color: var(--nexus-color-fg-1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+    html {
+      scroll-behavior: auto !important;
+    }
   }
 }

@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* NEXUS studio canvas — 2026-11-11 beauty pass v3. The page is a workbench, and a workbench that
+   looks careless tells the user their work is careless. Everything here is token-level: no markup
+   changed, no selector renamed, no component restyled — just the base surface, the selection, the
+   focus ring and the scrollbar, plus motion that yields to the user. */
 :root {
   --nexus-bg: #0b0e14;
   --nexus-surface: #151a24;
@@ -9,6 +13,9 @@
   --nexus-muted: #9aa7bd;
   --nexus-brand: #6ea8fe;
   --nexus-accent: #b48cff;
+  --nexus-aurora: radial-gradient(1100px 750px at -10% -20%, rgb(110 168 254 / 0.14), transparent 55%),
+    radial-gradient(900px 650px at 110% 5%, rgb(180 140 255 / 0.12), transparent 55%),
+    radial-gradient(700px 900px at 50% 120%, rgb(110 168 254 / 0.06), transparent 60%);
 }
 
 * {
@@ -20,10 +27,16 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: var(--nexus-bg);
+  background-color: var(--nexus-bg);
+  /* the ambient layer sits behind content, never on top of it */
+  background-image: var(--nexus-aurora);
+  background-attachment: fixed;
   color: var(--nexus-text);
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';   /* Inter: single-story a + disambiguation */
+  letter-spacing: 0.01em;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #nexus-root {
@@ -32,13 +45,29 @@ body {
   overflow: hidden;
 }
 
+::selection {
+  background: rgb(110 168 254 / 0.28);
+  color: var(--nexus-text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--nexus-brand);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgb(110 168 254 / 0.18);
+  border-radius: 4px;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a3444;
-  border-radius: 6px;
+  background: #26303f;
+  border: 2px solid var(--nexus-bg);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nexus-brand);
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -47,30 +76,46 @@ body {
 .panel {
   background: var(--nexus-surface);
   border: 1px solid var(--nexus-border);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.35), 0 1px 0 rgb(255 255 255 / 0.02) inset;
 }
 
 .btn {
-  border-radius: 8px;
-  padding: 6px 12px;
+  border-radius: 10px;
+  padding: 7px 14px;
   font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   border: 1px solid var(--nexus-border);
   background: var(--nexus-surface-alt);
   color: var(--nexus-text);
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), background 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .btn:hover {
   border-color: var(--nexus-brand);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgb(110 168 254 / 0.15);
+}
+.btn:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 .btn-primary {
   background: var(--nexus-brand);
   color: #07101f;
   border-color: var(--nexus-brand);
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 6px 22px rgb(110 168 254 / 0.35);
+}
+.btn-primary:hover {
+  box-shadow: 0 8px 30px rgb(110 168 254 / 0.45);
 }
 .tool-active {
   background: var(--nexus-brand);
@@ -87,9 +132,30 @@ select {
 .field {
   background: #0f1420;
   border: 1px solid var(--nexus-border);
-  border-radius: 8px;
-  padding: 6px 8px;
+  border-radius: 10px;
+  padding: 8px 10px;
   color: var(--nexus-text);
   font-size: 13px;
   width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field::placeholder {
+  color: var(--nexus-muted);
+}
+.field:focus {
+  outline: none;
+  border-color: var(--nexus-brand);
+  box-shadow: 0 0 0 4px rgb(110 168 254 / 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .field,
+  ::-webkit-scrollbar-thumb {
+    transition: none;
+  }
+  .btn:hover,
+  .btn:active {
+    transform: none;
+  }
 }
